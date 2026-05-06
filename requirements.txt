@@ -1,0 +1,32 @@
+# 芙清 CRM 客户分析系统 - Python 依赖
+# 安装命令: pip install -r requirements.txt
+
+# 数据处理 (核心)
+duckdb>=0.10.0          # 本地分析型数据库
+pandas>=2.0.0           # 兼容性支持
+numpy>=1.24.0           # 数值计算
+
+# Web 框架
+fastapi>=0.110.0        # 现代异步 Web 框架
+uvicorn>=0.27.0         # ASGI 服务器
+
+# 数据导出
+openpyxl>=3.1.0         # Excel 读写
+python-pptx>=0.6.0      # PPT 生成
+
+# 可视化（已废弃，项目使用 ECharts）
+# plotly>=5.20.0        # 交互式图表 - 已废弃，前端用 ECharts
+# altair>=5.0.0         # 声明式可视化 - 已废弃
+
+# AI 能力
+openai>=1.0.0           # OpenAI API
+
+# 工具
+python-dotenv>=1.0.0    # 环境变量管理
+pydantic>=2.0.0         # 数据验证
+python-dateutil>=2.8.0  # 日期处理
+pyarrow>=15.0.0         # Arrow 格式支持
+
+# 开发工具
+pytest>=8.0.0           # 测试框架
+black>=24.0.0           # 代码格式化

@@ -1,0 +1,585 @@
+<script setup lang="ts">
+import { computed, toValue, h } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { useFilterStore } from '@/stores/filterStore'
+import {
+  fetchCategoryOverview,
+  fetchCategoryDistribution,
+  type CategoryOverviewItem,
+  type CategoryDistributionItem,
+} from '@/api/category'
+import MetricCard from '@/components/MetricCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import EChartsWrapper from '@/components/EChartsWrapper.vue'
+import LoadingState from '@/components/LoadingState.vue'
+import ErrorState from '@/components/ErrorState.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import YOYBadge from '@/components/YOYBadge.vue'
+import DataTablePro from '@/components/DataTablePro.vue'
+import { CHART_COLORS } from '@/composables/useChartTheme'
+import ValueTierTab from './category-tabs/ValueTierTab.vue'
+import CategoryFlowTab from './category-tabs/CategoryFlowTab.vue'
+import MarketBasketTab from './category-tabs/MarketBasketTab.vue'
+import ChurnWarningTab from './category-tabs/ChurnWarningTab.vue'
+import CategoryRepurchaseTab from './category-tabs/CategoryRepurchaseTab.vue'
+
+const filterStore = useFilterStore()
+
+import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+
+const queryParams = computed(() => ({
+  start_date: filterStore.dateRange[0],
+  end_date: filterStore.dateRange[1],
+  level: 'class',
+  metric_type: 'GSV',
+  channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+  exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
+}))
+
+const {
+  data: overviewData,
+  isLoading: overviewLoading,
+  error: overviewError,
+  refetch: overviewRefetch,
+} = useQuery({
+  queryKey: computed(() => ['category-overview', { ...toValue(queryParams) }]),
+  queryFn: () => {
+    const p = toValue(queryParams)
+    return fetchCategoryOverview({
+      start_date: p.start_date,
+      end_date: p.end_date,
+      level: p.level,
+      metric_type: p.metric_type,
+      channel: p.channel,
+      exclude_channels: p.exclude_channels,
+    })
+  },
+  staleTime: 60_000,
+})
+
+const distributionParams = computed(() => {
+  const start = new Date(filterStore.dateRange[0])
+  const end = new Date(filterStore.dateRange[1])
+  const lookback_days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  return {
+    date: filterStore.dateRange[1],
+    lookback_days,
+    level: 'class',
+    channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+    exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
+  }
+})
+
+const {
+  data: distributionData,
+  isLoading: distributionLoading,
+  error: distributionError,
+  refetch: distributionRefetch,
+} = useQuery({
+  queryKey: computed(() => ['category-distribution', { ...toValue(distributionParams) }]),
+  queryFn: () => {
+    const p = toValue(distributionParams)
+    return fetchCategoryDistribution({ date: p.date, lookback_days: p.lookback_days, level: p.level, channel: p.channel, exclude_channels: p.exclude_channels })
+  },
+  staleTime: 60_000,
+})
+
+// 品类列表（用于回购分析下拉框）
+const categoryOptions = computed(() => {
+  if (!distributionData.value?.distribution) return []
+  return distributionData.value.distribution.map((d) => d.name)
+})
+
+
+// ─── 品类运营视角 KPI ──────────────────────────────────────────
+const newCustomerGsvRatio = computed(() => {
+  const ttl = overviewData.value?.all_ttl
+  if (!ttl || !ttl.gsv) return '—'
+  return `${(ttl.new_gsv / ttl.gsv * 100).toFixed(1)}%`
+})
+
+const top3GsvRatio = computed(() => {
+  if (!sortedDistribution.value.length) return '—'
+  const top3 = sortedDistribution.value.slice(0, 3)
+  const top3Gsv = top3.reduce((sum, d) => sum + d.gmv, 0)
+  return `${(top3Gsv / distributionData.value!.total_gmv * 100).toFixed(1)}%`
+})
+
+const topPenetration = computed(() => {
+  const items = distributionData.value?.distribution
+  if (!items?.length) return '—'
+  const top = [...items].sort((a, b) => b.penetration_rate - a.penetration_rate)[0]
+  return `${top.name} ${(top.penetration_rate * 100).toFixed(1)}%`
+})
+
+const topGsvCategory = computed(() => {
+  const items = sortedDistribution.value
+  if (!items?.length) return '—'
+  const top = items[0]
+  return `${top.name} ¥${(top.gmv / 10000).toFixed(1)}万`
+})
+
+// 按GSV降序排序的品类分布（饼图和表格统一使用）
+const sortedDistribution = computed(() => {
+  if (!distributionData.value?.distribution) return []
+  return [...distributionData.value.distribution].sort((a, b) => b.gmv - a.gmv)
+})
+
+const top1GsvPct = computed(() => {
+  const items = sortedDistribution.value
+  if (!items?.length || !distributionData.value?.total_gmv) return '—'
+  return `${(items[0].gmv / distributionData.value.total_gmv * 100).toFixed(1)}%`
+})
+
+const pieChartOption = computed(() => {
+  if (!distributionData.value) return {}
+  const items = sortedDistribution.value.slice(0, 10)
+  return {
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      padding: [10, 12],
+      textStyle: { color: '#0f172a', fontSize: 12 },
+      extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
+      formatter: (params: { name: string; value: number; percent: number }) => {
+        return `${params.name}<br/>GSV: ¥${(params.value / 10000).toFixed(1)}万 (${params.percent}%)`
+      },
+    },
+    legend: {
+      type: 'scroll',
+      orient: 'vertical',
+      right: 10,
+      top: 20,
+      bottom: 20,
+      icon: 'circle',
+      itemGap: 10,
+      textStyle: { color: '#64748b', fontSize: 11 },
+    },
+    color: CHART_COLORS,
+    series: [
+      {
+        name: '品类GSV',
+        type: 'pie',
+        radius: ['40%', '65%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+        label: {
+          show: true,
+          position: 'outside',
+          formatter: (params: any) => `${params.name}\n${params.percent}%`,
+          fontSize: 10,
+          color: '#64748b',
+          lineHeight: 14,
+        },
+        emphasis: {
+          label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#0f172a' },
+        },
+        labelLine: { show: true, length: 10, length2: 8, lineStyle: { color: '#cbd5e1' } },
+        data: items.map((item: CategoryDistributionItem) => ({ name: item.name, value: item.gmv })),
+      },
+    ],
+  }
+})
+
+// ─── 表格列定义 ──────────────────────────────────────────────────
+type SubCol = { title: string; key: string; width: number; align: 'left' | 'center' | 'right'; className?: string; sorter?: any; render?: any }
+
+function gsvChildren(valKey: string, yoyKey: string): SubCol[] {
+  return [
+    {
+      title: '值',
+      key: valKey,
+      width: 105,
+      align: 'center',
+      className: 'bi-cell-number',
+      sorter: (a: any, b: any) => (a[valKey] ?? 0) - (b[valKey] ?? 0),
+      render: (row: any) => `¥${((row[valKey] || 0) / 10000).toFixed(1)}万`,
+    },
+    {
+      title: 'YOY',
+      key: yoyKey,
+      width: 85,
+      align: 'center',
+      sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
+      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+    },
+  ]
+}
+
+function usersChildren(valKey: string, yoyKey: string): SubCol[] {
+  return [
+    {
+      title: '值',
+      key: valKey,
+      width: 90,
+      align: 'center',
+      className: 'bi-cell-number',
+      sorter: (a: any, b: any) => (a[valKey] ?? 0) - (b[valKey] ?? 0),
+      render: (row: any) => ((row[valKey] || 0)).toLocaleString(),
+    },
+    {
+      title: 'YOY',
+      key: yoyKey,
+      width: 85,
+      align: 'center',
+      sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
+      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+    },
+  ]
+}
+
+function ausChildren(valKey: string, yoyKey: string): SubCol[] {
+  return [
+    {
+      title: '值',
+      key: valKey,
+      width: 85,
+      align: 'center',
+      className: 'bi-cell-number',
+      sorter: (a: any, b: any) => (a[valKey] ?? 0) - (b[valKey] ?? 0),
+      render: (row: any) => `¥${((row[valKey] || 0)).toFixed(1)}`,
+    },
+    {
+      title: 'YOY',
+      key: yoyKey,
+      width: 85,
+      align: 'center',
+      sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
+      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+    },
+  ]
+}
+
+function ratioChildren(valKey: string, yoyKey: string): SubCol[] {
+  return [
+    {
+      title: '值',
+      key: valKey,
+      width: 80,
+      align: 'center',
+      className: 'bi-cell-number',
+      sorter: (a: any, b: any) => (a[valKey] ?? 0) - (b[valKey] ?? 0),
+      render: (row: any) => `${(((row[valKey] || 0)) * 100).toFixed(1)}%`,
+    },
+    {
+      title: 'YOY',
+      key: yoyKey,
+      width: 85,
+      align: 'center',
+      sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
+      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+    },
+  ]
+}
+
+const allColumns: DataTableColumns<CategoryOverviewItem> = [
+  {
+    title: '产品分类',
+    key: 'name',
+    width: 130,
+    fixed: 'left',
+    align: 'center',
+    sorter: 'default',
+  },
+  {
+    title: '全店',
+    key: 'all_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('gsv', 'gsv_yoy'),
+      {
+        title: '会员占比',
+        key: 'member_ratio',
+        width: 80,
+        align: 'center',
+        className: 'bi-cell-number',
+        sorter: (a: any, b: any) => (a['member_ratio'] ?? 0) - (b['member_ratio'] ?? 0),
+        render: (row: any) => `${(((row['member_ratio'] || 0)) * 100).toFixed(1)}%`,
+      },
+      {
+        title: 'YOY',
+        key: 'member_ratio_yoy',
+        width: 85,
+        align: 'center',
+        sorter: (a: any, b: any) => (a['member_ratio_yoy'] ?? 0) - (b['member_ratio_yoy'] ?? 0),
+        render: (row: any) => h(YOYBadge, { value: row['member_ratio_yoy'] }),
+      },
+      ...usersChildren('users', 'users_yoy'),
+      ...ausChildren('aus', 'aus_yoy'),
+    ],
+  },
+  {
+    title: '老客',
+    key: 'old_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('old_gsv', 'old_gsv_yoy'),
+      ...ratioChildren('old_ratio', 'old_ratio_yoy'),
+      ...usersChildren('old_users', 'old_users_yoy'),
+      ...ausChildren('old_aus', 'old_aus_yoy'),
+    ],
+  },
+  {
+    title: '新客',
+    key: 'new_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('new_gsv', 'new_gsv_yoy'),
+      ...ratioChildren('new_ratio', 'new_ratio_yoy'),
+      ...usersChildren('new_users', 'new_users_yoy'),
+      ...ausChildren('new_aus', 'new_aus_yoy'),
+    ],
+  },
+]
+
+const memberColumns: DataTableColumns<CategoryOverviewItem> = [
+  {
+    title: '产品分类',
+    key: 'name',
+    width: 130,
+    fixed: 'left',
+    align: 'center',
+    sorter: 'default',
+  },
+  {
+    title: '全店',
+    key: 'all_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('gsv', 'gsv_yoy'),
+      // 会员占比列：自定义标题为"会员占比"
+      {
+        title: '会员占比',
+        key: 'member_ratio',
+        width: 80,
+        align: 'center',
+        className: 'bi-cell-number',
+        sorter: (a: any, b: any) => (a['member_ratio'] ?? 0) - (b['member_ratio'] ?? 0),
+        render: (row: any) => `${(((row['member_ratio'] || 0)) * 100).toFixed(1)}%`,
+      },
+      {
+        title: 'YOY',
+        key: 'member_ratio_yoy',
+        width: 85,
+        align: 'center',
+        sorter: (a: any, b: any) => (a['member_ratio_yoy'] ?? 0) - (b['member_ratio_yoy'] ?? 0),
+        render: (row: any) => h(YOYBadge, { value: row['member_ratio_yoy'] }),
+      },
+      ...usersChildren('users', 'users_yoy'),
+      ...ausChildren('aus', 'aus_yoy'),
+    ],
+  },
+  {
+    title: '老客',
+    key: 'old_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('old_gsv', 'old_gsv_yoy'),
+      ...ratioChildren('old_ratio', 'old_ratio_yoy'),
+      ...usersChildren('old_users', 'old_users_yoy'),
+      ...ausChildren('old_aus', 'old_aus_yoy'),
+    ],
+  },
+  {
+    title: '新客',
+    key: 'new_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('new_gsv', 'new_gsv_yoy'),
+      ...ratioChildren('new_ratio', 'new_ratio_yoy'),
+      ...usersChildren('new_users', 'new_users_yoy'),
+      ...ausChildren('new_aus', 'new_aus_yoy'),
+    ],
+  },
+]
+
+const allTtl = computed<CategoryOverviewItem | null>(() => overviewData.value?.all_ttl || null)
+const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value?.member_ttl || null)
+
+</script>
+
+<template>
+  <div class="space-y-5">
+    <PageHeader title="品类看板" subtitle="品类分布与人群交叉分析" />
+
+    <!-- 6-Tab 主体 -->
+    <div class="p-4" style="background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+      <n-tabs type="line" animated class="mb-1">
+        <!-- ═══ Tab 1: 现状概览 ═══ -->
+        <n-tab-pane name="overview" tab="现状概览">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：品类整体长啥样？哪些品类是主力、哪些在增长？——看清品类规模、集中度和单品明细
+          </p>
+          <div class="space-y-5">
+            <!-- 全局 KPI（品类运营视角） -->
+            <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
+              <n-gi :span="1">
+                <MetricCard
+                  title="新客GSV占比"
+                  :value="newCustomerGsvRatio"
+                  :loading="overviewLoading"
+                  subtitle="新客贡献越高，增长越依赖拉新投入"
+                  formula="新客GSV / 全店GSV"
+                />
+              </n-gi>
+              <n-gi :span="1">
+                <MetricCard
+                  title="TOP3品类GSV占比"
+                  :value="top3GsvRatio"
+                  :loading="distributionLoading"
+                  subtitle="集中度>70%需警惕品类依赖风险"
+                  formula="TOP3品类GSV之和 / 全店总GSV"
+                />
+              </n-gi>
+              <n-gi :span="1">
+                <MetricCard
+                  title="渗透率TOP1"
+                  :value="topPenetration"
+                  :loading="distributionLoading"
+                  subtitle="覆盖用户最广的品类，具备扩圈潜力"
+                  formula="该品类购买人数 / 总购买人数"
+                />
+              </n-gi>
+              <n-gi :span="1">
+                <MetricCard
+                  title="GSV贡献TOP1"
+                  :value="topGsvCategory"
+                  :loading="distributionLoading"
+                  subtitle="当前收入贡献最大的品类，资源倾斜参考"
+                  formula="GSV最高的品类名称 + 金额"
+                />
+              </n-gi>
+            </n-grid>
+
+            <!-- 品类GSV分布 -->
+            <div class="bi-card p-4">
+              <ErrorState
+                v-if="distributionError"
+                :message="(distributionError as Error).message"
+                @retry="distributionRefetch()"
+              />
+              <LoadingState v-else-if="distributionLoading" />
+              <template v-else-if="distributionData?.distribution.length">
+                <div class="flex flex-col lg:flex-row gap-5">
+                  <div class="w-full lg:w-1/2">
+                    <h3 class="text-sm font-semibold text-slate-800 mb-0.5">品类GSV分布</h3>
+                    <p class="text-[11px] text-slate-500 mb-1">TOP10品类GSV占比</p>
+                    <p class="text-[11px] text-slate-400 mb-3">
+                      TOP1占比：<span class="font-semibold text-slate-600">{{ top1GsvPct }}</span>
+                    </p>
+                    <EChartsWrapper :option="pieChartOption" height="320px" />
+                  </div>
+                  <div class="w-full lg:w-1/2">
+                    <h3 class="text-sm font-semibold text-slate-800 mb-0.5">品类明细</h3>
+                    <p class="text-[11px] text-slate-500 mb-3">各品类GSV与用户规模（按GSV降序）</p>
+                    <DataTablePro
+                      :columns="[
+                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', sorter: 'default' },
+                        { title: 'GSV', key: 'gmv', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.gmv ?? 0) - (b.gmv ?? 0), render: (row: any) => `¥${(row.gmv / 10000).toFixed(1)}万` },
+                        { title: '用户数', key: 'user_count', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.user_count ?? 0) - (b.user_count ?? 0) },
+                        { title: '会员占比', key: 'member_ratio', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.member_ratio ?? 0) - (b.member_ratio ?? 0), render: (row: any) => `${((row.member_ratio || 0) * 100).toFixed(1)}%` },
+                        { title: '渗透率', key: 'penetration_rate', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.penetration_rate ?? 0) - (b.penetration_rate ?? 0), render: (row: any) => `${((row.penetration_rate || 0) * 100).toFixed(1)}%` },
+                      ]"
+                      :data="sortedDistribution"
+                      :pagination="{ pageSize: 10 }"
+                    />
+                  </div>
+                </div>
+              </template>
+              <EmptyState v-else description="当前条件下无数据" />
+            </div>
+
+            <!-- 单品概览 — 全店 -->
+            <div class="bi-card p-4">
+              <h3 class="text-sm font-semibold text-slate-800 mb-0.5">单品概览 — 全店</h3>
+              <p class="text-[11px] text-slate-500 mb-3">各单品全店/老客/新客 GSV、人数、AUS 及同比</p>
+              <ErrorState v-if="overviewError" :message="(overviewError as Error).message" @retry="overviewRefetch()" />
+              <LoadingState v-else-if="overviewLoading" />
+              <EmptyState v-else-if="!overviewData?.all_rows.length" description="暂无数据" />
+              <DataTablePro
+                v-else
+                :columns="allColumns"
+                :data="overviewData.all_rows"
+                :total-row="allTtl"
+                :pagination="{ pageSize: 12 }"
+                :scroll-x="1200"
+              />
+            </div>
+
+            <!-- 单品概览 — 会员 -->
+            <div class="bi-card p-4">
+              <h3 class="text-sm font-semibold text-slate-800 mb-0.5">单品概览 — 会员</h3>
+              <p class="text-[11px] text-slate-500 mb-3">各单品会员 GSV、会员占比、人数、AUS 及同比</p>
+              <ErrorState v-if="overviewError" :message="(overviewError as Error).message" @retry="overviewRefetch()" />
+              <LoadingState v-else-if="overviewLoading" />
+              <EmptyState v-else-if="!overviewData?.member_rows.length" description="暂无数据" />
+              <DataTablePro
+                v-else
+                :columns="memberColumns"
+                :data="overviewData.member_rows"
+                :total-row="memberTtl"
+                :pagination="{ pageSize: 12 }"
+                :scroll-x="1250"
+              />
+            </div>
+          </div>
+        </n-tab-pane>
+
+        <!-- ═══ Tab 2: 关联分析 ═══ -->
+        <n-tab-pane name="association" tab="关联分析">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：同一笔订单里哪些品类经常一起被买？——指导组合装设计、关联推荐和满减门槛设置
+          </p>
+          <div class="space-y-5">
+            <MarketBasketTab :category-options="categoryOptions" />
+          </div>
+        </n-tab-pane>
+
+        <!-- ═══ Tab 3: 品类回购分析 ═══ -->
+        <n-tab-pane name="repurchase" tab="品类回购分析">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：买了某品类的老客，多久回来？回来买了同品还是其他品类？——识别品类复购周期和品类间的承接关系
+          </p>
+          <div class="space-y-5">
+            <CategoryRepurchaseTab :category-options="categoryOptions" />
+          </div>
+        </n-tab-pane>
+
+        <!-- ═══ Tab 4: 品类流转 ═══ -->
+        <n-tab-pane name="flow" tab="品类流转">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：用户买了A品类之后流向了哪个品类？——看清品类间的承接关系，指导关联推荐和品类组合策略
+          </p>
+          <div class="space-y-5">
+            <CategoryFlowTab />
+          </div>
+        </n-tab-pane>
+
+        <!-- ═══ Tab 5: 羊毛党分析 ═══ -->
+        <n-tab-pane name="wool" tab="羊毛党分析">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：哪些品类用户质量高（高价值多）、哪些品类薅羊毛严重？——指导品类人群健康度评估和资源投放优先级
+          </p>
+          <div class="space-y-5">
+            <ValueTierTab />
+          </div>
+        </n-tab-pane>
+
+        <!-- ═══ Tab 6: 风险预警 ═══ -->
+        <n-tab-pane name="risk" tab="风险预警">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：哪些品类在流失用户、流失去了哪里？——识别下滑品类并给出挽回方向
+          </p>
+          <div class="space-y-5">
+            <ChurnWarningTab />
+          </div>
+        </n-tab-pane>
+      </n-tabs>
+    </div>
+  </div>
+</template>

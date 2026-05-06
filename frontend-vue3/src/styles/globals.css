@@ -1,0 +1,115 @@
+/* BI Pro Design System - Global Styles */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #0f172a;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  border-radius: 4px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+/* BI Card System */
+.bi-card {
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.bi-card-hover:hover {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  border-color: #cbd5e1;
+}
+
+/* DataTable density overrides for BI look */
+.bi-table .n-data-table-th {
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.bi-table .n-data-table-td {
+  font-size: 13px !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.bi-table .n-data-table-tr:hover .n-data-table-td {
+  background: #f8fafc !important;
+}
+
+.bi-table .n-data-table-tr:last-child .n-data-table-td {
+  border-bottom: none !important;
+}
+
+/* Total row styling */
+.bi-table .bi-total-row .n-data-table-td {
+  font-weight: 600 !important;
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  border-bottom: none !important;
+}
+
+/* Right-aligned number cells */
+.bi-table .bi-cell-number {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Transition utilities */
+.ease-bi {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}

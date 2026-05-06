@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fuqing-crm-analytics"
+version = "2.0.0"
+description = "芙清 CRM 客户分析系统"
+requires-python = ">=3.13"
+
+[tool.uv]
+python-preference = "only-managed"

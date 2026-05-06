@@ -1,0 +1,342 @@
+<script setup lang="ts">
+import { computed, toValue, h, ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import type { DataTableColumns } from 'naive-ui'
+import { useFilterStore } from '@/stores/filterStore'
+import {
+  fetchRFMMFlow,
+  type RFMMFlowRow,
+  type RFMMFlowResponse,
+} from '@/api/flow'
+import EChartsWrapper from '@/components/EChartsWrapper.vue'
+import LoadingState from '@/components/LoadingState.vue'
+import ErrorState from '@/components/ErrorState.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import DataTablePro from '@/components/DataTablePro.vue'
+import YOYBadge from '@/components/YOYBadge.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import { BRAND_PRIMARY } from '@/composables/useChartTheme'
+import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
+import type { XlsxColumn } from '@/utils/exportXlsx'
+
+const filterStore = useFilterStore()
+import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+const mChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
+
+const mFlowQueryParams = computed(() => ({
+  start_date: filterStore.dateRange[0],
+  end_date: filterStore.dateRange[1],
+  channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+  metric_type: 'GSV' as const,
+  exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
+}))
+
+// ⚠️ queryKey 必须 computed(() => [..., {...}]) 展开，否则 ComputedRef 嵌套导致 channel 变化不触发请求
+const mFlowQueryKey = computed(() => ['rfm-m-flow', { ...toValue(mFlowQueryParams) }])
+
+const { data: mFlowData, isLoading: mFlowLoading, error: mFlowError, refetch: mFlowRefetch } = useQuery({
+  queryKey: mFlowQueryKey,
+  queryFn: () => fetchRFMMFlow(toValue(mFlowQueryParams)),
+  staleTime: 60_000,
+})
+
+// ── 回购率柱状图 ──
+const repurchaseRateChartOption = computed(() => {
+  if (!mFlowData.value) return {}
+  const data = mFlowData.value as RFMMFlowResponse
+  const rows = data.rows.filter((r) => r.m_segment !== '已购客TTL')
+  const segments = rows.map((r) => r.m_segment)
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#0f172a', fontSize: 12 },
+      extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
+      formatter: (params: EChartTooltipParam[]) => {
+        let html = `<div class="font-semibold mb-1">${params[0].name}</div>`
+        params.forEach((p) => {
+          html += `<div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>
+            <span class="text-slate-500">${p.seriesName}:</span>
+            <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(2)}%</span>
+          </div>`
+        })
+        return html
+      },
+    },
+    legend: {
+      data: [`${data.year_label}年`, `${data.comp_year_label}年`, `${data.prev2_year_label}年`],
+      top: 0,
+      icon: 'circle',
+      itemGap: 16,
+      textStyle: { color: '#64748b', fontSize: 11 },
+    },
+    grid: { left: 12, right: 12, top: 40, bottom: 8 },
+    xAxis: {
+      type: 'category',
+      data: segments,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#64748b', fontSize: 11, interval: 0 },
+    },
+    yAxis: {
+      type: 'value',
+      name: '回购率',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: '#64748b',
+        fontSize: 11,
+        formatter: (v: number) => `${(v * 100).toFixed(0)}%`,
+      },
+      splitLine: { lineStyle: { color: '#e2e8f0', type: [4, 4] } },
+    },
+    series: [
+      {
+        name: `${data.year_label}年`,
+        type: 'bar',
+        data: rows.map((r) => r.repurchase_rate_current),
+        itemStyle: { color: BRAND_PRIMARY, borderRadius: [3, 3, 0, 0] },
+        barGap: '20%',
+        label: { show: true, position: 'top', formatter: (p: EChartLabelParam) => `${((p.value as number) * 100).toFixed(1)}%`, fontSize: 10, color: BRAND_PRIMARY },
+      },
+      {
+        name: `${data.comp_year_label}年`,
+        type: 'bar',
+        data: rows.map((r) => r.repurchase_rate_comp),
+        itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] },
+        label: { show: true, position: 'top', formatter: (p: EChartLabelParam) => `${((p.value as number) * 100).toFixed(1)}%`, fontSize: 10, color: '#60a5fa' },
+      },
+      {
+        name: `${data.prev2_year_label}年`,
+        type: 'bar',
+        data: rows.map((r) => r.repurchase_rate_prev2),
+        itemStyle: { color: '#94a3b8', borderRadius: [3, 3, 0, 0] },
+        label: { show: true, position: 'top', formatter: (p: EChartLabelParam) => `${((p.value as number) * 100).toFixed(1)}%`, fontSize: 10, color: '#94a3b8' },
+      },
+    ],
+  }
+})
+
+// ── 表格列定义 ──
+const mFlowColumns = computed<DataTableColumns<RFMMFlowRow>>(() => {
+  const yr = mFlowData.value?.year_label || String(new Date().getFullYear())
+  const yr2 = mFlowData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const yr3 = mFlowData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
+
+  return [
+    {
+      title: 'M 区间',
+      key: 'm_segment',
+      width: 160,
+      fixed: 'left',
+      align: 'center',
+      render: (row: RFMMFlowRow) => {
+        return h('div', { class: 'flex flex-col items-center justify-center leading-tight py-0.5' }, [
+          h('div', { class: 'text-[13px] font-medium text-slate-800' }, row.m_segment),
+        ])
+      },
+    },
+    { title: `${yr}历史人数`, key: 'hist_users_current', width: 90, align: 'right', render: (r) => r.hist_users_current.toLocaleString() },
+    { title: `${yr}回购人数`, key: 'repurchase_users_current', width: 90, align: 'right', render: (r) => r.repurchase_users_current.toLocaleString() },
+    {
+      title: `${yr}回购率`,
+      key: 'repurchase_rate_current',
+      width: 80,
+      align: 'right',
+      render: (r) => h('span', { class: 'font-medium text-slate-800' }, `${(r.repurchase_rate_current * 100).toFixed(2)}%`),
+    },
+    { title: `${yr}回购GSV`, key: 'repurchase_gsv_current', width: 90, align: 'right', render: (r) => r.repurchase_gsv_current >= 10000 ? `${(r.repurchase_gsv_current / 10000).toFixed(1)}万` : r.repurchase_gsv_current.toLocaleString() },
+    {
+      title: `${yr}回购GSV占比`,
+      key: 'repurchase_gsv_ratio_current',
+      width: 90,
+      align: 'right',
+      render: (r) => `${(r.repurchase_gsv_ratio_current * 100).toFixed(2)}%`,
+    },
+    {
+      title: `${yr}年同比历史人数`,
+      key: 'yoy_hist_users',
+      width: 110,
+      align: 'center',
+      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_hist_users }),
+    },
+    {
+      title: `${yr}年同比人数`,
+      key: 'yoy_repurchase_users',
+      width: 110,
+      align: 'center',
+      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_users }),
+    },
+    {
+      title: `${yr}同比回购率`,
+      key: 'yoy_repurchase_rate',
+      width: 110,
+      align: 'center',
+      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_rate }),
+    },
+    {
+      title: `${yr}同比回购GSV`,
+      key: 'yoy_repurchase_gsv',
+      width: 110,
+      align: 'center',
+      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv }),
+    },
+    {
+      title: `${yr}同比回购GSV占比`,
+      key: 'yoy_repurchase_gsv_ratio',
+      width: 110,
+      align: 'center',
+      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio }),
+    },
+    { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
+    {
+      title: `${yr2}回购率`,
+      key: 'repurchase_rate_comp',
+      width: 80,
+      align: 'right',
+      render: (r) => `${(r.repurchase_rate_comp * 100).toFixed(2)}%`,
+    },
+    { title: `${yr3}历史人数`, key: 'hist_users_prev2', width: 90, align: 'right', render: (r) => r.hist_users_prev2.toLocaleString() },
+    {
+      title: `${yr3}回购率`,
+      key: 'repurchase_rate_prev2',
+      width: 80,
+      align: 'right',
+      render: (r) => `${(r.repurchase_rate_prev2 * 100).toFixed(2)}%`,
+    },
+  ]
+})
+
+// ── M 区间 Excel 导出列定义 ──
+const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
+  const yr = mFlowData.value?.year_label || String(new Date().getFullYear())
+  const yr2 = mFlowData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const yr3 = mFlowData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
+  return [
+    { header: 'M区间', key: 'm_segment', width: 18 },
+    { header: `${yr}历史人数`, key: 'hist_users_current', width: 12, numFmt: '#,##0' },
+    { header: `${yr}回购人数`, key: 'repurchase_users_current', width: 12, numFmt: '#,##0' },
+    { header: `${yr}回购率`, key: 'repurchase_rate_current', width: 10, numFmt: '0.00%' },
+    { header: `${yr}回购GSV`, key: 'repurchase_gsv_current', width: 14, numFmt: '¥#,##0' },
+    { header: `${yr}回购GSV占比`, key: 'repurchase_gsv_ratio_current', width: 12, numFmt: '0.00%' },
+    { header: `${yr}同比历史人数`, key: 'yoy_hist_users', width: 12, numFmt: '0.0%' },
+    { header: `${yr}同比回购人数`, key: 'yoy_repurchase_users', width: 12, numFmt: '0.0%' },
+    { header: `${yr}同比回购率`, key: 'yoy_repurchase_rate', width: 12, numFmt: '0.0%' },
+    { header: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 12, numFmt: '0.0%' },
+    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio', width: 14, numFmt: '0.0%' },
+    { header: `${yr2}历史人数`, key: 'hist_users_comp', width: 12, numFmt: '#,##0' },
+    { header: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 10, numFmt: '0.00%' },
+    { header: `${yr3}历史人数`, key: 'hist_users_prev2', width: 12, numFmt: '#,##0' },
+    { header: `${yr3}回购率`, key: 'repurchase_rate_prev2', width: 10, numFmt: '0.00%' },
+  ]
+})
+</script>
+
+<template>
+  <div class="m-interval-tab">
+    <!-- 图表 -->
+    <div class="bi-card p-4 mb-4">
+      <div class="flex items-center justify-between mb-0.5">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-800">回购率 3 年对比</h3>
+          <p class="text-[11px] text-slate-500">各 M 区间老客唤醒效率变化</p>
+        </div>
+        <ExportToolbar
+          :filename="`老客分析_M区间回购率_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+          :chart-ref="mChartRef"
+        />
+      </div>
+      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
+      <LoadingState v-else-if="mFlowLoading" />
+      <EmptyState v-else-if="!mFlowData?.rows?.length" description="当前条件下无数据" />
+      <EChartsWrapper v-else ref="mChartRef" :option="repurchaseRateChartOption" height="260px" />
+    </div>
+
+    <!-- 表格：全店 -->
+    <div class="bi-card p-4 mb-4">
+      <div class="flex items-center justify-between mb-0.5">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-800">M 区间流转详情</h3>
+          <p class="text-[11px] text-slate-500">老客按累计消费金额分区回购表现 — 3 年同比</p>
+        </div>
+        <ExportToolbar
+          :filename="`老客分析_M区间全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+          :columns="mFlowXlsxColumns"
+          :data="mFlowData?.rows ?? []"
+          sheet-name="M区间全店"
+        />
+      </div>
+      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
+      <LoadingState v-else-if="mFlowLoading" />
+      <EmptyState v-else-if="!mFlowData?.rows?.length" description="当前条件下无数据" />
+      <DataTablePro
+        v-else
+        :columns="mFlowColumns"
+        :data="mFlowData.rows"
+        :pagination="{ pageSize: 12 }"
+        :scroll-x="2100"
+      />
+    </div>
+
+    <!-- 表格：会员 -->
+    <div class="bi-card p-4 mb-4">
+      <div class="flex items-center justify-between mb-0.5">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-800">M 区间流转详情 — 会员</h3>
+          <p class="text-[11px] text-slate-500">会员老客按累计消费金额分区回购表现 — 3 年同比</p>
+        </div>
+        <ExportToolbar
+          :filename="`老客分析_M区间会员_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+          :columns="mFlowXlsxColumns"
+          :data="mFlowData?.member_rows ?? []"
+          sheet-name="M区间会员"
+        />
+      </div>
+      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
+      <LoadingState v-else-if="mFlowLoading" />
+      <EmptyState v-else-if="!mFlowData?.member_rows?.length" description="当前条件下无数据" />
+      <DataTablePro
+        v-else
+        :columns="mFlowColumns"
+        :data="mFlowData.member_rows"
+        :pagination="{ pageSize: 12 }"
+        :scroll-x="2100"
+      />
+    </div>
+
+    <!-- 表格：本渠道（仅当选择了渠道时显示） -->
+    <template v-if="filterStore.channel !== '全店' && !mFlowLoading && mFlowData?.same_channel_rows?.length">
+      <div class="bi-card p-4 mb-4">
+        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">M 区间流转详情 — 本渠道</h3>
+        <p class="text-[11px] text-slate-500 mb-3">本渠道老客在本渠道回购表现 — 3 年同比</p>
+        <DataTablePro
+          :columns="mFlowColumns"
+          :data="mFlowData.same_channel_rows"
+          :pagination="{ pageSize: 12 }"
+          :scroll-x="2100"
+        />
+      </div>
+      <div class="bi-card p-4 mb-4">
+        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">M 区间流转详情 — 会员本渠道</h3>
+        <p class="text-[11px] text-slate-500 mb-3">会员本渠道老客在本渠道回购表现 — 3 年同比</p>
+        <DataTablePro
+          :columns="mFlowColumns"
+          :data="mFlowData.member_same_channel_rows"
+          :pagination="{ pageSize: 12 }"
+          :scroll-x="2100"
+        />
+      </div>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.m-interval-tab {
+  padding-top: 8px;
+}
+</style>

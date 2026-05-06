@@ -1,0 +1,31 @@
+{
+  "backup_id": "20260419_213721",
+  "action": "update",
+  "timestamp": "2026-04-19T21:37:21.383333",
+  "config": {
+    "weights": {
+      "all_store_repurchase_rate": 0.3,
+      "same_product_repurchase_rate": 0.2,
+      "old_customer_gsv_ratio": 0.05,
+      "old_customer_aus": 0.4,
+      "recent_7d_repurchase_users": 0.05
+    },
+    "targets": {
+      "all_store_repurchase_rate": 0.1122,
+      "same_product_repurchase_rate": 0.0484,
+      "old_customer_gsv_ratio": 0.4058,
+      "old_customer_aus": 217.57,
+      "recent_7d_repurchase_users": 763
+    },
+    "alert_thresholds": {
+      "all_store_repurchase_rate_low": 0.1,
+      "same_product_repurchase_rate_drop": 0.1,
+      "old_customer_gsv_ratio_low": 0.25,
+      "old_customer_aus_low": 50
+    },
+    "health_level_bounds": {
+      "healthy": 70,
+      "warning": 50
+    }
+  }
+}

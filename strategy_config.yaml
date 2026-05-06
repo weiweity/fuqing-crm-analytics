@@ -1,0 +1,350 @@
+# RFM 分层策略配置文件
+# 版本: v2.0（11象限，2026-04-16 更新）
+# 日期: 2026-03-31
+
+rfm:
+  # 标准 RFM 参数（90天周期）
+  standard:
+    analysis_period_days: 90
+    r_thresholds: [14, 30, 60, 90]   # R >= 90 → 1分，60-90 → 2分，30-60 → 3分，14-30 → 4分，<14 → 5分
+    f_thresholds: [1, 2, 3, 5]        # F = 1 → 1分，F = 2 → 2分，F = 3 → 3分，4-5 → 4分，F >= 6 → 5分
+    m_thresholds: [100, 300, 500, 1000]  # M < 100 → 1分，100-300 → 2分，300-500 → 3分，500-1000 → 4分，M >= 1000 → 5分
+
+  # 618 大促 RFM 参数（180天周期）
+  campaign_618:
+    analysis_period_days: 180
+    campaign_date: "2026-06-18"
+    r_thresholds: [30, 60, 90, 180]   # R >= 180 → 1分，90-180 → 2分，60-90 → 3分，30-60 → 4分，<30 → 5分
+    f_thresholds: [1, 2, 3, 4]         # F = 1 → 1分，F = 2 → 2分，F = 3 → 3分，F = 4 → 4分，F >= 5 → 5分
+    m_thresholds: [200, 500, 1000, 2000]  # M < 200 → 1分，200-500 → 2分，500-1000 → 3分，1000-2000 → 4分，M >= 2000 → 5分
+
+# ============================================================
+# 11象限分层定义（v2.0）
+# ============================================================
+segments:
+  1:
+    name_cn: "钻石会员"
+    name_en: "Diamond VIP"
+    r_range: [4, 5]
+    f_range: [4, 5]
+    m_range: [4, 5]
+    description: "核心高价值客户，近14天内有购买、年内购买6次以上、累计消费1000元以上"
+    priority: 1
+    value_contribution: "高"
+    estimated_share: "5-8%"
+    gmv_contribution: "35-45%"
+    color: "#FF6B6B"
+    strategy:
+      - action: "专属1对1客服 + 优先发货"
+        enabled: true
+      - action: "新品优先体验（限量装免费申领）"
+        enabled: true
+      - action: "年度会员专属权益（生日礼、节日礼）"
+        enabled: true
+      - action: "邀请参与产品共创（内测官）"
+        enabled: true
+      - action: "每月定期回访，了解使用反馈"
+        enabled: true
+      - exclude_actions:
+          - "发放优惠券"  # 防止价格敏感
+
+  2:
+    name_cn: "潜力新贵"
+    name_en: "Rising Stars"
+    r_range: [4, 5]
+    f_range: [1, 3]
+    m_range: [4, 5]
+    description: "高活跃度，有消费潜力，近14天内有购买、购买1-2次、消费300-1000元"
+    priority: 2
+    value_contribution: "高"
+    estimated_share: "10-15%"
+    gmv_contribution: "20-25%"
+    color: "#4ECDC4"
+    strategy:
+      - action: "升级激励：满X送正装活动"
+        enabled: true
+      - action: "组合套餐推荐（提升客单）"
+        enabled: true
+      - action: "加微信专属福利群"
+        enabled: true
+      - action: "定向推送高客单价产品"
+        enabled: true
+      - action: "积分加速兑换活动"
+        enabled: true
+
+  3:
+    name_cn: "忠实金主"
+    name_en: "Loyal Patrons"
+    r_range: [1, 2]
+    f_range: [4, 5]
+    m_range: [4, 5]
+    description: "老客户，高度信任，30-90天未购买、购买6次以上、累计消费1000元以上"
+    priority: 3
+    value_contribution: "中"
+    estimated_share: "3-5%"
+    gmv_contribution: "15-20%"
+    color: "#45B7D1"
+    strategy:
+      - action: "老客专属召回礼包（限时）"
+        enabled: true
+      - action: "专属客服电话回访"
+        enabled: true
+      - action: "产品用完提醒 + 复购推荐"
+        enabled: true
+      - action: "邀请参加线下活动"
+        enabled: true
+      - action: "定向推送新品/爆款"
+        enabled: true
+
+  4:
+    name_cn: "频次买家"
+    name_en: "Frequent Buyers"
+    r_range: [1, 3]
+    f_range: [1, 5]
+    m_range: [1, 3]
+    description: "忠诚但不富裕，30-90天未购买、购买1次以上、消费300-1000元"
+    priority: 4
+    value_contribution: "中"
+    estimated_share: "8-12%"
+    gmv_contribution: "10-15%"
+    color: "#96CEB4"
+    strategy:
+      - action: "月度会员日专享价"
+        enabled: true
+      - action: "复购提醒（产品周期推送）"
+        enabled: true
+      - action: "满额赠品活动"
+        enabled: true
+      - action: "拼团邀请（老带新）"
+        enabled: true
+
+  10:
+    name_cn: "偶遇沉睡"
+    name_en: "Occasional Dormant"
+    r_range: [3, 3]
+    f_range: [1, 2]
+    m_range: [1, 2]
+    description: "蛰伏风险，30-60天未购买、购买1-2次、消费100元以下"
+    priority: 10
+    value_contribution: "低"
+    estimated_share: "7-10%"
+    gmv_contribution: "1-2%"
+    color: "#C4A6B8"
+    strategy:
+      - action: "大额复购优惠券（¥50满减）"
+        enabled: true
+      - action: "产品周期到期提醒"
+        enabled: true
+
+  5:
+    name_cn: "豪气新客"
+    name_en: "Big Spender Newcomers"
+    r_range: [4, 5]
+    f_range: [1, 3]
+    m_range: [4, 5]
+    description: "新客户中高消费，近14天内有购买、购买1次、消费500元以上"
+    priority: 5
+    value_contribution: "中"
+    estimated_share: "5-8%"
+    gmv_contribution: "8-12%"
+    color: "#DDA0DD"
+    strategy:
+      - action: "首次购后关怀（使用指导）"
+        enabled: true
+      - action: "限时加购优惠（提升F）"
+        enabled: true
+      - action: "邀请关注店铺/加粉"
+        enabled: true
+      - action: "推送搭配产品"
+        enabled: true
+
+  6:
+    name_cn: "清新路人"
+    name_en: "Fresh Walkers"
+    r_range: [4, 5]
+    f_range: [1, 3]
+    m_range: [1, 3]
+    description: "新客户，低活跃，近14天内有购买、购买1次、消费300元以下"
+    priority: 6
+    value_contribution: "低"
+    estimated_share: "20-30%"
+    gmv_contribution: "5-10%"
+    color: "#98D8C8"
+    strategy:
+      - action: "新人专享券（满99减20）"
+        enabled: true
+      - action: "爆款低价引流"
+        enabled: true
+      - action: "关注店铺领积分"
+        enabled: true
+      - action: "产品种草内容推送"
+        enabled: true
+
+  7:
+    name_cn: "沉睡土豪"
+    name_en: "Dormant Whales"
+    r_range: [1, 2]
+    f_range: [1, 3]
+    m_range: [4, 5]
+    description: "高消费但很久没来，60天以上未购买、消费500元以上"
+    priority: 7
+    value_contribution: "中"
+    estimated_share: "5-8%"
+    gmv_contribution: "8-12%"
+    color: "#F7DC6F"
+    strategy:
+      - action: "大额召回券（限时7天）"
+        enabled: true
+      - action: "人工电话召回"
+        enabled: true
+      - action: "专属回购礼盒"
+        enabled: true
+      - action: "清仓/特卖专场邀请"
+        enabled: true
+
+  8:
+    name_cn: "流失用户"
+    name_en: "Churned Users"
+    r_range: [1, 2]
+    f_range: [1, 3]
+    m_range: [1, 3]
+    description: "濒临或已流失，90天以上未购买、消费500元以下"
+    priority: 8
+    value_contribution: "低"
+    estimated_share: "25-35%"
+    gmv_contribution: "1-5%"
+    color: "#BDC3C7"
+    strategy:
+      - action: "全站大促通知（618/双11）"
+        enabled: true
+      - action: "极低价格召回（清货专场）"
+        enabled: true
+      - action: "流失用户再营销标签"
+        enabled: true
+      - action: "考虑移出日常运营预算"
+        enabled: false
+
+# ============================================================
+# 618 大促专项标签
+# ============================================================
+campaign_618:
+  tags:
+    high_value:
+      - name: "大促高潜_30日加购未购"
+        description: "近30天加购但未下单"
+        condition: "added_cart_30d == True AND purchase_count == 0"
+        priority: 1
+      - name: "大促高潜_收藏未购"
+        description: "收藏商品但未下单"
+        condition: "favorited == True AND purchase_count == 0"
+        priority: 2
+      - name: "大促高潜_去年618买过"
+        description: "2025年618有购买"
+        condition: "pay_time BETWEEN '2025-06-01' AND '2025-06-30'"
+        priority: 3
+      - name: "大促高潜_去年双11买过"
+        description: "2025年双11有购买"
+        condition: "pay_time BETWEEN '2025-11-01' AND '2025-11-30'"
+        priority: 3
+
+    risk:
+      - name: "大促警戒_退货率>30%"
+        description: "退货订单占比>30%"
+        condition: "return_rate > 0.3"
+        priority: 1
+      - name: "大促休眠_180天未购"
+        description: "近180天无购买"
+        condition: "recency_days > 180"
+        priority: 2
+
+    new:
+      - name: "大促新客_2025首购"
+        description: "2025年首次购买"
+        condition: "first_order_date >= '2025-01-01' AND first_order_date <= '2025-12-31'"
+        priority: 1
+
+# ============================================================
+# 导出配置
+# ============================================================
+export:
+  path_template: "data/packages/RFM_{segment}_{date}_{version}.xlsx"
+  sheets:
+    - name: "人群包总览"
+      type: "summary"
+      columns:
+        - "segment_id"
+        - "segment_name"
+        - "segment_name_en"
+        - "user_count"
+        - "gmv_contribution_pct"
+        - "avg_order_value"
+    - name: "01_钻石会员"
+      filter: "segment_id == 1"
+      color: "#FF6B6B"
+    - name: "02_潜力新贵"
+      filter: "segment_id == 2"
+      color: "#4ECDC4"
+    - name: "03_忠实金主"
+      filter: "segment_id == 3"
+      color: "#45B7D1"
+    - name: "04_频次买家"
+      filter: "segment_id == 4"
+      color: "#96CEB4"
+    - name: "05_豪气新客"
+      filter: "segment_id == 5"
+      color: "#DDA0DD"
+    - name: "06_清新路人"
+      filter: "segment_id == 6"
+      color: "#98D8C8"
+    - name: "07_沉睡土豪"
+      filter: "segment_id == 7"
+      color: "#F7DC6F"
+    - name: "08_流失用户"
+      filter: "segment_id == 8"
+      color: "#BDC3C7"
+    - name: "618专项人群"
+      filter: "tag_618_2025_buyer == True OR tag_double11_2025_buyer == True"
+      type: "campaign"
+  standard_fields:
+    - "user_id"
+    - "user_nickname"
+    - "r_score"
+    - "f_score"
+    - "m_score"
+    - "rfm_total"
+    - "segment_id"
+    - "segment_name"
+    - "segment_name_en"
+    - "recency_days"
+    - "frequency_count"
+    - "monetary_amount"
+    - "last_order_date"
+    - "first_order_date"
+    - "analysis_date"
+    - "is_member"
+    - "province"
+    - "city"
+    - "spu_category"
+    - "spu_tier"
+    - "channel"
+  campaign_618_fields:
+    - "user_id"
+    - "user_nickname"
+    - "r_score_618"
+    - "f_score_618"
+    - "m_score_618"
+    - "rfm_total_618"
+    - "segment_id_618"
+    - "segment_name_618"
+    - "tag_added_cart_30d"
+    - "tag_favorited"
+    - "tag_618_2025_buyer"
+    - "tag_double11_2025_buyer"
+    - "tag_risk_return"
+    - "tag_new_2025"
+    - "tag_dormant_180d"
+    - "coupon_eligibility"
+    - "priority_level"
+    - "recommended_action"
+    - "ltv_score"
+    - "churn_risk"

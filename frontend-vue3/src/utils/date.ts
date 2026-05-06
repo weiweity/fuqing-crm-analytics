@@ -1,0 +1,130 @@
+/**
+ * Parse date range from query string (e.g., "2026-01-01,2026-01-31")
+ */
+export function parseDateRange(dateStr: string | null | undefined): [string, string] | null {
+  if (!dateStr || typeof dateStr !== 'string') return null
+  const parts = dateStr.split(',')
+  if (parts.length === 2) {
+    return [parts[0], parts[1]]
+  }
+  return null
+}
+
+/**
+ * Format date to YYYY-MM-DD string
+ */
+export function formatDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Get quick date range presets
+ */
+export const QUICK_RANGES = [
+  { label: '近7天', value: 'last7days' },
+  { label: '近30天', value: 'last30days' },
+  { label: '近90天', value: 'last90days' },
+  { label: '近180天', value: 'last180days' },
+  { label: '本月', value: 'thisMonth' },
+  { label: '上月', value: 'lastMonth' },
+  { label: '今年', value: 'thisYear' },
+]
+
+export function getQuickDateRange(preset: string): [string, string] | null {
+  const today = new Date()
+  const fmt = formatDate
+
+  switch (preset) {
+    case 'last7days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 6)
+      return [fmt(d), fmt(today)]
+    }
+    case 'last30days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 29)
+      return [fmt(d), fmt(today)]
+    }
+    case 'last90days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 89)
+      return [fmt(d), fmt(today)]
+    }
+    case 'last180days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 179)
+      return [fmt(d), fmt(today)]
+    }
+    case 'thisMonth': {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1)
+      return [fmt(start), fmt(today)]
+    }
+    case 'lastMonth': {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const end = new Date(today.getFullYear(), today.getMonth(), 0)
+      return [fmt(start), fmt(end)]
+    }
+    case 'thisYear': {
+      const start = new Date(today.getFullYear(), 0, 1)
+      return [fmt(start), fmt(today)]
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * Get WTD/MTD/YTD/Q1-Q4 date range
+ */
+export type PeriodType = 'WTD' | 'MTD' | 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom'
+
+export function getPeriodDateRange(type: PeriodType): [string, string] | null {
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const year = today.getFullYear()
+  const month = today.getMonth()
+  const fmt = formatDate
+
+  switch (type) {
+    case 'WTD': {
+      const day = today.getDay() || 7 // 周日=7
+      const start = new Date(today)
+      start.setDate(today.getDate() - day + 1) // 周一
+      return [fmt(start), fmt(yesterday)]
+    }
+    case 'MTD': {
+      const start = new Date(year, month, 1)
+      return [fmt(start), fmt(yesterday)]
+    }
+    case 'YTD': {
+      const start = new Date(year, 0, 1)
+      return [fmt(start), fmt(yesterday)]
+    }
+    case 'Q1': {
+      const start = new Date(year, 0, 1)
+      const end = month <= 2 ? yesterday : new Date(year, 2, 31)
+      return [fmt(start), fmt(end)]
+    }
+    case 'Q2': {
+      const start = new Date(year, 3, 1)
+      const end = (month >= 3 && month <= 5) ? yesterday : new Date(year, 5, 30)
+      return [fmt(start), fmt(end)]
+    }
+    case 'Q3': {
+      const start = new Date(year, 6, 1)
+      const end = (month >= 6 && month <= 8) ? yesterday : new Date(year, 8, 30)
+      return [fmt(start), fmt(end)]
+    }
+    case 'Q4': {
+      const start = new Date(year, 9, 1)
+      const end = month >= 9 ? yesterday : new Date(year, 11, 31)
+      return [fmt(start), fmt(end)]
+    }
+    default:
+      return null
+  }
+}

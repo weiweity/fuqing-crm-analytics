@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 问数工程架构看板</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: #0f1419;
+  color: #e7e9ea;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%);
+  border-radius: 16px;
+  border: 1px solid #3d4758;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.architecture-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.flow-box {
+  background: #1e2530;
+  border: 2px solid #3d4758;
+  border-radius: 12px;
+  padding: 16px 24px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.flow-box.active {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, #1e2530 0%, #1e3a5f 100%);
+}
+
+.flow-box.current {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #1e2530 0%, #3d3520 100%);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
+}
+
+.flow-box .label { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
+.flow-box .name { font-size: 16px; font-weight: 600; }
+.flow-box .desc { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+.flow-arrow {
+  color: #4b5563;
+  font-size: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.card {
+  background: #1a1f2e;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.badge-p0 { background: #ef4444; color: white; }
+.badge-p1 { background: #f59e0b; color: white; }
+.badge-p2 { background: #3b82f6; color: white; }
+
+.task-list {
+  list-style: none;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #2d3748;
+}
+
+.task-item:last-child { border-bottom: none; }
+
+.task-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #4b5563;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.task-check.done {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.task-content { flex: 1; }
+
+.task-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.task-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.pipeline-diagram {
+  background: #1a1f2e;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.pipeline-diagram h3 {
+  font-size: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.pipeline-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pipe-stage {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.pipe-stage .stage-name { font-size: 13px; font-weight: 600; }
+.pipe-stage .stage-input { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+.pipe-stage .stage-output { font-size: 11px; color: #60a5fa; margin-top: 4px; }
+
+.pipe-arrow { color: #4b5563; font-size: 18px; }
+
+.gap-section {
+  background: linear-gradient(135deg, #1a1f2e 0%, #2a1f1e 100%);
+  border: 1px solid #ef444440;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.gap-section h3 {
+  color: #f87171;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.gap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.gap-item {
+  background: #1a1f2e;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 3px solid #ef4444;
+}
+
+.gap-item .gap-name { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.gap-item .gap-desc { font-size: 12px; color: #9ca3af; line-height: 1.5; }
+.gap-item .gap-fix { font-size: 12px; color: #10b981; margin-top: 8px; }
+
+.priority-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 12px;
+  background: #1a1f2e;
+  border-radius: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend-dot.p0 { background: #ef4444; }
+.legend-dot.p1 { background: #f59e0b; }
+.legend-dot.p2 { background: #3b82f6; }
+
+.roadmap {
+  background: #1a1f2e;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.roadmap h3 { font-size: 16px; margin-bottom: 20px; }
+
+.roadmap-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.roadmap-phase {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.roadmap-phase .phase { font-size: 13px; font-weight: 600; }
+.roadmap-phase .time { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+
+.roadmap-tasks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.roadmap-task {
+  background: #1a1f2e;
+  border: 1px solid #3d4758;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.roadmap-task.done {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.roadmap-task.current {
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+footer {
+  text-align: center;
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #2d3748;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 AI 问数工程架构看板</h1>
+  <p>基于 Chip Huyen《AI 工程》框架 · 适用于 Text-to-SQL 场景</p>
+</div>
+
+<!-- AI 工程核心流程 -->
+<div class="architecture-flow">
+  <div class="flow-box">
+    <div class="label">INPUT</div>
+    <div class="name">用户问数</div>
+    <div class="desc">自然语言查询</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box active">
+    <div class="label">1. Preprocess</div>
+    <div class="name">预处理</div>
+    <div class="desc">Schema 过滤 / Prompt 注入</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="label">2. Rerank</div>
+    <div class="name">意图理解</div>
+    <div class="desc">Query 分类 / 上下文记忆</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box current">
+    <div class="label">3. Generate</div>
+    <div class="name">SQL 生成</div>
+    <div class="desc">LLM → SQL / NLG 描述</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="label">4. Evaluate</div>
+    <div class="name">结果校验</div>
+    <div class="desc">正确性 / 性能 / 监控</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="label">OUTPUT</div>
+    <div class="name">返回结果</div>
+    <div class="desc">数据 + 描述</div>
+  </div>
+</div>
+
+<!-- Pipeline 详解 -->
+<div class="pipeline-diagram">
+  <h3>📐 AI 问数 Pipeline 详解</h3>
+  <div class="pipeline-flow">
+    <div class="pipe-stage">
+      <div class="stage-name">① 解析层</div>
+      <div class="stage-input">输入: 用户问数</div>
+      <div class="stage-output">输出: 意图 + 实体</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-stage">
+      <div class="stage-name">② 检索层</div>
+      <div class="stage-input">输入: 解析结果</div>
+      <div class="stage-output">输出: 相关表/字段</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-stage">
+      <div class="stage-name">③ 生成层</div>
+      <div class="stage-input">输入: Schema + Prompt</div>
+      <div class="stage-output">输出: SQL</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-stage">
+      <div class="stage-name">④ 校验层</div>
+      <div class="stage-input">输入: SQL</div>
+      <div class="stage-output">输出: 合规 SQL</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-stage">
+      <div class="stage-name">⑤ 执行层</div>
+      <div class="stage-input">输入: 合规 SQL</div>
+      <div class="stage-output">输出: 结果集</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-stage">
+      <div class="stage-name">⑥ 包装层</div>
+      <div class="stage-input">输入: 结果集</div>
+      <div class="stage-output">输出: NLG 描述</div>
+    </div>
+  </div>
+</div>
+
+<!-- 优先级图例 -->
+<div class="priority-legend">
+  <div class="legend-item"><div class="legend-dot p0"></div>P0 = 立刻做（不补就盲飞）</div>
+  <div class="legend-item"><div class="legend-dot p1"></div>P1 = 下一步（评估驱动优化）</div>
+  <div class="legend-item"><div class="legend-dot p2"></div>P2 = 进阶（竞争壁垒）</div>
+</div>
+
+<!-- 核心差距分析 -->
+<div class="gap-section">
+  <h3>⚠️ 你现在缺什么？（核心差距）</h3>
+  <div class="gap-grid">
+    <div class="gap-item">
+      <div class="gap-name">❌ 没有评估集</div>
+      <div class="gap-desc">不知道 AI 生成的 SQL 对不对，无法量化改进效果</div>
+      <div class="gap-fix">→ 收集 50-100 个标注好的 query-SQL 对</div>
+    </div>
+    <div class="gap-item">
+      <div class="gap-name">❌ 没有校验层</div>
+      <div class="gap-desc">生成的 SQL 直接进数据库，可能有语法错误或恶意查询</div>
+      <div class="gap-fix">→ DuckDB 原生校验 + 简单 regex 过滤</div>
+    </div>
+    <div class="gap-item">
+      <div class="gap-name">❌ 没有监控</div>
+      <div class="gap-desc">哪些 query 回答得好/差？执行耗时多少？全靠感觉</div>
+      <div class="gap-fix">→ 记录每次 query + SQL + 执行时间 + 结果质量</div>
+    </div>
+    <div class="gap-item">
+      <div class="gap-name">❌ 没有 Prompt 版本管理</div>
+      <div class="gap-desc">Prompt 改来改去，不知道哪个版本更好</div>
+      <div class="gap-fix">→ Prompt 模板库 + A/B 测试机制</div>
+    </div>
+  </div>
+</div>
+
+<!-- 任务看板 -->
+<div class="grid">
+
+  <!-- P0 任务 -->
+  <div class="card">
+    <h3><span class="badge badge-p0">P0</span> 立刻补上</h3>
+    <ul class="task-list">
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">建立 SQL 正确性评估集</div>
+          <div class="task-meta">50-100 个历史 query，手工标注正确 SQL</div>
+        </div>
+      </li>
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">添加 SQL 语法校验层</div>
+          <div class="task-meta">防止乱 SQL 进数据库 / DuckDB 原生校验</div>
+        </div>
+      </li>
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">添加结果 sanity check</div>
+          <div class="task-meta">子字段和 ≤ 总数、比例合理、值域过滤</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- P1 任务 -->
+  <div class="card">
+    <h3><span class="badge badge-p1">P1</span> 评估驱动优化</h3>
+    <ul class="task-list">
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">Prompt 版本管理</div>
+          <div class="task-meta">模板库 + 版本对比 + 回答质量评分</div>
+        </div>
+      </li>
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">慢查询分析</div>
+          <div class="task-meta">统计 Top 10 慢查询 / SQL 执行时间分布</div>
+        </div>
+      </li>
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">NLG 描述优化</div>
+          <div class="task-meta">让 AI 返回自然语言解释，不只是数字</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- P2 任务 -->
+  <div class="card">
+    <h3><span class="badge badge-p2">P2</span> 竞争壁垒</h3>
+    <ul class="task-list">
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">Text-to-SQL 微调</div>
+          <div class="task-meta">用你们数据库的 query-SQL 对微调模型</div>
+        </div>
+      </li>
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">历史 query 记忆</div>
+          <div class="task-meta">同一个用户问类似问题时复用上下文</div>
+        </div>
+      </li>
+      <li class="task-item">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-title">多表关联优化</div>
+          <div class="task-meta">跨品类、跨地域查询的 SQL 质量提升</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- 演进路线图 -->
+<div class="roadmap">
+  <h3>🗺️ 演进路线图</h3>
+
+  <div class="roadmap-row">
+    <div class="roadmap-phase">
+      <div class="phase">Phase 1</div>
+      <div class="time">现在 → 2周</div>
+    </div>
+    <div class="roadmap-tasks">
+      <div class="roadmap-task current">① 评估集 50条</div>
+      <div class="roadmap-task current">② SQL 校验</div>
+      <div class="roadmap-task current">③ sanity check</div>
+    </div>
+  </div>
+
+  <div class="roadmap-row">
+    <div class="roadmap-phase">
+      <div class="phase">Phase 2</div>
+      <div class="time">2周 → 1月</div>
+    </div>
+    <div class="roadmap-tasks">
+      <div class="roadmap-task">④ Prompt 版本管理</div>
+      <div class="roadmap-task">⑤ 慢查询分析</div>
+      <div class="roadmap-task">⑥ NLG 优化</div>
+    </div>
+  </div>
+
+  <div class="roadmap-row">
+    <div class="roadmap-phase">
+      <div class="phase">Phase 3</div>
+      <div class="time">1月 → 3月</div>
+    </div>
+    <div class="roadmap-tasks">
+      <div class="roadmap-task">⑦ Text-to-SQL 微调</div>
+      <div class="roadmap-task">⑧ 历史记忆</div>
+      <div class="roadmap-task">⑨ 多表关联优化</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>基于 Chip Huyen《AI工程：大模型应用开发实战》框架 · 适配 Text-to-SQL 场景</p>
+  <p style="margin-top: 4px;">参考：Preprocess → Rerank → Generate → Evaluate 核心架构</p>
+</footer>
+
+</body>
+</html>

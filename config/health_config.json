@@ -1,0 +1,26 @@
+{
+  "weights": {
+    "all_store_repurchase_rate": 0.3,
+    "same_product_repurchase_rate": 0.2,
+    "old_customer_gsv_ratio": 0.05,
+    "old_customer_aus": 0.4,
+    "recent_7d_repurchase_users": 0.05
+  },
+  "targets": {
+    "all_store_repurchase_rate": 0.0774,
+    "same_product_repurchase_rate": 0.0169,
+    "old_customer_gsv_ratio": 0.3449,
+    "old_customer_aus": 104.69,
+    "recent_7d_repurchase_users": 1959
+  },
+  "alert_thresholds": {
+    "all_store_repurchase_rate_low": 0.1,
+    "same_product_repurchase_rate_drop": 0.1,
+    "old_customer_gsv_ratio_low": 0.25,
+    "old_customer_aus_low": 50
+  },
+  "health_level_bounds": {
+    "healthy": 70,
+    "warning": 50
+  }
+}
