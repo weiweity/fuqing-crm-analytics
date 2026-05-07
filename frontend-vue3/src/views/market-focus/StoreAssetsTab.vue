@@ -56,18 +56,20 @@ const crowdSeries = computed(() => {
 })
 
 // 格式化
-function fmtInt(v: number): string {
+function fmtInt(v: number | undefined | null): string {
+  if (v == null) return '-'
   return v.toLocaleString()
 }
 
-function fmtChange(v: number): string {
+function fmtChange(v: number | undefined | null): string {
+  if (v == null) return '-'
   const abs = Math.abs(v)
-  const sign = v > 0 ? '+' : ''
+  const sign = v > 0 ? '+' : v < 0 ? '-' : ''
   // 超过5位数（10000以上）显示万单位
   if (abs >= 10000) {
     return `${sign}${(abs / 10000).toFixed(1)}万`
   }
-  return `${sign}${v.toLocaleString()}`
+  return `${sign}${abs.toLocaleString()}`
 }
 
 function changeClass(v: number): string {
@@ -118,7 +120,7 @@ function rowBg(idx: number): string {
 
       <!-- 变化行说明 -->
       <NAlert type="warning" :bordered="false" class="text-xs mb-2" size="small">
-        注：本周对比为绝对值差（+N人），非百分比
+        注：周环比与YOY同比均为绝对值差（+N人），非百分比
       </NAlert>
 
       <!-- 数据表（周维度） -->
@@ -162,6 +164,21 @@ function rowBg(idx: number): string {
                 :class="changeClass(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_change` as `${StoreField}_change`])"
               >
                 {{ fmtChange(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_change` as `${StoreField}_change`]) }}
+              </td>
+            </tr>
+            <!-- 本周对比去年同期 -->
+            <tr
+              v-if="weeklyData.weeks.length >= 1"
+              class="border-b border-slate-200 bg-amber-50/50"
+            >
+              <td class="py-2 px-3 text-slate-500 font-medium sticky left-0 bg-amber-50/50 z-10">本周对比去年同期</td>
+              <td
+                v-for="col in storeColumns"
+                :key="col.key"
+                class="py-2 px-3 text-right tabular-nums"
+                :class="changeClass(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_yoy` as `${StoreField}_yoy`])"
+              >
+                {{ fmtChange(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_yoy` as `${StoreField}_yoy`]) }}
               </td>
             </tr>
           </tbody>

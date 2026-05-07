@@ -157,6 +157,7 @@ interface TableRow {
   weekLabel: string
   weekIdx: number
   isChangeRow: boolean
+  isYoyRow: boolean
   gsv: number
   new_gsv: number
   old_gsv: number
@@ -189,6 +190,7 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
       weekLabel: getWeekLabel(r!.range.start, r!.range.end),
       weekIdx,
       isChangeRow: false,
+      isYoyRow: false,
       gsv: ttl.gsv,
       new_gsv: ttl.new_gsv,
       old_gsv: ttl.old_gsv,
@@ -223,6 +225,7 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
         weekLabel: getWeekLabel(r.range.start, r.range.end),
         weekIdx,
         isChangeRow: false,
+        isYoyRow: false,
         gsv,
         new_gsv,
         old_gsv,
@@ -247,37 +250,142 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
     groups[row.product].push(row)
   }
 
-  // 为每组添加本周对比上周行
-  for (const name in groups) {
-    const rows = groups[name]
-    if (rows.length >= 2) {
-      const latest = rows[rows.length - 1]
-      const prev = rows[rows.length - 2]
-      const changeRow: TableRow = {
-        id: `yoy-${name}`,
-        product: name,
-        weekLabel: '本周对比上周',
-        weekIdx: -1,
-        isChangeRow: true,
-        // 绝对值指标：百分比变化
-        gsv: prev.gsv > 0 ? (latest.gsv - prev.gsv) / prev.gsv : 0,
-        new_gsv: prev.new_gsv > 0 ? (latest.new_gsv - prev.new_gsv) / prev.new_gsv : 0,
-        old_gsv: prev.old_gsv > 0 ? (latest.old_gsv - prev.old_gsv) / prev.old_gsv : 0,
-        users: prev.users > 0 ? (latest.users - prev.users) / prev.users : 0,
-        new_users: prev.new_users > 0 ? (latest.new_users - prev.new_users) / prev.new_users : 0,
-        old_users: prev.old_users > 0 ? (latest.old_users - prev.old_users) / prev.old_users : 0,
-        aus: prev.aus > 0 ? (latest.aus - prev.aus) / prev.aus : 0,
-        new_aus: prev.new_aus > 0 ? (latest.new_aus - prev.new_aus) / prev.new_aus : 0,
-        old_aus: prev.old_aus > 0 ? (latest.old_aus - prev.old_aus) / prev.old_aus : 0,
-        // 占比指标：百分点差（pp）
-        new_ratio_gsv: latest.new_ratio_gsv - prev.new_ratio_gsv,
-        old_ratio_gsv: latest.old_ratio_gsv - prev.old_ratio_gsv,
-        new_ratio_users: latest.new_ratio_users - prev.new_ratio_users,
-        old_ratio_users: latest.old_ratio_users - prev.old_ratio_users,
+    // 为每组添加本周对比上周行
+    for (const name in groups) {
+      const rows = groups[name]
+      if (rows.length >= 2) {
+        const latest = rows[rows.length - 1]
+        const prev = rows[rows.length - 2]
+        const changeRow: TableRow = {
+          id: `change-${name}`,
+          product: name,
+          weekLabel: '本周对比上周',
+          weekIdx: -1,
+          isChangeRow: true,
+          isYoyRow: false,
+          // 绝对值指标：百分比变化
+          gsv: prev.gsv > 0 ? (latest.gsv - prev.gsv) / prev.gsv : 0,
+          new_gsv: prev.new_gsv > 0 ? (latest.new_gsv - prev.new_gsv) / prev.new_gsv : 0,
+          old_gsv: prev.old_gsv > 0 ? (latest.old_gsv - prev.old_gsv) / prev.old_gsv : 0,
+          users: prev.users > 0 ? (latest.users - prev.users) / prev.users : 0,
+          new_users: prev.new_users > 0 ? (latest.new_users - prev.new_users) / prev.new_users : 0,
+          old_users: prev.old_users > 0 ? (latest.old_users - prev.old_users) / prev.old_users : 0,
+          aus: prev.aus > 0 ? (latest.aus - prev.aus) / prev.aus : 0,
+          new_aus: prev.new_aus > 0 ? (latest.new_aus - prev.new_aus) / prev.new_aus : 0,
+          old_aus: prev.old_aus > 0 ? (latest.old_aus - prev.old_aus) / prev.old_aus : 0,
+          // 占比指标：百分点差（pp）
+          new_ratio_gsv: latest.new_ratio_gsv - prev.new_ratio_gsv,
+          old_ratio_gsv: latest.old_ratio_gsv - prev.old_ratio_gsv,
+          new_ratio_users: latest.new_ratio_users - prev.new_ratio_users,
+          old_ratio_users: latest.old_ratio_users - prev.old_ratio_users,
+        }
+        rows.push(changeRow)
       }
-      rows.push(changeRow)
+
+      // YOY同比行：全店用 ttl，产品行从 all_rows 聚合推导
+      const lastWeekIdx = results.length - 1
+      const lastResult = results[lastWeekIdx]!
+
+      if (name === '全店') {
+        const ttl = lastResult.ttl
+        const yoyRow: TableRow = {
+          id: `yoy-${name}`,
+          product: name,
+          weekLabel: '本周对比去年同期',
+          weekIdx: -2,
+          isChangeRow: false,
+          isYoyRow: true,
+          gsv: ttl.gsv_yoy ?? 0,
+          new_gsv: ttl.new_gsv_yoy ?? 0,
+          old_gsv: ttl.old_gsv_yoy ?? 0,
+          users: ttl.users_yoy ?? 0,
+          new_users: ttl.new_users_yoy ?? 0,
+          old_users: ttl.old_users_yoy ?? 0,
+          aus: ttl.aus_yoy ?? 0,
+          new_aus: ttl.new_aus_yoy ?? 0,
+          old_aus: ttl.old_aus_yoy ?? 0,
+          new_ratio_gsv: ttl.new_ratio_yoy ?? 0,
+          old_ratio_gsv: ttl.old_ratio_yoy ?? 0,
+          new_ratio_users: ttl.new_users_ratio_yoy ?? 0,
+          old_ratio_users: ttl.old_users_ratio_yoy ?? 0,
+        }
+        rows.push(yoyRow)
+      } else {
+        // 产品组：从 all_rows 聚合 YOY
+        const product = mapping.find(p => p.name === name)
+        if (product) {
+          const matchingRows = lastResult.rows.filter(row => product.spu_classes.includes(row.name))
+          if (matchingRows.length > 0) {
+            // 从 yoy_absolute 的反函数推导去年同期绝对值: comp = cur / (1 + yoy)
+            const deriveComp = (cur: number, yoy: number | null | undefined): number => {
+              if (yoy == null || yoy === 0) return cur
+              const denom = 1 + yoy
+              return Math.abs(denom) > 1e-6 ? cur / denom : cur
+            }
+            // 聚合绝对值 YOY: sum(当前) / sum(去年同期) - 1
+            const aggAbsYoy = (curSum: number, compSum: number): number => {
+              return Math.abs(compSum) > 1e-6 ? (curSum - compSum) / compSum : 0
+            }
+
+            // 聚合当前 & 去年同期值
+            const curGsv = matchingRows.reduce((s, r) => s + r.gsv, 0)
+            const compGsv = matchingRows.reduce((s, r) => s + deriveComp(r.gsv, r.gsv_yoy), 0)
+            const curNewGsv = matchingRows.reduce((s, r) => s + r.new_gsv, 0)
+            const compNewGsv = matchingRows.reduce((s, r) => s + deriveComp(r.new_gsv, r.new_gsv_yoy), 0)
+            const curOldGsv = matchingRows.reduce((s, r) => s + r.old_gsv, 0)
+            const compOldGsv = matchingRows.reduce((s, r) => s + deriveComp(r.old_gsv, r.old_gsv_yoy), 0)
+            const curUsers = matchingRows.reduce((s, r) => s + r.users, 0)
+            const compUsers = matchingRows.reduce((s, r) => s + deriveComp(r.users, r.users_yoy), 0)
+            const curNewUsers = matchingRows.reduce((s, r) => s + (r.new_users || 0), 0)
+            const compNewUsers = matchingRows.reduce((s, r) => s + deriveComp(r.new_users || 0, r.new_users_yoy), 0)
+            const curOldUsers = matchingRows.reduce((s, r) => s + (r.old_users || 0), 0)
+            const compOldUsers = matchingRows.reduce((s, r) => s + deriveComp(r.old_users || 0, r.old_users_yoy), 0)
+
+            // 客单价 = GSV / users，用聚合值
+            const curAus = curUsers > 0 ? curGsv / curUsers : 0
+            const compAus = compUsers > 0 ? compGsv / compUsers : 0
+            const curNewAus = curNewUsers > 0 ? curNewGsv / curNewUsers : 0
+            const compNewAus = compNewUsers > 0 ? compNewGsv / compNewUsers : 0
+            const curOldAus = curOldUsers > 0 ? curOldGsv / curOldUsers : 0
+            const compOldAus = compOldUsers > 0 ? compOldGsv / compOldUsers : 0
+
+            // 占比 = 用聚合值算
+            const curRatioNewGsv = curGsv > 0 ? curNewGsv / curGsv : 0
+            const compRatioNewGsv = compGsv > 0 ? compNewGsv / compGsv : 0
+            const curRatioOldGsv = curGsv > 0 ? curOldGsv / curGsv : 0
+            const compRatioOldGsv = compGsv > 0 ? compOldGsv / compGsv : 0
+            const curRatioNewUsers = curUsers > 0 ? curNewUsers / curUsers : 0
+            const compRatioNewUsers = compUsers > 0 ? compNewUsers / compUsers : 0
+            const curRatioOldUsers = curUsers > 0 ? curOldUsers / curUsers : 0
+            const compRatioOldUsers = compUsers > 0 ? compOldUsers / compUsers : 0
+
+            const yoyRow: TableRow = {
+              id: `yoy-${name}`,
+              product: name,
+              weekLabel: '本周对比去年同期',
+              weekIdx: -2,
+              isChangeRow: false,
+              isYoyRow: true,
+              gsv: aggAbsYoy(curGsv, compGsv),
+              new_gsv: aggAbsYoy(curNewGsv, compNewGsv),
+              old_gsv: aggAbsYoy(curOldGsv, compOldGsv),
+              users: aggAbsYoy(curUsers, compUsers),
+              new_users: aggAbsYoy(curNewUsers, compNewUsers),
+              old_users: aggAbsYoy(curOldUsers, compOldUsers),
+              aus: aggAbsYoy(curAus, compAus),
+              new_aus: aggAbsYoy(curNewAus, compNewAus),
+              old_aus: aggAbsYoy(curOldAus, compOldAus),
+              // 占比 YOY 用百分点差
+              new_ratio_gsv: curRatioNewGsv - compRatioNewGsv,
+              old_ratio_gsv: curRatioOldGsv - compRatioOldGsv,
+              new_ratio_users: curRatioNewUsers - compRatioNewUsers,
+              old_ratio_users: curRatioOldUsers - compRatioOldUsers,
+            }
+            rows.push(yoyRow)
+          }
+        }
+      }
     }
-  }
 
   // 按最新周GSV排序
   const sortedProducts = Object.keys(groups).sort((a, b) => {
@@ -466,7 +574,7 @@ const columns: DataTableColumns<Row> = [
     key: 'gsv',
     width: 95,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.gsv) }, fmtYoy(row.gsv))
       : fmtMoney(row.gsv),
   },
@@ -475,7 +583,7 @@ const columns: DataTableColumns<Row> = [
     key: 'new_gsv',
     width: 95,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.new_gsv) }, fmtYoy(row.new_gsv))
       : fmtMoney(row.new_gsv),
   },
@@ -484,7 +592,7 @@ const columns: DataTableColumns<Row> = [
     key: 'old_gsv',
     width: 95,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.old_gsv) }, fmtYoy(row.old_gsv))
       : fmtMoney(row.old_gsv),
   },
@@ -493,7 +601,7 @@ const columns: DataTableColumns<Row> = [
     key: 'users',
     width: 85,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.users) }, fmtYoy(row.users))
       : fmtInt(row.users),
   },
@@ -502,7 +610,7 @@ const columns: DataTableColumns<Row> = [
     key: 'new_users',
     width: 75,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.new_users) }, fmtYoy(row.new_users))
       : fmtInt(row.new_users),
   },
@@ -511,7 +619,7 @@ const columns: DataTableColumns<Row> = [
     key: 'old_users',
     width: 75,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.old_users) }, fmtYoy(row.old_users))
       : fmtInt(row.old_users),
   },
@@ -520,7 +628,7 @@ const columns: DataTableColumns<Row> = [
     key: 'aus',
     width: 85,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.aus) }, fmtYoy(row.aus))
       : fmtAus(row.aus),
   },
@@ -529,7 +637,7 @@ const columns: DataTableColumns<Row> = [
     key: 'new_aus',
     width: 90,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.new_aus) }, fmtYoy(row.new_aus))
       : fmtAus(row.new_aus),
   },
@@ -538,7 +646,7 @@ const columns: DataTableColumns<Row> = [
     key: 'old_aus',
     width: 90,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.old_aus) }, fmtYoy(row.old_aus))
       : fmtAus(row.old_aus),
   },
@@ -547,7 +655,7 @@ const columns: DataTableColumns<Row> = [
     key: 'new_ratio_gsv',
     width: 100,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.new_ratio_gsv) }, fmtPctChange(row.new_ratio_gsv))
       : fmtPct(row.new_ratio_gsv),
   },
@@ -556,7 +664,7 @@ const columns: DataTableColumns<Row> = [
     key: 'old_ratio_gsv',
     width: 100,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.old_ratio_gsv) }, fmtPctChange(row.old_ratio_gsv))
       : fmtPct(row.old_ratio_gsv),
   },
@@ -565,7 +673,7 @@ const columns: DataTableColumns<Row> = [
     key: 'new_ratio_users',
     width: 100,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.new_ratio_users) }, fmtPctChange(row.new_ratio_users))
       : fmtPct(row.new_ratio_users),
   },
@@ -574,7 +682,7 @@ const columns: DataTableColumns<Row> = [
     key: 'old_ratio_users',
     width: 100,
     align: 'right',
-    render: (row) => row.isChangeRow
+    render: (row) => row.isChangeRow || row.isYoyRow
       ? h('span', { class: changeClass(row.old_ratio_users) }, fmtPctChange(row.old_ratio_users))
       : fmtPct(row.old_ratio_users),
   },
@@ -583,6 +691,7 @@ const columns: DataTableColumns<Row> = [
 // 行样式
 function rowClassName(row: TableRow): string {
   if (row.isChangeRow) return 'bg-violet-50/50'
+  if (row.isYoyRow) return 'bg-amber-50/50'
   return ''
 }
 </script>

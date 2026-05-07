@@ -23,6 +23,14 @@ export interface StoreAssetWeek {
   initial_change: number
   numerous_change: number
   keen_change: number
+  total_yoy: number
+  discover_yoy: number
+  engage_yoy: number
+  enthuse_yoy: number
+  perform_yoy: number
+  initial_yoy: number
+  numerous_yoy: number
+  keen_yoy: number
 }
 
 export interface StoreAssetResponse {
@@ -53,6 +61,12 @@ export interface ProductAssetWeek {
   initial_change: number
   repurchase_change: number
   lian_dai_change: number
+  total_yoy: number
+  shallow_grass_yoy: number
+  deep_grass_yoy: number
+  initial_yoy: number
+  repurchase_yoy: number
+  lian_dai_yoy: number
 }
 
 export interface ProductAssetItem {
@@ -66,11 +80,11 @@ export interface ProductAssetResponse {
   latest_week: string
 }
 
-export function fetchProductAssets(weeks: number = 4): Promise<ProductAssetResponse> {
-  return client.get('/v1/market-focus/product-assets', { params: { weeks } })
+export function fetchProductAssets(weeks: number = 4, days: number = 0): Promise<ProductAssetResponse> {
+  return client.get('/v1/market-focus/product-assets', { params: { weeks, days } })
 }
 
-export function fetchOtherProductAssets(weeks: number = 4): Promise<ProductAssetResponse> {
-  return client.get('/v1/market-focus/other-product-assets', { params: { weeks } })
+export function fetchOtherProductAssets(weeks: number = 4, days: number = 0): Promise<ProductAssetResponse> {
+  return client.get('/v1/market-focus/other-product-assets', { params: { weeks, days } })
 }
 

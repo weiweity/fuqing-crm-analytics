@@ -52,6 +52,10 @@ export interface CategoryOverviewItem {
   new_users_yoy: number | null
   new_aus: number
   new_aus_yoy: number | null
+  old_users_ratio?: number | null
+  old_users_ratio_yoy?: number | null
+  new_users_ratio?: number | null
+  new_users_ratio_yoy?: number | null
   member_ratio?: number | null
   member_ratio_yoy?: number | null
 }

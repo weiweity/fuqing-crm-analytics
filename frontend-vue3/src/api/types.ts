@@ -1301,6 +1301,14 @@ export interface components {
             new_aus: number;
             /** New Aus Yoy */
             new_aus_yoy?: number | null;
+            /** Old Users Ratio */
+            old_users_ratio?: number | null;
+            /** Old Users Ratio Yoy */
+            old_users_ratio_yoy?: number | null;
+            /** New Users Ratio */
+            new_users_ratio?: number | null;
+            /** New Users Ratio Yoy */
+            new_users_ratio_yoy?: number | null;
             /** Member Ratio */
             member_ratio?: number | null;
             /** Member Ratio Yoy */

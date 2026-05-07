@@ -23,13 +23,13 @@ const channelOptions = [
 ]
 
 const periodTypeOptions = [
-  { label: 'WTD', value: 'WTD' },
-  { label: 'MTD', value: 'MTD' },
-  { label: 'YTD', value: 'YTD' },
-  { label: 'Q1', value: 'Q1' },
-  { label: 'Q2', value: 'Q2' },
-  { label: 'Q3', value: 'Q3' },
-  { label: 'Q4', value: 'Q4' },
+  { label: '周', value: 'WTD' },
+  { label: '月', value: 'MTD' },
+  { label: '年', value: 'YTD' },
+  { label: '第一季度', value: 'Q1' },
+  { label: '第二季度', value: 'Q2' },
+  { label: '第三季度', value: 'Q3' },
+  { label: '第四季度', value: 'Q4' },
   { label: '自定义', value: 'custom' },
 ]
 
@@ -77,7 +77,7 @@ watch(() => filterStore.periodType, (type) => {
         placeholder="周期"
         size="small"
         clearable
-        class="!w-24"
+        class="!w-36"
       />
     </div>
 

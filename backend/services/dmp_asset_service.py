@@ -120,6 +120,18 @@ def _get_week_range(d: datetime) -> tuple:
     return week_start, week_end
 
 
+def _last_year_same_date(d: datetime) -> datetime.date:
+    """
+    返回去年同期同日期的 date 对象（同一月日，如 5/6 → 去年 5/6）。
+    处理闰年边界：今年2/29 → 去年2/28。
+    """
+    try:
+        return d.replace(year=d.year - 1).date()
+    except ValueError:
+        # 闰年2月29日 → 去年2月28日
+        return d.replace(year=d.year - 1, day=28).date()
+
+
 def _check_reload(key: str, path: Path) -> bool:
     """检查文件是否变化，需要重新加载"""
     if not path.exists():
@@ -191,6 +203,13 @@ def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
 
     df = df.sort_values("time")
 
+    # 构建日索引（用于YOY查找去年同期：364天前=52周，保证同一星期几）
+    daily_index = {}
+    for _, r in df.iterrows():
+        t = r["time"]
+        if pd.notna(t):
+            daily_index[t.date()] = r
+
     # 按日返回模式
     if days > 0:
         df["date"] = df["time"].dt.date
@@ -236,6 +255,28 @@ def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
                 item["numerous_change"] = 0
                 item["keen_change"] = 0
 
+            # 计算YOY同比（去年同期同日期的绝对值差）
+            ly_date = _last_year_same_date(d)
+            ly_row = daily_index.get(ly_date)
+            if ly_row is not None:
+                item["total_yoy"] = item["total"] - int(ly_row.get("TOTAL资产总量", 0))
+                item["discover_yoy"] = item["discover"] - int(ly_row.get("Discover发现", 0))
+                item["engage_yoy"] = item["engage"] - int(ly_row.get("Engage种草", 0))
+                item["enthuse_yoy"] = item["enthuse"] - int(ly_row.get("Enthuse互动", 0))
+                item["perform_yoy"] = item["perform"] - int(ly_row.get("Perform行动", 0))
+                item["initial_yoy"] = item["initial"] - int(ly_row.get("Initial首购", 0))
+                item["numerous_yoy"] = item["numerous"] - int(ly_row.get("Numerous复购", 0))
+                item["keen_yoy"] = item["keen"] - int(ly_row.get("Keen至爱", 0))
+            else:
+                item["total_yoy"] = 0
+                item["discover_yoy"] = 0
+                item["engage_yoy"] = 0
+                item["enthuse_yoy"] = 0
+                item["perform_yoy"] = 0
+                item["initial_yoy"] = 0
+                item["numerous_yoy"] = 0
+                item["keen_yoy"] = 0
+
             prev_item = item.copy()
             result.append(item)
 
@@ -244,29 +285,34 @@ def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
             "latest_week": result[-1]["week_label"] if result else "",
         }
 
-    # 按自然周分组，取每周最后一天
+    # 按自然周分组，显式取每组最新有数据的日期（避免依赖 .last() 的隐式行为）
     df["week_end"] = df["time"].apply(
         lambda d: (d - timedelta(days=d.weekday()) + timedelta(days=6)).date()
     )
 
-    # 校验：每天应该只有一条记录，否则 .last() 可能遗漏
+    # 校验：每天应该只有一条记录
     _validate_daily_unique(df)
-    weekly = df.groupby("week_end").last().reset_index()
-    weekly = weekly.sort_values("week_end", ascending=False)
 
-    # 取最近N周
-    weekly = weekly.head(weeks).sort_values("week_end", ascending=True)
+    # 获取最近N周（按理论周结束日取，但后续用实际最新日期）
+    all_week_ends = sorted(df["week_end"].unique(), reverse=True)[:weeks]
+    all_week_ends = sorted(all_week_ends)  # 升序
 
     result = []
     prev_row = None
-    for _, row in weekly.iterrows():
-        d = row["time"]
+    for week_end in all_week_ends:
+        week_df = df[df["week_end"] == week_end]
+        if week_df.empty:
+            continue
+        # 显式取该周实际最新有数据的日期（如本周只到周三，就用周三）
+        d = week_df["time"].max()
+        row = week_df[week_df["time"] == d].iloc[0]
+
         week_label = _get_week_label(d)
-        week_end = _get_week_range(d)[1].strftime("%Y-%m-%d")
+        week_end_str = _get_week_range(d)[1].strftime("%Y-%m-%d")
 
         item = {
             "week_label": week_label,
-            "week_end_date": week_end,
+            "week_end_date": week_end_str,
             "total": int(row.get("TOTAL资产总量", 0)),
             "discover": int(row.get("Discover发现", 0)),
             "engage": int(row.get("Engage种草", 0)),
@@ -296,6 +342,27 @@ def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
             item["initial_change"] = 0
             item["numerous_change"] = 0
             item["keen_change"] = 0
+
+        # 计算YOY同比：用该周实际最新日期 d 对比去年同期同月日
+        ly_date = _last_year_same_date(d)
+        ly_row = daily_index.get(ly_date)
+        if ly_row is not None:
+            item["total_yoy"] = item["total"] - int(ly_row.get("TOTAL资产总量", 0))
+            item["discover_yoy"] = item["discover"] - int(ly_row.get("Discover发现", 0))
+            item["engage_yoy"] = item["engage"] - int(ly_row.get("Engage种草", 0))
+            item["enthuse_yoy"] = item["enthuse"] - int(ly_row.get("Enthuse互动", 0))
+            item["perform_yoy"] = item["perform"] - int(ly_row.get("Perform行动", 0))
+            item["initial_yoy"] = item["initial"] - int(ly_row.get("Initial首购", 0))
+            item["numerous_yoy"] = item["numerous"] - int(ly_row.get("Numerous复购", 0))
+            item["keen_yoy"] = item["keen"] - int(ly_row.get("Keen至爱", 0))
+        else:
+            item["total_yoy"] = 0
+            item["discover_yoy"] = 0
+            item["enthuse_yoy"] = 0
+            item["perform_yoy"] = 0
+            item["initial_yoy"] = 0
+            item["numerous_yoy"] = 0
+            item["keen_yoy"] = 0
 
         prev_row = item.copy()
         result.append(item)
@@ -335,20 +402,133 @@ def _load_data3() -> pd.DataFrame:
     return df
 
 
-def get_product_assets(weeks: int = 4) -> Dict[str, Any]:
+def _compute_product_assets_daily(
+    days: int,
+    df: pd.DataFrame,
+    id_to_product: Dict[int, str],
+    product_order: List[str],
+    product_to_spu: Dict[str, List[str]],
+) -> Dict[str, Any]:
+    """日维度单品资产计算（df 由调用方在持有锁时传入）"""
+    if df is None or df.empty:
+        return {"products": [], "latest_week": ""}
+
+    df = df[df["ID"].isin(id_to_product.keys())]
+    if df.empty:
+        return {"products": [], "latest_week": ""}
+
+    # 构建按 (product_name, date) 索引的字典（用于YOY查找）
+    lookup_index = {}
+    for _, r in df.iterrows():
+        d = r["时间"]
+        if pd.notna(d):
+            lookup_index[(r["product_name"], d.date())] = r
+
+    products_result = []
+    latest_label = ""
+
+    for product_name in product_order:
+        product_df = df[df["product_name"] == product_name]
+        if product_df.empty:
+            continue
+
+        # 按时间排序，取最近 N 天，再正序排列
+        product_df = product_df.sort_values("时间", ascending=False).head(days).sort_values("时间", ascending=True)
+
+        product_days = []
+        prev_row = None
+        for _, row in product_df.iterrows():
+            d = row["时间"]
+            date_label = d.strftime("%m/%d")
+            date_str = d.strftime("%Y-%m-%d")
+            latest_label = date_label
+
+            item = {
+                "week_label": date_label,
+                "week_end_date": date_str,
+                "total": int(row.get("资产总量", 0)),
+                "shallow_grass": int(row.get("浅种草", 0)),
+                "deep_grass": int(row.get("深种草", 0)),
+                "initial": int(row.get("首购资产", 0)),
+                "repurchase": int(row.get("复购资产", 0)),
+                "lian_dai": int(row.get("连带资产", 0)),
+            }
+
+            # 日环比
+            if prev_row is not None:
+                item["total_change"] = item["total"] - prev_row["total"]
+                item["shallow_grass_change"] = item["shallow_grass"] - prev_row["shallow_grass"]
+                item["deep_grass_change"] = item["deep_grass"] - prev_row["deep_grass"]
+                item["initial_change"] = item["initial"] - prev_row["initial"]
+                item["repurchase_change"] = item["repurchase"] - prev_row["repurchase"]
+                item["lian_dai_change"] = item["lian_dai"] - prev_row["lian_dai"]
+            else:
+                item["total_change"] = 0
+                item["shallow_grass_change"] = 0
+                item["deep_grass_change"] = 0
+                item["initial_change"] = 0
+                item["repurchase_change"] = 0
+                item["lian_dai_change"] = 0
+
+            # YOY：去年同期同月日
+            ly_date = _last_year_same_date(d)
+            ly_key = (product_name, ly_date)
+            ly_row = lookup_index.get(ly_key)
+            if ly_row is not None:
+                item["total_yoy"] = item["total"] - int(ly_row.get("资产总量", 0))
+                item["shallow_grass_yoy"] = item["shallow_grass"] - int(ly_row.get("浅种草", 0))
+                item["deep_grass_yoy"] = item["deep_grass"] - int(ly_row.get("深种草", 0))
+                item["initial_yoy"] = item["initial"] - int(ly_row.get("首购资产", 0))
+                item["repurchase_yoy"] = item["repurchase"] - int(ly_row.get("复购资产", 0))
+                item["lian_dai_yoy"] = item["lian_dai"] - int(ly_row.get("连带资产", 0))
+            else:
+                item["total_yoy"] = 0
+                item["shallow_grass_yoy"] = 0
+                item["deep_grass_yoy"] = 0
+                item["initial_yoy"] = 0
+                item["repurchase_yoy"] = 0
+                item["lian_dai_yoy"] = 0
+
+            prev_row = {
+                "total": item["total"],
+                "shallow_grass": item["shallow_grass"],
+                "deep_grass": item["deep_grass"],
+                "initial": item["initial"],
+                "repurchase": item["repurchase"],
+                "lian_dai": item["lian_dai"],
+            }
+            product_days.append(item)
+
+        products_result.append({
+            "name": product_name,
+            "spu_classes": product_to_spu.get(product_name, [product_name]),
+            "weeks": product_days,
+        })
+
+    return {
+        "products": products_result,
+        "latest_week": latest_label,
+    }
+
+
+def get_product_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
     """
-    获取单品资产周数据（含 spu_classes 供前端去硬编码）
-    结果级缓存：文件未变化时直接返回缓存结果，避免重复 groupby 计算
+    获取单品资产数据
+    weeks: 按自然周聚合（days=0 时生效，默认）
+    days:  按日返回（>0时优先级高于weeks）
     """
     with _cache_lock:
+        if days > 0:
+            df = _load_data3()
+            return _compute_product_assets_daily(days, df, ID_TO_PRODUCT, PRODUCT_ORDER, PRODUCT_TO_SPU_CLASSES)
+
         cached = _cache["data3"].get("result")
         if cached is not None and cached.get("_weeks") == weeks:
             return cached
-        # 持有锁后调用 _load_data3（不再重复加锁）
         df = _load_data3()
         result = _compute_product_assets(weeks, df)
         _cache["data3"]["result"] = result
-        result["_weeks"] = weeks  # 标记缓存粒度
+        result["_weeks"] = weeks
         return result
 
 
@@ -366,6 +546,13 @@ def _compute_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any]:
     df["week_end"] = df["时间"].apply(
         lambda d: (d - timedelta(days=d.weekday()) + timedelta(days=6)).date()
     )
+
+    # 构建按 (product_name, 实际日期) 索引的字典（用于YOY查找：用实际日期而非理论周日）
+    lookup_index = {}
+    for _, r in df.iterrows():
+        d = r["时间"]
+        if pd.notna(d):
+            lookup_index[(r["product_name"], d.date())] = r
 
     # 获取唯一的产品和周的笛卡尔积
     all_week_ends = sorted(df["week_end"].unique(), reverse=True)[:weeks]
@@ -394,10 +581,14 @@ def _compute_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any]:
                     "total_change": 0, "shallow_grass_change": 0,
                     "deep_grass_change": 0, "initial_change": 0,
                     "repurchase_change": 0, "lian_dai_change": 0,
+                    "total_yoy": 0, "shallow_grass_yoy": 0,
+                    "deep_grass_yoy": 0, "initial_yoy": 0,
+                    "repurchase_yoy": 0, "lian_dai_yoy": 0,
                 }
             else:
-                row = week_df.iloc[0]
-                d = row["时间"]
+                # 显式取该周实际最新日期（data3通常是周日，但以防万一）
+                d = week_df["时间"].max()
+                row = week_df[week_df["时间"] == d].iloc[0]
                 week_label = _get_week_label(d)
                 latest_week_label = week_label
 
@@ -427,6 +618,25 @@ def _compute_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any]:
                     item["repurchase_change"] = 0
                     item["lian_dai_change"] = 0
 
+                # 计算YOY同比：用该周实际最新日期 d 对比去年同期同月日
+                ly_date = _last_year_same_date(d)
+                ly_key = (product_name, ly_date)
+                ly_row = lookup_index.get(ly_key)
+                if ly_row is not None:
+                    item["total_yoy"] = item["total"] - int(ly_row.get("资产总量", 0))
+                    item["shallow_grass_yoy"] = item["shallow_grass"] - int(ly_row.get("浅种草", 0))
+                    item["deep_grass_yoy"] = item["deep_grass"] - int(ly_row.get("深种草", 0))
+                    item["initial_yoy"] = item["initial"] - int(ly_row.get("首购资产", 0))
+                    item["repurchase_yoy"] = item["repurchase"] - int(ly_row.get("复购资产", 0))
+                    item["lian_dai_yoy"] = item["lian_dai"] - int(ly_row.get("连带资产", 0))
+                else:
+                    item["total_yoy"] = 0
+                    item["shallow_grass_yoy"] = 0
+                    item["deep_grass_yoy"] = 0
+                    item["initial_yoy"] = 0
+                    item["repurchase_yoy"] = 0
+                    item["lian_dai_yoy"] = 0
+
                 prev_row = {
                     "total": item["total"],
                     "shallow_grass": item["shallow_grass"],
@@ -450,20 +660,24 @@ def _compute_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any]:
     }
 
 
-def get_other_product_assets(weeks: int = 4) -> Dict[str, Any]:
+def get_other_product_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
     """
-    获取单品资产-其他产品周数据（展现形式同核心单品资产）
-    结果级缓存：文件未变化时直接返回缓存结果，避免重复 groupby 计算
+    获取单品资产-其他产品数据
+    weeks: 按自然周聚合（days=0 时生效，默认）
+    days:  按日返回（>0时优先级高于weeks）
     """
     with _cache_lock:
+        if days > 0:
+            df = _load_data3()
+            return _compute_product_assets_daily(days, df, ID_TO_PRODUCT_OTHER, PRODUCT_ORDER_OTHER, PRODUCT_TO_SPU_CLASSES_OTHER)
+
         cached = _cache["data3"].get("result_other")
         if cached is not None and cached.get("_weeks") == weeks:
             return cached
-        # 持有锁后调用 _load_data3（不再重复加锁）
         df = _load_data3()
         result = _compute_other_product_assets(weeks, df)
         _cache["data3"]["result_other"] = result
-        result["_weeks"] = weeks  # 标记缓存粒度
+        result["_weeks"] = weeks
         return result
 
 
@@ -481,6 +695,13 @@ def _compute_other_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any
     df["week_end"] = df["时间"].apply(
         lambda d: (d - timedelta(days=d.weekday()) + timedelta(days=6)).date()
     )
+
+    # 构建按 (product_name, 实际日期) 索引的字典（用于YOY查找：用实际日期而非理论周日）
+    lookup_index = {}
+    for _, r in df.iterrows():
+        d = r["时间"]
+        if pd.notna(d):
+            lookup_index[(r["product_name"], d.date())] = r
 
     # 获取唯一的产品和周的笛卡尔积
     all_week_ends = sorted(df["week_end"].unique(), reverse=True)[:weeks]
@@ -509,10 +730,14 @@ def _compute_other_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any
                     "total_change": 0, "shallow_grass_change": 0,
                     "deep_grass_change": 0, "initial_change": 0,
                     "repurchase_change": 0, "lian_dai_change": 0,
+                    "total_yoy": 0, "shallow_grass_yoy": 0,
+                    "deep_grass_yoy": 0, "initial_yoy": 0,
+                    "repurchase_yoy": 0, "lian_dai_yoy": 0,
                 }
             else:
-                row = week_df.iloc[0]
-                d = row["时间"]
+                # 显式取该周实际最新日期（data3通常是周日，但以防万一）
+                d = week_df["时间"].max()
+                row = week_df[week_df["时间"] == d].iloc[0]
                 week_label = _get_week_label(d)
                 latest_week_label = week_label
 
@@ -541,6 +766,25 @@ def _compute_other_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any
                     item["initial_change"] = 0
                     item["repurchase_change"] = 0
                     item["lian_dai_change"] = 0
+
+                # 计算YOY同比：用该周实际最新日期 d 对比去年同期同月日
+                ly_date = _last_year_same_date(d)
+                ly_key = (product_name, ly_date)
+                ly_row = lookup_index.get(ly_key)
+                if ly_row is not None:
+                    item["total_yoy"] = item["total"] - int(ly_row.get("资产总量", 0))
+                    item["shallow_grass_yoy"] = item["shallow_grass"] - int(ly_row.get("浅种草", 0))
+                    item["deep_grass_yoy"] = item["deep_grass"] - int(ly_row.get("深种草", 0))
+                    item["initial_yoy"] = item["initial"] - int(ly_row.get("首购资产", 0))
+                    item["repurchase_yoy"] = item["repurchase"] - int(ly_row.get("复购资产", 0))
+                    item["lian_dai_yoy"] = item["lian_dai"] - int(ly_row.get("连带资产", 0))
+                else:
+                    item["total_yoy"] = 0
+                    item["shallow_grass_yoy"] = 0
+                    item["deep_grass_yoy"] = 0
+                    item["initial_yoy"] = 0
+                    item["repurchase_yoy"] = 0
+                    item["lian_dai_yoy"] = 0
 
                 prev_row = {
                     "total": item["total"],
