@@ -1,0 +1,13 @@
+# <type>: <subject>
+#
+# Type: feat | fix | docs | style | refactor | test | chore
+# Subject: 简洁描述，不超过50字
+#
+# Body (optional): 详细说明，主要改了什么，为什么改
+# ─────────────────────────────────────────────────────────────
+# 示例：
+# feat: 新增人群看板RFM视图
+#
+# - 新增RFM散点图和象限分析
+# - 修复了日期范围选择器边界bug
+# - 相关issue: #12
