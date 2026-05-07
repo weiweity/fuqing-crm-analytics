@@ -26,6 +26,50 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 
 ---
 
+## Git 工作流
+
+### 提交规范（强制）
+```
+<type>: <subject>
+
+feat     新功能
+fix      Bug 修复
+docs     文档改动
+style    格式调整（不影响逻辑）
+refactor 重构（不影响功能）
+test     测试相关
+chore    工具/构建/依赖
+
+示例：feat: 新增人群看板RFM视图
+```
+
+### 提交步骤
+```bash
+cd fuqing-crm-analytics
+
+# 1. 写清改了哪些模块（按逻辑分组，不要一股脑 add -A）
+git add backend/services/health/    # 同一功能模块一起提交
+git add frontend-vue3/src/api/    # API 改动一起提交
+
+# 2. 写清为什么改（commit message 模板自动弹出）
+git commit
+
+# 3. 推送到 GitHub（SSH 已配置，无需登录）
+git push origin main
+```
+
+### 分支策略
+- 目前只用 `main`，单分支推进
+- 大功能先用 `git stash` 暂存，分开提交
+- commit message 模板：`.gitmessage`（自动生效）
+
+### 禁止事项
+- ❌ `git commit -m "fix"` / "update" / "asdf" — 提交信息必须说明改了什么
+- ❌ 一次 commit 混多个不相关功能
+- ❌ commit 后不 push — 代码在本地 = 代码丢了
+
+---
+
 ## 架构五层
 
 ```
