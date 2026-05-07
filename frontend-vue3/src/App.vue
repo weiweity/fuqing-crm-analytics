@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { NConfigProvider, NMessageProvider, NNotificationProvider, NDialogProvider } from 'naive-ui'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { NConfigProvider, NMessageProvider, NNotificationProvider, NDialogProvider, NSpin } from 'naive-ui'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { useFilterSync } from '@/composables/useFilterSync'
+import { useAuthStore } from '@/stores/auth'
 
+const route = useRoute()
+const authStore = useAuthStore()
 useFilterSync()
+
+const useDefaultLayout = computed(() => {
+  return route.meta.requiresAuth === true
+})
 
 // BI Pro theme overrides for Naive UI
 const themeOverrides = {
@@ -63,7 +72,16 @@ const themeOverrides = {
     <n-message-provider>
       <n-notification-provider>
         <n-dialog-provider>
-          <DefaultLayout>
+          <!-- 全局初始加载态 -->
+          <div v-if="!authStore.isReady" class="global-loading">
+            <n-spin size="large" description="加载中..." />
+          </div>
+
+          <template v-else-if="!useDefaultLayout">
+            <router-view />
+          </template>
+
+          <DefaultLayout v-else>
             <router-view v-slot="{ Component }">
               <transition name="fade" mode="out-in">
                 <component :is="Component" />
@@ -77,6 +95,15 @@ const themeOverrides = {
 </template>
 
 <style>
+.global-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: #fff;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
