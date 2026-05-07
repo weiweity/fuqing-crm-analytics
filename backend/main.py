@@ -127,12 +127,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS 配置（P2 fix: 限制允许来源，不再使用通配符）
+# CORS 配置（生产环境移除 localhost，仅保留实际内网域名）
 import os
-_CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+_DEFAULT_ORIGINS = "http://192.168.101.171:5173"
+_CORS_ORIGINS = os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _CORS_ORIGINS],
+    allow_origins=[o.strip() for o in _CORS_ORIGINS if o.strip()],
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
@@ -164,6 +165,32 @@ async def log_requests(request: Request, call_next):
         }
     )
     return response
+
+
+# ─────────────────────────────────────────────────────────────
+# 全局认证中间件（除认证路由和健康检查外，所有 API 需 Bearer token）
+# ─────────────────────────────────────────────────────────────
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    # 白名单：登录/校验接口、健康检查无需 token
+    if path.startswith("/api/v1/auth/") or path == "/api/v1/health":
+        return await call_next(request)
+    # 放行 OPTIONS 预检请求（CORS 预检不应被认证拦截）
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return JSONResponse(status_code=401, content={"detail": "未提供认证令牌"})
+
+    token = auth[7:]
+    # 延迟导入避免循环依赖
+    from backend.routers.auth import _verify_token
+    if _verify_token(token) is None:
+        return JSONResponse(status_code=401, content={"detail": "登录已过期，请重新登录"})
+
+    return await call_next(request)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -815,6 +842,12 @@ def get_rfm_m_flow_api(
 from backend.routers import health as health_router
 app.include_router(health_router.router)
 
+# ============================================================
+# 认证路由 (Auth)
+# ============================================================
+from backend.routers import auth as auth_router
+app.include_router(auth_router.router)
+
 
 # ============================================================
 # 市场对焦板块 (Market Focus)
@@ -844,7 +877,8 @@ def get_market_focus_store_assets_api(
 
 @app.get("/api/v1/market-focus/product-assets", response_model=ProductAssetResponse)
 def get_market_focus_product_assets_api(
-    weeks: int = Query(default=4, ge=1, le=12, description="周数：4/8/12")
+    weeks: int = Query(default=4, ge=1, le=12, description="周数：4/8/12"),
+    days: int = Query(default=0, ge=0, le=90, description="日数：0=按周聚合，>0按日返回"),
 ):
     """
     市场对焦 - 单品资产周数据
@@ -854,7 +888,7 @@ def get_market_focus_product_assets_api(
     含本周对比上周绝对值变化。
     """
     try:
-        return get_product_assets(weeks=weeks)
+        return get_product_assets(weeks=weeks, days=days)
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"[market-focus] product-assets error: {e}", exc_info=True)
@@ -864,7 +898,8 @@ def get_market_focus_product_assets_api(
 
 @app.get("/api/v1/market-focus/other-product-assets", response_model=ProductAssetResponse)
 def get_market_focus_other_product_assets_api(
-    weeks: int = Query(default=4, ge=1, le=12, description="周数：4/8/12")
+    weeks: int = Query(default=4, ge=1, le=12, description="周数：4/8/12"),
+    days: int = Query(default=0, ge=0, le=90, description="日数：0=按周聚合，>0按日返回"),
 ):
     """
     市场对焦 - 单品资产-其他产品周数据
@@ -874,7 +909,7 @@ def get_market_focus_other_product_assets_api(
     含本周对比上周绝对值变化。
     """
     try:
-        return get_other_product_assets(weeks=weeks)
+        return get_other_product_assets(weeks=weeks, days=days)
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"[market-focus] other-product-assets error: {e}", exc_info=True)
@@ -1008,10 +1043,25 @@ def get_sampling_lock_analysis_api(
 
 
 # ─────────────────────────────────────────────────────────────
-# 静态文件托管（构建后的前端 dist 目录）
+# 静态文件托管（构建后的前端 dist 目录，支持 Vue Router history 模式）
+# 注：当前开发阶段前后端分离，前端通过 Vite dev server (5173) 访问，
+#     如需生产部署，取消下面注释即可让后端托管前端构建产物。
 # ─────────────────────────────────────────────────────────────
-_DIST_DIR = Path(__file__).parent.parent / "frontend-vue3" / "dist"
-app.mount("/", StaticFiles(directory=str(_DIST_DIR), html=True), name="static")
+# class SPAStaticFiles(StaticFiles):
+#     """自定义 StaticFiles，在 404 时 fallback 到 index.html（SPA 支持）"""
+#     async def get_response(self, path: str, scope):
+#         try:
+#             return await super().get_response(path, scope)
+#         except Exception as exc:
+#             # Starlette StaticFiles 在不匹配时抛出 HTTPException(404)
+#             from starlette.exceptions import HTTPException as StarletteHTTPException
+#             if isinstance(exc, StarletteHTTPException) and exc.status_code == 404 and self.html:
+#                 return await super().get_response("index.html", scope)
+#             raise
+#
+#
+# _DIST_DIR = Path(__file__).parent.parent / "frontend-vue3" / "dist"
+# app.mount("/", SPAStaticFiles(directory=str(_DIST_DIR), html=True), name="static")
 
 
 if __name__ == "__main__":

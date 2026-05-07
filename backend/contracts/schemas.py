@@ -359,6 +359,10 @@ class CategoryOverviewItem(BaseModel):
     new_users_yoy: Optional[float] = None
     new_aus: float
     new_aus_yoy: Optional[float] = None
+    old_users_ratio: Optional[float] = None
+    old_users_ratio_yoy: Optional[float] = None
+    new_users_ratio: Optional[float] = None
+    new_users_ratio_yoy: Optional[float] = None
     member_ratio: Optional[float] = None
     member_ratio_yoy: Optional[float] = None
 
@@ -1431,6 +1435,15 @@ class StoreAssetWeek(BaseModel):
     initial_change: int = 0
     numerous_change: int = 0
     keen_change: int = 0
+    # 本周对比去年同期（YOY）绝对值变化
+    total_yoy: int = 0
+    discover_yoy: int = 0
+    engage_yoy: int = 0
+    enthuse_yoy: int = 0
+    perform_yoy: int = 0
+    initial_yoy: int = 0
+    numerous_yoy: int = 0
+    keen_yoy: int = 0
 
 
 class StoreAssetResponse(BaseModel):
@@ -1456,6 +1469,13 @@ class ProductAssetWeek(BaseModel):
     initial_change: int = 0
     repurchase_change: int = 0
     lian_dai_change: int = 0
+    # 本周对比去年同期（YOY）绝对值变化
+    total_yoy: int = 0
+    shallow_grass_yoy: int = 0
+    deep_grass_yoy: int = 0
+    initial_yoy: int = 0
+    repurchase_yoy: int = 0
+    lian_dai_yoy: int = 0
 
 
 class ProductAssetItem(BaseModel):
