@@ -269,3 +269,18 @@ const ratio = (current - previous) / previous  // 不要在前端算
 | `docs/飞书版架构文档/` | 系统架构文档（7 份） |
 | `docs/测试报告.md` | 测试覆盖详情 |
 | `docs/MIGRATION-CHECKLIST.md` | 重构迁移清单 |
+
+---
+
+## Skill 路由（单人项目）
+
+当请求匹配以下场景时，**立即调用对应 Skill**，不要直接回答。
+
+| 场景 | 触发词示例 | 调用的 Skill |
+|------|-----------|-------------|
+| 修 Bug / 报错 / 数据异常 | `调试`、`investigate`、`排查`、`出问题了`、`报错` | `workbuddy-investigate` |
+| 写完模块自检 / commit 前审查 | `review`、`代码审查`、`逻辑有没有问题`、`业务逻辑` | `workbuddy-review` |
+| 功能上线前验收测试 | `qa`、`测试一下`、`验收`、`检查一下`、`跑一下测试` | `workbuddy-qa` |
+| 大功能完成，推送前完整检查 | `发布`、`上线`、`部署`、`ship` | `workbuddy-ship` |
+
+**单人项目不需要 PR 流程**，上述 Skill 直接在本地运行，无需远程审查者。
