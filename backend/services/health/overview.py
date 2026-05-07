@@ -32,12 +32,31 @@ logger = logging.getLogger(__name__)
 # 缓存目录（从统一配置派生，避免硬编码 __file__ 层级）
 CACHE_DIR = DATA_DIR / "cache" / "health_overview"
 
+# DuckDB 文件路径（用于数据版本感知）
+DB_FILE = DATA_DIR / "processed" / "fuqing_crm.duckdb"
+
+
+def _data_version() -> str:
+    """获取数据版本标识（DuckDB文件 mtime 的日期字符串）。
+
+    ETL 刷新数据库后，文件 mtime 变化 → 数据版本变化 → 旧缓存全部失效。
+    """
+    if DB_FILE.exists():
+        import os
+        mtime = os.path.getmtime(DB_FILE)
+        return datetime.fromtimestamp(mtime).strftime("%Y%m%d%H%M%S")
+    return "unknown"
+
 
 def _cache_key(analysis_date: str, period_days: int,
                exclude_channels: Optional[List[str]],
                channel: Optional[str]) -> str:
-    """生成缓存键（文件名）"""
-    parts = [analysis_date, str(period_days)]
+    """生成缓存键（文件名）
+
+    缓存键包含数据版本（DuckDB mtime），ETL刷新后自动失效所有历史缓存。
+    """
+    dv = _data_version()
+    parts = [dv, analysis_date, str(period_days)]
     if channel:
         parts.append(f"ch_{channel}")
     if exclude_channels:

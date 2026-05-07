@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
-> **最后更新**: 2026-05-04  
-> **状态**: 本文档索引已整理，旧版本文档已归档
+> **最后更新**: 2026-05-07  
+> **状态**: 根目录整理完成，所有散落文档已归入 docs/
 
 ---
 
@@ -18,6 +18,9 @@
 | 老客健康分析仪表盘设计 | [design_customer_health_dashboard.md](./design_customer_health_dashboard.md) |
 | RFM 模型口径修复方案 | [RFM_FIX_PLAN.md](./RFM_FIX_PLAN.md) |
 | 人群漏斗设计计划 | [../../PLAN-crowd-funnel.md](../../PLAN-crowd-funnel.md) |
+| 618大促拆解资产（复用模板） | [618-breakdown/](./618-breakdown/) |
+| CRM业务知识和赛道认知 | [业务知识/](./业务知识/) |
+| 品类看板v2设计评审 | [category-dashboard-v2-design-review.md](./category-dashboard-v2-design-review.md) |
 | 历史周报和旧版文档 | [archive/](./archive/) |
 
 ---
@@ -68,6 +71,23 @@
 | 文件 | 状态 | 说明 |
 |---|---|---|
 | [ai-constraints.md](./ai-constraints.md) | ✅ 当前 | AI 行为约束文档 |
+
+### 📊 设计评审与 Review
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| [category-dashboard-v2-design-review.md](./category-dashboard-v2-design-review.md) | ✅ 已上线 | 品类看板v2 设计评审 |
+| [PLAN-crowd-funnel.md](./PLAN-crowd-funnel.md) | ✅ 已上线 | 人群漏斗设计计划 |
+
+### 🎯 大促拆解资产
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| [618-breakdown/](./618-breakdown/) | ✅ 资产 | 26年618大促拆解文档（HTML原型/风格截图/数据生成器/飞书参考/复刻指南） |
+
+### 📚 业务知识
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| [业务知识/](./业务知识/) | ✅ 参考 | CRM赛道知识萃取、PPT、OCR识别文档 |
+| [业务知识/CRM赛道知识萃取_AI版_深化.md](./业务知识/CRM赛道知识萃取_AI版_深化.md) | ✅ 主要参考 | AI深化版知识萃取（77 chunks） |
 
 ### 📦 归档文档
 | 目录 | 说明 |

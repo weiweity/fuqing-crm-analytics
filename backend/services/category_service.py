@@ -779,6 +779,19 @@ def get_category_overview(
     conn.close()
 
     def _build_row(name: str, c: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:
+        # 老客/新客人数占比
+        users = c.get("users", 0)
+        old_users = c.get("old_users", 0)
+        new_users = c.get("new_users", 0)
+        old_users_ratio = round(old_users / users, 4) if users > 0 else 0.0
+        new_users_ratio = round(new_users / users, 4) if users > 0 else 0.0
+
+        comp_users = p.get("users", 0)
+        comp_old_users = p.get("old_users", 0)
+        comp_new_users = p.get("new_users", 0)
+        comp_old_users_ratio = round(comp_old_users / comp_users, 4) if comp_users > 0 else 0.0
+        comp_new_users_ratio = round(comp_new_users / comp_users, 4) if comp_users > 0 else 0.0
+
         return {
             "name": name,
             "gsv": round(c.get("gsv", 0), 2),
@@ -803,6 +816,10 @@ def get_category_overview(
             "new_users_yoy": yoy_absolute(c.get("new_users", 0), p.get("new_users", 0)),
             "new_aus": round(c.get("new_aus", 0), 2),
             "new_aus_yoy": yoy_absolute(c.get("new_aus", 0), p.get("new_aus", 0)),
+            "old_users_ratio": old_users_ratio,
+            "old_users_ratio_yoy": yoy_ratio(old_users_ratio, comp_old_users_ratio),
+            "new_users_ratio": new_users_ratio,
+            "new_users_ratio_yoy": yoy_ratio(new_users_ratio, comp_new_users_ratio),
             "member_ratio": round(c.get("member_ratio", 0), 4),
             "member_ratio_yoy": yoy_ratio(c.get("member_ratio", 0), p.get("member_ratio", 0)),
         }

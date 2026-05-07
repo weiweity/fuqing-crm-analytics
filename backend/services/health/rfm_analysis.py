@@ -25,6 +25,21 @@ logger = logging.getLogger(__name__)
 # 缓存目录
 CACHE_DIR = DATA_DIR / "cache" / "rfm_flow"
 
+# DuckDB 文件路径（用于数据版本感知）
+DB_FILE = DATA_DIR / "processed" / "fuqing_crm.duckdb"
+
+
+def _data_version() -> str:
+    """获取数据版本标识（DuckDB文件 mtime 的日期字符串）。
+
+    ETL 刷新数据库后，文件 mtime 变化 → 数据版本变化 → 旧缓存全部失效。
+    """
+    if DB_FILE.exists():
+        import os
+        mtime = os.path.getmtime(DB_FILE)
+        return datetime.fromtimestamp(mtime).strftime("%Y%m%d%H%M%S")
+    return "unknown"
+
 
 def _cache_key(
     period: Optional[str],
@@ -39,8 +54,10 @@ def _cache_key(
 
     一律基于实际日期范围构建缓存键（忽略 period 名），
     保证前端请求（含 period+dates）与预计算请求（仅 dates）键完全一致。
+    缓存键包含数据版本，ETL刷新后自动失效所有历史缓存。
     """
-    parts = []
+    dv = _data_version()
+    parts = [dv]
     if start_date and end_date:
         parts.append(f"{start_date}_{end_date}")
     elif period:
