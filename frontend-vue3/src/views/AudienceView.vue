@@ -43,6 +43,17 @@ const channelSortState = ref<{ columnKey: string; order: 'ascend' | 'descend' | 
   order: 'ascend',
 })
 
+// ─── 渠道概览 compact/all 切换 ────────────────────────────────
+const showDetailChannelAll = ref(false)
+const showDetailChannelMember = ref(false)
+
+/** 给一组列的首个 child 加 group-sep 分隔线类名 */
+function addChannelGroupSep(subs: any[]): any[] {
+  return subs.map((col, i) =>
+    i === 0 ? { ...col, className: [col.className || '', 'group-sep'].join(' ') } : col
+  )
+}
+
 // TTL 行直接从后端返回的数据中提取（后端已计算好正确的 TTL 行）
 const channelAllTtl = computed<ChannelGSVRow | null>(() => {
   if (!summaryData.value?.channel_all) return null
@@ -383,7 +394,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         key: 'new_gsv_2026',
         width: 110,
         align: 'center',
-        className: 'bi-cell-number',
+        className: 'bi-cell-number group-sep',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0),
         render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万`,
       },
@@ -515,7 +526,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         key: 'old_gsv_2026',
         width: 110,
         align: 'center',
-        className: 'bi-cell-number',
+        className: 'bi-cell-number group-sep',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0),
         render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万`,
       },
@@ -760,7 +771,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         key: 'new_gsv_2026',
         width: 110,
         align: 'center',
-        className: 'bi-cell-number',
+        className: 'bi-cell-number group-sep',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0),
         render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万`,
       },
@@ -892,7 +903,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         key: 'old_gsv_2026',
         width: 110,
         align: 'center',
-        className: 'bi-cell-number',
+        className: 'bi-cell-number group-sep',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0),
         render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万`,
       },
@@ -1127,6 +1138,82 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
   },
 ]})
 
+// ─── 渠道概览 — 全店 精简列（compact）──────────────────────────
+// 渠道 + GSV组 + 新客组 + 老客组（核心指标 ~950px 无需横向滚动）
+const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
+  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
+  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  return [
+    { title: '渠道', key: 'channel', width: 110, fixed: 'left', align: 'center', sorter: false },
+    {
+      title: 'GSV', key: 'gsv_group', align: 'center',
+      children: [
+        { title: yr, key: 'gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2026 ?? 0) - (b.gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2026 / 10000).toFixed(1)}万` },
+        { title: yr2, key: 'gsv_2025', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2025 ?? 0) - (b.gsv_2025 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万` },
+        { title: 'YOY', key: 'yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.yoy ?? 0) - (b.yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.yoy }) },
+      ],
+    },
+    {
+      title: '新客', key: 'new_group', align: 'center',
+      children: addChannelGroupSep([
+        { title: 'GSV', key: 'new_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
+        { title: 'YOY', key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.new_gsv_yoy }) },
+        { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
+      ]),
+    },
+    {
+      title: '老客', key: 'old_group', align: 'center',
+      children: addChannelGroupSep([
+        { title: 'GSV', key: 'old_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
+        { title: 'YOY', key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.old_gsv_yoy }) },
+        { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
+      ]),
+    },
+  ]
+})
+
+// ─── 渠道概览 — 会员 精简列（compact）─────────────────────────
+// 渠道 + GSV组 + 会员新客组 + 会员老客组 + 会员占比（核心指标 ~1000px）
+const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
+  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
+  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  return [
+    { title: '渠道', key: 'channel', width: 110, fixed: 'left', align: 'center', sorter: false },
+    {
+      title: 'GSV', key: 'gsv_group', align: 'center',
+      children: [
+        { title: yr, key: 'gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2026 ?? 0) - (b.gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2026 / 10000).toFixed(1)}万` },
+        { title: yr2, key: 'gsv_2025', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2025 ?? 0) - (b.gsv_2025 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万` },
+        { title: 'YOY', key: 'yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.yoy ?? 0) - (b.yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.yoy }) },
+      ],
+    },
+    {
+      title: '会员新客', key: 'new_group', align: 'center',
+      children: addChannelGroupSep([
+        { title: 'GSV', key: 'new_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
+        { title: 'YOY', key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.new_gsv_yoy }) },
+        { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
+      ]),
+    },
+    {
+      title: '会员老客', key: 'old_group', align: 'center',
+      children: addChannelGroupSep([
+        { title: 'GSV', key: 'old_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
+        { title: 'YOY', key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.old_gsv_yoy }) },
+        { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
+      ]),
+    },
+    {
+      title: '会员占比', key: 'member_ratio_group', align: 'center',
+      children: [
+        { title: yr, key: 'member_ratio_2026', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
+        { title: yr2, key: 'member_ratio_2025', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1)}%` },
+        { title: 'YOY', key: 'member_ratio_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.member_ratio_yoy }) },
+      ],
+    },
+  ]
+})
+
 // 创建计算属性，动态生成列定义，使TTL行不参与排序
 const computedChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
   // 递归处理列定义，为每个有sorter的列生成新的sorter函数
@@ -1208,6 +1295,51 @@ const computedChannelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>((
   }
   
   return channelMemberColumns.value.map(cloneColumnWithSorter)
+})
+
+// ─── 精简列 TTL排序包装 ──────────────────────────────────────
+const computedCompactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
+  const cloneColumnWithSorter = (col: any): any => {
+    const newCol = { ...col }
+    if (col.sorter && typeof col.sorter === 'function') {
+      const originalSorter = col.sorter
+      newCol.sorter = (a: ChannelGSVRow, b: ChannelGSVRow) => {
+        const aIsTtl = a.channel === 'TTL'
+        const bIsTtl = b.channel === 'TTL'
+        if (aIsTtl || bIsTtl) {
+          const order = channelSortState.value.order
+          if (!order) return 0
+          return order === 'ascend' ? (aIsTtl ? 1 : -1) : (aIsTtl ? -1 : 1)
+        }
+        return originalSorter(a, b)
+      }
+    }
+    if (col.children) newCol.children = col.children.map(cloneColumnWithSorter)
+    return newCol
+  }
+  return compactChannelColumns.value.map(cloneColumnWithSorter)
+})
+
+const computedCompactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
+  const cloneColumnWithSorter = (col: any): any => {
+    const newCol = { ...col }
+    if (col.sorter && typeof col.sorter === 'function') {
+      const originalSorter = col.sorter
+      newCol.sorter = (a: ChannelGSVRow, b: ChannelGSVRow) => {
+        const aIsTtl = a.channel === 'TTL'
+        const bIsTtl = b.channel === 'TTL'
+        if (aIsTtl || bIsTtl) {
+          const order = channelSortState.value.order
+          if (!order) return 0
+          return order === 'ascend' ? (aIsTtl ? 1 : -1) : (aIsTtl ? -1 : 1)
+        }
+        return originalSorter(a, b)
+      }
+    }
+    if (col.children) newCol.children = col.children.map(cloneColumnWithSorter)
+    return newCol
+  }
+  return compactMemberChannelColumns.value.map(cloneColumnWithSorter)
 })
 
 function handleChannelSort(sorter: any) {
@@ -1758,25 +1890,49 @@ const channelMemberXlsxColumns = computed(() => {
         <div class="flex items-center justify-between mb-0.5">
           <div>
             <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 全店</h3>
-            <p class="text-[11px] text-slate-500">各渠道 GSV / 人数 / AUS · 新老客 GSV 两年同比与占比变化</p>
+            <p class="text-[11px] text-slate-500">
+              {{ showDetailChannelAll ? '全量指标：GSV / 人数 / AUS / 新老客 GSV 两年同比与占比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+            </p>
           </div>
-          <ExportToolbar
-            :filename="`人群看板_渠道全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-            :columns="channelXlsxColumns"
-            :data="displayChannelAll"
-            sheet-name="渠道全店"
-          />
+          <div class="flex items-center gap-2">
+            <ExportToolbar
+              :filename="`人群看板_渠道全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+              :columns="channelXlsxColumns"
+              :data="displayChannelAll"
+              sheet-name="渠道全店"
+            />
+            <button
+              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+              @click="showDetailChannelAll = !showDetailChannelAll"
+            >
+              {{ showDetailChannelAll ? '← 收起详情' : '显示详情 →' }}
+            </button>
+          </div>
         </div>
         <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
         <LoadingState v-else-if="summaryLoading" />
         <EmptyState v-else-if="!sortedChannelAll.length" description="暂无数据" />
-        <DataTablePro
-          v-else
-          :columns="computedChannelColumns"
-          :data="displayChannelAll"
-          :pagination="false"
-          @update:sorter="handleChannelSort"
-        />
+        <template v-else>
+          <DataTablePro
+            v-if="!showDetailChannelAll"
+            :columns="computedCompactChannelColumns"
+            :data="displayChannelAll"
+            :pagination="false"
+            :max-height="400"
+            striped
+            @update:sorter="handleChannelSort"
+          />
+          <DataTablePro
+            v-else
+            :columns="computedChannelColumns"
+            :data="displayChannelAll"
+            :pagination="false"
+            :max-height="400"
+            :scroll-x="2500"
+            striped
+            @update:sorter="handleChannelSort"
+          />
+        </template>
       </div>
 
       <!-- 会员 -->
@@ -1784,25 +1940,49 @@ const channelMemberXlsxColumns = computed(() => {
         <div class="flex items-center justify-between mb-0.5">
           <div>
             <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 会员</h3>
-            <p class="text-[11px] text-slate-500">各渠道会员 GSV / 人数 / AUS · 会员新老客 GSV 两年同比与占比变化</p>
+            <p class="text-[11px] text-slate-500">
+              {{ showDetailChannelMember ? '全量指标：会员 GSV / 人数 / AUS / 会员新老客 GSV 两年同比与占比' : '核心指标：会员GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+            </p>
           </div>
-          <ExportToolbar
-            :filename="`人群看板_渠道会员_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-            :columns="channelMemberXlsxColumns"
-            :data="displayChannelMember"
-            sheet-name="渠道会员"
-          />
+          <div class="flex items-center gap-2">
+            <ExportToolbar
+              :filename="`人群看板_渠道会员_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+              :columns="channelMemberXlsxColumns"
+              :data="displayChannelMember"
+              sheet-name="渠道会员"
+            />
+            <button
+              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+              @click="showDetailChannelMember = !showDetailChannelMember"
+            >
+              {{ showDetailChannelMember ? '← 收起详情' : '显示详情 →' }}
+            </button>
+          </div>
         </div>
         <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
         <LoadingState v-else-if="summaryLoading" />
         <EmptyState v-else-if="!sortedChannelMember.length" description="暂无数据" />
-        <DataTablePro
-          v-else
-          :columns="computedChannelMemberColumns"
-          :data="displayChannelMember"
-          :pagination="false"
-          @update:sorter="handleChannelSort"
-        />
+        <template v-else>
+          <DataTablePro
+            v-if="!showDetailChannelMember"
+            :columns="computedCompactMemberChannelColumns"
+            :data="displayChannelMember"
+            :pagination="false"
+            :max-height="400"
+            striped
+            @update:sorter="handleChannelSort"
+          />
+          <DataTablePro
+            v-else
+            :columns="computedChannelMemberColumns"
+            :data="displayChannelMember"
+            :pagination="false"
+            :max-height="400"
+            :scroll-x="2500"
+            striped
+            @update:sorter="handleChannelSort"
+          />
+        </template>
       </div>
     </div>
 
@@ -1846,5 +2026,30 @@ const channelMemberXlsxColumns = computed(() => {
   font-size: 13px;
   font-weight: 500;
   margin-top: -1px;
+}
+
+/* 组分隔线：新客/老客组首列左边加竖线，防止看岔行 */
+:deep(.n-data-table td.group-sep),
+:deep(.n-data-table th.group-sep) {
+  border-left: 2px solid #cbd5e1;
+}
+
+/* 隔行变色增强可读性 */
+:deep(.n-data-table .n-data-table-td--striped) {
+  background: #f8fafc;
+}
+
+/* 详情模式下确保横向滚动条可见 */
+:deep(.n-data-table .n-data-table-base-table-body) {
+  overflow-x: auto;
+}
+
+:deep(.n-data-table .n-data-table-base-table-body::-webkit-scrollbar-thumb) {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+:deep(.n-data-table .n-data-table-base-table-body::-webkit-scrollbar-track) {
+  background: #e2e8f0;
 }
 </style>

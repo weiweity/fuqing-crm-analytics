@@ -382,11 +382,6 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
         </NAlert>
       </div>
 
-      <!-- 无告警 -->
-      <NAlert v-else type="success" title="运营良好" class="mb-4">
-        暂无异常告警，老客健康度正常 👍
-      </NAlert>
-
       <!-- 第一行：老客 -->
       <n-grid :cols="4" :x-gap="12" :y-gap="12" class="mb-3">
         <n-gi>
