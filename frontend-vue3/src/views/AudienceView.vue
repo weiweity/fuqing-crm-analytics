@@ -47,6 +47,11 @@ const channelSortState = ref<{ columnKey: string; order: 'ascend' | 'descend' | 
 const showDetailChannelAll = ref(false)
 const showDetailChannelMember = ref(false)
 
+/** TTL汇总行加特殊样式：底部加粗分隔线，字体加粗 */
+function channelRowClassName(row: any): string {
+  return row.channel === 'TTL' ? 'ttl-row' : ''
+}
+
 /** 给一组列的首个 child 加 group-sep 分隔线类名 */
 function addChannelGroupSep(subs: any[]): any[] {
   return subs.map((col, i) =>
@@ -1928,6 +1933,7 @@ const channelMemberXlsxColumns = computed(() => {
             :pagination="false"
             :max-height="400"
             striped
+            :row-class-name="channelRowClassName"
             @update:sorter="handleChannelSort"
           />
           <DataTablePro
@@ -1938,6 +1944,7 @@ const channelMemberXlsxColumns = computed(() => {
             :max-height="400"
             :scroll-x="2500"
             striped
+            :row-class-name="channelRowClassName"
             @update:sorter="handleChannelSort"
           />
         </template>
@@ -1978,6 +1985,7 @@ const channelMemberXlsxColumns = computed(() => {
             :pagination="false"
             :max-height="400"
             striped
+            :row-class-name="channelRowClassName"
             @update:sorter="handleChannelSort"
           />
           <DataTablePro
@@ -1988,6 +1996,7 @@ const channelMemberXlsxColumns = computed(() => {
             :max-height="400"
             :scroll-x="2500"
             striped
+            :row-class-name="channelRowClassName"
             @update:sorter="handleChannelSort"
           />
         </template>
@@ -2023,17 +2032,10 @@ const channelMemberXlsxColumns = computed(() => {
 
 <style scoped>
 /* TTL行样式 */
-.ttl-row {
-  display: flex;
-  align-items: center;
-  padding: 6px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  font-size: 13px;
-  font-weight: 500;
-  margin-top: -1px;
+:deep(.ttl-row td) {
+  font-weight: 600 !important;
+  background: #f1f5f9 !important;
+  border-top: 2px solid #94a3b8 !important;
 }
 
 /* 组分隔线：新客/老客组首列左边加竖线，防止看岔行 */

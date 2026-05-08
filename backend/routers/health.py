@@ -73,6 +73,8 @@ def get_health_overview(
     period_days: int = Query(default=30, description="分析周期天数"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
     channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤，优先于exclude_channels）"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     现状概览（运营日报）
@@ -82,9 +84,13 @@ def get_health_overview(
     - 会员老客GSV、会员老客人均、会员老客人数、会员老客GSV占比
     - 近7日复购人数
     - 健康评分（0-100）+ 五维雷达数据 + 告警
-    - 同比（去年同期同周期）
+    - 同比（去年同期同周期）；传 compare_start_date/compare_end_date 时使用自定义对比期
     """
-    return overview_service.get_overview(analysis_date, period_days, exclude_channels, channel)
+    return overview_service.get_overview(
+        analysis_date, period_days, exclude_channels, channel,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
+    )
 
 
 @router.get("/targets", response_model=HealthTargetsResponse)

@@ -33,11 +33,14 @@ const queryParams = computed(() => {
   const startMs = new Date(filterStore.dateRange[0] + 'T00:00:00').getTime()
   const endMs = new Date(filterStore.dateRange[1] + 'T00:00:00').getTime()
   const periodDays = Math.max(1, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)) + 1)
+  const cmp = filterStore.compareParams
   return {
     analysis_date: filterStore.dateRange[1],
     period_days: periodDays,
     channel,
     exclude_channels: excludeChannels,
+    compare_start_date: cmp?.[0],
+    compare_end_date: cmp?.[1],
   }
 })
 
@@ -50,6 +53,8 @@ const { data, isLoading, error, refetch } = useQuery({
       period_days: p.period_days,
       channel: p.channel,
       exclude_channels: p.exclude_channels,
+      compare_start_date: p.compare_start_date,
+      compare_end_date: p.compare_end_date,
     })
   },
   staleTime: 60_000,

@@ -20,6 +20,8 @@ export interface HealthOverviewParams {
   period_days?: number
   exclude_channels?: string[]
   channel?: string
+  compare_start_date?: string
+  compare_end_date?: string
 }
 
 export function fetchHealthOverview(params: HealthOverviewParams): Promise<HealthOverviewMetrics> {

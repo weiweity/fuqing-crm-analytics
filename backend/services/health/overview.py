@@ -289,24 +289,32 @@ def _compute_period_repurchase_users(conn, where_sql: str, params: list) -> int:
 def _compute_yoy_metrics(conn, analysis_date: str, period_days: int,
                          exclude_channels: Optional[List[str]],
                          channel: Optional[str] = None,
-                         targets: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
-    """计算去年同期指标（复用传入的连接，不自己创建）。targets 传入时用于评分基准。"""
+                         targets: Optional[Dict[str, float]] = None,
+                         compare_start_date: Optional[str] = None,
+                         compare_end_date: Optional[str] = None) -> Dict[str, Any]:
+    """计算对比期指标（复用传入的连接，不自己创建）。targets 传入时用于评分基准。
+
+    当 compare_start_date/compare_end_date 提供时，使用自定义对比期替代自动Y-1推算。
+    """
     from backend.semantic.calculations import yoy_absolute, yoy_ratio
 
-    end_dt = datetime.strptime(analysis_date, "%Y-%m-%d").date()
-    start_dt = end_dt - timedelta(days=period_days - 1)
+    if compare_start_date and compare_end_date:
+        prev_start = compare_start_date
+        prev_end = compare_end_date
+    else:
+        end_dt = datetime.strptime(analysis_date, "%Y-%m-%d").date()
+        start_dt = end_dt - timedelta(days=period_days - 1)
 
-    # 去年同期（处理闰年2月29日：退化为2月28日）
-    def _prev_year(d):
-        try:
-            return d.replace(year=d.year - 1)
-        except ValueError:
-            return d.replace(year=d.year - 1, day=28)
-    prev_end_dt = _prev_year(end_dt)
-    prev_start_dt = _prev_year(start_dt)
+        def _prev_year(d):
+            try:
+                return d.replace(year=d.year - 1)
+            except ValueError:
+                return d.replace(year=d.year - 1, day=28)
+        prev_end_dt = _prev_year(end_dt)
+        prev_start_dt = _prev_year(start_dt)
 
-    prev_start = prev_start_dt.strftime("%Y-%m-%d")
-    prev_end = prev_end_dt.strftime("%Y-%m-%d")
+        prev_start = prev_start_dt.strftime("%Y-%m-%d")
+        prev_end = prev_end_dt.strftime("%Y-%m-%d")
 
     where_sql, params = _build_filter(exclude_channels, prev_start, prev_end, channel)
 
@@ -501,6 +509,8 @@ def get_overview(
     period_days: int = 30,
     exclude_channels: Optional[List[str]] = None,
     channel: Optional[str] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     模块1：现状概览（运营日报）
@@ -510,6 +520,8 @@ def get_overview(
         period_days: 分析周期天数（默认30）
         exclude_channels: 排除渠道列表（低价剔除等场景）
         channel: 指定渠道（单渠道过滤，与 exclude_channels 互斥，优先于 exclude_channels）
+        compare_start_date: 自定义对比期开始日期（可选，覆盖Y-1自动推算）
+        compare_end_date: 自定义对比期结束日期（可选，覆盖Y-1自动推算）
     """
     from backend.semantic.calculations import yoy_absolute, yoy_ratio, mom_absolute, mom_ratio
 
@@ -520,10 +532,12 @@ def get_overview(
 
     # ── 缓存读取（历史周期）──
     cache_key = _cache_key(analysis_date, period_days, exclude_channels, channel)
-    if _is_historical_period(analysis_date):
-        cached = _read_cache(cache_key)
-        if cached is not None:
-            return cached
+    # 自定义对比期不读缓存（对比期变化会改变结果）
+    if not compare_start_date and not compare_end_date:
+        if _is_historical_period(analysis_date):
+            cached = _read_cache(cache_key)
+            if cached is not None:
+                return cached
 
     conn = get_connection()
     try:
@@ -537,8 +551,17 @@ def get_overview(
 
         # 3. 计算同比（去年同期值，同 channel 过滤）
         # 先算动态 targets，供评分和同比共用
-        dynamic_targets = _compute_dynamic_targets(conn, analysis_date, period_days, exclude_channels, channel)
-        yoy_prev = _compute_yoy_metrics(conn, analysis_date, period_days, exclude_channels, channel, targets=dynamic_targets)
+        dynamic_targets = _compute_dynamic_targets(
+            conn, analysis_date, period_days, exclude_channels, channel,
+            compare_start_date=compare_start_date,
+            compare_end_date=compare_end_date,
+        )
+        yoy_prev = _compute_yoy_metrics(
+            conn, analysis_date, period_days, exclude_channels, channel,
+            targets=dynamic_targets,
+            compare_start_date=compare_start_date,
+            compare_end_date=compare_end_date,
+        )
 
         # 计算YOY变化率
         yoy_all_store = yoy_ratio(all_store_repurchase_rate, yoy_prev.get("yoy_all_store_repurchase_rate"))
@@ -628,8 +651,8 @@ def get_overview(
             "alerts": alerts,
         }
 
-        # ── 缓存写入（历史周期）──
-        if _is_historical_period(analysis_date):
+        # ── 缓存写入（历史周期；自定义对比期不写缓存）──
+        if _is_historical_period(analysis_date) and not (compare_start_date and compare_end_date):
             _write_cache(cache_key, result)
 
         return result
@@ -644,26 +667,34 @@ def _compute_dynamic_targets(
     period_days: int,
     exclude_channels: Optional[List[str]] = None,
     channel: Optional[str] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, float]:
     """
-    计算动态目标值（去年同周期实际值）。
+    计算动态目标值（对比期实际值）。
 
+    当 compare_start_date/compare_end_date 提供时，使用自定义对比期；
+    否则默认使用去年同周期。
     返回5项指标的目标字典，可直接传给 _compute_health_score(targets=...)。
     复用外部传入的 conn，不自行管理连接。
     """
-    end_dt = datetime.strptime(analysis_date, "%Y-%m-%d").date()
-    start_dt = end_dt - timedelta(days=period_days - 1)
+    if compare_start_date and compare_end_date:
+        prev_start = compare_start_date
+        prev_end = compare_end_date
+    else:
+        end_dt = datetime.strptime(analysis_date, "%Y-%m-%d").date()
+        start_dt = end_dt - timedelta(days=period_days - 1)
 
-    def _prev_year(d):
-        try:
-            return d.replace(year=d.year - 1)
-        except ValueError:
-            return d.replace(year=d.year - 1, day=28)
+        def _prev_year(d):
+            try:
+                return d.replace(year=d.year - 1)
+            except ValueError:
+                return d.replace(year=d.year - 1, day=28)
 
-    prev_end_dt = _prev_year(end_dt)
-    prev_start_dt = _prev_year(start_dt)
-    prev_start = prev_start_dt.strftime("%Y-%m-%d")
-    prev_end = prev_end_dt.strftime("%Y-%m-%d")
+        prev_end_dt = _prev_year(end_dt)
+        prev_start_dt = _prev_year(start_dt)
+        prev_start = prev_start_dt.strftime("%Y-%m-%d")
+        prev_end = prev_end_dt.strftime("%Y-%m-%d")
 
     where_sql, params = _build_filter(exclude_channels, prev_start, prev_end, channel)
 

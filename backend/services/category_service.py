@@ -751,6 +751,8 @@ def get_category_overview(
     metric_type: str = "GSV",
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     品类概览(按Excel格式)
@@ -766,8 +768,15 @@ def get_category_overview(
 
     ly_start = (start_dt - timedelta(days=365)).strftime("%Y-%m-%d")
     ly_end = (end_dt - timedelta(days=365)).strftime("%Y-%m-%d")
-    ly_start_dt = datetime.strptime(ly_start, "%Y-%m-%d")
-    ly_cutoff = (date(ly_start_dt.year, ly_start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+    ly_start_dt_obj = datetime.strptime(ly_start, "%Y-%m-%d")
+    ly_cutoff = (date(ly_start_dt_obj.year, ly_start_dt_obj.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # ── 自定义对比期覆盖 ─────────────────────────────────────
+    if compare_start_date and compare_end_date:
+        ly_start = compare_start_date
+        ly_end = compare_end_date
+        comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split('-'))
+        ly_cutoff = (date(comp_start_y, comp_start_m, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
 
     cur = _compute_category_period(conn, start_date, end_date, cutoff, level, metric_type, channel, exclude_channels)
     comp = _compute_category_period(conn, ly_start, ly_end, ly_cutoff, level, metric_type, channel, exclude_channels)

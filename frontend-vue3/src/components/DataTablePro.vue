@@ -14,6 +14,7 @@ interface Props {
   maxHeight?: number | string
   scrollX?: number | string
   striped?: boolean
+  rowClassName?: string | ((row: any) => string)
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -47,6 +48,7 @@ const createRowKey = (row: any) => {
     :max-height="maxHeight"
     :scroll-x="scrollX"
     :striped="striped"
+    :row-class-name="rowClassName"
     :row-key="createRowKey"
     class="bi-table"
     :class="className"

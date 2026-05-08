@@ -44,9 +44,10 @@ const {
   error: overviewError,
   refetch: overviewRefetch,
 } = useQuery({
-  queryKey: computed(() => ['category-overview', { ...toValue(queryParams) }]),
+  queryKey: computed(() => ['category-overview', { ...toValue(queryParams) }, filterStore.compareParams]),
   queryFn: () => {
     const p = toValue(queryParams)
+    const comp = filterStore.compareParams
     return fetchCategoryOverview({
       start_date: p.start_date,
       end_date: p.end_date,
@@ -54,6 +55,8 @@ const {
       metric_type: p.metric_type,
       channel: p.channel,
       exclude_channels: p.exclude_channels,
+      compare_start_date: comp ? comp[0] : undefined,
+      compare_end_date: comp ? comp[1] : undefined,
     })
   },
   staleTime: 60_000,

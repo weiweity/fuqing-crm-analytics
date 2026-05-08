@@ -451,7 +451,9 @@ def get_category_overview_api(
     level: str = Query(default="type", description="category/type/tier/class/subclass/cosmetic/spec"),
     metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
     channel: Optional[str] = Query(default=None, description="渠道筛选"),
-    exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表")
+    exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     品类概览（按Excel格式）
@@ -460,7 +462,7 @@ def get_category_overview_api(
     - all_rows: 全店数据（全店/老客/新客 GSV、人数、AUS + 同比）
     - member_rows: 会员数据（全店/老客/新客 GSV、人数、AUS + 同比 + 会员占比）
     """
-    return get_category_overview(start_date, end_date, level, metric_type, channel, exclude_channels)
+    return get_category_overview(start_date, end_date, level, metric_type, channel, exclude_channels, compare_start_date, compare_end_date)
 
 
 @app.get("/api/v1/category/segment", response_model=CategorySegmentMatrixResponse)

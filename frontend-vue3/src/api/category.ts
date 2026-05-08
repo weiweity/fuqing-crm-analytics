@@ -103,6 +103,8 @@ export function fetchCategoryOverview(params: {
   metric_type?: string
   channel?: string
   exclude_channels?: string[]
+  compare_start_date?: string
+  compare_end_date?: string
 }): Promise<CategoryOverviewResponse> {
   return client.get('/v1/category/overview', { params })
 }
