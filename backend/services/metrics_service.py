@@ -194,12 +194,15 @@ def calculate_member_metrics(start_date: str, end_date: str, metric_type: str = 
 
 def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV",
                         channel: Optional[str] = None,
-                        exclude_channels: Optional[List[str]] = None) -> Dict[str, Any]:
+                        exclude_channels: Optional[List[str]] = None,
+                        compare_start_date: Optional[str] = None,
+                        compare_end_date: Optional[str] = None) -> Dict[str, Any]:
     """
     获取核心指标概览
     metric_type: "GMV" 或 "GSV"
     channel: 可选，单渠道过滤（UI渠道名）
     exclude_channels: 可选，排除渠道列表
+    compare_start_date/compare_end_date: 可选，自定义对比期日期（覆盖 Y-1 推算）
     """
     current = calculate_metrics(start_date, end_date, metric_type, channel, exclude_channels)
     new_old = calculate_new_old_users(start_date, end_date, channel, exclude_channels)
@@ -240,9 +243,13 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
     prev_member_premium = prev_member_avg / prev['avg_order_value'] if prev['avg_order_value'] > 0 else 0
     mom_member_premium = member_premium - prev_member_premium
 
-    # 同比
-    last_year_start = (start_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
-    last_year_end = (end_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
+    # 同比（支持自定义对比期覆盖 Y-1 推算）
+    if compare_start_date and compare_end_date:
+        last_year_start = compare_start_date
+        last_year_end = compare_end_date
+    else:
+        last_year_start = (start_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
+        last_year_end = (end_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
     last_year = calculate_metrics(last_year_start, last_year_end, metric_type, channel, exclude_channels)
     last_year_new_old = calculate_new_old_users(last_year_start, last_year_end, channel, exclude_channels)
     last_year_member = calculate_member_metrics(last_year_start, last_year_end, metric_type, channel, exclude_channels)
@@ -310,8 +317,12 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
 
 def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
                    channel: Optional[str] = None,
-                   exclude_channels: Optional[List[str]] = None) -> Dict[str, Any]:
-    """获取每日趋势（参数化查询）— 含去年同比 + 会员占比"""
+                   exclude_channels: Optional[List[str]] = None,
+                   compare_start_date: Optional[str] = None,
+                   compare_end_date: Optional[str] = None) -> Dict[str, Any]:
+    """获取每日趋势（参数化查询）— 含对比期数据 + 会员占比。
+    compare_start_date/compare_end_date: 可选，自定义对比期日期（覆盖 Y-1 推算）
+    """
     conn = get_connection()
     try:
         fb = FilterBuilder()
@@ -337,11 +348,15 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
             ORDER BY date
         """, params).fetchall()
 
-        # 去年同比数据
+        # 去年同比数据（支持自定义对比期覆盖 Y-1 推算）
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        ly_start = (start_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
-        ly_end = (end_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
+        if compare_start_date and compare_end_date:
+            ly_start = compare_start_date
+            ly_end = compare_end_date
+        else:
+            ly_start = (start_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
+            ly_end = (end_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
 
         fb_ly = FilterBuilder()
         fb_ly.with_metric_type(MetricType(metric_type))

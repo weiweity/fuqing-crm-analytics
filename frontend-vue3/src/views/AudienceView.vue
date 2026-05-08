@@ -15,6 +15,8 @@ import {
   type DailyTrendPoint,
   type IndicatorRow,
   type ChannelGSVRow,
+  type KPIMetrics,
+  type VisitorSummary,
 } from '@/api/audience'
 import MetricCard from '@/components/MetricCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -141,20 +143,30 @@ const queryParams = computed<AudienceTableParams>(() => ({
   exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
 }))
 
+// 对比参数：auto_yoy 不传（后端原生 Y-1），auto_mom / custom 传计算后的日期
+const compareQueryParams = computed(() => {
+  if (filterStore.compareMode === 'auto_yoy') return {}
+  const comp = filterStore.compareParams
+  if (!comp) return {}
+  return { compare_start_date: comp[0], compare_end_date: comp[1] }
+})
+
 const { data: kpiData, isLoading: kpiLoading } = useQuery({
-  queryKey: ['kpi-metrics', queryParams],
+  queryKey: ['kpi-metrics', queryParams, compareQueryParams],
   queryFn: () => {
     const p = toValue(queryParams)
-    return fetchKPIMetrics({ date_start: p.date_start, date_end: p.date_end, channel: p.channel, exclude_channels: p.exclude_channels })
+    const c = toValue(compareQueryParams)
+    return fetchKPIMetrics({ date_start: p.date_start, date_end: p.date_end, channel: p.channel, exclude_channels: p.exclude_channels, ...c })
   },
   staleTime: 60_000,
 })
 
 const { data: trendData, isLoading: trendLoading, error: trendError, refetch: trendRefetch } = useQuery({
-  queryKey: ['daily-trend', queryParams],
+  queryKey: ['daily-trend', queryParams, compareQueryParams],
   queryFn: () => {
     const p = toValue(queryParams)
-    return fetchDailyTrend({ date_start: p.date_start, date_end: p.date_end, channel: p.channel, exclude_channels: p.exclude_channels })
+    const c = toValue(compareQueryParams)
+    return fetchDailyTrend({ date_start: p.date_start, date_end: p.date_end, channel: p.channel, exclude_channels: p.exclude_channels, ...c })
   },
   staleTime: 60_000,
 })
@@ -178,27 +190,53 @@ const { data: summaryData, isLoading: summaryLoading, error: summaryError, refet
 
 // 访客入会率数据
 const { data: visitorSummary, isLoading: visitorLoading } = useQuery({
-  queryKey: ['visitor-summary', queryParams],
+  queryKey: ['visitor-summary', queryParams, compareQueryParams],
   queryFn: () => {
     const p = toValue(queryParams)
+    const c = toValue(compareQueryParams)
     return fetchVisitorSummary({
       start_date: p.date_start,
       end_date: p.date_end,
+      ...c,
     })
   },
   staleTime: 60_000,
 })
 
 const { data: visitorTrendData, isLoading: visitorTrendLoading, error: visitorTrendError, refetch: visitorTrendRefetch } = useQuery({
-  queryKey: ['visitor-daily-trend', queryParams],
+  queryKey: ['visitor-daily-trend', queryParams, compareQueryParams],
   queryFn: () => {
     const p = toValue(queryParams)
+    const c = toValue(compareQueryParams)
     return fetchVisitorDailyTrend({
       start_date: p.date_start,
       end_date: p.date_end,
+      ...c,
     })
   },
   staleTime: 60_000,
+})
+
+// ── 对比模式联动：KPI 卡片 change 值 & 图表标签 ──
+const isMOM = computed(() => filterStore.compareMode === 'auto_mom')
+
+/** KPI 卡片切换：auto_mom → mom_*，其余 → yoy_* */
+function kpiChange(yoyField: keyof KPIMetrics, momField: keyof KPIMetrics): number | undefined {
+  if (!kpiData.value) return undefined
+  return isMOM.value ? ((kpiData.value as any)[momField] ?? 0) : ((kpiData.value as any)[yoyField] ?? 0)
+}
+
+/** 访客卡片切换：auto_mom → *_mom，其余 → *_yoy */
+function visitorChange(yoyField: keyof VisitorSummary, momField: keyof VisitorSummary): number | undefined {
+  if (!visitorSummary.value) return undefined
+  return isMOM.value ? ((visitorSummary.value as any)[momField] ?? 0) : ((visitorSummary.value as any)[yoyField] ?? 0)
+}
+
+/** 动态对比标签（用于图表 legend / 说明文字） */
+const compareLabelShort = computed(() => {
+  if (filterStore.compareMode === 'auto_mom') return '上期'
+  if (filterStore.compareMode === 'custom') return '对比期'
+  return '去年同期'
 })
 
 const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
@@ -1377,7 +1415,7 @@ const trendChartOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
     },
     legend: {
-      data: ['全店GSV', '会员占比', '去年同期GSV', '去年同期会员占比'],
+      data: ['全店GSV', '会员占比', `${compareLabelShort.value}GSV`, `${compareLabelShort.value}会员占比`],
       top: 0,
       icon: 'circle',
       itemGap: 16,
@@ -1452,7 +1490,7 @@ const trendChartOption = computed(() => {
         yAxisIndex: 1,
       },
       {
-        name: '去年同期GSV',
+        name: `${compareLabelShort.value}GSV`,
         type: 'line',
         data: data.map((d: DailyTrendPoint) => d.ly_gsv),
         smooth: true,
@@ -1462,7 +1500,7 @@ const trendChartOption = computed(() => {
         yAxisIndex: 0,
       },
       {
-        name: '去年同期会员占比',
+        name: `${compareLabelShort.value}会员占比`,
         type: 'line',
         data: data.map((d: DailyTrendPoint) => d.ly_member_ratio),
         smooth: true,
@@ -1503,7 +1541,7 @@ const visitorTrendChartOption = computed(() => {
       },
     },
     legend: {
-      data: ['访客数', '新增会员数', '入会率', '去年同期入会率'],
+      data: ['访客数', '新增会员数', '入会率', `${compareLabelShort.value}入会率`],
       top: 0,
       icon: 'circle',
       itemGap: 16,
@@ -1574,7 +1612,7 @@ const visitorTrendChartOption = computed(() => {
         yAxisIndex: 1,
       },
       {
-        name: '去年同期入会率',
+        name: `${compareLabelShort.value}入会率`,
         type: 'line',
         data: data.map((d) => d.ly_member_join_rate),
         smooth: true,
@@ -1746,13 +1784,13 @@ const channelMemberXlsxColumns = computed(() => {
   <div class="space-y-5">
     <PageHeader title="人群看板" subtitle="洞察用户结构与消费趋势" />
 
-    <!-- KPI Cards 第一行：人群 GSV（YoY） -->
+    <!-- KPI Cards 第一行：人群 GSV -->
     <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
       <n-gi :span="1" class="h-full">
         <MetricCard
           title="全店GSV"
           :value="kpiData ? formatKPI(kpiData.gsv, 'currency') : '—'"
-          :change="kpiData?.gsv_yoy"
+          :change="kpiChange('gsv_yoy', 'gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1760,7 +1798,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="老客GSV"
           :value="kpiData ? formatKPI(kpiData.old_gsv, 'currency') : '—'"
-          :change="kpiData?.old_gsv_yoy"
+          :change="kpiChange('old_gsv_yoy', 'old_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1768,7 +1806,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新客GSV"
           :value="kpiData ? formatKPI(kpiData.new_gsv, 'currency') : '—'"
-          :change="kpiData?.new_gsv_yoy"
+          :change="kpiChange('new_gsv_yoy', 'new_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1776,19 +1814,19 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员GSV"
           :value="kpiData ? formatKPI(kpiData.member_gsv, 'currency') : '—'"
-          :change="kpiData?.member_gsv_yoy"
+          :change="kpiChange('member_gsv_yoy', 'member_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
     </n-grid>
 
-    <!-- KPI Cards 第二行：人群占比 + 会员溢价（YoY） -->
+    <!-- KPI Cards 第二行：人群占比 + 会员溢价 -->
     <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
       <n-gi :span="1" class="h-full">
         <MetricCard
           title="老客占比"
           :value="fmtRatio(kpiData?.old_gsv_ratio)"
-          :change="kpiData?.old_gsv_ratio_yoy"
+          :change="kpiChange('old_gsv_ratio_yoy', 'old_gsv_ratio_mom')"
           :loading="kpiLoading"
           unit="pp"
         />
@@ -1797,7 +1835,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新客占比"
           :value="fmtRatio(kpiData?.new_gsv_ratio)"
-          :change="kpiData?.new_gsv_ratio_yoy"
+          :change="kpiChange('new_gsv_ratio_yoy', 'new_gsv_ratio_mom')"
           :loading="kpiLoading"
           unit="pp"
         />
@@ -1806,7 +1844,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员占比"
           :value="fmtRatio(kpiData?.member_gsv_ratio)"
-          :change="kpiData?.member_gsv_ratio_yoy"
+          :change="kpiChange('member_gsv_ratio_yoy', 'member_gsv_ratio_mom')"
           :loading="kpiLoading"
           unit="pp"
         />
@@ -1815,7 +1853,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员溢价"
           :value="kpiData ? Number(kpiData.member_premium).toFixed(2) : '—'"
-          :change="kpiData?.member_premium_yoy"
+          :change="kpiChange('member_premium_yoy', 'member_premium_mom')"
           :loading="kpiLoading"
           unit="%"
         />
@@ -1828,7 +1866,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="访客数"
           :value="visitorSummary ? Number(visitorSummary.visitors).toLocaleString() : '—'"
-          :change="visitorSummary?.visitors_yoy ?? undefined"
+          :change="visitorChange('visitors_yoy', 'visitors_mom')"
           :loading="visitorLoading"
           unit="%"
         />
@@ -1837,7 +1875,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新增会员数"
           :value="visitorSummary ? Number(visitorSummary.new_members).toLocaleString() : '—'"
-          :change="visitorSummary?.new_members_yoy ?? undefined"
+          :change="visitorChange('new_members_yoy', 'new_members_mom')"
           :loading="visitorLoading"
           unit="%"
         />
@@ -1846,14 +1884,14 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员入会率"
           :value="visitorSummary ? `${visitorSummary.member_join_rate.toFixed(2)}%` : '—'"
-          :change="visitorSummary?.member_join_rate_yoy ?? undefined"
+          :change="visitorChange('member_join_rate_yoy', 'member_join_rate_mom')"
           :loading="visitorLoading"
           unit="pp"
         />
       </n-gi>
       <n-gi :span="1" class="h-full">
         <MetricCard
-          title="去年同期入会率"
+          :title="`${compareLabelShort}入会率`"
           :value="visitorSummary ? `${visitorSummary.ly_member_join_rate.toFixed(2)}%` : '—'"
           :loading="visitorLoading"
         />
@@ -1865,7 +1903,7 @@ const channelMemberXlsxColumns = computed(() => {
       <div class="flex items-center justify-between mb-0.5">
         <div>
           <h3 class="text-sm font-semibold text-slate-800">日趋势</h3>
-          <p class="text-[11px] text-slate-500">全店GSV 与会员占比 — 含去年同期同比</p>
+          <p class="text-[11px] text-slate-500">全店GSV 与会员占比 — 含{{ compareLabelShort }}对比</p>
         </div>
         <ExportToolbar
           :filename="`人群看板_日趋势_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
@@ -1883,7 +1921,7 @@ const channelMemberXlsxColumns = computed(() => {
       <div class="flex items-center justify-between mb-0.5">
         <div>
           <h3 class="text-sm font-semibold text-slate-800">入会趋势</h3>
-          <p class="text-[11px] text-slate-500">访客数、新增会员数与入会率 — 含去年同期入会率对比</p>
+          <p class="text-[11px] text-slate-500">访客数、新增会员数与入会率 — 含{{ compareLabelShort }}入会率对比</p>
         </div>
         <ExportToolbar
           :filename="`人群看板_入会趋势_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"

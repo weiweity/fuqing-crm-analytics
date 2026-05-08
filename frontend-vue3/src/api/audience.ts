@@ -7,6 +7,8 @@ export interface AudienceTableParams {
   dimension?: string
   dim_value?: string
   exclude_channels?: string[]
+  compare_start_date?: string
+  compare_end_date?: string
 }
 
 export interface AudienceTableRow {
@@ -64,6 +66,17 @@ export interface KPIMetrics {
   member_avg_order_amount: number
   member_premium: number
   member_premium_yoy: number
+  // MoM（环比）
+  gsv_mom: number
+  order_count_mom: number
+  user_count_mom: number
+  old_gsv_mom: number
+  new_gsv_mom: number
+  member_gsv_mom: number
+  old_gsv_ratio_mom: number
+  new_gsv_ratio_mom: number
+  member_gsv_ratio_mom: number
+  member_premium_mom: number
 }
 
 export function fetchAudienceTable(params: AudienceTableParams): Promise<AudienceTableRow[]> {
@@ -80,6 +93,8 @@ export function fetchAudienceTable(params: AudienceTableParams): Promise<Audienc
   if (params.exclude_channels?.length) {
     backendParams.exclude_channels = params.exclude_channels
   }
+  if (params.compare_start_date) backendParams.compare_start_date = params.compare_start_date
+  if (params.compare_end_date) backendParams.compare_end_date = params.compare_end_date
   return client.get('/v1/audience/table', { params: backendParams }).then((res: any) => {
     return res.rows.map((row: any) => ({
       dimension_value: row.dimension,
@@ -93,7 +108,10 @@ export function fetchAudienceTable(params: AudienceTableParams): Promise<Audienc
 }
 
 export function fetchChannelSummary(params: Omit<AudienceTableParams, 'dimension' | 'dim_value'>): Promise<ChannelSummary[]> {
-  return client.get('/v1/metrics/overview', { params: { start_date: params.date_start, end_date: params.date_end, metric_type: 'GSV' } }).then((res: any) => {
+  const backendParams: Record<string, any> = { start_date: params.date_start, end_date: params.date_end, metric_type: 'GSV' }
+  if (params.compare_start_date) backendParams.compare_start_date = params.compare_start_date
+  if (params.compare_end_date) backendParams.compare_end_date = params.compare_end_date
+  return client.get('/v1/metrics/overview', { params: backendParams }).then((res: any) => {
     return [{
       channel: '全店',
       gsv: res.amount,
@@ -112,6 +130,8 @@ export function fetchDailyTrend(params: Omit<AudienceTableParams, 'dimension' | 
   }
   if (params.channel) backendParams.channel = params.channel
   if (params.exclude_channels?.length) backendParams.exclude_channels = params.exclude_channels
+  if (params.compare_start_date) backendParams.compare_start_date = params.compare_start_date
+  if (params.compare_end_date) backendParams.compare_end_date = params.compare_end_date
   return client.get('/v1/metrics/trend', { params: backendParams }).then((res: any) => {
     const dates = res.dates || []
     const amounts = res.amounts || []
@@ -136,6 +156,8 @@ export function fetchKPIMetrics(params: Omit<AudienceTableParams, 'dimension' | 
   }
   if (params.channel) backendParams.channel = params.channel
   if (params.exclude_channels?.length) backendParams.exclude_channels = params.exclude_channels
+  if (params.compare_start_date) backendParams.compare_start_date = params.compare_start_date
+  if (params.compare_end_date) backendParams.compare_end_date = params.compare_end_date
   return client.get('/v1/metrics/overview', { params: backendParams }).then((res: any) => {
     const totalUsers = res.new_users + res.old_users
     return {
@@ -168,6 +190,17 @@ export function fetchKPIMetrics(params: Omit<AudienceTableParams, 'dimension' | 
       member_avg_order_amount: res.member_avg_order_value ?? 0,
       member_premium: res.member_premium ?? 0,
       member_premium_yoy: res.yoy_change?.member_premium_ppt ?? 0,
+      // MoM（环比）
+      gsv_mom: res.mom_change?.amount_pct ?? 0,
+      order_count_mom: res.mom_change?.order_count_pct ?? 0,
+      user_count_mom: 0,
+      old_gsv_mom: res.mom_change?.old_user_amount_pct ?? 0,
+      new_gsv_mom: res.mom_change?.new_user_amount_pct ?? 0,
+      member_gsv_mom: res.mom_change?.member_amount_pct ?? 0,
+      old_gsv_ratio_mom: res.mom_change?.old_user_ratio_ppt ?? 0,
+      new_gsv_ratio_mom: res.mom_change?.new_user_ratio_ppt ?? 0,
+      member_gsv_ratio_mom: res.mom_change?.member_ratio_ppt ?? 0,
+      member_premium_mom: res.mom_change?.member_premium_ppt ?? 0,
     }
   })
 }
@@ -298,6 +331,10 @@ export interface VisitorSummary {
   visitors_yoy: number | null
   new_members_yoy: number | null
   member_join_rate_yoy: number | null
+  // 环比
+  visitors_mom: number | null
+  new_members_mom: number | null
+  member_join_rate_mom: number | null
 }
 
 export interface VisitorDailyTrendItem {
@@ -319,6 +356,8 @@ export interface VisitorDailyTrend {
 export function fetchVisitorSummary(params: {
   start_date: string
   end_date: string
+  compare_start_date?: string
+  compare_end_date?: string
 }): Promise<VisitorSummary> {
   return client.get('/v1/visitor/summary', { params })
 }
@@ -326,6 +365,8 @@ export function fetchVisitorSummary(params: {
 export function fetchVisitorDailyTrend(params: {
   start_date: string
   end_date: string
+  compare_start_date?: string
+  compare_end_date?: string
 }): Promise<VisitorDailyTrend> {
   return client.get('/v1/visitor/daily-trend', { params })
 }

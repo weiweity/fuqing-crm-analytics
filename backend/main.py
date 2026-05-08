@@ -235,6 +235,8 @@ def get_metrics_overview(
     metric_type: str = Query(default="GMV", description="指标类型：GMV 或 GSV"),
     channel: Optional[str] = Query(default=None, description="渠道筛选（UI渠道名）"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     获取核心指标概览
@@ -245,7 +247,8 @@ def get_metrics_overview(
     - 会员指标
     - 环比、同比变化
     """
-    return get_overview_metrics(start_date, end_date, metric_type, channel, exclude_channels)
+    return get_overview_metrics(start_date, end_date, metric_type, channel, exclude_channels,
+                                compare_start_date, compare_end_date)
 
 
 @app.get("/api/v1/metrics/trend", response_model=TrendData)
@@ -255,13 +258,16 @@ def get_metrics_trend(
     metric_type: str = Query(default="GMV", description="指标类型：GMV 或 GSV"),
     channel: Optional[str] = Query(default=None, description="渠道筛选（UI渠道名）"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     获取每日趋势数据
 
     返回每日 GMV、订单数、用户数，用于绘制折线图
     """
-    return get_daily_trend(start_date, end_date, metric_type, channel, exclude_channels)
+    return get_daily_trend(start_date, end_date, metric_type, channel, exclude_channels,
+                           compare_start_date, compare_end_date)
 
 
 @app.get("/api/v1/health")
@@ -962,6 +968,8 @@ def get_market_focus_other_product_assets_api(
 def get_visitor_summary_api(
     start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     访客入会率汇总
@@ -969,21 +977,24 @@ def get_visitor_summary_api(
     返回指定周期内的：
     - 访客数、新增会员数、入会率
     - 去年同期对比（访客数YoY、新增会员数YoY、入会率百分点差）
+    - 环比（访客数MoM、新增会员数MoM、入会率百分点差）
     """
-    return get_visitor_summary(start_date, end_date)
+    return get_visitor_summary(start_date, end_date, compare_start_date, compare_end_date)
 
 
 @app.get("/api/v1/visitor/daily-trend", response_model=VisitorDailyTrendResponse)
 def get_visitor_daily_trend_api(
     start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     访客入会率每日趋势
 
-    返回每日访客数、新增会员数、入会率，含去年同期同天数据。
+    返回每日访客数、新增会员数、入会率，含对比期同天数据。
     """
-    data = get_visitor_daily_trend(start_date, end_date)
+    data = get_visitor_daily_trend(start_date, end_date, compare_start_date, compare_end_date)
     return {
         "start_date": start_date,
         "end_date": end_date,

@@ -1512,6 +1512,10 @@ class VisitorSummaryResponse(BaseModel):
     visitors_yoy: Optional[float] = None
     new_members_yoy: Optional[float] = None
     member_join_rate_yoy: Optional[float] = None
+    # 环比
+    visitors_mom: Optional[float] = None
+    new_members_mom: Optional[float] = None
+    member_join_rate_mom: Optional[float] = None
 
 
 class VisitorDailyTrendItem(BaseModel):
