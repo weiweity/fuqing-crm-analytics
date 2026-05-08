@@ -155,10 +155,10 @@ const { data: trendData, isLoading: trendLoading, error: trendError, refetch: tr
 })
 
 const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: summaryRefetch } = useQuery({
-  queryKey: ['audience-summary', queryParams, filterStore.effectiveCompareRange],
+  queryKey: ['audience-summary', queryParams, filterStore.compareParams],
   queryFn: () => {
     const p = toValue(queryParams)
-    const comp = filterStore.effectiveCompareRange
+    const comp = filterStore.compareParams
     return fetchAudienceSummary({
       start_date: p.date_start,
       end_date: p.date_end,
@@ -201,8 +201,7 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
   const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
   const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
   const hasPrev2 = !!summaryData.value?.prev2_year_label
-  const isCustomCompare = !!filterStore.effectiveCompareRange && filterStore.compareMode !== 'auto_yoy'
-  const yoyLabel = isCustomCompare ? '对比' : 'YOY'
+  const yoyLabel = filterStore.compareLabel
   const cols: DataTableColumns<IndicatorRow> = [
     { title: '指标', key: 'field', width: 160, fixed: 'left', align: 'center' },
     {

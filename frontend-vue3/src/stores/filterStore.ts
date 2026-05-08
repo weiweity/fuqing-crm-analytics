@@ -15,31 +15,39 @@ export const useFilterStore = defineStore('filter', () => {
   const compareDateRange = ref<[string, string] | null>(null)
 
   /**
-   * 有效对比日期范围：
-   * auto_yoy / auto_mom → 自动计算
-   * custom             → compareDateRange
+   * 需要传递给后端的对比日期范围：
+   * auto_yoy → null（后端原生三列对比，不需要覆盖）
+   * auto_mom → 自动计算的环比日期
+   * custom   → 用户自选的对比日期
    */
-  const effectiveCompareRange = computed<[string, string] | null>(() => {
+  const compareParams = computed<[string, string] | null>(() => {
+    if (compareMode.value === 'auto_yoy') {
+      // YOY 交给后端原生处理，不传 compare 参数
+      return null
+    }
     if (compareMode.value === 'custom') {
       return compareDateRange.value
     }
+    // auto_mom: 自动计算环比日期
     return computeCompareRange(dateRange.value, compareMode.value)
+  })
+
+  /**
+   * 对比模式显示标签（用于表头等）
+   */
+  const compareLabel = computed<string>(() => {
+    if (compareMode.value === 'auto_yoy') return 'YOY'
+    if (compareMode.value === 'auto_mom') return '环比'
+    return '对比'
   })
 
   watch(dimension, () => {
     dimensionValue.value = ''
   })
 
-  // 当主日期变化时，重置自定义对比期（避免脏数据）
-  watch(dateRange, () => {
-    if (compareMode.value === 'custom') {
-      // custom 模式不自动清除，用户可以保留自己的选择
-    }
-  })
-
   return {
     dateRange, channel, dimension, dimensionValue,
     periodType, excludeLowPrice,
-    compareMode, compareDateRange, effectiveCompareRange,
+    compareMode, compareDateRange, compareParams, compareLabel,
   }
 })
