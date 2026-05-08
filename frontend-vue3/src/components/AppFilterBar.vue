@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { NDatePicker, NSelect, NSwitch } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
-import { getPeriodDateRange, formatDate } from '@/utils/date'
+import { getPeriodDateRange, formatDate, type CompareMode } from '@/utils/date'
 
 const filterStore = useFilterStore()
 
@@ -33,6 +33,12 @@ const periodTypeOptions = [
   { label: '自定义', value: 'custom' },
 ]
 
+const compareModeOptions = [
+  { label: '同比(YOY)', value: 'auto_yoy' },
+  { label: '环比(MOM)', value: 'auto_mom' },
+  { label: '自定义对比', value: 'custom' },
+]
+
 const dateRangeModel = computed({
   get(): [number, number] {
     const [s, e] = filterStore.dateRange
@@ -44,6 +50,21 @@ const dateRangeModel = computed({
       if (!isProgrammaticUpdate) {
         filterStore.periodType = 'custom'
       }
+    }
+  },
+})
+
+const compareDateModel = computed({
+  get(): [number, number] | null {
+    const range = filterStore.compareDateRange
+    if (!range) return null
+    return [new Date(range[0] + 'T00:00:00').getTime(), new Date(range[1] + 'T00:00:00').getTime()]
+  },
+  set(val: [number, number] | null) {
+    if (val) {
+      filterStore.compareDateRange = [formatDate(new Date(val[0])), formatDate(new Date(val[1]))]
+    } else {
+      filterStore.compareDateRange = null
     }
   },
 })
@@ -62,6 +83,7 @@ watch(() => filterStore.periodType, (type) => {
 
 <template>
   <div class="flex flex-wrap items-center gap-4 px-5 py-3 bg-white border-b border-slate-200">
+    <!-- 当前日期 -->
     <div class="flex items-center gap-2">
       <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</span>
       <n-date-picker
@@ -83,6 +105,28 @@ watch(() => filterStore.periodType, (type) => {
 
     <div class="w-px h-5 bg-slate-200" />
 
+    <!-- 对比日期（新增） -->
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">对比</span>
+      <n-select
+        v-model:value="filterStore.compareMode"
+        :options="compareModeOptions"
+        size="small"
+        class="!w-36"
+      />
+      <n-date-picker
+        v-if="filterStore.compareMode === 'custom'"
+        v-model:value="compareDateModel"
+        type="daterange"
+        clearable
+        size="small"
+        class="!w-64"
+      />
+    </div>
+
+    <div class="w-px h-5 bg-slate-200" />
+
+    <!-- 渠道 -->
     <div class="flex items-center gap-2">
       <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">渠道</span>
       <n-select
@@ -96,6 +140,7 @@ watch(() => filterStore.periodType, (type) => {
 
     <div class="w-px h-5 bg-slate-200" />
 
+    <!-- 低价筛选 -->
     <div class="flex items-center justify-center gap-2">
       <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">低价筛选</span>
       <n-switch v-model:value="filterStore.excludeLowPrice" size="small">

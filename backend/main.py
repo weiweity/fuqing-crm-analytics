@@ -725,6 +725,8 @@ def get_audience_summary_api(
     end_date: Optional[str] = Query(default=None, description="结束日期 YYYY-MM-DD（period为空时使用）"),
     channel: Optional[str] = Query(default=None, description="渠道筛选"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     人群看板汇总接口
@@ -736,6 +738,7 @@ def get_audience_summary_api(
 
     period 联动：WTD/MTD/YTD/Q1-Q4 使用 PeriodBuilder 计算三周期；
     自定义日期时（start_date/end_date）使用用户指定范围。
+    compare_start_date/compare_end_date 可覆盖自动推算的对比期（仅替换 Y-1 对比期，Y-2 归零）。
     """
     from backend.semantic.time import PeriodBuilder
 
@@ -758,6 +761,8 @@ def get_audience_summary_api(
         end_date=resolved_end,
         channel=channel,
         exclude_channels=exclude_channels,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
     )
     return result
 

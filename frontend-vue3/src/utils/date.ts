@@ -81,6 +81,44 @@ export function getQuickDateRange(preset: string): [string, string] | null {
  */
 export type PeriodType = 'WTD' | 'MTD' | 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom'
 
+/**
+ * 对比模式
+ */
+export type CompareMode = 'auto_yoy' | 'auto_mom' | 'custom'
+
+/**
+ * 根据当前日期范围 + 对比模式，计算对比期日期范围
+ * auto_yoy: 去年同期（同月日）
+ * auto_mom: 上一等长周期
+ * custom:   返回 null（由用户自选）
+ */
+export function computeCompareRange(current: [string, string], mode: CompareMode): [string, string] | null {
+  if (mode === 'custom') return null
+
+  const [s, e] = current
+  const startDate = new Date(s + 'T00:00:00')
+  const endDate = new Date(e + 'T00:00:00')
+
+  if (mode === 'auto_yoy') {
+    const compStart = new Date(startDate)
+    compStart.setFullYear(compStart.getFullYear() - 1)
+    const compEnd = new Date(endDate)
+    compEnd.setFullYear(compEnd.getFullYear() - 1)
+    return [formatDate(compStart), formatDate(compEnd)]
+  }
+
+  if (mode === 'auto_mom') {
+    const periodDays = Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1
+    const momEnd = new Date(startDate)
+    momEnd.setDate(momEnd.getDate() - 1)
+    const momStart = new Date(startDate)
+    momStart.setDate(momStart.getDate() - periodDays)
+    return [formatDate(momStart), formatDate(momEnd)]
+  }
+
+  return null
+}
+
 export function getPeriodDateRange(type: PeriodType): [string, string] | null {
   const today = new Date()
   const yesterday = new Date(today)

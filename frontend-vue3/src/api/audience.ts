@@ -276,6 +276,8 @@ export function fetchAudienceSummary(params: {
   channel?: string
   metric_type?: string
   exclude_channels?: string[]
+  compare_start_date?: string
+  compare_end_date?: string
 } = {}): Promise<AudienceSummary> {
   return client.get('/v1/audience/summary', { params })
 }

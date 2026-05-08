@@ -891,6 +891,8 @@ def calculate_audience_summary(
     channel: Optional[str] = None,
     period: Optional[str] = None,  # WTD/MTD/YTD/Q1-Q4
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     人群看板汇总：三面板数据计算
@@ -1005,6 +1007,20 @@ def calculate_audience_summary(
         current_year_label = str(today.year)
         comp_year_label = str(comp_year)
         prev2_year_label = str(prev2_year)
+
+    # ── 自定义对比期覆盖 ─────────────────────────────────────
+    if compare_start_date and compare_end_date:
+        ly_start_dt = f"{compare_start_date} 00:00:00"
+        ly_end_dt = f"{compare_end_date} 23:59:59"
+        comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split('-'))
+        ly_cutoff = date(comp_start_y, comp_start_m, 1) - timedelta(days=1)
+        ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
+        comp_year_label = f"对比期"
+        # 用户自选对比期时，prev2 无意义，归零
+        y2_start_dt = "2099-01-01 00:00:00"
+        y2_end_dt = "2099-01-01 00:00:00"
+        y2_cutoff_str = "2099-01-01"
+        prev2_year_label = ""
 
     conn = get_connection()
     try:

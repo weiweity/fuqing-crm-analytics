@@ -155,14 +155,17 @@ const { data: trendData, isLoading: trendLoading, error: trendError, refetch: tr
 })
 
 const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: summaryRefetch } = useQuery({
-  queryKey: ['audience-summary', queryParams],
+  queryKey: ['audience-summary', queryParams, filterStore.effectiveCompareRange],
   queryFn: () => {
     const p = toValue(queryParams)
+    const comp = filterStore.effectiveCompareRange
     return fetchAudienceSummary({
       start_date: p.date_start,
       end_date: p.date_end,
       channel: p.channel,
       exclude_channels: p.exclude_channels,
+      compare_start_date: comp ? comp[0] : undefined,
+      compare_end_date: comp ? comp[1] : undefined,
     })
   },
   staleTime: 60_000,
@@ -197,7 +200,10 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
   const yr = summaryData.value?.year_label || String(new Date().getFullYear())
   const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
   const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
-  return [
+  const hasPrev2 = !!summaryData.value?.prev2_year_label
+  const isCustomCompare = !!filterStore.effectiveCompareRange && filterStore.compareMode !== 'auto_yoy'
+  const yoyLabel = isCustomCompare ? '对比' : 'YOY'
+  const cols: DataTableColumns<IndicatorRow> = [
     { title: '指标', key: 'field', width: 160, fixed: 'left', align: 'center' },
     {
       title: `${yr}年`,
@@ -221,7 +227,7 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
       },
     },
     {
-      title: `${yr2}年`,
+      title: hasPrev2 ? `${yr2}年` : yr2,
       key: 'value_2025',
       width: 120,
       align: 'center',
@@ -241,7 +247,9 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
         return `¥${(v / 10000).toFixed(1)}万`
       },
     },
-    {
+  ]
+  if (hasPrev2) {
+    cols.push({
       title: `${yr3}年`,
       key: 'value_2024',
       width: 120,
@@ -261,15 +269,16 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
         }
         return `¥${(v / 10000).toFixed(1)}万`
       },
-    },
-    {
-      title: 'YOY',
-      key: 'yoy',
-      width: 120,
-      align: 'center',
-      render: (row: IndicatorRow) => h(YOYBadge, { value: row.yoy }),
-    },
-  ]
+    })
+  }
+  cols.push({
+    title: yoyLabel,
+    key: 'yoy',
+    width: 120,
+    align: 'center',
+    render: (row: IndicatorRow) => h(YOYBadge, { value: row.yoy }),
+  })
+  return cols
 })
 
 // 所有列禁用内置排序，排序全部在 sortedChannelAll/sortedChannelMember 中处理
