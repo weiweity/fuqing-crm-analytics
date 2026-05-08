@@ -66,8 +66,8 @@ def get_visitor_summary(start_date: str, end_date: str,
         comp_visitors, comp_new_members, comp_join_rate = \
             _query_visitor_period(conn, comp_start, comp_end)
 
-        # 入会率同比（百分点差）
-        comp_rate_diff = member_join_rate - comp_join_rate
+        # 入会率同比（百分点差）— 用小数计算，前端 unit='pp' 会 *100
+        comp_rate_diff = (member_join_rate / 100) - (comp_join_rate / 100)
         # 访客数/新增会员同比（百分比变化）
         visitors_yoy = yoy_absolute(total_visitors, comp_visitors)
         new_members_yoy = yoy_absolute(total_new_members, comp_new_members)
@@ -83,7 +83,7 @@ def get_visitor_summary(start_date: str, end_date: str,
 
         visitors_mom = yoy_absolute(total_visitors, mom_visitors)
         new_members_mom = yoy_absolute(total_new_members, mom_new_members)
-        member_join_rate_mom = member_join_rate - mom_join_rate
+        member_join_rate_mom = (member_join_rate / 100) - (mom_join_rate / 100)
 
         return {
             "start_date": start_date,

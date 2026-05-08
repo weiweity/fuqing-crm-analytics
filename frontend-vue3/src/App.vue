@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { NConfigProvider, NMessageProvider, NNotificationProvider, NDialogProvider, NSpin } from 'naive-ui'
+import { NConfigProvider, NMessageProvider, NNotificationProvider, NDialogProvider, NSpin, zhCN, dateZhCN } from 'naive-ui'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { useFilterSync } from '@/composables/useFilterSync'
 import { useAuthStore } from '@/stores/auth'
@@ -68,7 +68,7 @@ const themeOverrides = {
 </script>
 
 <template>
-  <n-config-provider :theme-overrides="themeOverrides">
+  <n-config-provider :theme-overrides="themeOverrides" :locale="zhCN" :date-locale="dateZhCN">
     <n-message-provider>
       <n-notification-provider>
         <n-dialog-provider>

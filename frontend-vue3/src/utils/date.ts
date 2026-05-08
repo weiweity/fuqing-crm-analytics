@@ -79,12 +79,30 @@ export function getQuickDateRange(preset: string): [string, string] | null {
 /**
  * Get WTD/MTD/YTD/Q1-Q4 date range
  */
-export type PeriodType = 'WTD' | 'MTD' | 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom'
+export type PeriodType = 'WTD' | 'MTD' | 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom' | 'yesterday'
 
 /**
  * 对比模式
  */
 export type CompareMode = 'auto_yoy' | 'auto_mom' | 'custom'
+
+/**
+ * 根据对比模式返回列标题对 { current, compare, change }
+ * auto_yoy → "{year}年" / "{year-1}年" / "YOY"
+ * auto_mom → "当期" / "上期" / "环比"
+ * custom   → "当期" / "对比期" / "对比"
+ */
+export function getCompareLabels(mode: CompareMode, yearLabel?: string, compYearLabel?: string): {
+  current: string
+  compare: string
+  change: string
+} {
+  const yr = yearLabel || String(new Date().getFullYear())
+  const yr2 = compYearLabel || String(new Date().getFullYear() - 1)
+  if (mode === 'auto_mom') return { current: '当期', compare: '上期', change: '环比' }
+  if (mode === 'custom') return { current: '当期', compare: '对比期', change: '对比' }
+  return { current: yr, compare: yr2, change: 'YOY' }
+}
 
 /**
  * 根据当前日期范围 + 对比模式，计算对比期日期范围
@@ -128,6 +146,9 @@ export function getPeriodDateRange(type: PeriodType): [string, string] | null {
   const fmt = formatDate
 
   switch (type) {
+    case 'yesterday': {
+      return [fmt(yesterday), fmt(yesterday)]
+    }
     case 'WTD': {
       const day = today.getDay() || 7 // 周日=7
       const start = new Date(today)

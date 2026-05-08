@@ -28,6 +28,7 @@ import YOYBadge from '@/components/YOYBadge.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
+import { getCompareLabels } from '@/utils/date'
 
 const filterStore = useFilterStore()
 
@@ -240,81 +241,58 @@ const compareLabelShort = computed(() => {
 })
 
 const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
-  const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
-  const hasPrev2 = !!summaryData.value?.prev2_year_label
-  const yoyLabel = filterStore.compareLabel
+  const mode = filterStore.compareMode
+  const labels = getCompareLabels(mode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+
+  // 通用值渲染函数
+  const renderValue = (key: 'value_2026' | 'value_2025' | 'value_2024') => (row: IndicatorRow) => {
+    const v = row[key]
+    if (v == null) return '—'
+    if (row.kind === 'ratio') return `${(v * 100).toFixed(1)}%`
+    if (row.kind === 'count') return v.toLocaleString()
+    if (row.kind === 'aus') return `¥${v.toFixed(1)}`
+    return `¥${(v / 10000).toFixed(1)}万`
+  }
+
   const cols: DataTableColumns<IndicatorRow> = [
     { title: '指标', key: 'field', width: 160, fixed: 'left', align: 'center' },
     {
-      title: `${yr}年`,
+      title: mode === 'auto_yoy' ? `${labels.current}年` : labels.current,
       key: 'value_2026',
       width: 120,
       align: 'center',
       className: 'bi-cell-number',
-      render: (row: IndicatorRow) => {
-        if (row.value_2026 == null) return '—'
-        const v = row.value_2026
-        if (row.kind === 'ratio') {
-          return `${(v * 100).toFixed(1)}%`
-        }
-        if (row.kind === 'count') {
-          return v.toLocaleString()
-        }
-        if (row.kind === 'aus') {
-          return `¥${v.toFixed(1)}`
-        }
-        return `¥${(v / 10000).toFixed(1)}万`
-      },
+      render: renderValue('value_2026'),
     },
     {
-      title: hasPrev2 ? `${yr2}年` : yr2,
+      title: mode === 'auto_yoy' ? `${labels.compare}年` : labels.compare,
       key: 'value_2025',
       width: 120,
       align: 'center',
       className: 'bi-cell-number',
-      render: (row: IndicatorRow) => {
-        if (row.value_2025 == null) return '—'
-        const v = row.value_2025
-        if (row.kind === 'ratio') {
-          return `${(v * 100).toFixed(1)}%`
-        }
-        if (row.kind === 'count') {
-          return v.toLocaleString()
-        }
-        if (row.kind === 'aus') {
-          return `¥${v.toFixed(1)}`
-        }
-        return `¥${(v / 10000).toFixed(1)}万`
-      },
+      render: renderValue('value_2025'),
     },
   ]
-  if (hasPrev2) {
-    cols.push({
-      title: `${yr3}年`,
-      key: 'value_2024',
-      width: 120,
-      align: 'center',
-      className: 'bi-cell-number',
-      render: (row: IndicatorRow) => {
-        if (row.value_2024 == null) return '—'
-        const v = row.value_2024
-        if (row.kind === 'ratio') {
-          return `${(v * 100).toFixed(1)}%`
-        }
-        if (row.kind === 'count') {
-          return v.toLocaleString()
-        }
-        if (row.kind === 'aus') {
-          return `¥${v.toFixed(1)}`
-        }
-        return `¥${(v / 10000).toFixed(1)}万`
-      },
-    })
+
+  // 同比模式：展示第3年列（前前年）
+  if (mode === 'auto_yoy') {
+    const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
+    const hasPrev2 = !!summaryData.value?.prev2_year_label
+    if (hasPrev2) {
+      cols.push({
+        title: `${yr3}年`,
+        key: 'value_2024',
+        width: 120,
+        align: 'center',
+        className: 'bi-cell-number',
+        render: renderValue('value_2024'),
+      })
+    }
   }
+
+  // 变化列
   cols.push({
-    title: yoyLabel,
+    title: labels.change,
     key: 'yoy',
     width: 120,
     align: 'center',
@@ -325,8 +303,10 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
 
 // 所有列禁用内置排序，排序全部在 sortedChannelAll/sortedChannelMember 中处理
 const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const labels = getCompareLabels(filterStore.compareMode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+  const yr = labels.current
+  const yr2 = labels.compare
+  const yoyLabel = labels.change
   return [
   {
     title: '渠道',
@@ -360,7 +340,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'yoy',
         width: 90,
         align: 'center',
@@ -393,7 +373,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => ((row.users_2025 ?? 0)).toLocaleString(),
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'users_yoy',
         width: 90,
         align: 'center',
@@ -426,7 +406,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.aus_2025 ?? 0).toFixed(0)}`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'aus_yoy',
         width: 90,
         align: 'center',
@@ -459,7 +439,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2025 ?? 0) / 10000).toFixed(1)}万`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_gsv_yoy',
         width: 90,
         align: 'center',
@@ -492,7 +472,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2025 ?? 0) * 100).toFixed(1)}%`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_gsv_ratio_yoy',
         width: 90,
         align: 'center',
@@ -525,7 +505,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => ((row.new_users_2025 ?? 0)).toLocaleString(),
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_users_yoy',
         width: 90,
         align: 'center',
@@ -558,7 +538,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.new_aus_2025 ?? 0).toFixed(0)}`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_aus_yoy',
         width: 90,
         align: 'center',
@@ -591,7 +571,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2025 ?? 0) / 10000).toFixed(1)}万`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_gsv_yoy',
         width: 90,
         align: 'center',
@@ -624,7 +604,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2025 ?? 0) * 100).toFixed(1)}%`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_gsv_ratio_yoy',
         width: 90,
         align: 'center',
@@ -657,7 +637,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => ((row.old_users_2025 ?? 0)).toLocaleString(),
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_users_yoy',
         width: 90,
         align: 'center',
@@ -690,7 +670,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.old_aus_2025 ?? 0).toFixed(0)}`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_aus_yoy',
         width: 90,
         align: 'center',
@@ -702,8 +682,10 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
 ]})
 
 const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const labels = getCompareLabels(filterStore.compareMode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+  const yr = labels.current
+  const yr2 = labels.compare
+  const yoyLabel = labels.change
   return [
   {
     title: '渠道',
@@ -737,7 +719,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'yoy',
         width: 90,
         align: 'center',
@@ -770,7 +752,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => ((row.users_2025 ?? 0)).toLocaleString(),
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'users_yoy',
         width: 90,
         align: 'center',
@@ -803,7 +785,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.aus_2025 ?? 0).toFixed(0)}`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'aus_yoy',
         width: 90,
         align: 'center',
@@ -836,7 +818,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2025 ?? 0) / 10000).toFixed(1)}万`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_gsv_yoy',
         width: 90,
         align: 'center',
@@ -869,7 +851,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2025 ?? 0) * 100).toFixed(1)}%`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_gsv_ratio_yoy',
         width: 90,
         align: 'center',
@@ -902,7 +884,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => ((row.new_users_2025 ?? 0)).toLocaleString(),
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_users_yoy',
         width: 90,
         align: 'center',
@@ -935,7 +917,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.new_aus_2025 ?? 0).toFixed(0)}`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'new_aus_yoy',
         width: 90,
         align: 'center',
@@ -968,7 +950,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2025 ?? 0) / 10000).toFixed(1)}万`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_gsv_yoy',
         width: 90,
         align: 'center',
@@ -1001,7 +983,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2025 ?? 0) * 100).toFixed(1)}%`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_gsv_ratio_yoy',
         width: 90,
         align: 'center',
@@ -1034,7 +1016,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => ((row.old_users_2025 ?? 0)).toLocaleString(),
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_users_yoy',
         width: 90,
         align: 'center',
@@ -1067,7 +1049,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `¥${(row.old_aus_2025 ?? 0).toFixed(0)}`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'old_aus_yoy',
         width: 90,
         align: 'center',
@@ -1100,7 +1082,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1)}%`,
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'member_ratio_yoy',
         width: 90,
         align: 'center',
@@ -1139,7 +1121,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         },
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'member_new_vs_all_new_yoy',
         width: 90,
         align: 'center',
@@ -1178,7 +1160,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         },
       },
       {
-        title: 'YOY',
+        title: yoyLabel,
         key: 'member_old_vs_all_old_yoy',
         width: 90,
         align: 'center',
@@ -1192,8 +1174,10 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
 // ─── 渠道概览 — 全店 精简列（compact）──────────────────────────
 // 渠道 + GSV组 + 新客组 + 老客组（核心指标 ~950px 无需横向滚动）
 const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const labels = getCompareLabels(filterStore.compareMode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+  const yr = labels.current
+  const yr2 = labels.compare
+  const yoyLabel = labels.change
   return [
     { title: '渠道', key: 'channel', width: 110, fixed: 'left', align: 'center', sorter: false },
     {
@@ -1201,14 +1185,14 @@ const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
       children: [
         { title: yr, key: 'gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2026 ?? 0) - (b.gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2026 / 10000).toFixed(1)}万` },
         { title: yr2, key: 'gsv_2025', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2025 ?? 0) - (b.gsv_2025 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万` },
-        { title: 'YOY', key: 'yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.yoy ?? 0) - (b.yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.yoy }) },
+        { title: yoyLabel, key: 'yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.yoy ?? 0) - (b.yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.yoy }) },
       ],
     },
     {
       title: '新客', key: 'new_group', align: 'center',
       children: addChannelGroupSep([
         { title: 'GSV', key: 'new_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
-        { title: 'YOY', key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.new_gsv_yoy }) },
+        { title: yoyLabel, key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.new_gsv_yoy }) },
         { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
       ]),
     },
@@ -1216,7 +1200,7 @@ const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
       title: '老客', key: 'old_group', align: 'center',
       children: addChannelGroupSep([
         { title: 'GSV', key: 'old_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
-        { title: 'YOY', key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.old_gsv_yoy }) },
+        { title: yoyLabel, key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.old_gsv_yoy }) },
         { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
       ]),
     },
@@ -1226,8 +1210,10 @@ const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
 // ─── 渠道概览 — 会员 精简列（compact）─────────────────────────
 // 渠道 + GSV组 + 会员新客组 + 会员老客组 + 会员占比（核心指标 ~1000px）
 const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const labels = getCompareLabels(filterStore.compareMode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+  const yr = labels.current
+  const yr2 = labels.compare
+  const yoyLabel = labels.change
   return [
     { title: '渠道', key: 'channel', width: 110, fixed: 'left', align: 'center', sorter: false },
     {
@@ -1235,14 +1221,14 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       children: [
         { title: yr, key: 'gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2026 ?? 0) - (b.gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2026 / 10000).toFixed(1)}万` },
         { title: yr2, key: 'gsv_2025', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2025 ?? 0) - (b.gsv_2025 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万` },
-        { title: 'YOY', key: 'yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.yoy ?? 0) - (b.yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.yoy }) },
+        { title: yoyLabel, key: 'yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.yoy ?? 0) - (b.yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.yoy }) },
       ],
     },
     {
       title: '会员新客', key: 'new_group', align: 'center',
       children: addChannelGroupSep([
         { title: 'GSV', key: 'new_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
-        { title: 'YOY', key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.new_gsv_yoy }) },
+        { title: yoyLabel, key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.new_gsv_yoy }) },
         { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
       ]),
     },
@@ -1250,7 +1236,7 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       title: '会员老客', key: 'old_group', align: 'center',
       children: addChannelGroupSep([
         { title: 'GSV', key: 'old_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
-        { title: 'YOY', key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.old_gsv_yoy }) },
+        { title: yoyLabel, key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.old_gsv_yoy }) },
         { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
       ]),
     },
@@ -1259,7 +1245,7 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       children: [
         { title: yr, key: 'member_ratio_2026', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
         { title: yr2, key: 'member_ratio_2025', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1)}%` },
-        { title: 'YOY', key: 'member_ratio_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.member_ratio_yoy }) },
+        { title: yoyLabel, key: 'member_ratio_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: row.member_ratio_yoy }) },
       ],
     },
   ]
@@ -1627,26 +1613,29 @@ const visitorTrendChartOption = computed(() => {
 
 function handleExportIndicators() {
   if (!summaryData.value?.indicators?.length) return
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const mode = filterStore.compareMode
+  const labels = getCompareLabels(mode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
   const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
 
-  const headers = ['指标', `${yr}年`, `${yr2}年`, `${yr3}年`, 'YOY']
+  // 同比模式：3年+YOY；环比/自定义：2年+变化
+  const headers = mode === 'auto_yoy'
+    ? ['指标', `${labels.current}年`, `${labels.compare}年`, `${yr3}年`, labels.change]
+    : ['指标', labels.current, labels.compare, labels.change]
+
   const aoa: any[][] = [headers]
 
   summaryData.value.indicators.forEach((row, idx) => {
-    const excelRow = idx + 2 // 第1行是表头，数据从第2行开始
+    const excelRow = idx + 2
     const isRatio = row.kind === 'ratio'
     const yoyCell = isRatio
       ? { t: 'n', f: `=B${excelRow}-C${excelRow}` } as any
       : { t: 'n', f: `=(B${excelRow}-C${excelRow})/C${excelRow}` } as any
-    aoa.push([
-      row.field,
-      row.value_2026 ?? 0,
-      row.value_2025 ?? 0,
-      row.value_2024 ?? 0,
-      yoyCell,
-    ])
+
+    if (mode === 'auto_yoy') {
+      aoa.push([row.field, row.value_2026 ?? 0, row.value_2025 ?? 0, row.value_2024 ?? 0, yoyCell])
+    } else {
+      aoa.push([row.field, row.value_2026 ?? 0, row.value_2025 ?? 0, yoyCell])
+    }
   })
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
@@ -1678,8 +1667,9 @@ function fmtRatio(v: number | null | undefined): string {
 
 // ── 渠道 Excel 导出列定义 ──
 const channelXlsxColumns = computed(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const labels = getCompareLabels(filterStore.compareMode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+  const yr = labels.current
+  const yr2 = labels.compare
   return [
     { header: '渠道', key: 'channel', width: 12 },
     { header: `${yr}GSV`, key: 'gsv_2026', width: 14, numFmt: '¥#,##0' },
@@ -1720,8 +1710,9 @@ const channelXlsxColumns = computed(() => {
 
 // ── 渠道会员 Excel 导出列定义（与页面显示列一致）──
 const channelMemberXlsxColumns = computed(() => {
-  const yr = summaryData.value?.year_label || String(new Date().getFullYear())
-  const yr2 = summaryData.value?.comp_year_label || String(new Date().getFullYear() - 1)
+  const labels = getCompareLabels(filterStore.compareMode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+  const yr = labels.current
+  const yr2 = labels.compare
   return [
     { header: '渠道', key: 'channel', width: 12 },
     // 会员GSV
@@ -2046,7 +2037,7 @@ const channelMemberXlsxColumns = computed(() => {
       <div class="flex items-center justify-between mb-0.5">
         <div>
           <h3 class="text-sm font-semibold text-slate-800">30指标对比</h3>
-          <p class="text-[11px] text-slate-500">全店 / 新老客 / 会员 / 会员新老客 — 3年同比</p>
+          <p class="text-[11px] text-slate-500">全店 / 新老客 / 会员 / 会员新老客 — {{ filterStore.compareMode === 'auto_yoy' ? '3年同比' : filterStore.compareMode === 'auto_mom' ? '环比对比' : '自定义对比' }}</p>
         </div>
         <NButton size="tiny" @click="handleExportIndicators">📊 导出Excel</NButton>
       </div>
