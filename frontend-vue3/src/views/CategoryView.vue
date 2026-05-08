@@ -758,6 +758,6 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
 
 /* 隔行变色增强可读性 */
 :deep(.n-data-table .n-data-table-td--striped) {
-  background: #f8fafc;
+  background: #f8fafc !important;
 }
 </style>

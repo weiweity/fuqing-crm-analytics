@@ -2045,7 +2045,7 @@ const channelMemberXlsxColumns = computed(() => {
 
 /* 隔行变色增强可读性 */
 :deep(.n-data-table .n-data-table-td--striped) {
-  background: #f8fafc;
+  background: #f8fafc !important;
 }
 
 /* 详情模式下确保横向滚动条可见 */
