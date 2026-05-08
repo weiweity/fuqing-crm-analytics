@@ -310,7 +310,6 @@ const highAlerts = computed(() => alerts.value.filter(a => a.severity === 'high'
 const mediumAlerts = computed(() => alerts.value.filter(a => a.severity === 'medium'))
 
 const ALERT_TAB_MAP: Record<string, string> = {
-  repurchase_rate_low: 'repurchase',
   repurchase_rate_drop: 'repurchase',
   old_customer_ratio_low: 'tiers',
   aus_low: 'tiers',

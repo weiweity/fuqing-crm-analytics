@@ -27,7 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await client.post<LoginResponse>('/v1/auth/login', {
         username: user,
         password: pwd,
-      })
+      }) as unknown as LoginResponse
       token.value = res.token
       username.value = res.username
       sessionStorage.setItem(AUTH_TOKEN_KEY, res.token)

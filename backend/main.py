@@ -46,6 +46,7 @@ from backend.contracts.schemas import (
     RFMRFlowResponse,
     RFMFRFlowResponse,
     RFMMFlowResponse,
+    SegmentOrdersResponse,
     StoreAssetResponse,
     ProductAssetResponse,
     VisitorSummaryResponse,
@@ -70,6 +71,7 @@ from backend.services.rfm_service import (
     get_rfm_r_flow,
     get_rfm_f_flow,
     get_rfm_m_flow,
+    get_segment_orders,
 )
 from backend.services.churn_service import (
     get_churn_risk_distribution,
@@ -831,6 +833,34 @@ def get_rfm_m_flow_api(
         period=period,
         start_date=start_date,
         end_date=end_date,
+        channel=channel,
+        exclude_channels=exclude_channels,
+    )
+
+
+@app.get("/api/v1/rfm/segment-orders", response_model=SegmentOrdersResponse)
+def get_segment_orders_api(
+    dimension: str = Query(..., description="维度：r / f / m"),
+    segment: str = Query(..., description="区间名称（如 近1个月已购客）"),
+    start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
+    end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
+    metric_type: str = Query(default="GSV", description="GMV 或 GSV"),
+    mode: str = Query(default="all", description="all / member / same_channel / member_same_channel"),
+    channel: Optional[str] = Query(default=None, description="渠道筛选"),
+    exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+):
+    """
+    RFM 区间订单明细导出
+
+    根据维度和区间，返回该区间内所有用户的订单号明细，用于二次营销。
+    """
+    return get_segment_orders(
+        dimension=dimension,
+        segment=segment,
+        start_date=start_date,
+        end_date=end_date,
+        metric_type=metric_type,
+        mode=mode,
         channel=channel,
         exclude_channels=exclude_channels,
     )

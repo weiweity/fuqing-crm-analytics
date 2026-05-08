@@ -17,12 +17,14 @@ data/
 .env.local
 .env.*.local
 
-# Python 缓存
+# Python 缓存 & 虚拟环境
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+.venv/
+.pytest_cache/
 
 # 前端依赖 & 构建产物
 node_modules/

@@ -18,6 +18,8 @@ import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import type { XlsxColumn } from '@/utils/exportXlsx'
+import { downloadSegmentOrdersCSV } from '@/api/flow'
+import { NButton, NSelect, NModal, NSpace, useMessage } from 'naive-ui'
 
 const filterStore = useFilterStore()
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
@@ -235,6 +237,44 @@ const fFlowXlsxColumns = computed<XlsxColumn[]>(() => {
     { header: `${yr3}回购率`, key: 'repurchase_rate_prev2', width: 10, numFmt: '0.00%' },
   ]
 })
+
+// ── 导出订单明细 ──
+const message = useMessage()
+const showExportModal = ref(false)
+const exportSegment = ref<string | null>(null)
+const exportLoading = ref(false)
+const F_SEGMENTS = ['1次购买', '2次购买', '3次购买', '4次购买', '5次及以上']
+const fSegmentOptions = F_SEGMENTS.map(s => ({ label: s, value: s }))
+
+function openExportDialog() {
+  exportSegment.value = null
+  showExportModal.value = true
+}
+
+async function handleExportOrders() {
+  if (!exportSegment.value) {
+    message.warning('请选择要导出的区间')
+    return
+  }
+  exportLoading.value = true
+  try {
+    await downloadSegmentOrdersCSV({
+      dimension: 'f',
+      segment: exportSegment.value,
+      start_date: filterStore.dateRange[0],
+      end_date: filterStore.dateRange[1],
+      metric_type: 'GSV',
+      channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+      exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
+    })
+    message.success('导出成功')
+    showExportModal.value = false
+  } catch (e: unknown) {
+    message.error((e as Error).message || '导出失败')
+  } finally {
+    exportLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -264,12 +304,17 @@ const fFlowXlsxColumns = computed<XlsxColumn[]>(() => {
           <h3 class="text-sm font-semibold text-slate-800">F 区间流转详情</h3>
           <p class="text-[11px] text-slate-500">老客按购买频次分区回购表现 — 3 年同比</p>
         </div>
-        <ExportToolbar
-          :filename="`老客分析_F区间全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-          :columns="fFlowXlsxColumns"
-          :data="fFlowData?.rows ?? []"
-          sheet-name="F区间全店"
-        />
+        <div class="flex items-center gap-2">
+          <ExportToolbar
+            :filename="`老客分析_F区间全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+            :columns="fFlowXlsxColumns"
+            :data="fFlowData?.rows ?? []"
+            sheet-name="F区间全店"
+          />
+          <NButton size="tiny" quaternary type="primary" @click="openExportDialog">
+            导出订单明细
+          </NButton>
+        </div>
       </div>
       <ErrorState v-if="fFlowError" :message="(fFlowError as Error).message" @retry="fFlowRefetch()" />
       <LoadingState v-else-if="fFlowLoading" />
@@ -332,6 +377,20 @@ const fFlowXlsxColumns = computed<XlsxColumn[]>(() => {
         />
       </div>
     </template>
+
+    <!-- 导出订单明细弹窗 -->
+    <NModal v-model:show="showExportModal" preset="card" title="导出订单明细" style="width: 420px; max-width: 95vw;">
+      <div class="mb-3">
+        <p class="text-xs text-slate-500 mb-2">选择要导出订单明细的 F 区间：</p>
+        <NSelect v-model:value="exportSegment" :options="fSegmentOptions" placeholder="请选择F区间" />
+      </div>
+      <NSpace justify="end">
+        <NButton size="small" @click="showExportModal = false">取消</NButton>
+        <NButton size="small" type="primary" :loading="exportLoading" :disabled="!exportSegment" @click="handleExportOrders">
+          导出 CSV
+        </NButton>
+      </NSpace>
+    </NModal>
   </div>
 </template>
 

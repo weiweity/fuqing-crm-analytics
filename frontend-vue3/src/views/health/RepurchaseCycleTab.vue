@@ -34,6 +34,9 @@ interface ProductItem {
   median_days: number
   ly_median_days?: number | null
   median_days_yoy?: number | null
+  avg_days?: number | null
+  ly_avg_days?: number | null
+  avg_days_yoy?: number | null
   p25_days: number
   p75_days: number
   avg_order_value: number
@@ -213,6 +216,9 @@ const productXlsxColumns: XlsxColumn[] = [
   { header: '中位天数', key: 'median_days', width: 10 },
   { header: '去年同期中位天数', key: 'ly_median_days', width: 14 },
   { header: '中位天数YOY', key: 'median_days_yoy', width: 12 },
+  { header: '平均天数', key: 'avg_days', width: 10 },
+  { header: '去年同期平均天数', key: 'ly_avg_days', width: 14 },
+  { header: '平均天数YOY', key: 'avg_days_yoy', width: 12 },
   { header: 'P25', key: 'p25_days', width: 8 },
   { header: 'P75', key: 'p75_days', width: 8 },
   { header: '客单价', key: 'avg_order_value', width: 10, numFmt: '¥#,##0' },
@@ -269,6 +275,34 @@ const productColumns: DataTableColumns<ProductItem> = [
     sorter: 'default',
     width: 100,
     render: (row) => h(DaysChangeBadge, { value: row.median_days_yoy ?? null }),
+  },
+  {
+    title: '平均天数（天）',
+    key: 'avg_days',
+    align: 'right',
+    sorter: 'default',
+    width: 110,
+    render: (row) => row.avg_days != null
+      ? `${row.avg_days}`
+      : h('span', { class: 'text-slate-400' }, '—'),
+  },
+  {
+    title: '去年同期平均天数（天）',
+    key: 'ly_avg_days',
+    align: 'right',
+    sorter: 'default',
+    width: 140,
+    render: (row) => row.ly_avg_days != null
+      ? `${row.ly_avg_days}`
+      : h('span', { class: 'text-slate-400' }, '—'),
+  },
+  {
+    title: '平均天数YOY',
+    key: 'avg_days_yoy',
+    align: 'center',
+    sorter: 'default',
+    width: 100,
+    render: (row) => h(DaysChangeBadge, { value: row.avg_days_yoy ?? null }),
   },
   { title: 'P25', key: 'p25_days', align: 'right', sorter: 'default', width: 70 },
   { title: 'P75', key: 'p75_days', align: 'right', sorter: 'default', width: 70 },
@@ -337,8 +371,9 @@ const cohortChartOption = computed(() => {
         if (lyRate != null) {
           const yoy = (curRate - lyRate) * 100
           const sign = yoy >= 0 ? '+' : ''
-          const color = yoy >= 0 ? '#059669' : '#dc2626'
-          yoyStr = `<br/><span style="color:${color}">同比: ${sign}${yoy.toFixed(1)}pp</span>`
+          const color = yoy >= 0 ? '#dc2626' : '#059669'
+          const arrow = yoy >= 0 ? '↑' : '↓'
+          yoyStr = `<br/><span style="color:${color}">同比: ${arrow}${sign}${yoy.toFixed(1)}pp</span>`
         }
         return `${cohort} ${period}<br/>留存率: ${(curRate * 100).toFixed(1)}%${yoyStr}`
       },
@@ -377,16 +412,20 @@ const cohortChartOption = computed(() => {
         formatter: (p: HeatmapParam) => {
           const curRate = p.data[2]
           const lyRate = lyMatrix[p.data[1]]?.[p.data[0]]
-          let label = `${(curRate * 100).toFixed(0)}%`
-          if (lyRate != null) {
-            const yoy = (curRate - lyRate) * 100
-            const sign = yoy >= 0 ? '▲' : '▼'
-            label += ` ${sign}${Math.abs(yoy).toFixed(0)}`
-          }
-          return label
+          const pctStyle = curRate > 0.5 ? 'pctLight' : 'pctDark'
+          const pctStr = `${(curRate * 100).toFixed(0)}%`
+          if (lyRate == null) return `{${pctStyle}|${pctStr}}`
+          const yoy = (curRate - lyRate) * 100
+          const arrowStyle = yoy >= 0 ? 'up' : 'down'
+          const arrow = yoy >= 0 ? '↑' : '↓'
+          return `{${pctStyle}|${pctStr}} {${arrowStyle}|${arrow}${Math.abs(yoy).toFixed(0)}}`
         },
-        fontSize: 10,
-        color: (p: HeatmapParam) => p.data[2] > 0.5 ? '#fff' : '#334155',
+        rich: {
+          pctLight: { fontSize: 10, color: '#fff' },
+          pctDark: { fontSize: 10, color: '#334155' },
+          up: { fontSize: 9, color: '#dc2626', fontWeight: 'bold' },
+          down: { fontSize: 9, color: '#059669', fontWeight: 'bold' },
+        },
       },
       emphasis: {
         itemStyle: { borderColor: '#0ea5e9', borderWidth: 2 },
@@ -403,7 +442,7 @@ const cohortChartOption = computed(() => {
 
     <template v-else-if="data">
       <!-- 顶部统计 -->
-      <NGrid :cols="3" :x-gap="16" class="mb-4">
+      <NGrid :cols="4" :x-gap="16" class="mb-4">
         <NGi>
           <div class="bi-card bi-card-hover px-4 py-3 text-center">
             <p class="text-xs text-slate-500">中位复购天数</p>
@@ -423,6 +462,13 @@ const cohortChartOption = computed(() => {
             <p class="text-xs text-slate-500">P75复购天数</p>
             <p class="text-2xl font-bold text-slate-900">{{ data.all_store_p75_days }}天</p>
             <p class="text-[10px] text-slate-400 mt-1">75%的复购间隔 ≤ 该天数</p>
+          </div>
+        </NGi>
+        <NGi>
+          <div class="bi-card bi-card-hover px-4 py-3 text-center">
+            <p class="text-xs text-slate-500">平均复购天数</p>
+            <p class="text-2xl font-bold text-slate-900">{{ data.all_store_avg_days }}天</p>
+            <p class="text-[10px] text-slate-400 mt-1">复购周期内平均复购间隔</p>
           </div>
         </NGi>
       </NGrid>

@@ -2417,6 +2417,11 @@ export interface components {
              */
             p75_days: number;
             /**
+             * Avg Days
+             * @description 平均复购天数
+             */
+            avg_days?: number | null;
+            /**
              * Avg Order Value
              * @description 复购客单价
              */
@@ -2437,6 +2442,11 @@ export interface components {
              */
             ly_median_days?: number | null;
             /**
+             * Ly Avg Days
+             * @description 去年同期平均天数
+             */
+            ly_avg_days?: number | null;
+            /**
              * Ly Gsv
              * @description 去年同期GSV
              */
@@ -2451,6 +2461,11 @@ export interface components {
              * @description 中位天数同比(pp)
              */
             median_days_yoy?: number | null;
+            /**
+             * Avg Days Yoy
+             * @description 平均天数YOY
+             */
+            avg_days_yoy?: number | null;
             /**
              * Gsv Yoy
              * @description GSV同比
@@ -3175,6 +3190,11 @@ export interface components {
              * @description P75
              */
             all_store_p75_days: number;
+            /**
+             * All Store Avg Days
+             * @description 平均复购天数
+             */
+            all_store_avg_days: number;
             /** Bucket Distribution */
             bucket_distribution?: components["schemas"]["RepurchaseBucket"][];
             /** By Product Class */

@@ -56,7 +56,8 @@ def _compute_product_repurchase(conn, where_sql: str, params: list) -> Dict[str,
             SELECT spu_product_class,
                 quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.5) as median_days,
                 quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.25) as p25,
-                quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.75) as p75
+                quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.75) as p75,
+                AVG(DATEDIFF('day', prev_pay_time, pay_time)) as avg_days
             FROM repurchase_gaps
             WHERE prev_pay_time IS NOT NULL
               AND DATEDIFF('day', prev_pay_time, pay_time) > 0
@@ -70,12 +71,13 @@ def _compute_product_repurchase(conn, where_sql: str, params: list) -> Dict[str,
             SUM(p.gsv) / NULLIF(SUM(p.order_count), 0) as avg_order_value,
             COALESCE(g.median_days, 0) as median_days,
             COALESCE(g.p25, 0) as p25,
-            COALESCE(g.p75, 0) as p75
+            COALESCE(g.p75, 0) as p75,
+            COALESCE(g.avg_days, 0) as avg_days
         FROM product_users p
         LEFT JOIN gap_stats g ON p.spu_product_class = g.spu_product_class
-        GROUP BY p.spu_product_class, g.median_days, g.p25, g.p75
+        GROUP BY p.spu_product_class, g.median_days, g.p25, g.p75, g.avg_days
         ORDER BY SUM(p.gsv) DESC
-    """, params + params).fetchall()
+    """, params + params).fetchall()  # 两个CTE各引用一次where_sql，需两份参数
 
     result: Dict[str, Dict[str, Any]] = {}
     for r in rows:
@@ -89,6 +91,7 @@ def _compute_product_repurchase(conn, where_sql: str, params: list) -> Dict[str,
             "median_days": int(r[5]) if r[5] else 0,
             "p25_days": int(r[6]) if r[6] else 0,
             "p75_days": int(r[7]) if r[7] else 0,
+            "avg_days": round(float(r[8]), 1) if r[8] else 0.0,
             "avg_order_value": round(float(r[4]) if r[4] else 0.0, 2),
             "gsv": round(float(r[3]) if r[3] else 0.0, 2),
         }
@@ -145,6 +148,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
                 quantile_cont(gap_days, 0.5) as median_days,
                 quantile_cont(gap_days, 0.25) as p25,
                 quantile_cont(gap_days, 0.75) as p75,
+                AVG(gap_days) as avg_days,
                 COUNT(CASE WHEN gap_days <= 7 THEN 1 END) as b_0_7,
                 COUNT(CASE WHEN gap_days > 7 AND gap_days <= 14 THEN 1 END) as b_8_14,
                 COUNT(CASE WHEN gap_days > 14 AND gap_days <= 30 THEN 1 END) as b_15_30,
@@ -160,18 +164,19 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         median_days = int(row[1]) if row[1] else 0
         p25 = int(row[2]) if row[2] else 0
         p75 = int(row[3]) if row[3] else 0
+        avg_days = round(float(row[4]), 1) if row[4] else 0.0
 
         # ── 2. 分桶分布（当前周期 + 去年同期 + 前年同期） ──
         bucket_distribution = []
         bucket_counts = {
-            "0-7天": int(row[4] or 0),
-            "8-14天": int(row[5] or 0),
-            "15-30天": int(row[6] or 0),
-            "31-60天": int(row[7] or 0),
-            "61-90天": int(row[8] or 0),
-            "91-180天": int(row[9] or 0),
-            "181-365天": int(row[10] or 0),
-            "365天以上": int(row[11] or 0),
+            "0-7天": int(row[5] or 0),
+            "8-14天": int(row[6] or 0),
+            "15-30天": int(row[7] or 0),
+            "31-60天": int(row[8] or 0),
+            "61-90天": int(row[9] or 0),
+            "91-180天": int(row[10] or 0),
+            "181-365天": int(row[11] or 0),
+            "365天以上": int(row[12] or 0),
         }
 
         def _fetch_bucket_distribution(s_date: str, e_date: str) -> tuple[int, Dict[str, int]]:
@@ -276,11 +281,14 @@ def get_repurchase_cycle(start_date: str, end_date: str,
             if ly:
                 item["ly_repurchase_rate"] = ly["repurchase_rate"]
                 item["ly_median_days"] = ly["median_days"]
+                item["ly_avg_days"] = ly.get("avg_days", 0.0)
                 item["ly_gsv"] = ly["gsv"]
                 # 复购率YOY = 百分点差（占比类指标）
                 item["repurchase_rate_yoy"] = round(cur["repurchase_rate"] - ly["repurchase_rate"], 4)
                 # 中位天数YOY = 百分点差（天数变化用差值更直观）
                 item["median_days_yoy"] = round(cur["median_days"] - ly["median_days"], 4) if ly["median_days"] > 0 else None
+                # 平均天数YOY = 差值
+                item["avg_days_yoy"] = round(cur["avg_days"] - ly["avg_days"], 1) if ly["avg_days"] > 0 else None
                 # GSV YOY = 百分比变化（绝对值类指标）
                 item["gsv_yoy"] = round(safe_ratio(cur["gsv"] - ly["gsv"], ly["gsv"], 0.0), 4) if ly["gsv"] > 0 else None
             by_product_class.append(item)
@@ -291,6 +299,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
             "all_store_median_days": median_days,
             "all_store_p25_days": p25,
             "all_store_p75_days": p75,
+            "all_store_avg_days": avg_days,
             "bucket_distribution": bucket_distribution,
             "by_product_class": by_product_class,
             "year_label": start_date[:4],

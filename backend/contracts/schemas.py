@@ -835,15 +835,18 @@ class ProductClassRepurchase(BaseModel):
     median_days: int = Field(..., description="中位复购天数")
     p25_days: int = Field(..., description="P25复购天数")
     p75_days: int = Field(..., description="P75复购天数")
+    avg_days: Optional[float] = Field(None, description="平均复购天数")
     avg_order_value: float = Field(..., description="复购客单价")
     gsv: float = Field(..., description="复购GSV")
     # 同比
     ly_repurchase_rate: Optional[float] = Field(None, description="去年同期复购率")
     ly_median_days: Optional[int] = Field(None, description="去年同期中位天数")
+    ly_avg_days: Optional[float] = Field(None, description="去年同期平均天数")
     ly_gsv: Optional[float] = Field(None, description="去年同期GSV")
     # YOY
     repurchase_rate_yoy: Optional[float] = Field(None, description="复购率同比(pp)")
     median_days_yoy: Optional[float] = Field(None, description="中位天数同比(pp)")
+    avg_days_yoy: Optional[float] = Field(None, description="平均天数YOY")
     gsv_yoy: Optional[float] = Field(None, description="GSV同比")
 
 
@@ -856,6 +859,7 @@ class RepurchaseCycleOverview(BaseModel):
     all_store_median_days: int = Field(..., description="中位复购天数")
     all_store_p25_days: int = Field(..., description="P25")
     all_store_p75_days: int = Field(..., description="P75")
+    all_store_avg_days: float = Field(..., description="平均复购天数")
 
     # 分桶分布
     bucket_distribution: List[RepurchaseBucket] = Field(default_factory=list)
@@ -1760,3 +1764,26 @@ class SamplingLockAnalysisResponse(BaseModel):
     current_year: SamplingLockYearData
     last_year: SamplingLockYearData
     yoy: SamplingLockYOY
+
+
+# ============================================================
+# RFM - 区间订单明细导出
+# ============================================================
+
+class SegmentOrderRow(BaseModel):
+    """区间订单明细单行"""
+    order_id: str
+    user_id: str
+    pay_time: str
+    actual_amount: float
+    channel: str
+    spu_product_class: Optional[str] = None
+
+
+class SegmentOrdersResponse(BaseModel):
+    """区间订单明细响应"""
+    dimension: str
+    segment: str
+    mode: str
+    total_orders: int
+    rows: List[SegmentOrderRow]

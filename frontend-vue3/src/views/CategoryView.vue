@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toValue, h } from 'vue'
+import { computed, toValue, h, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -192,7 +192,7 @@ type SubCol = { title: string; key: string; width: number; align: 'left' | 'cent
 function gsvChildren(valKey: string, yoyKey: string): SubCol[] {
   return [
     {
-      title: '值',
+      title: 'GSV',
       key: valKey,
       width: 105,
       align: 'center',
@@ -214,7 +214,7 @@ function gsvChildren(valKey: string, yoyKey: string): SubCol[] {
 function usersChildren(valKey: string, yoyKey: string): SubCol[] {
   return [
     {
-      title: '值',
+      title: '人数',
       key: valKey,
       width: 90,
       align: 'center',
@@ -236,7 +236,7 @@ function usersChildren(valKey: string, yoyKey: string): SubCol[] {
 function ausChildren(valKey: string, yoyKey: string): SubCol[] {
   return [
     {
-      title: '值',
+      title: 'AUS',
       key: valKey,
       width: 85,
       align: 'center',
@@ -258,7 +258,7 @@ function ausChildren(valKey: string, yoyKey: string): SubCol[] {
 function ratioChildren(valKey: string, yoyKey: string): SubCol[] {
   return [
     {
-      title: '值',
+      title: '占比',
       key: valKey,
       width: 80,
       align: 'center',
@@ -276,6 +276,110 @@ function ratioChildren(valKey: string, yoyKey: string): SubCol[] {
     },
   ]
 }
+
+/** 给一组列的第一个 child 加 group-sep 分隔线类名 */
+function addGroupSep(cols: SubCol[]): SubCol[] {
+  return cols.map((col, i) =>
+    i === 0 ? { ...col, className: [col.className || '', 'group-sep'].join(' ') } : col
+  )
+}
+
+// ─── 单品概览列模式切换（各自独立）──────────────────────────────────
+const showDetailAll = ref(false)
+const showDetailMember = ref(false)
+
+// 精简列：产品分类 + 全店GSV/YOY + 老客GSV/YOY/占比 + 新客GSV/YOY/占比
+const compactColumns: DataTableColumns<CategoryOverviewItem> = [
+  {
+    title: '产品分类',
+    key: 'name',
+    width: 120,
+    fixed: 'left',
+    align: 'center',
+    sorter: 'default',
+  },
+  {
+    title: '全店',
+    key: 'all_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('gsv', 'gsv_yoy'),
+    ],
+  },
+  {
+    title: '老客',
+    key: 'old_group',
+    align: 'center',
+    children: [
+      ...addGroupSep(gsvChildren('old_gsv', 'old_gsv_yoy')),
+      ...ratioChildren('old_ratio', 'old_ratio_yoy'),
+    ],
+  },
+  {
+    title: '新客',
+    key: 'new_group',
+    align: 'center',
+    children: [
+      ...addGroupSep(gsvChildren('new_gsv', 'new_gsv_yoy')),
+      ...ratioChildren('new_ratio', 'new_ratio_yoy'),
+    ],
+  },
+]
+
+// 精简列（会员）
+const compactMemberColumns: DataTableColumns<CategoryOverviewItem> = [
+  {
+    title: '产品分类',
+    key: 'name',
+    width: 120,
+    fixed: 'left',
+    align: 'center',
+    sorter: 'default',
+  },
+  {
+    title: '全店',
+    key: 'all_group',
+    align: 'center',
+    children: [
+      ...gsvChildren('gsv', 'gsv_yoy'),
+      {
+        title: '会员占比',
+        key: 'member_ratio',
+        width: 80,
+        align: 'center',
+        className: 'bi-cell-number',
+        sorter: (a: any, b: any) => (a['member_ratio'] ?? 0) - (b['member_ratio'] ?? 0),
+        render: (row: any) => `${(((row['member_ratio'] || 0)) * 100).toFixed(1)}%`,
+      },
+      {
+        title: 'YOY',
+        key: 'member_ratio_yoy',
+        width: 85,
+        align: 'center',
+        sorter: (a: any, b: any) => (a['member_ratio_yoy'] ?? 0) - (b['member_ratio_yoy'] ?? 0),
+        render: (row: any) => h(YOYBadge, { value: row['member_ratio_yoy'] }),
+      },
+    ],
+  },
+  {
+    title: '老客',
+    key: 'old_group',
+    align: 'center',
+    children: [
+      ...addGroupSep(gsvChildren('old_gsv', 'old_gsv_yoy')),
+      ...ratioChildren('old_ratio', 'old_ratio_yoy'),
+    ],
+  },
+  {
+    title: '新客',
+    key: 'new_group',
+    align: 'center',
+    children: [
+      ...addGroupSep(gsvChildren('new_gsv', 'new_gsv_yoy')),
+      ...ratioChildren('new_ratio', 'new_ratio_yoy'),
+    ],
+  },
+]
 
 const allColumns: DataTableColumns<CategoryOverviewItem> = [
   {
@@ -318,7 +422,7 @@ const allColumns: DataTableColumns<CategoryOverviewItem> = [
     key: 'old_group',
     align: 'center',
     children: [
-      ...gsvChildren('old_gsv', 'old_gsv_yoy'),
+      ...addGroupSep(gsvChildren('old_gsv', 'old_gsv_yoy')),
       ...ratioChildren('old_ratio', 'old_ratio_yoy'),
       ...usersChildren('old_users', 'old_users_yoy'),
       ...ausChildren('old_aus', 'old_aus_yoy'),
@@ -329,7 +433,7 @@ const allColumns: DataTableColumns<CategoryOverviewItem> = [
     key: 'new_group',
     align: 'center',
     children: [
-      ...gsvChildren('new_gsv', 'new_gsv_yoy'),
+      ...addGroupSep(gsvChildren('new_gsv', 'new_gsv_yoy')),
       ...ratioChildren('new_ratio', 'new_ratio_yoy'),
       ...usersChildren('new_users', 'new_users_yoy'),
       ...ausChildren('new_aus', 'new_aus_yoy'),
@@ -379,7 +483,7 @@ const memberColumns: DataTableColumns<CategoryOverviewItem> = [
     key: 'old_group',
     align: 'center',
     children: [
-      ...gsvChildren('old_gsv', 'old_gsv_yoy'),
+      ...addGroupSep(gsvChildren('old_gsv', 'old_gsv_yoy')),
       ...ratioChildren('old_ratio', 'old_ratio_yoy'),
       ...usersChildren('old_users', 'old_users_yoy'),
       ...ausChildren('old_aus', 'old_aus_yoy'),
@@ -390,7 +494,7 @@ const memberColumns: DataTableColumns<CategoryOverviewItem> = [
     key: 'new_group',
     align: 'center',
     children: [
-      ...gsvChildren('new_gsv', 'new_gsv_yoy'),
+      ...addGroupSep(gsvChildren('new_gsv', 'new_gsv_yoy')),
       ...ratioChildren('new_ratio', 'new_ratio_yoy'),
       ...usersChildren('new_users', 'new_users_yoy'),
       ...ausChildren('new_aus', 'new_aus_yoy'),
@@ -479,14 +583,15 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
                     <p class="text-[11px] text-slate-500 mb-3">各品类GSV与用户规模（按GSV降序）</p>
                     <DataTablePro
                       :columns="[
-                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', sorter: 'default' },
-                        { title: 'GSV', key: 'gmv', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.gmv ?? 0) - (b.gmv ?? 0), render: (row: any) => `¥${(row.gmv / 10000).toFixed(1)}万` },
-                        { title: '用户数', key: 'user_count', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.user_count ?? 0) - (b.user_count ?? 0) },
-                        { title: '会员占比', key: 'member_ratio', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.member_ratio ?? 0) - (b.member_ratio ?? 0), render: (row: any) => `${((row.member_ratio || 0) * 100).toFixed(1)}%` },
-                        { title: '渗透率', key: 'penetration_rate', align: 'right', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.penetration_rate ?? 0) - (b.penetration_rate ?? 0), render: (row: any) => `${((row.penetration_rate || 0) * 100).toFixed(1)}%` },
+                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', align: 'center', sorter: 'default' },
+                        { title: 'GSV', key: 'gmv', width: 130, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.gmv ?? 0) - (b.gmv ?? 0), render: (row: any) => `¥${(row.gmv / 10000).toFixed(1)}万` },
+                        { title: '用户数', key: 'user_count', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.user_count ?? 0) - (b.user_count ?? 0) },
+                        { title: '会员占比', key: 'member_ratio', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.member_ratio ?? 0) - (b.member_ratio ?? 0), render: (row: any) => `${((row.member_ratio || 0) * 100).toFixed(1)}%` },
+                        { title: '渗透率', key: 'penetration_rate', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.penetration_rate ?? 0) - (b.penetration_rate ?? 0), render: (row: any) => `${((row.penetration_rate || 0) * 100).toFixed(1)}%` },
                       ]"
                       :data="sortedDistribution"
-                      :pagination="{ pageSize: 10 }"
+                      :pagination="false"
+                      :max-height="400"
                     />
                   </div>
                 </div>
@@ -496,36 +601,82 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
 
             <!-- 单品概览 — 全店 -->
             <div class="bi-card p-4">
-              <h3 class="text-sm font-semibold text-slate-800 mb-0.5">单品概览 — 全店</h3>
-              <p class="text-[11px] text-slate-500 mb-3">各单品全店/老客/新客 GSV、人数、AUS 及同比</p>
+              <div class="flex items-center justify-between mb-0.5">
+                <h3 class="text-sm font-semibold text-slate-800">单品概览 — 全店</h3>
+                <button
+                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                  @click="showDetailAll = !showDetailAll"
+                >
+                  {{ showDetailAll ? '← 收起详情' : '显示详情 →' }}
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-500 mb-3">
+                {{ showDetailAll ? '全量指标：GSV / 人数 / AUS / 占比 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+              </p>
               <ErrorState v-if="overviewError" :message="(overviewError as Error).message" @retry="overviewRefetch()" />
               <LoadingState v-else-if="overviewLoading" />
               <EmptyState v-else-if="!overviewData?.all_rows.length" description="暂无数据" />
-              <DataTablePro
-                v-else
-                :columns="allColumns"
-                :data="overviewData.all_rows"
-                :total-row="allTtl"
-                :pagination="{ pageSize: 12 }"
-                :scroll-x="1200"
-              />
+              <template v-else>
+                <DataTablePro
+                  v-if="!showDetailAll"
+                  :columns="compactColumns"
+                  :data="overviewData.all_rows"
+                  :total-row="allTtl"
+                  :pagination="false"
+                  :max-height="400"
+                  striped
+                />
+                <DataTablePro
+                  v-else
+                  :columns="allColumns"
+                  :data="overviewData.all_rows"
+                  :total-row="allTtl"
+                  :pagination="false"
+                  :max-height="400"
+                  :scroll-x="2500"
+                  striped
+                />
+              </template>
             </div>
 
             <!-- 单品概览 — 会员 -->
             <div class="bi-card p-4">
-              <h3 class="text-sm font-semibold text-slate-800 mb-0.5">单品概览 — 会员</h3>
-              <p class="text-[11px] text-slate-500 mb-3">各单品会员 GSV、会员占比、人数、AUS 及同比</p>
+              <div class="flex items-center justify-between mb-0.5">
+                <h3 class="text-sm font-semibold text-slate-800">单品概览 — 会员</h3>
+                <button
+                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                  @click="showDetailMember = !showDetailMember"
+                >
+                  {{ showDetailMember ? '← 收起详情' : '显示详情 →' }}
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-500 mb-3">
+                {{ showDetailMember ? '全量指标：GSV / 会员占比 / 人数 / AUS 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+              </p>
               <ErrorState v-if="overviewError" :message="(overviewError as Error).message" @retry="overviewRefetch()" />
               <LoadingState v-else-if="overviewLoading" />
               <EmptyState v-else-if="!overviewData?.member_rows.length" description="暂无数据" />
-              <DataTablePro
-                v-else
-                :columns="memberColumns"
-                :data="overviewData.member_rows"
-                :total-row="memberTtl"
-                :pagination="{ pageSize: 12 }"
-                :scroll-x="1250"
-              />
+              <template v-else>
+                <DataTablePro
+                  v-if="!showDetailMember"
+                  :columns="compactMemberColumns"
+                  :data="overviewData.member_rows"
+                  :total-row="memberTtl"
+                  :pagination="false"
+                  :max-height="400"
+                  striped
+                />
+                <DataTablePro
+                  v-else
+                  :columns="memberColumns"
+                  :data="overviewData.member_rows"
+                  :total-row="memberTtl"
+                  :pagination="false"
+                  :max-height="400"
+                  :scroll-x="2500"
+                  striped
+                />
+              </template>
             </div>
           </div>
         </n-tab-pane>
@@ -583,3 +734,30 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 详情模式下确保横向滚动条可见 */
+:deep(.n-data-table .n-data-table-base-table-body) {
+  overflow-x: auto;
+}
+
+:deep(.n-data-table .n-data-table-base-table-body::-webkit-scrollbar-thumb) {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+:deep(.n-data-table .n-data-table-base-table-body::-webkit-scrollbar-track) {
+  background: #e2e8f0;
+}
+
+/* 组分隔线：老客/新客组首列左边加竖线，防止看岔行 */
+:deep(.n-data-table td.group-sep),
+:deep(.n-data-table th.group-sep) {
+  border-left: 2px solid #cbd5e1;
+}
+
+/* 隔行变色增强可读性 */
+:deep(.n-data-table .n-data-table-td--striped) {
+  background: #f8fafc;
+}
+</style>

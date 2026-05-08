@@ -480,20 +480,7 @@ def _generate_alerts(
             "target_tab": "tiers",
         })
 
-    # 3. 全店复购率过低
-    if all_store_repurchase_rate < thresholds["all_store_repurchase_rate_low"]:
-        alerts.append({
-            "alert_type": "repurchase_rate_low",
-            "alert_name": "全店复购率过低",
-            "severity": "medium",
-            "current_value": round(all_store_repurchase_rate, 4),
-            "threshold_value": thresholds["all_store_repurchase_rate_low"],
-            "comparison_basis": "absolute",
-            "suggested_action": "检查触达策略，推送复购券",
-            "target_tab": "repurchase",
-        })
-
-    # 4. 老客AUS过低
+    # 3. 老客AUS过低
     if old_customer_aus < thresholds["old_customer_aus_low"]:
         alerts.append({
             "alert_type": "aus_low",

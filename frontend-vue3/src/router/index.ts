@@ -62,7 +62,7 @@ const router = createRouter({
 })
 
 // 导航守卫：未登录 → 登录页；已登录访问登录页 → 看板首页
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   // 认证状态未就绪时，先放行，由 App.vue 的 loading 态兜底

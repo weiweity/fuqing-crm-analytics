@@ -32,8 +32,8 @@ withDefaults(defineProps<{
         ]"
         :style="change > 0 ? 'background-color: rgba(21, 190, 83, 0.08); color: #108c3d;' : change < 0 ? 'background-color: rgba(234, 34, 97, 0.08); color: #c41d4e;' : undefined"
       >
-        <template v-if="unit === '%'">{{ change > 0 ? '▲' : change < 0 ? '▼' : '' }}{{ change !== 0 ? Math.abs(change).toFixed(1) + '%' : '0.0%' }}</template>
-        <template v-else>{{ change > 0 ? '▲' : change < 0 ? '▼' : '' }}{{ change !== 0 ? Math.abs(change * 100).toFixed(1) + 'pp' : '0.0pp' }}</template>
+        <template v-if="unit === '%'">{{ change > 0 ? '↑' : change < 0 ? '↓' : '' }}{{ change !== 0 ? Math.abs(change).toFixed(1) + '%' : '0.0%' }}</template>
+        <template v-else>{{ change > 0 ? '↑' : change < 0 ? '↓' : '' }}{{ change !== 0 ? Math.abs(change * 100).toFixed(1) + 'pp' : '0.0pp' }}</template>
       </span>
     </div>
     <div class="mt-1.5">

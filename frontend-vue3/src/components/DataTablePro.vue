@@ -11,6 +11,9 @@ interface Props {
   pagination?: false | { pageSize: number }
   rowKey?: string | ((row: any) => DataTableRowKey)
   className?: string
+  maxHeight?: number | string
+  scrollX?: number | string
+  striped?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -18,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'small',
   pagination: () => ({ pageSize: 10 }),
   rowKey: 'key',
+  striped: false,
 })
 
 const emit = defineEmits<{
@@ -40,6 +44,9 @@ const createRowKey = (row: any) => {
     :bordered="bordered"
     :size="size"
     :pagination="pagination"
+    :max-height="maxHeight"
+    :scroll-x="scrollX"
+    :striped="striped"
     :row-key="createRowKey"
     class="bi-table"
     :class="className"
