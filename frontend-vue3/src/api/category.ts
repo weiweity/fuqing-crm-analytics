@@ -235,6 +235,10 @@ export interface MarketBasketItem {
   confidence: number
   lift: number
   target_order_count: number
+  co_gsv: number                // 连带订单GSV
+  co_aus: number                // 连带人均消费(AUS)
+  target_aus: number            // 目标品类人均消费(AUS baseline)
+  gsv_lift: number              // 消费提升倍数
 }
 
 export interface MarketBasketYoYItem {
@@ -244,6 +248,7 @@ export interface MarketBasketYoYItem {
   confidence_change?: number
   lift_change?: number
   rank_change?: number
+  gsv_change?: number           // 连带GSV同比变化
 }
 
 export interface MarketBasketResponse {

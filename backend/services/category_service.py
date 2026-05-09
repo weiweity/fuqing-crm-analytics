@@ -1846,7 +1846,7 @@ def _compute_market_basket(
     WITH
     -- 周期内所有有效订单
     period_orders AS (
-        SELECT DISTINCT order_id, COALESCE(o.{level_col}, '未知') AS category_name
+        SELECT DISTINCT order_id, user_id, COALESCE(o.{level_col}, '未知') AS category_name
         FROM orders o
         WHERE o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
@@ -1860,6 +1860,20 @@ def _compute_market_basket(
         FROM period_orders
         WHERE category_name = ?
     ),
+    -- 目标品类订单的金额和用户（用于计算人均GSV baseline）
+    target_order_values AS (
+        SELECT order_id, user_id, SUM(actual_amount) AS actual_amount
+        FROM orders
+        WHERE order_id IN (SELECT order_id FROM target_orders)
+        GROUP BY order_id, user_id
+    ),
+    -- 目标品类人均GSV（baseline = GSV / 人数）
+    target_avg AS (
+        SELECT
+            SUM(actual_amount) AS target_gsv,
+            COUNT(DISTINCT user_id) AS target_user_count
+        FROM target_order_values
+    ),
     -- 目标品类的订单数
     target_count AS (
         SELECT COUNT(*) AS target_order_count FROM target_orders
@@ -1868,14 +1882,20 @@ def _compute_market_basket(
     total_count AS (
         SELECT COUNT(DISTINCT order_id) AS total_orders FROM period_orders
     ),
-    -- 与目标品类同单出现的其他品类
+    -- 与目标品类同单出现的其他品类及其连带GSV和用户数
     basket_items AS (
         SELECT
             po.category_name,
-            COUNT(DISTINCT po.order_id) AS co_order_count
-        FROM period_orders po
-        INNER JOIN target_orders t ON po.order_id = t.order_id
-        WHERE po.category_name != ?
+            COUNT(DISTINCT po.order_id) AS co_order_count,
+            COUNT(DISTINCT po.user_id) AS co_user_count,
+            SUM(tov.actual_amount) AS co_gsv
+        FROM (
+            SELECT DISTINCT order_id, user_id, category_name
+            FROM period_orders
+            WHERE order_id IN (SELECT order_id FROM target_orders)
+              AND category_name != ?
+        ) po
+        JOIN target_order_values tov ON tov.order_id = po.order_id AND tov.user_id = po.user_id
         GROUP BY po.category_name
     ),
     -- 各品类的独立订单数(用于lift分母)
@@ -1889,19 +1909,24 @@ def _compute_market_basket(
     SELECT
         b.category_name,
         b.co_order_count,
+        b.co_user_count,
+        b.co_gsv,
         tc.target_order_count,
         tc2.total_orders,
+        tavg.target_gsv,
+        tavg.target_user_count,
         i.item_order_count
     FROM basket_items b
     LEFT JOIN item_orders i ON b.category_name = i.category_name
     CROSS JOIN target_count tc
     CROSS JOIN total_count tc2
+    CROSS JOIN target_avg tavg
     ORDER BY b.co_order_count DESC
     LIMIT 50
     """
 
     # 参数: date(2) + channel + exclude + target(2)
-    # item_orders 复用 period_orders，不需要额外参数
+    # item_orders/target_order_values 复用 period_orders，不需要额外参数
     params = base_params + [target_category, target_category]
     rows = conn.execute(sql, params).fetchall()
 
@@ -1911,9 +1936,13 @@ def _compute_market_basket(
     for row in rows:
         cat_name = row[0]
         co_count = int(row[1] or 0)
-        target_count = int(row[2] or 0)
-        total_orders = int(row[3] or 0)
-        item_count = int(row[4] or 0)
+        co_user_count = int(row[2] or 0)
+        co_gsv = float(row[3] or 0)
+        target_count = int(row[4] or 0)
+        total_orders = int(row[5] or 0)
+        target_gsv = float(row[6] or 0)
+        target_user_count = int(row[7] or 0)
+        item_count = int(row[8] or 0)
 
         if target_count == 0 or total_orders == 0:
             continue
@@ -1922,6 +1951,10 @@ def _compute_market_basket(
         confidence = co_count / target_count
         item_prob = item_count / total_orders if total_orders > 0 else 0
         lift = confidence / item_prob if item_prob > 0 else 0
+        # 客单价口径：GSV / 人数
+        target_aus = target_gsv / target_user_count if target_user_count > 0 else 0
+        co_aus = co_gsv / co_user_count if co_user_count > 0 else 0
+        gsv_lift = co_aus / target_aus if target_aus > 0 else 0
 
         items.append({
             "category_name": cat_name,
@@ -1930,6 +1963,10 @@ def _compute_market_basket(
             "confidence": round(confidence, 4),
             "lift": round(lift, 4),
             "target_order_count": target_count,
+            "co_gsv": round(co_gsv, 2),
+            "co_aus": round(co_aus, 2),
+            "target_aus": round(target_aus, 2),
+            "gsv_lift": round(gsv_lift, 2),
         })
 
     return {
@@ -1989,6 +2026,7 @@ def get_market_basket(
     prev_rank = {item["category_name"]: i + 1 for i, item in enumerate(previous["items"])}
     prev_conf = {item["category_name"]: item["confidence"] for item in previous["items"]}
     prev_lift = {item["category_name"]: item["lift"] for item in previous["items"]}
+    prev_gsv = {item["category_name"]: item["co_gsv"] for item in previous["items"]}
 
     yoy_items = []
     for i, cur_item in enumerate(current["items"]):
@@ -1998,11 +2036,13 @@ def get_market_basket(
         rank_chg = None
         conf_chg = None
         lift_chg = None
+        gsv_chg = None
 
         if prev_item:
             rank_chg = i + 1 - prev_rank.get(cat, i + 1)
             conf_chg = round(cur_item["confidence"] - prev_conf.get(cat, 0), 4)
             lift_chg = round(cur_item["lift"] - prev_lift.get(cat, 0), 4)
+            gsv_chg = round(cur_item["co_gsv"] - prev_gsv.get(cat, 0), 2)
 
         yoy_items.append({
             "category_name": cat,
@@ -2011,6 +2051,7 @@ def get_market_basket(
             "confidence_change": conf_chg,
             "lift_change": lift_chg,
             "rank_change": rank_chg,
+            "gsv_change": gsv_chg,
         })
 
     return {

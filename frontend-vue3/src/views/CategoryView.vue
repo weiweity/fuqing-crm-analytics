@@ -685,8 +685,8 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
           </div>
         </n-tab-pane>
 
-        <!-- ═══ Tab 2: 关联分析 ═══ -->
-        <n-tab-pane name="association" tab="关联分析">
+        <!-- ═══ Tab 2: 连带分析 ═══ -->
+        <n-tab-pane name="association" tab="连带分析">
           <p class="text-[11px] text-slate-400 mb-3 pt-1">
             解决问题：同一笔订单里哪些品类经常一起被买？——指导组合装设计、关联推荐和满减门槛设置
           </p>
