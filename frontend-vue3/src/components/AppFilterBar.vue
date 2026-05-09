@@ -27,6 +27,8 @@ const periodTypeOptions = [
   { label: '周', value: 'WTD' },
   { label: '月', value: 'MTD' },
   { label: '年', value: 'YTD' },
+  { label: '近180天', value: 'last180days' },
+  { label: '近365天', value: 'last365days' },
   { label: '第一季度', value: 'Q1' },
   { label: '第二季度', value: 'Q2' },
   { label: '第三季度', value: 'Q3' },
@@ -87,7 +89,12 @@ function handleCompareDateFocus() {
 }
 
 watch(() => filterStore.periodType, (type) => {
-  if (type && type !== 'custom') {
+  // 清空选择器后自动切为自定义，避免状态不一致
+  if (!type) {
+    filterStore.periodType = 'custom'
+    return
+  }
+  if (type !== 'custom') {
     const range = getPeriodDateRange(type)
     if (range) {
       isProgrammaticUpdate = true

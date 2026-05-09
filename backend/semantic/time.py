@@ -134,6 +134,22 @@ class PeriodBuilder:
         }
 
     @staticmethod
+    def last180days(today: Optional[date] = None) -> Dict[str, DateRange]:
+        """构造近180天三周期（当期 / 去年同期 / 前年同期）"""
+        today = today or date.today()
+        yesterday = today - timedelta(days=1)
+        start = yesterday - timedelta(days=179)
+        return PeriodBuilder.free(start.strftime("%Y-%m-%d"), yesterday.strftime("%Y-%m-%d"))
+
+    @staticmethod
+    def last365days(today: Optional[date] = None) -> Dict[str, DateRange]:
+        """构造近365天三周期（当期 / 去年同期 / 前年同期）"""
+        today = today or date.today()
+        yesterday = today - timedelta(days=1)
+        start = yesterday - timedelta(days=364)
+        return PeriodBuilder.free(start.strftime("%Y-%m-%d"), yesterday.strftime("%Y-%m-%d"))
+
+    @staticmethod
     def free(start_date: str, end_date: str) -> Dict[str, DateRange]:
         """
         构造自由时间段三周期（当年 / 去年 / 前年）

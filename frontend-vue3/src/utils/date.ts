@@ -35,32 +35,34 @@ export const QUICK_RANGES = [
 
 export function getQuickDateRange(preset: string): [string, string] | null {
   const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
   const fmt = formatDate
 
   switch (preset) {
     case 'last7days': {
-      const d = new Date(today)
+      const d = new Date(yesterday)
       d.setDate(d.getDate() - 6)
-      return [fmt(d), fmt(today)]
+      return [fmt(d), fmt(yesterday)]
     }
     case 'last30days': {
-      const d = new Date(today)
+      const d = new Date(yesterday)
       d.setDate(d.getDate() - 29)
-      return [fmt(d), fmt(today)]
+      return [fmt(d), fmt(yesterday)]
     }
     case 'last90days': {
-      const d = new Date(today)
+      const d = new Date(yesterday)
       d.setDate(d.getDate() - 89)
-      return [fmt(d), fmt(today)]
+      return [fmt(d), fmt(yesterday)]
     }
     case 'last180days': {
-      const d = new Date(today)
+      const d = new Date(yesterday)
       d.setDate(d.getDate() - 179)
-      return [fmt(d), fmt(today)]
+      return [fmt(d), fmt(yesterday)]
     }
     case 'thisMonth': {
       const start = new Date(today.getFullYear(), today.getMonth(), 1)
-      return [fmt(start), fmt(today)]
+      return [fmt(start), fmt(yesterday)]
     }
     case 'lastMonth': {
       const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
@@ -69,7 +71,7 @@ export function getQuickDateRange(preset: string): [string, string] | null {
     }
     case 'thisYear': {
       const start = new Date(today.getFullYear(), 0, 1)
-      return [fmt(start), fmt(today)]
+      return [fmt(start), fmt(yesterday)]
     }
     default:
       return null
@@ -79,7 +81,7 @@ export function getQuickDateRange(preset: string): [string, string] | null {
 /**
  * Get WTD/MTD/YTD/Q1-Q4 date range
  */
-export type PeriodType = 'WTD' | 'MTD' | 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom' | 'yesterday'
+export type PeriodType = 'WTD' | 'MTD' | 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom' | 'yesterday' | 'last180days' | 'last365days'
 
 /**
  * 对比模式
@@ -161,6 +163,16 @@ export function getPeriodDateRange(type: PeriodType): [string, string] | null {
     }
     case 'YTD': {
       const start = new Date(year, 0, 1)
+      return [fmt(start), fmt(yesterday)]
+    }
+    case 'last180days': {
+      const start = new Date(yesterday)
+      start.setDate(start.getDate() - 179)
+      return [fmt(start), fmt(yesterday)]
+    }
+    case 'last365days': {
+      const start = new Date(yesterday)
+      start.setDate(start.getDate() - 364)
       return [fmt(start), fmt(yesterday)]
     }
     case 'Q1': {

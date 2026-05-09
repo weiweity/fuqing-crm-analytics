@@ -11,6 +11,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { useFilterStore } from '@/stores/filterStore'
 import { parseDateRange, getPeriodDateRange, type PeriodType, type CompareMode } from '@/utils/date'
 
+/** 合法的周期类型白名单 */
+const VALID_PERIOD_TYPES: readonly PeriodType[] = [
+  'WTD', 'MTD', 'YTD', 'Q1', 'Q2', 'Q3', 'Q4',
+  'custom', 'yesterday', 'last180days', 'last365days',
+]
+
+function isValidPeriodType(v: string): v is PeriodType {
+  return VALID_PERIOD_TYPES.includes(v as PeriodType)
+}
+
 export function useFilterSync() {
   const route = useRoute()
   const router = useRouter()
@@ -41,10 +51,15 @@ export function useFilterSync() {
     if (dimValue !== undefined && filterStore.dimensionValue !== dimValue) {
       filterStore.dimensionValue = dimValue as string
     }
-    const nextPeriod = (periodType as PeriodType) || ''
-    if (nextPeriod) {
-      if (filterStore.periodType !== nextPeriod) {
-        filterStore.periodType = nextPeriod
+    const rawPeriod = (periodType as string) || ''
+    if (rawPeriod && isValidPeriodType(rawPeriod)) {
+      if (filterStore.periodType !== rawPeriod) {
+        filterStore.periodType = rawPeriod
+      }
+    } else if (rawPeriod) {
+      // 非法 periodType，回退到 custom（保留当前 dateRange）
+      if (filterStore.periodType !== 'custom') {
+        filterStore.periodType = 'custom'
       }
     } else {
       // URL 没有 periodType 时
