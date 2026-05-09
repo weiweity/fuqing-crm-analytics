@@ -53,6 +53,11 @@ htmlcov/
 # 运行时缓存
 backend/cache/
 
+# 企业知识库 / 设计审计（大文件/内部资料，不纳入版本控制）
+docs/业务知识/
+docs/618-breakdown/
+designs/
+
 # 工作空间 / 工具配置（不上传）
 .workbuddy/
 .gstack/
