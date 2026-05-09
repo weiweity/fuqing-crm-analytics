@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { NDatePicker, NSelect, NSwitch } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
-import { getPeriodDateRange, formatDate, computeCompareRange } from '@/utils/date'
+import { getPeriodDateRange, formatDate } from '@/utils/date'
 
 const filterStore = useFilterStore()
 

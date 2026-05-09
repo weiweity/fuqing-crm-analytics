@@ -45,7 +45,7 @@ const queryParams = computed(() => {
 })
 
 const { data, isLoading, error, refetch } = useQuery({
-  queryKey: ['health-overview', queryParams],
+  queryKey: computed(() => ['health-overview', { ...toValue(queryParams) }]),
   queryFn: () => {
     const p = toValue(queryParams)
     return fetchHealthOverview({
@@ -62,7 +62,7 @@ const { data, isLoading, error, refetch } = useQuery({
 
 // ── 健康评分目标（自动沿用去年同周期实际值）──
 const { data: targetsData } = useQuery({
-  queryKey: ['health-targets', queryParams],
+  queryKey: computed(() => ['health-targets', { ...toValue(queryParams) }]),
   queryFn: () => {
     const p = toValue(queryParams)
     return fetchHealthTargets({
@@ -96,7 +96,7 @@ const filteredChannelScores = computed(() => {
 })
 
 const { data: channelScoresData } = useQuery({
-  queryKey: ['channel-health-scores', channelScoresParams],
+  queryKey: computed(() => ['channel-health-scores', { ...toValue(channelScoresParams) }]),
   queryFn: () => {
     const p = toValue(channelScoresParams)
     return fetchChannelHealthScores({

@@ -62,7 +62,7 @@ const queryParams = computed(() => ({
 }))
 
 const { data, isLoading, error, refetch } = useQuery({
-  queryKey: ['repurchase-cycle', queryParams],
+  queryKey: computed(() => ['repurchase-cycle', { ...toValue(queryParams) }]),
   queryFn: () => {
     const p = toValue(queryParams)
     return fetchRepurchaseCycle({

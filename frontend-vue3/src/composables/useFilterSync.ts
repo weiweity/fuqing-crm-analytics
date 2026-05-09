@@ -9,7 +9,7 @@
 import { watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFilterStore } from '@/stores/filterStore'
-import { parseDateRange, getPeriodDateRange, type PeriodType } from '@/utils/date'
+import { parseDateRange, getPeriodDateRange, type PeriodType, type CompareMode } from '@/utils/date'
 
 export function useFilterSync() {
   const route = useRoute()
@@ -21,7 +21,7 @@ export function useFilterSync() {
   // Called on: initial load + every navigation
   // ─────────────────────────────────────────────────────────────
   const syncFromUrl = () => {
-    const { date, channel, dimension, dimValue, periodType } = route.query
+    const { date, channel, dimension, dimValue, periodType, compareMode, compareDateRange } = route.query
 
     if (date) {
       const parsed = parseDateRange(date as string)
@@ -62,6 +62,15 @@ export function useFilterSync() {
         }
       }
     }
+    if (compareMode && filterStore.compareMode !== compareMode) {
+      filterStore.compareMode = compareMode as CompareMode
+    }
+    if (compareDateRange) {
+      const parsed = parseDateRange(compareDateRange as string)
+      if (parsed && (!filterStore.compareDateRange || filterStore.compareDateRange[0] !== parsed[0] || filterStore.compareDateRange[1] !== parsed[1])) {
+        filterStore.compareDateRange = parsed
+      }
+    }
   }
 
   // Watch route.query for external URL changes (browser back/forward, manual edits)
@@ -79,6 +88,8 @@ export function useFilterSync() {
       filterStore.dimension,
       filterStore.dimensionValue,
       filterStore.periodType,
+      filterStore.compareMode,
+      filterStore.compareDateRange,
     ],
     () => {
       router.replace({
@@ -88,6 +99,8 @@ export function useFilterSync() {
           dimension: filterStore.dimension,
           dimValue: filterStore.dimensionValue || undefined,
           periodType: filterStore.periodType || undefined,
+          compareMode: filterStore.compareMode || undefined,
+          compareDateRange: filterStore.compareDateRange ? filterStore.compareDateRange.join(',') : undefined,
         },
       })
     },

@@ -52,7 +52,7 @@ const {
   error: distributionError,
   refetch: distributionRefetch,
 } = useQuery({
-  queryKey: ['geo-distribution', distributionParams],
+  queryKey: computed(() => ['geo-distribution', { ...toValue(distributionParams) }]),
   queryFn: () => fetchGeoDistribution(toValue(distributionParams)),
   staleTime: 60_000,
 })
@@ -63,7 +63,7 @@ const {
   error: matrixError,
   refetch: matrixRefetch,
 } = useQuery({
-  queryKey: ['geo-segment-matrix', segmentParams],
+  queryKey: computed(() => ['geo-segment-matrix', { ...toValue(segmentParams) }]),
   queryFn: () => fetchGeoSegmentMatrix(toValue(segmentParams)),
   staleTime: 60_000,
 })
@@ -74,7 +74,7 @@ const {
   error: trendError,
   refetch: trendRefetch,
 } = useQuery({
-  queryKey: ['geo-trend', trendParams],
+  queryKey: computed(() => ['geo-trend', { ...toValue(trendParams) }]),
   queryFn: () => fetchGeoTrend(toValue(trendParams)),
   staleTime: 60_000,
 })

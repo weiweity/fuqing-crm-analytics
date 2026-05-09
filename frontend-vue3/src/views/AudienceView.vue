@@ -153,7 +153,7 @@ const compareQueryParams = computed(() => {
 })
 
 const { data: kpiData, isLoading: kpiLoading } = useQuery({
-  queryKey: ['kpi-metrics', queryParams, compareQueryParams],
+  queryKey: computed(() => ['kpi-metrics', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
     const c = toValue(compareQueryParams)
@@ -163,7 +163,7 @@ const { data: kpiData, isLoading: kpiLoading } = useQuery({
 })
 
 const { data: trendData, isLoading: trendLoading, error: trendError, refetch: trendRefetch } = useQuery({
-  queryKey: ['daily-trend', queryParams, compareQueryParams],
+  queryKey: computed(() => ['daily-trend', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
     const c = toValue(compareQueryParams)
@@ -173,7 +173,7 @@ const { data: trendData, isLoading: trendLoading, error: trendError, refetch: tr
 })
 
 const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: summaryRefetch } = useQuery({
-  queryKey: ['audience-summary', queryParams, filterStore.compareParams],
+  queryKey: computed(() => ['audience-summary', { ...toValue(queryParams) }, filterStore.compareParams]),
   queryFn: () => {
     const p = toValue(queryParams)
     const comp = filterStore.compareParams
@@ -191,7 +191,7 @@ const { data: summaryData, isLoading: summaryLoading, error: summaryError, refet
 
 // 访客入会率数据
 const { data: visitorSummary, isLoading: visitorLoading } = useQuery({
-  queryKey: ['visitor-summary', queryParams, compareQueryParams],
+  queryKey: computed(() => ['visitor-summary', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
     const c = toValue(compareQueryParams)
@@ -205,7 +205,7 @@ const { data: visitorSummary, isLoading: visitorLoading } = useQuery({
 })
 
 const { data: visitorTrendData, isLoading: visitorTrendLoading, error: visitorTrendError, refetch: visitorTrendRefetch } = useQuery({
-  queryKey: ['visitor-daily-trend', queryParams, compareQueryParams],
+  queryKey: computed(() => ['visitor-daily-trend', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
     const c = toValue(compareQueryParams)
@@ -1960,7 +1960,6 @@ const channelMemberXlsxColumns = computed(() => {
             :columns="computedCompactChannelColumns"
             :data="displayChannelAll"
             :pagination="false"
-            :max-height="400"
             striped
             :row-class-name="channelRowClassName"
             @update:sorter="handleChannelSort"
@@ -2012,7 +2011,6 @@ const channelMemberXlsxColumns = computed(() => {
             :columns="computedCompactMemberChannelColumns"
             :data="displayChannelMember"
             :pagination="false"
-            :max-height="400"
             striped
             :row-class-name="channelRowClassName"
             @update:sorter="handleChannelSort"

@@ -41,7 +41,7 @@ const {
   error: distributionError,
   refetch: distributionRefetch,
 } = useQuery({
-  queryKey: ['churn-distribution', distributionParams],
+  queryKey: computed(() => ['churn-distribution', { ...toValue(distributionParams) }]),
   queryFn: () => fetchChurnDistribution(toValue(distributionParams)),
   staleTime: 60_000,
 })
@@ -52,7 +52,7 @@ const {
   error: riskUsersError,
   refetch: riskUsersRefetch,
 } = useQuery({
-  queryKey: ['churn-risk-users', riskUsersParams],
+  queryKey: computed(() => ['churn-risk-users', { ...toValue(riskUsersParams) }]),
   queryFn: () => fetchChurnRiskUsers(toValue(riskUsersParams)),
   staleTime: 60_000,
 })
