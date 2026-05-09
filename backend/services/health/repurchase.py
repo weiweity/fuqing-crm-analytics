@@ -33,51 +33,70 @@ def _shift_date_year(date_str: str, years: int) -> str:
 
 
 def _compute_product_repurchase(conn, where_sql: str, params: list) -> Dict[str, Dict[str, Any]]:
-    """执行品类复购查询，返回以品类名为key的字典"""
+    """执行品类复购查询，返回以品类名为key的字典
+
+    口径：
+    - 复购判定：同一品类下，订单数 >= 2 即算复购用户（当天多单去重）
+    - 复购间隔：按天去重后统计相邻购买间隔（当天多单合并为一天，自然无0天）
+    - 复购客单价：复购订单（第2单及以后）的 actual_amount 平均值
+    - 复购GSV：复购订单的 actual_amount 之和
+    """
     rows = conn.execute(f"""
-        WITH product_users AS (
-            SELECT spu_product_class, user_id,
-                COUNT(DISTINCT order_id) as order_count,
-                SUM(actual_amount) as gsv,
-                AVG(actual_amount) as avg_order_value
-            FROM orders
-            WHERE {where_sql}
-              AND spu_product_class IS NOT NULL
-            GROUP BY spu_product_class, user_id
-        ),
-        repurchase_gaps AS (
-            SELECT user_id, spu_product_class, pay_time,
-                LAG(pay_time) OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as prev_pay_time
+        WITH user_orders AS (
+            SELECT
+                spu_product_class, user_id, order_id, actual_amount, pay_time,
+                LAG(pay_time) OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as prev_pay_time,
+                ROW_NUMBER() OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as order_seq
             FROM orders
             WHERE {where_sql}
               AND spu_product_class IS NOT NULL
         ),
-        gap_stats AS (
+        daily_orders AS (
+            SELECT DISTINCT spu_product_class, user_id, CAST(pay_time AS DATE) as pay_date
+            FROM user_orders
+        ),
+        daily_gap_stats AS (
             SELECT spu_product_class,
-                quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.5) as median_days,
-                quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.25) as p25,
-                quantile_cont(DATEDIFF('day', prev_pay_time, pay_time), 0.75) as p75,
-                AVG(DATEDIFF('day', prev_pay_time, pay_time)) as avg_days
-            FROM repurchase_gaps
-            WHERE prev_pay_time IS NOT NULL
-              AND DATEDIFF('day', prev_pay_time, pay_time) > 0
+                quantile_cont(DATEDIFF('day', prev_pay_date, pay_date), 0.5) as median_days,
+                quantile_cont(DATEDIFF('day', prev_pay_date, pay_date), 0.25) as p25,
+                quantile_cont(DATEDIFF('day', prev_pay_date, pay_date), 0.75) as p75,
+                AVG(DATEDIFF('day', prev_pay_date, pay_date)) as avg_days
+            FROM (
+                SELECT
+                    spu_product_class, user_id, pay_date,
+                    LAG(pay_date) OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_date) as prev_pay_date
+                FROM daily_orders
+            )
+            WHERE prev_pay_date IS NOT NULL
             GROUP BY spu_product_class
+        ),
+        product_users AS (
+            SELECT
+                spu_product_class, user_id,
+                COUNT(DISTINCT order_id) as total_orders,
+                COUNT(DISTINCT CASE WHEN order_seq >= 2 THEN order_id END) as repurchase_order_count,
+                SUM(actual_amount) as gsv,
+                SUM(CASE WHEN order_seq >= 2 THEN actual_amount ELSE 0 END) as repurchase_gsv
+            FROM user_orders
+            GROUP BY spu_product_class, user_id
         )
         SELECT
             p.spu_product_class,
             COUNT(DISTINCT p.user_id) as total_buyers,
-            COUNT(DISTINCT CASE WHEN p.order_count >= 2 THEN p.user_id END) as repurchase_users,
+            COUNT(DISTINCT CASE WHEN p.total_orders >= 2 THEN p.user_id END) as repurchase_users,
             SUM(p.gsv) as gsv,
-            SUM(p.gsv) / NULLIF(SUM(p.order_count), 0) as avg_order_value,
+            SUM(p.gsv) / NULLIF(SUM(p.total_orders), 0) as avg_order_value,
+            SUM(p.repurchase_gsv) as repurchase_gsv,
+            SUM(p.repurchase_gsv) / NULLIF(SUM(p.repurchase_order_count), 0) as repurchase_order_value,
             COALESCE(g.median_days, 0) as median_days,
             COALESCE(g.p25, 0) as p25,
             COALESCE(g.p75, 0) as p75,
             COALESCE(g.avg_days, 0) as avg_days
         FROM product_users p
-        LEFT JOIN gap_stats g ON p.spu_product_class = g.spu_product_class
+        LEFT JOIN daily_gap_stats g ON p.spu_product_class = g.spu_product_class
         GROUP BY p.spu_product_class, g.median_days, g.p25, g.p75, g.avg_days
         ORDER BY SUM(p.gsv) DESC
-    """, params + params).fetchall()  # 两个CTE各引用一次where_sql，需两份参数
+    """, params).fetchall()
 
     result: Dict[str, Dict[str, Any]] = {}
     for r in rows:
@@ -88,12 +107,138 @@ def _compute_product_repurchase(conn, where_sql: str, params: list) -> Dict[str,
             "total_buyers": total_buyers,
             "repurchase_users": repurchase_users,
             "repurchase_rate": round(safe_ratio(repurchase_users, total_buyers, 0.0), 4),
-            "median_days": int(r[5]) if r[5] else 0,
-            "p25_days": int(r[6]) if r[6] else 0,
-            "p75_days": int(r[7]) if r[7] else 0,
-            "avg_days": round(float(r[8]), 1) if r[8] else 0.0,
+            "median_days": int(r[7]) if r[7] else 0,
+            "p25_days": int(r[8]) if r[8] else 0,
+            "p75_days": int(r[9]) if r[9] else 0,
+            "avg_days": round(float(r[10]), 1) if r[10] else 0.0,
             "avg_order_value": round(float(r[4]) if r[4] else 0.0, 2),
             "gsv": round(float(r[3]) if r[3] else 0.0, 2),
+            "repurchase_gsv": round(float(r[5]) if r[5] else 0.0, 2),
+            "repurchase_order_value": round(float(r[6]) if r[6] else 0.0, 2),
+        }
+    return result
+
+
+def _compute_cross_category_return(conn, where_sql: str, params: list) -> Dict[str, Dict[str, Any]]:
+    """执行跨品类回购店铺查询，返回以品类名为key的字典
+
+    口径：
+    - 购买人数：周期内买过该品类的人数
+    - 回购人数：首购该品类后，周期内有任意后续购买（含同品类/跨品类）的人数
+    - 回购间隔：从首购该品类到下一次任意购买的间隔，按天去重后计算（自然无0天）
+    - 客单价/GSV：该品类的入口价值（首购订单）
+    - 回流GSV/回流客单价：首购该品类后，用户后续全店购买的金额汇总及均值
+    """
+    rows = conn.execute(f"""
+        WITH user_product_orders AS (
+            SELECT
+                spu_product_class, user_id, order_id, actual_amount, pay_time,
+                ROW_NUMBER() OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as rn
+            FROM orders
+            WHERE {where_sql}
+              AND spu_product_class IS NOT NULL
+        ),
+        first_product_purchase AS (
+            SELECT spu_product_class, user_id, CAST(pay_time AS DATE) as first_pay_date, pay_time
+            FROM user_product_orders
+            WHERE rn = 1
+        ),
+        user_all_orders AS (
+            SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
+            FROM orders
+            WHERE {where_sql}
+        ),
+        next_purchase AS (
+            SELECT
+                f.spu_product_class,
+                f.user_id,
+                f.first_pay_date,
+                MIN(u.pay_date) as next_pay_date
+            FROM first_product_purchase f
+            LEFT JOIN user_all_orders u
+                ON f.user_id = u.user_id
+                AND u.pay_date > f.first_pay_date
+            GROUP BY f.spu_product_class, f.user_id, f.first_pay_date
+        ),
+        subsequent_orders AS (
+            SELECT
+                f.spu_product_class,
+                SUM(o.actual_amount) as subsequent_gsv,
+                COUNT(DISTINCT o.order_id) as subsequent_order_count
+            FROM first_product_purchase f
+            JOIN (
+                SELECT user_id, order_id, actual_amount, pay_time
+                FROM orders
+                WHERE {where_sql}
+            ) o
+                ON f.user_id = o.user_id
+                AND o.pay_time > f.pay_time
+            GROUP BY f.spu_product_class
+        ),
+        product_stats AS (
+            SELECT
+                user_product_orders.spu_product_class,
+                COUNT(DISTINCT user_product_orders.user_id) as total_buyers,
+                COUNT(DISTINCT CASE WHEN next_pay_date IS NOT NULL THEN user_product_orders.user_id END) as repurchase_users,
+                SUM(CASE WHEN rn = 1 THEN actual_amount ELSE 0 END) as gsv,
+                SUM(CASE WHEN rn = 1 THEN actual_amount ELSE 0 END) /
+                    NULLIF(COUNT(DISTINCT CASE WHEN rn = 1 THEN order_id END), 0) as avg_order_value
+            FROM user_product_orders
+            LEFT JOIN next_purchase np
+                ON user_product_orders.spu_product_class = np.spu_product_class
+                AND user_product_orders.user_id = np.user_id
+            GROUP BY user_product_orders.spu_product_class
+        ),
+        gap_stats AS (
+            SELECT
+                spu_product_class,
+                quantile_cont(DATEDIFF('day', first_pay_date, next_pay_date), 0.5) as median_days,
+                quantile_cont(DATEDIFF('day', first_pay_date, next_pay_date), 0.25) as p25,
+                quantile_cont(DATEDIFF('day', first_pay_date, next_pay_date), 0.75) as p75,
+                AVG(DATEDIFF('day', first_pay_date, next_pay_date)) as avg_days
+            FROM next_purchase
+            WHERE next_pay_date IS NOT NULL
+            GROUP BY spu_product_class
+        )
+        SELECT
+            p.spu_product_class,
+            p.total_buyers,
+            p.repurchase_users,
+            p.gsv,
+            p.avg_order_value,
+            COALESCE(s.subsequent_gsv, 0) as subsequent_gsv,
+            COALESCE(s.subsequent_gsv, 0) / NULLIF(s.subsequent_order_count, 0) as subsequent_order_value,
+            COALESCE(g.median_days, 0) as median_days,
+            COALESCE(g.p25, 0) as p25,
+            COALESCE(g.p75, 0) as p75,
+            COALESCE(g.avg_days, 0) as avg_days
+        FROM product_stats p
+        LEFT JOIN gap_stats g ON p.spu_product_class = g.spu_product_class
+        LEFT JOIN subsequent_orders s ON p.spu_product_class = s.spu_product_class
+        ORDER BY p.gsv DESC
+    """,
+        # where_sql 在 user_product_orders / user_all_orders / subsequent_orders 子查询中各使用一次
+        # 因此参数需要复制三份，与占位符数量一一对应
+        params + params + params
+    ).fetchall()
+
+    result: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        total_buyers = int(r[1])
+        repurchase_users = int(r[2])
+        result[r[0]] = {
+            "product_class": r[0],
+            "total_buyers": total_buyers,
+            "repurchase_users": repurchase_users,
+            "repurchase_rate": round(safe_ratio(repurchase_users, total_buyers, 0.0), 4),
+            "median_days": int(r[7]) if r[7] else 0,
+            "p25_days": int(r[8]) if r[8] else 0,
+            "p75_days": int(r[9]) if r[9] else 0,
+            "avg_days": round(float(r[10]), 1) if r[10] else 0.0,
+            "avg_order_value": round(float(r[4]) if r[4] else 0.0, 2),
+            "gsv": round(float(r[3]) if r[3] else 0.0, 2),
+            "repurchase_gsv": round(float(r[5]) if r[5] else 0.0, 2),
+            "repurchase_order_value": round(float(r[6]) if r[6] else 0.0, 2),
         }
     return result
 
@@ -135,18 +280,22 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         where_sql, params = fb.build()
 
         # ── 1. 全店复购间隔统计（分位数 + 分桶 合并为单次查询） ──
+        # 按天去重：当天多单合并为一天，与分品类口径保持一致
         row = conn.execute(f"""
             WITH user_orders AS (
-                SELECT user_id, pay_time,
-                    LAG(pay_time) OVER (PARTITION BY user_id ORDER BY pay_time) as prev_pay_time
+                SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
                 FROM orders
                 WHERE {where_sql}
             ),
             gaps AS (
-                SELECT DATEDIFF('day', prev_pay_time, pay_time) as gap_days
-                FROM user_orders
-                WHERE prev_pay_time IS NOT NULL
-                  AND DATEDIFF('day', prev_pay_time, pay_time) > 0
+                SELECT DATEDIFF('day', prev_pay_date, pay_date) as gap_days
+                FROM (
+                    SELECT user_id, pay_date,
+                        LAG(pay_date) OVER (PARTITION BY user_id ORDER BY pay_date) as prev_pay_date
+                    FROM user_orders
+                )
+                WHERE prev_pay_date IS NOT NULL
+                  AND DATEDIFF('day', prev_pay_date, pay_date) > 0
             )
             SELECT
                 COUNT(*) as total_gaps,
@@ -197,16 +346,19 @@ def get_repurchase_cycle(start_date: str, end_date: str,
 
             r = conn.execute(f"""
                 WITH user_orders AS (
-                    SELECT user_id, pay_time,
-                        LAG(pay_time) OVER (PARTITION BY user_id ORDER BY pay_time) as prev_pay_time
+                    SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
                     FROM orders
                     WHERE {where_sql_inner}
                 ),
                 gaps AS (
-                    SELECT DATEDIFF('day', prev_pay_time, pay_time) as gap_days
-                    FROM user_orders
-                    WHERE prev_pay_time IS NOT NULL
-                      AND DATEDIFF('day', prev_pay_time, pay_time) > 0
+                    SELECT DATEDIFF('day', prev_pay_date, pay_date) as gap_days
+                    FROM (
+                        SELECT user_id, pay_date,
+                            LAG(pay_date) OVER (PARTITION BY user_id ORDER BY pay_date) as prev_pay_date
+                        FROM user_orders
+                    )
+                    WHERE prev_pay_date IS NOT NULL
+                      AND DATEDIFF('day', prev_pay_date, pay_date) > 0
                 )
                 SELECT
                     COUNT(*) as total_gaps,
@@ -271,34 +423,43 @@ def get_repurchase_cycle(start_date: str, end_date: str,
 
         # ── 3. 分品类复购指标（当前周期 + 对比期） ──
         cur_products = _compute_product_repurchase(conn, where_sql, params)
+        cur_cross = _compute_cross_category_return(conn, where_sql, params)
 
         # 对比期
         fb_ly = FilterBuilder()
         fb_ly.with_metric_type(MetricType.GSV)
         fb_ly.with_time_range(ly_start, ly_end)
+        if channel:
+            fb_ly.with_channels([channel])
         if exclude_channels:
             fb_ly.with_exclude_channels(exclude_channels)
         where_sql_ly, params_ly = fb_ly.build()
         ly_products = _compute_product_repurchase(conn, where_sql_ly, params_ly)
+        ly_cross = _compute_cross_category_return(conn, where_sql_ly, params_ly)
+
+        def _merge_yoy(cur_data: Dict[str, Any], ly_data: Dict[str, Any]) -> Dict[str, Any]:
+            """将当前周期数据与去年同期数据合并，计算YOY"""
+            item = {**cur_data}
+            if ly_data:
+                item["ly_repurchase_rate"] = ly_data["repurchase_rate"]
+                item["ly_median_days"] = ly_data["median_days"]
+                item["ly_avg_days"] = ly_data.get("avg_days", 0.0)
+                item["ly_gsv"] = ly_data["gsv"]
+                item["repurchase_rate_yoy"] = round(cur_data["repurchase_rate"] - ly_data["repurchase_rate"], 4)
+                item["median_days_yoy"] = round(cur_data["median_days"] - ly_data["median_days"], 4) if ly_data["median_days"] > 0 else None
+                item["avg_days_yoy"] = round(cur_data["avg_days"] - ly_data["avg_days"], 1) if ly_data["avg_days"] > 0 else None
+                item["gsv_yoy"] = round(safe_ratio(cur_data["gsv"] - ly_data["gsv"], ly_data["gsv"], 0.0), 4) if ly_data["gsv"] > 0 else None
+            return item
 
         by_product_class = []
         for pc, cur in cur_products.items():
             ly = ly_products.get(pc)
-            item = {**cur}
-            if ly:
-                item["ly_repurchase_rate"] = ly["repurchase_rate"]
-                item["ly_median_days"] = ly["median_days"]
-                item["ly_avg_days"] = ly.get("avg_days", 0.0)
-                item["ly_gsv"] = ly["gsv"]
-                # 复购率YOY = 百分点差（占比类指标）
-                item["repurchase_rate_yoy"] = round(cur["repurchase_rate"] - ly["repurchase_rate"], 4)
-                # 中位天数YOY = 百分点差（天数变化用差值更直观）
-                item["median_days_yoy"] = round(cur["median_days"] - ly["median_days"], 4) if ly["median_days"] > 0 else None
-                # 平均天数YOY = 差值
-                item["avg_days_yoy"] = round(cur["avg_days"] - ly["avg_days"], 1) if ly["avg_days"] > 0 else None
-                # GSV YOY = 百分比变化（绝对值类指标）
-                item["gsv_yoy"] = round(safe_ratio(cur["gsv"] - ly["gsv"], ly["gsv"], 0.0), 4) if ly["gsv"] > 0 else None
-            by_product_class.append(item)
+            by_product_class.append(_merge_yoy(cur, ly))
+
+        by_product_class_return = []
+        for pc, cur in cur_cross.items():
+            ly = ly_cross.get(pc)
+            by_product_class_return.append(_merge_yoy(cur, ly))
 
         return {
             "period_start": start_date,
@@ -309,6 +470,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
             "all_store_avg_days": avg_days,
             "bucket_distribution": bucket_distribution,
             "by_product_class": by_product_class,
+            "by_product_class_return": by_product_class_return,
             "year_label": start_date[:4],
             "comp_year_label": ly_start[:4],
             "prev2_year_label": p2_start[:4],

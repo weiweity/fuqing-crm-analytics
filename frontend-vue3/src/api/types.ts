@@ -4,26 +4,6 @@
  */
 
 export interface paths {
-    "/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Root
-         * @description 健康检查
-         */
-        get: operations["root__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/metrics/overview": {
         parameters: {
             query?: never;
@@ -291,9 +271,9 @@ export interface paths {
         };
         /**
          * Get Category Distribution Api
-         * @description 品类分布
+         * @description 品类分布 (GSV口径)
          *
-         *     返回各品类的用户数、GMV 及占比
+         *     返回各品类的用户数、GSV 及占比
          */
         get: operations["get_category_distribution_api_api_v1_category_distribution_get"];
         put?: never;
@@ -364,6 +344,160 @@ export interface paths {
          *     返回某品类的用户特征（象限分布、省份分布、渠道分布）
          */
         get: operations["get_category_user_profile_api_api_v1_category_user_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/value-tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category Value Tier Api
+         * @description 品类价值分层
+         *
+         *     返回各品类的价值分层分布（高/中/低价值用户占比）
+         */
+        get: operations["get_category_value_tier_api_api_v1_category_value_tier_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/repurchase-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category Repurchase Flow Api
+         * @description 品类回购分析
+         *
+         *     返回同品回购+跨品类回购的R区间明细（含3年同比）
+         */
+        get: operations["get_category_repurchase_flow_api_api_v1_category_repurchase_flow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category Flow Api
+         * @description 品类流转
+         *
+         *     返回品类间的用户流转矩阵和桑基图数据。传入 target_category 时返回前后置购买关联分析。
+         */
+        get: operations["get_category_flow_api_api_v1_category_flow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/churn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category Churn Api
+         * @description 品类流失分析
+         *
+         *     返回各品类的流失用户数、流失率及特征
+         */
+        get: operations["get_category_churn_api_api_v1_category_churn_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/basket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Market Basket Api
+         * @description 购物篮分析
+         *
+         *     返回目标品类的关联品类及YoY对比（Support/Confidence/Lift）
+         */
+        get: operations["get_market_basket_api_api_v1_category_basket_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/detail/daily-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category Daily Trend Api
+         * @description 品类每日趋势
+         *
+         *     返回单个品类在时间维度上的GMV、用户数等指标趋势
+         */
+        get: operations["get_category_daily_trend_api_api_v1_category_detail_daily_trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/detail/user-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category User List Api
+         * @description 品类用户列表
+         *
+         *     返回单个品类的典型用户列表（高价值/高活跃/流失预警等）
+         */
+        get: operations["get_category_user_list_api_api_v1_category_detail_user_list_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -486,6 +620,7 @@ export interface paths {
          *
          *     period 联动：WTD/MTD/YTD/Q1-Q4 使用 PeriodBuilder 计算三周期；
          *     自定义日期时（start_date/end_date）使用用户指定范围。
+         *     compare_start_date/compare_end_date 可覆盖自动推算的对比期（仅替换 Y-1 对比期，Y-2 归零）。
          */
         get: operations["get_audience_summary_api_api_v1_audience_summary_get"];
         put?: never;
@@ -556,6 +691,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rfm/segment-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Segment Orders Api
+         * @description RFM 区间订单明细导出
+         *
+         *     根据维度和区间，返回该区间内所有用户的订单号明细，用于二次营销。
+         */
+        get: operations["get_segment_orders_api_api_v1_rfm_segment_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customer-health/overview": {
         parameters: {
             query?: never;
@@ -572,7 +729,7 @@ export interface paths {
          *     - 会员老客GSV、会员老客人均、会员老客人数、会员老客GSV占比
          *     - 近7日复购人数
          *     - 健康评分（0-100）+ 五维雷达数据 + 告警
-         *     - 同比（去年同期同周期）
+         *     - 同比（去年同期同周期）；传 compare_start_date/compare_end_date 时使用自定义对比期
          */
         get: operations["get_health_overview_api_v1_customer_health_overview_get"];
         put?: never;
@@ -763,8 +920,7 @@ export interface paths {
          * @description 获取健康分析配置（阈值、权重、大促定义）
          */
         get: operations["get_health_config_api_v1_customer_health_config_get"];
-        /** Update Health Config */
-        put: operations["update_health_config_api_v1_customer_health_config_put"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -795,26 +951,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/customer-health/config/reset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reset Health Config
-         * @description 重置健康分析配置为默认值
-         */
-        post: operations["reset_health_config_api_v1_customer_health_config_reset_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/customer-health/config/history": {
         parameters: {
             query?: never;
@@ -824,31 +960,11 @@ export interface paths {
         };
         /**
          * Get Config History
-         * @description 获取配置变更历史（自动备份列表）
+         * @description 获取配置变更历史（自动备份列表）— 需鉴权
          */
         get: operations["get_config_history_api_v1_customer_health_config_history_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/customer-health/config/restore/{backup_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Restore Config
-         * @description 从备份恢复配置
-         */
-        post: operations["restore_config_api_v1_customer_health_config_restore__backup_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -864,7 +980,7 @@ export interface paths {
         };
         /**
          * Get Audit Log
-         * @description 获取配置审计日志
+         * @description 获取配置审计日志 — 需鉴权
          */
         get: operations["get_audit_log_api_v1_customer_health_config_audit_log_get"];
         put?: never;
@@ -887,6 +1003,305 @@ export interface paths {
          * @description 所有渠道健康评分对比（含去年同期 + YOY）
          */
         get: operations["get_channel_health_scores_api_v1_customer_health_channel_health_scores_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login
+         * @description 账号密码登录，成功返回 token（含限速保护）
+         */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Me
+         * @description 验证 token 有效性（从 Authorization header 读取），返回当前用户信息
+         */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Token
+         * @description 刷新 token 过期时间（滑动续期），返回相同 token + username
+         */
+        post: operations["refresh_token_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description 退出登录，使当前 token 失效
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/market-focus/store-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Market Focus Store Assets Api
+         * @description 市场对焦 - 全店资产数据
+         *
+         *     读取 data2.csv（日级），
+         *     days>0时按日返回最近N天数据，days=0时按自然周聚合（取每周最后一天）。
+         *     返回 TOTAL资产总量 / Discover发现 / Engage种草 / Enthuse互动 / Perform行动 / Initial首购 / Numerous复购 / Keen至爱
+         *     含环比绝对值变化。
+         */
+        get: operations["get_market_focus_store_assets_api_api_v1_market_focus_store_assets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/market-focus/product-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Market Focus Product Assets Api
+         * @description 市场对焦 - 单品资产周数据
+         *
+         *     读取 data3.csv，按产品ID映射到7个核心单品，
+         *     返回资产总量 / 浅种草 / 深种草 / 首购资产 / 复购资产 / 连带资产
+         *     含本周对比上周绝对值变化。
+         */
+        get: operations["get_market_focus_product_assets_api_api_v1_market_focus_product_assets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/market-focus/other-product-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Market Focus Other Product Assets Api
+         * @description 市场对焦 - 单品资产-其他产品周数据
+         *
+         *     读取 data3.csv，按产品ID映射到8个其他单品（医用凝胶/医用洁面/黑膜/胶原水乳/白膜/祛痘精华/水杨酸涂抹面膜/凉茶面膜），
+         *     展现形式同核心单品资产，返回资产总量 / 浅种草 / 深种草 / 首购资产 / 复购资产 / 连带资产
+         *     含本周对比上周绝对值变化。
+         */
+        get: operations["get_market_focus_other_product_assets_api_api_v1_market_focus_other_product_assets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visitor/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Visitor Summary Api
+         * @description 访客入会率汇总
+         *
+         *     返回指定周期内的：
+         *     - 访客数、新增会员数、入会率
+         *     - 去年同期对比（访客数YoY、新增会员数YoY、入会率百分点差）
+         *     - 环比（访客数MoM、新增会员数MoM、入会率百分点差）
+         */
+        get: operations["get_visitor_summary_api_api_v1_visitor_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visitor/daily-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Visitor Daily Trend Api
+         * @description 访客入会率每日趋势
+         *
+         *     返回每日访客数、新增会员数、入会率，含对比期同天数据。
+         */
+        get: operations["get_visitor_daily_trend_api_api_v1_visitor_daily_trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/breakdown/one-click": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get One Click Breakdown Api
+         * @description 一键拆解 v2 — GSV only
+         *
+         *     支持两种模式：
+         *     - forward（顺拆）：从现状数据预估，计算目标gap
+         *     - reverse（倒拆）：从目标反推各R区间/渠道所需人数/UV
+         *
+         *     老客拆解：按R区间（6档）× F段（F>1/F=1）逐层预估
+         *     新客拆解：按渠道漏斗逐渠道预估
+         *
+         *     示例请求（顺拆）:
+         *     ```json
+         *     {
+         *         "target_gmv": 5000000,
+         *         "activity_start": "2026-06-01",
+         *         "activity_end": "2026-06-18",
+         *         "breakdown_mode": "forward",
+         *         "old_customer_ratio_target": 0.6
+         *     }
+         *     ```
+         *
+         *     示例请求（倒拆）:
+         *     ```json
+         *     {
+         *         "target_gmv": 5000000,
+         *         "activity_start": "2026-06-01",
+         *         "activity_end": "2026-06-18",
+         *         "breakdown_mode": "reverse",
+         *         "old_customer_ratio_target": 0.6
+         *     }
+         *     ```
+         */
+        post: operations["get_one_click_breakdown_api_api_v1_breakdown_one_click_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sampling/roi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sampling Roi Api
+         * @description 派样 ROI 分析
+         *
+         *     返回 U先派样 / 百补派样 在指定时间窗口内的：
+         *     - 渠道汇总：派样人数、7/30/60天回购人数、回购率、贡献GSV、AUS
+         *     - 品类明细：每个渠道×品类的回购情况（含同品类回购）
+         */
+        get: operations["get_sampling_roi_api_api_v1_sampling_roi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sampling/lock-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sampling Lock Analysis Api
+         * @description 0.01派样锁权分析
+         *
+         *     返回指定大促周期的：
+         *     - 锁权人数、锁权率（UV→锁权）
+         *     - 转化人数、转化率、贡献GSV、AUS
+         *     - 新客锁权人数、新客占比、新客转化率、新客GSV
+         *     - 同比对比（去年同大促）
+         */
+        get: operations["get_sampling_lock_analysis_api_api_v1_sampling_lock_analysis_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -930,6 +1345,24 @@ export interface components {
             user_trend: {
                 [key: string]: number[];
             };
+        };
+        /**
+         * AssociationItem
+         * @description 关联品类项
+         */
+        AssociationItem: {
+            /** Category Name */
+            category_name: string;
+            /** User Count */
+            user_count: number;
+            /** Order Count */
+            order_count: number;
+            /** Gsv */
+            gsv: number;
+            /** Ratio */
+            ratio: number;
+            /** Avg Days Gap */
+            avg_days_gap: number;
         };
         /** AudienceRow */
         AudienceRow: {
@@ -1229,16 +1662,334 @@ export interface components {
             /** Logs */
             logs?: components["schemas"]["AuditLogItem"][];
         };
+        /**
+         * BreakdownGapSuggestion
+         * @description 补gap建议
+         */
+        BreakdownGapSuggestion: {
+            /**
+             * Dimension
+             * @description 维度：老客/新客/总店
+             */
+            dimension: string;
+            /**
+             * Gap Amount
+             * @description gap金额（顺拆）
+             */
+            gap_amount?: number | null;
+            /**
+             * Gap Users
+             * @description gap人数（倒拆）
+             */
+            gap_users?: number | null;
+            /**
+             * Uv Gap
+             * @description UV缺口（倒拆新客）
+             */
+            uv_gap?: number | null;
+            /**
+             * Suggestions
+             * @description 建议列表
+             */
+            suggestions?: string[];
+            /**
+             * Priority
+             * @description 优先级 P0/P1/P2
+             * @default P1
+             */
+            priority: string;
+        };
+        /**
+         * BreakdownLogic
+         * @description 拆解逻辑说明（前端展示公式和知识引用）
+         */
+        BreakdownLogic: {
+            /**
+             * Old Customer Formula
+             * @description 老客拆解公式
+             */
+            old_customer_formula: string;
+            /**
+             * Old Customer Source
+             * @description 老客拆解知识来源
+             */
+            old_customer_source: string;
+            /**
+             * New Customer Formula
+             * @description 新客拆解公式
+             */
+            new_customer_formula: string;
+            /**
+             * New Customer Source
+             * @description 新客拆解知识来源
+             */
+            new_customer_source: string;
+        };
+        /**
+         * BreakdownMeta
+         * @description 拆解元数据
+         */
+        BreakdownMeta: {
+            /**
+             * Activity Type
+             * @description 活动类型
+             */
+            activity_type: string;
+            /**
+             * Repurchase Adjustment
+             * @description 回购率调整系数
+             */
+            repurchase_adjustment: number;
+            /**
+             * Metric Type
+             * @description 指标类型（固定GSV）
+             * @default GSV
+             */
+            metric_type: string;
+        };
+        /**
+         * BreakdownNewCustomer
+         * @description 新客拆解结果 v2
+         */
+        BreakdownNewCustomer: {
+            /**
+             * New Users Total
+             * @description 新客总人数（顺拆有值）
+             */
+            new_users_total?: number | null;
+            /**
+             * New Gmv Target
+             * @description 新客目标GSV
+             */
+            new_gmv_target: number;
+            /**
+             * New Gmv Estimate
+             * @description 新客预估GSV（顺拆有值）
+             */
+            new_gmv_estimate?: number | null;
+            /**
+             * New Gmv Gap
+             * @description 新客gap（顺拆有值）
+             */
+            new_gmv_gap?: number | null;
+            /**
+             * Channel Breakdown
+             * @description 新客渠道拆解明细
+             */
+            channel_breakdown?: unknown[];
+            /**
+             * Uv Reference
+             * @description 参考UV
+             * @default 0
+             */
+            uv_reference: number;
+            /**
+             * Member Join Rate
+             * @description 参考入会率
+             * @default 0
+             */
+            member_join_rate: number;
+            /**
+             * Needed Uv
+             * @description 所需UV（倒拆）
+             */
+            needed_uv?: number | null;
+            /**
+             * Uv Gap
+             * @description UV缺口（倒拆）
+             */
+            uv_gap?: number | null;
+        };
+        /**
+         * BreakdownOldCustomer
+         * @description 老客拆解结果 v2
+         */
+        BreakdownOldCustomer: {
+            /**
+             * Old Users Total
+             * @description 老客总人数
+             */
+            old_users_total: number;
+            /**
+             * Old Gmv Target
+             * @description 老客目标GSV
+             */
+            old_gmv_target: number;
+            /**
+             * Old Gmv Estimate
+             * @description 老客预估GSV（顺拆有值，倒拆为None）
+             */
+            old_gmv_estimate?: number | null;
+            /**
+             * Old Gmv Gap
+             * @description 老客gap（顺拆有值，倒拆为None）
+             */
+            old_gmv_gap?: number | null;
+            /**
+             * R Interval Breakdown
+             * @description R区间×F段拆解明细
+             */
+            r_interval_breakdown?: unknown[];
+        };
+        /**
+         * BreakdownRequest
+         * @description 一键拆解请求 v2
+         */
+        BreakdownRequest: {
+            /**
+             * Target Gmv
+             * @description 全店GSV目标（元）
+             */
+            target_gmv: number;
+            /**
+             * Activity Start
+             * @description 活动开始日期 YYYY-MM-DD
+             */
+            activity_start: string;
+            /**
+             * Activity End
+             * @description 活动结束日期 YYYY-MM-DD
+             */
+            activity_end: string;
+            /**
+             * Last Year Start
+             * @description 去年同期开始 YYYY-MM-DD（不传则自动推算）
+             */
+            last_year_start?: string | null;
+            /**
+             * Last Year End
+             * @description 去年同期结束 YYYY-MM-DD（不传则自动推算）
+             */
+            last_year_end?: string | null;
+            /**
+             * Old Customer Ratio Target
+             * @description 老客占比目标（默认60%）
+             * @default 0.6
+             */
+            old_customer_ratio_target: number | null;
+            /**
+             * Breakdown Mode
+             * @description 拆解模式：forward(顺拆) 或 reverse(倒拆)
+             * @default forward
+             */
+            breakdown_mode: string;
+        };
+        /**
+         * BreakdownResponse
+         * @description 一键拆解响应 v2
+         */
+        BreakdownResponse: {
+            /**
+             * Mode
+             * @description 拆解模式：forward 或 reverse
+             */
+            mode: string;
+            /**
+             * Mode Label
+             * @description 拆解模式中文标签
+             */
+            mode_label: string;
+            /**
+             * Target Gmv
+             * @description 目标GSV
+             */
+            target_gmv: number;
+            /**
+             * Total Estimate
+             * @description 总预估GSV（顺拆有值，倒拆为None）
+             */
+            total_estimate?: number | null;
+            /**
+             * Total Gap
+             * @description 总gap（顺拆有值，倒拆为None）
+             */
+            total_gap?: number | null;
+            /**
+             * Gap Ratio
+             * @description gap占比（顺拆有值）
+             */
+            gap_ratio?: number | null;
+            old_customer: components["schemas"]["BreakdownOldCustomer"];
+            new_customer: components["schemas"]["BreakdownNewCustomer"];
+            /** Suggestions */
+            suggestions: components["schemas"]["BreakdownGapSuggestion"][];
+            activity_period: components["schemas"]["DateRangeResponse"];
+            reference_period: components["schemas"]["DateRangeResponse"];
+            meta: components["schemas"]["BreakdownMeta"];
+            /** @description 拆解逻辑说明 */
+            breakdown_logic: components["schemas"]["BreakdownLogic"];
+        };
+        /**
+         * CategoryChurnResponse
+         * @description 流失预警 Tab 响应
+         */
+        CategoryChurnResponse: {
+            /** Scatter Data */
+            scatter_data: components["schemas"]["ChurnScatterPoint"][];
+            /** Bar Data */
+            bar_data: components["schemas"]["ChurnBarData"][];
+            /** Table */
+            table: components["schemas"]["ChurnTableRow"][];
+            /** Operation Suggestions */
+            operation_suggestions: string[];
+            /** Data Quality Note */
+            data_quality_note: string;
+        };
+        /**
+         * CategoryDailyTrendResponse
+         * @description 品类每日趋势响应
+         */
+        CategoryDailyTrendResponse: {
+            /** Category Id */
+            category_id: string;
+            /** Category Name */
+            category_name: string;
+            /**
+             * Granularity
+             * @default daily
+             */
+            granularity: string;
+            /** Dates */
+            dates: string[];
+            /** Gmv */
+            gmv: number[];
+            /** User Count */
+            user_count: number[];
+            /** Aus */
+            aus: number[];
+            /** New Customer Ratio */
+            new_customer_ratio: number[];
+        };
         /** CategoryDistributionItem */
         CategoryDistributionItem: {
             /** Name */
             name: string;
             /** User Count */
             user_count: number;
+            /**
+             * Member Count
+             * @default 0
+             */
+            member_count: number;
             /** Gmv */
             gmv: number;
+            /**
+             * Member Gsv
+             * @default 0
+             */
+            member_gsv: number;
             /** Pct */
             pct: number;
+            /**
+             * Penetration Rate
+             * @default 0
+             */
+            penetration_rate: number;
+            /**
+             * Member Ratio
+             * @default 0
+             */
+            member_ratio: number;
         };
         /** CategoryDistributionResponse */
         CategoryDistributionResponse: {
@@ -1248,10 +1999,36 @@ export interface components {
             level: string;
             /** Total Users */
             total_users: number;
+            /**
+             * Total Members
+             * @default 0
+             */
+            total_members: number;
             /** Total Gmv */
             total_gmv: number;
             /** Distribution */
             distribution: components["schemas"]["CategoryDistributionItem"][];
+        };
+        /**
+         * CategoryFlowResponse
+         * @description 品类流转 Tab 响应
+         */
+        CategoryFlowResponse: {
+            sankey_data: components["schemas"]["SankeyGraphData"];
+            matrix: components["schemas"]["FlowMatrix"];
+            /**
+             * Data Stale
+             * @default false
+             */
+            data_stale: boolean;
+            /** Data Quality Note */
+            data_quality_note: string;
+            /** Target Category */
+            target_category?: string | null;
+            /** Post Purchase */
+            post_purchase?: components["schemas"]["AssociationItem"][] | null;
+            /** Pre Purchase */
+            pre_purchase?: components["schemas"]["AssociationItem"][] | null;
         };
         /** CategoryOverviewItem */
         CategoryOverviewItem: {
@@ -1330,6 +2107,114 @@ export interface components {
             all_rows: components["schemas"]["CategoryOverviewItem"][];
             /** Member Rows */
             member_rows: components["schemas"]["CategoryOverviewItem"][];
+            all_ttl?: components["schemas"]["CategoryOverviewItem"] | null;
+            member_ttl?: components["schemas"]["CategoryOverviewItem"] | null;
+        };
+        /**
+         * CategoryRepurchaseFlowResponse
+         * @description 品类回购分析完整响应
+         */
+        CategoryRepurchaseFlowResponse: {
+            /**
+             * Year Label
+             * @default 2026
+             */
+            year_label: string;
+            /**
+             * Comp Year Label
+             * @default 2025
+             */
+            comp_year_label: string;
+            /**
+             * Prev2 Year Label
+             * @default 2024
+             */
+            prev2_year_label: string;
+            /** Target Category */
+            target_category: string;
+            /**
+             * Same Category Rows
+             * @description 同品回购明细
+             */
+            same_category_rows?: components["schemas"]["CategoryRepurchaseFlowRow"][];
+            /**
+             * Cross Category Rows
+             * @description 跨品类回购明细
+             */
+            cross_category_rows?: components["schemas"]["CategoryRepurchaseFlowRow"][];
+            /**
+             * Member Same Category Rows
+             * @description 会员同品回购明细
+             */
+            member_same_category_rows?: components["schemas"]["CategoryRepurchaseFlowRow"][];
+            /**
+             * Member Cross Category Rows
+             * @description 会员跨品类回购明细
+             */
+            member_cross_category_rows?: components["schemas"]["CategoryRepurchaseFlowRow"][];
+        };
+        /**
+         * CategoryRepurchaseFlowRow
+         * @description 品类回购分析单行数据（复用 RFMRFlowRow 结构）
+         */
+        CategoryRepurchaseFlowRow: {
+            /** R Segment */
+            r_segment: string;
+            /**
+             * Hist Users Current
+             * @default 0
+             */
+            hist_users_current: number;
+            /**
+             * Repurchase Users Current
+             * @default 0
+             */
+            repurchase_users_current: number;
+            /**
+             * Repurchase Rate Current
+             * @default 0
+             */
+            repurchase_rate_current: number;
+            /**
+             * Repurchase Gsv Current
+             * @default 0
+             */
+            repurchase_gsv_current: number;
+            /**
+             * Repurchase Gsv Ratio Current
+             * @default 0
+             */
+            repurchase_gsv_ratio_current: number;
+            /**
+             * Hist Users Comp
+             * @default 0
+             */
+            hist_users_comp: number;
+            /**
+             * Repurchase Rate Comp
+             * @default 0
+             */
+            repurchase_rate_comp: number;
+            /**
+             * Hist Users Prev2
+             * @default 0
+             */
+            hist_users_prev2: number;
+            /**
+             * Repurchase Rate Prev2
+             * @default 0
+             */
+            repurchase_rate_prev2: number;
+            /** Yoy Hist Users */
+            yoy_hist_users?: number | null;
+            /** Yoy Repurchase Users */
+            yoy_repurchase_users?: number | null;
+            /** Yoy Repurchase Rate */
+            yoy_repurchase_rate?: number | null;
+            /** Yoy Repurchase Gsv */
+            yoy_repurchase_gsv?: number | null;
+            /** Yoy Repurchase Gsv Ratio */
+            yoy_repurchase_gsv_ratio?: number | null;
         };
         /** CategorySegmentMatrixResponse */
         CategorySegmentMatrixResponse: {
@@ -1347,6 +2232,20 @@ export interface components {
             segments: {
                 [key: string]: unknown;
             }[];
+        };
+        /**
+         * CategoryUserListResponse
+         * @description 品类用户列表响应
+         */
+        CategoryUserListResponse: {
+            /** Category Id */
+            category_id: string;
+            /** Category Name */
+            category_name: string;
+            /** Total Users */
+            total_users: number;
+            /** Users */
+            users: components["schemas"]["UserDetail"][];
         };
         /** CategoryUserProfileResponse */
         CategoryUserProfileResponse: {
@@ -1377,6 +2276,23 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /**
+         * CategoryValueTierResponse
+         * @description 价值分层 Tab 响应
+         */
+        CategoryValueTierResponse: {
+            dual_axis_line: components["schemas"]["DualAxisLineData"];
+            /** Table */
+            table: components["schemas"]["ValueTierTableRow"][];
+            /** Operation Suggestions */
+            operation_suggestions: string[];
+            /** Data Quality Note */
+            data_quality_note: string;
+            /** Wool Party By Window */
+            wool_party_by_window?: {
+                [key: string]: components["schemas"]["ValueTierTableRow"][];
+            } | null;
+        };
         /** ChannelGSVRow */
         ChannelGSVRow: {
             /** Channel */
@@ -1399,6 +2315,18 @@ export interface components {
             ratio_2025?: number | null;
             /** Ratio Yoy */
             ratio_yoy?: number | null;
+            /** Users 2026 */
+            users_2026?: number | null;
+            /** Users 2025 */
+            users_2025?: number | null;
+            /** Users Yoy */
+            users_yoy?: number | null;
+            /** Aus 2026 */
+            aus_2026?: number | null;
+            /** Aus 2025 */
+            aus_2025?: number | null;
+            /** Aus Yoy */
+            aus_yoy?: number | null;
             /** New Gsv 2026 */
             new_gsv_2026?: number | null;
             /** New Gsv 2025 */
@@ -1423,6 +2351,30 @@ export interface components {
             old_gsv_ratio_2025?: number | null;
             /** Old Gsv Ratio Yoy */
             old_gsv_ratio_yoy?: number | null;
+            /** New Users 2026 */
+            new_users_2026?: number | null;
+            /** New Users 2025 */
+            new_users_2025?: number | null;
+            /** New Users Yoy */
+            new_users_yoy?: number | null;
+            /** New Aus 2026 */
+            new_aus_2026?: number | null;
+            /** New Aus 2025 */
+            new_aus_2025?: number | null;
+            /** New Aus Yoy */
+            new_aus_yoy?: number | null;
+            /** Old Users 2026 */
+            old_users_2026?: number | null;
+            /** Old Users 2025 */
+            old_users_2025?: number | null;
+            /** Old Users Yoy */
+            old_users_yoy?: number | null;
+            /** Old Aus 2026 */
+            old_aus_2026?: number | null;
+            /** Old Aus 2025 */
+            old_aus_2025?: number | null;
+            /** Old Aus Yoy */
+            old_aus_yoy?: number | null;
             /** Member Ratio 2026 */
             member_ratio_2026?: number | null;
             /** Member Ratio 2025 */
@@ -1453,6 +2405,18 @@ export interface components {
             member_old_gsv_ratio_2025?: number | null;
             /** Member Old Gsv Ratio Yoy */
             member_old_gsv_ratio_yoy?: number | null;
+            /** Member New Vs All New 2026 */
+            member_new_vs_all_new_2026?: number | null;
+            /** Member New Vs All New 2025 */
+            member_new_vs_all_new_2025?: number | null;
+            /** Member New Vs All New Yoy */
+            member_new_vs_all_new_yoy?: number | null;
+            /** Member Old Vs All Old 2026 */
+            member_old_vs_all_old_2026?: number | null;
+            /** Member Old Vs All Old 2025 */
+            member_old_vs_all_old_2025?: number | null;
+            /** Member Old Vs All Old Yoy */
+            member_old_vs_all_old_yoy?: number | null;
         };
         /**
          * ChannelHealthScoreItem
@@ -1502,6 +2466,20 @@ export interface components {
             /** Scores */
             scores?: components["schemas"]["ChannelHealthScoreItem"][];
         };
+        /**
+         * ChurnBarData
+         * @description 流失预警-条形数据
+         */
+        ChurnBarData: {
+            /** Category Name */
+            category_name: string;
+            /** Current Users */
+            current_users: number;
+            /** Previous Users */
+            previous_users: number;
+            /** Mom Change Rate */
+            mom_change_rate: number;
+        };
         /** ChurnDistributionResponse */
         ChurnDistributionResponse: {
             /** Date */
@@ -1523,6 +2501,24 @@ export interface components {
                 [key: string]: components["schemas"]["ChurnSegmentItem"];
             };
         };
+        /**
+         * ChurnScatterPoint
+         * @description 流失预警-散点数据
+         */
+        ChurnScatterPoint: {
+            /** Category Name */
+            category_name: string;
+            /** Current Users */
+            current_users: number;
+            /** Mom Change Rate */
+            mom_change_rate: number;
+            /** Churn Users */
+            churn_users: number;
+            /** Inter Churn */
+            inter_churn: number;
+            /** Silent Churn */
+            silent_churn: number;
+        };
         /** ChurnSegmentItem */
         ChurnSegmentItem: {
             /** Name */
@@ -1533,6 +2529,34 @@ export interface components {
             medium: number;
             /** Low */
             low: number;
+        };
+        /**
+         * ChurnTableRow
+         * @description 流失预警-表格行
+         */
+        ChurnTableRow: {
+            /** Category Name */
+            category_name: string;
+            /** Current Users */
+            current_users: number;
+            /** Previous Users */
+            previous_users: number;
+            /** Mom Change Rate */
+            mom_change_rate: number;
+            /** Inter Churn */
+            inter_churn: number;
+            /** Silent Churn */
+            silent_churn: number;
+            /** Top Churn Dest1 */
+            top_churn_dest1: string;
+            /** Top Churn Dest1 Ratio */
+            top_churn_dest1_ratio: number;
+            /** Top Churn Dest2 */
+            top_churn_dest2: string;
+            /** Top Churn Dest2 Ratio */
+            top_churn_dest2_ratio: number;
+            /** 挽回建议 */
+            "\u633D\u56DE\u5EFA\u8BAE": string;
         };
         /** ChurnUserItem */
         ChurnUserItem: {
@@ -1635,29 +2659,6 @@ export interface components {
             history?: components["schemas"]["ConfigHistoryItem"][];
         };
         /**
-         * ConfigRestoreResponse
-         * @description 配置恢复响应
-         */
-        ConfigRestoreResponse: {
-            /**
-             * Success
-             * @default true
-             */
-            success: boolean;
-            /**
-             * Restored Backup Id
-             * @description 恢复的备份ID
-             */
-            restored_backup_id: string;
-            /**
-             * Config
-             * @description 恢复后的完整配置
-             */
-            config?: {
-                [key: string]: unknown;
-            };
-        };
-        /**
          * CustomerSegmentItem
          * @description 运营分层项（价值×频次交叉）
          */
@@ -1727,6 +2728,18 @@ export interface components {
             /** Cutoff */
             cutoff?: string | null;
         };
+        /**
+         * DualAxisLineData
+         * @description 双轴折线图数据
+         */
+        DualAxisLineData: {
+            /** Categories */
+            categories: string[];
+            /** Wool Party Ratios */
+            wool_party_ratios: number[];
+            /** High Value Ratios */
+            high_value_ratios: number[];
+        };
         /** ExportPPTRequest */
         ExportPPTRequest: {
             /**
@@ -1771,6 +2784,20 @@ export interface components {
             download_url?: string | null;
             /** Error */
             error?: string | null;
+        };
+        /**
+         * FlowMatrix
+         * @description 品类流转矩阵
+         */
+        FlowMatrix: {
+            /** Sources */
+            sources: string[];
+            /** Targets */
+            targets: string[];
+            /** Matrix */
+            matrix: number[][];
+            /** Concentration Warnings */
+            concentration_warnings: string[];
         };
         /** FlowMatrixResponse */
         FlowMatrixResponse: {
@@ -2178,6 +3205,79 @@ export interface components {
              */
             recent_7d_repurchase_users: number;
         };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
+        /** LoginResponse */
+        LoginResponse: {
+            /** Token */
+            token: string;
+            /** Username */
+            username: string;
+        };
+        /** LogoutResponse */
+        LogoutResponse: {
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * MarketBasketItem
+         * @description 购物篮关联项
+         */
+        MarketBasketItem: {
+            /** Category Name */
+            category_name: string;
+            /** Co Order Count */
+            co_order_count: number;
+            /** Support */
+            support: number;
+            /** Confidence */
+            confidence: number;
+            /** Lift */
+            lift: number;
+            /** Target Order Count */
+            target_order_count: number;
+        };
+        /**
+         * MarketBasketResponse
+         * @description 购物篮分析 Tab 响应
+         */
+        MarketBasketResponse: {
+            /** Target Category */
+            target_category: string;
+            /** Total Orders */
+            total_orders: number;
+            /** Target Order Count */
+            target_order_count: number;
+            /** Period Label */
+            period_label: string;
+            /** Yoy Period Label */
+            yoy_period_label?: string | null;
+            /** Items */
+            items: components["schemas"]["MarketBasketYoYItem"][];
+            /** Data Quality Note */
+            data_quality_note: string;
+        };
+        /**
+         * MarketBasketYoYItem
+         * @description 购物篮关联项（含同比）
+         */
+        MarketBasketYoYItem: {
+            /** Category Name */
+            category_name: string;
+            current: components["schemas"]["MarketBasketItem"];
+            previous?: components["schemas"]["MarketBasketItem"] | null;
+            /** Confidence Change */
+            confidence_change?: number | null;
+            /** Lift Change */
+            lift_change?: number | null;
+            /** Rank Change */
+            rank_change?: number | null;
+        };
         /**
          * NewCustomerChannelQuality
          * @description 分渠道新客质量
@@ -2377,6 +3477,113 @@ export interface components {
             };
         };
         /**
+         * ProductAssetItem
+         * @description 单品资产-单个产品
+         */
+        ProductAssetItem: {
+            /** Name */
+            name: string;
+            /**
+             * Spu Classes
+             * @description 该产品对应的SPU类目名列表（需与前端CORE_PRODUCTS保持一致）
+             */
+            spu_classes?: string[];
+            /** Weeks */
+            weeks: components["schemas"]["ProductAssetWeek"][];
+        };
+        /**
+         * ProductAssetResponse
+         * @description 单品资产响应
+         */
+        ProductAssetResponse: {
+            /** Products */
+            products: components["schemas"]["ProductAssetItem"][];
+            /** Latest Week */
+            latest_week: string;
+        };
+        /**
+         * ProductAssetWeek
+         * @description 单品资产-单周数据
+         */
+        ProductAssetWeek: {
+            /** Week Label */
+            week_label: string;
+            /** Week End Date */
+            week_end_date: string;
+            /** Total */
+            total: number;
+            /** Shallow Grass */
+            shallow_grass: number;
+            /** Deep Grass */
+            deep_grass: number;
+            /** Initial */
+            initial: number;
+            /** Repurchase */
+            repurchase: number;
+            /** Lian Dai */
+            lian_dai: number;
+            /**
+             * Total Change
+             * @default 0
+             */
+            total_change: number;
+            /**
+             * Shallow Grass Change
+             * @default 0
+             */
+            shallow_grass_change: number;
+            /**
+             * Deep Grass Change
+             * @default 0
+             */
+            deep_grass_change: number;
+            /**
+             * Initial Change
+             * @default 0
+             */
+            initial_change: number;
+            /**
+             * Repurchase Change
+             * @default 0
+             */
+            repurchase_change: number;
+            /**
+             * Lian Dai Change
+             * @default 0
+             */
+            lian_dai_change: number;
+            /**
+             * Total Yoy
+             * @default 0
+             */
+            total_yoy: number;
+            /**
+             * Shallow Grass Yoy
+             * @default 0
+             */
+            shallow_grass_yoy: number;
+            /**
+             * Deep Grass Yoy
+             * @default 0
+             */
+            deep_grass_yoy: number;
+            /**
+             * Initial Yoy
+             * @default 0
+             */
+            initial_yoy: number;
+            /**
+             * Repurchase Yoy
+             * @default 0
+             */
+            repurchase_yoy: number;
+            /**
+             * Lian Dai Yoy
+             * @default 0
+             */
+            lian_dai_yoy: number;
+        };
+        /**
          * ProductClassRepurchase
          * @description 品类复购指标（含同比）
          */
@@ -2423,14 +3630,24 @@ export interface components {
             avg_days?: number | null;
             /**
              * Avg Order Value
-             * @description 复购客单价
+             * @description 客单价（含首购）
              */
             avg_order_value: number;
             /**
              * Gsv
-             * @description 复购GSV
+             * @description GSV（含首购）
              */
             gsv: number;
+            /**
+             * Repurchase Order Value
+             * @description 复购客单价（仅复购订单）
+             */
+            repurchase_order_value: number;
+            /**
+             * Repurchase Gsv
+             * @description 复购GSV（仅复购订单）
+             */
+            repurchase_gsv: number;
             /**
              * Ly Repurchase Rate
              * @description 去年同期复购率
@@ -3099,6 +4316,13 @@ export interface components {
              */
             m: number[];
         };
+        /** RefreshResponse */
+        RefreshResponse: {
+            /** Token */
+            token: string;
+            /** Username */
+            username: string;
+        };
         /**
          * RepurchaseBucket
          * @description 复购间隔桶（含去年同期对比）
@@ -3200,6 +4424,11 @@ export interface components {
             /** By Product Class */
             by_product_class?: components["schemas"]["ProductClassRepurchase"][];
             /**
+             * By Product Class Return
+             * @description 跨品类回购店铺指标（首购该品类后又买店铺任意品类）
+             */
+            by_product_class_return?: components["schemas"]["ProductClassRepurchase"][];
+            /**
              * Year Label
              * @description 当前年份
              */
@@ -3214,6 +4443,215 @@ export interface components {
              * @description 前年
              */
             prev2_year_label: string;
+        };
+        /**
+         * SamplingCategoryRow
+         * @description 派样品类明细
+         */
+        SamplingCategoryRow: {
+            /** Channel */
+            channel: string;
+            /** Category */
+            category: string;
+            /** Sample Users */
+            sample_users: number;
+            /** Repurchase Users */
+            repurchase_users: number;
+            /** Repurchase Rate */
+            repurchase_rate: number;
+            /** Repurchase Gsv */
+            repurchase_gsv: number;
+            /** Repurchase Aus */
+            repurchase_aus: number;
+            /** Same Category Repurchase */
+            same_category_repurchase: number;
+            /** Same Category Rate */
+            same_category_rate: number;
+        };
+        /**
+         * SamplingChannelSummary
+         * @description 派样渠道汇总
+         */
+        SamplingChannelSummary: {
+            /** Channel */
+            channel: string;
+            /** Sample Users */
+            sample_users: number;
+            /** Repurchase Users 7D */
+            repurchase_users_7d: number;
+            /** Repurchase Users 30D */
+            repurchase_users_30d: number;
+            /** Repurchase Users 60D */
+            repurchase_users_60d: number;
+            /** Repurchase Rate 7D */
+            repurchase_rate_7d: number;
+            /** Repurchase Rate 30D */
+            repurchase_rate_30d: number;
+            /** Repurchase Rate 60D */
+            repurchase_rate_60d: number;
+            /** Repurchase Gsv 7D */
+            repurchase_gsv_7d: number;
+            /** Repurchase Gsv 30D */
+            repurchase_gsv_30d: number;
+            /** Repurchase Gsv 60D */
+            repurchase_gsv_60d: number;
+            /** Repurchase Aus 7D */
+            repurchase_aus_7d: number;
+            /** Repurchase Aus 30D */
+            repurchase_aus_30d: number;
+            /** Repurchase Aus 60D */
+            repurchase_aus_60d: number;
+        };
+        /**
+         * SamplingLockAnalysisResponse
+         * @description 0.01锁权分析响应
+         */
+        SamplingLockAnalysisResponse: {
+            campaign_info: components["schemas"]["SamplingLockCampaignInfo"];
+            current_year: components["schemas"]["SamplingLockYearData"];
+            last_year: components["schemas"]["SamplingLockYearData"];
+            yoy: components["schemas"]["SamplingLockYOY"];
+        };
+        /**
+         * SamplingLockCampaignInfo
+         * @description 锁权活动信息
+         */
+        SamplingLockCampaignInfo: {
+            /** Year */
+            year: number;
+            /** Campaign Name */
+            campaign_name: string;
+            /** Conversion Start */
+            conversion_start?: string | null;
+            /** Conversion End */
+            conversion_end?: string | null;
+            /** Lock Start */
+            lock_start?: string | null;
+            /** Lock End */
+            lock_end?: string | null;
+            /** Error */
+            error?: string | null;
+        };
+        /**
+         * SamplingLockYOY
+         * @description 锁权分析同比数据
+         */
+        SamplingLockYOY: {
+            /** Total Uv */
+            total_uv?: number | null;
+            /** Locked Users */
+            locked_users?: number | null;
+            /** Lock Rate */
+            lock_rate?: number | null;
+            /** Converted Users */
+            converted_users?: number | null;
+            /** Conversion Rate */
+            conversion_rate?: number | null;
+            /** Lock Gsv */
+            lock_gsv?: number | null;
+            /** Lock Aus */
+            lock_aus?: number | null;
+            /** New Locked Users */
+            new_locked_users?: number | null;
+            /** New Locked Ratio */
+            new_locked_ratio?: number | null;
+            /** New Converted Users */
+            new_converted_users?: number | null;
+            /** New Conversion Rate */
+            new_conversion_rate?: number | null;
+            /** New Lock Gsv */
+            new_lock_gsv?: number | null;
+            /** New Lock Aus */
+            new_lock_aus?: number | null;
+        };
+        /**
+         * SamplingLockYearData
+         * @description 锁权分析单年数据
+         */
+        SamplingLockYearData: {
+            /** Total Uv */
+            total_uv: number;
+            /** Locked Users */
+            locked_users: number;
+            /** Lock Rate */
+            lock_rate: number;
+            /** Converted Users */
+            converted_users: number;
+            /** Conversion Rate */
+            conversion_rate: number;
+            /** Lock Gsv */
+            lock_gsv: number;
+            /** Lock Aus */
+            lock_aus: number;
+            /** New Locked Users */
+            new_locked_users: number;
+            /** New Locked Ratio */
+            new_locked_ratio: number;
+            /** New Converted Users */
+            new_converted_users: number;
+            /** New Conversion Rate */
+            new_conversion_rate: number;
+            /** New Lock Gsv */
+            new_lock_gsv: number;
+            /** New Lock Aus */
+            new_lock_aus: number;
+        };
+        /**
+         * SamplingROIResponse
+         * @description 派样ROI分析响应
+         */
+        SamplingROIResponse: {
+            /** Summary */
+            summary: {
+                [key: string]: components["schemas"]["SamplingChannelSummary"][];
+            };
+            /** Category Breakdown */
+            category_breakdown: components["schemas"]["SamplingCategoryRow"][];
+            time_range: components["schemas"]["SamplingROITimeRange"];
+        };
+        /**
+         * SamplingROITimeRange
+         * @description 派样ROI时间范围
+         */
+        SamplingROITimeRange: {
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
+            /** Window Days */
+            window_days: number;
+        };
+        /**
+         * SankeyGraphData
+         * @description 桑基图数据
+         */
+        SankeyGraphData: {
+            /** Nodes */
+            nodes: components["schemas"]["SankeyNode"][];
+            /** Links */
+            links: components["schemas"]["SankeyLink"][];
+        };
+        /**
+         * SankeyLink
+         * @description 桑基图连线
+         */
+        SankeyLink: {
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /** Value */
+            value: number;
+        };
+        /**
+         * SankeyNode
+         * @description 桑基图节点
+         */
+        SankeyNode: {
+            /** Name */
+            name: string;
+            /** Category Name */
+            category_name: string;
         };
         /**
          * SegmentDefinitionItem
@@ -3265,6 +4703,156 @@ export interface components {
              * @description 优先级 1-8
              */
             priority: number;
+        };
+        /**
+         * SegmentOrderRow
+         * @description 区间订单明细单行
+         */
+        SegmentOrderRow: {
+            /** Order Id */
+            order_id: string;
+            /** User Id */
+            user_id: string;
+            /** Pay Time */
+            pay_time: string;
+            /** Actual Amount */
+            actual_amount: number;
+            /** Channel */
+            channel: string;
+            /** Spu Product Class */
+            spu_product_class?: string | null;
+        };
+        /**
+         * SegmentOrdersResponse
+         * @description 区间订单明细响应
+         */
+        SegmentOrdersResponse: {
+            /** Dimension */
+            dimension: string;
+            /** Segment */
+            segment: string;
+            /** Mode */
+            mode: string;
+            /** Total Orders */
+            total_orders: number;
+            /** Rows */
+            rows: components["schemas"]["SegmentOrderRow"][];
+        };
+        /**
+         * StoreAssetResponse
+         * @description 全店资产响应
+         */
+        StoreAssetResponse: {
+            /** Weeks */
+            weeks: components["schemas"]["StoreAssetWeek"][];
+            /** Latest Week */
+            latest_week: string;
+        };
+        /**
+         * StoreAssetWeek
+         * @description 全店资产-单周数据
+         */
+        StoreAssetWeek: {
+            /** Week Label */
+            week_label: string;
+            /** Week End Date */
+            week_end_date: string;
+            /** Total */
+            total: number;
+            /** Discover */
+            discover: number;
+            /** Engage */
+            engage: number;
+            /** Enthuse */
+            enthuse: number;
+            /** Perform */
+            perform: number;
+            /** Initial */
+            initial: number;
+            /** Numerous */
+            numerous: number;
+            /** Keen */
+            keen: number;
+            /**
+             * Total Change
+             * @default 0
+             */
+            total_change: number;
+            /**
+             * Discover Change
+             * @default 0
+             */
+            discover_change: number;
+            /**
+             * Engage Change
+             * @default 0
+             */
+            engage_change: number;
+            /**
+             * Enthuse Change
+             * @default 0
+             */
+            enthuse_change: number;
+            /**
+             * Perform Change
+             * @default 0
+             */
+            perform_change: number;
+            /**
+             * Initial Change
+             * @default 0
+             */
+            initial_change: number;
+            /**
+             * Numerous Change
+             * @default 0
+             */
+            numerous_change: number;
+            /**
+             * Keen Change
+             * @default 0
+             */
+            keen_change: number;
+            /**
+             * Total Yoy
+             * @default 0
+             */
+            total_yoy: number;
+            /**
+             * Discover Yoy
+             * @default 0
+             */
+            discover_yoy: number;
+            /**
+             * Engage Yoy
+             * @default 0
+             */
+            engage_yoy: number;
+            /**
+             * Enthuse Yoy
+             * @default 0
+             */
+            enthuse_yoy: number;
+            /**
+             * Perform Yoy
+             * @default 0
+             */
+            perform_yoy: number;
+            /**
+             * Initial Yoy
+             * @default 0
+             */
+            initial_yoy: number;
+            /**
+             * Numerous Yoy
+             * @default 0
+             */
+            numerous_yoy: number;
+            /**
+             * Keen Yoy
+             * @default 0
+             */
+            keen_yoy: number;
         };
         /** TemplatesResponse */
         TemplatesResponse: {
@@ -3429,6 +5017,37 @@ export interface components {
              */
             ly_member_ratios?: number[];
         };
+        /**
+         * UserDetail
+         * @description 用户详情
+         */
+        UserDetail: {
+            /** User Id */
+            user_id: string;
+            /** Nickname */
+            nickname: string;
+            /** Order Count */
+            order_count: number;
+            /** Total Gmv */
+            total_gmv: number;
+            /** First Order Date */
+            first_order_date: string;
+            /** Last Order Date */
+            last_order_date: string;
+            /** Segment Id */
+            segment_id: number;
+            /** Segment Name */
+            segment_name: string;
+            /** Is Member */
+            is_member: boolean;
+            /** Is Wool Party */
+            is_wool_party: boolean;
+        };
+        /** UserInfo */
+        UserInfo: {
+            /** Username */
+            username: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -3512,6 +5131,111 @@ export interface components {
             insights?: string[];
         };
         /**
+         * ValueTierTableRow
+         * @description 价值分层-表格行
+         */
+        ValueTierTableRow: {
+            /** Category Name */
+            category_name: string;
+            /** Total Users */
+            total_users: number;
+            /** High Value Users */
+            high_value_users: number;
+            /** High Value Ratio */
+            high_value_ratio: number;
+            wool_party: components["schemas"]["WoolPartyBreakdown"];
+            /** Member Ratio */
+            member_ratio: number;
+            /** Avg Aus */
+            avg_aus: number;
+            /** Value Score */
+            value_score: number;
+            /** Value Grade */
+            value_grade: string;
+        };
+        /**
+         * VisitorDailyTrendItem
+         * @description 访客入会率每日趋势项
+         */
+        VisitorDailyTrendItem: {
+            /** Date */
+            date: string;
+            /** Visitors */
+            visitors: number;
+            /** New Members */
+            new_members: number;
+            /** Member Join Rate */
+            member_join_rate: number;
+            /** Ly Visitors */
+            ly_visitors: number;
+            /** Ly New Members */
+            ly_new_members: number;
+            /** Ly Member Join Rate */
+            ly_member_join_rate: number;
+        };
+        /**
+         * VisitorDailyTrendResponse
+         * @description 访客入会率每日趋势响应
+         */
+        VisitorDailyTrendResponse: {
+            /** Start Date */
+            start_date: string;
+            /** End Date */
+            end_date: string;
+            /** Data */
+            data: components["schemas"]["VisitorDailyTrendItem"][];
+        };
+        /**
+         * VisitorSummaryResponse
+         * @description 访客入会率汇总响应
+         */
+        VisitorSummaryResponse: {
+            /** Start Date */
+            start_date: string;
+            /** End Date */
+            end_date: string;
+            /** Visitors */
+            visitors: number;
+            /** New Members */
+            new_members: number;
+            /** Member Join Rate */
+            member_join_rate: number;
+            /** Ly Visitors */
+            ly_visitors: number;
+            /** Ly New Members */
+            ly_new_members: number;
+            /** Ly Member Join Rate */
+            ly_member_join_rate: number;
+            /** Visitors Yoy */
+            visitors_yoy?: number | null;
+            /** New Members Yoy */
+            new_members_yoy?: number | null;
+            /** Member Join Rate Yoy */
+            member_join_rate_yoy?: number | null;
+            /** Visitors Mom */
+            visitors_mom?: number | null;
+            /** New Members Mom */
+            new_members_mom?: number | null;
+            /** Member Join Rate Mom */
+            member_join_rate_mom?: number | null;
+        };
+        /**
+         * WoolPartyBreakdown
+         * @description 羊毛党细分统计
+         */
+        WoolPartyBreakdown: {
+            /** Type1 Count */
+            type1_count: number;
+            /** Type2 Count */
+            type2_count: number;
+            /** Total Count */
+            total_count: number;
+            /** Type1 Ratio */
+            type1_ratio: number;
+            /** Type2 Ratio */
+            type2_ratio: number;
+        };
+        /**
          * YearComparisonRow
          * @description 30指标对比表格的一行
          */
@@ -3541,26 +5265,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    root__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
     get_metrics_overview_api_v1_metrics_overview_get: {
         parameters: {
             query?: {
@@ -3574,6 +5278,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -3614,6 +5322,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4024,6 +5736,8 @@ export interface operations {
                 level?: string;
                 /** @description 象限ID筛选 */
                 segment_id?: number | null;
+                /** @description 渠道筛选 */
+                channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
             };
@@ -4068,6 +5782,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4160,6 +5878,257 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryUserProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_value_tier_api_api_v1_category_value_tier_get: {
+        parameters: {
+            query?: {
+                start_date?: string;
+                end_date?: string;
+                level?: string;
+                channel?: string | null;
+                exclude_channels?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryValueTierResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_repurchase_flow_api_api_v1_category_repurchase_flow_get: {
+        parameters: {
+            query?: {
+                start_date?: string;
+                end_date?: string;
+                /** @description 目标品类 */
+                category?: string;
+                level?: string;
+                metric_type?: string;
+                channel?: string | null;
+                exclude_channels?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRepurchaseFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_flow_api_api_v1_category_flow_get: {
+        parameters: {
+            query?: {
+                start_date?: string;
+                end_date?: string;
+                level?: string;
+                top_n?: number;
+                window_days?: number;
+                channel?: string | null;
+                exclude_channels?: string[] | null;
+                target_category?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_churn_api_api_v1_category_churn_get: {
+        parameters: {
+            query?: {
+                start_date?: string;
+                end_date?: string;
+                level?: string;
+                channel?: string | null;
+                exclude_channels?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryChurnResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_market_basket_api_api_v1_category_basket_get: {
+        parameters: {
+            query: {
+                start_date?: string;
+                end_date?: string;
+                /** @description 目标品类名称 */
+                target_category: string;
+                level?: string;
+                channel?: string | null;
+                exclude_channels?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketBasketResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_daily_trend_api_api_v1_category_detail_daily_trend_get: {
+        parameters: {
+            query: {
+                category_id: string;
+                start_date?: string;
+                end_date?: string;
+                granularity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryDailyTrendResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_user_list_api_api_v1_category_detail_user_list_get: {
+        parameters: {
+            query: {
+                category_id: string;
+                start_date?: string;
+                end_date?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryUserListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4323,6 +6292,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4367,6 +6340,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4411,6 +6388,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4455,6 +6436,10 @@ export interface operations {
                 channel?: string | null;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4482,6 +6467,52 @@ export interface operations {
             };
         };
     };
+    get_segment_orders_api_api_v1_rfm_segment_orders_get: {
+        parameters: {
+            query: {
+                /** @description 维度：r / f / m */
+                dimension: string;
+                /** @description 区间名称（如 近1个月已购客） */
+                segment: string;
+                /** @description 开始日期 YYYY-MM-DD */
+                start_date: string;
+                /** @description 结束日期 YYYY-MM-DD */
+                end_date: string;
+                /** @description GMV 或 GSV */
+                metric_type?: string;
+                /** @description all / member / same_channel / member_same_channel */
+                mode?: string;
+                /** @description 渠道筛选 */
+                channel?: string | null;
+                /** @description 排除的渠道列表 */
+                exclude_channels?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentOrdersResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_health_overview_api_v1_customer_health_overview_get: {
         parameters: {
             query: {
@@ -4493,6 +6524,10 @@ export interface operations {
                 exclude_channels?: string[] | null;
                 /** @description 指定渠道（单渠道过滤，优先于exclude_channels） */
                 channel?: string | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4569,6 +6604,10 @@ export interface operations {
                 exclude_channels?: string[] | null;
                 /** @description 指定渠道（单渠道过滤） */
                 channel?: string | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4684,6 +6723,10 @@ export interface operations {
                 exclude_channels?: string[] | null;
                 /** @description 指定渠道（单渠道过滤） */
                 channel?: string | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4724,6 +6767,10 @@ export interface operations {
                 exclude_channels?: string[] | null;
                 /** @description 指定渠道（单渠道过滤） */
                 channel?: string | null;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -4839,43 +6886,6 @@ export interface operations {
             };
         };
     };
-    update_health_config_api_v1_customer_health_config_put: {
-        parameters: {
-            query?: {
-                x_api_key?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_rfm_config_api_v1_customer_health_config_rfm_get: {
         parameters: {
             query?: never;
@@ -4896,40 +6906,10 @@ export interface operations {
             };
         };
     };
-    reset_health_config_api_v1_customer_health_config_reset_post: {
-        parameters: {
-            query?: {
-                x_api_key?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_config_history_api_v1_customer_health_config_history_get: {
         parameters: {
             query?: {
+                x_api_key?: string;
                 /** @description 返回最近N条记录 */
                 limit?: number;
             };
@@ -4959,42 +6939,10 @@ export interface operations {
             };
         };
     };
-    restore_config_api_v1_customer_health_config_restore__backup_id__post: {
-        parameters: {
-            query?: {
-                x_api_key?: string;
-            };
-            header?: never;
-            path: {
-                backup_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConfigRestoreResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_audit_log_api_v1_customer_health_config_audit_log_get: {
         parameters: {
             query?: {
+                x_api_key?: string;
                 /** @description 返回最近N条记录 */
                 limit?: number;
             };
@@ -5047,6 +6995,384 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChannelHealthScoresResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserInfo"];
+                };
+            };
+        };
+    };
+    refresh_token_api_v1_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResponse"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutResponse"];
+                };
+            };
+        };
+    };
+    get_market_focus_store_assets_api_api_v1_market_focus_store_assets_get: {
+        parameters: {
+            query?: {
+                /** @description 周数：4/8/12 */
+                weeks?: number;
+                /** @description 日数：0=按周聚合，>0按日返回 */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_market_focus_product_assets_api_api_v1_market_focus_product_assets_get: {
+        parameters: {
+            query?: {
+                /** @description 周数：4/8/12 */
+                weeks?: number;
+                /** @description 日数：0=按周聚合，>0按日返回 */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_market_focus_other_product_assets_api_api_v1_market_focus_other_product_assets_get: {
+        parameters: {
+            query?: {
+                /** @description 周数：4/8/12 */
+                weeks?: number;
+                /** @description 日数：0=按周聚合，>0按日返回 */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_visitor_summary_api_api_v1_visitor_summary_get: {
+        parameters: {
+            query: {
+                /** @description 开始日期 YYYY-MM-DD */
+                start_date: string;
+                /** @description 结束日期 YYYY-MM-DD */
+                end_date: string;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitorSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_visitor_daily_trend_api_api_v1_visitor_daily_trend_get: {
+        parameters: {
+            query: {
+                /** @description 开始日期 YYYY-MM-DD */
+                start_date: string;
+                /** @description 结束日期 YYYY-MM-DD */
+                end_date: string;
+                /** @description 对比期开始日期（可选，覆盖自动Y-1推算） */
+                compare_start_date?: string | null;
+                /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
+                compare_end_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitorDailyTrendResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_one_click_breakdown_api_api_v1_breakdown_one_click_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BreakdownRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sampling_roi_api_api_v1_sampling_roi_get: {
+        parameters: {
+            query?: {
+                /** @description 派样起始日期 */
+                start_date?: string;
+                /** @description 派样结束日期 */
+                end_date?: string;
+                /** @description 回购窗口天数：7/30/60 */
+                window_days?: number;
+                /** @description 品类维度：spu_category/spu_tier/spu_product_class */
+                level?: string;
+                /** @description 筛选特定派样渠道 */
+                channel?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplingROIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sampling_lock_analysis_api_api_v1_sampling_lock_analysis_get: {
+        parameters: {
+            query?: {
+                /** @description 大促名称：618节日/双11/38节日 */
+                campaign_name?: string;
+                /** @description 年份 */
+                year?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplingLockAnalysisResponse"];
                 };
             };
             /** @description Validation Error */

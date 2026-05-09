@@ -836,8 +836,10 @@ class ProductClassRepurchase(BaseModel):
     p25_days: int = Field(..., description="P25复购天数")
     p75_days: int = Field(..., description="P75复购天数")
     avg_days: Optional[float] = Field(None, description="平均复购天数")
-    avg_order_value: float = Field(..., description="复购客单价")
-    gsv: float = Field(..., description="复购GSV")
+    avg_order_value: float = Field(..., description="客单价（含首购）")
+    gsv: float = Field(..., description="GSV（含首购）")
+    repurchase_order_value: float = Field(..., description="复购客单价（仅复购订单）")
+    repurchase_gsv: float = Field(..., description="复购GSV（仅复购订单）")
     # 同比
     ly_repurchase_rate: Optional[float] = Field(None, description="去年同期复购率")
     ly_median_days: Optional[int] = Field(None, description="去年同期中位天数")
@@ -866,6 +868,10 @@ class RepurchaseCycleOverview(BaseModel):
 
     # 分品类
     by_product_class: List[ProductClassRepurchase] = Field(default_factory=list)
+    by_product_class_return: List[ProductClassRepurchase] = Field(
+        default_factory=list,
+        description="跨品类回购店铺指标（首购该品类后又买店铺任意品类）"
+    )
 
     # 年份标签（供3年对比图表使用）
     year_label: str = Field(..., description="当前年份")

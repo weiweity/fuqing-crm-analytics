@@ -24,6 +24,7 @@ import CategoryFlowTab from './category-tabs/CategoryFlowTab.vue'
 import MarketBasketTab from './category-tabs/MarketBasketTab.vue'
 import ChurnWarningTab from './category-tabs/ChurnWarningTab.vue'
 import CategoryRepurchaseTab from './category-tabs/CategoryRepurchaseTab.vue'
+import ProductClassRepurchaseTab from './category-tabs/ProductClassRepurchaseTab.vue'
 
 const filterStore = useFilterStore()
 
@@ -694,7 +695,17 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
           </div>
         </n-tab-pane>
 
-        <!-- ═══ Tab 3: 品类回购分析 ═══ -->
+        <!-- ═══ Tab 3: 品类复购周期 ═══ -->
+        <n-tab-pane name="product-repurchase" tab="品类复购周期">
+          <p class="text-[11px] text-slate-400 mb-3 pt-1">
+            解决问题：各品类的复购周期多长？同品类复购 vs 跨品类回购的表现差异？——识别高黏性品类和引流型品类
+          </p>
+          <div class="space-y-5">
+            <ProductClassRepurchaseTab />
+          </div>
+        </n-tab-pane>
+
+        <!-- ═══ Tab 4: 品类回购分析 ═══ -->
         <n-tab-pane name="repurchase" tab="品类回购分析">
           <p class="text-[11px] text-slate-400 mb-3 pt-1">
             解决问题：买了某品类的老客，多久回来？回来买了同品还是其他品类？——识别品类复购周期和品类间的承接关系
@@ -704,7 +715,7 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
           </div>
         </n-tab-pane>
 
-        <!-- ═══ Tab 4: 品类流转 ═══ -->
+        <!-- ═══ Tab 5: 品类流转 ═══ -->
         <n-tab-pane name="flow" tab="品类流转">
           <p class="text-[11px] text-slate-400 mb-3 pt-1">
             解决问题：用户买了A品类之后流向了哪个品类？——看清品类间的承接关系，指导关联推荐和品类组合策略
@@ -714,7 +725,7 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
           </div>
         </n-tab-pane>
 
-        <!-- ═══ Tab 5: 羊毛党分析 ═══ -->
+        <!-- ═══ Tab 6: 羊毛党分析 ═══ -->
         <n-tab-pane name="wool" tab="羊毛党分析">
           <p class="text-[11px] text-slate-400 mb-3 pt-1">
             解决问题：哪些品类用户质量高（高价值多）、哪些品类薅羊毛严重？——指导品类人群健康度评估和资源投放优先级
@@ -724,7 +735,7 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
           </div>
         </n-tab-pane>
 
-        <!-- ═══ Tab 6: 风险预警 ═══ -->
+        <!-- ═══ Tab 7: 风险预警 ═══ -->
         <n-tab-pane name="risk" tab="风险预警">
           <p class="text-[11px] text-slate-400 mb-3 pt-1">
             解决问题：哪些品类在流失用户、流失去了哪里？——识别下滑品类并给出挽回方向
