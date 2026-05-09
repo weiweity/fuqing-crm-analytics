@@ -1892,7 +1892,7 @@ def _compute_market_basket(
         FROM orders o
         WHERE o.order_id IN (SELECT order_id FROM target_orders)
           AND COALESCE(o.{level_col}, '未知') != ?
-        GROUP BY COALESCE(o.{level_col}, '未知'), o.order_id, o.user_id
+        GROUP BY COALESCE(o.{level_col}, '未知'), o.order_id
     ),
     -- 与目标品类同单出现的其他品类及其连带GSV和用户数
     basket_items AS (
@@ -1903,7 +1903,7 @@ def _compute_market_basket(
             SUM(tov.actual_amount) AS co_gsv,
             SUM(cov.own_amount) AS co_own_gsv
         FROM (
-            SELECT DISTINCT order_id, user_id, category_name
+            SELECT order_id, user_id, category_name
             FROM period_orders
             WHERE order_id IN (SELECT order_id FROM target_orders)
               AND category_name != ?

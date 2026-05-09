@@ -314,11 +314,12 @@ const sortedTableData = computed(() => {
     items = items.filter((row: any) => row.current.support >= minSupport)
   }
 
-  // 前端排序
+  // 前端排序（仅限数值字段；字符串字段需单独处理）
   const sortKey = sortBy.value as string
   const sorted = [...items].sort((a: any, b: any) => {
-    const av = a.current[sortKey] ?? 0
-    const bv = b.current[sortKey] ?? 0
+    const av = a.current[sortKey]
+    const bv = b.current[sortKey]
+    if (typeof av !== 'number' || typeof bv !== 'number') return 0
     return bv - av  // 降序
   })
 
@@ -331,7 +332,8 @@ function liftInterpret(lift: number): string {
   if (lift > 3) return `强关联：一起买的概率是单独购买的 ${lift.toFixed(1)} 倍`
   if (lift > 1.5) return `中等关联：一起买的概率是单独购买的 ${lift.toFixed(1)} 倍`
   if (lift > 1) return `弱关联：一起买的概率是单独购买的 ${lift.toFixed(1)} 倍`
-  if (Math.abs(lift - 1) < 0.01) return '无关联：一起买和单独买的概率相同'
+  const LIFT_NEUTRAL_THRESHOLD = 0.01  // 提升度与1的差距小于此值视为"无关联"
+  if (Math.abs(lift - 1) < LIFT_NEUTRAL_THRESHOLD) return '无关联：一起买和单独买的概率相同'
   return `负关联：一起买的概率比单独购买低 ${((1 - lift) * 100).toFixed(0)}%`
 }
 
@@ -538,7 +540,7 @@ const METRIC_TIPS = {
           :columns="tableColumns"
           :data="sortedTableData"
           :pagination="false"
-          :scroll-x="showDetail ? 1650 : 700"
+          :scroll-x="showDetail ? 1700 : 700"
           :max-height="520"
         />
       </div>
