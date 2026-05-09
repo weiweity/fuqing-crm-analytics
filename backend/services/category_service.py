@@ -1892,7 +1892,7 @@ def _compute_market_basket(
         FROM orders o
         WHERE o.order_id IN (SELECT order_id FROM target_orders)
           AND COALESCE(o.{level_col}, '未知') != ?
-        GROUP BY COALESCE(o.{level_col}, '未知'), o.order_id
+        GROUP BY COALESCE(o.{level_col}, '未知'), o.order_id, o.user_id
     ),
     -- 与目标品类同单出现的其他品类及其连带GSV和用户数
     basket_items AS (
