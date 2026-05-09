@@ -701,13 +701,13 @@ def get_audience_table(
         new_users_ratio = 1 - old_users_ratio
         member_gsv_ratio = member_gsv / gsv if gsv > 0 else 0.0
         member_users_ratio = member_users / gsv_users if gsv_users > 0 else 0.0
-        member_old_gsv_ratio = member_old_gsv / member_gsv if member_gsv > 0 else 0.0
-        member_old_users_ratio = member_old_users / member_users if member_users > 0 else 0.0
+        member_old_gsv_ratio = safe_ratio(member_old_gsv, member_gsv)
+        member_old_users_ratio = safe_ratio(member_old_users, member_users)
         member_new_gsv = max(0, member_gsv - member_old_gsv)
         member_new_users = max(0, member_users - member_old_users)
         member_new_aus = member_new_gsv / member_new_users if member_new_users > 0 else 0.0
-        member_new_gsv_ratio = 1 - member_old_gsv_ratio
-        member_new_users_ratio = 1 - member_old_users_ratio
+        member_new_gsv_ratio = safe_ratio(member_new_gsv, member_gsv)
+        member_new_users_ratio = safe_ratio(member_new_users, member_users)
 
         # 对比期（2025年）
         comp_gsv_val = round(_n(comp_gsv), 2)
@@ -727,15 +727,15 @@ def get_audience_table(
         comp_member_old_users_val = int(comp_member_old_users) if comp_member_old_users is not None else 0
         comp_member_old_gsv_val = round(_n(comp_member_old_gsv), 2)
         comp_member_old_aus_val = comp_member_old_gsv_val / comp_member_old_users_val if comp_member_old_users_val > 0 else 0.0
-        comp_member_old_gsv_ratio_val = round(comp_member_old_gsv_val / _n(comp_member_gsv) if _n(comp_member_gsv) > 0 else 0.0, 4)
+        comp_member_old_gsv_ratio_val = round(safe_ratio(comp_member_old_gsv_val, _n(comp_member_gsv)), 4)
         comp_member_old_users_ratio_val = round(
-            comp_member_old_users_val / int(comp_member_users)
-            if comp_member_users and int(comp_member_users) > 0 else 0.0, 4)
+            safe_ratio(comp_member_old_users_val, int(comp_member_users) if comp_member_users else 0), 4)
         comp_member_new_users_val = max(0, int(comp_member_users) - comp_member_old_users_val) if comp_member_users is not None else 0
         comp_member_new_gsv_val = max(0.0, _n(comp_member_gsv) - comp_member_old_gsv_val)
         comp_member_new_aus_val = comp_member_new_gsv_val / comp_member_new_users_val if comp_member_new_users_val > 0 else 0.0
-        comp_member_new_gsv_ratio_val = 1 - comp_member_old_gsv_ratio_val
-        comp_member_new_users_ratio_val = 1 - comp_member_old_users_ratio_val
+        comp_member_new_gsv_ratio_val = round(safe_ratio(comp_member_new_gsv_val, _n(comp_member_gsv)), 4)
+        comp_member_new_users_ratio_val = round(
+            safe_ratio(comp_member_new_users_val, int(comp_member_users) if comp_member_users else 0), 4)
 
         # 前年（2024年）
         prev2_gsv_val = round(_n(prev2_gsv), 2)
@@ -755,13 +755,15 @@ def get_audience_table(
         prev2_member_old_users_val = int(prev2_member_old_users) if prev2_member_old_users is not None else 0
         prev2_member_old_gsv_val = round(_n(prev2_member_old_gsv), 2)
         prev2_member_old_aus_val = prev2_member_old_gsv_val / prev2_member_old_users_val if prev2_member_old_users_val > 0 else 0.0
-        prev2_member_old_gsv_ratio_val = round(prev2_member_old_gsv_val / _n(prev2_member_gsv) if _n(prev2_member_gsv) > 0 else 0.0, 4)
-        prev2_member_old_users_ratio_val = round(prev2_member_old_users_val / int(prev2_member_users) if prev2_member_users and int(prev2_member_users) > 0 else 0.0, 4)
+        prev2_member_old_gsv_ratio_val = round(safe_ratio(prev2_member_old_gsv_val, _n(prev2_member_gsv)), 4)
+        prev2_member_old_users_ratio_val = round(
+            safe_ratio(prev2_member_old_users_val, int(prev2_member_users) if prev2_member_users else 0), 4)
         prev2_member_new_users_val = max(0, int(prev2_member_users) - prev2_member_old_users_val) if prev2_member_users is not None else 0
         prev2_member_new_gsv_val = max(0.0, _n(prev2_member_gsv) - prev2_member_old_gsv_val)
         prev2_member_new_aus_val = prev2_member_new_gsv_val / prev2_member_new_users_val if prev2_member_new_users_val > 0 else 0.0
-        prev2_member_new_gsv_ratio_val = 1 - prev2_member_old_gsv_ratio_val
-        prev2_member_new_users_ratio_val = 1 - prev2_member_old_users_ratio_val
+        prev2_member_new_gsv_ratio_val = round(safe_ratio(prev2_member_new_gsv_val, _n(prev2_member_gsv)), 4)
+        prev2_member_new_users_ratio_val = round(
+            safe_ratio(prev2_member_new_users_val, int(prev2_member_users) if prev2_member_users else 0), 4)
 
         rows.append({
             "dimension": key,
@@ -1189,8 +1191,8 @@ def calculate_audience_summary(
                 "member_new_gsv": member_new_gsv,
                 "member_new_users": member_new_users,
                 "member_new_aus": member_new_gsv / member_new_users if member_new_users > 0 else 0.0,
-                "member_new_gsv_ratio": member_new_gsv / gsv if gsv > 0 else 0.0,
-                "member_new_users_ratio": member_new_users / gsv_users if gsv_users > 0 else 0.0,
+                "member_new_gsv_ratio": member_new_gsv / member_gsv if member_gsv > 0 else 0.0,
+                "member_new_users_ratio": member_new_users / member_users if member_users > 0 else 0.0,
             }
 
         # Panel A 数据：支持渠道筛选（ch_filter=channel 时取该渠道数据；为空时取全店）
@@ -1487,10 +1489,10 @@ def calculate_audience_summary(
             ratio_2025 = gsv_2025 / mem_comp_total_gsv if mem_comp_total_gsv > 0 else 0.0
             member_ratio_2026 = gsv_2026 / ch_total_gsv_2026 if ch_total_gsv_2026 > 0 else 0.0
             member_ratio_2025 = gsv_2025 / ch_total_gsv_2025 if ch_total_gsv_2025 > 0 else 0.0
-            member_new_ratio_2026 = member_new_gsv_2026 / ch_total_gsv_2026 if ch_total_gsv_2026 > 0 else 0.0
-            member_new_ratio_2025 = member_new_gsv_2025 / ch_total_gsv_2025 if ch_total_gsv_2025 > 0 else 0.0
-            member_old_ratio_2026 = member_old_gsv_2026 / ch_total_gsv_2026 if ch_total_gsv_2026 > 0 else 0.0
-            member_old_ratio_2025 = member_old_gsv_2025 / ch_total_gsv_2025 if ch_total_gsv_2025 > 0 else 0.0
+            member_new_ratio_2026 = safe_ratio(member_new_gsv_2026, gsv_2026)
+            member_new_ratio_2025 = safe_ratio(member_new_gsv_2025, gsv_2025)
+            member_old_ratio_2026 = safe_ratio(member_old_gsv_2026, gsv_2026)
+            member_old_ratio_2025 = safe_ratio(member_old_gsv_2025, gsv_2025)
             channel_member.append({
                 "channel": channel,
                 "gsv_2026": gsv_2026,
@@ -1577,11 +1579,11 @@ def calculate_audience_summary(
                 ratio_2025 = gsv_2025 / mem_comp_total_gsv if mem_comp_total_gsv > 0 else 0.0
                 member_ratio_2026 = gsv_2026 / ch_total_gsv_2026 if ch_total_gsv_2026 > 0 else 0.0
                 member_ratio_2025 = gsv_2025 / ch_total_gsv_2025 if ch_total_gsv_2025 > 0 else 0.0
-                # 会员新客/老客 GSV 占全店 GSV 的比例
-                member_new_ratio_2026 = member_new_gsv_2026 / ch_total_gsv_2026 if ch_total_gsv_2026 > 0 else 0.0
-                member_new_ratio_2025 = member_new_gsv_2025 / ch_total_gsv_2025 if ch_total_gsv_2025 > 0 else 0.0
-                member_old_ratio_2026 = member_old_gsv_2026 / ch_total_gsv_2026 if ch_total_gsv_2026 > 0 else 0.0
-                member_old_ratio_2025 = member_old_gsv_2025 / ch_total_gsv_2025 if ch_total_gsv_2025 > 0 else 0.0
+                # 会员新客/老客 GSV 占会员 GSV 的比例
+                member_new_ratio_2026 = safe_ratio(member_new_gsv_2026, gsv_2026)
+                member_new_ratio_2025 = safe_ratio(member_new_gsv_2025, gsv_2025)
+                member_old_ratio_2026 = safe_ratio(member_old_gsv_2026, gsv_2026)
+                member_old_ratio_2025 = safe_ratio(member_old_gsv_2025, gsv_2025)
                 channel_member.append({
                     "channel": ch,
                     "gsv_2026": gsv_2026,
@@ -1660,10 +1662,10 @@ def calculate_audience_summary(
         ttl_mem_new_users_2025 = max(0, ttl_mem_users_2025 - ttl_mem_old_users_2025)
         ttl_mem_new_aus_2026 = ttl_mem_new_gsv_2026 / ttl_mem_new_users_2026 if ttl_mem_new_users_2026 > 0 else 0.0
         ttl_mem_new_aus_2025 = ttl_mem_new_gsv_2025 / ttl_mem_new_users_2025 if ttl_mem_new_users_2025 > 0 else 0.0
-        ttl_mem_new_ratio_2026 = ttl_mem_new_gsv_2026 / mem_total_gsv if mem_total_gsv > 0 else 0.0
-        ttl_mem_new_ratio_2025 = ttl_mem_new_gsv_2025 / mem_comp_total_gsv if mem_comp_total_gsv > 0 else 0.0
-        ttl_mem_old_ratio_2026 = ttl_mem_old_gsv_2026 / mem_total_gsv if mem_total_gsv > 0 else 0.0
-        ttl_mem_old_ratio_2025 = ttl_mem_old_gsv_2025 / mem_comp_total_gsv if mem_comp_total_gsv > 0 else 0.0
+        ttl_mem_new_ratio_2026 = safe_ratio(ttl_mem_new_gsv_2026, mem_total_gsv)
+        ttl_mem_new_ratio_2025 = safe_ratio(ttl_mem_new_gsv_2025, mem_comp_total_gsv)
+        ttl_mem_old_ratio_2026 = safe_ratio(ttl_mem_old_gsv_2026, mem_total_gsv)
+        ttl_mem_old_ratio_2025 = safe_ratio(ttl_mem_old_gsv_2025, mem_comp_total_gsv)
         channel_member.append({
             "channel": "TTL",
             "gsv_2026": mem_total_gsv,
