@@ -52,6 +52,9 @@ const sortOptions = [
 // 最小支持度（百分比 0-100，内部转为 0-1 做过滤）
 const minSupportPercent = ref<number>(0)
 
+// 显示详情 / 收起
+const showDetail = ref(false)
+
 const queryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
@@ -72,8 +75,21 @@ const {
   staleTime: 60_000,
 })
 
-// ─── 表格列（全部居中，表头带公式 tooltip）──────────────────────────
-const tableColumns = computed<DataTableColumns<any>>(() => [
+// ─── 金额渲染辅助：防止长数字换行 ─────────────────────────────────
+function moneySpan(amount: number, prefix = '¥'): any {
+  return h('span', { style: 'white-space: nowrap' }, prefix + amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+}
+
+// 表头 tooltip 辅助函数
+function hColTip(label: string, tip: string) {
+  return h(NTooltip, { trigger: 'hover' }, {
+    trigger: () => h('span', { style: 'cursor: help; border-bottom: 1px dashed #cbd5e1;' }, label),
+    default: () => h('div', { class: 'text-xs max-w-[260px] whitespace-pre-line' }, tip),
+  })
+}
+
+// ─── 精简列（compact）—— 核心6列，一屏看完 ────────────────────────
+const compactColumns = computed<DataTableColumns<any>>(() => [
   {
     title: () => hColTip('关联品类', '同单中与目标品类一起出现的其他品类'),
     key: 'category_name',
@@ -84,29 +100,26 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
   {
     title: () => hColTip('关联订单数', '同时包含目标品类和该品类的订单数量'),
     key: 'co_order_count',
+    width: 95,
     align: 'center',
     render: (row: any) => row.current.co_order_count.toLocaleString(),
   },
   {
-    title: () => hColTip('支持度', '公式：关联订单数÷总订单数\n作用：衡量组合出现的普遍程度，越高越常见'),
-    key: 'support',
-    align: 'center',
-    render: (row: any) => (row.current.support * 100).toFixed(2) + '%',
-  },
-  {
     title: () => hColTip('置信度', '公式：关联订单数÷目标品类订单数\n作用：买目标品类的用户中，同时买该品类的比例'),
     key: 'confidence',
+    width: 90,
     align: 'center',
     render: (row: any) => (row.current.confidence * 100).toFixed(1) + '%',
   },
   {
     title: () => hColTip('提升度', '公式：置信度÷该品类独立购买概率\n作用：>1 正向关联，越高说明两个品类越应该搭着卖'),
     key: 'lift',
+    width: 85,
     align: 'center',
     render: (row: any) => {
       const lift = row.current.lift
       return h(NTooltip, { trigger: 'hover' }, {
-        trigger: () => h('span', lift.toFixed(2)),
+        trigger: () => h('span', { style: 'white-space: nowrap' }, lift.toFixed(2)),
         default: () => h('span', { class: 'text-xs' }, liftInterpret(lift)),
       })
     },
@@ -114,24 +127,87 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
   {
     title: () => hColTip('连带人均消费', '公式：连带GSV÷连带购买人数\n即同时买这两个品类的人均消费金额'),
     key: 'co_aus',
+    width: 130,
     align: 'center',
-    render: (row: any) => '¥' + row.current.co_aus.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    render: (row: any) => moneySpan(row.current.co_aus),
+  },
+  {
+    title: () => hColTip('消费提升', '公式：连带人均消费÷目标品类人均消费\n作用：>1 说明连带后人均消费更高'),
+    key: 'gsv_lift',
+    width: 95,
+    align: 'center',
+    render: (row: any) => h('span', { style: 'white-space: nowrap' }, row.current.gsv_lift.toFixed(2) + 'x'),
+  },
+])
+
+// ─── 完整列（full）—— 全部指标+同比 ──────────────────────────────
+const fullColumns = computed<DataTableColumns<any>>(() => [
+  {
+    title: () => hColTip('关联品类', '同单中与目标品类一起出现的其他品类'),
+    key: 'category_name',
+    width: 140,
+    fixed: 'left',
+    align: 'center',
+  },
+  {
+    title: () => hColTip('关联订单数', '同时包含目标品类和该品类的订单数量'),
+    key: 'co_order_count',
+    width: 95,
+    align: 'center',
+    render: (row: any) => row.current.co_order_count.toLocaleString(),
+  },
+  {
+    title: () => hColTip('支持度', '公式：关联订单数÷总订单数\n作用：衡量组合出现的普遍程度，越高越常见'),
+    key: 'support',
+    width: 90,
+    align: 'center',
+    render: (row: any) => (row.current.support * 100).toFixed(2) + '%',
+  },
+  {
+    title: () => hColTip('置信度', '公式：关联订单数÷目标品类订单数\n作用：买目标品类的用户中，同时买该品类的比例'),
+    key: 'confidence',
+    width: 90,
+    align: 'center',
+    render: (row: any) => (row.current.confidence * 100).toFixed(1) + '%',
+  },
+  {
+    title: () => hColTip('提升度', '公式：置信度÷该品类独立购买概率\n作用：>1 正向关联，越高说明两个品类越应该搭着卖'),
+    key: 'lift',
+    width: 85,
+    align: 'center',
+    render: (row: any) => {
+      const lift = row.current.lift
+      return h(NTooltip, { trigger: 'hover' }, {
+        trigger: () => h('span', { style: 'white-space: nowrap' }, lift.toFixed(2)),
+        default: () => h('span', { class: 'text-xs' }, liftInterpret(lift)),
+      })
+    },
+  },
+  {
+    title: () => hColTip('连带人均消费', '公式：连带GSV÷连带购买人数\n即同时买这两个品类的人均消费金额'),
+    key: 'co_aus',
+    width: 130,
+    align: 'center',
+    render: (row: any) => moneySpan(row.current.co_aus),
   },
   {
     title: () => hColTip('消费提升', '公式：连带人均消费÷目标品类人均消费\n作用：>1 说明连带后人均消费更高，数字越大提升越明显'),
     key: 'gsv_lift',
+    width: 95,
     align: 'center',
-    render: (row: any) => row.current.gsv_lift.toFixed(2) + 'x',
+    render: (row: any) => h('span', { style: 'white-space: nowrap' }, row.current.gsv_lift.toFixed(2) + 'x'),
   },
   {
     title: () => hColTip('连带GSV', '同时包含目标品类和该品类的所有订单金额总和'),
     key: 'co_gsv',
+    width: 140,
     align: 'center',
-    render: (row: any) => '¥' + row.current.co_gsv.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    render: (row: any) => moneySpan(row.current.co_gsv),
   },
   {
-    title: '去年同期\n置信度',
+    title: '去年置信度',
     key: 'prev_confidence',
+    width: 100,
     align: 'center',
     render: (row: any) => {
       if (!row.previous) return '—'
@@ -139,8 +215,9 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     },
   },
   {
-    title: '去年同期\n提升度',
+    title: '去年提升度',
     key: 'prev_lift',
+    width: 90,
     align: 'center',
     render: (row: any) => {
       if (!row.previous) return '—'
@@ -148,17 +225,19 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     },
   },
   {
-    title: '去年同期\n连带GSV',
+    title: '去年连带GSV',
     key: 'prev_co_gsv',
+    width: 135,
     align: 'center',
     render: (row: any) => {
       if (!row.previous) return '—'
-      return '¥' + row.previous.co_gsv.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return moneySpan(row.previous.co_gsv)
     },
   },
   {
-    title: '置信度\n变化',
+    title: '置信度变化',
     key: 'confidence_change',
+    width: 100,
     align: 'center',
     render: (row: any) => {
       if (row.confidence_change == null) return '—'
@@ -169,8 +248,9 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     },
   },
   {
-    title: '提升度\n变化',
+    title: '提升度变化',
     key: 'lift_change',
+    width: 95,
     align: 'center',
     render: (row: any) => {
       if (row.lift_change == null) return '—'
@@ -181,20 +261,22 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     },
   },
   {
-    title: '连带GSV\n变化',
+    title: 'GSV变化',
     key: 'gsv_change',
+    width: 135,
     align: 'center',
     render: (row: any) => {
       if (row.gsv_change == null) return '—'
       const v = row.gsv_change
       const color = v > 0 ? 'text-red-500' : v < 0 ? 'text-green-500' : 'text-slate-500'
       const sign = v > 0 ? '+' : ''
-      return h('span', { class: color }, `${sign}¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+      return h('span', { class: color, style: 'white-space: nowrap' }, `${sign}¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
     },
   },
   {
-    title: '排名\n变化',
+    title: '排名变化',
     key: 'rank_change',
+    width: 85,
     align: 'center',
     render: (row: any) => {
       if (row.rank_change == null) return '—'
@@ -206,13 +288,8 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
   },
 ])
 
-// 表头 tooltip 辅助函数
-function hColTip(label: string, tip: string) {
-  return h(NTooltip, { trigger: 'hover' }, {
-    trigger: () => h('span', { style: 'cursor: help; border-bottom: 1px dashed #cbd5e1;' }, label),
-    default: () => h('div', { class: 'text-xs max-w-[260px] whitespace-pre-line' }, tip),
-  })
-}
+// 根据 showDetail 切换列
+const tableColumns = computed(() => showDetail.value ? fullColumns.value : compactColumns.value)
 
 // ─── 排序与过滤后的数据 ──────────────────────────────────────────
 const sortedTableData = computed(() => {
@@ -384,7 +461,9 @@ const METRIC_TIPS = {
         <div class="flex items-center justify-between mb-3">
           <div>
             <h3 class="text-sm font-semibold text-slate-800 mb-0.5">关联品类 Top N</h3>
-            <p class="text-[11px] text-slate-500">支持排序切换和最小支持度过滤，展示当期与去年同期对比</p>
+            <p class="text-[11px] text-slate-500">
+              {{ showDetail ? '全量指标：支持度/置信度/提升度/AUS/GSV 及去年同期对比' : '核心指标：置信度/提升度/人均消费/消费提升（点击"显示详情"展开全部列）' }}
+            </p>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs text-slate-500">排序:</span>
@@ -405,21 +484,32 @@ const METRIC_TIPS = {
               placeholder="0"
             />
             <NButton size="tiny" @click="handleExport">📊 导出Excel</NButton>
+            <button
+              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+              @click="showDetail = !showDetail"
+            >
+              {{ showDetail ? '← 收起详情' : '显示详情 →' }}
+            </button>
           </div>
         </div>
 
-        <p class="text-[11px] text-slate-400 mb-3">
+        <p v-if="!showDetail" class="text-[11px] text-slate-400 mb-3">
+          <span class="font-medium">置信度</span>=关联订单数÷目标品类订单数，越高连带概率越大；
+          <span class="font-medium">提升度</span>=一起买的概率÷单独买的概率，>1 正向关联；
+          <span class="font-medium">消费提升</span>=连带人均消费÷目标品类人均消费，>1 说明连带后人均消费更高
+        </p>
+        <p v-else class="text-[11px] text-slate-400 mb-3">
           <span class="font-medium">支持度</span>=关联订单数÷总订单数，越高组合越常见；
           <span class="font-medium">置信度</span>=关联订单数÷目标品类订单数，越高连带概率越大；
-          <span class="font-medium">提升度</span>=一起买的概率÷单独买的概率，&gt;1 正向关联；
-          <span class="font-medium">消费提升</span>=连带人均消费÷目标品类人均消费，&gt;1 说明连带后人均消费更高
+          <span class="font-medium">提升度</span>=一起买的概率÷单独买的概率，>1 正向关联；
+          <span class="font-medium">消费提升</span>=连带人均消费÷目标品类人均消费，>1 说明连带后人均消费更高
         </p>
 
         <DataTablePro
           :columns="tableColumns"
           :data="sortedTableData"
           :pagination="false"
-          :scroll-x="1400"
+          :scroll-x="showDetail ? 1500 : 700"
           :max-height="520"
         />
       </div>

@@ -1181,7 +1181,7 @@ const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
   return [
     { title: '渠道', key: 'channel', width: 110, fixed: 'left', align: 'center', sorter: false },
     {
-      title: '会员GSV', key: 'gsv_group', align: 'center',
+      title: '全店GSV', key: 'gsv_group', align: 'center',
       children: [
         { title: yr, key: 'gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2026 ?? 0) - (b.gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2026 / 10000).toFixed(1)}万` },
         { title: yr2, key: 'gsv_2025', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.gsv_2025 ?? 0) - (b.gsv_2025 ?? 0), render: (row: ChannelGSVRow) => `¥${(row.gsv_2025 / 10000).toFixed(1)}万` },
