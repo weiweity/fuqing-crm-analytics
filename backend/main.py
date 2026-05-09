@@ -589,7 +589,7 @@ def get_market_basket_api(
     """
     购物篮分析
 
-    返回目标品类的关联品类及YoY对比（Support/Confidence/Lift）
+    返回目标品类的关联品类及YoY对比（支持度/置信度/提升度/连带客单价/GSV提升）
     """
     return get_market_basket(start_date, end_date, target_category, level, channel, exclude_channels)
 

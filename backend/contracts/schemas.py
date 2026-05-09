@@ -1318,6 +1318,11 @@ class MarketBasketItem(BaseModel):
     confidence: float            # 置信度 = co_order_count / target_orders
     lift: float                  # 提升度 = confidence / item_prob
     target_order_count: int      # 目标品类订单数（分母）
+    co_gsv: float                # 连带订单整单GSV = 同时含目标品类+关联品类的订单的actual_amount总和（跨品类可加总时会重复计算）
+    co_own_gsv: float            # 关联品类自身GSV = 该品类在连带订单中的实际销售金额（可加总，不重复）
+    co_aus: float                # 连带人均消费(AUS) = co_gsv / 连带购买人数
+    target_aus: float            # 目标品类人均消费(AUS baseline)
+    gsv_lift: float              # 消费提升倍数 = co_aus / target_aus
 
 
 class MarketBasketYoYItem(BaseModel):
@@ -1328,6 +1333,7 @@ class MarketBasketYoYItem(BaseModel):
     confidence_change: Optional[float] = None    # 置信度变化(pp)
     lift_change: Optional[float] = None          # 提升度变化
     rank_change: Optional[int] = None            # 排名变化
+    gsv_change: Optional[float] = None           # 连带GSV同比变化（元）
 
 
 class MarketBasketResponse(BaseModel):
