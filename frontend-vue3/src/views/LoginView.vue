@@ -48,7 +48,7 @@
               @blur="updateStatusDelayed"
             >
             <label class="floating-label">密码</label>
-            <button type="button" class="toggle-password" @mousedown.prevent @click="togglePassword">
+            <button type="button" class="toggle-password" tabindex="-1" @mousedown.prevent @click="togglePassword">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-icon">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
