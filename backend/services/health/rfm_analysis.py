@@ -48,6 +48,8 @@ def _cache_key(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> str:
     """
     生成缓存键文件名。
@@ -55,6 +57,9 @@ def _cache_key(
     一律基于实际日期范围构建缓存键（忽略 period 名），
     保证前端请求（含 period+dates）与预计算请求（仅 dates）键完全一致。
     缓存键包含数据版本，ETL刷新后自动失效所有历史缓存。
+
+    对比日期参数（compare_start_date/compare_end_date）也参与缓存键生成，
+    确保不同对比模式（YOY/环比/自定义）不会互相污染缓存。
     """
     dv = _data_version()
     parts = [dv]
@@ -70,6 +75,9 @@ def _cache_key(
         ch_str = ",".join(sorted(exclude_channels))
         ch_hash = hashlib.md5(ch_str.encode()).hexdigest()[:8]
         parts.append(f"ex_{ch_hash}")
+    # 自定义对比期参与缓存键，避免不同对比模式共享缓存
+    if compare_start_date and compare_end_date:
+        parts.append(f"cmp_{compare_start_date}_{compare_end_date}")
     return "_".join(parts) + ".json"
 
 
@@ -516,6 +524,8 @@ def get_rfm_analysis(
     end_date: Optional[str] = None,
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     RFM 8象限完整分析。
@@ -524,7 +534,7 @@ def get_rfm_analysis(
     - 历史周期（end_date < 今天）：读缓存 / 写缓存
     - 当前周期：实时计算，不缓存
     """
-    ranges = _resolve_date_ranges(period, start_date, end_date)
+    ranges = _resolve_date_ranges(period, start_date, end_date, compare_start_date, compare_end_date)
     cur_start_dt, cur_end_dt, cutoff = ranges["current"]
     comp_start_dt, comp_end_dt, comp_cutoff = ranges["comp"]
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]
@@ -532,12 +542,12 @@ def get_rfm_analysis(
 
     # 缓存读取顺序：1) DuckDB预计算表 → 2) 文件缓存 → 3) 实时SQL
     # Plan P1: DuckDB 预计算表（ETL 预热，最优先）
-    cached = _read_db_cache(period, start_date, end_date, channel, metric_type, exclude_channels)
+    cached = _read_db_cache(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date)
     if cached is not None:
         return cached
     # Plan C: 文件缓存（自定义日期范围兜底）
     if _is_historical_period(cur_end_dt[:10]):
-        cached = _read_cache(_cache_key(period, start_date, end_date, channel, metric_type, exclude_channels))
+        cached = _read_cache(_cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date))
         if cached is not None:
             return cached
 
@@ -573,7 +583,7 @@ def get_rfm_analysis(
 
     # Plan C: 历史周期写入文件缓存（DuckDB 预计算已在 ETL 阶段写入）
     if _is_historical_period(cur_end_dt[:10]):
-        _write_cache(_cache_key(period, start_date, end_date, channel, metric_type, exclude_channels), result)
+        _write_cache(_cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date), result)
 
     return result
 
@@ -611,9 +621,11 @@ def _read_db_cache(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """从 DuckDB 预计算表读取缓存（优先于文件缓存）"""
-    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels)
+    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date)
     conn = get_connection()
     try:
         _ensure_db_cache_table(conn)
@@ -638,9 +650,11 @@ def _write_db_cache(
     metric_type: str,
     exclude_channels: Optional[List[str]],
     result: Dict[str, Any],
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> None:
     """写入 DuckDB 预计算缓存表"""
-    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels)
+    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date)
     ex_str = json.dumps(exclude_channels, ensure_ascii=False) if exclude_channels else ""
     conn = get_connection()
     try:

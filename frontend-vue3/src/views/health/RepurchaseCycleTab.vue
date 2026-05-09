@@ -54,6 +54,9 @@ import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 const bucketChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 const cohortChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 
+// 品类表格：简化/展开切换
+const isExpanded = ref(false)
+
 const queryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
@@ -61,15 +64,25 @@ const queryParams = computed(() => ({
   exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
 }))
 
+// 对比参数：auto_yoy 不传（后端原生 Y-1），auto_mom / custom 传计算后的日期
+const compareQueryParams = computed(() => {
+  if (filterStore.compareMode === 'auto_yoy') return {}
+  const comp = filterStore.compareParams
+  if (!comp) return {}
+  return { compare_start_date: comp[0], compare_end_date: comp[1] }
+})
+
 const { data, isLoading, error, refetch } = useQuery({
-  queryKey: computed(() => ['repurchase-cycle', { ...toValue(queryParams) }]),
+  queryKey: computed(() => ['repurchase-cycle', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
+    const c = toValue(compareQueryParams)
     return fetchRepurchaseCycle({
       start_date: p.start_date,
       end_date: p.end_date,
       channel: p.channel,
       exclude_channels: p.exclude_channels,
+      ...c,
     })
   },
   staleTime: 60_000,
@@ -227,14 +240,15 @@ const productXlsxColumns: XlsxColumn[] = [
   { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.0%' },
 ]
 
-const productColumns: DataTableColumns<ProductItem> = [
-  { title: '品类', key: 'product_class', sorter: 'default', width: 120, fixed: 'left' },
-  { title: '购买人数', key: 'total_buyers', align: 'right', sorter: 'default', width: 90 },
-  { title: '复购人数', key: 'repurchase_users', align: 'right', sorter: 'default', width: 90 },
+// ── 简化版列：品类 + 核心指标（10列）──
+const simpleColumns: DataTableColumns<ProductItem> = [
+  { title: '品类', key: 'product_class', sorter: 'default', width: 130, fixed: 'left', align: 'center' },
+  { title: '购买人数', key: 'total_buyers', align: 'center', sorter: 'default', width: 95 },
+  { title: '复购人数', key: 'repurchase_users', align: 'center', sorter: 'default', width: 95 },
   {
     title: '复购率',
     key: 'repurchase_rate',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
     width: 90,
     render: (row) => `${(row.repurchase_rate * 100).toFixed(1)}%`,
@@ -242,9 +256,9 @@ const productColumns: DataTableColumns<ProductItem> = [
   {
     title: '去年同期复购率',
     key: 'ly_repurchase_rate',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
-    width: 110,
+    width: 120,
     render: (row) => row.ly_repurchase_rate != null
       ? `${(row.ly_repurchase_rate * 100).toFixed(1)}%`
       : h('span', { class: 'text-slate-400' }, '—'),
@@ -257,13 +271,73 @@ const productColumns: DataTableColumns<ProductItem> = [
     width: 100,
     render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy }),
   },
-  { title: '中位天数（天）', key: 'median_days', align: 'right', sorter: 'default', width: 110 },
+  { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {
-    title: '去年同期中位天数（天）',
-    key: 'ly_median_days',
-    align: 'right',
+    title: '中位天数YOY',
+    key: 'median_days_yoy',
+    align: 'center',
     sorter: 'default',
-    width: 140,
+    width: 105,
+    render: (row) => h(DaysChangeBadge, { value: row.median_days_yoy ?? null }),
+  },
+  {
+    title: '平均天数',
+    key: 'avg_days',
+    align: 'center',
+    sorter: 'default',
+    width: 95,
+    render: (row) => row.avg_days != null
+      ? `${row.avg_days}`
+      : h('span', { class: 'text-slate-400' }, '—'),
+  },
+  {
+    title: '平均天数YOY',
+    key: 'avg_days_yoy',
+    align: 'center',
+    sorter: 'default',
+    width: 105,
+    render: (row) => h(DaysChangeBadge, { value: row.avg_days_yoy ?? null }),
+  },
+]
+
+// ── 展开版列：全部指标（18列）──
+const expandedColumns: DataTableColumns<ProductItem> = [
+  { title: '品类', key: 'product_class', sorter: 'default', width: 120, fixed: 'left', align: 'center' },
+  { title: '购买人数', key: 'total_buyers', align: 'center', sorter: 'default', width: 90 },
+  { title: '复购人数', key: 'repurchase_users', align: 'center', sorter: 'default', width: 90 },
+  {
+    title: '复购率',
+    key: 'repurchase_rate',
+    align: 'center',
+    sorter: 'default',
+    width: 90,
+    render: (row) => `${(row.repurchase_rate * 100).toFixed(1)}%`,
+  },
+  {
+    title: '去年同期复购率',
+    key: 'ly_repurchase_rate',
+    align: 'center',
+    sorter: 'default',
+    width: 120,
+    render: (row) => row.ly_repurchase_rate != null
+      ? `${(row.ly_repurchase_rate * 100).toFixed(1)}%`
+      : h('span', { class: 'text-slate-400' }, '—'),
+  },
+  {
+    title: '复购率YOY',
+    key: 'repurchase_rate_yoy',
+    align: 'center',
+    sorter: 'default',
+    width: 100,
+    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy }),
+  },
+  { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
+  {
+    title: '去年同期中位天数',
+    key: 'ly_median_days',
+    align: 'center',
+    sorter: 'default',
+    width: 135,
     render: (row) => row.ly_median_days != null
       ? `${row.ly_median_days}`
       : h('span', { class: 'text-slate-400' }, '—'),
@@ -273,25 +347,25 @@ const productColumns: DataTableColumns<ProductItem> = [
     key: 'median_days_yoy',
     align: 'center',
     sorter: 'default',
-    width: 100,
+    width: 105,
     render: (row) => h(DaysChangeBadge, { value: row.median_days_yoy ?? null }),
   },
   {
-    title: '平均天数（天）',
+    title: '平均天数',
     key: 'avg_days',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
-    width: 110,
+    width: 95,
     render: (row) => row.avg_days != null
       ? `${row.avg_days}`
       : h('span', { class: 'text-slate-400' }, '—'),
   },
   {
-    title: '去年同期平均天数（天）',
+    title: '去年同期平均天数',
     key: 'ly_avg_days',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
-    width: 140,
+    width: 135,
     render: (row) => row.ly_avg_days != null
       ? `${row.ly_avg_days}`
       : h('span', { class: 'text-slate-400' }, '—'),
@@ -301,15 +375,15 @@ const productColumns: DataTableColumns<ProductItem> = [
     key: 'avg_days_yoy',
     align: 'center',
     sorter: 'default',
-    width: 100,
+    width: 105,
     render: (row) => h(DaysChangeBadge, { value: row.avg_days_yoy ?? null }),
   },
-  { title: 'P25', key: 'p25_days', align: 'right', sorter: 'default', width: 70 },
-  { title: 'P75', key: 'p75_days', align: 'right', sorter: 'default', width: 70 },
+  { title: 'P25', key: 'p25_days', align: 'center', sorter: 'default', width: 70 },
+  { title: 'P75', key: 'p75_days', align: 'center', sorter: 'default', width: 70 },
   {
     title: '客单价',
     key: 'avg_order_value',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
     width: 90,
     render: (row) => `¥${row.avg_order_value}`,
@@ -317,7 +391,7 @@ const productColumns: DataTableColumns<ProductItem> = [
   {
     title: 'GSV',
     key: 'gsv',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
     width: 100,
     render: (row) => `¥${Math.round(row.gsv).toLocaleString()}`,
@@ -325,9 +399,9 @@ const productColumns: DataTableColumns<ProductItem> = [
   {
     title: '去年同期GSV',
     key: 'ly_gsv',
-    align: 'right',
+    align: 'center',
     sorter: 'default',
-    width: 110,
+    width: 115,
     render: (row) => row.ly_gsv != null
       ? `¥${Math.round(row.ly_gsv).toLocaleString()}`
       : h('span', { class: 'text-slate-400' }, '—'),
@@ -337,10 +411,21 @@ const productColumns: DataTableColumns<ProductItem> = [
     key: 'gsv_yoy',
     align: 'center',
     sorter: 'default',
-    width: 100,
+    width: 90,
     render: (row) => h(YOYBadge, { value: row.gsv_yoy }),
   },
 ]
+
+// 当前显示的列（根据展开状态切换）
+const productColumns = computed<DataTableColumns<ProductItem>>(() =>
+  isExpanded.value ? expandedColumns : simpleColumns
+)
+
+// 全部品类按购买人数降序排列（TOP10 自然排在最前，其余可滚动查看）
+const sortedProducts = computed<ProductItem[]>(() => {
+  const list = data.value?.by_product_class ?? []
+  return [...list].sort((a, b) => b.total_buyers - a.total_buyers)
+})
 
 // ── Cohort热力图配置 ──
 const cohortChartOption = computed(() => {
@@ -516,20 +601,35 @@ const cohortChartOption = computed(() => {
       <!-- 品类表格 -->
       <div class="bi-card p-4">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold text-slate-700">分品类复购指标</h3>
-          <ExportToolbar
-            :filename="`老客分析_品类复购_${filterStore.dateRange[1]}`"
-            :columns="productXlsxColumns"
-            :data="data.by_product_class"
-            sheet-name="品类复购"
-          />
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-slate-700">分品类复购指标</h3>
+            <span class="text-[11px] text-slate-400">
+              {{ isExpanded ? '全部指标' : '核心指标' }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <ExportToolbar
+              :filename="`老客分析_品类复购_${filterStore.dateRange[1]}`"
+              :columns="productXlsxColumns"
+              :data="data.by_product_class"
+              sheet-name="品类复购"
+            />
+            <button
+              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+              @click="isExpanded = !isExpanded"
+            >
+              {{ isExpanded ? '收起 ←' : '显示详情 →' }}
+            </button>
+          </div>
         </div>
         <NDataTable
           :columns="productColumns"
-          :data="data.by_product_class"
+          :data="sortedProducts"
           :pagination="false"
           size="small"
           striped
+          :scroll-x="isExpanded ? 1900 : 1000"
+          max-height="520"
         />
       </div>
     </template>

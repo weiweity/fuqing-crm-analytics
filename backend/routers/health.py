@@ -114,9 +114,15 @@ def get_repurchase_cycle(
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
     channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤）"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """复购周期分析（间隔分布 + 品类对比）"""
-    return repurchase_service.get_repurchase_cycle(start_date, end_date, exclude_channels, channel)
+    return repurchase_service.get_repurchase_cycle(
+        start_date, end_date, exclude_channels, channel,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
+    )
 
 
 @router.get("/cohort-retention", response_model=CohortRetentionResponse)
@@ -148,6 +154,8 @@ def get_tier_flow(
     metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
     channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤）"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     价值分层回购率流转看板
@@ -161,6 +169,8 @@ def get_tier_flow(
         metric_type=metric_type,
         exclude_channels=exclude_channels,
         channel=channel,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
     )
 
 
@@ -171,6 +181,8 @@ def get_rfm_analysis(
     metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
     channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤）"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     RFM完整分析（8象限人群分群）
@@ -184,6 +196,8 @@ def get_rfm_analysis(
         metric_type=metric_type,
         exclude_channels=exclude_channels,
         channel=channel,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
     )
 
 

@@ -2047,6 +2047,8 @@ const channelMemberXlsxColumns = computed(() => {
         :columns="indicatorColumns"
         :data="summaryData?.indicators ?? []"
         :pagination="false"
+        :scroll-x="600"
+        :max-height="520"
       />
     </div>
 

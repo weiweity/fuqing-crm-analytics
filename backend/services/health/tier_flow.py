@@ -381,6 +381,8 @@ def get_tier_flow(
     end_date: Optional[str] = None,
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     价值分层回购率流转看板接口
@@ -390,7 +392,7 @@ def get_tier_flow(
          + member_rows（会员-本渠道唤醒贡献）
          + member_same_channel_rows（会员-本渠道回购本渠道）
     """
-    ranges = _resolve_date_ranges(period, start_date, end_date)
+    ranges = _resolve_date_ranges(period, start_date, end_date, compare_start_date, compare_end_date)
     cur_start_dt, cur_end_dt, cutoff = ranges["current"]
     comp_start_dt, comp_end_dt, comp_cutoff = ranges["comp"]
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]

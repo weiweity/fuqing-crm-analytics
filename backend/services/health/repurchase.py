@@ -112,11 +112,16 @@ BUCKETS = [
 
 def get_repurchase_cycle(start_date: str, end_date: str,
                          exclude_channels: Optional[List[str]] = None,
-                         channel: Optional[str] = None) -> Dict[str, Any]:
+                         channel: Optional[str] = None,
+                         compare_start_date: Optional[str] = None,
+                         compare_end_date: Optional[str] = None) -> Dict[str, Any]:
     """
     复购周期分析
     - 全店复购间隔分布（中位/P25/P75 + 分桶）
     - 分品类复购指标
+
+    当传入 compare_start_date/compare_end_date 时，对比期使用自定义日期
+    而不是自动计算的去年同期（支持环比 / 自定义对比）。
     """
     conn = get_connection()
     try:
@@ -166,7 +171,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         p75 = int(row[3]) if row[3] else 0
         avg_days = round(float(row[4]), 1) if row[4] else 0.0
 
-        # ── 2. 分桶分布（当前周期 + 去年同期 + 前年同期） ──
+        # ── 2. 分桶分布（当前周期 + 对比期 + 前年同期） ──
         bucket_distribution = []
         bucket_counts = {
             "0-7天": int(row[5] or 0),
@@ -229,9 +234,13 @@ def get_repurchase_cycle(start_date: str, end_date: str,
             }
             return tg, bc
 
-        # 去年同期
-        ly_start = _shift_date_year(start_date, -1)
-        ly_end = _shift_date_year(end_date, -1)
+        # 对比期：优先使用自定义对比日期（环比 / 自定义），否则默认去年同期
+        if compare_start_date and compare_end_date:
+            ly_start = compare_start_date
+            ly_end = compare_end_date
+        else:
+            ly_start = _shift_date_year(start_date, -1)
+            ly_end = _shift_date_year(end_date, -1)
         ly_total_gaps, ly_bucket_counts = _fetch_bucket_distribution(ly_start, ly_end)
 
         # 前年同期
@@ -260,12 +269,10 @@ def get_repurchase_cycle(start_date: str, end_date: str,
                 "prev2_user_ratio": round(p2_ratio, 4) if p2_total_gaps > 0 else None,
             })
 
-        # ── 3. 分品类复购指标（当前周期 + 去年同期） ──
+        # ── 3. 分品类复购指标（当前周期 + 对比期） ──
         cur_products = _compute_product_repurchase(conn, where_sql, params)
 
-        # 去年同期
-        ly_start = _shift_date_year(start_date, -1)
-        ly_end = _shift_date_year(end_date, -1)
+        # 对比期
         fb_ly = FilterBuilder()
         fb_ly.with_metric_type(MetricType.GSV)
         fb_ly.with_time_range(ly_start, ly_end)

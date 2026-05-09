@@ -44,6 +44,8 @@ export interface RepurchaseCycleParams {
   end_date: string
   channel?: string
   exclude_channels?: string[]
+  compare_start_date?: string
+  compare_end_date?: string
 }
 
 export function fetchRepurchaseCycle(params: RepurchaseCycleParams): Promise<RepurchaseCycleOverview> {
@@ -115,6 +117,8 @@ export interface TierFlowParams {
   metric_type?: 'GSV' | 'GMV'
   channel?: string
   exclude_channels?: string[]
+  compare_start_date?: string
+  compare_end_date?: string
 }
 
 export function fetchTierFlow(params: TierFlowParams): Promise<TierFlowResponse> {
@@ -164,6 +168,8 @@ export interface RFMAnalysisParams {
   metric_type?: 'GSV' | 'GMV'
   channel?: string
   exclude_channels?: string[]
+  compare_start_date?: string
+  compare_end_date?: string
 }
 
 export function fetchRFMAnalysis(params: RFMAnalysisParams): Promise<RFMAnalysisResponse> {

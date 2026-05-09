@@ -33,12 +33,20 @@ const rFlowQueryParams = computed(() => ({
   exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
 }))
 
+// 对比参数：auto_yoy 不传（后端原生 Y-1），auto_mom / custom 传计算后的日期
+const compareQueryParams = computed(() => {
+  if (filterStore.compareMode === 'auto_yoy') return {}
+  const comp = filterStore.compareParams
+  if (!comp) return {}
+  return { compare_start_date: comp[0], compare_end_date: comp[1] }
+})
+
 // ⚠️ queryKey 必须 computed(() => [..., {...}]) 展开，否则 ComputedRef 嵌套导致 channel 变化不触发请求
-const rFlowQueryKey = computed(() => ['rfm-r-flow', { ...toValue(rFlowQueryParams) }])
+const rFlowQueryKey = computed(() => ['rfm-r-flow', { ...toValue(rFlowQueryParams) }, toValue(compareQueryParams)])
 
 const { data: rFlowData, isLoading: rFlowLoading, error: rFlowError, refetch: rFlowRefetch } = useQuery({
   queryKey: rFlowQueryKey,
-  queryFn: () => fetchRFMRFlow(toValue(rFlowQueryParams)),
+  queryFn: () => fetchRFMRFlow({ ...toValue(rFlowQueryParams), ...toValue(compareQueryParams) }),
   staleTime: 60_000,
 })
 

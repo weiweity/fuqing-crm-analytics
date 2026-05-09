@@ -35,11 +35,19 @@ const rfmQueryParams = computed(() => ({
   exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
 }))
 
-const rfmQueryKey = computed(() => ['rfm-analysis', { ...toValue(rfmQueryParams) }])
+// 对比参数：auto_yoy 不传（后端原生 Y-1），auto_mom / custom 传计算后的日期
+const compareQueryParams = computed(() => {
+  if (filterStore.compareMode === 'auto_yoy') return {}
+  const comp = filterStore.compareParams
+  if (!comp) return {}
+  return { compare_start_date: comp[0], compare_end_date: comp[1] }
+})
+
+const rfmQueryKey = computed(() => ['rfm-analysis', { ...toValue(rfmQueryParams) }, toValue(compareQueryParams)])
 
 const { data: rfmData, isLoading: rfmLoading, error: rfmError, refetch: rfmRefetch } = useQuery({
   queryKey: rfmQueryKey,
-  queryFn: () => fetchRFMAnalysis(toValue(rfmQueryParams)),
+  queryFn: () => fetchRFMAnalysis({ ...toValue(rfmQueryParams), ...toValue(compareQueryParams) }),
   staleTime: 60_000,
 })
 

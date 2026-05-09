@@ -45,10 +45,15 @@ def _resolve_date_ranges(
     period: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ):
     """
-    解析当前期 / 同比期 / 前年期 的日期范围。
+    解析当前期 / 对比期 / 前年期 的日期范围。
     与 calculate_audience_summary 保持一致。
+
+    当传入 compare_start_date/compare_end_date 时，对比期使用自定义日期
+    而不是自动计算的去年同期（支持环比 / 自定义对比）。
     """
     today = date.today()
     current_year_label = str(today.year)
@@ -88,14 +93,26 @@ def _resolve_date_ranges(
         cutoff_date = date(cur_start_y, cur_start_m, 1) - timedelta(days=1)
         cutoff = cutoff_date.strftime("%Y-%m-%d")
 
-        ly_date = date(cur_start_y - 1, cur_start_m, cur_start_d)
-        ly_start_dt = f"{ly_date.year}-{ly_date.month:02d}-{ly_date.day:02d} 00:00:00"
-        ly_end_year, ly_end_month = cur_end_y - 1, cur_end_m
-        ly_end_day = min(cur_end_d, monthrange(ly_end_year, ly_end_month)[1])
-        ly_end_dt = f"{ly_end_year}-{ly_end_month:02d}-{ly_end_day:02d} 23:59:59"
-        ly_cutoff = date(ly_date.year, ly_date.month, 1) - timedelta(days=1)
-        ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
+        # ── 对比期：优先使用自定义对比日期（环比 / 自定义）──
+        if compare_start_date and compare_end_date:
+            comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split("-"))
+            ly_start_dt = f"{compare_start_date} 00:00:00"
+            ly_end_dt = f"{compare_end_date} 23:59:59"
+            ly_cutoff = date(comp_start_y, comp_start_m, 1) - timedelta(days=1)
+            ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
+            comp_year_label = str(comp_start_y)
+        else:
+            # 默认：去年同期
+            ly_date = date(cur_start_y - 1, cur_start_m, cur_start_d)
+            ly_start_dt = f"{ly_date.year}-{ly_date.month:02d}-{ly_date.day:02d} 00:00:00"
+            ly_end_year, ly_end_month = cur_end_y - 1, cur_end_m
+            ly_end_day = min(cur_end_d, monthrange(ly_end_year, ly_end_month)[1])
+            ly_end_dt = f"{ly_end_year}-{ly_end_month:02d}-{ly_end_day:02d} 23:59:59"
+            ly_cutoff = date(ly_date.year, ly_date.month, 1) - timedelta(days=1)
+            ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
+            comp_year_label = str(cur_start_y - 1)
 
+        # prev2 始终为前年同期（固定基准）
         y2_date = date(cur_start_y - 2, cur_start_m, cur_start_d)
         y2_start_dt = f"{y2_date.year}-{y2_date.month:02d}-{y2_date.day:02d} 00:00:00"
         y2_end_year, y2_end_month = cur_end_y - 2, cur_end_m
@@ -105,7 +122,6 @@ def _resolve_date_ranges(
         y2_cutoff_str = y2_cutoff.strftime("%Y-%m-%d")
 
         current_year_label = str(cur_start_y)
-        comp_year_label = str(cur_start_y - 1)
         prev2_year_label = str(cur_start_y - 2)
 
         return {
@@ -440,6 +456,8 @@ def get_rfm_r_flow(
     end_date: Optional[str] = None,
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     R 区间流转看板接口
@@ -448,7 +466,7 @@ def get_rfm_r_flow(
          + member_rows（会员-本渠道唤醒贡献）
          + member_same_channel_rows（会员-本渠道回购本渠道）
     """
-    ranges = _resolve_date_ranges(period, start_date, end_date)
+    ranges = _resolve_date_ranges(period, start_date, end_date, compare_start_date, compare_end_date)
     cur_start_dt, cur_end_dt, cutoff = ranges["current"]
     comp_start_dt, comp_end_dt, comp_cutoff = ranges["comp"]
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]
@@ -796,11 +814,13 @@ def get_rfm_f_flow(
     end_date: Optional[str] = None,
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     F 区间流转看板接口
     """
-    ranges = _resolve_date_ranges(period, start_date, end_date)
+    ranges = _resolve_date_ranges(period, start_date, end_date, compare_start_date, compare_end_date)
     cur_start_dt, cur_end_dt, cutoff = ranges["current"]
     comp_start_dt, comp_end_dt, comp_cutoff = ranges["comp"]
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]
@@ -1143,11 +1163,13 @@ def get_rfm_m_flow(
     end_date: Optional[str] = None,
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     M 区间流转看板接口
     """
-    ranges = _resolve_date_ranges(period, start_date, end_date)
+    ranges = _resolve_date_ranges(period, start_date, end_date, compare_start_date, compare_end_date)
     cur_start_dt, cur_end_dt, cutoff = ranges["current"]
     comp_start_dt, comp_end_dt, comp_cutoff = ranges["comp"]
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]

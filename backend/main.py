@@ -788,6 +788,8 @@ def get_rfm_r_flow_api(
     end_date: Optional[str] = Query(default=None, description="结束日期 YYYY-MM-DD"),
     channel: Optional[str] = Query(default=None, description="渠道筛选"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     RFM - R区间流转看板
@@ -800,6 +802,8 @@ def get_rfm_r_flow_api(
         end_date=end_date,
         channel=channel,
         exclude_channels=exclude_channels,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
     )
 
 
@@ -812,6 +816,8 @@ def get_rfm_f_flow_api(
     end_date: Optional[str] = Query(default=None, description="结束日期 YYYY-MM-DD"),
     channel: Optional[str] = Query(default=None, description="渠道筛选"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     RFM - F区间流转看板
@@ -824,6 +830,8 @@ def get_rfm_f_flow_api(
         end_date=end_date,
         channel=channel,
         exclude_channels=exclude_channels,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
     )
 
 
@@ -836,6 +844,8 @@ def get_rfm_m_flow_api(
     end_date: Optional[str] = Query(default=None, description="结束日期 YYYY-MM-DD"),
     channel: Optional[str] = Query(default=None, description="渠道筛选"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """
     RFM - M区间流转看板
@@ -848,6 +858,8 @@ def get_rfm_m_flow_api(
         end_date=end_date,
         channel=channel,
         exclude_channels=exclude_channels,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
     )
 
 
