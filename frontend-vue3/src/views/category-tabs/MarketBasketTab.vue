@@ -55,6 +55,11 @@ const minSupportPercent = ref<number>(0)
 // 显示详情 / 收起
 const showDetail = ref(false)
 
+// 切换显示模式时重置排序，避免精简模式指向不可见列
+watch(showDetail, () => {
+  sortBy.value = 'co_order_count'
+})
+
 const queryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
@@ -76,7 +81,8 @@ const {
 })
 
 // ─── 金额渲染辅助：防止长数字换行 ─────────────────────────────────
-function moneySpan(amount: number, prefix = '¥'): any {
+function moneySpan(amount: number | null | undefined, prefix = '¥'): any {
+  if (amount == null || Number.isNaN(amount)) return h('span', { style: 'white-space: nowrap' }, '—')
   return h('span', { style: 'white-space: nowrap' }, prefix + amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 }
 
@@ -198,11 +204,18 @@ const fullColumns = computed<DataTableColumns<any>>(() => [
     render: (row: any) => h('span', { style: 'white-space: nowrap' }, row.current.gsv_lift.toFixed(2) + 'x'),
   },
   {
-    title: () => hColTip('连带GSV', '同时包含目标品类和该品类的所有订单金额总和'),
+    title: () => hColTip('连带GSV（整单）', '同时包含目标品类和该品类的所有订单金额总和\n⚠️ 跨品类重复计算：一笔订单含多个关联品类时，整单金额会在每个品类中重复计入\n用于评估连带订单的客单价规模'),
     key: 'co_gsv',
     width: 140,
     align: 'center',
     render: (row: any) => moneySpan(row.current.co_gsv),
+  },
+  {
+    title: () => hColTip('连带GSV（自身）', '关联品类在这些连带订单中的实际销售金额\n✅ 可加总，不重复：多个关联品类的自身金额之和 = 真实销售贡献\n用于评估关联品类的实际营收贡献'),
+    key: 'co_own_gsv',
+    width: 140,
+    align: 'center',
+    render: (row: any) => moneySpan(row.current.co_own_gsv),
   },
   {
     title: '去年置信度',
@@ -314,6 +327,7 @@ const sortedTableData = computed(() => {
 
 // ─── Lift 业务化解读 ─────────────────────────────────────────────
 function liftInterpret(lift: number): string {
+  if (!isFinite(lift)) return '数据异常'
   if (lift > 3) return `强关联：一起买的概率是单独购买的 ${lift.toFixed(1)} 倍`
   if (lift > 1.5) return `中等关联：一起买的概率是单独购买的 ${lift.toFixed(1)} 倍`
   if (lift > 1) return `弱关联：一起买的概率是单独购买的 ${lift.toFixed(1)} 倍`
@@ -335,6 +349,7 @@ function handleExport() {
     co_aus: row.current.co_aus,
     gsv_lift: row.current.gsv_lift,
     co_gsv: row.current.co_gsv,
+    co_own_gsv: row.current.co_own_gsv,
     prev_confidence: row.previous?.confidence ?? null,
     prev_lift: row.previous?.lift ?? null,
     prev_co_gsv: row.previous?.co_gsv ?? null,
@@ -355,7 +370,8 @@ function handleExport() {
       { header: '提升度', key: 'lift', width: 10 },
       { header: '连带人均消费', key: 'co_aus', width: 14, numFmt: '#,##0.00' },
       { header: '消费提升', key: 'gsv_lift', width: 12 },
-      { header: '连带GSV', key: 'co_gsv', width: 14, numFmt: '#,##0.00' },
+      { header: '连带GSV(整单)', key: 'co_gsv', width: 14, numFmt: '#,##0.00' },
+      { header: '连带GSV(自身)', key: 'co_own_gsv', width: 14, numFmt: '#,##0.00' },
       { header: '去年同期置信度', key: 'prev_confidence', width: 14, numFmt: '0.00%' },
       { header: '去年同期提升度', key: 'prev_lift', width: 14 },
       { header: '去年同期连带GSV', key: 'prev_co_gsv', width: 16, numFmt: '#,##0.00' },
@@ -373,8 +389,10 @@ const METRIC_TIPS = {
   support: '关联订单数÷总订单数。越高说明这个组合越常见',
   confidence: '关联订单数÷目标品类订单数。越高说明买了目标品类的用户越可能同时买它',
   lift: '一起买的概率÷单独买的概率。>1 正向关联，越高越应该搭着卖',
-  co_aus: '连带GSV÷连带购买人数。即同时买这两个品类的人均消费',
+  co_aus: '连带GSV(整单)÷连带购买人数。即同时买这两个品类的人均消费',
   gsv_lift: '连带人均消费÷目标品类人均消费。>1 说明连带后人均消费更高',
+  co_gsv: '同时包含目标品类和该品类的所有订单金额总和。跨品类重复计算，用于评估连带订单规模',
+  co_own_gsv: '关联品类在这些连带订单中的实际销售金额。可加总不重复，用于评估实际营收贡献',
 }
 </script>
 
@@ -454,6 +472,16 @@ const METRIC_TIPS = {
             <span class="font-medium">消费提升:</span> {{ METRIC_TIPS.gsv_lift }}
           </span>
         </div>
+
+        <!-- GSV 口径说明（仅详情模式显示） -->
+        <div v-if="showDetail" class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 mb-3 p-2 bg-slate-50 rounded">
+          <span>
+            <span class="font-medium text-amber-600">连带GSV(整单):</span> {{ METRIC_TIPS.co_gsv }}
+          </span>
+          <span>
+            <span class="font-medium text-emerald-600">连带GSV(自身):</span> {{ METRIC_TIPS.co_own_gsv }}
+          </span>
+        </div>
       </div>
 
       <!-- 关联品类表格 -->
@@ -502,14 +530,15 @@ const METRIC_TIPS = {
           <span class="font-medium">支持度</span>=关联订单数÷总订单数，越高组合越常见；
           <span class="font-medium">置信度</span>=关联订单数÷目标品类订单数，越高连带概率越大；
           <span class="font-medium">提升度</span>=一起买的概率÷单独买的概率，>1 正向关联；
-          <span class="font-medium">消费提升</span>=连带人均消费÷目标品类人均消费，>1 说明连带后人均消费更高
+          <span class="font-medium">消费提升</span>=连带人均消费÷目标品类人均消费，>1 说明连带后人均消费更高；
+          <span class="font-medium text-amber-600">连带GSV(整单)</span>跨品类会重复计算，<span class="font-medium text-emerald-600">连带GSV(自身)</span>为品类真实贡献、可加总
         </p>
 
         <DataTablePro
           :columns="tableColumns"
           :data="sortedTableData"
           :pagination="false"
-          :scroll-x="showDetail ? 1500 : 700"
+          :scroll-x="showDetail ? 1650 : 700"
           :max-height="520"
         />
       </div>

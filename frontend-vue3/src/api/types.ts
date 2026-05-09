@@ -451,7 +451,7 @@ export interface paths {
          * Get Market Basket Api
          * @description 购物篮分析
          *
-         *     返回目标品类的关联品类及YoY对比（Support/Confidence/Lift）
+         *     返回目标品类的关联品类及YoY对比（支持度/置信度/提升度/连带客单价/GSV提升）
          */
         get: operations["get_market_basket_api_api_v1_category_basket_get"];
         put?: never;
@@ -3241,6 +3241,16 @@ export interface components {
             lift: number;
             /** Target Order Count */
             target_order_count: number;
+            /** Co Gsv */
+            co_gsv: number;
+            /** Co Own Gsv */
+            co_own_gsv: number;
+            /** Co Aus */
+            co_aus: number;
+            /** Target Aus */
+            target_aus: number;
+            /** Gsv Lift */
+            gsv_lift: number;
         };
         /**
          * MarketBasketResponse
@@ -3277,6 +3287,8 @@ export interface components {
             lift_change?: number | null;
             /** Rank Change */
             rank_change?: number | null;
+            /** Gsv Change */
+            gsv_change?: number | null;
         };
         /**
          * NewCustomerChannelQuality

@@ -1882,13 +1882,26 @@ def _compute_market_basket(
     total_count AS (
         SELECT COUNT(DISTINCT order_id) AS total_orders FROM period_orders
     ),
+    -- 关联品类在订单中的自身金额（用于 co_own_gsv：可加总、不重复）
+    co_own_values AS (
+        SELECT
+            COALESCE(o.{level_col}, '未知') AS category_name,
+            o.order_id,
+            o.user_id,
+            SUM(o.actual_amount) AS own_amount
+        FROM orders o
+        WHERE o.order_id IN (SELECT order_id FROM target_orders)
+          AND COALESCE(o.{level_col}, '未知') != ?
+        GROUP BY COALESCE(o.{level_col}, '未知'), o.order_id, o.user_id
+    ),
     -- 与目标品类同单出现的其他品类及其连带GSV和用户数
     basket_items AS (
         SELECT
             po.category_name,
             COUNT(DISTINCT po.order_id) AS co_order_count,
             COUNT(DISTINCT po.user_id) AS co_user_count,
-            SUM(tov.actual_amount) AS co_gsv
+            SUM(tov.actual_amount) AS co_gsv,
+            SUM(cov.own_amount) AS co_own_gsv
         FROM (
             SELECT DISTINCT order_id, user_id, category_name
             FROM period_orders
@@ -1896,6 +1909,10 @@ def _compute_market_basket(
               AND category_name != ?
         ) po
         JOIN target_order_values tov ON tov.order_id = po.order_id AND tov.user_id = po.user_id
+        LEFT JOIN co_own_values cov
+            ON cov.order_id = po.order_id
+            AND cov.user_id = po.user_id
+            AND cov.category_name = po.category_name
         GROUP BY po.category_name
     ),
     -- 各品类的独立订单数(用于lift分母)
@@ -1911,6 +1928,7 @@ def _compute_market_basket(
         b.co_order_count,
         b.co_user_count,
         b.co_gsv,
+        b.co_own_gsv,
         tc.target_order_count,
         tc2.total_orders,
         tavg.target_gsv,
@@ -1925,9 +1943,8 @@ def _compute_market_basket(
     LIMIT 50
     """
 
-    # 参数: date(2) + channel + exclude + target(2)
-    # item_orders/target_order_values 复用 period_orders，不需要额外参数
-    params = base_params + [target_category, target_category]
+    # 参数: date(2) + channel + exclude + target(1) + target(1 for co_own_values) + target(1 for basket_items subquery)
+    params = base_params + [target_category, target_category, target_category]
     rows = conn.execute(sql, params).fetchall()
 
     items = []
@@ -1938,11 +1955,12 @@ def _compute_market_basket(
         co_count = int(row[1] or 0)
         co_user_count = int(row[2] or 0)
         co_gsv = float(row[3] or 0)
-        target_count = int(row[4] or 0)
-        total_orders = int(row[5] or 0)
-        target_gsv = float(row[6] or 0)
-        target_user_count = int(row[7] or 0)
-        item_count = int(row[8] or 0)
+        co_own_gsv = float(row[4] or 0)
+        target_count = int(row[5] or 0)
+        total_orders = int(row[6] or 0)
+        target_gsv = float(row[7] or 0)
+        target_user_count = int(row[8] or 0)
+        item_count = int(row[9] or 0)
 
         if target_count == 0 or total_orders == 0:
             continue
@@ -1964,6 +1982,7 @@ def _compute_market_basket(
             "lift": round(lift, 4),
             "target_order_count": target_count,
             "co_gsv": round(co_gsv, 2),
+            "co_own_gsv": round(co_own_gsv, 2),
             "co_aus": round(co_aus, 2),
             "target_aus": round(target_aus, 2),
             "gsv_lift": round(gsv_lift, 2),

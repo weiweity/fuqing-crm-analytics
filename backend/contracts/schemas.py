@@ -1318,7 +1318,8 @@ class MarketBasketItem(BaseModel):
     confidence: float            # 置信度 = co_order_count / target_orders
     lift: float                  # 提升度 = confidence / item_prob
     target_order_count: int      # 目标品类订单数（分母）
-    co_gsv: float                # 连带订单GSV = 同时含目标品类+关联品类的订单的actual_amount总和
+    co_gsv: float                # 连带订单整单GSV = 同时含目标品类+关联品类的订单的actual_amount总和（跨品类可加总时会重复计算）
+    co_own_gsv: float            # 关联品类自身GSV = 该品类在连带订单中的实际销售金额（可加总，不重复）
     co_aus: float                # 连带人均消费(AUS) = co_gsv / 连带购买人数
     target_aus: float            # 目标品类人均消费(AUS baseline)
     gsv_lift: float              # 消费提升倍数 = co_aus / target_aus
