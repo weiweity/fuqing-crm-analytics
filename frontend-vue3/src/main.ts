@@ -53,6 +53,26 @@ async function bootstrap() {
     }
   })
 
+  // 定期续期 token（每30分钟），防止长时间操作后 token 过期
+  setInterval(async () => {
+    const token = sessionStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) return
+    try {
+      const res = await fetch('/api/v1/auth/refresh', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        // token 已过期，触发过期事件
+        sessionStorage.removeItem(AUTH_TOKEN_KEY)
+        sessionStorage.removeItem(AUTH_USER_KEY)
+        window.dispatchEvent(new CustomEvent('auth:expired'))
+      }
+    } catch {
+      // 网络异常时不做处理，避免离线误判
+    }
+  }, 30 * 60 * 1000) // 30分钟
+
   // 等待初始路由解析完成（含导航守卫重定向）后再挂载，防止未登录时闪一下看板布局
   await router.isReady()
 

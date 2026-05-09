@@ -63,7 +63,8 @@ def _load_credentials() -> dict[str, str]:
 
 VALID_CREDENTIALS: dict[str, str] = _load_credentials()
 
-# 内存 token 存储（key=token, value=(username, created_at)）
+# 内存 token 存储（key=token, value=(username, last_active_at)）
+# last_active_at 用于滑动过期：每次请求成功会刷新这个时间
 ACTIVE_TOKENS: dict[str, tuple[str, datetime]] = {}
 
 # 登录限速记录（key=username, value=(失败次数, 首次失败时间戳, 锁定截止秒级时间戳)）
@@ -139,16 +140,23 @@ def _record_success(username: str):
     _LOGIN_ATTEMPTS.pop(username, None)
 
 
-def _verify_token(token: str) -> str | None:
-    """验证 token 有效性，返回 username 或 None"""
+def _verify_token(token: str, sliding: bool = True) -> str | None:
+    """验证 token 有效性，返回 username 或 None。
+    
+    sliding=True 时刷新 last_active_at（滑动过期），用于普通 API 请求。
+    sliding=False 时不刷新，用于 /auth/me 等只读检查。
+    """
     record = ACTIVE_TOKENS.get(token)
     if not record:
         return None
-    username, created_at = record
-    if datetime.now() - created_at > TOKEN_TTL:
+    username, last_active_at = record
+    if datetime.now() - last_active_at > TOKEN_TTL:
         # token 过期，自动清理
         ACTIVE_TOKENS.pop(token, None)
         return None
+    if sliding:
+        # 滑动续期：刷新最后活跃时间
+        ACTIVE_TOKENS[token] = (username, datetime.now())
     return username
 
 
@@ -203,6 +211,26 @@ def me(request: Request):
         raise HTTPException(status_code=401, detail="未登录或登录已过期")
 
     return {"username": username}
+
+
+class RefreshResponse(BaseModel):
+    token: str
+    username: str
+
+
+@router.post("/refresh", response_model=RefreshResponse)
+def refresh_token(request: Request):
+    """刷新 token 过期时间（滑动续期），返回相同 token + username"""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未提供认证令牌")
+    token = auth[7:]
+
+    username = _verify_token(token, sliding=True)
+    if username is None:
+        raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+
+    return {"token": token, "username": username}
 
 
 @router.post("/logout", response_model=LogoutResponse)
