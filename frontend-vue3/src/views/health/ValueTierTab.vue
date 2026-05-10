@@ -12,6 +12,7 @@ import {
   type SegmentDefinitionItem,
 } from '@/api/health'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
+import RFMSegmentDrilldown from './RFMSegmentDrilldown.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -26,6 +27,19 @@ const filterStore = useFilterStore()
 const showLogicExplain = ref(false)
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 const rfmChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
+const selectedSegment = ref<string | null>(null)
+
+const drilldownQueryParams = computed(() => ({
+  start_date: filterStore.dateRange[0],
+  end_date: filterStore.dateRange[1],
+  channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+}))
+
+function onRFMChartClick(params: any) {
+  if (params.componentType === 'series' && params.seriesType === 'bar') {
+    selectedSegment.value = params.name
+  }
+}
 
 const rfmQueryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
@@ -188,9 +202,9 @@ const repurchaseRateChartOption = computed(() => {
       splitLine: { lineStyle: { color: '#e2e8f0', type: [4, 4] } },
     },
     series: [
-      { name: `${data.year_label}年`, type: 'bar', data: rows.map((r) => r.repurchase_rate_current), itemStyle: { color: BRAND_PRIMARY, borderRadius: [3, 3, 0, 0] }, barGap: '20%',         label: { show: true, position: 'top', formatter: (p: EChartTooltipParam) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 9, color: BRAND_PRIMARY } },
-      { name: `${data.comp_year_label}年`, type: 'bar', data: rows.map((r) => r.repurchase_rate_comp), itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', formatter: (p: EChartTooltipParam) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 9, color: '#60a5fa' } },
-      { name: `${data.prev2_year_label}年`, type: 'bar', data: rows.map((r) => r.repurchase_rate_prev2), itemStyle: { color: '#94a3b8', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', formatter: (p: EChartTooltipParam) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 9, color: '#94a3b8' } },
+      { name: `${data.year_label}年`, type: 'bar', data: rows.map((r) => r.repurchase_rate_current), itemStyle: { color: BRAND_PRIMARY, borderRadius: [3, 3, 0, 0] }, barGap: '20%', cursor: 'pointer', emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(37,99,235,0.3)' } }, label: { show: true, position: 'top', formatter: (p: EChartTooltipParam) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 9, color: BRAND_PRIMARY } },
+      { name: `${data.comp_year_label}年`, type: 'bar', data: rows.map((r) => r.repurchase_rate_comp), itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] }, cursor: 'pointer', emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(96,165,250,0.3)' } }, label: { show: true, position: 'top', formatter: (p: EChartTooltipParam) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 9, color: '#60a5fa' } },
+      { name: `${data.prev2_year_label}年`, type: 'bar', data: rows.map((r) => r.repurchase_rate_prev2), itemStyle: { color: '#94a3b8', borderRadius: [3, 3, 0, 0] }, cursor: 'pointer', emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(148,163,184,0.3)' } }, label: { show: true, position: 'top', formatter: (p: EChartTooltipParam) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 9, color: '#94a3b8' } },
     ],
   }
 })
@@ -379,8 +393,17 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
       <ErrorState v-if="rfmError" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
-      <EChartsWrapper v-else ref="rfmChartRef" :option="repurchaseRateChartOption" height="300px" />
+      <EChartsWrapper v-else ref="rfmChartRef" :option="repurchaseRateChartOption" height="300px" @chart-click="onRFMChartClick" />
     </div>
+
+    <Transition name="slide-fade">
+      <RFMSegmentDrilldown
+        v-if="selectedSegment"
+        :rfm-segment="selectedSegment"
+        :query-params="drilldownQueryParams"
+        @close="selectedSegment = null"
+      />
+    </Transition>
 
     <!-- 表格：全店 -->
     <div class="bi-card p-4 mb-4">

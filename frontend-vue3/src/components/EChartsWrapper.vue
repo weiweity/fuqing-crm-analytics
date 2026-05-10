@@ -42,6 +42,10 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
+const emit = defineEmits<{
+  chartClick: [params: any]
+}>()
+
 const { baseTheme } = useChartTheme()
 const chartRef = ref<HTMLDivElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
@@ -54,6 +58,8 @@ function initChart() {
   requestAnimationFrame(() => {
     chartInstance?.resize()
   })
+  // 转发 chart click 事件
+  chartInstance.on('click', (params: any) => { emit('chartClick', params) })
 }
 
 function updateChart() {
