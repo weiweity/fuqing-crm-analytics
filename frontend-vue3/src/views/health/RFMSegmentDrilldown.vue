@@ -97,6 +97,7 @@ const emit = defineEmits<{ close: [] }>()
 const filterStore = useFilterStore()
 const loading = ref(false)
 const data = ref<RFMCategoryDrilldownResponse | null>(null)
+// TODO: 后续用于柱状图选中高亮
 const selectedCategory = ref<string | null>(null)
 
 const displayRows = computed(() => (data.value?.categories ?? []).slice(0, 10))
@@ -235,8 +236,8 @@ async function load() {
   }
 }
 
-watch(() => props.rfmSegment, load, { immediate: true })
-watch(liveQueryParams, load, { deep: true })
+// 合并 watch：rfmSegment 变化时重新加载，filterStore 变化时也重新加载
+watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 </script>
 
 <style scoped>
