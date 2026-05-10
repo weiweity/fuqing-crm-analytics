@@ -31,7 +31,7 @@
           </div>
         </div>
       </div>
-      <div class="kpi-hint">回购率 = 当期有复购行为的去重用户数 ÷ 象限总用户数，与柱状图口径一致</div>
+      <div class="kpi-hint">口径：当期有复购行为的去重用户数 ÷ 象限总用户数（不限品类，与柱状图一致）</div>
 
       <div v-if="data.summary.top_drivers?.length" class="driver-row">
         <div
@@ -56,7 +56,7 @@
         <div class="table-scroll-wrap">
           <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="false" :scroll-x="780" />
         </div>
-        <div class="table-hint">回购率 = 当期回购人数 ÷ 历史人数（品类维度，含多品类重复计入）</div>
+        <div class="table-hint">口径说明：历史人数 = 历史买过该品类的人；回购 = 同品类复购（买过A又买了A）；同一用户买过多品类会重复计入</div>
       </div>
 
       <div v-if="memberRows.length > 0" class="member-wrap">
@@ -305,6 +305,7 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .chart-wrap, .table-wrap, .member-wrap { margin: 10px 0; }
 .selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+.table-hint { font-size: 11px; color: #94a3b8; margin-top: 6px; }
 .member-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .member-title { font-size: 13px; font-weight: 600; color: #334155; }
 .member-hint { font-size: 11px; color: #94a3b8; background: #f1f5f9; padding: 1px 8px; border-radius: 10px; }
