@@ -41,7 +41,7 @@
           :class="(d.yoy_repurchase_rate ?? 0) >= 0 ? 'up' : 'down'"
         >
           <div class="driver-name">{{ d.category_name }}</div>
-          <div class="driver-rate">{{ fmtPct(d.repurchase_rate_current) }}</div>
+          <div class="driver-rate">同品类复购率：{{ fmtPct(d.repurchase_rate_current) }}</div>
           <div class="driver-yoy">{{ fmtYoY(d.yoy_repurchase_rate) }}</div>
           <div class="driver-base">{{ d.hist_users_current?.toLocaleString() }} 基数</div>
         </div>
@@ -56,7 +56,7 @@
         <div class="table-scroll-wrap">
           <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="false" :scroll-x="780" />
         </div>
-        <div class="table-hint">口径说明：历史人数 = 历史买过该品类的人；回购 = 同品类复购（买过A又买了A）；同一用户买过多品类会重复计入</div>
+        <div class="table-hint">口径说明：历史人数 = 历史买过该品类的人；同品类复购 = 买过A又买了A；同一用户买过多品类会重复计入</div>
       </div>
 
       <div v-if="memberRows.length > 0" class="member-wrap">
@@ -145,7 +145,7 @@ const tableColumns = computed(() => [
     render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-',
   },
   {
-    title: `回购人数(${yearLabel.value})`,
+    title: `复购人数(${yearLabel.value})`,
     key: 'repurchase_users_current',
     width: 110,
     align: 'center' as const,
@@ -153,7 +153,7 @@ const tableColumns = computed(() => [
     render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-',
   },
   {
-    title: `回购率(${yearLabel.value})`,
+    title: `同品类复购率(${yearLabel.value})`,
     key: 'repurchase_rate_current',
     width: 100,
     align: 'center' as const,
