@@ -15,22 +15,23 @@
     </div>
 
     <template v-else-if="data">
-      <div class="kpi-row">
-        <div class="kpi-item">
-          <div class="kpi-label">象限用户数</div>
-          <div class="kpi-value">{{ data.summary.segment_user_count?.toLocaleString() ?? '-' }}</div>
+      <div class="driver-row">
+        <div class="driver-card kpi-card">
+          <div class="driver-name">象限用户数</div>
+          <div class="driver-rate kpi-rate">{{ data.summary.segment_user_count?.toLocaleString() ?? '-' }}</div>
         </div>
-        <div class="kpi-item">
-          <div class="kpi-label">整体回购率</div>
-          <div class="kpi-value">{{ fmtPct(data.summary.overall_repurchase_rate) }}</div>
+        <div class="driver-card kpi-card">
+          <div class="driver-name">整体回购率</div>
+          <div class="driver-rate kpi-rate">{{ fmtPct(data.summary.overall_repurchase_rate) }}</div>
         </div>
-        <div class="kpi-item">
-          <div class="kpi-label">同比变化</div>
-          <div class="kpi-value" :class="yoyClass(data.summary.overall_repurchase_rate_yoy)">
+        <div class="driver-card kpi-card">
+          <div class="driver-name">同比变化</div>
+          <div class="driver-rate kpi-rate" :class="yoyClass(data.summary.overall_repurchase_rate_yoy)">
             {{ fmtYoY(data.summary.overall_repurchase_rate_yoy) }}
           </div>
         </div>
       </div>
+      <div class="kpi-hint">回购率 = 当期有复购行为的去重用户数 ÷ 象限总用户数，与柱状图口径一致</div>
 
       <div v-if="data.summary.top_drivers?.length" class="driver-row">
         <div
@@ -53,7 +54,7 @@
 
       <div class="table-wrap">
         <div class="table-scroll-wrap">
-          <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="{ pageSize: 10 }" :scroll-x="780" />
+          <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="false" :scroll-x="780" />
         </div>
       </div>
 
@@ -295,12 +296,11 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .segment-badge { background: #2563eb; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; }
 .header-title { font-weight: 600; font-size: 15px; }
 .loading-wrap { display: flex; justify-content: center; padding: 32px; }
-.kpi-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-.kpi-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 14px; min-width: 90px; }
-.kpi-label { font-size: 11px; color: #64748b; margin-bottom: 4px; }
-.kpi-value { font-size: 18px; font-weight: 600; }
-.kpi-value.success { color: #16a34a; }
-.kpi-value.danger { color: #dc2626; }
+.kpi-card { background: #f8fafc; }
+.kpi-rate { color: #1e293b !important; }
+.kpi-rate.success { color: #16a34a !important; }
+.kpi-rate.danger { color: #dc2626 !important; }
+.kpi-hint { font-size: 11px; color: #94a3b8; margin: -10px 0 14px 4px; }
 .chart-wrap, .table-wrap, .member-wrap { margin: 10px 0; }
 .selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
