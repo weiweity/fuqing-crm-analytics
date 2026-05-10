@@ -43,6 +43,7 @@
       <div class="chart-wrap" style="cursor: pointer">
         <EChartsWrapper :option="chartOption" style="height: 240px" @chart-click="onChartClick" />
         <div class="chart-hint">点击柱状图可查看对应人群的品类拆解</div>
+        <div v-if="selectedCategory" class="selected-hint">当前选中：{{ selectedCategory }}</div>
       </div>
 
       <div class="table-wrap">
@@ -259,5 +260,6 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .insight-wrap ul { margin: 0; padding-left: 18px; }
 .insight-wrap li { font-size: 13px; margin: 3px 0; }
 .chart-hint { color: #999; font-size: 12px; margin: 4px 0 0 0; }
+.selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
 </style>
