@@ -4,6 +4,7 @@
       <div class="header-left">
         <span class="segment-badge">{{ props.rfmSegment }}</span>
         <span class="header-title">— 品类回购拆解</span>
+        <span class="header-subtitle">点击柱状图可查看对应人群的品类拆解</span>
       </div>
       <n-button quaternary circle size="small" @click="emit('close')">
         <template #icon><Close /></template>
@@ -42,7 +43,6 @@
 
       <div class="chart-wrap" style="cursor: pointer">
         <EChartsWrapper :option="chartOption" style="height: 240px" @chart-click="onChartClick" />
-        <div class="chart-hint">点击柱状图可查看对应人群的品类拆解</div>
         <div v-if="selectedCategory" class="selected-hint">当前选中：{{ selectedCategory }}</div>
       </div>
 
@@ -55,7 +55,9 @@
       <div v-if="memberRows.length > 0" class="member-wrap">
         <n-collapse>
           <n-collapse-item title="会员品类明细">
-            <DataTablePro :columns="tableColumns" :data="memberRows" :pagination="{ pageSize: 5 }" :scroll-x="780" />
+            <div class="table-scroll-wrap">
+              <DataTablePro :columns="tableColumns" :data="memberRows" :pagination="{ pageSize: 5 }" :scroll-x="780" />
+            </div>
           </n-collapse-item>
         </n-collapse>
       </div>
@@ -71,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { NButton, NCollapse, NCollapseItem, NSpin } from 'naive-ui'
 import { Close } from '@vicons/ionicons5'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
@@ -121,23 +123,54 @@ const yearLabel = computed(() => data.value?.year_label ?? '当期')
 const compYearLabel = computed(() => data.value?.comp_year_label ?? '对比期')
 
 const tableColumns = computed(() => [
-  { title: '品类', key: 'category_name', width: 130, align: 'center' as const },
-  { title: `历史人数(${yearLabel.value})`, key: 'hist_users_current', width: 110, align: 'center' as const, render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-' },
-  { title: `回购人数(${yearLabel.value})`, key: 'repurchase_users_current', width: 110, align: 'center' as const, render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-' },
-  { title: `回购率(${yearLabel.value})`, key: 'repurchase_rate_current', width: 100, align: 'center' as const, sorter: (a: any, b: any) => (a.repurchase_rate_current ?? 0) - (b.repurchase_rate_current ?? 0), render: (r: any) => fmtPct(r.repurchase_rate_current) },
+  { title: '品类', key: 'category_name', width: 130, align: 'center' as const, sorter: 'default' as any },
+  {
+    title: `历史人数(${yearLabel.value})`,
+    key: 'hist_users_current',
+    width: 110,
+    align: 'center' as const,
+    sorter: (a: any, b: any) => (a.hist_users_current ?? 0) - (b.hist_users_current ?? 0),
+    defaultSortOrder: 'descend' as const,
+    render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-',
+  },
+  {
+    title: `回购人数(${yearLabel.value})`,
+    key: 'repurchase_users_current',
+    width: 110,
+    align: 'center' as const,
+    sorter: (a: any, b: any) => (a.repurchase_users_current ?? 0) - (b.repurchase_users_current ?? 0),
+    render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-',
+  },
+  {
+    title: `回购率(${yearLabel.value})`,
+    key: 'repurchase_rate_current',
+    width: 100,
+    align: 'center' as const,
+    sorter: (a: any, b: any) => (a.repurchase_rate_current ?? 0) - (b.repurchase_rate_current ?? 0),
+    render: (r: any) => fmtPct(r.repurchase_rate_current),
+  },
   {
     title: `同比(${yearLabel.value} vs ${compYearLabel.value})`,
     key: 'yoy_repurchase_rate',
     width: 130,
     align: 'center' as const,
+    sorter: (a: any, b: any) => (a.yoy_repurchase_rate ?? 0) - (b.yoy_repurchase_rate ?? 0),
     render: (r: any) => {
       const v = r.yoy_repurchase_rate
       if (v == null) return '-'
+      const color = v >= 0 ? '#16a34a' : '#dc2626'
       const arrow = v >= 0 ? '↑' : '↓'
-      return `${arrow}${Math.abs(v * 100).toFixed(1)}pp`
+      return `<span style="color:${color};font-weight:600">${arrow}${Math.abs(v * 100).toFixed(1)}pp</span>`
     },
   },
-  { title: `回购GSV(${yearLabel.value})`, key: 'repurchase_gsv_current', width: 110, align: 'center' as const, render: (r: any) => r.repurchase_gsv_current != null ? '¥' + (r.repurchase_gsv_current / 10000).toFixed(1) + '万' : '-' },
+  {
+    title: `回购GSV(${yearLabel.value})`,
+    key: 'repurchase_gsv_current',
+    width: 110,
+    align: 'center' as const,
+    sorter: (a: any, b: any) => (a.repurchase_gsv_current ?? 0) - (b.repurchase_gsv_current ?? 0),
+    render: (r: any) => r.repurchase_gsv_current != null ? '¥' + (r.repurchase_gsv_current / 10000).toFixed(1) + '万' : '-',
+  },
 ])
 
 // Bug 1/3/6: 拓宽柱状图点击范围 + 颜色统一 + 数值标签
@@ -163,10 +196,10 @@ const chartOption = computed((): EChartsOption => {
             <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(1)}%</span>
           </div>`
         ).join('')
+        const catName = arr[0].name
         return `<div style="background:#f5f5f5;padding:8px 12px;border-radius:4px;line-height:1.8">
-          <div class="font-semibold mb-1">${arr[0].name}</div>
+          <div class="font-semibold mb-1" style="cursor:pointer;color:#533afd" onclick="window.__rFMDrilldownClick({name:'${catName}'})">${catName} — 点击查看品类拆解</div>
           ${rows}
-          <div class="text-[11px] text-slate-400 mt-1">点击查看「${arr[0].name}」的品类拆解</div>
         </div>`
       },
     },
@@ -219,12 +252,17 @@ function yoyClass(v: number | null | undefined): string {
   return v >= 0 ? 'success' : 'danger'
 }
 
-// Bug 1: 柱状图点击处理
+// Bug 1: 柱状图点击处理（暴露到 window 供 tooltip onclick 调用）
 function onChartClick(params: any) {
   const name = params?.name
   if (!name) return
   selectedCategory.value = name
 }
+
+// Issue 2: 将点击处理器暴露到 window，供 tooltip 区域 onclick 调用
+onMounted(() => {
+  ;(window as any).__rFMDrilldownClick = onChartClick
+})
 
 async function load() {
   loading.value = true
@@ -247,6 +285,7 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .header-left { display: flex; align-items: center; gap: 8px; }
 .segment-badge { background: #2563eb; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; }
 .header-title { font-weight: 600; font-size: 15px; }
+.header-subtitle { color: #999; font-size: 12px; margin-left: 4px; }
 .loading-wrap { display: flex; justify-content: center; padding: 32px; }
 .kpi-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .kpi-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 14px; min-width: 90px; }
@@ -259,7 +298,6 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .insight-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; }
 .insight-wrap ul { margin: 0; padding-left: 18px; }
 .insight-wrap li { font-size: 13px; margin: 3px 0; }
-.chart-hint { color: #999; font-size: 12px; margin: 4px 0 0 0; }
 .selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
 </style>
