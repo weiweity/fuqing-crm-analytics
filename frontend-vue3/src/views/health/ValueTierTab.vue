@@ -33,6 +33,7 @@ const drilldownQueryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
   channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+  ...compareQueryParams.value,
 }))
 
 function onRFMChartClick(params: any) {

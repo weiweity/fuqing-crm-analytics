@@ -92,26 +92,32 @@ const data = ref<RFMCategoryDrilldownResponse | null>(null)
 const displayRows = computed(() => data.value?.categories ?? [])
 const memberRows = computed(() => data.value?.member_categories ?? [])
 
-const tableColumns = [
+// 动态年份标签：支持同比/环比/自定义三种对比模式
+const yearLabel = computed(() => data.value?.year_label ?? '当期')
+const compYearLabel = computed(() => data.value?.comp_year_label ?? '对比期')
+
+const tableColumns = computed(() => [
   { title: '品类', key: 'category_name', width: 130 },
-  { title: '历史人数', key: 'hist_users_current', render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-' },
-  { title: '回购人数', key: 'repurchase_users_current', render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-' },
-  { title: '回购率', key: 'repurchase_rate_current', render: (r: any) => fmtPct(r.repurchase_rate_current) },
-  { title: '同比', key: 'yoy_repurchase_rate', render: (r: any) => fmtYoY(r.yoy_repurchase_rate) },
-  { title: '回购GSV', key: 'repurchase_gsv_current', render: (r: any) => r.repurchase_gsv_current != null ? '¥' + (r.repurchase_gsv_current / 10000).toFixed(1) + '万' : '-' },
-]
+  { title: `历史人数(${yearLabel.value})`, key: 'hist_users_current', render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-' },
+  { title: `回购人数(${yearLabel.value})`, key: 'repurchase_users_current', render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-' },
+  { title: `回购率(${yearLabel.value})`, key: 'repurchase_rate_current', render: (r: any) => fmtPct(r.repurchase_rate_current) },
+  { title: `同比(${yearLabel.value} vs ${compYearLabel.value})`, key: 'yoy_repurchase_rate', render: (r: any) => fmtYoY(r.yoy_repurchase_rate) },
+  { title: `回购GSV(${yearLabel.value})`, key: 'repurchase_gsv_current', render: (r: any) => r.repurchase_gsv_current != null ? '¥' + (r.repurchase_gsv_current / 10000).toFixed(1) + '万' : '-' },
+])
 
 const chartOption = computed(() => {
   const rows = (displayRows.value as any[]).slice(0, 15)
+  const yr = yearLabel.value
+  const yr2 = compYearLabel.value
   return {
     tooltip: { trigger: 'axis' as const },
-    legend: { top: 0, data: ['当期', '对比期'] },
+    legend: { top: 0, data: [yr, yr2] },
     grid: { left: 80, right: 20, top: 36, bottom: 36 },
     xAxis: { type: 'category' as const, data: rows.map((r: any) => r.category_name), axisLabel: { rotate: 30, fontSize: 10 } },
     yAxis: { type: 'value' as const, name: '回购率', axisLabel: { formatter: (v: number) => (v * 100).toFixed(0) + '%' } },
     series: [
-      { name: '当期', type: 'bar' as const, data: rows.map((r: any) => ({ value: r.repurchase_rate_current, itemStyle: { color: '#2563eb' } })) },
-      { name: '对比期', type: 'bar' as const, data: rows.map((r: any) => ({ value: r.repurchase_rate_comp, itemStyle: { color: '#94a3b8' } })) },
+      { name: yr, type: 'bar' as const, data: rows.map((r: any) => ({ value: r.repurchase_rate_current, itemStyle: { color: '#2563eb' } })) },
+      { name: yr2, type: 'bar' as const, data: rows.map((r: any) => ({ value: r.repurchase_rate_comp, itemStyle: { color: '#94a3b8' } })) },
     ],
   }
 })
