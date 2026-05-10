@@ -535,7 +535,7 @@ def get_category_repurchase_flow_api(
     """
     品类回购分析
 
-    返回同品回购+跨品类回购的R区间明细（含3年同比）
+    返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）
     """
     return get_category_repurchase_flow(
         start_date, end_date, category, level, metric_type, channel, exclude_channels
