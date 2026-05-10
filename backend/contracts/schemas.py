@@ -1854,6 +1854,14 @@ class RFMCategoryDrilldownRow(BaseModel):
     yoy_repurchase_gsv_ratio: Optional[float] = Field(None)
 
 
+class TopDriverItem(BaseModel):
+    """影响因子 TOP 品类"""
+    category_name: str
+    repurchase_rate_current: float = Field(default=0.0)
+    yoy_repurchase_rate: Optional[float] = Field(None)
+    hist_users_current: int = Field(default=0)
+
+
 class RFMCategoryDrilldownSummary(BaseModel):
     """RFM 品类下钻汇总"""
     total_hist_users: int = Field(default=0)
@@ -1861,6 +1869,8 @@ class RFMCategoryDrilldownSummary(BaseModel):
     overall_repurchase_rate: float = Field(default=0.0)
     overall_repurchase_rate_comp: float = Field(default=0.0)
     overall_repurchase_rate_yoy: float = Field(default=0.0)
+    segment_user_count: int = Field(default=0, description="象限内去重用户数")
+    top_drivers: List[TopDriverItem] = Field(default_factory=list, description="影响因子 TOP 品类")
     declining_categories: List[DecliningCategoryItem] = Field(default_factory=list)
     improving_categories: List[ImprovingCategoryItem] = Field(default_factory=list)
 

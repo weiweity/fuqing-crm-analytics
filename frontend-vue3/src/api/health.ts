@@ -290,9 +290,14 @@ export interface RFMCategoryDrilldownRow {
   yoy_repurchase_rate: number | null; yoy_repurchase_gsv: number | null
   yoy_repurchase_gsv_ratio: number | null
 }
+export interface TopDriverItem {
+  category_name: string; repurchase_rate_current: number
+  yoy_repurchase_rate: number | null; hist_users_current: number
+}
 export interface RFMCategoryDrilldownSummary {
   total_hist_users: number; total_repurchase_users: number
   overall_repurchase_rate: number; overall_repurchase_rate_comp: number; overall_repurchase_rate_yoy: number
+  segment_user_count: number; top_drivers: TopDriverItem[]
   declining_categories: { name: string; yoy_repurchase_rate: number }[]
   improving_categories: { name: string; yoy_repurchase_rate: number }[]
 }

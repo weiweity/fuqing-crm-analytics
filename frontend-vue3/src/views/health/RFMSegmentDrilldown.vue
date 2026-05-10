@@ -17,11 +17,11 @@
     <template v-else-if="data">
       <div class="kpi-row">
         <div class="kpi-item">
-          <div class="kpi-label">总历史人数</div>
-          <div class="kpi-value">{{ data.summary.total_hist_users?.toLocaleString() ?? '-' }}</div>
+          <div class="kpi-label">象限用户数</div>
+          <div class="kpi-value">{{ data.summary.segment_user_count?.toLocaleString() ?? '-' }}</div>
         </div>
         <div class="kpi-item">
-          <div class="kpi-label">当期回购率</div>
+          <div class="kpi-label">整体回购率</div>
           <div class="kpi-value">{{ fmtPct(data.summary.overall_repurchase_rate) }}</div>
         </div>
         <div class="kpi-item">
@@ -30,13 +30,19 @@
             {{ fmtYoY(data.summary.overall_repurchase_rate_yoy) }}
           </div>
         </div>
-        <div class="kpi-item">
-          <div class="kpi-label">下降品类</div>
-          <div class="kpi-value danger">{{ data.summary.declining_categories?.length ?? 0 }} 个</div>
-        </div>
-        <div class="kpi-item">
-          <div class="kpi-label">上升品类</div>
-          <div class="kpi-value success">{{ data.summary.improving_categories?.length ?? 0 }} 个</div>
+      </div>
+
+      <div v-if="data.summary.top_drivers?.length" class="driver-row">
+        <div
+          v-for="d in data.summary.top_drivers"
+          :key="d.category_name"
+          class="driver-card"
+          :class="(d.yoy_repurchase_rate ?? 0) >= 0 ? 'up' : 'down'"
+        >
+          <div class="driver-name">{{ d.category_name }}</div>
+          <div class="driver-rate">{{ fmtPct(d.repurchase_rate_current) }}</div>
+          <div class="driver-yoy">{{ fmtYoY(d.yoy_repurchase_rate) }}</div>
+          <div class="driver-base">{{ d.hist_users_current?.toLocaleString() }} 基数</div>
         </div>
       </div>
 
@@ -65,12 +71,6 @@
         />
       </div>
 
-      <div v-if="insights.length > 0" class="insight-wrap">
-        <div class="insight-title">💡 运营洞察</div>
-        <ul>
-          <li v-for="(ins, i) in insights" :key="i">{{ ins }}</li>
-        </ul>
-      </div>
     </template>
   </div>
 </template>
@@ -182,19 +182,6 @@ const tableColumns = computed(() => [
   },
 ])
 
-
-const insights = computed(() => {
-  const msgs: string[] = []
-  const dec = data.value?.summary.declining_categories ?? []
-  const imp = data.value?.summary.improving_categories ?? []
-  if (dec.length > 0) {
-    msgs.push(`"${dec[0].name}" 回购率同比下降 ${(dec[0].yoy_repurchase_rate * 100).toFixed(1)}pp，为主要下滑因素`)
-  }
-  if (imp.length > 0) {
-    msgs.push(`"${imp[0].name}" 回购率同比上升 ${(imp[0].yoy_repurchase_rate * 100).toFixed(1)}pp，表现良好`)
-  }
-  return msgs
-})
 
 function fmtPct(v: number | null | undefined): string {
   if (v == null) return '-'
@@ -315,13 +302,21 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .kpi-value.success { color: #16a34a; }
 .kpi-value.danger { color: #dc2626; }
 .chart-wrap, .table-wrap, .member-wrap { margin: 10px 0; }
-.insight-wrap { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; }
-.insight-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; }
-.insight-wrap ul { margin: 0; padding-left: 18px; }
-.insight-wrap li { font-size: 13px; margin: 3px 0; }
 .selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
 .member-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .member-title { font-size: 13px; font-weight: 600; color: #334155; }
 .member-hint { font-size: 11px; color: #94a3b8; background: #f1f5f9; padding: 1px 8px; border-radius: 10px; }
+.driver-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.driver-card { border-radius: 6px; padding: 10px 14px; min-width: 120px; flex: 1; border: 1px solid #e2e8f0; }
+.driver-card.up { background: #f0fdf4; border-color: #bbf7d0; }
+.driver-card.down { background: #fef2f2; border-color: #fecaca; }
+.driver-name { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+.driver-rate { font-size: 16px; font-weight: 700; }
+.driver-card.up .driver-rate { color: #16a34a; }
+.driver-card.down .driver-rate { color: #dc2626; }
+.driver-yoy { font-size: 12px; font-weight: 600; }
+.driver-card.up .driver-yoy { color: #16a34a; }
+.driver-card.down .driver-yoy { color: #dc2626; }
+.driver-base { font-size: 11px; color: #64748b; margin-top: 2px; }
 </style>

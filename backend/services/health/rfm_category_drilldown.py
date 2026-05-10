@@ -308,6 +308,60 @@ def _run_category_period(
 
     rows = conn.execute(sql, params).fetchall()
 
+    # 额外查询象限内去重用户数（复用前半段 CTE 参数）
+    # 参数与 user_stats_all + rfm_scored_all 一致: cutoff_dt + [channel] + cutoff_dt x 4
+    seg_count_params: List[Any] = []
+    seg_count_params.append(cutoff_dt)
+    if channel and channel != "全店":
+        from backend.semantic.filters import expand_channels
+        db_ch = expand_channels([channel])
+        for ch in db_ch:
+            seg_count_params.append(ch)
+    seg_count_params.extend([cutoff_dt] * 4)
+
+    seg_channel_where = ""
+    if channel and channel != "全店":
+        from backend.semantic.filters import expand_channels
+        db_ch = expand_channels([channel])
+        if len(db_ch) == 1:
+            seg_channel_where = " AND o.channel = ?"
+        else:
+            placeholders = ",".join(["?"] * len(db_ch))
+            seg_channel_where = f" AND o.channel IN ({placeholders})"
+
+    seg_count_sql = f"""
+    WITH
+    user_stats AS (
+        SELECT user_id, MAX(pay_time) as last_pay_time,
+            COUNT(DISTINCT order_id) as order_count, SUM(actual_amount) as gsv,
+            BOOL_OR(is_member) AS is_member
+        FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND is_goujinjin = FALSE AND order_status != '交易关闭'
+          {refund_where}
+          {seg_channel_where}
+        GROUP BY user_id
+    ),
+    rfm_scored AS (
+        SELECT user_id, is_member,
+            CASE
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[0]} THEN 5
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[1]} THEN 4
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[2]} THEN 3
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[3]} THEN 2
+                ELSE 1
+            END as r_score,
+            CASE WHEN order_count >= {_ft[3] + 1} THEN 5 WHEN order_count >= {_ft[2] + 1} THEN 4 WHEN order_count = {_ft[2]} THEN 3 WHEN order_count = {_ft[1]} THEN 2 ELSE 1 END as f_score,
+            CASE WHEN gsv >= {_mt[3]} THEN 5 WHEN gsv >= {_mt[2]} THEN 4 WHEN gsv >= {_mt[1]} THEN 3 WHEN gsv >= {_mt[0]} THEN 2 ELSE 1 END as m_score
+        FROM user_stats
+    ),
+    segmented AS (
+        {_build_segmented_cte("rfm_scored")}
+    )
+    SELECT COUNT(DISTINCT user_id) FROM segmented WHERE rfm_segment = '{rfm_literal}'
+    """
+    seg_user_count = int(conn.execute(seg_count_sql, seg_count_params).fetchone()[0] or 0)
+
     result: Dict[str, Dict[str, float]] = {}
     total_repurchase_gsv = 0.0
     for r in rows:
@@ -318,7 +372,8 @@ def _run_category_period(
             "repurchase_users": int(repurchase_users or 0),
             "repurchase_rate": repurchase_rate,
             "repurchase_gsv": float(repurchase_gsv or 0),
-            "repurchase_gsv_ratio": 0.0,  # 待后续填充
+            "repurchase_gsv_ratio": 0.0,
+            "_segment_user_count": seg_user_count,
         }
         total_repurchase_gsv += float(repurchase_gsv or 0)
 
@@ -475,12 +530,33 @@ def get_rfm_category_drilldown(
     declining.sort(key=lambda x: x["yoy_repurchase_rate"])
     improving.sort(key=lambda x: x["yoy_repurchase_rate"], reverse=True)
 
+    # 象限去重用户数（从 cur_all 中提取，所有品类共享同一个值）
+    seg_user_count = 0
+    for cat_data in cur_all.values():
+        seg_user_count = int(cat_data.get("_segment_user_count", 0))
+        break  # 只需取一次
+
+    # 影响因子 TOP 3：按 hist_users × |yoy_rate| 降序
+    def _impact_key(c: Dict[str, Any]) -> float:
+        return c.get("hist_users_current", 0) * abs(c.get("yoy_repurchase_rate") or 0)
+    top_drivers = [
+        {
+            "category_name": c["category_name"],
+            "repurchase_rate_current": c["repurchase_rate_current"],
+            "yoy_repurchase_rate": c.get("yoy_repurchase_rate"),
+            "hist_users_current": c["hist_users_current"],
+        }
+        for c in sorted(categories, key=_impact_key, reverse=True)[:3]
+    ]
+
     summary = {
         "total_hist_users": total_hist,
         "total_repurchase_users": total_repurchase,
         "overall_repurchase_rate": round(overall_rate, 4),
         "overall_repurchase_rate_comp": round(overall_rate_comp, 4),
         "overall_repurchase_rate_yoy": overall_rate_yoy if overall_rate_yoy is not None else 0.0,
+        "segment_user_count": seg_user_count,
+        "top_drivers": top_drivers,
         "declining_categories": declining[:10],   # 最多10个
         "improving_categories": improving[:10],
     }
