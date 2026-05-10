@@ -10,7 +10,41 @@ from typing import Dict, Any, List, Optional
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.semantic.segments import RFM_THRESHOLDS
+from backend.semantic.segments import RFM_THRESHOLDS, SEGMENTS
+
+
+# ============================================================
+# 8象限中文名称常量（单一数据源，禁止手写字符串）
+# ============================================================
+RFM_SEGMENT_NAMES: List[str] = [s.name_cn for s in SEGMENTS if s.segment_id != 9]
+
+_R_SEGMENT_CASE_WHEN = "".join([
+    f"WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    if s.segment_id == 1 else
+    f"WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    if s.segment_id == 2 else
+    f"WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    if s.segment_id == 3 else
+    f"WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    if s.segment_id == 4 else
+    f"WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '{s.name_cn}'"
+    if s.segment_id == 5 else
+    f"WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '{s.name_cn}'"
+    if s.segment_id == 6 else
+    f"WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '{s.name_cn}'"
+    if s.segment_id == 7 else
+    f"ELSE '{s.name_cn}'"
+    for s in SEGMENTS if s.segment_id != 9
+])
+
+
+def _build_segmented_cte(source_table: str) -> str:
+    """生成 segmented_{suffix} CTE，复用同一套 CASE WHEN 逻辑。"""
+    return f"""
+        SELECT user_id, is_member,
+            CASE {_R_SEGMENT_CASE_WHEN} END as rfm_segment
+        FROM {source_table}
+    """
 
 
 def _run_category_period(
@@ -140,7 +174,9 @@ def _run_category_period(
     # -- member 过滤直接在 category_hist 中处理，不单独走 target_table --
     member_where_hist = "AND sa.is_member = TRUE" if is_member else ""
 
-    # -- rfm_segment 作为字面量嵌入 SQL（避免参数绑定歧义）--
+    # -- rfm_segment 验证 + 转义 --
+    if rfm_segment not in RFM_SEGMENT_NAMES:
+        raise ValueError(f"无效的 RFM 象限名称: {rfm_segment}，有效值: {RFM_SEGMENT_NAMES}")
     rfm_literal = rfm_segment.replace("'", "''")
 
     sql = f"""
@@ -208,32 +244,10 @@ def _run_category_period(
         FROM user_stats_same
     ),
     segmented_all AS (
-        SELECT user_id, is_member,
-            CASE
-                WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
-                WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
-                WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
-                WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
-                WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
-                WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
-                WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
-                ELSE '一般挽留客户'
-            END as rfm_segment
-        FROM rfm_scored_all
+        {_build_segmented_cte("rfm_scored_all")}
     ),
     segmented_same AS (
-        SELECT user_id, is_member,
-            CASE
-                WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
-                WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
-                WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
-                WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
-                WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
-                WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
-                WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
-                ELSE '一般挽留客户'
-            END as rfm_segment
-        FROM rfm_scored_same
+        {_build_segmented_cte("rfm_scored_same")}
     ),
     base_orders AS (
         SELECT o.user_id, o.actual_amount, COALESCE(o.spu_product_class, '未知') AS category
@@ -336,7 +350,7 @@ def get_rfm_category_drilldown(
     rfm_segment : str
         RFM 象限名称，如"重要价值客户"
     period : Optional[str]
-        周期名称（如 "YTD"、"MTD"），与 start_date/end_date 二选一
+        周期名称（如 "YTD"、"MTD"），由系统根据 start_date/end_date 自动推断；此参数为内部兼容预留，外部调用可不传
     start_date : Optional[str]
         分析期开始日期 YYYY-MM-DD
     end_date : Optional[str]
