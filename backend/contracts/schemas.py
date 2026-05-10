@@ -1803,3 +1803,75 @@ class SegmentOrdersResponse(BaseModel):
     mode: str
     total_orders: int
     rows: List[SegmentOrderRow]
+
+
+# ============================================================
+# RFM 品类下钻 (RFM Category Drilldown)
+# ============================================================
+
+class DecliningCategoryItem(BaseModel):
+    """下滑品类项"""
+    name: str = Field(..., description="品类名称")
+    yoy_repurchase_rate: float = Field(..., description="回购率 YOY（pp）")
+
+
+class ImprovingCategoryItem(BaseModel):
+    """上升品类项"""
+    name: str = Field(..., description="品类名称")
+    yoy_repurchase_rate: float = Field(..., description="回购率 YOY（pp）")
+
+
+class RFMCategoryDrilldownRow(BaseModel):
+    """RFM 品类下钻单行数据"""
+    category_name: str = Field(..., description="品类名称")
+
+    # 当前期
+    hist_users_current: int = Field(default=0)
+    repurchase_users_current: int = Field(default=0)
+    repurchase_rate_current: float = Field(default=0.0)
+    repurchase_gsv_current: float = Field(default=0.0)
+    repurchase_gsv_ratio_current: float = Field(default=0.0)
+
+    # 对比期
+    hist_users_comp: int = Field(default=0)
+    repurchase_users_comp: int = Field(default=0)
+    repurchase_rate_comp: float = Field(default=0.0)
+    repurchase_gsv_comp: float = Field(default=0.0)
+    repurchase_gsv_ratio_comp: float = Field(default=0.0)
+
+    # 前年期
+    hist_users_prev2: int = Field(default=0)
+    repurchase_users_prev2: int = Field(default=0)
+    repurchase_rate_prev2: float = Field(default=0.0)
+    repurchase_gsv_prev2: float = Field(default=0.0)
+    repurchase_gsv_ratio_prev2: float = Field(default=0.0)
+
+    # YOY（当前 vs 对比）
+    yoy_hist_users: Optional[float] = Field(None)
+    yoy_repurchase_users: Optional[float] = Field(None)
+    yoy_repurchase_rate: Optional[float] = Field(None)
+    yoy_repurchase_gsv: Optional[float] = Field(None)
+    yoy_repurchase_gsv_ratio: Optional[float] = Field(None)
+
+
+class RFMCategoryDrilldownSummary(BaseModel):
+    """RFM 品类下钻汇总"""
+    total_hist_users: int = Field(default=0)
+    total_repurchase_users: int = Field(default=0)
+    overall_repurchase_rate: float = Field(default=0.0)
+    overall_repurchase_rate_comp: float = Field(default=0.0)
+    overall_repurchase_rate_yoy: float = Field(default=0.0)
+    declining_categories: List[DecliningCategoryItem] = Field(default_factory=list)
+    improving_categories: List[ImprovingCategoryItem] = Field(default_factory=list)
+
+
+class RFMCategoryDrilldownResponse(BaseModel):
+    """RFM 品类下钻完整响应"""
+    rfm_segment: str = Field(..., description="RFM 象限名称")
+    year_label: str = Field(..., description="当前年份标签")
+    comp_year_label: str = Field(..., description="对比年份标签")
+    prev2_year_label: str = Field(..., description="前年年份标签")
+    metric_type: str = Field(default="GSV")
+    categories: List[RFMCategoryDrilldownRow] = Field(default_factory=list, description="全店品类明细")
+    member_categories: List[RFMCategoryDrilldownRow] = Field(default_factory=list, description="会员品类明细")
+    summary: RFMCategoryDrilldownSummary = Field(..., description="汇总数据")

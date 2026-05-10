@@ -18,6 +18,7 @@ from backend.contracts.schemas import (
     ValueTierResponse,
     TierFlowResponse,
     RFMAnalysisResponse,
+    RFMCategoryDrilldownResponse,
     NewCustomerConversionResponse,
     PromotionCalendarResponse,
     ChannelHealthScoresResponse,
@@ -33,6 +34,7 @@ from backend.services.health import repurchase as repurchase_service
 from backend.services.health import tiers as tiers_service
 from backend.services.health import tier_flow as tier_flow_service
 from backend.services.health import rfm_analysis as rfm_analysis_service
+from backend.services.health import rfm_category_drilldown as rfm_category_drilldown_service
 from backend.services.health import conversion as conversion_service
 from backend.services.health import promotion as promotion_service
 from backend.services.health import config as health_config
@@ -196,6 +198,36 @@ def get_rfm_analysis(
         metric_type=metric_type,
         exclude_channels=exclude_channels,
         channel=channel,
+        compare_start_date=compare_start_date,
+        compare_end_date=compare_end_date,
+    )
+
+
+@router.get("/rfm-category-drilldown", response_model=RFMCategoryDrilldownResponse)
+def get_rfm_category_drilldown(
+    rfm_segment: str = Query(..., description="RFM象限名称，如'重要价值客户'"),
+    start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
+    end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
+    metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
+    channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤）"),
+    exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
+    compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
+    compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
+):
+    """
+    RFM 象限品类下钻
+
+    点击回购率柱状图中的某个象限 → 展开详情 → 看到该象限下各品类的回购率，
+    识别下滑品类，指导精准运营。
+    返回3年对比（当前年/去年/前年）的品类回购率拆解。
+    """
+    return rfm_category_drilldown_service.get_rfm_category_drilldown(
+        rfm_segment=rfm_segment,
+        start_date=start_date,
+        end_date=end_date,
+        metric_type=metric_type,
+        channel=channel,
+        exclude_channels=exclude_channels,
         compare_start_date=compare_start_date,
         compare_end_date=compare_end_date,
     )
