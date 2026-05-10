@@ -308,8 +308,8 @@ def _run_category_period(
 
     rows = conn.execute(sql, params).fetchall()
 
-    # 额外查询象限内去重用户数（复用前半段 CTE 参数）
-    # 参数与 user_stats_all + rfm_scored_all 一致: cutoff_dt + [channel] + cutoff_dt x 4
+    # 额外查询：象限去重用户数 + 当期复购去重用户数
+    # 参数：cutoff_dt + [channel] + cutoff_dt x 4 + start_dt + end_dt + [channel]
     seg_count_params: List[Any] = []
     seg_count_params.append(cutoff_dt)
     if channel and channel != "全店":
@@ -318,6 +318,14 @@ def _run_category_period(
         for ch in db_ch:
             seg_count_params.append(ch)
     seg_count_params.extend([cutoff_dt] * 4)
+    # base_orders 参数: start_dt, end_dt, [channel]
+    seg_count_params.append(start_dt)
+    seg_count_params.append(end_dt)
+    if channel and channel != "全店":
+        from backend.semantic.filters import expand_channels
+        db_ch = expand_channels([channel])
+        for ch in db_ch:
+            seg_count_params.append(ch)
 
     seg_channel_where = ""
     if channel and channel != "全店":
@@ -340,6 +348,7 @@ def _run_category_period(
           AND is_goujinjin = FALSE AND order_status != '交易关闭'
           {refund_where}
           {seg_channel_where}
+          {exclude_where_base}
         GROUP BY user_id
     ),
     rfm_scored AS (
@@ -357,10 +366,29 @@ def _run_category_period(
     ),
     segmented AS (
         {_build_segmented_cte("rfm_scored")}
+    ),
+    seg_users AS (
+        SELECT user_id FROM segmented WHERE rfm_segment = '{rfm_literal}'
+    ),
+    repurchase_users AS (
+        SELECT DISTINCT o.user_id
+        FROM orders o
+        INNER JOIN seg_users su ON o.user_id = su.user_id
+        WHERE o.pay_time >= ?::TIMESTAMP
+          AND o.pay_time <= ?::TIMESTAMP
+          AND is_goujinjin = FALSE
+          AND order_status != '交易关闭'
+          {refund_where}
+          {seg_channel_where}
+          {exclude_where_base}
     )
-    SELECT COUNT(DISTINCT user_id) FROM segmented WHERE rfm_segment = '{rfm_literal}'
+    SELECT
+        (SELECT COUNT(*) FROM seg_users) AS seg_count,
+        (SELECT COUNT(*) FROM repurchase_users) AS repurchase_count
     """
-    seg_user_count = int(conn.execute(seg_count_sql, seg_count_params).fetchone()[0] or 0)
+    seg_count_result = conn.execute(seg_count_sql, seg_count_params).fetchone()
+    seg_user_count = int(seg_count_result[0] or 0)
+    seg_repurchase_count = int(seg_count_result[1] or 0)
 
     result: Dict[str, Dict[str, float]] = {}
     total_repurchase_gsv = 0.0
@@ -374,6 +402,7 @@ def _run_category_period(
             "repurchase_gsv": float(repurchase_gsv or 0),
             "repurchase_gsv_ratio": 0.0,
             "_segment_user_count": seg_user_count,
+            "_seg_repurchase_count": seg_repurchase_count,
         }
         total_repurchase_gsv += float(repurchase_gsv or 0)
 
@@ -509,11 +538,27 @@ def get_rfm_category_drilldown(
     # 构建 summary
     total_hist = sum(c.get("hist_users_current", 0) for c in categories)
     total_repurchase = sum(c.get("repurchase_users_current", 0) for c in categories)
-    overall_rate = float(total_repurchase) / float(total_hist) if total_hist > 0 else 0.0
 
     total_hist_comp = sum(c.get("hist_users_comp", 0) for c in categories)
     total_repurchase_comp = sum(c.get("repurchase_users_comp", 0) for c in categories)
-    overall_rate_comp = float(total_repurchase_comp) / float(total_hist_comp) if total_hist_comp > 0 else 0.0
+
+    # 象限去重用户数 + 复购用户数（用户维度，与柱状图口径一致）
+    seg_user_count = 0
+    seg_repurchase_count = 0
+    seg_user_count_comp = 0
+    seg_repurchase_count_comp = 0
+    for cat_data in cur_all.values():
+        seg_user_count = int(cat_data.get("_segment_user_count", 0))
+        seg_repurchase_count = int(cat_data.get("_seg_repurchase_count", 0))
+        break
+    for cat_data in comp_all.values():
+        seg_user_count_comp = int(cat_data.get("_segment_user_count", 0))
+        seg_repurchase_count_comp = int(cat_data.get("_seg_repurchase_count", 0))
+        break
+
+    # 用户维度回购率（与柱状图口径一致：复购用户数 / 象限总用户数）
+    overall_rate = float(seg_repurchase_count) / float(seg_user_count) if seg_user_count > 0 else 0.0
+    overall_rate_comp = float(seg_repurchase_count_comp) / float(seg_user_count_comp) if seg_user_count_comp > 0 else 0.0
     overall_rate_yoy = yoy_repurchase_rate(overall_rate, overall_rate_comp)
 
     # 找出下滑/上升品类
