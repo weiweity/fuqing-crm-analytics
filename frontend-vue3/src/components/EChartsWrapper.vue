@@ -42,6 +42,10 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
+const emit = defineEmits<{
+  chartClick: [params: any]
+}>()
+
 const { baseTheme } = useChartTheme()
 const chartRef = ref<HTMLDivElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
@@ -53,6 +57,26 @@ function initChart() {
   // 确保在 DOM 布局完成后 resize
   requestAnimationFrame(() => {
     chartInstance?.resize()
+  })
+  // 转发 chart click 事件（同时监听 ECharts 内置事件 + 原生 click 事件以支持空白区域点击）
+  // 用标志位避免柱体点击时重复触发（ECharts 内置事件 + 原生事件都会触发）
+  let _echartsClickTimeout: ReturnType<typeof setTimeout> | null = null
+  chartInstance.on('click', (params: any) => {
+    emit('chartClick', params)
+    // 标记：刚触发了 ECharts 内置 click，原生 click 应跳过
+    if (_echartsClickTimeout) clearTimeout(_echartsClickTimeout)
+    _echartsClickTimeout = setTimeout(() => { _echartsClickTimeout = null }, 100)
+  })
+  // 原生 click：仅当 ECharts 内置事件未触发时（即空白区域点击）才转发
+  chartRef.value.addEventListener('click', (e: MouseEvent) => {
+    if (!chartInstance) return
+    // 如果 ECharts 内置 click 刚触发，跳过原生 click（避免重复）
+    if (_echartsClickTimeout) return
+    const rect = chartRef.value!.getBoundingClientRect()
+    const offsetX = e.clientX - rect.left
+    const offsetY = e.clientY - rect.top
+    // 空白区域点击：传入坐标供父组件 convertFromPixel 使用
+    emit('chartClick', { event: { offsetX, offsetY }, name: undefined })
   })
 }
 

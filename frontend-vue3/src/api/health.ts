@@ -273,3 +273,38 @@ export function fetchHealthTargets(params: {
 export function fetchRFMConfig(): Promise<RFMConfigResponse> {
   return client.get('/v1/customer-health/config/rfm')
 }
+
+// ── RFM 品类下钻 ──
+export interface RFMCategoryDrilldownRow {
+  category_name: string
+  hist_users_current: number
+  repurchase_users_current: number
+  repurchase_rate_current: number
+  repurchase_gsv_current: number
+  repurchase_gsv_ratio_current: number
+  hist_users_comp: number; repurchase_users_comp: number; repurchase_rate_comp: number
+  repurchase_gsv_comp: number; repurchase_gsv_ratio_comp: number
+  hist_users_prev2: number; repurchase_users_prev2: number; repurchase_rate_prev2: number
+  repurchase_gsv_prev2: number; repurchase_gsv_ratio_prev2: number
+  yoy_hist_users: number | null; yoy_repurchase_users: number | null
+  yoy_repurchase_rate: number | null; yoy_repurchase_gsv: number | null
+  yoy_repurchase_gsv_ratio: number | null
+}
+export interface RFMCategoryDrilldownSummary {
+  total_hist_users: number; total_repurchase_users: number
+  overall_repurchase_rate: number; overall_repurchase_rate_comp: number; overall_repurchase_rate_yoy: number
+  declining_categories: { name: string; yoy_repurchase_rate: number }[]
+  improving_categories: { name: string; yoy_repurchase_rate: number }[]
+}
+export interface RFMCategoryDrilldownResponse {
+  rfm_segment: string; year_label: string; comp_year_label: string; prev2_year_label: string; metric_type: string
+  categories: RFMCategoryDrilldownRow[]; member_categories: RFMCategoryDrilldownRow[]; summary: RFMCategoryDrilldownSummary
+}
+export interface RFMCategoryDrilldownParams {
+  rfm_segment: string; start_date: string; end_date: string
+  metric_type?: 'GSV' | 'GMV'; channel?: string; exclude_channels?: string[]
+  compare_start_date?: string; compare_end_date?: string
+}
+export function fetchRFMCategoryDrilldown(params: RFMCategoryDrilldownParams): Promise<RFMCategoryDrilldownResponse> {
+  return client.get('/v1/customer-health/rfm-category-drilldown', { params })
+}
