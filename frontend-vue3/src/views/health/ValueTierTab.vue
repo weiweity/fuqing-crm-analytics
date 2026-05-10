@@ -37,9 +37,29 @@ const drilldownQueryParams = computed(() => ({
 }))
 
 function onRFMChartClick(params: any) {
-  if (params.componentType === 'series' && params.seriesType === 'bar') {
+  const rows = (rfmData.value?.rows ?? []).filter((r) => r.rfm_segment !== '已购客TTL')
+  // ECharts 内置 click 事件：点击了柱体（params.name = 柱体名称）
+  if (params.name) {
     selectedSegment.value = params.name
+    return
   }
+  // 原生 click 事件（params.name 为空）：用 convertFromPixel 换算最近柱体
+  // 点击柱子上方空白区域也能选中对应柱子
+  if (params.event?.offsetX != null) {
+    const instance = rfmChartRef.value?.getChartInstance?.()
+    if (instance) {
+      const converted = instance.convertFromPixel({ xAxisIndex: 0 }, params.event.offsetX)
+      if (converted !== null && converted !== undefined) {
+        const idx = Math.round(converted)
+        if (idx >= 0 && idx < rows.length) {
+          selectedSegment.value = rows[idx].rfm_segment
+          return
+        }
+      }
+    }
+  }
+  // 真正的空白区域（图表外或无数据区域）→ 关闭下钻
+  selectedSegment.value = null
 }
 
 // 暴露到 window，供 tooltip onclick 调用
@@ -164,6 +184,8 @@ const repurchaseRateChartOption = computed(() => {
   const segments = rows.map((r) => r.rfm_segment)
 
   return {
+    // 显式设置色板顺序，确保图例颜色与 series 一致（覆盖 baseTheme.color）
+    color: [BRAND_PRIMARY, '#60a5fa', '#94a3b8'],
     tooltip: {
       trigger: 'axis',
       enterable: true,
@@ -175,12 +197,16 @@ const repurchaseRateChartOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: EChartTooltipParam[]) => {
         const segName = params[0].name
+        // 显式颜色序列，不依赖 p.color（baseTheme.color 会干扰）
+        const EXPLICIT_COLORS = [BRAND_PRIMARY, '#60a5fa', '#94a3b8']
         let html = `<div style="cursor:pointer;color:#533afd;font-weight:600;margin-bottom:4px" onclick="window.__rFMDrilldownClick({componentType:'series',seriesType:'bar',name:'${segName}'})">${segName} — 点击查看品类拆解</div>`
-        params.forEach((p) => {
-          html += `<div class="flex items-center gap-2 text-xs">
-            <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>
-            <span class="text-slate-500">${p.seriesName}:</span>
-            <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(2)}%</span>
+        params.forEach((p, idx) => {
+          const color = EXPLICIT_COLORS[idx] ?? p.color
+          const pct = (Number(p.value) * 100).toFixed(1)
+          html += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
+            <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
+            <span style="color:#64748b;font-size:12px">${p.seriesName}:</span>
+            <span style="color:#1e293b;font-size:12px;font-weight:500">${pct}%</span>
           </div>`
         })
         return html
@@ -392,6 +418,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
         <div>
           <h3 class="text-sm font-semibold text-slate-800">回购率 3 年对比</h3>
           <p class="text-[11px] text-slate-500">RFM 8象限人群老客唤醒效率变化</p>
+          <p class="text-[11px]" style="color: #7c3aed; font-size: 11px;">点击柱状图，可下钻品类拆解</p>
         </div>
         <ExportToolbar
           :filename="`老客分析_RFM回购率对比_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"

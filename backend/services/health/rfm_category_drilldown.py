@@ -106,33 +106,34 @@ def _run_category_period(
 
     params: List[Any] = []
 
-    # -- user_stats_all: channel, cutoff_dt --
+    # -- user_stats_all: cutoff_dt, [channel] --
+    # SQL 顺序: pay_time <= ? 在前, channel = ? 在后
+    params.append(cutoff_dt)  # user_stats_all cutoff_dt
     channel_where_all = ""
     if channel and channel != "全店":
         from backend.semantic.filters import expand_channels
         db_channels = expand_channels([channel])
         if len(db_channels) == 1:
             channel_where_all = " AND o.channel = ?"
-            params.append(db_channels[0])      # channel
+            params.append(db_channels[0])
         else:
             placeholders = ",".join(["?"] * len(db_channels))
             channel_where_all = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
-    params.append(cutoff_dt)  # user_stats_all cutoff_dt
 
-    # -- user_stats_same: channel, cutoff_dt --
+    # -- user_stats_same: cutoff_dt, [channel] --
+    params.append(cutoff_dt)  # user_stats_same cutoff_dt
     channel_where_same = ""
     if channel and channel != "全店":
         from backend.semantic.filters import expand_channels
         db_channels = expand_channels([channel])
         if len(db_channels) == 1:
             channel_where_same = " AND o.channel = ?"
-            params.append(db_channels[0])      # channel
+            params.append(db_channels[0])
         else:
             placeholders = ",".join(["?"] * len(db_channels))
             channel_where_same = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
-    params.append(cutoff_dt)  # user_stats_same cutoff_dt
 
     # -- rfm_scored_all: cutoff_dt x 4 --
     params.extend([cutoff_dt] * 4)

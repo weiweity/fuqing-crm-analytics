@@ -41,7 +41,7 @@
       </div>
 
       <div class="chart-wrap" style="cursor: pointer">
-        <EChartsWrapper :option="chartOption" style="height: 240px" @chart-click="onChartClick" />
+        <EChartsWrapper ref="chartRef" :option="chartOption" style="height: 240px" @chart-click="onChartClick" />
         <div v-if="selectedCategory" class="selected-hint">当前选中：{{ selectedCategory }}</div>
       </div>
 
@@ -52,13 +52,17 @@
       </div>
 
       <div v-if="memberRows.length > 0" class="member-wrap">
-        <n-collapse>
-          <n-collapse-item title="会员品类明细">
-            <div class="table-scroll-wrap">
-              <DataTablePro :columns="tableColumns" :data="memberRows" :pagination="{ pageSize: 5 }" :scroll-x="780" />
-            </div>
-          </n-collapse-item>
-        </n-collapse>
+        <div class="member-header">
+          <span class="member-title">会员品类明细</span>
+          <span class="member-hint">鼠标滚动查看</span>
+        </div>
+        <DataTablePro
+          :columns="tableColumns"
+          :data="memberRows"
+          :pagination="false"
+          :scroll-x="780"
+          :max-height="300"
+        />
       </div>
 
       <div v-if="insights.length > 0" class="insight-wrap">
@@ -73,9 +77,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, h, markRaw } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NSpin } from 'naive-ui'
+import { NButton, NSpin } from 'naive-ui'
 import { Close } from '@vicons/ionicons5'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
+
+// 用于空白区域点击：获取 ECharts 实例进行坐标转换
+const chartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 import DataTablePro from '@/components/DataTablePro.vue'
 import { fetchRFMCategoryDrilldown, type RFMCategoryDrilldownResponse } from '@/api/health'
 import { useFilterStore } from '@/stores/filterStore'
@@ -106,9 +113,12 @@ const displayRows = computed(() => (data.value?.categories ?? []).slice(0, 10))
 const memberRows = computed(() => (data.value?.member_categories ?? []).slice(0, 10))
 
 // Bug 5: 合并 filterStore 的渠道和低价筛选状态
+// 渠道：只有非"全店"时才覆盖（避免全店时把已有渠道冲掉）
 const liveQueryParams = computed(() => {
   const base = { ...props.queryParams }
-  base.channel = filterStore.channel
+  if (filterStore.channel && filterStore.channel !== '全店') {
+    base.channel = filterStore.channel
+  }
   if (filterStore.excludeLowPrice) {
     base.exclude_channels = LOW_PRICE_CHANNELS
   } else {
@@ -172,58 +182,6 @@ const tableColumns = computed(() => [
   },
 ])
 
-// Bug 1/3/6: 拓宽柱状图点击范围 + 颜色统一 + 数值标签
-const chartOption = computed((): EChartsOption => {
-  const rows = (displayRows.value as any[]).slice(0, 15)
-  const yr = yearLabel.value
-  const yr2 = compYearLabel.value
-  return {
-    tooltip: {
-      trigger: 'axis' as const,
-      enterable: true,
-      alwaysShowContent: false,
-      backgroundColor: 'rgba(255,255,255,0.98)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      textStyle: { color: '#0f172a', fontSize: 12 },
-      formatter: (params: any) => {
-        const arr = Array.isArray(params) ? params : [params]
-        const rows = arr.map((p: any) =>
-          `<div class="flex items-center gap-2 text-xs">
-            <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>
-            <span class="text-slate-500">${p.seriesName}:</span>
-            <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(1)}%</span>
-          </div>`
-        ).join('')
-        const catName = arr[0].name
-        return `<div style="background:#f5f5f5;padding:8px 12px;border-radius:4px;line-height:1.8">
-          <div class="font-semibold mb-1" style="cursor:pointer;color:#533afd" onclick="window.__rFMDrilldownClick({name:'${catName}'})">${catName} — 点击查看品类拆解</div>
-          ${rows}
-        </div>`
-      },
-    },
-    legend: { top: 0, data: [yr, yr2] },
-    grid: { left: 80, right: 20, top: 36, bottom: 36 },
-    xAxis: {
-      type: 'category' as const,
-      data: rows.map((r: any) => r.category_name),
-      axisLabel: { rotate: 30, fontSize: 10 },
-    },
-    yAxis: { type: 'value' as const, name: '回购率', axisLabel: { formatter: (v: number) => (v * 100).toFixed(0) + '%' } },
-    series: [
-      {
-        name: yr, type: 'bar' as const,
-        data: rows.map((r: any) => ({ value: r.repurchase_rate_current, itemStyle: { color: BRAND_PRIMARY, borderRadius: [3, 3, 0, 0] } })),
-        label: { show: true, position: 'top', formatter: (p: any) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 10, color: BRAND_PRIMARY, fontWeight: 'bold' },
-      },
-      {
-        name: yr2, type: 'bar' as const,
-        data: rows.map((r: any) => ({ value: r.repurchase_rate_comp, itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] } })),
-        label: { show: true, position: 'top', formatter: (p: any) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 10, color: '#60a5fa', fontWeight: 'bold' },
-      },
-    ],
-  }
-})
 
 const insights = computed(() => {
   const msgs: string[] = []
@@ -252,11 +210,76 @@ function yoyClass(v: number | null | undefined): string {
 }
 
 // Bug 1: 柱状图点击处理（暴露到 window 供 tooltip onclick 调用）
+// Issue 1: 柱状图点击（含空白区域）——空白处点击时用坐标换算最近柱体
 function onChartClick(params: any) {
+  const rows = (displayRows.value as any[]).slice(0, 15)
+  // params.name 为空时（点击空白区域），尝试用坐标换算最近柱体
+  if (!params.name && params.event?.offsetX != null) {
+    const instance = chartRef.value?.getChartInstance?.()
+    if (instance) {
+      const converted = instance.convertFromPixel({ xAxisIndex: 0 }, params.event.offsetX)
+      if (converted !== null && converted !== undefined && rows[converted] != null) {
+        selectedCategory.value = rows[converted].category_name
+        return
+      }
+    }
+  }
   const name = params?.name
   if (!name) return
   selectedCategory.value = name
 }
+
+// Issue 4: 简化 tooltip，品类拆解面板本身不需要"点击下钻"交互
+const chartOption = computed((): EChartsOption => {
+  const rows = (displayRows.value as any[]).slice(0, 15)
+  const yr = yearLabel.value
+  const yr2 = compYearLabel.value
+  return {
+    color: [BRAND_PRIMARY, '#60a5fa'],  // 确保图例颜色与 series 一致（覆盖 baseTheme）
+    tooltip: {
+      trigger: 'axis' as const,
+      backgroundColor: 'rgba(255,255,255,0.98)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#0f172a', fontSize: 12 },
+      formatter: (params: any) => {
+        const arr = Array.isArray(params) ? params : [params]
+        const rows = arr.map((p: any) =>
+          `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
+            <span style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
+            <span style="color:#64748b;font-size:12px">${p.seriesName}:</span>
+            <span style="color:#1e293b;font-size:12px;font-weight:500">${(Number(p.value) * 100).toFixed(1)}%</span>
+          </div>`
+        ).join('')
+        const catName = arr[0].name
+        return `<div style="background:#f5f5f5;padding:8px 12px;border-radius:4px;line-height:1.8">
+          <div style="font-weight:600;margin-bottom:4px;color:#1e293b">${catName}</div>
+          ${rows}
+        </div>`
+      },
+    },
+    legend: { top: 0, data: [yr, yr2] },
+    grid: { left: 80, right: 20, top: 36, bottom: 36 },
+    xAxis: {
+      type: 'category' as const,
+      data: rows.map((r: any) => r.category_name),
+      axisLabel: { rotate: 30, fontSize: 10 },
+    },
+    yAxis: { type: 'value' as const, name: '回购率', axisLabel: { formatter: (v: number) => (v * 100).toFixed(0) + '%' } },
+    series: [
+      {
+        name: yr, type: 'bar' as const,
+        data: rows.map((r: any) => ({ value: r.repurchase_rate_current, itemStyle: { color: BRAND_PRIMARY, borderRadius: [3, 3, 0, 0] } })),
+        label: { show: true, position: 'top', formatter: (p: any) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 10, color: BRAND_PRIMARY, fontWeight: 'bold' },
+      },
+      {
+        name: yr2, type: 'bar' as const,
+        data: rows.map((r: any) => ({ value: r.repurchase_rate_comp, itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] } })),
+        label: { show: true, position: 'top', formatter: (p: any) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 10, color: '#60a5fa', fontWeight: 'bold' },
+      },
+    ],
+  }
+})
 
 // Issue 2: 将点击处理器暴露到 window，供 tooltip 区域 onclick 调用
 onMounted(() => {
@@ -298,4 +321,7 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .insight-wrap li { font-size: 13px; margin: 3px 0; }
 .selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+.member-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.member-title { font-size: 13px; font-weight: 600; color: #334155; }
+.member-hint { font-size: 11px; color: #94a3b8; background: #f1f5f9; padding: 1px 8px; border-radius: 10px; }
 </style>
