@@ -330,7 +330,7 @@ export function fetchCategoryChurn(params: {
 // ============================================================
 
 export interface CategoryRepurchaseFlowRow {
-  r_segment: string
+  rfm_segment: string
   hist_users_current: number
   repurchase_users_current: number
   repurchase_rate_current: number

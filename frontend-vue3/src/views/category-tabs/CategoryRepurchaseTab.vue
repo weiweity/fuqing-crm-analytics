@@ -60,38 +60,17 @@ const {
   staleTime: 60_000,
 })
 
-// ── R区间分段元数据 ──
-function addDays(d: Date, days: number) {
-  const nd = new Date(d)
-  nd.setDate(nd.getDate() + days)
-  return nd
-}
-
-function formatSlashDate(d: Date) {
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-}
-
+// ── RFM象限分段元数据 ──
 const segmentMeta = computed<Record<string, { label: string; range: string }>>(() => {
-  const start = filterStore.dateRange[0]
-  const cutoff = addDays(new Date(start + 'T00:00:00'), -1)
-  const r0 = formatSlashDate(addDays(cutoff, -30))
-  const r1 = formatSlashDate(cutoff)
-  const r2 = formatSlashDate(addDays(cutoff, -90))
-  const r3 = formatSlashDate(addDays(cutoff, -31))
-  const r4 = formatSlashDate(addDays(cutoff, -180))
-  const r5 = formatSlashDate(addDays(cutoff, -91))
-  const r6 = formatSlashDate(addDays(cutoff, -365))
-  const r7 = formatSlashDate(addDays(cutoff, -181))
-  const r8 = formatSlashDate(addDays(cutoff, -730))
-  const r9 = formatSlashDate(addDays(cutoff, -366))
-  const r10 = formatSlashDate(addDays(cutoff, -730))
   return {
-    '近1个月已购客': { label: '近1个月已购客', range: `${r0}-${r1}` },
-    '近2-3个月已购客': { label: '近2-3个月已购客', range: `${r2}-${r3}` },
-    '近4-6月已购客': { label: '近4-6月已购客', range: `${r4}-${r5}` },
-    '近7-12个月已购客': { label: '近7-12个月已购客', range: `${r6}-${r7}` },
-    '近13个月-近24个月已购客': { label: '近13个月-近24个月已购客', range: `${r8}-${r9}` },
-    '2年外已购客': { label: '2年外已购客', range: `<${r10}` },
+    '重要价值客户': { label: '重要价值客户', range: 'R高·F高·M高' },
+    '重要保持客户': { label: '重要保持客户', range: 'R低·F高·M高' },
+    '重要发展客户': { label: '重要发展客户', range: 'R高·F低·M高' },
+    '重要挽留客户': { label: '重要挽留客户', range: 'R低·F低·M高' },
+    '一般价值客户': { label: '一般价值客户', range: 'R高·F高·M低' },
+    '一般保持客户': { label: '一般保持客户', range: 'R低·F高·M低' },
+    '一般发展客户': { label: '一般发展客户', range: 'R高·F低·M低' },
+    '一般挽留客户': { label: '一般挽留客户', range: 'R低·F低·M低' },
     '已购客TTL': { label: '已购客TTL', range: '全部' },
   }
 })
@@ -100,8 +79,8 @@ const segmentMeta = computed<Record<string, { label: string; range: string }>>((
 const repurchaseChartOption = computed(() => {
   if (!data.value) return {}
   const d = data.value as CategoryRepurchaseFlowResponse
-  const rows = d.same_category_rows.filter((r) => r.r_segment !== '已购客TTL')
-  const segments = rows.map((r) => r.r_segment)
+  const rows = d.same_category_rows.filter((r) => r.rfm_segment !== '已购客TTL')
+  const segments = rows.map((r) => r.rfm_segment)
 
   return {
     tooltip: {
@@ -186,13 +165,13 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
   return [
     {
-      title: 'R 区间',
-      key: 'r_segment',
+      title: 'RFM 象限',
+      key: 'rfm_segment',
       width: 160,
       fixed: 'left',
       align: 'center',
       render: (row: CategoryRepurchaseFlowRow) => {
-        const meta = segmentMeta.value[row.r_segment] || { label: row.r_segment, range: '' }
+        const meta = segmentMeta.value[row.rfm_segment] || { label: row.rfm_segment, range: '' }
         return h('div', { class: 'flex flex-col items-center justify-center leading-tight py-0.5' }, [
           h('div', { class: 'text-[13px] font-medium text-slate-800' }, meta.label),
           h('div', { class: 'text-[11px] text-slate-400 mt-0.5' }, meta.range),

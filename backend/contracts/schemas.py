@@ -400,12 +400,12 @@ class CategoryUserProfileResponse(BaseModel):
 
 
 # ============================================================
-# 品类看板 - 品类回购分析（同品/跨品类 R区间回购）
+# 品类看板 - 品类回购分析（同品/跨品类 RFM 8象限回购）
 # ============================================================
 
 class CategoryRepurchaseFlowRow(BaseModel):
-    """品类回购分析单行数据（复用 RFMRFlowRow 结构）"""
-    r_segment: str
+    """品类回购分析单行数据（RFM 8象限分群）"""
+    rfm_segment: str
 
     hist_users_current: int = 0
     repurchase_users_current: int = 0
