@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.services.health.rfm_crosstab import build_rfm_segment_sql
+from backend.semantic.segments import RFM_THRESHOLDS
 
 
 def _run_category_period(
@@ -54,26 +54,73 @@ def _run_category_period(
         key=category_name，value={hist_users, repurchase_users, repurchase_rate,
         repurchase_gsv, repurchase_gsv_ratio}
     """
-    # 构建 RFM 分群 CTE
-    rfm_cte_sql, rfm_params = build_rfm_segment_sql(cutoff_dt, channel, exclude_channels)
+    _rt = RFM_THRESHOLDS["r"]   # [14, 30, 60, 90]
+    _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 5]
+    _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
 
-    # 渠道条件
-    base_params: List = [start_dt, end_dt]
+    # ---------------------------------------------------------------
+    # 参数顺序 = SQL 文本中 ? 的顺序（关键：避免 DuckDB CTE 链错位）
+    # ---------------------------------------------------------------
+    # 1. user_stats_all:  channel, cutoff_dt（channel 为空则无 channel_where）
+    # 2. user_stats_same: channel, cutoff_dt（channel 为空则无 channel_where）
+    # 3. rfm_scored_all:  cutoff_dt x 4
+    # 4. rfm_scored_same: cutoff_dt x 4
+    # 5. base_orders:     start_dt, end_dt, [channel]
+    # 6. category_hist:  cutoff_dt
+    # 7. rfm_segment（字面量嵌入 SQL，非参数）
+    # ---------------------------------------------------------------
+
+    params: List[Any] = []
+
+    # -- user_stats_all: channel, cutoff_dt --
+    channel_where_all = ""
+    if channel and channel != "全店":
+        from backend.semantic.filters import expand_channels
+        db_channels = expand_channels([channel])
+        if len(db_channels) == 1:
+            channel_where_all = " AND o.channel = ?"
+            params.append(db_channels[0])      # channel
+        else:
+            placeholders = ",".join(["?"] * len(db_channels))
+            channel_where_all = f" AND o.channel IN ({placeholders})"
+            params.extend(db_channels)
+    params.append(cutoff_dt)  # user_stats_all cutoff_dt
+
+    # -- user_stats_same: channel, cutoff_dt --
+    channel_where_same = ""
+    if channel and channel != "全店":
+        from backend.semantic.filters import expand_channels
+        db_channels = expand_channels([channel])
+        if len(db_channels) == 1:
+            channel_where_same = " AND o.channel = ?"
+            params.append(db_channels[0])      # channel
+        else:
+            placeholders = ",".join(["?"] * len(db_channels))
+            channel_where_same = f" AND o.channel IN ({placeholders})"
+            params.extend(db_channels)
+    params.append(cutoff_dt)  # user_stats_same cutoff_dt
+
+    # -- rfm_scored_all: cutoff_dt x 4 --
+    params.extend([cutoff_dt] * 4)
+    # -- rfm_scored_same: cutoff_dt x 4 --
+    params.extend([cutoff_dt] * 4)
+
+    # -- base_orders 参数 (start_dt, end_dt, [channel]) --
+    params.append(start_dt)
+    params.append(end_dt)
     channel_where_base = ""
-    channel_where_hist = ""
     if channel and channel != "全店":
         from backend.semantic.filters import expand_channels
         db_channels = expand_channels([channel])
         if len(db_channels) == 1:
             channel_where_base = " AND o.channel = ?"
-            channel_where_hist = " AND o.channel = ?"
-            base_params.append(db_channels[0])
+            params.append(db_channels[0])
         else:
             placeholders = ",".join(["?"] * len(db_channels))
             channel_where_base = f" AND o.channel IN ({placeholders})"
-            channel_where_hist = f" AND o.channel IN ({placeholders})"
-            base_params.extend(db_channels)
+            params.extend(db_channels)
 
+    # -- exclude_channels: 内联为 SQL 字面量，不进 params --
     exclude_where_base = ""
     exclude_where_hist = ""
     if exclude_channels:
@@ -84,28 +131,114 @@ def _run_category_period(
         exclude_where_base = f" AND o.channel NOT IN ({quoted})"
         exclude_where_hist = f" AND o.channel NOT IN ({quoted})"
 
+    # -- category_hist: cutoff_dt (base_orders 之后) --
+    params.append(cutoff_dt)
+
+    # -- refund 过滤条件 --
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
 
-    # member 筛选
-    member_where = "AND sa.is_member = TRUE" if is_member else ""
-    target_table = "member_segmented_all" if is_member else "segmented_all"
+    # -- member 过滤直接在 category_hist 中处理，不单独走 target_table --
+    member_where_hist = "AND sa.is_member = TRUE" if is_member else ""
 
-    # 完整参数顺序：
-    # base_orders: start_dt, end_dt, [channel]
-    # user_stats_all: cutoff_dt
-    # user_stats_same: cutoff_dt
-    # rfm_scored_all: cutoff_dt × 4
-    # rfm_scored_same: cutoff_dt × 4
-    # 合并后 + exclude_channels 占位（如果有）
-    params = base_params + rfm_params
+    # -- rfm_segment 作为字面量嵌入 SQL（避免参数绑定歧义）--
+    rfm_literal = rfm_segment.replace("'", "''")
 
     sql = f"""
     WITH
-    {rfm_cte_sql},
-    base_orders AS (
-        SELECT user_id, actual_amount, COALESCE(o.spu_product_class, '未知') AS category
+    user_stats_all AS (
+        SELECT
+            user_id,
+            MAX(pay_time) as last_pay_time,
+            COUNT(DISTINCT order_id) as order_count,
+            SUM(actual_amount) as gsv,
+            BOOL_OR(is_member) AS is_member
         FROM orders o
-        INNER JOIN {target_table} sa ON o.user_id = sa.user_id
+        WHERE pay_time <= ?::TIMESTAMP
+          AND is_goujinjin = FALSE
+          AND order_status != '交易关闭'
+          {refund_where}
+          {channel_where_all}
+          {exclude_where_base}
+        GROUP BY user_id
+    ),
+    user_stats_same AS (
+        SELECT
+            user_id,
+            MAX(pay_time) as last_pay_time,
+            COUNT(DISTINCT order_id) as order_count,
+            SUM(actual_amount) as gsv,
+            BOOL_OR(is_member) AS is_member
+        FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND is_goujinjin = FALSE
+          AND order_status != '交易关闭'
+          {refund_where}
+          {channel_where_same}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
+    rfm_scored_all AS (
+        SELECT
+            user_id,
+            is_member,
+            CASE
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[0]} THEN 5
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[1]} THEN 4
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[2]} THEN 3
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[3]} THEN 2
+                ELSE 1
+            END as r_score,
+            CASE WHEN order_count >= {_ft[3] + 1} THEN 5 WHEN order_count >= {_ft[2] + 1} THEN 4 WHEN order_count = {_ft[2]} THEN 3 WHEN order_count = {_ft[1]} THEN 2 ELSE 1 END as f_score,
+            CASE WHEN gsv >= {_mt[3]} THEN 5 WHEN gsv >= {_mt[2]} THEN 4 WHEN gsv >= {_mt[1]} THEN 3 WHEN gsv >= {_mt[0]} THEN 2 ELSE 1 END as m_score
+        FROM user_stats_all
+    ),
+    rfm_scored_same AS (
+        SELECT
+            user_id,
+            is_member,
+            CASE
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[0]} THEN 5
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[1]} THEN 4
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[2]} THEN 3
+                WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[3]} THEN 2
+                ELSE 1
+            END as r_score,
+            CASE WHEN order_count >= {_ft[3] + 1} THEN 5 WHEN order_count >= {_ft[2] + 1} THEN 4 WHEN order_count = {_ft[2]} THEN 3 WHEN order_count = {_ft[1]} THEN 2 ELSE 1 END as f_score,
+            CASE WHEN gsv >= {_mt[3]} THEN 5 WHEN gsv >= {_mt[2]} THEN 4 WHEN gsv >= {_mt[1]} THEN 3 WHEN gsv >= {_mt[0]} THEN 2 ELSE 1 END as m_score
+        FROM user_stats_same
+    ),
+    segmented_all AS (
+        SELECT user_id, is_member,
+            CASE
+                WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
+                WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
+                WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
+                WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
+                WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
+                WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
+                WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
+                ELSE '一般挽留客户'
+            END as rfm_segment
+        FROM rfm_scored_all
+    ),
+    segmented_same AS (
+        SELECT user_id, is_member,
+            CASE
+                WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
+                WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
+                WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
+                WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
+                WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
+                WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
+                WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
+                ELSE '一般挽留客户'
+            END as rfm_segment
+        FROM rfm_scored_same
+    ),
+    base_orders AS (
+        SELECT o.user_id, o.actual_amount, COALESCE(o.spu_product_class, '未知') AS category
+        FROM orders o
+        INNER JOIN segmented_all sa ON o.user_id = sa.user_id
         WHERE o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
           AND is_goujinjin = FALSE
@@ -113,19 +246,21 @@ def _run_category_period(
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
+          AND sa.rfm_segment = '{rfm_literal}'
     ),
     category_hist AS (
         SELECT DISTINCT
             COALESCE(o.spu_product_class, '未知') AS category,
             sa.user_id
         FROM orders o
-        INNER JOIN {target_table} sa ON o.user_id = sa.user_id
+        INNER JOIN segmented_all sa ON o.user_id = sa.user_id
         WHERE o.pay_time <= ?::TIMESTAMP
           AND is_goujinjin = FALSE
           AND order_status != '交易关闭'
           {refund_where}
           {exclude_where_hist}
-          {member_where}
+          {member_where_hist}
+          AND sa.rfm_segment = '{rfm_literal}'
     ),
     category_repurchase AS (
         SELECT
@@ -156,21 +291,12 @@ def _run_category_period(
     ORDER BY repurchase_gsv DESC
     """
 
-    # base_orders 额外参数: start_dt, end_dt, [channel]
-    extra_params = [start_dt, end_dt]
-    if channel and channel != "全店":
-        from backend.semantic.filters import expand_channels
-        db_channels = expand_channels([channel])
-        extra_params.extend(db_channels)
-
-    all_params = params + extra_params
-
-    rows = conn.execute(sql, all_params).fetchall()
+    rows = conn.execute(sql, params).fetchall()
 
     result: Dict[str, Dict[str, float]] = {}
     total_repurchase_gsv = 0.0
     for r in rows:
-        category, hist_users, repurchase_users, repurchase_gsv = r
+        category, hist_users, repurchase_users, repurchase_gsv, _ = r
         repurchase_rate = float(repurchase_users or 0) / float(hist_users or 1) if hist_users else 0.0
         result[category] = {
             "hist_users": int(hist_users or 0),

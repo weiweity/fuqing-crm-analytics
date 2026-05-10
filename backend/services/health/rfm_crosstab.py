@@ -81,11 +81,12 @@ def build_rfm_segment_sql(
 
     # cutoff_dt 追加到 user_stats_all
     params_all = [cutoff_dt]
-    # cutoff_dt 追加到 user_stats_same（先 channel 再 cutoff）
+    # cutoff_dt / channel 追加到 user_stats_same
+    # 注意：channel 已通过 channel_where_same 加入 SQL，params_same 也要对应加 channel
     params_same = []
     if channel_where_same:
-        # channel 已追加到 params，cutoff 前置
-        params_same = [cutoff_dt]
+        # channel 先，cutoff 后
+        params_same = [channel, cutoff_dt]
     else:
         params_same = [cutoff_dt]
 

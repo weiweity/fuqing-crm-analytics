@@ -305,6 +305,6 @@ export interface RFMCategoryDrilldownParams {
   metric_type?: 'GSV' | 'GMV'; channel?: string; exclude_channels?: string[]
   compare_start_date?: string; compare_end_date?: string
 }
-export function fetchRFMCategoryDrilldown(params: RFMCategoryDrilldownParams) {
+export function fetchRFMCategoryDrilldown(params: RFMCategoryDrilldownParams): Promise<RFMCategoryDrilldownResponse> {
   return client.get('/v1/customer-health/rfm-category-drilldown', { params })
 }
