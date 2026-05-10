@@ -40,18 +40,21 @@
         </div>
       </div>
 
-      <div class="chart-wrap">
-        <EChartsWrapper :option="chartOption" style="height: 240px" />
+      <div class="chart-wrap" style="cursor: pointer">
+        <EChartsWrapper :option="chartOption" style="height: 240px" @chart-click="onChartClick" />
+        <div class="chart-hint">点击柱状图可查看对应人群的品类拆解</div>
       </div>
 
       <div class="table-wrap">
-        <n-data-table :columns="tableColumns" :data="displayRows" :pagination="{ pageSize: 8 }" size="small" />
+        <div class="table-scroll-wrap">
+          <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="{ pageSize: 10 }" :scroll-x="780" />
+        </div>
       </div>
 
       <div v-if="memberRows.length > 0" class="member-wrap">
         <n-collapse>
           <n-collapse-item title="会员品类明细">
-            <n-data-table :columns="tableColumns" :data="memberRows" :pagination="{ pageSize: 5 }" size="small" />
+            <DataTablePro :columns="tableColumns" :data="memberRows" :pagination="{ pageSize: 5 }" :scroll-x="780" />
           </n-collapse-item>
         </n-collapse>
       </div>
@@ -68,10 +71,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { NButton, NDataTable, NCollapse, NCollapseItem, NSpin } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NSpin } from 'naive-ui'
 import { Close } from '@vicons/ionicons5'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
+import DataTablePro from '@/components/DataTablePro.vue'
 import { fetchRFMCategoryDrilldown, type RFMCategoryDrilldownResponse } from '@/api/health'
+import { useFilterStore } from '@/stores/filterStore'
+import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { BRAND_PRIMARY } from '@/composables/useChartTheme'
+import type { EChartsOption } from 'echarts'
 
 const props = defineProps<{
   rfmSegment: string
@@ -86,38 +94,99 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ close: [] }>()
 
+const filterStore = useFilterStore()
 const loading = ref(false)
 const data = ref<RFMCategoryDrilldownResponse | null>(null)
+const selectedCategory = ref<string | null>(null)
 
-const displayRows = computed(() => data.value?.categories ?? [])
-const memberRows = computed(() => data.value?.member_categories ?? [])
+const displayRows = computed(() => (data.value?.categories ?? []).slice(0, 10))
+const memberRows = computed(() => (data.value?.member_categories ?? []).slice(0, 10))
+
+// Bug 5: 合并 filterStore 的渠道和低价筛选状态
+const liveQueryParams = computed(() => {
+  const base = { ...props.queryParams }
+  base.channel = filterStore.channel
+  if (filterStore.excludeLowPrice) {
+    base.exclude_channels = LOW_PRICE_CHANNELS
+  } else {
+    base.exclude_channels = undefined
+  }
+  return base
+})
 
 // 动态年份标签：支持同比/环比/自定义三种对比模式
 const yearLabel = computed(() => data.value?.year_label ?? '当期')
 const compYearLabel = computed(() => data.value?.comp_year_label ?? '对比期')
 
 const tableColumns = computed(() => [
-  { title: '品类', key: 'category_name', width: 130 },
-  { title: `历史人数(${yearLabel.value})`, key: 'hist_users_current', render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-' },
-  { title: `回购人数(${yearLabel.value})`, key: 'repurchase_users_current', render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-' },
-  { title: `回购率(${yearLabel.value})`, key: 'repurchase_rate_current', render: (r: any) => fmtPct(r.repurchase_rate_current) },
-  { title: `同比(${yearLabel.value} vs ${compYearLabel.value})`, key: 'yoy_repurchase_rate', render: (r: any) => fmtYoY(r.yoy_repurchase_rate) },
-  { title: `回购GSV(${yearLabel.value})`, key: 'repurchase_gsv_current', render: (r: any) => r.repurchase_gsv_current != null ? '¥' + (r.repurchase_gsv_current / 10000).toFixed(1) + '万' : '-' },
+  { title: '品类', key: 'category_name', width: 130, align: 'center' as const },
+  { title: `历史人数(${yearLabel.value})`, key: 'hist_users_current', width: 110, align: 'center' as const, render: (r: any) => r.hist_users_current?.toLocaleString() ?? '-' },
+  { title: `回购人数(${yearLabel.value})`, key: 'repurchase_users_current', width: 110, align: 'center' as const, render: (r: any) => r.repurchase_users_current?.toLocaleString() ?? '-' },
+  { title: `回购率(${yearLabel.value})`, key: 'repurchase_rate_current', width: 100, align: 'center' as const, sorter: (a: any, b: any) => (a.repurchase_rate_current ?? 0) - (b.repurchase_rate_current ?? 0), render: (r: any) => fmtPct(r.repurchase_rate_current) },
+  {
+    title: `同比(${yearLabel.value} vs ${compYearLabel.value})`,
+    key: 'yoy_repurchase_rate',
+    width: 130,
+    align: 'center' as const,
+    render: (r: any) => {
+      const v = r.yoy_repurchase_rate
+      if (v == null) return '-'
+      const arrow = v >= 0 ? '↑' : '↓'
+      return `${arrow}${Math.abs(v * 100).toFixed(1)}pp`
+    },
+  },
+  { title: `回购GSV(${yearLabel.value})`, key: 'repurchase_gsv_current', width: 110, align: 'center' as const, render: (r: any) => r.repurchase_gsv_current != null ? '¥' + (r.repurchase_gsv_current / 10000).toFixed(1) + '万' : '-' },
 ])
 
-const chartOption = computed(() => {
+// Bug 1/3/6: 拓宽柱状图点击范围 + 颜色统一 + 数值标签
+const chartOption = computed((): EChartsOption => {
   const rows = (displayRows.value as any[]).slice(0, 15)
   const yr = yearLabel.value
   const yr2 = compYearLabel.value
   return {
-    tooltip: { trigger: 'axis' as const },
+    tooltip: {
+      trigger: 'axis' as const,
+      enterable: true,
+      alwaysShowContent: false,
+      backgroundColor: 'rgba(255,255,255,0.98)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#0f172a', fontSize: 12 },
+      formatter: (params: any) => {
+        const arr = Array.isArray(params) ? params : [params]
+        const rows = arr.map((p: any) =>
+          `<div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>
+            <span class="text-slate-500">${p.seriesName}:</span>
+            <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(1)}%</span>
+          </div>`
+        ).join('')
+        return `<div style="background:#f5f5f5;padding:8px 12px;border-radius:4px;line-height:1.8">
+          <div class="font-semibold mb-1">${arr[0].name}</div>
+          ${rows}
+          <div class="text-[11px] text-slate-400 mt-1">点击查看「${arr[0].name}」的品类拆解</div>
+        </div>`
+      },
+    },
     legend: { top: 0, data: [yr, yr2] },
     grid: { left: 80, right: 20, top: 36, bottom: 36 },
-    xAxis: { type: 'category' as const, data: rows.map((r: any) => r.category_name), axisLabel: { rotate: 30, fontSize: 10 } },
+    xAxis: {
+      type: 'category' as const,
+      data: rows.map((r: any) => r.category_name),
+      axisLabel: { rotate: 30, fontSize: 10 },
+    },
     yAxis: { type: 'value' as const, name: '回购率', axisLabel: { formatter: (v: number) => (v * 100).toFixed(0) + '%' } },
     series: [
-      { name: yr, type: 'bar' as const, data: rows.map((r: any) => ({ value: r.repurchase_rate_current, itemStyle: { color: '#2563eb' } })) },
-      { name: yr2, type: 'bar' as const, data: rows.map((r: any) => ({ value: r.repurchase_rate_comp, itemStyle: { color: '#94a3b8' } })) },
+      {
+        name: yr, type: 'bar' as const,
+        data: rows.map((r: any) => ({ value: r.repurchase_rate_current, itemStyle: { color: BRAND_PRIMARY, borderRadius: [3, 3, 0, 0] } })),
+        label: { show: true, position: 'top', formatter: (p: any) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 10, color: BRAND_PRIMARY, fontWeight: 'bold' },
+      },
+      {
+        name: yr2, type: 'bar' as const,
+        data: rows.map((r: any) => ({ value: r.repurchase_rate_comp, itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] } })),
+        label: { show: true, position: 'top', formatter: (p: any) => `${(Number(p.value) * 100).toFixed(1)}%`, fontSize: 10, color: '#60a5fa', fontWeight: 'bold' },
+      },
     ],
   }
 })
@@ -148,10 +217,17 @@ function yoyClass(v: number | null | undefined): string {
   return v >= 0 ? 'success' : 'danger'
 }
 
+// Bug 1: 柱状图点击处理
+function onChartClick(params: any) {
+  const name = params?.name
+  if (!name) return
+  selectedCategory.value = name
+}
+
 async function load() {
   loading.value = true
   try {
-    data.value = await fetchRFMCategoryDrilldown({ rfm_segment: props.rfmSegment, ...props.queryParams })
+    data.value = await fetchRFMCategoryDrilldown({ rfm_segment: props.rfmSegment, ...liveQueryParams.value })
   } catch (e) {
     console.error('[RFMSegmentDrilldown] load failed', e)
   } finally {
@@ -160,7 +236,7 @@ async function load() {
 }
 
 watch(() => props.rfmSegment, load, { immediate: true })
-watch(() => props.queryParams, load, { deep: true })
+watch(liveQueryParams, load, { deep: true })
 </script>
 
 <style scoped>
@@ -181,4 +257,6 @@ watch(() => props.queryParams, load, { deep: true })
 .insight-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; }
 .insight-wrap ul { margin: 0; padding-left: 18px; }
 .insight-wrap li { font-size: 13px; margin: 3px 0; }
+.chart-hint { color: #999; font-size: 12px; margin: 4px 0 0 0; }
+.table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
 </style>
