@@ -56,6 +56,7 @@
         <div class="table-scroll-wrap">
           <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="false" :scroll-x="780" />
         </div>
+        <div class="table-hint">回购率 = 当期回购人数 ÷ 历史人数（品类维度，含多品类重复计入）</div>
       </div>
 
       <div v-if="memberRows.length > 0" class="member-wrap">
