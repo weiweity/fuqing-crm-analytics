@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toValue, h, ref } from 'vue'
+import { computed, toValue, h, ref, onMounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import type { DataTableColumns } from 'naive-ui'
 import { NAlert, NButton } from 'naive-ui'
@@ -41,6 +41,11 @@ function onRFMChartClick(params: any) {
     selectedSegment.value = params.name
   }
 }
+
+// 暴露到 window，供 tooltip onclick 调用
+onMounted(() => {
+  ;(window as any).__rFMDrilldownClick = onRFMChartClick
+})
 
 const rfmQueryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
@@ -161,6 +166,7 @@ const repurchaseRateChartOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
+      enterable: true,
       axisPointer: { type: 'shadow' },
       backgroundColor: 'rgba(255, 255, 255, 0.98)',
       borderColor: '#e2e8f0',
@@ -168,7 +174,8 @@ const repurchaseRateChartOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: EChartTooltipParam[]) => {
-        let html = `<div class="font-semibold mb-1">${params[0].name}</div>`
+        const segName = params[0].name
+        let html = `<div style="cursor:pointer;color:#533afd;font-weight:600;margin-bottom:4px" onclick="window.__rFMDrilldownClick({componentType:'series',seriesType:'bar',name:'${segName}'})">${segName} — 点击查看品类拆解</div>`
         params.forEach((p) => {
           html += `<div class="flex items-center gap-2 text-xs">
             <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>

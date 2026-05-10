@@ -4,7 +4,6 @@
       <div class="header-left">
         <span class="segment-badge">{{ props.rfmSegment }}</span>
         <span class="header-title">— 品类回购拆解</span>
-        <span class="header-subtitle">点击柱状图可查看对应人群的品类拆解</span>
       </div>
       <n-button quaternary circle size="small" @click="emit('close')">
         <template #icon><Close /></template>
@@ -73,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, h, markRaw } from 'vue'
 import { NButton, NCollapse, NCollapseItem, NSpin } from 'naive-ui'
 import { Close } from '@vicons/ionicons5'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
@@ -160,7 +159,7 @@ const tableColumns = computed(() => [
       if (v == null) return '-'
       const color = v >= 0 ? '#16a34a' : '#dc2626'
       const arrow = v >= 0 ? '↑' : '↓'
-      return `<span style="color:${color};font-weight:600">${arrow}${Math.abs(v * 100).toFixed(1)}pp</span>`
+      return markRaw(h('span', { style: { color, fontWeight: 600 } }, `${arrow}${Math.abs(v * 100).toFixed(1)}pp`))
     },
   },
   {
@@ -285,7 +284,6 @@ watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
 .header-left { display: flex; align-items: center; gap: 8px; }
 .segment-badge { background: #2563eb; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; }
 .header-title { font-weight: 600; font-size: 15px; }
-.header-subtitle { color: #999; font-size: 12px; margin-left: 4px; }
 .loading-wrap { display: flex; justify-content: center; padding: 32px; }
 .kpi-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .kpi-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 14px; min-width: 90px; }
