@@ -11,13 +11,16 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from backend.db.connection import get_connection
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
-from backend.semantic.channels import DB_TO_UI
+from backend.semantic.channels import DB_TO_UI, GIFT_SAMPLE_DB, SHELF_DB
 from backend.semantic.filters import expand_channels
 
 _logger = logging.getLogger(__name__)
 
 # 派样渠道（DB名）
 SAMPLING_CHANNELS = ['U先派样', '百补派样']
+
+# 0.01派样与货架渠道引用语义层常量（channels.py为唯一数据源）
+# GIFT_SAMPLE_DB = "赠品&0.01渠道" | SHELF_DB = "货架"
 
 # SPU 字段映射（品类维度）— 白名单，防SQL注入
 _SPU_LEVELS = {
@@ -300,16 +303,15 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     conv_end_str = str(conv_end)
 
     # ── 锁权人数 ──
-    # 浮点精确比较：actual_amount 是 DECIMAL(12,2)，DuckDB 中 0.01 可精确比较
-    # 为防御性编程，使用范围比较（±0.005）
-    # SQL中?出现顺序: 2(lock_start, lock_end)
+    # 浮点精确比较：actual_amount 是 DECIMAL(12,2)，使用 ROUND 精确匹配 0.01
+    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end)
     locked = conn.execute("""
         SELECT COUNT(*) as orders, COUNT(DISTINCT user_id) as users
         FROM orders
-        WHERE channel = '赠品&0.01渠道'
-          AND actual_amount >= 0.005 AND actual_amount <= 0.015
+        WHERE channel = ?
+          AND ROUND(actual_amount, 2) = 0.01
           AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
-    """, [lock_start_str, lock_end_str]).fetchone()
+    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str]).fetchone()
     locked_users = int(locked[1] or 0)
 
     # ── 全店访客数 ──
@@ -322,13 +324,13 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     total_uv = int(uv[0] or 0)
 
     # ── 转化人数：锁权用户中，在转化期间有有效订单的去重用户 ──
-    # SQL中?出现顺序: 2(lock_start, lock_end) + 2(conv_start, conv_end)
+    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end) + 2(conv_start, conv_end)
     converted = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT COUNT(DISTINCT o.user_id) as converted_users,
@@ -339,7 +341,7 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
           AND o.is_refund = FALSE
           AND o.order_status != '交易关闭'
           AND o.channel != '购物金'
-    """, [lock_start_str, lock_end_str, conv_start_str, conv_end_str]).fetchone()
+    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str, conv_start_str, conv_end_str]).fetchone()
     converted_users = int(converted[0] or 0)
     lock_gsv = float(converted[1] or 0)
 
@@ -347,13 +349,13 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     # lock_start_str 在本SQL中出现3次（均为同一个值的重复引用）：
     #   第1-2个: locked_users CTE 的时间范围
     #   第3-5个: first_pay_date 的新客判定阈值
-    # SQL中?出现顺序: 2(lock_start, lock_end) + 3(lock_start x3) + 2(conv_start, conv_end)
+    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end) + 3(lock_start x3) + 2(conv_start, conv_end)
     new_data = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT
@@ -366,7 +368,7 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
         LEFT JOIN orders o ON lu.user_id = o.user_id
             AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
             AND o.is_refund = FALSE AND o.order_status != '交易关闭' AND o.channel != '购物金'
-    """, [lock_start_str, lock_end_str, lock_start_str, lock_start_str, lock_start_str, conv_start_str, conv_end_str]).fetchone()
+    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str, lock_start_str, lock_start_str, lock_start_str, conv_start_str, conv_end_str]).fetchone()
 
     new_locked = int(new_data[1] or 0)
     new_converted = int(new_data[2] or 0)
@@ -552,10 +554,10 @@ def _compute_rolling_year_metrics(
     locked_row = conn.execute("""
         SELECT COUNT(DISTINCT user_id) as users
         FROM orders
-        WHERE channel = '赠品&0.01渠道'
-          AND actual_amount >= 0.005 AND actual_amount <= 0.015
+        WHERE channel = ?
+          AND ROUND(actual_amount, 2) = 0.01
           AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
-    """, [sample_start, sample_end_eff]).fetchone()
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff]).fetchone()
     locked_users = int(locked_row[0] or 0)
 
     # ── 新客锁权 ──
@@ -563,14 +565,14 @@ def _compute_rolling_year_metrics(
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT COUNT(DISTINCT CASE WHEN ufp.first_pay_date >= ?::DATE THEN lu.user_id END)
         FROM locked_users lu
         LEFT JOIN user_first_purchase ufp ON lu.user_id = ufp.user_id
-    """, [sample_start, sample_end_eff, new_threshold]).fetchone()
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff, new_threshold]).fetchone()
     new_locked_count = int(new_locked_row[0] or 0)
 
     lock_rate = safe_ratio(locked_users, total_uv)
@@ -607,15 +609,15 @@ def _compute_rolling_year_metrics(
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         ),
         shelf_users AS (
             SELECT o.user_id, SUM(o.actual_amount) as shelf_total
             FROM orders o
             JOIN locked_users lu ON o.user_id = lu.user_id
-            WHERE o.channel = '货架'
+            WHERE o.channel = ?
               AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
               AND o.is_refund = FALSE
               AND o.order_status != '交易关闭'
@@ -624,7 +626,7 @@ def _compute_rolling_year_metrics(
         )
         SELECT COUNT(*) as converted, COALESCE(SUM(shelf_total), 0) as gsv
         FROM shelf_users
-    """, [sample_start, sample_end_eff, conv_start, conv_end]).fetchone()
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff, SHELF_DB, conv_start, conv_end]).fetchone()
 
     converted_users = int(conv_row[0] or 0)
     conv_gsv = float(conv_row[1] or 0)
@@ -634,15 +636,15 @@ def _compute_rolling_year_metrics(
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         ),
         shelf_users AS (
             SELECT o.user_id, SUM(o.actual_amount) as shelf_total
             FROM orders o
             JOIN locked_users lu ON o.user_id = lu.user_id
-            WHERE o.channel = '货架'
+            WHERE o.channel = ?
               AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
               AND o.is_refund = FALSE
               AND o.order_status != '交易关闭'
@@ -654,7 +656,7 @@ def _compute_rolling_year_metrics(
             COALESCE(SUM(CASE WHEN ufp.first_pay_date >= ?::DATE THEN su.shelf_total ELSE 0 END), 0) as new_gsv
         FROM shelf_users su
         LEFT JOIN user_first_purchase ufp ON su.user_id = ufp.user_id
-    """, [sample_start, sample_end_eff, conv_start, conv_end, new_threshold, new_threshold]).fetchone()
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff, SHELF_DB, conv_start, conv_end, new_threshold, new_threshold]).fetchone()
 
     new_converted = int(new_conv_row[0] or 0)
     new_conv_gsv = float(new_conv_row[1] or 0)

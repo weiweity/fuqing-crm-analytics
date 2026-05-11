@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NSlider, NButton } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
@@ -8,7 +8,7 @@ import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
-import type { SamplingChannelSummary, SamplingCategoryRow, RollingComparisonResponse } from '@/api/sampling'
+import type { SamplingChannelSummary, SamplingCategoryRow } from '@/api/sampling'
 
 const activeTab = ref('roi')
 
@@ -210,12 +210,6 @@ const rollingY2025ConvStart   = ref<number>(new Date(2025, 4, 13).getTime()) // 
 // 滚动截止日
 const rollingEndTs = ref<number>(new Date(2026, 5, 21).getTime()) // 6/21
 
-// 滚动范围：派样起始 → 6/21
-const rollingMinTs = computed(() => {
-  const a = rollingY2026SampleStart.value
-  const b = rollingY2025SampleStart.value
-  return Math.max(a, b)
-})
 const rollingMaxTs = new Date(2026, 5, 21).getTime() // 6/21
 
 // 格式化日期显示

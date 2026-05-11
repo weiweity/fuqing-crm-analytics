@@ -106,7 +106,9 @@ def get_category_distribution(
 
         ch_filter, ch_params = "", []
         if ch and ch != "全店":
-            db = expand_channels([ch])
+            db = [c for c in expand_channels([ch]) if c]
+            if not db:
+                raise ValueError(f"渠道'{ch}'未在channels.py中注册，请检查UI_TO_DB映射")
             if len(db) == 1:
                 ch_filter = "AND o.channel = ?"
                 ch_params = [db[0]]
@@ -115,7 +117,7 @@ def get_category_distribution(
                 ch_params = list(db)
         ex_filter, ex_params = "", []
         if ex:
-            ex_db = expand_channels(ex)
+            ex_db = [c for c in expand_channels(ex) if c]
             ex_filter = f"AND o.channel NOT IN ({','.join(['?'] * len(ex_db))})"
             ex_params = list(ex_db)
         return ch_filter, ch_params, ex_filter, ex_params
@@ -278,7 +280,7 @@ def get_category_segment_matrix(
         exclude_filter = ""
         exclude_params: List[str] = []
         if exclude_channels:
-            db_ex = expand_channels(exclude_channels)
+            db_ex = [c for c in expand_channels(exclude_channels) if c]
             placeholders = ",".join(["?"] * len(db_ex))
             exclude_filter = f"AND o.channel NOT IN ({placeholders})"
             exclude_params = list(db_ex)
@@ -450,213 +452,215 @@ def get_category_user_profile(
         }
     """
     conn = get_connection()
-    date_str = _normalize_date(date)
-    start_date = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
-
-    # 使用语义层构建过滤条件
-    valid_sql, _ = OrderFilters.valid_order()
-
-    # 品类筛选
-    category_filter = f"AND {_cat_expr('spu_category')} = ?"
-    params = [date_str, start_date, date_str, lookback_days, date_str, category]
-    if type is not None:
-        category_filter += f" AND {_cat_expr('spu_type')} = ?"
-        params.append(type)
-
-    # 使用单次查询获取所有数据
-    sql = f"""
-    WITH base_params AS (
-        SELECT
-            DATE(?) AS analysis_date,
-            DATE(?) AS start_date
-    ),
-    period_orders AS (
-        SELECT
-            o.user_id,
-            o.actual_amount,
-            o.order_id,
-            o.province,
-            o.channel,
-            COALESCE(r.segment_id, 9) AS segment_id
-        FROM orders o
-        CROSS JOIN base_params p
-        LEFT JOIN user_rfm r ON o.user_id = r.user_id
-            AND r.analysis_date = ?
-            AND r.metric_type = 'GMV'
-            AND r.lookback_days = ?
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {category_filter}
-    ),
-    overall AS (
+    try:
+        date_str = _normalize_date(date)
+        start_date = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    
+        # 使用语义层构建过滤条件
+        valid_sql, _ = OrderFilters.valid_order()
+    
+        # 品类筛选
+        category_filter = f"AND {_cat_expr('spu_category')} = ?"
+        params = [date_str, start_date, date_str, lookback_days, date_str, category]
+        if type is not None:
+            category_filter += f" AND {_cat_expr('spu_type')} = ?"
+            params.append(type)
+    
+        # 使用单次查询获取所有数据
+        sql = f"""
+        WITH base_params AS (
+            SELECT
+                DATE(?) AS analysis_date,
+                DATE(?) AS start_date
+        ),
+        period_orders AS (
+            SELECT
+                o.user_id,
+                o.actual_amount,
+                o.order_id,
+                o.province,
+                o.channel,
+                COALESCE(r.segment_id, 9) AS segment_id
+            FROM orders o
+            CROSS JOIN base_params p
+            LEFT JOIN user_rfm r ON o.user_id = r.user_id
+                AND r.analysis_date = ?
+                AND r.metric_type = 'GMV'
+                AND r.lookback_days = ?
+            WHERE o.pay_time >= p.start_date
+              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+              AND {valid_sql}
+              {category_filter}
+        ),
+        overall AS (
+            SELECT
+                COUNT(DISTINCT user_id) AS total_users,
+                SUM(actual_amount) AS total_gmv
+            FROM period_orders
+        ),
+        segment_dist AS (
+            SELECT
+                segment_id,
+                COUNT(DISTINCT user_id) AS user_count
+            FROM period_orders
+            GROUP BY segment_id
+        ),
+        province_dist AS (
+            SELECT
+                COALESCE(province, '未知') AS province,
+                COUNT(DISTINCT user_id) AS user_count
+            FROM period_orders
+            GROUP BY province
+        ),
+        """
+    
+        # 由于无法在一个查询中同时获取多个分组的数据,使用多次查询
+        # 先获取总数
+        total_sql = f"""
+        WITH base_params AS (
+            SELECT
+                DATE(?) AS analysis_date,
+                DATE(?) AS start_date
+        ),
+        period_orders AS (
+            SELECT
+                o.user_id,
+                o.actual_amount,
+                o.order_id,
+                COALESCE(r.segment_id, 9) AS segment_id
+            FROM orders o
+            CROSS JOIN base_params p
+            LEFT JOIN user_rfm r ON o.user_id = r.user_id
+                AND r.analysis_date = ?
+                AND r.metric_type = 'GMV'
+                AND r.lookback_days = ?
+            WHERE o.pay_time >= p.start_date
+              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+              AND {valid_sql}
+              AND {_cat_expr('spu_category')} = ?
+        )
         SELECT
             COUNT(DISTINCT user_id) AS total_users,
             SUM(actual_amount) AS total_gmv
         FROM period_orders
-    ),
-    segment_dist AS (
+        """
+    
+        total_params = [date_str, start_date, date_str, lookback_days, date_str, category]
+        total_result = conn.execute(total_sql, total_params).fetchone()
+        total_users = int(total_result[0]) if total_result[0] else 0
+        total_gmv = float(total_result[1]) if total_result[1] else 0.0
+        avg_order_value = total_gmv / total_users if total_users > 0 else 0.0
+    
+        # 象限分布
+        seg_sql = f"""
+        WITH base_params AS (
+            SELECT
+                DATE(?) AS analysis_date,
+                DATE(?) AS start_date
+        ),
+        period_orders AS (
+            SELECT
+                o.user_id,
+                COALESCE(r.segment_id, 9) AS segment_id
+            FROM orders o
+            CROSS JOIN base_params p
+            LEFT JOIN user_rfm r ON o.user_id = r.user_id
+                AND r.analysis_date = ?
+                AND r.metric_type = 'GMV'
+                AND r.lookback_days = ?
+            WHERE o.pay_time >= p.start_date
+              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+              AND {valid_sql}
+              AND {_cat_expr('spu_category')} = ?
+        )
         SELECT
             segment_id,
             COUNT(DISTINCT user_id) AS user_count
         FROM period_orders
         GROUP BY segment_id
-    ),
-    province_dist AS (
+        ORDER BY user_count DESC
+        """
+        seg_result = conn.execute(seg_sql, total_params).fetchall()
+    
+        segment_distribution = []
+        for row in seg_result:
+            seg_id = int(row[0])
+            user_count = int(row[1]) if row[1] else 0
+            pct = round(user_count / total_users * 100, 2) if total_users > 0 else 0
+            segment_distribution.append({
+                "segment_id": seg_id,
+                "name": _segment_meta(seg_id)["name"],
+                "user_count": user_count,
+                "pct": pct
+            })
+    
+        # 省份分布
+        prov_sql = f"""
+        WITH base_params AS (
+            SELECT
+                DATE(?) AS analysis_date,
+                DATE(?) AS start_date
+        ),
+        period_orders AS (
+            SELECT
+                o.user_id,
+                o.province
+            FROM orders o
+            CROSS JOIN base_params p
+            WHERE o.pay_time >= p.start_date
+              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+              AND {valid_sql}
+              AND {_cat_expr('spu_category')} = ?
+        )
         SELECT
             COALESCE(province, '未知') AS province,
             COUNT(DISTINCT user_id) AS user_count
         FROM period_orders
         GROUP BY province
-    ),
-    """
-
-    # 由于无法在一个查询中同时获取多个分组的数据,使用多次查询
-    # 先获取总数
-    total_sql = f"""
-    WITH base_params AS (
+        ORDER BY user_count DESC
+        LIMIT 10
+        """
+        prov_result = conn.execute(prov_sql, [date_str, start_date, date_str, category]).fetchall()
+    
+        province_distribution = [
+            {"province": row[0], "user_count": int(row[1]) if row[1] else 0}
+            for row in prov_result
+        ]
+    
+        # 渠道分布
+        chan_sql = f"""
+        WITH base_params AS (
+            SELECT
+                DATE(?) AS analysis_date,
+                DATE(?) AS start_date
+        ),
+        period_orders AS (
+            SELECT
+                o.user_id,
+                o.channel
+            FROM orders o
+            CROSS JOIN base_params p
+            WHERE o.pay_time >= p.start_date
+              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+              AND {valid_sql}
+              AND {_cat_expr('spu_category')} = ?
+        )
         SELECT
-            DATE(?) AS analysis_date,
-            DATE(?) AS start_date
-    ),
-    period_orders AS (
-        SELECT
-            o.user_id,
-            o.actual_amount,
-            o.order_id,
-            COALESCE(r.segment_id, 9) AS segment_id
-        FROM orders o
-        CROSS JOIN base_params p
-        LEFT JOIN user_rfm r ON o.user_id = r.user_id
-            AND r.analysis_date = ?
-            AND r.metric_type = 'GMV'
-            AND r.lookback_days = ?
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          AND {_cat_expr('spu_category')} = ?
-    )
-    SELECT
-        COUNT(DISTINCT user_id) AS total_users,
-        SUM(actual_amount) AS total_gmv
-    FROM period_orders
-    """
-
-    total_params = [date_str, start_date, date_str, lookback_days, date_str, category]
-    total_result = conn.execute(total_sql, total_params).fetchone()
-    total_users = int(total_result[0]) if total_result[0] else 0
-    total_gmv = float(total_result[1]) if total_result[1] else 0.0
-    avg_order_value = total_gmv / total_users if total_users > 0 else 0.0
-
-    # 象限分布
-    seg_sql = f"""
-    WITH base_params AS (
-        SELECT
-            DATE(?) AS analysis_date,
-            DATE(?) AS start_date
-    ),
-    period_orders AS (
-        SELECT
-            o.user_id,
-            COALESCE(r.segment_id, 9) AS segment_id
-        FROM orders o
-        CROSS JOIN base_params p
-        LEFT JOIN user_rfm r ON o.user_id = r.user_id
-            AND r.analysis_date = ?
-            AND r.metric_type = 'GMV'
-            AND r.lookback_days = ?
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          AND {_cat_expr('spu_category')} = ?
-    )
-    SELECT
-        segment_id,
-        COUNT(DISTINCT user_id) AS user_count
-    FROM period_orders
-    GROUP BY segment_id
-    ORDER BY user_count DESC
-    """
-    seg_result = conn.execute(seg_sql, total_params).fetchall()
-
-    segment_distribution = []
-    for row in seg_result:
-        seg_id = int(row[0])
-        user_count = int(row[1]) if row[1] else 0
-        pct = round(user_count / total_users * 100, 2) if total_users > 0 else 0
-        segment_distribution.append({
-            "segment_id": seg_id,
-            "name": _segment_meta(seg_id)["name"],
-            "user_count": user_count,
-            "pct": pct
-        })
-
-    # 省份分布
-    prov_sql = f"""
-    WITH base_params AS (
-        SELECT
-            DATE(?) AS analysis_date,
-            DATE(?) AS start_date
-    ),
-    period_orders AS (
-        SELECT
-            o.user_id,
-            o.province
-        FROM orders o
-        CROSS JOIN base_params p
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          AND {_cat_expr('spu_category')} = ?
-    )
-    SELECT
-        COALESCE(province, '未知') AS province,
-        COUNT(DISTINCT user_id) AS user_count
-    FROM period_orders
-    GROUP BY province
-    ORDER BY user_count DESC
-    LIMIT 10
-    """
-    prov_result = conn.execute(prov_sql, [date_str, start_date, date_str, category]).fetchall()
-
-    province_distribution = [
-        {"province": row[0], "user_count": int(row[1]) if row[1] else 0}
-        for row in prov_result
-    ]
-
-    # 渠道分布
-    chan_sql = f"""
-    WITH base_params AS (
-        SELECT
-            DATE(?) AS analysis_date,
-            DATE(?) AS start_date
-    ),
-    period_orders AS (
-        SELECT
-            o.user_id,
-            o.channel
-        FROM orders o
-        CROSS JOIN base_params p
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          AND {_cat_expr('spu_category')} = ?
-    )
-    SELECT
-        COALESCE(channel, '未知') AS channel,
-        COUNT(DISTINCT user_id) AS user_count
-    FROM period_orders
-    GROUP BY channel
-    ORDER BY user_count DESC
-    """
-    chan_result = conn.execute(chan_sql, [date_str, start_date, date_str, category]).fetchall()
-
-    channel_distribution = [
-        {"channel": row[0], "user_count": int(row[1]) if row[1] else 0}
-        for row in chan_result
-    ]
-
-    conn.close()
+            COALESCE(channel, '未知') AS channel,
+            COUNT(DISTINCT user_id) AS user_count
+        FROM period_orders
+        GROUP BY channel
+        ORDER BY user_count DESC
+        """
+        chan_result = conn.execute(chan_sql, [date_str, start_date, date_str, category]).fetchall()
+    
+        channel_distribution = [
+            {"channel": row[0], "user_count": int(row[1]) if row[1] else 0}
+            for row in chan_result
+        ]
+    
+    finally:
+        conn.close()
 
     return {
         "date": date_str,
@@ -699,7 +703,11 @@ def _compute_category_period(
     params = [cutoff, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
     if channel and channel != "全店":
 
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+
+        if not db_channels:
+
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
             params.append(db_channels[0])
@@ -708,7 +716,7 @@ def _compute_category_period(
             channel_sql = f"AND o.channel IN ({placeholders})"
             params.extend(db_channels)
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         placeholders = ",".join(["?"] * len(db_ex))
         exclude_sql = f"AND o.channel NOT IN ({placeholders})"
         params.extend(db_ex)
@@ -1050,7 +1058,11 @@ def _compute_wool_party_breakdown(
     channel_sql = ""
     if channel and channel != "全店":
 
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+
+        if not db_channels:
+
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
             channel_params = [db_channels[0]]
@@ -1142,7 +1154,11 @@ def _compute_value_tier_base(
     channel_sql = ""
     if channel and channel != "全店":
 
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+
+        if not db_channels:
+
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
             channel_params = [db_channels[0]]
@@ -1153,7 +1169,7 @@ def _compute_value_tier_base(
 
     exclude_sql = ""
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         placeholders = ",".join(["?"] * len(db_ex))
         exclude_sql = f"AND o.channel NOT IN ({placeholders})"
         exclude_params = list(db_ex)
@@ -1399,7 +1415,11 @@ def _compute_temporal_association(
     channel_sql = ""
     if channel and channel != "全店":
 
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+
+        if not db_channels:
+
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
             channel_params = [db_channels[0]]
@@ -1410,7 +1430,7 @@ def _compute_temporal_association(
 
     exclude_sql = ""
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         placeholders = ",".join(["?"] * len(db_ex))
         exclude_sql = f"AND o.channel NOT IN ({placeholders})"
         exclude_params = list(db_ex)
@@ -1568,6 +1588,9 @@ def get_category_flow(
     from pathlib import Path
 
     # 默认排除赠品&0.01和其他渠道，避免污染品类流转数据
+    # 默认排除赠品&0.01和其他渠道，避免污染品类流转数据
+    # 注意：UI名后续通过 expand_channels() 映射为 DB 名
+    # 数据来源：channels.py UI_TO_DB 的键名
     DEFAULT_EXCLUDED_CHANNELS = ['赠品&0.01', '其他']
     if exclude_channels is None:
         exclude_channels = DEFAULT_EXCLUDED_CHANNELS.copy()
@@ -1617,7 +1640,9 @@ def get_category_flow(
         channel_sql = ""
         db_channels: List[str] = []
         if channel and channel != "全店":
-            db_channels = expand_channels([channel])
+            db_channels = [c for c in expand_channels([channel]) if c]
+            if not db_channels:
+                raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
             if len(db_channels) == 1:
                 channel_sql = "AND o.channel = ?"
                 base_params.append(db_channels[0])
@@ -1898,7 +1923,11 @@ def _compute_market_basket(
     channel_sql = ""
     if channel and channel != "全店":
 
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+
+        if not db_channels:
+
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
             channel_params = [db_channels[0]]
@@ -1909,7 +1938,7 @@ def _compute_market_basket(
 
     exclude_sql = ""
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         placeholders = ",".join(["?"] * len(db_ex))
         exclude_sql = f"AND o.channel NOT IN ({placeholders})"
         exclude_params = list(db_ex)
@@ -2206,7 +2235,11 @@ def get_category_churn(
     channel_sql = ""
     if channel and channel != "全店":
 
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+
+        if not db_channels:
+
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
             channel_params = [db_channels[0]]
@@ -2217,7 +2250,7 @@ def get_category_churn(
 
     exclude_sql = ""
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         placeholders = ",".join(["?"] * len(db_ex))
         exclude_sql = f"AND o.channel NOT IN ({placeholders})"
         exclude_params = list(db_ex)
@@ -2659,7 +2692,9 @@ def _run_category_repurchase_period(
     channel_where_base = ""
     base_params_extra: List[str] = []
     if channel and channel != "全店":
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+        if not db_channels:
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_where_base = " AND o.channel = ?"
             base_params_extra = [db_channels[0]]
@@ -2671,7 +2706,7 @@ def _run_category_repurchase_period(
     exclude_where = ""
     exclude_params: List[str] = []
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         ex_ph = ",".join(["?"] * len(db_ex))
         exclude_where = f" AND o.channel NOT IN ({ex_ph})"
         exclude_params = list(db_ex)
@@ -2975,7 +3010,9 @@ def _run_category_repurchase_period_by_rfm(
     channel_where_base = ""
     base_params_extra: List[str] = []
     if channel and channel != "全店":
-        db_channels = expand_channels([channel])
+        db_channels = [c for c in expand_channels([channel]) if c]
+        if not db_channels:
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_where_base = " AND o.channel = ?"
             base_params_extra = [db_channels[0]]
@@ -2987,7 +3024,7 @@ def _run_category_repurchase_period_by_rfm(
     exclude_where = ""
     exclude_params: List[str] = []
     if exclude_channels:
-        db_ex = expand_channels(exclude_channels)
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
         ex_ph = ",".join(["?"] * len(db_ex))
         exclude_where = f" AND o.channel NOT IN ({ex_ph})"
         exclude_params = list(db_ex)

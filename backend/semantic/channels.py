@@ -127,6 +127,11 @@ CHANNEL_ORDER: List[str] = ["货架", "达播", "直播", "淘客", "微博", "U
 # 用于筛选的有效 UI 渠道列表（剔除购物金）
 ACTIVE_UI_CHANNELS: List[str] = [c.name for c in CHANNEL_FUNNEL if c.key not in ("购物金",)]
 
+# 0.01派样相关常量（避免服务层多处硬编码渠道名）
+# 数据来源：CHANNEL_FUNNEL，与 ETL 判定规则一致
+GIFT_SAMPLE_DB = "赠品&0.01渠道"
+SHELF_DB = "货架"
+
 
 def get_channel_def(key: str) -> ChannelDefinition:
     for c in CHANNEL_FUNNEL:
