@@ -69,6 +69,22 @@ const {
   staleTime: 60_000,
 })
 
+// ── 自适应百分比格式化：极低数值自动扩大小数位 ──
+function formatAdaptivePercent(value: number): string {
+  const pct = value * 100
+  if (pct === 0) return '0.00%'
+  if (pct >= 0.01) return `${pct.toFixed(2)}%`
+  let decimals = 3
+  while (decimals <= 6) {
+    const formatted = pct.toFixed(decimals)
+    if (parseFloat(formatted) > 0) {
+      return `${formatted}%`
+    }
+    decimals++
+  }
+  return `${pct.toExponential(2)}%`
+}
+
 // ── RFM象限分段元数据 ──
 const segmentMeta = computed<Record<string, { label: string; range: string }>>(() => {
   return {
@@ -106,7 +122,7 @@ const repurchaseChartOption = computed(() => {
           html += `<div class="flex items-center gap-2 text-xs">
             <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>
             <span class="text-slate-500">${p.seriesName}:</span>
-            <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(2)}%</span>
+            <span class="font-medium text-slate-800">${formatAdaptivePercent(Number(p.value))}</span>
           </div>`
         })
         return html
@@ -194,7 +210,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       key: 'repurchase_rate_current',
       width: 80,
       align: 'right',
-      render: (r) => h('span', { class: 'font-medium text-slate-800' }, `${(r.repurchase_rate_current * 100).toFixed(2)}%`),
+      render: (r) => h('span', { class: 'font-medium text-slate-800' }, formatAdaptivePercent(r.repurchase_rate_current)),
     },
     { title: `${yr}回购GSV`, key: 'repurchase_gsv_current', width: 90, align: 'right', render: (r) => r.repurchase_gsv_current >= 10000 ? `${(r.repurchase_gsv_current / 10000).toFixed(1)}万` : r.repurchase_gsv_current.toLocaleString() },
     {
@@ -245,7 +261,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       key: 'repurchase_rate_comp',
       width: 80,
       align: 'right',
-      render: (r) => `${(r.repurchase_rate_comp * 100).toFixed(2)}%`,
+      render: (r) => formatAdaptivePercent(r.repurchase_rate_comp),
     },
     { title: `${yr3}历史人数`, key: 'hist_users_prev2', width: 90, align: 'right', render: (r) => r.hist_users_prev2.toLocaleString() },
     {
@@ -253,7 +269,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       key: 'repurchase_rate_prev2',
       width: 80,
       align: 'right',
-      render: (r) => `${(r.repurchase_rate_prev2 * 100).toFixed(2)}%`,
+      render: (r) => formatAdaptivePercent(r.repurchase_rate_prev2),
     },
   ]
 })
