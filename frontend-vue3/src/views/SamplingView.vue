@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NSlider, NButton } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
 import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
-import { fetchSamplingROI, fetchSamplingLockAnalysis } from '@/api/sampling'
-import type { SamplingChannelSummary, SamplingCategoryRow } from '@/api/sampling'
+import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
+import type { SamplingChannelSummary, SamplingCategoryRow, RollingComparisonResponse } from '@/api/sampling'
 
 const activeTab = ref('roi')
 
@@ -196,6 +196,96 @@ function getErrorMessage(err: unknown): string {
   if (typeof err === 'string') return err
   return '请求失败'
 }
+
+// ── Tab 2b: 0.01派样滚动同期对比 ──
+
+// 默认日期（用户可修改）
+const rollingY2026SampleStart = ref<number>(new Date(2026, 3, 27).getTime()) // 4/27
+const rollingY2026SampleEnd   = ref<number>(new Date(2026, 4, 20).getTime()) // 5/20
+const rollingY2026ConvStart   = ref<number>(new Date(2026, 4, 6).getTime())  // 5/6
+const rollingY2025SampleStart = ref<number>(new Date(2025, 3, 28).getTime()) // 4/28
+const rollingY2025SampleEnd   = ref<number>(new Date(2025, 4, 16).getTime()) // 5/16
+const rollingY2025ConvStart   = ref<number>(new Date(2025, 4, 13).getTime()) // 5/13
+
+// 滚动截止日
+const rollingEndTs = ref<number>(new Date(2026, 5, 21).getTime()) // 6/21
+
+// 滚动范围：派样起始 → 6/21
+const rollingMinTs = computed(() => {
+  const a = rollingY2026SampleStart.value
+  const b = rollingY2025SampleStart.value
+  return Math.max(a, b)
+})
+const rollingMaxTs = new Date(2026, 5, 21).getTime() // 6/21
+
+// 格式化日期显示
+function fmtTs(ts: number): string {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// API 参数
+const rollingParams = computed(() => ({
+  year_a_sample_start: fmtTs(rollingY2026SampleStart.value),
+  year_a_sample_end: fmtTs(rollingY2026SampleEnd.value),
+  year_a_conv_start: fmtTs(rollingY2026ConvStart.value),
+  year_b_sample_start: fmtTs(rollingY2025SampleStart.value),
+  year_b_sample_end: fmtTs(rollingY2025SampleEnd.value),
+  year_b_conv_start: fmtTs(rollingY2025ConvStart.value),
+  rolling_end: fmtTs(rollingEndTs.value),
+}))
+
+const { data: rollingData, isLoading: rollingLoading, error: rollingError } = useQuery({
+  queryKey: computed(() => ['sampling-rolling', rollingParams.value]),
+  queryFn: () => fetchRollingComparison(rollingParams.value),
+  enabled: computed(() => activeTab.value === 'rolling'),
+})
+
+// 滚动对比 YoY 指标表
+interface RollingMetricRow {
+  metric: string
+  yearA: string
+  yearB: string
+  yoy: string
+  yoyRaw: number | null
+  isRate: boolean
+}
+
+const rollingMetricRows = computed<RollingMetricRow[]>(() => {
+  if (!rollingData.value) return []
+  const a = rollingData.value.year_a
+  const b = rollingData.value.year_b
+  const y = rollingData.value.yoy
+  const isConv = a.phase === 'conversion'
+
+  const rows: RollingMetricRow[] = [
+    { metric: '全店UV', yearA: a.total_uv.toLocaleString(), yearB: b.total_uv.toLocaleString(), yoy: fmtYoy(y.total_uv, false), yoyRaw: y.total_uv, isRate: false },
+    { metric: '锁权人数', yearA: a.locked_users.toLocaleString(), yearB: b.locked_users.toLocaleString(), yoy: fmtYoy(y.locked_users, false), yoyRaw: y.locked_users, isRate: false },
+    { metric: '锁权率', yearA: fmtPct(a.lock_rate, 2), yearB: fmtPct(b.lock_rate, 2), yoy: fmtYoy(y.lock_rate, true), yoyRaw: y.lock_rate, isRate: true },
+    { metric: '新客锁权人数', yearA: a.new_locked_users.toLocaleString(), yearB: b.new_locked_users.toLocaleString(), yoy: fmtYoy(y.new_locked_users, false), yoyRaw: y.new_locked_users, isRate: false },
+    { metric: '新客锁权占比', yearA: fmtPct(a.new_locked_ratio), yearB: fmtPct(b.new_locked_ratio), yoy: fmtYoy(y.new_locked_ratio, true), yoyRaw: y.new_locked_ratio, isRate: true },
+  ]
+
+  if (isConv) {
+    rows.push(
+      { metric: '加赠转化人数', yearA: a.converted_users.toLocaleString(), yearB: b.converted_users.toLocaleString(), yoy: fmtYoy(y.converted_users, false), yoyRaw: y.converted_users, isRate: false },
+      { metric: '转化率', yearA: fmtPct(a.conversion_rate), yearB: fmtPct(b.conversion_rate), yoy: fmtYoy(y.conversion_rate, true), yoyRaw: y.conversion_rate, isRate: true },
+      { metric: '转化GSV', yearA: fmtGsv(a.conv_gsv), yearB: fmtGsv(b.conv_gsv), yoy: fmtYoy(y.conv_gsv, false), yoyRaw: y.conv_gsv, isRate: false },
+      { metric: '转化AUS', yearA: `¥${a.conv_aus.toFixed(0)}`, yearB: `¥${b.conv_aus.toFixed(0)}`, yoy: fmtYoy(y.conv_aus, false), yoyRaw: y.conv_aus, isRate: false },
+      { metric: '新客转化人数', yearA: a.new_converted_users.toLocaleString(), yearB: b.new_converted_users.toLocaleString(), yoy: fmtYoy(y.new_converted_users, false), yoyRaw: y.new_converted_users, isRate: false },
+      { metric: '新客转化率', yearA: fmtPct(a.new_conversion_rate), yearB: fmtPct(b.new_conversion_rate), yoy: fmtYoy(y.new_conversion_rate, true), yoyRaw: y.new_conversion_rate, isRate: true },
+    )
+  }
+
+  return rows
+})
+
+const rollingCols: DataTableColumns<RollingMetricRow> = [
+  { title: '指标', key: 'metric', width: 140, fixed: 'left', align: 'left' },
+  { title: '2026年', key: 'yearA', width: 130, align: 'right' },
+  { title: '2025年(对齐)', key: 'yearB', width: 130, align: 'right' },
+  { title: 'YoY', key: 'yoy', width: 100, align: 'center' },
+]
 </script>
 
 <template>
@@ -431,6 +521,173 @@ function getErrorMessage(err: unknown): string {
                 title="老客锁权人数"
                 :value="oldLockedUsers.toLocaleString()"
                 :subtitle="`占比 ${(oldLockedRatio * 100).toFixed(1)}%`"
+              />
+            </n-gi>
+          </n-grid>
+        </template>
+      </n-tab-pane>
+
+      <!-- Tab 3: 0.01派样滚动同期对比 -->
+      <n-tab-pane name="rolling" tab="滚动同期对比">
+        <!-- 参数配置区 -->
+        <n-card :bordered="false" segmented class="mb-4">
+          <template #header>
+            <span class="text-sm font-semibold text-slate-700">对比参数配置</span>
+          </template>
+          <n-grid :cols="2" :x-gap="24" :y-gap="12">
+            <!-- 2026年 -->
+            <n-gi>
+              <div class="text-xs font-bold text-indigo-600 mb-2">2026年（当年）</div>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 w-16">派样期</span>
+                  <n-date-picker v-model:value="rollingY2026SampleStart" type="date" size="small" style="width:150px" />
+                  <span class="text-xs text-slate-400">→</span>
+                  <n-date-picker v-model:value="rollingY2026SampleEnd" type="date" size="small" style="width:150px" />
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 w-16">转化期</span>
+                  <n-date-picker v-model:value="rollingY2026ConvStart" type="date" size="small" style="width:150px" />
+                </div>
+              </div>
+            </n-gi>
+            <!-- 2025年 -->
+            <n-gi>
+              <div class="text-xs font-bold text-emerald-600 mb-2">2025年（对比年）</div>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 w-16">派样期</span>
+                  <n-date-picker v-model:value="rollingY2025SampleStart" type="date" size="small" style="width:150px" />
+                  <span class="text-xs text-slate-400">→</span>
+                  <n-date-picker v-model:value="rollingY2025SampleEnd" type="date" size="small" style="width:150px" />
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 w-16">转化期</span>
+                  <n-date-picker v-model:value="rollingY2025ConvStart" type="date" size="small" style="width:150px" />
+                </div>
+              </div>
+            </n-gi>
+          </n-grid>
+        </n-card>
+
+        <!-- 滚动截止日滑块 -->
+        <n-card :bordered="false" segmented class="mb-4">
+          <div class="flex items-center gap-4">
+            <span class="text-sm text-slate-500 whitespace-nowrap">滚动截止日:</span>
+            <n-date-picker
+              v-model:value="rollingEndTs"
+              type="date"
+              size="small"
+              :is-date-disabled="(ts: number) => ts > rollingMaxTs"
+              style="width: 150px"
+            />
+          </div>
+          <div v-if="rollingData" class="mt-3 text-xs text-slate-400">
+            T = {{ rollingData.timeline.T }}天
+            | 2025等价截止: {{ rollingData.timeline.year_b_equiv_end }}
+            | {{ rollingData.year_a.phase === 'conversion' ? '当前阶段：转化期' : '当前阶段：派样期' }}
+          </div>
+        </n-card>
+
+        <loading-state v-if="rollingLoading" />
+        <error-state v-else-if="rollingError" :message="getErrorMessage(rollingError)" />
+
+        <template v-else-if="rollingData">
+          <!-- 核心指标卡片 -->
+          <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen">
+            <n-gi>
+              <metric-card
+                title="全店UV"
+                :value="rollingData.year_a.total_uv.toLocaleString()"
+                :subtitle="`YoY ${fmtYoy(rollingData.yoy.total_uv, false)}`"
+              />
+            </n-gi>
+            <n-gi>
+              <metric-card
+                title="锁权人数"
+                :value="rollingData.year_a.locked_users.toLocaleString()"
+                :subtitle="`锁权率 ${fmtPct(rollingData.year_a.lock_rate, 2)}`"
+              />
+            </n-gi>
+            <n-gi v-if="rollingData.year_a.phase === 'conversion'">
+              <metric-card
+                title="加赠转化人数"
+                :value="rollingData.year_a.converted_users.toLocaleString()"
+                :subtitle="`转化率 ${fmtPct(rollingData.year_a.conversion_rate)}`"
+              />
+            </n-gi>
+            <n-gi v-if="rollingData.year_a.phase === 'conversion'">
+              <metric-card
+                title="转化GSV"
+                :value="fmtGsv(rollingData.year_a.conv_gsv)"
+                :subtitle="`AUS ¥${rollingData.year_a.conv_aus.toFixed(0)}`"
+              />
+            </n-gi>
+            <n-gi v-if="rollingData.year_a.phase === 'sample'">
+              <metric-card
+                title="新客锁权人数"
+                :value="rollingData.year_a.new_locked_users.toLocaleString()"
+                :subtitle="`占比 ${fmtPct(rollingData.year_a.new_locked_ratio)}`"
+              />
+            </n-gi>
+            <n-gi v-if="rollingData.year_a.phase === 'sample'">
+              <metric-card
+                title="老客锁权人数"
+                :value="rollingData.year_a.old_locked_users.toLocaleString()"
+                :subtitle="`占比 ${fmtPct(rollingData.year_a.old_locked_ratio)}`"
+              />
+            </n-gi>
+          </n-grid>
+
+          <!-- YoY 对比表 -->
+          <n-card :bordered="false" segmented class="mb-6">
+            <template #header>
+              <span class="text-sm font-semibold text-slate-700">
+                同期对比: 2026 vs 2025（自动对齐）
+                <span class="ml-2 text-xs font-normal" :class="rollingData.year_a.phase === 'conversion' ? 'text-purple-500' : 'text-amber-500'">
+                  {{ rollingData.year_a.phase === 'conversion' ? '▸ 转化期' : '▸ 派样期' }}
+                </span>
+              </span>
+            </template>
+            <n-data-table
+              :columns="rollingCols"
+              :data="rollingMetricRows"
+              :bordered="false"
+              :single-line="false"
+              :scroll-x="600"
+              size="small"
+              striped
+            />
+          </n-card>
+
+          <!-- 新客/老客拆分（转化期时展示） -->
+          <n-grid v-if="rollingData.year_a.phase === 'conversion'" :cols="4" :x-gap="16" :y-gap="16" responsive="screen">
+            <n-gi>
+              <metric-card
+                title="新客转化人数"
+                :value="rollingData.year_a.new_converted_users.toLocaleString()"
+                :subtitle="`转化率 ${fmtPct(rollingData.year_a.new_conversion_rate)}`"
+              />
+            </n-gi>
+            <n-gi>
+              <metric-card
+                title="新客转化GSV"
+                :value="fmtGsv(rollingData.year_a.new_conv_gsv)"
+                :subtitle="`AUS ¥${rollingData.year_a.new_conv_aus.toFixed(0)}`"
+              />
+            </n-gi>
+            <n-gi>
+              <metric-card
+                title="老客转化人数"
+                :value="rollingData.year_a.old_converted_users.toLocaleString()"
+                :subtitle="`转化率 ${fmtPct(rollingData.year_a.old_conversion_rate)}`"
+              />
+            </n-gi>
+            <n-gi>
+              <metric-card
+                title="2025加赠转化"
+                :value="rollingData.year_b.converted_users.toLocaleString()"
+                :subtitle="`转化率 ${fmtPct(rollingData.year_b.conversion_rate)}`"
               />
             </n-gi>
           </n-grid>

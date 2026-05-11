@@ -55,6 +55,7 @@ from backend.contracts.schemas import (
     BreakdownResponse,
     SamplingROIResponse,
     SamplingLockAnalysisResponse,
+    RollingComparisonResponse,
 )
 
 from backend.services.metrics_service import (
@@ -1123,6 +1124,35 @@ def get_sampling_lock_analysis_api(
     - 同比对比（去年同大促）
     """
     return get_sampling_lock_analysis(campaign_name, year)
+
+
+@app.get("/api/v1/sampling/rolling-comparison", response_model=RollingComparisonResponse)
+def get_rolling_comparison_api(
+    year_a_sample_start: str = Query(..., description="year_a 派样起始"),
+    year_a_sample_end: str = Query(..., description="year_a 派样结束"),
+    year_a_conv_start: str = Query(..., description="year_a 转化起始"),
+    year_b_sample_start: str = Query(..., description="year_b 派样起始"),
+    year_b_sample_end: str = Query(..., description="year_b 派样结束"),
+    year_b_conv_start: str = Query(..., description="year_b 转化起始"),
+    rolling_end: str = Query(..., description="滚动截止日"),
+):
+    """
+    0.01派样滚动同期对比
+
+    以 year_a 的参数为主，year_b 自动 T 对齐。
+    派样期内：UV、锁权人数、锁权率
+    转化期内：加赠转化人数（货架+累计≥100元）、转化率、转化GSV、转化AUS
+    """
+    from backend.services.sampling_service import get_rolling_comparison
+    return get_rolling_comparison(
+        year_a_sample_start=year_a_sample_start,
+        year_a_sample_end=year_a_sample_end,
+        year_a_conv_start=year_a_conv_start,
+        year_b_sample_start=year_b_sample_start,
+        year_b_sample_end=year_b_sample_end,
+        year_b_conv_start=year_b_conv_start,
+        rolling_end=rolling_end,
+    )
 
 
 # ─────────────────────────────────────────────────────────────
