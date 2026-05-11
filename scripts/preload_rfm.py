@@ -91,8 +91,16 @@ def get_hot_dates(today: date = None) -> List[date]:
 # RFM 计算与写入
 # ============================================================
 
+# R 窗口固定365天（独立于 F/M 的 lookback_days），用于计算 recency_days
+R_LOOKBACK_DAYS = 365
+
+
 def build_rfm_sql(metric_type: str) -> str:
-    """构造用于预加载的完整 RFM 计算 SQL（结果可直接插入 user_rfm）。"""
+    """构造用于预加载的完整 RFM 计算 SQL（结果可直接插入 user_rfm）。
+
+    R 窗口固定365天（独立计算 recency_days）；
+    F/M 窗口复用 lookback_days 参数。
+    """
     registry = get_registry()
     r_score_sql = registry.build_r_score_sql(RFM_THRESHOLDS["r"])
     f_score_sql = registry.build_f_score_sql(RFM_THRESHOLDS["f"])
@@ -101,14 +109,19 @@ def build_rfm_sql(metric_type: str) -> str:
     valid_sql, _ = OrderFilters.valid_order()
     amount_cond = "actual_amount > 0" if metric_type == "GMV" else "actual_amount >= 0"
 
-    # 注意：我们使用 INSERT OR REPLACE，所以不需要 created_at（由 DEFAULT 填充）
     tier_cn_sql = registry.build_segment_name_case_when_sql("cn")
     tier_en_sql = registry.build_segment_name_case_when_sql("en")
     sql = f"""
     WITH base_params AS (
-        SELECT DATE(?) AS analysis_date, DATE(?) AS start_date
+        -- lookback_days: F/M 窗口（分析日往回数 N 天）
+        -- r_lookback_days: R 窗口（固定365天，独立计算 recency_days）
+        SELECT
+            DATE(?) AS analysis_date,
+            DATE(?) AS start_date,
+            DATE(?) - INTERVAL '{R_LOOKBACK_DAYS}' DAY AS r_start_date
     ),
-    period_orders AS (
+    -- F/M 指标：使用 lookback_days 窗口
+    fm_orders AS (
         SELECT
             o.user_id,
             o.actual_amount,
@@ -121,25 +134,40 @@ def build_rfm_sql(metric_type: str) -> str:
           AND {valid_sql}
           AND ({amount_cond})
     ),
-    user_metrics AS (
+    fm_metrics AS (
         SELECT
             user_id,
             SUM(actual_amount) AS monetary,
             COUNT(DISTINCT order_id) AS frequency,
             MAX(pay_time) AS last_pay_time,
             MIN(pay_time) AS first_pay_time
-        FROM period_orders
+        FROM fm_orders
         GROUP BY user_id
+    ),
+    -- R 指标：使用固定365天窗口，独立计算 recency_days
+    r_orders AS (
+        SELECT
+            o.user_id,
+            MAX(o.pay_time) AS r_last_pay_time
+        FROM orders o
+        CROSS JOIN base_params p
+        WHERE o.pay_time >= p.r_start_date
+          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+          AND {valid_sql}
+          AND ({amount_cond})
+        GROUP BY o.user_id
     ),
     user_with_rfm AS (
         SELECT
-            um.user_id,
-            um.monetary,
-            um.frequency,
-            um.first_pay_time::DATE AS first_order_date,
-            um.last_pay_time::DATE AS last_order_date,
-            DATEDIFF('day', um.last_pay_time, DATE(?)) AS recency_days
-        FROM user_metrics um
+            fm.user_id,
+            fm.monetary,
+            fm.frequency,
+            fm.first_pay_time::DATE AS first_order_date,
+            fm.last_pay_time::DATE AS last_order_date,
+            -- R: 基于365天窗口计算最近购买距分析日天数
+            DATEDIFF('day', COALESCE(r.r_last_pay_time, fm.last_pay_time), DATE(?)) AS recency_days
+        FROM fm_metrics fm
+        LEFT JOIN r_orders r ON fm.user_id = r.user_id
     ),
     user_with_scores AS (
         SELECT
@@ -198,9 +226,13 @@ def preload_date(
     lookback_days: int,
     metric_type: str,
 ) -> int:
-    """计算指定日期的 RFM 并写入 user_rfm 表，返回写入行数。"""
+    """计算指定日期的 RFM 并写入 user_rfm 表，返回写入行数。
+
+    R 窗口固定365天（独立于 lookback_days），确保 recency_days 反映完整购买历史。
+    """
     start_date = analysis_date - timedelta(days=lookback_days)
     date_str = analysis_date.strftime("%Y-%m-%d")
+    date_upper = date_str  # 分析日上界（< analysis_date + 1天）
 
     # 先删除旧数据（同一组合）
     conn.execute(
@@ -214,7 +246,25 @@ def preload_date(
     )
 
     sql = build_rfm_sql(metric_type)
-    params = [date_str, start_date.strftime("%Y-%m-%d"), date_str, date_str, metric_type, lookback_days]
+    # 参数顺序（7个）：
+    # 1. analysis_date       -> base_params.analysis_date
+    # 2. start_date          -> base_params.start_date（FM窗口起点）
+    # 3. date_upper          -> base_params（r_start_date 在 SQL 内计算）
+    # 4. date_upper          -> fm_orders 上界
+    # 5. date_upper          -> r_orders 上界
+    # 6. analysis_date       -> recency_days 计算
+    # 7. metric_type
+    # 8. lookback_days
+    params = [
+        date_str,
+        start_date.strftime("%Y-%m-%d"),
+        date_upper,
+        date_upper,
+        date_upper,
+        date_str,
+        metric_type,
+        lookback_days,
+    ]
 
     conn.execute(f"""
         INSERT INTO user_rfm (
@@ -226,7 +276,10 @@ def preload_date(
         ) {sql}
     """, params)
 
-    return conn.execute("SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ? AND metric_type = ? AND lookback_days = ?", [date_str, metric_type, lookback_days]).fetchone()[0]
+    return conn.execute(
+        "SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ? AND metric_type = ? AND lookback_days = ?",
+        [date_str, metric_type, lookback_days],
+    ).fetchone()[0]
 
 
 def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
