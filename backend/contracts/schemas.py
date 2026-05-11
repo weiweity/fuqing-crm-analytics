@@ -1281,6 +1281,7 @@ class FlowMatrix(BaseModel):
     sources: List[str]
     targets: List[str]
     matrix: List[List[int]]
+    row_totals: List[int] = Field(default_factory=list, description="每行流转人数总和，用于前端计算行百分比")
     concentration_warnings: List[str]
 
 

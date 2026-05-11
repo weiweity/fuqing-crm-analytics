@@ -1555,24 +1555,34 @@ def get_category_flow(
         start_date: 周期开始日期
         end_date: 周期结束日期
         level: 品类级别
-        top_n: TOP N 品类
+        top_n: TOP N 品类（仅用于桑基图归类，矩阵返回全量）
         window_days: 流转时间窗口(天)
         channel: 渠道筛选
-        exclude_channels: 排除渠道列表
+        exclude_channels: 排除渠道列表（默认排除赠品&0.01、其他）
         target_category: 目标品类(传入时返回前后置购买关联)
 
     Returns:
-        CategoryFlowResponse 结构
+        CategoryFlowResponse 结构（matrix为全量矩阵，含row_totals）
     """
     import json
     from pathlib import Path
+
+    # 默认排除赠品&0.01和其他渠道，避免污染品类流转数据
+    DEFAULT_EXCLUDED_CHANNELS = ['赠品&0.01', '其他']
+    if exclude_channels is None:
+        exclude_channels = DEFAULT_EXCLUDED_CHANNELS.copy()
+    else:
+        # 合并用户指定和默认排除的渠道
+        merged = list(dict.fromkeys(exclude_channels + DEFAULT_EXCLUDED_CHANNELS))
+        exclude_channels = merged
 
     # 有 target_category 时不走缓存(动态分析)
     cache_dir = Path("backend/cache/category_flow")
     import hashlib
     channel_key = (channel or "") + "|" + "|".join(sorted(exclude_channels or []))
     channel_hash = hashlib.md5(channel_key.encode()).hexdigest()[:8]
-    cache_file = cache_dir / f"flow_{start_date}_{end_date}_w{window_days}_top{top_n}_{level}_{channel_hash}.json"
+    # 缓存key增加 _full 后缀，与旧版10x10矩阵缓存区分
+    cache_file = cache_dir / f"flow_{start_date}_{end_date}_w{window_days}_full_{level}_{channel_hash}.json"
 
     # 尝试读取缓存(仅在无 target_category 时)
     data_stale = False
@@ -1587,7 +1597,7 @@ def get_category_flow(
             return {
                 **cached,
                 "data_stale": False,
-                "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算",
+                "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
             }
         except Exception:
             data_stale = True
@@ -1605,8 +1615,8 @@ def get_category_flow(
         base_params: List[Any] = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
 
         channel_sql = ""
+        db_channels: List[str] = []
         if channel and channel != "全店":
-    
             db_channels = expand_channels([channel])
             if len(db_channels) == 1:
                 channel_sql = "AND o.channel = ?"
@@ -1617,6 +1627,7 @@ def get_category_flow(
                 base_params.extend(db_channels)
 
         exclude_sql = ""
+        db_ex: List[str] = []
         if exclude_channels:
             from backend.semantic.filters import expand_channels as _ec
             db_ex = _ec(exclude_channels)
@@ -1624,7 +1635,7 @@ def get_category_flow(
             exclude_sql = f"AND o.channel NOT IN ({placeholders})"
             base_params.extend(db_ex)
 
-        # 查找TOP N品类
+        # 查找TOP N品类（仅用于桑基图归类）
         top_cat_sql = f"""
         WITH all_orders AS (
             SELECT
@@ -1671,14 +1682,13 @@ def get_category_flow(
             top_cats_result = conn.execute(top_cat_sql, base_params + [top_n]).fetchall()
             top_cats = [row[0] for row in top_cats_result[:top_n]]
 
-        # flow_sql 参数: 2个日期 + excluded_cat + channel + exclude + top_cats(from IN) + top_cats(to IN)
-        channel_params_flow = []
-        exclude_params_flow = []
+        # 全量流转SQL：不限制在top_cats内，查询全部品类的流转
+        # 参数: 2个日期 + excluded_cat + channel + exclude
+        params_flow = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
         if channel and channel != "全店":
-            channel_params_flow = list(db_channels)
+            params_flow.extend(db_channels)
         if exclude_channels:
-            exclude_params_flow = list(exclude_channels)
-        params_flow = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params_flow + exclude_params_flow + top_cats + top_cats
+            params_flow.extend(db_ex)
 
         flow_sql = f"""
         WITH all_orders AS (
@@ -1720,8 +1730,6 @@ def get_category_flow(
                 COUNT(DISTINCT fo.user_id) AS flow_users
             FROM user_first_order fo
             INNER JOIN user_second_order so ON fo.user_id = so.user_id
-            WHERE fo.first_category IN ({",".join(["?"] * len(top_cats))})
-              OR so.second_category IN ({",".join(["?"] * len(top_cats))})
             GROUP BY fo.first_category, so.second_category
         )
         SELECT from_cat, to_cat, flow_users
@@ -1731,7 +1739,7 @@ def get_category_flow(
         """
         flow_result = conn.execute(flow_sql, params_flow).fetchall()
 
-        # 构建桑基图数据
+        # 构建桑基图数据（仍按TOP10+其他归类，保证可视化可读性）
         other_node = "其他"
         raw_links = []
         for row in flow_result:
@@ -1753,13 +1761,13 @@ def get_category_flow(
         links = list(merged.values())
 
         # 重新构建节点列表
-        node_names = list(set(top_cats))
+        node_names = list(dict.fromkeys(top_cats))  # 去重保序
         for l in links:
-            node_names.append(l["source"])
-            node_names.append(l["target"])
-        node_names = list(dict.fromkeys(node_names))  # 去重保序
+            if l["source"] not in node_names:
+                node_names.append(l["source"])
+            if l["target"] not in node_names:
+                node_names.append(l["target"])
         if other_node not in node_names:
-            # 若没有其他节点但有link指向其他，补充
             has_other = any(l["source"] == other_node or l["target"] == other_node for l in links)
             if has_other:
                 node_names.append(other_node)
@@ -1769,20 +1777,44 @@ def get_category_flow(
             "links": links,
         }
 
-        # 流转矩阵
-        all_cats = top_cats + [other_node]
-        sources = top_cats
-        targets = top_cats + [other_node]
-
-        matrix = [[0] * len(targets) for _ in range(len(sources))]
-        concentration_warnings = []
+        # 全量流转矩阵构建
+        # 收集所有作为来源或目标出现过的品类
+        all_from_cats = []
+        all_to_cats = []
         for row in flow_result:
-            from_idx = sources.index(row[0]) if row[0] in sources else -1
-            to_idx = targets.index(row[1]) if row[1] in targets else -1
-            if from_idx >= 0 and to_idx >= 0:
-                matrix[from_idx][to_idx] = int(row[2] or 0)
+            fc, tc = row[0], row[1]
+            if fc not in all_from_cats:
+                all_from_cats.append(fc)
+            if tc not in all_to_cats:
+                all_to_cats.append(tc)
+
+        # 按总流转量排序（来源按总流出量，目标按总流入量）
+        from_totals = {cat: 0 for cat in all_from_cats}
+        to_totals = {cat: 0 for cat in all_to_cats}
+        for row in flow_result:
+            fc, tc, users = row[0], row[1], int(row[2] or 0)
+            if fc in from_totals:
+                from_totals[fc] += users
+            if tc in to_totals:
+                to_totals[tc] += users
+
+        sources = sorted(all_from_cats, key=lambda c: from_totals.get(c, 0), reverse=True)
+        targets = sorted(all_to_cats, key=lambda c: to_totals.get(c, 0), reverse=True)
+
+        # 构建全量矩阵
+        matrix = [[0] * len(targets) for _ in range(len(sources))]
+        for row in flow_result:
+            from_cat, to_cat, users = row[0], row[1], int(row[2] or 0)
+            if from_cat in sources and to_cat in targets:
+                from_idx = sources.index(from_cat)
+                to_idx = targets.index(to_cat)
+                matrix[from_idx][to_idx] = users
+
+        # 计算每行总和（用于前端行百分比计算）
+        row_totals = [sum(row) for row in matrix]
 
         # 来源集中度警告
+        concentration_warnings = []
         for i, src in enumerate(sources):
             total_inflow = sum(matrix[j][i] for j in range(len(sources)))
             if total_inflow > 0:
@@ -1794,6 +1826,7 @@ def get_category_flow(
             "sources": sources,
             "targets": targets,
             "matrix": matrix,
+            "row_totals": row_totals,
             "concentration_warnings": concentration_warnings,
         }
 
@@ -1806,7 +1839,7 @@ def get_category_flow(
             "sankey_data": sankey_data,
             "matrix": flow_matrix_data,
             "data_stale": data_stale,
-            "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算",
+            "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
         }
 
         # 时序关联分析

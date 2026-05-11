@@ -189,6 +189,7 @@ export interface FlowMatrix {
   sources: string[]
   targets: string[]
   matrix: number[][]
+  row_totals: number[] // 每行流转人数总和，用于前端计算行百分比
   concentration_warnings: string[]
 }
 

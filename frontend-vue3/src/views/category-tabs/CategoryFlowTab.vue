@@ -17,10 +17,15 @@ const props = defineProps<{
 }>()
 
 const filterStore = useFilterStore()
-import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+
+// 品类流转tab默认排除的渠道（避免赠品&0.01、其他渠道污染流转数据）
+const CATEGORY_FLOW_EXCLUDED_CHANNELS = ['赠品&0.01', '其他']
 
 const windowDays = ref<number>(90)
 const targetCategory = ref<string | null>(null)
+
+// 流转矩阵显示模式：百分比(默认) / 数值
+const matrixDisplayMode = ref<'percentage' | 'value'>('percentage')
 
 const targetCategoryOptions = computed(() => {
   if (!data.value?.sankey_data?.nodes) return []
@@ -40,10 +45,9 @@ const queryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
   level: 'class',
-  top_n: 10,
   window_days: windowDays.value,
   channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
-  exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
+  exclude_channels: CATEGORY_FLOW_EXCLUDED_CHANNELS,
   target_category: targetCategory.value || undefined,
 }))
 
@@ -62,6 +66,7 @@ const WINDOW_OPTIONS = [
   { label: '30天', value: 30 },
   { label: '90天', value: 90 },
   { label: '180天', value: 180 },
+  { label: '365天', value: 365 },
 ]
 
 // ─── 检测并打破有向环（桑基图要求DAG）─────────────────────────────
@@ -211,7 +216,7 @@ const matrixColumns = computed<DataTableColumns<any>>(() => {
     {
       title: '来源↓ / 目标→',
       key: 'source',
-      width: 120,
+      width: 140,
       fixed: 'left',
       align: 'center',
     },
@@ -221,11 +226,15 @@ const matrixColumns = computed<DataTableColumns<any>>(() => {
     cols.push({
       title: t,
       key: `t_${i}`,
+      width: 90,
       align: 'right',
       className: 'bi-cell-number',
       render: (row: any) => {
         const val = row[`t_${i}`]
         if (val == null || val === 0) return '—'
+        if (matrixDisplayMode.value === 'percentage') {
+          return val + '%'
+        }
         return val.toLocaleString()
       },
     })
@@ -236,12 +245,20 @@ const matrixColumns = computed<DataTableColumns<any>>(() => {
 
 const matrixData = computed(() => {
   if (!data.value?.matrix) return []
-  const { sources, targets, matrix } = data.value.matrix
+  const { sources, targets, matrix, row_totals } = data.value.matrix
 
   return sources.map((src, si) => {
     const row: Record<string, any> = { source: src }
+    const rowTotal = row_totals?.[si] ?? 0
+
     targets.forEach((_, ti) => {
-      row[`t_${ti}`] = matrix[si]?.[ti] ?? 0
+      const rawVal = matrix[si]?.[ti] ?? 0
+      if (matrixDisplayMode.value === 'percentage' && rowTotal > 0) {
+        // 行百分比，保留1位小数
+        row[`t_${ti}`] = rawVal === 0 ? 0 : Math.round((rawVal / rowTotal) * 1000) / 10
+      } else {
+        row[`t_${ti}`] = rawVal
+      }
     })
     return row
   })
@@ -372,14 +389,39 @@ const ASSOC_COLS: DataTableColumns<any> = [
 
       <!-- 流转矩阵 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">流转矩阵</h3>
-        <p class="text-[11px] text-slate-500 mb-1">行=来源品类，列=目标品类，值=流转用户数</p>
-        <p class="text-[11px] text-slate-400 mb-3">桑基图的数字版——精确读取任意两个品类之间的流转人数，适合做数值对比</p>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-800 mb-0.5">流转矩阵</h3>
+            <p class="text-[11px] text-slate-500 mb-1">
+              行=来源品类，列=目标品类，{{ matrixDisplayMode === 'percentage' ? '值=行百分比（从来源流向目标的占比）' : '值=流转人数' }}
+            </p>
+            <p class="text-[11px] text-slate-400">
+              {{ matrixDisplayMode === 'percentage' ? '百分比模式：快速发现核心流转路径' : '数值模式：精确读取流转人数' }}
+            </p>
+          </div>
+          <div class="flex items-center bg-slate-100 rounded-lg p-0.5">
+            <button
+              class="px-3 py-1 text-xs rounded-md transition-colors"
+              :class="matrixDisplayMode === 'percentage' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+              @click="matrixDisplayMode = 'percentage'"
+            >
+              百分比
+            </button>
+            <button
+              class="px-3 py-1 text-xs rounded-md transition-colors"
+              :class="matrixDisplayMode === 'value' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+              @click="matrixDisplayMode = 'value'"
+            >
+              数值
+            </button>
+          </div>
+        </div>
         <DataTablePro
           :columns="matrixColumns"
           :data="matrixData"
           :pagination="false"
-          :scroll-x="800"
+          :scroll-x="2000"
+          :max-height="520"
         />
       </div>
     </template>
