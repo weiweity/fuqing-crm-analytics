@@ -6,6 +6,7 @@ import { NSelect } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import {
   fetchCategoryRepurchaseFlow,
+  fetchCategoryRepurchaseFlowByRfm,
   type CategoryRepurchaseFlowRow,
   type CategoryRepurchaseFlowResponse,
 } from '@/api/category'
@@ -39,6 +40,9 @@ const categorySelectOptions = computed(() =>
   props.categoryOptions.map((c) => ({ label: c, value: c }))
 )
 
+// 视图模式：category=本品类回购（现有逻辑）, rfm=历史老客回购（不限品类）
+const activeMode = ref<'category' | 'rfm'>('category')
+
 const queryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
@@ -55,8 +59,13 @@ const {
   error,
   refetch,
 } = useQuery({
-  queryKey: computed(() => ['category-repurchase-flow', { ...toValue(queryParams) }]),
-  queryFn: () => fetchCategoryRepurchaseFlow(toValue(queryParams)),
+  queryKey: computed(() => ['category-repurchase-flow', activeMode.value, { ...toValue(queryParams) }]),
+  queryFn: () => {
+    if (activeMode.value === 'rfm') {
+      return fetchCategoryRepurchaseFlowByRfm(toValue(queryParams))
+    }
+    return fetchCategoryRepurchaseFlow(toValue(queryParams))
+  },
   staleTime: 60_000,
 })
 
@@ -252,25 +261,48 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
 <template>
   <div class="space-y-5 pt-1">
-    <!-- 品类选择器 + 说明 -->
+    <!-- 模式切换 + 品类选择器 + 说明 -->
     <div class="flex items-center justify-between">
       <div>
         <p class="text-[11px] text-slate-400">
-          买了某品类的老客，多久回来？回来买了同品还是其他品类？——识别品类复购周期和承接关系
+          <template v-if="activeMode === 'category'">
+            买了某品类的老客，多久回来？回来买了同品还是其他品类？——识别品类复购周期和承接关系
+          </template>
+          <template v-else>
+            所有历史老客（不限品类）按RFM象限分群，看各象限在分析期内对目标品类的回购表现——识别高价值象限的品类渗透机会
+          </template>
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs text-slate-500">目标品类:</span>
-        <n-select
-          v-model:value="targetCategory"
-          :options="categorySelectOptions"
-          size="small"
-          clearable
-          filterable
-          tag
-          placeholder="输入或选择品类"
-          style="width: 200px"
-        />
+      <div class="flex items-center gap-3">
+        <!-- 模式切换 -->
+        <div class="flex items-center bg-slate-100 rounded-md p-0.5">
+          <button
+            class="px-3 py-1 text-xs rounded-md transition-colors cursor-pointer select-none"
+            :class="activeMode === 'category' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+            @click="activeMode = 'category'"
+          >
+            本品类回购
+          </button>
+          <button
+            class="px-3 py-1 text-xs rounded-md transition-colors cursor-pointer select-none"
+            :class="activeMode === 'rfm' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+            @click="activeMode = 'rfm'"
+          >
+            历史老客回购
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-500">目标品类:</span>
+          <n-select
+            v-model:value="targetCategory"
+            :options="categorySelectOptions"
+            size="small"
+            clearable
+            filterable
+            placeholder="搜索或选择品类"
+            style="width: 200px"
+          />
+        </div>
       </div>
     </div>
 
@@ -283,7 +315,14 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
         <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
           {{ data.target_category }} — 同品回购率 3 年对比
         </h3>
-        <p class="text-[11px] text-slate-500 mb-3">各R区间老客对{{ data.target_category }}的复购率变化</p>
+        <p class="text-[11px] text-slate-500 mb-3">
+          <template v-if="activeMode === 'category'">
+            各R区间老客对{{ data.target_category }}的复购率变化
+          </template>
+          <template v-else>
+            各RFM象限老客对{{ data.target_category }}的复购率变化（历史老客不限品类）
+          </template>
+        </p>
         <EmptyState
           v-if="!data.same_category_rows?.length"
           description="当前条件下无数据"
@@ -294,10 +333,20 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       <!-- 同品回购明细 — 全店 -->
       <div class="bi-card p-4">
         <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          同品回购明细 — {{ data.target_category }}
+          <template v-if="activeMode === 'category'">
+            同品回购明细 — {{ data.target_category }}
+          </template>
+          <template v-else>
+            同品回购明细 — {{ data.target_category }}（历史老客不限品类）
+          </template>
         </h3>
         <p class="text-[11px] text-slate-500 mb-3">
-          买了{{ data.target_category }}的老客，在分析期回来买同一品类的回购表现（3年同比）
+          <template v-if="activeMode === 'category'">
+            买了{{ data.target_category }}的老客，在分析期回来买同一品类的回购表现（3年同比）
+          </template>
+          <template v-else>
+            所有历史老客按RFM象限分群，在分析期回来买{{ data.target_category }}的回购表现（3年同比）
+          </template>
         </p>
         <DataTablePro
           :columns="flowColumns"
@@ -310,10 +359,20 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       <!-- 跨品类回购明细 — 全店 -->
       <div class="bi-card p-4">
         <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          跨品类回购明细 — {{ data.target_category }}
+          <template v-if="activeMode === 'category'">
+            跨品类回购明细 — {{ data.target_category }}
+          </template>
+          <template v-else>
+            跨品类回购明细 — {{ data.target_category }}（历史老客不限品类）
+          </template>
         </h3>
         <p class="text-[11px] text-slate-500 mb-3">
-          买了{{ data.target_category }}的老客，在分析期回来买了其他品类的跨品类回购表现（3年同比）
+          <template v-if="activeMode === 'category'">
+            买了{{ data.target_category }}的老客，在分析期回来买了其他品类的跨品类回购表现（3年同比）
+          </template>
+          <template v-else>
+            所有历史老客按RFM象限分群，在分析期回来买了其他品类的跨品类回购表现（3年同比）
+          </template>
         </p>
         <DataTablePro
           :columns="flowColumns"
@@ -326,10 +385,20 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       <!-- 会员 同品回购 -->
       <div class="bi-card p-4">
         <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          同品回购明细 — {{ data.target_category }} — 会员
+          <template v-if="activeMode === 'category'">
+            同品回购明细 — {{ data.target_category }} — 会员
+          </template>
+          <template v-else>
+            同品回购明细 — {{ data.target_category }} — 会员（历史老客不限品类）
+          </template>
         </h3>
         <p class="text-[11px] text-slate-500 mb-3">
-          买了{{ data.target_category }}的会员老客，同品回购表现（3年同比）
+          <template v-if="activeMode === 'category'">
+            买了{{ data.target_category }}的会员老客，同品回购表现（3年同比）
+          </template>
+          <template v-else>
+            所有历史会员老客按RFM象限分群，同品回购表现（3年同比）
+          </template>
         </p>
         <DataTablePro
           :columns="flowColumns"
@@ -342,10 +411,20 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       <!-- 会员 跨品类回购 -->
       <div class="bi-card p-4">
         <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          跨品类回购明细 — {{ data.target_category }} — 会员
+          <template v-if="activeMode === 'category'">
+            跨品类回购明细 — {{ data.target_category }} — 会员
+          </template>
+          <template v-else>
+            跨品类回购明细 — {{ data.target_category }} — 会员（历史老客不限品类）
+          </template>
         </h3>
         <p class="text-[11px] text-slate-500 mb-3">
-          买了{{ data.target_category }}的会员老客，跨品类回购表现（3年同比）
+          <template v-if="activeMode === 'category'">
+            买了{{ data.target_category }}的会员老客，跨品类回购表现（3年同比）
+          </template>
+          <template v-else>
+            所有历史会员老客按RFM象限分群，跨品类回购表现（3年同比）
+          </template>
         </p>
         <DataTablePro
           :columns="flowColumns"

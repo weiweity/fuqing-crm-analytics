@@ -98,6 +98,7 @@ from backend.services.category_service import (
     get_category_daily_trend,
     get_category_user_list,
     get_category_repurchase_flow,
+    get_category_repurchase_flow_by_rfm,
 )
 from backend.services.export_service import (
     generate_ppt_report,
@@ -538,6 +539,28 @@ def get_category_repurchase_flow_api(
     返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）
     """
     return get_category_repurchase_flow(
+        start_date, end_date, category, level, metric_type, channel, exclude_channels
+    )
+
+
+@app.get("/api/v1/category/repurchase-flow-by-rfm", response_model=CategoryRepurchaseFlowResponse)
+def get_category_repurchase_flow_by_rfm_api(
+    start_date: str = Query(default="2026-01-01"),
+    end_date: str = Query(default="2026-03-31"),
+    category: str = Query(default="B5面膜", description="目标品类"),
+    level: str = Query(default="class"),
+    metric_type: str = Query(default="GSV"),
+    channel: Optional[str] = Query(default=None),
+    exclude_channels: Optional[List[str]] = Query(default=None),
+):
+    """
+    历史老客回购分析（RFM 8象限分群，不限品类）
+
+    返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+    与 repurchase-flow 的区别：hist_customers 包含所有历史老客（不限品类），
+    按 RFM 象限分群后观察各象限在分析期内对目标品类的回购表现。
+    """
+    return get_category_repurchase_flow_by_rfm(
         start_date, end_date, category, level, metric_type, channel, exclude_channels
     )
 

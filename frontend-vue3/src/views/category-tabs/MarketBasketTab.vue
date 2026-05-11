@@ -430,8 +430,7 @@ const METRIC_TIPS = {
               size="small"
               clearable
               filterable
-              tag
-              placeholder="输入或选择品类"
+              placeholder="搜索或选择品类"
               style="width: 200px"
             />
           </div>

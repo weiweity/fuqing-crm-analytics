@@ -370,6 +370,18 @@ export function fetchCategoryRepurchaseFlow(params: {
   return client.get('/v1/category/repurchase-flow', { params })
 }
 
+export function fetchCategoryRepurchaseFlowByRfm(params: {
+  start_date: string
+  end_date: string
+  category: string
+  level?: string
+  metric_type?: string
+  channel?: string
+  exclude_channels?: string[]
+}): Promise<CategoryRepurchaseFlowResponse> {
+  return client.get('/v1/category/repurchase-flow-by-rfm', { params })
+}
+
 // ============================================================
 // 详情页 API
 // ============================================================

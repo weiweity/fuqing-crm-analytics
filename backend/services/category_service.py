@@ -44,6 +44,25 @@ SPU_LEVELS = {
     "spec": "spu_spec",              # 规格
 }
 
+# 非产品品类（营销赠品、虚拟商品、物料等），从品类看板中排除
+EXCLUDED_PRODUCT_CATEGORIES = (
+    '购物金', '0.01', '邮费补差链接', '明星小卡', '刮刮卡',
+    '有价优惠劵', '盲盒', '手持镜', '帆布袋', '帆布包',
+    '加湿器', '起泡网', '吸油纸', '硅胶刷', '湿敷棉',
+    '洗脸巾', 'PR礼盒', '多品类集合链',
+)
+
+
+def _cat_expr(field: str) -> str:
+    """品类字段表达式：TRIM + COALESCE，修复尾部空格问题"""
+    return f"COALESCE(TRIM(o.{field}), '未知')"
+
+
+def _excluded_cat_filter(field: str) -> str:
+    """生成排除非产品品类的 SQL 片段"""
+    placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
+    return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
+
 
 def get_category_distribution(
     date: str,
@@ -76,7 +95,8 @@ def get_category_distribution(
     if level not in SPU_LEVELS:
         raise ValueError(f"Invalid level: {level}")
     category_field = SPU_LEVELS[level]
-    category_field_expr = f"COALESCE(o.{category_field}, '未知')"
+    category_field_expr = _cat_expr(category_field)
+    excluded_cat_sql = _excluded_cat_filter(category_field)
 
     # 使用语义层构建过滤条件
     valid_sql, _ = OrderFilters.valid_order()
@@ -125,6 +145,7 @@ def get_category_distribution(
         WHERE o.pay_time >= p.start_date
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
+          {excluded_cat_sql}
           {segment_filter}
           {channel_filter}
           {exclude_filter}
@@ -156,6 +177,7 @@ def get_category_distribution(
     WHERE o.pay_time >= p.start_date
       AND o.pay_time < DATE(?) + INTERVAL '1' DAY
       AND {valid_sql}
+      {excluded_cat_sql}
       {segment_filter}
       {channel_filter}
       {exclude_filter}
@@ -163,8 +185,9 @@ def get_category_distribution(
 
     conn = get_connection()
     try:
-        # 参数顺序: date_str, start_date, date_str, lookback_days, date_str, [segment_id], [channel_params], [exclude_params]
-        params = [date_str, start_date, date_str, lookback_days, date_str]
+        # 参数顺序: date_str, start_date, date_str, lookback_days, date_str, [excluded], [segment_id], [channel_params], [exclude_params]
+        excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
+        params = [date_str, start_date, date_str, lookback_days, date_str] + excluded_params
         if segment_id is not None:
             params.append(segment_id)
         params.extend(channel_params)
@@ -247,7 +270,8 @@ def get_category_segment_matrix(
         valid_sql, _ = OrderFilters.valid_order()
 
         category_field = SPU_LEVELS.get(level, "spu_type")
-        category_field_expr = f"COALESCE(o.{category_field}, '未知')"
+        category_field_expr = _cat_expr(category_field)
+        excluded_cat_sql = _excluded_cat_filter(category_field)
 
         # 排除渠道
 
@@ -265,6 +289,8 @@ def get_category_segment_matrix(
         _rt = RFM_THRESHOLDS["r"]
         _ft = RFM_THRESHOLDS["f"]
         _mt = RFM_THRESHOLDS["m"]
+
+        excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
 
         sql = f"""
         WITH base_params AS (
@@ -336,6 +362,7 @@ def get_category_segment_matrix(
             WHERE o.pay_time >= p.start_date
               AND o.pay_time < p.analysis_date + INTERVAL '1' DAY
               AND {valid_sql}
+              {excluded_cat_sql}
               {exclude_filter}
         ),
         category_segment AS (
@@ -357,9 +384,10 @@ def get_category_segment_matrix(
         ORDER BY segment_id, user_count DESC
         """
 
-        # 参数: base_params(2) + user_stats_all exclude + category_orders exclude
+        # 参数: base_params(2) + user_stats_all exclude + category_orders excluded_cat + category_orders exclude
         params: List[Any] = [date_str, start_date]
         params.extend(exclude_params)
+        params.extend(excluded_params)
         params.extend(exclude_params)
 
         result = conn.execute(sql, params).fetchall()
@@ -429,10 +457,10 @@ def get_category_user_profile(
     valid_sql, _ = OrderFilters.valid_order()
 
     # 品类筛选
-    category_filter = "AND COALESCE(o.spu_category, '未知') = ?"
+    category_filter = f"AND {_cat_expr('spu_category')} = ?"
     params = [date_str, start_date, date_str, lookback_days, date_str, category]
     if type is not None:
-        category_filter += " AND COALESCE(o.spu_type, '未知') = ?"
+        category_filter += f" AND {_cat_expr('spu_type')} = ?"
         params.append(type)
 
     # 使用单次查询获取所有数据
@@ -506,7 +534,7 @@ def get_category_user_profile(
         WHERE o.pay_time >= p.start_date
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
-          AND COALESCE(o.spu_category, '未知') = ?
+          AND {_cat_expr('spu_category')} = ?
     )
     SELECT
         COUNT(DISTINCT user_id) AS total_users,
@@ -540,7 +568,7 @@ def get_category_user_profile(
         WHERE o.pay_time >= p.start_date
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
-          AND COALESCE(o.spu_category, '未知') = ?
+          AND {_cat_expr('spu_category')} = ?
     )
     SELECT
         segment_id,
@@ -579,7 +607,7 @@ def get_category_user_profile(
         WHERE o.pay_time >= p.start_date
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
-          AND COALESCE(o.spu_category, '未知') = ?
+          AND {_cat_expr('spu_category')} = ?
     )
     SELECT
         COALESCE(province, '未知') AS province,
@@ -612,7 +640,7 @@ def get_category_user_profile(
         WHERE o.pay_time >= p.start_date
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
-          AND COALESCE(o.spu_category, '未知') = ?
+          AND {_cat_expr('spu_category')} = ?
     )
     SELECT
         COALESCE(channel, '未知') AS channel,
@@ -664,10 +692,11 @@ def _compute_category_period(
     level_col = SPU_LEVELS.get(level, "spu_type")
     valid_sql, _ = OrderFilters.gmv_base() if metric_type == "GMV" else OrderFilters.valid_order()
     amount_cond = "o.actual_amount > 0" if metric_type == "GMV" else "o.actual_amount >= 0"
+    excluded_cat_sql = _excluded_cat_filter(level_col)
     channel_sql = ""
     exclude_sql = ""
     member_sql = "AND o.is_member = TRUE" if member_only else ""
-    params = [cutoff, start_date, end_date]
+    params = [cutoff, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
     if channel and channel != "全店":
 
         db_channels = expand_channels([channel])
@@ -687,7 +716,7 @@ def _compute_category_period(
     sql = f"""
     WITH period_orders AS (
         SELECT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.user_id,
             o.actual_amount,
             o.is_member,
@@ -698,6 +727,7 @@ def _compute_category_period(
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
           AND ({amount_cond})
+          {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
           {member_sql}
@@ -1013,6 +1043,7 @@ def _compute_wool_party_breakdown(
     """
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     valid_sql, _ = OrderFilters.valid_order()
+    excluded_cat_sql = _excluded_cat_filter(level_col)
 
     channel_params = []
 
@@ -1031,18 +1062,19 @@ def _compute_wool_party_breakdown(
     # 正装 = 非低价渠道；小样 = 低价渠道
     SAMPLE_CHANNELS = ('U先派样', '百补派样', '赠品&0.01渠道', '其他')
 
-    params = [start_date, end_date] + channel_params
+    params = [start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params
 
     sql = f"""
     WITH window_orders AS (
         SELECT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.user_id,
             o.channel
         FROM orders o
         WHERE o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
+          {excluded_cat_sql}
           {channel_sql}
     ),
     user_window_summary AS (
@@ -1102,6 +1134,7 @@ def _compute_value_tier_base(
     """计算价值分层基础数据（高价值人数 + 总用户 + 总GMV + 会员GMV）"""
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     valid_sql, _ = OrderFilters.valid_order()
+    excluded_cat_sql = _excluded_cat_filter(level_col)
 
     channel_params = []
     exclude_params = []
@@ -1131,18 +1164,18 @@ def _compute_value_tier_base(
     ).fetchone()
     latest_rfm_date = latest_rfm_row[0] if latest_rfm_row and latest_rfm_row[0] else cutoff
 
-    params = [latest_rfm_date, start_date, end_date] + channel_params + exclude_params
+    params = [latest_rfm_date, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params + exclude_params
 
     sql = f"""
     WITH period_orders AS (
-        SELECT COALESCE(o.{level_col}, '未知') AS category_name,
+        SELECT {_cat_expr(level_col)} AS category_name,
                o.user_id, o.actual_amount, o.is_member,
                COALESCE(r.segment_id, 9) AS segment_id
         FROM orders o
         LEFT JOIN user_rfm r ON o.user_id = r.user_id
             AND r.analysis_date = DATE(?) AND r.metric_type = 'GMV' AND r.lookback_days = 90
         WHERE o.pay_time >= ? AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql} {channel_sql} {exclude_sql}
+          AND {valid_sql} {excluded_cat_sql} {channel_sql} {exclude_sql}
     )
     SELECT category_name,
            COUNT(DISTINCT user_id) AS total_users,
@@ -1357,10 +1390,12 @@ def _compute_temporal_association(
 
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     valid_sql, _ = OrderFilters.valid_order()
+    excluded_cat_sql = _excluded_cat_filter(level_col)
 
     # 渠道参数
     channel_params: List[Any] = []
     exclude_params: List[Any] = []
+    excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
     channel_sql = ""
     if channel and channel != "全店":
 
@@ -1385,7 +1420,7 @@ def _compute_temporal_association(
     WITH target_orders AS (
         SELECT DISTINCT o.user_id, o.pay_time, o.order_id
         FROM orders o
-        WHERE COALESCE(o.{level_col}, '未知') = ?
+        WHERE {_cat_expr(level_col)} = ?
           AND o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
@@ -1394,7 +1429,7 @@ def _compute_temporal_association(
     ),
     post_orders AS (
         SELECT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.user_id,
             o.actual_amount,
             o.pay_time,
@@ -1403,8 +1438,9 @@ def _compute_temporal_association(
         INNER JOIN target_orders t ON o.user_id = t.user_id
         WHERE o.pay_time > t.pay_time
           AND o.pay_time <= t.pay_time + INTERVAL '1' DAY * ?
-          AND COALESCE(o.{level_col}, '未知') != ?
+          AND {_cat_expr(level_col)} != ?
           AND {valid_sql}
+          {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
     )
@@ -1419,8 +1455,8 @@ def _compute_temporal_association(
     ORDER BY user_count DESC
     LIMIT 20
     """
-    # target_category, start_date, end_date, + channel + exclude + window_days + target_category + channel + exclude
-    post_params = [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + channel_params + exclude_params
+    # target_category, start_date, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
+    post_params = [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
     post_result = conn.execute(post_sql, post_params).fetchall()
 
     # 前置购买: 买 target 之前买的其他品类(限制 window_days 内)
@@ -1428,7 +1464,7 @@ def _compute_temporal_association(
     WITH target_orders AS (
         SELECT DISTINCT o.user_id, o.pay_time, o.order_id
         FROM orders o
-        WHERE COALESCE(o.{level_col}, '未知') = ?
+        WHERE {_cat_expr(level_col)} = ?
           AND o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
@@ -1437,7 +1473,7 @@ def _compute_temporal_association(
     ),
     pre_orders AS (
         SELECT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.user_id,
             o.actual_amount,
             o.pay_time,
@@ -1446,8 +1482,9 @@ def _compute_temporal_association(
         INNER JOIN target_orders t ON o.user_id = t.user_id
         WHERE o.pay_time < t.pay_time
           AND o.pay_time >= t.pay_time - INTERVAL '1' DAY * ?
-          AND COALESCE(o.{level_col}, '未知') != ?
+          AND {_cat_expr(level_col)} != ?
           AND {valid_sql}
+          {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
     )
@@ -1462,15 +1499,15 @@ def _compute_temporal_association(
     ORDER BY user_count DESC
     LIMIT 20
     """
-    # target_category, start_date, end_date, + channel + exclude + window_days + target_category + channel + exclude
-    pre_params = [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + channel_params + exclude_params
+    # target_category, start_date, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
+    pre_params = [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
     pre_result = conn.execute(pre_sql, pre_params).fetchall()
 
     # 目标品类总购买用户数(用于计算 ratio)
     total_sql = f"""
     SELECT COUNT(DISTINCT user_id)
     FROM orders o
-    WHERE COALESCE(o.{level_col}, '未知') = ?
+    WHERE {_cat_expr(level_col)} = ?
       AND o.pay_time >= ?
       AND o.pay_time < DATE(?) + INTERVAL '1' DAY
       AND {valid_sql}
@@ -1562,9 +1599,10 @@ def get_category_flow(
 
         level_col = SPU_LEVELS.get(level, "spu_product_class")
         valid_sql, _ = OrderFilters.valid_order()
+        excluded_cat_sql = _excluded_cat_filter(level_col)
 
         # 构建基础 params(只包含日期过滤,channel/exclude 动态追加)
-        base_params: List[Any] = [window_start, end_date]
+        base_params: List[Any] = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
 
         channel_sql = ""
         if channel and channel != "全店":
@@ -1590,7 +1628,7 @@ def get_category_flow(
         top_cat_sql = f"""
         WITH all_orders AS (
             SELECT
-                COALESCE(o.{level_col}, '未知') AS category_name,
+                {_cat_expr(level_col)} AS category_name,
                 o.user_id,
                 o.pay_time,
                 o.order_id
@@ -1598,6 +1636,7 @@ def get_category_flow(
             WHERE o.pay_time >= ?
               AND o.pay_time < DATE(?) + INTERVAL '1' DAY
               AND {valid_sql}
+              {excluded_cat_sql}
               {channel_sql}
               {exclude_sql}
         ),
@@ -1632,19 +1671,19 @@ def get_category_flow(
             top_cats_result = conn.execute(top_cat_sql, base_params + [top_n]).fetchall()
             top_cats = [row[0] for row in top_cats_result[:top_n]]
 
-        # flow_sql 参数: 2个日期 + channel + exclude + top_cats(from IN) + top_cats(to IN)
+        # flow_sql 参数: 2个日期 + excluded_cat + channel + exclude + top_cats(from IN) + top_cats(to IN)
         channel_params_flow = []
         exclude_params_flow = []
         if channel and channel != "全店":
             channel_params_flow = list(db_channels)
         if exclude_channels:
             exclude_params_flow = list(exclude_channels)
-        params_flow = [window_start, end_date] + channel_params_flow + exclude_params_flow + top_cats + top_cats
+        params_flow = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params_flow + exclude_params_flow + top_cats + top_cats
 
         flow_sql = f"""
         WITH all_orders AS (
             SELECT
-                COALESCE(o.{level_col}, '未知') AS category_name,
+                {_cat_expr(level_col)} AS category_name,
                 o.user_id,
                 o.pay_time,
                 o.order_id
@@ -1652,6 +1691,7 @@ def get_category_flow(
             WHERE o.pay_time >= ?
               AND o.pay_time < DATE(?) + INTERVAL '1' DAY
               AND {valid_sql}
+              {excluded_cat_sql}
               {channel_sql}
               {exclude_sql}
         ),
@@ -1816,10 +1856,12 @@ def _compute_market_basket(
     """
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     valid_sql, _ = OrderFilters.valid_order()
+    excluded_cat_sql = _excluded_cat_filter(level_col)
 
     # 渠道参数
     channel_params: List[Any] = []
     exclude_params: List[Any] = []
+    excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
     channel_sql = ""
     if channel and channel != "全店":
 
@@ -1841,17 +1883,18 @@ def _compute_market_basket(
 
     # 日期参数
     date_params = [start_date, end_date]
-    base_params = date_params + channel_params + exclude_params
+    base_params = date_params + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params + exclude_params
 
     sql = f"""
     WITH
     -- 周期内所有有效订单
     period_orders AS (
-        SELECT DISTINCT order_id, user_id, COALESCE(o.{level_col}, '未知') AS category_name
+        SELECT DISTINCT order_id, user_id, {_cat_expr(level_col)} AS category_name
         FROM orders o
         WHERE o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
+          {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
     ),
@@ -1886,14 +1929,14 @@ def _compute_market_basket(
     -- 关联品类在订单中的自身金额（用于 co_own_gsv：可加总、不重复）
     co_own_values AS (
         SELECT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.order_id,
             o.user_id,
             SUM(o.actual_amount) AS own_amount
         FROM orders o
         WHERE o.order_id IN (SELECT order_id FROM target_orders)
-          AND COALESCE(o.{level_col}, '未知') != ?
-        GROUP BY COALESCE(o.{level_col}, '未知'), o.order_id, o.user_id
+          AND {_cat_expr(level_col)} != ?
+        GROUP BY {_cat_expr(level_col)}, o.order_id, o.user_id
     ),
     -- 与目标品类同单出现的其他品类及其连带GSV和用户数
     basket_items AS (
@@ -2122,6 +2165,7 @@ def get_category_churn(
 
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     valid_sql, _ = OrderFilters.valid_order()
+    excluded_cat_sql = _excluded_cat_filter(level_col)
 
     # channel/exclude 在两个CTE(current+previous)都出现,参数需传两次
     channel_params = []
@@ -2145,33 +2189,38 @@ def get_category_churn(
         exclude_sql = f"AND o.channel NOT IN ({placeholders})"
         exclude_params = list(db_ex)
 
-    # 参数顺序: current(start_date,end_date) + channel + exclude
-    #           + previous(prev_start,prev_end) + channel + exclude
+    # excluded_cat 在两个CTE中都出现,参数需传两次
+    excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
+
+    # 参数顺序: current(start_date,end_date) + excluded + channel + exclude
+    #           + previous(prev_start,prev_end) + excluded + channel + exclude
     params = (
-        [start_date, end_date] + channel_params + exclude_params +
-        [prev_start, prev_end] + channel_params + exclude_params
+        [start_date, end_date] + excluded_params + channel_params + exclude_params +
+        [prev_start, prev_end] + excluded_params + channel_params + exclude_params
     )
 
     sql = f"""
     WITH current_period_users AS (
         SELECT DISTINCT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.user_id
         FROM orders o
         WHERE o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
+          {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
     ),
     previous_period_users AS (
         SELECT DISTINCT
-            COALESCE(o.{level_col}, '未知') AS category_name,
+            {_cat_expr(level_col)} AS category_name,
             o.user_id
         FROM orders o
         WHERE o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
+          {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
     ),
@@ -2859,6 +2908,321 @@ def _run_category_repurchase_period(
     return results["all_same"], results["all_cross"], results["member_same"], results["member_cross"]
 
 
+def _run_category_repurchase_period_by_rfm(
+    conn: duckdb.DuckDBPyConnection,
+    start_dt: str,
+    end_dt: str,
+    cutoff_dt: str,
+    category: str,
+    category_field: str = "spu_product_class",
+    metric_type: str = "GSV",
+    channel: Optional[str] = None,
+    exclude_channels: Optional[List[str]] = None,
+) -> tuple[
+    Dict[str, Dict[str, float]],
+    Dict[str, Dict[str, float]],
+    Dict[str, Dict[str, float]],
+    Dict[str, Dict[str, float]],
+]:
+    """
+    执行单个周期的历史老客回购分析查询（RFM 8象限分群，不限品类）。
+    与 _run_category_repurchase_period 的区别：
+    - hist_customers 包含所有历史老客（不限品类），再按 RFM 分群看各象限在分析期内是否购买目标品类
+    返回4组数据：
+    - all_same: 全店-同品回购
+    - all_cross: 全店-跨品类回购
+    - member_same: 会员-同品回购
+    - member_cross: 会员-跨品类回购
+    """
+    from backend.semantic.filters import expand_channels
+
+    valid_sql, _ = OrderFilters.valid_order()
+
+    # 渠道过滤
+    channel_where_base = ""
+    base_params_extra: List[str] = []
+    if channel and channel != "全店":
+        db_channels = expand_channels([channel])
+        if len(db_channels) == 1:
+            channel_where_base = " AND o.channel = ?"
+            base_params_extra = [db_channels[0]]
+        else:
+            ph = ",".join(["?"] * len(db_channels))
+            channel_where_base = f" AND o.channel IN ({ph})"
+            base_params_extra = list(db_channels)
+
+    exclude_where = ""
+    exclude_params: List[str] = []
+    if exclude_channels:
+        db_ex = expand_channels(exclude_channels)
+        ex_ph = ",".join(["?"] * len(db_ex))
+        exclude_where = f" AND o.channel NOT IN ({ex_ph})"
+        exclude_params = list(db_ex)
+
+    refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
+
+    # RFM 阈值（引用语义层，禁止硬编码）
+    _rt = RFM_THRESHOLDS["r"]   # [30, 90, 180, 365]
+    _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 4]
+    _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
+
+    # 参数组装
+    # hist_customers: cutoff, cutoff (cutoff参数)
+    # base_orders: start_dt, end_dt
+    # hist_customers 的排除/渠道参数
+    hist_params: List[str] = [cutoff_dt, cutoff_dt]
+    base_params: List[str] = [start_dt, end_dt]
+
+    # 品类字段安全值（白名单校验已由 level 参数约束）
+    safe_category = category.replace("'", "''")
+
+    sql = f"""
+    WITH
+    base_orders AS (
+        SELECT user_id, actual_amount
+        FROM orders o
+        WHERE pay_time >= ?::TIMESTAMP
+          AND pay_time <= ?::TIMESTAMP
+          AND {valid_sql}
+          {channel_where_base}
+          {exclude_where}
+          {refund_where}
+    ),
+    hist_customers AS (
+        SELECT
+            user_id,
+            DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days,
+            COUNT(DISTINCT order_id) AS order_count,
+            SUM(actual_amount) AS gsv,
+            BOOL_OR(is_member) AS is_member
+        FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {valid_sql}
+          {exclude_where}
+        GROUP BY user_id
+    ),
+    rfm_scored AS (
+        SELECT
+            user_id, is_member,
+            CASE
+                WHEN recency_days < {_rt[0]} THEN 5
+                WHEN recency_days < {_rt[1]} THEN 4
+                WHEN recency_days < {_rt[2]} THEN 3
+                WHEN recency_days < {_rt[3]} THEN 2
+                ELSE 1
+            END AS r_score,
+            CASE WHEN order_count >= {_ft[3] + 1} THEN 5 WHEN order_count >= {_ft[2] + 1} THEN 4 WHEN order_count = {_ft[2]} THEN 3 WHEN order_count = {_ft[1]} THEN 2 ELSE 1 END AS f_score,
+            CASE WHEN gsv >= {_mt[3]} THEN 5 WHEN gsv >= {_mt[2]} THEN 4 WHEN gsv >= {_mt[1]} THEN 3 WHEN gsv >= {_mt[0]} THEN 2 ELSE 1 END AS m_score
+        FROM hist_customers
+    ),
+    rfm_segmented AS (
+        SELECT
+            user_id, is_member,
+            CASE
+                WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
+                WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
+                WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
+                WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
+                WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
+                WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
+                WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
+                ELSE '一般挽留客户'
+            END AS rfm_segment
+        FROM rfm_scored
+    ),
+    member_segmented AS (
+        SELECT user_id, rfm_segment FROM rfm_segmented WHERE is_member = TRUE
+    ),
+    -- 同品回购：分析期内购买同一品类的用户
+    same_repurchase AS (
+        SELECT DISTINCT user_id
+        FROM orders o
+        WHERE o.{category_field} = '{safe_category}'
+          AND pay_time >= ?::TIMESTAMP
+          AND pay_time <= ?::TIMESTAMP
+          AND {valid_sql}
+          {channel_where_base}
+          {exclude_where}
+          {refund_where}
+    ),
+    -- 跨品类回购：分析期内购买任何其他品类的用户
+    cross_repurchase AS (
+        SELECT DISTINCT user_id
+        FROM orders o
+        WHERE o.{category_field} IS NOT NULL
+          AND o.{category_field} != '{safe_category}'
+          AND pay_time >= ?::TIMESTAMP
+          AND pay_time <= ?::TIMESTAMP
+          AND {valid_sql}
+          {channel_where_base}
+          {exclude_where}
+          {refund_where}
+    ),
+    -- 同品回购金额
+    same_repurchase_amounts AS (
+        SELECT o.user_id, SUM(o.actual_amount) AS repurchase_gsv
+        FROM orders o
+        WHERE o.{category_field} = '{safe_category}'
+          AND o.pay_time >= ?::TIMESTAMP
+          AND o.pay_time <= ?::TIMESTAMP
+          AND {valid_sql}
+          {channel_where_base}
+          {exclude_where}
+          {refund_where}
+        GROUP BY o.user_id
+    ),
+    -- 跨品类回购金额
+    cross_repurchase_amounts AS (
+        SELECT o.user_id, SUM(o.actual_amount) AS repurchase_gsv
+        FROM orders o
+        WHERE o.{category_field} IS NOT NULL
+          AND o.{category_field} != '{safe_category}'
+          AND o.pay_time >= ?::TIMESTAMP
+          AND o.pay_time <= ?::TIMESTAMP
+          AND {valid_sql}
+          {channel_where_base}
+          {exclude_where}
+          {refund_where}
+        GROUP BY o.user_id
+    ),
+    -- 全店 同品
+    stats_all_same AS (
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT sr.user_id) AS repurchase_users,
+               COALESCE(SUM(sra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM rfm_segmented r
+        LEFT JOIN same_repurchase sr ON r.user_id = sr.user_id
+        LEFT JOIN same_repurchase_amounts sra ON r.user_id = sra.user_id
+        GROUP BY r.rfm_segment
+    ),
+    ttl_all_same AS (
+        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+               SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
+        FROM stats_all_same
+    ),
+    -- 全店 跨品类
+    stats_all_cross AS (
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT cr.user_id) AS repurchase_users,
+               COALESCE(SUM(cra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM rfm_segmented r
+        LEFT JOIN cross_repurchase cr ON r.user_id = cr.user_id
+        LEFT JOIN cross_repurchase_amounts cra ON r.user_id = cra.user_id
+        GROUP BY r.rfm_segment
+    ),
+    ttl_all_cross AS (
+        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+               SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
+        FROM stats_all_cross
+    ),
+    -- 会员 同品
+    stats_member_same AS (
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT sr.user_id) AS repurchase_users,
+               COALESCE(SUM(sra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM member_segmented r
+        LEFT JOIN same_repurchase sr ON r.user_id = sr.user_id
+        LEFT JOIN same_repurchase_amounts sra ON r.user_id = sra.user_id
+        GROUP BY r.rfm_segment
+    ),
+    ttl_member_same AS (
+        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+               SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
+        FROM stats_member_same
+    ),
+    -- 会员 跨品类
+    stats_member_cross AS (
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT cr.user_id) AS repurchase_users,
+               COALESCE(SUM(cra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM member_segmented r
+        LEFT JOIN cross_repurchase cr ON r.user_id = cr.user_id
+        LEFT JOIN cross_repurchase_amounts cra ON r.user_id = cra.user_id
+        GROUP BY r.rfm_segment
+    ),
+    ttl_member_cross AS (
+        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+               SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
+        FROM stats_member_cross
+    )
+    SELECT 'all_same' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM stats_all_same UNION ALL SELECT * FROM ttl_all_same
+    )
+    UNION ALL
+    SELECT 'all_cross' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM stats_all_cross UNION ALL SELECT * FROM ttl_all_cross
+    )
+    UNION ALL
+    SELECT 'member_same' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM stats_member_same UNION ALL SELECT * FROM ttl_member_same
+    )
+    UNION ALL
+    SELECT 'member_cross' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM stats_member_cross UNION ALL SELECT * FROM ttl_member_cross
+    )
+    """
+
+    # SQL中?出现顺序（严格对应）:
+    # base_orders: 2(start,end) + ch + ex
+    # hist_customers: 2(cutoff,cutoff) + ex
+    # same_repurchase: 2(start,end) + ch + ex
+    # cross_repurchase: 2(start,end) + ch + ex
+    # same_repurchase_amounts: 2(start,end) + ch + ex
+    # cross_repurchase_amounts: 2(start,end) + ch + ex
+
+    full_params = base_params + base_params_extra + exclude_params  # base_orders
+    full_params += hist_params + exclude_params                      # hist_customers
+    full_params += base_params + base_params_extra + exclude_params  # same_repurchase
+    full_params += base_params + base_params_extra + exclude_params  # cross_repurchase
+    full_params += base_params + base_params_extra + exclude_params  # same_repurchase_amounts
+    full_params += base_params + base_params_extra + exclude_params  # cross_repurchase_amounts
+
+    rows = conn.execute(sql, full_params).fetchall()
+
+    results: Dict[str, Dict[str, Dict[str, float]]] = {
+        "all_same": {}, "all_cross": {},
+        "member_same": {}, "member_cross": {},
+    }
+    totals: Dict[str, float] = {
+        "all_same": 0.0, "all_cross": 0.0,
+        "member_same": 0.0, "member_cross": 0.0,
+    }
+
+    for r in rows:
+        mode, segment, hist_users, repurchase_users, repurchase_gsv = r
+        entry = {
+            "hist_users": int(hist_users or 0),
+            "repurchase_users": int(repurchase_users or 0),
+            "repurchase_rate": float(repurchase_users or 0) / float(hist_users or 1) if hist_users else 0.0,
+            "repurchase_gsv": float(repurchase_gsv or 0),
+            "repurchase_gsv_ratio": 0.0,
+        }
+        if segment != "已购客TTL":
+            totals[mode] += float(repurchase_gsv or 0)
+        results[mode][segment] = entry
+
+    # 计算 gsv_ratio
+    for mode in results:
+        for seg in results[mode]:
+            gsv = results[mode][seg]["repurchase_gsv"]
+            results[mode][seg]["repurchase_gsv_ratio"] = gsv / totals[mode] if totals[mode] > 0 else 0.0
+
+    # 补全缺失的 segment
+    for mode in results:
+        for seg in _RFM_SEGMENT_ORDER:
+            if seg not in results[mode]:
+                results[mode][seg] = {
+                    "hist_users": 0, "repurchase_users": 0,
+                    "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0,
+                }
+
+    return results["all_same"], results["all_cross"], results["member_same"], results["member_cross"]
+
+
 def get_category_repurchase_flow(
     start_date: str,
     end_date: str,
@@ -2894,6 +3258,83 @@ def get_category_repurchase_flow(
         )
         # 前年
         prev2_same, prev2_cross, prev2_m_same, prev2_m_cross = _run_category_repurchase_period(
+            conn, prev2_start, prev2_end, prev2_cutoff, category, category_field, metric_type, channel, exclude_channels
+        )
+    finally:
+        conn.close()
+
+    def _build_rows(cur_data, comp_data, prev2_data):
+        rows = []
+        for seg in _RFM_SEGMENT_ORDER:
+            c = cur_data.get(seg, {})
+            p = comp_data.get(seg, {})
+            p2 = prev2_data.get(seg, {})
+            rows.append({
+                "rfm_segment": seg,
+                "hist_users_current": c.get("hist_users", 0),
+                "repurchase_users_current": c.get("repurchase_users", 0),
+                "repurchase_rate_current": round(c.get("repurchase_rate", 0.0), 4),
+                "repurchase_gsv_current": round(c.get("repurchase_gsv", 0.0), 2),
+                "repurchase_gsv_ratio_current": round(c.get("repurchase_gsv_ratio", 0.0), 4),
+                "hist_users_comp": p.get("hist_users", 0),
+                "repurchase_rate_comp": round(p.get("repurchase_rate", 0.0), 4),
+                "hist_users_prev2": p2.get("hist_users", 0),
+                "repurchase_rate_prev2": round(p2.get("repurchase_rate", 0.0), 4),
+                "yoy_hist_users": yoy_absolute(c.get("hist_users", 0), p.get("hist_users", 0)),
+                "yoy_repurchase_users": yoy_absolute(c.get("repurchase_users", 0), p.get("repurchase_users", 0)),
+                "yoy_repurchase_rate": yoy_ratio(c.get("repurchase_rate", 0.0), p.get("repurchase_rate", 0.0)),
+                "yoy_repurchase_gsv": yoy_absolute(c.get("repurchase_gsv", 0.0), p.get("repurchase_gsv", 0.0)),
+                "yoy_repurchase_gsv_ratio": yoy_ratio(c.get("repurchase_gsv_ratio", 0.0), p.get("repurchase_gsv_ratio", 0.0)),
+            })
+        return rows
+
+    return {
+        "year_label": year_label,
+        "comp_year_label": comp_label,
+        "prev2_year_label": prev2_label,
+        "target_category": category,
+        "same_category_rows": _build_rows(cur_same, comp_same, prev2_same),
+        "cross_category_rows": _build_rows(cur_cross, comp_cross, prev2_cross),
+        "member_same_category_rows": _build_rows(cur_m_same, comp_m_same, prev2_m_same),
+        "member_cross_category_rows": _build_rows(cur_m_cross, comp_m_cross, prev2_m_cross),
+    }
+
+
+def get_category_repurchase_flow_by_rfm(
+    start_date: str,
+    end_date: str,
+    category: str,
+    level: str = "class",
+    metric_type: str = "GSV",
+    channel: Optional[str] = None,
+    exclude_channels: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    历史老客回购分析主接口（RFM 8象限分群，不限品类）
+    同品回购 + 跨品类回购，3年同比
+    """
+    if level not in SPU_LEVELS:
+        raise ValueError(f"Invalid level: {level}")
+    category_field = SPU_LEVELS[level]
+
+    ranges = _resolve_repurchase_date_ranges(start_date, end_date)
+    cur_start, cur_end, cutoff = ranges["current"]
+    comp_start, comp_end, comp_cutoff = ranges["comp"]
+    prev2_start, prev2_end, prev2_cutoff = ranges["prev2"]
+    year_label, comp_label, prev2_label = ranges["labels"]
+
+    conn = get_connection()
+    try:
+        # 当前年
+        cur_same, cur_cross, cur_m_same, cur_m_cross = _run_category_repurchase_period_by_rfm(
+            conn, cur_start, cur_end, cutoff, category, category_field, metric_type, channel, exclude_channels
+        )
+        # 去年
+        comp_same, comp_cross, comp_m_same, comp_m_cross = _run_category_repurchase_period_by_rfm(
+            conn, comp_start, comp_end, comp_cutoff, category, category_field, metric_type, channel, exclude_channels
+        )
+        # 前年
+        prev2_same, prev2_cross, prev2_m_same, prev2_m_cross = _run_category_repurchase_period_by_rfm(
             conn, prev2_start, prev2_end, prev2_cutoff, category, category_field, metric_type, channel, exclude_channels
         )
     finally:
