@@ -1410,6 +1410,9 @@ def _compute_temporal_association(
     """
     from datetime import timedelta
 
+    # 目标订单分析范围：[end_date - window_days, end_date]
+    target_start = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=window_days)).strftime("%Y-%m-%d")
+
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     valid_sql, _ = OrderFilters.valid_order()
     excluded_cat_sql = _excluded_cat_filter(level_col)
@@ -1505,8 +1508,8 @@ def _compute_temporal_association(
     ORDER BY user_count DESC
     LIMIT 20
     """
-    # target_category, start_date, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
-    post_params = [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
+    # target_category, target_start, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
+    post_params = [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
     post_result = conn.execute(post_sql, post_params).fetchall()
 
     # 前置购买: 买 target 之前买的其他品类(限制 window_days 内)
@@ -1542,8 +1545,8 @@ def _compute_temporal_association(
     ORDER BY user_count DESC
     LIMIT 20
     """
-    # target_category, start_date, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
-    pre_params = [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
+    # target_category, target_start, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
+    pre_params = [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
     pre_result = conn.execute(pre_sql, pre_params).fetchall()
 
     # 目标品类总购买用户数(用于计算 ratio)
@@ -1557,7 +1560,7 @@ def _compute_temporal_association(
       {channel_sql}
       {exclude_sql}
     """
-    total_result = conn.execute(total_sql, [target_category, start_date, end_date] + channel_params + exclude_params).fetchone()
+    total_result = conn.execute(total_sql, [target_category, target_start, end_date] + channel_params + exclude_params).fetchone()
     total_users = int(total_result[0] or 0) if total_result else 0
 
     # 计算有前置/后置购买的用户数（用于流失分析）
@@ -1576,7 +1579,7 @@ def _compute_temporal_association(
       {channel_sql}
       {exclude_sql}
     """
-    post_users_result = conn.execute(post_users_sql, [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params).fetchone()
+    post_users_result = conn.execute(post_users_sql, [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params).fetchone()
     post_users_with_purchase = int(post_users_result[0] or 0) if post_users_result else 0
 
     pre_users_sql = f"""
@@ -1594,7 +1597,7 @@ def _compute_temporal_association(
       {channel_sql}
       {exclude_sql}
     """
-    pre_users_result = conn.execute(pre_users_sql, [target_category, start_date, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params).fetchone()
+    pre_users_result = conn.execute(pre_users_sql, [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params).fetchone()
     pre_users_with_purchase = int(pre_users_result[0] or 0) if pre_users_result else 0
 
     def _build_assoc(rows) -> List[Dict[str, Any]]:
@@ -1669,7 +1672,7 @@ def _compute_temporal_association(
         LIMIT 20
         """
         post_step2_params = (
-            [target_category, start_date, end_date] + channel_params + exclude_params +
+            [target_category, target_start, end_date] + channel_params + exclude_params +
             [window_days, target_category] + top_post_cats + excluded_params + channel_params + exclude_params +
             [window_days, target_category] + excluded_params + channel_params + exclude_params
         )
@@ -1730,7 +1733,7 @@ def _compute_temporal_association(
         LIMIT 20
         """
         pre_step2_params = (
-            [target_category, start_date, end_date] + channel_params + exclude_params +
+            [target_category, target_start, end_date] + channel_params + exclude_params +
             [window_days, target_category] + top_pre_cats + excluded_params + channel_params + exclude_params +
             [window_days, target_category] + excluded_params + channel_params + exclude_params
         )

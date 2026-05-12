@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, toValue } from 'vue'
+import { computed, ref, toValue, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NTooltip, NSelect } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -14,6 +14,8 @@ import { CHART_COLORS } from '@/composables/useChartTheme'
 
 const props = defineProps<{
   dataQualityNote?: string
+  /** 品类列表（从 distributionData 获取，按GSV降序） */
+  categoryOptions?: string[]
 }>()
 
 const filterStore = useFilterStore()
@@ -23,8 +25,8 @@ const CATEGORY_FLOW_EXCLUDED_CHANNELS = ['赠品&0.01', '其他']
 
 const windowDays = ref<number>(90)
 const targetCategory = ref<string | null>(null)
-const anchorMode = ref<'first' | 'last' | 'every'>('first')
-const pathDepth = ref<'1' | '2'>('1')
+const anchorMode = ref<'first' | 'last' | 'every'>('last')
+const pathDepth = ref<'1'>('1')
 
 const ANCHOR_MODE_OPTIONS = [
   { label: '首次购买', value: 'first' },
@@ -34,16 +36,21 @@ const ANCHOR_MODE_OPTIONS = [
 
 const PATH_DEPTH_OPTIONS = [
   { label: '1步', value: '1' },
-  { label: '2步', value: '2' },
 ]
 
-// 流转矩阵显示模式：百分比(默认) / 数值
-const matrixDisplayMode = ref<'percentage' | 'value'>('percentage')
+// 流转矩阵折叠状态（默认折叠，降级为辅助参考）
+const matrixExpanded = ref(false)
 
 // 前后置分析视图模式：桑基图 / 双向条形图
 const temporalViewMode = ref<'sankey' | 'bar'>('sankey')
 
 const targetCategoryOptions = computed(() => {
+  // 优先使用父组件传入的品类列表（与连带分析保持一致）
+  const fromProps = props.categoryOptions || []
+  if (fromProps.length > 0) {
+    return fromProps.map((c) => ({ label: c, value: c }))
+  }
+  // fallback: 从桑基图节点动态计算（选项较少）
   if (!data.value?.sankey_data?.nodes) return []
   const { nodes, links } = data.value.sankey_data
   // 按节点总流量（流入+流出）降序，高流量优先展示
@@ -57,17 +64,24 @@ const targetCategoryOptions = computed(() => {
     .sort((a, b) => b.flow - a.flow)
 })
 
-const queryParams = computed(() => ({
-  start_date: filterStore.dateRange[0],
-  end_date: filterStore.dateRange[1],
-  level: 'class',
-  window_days: windowDays.value,
-  channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
-  exclude_channels: CATEGORY_FLOW_EXCLUDED_CHANNELS,
-  target_category: targetCategory.value || undefined,
-  anchor_mode: anchorMode.value,
-  path_depth: pathDepth.value,
-}))
+const queryParams = computed(() => {
+  const endDate = filterStore.dateRange[1]
+  const startDate = filterStore.dateRange[0]
+  // 分析截止日为导航栏最后一日，追溯窗口为 windowDays
+  // 时序关联分析在后端用 [end_date - window_days, end_date]
+  // 全局流转矩阵仍用导航栏原始日期范围
+  return {
+    start_date: startDate,
+    end_date: endDate,
+    level: 'class',
+    window_days: windowDays.value,
+    channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+    exclude_channels: CATEGORY_FLOW_EXCLUDED_CHANNELS,
+    target_category: targetCategory.value || undefined,
+    anchor_mode: anchorMode.value,
+    path_depth: pathDepth.value,
+  }
+})
 
 const {
   data,
@@ -79,6 +93,13 @@ const {
   queryFn: () => fetchCategoryFlow(toValue(queryParams)),
   staleTime: 60_000,
 })
+
+// 默认选中「经典膜」（如果品类列表中存在）
+watch(targetCategoryOptions, (options) => {
+  if (!targetCategory.value && options.some((o) => o.value === '经典膜')) {
+    targetCategory.value = '经典膜'
+  }
+}, { immediate: true })
 
 const WINDOW_OPTIONS = [
   { label: '30天', value: 30 },
@@ -146,8 +167,126 @@ function breakCycles(links: { source: string; target: string; value: number }[])
 
 // ─── Sankey Chart ────────────────────────────────────────────────
 const sankeyOption = computed(() => {
+  const focusTarget = targetCategory.value
+
+  // ═══════════════════════════════════════════════════════════════
+  // 模式A：有目标品类 → 合并 pre_sankey + post_sankey 成「前置→目标→后置」图
+  // ═══════════════════════════════════════════════════════════════
+  if (focusTarget && data.value?.pre_sankey?.nodes?.length && data.value?.post_sankey?.nodes?.length) {
+    const pre = data.value.pre_sankey
+    const post = data.value.post_sankey
+
+    // 合并节点：前置节点 + 目标品类 + 后置节点（去重，排除"未购买其他"）
+    const nodeMap = new Map<string, { name: string; category_name: string }>()
+    for (const n of pre.nodes) {
+      if (n.name !== focusTarget && n.name !== '未购买其他') nodeMap.set(n.name, n)
+    }
+    nodeMap.set(focusTarget, { name: focusTarget, category_name: focusTarget })
+    for (const n of post.nodes) {
+      if (n.name !== focusTarget && n.name !== '未购买其他') nodeMap.set(n.name, n)
+    }
+    const nodes = Array.from(nodeMap.values())
+
+    // 合并链接（排除涉及"未购买其他"的）
+    let links = [
+      ...pre.links.filter((l) => l.source !== '未购买其他' && l.target !== '未购买其他'),
+      ...post.links.filter((l) => l.source !== '未购买其他' && l.target !== '未购买其他'),
+    ]
+
+    // 打破环，确保DAG
+    const acyclicLinks = breakCycles(links)
+
+    // 过滤弱连接
+    const maxValue = Math.max(...acyclicLinks.map((l) => l.value), 1)
+    const threshold = Math.max(5, maxValue * 0.02)
+    const filteredLinks = acyclicLinks.filter((l) => l.value >= threshold)
+
+    // index 映射
+    const nodeNames = nodes.map((n) => n.name)
+    const nodeNameIdx: Record<string, number> = {}
+    nodeNames.forEach((name, i) => { nodeNameIdx[name] = i })
+
+    const sankeyLinks = filteredLinks.map((l) => ({
+      source: nodeNameIdx[l.source] ?? l.source,
+      target: nodeNameIdx[l.target] ?? l.target,
+      value: l.value,
+    }))
+
+    return {
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [10, 14],
+        textStyle: { color: '#0f172a', fontSize: 12 },
+        extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
+        formatter: (params: any) => {
+          if (params.dataType === 'edge') {
+            const srcName = nodes[params.data.source]?.name ?? params.data.source
+            const tgtName = nodes[params.data.target]?.name ?? params.data.target
+            return `${srcName} → ${tgtName}<br/>关联人数: ${params.data.value.toLocaleString()}`
+          }
+          return params.name
+        },
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 8 },
+      series: [
+        {
+          type: 'sankey',
+          nodeGap: 20,
+          nodeWidth: 24,
+          nodeAlign: 'justify',
+          emphasis: { focus: 'adjacency' },
+          lineStyle: { color: 'gradient', curveness: 0.4, opacity: 0.6 },
+          itemStyle: { borderWidth: 1, borderColor: '#fff', borderRadius: 4 },
+          label: {
+            fontSize: 11,
+            color: '#334155',
+            formatter: (p: any) => {
+              const name = p.name as string
+              return name.length > 8 ? name.slice(0, 7) + '…' : name
+            },
+          },
+          data: nodes.map((n) => ({
+            name: n.name,
+            itemStyle: {
+              color: n.name === focusTarget
+                ? '#3b82f6'
+                : CHART_COLORS[nodeNameIdx[n.name] % CHART_COLORS.length],
+            },
+          })),
+          links: sankeyLinks,
+          animation: false,
+        },
+      ],
+      graphic: [
+        {
+          type: 'text',
+          left: 'center',
+          bottom: 4,
+          style: {
+            text: `左=买「${focusTarget}」之前买的品类  ·  右=买「${focusTarget}」之后买的品类  ·  线条宽度∝关联人数`,
+            fontSize: 10,
+            fill: '#94a3b8',
+            textAlign: 'center',
+          },
+        },
+      ],
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 模式B：无目标品类 → 全局首购→次购流转图（fallback）
+  // ═══════════════════════════════════════════════════════════════
   if (!data.value?.sankey_data?.nodes?.length) return {}
-  const { nodes, links } = data.value.sankey_data
+  const { nodes: rawNodes, links: rawLinks } = data.value.sankey_data
+
+  // 过滤"其他"节点和关联链接
+  const EXCLUDED_SANKEY_NODES = ['其他']
+  let nodes = rawNodes.filter((n) => !EXCLUDED_SANKEY_NODES.includes(n.name))
+  let nodeNamesSet = new Set(nodes.map((n) => n.name))
+  let links = rawLinks.filter((l) => nodeNamesSet.has(l.source) && nodeNamesSet.has(l.target))
 
   // 打破环，确保DAG
   const acyclicLinks = breakCycles(links)
@@ -194,11 +333,7 @@ const sankeyOption = computed(() => {
         nodeWidth: 24,
         nodeAlign: 'justify',
         emphasis: { focus: 'adjacency' },
-        lineStyle: {
-          color: 'gradient',
-          curveness: 0.4,
-          opacity: 0.6,
-        },
+        lineStyle: { color: 'gradient', curveness: 0.4, opacity: 0.6 },
         itemStyle: { borderWidth: 1, borderColor: '#fff', borderRadius: 4 },
         label: {
           fontSize: 11,
@@ -213,13 +348,24 @@ const sankeyOption = computed(() => {
           itemStyle: {
             color: n.name === '流失'
               ? '#ef4444'
-              : n.name === '其他'
-                ? '#94a3b8'
-                : CHART_COLORS[nodeNameIdx[n.name] % CHART_COLORS.length],
+              : CHART_COLORS[nodeNameIdx[n.name] % CHART_COLORS.length],
           },
         })),
         links: sankeyLinks,
         animation: false,
+      },
+    ],
+    graphic: [
+      {
+        type: 'text',
+        left: 'center',
+        bottom: 4,
+        style: {
+          text: '左=首购品类  右=次购品类  线条宽度∝流转人数',
+          fontSize: 10,
+          fill: '#94a3b8',
+          textAlign: 'center',
+        },
       },
     ],
   }
@@ -324,9 +470,14 @@ function buildTemporalSankeyOption(
 ) {
   if (!sankeyData?.nodes?.length || !sankeyData?.links?.length) return {}
 
-  const { nodes } = sankeyData
+  // 过滤"其他"节点和关联链接
+  const EXCLUDED_SANKEY_NODES = ['其他']
+  const nodes = sankeyData.nodes.filter((n) => !EXCLUDED_SANKEY_NODES.includes(n.name))
+  const nodeNamesSet = new Set(nodes.map((n) => n.name))
+  const links = sankeyData.links.filter((l) => nodeNamesSet.has(l.source) && nodeNamesSet.has(l.target))
+
   // 打破环，确保DAG（2步路径可能产生环如 A→B→A）
-  const acyclicLinks = breakCycles(sankeyData.links)
+  const acyclicLinks = breakCycles(links)
 
   const nodeNames = nodes.map((n) => n.name)
   const nodeNameIdx: Record<string, number> = {}
@@ -571,13 +722,19 @@ const bidirectionalBarOption = computed(() => {
     <LoadingState v-else-if="isLoading" />
 
     <template v-else-if="data">
-      <!-- 时间窗口选择 + 桑基图 -->
+      <!-- 目标品类前后关联桑基图 -->
       <div class="bi-card p-4">
         <div class="flex items-center justify-between mb-3">
           <div>
-            <h3 class="text-sm font-semibold text-slate-800 mb-0.5">品类流转桑基图</h3>
-            <p class="text-[11px] text-slate-500">首购品类 → 次购品类的用户流转，宽度∝流转人数</p>
-            <p class="text-[11px] text-slate-400 mt-0.5">用户首单买了A品类后，下一单流向了B还是C？线条越宽=流转人数越多，帮你发现品类间的引流和承接关系</p>
+            <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
+              {{ targetCategory ? `「${targetCategory}」前后关联分析` : '品类流转桑基图' }}
+            </h3>
+            <p v-if="targetCategory" class="text-[11px] text-slate-400 mt-0.5">
+              截止 {{ filterStore.dateRange[1] }} 往前追溯 {{ windowDays }} 天 · 锚点={{ anchorMode === 'first' ? '首次' : anchorMode === 'last' ? '末次' : '每次' }}购买 · 左=买之前 · 右=买之后 · 线条越宽=关联人数越多
+            </p>
+            <p v-else class="text-[11px] text-slate-400 mt-0.5">
+              全局模式：找从左到右的粗线条 → 发现哪个品类在给哪个品类引流
+            </p>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs text-slate-500">目标品类:</span>
@@ -587,85 +744,44 @@ const bidirectionalBarOption = computed(() => {
               size="small"
               clearable
               filterable
-              placeholder="选择品类查看前后置关联"
-              style="width: 180px"
+              placeholder="选择品类"
+              style="width: 160px"
             />
             <span class="text-xs text-slate-500">锚点:</span>
             <n-select
               v-model:value="anchorMode"
               :options="ANCHOR_MODE_OPTIONS"
               size="small"
-              style="width: 120px"
-            />
-            <span class="text-xs text-slate-500">深度:</span>
-            <n-select
-              v-model:value="pathDepth"
-              :options="PATH_DEPTH_OPTIONS"
-              size="small"
-              style="width: 80px"
+              style="width: 100px"
             />
             <span class="text-xs text-slate-500">窗口:</span>
             <n-select
               v-model:value="windowDays"
               :options="WINDOW_OPTIONS"
               size="small"
-              style="width: 100px"
+              style="width: 90px"
             />
           </div>
         </div>
         <EmptyState
-          v-if="!data.sankey_data?.nodes?.length"
-          description="当前条件下无流转数据"
+          v-if="targetCategory ? !(data.pre_sankey?.nodes?.length || data.post_sankey?.nodes?.length) : !data.sankey_data?.nodes?.length"
+          description="当前条件下无关联数据"
         />
         <EChartsWrapper v-else :option="sankeyOption" height="480px" />
       </div>
 
-      <!-- 时序关联分析 -->
+      <!-- 前后置关联明细表格 -->
       <template v-if="data?.target_category">
         <div class="bi-card p-4">
-          <div class="flex items-center justify-between mb-3">
-            <div>
-              <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-                买 {{ data.target_category }} 之前/之后买了什么
-              </h3>
-              <p class="text-[11px] text-slate-500 mb-1">
-                在 {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} {{ anchorMode === 'first' ? '首次' : anchorMode === 'last' ? '末次' : '每次' }}购买「{{ data.target_category }}」的用户，前后 {{ windowDays }} 天内还买了什么
-              </p>
-            </div>
-            <div class="flex items-center bg-slate-100 rounded-lg p-0.5">
-              <button
-                class="px-3 py-1 text-xs rounded-md transition-colors"
-                :class="temporalViewMode === 'sankey' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                @click="temporalViewMode = 'sankey'"
-              >
-                桑基图
-              </button>
-              <button
-                class="px-3 py-1 text-xs rounded-md transition-colors"
-                :class="temporalViewMode === 'bar' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                @click="temporalViewMode = 'bar'"
-              >
-                双向条形图
-              </button>
-            </div>
-          </div>
-
-          <!-- 桑基图视图 -->
-          <template v-if="temporalViewMode === 'sankey'">
-            <p class="text-[11px] text-slate-400 mb-3">谁是引流品类？——如果买B5面膜的人之前大量买了洗面奶，说明洗面奶是面膜的流量入口</p>
-            <EChartsWrapper :option="preSankeyOption" height="360px" class="mb-4" />
-            <p class="text-[11px] text-slate-400 mb-3">谁是承接品类？——如果买B5面膜之后大量流向精华，说明精华是面膜的自然延伸，可做关联推荐</p>
-            <EChartsWrapper :option="postSankeyOption" height="360px" class="mb-4" />
-          </template>
-
-          <!-- 双向条形图视图 -->
-          <template v-else>
-            <p class="text-[11px] text-slate-400 mb-3">左=前置来源（引流入口），右=后置去向（承接延伸），条形长度∝关联人数</p>
-            <EChartsWrapper :option="bidirectionalBarOption" height="420px" class="mb-4" />
-          </template>
+          <h3 class="text-sm font-semibold text-slate-800 mb-3">
+            「{{ data.target_category }}」前后置关联明细
+          </h3>
+          <p class="text-[11px] text-slate-400 mb-3">
+            截止 {{ filterStore.dateRange[1] }} 往前追溯 {{ windowDays }} 天 · {{ anchorMode === 'first' ? '首次' : anchorMode === 'last' ? '末次' : '每次' }}购买「{{ data.target_category }}」的用户，前后 {{ windowDays }} 天内还买了什么
+          </p>
 
           <div class="border-t border-slate-100 pt-4">
-            <h4 class="text-xs font-semibold text-slate-700 mb-2">前置关联明细</h4>
+            <h4 class="text-xs font-semibold text-slate-700 mb-2">买「{{ data.target_category }}」之前还买了什么</h4>
             <DataTablePro
               :columns="ASSOC_COLS"
               :data="data.pre_purchase ?? []"
@@ -673,7 +789,7 @@ const bidirectionalBarOption = computed(() => {
               :scroll-x="800"
               class="mb-4"
             />
-            <h4 class="text-xs font-semibold text-slate-700 mb-2">后置关联明细</h4>
+            <h4 class="text-xs font-semibold text-slate-700 mb-2">买「{{ data.target_category }}」之后还买了什么</h4>
             <DataTablePro
               :columns="ASSOC_COLS"
               :data="data.post_purchase ?? []"
@@ -684,42 +800,50 @@ const bidirectionalBarOption = computed(() => {
         </div>
       </template>
 
-      <!-- 流转矩阵 -->
-      <div class="bi-card p-4">
-        <div class="flex items-center justify-between mb-3">
+      <!-- 流转矩阵（默认折叠，全局首购→次购鸟瞰） -->
+      <div class="bi-card">
+        <div
+          class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/50 transition-colors"
+          @click="matrixExpanded = !matrixExpanded"
+        >
           <div>
-            <h3 class="text-sm font-semibold text-slate-800 mb-0.5">流转矩阵</h3>
-            <p class="text-[11px] text-slate-500 mb-1">
-              行=来源品类，列=目标品类，{{ matrixDisplayMode === 'percentage' ? '值=行百分比（从来源流向目标的占比）' : '值=流转人数' }}
-            </p>
-            <p class="text-[11px] text-slate-400">
-              {{ matrixDisplayMode === 'percentage' ? '百分比模式：快速发现核心流转路径' : '数值模式：精确读取流转人数' }}
+            <h3 class="text-sm font-semibold text-slate-800">流转矩阵</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              全局首购→次购鸟瞰 · {{ matrixExpanded ? '点击折叠' : '点击展开' }}
             </p>
           </div>
-          <div class="flex items-center bg-slate-100 rounded-lg p-0.5">
-            <button
-              class="px-3 py-1 text-xs rounded-md transition-colors"
-              :class="matrixDisplayMode === 'percentage' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-              @click="matrixDisplayMode = 'percentage'"
-            >
-              百分比
-            </button>
-            <button
-              class="px-3 py-1 text-xs rounded-md transition-colors"
-              :class="matrixDisplayMode === 'value' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-              @click="matrixDisplayMode = 'value'"
-            >
-              数值
-            </button>
-          </div>
+          <span class="text-slate-400 text-xs">{{ matrixExpanded ? '▼' : '▶' }}</span>
         </div>
-        <DataTablePro
-          :columns="matrixColumns"
-          :data="matrixData"
-          :pagination="false"
-          :scroll-x="2000"
-          :max-height="520"
-        />
+        <div v-show="matrixExpanded" class="px-4 pb-4">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] text-slate-500">
+              行=来源品类，列=目标品类，{{ matrixDisplayMode === 'percentage' ? '值=行百分比' : '值=流转人数' }}
+            </p>
+            <div class="flex items-center bg-slate-100 rounded-lg p-0.5">
+              <button
+                class="px-3 py-1 text-xs rounded-md transition-colors"
+                :class="matrixDisplayMode === 'percentage' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                @click="matrixDisplayMode = 'percentage'"
+              >
+                百分比
+              </button>
+              <button
+                class="px-3 py-1 text-xs rounded-md transition-colors"
+                :class="matrixDisplayMode === 'value' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                @click="matrixDisplayMode = 'value'"
+              >
+                数值
+              </button>
+            </div>
+          </div>
+          <DataTablePro
+            :columns="matrixColumns"
+            :data="matrixData"
+            :pagination="false"
+            :scroll-x="2000"
+            :max-height="520"
+          />
+        </div>
       </div>
     </template>
 
