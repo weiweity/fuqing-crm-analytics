@@ -32,7 +32,11 @@ from backend.contracts.schemas import (
     CategoryUserProfileResponse,
     CategoryValueTierResponse,
     CategoryFlowResponse,
+    CategoryFlowAssociationResponse,
+    CategoryFlowMatrixResponse,
     CategoryChurnResponse,
+    AnchorMode,
+    PathDepth,
     MarketBasketResponse,
     CategoryRepurchaseFlowResponse,
     CategoryDailyTrendResponse,
@@ -55,6 +59,7 @@ from backend.contracts.schemas import (
     BreakdownResponse,
     SamplingROIResponse,
     SamplingLockAnalysisResponse,
+    RollingComparisonResponse,
 )
 
 from backend.services.metrics_service import (
@@ -93,6 +98,8 @@ from backend.services.category_service import (
     get_category_user_profile,
     get_category_value_tier,
     get_category_flow,
+    get_category_flow_association,
+    get_category_flow_matrix,
     get_category_churn,
     get_market_basket,
     get_category_daily_trend,
@@ -575,13 +582,52 @@ def get_category_flow_api(
     channel: Optional[str] = Query(default=None),
     exclude_channels: Optional[List[str]] = Query(default=None),
     target_category: Optional[str] = Query(default=None),
+    anchor_mode: AnchorMode = Query(default=AnchorMode.every),
+    path_depth: PathDepth = Query(default=PathDepth.d1),
 ):
     """
-    品类流转
-
-    返回品类间的用户流转矩阵和桑基图数据。传入 target_category 时返回前后置购买关联分析。
+    品类流转（兼容旧接口，返回完整数据）
     """
-    return get_category_flow(start_date, end_date, level, top_n, window_days, channel, exclude_channels, target_category)
+    return get_category_flow(start_date, end_date, level, top_n, window_days, channel, exclude_channels, target_category, anchor_mode.value, int(path_depth.value))
+
+
+@app.get("/api/v1/category/flow/association", response_model=CategoryFlowAssociationResponse)
+def get_category_flow_association_api(
+    start_date: str = Query(default="2026-04-01"),
+    end_date: str = Query(default="2026-04-20"),
+    level: str = Query(default="class"),
+    window_days: int = Query(default=90),
+    channel: Optional[str] = Query(default=None),
+    exclude_channels: Optional[List[str]] = Query(default=None),
+    target_category: str = Query(..., description="目标品类名称"),
+    anchor_mode: AnchorMode = Query(default=AnchorMode.last),
+    path_depth: PathDepth = Query(default=PathDepth.d1),
+):
+    """
+    品类流转 - 时序关联分析（买了产品A之后/之前买了什么）
+    独立接口，支持内存缓存，响应更快。
+    """
+    return get_category_flow_association(
+        start_date, end_date, level, window_days, channel, exclude_channels,
+        target_category, anchor_mode.value, int(path_depth.value)
+    )
+
+
+@app.get("/api/v1/category/flow/matrix", response_model=CategoryFlowMatrixResponse)
+def get_category_flow_matrix_api(
+    start_date: str = Query(default="2026-04-01"),
+    end_date: str = Query(default="2026-04-20"),
+    level: str = Query(default="class"),
+    top_n: int = Query(default=10),
+    window_days: int = Query(default=90),
+    channel: Optional[str] = Query(default=None),
+    exclude_channels: Optional[List[str]] = Query(default=None),
+):
+    """
+    品类流转 - 全局流转矩阵（首购→次购鸟瞰）
+    独立接口，默认折叠时前端可不请求。
+    """
+    return get_category_flow_matrix(start_date, end_date, level, top_n, window_days, channel, exclude_channels)
 
 
 @app.get("/api/v1/category/churn", response_model=CategoryChurnResponse)
@@ -1123,6 +1169,35 @@ def get_sampling_lock_analysis_api(
     - 同比对比（去年同大促）
     """
     return get_sampling_lock_analysis(campaign_name, year)
+
+
+@app.get("/api/v1/sampling/rolling-comparison", response_model=RollingComparisonResponse)
+def get_rolling_comparison_api(
+    year_a_sample_start: str = Query(..., description="year_a 派样起始"),
+    year_a_sample_end: str = Query(..., description="year_a 派样结束"),
+    year_a_conv_start: str = Query(..., description="year_a 转化起始"),
+    year_b_sample_start: str = Query(..., description="year_b 派样起始"),
+    year_b_sample_end: str = Query(..., description="year_b 派样结束"),
+    year_b_conv_start: str = Query(..., description="year_b 转化起始"),
+    rolling_end: str = Query(..., description="滚动截止日"),
+):
+    """
+    0.01派样滚动同期对比
+
+    以 year_a 的参数为主，year_b 自动 T 对齐。
+    派样期内：UV、锁权人数、锁权率
+    转化期内：加赠转化人数（货架+累计≥100元）、转化率、转化GSV、转化AUS
+    """
+    from backend.services.sampling_service import get_rolling_comparison
+    return get_rolling_comparison(
+        year_a_sample_start=year_a_sample_start,
+        year_a_sample_end=year_a_sample_end,
+        year_a_conv_start=year_a_conv_start,
+        year_b_sample_start=year_b_sample_start,
+        year_b_sample_end=year_b_sample_end,
+        year_b_conv_start=year_b_conv_start,
+        rolling_end=rolling_end,
+    )
 
 
 # ─────────────────────────────────────────────────────────────

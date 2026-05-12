@@ -11,13 +11,16 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from backend.db.connection import get_connection
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
-from backend.semantic.channels import DB_TO_UI
+from backend.semantic.channels import DB_TO_UI, GIFT_SAMPLE_DB, SHELF_DB
 from backend.semantic.filters import expand_channels
 
 _logger = logging.getLogger(__name__)
 
 # 派样渠道（DB名）
 SAMPLING_CHANNELS = ['U先派样', '百补派样']
+
+# 0.01派样与货架渠道引用语义层常量（channels.py为唯一数据源）
+# GIFT_SAMPLE_DB = "赠品&0.01渠道" | SHELF_DB = "货架"
 
 # SPU 字段映射（品类维度）— 白名单，防SQL注入
 _SPU_LEVELS = {
@@ -300,16 +303,15 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     conv_end_str = str(conv_end)
 
     # ── 锁权人数 ──
-    # 浮点精确比较：actual_amount 是 DECIMAL(12,2)，DuckDB 中 0.01 可精确比较
-    # 为防御性编程，使用范围比较（±0.005）
-    # SQL中?出现顺序: 2(lock_start, lock_end)
+    # 浮点精确比较：actual_amount 是 DECIMAL(12,2)，使用 ROUND 精确匹配 0.01
+    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end)
     locked = conn.execute("""
         SELECT COUNT(*) as orders, COUNT(DISTINCT user_id) as users
         FROM orders
-        WHERE channel = '赠品&0.01渠道'
-          AND actual_amount >= 0.005 AND actual_amount <= 0.015
+        WHERE channel = ?
+          AND ROUND(actual_amount, 2) = 0.01
           AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
-    """, [lock_start_str, lock_end_str]).fetchone()
+    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str]).fetchone()
     locked_users = int(locked[1] or 0)
 
     # ── 全店访客数 ──
@@ -322,13 +324,13 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     total_uv = int(uv[0] or 0)
 
     # ── 转化人数：锁权用户中，在转化期间有有效订单的去重用户 ──
-    # SQL中?出现顺序: 2(lock_start, lock_end) + 2(conv_start, conv_end)
+    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end) + 2(conv_start, conv_end)
     converted = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT COUNT(DISTINCT o.user_id) as converted_users,
@@ -339,7 +341,7 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
           AND o.is_refund = FALSE
           AND o.order_status != '交易关闭'
           AND o.channel != '购物金'
-    """, [lock_start_str, lock_end_str, conv_start_str, conv_end_str]).fetchone()
+    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str, conv_start_str, conv_end_str]).fetchone()
     converted_users = int(converted[0] or 0)
     lock_gsv = float(converted[1] or 0)
 
@@ -347,13 +349,13 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     # lock_start_str 在本SQL中出现3次（均为同一个值的重复引用）：
     #   第1-2个: locked_users CTE 的时间范围
     #   第3-5个: first_pay_date 的新客判定阈值
-    # SQL中?出现顺序: 2(lock_start, lock_end) + 3(lock_start x3) + 2(conv_start, conv_end)
+    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end) + 3(lock_start x3) + 2(conv_start, conv_end)
     new_data = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders
-            WHERE channel = '赠品&0.01渠道'
-              AND actual_amount >= 0.005 AND actual_amount <= 0.015
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
               AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT
@@ -366,7 +368,7 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
         LEFT JOIN orders o ON lu.user_id = o.user_id
             AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
             AND o.is_refund = FALSE AND o.order_status != '交易关闭' AND o.channel != '购物金'
-    """, [lock_start_str, lock_end_str, lock_start_str, lock_start_str, lock_start_str, conv_start_str, conv_end_str]).fetchone()
+    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str, lock_start_str, lock_start_str, lock_start_str, conv_start_str, conv_end_str]).fetchone()
 
     new_locked = int(new_data[1] or 0)
     new_converted = int(new_data[2] or 0)
@@ -423,4 +425,274 @@ def _compute_lock_yoy(current: Dict, last: Dict) -> Dict[str, Any]:
         'new_conversion_rate': yoy_ratio(current['new_conversion_rate'], last['new_conversion_rate']),
         'new_lock_gsv': yoy_absolute(current['new_lock_gsv'], last['new_lock_gsv']),
         'new_lock_aus': yoy_absolute(current['new_lock_aus'], last['new_lock_aus']),
+    }
+
+
+# ============================================================
+# 0.01派样滚动同期对比
+# ============================================================
+
+def get_rolling_comparison(
+    year_a_sample_start: str,
+    year_a_sample_end: str,
+    year_a_conv_start: str,
+    year_b_sample_start: str,
+    year_b_sample_end: str,
+    year_b_conv_start: str,
+    rolling_end: str,
+) -> Dict[str, Any]:
+    """
+    0.01派样滚动同期对比
+
+    以 year_a（当年，如2026）的参数为主，year_b（对比年，如2025）自动T对齐。
+
+    Args:
+        year_a_*: 当年的派样期起止 + 转化期起始
+        year_b_*: 对比年的派样期起止 + 转化期起始
+        rolling_end: 滚动截止日（统一日期）
+
+    Returns:
+        {
+            year_a: { phase, sample: {...}, conversion: {...} | null },
+            year_b: { phase, sample: {...}, conversion: {...} | null },
+            yoy: { ... },
+            timeline: { T, T_sample_a, T_sample_b, T_conv, ... }
+        }
+    """
+    # ── 解析日期 ──
+    dt_a_ss = datetime.strptime(year_a_sample_start, '%Y-%m-%d')
+    dt_a_se = datetime.strptime(year_a_sample_end, '%Y-%m-%d')
+    dt_a_cs = datetime.strptime(year_a_conv_start, '%Y-%m-%d')
+    dt_b_ss = datetime.strptime(year_b_sample_start, '%Y-%m-%d')
+    dt_b_se = datetime.strptime(year_b_sample_end, '%Y-%m-%d')
+    dt_b_cs = datetime.strptime(year_b_conv_start, '%Y-%m-%d')
+    dt_roll = datetime.strptime(rolling_end, '%Y-%m-%d')
+
+    # ── T 计算 ──
+    T = (dt_roll - dt_a_ss).days                        # 从 year_a 派样起始的天数偏移
+    T_sample_a = (dt_a_se - dt_a_ss).days               # year_a 派样期总天数
+    T_sample_b = (dt_b_se - dt_b_ss).days               # year_b 派样期总天数
+    T_conv = (dt_roll - dt_a_cs).days                    # 从 year_a 转化起始的天数偏移
+
+    # ── year_a 有效日期 ──
+    a_sample_end_eff = min(dt_roll, dt_a_se)
+    a_in_conversion = T > T_sample_a and T_conv >= 0
+
+    # ── year_b 自动 T 对齐 ──
+    b_equiv_end = dt_b_ss + timedelta(days=T)
+    b_sample_end_eff = min(b_equiv_end, dt_b_se)
+    b_in_conversion = T > T_sample_b and T_conv >= 0
+    b_conv_end = (dt_b_cs + timedelta(days=T_conv)) if (b_in_conversion and T_conv >= 0) else None
+
+    conn = get_connection()
+    try:
+        year_a_data = _compute_rolling_year_metrics(
+            conn,
+            sample_start=year_a_sample_start,
+            sample_end_eff=str(a_sample_end_eff.date()),
+            conv_start=year_a_conv_start,
+            conv_end=str(dt_roll.date()) if a_in_conversion else None,
+            in_conversion=a_in_conversion,
+            new_threshold=year_a_sample_start,
+        )
+
+        year_b_data = _compute_rolling_year_metrics(
+            conn,
+            sample_start=year_b_sample_start,
+            sample_end_eff=str(b_sample_end_eff.date()),
+            conv_start=year_b_conv_start,
+            conv_end=str(b_conv_end.date()) if b_in_conversion and b_conv_end else None,
+            in_conversion=b_in_conversion,
+            new_threshold=year_b_sample_start,
+        )
+
+        yoy = _compute_rolling_yoy(year_a_data, year_b_data)
+
+        return {
+            'year_a': year_a_data,
+            'year_b': year_b_data,
+            'yoy': yoy,
+            'timeline': {
+                'year_a_sample_start': year_a_sample_start,
+                'year_a_sample_end': year_a_sample_end,
+                'year_a_conv_start': year_a_conv_start,
+                'year_b_sample_start': year_b_sample_start,
+                'year_b_sample_end': year_b_sample_end,
+                'year_b_conv_start': year_b_conv_start,
+                'rolling_end': rolling_end,
+                'year_b_equiv_end': str(b_equiv_end.date()),
+                'T': T,
+                'T_sample_a': T_sample_a,
+                'T_sample_b': T_sample_b,
+                'T_conv': T_conv,
+            },
+        }
+    finally:
+        conn.close()
+
+
+def _compute_rolling_year_metrics(
+    conn,
+    sample_start: str,
+    sample_end_eff: str,
+    conv_start: str,
+    conv_end: Optional[str],
+    in_conversion: bool,
+    new_threshold: str,
+) -> Dict[str, Any]:
+    """计算单年的滚动指标（派样期 + 可选转化期）"""
+
+    # ── UV ──
+    uv_row = conn.execute("""
+        SELECT COALESCE(SUM(visitors), 0)
+        FROM daily_visitors
+        WHERE date >= ?::DATE AND date <= ?::DATE
+    """, [sample_start, sample_end_eff]).fetchone()
+    total_uv = int(uv_row[0] or 0)
+
+    # ── 锁权人数 ──
+    locked_row = conn.execute("""
+        SELECT COUNT(DISTINCT user_id) as users
+        FROM orders
+        WHERE channel = ?
+          AND ROUND(actual_amount, 2) = 0.01
+          AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff]).fetchone()
+    locked_users = int(locked_row[0] or 0)
+
+    # ── 新客锁权 ──
+    new_locked_row = conn.execute("""
+        WITH locked_users AS (
+            SELECT DISTINCT user_id
+            FROM orders
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
+              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+        )
+        SELECT COUNT(DISTINCT CASE WHEN ufp.first_pay_date >= ?::DATE THEN lu.user_id END)
+        FROM locked_users lu
+        LEFT JOIN user_first_purchase ufp ON lu.user_id = ufp.user_id
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff, new_threshold]).fetchone()
+    new_locked_count = int(new_locked_row[0] or 0)
+
+    lock_rate = safe_ratio(locked_users, total_uv)
+    new_locked_ratio = safe_ratio(new_locked_count, locked_users)
+    old_locked_count = max(0, locked_users - new_locked_count)
+
+    result = {
+        'phase': 'conversion' if in_conversion else 'sample',
+        'total_uv': total_uv,
+        'locked_users': locked_users,
+        'lock_rate': round(lock_rate, 6),
+        'new_locked_users': new_locked_count,
+        'new_locked_ratio': round(new_locked_ratio, 4),
+        'old_locked_users': old_locked_count,
+        'old_locked_ratio': round(safe_ratio(old_locked_count, locked_users), 4),
+        # 转化指标默认 0（派样期不计算）
+        'converted_users': 0,
+        'conversion_rate': 0.0,
+        'conv_gsv': 0.0,
+        'conv_aus': 0.0,
+        'new_converted_users': 0,
+        'new_conversion_rate': 0.0,
+        'new_conv_gsv': 0.0,
+        'new_conv_aus': 0.0,
+        'old_converted_users': 0,
+        'old_conversion_rate': 0.0,
+    }
+
+    if not in_conversion or not conv_end:
+        return result
+
+    # ── 加赠转化人数：货架渠道 + 累计 ≥ 100 ──
+    conv_row = conn.execute("""
+        WITH locked_users AS (
+            SELECT DISTINCT user_id
+            FROM orders
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
+              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+        ),
+        shelf_users AS (
+            SELECT o.user_id, SUM(o.actual_amount) as shelf_total
+            FROM orders o
+            JOIN locked_users lu ON o.user_id = lu.user_id
+            WHERE o.channel = ?
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
+              AND o.is_refund = FALSE
+              AND o.order_status != '交易关闭'
+            GROUP BY o.user_id
+            HAVING SUM(o.actual_amount) >= 100
+        )
+        SELECT COUNT(*) as converted, COALESCE(SUM(shelf_total), 0) as gsv
+        FROM shelf_users
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff, SHELF_DB, conv_start, conv_end]).fetchone()
+
+    converted_users = int(conv_row[0] or 0)
+    conv_gsv = float(conv_row[1] or 0)
+
+    # ── 新客转化（货架 + ≥100） ──
+    new_conv_row = conn.execute("""
+        WITH locked_users AS (
+            SELECT DISTINCT user_id
+            FROM orders
+            WHERE channel = ?
+              AND ROUND(actual_amount, 2) = 0.01
+              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+        ),
+        shelf_users AS (
+            SELECT o.user_id, SUM(o.actual_amount) as shelf_total
+            FROM orders o
+            JOIN locked_users lu ON o.user_id = lu.user_id
+            WHERE o.channel = ?
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
+              AND o.is_refund = FALSE
+              AND o.order_status != '交易关闭'
+            GROUP BY o.user_id
+            HAVING SUM(o.actual_amount) >= 100
+        )
+        SELECT
+            COUNT(DISTINCT CASE WHEN ufp.first_pay_date >= ?::DATE THEN su.user_id END) as new_converted,
+            COALESCE(SUM(CASE WHEN ufp.first_pay_date >= ?::DATE THEN su.shelf_total ELSE 0 END), 0) as new_gsv
+        FROM shelf_users su
+        LEFT JOIN user_first_purchase ufp ON su.user_id = ufp.user_id
+    """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff, SHELF_DB, conv_start, conv_end, new_threshold, new_threshold]).fetchone()
+
+    new_converted = int(new_conv_row[0] or 0)
+    new_conv_gsv = float(new_conv_row[1] or 0)
+    old_converted = max(0, converted_users - new_converted)
+    old_locked = max(0, locked_users - new_locked_count)
+
+    result.update({
+        'converted_users': converted_users,
+        'conversion_rate': round(safe_ratio(converted_users, locked_users), 4),
+        'conv_gsv': round(conv_gsv, 2),
+        'conv_aus': round(safe_ratio(conv_gsv, converted_users), 2),
+        'new_converted_users': new_converted,
+        'new_conversion_rate': round(safe_ratio(new_converted, new_locked_count), 4),
+        'new_conv_gsv': round(new_conv_gsv, 2),
+        'new_conv_aus': round(safe_ratio(new_conv_gsv, new_converted), 2),
+        'old_converted_users': old_converted,
+        'old_conversion_rate': round(safe_ratio(old_converted, old_locked), 4),
+    })
+
+    return result
+
+
+def _compute_rolling_yoy(a: Dict, b: Dict) -> Dict[str, Any]:
+    """滚动对比 YoY（绝对值用百分比变化，比率用百分点差）"""
+    return {
+        'total_uv': yoy_absolute(a['total_uv'], b['total_uv']),
+        'locked_users': yoy_absolute(a['locked_users'], b['locked_users']),
+        'lock_rate': yoy_ratio(a['lock_rate'], b['lock_rate']),
+        'new_locked_users': yoy_absolute(a['new_locked_users'], b['new_locked_users']),
+        'new_locked_ratio': yoy_ratio(a['new_locked_ratio'], b['new_locked_ratio']),
+        'converted_users': yoy_absolute(a['converted_users'], b['converted_users']),
+        'conversion_rate': yoy_ratio(a['conversion_rate'], b['conversion_rate']),
+        'conv_gsv': yoy_absolute(a['conv_gsv'], b['conv_gsv']),
+        'conv_aus': yoy_absolute(a['conv_aus'], b['conv_aus']),
+        'new_converted_users': yoy_absolute(a['new_converted_users'], b['new_converted_users']),
+        'new_conversion_rate': yoy_ratio(a['new_conversion_rate'], b['new_conversion_rate']),
+        'new_conv_gsv': yoy_absolute(a['new_conv_gsv'], b['new_conv_gsv']),
+        'new_conv_aus': yoy_absolute(a['new_conv_aus'], b['new_conv_aus']),
     }

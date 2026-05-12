@@ -126,3 +126,76 @@ export function fetchSamplingLockAnalysis(params: {
 }): Promise<SamplingLockAnalysisResponse> {
   return client.get('/v1/sampling/lock-analysis', { params })
 }
+
+// ── 0.01派样滚动同期对比 ──
+
+export interface RollingYearMetrics {
+  phase: string
+  total_uv: number
+  locked_users: number
+  lock_rate: number
+  new_locked_users: number
+  new_locked_ratio: number
+  old_locked_users: number
+  old_locked_ratio: number
+  converted_users: number
+  conversion_rate: number
+  conv_gsv: number
+  conv_aus: number
+  new_converted_users: number
+  new_conversion_rate: number
+  new_conv_gsv: number
+  new_conv_aus: number
+  old_converted_users: number
+  old_conversion_rate: number
+}
+
+export interface RollingYOY {
+  total_uv: number | null
+  locked_users: number | null
+  lock_rate: number | null
+  new_locked_users: number | null
+  new_locked_ratio: number | null
+  converted_users: number | null
+  conversion_rate: number | null
+  conv_gsv: number | null
+  conv_aus: number | null
+  new_converted_users: number | null
+  new_conversion_rate: number | null
+  new_conv_gsv: number | null
+  new_conv_aus: number | null
+}
+
+export interface RollingTimeline {
+  year_a_sample_start: string
+  year_a_sample_end: string
+  year_a_conv_start: string
+  year_b_sample_start: string
+  year_b_sample_end: string
+  year_b_conv_start: string
+  rolling_end: string
+  year_b_equiv_end: string
+  T: number
+  T_sample_a: number
+  T_sample_b: number
+  T_conv: number
+}
+
+export interface RollingComparisonResponse {
+  year_a: RollingYearMetrics
+  year_b: RollingYearMetrics
+  yoy: RollingYOY
+  timeline: RollingTimeline
+}
+
+export function fetchRollingComparison(params: {
+  year_a_sample_start: string
+  year_a_sample_end: string
+  year_a_conv_start: string
+  year_b_sample_start: string
+  year_b_sample_end: string
+  year_b_conv_start: string
+  rolling_end: string
+}): Promise<RollingComparisonResponse> {
+  return client.get('/v1/sampling/rolling-comparison', { params })
+}

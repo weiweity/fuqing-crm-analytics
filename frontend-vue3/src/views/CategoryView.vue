@@ -721,7 +721,7 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
             解决问题：用户买了A品类之后流向了哪个品类？——看清品类间的承接关系，指导关联推荐和品类组合策略
           </p>
           <div class="space-y-5">
-            <CategoryFlowTab />
+            <CategoryFlowTab :category-options="categoryOptions" />
           </div>
         </n-tab-pane>
 

@@ -189,6 +189,7 @@ export interface FlowMatrix {
   sources: string[]
   targets: string[]
   matrix: number[][]
+  row_totals: number[] // 每行流转人数总和，用于前端计算行百分比
   concentration_warnings: string[]
 }
 
@@ -211,6 +212,22 @@ export interface CategoryFlowResponse {
   pre_purchase?: AssociationItem[]
 }
 
+export interface CategoryFlowAssociationResponse {
+  target_category: string
+  post_purchase: AssociationItem[]
+  pre_purchase: AssociationItem[]
+  post_sankey: SankeyGraphData
+  pre_sankey: SankeyGraphData
+  data_quality_note: string
+}
+
+export interface CategoryFlowMatrixResponse {
+  sankey_data: SankeyGraphData
+  matrix: FlowMatrix
+  data_stale: boolean
+  data_quality_note: string
+}
+
 export function fetchCategoryFlow(params: {
   start_date: string
   end_date: string
@@ -220,8 +237,36 @@ export function fetchCategoryFlow(params: {
   channel?: string
   exclude_channels?: string[]
   target_category?: string
+  anchor_mode?: 'first' | 'last' | 'every'
+  path_depth?: '1' | '2'
 }): Promise<CategoryFlowResponse> {
   return client.get('/v1/category/flow', { params })
+}
+
+export function fetchCategoryFlowAssoc(params: {
+  start_date: string
+  end_date: string
+  level?: string
+  window_days?: number
+  channel?: string
+  exclude_channels?: string[]
+  target_category: string
+  anchor_mode?: 'first' | 'last' | 'every'
+  path_depth?: '1' | '2'
+}): Promise<CategoryFlowAssociationResponse> {
+  return client.get('/v1/category/flow/association', { params })
+}
+
+export function fetchCategoryFlowMatrix(params: {
+  start_date: string
+  end_date: string
+  level?: string
+  top_n?: number
+  window_days?: number
+  channel?: string
+  exclude_channels?: string[]
+}): Promise<CategoryFlowMatrixResponse> {
+  return client.get('/v1/category/flow/matrix', { params })
 }
 
 // ============================================================

@@ -6,6 +6,7 @@
 """
 
 from typing import Optional, List, Any, Dict
+from enum import Enum
 from pydantic import BaseModel, Field
 
 
@@ -1281,6 +1282,7 @@ class FlowMatrix(BaseModel):
     sources: List[str]
     targets: List[str]
     matrix: List[List[int]]
+    row_totals: List[int] = Field(default_factory=list, description="每行流转人数总和，用于前端计算行百分比")
     concentration_warnings: List[str]
 
 
@@ -1295,7 +1297,7 @@ class AssociationItem(BaseModel):
 
 
 class CategoryFlowResponse(BaseModel):
-    """品类流转 Tab 响应"""
+    """品类流转 Tab 响应（兼容旧接口）"""
     sankey_data: SankeyGraphData
     matrix: FlowMatrix
     data_stale: bool = False
@@ -1304,6 +1306,40 @@ class CategoryFlowResponse(BaseModel):
     target_category: Optional[str] = None
     post_purchase: Optional[List[AssociationItem]] = None  # 买A之后买了什么
     pre_purchase: Optional[List[AssociationItem]] = None   # 买A之前买了什么
+    # 前后置流转桑基图(当传入 target_category 时填充)
+    pre_sankey: Optional[SankeyGraphData] = None   # 前置流转：其他品类 → 目标品类
+    post_sankey: Optional[SankeyGraphData] = None  # 后置流转：目标品类 → 其他品类
+
+
+class CategoryFlowAssociationResponse(BaseModel):
+    """品类流转 - 时序关联分析响应"""
+    target_category: str
+    post_purchase: List[AssociationItem] = Field(default_factory=list)
+    pre_purchase: List[AssociationItem] = Field(default_factory=list)
+    post_sankey: SankeyGraphData = Field(default_factory=lambda: SankeyGraphData(nodes=[], links=[]))
+    pre_sankey: SankeyGraphData = Field(default_factory=lambda: SankeyGraphData(nodes=[], links=[]))
+    data_quality_note: str = ""
+
+
+class CategoryFlowMatrixResponse(BaseModel):
+    """品类流转 - 全局流转矩阵响应"""
+    sankey_data: SankeyGraphData
+    matrix: FlowMatrix
+    data_stale: bool = False
+    data_quality_note: str = ""
+
+
+class AnchorMode(str, Enum):
+    """锚点模式：以目标品类的哪次购买为分析锚点"""
+    first = "first"   # 首次购买（分析期间内第一次买A）
+    last = "last"     # 末次购买（分析期间内最后一次买A）
+    every = "every"   # 每次购买（按购买事件统计，非按用户去重）
+
+
+class PathDepth(str, Enum):
+    """路径深度：时序关联分析的探索步数"""
+    d1 = "1"   # 1步：直接前后置关联
+    d2 = "2"   # 2步：再向外延伸一层（A→B→C）
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1780,6 +1816,73 @@ class SamplingLockAnalysisResponse(BaseModel):
     current_year: SamplingLockYearData
     last_year: SamplingLockYearData
     yoy: SamplingLockYOY
+
+
+# ============================================================
+# 0.01派样滚动同期对比 (Rolling Comparison)
+# ============================================================
+
+class RollingYearMetrics(BaseModel):
+    """单年的滚动指标"""
+    phase: str = Field(..., description="当前阶段：sample(派样期) 或 conversion(转化期)")
+    total_uv: int
+    locked_users: int
+    lock_rate: float
+    new_locked_users: int
+    new_locked_ratio: float
+    old_locked_users: int
+    old_locked_ratio: float
+    converted_users: int
+    conversion_rate: float
+    conv_gsv: float
+    conv_aus: float
+    new_converted_users: int
+    new_conversion_rate: float
+    new_conv_gsv: float
+    new_conv_aus: float
+    old_converted_users: int
+    old_conversion_rate: float
+
+
+class RollingYOY(BaseModel):
+    """滚动对比 YoY"""
+    total_uv: Optional[float] = None
+    locked_users: Optional[float] = None
+    lock_rate: Optional[float] = None
+    new_locked_users: Optional[float] = None
+    new_locked_ratio: Optional[float] = None
+    converted_users: Optional[float] = None
+    conversion_rate: Optional[float] = None
+    conv_gsv: Optional[float] = None
+    conv_aus: Optional[float] = None
+    new_converted_users: Optional[float] = None
+    new_conversion_rate: Optional[float] = None
+    new_conv_gsv: Optional[float] = None
+    new_conv_aus: Optional[float] = None
+
+
+class RollingTimeline(BaseModel):
+    """滚动时间线参数"""
+    year_a_sample_start: str
+    year_a_sample_end: str
+    year_a_conv_start: str
+    year_b_sample_start: str
+    year_b_sample_end: str
+    year_b_conv_start: str
+    rolling_end: str
+    year_b_equiv_end: str = Field(..., description="year_b 自动对齐后的等价截止日")
+    T: int = Field(..., description="从 year_a 派样起始到滚动截止日的总天数")
+    T_sample_a: int = Field(..., description="year_a 派样期总天数")
+    T_sample_b: int = Field(..., description="year_b 派样期总天数")
+    T_conv: int = Field(..., description="从 year_a 转化起始到滚动截止日的天数")
+
+
+class RollingComparisonResponse(BaseModel):
+    """0.01派样滚动同期对比响应"""
+    year_a: RollingYearMetrics
+    year_b: RollingYearMetrics
+    yoy: RollingYOY
+    timeline: RollingTimeline
 
 
 # ============================================================
