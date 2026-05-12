@@ -582,7 +582,7 @@ def get_category_flow_api(
     channel: Optional[str] = Query(default=None),
     exclude_channels: Optional[List[str]] = Query(default=None),
     target_category: Optional[str] = Query(default=None),
-    anchor_mode: AnchorMode = Query(default=AnchorMode.first),
+    anchor_mode: AnchorMode = Query(default=AnchorMode.every),
     path_depth: PathDepth = Query(default=PathDepth.d1),
 ):
     """

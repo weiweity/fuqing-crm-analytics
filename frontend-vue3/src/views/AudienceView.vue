@@ -1848,7 +1848,7 @@ const channelMemberXlsxColumns = computed(() => {
       </n-gi>
       <n-gi :span="1" class="h-full">
         <MetricCard
-          title="会员占比"
+          title="会员GSV占比"
           :value="fmtRatio(kpiData?.member_gsv_ratio)"
           :change="kpiChange('member_gsv_ratio_yoy', 'member_gsv_ratio_mom')"
           :loading="kpiLoading"

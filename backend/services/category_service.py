@@ -6,6 +6,7 @@ Week 4 品类分布、品类象限矩阵、品类用户画像
 import duckdb
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+from collections import OrderedDict
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
@@ -1848,16 +1849,19 @@ def get_category_flow_matrix(
     channel_hash = hashlib.md5(channel_key.encode()).hexdigest()[:8]
     cache_file = cache_dir / f"flow_{start_date}_{end_date}_w{window_days}_full_{level}_{channel_hash}.json"
 
-    # 尝试读取缓存
+    # 尝试读取缓存（24小时TTL）
+    import time
+    _CACHE_TTL_SECONDS = 24 * 3600
     if cache_file.exists():
         try:
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            return {
-                **cached,
-                "data_stale": False,
-                "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
-            }
+            if time.time() - cache_file.stat().st_mtime < _CACHE_TTL_SECONDS:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                return {
+                    **cached,
+                    "data_stale": False,
+                    "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
+                }
         except Exception:
             pass
 
@@ -2036,20 +2040,26 @@ def get_category_flow_matrix(
 
 # ---- 时序关联分析缓存 -------------------------------------------------------
 
-_assoc_cache: Dict[str, Any] = {}
+_ASSOC_CACHE_MAX_SIZE = 100
+_assoc_cache: OrderedDict[str, Any] = OrderedDict()
 _assoc_cache_lock = __import__('threading').Lock()
 
 def _get_cached_association(cache_key: str, compute_fn):
-    """带锁的内存缓存，5分钟TTL"""
+    """带锁的内存缓存，5分钟TTL，LRU淘汰（最多保留100条）"""
     import time
     now = time.time()
     with _assoc_cache_lock:
         entry = _assoc_cache.get(cache_key)
         if entry and (now - entry["ts"]) < 300:
+            # 命中后移到末尾（LRU）
+            _assoc_cache.move_to_end(cache_key)
             return entry["data"]
     data = compute_fn()
     with _assoc_cache_lock:
         _assoc_cache[cache_key] = {"data": data, "ts": now}
+        # LRU淘汰：超过上限时移除最老的条目
+        while len(_assoc_cache) > _ASSOC_CACHE_MAX_SIZE:
+            _assoc_cache.pop(next(iter(_assoc_cache)))
     return data
 
 
@@ -2079,7 +2089,11 @@ def get_category_flow_association(
         }
 
     import hashlib
-    cache_key = hashlib.md5(f"{start_date}|{end_date}|{level}|{window_days}|{channel}|{exclude_channels}|{target_category}|{anchor_mode}|{path_depth}".encode()).hexdigest()
+    # 对列表参数排序，确保缓存键顺序稳定
+    _excluded = tuple(sorted(exclude_channels)) if exclude_channels else ()
+    cache_key = hashlib.md5(
+        f"{start_date}|{end_date}|{level}|{window_days}|{channel}|{_excluded}|{target_category}|{anchor_mode}|{path_depth}".encode()
+    ).hexdigest()
 
     def _compute():
         conn = get_connection()
@@ -2110,7 +2124,7 @@ def get_category_flow(
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
     target_category: Optional[str] = None,
-    anchor_mode: str = "first",
+    anchor_mode: str = "every",
     path_depth: int = 1,
 ) -> Dict[str, Any]:
     """
@@ -2133,7 +2147,6 @@ def get_category_flow(
     import json
     from pathlib import Path
 
-    # 默认排除赠品&0.01和其他渠道，避免污染品类流转数据
     # 默认排除赠品&0.01和其他渠道，避免污染品类流转数据
     # 注意：UI名后续通过 expand_channels() 映射为 DB 名
     # 数据来源：channels.py UI_TO_DB 的键名
