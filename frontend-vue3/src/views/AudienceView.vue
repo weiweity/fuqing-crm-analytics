@@ -1059,7 +1059,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
     ],
   },
   {
-    title: '会员占比',
+    title: '会员GSV占比',
     key: 'member_ratio_group',
     align: 'center',
     children: [
@@ -1241,7 +1241,7 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       ]),
     },
     {
-      title: '会员占比', key: 'member_ratio_group', align: 'center',
+      title: '会员GSV占比', key: 'member_ratio_group', align: 'center',
       children: [
         { title: yr, key: 'member_ratio_2026', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
         { title: yr2, key: 'member_ratio_2025', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1)}%` },
@@ -1399,9 +1399,24 @@ const trendChartOption = computed(() => {
       padding: [10, 12],
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
+      formatter: (params: any) => {
+        const arr = Array.isArray(params) ? params : [params]
+        let html = `<div style="font-weight:600;margin-bottom:4px">${arr[0].axisValue}</div>`
+        for (const p of arr) {
+          const val = p.value
+          const isRatio = p.seriesName.includes('占比')
+          const displayVal = isRatio ? `${val.toFixed(1)}%` : `¥${(val / 10000).toFixed(1)}万`
+          html += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">`
+          html += `<span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span>`
+          html += `<span style="flex:1">${p.seriesName}</span>`
+          html += `<span style="font-weight:600">${displayVal}</span>`
+          html += `</div>`
+        }
+        return html
+      },
     },
     legend: {
-      data: ['全店GSV', '会员占比', `${compareLabelShort.value}GSV`, `${compareLabelShort.value}会员占比`],
+      data: ['全店GSV', '会员GSV占比', `${compareLabelShort.value}GSV`, `${compareLabelShort.value}会员GSV占比`],
       top: 0,
       icon: 'circle',
       itemGap: 16,
@@ -1431,7 +1446,7 @@ const trendChartOption = computed(() => {
       },
       {
         type: 'value',
-        name: '会员占比',
+        name: '会员GSV占比',
         position: 'right',
         min: 0,
         max: 100,
@@ -1466,7 +1481,7 @@ const trendChartOption = computed(() => {
         yAxisIndex: 0,
       },
       {
-        name: '会员占比',
+        name: '会员GSV占比',
         type: 'line',
         data: data.map((d: DailyTrendPoint) => d.member_ratio),
         smooth: true,
@@ -1486,7 +1501,7 @@ const trendChartOption = computed(() => {
         yAxisIndex: 0,
       },
       {
-        name: `${compareLabelShort.value}会员占比`,
+        name: `${compareLabelShort.value}会员GSV占比`,
         type: 'line',
         data: data.map((d: DailyTrendPoint) => d.ly_member_ratio),
         smooth: true,
@@ -1755,10 +1770,10 @@ const channelMemberXlsxColumns = computed(() => {
     { header: `${yr}会员老客AUS`, key: 'old_aus_2026', width: 12, numFmt: '¥#,##0' },
     { header: `${yr2}会员老客AUS`, key: 'old_aus_2025', width: 12, numFmt: '¥#,##0' },
     { header: '会员老客AUS YOY', key: 'old_aus_yoy', width: 12, numFmt: '0.0%' },
-    // 会员占比（该渠道会员GSV / 该渠道全店GSV）
-    { header: `${yr}会员占比`, key: 'member_ratio_2026', width: 12, numFmt: '0.0%' },
-    { header: `${yr2}会员占比`, key: 'member_ratio_2025', width: 12, numFmt: '0.0%' },
-    { header: '会员占比YOY', key: 'member_ratio_yoy', width: 12, numFmt: '0.0%' },
+    // 会员GSV占比（该渠道会员GSV / 该渠道全店GSV）
+    { header: `${yr}会员GSV占比`, key: 'member_ratio_2026', width: 12, numFmt: '0.0%' },
+    { header: `${yr2}会员GSV占比`, key: 'member_ratio_2025', width: 12, numFmt: '0.0%' },
+    { header: '会员GSV占比YOY', key: 'member_ratio_yoy', width: 12, numFmt: '0.0%' },
     // 交叉指标: 会员新客GSV / 全店新客GSV
     { header: `${yr}会员新客vs全店新客GSV`, key: 'member_new_vs_all_new_2026', width: 14, numFmt: '0.0%' },
     { header: `${yr2}会员新客vs全店新客GSV`, key: 'member_new_vs_all_new_2025', width: 14, numFmt: '0.0%' },
