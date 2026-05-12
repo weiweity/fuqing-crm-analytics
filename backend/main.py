@@ -32,6 +32,8 @@ from backend.contracts.schemas import (
     CategoryUserProfileResponse,
     CategoryValueTierResponse,
     CategoryFlowResponse,
+    CategoryFlowAssociationResponse,
+    CategoryFlowMatrixResponse,
     CategoryChurnResponse,
     AnchorMode,
     PathDepth,
@@ -96,6 +98,8 @@ from backend.services.category_service import (
     get_category_user_profile,
     get_category_value_tier,
     get_category_flow,
+    get_category_flow_association,
+    get_category_flow_matrix,
     get_category_churn,
     get_market_basket,
     get_category_daily_trend,
@@ -582,13 +586,48 @@ def get_category_flow_api(
     path_depth: PathDepth = Query(default=PathDepth.d1),
 ):
     """
-    品类流转
-
-    返回品类间的用户流转矩阵和桑基图数据。传入 target_category 时返回前后置购买关联分析。
-    anchor_mode: first=首次购买锚点, last=末次购买锚点, every=每次购买(按事件统计)
-    path_depth: 1=直接前后置关联, 2=再向外延伸一层（A→B→C链）
+    品类流转（兼容旧接口，返回完整数据）
     """
     return get_category_flow(start_date, end_date, level, top_n, window_days, channel, exclude_channels, target_category, anchor_mode.value, int(path_depth.value))
+
+
+@app.get("/api/v1/category/flow/association", response_model=CategoryFlowAssociationResponse)
+def get_category_flow_association_api(
+    start_date: str = Query(default="2026-04-01"),
+    end_date: str = Query(default="2026-04-20"),
+    level: str = Query(default="class"),
+    window_days: int = Query(default=90),
+    channel: Optional[str] = Query(default=None),
+    exclude_channels: Optional[List[str]] = Query(default=None),
+    target_category: str = Query(..., description="目标品类名称"),
+    anchor_mode: AnchorMode = Query(default=AnchorMode.last),
+    path_depth: PathDepth = Query(default=PathDepth.d1),
+):
+    """
+    品类流转 - 时序关联分析（买了产品A之后/之前买了什么）
+    独立接口，支持内存缓存，响应更快。
+    """
+    return get_category_flow_association(
+        start_date, end_date, level, window_days, channel, exclude_channels,
+        target_category, anchor_mode.value, int(path_depth.value)
+    )
+
+
+@app.get("/api/v1/category/flow/matrix", response_model=CategoryFlowMatrixResponse)
+def get_category_flow_matrix_api(
+    start_date: str = Query(default="2026-04-01"),
+    end_date: str = Query(default="2026-04-20"),
+    level: str = Query(default="class"),
+    top_n: int = Query(default=10),
+    window_days: int = Query(default=90),
+    channel: Optional[str] = Query(default=None),
+    exclude_channels: Optional[List[str]] = Query(default=None),
+):
+    """
+    品类流转 - 全局流转矩阵（首购→次购鸟瞰）
+    独立接口，默认折叠时前端可不请求。
+    """
+    return get_category_flow_matrix(start_date, end_date, level, top_n, window_days, channel, exclude_channels)
 
 
 @app.get("/api/v1/category/churn", response_model=CategoryChurnResponse)

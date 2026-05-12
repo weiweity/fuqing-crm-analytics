@@ -1297,7 +1297,7 @@ class AssociationItem(BaseModel):
 
 
 class CategoryFlowResponse(BaseModel):
-    """品类流转 Tab 响应"""
+    """品类流转 Tab 响应（兼容旧接口）"""
     sankey_data: SankeyGraphData
     matrix: FlowMatrix
     data_stale: bool = False
@@ -1309,6 +1309,24 @@ class CategoryFlowResponse(BaseModel):
     # 前后置流转桑基图(当传入 target_category 时填充)
     pre_sankey: Optional[SankeyGraphData] = None   # 前置流转：其他品类 → 目标品类
     post_sankey: Optional[SankeyGraphData] = None  # 后置流转：目标品类 → 其他品类
+
+
+class CategoryFlowAssociationResponse(BaseModel):
+    """品类流转 - 时序关联分析响应"""
+    target_category: str
+    post_purchase: List[AssociationItem] = Field(default_factory=list)
+    pre_purchase: List[AssociationItem] = Field(default_factory=list)
+    post_sankey: SankeyGraphData = Field(default_factory=lambda: SankeyGraphData(nodes=[], links=[]))
+    pre_sankey: SankeyGraphData = Field(default_factory=lambda: SankeyGraphData(nodes=[], links=[]))
+    data_quality_note: str = ""
+
+
+class CategoryFlowMatrixResponse(BaseModel):
+    """品类流转 - 全局流转矩阵响应"""
+    sankey_data: SankeyGraphData
+    matrix: FlowMatrix
+    data_stale: bool = False
+    data_quality_note: str = ""
 
 
 class AnchorMode(str, Enum):

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { NTooltip, NSelect } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
-import { fetchCategoryFlow } from '@/api/category'
+import { fetchCategoryFlowAssoc, fetchCategoryFlowMatrix } from '@/api/category'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -40,6 +40,9 @@ const PATH_DEPTH_OPTIONS = [
 
 // 流转矩阵折叠状态（默认折叠，降级为辅助参考）
 const matrixExpanded = ref(false)
+
+// 流转矩阵显示模式：百分比(默认) / 数值
+const matrixDisplayMode = ref<'percentage' | 'value'>('percentage')
 
 // 前后置分析视图模式：桑基图 / 双向条形图
 const temporalViewMode = ref<'sankey' | 'bar'>('sankey')
@@ -77,22 +80,76 @@ const queryParams = computed(() => {
     window_days: windowDays.value,
     channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
     exclude_channels: CATEGORY_FLOW_EXCLUDED_CHANNELS,
-    target_category: targetCategory.value || undefined,
+    target_category: targetCategory.value || '',
     anchor_mode: anchorMode.value,
     path_depth: pathDepth.value,
   }
 })
 
+// 矩阵专用参数（不含 target_category 等时序关联参数）
+const matrixParams = computed(() => {
+  const endDate = filterStore.dateRange[1]
+  const startDate = filterStore.dateRange[0]
+  return {
+    start_date: startDate,
+    end_date: endDate,
+    level: 'class',
+    top_n: 10,
+    window_days: windowDays.value,
+    channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+    exclude_channels: CATEGORY_FLOW_EXCLUDED_CHANNELS,
+  }
+})
+
+// 主请求：时序关联分析（始终请求）
 const {
-  data,
-  isLoading,
-  error,
-  refetch,
+  data: assocData,
+  isLoading: assocLoading,
+  error: assocError,
+  refetch: refetchAssoc,
 } = useQuery({
-  queryKey: computed(() => ['category-flow', { ...toValue(queryParams) }]),
-  queryFn: () => fetchCategoryFlow(toValue(queryParams)),
+  queryKey: computed(() => ['category-flow-assoc', { ...toValue(queryParams) }]),
+  queryFn: () => fetchCategoryFlowAssoc(toValue(queryParams)),
   staleTime: 60_000,
 })
+
+// 矩阵请求：懒加载（展开时才请求）
+const matrixEnabled = computed(() => matrixExpanded.value)
+const {
+  data: matrixData,
+  isLoading: matrixLoading,
+  error: matrixError,
+  refetch: refetchMatrix,
+} = useQuery({
+  queryKey: computed(() => ['category-flow-matrix', { ...toValue(matrixParams) }]),
+  queryFn: () => fetchCategoryFlowMatrix(toValue(matrixParams)),
+  enabled: matrixEnabled,
+  staleTime: 60_000,
+})
+
+// 合并数据，保持模板兼容
+const data = computed(() => {
+  if (!assocData.value) return null
+  return {
+    target_category: assocData.value.target_category,
+    post_purchase: assocData.value.post_purchase,
+    pre_purchase: assocData.value.pre_purchase,
+    post_sankey: assocData.value.post_sankey,
+    pre_sankey: assocData.value.pre_sankey,
+    // 矩阵数据来自独立接口（可能尚未加载）
+    sankey_data: matrixData.value?.sankey_data ?? { nodes: [], links: [] },
+    matrix: matrixData.value?.matrix ?? { sources: [], targets: [], matrix: [], row_totals: [], concentration_warnings: [] },
+    data_stale: matrixData.value?.data_stale ?? false,
+    data_quality_note: assocData.value.data_quality_note || matrixData.value?.data_quality_note || '',
+  }
+})
+
+const isLoading = computed(() => assocLoading.value)
+const error = computed(() => assocError.value || matrixError.value)
+const refetch = () => {
+  refetchAssoc()
+  if (matrixEnabled.value) refetchMatrix()
+}
 
 // 默认选中「经典膜」（如果品类列表中存在）
 watch(targetCategoryOptions, (options) => {
@@ -407,7 +464,7 @@ const matrixColumns = computed<DataTableColumns<any>>(() => {
   return cols
 })
 
-const matrixData = computed(() => {
+const matrixTableData = computed(() => {
   if (!data.value?.matrix) return []
   const { sources, targets, matrix, row_totals } = data.value.matrix
 
@@ -838,7 +895,7 @@ const bidirectionalBarOption = computed(() => {
           </div>
           <DataTablePro
             :columns="matrixColumns"
-            :data="matrixData"
+            :data="matrixTableData"
             :pagination="false"
             :scroll-x="2000"
             :max-height="520"
