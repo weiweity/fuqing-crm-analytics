@@ -6,6 +6,7 @@
 """
 
 from typing import Optional, List, Any, Dict
+from enum import Enum
 from pydantic import BaseModel, Field
 
 
@@ -1305,6 +1306,22 @@ class CategoryFlowResponse(BaseModel):
     target_category: Optional[str] = None
     post_purchase: Optional[List[AssociationItem]] = None  # 买A之后买了什么
     pre_purchase: Optional[List[AssociationItem]] = None   # 买A之前买了什么
+    # 前后置流转桑基图(当传入 target_category 时填充)
+    pre_sankey: Optional[SankeyGraphData] = None   # 前置流转：其他品类 → 目标品类
+    post_sankey: Optional[SankeyGraphData] = None  # 后置流转：目标品类 → 其他品类
+
+
+class AnchorMode(str, Enum):
+    """锚点模式：以目标品类的哪次购买为分析锚点"""
+    first = "first"   # 首次购买（分析期间内第一次买A）
+    last = "last"     # 末次购买（分析期间内最后一次买A）
+    every = "every"   # 每次购买（按购买事件统计，非按用户去重）
+
+
+class PathDepth(str, Enum):
+    """路径深度：时序关联分析的探索步数"""
+    d1 = "1"   # 1步：直接前后置关联
+    d2 = "2"   # 2步：再向外延伸一层（A→B→C）
 
 
 # ─────────────────────────────────────────────────────────────

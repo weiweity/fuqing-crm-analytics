@@ -33,6 +33,8 @@ from backend.contracts.schemas import (
     CategoryValueTierResponse,
     CategoryFlowResponse,
     CategoryChurnResponse,
+    AnchorMode,
+    PathDepth,
     MarketBasketResponse,
     CategoryRepurchaseFlowResponse,
     CategoryDailyTrendResponse,
@@ -576,13 +578,17 @@ def get_category_flow_api(
     channel: Optional[str] = Query(default=None),
     exclude_channels: Optional[List[str]] = Query(default=None),
     target_category: Optional[str] = Query(default=None),
+    anchor_mode: AnchorMode = Query(default=AnchorMode.first),
+    path_depth: PathDepth = Query(default=PathDepth.d1),
 ):
     """
     品类流转
 
     返回品类间的用户流转矩阵和桑基图数据。传入 target_category 时返回前后置购买关联分析。
+    anchor_mode: first=首次购买锚点, last=末次购买锚点, every=每次购买(按事件统计)
+    path_depth: 1=直接前后置关联, 2=再向外延伸一层（A→B→C链）
     """
-    return get_category_flow(start_date, end_date, level, top_n, window_days, channel, exclude_channels, target_category)
+    return get_category_flow(start_date, end_date, level, top_n, window_days, channel, exclude_channels, target_category, anchor_mode.value, int(path_depth.value))
 
 
 @app.get("/api/v1/category/churn", response_model=CategoryChurnResponse)

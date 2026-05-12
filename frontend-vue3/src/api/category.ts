@@ -221,6 +221,8 @@ export function fetchCategoryFlow(params: {
   channel?: string
   exclude_channels?: string[]
   target_category?: string
+  anchor_mode?: 'first' | 'last' | 'every'
+  path_depth?: '1' | '2'
 }): Promise<CategoryFlowResponse> {
   return client.get('/v1/category/flow', { params })
 }

@@ -23,9 +23,25 @@ const CATEGORY_FLOW_EXCLUDED_CHANNELS = ['赠品&0.01', '其他']
 
 const windowDays = ref<number>(90)
 const targetCategory = ref<string | null>(null)
+const anchorMode = ref<'first' | 'last' | 'every'>('first')
+const pathDepth = ref<'1' | '2'>('1')
+
+const ANCHOR_MODE_OPTIONS = [
+  { label: '首次购买', value: 'first' },
+  { label: '末次购买', value: 'last' },
+  { label: '每次购买', value: 'every' },
+]
+
+const PATH_DEPTH_OPTIONS = [
+  { label: '1步', value: '1' },
+  { label: '2步', value: '2' },
+]
 
 // 流转矩阵显示模式：百分比(默认) / 数值
 const matrixDisplayMode = ref<'percentage' | 'value'>('percentage')
+
+// 前后置分析视图模式：桑基图 / 双向条形图
+const temporalViewMode = ref<'sankey' | 'bar'>('sankey')
 
 const targetCategoryOptions = computed(() => {
   if (!data.value?.sankey_data?.nodes) return []
@@ -49,6 +65,8 @@ const queryParams = computed(() => ({
   channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
   exclude_channels: CATEGORY_FLOW_EXCLUDED_CHANNELS,
   target_category: targetCategory.value || undefined,
+  anchor_mode: anchorMode.value,
+  path_depth: pathDepth.value,
 }))
 
 const {
@@ -298,6 +316,237 @@ const ASSOC_COLS: DataTableColumns<any> = [
     render: (r) => r.avg_days_gap.toFixed(1) + '天',
   },
 ]
+
+// ─── Temporal Sankey helpers ─────────────────────────────────────
+function buildTemporalSankeyOption(
+  sankeyData: { nodes: { name: string; category_name: string }[]; links: { source: string; target: string; value: number }[] } | undefined,
+  targetName: string,
+) {
+  if (!sankeyData?.nodes?.length || !sankeyData?.links?.length) return {}
+
+  const { nodes } = sankeyData
+  // 打破环，确保DAG（2步路径可能产生环如 A→B→A）
+  const acyclicLinks = breakCycles(sankeyData.links)
+
+  const nodeNames = nodes.map((n) => n.name)
+  const nodeNameIdx: Record<string, number> = {}
+  nodeNames.forEach((name, i) => { nodeNameIdx[name] = i })
+
+  const sankeyLinks = acyclicLinks.map((l) => ({
+    source: nodeNameIdx[l.source] ?? l.source,
+    target: nodeNameIdx[l.target] ?? l.target,
+    value: l.value,
+  }))
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      padding: [10, 14],
+      textStyle: { color: '#0f172a', fontSize: 12 },
+      extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
+      formatter: (params: any) => {
+        if (params.dataType === 'edge') {
+          const srcName = nodes[params.data.source]?.name ?? params.data.source
+          const tgtName = nodes[params.data.target]?.name ?? params.data.target
+          return `${srcName} → ${tgtName}<br/>关联人数: ${params.data.value.toLocaleString()}`
+        }
+        return params.name
+      },
+    },
+    grid: { left: 8, right: 8, top: 8, bottom: 8 },
+    series: [
+      {
+        type: 'sankey',
+        nodeGap: 20,
+        nodeWidth: 24,
+        nodeAlign: 'justify',
+        emphasis: { focus: 'adjacency' },
+        lineStyle: {
+          color: 'gradient',
+          curveness: 0.4,
+          opacity: 0.6,
+        },
+        itemStyle: { borderWidth: 1, borderColor: '#fff', borderRadius: 4 },
+        label: {
+          fontSize: 11,
+          color: '#334155',
+          formatter: (p: any) => {
+            const name = p.name as string
+            return name.length > 8 ? name.slice(0, 7) + '…' : name
+          },
+        },
+        data: nodes.map((n) => ({
+          name: n.name,
+          itemStyle: {
+            color: n.name === targetName
+              ? '#3b82f6'
+              : n.name === '未购买其他'
+                ? '#94a3b8'
+                : CHART_COLORS[nodeNameIdx[n.name] % CHART_COLORS.length],
+          },
+        })),
+        links: sankeyLinks,
+        animation: false,
+      },
+    ],
+  }
+}
+
+const preSankeyOption = computed(() => {
+  if (!data.value?.pre_sankey) return {}
+  return buildTemporalSankeyOption(data.value.pre_sankey, data.value.target_category || '')
+})
+
+const postSankeyOption = computed(() => {
+  if (!data.value?.post_sankey) return {}
+  return buildTemporalSankeyOption(data.value.post_sankey, data.value.target_category || '')
+})
+
+// ─── 双向条形图（前置/后置对比）───────────────────────────────────
+function buildBidirectionalBarOption(
+  preData: { category_name: string; user_count: number }[] | undefined,
+  postData: { category_name: string; user_count: number }[] | undefined,
+  targetName: string,
+) {
+  const pre = (preData ?? []).slice(0, 8)
+  const post = (postData ?? []).slice(0, 8)
+  if (!pre.length && !post.length) return {}
+
+  const preCats = pre.map((d) => d.category_name)
+  const postCats = post.map((d) => d.category_name)
+  const preValues = pre.map((d) => d.user_count)
+  const postValues = post.map((d) => d.user_count)
+  const maxVal = Math.max(...preValues, ...postValues, 1)
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#0f172a', fontSize: 12 },
+      extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
+      formatter: (params: any) => {
+        const p = Array.isArray(params) ? params[0] : params
+        const val = Math.abs(p.value)
+        const name = p.name
+        const side = p.seriesName
+        return `${side}<br/>${name}: ${val.toLocaleString()}人`
+      },
+    },
+    grid: [
+      { left: 10, right: '54%', top: 40, bottom: 20, containLabel: true },
+      { left: '54%', right: 10, top: 40, bottom: 20, containLabel: true },
+    ],
+    xAxis: [
+      {
+        type: 'value',
+        gridIndex: 0,
+        inverse: true,
+        max: maxVal * 1.1,
+        axisLabel: { formatter: (v: number) => Math.abs(v).toLocaleString(), fontSize: 10, color: '#64748b' },
+        splitLine: { lineStyle: { color: '#f1f5f9' } },
+      },
+      {
+        type: 'value',
+        gridIndex: 1,
+        max: maxVal * 1.1,
+        axisLabel: { formatter: (v: number) => v.toLocaleString(), fontSize: 10, color: '#64748b' },
+        splitLine: { lineStyle: { color: '#f1f5f9' } },
+      },
+    ],
+    yAxis: [
+      {
+        type: 'category',
+        gridIndex: 0,
+        data: preCats,
+        axisLabel: { fontSize: 11, color: '#334155', width: 90, overflow: 'truncate' },
+        axisTick: { show: false },
+        axisLine: { show: false },
+      },
+      {
+        type: 'category',
+        gridIndex: 1,
+        data: postCats,
+        axisLabel: { fontSize: 11, color: '#334155', width: 90, overflow: 'truncate' },
+        axisTick: { show: false },
+        axisLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: '前置来源',
+        type: 'bar',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: preValues.map((v) => -v),
+        barWidth: 16,
+        itemStyle: { color: '#60a5fa', borderRadius: [4, 0, 0, 4] },
+        label: {
+          show: true,
+          position: 'left',
+          fontSize: 10,
+          color: '#475569',
+          formatter: (p: any) => Math.abs(p.value).toLocaleString(),
+        },
+      },
+      {
+        name: '后置去向',
+        type: 'bar',
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: postValues,
+        barWidth: 16,
+        itemStyle: { color: '#34d399', borderRadius: [0, 4, 4, 0] },
+        label: {
+          show: true,
+          position: 'right',
+          fontSize: 10,
+          color: '#475569',
+          formatter: (p: any) => p.value.toLocaleString(),
+        },
+      },
+    ],
+    graphic: [
+      {
+        type: 'text',
+        left: 'center',
+        top: 12,
+        style: {
+          text: targetName,
+          fontSize: 14,
+          fontWeight: 'bold',
+          fill: '#3b82f6',
+          textAlign: 'center',
+        },
+      },
+      {
+        type: 'text',
+        left: 'center',
+        top: 30,
+        style: {
+          text: '目标品类',
+          fontSize: 10,
+          fill: '#94a3b8',
+          textAlign: 'center',
+        },
+      },
+    ],
+  }
+}
+
+const bidirectionalBarOption = computed(() => {
+  if (!data.value?.target_category) return {}
+  return buildBidirectionalBarOption(
+    data.value.pre_purchase ?? [],
+    data.value.post_purchase ?? [],
+    data.value.target_category,
+  )
+})
 </script>
 
 <template>
@@ -341,6 +590,20 @@ const ASSOC_COLS: DataTableColumns<any> = [
               placeholder="选择品类查看前后置关联"
               style="width: 180px"
             />
+            <span class="text-xs text-slate-500">锚点:</span>
+            <n-select
+              v-model:value="anchorMode"
+              :options="ANCHOR_MODE_OPTIONS"
+              size="small"
+              style="width: 120px"
+            />
+            <span class="text-xs text-slate-500">深度:</span>
+            <n-select
+              v-model:value="pathDepth"
+              :options="PATH_DEPTH_OPTIONS"
+              size="small"
+              style="width: 80px"
+            />
             <span class="text-xs text-slate-500">窗口:</span>
             <n-select
               v-model:value="windowDays"
@@ -360,30 +623,64 @@ const ASSOC_COLS: DataTableColumns<any> = [
       <!-- 时序关联分析 -->
       <template v-if="data?.target_category">
         <div class="bi-card p-4">
-          <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-            买 {{ data.target_category }} 之前买了什么
-          </h3>
-          <p class="text-[11px] text-slate-500 mb-1">购买目标品类之前，该品类用户的购买品类分布</p>
-          <p class="text-[11px] text-slate-400 mb-3">谁是引流品类？——如果买B5面膜的人之前大量买了洗面奶，说明洗面奶是面膜的流量入口</p>
-          <DataTablePro
-            :columns="ASSOC_COLS"
-            :data="data.pre_purchase ?? []"
-            :pagination="{ pageSize: 10 }"
-            :scroll-x="800"
-          />
-        </div>
-        <div class="bi-card p-4">
-          <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-            买 {{ data.target_category }} 之后买了什么
-          </h3>
-          <p class="text-[11px] text-slate-500 mb-1">购买目标品类之后，该品类用户的购买品类分布</p>
-          <p class="text-[11px] text-slate-400 mb-3">谁是承接品类？——如果买B5面膜之后大量流向精华，说明精华是面膜的自然延伸，可做关联推荐</p>
-          <DataTablePro
-            :columns="ASSOC_COLS"
-            :data="data.post_purchase ?? []"
-            :pagination="{ pageSize: 10 }"
-            :scroll-x="800"
-          />
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
+                买 {{ data.target_category }} 之前/之后买了什么
+              </h3>
+              <p class="text-[11px] text-slate-500 mb-1">
+                在 {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} {{ anchorMode === 'first' ? '首次' : anchorMode === 'last' ? '末次' : '每次' }}购买「{{ data.target_category }}」的用户，前后 {{ windowDays }} 天内还买了什么
+              </p>
+            </div>
+            <div class="flex items-center bg-slate-100 rounded-lg p-0.5">
+              <button
+                class="px-3 py-1 text-xs rounded-md transition-colors"
+                :class="temporalViewMode === 'sankey' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                @click="temporalViewMode = 'sankey'"
+              >
+                桑基图
+              </button>
+              <button
+                class="px-3 py-1 text-xs rounded-md transition-colors"
+                :class="temporalViewMode === 'bar' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                @click="temporalViewMode = 'bar'"
+              >
+                双向条形图
+              </button>
+            </div>
+          </div>
+
+          <!-- 桑基图视图 -->
+          <template v-if="temporalViewMode === 'sankey'">
+            <p class="text-[11px] text-slate-400 mb-3">谁是引流品类？——如果买B5面膜的人之前大量买了洗面奶，说明洗面奶是面膜的流量入口</p>
+            <EChartsWrapper :option="preSankeyOption" height="360px" class="mb-4" />
+            <p class="text-[11px] text-slate-400 mb-3">谁是承接品类？——如果买B5面膜之后大量流向精华，说明精华是面膜的自然延伸，可做关联推荐</p>
+            <EChartsWrapper :option="postSankeyOption" height="360px" class="mb-4" />
+          </template>
+
+          <!-- 双向条形图视图 -->
+          <template v-else>
+            <p class="text-[11px] text-slate-400 mb-3">左=前置来源（引流入口），右=后置去向（承接延伸），条形长度∝关联人数</p>
+            <EChartsWrapper :option="bidirectionalBarOption" height="420px" class="mb-4" />
+          </template>
+
+          <div class="border-t border-slate-100 pt-4">
+            <h4 class="text-xs font-semibold text-slate-700 mb-2">前置关联明细</h4>
+            <DataTablePro
+              :columns="ASSOC_COLS"
+              :data="data.pre_purchase ?? []"
+              :pagination="{ pageSize: 10 }"
+              :scroll-x="800"
+              class="mb-4"
+            />
+            <h4 class="text-xs font-semibold text-slate-700 mb-2">后置关联明细</h4>
+            <DataTablePro
+              :columns="ASSOC_COLS"
+              :data="data.post_purchase ?? []"
+              :pagination="{ pageSize: 10 }"
+              :scroll-x="800"
+            />
+          </div>
         </div>
       </template>
 
