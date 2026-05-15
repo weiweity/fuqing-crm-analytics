@@ -96,7 +96,8 @@ def _compute_user_segments_raw(
     m_score_sql = registry.build_m_score_sql(RFM_THRESHOLDS["m"])
     segment_sql = registry.build_segment_case_when_sql()
 
-    params = [date, start_date, date, date]
+    # R窗口固定365天（与preload_rfm.py口径一致），F/M窗口用lookback_days
+    params = [date, start_date, date, date, date, date]
 
     channel_where = ""
     if exclude_channels:
@@ -107,9 +108,13 @@ def _compute_user_segments_raw(
 
     sql = f"""
     WITH base_params AS (
-        SELECT DATE(?) AS analysis_date, DATE(?) AS start_date
+        SELECT
+            DATE(?) AS analysis_date,
+            DATE(?) AS start_date,
+            DATE(?) - INTERVAL '365' DAY AS r_start_date
     ),
-    period_orders AS (
+    -- F/M 指标：使用 lookback_days 窗口，应用 channel 过滤
+    fm_orders AS (
         SELECT o.user_id, o.actual_amount, o.order_id, o.pay_time
         FROM orders o
         CROSS JOIN base_params p
@@ -119,20 +124,35 @@ def _compute_user_segments_raw(
           AND ({amount_cond})
           {channel_where}
     ),
-    user_metrics AS (
+    fm_metrics AS (
         SELECT
             user_id,
             SUM(actual_amount) AS monetary,
             COUNT(DISTINCT order_id) AS frequency,
             MAX(pay_time) AS last_pay_time
-        FROM period_orders
+        FROM fm_orders
         GROUP BY user_id
+    ),
+    -- R 指标：使用固定365天窗口，不应用 channel 过滤（与预计算口径一致）
+    r_orders AS (
+        SELECT o.user_id, MAX(o.pay_time) AS r_last_pay_time
+        FROM orders o
+        CROSS JOIN base_params p
+        WHERE o.pay_time >= p.r_start_date
+          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+          AND {valid_sql}
+          AND ({amount_cond})
+        GROUP BY o.user_id
     ),
     user_with_rfm AS (
         SELECT
-            um.user_id, um.monetary, um.frequency,
-            DATEDIFF('day', um.last_pay_time, DATE(?)) AS recency_days
-        FROM user_metrics um
+            fm.user_id,
+            fm.monetary,
+            fm.frequency,
+            -- R基于365天窗口的最近购买，F/M基于lookback_days窗口
+            DATEDIFF('day', COALESCE(r.r_last_pay_time, fm.last_pay_time), DATE(?)) AS recency_days
+        FROM fm_metrics fm
+        LEFT JOIN r_orders r ON fm.user_id = r.user_id
     ),
     user_with_scores AS (
         SELECT

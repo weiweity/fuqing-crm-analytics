@@ -1,9 +1,12 @@
 """
-芙清 CRM - ETL 脚本 v5
-支持全量/增量模式：
-  python run_etl.py          # 自动检测：数据库空则全量，有数据则增量
-  python run_etl.py --full  # 强制全量重建
-  python run_etl.py --inc   # 强制增量
+芙清 CRM - ETL 脚本 v6
+支持全量/增量/SPU重匹配模式：
+  python run_etl.py                    # 自动检测：数据库空则全量，有数据则增量
+  python run_etl.py --full             # 强制全量重建
+  python run_etl.py --inc              # 强制增量
+  python run_etl.py --update           # 一键增量更新（ETL+淘客+状态刷新）
+  python run_etl.py --rescan-spu --product-ids 1008376905465 --dry-run
+  python run_etl.py --rescan-spu --product-ids 1008376905465 --apply
 """
 
 import sys
@@ -160,6 +163,202 @@ def _save_live_cache(cache):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w') as f:
         json.dump(cache, f, indent=2, sort_keys=True)
+
+
+def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
+    """
+    SPU 重匹配：重新计算指定 product_id 的 spu_type 和 channel。
+
+    复用 load_spu_mapping() + match_channel() 的逻辑，保证口径一致。
+    仅对 spu_type 发生变化的订单重新匹配渠道。
+
+    用法:
+      python run_etl.py --rescan-spu --product-ids 1008376905465 --dry-run
+      python run_etl.py --rescan-spu --product-ids 1008376905465 --apply
+    """
+    from datetime import datetime
+
+    print(f"\n{'='*60}")
+    print("SPU 重匹配")
+    print(f"{'='*60}")
+    print(f"  目标 product_id: {product_ids}")
+    print(f"  模式: {'预览 (dry-run)' if dry_run else '执行写入 (apply)'}")
+
+    # Step 1: 加载 SPU 匹配表（复用现有函数）
+    spu_df = load_spu_mapping()
+    if spu_df is None:
+        print("  错误: SPU 匹配表加载失败")
+        return
+
+    # Step 2: 加载渠道规则（复用现有函数）
+    keyword_rules, id_rules = load_channel_rules()
+    taoke_order_ids = load_taoke_order_ids()
+    live_order_ids = load_live_order_ids()
+    taoke_product_rules = load_taoke_product_rules()
+
+    # Step 3: 从 DuckDB 读取指定 product_id 的订单
+    print(f"\n读取 DuckDB 中目标订单...")
+    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    try:
+        # 使用参数化查询，防止SQL注入（CLAUDE.md规则：DuckDB用?参数化，禁止字符串拼接）
+        placeholders = ', '.join(['?' for _ in product_ids])
+        orders_df = conn.execute(f"""
+            SELECT order_id, product_id, pay_time, product_title,
+                   actual_amount, spu_type AS old_spu_type, channel AS old_channel
+            FROM orders
+            WHERE product_id IN ({placeholders})
+        """, product_ids).fetchdf()
+    finally:
+        conn.close()
+
+    print(f"  找到订单: {len(orders_df):,} 条")
+    if orders_df.empty:
+        print("  无订单，退出")
+        return
+
+    # Step 4: SPU 时间窗口匹配（复用 clean_data 中的逻辑）
+    print(f"\n执行 SPU 时间窗口匹配...")
+    spu_cols = ['product_id', 'spu_category', 'spu_type', 'spu_tier',
+                'spu_product_class', 'spu_product_subclass', 'spu_cosmetic',
+                'spu_spec', 'spu_start_date', 'spu_end_date']
+    spu_cols = [c for c in spu_cols if c in spu_df.columns]
+    spu_valid = spu_df[spu_cols].dropna(subset=['product_id', 'spu_start_date']).copy()
+
+    # 统一 product_id 类型
+    orders_df['product_id'] = orders_df['product_id'].astype(str)
+    spu_valid['product_id'] = spu_valid['product_id'].apply(
+        lambda x: str(int(x)) if pd.notna(x) else x
+    )
+
+    # 解析 pay_time
+    orders_df['pay_time'] = pd.to_datetime(orders_df['pay_time'], errors='coerce')
+    orders_df['order_idx'] = orders_df.index
+
+    # merge
+    spu_attr_cols = [c for c in spu_cols if c not in ['product_id', 'spu_start_date', 'spu_end_date']]
+    merged = orders_df.merge(
+        spu_valid[['product_id', 'spu_start_date', 'spu_end_date'] + spu_attr_cols],
+        on='product_id', how='left'
+    )
+
+    # 时间窗口过滤
+    valid_mask = (
+        (merged['spu_start_date'].isna() | (merged['pay_time'].dt.normalize() >= merged['spu_start_date'].dt.normalize())) &
+        (merged['spu_end_date'].isna() | (merged['spu_end_date'].dt.normalize() >= merged['pay_time'].dt.normalize()))
+    )
+    merged_valid = merged[valid_mask].copy()
+
+    # 评分排序取最优
+    merged_valid['_spu_score'] = (
+        merged_valid['spu_product_class'].notna().astype(int) * 100 +
+        merged_valid['spu_type'].notna().astype(int) * 10 +
+        merged_valid['spu_start_date'].notna().astype(int)
+    )
+    merged_valid = merged_valid.sort_values(
+        ['_spu_score', 'spu_start_date'], ascending=[False, False]
+    ).drop_duplicates(subset='order_idx', keep='first')
+
+    # 写回 orders_df
+    if len(merged_valid) > 0:
+        result = merged_valid.set_index('order_idx')[spu_attr_cols]
+        for col in spu_attr_cols:
+            if col in result.columns:
+                orders_df[col] = result[col].reindex(orders_df.index)
+
+    # Step 5: 对比新旧 spu_type
+    orders_df['new_spu_type'] = orders_df.get('spu_type', pd.Series(dtype=str)).reindex(orders_df.index)
+    orders_df['spu_changed'] = orders_df['old_spu_type'].fillna('') != orders_df['new_spu_type'].fillna('')
+
+    changed_df = orders_df[orders_df['spu_changed']].copy()
+    unchanged_count = len(orders_df) - len(changed_df)
+
+    print(f"\n{'='*60}")
+    print("变更报告")
+    print(f"{'='*60}")
+    print(f"  总订单数: {len(orders_df):,}")
+    print(f"  spu_type 无变化: {unchanged_count:,}")
+    print(f"  spu_type 有变化: {len(changed_df):,}")
+
+    if not changed_df.empty:
+        print(f"\n  变更明细:")
+        change_summary = changed_df.groupby(['old_spu_type', 'new_spu_type']).size().reset_index(name='count')
+        for _, row in change_summary.iterrows():
+            old = row['old_spu_type'] or '(空)'
+            new = row['new_spu_type'] or '(空)'
+            print(f"    {old} → {new}: {row['count']:,} 条")
+
+    # Step 6: 对变更订单重匹配渠道（复用 match_channel 逻辑）
+    if not changed_df.empty:
+        print(f"\n对变更订单重新匹配渠道...")
+        # 构造 match_channel 需要的 DataFrame
+        channel_df = changed_df.copy()
+        channel_df['spu_type'] = channel_df['new_spu_type']
+        channel_df['channel'] = '其他'
+
+        channel_df = match_channel(
+            channel_df, keyword_rules, id_rules,
+            taoke_order_ids=taoke_order_ids,
+            live_order_ids=live_order_ids,
+            taoke_product_rules=taoke_product_rules
+        )
+
+        # 渠道变化统计
+        channel_changed = channel_df[channel_df['old_channel'] != channel_df['channel']]
+        print(f"\n  渠道变化: {len(channel_changed):,} 条")
+        if not channel_changed.empty:
+            channel_summary = channel_changed.groupby(['old_channel', 'channel']).size().reset_index(name='count')
+            for _, row in channel_summary.iterrows():
+                print(f"    {row['old_channel']} → {row['channel']}: {row['count']:,} 条")
+    else:
+        channel_df = changed_df
+        channel_changed = pd.DataFrame()
+
+    # Step 7: 写入或预览
+    if dry_run:
+        print(f"\n{'='*60}")
+        print("DRY-RUN 完成（未写入）")
+        print(f"{'='*60}")
+        print("  如需写入，请添加 --apply 参数")
+    else:
+        if changed_df.empty:
+            print(f"\n  无需更新，退出")
+            return
+
+        print(f"\n写入 DuckDB...")
+        conn = duckdb.connect(str(DUCKDB_PATH))
+        try:
+            # 备份（parquet）- 使用参数化查询，防止路径注入
+            backup_dir = PROCESSED_DATA_DIR / "backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_path = backup_dir / f"orders_rescan_backup_{timestamp}.parquet"
+            # 验证路径安全性（防止路径注入）
+            backup_path_str = str(backup_path).replace("'", "''")
+            placeholders = ', '.join(['?' for _ in product_ids])
+            conn.execute(f"""
+                COPY (SELECT * FROM orders WHERE product_id IN ({placeholders})) 
+                TO '{backup_path_str}' (FORMAT PARQUET)
+            """, product_ids)
+            print(f"  备份: {backup_path}")
+
+            # 批量 UPDATE（DuckDB支持UPDATE...FROM...JOIN，比逐行UPDATE快10倍+）
+            update_count = conn.execute("""
+                UPDATE orders 
+                SET spu_type = t.new_spu_type, channel = t.new_channel
+                FROM (
+                    SELECT order_id, new_spu_type, channel AS new_channel
+                    FROM channel_df
+                ) AS t
+                WHERE orders.order_id = t.order_id
+            """).rowcount
+
+            print(f"  更新完成: {update_count:,} 条")
+        finally:
+            conn.close()
+
+        print(f"\n{'='*60}")
+        print("SPU 重匹配完成！")
+        print(f"{'='*60}")
 
 
 def rename_columns(df):
@@ -2368,6 +2567,14 @@ if __name__ == '__main__':
                         help='仅刷新订单状态覆盖表（从CSV读取近30天最新状态）')
     parser.add_argument('--window-days', type=int, default=30,
                         help='滑动窗口天数：刷新最近N天的订单状态（默认30，覆盖退款周期）')
+    parser.add_argument('--rescan-spu', action='store_true',
+                        help='SPU重匹配：重新计算指定product_id的spu_type和channel')
+    parser.add_argument('--product-ids', nargs='+', default=[],
+                        help='指定product_id列表（与--rescan-spu配合使用）')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='仅预览变更，不写入DuckDB（与--rescan-spu配合使用）')
+    parser.add_argument('--apply', action='store_true',
+                        help='执行变更并写入DuckDB（与--rescan-spu配合使用）')
     args = parser.parse_args()
 
     # 单独刷新状态覆盖表
@@ -2473,6 +2680,24 @@ if __name__ == '__main__':
         print("=" * 60)
         print("一键更新完成！")
         print("=" * 60)
+        sys.exit(0)
+
+    # SPU 重匹配子命令
+    if args.rescan_spu:
+        if not args.product_ids:
+            print("错误: --rescan-spu 需要配合 --product-ids 使用")
+            print("用法: python run_etl.py --rescan-spu --product-ids 1008376905465 --dry-run")
+            sys.exit(1)
+        if not args.dry_run and not args.apply:
+            print("错误: --rescan-spu 需要指定 --dry-run 或 --apply")
+            sys.exit(1)
+        print("\n" + "=" * 60)
+        print("SPU 重匹配")
+        print("=" * 60)
+        rescan_spu_mapping(
+            product_ids=args.product_ids,
+            dry_run=args.dry_run
+        )
         sys.exit(0)
 
     # 纯淘客渠道更新
