@@ -176,7 +176,6 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
       python run_etl.py --rescan-spu --product-ids 1008376905465 --dry-run
       python run_etl.py --rescan-spu --product-ids 1008376905465 --apply
     """
-    import pyarrow.parquet as pq
     from datetime import datetime
 
     print(f"\n{'='*60}")
@@ -201,13 +200,14 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
     print(f"\n读取 DuckDB 中目标订单...")
     conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     try:
-        id_list = ', '.join([f"'{pid}'" for pid in product_ids])
+        # 使用参数化查询，防止SQL注入（CLAUDE.md规则：DuckDB用?参数化，禁止字符串拼接）
+        placeholders = ', '.join(['?' for _ in product_ids])
         orders_df = conn.execute(f"""
             SELECT order_id, product_id, pay_time, product_title,
                    actual_amount, spu_type AS old_spu_type, channel AS old_channel
             FROM orders
-            WHERE product_id IN ({id_list})
-        """).fetchdf()
+            WHERE product_id IN ({placeholders})
+        """, product_ids).fetchdf()
     finally:
         conn.close()
 
@@ -327,23 +327,30 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
         print(f"\n写入 DuckDB...")
         conn = duckdb.connect(str(DUCKDB_PATH))
         try:
-            # 备份（parquet）
+            # 备份（parquet）- 使用参数化查询，防止路径注入
             backup_dir = PROCESSED_DATA_DIR / "backups"
             backup_dir.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             backup_path = backup_dir / f"orders_rescan_backup_{timestamp}.parquet"
-            conn.execute(f"COPY (SELECT * FROM orders WHERE product_id IN ({id_list})) TO '{backup_path}' (FORMAT PARQUET)")
+            # 验证路径安全性（防止路径注入）
+            backup_path_str = str(backup_path).replace("'", "''")
+            placeholders = ', '.join(['?' for _ in product_ids])
+            conn.execute(f"""
+                COPY (SELECT * FROM orders WHERE product_id IN ({placeholders})) 
+                TO '{backup_path_str}' (FORMAT PARQUET)
+            """, product_ids)
             print(f"  备份: {backup_path}")
 
-            # 批量 UPDATE
-            update_count = 0
-            for _, row in channel_df.iterrows():
-                conn.execute("""
-                    UPDATE orders
-                    SET spu_type = ?, channel = ?
-                    WHERE order_id = ?
-                """, [row['new_spu_type'], row['channel'], row['order_id']])
-                update_count += 1
+            # 批量 UPDATE（DuckDB支持UPDATE...FROM...JOIN，比逐行UPDATE快10倍+）
+            update_count = conn.execute("""
+                UPDATE orders 
+                SET spu_type = t.new_spu_type, channel = t.new_channel
+                FROM (
+                    SELECT order_id, new_spu_type, channel AS new_channel
+                    FROM channel_df
+                ) AS t
+                WHERE orders.order_id = t.order_id
+            """).rowcount
 
             print(f"  更新完成: {update_count:,} 条")
         finally:
