@@ -13,6 +13,7 @@ const menuOptions = [
   { label: '一键拆解', key: '/breakdown' },
   { label: '流失分析', key: '/churn' },
   { label: '地域分析', key: '/geo' },
+  { label: '话术库', key: '/scripts' },
 ]
 
 const activeKey = computed(() => route.path)
