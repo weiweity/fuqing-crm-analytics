@@ -54,26 +54,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/BreakdownView.vue'),
     meta: { title: '一键拆解', requiresAuth: true },
   },
-  {
-    path: '/scripts',
-    component: () => import('@/views/ScriptLibraryView.vue'),
-    meta: { title: '话术库', requiresAuth: true },
-  },
-  {
-    path: '/scripts/import',
-    component: () => import('@/views/ScriptImportView.vue'),
-    meta: { title: '导入话术', requiresAuth: true },
-  },
-  {
-    path: '/scripts/product/:name',
-    component: () => import('@/views/ProductScriptView.vue'),
-    meta: { title: '产品话术', requiresAuth: true },
-  },
-  {
-    path: '/scripts/celebrity/:name',
-    component: () => import('@/views/CelebrityDetailView.vue'),
-    meta: { title: '明星专项', requiresAuth: true },
-  },
 ]
 
 const router = createRouter({

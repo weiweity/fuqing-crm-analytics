@@ -972,12 +972,6 @@ app.include_router(health_router.router)
 from backend.routers import auth as auth_router
 app.include_router(auth_router.router)
 
-# ============================================================
-# 话术库路由 (Script Library)
-# ============================================================
-from backend.routers import script_library as script_library_router
-app.include_router(script_library_router.router)
-
 
 # ============================================================
 # 市场对焦板块 (Market Focus)
