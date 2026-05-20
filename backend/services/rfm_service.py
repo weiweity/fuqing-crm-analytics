@@ -10,7 +10,11 @@ from calendar import monthrange
 from backend.db.connection import get_connection
 from backend.semantic.time import PeriodBuilder
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.semantic.filters import expand_channels
+from backend.semantic.filters import expand_channels, OrderFilters
+
+# 语义层统一口径
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
 
 R_SEGMENT_ORDER = [
     "近1个月已购客",
@@ -225,8 +229,7 @@ def _run_r_flow_period(
         FROM orders o
         WHERE pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
@@ -238,8 +241,7 @@ def _run_r_flow_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
         GROUP BY user_id
@@ -251,8 +253,7 @@ def _run_r_flow_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}
@@ -587,8 +588,7 @@ def _run_f_flow_period(
         FROM orders o
         WHERE pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
@@ -601,8 +601,7 @@ def _run_f_flow_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
         GROUP BY user_id
@@ -615,8 +614,7 @@ def _run_f_flow_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}
@@ -936,8 +934,7 @@ def _run_m_flow_period(
         FROM orders o
         WHERE pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
@@ -950,8 +947,7 @@ def _run_m_flow_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
         GROUP BY user_id
@@ -964,8 +960,7 @@ def _run_m_flow_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}
@@ -1304,7 +1299,7 @@ def get_segment_orders(
             "SELECT user_id, DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days, "
             "0 AS frequency, 0 AS monetary, BOOL_OR(is_member) AS is_member "
             "FROM orders o "
-            f"WHERE pay_time <= ?::TIMESTAMP AND is_goujinjin = FALSE AND order_status != '交易关闭' "
+            f"WHERE pay_time <= ?::TIMESTAMP AND {_VALID_BASE} "
             f"{refund_where} {channel_where_hist} {exclude_where_hist} "
             "GROUP BY user_id"
         )
@@ -1321,7 +1316,7 @@ def get_segment_orders(
             "SELECT user_id, DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days, "
             "COUNT(*) AS frequency, 0 AS monetary, BOOL_OR(is_member) AS is_member "
             "FROM orders o "
-            f"WHERE pay_time <= ?::TIMESTAMP AND is_goujinjin = FALSE AND order_status != '交易关闭' "
+            f"WHERE pay_time <= ?::TIMESTAMP AND {_VALID_BASE} "
             f"{refund_where} {channel_where_hist} {exclude_where_hist} "
             "GROUP BY user_id"
         )
@@ -1338,7 +1333,7 @@ def get_segment_orders(
             "SELECT user_id, DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days, "
             "0 AS frequency, SUM(actual_amount) AS monetary, BOOL_OR(is_member) AS is_member "
             "FROM orders o "
-            f"WHERE pay_time <= ?::TIMESTAMP AND is_goujinjin = FALSE AND order_status != '交易关闭' "
+            f"WHERE pay_time <= ?::TIMESTAMP AND {_VALID_BASE} "
             f"{refund_where} {channel_where_hist} {exclude_where_hist} "
             "GROUP BY user_id"
         )
@@ -1365,8 +1360,7 @@ def get_segment_orders(
         INNER JOIN target_users tu ON o.user_id = tu.user_id
         WHERE o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
-          AND o.is_goujinjin = FALSE
-          AND o.order_status != '交易关闭'
+          AND {_VALID_BASE_T}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}

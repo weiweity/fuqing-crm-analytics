@@ -16,6 +16,11 @@ from dateutil.relativedelta import relativedelta
 
 from backend.db.connection import get_connection
 from backend.semantic.calculations import safe_ratio
+from backend.semantic.filters import OrderFilters
+
+# 语义层统一口径
+_VALID_BASE = "is_goujinjin = FALSE"
+_VALID_BASE_T = "o.is_goujinjin = FALSE"
 
 
 # ── 常量 ─────────────────────────────────────────────────────
@@ -130,7 +135,7 @@ def _get_r_interval_current_distribution(
             MAX(pay_time) AS last_pay_time
         FROM orders
         WHERE pay_time < '{activity_start}'
-          AND is_goujinjin = FALSE
+          AND {_VALID_BASE}
           AND user_id IS NOT NULL
           AND user_id != ''
         GROUP BY user_id
@@ -142,7 +147,7 @@ def _get_r_interval_current_distribution(
         FROM orders
         WHERE pay_time >= DATE '{activity_start}' - INTERVAL '365 days'
           AND pay_time < DATE '{activity_start}'
-          AND is_goujinjin = FALSE
+          AND {_VALID_BASE}
           AND user_id IS NOT NULL
         GROUP BY user_id
     ),
@@ -189,7 +194,7 @@ def _get_ly_repurchase_by_r_interval(
             MAX(pay_time) AS last_pay_before_ly
         FROM orders
         WHERE pay_time < '{ly_start}'
-          AND is_goujinjin = FALSE
+          AND {_VALID_BASE}
           AND user_id IS NOT NULL
           AND user_id != ''
         GROUP BY user_id
@@ -201,7 +206,7 @@ def _get_ly_repurchase_by_r_interval(
         FROM orders
         WHERE pay_time >= DATE '{ly_start}' - INTERVAL '365 days'
           AND pay_time < DATE '{ly_start}'
-          AND is_goujinjin = FALSE
+          AND {_VALID_BASE}
           AND user_id IS NOT NULL
         GROUP BY user_id
     ),
@@ -217,7 +222,7 @@ def _get_ly_repurchase_by_r_interval(
         SELECT DISTINCT user_id
         FROM orders
         WHERE pay_time BETWEEN '{ly_start}' AND '{ly_end} 23:59:59'
-          AND is_goujinjin = FALSE
+          AND {_VALID_BASE}
           AND user_id IS NOT NULL
     ),
     ly_purchase_amount AS (
@@ -226,7 +231,7 @@ def _get_ly_repurchase_by_r_interval(
             SUM({GSV_AMOUNT_COL})::FLOAT AS total_gsv
         FROM orders
         WHERE pay_time BETWEEN '{ly_start}' AND '{ly_end} 23:59:59'
-          AND is_goujinjin = FALSE
+          AND {_VALID_BASE}
           AND user_id IS NOT NULL
         GROUP BY user_id
     ),
@@ -287,7 +292,7 @@ def _get_new_customer_by_channel(
         FROM orders o
         INNER JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
         WHERE o.pay_time BETWEEN '{ly_start}' AND '{ly_end} 23:59:59'
-          AND o.is_goujinjin = FALSE
+          AND {_VALID_BASE_T}
           AND o.user_id IS NOT NULL
           AND ufp.first_pay_date >= DATE '{ly_start}'
           AND ufp.first_pay_date <= DATE '{ly_end}'
@@ -342,7 +347,7 @@ def _get_uv_reference(
     SELECT COUNT(DISTINCT user_id) * {UV_MULTIPLIER} AS estimated_uv
     FROM orders
     WHERE pay_time BETWEEN '{activity_start}' AND '{activity_end} 23:59:59'
-      AND is_goujinjin = FALSE
+      AND {_VALID_BASE}
       AND user_id IS NOT NULL
     """
     result = conn.execute(sql).fetchone()

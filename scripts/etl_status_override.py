@@ -10,6 +10,14 @@ GSV 计算时 JOIN override 表，使用 latest_is_refund。
 import pandas as pd
 import duckdb
 from datetime import datetime, timedelta
+
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from backend.semantic.filters import OrderFilters
+
+# 语义层统一口径：base有效条件不含 is_refund（由 override 表处理）
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
 from pathlib import Path
 
 
@@ -398,8 +406,7 @@ GSV_OVERRIDE_SQL = """
 
 SELECT
     SUM(CASE WHEN
-        is_goujinjin = FALSE
-        AND order_status != '交易关闭'
+        {_VALID_BASE}
         AND COALESCE(
             (SELECT latest_is_refund FROM order_status_override os WHERE os.order_id = orders.order_id LIMIT 1),
             is_refund
@@ -413,8 +420,7 @@ WHERE pay_time >= ? AND pay_time <= ?
 GSV_OVERRIDE_JOIN_SQL = """
 SELECT
     SUM(CASE WHEN
-        o.is_goujinjin = FALSE
-        AND o.order_status != '交易关闭'
+        {_VALID_BASE_T}
         AND COALESCE(s.latest_is_refund, o.is_refund) = FALSE
     THEN o.actual_amount ELSE 0 END) AS gsv
 FROM orders o
@@ -505,8 +511,7 @@ USAGE = """
   可在 filters.py 中新增：
     def valid_order_with_override():
         return (
-            "is_goujinjin = FALSE "
-            "AND order_status != '交易关闭' "
+            _VALID_BASE
             "AND COALESCE((SELECT latest_is_refund FROM order_status_override os WHERE os.order_id = orders.order_id LIMIT 1), is_refund) = FALSE",
             []
         )
