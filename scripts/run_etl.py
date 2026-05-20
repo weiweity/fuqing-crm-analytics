@@ -9,6 +9,7 @@
   python run_etl.py --rescan-spu --product-ids 1008376905465 --apply
 """
 
+import gc
 import sys
 import os
 import argparse
@@ -1695,6 +1696,67 @@ def _create_indexes(conn):
     conn.execute("CREATE INDEX idx_orders_channel_member ON orders(channel, is_member)")
 
 
+def _create_orders_table_custom(conn, table_name="orders"):
+    """创建订单表（支持自定义表名，用于 temp-table swap）"""
+    conn.execute(f"""
+        CREATE TABLE {table_name} (
+            order_id VARCHAR,
+            sub_order_id VARCHAR,
+            user_id VARCHAR,
+            user_nickname VARCHAR,
+            order_time TIMESTAMP,
+            pay_time TIMESTAMP,
+            ship_time TIMESTAMP,
+            order_type VARCHAR,
+            order_status VARCHAR,
+            product_id VARCHAR,
+            merchant_code VARCHAR,
+            product_title VARCHAR,
+            sku_id VARCHAR,
+            sku_code VARCHAR,
+            sku_name VARCHAR,
+            quantity INTEGER,
+            amount DECIMAL(12,2),
+            refund_status VARCHAR,
+            refund_amount DECIMAL(12,2),
+            actual_amount DECIMAL(12,2),
+            province VARCHAR,
+            city VARCHAR,
+            influencer_name VARCHAR,
+            influencer_id VARCHAR,
+            live_room_id VARCHAR,
+            video_id VARCHAR,
+            traffic_source VARCHAR,
+            traffic_type VARCHAR,
+            seller_note VARCHAR,
+            year INTEGER,
+            month INTEGER,
+            is_member BOOLEAN,
+            spu_category VARCHAR,
+            spu_type VARCHAR,
+            spu_tier VARCHAR,
+            spu_product_class VARCHAR,
+            spu_product_subclass VARCHAR,
+            spu_cosmetic VARCHAR,
+            spu_spec VARCHAR,
+            channel VARCHAR,
+            is_goujinjin BOOLEAN DEFAULT FALSE,
+            is_refund BOOLEAN DEFAULT FALSE
+        )
+    """)
+
+
+def _create_indexes_custom(conn, table_name="orders"):
+    """创建索引（支持自定义表名）"""
+    conn.execute(f"CREATE INDEX idx_{table_name}_pay_time ON {table_name}(pay_time)")
+    conn.execute(f"CREATE INDEX idx_{table_name}_user ON {table_name}(user_id)")
+    conn.execute(f"CREATE INDEX idx_{table_name}_year_month ON {table_name}(\"year\", \"month\")")
+    conn.execute(f"CREATE INDEX idx_{table_name}_product ON {table_name}(product_id)")
+    conn.execute(f"CREATE UNIQUE INDEX idx_{table_name}_order_unique ON {table_name}(order_id, sub_order_id)")
+    conn.execute(f"CREATE INDEX idx_{table_name}_channel_pay ON {table_name}(channel, pay_time)")
+    conn.execute(f"CREATE INDEX idx_{table_name}_channel_member ON {table_name}(channel, is_member)")
+
+
 def _create_metrics_tables(conn):
     """创建指标表"""
     conn.execute("""
@@ -1795,81 +1857,97 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
     import tempfile
     existing_cols = [c for c in table_columns if c in df_new.columns or c in df_refresh.columns]
 
-    if mode == 'full':
-        # 全量模式：重建表
-        all_df = pd.concat([df_new, df_refresh], ignore_index=True) if total_refresh > 0 else df_new
-        df_insert = all_df[existing_cols].copy()
-        parquet_path = os.path.join(tempfile.gettempdir(), 'orders_temp.parquet')
-        df_insert.to_parquet(parquet_path, index=False)
-
-        conn.execute("DROP TABLE IF EXISTS orders")
-        _create_orders_table(conn)
-        _create_indexes(conn)
-        cols_joined = ', '.join(existing_cols)
-        conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
-        os.remove(parquet_path)
-    else:
-        # ── 全新订单：直接追加 ──
-        if total_new > 0:
-            df_insert = df_new[existing_cols].copy()
-            parquet_path = os.path.join(tempfile.gettempdir(), 'orders_new.parquet')
+    try:
+        if mode == 'full':
+            # 全量模式：temp-table swap（原子替换，避免 DROP 后 LOAD 失败导致数据丢失）
+            all_df = pd.concat([df_new, df_refresh], ignore_index=True) if total_refresh > 0 else df_new
+            df_insert = all_df[existing_cols].copy()
+            parquet_path = os.path.join(tempfile.gettempdir(), 'orders_temp.parquet')
             df_insert.to_parquet(parquet_path, index=False)
+
+            # Step 1: 用新表结构创建 orders_new
+            conn.execute("DROP TABLE IF EXISTS orders_new")
+            _create_orders_table_custom(conn, "orders_new")
+            _create_indexes_custom(conn, "orders_new")
             cols_joined = ', '.join(existing_cols)
-            conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
+            conn.execute(f"COPY orders_new ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
             os.remove(parquet_path)
-            print(f"  ✅ 全新订单: {total_new:,} 行")
 
-        # ── 窗口内订单：精确键值 DELETE + INSERT 刷新 ──
-        if total_refresh > 0:
-            import uuid as _uuid
-
+            # Step 2: 原子 swap（DuckDB 不支持事务性 DDL，但两步之间 crash 时 orders 仍完整）
             before_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-
-            # 1. 将 df_refresh 的 order_id 写入临时表
-            tmp_table = f"_refresh_ids_{_uuid.uuid4().hex[:8]}"
-            refresh_ids = df_refresh[['order_id']].drop_duplicates()
-            refresh_ids['order_id'] = refresh_ids['order_id'].astype(str).replace('nan', '').replace('None', '')
-            ids_parquet = os.path.join(tempfile.gettempdir(), f'{tmp_table}.parquet')
-            refresh_ids.to_parquet(ids_parquet, index=False)
-
-            conn.execute(f"CREATE TEMP TABLE {tmp_table} (order_id VARCHAR)")
-            conn.execute(f"COPY {tmp_table} FROM '{ids_parquet}' (FORMAT PARQUET)")
-            os.remove(ids_parquet)
-
-            # 2. 精确删除：只删要刷新的 order_id
-            conn.execute(f"""
-                DELETE FROM orders
-                WHERE order_id IN (SELECT order_id FROM {tmp_table})
-            """)
-            after_delete = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-            deleted = before_count - after_delete
-            print(f"  🗑️  精确删除待刷新记录: {deleted:,} 行 ({len(refresh_ids):,} 个 order_id)")
-
-            conn.execute(f"DROP TABLE IF EXISTS {tmp_table}")
-
-            # 3. 插入刷新数据
-            df_insert = df_refresh[existing_cols].copy()
-            parquet_path = os.path.join(tempfile.gettempdir(), 'orders_refresh.parquet')
-            df_insert.to_parquet(parquet_path, index=False)
-            cols_joined = ', '.join(existing_cols)
-            conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
-            os.remove(parquet_path)
-            print(f"  ✅ 窗口刷新: {total_refresh:,} 行")
-
-            # 4. 数据守恒断言：刷新不应导致总数净减少（允许少量因退款状态变化的合理差异）
+            conn.execute("DROP TABLE IF EXISTS orders")
+            conn.execute("ALTER TABLE orders_new RENAME TO orders")
             after_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-            net_change = after_count - before_count
-            if net_change < -100:
-                conn.close()
-                raise AssertionError(
-                    f"数据守恒异常: 刷新前 {before_count:,} → 刷新后 {after_count:,}，"
-                    f"净减少 {abs(net_change):,} 行，超过阈值 100。可能有数据丢失！"
-                )
-            print(f"  🔍 数据守恒: {before_count:,} → {after_count:,} (净变化 {net_change:+,})")
+            print(f"  ✅ 全量刷新: {before_count:,} → {after_count:,}")
+        else:
+            # ── 全新订单：直接追加 ──
+            if total_new > 0:
+                df_insert = df_new[existing_cols].copy()
+                parquet_path = os.path.join(tempfile.gettempdir(), 'orders_new.parquet')
+                df_insert.to_parquet(parquet_path, index=False)
+                cols_joined = ', '.join(existing_cols)
+                conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
+                os.remove(parquet_path)
+                print(f"  ✅ 全新订单: {total_new:,} 行")
 
-    count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-    print(f"  当前订单总数: {count:,}")
-    conn.close()
+            # ── 窗口内订单：精确键值 DELETE + INSERT 刷新 ──
+            if total_refresh > 0:
+                import uuid as _uuid
+
+                before_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+
+                # 1. 将 df_refresh 的 order_id 写入临时表
+                tmp_table = f"_refresh_ids_{_uuid.uuid4().hex[:8]}"
+                refresh_ids = df_refresh[['order_id']].drop_duplicates()
+                refresh_ids['order_id'] = refresh_ids['order_id'].astype(str).replace('nan', '').replace('None', '')
+                ids_parquet = os.path.join(tempfile.gettempdir(), f'{tmp_table}.parquet')
+                refresh_ids.to_parquet(ids_parquet, index=False)
+
+                conn.execute(f"CREATE TEMP TABLE {tmp_table} (order_id VARCHAR)")
+                conn.execute(f"COPY {tmp_table} FROM '{ids_parquet}' (FORMAT PARQUET)")
+                os.remove(ids_parquet)
+
+                # 2. 显式事务：DELETE + INSERT 原子执行
+                conn.execute("BEGIN TRANSACTION")
+                try:
+                    conn.execute(f"""
+                        DELETE FROM orders
+                        WHERE order_id IN (SELECT order_id FROM {tmp_table})
+                    """)
+                    after_delete = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+                    deleted = before_count - after_delete
+                    print(f"  🗑️  精确删除待刷新记录: {deleted:,} 行 ({len(refresh_ids):,} 个 order_id)")
+
+                    conn.execute(f"DROP TABLE IF EXISTS {tmp_table}")
+
+                    # 3. 插入刷新数据
+                    df_insert = df_refresh[existing_cols].copy()
+                    parquet_path = os.path.join(tempfile.gettempdir(), 'orders_refresh.parquet')
+                    df_insert.to_parquet(parquet_path, index=False)
+                    cols_joined = ', '.join(existing_cols)
+                    conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
+                    os.remove(parquet_path)
+                    print(f"  ✅ 窗口刷新: {total_refresh:,} 行")
+
+                    conn.execute("COMMIT")
+                except Exception:
+                    conn.execute("ROLLBACK")
+                    raise
+
+                # 4. 数据守恒断言：刷新不应导致总数净减少（允许少量因退款状态变化的合理差异）
+                after_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+                net_change = after_count - before_count
+                if net_change < -100:
+                    raise AssertionError(
+                        f"数据守恒异常: 刷新前 {before_count:,} → 刷新后 {after_count:,}，"
+                        f"净减少 {abs(net_change):,} 行，超过阈值 100。可能有数据丢失！"
+                    )
+                print(f"  🔍 数据守恒: {before_count:,} → {after_count:,} (净变化 {net_change:+,})")
+
+            count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+            print(f"  当前订单总数: {count:,}")
+    finally:
+        conn.close()
 
 
 def _copy_df_to_duckdb(df, conn, existing_cols):
@@ -2041,7 +2119,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                     count = _copy_df_to_duckdb(df, conn, existing_cols)
                     total_inserted += count
                     del df
-                    import gc; gc.collect()
+                    gc.collect()
                 except Exception as e:
                     print(f"    错误: {e}")
                     continue
@@ -2069,7 +2147,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                         df.columns = [c.strip() if isinstance(c, str) else c for c in df.columns]
                         df = rename_columns(df)
                         if df.empty or 'order_id' not in df.columns:
-                            del df; import gc; gc.collect()
+                            del df; gc.collect()
                             continue
                         # 收集所有会员order_id用于后续UPDATE
                         file_ids = df['order_id'].dropna().astype(str).unique()
@@ -2087,7 +2165,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                             total_inserted += count
                             existing_ids.update(member_only['order_id'].dropna().astype(str))
                             print(f"    会员写入: {count:,} 行")
-                        del df; import gc; gc.collect()
+                        del df; gc.collect()
                     except Exception as e:
                         print(f"    错误: {e}")
                         continue
@@ -2199,6 +2277,9 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     print("\n" + "=" * 60)
     print("滑动窗口 ETL 完成!")
     print("=" * 60)
+
+    # 强制 GC 立即释放 DuckDB 文件锁，避免 ETL 完成后后端仍被阻塞
+    import gc as _gc; _gc.collect()
 
 
 def _mark_all_files_processed():

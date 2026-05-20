@@ -1083,8 +1083,9 @@ def calculate_audience_summary(
         def _run_period_data(start_dt, end_dt, cutoff_dt, ch_filter: Optional[str] = None, ex_channels: Optional[List[str]] = None):
             """执行一个周期的查询，支持可选渠道过滤"""
             params = [start_dt, end_dt]
-            where_parts = ["pay_time >= ?::TIMESTAMP", "pay_time <= ?::TIMESTAMP",
-                            "is_goujinjin = FALSE", "order_status != '交易关闭'", "is_refund = FALSE"]
+            # valid_order() 来自语义层 uniform 口径
+            valid_sql, _valid_params = OrderFilters.valid_order()
+            where_parts = ["pay_time >= ?::TIMESTAMP", "pay_time <= ?::TIMESTAMP", valid_sql]
             if ch_filter and ch_filter != "全店":
                 db_channels = _expand_channel(ch_filter)
                 if len(db_channels) == 1:

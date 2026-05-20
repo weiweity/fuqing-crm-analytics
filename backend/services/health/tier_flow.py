@@ -12,7 +12,12 @@ from datetime import datetime, timedelta
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
+from backend.semantic.filters import OrderFilters
 from . import config as health_config
+
+# 语义层统一口径
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
 
 TIER_SEGMENT_ORDER = [
     "S-高频", "S-中频", "S-低频",
@@ -93,8 +98,7 @@ def _run_tier_flow_period(
         FROM orders o
         WHERE pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
@@ -107,8 +111,7 @@ def _run_tier_flow_period(
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
           AND pay_time >= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
         GROUP BY user_id
@@ -146,8 +149,7 @@ def _run_tier_flow_period(
         FROM orders o
         JOIN tiered t ON o.user_id = t.user_id
         WHERE o.pay_time <= ?::TIMESTAMP
-          AND o.is_goujinjin = FALSE
-          AND o.order_status != '交易关闭'
+          AND {_VALID_BASE_T}
           {refund_where}
           {exclude_where_hist}
         GROUP BY o.user_id, t.value_tier, t.freq_tier
@@ -161,8 +163,7 @@ def _run_tier_flow_period(
         FROM orders o
         JOIN tiered t ON o.user_id = t.user_id
         WHERE o.pay_time <= ?::TIMESTAMP
-          AND o.is_goujinjin = FALSE
-          AND o.order_status != '交易关闭'
+          AND {_VALID_BASE_T}
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}

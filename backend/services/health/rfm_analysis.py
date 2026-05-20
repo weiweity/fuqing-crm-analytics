@@ -19,6 +19,10 @@ from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
+from backend.semantic.filters import OrderFilters
+
+# 语义层统一口径：禁止在SQL中硬编码有效订单条件
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 
 logger = logging.getLogger(__name__)
 
@@ -193,8 +197,7 @@ def _run_rfm_period(
         FROM orders o
         WHERE pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
@@ -208,8 +211,7 @@ def _run_rfm_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
         GROUP BY user_id
@@ -223,8 +225,7 @@ def _run_rfm_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}

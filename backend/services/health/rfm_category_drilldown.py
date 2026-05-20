@@ -11,6 +11,10 @@ from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS, SEGMENTS
+from backend.semantic.filters import OrderFilters
+
+# 语义层统一口径
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 
 
 # ============================================================
@@ -191,8 +195,7 @@ def _run_category_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_all}
           {exclude_where_base}
@@ -207,8 +210,7 @@ def _run_category_period(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_same}
           {exclude_where_hist}
@@ -256,8 +258,7 @@ def _run_category_period(
         INNER JOIN segmented_all sa ON o.user_id = sa.user_id
         WHERE o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
@@ -270,8 +271,7 @@ def _run_category_period(
         FROM orders o
         INNER JOIN segmented_all sa ON o.user_id = sa.user_id
         WHERE o.pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
           {member_where_hist}
@@ -376,8 +376,7 @@ def _run_category_period(
         INNER JOIN seg_users su ON o.user_id = su.user_id
         WHERE o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {seg_channel_where}
           {exclude_where_base}

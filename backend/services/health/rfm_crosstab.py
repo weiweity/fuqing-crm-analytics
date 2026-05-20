@@ -7,6 +7,10 @@ RFM 分群 CTE 共享模块
 
 from typing import List, Optional, Tuple
 from backend.semantic.segments import RFM_THRESHOLDS
+from backend.semantic.filters import OrderFilters
+
+# 语义层统一口径：所有过滤条件必须通过 OrderFilters 生成，禁止硬编码
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 
 
 def build_rfm_segment_sql(
@@ -107,8 +111,7 @@ def build_rfm_segment_sql(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {exclude_where_all}
         GROUP BY user_id
@@ -122,8 +125,7 @@ def build_rfm_segment_sql(
             BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
-          AND is_goujinjin = FALSE
-          AND order_status != '交易关闭'
+          AND {_VALID_BASE}
           {refund_where}
           {channel_where_same}
           {exclude_where_same}
