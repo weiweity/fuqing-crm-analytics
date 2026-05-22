@@ -248,6 +248,8 @@ function onMouseMove(e: MouseEvent) {
 
   const centerX = canvas.width / 2
   const centerY = canvas.height / 2
+  if (!scaleX || !scaleY || !window.innerWidth || !window.innerHeight) return
+
   const mappedX = centerX + (e.clientX / window.innerWidth - 0.5) * canvas.width * 0.6
   const mappedY = centerY + (e.clientY / window.innerHeight - 0.5) * canvas.height * 0.4
 
