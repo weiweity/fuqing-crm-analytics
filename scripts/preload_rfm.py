@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from backend.config import DUCKDB_PATH
 from backend.semantic.segments import get_registry, RFM_THRESHOLDS
 from backend.semantic.filters import OrderFilters
+from backend.semantic.channels import ACTIVE_UI_CHANNELS
 
 
 # ============================================================
@@ -95,11 +96,12 @@ def get_hot_dates(today: date = None) -> List[date]:
 R_LOOKBACK_DAYS = 365
 
 
-def build_rfm_sql(metric_type: str) -> str:
+def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
     """构造用于预加载的完整 RFM 计算 SQL（结果可直接插入 user_rfm）。
 
     R 窗口固定365天（独立计算 recency_days）；
     F/M 窗口复用 lookback_days 参数。
+    channel='全店' 时不过滤渠道，为特定渠道时按 channel 过滤。
     """
     registry = get_registry()
     r_score_sql = registry.build_r_score_sql(RFM_THRESHOLDS["r"])
@@ -111,6 +113,10 @@ def build_rfm_sql(metric_type: str) -> str:
 
     tier_cn_sql = registry.build_segment_name_case_when_sql("cn")
     tier_en_sql = registry.build_segment_name_case_when_sql("en")
+
+    # 渠道过滤：channel='全店' 时不过滤，其他值精确匹配
+    channel_cond = "AND o.channel = ?" if channel != "全店" else ""
+
     sql = f"""
     WITH base_params AS (
         -- lookback_days: F/M 窗口（分析日往回数 N 天）
@@ -133,6 +139,7 @@ def build_rfm_sql(metric_type: str) -> str:
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
           AND ({amount_cond})
+          {channel_cond}
     ),
     fm_metrics AS (
         SELECT
@@ -155,6 +162,7 @@ def build_rfm_sql(metric_type: str) -> str:
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
           AND ({amount_cond})
+          {channel_cond}
         GROUP BY o.user_id
     ),
     user_with_rfm AS (
@@ -202,6 +210,7 @@ def build_rfm_sql(metric_type: str) -> str:
         analysis_date AS analysis_date,
         ? AS metric_type,
         ? AS lookback_days,
+        ? AS channel,
         recency_days,
         frequency,
         monetary,
@@ -225,50 +234,68 @@ def preload_date(
     analysis_date: date,
     lookback_days: int,
     metric_type: str,
+    channel: str = "全店",
 ) -> int:
     """计算指定日期的 RFM 并写入 user_rfm 表，返回写入行数。
 
     R 窗口固定365天（独立于 lookback_days），确保 recency_days 反映完整购买历史。
+    channel='全店' 不过滤渠道，为其他值时精确过滤。
     """
     start_date = analysis_date - timedelta(days=lookback_days)
     date_str = analysis_date.strftime("%Y-%m-%d")
     date_upper = date_str  # 分析日上界（< analysis_date + 1天）
 
-    # 先删除旧数据（同一组合）
+    # 先删除旧数据（同一组合，含渠道）
     conn.execute(
         """
         DELETE FROM user_rfm
         WHERE analysis_date = ?
           AND metric_type = ?
           AND lookback_days = ?
+          AND channel = ?
         """,
-        [date_str, metric_type, lookback_days],
+        [date_str, metric_type, lookback_days, channel],
     )
 
-    sql = build_rfm_sql(metric_type)
-    # 参数顺序（7个）：
+    sql = build_rfm_sql(metric_type, channel)
+    # 参数顺序（channel != '全店' 时多1个 ?）：
     # 1. analysis_date       -> base_params.analysis_date
     # 2. start_date          -> base_params.start_date（FM窗口起点）
     # 3. date_upper          -> base_params（r_start_date 在 SQL 内计算）
     # 4. date_upper          -> fm_orders 上界
-    # 5. date_upper          -> r_orders 上界
-    # 6. analysis_date       -> recency_days 计算
-    # 7. metric_type
-    # 8. lookback_days
+    # 5. [channel]           -> fm_orders 渠道过滤（仅 channel != '全店' 时）
+    # 6. date_upper          -> r_orders 上界
+    # 7. [channel]           -> r_orders 渠道过滤（仅 channel != '全店' 时）
+    # 8. analysis_date       -> recency_days 计算
+    # 9. metric_type
+    # 10. lookback_days
+    # 11. channel
     params = [
         date_str,
         start_date.strftime("%Y-%m-%d"),
         date_upper,
         date_upper,
-        date_upper,
+    ]
+    if channel != "全店":
+        # channel 过滤: fm_orders + r_orders 各多一个 ?
+        params.append(channel)
+        params.append(date_upper)
+        params.append(channel)
+    else:
+        # 全店不过滤渠道，fm_orders 和 r_orders 各一个 upper bound ?（第5个是 DATEDIFF 的 date_str）
+        params.append(date_upper)
+    # DATEDIFF 第二个参数始终用 date_str
+    params.extend([
         date_str,
         metric_type,
         lookback_days,
-    ]
+        channel,
+    ])
 
     conn.execute(f"""
         INSERT INTO user_rfm (
             user_id, user_nickname, analysis_date, metric_type, lookback_days,
+            channel,
             recency_days, frequency, monetary,
             r_score, f_score, m_score,
             rfm_tier, rfm_tier_en, segment_id,
@@ -277,8 +304,8 @@ def preload_date(
     """, params)
 
     return conn.execute(
-        "SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ? AND metric_type = ? AND lookback_days = ?",
-        [date_str, metric_type, lookback_days],
+        "SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ? AND metric_type = ? AND lookback_days = ? AND channel = ?",
+        [date_str, metric_type, lookback_days, channel],
     ).fetchone()[0]
 
 
@@ -290,24 +317,26 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
     hot_dates = get_hot_dates(today)
     lookbacks = [30, 90, 180]
     metrics = ["GMV", "GSV"]
+    channels = ["全店"] + ACTIVE_UI_CHANNELS
 
     conn = duckdb.connect(str(DUCKDB_PATH))
     results = []
     try:
-        total_tasks = len(hot_dates) * len(lookbacks) * len(metrics)
+        total_tasks = len(hot_dates) * len(lookbacks) * len(metrics) * len(channels)
         completed = 0
-        for d in hot_dates:
-            for lb in lookbacks:
-                for mt in metrics:
-                    try:
-                        rows = preload_date(conn, d, lb, mt)
-                        conn.commit()
-                        results.append((d.isoformat(), lb, mt, rows))
-                        completed += 1
-                        print(f"[{completed}/{total_tasks}] {d} | {mt} | {lb}天 => {rows:,} 行")
-                    except Exception as e:
-                        print(f"[ERROR] {d} | {mt} | {lb}天 => {e}")
-                        results.append((d.isoformat(), lb, mt, -1))
+        for ch in channels:
+            for d in hot_dates:
+                for lb in lookbacks:
+                    for mt in metrics:
+                        try:
+                            rows = preload_date(conn, d, lb, mt, ch)
+                            conn.commit()
+                            results.append((d.isoformat(), lb, mt, ch, rows))
+                            completed += 1
+                            print(f"[{completed}/{total_tasks}] {d} | {mt} | {lb}天 | {ch} => {rows:,} 行")
+                        except Exception as e:
+                            print(f"[ERROR] {d} | {mt} | {lb}天 | {ch} => {e}")
+                            results.append((d.isoformat(), lb, mt, ch, -1))
     finally:
         conn.close()
 
@@ -318,6 +347,7 @@ def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int,
     """按日期范围每隔 step 天预加载一次。"""
     lookbacks = [30, 90, 180]
     metrics = ["GMV", "GSV"]
+    channels = ["全店"] + ACTIVE_UI_CHANNELS
     dates: List[date] = []
     cur = start
     while cur <= end:
@@ -327,20 +357,21 @@ def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int,
     conn = duckdb.connect(str(DUCKDB_PATH))
     results = []
     try:
-        total = len(dates) * len(lookbacks) * len(metrics)
+        total = len(dates) * len(lookbacks) * len(metrics) * len(channels)
         completed = 0
-        for d in dates:
-            for lb in lookbacks:
-                for mt in metrics:
-                    try:
-                        rows = preload_date(conn, d, lb, mt)
-                        conn.commit()
-                        results.append((d.isoformat(), lb, mt, rows))
-                        completed += 1
-                        print(f"[{completed}/{total}] {d} | {mt} | {lb}天 => {rows:,} 行")
-                    except Exception as e:
-                        print(f"[ERROR] {d} | {mt} | {lb}天 => {e}")
-                        results.append((d.isoformat(), lb, mt, -1))
+        for ch in channels:
+            for d in dates:
+                for lb in lookbacks:
+                    for mt in metrics:
+                        try:
+                            rows = preload_date(conn, d, lb, mt, ch)
+                            conn.commit()
+                            results.append((d.isoformat(), lb, mt, ch, rows))
+                            completed += 1
+                            print(f"[{completed}/{total}] {d} | {mt} | {lb}天 | {ch} => {rows:,} 行")
+                        except Exception as e:
+                            print(f"[ERROR] {d} | {mt} | {lb}天 | {ch} => {e}")
+                            results.append((d.isoformat(), lb, mt, ch, -1))
     finally:
         conn.close()
     return results
@@ -356,6 +387,7 @@ def main():
     parser.add_argument("--date", type=str, help="指定单个日期 (YYYY-MM-DD)")
     parser.add_argument("--lookback", type=int, default=90, help="lookback_days")
     parser.add_argument("--metric", type=str, default="GMV", choices=["GMV", "GSV"], help="metric_type")
+    parser.add_argument("--channel", type=str, default="全店", help="渠道名称（默认'全店'）")
     parser.add_argument("--range", nargs=2, metavar=("START", "END"), help="日期范围 (YYYY-MM-DD YYYY-MM-DD)")
     parser.add_argument("--step", type=int, default=7, help="范围模式下的步长(天)")
 
@@ -368,9 +400,9 @@ def main():
         d = date.fromisoformat(args.date)
         conn = duckdb.connect(str(DUCKDB_PATH))
         try:
-            rows = preload_date(conn, d, args.lookback, args.metric)
+            rows = preload_date(conn, d, args.lookback, args.metric, args.channel)
             conn.commit()
-            print(f"{args.date} | {args.metric} | {args.lookback}天 => {rows:,} 行")
+            print(f"{args.date} | {args.metric} | {args.lookback}天 | {args.channel} => {rows:,} 行")
         finally:
             conn.close()
         return
@@ -383,8 +415,8 @@ def main():
         parser.print_help()
         return
 
-    success = [r for r in results if r[3] > 0]
-    failed = [r for r in results if r[3] == -1]
+    success = [r for r in results if r[4] > 0]
+    failed = [r for r in results if r[4] == -1]
     print(f"\n=== 完成: 成功 {len(success)} 个任务, 失败 {len(failed)} 个任务 ===")
 
 

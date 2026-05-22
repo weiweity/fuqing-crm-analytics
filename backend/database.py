@@ -160,6 +160,7 @@ def create_user_rfm_table(conn=None):
             analysis_date      DATE,
             metric_type        VARCHAR,
             lookback_days      INTEGER,
+            channel            VARCHAR DEFAULT '全店',
             recency_days       INTEGER,
             frequency          INTEGER,
             monetary           DECIMAL(12,2),
@@ -172,11 +173,12 @@ def create_user_rfm_table(conn=None):
             first_order_date   DATE,
             last_order_date    DATE,
             created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id, analysis_date, metric_type, lookback_days)
+            PRIMARY KEY (user_id, analysis_date, metric_type, lookback_days, channel)
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rfm_tier ON user_rfm(rfm_tier)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_rfm_date ON user_rfm(analysis_date, metric_type)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rfm_date ON user_rfm(analysis_date, metric_type, lookback_days)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rfm_channel ON user_rfm(channel)")
 
     if should_close:
         conn.close()
