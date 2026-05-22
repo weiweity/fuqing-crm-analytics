@@ -291,13 +291,13 @@ AND is_refund = FALSE
 - **API 契约 (API Contract)**: 前后端共同遵守的接口数据结构约定，通过 Pydantic + OpenAPI 文档化
 
 ### 8.2 参考文档
-- 技术架构文档: `docs/architecture.md`
-- 实现计划: `docs/implementation-plan.md`
-- **口径管理架构**: `docs/ARCHITECTURE-metrics-management.md`（v2.0 新增）
-- **指标注册表**: `docs/METRICS-REGISTRY.md`（v2.0 新增）
-- **迁移执行清单**: `docs/MIGRATION-CHECKLIST.md`（v2.0 新增）
-- **前端契约指南**: `docs/frontend-contract-guide.md`（v2.0 新增）
-- **统一调整方案**: `docs/PLAN-metrics-unification.md`（v2.0 新增）
+- **飞书版架构文档**: `docs/飞书版架构文档/`（7 份完整架构）
+- **口径管理架构**: `docs/semantic/ARCHITECTURE-metrics-management.md`
+- **指标注册表**: `docs/semantic/METRICS-REGISTRY.md`
+- **指标统一计划**: `docs/semantic/PLAN-metrics-unification.md`
+- **用户分群设计**: `docs/semantic/week2-segmentation-design.md`
+- **迁移执行清单**: `docs/MIGRATION-CHECKLIST.md`
+- **前端契约指南**: `docs/frontend-contract-guide.md`
 - AI 行为约束: `docs/ai-constraints.md`
 
 ---
