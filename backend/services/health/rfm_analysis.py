@@ -327,6 +327,12 @@ def _run_rfm_period(
 
         return _rep_all, _rep_same, final_member_all, final_member_same
 
+    # ── 预计算未命中：fallback 到全量 live SQL ──
+    return _run_rfm_period_live(
+        conn, start_dt, end_dt, cutoff_dt,
+        channel, metric_type, exclude_channels,
+    )
+
 
 # ── 辅助函数：轻量计算 repurchase 指标（复用预计算的 hist_users） ──
 
@@ -765,12 +771,26 @@ def _run_rfm_period_member_live(
     return member_all_result, member_same_result
 
 
+# ── Fallback: 全量 live SQL（预计算未命中时调用）─────────────────────────────
 
-    # 1. base_orders: start_dt, end_dt [, channel]
-    # 2. user_stats_all: cutoff_dt
-    # 3. user_stats_same: cutoff_dt [, channel]
-    # 4. rfm_scored_all: cutoff_dt × 4
-    # 5. rfm_scored_same: cutoff_dt × 4
+def _run_rfm_period_live(
+    conn: duckdb.DuckDBPyConnection,
+    start_dt: str,
+    end_dt: str,
+    cutoff_dt: str,
+    channel: Optional[str],
+    metric_type: str,
+    exclude_channels: Optional[List[str]],
+) -> tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]:
+    """全量实时 SQL 计算（预计算表未命中时的 fallback）。
+
+    参数顺序（对应 SQL 占位符）：
+    1. base_orders: start_dt, end_dt [, channel]
+    2. user_stats_all: cutoff_dt
+    3. user_stats_same: cutoff_dt [, channel]
+    4. rfm_scored_all: cutoff_dt × 4
+    5. rfm_scored_same: cutoff_dt × 4
+    """
     params: List[Any] = [start_dt, end_dt]
 
     channel_where_base = ""
@@ -802,19 +822,15 @@ def _run_rfm_period_member_live(
     if exclude_channels:
         from backend.semantic.filters import expand_channels
         db_exclude_channels = expand_channels(exclude_channels)
-        safe_ch = [ch.replace("'", "'") for ch in db_exclude_channels]
+        safe_ch = [ch.replace("'", "''") for ch in db_exclude_channels]
         quoted = ", ".join([f"'{c}'" for c in safe_ch])
         exclude_where_base = f" AND o.channel NOT IN ({quoted})"
         exclude_where_hist = f" AND o.channel NOT IN ({quoted})"
 
-    full_params = params
-
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
-
-    # 统一引用 semantic/segments.py 中的 RFM_THRESHOLDS，禁止硬编码
-    _rt = RFM_THRESHOLDS["r"]   # [14, 30, 60, 90]
-    _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 5]
-    _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
+    _rt = RFM_THRESHOLDS["r"]
+    _ft = RFM_THRESHOLDS["f"]
+    _mt = RFM_THRESHOLDS["m"]
 
     sql = f"""
     WITH
@@ -829,12 +845,10 @@ def _run_rfm_period_member_live(
           {exclude_where_base}
     ),
     user_stats_all AS (
-        SELECT
-            user_id,
-            MAX(pay_time) as last_pay_time,
-            COUNT(DISTINCT order_id) as order_count,
-            SUM(actual_amount) as gsv,
-            BOOL_OR(is_member) AS is_member
+        SELECT user_id, MAX(pay_time) as last_pay_time,
+               COUNT(DISTINCT order_id) as order_count,
+               SUM(actual_amount) as gsv,
+               BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
           AND {_VALID_BASE}
@@ -843,12 +857,10 @@ def _run_rfm_period_member_live(
         GROUP BY user_id
     ),
     user_stats_same AS (
-        SELECT
-            user_id,
-            MAX(pay_time) as last_pay_time,
-            COUNT(DISTINCT order_id) as order_count,
-            SUM(actual_amount) as gsv,
-            BOOL_OR(is_member) AS is_member
+        SELECT user_id, MAX(pay_time) as last_pay_time,
+               COUNT(DISTINCT order_id) as order_count,
+               SUM(actual_amount) as gsv,
+               BOOL_OR(is_member) AS is_member
         FROM orders o
         WHERE pay_time <= ?::TIMESTAMP
           AND {_VALID_BASE}
@@ -858,9 +870,7 @@ def _run_rfm_period_member_live(
         GROUP BY user_id
     ),
     rfm_scored_all AS (
-        SELECT
-            user_id,
-            is_member,
+        SELECT user_id, is_member,
             CASE
                 WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[0]} THEN 5
                 WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[1]} THEN 4
@@ -873,9 +883,7 @@ def _run_rfm_period_member_live(
         FROM user_stats_all
     ),
     rfm_scored_same AS (
-        SELECT
-            user_id,
-            is_member,
+        SELECT user_id, is_member,
             CASE
                 WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[0]} THEN 5
                 WHEN DATEDIFF('day', last_pay_time::DATE, ?::DATE) < {_rt[1]} THEN 4
@@ -924,23 +932,43 @@ def _run_rfm_period_member_live(
         GROUP BY bo.user_id
     ),
     segment_stats_all AS (
-        SELECT r.rfm_segment, COUNT(DISTINCT r.user_id) AS hist_users, COUNT(DISTINCT rp.user_id) AS repurchase_users, COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM segmented_all r LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT rp.user_id) AS repurchase_users,
+               COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM segmented_all r
+        LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
         GROUP BY r.rfm_segment
     ),
     segment_stats_same AS (
-        SELECT r.rfm_segment, COUNT(DISTINCT r.user_id) AS hist_users, COUNT(DISTINCT rp.user_id) AS repurchase_users, COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM segmented_same r LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT rp.user_id) AS repurchase_users,
+               COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM segmented_same r
+        LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
         GROUP BY r.rfm_segment
     ),
     member_stats_all AS (
-        SELECT r.rfm_segment, COUNT(DISTINCT r.user_id) AS hist_users, COUNT(DISTINCT rp.user_id) AS repurchase_users, COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM member_segmented_all r LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT rp.user_id) AS repurchase_users,
+               COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM member_segmented_all r
+        LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
         GROUP BY r.rfm_segment
     ),
     member_stats_same AS (
-        SELECT r.rfm_segment, COUNT(DISTINCT r.user_id) AS hist_users, COUNT(DISTINCT rp.user_id) AS repurchase_users, COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM member_segmented_same r LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
+        SELECT r.rfm_segment,
+               COUNT(DISTINCT r.user_id) AS hist_users,
+               COUNT(DISTINCT rp.user_id) AS repurchase_users,
+               COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM member_segmented_same r
+        LEFT JOIN repurchase_users rp ON r.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
         GROUP BY r.rfm_segment
     ),
     ttl_stats_all AS (SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM segment_stats_all),
@@ -964,37 +992,40 @@ def _run_rfm_period_member_live(
     )
     """
 
-    rows = conn.execute(sql, full_params).fetchall()
+    rows = conn.execute(sql, params).fetchall()
     all_result: Dict[str, Dict[str, float]] = {}
     same_result: Dict[str, Dict[str, float]] = {}
     member_all_result: Dict[str, Dict[str, float]] = {}
     member_same_result: Dict[str, Dict[str, float]] = {}
-    total_repurchase_gsv_all = 0.0
-    total_repurchase_gsv_same = 0.0
-    total_repurchase_gsv_member_all = 0.0
-    total_repurchase_gsv_member_same = 0.0
+    total_gsv_all = 0.0
+    total_gsv_same = 0.0
+    total_gsv_member_all = 0.0
+    total_gsv_member_same = 0.0
 
     for r in rows:
         mode, segment, hist_users, repurchase_users, repurchase_gsv = r
         entry = {
             "hist_users": int(hist_users or 0),
             "repurchase_users": int(repurchase_users or 0),
-            "repurchase_rate": float(repurchase_users or 0) / float(hist_users or 1) if hist_users else 0.0,
+            "repurchase_rate": (
+                round(float(repurchase_users or 0) / float(hist_users or 1), 4)
+                if hist_users else 0.0
+            ),
             "repurchase_gsv": float(repurchase_gsv or 0),
             "repurchase_gsv_ratio": 0.0,
         }
         if segment != "已购客TTL":
             if mode == "all":
-                total_repurchase_gsv_all += float(repurchase_gsv or 0)
+                total_gsv_all += float(repurchase_gsv or 0)
                 all_result[segment] = entry
             elif mode == "same":
-                total_repurchase_gsv_same += float(repurchase_gsv or 0)
+                total_gsv_same += float(repurchase_gsv or 0)
                 same_result[segment] = entry
             elif mode == "member_all":
-                total_repurchase_gsv_member_all += float(repurchase_gsv or 0)
+                total_gsv_member_all += float(repurchase_gsv or 0)
                 member_all_result[segment] = entry
             elif mode == "member_same":
-                total_repurchase_gsv_member_same += float(repurchase_gsv or 0)
+                total_gsv_member_same += float(repurchase_gsv or 0)
                 member_same_result[segment] = entry
         else:
             if mode == "all":
@@ -1006,19 +1037,21 @@ def _run_rfm_period_member_live(
             elif mode == "member_same":
                 member_same_result[segment] = entry
 
-    for segment in all_result:
-        gsv = all_result[segment]["repurchase_gsv"]
-        all_result[segment]["repurchase_gsv_ratio"] = gsv / total_repurchase_gsv_all if total_repurchase_gsv_all > 0 else 0.0
-    for segment in same_result:
-        gsv = same_result[segment]["repurchase_gsv"]
-        same_result[segment]["repurchase_gsv_ratio"] = gsv / total_repurchase_gsv_same if total_repurchase_gsv_same > 0 else 0.0
-    for segment in member_all_result:
-        gsv = member_all_result[segment]["repurchase_gsv"]
-        member_all_result[segment]["repurchase_gsv_ratio"] = gsv / total_repurchase_gsv_member_all if total_repurchase_gsv_member_all > 0 else 0.0
-    for segment in member_same_result:
-        gsv = member_same_result[segment]["repurchase_gsv"]
-        member_same_result[segment]["repurchase_gsv_ratio"] = gsv / total_repurchase_gsv_member_same if total_repurchase_gsv_member_same > 0 else 0.0
+    # repurchase_gsv_ratio
+    for seg in all_result:
+        gsv = all_result[seg]["repurchase_gsv"]
+        all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_all, 4) if total_gsv_all > 0 else 0.0
+    for seg in same_result:
+        gsv = same_result[seg]["repurchase_gsv"]
+        same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_same, 4) if total_gsv_same > 0 else 0.0
+    for seg in member_all_result:
+        gsv = member_all_result[seg]["repurchase_gsv"]
+        member_all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_all, 4) if total_gsv_member_all > 0 else 0.0
+    for seg in member_same_result:
+        gsv = member_same_result[seg]["repurchase_gsv"]
+        member_same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_same, 4) if total_gsv_member_same > 0 else 0.0
 
+    # 补零
     for seg in RFM_SEGMENT_ORDER:
         if seg not in all_result:
             all_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
