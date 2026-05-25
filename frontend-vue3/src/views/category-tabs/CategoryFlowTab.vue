@@ -34,9 +34,6 @@ const ANCHOR_MODE_OPTIONS = [
   { label: '每次购买', value: 'every' },
 ]
 
-const PATH_DEPTH_OPTIONS = [
-  { label: '1步', value: '1' },
-]
 
 // 流转矩阵折叠状态（默认折叠，降级为辅助参考）
 const matrixExpanded = ref(false)
@@ -44,8 +41,6 @@ const matrixExpanded = ref(false)
 // 流转矩阵显示模式：百分比(默认) / 数值
 const matrixDisplayMode = ref<'percentage' | 'value'>('percentage')
 
-// 前后置分析视图模式：桑基图 / 双向条形图
-const temporalViewMode = ref<'sankey' | 'bar'>('sankey')
 
 const targetCategoryOptions = computed(() => {
   // 优先使用父组件传入的品类列表（与连带分析保持一致）
@@ -117,7 +112,6 @@ const {
 const matrixEnabled = computed(() => matrixExpanded.value)
 const {
   data: matrixData,
-  isLoading: matrixLoading,
   error: matrixError,
   refetch: refetchMatrix,
 } = useQuery({
@@ -520,241 +514,6 @@ const ASSOC_COLS: DataTableColumns<any> = [
   },
 ]
 
-// ─── Temporal Sankey helpers ─────────────────────────────────────
-function buildTemporalSankeyOption(
-  sankeyData: { nodes: { name: string; category_name: string }[]; links: { source: string; target: string; value: number }[] } | undefined,
-  targetName: string,
-) {
-  if (!sankeyData?.nodes?.length || !sankeyData?.links?.length) return {}
-
-  // 过滤"其他"节点和关联链接
-  const EXCLUDED_SANKEY_NODES = ['其他']
-  const nodes = sankeyData.nodes.filter((n) => !EXCLUDED_SANKEY_NODES.includes(n.name))
-  const nodeNamesSet = new Set(nodes.map((n) => n.name))
-  const links = sankeyData.links.filter((l) => nodeNamesSet.has(l.source) && nodeNamesSet.has(l.target))
-
-  // 打破环，确保DAG（2步路径可能产生环如 A→B→A）
-  const acyclicLinks = breakCycles(links)
-
-  const nodeNames = nodes.map((n) => n.name)
-  const nodeNameIdx: Record<string, number> = {}
-  nodeNames.forEach((name, i) => { nodeNameIdx[name] = i })
-
-  const sankeyLinks = acyclicLinks.map((l) => ({
-    source: nodeNameIdx[l.source] ?? l.source,
-    target: nodeNameIdx[l.target] ?? l.target,
-    value: l.value,
-  }))
-
-  return {
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(255, 255, 255, 0.98)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      padding: [10, 14],
-      textStyle: { color: '#0f172a', fontSize: 12 },
-      extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
-      formatter: (params: any) => {
-        if (params.dataType === 'edge') {
-          const srcName = nodes[params.data.source]?.name ?? params.data.source
-          const tgtName = nodes[params.data.target]?.name ?? params.data.target
-          return `${srcName} → ${tgtName}<br/>关联人数: ${params.data.value.toLocaleString()}`
-        }
-        return params.name
-      },
-    },
-    grid: { left: 8, right: 8, top: 8, bottom: 8 },
-    series: [
-      {
-        type: 'sankey',
-        nodeGap: 20,
-        nodeWidth: 24,
-        nodeAlign: 'justify',
-        emphasis: { focus: 'adjacency' },
-        lineStyle: {
-          color: 'gradient',
-          curveness: 0.4,
-          opacity: 0.6,
-        },
-        itemStyle: { borderWidth: 1, borderColor: '#fff', borderRadius: 4 },
-        label: {
-          fontSize: 11,
-          color: '#334155',
-          formatter: (p: any) => {
-            const name = p.name as string
-            return name.length > 8 ? name.slice(0, 7) + '…' : name
-          },
-        },
-        data: nodes.map((n) => ({
-          name: n.name,
-          itemStyle: {
-            color: n.name === targetName
-              ? '#3b82f6'
-              : n.name === '未购买其他'
-                ? '#94a3b8'
-                : CHART_COLORS[nodeNameIdx[n.name] % CHART_COLORS.length],
-          },
-        })),
-        links: sankeyLinks,
-        animation: false,
-      },
-    ],
-  }
-}
-
-const preSankeyOption = computed(() => {
-  if (!data.value?.pre_sankey) return {}
-  return buildTemporalSankeyOption(data.value.pre_sankey, data.value.target_category || '')
-})
-
-const postSankeyOption = computed(() => {
-  if (!data.value?.post_sankey) return {}
-  return buildTemporalSankeyOption(data.value.post_sankey, data.value.target_category || '')
-})
-
-// ─── 双向条形图（前置/后置对比）───────────────────────────────────
-function buildBidirectionalBarOption(
-  preData: { category_name: string; user_count: number }[] | undefined,
-  postData: { category_name: string; user_count: number }[] | undefined,
-  targetName: string,
-) {
-  const pre = (preData ?? []).slice(0, 8)
-  const post = (postData ?? []).slice(0, 8)
-  if (!pre.length && !post.length) return {}
-
-  const preCats = pre.map((d) => d.category_name)
-  const postCats = post.map((d) => d.category_name)
-  const preValues = pre.map((d) => d.user_count)
-  const postValues = post.map((d) => d.user_count)
-  const maxVal = Math.max(...preValues, ...postValues, 1)
-
-  return {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(255, 255, 255, 0.98)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      textStyle: { color: '#0f172a', fontSize: 12 },
-      extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
-      formatter: (params: any) => {
-        const p = Array.isArray(params) ? params[0] : params
-        const val = Math.abs(p.value)
-        const name = p.name
-        const side = p.seriesName
-        return `${side}<br/>${name}: ${val.toLocaleString()}人`
-      },
-    },
-    grid: [
-      { left: 10, right: '54%', top: 40, bottom: 20, containLabel: true },
-      { left: '54%', right: 10, top: 40, bottom: 20, containLabel: true },
-    ],
-    xAxis: [
-      {
-        type: 'value',
-        gridIndex: 0,
-        inverse: true,
-        max: maxVal * 1.1,
-        axisLabel: { formatter: (v: number) => Math.abs(v).toLocaleString(), fontSize: 10, color: '#64748b' },
-        splitLine: { lineStyle: { color: '#f1f5f9' } },
-      },
-      {
-        type: 'value',
-        gridIndex: 1,
-        max: maxVal * 1.1,
-        axisLabel: { formatter: (v: number) => v.toLocaleString(), fontSize: 10, color: '#64748b' },
-        splitLine: { lineStyle: { color: '#f1f5f9' } },
-      },
-    ],
-    yAxis: [
-      {
-        type: 'category',
-        gridIndex: 0,
-        data: preCats,
-        axisLabel: { fontSize: 11, color: '#334155', width: 90, overflow: 'truncate' },
-        axisTick: { show: false },
-        axisLine: { show: false },
-      },
-      {
-        type: 'category',
-        gridIndex: 1,
-        data: postCats,
-        axisLabel: { fontSize: 11, color: '#334155', width: 90, overflow: 'truncate' },
-        axisTick: { show: false },
-        axisLine: { show: false },
-      },
-    ],
-    series: [
-      {
-        name: '前置来源',
-        type: 'bar',
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        data: preValues.map((v) => -v),
-        barWidth: 16,
-        itemStyle: { color: '#60a5fa', borderRadius: [4, 0, 0, 4] },
-        label: {
-          show: true,
-          position: 'left',
-          fontSize: 10,
-          color: '#475569',
-          formatter: (p: any) => Math.abs(p.value).toLocaleString(),
-        },
-      },
-      {
-        name: '后置去向',
-        type: 'bar',
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: postValues,
-        barWidth: 16,
-        itemStyle: { color: '#34d399', borderRadius: [0, 4, 4, 0] },
-        label: {
-          show: true,
-          position: 'right',
-          fontSize: 10,
-          color: '#475569',
-          formatter: (p: any) => p.value.toLocaleString(),
-        },
-      },
-    ],
-    graphic: [
-      {
-        type: 'text',
-        left: 'center',
-        top: 12,
-        style: {
-          text: targetName,
-          fontSize: 14,
-          fontWeight: 'bold',
-          fill: '#3b82f6',
-          textAlign: 'center',
-        },
-      },
-      {
-        type: 'text',
-        left: 'center',
-        top: 30,
-        style: {
-          text: '目标品类',
-          fontSize: 10,
-          fill: '#94a3b8',
-          textAlign: 'center',
-        },
-      },
-    ],
-  }
-}
-
-const bidirectionalBarOption = computed(() => {
-  if (!data.value?.target_category) return {}
-  return buildBidirectionalBarOption(
-    data.value.pre_purchase ?? [],
-    data.value.post_purchase ?? [],
-    data.value.target_category,
-  )
-})
 </script>
 
 <template>

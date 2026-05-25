@@ -26,7 +26,8 @@ import duckdb
 import warnings
 from backend.config import (
     DUCKDB_PATH, SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE, SPU_MAPPING_SOURCE,
-    PROCESSED_DATA_DIR, PARQUET_DATA_DIR
+    PROCESSED_DATA_DIR, PARQUET_DATA_DIR, CHANNEL_RULES_SOURCE,
+    TAOKE_DATA_SOURCE, TAOKE_PRODUCT_SOURCE, LIVE_DATA_SOURCE
 )
 
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
@@ -91,18 +92,7 @@ SPU_COLUMNS = {
     '结束时间': 'spu_end_date'
 }
 
-# 渠道判定表路径
-CHANNEL_RULES_SOURCE = Path(r"/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/渠道判定.csv")
-
-# 淘客数据库路径
-TAOKE_DATA_SOURCE = Path(r"/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/淘客数据库")
 TAOKE_COL = "淘宝父订单编号"
-
-# 淘客商品ID表路径（基于商品ID+时间范围补充淘客标记）
-TAOKE_PRODUCT_SOURCE = Path(r"/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/天猫_淘客数据商品ID_数据表.csv")
-
-# 直播间数据源路径
-LIVE_DATA_SOURCE = Path(r"/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/直播间数据源")
 
 # 淘客订单号全局缓存（进程生命周期内只读一次文件）
 _TAOKE_ORDER_IDS_CACHE = None

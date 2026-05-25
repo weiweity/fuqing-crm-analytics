@@ -53,6 +53,30 @@ CAMPAIGN_SCHEDULE_SOURCE = Path(os.environ.get(
     str(_DEFAULT_CRM_BASE / "芙清全年平台活动节奏 - Sheet2.csv")
 ))
 
+# 渠道判定规则表
+CHANNEL_RULES_SOURCE = Path(os.environ.get(
+    "CHANNEL_RULES_SOURCE",
+    str(_DEFAULT_CRM_BASE / "渠道判定.csv")
+))
+
+# 淘客数据库
+TAOKE_DATA_SOURCE = Path(os.environ.get(
+    "TAOKE_DATA_SOURCE",
+    str(_DEFAULT_CRM_BASE / "淘客数据库")
+))
+
+# 淘客商品ID表
+TAOKE_PRODUCT_SOURCE = Path(os.environ.get(
+    "TAOKE_PRODUCT_SOURCE",
+    str(_DEFAULT_CRM_BASE / "天猫_淘客数据商品ID_数据表.csv")
+))
+
+# 直播间数据源
+LIVE_DATA_SOURCE = Path(os.environ.get(
+    "LIVE_DATA_SOURCE",
+    str(_DEFAULT_CRM_BASE / "直播间数据源")
+))
+
 def get_shop_files():
     """获取所有店铺数据文件（递归搜索）"""
     return list(SHOP_DATA_SOURCE.rglob("*.xlsx"))
