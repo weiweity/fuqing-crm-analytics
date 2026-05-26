@@ -2,14 +2,14 @@
 
 from .common import DateRangeResponse, YearComparisonRow, DualAxisLineData, SankeyNode, SankeyLink, SankeyGraphData, WoolPartyBreakdown
 from .metrics import OverviewMetrics, TrendData
-from .audience import AudienceTableRequest, AudienceRow, AudienceTableResponse, ChannelGSVRow, AudiencePeriodMetrics, YearComparisonRow, AudienceSummaryRequest, AudienceSummaryResponse
+from .audience import AudienceTableRequest, AudienceRow, AudienceTableResponse, ChannelGSVRow, AudiencePeriodMetrics, AudienceSummaryRequest, AudienceSummaryResponse
 from .flow import FlowMatrixResponse, FlowSankeyResponse, SankeyNode, SankeyLink, SankeyGraphData, FlowMatrixCell, FlowMatrix, AssociationItem, CategoryFlowResponse, CategoryFlowAssociationResponse, CategoryFlowMatrixResponse, AnchorMode, PathDepth
 from .churn import ChurnSegmentItem, ChurnDistributionResponse, ChurnUserItem, ChurnUsersResponse, ChurnScatterPoint, ChurnBarData, ChurnTableRow, CategoryChurnResponse, CategoryDailyTrendResponse, UserDetail, CategoryUserListResponse
 from .asset import AssetSummaryResponse, AssetTrendResponse, ProductClassRepurchase, StoreAssetWeek, StoreAssetResponse, ProductAssetWeek, ProductAssetItem, ProductAssetResponse
 from .geo import GeoDistributionItem, GeoDistributionResponse, GeoSegmentMatrixResponse, GeoTrendResponse
-from .category import CategoryDistributionItem, CategoryDistributionResponse, CategoryOverviewItem, CategoryOverviewResponse, CategorySegmentMatrixResponse, CategoryUserProfileResponse, CategoryRepurchaseFlowRow, CategoryRepurchaseFlowResponse, ValueTierTableRow, CategoryValueTierResponse, SankeyNode, SankeyLink, SankeyGraphData, FlowMatrixCell, FlowMatrix, AssociationItem, CategoryFlowResponse, CategoryFlowAssociationResponse, CategoryFlowMatrixResponse, AnchorMode, PathDepth, MarketBasketItem, MarketBasketYoYItem, MarketBasketResponse
+from .category import CategoryDistributionItem, CategoryDistributionResponse, CategoryOverviewItem, CategoryOverviewResponse, CategorySegmentMatrixResponse, CategoryUserProfileResponse, CategoryRepurchaseFlowRow, CategoryRepurchaseFlowResponse, ValueTierTableRow, CategoryValueTierResponse, AnchorMode, PathDepth, MarketBasketItem, MarketBasketYoYItem, MarketBasketResponse
 from .rfm import RFMRFlowRow, RFMRFlowResponse, RFMFRFlowRow, RFMFRFlowResponse, RFMMFlowRow, RFMMFlowResponse, RFMAnalysisRow, RFMAnalysisResponse, RFMThresholds, SegmentDefinitionItem, RFMConfigResponse, SegmentOrderRow, SegmentOrdersResponse, DecliningCategoryItem, ImprovingCategoryItem, RFMCategoryDrilldownRow, TopDriverItem, RFMCategoryDrilldownSummary, RFMCategoryDrilldownResponse
-from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, ProductClassRepurchase, RepurchaseCycleOverview, CohortRetentionResponse, ValueTierDefinition, FrequencyTierDefinition, CustomerSegmentItem, ValueTierResponse, TierFlowRow, TierFlowResponse, PromotionPeriod, PromotionVsDailyMetrics, PromotionCalendarResponse, ChannelHealthScoreItem, HealthTargetsResponse, ChannelHealthScoresResponse, ConfigHistoryItem, ConfigHistoryResponse, ConfigRestoreResponse, AuditLogItem, AuditLogResponse, ValueTierTableRow, ExportPPTRequest, ExportPPTResponse, TemplatesResponse, NewCustomerConversionFunnel, NewCustomerChannelQuality, NewCustomerConversionResponse
+from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, RepurchaseCycleOverview, CohortRetentionResponse, ValueTierDefinition, FrequencyTierDefinition, CustomerSegmentItem, ValueTierResponse, TierFlowRow, TierFlowResponse, PromotionPeriod, PromotionVsDailyMetrics, PromotionCalendarResponse, ChannelHealthScoreItem, HealthTargetsResponse, ChannelHealthScoresResponse, ConfigHistoryItem, ConfigHistoryResponse, ConfigRestoreResponse, AuditLogItem, AuditLogResponse, ExportPPTRequest, ExportPPTResponse, TemplatesResponse, NewCustomerConversionFunnel, NewCustomerChannelQuality, NewCustomerConversionResponse
 from .visitor import VisitorSummaryResponse, VisitorDailyTrendItem, VisitorDailyTrendResponse
 from .breakdown import BreakdownRequest, BreakdownRIntervalRow, BreakdownRIntervalReverseRow, BreakdownOldCustomer, BreakdownChannelNewRow, BreakdownChannelNewReverseRow, BreakdownNewCustomer, BreakdownGapSuggestion, BreakdownMeta, BreakdownLogic, BreakdownResponse
 from .sampling import SamplingChannelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingROIResponse, SamplingLockCampaignInfo, SamplingLockYearData, SamplingLockYOY, SamplingLockAnalysisResponse, RollingYearMetrics, RollingYOY, RollingTimeline, RollingComparisonResponse
@@ -29,7 +29,6 @@ __all__ = [
     "AudienceTableResponse",
     "ChannelGSVRow",
     "AudiencePeriodMetrics",
-    "YearComparisonRow",
     "AudienceSummaryRequest",
     "AudienceSummaryResponse",
     "FlowMatrixResponse",
@@ -78,15 +77,6 @@ __all__ = [
     "CategoryRepurchaseFlowResponse",
     "ValueTierTableRow",
     "CategoryValueTierResponse",
-    "SankeyNode",
-    "SankeyLink",
-    "SankeyGraphData",
-    "FlowMatrixCell",
-    "FlowMatrix",
-    "AssociationItem",
-    "CategoryFlowResponse",
-    "CategoryFlowAssociationResponse",
-    "CategoryFlowMatrixResponse",
     "AnchorMode",
     "PathDepth",
     "MarketBasketItem",
@@ -114,7 +104,6 @@ __all__ = [
     "HealthAlertItem",
     "HealthOverviewMetrics",
     "RepurchaseBucket",
-    "ProductClassRepurchase",
     "RepurchaseCycleOverview",
     "CohortRetentionResponse",
     "ValueTierDefinition",
@@ -134,7 +123,6 @@ __all__ = [
     "ConfigRestoreResponse",
     "AuditLogItem",
     "AuditLogResponse",
-    "ValueTierTableRow",
     "ExportPPTRequest",
     "ExportPPTResponse",
     "TemplatesResponse",

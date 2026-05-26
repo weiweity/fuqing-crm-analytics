@@ -3,6 +3,7 @@ from typing import Optional, List, Any, Dict
 from enum import Enum
 from pydantic import BaseModel, Field
 from .common import WoolPartyBreakdown, DateRangeResponse
+from .asset import ProductClassRepurchase
 
 class HealthAlertItem(BaseModel):
     """健康度告警项"""
@@ -91,32 +92,6 @@ class RepurchaseBucket(BaseModel):
     # YOY
     user_count_yoy: Optional[float] = Field(None, description="人数同比（绝对值变化）")
     user_ratio_yoy: Optional[float] = Field(None, description="占比同比（pp变化）")
-
-
-class ProductClassRepurchase(BaseModel):
-    """品类复购指标（含同比）"""
-    product_class: str = Field(..., description="品类名称")
-    total_buyers: int = Field(..., description="购买人数")
-    repurchase_users: int = Field(..., description="复购人数")
-    repurchase_rate: float = Field(..., description="复购率")
-    median_days: int = Field(..., description="中位复购天数")
-    p25_days: int = Field(..., description="P25复购天数")
-    p75_days: int = Field(..., description="P75复购天数")
-    avg_days: Optional[float] = Field(None, description="平均复购天数")
-    avg_order_value: float = Field(..., description="客单价（含首购）")
-    gsv: float = Field(..., description="GSV（含首购）")
-    repurchase_order_value: float = Field(..., description="复购客单价（仅复购订单）")
-    repurchase_gsv: float = Field(..., description="复购GSV（仅复购订单）")
-    # 同比
-    ly_repurchase_rate: Optional[float] = Field(None, description="去年同期复购率")
-    ly_median_days: Optional[int] = Field(None, description="去年同期中位天数")
-    ly_avg_days: Optional[float] = Field(None, description="去年同期平均天数")
-    ly_gsv: Optional[float] = Field(None, description="去年同期GSV")
-    # YOY
-    repurchase_rate_yoy: Optional[float] = Field(None, description="复购率同比(pp)")
-    median_days_yoy: Optional[float] = Field(None, description="中位天数同比(pp)")
-    avg_days_yoy: Optional[float] = Field(None, description="平均天数YOY")
-    gsv_yoy: Optional[float] = Field(None, description="GSV同比")
 
 
 class RepurchaseCycleOverview(BaseModel):
@@ -348,18 +323,6 @@ class AuditLogItem(BaseModel):
 class AuditLogResponse(BaseModel):
     """审计日志列表响应"""
     logs: List[AuditLogItem] = Field(default_factory=list)
-
-class ValueTierTableRow(BaseModel):
-    """价值分层-表格行"""
-    category_name: str
-    total_users: int
-    high_value_users: int
-    high_value_ratio: float
-    wool_party: WoolPartyBreakdown
-    member_ratio: float
-    avg_aus: float
-    value_score: float
-    value_grade: str  # A/B/C/D/E
 
 class ExportPPTRequest(BaseModel):
     report_type: str = "weekly"

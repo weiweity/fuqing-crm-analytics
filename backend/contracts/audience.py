@@ -253,16 +253,6 @@ class AudiencePeriodMetrics(BaseModel):
     member_new_users_ratio: float = 0.0
 
 
-class YearComparisonRow(BaseModel):
-    """30指标对比表格的一行"""
-    field: str
-    kind: str = "money"           # 指标类型: money | ratio | count | aus
-    value_2026: Optional[float] = None
-    value_2025: Optional[float] = None
-    value_2024: Optional[float] = None
-    yoy: Optional[float] = None    # 相对2025的YOY
-
-
 class AudienceSummaryRequest(BaseModel):
     year: int = Field(default=2026, description="对比基准年，如2026")
     metric_type: str = Field(default="GSV", description="GMV 或 GSV")
