@@ -700,16 +700,24 @@ def get_category_flow_matrix(
         conn.close()
 
 def _get_cached_association(cache_key: str, compute_fn):
-    """带锁的内存缓存，5分钟TTL，LRU淘汰（最多保留100条）"""
+    """
+    带锁的内存缓存，5分钟TTL，LRU淘汰（最多保留100条）。
+    锁覆盖 check+compute 全程，避免并发 cache-miss 导致的重复计算。
+    """
     import time
-    now = time.time()
+
+    # ── 锁内检查：命中则直接返回 ──
     with _assoc_cache_lock:
+        now = time.time()
         entry = _assoc_cache.get(cache_key)
         if entry and (now - entry["ts"]) < 300:
-            # 命中后移到末尾（LRU）
             _assoc_cache.move_to_end(cache_key)
             return entry["data"]
+
+    # ── 未命中：在锁外计算（避免长时间持锁阻塞其他线程访问缓存）────
+    # 但写回仍需竞争锁，避免并发写入覆盖
     data = compute_fn()
+
     with _assoc_cache_lock:
         _assoc_cache[cache_key] = {"data": data, "ts": now}
         # LRU淘汰：超过上限时移除最老的条目

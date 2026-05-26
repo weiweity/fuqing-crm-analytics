@@ -1,53 +1,20 @@
-"""品类分析服务"""
+"""品类分析服务 - 复购分析"""
 import duckdb
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List
 from collections import OrderedDict
 
-"""
-芙清 CRM 客户分析系统 - 品类分析服务
-Week 4 品类分布、品类象限矩阵、品类用户画像
-"""
-
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
 from backend.semantic.segments import RFM_THRESHOLDS
 
-
-SPU_LEVELS = {
-    "category": "spu_category",      # 一级品类
-    "type": "spu_type",               # 二级品类
-    "tier": "spu_tier",              # 层级
-    "class": "spu_product_class",    # 产品类
-    "subclass": "spu_product_subclass",  # 产品子类
-    "cosmetic": "spu_cosmetic",      # 功效
-    "spec": "spu_spec",              # 规格
-}
-
-# 非产品品类（营销赠品、虚拟商品、物料等），从品类看板中排除
-EXCLUDED_PRODUCT_CATEGORIES = (
-    '购物金', '0.01', '邮费补差链接', '明星小卡', '刮刮卡',
-    '有价优惠劵', '盲盒', '手持镜', '帆布袋', '帆布包',
-    '加湿器', '起泡网', '吸油纸', '硅胶刷', '湿敷棉',
-    '洗脸巾', 'PR礼盒', '多品类集合链',
+from ._shared import (
+    SPU_LEVELS,
+    EXCLUDED_PRODUCT_CATEGORIES,
+    _RFM_SEGMENT_ORDER,
+    _resolve_repurchase_date_ranges,
 )
-
-
-def _cat_expr(field: str) -> str:
-    """品类字段表达式：TRIM + COALESCE，修复尾部空格问题"""
-    return f"COALESCE(TRIM(o.{field}), '未知')"
-
-
-def _excluded_cat_filter(field: str) -> str:
-    """生成排除非产品品类的 SQL 片段"""
-    placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
-    return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
-
 
 def _run_category_repurchase_period(
     conn: duckdb.DuckDBPyConnection,
@@ -136,7 +103,7 @@ def _run_category_repurchase_period(
             SUM(actual_amount) AS gsv,
             BOOL_OR(is_member) AS is_member
         FROM orders o
-        WHERE o.{category_field} = '{safe_category}'
+        WHERE o.{category_field} = ?
           AND pay_time <= ?::TIMESTAMP
           AND {valid_sql}
           {exclude_where}
@@ -178,7 +145,7 @@ def _run_category_repurchase_period(
     same_repurchase AS (
         SELECT DISTINCT user_id
         FROM orders o
-        WHERE o.{category_field} = '{safe_category}'
+        WHERE o.{category_field} = ?
           AND pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -191,7 +158,7 @@ def _run_category_repurchase_period(
         SELECT DISTINCT user_id
         FROM orders o
         WHERE o.{category_field} IS NOT NULL
-          AND o.{category_field} != '{safe_category}'
+          AND o.{category_field} != ?
           AND pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -203,7 +170,7 @@ def _run_category_repurchase_period(
     same_repurchase_amounts AS (
         SELECT o.user_id, SUM(o.actual_amount) AS repurchase_gsv
         FROM orders o
-        WHERE o.{category_field} = '{safe_category}'
+        WHERE o.{category_field} = ?
           AND o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -217,7 +184,7 @@ def _run_category_repurchase_period(
         SELECT o.user_id, SUM(o.actual_amount) AS repurchase_gsv
         FROM orders o
         WHERE o.{category_field} IS NOT NULL
-          AND o.{category_field} != '{safe_category}'
+          AND o.{category_field} != ?
           AND o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -315,12 +282,19 @@ def _run_category_repurchase_period(
     # same_repurchase_amounts: 2(start,end) + ch + ex
     # cross_repurchase_amounts: 2(start,end) + ch + ex
 
-    full_params = base_params + base_params_extra + exclude_params  # base_orders
-    full_params += hist_params + exclude_params                      # hist_customers
-    full_params += base_params + base_params_extra + exclude_params  # same_repurchase
-    full_params += base_params + base_params_extra + exclude_params  # cross_repurchase
-    full_params += base_params + base_params_extra + exclude_params  # same_repurchase_amounts
-    full_params += base_params + base_params_extra + exclude_params  # cross_repurchase_amounts
+    # SQL参数顺序（严格对应 ? 占位符）:
+    # base_orders: 2(start,end) + ch + ex
+    # hist_customers: 2(cutoff) + ex + 1(category)
+    # same_repurchase: 2(start,end) + ch + ex + 1(category)
+    # cross_repurchase: 2(start,end) + ch + ex + 1(category)
+    # same_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
+    # cross_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
+    full_params = base_params + base_params_extra + exclude_params           # base_orders (2+ch+ex)
+    full_params += hist_params + exclude_params + [safe_category]            # hist_customers (2+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # same_repurchase (2+ch+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # cross_repurchase (2+ch+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # same_repurchase_amounts (2+ch+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # cross_repurchase_amounts (2+ch+ex+1)
 
     rows = conn.execute(sql, full_params).fetchall()
 
@@ -494,7 +468,7 @@ def _run_category_repurchase_period_by_rfm(
     same_repurchase AS (
         SELECT DISTINCT user_id
         FROM orders o
-        WHERE o.{category_field} = '{safe_category}'
+        WHERE o.{category_field} = ?
           AND pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -507,7 +481,7 @@ def _run_category_repurchase_period_by_rfm(
         SELECT DISTINCT user_id
         FROM orders o
         WHERE o.{category_field} IS NOT NULL
-          AND o.{category_field} != '{safe_category}'
+          AND o.{category_field} != ?
           AND pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -519,7 +493,7 @@ def _run_category_repurchase_period_by_rfm(
     same_repurchase_amounts AS (
         SELECT o.user_id, SUM(o.actual_amount) AS repurchase_gsv
         FROM orders o
-        WHERE o.{category_field} = '{safe_category}'
+        WHERE o.{category_field} = ?
           AND o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -533,7 +507,7 @@ def _run_category_repurchase_period_by_rfm(
         SELECT o.user_id, SUM(o.actual_amount) AS repurchase_gsv
         FROM orders o
         WHERE o.{category_field} IS NOT NULL
-          AND o.{category_field} != '{safe_category}'
+          AND o.{category_field} != ?
           AND o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
           AND {valid_sql}
@@ -631,12 +605,19 @@ def _run_category_repurchase_period_by_rfm(
     # same_repurchase_amounts: 2(start,end) + ch + ex
     # cross_repurchase_amounts: 2(start,end) + ch + ex
 
-    full_params = base_params + base_params_extra + exclude_params  # base_orders
-    full_params += hist_params + exclude_params                      # hist_customers
-    full_params += base_params + base_params_extra + exclude_params  # same_repurchase
-    full_params += base_params + base_params_extra + exclude_params  # cross_repurchase
-    full_params += base_params + base_params_extra + exclude_params  # same_repurchase_amounts
-    full_params += base_params + base_params_extra + exclude_params  # cross_repurchase_amounts
+    # SQL参数顺序（严格对应 ? 占位符）:
+    # base_orders: 2(start,end) + ch + ex
+    # hist_customers: 2(cutoff) + ex + 1(category)
+    # same_repurchase: 2(start,end) + ch + ex + 1(category)
+    # cross_repurchase: 2(start,end) + ch + ex + 1(category)
+    # same_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
+    # cross_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
+    full_params = base_params + base_params_extra + exclude_params           # base_orders (2+ch+ex)
+    full_params += hist_params + exclude_params + [safe_category]            # hist_customers (2+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # same_repurchase (2+ch+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # cross_repurchase (2+ch+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # same_repurchase_amounts (2+ch+ex+1)
+    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # cross_repurchase_amounts (2+ch+ex+1)
 
     rows = conn.execute(sql, full_params).fetchall()
 

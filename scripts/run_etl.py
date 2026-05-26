@@ -2196,7 +2196,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         create_user_rfm_table()
         from scripts.preload_rfm import run_auto_preload
         results = run_auto_preload()
-        success = [r for r in results if r[3] > 0]
+        success = [r for r in results if r[4] > 0]
         print(f"  user_rfm 预加载完成: {len(success)} 个组合")
     else:
         # ===== 增量模式：保持原逻辑 =====
@@ -2852,7 +2852,7 @@ if __name__ == '__main__':
         create_user_rfm_table()
         from scripts.preload_rfm import run_auto_preload
         results = run_auto_preload()
-        success = [r for r in results if r[3] > 0]
+        success = [r for r in results if r[4] > 0]
         print(f"  user_rfm 预加载完成: {len(success)} 个组合")
 
         # Step 7.5: 刷新活动节奏表（campaign_schedule）

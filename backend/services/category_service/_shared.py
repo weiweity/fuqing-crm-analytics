@@ -3,15 +3,8 @@ import threading
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
-"""
-芙清 CRM 客户分析系统 - 品类分析服务
-Week 4 品类分布、品类象限矩阵、品类用户画像
-"""
-
 import duckdb
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
@@ -24,14 +17,6 @@ def _normalize_date(date_val) -> str:
         return date_val.strftime("%Y-%m-%d")
     if isinstance(date_val, str):
         return date_val[:10] if len(date_val) > 10 else date_val
-
-def _segment_meta(seg_id: int) -> dict:
-    """从 registry 获取象限元数据,避免硬编码"""
-    registry = get_registry()
-    seg = registry.get(seg_id)
-    if seg:
-        return {"name": seg.name_cn, "en": seg.name_en, "color": seg.color}
-    return {"name": "其他", "en": "Others", "color": "#BDC3C7"}
 
 SPU_LEVELS = {
     "category": "spu_category",      # 一级品类

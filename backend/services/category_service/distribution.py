@@ -17,6 +17,7 @@ from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
 from backend.semantic.segments import RFM_THRESHOLDS
+from backend.services.category_service._shared import _normalize_date
 
 
 SPU_LEVELS = {
