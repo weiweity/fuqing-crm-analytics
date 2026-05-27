@@ -610,7 +610,7 @@ def get_rfm_analysis(
         try:
             _write_db_cache(
                 period, start_date, end_date, channel, metric_type,
-                exclude_channels, data_version, result, compare_start_date, compare_end_date
+                exclude_channels, conn, data_version, result, compare_start_date, compare_end_date
             )
             logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
         except Exception as e:
@@ -706,6 +706,7 @@ def _write_db_cache(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
+    conn: duckdb.DuckDBPyConnection,
     data_version: str,
     result: Dict[str, Any],
     compare_start_date: Optional[str] = None,
@@ -714,7 +715,7 @@ def _write_db_cache(
     """写入 DuckDB 预计算缓存表（含 mtime_at_write 用于后续新鲜度校验）。
 
     防御性校验：仅写入有效的 dict 结果，防止污染缓存表。
-    data_version 由调用方通过 get_connection() 获取后传入，避免多连接冲突。
+    conn 由调用方传入（避免多连接冲突），data_version 同理。
     """
     # 防御性校验：result 必须是有效 dict
     if not isinstance(result, dict):
@@ -729,10 +730,8 @@ def _write_db_cache(
 
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     ex_str = json.dumps(exclude_channels, ensure_ascii=False) if exclude_channels else ""
-    # data_version 已在调用方通过 get_connection() 获取，直接复用
-    conn = get_connection()
+    _ensure_db_cache_table(conn)
     try:
-        _ensure_db_cache_table(conn)
         conn.execute(
             f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
             f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
@@ -742,8 +741,6 @@ def _write_db_cache(
         )
     except Exception as e:
         logger.warning(f"RFM DuckDB 缓存写入失败（不影响返回）: {e}")
-    finally:
-        conn.close()
 
 
 def precompute_rfm_cache() -> int:
