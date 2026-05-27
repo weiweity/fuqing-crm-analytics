@@ -16,6 +16,10 @@ from scripts.etl.config import (
 
 import pandas as pd
 
+_TAOKE_ORDER_IDS_CACHE = None  # 全局缓存，避免重复加载
+_LIVE_ORDER_IDS_CACHE = None
+_TAOKE_PRODUCT_RULES_CACHE = None  # 需与 config.py 保持同步
+
 def load_spu_mapping():
     """加载 SPU 匹配表（无 header 模式，手动按位置映射列名）
 

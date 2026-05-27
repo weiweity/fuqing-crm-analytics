@@ -286,11 +286,13 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         if len(new_df) > 0:
             new_df = clean_data(new_df, spu_df, keyword_rules, id_rules,
                                taoke_order_ids=taoke_order_ids, live_order_ids=live_order_ids,
-                               taoke_product_rules=taoke_product_rules)
+                               taoke_product_rules=taoke_product_rules,
+                               force_continue=force_continue)
         if len(refresh_df) > 0:
             refresh_df = clean_data(refresh_df, spu_df, keyword_rules, id_rules,
                                    taoke_order_ids=taoke_order_ids, live_order_ids=live_order_ids,
-                                   taoke_product_rules=taoke_product_rules)
+                                   taoke_product_rules=taoke_product_rules,
+                                   force_continue=force_continue)
 
         # Step 4: 写入数据库（滑动窗口模式）
         upsert_to_duckdb(new_df, refresh_df, mode=run_mode, window_days=window_days)

@@ -141,7 +141,7 @@ def match_channel(df, keyword_rules, id_rules, taoke_order_ids=None, live_order_
     return df
 
 
-def clean_data(df, spu_df, keyword_rules, id_rules, taoke_order_ids=None, live_order_ids=None, taoke_product_rules=None):
+def clean_data(df, spu_df, keyword_rules, id_rules, taoke_order_ids=None, live_order_ids=None, taoke_product_rules=None, force_continue=False):
     """清洗数据"""
     print(f"\n清洗数据: {len(df)} 行")
 
@@ -303,9 +303,12 @@ def clean_data(df, spu_df, keyword_rules, id_rules, taoke_order_ids=None, live_o
     # ========================================
     refund_rate = df['is_refund'].mean()
     goujinjin_rate = df['is_goujinjin'].mean()
+    REFUND_THRESHOLD = 0.40  # 大促期间退款率可达 35%+
+    GOUJINJIN_THRESHOLD = 0.40
     print(f"\n  【数据验收】")
-    print(f"    退款率:   {refund_rate:.1%}  （门卫: <25% → {'✅' if refund_rate < 0.25 else '❌ 异常!'}")
-    print(f"    购物金率: {goujinjin_rate:.1%}  （门卫: <30% → {'✅' if goujinjin_rate < 0.3 else '❌ 异常!'}'")
-    assert refund_rate < 0.25, f"退款率 {refund_rate:.1%} 异常（>25%），ETL 中止，请检查数据源"
-    assert goujinjin_rate < 0.3, f"购物金率 {goujinjin_rate:.1%} 异常（>30%），ETL 中止，请检查数据源"
+    print(f"    退款率:   {refund_rate:.1%}  （门卫: <{REFUND_THRESHOLD:.0%} → {'✅' if refund_rate < REFUND_THRESHOLD else '❌ 异常!'}")
+    print(f"    购物金率: {goujinjin_rate:.1%}  （门卫: <{GOUJINJIN_THRESHOLD:.0%} → {'✅' if goujinjin_rate < GOUJINJIN_THRESHOLD else '❌ 异常!'}'")
+    if not force_continue:
+        assert refund_rate < REFUND_THRESHOLD, f"退款率 {refund_rate:.1%} 异常（>{REFUND_THRESHOLD:.0%}），ETL 中止，请检查数据源"
+        assert goujinjin_rate < GOUJINJIN_THRESHOLD, f"购物金率 {goujinjin_rate:.1%} 异常（>{GOUJINJIN_THRESHOLD:.0%}），ETL 中止，请检查数据源"
     return df

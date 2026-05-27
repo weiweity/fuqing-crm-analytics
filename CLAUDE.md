@@ -43,19 +43,47 @@ chore    工具/构建/依赖
 示例：feat: 新增人群看板RFM视图
 ```
 
-### 提交步骤
+### 提交步骤（强制，不得跳过）
+
+```
+① 写代码
+  ↓
+② 跑测试 — pytest backend/tests/ -x -q
+  ↓
+③ review skill — commit 前自检（找逻辑问题、SQL 安全、边界条件）
+  ↓
+④ 修复 review 发现的问题
+  ↓
+⑤ git commit（规范 message）
+  ↓
+⑥ git push
+  ↓
+⑦ qa skill — 功能验收（跑全量测试 + API 检查）
+```
+
+**对应 Skill**：
+- `review` — commit 前必须调用，审查代码质量
+- `qa` — push 后调用，验收测试
+- `ship` — 大功能完成后，完整检查（测试 + 类型 + 文档 + 版本号）
+
 ```bash
 cd fuqing-crm-analytics
 
-# 1. 写清改了哪些模块（按逻辑分组，不要一股脑 add -A）
-git add backend/services/health/    # 同一功能模块一起提交
-git add frontend-vue3/src/api/    # API 改动一起提交
+# 1. 跑测试
+PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
 
-# 2. 写清为什么改（commit message 模板自动弹出）
+# 2. review（自动调用 Skill）
+# 触发词：review、代码审查、逻辑有没有问题
+
+# 3. 按逻辑分组提交
+git add backend/services/health/    # 同一功能模块一起提交
 git commit
 
-# 3. 推送到 GitHub（SSH 已配置，无需登录）
+# 4. 推送到 GitHub
 git push origin main
+
+# 5. qa 验收（自动调用 Skill）
+# 触发词：qa、测试一下、验收、检查一下
 ```
 
 ### 分支策略
