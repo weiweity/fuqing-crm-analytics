@@ -47,56 +47,74 @@ chore    工具/构建/依赖
 ### 提交步骤（强制，不得跳过）
 
 ```
-① 写代码
+① git checkout -b feature/xxx   ← 从 main 拉 feature 分支
   ↓
-② 跑测试 — pytest backend/tests/ -x -q
+② 写代码
   ↓
-③ review skill — commit 前自检（找逻辑问题、SQL 安全、边界条件）
+③ 跑测试 — pytest backend/tests/ -x -q
   ↓
-④ 修复 review 发现的问题
+④ review skill — commit 前自检（找逻辑问题、SQL 安全、边界条件）
   ↓
-⑤ git commit（规范 message）
+⑤ 修复 review 发现的问题
   ↓
-⑥ git push
+⑥ git commit -m "feat: xxx"（规范 message）
   ↓
-⑦ qa skill — 功能验收（跑全量测试 + API 检查）
+⑦ git push origin feature/xxx
+  ↓
+⑧ qa skill — 功能验收（跑全量测试 + API 检查）
+  ↓
+⑨ git checkout main && git merge feature/xxx --no-ff
+  ↓
+⑩ git push origin main
 ```
 
 **对应 Skill**：
 - `review` — commit 前必须调用，审查代码质量
-- `qa` — push 后调用，验收测试
+- `qa` — push 后、merge 前调用，验收测试
 - `ship` — 大功能完成后，完整检查（测试 + 类型 + 文档 + 版本号）
 
 ```bash
 cd fuqing-crm-analytics
 
-# 1. 跑测试
+# 1. 创建 feature 分支
+git checkout -b feature/my-feature
+
+# 2. 写代码 + 跑测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
 
-# 2. review（自动调用 Skill）
+# 3. review（自动调用 Skill）
 # 触发词：review、代码审查、逻辑有没有问题
 
-# 3. 按逻辑分组提交
-git add backend/services/health/    # 同一功能模块一起提交
-git commit
+# 4. 按逻辑分组提交
+git add backend/services/health/
+git commit -m "feat: 新增xxx功能"
 
-# 4. 推送到 dev 分支
-git push origin dev
+# 5. 推送到 feature 分支
+git push origin feature/my-feature
 
-# 5. qa 验收（自动调用 Skill）
+# 6. qa 验收（自动调用 Skill）
 # 触发词：qa、测试一下、验收、检查一下
+
+# 7. merge 到 main
+git checkout main
+git merge feature/my-feature --no-ff -m "merge: xxx功能"
+git push origin main
+
+# 8. 清理 feature 分支
+git branch -d feature/my-feature
+git push origin --delete feature/my-feature
 ```
 
 ### 分支策略
 
 ```
-main (生产) ← PR ← dev (开发) ← feature 分支
+main (生产) ← merge --no-ff ← feature/xxx
 ```
 
-- **main**: 只接受 PR merge，禁止直接 commit
-- **dev**: 日常开发分支，从 main 拉出
-- **feature/***: 大功能/重构专用分支，完成后 merge 到 dev
-- 流程：`feature → dev → PR → qa → merge main → push`
+- **main**: 只接受 feature 分支 merge，禁止直接 commit
+- **feature/***: 每个功能/修复一个分支，完成后 merge 到 main 并删除
+- **dev**: 可选，多人协作时用于集成，单人项目直接 feature → main
+- 流程：`feature → 测试 → review → qa → merge main → push → 删除 feature`
 
 ### 禁止事项
 - ❌ `git commit -m "fix"` / "update" / "asdf" — 提交信息必须说明改了什么
