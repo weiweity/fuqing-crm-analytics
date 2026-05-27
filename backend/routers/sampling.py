@@ -7,6 +7,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 
+from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import (
     SamplingROIResponse,
     SamplingLockAnalysisResponse,
@@ -23,8 +24,8 @@ router = APIRouter(prefix="/api/v1/sampling", tags=["派样看板"])
 
 @router.get("/roi", response_model=SamplingROIResponse)
 def get_sampling_roi_api(
-    start_date: str = Query(default="2026-01-01", description="派样起始日期"),
-    end_date: str = Query(default="2026-01-31", description="派样结束日期"),
+    start_date: str = Query(default=_default_start_date(), description="派样起始日期"),
+    end_date: str = Query(default=_default_end_date(), description="派样结束日期"),
     window_days: int = Query(default=30, description="回购窗口天数：7/30/60"),
     level: str = Query(default="spu_category", description="品类维度：spu_category/spu_tier/spu_product_class"),
     channel: Optional[str] = Query(default=None, description="筛选特定派样渠道"),

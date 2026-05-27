@@ -91,8 +91,8 @@ def _run_category_period(
         key=category_name，value={hist_users, repurchase_users, repurchase_rate,
         repurchase_gsv, repurchase_gsv_ratio}
     """
-    _rt = RFM_THRESHOLDS["r"]   # [14, 30, 60, 90]
-    _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 5]
+    _rt = RFM_THRESHOLDS["r"]   # [30, 90, 180, 365]
+    _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 4]
     _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
 
     # ---------------------------------------------------------------

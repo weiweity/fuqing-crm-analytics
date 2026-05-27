@@ -5,12 +5,13 @@
 
 import duckdb
 from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR
+from backend.db.connection import get_connection
 
 def init_database():
     """初始化 DuckDB 数据库，创建必要的表结构"""
 
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = get_connection()
 
     # 删除旧表
     conn.execute("DROP TABLE IF EXISTS orders")
@@ -147,7 +148,7 @@ def init_database():
 def create_user_rfm_table(conn=None):
     """创建 user_rfm 表（DuckDB）"""
     if conn is None:
-        conn = duckdb.connect(str(DUCKDB_PATH))
+        conn = get_connection()
         should_close = True
     else:
         should_close = False
@@ -187,7 +188,7 @@ def create_user_rfm_table(conn=None):
 def drop_user_rfm_table(conn=None):
     """删除 user_rfm 表"""
     if conn is None:
-        conn = duckdb.connect(str(DUCKDB_PATH))
+        conn = get_connection()
         should_close = True
     else:
         should_close = False

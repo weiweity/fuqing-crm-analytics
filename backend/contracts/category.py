@@ -148,17 +148,6 @@ class CategoryValueTierResponse(BaseModel):
     # 多时间窗口羊毛党数据（30天/90天/全部历史）
     wool_party_by_window: Optional[Dict[str, List[ValueTierTableRow]]] = None
 
-class AnchorMode(str, Enum):
-    """锚点模式：以目标品类的哪次购买为分析锚点"""
-    first = "first"   # 首次购买（分析期间内第一次买A）
-    last = "last"     # 末次购买（分析期间内最后一次买A）
-    every = "every"   # 每次购买（按购买事件统计，非按用户去重）
-
-
-class PathDepth(str, Enum):
-    """路径深度：时序关联分析的探索步数"""
-    d1 = "1"   # 1步：直接前后置关联
-    d2 = "2"   # 2步：再向外延伸一层（A→B→C）
 
 class MarketBasketItem(BaseModel):
     """购物篮关联项"""

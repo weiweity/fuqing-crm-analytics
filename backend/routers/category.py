@@ -7,6 +7,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional, List
 
+from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import (
     CategoryDistributionResponse,
     CategoryOverviewResponse,
@@ -46,7 +47,7 @@ router = APIRouter(prefix="/api/v1/category", tags=["品类分析"])
 
 @router.get("/distribution", response_model=CategoryDistributionResponse)
 def get_category_distribution_api(
-    date: str = Query(default="2026-03-19", description="分析日期 YYYY-MM-DD"),
+    date: str = Query(default=_default_end_date(), description="分析日期 YYYY-MM-DD"),
     lookback_days: int = Query(default=90, description="回溯天数"),
     level: str = Query(default="category", description="category/type/tier/class/subclass/cosmetic/spec"),
     segment_id: Optional[int] = Query(default=None, description="象限ID筛选"),
@@ -59,8 +60,8 @@ def get_category_distribution_api(
 
 @router.get("/overview", response_model=CategoryOverviewResponse)
 def get_category_overview_api(
-    start_date: str = Query(default="2026-04-01", description="开始日期 YYYY-MM-DD"),
-    end_date: str = Query(default="2026-04-17", description="结束日期 YYYY-MM-DD"),
+    start_date: str = Query(default=_default_start_date(), description="开始日期 YYYY-MM-DD"),
+    end_date: str = Query(default=_default_end_date(), description="结束日期 YYYY-MM-DD"),
     level: str = Query(default="type", description="category/type/tier/class/subclass/cosmetic/spec"),
     metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
     channel: Optional[str] = Query(default=None, description="渠道筛选"),
@@ -83,7 +84,7 @@ def get_category_overview_api(
 
 @router.get("/segment", response_model=CategorySegmentMatrixResponse)
 def get_category_segment_api(
-    date: str = Query(default="2026-03-19", description="分析日期 YYYY-MM-DD"),
+    date: str = Query(default=_default_end_date(), description="分析日期 YYYY-MM-DD"),
     lookback_days: int = Query(default=90, description="回溯天数"),
     level: str = Query(default="type", description="category/type/tier/class/subclass/cosmetic/spec"),
     top_n: int = Query(default=10, description="每个象限返回前 N 个品类"),
@@ -95,7 +96,7 @@ def get_category_segment_api(
 
 @router.get("/user-profile", response_model=CategoryUserProfileResponse)
 def get_category_user_profile_api(
-    date: str = Query(default="2026-03-19", description="分析日期 YYYY-MM-DD"),
+    date: str = Query(default=_default_end_date(), description="分析日期 YYYY-MM-DD"),
     lookback_days: int = Query(default=90, description="回溯天数"),
     category: str = Query(default="护肤", description="一级品类筛选"),
     type: Optional[str] = Query(default=None, description="二级品类筛选"),
@@ -106,8 +107,8 @@ def get_category_user_profile_api(
 
 @router.get("/value-tier", response_model=CategoryValueTierResponse)
 def get_category_value_tier_api(
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     level: str = Query(default="class"),
     channel: Optional[str] = Query(default=None),
     exclude_channels: Optional[List[str]] = Query(default=None),
@@ -118,8 +119,8 @@ def get_category_value_tier_api(
 
 @router.get("/repurchase-flow", response_model=CategoryRepurchaseFlowResponse)
 def get_category_repurchase_flow_api(
-    start_date: str = Query(default="2026-01-01"),
-    end_date: str = Query(default="2026-03-31"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     category: str = Query(default="B5面膜", description="目标品类"),
     level: str = Query(default="class"),
     metric_type: str = Query(default="GSV"),
@@ -138,8 +139,8 @@ def get_category_repurchase_flow_api(
 
 @router.get("/repurchase-flow-by-rfm", response_model=CategoryRepurchaseFlowResponse)
 def get_category_repurchase_flow_by_rfm_api(
-    start_date: str = Query(default="2026-01-01"),
-    end_date: str = Query(default="2026-03-31"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     category: str = Query(default="B5面膜", description="目标品类"),
     level: str = Query(default="class"),
     metric_type: str = Query(default="GSV"),
@@ -160,8 +161,8 @@ def get_category_repurchase_flow_by_rfm_api(
 
 @router.get("/flow", response_model=CategoryFlowResponse)
 def get_category_flow_api(
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     level: str = Query(default="class"),
     top_n: int = Query(default=10),
     window_days: int = Query(default=90),
@@ -180,8 +181,8 @@ def get_category_flow_api(
 
 @router.get("/flow/association", response_model=CategoryFlowAssociationResponse)
 def get_category_flow_association_api(
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     level: str = Query(default="class"),
     window_days: int = Query(default=90),
     channel: Optional[str] = Query(default=None),
@@ -202,8 +203,8 @@ def get_category_flow_association_api(
 
 @router.get("/flow/matrix", response_model=CategoryFlowMatrixResponse)
 def get_category_flow_matrix_api(
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     level: str = Query(default="class"),
     top_n: int = Query(default=10),
     window_days: int = Query(default=90),
@@ -221,8 +222,8 @@ def get_category_flow_matrix_api(
 
 @router.get("/churn", response_model=CategoryChurnResponse)
 def get_category_churn_api(
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     level: str = Query(default="class"),
     channel: Optional[str] = Query(default=None),
     exclude_channels: Optional[List[str]] = Query(default=None),
@@ -233,8 +234,8 @@ def get_category_churn_api(
 
 @router.get("/basket", response_model=MarketBasketResponse)
 def get_market_basket_api(
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     target_category: str = Query(..., description="目标品类名称"),
     level: str = Query(default="class"),
     channel: Optional[str] = Query(default=None),
@@ -251,8 +252,8 @@ def get_market_basket_api(
 @router.get("/detail/daily-trend", response_model=CategoryDailyTrendResponse)
 def get_category_daily_trend_api(
     category_id: str = Query(...),
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     granularity: str = Query(default="daily"),
 ):
     """品类每日趋势：返回单个品类在时间维度上的GMV、用户数等指标趋势"""
@@ -262,8 +263,8 @@ def get_category_daily_trend_api(
 @router.get("/detail/user-list", response_model=CategoryUserListResponse)
 def get_category_user_list_api(
     category_id: str = Query(...),
-    start_date: str = Query(default="2026-04-01"),
-    end_date: str = Query(default="2026-04-20"),
+    start_date: str = Query(default=_default_start_date()),
+    end_date: str = Query(default=_default_end_date()),
     limit: int = Query(default=100),
 ):
     """品类用户列表：返回单个品类的典型用户列表（高价值/高活跃/流失预警等）"""

@@ -7,6 +7,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional, List
 
+from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import OverviewMetrics, TrendData
 from backend.services.metrics_service import get_overview_metrics, get_daily_trend
 
@@ -15,8 +16,8 @@ router = APIRouter(prefix="/api/v1/metrics", tags=["指标"])
 
 @router.get("/overview", response_model=OverviewMetrics)
 def get_metrics_overview(
-    start_date: str = Query(default="2026-01-01", description="开始日期 YYYY-MM-DD"),
-    end_date: str = Query(default="2026-01-31", description="结束日期 YYYY-MM-DD"),
+    start_date: str = Query(default=_default_start_date(), description="开始日期 YYYY-MM-DD"),
+    end_date: str = Query(default=_default_end_date(), description="结束日期 YYYY-MM-DD"),
     metric_type: str = Query(default="GMV", description="指标类型：GMV 或 GSV"),
     channel: Optional[str] = Query(default=None, description="渠道筛选（UI渠道名）"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
@@ -32,8 +33,8 @@ def get_metrics_overview(
 
 @router.get("/trend", response_model=TrendData)
 def get_metrics_trend(
-    start_date: str = Query(default="2026-01-01", description="开始日期 YYYY-MM-DD"),
-    end_date: str = Query(default="2026-01-31", description="结束日期 YYYY-MM-DD"),
+    start_date: str = Query(default=_default_start_date(), description="开始日期 YYYY-MM-DD"),
+    end_date: str = Query(default=_default_end_date(), description="结束日期 YYYY-MM-DD"),
     metric_type: str = Query(default="GMV", description="指标类型：GMV 或 GSV"),
     channel: Optional[str] = Query(default=None, description="渠道筛选（UI渠道名）"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),

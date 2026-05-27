@@ -49,8 +49,8 @@
 | `visitor.py` | 40 | 3 | 访客数据 |
 | `breakdown.py` | 132 | 11 | 一键拆解 |
 | `sampling.py` | 168 | 12 | U先派样 |
-| `schemas.py` | 158 | — | 向后兼容重导出 |
-| `__init__.py` | 158 | — | 重导出 140 个类 |
+| `schemas.py` | 60 | — | 统一导出（唯一入口） |
+| `__init__.py` | 7 | — | 包初始化，从 schemas.py 重导出 |
 
 ## 语义层 (`backend/semantic/`)
 

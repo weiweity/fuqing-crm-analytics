@@ -33,7 +33,7 @@ app = FastAPI(
 # CORS 配置
 # ─────────────────────────────────────────────────────────────
 import os
-_DEFAULT_ORIGINS = "http://192.168.101.171:5173"
+_DEFAULT_ORIGINS = "http://localhost:5173"
 _CORS_ORIGINS = os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -173,10 +173,11 @@ app.include_router(report_router)
 
 if __name__ == "__main__":
     import uvicorn
+    from pathlib import Path
     uvicorn.run(
         "backend.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,
-        reload_dirs=["/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend"],
+        reload_dirs=[str(Path(__file__).parent)],
     )
