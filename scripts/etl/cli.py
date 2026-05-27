@@ -191,9 +191,13 @@ def rescan_channel(since: str = None, dry_run: bool = True):
         print(f"{'='*60}")
 
 
-def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
+def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
     """
-    SPU 重匹配：重新计算指定 product_id 的 spu_type 和 channel。
+    SPU 重匹配：重新计算 spu_type、spu_hash 和 channel。
+
+    两种模式：
+    1. 指定 product_ids：只重匹配这些产品
+    2. 不指定 product_ids：自动检测 spu_hash 不一致的订单（SPU 映射表更新后自动发现需要重匹配的订单）
 
     复用 load_spu_mapping() + match_channel() 的逻辑，保证口径一致。
     仅对 spu_type 发生变化的订单重新匹配渠道。
@@ -201,14 +205,14 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
     用法:
       python run_etl.py --rescan-spu --product-ids 1008376905465 --dry-run
       python run_etl.py --rescan-spu --product-ids 1008376905465 --apply
+      python run_etl.py --rescan-spu --dry-run    # 自动检测 hash 不一致
+      python run_etl.py --rescan-spu --apply       # 自动检测并修复
     """
     from datetime import datetime
 
     print(f"\n{'='*60}")
     print("SPU 重匹配")
     print(f"{'='*60}")
-    print(f"  目标 product_id: {product_ids}")
-    print(f"  模式: {'预览 (dry-run)' if dry_run else '执行写入 (apply)'}")
 
     # Step 1: 加载 SPU 匹配表（复用现有函数）
     spu_df = load_spu_mapping()
@@ -222,18 +226,56 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
     live_order_ids = load_live_order_ids()
     taoke_product_rules = load_taoke_product_rules()
 
-    # Step 3: 从 DuckDB 读取指定 product_id 的订单
-    print(f"\n读取 DuckDB 中目标订单...")
+    # Step 3: 从 DuckDB 读取订单
     conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     try:
-        # 使用参数化查询，防止SQL注入（CLAUDE.md规则：DuckDB用?参数化，禁止字符串拼接）
-        placeholders = ', '.join(['?' for _ in product_ids])
-        orders_df = conn.execute(f"""
-            SELECT order_id, product_id, pay_time, product_title,
-                   actual_amount, spu_type AS old_spu_type, channel AS old_channel
-            FROM orders
-            WHERE product_id IN ({placeholders})
-        """, product_ids).fetchdf()
+        if product_ids:
+            # 指定 product_ids 模式
+            print(f"  目标 product_id: {product_ids}")
+            print(f"  模式: {'预览 (dry-run)' if dry_run else '执行写入 (apply)'}")
+            placeholders = ', '.join(['?' for _ in product_ids])
+            orders_df = conn.execute(f"""
+                SELECT order_id, product_id, pay_time, product_title,
+                       actual_amount, spu_type AS old_spu_type, spu_hash AS old_spu_hash,
+                       channel AS old_channel
+                FROM orders
+                WHERE product_id IN ({placeholders})
+            """, product_ids).fetchdf()
+        else:
+            # 自动检测模式：找出 spu_hash 不一致的订单
+            print(f"  模式: 自动检测 spu_hash 不一致")
+            print(f"  状态: {'预览 (dry-run)' if dry_run else '执行写入 (apply)'}")
+
+            # 构建当前 SPU 映射的 hash 查找表
+            current_hashes = spu_df.set_index('spu_hash')['product_id'].to_dict() if 'spu_hash' in spu_df.columns else {}
+
+            # 找出 orders 中 spu_hash 不在当前映射表中的订单
+            orders_df = conn.execute("""
+                SELECT order_id, product_id, pay_time, product_title,
+                       actual_amount, spu_type AS old_spu_type, spu_hash AS old_spu_hash,
+                       channel AS old_channel
+                FROM orders
+                WHERE spu_hash IS NOT NULL
+                  AND spu_hash NOT IN (SELECT spu_hash FROM spu_mapping WHERE spu_hash IS NOT NULL)
+            """).fetchdf()
+
+            if orders_df.empty:
+                # 也检查 spu_hash 为 NULL 的订单（旧数据没有 hash）
+                orders_df = conn.execute("""
+                    SELECT order_id, product_id, pay_time, product_title,
+                           actual_amount, spu_type AS old_spu_type, spu_hash AS old_spu_hash,
+                           channel AS old_channel
+                    FROM orders
+                    WHERE spu_hash IS NULL
+                """).fetchdf()
+                if not orders_df.empty:
+                    print(f"  发现 {len(orders_df):,} 条无 spu_hash 的旧订单")
+                else:
+                    print(f"  所有订单的 spu_hash 均一致，无需重匹配")
+                    return
+            else:
+                product_ids = orders_df['product_id'].unique().tolist()
+                print(f"  发现 {len(orders_df):,} 条 hash 不一致的订单（涉及 {len(product_ids)} 个 product_id）")
     finally:
         conn.close()
 
@@ -246,7 +288,7 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
     print(f"\n执行 SPU 时间窗口匹配...")
     spu_cols = ['product_id', 'spu_category', 'spu_type', 'spu_tier',
                 'spu_product_class', 'spu_product_subclass', 'spu_cosmetic',
-                'spu_spec', 'spu_start_date', 'spu_end_date']
+                'spu_spec', 'spu_hash', 'spu_start_date', 'spu_end_date']
     spu_cols = [c for c in spu_cols if c in spu_df.columns]
     spu_valid = spu_df[spu_cols].dropna(subset=['product_id', 'spu_start_date']).copy()
 
@@ -353,7 +395,7 @@ def rescan_spu_mapping(product_ids: list, dry_run: bool = True):
         print(f"\n写入 DuckDB...")
         backup_and_update_orders(
             df=channel_df,
-            update_columns={'spu_type': 'new_spu_type', 'channel': 'channel'},
+            update_columns={'spu_type': 'new_spu_type', 'spu_hash': 'spu_hash', 'channel': 'channel'},
             backup_label='rescan',
             filter_condition=f"product_id IN ({', '.join(['?' for _ in product_ids])})",
             filter_params=product_ids
@@ -509,10 +551,6 @@ def main():
 
     # SPU 重匹配子命令
     if args.rescan_spu:
-        if not args.product_ids:
-            print("错误: --rescan-spu 需要配合 --product-ids 使用")
-            print("用法: python run_etl.py --rescan-spu --product-ids 1008376905465 --dry-run")
-            sys.exit(1)
         if not args.dry_run and not args.apply:
             print("错误: --rescan-spu 需要指定 --dry-run 或 --apply")
             sys.exit(1)
@@ -520,7 +558,7 @@ def main():
         print("SPU 重匹配")
         print("=" * 60)
         rescan_spu_mapping(
-            product_ids=args.product_ids,
+            product_ids=args.product_ids if args.product_ids else None,
             dry_run=args.dry_run
         )
         sys.exit(0)

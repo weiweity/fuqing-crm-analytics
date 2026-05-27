@@ -2,6 +2,7 @@
 加载 SPU 映射、渠道规则、淘客订单号、直播订单号等外部数据源。
 """
 import sys
+import hashlib
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -100,6 +101,20 @@ def load_spu_mapping():
                      'spu_product_class', 'spu_product_subclass', 'spu_cosmetic',
                      'spu_spec', 'spu_start_date', 'spu_end_date']
         df = df[[c for c in keep_cols if c in df.columns]]
+
+        # 计算 spu_hash：每行 SPU 映射的版本指纹
+        # 用于增量 ETL 时检测映射是否变化，自动触发重匹配
+        hash_cols = ['product_id', 'spu_category', 'spu_type', 'spu_tier',
+                     'spu_product_class', 'spu_product_subclass', 'spu_start_date', 'spu_end_date']
+        def _row_hash(row):
+            parts = []
+            for c in hash_cols:
+                v = row.get(c, '')
+                parts.append(str(v) if pd.notna(v) else '')
+            return hashlib.md5('|'.join(parts).encode()).hexdigest()[:16]
+
+        df['spu_hash'] = df.apply(_row_hash, axis=1)
+        print(f"  spu_hash 已计算（{df['spu_hash'].nunique()} 个唯一值）")
 
         print(f"  SPU匹配表: {len(df)} 条记录")
         print(f"  包含字段: {df.columns.tolist()}")

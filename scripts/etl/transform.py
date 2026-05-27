@@ -200,7 +200,7 @@ def clean_data(df, spu_df, keyword_rules, id_rules, taoke_order_ids=None, live_o
         if len(orders_match) > 0 and len(spu_valid) > 0:
             spu_attr_cols = ['spu_category', 'spu_type', 'spu_tier',
                              'spu_product_class', 'spu_product_subclass',
-                             'spu_cosmetic', 'spu_spec']
+                             'spu_cosmetic', 'spu_spec', 'spu_hash']
             spu_attr_cols = [c for c in spu_attr_cols if c in spu_valid.columns]
 
             # 步骤1：过滤出 product_id 在 SPU 表中的订单（避免 merge_asof 跨产品乱匹配）
