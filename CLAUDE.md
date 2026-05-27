@@ -123,21 +123,25 @@ fuqing-crm-analytics/
 ├── CLAUDE.md              ← 本文件（项目参考）
 ├── README.md              ← 项目介绍
 ├── backend/
-│   ├── main.py            ← FastAPI 入口
-│   ├── semantic/          ← 语义层（口径定义）
+│   ├── main.py            ← FastAPI 入口（端口 8000）
+│   ├── semantic/          ← 语义层（口径唯一真实数据源）
 │   │   ├── filters.py     ← OrderFilters / FilterBuilder
 │   │   ├── metrics.py     ← 指标注册表
-│   │   ├── segments.py    ← RFM 分群（SegmentRegistry）
+│   │   ├── segments.py    ← RFM 分群（RFM_THRESHOLDS）
 │   │   ├── channels.py    ← 渠道映射（DB_TO_UI/UI_TO_DB）
 │   │   ├── time.py        ← PeriodBuilder（WTD/MTD/YTD/free）
 │   │   └── calculations.py← YOY/MOM/safe_ratio
 │   ├── contracts/
-│   │   └── schemas.py     ← Pydantic 模型（唯一来源）
-│   ├── services/          ← 业务逻辑
-│   │   └── health/        ← 老客健康分析（6 个子服务）
-│   ├── routers/           ← API 路由
-│   ├── db/                ← 数据库连接
-│   ├── cache/             ← 缓存模块
+│   │   └── schemas.py     ← Pydantic 模型（统一导出，135个类）
+│   ├── services/          ← 业务逻辑（按业务域拆分为包）
+│   │   ├── category_service/ ← 品类分析（flow/repurchase/distribution/...）
+│   │   ├── health/        ← 老客健康分析（rfm_analysis/overview/repurchase/...）
+│   │   ├── metrics/       ← 指标服务
+│   │   ├── rfm/           ← RFM 区间流转（r_flow/f_flow/m_flow/segment_orders）
+│   │   ├── breakdown_service/ ← 一键拆解（forward/reverse/suggestions/main）
+│   │   └── dmp_asset_service/ ← DMP 资产（store/product/other）
+│   ├── routers/           ← API 路由（16 个模块）
+│   ├── db/                ← 数据库连接（get_connection）
 │   └── tests/             ← 单元测试（8 个文件，148 个用例）
 ├── frontend-vue3/
 │   ├── src/
@@ -149,8 +153,7 @@ fuqing-crm-analytics/
 ├── scripts/               ← ETL 和数据脚本
 ├── config/                ← 配置（健康评分、RFM 阈值）
 ├── data/                  ← 数据（raw/processed/parquet/cache）
-├── docs/                  ← 文档（见 DOCUMENT-INDEX.md）
-└── designs/               ← 设计稿和截图
+└── docs/                  ← 文档（见 DOCUMENT-INDEX.md）
 ```
 
 ---
