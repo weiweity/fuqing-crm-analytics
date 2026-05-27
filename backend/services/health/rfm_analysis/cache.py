@@ -18,9 +18,7 @@ from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
 from backend.semantic.rfm_reader import try_read_rfm_segment
-
-# 语义层统一口径：禁止在SQL中硬编码有效订单条件
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+from ._shared import _fetch_max_pay_time, _cache_key, _VALID_BASE
 
 logger = logging.getLogger(__name__)
 
