@@ -7,6 +7,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional, List
 
+from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import (
     GeoDistributionResponse,
     GeoSegmentMatrixResponse,
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/api/v1/geo", tags=["地域分析"])
 
 @router.get("/distribution", response_model=GeoDistributionResponse)
 def get_geo_distribution_api(
-    date: str = Query(default="2026-03-19", description="分析日期 YYYY-MM-DD"),
+    date: str = Query(default=_default_end_date(), description="分析日期 YYYY-MM-DD"),
     lookback_days: int = Query(default=90, description="回溯天数"),
     level: str = Query(default="省份", description="省份/城市"),
     top_n: int = Query(default=50, description="返回前 N 条"),
@@ -36,7 +37,7 @@ def get_geo_distribution_api(
 
 @router.get("/segment", response_model=GeoSegmentMatrixResponse)
 def get_geo_segment_api(
-    date: str = Query(default="2026-03-19", description="分析日期 YYYY-MM-DD"),
+    date: str = Query(default=_default_end_date(), description="分析日期 YYYY-MM-DD"),
     lookback_days: int = Query(default=90, description="回溯天数"),
     top_n: int = Query(default=10, description="每个象限返回前 N 个省份"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),

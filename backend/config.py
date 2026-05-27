@@ -125,8 +125,25 @@ LOG_LEVEL = "INFO"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # 数据清洗配置
-YEAR_RANGE = (2025, 2026)  # 处理的年份范围
+_year_start = int(os.environ.get("YEAR_RANGE_START", "2025"))
+_year_end = int(os.environ.get("YEAR_RANGE_END", "2026"))
+YEAR_RANGE = (_year_start, _year_end)
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+
+# ─────────────────────────────────────────────────────────────
+# API 默认日期（动态，避免硬编码过时日期）
+# ─────────────────────────────────────────────────────────────
+from datetime import date, timedelta
+
+def _default_end_date() -> str:
+    """默认结束日期：昨天"""
+    return (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+def _default_start_date() -> str:
+    """默认开始日期：当月1号"""
+    today = date.today()
+    return today.replace(day=1).strftime("%Y-%m-%d")
+
 # 会员定义基准日期（用于判断新老客）
-MEMBER_BASE_DATE = "2025-01-01"  # 2025年1月1日之前有过购买记录的为老客
+MEMBER_BASE_DATE = os.environ.get("MEMBER_BASE_DATE", "2025-01-01")

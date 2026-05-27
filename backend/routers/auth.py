@@ -12,7 +12,10 @@ from datetime import datetime, timedelta
 import secrets
 import time
 import os
+import logging
 import bcrypt
+
+logger = logging.getLogger(__name__)
 import logging
 
 router = APIRouter(prefix="/api/v1/auth", tags=["认证"])
@@ -46,7 +49,8 @@ def _load_credentials() -> dict[str, str]:
                 user, pwd = pair.split(":", 1)
                 raw_creds[user.strip()] = pwd.strip()
     else:
-        # 默认账号（生产环境请务必通过环境变量配置）
+        # 默认账号（生产环境请务必通过环境变量 FQ_CRM_PASSWORDS 配置）
+        logger.warning("使用默认账号密码，请通过环境变量 FQ_CRM_PASSWORDS 配置生产密码")
         raw_creds = {
             "admin": "123456",
             "fqsw": "fqsw888",
