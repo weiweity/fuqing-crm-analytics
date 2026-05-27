@@ -53,6 +53,9 @@ htmlcov/
 # 运行时缓存
 backend/cache/
 
+# 健康评分配置备份（API 自动生成，不进版本控制）
+config/health_config_backups/
+
 # 企业知识库 / 设计审计（大文件/内部资料，不纳入版本控制）
 docs/业务知识/
 docs/618-breakdown/
