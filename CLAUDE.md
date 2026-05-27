@@ -363,8 +363,12 @@ const ratio = (current - previous) / previous  // 不要在前端算
 |---|---|
 | `MEMORY.md`（自动注入） | 修改代码的规则 + 当前状态 + 历史教训 |
 | `docs/DOCUMENT-INDEX.md` | 文档分类索引 |
-| `docs/PRD-v3.0.md` | 产品需求文档 |
+| `docs/product/PRD-v3.0.md` | 产品需求文档 |
 | `docs/飞书版架构文档/` | 系统架构文档（7 份） |
+| `docs/ai/DESIGN.md` | AI 改代码操作规范 |
+| `docs/frontend/frontend-contract-guide.md` | 前端契约指南 |
+| `docs/deploy/DEPLOY.md` | 部署文档 |
+| `docs/backend/DATA-SOURCE-MAP.md` | 数据源映射 |
 
 ---
 
