@@ -581,16 +581,11 @@ def get_rfm_analysis(
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]
     current_year_label, comp_year_label, prev2_year_label = ranges["labels"]
 
-    # 缓存读取顺序：1) DuckDB预计算表 → 2) 文件缓存 → 3) 实时SQL
-    # Plan P1: DuckDB 预计算表（ETL 预热，最优先）
-    cached = _read_db_cache(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date)
-    if cached is not None:
-        return cached
-    # Plan C: 文件缓存（自定义日期范围兜底）
-    if _is_historical_period(cur_end_dt[:10]):
-        cached = _read_cache(_cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date))
-        if cached is not None:
-            return cached
+    # ── 缓存已禁用：确保数据一致性 ──
+    # 问题：缓存数据与 live SQL 计算结果不一致（user_rfm lookback_days=90 vs
+    # RFM分析需要截至 cutoff_dt 的所有用户），导致10倍人数差异
+    # 暂时禁用所有缓存读取，直接使用 live SQL 计算
+    # TODO: 重新设计缓存策略，确保缓存口径与 live SQL 完全一致
 
     conn = get_connection()
     try:
@@ -622,9 +617,8 @@ def get_rfm_analysis(
         "member_same_channel_rows": member_same_channel_rows,
     }
 
-    # Plan C: 历史周期写入文件缓存（DuckDB 预计算已在 ETL 阶段写入）
-    if _is_historical_period(cur_end_dt[:10]):
-        _write_cache(_cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date), result)
+    # ── 缓存写入已禁用 ──
+    # 防止不一致的缓存数据被写入，直到缓存策略重新设计
 
     return result
 
