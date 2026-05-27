@@ -32,9 +32,6 @@ def segment_ids():
 
 @pytest.fixture
 def rfm_thresholds():
-    """Standard RFM thresholds."""
-    return {
-        "r": [14, 30, 60, 90],
-        "f": [1, 2, 3, 5],
-        "m": [100, 300, 500, 1000],
-    }
+    """Standard RFM thresholds (from semantic/segments.py RFM_THRESHOLDS)."""
+    from backend.semantic.segments import RFM_THRESHOLDS
+    return RFM_THRESHOLDS

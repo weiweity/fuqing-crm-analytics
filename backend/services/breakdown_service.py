@@ -18,8 +18,8 @@ from backend.db.connection import get_connection
 from backend.semantic.calculations import safe_ratio
 
 # 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE"
-_VALID_BASE_T = "o.is_goujinjin = FALSE"
+_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
 
 
 # ── 常量 ─────────────────────────────────────────────────────
