@@ -5,6 +5,11 @@ V1: 只读（后端硬编码）
 V2: 支持前端修改（持久化到JSON文件）
 V3: 支持渠道级独立配置 + 基于去年同期自动初始化
 V4: 配置历史/回滚 + 审计日志 + 多环境默认值
+
+配置加载优先级（高→低）：
+1. config/health_config.json — 用户自定义覆盖（只存与默认值不同的部分）
+2. ENV_PRESETS[HEALTH_ENV] — 环境预设（aggressive/conservative）
+3. 本文件中的硬编码默认值 — 最终兜底
 """
 
 import json

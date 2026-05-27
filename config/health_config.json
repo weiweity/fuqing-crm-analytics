@@ -1,25 +1,35 @@
 {
+  "_comment": "健康评分配置 - 只存储与 Python 默认值不同的字段。未覆盖的字段使用 config.py 中的默认值。",
+  "_defaults_ref": "backend/services/health/config.py 第 32-97 行",
+
   "weights": {
+    "_comment": "5个指标权重，总和应=1.0",
     "all_store_repurchase_rate": 0.3,
     "same_product_repurchase_rate": 0.2,
     "old_customer_gsv_ratio": 0.05,
     "old_customer_aus": 0.4,
     "recent_7d_repurchase_users": 0.05
   },
+
   "targets": {
+    "_comment": "满分100对应的目标值（基于历史P75分布）",
     "all_store_repurchase_rate": 0.0774,
     "same_product_repurchase_rate": 0.0169,
     "old_customer_gsv_ratio": 0.3449,
     "old_customer_aus": 104.69,
     "recent_7d_repurchase_users": 1959
   },
+
   "alert_thresholds": {
+    "_comment": "告警阈值（低于此值触发告警）",
     "all_store_repurchase_rate_low": 0.1,
     "same_product_repurchase_rate_drop": 0.1,
     "old_customer_gsv_ratio_low": 0.25,
     "old_customer_aus_low": 50
   },
+
   "health_level_bounds": {
+    "_comment": "健康等级分数边界：>=70健康，>=50关注，<50预警",
     "healthy": 70,
     "warning": 50
   }
