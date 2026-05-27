@@ -28,20 +28,10 @@ logger = logging.getLogger(__name__)
 DB_FILE = DATA_DIR / "processed" / "fuqing_crm.duckdb"
 
 
-def _get_data_version_key() -> str:
-    """获取数据版本标识（用于缓存键）。
-
-    策略：使用 orders.max_pay_time 作为数据版本。
-    - 比文件 mtime 更稳定（DuckDB 写入不改变 max_pay_time）
-    - ETL 更新数据后自然变化，确保旧缓存失效
-    - 读写两端的连接都是 read_only，不会污染 mtime
-    """
-    conn = duckdb.connect(str(DB_FILE), read_only=True)
-    try:
-        row = conn.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()
-        return row[0] or "no_data"
-    finally:
-        conn.close()
+def _fetch_max_pay_time(conn: duckdb.DuckDBPyConnection) -> str:
+    """从现有连接查询数据版本（orders.max_pay_time）。"""
+    row = conn.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()
+    return row[0] or "no_data"
 
 
 def _cache_key(
@@ -51,6 +41,7 @@ def _cache_key(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
+    data_version: str,
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
 ) -> str:
@@ -63,8 +54,11 @@ def _cache_key(
 
     对比日期参数（compare_start_date/compare_end_date）也参与缓存键生成，
     确保不同对比模式（YOY/环比/自定义）不会互相污染缓存。
+
+    注意：data_version 必须由调用方通过 get_connection() 获取后传入，
+    禁止在函数内部新建连接（会导致 DuckDB 配置冲突）。
     """
-    dv = _get_data_version_key()
+    dv = data_version
     parts = [dv]
     if start_date and end_date:
         parts.append(f"{start_date}_{end_date}")
@@ -559,25 +553,30 @@ def get_rfm_analysis(
     current_year_label, comp_year_label, prev2_year_label = ranges["labels"]
 
     # 判断当前周期是否为历史周期（可缓存）
-    # cur_end_dt 格式为 "YYYY-MM-DD 23:59:59"，取日期部分比较
     cur_end_date_str = cur_end_dt.split(" ")[0]
     cur_end_date = datetime.strptime(cur_end_date_str, "%Y-%m-%d").date()
     today = date.today()
     is_historical = cur_end_date < today
 
-    # ── 缓存读取（仅历史周期） ──
-    if is_historical:
-        cached = _read_db_cache(
-            period, start_date, end_date, channel, metric_type,
-            exclude_channels, compare_start_date, compare_end_date
-        )
-        if cached:
-            logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
-            return cached
-
     # ── 全量 live SQL 计算（所有周期走同一口径，保证一致性） ──
     conn = get_connection()
     try:
+        # 预先获取 data_version，避免后续每个函数都新建连接
+        if is_historical:
+            data_version = _fetch_max_pay_time(conn)
+        else:
+            data_version = None
+
+        # ── 缓存读取（仅历史周期，复用同一 conn） ──
+        if is_historical:
+            cached = _read_db_cache(
+                period, start_date, end_date, channel, metric_type,
+                exclude_channels, data_version, conn, compare_start_date, compare_end_date
+            )
+            if cached:
+                logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
+                return cached
+
         cur_all, cur_same, cur_member_all, cur_member_same = _run_rfm_period(
             conn, cur_start_dt, cur_end_dt, cutoff, channel, metric_type, exclude_channels
         )
@@ -606,13 +605,12 @@ def get_rfm_analysis(
         "member_same_channel_rows": member_same_channel_rows,
     }
 
-    # ── 缓存写入（仅历史周期） ──
-    # 写入前确认：所有缓存数据均来自全量口径 live SQL，与 user_rfm 完全独立
-    if is_historical:
+    # ── 缓存写入（仅历史周期，通过同一 conn 写入） ──
+    if is_historical and data_version:
         try:
             _write_db_cache(
                 period, start_date, end_date, channel, metric_type,
-                exclude_channels, result, compare_start_date, compare_end_date
+                exclude_channels, data_version, result, compare_start_date, compare_end_date
             )
             logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
         except Exception as e:
@@ -660,16 +658,18 @@ def _read_db_cache(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
+    data_version: str,
+    conn: duckdb.DuckDBPyConnection,
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """从 DuckDB 预计算表读取缓存。
 
-    缓存新鲜度校验：对比 orders 表最大支付时间。
-    若最大支付时间大于缓存记录的 data_version，说明有新数据，缓存失效。
+    缓存新鲜度校验：对比 orders 表最大支付时间（data_version）。
+    data_version 在调用方通过同一 conn 获取，保证读缓存与写缓存用同一数据版本。
+    注意：conn 由调用方管理，本函数不负责关闭连接。
     """
-    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date)
-    conn = get_connection()
+    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     try:
         _ensure_db_cache_table(conn)
         row = conn.execute(
@@ -689,16 +689,13 @@ def _read_db_cache(
             logger.warning(f"RFM 缓存损坏（不是 dict）: key={key}, type={type(parsed)}, 清理该行")
             conn.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
             return None
-        # 用 orders 表最大支付时间判断数据是否已更新（比 mtime 更可靠）
-        max_pay = conn.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()[0]
-        if max_pay and row[1] and max_pay > row[1]:
-            logger.info(f"RFM 缓存失效（数据已更新 max_pay={max_pay} > stored={row[1]}）")
+        # 用 data_version 判断数据是否已更新（data_version = orders.max_pay_time）
+        if data_version and row[1] and data_version > row[1]:
+            logger.info(f"RFM 缓存失效（数据已更新 version={data_version} > stored={row[1]}）")
             return None
         return parsed
     except Exception as e:
         logger.warning(f"RFM DuckDB 缓存读取失败: {e}")
-    finally:
-        conn.close()
     return None
 
 
@@ -709,6 +706,7 @@ def _write_db_cache(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
+    data_version: str,
     result: Dict[str, Any],
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
@@ -716,6 +714,7 @@ def _write_db_cache(
     """写入 DuckDB 预计算缓存表（含 mtime_at_write 用于后续新鲜度校验）。
 
     防御性校验：仅写入有效的 dict 结果，防止污染缓存表。
+    data_version 由调用方通过 get_connection() 获取后传入，避免多连接冲突。
     """
     # 防御性校验：result 必须是有效 dict
     if not isinstance(result, dict):
@@ -728,14 +727,9 @@ def _write_db_cache(
         logger.warning(f"RFM 缓存写入跳过：json.dumps 失败 {e}")
         return
 
-    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, compare_start_date, compare_end_date)
+    key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     ex_str = json.dumps(exclude_channels, ensure_ascii=False) if exclude_channels else ""
-    # 用 orders 表最大支付时间作为数据版本号（不受 DuckDB 写入影响，ETL 更新数据后才变化）
-    conn_check = duckdb.connect(DB_FILE, read_only=True)
-    try:
-        max_pay = conn_check.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()[0]
-    finally:
-        conn_check.close()
+    # data_version 已在调用方通过 get_connection() 获取，直接复用
     conn = get_connection()
     try:
         _ensure_db_cache_table(conn)
@@ -744,7 +738,7 @@ def _write_db_cache(
             f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
             f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
             [key, period or "", start_date or "", end_date or "",
-             channel or "", metric_type, ex_str, result_json_str, max_pay or ""]
+             channel or "", metric_type, ex_str, result_json_str, data_version]
         )
     except Exception as e:
         logger.warning(f"RFM DuckDB 缓存写入失败（不影响返回）: {e}")
@@ -795,6 +789,7 @@ def precompute_rfm_cache() -> int:
     computed = 0
     try:
         _ensure_db_cache_table(conn)
+        data_version = _fetch_max_pay_time(conn)
 
         for metric_type in METRIC_TYPES:
             for period in STANDARD_PERIODS:
@@ -851,14 +846,14 @@ def precompute_rfm_cache() -> int:
                     # 注意：前端始终传 start_date/end_date，不用 period 参数
                     # 缓存键必须基于实际日期范围，与前端请求完全一致
                     # 缓存键用实际日期，与前端请求格式完全一致
-                    key = _cache_key(None, cur.start, cur.end, CHANNEL, metric_type, EXCLUDE)
+                    key = _cache_key(None, cur.start, cur.end, CHANNEL, metric_type, EXCLUDE, data_version)
                     ex_str = ""
                     conn.execute(
                         f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
-                        f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, computed_at) "
-                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                        f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
+                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
                         [key, period.upper(), cur.start, cur.end, CHANNEL or "", metric_type, ex_str,
-                         json.dumps(result, ensure_ascii=False, default=str)]
+                         json.dumps(result, ensure_ascii=False, default=str), data_version]
                     )
                     computed += 1
                     logger.info(f"  RFM 预计算: {period} {year} {metric_type} → {key}")
