@@ -291,40 +291,10 @@ def _run_rfm_period(
     metric_type: str = "GSV",
     exclude_channels: Optional[List[str]] = None,
 ) -> tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]:
-    # ── Step 1-3 优化：尝试从 user_rfm 预计算表读取历史 RFM 分群 ──
-    # lookback_days 从 period_end - cutoff 推断（固定 90 天，符合当前预计算范围）
-    lookback_days = 90
-    cached = _try_read_from_rfm_cache(
-        conn, end_dt, cutoff_dt, channel, metric_type, lookback_days
-    )
-    if cached is not None:
-        cached_all, cached_same, cached_member_all, cached_member_same = cached
-
-        # ── 走轻量 live SQL 计算 repurchase 指标，合并入预计算结果 ──
-        # repurchase_users/gsv 需要当前 period 的订单数据，无法预计算
-        _rep_all, _rep_same, _rep_memb_all, _rep_memb_same = \
-            _compute_repurchase_from_cache(
-                conn, start_dt, end_dt, cutoff_dt,
-                channel, metric_type, exclude_channels,
-                cached_all, cached_same,
-            )
-
-        # 会员变体：预计算表无 is_member 列，若返回 None 则用 live 结果
-        if cached_member_all is None:
-            # 全量 live SQL 计算会员分群（仅会员分支，hist_users 来自 live）
-            _live_memb_all, _live_memb_same = _run_rfm_period_member_live(
-                conn, start_dt, end_dt, cutoff_dt,
-                channel, metric_type, exclude_channels,
-            )
-            final_member_all = _live_memb_all
-            final_member_same = _live_memb_same
-        else:
-            final_member_all = cached_member_all
-            final_member_same = cached_member_same
-
-        return _rep_all, _rep_same, final_member_all, final_member_same
-
-    # ── 预计算未命中：fallback 到全量 live SQL ──
+    # ── 修复：直接使用全量 live SQL 计算，确保数据一致性 ──
+    # 问题：user_rfm 表使用 lookback_days=90 分群，但 RFM 分析需要截至 cutoff_dt 的所有用户
+    # 这导致从 user_rfm 读取的历史人数远小于 live 计算的人数（10倍差异）
+    # 解决方案：禁用预计算缓存，直接使用 live SQL 计算
     return _run_rfm_period_live(
         conn, start_dt, end_dt, cutoff_dt,
         channel, metric_type, exclude_channels,
