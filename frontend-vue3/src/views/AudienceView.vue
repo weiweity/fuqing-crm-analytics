@@ -244,9 +244,9 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
   const mode = filterStore.compareMode
   const labels = getCompareLabels(mode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
 
-  // 通用值渲染函数
-  const renderValue = (key: 'value_2026' | 'value_2025' | 'value_2024') => (row: IndicatorRow) => {
-    const v = row[key]
+  // 通用值渲染函数（年份动态）
+  const renderValue = (yearKey: string) => (row: IndicatorRow) => {
+    const v = row.values_by_year?.[yearKey] ?? null
     if (v == null) return '—'
     if (row.kind === 'ratio') return `${(v * 100).toFixed(1)}%`
     if (row.kind === 'count') return v.toLocaleString()
@@ -258,19 +258,19 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
     { title: '指标', key: 'field', width: 160, fixed: 'left', align: 'center' },
     {
       title: mode === 'auto_yoy' ? `${labels.current}年` : labels.current,
-      key: 'value_2026',
+      key: 'values_by_year',
       width: 120,
       align: 'center',
       className: 'bi-cell-number',
-      render: renderValue('value_2026'),
+      render: renderValue('2026'),
     },
     {
       title: mode === 'auto_yoy' ? `${labels.compare}年` : labels.compare,
-      key: 'value_2025',
+      key: 'values_by_year',
       width: 120,
       align: 'center',
       className: 'bi-cell-number',
-      render: renderValue('value_2025'),
+      render: renderValue('2025'),
     },
   ]
 
@@ -281,11 +281,11 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
     if (hasPrev2) {
       cols.push({
         title: `${yr3}年`,
-        key: 'value_2024',
+        key: 'values_by_year',
         width: 120,
         align: 'center',
         className: 'bi-cell-number',
-        render: renderValue('value_2024'),
+        render: renderValue('2024'),
       })
     }
   }
@@ -1647,9 +1647,9 @@ function handleExportIndicators() {
       : { t: 'n', f: `=(B${excelRow}-C${excelRow})/C${excelRow}` } as any
 
     if (mode === 'auto_yoy') {
-      aoa.push([row.field, row.value_2026 ?? 0, row.value_2025 ?? 0, row.value_2024 ?? 0, yoyCell])
+      aoa.push([row.field, row.values_by_year?.['2026'] ?? 0, row.values_by_year?.['2025'] ?? 0, row.values_by_year?.['2024'] ?? 0, yoyCell])
     } else {
-      aoa.push([row.field, row.value_2026 ?? 0, row.value_2025 ?? 0, yoyCell])
+      aoa.push([row.field, row.values_by_year?.['2026'] ?? 0, row.values_by_year?.['2025'] ?? 0, yoyCell])
     }
   })
 

@@ -1,5 +1,5 @@
 """芙清 CRM - Pydantic 契约模型"""
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 class DateRangeResponse(BaseModel):
@@ -8,13 +8,11 @@ class DateRangeResponse(BaseModel):
     cutoff: Optional[str] = None
 
 class YearComparisonRow(BaseModel):
-    """30指标对比表格的一行"""
+    """30指标对比表格的一行（年份动态）"""
     field: str
     kind: str = "money"           # 指标类型: money | ratio | count | aus
-    value_2026: Optional[float] = None
-    value_2025: Optional[float] = None
-    value_2024: Optional[float] = None
-    yoy: Optional[float] = None    # 相对2025的YOY
+    values_by_year: Dict[str, Optional[float]] = {}  # {"2026": 123.4, "2025": 100.0, ...}
+    yoy: Optional[float] = None    # 最近年份相对上一年的 YOY
 
 class DualAxisLineData(BaseModel):
     """双轴折线图数据"""
