@@ -26,7 +26,7 @@ COPY --chown=appuser:appuser config/ config/
 ENV PYTHONPATH=/app
 ENV DUCKDB_PATH=/app/data/processed/fuqing.duckdb
 
-EXPOSE 8001
+EXPOSE 8000
 
 COPY --chown=appuser:appuser scripts/docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh

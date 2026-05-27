@@ -19,7 +19,8 @@
 
 - ✅ 语义层 / 契约层 / 服务层 / 前端 Vue3 全部上线
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
-- ✅ ETL 增量更新正常（截至 2026-04-28）
+- ✅ ETL 增量更新正常（截至 2026-05-28）
+- ✅ 后端代码审计完成，大文件拆分完成
 
 ---
 
@@ -68,45 +69,24 @@ PYTHONPATH="$(pwd)" \
 ```
 fuqing-crm-analytics/
 ├── backend/                    # FastAPI 后端
-│   ├── main.py                 # 应用入口
+│   ├── main.py                 # 应用入口（端口 8000）
 │   ├── semantic/               # 语义层（口径定义唯一来源）
-│   │   ├── filters.py          # 订单过滤条件
-│   │   ├── metrics.py          # 指标注册表
-│   │   ├── dimensions.py       # 维度定义
-│   │   ├── segments.py         # RFM 分群定义
-│   │   ├── channels.py         # 渠道映射
-│   │   ├── calculations.py     # 同比/占比计算
-│   │   └── time.py             # 时间周期计算
-│   ├── contracts/              # 契约层（Pydantic 模型）
-│   │   └── schemas.py          # API 请求/响应模型
-│   ├── services/               # 业务逻辑层
-│   │   ├── metrics_service.py  # 指标概览
-│   │   ├── health_*.py         # 老客健康分析（6 个子服务）
-│   │   ├── flow_service.py     # 人群流转
-│   │   ├── geo_service.py      # 地域分析
-│   │   └── category_service.py # 品类分析
-│   ├── routers/                # API 路由
+│   ├── contracts/              # 契约层（Pydantic 模型，135个类）
+│   ├── services/               # 业务逻辑层（按业务域拆分为包）
+│   │   ├── category_service/   # 品类分析（flow/repurchase/distribution/...）
+│   │   ├── health/             # 老客健康分析（rfm_analysis/overview/repurchase/...）
+│   │   ├── metrics/            # 指标服务
+│   │   ├── rfm/                # RFM 区间流转（r_flow/f_flow/m_flow/segment_orders）
+│   │   ├── breakdown_service/  # 一键拆解（forward/reverse/suggestions/main）
+│   │   └── dmp_asset_service/  # DMP 资产（store/product/other）
+│   ├── routers/                # API 路由（16 个模块）
 │   ├── db/                     # 数据库连接
-│   ├── cache/                  # 缓存模块
-│   └── tests/                  # 单元测试
+│   └── tests/                  # 单元测试（8 个文件，148 个用例）
 ├── frontend-vue3/              # Vue3 前端
-│   ├── src/
-│   │   ├── views/              # 页面组件
-│   │   ├── components/         # 公共组件
-│   │   ├── api/                # API 调用
-│   │   └── stores/             # Pinia 状态
-│   └── e2e/                    # E2E 测试
-├── scripts/                    # 脚本（ETL、数据生成等）
-├── config/                     # 配置（健康评分、RFM 阈值等）
+├── scripts/                    # ETL 脚本
+├── config/                     # 配置（健康评分、RFM 阈值）
 ├── data/                       # 数据（raw/processed/parquet/cache）
-├── docs/                       # 文档
-│   ├── DOCUMENT-INDEX.md       # 📖 文档导航（必读）
-│   ├── PRD-v3.0.md             # 产品需求文档
-│   ├── 飞书版架构文档/          # 系统架构文档（7 份）
-│   ├── semantic/               # 语义层设计文档
-│   └── archive/                # 历史文档归档
-├── designs/                    # 设计稿和截图
-└── exports/                    # 导出文件
+└── docs/                       # 文档（见 DOCUMENT-INDEX.md）
 ```
 
 ---
@@ -133,6 +113,7 @@ fuqing-crm-analytics/
 | [docs/飞书版架构文档/00-系统总览.md](./docs/飞书版架构文档/00-系统总览.md) | 系统架构总览 |
 | [docs/飞书版架构文档/07-常见问题汇总.md](./docs/飞书版架构文档/07-常见问题汇总.md) | Bug 修复记录和经验教训 |
 | [docs/ai-constraints.md](./docs/ai-constraints.md) | AI 协作规范 |
+| [CLAUDE.md](./CLAUDE.md) | 项目参考（Git 工作流 + 架构 + 规范） |
 | [docs/DOCUMENT-INDEX.md](./docs/DOCUMENT-INDEX.md) | 完整文档索引 |
 
 ---
@@ -150,6 +131,11 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
+- `test_calculations.py` - YOY/MOM/safe_ratio
+- `test_filters.py` - OrderFilters/FilterBuilder
+- `test_time.py` - PeriodBuilder
+- `test_channels.py` - 渠道漏斗/映射
+- `test_api_integration.py` - FastAPI 集成测试
 
 ### E2E 测试
 
@@ -184,3 +170,4 @@ npx playwright test
 | 2026-04-28 | 安全加固（API Key、SQL 注入、CORS） |
 | 2026-04-29 | ETL 增量更新完成，1030 万条数据 |
 | 2026-05-04 | 文档整理，创建文档索引 |
+| 2026-05-28 | 后端代码审计（23 问题修复），大文件拆分（6 个包），SPU 版本化 |
