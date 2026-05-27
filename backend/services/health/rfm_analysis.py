@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 
-from backend.config import DATA_DIR
+from backend.config import DUCKDB_PATH
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
@@ -25,7 +25,7 @@ _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 logger = logging.getLogger(__name__)
 
 # DuckDB 文件路径（用于数据版本感知）
-DB_FILE = DATA_DIR / "processed" / "fuqing_crm.duckdb"
+DB_FILE = DUCKDB_PATH
 
 
 def _fetch_max_pay_time(conn: duckdb.DuckDBPyConnection) -> str:

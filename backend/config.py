@@ -130,16 +130,3 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # 会员定义基准日期（用于判断新老客）
 MEMBER_BASE_DATE = "2025-01-01"  # 2025年1月1日之前有过购买记录的为老客
-
-# 新老客定义
-def classify_new_old_user(first_order_date: str, analysis_date: str) -> str:
-    """
-    判断用户是新客还是老客
-    - 老客: 在分析周期开始之前有过购买记录
-    - 新客: 在分析周期内首次购买
-    """
-    if not first_order_date:
-        return "新客"
-    if first_order_date < analysis_date:
-        return "老客"
-    return "新客"
