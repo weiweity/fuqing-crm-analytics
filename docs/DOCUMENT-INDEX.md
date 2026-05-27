@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
-> **最后更新**: 2026-05-07  
-> **状态**: 根目录整理完成，所有散落文档已归入 docs/
+> **最后更新**: 2026-05-27
+> **状态**: Phase 0-6 重构完成，文档体系已建立
 
 ---
 
@@ -9,9 +9,14 @@
 
 | 我想了解... | 看这里 |
 |---|---|
+| 系统整体架构 | [ARCHITECTURE.md](./ARCHITECTURE.md) ← **入口** |
+| AI 改代码的操作规范 | [DESIGN.md](./DESIGN.md) |
+| 每个文件做什么 | [MODULE-INDEX.md](./MODULE-INDEX.md) |
+| 数据源在哪、删了影响什么 | [DATA-SOURCE-MAP.md](./DATA-SOURCE-MAP.md) |
+| 如何部署 | [DEPLOY.md](./DEPLOY.md) |
 | 项目是什么、解决什么问题 | [PRD-v3.0.md](./PRD-v3.0.md) |
-| 系统整体架构是怎样的 | [飞书版架构文档/00-系统总览.md](./飞书版架构文档/00-系统总览.md) |
-| AI 协作时有哪些约束 | [ai-constraints.md](./ai-constraints.md) |
+| 飞书版详细架构 | [飞书版架构文档/00-系统总览.md](./飞书版架构文档/00-系统总览.md) |
+| AI 协作约束 | [ai-constraints.md](./ai-constraints.md) |
 | 数据库和技术选型 | [architecture.md](./architecture.md) |
 | 当前 Bug 和修复记录 | [飞书版架构文档/07-常见问题汇总.md](./飞书版架构文档/07-常见问题汇总.md) |
 | 语义层设计规范 | [semantic/](./semantic/) |
