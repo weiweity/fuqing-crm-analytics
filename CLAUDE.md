@@ -1,7 +1,8 @@
 # 芙清 CRM 客户分析系统 — 项目参考
 
-> 本文件是项目的**结构和命令参考**。修改代码的规则在 MEMORY.md（系统自动注入）。
-> 详细文档见 `docs/DOCUMENT-INDEX.md`。
+> **编码准则**见根目录 `CLAUDE.md`（简洁优先/精准修改/目标驱动执行）。
+> **修改代码的规则**见 `MEMORY.md`（系统自动注入）。
+> **详细文档**见 `docs/DOCUMENT-INDEX.md`。
 
 ---
 
@@ -79,8 +80,8 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
 git add backend/services/health/    # 同一功能模块一起提交
 git commit
 
-# 4. 推送到 GitHub
-git push origin main
+# 4. 推送到 dev 分支
+git push origin dev
 
 # 5. qa 验收（自动调用 Skill）
 # 触发词：qa、测试一下、验收、检查一下
@@ -346,20 +347,16 @@ const ratio = (current - previous) / previous  // 不要在前端算
 | `docs/DOCUMENT-INDEX.md` | 文档分类索引 |
 | `docs/PRD-v3.0.md` | 产品需求文档 |
 | `docs/飞书版架构文档/` | 系统架构文档（7 份） |
-| `docs/测试报告.md` | 测试覆盖详情 |
-| `docs/MIGRATION-CHECKLIST.md` | 重构迁移清单 |
 
 ---
 
-## Skill 路由（单人项目）
+## Skill 路由
 
 当请求匹配以下场景时，**立即调用对应 Skill**，不要直接回答。
 
 | 场景 | 触发词示例 | 调用的 Skill |
 |------|-----------|-------------|
-| 修 Bug / 报错 / 数据异常 | `调试`、`investigate`、`排查`、`出问题了`、`报错` | `workbuddy-investigate` |
-| 写完模块自检 / commit 前审查 | `review`、`代码审查`、`逻辑有没有问题`、`业务逻辑` | `workbuddy-review` |
-| 功能上线前验收测试 | `qa`、`测试一下`、`验收`、`检查一下`、`跑一下测试` | `workbuddy-qa` |
-| 大功能完成，推送前完整检查 | `发布`、`上线`、`部署`、`ship` | `workbuddy-ship` |
-
-**单人项目不需要 PR 流程**，上述 Skill 直接在本地运行，无需远程审查者。
+| 修 Bug / 报错 / 数据异常 | `调试`、`investigate`、`排查`、`出问题了`、`报错` | `investigate` |
+| 写完模块自检 / commit 前审查 | `review`、`代码审查`、`逻辑有没有问题`、`业务逻辑` | `review` |
+| 功能上线前验收测试 | `qa`、`测试一下`、`验收`、`检查一下`、`跑一下测试` | `qa` |
+| 大功能完成，推送前完整检查 | `发布`、`上线`、`部署`、`ship` | `ship` |
