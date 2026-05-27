@@ -12,13 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 项目代码
-COPY backend/ backend/
-COPY scripts/ scripts/
-COPY config/ config/
+# 创建非 root 用户
+RUN useradd -m -r appuser && \
+    mkdir -p data/processed data/parquet data/cache && \
+    chown -R appuser:appuser /app
 
-# 数据目录（挂载卷）
-RUN mkdir -p data/processed data/parquet data/cache
+# 项目代码
+COPY --chown=appuser:appuser backend/ backend/
+COPY --chown=appuser:appuser scripts/ scripts/
+COPY --chown=appuser:appuser config/ config/
 
 # 环境变量
 ENV PYTHONPATH=/app
@@ -26,7 +28,10 @@ ENV DUCKDB_PATH=/app/data/processed/fuqing.duckdb
 
 EXPOSE 8001
 
-COPY scripts/docker-entrypoint.sh /app/
+COPY --chown=appuser:appuser scripts/docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
+
+# 切换到非 root 用户
+USER appuser
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
