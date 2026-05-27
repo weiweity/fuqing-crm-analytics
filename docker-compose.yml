@@ -1,0 +1,35 @@
+# 芙清 CRM - Docker Compose
+# 用法: docker compose up -d
+# ETL:  docker compose exec backend python scripts/run_etl.py --update
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/app/data                          # DuckDB 数据持久化
+      - ${SHOP_DATA_SOURCE:-./data/sources/shop}:/data/sources/shop:ro     # 店铺数据（只读）
+      - ${MEMBER_DATA_SOURCE:-./data/sources/member}:/data/sources/member:ro  # 会员数据（只读）
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+      - DUCKDB_PATH=/app/data/processed/fuqing.duckdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend-vue3
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

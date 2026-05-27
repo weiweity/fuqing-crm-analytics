@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+
+# Node
+node_modules
+frontend-vue3/node_modules
+frontend-vue3/dist
+
+# Data (挂载卷，不进镜像)
+data/
+芙清CRM数据库/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.bak
+*.tmp
+*.log
+
+# 设计稿和截图
+designs/
+docs/业务知识/
+docs/618-breakdown/
