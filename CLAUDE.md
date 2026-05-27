@@ -87,14 +87,62 @@ git push origin main
 ```
 
 ### 分支策略
-- 目前只用 `main`，单分支推进
-- 大功能先用 `git stash` 暂存，分开提交
-- commit message 模板：`.gitmessage`（自动生效）
+
+```
+main (生产) ← PR ← dev (开发) ← feature 分支
+```
+
+- **main**: 只接受 PR merge，禁止直接 commit
+- **dev**: 日常开发分支，从 main 拉出
+- **feature/***: 大功能/重构专用分支，完成后 merge 到 dev
+- 流程：`feature → dev → PR → qa → merge main → push`
 
 ### 禁止事项
 - ❌ `git commit -m "fix"` / "update" / "asdf" — 提交信息必须说明改了什么
 - ❌ 一次 commit 混多个不相关功能
 - ❌ commit 后不 push — 代码在本地 = 代码丢了
+- ❌ **跳过 review 直接 commit** — 2026-05-28 教训：拆分包时漏掉交叉导入导致 500
+- ❌ **跳过 qa 直接 merge main** — 必须跑完 qa skill 再 merge
+- ❌ **直接在 main 上 commit** — 必须通过 PR 流程
+
+### 包拆分检查清单（拆分大文件时必做）
+
+拆分 `xxx.py` 为 `xxx/` 包后，必须执行以下检查：
+
+```bash
+# 1. AST 分析：检查子模块间的交叉导入
+python3 -c "
+import ast, os
+pkg = 'backend/services/xxx'
+all_defined = set()
+for f in os.listdir(pkg):
+    if f.endswith('.py') and f != '__init__.py':
+        tree = ast.parse(open(os.path.join(pkg, f)).read())
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                all_defined.add(node.name)
+            elif isinstance(node, ast.Assign):
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        all_defined.add(t.id)
+# 检查每个文件是否导入了需要的兄弟模块名称
+print(f'Package defines: {all_defined}')
+"
+
+# 2. 运行时验证：所有子模块可独立导入
+PYTHONPATH="$(pwd)" python3 -c "
+from backend.services.xxx import func1, func2
+print('All imports OK')
+"
+
+# 3. 运行测试
+PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
+
+# 4. 验证 FastAPI 启动
+PYTHONPATH="$(pwd)" python3 -c "from backend.main import app; print(f'{len(app.routes)} routes')"
+```
+
+**教训（2026-05-28）**：拆分 `rfm_analysis.py` 时，`analysis.py` 缺少 `_read_db_cache`/`_write_db_cache`/`_run_rfm_period` 的导入，导致线上 500 错误。根因是提取脚本只复制了代码段，没有处理段间的函数调用关系。
 
 ---
 
