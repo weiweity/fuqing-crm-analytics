@@ -9,7 +9,7 @@ import duckdb
 import json
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 
 from backend.config import DATA_DIR
@@ -23,9 +23,6 @@ from backend.semantic.rfm_reader import try_read_rfm_segment
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 
 logger = logging.getLogger(__name__)
-
-# 缓存目录
-CACHE_DIR = DATA_DIR / "cache" / "rfm_flow"
 
 # DuckDB 文件路径（用于数据版本感知）
 DB_FILE = DATA_DIR / "processed" / "fuqing_crm.duckdb"
@@ -83,38 +80,9 @@ def _cache_key(
     return "_".join(parts) + ".json"
 
 
-def _is_historical_period(end_date: str) -> bool:
-    """判断是否为已结束的历史周期（end_date < 今天）"""
-    today = datetime.now().date()
-    end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
-    return end_dt < today
-
-
-def _read_cache(cache_key: str) -> Optional[Dict[str, Any]]:
-    """读取缓存文件。缓存不存在或解析失败返回 None。"""
-    cache_file = CACHE_DIR / cache_key
-    if not cache_file.exists():
-        return None
-    try:
-        with open(cache_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        logger.warning(f"RFM 缓存读取失败，跳过: {e}")
-        return None
-
-
-def _write_cache(cache_key: str, data: Dict[str, Any]) -> None:
-    """写入缓存文件（原子写入：先写.tmp再rename）"""
-    try:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        cache_file = CACHE_DIR / cache_key
-        tmp_file = cache_file.with_suffix(".tmp")
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, default=str)
-        tmp_file.replace(cache_file)
-    except IOError as e:
-        logger.warning(f"RFM 缓存写入失败，跳过: {e}")
-
+# ============================================================
+# RFM 8象限顺序定义
+# ============================================================
 RFM_SEGMENT_ORDER = [
     "重要价值客户",
     "重要保持客户",
@@ -129,7 +97,9 @@ RFM_SEGMENT_ORDER = [
 
 
 # ============================================================
-# Step 1-3: RFM 预计算表读取（历史 RFM 分群从 user_rfm 读取，回购率仍需实时计算）
+# RFM 分析计算层
+# 注意：RFM 分析使用全量口径（截至 cutoff_dt 的所有历史用户），
+# 与 user_rfm 预计算表（lookback_days=30/90/180）口径独立，禁止混用。
 # ============================================================
 
 
@@ -571,9 +541,12 @@ def get_rfm_analysis(
     """
     RFM 8象限完整分析。
 
-    缓存策略（Plan C）：
-    - 历史周期（end_date < 今天）：读缓存 / 写缓存
-    - 当前周期：实时计算，不缓存
+    缓存策略：
+    - 历史周期（end_date < 今天）：读缓存 / 写缓存（全量口径 live SQL）
+    - 当前周期（含今天）：始终 live SQL，不缓存
+
+    缓存口径保证：所有缓存数据均来自 _run_rfm_period_live（全量口径），
+    与 user_rfm 预计算表（lookback_days=90）完全独立，不会产生10倍差异。
     """
     ranges = _resolve_date_ranges(period, start_date, end_date, compare_start_date, compare_end_date)
     cur_start_dt, cur_end_dt, cutoff = ranges["current"]
@@ -581,12 +554,24 @@ def get_rfm_analysis(
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]
     current_year_label, comp_year_label, prev2_year_label = ranges["labels"]
 
-    # ── 缓存已禁用：确保数据一致性 ──
-    # 问题：缓存数据与 live SQL 计算结果不一致（user_rfm lookback_days=90 vs
-    # RFM分析需要截至 cutoff_dt 的所有用户），导致10倍人数差异
-    # 暂时禁用所有缓存读取，直接使用 live SQL 计算
-    # TODO: 重新设计缓存策略，确保缓存口径与 live SQL 完全一致
+    # 判断当前周期是否为历史周期（可缓存）
+    # cur_end_dt 格式为 "YYYY-MM-DD 23:59:59"，取日期部分比较
+    cur_end_date_str = cur_end_dt.split(" ")[0]
+    cur_end_date = datetime.strptime(cur_end_date_str, "%Y-%m-%d").date()
+    today = date.today()
+    is_historical = cur_end_date < today
 
+    # ── 缓存读取（仅历史周期） ──
+    if is_historical:
+        cached = _read_db_cache(
+            period, start_date, end_date, channel, metric_type,
+            exclude_channels, compare_start_date, compare_end_date
+        )
+        if cached:
+            logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
+            return cached
+
+    # ── 全量 live SQL 计算（所有周期走同一口径，保证一致性） ──
     conn = get_connection()
     try:
         cur_all, cur_same, cur_member_all, cur_member_same = _run_rfm_period(
@@ -617,8 +602,17 @@ def get_rfm_analysis(
         "member_same_channel_rows": member_same_channel_rows,
     }
 
-    # ── 缓存写入已禁用 ──
-    # 防止不一致的缓存数据被写入，直到缓存策略重新设计
+    # ── 缓存写入（仅历史周期） ──
+    # 写入前确认：所有缓存数据均来自全量口径 live SQL，与 user_rfm 完全独立
+    if is_historical:
+        try:
+            _write_db_cache(
+                period, start_date, end_date, channel, metric_type,
+                exclude_channels, compare_start_date, compare_end_date, result
+            )
+            logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
+        except Exception as e:
+            logger.warning(f"RFM 缓存写入失败（不影响返回）: {e}")
 
     return result
 
