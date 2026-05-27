@@ -1,6 +1,6 @@
 # 芙清 CRM — 模块索引
 
-> 最后更新: 2026-05-27 | 重构 Phase 0-5 完成
+> 最后更新: 2026-05-27 | 重构 Phase 0-7 完成 | 代码总量 23,710 行
 
 ## 后端服务层 (`backend/services/`)
 
@@ -17,7 +17,7 @@
 | 文件 | 行数 | 说明 |
 |------|------|------|
 | `rfm_service.py` | 1,398 | RFM 分群分析（待拆分） |
-| `breakdown_service.py` | 833 | 一键拆解 |
+| `breakdown_service.py` | 832 | 一键拆解 |
 | `dmp_asset_service.py` | 809 | DMP 资产分析 |
 | `sampling_service.py` | 698 | U先派样分析 |
 | `churn_service.py` | 553 | 流失分析 |
@@ -36,21 +36,21 @@
 
 | 模块 | 行数 | 类数 | 说明 |
 |------|------|------|------|
-| `common.py` | 52 | 6 | 通用模型 |
-| `metrics.py` | 36 | 2 | 概览指标 |
-| `audience.py` | 272 | 6 | 人群分析 |
+| `common.py` | 51 | 6 | 通用模型 |
+| `metrics.py` | 35 | 2 | 概览指标 |
+| `audience.py` | 271 | 6 | 人群分析 |
 | `flow.py` | 114 | 10 | 流转矩阵 |
-| `churn.py` | 119 | 11 | 流失分析 |
-| `asset.py` | 120 | 8 | 资产分析 |
-| `geo.py` | 32 | 4 | 地域分布 |
-| `category.py` | 276 | 11 | 品类分析 |
-| `rfm.py` | 285 | 16 | RFM 分群 |
-| `health.py` | 391 | 26 | 健康分析 |
-| `visitor.py` | 41 | 3 | 访客数据 |
-| `breakdown.py` | 133 | 11 | 一键拆解 |
-| `sampling.py` | 169 | 12 | U先派样 |
-| `schemas.py` | 143 | — | 向后兼容重导出 |
-| `__init__.py` | 162 | — | 重导出 140 个类 |
+| `churn.py` | 118 | 11 | 流失分析 |
+| `asset.py` | 119 | 8 | 资产分析 |
+| `geo.py` | 31 | 4 | 地域分布 |
+| `category.py` | 197 | 11 | 品类分析 |
+| `rfm.py` | 284 | 16 | RFM 分群 |
+| `health.py` | 389 | 26 | 健康分析 |
+| `visitor.py` | 40 | 3 | 访客数据 |
+| `breakdown.py` | 132 | 11 | 一键拆解 |
+| `sampling.py` | 168 | 12 | U先派样 |
+| `schemas.py` | 158 | — | 向后兼容重导出 |
+| `__init__.py` | 158 | — | 重导出 140 个类 |
 
 ## 语义层 (`backend/semantic/`)
 
@@ -89,4 +89,4 @@
 | `test_flow_service.py` | ~10 | 人群流转 |
 | `test_exceptions.py` | ~10 | 异常类型 |
 | `test_api_integration.py` | ~20 | FastAPI 集成测试 |
-| **总计** | **140 passed, 8 skipped** | |
+| **总计** | **148 collected, 140 passed, 8 skipped** | |
