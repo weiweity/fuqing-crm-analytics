@@ -68,15 +68,6 @@ const themeOverrides = {
 </script>
 
 <template>
-  <!-- 系统维护遮盖（关闭时删除或设为 false） -->
-  <div class="maintenance-overlay">
-    <div class="maintenance-box">
-      <div class="maintenance-icon">🔧</div>
-      <h1>系统正在维护中</h1>
-      <p>预计很快恢复，请稍后再试</p>
-    </div>
-  </div>
-
   <n-config-provider :theme-overrides="themeOverrides" :locale="zhCN" :date-locale="dateZhCN">
     <n-message-provider>
       <n-notification-provider>
@@ -104,38 +95,6 @@ const themeOverrides = {
 </template>
 
 <style>
-.maintenance-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.98);
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.maintenance-box {
-  text-align: center;
-  color: #334155;
-}
-.maintenance-icon {
-  font-size: 64px;
-  margin-bottom: 24px;
-}
-.maintenance-box h1 {
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0 0 12px;
-  color: #0f172a;
-}
-.maintenance-box p {
-  font-size: 16px;
-  color: #64748b;
-  margin: 0;
-}
-
 .global-loading {
   display: flex;
   align-items: center;
