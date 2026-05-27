@@ -211,9 +211,7 @@ export function fetchKPIMetrics(params: Omit<AudienceTableParams, 'dimension' | 
 
 export interface IndicatorRow {
   field: string
-  value_2026: number | null
-  value_2025: number | null
-  value_2024: number | null
+  values_by_year: Record<string, number | null>  // {"2026": 123, "2025": 100, "2024": 80}
   yoy: number | null
   kind?: 'ratio' | 'count' | 'aus' | 'gsv'
 }

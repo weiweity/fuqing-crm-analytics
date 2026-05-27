@@ -5721,12 +5721,10 @@ export interface components {
              * @default money
              */
             kind: string;
-            /** Value 2026 */
-            value_2026?: number | null;
-            /** Value 2025 */
-            value_2025?: number | null;
-            /** Value 2024 */
-            value_2024?: number | null;
+            /** Values By Year */
+            values_by_year?: {
+                [key: string]: number | null;
+            };
             /** Yoy */
             yoy?: number | null;
         };
