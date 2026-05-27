@@ -18,7 +18,9 @@ from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
 from backend.semantic.rfm_reader import try_read_rfm_segment
-from ._shared import _fetch_max_pay_time, _cache_key, _VALID_BASE, RFM_SEGMENT_ORDER
+from ._shared import _fetch_max_pay_time, _cache_key, _VALID_BASE, RFM_SEGMENT_ORDER, DB_FILE, RFM_CACHE_TABLE
+from .period import _run_rfm_period, _build_rows
+from .cache import _read_db_cache, _write_db_cache
 
 logger = logging.getLogger(__name__)
 

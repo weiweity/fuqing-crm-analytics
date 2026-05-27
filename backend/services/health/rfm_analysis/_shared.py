@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 # DuckDB 文件路径（用于数据版本感知）
 DB_FILE = DUCKDB_PATH
 
+# RFM 缓存表名
+RFM_CACHE_TABLE = "rfm_analysis_cache"
+
 
 def _fetch_max_pay_time(conn: duckdb.DuckDBPyConnection) -> str:
     """从现有连接查询数据版本（orders.max_pay_time）。"""
