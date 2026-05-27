@@ -13,8 +13,7 @@
 | AI 改代码的操作规范 | [DESIGN.md](./DESIGN.md) |
 | 每个文件做什么 | [MODULE-INDEX.md](./MODULE-INDEX.md) |
 | 数据源在哪、删了影响什么 | [DATA-SOURCE-MAP.md](./DATA-SOURCE-MAP.md) |
-| 如何部署（Mac开发） | [DEPLOY.md](./DEPLOY.md) |
-| 如何部署（Windows生产） | [windows-deploy-sop.md](./windows-deploy-sop.md) |
+| 如何部署 | [DEPLOY.md](./DEPLOY.md) |
 | 项目是什么、解决什么问题 | [PRD-v3.0.md](./PRD-v3.0.md) |
 | AI 协作约束 | [ai-constraints.md](./ai-constraints.md) |
 | 当前 Bug 和修复记录 | [飞书版架构文档/07-常见问题汇总.md](./飞书版架构文档/07-常见问题汇总.md) |
