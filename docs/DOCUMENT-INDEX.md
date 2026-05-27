@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
 > **最后更新**: 2026-05-27
-> **状态**: Phase 0-6 重构完成，文档体系已建立
+> **状态**: Phase 0-7 重构完成，文档体系已建立，项目已清理
 
 ---
 
@@ -17,16 +17,12 @@
 | 项目是什么、解决什么问题 | [PRD-v3.0.md](./PRD-v3.0.md) |
 | 飞书版详细架构 | [飞书版架构文档/00-系统总览.md](./飞书版架构文档/00-系统总览.md) |
 | AI 协作约束 | [ai-constraints.md](./ai-constraints.md) |
-| 数据库和技术选型 | [architecture.md](./architecture.md) |
 | 当前 Bug 和修复记录 | [飞书版架构文档/07-常见问题汇总.md](./飞书版架构文档/07-常见问题汇总.md) |
 | 语义层设计规范 | [semantic/](./semantic/) |
-| 老客健康分析仪表盘设计 | [design_customer_health_dashboard.md](./design_customer_health_dashboard.md) |
-| RFM 模型口径修复方案 | [RFM_FIX_PLAN.md](./RFM_FIX_PLAN.md) |
-| 人群漏斗设计计划 | [../../PLAN-crowd-funnel.md](../../PLAN-crowd-funnel.md) |
 | 618大促拆解资产（复用模板） | [618-breakdown/](./618-breakdown/) |
 | CRM业务知识和赛道认知 | [业务知识/](./业务知识/) |
-| 品类看板v2设计评审 | [category-dashboard-v2-design-review.md](./category-dashboard-v2-design-review.md) |
 | 历史周报和旧版文档 | [archive/](./archive/) |
+| 过期设计文档（归档） | [archive/refactor/](./archive/refactor/) |
 
 ---
 
@@ -60,17 +56,15 @@
 ### 🎯 功能模块设计
 | 文件 | 状态 | 说明 |
 |---|---|---|
-| [design_customer_health_dashboard.md](./design_customer_health_dashboard.md) | ✅ 已上线 | 老客健康分析仪表盘设计（5 Tab） |
-| [RFM_FIX_PLAN.md](./RFM_FIX_PLAN.md) | ✅ 已修复 | RFM 模型口径统一修复方案 |
 | [rfm-business-design.md](./rfm-business-design.md) | 📦 历史参考 | RFM 业务设计 |
 | [rfm-user-guide.md](./rfm-user-guide.md) | 📦 历史参考 | RFM 用户指南 |
+| [archive/refactor/](./archive/refactor/) | 📦 归档 | 已完成的功能设计文档 |
 
 ### 🔄 迁移与重构
 | 文件 | 状态 | 说明 |
 |---|---|---|
-| [MIGRATION-CHECKLIST.md](./MIGRATION-CHECKLIST.md) | ⏳ 进行中 | 口径统一重构迁移清单 |
 | [frontend-contract-guide.md](./frontend-contract-guide.md) | ✅ 当前 | 前后端契约指南 |
-| [QA-v3.0-architecture-2026-04-16.md](./QA-v3.0-architecture-2026-04-16.md) | 📦 参考 | v3.0 架构 QA 报告 |
+| [archive/refactor/](./archive/refactor/) | 📦 归档 | Phase 0-7 重构文档（已完成） |
 
 ### 📝 AI 协作规范
 | 文件 | 状态 | 说明 |
@@ -80,8 +74,7 @@
 ### 📊 设计评审与 Review
 | 文件 | 状态 | 说明 |
 |---|---|---|
-| [category-dashboard-v2-design-review.md](./category-dashboard-v2-design-review.md) | ✅ 已上线 | 品类看板v2 设计评审 |
-| [PLAN-crowd-funnel.md](./PLAN-crowd-funnel.md) | ✅ 已上线 | 人群漏斗设计计划 |
+| [archive/refactor/](./archive/refactor/) | 📦 归档 | 已完成的设计评审文档 |
 
 ### 🎯 大促拆解资产
 | 文件 | 状态 | 说明 |
@@ -97,13 +90,13 @@
 ### 📦 归档文档
 | 目录 | 说明 |
 |---|---|
+| [archive/refactor/](./archive/refactor/) | Phase 0-7 重构相关文档（REFACTOR-PLAN、MIGRATION-CHECKLIST 等） |
 | [archive/](./archive/) | 历史周报、旧版 HTML 原型、Week 1-5 过程文档 |
 | [archive/week1-4/week1/](./archive/week1-4/week1/) | Week 1 设计文档（API 契约、前端设计、RFM PRD） |
 | [archive/week1-4/week3/](./archive/week1-4/week3/) | Week 3 技术计划（SQL 规范、技术草案） |
 | [archive/week1-4/week4/](./archive/week1-4/week4/) | Week 4 需求与 API 契约 |
 | [archive/week1-4/week5/](./archive/week1-4/week5/) | Week 5 交接文档 |
 | [archive/week1-4/飞书版架构文档/](./archive/week1-4/飞书版架构文档/) | 早期飞书架构草稿（已被 docs/飞书版架构文档/ 替代） |
-| [临时脚本/](./临时脚本/) | 临时调试脚本（可定期清理） |
 
 ---
 
