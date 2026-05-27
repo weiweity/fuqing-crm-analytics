@@ -69,6 +69,7 @@ def init_database():
             spu_product_subclass VARCHAR,
             spu_cosmetic VARCHAR,
             spu_spec VARCHAR,
+            spu_hash VARCHAR,
             channel VARCHAR,
             is_goujinjin BOOLEAN DEFAULT FALSE,
             is_refund BOOLEAN DEFAULT FALSE
@@ -117,7 +118,7 @@ def write_to_duckdb(df):
         'live_room_id', 'video_id', 'traffic_source', 'traffic_type',
         'seller_note', 'year', 'month', 'is_member', 'spu_category',
         'spu_type', 'spu_tier', 'spu_product_class', 'spu_product_subclass',
-        'spu_cosmetic', 'spu_spec', 'channel',
+        'spu_cosmetic', 'spu_spec', 'spu_hash', 'channel',
         'is_goujinjin', 'is_refund'
     ]
 
@@ -264,6 +265,7 @@ def _create_orders_table(conn):
             spu_product_subclass VARCHAR,
             spu_cosmetic VARCHAR,
             spu_spec VARCHAR,
+            spu_hash VARCHAR,
             channel VARCHAR,
             is_goujinjin BOOLEAN DEFAULT FALSE,
             is_refund BOOLEAN DEFAULT FALSE
@@ -326,6 +328,7 @@ def _create_orders_table_custom(conn, table_name="orders"):
             spu_product_subclass VARCHAR,
             spu_cosmetic VARCHAR,
             spu_spec VARCHAR,
+            spu_hash VARCHAR,
             channel VARCHAR,
             is_goujinjin BOOLEAN DEFAULT FALSE,
             is_refund BOOLEAN DEFAULT FALSE
@@ -437,7 +440,7 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
         'live_room_id', 'video_id', 'traffic_source', 'traffic_type',
         'seller_note', 'year', 'month', 'is_member', 'spu_category',
         'spu_type', 'spu_tier', 'spu_product_class', 'spu_product_subclass',
-        'spu_cosmetic', 'spu_spec', 'channel',
+        'spu_cosmetic', 'spu_spec', 'spu_hash', 'channel',
         'is_goujinjin', 'is_refund'
     ]
 

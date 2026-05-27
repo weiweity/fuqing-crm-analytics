@@ -64,6 +64,7 @@ def init_database():
             spu_product_subclass VARCHAR,
             spu_cosmetic VARCHAR,
             spu_spec VARCHAR,
+            spu_hash VARCHAR,
             -- 渠道字段
             channel VARCHAR,
             -- 人群看板清洗标记
