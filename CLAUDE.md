@@ -176,7 +176,7 @@ API 层      FastAPI + Pydantic（backend/main.py + routers/）
     ↕ 函数调用
 语义层      backend/semantic/（口径唯一真实数据源）
     ↕ DuckDB
-数据层      data/processed/fuqing.duckdb
+数据层      data/processed/fuqing_crm.duckdb（33G）
 ```
 
 契约层 `backend/contracts/schemas.py` 横跨 API 和前端：Pydantic → OpenAPI → TypeScript。
@@ -217,10 +217,10 @@ fuqing-crm-analytics/
 │   │   ├── api/           ← API 调用 + types.ts
 │   │   └── stores/        ← Pinia 状态
 │   └── e2e/               ← E2E 测试
-├── scripts/               ← ETL 和数据脚本
+├── scripts/               ← ETL 脚本（etl/ + archive/）
 ├── config/                ← 配置（健康评分、RFM 阈值）
-├── data/                  ← 数据（raw/processed/parquet/cache）
-└── docs/                  ← 文档（见 DOCUMENT-INDEX.md）
+├── data/                  ← 数据（processed/fuqing_crm.duckdb，33G）
+└── docs/                  ← 文档（按领域归类：backend/frontend/deploy/ai/product）
 ```
 
 ---
