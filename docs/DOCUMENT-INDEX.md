@@ -9,13 +9,13 @@
 
 | 我想了解... | 看这里 |
 |---|---|
-| 系统整体架构 | [ARCHITECTURE.md](./ARCHITECTURE.md) ← **入口** |
+| 系统整体架构 | [飞书版架构文档/00-系统总览.md](./飞书版架构文档/00-系统总览.md) ← **入口** |
 | AI 改代码的操作规范 | [DESIGN.md](./DESIGN.md) |
 | 每个文件做什么 | [MODULE-INDEX.md](./MODULE-INDEX.md) |
 | 数据源在哪、删了影响什么 | [DATA-SOURCE-MAP.md](./DATA-SOURCE-MAP.md) |
-| 如何部署 | [DEPLOY.md](./DEPLOY.md) |
+| 如何部署（Mac开发） | [DEPLOY.md](./DEPLOY.md) |
+| 如何部署（Windows生产） | [windows-deploy-sop.md](./windows-deploy-sop.md) |
 | 项目是什么、解决什么问题 | [PRD-v3.0.md](./PRD-v3.0.md) |
-| 飞书版详细架构 | [飞书版架构文档/00-系统总览.md](./飞书版架构文档/00-系统总览.md) |
 | AI 协作约束 | [ai-constraints.md](./ai-constraints.md) |
 | 当前 Bug 和修复记录 | [飞书版架构文档/07-常见问题汇总.md](./飞书版架构文档/07-常见问题汇总.md) |
 | 语义层设计规范 | [semantic/](./semantic/) |
@@ -32,18 +32,13 @@
 | 文件 | 状态 | 说明 |
 |---|---|---|
 | [PRD-v3.0.md](./PRD-v3.0.md) | ✅ **当前版本** | v3.0 PRD，包含架构与演进路线 |
-| [PRD-v2.0.md](./PRD-v2.0.md) | 📦 归档参考 | v2.0 PRD，新增口径统一需求 |
-| [PRD.md](./PRD.md) | 📦 历史版本 | v1.0 初始 PRD |
-| [implementation-plan.md](./implementation-plan.md) | 📦 历史参考 | Week 1-5 实现计划（已大幅超出） |
 
 ### 🏗️ 架构设计
 | 文件 | 状态 | 说明 |
 |---|---|---|
 | [飞书版架构文档/](./飞书版架构文档/) | ✅ **主要架构文档** | 7 份完整架构文档（总览→数据→语义→契约→服务→前端→运维→问题汇总） |
-| [architecture.md](./architecture.md) | 📦 历史版本 | v1.0 初始技术架构 |
-| [architecture-dashboard.md](./architecture-dashboard.md) | 📦 参考 | 架构看板设计文档 |
-| [review_eng_design.md](./review_eng_design.md) | 📦 参考 | 工程设计评审记录 |
-| [plan-vue3-frontend-architecture.md](./plan-vue3-frontend-architecture.md) | 📦 参考 | Vue3 前端架构计划 |
+| [archive/architecture.md](./archive/architecture.md) | 📦 历史版本 | v1.0 初始技术架构 |
+| [archive/refactor/architecture-dashboard.md](./archive/refactor/architecture-dashboard.md) | 📦 参考 | 架构看板设计文档 |
 
 ### 🔧 语义层（核心设计）
 | 文件 | 状态 | 说明 |
@@ -56,8 +51,7 @@
 ### 🎯 功能模块设计
 | 文件 | 状态 | 说明 |
 |---|---|---|
-| [rfm-business-design.md](./rfm-business-design.md) | 📦 历史参考 | RFM 业务设计 |
-| [rfm-user-guide.md](./rfm-user-guide.md) | 📦 历史参考 | RFM 用户指南 |
+| [features/rfm-segment-drilldown.md](./features/rfm-segment-drilldown.md) | ✅ 当前 | RFM 人群下钻功能设计 |
 | [archive/refactor/](./archive/refactor/) | 📦 归档 | 已完成的功能设计文档 |
 
 ### 🔄 迁移与重构
@@ -96,23 +90,24 @@
 | [archive/week1-4/week3/](./archive/week1-4/week3/) | Week 3 技术计划（SQL 规范、技术草案） |
 | [archive/week1-4/week4/](./archive/week1-4/week4/) | Week 4 需求与 API 契约 |
 | [archive/week1-4/week5/](./archive/week1-4/week5/) | Week 5 交接文档 |
-| [archive/week1-4/飞书版架构文档/](./archive/week1-4/飞书版架构文档/) | 早期飞书架构草稿（已被 docs/飞书版架构文档/ 替代） |
 
 ---
 
 ## 文档整理说明
 
-### 本次整理做了什么
-1. **根目录清理**: `_null_check*.py` 临时调试脚本移到 `docs/临时脚本/`
-2. **建立索引**: 创建本文档（`DOCUMENT-INDEX.md`），为所有文档分类导航
-3. **版本标注**: 区分"当前版本"、"历史参考"、"归档"三级状态
-4. **去重标记**: `archive/` 下的飞书版架构文档为早期草稿，已被 `docs/飞书版架构文档/` 替代
+### 本次整理做了什么（2026-05-27）
+1. **删除废弃文件**: `gen_大促拆解模板.py`（不应在 docs 内）、`cross-review-auth-2026-05-07.md`（gstack 内部文档）
+2. **归档旧架构文档**: `architecture.md` 移入 `archive/`
+3. **删除重复草稿**: `archive/week1-4/飞书版架构文档/`（已被 `docs/飞书版架构文档/` 替代）
+4. **修复死链**: 清理 DOCUMENT-INDEX.md 中引用不存在的文件（PRD-v2.0.md、PRD.md、implementation-plan.md、rfm-business-design.md、rfm-user-guide.md、review_eng_design.md 等）
+5. **统一入口**: 快速导航中架构入口改为 `飞书版架构文档/00-系统总览.md`
+6. **部署文档**: 拆分为 Mac 开发（DEPLOY.md）和 Windows 生产（windows-deploy-sop.md）两个入口
 
-### 建议清理
-- `docs/临时脚本/` 下的 `_null_check*.py` 如无用处可删除
-- `docs/archive/week1-4/飞书版架构文档/` 已被替代，可删除
-- `docs/archive/week1-4/` 下空目录（week2）可删除
-- `docs/semantic/` 下的 `.DS_Store` 可删除
+### 文档维护纪律
+- **PRD**: 只维护最新版（v3.0），旧版不再记录
+- **架构文档**: 以 `飞书版架构文档/` 为准
+- **功能设计**: 上线后保留设计文档作为参考，不删除
+- **迁移清单**: 完成一项勾选一项，完成后归档
 
 ### 文档维护纪律
 - **PRD**: 只维护最新版（v3.0），旧版移入 archive
