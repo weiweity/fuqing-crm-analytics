@@ -19,11 +19,10 @@ import json
 import hashlib
 import logging
 import time
-from pathlib import Path
 
 from backend.config import DATA_DIR
 from backend.db.connection import get_connection
-from backend.semantic.filters import FilterBuilder, OrderFilters, MetricType
+from backend.semantic.filters import FilterBuilder, MetricType
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
 from . import config as health_config
 
@@ -246,11 +245,11 @@ def _compute_old_customer_metrics(conn, where_sql: str, params: list,
     old_gsv = float(row[0]) if row[0] else 0.0
     total_gsv = float(row[1]) if row[1] else 0.0
     old_users = int(row[2]) if row[2] else 0
-    total_users = int(row[3]) if row[3] else 0
+    int(row[3]) if row[3] else 0
     member_old_gsv = float(row[4]) if row[4] else 0.0
     member_total_gsv = float(row[5]) if row[5] else 0.0
     member_old_users = int(row[6]) if row[6] else 0
-    member_total_users = int(row[7]) if row[7] else 0
+    int(row[7]) if row[7] else 0
 
     return {
         # 老客绝对值
@@ -296,7 +295,6 @@ def _compute_yoy_metrics(conn, analysis_date: str, period_days: int,
 
     当 compare_start_date/compare_end_date 提供时，使用自定义对比期替代自动Y-1推算。
     """
-    from backend.semantic.calculations import yoy_absolute, yoy_ratio
 
     if compare_start_date and compare_end_date:
         prev_start = compare_start_date
@@ -523,7 +521,7 @@ def get_overview(
         compare_start_date: 自定义对比期开始日期（可选，覆盖Y-1自动推算）
         compare_end_date: 自定义对比期结束日期（可选，覆盖Y-1自动推算）
     """
-    from backend.semantic.calculations import yoy_absolute, yoy_ratio, mom_absolute, mom_ratio
+    from backend.semantic.calculations import mom_absolute
 
     end_dt = datetime.strptime(analysis_date, "%Y-%m-%d").date()
     start_dt = end_dt - timedelta(days=period_days - 1)

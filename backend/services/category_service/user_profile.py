@@ -1,22 +1,15 @@
 """品类分析服务"""
-import duckdb
-from datetime import datetime, timedelta, date
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
 
 """
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
-from backend.semantic.calculations import yoy_absolute, yoy_ratio
-from backend.semantic.segments import RFM_THRESHOLDS
+from ._shared import _normalize_date, _segment_meta
+from backend.semantic.filters import OrderFilters
 
 
 SPU_LEVELS = {
@@ -94,52 +87,6 @@ def get_category_user_profile(
             params.append(type)
     
         # 使用单次查询获取所有数据
-        sql = f"""
-        WITH base_params AS (
-            SELECT
-                DATE(?) AS analysis_date,
-                DATE(?) AS start_date
-        ),
-        period_orders AS (
-            SELECT
-                o.user_id,
-                o.actual_amount,
-                o.order_id,
-                o.province,
-                o.channel,
-                COALESCE(r.segment_id, 9) AS segment_id
-            FROM orders o
-            CROSS JOIN base_params p
-            LEFT JOIN user_rfm r ON o.user_id = r.user_id
-                AND r.analysis_date = ?
-                AND r.metric_type = 'GMV'
-                AND r.lookback_days = ?
-            WHERE o.pay_time >= p.start_date
-              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql}
-              {category_filter}
-        ),
-        overall AS (
-            SELECT
-                COUNT(DISTINCT user_id) AS total_users,
-                SUM(actual_amount) AS total_gmv
-            FROM period_orders
-        ),
-        segment_dist AS (
-            SELECT
-                segment_id,
-                COUNT(DISTINCT user_id) AS user_count
-            FROM period_orders
-            GROUP BY segment_id
-        ),
-        province_dist AS (
-            SELECT
-                COALESCE(province, '未知') AS province,
-                COUNT(DISTINCT user_id) AS user_count
-            FROM period_orders
-            GROUP BY province
-        ),
-        """
     
         # 由于无法在一个查询中同时获取多个分组的数据,使用多次查询
         # 先获取总数

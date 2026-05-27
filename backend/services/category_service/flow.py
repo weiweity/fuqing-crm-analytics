@@ -1,22 +1,16 @@
 """品类分析服务"""
 import duckdb
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 
 """
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
+from ._shared import _assoc_cache_lock, _assoc_cache, _ASSOC_CACHE_MAX_SIZE
 from backend.semantic.filters import OrderFilters, expand_channels
-from backend.semantic.calculations import yoy_absolute, yoy_ratio
-from backend.semantic.segments import RFM_THRESHOLDS
 
 
 SPU_LEVELS = {

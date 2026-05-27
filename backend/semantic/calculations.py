@@ -10,7 +10,7 @@
 3. 回购率 YOY：当年回购率 - 去年回购率 → 百分点差
 """
 
-from typing import Optional, Union
+from typing import Optional
 
 
 def yoy_absolute(cur: Optional[float], comp: Optional[float]) -> Optional[float]:

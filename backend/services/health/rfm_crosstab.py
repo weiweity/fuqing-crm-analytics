@@ -7,7 +7,6 @@ RFM 分群 CTE 共享模块
 
 from typing import List, Optional, Tuple
 from backend.semantic.segments import RFM_THRESHOLDS
-from backend.semantic.filters import OrderFilters
 
 # 语义层统一口径：所有过滤条件必须通过 OrderFilters 生成，禁止硬编码
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
@@ -56,19 +55,16 @@ def build_rfm_segment_sql(
     _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
 
     params: List = []
-    channel_where_all = ""
     channel_where_same = ""
 
     if channel and channel != "全店":
         from backend.semantic.filters import expand_channels
         db_channels = expand_channels([channel])
         if len(db_channels) == 1:
-            channel_where_all = " AND o.channel = ?"
             channel_where_same = " AND o.channel = ?"
             params.append(db_channels[0])
         else:
             placeholders = ",".join(["?"] * len(db_channels))
-            channel_where_all = f" AND o.channel IN ({placeholders})"
             channel_where_same = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
 

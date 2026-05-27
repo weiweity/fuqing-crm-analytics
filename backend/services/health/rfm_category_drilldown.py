@@ -11,7 +11,6 @@ from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS, SEGMENTS
-from backend.semantic.filters import OrderFilters
 
 # 语义层统一口径
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
@@ -538,8 +537,8 @@ def get_rfm_category_drilldown(
     total_hist = sum(c.get("hist_users_current", 0) for c in categories)
     total_repurchase = sum(c.get("repurchase_users_current", 0) for c in categories)
 
-    total_hist_comp = sum(c.get("hist_users_comp", 0) for c in categories)
-    total_repurchase_comp = sum(c.get("repurchase_users_comp", 0) for c in categories)
+    sum(c.get("hist_users_comp", 0) for c in categories)
+    sum(c.get("repurchase_users_comp", 0) for c in categories)
 
     # 象限去重用户数 + 复购用户数（用户维度，与柱状图口径一致）
     seg_user_count = 0

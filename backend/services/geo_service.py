@@ -215,7 +215,7 @@ def get_geo_segment_matrix(
     """
     conn = get_connection()
     date_str = _normalize_date(date)
-    start_date = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
     # 使用语义层构建过滤条件
     valid_sql, _ = OrderFilters.valid_order()

@@ -8,7 +8,7 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from backend.db.connection import get_connection
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
 from backend.semantic.channels import DB_TO_UI, GIFT_SAMPLE_DB, SHELF_DB

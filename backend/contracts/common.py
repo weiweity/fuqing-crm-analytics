@@ -1,7 +1,6 @@
 """芙清 CRM - Pydantic 契约模型"""
-from typing import Optional, List, Any, Dict
-from enum import Enum
-from pydantic import BaseModel, Field
+from typing import Optional, List
+from pydantic import BaseModel
 
 class DateRangeResponse(BaseModel):
     start: str

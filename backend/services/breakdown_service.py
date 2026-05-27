@@ -10,13 +10,12 @@
 参考：[PROCEDURE] 芙清老客拆解四步法、[PROCEDURE] 芙清新客拆解、[PROCEDURE] 老客RFM分析四步法
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dateutil.relativedelta import relativedelta
 
 from backend.db.connection import get_connection
 from backend.semantic.calculations import safe_ratio
-from backend.semantic.filters import OrderFilters
 
 # 语义层统一口径
 _VALID_BASE = "is_goujinjin = FALSE"

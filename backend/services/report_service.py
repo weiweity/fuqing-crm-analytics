@@ -3,7 +3,6 @@
 Week 4 报告汇总（整合所有服务的数据）
 """
 
-from datetime import datetime, timedelta
 from typing import Dict, Any
 
 from backend.services.metrics_service import get_overview_metrics, get_daily_trend
@@ -83,7 +82,7 @@ def get_report_summary(
             "flow_matrix": flow_data.get('flow_matrix', []),
             "summary": flow_data.get('summary', {})
         }
-    except Exception as e:
+    except Exception:
         segments = {"distribution": [], "flow_matrix": [], "summary": {}}
 
     # 4. 地域分布
@@ -96,7 +95,7 @@ def get_report_summary(
             "total_gmv": geo_data.get('total_gmv', 0),
             "segment_matrix": geo_matrix.get('matrix', {})
         }
-    except Exception as e:
+    except Exception:
         geo = {"distribution": [], "total_users": 0, "total_gmv": 0, "segment_matrix": {}}
 
     # 5. 品类分布
@@ -109,7 +108,7 @@ def get_report_summary(
             "total_gmv": category_data.get('total_gmv', 0),
             "segment_matrix": category_matrix.get('matrix', {})
         }
-    except Exception as e:
+    except Exception:
         category = {"distribution": [], "total_users": 0, "total_gmv": 0, "segment_matrix": {}}
 
     # 6. 摘要洞察（基于数据生成简单洞察）
@@ -191,7 +190,7 @@ def _generate_summary(
             {
                 "type": "warning",
                 "title": "流失风险",
-                "description": f"关注沉睡土豪象限用户，择机激活"
+                "description": "关注沉睡土豪象限用户，择机激活"
             }
         ] if seg_dist else []
     }

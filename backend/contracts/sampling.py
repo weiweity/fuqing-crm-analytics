@@ -1,6 +1,5 @@
 """芙清 CRM - Pydantic 契约模型"""
-from typing import Optional, List, Any, Dict
-from enum import Enum
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 
 class SamplingChannelSummary(BaseModel):

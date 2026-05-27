@@ -8,7 +8,6 @@ Covers:
 - ACTIVE_CHANNELS / ACTIVE_UI_CHANNELS: active channel lists
 - get_channel_def: channel lookup
 """
-import pytest
 from backend.semantic.channels import (
     CHANNEL_FUNNEL,
     CHANNEL_PRIORITY,

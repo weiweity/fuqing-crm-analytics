@@ -10,7 +10,7 @@ import pandas as pd
 from typing import Dict, Any, List, Optional
 from functools import lru_cache
 from backend.db.connection import get_connection
-from backend.semantic.segments import get_registry, SEGMENTS
+from backend.semantic.segments import get_registry
 from backend.semantic.filters import OrderFilters
 
 

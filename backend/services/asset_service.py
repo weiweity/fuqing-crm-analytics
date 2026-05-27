@@ -5,8 +5,7 @@ Week 3 资产趋势（用订单模拟）
 接入语义层: 使用 semantic/segments.py 和 semantic/filters.py 作为唯一真实数据源。
 """
 
-import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, Any
 from backend.db.connection import get_connection
 from backend.semantic.segments import get_registry
 from backend.semantic.filters import OrderFilters
@@ -33,7 +32,7 @@ def get_asset_summary(date: str) -> Dict[str, Any]:
 
     try:
         # 用 user_rfm 获取各象限用户数，用 orders 汇总 GMV
-        sql = f"""
+        sql = """
         WITH user_segment AS (
             -- 获取用户在特定日期的象限
             SELECT
@@ -127,10 +126,8 @@ def get_asset_trend(
     try:
         if granularity == "month":
             date_trunc = "year || '-' || LPAD(month::VARCHAR, 2, '0')"
-            date_group = "year, month"
         else:
             date_trunc = "STRFTIME(pay_time, '%Y-W%W')"
-            date_group = "STRFTIME(pay_time, '%Y-W%W')"
 
         # 使用语义层构建过滤条件
         valid_sql, _ = OrderFilters.valid_order()

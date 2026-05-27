@@ -1,7 +1,6 @@
 """
 Tests for backend/services/exceptions.py - unified exception types.
 """
-import pytest
 from backend.services.exceptions import (
     ServiceError,
     ValidationError,

@@ -1,7 +1,7 @@
 """指标服务 - 共享工具"""
 from typing import Optional, List
 from backend.db.connection import get_connection
-from backend.semantic.filters import expand_channels
+from backend.semantic.channels import UI_TO_DB
 
 def _get_conn():
     """连接上下文管理器（确保连接始终关闭）"""

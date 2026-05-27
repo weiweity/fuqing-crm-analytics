@@ -2,21 +2,15 @@
 import duckdb
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 
 """
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
-from backend.semantic.segments import RFM_THRESHOLDS
 
 
 SPU_LEVELS = {
@@ -169,7 +163,6 @@ def get_category_overview(
     品类概览(按Excel格式)
     返回全店和会员两张表,含新老客拆分及同比
     """
-    from datetime import date, timedelta
 
     conn = get_connection()
 
@@ -583,7 +576,6 @@ def get_category_value_tier(
     - 90d: end_date 往前推 90 天
     - all: 全部历史(2020-01-01 ~ end_date)
     """
-    from datetime import date, timedelta
 
     conn = get_connection()
     try:

@@ -1,8 +1,6 @@
 """品类分析服务 - 复购分析"""
 import duckdb
-from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
@@ -11,7 +9,6 @@ from backend.semantic.segments import RFM_THRESHOLDS
 
 from ._shared import (
     SPU_LEVELS,
-    EXCLUDED_PRODUCT_CATEGORIES,
     _RFM_SEGMENT_ORDER,
     _resolve_repurchase_date_ranges,
 )
@@ -39,7 +36,6 @@ def _run_category_repurchase_period(
     - member_same: 会员-同品回购
     - member_cross: 会员-跨品类回购
     """
-    from backend.semantic.filters import expand_channels
 
     valid_sql, _ = OrderFilters.valid_order()
 
@@ -363,7 +359,6 @@ def _run_category_repurchase_period_by_rfm(
     - member_same: 会员-同品回购
     - member_cross: 会员-跨品类回购
     """
-    from backend.semantic.filters import expand_channels
 
     valid_sql, _ = OrderFilters.valid_order()
 

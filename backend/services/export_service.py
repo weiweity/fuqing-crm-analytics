@@ -3,7 +3,6 @@
 Week 4 PPT 报告生成
 """
 
-import os
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List
@@ -18,7 +17,7 @@ try:
 except ImportError:
     HAS_PPTX = False
 
-from backend.config import PROJECT_ROOT, DUCKDB_PATH
+from backend.config import PROJECT_ROOT
 
 
 # 可用模板

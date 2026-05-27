@@ -11,8 +11,7 @@ Covers:
 - PeriodBuilder.mom: month-over-month period
 - PeriodBuilder.yoy: year-over-year period
 """
-import pytest
-from datetime import date, timedelta
+from datetime import date
 from backend.semantic.time import PeriodBuilder, DateRange
 
 

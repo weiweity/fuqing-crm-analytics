@@ -1,11 +1,13 @@
 """指标服务 - 概览指标
 calculate_metrics, get_overview_metrics, get_daily_trend, get_product_metrics
 """
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
+
+from dateutil.relativedelta import relativedelta
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
-from backend.semantic.calculations import yoy_ratio, yoy_absolute, safe_ratio
-from backend.semantic.time import PeriodBuilder
+from backend.semantic.filters import OrderFilters, FilterBuilder, MetricType
+from backend.semantic.calculations import yoy_ratio, yoy_absolute, mom_absolute, mom_ratio
 
 from ._shared import _expand_channel
 
@@ -62,7 +64,7 @@ def calculate_new_old_users(start_date: str, end_date: str,
     channel: 可选，单渠道过滤（UI渠道名）
     exclude_channels: 可选，排除渠道列表
     """
-    from datetime import date, timedelta
+    from datetime import timedelta
 
     conn = get_connection()
     try:

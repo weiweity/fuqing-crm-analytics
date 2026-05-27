@@ -10,7 +10,7 @@
 维度列表必须与 strategy_config.yaml 和前端筛选器保持一致。
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 

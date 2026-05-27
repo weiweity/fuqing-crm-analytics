@@ -7,7 +7,6 @@ Covers:
 - AmountExprBuilder: amount expression generators
 - _expand_channels: channel group expansion
 """
-import pytest
 from backend.semantic.filters import (
     OrderFilters,
     FilterBuilder,

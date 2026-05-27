@@ -8,7 +8,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from calendar import monthrange
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 
 @dataclass

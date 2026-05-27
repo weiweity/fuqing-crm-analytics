@@ -1,22 +1,14 @@
 """品类分析服务"""
-import duckdb
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 
 """
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
-from backend.semantic.calculations import yoy_absolute, yoy_ratio
-from backend.semantic.segments import RFM_THRESHOLDS
 
 
 SPU_LEVELS = {
@@ -69,7 +61,6 @@ def get_category_churn(
     Returns:
         CategoryChurnResponse 结构
     """
-    from datetime import date, timedelta
 
     conn = get_connection()
     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -219,7 +210,7 @@ def get_category_churn(
         cat_name = row[0]
         prev_users = int(row[1] or 0)
         curr_total_users = int(row[2] or 0)  # 本期该品类总用户数
-        retained = int(row[3] or 0)
+        int(row[3] or 0)
         churned = int(row[4] or 0)
         silent = int(row[5] or 0)
         inter_churned = churned - silent  # 品类间流失 = 总流失 - 沉默流失

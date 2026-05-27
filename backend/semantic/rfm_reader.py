@@ -15,10 +15,9 @@ RFM 预计算读取模块（语义层）
         # 回退到实时 SQL
 """
 
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 import logging
 
-from backend.db.connection import get_connection
 
 logger = logging.getLogger(__name__)
 

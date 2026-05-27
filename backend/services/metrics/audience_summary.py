@@ -1,13 +1,17 @@
 """指标服务 - 人群汇总
 calculate_audience_summary
 """
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import OrderFilters
 from backend.semantic.calculations import yoy_ratio, yoy_absolute, safe_ratio
 from backend.semantic.time import PeriodBuilder
 
 from ._shared import _expand_channel
+from backend.semantic.channels import UI_TO_DB, DB_TO_UI, CHANNEL_ORDER
+from .overview import get_overview_metrics
+from .audience_table import get_audience_table
 
 def calculate_audience_summary(
     year: int = 2026,
@@ -74,7 +78,7 @@ def calculate_audience_summary(
         cur_end_dt = f"{end_date} 23:59:59"
         cur_start_y, cur_start_m, cur_start_d = map(int, start_date.split('-'))
         cur_end_y, cur_end_m, cur_end_d = map(int, end_date.split('-'))
-        cur_start_date = date(cur_start_y, cur_start_m, cur_start_d)
+        date(cur_start_y, cur_start_m, cur_start_d)
         cutoff_date = date(cur_start_y, cur_start_m, 1) - timedelta(days=1)
         cutoff = cutoff_date.strftime("%Y-%m-%d")
         # 同比：同期去年（结束日改用 end_date 的 day）
@@ -141,7 +145,7 @@ def calculate_audience_summary(
         comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split('-'))
         ly_cutoff = date(comp_start_y, comp_start_m, 1) - timedelta(days=1)
         ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
-        comp_year_label = f"对比期"
+        comp_year_label = "对比期"
         # 用户自选对比期时，prev2 无意义，归零
         y2_start_dt = "2099-01-01 00:00:00"
         y2_end_dt = "2099-01-01 00:00:00"
@@ -198,7 +202,7 @@ def calculate_audience_summary(
             if ch_filter and ch_filter != "全店":
                 db_channels = _expand_channel(ch_filter)
                 if len(db_channels) == 1:
-                    where_parts.append(f"channel = ?")
+                    where_parts.append("channel = ?")
                     params.append(db_channels[0])
                 elif len(db_channels) > 1:
                     placeholders = ",".join(["?"] * len(db_channels))

@@ -1,13 +1,12 @@
 """指标服务 - 人群表格
 get_audience_table
 """
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_ratio, yoy_absolute, safe_ratio
-from backend.semantic.time import PeriodBuilder
 
-from ._shared import _expand_channel
+from backend.semantic.filters import FilterBuilder, MetricType
 
 def get_audience_table(
     dimension: str = "channel",

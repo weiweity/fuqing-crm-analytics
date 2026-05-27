@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any, List, Optional, Tuple
 from backend.db.connection import get_connection
-from backend.semantic.calculations import yoy_absolute, safe_ratio
+from backend.semantic.calculations import yoy_absolute
 
 
 # ── 公共 SQL 模板 ──────────────────────────────────────────────

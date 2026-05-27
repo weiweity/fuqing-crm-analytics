@@ -1,13 +1,10 @@
 """
 Tests for semantic/segments.py - SegmentRegistry and RFM threshold definitions.
 """
-import pytest
 from backend.semantic.segments import (
     get_registry,
     SEGMENTS,
     RFM_THRESHOLDS,
-    SegmentRegistry,
-    SegmentDefinition,
 )
 
 

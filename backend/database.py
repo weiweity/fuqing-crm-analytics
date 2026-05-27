@@ -4,7 +4,6 @@
 """
 
 import duckdb
-from pathlib import Path
 from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR
 
 def init_database():

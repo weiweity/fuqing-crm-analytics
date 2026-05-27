@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.semantic.filters import OrderFilters
 from . import config as health_config
 
 # 语义层统一口径

@@ -1,22 +1,15 @@
 """品类分析服务"""
 import duckdb
-from datetime import datetime, timedelta, date
+from datetime import datetime
 from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 
 """
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from collections import OrderedDict
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters, expand_channels
-from backend.semantic.calculations import yoy_absolute, yoy_ratio
-from backend.semantic.segments import RFM_THRESHOLDS
 
 
 SPU_LEVELS = {
@@ -85,7 +78,7 @@ def _compute_market_basket(
     # 渠道参数
     channel_params: List[Any] = []
     exclude_params: List[Any] = []
-    excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
+    list(EXCLUDED_PRODUCT_CATEGORIES)
     channel_sql = ""
     if channel and channel != "全店":
 

@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 
 from backend.db.connection import get_connection
 from backend.semantic.channels import ACTIVE_UI_CHANNELS, UI_TO_DB
-from backend.semantic.calculations import yoy_absolute
 from backend.services.health.overview import (
     _build_filter,
     _compute_repurchase_rate,

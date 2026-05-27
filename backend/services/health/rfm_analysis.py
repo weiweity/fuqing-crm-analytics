@@ -9,9 +9,7 @@ import duckdb
 import json
 import hashlib
 import logging
-import time
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 from backend.config import DATA_DIR
@@ -19,7 +17,6 @@ from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
-from backend.semantic.filters import OrderFilters
 from backend.semantic.rfm_reader import try_read_rfm_segment
 
 # 语义层统一口径：禁止在SQL中硬编码有效订单条件
@@ -1345,7 +1342,6 @@ def precompute_rfm_cache() -> int:
 
     ETL 完成后调用，自动跳过已计算的组合（INSERT OR REPLACE）。
     """
-    from calendar import monthrange
     from datetime import date, timedelta
 
     STANDARD_PERIODS = ["YTD", "MTD"]  # PeriodBuilder 支持的周期

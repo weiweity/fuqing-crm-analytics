@@ -1,8 +1,6 @@
 """
 Tests for backend/services/flow_service.py - crowd flow analysis service.
 """
-import pytest
-from backend.services.flow_service import _compute_user_segments_sql
 
 
 class TestFlowServiceImports:
