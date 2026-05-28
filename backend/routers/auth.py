@@ -15,6 +15,10 @@ import os
 import logging
 import bcrypt
 
+# 确保 .env 已加载（auth.py 可能在其他模块之前被导入）
+from dotenv import load_dotenv
+load_dotenv()
+
 router = APIRouter(prefix="/api/v1/auth", tags=["认证"])
 
 _logger = logging.getLogger(__name__)
