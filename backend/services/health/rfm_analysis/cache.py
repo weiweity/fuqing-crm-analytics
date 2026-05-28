@@ -7,24 +7,16 @@
 
 import duckdb
 import json
-import hashlib
 import logging
-from datetime import datetime, date
+from datetime import date
 from typing import Dict, Any, List, Optional
 
 from backend.config import DUCKDB_PATH
 from backend.db.connection import get_connection
-from backend.services.rfm_service import _resolve_date_ranges
-from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.semantic.segments import RFM_THRESHOLDS
-from backend.semantic.rfm_reader import try_read_rfm_segment
-from ._shared import _fetch_max_pay_time, _cache_key, _VALID_BASE, DB_FILE, RFM_CACHE_TABLE
+from ._shared import _fetch_max_pay_time, _cache_key, DB_FILE, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 
 logger = logging.getLogger(__name__)
-
-# DuckDB 文件路径（用于数据版本感知）
-DB_FILE = DUCKDB_PATH
 
 
 
@@ -158,7 +150,7 @@ def precompute_rfm_cache() -> int:
 
     ETL 完成后调用，自动跳过已计算的组合（INSERT OR REPLACE）。
     """
-    from datetime import date, timedelta
+    from datetime import timedelta
 
     STANDARD_PERIODS = ["YTD", "MTD"]  # PeriodBuilder 支持的周期
     YEARS = [2024, 2025, 2026]

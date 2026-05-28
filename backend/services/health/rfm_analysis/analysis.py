@@ -5,20 +5,13 @@
 逻辑同R区间分析，仅将 r_segment 替换为 rfm_segment（8象限+TTL）。
 """
 
-import duckdb
-import json
-import hashlib
 import logging
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 
-from backend.config import DUCKDB_PATH
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
-from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.semantic.segments import RFM_THRESHOLDS
-from backend.semantic.rfm_reader import try_read_rfm_segment
-from ._shared import _fetch_max_pay_time, _cache_key, _VALID_BASE, RFM_SEGMENT_ORDER, DB_FILE, RFM_CACHE_TABLE
+from ._shared import _fetch_max_pay_time, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 from .cache import _read_db_cache, _write_db_cache
 
@@ -122,7 +115,6 @@ def get_rfm_analysis(
 
 
 # ============================================================
+# ============================================================
 # Plan P1: DuckDB 预计算表（ETL 钩子预热，历史周期直接读表）
 # ============================================================
-
-RFM_CACHE_TABLE = "rfm_analysis_cache"

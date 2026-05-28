@@ -2,8 +2,6 @@
 from typing import Optional, List, Any, Dict
 from enum import Enum
 from pydantic import BaseModel, Field
-from .common import SankeyNode, SankeyLink, SankeyGraphData
-
 class FlowMatrixResponse(BaseModel):
     flow_matrix: List[Dict[str, Any]]
     segments: List[Dict[str, Any]]

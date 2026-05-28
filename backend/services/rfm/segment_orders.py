@@ -4,8 +4,7 @@
 
 from backend.services.rfm._shared import *
 from backend.services.rfm._shared import (
-    _VALID_BASE, _VALID_BASE_T, _resolve_date_ranges,
-    R_SEGMENT_ORDER, F_SEGMENT_ORDER, M_SEGMENT_ORDER
+    _VALID_BASE, _VALID_BASE_T
 )
 
 # RFM 区间订单明细导出

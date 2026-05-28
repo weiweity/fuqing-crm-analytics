@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import Dict, Any
 
 from ._helpers import (
-    _cache,
     _cache_lock,
     _load_data2,
     _validate_daily_unique,

@@ -4,14 +4,10 @@
 常量、口径定义、日期解析工具。
 """
 
-import duckdb
-from typing import Dict, Any, List, Optional
+from typing import Optional
 from datetime import date, timedelta, datetime
 from calendar import monthrange
-from backend.db.connection import get_connection
 from backend.semantic.time import PeriodBuilder
-from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.semantic.filters import expand_channels
 
 # 语义层统一口径
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"

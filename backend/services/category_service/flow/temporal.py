@@ -1,16 +1,15 @@
-"""品类分析服务"""
+"""
+品类分析服务
+芙清 CRM 客户分析系统 - 品类分析服务
+Week 4 品类分布、品类象限矩阵、品类用户画像
+"""
 import duckdb
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 
-"""
-芙清 CRM 客户分析系统 - 品类分析服务
-Week 4 品类分布、品类象限矩阵、品类用户画像
-"""
 
-from backend.db.connection import get_connection
-from .._shared import _assoc_cache_lock, _assoc_cache, _ASSOC_CACHE_MAX_SIZE
 from backend.semantic.filters import OrderFilters, expand_channels
+from .._shared import _cat_expr, _excluded_cat_filter
 
 
 SPU_LEVELS = {
@@ -55,7 +54,6 @@ def _compute_temporal_association(
     Returns:
         {"post_purchase": [...], "pre_purchase": [...], "post_sankey": ..., "pre_sankey": ...}
     """
-    from datetime import timedelta
 
     # 目标订单分析范围：[end_date - window_days, end_date]
     target_start = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=window_days)).strftime("%Y-%m-%d")

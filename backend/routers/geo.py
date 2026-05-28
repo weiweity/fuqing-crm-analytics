@@ -7,7 +7,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional, List
 
-from backend.config import _default_start_date, _default_end_date
+from backend.config import _default_end_date
 from backend.contracts.schemas import (
     GeoDistributionResponse,
     GeoSegmentMatrixResponse,

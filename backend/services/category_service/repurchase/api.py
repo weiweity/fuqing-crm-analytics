@@ -1,17 +1,16 @@
 """品类分析服务 - 复购分析"""
-import duckdb
 from typing import Dict, Any, Optional, List
 
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
-from backend.semantic.segments import RFM_THRESHOLDS
 
 from .._shared import (
     SPU_LEVELS,
     _RFM_SEGMENT_ORDER,
     _resolve_repurchase_date_ranges,
 )
+from .standard import _run_category_repurchase_period
+from .rfm import _run_category_repurchase_period_by_rfm
 
 
 def get_category_repurchase_flow(
