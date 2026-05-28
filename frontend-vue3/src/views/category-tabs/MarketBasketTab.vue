@@ -338,7 +338,7 @@ function liftInterpret(lift: number): string {
 }
 
 // ─── Excel 导出 ──────────────────────────────────────────────────
-function handleExport() {
+async function handleExport() {
   const items = sortedTableData.value
   if (!items.length) return
 
@@ -361,29 +361,33 @@ function handleExport() {
     rank_change: row.rank_change,
   }))
 
-  exportSheetToXlsx(
-    `连带分析_${data.value?.target_category || '品类'}_${data.value?.period_label || ''}`,
-    '关联品类',
-    [
-      { header: '关联品类', key: 'category_name', width: 16 },
-      { header: '关联订单数', key: 'co_order_count', width: 12 },
-      { header: '支持度', key: 'support', width: 10, numFmt: '0.00%' },
-      { header: '置信度', key: 'confidence', width: 10, numFmt: '0.00%' },
-      { header: '提升度', key: 'lift', width: 10 },
-      { header: '连带人均消费', key: 'co_aus', width: 14, numFmt: '#,##0.00' },
-      { header: '消费提升', key: 'gsv_lift', width: 12 },
-      { header: '连带GSV(整单)', key: 'co_gsv', width: 14, numFmt: '#,##0.00' },
-      { header: '连带GSV(自身)', key: 'co_own_gsv', width: 14, numFmt: '#,##0.00' },
-      { header: '去年同期置信度', key: 'prev_confidence', width: 14, numFmt: '0.00%' },
-      { header: '去年同期提升度', key: 'prev_lift', width: 14 },
-      { header: '去年同期连带GSV', key: 'prev_co_gsv', width: 16, numFmt: '#,##0.00' },
-      { header: '置信度变化(pp)', key: 'confidence_change', width: 14 },
-      { header: '提升度变化', key: 'lift_change', width: 12 },
-      { header: '连带GSV变化', key: 'gsv_change', width: 14, numFmt: '#,##0.00' },
-      { header: '排名变化', key: 'rank_change', width: 10 },
-    ],
-    rows,
-  )
+  try {
+    await exportSheetToXlsx(
+      `连带分析_${data.value?.target_category || '品类'}_${data.value?.period_label || ''}`,
+      '关联品类',
+      [
+        { header: '关联品类', key: 'category_name', width: 16 },
+        { header: '关联订单数', key: 'co_order_count', width: 12 },
+        { header: '支持度', key: 'support', width: 10, numFmt: '0.00%' },
+        { header: '置信度', key: 'confidence', width: 10, numFmt: '0.00%' },
+        { header: '提升度', key: 'lift', width: 10 },
+        { header: '连带人均消费', key: 'co_aus', width: 14, numFmt: '#,##0.00' },
+        { header: '消费提升', key: 'gsv_lift', width: 12 },
+        { header: '连带GSV(整单)', key: 'co_gsv', width: 14, numFmt: '#,##0.00' },
+        { header: '连带GSV(自身)', key: 'co_own_gsv', width: 14, numFmt: '#,##0.00' },
+        { header: '去年同期置信度', key: 'prev_confidence', width: 14, numFmt: '0.00%' },
+        { header: '去年同期提升度', key: 'prev_lift', width: 14 },
+        { header: '去年同期连带GSV', key: 'prev_co_gsv', width: 16, numFmt: '#,##0.00' },
+        { header: '置信度变化(pp)', key: 'confidence_change', width: 14 },
+        { header: '提升度变化', key: 'lift_change', width: 12 },
+        { header: '连带GSV变化', key: 'gsv_change', width: 14, numFmt: '#,##0.00' },
+        { header: '排名变化', key: 'rank_change', width: 10 },
+      ],
+      rows,
+    )
+  } catch (err) {
+    console.error('连带分析导出失败:', err)
+  }
 }
 
 // 指标说明（通俗易懂版）

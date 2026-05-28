@@ -3,7 +3,7 @@ import { NSpin } from 'naive-ui'
 import { watch, onMounted, onBeforeUnmount, nextTick, ref } from 'vue'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { PieChart, LineChart, BarChart, RadarChart, HeatmapChart, SankeyChart, FunnelChart, ScatterChart, EffectScatterChart, GraphChart } from 'echarts/charts'
+import { PieChart, LineChart, BarChart, RadarChart, HeatmapChart, SankeyChart, FunnelChart, ScatterChart, GraphChart } from 'echarts/charts'
 import {
   TitleComponent,
   TooltipComponent,
@@ -25,7 +25,6 @@ echarts.use([
   SankeyChart,
   FunnelChart,
   ScatterChart,
-  EffectScatterChart,
   GraphChart,
   TitleComponent,
   TooltipComponent,

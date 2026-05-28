@@ -3,7 +3,6 @@ import { computed, toValue, ref, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NButton } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import * as XLSX from 'xlsx'
 import { useFilterStore } from '@/stores/filterStore'
 import {
   fetchDailyTrend,
@@ -1626,9 +1625,11 @@ const visitorTrendChartOption = computed(() => {
   }
 })
 
-function handleExportIndicators() {
+async function handleExportIndicators() {
   if (!summaryData.value?.indicators?.length) return
-  const mode = filterStore.compareMode
+  const XLSX = await import('xlsx')
+  try {
+    const mode = filterStore.compareMode
   const labels = getCompareLabels(mode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
   const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
 
@@ -1666,6 +1667,9 @@ function handleExportIndicators() {
   XLSX.utils.book_append_sheet(wb, ws, '30指标对比')
   const fileName = `人群看板_30指标对比_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}.xlsx`
   XLSX.writeFile(wb, fileName)
+  } catch (err) {
+    console.error('30指标导出失败:', err)
+  }
 }
 
 function formatKPI(value: number, type: 'currency' | 'number' | 'percent') {
