@@ -1,8 +1,214 @@
-# 芙清 CRM 客户分析系统 — 项目参考
+# 芙清 CRM — AI 执行手册
 
-> **编码准则**见根目录 `CLAUDE.md`（简洁优先/精准修改/目标驱动执行）。
-> **修改代码的规则**见 `MEMORY.md`（系统自动注入）。
-> **详细文档**见 `docs/DOCUMENT-INDEX.md`。
+> 本文件是项目的唯一权威参考。AI 每次启动时优先加载「必读·启动项」，按需查阅各章节。
+> 详细文档见 `docs/DOCUMENT-INDEX.md`。
+
+---
+
+## 必读·启动项
+
+> 每次对话开始时，首先加载以下信息。任何任务都以此为前提。
+
+| # | 事实 | 说明 |
+|---|---|---|
+| 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
+| 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
+| 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
+| 4 | **版本状态** | v0.3.1（main），测试 140 passed / 8 skipped / 0 failed |
+| 5 | **ETL 状态** | user_rfm 最大日期 2026-05-25 |
+| 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
+
+---
+
+## 索引
+
+> 按需查阅。高优先级章节是每次相关操作都必须完整执行的流程。
+
+| 优先级 | 章节 | 触发条件 |
+|--------|------|---------|
+| 🔴 必走 | [Git 工作流 + 禁止事项](#git-工作流) | commit / merge / push 前 |
+| 🔴 必走 | [接口开发六步](#新增修改接口必走六步) | 新增或修改后端接口时 |
+| 🔴 必走 | [包拆分检查清单](#包拆分检查清单) | 拆分大文件为包时 |
+| 🟡 按需 | [语义层参考](#语义层口径) | 口径/渠道/计算规则疑问时 |
+| 🟡 按需 | [Skill 路由](#skill-路由) | 不确定用哪个 skill 时 |
+| 🟢 参考 | [快速启动命令](#快速启动) | 启动服务 / 跑 ETL / 跑测试时 |
+| 🟢 参考 | [目录结构](#目录结构) | 新建文件不知道放哪时 |
+| 🟢 参考 | [架构五层](#架构五层) | 需要全局视野时 |
+
+---
+
+## Git 工作流
+
+### 禁止事项（每次 commit / merge 前必检查）
+
+> 以下是导致线上事故的高频错误，发现任意一条立刻停止当前操作。
+
+| # | 禁止行为 | 真实教训 |
+|---|---|---|
+| 1 | 跳过 `review` skill 直接 commit | 2026-05-28：拆分 `dmp_asset_service` 时漏掉 7 个辅助函数，线上 500 |
+| 2 | 跳过 `qa` skill 直接 merge | 必须跑完 qa 才能 merge main |
+| 3 | merge + push 后不 pull | 2026-05-28：GraphQL API merge 后 GitHub 有新代码，本地 main 没更新，uvicorn 跑旧代码 |
+| 4 | 直接在 main 分支 commit | 必须通过 feature 分支 PR 流程 |
+| 5 | `commit -m "fix"` / `"asdf"` / `"update"` | 提交信息必须说明改了什么 |
+| 6 | commit 混多个不相关功能 | 按逻辑分批次提交 |
+| 7 | commit 后不 push | 代码在本地 = 代码丢了 |
+
+### 正确流程（12 步，顺序不得调整）
+
+```
+① git checkout -b feature/xxx
+  ↓
+② 写代码
+  ↓
+③ pytest backend/tests/ -x -q
+  ↓
+④ review skill — commit 前自检
+  ↓
+⑤ 修复 review 发现的问题
+  ↓
+⑥ git commit -m "feat: xxx"
+  ↓
+⑦ git push origin feature/xxx
+  ↓
+⑧ qa skill — 功能验收
+  ↓
+⑨ git checkout main && git merge feature/xxx --no-ff
+  ↓
+⑩ git push origin main
+  ↓
+⑪ git pull origin main --ff-only   ← 本地即生产，必须同步
+  ↓
+⑫ kill 并重启 uvicorn
+```
+
+**Skill 映射**：`review` → commit 前 · `qa` → merge 前 · `ship` → 大功能推送前
+
+---
+
+## 新增/修改接口必走六步
+
+> 每次新增或修改后端接口时，按顺序完整执行，不得跳过。
+
+### Step 1 — 口径先找语义层（禁止硬编码）
+
+```python
+# ✅ 正确：引用语义层
+from backend.semantic.filters import OrderFilters
+valid_sql, _ = OrderFilters.valid_order()
+
+# ❌ 禁止：在 Service 里硬编码口径
+"order_status LIKE '%成功%'"    # 会误杀有效订单
+"is_goujinjin = FALSE"
+```
+
+语义层唯一真实数据源：
+- `backend/semantic/filters.py` → 过滤条件（有效订单/GMV/GSV）
+- `backend/semantic/channels.py` → 渠道映射（DB_TO_UI / UI_TO_DB）
+- `backend/semantic/calculations.py` → YOY/MOM/safe_ratio
+- `backend/semantic/segments.py` → RFM 分群阈值
+
+### Step 2 — Service 连接规范
+
+```python
+conn = get_connection()
+try:
+    result = conn.execute(sql, params).fetchall()
+finally:
+    conn.close()   # 禁止遗漏
+```
+
+- DuckDB 用 `?` 参数化，禁止字符串拼接
+- 列名动态化走白名单字典（如 `SPU_LEVELS`），禁止直接拼接
+
+### Step 3 — 渠道参数统一展开
+
+```python
+from backend.semantic.filters import expand_channels
+db_channels = expand_channels([channel])
+db_exclude = expand_channels(exclude_channels)
+```
+
+### Step 4 — Schema 三同步（最容易遗漏）
+
+```
+backend/services/xxx_service.py  →  改返回字段
+backend/contracts/schemas.py     →  同步 Pydantic model
+frontend-vue3/src/api/xxx.ts    →  同步 TypeScript interface
+```
+
+- 新增字段：Schema 加默认值（`float = 0.0`），前端加 `?` 可选
+- 删除字段：三者同时删除，不留死字段
+- **最常见 crash**：Pydantic 缺字段 → FastAPI 静默过滤 → 前端 undefined → 白屏
+
+### Step 5 — 前端只做展示，不做业务计算
+
+```ts
+// ✅ 正确：后端算好，前端展示
+{ title: '渗透率', render: (row) => `${(row.penetration_rate * 100).toFixed(1)}%` }
+
+// ❌ 禁止：前端自己算 YOY / 占比 / 客单价
+const ratio = (current - previous) / previous
+```
+
+### Step 6 — 三层验证
+
+1. Python import：`from backend.main import app`
+2. 后端测试：`pytest backend/tests/ -x -q`
+3. 前端类型：`vue-tsc --noEmit`
+
+---
+
+## 包拆分检查清单
+
+> 拆分 `xxx.py` 为 `xxx/` 包时必做，少一步就可能线上 500。
+
+```bash
+# 1. AST 分析：检查子模块间的交叉导入
+python3 -c "
+import ast, os
+pkg = 'backend/services/xxx'
+for f in os.listdir(pkg):
+    if f.endswith('.py') and f != '__init__.py':
+        tree = ast.parse(open(os.path.join(pkg, f)).read())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                print(f'{f}: {node.name}')
+"
+
+# 2. 运行时验证
+PYTHONPATH="$(pwd)" python3 -c "from backend.services.xxx import func1, func2"
+
+# 3. 运行测试
+PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
+```
+
+**教训（2026-05-28）**：`dmp_asset_service` 拆分为 store.py / product.py / other.py 时，7 个共享辅助函数（`_check_reload` / `_parse_date` / `_load_data2` 等）全部丢失，导致 `name '_check_reload' is not defined` 线上 500。根因：提取代码段时只复制了表面，没有梳理段间的函数调用关系。同日 `rfm_analysis` 拆分也有类似问题。
+
+---
+
+## 语义层口径
+
+| 概念 | 定义 | 位置 |
+|------|------|------|
+| 有效订单 | `is_refund=FALSE AND order_status!='交易关闭'` | `filters.py` |
+| GMV | 剔除购物金，含退款 | `filters.py` |
+| GSV | 剔除购物金+退款 | `filters.py` |
+| 新老客 cutoff | `pay_date - INTERVAL '1 day'` | 各 service 内联计算，禁止硬编码固定日期 |
+| 禁止写法 | `LIKE '%成功%'` | 会误杀有效订单 |
+| 渠道漏斗（9层） | U先派样→百补派样→赠品&0.01→达播/微博→直播→淘客→购物金→货架→其他 | `channels.py` |
+
+---
+
+## Skill 路由
+
+> 当请求匹配以下场景时，**立即调用对应 Skill**，不得直接回答。
+
+| 场景 | 触发词 | Skill |
+|------|--------|-------|
+| 报错 / 500 / 数据异常 | `调试`、`investigate`、`排查`、`出问题了`、`报错` | `investigate` |
+| commit 前自检 | `review`、`代码审查`、`逻辑有没有问题`、`业务逻辑` | `review` |
+| 功能上线前验收 | `qa`、`测试一下`、`验收`、`检查一下` | `qa` |
+| 大功能推送前完整检查 | `发布`、`上线`、`部署`、`ship` | `ship` |
 
 ---
 
@@ -24,144 +230,6 @@ PYTHONPATH="$(pwd)" ~/.workbuddy/binaries/python/envs/default/bin/python scripts
 # 跑测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
-
----
-
-## Git 工作流
-
-### 提交规范（强制）
-```
-<type>: <subject>
-
-feat     新功能
-fix      Bug 修复
-docs     文档改动
-style    格式调整（不影响逻辑）
-refactor 重构（不影响功能）
-test     测试相关
-chore    工具/构建/依赖
-
-示例：feat: 新增人群看板RFM视图
-```
-
-### 提交步骤（强制，不得跳过）
-
-```
-① git checkout -b feature/xxx   ← 从 main 拉 feature 分支
-  ↓
-② 写代码
-  ↓
-③ 跑测试 — pytest backend/tests/ -x -q
-  ↓
-④ review skill — commit 前自检（找逻辑问题、SQL 安全、边界条件）
-  ↓
-⑤ 修复 review 发现的问题
-  ↓
-⑥ git commit -m "feat: xxx"（规范 message）
-  ↓
-⑦ git push origin feature/xxx
-  ↓
-⑧ qa skill — 功能验收（跑全量测试 + API 检查）
-  ↓
-⑨ git checkout main && git merge feature/xxx --no-ff
-  ↓
-⑩ git push origin main
-```
-
-**对应 Skill**：
-- `review` — commit 前必须调用，审查代码质量
-- `qa` — push 后、merge 前调用，验收测试
-- `ship` — 大功能完成后，完整检查（测试 + 类型 + 文档 + 版本号）
-
-```bash
-cd fuqing-crm-analytics
-
-# 1. 创建 feature 分支
-git checkout -b feature/my-feature
-
-# 2. 写代码 + 跑测试
-PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
-
-# 3. review（自动调用 Skill）
-# 触发词：review、代码审查、逻辑有没有问题
-
-# 4. 按逻辑分组提交
-git add backend/services/health/
-git commit -m "feat: 新增xxx功能"
-
-# 5. 推送到 feature 分支
-git push origin feature/my-feature
-
-# 6. qa 验收（自动调用 Skill）
-# 触发词：qa、测试一下、验收、检查一下
-
-# 7. merge 到 main
-git checkout main
-git merge feature/my-feature --no-ff -m "merge: xxx功能"
-git push origin main
-
-# 8. 清理 feature 分支
-git branch -d feature/my-feature
-git push origin --delete feature/my-feature
-```
-
-### 分支策略
-
-```
-main (生产) ← merge --no-ff ← feature/xxx
-```
-
-- **main**: 只接受 feature 分支 merge，禁止直接 commit
-- **feature/***: 每个功能/修复一个分支，完成后 merge 到 main 并删除
-- **dev**: 可选，多人协作时用于集成，单人项目直接 feature → main
-- 流程：`feature → 测试 → review → qa → merge main → push → 删除 feature`
-
-### 禁止事项
-- ❌ `git commit -m "fix"` / "update" / "asdf" — 提交信息必须说明改了什么
-- ❌ 一次 commit 混多个不相关功能
-- ❌ commit 后不 push — 代码在本地 = 代码丢了
-- ❌ **跳过 review 直接 commit** — 2026-05-28 教训：拆分包时漏掉交叉导入导致 500
-- ❌ **跳过 qa 直接 merge main** — 必须跑完 qa skill 再 merge
-- ❌ **直接在 main 上 commit** — 必须通过 PR 流程
-
-### 包拆分检查清单（拆分大文件时必做）
-
-拆分 `xxx.py` 为 `xxx/` 包后，必须执行以下检查：
-
-```bash
-# 1. AST 分析：检查子模块间的交叉导入
-python3 -c "
-import ast, os
-pkg = 'backend/services/xxx'
-all_defined = set()
-for f in os.listdir(pkg):
-    if f.endswith('.py') and f != '__init__.py':
-        tree = ast.parse(open(os.path.join(pkg, f)).read())
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-                all_defined.add(node.name)
-            elif isinstance(node, ast.Assign):
-                for t in node.targets:
-                    if isinstance(t, ast.Name):
-                        all_defined.add(t.id)
-# 检查每个文件是否导入了需要的兄弟模块名称
-print(f'Package defines: {all_defined}')
-"
-
-# 2. 运行时验证：所有子模块可独立导入
-PYTHONPATH="$(pwd)" python3 -c "
-from backend.services.xxx import func1, func2
-print('All imports OK')
-"
-
-# 3. 运行测试
-PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
-
-# 4. 验证 FastAPI 启动
-PYTHONPATH="$(pwd)" python3 -c "from backend.main import app; print(f'{len(app.routes)} routes')"
-```
-
-**教训（2026-05-28）**：拆分 `rfm_analysis.py` 时，`analysis.py` 缺少 `_read_db_cache`/`_write_db_cache`/`_run_rfm_period` 的导入，导致线上 500 错误。根因是提取脚本只复制了代码段，没有处理段间的函数调用关系。
 
 ---
 
@@ -201,26 +269,25 @@ fuqing-crm-analytics/
 │   ├── contracts/
 │   │   └── schemas.py     ← Pydantic 模型（统一导出，135个类）
 │   ├── services/          ← 业务逻辑（按业务域拆分为包）
-│   │   ├── category_service/ ← 品类分析（flow/repurchase/distribution/...）
-│   │   ├── health/        ← 老客健康分析（rfm_analysis/overview/repurchase/...）
+│   │   ├── category_service/  ← 品类分析
+│   │   ├── health/        ← 老客健康分析
 │   │   ├── metrics/       ← 指标服务
-│   │   ├── rfm/           ← RFM 区间流转（r_flow/f_flow/m_flow/segment_orders）
-│   │   ├── breakdown_service/ ← 一键拆解（forward/reverse/suggestions/main）
-│   │   └── dmp_asset_service/ ← DMP 资产（store/product/other）
+│   │   ├── rfm/          ← RFM 区间流转
+│   │   ├── breakdown_service/ ← 一键拆解
+│   │   └── dmp_asset_service/ ← DMP 资产
 │   ├── routers/           ← API 路由（16 个模块）
 │   ├── db/                ← 数据库连接（get_connection）
 │   └── tests/             ← 单元测试（8 个文件，148 个用例）
 ├── frontend-vue3/
-│   ├── src/
-│   │   ├── views/         ← 页面组件
-│   │   ├── components/    ← 公共组件
-│   │   ├── api/           ← API 调用 + types.ts
-│   │   └── stores/        ← Pinia 状态
-│   └── e2e/               ← E2E 测试
-├── scripts/               ← ETL 脚本（etl/ + archive/）
+│   └── src/
+│       ├── views/         ← 页面组件
+│       ├── components/     ← 公共组件
+│       ├── api/           ← API 调用 + types.ts
+│       └── stores/        ← Pinia 状态
+├── scripts/               ← ETL 脚本
 ├── config/                ← 配置（健康评分、RFM 阈值）
-├── data/                  ← 数据（processed/fuqing_crm.duckdb，33G）
-└── docs/                  ← 文档（按领域归类：backend/frontend/deploy/ai/product）
+├── data/                  ← DuckDB 主库（33G）
+└── docs/                  ← 文档（backend/frontend/deploy/ai/product）
 ```
 
 ---
@@ -236,124 +303,19 @@ fuqing-crm-analytics/
 | `test_segments.py` | RFM 分群注册表/评分 SQL |
 | `test_flow_service.py` | 人群流转服务 |
 | `test_exceptions.py` | 异常类型与 HTTP 状态码 |
-| `test_api_integration.py` | FastAPI 集成测试（需 DB + API Key） |
+| `test_api_integration.py` | FastAPI 集成测试 |
 
 ---
 
-## 数据库表
+## 历史教训（来自真实事故，非理论）
 
-| 表 | 说明 |
-|---|---|
-| `orders` | 核心订单表（34 列，1030 万行） |
-| `user_rfm` | RFM 预计算表（17 字段） |
-| `user_first_purchase` | 首购日期（409 万用户） |
-| `daily_visitors` | 日粒度访客数据（846 行） |
+> 每次教训都是真实 bug，每个禁止规则背后都有一段事故史。AI 必须将这些视为约束条件而非建议。
 
----
-
-## 渠道漏斗（9 层）
-
-```
-P1 U先派样 → P2 百补派样 → P3 赠品&0.01 → P4 达播/微博 → P5 直播 → P6 淘客 → P7 购物金 → P8 货架 → P9 其他
-```
-
----
-
-## 新增/修改接口规范（必读）
-
-> 每次新增或修改后端接口，必须按以下 6 步走，不得跳过。
-
-### Step 1: 口径先找语义层
-
-```python
-# ✅ 正确：引用语义层
-from backend.semantic.filters import OrderFilters, expand_channels
-valid_sql, _ = OrderFilters.valid_order()
-
-# ❌ 禁止：在 Service 里硬编码口径
-"order_status LIKE '%成功%'"
-"is_goujinjin = FALSE"  # 自己写
-```
-
-口径来源（唯一真实数据源）：
-- `backend/semantic/filters.py` → 过滤条件
-- `backend/semantic/channels.py` → 渠道映射
-- `backend/semantic/calculations.py` → YOY/MOM/safe_ratio
-- `backend/semantic/segments.py` → RFM 分群
-
-### Step 2: Service 必须遵守连接规范
-
-```python
-conn = get_connection()
-try:
-    result = conn.execute(sql, params).fetchall()
-    total = conn.execute(total_sql, params).fetchone()
-    # ... 组装返回值
-    return { ... }
-finally:
-    conn.close()
-```
-
-- `?` 参数化，禁止字符串拼接值
-- 列名动态化必须走白名单字典（如 `SPU_LEVELS`）
-- `level not in SPU_LEVELS` → raise ValueError
-
-### Step 3: 渠道参数统一走语义层
-
-```python
-from backend.semantic.filters import expand_channels
-
-# channel 和 exclude_channels 都要展开
-db_channels = expand_channels([channel])
-db_exclude = expand_channels(exclude_channels)
-```
-
-前端渠道常量统一引用：
-```ts
-import { LOW_PRICE_CHANNELS } from '@/constants/channels'
-// 禁止在各 View 里重复定义 const LOW_PRICE_CHANNELS = [...]
-```
-
-### Step 4: Schema 字段同步（改 Service 必须同步）
-
-```
-backend/services/xxx_service.py  →  改返回字段
-backend/contracts/schemas.py     →  同步 Pydantic model
-frontend-vue3/src/api/xxx.ts     →  同步 TypeScript interface
-```
-
-- Service 新增字段 → Schema 加默认值（`float = 0.0`），前端加 `?` 可选
-- Service 删除字段 → Schema + 前端同时删除，不留死字段
-- **最常见 crash**：Pydantic 缺字段 → FastAPI 静默过滤 → 前端 undefined → 白屏
-
-### Step 5: 前端只做展示，不做业务计算
-
-```ts
-// ✅ 正确：后端算好，前端展示
-{ title: '渗透率', key: 'penetration_rate', render: (row) => `${(row.penetration_rate * 100).toFixed(1)}%` }
-
-// ❌ 禁止：前端自己算 YOY / 占比 / 客单价
-const ratio = (current - previous) / previous  // 不要在前端算
-```
-
-### Step 6: 三层验证
-
-1. **Python import** → `from backend.main import app`
-2. **后端测试** → `pytest backend/tests/ -x -q`
-3. **前端类型** → `vue-tsc --noEmit`
-4. **浏览器** → 0 console error，筛选联动正常
-
----
-
-## 公共模块（避免重复造轮子）
-
-| 模块 | 位置 | 用途 |
-|---|---|---|
-| `expand_channels` | `backend/semantic/filters.py` | 渠道名展开/标准化 |
-| `OrderFilters` | `backend/semantic/filters.py` | 有效订单、GMV/GSV 口径 |
-| `LOW_PRICE_CHANNELS` | `frontend-vue3/src/constants/channels.ts` | 低价渠道列表 |
-| `YOYBadge` | `frontend-vue3/src/components/YOYBadge.vue` | 同比标签组件 |
-| `MetricCard` | `frontend-vue3/src/components/MetricCard.vue` | KPI 卡片（支持 subtitle + formula） |
+| 日期 | 事故 | 根因 | 教训 |
+|------|------|------|------|
+| 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
+| 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
+| 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |
 
 ---
 
@@ -361,24 +323,10 @@ const ratio = (current - previous) / previous  // 不要在前端算
 
 | 文件 | 说明 |
 |---|---|
-| `MEMORY.md`（自动注入） | 修改代码的规则 + 当前状态 + 历史教训 |
+| `MEMORY.md`（自动注入） | 修改代码规则 + 当前状态 + 历史教训 |
 | `docs/DOCUMENT-INDEX.md` | 文档分类索引 |
 | `docs/product/PRD-v3.0.md` | 产品需求文档 |
 | `docs/飞书版架构文档/` | 系统架构文档（7 份） |
 | `docs/ai/DESIGN.md` | AI 改代码操作规范 |
 | `docs/frontend/frontend-contract-guide.md` | 前端契约指南 |
 | `docs/deploy/DEPLOY.md` | 部署文档 |
-| `docs/backend/DATA-SOURCE-MAP.md` | 数据源映射 |
-
----
-
-## Skill 路由
-
-当请求匹配以下场景时，**立即调用对应 Skill**，不要直接回答。
-
-| 场景 | 触发词示例 | 调用的 Skill |
-|------|-----------|-------------|
-| 修 Bug / 报错 / 数据异常 | `调试`、`investigate`、`排查`、`出问题了`、`报错` | `investigate` |
-| 写完模块自检 / commit 前审查 | `review`、`代码审查`、`逻辑有没有问题`、`业务逻辑` | `review` |
-| 功能上线前验收测试 | `qa`、`测试一下`、`验收`、`检查一下`、`跑一下测试` | `qa` |
-| 大功能完成，推送前完整检查 | `发布`、`上线`、`部署`、`ship` | `ship` |
