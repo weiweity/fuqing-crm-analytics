@@ -81,35 +81,35 @@ def get_rfm_analysis(
         prev2_all, prev2_same, prev2_member_all, prev2_member_same = _run_rfm_period(
             conn, prev2_start_dt, prev2_end_dt, prev2_cutoff, channel, metric_type, exclude_channels
         )
+
+        rows = _build_rows(cur_all, comp_all, prev2_all)
+        same_channel_rows = _build_rows(cur_same, comp_same, prev2_same)
+        member_rows = _build_rows(cur_member_all, comp_member_all, prev2_member_all)
+        member_same_channel_rows = _build_rows(cur_member_same, comp_member_same, prev2_member_same)
+
+        result = {
+            "year_label": current_year_label,
+            "comp_year_label": comp_year_label,
+            "prev2_year_label": prev2_year_label,
+            "metric_type": metric_type,
+            "rows": rows,
+            "same_channel_rows": same_channel_rows,
+            "member_rows": member_rows,
+            "member_same_channel_rows": member_same_channel_rows,
+        }
+
+        # ── 缓存写入（必须在 conn.close() 之前，使用同一连接） ──
+        if is_historical and data_version:
+            try:
+                _write_db_cache(
+                    period, start_date, end_date, channel, metric_type,
+                    exclude_channels, conn, data_version, result, compare_start_date, compare_end_date
+                )
+                logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
+            except Exception as e:
+                logger.warning(f"RFM 缓存写入失败（不影响返回）: {e}")
     finally:
         conn.close()
-
-    rows = _build_rows(cur_all, comp_all, prev2_all)
-    same_channel_rows = _build_rows(cur_same, comp_same, prev2_same)
-    member_rows = _build_rows(cur_member_all, comp_member_all, prev2_member_all)
-    member_same_channel_rows = _build_rows(cur_member_same, comp_member_same, prev2_member_same)
-
-    result = {
-        "year_label": current_year_label,
-        "comp_year_label": comp_year_label,
-        "prev2_year_label": prev2_year_label,
-        "metric_type": metric_type,
-        "rows": rows,
-        "same_channel_rows": same_channel_rows,
-        "member_rows": member_rows,
-        "member_same_channel_rows": member_same_channel_rows,
-    }
-
-    # ── 缓存写入（仅历史周期，通过同一 conn 写入） ──
-    if is_historical and data_version:
-        try:
-            _write_db_cache(
-                period, start_date, end_date, channel, metric_type,
-                exclude_channels, conn, data_version, result, compare_start_date, compare_end_date
-            )
-            logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
-        except Exception as e:
-            logger.warning(f"RFM 缓存写入失败（不影响返回）: {e}")
 
     return result
 
