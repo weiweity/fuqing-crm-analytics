@@ -163,26 +163,43 @@ const ratio = (current - previous) / previous
 ## 包拆分检查清单
 
 > 拆分 `xxx.py` 为 `xxx/` 包时必做，少一步就可能线上 500。
+>
+> ⚠️ 2026-05-28 真实事故: `dmp_asset_service` 拆分丢 7 个辅助函数 → 线上 500；
+> 同日 `rfm_service` 拆分丢 `get_connection` / `yoy_absolute` / `yoy_repurchase_rate` / `expand_channels` → 再次 500。
+> 根因相同: 拆分子模块时只复制了业务代码，没梳理跨文件的函数调用关系。
+
+### 强制执行流程（顺序不可跳过）
 
 ```bash
-# 1. AST 分析：检查子模块间的交叉导入
-python3 -c "
-import ast, os
-pkg = 'backend/services/xxx'
-for f in os.listdir(pkg):
-    if f.endswith('.py') and f != '__init__.py':
-        tree = ast.parse(open(os.path.join(pkg, f)).read())
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                print(f'{f}: {node.name}')
+# Step 1 — 交叉导入校验（自动发现所有遗漏的 NameError）
+# 对每个子模块单独 import，触发顶层代码执行，捕获 NameError
+cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+PYTHONPATH="$(pwd)" python3 -c "
+import importlib, sys
+modules = ['backend.services.xxx.sub1', 'backend.services.xxx.sub2']
+for m in modules:
+    try:
+        importlib.import_module(m)
+        print(f'OK: {m}')
+    except NameError as e:
+        sys.exit(f'MISSING IMPORT in {m}: {e}')
+    except Exception as e:
+        print(f'WARN: {m} raised {type(e).__name__}, but not NameError')
+print('All submodules import cleanly')
 "
 
-# 2. 运行时验证
-PYTHONPATH="$(pwd)" python3 -c "from backend.services.xxx import func1, func2"
+# Step 2 — _shared.py 完整性检查
+# 确保 _shared.py 导出了所有子模块共享的依赖（至少检查这 3 类）
+grep -rn "get_connection\|expand_channels\|yoy_absolute\|yoy_repurchase_rate\|PeriodBuilder" backend/services/xxx/ | grep -v "_shared.py"
+# ↑ 如果有输出，说明这些函数在某子模块中使用了但 _shared.py 未导出 → 补齐 _shared.py
 
-# 3. 运行测试
+# Step 3 — 全量测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
 ```
+
+### 关键教训
+
+子模块的 `from _shared import *` 是一条单向依赖链。**拆分时先把所有共享依赖从单体文件提取到 `_shared.py`，再分割业务逻辑。** 反过来做（先拆再补导入）必然漏。
 
 **教训（2026-05-28）**：`dmp_asset_service` 拆分为 store.py / product.py / other.py 时，7 个共享辅助函数（`_check_reload` / `_parse_date` / `_load_data2` 等）全部丢失，导致 `name '_check_reload' is not defined` 线上 500。根因：提取代码段时只复制了表面，没有梳理段间的函数调用关系。同日 `rfm_analysis` 拆分也有类似问题。
 
