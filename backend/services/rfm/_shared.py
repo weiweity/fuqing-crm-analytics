@@ -1,15 +1,26 @@
 """
 芙清 CRM - RFM 专项服务（共享模块）
 
-常量、口径定义、日期解析工具。
+常量、口径定义、日期解析工具、查询结果缓存。
 """
 
+import json
+import hashlib
+import logging
+from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import date, timedelta, datetime
 from calendar import monthrange
 from backend.semantic.time import PeriodBuilder
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.db.connection import get_connection
+from backend.config import DATA_DIR
+
+logger = logging.getLogger(__name__)
+
+# ── 缓存目录 ──
+FLOW_CACHE_DIR = DATA_DIR / "cache" / "rfm_flow"
+FLOW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # 语义层统一口径
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
@@ -166,3 +177,87 @@ def _resolve_date_ranges(
         "prev2": (y2_start_dt, y2_end_dt, y2_cutoff_str),
         "labels": (str(today.year), str(comp_year), str(prev2_year)),
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 查询结果缓存（减少 RFM flow 端点的 SQL 重复执行）
+# 缓存策略：
+#   - 缓存键 = 端点名 + 日期范围 + 渠道 + 指标 + 数据版本
+#   - 数据版本 = orders.max_pay_time（ETL 刷新后自动失效）
+#   - 命中 → JSON 文件读取（<10ms）
+#   - 未命中 → 实时 SQL + 存盘
+# ═══════════════════════════════════════════════════════════════
+
+def _fetch_data_version() -> str:
+    """获取数据版本（orders.max_pay_time）。"""
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()
+        return row[0] or "no_data"
+    finally:
+        conn.close()
+
+
+def _flow_cache_key(
+    flow_type: str,
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+    metric_type: str,
+    exclude_channels: Optional[List[str]],
+    compare_start_date: Optional[str],
+    compare_end_date: Optional[str],
+    data_version: str,
+) -> str:
+    """生成缓存文件名。"""
+    parts = [flow_type, data_version]
+    if start_date and end_date:
+        parts.append(f"{start_date}_{end_date}")
+    if channel and channel != "全店":
+        safe_ch = channel.replace("'", "''")
+        parts.append(f"ch_{safe_ch}")
+    parts.append(metric_type)
+    if exclude_channels:
+        ch_str = ",".join(sorted(exclude_channels))
+        ch_hash = hashlib.md5(ch_str.encode()).hexdigest()[:8]
+        parts.append(f"ex_{ch_hash}")
+    if compare_start_date and compare_end_date:
+        parts.append(f"cmp_{compare_start_date}_{compare_end_date}")
+    return "_".join(parts) + ".json"
+
+
+def _get_cached_flow(
+    cache_key: str,
+    data_version: str,
+) -> Optional[Dict[str, Any]]:
+    """读取缓存的 flow 结果。数据版本不匹配返回 None。"""
+    cache_file = FLOW_CACHE_DIR / cache_key
+    if not cache_file.exists():
+        return None
+    try:
+        with open(cache_file, "r", encoding="utf-8") as f:
+            cached = json.load(f)
+        if cached.get("data_version") != data_version:
+            return None
+        logger.info(f"Cache HIT: {cache_key}")
+        return cached.get("result")
+    except (json.JSONDecodeError, KeyError):
+        cache_file.unlink(missing_ok=True)
+        return None
+
+
+def _set_cached_flow(
+    cache_key: str,
+    data_version: str,
+    result: Dict[str, Any],
+) -> None:
+    """写入 flow 结果缓存。"""
+    cache_file = FLOW_CACHE_DIR / cache_key
+    cache_data = {
+        "data_version": data_version,
+        "timestamp": datetime.now().isoformat(),
+        "result": result,
+    }
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(cache_data, f, ensure_ascii=False, default=str)
+    logger.info(f"Cache SET: {cache_key}")

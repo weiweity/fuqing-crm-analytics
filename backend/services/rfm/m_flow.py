@@ -6,7 +6,9 @@ import duckdb
 from backend.services.rfm._shared import *
 from backend.services.rfm._shared import (
     _VALID_BASE, _resolve_date_ranges,
-    M_SEGMENT_ORDER
+    M_SEGMENT_ORDER,
+    _fetch_data_version, _flow_cache_key,
+    _get_cached_flow, _set_cached_flow,
 )
 
 # ============================================================
@@ -304,6 +306,17 @@ def get_rfm_m_flow(
     prev2_start_dt, prev2_end_dt, prev2_cutoff = ranges["prev2"]
     current_year_label, comp_year_label, prev2_year_label = ranges["labels"]
 
+    # ── 缓存检查 ──
+    data_version = _fetch_data_version()
+    cache_key = _flow_cache_key(
+        "m_flow", start_date or "", end_date or "",
+        channel, metric_type, exclude_channels,
+        compare_start_date, compare_end_date, data_version,
+    )
+    cached = _get_cached_flow(cache_key, data_version)
+    if cached is not None:
+        return cached
+
     conn = get_connection()
     try:
         cur_all, cur_same, cur_member_all, cur_member_same = _run_m_flow_period(conn, cur_start_dt, cur_end_dt, cutoff, channel, metric_type, exclude_channels)
@@ -343,7 +356,7 @@ def get_rfm_m_flow(
             })
         return rows
 
-    return {
+    result = {
         "year_label": current_year_label,
         "comp_year_label": comp_year_label,
         "prev2_year_label": prev2_year_label,
@@ -354,5 +367,7 @@ def get_rfm_m_flow(
         "member_same_channel_rows": _build_rows(cur_member_same, comp_member_same, prev2_member_same),
     }
 
-
+    # ── 写入缓存 ──
+    _set_cached_flow(cache_key, data_version, result)
+    return result
 # ============================================================
