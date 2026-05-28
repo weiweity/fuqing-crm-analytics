@@ -196,6 +196,9 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                 df['year'] = df['order_time'].dt.year
                 df['month'] = df['order_time'].dt.month
 
+            # 写入 Parquet 缓存（下次 ETL 跳过 xlsx 解析）
+            _save_parquet_cache(df, f, data_type)
+
             all_data.append(df)
             # v2 格式：记录 mtime + hash（但不保存，等 DuckDB 写入成功后再保存）
             processed_new[str(f.relative_to(data_source))] = {
@@ -225,3 +228,19 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     else:
         print(f"  无有效数据")
         return pd.DataFrame()
+
+
+def _save_parquet_cache(df, xlsx_path, data_type):
+    """将 xlsx 读取后的 DataFrame 存为 Parquet，下次 ETL 直接读 Parquet 跳过 openpyxl。
+
+    写入到 PARQUET_DATA_DIR/<data_type>/<filename>.parquet。
+    失败不阻塞 ETL，仅打印警告。
+    """
+    pq_dir = PARQUET_DATA_DIR / data_type
+    pq_dir.mkdir(parents=True, exist_ok=True)
+    pq_path = pq_dir / f"{xlsx_path.stem}.parquet"
+    try:
+        df.to_parquet(pq_path, index=False)
+        print(f"    [Parquet 写入] {pq_path.name} ({len(df):,} 行)")
+    except Exception as e:
+        print(f"    [Parquet 写入失败] {pq_path.name}: {e}")
