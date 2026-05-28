@@ -112,16 +112,12 @@ def _run_rfm_period_live(
           {exclude_where_base}
     ),
     user_stats_all AS (
-        SELECT user_id, MAX(pay_time) as last_pay_time,
-               COUNT(DISTINCT order_id) as order_count,
-               SUM(actual_amount) as gsv,
-               BOOL_OR(is_member) AS is_member
-        FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
-          AND {_VALID_BASE}
-          {refund_where}
-          {exclude_where_hist}
-        GROUP BY user_id
+        SELECT ur.user_id, ur.last_pay_time,
+               ur.total_orders as order_count,
+               ur.total_amount as gsv,
+               ur.is_member
+        FROM user_recency ur
+        WHERE ur.last_pay_time <= ?::TIMESTAMP
     ),
     user_stats_same AS (
         SELECT user_id, MAX(pay_time) as last_pay_time,

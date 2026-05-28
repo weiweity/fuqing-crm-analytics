@@ -201,5 +201,38 @@ def drop_user_rfm_table(conn=None):
     print("user_rfm table dropped")
 
 
+def create_user_recency_table(conn=None, mode: str = "if_not_exists"):
+    """创建 user_recency 表（用户最近购买日期 + 距今天数）。
+
+    mode: 'if_not_exists' (默认) | 'replace' (DROP + 重建)
+    表结构：user_id, last_pay_time, is_member, recency_days
+    """
+    if conn is None:
+        conn = get_connection()
+        should_close = True
+    else:
+        should_close = False
+
+    if mode == "replace":
+        conn.execute("DROP TABLE IF EXISTS user_recency")
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_recency (
+            user_id        VARCHAR PRIMARY KEY,
+            last_pay_time  TIMESTAMP,
+            is_member      BOOLEAN DEFAULT FALSE,
+            recency_days   INTEGER,
+            total_orders   INTEGER DEFAULT 0,
+            total_amount   DECIMAL(14,2) DEFAULT 0
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ur_last_pay ON user_recency(last_pay_time)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ur_recency ON user_recency(recency_days)")
+
+    if should_close:
+        conn.close()
+    print("user_recency table ready")
+
+
 if __name__ == "__main__":
     init_database()

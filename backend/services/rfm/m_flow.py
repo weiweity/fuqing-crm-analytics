@@ -77,16 +77,12 @@ def _run_m_flow_period(
     ),
     hist_customers_all AS (
         SELECT
-            user_id,
-            DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days,
-            SUM(actual_amount) AS monetary,
-            BOOL_OR(is_member) AS is_member
-        FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
-          AND {_VALID_BASE}
-          {refund_where}
-          {exclude_where_hist}
-        GROUP BY user_id
+            ur.user_id,
+            DATEDIFF('day', ur.last_pay_time::DATE, ?::DATE) AS recency_days,
+            ur.total_amount AS monetary,
+            ur.is_member
+        FROM user_recency ur
+        WHERE ur.last_pay_time <= ?::TIMESTAMP
     ),
     hist_customers_same AS (
         SELECT
