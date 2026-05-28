@@ -147,7 +147,8 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             SUM(actual_amount) AS monetary,
             COUNT(DISTINCT order_id) AS frequency,
             MAX(pay_time) AS last_pay_time,
-            MIN(pay_time) AS first_pay_time
+            MIN(pay_time) AS first_pay_time,
+            BOOL_OR(is_member) AS has_member_order
         FROM fm_orders
         GROUP BY user_id
     ),
@@ -172,6 +173,7 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             fm.frequency,
             fm.first_pay_time::DATE AS first_order_date,
             fm.last_pay_time::DATE AS last_order_date,
+            fm.has_member_order,
             -- R: 基于365天窗口计算最近购买距分析日天数
             DATEDIFF('day', COALESCE(r.r_last_pay_time, fm.last_pay_time), DATE(?)) AS recency_days
         FROM fm_metrics fm
@@ -184,6 +186,7 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             frequency,
             first_order_date,
             last_order_date,
+            has_member_order,
             recency_days,
             {r_score_sql} AS r_score,
             {f_score_sql} AS f_score,
@@ -197,6 +200,7 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             frequency,
             first_order_date,
             last_order_date,
+            has_member_order,
             recency_days,
             r_score,
             f_score,
@@ -222,6 +226,7 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
         segment_id,
         first_order_date,
         last_order_date,
+        has_member_order AS is_member,
         CURRENT_TIMESTAMP AS created_at
     FROM user_with_segment
     CROSS JOIN base_params
@@ -299,7 +304,7 @@ def preload_date(
             recency_days, frequency, monetary,
             r_score, f_score, m_score,
             rfm_tier, rfm_tier_en, segment_id,
-            first_order_date, last_order_date, created_at
+            first_order_date, last_order_date, is_member, created_at
         ) {sql}
     """, params)
 

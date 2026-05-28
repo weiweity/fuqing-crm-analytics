@@ -173,6 +173,7 @@ def create_user_rfm_table(conn=None):
             segment_id         INTEGER,
             first_order_date   DATE,
             last_order_date    DATE,
+            is_member          BOOLEAN DEFAULT FALSE,
             created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (user_id, analysis_date, metric_type, lookback_days, channel)
         )
