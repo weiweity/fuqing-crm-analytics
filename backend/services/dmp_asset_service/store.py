@@ -1,96 +1,21 @@
 """
 芙清 CRM - 市场对焦板块：DMP资产数据服务
-读取 data2.csv（全店资产）和 data3.csv（单品资产），按周聚合后暴露API
+读取 data2.csv（全店资产），按周聚合后暴露API
 """
 
-import os
-import threading
 import pandas as pd
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+from datetime import timedelta
+from typing import Dict, Any
 
-from backend.config import DMP_DATA2_PATH, DMP_DATA3_PATH
-
-
-# ─────────────────────────────────────────────────────────────
-# 文件路径由 backend/config.py 统一管理
-# ─────────────────────────────────────────────────────────────
-
-
-# ─────────────────────────────────────────────────────────────
-# data3.csv ID → 产品名称映射
-# ─────────────────────────────────────────────────────────────
-ID_TO_PRODUCT = {
-    587051744204: "经典膜",
-    803474428381: "凉茶次抛",
-    870597889980: "凉茶水乳",
-    994162104051: "凉茶面霜",
-    933524395698: "童颜乳酸次抛",   # 实际为"童颜乳酸精华"
-    900975734816: "童颜乳酸面膜",
-    1010458880710: "传明酸面膜",    # 实际为"传明酸光感面膜"
-}
-
-# 产品展示顺序（单一数据源，前端 CORE_PRODUCTS 应与此保持一致）
-PRODUCT_ORDER = list(ID_TO_PRODUCT.values())
-
-# ─────────────────────────────────────────────────────────────
-# 产品名 → SPU类目名列表映射（单一数据源，与前端 CORE_PRODUCTS.spuc_classes 一致）
-# 用途：product-assets API 返回 spu_classes，前端去掉硬编码
-# 维护规则：修改 ID_TO_PRODUCT 时同步更新此映射
-# ─────────────────────────────────────────────────────────────
-PRODUCT_TO_SPU_CLASSES: Dict[str, List[str]] = {
-    "经典膜": ["经典膜", "【妆】经典膜"],
-    "凉茶次抛": ["凉茶次抛"],          # TODO: 确认 data3 中对应的 SPU 类目名
-    "凉茶水乳": ["凉茶水乳"],
-    "凉茶面霜": ["凉茶面霜"],
-    "童颜乳酸次抛": ["童颜乳酸精华"],   # 后端展示名"童颜乳酸次抛"，SPU类目为"童颜乳酸精华"
-    "童颜乳酸面膜": ["童颜乳酸面膜"],
-    "传明酸面膜": ["传明酸光感面膜"],   # 后端展示名"传明酸面膜"，SPU类目为"传明酸光感面膜"
-}
-
-# ════════════════════════════════════════════════════════════
-# 模块三：单品资产 - 其他产品
-# ════════════════════════════════════════════════════════════
-
-# data3.csv 中剩余未在核心单品资产展示的 8 个产品 ID → 名称映射
-# 名称来源：天猫_spu单品匹配表_数据表.csv 的「单品归类」列
-ID_TO_PRODUCT_OTHER = {
-    587053192746: "医用凝胶",
-    597655781410: "医用洁面",
-    601760206476: "黑膜",
-    612503357090: "胶原水乳",
-    621639424901: "白膜",
-    654390297284: "祛痘精华",
-    683395365107: "水杨酸涂抹面膜",
-    803417397714: "凉茶面膜",
-}
-
-PRODUCT_ORDER_OTHER = list(ID_TO_PRODUCT_OTHER.values())
-
-PRODUCT_TO_SPU_CLASSES_OTHER: Dict[str, List[str]] = {
-    "医用凝胶": ["医用凝胶"],
-    "医用洁面": ["医用洁面"],
-    "黑膜": ["黑膜"],
-    "胶原水乳": ["胶原水乳"],
-    "白膜": ["白膜"],
-    "祛痘精华": ["祛痘精华"],
-    "水杨酸涂抹面膜": ["水杨酸涂抹面膜"],
-    "凉茶面膜": ["凉茶面膜"],
-}
-
-# 合并映射，供 _load_data3 统一加载所有产品数据
-_ALL_ID_TO_PRODUCT = {**ID_TO_PRODUCT, **ID_TO_PRODUCT_OTHER}
-
-# ─────────────────────────────────────────────────────────────
-# 缓存（线程安全，结果级缓存避免重复计算）
-# ─────────────────────────────────────────────────────────────
-_cache = {
-    "data2": {"mtime": 0, "df": None},  # 全店资产（result级缓存由get_store_assets自行管理）
-    "data3": {"mtime": 0, "df": None, "result": None, "result_other": None},
-}
-_cache_lock = threading.Lock()
-
+from ._helpers import (
+    _cache,
+    _cache_lock,
+    _load_data2,
+    _validate_daily_unique,
+    _get_week_label,
+    _get_week_range,
+    _last_year_same_date,
+)
 
 
 def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
@@ -99,7 +24,9 @@ def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
     weeks: 按自然周聚合（默认）
     days:  按日返回（>0时优先级高于weeks）
     """
-    df = _load_data2()
+    with _cache_lock:
+        df = _load_data2()
+
     if df is None or df.empty:
         return {"weeks": [], "latest_week": ""}
 
@@ -273,8 +200,3 @@ def get_store_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
         "weeks": result,
         "latest_week": result[-1]["week_label"] if result else "",
     }
-
-
-# ════════════════════════════════════════════════════════════
-# 模块三：单品资产
-# ════════════════════════════════════════════════════════════
