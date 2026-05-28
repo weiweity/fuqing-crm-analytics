@@ -148,7 +148,7 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             COUNT(DISTINCT order_id) AS frequency,
             MAX(pay_time) AS last_pay_time,
             MIN(pay_time) AS first_pay_time,
-            BOOL_OR(is_member) AS has_member_order
+            FALSE AS has_member_order  -- TODO: orders表无is_member列，待有数据源后补充
         FROM fm_orders
         GROUP BY user_id
     ),
