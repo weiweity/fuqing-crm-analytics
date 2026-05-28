@@ -13,9 +13,11 @@ V4: 配置历史/回滚 + 审计日志 + 多环境默认值
 """
 
 import json
+import logging
 import os
 import hmac
 import hashlib
+import secrets
 from datetime import datetime
 import copy
 from typing import Dict, List, Any, Optional
@@ -316,14 +318,22 @@ def _log_audit(action: str, details: Dict[str, Any]) -> None:
         "details": details,
     }
     # P2 fix: 添加 HMAC-SHA256 签名，防止审计日志被篡改
-    secret = os.environ.get("AUDIT_LOG_SECRET", "")
-    if secret:
-        payload = json.dumps(entry, sort_keys=True, ensure_ascii=False)
-        entry["signature"] = hmac.new(
-            secret.encode(),
-            payload.encode(),
-            hashlib.sha256
-        ).hexdigest()
+    # AUDIT_LOG_SECRET 未配置时自动生成随机密钥（警告：重启后密钥变化会破坏历史签名验证）
+    secret = os.environ.get("AUDIT_LOG_SECRET")
+    if not secret:
+        _logger = logging.getLogger(__name__)
+        _logger.warning(
+            "AUDIT_LOG_SECRET 未配置，已自动生成临时密钥。"
+            "重启后历史日志的 HMAC 签名将无法验证。"
+            "建议在环境中固定设置 AUDIT_LOG_SECRET。"
+        )
+        secret = secrets.token_urlsafe(32)
+    payload = json.dumps(entry, sort_keys=True, ensure_ascii=False)
+    entry["signature"] = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
     with open(AUDIT_LOG_PATH, 'a', encoding='utf-8') as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 

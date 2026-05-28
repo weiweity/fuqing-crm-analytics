@@ -15,8 +15,6 @@ import os
 import logging
 import bcrypt
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api/v1/auth", tags=["认证"])
 
 _logger = logging.getLogger(__name__)
@@ -34,26 +32,28 @@ LOCK_DURATION = 15 * 60        # 锁定时长（秒）
 RATE_LIMIT_WINDOW = 5 * 60     # 计数窗口（秒）
 
 # ─────────────────────────────────────────────────────────────
-# 密码配置：支持环境变量 FQ_CRM_PASSWORDS=admin:明文密码,fqsw:明文密码
-# 未配置时使用默认账号，启动时自动哈希（源码中不保存明文）
+# 密码配置：必须通过环境变量 FQ_CRM_PASSWORDS 配置
+# 格式: FQ_CRM_PASSWORDS=admin:明文密码,fqsw:明文密码
+# 未配置时拒绝启动，防止使用默认弱口令
 # ─────────────────────────────────────────────────────────────
 def _load_credentials() -> dict[str, str]:
-    """加载账号密码，返回 {username: bcrypt_hash}"""
+    """加载账号密码，返回 {username: bcrypt_hash}。未配置则拒绝启动。"""
     env = os.environ.get("FQ_CRM_PASSWORDS", "")
+    if not env or not env.strip():
+        raise RuntimeError(
+            "FQ_CRM_PASSWORDS 环境变量未配置，系统拒绝启动。"
+            "请设置该变量，格式: admin:你的密码,fqsw:你的密码"
+        )
     raw_creds: dict[str, str] = {}
-    if env:
-        for pair in env.split(","):
-            pair = pair.strip()
-            if ":" in pair:
-                user, pwd = pair.split(":", 1)
-                raw_creds[user.strip()] = pwd.strip()
-    else:
-        # 默认账号（生产环境请务必通过环境变量 FQ_CRM_PASSWORDS 配置）
-        logger.warning("使用默认账号密码，请通过环境变量 FQ_CRM_PASSWORDS 配置生产密码")
-        raw_creds = {
-            "admin": "123456",
-            "fqsw": "fqsw888",
-        }
+    for pair in env.split(","):
+        pair = pair.strip()
+        if ":" in pair:
+            user, pwd = pair.split(":", 1)
+            raw_creds[user.strip()] = pwd.strip()
+    if not raw_creds:
+        raise RuntimeError(
+            "FQ_CRM_PASSWORDS 已设置但未解析到有效凭据，请检查格式。"
+        )
     # 启动时一次性哈希（如果已经是 bcrypt 格式则跳过）
     hashed: dict[str, str] = {}
     for user, pwd in raw_creds.items():

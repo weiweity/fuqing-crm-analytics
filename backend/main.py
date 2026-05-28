@@ -44,6 +44,19 @@ app.add_middleware(
 )
 
 # ─────────────────────────────────────────────────────────────
+# 安全响应头中间件
+# ─────────────────────────────────────────────────────────────
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+# ─────────────────────────────────────────────────────────────
 # 结构化访问日志中间件
 # ─────────────────────────────────────────────────────────────
 _access_logger = logging.getLogger("access")
@@ -127,7 +140,6 @@ def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "database": "duckdb"
     }
 
 

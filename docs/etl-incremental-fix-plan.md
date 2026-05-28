@@ -152,16 +152,16 @@ xlsx 读取 → 解析 → 写 WAL → 写入 DuckDB → Checkpoint → 清理 W
 
 ---
 
-## 4. 推荐组合
+## 4. 推荐组合（实施状态）
 
-**Phase 1（立即做）**：方案 A + 方案 B
-- 事务化 processed_files（修复当前 bug）
+**Phase 1（已完成 ✅ 2026-05-28）**：方案 A + 方案 B
+- 事务化 processed_files（修复当前 bug）→ commit 4fa3f26
 - 校验和替代 mtime（防止未来漂移）
-- 改动量：~50 行代码，1 个新依赖（xxhash）
 
-**Phase 2（有空做）**：方案 C
-- Parquet 缓存层，解决性能瓶颈
-- 改动量：~100 行代码，复用现有 PARQUET_DATA_DIR
+**Phase 2（已完成 ✅ 2026-05-28）**：方案 C
+- Parquet 缓存层，解决性能瓶颈 → commit 670c19d
+- 实现: `scripts/etl/ingest.py` 新增 `_save_parquet_cache()`
+- 增量 ETL 读 xlsx 后自动存 Parquet，下次从 Parquet 读
 
 **Phase 3（可选）**：方案 D
 - DuckDB 原生读 xlsx，进一步加速
