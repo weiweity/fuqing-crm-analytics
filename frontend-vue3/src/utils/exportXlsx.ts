@@ -1,8 +1,19 @@
 /**
  * Excel 导出工具 — 基于 xlsx (SheetJS)
  * 支持：表头样式、列宽、数字/百分比格式、合并单元格
+ *
+ * xlsx 通过动态 import() 按需加载，不进入首屏 bundle。
+ * 首次点击导出时有 ~300ms 加载延迟，后续调用使用缓存。
  */
-import * as XLSX from 'xlsx'
+
+let _XLSX: typeof import('xlsx') | null = null
+
+async function _getXLSX(): Promise<typeof import('xlsx')> {
+  if (!_XLSX) {
+    _XLSX = await import('xlsx')
+  }
+  return _XLSX
+}
 
 export interface XlsxColumn {
   /** 列标题（中文） */
@@ -27,7 +38,8 @@ export interface XlsxSheetConfig {
  * - 自动设置列宽、表头样式、数字格式
  * - 百分比原始值(0.21)写入后格式化为 21.00%
  */
-export function exportToXlsx(filename: string, sheets: XlsxSheetConfig[]): void {
+export async function exportToXlsx(filename: string, sheets: XlsxSheetConfig[]): Promise<void> {
+  const XLSX = await _getXLSX()
   const wb = XLSX.utils.book_new()
 
   for (const sheet of sheets) {
@@ -75,11 +87,11 @@ export function exportToXlsx(filename: string, sheets: XlsxSheetConfig[]): void 
 /**
  * 便捷方法：单表导出
  */
-export function exportSheetToXlsx(
+export async function exportSheetToXlsx(
   filename: string,
   sheetName: string,
   columns: XlsxColumn[],
   data: Record<string, any>[],
-): void {
-  exportToXlsx(filename, [{ name: sheetName, columns, data }])
+): Promise<void> {
+  await exportToXlsx(filename, [{ name: sheetName, columns, data }])
 }

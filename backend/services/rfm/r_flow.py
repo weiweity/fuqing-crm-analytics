@@ -1,6 +1,7 @@
 """
 芙清 CRM - RFM R 区间流转
 """
+import duckdb
 
 from backend.services.rfm._shared import *
 from backend.services.rfm._shared import (

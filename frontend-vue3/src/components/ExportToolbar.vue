@@ -15,14 +15,18 @@ const props = defineProps<{
   chartRef?: { exportAsPng: (filename: string) => void } | null
 }>()
 
-function handleExportExcel() {
+async function handleExportExcel() {
   if (!props.columns || !props.data) return
-  exportSheetToXlsx(
-    props.filename,
-    props.sheetName || '数据',
-    props.columns,
-    props.data,
-  )
+  try {
+    await exportSheetToXlsx(
+      props.filename,
+      props.sheetName || '数据',
+      props.columns,
+      props.data,
+    )
+  } catch (err) {
+    console.error('Excel 导出失败:', err)
+  }
 }
 
 function handleExportImage() {
