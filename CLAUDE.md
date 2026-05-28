@@ -14,9 +14,11 @@
 | 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.1（main），测试 140 passed / 8 skipped / 0 failed |
+| 4 | **版本状态** | v0.3.2（main），测试 140 passed / 8 skipped / 0 failed |
 | 5 | **ETL 状态** | user_rfm 最大日期 2026-05-25 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
+| 7 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置登录密码，未配置时启动自动生成随机密码 |
+| 8 | **安全** | CSO 审计已通过，5 个修复已合并：安全响应头 / 审计日志签名 / 非特权 nginx / 健康检查脱敏 |
 
 ---
 
