@@ -9,6 +9,7 @@ from scripts.etl.config import (
     COLUMN_MAPPING, SPU_COLUMNS, SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE,
     PROCESSED_DATA_DIR, PARQUET_DATA_DIR,
     _get_processed_files_path, _load_processed_files, _save_processed_files,
+    _get_file_hash,
 )
 
 import pandas as pd
@@ -69,29 +70,35 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     else:
         pq_files = []
 
+    def _file_changed(f, processed_files):
+        """v2 格式：mtime 变了才计算 hash，避免每次 ETL 都读文件内容"""
+        key = str(f.relative_to(data_source)) if data_source in f.parents else f.name
+        mtime = f.stat().st_mtime
+        if key not in processed_files:
+            return True
+        rec = processed_files[key]
+        old_mtime = rec.get('mtime', 0) if isinstance(rec, dict) else rec
+        if mtime <= old_mtime:
+            return False
+        # mtime 变了，算 hash 确认内容是否真的变了
+        old_hash = rec.get('hash', '') if isinstance(rec, dict) else ''
+        if not old_hash:
+            return True  # 无旧 hash，视为变更
+        return _get_file_hash(f) != old_hash
+
     if pq_files:
         should_read_parquet = True
-        # 增量模式：只加载新增或修改过的 Parquet 文件（对比 mtime）
+        # 增量模式：只加载新增或修改过的 Parquet 文件（hash 校验）
         if run_mode == 'incremental':
             processed_files = _load_processed_files(data_type)
-            new_files = []
-            for f in pq_files:
-                key = f.name
-                mtime = f.stat().st_mtime
-                if key not in processed_files or mtime > processed_files[key]:
-                    new_files.append(f)
+            new_files = [f for f in pq_files if _file_changed(f, processed_files)]
             if not new_files:
                 print(f"  [Parquet 缓存] 无新增/变更 parquet 文件，继续检查 xlsx 原始文件")
                 should_read_parquet = False
             else:
                 # FIX(2026-04-29): 检查xlsx源是否有新文件，防止parquet缓存过期导致新xlsx被跳过
                 xlsx_files = list(data_source.rglob("*.xlsx"))
-                xlsx_new = []
-                for xf in xlsx_files:
-                    xkey = str(xf.relative_to(data_source))
-                    xmtime = xf.stat().st_mtime
-                    if xkey not in processed_files or xmtime > processed_files[xkey]:
-                        xlsx_new.append(xf)
+                xlsx_new = [f for f in xlsx_files if _file_changed(f, processed_files)]
                 if xlsx_new:
                     print(f"  [Parquet 缓存] 发现 {len(xlsx_new)} 个新xlsx文件，跳过parquet直接读xlsx（避免缓存过期）")
                     should_read_parquet = False
@@ -122,12 +129,15 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                         continue
                 if pq_data:
                     combined_pq = pd.concat(pq_data, ignore_index=True)
-                    # 增量模式：更新已处理文件列表（记录 mtime）
+                    # 增量模式：计算 hash，但不保存（事务化：写入成功后才标记已处理）
+                    pq_updates = {}
                     if run_mode == 'incremental':
-                        processed_files = _load_processed_files(data_type)
                         for f in pq_files:
-                            processed_files[f.name] = f.stat().st_mtime
-                        _save_processed_files(data_type, processed_files)
+                            pq_updates[f.name] = {
+                                'mtime': f.stat().st_mtime,
+                                'hash': _get_file_hash(f)
+                            }
+                        combined_pq.attrs['_etl_processed_updates'] = pq_updates
                     print(f"  Parquet 数据合计: {len(combined_pq):,} 行")
                     if run_mode == 'incremental':
                         return combined_pq
@@ -139,17 +149,11 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     files = list(data_source.rglob("*.xlsx"))
     print(f"  找到 {len(files)} 个文件")
 
-    # 增量模式：只读新增或修改过的 xlsx 文件（对比 mtime）
+    # 增量模式：只读新增或修改过的 xlsx 文件（hash 校验，防 mtime 不变但内容变）
     if run_mode == 'incremental':
         processed_files = _load_processed_files(data_type)
-        new_files = []
-        for f in files:
-            key = str(f.relative_to(data_source))
-            mtime = f.stat().st_mtime
-            if key not in processed_files or mtime > processed_files[key]:
-                new_files.append(f)
+        new_files = [f for f in files if _file_changed(f, processed_files)]
         if not new_files:
-            # 找到目录中最新的文件，确认它确实在缓存中（避免误判）
             latest = max(files, key=lambda f: f.stat().st_mtime) if files else None
             latest_key = str(latest.relative_to(data_source)) if latest else ""
             if latest and latest_key in processed_files:
@@ -193,23 +197,29 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                 df['month'] = df['order_time'].dt.month
 
             all_data.append(df)
-            processed_new[str(f.relative_to(data_source))] = f.stat().st_mtime
+            # v2 格式：记录 mtime + hash（但不保存，等 DuckDB 写入成功后再保存）
+            processed_new[str(f.relative_to(data_source))] = {
+                'mtime': f.stat().st_mtime,
+                'hash': _get_file_hash(f)
+            }
             print(f"    {f.name}: {len(df)} 行")
 
         except Exception as e:
             print(f"    跳过({e}): {f.name}")
             continue
 
-    # 增量模式：更新已处理文件列表（记录 mtime）
+    # 增量模式：收集更新但不保存（事务化：DuckDB 写入成功后才标记已处理）
     if run_mode == 'incremental' and processed_new:
-        existing_processed = _load_processed_files(data_type)
-        for key, mtime in processed_new.items():
-            existing_processed[key] = mtime
-        _save_processed_files(data_type, existing_processed)
-        print(f"  [xlsx 增量] 已更新处理记录: +{len(processed_new)} 个文件")
+        print(f"  [xlsx 增量] 待处理文件: {len(processed_new)} 个（DuckDB 写入成功后标记）")
 
     if all_data:
         combined = pd.concat(all_data, ignore_index=True)
+        # 附加待保存的 processed_files 更新（供 pipeline.py 在写入成功后保存）
+        if run_mode == 'incremental' and processed_new:
+            # 合并 parquet 和 xlsx 的更新（如果之前 parquet 分支没 return）
+            existing_updates = getattr(combined, 'attrs', {}).get('_etl_processed_updates', {})
+            existing_updates.update(processed_new)
+            combined.attrs['_etl_processed_updates'] = existing_updates
         print(f"  数据合计: {len(combined)} 行")
         return combined
     else:

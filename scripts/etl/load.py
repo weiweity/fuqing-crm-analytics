@@ -510,7 +510,15 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
 
                     conn.execute(f"DROP TABLE IF EXISTS {tmp_table}")
 
-                    # 3. 插入刷新数据
+                    # 3. 去重：同一个 (order_id, sub_order_id) 保留最后一行，避免主键冲突
+                    df_refresh = df_refresh.drop_duplicates(
+                        subset=['order_id', 'sub_order_id'], keep='last'
+                    )
+                    total_refresh_deduped = len(df_refresh)
+                    if total_refresh_deduped < total_refresh:
+                        print(f"  ⚠️  去重: {total_refresh} → {total_refresh_deduped} 行")
+
+                    # 4. 插入刷新数据
                     df_insert = df_refresh[existing_cols].copy()
                     parquet_path = os.path.join(tempfile.gettempdir(), 'orders_refresh.parquet')
                     df_insert.to_parquet(parquet_path, index=False)

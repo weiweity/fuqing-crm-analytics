@@ -297,6 +297,16 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         # Step 4: 写入数据库（滑动窗口模式）
         upsert_to_duckdb(new_df, refresh_df, mode=run_mode, window_days=window_days)
 
+        # Step 4.5: 事务化——DuckDB 写入成功后，才标记文件为已处理
+        if run_mode == 'incremental':
+            for df_src, dtype in [(shop_df, 'shop'), (member_df, 'member')]:
+                updates = getattr(df_src, 'attrs', {}).get('_etl_processed_updates', {})
+                if updates:
+                    processed = _load_processed_files(dtype)
+                    processed.update(updates)
+                    _save_processed_files(dtype, processed)
+                    print(f"  [事务化] 已标记 {len(updates)} 个 {dtype} 文件为已处理")
+
         # Step 5: 预计算每日指标（增量模式）
         _update_incremental_metrics(new_df, refresh_df, window_days=window_days)
 
