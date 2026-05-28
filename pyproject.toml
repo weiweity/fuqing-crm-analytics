@@ -10,3 +10,11 @@ requires-python = ">=3.13"
 
 [tool.uv]
 python-preference = "only-managed"
+
+[tool.ruff.lint.per-file-ignores]
+# health.py: intentional import-after-logger for fail-fast API key check
+"backend/routers/health.py" = ["E402"]
+# config.py: datetime import below default-date utility section
+"backend/config.py" = ["E402"]
+# main.py: CORS config imports and router registration imports
+"backend/main.py" = ["E402"]

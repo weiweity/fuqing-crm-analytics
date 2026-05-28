@@ -6,7 +6,7 @@
 
 from fastapi import APIRouter, Query
 
-from backend.config import _default_start_date, _default_end_date
+from backend.config import _default_end_date
 from backend.contracts.schemas import AssetSummaryResponse, AssetTrendResponse
 from backend.services.asset_service import get_asset_summary, get_asset_trend
 

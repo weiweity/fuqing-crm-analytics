@@ -6,19 +6,13 @@
 """
 
 import duckdb
-import json
-import hashlib
 import logging
-from datetime import datetime, date
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from backend.config import DUCKDB_PATH
-from backend.db.connection import get_connection
-from backend.services.rfm_service import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
-from backend.semantic.rfm_reader import try_read_rfm_segment
-from ._shared import _VALID_BASE, RFM_SEGMENT_ORDER, DB_FILE
+from ._shared import _VALID_BASE, RFM_SEGMENT_ORDER
 
 logger = logging.getLogger(__name__)
 

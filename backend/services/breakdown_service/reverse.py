@@ -10,19 +10,15 @@
 参考：[PROCEDURE] 芙清老客拆解四步法、[PROCEDURE] 芙清新客拆解、[PROCEDURE] 老客RFM分析四步法
 """
 
-from datetime import datetime
-from typing import Optional, List, Dict, Any
-from dateutil.relativedelta import relativedelta
-
-from backend.db.connection import get_connection
-from backend.semantic.calculations import safe_ratio
-
-# 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
-_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
+from typing import Dict, Any
 
 
-# ── 常量 ─────────────────────────────────────────────────────
+from ._shared import (
+    _get_r_interval_current_distribution,
+    _get_ly_repurchase_by_r_interval,
+    _get_new_customer_by_channel,
+    _get_uv_reference,
+)# ── 常量 ─────────────────────────────────────────────────────
 
 # 老客回购率调整系数（基于经验，大促期回购率更高）
 REPURCHASE_ADJUSTMENT = {

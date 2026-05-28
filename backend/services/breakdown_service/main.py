@@ -10,16 +10,15 @@
 参考：[PROCEDURE] 芙清老客拆解四步法、[PROCEDURE] 芙清新客拆解、[PROCEDURE] 老客RFM分析四步法
 """
 
-from datetime import datetime
-from typing import Optional, List, Dict, Any
-from dateutil.relativedelta import relativedelta
+from typing import Optional, Dict, Any
 
 from backend.db.connection import get_connection
-from backend.semantic.calculations import safe_ratio
-
-# 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
-_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
+from ._shared import (
+    _detect_activity_type,
+    _get_default_ly_dates,
+)
+from .forward import _forward_breakdown
+from .reverse import _reverse_breakdown
 
 
 # ── 常量 ─────────────────────────────────────────────────────

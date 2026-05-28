@@ -1,15 +1,15 @@
-"""品类分析服务"""
-import duckdb
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-
 """
+品类分析服务
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional, List
+
 
 from backend.db.connection import get_connection
-from .._shared import _assoc_cache_lock, _assoc_cache, _ASSOC_CACHE_MAX_SIZE
+from .._shared import _assoc_cache_lock, _assoc_cache, _ASSOC_CACHE_MAX_SIZE, _cat_expr, _excluded_cat_filter
+from .temporal import _compute_temporal_association
 from backend.semantic.filters import OrderFilters, expand_channels
 
 

@@ -3,7 +3,6 @@
 支持会员标签和SPU匹配
 """
 
-import duckdb
 from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR
 from backend.db.connection import get_connection
 

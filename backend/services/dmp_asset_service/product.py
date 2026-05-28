@@ -5,7 +5,7 @@
 
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 from ._helpers import (
     ID_TO_PRODUCT,
@@ -16,9 +16,6 @@ from ._helpers import (
     _load_data3,
     _get_week_label,
     _last_year_same_date,
-    _parse_date,
-    _parse_number,
-    _check_reload,
     _compute_product_assets_daily,
 )
 

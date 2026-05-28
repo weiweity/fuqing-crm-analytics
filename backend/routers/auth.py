@@ -16,7 +16,6 @@ import logging
 import bcrypt
 
 logger = logging.getLogger(__name__)
-import logging
 
 router = APIRouter(prefix="/api/v1/auth", tags=["认证"])
 

@@ -1,11 +1,11 @@
-"""品类分析服务"""
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-
 """
+品类分析服务
 芙清 CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
+
 
 from backend.db.connection import get_connection
 from ._shared import _normalize_date, _segment_meta

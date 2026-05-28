@@ -4,7 +4,7 @@
 
 from backend.services.rfm._shared import *
 from backend.services.rfm._shared import (
-    _VALID_BASE, _VALID_BASE_T, _resolve_date_ranges,
+    _VALID_BASE, _resolve_date_ranges,
     R_SEGMENT_ORDER
 )
 

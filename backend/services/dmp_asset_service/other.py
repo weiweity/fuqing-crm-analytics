@@ -5,7 +5,7 @@
 
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 from ._helpers import (
     ID_TO_PRODUCT_OTHER,
