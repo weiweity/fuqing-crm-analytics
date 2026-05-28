@@ -313,6 +313,9 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     # Step 6: 维护 user_first_purchase 表（滑动窗口模式）
     _build_user_first_purchase_table(run_mode, window_days=window_days)
 
+    # Step 6.5: 维护 user_recency 表（RFM flow 查询加速）
+    _build_user_recency_table(run_mode, window_days=window_days)
+
     # Step 7: 全量模式下标记所有源文件为已处理
     if run_mode == 'full':
         _mark_all_files_processed()
@@ -526,6 +529,31 @@ def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30):
         count = conn.execute("SELECT COUNT(*) FROM user_first_purchase").fetchone()[0]
         print(f"  user_first_purchase 增量更新: 当前合计 {count:,} 用户")
 
+    conn.close()
+
+def _build_user_recency_table(mode: str = 'full', window_days: int = 30):
+    """构建 user_recency 表（全量/增量），用于 RFM flow 查询加速。"""
+    from datetime import datetime, timedelta
+    print("\n维护 user_recency 表...")
+    conn = duckdb.connect(str(DUCKDB_PATH))
+    _VB = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+    if mode == 'full':
+        conn.execute("DROP TABLE IF EXISTS user_recency")
+        conn.execute("CREATE TABLE user_recency (user_id VARCHAR PRIMARY KEY, last_pay_time TIMESTAMP, is_member BOOLEAN DEFAULT FALSE, recency_days INTEGER, total_orders INTEGER DEFAULT 0, total_amount DECIMAL(14,2) DEFAULT 0)")
+        conn.execute(f"INSERT INTO user_recency SELECT user_id, MAX(pay_time), MAX(CASE WHEN is_member THEN TRUE ELSE FALSE END), DATEDIFF('day', MAX(pay_time), CURRENT_DATE), COUNT(*), SUM(actual_amount) FROM orders WHERE {_VB} AND user_id IS NOT NULL AND user_id != '' GROUP BY user_id")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ur_recency ON user_recency(recency_days)")
+        cnt = conn.execute("SELECT COUNT(*) FROM user_recency").fetchone()[0]
+        print(f"  user_recency 全量重建: {cnt:,} 用户")
+    else:
+        td = datetime.now().date()
+        ws = td - timedelta(days=window_days)
+        if 'user_recency' not in [t[0] for t in conn.execute("SHOW TABLES").fetchall()]:
+            conn.execute("CREATE TABLE user_recency (user_id VARCHAR PRIMARY KEY, last_pay_time TIMESTAMP, is_member BOOLEAN DEFAULT FALSE, recency_days INTEGER, total_orders INTEGER DEFAULT 0, total_amount DECIMAL(14,2) DEFAULT 0)")
+        conn.execute("DELETE FROM user_recency WHERE user_id IN (SELECT DISTINCT user_id FROM orders WHERE DATE(pay_time) >= ? AND DATE(pay_time) <= ?)", [ws, td])
+        conn.execute(f"INSERT INTO user_recency SELECT user_id, MAX(pay_time), MAX(CASE WHEN is_member THEN TRUE ELSE FALSE END), DATEDIFF('day', MAX(pay_time), CURRENT_DATE), COUNT(*), SUM(actual_amount) FROM orders WHERE {_VB} AND user_id IS NOT NULL AND user_id != '' AND user_id IN (SELECT DISTINCT user_id FROM orders WHERE DATE(pay_time) >= ? AND DATE(pay_time) <= ?) GROUP BY user_id", [ws, td])
+        conn.execute(f"INSERT INTO user_recency SELECT user_id, MAX(pay_time), MAX(CASE WHEN is_member THEN TRUE ELSE FALSE END), DATEDIFF('day', MAX(pay_time), CURRENT_DATE), COUNT(*), SUM(actual_amount) FROM orders WHERE {_VB} AND user_id IS NOT NULL AND user_id != '' AND user_id NOT IN (SELECT user_id FROM user_recency) GROUP BY user_id")
+        cnt = conn.execute("SELECT COUNT(*) FROM user_recency").fetchone()[0]
+        print(f"  user_recency 增量更新: 当前合计 {cnt:,} 用户")
     conn.close()
 
 def update_taoke_channel():
