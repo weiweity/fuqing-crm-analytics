@@ -132,7 +132,8 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             o.user_id,
             o.actual_amount,
             o.order_id,
-            o.pay_time
+            o.pay_time,
+            o.is_member
         FROM orders o
         CROSS JOIN base_params p
         WHERE o.pay_time >= p.start_date
@@ -148,7 +149,7 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
             COUNT(DISTINCT order_id) AS frequency,
             MAX(pay_time) AS last_pay_time,
             MIN(pay_time) AS first_pay_time,
-            FALSE AS has_member_order  -- TODO: orders表无is_member列，待有数据源后补充
+            BOOL_OR(is_member) AS has_member_order
         FROM fm_orders
         GROUP BY user_id
     ),
