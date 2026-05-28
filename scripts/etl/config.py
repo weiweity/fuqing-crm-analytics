@@ -154,7 +154,8 @@ def _get_processed_files_path(data_type):
 
 def _load_processed_files(data_type):
     """加载已处理文件列表。
-    新格式: {"path": mtime, ...}
+    新格式 v2: {"path": {"mtime": float, "hash": str}, ...}
+    旧格式 v1: {"path": mtime, ...}
     兼容旧格式(list): 自动转为 dict，mtime=0（下次会重新处理）
     """
     path = _get_processed_files_path(data_type)
@@ -163,18 +164,34 @@ def _load_processed_files(data_type):
         with open(path, 'r') as f:
             data = json.load(f)
         if isinstance(data, dict):
-            return data
-        # 旧格式兼容：list/set → dict(mtime=0)
-        return {str(p): 0 for p in data}
+            result = {}
+            for k, v in data.items():
+                if isinstance(v, dict) and 'mtime' in v:
+                    result[k] = v  # v2 格式
+                elif isinstance(v, (int, float)):
+                    result[k] = {'mtime': v, 'hash': ''}  # v1 格式迁移
+            return result
+        # 旧格式兼容：list/set → dict(mtime=0, hash='')
+        return {str(p): {'mtime': 0, 'hash': ''} for p in data}
     return {}
 
 
 def _save_processed_files(data_type, processed_dict):
-    """保存已处理文件列表（dict 格式：path→mtime）"""
+    """保存已处理文件列表（v2 格式：path→{mtime, hash}）"""
     import json
     path = _get_processed_files_path(data_type)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w') as f:
         json.dump(processed_dict, f, indent=2, sort_keys=True)
+
+
+def _get_file_hash(file_path):
+    """计算文件 xxhash64，用于检测内容变更（<10ms/MB）"""
+    import xxhash
+    h = xxhash.xxh64()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(8192), b''):
+            h.update(chunk)
+    return h.hexdigest()
 
 
