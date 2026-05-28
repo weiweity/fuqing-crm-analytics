@@ -6,6 +6,7 @@ from backend.services.rfm._shared import *
 from backend.services.rfm._shared import (
     _VALID_BASE, _VALID_BASE_T
 )
+from backend.semantic.filters import expand_channels
 
 # RFM 区间订单明细导出
 # ============================================================

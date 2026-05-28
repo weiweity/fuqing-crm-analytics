@@ -8,6 +8,8 @@ from typing import Optional, Dict, List, Any
 from datetime import date, timedelta, datetime
 from calendar import monthrange
 from backend.semantic.time import PeriodBuilder
+from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
+from backend.db.connection import get_connection
 
 # 语义层统一口径
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
