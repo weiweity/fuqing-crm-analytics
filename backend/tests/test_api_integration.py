@@ -13,16 +13,19 @@ Covers:
 
 NOTE: These tests require:
   1. HEALTH_API_KEY environment variable (required by the app at import time)
-  2. A running DuckDB database with data (for data-dependent tests)
+  2. FQ_CRM_PASSWORDS environment variable (required by the app at import time)
+  3. A running DuckDB database with data (for data-dependent tests)
 """
 import pytest
 import os
 import secrets
 from pathlib import Path
 
-# Ensure HEALTH_API_KEY is set before importing backend.main
+# Ensure HEALTH_API_KEY & FQ_CRM_PASSWORDS are set before importing backend.main
 if "HEALTH_API_KEY" not in os.environ:
     os.environ["HEALTH_API_KEY"] = secrets.token_urlsafe(32)
+if "FQ_CRM_PASSWORDS" not in os.environ:
+    os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 # Check if database exists before running integration tests
 DB_PATH = os.environ.get(
