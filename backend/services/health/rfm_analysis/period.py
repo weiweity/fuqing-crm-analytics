@@ -117,7 +117,8 @@ def _run_rfm_period_live(
                ur.total_amount as gsv,
                ur.is_member
         FROM user_recency ur
-        WHERE ur.last_pay_time <= ?::TIMESTAMP
+        INNER JOIN user_first_purchase ufp ON ur.user_id = ufp.user_id
+        WHERE ufp.first_pay_date <= ?::DATE
     ),
     user_stats_same AS (
         SELECT user_id, MAX(pay_time) as last_pay_time,
