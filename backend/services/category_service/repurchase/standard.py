@@ -66,15 +66,14 @@ def _run_category_repurchase_period(
     _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 4]
     _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
 
-    # 参数组装
-    # hist_customers: cutoff, cutoff (cutoff参数)
-    # base_orders: start_dt, end_dt
-    # hist_customers 的排除/渠道参数
-    hist_params: List[str] = [cutoff_dt, cutoff_dt]
-    base_params: List[str] = [start_dt, end_dt]
-
     # 品类字段安全值（白名单校验已由 level 参数约束）
     safe_category = category.replace("'", "''")
+
+    # 参数组装
+    # hist_customers: 1(cutoff) + 1(category) = 2个 ?
+    # base_orders: start_dt, end_dt
+    base_params: List[str] = [start_dt, end_dt]
+    hist_params: List[str] = [cutoff_dt, safe_category]
 
     sql = f"""
     WITH
@@ -269,15 +268,15 @@ def _run_category_repurchase_period(
 
     # SQL中?出现顺序（严格对应）:
     # base_orders: 2(start,end) + ch + ex
-    # hist_customers: 2(cutoff,cutoff) + ex
-    # same_repurchase: 2(start,end) + ch + ex
-    # cross_repurchase: 2(start,end) + ch + ex
-    # same_repurchase_amounts: 2(start,end) + ch + ex
-    # cross_repurchase_amounts: 2(start,end) + ch + ex
+    # hist_customers: 1(cutoff for recency) + 1(category) + 1(cutoff for pay_time) + ex
+    # same_repurchase: 1(category) + 2(start,end) + ch + ex
+    # cross_repurchase: 1(category) + 2(start,end) + ch + ex
+    # same_repurchase_amounts: 1(category) + 2(start,end) + ch + ex
+    # cross_repurchase_amounts: 1(category) + 2(start,end) + ch + ex
 
     # SQL参数顺序（严格对应 ? 占位符）:
     # base_orders: 2(start,end) + ch + ex
-    # hist_customers: 2(cutoff) + ex + 1(category)
+    # hist_customers: 1(cutoff) + 1(category) + 1(cutoff) + ex
     # same_repurchase: 2(start,end) + ch + ex + 1(category)
     # cross_repurchase: 2(start,end) + ch + ex + 1(category)
     # same_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
