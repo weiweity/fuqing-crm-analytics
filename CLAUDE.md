@@ -14,7 +14,7 @@
 | 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.5（main），测试 140 passed / 8 skipped / 0 failed |
+| 4 | **版本状态** | v0.3.6（main），测试 140 passed / 8 skipped / 0 failed |
 | 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
 | 6 | **未来日期警告** | 传入未来日期时，所有日期参数端点返回 `X-Data-Warning` 响应头 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
@@ -354,6 +354,8 @@ fuqing-crm-analytics/
 |------|------|------|------|
 | 2026-05-29 | `breakdown_service` 4个函数 SQL 注入 | f-string 拼接日期到 SQL，用户输入未参数化 | DuckDB 所有动态值用 `?` 占位符，`conn.execute(sql, [p1, ...])` |
 | 2026-05-29 | 未来日期静默返回全0，误导运营决策 | 日期参数无校验，用户传入 2030-01-01 也不报错 | 所有日期参数端点必须调用 `check_future_date()`，通过 `X-Data-Warning` 响应头告警 |
+| 2026-05-29 | RFM"价值/发展"回购率虚高27-35%，"保持/挽留"仅0.17% | `_shared.py` 中 `cutoff = end_date`，当期购买者自动被归类为高R分，形成循环论证 | RFM cutoff 必须为 `start_date - 1 day`（`_resolve_date_ranges` 中4处均已修复） |
+| 2026-05-29 | R/F/M flow 回购率0%或错误 | `r_flow/f_flow/m_flow.py` 中 `hist_customers_all` CTE 使用 `user_recency` 全局累计值（更新到最新日期），历史周期计算失效 | 历史周期 RFM 分类禁止使用 `user_recency`，必须从 `orders` 表实时聚合（MAX/COUNT/SUM with `pay_time <= cutoff`） |
 | 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
 | 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
 | 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |
