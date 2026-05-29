@@ -14,7 +14,7 @@
 | 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.2（main），测试 140 passed / 8 skipped / 0 failed |
+| 4 | **版本状态** | v0.3.3（main），测试 140 passed / 8 skipped / 0 failed |
 | 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
 | 7 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置登录密码，未配置时启动自动生成随机密码 |
@@ -119,8 +119,10 @@ finally:
     conn.close()   # 禁止遗漏
 ```
 
-- DuckDB 用 `?` 参数化，禁止字符串拼接
+- **DuckDB 用 `?` 参数化所有动态值（日期/渠道/金额等），禁止 f-string 拼接 SQL**
+- **CASE WHEN 中的动态比较值（如 `DATE ?`）也要参数化，不能用 `f"'{date}'"`**
 - 列名动态化走白名单字典（如 `SPU_LEVELS`），禁止直接拼接
+- ⚠️ 教训（2026-05-29）：`breakdown_service/_shared.py` 4个函数用 f-string 拼接日期参数，修复后统一改为 `conn.execute(sql, [p1, p2, ...])`
 
 ### Step 3 — 渠道参数统一展开
 
@@ -337,6 +339,7 @@ fuqing-crm-analytics/
 
 | 日期 | 事故 | 根因 | 教训 |
 |------|------|------|------|
+| 2026-05-29 | `breakdown_service` 4个函数 SQL 注入 | f-string 拼接日期到 SQL，用户输入未参数化 | DuckDB 所有动态值用 `?` 占位符，`conn.execute(sql, [p1, ...])` |
 | 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
 | 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
 | 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |
