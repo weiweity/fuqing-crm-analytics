@@ -331,23 +331,23 @@ def get_category_flow(
 
         # 合并同名link（归类后可能产生重复source→target）
         merged = {}
-        for l in raw_links:
-            key = (l["source"], l["target"])
+        for link in raw_links:
+            key = (link["source"], link["target"])
             if key in merged:
-                merged[key]["value"] += l["value"]
+                merged[key]["value"] += link["value"]
             else:
-                merged[key] = {"source": l["source"], "target": l["target"], "value": l["value"]}
+                merged[key] = {"source": link["source"], "target": link["target"], "value": link["value"]}
         links = list(merged.values())
 
         # 重新构建节点列表
         node_names = list(dict.fromkeys(top_cats))  # 去重保序
-        for l in links:
-            if l["source"] not in node_names:
-                node_names.append(l["source"])
-            if l["target"] not in node_names:
-                node_names.append(l["target"])
+        for link in links:
+            if link["source"] not in node_names:
+                node_names.append(link["source"])
+            if link["target"] not in node_names:
+                node_names.append(link["target"])
         if other_node not in node_names:
-            has_other = any(l["source"] == other_node or l["target"] == other_node for l in links)
+            has_other = any(link["source"] == other_node or link["target"] == other_node for link in links)
             if has_other:
                 node_names.append(other_node)
 

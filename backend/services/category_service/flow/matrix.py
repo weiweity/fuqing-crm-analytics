@@ -181,21 +181,24 @@ def get_category_flow_matrix(
                 raw_links.append({"source": src, "target": tgt, "value": users})
 
         merged = {}
-        for l in raw_links:
-            key = (l["source"], l["target"])
+        for link in raw_links:
+            key = (link["source"], link["target"])
             if key in merged:
-                merged[key]["value"] += l["value"]
+                merged[key]["value"] += link["value"]
             else:
-                merged[key] = {"source": l["source"], "target": l["target"], "value": l["value"]}
+                merged[key] = {"source": link["source"], "target": link["target"], "value": link["value"]}
         links = list(merged.values())
 
         node_names = list(dict.fromkeys(top_cats))
-        for l in links:
-            if l["source"] not in node_names: node_names.append(l["source"])
-            if l["target"] not in node_names: node_names.append(l["target"])
+        for link in links:
+            if link["source"] not in node_names:
+                node_names.append(link["source"])
+            if link["target"] not in node_names:
+                node_names.append(link["target"])
         if other_node not in node_names:
-            has_other = any(l["source"] == other_node or l["target"] == other_node for l in links)
-            if has_other: node_names.append(other_node)
+            has_other = any(link["source"] == other_node or link["target"] == other_node for link in links)
+            if has_other:
+                node_names.append(other_node)
 
         sankey_data = {"nodes": [{"name": n, "category_name": n} for n in node_names], "links": links}
 
@@ -203,15 +206,19 @@ def get_category_flow_matrix(
         all_from_cats, all_to_cats = [], []
         for row in flow_result:
             fc, tc = row[0], row[1]
-            if fc not in all_from_cats: all_from_cats.append(fc)
-            if tc not in all_to_cats: all_to_cats.append(tc)
+            if fc not in all_from_cats:
+                all_from_cats.append(fc)
+            if tc not in all_to_cats:
+                all_to_cats.append(tc)
 
         from_totals = {cat: 0 for cat in all_from_cats}
         to_totals = {cat: 0 for cat in all_to_cats}
         for row in flow_result:
             fc, tc, users = row[0], row[1], int(row[2] or 0)
-            if fc in from_totals: from_totals[fc] += users
-            if tc in to_totals: to_totals[tc] += users
+            if fc in from_totals:
+                from_totals[fc] += users
+            if tc in to_totals:
+                to_totals[tc] += users
 
         sources = sorted(all_from_cats, key=lambda c: from_totals.get(c, 0), reverse=True)
         targets = sorted(all_to_cats, key=lambda c: to_totals.get(c, 0), reverse=True)
