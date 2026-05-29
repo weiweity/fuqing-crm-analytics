@@ -80,13 +80,16 @@ def _run_f_flow_period(
     ),
     hist_customers_all AS (
         SELECT
-            ur.user_id,
-            DATEDIFF('day', ur.last_pay_time::DATE, ?::DATE) AS recency_days,
-            ur.total_orders AS frequency,
-            ur.is_member
-        FROM user_recency ur
-        INNER JOIN user_first_purchase ufp ON ur.user_id = ufp.user_id
-        WHERE ufp.first_pay_date <= ?::DATE
+            user_id,
+            DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days,
+            COUNT(*) AS frequency,
+            BOOL_OR(is_member) AS is_member
+        FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          {refund_where}
+          {exclude_where_hist}
+        GROUP BY user_id
     ),
     hist_customers_same AS (
         SELECT
