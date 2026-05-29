@@ -15,7 +15,7 @@
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
 | 4 | **版本状态** | v0.3.2（main），测试 140 passed / 8 skipped / 0 failed |
-| 5 | **ETL 状态** | user_rfm 最大日期 2026-05-25 |
+| 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
 | 7 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置登录密码，未配置时启动自动生成随机密码 |
 | 8 | **安全** | CSO 审计已通过，5 个修复已合并：安全响应头 / 审计日志签名 / 非特权 nginx / 健康检查脱敏 |
@@ -243,8 +243,13 @@ PYTHONPATH="$(pwd)" nohup ~/.workbuddy/binaries/python/envs/default/bin/python -
 # 前端（端口 5173）
 cd frontend-vue3 && npm run dev
 
-# ETL 增量更新
-PYTHONPATH="$(pwd)" ~/.workbuddy/binaries/python/envs/default/bin/python scripts/run_etl.py --update
+# ETL 增量更新（必须用 homebrew Python 3.14，workbuddy Python 3.13 有代码签名冲突）
+# 前置依赖：pyarrow（brew 装不了，pip 装 pre-built wheel）
+#   /Users/hutou/homebrew/bin/python3 -m pip install pyarrow --only-binary :all: --break-system-packages
+PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --update
+
+# RFM 预计算（ETL 完成后单独跑，600任务约10分钟）
+PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/etl/preload_rfm.py --auto
 
 # 跑测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
