@@ -85,7 +85,8 @@ def _run_r_flow_period(
             DATEDIFF('day', ur.last_pay_time::DATE, ?::DATE) AS recency_days,
             ur.is_member
         FROM user_recency ur
-        WHERE ur.last_pay_time <= ?::TIMESTAMP
+        INNER JOIN user_first_purchase ufp ON ur.user_id = ufp.user_id
+        WHERE ufp.first_pay_date <= ?::DATE
     ),
     hist_customers_same AS (
         SELECT
