@@ -13,9 +13,12 @@ from backend.semantic.calculations import safe_ratio
 
 
 def _quality_grade(score: float) -> str:
-    if score >= 80: return "A"
-    if score >= 60: return "B"
-    if score >= 40: return "C"
+    if score >= 80:
+        return "A"
+    if score >= 60:
+        return "B"
+    if score >= 40:
+        return "C"
     return "D"
 
 
