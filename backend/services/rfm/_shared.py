@@ -102,17 +102,20 @@ def _resolve_date_ranges(
         cur_end_dt = f"{end_date} 23:59:59"
         cur_start_y, cur_start_m, cur_start_d = map(int, start_date.split("-"))
         cur_end_y, cur_end_m, cur_end_d = map(int, end_date.split("-"))
-        # 对于滚动区间（自定义日期范围），cutoff 应为 end_date
-        # 这样 hist_customers 才能正确包含 end_date 之前有购买记录的客户，
-        # base_orders 才能正确计算这些客户在观察期内的复购
-        cutoff = end_date
+        # cutoff = start_date - 1天（与 PeriodBuilder 语义层一致）
+        # RFM 分类必须基于观察期开始前的历史行为，否则当期订单会污染分类，
+        # 导致"价值/发展"回购率虚高（循环论证），"保持/挽留"回购率虚低。
+        cutoff_date = date(cur_start_y, cur_start_m, cur_start_d) - timedelta(days=1)
+        cutoff = cutoff_date.strftime("%Y-%m-%d")
 
         # ── 对比期：优先使用自定义对比日期（环比 / 自定义）──
         if compare_start_date and compare_end_date:
             comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split("-"))
             ly_start_dt = f"{compare_start_date} 00:00:00"
             ly_end_dt = f"{compare_end_date} 23:59:59"
-            ly_cutoff_str = compare_end_date
+            # cutoff = compare_start_date - 1天（与 PeriodBuilder 一致）
+            comp_cutoff_date = date(comp_start_y, comp_start_m, comp_start_d) - timedelta(days=1)
+            ly_cutoff_str = comp_cutoff_date.strftime("%Y-%m-%d")
             comp_year_label = str(comp_start_y)
         else:
             # 默认：去年同期
@@ -121,7 +124,9 @@ def _resolve_date_ranges(
             ly_end_year, ly_end_month = cur_end_y - 1, cur_end_m
             ly_end_day = min(cur_end_d, monthrange(ly_end_year, ly_end_month)[1])
             ly_end_dt = f"{ly_end_year}-{ly_end_month:02d}-{ly_end_day:02d} 23:59:59"
-            ly_cutoff_str = f"{ly_end_year}-{ly_end_month:02d}-{ly_end_day:02d}"
+            # cutoff = 去年同期 start - 1天
+            ly_cutoff_date = date(ly_date.year, ly_date.month, ly_date.day) - timedelta(days=1)
+            ly_cutoff_str = ly_cutoff_date.strftime("%Y-%m-%d")
             comp_year_label = str(cur_start_y - 1)
 
         # prev2 始终为前年同期（固定基准）
@@ -130,7 +135,9 @@ def _resolve_date_ranges(
         y2_end_year, y2_end_month = cur_end_y - 2, cur_end_m
         y2_end_day = min(cur_end_d, monthrange(y2_end_year, y2_end_month)[1])
         y2_end_dt = f"{y2_end_year}-{y2_end_month:02d}-{y2_end_day:02d} 23:59:59"
-        y2_cutoff_str = f"{y2_end_year}-{y2_end_month:02d}-{y2_end_day:02d}"
+        # cutoff = 前年同期 start - 1天
+        y2_cutoff_date = date(y2_date.year, y2_date.month, y2_date.day) - timedelta(days=1)
+        y2_cutoff_str = y2_cutoff_date.strftime("%Y-%m-%d")
 
         current_year_label = str(cur_start_y)
         prev2_year_label = str(cur_start_y - 2)
