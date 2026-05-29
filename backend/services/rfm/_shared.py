@@ -7,12 +7,10 @@
 import json
 import hashlib
 import logging
-from pathlib import Path
 from typing import Optional, Dict, List, Any
 from datetime import date, timedelta, datetime
 from calendar import monthrange
 from backend.semantic.time import PeriodBuilder
-from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.db.connection import get_connection
 from backend.config import DATA_DIR
 

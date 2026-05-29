@@ -2,9 +2,12 @@
 芙清 CRM - RFM 区间流转
 """
 
-from backend.services.rfm._shared import *
+from datetime import date, timedelta
+from typing import Any, Dict, List, Optional
+
+from backend.db.connection import get_connection
 from backend.services.rfm._shared import (
-    _VALID_BASE, _VALID_BASE_T
+    _VALID_BASE, _VALID_BASE_T,
 )
 from backend.semantic.filters import expand_channels
 

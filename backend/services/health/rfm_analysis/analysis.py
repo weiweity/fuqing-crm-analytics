@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional
 
 from backend.db.connection import get_connection
 from backend.services.rfm_service import _resolve_date_ranges
-from ._shared import _fetch_max_pay_time, RFM_CACHE_TABLE
+from ._shared import _fetch_max_pay_time
 from .period import _run_rfm_period, _build_rows
 from .cache import _read_db_cache, _write_db_cache
 

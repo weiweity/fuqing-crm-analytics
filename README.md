@@ -40,7 +40,7 @@ cd frontend-vue3 && npm run dev
 
 - 后端 API: http://localhost:8000
 - 前端界面: http://localhost:5173
-- API 文档: http://localhost:8000/docs
+- API 文档（无需登录）: http://localhost:8000/docs
 
 ### ETL 增量更新
 
@@ -162,6 +162,8 @@ npx playwright test
 
 ## 变更历史
 
+详细变更记录见 [CHANGELOG.md](./CHANGELOG.md)（semver 格式）。
+
 | 日期 | 事件 |
 |---|---|
 | 2026-03-27 | 项目启动，v1.0 架构设计 |
@@ -171,3 +173,4 @@ npx playwright test
 | 2026-04-29 | ETL 增量更新完成，1030 万条数据 |
 | 2026-05-04 | 文档整理，创建文档索引 |
 | 2026-05-28 | 后端代码审计（23 问题修复），大文件拆分（6 个包），SPU 版本化 |
+| 2026-05-29 | SQL 注入修复，未来日期警告，/docs 白名单，CHANGELOG 建立 |

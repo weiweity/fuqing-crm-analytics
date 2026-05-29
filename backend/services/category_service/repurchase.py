@@ -2,7 +2,12 @@
 向后兼容 shim
 """
 
-from .repurchase.standard import *
-from .repurchase.rfm import *
-from .repurchase.api import *
-from .repurchase import *
+from .repurchase.api import (
+    get_category_repurchase_flow,
+    get_category_repurchase_flow_by_rfm,
+)
+
+__all__ = [
+    "get_category_repurchase_flow",
+    "get_category_repurchase_flow_by_rfm",
+]

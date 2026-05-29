@@ -3,10 +3,13 @@
 """
 import duckdb
 
-from backend.services.rfm._shared import *
+from typing import Any, Dict, List, Optional
+
+from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
+from backend.db.connection import get_connection
 from backend.services.rfm._shared import (
-    _VALID_BASE, _resolve_date_ranges,
-    M_SEGMENT_ORDER,
+    _VALID_BASE, M_SEGMENT_ORDER,
+    _resolve_date_ranges,
     _fetch_data_version, _flow_cache_key,
     _get_cached_flow, _set_cached_flow,
 )
