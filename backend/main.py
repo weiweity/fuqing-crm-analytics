@@ -86,7 +86,13 @@ async def log_requests(request: Request, call_next):
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/api/v1/auth/") or path == "/api/v1/health":
+    if (
+        path.startswith("/api/v1/auth/")
+        or path == "/api/v1/health"
+        or path.startswith("/docs")
+        or path.startswith("/redoc")
+        or path == "/openapi.json"
+    ):
         return await call_next(request)
     if request.method == "OPTIONS":
         return await call_next(request)
@@ -107,28 +113,69 @@ async def auth_middleware(request: Request, call_next):
 # ─────────────────────────────────────────────────────────────
 # 全局异常处理器
 # ─────────────────────────────────────────────────────────────
+def _future_date_warning_for_request(request: Request) -> str | None:
+    """
+    检查请求中的日期参数，如果存在未来日期则返回警告消息（ASCII安全）。
+
+    用于在 service 抛异常时，仍能告知调用方日期参数有问题。
+    AI-开发者友好：未来日期静默全0 会对运营决策造成误导。
+    """
+    try:
+        from datetime import date as _date
+        from datetime import datetime as _dt
+        _date_params = ["analysis_date", "start_date", "end_date", "compare_start_date", "compare_end_date"]
+        for _param in _date_params:
+            _val = request.query_params.get(_param)
+            if not _val:
+                continue
+            try:
+                _input_date = _dt.strptime(_val, "%Y-%m-%d").date()
+                if _input_date > _date.today():
+                    # 返回 URL 编码的英文消息（HTTP header 只支持 latin-1/ASCII）
+                    from urllib.parse import quote
+                    return quote(
+                        f"date {_val} is in the future, data will be all-zero. "
+                        "Use a date <= today for analysis."
+                    )
+            except ValueError:
+                pass
+        return None
+    except Exception:
+        return None
+
+
+def _add_future_date_warning(request: Request, json_response: JSONResponse) -> JSONResponse:
+    if warning := _future_date_warning_for_request(request):
+        json_response.headers["X-Data-Warning"] = warning
+    return json_response
+
+
 @app.exception_handler(ServiceError)
 async def service_error_handler(request: Request, exc: ServiceError):
-    return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    resp = JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return _add_future_date_warning(request, resp)
 
 
 @app.exception_handler(ValidationError)
 async def validation_error_handler(request: Request, exc: ValidationError):
-    return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    resp = JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return _add_future_date_warning(request, resp)
 
 
 @app.exception_handler(NotFoundError)
 async def not_found_error_handler(request: Request, exc: NotFoundError):
-    return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    resp = JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return _add_future_date_warning(request, resp)
 
 
 @app.exception_handler(Exception)
 async def general_error_handler(request: Request, exc: Exception):
     """未捕获的异常返回 500，避免堆栈信息暴露"""
-    return JSONResponse(
+    resp = JSONResponse(
         status_code=500,
         content={"error": "INTERNAL_ERROR", "message": "服务器内部错误，请稍后重试"}
     )
+    return _add_future_date_warning(request, resp)
 
 
 # ─────────────────────────────────────────────────────────────

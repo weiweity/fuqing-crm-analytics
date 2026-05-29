@@ -14,11 +14,13 @@
 | 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.3（main），测试 140 passed / 8 skipped / 0 failed |
+| 4 | **版本状态** | v0.3.5（main），测试 140 passed / 8 skipped / 0 failed |
 | 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
+| 6 | **未来日期警告** | 传入未来日期时，所有日期参数端点返回 `X-Data-Warning` 响应头 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
 | 7 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置登录密码，未配置时启动自动生成随机密码 |
-| 8 | **安全** | CSO 审计已通过，5 个修复已合并：安全响应头 / 审计日志签名 / 非特权 nginx / 健康检查脱敏 |
+| 8 | **安全** | CSO 审计已通过，6 个修复已合并：安全响应头 / 审计日志签名 / 非特权 nginx / 健康检查脱敏 / SQL参数化 / /docs白名单 |
+| 9 | **API 文档** | `/docs`、`/redoc`、`/openapi.json` 不需要认证，直接浏览器访问 |
 
 ---
 
@@ -54,6 +56,7 @@
 | 5 | `commit -m "fix"` / `"asdf"` / `"update"` | 提交信息必须说明改了什么 |
 | 6 | commit 混多个不相关功能 | 按逻辑分批次提交 |
 | 7 | commit 后不 push | 代码在本地 = 代码丢了 |
+| 8 | 跳过 ⑬ 更新 CHANGELOG | 事后无法追踪「哪个版本改了什么」 |
 
 ### 正确流程（12 步，顺序不得调整）
 
@@ -81,6 +84,8 @@
 ⑪ git pull origin main --ff-only   ← 本地即生产，必须同步
   ↓
 ⑫ kill 并重启 uvicorn
+  ↓
+⑬ 更新 CHANGELOG.md（一句话版本号日志）
 ```
 
 **Skill 映射**：`review` → commit 前 · `qa` → merge 前 · `ship` → 大功能推送前
@@ -109,7 +114,7 @@ valid_sql, _ = OrderFilters.valid_order()
 - `backend/semantic/calculations.py` → YOY/MOM/safe_ratio
 - `backend/semantic/segments.py` → RFM 分群阈值
 
-### Step 2 — Service 连接规范
+### Step 2 — Service 连接规范 + 日期校验
 
 ```python
 conn = get_connection()
@@ -123,6 +128,14 @@ finally:
 - **CASE WHEN 中的动态比较值（如 `DATE ?`）也要参数化，不能用 `f"'{date}'"`**
 - 列名动态化走白名单字典（如 `SPU_LEVELS`），禁止直接拼接
 - ⚠️ 教训（2026-05-29）：`breakdown_service/_shared.py` 4个函数用 f-string 拼接日期参数，修复后统一改为 `conn.execute(sql, [p1, p2, ...])`
+
+#### 未来日期警告（所有日期参数端点必须执行）
+
+所有接收 `analysis_date` / `start_date` / `end_date` 参数的接口，service 层抛异常时，全局异常处理器自动在 `X-Data-Warning` 响应头返回：
+```
+X-Data-Warning: date 2030-01-01 is in the future, data will be all-zero. Use date <= today.
+```
+这是因为：未来日期静默返回全 0 会误导运营决策。AI 开发者感知到这个信号后，可以明确告知用户原因。
 
 ### Step 3 — 渠道参数统一展开
 
@@ -340,6 +353,7 @@ fuqing-crm-analytics/
 | 日期 | 事故 | 根因 | 教训 |
 |------|------|------|------|
 | 2026-05-29 | `breakdown_service` 4个函数 SQL 注入 | f-string 拼接日期到 SQL，用户输入未参数化 | DuckDB 所有动态值用 `?` 占位符，`conn.execute(sql, [p1, ...])` |
+| 2026-05-29 | 未来日期静默返回全0，误导运营决策 | 日期参数无校验，用户传入 2030-01-01 也不报错 | 所有日期参数端点必须调用 `check_future_date()`，通过 `X-Data-Warning` 响应头告警 |
 | 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
 | 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
 | 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |

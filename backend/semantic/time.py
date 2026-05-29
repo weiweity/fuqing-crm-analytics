@@ -226,3 +226,26 @@ class PeriodBuilder:
         if isinstance(date_val, str):
             return date_val[:10] if len(date_val) > 10 else date_val
         return str(date_val)
+
+
+def check_future_date(date_str: str) -> str | None:
+    """
+    检查日期是否在明天之后（未来日期）。
+
+    返回 None 表示日期正常。
+    返回 str 表示警告消息（未来日期，HTTP header safe）。
+
+    AI-开发者友好：明确告知数据范围，避免静默返回全 0 误导决策。
+    注意：返回值必须为 ASCII（HTTP header latin-1 限制）。
+    """
+    try:
+        from datetime import date
+        from datetime import datetime as dt
+        input_date = dt.strptime(date_str, "%Y-%m-%d").date()
+        # 今天不算未来，明天及以后才算
+        if input_date > date.today():
+            return f"date {date_str} is in the future, data will be all-zero. Use date <= today."
+        return None
+    except ValueError:
+        # 日期格式不对，不触发警告，静待 Pydantic 的格式校验
+        return None

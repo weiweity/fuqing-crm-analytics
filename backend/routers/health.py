@@ -5,9 +5,11 @@
 注意: /api/v1/health 已被系统健康检查占用
 """
 
-from fastapi import APIRouter, Query, Request, HTTPException
+from fastapi import APIRouter, Query, Request, HTTPException, Response
 from typing import Optional, List
 import logging
+
+from backend.semantic.time import check_future_date
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,7 @@ def _check_api_key(request: Request, x_api_key: str) -> None:
 
 @router.get("/overview", response_model=HealthOverviewMetrics)
 def get_health_overview(
+    response: Response,
     analysis_date: str = Query(..., description="分析日期 YYYY-MM-DD"),
     period_days: int = Query(default=30, description="分析周期天数"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
@@ -88,6 +91,9 @@ def get_health_overview(
     - 健康评分（0-100）+ 五维雷达数据 + 告警
     - 同比（去年同期同周期）；传 compare_start_date/compare_end_date 时使用自定义对比期
     """
+    # 未来日期警告：校验在 service 调用前，header 在 exception handler 之前写入
+    if warning := check_future_date(analysis_date):
+        response.headers["X-Data-Warning"] = warning
     return overview_service.get_overview(
         analysis_date, period_days, exclude_channels, channel,
         compare_start_date=compare_start_date,
@@ -97,6 +103,7 @@ def get_health_overview(
 
 @router.get("/targets", response_model=HealthTargetsResponse)
 def get_health_targets(
+    response: Response,
     analysis_date: str = Query(..., description="分析日期 YYYY-MM-DD"),
     period_days: int = Query(default=30, description="分析周期天数"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
@@ -107,11 +114,14 @@ def get_health_targets(
 
     用于雷达图动态targets和后端评分计算目标。
     """
+    if warning := check_future_date(analysis_date):
+        response.headers["X-Data-Warning"] = warning
     return overview_service.get_health_targets(analysis_date, period_days, exclude_channels, channel)
 
 
 @router.get("/repurchase-cycle", response_model=RepurchaseCycleOverview)
 def get_repurchase_cycle(
+    response: Response,
     start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
@@ -120,6 +130,8 @@ def get_repurchase_cycle(
     compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
 ):
     """复购周期分析（间隔分布 + 品类对比）"""
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
     return repurchase_service.get_repurchase_cycle(
         start_date, end_date, exclude_channels, channel,
         compare_start_date=compare_start_date,
@@ -140,17 +152,21 @@ def get_cohort_retention(
 
 @router.get("/value-tiers", response_model=ValueTierResponse)
 def get_value_tiers(
+    response: Response,
     analysis_date: str = Query(..., description="分析日期 YYYY-MM-DD"),
     lookback_days: int = Query(default=365, description="回溯天数"),
     exclude_channels: Optional[List[str]] = Query(default=None),
     channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤）"),
 ):
     """客户价值分层（S/A/B/C × 高/中/低频）"""
+    if warning := check_future_date(analysis_date):
+        response.headers["X-Data-Warning"] = warning
     return tiers_service.get_value_tiers(analysis_date, lookback_days, exclude_channels, channel)
 
 
 @router.get("/tier-flow", response_model=TierFlowResponse)
 def get_tier_flow(
+    response: Response,
     start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
     metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
@@ -165,6 +181,8 @@ def get_tier_flow(
     逻辑同R区间分析，分层维度替换为历史累计GSV的S/A/B/C × 高/中/低频。
     返回3年对比（当前年/去年/前年）× 4种模式（全店/本渠道/会员/会员本渠道）。
     """
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
     return tier_flow_service.get_tier_flow(
         start_date=start_date,
         end_date=end_date,
@@ -178,6 +196,7 @@ def get_tier_flow(
 
 @router.get("/rfm-analysis", response_model=RFMAnalysisResponse)
 def get_rfm_analysis(
+    response: Response,
     start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
     metric_type: str = Query(default="GSV", description="GSV 或 GMV"),
@@ -192,6 +211,8 @@ def get_rfm_analysis(
     基于R/F/M三维评分将用户划分为8个经典象限，计算各象限回购率。
     返回3年对比（当前年/去年/前年）× 4种模式（全店/本渠道/会员/会员本渠道）。
     """
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
     return rfm_analysis_service.get_rfm_analysis(
         start_date=start_date,
         end_date=end_date,
@@ -205,6 +226,7 @@ def get_rfm_analysis(
 
 @router.get("/rfm-category-drilldown", response_model=RFMCategoryDrilldownResponse)
 def get_rfm_category_drilldown(
+    response: Response,
     rfm_segment: str = Query(..., description="RFM象限名称，如'重要价值客户'"),
     start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
     end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
@@ -221,6 +243,8 @@ def get_rfm_category_drilldown(
     识别下滑品类，指导精准运营。
     返回3年对比（当前年/去年/前年）的品类回购率拆解。
     """
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
     return rfm_category_drilldown_service.get_rfm_category_drilldown(
         rfm_segment=rfm_segment,
         start_date=start_date,
@@ -235,11 +259,14 @@ def get_rfm_category_drilldown(
 
 @router.get("/new-customer-conversion", response_model=NewCustomerConversionResponse)
 def get_new_customer_conversion(
+    response: Response,
     analysis_date: str = Query(..., description="分析日期"),
     lookback_months: int = Query(default=12, description="回溯月数"),
     exclude_channels: Optional[List[str]] = Query(default=None),
 ):
     """新客转化追踪（7/30/90天漏斗 + 渠道质量）"""
+    if warning := check_future_date(analysis_date):
+        response.headers["X-Data-Warning"] = warning
     return conversion_service.get_new_customer_conversion(analysis_date, lookback_months, exclude_channels)
 
 
@@ -323,11 +350,14 @@ def get_audit_log(
 
 @router.get("/channel-health-scores", response_model=ChannelHealthScoresResponse)
 def get_channel_health_scores(
+    response: Response,
     analysis_date: str = Query(..., description="分析日期 YYYY-MM-DD"),
     period_days: int = Query(default=30, description="分析周期天数"),
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除渠道"),
 ):
     """所有渠道健康评分对比（含去年同期 + YOY）"""
+    if warning := check_future_date(analysis_date):
+        response.headers["X-Data-Warning"] = warning
     return channel_scores_service.get_channel_health_scores(analysis_date, period_days, exclude_channels)
 
 

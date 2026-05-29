@@ -11,9 +11,8 @@ import logging
 from datetime import date
 from typing import Dict, Any, List, Optional
 
-from backend.config import DUCKDB_PATH
 from backend.db.connection import get_connection
-from ._shared import _fetch_max_pay_time, _cache_key, DB_FILE, RFM_CACHE_TABLE
+from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 
 logger = logging.getLogger(__name__)

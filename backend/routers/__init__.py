@@ -4,6 +4,26 @@ backend.routers - API 路由包
 所有路由统一通过 include_router 注册到 main.py。
 每个路由模块暴露一个 `router` 实例。
 """
+
+__all__ = [
+    "auth_router",
+    "health_router",
+    "metrics_router",
+    "flow_router",
+    "churn_router",
+    "asset_router",
+    "geo_router",
+    "category_router",
+    "audience_router",
+    "rfm_router",
+    "breakdown_router",
+    "sampling_router",
+    "market_focus_router",
+    "visitor_router",
+    "export_router",
+    "report_router",
+]
+
 from backend.routers.auth import router as auth_router
 from backend.routers.health import router as health_router
 from backend.routers.metrics import router as metrics_router

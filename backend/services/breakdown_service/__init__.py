@@ -2,9 +2,6 @@
 breakdown_service 包
 """
 
-from .forward import *
-from .reverse import *
-from .suggestions import *
-from .main import *
+from .main import calculate_one_click_breakdown
 
-__all__ = []  # wildcard imports handle exports
+__all__ = ["calculate_one_click_breakdown"]
