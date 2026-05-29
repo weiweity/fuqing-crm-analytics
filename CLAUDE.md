@@ -356,6 +356,7 @@ fuqing-crm-analytics/
 | 2026-05-29 | 未来日期静默返回全0，误导运营决策 | 日期参数无校验，用户传入 2030-01-01 也不报错 | 所有日期参数端点必须调用 `check_future_date()`，通过 `X-Data-Warning` 响应头告警 |
 | 2026-05-29 | RFM"价值/发展"回购率虚高27-35%，"保持/挽留"仅0.17% | `_shared.py` 中 `cutoff = end_date`，当期购买者自动被归类为高R分，形成循环论证 | RFM cutoff 必须为 `start_date - 1 day`（`_resolve_date_ranges` 中4处均已修复） |
 | 2026-05-29 | R/F/M flow 回购率0%或错误 | `r_flow/f_flow/m_flow.py` 中 `hist_customers_all` CTE 使用 `user_recency` 全局累计值（更新到最新日期），历史周期计算失效 | 历史周期 RFM 分类禁止使用 `user_recency`，必须从 `orders` 表实时聚合（MAX/COUNT/SUM with `pay_time <= cutoff`） |
+| 2026-05-29 | `category/repurchase-flow` 全0 | `_RFM_SEGMENT_ORDER`（4个，无"客户"后缀）与 SQL 生成的 RFM 象限名（8个，带"客户"后缀）不一致，`_build_rows` 查找全部 key 不匹配 | `_RFM_SEGMENT_ORDER` 这类"常量"必须与生成它的 SQL 严格同步，拆包/重构时容易忽略跨文件的命名一致性 |
 | 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
 | 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
 | 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |

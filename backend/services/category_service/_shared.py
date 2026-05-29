@@ -56,12 +56,16 @@ _ASSOC_CACHE_MAX_SIZE = 100
 _assoc_cache: OrderedDict[str, Any] = OrderedDict()
 _assoc_cache_lock = __import__('threading').Lock()
 
-# L3212: RFM 象限顺序
+# L3212: RFM 象限顺序（必须与 SQL rfm_segmented CTE 中的命名完全一致）
 _RFM_SEGMENT_ORDER = [
-    "重要价值",
-    "重要召回",
-    "重要发展",
-    "重要挽留",
+    "重要价值客户",
+    "重要保持客户",
+    "重要发展客户",
+    "重要挽留客户",
+    "一般价值客户",
+    "一般保持客户",
+    "一般发展客户",
+    "一般挽留客户",
 ]
 
 # L3172-3208: 复购日期范围解析
