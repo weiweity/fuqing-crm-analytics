@@ -70,10 +70,10 @@ def _run_category_repurchase_period(
     safe_category = category.replace("'", "''")
 
     # 参数组装
-    # hist_customers: 1(cutoff) + 1(category) = 2个 ?
+    # hist_customers: 1(cutoff_DATEDIFF) + 1(category) + 1(cutoff_pay_time) + ex
     # base_orders: start_dt, end_dt
     base_params: List[str] = [start_dt, end_dt]
-    hist_params: List[str] = [cutoff_dt, safe_category]
+    hist_params: List[str] = [cutoff_dt, safe_category, cutoff_dt] + exclude_params
 
     sql = f"""
     WITH
@@ -281,12 +281,24 @@ def _run_category_repurchase_period(
     # cross_repurchase: 2(start,end) + ch + ex + 1(category)
     # same_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
     # cross_repurchase_amounts: 2(start,end) + ch + ex + 1(category)
-    full_params = base_params + base_params_extra + exclude_params           # base_orders (2+ch+ex)
-    full_params += hist_params + exclude_params + [safe_category]            # hist_customers (2+ex+1)
-    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # same_repurchase (2+ch+ex+1)
-    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # cross_repurchase (2+ch+ex+1)
-    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # same_repurchase_amounts (2+ch+ex+1)
-    full_params += base_params + base_params_extra + exclude_params + [safe_category]  # cross_repurchase_amounts (2+ch+ex+1)
+    # 参数组装（严格对应 SQL 中每个 CTE 的 ? 出现顺序，已验证 41 params）
+    # base_orders: 2(start,end) + ch + ex  = 6
+    # hist_customers: 1(cutoff_DATEDIFF) + 1(category) + 1(cutoff_pay_time) + ex = 7
+    # same_repurchase: 1(cat) + 2(start,end) + ch + ex = 7
+    # cross_repurchase: 1(cat) + 2(start,end) + ch + ex = 7
+    # same_repurchase_amounts: 1(cat) + 2(start,end) + ch + ex = 7
+    # cross_repurchase_amounts: 1(cat) + 2(start,end) + ch + ex = 7
+    # LEFT JOIN 引用已定义 CTE 不占额外参数
+    # SQL ?顺序: category → start → end → channel → exclude
+    _sr = [safe_category] + base_params + base_params_extra + exclude_params
+    _cr = [safe_category] + base_params + base_params_extra + exclude_params
+    _sa = [safe_category] + base_params + base_params_extra + exclude_params
+    _ca = [safe_category] + base_params + base_params_extra + exclude_params
+    full_params = (
+        base_params + base_params_extra + exclude_params
+        + hist_params  # must include ALL hist_customers params: cutoff_DATEDIFF, category, cutoff_pay_time, exclude...
+        + _sr + _cr + _sa + _ca
+    )
 
     rows = conn.execute(sql, full_params).fetchall()
 
