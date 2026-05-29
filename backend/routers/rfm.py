@@ -13,7 +13,7 @@ from backend.contracts.schemas import (
     RFMMFlowResponse,
     SegmentOrdersResponse,
 )
-from backend.services.rfm_service import (
+from backend.services.rfm import (
     get_rfm_r_flow,
     get_rfm_f_flow,
     get_rfm_m_flow,
