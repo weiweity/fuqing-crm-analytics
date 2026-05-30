@@ -97,6 +97,9 @@ def _r_interval_sql(date_col: str, cutoff_date: str) -> str:
     输入），因此无需参数化即可安全嵌入字面量。若未来此函数接受非校验来源的日期参数，
     必须改回参数化查询。
     """
+    import re
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', cutoff_date):
+        raise ValueError(f"cutoff_date 必须是 YYYY-MM-DD 格式，收到: {cutoff_date!r}")
     return f"""
         CASE
             WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 30 THEN '近1个月已购客'
