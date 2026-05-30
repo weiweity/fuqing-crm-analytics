@@ -312,10 +312,14 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
 
         amount_expr = fb.build_amount_expr()
 
+        from backend.semantic.filters import AmountExprBuilder
+        member_amount_expr = f"SUM(CASE WHEN is_member = TRUE THEN {AmountExprBuilder.gsv() if metric_type == 'GSV' else 'actual_amount'} ELSE 0 END)"
+
         result = conn.execute(f"""
             SELECT
                 DATE(pay_time) as date,
                 {amount_expr} as daily_amount,
+                {member_amount_expr} as member_amount,
                 COUNT(DISTINCT CASE WHEN is_member = TRUE THEN order_id END) as member_orders,
                 COUNT(DISTINCT order_id) as daily_orders
             FROM orders
@@ -344,10 +348,13 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
         where_ly, params_ly = fb_ly.build()
         amount_ly = fb_ly.build_amount_expr()
 
+        member_amount_ly_expr = f"SUM(CASE WHEN is_member = TRUE THEN {AmountExprBuilder.gsv() if metric_type == 'GSV' else 'actual_amount'} ELSE 0 END)"
+
         result_ly = conn.execute(f"""
             SELECT
                 DATE(pay_time) as date,
                 {amount_ly} as daily_amount,
+                {member_amount_ly_expr} as member_amount,
                 COUNT(DISTINCT CASE WHEN is_member = TRUE THEN order_id END) as member_orders,
                 COUNT(DISTINCT order_id) as daily_orders
             FROM orders
@@ -356,29 +363,40 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
             ORDER BY date
         """, params_ly).fetchall()
 
-        # 今年会员占比（%）
+        # 今年会员GSV占比（%）
         member_ratios = []
         for r in result:
-            total = r[3] if r[3] else 0
-            member = r[2] if r[2] else 0
-            ratio = (member / total * 100) if total > 0 else 0
+            total_amount = r[1] if r[1] else 0
+            member_amount = r[2] if r[2] else 0
+            ratio = (member_amount / total_amount * 100) if total_amount > 0 else 0
             member_ratios.append(round(ratio, 2))
 
-        # 去年会员占比（%）
+        # 去年会员GSV占比（%）
         ly_member_ratios = []
         for r in result_ly:
-            total = r[3] if r[3] else 0
-            member = r[2] if r[2] else 0
-            ratio = (member / total * 100) if total > 0 else 0
+            total_amount = r[1] if r[1] else 0
+            member_amount = r[2] if r[2] else 0
+            ratio = (member_amount / total_amount * 100) if total_amount > 0 else 0
             ly_member_ratios.append(round(ratio, 2))
+
+        # 计算整体会员GSV占比（与人群看板一致）
+        total_amount = sum(float(r[1]) for r in result) if result else 0
+        total_member_amount = sum(float(r[2]) for r in result) if result else 0
+        overall_member_ratio = round(total_member_amount / total_amount * 100, 2) if total_amount > 0 else 0
+
+        total_amount_ly = sum(float(r[1]) for r in result_ly) if result_ly else 0
+        total_member_amount_ly = sum(float(r[2]) for r in result_ly) if result_ly else 0
+        overall_member_ratio_ly = round(total_member_amount_ly / total_amount_ly * 100, 2) if total_amount_ly > 0 else 0
 
         return {
             "metric_type": metric_type,
             "dates": [str(r[0]) for r in result],
             "amounts": [float(r[1]) for r in result],
             "member_ratios": member_ratios,
+            "overall_member_ratio": overall_member_ratio,
             "ly_amounts": [float(r[1]) for r in result_ly],
             "ly_member_ratios": ly_member_ratios,
+            "overall_member_ratio_ly": overall_member_ratio_ly,
         }
     finally:
         conn.close()
