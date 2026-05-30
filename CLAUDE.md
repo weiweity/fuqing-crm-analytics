@@ -27,6 +27,16 @@
 | **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
 | **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
 
+### 批量任务执行规范（workflow / 多文件重构）
+
+当 AI 执行多文件修改任务时，**必须遵守**：
+
+1. **先创建 feature branch** — `git checkout -b feature/xxx`（除非用户明确说在 main 上做）
+2. **分批 commit** — 每个逻辑单元单独 commit，不要一个巨大 commit
+3. **最后一个 commit 前必须跑 `/review`** — 与单次 commit 规则一致
+4. **必须更新 CHANGELOG.md** — 分类到 Security / Performance / Changed / Fixed
+5. **workflow prompt 中注入本文件关键规则** — agent 不会自动读 CLAUDE.md，需要显式写入 prompt
+
 ---
 
 ## CI/CD 防线
