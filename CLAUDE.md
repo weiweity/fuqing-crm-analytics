@@ -14,7 +14,7 @@
 | 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.7（main），测试 91 passed / 0 failed |
+| 4 | **版本状态** | v0.3.7（main），测试 149 passed / 8 skipped |
 | 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
 | 6 | **未来日期警告** | 传入未来日期时，所有日期参数端点返回 `X-Data-Warning` 响应头 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
