@@ -437,7 +437,7 @@ def main():
         print("\n" + "=" * 60)
         print("刷新订单状态覆盖表（CSV 模式）")
         print("=" * 60)
-        from scripts.etl_status_override import refresh_status_override
+        from scripts.etl.etl_status_override import refresh_status_override
         from backend.config import DUCKDB_PATH
         refresh_status_override(DUCKDB_PATH, window_days=args.window_days)
         print("\n" + "=" * 60)
@@ -458,7 +458,7 @@ def main():
         print("\n" + "-" * 40)
         print("Step 3: 刷新订单状态覆盖表")
         print("-" * 40)
-        from scripts.etl_status_override import refresh_status_override
+        from scripts.etl.etl_status_override import refresh_status_override
         from backend.config import DUCKDB_PATH
         refresh_status_override(DUCKDB_PATH, window_days=args.window_days)
 
@@ -466,7 +466,7 @@ def main():
         print("\n" + "-" * 40)
         print("Step 4: 反向同步 override → orders")
         print("-" * 40)
-        from scripts.etl_status_override import sync_override_to_orders
+        from scripts.etl.etl_status_override import sync_override_to_orders
         sync_override_to_orders(DUCKDB_PATH, window_days=args.window_days)
 
         # Step 5: 刷新访客数据（daily_visitors 表，访客数/新增会员数）
@@ -489,7 +489,7 @@ def main():
         print("-" * 40)
         from backend.database import create_user_rfm_table
         create_user_rfm_table()
-        from scripts.preload_rfm import run_auto_preload
+        from scripts.etl.preload_rfm import run_auto_preload
         results = run_auto_preload()
         success = [r for r in results if r[4] > 0]
         print(f"  user_rfm 预加载完成: {len(success)} 个组合")
