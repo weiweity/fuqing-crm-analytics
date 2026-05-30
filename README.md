@@ -33,8 +33,7 @@
 ```bash
 cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
-PYTHONPATH="$(pwd)" \
-  nohup ~/.workbuddy/binaries/python/envs/default/bin/python -m uvicorn backend.main:app \
+PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 --reload --reload-dir backend \
   >> /tmp/fuqin-crm-backend.log 2>&1 &
 cd frontend-vue3 && npm run dev
@@ -47,8 +46,8 @@ cd frontend-vue3 && npm run dev
 ### ETL 增量更新
 
 ```bash
-PYTHONPATH="$(pwd)" \
-  ~/.workbuddy/binaries/python/envs/default/bin/python scripts/run_etl.py --update
+# 必须用 homebrew Python 3.14（workbuddy Python 3.13 有代码签名冲突）
+PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --update
 ```
 
 ---
@@ -83,7 +82,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/  # DMP 资产（store/product/other）
 │   ├── routers/                # API 路由（16 个模块）
 │   ├── db/                     # 数据库连接
-│   └── tests/                  # 单元测试（8 个文件，148 个用例）
+│   └── tests/                  # 单元测试（12 个文件，149 passed）
 ├── frontend-vue3/              # Vue3 前端
 ├── scripts/                    # ETL 脚本
 ├── config/                     # 配置（健康评分、RFM 阈值）

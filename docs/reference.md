@@ -101,7 +101,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/ ← DMP 资产
 │   ├── routers/           ← API 路由（16 个模块）
 │   ├── db/                ← 数据库连接（get_connection）
-│   └── tests/             ← 单元测试（8 个文件，149 个用例）
+│   └── tests/             ← 单元测试（12 个文件，149 passed / 8 skipped）
 ├── frontend-vue3/
 │   └── src/
 │       ├── views/         ← 页面组件
