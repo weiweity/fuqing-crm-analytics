@@ -1,50 +1,24 @@
 # 芙清 CRM — AI 执行手册
 
-> 本文件是项目的唯一权威参考。AI 每次启动时优先加载「必读·启动项」，按需查阅各章节。
-> 详细文档见 `docs/DOCUMENT-INDEX.md`。
+> 本文件每次会话自动加载。只放行为规则，不放参考材料。
+> 参考手册见 `docs/reference.md`（按需读取）。
 
 ---
 
 ## 必读·启动项
 
-> 每次对话开始时，首先加载以下信息。任何任务都以此为前提。
-
 | # | 事实 | 说明 |
 |---|---|---|
-| 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
-| 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
-| 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.8（main），测试 149 passed / 8 skipped，CI 双重检查（ruff + pytest） |
-| 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
-| 6 | **未来日期警告** | 传入未来日期时，所有日期参数端点返回 `X-Data-Warning` 响应头 |
-| 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
-| 7 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置登录密码，未配置时启动自动生成随机密码 |
-| 8 | **安全** | CSO 审计已通过，6 个修复已合并：安全响应头 / 审计日志签名 / 非特权 nginx / 健康检查脱敏 / SQL参数化 / /docs白名单 |
-| 9 | **API 文档** | `/docs`、`/redoc`、`/openapi.json` 不需要认证，直接浏览器访问 |
-
----
-
-## 索引
-
-> 按需查阅。高优先级章节是每次相关操作都必须完整执行的流程。
-
-| 优先级 | 章节 | 触发条件 |
-|--------|------|---------|
-| 🔴 必走 | [Git 工作流 + 禁止事项](#git-工作流) | commit / merge / push 前 |
-| 🔴 必走 | [接口开发六步](#新增修改接口必走六步) | 新增或修改后端接口时 |
-| 🔴 必走 | [包拆分检查清单](#包拆分检查清单) | 拆分大文件为包时 |
-| 🟡 按需 | [语义层参考](#语义层口径) | 口径/渠道/计算规则疑问时 |
-| 🟡 按需 | [Skill 路由](#skill-路由) | 不确定用哪个 skill 时 |
-| 🟢 参考 | [快速启动命令](#快速启动) | 启动服务 / 跑 ETL / 跑测试时 |
-| 🟢 参考 | [目录结构](#目录结构) | 新建文件不知道放哪时 |
-| 🟢 参考 | [架构五层](#架构五层) | 需要全局视野时 |
+| 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
+| 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
+| 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
+| 4 | **版本状态** | v0.3.8（main），测试 149 passed / 8 skipped |
+| 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
+| 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
 ---
 
 ## AI 执行检查点（硬性 STOP，不可跳过）
-
-> AI 在以下节点**必须停下**，执行对应 skill，不得凭记忆跳过。
-> 每次对话开始时重读本节。违反任何一条 = 回滚操作。
 
 | 检查点 | 触发条件 | 必须执行 | 阻塞动作 |
 |--------|----------|----------|----------|
@@ -53,21 +27,15 @@
 | **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
 | **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
 
-**AI 自检口令**（每次 commit/push 前默念）：
-1. 我跑 review 了吗？→ 没有就跑
-2. 测试全绿吗？→ 没有就修
-3. 这个 commit 混了多个功能吗？→ 是就拆
-
 ---
 
 ## CI/CD 防线
 
-| 层 | 位置 | 拦什么 | 谁执行 |
-|---|---|---|---|
-| pre-commit hook | `.githooks/pre-commit` | ruff lint 错误 | 本地 git |
-| pre-push hook | `.githooks/pre-push` | pytest 测试失败 | 本地 git |
-| GitHub Actions CI | `.github/workflows/lint.yml` | ruff + pytest | GitHub PR/push |
-| AI 检查点 | CLAUDE.md 上方 | 跳过 review/qa | AI 自律 |
+| 层 | 位置 | 拦什么 |
+|---|---|---|
+| pre-commit | `.githooks/pre-commit` | ruff lint |
+| pre-push | `.githooks/pre-push` | pytest |
+| GitHub Actions | `.github/workflows/lint.yml` | ruff + pytest |
 
 激活 hooks：`git config core.hooksPath .githooks`
 
@@ -75,206 +43,59 @@
 
 ## Git 工作流
 
-### 禁止事项（每次 commit / merge 前必检查）
+### 禁止事项
 
-> 以下是导致线上事故的高频错误，发现任意一条立刻停止当前操作。
+| # | 禁止行为 |
+|---|---|
+| 1 | 跳过 `review` 直接 commit |
+| 2 | 跳过 `qa` 直接 merge |
+| 3 | merge 后不 pull 就重启 |
+| 4 | 直接在 main commit |
+| 5 | `commit -m "fix"` / `"update"` |
+| 6 | commit 混多个不相关功能 |
+| 7 | commit 后不 push |
+| 8 | 跳过更新 CHANGELOG |
 
-| # | 禁止行为 | 真实教训 |
-|---|---|---|
-| 1 | 跳过 `review` skill 直接 commit | 2026-05-28：拆分 `dmp_asset_service` 时漏掉 7 个辅助函数，线上 500 |
-| 2 | 跳过 `qa` skill 直接 merge | 必须跑完 qa 才能 merge main |
-| 3 | merge + push 后不 pull | 2026-05-28：GraphQL API merge 后 GitHub 有新代码，本地 main 没更新，uvicorn 跑旧代码 |
-| 4 | 直接在 main 分支 commit | 必须通过 feature 分支 PR 流程 |
-| 5 | `commit -m "fix"` / `"asdf"` / `"update"` | 提交信息必须说明改了什么 |
-| 6 | commit 混多个不相关功能 | 按逻辑分批次提交 |
-| 7 | commit 后不 push | 代码在本地 = 代码丢了 |
-| 8 | 跳过 ⑬ 更新 CHANGELOG | 事后无法追踪「哪个版本改了什么」 |
-
-### 正确流程（12 步，顺序不得调整）
+### 12 步流程
 
 ```
 ① git checkout -b feature/xxx
-  ↓
 ② 写代码
-  ↓
 ③ pytest backend/tests/ -x -q
-  ↓
-④ review skill — commit 前自检
-  ↓
-⑤ 修复 review 发现的问题
-  ↓
+④ review skill
+⑤ 修复 review 问题
 ⑥ git commit -m "feat: xxx"
-  ↓
 ⑦ git push origin feature/xxx
-  ↓
-⑧ qa skill — 功能验收
-  ↓
+⑧ qa skill
 ⑨ git checkout main && git merge feature/xxx --no-ff
-  ↓
 ⑩ git push origin main
-  ↓
-⑪ git pull origin main --ff-only   ← 本地即生产，必须同步
-  ↓
-⑫ kill 并重启 uvicorn
-  ↓
-⑬ 更新 CHANGELOG.md（一句话版本号日志）
+⑪ git pull origin main --ff-only
+⑫ kill 并重启 uvicorn + 更新 CHANGELOG.md
 ```
-
-**Skill 映射**：`review` → commit 前 · `qa` → merge 前 · `ship` → 大功能推送前
 
 ---
 
-## 新增/修改接口必走六步
+## 接口开发六步
 
-> 每次新增或修改后端接口时，按顺序完整执行，不得跳过。
+1. **口径先找语义层** — 禁止在 Service 硬编码 SQL 口径
+2. **连接规范** — `conn = get_connection()` + `try/finally: conn.close()` + `?` 参数化
+3. **渠道展开** — `expand_channels([channel])`
+4. **Schema 三同步** — Service → contracts/schemas.py → 前端 types.ts
+5. **前端只展示** — 禁止前端算 YOY/占比/客单价
+6. **三层验证** — import 测试 + pytest + vue-tsc
 
-### Step 1 — 口径先找语义层（禁止硬编码）
-
-```python
-# ✅ 正确：引用语义层
-from backend.semantic.filters import OrderFilters
-valid_sql, _ = OrderFilters.valid_order()
-
-# ❌ 禁止：在 Service 里硬编码口径
-"order_status LIKE '%成功%'"    # 会误杀有效订单
-"is_goujinjin = FALSE"
-```
-
-语义层唯一真实数据源：
-- `backend/semantic/filters.py` → 过滤条件（有效订单/GMV/GSV）
-- `backend/semantic/channels.py` → 渠道映射（DB_TO_UI / UI_TO_DB）
-- `backend/semantic/calculations.py` → YOY/MOM/safe_ratio
-- `backend/semantic/segments.py` → RFM 分群阈值
-
-### Step 2 — Service 连接规范 + 日期校验
-
-```python
-conn = get_connection()
-try:
-    result = conn.execute(sql, params).fetchall()
-finally:
-    conn.close()   # 禁止遗漏
-```
-
-- **DuckDB 用 `?` 参数化所有动态值（日期/渠道/金额等），禁止 f-string 拼接 SQL**
-- **CASE WHEN 中的动态比较值（如 `DATE ?`）也要参数化，不能用 `f"'{date}'"`**
-- 列名动态化走白名单字典（如 `SPU_LEVELS`），禁止直接拼接
-- ⚠️ 教训（2026-05-29）：`breakdown_service/_shared.py` 4个函数用 f-string 拼接日期参数，修复后统一改为 `conn.execute(sql, [p1, p2, ...])`
-
-#### 未来日期警告（所有日期参数端点必须执行）
-
-所有接收 `analysis_date` / `start_date` / `end_date` 参数的接口，service 层抛异常时，全局异常处理器自动在 `X-Data-Warning` 响应头返回：
-```
-X-Data-Warning: date 2030-01-01 is in the future, data will be all-zero. Use date <= today.
-```
-这是因为：未来日期静默返回全 0 会误导运营决策。AI 开发者感知到这个信号后，可以明确告知用户原因。
-
-### Step 3 — 渠道参数统一展开
-
-```python
-from backend.semantic.filters import expand_channels
-db_channels = expand_channels([channel])
-db_exclude = expand_channels(exclude_channels)
-```
-
-### Step 4 — Schema 三同步（最容易遗漏）
-
-```
-backend/services/xxx_service.py  →  改返回字段
-backend/contracts/schemas.py     →  同步 Pydantic model
-frontend-vue3/src/api/xxx.ts    →  同步 TypeScript interface
-```
-
-- 新增字段：Schema 加默认值（`float = 0.0`），前端加 `?` 可选
-- 删除字段：三者同时删除，不留死字段
-- **最常见 crash**：Pydantic 缺字段 → FastAPI 静默过滤 → 前端 undefined → 白屏
-
-### Step 5 — 前端只做展示，不做业务计算
-
-```ts
-// ✅ 正确：后端算好，前端展示
-{ title: '渗透率', render: (row) => `${(row.penetration_rate * 100).toFixed(1)}%` }
-
-// ❌ 禁止：前端自己算 YOY / 占比 / 客单价
-const ratio = (current - previous) / previous
-```
-
-### Step 6 — 三层验证
-
-1. Python import：`from backend.main import app`
-2. 后端测试：`pytest backend/tests/ -x -q`
-3. 前端类型：`vue-tsc --noEmit`
-
----
-
-## 包拆分检查清单
-
-> 拆分 `xxx.py` 为 `xxx/` 包时必做，少一步就可能线上 500。
->
-> ⚠️ 2026-05-28 真实事故: `dmp_asset_service` 拆分丢 7 个辅助函数 → 线上 500；
-> 同日 `rfm_service` 拆分丢 `get_connection` / `yoy_absolute` / `yoy_repurchase_rate` / `expand_channels` → 再次 500。
-> 根因相同: 拆分子模块时只复制了业务代码，没梳理跨文件的函数调用关系。
-
-### 强制执行流程（顺序不可跳过）
-
-```bash
-# Step 1 — 交叉导入校验（自动发现所有遗漏的 NameError）
-# 对每个子模块单独 import，触发顶层代码执行，捕获 NameError
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-PYTHONPATH="$(pwd)" python3 -c "
-import importlib, sys
-modules = ['backend.services.xxx.sub1', 'backend.services.xxx.sub2']
-for m in modules:
-    try:
-        importlib.import_module(m)
-        print(f'OK: {m}')
-    except NameError as e:
-        sys.exit(f'MISSING IMPORT in {m}: {e}')
-    except Exception as e:
-        print(f'WARN: {m} raised {type(e).__name__}, but not NameError')
-print('All submodules import cleanly')
-"
-
-# Step 2 — _shared.py 完整性检查
-# 确保 _shared.py 导出了所有子模块共享的依赖（至少检查这 3 类）
-grep -rn "get_connection\|expand_channels\|yoy_absolute\|yoy_repurchase_rate\|PeriodBuilder" backend/services/xxx/ | grep -v "_shared.py"
-# ↑ 如果有输出，说明这些函数在某子模块中使用了但 _shared.py 未导出 → 补齐 _shared.py
-
-# Step 3 — 全量测试
-PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
-```
-
-### 关键教训
-
-子模块的 `from _shared import *` 是一条单向依赖链。**拆分时先把所有共享依赖从单体文件提取到 `_shared.py`，再分割业务逻辑。** 反过来做（先拆再补导入）必然漏。
-
-**教训（2026-05-28）**：`dmp_asset_service` 拆分为 store.py / product.py / other.py 时，7 个共享辅助函数（`_check_reload` / `_parse_date` / `_load_data2` 等）全部丢失，导致 `name '_check_reload' is not defined` 线上 500。根因：提取代码段时只复制了表面，没有梳理段间的函数调用关系。同日 `rfm_analysis` 拆分也有类似问题。
-
----
-
-## 语义层口径
-
-| 概念 | 定义 | 位置 |
-|------|------|------|
-| 有效订单 | `is_refund=FALSE AND order_status!='交易关闭'` | `filters.py` |
-| GMV | 剔除购物金，含退款 | `filters.py` |
-| GSV | 剔除购物金+退款 | `filters.py` |
-| 新老客 cutoff | `pay_date - INTERVAL '1 day'` | 各 service 内联计算，禁止硬编码固定日期 |
-| 禁止写法 | `LIKE '%成功%'` | 会误杀有效订单 |
-| 渠道漏斗（9层） | U先派样→百补派样→赠品&0.01→达播/微博→直播→淘客→购物金→货架→其他 | `channels.py` |
+详细示例见 `docs/reference.md`。
 
 ---
 
 ## Skill 路由
 
-> 当请求匹配以下场景时，**立即调用对应 Skill**，不得直接回答。
-
 | 场景 | 触发词 | Skill |
 |------|--------|-------|
-| 报错 / 500 / 数据异常 | `调试`、`investigate`、`排查`、`出问题了`、`报错` | `investigate` |
-| commit 前自检 | `review`、`代码审查`、`逻辑有没有问题`、`业务逻辑` | `review` |
-| 功能上线前验收 | `qa`、`测试一下`、`验收`、`检查一下` | `qa` |
-| 大功能推送前完整检查 | `发布`、`上线`、`部署`、`ship` | `ship` |
+| 报错 / 500 | `调试`、`investigate`、`排查` | `investigate` |
+| commit 前 | `review`、`代码审查` | `review` |
+| 上线前验收 | `qa`、`测试一下` | `qa` |
+| 大功能推送 | `发布`、`ship` | `ship` |
 
 ---
 
@@ -284,177 +105,28 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
 # 后端（端口 8000）
 cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
-PYTHONPATH="$(pwd)" nohup ~/.workbuddy/binaries/python/envs/default/bin/python -m uvicorn backend.main:app \
+PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 --reload --reload-dir backend >> /tmp/fuqin-crm-backend.log 2>&1 &
 
 # 前端（端口 5173）
 cd frontend-vue3 && npm run dev
 
-# ETL 增量更新（必须用 homebrew Python 3.14，workbuddy Python 3.13 有代码签名冲突）
-# 前置依赖：pyarrow（brew 装不了，pip 装 pre-built wheel）
-#   /Users/hutou/homebrew/bin/python3 -m pip install pyarrow --only-binary :all: --break-system-packages
+# ETL（必须用 homebrew Python 3.14）
 PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --update
 
-# RFM 预计算（ETL 完成后单独跑，600任务约10分钟）
-PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/etl/preload_rfm.py --auto
-
-# 跑测试
+# 测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
 ---
 
-## 架构五层
-
-```
-前端展示层  Vue3 + ECharts 5 + naive-ui + Tailwind CSS
-    ↕ HTTP JSON
-API 层      FastAPI + Pydantic（backend/main.py + routers/）
-    ↕ 函数调用
-服务层      backend/services/（业务逻辑）
-    ↕ 函数调用
-语义层      backend/semantic/（口径唯一真实数据源）
-    ↕ DuckDB
-数据层      data/processed/fuqing_crm.duckdb（33G）
-```
-
-契约层 `backend/contracts/schemas.py` 横跨 API 和前端：Pydantic → OpenAPI → TypeScript。
-
----
-
-## 目录结构
-
-```
-fuqing-crm-analytics/
-├── CLAUDE.md              ← 本文件（项目参考）
-├── README.md              ← 项目介绍
-├── backend/
-│   ├── main.py            ← FastAPI 入口（端口 8000）
-│   ├── semantic/          ← 语义层（口径唯一真实数据源）
-│   │   ├── filters.py     ← OrderFilters / FilterBuilder
-│   │   ├── metrics.py     ← 指标注册表
-│   │   ├── segments.py    ← RFM 分群（RFM_THRESHOLDS）
-│   │   ├── channels.py    ← 渠道映射（DB_TO_UI/UI_TO_DB）
-│   │   ├── time.py        ← PeriodBuilder（WTD/MTD/YTD/free）
-│   │   └── calculations.py← YOY/MOM/safe_ratio
-│   ├── contracts/
-│   │   └── schemas.py     ← Pydantic 模型（统一导出，135个类）
-│   ├── services/          ← 业务逻辑（按业务域拆分为包）
-│   │   ├── category_service/  ← 品类分析
-│   │   ├── health/        ← 老客健康分析
-│   │   ├── metrics/       ← 指标服务
-│   │   ├── rfm/          ← RFM 区间流转
-│   │   ├── breakdown_service/ ← 一键拆解
-│   │   └── dmp_asset_service/ ← DMP 资产
-│   ├── routers/           ← API 路由（16 个模块）
-│   ├── db/                ← 数据库连接（get_connection）
-│   └── tests/             ← 单元测试（8 个文件，149 个用例）
-├── frontend-vue3/
-│   └── src/
-│       ├── views/         ← 页面组件
-│       ├── components/     ← 公共组件
-│       ├── api/           ← API 调用 + types.ts
-│       └── stores/        ← Pinia 状态
-├── scripts/               ← ETL 脚本
-├── config/                ← 配置（健康评分、RFM 阈值）
-├── data/                  ← DuckDB 主库（33G）
-└── docs/                  ← 文档（backend/frontend/deploy/ai/product）
-```
-
----
-
-## 测试文件
-
-| 文件 | 覆盖 |
-|---|---|
-| `test_calculations.py` | YOY/MOM/safe_ratio/单位转换 |
-| `test_filters.py` | OrderFilters/FilterBuilder/AmountExprBuilder |
-| `test_time.py` | PeriodBuilder（7 种周期模式） |
-| `test_channels.py` | 渠道漏斗/DB↔UI 映射 |
-| `test_segments.py` | RFM 分群注册表/评分 SQL |
-| `test_flow_service.py` | 人群流转服务 |
-| `test_exceptions.py` | 异常类型与 HTTP 状态码 |
-| `test_api_integration.py` | FastAPI 集成测试 |
-
----
-
-## 历史教训（来自真实事故，非理论）
-
-> 每次教训都是真实 bug，每个禁止规则背后都有一段事故史。AI 必须将这些视为约束条件而非建议。
-
-| 日期 | 事故 | 根因 | 教训 |
-|------|------|------|------|
-| 2026-05-29 | `breakdown_service` 4个函数 SQL 注入 | f-string 拼接日期到 SQL，用户输入未参数化 | DuckDB 所有动态值用 `?` 占位符，`conn.execute(sql, [p1, ...])` |
-| 2026-05-29 | 未来日期静默返回全0，误导运营决策 | 日期参数无校验，用户传入 2030-01-01 也不报错 | 所有日期参数端点必须调用 `check_future_date()`，通过 `X-Data-Warning` 响应头告警 |
-| 2026-05-29 | RFM"价值/发展"回购率虚高27-35% | `cutoff = end_date`，当期购买者自动被归类为高R分，形成循环论证；`hist_customers_all` 用 `user_recency`（更新到最新日期），历史周期全部归零 | cutoff 必须为 `start_date - 1 day`；`hist_customers_all` 必须从 `orders` 实时聚合（`pay_time <= cutoff`） |
-| 2026-05-29 | `category/repurchase-flow` 全0 | `_RFM_SEGMENT_ORDER`（4个，无"客户"后缀）与 SQL 生成的 RFM 象限名（8个，带"客户"后缀）不一致，`_build_rows` 查找全部 key 不匹配 | `_RFM_SEGMENT_ORDER` 这类"常量"必须与生成它的 SQL 严格同步，拆包/重构时容易忽略跨文件的命名一致性 |
-| 2026-05-29 | breakdown `_get_uv_reference` 历史 UV 窗口不准确 | 定义了 `year_before = activity_start - 1年`，SQL 里却传了 `activity_start` 而非 `year_before`；参数注释说31实际41 | 注释必须与实现严格一致；DuckDB params 数量用注释标注方便交叉验证 |
-| 2026-05-29 | `user_recency` 全局累计值导致历史周期 RFM 计算失效 | ETL 后 `user_recency` 表的 `last_pay_time` 更新到最新日期，查询历史周期时 R 全部为 0 | 见下行 |
-| 2026-05-29 | RFM cutoff = end_date 导致循环论证 | `cutoff = end_date` 使当期购买者自动高R，被分到"价值/发展"，回购率虚高27-35% | cutoff 必须为 `start_date - 1 day`，语义与 `PeriodBuilder` 一致 |
-| 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
-| 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
-| 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |
-| 2026-05-30 | `check_future_date(None)` 崩溃 | mtd/wtd/ytd 模式下 `start_date/end_date` 为 None，`strptime(None)` 触发 TypeError | 函数入口加 `if date_str is None: return None` 守卫；except 加 `TypeError` |
-| 2026-05-30 | 日期正则接受无效日期 | `re.fullmatch(r'\d{4}-\d{2}-\d{2}')` 不验证日历有效性，`2025-02-30` 通过 | regex 后必须加 `datetime.strptime` 验证实际日期 |
-| 2026-05-30 | 测试 monkeypatch 目标错误 | `from x import get_connection` 把名称绑定到本地模块，patch 定义方无效 | monkeypatch 目标必须是 use site（`backend.services.xxx.get_connection`），不是定义 site |
-| 2026-05-30 | DuckDB INSERT 列数不匹配 | f-string 硬编码值容易漏列或多列，41 列 schema 插入 40 个值 | 用参数化 INSERT `conn.execute(sql, [v1, v2, ...])`，不用 f-string |
-| 2026-05-30 | `_r_interval_sql` 安全设计决策 | DuckDB 不支持 `DATE ?` 语法（参数占位符在 DATE 字面量内部），改用字符串插值 | 函数入口加 regex + `datetime.strptime` 双重校验；docstring 记录设计决策 |
-| 2026-05-30 | 老客GSV占比 pp 显示 155pp/193pp | `fmtYoy()` ×100 + MetricCard pp 模板 ×100 = 双重乘法 | pp 类型 MetricCard 用 `fmtPpt()` 直传原值，YOYBadge ratio 列用 `unit='pp'` + 调用方 ×100 |
-| 2026-05-30 | 173 个 ruff lint 错误持续累积 | 无 pre-commit hook、无 CI，错误无人拦 | 三层防线：pre-commit (ruff) + pre-push (pytest) + GitHub Actions CI |
-
----
-
 ## 文档导航
 
-| 文件 | 说明 |
-|---|---|
-| `MEMORY.md`（自动注入） | 修改代码规则 + 当前状态 + 历史教训 |
-| `docs/DOCUMENT-INDEX.md` | 文档分类索引 |
-| `docs/product/PRD-v3.0.md` | 产品需求文档 |
-| `docs/飞书版架构文档/` | 系统架构文档（7 份） |
-| `docs/frontend/frontend-contract-guide.md` | 前端契约指南 |
-| `docs/archive/` | 历史文档（含已归档的 DESIGN.md、DEPLOY.md、MODULE-INDEX.md） |
-
----
-
-## AI 工具交接指南
-
-> 本节帮助新 AI 工具（Claude Code / Cursor / Windsurf 等）快速上手。
-
-### 启动检查清单
-
-1. 读本文件（CLAUDE.md）了解项目规范
-2. 跑测试确认全绿：`PYTHONPATH=. pytest tests/ -q`
-3. 检查 uvicorn 是否运行：`curl http://localhost:8000/health`
-
-### 启动命令
-
-```bash
-# 后端（端口 8000）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
-PYTHONPATH="..." nohup /Users/hutou/homebrew/bin/python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload &
-
-# 前端（端口 5173）
-cd frontend-vue3 && npm run dev
-
-# 测试
-PYTHONPATH=. /Users/hutou/homebrew/bin/pytest tests/ -v --tb=short
-
-# ETL（两步）
-PYTHONPATH="..." python scripts/run_etl.py --update
-PYTHONPATH="..." python scripts/etl/preload_rfm.py --auto
-```
-
-### 已知待修复
-
-| 问题 | 优先级 | 说明 |
-|------|--------|------|
-| user_rfm 全局累计值 | P2 | ETL 预计算的 user_rfm 在查历史周期时 RFM 分类全部错误，需 ETL 重构 |
-| 测试深度 | P2 | 当前测试以边界+结构验证为主，缺少业务逻辑验证 |
-
-### ⚠️ 不要碰的文件
-
-- `.env` — 包含密码，用 `.env.example` 代替
-- `data/` — 33GB DuckDB 数据库，不进 git
-- `.gstack/`、`.workbuddy/`、`.context/` — AI 工具私有目录
+| 文件 | 说明 | 加载方式 |
+|---|---|---|
+| `CLAUDE.md` | 行为规则（本文件） | 自动加载 |
+| `docs/reference.md` | 参考手册（口径/教训/目录结构） | 按需 Read |
+| `docs/product/PRD-v3.0.md` | 产品需求文档 | 按需 Read |
+| `docs/飞书版架构文档/` | 系统架构文档（7 份） | 按需 Read |
+| `docs/DOCUMENT-INDEX.md` | 完整文档索引 | 按需 Read |
+| `CHANGELOG.md` | 版本变更记录 | 按需 Read |
