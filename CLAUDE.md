@@ -362,6 +362,11 @@ fuqing-crm-analytics/
 | 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分为 3 个子模块时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
 | 2026-05-28 | GraphQL API merge 后服务仍跑旧代码 | GitHub 有新代码，本地 main 没 pull，uvicorn 不知道 | **本地即生产**，merge 后必须 pull + 重启 |
 | 2026-05-27 | `rfm_analysis` 线上 500 | 拆分 `rfm_analysis.py` 为包时缺少 `_read_db_cache` 等函数导入 | 包拆分时遗漏交叉导入 |
+| 2026-05-30 | `check_future_date(None)` 崩溃 | mtd/wtd/ytd 模式下 `start_date/end_date` 为 None，`strptime(None)` 触发 TypeError | 函数入口加 `if date_str is None: return None` 守卫；except 加 `TypeError` |
+| 2026-05-30 | 日期正则接受无效日期 | `re.fullmatch(r'\d{4}-\d{2}-\d{2}')` 不验证日历有效性，`2025-02-30` 通过 | regex 后必须加 `datetime.strptime` 验证实际日期 |
+| 2026-05-30 | 测试 monkeypatch 目标错误 | `from x import get_connection` 把名称绑定到本地模块，patch 定义方无效 | monkeypatch 目标必须是 use site（`backend.services.xxx.get_connection`），不是定义 site |
+| 2026-05-30 | DuckDB INSERT 列数不匹配 | f-string 硬编码值容易漏列或多列，41 列 schema 插入 40 个值 | 用参数化 INSERT `conn.execute(sql, [v1, v2, ...])`，不用 f-string |
+| 2026-05-30 | `_r_interval_sql` 安全设计决策 | DuckDB 不支持 `DATE ?` 语法（参数占位符在 DATE 字面量内部），改用字符串插值 | 函数入口加 regex + `datetime.strptime` 双重校验；docstring 记录设计决策 |
 
 ---
 
@@ -376,3 +381,47 @@ fuqing-crm-analytics/
 | `docs/ai/DESIGN.md` | AI 改代码操作规范 |
 | `docs/frontend/frontend-contract-guide.md` | 前端契约指南 |
 | `docs/deploy/DEPLOY.md` | 部署文档 |
+
+---
+
+## AI 工具交接指南
+
+> 本节帮助新 AI 工具（Claude Code / Cursor / Windsurf 等）快速上手。
+
+### 启动检查清单
+
+1. 读本文件（CLAUDE.md）了解项目规范
+2. 跑测试确认全绿：`PYTHONPATH=. pytest tests/ -q`
+3. 检查 uvicorn 是否运行：`curl http://localhost:8000/health`
+
+### 启动命令
+
+```bash
+# 后端（端口 8000）
+cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
+PYTHONPATH="..." nohup /Users/hutou/homebrew/bin/python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload &
+
+# 前端（端口 5173）
+cd frontend-vue3 && npm run dev
+
+# 测试
+PYTHONPATH=. /Users/hutou/homebrew/bin/pytest tests/ -v --tb=short
+
+# ETL（两步）
+PYTHONPATH="..." python scripts/run_etl.py --update
+PYTHONPATH="..." python scripts/etl/preload_rfm.py --auto
+```
+
+### 已知待修复
+
+| 问题 | 优先级 | 说明 |
+|------|--------|------|
+| user_rfm 全局累计值 | P2 | ETL 预计算的 user_rfm 在查历史周期时 RFM 分类全部错误，需 ETL 重构 |
+| 测试深度 | P2 | 当前测试以边界+结构验证为主，缺少业务逻辑验证 |
+
+### ⚠️ 不要碰的文件
+
+- `.env` — 包含密码，用 `.env.example` 代替
+- `data/` — 33GB DuckDB 数据库，不进 git
+- `.gstack/`、`.workbuddy/`、`.context/` — AI 工具私有目录
