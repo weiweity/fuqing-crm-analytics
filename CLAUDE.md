@@ -41,6 +41,25 @@
 
 ---
 
+## AI 执行检查点（硬性 STOP，不可跳过）
+
+> AI 在以下节点**必须停下**，执行对应 skill，不得凭记忆跳过。
+> 每次对话开始时重读本节。违反任何一条 = 回滚操作。
+
+| 检查点 | 触发条件 | 必须执行 | 阻塞动作 |
+|--------|----------|----------|----------|
+| **commit 前** | 准备 `git commit` | `/review` skill | 未跑 review → 禁止 commit |
+| **push 前** | 准备 `git push` | `pytest` 全绿 | 测试失败 → 禁止 push |
+| **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
+| **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
+
+**AI 自检口令**（每次 commit/push 前默念）：
+1. 我跑 review 了吗？→ 没有就跑
+2. 测试全绿吗？→ 没有就修
+3. 这个 commit 混了多个功能吗？→ 是就拆
+
+---
+
 ## Git 工作流
 
 ### 禁止事项（每次 commit / merge 前必检查）
