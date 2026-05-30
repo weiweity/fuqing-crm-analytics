@@ -94,7 +94,7 @@
 | `test_flow_service.py` | ~10 | 人群流转 |
 | `test_exceptions.py` | ~10 | 异常类型 |
 | `test_api_integration.py` | ~20 | FastAPI 集成测试 |
-| **总计** | **148 collected, 140 passed, 8 skipped** |
+| **总计** | **91 passed, 0 failed** |
 
 ## 关键设计决策
 
