@@ -73,11 +73,13 @@ def _check_rate_limit(client_ip: str) -> None:
     """滑动窗口速率限制：每 IP 每 5 分钟最多 10 次"""
     now = time.time()
     window_start = now - _RATE_LIMIT_WINDOW
-    # 清理过期时间戳
-    _rate_limit_store[client_ip] = [
-        t for t in _rate_limit_store[client_ip] if t > window_start
-    ]
-    if len(_rate_limit_store[client_ip]) >= _RATE_LIMIT_MAX:
+    # 清理过期时间戳，空列表则删除条目防止内存泄漏
+    active = [t for t in _rate_limit_store[client_ip] if t > window_start]
+    if active:
+        _rate_limit_store[client_ip] = active
+    else:
+        _rate_limit_store.pop(client_ip, None)
+    if len(_rate_limit_store.get(client_ip, [])) >= _RATE_LIMIT_MAX:
         logger.warning(
             "Rate limit exceeded for client %s",
             client_ip,
