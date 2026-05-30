@@ -195,11 +195,11 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
     prev_new_old = calculate_new_old_users(prev_start, prev_end, channel, exclude_channels)
     prev_member = calculate_member_metrics(prev_start, prev_end, metric_type, channel, exclude_channels)
 
-    mom_amount = (mom_absolute(current['amount'], prev['amount']) or 0) * 100
-    mom_orders = (mom_absolute(current['order_count'], prev['order_count']) or 0) * 100
-    mom_old_amount = (mom_absolute(new_old['old_user_amount'], prev_new_old['old_user_amount']) or 0) * 100
-    mom_new_amount = (mom_absolute(new_old['new_user_amount'], prev_new_old['new_user_amount']) or 0) * 100
-    mom_member_amount = (mom_absolute(member['member_amount'], prev_member['member_amount']) or 0) * 100
+    mom_amount = mom_absolute(current['amount'], prev['amount']) or 0
+    mom_orders = mom_absolute(current['order_count'], prev['order_count']) or 0
+    mom_old_amount = mom_absolute(new_old['old_user_amount'], prev_new_old['old_user_amount']) or 0
+    mom_new_amount = mom_absolute(new_old['new_user_amount'], prev_new_old['new_user_amount']) or 0
+    mom_member_amount = mom_absolute(member['member_amount'], prev_member['member_amount']) or 0
     # 占比 MoM 百分点差
     curr_old_ratio = new_old['old_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
     curr_new_ratio = new_old['new_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
@@ -230,11 +230,11 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
     last_year_new_old = calculate_new_old_users(last_year_start, last_year_end, channel, exclude_channels)
     last_year_member = calculate_member_metrics(last_year_start, last_year_end, metric_type, channel, exclude_channels)
 
-    yoy_amount = (yoy_absolute(current['amount'], last_year['amount']) or 0) * 100
-    yoy_orders = (yoy_absolute(current['order_count'], last_year['order_count']) or 0) * 100
-    yoy_old_amount = (yoy_absolute(new_old['old_user_amount'], last_year_new_old['old_user_amount']) or 0) * 100
-    yoy_new_amount = (yoy_absolute(new_old['new_user_amount'], last_year_new_old['new_user_amount']) or 0) * 100
-    yoy_member_amount = (yoy_absolute(member['member_amount'], last_year_member['member_amount']) or 0) * 100
+    yoy_amount = yoy_absolute(current['amount'], last_year['amount']) or 0
+    yoy_orders = yoy_absolute(current['order_count'], last_year['order_count']) or 0
+    yoy_old_amount = yoy_absolute(new_old['old_user_amount'], last_year_new_old['old_user_amount']) or 0
+    yoy_new_amount = yoy_absolute(new_old['new_user_amount'], last_year_new_old['new_user_amount']) or 0
+    yoy_member_amount = yoy_absolute(member['member_amount'], last_year_member['member_amount']) or 0
     ly_old_ratio = last_year_new_old['old_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
     ly_new_ratio = last_year_new_old['new_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
     ly_member_ratio = last_year_member['member_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
@@ -245,8 +245,8 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
 
     ly_member_avg = last_year_member['member_amount'] / last_year_member['member_order_count'] if last_year_member['member_order_count'] > 0 else 0
     ly_member_premium = ly_member_avg / last_year['avg_order_value'] if last_year['avg_order_value'] > 0 else 0
-    # 会员溢价 YoY（比值跑 yoy_absolute 返回百分比变化率，再乘100）
-    yoy_member_premium = (yoy_absolute(member_premium, ly_member_premium) or 0) * 100
+    # 会员溢价 YoY（比值跑 yoy_absolute 返回百分比变化率）
+    yoy_member_premium = yoy_absolute(member_premium, ly_member_premium) or 0
 
     return {
         "metric_type": metric_type,
