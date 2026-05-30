@@ -184,9 +184,15 @@ def _save_processed_files(data_type, processed_dict):
     path = _get_processed_files_path(data_type)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix('.json.tmp')
-    with open(tmp_path, 'w') as f:
-        json.dump(processed_dict, f, indent=2, sort_keys=True)
-    os.rename(tmp_path, path)
+    try:
+        with open(tmp_path, 'w') as f:
+            json.dump(processed_dict, f, indent=2, sort_keys=True)
+        os.rename(tmp_path, path)
+    except Exception:
+        # 清理 tmp 文件
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
 
 
 def _get_file_hash(file_path):

@@ -107,13 +107,22 @@ def fill_parquet_cache(data_source, data_type, force=False):
             gc.collect()  # 强制释放内存
 
         except Exception as e:
+            # 清理可能残留的 tmp 文件
+            try:
+                tmp_path = pq_dir / f"{f.stem}.parquet.tmp"
+                if tmp_path.exists():
+                    tmp_path.unlink()
+            except OSError:
+                pass
             print(f"  跳过({e}): {f.name}")
             errors += 1
             continue
 
-    # 保存 processed_files（与 ingest.py 事务化逻辑一致：写入成功后才标记）
+    # 保存 processed_files（合并已有记录，避免覆写丢失历史）
     if processed_updates:
-        _save_processed_files(data_type, processed_updates)
+        existing = _load_processed_files(data_type)
+        existing.update(processed_updates)
+        _save_processed_files(data_type, existing)
         print(f"  更新 processed_files: {len(processed_updates)} 个文件")
 
     print(f"\n[{data_type}] 完成: 转换 {converted}, 跳过 {skipped}, 错误 {errors}")
