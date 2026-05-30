@@ -1,6 +1,7 @@
 """ETL 文件读取
 列名映射、日期解析、数据文件加载（CSV/Excel）。
 """
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -234,13 +235,19 @@ def _save_parquet_cache(df, xlsx_path, data_type):
     """将 xlsx 读取后的 DataFrame 存为 Parquet，下次 ETL 直接读 Parquet 跳过 openpyxl。
 
     写入到 PARQUET_DATA_DIR/<data_type>/<filename>.parquet。
+    原子写入：先写 .tmp 再 rename，防止中断产生损坏文件。
     失败不阻塞 ETL，仅打印警告。
     """
     pq_dir = PARQUET_DATA_DIR / data_type
     pq_dir.mkdir(parents=True, exist_ok=True)
     pq_path = pq_dir / f"{xlsx_path.stem}.parquet"
+    tmp_path = pq_dir / f"{xlsx_path.stem}.parquet.tmp"
     try:
-        df.to_parquet(pq_path, index=False)
+        df.to_parquet(tmp_path, index=False)
+        os.rename(tmp_path, pq_path)
         print(f"    [Parquet 写入] {pq_path.name} ({len(df):,} 行)")
     except Exception as e:
+        # 清理临时文件
+        if tmp_path.exists():
+            tmp_path.unlink()
         print(f"    [Parquet 写入失败] {pq_path.name}: {e}")
