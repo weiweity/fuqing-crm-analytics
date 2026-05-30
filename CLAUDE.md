@@ -130,3 +130,23 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 | `docs/飞书版架构文档/` | 系统架构文档（7 份） | 按需 Read |
 | `docs/DOCUMENT-INDEX.md` | 完整文档索引 | 按需 Read |
 | `CHANGELOG.md` | 版本变更记录 | 按需 Read |
+
+---
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
