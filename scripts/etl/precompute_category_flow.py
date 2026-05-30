@@ -12,7 +12,6 @@ Usage:
 """
 
 import sys
-import os
 import json
 import argparse
 from pathlib import Path
@@ -24,8 +23,6 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import duckdb
-from backend.config import DUCKDB_PATH
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters
 
@@ -474,7 +471,6 @@ def run_full_precomputation():
     print("品类流转预计算 - 全量模式")
     print("=" * 60)
 
-    from backend.config import DUCKDB_PATH
 
     # 获取数据库最新数据日期
     conn = get_connection()

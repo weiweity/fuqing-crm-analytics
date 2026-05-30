@@ -2,14 +2,13 @@
 数据库初始化、表创建、索引、数据写入/upsert。
 """
 import functools
-import gc
 import os
 import sys
 import tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from scripts.etl.config import DUCKDB_PATH, PARQUET_DATA_DIR
+from scripts.etl.config import DUCKDB_PATH, PROCESSED_DATA_DIR
 
 import pandas as pd
 import duckdb
@@ -128,7 +127,6 @@ def write_to_duckdb(df):
 
     # 使用 DuckDB 的 COPY FROM parquet 方式
     # 先写入 parquet 文件，再 COPY 导入
-    import tempfile
     import os
 
     parquet_path = os.path.join(tempfile.gettempdir(), 'orders_temp.parquet')
@@ -444,7 +442,6 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
         'is_goujinjin', 'is_refund'
     ]
 
-    import tempfile
     existing_cols = [c for c in table_columns if c in df_new.columns or c in df_refresh.columns]
 
     try:
@@ -552,7 +549,6 @@ def _copy_df_to_duckdb(df, conn, existing_cols):
     """通过Parquet中间文件将DataFrame追加写入DuckDB（不删除已有数据）。
     使用 INSERT ... ON CONFLICT DO NOTHING 跳过已存在的 (order_id, sub_order_id) 组合，
     彻底规避唯一约束冲突导致的崩溃。"""
-    import tempfile
     if df.empty:
         return 0
     df_insert = df[existing_cols].copy()

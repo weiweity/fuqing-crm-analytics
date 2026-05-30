@@ -30,7 +30,6 @@ Usage:
 """
 
 import sys
-import os
 import argparse
 import json
 from pathlib import Path
@@ -43,7 +42,6 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import duckdb
-from backend.config import DUCKDB_PATH
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters
 
@@ -429,7 +427,7 @@ def run_full_precomputation():
     print(f"  待计算月份: {len(months)} 个")
 
     # 使用30天固定窗口（MoM可比）
-    period_days = 30
+    _period_days = 30
 
     completed = 0
     for month_str in months:

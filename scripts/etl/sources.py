@@ -9,9 +9,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from scripts.etl.config import (
     SPU_MAPPING_SOURCE, CHANNEL_RULES_SOURCE,
     TAOKE_DATA_SOURCE, TAOKE_PRODUCT_SOURCE, LIVE_DATA_SOURCE,
-    SPU_COLUMNS, TAOKE_COL,
-    _get_taoke_cache_path, _load_taoke_cache, _save_taoke_cache,
-    _get_live_cache_path, _load_live_cache, _save_live_cache,
+    TAOKE_COL,
+    _load_taoke_cache, _save_taoke_cache,
+    _load_live_cache, _save_live_cache,
     _ETL_SOURCE_STATS,
 )
 
@@ -141,7 +141,7 @@ def load_channel_rules():
                 df = pd.read_csv(channel_file, encoding=enc)
                 print(f"  渠道判定编码: {enc}")
                 break
-            except:
+            except Exception:
                 continue
         # 清理列名（按列名映射，而非按位置）
         col_map = {}

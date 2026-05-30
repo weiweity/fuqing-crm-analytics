@@ -1,11 +1,9 @@
 """Parquet 缓存填充脚本测试"""
-import os
 import sys
-import json
 import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent

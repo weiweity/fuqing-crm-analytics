@@ -3,10 +3,10 @@
 时间范围: 2025-05-06 ~ 2025-06-21
 品类: 凉茶次抛 / 经典膜 / 凉茶水乳
 """
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -258,7 +258,7 @@ def compute_r区间_全店版本(conn, cutoff_dt, start_date, end_date):
                 cat_rows.append({"R区间": label, "全店历史人数": int(hist_count), "本品类回购人数": rep_count, "回购率": rate, "本品类回购GSV": round(rep_gsv, 2)})
             else:
                 # 特定R区间
-                hist_sql = f"""
+                hist_sql = """
                 WITH base AS (
                     SELECT user_id, MAX(pay_time) AS last_pay
                     FROM orders
