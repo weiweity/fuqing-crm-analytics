@@ -165,7 +165,7 @@ def get_segment_orders(
     try:
         rows = conn.execute(sql, params).fetchall()
     finally:
-        conn.close()
+        pass
 
     order_rows = []
     for r in rows:

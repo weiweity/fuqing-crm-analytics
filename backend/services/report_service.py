@@ -9,15 +9,7 @@ from backend.services.metrics_service import get_overview_metrics, get_daily_tre
 from backend.services.flow_service import get_flow_matrix
 from backend.services.geo_service import get_geo_distribution, get_geo_segment_matrix
 from backend.services.category_service import get_category_distribution, get_category_segment_matrix
-
-
-def _normalize_date(date_val) -> str:
-    """统一日期格式处理（兼容 date 对象和字符串）"""
-    if hasattr(date_val, 'strftime'):
-        return date_val.strftime("%Y-%m-%d")
-    if isinstance(date_val, str):
-        return date_val[:10] if len(date_val) > 10 else date_val
-    return str(date_val)
+from backend.semantic.time import normalize_date as _normalize_date
 
 
 def get_report_summary(

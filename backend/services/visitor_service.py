@@ -104,7 +104,7 @@ def get_visitor_summary(start_date: str, end_date: str,
             "member_join_rate_mom": member_join_rate_mom,
         }
     finally:
-        conn.close()
+        pass
 
 
 def get_visitor_daily_trend(start_date: str, end_date: str,
@@ -175,4 +175,4 @@ def get_visitor_daily_trend(start_date: str, end_date: str,
 
         return result
     finally:
-        conn.close()
+        pass

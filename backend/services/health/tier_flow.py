@@ -12,11 +12,12 @@ from datetime import datetime, timedelta
 from backend.db.connection import get_connection
 from backend.services.rfm import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
+from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
 from . import config as health_config
 
-# 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
-_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
+# 语义层统一口径（向后兼容别名）
+_VALID_BASE = VALID_ORDER_BASE
+_VALID_BASE_T = VALID_ORDER_BASE_PREFIXED
 
 TIER_SEGMENT_ORDER = [
     "S-高频", "S-中频", "S-低频",
@@ -410,7 +411,7 @@ def get_tier_flow(
             conn, prev2_start_dt, prev2_end_dt, prev2_cutoff, channel, metric_type, exclude_channels
         )
     finally:
-        conn.close()
+        pass
 
     def _build_rows(all_data, comp_data, prev2_data):
         rows = []

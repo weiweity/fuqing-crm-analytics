@@ -200,7 +200,6 @@ def get_category_churn(
     LEFT JOIN top_churn_dest tcd2 ON cc.category_name = tcd2.from_category AND tcd2.rn = 2
     """
     result = conn.execute(sql, params).fetchall()
-    conn.close()
 
     scatter_data = []
     bar_data = []
@@ -329,7 +328,6 @@ def get_category_daily_trend(
     FROM daily_data
     """
     result = conn.execute(sql, [start_date, end_date, category_id]).fetchall()
-    conn.close()
 
     dates = [row[0] for row in result]
     gmv = [float(row[1] or 0) for row in result]
@@ -416,7 +414,6 @@ def get_category_user_list(
     """
     total_result = conn.execute(count_sql, [start_date, end_date, category_id]).fetchone()
     total_users = int(total_result[0] if total_result else 0)
-    conn.close()
 
     # 获取象限名称
     from backend.semantic.segments import get_registry

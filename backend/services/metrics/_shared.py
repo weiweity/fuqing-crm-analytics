@@ -4,12 +4,9 @@ from backend.db.connection import get_connection
 from backend.semantic.channels import UI_TO_DB
 
 def _get_conn():
-    """连接上下文管理器（确保连接始终关闭）"""
+    """连接上下文管理器（使用全局单例连接，不再关闭）"""
     conn = get_connection()
-    try:
-        yield conn
-    finally:
-        conn.close()
+    yield conn
 
 
 

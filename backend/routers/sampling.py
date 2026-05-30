@@ -18,7 +18,7 @@ from backend.services.sampling_service import (
     get_sampling_lock_analysis,
     get_rolling_comparison,
 )
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/sampling", tags=["派样看板"])
 

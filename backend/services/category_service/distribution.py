@@ -8,9 +8,9 @@ from typing import Dict, Any, Optional, List
 
 
 from backend.db.connection import get_connection
-from ._shared import _segment_meta
+from backend.semantic.segments import _segment_meta
+from backend.semantic.time import normalize_date as _normalize_date
 from backend.semantic.filters import OrderFilters, expand_channels
-from backend.services.category_service._shared import _normalize_date
 
 
 SPU_LEVELS = {
@@ -180,7 +180,7 @@ def get_category_distribution(
         total_members = int(total_result[1]) if total_result[1] else 0
         total_gmv = float(total_result[2]) if total_result[2] else 0.0
     finally:
-        conn.close()
+        pass
 
     distribution = []
     for row in result:
@@ -398,4 +398,4 @@ def get_category_segment_matrix(
             ]
         }
     finally:
-        conn.close()
+        pass

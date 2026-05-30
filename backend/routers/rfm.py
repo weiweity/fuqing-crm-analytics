@@ -19,7 +19,7 @@ from backend.services.rfm import (
     get_rfm_m_flow,
     get_segment_orders,
 )
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/rfm", tags=["RFM"])
 

@@ -46,6 +46,13 @@ def _expand_channels(channels: List[str]) -> List[str]:
 # Public alias — service layer should use this instead of the private function
 expand_channels = _expand_channels
 
+# ── 有效订单基础口径（单一数据源） ──
+# 无表前缀版（适用于单表查询 / 已有 FROM orders 无别名的场景）
+VALID_ORDER_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+# 带表前缀版（适用于多表 JOIN、需要 o. 前缀区分的场景）
+VALID_ORDER_BASE_PREFIXED = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
+
+
 class OrderFilters:
     """
     订单表基础过滤条件（静态片段）。

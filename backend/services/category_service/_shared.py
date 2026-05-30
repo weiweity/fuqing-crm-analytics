@@ -2,25 +2,6 @@
 from collections import OrderedDict
 from typing import Any, Dict
 
-
-
-def _normalize_date(date_val) -> str:
-    """统一日期格式处理(兼容 date 对象和字符串)"""
-    if hasattr(date_val, 'strftime'):
-        return date_val.strftime("%Y-%m-%d")
-    if isinstance(date_val, str):
-        return date_val[:10] if len(date_val) > 10 else date_val
-
-
-def _segment_meta(seg_id: int) -> dict:
-    """从 registry 获取象限元数据,避免硬编码"""
-    from backend.semantic.segments import get_registry
-    registry = get_registry()
-    seg = registry.get(seg_id)
-    if seg:
-        return {"name": seg.name_cn, "en": seg.name_en, "color": seg.color}
-    return {"name": "其他", "en": "Others", "color": "#BDC3C7"}
-
 SPU_LEVELS = {
     "category": "spu_category",      # 一级品类
     "type": "spu_type",               # 二级品类

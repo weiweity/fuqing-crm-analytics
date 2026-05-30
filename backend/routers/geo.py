@@ -18,7 +18,7 @@ from backend.services.geo_service import (
     get_geo_segment_matrix,
     get_geo_trend,
 )
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/geo", tags=["地域分析"])
 

@@ -49,7 +49,7 @@ def calculate_metrics(start_date: str, end_date: str, metric_type: str = "GMV",
             "avg_order_value": float(result[2]) if result[2] else 0
         }
     finally:
-        conn.close()
+        pass
 
 
 def calculate_new_old_users(start_date: str, end_date: str,
@@ -128,7 +128,7 @@ def calculate_new_old_users(start_date: str, end_date: str,
             "old_user_amount": float(result[3]) if result[3] else 0.0,
         }
     finally:
-        conn.close()
+        pass
 
 
 def calculate_member_metrics(start_date: str, end_date: str, metric_type: str = "GMV",
@@ -165,7 +165,83 @@ def calculate_member_metrics(start_date: str, end_date: str, metric_type: str = 
             "member_order_count": int(result[2]) if result[2] else 0
         }
     finally:
-        conn.close()
+        pass
+
+
+def _query_period(conn, start_date: str, end_date: str, metric_type: str,
+                  channel: Optional[str], exclude_channels: Optional[List[str]]) -> Dict[str, Any]:
+    """
+    单次查询返回一个时间段的全部指标（core + new_old + member）。
+    使用 CTE + 条件聚合，将原本 3 次独立查询合并为 1 次。
+    """
+    # 使用 GMV 基础过滤（最宽泛）作为 WHERE 条件
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GMV)
+    fb.with_time_range(start_date, end_date)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    if exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, where_params = fb.build()
+
+    # GSV 模式需额外排除退款订单；GMV 模式包含退款
+    gsv_cond = "is_refund = FALSE" if metric_type == "GSV" else "TRUE"
+
+    # 新老客分类截止日（与 calculate_new_old_users 口径一致）
+    start_dt_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+    cutoff_date = (start_dt_obj - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    sql = f"""
+        WITH base AS (
+            SELECT
+                o.order_id, o.user_id, o.actual_amount,
+                o.is_member, o.is_refund,
+                u.first_pay_date
+            FROM orders o
+            LEFT JOIN user_first_purchase u ON o.user_id = u.user_id
+            WHERE {where_sql}
+        )
+        SELECT
+            -- 核心指标（GMV: 全量 / GSV: 排除退款）
+            SUM(CASE WHEN {gsv_cond} THEN actual_amount ELSE 0 END)            AS amount,
+            COUNT(DISTINCT CASE WHEN {gsv_cond} THEN order_id END)              AS order_count,
+            AVG(CASE WHEN {gsv_cond} THEN actual_amount END)                    AS avg_order_value,
+            -- 新老客（始终使用 valid_order 口径，即排除退款）
+            COUNT(DISTINCT CASE WHEN is_refund = FALSE
+                            AND first_pay_date > ?::DATE THEN user_id END)      AS new_user_count,
+            COUNT(DISTINCT CASE WHEN is_refund = FALSE
+                            AND first_pay_date <= ?::DATE THEN user_id END)     AS old_user_count,
+            COALESCE(SUM(CASE WHEN is_refund = FALSE
+                            AND first_pay_date > ?::DATE THEN actual_amount
+                             ELSE 0 END), 0)                                    AS new_user_amount,
+            COALESCE(SUM(CASE WHEN is_refund = FALSE
+                            AND first_pay_date <= ?::DATE THEN actual_amount
+                             ELSE 0 END), 0)                                    AS old_user_amount,
+            -- 会员指标
+            COUNT(DISTINCT CASE WHEN is_member = TRUE
+                            AND {gsv_cond} THEN user_id END)                    AS member_count,
+            SUM(CASE WHEN is_member = TRUE
+                            AND {gsv_cond} THEN actual_amount ELSE 0 END)       AS member_amount,
+            COUNT(DISTINCT CASE WHEN is_member = TRUE
+                            AND {gsv_cond} THEN order_id END)                   AS member_order_count
+        FROM base
+    """
+
+    all_params = where_params + [cutoff_date] * 4
+    result = conn.execute(sql, all_params).fetchone()
+
+    return {
+        "amount": float(result[0]) if result[0] else 0,
+        "order_count": int(result[1]) if result[1] else 0,
+        "avg_order_value": float(result[2]) if result[2] else 0,
+        "new_user_count": int(result[3]) if result[3] else 0,
+        "old_user_count": int(result[4]) if result[4] else 0,
+        "new_user_amount": float(result[5]) if result[5] else 0.0,
+        "old_user_amount": float(result[6]) if result[6] else 0.0,
+        "member_count": int(result[7]) if result[7] else 0,
+        "member_amount": float(result[8]) if result[8] else 0,
+        "member_order_count": int(result[9]) if result[9] else 0,
+    }
 
 
 def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV",
@@ -179,71 +255,70 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
     channel: 可选，单渠道过滤（UI渠道名）
     exclude_channels: 可选，排除渠道列表
     compare_start_date/compare_end_date: 可选，自定义对比期日期（覆盖 Y-1 推算）
-    """
-    current = calculate_metrics(start_date, end_date, metric_type, channel, exclude_channels)
-    new_old = calculate_new_old_users(start_date, end_date, channel, exclude_channels)
-    member = calculate_member_metrics(start_date, end_date, metric_type, channel, exclude_channels)
 
-    # 环比
+    每个时间段（当期 / 环比 / 同比）各执行 1 次合并查询，共 3 次。
+    """
+    conn = get_connection()
+
+    # ── 当期（1 次查询取代原来的 3 次）──
+    current = _query_period(conn, start_date, end_date, metric_type, channel, exclude_channels)
+
+    # ── 环比期（1 次查询）──
     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_dt = datetime.strptime(end_date, "%Y-%m-%d")
     period_days = (end_dt - start_dt).days + 1
 
     prev_start = (start_dt - timedelta(days=period_days)).strftime("%Y-%m-%d")
     prev_end = (start_dt - timedelta(days=1)).strftime("%Y-%m-%d")
-    prev = calculate_metrics(prev_start, prev_end, metric_type, channel, exclude_channels)
-    prev_new_old = calculate_new_old_users(prev_start, prev_end, channel, exclude_channels)
-    prev_member = calculate_member_metrics(prev_start, prev_end, metric_type, channel, exclude_channels)
+    prev = _query_period(conn, prev_start, prev_end, metric_type, channel, exclude_channels)
 
     mom_amount = mom_absolute(current['amount'], prev['amount']) or 0
     mom_orders = mom_absolute(current['order_count'], prev['order_count']) or 0
-    mom_old_amount = mom_absolute(new_old['old_user_amount'], prev_new_old['old_user_amount']) or 0
-    mom_new_amount = mom_absolute(new_old['new_user_amount'], prev_new_old['new_user_amount']) or 0
-    mom_member_amount = mom_absolute(member['member_amount'], prev_member['member_amount']) or 0
+    mom_old_amount = mom_absolute(current['old_user_amount'], prev['old_user_amount']) or 0
+    mom_new_amount = mom_absolute(current['new_user_amount'], prev['new_user_amount']) or 0
+    mom_member_amount = mom_absolute(current['member_amount'], prev['member_amount']) or 0
     # 占比 MoM 百分点差
-    curr_old_ratio = new_old['old_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
-    curr_new_ratio = new_old['new_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
-    curr_member_ratio = member['member_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
-    prev_old_ratio = prev_new_old['old_user_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
-    prev_new_ratio = prev_new_old['new_user_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
-    prev_member_ratio = prev_member['member_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
+    curr_old_ratio = current['old_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
+    curr_new_ratio = current['new_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
+    curr_member_ratio = current['member_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
+    prev_old_ratio = prev['old_user_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
+    prev_new_ratio = prev['new_user_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
+    prev_member_ratio = prev['member_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
     # FIX: mom_ratio 期望小数输入，curr/prev已经是百分比，需要除以100转换
     mom_old_ratio = mom_ratio(curr_old_ratio / 100, prev_old_ratio / 100) or 0
     mom_new_ratio = mom_ratio(curr_new_ratio / 100, prev_new_ratio / 100) or 0
     mom_member_ratio = mom_ratio(curr_member_ratio / 100, prev_member_ratio / 100) or 0
 
     # 会员溢价 = 会员AUS / 全店AUS（比值，不乘100）
-    member_avg_order_value = member['member_amount'] / member['member_order_count'] if member['member_order_count'] > 0 else 0
+    member_avg_order_value = current['member_amount'] / current['member_order_count'] if current['member_order_count'] > 0 else 0
     member_premium = member_avg_order_value / current['avg_order_value'] if current['avg_order_value'] > 0 else 0
-    prev_member_avg = prev_member['member_amount'] / prev_member['member_order_count'] if prev_member['member_order_count'] > 0 else 0
+    prev_member_avg = prev['member_amount'] / prev['member_order_count'] if prev['member_order_count'] > 0 else 0
     prev_member_premium = prev_member_avg / prev['avg_order_value'] if prev['avg_order_value'] > 0 else 0
     mom_member_premium = member_premium - prev_member_premium
 
-    # 同比（支持自定义对比期覆盖 Y-1 推算）
+    # ── 同比期（1 次查询，支持自定义对比期覆盖 Y-1 推算）──
     if compare_start_date and compare_end_date:
         last_year_start = compare_start_date
         last_year_end = compare_end_date
     else:
         last_year_start = (start_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
         last_year_end = (end_dt - relativedelta(years=1)).strftime("%Y-%m-%d")
-    last_year = calculate_metrics(last_year_start, last_year_end, metric_type, channel, exclude_channels)
-    last_year_new_old = calculate_new_old_users(last_year_start, last_year_end, channel, exclude_channels)
-    last_year_member = calculate_member_metrics(last_year_start, last_year_end, metric_type, channel, exclude_channels)
+    last_year = _query_period(conn, last_year_start, last_year_end, metric_type, channel, exclude_channels)
 
     yoy_amount = yoy_absolute(current['amount'], last_year['amount']) or 0
     yoy_orders = yoy_absolute(current['order_count'], last_year['order_count']) or 0
-    yoy_old_amount = yoy_absolute(new_old['old_user_amount'], last_year_new_old['old_user_amount']) or 0
-    yoy_new_amount = yoy_absolute(new_old['new_user_amount'], last_year_new_old['new_user_amount']) or 0
-    yoy_member_amount = yoy_absolute(member['member_amount'], last_year_member['member_amount']) or 0
-    ly_old_ratio = last_year_new_old['old_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
-    ly_new_ratio = last_year_new_old['new_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
-    ly_member_ratio = last_year_member['member_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
+    yoy_old_amount = yoy_absolute(current['old_user_amount'], last_year['old_user_amount']) or 0
+    yoy_new_amount = yoy_absolute(current['new_user_amount'], last_year['new_user_amount']) or 0
+    yoy_member_amount = yoy_absolute(current['member_amount'], last_year['member_amount']) or 0
+    ly_old_ratio = last_year['old_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
+    ly_new_ratio = last_year['new_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
+    ly_member_ratio = last_year['member_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
     # FIX: yoy_ratio 期望小数输入，curr/ly已经是百分比，需要除以100转换
     yoy_old_ratio = yoy_ratio(curr_old_ratio / 100, ly_old_ratio / 100) or 0
     yoy_new_ratio = yoy_ratio(curr_new_ratio / 100, ly_new_ratio / 100) or 0
     yoy_member_ratio = yoy_ratio(curr_member_ratio / 100, ly_member_ratio / 100) or 0
 
-    ly_member_avg = last_year_member['member_amount'] / last_year_member['member_order_count'] if last_year_member['member_order_count'] > 0 else 0
+    ly_member_avg = last_year['member_amount'] / last_year['member_order_count'] if last_year['member_order_count'] > 0 else 0
     ly_member_premium = ly_member_avg / last_year['avg_order_value'] if last_year['avg_order_value'] > 0 else 0
     # 会员溢价 YoY（比值跑 yoy_absolute 返回百分比变化率）
     yoy_member_premium = yoy_absolute(member_premium, ly_member_premium) or 0
@@ -254,13 +329,13 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
         "amount": round(current['amount'], 2),
         "order_count": current['order_count'],
         "avg_order_value": round(current['avg_order_value'], 2),
-        "new_users": new_old['new_user_count'],
-        "old_users": new_old['old_user_count'],
-        "new_user_amount": round(new_old['new_user_amount'], 2),
-        "old_user_amount": round(new_old['old_user_amount'], 2),
-        "member_amount": round(member['member_amount'], 2),
-        "member_count": member['member_count'],
-        "member_order_count": member['member_order_count'],
+        "new_users": current['new_user_count'],
+        "old_users": current['old_user_count'],
+        "new_user_amount": round(current['new_user_amount'], 2),
+        "old_user_amount": round(current['old_user_amount'], 2),
+        "member_amount": round(current['member_amount'], 2),
+        "member_count": current['member_count'],
+        "member_order_count": current['member_order_count'],
         "old_user_ratio": round(curr_old_ratio, 2),
         "new_user_ratio": round(curr_new_ratio, 2),
         "member_ratio": round(curr_member_ratio, 2),
@@ -399,7 +474,7 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
             "overall_member_ratio_ly": overall_member_ratio_ly,
         }
     finally:
-        conn.close()
+        pass
 
 def get_product_metrics(start_date: str, end_date: str, limit: int = 20) -> Dict[str, Any]:
     """获取单品 metrics（按 GMV/GSV 排名，参数化查询）"""
@@ -443,4 +518,4 @@ def get_product_metrics(start_date: str, end_date: str, limit: int = 20) -> Dict
 
         return {"products": products}
     finally:
-        conn.close()
+        pass

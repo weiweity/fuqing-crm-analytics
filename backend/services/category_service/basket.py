@@ -303,7 +303,7 @@ def get_market_basket(
             level, channel, exclude_channels)
 
     finally:
-        conn.close()
+        pass
 
     # 构建排名映射
     prev_rank = {item["category_name"]: i + 1 for i, item in enumerate(previous["items"])}

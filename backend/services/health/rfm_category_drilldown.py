@@ -5,15 +5,16 @@ RFM 品类下钻服务
 """
 
 import duckdb
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 from backend.db.connection import get_connection
 from backend.services.rfm import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS, SEGMENTS
+from backend.semantic.filters import VALID_ORDER_BASE
 
-# 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+# 语义层统一口径（向后兼容别名）
+_VALID_BASE = VALID_ORDER_BASE
 
 
 # ============================================================
@@ -22,23 +23,49 @@ _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 RFM_SEGMENT_NAMES: List[str] = [s.name_cn for s in SEGMENTS if s.segment_id != 9]
 
 _R_SEGMENT_CASE_WHEN = "".join([
-    f"WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    f"WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 1 else
-    f"WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    f"WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 2 else
-    f"WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    f"WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 3 else
-    f"WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '{s.name_cn}'"
+    f"WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 4 else
-    f"WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '{s.name_cn}'"
+    f"WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 5 else
-    f"WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '{s.name_cn}'"
+    f"WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 6 else
-    f"WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '{s.name_cn}'"
+    f"WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '{s.name_cn.replace("'", "''")}'"
     if s.segment_id == 7 else
-    f"ELSE '{s.name_cn}'"
+    f"ELSE '{s.name_cn.replace("'", "''")}'"
     for s in SEGMENTS if s.segment_id != 9
 ])
+
+
+def _build_exclude_condition(
+    exclude_channels: Optional[List[str]], alias: str
+) -> Tuple[str, List[str]]:
+    """
+    构建参数化的 NOT IN 子句，返回 (sql_fragment, params)。
+
+    Parameters
+    ----------
+    exclude_channels : Optional[List[str]]
+        排除渠道列表
+    alias : str
+        表别名，如 "o"
+
+    Returns
+    -------
+    Tuple[str, List[str]]
+        (sql_fragment, params) — sql_fragment 可能为空字符串
+    """
+    if not exclude_channels:
+        return "", []
+    from backend.semantic.filters import expand_channels
+    db_exclude = expand_channels(exclude_channels)
+    placeholders = ",".join(["?"] * len(db_exclude))
+    return f" AND {alias}.channel NOT IN ({placeholders})", db_exclude
 
 
 def _build_segmented_cte(source_table: str) -> str:
@@ -98,19 +125,21 @@ def _run_category_period(
     # ---------------------------------------------------------------
     # 参数顺序 = SQL 文本中 ? 的顺序（关键：避免 DuckDB CTE 链错位）
     # ---------------------------------------------------------------
-    # 1. user_stats_all:  channel, cutoff_dt（channel 为空则无 channel_where）
-    # 2. user_stats_same: channel, cutoff_dt（channel 为空则无 channel_where）
+    # 1. user_stats_all:  cutoff_dt, [channel], [exclude]
+    # 2. user_stats_same: cutoff_dt, [channel], [exclude]
     # 3. rfm_scored_all:  cutoff_dt x 4
     # 4. rfm_scored_same: cutoff_dt x 4
-    # 5. base_orders:     start_dt, end_dt, [channel]
-    # 6. category_hist:  cutoff_dt
-    # 7. rfm_segment（字面量嵌入 SQL，非参数）
+    # 5. base_orders:     start_dt, end_dt, [channel], [exclude], rfm_segment
+    # 6. category_hist:   cutoff_dt, [exclude], rfm_segment
     # ---------------------------------------------------------------
 
     params: List[Any] = []
 
-    # -- user_stats_all: cutoff_dt, [channel] --
-    # SQL 顺序: pay_time <= ? 在前, channel = ? 在后
+    # -- exclude_channels: 参数化 NOT IN（共享展开结果） --
+    exclude_where_base, exclude_params_base = _build_exclude_condition(exclude_channels, "o")
+    exclude_where_hist, exclude_params_hist = _build_exclude_condition(exclude_channels, "o")
+
+    # -- user_stats_all: cutoff_dt, [channel], [exclude] --
     params.append(cutoff_dt)  # user_stats_all cutoff_dt
     channel_where_all = ""
     if channel and channel != "全店":
@@ -123,8 +152,9 @@ def _run_category_period(
             placeholders = ",".join(["?"] * len(db_channels))
             channel_where_all = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
+    params.extend(exclude_params_base)  # exclude for user_stats_all
 
-    # -- user_stats_same: cutoff_dt, [channel] --
+    # -- user_stats_same: cutoff_dt, [channel], [exclude] --
     params.append(cutoff_dt)  # user_stats_same cutoff_dt
     channel_where_same = ""
     if channel and channel != "全店":
@@ -137,13 +167,14 @@ def _run_category_period(
             placeholders = ",".join(["?"] * len(db_channels))
             channel_where_same = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
+    params.extend(exclude_params_hist)  # exclude for user_stats_same
 
     # -- rfm_scored_all: cutoff_dt x 4 --
     params.extend([cutoff_dt] * 4)
     # -- rfm_scored_same: cutoff_dt x 4 --
     params.extend([cutoff_dt] * 4)
 
-    # -- base_orders 参数 (start_dt, end_dt, [channel]) --
+    # -- base_orders: start_dt, end_dt, [channel], [exclude], rfm_segment --
     params.append(start_dt)
     params.append(end_dt)
     channel_where_base = ""
@@ -157,20 +188,13 @@ def _run_category_period(
             placeholders = ",".join(["?"] * len(db_channels))
             channel_where_base = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
+    params.extend(exclude_params_base)  # exclude for base_orders
+    params.append(rfm_segment)          # base_orders rfm_segment
 
-    # -- exclude_channels: 内联为 SQL 字面量，不进 params --
-    exclude_where_base = ""
-    exclude_where_hist = ""
-    if exclude_channels:
-        from backend.semantic.filters import expand_channels
-        db_exclude = expand_channels(exclude_channels)
-        safe_ch = [ch.replace("'", "''") for ch in db_exclude]
-        quoted = ", ".join([f"'{c}'" for c in safe_ch])
-        exclude_where_base = f" AND o.channel NOT IN ({quoted})"
-        exclude_where_hist = f" AND o.channel NOT IN ({quoted})"
-
-    # -- category_hist: cutoff_dt (base_orders 之后) --
+    # -- category_hist: cutoff_dt, [exclude], rfm_segment --
     params.append(cutoff_dt)
+    params.extend(exclude_params_hist)  # exclude for category_hist
+    params.append(rfm_segment)          # category_hist rfm_segment
 
     # -- refund 过滤条件 --
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
@@ -178,10 +202,9 @@ def _run_category_period(
     # -- member 过滤直接在 category_hist 中处理，不单独走 target_table --
     member_where_hist = "AND sa.is_member = TRUE" if is_member else ""
 
-    # -- rfm_segment 验证 + 转义 --
+    # -- rfm_segment 验证（在参数追加之后，确保参数列表完整） --
     if rfm_segment not in RFM_SEGMENT_NAMES:
         raise ValueError(f"无效的 RFM 象限名称: {rfm_segment}，有效值: {RFM_SEGMENT_NAMES}")
-    rfm_literal = rfm_segment.replace("'", "''")
 
     sql = f"""
     WITH
@@ -261,7 +284,7 @@ def _run_category_period(
           {refund_where}
           {channel_where_base}
           {exclude_where_base}
-          AND sa.rfm_segment = '{rfm_literal}'
+          AND sa.rfm_segment = ?
     ),
     category_hist AS (
         SELECT DISTINCT
@@ -274,7 +297,7 @@ def _run_category_period(
           {refund_where}
           {exclude_where_hist}
           {member_where_hist}
-          AND sa.rfm_segment = '{rfm_literal}'
+          AND sa.rfm_segment = ?
     ),
     category_repurchase AS (
         SELECT
@@ -308,7 +331,7 @@ def _run_category_period(
     rows = conn.execute(sql, params).fetchall()
 
     # 额外查询：象限去重用户数 + 当期复购去重用户数
-    # 参数：cutoff_dt + [channel] + cutoff_dt x 4 + start_dt + end_dt + [channel]
+    # 参数：cutoff_dt + [channel] + [exclude] + cutoff_dt x 4 + start_dt + end_dt + [channel] + [exclude] + rfm_segment
     seg_count_params: List[Any] = []
     seg_count_params.append(cutoff_dt)
     if channel and channel != "全店":
@@ -316,8 +339,9 @@ def _run_category_period(
         db_ch = expand_channels([channel])
         for ch in db_ch:
             seg_count_params.append(ch)
+    seg_count_params.extend(exclude_params_base)  # exclude for user_stats
     seg_count_params.extend([cutoff_dt] * 4)
-    # base_orders 参数: start_dt, end_dt, [channel]
+    # base_orders 参数: start_dt, end_dt, [channel], [exclude]
     seg_count_params.append(start_dt)
     seg_count_params.append(end_dt)
     if channel and channel != "全店":
@@ -325,6 +349,8 @@ def _run_category_period(
         db_ch = expand_channels([channel])
         for ch in db_ch:
             seg_count_params.append(ch)
+    seg_count_params.extend(exclude_params_base)  # exclude for repurchase_users
+    seg_count_params.append(rfm_segment)  # seg_users rfm_segment
 
     seg_channel_where = ""
     if channel and channel != "全店":
@@ -367,7 +393,7 @@ def _run_category_period(
         {_build_segmented_cte("rfm_scored")}
     ),
     seg_users AS (
-        SELECT user_id FROM segmented WHERE rfm_segment = '{rfm_literal}'
+        SELECT user_id FROM segmented WHERE rfm_segment = ?
     ),
     repurchase_users AS (
         SELECT DISTINCT o.user_id
@@ -490,7 +516,7 @@ def get_rfm_category_drilldown(
             channel, metric_type, exclude_channels, is_member=True
         )
     finally:
-        conn.close()
+        pass
 
     # 构建品类行列表
     def _build_rows(

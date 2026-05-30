@@ -217,7 +217,7 @@ def get_audience_table(
                             dimension, ch_filter, include_total=True, mtype=metric_type,
                             member_only=member_only, ex_channels=exclude_channels) if prev2_start_dt else []
     finally:
-        conn.close()
+        pass
 
     # 转换为 dict，按 dim_key 索引（保留全部12列）
     def _n(v):

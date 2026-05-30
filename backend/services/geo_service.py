@@ -7,30 +7,13 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters
-from backend.semantic.segments import get_registry
-
-
-def _normalize_date(date_val) -> str:
-    """统一日期格式处理（兼容 date 对象和字符串）"""
-    if hasattr(date_val, 'strftime'):
-        return date_val.strftime("%Y-%m-%d")
-    if isinstance(date_val, str):
-        return date_val[:10] if len(date_val) > 10 else date_val
-    return str(date_val)
+from backend.semantic.segments import _segment_meta
+from backend.semantic.time import normalize_date as _normalize_date
 
 
 def _coalesce_field(field: str, replacement: str = "未知") -> str:
     """处理 NULL 值"""
     return f"COALESCE({field}, '{replacement}')"
-
-
-def _segment_meta(seg_id: int) -> dict:
-    """从 registry 获取象限元数据，避免硬编码"""
-    registry = get_registry()
-    seg = registry.get(seg_id)
-    if seg:
-        return {"name": seg.name_cn, "en": seg.name_en, "color": seg.color}
-    return {"name": "其他", "en": "Others", "color": "#BDC3C7"}
 
 
 def get_geo_distribution(
@@ -162,7 +145,7 @@ def get_geo_distribution(
         total_users = int(total_result[0]) if total_result[0] else 0
         total_gmv = float(total_result[1]) if total_result[1] else 0.0
     finally:
-        conn.close()
+        pass
 
     distribution = []
     for row in result:
@@ -275,7 +258,7 @@ def get_geo_segment_matrix(
         params.extend(exclude_params)
         result = conn.execute(sql, params).fetchall()
     finally:
-        conn.close()
+        pass
 
     # 按象限分组，每组取 top_n
     segment_data = {i: [] for i in range(1, 10)}
@@ -399,59 +382,66 @@ def get_geo_trend(
         top_provinces_result = conn.execute(top_provinces_query, [start_str, end_str] + exclude_params + [top_n]).fetchall()
         top_provinces = [row[0] for row in top_provinces_result]
 
-        # 每个时间点的省份分布
+        # 用单条 SQL 按月查出所有省份分组数据
+        month_sql = f"""
+        WITH base_params AS (
+            SELECT
+                DATE(?) AS start_date,
+                DATE(?) AS end_date
+        ),
+        period_orders AS (
+            SELECT
+                o.user_id,
+                o.actual_amount,
+                COALESCE(o.province, '未知') AS province,
+                DATE_TRUNC('month', o.pay_time)::DATE AS month_start
+            FROM orders o
+            CROSS JOIN base_params p
+            WHERE o.pay_time >= p.start_date
+              AND o.pay_time <= p.end_date + INTERVAL '1' DAY
+              AND {valid_sql}
+              {exclude_filter}
+        )
+        SELECT
+            province,
+            month_start,
+            COUNT(DISTINCT user_id) AS user_count,
+            SUM(actual_amount) AS gmv
+        FROM period_orders
+        WHERE province IN ({','.join(['?'] * len(top_provinces))})
+        GROUP BY province, month_start
+        ORDER BY province, month_start
+        """
+
+        month_result = conn.execute(
+            month_sql, [start_str, end_str] + exclude_params + top_provinces
+        ).fetchall()
+
+        # 用字典 {province: {month_str: (users, gmv)}} 映射
+        month_data: Dict[str, Dict[str, tuple]] = {}
+        for row in month_result:
+            prov = row[0]
+            month_str = str(row[1])  # DATE_TRUNC 返回 DATE，str() 得到 YYYY-MM-DD
+            users = int(row[2]) if row[2] else 0
+            gmv = round(float(row[3]) if row[3] else 0.0, 2)
+            if prov not in month_data:
+                month_data[prov] = {}
+            month_data[prov][month_str] = (users, gmv)
+
+        # 构建 trends
         trends = {province: {"dates": [], "users": [], "gmv": []} for province in top_provinces}
-
         for tp in time_points:
-            tp_start = (datetime.strptime(tp, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
-
-            sql = f"""
-            WITH base_params AS (
-                SELECT
-                    DATE(?) AS analysis_date,
-                    DATE(?) AS start_date
-            ),
-            period_orders AS (
-                SELECT
-                    o.user_id,
-                    o.actual_amount,
-                    COALESCE(o.province, '未知') AS province
-                FROM orders o
-                CROSS JOIN base_params p
-                WHERE o.pay_time >= p.start_date
-                  AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-                  AND {valid_sql}
-                  {exclude_filter}
-            ),
-            province_summary AS (
-                SELECT
-                    province,
-                    COUNT(DISTINCT user_id) AS user_count,
-                    SUM(actual_amount) AS gmv
-                FROM period_orders
-                GROUP BY province
-            )
-            SELECT province, user_count, gmv
-            FROM province_summary
-            """
-
-            result = conn.execute(sql, [tp, tp_start, tp] + exclude_params).fetchall()
-
-            # 填充当天数据
             for province in top_provinces:
                 trends[province]["dates"].append(tp)
-                found = False
-                for row in result:
-                    if row[0] == province:
-                        trends[province]["users"].append(int(row[1]) if row[1] else 0)
-                        trends[province]["gmv"].append(round(float(row[2]) if row[2] else 0.0, 2))
-                        found = True
-                        break
-                if not found:
+                matched = month_data.get(province, {}).get(tp)
+                if matched:
+                    trends[province]["users"].append(matched[0])
+                    trends[province]["gmv"].append(matched[1])
+                else:
                     trends[province]["users"].append(0)
                     trends[province]["gmv"].append(0.0)
     finally:
-        conn.close()
+        pass
 
     return {
         "time_points": time_points,

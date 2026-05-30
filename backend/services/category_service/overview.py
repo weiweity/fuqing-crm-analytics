@@ -188,7 +188,6 @@ def get_category_overview(
     cur_m = _compute_category_period(conn, start_date, end_date, cutoff, level, metric_type, channel, exclude_channels, member_only=True)
     comp_m = _compute_category_period(conn, ly_start, ly_end, ly_cutoff, level, metric_type, channel, exclude_channels, member_only=True)
 
-    conn.close()
 
     def _build_row(name: str, c: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:
         # 老客/新客人数占比
@@ -599,7 +598,7 @@ def get_category_value_tier(
         wool_all = _compute_wool_party_breakdown(
             conn, "2000-01-01", end_date, level, channel, exclude_channels)
     finally:
-        conn.close()
+        pass
 
     # 构建品类数据
     MIN_USERS_FOR_SCORING = 100  # 用户基数门槛: 低于此数不参与评分排名

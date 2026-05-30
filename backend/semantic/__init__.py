@@ -23,9 +23,14 @@ from .calculations import (
     mom_absolute,
     mom_ratio,
     safe_ratio,
+    GSV_AMOUNT_COL,
 )
 from .dimensions import DimensionRegistry, DimensionDefinition
-from .segments import SegmentRegistry, SegmentDefinition, RFM_THRESHOLDS
+from .segments import (
+    SegmentRegistry, SegmentDefinition, RFM_THRESHOLDS,
+    R_SEGMENT_ORDER, F_SEGMENT_ORDER, M_SEGMENT_ORDER,
+    R_INTERVALS,
+)
 from .channels import CHANNEL_FUNNEL, CHANNEL_PRIORITY
 from .time import PeriodBuilder, DateRange
 
@@ -44,6 +49,7 @@ __all__ = [
     "mom_absolute",
     "mom_ratio",
     "safe_ratio",
+    "GSV_AMOUNT_COL",
     # dimensions
     "DimensionRegistry",
     "DimensionDefinition",
@@ -51,6 +57,10 @@ __all__ = [
     "SegmentRegistry",
     "SegmentDefinition",
     "RFM_THRESHOLDS",
+    "R_SEGMENT_ORDER",
+    "F_SEGMENT_ORDER",
+    "M_SEGMENT_ORDER",
+    "R_INTERVALS",
     # channels
     "CHANNEL_FUNNEL",
     "CHANNEL_PRIORITY",

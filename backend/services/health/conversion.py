@@ -220,4 +220,4 @@ def get_new_customer_conversion(analysis_date: str, lookback_months: int = 12,
         }
 
     finally:
-        conn.close()
+        pass

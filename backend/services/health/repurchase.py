@@ -477,7 +477,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         }
 
     finally:
-        conn.close()
+        pass
 
 
 def _compute_cohort_matrix(conn, start_month: str, end_month: str,
@@ -644,4 +644,4 @@ def get_cohort_retention(start_month: str, end_month: str,
         }
 
     finally:
-        conn.close()
+        pass

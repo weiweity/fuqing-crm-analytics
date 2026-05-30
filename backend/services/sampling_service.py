@@ -219,7 +219,7 @@ def get_sampling_roi(
             },
         }
     finally:
-        conn.close()
+        pass
 
 
 def get_sampling_lock_analysis(
@@ -287,7 +287,7 @@ def get_sampling_lock_analysis(
             'yoy': yoy,
         }
     finally:
-        conn.close()
+        pass
 
 
 def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
@@ -528,7 +528,7 @@ def get_rolling_comparison(
             },
         }
     finally:
-        conn.close()
+        pass
 
 
 def _compute_rolling_year_metrics(

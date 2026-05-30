@@ -66,3 +66,13 @@ designs/
 .gstack/
 .codebuddy/
 .context/
+
+# 归档目录（历史文档/脚本，不再维护）
+docs/archive/
+scripts/archive/
+
+# 分析报告（临时生成，不进版本控制）
+docs/reports/
+
+# UV 锁文件（可选，如果不用 uv 管理依赖）
+# uv.lock

@@ -186,4 +186,4 @@ def get_value_tiers(analysis_date: str, lookback_days: int = 365,
         }
 
     finally:
-        conn.close()
+        pass

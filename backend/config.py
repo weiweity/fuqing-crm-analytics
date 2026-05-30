@@ -152,3 +152,14 @@ def _default_start_date() -> str:
 
 # 会员定义基准日期（用于判断新老客）
 MEMBER_BASE_DATE = os.environ.get("MEMBER_BASE_DATE", "2025-01-01")
+
+# 老客回购率调整系数（基于经验，大促期回购率更高）
+# 拆解服务根据活动类型选取对应系数
+REPURCHASE_ADJUSTMENT = {
+    "大促期": 1.15,
+    "日常": 1.0,
+    "年货节": 1.10,
+    "3.8": 1.08,
+    "618": 1.20,
+    "双11": 1.25,
+}

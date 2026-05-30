@@ -5,6 +5,7 @@ Week 3 流失风险分析（动态阈值 + 单品类）
 """
 
 import pandas as pd
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters
@@ -91,7 +92,7 @@ def get_churn_risk_distribution(
             "by_segment": by_segment
         }
     finally:
-        conn.close()
+        pass
 
 
 def get_churn_risk_users(
@@ -179,7 +180,7 @@ def get_churn_risk_users(
             "users": users[:limit]
         }
     finally:
-        conn.close()
+        pass
 
 
 def _build_dynamic_churn_sql(
@@ -194,10 +195,15 @@ def _build_dynamic_churn_sql(
     ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
     ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
-    # SQL 中 ? 出现顺序：order_intervals(ex) → user_last_order(ex) → DATE(?) → analysis_date=? → seg_filter(?)
+    analysis_date = datetime.strptime(date, "%Y-%m-%d")
+    lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
+
+    # SQL 中 ? 出现顺序：order_intervals(lookback, ex) → user_last_order(lookback, ex) → DATE(?) → analysis_date=? → seg_filter(?)
     params = []
-    params.extend(ex_params)      # order_intervals
-    params.extend(ex_params)      # user_last_order
+    params.append(lookback_start) # order_intervals: o.pay_time >= ?
+    params.extend(ex_params)      # order_intervals: ex_clause
+    params.append(lookback_start) # user_last_order: o.pay_time >= ?
+    params.extend(ex_params)      # user_last_order: ex_clause
     params.append(date)           # DATE(?)
     params.append(date)           # analysis_date = ?
     if segment_id is not None:
@@ -217,6 +223,7 @@ def _build_dynamic_churn_sql(
         FROM orders o
         WHERE {valid_sql}
           AND o.spu_product_class IS NOT NULL
+          AND o.pay_time >= ?
           {ex_clause}
     ),
     user_cycle AS (
@@ -238,6 +245,7 @@ def _build_dynamic_churn_sql(
             SUM(o.actual_amount) AS monetary
         FROM orders o
         WHERE {valid_sql}
+          AND o.pay_time >= ?
           {ex_clause}
         GROUP BY o.user_id
     ),
@@ -319,9 +327,13 @@ def _build_fixed_churn_sql(
     ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
     ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
-    # SQL 中 ? 顺序：ulo 子查询(ex) → DATE(?)x4 → analysis_date=? → seg_filter(?)
+    analysis_date = datetime.strptime(date, "%Y-%m-%d")
+    lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
+
+    # SQL 中 ? 顺序：ulo 子查询(lookback, ex) → DATE(?)x4 → analysis_date=? → seg_filter(?)
     params = []
-    params.extend(ex_params)
+    params.append(lookback_start)  # ulo: pay_time >= ?
+    params.extend(ex_params)       # ulo: ex_clause
     params.extend([date, date, date, date])  # 4 个 DATE(?)
     params.append(date)  # analysis_date = ?
     if segment_id is not None:
@@ -347,6 +359,7 @@ def _build_fixed_churn_sql(
                SUM(actual_amount) AS monetary
         FROM orders
         WHERE {valid_sql}
+          AND pay_time >= ?
           {ex_clause}
         GROUP BY user_id
     ) ulo
@@ -373,10 +386,15 @@ def _build_dynamic_user_sql(
     ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
     ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
-    # SQL 中 ? 顺序：order_intervals(ex) → user_last_order(ex) → DATE(?) → analysis_date=? → seg_filter(?) → LIMIT ?
+    analysis_date = datetime.strptime(date, "%Y-%m-%d")
+    lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
+
+    # SQL 中 ? 顺序：order_intervals(lookback, ex) → user_last_order(lookback, ex) → DATE(?) → analysis_date=? → seg_filter(?) → LIMIT ?
     params = []
-    params.extend(ex_params)      # order_intervals
-    params.extend(ex_params)      # user_last_order
+    params.append(lookback_start) # order_intervals: o.pay_time >= ?
+    params.extend(ex_params)      # order_intervals: ex_clause
+    params.append(lookback_start) # user_last_order: o.pay_time >= ?
+    params.extend(ex_params)      # user_last_order: ex_clause
     params.append(date)           # DATE(?)
     params.append(date)           # analysis_date = ?
     if segment_id is not None:
@@ -397,6 +415,7 @@ def _build_dynamic_user_sql(
         FROM orders o
         WHERE {valid_sql}
           AND o.spu_product_class IS NOT NULL
+          AND o.pay_time >= ?
           {ex_clause}
     ),
     user_cycle AS (
@@ -417,6 +436,7 @@ def _build_dynamic_user_sql(
             SUM(o.actual_amount) AS monetary
         FROM orders o
         WHERE {valid_sql}
+          AND o.pay_time >= ?
           {ex_clause}
         GROUP BY o.user_id
     ),
@@ -491,9 +511,13 @@ def _build_fixed_user_sql(
     ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
     ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
-    # SQL 中 ? 顺序：ulo 子查询(ex) → DATE(?)x4 → analysis_date=? → seg_filter(?) → LIMIT ?
+    analysis_date = datetime.strptime(date, "%Y-%m-%d")
+    lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
+
+    # SQL 中 ? 顺序：ulo 子查询(lookback, ex) → DATE(?)x4 → analysis_date=? → seg_filter(?) → LIMIT ?
     params = []
-    params.extend(ex_params)
+    params.append(lookback_start)  # ulo: pay_time >= ?
+    params.extend(ex_params)       # ulo: ex_clause
     params.extend([date, date, date, date])  # 4 个 DATE(?)
     params.append(date)  # analysis_date = ?
     if segment_id is not None:
@@ -520,6 +544,7 @@ def _build_fixed_user_sql(
                SUM(actual_amount) AS monetary
         FROM orders
         WHERE {valid_sql}
+          AND pay_time >= ?
           {ex_clause}
         GROUP BY user_id
     ) ulo

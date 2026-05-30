@@ -14,11 +14,24 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 from datetime import datetime
 import time
 import logging
 
 from backend.services.exceptions import ServiceError, ValidationError, NotFoundError
+
+
+# ─────────────────────────────────────────────────────────────
+# 应用生命周期
+# ─────────────────────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    yield
+    # 关闭时释放全局 DuckDB 连接
+    from backend.db.connection import close_connection
+    close_connection()
+
 
 # ─────────────────────────────────────────────────────────────
 # App 初始化
@@ -26,7 +39,8 @@ from backend.services.exceptions import ServiceError, ValidationError, NotFoundE
 app = FastAPI(
     title="芙清 CRM 客户分析系统 API",
     description="提供核心指标、RFM、人群流转等数据 API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # ─────────────────────────────────────────────────────────────

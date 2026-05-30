@@ -1,5 +1,5 @@
 """
-一键拆解服务 v2
+一键拆解服务 v2 - 补gap建议生成
 
 基于历史数据自动完成大促拆解：
 - 老客：按R区间（6档）× F段（F>1/F=1）逐层预估
@@ -12,51 +12,11 @@
 
 from typing import List, Dict, Any
 
+from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
 
-# 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
-_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
-
-
-# ── 常量 ─────────────────────────────────────────────────────
-
-# 老客回购率调整系数（基于经验，大促期回购率更高）
-REPURCHASE_ADJUSTMENT = {
-    "大促期": 1.15,
-    "日常": 1.0,
-    "年货节": 1.10,
-    "3.8": 1.08,
-    "618": 1.20,
-    "双11": 1.25,
-}
-
-# R区间定义（与老客健康分析 RIntervalTab 一致）
-# cutoff = 活动开始日 - 1天
-R_INTERVALS = [
-    ("近1个月已购客",    0,   30),
-    ("近2-3个月已购客",  31,  90),
-    ("近4-6月已购客",    91, 180),
-    ("近7-12个月已购客", 181, 365),
-    ("近13-24个月已购客",366, 730),
-    ("2年外已购客",      731, 99999),
-]
-
-# F分段
-F_SEGMENTS = ["F>1", "F=1"]
-
-# 新客相关常量
-NEW_CUSTOMER_GROWTH_FACTOR = 1.1       # 新客同比增长系数
-DEFAULT_MEMBER_JOIN_RATE = 0.025       # 默认入会率 2.5%
-UV_MULTIPLIER = 20                     # UV估算倍数（购买人数×20）
-
-# 渠道固定排序（芙清8层漏斗）
-CHANNEL_ORDER = ['货架', '达播', '直播', '淘客', '微博', 'U先派样', '百补派样', '赠品&0.01', '其他']
-
-# GSV口径（硬编码，不支持GMV切换）
-GSV_AMOUNT_COL = """
-    CASE WHEN is_refund = FALSE AND order_status != '交易关闭'
-         THEN actual_amount ELSE 0 END
-""".strip()
+# 语义层统一口径（向后兼容别名）
+_VALID_BASE = VALID_ORDER_BASE
+_VALID_BASE_T = VALID_ORDER_BASE_PREFIXED
 
 
 # ── 工具函数 ─────────────────────────────────────────────────

@@ -98,7 +98,7 @@ def get_rfm_analysis(
             "member_same_channel_rows": member_same_channel_rows,
         }
 
-        # ── 缓存写入（必须在 conn.close() 之前，使用同一连接） ──
+        # ── 缓存写入（使用同一连接） ──
         if is_historical and data_version:
             try:
                 _write_db_cache(
@@ -109,7 +109,7 @@ def get_rfm_analysis(
             except Exception as e:
                 logger.warning(f"RFM 缓存写入失败（不影响返回）: {e}")
     finally:
-        conn.close()
+        pass
 
     return result
 

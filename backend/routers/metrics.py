@@ -10,7 +10,7 @@ from typing import Optional, List
 from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import OverviewMetrics, TrendData
 from backend.services.metrics_service import get_overview_metrics, get_daily_trend
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/metrics", tags=["指标"])
 

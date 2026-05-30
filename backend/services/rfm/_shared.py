@@ -11,6 +11,7 @@ from typing import Optional, Dict, List, Any
 from datetime import date, timedelta, datetime
 from calendar import monthrange
 from backend.semantic.time import PeriodBuilder
+from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
 from backend.db.connection import get_connection
 from backend.config import DATA_DIR
 
@@ -20,37 +21,9 @@ logger = logging.getLogger(__name__)
 FLOW_CACHE_DIR = DATA_DIR / "cache" / "rfm_flow"
 FLOW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# 语义层统一口径
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
-_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
-
-R_SEGMENT_ORDER = [
-    "近1个月已购客",
-    "近2-3个月已购客",
-    "近4-6月已购客",
-    "近7-12个月已购客",
-    "近13个月-近24个月已购客",
-    "2年外已购客",
-    "已购客TTL",
-]
-
-F_SEGMENT_ORDER = [
-    "1次购买",
-    "2次购买",
-    "3次购买",
-    "4次购买",
-    "5次及以上",
-    "已购客TTL",
-]
-
-M_SEGMENT_ORDER = [
-    "0-100元",
-    "100-300元",
-    "300-500元",
-    "500-1000元",
-    "1000元以上",
-    "已购客TTL",
-]
+# 语义层统一口径（向后兼容别名）
+_VALID_BASE = VALID_ORDER_BASE
+_VALID_BASE_T = VALID_ORDER_BASE_PREFIXED
 
 
 def _resolve_date_ranges(
@@ -199,7 +172,7 @@ def _fetch_data_version() -> str:
         row = conn.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()
         return row[0] or "no_data"
     finally:
-        conn.close()
+        pass
 
 
 def _flow_cache_key(

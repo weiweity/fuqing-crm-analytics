@@ -9,7 +9,7 @@ from fastapi import APIRouter, Query, Response
 from backend.config import _default_end_date
 from backend.contracts.schemas import AssetSummaryResponse, AssetTrendResponse
 from backend.services.asset_service import get_asset_summary, get_asset_trend
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/asset", tags=["资产分析"])
 

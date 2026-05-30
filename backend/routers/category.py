@@ -41,7 +41,7 @@ from backend.services.category_service import (
     get_category_repurchase_flow,
     get_category_repurchase_flow_by_rfm,
 )
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/category", tags=["品类分析"])
 

@@ -35,7 +35,7 @@ def _cached_user_segments(
         df = _compute_user_segments_raw(conn, date, lookback_days, metric_type, exclude_channels)
         return df
     finally:
-        conn.close()
+        pass
 
 
 def _try_load_from_user_rfm(
@@ -254,34 +254,33 @@ def get_flow_matrix(
         # to_segment 为 NULL 表示流失（90天内无订单）
         df_merged["to_segment"] = df_merged["to_segment"].fillna(8).astype(int)
 
-        # 使用语义层获取所有11个象限
+        # 使用语义层获取所有象限
         registry = get_registry()
         all_segments = registry.list_all()
-        segment_ids = sorted([s.segment_id for s in all_segments if s.segment_id != 9]) + [9]
 
-        # NxN 矩阵（N=11）
-        matrix_records = []
-        for f in segment_ids:
-            for t in segment_ids:
-                count = len(df_merged[
-                    (df_merged["from_segment"] == f) &
-                    (df_merged["to_segment"] == t)
-                ])
-                if count > 0:
-                    matrix_records.append({"from": f, "to": t, "count": count})
+        # NxN 矩阵：用 groupby 一次性聚合，替代 N*N 逐对过滤
+        flow_counts = (
+            df_merged.groupby(["from_segment", "to_segment"])
+            .size()
+            .reset_index(name="count")
+        )
+        matrix_records = [
+            {"from": int(row.from_segment), "to": int(row.to_segment), "count": int(row["count"])}
+            for _, row in flow_counts.iterrows()
+            if row["count"] > 0
+        ]
 
         # 汇总指标
         from_total = len(df_from)
         to_total = len(df_to)
 
-        # 留存率：to_segment == from_segment 的用户 / from_total
-        retained = len(df_merged[df_merged["from_segment"] == df_merged["to_segment"]])
+        # 留存/升级/降级：向量化操作
+        same = df_merged["from_segment"] == df_merged["to_segment"]
+        retained = same.sum()
         retention_rate = round(retained / from_total, 4) if from_total > 0 else 0
 
-        # 升级/降级（基于象限定义：1最好，数值越大象限越差）
-        # 升级：to_segment < from_segment
-        upgraded = len(df_merged[df_merged["to_segment"] < df_merged["from_segment"]])
-        downgraded = len(df_merged[df_merged["to_segment"] > df_merged["from_segment"]])
+        upgraded = (df_merged["to_segment"] < df_merged["from_segment"]).sum()
+        downgraded = (df_merged["to_segment"] > df_merged["from_segment"]).sum()
         upgrade_rate = round(upgraded / from_total, 4) if from_total > 0 else 0
         downgrade_rate = round(downgraded / from_total, 4) if from_total > 0 else 0
 
@@ -307,7 +306,7 @@ def get_flow_matrix(
             }
         }
     finally:
-        conn.close()
+        pass
 
 
 def get_flow_sankey(
@@ -365,20 +364,21 @@ def get_flow_sankey(
                     "stage": "to"
                 })
 
-        # Links: 流转边
-        links = []
-        for f in segment_ids:
-            for t in segment_ids:
-                count = len(df_merged[
-                    (df_merged["from_segment"] == f) &
-                    (df_merged["to_segment"] == t)
-                ])
-                if count > 0:
-                    links.append({
-                        "source": f"from_{f}",
-                        "target": f"to_{t}",
-                        "value": count
-                    })
+        # Links: 用 groupby 一次性聚合，替代 N*N 逐对过滤
+        flow_counts = (
+            df_merged.groupby(["from_segment", "to_segment"])
+            .size()
+            .reset_index(name="count")
+        )
+        links = [
+            {
+                "source": f"from_{int(row.from_segment)}",
+                "target": f"to_{int(row.to_segment)}",
+                "value": int(row["count"]),
+            }
+            for _, row in flow_counts.iterrows()
+            if row["count"] > 0
+        ]
 
         return {
             "nodes": nodes,
@@ -387,4 +387,4 @@ def get_flow_sankey(
             "to_date": to_date
         }
     finally:
-        conn.close()
+        pass

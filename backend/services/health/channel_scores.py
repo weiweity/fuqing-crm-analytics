@@ -133,4 +133,4 @@ def get_channel_health_scores(
             "scores": scores,
         }
     finally:
-        conn.close()
+        pass

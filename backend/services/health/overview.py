@@ -656,7 +656,7 @@ def get_overview(
         return result
 
     finally:
-        conn.close()
+        pass
 
 
 def _compute_dynamic_targets(
@@ -737,4 +737,4 @@ def get_health_targets(
             **targets,
         }
     finally:
-        conn.close()
+        pass

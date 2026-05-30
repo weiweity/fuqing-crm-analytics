@@ -141,7 +141,6 @@ def init_database():
     # 创建 RFM 表（Week 2）
     create_user_rfm_table(conn)
 
-    conn.close()
     print(f"Database v2 initialized at: {DUCKDB_PATH}")
 
 
@@ -149,9 +148,6 @@ def create_user_rfm_table(conn=None):
     """创建 user_rfm 表（DuckDB）"""
     if conn is None:
         conn = get_connection()
-        should_close = True
-    else:
-        should_close = False
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS user_rfm (
@@ -181,8 +177,6 @@ def create_user_rfm_table(conn=None):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rfm_date ON user_rfm(analysis_date, metric_type, lookback_days)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rfm_channel ON user_rfm(channel)")
 
-    if should_close:
-        conn.close()
     print("user_rfm table created successfully")
 
 
@@ -190,14 +184,9 @@ def drop_user_rfm_table(conn=None):
     """删除 user_rfm 表"""
     if conn is None:
         conn = get_connection()
-        should_close = True
-    else:
-        should_close = False
 
     conn.execute("DROP TABLE IF EXISTS user_rfm")
 
-    if should_close:
-        conn.close()
     print("user_rfm table dropped")
 
 
@@ -209,9 +198,6 @@ def create_user_recency_table(conn=None, mode: str = "if_not_exists"):
     """
     if conn is None:
         conn = get_connection()
-        should_close = True
-    else:
-        should_close = False
 
     if mode == "replace":
         conn.execute("DROP TABLE IF EXISTS user_recency")
@@ -229,8 +215,6 @@ def create_user_recency_table(conn=None, mode: str = "if_not_exists"):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ur_last_pay ON user_recency(last_pay_time)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ur_recency ON user_recency(recency_days)")
 
-    if should_close:
-        conn.close()
     print("user_recency table ready")
 
 

@@ -8,7 +8,8 @@ from typing import Dict, Any, Optional
 
 
 from backend.db.connection import get_connection
-from ._shared import _normalize_date, _segment_meta
+from backend.semantic.segments import _segment_meta
+from backend.semantic.time import normalize_date as _normalize_date
 from backend.semantic.filters import OrderFilters
 
 
@@ -234,7 +235,7 @@ def get_category_user_profile(
         ]
     
     finally:
-        conn.close()
+        pass
 
     return {
         "date": date_str,

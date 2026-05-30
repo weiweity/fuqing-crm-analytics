@@ -97,7 +97,7 @@ def get_asset_summary(date: str) -> Dict[str, Any]:
             "by_segment": by_segment
         }
     finally:
-        conn.close()
+        pass
 
 
 def get_asset_trend(
@@ -213,4 +213,4 @@ def get_asset_trend(
             "user_trend": user_trend
         }
     finally:
-        conn.close()
+        pass

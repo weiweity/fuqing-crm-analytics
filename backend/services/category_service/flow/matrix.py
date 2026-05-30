@@ -255,4 +255,4 @@ def get_category_flow_matrix(
             "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
         }
     finally:
-        conn.close()
+        pass

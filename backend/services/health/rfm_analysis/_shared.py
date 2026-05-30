@@ -11,9 +11,10 @@ import logging
 from typing import List, Optional
 
 from backend.config import DUCKDB_PATH
+from backend.semantic.filters import VALID_ORDER_BASE
 
-# 语义层统一口径：禁止在SQL中硬编码有效订单条件
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
+# 语义层统一口径：禁止在SQL中硬编码有效订单条件（向后兼容别名）
+_VALID_BASE = VALID_ORDER_BASE
 
 logger = logging.getLogger(__name__)
 

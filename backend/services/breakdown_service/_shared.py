@@ -8,38 +8,16 @@ from datetime import datetime
 from typing import List, Dict, Any
 from dateutil.relativedelta import relativedelta
 
-from backend.semantic.calculations import safe_ratio
+from backend.semantic.calculations import safe_ratio, GSV_AMOUNT_COL
+from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
 from backend.config import VISITOR_XLSX_FILE
 
-# ── 语义层统一口径 ────────────────────────────────────────────
+# ── 语义层统一口径（向后兼容别名）────────────────────────────────
 
-_VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
-_VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
+_VALID_BASE = VALID_ORDER_BASE
+_VALID_BASE_T = VALID_ORDER_BASE_PREFIXED
 
-GSV_AMOUNT_COL = """
-    CASE WHEN is_refund = FALSE AND order_status != '交易关闭'
-         THEN actual_amount ELSE 0 END
-""".strip()
-
-# ── 常量 ─────────────────────────────────────────────────────
-
-REPURCHASE_ADJUSTMENT = {
-    "大促期": 1.15,
-    "日常": 1.0,
-    "年货节": 1.10,
-    "3.8": 1.08,
-    "618": 1.20,
-    "双11": 1.25,
-}
-
-R_INTERVALS = [
-    ("近1个月已购客",    0,   30),
-    ("近2-3个月已购客",  31,  90),
-    ("近4-6月已购客",    91, 180),
-    ("近7-12个月已购客", 181, 365),
-    ("近13-24个月已购客",366, 730),
-    ("2年外已购客",      731, 99999),
-]
+# ── 常量（从语义层/配置导入，不再本地定义）───────────────────────
 
 F_SEGMENTS = ["F>1", "F=1"]
 
@@ -96,6 +74,8 @@ def _r_interval_sql(date_col: str, cutoff_date: str) -> str:
     安全说明：cutoff_date 来自 API 层 Pydantic 校验（YYYY-MM-DD 格式，非用户原始
     输入），因此无需参数化即可安全嵌入字面量。若未来此函数接受非校验来源的日期参数，
     必须改回参数化查询。
+
+    区间名称与 R_INTERVALS / R_SEGMENT_ORDER 一致。
     """
     import re
     if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', cutoff_date):
@@ -111,7 +91,7 @@ def _r_interval_sql(date_col: str, cutoff_date: str) -> str:
             WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 90 THEN '近2-3个月已购客'
             WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 180 THEN '近4-6月已购客'
             WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 365 THEN '近7-12个月已购客'
-            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 730 THEN '近13-24个月已购客'
+            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 730 THEN '近13个月-近24个月已购客'
             ELSE '2年外已购客'
         END
     """.strip()

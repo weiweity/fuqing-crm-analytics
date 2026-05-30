@@ -9,7 +9,7 @@ from typing import Optional, List
 
 from backend.contracts.schemas import AudienceTableResponse, AudienceSummaryResponse
 from backend.services.metrics_service import get_audience_table, calculate_audience_summary
-from backend.semantic.time import PeriodBuilder, check_future_date
+from backend.services import PeriodBuilder, check_future_date
 from datetime import date
 
 router = APIRouter(prefix="/api/v1/audience", tags=["人群看板"])

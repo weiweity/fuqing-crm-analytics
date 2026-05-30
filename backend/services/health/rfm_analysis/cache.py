@@ -173,7 +173,7 @@ def precompute_rfm_cache() -> int:
             today = date.today() + timedelta(days=1)
         logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw})")
     finally:
-        _today_conn.close()
+        pass
 
     conn = get_connection()
     computed = 0
@@ -249,7 +249,7 @@ def precompute_rfm_cache() -> int:
                     logger.info(f"  RFM 预计算: {period} {year} {metric_type} → {key}")
 
     finally:
-        conn.close()
+        pass
 
     logger.info(f"RFM 预计算完成: {computed} / {len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES)} 个组合")
     return computed

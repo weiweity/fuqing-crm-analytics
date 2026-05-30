@@ -9,7 +9,7 @@ from typing import Optional
 
 from backend.contracts.schemas import VisitorSummaryResponse, VisitorDailyTrendResponse
 from backend.services.visitor_service import get_visitor_summary, get_visitor_daily_trend
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/visitor", tags=["访客入会率"])
 

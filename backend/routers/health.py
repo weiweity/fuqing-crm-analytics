@@ -5,11 +5,14 @@
 注意: /api/v1/health 已被系统健康检查占用
 """
 
-from fastapi import APIRouter, Query, Request, HTTPException, Response
+from fastapi import APIRouter, Query, Header, Request, HTTPException, Response
 from typing import Optional, List
+import hmac
+import time
 import logging
+from collections import defaultdict
 
-from backend.semantic.time import check_future_date
+from backend.services import check_future_date
 
 logger = logging.getLogger(__name__)
 
@@ -61,12 +64,37 @@ def _get_client_ip(request: Request) -> str:
     return "unknown"
 
 
+_RATE_LIMIT_WINDOW = 300  # 5 分钟（秒）
+_RATE_LIMIT_MAX = 10      # 每窗口最大请求数
+_rate_limit_store: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(client_ip: str) -> None:
+    """滑动窗口速率限制：每 IP 每 5 分钟最多 10 次"""
+    now = time.time()
+    window_start = now - _RATE_LIMIT_WINDOW
+    # 清理过期时间戳
+    _rate_limit_store[client_ip] = [
+        t for t in _rate_limit_store[client_ip] if t > window_start
+    ]
+    if len(_rate_limit_store[client_ip]) >= _RATE_LIMIT_MAX:
+        logger.warning(
+            "Rate limit exceeded for client %s",
+            client_ip,
+            extra={"client_ip": client_ip, "path": "config-endpoint"},
+        )
+        raise HTTPException(status_code=429, detail="Too Many Requests")
+    _rate_limit_store[client_ip].append(now)
+
+
 def _check_api_key(request: Request, x_api_key: str) -> None:
     """校验 API Key，失败时记录访问日志并抛出 401"""
-    if x_api_key != _HEALTH_API_KEY:
+    client_ip = _get_client_ip(request)
+    _check_rate_limit(client_ip)
+    if not x_api_key or not hmac.compare_digest(x_api_key, _HEALTH_API_KEY):
         logger.warning(
             "Unauthorized access attempt to customer-health API",
-            extra={"client_ip": _get_client_ip(request), "path": str(request.url.path)}
+            extra={"client_ip": client_ip, "path": str(request.url.path)},
         )
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -327,7 +355,7 @@ def get_rfm_config():
 @router.get("/config/history", response_model=ConfigHistoryResponse)
 def get_config_history(
     request: Request,
-    x_api_key: str = Query(default=None),
+    x_api_key: str = Header(..., alias="X-API-Key", description="API 密钥"),
     limit: int = Query(default=20, ge=1, le=100, description="返回最近N条记录"),
 ):
     """获取配置变更历史（自动备份列表）— 需鉴权"""
@@ -339,7 +367,7 @@ def get_config_history(
 @router.get("/config/audit-log", response_model=AuditLogResponse)
 def get_audit_log(
     request: Request,
-    x_api_key: str = Query(default=None),
+    x_api_key: str = Header(..., alias="X-API-Key", description="API 密钥"),
     limit: int = Query(default=50, ge=1, le=1000, description="返回最近N条记录"),
 ):
     """获取配置审计日志 — 需鉴权"""

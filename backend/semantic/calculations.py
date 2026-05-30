@@ -13,6 +13,15 @@
 from typing import Optional
 
 
+# ============================================================
+# GSV 口径 SQL 表达式（单一数据源）
+# ============================================================
+GSV_AMOUNT_COL: str = """
+    CASE WHEN is_refund = FALSE AND order_status != '交易关闭'
+         THEN actual_amount ELSE 0 END
+""".strip()
+
+
 def yoy_absolute(cur: Optional[float], comp: Optional[float]) -> Optional[float]:
     """
     绝对值 YOY（金额、人数、客单价等）

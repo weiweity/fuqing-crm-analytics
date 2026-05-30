@@ -871,7 +871,7 @@ def calculate_audience_summary(
             "channel_member": channel_member,
         }
     finally:
-        conn.close()
+        pass
 
 
 if __name__ == "__main__":

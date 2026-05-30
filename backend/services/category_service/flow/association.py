@@ -106,7 +106,7 @@ def get_category_flow_association(
                 "data_quality_note": f"基于 {end_date} 往前追溯 {window_days} 天 · 锚点={anchor_mode} · 目标品类={target_category}",
             }
         finally:
-            conn.close()
+            pass
 
     return _get_cached_association(cache_key, _compute)
 
@@ -432,6 +432,6 @@ def get_category_flow(
             result["post_sankey"] = temporal["post_sankey"]
             result["pre_sankey"] = temporal["pre_sankey"]
     finally:
-        conn.close()
+        pass
 
     return result

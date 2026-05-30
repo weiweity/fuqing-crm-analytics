@@ -153,4 +153,4 @@ def get_promotion_calendar(year: int = 2025,
         }
 
     finally:
-        conn.close()
+        pass

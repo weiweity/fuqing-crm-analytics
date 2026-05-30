@@ -251,3 +251,12 @@ def check_future_date(date_str: str) -> str | None:
     except (ValueError, TypeError):
         # 日期格式不对或 None，不触发警告，静待 Pydantic 的格式校验
         return None
+
+
+def normalize_date(date_val) -> str:
+    """统一日期格式处理（兼容 date 对象和字符串）"""
+    if hasattr(date_val, 'strftime'):
+        return date_val.strftime("%Y-%m-%d")
+    if isinstance(date_val, str):
+        return date_val[:10] if len(date_val) > 10 else date_val
+    return str(date_val)

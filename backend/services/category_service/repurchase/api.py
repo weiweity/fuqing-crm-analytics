@@ -51,7 +51,7 @@ def get_category_repurchase_flow(
             conn, prev2_start, prev2_end, prev2_cutoff, category, category_field, metric_type, channel, exclude_channels
         )
     finally:
-        conn.close()
+        pass
 
     def _build_rows(cur_data, comp_data, prev2_data):
         rows = []
@@ -127,7 +127,7 @@ def get_category_repurchase_flow_by_rfm(
             conn, prev2_start, prev2_end, prev2_cutoff, category, category_field, metric_type, channel, exclude_channels
         )
     finally:
-        conn.close()
+        pass
 
     def _build_rows(cur_data, comp_data, prev2_data):
         rows = []
