@@ -8,7 +8,7 @@ import duckdb
 from typing import Dict, Any, List, Optional
 
 from backend.db.connection import get_connection
-from backend.services.rfm_service import _resolve_date_ranges
+from backend.services.rfm import _resolve_date_ranges
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS, SEGMENTS
 

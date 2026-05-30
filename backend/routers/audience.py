@@ -4,12 +4,12 @@
 前缀: /api/v1/audience/*
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 from typing import Optional, List
 
 from backend.contracts.schemas import AudienceTableResponse, AudienceSummaryResponse
 from backend.services.metrics_service import get_audience_table, calculate_audience_summary
-from backend.semantic.time import PeriodBuilder
+from backend.semantic.time import PeriodBuilder, check_future_date
 from datetime import date
 
 router = APIRouter(prefix="/api/v1/audience", tags=["人群看板"])
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/v1/audience", tags=["人群看板"])
 
 @router.get("/table", response_model=AudienceTableResponse)
 def get_audience_table_api(
+    response: Response,
     dimension: str = Query(default="channel", description="维度：channel 或 spu_tier"),
     mode: str = Query(default="mtd", description="模式：mtd 或 free"),
     start_date: Optional[str] = Query(default=None, description="开始日期（free模式必填）"),
@@ -32,12 +33,14 @@ def get_audience_table_api(
     支持自由时间段筛选和渠道筛选。
     返回 24 个指标字段。
     """
+    if mode == "free" and (not start_date or not end_date):
+        raise ValueError("free 模式需要传入 start_date 和 end_date")
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
+
     channel_list = None
     if channels:
         channel_list = [ch.strip() for ch in channels.split(",") if ch.strip()]
-
-    if mode == "free" and (not start_date or not end_date):
-        raise ValueError("free 模式需要传入 start_date 和 end_date")
 
     return get_audience_table(
         dimension=dimension,
@@ -52,6 +55,7 @@ def get_audience_table_api(
 
 @router.get("/summary", response_model=AudienceSummaryResponse)
 def get_audience_summary_api(
+    response: Response,
     year: int = Query(default=2026, description="对比基准年（仅影响列标签）"),
     metric_type: str = Query(default="GSV", description="GMV 或 GSV"),
     period: Optional[str] = Query(default=None, description="WTD / MTD / YTD / Q1-Q4"),
@@ -70,6 +74,9 @@ def get_audience_summary_api(
     - Panel B：渠道概览-全店（各渠道 GSV，3年同比 + 占比）
     - Panel C：渠道概览-会员（各渠道会员 GSV，3年同比 + 占比）
     """
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
+
     resolved_start = start_date
     resolved_end = end_date
 
