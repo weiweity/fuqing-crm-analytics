@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **YOY/MoM 值格式不一致** — 修复后端返回的 YOY/MoM 值格式不一致（部分已是百分比，部分是小数），导致前端显示 155pp 等三位数。所有值统一为小数形式
 
 ### Changed
-- **文档精简** — 归档 5 个冗余/已完成文档：DESIGN.md（CLAUDE.md 已覆盖）、DEPLOY.md（CLAUDE.md 快速启动已覆盖）、MODULE-INDEX.md（CLAUDE.md 目录结构已覆盖）、etl-incremental-fix-plan.md、REPAIR_PLAN.md
+- **CLAUDE.md 瘦身** — 460 行 → 132 行（-71%），参考材料（口径表/历史教训/包拆分清单/目录结构）移到 `docs/reference.md`（按需读取），每次会话节省 ~60% token
+- **文档精简** — 归档 5 个冗余/已完成文档：DESIGN.md、DEPLOY.md、MODULE-INDEX.md、etl-incremental-fix-plan.md、REPAIR_PLAN.md
 
 ### Added
 - **Pre-commit/Pre-push hooks** — `.githooks/pre-commit`（ruff check）和 `.githooks/pre-push`（pytest）阻止不合规代码提交和推送

@@ -9,7 +9,8 @@
 
 | 我想了解... | 看这里 |
 |---|---|
-| 项目全局（架构+规范+工作流） | [CLAUDE.md](../CLAUDE.md) ← **AI 权威参考** |
+| AI 行为规则（自动加载） | [CLAUDE.md](../CLAUDE.md) ← **每次会话自动注入** |
+| 参考手册（口径/教训/目录结构） | [reference.md](./reference.md) ← **按需读取** |
 | 系统整体架构 | [飞书版架构文档/00-系统总览.md](./飞书版架构文档/00-系统总览.md) |
 | 每个文件做什么 | [backend/DATA-SOURCE-MAP.md](./backend/DATA-SOURCE-MAP.md) |
 | 项目是什么、解决什么问题 | [product/PRD-v3.0.md](./product/PRD-v3.0.md) |
@@ -24,9 +25,10 @@
 
 ## 文档分类
 
-### 📋 产品与需求
+### 📋 核心文档
 | 文件 | 状态 | 说明 |
 |---|---|---|
+| [reference.md](./reference.md) | ✅ **参考手册** | 口径表/历史教训/包拆分清单/目录结构（按需读取） |
 | [product/PRD-v3.0.md](./product/PRD-v3.0.md) | ✅ **当前版本** | v3.0 PRD，包含架构与演进路线 |
 
 ### 🏗️ 架构设计
