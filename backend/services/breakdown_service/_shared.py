@@ -100,6 +100,11 @@ def _r_interval_sql(date_col: str, cutoff_date: str) -> str:
     import re
     if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', cutoff_date):
         raise ValueError(f"cutoff_date 必须是 YYYY-MM-DD 格式，收到: {cutoff_date!r}")
+    # 验证日历有效性（2025-02-30 等无效日期会被拒绝）
+    try:
+        datetime.strptime(cutoff_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(f"cutoff_date 不是有效日期: {cutoff_date!r}")
     return f"""
         CASE
             WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 30 THEN '近1个月已购客'

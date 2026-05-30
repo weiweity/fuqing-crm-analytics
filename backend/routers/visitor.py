@@ -6,7 +6,6 @@
 
 from fastapi import APIRouter, Query, Response
 from typing import Optional
-import json
 
 from backend.contracts.schemas import VisitorSummaryResponse, VisitorDailyTrendResponse
 from backend.services.visitor_service import get_visitor_summary, get_visitor_daily_trend
