@@ -238,6 +238,8 @@ def check_future_date(date_str: str) -> str | None:
     AI-开发者友好：明确告知数据范围，避免静默返回全 0 误导决策。
     注意：返回值必须为 ASCII（HTTP header latin-1 限制）。
     """
+    if date_str is None:
+        return None
     try:
         from datetime import date
         from datetime import datetime as dt
@@ -246,6 +248,6 @@ def check_future_date(date_str: str) -> str | None:
         if input_date > date.today():
             return f"date {date_str} is in the future, data will be all-zero. Use date <= today."
         return None
-    except ValueError:
-        # 日期格式不对，不触发警告，静待 Pydantic 的格式校验
+    except (ValueError, TypeError):
+        # 日期格式不对或 None，不触发警告，静待 Pydantic 的格式校验
         return None
