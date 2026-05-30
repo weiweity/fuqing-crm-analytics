@@ -14,7 +14,7 @@
 | 1 | **本地即生产** | GitHub merge 后，必须 `git pull origin main --ff-only` + `kill + 重启 uvicorn`，否则服务跑旧代码 |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；三层禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts`，三者必须同步 |
-| 4 | **版本状态** | v0.3.7（main），测试 149 passed / 8 skipped |
+| 4 | **版本状态** | v0.3.8（main），测试 149 passed / 8 skipped，CI 双重检查（ruff + pytest） |
 | 5 | **ETL 状态** | user_rfm 最大日期 2026-05-28, orders 最大日期 2026-05-28 |
 | 6 | **未来日期警告** | 传入未来日期时，所有日期参数端点返回 `X-Data-Warning` 响应头 |
 | 6 | **禁止事项（Git）** | ❌ 跳过 review/qa ❌ merge 后不 pull ❌ 直接在 main commit ❌ commit -m "fix" |
@@ -57,6 +57,19 @@
 1. 我跑 review 了吗？→ 没有就跑
 2. 测试全绿吗？→ 没有就修
 3. 这个 commit 混了多个功能吗？→ 是就拆
+
+---
+
+## CI/CD 防线
+
+| 层 | 位置 | 拦什么 | 谁执行 |
+|---|---|---|---|
+| pre-commit hook | `.githooks/pre-commit` | ruff lint 错误 | 本地 git |
+| pre-push hook | `.githooks/pre-push` | pytest 测试失败 | 本地 git |
+| GitHub Actions CI | `.github/workflows/lint.yml` | ruff + pytest | GitHub PR/push |
+| AI 检查点 | CLAUDE.md 上方 | 跳过 review/qa | AI 自律 |
+
+激活 hooks：`git config core.hooksPath .githooks`
 
 ---
 
@@ -335,7 +348,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/ ← DMP 资产
 │   ├── routers/           ← API 路由（16 个模块）
 │   ├── db/                ← 数据库连接（get_connection）
-│   └── tests/             ← 单元测试（8 个文件，148 个用例）
+│   └── tests/             ← 单元测试（8 个文件，149 个用例）
 ├── frontend-vue3/
 │   └── src/
 │       ├── views/         ← 页面组件
@@ -386,6 +399,8 @@ fuqing-crm-analytics/
 | 2026-05-30 | 测试 monkeypatch 目标错误 | `from x import get_connection` 把名称绑定到本地模块，patch 定义方无效 | monkeypatch 目标必须是 use site（`backend.services.xxx.get_connection`），不是定义 site |
 | 2026-05-30 | DuckDB INSERT 列数不匹配 | f-string 硬编码值容易漏列或多列，41 列 schema 插入 40 个值 | 用参数化 INSERT `conn.execute(sql, [v1, v2, ...])`，不用 f-string |
 | 2026-05-30 | `_r_interval_sql` 安全设计决策 | DuckDB 不支持 `DATE ?` 语法（参数占位符在 DATE 字面量内部），改用字符串插值 | 函数入口加 regex + `datetime.strptime` 双重校验；docstring 记录设计决策 |
+| 2026-05-30 | 老客GSV占比 pp 显示 155pp/193pp | `fmtYoy()` ×100 + MetricCard pp 模板 ×100 = 双重乘法 | pp 类型 MetricCard 用 `fmtPpt()` 直传原值，YOYBadge ratio 列用 `unit='pp'` + 调用方 ×100 |
+| 2026-05-30 | 173 个 ruff lint 错误持续累积 | 无 pre-commit hook、无 CI，错误无人拦 | 三层防线：pre-commit (ruff) + pre-push (pytest) + GitHub Actions CI |
 
 ---
 
@@ -397,9 +412,8 @@ fuqing-crm-analytics/
 | `docs/DOCUMENT-INDEX.md` | 文档分类索引 |
 | `docs/product/PRD-v3.0.md` | 产品需求文档 |
 | `docs/飞书版架构文档/` | 系统架构文档（7 份） |
-| `docs/ai/DESIGN.md` | AI 改代码操作规范 |
 | `docs/frontend/frontend-contract-guide.md` | 前端契约指南 |
-| `docs/deploy/DEPLOY.md` | 部署文档 |
+| `docs/archive/` | 历史文档（含已归档的 DESIGN.md、DEPLOY.md、MODULE-INDEX.md） |
 
 ---
 

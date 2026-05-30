@@ -19,8 +19,10 @@
 
 - ✅ 语义层 / 契约层 / 服务层 / 前端 Vue3 全部上线
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
-- ✅ ETL 增量更新正常（截至 2026-05-28）
+- ✅ ETL 增量更新正常（截至 2026-05-30）
 - ✅ 后端代码审计完成，大文件拆分完成
+- ✅ CI/CD 防线：pre-commit (ruff) + pre-push (pytest) + GitHub Actions
+- ✅ 测试 149 passed / 8 skipped
 
 ---
 
@@ -109,11 +111,11 @@ fuqing-crm-analytics/
 
 | 文档 | 说明 |
 |---|---|
-| [docs/PRD-v3.0.md](./docs/PRD-v3.0.md) | 产品需求文档 |
+| [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
+| [docs/product/PRD-v3.0.md](./docs/product/PRD-v3.0.md) | 产品需求文档 |
 | [docs/飞书版架构文档/00-系统总览.md](./docs/飞书版架构文档/00-系统总览.md) | 系统架构总览 |
 | [docs/飞书版架构文档/07-常见问题汇总.md](./docs/飞书版架构文档/07-常见问题汇总.md) | Bug 修复记录和经验教训 |
-| [docs/ai-constraints.md](./docs/ai-constraints.md) | AI 协作规范 |
-| [CLAUDE.md](./CLAUDE.md) | 项目参考（Git 工作流 + 架构 + 规范） |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
 | [docs/DOCUMENT-INDEX.md](./docs/DOCUMENT-INDEX.md) | 完整文档索引 |
 
 ---
@@ -127,7 +129,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖：
+当前测试覆盖（149 passed / 8 skipped）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -136,6 +138,14 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 - `test_time.py` - PeriodBuilder
 - `test_channels.py` - 渠道漏斗/映射
 - `test_api_integration.py` - FastAPI 集成测试
+- `test_health_overview.py` - 健康概览
+- `test_rfm_analysis.py` - RFM 分析
+- `test_fill_parquet_cache.py` - Parquet 缓存
+- `test_etl_atomicity.py` - ETL 原子写入
+
+### CI/CD
+
+PR 和 main push 自动运行 ruff lint + pytest。本地 pre-commit/pre-push hooks 在 commit/push 前拦截。
 
 ### E2E 测试
 
@@ -174,3 +184,4 @@ npx playwright test
 | 2026-05-04 | 文档整理，创建文档索引 |
 | 2026-05-28 | 后端代码审计（23 问题修复），大文件拆分（6 个包），SPU 版本化 |
 | 2026-05-29 | SQL 注入修复，未来日期警告，/docs 白名单，CHANGELOG 建立 |
+| 2026-05-30 | pp 值双重乘法修复，173 lint 错误清理，pre-commit/CI 防线建立 |
