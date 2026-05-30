@@ -11,9 +11,9 @@ import pandas as pd
 import duckdb
 from datetime import datetime, timedelta
 
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from backend.semantic.filters import OrderFilters
 
 # 语义层统一口径：base有效条件不含 is_refund（由 override 表处理）
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
@@ -85,7 +85,7 @@ def _extract_from_source_paths(file_paths: list, cutoff, window_days: int) -> li
                     continue
 
             if '订单编号' not in df.columns:
-                print(f"  ⚠️ 文件缺少 '订单编号' 列")
+                print("  ⚠️ 文件缺少 '订单编号' 列")
                 continue
 
             # 提取关键字段
@@ -169,7 +169,7 @@ def extract_recent_order_status(
     )
 
     if not today_files:
-        print(f"  目录中无今日状态文件，跳过状态刷新")
+        print("  目录中无今日状态文件，跳过状态刷新")
         return pd.DataFrame(columns=['order_id', 'latest_order_status', 'latest_is_refund'])
 
     latest_file = today_files[0]
@@ -188,7 +188,7 @@ def extract_recent_order_status(
             for pattern in ["*.csv", "*.xlsx"]:
                 source_paths.extend(sorted(Path(temp_dir).rglob(pattern), key=lambda f: f.stat().st_mtime, reverse=True))
             if not source_paths:
-                print(f"  ⚠️ zip 中无 csv/xlsx 文件")
+                print("  ⚠️ zip 中无 csv/xlsx 文件")
                 shutil.rmtree(temp_dir, ignore_errors=True)
                 return pd.DataFrame(columns=['order_id', 'latest_order_status', 'latest_is_refund'])
         except Exception as e:
@@ -206,7 +206,7 @@ def extract_recent_order_status(
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     if not all_status:
-        print(f"  ⚠️ 未提取到任何状态数据")
+        print("  ⚠️ 未提取到任何状态数据")
         return pd.DataFrame(columns=['order_id', 'latest_order_status', 'latest_is_refund'])
 
     combined = pd.concat(all_status, ignore_index=True)
@@ -286,7 +286,8 @@ def refresh_status_override(
         deleted_total += before_del
 
     # 批量插入新状态（覆盖式写入：今天读到的订单状态是最新的）
-    import tempfile, os
+    import tempfile
+    import os
     parquet_path = os.path.join(tempfile.gettempdir(), 'status_override.parquet')
     shop_status[['order_id', 'latest_order_status', 'latest_is_refund', 'override_date']].to_parquet(
         parquet_path, index=False
@@ -318,7 +319,7 @@ def refresh_status_override(
         "SELECT SUM(CASE WHEN latest_is_refund THEN 1 ELSE 0 END) FROM order_status_override"
     ).fetchone()[0] or 0
 
-    print(f"  刷新完成:")
+    print("  刷新完成:")
     print(f"    删除旧记录: {deleted_total:,}")
     print(f"    写入新状态: {len(shop_status):,}")
     print(f"    刷新后合计: {after_count:,} 条记录，退款订单: {after_refund:,}")

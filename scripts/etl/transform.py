@@ -5,10 +5,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from scripts.etl.config import COLUMN_MAPPING, SPU_COLUMNS
 
 import pandas as pd
-import numpy as np
 
 def match_channel(df, keyword_rules, id_rules, taoke_order_ids=None, live_order_ids=None, taoke_product_rules=None):
     """
@@ -305,7 +303,7 @@ def clean_data(df, spu_df, keyword_rules, id_rules, taoke_order_ids=None, live_o
     goujinjin_rate = df['is_goujinjin'].mean()
     REFUND_THRESHOLD = 0.40  # 大促期间退款率可达 35%+
     GOUJINJIN_THRESHOLD = 0.40
-    print(f"\n  【数据验收】")
+    print("\n  【数据验收】")
     print(f"    退款率:   {refund_rate:.1%}  （门卫: <{REFUND_THRESHOLD:.0%} → {'✅' if refund_rate < REFUND_THRESHOLD else '❌ 异常!'}")
     print(f"    购物金率: {goujinjin_rate:.1%}  （门卫: <{GOUJINJIN_THRESHOLD:.0%} → {'✅' if goujinjin_rate < GOUJINJIN_THRESHOLD else '❌ 异常!'}'")
     if not force_continue:

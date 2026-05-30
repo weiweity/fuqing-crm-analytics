@@ -5,7 +5,8 @@
 所有视图定义由 backend.semantic.filters.OrderFilters 统一管理，
 禁止任何 Service 或导出脚本绕过视图直接写 WHERE 条件。
 """
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import duckdb

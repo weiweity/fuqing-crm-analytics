@@ -11,6 +11,9 @@ requires-python = ">=3.13"
 [tool.uv]
 python-preference = "only-managed"
 
+[tool.ruff]
+exclude = ["scripts/archive/*"]
+
 [tool.ruff.lint.per-file-ignores]
 # health.py: intentional import-after-logger for fail-fast API key check
 "backend/routers/health.py" = ["E402"]
@@ -18,3 +21,8 @@ python-preference = "only-managed"
 "backend/config.py" = ["E402"]
 # main.py: CORS config imports and router registration imports
 "backend/main.py" = ["E402"]
+# ETL scripts: sys.path.insert must come before project imports
+"scripts/etl/*.py" = ["E402"]
+# Test files: sys.path.insert must come before project imports
+"tests/*.py" = ["E402"]
+"backend/tests/*.py" = ["E402"]

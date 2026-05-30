@@ -1,7 +1,6 @@
 """ETL 配置与缓存工具
 路径配置、列名映射、缓存读写（淘客/直播/已处理文件）。
 """
-import json
 import os
 import sys
 from pathlib import Path
@@ -11,14 +10,12 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent  # scripts/etl → scripts → project root
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.config import (
+from backend.config import (  # noqa: F401 — re-exported for scripts.etl.* consumers
     DUCKDB_PATH, SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE, SPU_MAPPING_SOURCE,
     PROCESSED_DATA_DIR, PARQUET_DATA_DIR, CHANNEL_RULES_SOURCE,
     TAOKE_DATA_SOURCE, TAOKE_PRODUCT_SOURCE, LIVE_DATA_SOURCE
 )
 
-import pandas as pd
-import duckdb
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 

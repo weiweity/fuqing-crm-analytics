@@ -8,23 +8,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from scripts.etl.config import (
     DUCKDB_PATH, SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE,
-    PROCESSED_DATA_DIR, PARQUET_DATA_DIR, COLUMN_MAPPING,
-    _get_processed_files_path, _load_processed_files, _save_processed_files,
-    _ETL_SOURCE_STATS,
+    _load_processed_files, _save_processed_files,
 )
 
 from scripts.etl.sources import (
     load_spu_mapping, load_channel_rules,
     load_taoke_order_ids, load_live_order_ids, load_taoke_product_rules,
 )
-from scripts.etl.ingest import load_data_files
-from scripts.etl.transform import match_channel, clean_data
+from scripts.etl.ingest import load_data_files, rename_columns
+from scripts.etl.load import _copy_df_to_duckdb
+from scripts.etl.transform import clean_data
 from scripts.etl.load import (
-    init_database, write_to_duckdb, upsert_to_duckdb,
+    upsert_to_duckdb,
     filter_rolling_window, get_db_max_pay_time,
     _create_orders_table, _create_indexes,
-    _create_orders_table_custom, _create_indexes_custom,
-    _create_metrics_tables,
 )
 
 import pandas as pd
@@ -152,7 +149,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                         df['year'] = df['order_time'].dt.year
                         df['month'] = df['order_time'].dt.month
                     if df.empty or 'order_id' not in df.columns:
-                        print(f"    跳过")
+                        print("    跳过")
                         continue
                     df['is_member'] = False
                     df = clean_data(df, spu_df, keyword_rules, id_rules,
@@ -190,7 +187,8 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                         df.columns = [c.strip() if isinstance(c, str) else c for c in df.columns]
                         df = rename_columns(df)
                         if df.empty or 'order_id' not in df.columns:
-                            del df; gc.collect()
+                            del df
+                            gc.collect()
                             continue
                         # 收集所有会员order_id用于后续UPDATE
                         file_ids = df['order_id'].dropna().astype(str).unique()
@@ -208,7 +206,8 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                             total_inserted += count
                             existing_ids.update(member_only['order_id'].dropna().astype(str))
                             print(f"    会员写入: {count:,} 行")
-                        del df; gc.collect()
+                        del df
+                        gc.collect()
                     except Exception as e:
                         print(f"    错误: {e}")
                         continue
@@ -337,7 +336,8 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     print("=" * 60)
 
     # 强制 GC 立即释放 DuckDB 文件锁，避免 ETL 完成后后端仍被阻塞
-    import gc as _gc; _gc.collect()
+    import gc as _gc
+    _gc.collect()
 
 
 def _mark_all_files_processed():
@@ -665,7 +665,7 @@ def refresh_visitor_data():
     # 找最新的 xlsx 文件
     xlsx_files = sorted(VISITOR_DATA_SOURCE.glob("*.xlsx"), key=lambda f: f.stat().st_mtime, reverse=True)
     if not xlsx_files:
-        print(f"  目录中无 xlsx 文件")
+        print("  目录中无 xlsx 文件")
         return
 
     latest = xlsx_files[0]

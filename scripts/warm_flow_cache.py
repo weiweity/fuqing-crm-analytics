@@ -7,7 +7,6 @@ RFM Flow 缓存预热脚本
 用法: PYTHONPATH="." python scripts/warm_flow_cache.py
 """
 import sys
-import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,7 +16,6 @@ from backend.services.rfm._shared import (
     _flow_cache_key,
     _get_cached_flow,
 )
-from backend.db.connection import get_connection
 from backend.services.rfm.r_flow import get_rfm_r_flow
 from backend.services.rfm.f_flow import get_rfm_f_flow
 from backend.services.rfm.m_flow import get_rfm_m_flow

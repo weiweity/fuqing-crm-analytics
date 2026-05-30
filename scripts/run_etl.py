@@ -22,30 +22,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # 向后兼容：从 scripts.etl 导入所有公共 API
 # 其他脚本仍然可以 from scripts.run_etl import xxx
-from scripts.etl.config import (
-    COLUMN_MAPPING, SPU_COLUMNS, TAOKE_COL,
-    _ETL_SOURCE_STATS,
-)
-from scripts.etl.sources import (
-    load_spu_mapping, load_channel_rules,
-    load_taoke_order_ids, load_live_order_ids, load_taoke_product_rules,
-)
-from scripts.etl.ingest import (
-    load_data_files, rename_columns, parse_date,
-)
-from scripts.etl.transform import match_channel, clean_data
-from scripts.etl.load import (
-    init_database, write_to_duckdb, upsert_to_duckdb,
-    filter_rolling_window, get_db_max_pay_time,
-    calculate_daily_metrics, ensure_database_schema,
-)
-from scripts.etl.pipeline import (
-    run_full_etl, update_taoke_channel,
-    refresh_visitor_data, refresh_campaign_schedule,
-)
-from scripts.etl.cli import (
-    backup_and_update_orders, rescan_channel, rescan_spu_mapping,
-)
 
 if __name__ == '__main__':
     from scripts.etl.cli import main

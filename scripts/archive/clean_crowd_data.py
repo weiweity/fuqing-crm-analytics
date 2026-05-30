@@ -581,7 +581,7 @@ def main() -> int:
         print(f"     • {g['group_cn']} ({g['group_en']}): {len(g['subgroups'])} 个细分属性")
 
     # ── 清洗 ──
-    print(f"\n🧹 执行清洗...")
+    print("\n🧹 执行清洗...")
     if args.since:
         print(f"   增量过滤: 只保留 {args.since} 及之后的数据")
 
@@ -589,7 +589,7 @@ def main() -> int:
     print(f"   清洗后: {len(df_clean)} 条记录")
 
     # ── 校验 ──
-    print(f"\n✅ 数据质量校验...")
+    print("\n✅ 数据质量校验...")
     report = validate_data(df_clean)
     for check_name, result in report["checks"].items():
         icon = "✓" if result["status"] in ("PASS", "INFO") else "⚠" if result["status"] == "WARNING" else "✗"
@@ -598,7 +598,7 @@ def main() -> int:
             print(f"      范围: [{result['min']}, {result['max']}]")
 
     if report["overall_status"] != "PASS":
-        print(f"\n[WARNING] 数据质量校验发现异常，请检查上方明细")
+        print("\n[WARNING] 数据质量校验发现异常，请检查上方明细")
 
     # ── 归库 ──
     print(f"\n💾 归库: {args.output} (mode={args.mode})")

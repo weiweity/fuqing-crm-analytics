@@ -1,7 +1,6 @@
 """health/rfm_analysis 集成测试"""
 import sys
 from pathlib import Path
-import datetime
 import pytest
 
 PROJECT_ROOT = Path(__file__).parent.parent

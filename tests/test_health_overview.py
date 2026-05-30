@@ -2,7 +2,6 @@
 import sys
 from pathlib import Path
 from datetime import date, timedelta
-from unittest.mock import patch
 import pytest
 
 PROJECT_ROOT = Path(__file__).parent.parent

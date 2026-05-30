@@ -1,24 +1,20 @@
 """ETL CLI 入口
 命令行参数解析、子命令分发。
 """
-import gc
 import sys
 import argparse
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from scripts.etl.config import (
-    DUCKDB_PATH, COLUMN_MAPPING, SPU_COLUMNS, TAOKE_COL,
-    _ETL_SOURCE_STATS,
+    DUCKDB_PATH, PROCESSED_DATA_DIR, _ETL_SOURCE_STATS,
 )
 
 from scripts.etl.sources import (
     load_spu_mapping, load_channel_rules,
     load_taoke_order_ids, load_live_order_ids, load_taoke_product_rules,
 )
-from scripts.etl.ingest import load_data_files
-from scripts.etl.transform import match_channel, clean_data
-from scripts.etl.load import upsert_to_duckdb
+from scripts.etl.transform import match_channel
 from scripts.etl.pipeline import (
     run_full_etl, update_taoke_channel,
     refresh_visitor_data, refresh_campaign_schedule,
@@ -56,7 +52,6 @@ def backup_and_update_orders(
         backup_path_str = str(backup_path).replace("'", "''")
 
         if filter_condition and filter_params:
-            placeholders = ', '.join(['?' for _ in filter_params])
             conn.execute(f"""
                 COPY (SELECT * FROM orders WHERE {filter_condition})
                 TO '{backup_path_str}' (FORMAT PARQUET)
@@ -111,7 +106,7 @@ def rescan_channel(since: str = None, dry_run: bool = True):
     taoke_product_rules = load_taoke_product_rules()
 
     # Step 2: 从 DuckDB 读取订单
-    print(f"\n读取 DuckDB 订单...")
+    print("\n读取 DuckDB 订单...")
     conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     try:
         if since:
@@ -136,7 +131,7 @@ def rescan_channel(since: str = None, dry_run: bool = True):
         return
 
     # Step 3: 重新匹配渠道
-    print(f"\n执行渠道匹配...")
+    print("\n执行渠道匹配...")
     orders_df['channel'] = '其他'  # 重置为漏斗起点
 
     matched_df = match_channel(
@@ -161,7 +156,7 @@ def rescan_channel(since: str = None, dry_run: bool = True):
     print(f"  channel 有变化: {len(changed_df):,}")
 
     if not changed_df.empty:
-        print(f"\n  变更明细:")
+        print("\n  变更明细:")
         change_summary = changed_df.groupby(['old_channel', 'new_channel']).size().reset_index(name='count')
         for _, row in change_summary.iterrows():
             old = row['old_channel'] or '(空)'
@@ -176,10 +171,10 @@ def rescan_channel(since: str = None, dry_run: bool = True):
         print("  如需写入，请添加 --apply 参数")
     else:
         if changed_df.empty:
-            print(f"\n  无需更新，退出")
+            print("\n  无需更新，退出")
             return
 
-        print(f"\n写入 DuckDB...")
+        print("\n写入 DuckDB...")
         backup_and_update_orders(
             df=changed_df,
             update_columns={'channel': 'new_channel'},
@@ -208,7 +203,6 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
       python run_etl.py --rescan-spu --dry-run    # 自动检测 hash 不一致
       python run_etl.py --rescan-spu --apply       # 自动检测并修复
     """
-    from datetime import datetime
 
     print(f"\n{'='*60}")
     print("SPU 重匹配")
@@ -243,11 +237,8 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
             """, product_ids).fetchdf()
         else:
             # 自动检测模式：找出 spu_hash 不一致的订单
-            print(f"  模式: 自动检测 spu_hash 不一致")
+            print("  模式: 自动检测 spu_hash 不一致")
             print(f"  状态: {'预览 (dry-run)' if dry_run else '执行写入 (apply)'}")
-
-            # 构建当前 SPU 映射的 hash 查找表
-            current_hashes = spu_df.set_index('spu_hash')['product_id'].to_dict() if 'spu_hash' in spu_df.columns else {}
 
             # 找出 orders 中 spu_hash 不在当前映射表中的订单
             orders_df = conn.execute("""
@@ -271,7 +262,7 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
                 if not orders_df.empty:
                     print(f"  发现 {len(orders_df):,} 条无 spu_hash 的旧订单")
                 else:
-                    print(f"  所有订单的 spu_hash 均一致，无需重匹配")
+                    print("  所有订单的 spu_hash 均一致，无需重匹配")
                     return
             else:
                 product_ids = orders_df['product_id'].unique().tolist()
@@ -285,7 +276,7 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
         return
 
     # Step 4: SPU 时间窗口匹配（复用 clean_data 中的逻辑）
-    print(f"\n执行 SPU 时间窗口匹配...")
+    print("\n执行 SPU 时间窗口匹配...")
     spu_cols = ['product_id', 'spu_category', 'spu_type', 'spu_tier',
                 'spu_product_class', 'spu_product_subclass', 'spu_cosmetic',
                 'spu_spec', 'spu_hash', 'spu_start_date', 'spu_end_date']
@@ -348,7 +339,7 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
     print(f"  spu_type 有变化: {len(changed_df):,}")
 
     if not changed_df.empty:
-        print(f"\n  变更明细:")
+        print("\n  变更明细:")
         change_summary = changed_df.groupby(['old_spu_type', 'new_spu_type']).size().reset_index(name='count')
         for _, row in change_summary.iterrows():
             old = row['old_spu_type'] or '(空)'
@@ -357,7 +348,7 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
 
     # Step 6: 对变更订单重匹配渠道（复用 match_channel 逻辑）
     if not changed_df.empty:
-        print(f"\n对变更订单重新匹配渠道...")
+        print("\n对变更订单重新匹配渠道...")
         # 构造 match_channel 需要的 DataFrame
         channel_df = changed_df.copy()
         channel_df['spu_type'] = channel_df['new_spu_type']
@@ -389,10 +380,10 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
         print("  如需写入，请添加 --apply 参数")
     else:
         if changed_df.empty:
-            print(f"\n  无需更新，退出")
+            print("\n  无需更新，退出")
             return
 
-        print(f"\n写入 DuckDB...")
+        print("\n写入 DuckDB...")
         backup_and_update_orders(
             df=channel_df,
             update_columns={'spu_type': 'new_spu_type', 'spu_hash': 'spu_hash', 'channel': 'channel'},
@@ -569,11 +560,11 @@ def main():
         sys.exit(0)
 
     if args.full:
-        mode = 'full'
+        _mode = 'full'
     elif args.inc:
-        mode = 'inc'
+        _mode = 'inc'
     else:
-        mode = 'auto'
+        _mode = 'auto'
 
 
 if __name__ == '__main__':

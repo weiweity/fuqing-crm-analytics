@@ -115,8 +115,6 @@ class TestUpsertDeduplication:
 
     def test_refresh_df_deduplication(self):
         """refresh_df 中 (order_id, sub_order_id) 重复时保留最后一行"""
-        import tempfile
-        import duckdb
 
         # 构造有重复的数据
         df_refresh = pd.DataFrame({
@@ -134,7 +132,6 @@ class TestUpsertDeduplication:
 
     def test_insert_no_conflict_after_dedup(self):
         """去重后 INSERT 不应触发主键冲突"""
-        import tempfile
         import duckdb
 
         with tempfile.TemporaryDirectory() as tmpdir:

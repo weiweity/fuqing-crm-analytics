@@ -7,10 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from scripts.etl.config import (
-    COLUMN_MAPPING, SPU_COLUMNS, SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE,
-    PROCESSED_DATA_DIR, PARQUET_DATA_DIR,
-    _get_processed_files_path, _load_processed_files, _save_processed_files,
-    _get_file_hash,
+    COLUMN_MAPPING, PARQUET_DATA_DIR,
+    _load_processed_files, _get_file_hash,
 )
 
 import pandas as pd
@@ -51,7 +49,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     print(f"路径: {data_source}")
 
     if not data_source.exists():
-        print(f"  目录不存在!")
+        print("  目录不存在!")
         return pd.DataFrame()
 
     # 初始化变量（避免全量模式跳过Parquet时UnboundLocalError）
@@ -94,7 +92,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
             processed_files = _load_processed_files(data_type)
             new_files = [f for f in pq_files if _file_changed(f, processed_files)]
             if not new_files:
-                print(f"  [Parquet 缓存] 无新增/变更 parquet 文件，继续检查 xlsx 原始文件")
+                print("  [Parquet 缓存] 无新增/变更 parquet 文件，继续检查 xlsx 原始文件")
                 should_read_parquet = False
             else:
                 # FIX(2026-04-29): 检查xlsx源是否有新文件，防止parquet缓存过期导致新xlsx被跳过
@@ -146,7 +144,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                 # parquet 读取全部失败，或全量模式继续走 xlsx fallback
 
     # ———— Fallback：读 xlsx（支持文件级增量，含 mtime 检测）————
-    print(f"  [xlsx fallback] 读取原始文件")
+    print("  [xlsx fallback] 读取原始文件")
     files = list(data_source.rglob("*.xlsx"))
     print(f"  找到 {len(files)} 个文件")
 
@@ -227,7 +225,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
         print(f"  数据合计: {len(combined)} 行")
         return combined
     else:
-        print(f"  无有效数据")
+        print("  无有效数据")
         return pd.DataFrame()
 
 
