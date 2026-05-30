@@ -51,21 +51,25 @@ def fill_parquet_cache(data_source, data_type, force=False):
     for i, f in enumerate(xlsx_files):
         pq_path = pq_dir / f"{f.stem}.parquet"
         key = str(f.relative_to(data_source))
+        file_mtime = f.stat().st_mtime
+        current_hash = None  # 延迟计算，避免重复读取文件
 
         # 增量检测：mtime + hash（与 ingest.py _file_changed() 逻辑一致）
+        # 如果 parquet 文件不存在，必须重新生成
         if not force and pq_path.exists():
-            mtime = f.stat().st_mtime
             if key in processed_files:
                 rec = processed_files[key]
                 old_mtime = rec.get('mtime', 0) if isinstance(rec, dict) else rec
-                if mtime <= old_mtime:
+                if file_mtime <= old_mtime:
                     skipped += 1
                     continue
                 # mtime 变了，算 hash 确认内容是否真的变了
                 old_hash = rec.get('hash', '') if isinstance(rec, dict) else ''
-                if old_hash and _get_file_hash(f) == old_hash:
-                    skipped += 1
-                    continue
+                if old_hash:
+                    current_hash = _get_file_hash(f)
+                    if current_hash == old_hash:
+                        skipped += 1
+                        continue
 
         try:
             # 读取 + 预处理（与 ingest.py 第 180-200 行一致）
@@ -89,10 +93,12 @@ def fill_parquet_cache(data_source, data_type, force=False):
             df.to_parquet(tmp_path, index=False)
             os.rename(tmp_path, pq_path)
 
-            # 记录 processed_files 更新（与 ingest.py 行为一致）
+            # 记录 processed_files 更新（缓存 hash 避免重复计算）
+            if current_hash is None:
+                current_hash = _get_file_hash(f)
             processed_updates[key] = {
-                'mtime': f.stat().st_mtime,
-                'hash': _get_file_hash(f)
+                'mtime': file_mtime,
+                'hash': current_hash
             }
 
             converted += 1
