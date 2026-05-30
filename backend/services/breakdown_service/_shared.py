@@ -85,15 +85,25 @@ def _get_default_ly_dates(start: str, end: str) -> tuple:
     return _format_date(ly_start), _format_date(ly_end)
 
 
-def _r_interval_sql(date_col: str) -> str:
-    """生成R区间CASE WHEN SQL（cutoff_date 用参数化传入）"""
+def _r_interval_sql(date_col: str, cutoff_date: str) -> str:
+    """
+    生成R区间CASE WHEN SQL。
+
+    cutoff_date 通过 Python strftime 嵌入为字符串字面量，格式为 'YYYY-MM-DD'。
+    DATEDIFF('day', col, '2025-06-01') 是 DuckDB 合法语法。
+    数值比较（<= 30/90/180/365/730）无注入风险。
+
+    安全说明：cutoff_date 来自 API 层 Pydantic 校验（YYYY-MM-DD 格式，非用户原始
+    输入），因此无需参数化即可安全嵌入字面量。若未来此函数接受非校验来源的日期参数，
+    必须改回参数化查询。
+    """
     return f"""
         CASE
-            WHEN DATEDIFF('day', {date_col}, DATE ?) <= 30 THEN '近1个月已购客'
-            WHEN DATEDIFF('day', {date_col}, DATE ?) <= 90 THEN '近2-3个月已购客'
-            WHEN DATEDIFF('day', {date_col}, DATE ?) <= 180 THEN '近4-6月已购客'
-            WHEN DATEDIFF('day', {date_col}, DATE ?) <= 365 THEN '近7-12个月已购客'
-            WHEN DATEDIFF('day', {date_col}, DATE ?) <= 730 THEN '近13-24个月已购客'
+            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 30 THEN '近1个月已购客'
+            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 90 THEN '近2-3个月已购客'
+            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 180 THEN '近4-6月已购客'
+            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 365 THEN '近7-12个月已购客'
+            WHEN DATEDIFF('day', {date_col}, '{cutoff_date}') <= 730 THEN '近13-24个月已购客'
             ELSE '2年外已购客'
         END
     """.strip()
@@ -110,9 +120,9 @@ def _get_r_interval_current_distribution(
     以 activity_start 为截止日，计算每个用户的 recency，
     按6档R区间 + F>1/F=1 分组统计。
     """
-    r_case = _r_interval_sql("cu.last_pay_time")
-    # 动态构造 INTERVAL 表达式（数值直接嵌入，无注入风险）
+    cutoff_date = activity_start
     year_before = (datetime.strptime(activity_start, "%Y-%m-%d") - relativedelta(years=1)).strftime("%Y-%m-%d")
+    r_case = _r_interval_sql("cu.last_pay_time", cutoff_date)
 
     sql = f"""
     WITH current_users AS (
@@ -131,8 +141,8 @@ def _get_r_interval_current_distribution(
             user_id,
             COUNT(*) AS f_count
         FROM orders
-        WHERE pay_time >= DATE ? - INTERVAL '365 days'
-          AND pay_time < DATE ?
+        WHERE pay_time >= DATE '{year_before}'
+          AND pay_time < ?
           AND {_VALID_BASE}
           AND user_id IS NOT NULL
         GROUP BY user_id
@@ -154,9 +164,8 @@ def _get_r_interval_current_distribution(
              CASE WHEN f_count > 1 THEN 'F>1' ELSE 'F=1' END
     ORDER BY r_interval, f_segment
     """
-    # params: current_users.pay_time <, user_freq.date_range_start, user_freq.pay_time <, r_case(×5)
-    params = [activity_start, year_before, activity_start,
-              activity_start, activity_start, activity_start, activity_start, activity_start]
+    # params: current_users.pay_time <, user_freq.pay_time <
+    params = [activity_start, activity_start]
     result = conn.execute(sql, params).fetchall()
     cols = [d[0] for d in conn.description]
     return [dict(zip(cols, row)) for row in result]
@@ -172,8 +181,9 @@ def _get_ly_repurchase_by_r_interval(
     以 ly_start 为截止日，计算去年活动期开始时各用户的R区间，
     然后统计这些用户在 ly_start~ly_end 期间的回购情况。
     """
-    r_case = _r_interval_sql("lus.last_pay_before_ly")
+    cutoff_date = ly_start
     ly_start_1y = (datetime.strptime(ly_start, "%Y-%m-%d") - relativedelta(years=1)).strftime("%Y-%m-%d")
+    r_case = _r_interval_sql("lus.last_pay_before_ly", cutoff_date)
 
     sql = f"""
     WITH ly_user_status AS (
@@ -192,8 +202,8 @@ def _get_ly_repurchase_by_r_interval(
             user_id,
             COUNT(*) AS f_count_ly
         FROM orders
-        WHERE pay_time >= DATE ? - INTERVAL '365 days'
-          AND pay_time < DATE ?
+        WHERE pay_time >= DATE '{ly_start_1y}'
+          AND pay_time < ?
           AND {_VALID_BASE}
           AND user_id IS NOT NULL
         GROUP BY user_id
@@ -250,11 +260,9 @@ def _get_ly_repurchase_by_r_interval(
     FROM ly_repurchase_stats
     ORDER BY r_interval, f_segment
     """
-    # params: ly_user_status.pay_time <, ly_user_freq.date_range_start, ly_user_freq.pay_time <,
-    #         ly_purchased BETWEEN(×2), ly_purchase_amount BETWEEN(×2), r_case(×5)
-    params = [ly_start, ly_start_1y, ly_start,
-              ly_start, ly_end, ly_start, ly_end,
-              ly_start, ly_start, ly_start, ly_start, ly_start]
+    # params: ly_user_status.pay_time <, ly_user_freq.pay_time <,
+    #         ly_purchased BETWEEN(×2), ly_purchase_amount BETWEEN(×2)
+    params = [ly_start, ly_start, ly_start, ly_end, ly_start, ly_end]
     result = conn.execute(sql, params).fetchall()
     cols = [d[0] for d in conn.description]
     return [dict(zip(cols, row)) for row in result]
@@ -286,15 +294,15 @@ def _get_new_customer_by_channel(
         WHERE o.pay_time BETWEEN ? AND ?
           AND {_VALID_BASE_T}
           AND o.user_id IS NOT NULL
-          AND ufp.first_pay_date >= DATE ?
-          AND ufp.first_pay_date <= DATE ?
+          AND ufp.first_pay_date >= DATE '{ly_start}'
+          AND ufp.first_pay_date <= DATE '{ly_end}'
         GROUP BY o.channel
     )
     SELECT * FROM new_customers
     WHERE new_users > 0
     ORDER BY new_gmv DESC
     """
-    params = [ly_start, ly_end_full, ly_start, ly_end]
+    params = [ly_start, ly_end_full]
     result = conn.execute(sql, params).fetchall()
     cols = [d[0] for d in conn.description]
     return [dict(zip(cols, row)) for row in result]
