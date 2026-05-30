@@ -183,13 +183,30 @@ class TestEdgeCases:
         def empty_db_factory():
             # 每次调用创建独立的 :memory: 数据库，避免 DuckDB catalog 共享
             c = duckdb.connect(database=":memory:")
+            # 使用完整 42 列 schema（与 conftest.py 保持一致），避免漏列导致查询失败
             c.execute("""
                 CREATE TABLE orders (
-                    order_id VARCHAR, sub_order_id VARCHAR, user_id VARCHAR,
-                    pay_time TIMESTAMP, actual_amount DOUBLE, is_refund BOOLEAN,
-                    order_status VARCHAR, is_goujinjin BOOLEAN, channel VARCHAR,
-                    is_member BOOLEAN, year INTEGER, month INTEGER,
-                    refund_status VARCHAR, refund_amount DOUBLE
+                    order_id             VARCHAR, sub_order_id         VARCHAR,
+                    user_id              VARCHAR, user_nickname        VARCHAR,
+                    order_time           TIMESTAMP, pay_time           TIMESTAMP,
+                    ship_time            TIMESTAMP, order_type         VARCHAR,
+                    order_status         VARCHAR, product_id          VARCHAR,
+                    merchant_code        VARCHAR, product_title       VARCHAR,
+                    sku_id               VARCHAR, sku_code            VARCHAR,
+                    sku_name             VARCHAR, quantity            INTEGER,
+                    amount               DOUBLE, refund_status        VARCHAR,
+                    refund_amount        DOUBLE, actual_amount       DOUBLE,
+                    province             VARCHAR, city                VARCHAR,
+                    influencer_name      VARCHAR, influencer_id      VARCHAR,
+                    live_room_id        VARCHAR, video_id           VARCHAR,
+                    traffic_source       VARCHAR, traffic_type        VARCHAR,
+                    seller_note          VARCHAR, year               INTEGER,
+                    month                INTEGER, is_member           BOOLEAN,
+                    spu_category        VARCHAR, spu_type           VARCHAR,
+                    spu_tier            VARCHAR, spu_product_class  VARCHAR,
+                    spu_product_subclass VARCHAR, spu_cosmetic      VARCHAR,
+                    spu_spec            VARCHAR, channel            VARCHAR,
+                    is_goujinjin        BOOLEAN, is_refund          BOOLEAN
                 )
             """)
             c.execute("""

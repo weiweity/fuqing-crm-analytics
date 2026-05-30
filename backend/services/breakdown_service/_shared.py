@@ -92,6 +92,10 @@ def _r_interval_sql(date_col: str, cutoff_date: str) -> str:
     cutoff_date 通过 Python strftime 嵌入为字符串字面量，格式为 'YYYY-MM-DD'。
     DATEDIFF('day', col, '2025-06-01') 是 DuckDB 合法语法。
     数值比较（<= 30/90/180/365/730）无注入风险。
+
+    安全说明：cutoff_date 来自 API 层 Pydantic 校验（YYYY-MM-DD 格式，非用户原始
+    输入），因此无需参数化即可安全嵌入字面量。若未来此函数接受非校验来源的日期参数，
+    必须改回参数化查询。
     """
     return f"""
         CASE
