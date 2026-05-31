@@ -199,7 +199,7 @@ def run_flow_period(
     ) = _build_channel_filter(channel, exclude_channels)
 
     base_params = [start_dt, end_dt] + base_extra
-    hist_all_params = [cutoff_dt, cutoff_dt]
+    hist_all_params = [cutoff_dt, cutoff_dt] + hist_same_extra  # hist_all 也需要 exclude
     hist_same_params = [cutoff_dt, cutoff_dt] + hist_same_extra
 
     full_params = base_params + hist_all_params + hist_same_params
