@@ -69,9 +69,20 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     else:
         pq_files = []
 
+    # FIX(2026-05-31): 构建 xlsx stem → 相对路径映射，使 Parquet 缓存 key 与 xlsx 一致
+    # Parquet 文件名 {stem}.parquet 对应 xlsx 文件 {relative_path}/{stem}.xlsx
+    # 使用 xlsx 的相对路径作为 key，确保 processed_files 中的 key 格式统一
+    _xlsx_stem_to_rel = {}
+    for _xf in data_source.rglob("*.xlsx"):
+        _xlsx_stem_to_rel[_xf.stem] = str(_xf.relative_to(data_source))
+
     def _file_changed(f, processed_files):
         """v2 格式：mtime 变了才计算 hash，避免每次 ETL 都读文件内容"""
-        key = str(f.relative_to(data_source)) if data_source in f.parents else f.name
+        # Parquet 文件使用对应 xlsx 的 key（保持一致性）
+        if f.suffix == '.parquet':
+            key = _xlsx_stem_to_rel.get(f.stem, f.name)
+        else:
+            key = str(f.relative_to(data_source)) if data_source in f.parents else f.name
         mtime = f.stat().st_mtime
         if key not in processed_files:
             return True
@@ -132,7 +143,9 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                     pq_updates = {}
                     if run_mode == 'incremental':
                         for f in pq_files:
-                            pq_updates[f.name] = {
+                            # 使用 xlsx 相对路径作为 key（与 _file_changed 一致）
+                            key = _xlsx_stem_to_rel.get(f.stem, f.name)
+                            pq_updates[key] = {
                                 'mtime': f.stat().st_mtime,
                                 'hash': _get_file_hash(f)
                             }

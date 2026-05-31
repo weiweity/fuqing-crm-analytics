@@ -7,8 +7,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from scripts.etl.config import (
-    DUCKDB_PATH, SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE,
+    DUCKDB_PATH, DUCKDB_MEMORY_LIMIT,
+    SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE,
     _load_processed_files, _save_processed_files,
+    _get_file_hash, PARQUET_DATA_DIR,
 )
 
 from scripts.etl.sources import (
@@ -27,6 +29,8 @@ from scripts.etl.load import (
 import pandas as pd
 import duckdb
 
+from backend.db.memory_monitor import check_memory
+
 def run_full_etl(mode='auto', window_days=30, force_continue=False):
     """
     完整 ETL 流程（滑动窗口增量模式）
@@ -40,7 +44,9 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     """
     print("=" * 60)
     print(f"芙清 CRM - 数据清洗 ETL v6 (滑动窗口: {window_days}天)")
+    print(f"内存限制: {DUCKDB_MEMORY_LIMIT}")
     print("=" * 60)
+    check_memory(label="ETL 启动")
 
     # Step 0: 确定模式（get_db_max_pay_time 有 lru_cache，重复调用无开销）
     cached_max_time = get_db_max_pay_time()
@@ -82,6 +88,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     taoke_order_ids = load_taoke_order_ids()
     live_order_ids = load_live_order_ids()
     taoke_product_rules = load_taoke_product_rules()  # 商品ID+时间范围补充淘客
+    check_memory(label="Step 1 参考数据加载完成")
 
     # 用会员 order_id 集合做 LEFT JOIN 语义标记
     # 增量模式：从 DuckDB 读取历史会员 order_id（避免只拿到新增会员数据）
@@ -93,7 +100,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
             return
         if member_df.empty:
             print("  增量模式：从 DuckDB 加载历史 member_order_ids...")
-            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
             try:
                 member_order_ids = set(conn.execute(
                     "SELECT DISTINCT order_id FROM orders WHERE is_member = TRUE"
@@ -114,7 +121,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
 
     if run_mode == 'full':
         # ===== 全量模式：逐文件处理，不累积DataFrame，彻底避免内存峰值 =====
-        conn = duckdb.connect(str(DUCKDB_PATH))
+        conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
         # FIX(2026-04-27): DuckDB大库执行TRUNCATE可能段错误(sigsegv)，改用DROP+重建
         conn.execute("DROP TABLE IF EXISTS orders")
         _create_orders_table(conn)
@@ -164,6 +171,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                     print(f"    错误: {e}")
                     continue
             print(f"  原始库写入: {total_inserted:,} 行")
+            check_memory(label="Step A 原始库写入完成")
 
             # --- Step B: 处理会员库（逐文件，避免内存峰值） ---
             # 注意：会员文件和店铺文件包含相同order_id，Step A已将所有订单以is_member=FALSE写入
@@ -338,29 +346,47 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     # 强制 GC 立即释放 DuckDB 文件锁，避免 ETL 完成后后端仍被阻塞
     import gc as _gc
     _gc.collect()
+    check_memory(label="ETL 完成")
 
 
 def _mark_all_files_processed():
     """
-    全量 ETL 完成后，将所有源文件标记为已处理（记录 mtime）。
+    全量 ETL 完成后，将所有源文件标记为已处理（记录 mtime + hash）。
     这样下次增量运行时不会重读这些历史文件（除非文件被修改过）。
     同时也处理"数据库已有数据但 processed_files 为空"的冷启动场景。
+
+    v2 格式：存储 {mtime, hash} dict，与 _file_changed 的检测逻辑一致。
+    同时标记 Parquet 缓存文件，避免增量运行时重复读取。
     """
     print("\n标记所有源文件为已处理...")
     for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
         if not data_source.exists():
             continue
         files = list(data_source.rglob("*.xlsx"))
-        # 用相对路径→mtime 作为唯一键
-        rel_paths = {str(f.relative_to(data_source)): f.stat().st_mtime for f in files}
-        _save_processed_files(data_type, rel_paths)
-        print(f"  {data_type}: 标记 {len(rel_paths)} 个文件为已处理")
+        # v2 格式：存储 {mtime, hash} dict（与 _file_changed 一致）
+        processed = {}
+        for f in files:
+            rel_path = str(f.relative_to(data_source))
+            processed[rel_path] = {
+                'mtime': f.stat().st_mtime,
+                'hash': _get_file_hash(f)
+            }
+        # 同时标记 Parquet 缓存文件（key = 文件名，与 _file_changed 一致）
+        pq_dir = PARQUET_DATA_DIR / data_type
+        if pq_dir.exists():
+            for f in pq_dir.glob("*.parquet"):
+                processed[f.name] = {
+                    'mtime': f.stat().st_mtime,
+                    'hash': _get_file_hash(f)
+                }
+        _save_processed_files(data_type, processed)
+        print(f"  {data_type}: 标记 {len(processed)} 个文件为已处理")
 
 
 def _rebuild_metrics():
     """重建指标表（全量模式）"""
     print("\n重建每日指标...")
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     conn.execute("DELETE FROM daily_metrics")
 
     conn.execute("""
@@ -413,7 +439,7 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
     date_list = sorted(all_dates)
     print(f"\n增量更新每日指标 ({len(date_list)} 个日期)...")
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     conn.execute("DELETE FROM daily_metrics WHERE date IN (SELECT unnest(?))", [date_list])
     conn.execute("""
         INSERT INTO daily_metrics
@@ -452,7 +478,7 @@ def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30):
     from datetime import datetime, timedelta
     print("\n维护 user_first_purchase 表...")
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     if mode == 'full':
         conn.execute("DROP TABLE IF EXISTS user_first_purchase")
@@ -535,7 +561,7 @@ def _build_user_recency_table(mode: str = 'full', window_days: int = 30):
     """构建 user_recency 表（全量/增量），用于 RFM flow 查询加速。"""
     from datetime import datetime, timedelta
     print("\n维护 user_recency 表...")
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     _VB = "is_goujinjin = FALSE AND order_status != '交易关闭'"
     if mode == 'full':
         conn.execute("DROP TABLE IF EXISTS user_recency")
@@ -571,7 +597,7 @@ def update_taoke_channel():
 
     taoke_ids = load_taoke_order_ids()
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     before = conn.execute(
         "SELECT COUNT(*) FROM orders WHERE channel = '淘客'"
@@ -699,7 +725,7 @@ def refresh_visitor_data():
 
     result = df[['date', 'visitors', 'new_members', 'member_join_rate']].copy()
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         # 确保表存在
         conn.execute("""
@@ -780,7 +806,7 @@ def refresh_campaign_schedule():
     df['conversion_end'] = pd.to_datetime(df['结束时间'], errors='coerce').dt.date
     df = df.dropna(subset=['conversion_start', 'conversion_end'])
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         # 创建表
         conn.execute("""

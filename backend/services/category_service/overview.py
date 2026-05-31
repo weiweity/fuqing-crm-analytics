@@ -51,13 +51,23 @@ def _compute_category_period(
     metric_type: str,
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
-    member_only: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
     """
-    计算单个周期的品类聚合数据
+    计算单个周期的品类聚合数据（含TTL合计行 + 会员专属指标）
 
-    Args:
-        member_only: 如果为 True,只统计 is_member=TRUE 的订单(会员专属口径)
+    使用 GROUPING SETS 一次查询同时返回：
+    - 各品类明细行  (GROUPING(category_name) = 0)
+    - TTL 合计行    (GROUPING(category_name) = 1, category_name = 'TTL')
+
+    会员指标通过条件聚合在同一条 SQL 中完成，不再需要 member_only 参数。
+
+    Returns:
+        {
+            "__ttl__": { ... },            # TTL 合计行
+            "品类A": { ... },              # 品类明细行
+            "品类B": { ... },
+            ...
+        }
     """
     level_col = SPU_LEVELS.get(level, "spu_type")
     valid_sql, _ = OrderFilters.gmv_base() if metric_type == "GMV" else OrderFilters.valid_order()
@@ -65,14 +75,10 @@ def _compute_category_period(
     excluded_cat_sql = _excluded_cat_filter(level_col)
     channel_sql = ""
     exclude_sql = ""
-    member_sql = "AND o.is_member = TRUE" if member_only else ""
     params = [cutoff, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
     if channel and channel != "全店":
-
         db_channels = [c for c in expand_channels([channel]) if c]
-
         if not db_channels:
-
             raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         if len(db_channels) == 1:
             channel_sql = "AND o.channel = ?"
@@ -104,34 +110,47 @@ def _compute_category_period(
           {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}
-          {member_sql}
     )
     SELECT
-        category_name,
+        CASE WHEN GROUPING(category_name) = 1 THEN 'TTL' ELSE category_name END AS category_name,
+        GROUPING(category_name) AS is_ttl,
         SUM(actual_amount) AS total_gsv,
         COUNT(DISTINCT user_id) AS total_users,
         SUM(CASE WHEN is_member THEN actual_amount ELSE 0 END) AS member_gsv,
+        COUNT(DISTINCT CASE WHEN is_member THEN user_id END) AS member_users,
         SUM(CASE WHEN is_new = 0 THEN actual_amount ELSE 0 END) AS old_gsv,
         COUNT(DISTINCT CASE WHEN is_new = 0 THEN user_id END) AS old_users,
         SUM(CASE WHEN is_new = 1 THEN actual_amount ELSE 0 END) AS new_gsv,
-        COUNT(DISTINCT CASE WHEN is_new = 1 THEN user_id END) AS new_users
+        COUNT(DISTINCT CASE WHEN is_new = 1 THEN user_id END) AS new_users,
+        SUM(CASE WHEN is_member AND is_new = 0 THEN actual_amount ELSE 0 END) AS member_old_gsv,
+        COUNT(DISTINCT CASE WHEN is_member AND is_new = 0 THEN user_id END) AS member_old_users,
+        SUM(CASE WHEN is_member AND is_new = 1 THEN actual_amount ELSE 0 END) AS member_new_gsv,
+        COUNT(DISTINCT CASE WHEN is_member AND is_new = 1 THEN user_id END) AS member_new_users
     FROM period_orders
-    GROUP BY category_name
-    ORDER BY total_gsv DESC
+    GROUP BY GROUPING SETS (category_name, ())
+    ORDER BY is_ttl, total_gsv DESC
     """
 
     result = conn.execute(sql, params).fetchall()
-    data = {}
+    data: Dict[str, Dict[str, Any]] = {}
     for row in result:
         name = row[0]
-        total_gsv = float(row[1] or 0)
-        total_users = int(row[2] or 0)
-        member_gsv = float(row[3] or 0)
-        old_gsv = float(row[4] or 0)
-        old_users = int(row[5] or 0)
-        new_gsv = float(row[6] or 0)
-        new_users = int(row[7] or 0)
-        data[name] = {
+        is_ttl = int(row[1])
+        total_gsv = float(row[2] or 0)
+        total_users = int(row[3] or 0)
+        member_gsv = float(row[4] or 0)
+        member_users = int(row[5] or 0)
+        old_gsv = float(row[6] or 0)
+        old_users = int(row[7] or 0)
+        new_gsv = float(row[8] or 0)
+        new_users = int(row[9] or 0)
+        member_old_gsv = float(row[10] or 0)
+        member_old_users = int(row[11] or 0)
+        member_new_gsv = float(row[12] or 0)
+        member_new_users = int(row[13] or 0)
+
+        # 全店口径指标
+        all_metrics = {
             "gsv": total_gsv,
             "users": total_users,
             "aus": total_gsv / total_users if total_users > 0 else 0.0,
@@ -146,6 +165,31 @@ def _compute_category_period(
             "new_aus": new_gsv / new_users if new_users > 0 else 0.0,
             "new_ratio": new_gsv / total_gsv if total_gsv > 0 else 0.0,
         }
+        # 会员专属口径指标（is_member=TRUE 过滤后的数据）
+        member_metrics = {
+            "gsv": member_gsv,
+            "users": member_users,
+            "aus": member_gsv / member_users if member_users > 0 else 0.0,
+            "member_gsv": member_gsv,
+            "member_ratio": member_gsv / total_gsv if total_gsv > 0 else 0.0,
+            "old_gsv": member_old_gsv,
+            "old_users": member_old_users,
+            "old_aus": member_old_gsv / member_old_users if member_old_users > 0 else 0.0,
+            "old_ratio": member_old_gsv / member_gsv if member_gsv > 0 else 0.0,
+            "new_gsv": member_new_gsv,
+            "new_users": member_new_users,
+            "new_aus": member_new_gsv / member_new_users if member_new_users > 0 else 0.0,
+            "new_ratio": member_new_gsv / member_gsv if member_gsv > 0 else 0.0,
+        }
+
+        entry = {
+            **all_metrics,
+            "is_ttl": is_ttl == 1,
+            "member_data": member_metrics,
+        }
+        key = "__ttl__" if is_ttl == 1 else name
+        data[key] = entry
+
     return data
 
 def get_category_overview(
@@ -181,12 +225,9 @@ def get_category_overview(
         comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split('-'))
         ly_cutoff = (date(comp_start_y, comp_start_m, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
 
+    # 仅需 2 次 SQL 查询（原来是 4 次），每次含 GROUPING SETS 返回品类行 + TTL 行 + 会员指标
     cur = _compute_category_period(conn, start_date, end_date, cutoff, level, metric_type, channel, exclude_channels)
     comp = _compute_category_period(conn, ly_start, ly_end, ly_cutoff, level, metric_type, channel, exclude_channels)
-
-    # P0-001: 会员专属口径(is_member=TRUE 过滤)
-    cur_m = _compute_category_period(conn, start_date, end_date, cutoff, level, metric_type, channel, exclude_channels, member_only=True)
-    comp_m = _compute_category_period(conn, ly_start, ly_end, ly_cutoff, level, metric_type, channel, exclude_channels, member_only=True)
 
 
     def _build_row(name: str, c: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:
@@ -235,6 +276,12 @@ def get_category_overview(
             "member_ratio_yoy": yoy_ratio(c.get("member_ratio", 0), p.get("member_ratio", 0)),
         }
 
+    # 分离 TTL 行和品类明细行；TTL 行由 SQL GROUPING SETS 直接返回
+    cur_ttl = cur.pop("__ttl__", {})
+    comp_ttl = comp.pop("__ttl__", {})
+    cur_mem_ttl_data = cur_ttl.get("member_data", {})
+    comp_mem_ttl_data = comp_ttl.get("member_data", {})
+
     all_names = sorted(set(cur.keys()) | set(comp.keys()), key=lambda x: (cur.get(x, {}).get("gsv", 0) + comp.get(x, {}).get("gsv", 0)), reverse=True)
 
     all_rows = []
@@ -243,9 +290,9 @@ def get_category_overview(
         c = cur.get(name, {})
         p = comp.get(name, {})
         all_rows.append(_build_row(name, c, p))
-        # P0-001: member_rows 使用会员专属口径(is_member=TRUE 过滤)
-        c_m = cur_m.get(name, {})
-        p_m = comp_m.get(name, {})
+        # P0-001: member_rows 使用会员专属口径（member_data 子字典）
+        c_m = c.get("member_data", {})
+        p_m = p.get("member_data", {})
         m_row = _build_row(name, c_m, p_m)
         # FIX: member_ratio 分母应为全店总GSV，而非会员专属口径的GSV
         total_gsv_all = c.get("gsv", 0)
@@ -261,77 +308,16 @@ def get_category_overview(
             )
         member_rows.append(m_row)
 
-    # ─── TTL 行计算 ────────────────────────────────────────────
-    # 全店 TTL
-    total_gsv = sum(c.get("gsv", 0) for c in cur.values())
-    total_old_gsv = sum(c.get("old_gsv", 0) for c in cur.values())
-    total_new_gsv = sum(c.get("new_gsv", 0) for c in cur.values())
-    total_users = sum(c.get("users", 0) for c in cur.values())
-    total_old_users = sum(c.get("old_users", 0) for c in cur.values())
-    total_new_users = sum(c.get("new_users", 0) for c in cur.values())
-    total_member_gsv = sum(c.get("member_gsv", 0) for c in cur.values())
+    # ─── TTL 行：直接从 SQL GROUPING SETS 结果中提取（不再 Python 求和） ────
+    all_ttl = _build_row("TTL", cur_ttl, comp_ttl)
 
-    # 去年全店 TTL
-    comp_total_gsv = sum(p.get("gsv", 0) for p in comp.values())
-    comp_total_old_gsv = sum(p.get("old_gsv", 0) for p in comp.values())
-    comp_total_new_gsv = sum(p.get("new_gsv", 0) for p in comp.values())
-    comp_total_users = sum(p.get("users", 0) for p in comp.values())
-    comp_total_old_users = sum(p.get("old_users", 0) for p in comp.values())
-    comp_total_new_users = sum(p.get("new_users", 0) for p in comp.values())
-    comp_total_member_gsv = sum(p.get("member_gsv", 0) for p in comp.values())
-
-    all_ttl = _build_row("TTL", {
-        "gsv": total_gsv,
-        "users": total_users,
-        "old_gsv": total_old_gsv,
-        "old_users": total_old_users,
-        "new_gsv": total_new_gsv,
-        "new_users": total_new_users,
-        "member_gsv": total_member_gsv,
-    }, {
-        "gsv": comp_total_gsv,
-        "users": comp_total_users,
-        "old_gsv": comp_total_old_gsv,
-        "old_users": comp_total_old_users,
-        "new_gsv": comp_total_new_gsv,
-        "new_users": comp_total_new_users,
-        "member_gsv": comp_total_member_gsv,
-    })
-
-    # P0-002: 会员 TTL(使用会员专属口径 cur_m/comp_m,users/old_users/new_users 必须来自会员数据)
-    mem_total_gsv = sum(c.get("gsv", 0) for c in cur_m.values())
-    mem_total_users = sum(c.get("users", 0) for c in cur_m.values())
-    mem_total_old_gsv = sum(c.get("old_gsv", 0) for c in cur_m.values())
-    mem_total_old_users = sum(c.get("old_users", 0) for c in cur_m.values())
-    mem_total_new_gsv = sum(c.get("new_gsv", 0) for c in cur_m.values())
-    mem_total_new_users = sum(c.get("new_users", 0) for c in cur_m.values())
-
-    mem_comp_total_gsv = sum(p.get("gsv", 0) for p in comp_m.values())
-    mem_comp_total_users = sum(p.get("users", 0) for p in comp_m.values())
-    mem_comp_total_old_gsv = sum(p.get("old_gsv", 0) for p in comp_m.values())
-    mem_comp_total_old_users = sum(p.get("old_users", 0) for p in comp_m.values())
-    mem_comp_total_new_gsv = sum(p.get("new_gsv", 0) for p in comp_m.values())
-    mem_comp_total_new_users = sum(p.get("new_users", 0) for p in comp_m.values())
-
-    # FIX: member_ttl 的 member_ratio 分母应为全店总GSV
-    member_ttl = _build_row("TTL", {
-        "gsv": mem_total_gsv,
-        "users": mem_total_users,
-        "old_gsv": mem_total_old_gsv,
-        "old_users": mem_total_old_users,
-        "new_gsv": mem_total_new_gsv,
-        "new_users": mem_total_new_users,
-        "member_gsv": total_member_gsv,
-    }, {
-        "gsv": mem_comp_total_gsv,
-        "users": mem_comp_total_users,
-        "old_gsv": mem_comp_total_old_gsv,
-        "old_users": mem_comp_total_old_users,
-        "new_gsv": mem_comp_total_new_gsv,
-        "new_users": mem_comp_total_new_users,
-        "member_gsv": comp_total_member_gsv,
-    })
+    # P0-002: 会员 TTL（使用 SQL 返回的会员专属指标）
+    member_ttl = _build_row("TTL", cur_mem_ttl_data, comp_mem_ttl_data)
     # 覆盖 member_ratio: 全店会员GSV / 全店总GSV
+    total_gsv = cur_ttl.get("gsv", 0)
+    total_member_gsv = cur_ttl.get("member_gsv", 0)
+    comp_total_gsv = comp_ttl.get("gsv", 0)
+    comp_total_member_gsv = comp_ttl.get("member_gsv", 0)
     if total_gsv > 0:
         member_ttl["member_ratio"] = round(total_member_gsv / total_gsv, 4)
     if comp_total_gsv > 0:

@@ -13,6 +13,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 class TestRFMRatioAnalysis:
     def test_returns_dict_with_required_keys(self, mock_orders_rfm_analysis, monkeypatch):
         monkeypatch.setattr("backend.db.connection.get_connection", mock_orders_rfm_analysis)
+        monkeypatch.setattr("backend.services.health.rfm_analysis.analysis._new_duckdb_conn", mock_orders_rfm_analysis)
 
         from backend.services.health.rfm_analysis import get_rfm_analysis
 
@@ -30,6 +31,7 @@ class TestRFMRatioAnalysis:
 
     def test_gsv_caliber_excludes_refund(self, mock_orders_rfm_analysis, monkeypatch):
         monkeypatch.setattr("backend.db.connection.get_connection", mock_orders_rfm_analysis)
+        monkeypatch.setattr("backend.services.health.rfm_analysis.analysis._new_duckdb_conn", mock_orders_rfm_analysis)
 
         from backend.services.health.rfm_analysis import get_rfm_analysis
 
@@ -55,6 +57,7 @@ class TestCacheRouting:
         from unittest.mock import patch
 
         monkeypatch.setattr("backend.db.connection.get_connection", mock_orders_rfm_analysis)
+        monkeypatch.setattr("backend.services.health.rfm_analysis.analysis._new_duckdb_conn", mock_orders_rfm_analysis)
 
         mock_date_instance = dt_module.date(2025, 6, 15)
 
@@ -74,6 +77,7 @@ class TestCacheRouting:
 
     def test_current_period_live_sql(self, mock_orders_rfm_analysis, monkeypatch):
         monkeypatch.setattr("backend.db.connection.get_connection", mock_orders_rfm_analysis)
+        monkeypatch.setattr("backend.services.health.rfm_analysis.analysis._new_duckdb_conn", mock_orders_rfm_analysis)
 
         from backend.services.health.rfm_analysis import get_rfm_analysis
 
@@ -115,6 +119,7 @@ class TestEdgeCases:
             return conn
 
         monkeypatch.setattr("backend.db.connection.get_connection", factory)
+        monkeypatch.setattr("backend.services.health.rfm_analysis.analysis._new_duckdb_conn", factory)
 
         from backend.services.health.rfm_analysis import get_rfm_analysis
 
@@ -133,6 +138,7 @@ class TestEdgeCases:
         """get_rfm_analysis 不对 metric_type 做 ValueError 校验，
         只在 SQL 层做条件过滤。传 INVALID 不会抛异常，但不会有任何数据。"""
         monkeypatch.setattr("backend.db.connection.get_connection", mock_orders_rfm_analysis)
+        monkeypatch.setattr("backend.services.health.rfm_analysis.analysis._new_duckdb_conn", mock_orders_rfm_analysis)
 
         from backend.services.health.rfm_analysis import get_rfm_analysis
 

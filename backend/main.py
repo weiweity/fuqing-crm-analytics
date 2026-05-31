@@ -27,9 +27,15 @@ from backend.services.exceptions import ServiceError, ValidationError, NotFoundE
 # ─────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    # 启动时启动内存监控守护线程
+    from backend.db.memory_monitor import start_memory_watchdog, check_memory
+    start_memory_watchdog(interval=60)
+    check_memory(label="应用启动")
     yield
-    # 关闭时释放全局 DuckDB 连接
+    # 关闭时停止内存监控并释放全局 DuckDB 连接
+    from backend.db.memory_monitor import stop_memory_watchdog
     from backend.db.connection import close_connection
+    stop_memory_watchdog()
     close_connection()
 
 

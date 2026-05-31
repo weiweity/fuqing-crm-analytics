@@ -12,10 +12,10 @@ from backend.services.rfm._flow_engine import run_flow_period, get_rfm_flow
 
 # ── M 维度配置 ──
 _M_SEGMENTATION_CTE = """
-    m_segmented_{alias} AS (
+    segmented_customers AS (
         SELECT
             user_id,
-            monetary,
+            channel_flag,
             is_member,
             CASE
                 WHEN monetary < 100 THEN '0-100元'
@@ -24,7 +24,7 @@ _M_SEGMENTATION_CTE = """
                 WHEN monetary < 1000 THEN '500-1000元'
                 ELSE '1000元以上'
             END AS m_segment
-        FROM hist_customers_{alias}
+        FROM hist_customers
     )
 """
 

@@ -15,6 +15,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+from backend.config import DUCKDB_MEMORY_LIMIT
+
 # 语义层统一口径：base有效条件不含 is_refund（由 override 表处理）
 _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 _VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
@@ -251,7 +253,7 @@ def refresh_status_override(
     print(f"源路径: {shop_source}")
     print("=" * 50)
 
-    conn = duckdb.connect(str(db_path))
+    conn = duckdb.connect(str(db_path), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     # 确保表存在
     create_override_table(conn)
@@ -345,7 +347,7 @@ def sync_override_to_orders(db_path: Path, window_days: int = 30) -> int:
     print(f"反向同步 override → orders (窗口: {window_days}天)")
     print("=" * 50)
 
-    conn = duckdb.connect(str(db_path))
+    conn = duckdb.connect(str(db_path), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         # 检查 override 表是否存在
         table_exists = conn.execute(
@@ -441,7 +443,7 @@ def rebuild_override_from_orders(db_path: Path):
     """
     print("\n从 orders 表重建状态覆盖表...")
 
-    conn = duckdb.connect(str(db_path))
+    conn = duckdb.connect(str(db_path), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     create_override_table(conn)
 
     # 清空

@@ -12,10 +12,10 @@ from backend.services.rfm._flow_engine import run_flow_period, get_rfm_flow
 
 # ── F 维度配置 ──
 _F_SEGMENTATION_CTE = """
-    f_segmented_{alias} AS (
+    segmented_customers AS (
         SELECT
             user_id,
-            frequency,
+            channel_flag,
             is_member,
             CASE
                 WHEN frequency = 1 THEN '1次购买'
@@ -24,7 +24,7 @@ _F_SEGMENTATION_CTE = """
                 WHEN frequency = 4 THEN '4次购买'
                 ELSE '5次及以上'
             END AS f_segment
-        FROM hist_customers_{alias}
+        FROM hist_customers
     )
 """
 

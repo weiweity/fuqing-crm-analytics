@@ -11,7 +11,7 @@ import logging
 import os
 import threading
 import duckdb
-from backend.config import DUCKDB_PATH
+from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,17 @@ class ThreadSafeConnection:
         return getattr(self._conn, name)
 
 
+def get_duckdb_config(**overrides) -> dict:
+    """获取 DuckDB 连接配置（含 memory_limit）。
+
+    所有 duckdb.connect() 调用应使用此函数获取 config，确保内存限制统一生效。
+    可通过 overrides 覆盖或追加配置项。
+    """
+    cfg = {"memory_limit": DUCKDB_MEMORY_LIMIT}
+    cfg.update(overrides)
+    return cfg
+
+
 def get_connection() -> ThreadSafeConnection:
     """获取全局共享的 DuckDB 连接（线程安全单例）"""
     global _conn
@@ -97,12 +108,12 @@ def get_connection() -> ThreadSafeConnection:
     with _lock:
         if _conn is not None:
             return ThreadSafeConnection(_conn)
+        cfg = get_duckdb_config()
         db_password = os.environ.get("DUCKDB_PASSWORD")
         if db_password:
-            _conn = duckdb.connect(str(DUCKDB_PATH), config={"password": db_password})
-        else:
-            _conn = duckdb.connect(str(DUCKDB_PATH))
-        logger.info("DuckDB 单例连接已创建: %s", DUCKDB_PATH)
+            cfg["password"] = db_password
+        _conn = duckdb.connect(str(DUCKDB_PATH), config=cfg)
+        logger.info("DuckDB 单例连接已创建: %s (memory_limit=%s)", DUCKDB_PATH, DUCKDB_MEMORY_LIMIT)
         return ThreadSafeConnection(_conn)
 
 

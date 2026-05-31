@@ -182,7 +182,7 @@ def run_flow_period(
         dimension: 维度名（"r"/"f"/"m"），用作 segment 列名前缀
         segment_order: 区间排序列表
         hist_extra_cols: 历史 CTE 额外聚合列，如 "COUNT(*) AS frequency" 或 ""
-        segmentation_cte: 分段 CTE 定义（含 {alias} 占位符）
+        segmentation_cte: 分段 CTE 定义（引用 hist_customers，输出 segmented_customers）
         channel: 渠道过滤
         metric_type: 指标类型（GSV/GMV）
         exclude_channels: 排除渠道列表
@@ -199,19 +199,14 @@ def run_flow_period(
     ) = _build_channel_filter(channel, exclude_channels)
 
     base_params = [start_dt, end_dt] + base_extra
-    hist_all_params = [cutoff_dt, cutoff_dt] + hist_same_extra  # hist_all 也需要 exclude
     hist_same_params = [cutoff_dt, cutoff_dt] + hist_same_extra
 
-    full_params = base_params + hist_all_params + hist_same_params
+    full_params = base_params + hist_same_params
 
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
 
     # 额外列的逗号前缀（有内容时加 ",\n            "）
     extra_prefix = f",\n            {hist_extra_cols}" if hist_extra_cols else ""
-
-    # 格式化 segmentation CTE（替换 {alias} 占位符）
-    seg_all = segmentation_cte.replace("{alias}", "all")
-    seg_same = segmentation_cte.replace("{alias}", "same")
 
     sql = f"""
     WITH
@@ -225,8 +220,8 @@ def run_flow_period(
           {channel_where_base}
           {exclude_where_base}
     ),
-    hist_customers_all AS (
-        SELECT
+    hist_customers AS (
+        SELECT 'all' AS channel_flag,
             user_id,
             DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days
             {extra_prefix},
@@ -237,9 +232,8 @@ def run_flow_period(
           {refund_where}
           {exclude_where_hist}
         GROUP BY user_id
-    ),
-    hist_customers_same AS (
-        SELECT
+        UNION ALL
+        SELECT 'same' AS channel_flag,
             user_id,
             DATEDIFF('day', MAX(pay_time)::DATE, ?::DATE) AS recency_days
             {extra_prefix},
@@ -252,14 +246,7 @@ def run_flow_period(
           {exclude_where_hist}
         GROUP BY user_id
     ),
-    {seg_all},
-    {seg_same},
-    member_segmented_all AS (
-        SELECT user_id, {seg_col} FROM {dimension}_segmented_all WHERE is_member = TRUE
-    ),
-    member_segmented_same AS (
-        SELECT user_id, {seg_col} FROM {dimension}_segmented_same WHERE is_member = TRUE
-    ),
+    {segmentation_cte},
     repurchase_users AS (
         SELECT DISTINCT user_id FROM base_orders
     ),
@@ -269,77 +256,34 @@ def run_flow_period(
         INNER JOIN repurchase_users rp ON bo.user_id = rp.user_id
         GROUP BY bo.user_id
     ),
-    segment_stats_all AS (
+    stats AS (
         SELECT
-            s.{seg_col},
+            s.channel_flag,
+            s.is_member,
+            s.{seg_col} AS segment_val,
             COUNT(DISTINCT s.user_id) AS hist_users,
             COUNT(DISTINCT rp.user_id) AS repurchase_users,
             COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM {dimension}_segmented_all s
+        FROM segmented_customers s
         LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
         LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
-        GROUP BY s.{seg_col}
-    ),
-    segment_stats_same AS (
-        SELECT
-            s.{seg_col},
-            COUNT(DISTINCT s.user_id) AS hist_users,
-            COUNT(DISTINCT rp.user_id) AS repurchase_users,
-            COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM {dimension}_segmented_same s
-        LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
-        LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
-        GROUP BY s.{seg_col}
-    ),
-    member_stats_all AS (
-        SELECT
-            s.{seg_col},
-            COUNT(DISTINCT s.user_id) AS hist_users,
-            COUNT(DISTINCT rp.user_id) AS repurchase_users,
-            COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM member_segmented_all s
-        LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
-        LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
-        GROUP BY s.{seg_col}
-    ),
-    member_stats_same AS (
-        SELECT
-            s.{seg_col},
-            COUNT(DISTINCT s.user_id) AS hist_users,
-            COUNT(DISTINCT rp.user_id) AS repurchase_users,
-            COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM member_segmented_same s
-        LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
-        LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
-        GROUP BY s.{seg_col}
-    ),
-    ttl_stats_all AS (
-        SELECT '已购客TTL' AS {seg_col}, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM segment_stats_all
-    ),
-    ttl_stats_same AS (
-        SELECT '已购客TTL' AS {seg_col}, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM segment_stats_same
-    ),
-    member_ttl_stats_all AS (
-        SELECT '已购客TTL' AS {seg_col}, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM member_stats_all
-    ),
-    member_ttl_stats_same AS (
-        SELECT '已购客TTL' AS {seg_col}, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM member_stats_same
+        GROUP BY GROUPING SETS (
+            (s.channel_flag, s.is_member, s.{seg_col}),
+            (s.channel_flag, s.is_member)
+        )
     )
-    SELECT 'all' AS mode, {seg_col}, hist_users, repurchase_users, repurchase_gsv FROM (
-        SELECT * FROM segment_stats_all UNION ALL SELECT * FROM ttl_stats_all
-    )
-    UNION ALL
-    SELECT 'same' AS mode, {seg_col}, hist_users, repurchase_users, repurchase_gsv FROM (
-        SELECT * FROM segment_stats_same UNION ALL SELECT * FROM ttl_stats_same
-    )
-    UNION ALL
-    SELECT 'member_all' AS mode, {seg_col}, hist_users, repurchase_users, repurchase_gsv FROM (
-        SELECT * FROM member_stats_all UNION ALL SELECT * FROM member_ttl_stats_all
-    )
-    UNION ALL
-    SELECT 'member_same' AS mode, {seg_col}, hist_users, repurchase_users, repurchase_gsv FROM (
-        SELECT * FROM member_stats_same UNION ALL SELECT * FROM member_ttl_stats_same
-    )
+    SELECT
+        CASE
+            WHEN channel_flag = 'all'  AND is_member = FALSE THEN 'all'
+            WHEN channel_flag = 'same' AND is_member = FALSE THEN 'same'
+            WHEN channel_flag = 'all'  AND is_member = TRUE  THEN 'member_all'
+            WHEN channel_flag = 'same' AND is_member = TRUE  THEN 'member_same'
+        END AS mode,
+        CASE WHEN GROUPING(segment_val) = 1 THEN '已购客TTL' ELSE segment_val END AS {seg_col},
+        hist_users,
+        repurchase_users,
+        repurchase_gsv
+    FROM stats
     """
 
     rows = conn.execute(sql, full_params).fetchall()

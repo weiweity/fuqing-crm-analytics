@@ -12,10 +12,10 @@ from backend.services.rfm._flow_engine import run_flow_period, get_rfm_flow
 
 # ── R 维度配置 ──
 _R_SEGMENTATION_CTE = """
-    r_segmented_{alias} AS (
+    segmented_customers AS (
         SELECT
             user_id,
-            recency_days,
+            channel_flag,
             is_member,
             CASE
                 WHEN recency_days BETWEEN 0 AND 30 THEN '近1个月已购客'
@@ -25,7 +25,7 @@ _R_SEGMENTATION_CTE = """
                 WHEN recency_days BETWEEN 366 AND 730 THEN '近13个月-近24个月已购客'
                 WHEN recency_days > 730 THEN '2年外已购客'
             END AS r_segment
-        FROM hist_customers_{alias}
+        FROM hist_customers
     )
 """
 

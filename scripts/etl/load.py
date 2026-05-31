@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from scripts.etl.config import DUCKDB_PATH, PROCESSED_DATA_DIR
+from scripts.etl.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, PROCESSED_DATA_DIR
 
 import pandas as pd
 import duckdb
@@ -17,7 +17,7 @@ def init_database():
     """初始化数据库表结构"""
     print("初始化数据库...")
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     # 删除旧表并重建
     conn.execute("DROP TABLE IF EXISTS orders")
@@ -105,7 +105,7 @@ def write_to_duckdb(df):
     """写入 DuckDB"""
     print(f"\n写入 DuckDB: {len(df)} 行")
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     # 数据库表的所有列（按顺序）
     table_columns = [
@@ -147,7 +147,7 @@ def calculate_daily_metrics():
     """预计算每日指标"""
     print("\n预计算每日指标...")
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     conn.execute("DELETE FROM daily_metrics")
 
     # GMV: 全量实付; GSV: 剔除购物金且未退款（口径: is_goujinjin=FALSE AND is_refund=FALSE）
@@ -190,7 +190,7 @@ def get_db_max_pay_time():
     if not DUCKDB_PATH.exists():
         return None
     try:
-        conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+        conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
         result = conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
         conn.close()
         return result
@@ -202,7 +202,7 @@ def get_db_max_pay_time():
 def ensure_database_schema():
     """确保数据库表结构存在（不删除数据）"""
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     # 检查 orders 表是否存在
     tables = conn.execute("SHOW TABLES").fetchall()
@@ -427,7 +427,7 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
     total_refresh = len(df_refresh)
     print(f"\n写入 DuckDB: {total_new + total_refresh:,} 行 (全新:{total_new:,} 刷新:{total_refresh:,})")
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     table_columns = [
         'order_id', 'sub_order_id', 'user_id', 'user_nickname',

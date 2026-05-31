@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from scripts.etl.config import (
-    DUCKDB_PATH, PROCESSED_DATA_DIR, _ETL_SOURCE_STATS,
+    DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, PROCESSED_DATA_DIR, _ETL_SOURCE_STATS,
 )
 
 from scripts.etl.sources import (
@@ -42,7 +42,7 @@ def backup_and_update_orders(
     """
     from datetime import datetime
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         # 备份（parquet）
         backup_dir = PROCESSED_DATA_DIR / "backups"
@@ -107,7 +107,7 @@ def rescan_channel(since: str = None, dry_run: bool = True):
 
     # Step 2: 从 DuckDB 读取订单
     print("\n读取 DuckDB 订单...")
-    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         if since:
             orders_df = conn.execute("""
@@ -221,7 +221,7 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
     taoke_product_rules = load_taoke_product_rules()
 
     # Step 3: 从 DuckDB 读取订单
-    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         if product_ids:
             # 指定 product_ids 模式
@@ -512,7 +512,7 @@ def main():
 
         # DuckDB 总行数
         try:
-            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
             try:
                 total_orders = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
                 total_users = conn.execute("SELECT COUNT(DISTINCT user_id) FROM orders").fetchone()[0]

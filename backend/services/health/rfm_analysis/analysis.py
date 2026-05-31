@@ -5,17 +5,37 @@
 逻辑同R区间分析，仅将 r_segment 替换为 rfm_segment（8象限+TTL）。
 """
 
+import os
 import logging
+import concurrent.futures
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 
-from backend.db.connection import get_connection
+import duckdb
+
+from backend.config import DUCKDB_PATH
+from backend.db.connection import get_connection, get_duckdb_config
 from backend.services.rfm import _resolve_date_ranges
 from ._shared import _fetch_max_pay_time
 from .period import _run_rfm_period, _build_rows
 from .cache import _read_db_cache, _write_db_cache
 
 logger = logging.getLogger(__name__)
+
+
+def _new_duckdb_conn() -> duckdb.DuckDBPyConnection:
+    """创建独立的 DuckDB 连接（用于并行查询）。
+
+    每次调用返回一个全新的原生连接，不经过 ThreadSafeConnection 包装，
+    避免全局查询锁导致并行退化为串行。
+
+    测试时通过 monkeypatch 此函数注入 mock 连接。
+    """
+    cfg = get_duckdb_config()
+    db_password = os.environ.get("DUCKDB_PASSWORD")
+    if db_password:
+        cfg["password"] = db_password
+    return duckdb.connect(str(DUCKDB_PATH), config=cfg)
 
 
 
@@ -72,15 +92,37 @@ def get_rfm_analysis(
                 logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
                 return cached
 
-        cur_all, cur_same, cur_member_all, cur_member_same = _run_rfm_period(
-            conn, cur_start_dt, cur_end_dt, cutoff, channel, metric_type, exclude_channels
-        )
-        comp_all, comp_same, comp_member_all, comp_member_same = _run_rfm_period(
-            conn, comp_start_dt, comp_end_dt, comp_cutoff, channel, metric_type, exclude_channels
-        )
-        prev2_all, prev2_same, prev2_member_all, prev2_member_same = _run_rfm_period(
-            conn, prev2_start_dt, prev2_end_dt, prev2_cutoff, channel, metric_type, exclude_channels
-        )
+        # ── 并行执行 3 个周期的 RFM 查询（每个线程使用独立连接） ──
+        conn_cur = _new_duckdb_conn()
+        conn_comp = _new_duckdb_conn()
+        conn_prev2 = _new_duckdb_conn()
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                future_cur = executor.submit(
+                    _run_rfm_period, conn_cur,
+                    cur_start_dt, cur_end_dt, cutoff,
+                    channel, metric_type, exclude_channels,
+                )
+                future_comp = executor.submit(
+                    _run_rfm_period, conn_comp,
+                    comp_start_dt, comp_end_dt, comp_cutoff,
+                    channel, metric_type, exclude_channels,
+                )
+                future_prev2 = executor.submit(
+                    _run_rfm_period, conn_prev2,
+                    prev2_start_dt, prev2_end_dt, prev2_cutoff,
+                    channel, metric_type, exclude_channels,
+                )
+
+                cur_all, cur_same, cur_member_all, cur_member_same = future_cur.result()
+                comp_all, comp_same, comp_member_all, comp_member_same = future_comp.result()
+                prev2_all, prev2_same, prev2_member_all, prev2_member_same = future_prev2.result()
+        finally:
+            for _conn in (conn_cur, conn_comp, conn_prev2):
+                try:
+                    _conn.close()
+                except Exception:
+                    pass
 
         rows = _build_rows(cur_all, comp_all, prev2_all)
         same_channel_rows = _build_rows(cur_same, comp_same, prev2_same)

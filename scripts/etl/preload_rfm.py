@@ -19,7 +19,7 @@ from pathlib import Path
 # 把 backend 加入路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.config import DUCKDB_PATH
+from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT
 from backend.semantic.segments import get_registry, RFM_THRESHOLDS
 from backend.semantic.filters import OrderFilters
 from backend.semantic.channels import ACTIVE_UI_CHANNELS
@@ -325,7 +325,7 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
     metrics = ["GMV", "GSV"]
     channels = ["全店"] + ACTIVE_UI_CHANNELS
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     results = []
     try:
         total_tasks = len(hot_dates) * len(lookbacks) * len(metrics) * len(channels)
@@ -360,7 +360,7 @@ def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int,
         dates.append(cur)
         cur += timedelta(days=step)
 
-    conn = duckdb.connect(str(DUCKDB_PATH))
+    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     results = []
     try:
         total = len(dates) * len(lookbacks) * len(metrics) * len(channels)
@@ -404,7 +404,7 @@ def main():
         results = run_auto_preload()
     elif args.date:
         d = date.fromisoformat(args.date)
-        conn = duckdb.connect(str(DUCKDB_PATH))
+        conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
         try:
             rows = preload_date(conn, d, args.lookback, args.metric, args.channel)
             conn.commit()
