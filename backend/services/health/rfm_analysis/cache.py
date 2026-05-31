@@ -165,7 +165,8 @@ def precompute_rfm_cache() -> int:
     # 所以用 max_pay+1天 → MTD 包含到 max_pay 当天
     _today_conn = get_connection()
     try:
-        max_pay_raw = _today_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
+        row = _today_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
+        max_pay_raw = row[0] if row else None
         if max_pay_raw is not None:
             max_pay_date = max_pay_raw.date() if hasattr(max_pay_raw, 'date') else max_pay_raw
             today = max_pay_date + timedelta(days=1)

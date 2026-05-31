@@ -230,17 +230,25 @@ def _query_period(conn, start_date: str, end_date: str, metric_type: str,
     all_params = where_params + [cutoff_date] * 4
     result = conn.execute(sql, all_params).fetchone()
 
+    if result is None:
+        return {
+            "amount": 0, "order_count": 0, "avg_order_value": 0,
+            "new_user_count": 0, "old_user_count": 0,
+            "new_user_amount": 0.0, "old_user_amount": 0.0,
+            "member_count": 0, "member_amount": 0, "member_order_count": 0,
+        }
+
     return {
-        "amount": float(result[0]) if result[0] else 0,
-        "order_count": int(result[1]) if result[1] else 0,
-        "avg_order_value": float(result[2]) if result[2] else 0,
-        "new_user_count": int(result[3]) if result[3] else 0,
-        "old_user_count": int(result[4]) if result[4] else 0,
-        "new_user_amount": float(result[5]) if result[5] else 0.0,
-        "old_user_amount": float(result[6]) if result[6] else 0.0,
-        "member_count": int(result[7]) if result[7] else 0,
-        "member_amount": float(result[8]) if result[8] else 0,
-        "member_order_count": int(result[9]) if result[9] else 0,
+        "amount": float(result[0]) if result[0] is not None else 0,
+        "order_count": int(result[1]) if result[1] is not None else 0,
+        "avg_order_value": float(result[2]) if result[2] is not None else 0,
+        "new_user_count": int(result[3]) if result[3] is not None else 0,
+        "old_user_count": int(result[4]) if result[4] is not None else 0,
+        "new_user_amount": float(result[5]) if result[5] is not None else 0.0,
+        "old_user_amount": float(result[6]) if result[6] is not None else 0.0,
+        "member_count": int(result[7]) if result[7] is not None else 0,
+        "member_amount": float(result[8]) if result[8] is not None else 0,
+        "member_order_count": int(result[9]) if result[9] is not None else 0,
     }
 
 

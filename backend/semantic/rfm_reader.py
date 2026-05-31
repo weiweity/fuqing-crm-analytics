@@ -71,10 +71,11 @@ def try_read_rfm_segment(
           AND metric_type = ?
           AND channel = ?
         """
-        count = conn.execute(
+        row = conn.execute(
             check_sql,
             [analysis_date, lookback_days, metric_type, channel],
-        ).fetchone()[0]
+        ).fetchone()
+        count = row[0] if row else 0
 
         if count == 0:
             logger.debug(
@@ -188,10 +189,11 @@ def get_rfm_summary(
           AND metric_type = ?
           AND channel = ?
         """
-        count = conn.execute(
+        row = conn.execute(
             check_sql,
             [analysis_date, lookback_days, metric_type, channel],
-        ).fetchone()[0]
+        ).fetchone()
+        count = row[0] if row else 0
 
         if count == 0:
             return None
