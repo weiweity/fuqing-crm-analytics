@@ -17,37 +17,56 @@ logger = logging.getLogger(__name__)
 
 _conn: duckdb.DuckDBPyConnection | None = None
 _lock = threading.Lock()
-_query_lock = threading.Lock()
+_query_lock = threading.RLock()
 
 
 class ThreadSafeCursor:
-    """线程安全游标：fetch 操作自动获取全局查询锁"""
+    """线程安全游标：结果在构造时预取到内存，后续 fetch 不触碰连接。
+
+    DuckDB 没有真正的独立 cursor — execute() 的结果集绑定在连接上。
+    如果 execute() 和 fetchone() 之间锁被释放，另一个线程的 execute()
+    会覆盖结果集，导致读到错误数据。因此必须在构造时（锁内）预取全部结果。
+    """
 
     def __init__(self, cursor, lock: threading.Lock):
         self._cursor = cursor
-        self._lock = lock
+        # 在锁内一次性把结果从底层 cursor 读到内存
+        with lock:
+            self._rows = cursor.fetchall()
+            self._description = cursor.description
+        self._idx = 0
 
     def fetchone(self):
-        with self._lock:
-            return self._cursor.fetchone()
+        if self._idx >= len(self._rows):
+            return None
+        row = self._rows[self._idx]
+        self._idx += 1
+        return row
 
     def fetchall(self):
-        with self._lock:
-            return self._cursor.fetchall()
+        rows = self._rows[self._idx:]
+        self._idx = len(self._rows)
+        return rows
 
     def fetchdf(self):
-        with self._lock:
-            return self._cursor.fetchdf()
+        import pandas as pd
+
+        if not self._rows:
+            return pd.DataFrame()
+        columns = [desc[0] for desc in self._description] if self._description else []
+        df = pd.DataFrame(self._rows[self._idx:], columns=columns)
+        self._idx = len(self._rows)
+        return df
 
     def __iter__(self):
-        return iter(self._cursor)
+        return iter(self._rows)
 
     def __getattr__(self, name):
         return getattr(self._cursor, name)
 
 
 class ThreadSafeConnection:
-    """线程安全连接包装器：execute 自动获取全局查询锁"""
+    """线程安全连接包装器：execute 自动获取全局查询锁并预取结果"""
 
     def __init__(self, conn: duckdb.DuckDBPyConnection):
         self._conn = conn
@@ -55,12 +74,12 @@ class ThreadSafeConnection:
     def execute(self, *args, **kwargs):
         with _query_lock:
             cursor = self._conn.execute(*args, **kwargs)
-        return ThreadSafeCursor(cursor, _query_lock)
+            return ThreadSafeCursor(cursor, _query_lock)
 
     def cursor(self):
         with _query_lock:
             c = self._conn.cursor()
-        return ThreadSafeCursor(c, _query_lock)
+            return ThreadSafeCursor(c, _query_lock)
 
     def close(self):
         with _query_lock:
