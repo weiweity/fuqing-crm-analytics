@@ -141,6 +141,9 @@ fuqing-crm-analytics/
 
 | 日期 | 事故 | 根因 | 教训 |
 |------|------|------|------|
+| 2026-05-31 | ETL 运行 1 小时 | RFM 预计算 840 个组合串行执行，每个全表扫描 | 使用 GROUPING SETS 合并 CTE，并行执行周期查询，3x 加速 |
+| 2026-05-31 | Parquet 缓存失效 | `_mark_all_files_processed` 只存 mtime 不存 hash，key 格式不统一 | 统一使用 `{mtime, hash}` 格式，key 使用相对路径 |
+| 2026-05-31 | DuckDB 内存 Swap | memory_limit=12.7GB 超出物理内存 | 添加 `DUCKDB_MEMORY_LIMIT` 环境变量，默认 8GB |
 | 2026-05-30 | 173 个 ruff lint 错误持续累积 | 无 pre-commit hook、无 CI，错误无人拦 | 三层防线：pre-commit (ruff) + pre-push (pytest) + GitHub Actions CI |
 | 2026-05-30 | 老客GSV占比 pp 显示 155pp/193pp | `fmtYoy()` ×100 + MetricCard pp 模板 ×100 = 双重乘法 | pp 类型 MetricCard 用 `fmtPpt()` 直传原值，YOYBadge ratio 列用 `unit='pp'` + 调用方 ×100 |
 | 2026-05-30 | `_r_interval_sql` 安全设计决策 | DuckDB 不支持 `DATE ?` 语法 | 函数入口加 regex + `datetime.strptime` 双重校验 |
