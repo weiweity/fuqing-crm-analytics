@@ -88,7 +88,7 @@
 ## 接口开发六步
 
 1. **口径先找语义层** — 禁止在 Service 硬编码 SQL 口径
-2. **连接规范** — `conn = get_connection()` + `try/finally: conn.close()` + `?` 参数化
+2. **连接规范** — `conn = get_connection()` + `?` 参数化。禁止 `conn.close()`（单例连接由 `close_connection()` 在应用关闭时统一释放）。`execute()`/`fetch*` 已自动串行化，无需额外加锁
 3. **渠道展开** — `expand_channels([channel])`
 4. **Schema 三同步** — Service → contracts/schemas.py → 前端 types.ts
 5. **前端只展示** — 禁止前端算 YOY/占比/客单价

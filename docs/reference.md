@@ -153,6 +153,7 @@ fuqing-crm-analytics/
 | 2026-05-29 | RFM 回购率虚高27-35% | `cutoff = end_date` 形成循环论证 | cutoff 必须为 `start_date - 1 day` |
 | 2026-05-29 | `category/repurchase-flow` 全0 | RFM 象限名不一致（有无"客户"后缀） | 常量必须与生成它的 SQL 严格同步 |
 | 2026-05-29 | breakdown UV 窗口不准确 | 参数注释说31实际41 | 注释必须与实现严格一致 |
+| 2026-05-31 | DuckDB 并发崩溃 + 结果集覆盖 | `ThreadSafeConnection.execute()` 只在执行 SQL 时加锁，返回后另一个线程的 `execute()` 覆盖连接结果集；`fetchone()` 读到错误数据 | DuckDB 没有真正独立的 cursor — `execute()` 结果集绑定在连接上。`ThreadSafeCursor` 必须在构造时（锁内）预取全部结果到内存 |
 | 2026-05-28 | `dmp_asset_service` 线上 500 | 拆分时 7 个辅助函数全部丢失 | 包拆分必须用 AST 分析函数调用关系 |
 | 2026-05-28 | merge 后服务仍跑旧代码 | 本地 main 没 pull | merge 后必须 pull + 重启 |
 | 2026-05-27 | `rfm_analysis` 线上 500 | 拆包时缺少交叉导入 | 包拆分时遗漏交叉导入 |
