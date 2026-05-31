@@ -191,6 +191,9 @@ async def not_found_error_handler(request: Request, exc: NotFoundError):
 @app.exception_handler(Exception)
 async def general_error_handler(request: Request, exc: Exception):
     """未捕获的异常返回 500，避免堆栈信息暴露"""
+    import traceback
+    print(f"[500 ERROR] {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
+    traceback.print_exc()
     resp = JSONResponse(
         status_code=500,
         content={"error": "INTERNAL_ERROR", "message": "服务器内部错误，请稍后重试"}

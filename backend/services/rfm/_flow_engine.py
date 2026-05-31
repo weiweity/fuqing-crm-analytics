@@ -267,7 +267,7 @@ def run_flow_period(
         SELECT
             s.channel_flag,
             s.is_member,
-            s.{seg_col} AS segment_val,
+            CASE WHEN GROUPING(s.{seg_col}) = 1 THEN '已购客TTL' ELSE s.{seg_col} END AS segment_val,
             COUNT(DISTINCT s.user_id) AS hist_users,
             COUNT(DISTINCT rp.user_id) AS repurchase_users,
             COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
@@ -286,7 +286,7 @@ def run_flow_period(
             WHEN channel_flag = 'all'  AND is_member = TRUE  THEN 'member_all'
             WHEN channel_flag = 'same' AND is_member = TRUE  THEN 'member_same'
         END AS mode,
-        CASE WHEN GROUPING(segment_val) = 1 THEN '已购客TTL' ELSE segment_val END AS {seg_col},
+        segment_val AS {seg_col},
         hist_users,
         repurchase_users,
         repurchase_gsv
