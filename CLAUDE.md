@@ -111,12 +111,14 @@
 
 ## 快速启动
 
+### 开发环境（Mac）
+
 ```bash
 # 后端（端口 8000）
 cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
 PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
-  --host 0.0.0.0 --port 8000 --reload --reload-dir backend >> /tmp/fuqin-crm-backend.log 2>&1 &
+  --host 0.0.0.0 --port 8000 >> /tmp/fuqin-crm-backend.log 2>&1 &
 
 # 前端（端口 5173）
 cd frontend-vue3 && npm run dev
@@ -126,6 +128,19 @@ PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --updat
 
 # 测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
+```
+
+### 生产环境（Windows Server）
+
+```powershell
+# 后端（端口 8000）
+$env:HEALTH_API_KEY = python -c "import secrets; print(secrets.token_urlsafe(32))"
+$env:PYTHONPATH = Get-Location
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# 前端（Nginx 静态托管）
+# 先 build: cd frontend-vue3 && npm run build
+# 将 dist/ 目录复制到 Nginx html/ 目录
 ```
 
 ---
