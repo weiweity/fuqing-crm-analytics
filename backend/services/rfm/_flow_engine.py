@@ -31,22 +31,24 @@ from backend.services.rfm._shared import (
 def _build_channel_filter(
     channel: Optional[str],
     exclude_channels: Optional[List[str]],
-) -> Tuple[str, str, str, str, List, List]:
+) -> Tuple[str, str, str, str, List, List, List]:
     """
     构建 base / hist 的渠道过滤 SQL 片段和参数。
 
     返回:
         channel_where_base, channel_where_hist,
         exclude_where_base, exclude_where_hist,
-        base_extra_params, hist_same_extra_params
+        base_extra_params, hist_all_extra_params, hist_same_extra_params
     """
+    from backend.semantic.filters import expand_channels
+
     base_extra_params: List = []
-    hist_same_extra_params: List = []
+    hist_all_extra_params: List = []   # hist part 1 (all): 只有 exclude
+    hist_same_extra_params: List = []  # hist part 2 (same): channel + exclude
 
     channel_where_base = ""
     channel_where_hist = ""
     if channel and channel != "全店":
-        from backend.semantic.filters import expand_channels
         db_channels = expand_channels([channel])
         if len(db_channels) == 1:
             channel_where_base = " AND o.channel = ?"
@@ -63,18 +65,18 @@ def _build_channel_filter(
     exclude_where_base = ""
     exclude_where_hist = ""
     if exclude_channels:
-        from backend.semantic.filters import expand_channels
         db_exclude_channels = expand_channels(exclude_channels)
         placeholders = ",".join(["?"] * len(db_exclude_channels))
         exclude_where_base = f" AND o.channel NOT IN ({placeholders})"
         exclude_where_hist = f" AND o.channel NOT IN ({placeholders})"
         base_extra_params.extend(db_exclude_channels)
+        hist_all_extra_params.extend(db_exclude_channels)
         hist_same_extra_params.extend(db_exclude_channels)
 
     return (
         channel_where_base, channel_where_hist,
         exclude_where_base, exclude_where_hist,
-        base_extra_params, hist_same_extra_params,
+        base_extra_params, hist_all_extra_params, hist_same_extra_params,
     )
 
 
@@ -195,13 +197,18 @@ def run_flow_period(
     (
         channel_where_base, channel_where_hist,
         exclude_where_base, exclude_where_hist,
-        base_extra, hist_same_extra,
+        base_extra, hist_all_extra, hist_same_extra,
     ) = _build_channel_filter(channel, exclude_channels)
 
     base_params = [start_dt, end_dt] + base_extra
+
+    # hist_customers CTE 有两段 UNION ALL，参数需要分开：
+    # Part 1 (all): cutoff_date, cutoff_timestamp, exclude_params
+    # Part 2 (same): cutoff_date, cutoff_timestamp, channel_params, exclude_params
+    hist_all_params = [cutoff_dt, cutoff_dt] + hist_all_extra
     hist_same_params = [cutoff_dt, cutoff_dt] + hist_same_extra
 
-    full_params = base_params + hist_same_params
+    full_params = base_params + hist_all_params + hist_same_params
 
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
 
@@ -260,7 +267,7 @@ def run_flow_period(
         SELECT
             s.channel_flag,
             s.is_member,
-            s.{seg_col} AS segment_val,
+            CASE WHEN GROUPING(s.{seg_col}) = 1 THEN '已购客TTL' ELSE s.{seg_col} END AS segment_val,
             COUNT(DISTINCT s.user_id) AS hist_users,
             COUNT(DISTINCT rp.user_id) AS repurchase_users,
             COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
@@ -279,7 +286,7 @@ def run_flow_period(
             WHEN channel_flag = 'all'  AND is_member = TRUE  THEN 'member_all'
             WHEN channel_flag = 'same' AND is_member = TRUE  THEN 'member_same'
         END AS mode,
-        CASE WHEN GROUPING(segment_val) = 1 THEN '已购客TTL' ELSE segment_val END AS {seg_col},
+        segment_val AS {seg_col},
         hist_users,
         repurchase_users,
         repurchase_gsv
