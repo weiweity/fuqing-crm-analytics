@@ -239,10 +239,14 @@ def get_registry() -> SegmentRegistry:
     return _registry
 
 
-def _segment_meta(seg_id: int) -> dict:
+def segment_meta(seg_id: int) -> dict:
     """从 registry 获取象限元数据，避免硬编码"""
     registry = get_registry()
     seg = registry.get(seg_id)
     if seg:
         return {"name": seg.name_cn, "en": seg.name_en, "color": seg.color}
     return {"name": "其他", "en": "Others", "color": "#BDC3C7"}
+
+
+# 向后兼容别名
+_segment_meta = segment_meta

@@ -29,7 +29,7 @@ from .dimensions import DimensionRegistry, DimensionDefinition
 from .segments import (
     SegmentRegistry, SegmentDefinition, RFM_THRESHOLDS,
     R_SEGMENT_ORDER, F_SEGMENT_ORDER, M_SEGMENT_ORDER,
-    R_INTERVALS,
+    R_INTERVALS, segment_meta,
 )
 from .channels import CHANNEL_FUNNEL, CHANNEL_PRIORITY
 from .time import PeriodBuilder, DateRange
@@ -61,6 +61,7 @@ __all__ = [
     "F_SEGMENT_ORDER",
     "M_SEGMENT_ORDER",
     "R_INTERVALS",
+    "segment_meta",
     # channels
     "CHANNEL_FUNNEL",
     "CHANNEL_PRIORITY",

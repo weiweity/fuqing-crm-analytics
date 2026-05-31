@@ -65,10 +65,11 @@ def _build_channel_filter(
     if exclude_channels:
         from backend.semantic.filters import expand_channels
         db_exclude_channels = expand_channels(exclude_channels)
-        safe_ch = [ch.replace("'", "''") for ch in db_exclude_channels]
-        quoted = ", ".join([f"'{c}'" for c in safe_ch])
-        exclude_where_base = f" AND o.channel NOT IN ({quoted})"
-        exclude_where_hist = f" AND o.channel NOT IN ({quoted})"
+        placeholders = ",".join(["?"] * len(db_exclude_channels))
+        exclude_where_base = f" AND o.channel NOT IN ({placeholders})"
+        exclude_where_hist = f" AND o.channel NOT IN ({placeholders})"
+        base_extra_params.extend(db_exclude_channels)
+        hist_same_extra_params.extend(db_exclude_channels)
 
     return (
         channel_where_base, channel_where_hist,
