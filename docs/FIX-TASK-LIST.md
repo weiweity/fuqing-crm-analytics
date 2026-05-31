@@ -1,10 +1,13 @@
 # 芙清 CRM 代码质量修复任务清单
 
+> **归档状态：全部完成，本文档已归档**
+>
 > 生成日期: 2026-05-31
 > 审查日期: 2026-05-31 (/autoplan review)
+> 归档日期: 2026-05-31
 > 总计任务: 17 项
 > 预估总工作量: 37-54 小时
-> 状态: **APPROVED** — 全部 17 任务执行
+> 状态: **已完成** — 全部 17 任务执行完毕
 
 ---
 
@@ -12,7 +15,7 @@
 
 ### 1. [P0] 替换弱密码并实现密码哈希存储
 
-- [ ] **涉及文件**: `.env`, `backend/auth/password.py`(新建), `backend/routers/auth.py`
+- [x] **涉及文件**: `.env`, `backend/auth/password.py`(新建), `backend/routers/auth.py`
 - **问题描述**: `admin:123456` 和 `fqsw:fqsw888` 为极弱密码，且密码以明文存储
 - **修复步骤**:
   1. 新建 `backend/auth/password.py`，使用 **bcrypt**（不是 SHA-256）实现 `hash_password()` 和 `verify_password()`
@@ -25,7 +28,7 @@
 
 ### 2. [P0] 重新生成 HEALTH_API_KEY
 
-- [ ] **涉及文件**: `.env`
+- [x] **涉及文件**: `.env`
 - **问题描述**: HEALTH_API_KEY 明文存储，强度不足
 - **修复步骤**:
   1. 执行 `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` 生成新密钥
@@ -34,7 +37,7 @@
 
 ### 3+4. [P0] API Key Header 传输 + 速率限制（合并，同文件）
 
-- [ ] **涉及文件**: `backend/routers/health.py`（第 66 行、第 329-346 行）
+- [x] **涉及文件**: `backend/routers/health.py`（第 66 行、第 329-346 行）
 - **问题描述**: API Key 通过 URL Query 传输 + 无速率限制
 - **修复步骤**:
   1. `Query(default=None)` 改为 `Header(...)`（第 330、342 行）
@@ -46,7 +49,7 @@
 
 ### 5. [P0] 将 SQL 字符串拼接改为参数化查询
 
-- [ ] **涉及文件**: `backend/services/health/rfm_category_drilldown.py`
+- [x] **涉及文件**: `backend/services/health/rfm_category_drilldown.py`
 - **问题描述**: `exclude_channels` 和 `rfm_segment` 通过手动转义拼接 SQL
 - **修复步骤**:
   1. 新建 `_build_exclude_condition()` 返回参数化子句
@@ -56,7 +59,7 @@
 
 ### 6. [P0] 实现 DuckDB 单例连接管理
 
-- [ ] **涉及文件**: `backend/db/connection.py`, `backend/main.py`, 所有 service 层
+- [x] **涉及文件**: `backend/db/connection.py`, `backend/main.py`, 所有 service 层
 - **问题描述**: 每次请求新建连接，无连接池
 - **修复步骤**:
   1. 重写为全局单例 + `threading.Lock`（双重检查锁定）
@@ -73,7 +76,7 @@
 
 ### 7. [P1] 合并 overview.py 的 9 次独立查询为 3 次
 
-- [ ] **涉及文件**: `backend/services/metrics/overview.py`（第 183-231 行）
+- [x] **涉及文件**: `backend/services/metrics/overview.py`（第 183-231 行）
 - **问题描述**: 3 个时间段各 3 次查询，共 9 次
 - **修复步骤**:
   1. 新建 `_query_period()` 单次返回全部指标
@@ -83,7 +86,7 @@
 
 ### 8. [P1] 合并 geo_service.py 的循环查询为 2 条 SQL
 
-- [ ] **涉及文件**: `backend/services/geo_service.py`（第 405-452 行）
+- [x] **涉及文件**: `backend/services/geo_service.py`（第 405-452 行）
 - **问题描述**: 按月循环执行 SQL，N 次查询
 - **修复步骤**:
   1. `DATE_TRUNC('month')` 一次性查出所有月份
@@ -92,7 +95,7 @@
 
 ### 9. [P1] 用 groupby 替换 flow_service.py 的 N*N 过滤
 
-- [ ] **涉及文件**: `backend/services/flow_service.py`（第 264-271 行、第 370-376 行）
+- [x] **涉及文件**: `backend/services/flow_service.py`（第 264-271 行、第 370-376 行）
 - **问题描述**: 121 次 DataFrame 全量过滤
 - **修复步骤**:
   1. `groupby(["from_segment", "to_segment"]).size()` 一次性聚合
@@ -101,7 +104,7 @@
 
 ### 10. [P1] 为 churn_service.py 添加时间窗口
 
-- [ ] **涉及文件**: `backend/services/churn_service.py`（4 个函数）
+- [x] **涉及文件**: `backend/services/churn_service.py`（4 个函数）
 - **问题描述**: 全表扫描 + `LAG()` 窗口函数
 - **修复步骤**:
   1. 添加 `lookback_start = analysis_date - timedelta(days=730)`
@@ -114,7 +117,7 @@
 
 ### 11. [P2] 消除 Router 层对 semantic 层的直接导入
 
-- [ ] **涉及文件**: 9 个 router 文件, `backend/services/__init__.py`
+- [x] **涉及文件**: 9 个 router 文件, `backend/services/__init__.py`
 - **问题描述**: 违反分层架构
 - **修复步骤**:
   1. 在 `backend/services/__init__.py` 中 re-export `check_future_date` 和 `PeriodBuilder`（不新建文件）
@@ -125,7 +128,7 @@
 
 ### 12. [P2] 统一 `_normalize_date` 函数
 
-- [ ] **涉及文件**: `backend/semantic/time.py`, 3 个 service 文件
+- [x] **涉及文件**: `backend/semantic/time.py`, 3 个 service 文件
 - **问题描述**: 3 处重复定义，1 处缺兜底
 - **修复步骤**:
   1. `semantic/time.py` 添加 `normalize_date()`
@@ -134,7 +137,7 @@
 
 ### 13. [P2] 统一 `_segment_meta` 函数
 
-- [ ] **涉及文件**: `backend/semantic/segments.py`, 2 个 service 文件
+- [x] **涉及文件**: `backend/semantic/segments.py`, 2 个 service 文件
 - **问题描述**: 2 处重复定义
 - **修复步骤**:
   1. 移入 `semantic/segments.py`
@@ -143,7 +146,7 @@
 
 ### 14. [P2] 统一 `_VALID_BASE` 常量
 
-- [ ] **涉及文件**: `backend/semantic/filters.py`, 6 个 service 文件
+- [x] **涉及文件**: `backend/semantic/filters.py`, 6 个 service 文件
 - **问题描述**: 6 处重复定义
 - **修复步骤**:
   1. `semantic/filters.py` 定义 `VALID_ORDER_BASE`
@@ -152,7 +155,7 @@
 
 ### 15. [P2] 提取 RFM flow 通用引擎
 
-- [ ] **涉及文件**: `backend/services/rfm/` 3 个文件 + 新建 `_flow_engine.py`
+- [x] **涉及文件**: `backend/services/rfm/` 3 个文件 + 新建 `_flow_engine.py`
 - **问题描述**: r_flow/f_flow/m_flow 约 1128 行，90% 重复
 - **修复步骤**:
   1. 新建 `_flow_engine.py` 提取通用函数
@@ -161,7 +164,7 @@
 
 ### 16. [P2] 将 suggestions.py 硬编码常量迁移到语义层
 
-- [ ] **涉及文件**: `backend/services/breakdown_service/suggestions.py`, `semantic/segments.py`, `semantic/calculations.py`
+- [x] **涉及文件**: `backend/services/breakdown_service/suggestions.py`, `semantic/segments.py`, `semantic/calculations.py`
 - **问题描述**: R_INTERVALS 名称不一致，GSV 口径硬编码
 - **修复步骤**:
   1. `R_INTERVALS` 统一到 `semantic/segments.py`
@@ -171,7 +174,7 @@
 
 ### 17. [P2] 注册应用关闭事件
 
-- [ ] **涉及文件**: `backend/main.py`
+- [x] **涉及文件**: `backend/main.py`
 - **问题描述**: 未注册 shutdown 事件
 - **修复步骤**:
   1. 导入 `close_connection`
@@ -184,10 +187,10 @@
 
 | 阶段 | 任务数 | 预估工时 | 完成数 |
 |------|--------|----------|--------|
-| 第一阶段：安全 (P0) | 5 | 12-18 小时 | 0/5 |
-| 第二阶段：性能 (P1) | 4 | 12-17 小时 | 0/4 |
-| 第三阶段：架构 (P2) | 7 | 13-19 小时 | 0/7 |
-| **合计** | **16** | **37-54 小时** | **0/16** |
+| 第一阶段：安全 (P0) | 5 | 12-18 小时 | 5/5 |
+| 第二阶段：性能 (P1) | 4 | 12-17 小时 | 4/4 |
+| 第三阶段：架构 (P2) | 7 | 13-19 小时 | 7/7 |
+| **合计** | **16** | **37-54 小时** | **16/16** |
 
 > 注：原任务 3+4 已合并（同文件修改），总任务从 17 降为 16
 

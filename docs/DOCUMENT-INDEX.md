@@ -19,6 +19,7 @@
 | 前端契约指南 | [frontend/frontend-contract-guide.md](./frontend/frontend-contract-guide.md) |
 | 618大促拆解资产 | [618-breakdown/](./618-breakdown/) |
 | CRM业务知识 | [业务知识/](./业务知识/) |
+| Windows Server 部署 | [DEPLOY-WINDOWS.md](./DEPLOY-WINDOWS.md) |
 | 历史文档归档 | [archive/](./archive/) |
 
 ---
@@ -30,6 +31,7 @@
 |---|---|---|
 | [reference.md](./reference.md) | ✅ **参考手册** | 口径表/历史教训/包拆分清单/目录结构（按需读取） |
 | [product/PRD-v3.0.md](./product/PRD-v3.0.md) | ✅ **当前版本** | v3.0 PRD，包含架构与演进路线 |
+| [DEPLOY-WINDOWS.md](./DEPLOY-WINDOWS.md) | ✅ 当前 | Windows Server 部署指南 |
 
 ### 🏗️ 架构设计
 | 文件 | 状态 | 说明 |

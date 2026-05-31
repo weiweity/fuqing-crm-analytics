@@ -12,7 +12,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.3.8（main），测试 149 passed / 8 skipped |
+| 4 | **版本状态** | v0.3.3（main），测试 149 passed / 8 skipped |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -95,17 +95,6 @@
 6. **三层验证** — import 测试 + pytest + vue-tsc
 
 详细示例见 `docs/reference.md`。
-
----
-
-## Skill 路由
-
-| 场景 | 触发词 | Skill |
-|------|--------|-------|
-| 报错 / 500 | `调试`、`investigate`、`排查` | `investigate` |
-| commit 前 | `review`、`代码审查` | `review` |
-| 上线前验收 | `qa`、`测试一下` | `qa` |
-| 大功能推送 | `发布`、`ship` | `ship` |
 
 ---
 

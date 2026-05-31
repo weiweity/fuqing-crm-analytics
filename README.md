@@ -115,6 +115,7 @@ fuqing-crm-analytics/
 | [docs/飞书版架构文档/00-系统总览.md](./docs/飞书版架构文档/00-系统总览.md) | 系统架构总览 |
 | [docs/飞书版架构文档/07-常见问题汇总.md](./docs/飞书版架构文档/07-常见问题汇总.md) | Bug 修复记录和经验教训 |
 | [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
+| [docs/DEPLOY-WINDOWS.md](./docs/DEPLOY-WINDOWS.md) | Windows Server 部署指南 |
 | [docs/DOCUMENT-INDEX.md](./docs/DOCUMENT-INDEX.md) | 完整文档索引 |
 
 ---
