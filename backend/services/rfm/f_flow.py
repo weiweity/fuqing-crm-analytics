@@ -12,7 +12,7 @@ from backend.services.rfm._flow_engine import run_flow_period, get_rfm_flow
 
 # ── F 维度配置 ──
 _F_SEGMENTATION_CTE = """
-    f_segmented_all AS (
+    f_segmented_{alias} AS (
         SELECT
             user_id,
             frequency,
