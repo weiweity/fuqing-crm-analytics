@@ -5,6 +5,21 @@
 
 ---
 
+## ⚠️ 改代码前的强制自检（每次必读）
+
+**在动任何代码（包括 Read 之后直接 Edit/Write）前，先回答 2 个问题**：
+
+1. **当前在哪个分支？** `git branch --show-current` 检查
+   - 在 `main`/`master` → **禁止改代码**，先 `git checkout -b fix/xxx` 或 `feature/xxx`
+   - 紧急热修（修一行配置重启服务）才允许在 main 直接 Edit（但不 commit）
+2. **接下来要 commit 吗？** 是 → **走完整 12 步流程**（review → qa → merge → push → pull → 重启）
+
+**违反任何一条 = 工作流被破坏，需要 `git stash` → 切到新分支 → 重新走流程**。
+
+数据操作（跑 ETL、查询数据库、读取 parquet 缓存）**不算改代码**，可直接执行。
+
+---
+
 ## 必读·启动项
 
 | # | 事实 | 说明 |
