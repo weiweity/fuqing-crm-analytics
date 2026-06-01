@@ -467,15 +467,15 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
             after_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
             print(f"  ✅ 全量刷新: {before_count:,} → {after_count:,}")
         else:
-            # ── 全新订单：直接追加 ──
+            # ── 全新订单：追加（staging 表 + ON CONFLICT DO NOTHING）──
             if total_new > 0:
                 df_insert = df_new[existing_cols].copy()
-                parquet_path = os.path.join(tempfile.gettempdir(), 'orders_new.parquet')
-                df_insert.to_parquet(parquet_path, index=False)
-                cols_joined = ', '.join(existing_cols)
-                conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
-                os.remove(parquet_path)
-                print(f"  ✅ 全新订单: {total_new:,} 行")
+                for _col in ['order_id', 'sub_order_id']:
+                    if _col in df_insert.columns:
+                        df_insert[_col] = df_insert[_col].astype(str).replace('nan', '').replace('None', '')
+                df_insert = df_insert.drop_duplicates(subset=['order_id', 'sub_order_id'], keep='last')
+                copied = _copy_df_to_duckdb(df_insert, conn, existing_cols)
+                print(f"  ✅ 全新订单: {copied:,} 行")
 
             # ── 窗口内订单：精确键值 DELETE + INSERT 刷新 ──
             if total_refresh > 0:
@@ -494,7 +494,7 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
                 conn.execute(f"COPY {tmp_table} FROM '{ids_parquet}' (FORMAT PARQUET)")
                 os.remove(ids_parquet)
 
-                # 2. 显式事务：DELETE + INSERT 原子执行
+                # 2. 显式事务：DELETE + INSERT 原子执行（防 INSERT 失败导致窗口数据丢失）
                 conn.execute("BEGIN TRANSACTION")
                 try:
                     conn.execute(f"""
@@ -507,7 +507,11 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
 
                     conn.execute(f"DROP TABLE IF EXISTS {tmp_table}")
 
-                    # 3. 去重：同一个 (order_id, sub_order_id) 保留最后一行，避免主键冲突
+                    # 3. 去重：同一个 (order_id, sub_order_id) 保留最后一行
+                    # ID列统一转字符串后再去重，防止类型不一致（float vs string）导致去重失败
+                    for _col in ['order_id', 'sub_order_id']:
+                        if _col in df_refresh.columns:
+                            df_refresh[_col] = df_refresh[_col].astype(str).replace('nan', '').replace('None', '')
                     df_refresh = df_refresh.drop_duplicates(
                         subset=['order_id', 'sub_order_id'], keep='last'
                     )
@@ -515,14 +519,29 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
                     if total_refresh_deduped < total_refresh:
                         print(f"  ⚠️  去重: {total_refresh} → {total_refresh_deduped} 行")
 
-                    # 4. 插入刷新数据
+                    # 4. 插入刷新数据：staging 表（无 UNIQUE INDEX） + COPY 防主键冲突
                     df_insert = df_refresh[existing_cols].copy()
+                    import uuid as _uuid_refresh
+                    tmp_stage = f"_stage_refresh_{_uuid_refresh.uuid4().hex[:8]}"
                     parquet_path = os.path.join(tempfile.gettempdir(), 'orders_refresh.parquet')
                     df_insert.to_parquet(parquet_path, index=False)
                     cols_joined = ', '.join(existing_cols)
-                    conn.execute(f"COPY orders ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
+
+                    conn.execute(f"CREATE TEMP TABLE {tmp_stage} AS SELECT * FROM orders WHERE 1=0")
+                    conn.execute(f"COPY {tmp_stage} ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
                     os.remove(parquet_path)
-                    print(f"  ✅ 窗口刷新: {total_refresh:,} 行")
+                    # 从 staging 表 INSERT DISTINCT 行到 orders
+                    conn.execute(f"""
+                        INSERT INTO orders ({cols_joined})
+                        SELECT {cols_joined} FROM (
+                            SELECT *, ROW_NUMBER() OVER (
+                                PARTITION BY order_id, sub_order_id ORDER BY pay_time DESC
+                            ) AS _rn FROM {tmp_stage}
+                        ) t WHERE t._rn = 1
+                    """)
+                    inserted = conn.execute(f"SELECT COUNT(*) FROM {tmp_stage}").fetchone()[0]
+                    conn.execute(f"DROP TABLE IF EXISTS {tmp_stage}")
+                    print(f"  ✅ 窗口刷新: {inserted:,} 行")
 
                     conn.execute("COMMIT")
                 except Exception:
