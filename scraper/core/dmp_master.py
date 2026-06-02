@@ -25,20 +25,20 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
-# 导入公共模块
-from dmp_common import (
+# 导入公共模块（必须在 sys.path.insert 之后，详见上方 _SCRIPT_DIR 块）
+from dmp_common import (  # noqa: E402
     log, Config, BrowserManager, read_account, login_qianniu, check_dmp_session,
     get_missing_dates_assets, get_missing_dates_flow, get_missing_dates_item
 )
 
-# 导入三个子模块（保持原功能）
-import dmp_scraper
-import dmp_flow_scraper
-import dmp_item_insight_scraper
-from dmp_item_insight_scraper import _get_latest_row_for_item
+# 导入三个子模块（保持原功能，必须在 sys.path.insert 之后）
+import dmp_scraper  # noqa: E402
+import dmp_flow_scraper  # noqa: E402
+import dmp_item_insight_scraper  # noqa: E402
+from dmp_item_insight_scraper import _get_latest_row_for_item  # noqa: E402
 
 # 6 道门禁 + 飞书 webhook 告警（独立模块，详见 sanity_check.py 文档）
-import sanity_check
+import sanity_check  # noqa: E402
 
 # 缓存：item_id -> 最新一条CSV记录（每个item只查一次CSV）
 _latest_row_cache = {}
