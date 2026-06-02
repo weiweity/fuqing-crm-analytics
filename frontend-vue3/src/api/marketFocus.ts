@@ -49,6 +49,14 @@ export function fetchStoreAssets(weeks: number = 4, days: number = 0): Promise<S
 export interface ProductAssetWeek {
   week_label: string
   week_end_date: string
+  /**
+   * 采集质量标识：
+   * - 'legacy'：历史数据（默认，不过滤）
+   * - 'verified'：人工核对通过
+   * - 'likely-wrong'：work plat 采集疑似脏数据（前端默认隐藏）
+   * 缺省时按 legacy 处理。
+   */
+  quality_flag?: string
   total: number
   shallow_grass: number
   deep_grass: number
