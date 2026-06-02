@@ -13,6 +13,9 @@ data/
 *.zip
 
 # 例外：ETL perf baseline（QW0 工单 0，plan §A4.1 强制入仓）
+# 父目录链必须逐级例外化，否则 git 不会重新包含被 data/ 排除的子目录
+!data/
+!data/processed/
 !data/processed/etl_perf/
 !data/processed/etl_perf/*.json
 

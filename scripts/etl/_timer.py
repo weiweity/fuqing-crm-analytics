@@ -312,12 +312,16 @@ def save_baseline(
         except Exception:
             pass
 
-    # 避免重复 push（run_id + started_at 都相同时跳过）
-    is_dup = any(
-        r.get("run_id") == this_run["run_id"] and r.get("started_at") == this_run["started_at"]
-        for r in existing_runs
-    )
-    if not is_dup:
+    # 避免重复 push（同一 run_id 的 partial save 覆盖旧 partial；空 _RECORDS 跳过写入避免 stub 污染）
+    if not _RECORDS:
+        return {}
+    replaced = False
+    for i, r in enumerate(existing_runs):
+        if r.get("run_id") == this_run["run_id"]:
+            existing_runs[i] = this_run
+            replaced = True
+            break
+    if not replaced:
         existing_runs.append(this_run)
 
     payload = {
