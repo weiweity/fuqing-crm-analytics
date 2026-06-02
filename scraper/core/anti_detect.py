@@ -311,7 +311,7 @@ def human_move_to(page, x, y, duration=0.5, steps=10):
             time.sleep(duration / steps)
         
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 

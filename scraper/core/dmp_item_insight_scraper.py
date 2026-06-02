@@ -1450,7 +1450,7 @@ def extract_item_data_by_api(page, item_id, target_date):
                     f"endDate 可能被忽略，数据作废触发重试")
                 return None
         else:
-            log(f"[API-Sanity] ⚠️ 找不到 date trigger 元素，跳过校验")
+            log("[API-Sanity] ⚠️ 找不到 date trigger 元素，跳过校验")
     except Exception as e:
         log(f"[API-Sanity] 校验异常（不阻塞主流程）: {e}")
 

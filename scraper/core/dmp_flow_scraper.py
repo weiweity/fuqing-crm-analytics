@@ -8,23 +8,19 @@
 import csv
 import time
 import os
-import sys
 import re
-import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 # 尝试导入公共模块
 try:
     from dmp_common import (
-        log, Config, BrowserManager, read_account, login_qianniu,
-        detect_encoding, parse_date, format_date_for_csv,
+        log, Config, BrowserManager, login_qianniu,
+        detect_encoding, format_date_for_csv,
         get_missing_dates_flow
     )
     USING_COMMON = True
 except ImportError:
     USING_COMMON = False
-    from pathlib import Path
-    import platform
 
 # statusId → crowd key 映射
 STATUS_TO_KEY = {
@@ -59,7 +55,6 @@ class FlowCollectorByAPI:
         except Exception:
             return
 
-        import re
         data = body.get('data', {})
 
         # 判断API类型（两个不同的API，分工明确）
@@ -436,7 +431,6 @@ def extract_flow_data_by_dom_v3(page, target_date, debug_dir=None):
 
     # 状态ID配置
     all_status_ids = [2001, 2002, 2003, 2004, 2006, 2007, 2008, 0]
-    all_crowd_keys = ['faxian', 'zhongcao', 'hudong', 'xingdong', 'shougou', 'fugou', 'zhiai', 'xinzeng']
     all_crowd_names = ['发现', '种草', '互动', '行动', '首购', '复购', '至爱', '新增']
 
     # 创建API拦截器
@@ -487,7 +481,6 @@ def extract_flow_data_by_dom_v3(page, target_date, debug_dir=None):
         # xinzeng API单独处理：reload页面强制重新发起transfer请求
         if not collected.get('xinzeng', {}).get('faxian'):
             log("[API] xinzeng flow为空，强制reload页面...")
-            xinzeng_url = f"{Config.DMP_BASE_URL}?spm={spm}{route}?statusId=0&startDate={start_date_str}&bizDate={biz_date_str}"
             page.reload(wait_until="domcontentloaded", timeout=60000)
             time.sleep(8)
             collected = collector.get_data()
@@ -723,7 +716,7 @@ def main():
     if USING_COMMON:
         from dmp_common import read_account
         username, password = read_account()
-    log(f"使用URL参数化方案V2抓取流转数据")
+    log("使用URL参数化方案V2抓取流转数据")
 
     if USING_COMMON:
         with BrowserManager(headless=False) as browser:
