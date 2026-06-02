@@ -83,6 +83,9 @@ class ProductAssetWeek(BaseModel):
     """单品资产-单周数据"""
     week_label: str
     week_end_date: str
+    # 采集质量标识：legacy(历史) / verified(已核对) / likely-wrong(疑似脏数据)。
+    # 默认 legacy 保证向前兼容。前端默认隐藏 likely-wrong 行。
+    quality_flag: str = "legacy"
     total: int
     shallow_grass: int
     deep_grass: int
