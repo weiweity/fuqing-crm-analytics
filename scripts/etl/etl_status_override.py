@@ -22,6 +22,21 @@ _VALID_BASE = "is_goujinjin = FALSE AND order_status != '交易关闭'"
 _VALID_BASE_T = "o.is_goujinjin = FALSE AND o.order_status != '交易关闭'"
 from pathlib import Path
 
+# QW0 埋点：etl_status_override 是 hot spot #5（66 次 N+1 DELETE = 3min）
+# 入口/出口各打一次 perf_counter
+try:
+    from scripts.etl._timer import PerfTimer  # noqa: F401
+except ImportError:
+    class PerfTimer:  # type: ignore[no-redef]
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
 
 # =============================================================================
 # 1. 状态覆盖表 DDL
@@ -243,6 +258,17 @@ def refresh_status_override(
 
     不修改 orders 表，只修改 override 表。
     """
+    # QW0 埋点 — hot spot #5（66 次 N+1 DELETE = 3min）
+    _rt_timer = PerfTimer("etl_status_override_refresh", window_days=window_days)
+    _rt_timer.__enter__()
+    try:
+        return _refresh_status_override_impl(db_path, shop_source, window_days)
+    finally:
+        _rt_timer.__exit__(None, None, None)
+
+
+def _refresh_status_override_impl(db_path: Path, shop_source: Path = None, window_days: int = 30):
+    """refresh_status_override 实际实现（被 QW0 埋点包裹）"""
     from backend.config import SHOP_STATUS_REFRESH_DIR
 
     if shop_source is None:
