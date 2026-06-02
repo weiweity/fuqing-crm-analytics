@@ -37,6 +37,9 @@ import dmp_flow_scraper
 import dmp_item_insight_scraper
 from dmp_item_insight_scraper import _get_latest_row_for_item
 
+# 6 道门禁 + 飞书 webhook 告警（独立模块，详见 sanity_check.py 文档）
+import sanity_check
+
 # 缓存：item_id -> 最新一条CSV记录（每个item只查一次CSV）
 _latest_row_cache = {}
 
@@ -379,6 +382,26 @@ def run_items_module(page, username, password):
 
             try:
                 if data and data.get('zichan_zongliang', 0) > 0:
+                    # 6 道门禁（独立模块）— 失败 → 标 likely-wrong + 推飞书 webhook
+                    # 不阻塞写入：append_tocsv 自己还有阻塞类校验
+                    try:
+                        sanity_result = sanity_check.run_all(
+                            data=data,
+                            csv_file=Config.ITEM_DATA_FILE,
+                            spa_date=data.get('_spa_trigger_date'),
+                            target_date=date_str_task,
+                            scraper_name='dmp_item_insight',
+                        )
+                        if sanity_result['should_flag_likely_wrong']:
+                            data['_sanity'] = 'likely-wrong'
+                            failed_names = [n for n, _ in sanity_result['failed_gates']]
+                            log(f"⚠️ 6 道门禁失败 ({len(failed_names)}/6): {failed_names}，"
+                                f"标 data_quality_flag=likely-wrong，"
+                                f"webhook={'已发' if sanity_result['alert']['sent'] else sanity_result['alert']['reason']}")
+                    except Exception as sc_err:
+                        # sanity_check 异常 → 不影响主流程，仅记录
+                        log(f"⚠️ sanity_check.run_all 异常（不阻塞写入）: {sc_err}")
+
                     # append_to_csv 内部会走 Gate 1（完全相同则跳过）
                     if dmp_item_insight_scraper.append_tocsv(Config.ITEM_DATA_FILE, data):
                         success_count += 1
@@ -433,8 +456,25 @@ def run_items_module(page, username, password):
                 t1 = target_date
                 t2 = target_date - timedelta(days=1)
                 data = dmp_item_insight_scraper.fetch_item_data(page, item_id, t1, t2)
-                
+
                 if data and data.get('zichan_zongliang', 0) > 0:
+                    # 6 道门禁（独立模块）— 失败 → 标 likely-wrong + 推飞书 webhook
+                    try:
+                        sanity_result = sanity_check.run_all(
+                            data=data,
+                            csv_file=Config.ITEM_DATA_FILE,
+                            spa_date=data.get('_spa_trigger_date'),
+                            target_date=date_str,
+                            scraper_name='dmp_item_insight (retry)',
+                        )
+                        if sanity_result['should_flag_likely_wrong']:
+                            data['_sanity'] = 'likely-wrong'
+                            failed_names = [n for n, _ in sanity_result['failed_gates']]
+                            log(f"⚠️ [重试] 6 道门禁失败 ({len(failed_names)}/6): {failed_names}，"
+                                f"标 data_quality_flag=likely-wrong")
+                    except Exception as sc_err:
+                        log(f"⚠️ [重试] sanity_check.run_all 异常（不阻塞写入）: {sc_err}")
+
                     if dmp_item_insight_scraper.append_tocsv(Config.ITEM_DATA_FILE, data):
                         success_count += 1
                         retry_success += 1
