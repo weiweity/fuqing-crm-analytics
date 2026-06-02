@@ -8,6 +8,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import pandas as pd
 
+# QW4 埋点：transform 步骤内部计时（独立路径下 perf.py 可能不在 sys.path）
+try:
+    from scripts.etl.perf import PerfTimer  # noqa: F401
+except ImportError:
+    class PerfTimer:  # type: ignore[no-redef]
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
 def match_channel(df, keyword_rules, id_rules, taoke_order_ids=None, live_order_ids=None, taoke_product_rules=None):
     """
     8层漏斗渠道判定（从高优先级到低优先级，高优先级永不被低优先级覆盖）。
@@ -23,6 +37,24 @@ def match_channel(df, keyword_rules, id_rules, taoke_order_ids=None, live_order_
     P8: 货架         — P1-P7未命中 且 spu_type 含 "正装"
     P9: 其他         — P1-P8未命中
     """
+    # QW4 埋点：match_channel 整体入口
+    _match_channel_timer = PerfTimer(
+        "transform_match_channel",
+        rows=len(df),
+        kw_rules=len(keyword_rules or []),
+        id_rules=len(id_rules or []),
+    )
+    _match_channel_timer.__enter__()
+    try:
+        return _match_channel_body(df, keyword_rules, id_rules,
+                                   taoke_order_ids, live_order_ids, taoke_product_rules,
+                                   _match_channel_timer)
+    finally:
+        _match_channel_timer.__exit__(None, None, None)
+
+
+def _match_channel_body(df, keyword_rules, id_rules, taoke_order_ids, live_order_ids, taoke_product_rules, _timer):
+    """match_channel 的实际实现（被外层 QW4 埋点包裹）"""
     # 默认值
     df['channel'] = '其他'
 
@@ -76,10 +108,12 @@ def match_channel(df, keyword_rules, id_rules, taoke_order_ids=None, live_order_
                 kw_list.sort(key=lambda x: -len(x[0]))  # 长词优先
                 titles = df['product_title'].astype(str)
                 mask_unmatched = df['channel'] == '其他'
-                for kw, ch in kw_list:
-                    mask_kw = titles.str.contains(kw, case=False, na=False)
-                    df.loc[mask_unmatched & mask_kw, 'channel'] = ch
-                    p4_count += (mask_unmatched & mask_kw).sum()
+                # QW4 埋点：关键词循环（plan hot spot #4）
+                with PerfTimer("transform_p4_keyword_loop", kw_count=len(kw_list)):
+                    for kw, ch in kw_list:
+                        mask_kw = titles.str.contains(kw, case=False, na=False)
+                        df.loc[mask_unmatched & mask_kw, 'channel'] = ch
+                        p4_count += (mask_unmatched & mask_kw).sum()
 
         print(f"  P4 达播/微博: {p4_count:,}")
 
@@ -141,6 +175,19 @@ def match_channel(df, keyword_rules, id_rules, taoke_order_ids=None, live_order_
 
 def clean_data(df, spu_df, keyword_rules, id_rules, taoke_order_ids=None, live_order_ids=None, taoke_product_rules=None, force_continue=False):
     """清洗数据"""
+    # QW4 埋点：clean_data 整体入口
+    _cd_timer = PerfTimer("transform_clean_data", rows=len(df))
+    _cd_timer.__enter__()
+    try:
+        return _clean_data_body(df, spu_df, keyword_rules, id_rules,
+                                taoke_order_ids, live_order_ids, taoke_product_rules,
+                                force_continue)
+    finally:
+        _cd_timer.__exit__(None, None, None)
+
+
+def _clean_data_body(df, spu_df, keyword_rules, id_rules, taoke_order_ids, live_order_ids, taoke_product_rules, force_continue):
+    """clean_data 实际实现（被外层 QW4 埋点包裹）"""
     print(f"\n清洗数据: {len(df)} 行")
 
     # 日期字段处理（向量化）

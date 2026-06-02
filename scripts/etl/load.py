@@ -13,6 +13,20 @@ from scripts.etl.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, PROCESSED_DATA_
 import pandas as pd
 import duckdb
 
+# QW4 埋点：load 步骤内部计时
+try:
+    from scripts.etl.perf import PerfTimer  # noqa: F401
+except ImportError:  # perf.py 不在路径时降级为 no-op
+    class PerfTimer:  # type: ignore[no-redef]
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
 def init_database():
     """初始化数据库表结构"""
     print("初始化数据库...")
@@ -390,6 +404,17 @@ def filter_rolling_window(df, max_pay_time, window_days=30):
 
     返回: (new_df, refresh_df)
     """
+    # QW4 埋点：filter_rolling_window 整体入口
+    _frw_timer = PerfTimer("load_filter_rolling_window", input_rows=len(df), window_days=window_days)
+    _frw_timer.__enter__()
+    try:
+        return _filter_rolling_window_body(df, max_pay_time, window_days, _frw_timer)
+    finally:
+        _frw_timer.__exit__(None, None, None)
+
+
+def _filter_rolling_window_body(df, max_pay_time, window_days, _timer):
+    """filter_rolling_window 实际实现（被外层 QW4 埋点包裹）"""
     if max_pay_time is None:
         return df.copy(), pd.DataFrame()
 
@@ -427,6 +452,22 @@ def upsert_to_duckdb(df_new, df_refresh, mode='incremental', window_days=30):
     total_refresh = len(df_refresh)
     print(f"\n写入 DuckDB: {total_new + total_refresh:,} 行 (全新:{total_new:,} 刷新:{total_refresh:,})")
 
+    # QW4 埋点：upsert_to_duckdb 整体入口（手写 enter/exit 避免大段重缩进）
+    _upsert_timer = PerfTimer(
+        "load_upsert_to_duckdb",
+        mode=mode, new_rows=total_new, refresh_rows=total_refresh,
+    )
+    _upsert_timer.__enter__()
+    try:
+        return _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
+                                      total_new, total_refresh, _upsert_timer)
+    finally:
+        _upsert_timer.__exit__(None, None, None)
+
+
+def _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
+                            total_new, total_refresh, _timer):
+    """upsert_to_duckdb 实际实现（被外层 QW4 埋点包裹）"""
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
     table_columns = [

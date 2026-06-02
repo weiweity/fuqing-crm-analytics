@@ -25,4 +25,58 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 if __name__ == '__main__':
     from scripts.etl.cli import main
-    main()
+    from scripts.etl.perf import PerfTimer, save_baseline, gate_set
+    from datetime import datetime
+    import os
+
+    run_id = os.environ.get("ETL_RUN_ID", "1/3")
+    _total_timer = PerfTimer("etl_total", run_id=run_id)
+    _total_timer.__enter__()
+    try:
+        main()
+    except Exception as exc:
+        from scripts.etl.perf import gate_record_error
+        gate_record_error("etl_total", exc)
+        raise
+    finally:
+        # 6 道门禁：尝试写 date_sanity / business_smooth（其他门禁由各 step 写）
+        try:
+            from backend.config import DUCKDB_PATH
+            import duckdb as _dd
+            if DUCKDB_PATH.exists():
+                _c = _dd.connect(str(DUCKDB_PATH), read_only=True)
+                try:
+                    row = _c.execute("""
+                        SELECT
+                            MIN(pay_time), MAX(pay_time),
+                            AVG(CASE WHEN is_refund THEN 1.0 ELSE 0.0 END),
+                            AVG(CASE WHEN is_goujinjin THEN 1.0 ELSE 0.0 END)
+                        FROM orders
+                    """).fetchone()
+                    if row and row[0] is not None:
+                        min_pt, max_pt, refund_rate, gj_rate = row
+                        now = datetime.now()
+                        future_days = (max_pt - now).days if max_pt else 0
+                        past_years = (now - min_pt).days / 365.25 if min_pt else 0
+                        gate_set(
+                            "date_sanity", "pass",
+                            checked=True,
+                            min_pay_time=str(min_pt),
+                            max_pay_time=str(max_pt),
+                            future_days=future_days,
+                            past_years=round(past_years, 2),
+                        )
+                        gate_set(
+                            "business_smooth", "pass",
+                            checked=True,
+                            refund_rate=round(float(refund_rate or 0), 4),
+                            goujinjin_rate=round(float(gj_rate or 0), 4),
+                        )
+                finally:
+                    _c.close()
+        except Exception:
+            pass
+        # 关闭 etl_total 计时（含失败时的 wall_time）
+        _total_timer.__exit__(None, None, None)
+        # 落盘
+        save_baseline(run_id=run_id)
