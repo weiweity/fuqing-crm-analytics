@@ -8,10 +8,8 @@
 import csv
 import time
 import os
-import sys
 import re
-import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 # 尝试导入公共模块
 try:
@@ -23,8 +21,6 @@ try:
     USING_COMMON = True
 except ImportError:
     USING_COMMON = False
-    from pathlib import Path
-    import platform
 
 # statusId → crowd key 映射
 STATUS_TO_KEY = {
@@ -59,7 +55,6 @@ class FlowCollectorByAPI:
         except Exception:
             return
 
-        import re
         data = body.get('data', {})
 
         # 判断API类型（两个不同的API，分工明确）
@@ -723,7 +718,7 @@ def main():
     if USING_COMMON:
         from dmp_common import read_account
         username, password = read_account()
-    log(f"使用URL参数化方案V2抓取流转数据")
+    log("使用URL参数化方案V2抓取流转数据")
 
     if USING_COMMON:
         with BrowserManager(headless=False) as browser:
