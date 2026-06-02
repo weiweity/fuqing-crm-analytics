@@ -10,6 +10,7 @@ RFM 预加载脚本
 
 import argparse
 import sys
+import time
 from datetime import date, timedelta
 from calendar import monthrange
 from typing import List, Tuple
@@ -23,6 +24,21 @@ from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT
 from backend.semantic.segments import get_registry, RFM_THRESHOLDS
 from backend.semantic.filters import OrderFilters
 from backend.semantic.channels import ACTIVE_UI_CHANNELS
+
+# QW0 埋点：preload_rfm 是 hot spot #1（540 组合串行循环 = 25min）
+# 入口/出口各打一次 perf_counter
+try:
+    from scripts.etl._timer import PerfTimer  # noqa: F401
+except ImportError:
+    class PerfTimer:  # type: ignore[no-redef]
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
 
 
 # ============================================================
@@ -316,7 +332,16 @@ def preload_date(
 
 
 def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
-    """自动热点预加载，返回执行结果摘要。"""
+    """自动热点预加载，返回执行结果摘要。
+
+    QW0 埋点：plan §A4.1 + plan §2 hot spot #1 — 540 组合串行循环
+    入口/出口各打一次 perf_counter（通过 PerfTimer 上下文管理器）。
+    """
+    # QW0 埋点 — 入口 perf_counter
+    _wall_start = time.perf_counter()
+    _cpu_start = time.process_time()
+    _extra = {"hot_dates": 0, "lookbacks": 0, "metrics": 0, "channels": 0, "total_tasks": 0}
+
     if today is None:
         today = date.today()
 
@@ -324,11 +349,18 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
     lookbacks = [30, 90, 180]
     metrics = ["GMV", "GSV"]
     channels = ["全店"] + ACTIVE_UI_CHANNELS
+    _extra.update(
+        hot_dates=len(hot_dates),
+        lookbacks=len(lookbacks),
+        metrics=len(metrics),
+        channels=len(channels),
+    )
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     results = []
     try:
         total_tasks = len(hot_dates) * len(lookbacks) * len(metrics) * len(channels)
+        _extra["total_tasks"] = total_tasks
         completed = 0
         for ch in channels:
             for d in hot_dates:
@@ -345,6 +377,29 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
                             results.append((d.isoformat(), lb, mt, ch, -1))
     finally:
         conn.close()
+
+    # QW0 埋点 — 出口 perf_counter（手动写 PerfRecord 以避免在 run_range_preload 也 import 不到时的失败）
+    try:
+        from scripts.etl._timer import PerfRecord, _RECORDS
+        from datetime import datetime as _dt
+        import resource as _res
+        import platform as _plt
+        _rusage = _res.getrusage(_res.RUSAGE_SELF).ru_maxrss
+        if _plt.system() == "Darwin":
+            _mem_kb = int(_rusage / 1024)
+        else:
+            _mem_kb = int(_rusage)
+        _rec = PerfRecord(
+            step_name="preload_rfm",
+            timestamp=_dt.now().isoformat(),
+            wall_time=time.perf_counter() - _wall_start,
+            cpu_time=time.process_time() - _cpu_start,
+            memory_peak_kb=_mem_kb,
+            extra=_extra,
+        )
+        _RECORDS.append(_rec)
+    except Exception:
+        pass
 
     return results
 
