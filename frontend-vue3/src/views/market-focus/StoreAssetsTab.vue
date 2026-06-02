@@ -92,6 +92,15 @@ const storeColumns = [
 
 type StoreField = typeof storeColumns[number]['key']
 
+/**
+ * 默认隐藏被标记为 likely-wrong 的脏行。
+ * 当前 data2.csv 暂无 quality_flag 列，过滤为 noop；若后续 ETL 补齐则自动生效。
+ */
+const visibleWeeks = computed(() => {
+  const weeks = weeklyData.value?.weeks ?? []
+  return weeks.filter(w => (w as { quality_flag?: string }).quality_flag !== 'likely-wrong')
+})
+
 function rowBg(idx: number): string {
   return idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'
 }
@@ -138,7 +147,7 @@ function rowBg(idx: number): string {
           </thead>
           <tbody>
             <tr
-              v-for="(week, idx) in weeklyData.weeks"
+              v-for="(week, idx) in visibleWeeks"
               :key="week.week_label"
               :class="['border-b border-slate-100', rowBg(idx)]"
             >
@@ -153,7 +162,7 @@ function rowBg(idx: number): string {
             </tr>
             <!-- 本周对比上周 -->
             <tr
-              v-if="weeklyData.weeks.length >= 2"
+              v-if="visibleWeeks.length >= 2"
               class="border-b border-slate-200 bg-violet-50/50"
             >
               <td class="py-2 px-3 text-slate-500 font-medium sticky left-0 bg-violet-50/50 z-10">本周对比上周</td>
@@ -161,14 +170,14 @@ function rowBg(idx: number): string {
                 v-for="col in storeColumns"
                 :key="col.key"
                 class="py-2 px-3 text-right tabular-nums"
-                :class="changeClass(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_change` as `${StoreField}_change`])"
+                :class="changeClass(visibleWeeks[visibleWeeks.length - 1][`${col.key}_change` as `${StoreField}_change`])"
               >
-                {{ fmtChange(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_change` as `${StoreField}_change`]) }}
+                {{ fmtChange(visibleWeeks[visibleWeeks.length - 1][`${col.key}_change` as `${StoreField}_change`]) }}
               </td>
             </tr>
             <!-- 本周对比去年同期 -->
             <tr
-              v-if="weeklyData.weeks.length >= 1"
+              v-if="visibleWeeks.length >= 1"
               class="border-b border-slate-200 bg-amber-50/50"
             >
               <td class="py-2 px-3 text-slate-500 font-medium sticky left-0 bg-amber-50/50 z-10">本周对比去年同期</td>
@@ -176,9 +185,9 @@ function rowBg(idx: number): string {
                 v-for="col in storeColumns"
                 :key="col.key"
                 class="py-2 px-3 text-right tabular-nums"
-                :class="changeClass(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_yoy` as `${StoreField}_yoy`])"
+                :class="changeClass(visibleWeeks[visibleWeeks.length - 1][`${col.key}_yoy` as `${StoreField}_yoy`])"
               >
-                {{ fmtChange(weeklyData.weeks[weeklyData.weeks.length - 1][`${col.key}_yoy` as `${StoreField}_yoy`]) }}
+                {{ fmtChange(visibleWeeks[visibleWeeks.length - 1][`${col.key}_yoy` as `${StoreField}_yoy`]) }}
               </td>
             </tr>
           </tbody>

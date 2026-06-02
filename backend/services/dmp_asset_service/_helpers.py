@@ -196,6 +196,12 @@ def _load_data3() -> pd.DataFrame:
     df["ID"] = df["ID"].astype(int)
     df = df[df["ID"].isin(_ALL_ID_TO_PRODUCT.keys())]
     df["product_name"] = df["ID"].map(_ALL_ID_TO_PRODUCT)
+    # data_quality_flag：标识每行采集质量（legacy / verified / likely-wrong），
+    # 缺列或缺值时统一填 'legacy'，与历史数据保持兼容（不会被前端过滤掉）
+    if "data_quality_flag" in df.columns:
+        df["data_quality_flag"] = df["data_quality_flag"].fillna("legacy").astype(str)
+    else:
+        df["data_quality_flag"] = "legacy"
     _cache["data3"]["df"] = df
     return df
 
@@ -262,6 +268,7 @@ def _compute_product_assets_daily(
             item = {
                 "week_label": date_label,
                 "week_end_date": date_str,
+                "quality_flag": str(row.get("data_quality_flag", "legacy")),
                 "total": int(row.get("资产总量", 0)),
                 "shallow_grass": int(row.get("浅种草", 0)),
                 "deep_grass": int(row.get("深种草", 0)),

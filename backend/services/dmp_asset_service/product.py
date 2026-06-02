@@ -82,10 +82,11 @@ def _compute_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any]:
         for week_end in all_week_ends:
             week_df = product_df[product_df["week_end"] == week_end]
             if week_df.empty:
-                # 填充空值
+                # 填充空值（无数据时按 legacy 处理，前端不会过滤）
                 item = {
                     "week_label": _get_week_label(datetime.combine(week_end, datetime.min.time())),
                     "week_end_date": week_end.strftime("%Y-%m-%d"),
+                    "quality_flag": "legacy",
                     "total": 0, "shallow_grass": 0, "deep_grass": 0,
                     "initial": 0, "repurchase": 0, "lian_dai": 0,
                     "total_change": 0, "shallow_grass_change": 0,
@@ -105,6 +106,7 @@ def _compute_product_assets(weeks: int, df: pd.DataFrame) -> Dict[str, Any]:
                 item = {
                     "week_label": week_label,
                     "week_end_date": week_end.strftime("%Y-%m-%d"),
+                    "quality_flag": str(row.get("data_quality_flag", "legacy")),
                     "total": int(row.get("资产总量", 0)),
                     "shallow_grass": int(row.get("浅种草", 0)),
                     "deep_grass": int(row.get("深种草", 0)),

@@ -72,6 +72,11 @@ const wideTable = computed((): WideRow[] => {
   const rows: WideRow[] = []
 
   for (let i = 0; i < weekCount; i++) {
+    // 过滤脏数据：任一产品在该周被标记 likely-wrong（work plat 采集 date picker 错位等），
+    // 整周隐藏。默认显示 legacy + verified。
+    const isLikelyWrong = products.some(p => p.weeks[i]?.quality_flag === 'likely-wrong')
+    if (isLikelyWrong) continue
+
     const row: WideRow = {
       week_label: products[0].weeks[i].week_label,
     }
@@ -84,10 +89,14 @@ const wideTable = computed((): WideRow[] => {
     rows.push(row)
   }
 
-  // 本周对比上周
+  // 本周对比上周（latest 取最后一条已通过过滤的真实周）
+  if (!rows.length) return rows
+  const latestIdx = findLatestVisibleIndex(products, weekCount)
+  if (latestIdx < 0) return rows
+
   const changeRow: WideRow = { week_label: '本周对比上周' }
   for (const product of products) {
-    const latest = product.weeks[weekCount - 1]
+    const latest = product.weeks[latestIdx]
     for (const col of productSubColumns) {
       changeRow[`${product.name}_${col.key}`] = latest[`${col.key}_change` as `${SubKey}_change`] as number
     }
@@ -98,7 +107,7 @@ const wideTable = computed((): WideRow[] => {
   // 本周对比去年同期
   const yoyRow: WideRow = { week_label: '本周对比去年同期' }
   for (const product of products) {
-    const latest = product.weeks[weekCount - 1]
+    const latest = product.weeks[latestIdx]
     for (const col of productSubColumns) {
       yoyRow[`${product.name}_${col.key}`] = latest[`${col.key}_yoy` as `${SubKey}_yoy`] as number
     }
@@ -108,6 +117,19 @@ const wideTable = computed((): WideRow[] => {
 
   return rows
 })
+
+/** 找到最近一个没被标记 likely-wrong 的周 index（从后往前） */
+function findLatestVisibleIndex(
+  products: NonNullable<typeof weeklyData.value>['products'],
+  weekCount: number,
+): number {
+  for (let i = weekCount - 1; i >= 0; i--) {
+    if (!products.some(p => p.weeks[i]?.quality_flag === 'likely-wrong')) {
+      return i
+    }
+  }
+  return -1
+}
 
 // 格式化
 function fmtInt(v: number | undefined | null): string {
