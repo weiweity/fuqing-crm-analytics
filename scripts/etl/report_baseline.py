@@ -1,13 +1,13 @@
 """ETL baseline 报告生成器
 
-读取 scripts/etl/baselines/baseline_<DATE>.json，输出人类可读报告：
+读取 data/processed/etl_perf/baseline_<DATE>.json，输出人类可读报告：
   - 总耗时 / 步数 / 内存峰值
   - 6 道门禁 pass / fail 状态
   - 步级耗时排行（找出 top 5 hot spot）
   - 与北极星指标 25min 对比
 
 用法：
-  python scripts/etl/report_baseline.py                       # 默认 baseline_2026_06_02.json
+  python scripts/etl/report_baseline.py                       # 默认 baseline_2026_06_03.json
   python scripts/etl/report_baseline.py path/to/baseline.json # 指定文件
   python scripts/etl/report_baseline.py --json                # 输出 JSON 报告
 """
@@ -176,7 +176,7 @@ def render_json_report(payload: dict[str, Any], source: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="ETL baseline 报告生成器")
-    default_path = Path(__file__).parent / "baselines" / "baseline_2026_06_02.json"
+    default_path = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "etl_perf" / "baseline_2026_06_03.json"
     parser.add_argument(
         "baseline", nargs="?", type=Path, default=default_path,
         help=f"baseline JSON 路径（默认: {default_path}）",

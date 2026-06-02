@@ -25,7 +25,7 @@ from scripts.etl.load import (
     filter_rolling_window, get_db_max_pay_time,
     _create_orders_table, _create_indexes,
 )
-from scripts.etl.perf import PerfTimer
+from scripts.etl._timer import PerfTimer
 
 import pandas as pd
 import duckdb
