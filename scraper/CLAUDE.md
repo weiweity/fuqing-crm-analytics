@@ -1,8 +1,8 @@
 # DMP 数据采集项目 — AI 操作手册
 
 > **适用对象**：在此目录下工作的 AI 助手
-> **最后更新**：2026-06-01
-> **项目路径**：`/Users/hutou/Desktop/work plat/DMP_test_package/`
+> **最后更新**：2026-06-02（已并入 fuqing-crm-analytics monorepo）
+> **项目路径**：`fuqing-crm-analytics/scraper/`（原 `/Users/hutou/Desktop/work plat/DMP_test_package/`）
 
 ---
 
@@ -141,7 +141,7 @@ value = page.locator('.dKqGwkoRade').inner_text()  # 明天就失效！
 
 ```bash
 # 进入核心目录
-cd "/Users/hutou/Desktop/work plat/DMP_test_package/core"
+cd "fuqing-crm-analytics/scraper/core"
 
 # 交互式菜单（推荐）
 ./run.sh

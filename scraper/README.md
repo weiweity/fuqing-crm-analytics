@@ -23,7 +23,7 @@
 
 ```bash
 # 进入核心目录
-cd "/Users/hutou/Desktop/work plat/DMP_test_package/core"
+cd scraper/core
 
 # 交互式菜单（推荐）
 ./run.sh
