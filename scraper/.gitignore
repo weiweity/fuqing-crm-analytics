@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+account.txt
+chrome_profile/
+del/
+*.csv
+*.xlsx
+completed_items.json
+completed_items*.json
+ai_config.json
+.ruff_cache/
+.playwright-cli/
+.codebuddy/
+.workbuddy/
+
+# Logs
+*.log
+logs/
+
+# Backup
+_backup/
+
+# Archive
+_archive/
+
+# Sensitive data
+config/items.yaml
+
+# 一次性脚本（试跑/合并/重试/探针/原 backfill，不入 git 但保留在磁盘）
+core/_test_*.py
+core/*_merge_*.py
+core/_retry_*.py
+core/_dump_*.py
+core/_backfill_likely_wrong.py
+
+# md5 校验文件
+*.md5
+data3_pre*.txt
+data3_premerge*.txt

@@ -1,0 +1,112 @@
+# 达摩盘单品抓取配置文件
+# 所有硬编码参数集中管理，便于调整和维护
+
+# ============ 商品列表 ============
+items:
+  - "587051744204"
+  - "597655781410"
+  - "587053192746"
+  - "683395365107"
+  - "654390297284"
+  - "803474428381"
+  - "870597889980"
+  - "621639424901"
+  - "601760206476"
+  - "612503357090"
+  - "803417397714"
+  - "994162104051"
+  - "933524395698"
+  - "900975734816"
+  - "1010458880710"  # 传明酸面膜（2026-04-21新增）
+
+# ============ 反检测配置 ============
+anti_detect:
+  # 单次运行最多抓取商品数（速度优先：全量）
+  max_items_per_run: 14
+  
+  # 商品间随机延迟范围（秒）- 速度优先
+  item_delay_min: 2
+  item_delay_max: 3
+  
+  # 每日最大请求数限制
+  max_requests_per_day: 200
+  
+  # 页面加载后随机延迟范围（秒）- 速度优先
+  page_load_delay_min: 1
+  page_load_delay_max: 2
+  
+  # 日期选择器操作延迟范围（秒）- 速度优先
+  date_picker_delay_min: 0.5
+  date_picker_delay_max: 1
+  
+  # 数据刷新轮询间隔范围（秒）- 速度优先
+  data_refresh_delay_min: 1
+  data_refresh_delay_max: 1.5
+
+# ============ 浏览器配置 ============
+browser:
+  # 视口大小
+  viewport_width: 1920
+  viewport_height: 1080
+  
+  # 浏览器启动参数
+  launch_args:
+    - "--disable-blink-features=AutomationControlled"
+    - "--no-sandbox"
+    - "--disable-dev-shm-usage"
+    - "--disable-web-security"
+    - "--disable-features=IsolateOrigins,site-per-process"
+    - "--window-size=1920,1080"
+  
+  # 用户数据目录
+  user_data_dir: "chrome_profile"
+
+# ============ 抓取策略 ============
+scraping:
+  # 日期选择最大重试次数
+  date_select_max_retries: 3
+  
+  # 数据刷新最大等待时间（秒）
+  data_refresh_max_wait: 12
+  
+  # 数据刷新轮询次数
+  data_refresh_poll_count: 6
+  
+  # 检查最近多少天的数据
+  days_to_check: 7
+  
+  # 目标日期优先级（T-1优先，T-2备选）
+  target_date_priority:
+    - "T-1"
+    - "T-2"
+  
+  # ============ Benchmark数据过滤（可配置） ============
+  # 全局默认阈值：资产总量低于此值视为benchmark数据被过滤
+  min_valid_total: 20000
+  
+  # 商品级阈值覆盖（key为商品ID，value为自定义阈值）
+  # 某些商品（如新品测试、白膜等）实际资产量级较小，需要用更低的阈值
+  min_valid_total_override:
+    "621639424901": 5000   # 白膜，浅种草为0，总量约9万，但有时更低
+
+# ============ Benchmark数据过滤（2026-05-20 配置化）============
+benchmark_filter:
+  # 全局默认阈值：资产总量低于此值视为benchmark数据被过滤
+  default_min_valid_total: 20000
+  # 商品级阈值覆盖（可选，未列出商品使用全局默认值）
+  per_item:
+    "621639424901": 5000   # 白膜，浅种草为0，总量波动大
+
+# ============ 文件路径 ============
+paths:
+  # 单品数据文件
+  item_data_file: "data3.csv"
+  
+  # 调试截图目录
+  debug_dir: "del"
+  
+  # 账号文件
+  account_file: "account.txt"
+  
+  # AI配置文件
+  ai_config_file: "ai_config.json"
