@@ -25,6 +25,7 @@ from scripts.etl.load import (
     filter_rolling_window, get_db_max_pay_time,
     _create_orders_table, _create_indexes,
 )
+from scripts.etl.perf import PerfTimer
 
 import pandas as pd
 import duckdb
@@ -83,11 +84,12 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                     break  # _mark_all_files_processed 一次性标记 shop+member
 
     # Step 1: 加载 SPU 匹配表、渠道规则、淘客数据和直播数据源
-    spu_df = load_spu_mapping()
-    keyword_rules, id_rules = load_channel_rules()
-    taoke_order_ids = load_taoke_order_ids()
-    live_order_ids = load_live_order_ids()
-    taoke_product_rules = load_taoke_product_rules()  # 商品ID+时间范围补充淘客
+    with PerfTimer("pl_step1_load_ref_data"):
+        spu_df = load_spu_mapping()
+        keyword_rules, id_rules = load_channel_rules()
+        taoke_order_ids = load_taoke_order_ids()
+        live_order_ids = load_live_order_ids()
+        taoke_product_rules = load_taoke_product_rules()  # 商品ID+时间范围补充淘客
     check_memory(label="Step 1 参考数据加载完成")
 
     # 用会员 order_id 集合做 LEFT JOIN 语义标记
@@ -279,30 +281,35 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         # Step 2.5: 滑动窗口过滤（全新订单 + 窗口内刷新）
         new_df, refresh_df = combined_df.copy(), pd.DataFrame()
         if run_mode == 'incremental':
-            max_time = get_db_max_pay_time()
-            if max_time:
-                new_df, refresh_df = filter_rolling_window(combined_df, max_time, window_days=window_days)
-                if len(new_df) == 0 and len(refresh_df) == 0:
-                    if force_continue:
-                        print("没有新增/刷新数据，但强制继续（刷新缓存/指标）")
-                    else:
-                        print("没有新增/刷新数据，ETL 跳过")
-                        return
+            with PerfTimer("pl_step2_5_filter_rolling_window", window_days=window_days):
+                max_time = get_db_max_pay_time()
+                if max_time:
+                    new_df, refresh_df = filter_rolling_window(combined_df, max_time, window_days=window_days)
+                    if len(new_df) == 0 and len(refresh_df) == 0:
+                        if force_continue:
+                            print("没有新增/刷新数据，但强制继续（刷新缓存/指标）")
+                        else:
+                            print("没有新增/刷新数据，ETL 跳过")
+                            return
 
         # Step 3: 清洗数据
         if len(new_df) > 0:
-            new_df = clean_data(new_df, spu_df, keyword_rules, id_rules,
-                               taoke_order_ids=taoke_order_ids, live_order_ids=live_order_ids,
-                               taoke_product_rules=taoke_product_rules,
-                               force_continue=force_continue)
-        if len(refresh_df) > 0:
-            refresh_df = clean_data(refresh_df, spu_df, keyword_rules, id_rules,
+            with PerfTimer("pl_step3_clean_data_new", rows=len(new_df)):
+                new_df = clean_data(new_df, spu_df, keyword_rules, id_rules,
                                    taoke_order_ids=taoke_order_ids, live_order_ids=live_order_ids,
                                    taoke_product_rules=taoke_product_rules,
                                    force_continue=force_continue)
+        if len(refresh_df) > 0:
+            with PerfTimer("pl_step3_clean_data_refresh", rows=len(refresh_df)):
+                refresh_df = clean_data(refresh_df, spu_df, keyword_rules, id_rules,
+                                       taoke_order_ids=taoke_order_ids, live_order_ids=live_order_ids,
+                                       taoke_product_rules=taoke_product_rules,
+                                       force_continue=force_continue)
 
         # Step 4: 写入数据库（滑动窗口模式）
-        upsert_to_duckdb(new_df, refresh_df, mode=run_mode, window_days=window_days)
+        with PerfTimer("pl_step4_upsert_to_duckdb",
+                       new_rows=len(new_df), refresh_rows=len(refresh_df)):
+            upsert_to_duckdb(new_df, refresh_df, mode=run_mode, window_days=window_days)
 
         # Step 4.5: 事务化——DuckDB 写入成功后，才标记文件为已处理
         if run_mode == 'incremental':
@@ -315,17 +322,21 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                     print(f"  [事务化] 已标记 {len(updates)} 个 {dtype} 文件为已处理")
 
         # Step 5: 预计算每日指标（增量模式）
-        _update_incremental_metrics(new_df, refresh_df, window_days=window_days)
+        with PerfTimer("pl_step5_update_incremental_metrics", window_days=window_days):
+            _update_incremental_metrics(new_df, refresh_df, window_days=window_days)
 
     # Step 6: 维护 user_first_purchase 表（滑动窗口模式）
-    _build_user_first_purchase_table(run_mode, window_days=window_days)
+    with PerfTimer("pl_step6_user_first_purchase", run_mode=run_mode, window_days=window_days):
+        _build_user_first_purchase_table(run_mode, window_days=window_days)
 
     # Step 6.5: 维护 user_recency 表（RFM flow 查询加速）
-    _build_user_recency_table(run_mode, window_days=window_days)
+    with PerfTimer("pl_step6_5_user_recency", run_mode=run_mode, window_days=window_days):
+        _build_user_recency_table(run_mode, window_days=window_days)
 
     # Step 7: 全量模式下标记所有源文件为已处理
     if run_mode == 'full':
-        _mark_all_files_processed()
+        with PerfTimer("pl_step7_mark_all_files_processed"):
+            _mark_all_files_processed()
 
     # Step 8: 品类看板 v2 预计算（品类流转 + 流失预警）
     print("\n品类看板 v2 预计算...")
@@ -333,8 +344,10 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         from scripts.precompute_category_flow import run_full_precomputation as run_flow_full
         from scripts.precompute_category_churn import run_full_precomputation as run_churn_full
         # 全量预计算（覆盖写入幂等）
-        run_flow_full()
-        run_churn_full()
+        with PerfTimer("pl_step8a_category_flow"):
+            run_flow_full()
+        with PerfTimer("pl_step8b_category_churn"):
+            run_churn_full()
         print("  预计算完成")
     except Exception as e:
         print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
@@ -591,6 +604,12 @@ def update_taoke_channel():
 
     保护渠道（不受影响）：U先派样、百补派样、赠品&0.01渠道、直播、货架、达播、微博、购物金
     """
+    # QW4 埋点：step2 update_taoke_channel 的内部计时
+    with PerfTimer("pl_taoke_full_correct"):
+        _update_taoke_channel_impl()
+
+
+def _update_taoke_channel_impl():
     print("\n" + "=" * 60)
     print("淘客渠道全量纠正")
     print("=" * 60)
@@ -678,6 +697,11 @@ def refresh_visitor_data():
       2. 比对 daily_visitors 表最新日期，只写入新数据
       3. xlsx 结构：日期 / 访客数 / 新增会员数
     """
+    with PerfTimer("pl_refresh_visitor_data"):
+        _refresh_visitor_data_impl()
+
+
+def _refresh_visitor_data_impl():
     from backend.config import VISITOR_DATA_SOURCE, DUCKDB_PATH
 
     print("\n" + "-" * 40)
@@ -777,6 +801,11 @@ def refresh_campaign_schedule():
       2. 基于 orders 表中 0.01 购买数据自动推算 lock_start/lock_end
       3. 已有完整记录时跳过，仅补算缺失的锁权时间
     """
+    with PerfTimer("pl_refresh_campaign_schedule"):
+        _refresh_campaign_schedule_impl()
+
+
+def _refresh_campaign_schedule_impl():
     from backend.config import CAMPAIGN_SCHEDULE_SOURCE, DUCKDB_PATH
     from datetime import timedelta as _td
 

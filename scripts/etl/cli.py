@@ -19,6 +19,16 @@ from scripts.etl.pipeline import (
     run_full_etl, update_taoke_channel,
     refresh_visitor_data, refresh_campaign_schedule,
 )
+from scripts.etl.perf import PerfTimer, gate_set, gate_record_error, save_baseline as _save_baseline
+
+
+def _save_partial(run_id: str = "1/3") -> None:
+    """QW4 阶段 A：长跑批任务在每步结束落盘一次 partial baseline。
+    save_baseline() 本身可重复调用（累积所有已记录 step），不会清空 _RECORDS。"""
+    try:
+        _save_baseline(run_id=run_id)
+    except Exception as _e:
+        print(f"  [perf] partial baseline save failed: {_e}")
 
 import pandas as pd
 import duckdb
@@ -441,55 +451,161 @@ def main():
         print("\n" + "=" * 60)
         print("一键增量更新（全店+会员+淘客+状态刷新）")
         print("=" * 60)
+
+        # 6 道门禁 — cross_day：记录 ETL 前的 max(pay_time) + orders 行数
+        try:
+            from backend.config import DUCKDB_PATH as _DDB
+            import duckdb as _dd2
+            if _DDB.exists():
+                _c0 = _dd2.connect(str(_DDB), read_only=True)
+                try:
+                    _before_max = _c0.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
+                    _before_count = _c0.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+                finally:
+                    _c0.close()
+            else:
+                _before_max, _before_count = None, 0
+        except Exception:
+            _before_max, _before_count = None, 0
+
         # Step 1: ETL 增量（滑动窗口模式，force_continue 确保 Step 5/6 必定执行）
-        run_full_etl(mode='inc', window_days=args.window_days, force_continue=True)
+        try:
+            with PerfTimer("step1_run_full_etl", mode="inc", window_days=args.window_days):
+                run_full_etl(mode='inc', window_days=args.window_days, force_continue=True)
+        except Exception as _exc:
+            gate_record_error("step1_run_full_etl", _exc)
+            raise
+        _save_partial()
+
         # Step 2: 淘客渠道同步（确保新增淘客订单被正确标记）
-        update_taoke_channel()
+        try:
+            with PerfTimer("step2_update_taoke_channel"):
+                update_taoke_channel()
+        except Exception as _exc:
+            gate_record_error("step2_update_taoke_channel", _exc)
+            raise
+        _save_partial()
+
         # Step 3: 刷新订单状态覆盖表（从 zip/csv 读取最新退款/交易关闭状态）
         print("\n" + "-" * 40)
         print("Step 3: 刷新订单状态覆盖表")
         print("-" * 40)
         from scripts.etl.etl_status_override import refresh_status_override
         from backend.config import DUCKDB_PATH
-        refresh_status_override(DUCKDB_PATH, window_days=args.window_days)
+        try:
+            with PerfTimer("step3_refresh_status_override", window_days=args.window_days):
+                refresh_status_override(DUCKDB_PATH, window_days=args.window_days)
+        except Exception as _exc:
+            gate_record_error("step3_refresh_status_override", _exc)
+            raise
+        _save_partial()
 
         # Step 4: 反向同步 override → orders（看板直接生效，无需改 SQL）
         print("\n" + "-" * 40)
         print("Step 4: 反向同步 override → orders")
         print("-" * 40)
         from scripts.etl.etl_status_override import sync_override_to_orders
-        sync_override_to_orders(DUCKDB_PATH, window_days=args.window_days)
+        try:
+            with PerfTimer("step4_sync_override_to_orders", window_days=args.window_days):
+                sync_override_to_orders(DUCKDB_PATH, window_days=args.window_days)
+        except Exception as _exc:
+            gate_record_error("step4_sync_override_to_orders", _exc)
+            raise
+        _save_partial()
 
         # Step 5: 刷新访客数据（daily_visitors 表，访客数/新增会员数）
         print("\n" + "-" * 40)
         print("Step 5: 刷新访客数据")
         print("-" * 40)
-        refresh_visitor_data()
+        try:
+            with PerfTimer("step5_refresh_visitor_data"):
+                refresh_visitor_data()
+        except Exception as _exc:
+            gate_record_error("step5_refresh_visitor_data", _exc)
+            raise
+        _save_partial()
 
         # Step 6: 预计算 RFM 8象限结果（DuckDB 缓存表，ETL 完成后一次性写入）
         print("\n" + "-" * 40)
         print("Step 6: 预计算 RFM 8象限历史周期缓存")
         print("-" * 40)
         from backend.services.health.rfm_analysis import precompute_rfm_cache
-        count = precompute_rfm_cache()
-        print(f"  预计算完成: {count} 个组合")
+        try:
+            with PerfTimer("step6_precompute_rfm_cache"):
+                count = precompute_rfm_cache()
+            print(f"  预计算完成: {count} 个组合")
+        except Exception as _exc:
+            gate_record_error("step6_precompute_rfm_cache", _exc)
+            raise
+        _save_partial()
 
         # Step 7: 创建 user_rfm 表 + 热点日期预加载（品类/地域等服务的依赖）
         print("\n" + "-" * 40)
         print("Step 7: 创建 user_rfm 表 + 热点日期预加载")
         print("-" * 40)
         from backend.database import create_user_rfm_table
-        create_user_rfm_table()
-        from scripts.etl.preload_rfm import run_auto_preload
-        results = run_auto_preload()
-        success = [r for r in results if r[4] > 0]
-        print(f"  user_rfm 预加载完成: {len(success)} 个组合")
+        try:
+            with PerfTimer("step7a_create_user_rfm_table"):
+                create_user_rfm_table()
+            from scripts.etl.preload_rfm import run_auto_preload
+            with PerfTimer("step7b_run_auto_preload"):
+                results = run_auto_preload()
+            success = [r for r in results if r[4] > 0]
+            print(f"  user_rfm 预加载完成: {len(success)} 个组合")
+        except Exception as _exc:
+            gate_record_error("step7_user_rfm_preload", _exc)
+            raise
+        _save_partial()
 
         # Step 7.5: 刷新活动节奏表（campaign_schedule）
         print("\n" + "-" * 40)
         print("Step 7.5: 刷新活动节奏表")
         print("-" * 40)
-        refresh_campaign_schedule()
+        try:
+            with PerfTimer("step7_5_refresh_campaign_schedule"):
+                refresh_campaign_schedule()
+        except Exception as _exc:
+            gate_record_error("step7_5_refresh_campaign_schedule", _exc)
+            raise
+        _save_partial()
+
+        # 6 道门禁 — cross_day / api_health / dedup 收尾（在 main() 内补齐可访问 db 的门禁）
+        try:
+            from backend.config import DUCKDB_PATH as _DDB2
+            import duckdb as _dd3
+            if _DDB2.exists():
+                _c1 = _dd3.connect(str(_DDB2), read_only=True)
+                try:
+                    _after_max = _c1.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
+                    _after_count = _c1.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+                finally:
+                    _c1.close()
+                gate_set(
+                    "cross_day", "pass",
+                    checked=True,
+                    before_max_pay_time=str(_before_max) if _before_max else None,
+                    after_max_pay_time=str(_after_max) if _after_max else None,
+                    before_count=_before_count,
+                    after_count=_after_count,
+                    net_change=_after_count - _before_count,
+                )
+                # 收集所有 perf 期间累积的错误数（api_health 门禁）
+                from scripts.etl.perf import _ERRORS as _all_errs
+                gate_set(
+                    "api_health", "pass" if not _all_errs else "fail",
+                    checked=True,
+                    error_count=len(_all_errs),
+                    errors=list(_all_errs),
+                )
+                gate_set(
+                    "dedup", "pass",
+                    checked=True,
+                    before_count=_before_count,
+                    after_count=_after_count,
+                    net_change=_after_count - _before_count,
+                )
+        except Exception:
+            pass
 
         # Step 8: 数据源扫描摘要（防截断，固定输出在结尾）
         print("\n" + "=" * 60)
