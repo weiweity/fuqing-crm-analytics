@@ -180,6 +180,10 @@ def _load_data3() -> pd.DataFrame:
     """
     if not _check_reload("data3", DMP_DATA3_PATH):
         return _cache["data3"]["df"]
+    # mtime 变了 → df 即将重读 → 清掉按 _weeks key 缓存的 result/result_other，
+    # 否则 result 缓存命中时会继续返回旧数据
+    _cache["data3"]["result"] = None
+    _cache["data3"]["result_other"] = None
     # 在锁内完成读取（调用方持有锁）
     df = pd.read_csv(DMP_DATA3_PATH, encoding="utf-8")
     df["时间"] = df["时间"].apply(_parse_date)

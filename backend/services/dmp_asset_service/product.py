@@ -31,10 +31,11 @@ def get_product_assets(weeks: int = 4, days: int = 0) -> Dict[str, Any]:
             df = _load_data3()
             return _compute_product_assets_daily(days, df, ID_TO_PRODUCT, PRODUCT_ORDER, PRODUCT_TO_SPU_CLASSES)
 
+        # 先 reload 触发 mtime check；mtime 变时 _load_data3 会清掉 result 缓存
+        df = _load_data3()
         cached = _cache["data3"].get("result")
         if cached is not None and cached.get("_weeks") == weeks:
             return cached
-        df = _load_data3()
         result = _compute_product_assets(weeks, df)
         _cache["data3"]["result"] = result
         result["_weeks"] = weeks
