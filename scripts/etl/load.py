@@ -15,7 +15,7 @@ import duckdb
 
 # QW4 埋点：load 步骤内部计时
 try:
-    from scripts.etl.perf import PerfTimer  # noqa: F401
+    from scripts.etl._timer import PerfTimer  # noqa: F401
 except ImportError:  # perf.py 不在路径时降级为 no-op
     class PerfTimer:  # type: ignore[no-redef]
         def __init__(self, *_args, **_kwargs):

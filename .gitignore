@@ -12,6 +12,11 @@ data/
 *.csv
 *.zip
 
+# 例外：ETL perf baseline（QW0 工单 0，plan §A4.1 强制入仓）
+# 父目录链必须逐级例外化（不要写 !data/，会把 data/ 全部重新包含进来）
+!data/processed/etl_perf/
+!data/processed/etl_perf/*.json
+
 # 环境变量（路径配置、API Keys）
 .env
 .env.local

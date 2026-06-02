@@ -25,7 +25,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 if __name__ == '__main__':
     from scripts.etl.cli import main
-    from scripts.etl.perf import PerfTimer, save_baseline, gate_set
+    from scripts.etl._timer import PerfTimer, save_baseline, gate_set
     from datetime import datetime
     import os
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     try:
         main()
     except Exception as exc:
-        from scripts.etl.perf import gate_record_error
+        from scripts.etl._timer import gate_record_error
         gate_record_error("etl_total", exc)
         raise
     finally:

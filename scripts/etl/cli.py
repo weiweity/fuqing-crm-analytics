@@ -19,7 +19,7 @@ from scripts.etl.pipeline import (
     run_full_etl, update_taoke_channel,
     refresh_visitor_data, refresh_campaign_schedule,
 )
-from scripts.etl.perf import PerfTimer, gate_set, gate_record_error, save_baseline as _save_baseline
+from scripts.etl._timer import PerfTimer, gate_set, gate_record_error, save_baseline as _save_baseline
 
 
 def _save_partial(run_id: str = "1/3") -> None:
@@ -590,7 +590,7 @@ def main():
                     net_change=_after_count - _before_count,
                 )
                 # 收集所有 perf 期间累积的错误数（api_health 门禁）
-                from scripts.etl.perf import _ERRORS as _all_errs
+                from scripts.etl._timer import _ERRORS as _all_errs
                 gate_set(
                     "api_health", "pass" if not _all_errs else "fail",
                     checked=True,

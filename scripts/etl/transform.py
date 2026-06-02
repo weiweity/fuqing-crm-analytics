@@ -10,7 +10,7 @@ import pandas as pd
 
 # QW4 埋点：transform 步骤内部计时（独立路径下 perf.py 可能不在 sys.path）
 try:
-    from scripts.etl.perf import PerfTimer  # noqa: F401
+    from scripts.etl._timer import PerfTimer  # noqa: F401
 except ImportError:
     class PerfTimer:  # type: ignore[no-redef]
         def __init__(self, *_args, **_kwargs):
