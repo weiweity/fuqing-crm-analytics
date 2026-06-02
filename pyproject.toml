@@ -12,7 +12,11 @@ requires-python = ">=3.13"
 python-preference = "only-managed"
 
 [tool.ruff]
-exclude = ["scripts/archive/*"]
+# 2026-06-02 物理合并 work plat/DMP_test_package → scraper/
+# scraper/ 代码暂时不在 fuqing-crm-analytics lint 标准下检（原 DMP_test_package
+# 有自己的 ruff 治理节奏），后续 task 14 "work plat 6 道门禁 + 飞书 webhook" 阶段
+# 统一治理 scraper/ 代码质量。
+exclude = ["scripts/archive/*", "scraper/"]
 
 [tool.ruff.lint.per-file-ignores]
 # health.py: intentional import-after-logger for fail-fast API key check
