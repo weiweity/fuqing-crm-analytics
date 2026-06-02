@@ -115,9 +115,11 @@ def get_shop_status_files():
     return files[:1] if files else []
 
 # P3 fix: 路径环境变量化，默认指向 monorepo 内的 scraper/core（2026-06-02 物理合并 work plat → scraper/）
-# 数据文件仍可在 work plat 旧位置（向后兼容），用 DMP_DATA_DIR 环境变量覆盖
+# 2026-06-02 数据物理迁移完成，scraper/core/ 是主路径；空字符串 fallback 修复（之前 DMP_DATA_DIR="" 会
+# 导致 Path("") 解析为 Path(".")，不是默认 monorepo 路径）
 _DEFAULT_DMP_DIR = PROJECT_ROOT / "scraper" / "core"
-DMP_DATA_DIR = Path(os.environ.get("DMP_DATA_DIR", str(_DEFAULT_DMP_DIR)))
+_DMP_DATA_DIR_ENV = os.environ.get("DMP_DATA_DIR", "").strip()
+DMP_DATA_DIR = Path(_DMP_DATA_DIR_ENV) if _DMP_DATA_DIR_ENV else _DEFAULT_DMP_DIR
 DMP_DATA2_PATH = DMP_DATA_DIR / "data2.csv"   # 全店资产（日级）
 DMP_DATA3_PATH = DMP_DATA_DIR / "data3.csv"   # 单品资产（周级）
 DMP_DATA_PATH = DMP_DATA_DIR / "data.csv"     # 人群漏斗流转数据（日级）
