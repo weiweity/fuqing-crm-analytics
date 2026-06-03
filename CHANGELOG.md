@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`scripts/etl/pipeline.py` 3 处 import 路径错误（修 P0 全量模式崩）** — line 260/353/354 把 `from scripts.preload_rfm` / `from scripts.precompute_category_flow` / `from scripts.precompute_category_churn` 修正为 `scripts.etl.` 子包路径。这是既有 bug（QW0 修正时挪进 scripts/etl/ 包后调用方未同步），全量模式从未触发过 Step 6/8 这 3 个 import，bug 藏着没暴露。本次全量重跑触发后 ETL Step 6 崩，orders 表已写 4.71M user 但 Step 6+ 没跑完，用续传脚本 /tmp/etl-resume-step6.py 完成 Step 6/6.5/6.7/7/8。pytest 153/8 全过。
 - **ETL 3 件 P0/P1 修复合集（cli.py / _timer.py / daily_metrics）** —
   ① `scripts/etl/cli.py:678-683` **P0** `--full / --inc` 静默 noop bug：之前
   `if args.full: _mode = 'full'` 只设变量从未调用 `run_full_etl()`，导致
