@@ -202,11 +202,12 @@ def run_flow_period(
 
     base_params = [start_dt, end_dt] + base_extra
 
-    # hist_customers CTE 有两段 UNION ALL，参数需要分开：
-    # Part 1 (all): cutoff_date, cutoff_timestamp, exclude_params
-    # Part 2 (same): cutoff_date, cutoff_timestamp, channel_params, exclude_params
-    hist_all_params = [cutoff_dt, cutoff_dt] + hist_all_extra
-    hist_same_params = [cutoff_dt, cutoff_dt] + hist_same_extra
+    # hist_customers CTE 改用 end_dt 截止（与 ttl_users_* 一致），
+    # R/F/M 段级分桶基于截至 end_dt 的全量用户集，确保段级和 = TTL。
+    # cutoff_dt 仍用于 RFM 分类口径（period.py 8 象限），但 flow 段级
+    # 走 end_dt 让段级和与已购客TTL 对齐（避免 5/30 整天 user 缺失）。
+    hist_all_params = [end_dt, end_dt] + hist_all_extra
+    hist_same_params = [end_dt, end_dt] + hist_same_extra
 
     # ttl_users CTE（独立口径）：截至 end_dt（含当期）的累计去重用户，
     # 与 hist_customers 的 cutoff 语义解耦 —— RFM 分类基于观察期前行为
@@ -314,10 +315,14 @@ def run_flow_period(
         GROUP BY bo.user_id
     ),
     -- 段级 stats（基于 hist_customers 段分类）
+    -- 分两段 UNION：
+    --   all/same  mode：含会员 + 非会员（全量），与 ttl_users_all/same 对齐
+    --   member_*  mode：仅会员（WHERE is_member=TRUE），与 ttl_users_member_* 对齐
+    -- is_member 字段在此处用作 mode 标记位（FALSE→all/same，TRUE→member_*）
     segment_stats AS (
         SELECT
             s.channel_flag,
-            s.is_member,
+            FALSE AS is_member,
             s.{seg_col} AS segment_val,
             COUNT(DISTINCT s.user_id) AS hist_users,
             COUNT(DISTINCT rp.user_id) AS repurchase_users,
@@ -325,7 +330,20 @@ def run_flow_period(
         FROM segmented_customers s
         LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
         LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
-        GROUP BY s.channel_flag, s.is_member, s.{seg_col}
+        GROUP BY s.channel_flag, s.{seg_col}
+        UNION ALL
+        SELECT
+            s.channel_flag,
+            TRUE AS is_member,
+            s.{seg_col} AS segment_val,
+            COUNT(DISTINCT s.user_id) AS hist_users,
+            COUNT(DISTINCT rp.user_id) AS repurchase_users,
+            COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM segmented_customers s
+        LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
+        WHERE s.is_member = TRUE
+        GROUP BY s.channel_flag, s.{seg_col}
     ),
     -- TTL 段 stats（基于 ttl_users 独立 CTE，含当期）
     ttl_stats AS (
