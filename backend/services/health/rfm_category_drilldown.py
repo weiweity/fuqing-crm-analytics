@@ -341,6 +341,8 @@ def _run_category_period(
             seg_count_params.append(ch)
     seg_count_params.extend(exclude_params_base)  # exclude for user_stats
     seg_count_params.extend([cutoff_dt] * 4)
+    # SQL 占位符顺序: user_stats(1) + rfm_scored(4) + seg_users(1) + repurchase_users(2) + channel(?) + exclude(?)
+    seg_count_params.append(rfm_segment)  # seg_users rfm_segment (位置 6)
     # base_orders 参数: start_dt, end_dt, [channel], [exclude]
     seg_count_params.append(start_dt)
     seg_count_params.append(end_dt)
@@ -350,7 +352,6 @@ def _run_category_period(
         for ch in db_ch:
             seg_count_params.append(ch)
     seg_count_params.extend(exclude_params_base)  # exclude for repurchase_users
-    seg_count_params.append(rfm_segment)  # seg_users rfm_segment
 
     seg_channel_where = ""
     if channel and channel != "全店":
