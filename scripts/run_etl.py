@@ -29,7 +29,12 @@ if __name__ == '__main__':
     from datetime import datetime
     import os
 
-    run_id = os.environ.get("ETL_RUN_ID", "1/3")
+    # P0 修复: 之前 run_id 默认 '1/3' 写死 → _timer.py 的自增分支永远走不到 →
+    # 同 baseline_date 多次跑批互相覆盖（task#59 P1 修复因此完全失效，证据：
+    # baseline_2026_06_03.json 只有 1 条 run_id='1/3'）。改为默认 None，
+    # 让 save_baseline() 走 _timer.py 内的自增逻辑（读 existing_runs 长度 +1）。
+    # 如果用户显式传 ETL_RUN_ID 环境变量则尊重显式值（向后兼容）。
+    run_id = os.environ.get("ETL_RUN_ID") or None
     _total_timer = PerfTimer("etl_total", run_id=run_id)
     _total_timer.__enter__()
     try:

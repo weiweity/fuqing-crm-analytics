@@ -682,9 +682,11 @@ def main():
     else:
         _mode = 'auto'
 
-    # 修 P0 bug: 之前 _mode 设了但从未调用 run_full_etl()，--full/--inc 静默 noop 退出
-    # 真正触发 ETL 跑批：把 mode 转为 pipeline 用的 'full' / 'incremental' / 'auto'
-    _pipeline_mode = {'full': 'full', 'inc': 'incremental', 'auto': 'auto'}[_mode]
+    # 修 P0 bug #1: 之前 _mode 设了但从未调用 run_full_etl()，--full/--inc 静默 noop 退出
+    # 修 P0 bug #2: 之前 'inc' 映射成 'incremental'，但 pipeline.py:56-72 if/elif 只识别
+    # 'inc' 和 'full'，'incremental' 落到 else 分支被当 'auto' 处理 → --inc 显式契约
+    # 破坏（库空时不会 return，反触发全量重建）。修正：'inc' 直接映射 'inc'。
+    _pipeline_mode = {'full': 'full', 'inc': 'inc', 'auto': 'auto'}[_mode]
     print("\n" + "=" * 60)
     print(f"ETL 跑批（mode={_mode}, window_days={args.window_days}）")
     print("=" * 60)
