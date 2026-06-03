@@ -267,7 +267,7 @@ def _get_duckdb_stats() -> tuple[int, int]:
 def save_baseline(
     path: Path | None = None,
     host: str | None = None,
-    run_id: str = "1/3",
+    run_id: str | None = None,
 ) -> dict[str, Any]:
     """汇总 + 落盘 baseline JSON。返回 payload 供调用方继续使用。
 
@@ -277,6 +277,12 @@ def save_baseline(
     - 兼容旧字段 meta / steps / gates / errors
 
     可重复调用：每次 ETL 跑批 push 一个新 run 到 runs 数组（不去重 / 不覆盖）。
+
+    run_id 自增（修 P1 bug）：
+      - run_id=None 时（默认）：读 existing_runs 数量 N，生成 "(N+1)/3" 作为新 run_id
+      - run_id 显式传值：直接用（向后兼容；如 partial save 复用同 run_id 覆盖）
+      之前 run_id 默认 "1/3" + 调用方不传 → 同 baseline_date 多次跑批互相覆盖
+      （origin/main run 1 180.2min 被 run 2 52.6min 覆盖丢失的根因）
     """
     out_path = Path(path) if path else BASELINE_PATH
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -286,6 +292,21 @@ def save_baseline(
     peak_mem_kb = max((r.memory_peak_kb for r in _RECORDS), default=0)
     peak_mem_mb = round(peak_mem_kb / 1024, 2)
     duckdb_alloc_mb, spill_to_disk_mb = _get_duckdb_stats()
+
+    # 提前读 existing_runs（如果 run_id 未传，需要算出自增 N+1）
+    existing_runs: list[dict[str, Any]] = []
+    if out_path.exists():
+        try:
+            with open(out_path, encoding="utf-8") as f:
+                old = json.load(f)
+            existing_runs = list(old.get("runs", []))
+        except Exception:
+            pass
+
+    # P1 修复：run_id 自增
+    if run_id is None:
+        next_idx = len(existing_runs) + 1
+        run_id = f"{next_idx}/3"
 
     # 当前 run 块（plan §A4.1 必填字段）
     this_run = {
@@ -302,16 +323,7 @@ def save_baseline(
         "per_step": [r.to_dict() for r in _RECORDS],
     }
 
-    # 读旧文件（如果存在），把当前 run 追加到 runs 数组
-    existing_runs: list[dict[str, Any]] = []
-    if out_path.exists():
-        try:
-            with open(out_path, encoding="utf-8") as f:
-                old = json.load(f)
-            existing_runs = list(old.get("runs", []))
-        except Exception:
-            pass
-
+    # existing_runs 已在 run_id 自增逻辑（上面）提前读了，此处不重复读
     # 避免重复 push（同一 run_id 的 partial save 覆盖旧 partial；空 _RECORDS 跳过写入避免 stub 污染）
     if not _RECORDS:
         return {}
