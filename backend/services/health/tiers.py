@@ -4,6 +4,7 @@
 基于GSV和订单数的NTILE百分位分层。
 """
 
+from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 from backend.db.connection import get_connection
@@ -29,23 +30,27 @@ SEGMENT_MAP = {
 }
 
 
-def get_value_tiers(analysis_date: str, lookback_days: int = 365,
+def get_value_tiers(analysis_date: Optional[str] = None, lookback_days: int = 365,
                     exclude_channels: Optional[List[str]] = None,
                     channel: Optional[str] = None) -> Dict[str, Any]:
     """
     客户价值分层
     - 价值分层: S(Top 5%) / A(Top 20%) / B(Top 50%) / C(Bottom 50%)
     - 频次分层: 阈值从配置读取，默认 high(>=5单) / medium(>=2单) / low(1单)
+    - analysis_date 缺省 → 今天（MTD UX）
+    - channel="全店" → 不加渠道过滤（=汇总所有渠道）
     """
+    if not analysis_date:
+        analysis_date = datetime.now().strftime("%Y-%m-%d")
     conn = get_connection()
     try:
         fb = FilterBuilder()
         fb.with_metric_type(MetricType.GSV)
         fb.with_lookback(analysis_date, lookback_days)
-        if exclude_channels:
-            fb.with_exclude_channels(exclude_channels)
-        if channel:
+        if channel and channel != "全店":
             fb.with_channels([channel])
+        elif exclude_channels:
+            fb.with_exclude_channels(exclude_channels)
         where_sql, params = fb.build()
 
         # 频次阈值从配置读取
