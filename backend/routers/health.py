@@ -275,16 +275,19 @@ def get_rfm_category_drilldown(
     """
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
-    return rfm_category_drilldown_service.get_rfm_category_drilldown(
-        rfm_segment=rfm_segment,
-        start_date=start_date,
-        end_date=end_date,
-        metric_type=metric_type,
-        channel=channel,
-        exclude_channels=exclude_channels,
-        compare_start_date=compare_start_date,
-        compare_end_date=compare_end_date,
-    )
+    try:
+        return rfm_category_drilldown_service.get_rfm_category_drilldown(
+            rfm_segment=rfm_segment,
+            start_date=start_date,
+            end_date=end_date,
+            metric_type=metric_type,
+            channel=channel,
+            exclude_channels=exclude_channels,
+            compare_start_date=compare_start_date,
+            compare_end_date=compare_end_date,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/new-customer-conversion", response_model=NewCustomerConversionResponse)
