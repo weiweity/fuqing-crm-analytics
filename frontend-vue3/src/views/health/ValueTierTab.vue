@@ -439,6 +439,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
     <Transition name="slide-fade">
       <RFMSegmentDrilldown
         v-if="selectedSegment"
+        :key="selectedSegment"
         :rfm-segment="selectedSegment"
         :query-params="drilldownQueryParams"
         @close="selectedSegment = null"
