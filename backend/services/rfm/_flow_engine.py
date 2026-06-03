@@ -208,7 +208,20 @@ def run_flow_period(
     hist_all_params = [cutoff_dt, cutoff_dt] + hist_all_extra
     hist_same_params = [cutoff_dt, cutoff_dt] + hist_same_extra
 
-    full_params = base_params + hist_all_params + hist_same_params
+    # ttl_users CTE（独立口径）：截至 end_dt（含当期）的累计去重用户，
+    # 与 hist_customers 的 cutoff 语义解耦 —— RFM 分类基于观察期前行为
+    # （避免循环论证），但"已购客TTL"是商业指标，应包含当期新增用户。
+    # 参数顺序：all(end_dt)、same(end_dt)、member_all(end_dt)、member_same(end_dt)
+    ttl_all_params = [end_dt] + hist_all_extra
+    ttl_same_params = [end_dt] + hist_same_extra
+    ttl_member_all_params = [end_dt] + hist_all_extra
+    ttl_member_same_params = [end_dt] + hist_same_extra
+
+    full_params = (
+        base_params
+        + hist_all_params + hist_same_params
+        + ttl_all_params + ttl_same_params + ttl_member_all_params + ttl_member_same_params
+    )
 
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
 
@@ -253,6 +266,43 @@ def run_flow_period(
           {exclude_where_hist}
         GROUP BY user_id
     ),
+    -- TTL 独立口径：截至 end_dt（含当期）的全量历史用户
+    ttl_users_all AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          {refund_where}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
+    ttl_users_same AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          {refund_where}
+          {channel_where_hist}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
+    ttl_users_member_all AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          AND is_member = TRUE
+          {refund_where}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
+    ttl_users_member_same AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          AND is_member = TRUE
+          {refund_where}
+          {channel_where_hist}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
     {segmentation_cte},
     repurchase_users AS (
         SELECT DISTINCT user_id FROM base_orders
@@ -263,21 +313,46 @@ def run_flow_period(
         INNER JOIN repurchase_users rp ON bo.user_id = rp.user_id
         GROUP BY bo.user_id
     ),
-    stats AS (
+    -- 段级 stats（基于 hist_customers 段分类）
+    segment_stats AS (
         SELECT
             s.channel_flag,
             s.is_member,
-            CASE WHEN GROUPING(s.{seg_col}) = 1 THEN '已购客TTL' ELSE s.{seg_col} END AS segment_val,
+            s.{seg_col} AS segment_val,
             COUNT(DISTINCT s.user_id) AS hist_users,
             COUNT(DISTINCT rp.user_id) AS repurchase_users,
             COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
         FROM segmented_customers s
         LEFT JOIN repurchase_users rp ON s.user_id = rp.user_id
         LEFT JOIN repurchase_amounts ra ON s.user_id = ra.user_id
-        GROUP BY GROUPING SETS (
-            (s.channel_flag, s.is_member, s.{seg_col}),
-            (s.channel_flag, s.is_member)
-        )
+        GROUP BY s.channel_flag, s.is_member, s.{seg_col}
+    ),
+    -- TTL 段 stats（基于 ttl_users 独立 CTE，含当期）
+    ttl_stats AS (
+        SELECT 'all' AS channel_flag, FALSE AS is_member, '已购客TTL' AS segment_val,
+               (SELECT COUNT(*) FROM ttl_users_all) AS hist_users,
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+        UNION ALL
+        SELECT 'same', FALSE, '已购客TTL',
+               (SELECT COUNT(*) FROM ttl_users_same),
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users),
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders)
+        UNION ALL
+        SELECT 'all', TRUE, '已购客TTL',
+               (SELECT COUNT(*) FROM ttl_users_member_all),
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users),
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders)
+        UNION ALL
+        SELECT 'same', TRUE, '已购客TTL',
+               (SELECT COUNT(*) FROM ttl_users_member_same),
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users),
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders)
+    ),
+    stats AS (
+        SELECT * FROM segment_stats
+        UNION ALL
+        SELECT * FROM ttl_stats
     )
     SELECT
         CASE
