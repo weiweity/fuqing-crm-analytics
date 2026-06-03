@@ -183,13 +183,13 @@ def get_cohort_retention(
 @router.get("/value-tiers", response_model=ValueTierResponse)
 def get_value_tiers(
     response: Response,
-    analysis_date: str = Query(..., description="分析日期 YYYY-MM-DD"),
+    analysis_date: Optional[str] = Query(default=None, description="分析日期 YYYY-MM-DD（缺省=今天 MTD）"),
     lookback_days: int = Query(default=365, description="回溯天数"),
     exclude_channels: Optional[List[str]] = Query(default=None),
-    channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤）"),
+    channel: Optional[str] = Query(default=None, description="指定渠道（单渠道过滤；'全店' = 不过滤）"),
 ):
     """客户价值分层（S/A/B/C × 高/中/低频）"""
-    if warning := check_future_date(analysis_date):
+    if analysis_date and (warning := check_future_date(analysis_date)):
         response.headers["X-Data-Warning"] = warning
     return tiers_service.get_value_tiers(analysis_date, lookback_days, exclude_channels, channel)
 
