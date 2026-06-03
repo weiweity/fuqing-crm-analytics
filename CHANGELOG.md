@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **RFM 缓存陈旧（修前端 4 分层基数显示旧数）** — `rfm_analysis_cache` 之前仅靠 `data_version`（max_pay_time）做失效判断，ETL 续传恢复 orders 表 4.71M user 后 max_pay_time 不变但行数变化，缓存键不变 → 旧缓存（基于砍数据后的 942K 用户）继续被读出。修法（`backend/services/health/rfm_analysis/cache.py` + `analysis.py`）：
+  1. **加 `orders_count_at_write` 列** — 写缓存时持久化当前 `SELECT COUNT(*) FROM orders` 快照（已对 60 行历史数据回填）。
+  2. **新 `is_stale()` 函数** — 三重失效检测（任一为真即 DELETE + 重算）：① 当前 `mtime_at_write` > 缓存时 ② 当前 `orders.COUNT(*)` ≠ 缓存时 ③ `computed_at` 距今 > 24h（TTL 兜底）。
+  3. **新 `clear_rfm_cache()` 函数** — 手动清空整表（ETL 完成后调），`scripts/etl/cli.py` Step 6 已在 `precompute_rfm_cache()` 前自动调用（带 cleared 行数日志）。
+  4. **API/导出** — `is_stale` / `clear_rfm_cache` / `RFM_CACHE_TTL_HOURS` 三个符号加进 `__init__.py` 公开。
+  5. **清理历史 3 行 INVALID** — 早期 ETL bug 写入了 `metric_type='INVALID'` 缓存行（同 key 同 mtime 但 metric_type 错），本次手动 DELETE 清掉。
+  单测：5 个 is_stale 场景全过（mtime 推进 / 行数变化 / TTL 过期 / 全新 / 历史缺列优雅降级）。pytest 153/8 全过；ruff 0 errors。修 R 区间 / F 区间 / M 区间 / 已购客 TTL 在 ETL 续传后未刷新的根因。
+
 - **ETL Step 8 品类预计算 `Connection already closed`** — `scripts/etl/precompute_category_flow.py` 和 `scripts/etl/precompute_category_churn.py` 共 7 处 `conn.close()` / `conn2.close()`（含 3 处 `try/finally`）违反 `backend/db/connection.py` 单例契约——单例连接被代码关闭后，下次 `get_connection()` 拿到已关闭句柄 → `execute()` 抛 `Connection already closed!`。修复全部删除 `conn.close()` 调用并解包 `try/finally` 块（单例连接由 `close_connection()` 在应用退出时统一释放），3 处保留 `try/finally` 也是冗余。`get_churn_data()` 同样修。导致 10 个 window × 2 级别 = 20 个组合（flow）+ N 个月（churn）全部失败，品类流失 / 流转预计算 0 新增 0 跳过（修 P1 task #82）。pytest 153/8 全过。
 
 ### Fixed
