@@ -176,6 +176,11 @@ function isDimHighlighted(dim: 'r' | 'f' | 'm', seg: SegmentDefinitionItem | nul
   return false
 }
 
+// ── 回购率格式化（防御 null/undefined：缓存 / 老数据 / 中间态可能不含 prev2 字段） ──
+function formatRate(v: number | null | undefined): string {
+  return `${((v ?? 0) * 100).toFixed(2)}%`
+}
+
 // ── 回购率柱状图 ──
 const repurchaseRateChartOption = computed(() => {
   if (!rfmData.value) return {}
@@ -268,7 +273,7 @@ const rfmColumns = computed<DataTableColumns<RFMAnalysisRow>>(() => {
     },
     { title: `${yr}历史人数`, key: 'hist_users_current', width: 90, align: 'right', render: (r) => r.hist_users_current.toLocaleString() },
     { title: `${yr}回购人数`, key: 'repurchase_users_current', width: 90, align: 'right', render: (r) => r.repurchase_users_current.toLocaleString() },
-    { title: `${yr}回购率`, key: 'repurchase_rate_current', width: 80, align: 'right', render: (r) => h('span', { class: 'font-medium text-slate-800' }, `${(r.repurchase_rate_current * 100).toFixed(2)}%`) },
+    { title: `${yr}回购率`, key: 'repurchase_rate_current', width: 80, align: 'right', render: (r) => h('span', { class: 'font-medium text-slate-800' }, formatRate(r.repurchase_rate_current)) },
     { title: `${yr}回购GSV`, key: 'repurchase_gsv_current', width: 90, align: 'right', render: (r) => r.repurchase_gsv_current >= 10000 ? `${(r.repurchase_gsv_current / 10000).toFixed(1)}万` : r.repurchase_gsv_current.toLocaleString() },
     { title: `${yr}回购GSV占比`, key: 'repurchase_gsv_ratio_current', width: 90, align: 'right', render: (r) => `${(r.repurchase_gsv_ratio_current * 100).toFixed(2)}%` },
     { title: `${yr}年同比历史人数`, key: 'yoy_hist_users', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_hist_users }) },
@@ -277,9 +282,9 @@ const rfmColumns = computed<DataTableColumns<RFMAnalysisRow>>(() => {
     { title: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv }) },
     { title: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio }) },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
-    { title: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 80, align: 'right', render: (r) => `${(r.repurchase_rate_comp * 100).toFixed(2)}%` },
+    { title: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 80, align: 'right', render: (r) => formatRate(r.repurchase_rate_comp) },
     { title: `${yr3}历史人数`, key: 'hist_users_prev2', width: 90, align: 'right', render: (r) => r.hist_users_prev2.toLocaleString() },
-    { title: `${yr3}回购率`, key: 'repurchase_rate_prev2', width: 80, align: 'right', render: (r) => `${(r.repurchase_rate_prev2 * 100).toFixed(2)}%` },
+    { title: `${yr3}回购率`, key: 'repurchase_rate_prev2', width: 80, align: 'right', render: (r) => formatRate(r.repurchase_rate_prev2) },
   ]
 })
 
