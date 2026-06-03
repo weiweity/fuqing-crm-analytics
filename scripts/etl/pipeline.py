@@ -247,8 +247,9 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
 
         new_df, refresh_df = pd.DataFrame(), pd.DataFrame()
 
-        # Step 5: 预计算每日指标（全量模式）
-        _rebuild_metrics()
+        # Step 5: 预计算每日指标（全量模式）— 已挪到 Step 6 user_first_purchase 之后
+        # 原因：metrics SQL 用 LEFT JOIN user_first_purchase 算 new/old_user_count，
+        # 必须先建好 user_first_purchase 表。详见 _rebuild_metrics docstring。
 
         # Step 6: 创建 user_rfm 表 + 热点日期预加载
         print("\n" + "-" * 40)
@@ -321,9 +322,9 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                     _save_processed_files(dtype, processed)
                     print(f"  [事务化] 已标记 {len(updates)} 个 {dtype} 文件为已处理")
 
-        # Step 5: 预计算每日指标（增量模式）
-        with PerfTimer("pl_step5_update_incremental_metrics", window_days=window_days):
-            _update_incremental_metrics(new_df, refresh_df, window_days=window_days)
+        # Step 5: 预计算每日指标（增量模式）— 已挪到 Step 6 user_first_purchase 之后
+        # 原因：metrics SQL 用 LEFT JOIN user_first_purchase 算 new/old_user_count，
+        # 必须先建好 user_first_purchase 表。详见 _update_incremental_metrics docstring。
 
     # Step 6: 维护 user_first_purchase 表（滑动窗口模式）
     with PerfTimer("pl_step6_user_first_purchase", run_mode=run_mode, window_days=window_days):
@@ -332,6 +333,14 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     # Step 6.5: 维护 user_recency 表（RFM flow 查询加速）
     with PerfTimer("pl_step6_5_user_recency", run_mode=run_mode, window_days=window_days):
         _build_user_recency_table(run_mode, window_days=window_days)
+
+    # Step 6.7: 计算 daily_metrics（必须在 user_first_purchase 之后，SQL 用 LEFT JOIN）
+    if run_mode == 'full':
+        with PerfTimer("pl_step6_7_rebuild_metrics_after_ufp"):
+            _rebuild_metrics()
+    else:
+        with PerfTimer("pl_step6_7_update_metrics_after_ufp", window_days=window_days):
+            _update_incremental_metrics(new_df, refresh_df, window_days=window_days)
 
     # Step 7: 全量模式下标记所有源文件为已处理
     if run_mode == 'full':
@@ -397,32 +406,67 @@ def _mark_all_files_processed():
 
 
 def _rebuild_metrics():
-    """重建指标表（全量模式）"""
+    """重建指标表（全量模式）
+
+    P1 修复: old_user_count / new_user_gmv / old_user_gmv 之前硬编码 0，
+    改为 LEFT JOIN user_first_purchase 用 first_pay_date 判定新客/老客。
+    """
     print("\n重建每日指标...")
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+
+    has_ufp = conn.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'user_first_purchase'
+    """).fetchone()[0] > 0
+    if not has_ufp:
+        print("  ⚠️ user_first_purchase 不存在，old_user_count fallback 为 0")
     conn.execute("DELETE FROM daily_metrics")
 
-    conn.execute("""
-        INSERT INTO daily_metrics
-        SELECT
-            DATE(pay_time) as date,
-            COALESCE(SUM(actual_amount), 0) as gmv,
-            COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
-            COUNT(DISTINCT order_id) as order_count,
-            COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
-            COUNT(DISTINCT user_id) as new_user_count,
-            0 as old_user_count,
-            COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
-            COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
-            COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
-            COALESCE(AVG(actual_amount), 0) as avg_order_value,
-            0 as new_user_gmv,
-            0 as old_user_gmv
-        FROM orders
-        WHERE pay_time IS NOT NULL
-        GROUP BY DATE(pay_time)
-        ORDER BY date
-    """)
+    if has_ufp:
+        conn.execute("""
+            INSERT INTO daily_metrics
+            SELECT
+                DATE(o.pay_time) as date,
+                COALESCE(SUM(o.actual_amount), 0) as gmv,
+                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT o.order_id) as order_count,
+                COUNT(DISTINCT CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.order_id END) as gsv_order_count,
+                COUNT(DISTINCT CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.user_id END) as new_user_count,
+                COUNT(DISTINCT CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.user_id END) as old_user_count,
+                COALESCE(SUM(CASE WHEN o.is_member = TRUE THEN o.actual_amount ELSE 0 END), 0) as member_gmv,
+                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
+                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
+                COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
+            FROM orders o
+            LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
+            WHERE o.pay_time IS NOT NULL
+            GROUP BY DATE(o.pay_time)
+            ORDER BY date
+        """)
+    else:
+        conn.execute("""
+            INSERT INTO daily_metrics
+            SELECT
+                DATE(pay_time) as date,
+                COALESCE(SUM(actual_amount), 0) as gmv,
+                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT order_id) as order_count,
+                COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
+                COUNT(DISTINCT user_id) as new_user_count,
+                0 as old_user_count,
+                COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
+                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
+                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
+                COALESCE(AVG(actual_amount), 0) as avg_order_value,
+                0 as new_user_gmv,
+                0 as old_user_gmv
+            FROM orders
+            WHERE pay_time IS NOT NULL
+            GROUP BY DATE(pay_time)
+            ORDER BY date
+        """)
 
     count = conn.execute("SELECT COUNT(*) FROM daily_metrics").fetchone()[0]
     print(f"  每日指标: {count} 天")
@@ -454,26 +498,55 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     conn.execute("DELETE FROM daily_metrics WHERE date IN (SELECT unnest(?))", [date_list])
-    conn.execute("""
-        INSERT INTO daily_metrics
-        SELECT
-            DATE(pay_time) as date,
-            COALESCE(SUM(actual_amount), 0) as gmv,
-            COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
-            COUNT(DISTINCT order_id) as order_count,
-            COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
-            COUNT(DISTINCT user_id) as new_user_count,
-            0 as old_user_count,
-            COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
-            COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
-            COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
-            COALESCE(AVG(actual_amount), 0) as avg_order_value,
-            0 as new_user_gmv,
-            0 as old_user_gmv
-        FROM orders
-        WHERE pay_time IS NOT NULL AND DATE(pay_time) IN (SELECT unnest(?))
-        GROUP BY DATE(pay_time)
-    """, [date_list])
+
+    has_ufp = conn.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'user_first_purchase'
+    """).fetchone()[0] > 0
+
+    if has_ufp:
+        conn.execute("""
+            INSERT INTO daily_metrics
+            SELECT
+                DATE(o.pay_time) as date,
+                COALESCE(SUM(o.actual_amount), 0) as gmv,
+                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT o.order_id) as order_count,
+                COUNT(DISTINCT CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.order_id END) as gsv_order_count,
+                COUNT(DISTINCT CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.user_id END) as new_user_count,
+                COUNT(DISTINCT CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.user_id END) as old_user_count,
+                COALESCE(SUM(CASE WHEN o.is_member = TRUE THEN o.actual_amount ELSE 0 END), 0) as member_gmv,
+                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
+                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
+                COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
+            FROM orders o
+            LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
+            WHERE o.pay_time IS NOT NULL AND DATE(o.pay_time) IN (SELECT unnest(?))
+            GROUP BY DATE(o.pay_time)
+        """, [date_list])
+    else:
+        conn.execute("""
+            INSERT INTO daily_metrics
+            SELECT
+                DATE(pay_time) as date,
+                COALESCE(SUM(actual_amount), 0) as gmv,
+                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT order_id) as order_count,
+                COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
+                COUNT(DISTINCT user_id) as new_user_count,
+                0 as old_user_count,
+                COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
+                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
+                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
+                COALESCE(AVG(actual_amount), 0) as avg_order_value,
+                0 as new_user_gmv,
+                0 as old_user_gmv
+            FROM orders
+            WHERE pay_time IS NOT NULL AND DATE(pay_time) IN (SELECT unnest(?))
+            GROUP BY DATE(pay_time)
+        """, [date_list])
 
     print(f"  已更新 {len(date_list)} 个日期的指标")
     conn.close()
