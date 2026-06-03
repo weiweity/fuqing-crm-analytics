@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`scripts/etl/pipeline.py` daily_metrics `new/old_user_gmv` 没排除退款订单（修 P2 task #80）** — `_rebuild_metrics` line 440-441 和 `_update_incremental_metrics` line 530-531 的 `new_user_gmv` / `old_user_gmv` `CASE WHEN` 没加 `is_refund=FALSE`，导致这两个金额字段错误地包含当天退款订单金额（与 gsv 口径不一致）。**根因调查**：6/2 实测 3 个口径（INNER JOIN / LEFT JOIN / daily_metrics）输出**完全一致**（new=3373 old=3941 new_gmv=535,550.19 old_gmv=769,988.25），LEFT JOIN 漏算 NULL 的假设不成立——ufp 缺失的 1128 用户**100% 是纯退款用户**（历史 0 有效订单，6/2 1202 单全退款），ufp 不收录他们是预期行为，他们的订单不计入 new/old 是**业务正确**。**真 bug 在 GMV**：6/2 这 1128 用户里 211 个有 `first_pay_date=6/2`（算 new_user），但他们的退款金额（40,753.60 元）错算进 new_user_gmv。修法：2 处 `CASE WHEN` 加 `AND o.is_refund = FALSE` 与 gsv 口径对齐；同时扩展 `_update_incremental_metrics` docstring 说明 LEFT JOIN 语义和"纯退款用户不计入 new/old"是预期行为。pytest 153/8 全过；ruff 0 errors；pipeline.py 导入签名校验 OK；`/api/v1/health` 200。
+
 - **ETL Step 8 品类预计算 `Connection already closed`** — `scripts/etl/precompute_category_flow.py` 和 `scripts/etl/precompute_category_churn.py` 共 7 处 `conn.close()` / `conn2.close()`（含 3 处 `try/finally`）违反 `backend/db/connection.py` 单例契约——单例连接被代码关闭后，下次 `get_connection()` 拿到已关闭句柄 → `execute()` 抛 `Connection already closed!`。修复全部删除 `conn.close()` 调用并解包 `try/finally` 块（单例连接由 `close_connection()` 在应用退出时统一释放），3 处保留 `try/finally` 也是冗余。`get_churn_data()` 同样修。导致 10 个 window × 2 级别 = 20 个组合（flow）+ N 个月（churn）全部失败，品类流失 / 流转预计算 0 新增 0 跳过（修 P1 task #82）。pytest 153/8 全过。
 
 ### Fixed
