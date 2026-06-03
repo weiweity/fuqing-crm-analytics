@@ -341,8 +341,6 @@ def precompute_category_churn(
         ])
         rows_written += 1
 
-    conn.close()
-
     return {
         "success": True,
         "rows_written": rows_written,
@@ -388,23 +386,21 @@ def run_full_precomputation():
     print("=" * 60)
 
     conn = get_connection()
-    try:
-        _ensure_table(conn)
-        # 获取数据库日期范围
-        date_range = conn.execute("""
-            SELECT MIN(pay_time) as min_date, MAX(pay_time) as max_date
-            FROM orders
-            WHERE pay_time IS NOT NULL
-        """).fetchone()
+    # 单例连接，进程生命周期内不复用 close
+    _ensure_table(conn)
+    # 获取数据库日期范围
+    date_range = conn.execute("""
+        SELECT MIN(pay_time) as min_date, MAX(pay_time) as max_date
+        FROM orders
+        WHERE pay_time IS NOT NULL
+    """).fetchone()
 
-        if date_range is None or date_range[0] is None:
-            print("  [警告] 数据库为空，跳过预计算")
-            return
+    if date_range is None or date_range[0] is None:
+        print("  [警告] 数据库为空，跳过预计算")
+        return
 
-        min_date = _normalize_date(date_range[0])
-        max_date = _normalize_date(date_range[1])
-    finally:
-        conn.close()
+    min_date = _normalize_date(date_range[0])
+    max_date = _normalize_date(date_range[1])
 
     print(f"  数据范围: {min_date} ~ {max_date}")
 
@@ -437,13 +433,11 @@ def run_full_precomputation():
         start_date_dt = datetime(year, month, 1)
         start_date = start_date_dt.strftime("%Y-%m-%d")
 
-        # 检查是否已有该月数据
-        conn2 = get_connection()
-        existing = conn2.execute(
+        # 检查是否已有该月数据（单例连接）
+        existing = get_connection().execute(
             f"SELECT COUNT(*) FROM {TABLE_NAME} WHERE month = ?",
             [month_str]
         ).fetchone()[0]
-        conn2.close()
 
         if existing > 0:
             print(f"  [跳过] {month_str} (已有 {existing} 条)")
@@ -481,24 +475,22 @@ def get_churn_data(
     month_label = end_dt.strftime("%Y-%m")
 
     conn = get_connection()
-    try:
-        df = conn.execute(f"""
-            SELECT
-                category_name,
-                month,
-                total_users,
-                churned_users,
-                inter_churn,
-                silent_churn,
-                retained_users,
-                retention_rate,
-                churn去向_json
-            FROM {TABLE_NAME}
-            WHERE month = ?
-            ORDER BY total_users DESC
-        """, [month_label]).fetchdf()
-    finally:
-        conn.close()
+    # 单例连接，进程生命周期内不复用 close
+    df = conn.execute(f"""
+        SELECT
+            category_name,
+            month,
+            total_users,
+            churned_users,
+            inter_churn,
+            silent_churn,
+            retained_users,
+            retention_rate,
+            churn去向_json
+        FROM {TABLE_NAME}
+        WHERE month = ?
+        ORDER BY total_users DESC
+    """, [month_label]).fetchdf()
 
     result = []
     for _, row in df.iterrows():

@@ -208,7 +208,6 @@ def precompute_category_flow(
     """
 
     flow_df = conn.execute(query, filter_params).fetchdf()
-    conn.close()
 
     # ─────────────────────────────────────────────────────────────
     # Step 4: 构建桑基图数据
@@ -267,7 +266,6 @@ def precompute_category_flow(
     loss_params.extend(exclude_params)
 
     loss_df = conn2.execute(loss_query, loss_params).fetchdf()
-    conn2.close()
 
     # 添加流失节点
     loss_categories_in_top = [row['first_category'] for _, row in loss_df.iterrows()
@@ -472,16 +470,13 @@ def run_full_precomputation():
     print("=" * 60)
 
 
-    # 获取数据库最新数据日期
+    # 获取数据库最新数据日期（单例连接，进程生命周期内不复用 close）
     conn = get_connection()
-    try:
-        max_pay = conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
-        if max_pay is None:
-            print("  [警告] 数据库为空，跳过预计算")
-            return
-        end_date = _normalize_date(max_pay)
-    finally:
-        conn.close()
+    max_pay = conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
+    if max_pay is None:
+        print("  [警告] 数据库为空，跳过预计算")
+        return
+    end_date = _normalize_date(max_pay)
 
     # 定义预计算组合
     window_days_list = [30, 90, 180]
