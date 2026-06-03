@@ -1,27 +1,75 @@
 """
-老客健康分析仪表盘 - RFM完整分析（8象限人群分群）
+老客健康分析仪表盘 - RFM完整分析（8象限人群分群）缓存层
 
-基于R/F/M三维评分，将用户划分为8个经典象限，计算各象限回购率。
-逻辑同R区间分析，仅将 r_segment 替换为 rfm_segment（8象限+TTL）。
+QW2 Phase 2: uvicorn 单例 read_only, 缓存写操作需独立写连接
+============================================================
+
+背景：
+- QW2 Phase 1 把 uvicorn DuckDB 单例改为 read_only（避免 ETL 跑批时锁冲突）
+- 但 cache.py 4 个写路径（DDL/INSERT/DELETE）需要写入权限
+- get_connection(read_only=False) 因单例已被锁定,仍返回 read_only 包装器
+  → DuckDB 报 "Cannot execute CREATE on read-only database"
+
+修复：
+- cache.py 内部直接 duckdb.connect(..., access_mode=READ_WRITE) 拿临时写连接
+- 短生命周期（每个写操作独立 open/close）,避开单例污染
+- DuckDB 支持多读单写：uvicorn 持 read_only 单例时,仍可开独立写连接
+- 函数签名尽量兼容（_write_db_cache 移除冗余 conn,_ensure_db_cache_table
+  改为必传 write_conn,_read_db_cache 保留 conn 供 SELECT）
 """
 
+import os
 import duckdb
 import json
 import logging
 from datetime import date
 from typing import Dict, Any, List, Optional
 
-from backend.db.connection import get_connection
+from backend.config import DUCKDB_PATH
+from backend.db.connection import get_duckdb_config
 from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 
 logger = logging.getLogger(__name__)
 
 
+# ============================================================
+# 写连接管理（QW2 Phase 2 关键修复）
+# ============================================================
 
-def _ensure_db_cache_table(conn: duckdb.DuckDBPyConnection) -> None:
-    """确保预计算缓存表存在（含 mtime_at_write 列用于缓存新鲜度校验）"""
-    conn.execute(f"""
+def _open_write_conn() -> duckdb.DuckDBPyConnection:
+    """打开一个独立的 DuckDB 写连接（绕开 read_only 单例）。
+
+    QW2 Phase 2: uvicorn 永远 read_only（QW2 Phase 1），
+    但 RFM 缓存需要 DDL（CREATE/ALTER/INDEX）+ INSERT/DELETE。
+    get_connection(read_only=False) 因单例已被 read_only 锁定,
+    仍返回 read_only 包装器,无法写。
+
+    所以 cache.py 写操作直接 duckdb.connect(..., access_mode=READ_WRITE)
+    拿短生命周期写连接,调用方负责 close。
+
+    DuckDB 多读单写模型：uvicorn 持 read_only 单例时,本进程
+    仍可打开独立写连接（与 read_only 单例共存,不互斥）。
+
+    注意：duckdb.connect 默认 access_mode=READ_WRITE,这里显式
+    声明意图 + 防御性兜底。
+    """
+    cfg = get_duckdb_config()
+    cfg["access_mode"] = "READ_WRITE"
+    db_password = os.environ.get("DUCKDB_PASSWORD")
+    if db_password:
+        cfg["password"] = db_password
+    return duckdb.connect(str(DUCKDB_PATH), config=cfg)
+
+
+def _ensure_db_cache_table(write_conn: duckdb.DuckDBPyConnection) -> None:
+    """确保 RFM 缓存表存在（DDL 需可写连接）。
+
+    QW2 Phase 2: 参数改为 write_conn（必传可写连接）,
+    禁止传 read_only 连接（会报 "Cannot execute CREATE on read-only database"）。
+    含 mtime_at_write 列用于缓存新鲜度校验。
+    """
+    write_conn.execute(f"""
         CREATE TABLE IF NOT EXISTS {RFM_CACHE_TABLE} (
             cache_key     VARCHAR PRIMARY KEY,
             period        VARCHAR,
@@ -35,13 +83,13 @@ def _ensure_db_cache_table(conn: duckdb.DuckDBPyConnection) -> None:
             computed_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    # 迁移：若表已有数据但无 mtime_at_write 列，添加该列
+    # 迁移：若表已有数据但无 mtime_at_write 列,添加该列
     try:
-        conn.execute(f"ALTER TABLE {RFM_CACHE_TABLE} ADD COLUMN mtime_at_write VARCHAR")
+        write_conn.execute(f"ALTER TABLE {RFM_CACHE_TABLE} ADD COLUMN mtime_at_write VARCHAR")
     except Exception:
         pass  # 列已存在
-    conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{RFM_CACHE_TABLE}_period "
-                 f"ON {RFM_CACHE_TABLE}(period, start_date, end_date, channel, metric_type)")
+    write_conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{RFM_CACHE_TABLE}_period "
+                       f"ON {RFM_CACHE_TABLE}(period, start_date, end_date, channel, metric_type)")
 
 
 def _read_db_cache(
@@ -58,13 +106,24 @@ def _read_db_cache(
 ) -> Optional[Dict[str, Any]]:
     """从 DuckDB 预计算表读取缓存。
 
-    缓存新鲜度校验：对比 orders 表最大支付时间（data_version）。
-    data_version 在调用方通过同一 conn 获取，保证读缓存与写缓存用同一数据版本。
-    注意：conn 由调用方管理，本函数不负责关闭连接。
+    QW2 Phase 2: SELECT 仍用调用方 conn（read_only 可读）,
+    表结构初始化 + 损坏清理用临时写连接（_open_write_conn）。
+    conn 由调用方管理,本函数不负责关闭连接。
     """
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     try:
-        _ensure_db_cache_table(conn)
+        # 表结构初始化（DDL 需要写连接,用临时写连接）
+        try:
+            _wc = _open_write_conn()
+            try:
+                _ensure_db_cache_table(_wc)
+            finally:
+                _wc.close()
+        except Exception as _e:
+            # 写连接失败（如锁冲突）不阻塞读路径,继续尝试 SELECT
+            logger.debug(f"RFM 缓存表初始化失败（读路径继续）: {_e}")
+
+        # 读用调用方 conn（read_only 可读）
         row = conn.execute(
             f"SELECT result_json, mtime_at_write FROM {RFM_CACHE_TABLE} WHERE cache_key = ?",
             [key]
@@ -76,11 +135,11 @@ def _read_db_cache(
             parsed = json.loads(row[0])
         except (json.JSONDecodeError, TypeError, ValueError) as e:
             logger.warning(f"RFM 缓存损坏（无法解析 JSON）: key={key}, 清理该行: {e}")
-            conn.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
+            _try_delete_corrupt_row(key)
             return None
         if not isinstance(parsed, dict):
             logger.warning(f"RFM 缓存损坏（不是 dict）: key={key}, type={type(parsed)}, 清理该行")
-            conn.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
+            _try_delete_corrupt_row(key)
             return None
         # 用 data_version 判断数据是否已更新（data_version = orders.max_pay_time）
         if data_version and row[1] and data_version > row[1]:
@@ -92,6 +151,18 @@ def _read_db_cache(
     return None
 
 
+def _try_delete_corrupt_row(key: str) -> None:
+    """用临时写连接删除损坏的缓存行（QW2 Phase 2）。失败仅 warning,不抛。"""
+    try:
+        _wc = _open_write_conn()
+        try:
+            _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
+        finally:
+            _wc.close()
+    except Exception as e:
+        logger.warning(f"RFM 缓存损坏行无法清理（read_only 模式）: key={key}, {e}")
+
+
 def _write_db_cache(
     period: Optional[str],
     start_date: Optional[str],
@@ -99,7 +170,6 @@ def _write_db_cache(
     channel: Optional[str],
     metric_type: str,
     exclude_channels: Optional[List[str]],
-    conn: duckdb.DuckDBPyConnection,
     data_version: str,
     result: Dict[str, Any],
     compare_start_date: Optional[str] = None,
@@ -107,12 +177,15 @@ def _write_db_cache(
 ) -> None:
     """写入 DuckDB 预计算缓存表（含 mtime_at_write 用于后续新鲜度校验）。
 
-    防御性校验：仅写入有效的 dict 结果，防止污染缓存表。
-    conn 由调用方传入（避免多连接冲突），data_version 同理。
+    QW2 Phase 2: 移除 conn 参数,内部 _open_write_conn() 拿独立写连接
+    完成 DDL+INSERT OR REPLACE。不再要求调用方传 conn（避免误用
+    read_only 连接写,报 "Cannot execute CREATE on read-only database"）。
+
+    防御性校验：仅写入有效的 dict 结果,防止污染缓存表。
     """
     # 防御性校验：result 必须是有效 dict
     if not isinstance(result, dict):
-        logger.warning(f"RFM 缓存写入跳过：result 不是 dict（type={type(result)}），可能是异常路径返回的 None")
+        logger.warning(f"RFM 缓存写入跳过：result 不是 dict（type={type(result)}）,可能是异常路径返回的 None")
         return
 
     try:
@@ -123,31 +196,45 @@ def _write_db_cache(
 
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     ex_str = json.dumps(exclude_channels, ensure_ascii=False) if exclude_channels else ""
-    _ensure_db_cache_table(conn)
     try:
-        conn.execute(
-            f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
-            f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
-            f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-            [key, period or "", start_date or "", end_date or "",
-             channel or "", metric_type, ex_str, result_json_str, data_version]
-        )
+        _wc = _open_write_conn()
+        try:
+            _ensure_db_cache_table(_wc)
+            _wc.execute(
+                f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
+                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                [key, period or "", start_date or "", end_date or "",
+                 channel or "", metric_type, ex_str, result_json_str, data_version]
+            )
+        finally:
+            _wc.close()
     except Exception as e:
         logger.warning(f"RFM DuckDB 缓存写入失败（不影响返回）: {e}")
 
 
 def precompute_rfm_cache() -> int:
     """
-    Plan P1: 预计算所有常用周期组合的 RFM 结果，存入 DuckDB 表。
+    Plan P1: 预计算所有常用周期组合的 RFM 结果,存入 DuckDB 表。
 
     预计算范围：
-      - 标准周期：Q1 / Q2 / Q3 / Q4 / YTD / MTD
+      - 标准周期：YTD / MTD
       - 年份：2024 / 2025 / 2026
       - 渠道：全店
       - 指标：GSV / GMV
-    共 6 周期 × 3 年 × 2 指标 = 36 个组合。
+    共 2 周期 × 3 年 × 2 指标 = 12 个组合。
 
-    ETL 完成后调用，自动跳过已计算的组合（INSERT OR REPLACE）。
+    ETL 完成后调用,自动跳过已计算的组合（INSERT OR REPLACE）。
+
+    QW2 Phase 2: 必须先 _open_write_conn() 拿写连接（read+write）,
+    然后 SELECT orders / DDL / INSERT 都用这一个写连接。
+
+    不能先 get_connection() 拿 read_only 单例,否则 DuckDB 报
+    "Can't open a connection to same database file with a different
+    configuration"（同一进程内 DuckDB 不允许不同 access_mode 的并发连接）。
+
+    在 uvicorn 进程（read_only 单例已建）调用本函数 → 拿写连接失败,
+    本函数会捕获异常,返回 0,不影响调用方继续。
     """
     from datetime import timedelta
 
@@ -161,11 +248,20 @@ def precompute_rfm_cache() -> int:
     logger.info(f"RFM 预计算开始: {len(STANDARD_PERIODS)} 周期 × {len(YEARS)} 年 × {len(METRIC_TYPES)} 指标 = "
                 f"{len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES)} 个组合")
 
-    # PeriodBuilder.mtd(today=X) 的语义是"截至 X-1 天"，
-    # 所以用 max_pay+1天 → MTD 包含到 max_pay 当天
-    _today_conn = get_connection()
+    # 关键: 先开写连接（read+write,默认 access_mode）
+    # 禁止先 get_connection()（read_only=True 会锁定同进程 DB config）
     try:
-        row = _today_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
+        write_conn = _open_write_conn()
+    except Exception as e:
+        logger.error(f"RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？"
+                     f"ETL 场景应独立进程运行）: {type(e).__name__}: {e}")
+        return 0
+
+    computed = 0
+    try:
+        # PeriodBuilder.mtd(today=X) 的语义是"截至 X-1 天",
+        # 所以用 max_pay+1天 → MTD 包含到 max_pay 当天
+        row = write_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
         max_pay_raw = row[0] if row else None
         if max_pay_raw is not None:
             max_pay_date = max_pay_raw.date() if hasattr(max_pay_raw, 'date') else max_pay_raw
@@ -173,14 +269,10 @@ def precompute_rfm_cache() -> int:
         else:
             today = date.today() + timedelta(days=1)
         logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw})")
-    finally:
-        pass
 
-    conn = get_connection()
-    computed = 0
-    try:
-        _ensure_db_cache_table(conn)
-        data_version = _fetch_max_pay_time(conn)
+        # DDL（write_conn 可写）
+        _ensure_db_cache_table(write_conn)
+        data_version = _fetch_max_pay_time(write_conn)
 
         for metric_type in METRIC_TYPES:
             for period in STANDARD_PERIODS:
@@ -207,15 +299,15 @@ def precompute_rfm_cache() -> int:
                     prev2_end = f"{prev2.end} 23:59:59"
                     prev2_cutoff = prev2.cutoff
 
-                    # 执行 3 个周期
+                    # 执行 3 个周期（读 orders 用 write_conn,write_conn 既可读也可写）
                     c_all, c_same, c_memb_all, c_memb_same = _run_rfm_period(
-                        conn, cur_start, cur_end, cur_cutoff, CHANNEL, metric_type, EXCLUDE
+                        write_conn, cur_start, cur_end, cur_cutoff, CHANNEL, metric_type, EXCLUDE
                     )
                     p_all, p_same, p_memb_all, p_memb_same = _run_rfm_period(
-                        conn, comp_start, comp_end, comp_cutoff, CHANNEL, metric_type, EXCLUDE
+                        write_conn, comp_start, comp_end, comp_cutoff, CHANNEL, metric_type, EXCLUDE
                     )
                     p2_all, p2_same, p2_memb_all, p2_memb_same = _run_rfm_period(
-                        conn, prev2_start, prev2_end, prev2_cutoff, CHANNEL, metric_type, EXCLUDE
+                        write_conn, prev2_start, prev2_end, prev2_cutoff, CHANNEL, metric_type, EXCLUDE
                     )
 
                     rows = _build_rows(c_all, p_all, p2_all)
@@ -234,12 +326,13 @@ def precompute_rfm_cache() -> int:
                         "member_same_channel_rows": memb_same_rows,
                     }
 
-                    # 注意：前端始终传 start_date/end_date，不用 period 参数
-                    # 缓存键必须基于实际日期范围，与前端请求完全一致
-                    # 缓存键用实际日期，与前端请求格式完全一致
+                    # 注意：前端始终传 start_date/end_date,不用 period 参数
+                    # 缓存键必须基于实际日期范围,与前端请求完全一致
+                    # 缓存键用实际日期,与前端请求格式完全一致
                     key = _cache_key(None, cur.start, cur.end, CHANNEL, metric_type, EXCLUDE, data_version)
                     ex_str = ""
-                    conn.execute(
+                    # 写用 write_conn（QW2 Phase 2: 绕开 read_only 单例）
+                    write_conn.execute(
                         f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
                         f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
                         f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
@@ -250,7 +343,10 @@ def precompute_rfm_cache() -> int:
                     logger.info(f"  RFM 预计算: {period} {year} {metric_type} → {key}")
 
     finally:
-        pass
+        try:
+            write_conn.close()
+        except Exception:
+            pass
 
     logger.info(f"RFM 预计算完成: {computed} / {len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES)} 个组合")
     return computed
