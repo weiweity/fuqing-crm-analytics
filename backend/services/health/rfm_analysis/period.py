@@ -53,14 +53,21 @@ def _run_rfm_period_live(
 
     参数顺序（对应 SQL 占位符）：
     1. base_orders: start_dt, end_dt [, channel]
-    2. user_stats_all: cutoff_dt
-    3. user_stats_same: cutoff_dt [, channel]
-    4. rfm_scored_all: cutoff_dt × 4
-    5. rfm_scored_same: cutoff_dt × 4
+    2. user_stats_all: end_dt
+    3. user_stats_same: end_dt [, channel]
+    4. rfm_scored_all: end_dt × 4
+    5. rfm_scored_same: end_dt × 4
     6. ttl_users_all: end_dt
     7. ttl_users_same: end_dt [, channel]
     8. ttl_users_all (member 子查询): end_dt
     9. ttl_users_same (member 子查询): end_dt
+
+    修 task#89 P0 关联：原 user_stats_* 用 cutoff_dt（start_date - 1 截止），
+    8 象限段级和 = 3,889,253（cutoff 用户）< TTL = 4,237,390（end_dt 用户），
+    差 348,137 = 2026 年首购用户（cutoff 之前无历史）。照搬 02ab0a5 修法：
+    user_stats_* 截止由 cutoff_dt → end_dt，让段级和 = TTL = 4,237,390。
+    R/F/M 分类基于"截至 end_dt 行为"（与 ttl_users_* 同口径），新购用户
+    按 end_dt 截止的 F/M 自然归入 8 象限（一般发展/挽留客户），不再丢失。
     """
     params: List[Any] = [start_dt, end_dt]
 
@@ -80,13 +87,13 @@ def _run_rfm_period_live(
             channel_where_hist = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
 
-    params.append(cutoff_dt)  # user_stats_all
-    params.append(cutoff_dt)  # user_stats_same
+    params.append(end_dt)  # user_stats_all（end_dt 截止，与 ttl_users_* 对齐，让段级和=TTL）
+    params.append(end_dt)  # user_stats_same（同上）
     if db_channels:
         params.extend(db_channels)  # user_stats_same channel
 
-    params.extend([cutoff_dt] * 4)  # rfm_scored_all
-    params.extend([cutoff_dt] * 4)  # rfm_scored_same
+    params.extend([end_dt] * 4)  # rfm_scored_all DATEDIFF 参考 end_dt
+    params.extend([end_dt] * 4)  # rfm_scored_same DATEDIFF 参考 end_dt
 
     # ── TTL 独立口径：截至 end_dt（含当期）的累计去重用户 ──
     # 与 8 象限 RFM 分类的 cutoff 语义解耦：RFM 分类基于观察期前行为
