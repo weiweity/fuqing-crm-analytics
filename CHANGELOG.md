@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **RFM 8 象限分析「已购客 TTL」缺 5/31 整天用户 + 错用 RFM 分类 cutoff** — `backend/services/health/rfm_analysis/period.py` `_run_rfm_period_live` 把 TTL 当作 8 象限 hist_users 的 SUM（`ttl_stats_all AS (... SUM(hist_users) ... FROM segment_stats_all)`），而 `segment_stats_all` 来自 `user_stats_all` CTE（用 `cutoff_dt` = start_date-1 = 5/1 的前一天），导致：① TTL 用错了 RFM 分类口径（基于观察期前行为，不含当期新增）；② `pay_time <= '2026-05-31'::TIMESTAMP` 解析为 5/31 00:00:00，漏掉 5/31 整天的 3,481 GSV 用户。SQL 直查 4,256,623（live 截至 6/2 23:59:59），修前 MTD 5月 GSV TTL = 4,233,909（差 22,714 = 19,233 退款用户 + 3,481 5/31 整天用户）。**修法**：加 4 个独立 `ttl_users_all/same/member_*` CTE（用 `end_dt` 截止，含当期）→ `ttl_stats_*` 改从 `ttl_users_*` 拿 hist_users（不再 SUM segment_stats）。修后：MTD 5月 GMV TTL = 4,256,623（与 SQL 直查完全一致）；MTD 5月 GSV TTL = 4,237,390（GSV 排除 19,233 退款用户，是 GSV 口径下业务正确值）；默认 MTD（6/1-6/2）GSV TTL = 4,243,508（= 直查 6/2 23:59:59 GSV）。8 象限 RFM 分类继续用 cutoff（不破坏"观察期前行为"语义，避免循环论证）。params 加 4-6 个 end_dt 占位符；ruff 0 errors；pytest 153/8 全过。
 - **RFM 缓存陈旧（修前端 4 分层基数显示旧数）** — `rfm_analysis_cache` 之前仅靠 `data_version`（max_pay_time）做失效判断，ETL 续传恢复 orders 表 4.71M user 后 max_pay_time 不变但行数变化，缓存键不变 → 旧缓存（基于砍数据后的 942K 用户）继续被读出。修法（`backend/services/health/rfm_analysis/cache.py` + `analysis.py`）：
   1. **加 `orders_count_at_write` 列** — 写缓存时持久化当前 `SELECT COUNT(*) FROM orders` 快照（已对 60 行历史数据回填）。
   2. **新 `is_stale()` 函数** — 三重失效检测（任一为真即 DELETE + 重算）：① 当前 `mtime_at_write` > 缓存时 ② 当前 `orders.COUNT(*)` ≠ 缓存时 ③ `computed_at` 距今 > 24h（TTL 兜底）。

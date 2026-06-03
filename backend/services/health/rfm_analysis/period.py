@@ -57,6 +57,10 @@ def _run_rfm_period_live(
     3. user_stats_same: cutoff_dt [, channel]
     4. rfm_scored_all: cutoff_dt × 4
     5. rfm_scored_same: cutoff_dt × 4
+    6. ttl_users_all: end_dt
+    7. ttl_users_same: end_dt [, channel]
+    8. ttl_users_all (member 子查询): end_dt
+    9. ttl_users_same (member 子查询): end_dt
     """
     params: List[Any] = [start_dt, end_dt]
 
@@ -83,6 +87,18 @@ def _run_rfm_period_live(
 
     params.extend([cutoff_dt] * 4)  # rfm_scored_all
     params.extend([cutoff_dt] * 4)  # rfm_scored_same
+
+    # ── TTL 独立口径：截至 end_dt（含当期）的累计去重用户 ──
+    # 与 8 象限 RFM 分类的 cutoff 语义解耦：RFM 分类基于观察期前行为
+    # （避免循环论证），但"已购客 TTL"是商业指标，应包含当期新增用户
+    params.append(end_dt)  # ttl_users_all
+    params.append(end_dt)  # ttl_users_same
+    if db_channels:
+        params.extend(db_channels)  # ttl_users_same channel
+    params.append(end_dt)  # member_ttl_users_all
+    params.append(end_dt)  # member_ttl_users_same
+    if db_channels:
+        params.extend(db_channels)  # member_ttl_users_same channel
 
     exclude_where_base = ""
     exclude_where_hist = ""
@@ -238,10 +254,66 @@ def _run_rfm_period_live(
         LEFT JOIN repurchase_amounts ra ON r.user_id = ra.user_id
         GROUP BY r.rfm_segment
     ),
-    ttl_stats_all AS (SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM segment_stats_all),
-    ttl_stats_same AS (SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM segment_stats_same),
-    member_ttl_stats_all AS (SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM member_stats_all),
-    member_ttl_stats_same AS (SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users, SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv FROM member_stats_same)
+    ttl_users_all AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          {refund_where}
+          {exclude_where_base}
+        GROUP BY user_id
+    ),
+    ttl_users_same AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          {refund_where}
+          {channel_where_hist}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
+    member_ttl_users_all AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          AND is_member = TRUE
+          {refund_where}
+          {exclude_where_base}
+        GROUP BY user_id
+    ),
+    member_ttl_users_same AS (
+        SELECT user_id FROM orders o
+        WHERE pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          AND is_member = TRUE
+          {refund_where}
+          {channel_where_hist}
+          {exclude_where_hist}
+        GROUP BY user_id
+    ),
+    ttl_stats_all AS (
+        SELECT '已购客TTL' AS rfm_segment,
+               (SELECT COUNT(*) FROM ttl_users_all) AS hist_users,
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+    ),
+    ttl_stats_same AS (
+        SELECT '已购客TTL' AS rfm_segment,
+               (SELECT COUNT(*) FROM ttl_users_same) AS hist_users,
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+    ),
+    member_ttl_stats_all AS (
+        SELECT '已购客TTL' AS rfm_segment,
+               (SELECT COUNT(*) FROM member_ttl_users_all) AS hist_users,
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+    ),
+    member_ttl_stats_same AS (
+        SELECT '已购客TTL' AS rfm_segment,
+               (SELECT COUNT(*) FROM member_ttl_users_same) AS hist_users,
+               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
+               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+    )
     SELECT 'all' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
         SELECT * FROM segment_stats_all UNION ALL SELECT * FROM ttl_stats_all
     )
