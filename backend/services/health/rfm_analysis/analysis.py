@@ -140,12 +140,12 @@ def get_rfm_analysis(
             "member_same_channel_rows": member_same_channel_rows,
         }
 
-        # ── 缓存写入（使用同一连接） ──
+        # ── 缓存写入（QW2 Phase 2: 内部独立写连接,不再传 conn） ──
         if is_historical and data_version:
             try:
                 _write_db_cache(
                     period, start_date, end_date, channel, metric_type,
-                    exclude_channels, conn, data_version, result, compare_start_date, compare_end_date
+                    exclude_channels, data_version, result, compare_start_date, compare_end_date
                 )
                 logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
             except Exception as e:
