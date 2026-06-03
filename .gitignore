@@ -71,6 +71,10 @@ designs/
 .gstack/
 .codebuddy/
 .context/
+.claude/
+
+# 一次性维护脚本（本地保留作工具，按脚本文件头自述"不入 git"）
+scripts/etl/_cleanup_staging.py
 
 # 归档目录（历史文档/脚本，不再维护）
 docs/archive/

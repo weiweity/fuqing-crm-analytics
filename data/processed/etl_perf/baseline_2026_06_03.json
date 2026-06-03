@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "git_sha": "c236dd136a926b5771a78c11e9ee7001d6982e32",
+  "git_sha": "9c3f0ad2354859d28dd56d5b19216edc516e71b8",
   "baseline_date": "2026_06_03",
   "runs": [
     {
@@ -231,12 +231,476 @@
           }
         }
       ]
+    },
+    {
+      "run_id": "2/3",
+      "host": "mac",
+      "started_at": "2026-06-03T12:48:34.995015",
+      "ended_at": "2026-06-03T13:06:03.927880",
+      "wall_time_sec": 3154.2244,
+      "cpu_time_sec": 3127.5721,
+      "rss_peak_mb": 4798.25,
+      "duckdb_alloc_mb": 8192,
+      "spill_to_disk_mb": 0,
+      "step_count": 31,
+      "per_step": [
+        {
+          "name": "pl_step1_load_ref_data",
+          "step_name": "pl_step1_load_ref_data",
+          "timestamp": "2026-06-03T12:48:34.995015",
+          "wall_sec": 0.5347,
+          "cpu_sec": 0.4969,
+          "rss_peak_mb": 906.62,
+          "wall_time": 0.5347,
+          "cpu_time": 0.4969,
+          "memory_peak_kb": 928384,
+          "memory_peak_mb": 906.62
+        },
+        {
+          "name": "load_filter_rolling_window",
+          "step_name": "load_filter_rolling_window",
+          "timestamp": "2026-06-03T12:48:35.082015",
+          "wall_sec": 0.0072,
+          "cpu_sec": 0.0066,
+          "rss_peak_mb": 953.98,
+          "wall_time": 0.0072,
+          "cpu_time": 0.0066,
+          "memory_peak_kb": 976880,
+          "memory_peak_mb": 953.98,
+          "extra": {
+            "input_rows": 18345,
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_step2_5_filter_rolling_window",
+          "step_name": "pl_step2_5_filter_rolling_window",
+          "timestamp": "2026-06-03T12:48:35.082035",
+          "wall_sec": 0.0072,
+          "cpu_sec": 0.0066,
+          "rss_peak_mb": 953.98,
+          "wall_time": 0.0072,
+          "cpu_time": 0.0066,
+          "memory_peak_kb": 976880,
+          "memory_peak_mb": 953.98,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "transform_p4_keyword_loop",
+          "step_name": "transform_p4_keyword_loop",
+          "timestamp": "2026-06-03T12:48:35.101506",
+          "wall_sec": 0.006,
+          "cpu_sec": 0.006,
+          "rss_peak_mb": 955.64,
+          "wall_time": 0.006,
+          "cpu_time": 0.006,
+          "memory_peak_kb": 978576,
+          "memory_peak_mb": 955.64,
+          "extra": {
+            "kw_count": 40
+          }
+        },
+        {
+          "name": "transform_match_channel",
+          "step_name": "transform_match_channel",
+          "timestamp": "2026-06-03T12:48:38.998686",
+          "wall_sec": 3.9052,
+          "cpu_sec": 3.8996,
+          "rss_peak_mb": 1707.56,
+          "wall_time": 3.9052,
+          "cpu_time": 3.8996,
+          "memory_peak_kb": 1748544,
+          "memory_peak_mb": 1707.56,
+          "extra": {
+            "rows": 1,
+            "kw_rules": 40,
+            "id_rules": 0
+          }
+        },
+        {
+          "name": "transform_clean_data",
+          "step_name": "transform_clean_data",
+          "timestamp": "2026-06-03T12:48:39.002434",
+          "wall_sec": 3.9204,
+          "cpu_sec": 3.9119,
+          "rss_peak_mb": 1707.56,
+          "wall_time": 3.9204,
+          "cpu_time": 3.9119,
+          "memory_peak_kb": 1748544,
+          "memory_peak_mb": 1707.56,
+          "extra": {
+            "rows": 1
+          }
+        },
+        {
+          "name": "pl_step3_clean_data_new",
+          "step_name": "pl_step3_clean_data_new",
+          "timestamp": "2026-06-03T12:48:39.002448",
+          "wall_sec": 3.9204,
+          "cpu_sec": 3.9119,
+          "rss_peak_mb": 1707.56,
+          "wall_time": 3.9204,
+          "cpu_time": 3.9119,
+          "memory_peak_kb": 1748544,
+          "memory_peak_mb": 1707.56,
+          "extra": {
+            "rows": 1
+          }
+        },
+        {
+          "name": "transform_p4_keyword_loop",
+          "step_name": "transform_p4_keyword_loop",
+          "timestamp": "2026-06-03T12:48:39.078691",
+          "wall_sec": 0.0401,
+          "cpu_sec": 0.0401,
+          "rss_peak_mb": 1707.56,
+          "wall_time": 0.0401,
+          "cpu_time": 0.0401,
+          "memory_peak_kb": 1748544,
+          "memory_peak_mb": 1707.56,
+          "extra": {
+            "kw_count": 40
+          }
+        },
+        {
+          "name": "transform_match_channel",
+          "step_name": "transform_match_channel",
+          "timestamp": "2026-06-03T12:48:42.911794",
+          "wall_sec": 3.8784,
+          "cpu_sec": 3.874,
+          "rss_peak_mb": 1884.97,
+          "wall_time": 3.8784,
+          "cpu_time": 3.874,
+          "memory_peak_kb": 1930208,
+          "memory_peak_mb": 1884.97,
+          "extra": {
+            "rows": 18344,
+            "kw_rules": 40,
+            "id_rules": 0
+          }
+        },
+        {
+          "name": "transform_clean_data",
+          "step_name": "transform_clean_data",
+          "timestamp": "2026-06-03T12:48:42.917683",
+          "wall_sec": 3.9152,
+          "cpu_sec": 3.9107,
+          "rss_peak_mb": 1884.97,
+          "wall_time": 3.9152,
+          "cpu_time": 3.9107,
+          "memory_peak_kb": 1930208,
+          "memory_peak_mb": 1884.97,
+          "extra": {
+            "rows": 18344
+          }
+        },
+        {
+          "name": "pl_step3_clean_data_refresh",
+          "step_name": "pl_step3_clean_data_refresh",
+          "timestamp": "2026-06-03T12:48:42.917698",
+          "wall_sec": 3.9153,
+          "cpu_sec": 3.9107,
+          "rss_peak_mb": 1884.97,
+          "wall_time": 3.9153,
+          "cpu_time": 3.9107,
+          "memory_peak_kb": 1930208,
+          "memory_peak_mb": 1884.97,
+          "extra": {
+            "rows": 18344
+          }
+        },
+        {
+          "name": "load_upsert_to_duckdb",
+          "step_name": "load_upsert_to_duckdb",
+          "timestamp": "2026-06-03T12:48:44.967957",
+          "wall_sec": 2.0502,
+          "cpu_sec": 1.9638,
+          "rss_peak_mb": 2488.19,
+          "wall_time": 2.0502,
+          "cpu_time": 1.9638,
+          "memory_peak_kb": 2547904,
+          "memory_peak_mb": 2488.19,
+          "extra": {
+            "mode": "incremental",
+            "new_rows": 1,
+            "refresh_rows": 18344
+          }
+        },
+        {
+          "name": "pl_step4_upsert_to_duckdb",
+          "step_name": "pl_step4_upsert_to_duckdb",
+          "timestamp": "2026-06-03T12:48:44.967972",
+          "wall_sec": 2.0503,
+          "cpu_sec": 1.9639,
+          "rss_peak_mb": 2488.19,
+          "wall_time": 2.0503,
+          "cpu_time": 1.9639,
+          "memory_peak_kb": 2547904,
+          "memory_peak_mb": 2488.19,
+          "extra": {
+            "new_rows": 1,
+            "refresh_rows": 18344
+          }
+        },
+        {
+          "name": "pl_step5_update_incremental_metrics",
+          "step_name": "pl_step5_update_incremental_metrics",
+          "timestamp": "2026-06-03T12:48:45.306116",
+          "wall_sec": 0.3328,
+          "cpu_sec": 0.9834,
+          "rss_peak_mb": 3368.39,
+          "wall_time": 0.3328,
+          "cpu_time": 0.9834,
+          "memory_peak_kb": 3449232,
+          "memory_peak_mb": 3368.39,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_step6_user_first_purchase",
+          "step_name": "pl_step6_user_first_purchase",
+          "timestamp": "2026-06-03T12:48:46.771567",
+          "wall_sec": 1.4654,
+          "cpu_sec": 3.0055,
+          "rss_peak_mb": 3781.41,
+          "wall_time": 1.4654,
+          "cpu_time": 3.0055,
+          "memory_peak_kb": 3872160,
+          "memory_peak_mb": 3781.41,
+          "extra": {
+            "run_mode": "incremental",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_step6_5_user_recency",
+          "step_name": "pl_step6_5_user_recency",
+          "timestamp": "2026-06-03T12:48:48.803234",
+          "wall_sec": 2.0316,
+          "cpu_sec": 3.301,
+          "rss_peak_mb": 3879.5,
+          "wall_time": 2.0316,
+          "cpu_time": 3.301,
+          "memory_peak_kb": 3972608,
+          "memory_peak_mb": 3879.5,
+          "extra": {
+            "run_mode": "incremental",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step1_run_full_etl",
+          "step_name": "step1_run_full_etl",
+          "timestamp": "2026-06-03T12:48:48.846235",
+          "wall_sec": 14.426,
+          "cpu_sec": 17.8798,
+          "rss_peak_mb": 3879.5,
+          "wall_time": 14.426,
+          "cpu_time": 17.8798,
+          "memory_peak_kb": 3972608,
+          "memory_peak_mb": 3879.5,
+          "extra": {
+            "mode": "inc",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_taoke_full_correct",
+          "step_name": "pl_taoke_full_correct",
+          "timestamp": "2026-06-03T12:49:29.058796",
+          "wall_sec": 40.05,
+          "cpu_sec": 46.1967,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 40.05,
+          "cpu_time": 46.1967,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77
+        },
+        {
+          "name": "step2_update_taoke_channel",
+          "step_name": "step2_update_taoke_channel",
+          "timestamp": "2026-06-03T12:49:29.058893",
+          "wall_sec": 40.0502,
+          "cpu_sec": 46.1969,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 40.0502,
+          "cpu_time": 46.1969,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77
+        },
+        {
+          "name": "etl_status_override_refresh",
+          "step_name": "etl_status_override_refresh",
+          "timestamp": "2026-06-03T12:49:38.561544",
+          "wall_sec": 9.4334,
+          "cpu_sec": 11.1274,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 9.4334,
+          "cpu_time": 11.1274,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step3_refresh_status_override",
+          "step_name": "step3_refresh_status_override",
+          "timestamp": "2026-06-03T12:49:38.561558",
+          "wall_sec": 9.4334,
+          "cpu_sec": 11.1274,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 9.4334,
+          "cpu_time": 11.1274,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step4_sync_override_to_orders",
+          "step_name": "step4_sync_override_to_orders",
+          "timestamp": "2026-06-03T12:49:38.855737",
+          "wall_sec": 0.2416,
+          "cpu_sec": 0.9067,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 0.2416,
+          "cpu_time": 0.9067,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_refresh_visitor_data",
+          "step_name": "pl_refresh_visitor_data",
+          "timestamp": "2026-06-03T12:49:39.017580",
+          "wall_sec": 0.1075,
+          "cpu_sec": 0.1065,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 0.1075,
+          "cpu_time": 0.1065,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77
+        },
+        {
+          "name": "step5_refresh_visitor_data",
+          "step_name": "step5_refresh_visitor_data",
+          "timestamp": "2026-06-03T12:49:39.017589",
+          "wall_sec": 0.1075,
+          "cpu_sec": 0.1065,
+          "rss_peak_mb": 3941.77,
+          "wall_time": 0.1075,
+          "cpu_time": 0.1065,
+          "memory_peak_kb": 4036368,
+          "memory_peak_mb": 3941.77
+        },
+        {
+          "name": "step6_precompute_rfm_cache",
+          "step_name": "step6_precompute_rfm_cache",
+          "timestamp": "2026-06-03T12:49:49.289213",
+          "wall_sec": 10.2181,
+          "cpu_sec": 46.5538,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 10.2181,
+          "cpu_time": 46.5538,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25
+        },
+        {
+          "name": "step7a_create_user_rfm_table",
+          "step_name": "step7a_create_user_rfm_table",
+          "timestamp": "2026-06-03T12:49:49.415649",
+          "wall_sec": 0.0141,
+          "cpu_sec": 0.0137,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 0.0141,
+          "cpu_time": 0.0137,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25
+        },
+        {
+          "name": "preload_rfm",
+          "step_name": "preload_rfm",
+          "timestamp": "2026-06-03T13:06:03.709379",
+          "wall_sec": 974.265,
+          "cpu_sec": 929.5432,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 974.265,
+          "cpu_time": 929.5432,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25,
+          "extra": {
+            "hot_dates": 9,
+            "lookbacks": 3,
+            "metrics": 2,
+            "channels": 10,
+            "total_tasks": 540
+          }
+        },
+        {
+          "name": "step7b_run_auto_preload",
+          "step_name": "step7b_run_auto_preload",
+          "timestamp": "2026-06-03T13:06:03.709657",
+          "wall_sec": 974.2652,
+          "cpu_sec": 929.5433,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 974.2652,
+          "cpu_time": 929.5433,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25
+        },
+        {
+          "name": "pl_refresh_campaign_schedule",
+          "step_name": "pl_refresh_campaign_schedule",
+          "timestamp": "2026-06-03T13:06:03.859399",
+          "wall_sec": 0.0414,
+          "cpu_sec": 0.0126,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 0.0414,
+          "cpu_time": 0.0126,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25
+        },
+        {
+          "name": "step7_5_refresh_campaign_schedule",
+          "step_name": "step7_5_refresh_campaign_schedule",
+          "timestamp": "2026-06-03T13:06:03.859407",
+          "wall_sec": 0.0415,
+          "cpu_sec": 0.0126,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 0.0415,
+          "cpu_time": 0.0126,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25
+        },
+        {
+          "name": "etl_total",
+          "step_name": "etl_total",
+          "timestamp": "2026-06-03T13:06:03.927880",
+          "wall_sec": 1049.5491,
+          "cpu_sec": 1053.0526,
+          "rss_peak_mb": 4798.25,
+          "wall_time": 1049.5491,
+          "cpu_time": 1053.0526,
+          "memory_peak_kb": 4913408,
+          "memory_peak_mb": 4798.25,
+          "extra": {
+            "run_id": "1/3"
+          }
+        }
+      ]
     }
   ],
   "meta": {
     "baseline_date": "2026_06_03",
     "host": "mac",
-    "run_id": "1/3",
+    "run_id": "merged-1+2",
     "python_version": "3.14.4",
     "platform": "macOS-26.5-arm64-arm-64bit-Mach-O",
     "started_at": "2026-06-03T01:41:02.004326",
@@ -487,7 +951,13 @@
     },
     "wall_time_stdev": {
       "status": "skipped",
-      "measurements": {}
+      "measurements": {
+        "n_runs": 2,
+        "skip_reason": "run 1 (cleanup 前 orders 表 10.6M 行全量 ETL, wall=180.2min) 与 run 2 (cleanup 后 2.9M 行增量 ETL, wall=52.6min) 数据规模不同，stdev 对比无业务意义。等 run 3+ 在 cleanup 后稳定状态跑批后再算。",
+        "run_1_wall_min": 180.2,
+        "run_2_wall_min": 52.6,
+        "note": "stdev 计算需要至少 2 个相同数据规模的 runs；当前只有 1 个 cleanup 后 run（即 run 2）"
+      }
     },
     "_summary": {
       "total": 6,
