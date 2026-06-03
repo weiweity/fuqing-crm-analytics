@@ -157,79 +157,10 @@ def write_to_duckdb(df):
     conn.close()
 
 
-def calculate_daily_metrics():
-    """预计算每日指标。
-
-    P1 修复: old_user_count / new_user_gmv / old_user_gmv 之前硬编码 0
-    （注释自承「待业务确认后重写」），现改为 LEFT JOIN user_first_purchase
-    用 first_pay_date = DATE(pay_time) 判定新客，< DATE(pay_time) 判定老客。
-    """
-    print("\n预计算每日指标...")
-
-    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
-
-    # 前置依赖：user_first_purchase 表必须先存在（由 _build_user_first_purchase_table 创建）
-    has_ufp = conn.execute("""
-        SELECT COUNT(*) FROM information_schema.tables
-        WHERE table_name = 'user_first_purchase'
-    """).fetchone()[0] > 0
-    if not has_ufp:
-        print("  ⚠️ user_first_purchase 表不存在，old_user_count 将仍为 0（不阻塞）")
-    conn.execute("DELETE FROM daily_metrics")
-
-    # GMV: 全量实付; GSV: 剔除购物金且未退款（口径: is_goujinjin=FALSE AND is_refund=FALSE）
-    if has_ufp:
-        sql = """
-            INSERT INTO daily_metrics
-            SELECT
-                DATE(o.pay_time) as date,
-                COALESCE(SUM(o.actual_amount), 0) as gmv,
-                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
-                COUNT(DISTINCT o.order_id) as order_count,
-                COUNT(DISTINCT CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.order_id END) as gsv_order_count,
-                COUNT(DISTINCT CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.user_id END) as new_user_count,
-                COUNT(DISTINCT CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.user_id END) as old_user_count,
-                COALESCE(SUM(CASE WHEN o.is_member = TRUE THEN o.actual_amount ELSE 0 END), 0) as member_gmv,
-                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
-                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
-                COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
-            FROM orders o
-            LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
-            WHERE o.pay_time IS NOT NULL
-            GROUP BY DATE(o.pay_time)
-            ORDER BY date
-        """
-    else:
-        # fallback：user_first_purchase 不存在时退化到旧逻辑（old_user_count = 0）
-        sql = """
-            INSERT INTO daily_metrics
-            SELECT
-                DATE(pay_time) as date,
-                COALESCE(SUM(actual_amount), 0) as gmv,
-                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
-                COUNT(DISTINCT order_id) as order_count,
-                COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
-                COUNT(DISTINCT user_id) as new_user_count,
-                0 as old_user_count,
-                COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
-                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
-                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
-                COALESCE(AVG(actual_amount), 0) as avg_order_value,
-                0 as new_user_gmv,
-                0 as old_user_gmv
-            FROM orders
-            WHERE pay_time IS NOT NULL
-            GROUP BY DATE(pay_time)
-            ORDER BY date
-        """
-    conn.execute(sql)
-
-    count = conn.execute("SELECT COUNT(*) FROM daily_metrics").fetchone()[0]
-    print(f"  每日指标: {count} 天")
-
-    conn.close()
+# 注：calculate_daily_metrics 死代码已删除（74 行）
+# 该函数 grep 全仓 0 调用方，pipeline.py Step 6.7 已用 _rebuild_metrics
+# 和 _update_incremental_metrics 替代（两者均含 LEFT JOIN user_first_purchase
+# 逻辑）。task #59 P1 修复在此处的改动属于无效改动（改死代码），本次清理删除。
 
 
 @functools.lru_cache(maxsize=1)
