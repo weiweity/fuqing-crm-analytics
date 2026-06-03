@@ -25,6 +25,9 @@ from .cache import (
     _read_db_cache,
     _write_db_cache,
     precompute_rfm_cache,
+    is_stale,
+    clear_rfm_cache,
+    RFM_CACHE_TTL_HOURS,
 )
 
 __all__ = [
@@ -50,4 +53,7 @@ __all__ = [
     "_read_db_cache",
     "_write_db_cache",
     "precompute_rfm_cache",
+    "is_stale",
+    "clear_rfm_cache",
+    "RFM_CACHE_TTL_HOURS",
 ]

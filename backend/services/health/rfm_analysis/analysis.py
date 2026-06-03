@@ -76,17 +76,22 @@ def get_rfm_analysis(
     # ── 全量 live SQL 计算（所有周期走同一口径，保证一致性） ──
     conn = get_connection()
     try:
-        # 预先获取 data_version，避免后续每个函数都新建连接
+        # 预先获取 data_version 与 orders 行数快照,避免后续每个函数都新建连接
+        # Stale 修复: orders_count 是陈旧检测的第二维度（ETL 续传场景 max_pay_time
+        # 不变但行数恢复,此时单靠 data_version 检测会漏,导致前端仍看到旧 TTL）
         if is_historical:
             data_version = _fetch_max_pay_time(conn)
+            current_orders_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
         else:
             data_version = None
+            current_orders_count = None
 
         # ── 缓存读取（仅历史周期，复用同一 conn） ──
         if is_historical:
             cached = _read_db_cache(
                 period, start_date, end_date, channel, metric_type,
-                exclude_channels, data_version, conn, compare_start_date, compare_end_date
+                exclude_channels, data_version, conn, compare_start_date, compare_end_date,
+                current_orders_count=current_orders_count,
             )
             if cached:
                 logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
@@ -145,7 +150,8 @@ def get_rfm_analysis(
             try:
                 _write_db_cache(
                     period, start_date, end_date, channel, metric_type,
-                    exclude_channels, data_version, result, compare_start_date, compare_end_date
+                    exclude_channels, data_version, result, compare_start_date, compare_end_date,
+                    orders_count=current_orders_count,
                 )
                 logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
             except Exception as e:

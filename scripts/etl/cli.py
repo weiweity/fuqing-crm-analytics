@@ -529,8 +529,13 @@ def main():
         print("\n" + "-" * 40)
         print("Step 6: 预计算 RFM 8象限历史周期缓存")
         print("-" * 40)
-        from backend.services.health.rfm_analysis import precompute_rfm_cache
+        from backend.services.health.rfm_analysis import precompute_rfm_cache, clear_rfm_cache
         try:
+            # Stale 缓存修复: 预计算前先清空旧缓存（ETL 行数恢复后旧缓存 key 仍存在,
+            # 即便 mtime 没变,旧缓存也携带错误的 orders_count_at_write,需清掉再重算）
+            cleared = clear_rfm_cache()
+            if cleared:
+                print(f"  清空旧缓存: {cleared} 行")
             with PerfTimer("step6_precompute_rfm_cache"):
                 count = precompute_rfm_cache()
             print(f"  预计算完成: {count} 个组合")
