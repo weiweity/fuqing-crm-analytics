@@ -303,10 +303,14 @@ def save_baseline(
         except Exception:
             pass
 
-    # P1 修复：run_id 自增
+    # P1 修复：run_id 自增 + 越界保护
+    # plan §A4.1 原约定 baseline 跑 3 次（"X/3"），但实际可能跑 >3 次。
+    # 之前 f"{next_idx}/3" 第 4 次会越界成 "4/3"。修法：分母自适应取 max(3, next_idx)，
+    # 保证语义合理（如第 4 次 = "4/4"，第 5 次 = "5/5" 既不越界也保留 X/N 语义）。
     if run_id is None:
         next_idx = len(existing_runs) + 1
-        run_id = f"{next_idx}/3"
+        total_planned = max(3, next_idx)
+        run_id = f"{next_idx}/{total_planned}"
 
     # 当前 run 块（plan §A4.1 必填字段）
     this_run = {
