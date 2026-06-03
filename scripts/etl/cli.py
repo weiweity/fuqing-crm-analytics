@@ -682,6 +682,18 @@ def main():
     else:
         _mode = 'auto'
 
+    # 修 P0 bug: 之前 _mode 设了但从未调用 run_full_etl()，--full/--inc 静默 noop 退出
+    # 真正触发 ETL 跑批：把 mode 转为 pipeline 用的 'full' / 'incremental' / 'auto'
+    _pipeline_mode = {'full': 'full', 'inc': 'incremental', 'auto': 'auto'}[_mode]
+    print("\n" + "=" * 60)
+    print(f"ETL 跑批（mode={_mode}, window_days={args.window_days}）")
+    print("=" * 60)
+    with PerfTimer(f"run_etl_{_mode}", mode=_mode, window_days=args.window_days):
+        run_full_etl(mode=_pipeline_mode, window_days=args.window_days, force_continue=True)
+    print("\n" + "=" * 60)
+    print(f"ETL 跑批完成（mode={_mode}）")
+    print("=" * 60)
+
 
 if __name__ == '__main__':
     main()

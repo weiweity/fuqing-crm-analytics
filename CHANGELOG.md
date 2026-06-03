@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **ETL 3 件 P0/P1 修复合集（cli.py / _timer.py / daily_metrics）** —
+  ① `scripts/etl/cli.py:678-683` **P0** `--full / --inc` 静默 noop bug：之前
+  `if args.full: _mode = 'full'` 只设变量从未调用 `run_full_etl()`，导致
+  `python scripts/run_etl.py --full` 啥都不干就退出。修复加 mode 字符串
+  转换 + PerfTimer + 实际调用 run_full_etl，并打印明显的 `=== ETL 跑批 ===`
+  标记。② `scripts/etl/_timer.py:267-270` **P1** `save_baseline` `run_id="1/3"`
+  硬编码默认值：调用方未传具体值时 existing_runs dedup 按 run_id 单字段
+  匹配 → 第 2 次跑批 run_id='1/3' 覆盖第 1 次。这是 origin/main run 1
+  (01:41 wall=180.2min) 被 QW2 验证跑批 (12:48 wall=52.6min) 覆盖丢失的
+  根因（前一个 chore/qw2-etl-baseline-run-2 手动 git show 合并修了数据
+  但代码 bug 未修）。修复改默认 `run_id=None` → 自动读
+  `len(existing_runs)+1` 作为 `(N+1)/3`。③ `scripts/etl/load.py:160`
+  + `scripts/etl/pipeline.py:399/432` **P1** `daily_metrics` 表
+  `old_user_count` 硬编码 `0`：3 处 SQL 改用 `LEFT JOIN user_first_purchase`
+  按 `first_pay_date = DATE(pay_time)` 判定新客 / `<` 判定老客，同时
+  `new_user_gmv` / `old_user_gmv` 也按同口径算（之前都是 0 死代码注释
+  自承「待业务确认后重写」）。健壮性：信息模式表检查 user_first_purchase
+  存在性，不存在则 fallback 旧逻辑不阻塞 ETL。同时调整 pipeline.py
+  调用顺序：删除 Step 5 metrics 调用，新增 Step 6.7 在 user_first_purchase
+  + user_recency 之后调，保证 metrics SQL 跑时依赖表已建好。pytest
+  backend/tests/ 153 passed / 8 skipped 全过。
+
 ### Performance
 - **QW0 严格 Phase 2：第 2 次 Mac baseline run 跑批入仓** — `data/processed/etl_perf/baseline_2026_06_03.json` 追加 run 2/3：wall=52.6min（cleanup 后 orders 表 2.9M 行的增量 ETL，31 个 per_step 节点），相比 run 1/3 (180.2min, cleanup 前 10.6M 行全量 ETL) **3.4x 提速**。提速来源：① cleanup 移除 7.7M order_id=sub_order_id 重复行 → Step 4 反向同步省时；② parquet 缓存命中 251/251 → Step 1 全店读 0 重读。**关键 bug 发现**：`scripts/etl/_timer.py:267` `save_baseline()` 默认 `run_id="1/3"` + 调用方未传具体值 → 同 baseline_date 多次跑批互相覆盖（origin/main 的 run 1 被 12:48 那次覆盖了），手动 git show 取回 run 1 + 改 run_id=2/3 追加合并；`wall_time_stdev` gate 标 skipped 并加 note 说明 run 1+2 数据规模不同 stdev 无意义。剩余 4 次 baseline（Mac ×1 + Windows ×3）+ median 计算 留 task #24/#34；`save_baseline` run_id 自增 fix 留 task #59 / `fix/timer-run-id-autoincrement` 分支单独 12 步。
 
