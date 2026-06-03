@@ -257,7 +257,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         print("-" * 40)
         from backend.database import create_user_rfm_table
         create_user_rfm_table()
-        from scripts.preload_rfm import run_auto_preload
+        from scripts.etl.preload_rfm import run_auto_preload
         results = run_auto_preload()
         success = [r for r in results if r[4] > 0]
         print(f"  user_rfm 预加载完成: {len(success)} 个组合")
@@ -350,8 +350,8 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     # Step 8: 品类看板 v2 预计算（品类流转 + 流失预警）
     print("\n品类看板 v2 预计算...")
     try:
-        from scripts.precompute_category_flow import run_full_precomputation as run_flow_full
-        from scripts.precompute_category_churn import run_full_precomputation as run_churn_full
+        from scripts.etl.precompute_category_flow import run_full_precomputation as run_flow_full
+        from scripts.etl.precompute_category_churn import run_full_precomputation as run_churn_full
         # 全量预计算（覆盖写入幂等）
         with PerfTimer("pl_step8a_category_flow"):
             run_flow_full()
