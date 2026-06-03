@@ -437,8 +437,8 @@ def _rebuild_metrics():
                 COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
                 COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
                 COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
             FROM orders o
             LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
             WHERE o.pay_time IS NOT NULL
@@ -474,7 +474,16 @@ def _rebuild_metrics():
 
 
 def _update_incremental_metrics(new_df, refresh_df, window_days=30):
-    """增量更新每日指标（滑动窗口模式：新日期 + 窗口内日期都刷新）"""
+    """增量更新每日指标（滑动窗口模式：新日期 + 窗口内日期都刷新）
+
+    新/老客口径（与 user_first_purchase 表保持一致）：
+      - new_user: first_pay_date = 当日（用 ufp 判定，因为 ufp 只收录有效首购用户）
+      - old_user: first_pay_date <  当日
+      - 纯退款用户（历史从未下过有效订单）→ ufp 没记录 → 不计入 new/old
+        （业务正确：他们当天只下退款单，不算新客购买行为）
+      - new/old_user_gmv 加 is_refund=FALSE 过滤，与 gsv 口径一致
+        （仅统计有效购买金额，不含退款）
+    """
     from datetime import datetime, timedelta
 
     # 收集所有需要更新的日期
@@ -519,8 +528,8 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
                 COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
                 COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
                 COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
+                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
             FROM orders o
             LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
             WHERE o.pay_time IS NOT NULL AND DATE(o.pay_time) IN (SELECT unnest(?))
