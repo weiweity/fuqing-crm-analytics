@@ -218,10 +218,19 @@ def run_flow_period(
     ttl_member_all_params = [end_dt] + hist_all_extra
     ttl_member_same_params = [end_dt] + hist_same_extra
 
+    # R 桶专用：_R_SEGMENTATION_CTE 用 pre_cutoff MAX(pay_time) + DATEDIFF 到 cutoff_dt。
+    # 2 个占位符：(1) pre_cutoff_users subquery 的 WHERE 上限 (TIMESTAMP)，
+    #             (2) cutoff_ref 的 DATEDIFF 参考日 (DATE)。
+    # 仅 R flow 注入此 CTE（r_flow.py），F/M 的 segmentation_cte 无 ? 占位符。
+    r_bucket_params: List = []
+    if dimension == "r":
+        r_bucket_params = [cutoff_dt, cutoff_dt]
+
     full_params = (
         base_params
         + hist_all_params + hist_same_params
         + ttl_all_params + ttl_same_params + ttl_member_all_params + ttl_member_same_params
+        + r_bucket_params
     )
 
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
