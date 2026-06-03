@@ -22,8 +22,8 @@ import os
 import duckdb
 import json
 import logging
-from datetime import date
-from typing import Dict, Any, List, Optional
+from datetime import date, datetime, timedelta
+from typing import Dict, Any, List, Optional, Tuple
 
 from backend.config import DUCKDB_PATH
 from backend.db.connection import get_duckdb_config
@@ -31,6 +31,9 @@ from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 
 logger = logging.getLogger(__name__)
+
+# 缓存 TTL（小时）— 超过此时间的缓存视为陈旧，强制重算
+RFM_CACHE_TTL_HOURS = 24
 
 
 # ============================================================
@@ -68,6 +71,11 @@ def _ensure_db_cache_table(write_conn: duckdb.DuckDBPyConnection) -> None:
     QW2 Phase 2: 参数改为 write_conn（必传可写连接）,
     禁止传 read_only 连接（会报 "Cannot execute CREATE on read-only database"）。
     含 mtime_at_write 列用于缓存新鲜度校验。
+
+    Stale 缓存修复：新增 orders_count_at_write 列（订单行数快照）。
+    修复 ETL 续传后 max_pay_time 不变但 orders 行数恢复的情况——
+    缓存键里只有 mtime（max_pay_time），行数变化时缓存键不刷新，
+    导致旧缓存（基于砍数据后的 942K 用户）继续被读取。
     """
     write_conn.execute(f"""
         CREATE TABLE IF NOT EXISTS {RFM_CACHE_TABLE} (
@@ -80,14 +88,19 @@ def _ensure_db_cache_table(write_conn: duckdb.DuckDBPyConnection) -> None:
             ex_channels   VARCHAR,
             result_json   VARCHAR,
             mtime_at_write VARCHAR,
+            orders_count_at_write BIGINT,
             computed_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    # 迁移：若表已有数据但无 mtime_at_write 列,添加该列
-    try:
-        write_conn.execute(f"ALTER TABLE {RFM_CACHE_TABLE} ADD COLUMN mtime_at_write VARCHAR")
-    except Exception:
-        pass  # 列已存在
+    # 迁移：若表已有数据但缺新列,添加（兼容历史数据）
+    for col_ddl in [
+        f"ALTER TABLE {RFM_CACHE_TABLE} ADD COLUMN mtime_at_write VARCHAR",
+        f"ALTER TABLE {RFM_CACHE_TABLE} ADD COLUMN orders_count_at_write BIGINT",
+    ]:
+        try:
+            write_conn.execute(col_ddl)
+        except Exception:
+            pass  # 列已存在
     write_conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{RFM_CACHE_TABLE}_period "
                        f"ON {RFM_CACHE_TABLE}(period, start_date, end_date, channel, metric_type)")
 
@@ -103,12 +116,16 @@ def _read_db_cache(
     conn: duckdb.DuckDBPyConnection,
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
+    current_orders_count: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
     """从 DuckDB 预计算表读取缓存。
 
     QW2 Phase 2: SELECT 仍用调用方 conn（read_only 可读）,
     表结构初始化 + 损坏清理用临时写连接（_open_write_conn）。
     conn 由调用方管理,本函数不负责关闭连接。
+
+    Stale 检测：除 data_version 外,还比对 orders 行数快照,
+    防止 ETL 续传后 max_pay_time 不变但行数变化导致缓存陈旧。
     """
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     try:
@@ -125,7 +142,8 @@ def _read_db_cache(
 
         # 读用调用方 conn（read_only 可读）
         row = conn.execute(
-            f"SELECT result_json, mtime_at_write FROM {RFM_CACHE_TABLE} WHERE cache_key = ?",
+            f"SELECT result_json, mtime_at_write, orders_count_at_write, computed_at "
+            f"FROM {RFM_CACHE_TABLE} WHERE cache_key = ?",
             [key]
         ).fetchone()
         if not row:
@@ -141,14 +159,94 @@ def _read_db_cache(
             logger.warning(f"RFM 缓存损坏（不是 dict）: key={key}, type={type(parsed)}, 清理该行")
             _try_delete_corrupt_row(key)
             return None
-        # 用 data_version 判断数据是否已更新（data_version = orders.max_pay_time）
-        if data_version and row[1] and data_version > row[1]:
-            logger.info(f"RFM 缓存失效（数据已更新 version={data_version} > stored={row[1]}）")
+        # Stale 检测（mtime + 行数 + TTL 三重保护）
+        stale, reason = is_stale(
+            cached_mtime=row[1],
+            cached_orders_count=row[2] if len(row) > 2 else None,
+            cached_computed_at=row[3] if len(row) > 3 else None,
+            current_mtime=data_version,
+            current_orders_count=current_orders_count,
+        )
+        if stale:
+            logger.info(f"RFM 缓存失效（{reason}）: key={key}")
+            _try_delete_corrupt_row(key)
             return None
         return parsed
     except Exception as e:
         logger.warning(f"RFM DuckDB 缓存读取失败: {e}")
     return None
+
+
+def is_stale(
+    cached_mtime: Optional[str],
+    cached_orders_count: Optional[int],
+    cached_computed_at: Any,
+    current_mtime: Optional[str],
+    current_orders_count: Optional[int],
+    now: Optional[datetime] = None,
+    ttl_hours: int = RFM_CACHE_TTL_HOURS,
+) -> Tuple[bool, Optional[str]]:
+    """判断缓存行是否陈旧（失效）。
+
+    三重判定（任一为真 → 陈旧 → DELETE + 重算）:
+    1. mtime 推进:  当前 max_pay_time > 缓存时 max_pay_time
+    2. 行数变化:   当前 orders.COUNT(*) != 缓存时 COUNT(*)
+                   （修 ETL 续传场景：max_pay_time 不变但行数恢复 4.71M）
+    3. TTL 超时:   computed_at 距 now > ttl_hours
+                   （终极兜底：防止 mtime/行数恰巧都未变）
+
+    Returns: (is_stale: bool, reason: Optional[str])
+    """
+    if now is None:
+        now = datetime.now()
+
+    # 1) mtime 推进
+    if current_mtime and cached_mtime and str(current_mtime) > str(cached_mtime):
+        return True, f"mtime 推进: {current_mtime} > {cached_mtime}"
+
+    # 2) 行数变化
+    if (current_orders_count is not None
+            and cached_orders_count is not None
+            and current_orders_count != cached_orders_count):
+        return True, f"orders 行数变化: {current_orders_count} != {cached_orders_count}"
+
+    # 3) TTL
+    if cached_computed_at is not None:
+        computed_dt: Optional[datetime] = None
+        if isinstance(cached_computed_at, datetime):
+            computed_dt = cached_computed_at
+        elif isinstance(cached_computed_at, str):
+            try:
+                computed_dt = datetime.fromisoformat(cached_computed_at)
+            except ValueError:
+                computed_dt = None
+        if computed_dt is not None:
+            age = now - computed_dt
+            if age > timedelta(hours=ttl_hours):
+                return True, f"TTL 超时: {computed_dt} 距今 {age} > {ttl_hours}h"
+
+    return False, None
+
+
+def clear_rfm_cache() -> int:
+    """手动清空 RFM 缓存（ETL 完成后调用,确保下次读全走 live SQL）。
+
+    Returns: 被清理的行数（0 = 表为空 / 写连接失败）。
+    """
+    try:
+        _wc = _open_write_conn()
+        try:
+            _ensure_db_cache_table(_wc)
+            cur = _wc.execute(f"SELECT COUNT(*) FROM {RFM_CACHE_TABLE}").fetchone()
+            count = int(cur[0]) if cur else 0
+            _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE}")
+            logger.info(f"RFM 缓存清空: 共 {count} 行")
+            return count
+        finally:
+            _wc.close()
+    except Exception as e:
+        logger.error(f"RFM 缓存清空失败: {e}")
+        return 0
 
 
 def _try_delete_corrupt_row(key: str) -> None:
@@ -174,12 +272,16 @@ def _write_db_cache(
     result: Dict[str, Any],
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
+    orders_count: Optional[int] = None,
 ) -> None:
     """写入 DuckDB 预计算缓存表（含 mtime_at_write 用于后续新鲜度校验）。
 
     QW2 Phase 2: 移除 conn 参数,内部 _open_write_conn() 拿独立写连接
     完成 DDL+INSERT OR REPLACE。不再要求调用方传 conn（避免误用
     read_only 连接写,报 "Cannot execute CREATE on read-only database"）。
+
+    Stale 修复：新增 orders_count 入参,持久化到 orders_count_at_write 列,
+    下次读时与当前 orders.COUNT(*) 对比,行数变化即失效。
 
     防御性校验：仅写入有效的 dict 结果,防止污染缓存表。
     """
@@ -202,10 +304,10 @@ def _write_db_cache(
             _ensure_db_cache_table(_wc)
             _wc.execute(
                 f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
-                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
-                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
                 [key, period or "", start_date or "", end_date or "",
-                 channel or "", metric_type, ex_str, result_json_str, data_version]
+                 channel or "", metric_type, ex_str, result_json_str, data_version, orders_count]
             )
         finally:
             _wc.close()
@@ -273,6 +375,9 @@ def precompute_rfm_cache() -> int:
         # DDL（write_conn 可写）
         _ensure_db_cache_table(write_conn)
         data_version = _fetch_max_pay_time(write_conn)
+        # Stale 修复：orders 行数快照,用于下次读时与当前 COUNT(*) 对比
+        orders_count_snapshot = write_conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+        logger.info(f"  orders_count_snapshot = {orders_count_snapshot}")
 
         for metric_type in METRIC_TYPES:
             for period in STANDARD_PERIODS:
@@ -332,12 +437,14 @@ def precompute_rfm_cache() -> int:
                     key = _cache_key(None, cur.start, cur.end, CHANNEL, metric_type, EXCLUDE, data_version)
                     ex_str = ""
                     # 写用 write_conn（QW2 Phase 2: 绕开 read_only 单例）
+                    # Stale 修复：把 orders_count_at_write 也写进去,
+                    # 下次读时与当前 orders.COUNT(*) 对比 → 行数变化即失效
                     write_conn.execute(
                         f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
-                        f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, computed_at) "
-                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                        f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
+                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
                         [key, period.upper(), cur.start, cur.end, CHANNEL or "", metric_type, ex_str,
-                         json.dumps(result, ensure_ascii=False, default=str), data_version]
+                         json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
                     )
                     computed += 1
                     logger.info(f"  RFM 预计算: {period} {year} {metric_type} → {key}")
