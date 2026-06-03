@@ -100,8 +100,20 @@ def get_duckdb_config(**overrides) -> dict:
     return cfg
 
 
-def get_connection() -> ThreadSafeConnection:
-    """获取全局共享的 DuckDB 连接（线程安全单例）"""
+def get_connection(read_only: bool = True) -> ThreadSafeConnection:
+    """获取全局共享的 DuckDB 连接（线程安全单例）
+
+    Args:
+        read_only: 是否只读连接（默认 True）。uvicorn 调用时必须为 True，
+            避免 ETL 跑批时 uvicorn 跟 ETL 抢写锁导致 "Conflicting lock" 错误。
+            ETL 端如果需要写 DuckDB，明确传 read_only=False。
+
+    关键历史（QW2 工单）：
+    之前 uvicorn 默认 read_write，ETL 跑批时 ETL 持写锁 → uvicorn
+    报 "IO Error: Could not set lock on file .../fuqing_crm.duckdb:
+    Conflicting lock" → API 500 → 前端空数据。
+    修复：uvicorn 永远只读，ETL 写时用 read_only=False 单独 connect。
+    """
     global _conn
     if _conn is not None:
         return ThreadSafeConnection(_conn)
@@ -112,8 +124,14 @@ def get_connection() -> ThreadSafeConnection:
         db_password = os.environ.get("DUCKDB_PASSWORD")
         if db_password:
             cfg["password"] = db_password
+        if read_only:
+            # read_only 模式强制 read_only=True（即使之前 _conn 是 read_write 也会重建）
+            cfg["access_mode"] = "READ_ONLY"
         _conn = duckdb.connect(str(DUCKDB_PATH), config=cfg)
-        logger.info("DuckDB 单例连接已创建: %s (memory_limit=%s)", DUCKDB_PATH, DUCKDB_MEMORY_LIMIT)
+        logger.info(
+            "DuckDB 单例连接已创建: %s (memory_limit=%s, read_only=%s)",
+            DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, read_only,
+        )
         return ThreadSafeConnection(_conn)
 
 
