@@ -288,6 +288,16 @@ async function load() {
 
 // 合并 watch：rfmSegment 变化时重新加载，filterStore 变化时也重新加载
 watch([() => props.rfmSegment, liveQueryParams], load, { immediate: true })
+
+// 显式监听 props.rfmSegment：父组件可能不通过 :key 强制重渲染，
+// 此时只有 rfm-segment 变化而 queryParams 不变时，合并 watch 不会触发 load。
+// 这里加一道独立 watch 兜底，确保切 segment 一定重 load。
+watch(
+  () => props.rfmSegment,
+  (newSegment) => {
+    if (newSegment) load()
+  },
+)
 </script>
 
 <style scoped>
