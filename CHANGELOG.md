@@ -90,6 +90,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **DMP_DATA_DIR 空字符串 fallback bug** — `backend/config.py:120` 之前用 `Path(os.environ.get("DMP_DATA_DIR", str(_DEFAULT_DMP_DIR)))`，当 `.env` 设 `DMP_DATA_DIR=`（空字符串）时 `os.environ.get` 返回空字符串不会 fallback 到默认值，`Path("")` 解析为 `Path(".")` 当前目录。改为先 `.strip()` 再判空，空则用 monorepo 默认 `scraper/core`。
 
+### Documentation
+- **ETL Phase 4 架构设计文档入仓（4 层 SaaS 重构）** — `docs/design/etl-phase4-architecture.md` (460 行, APPROVED) 落地：① Layer 1 Source（xlsx→Parquet→DuckDB orders）+ Layer 2 ETL Pipeline（W1 GROUPING SETS / W2 原子 manifest / W3 DQ+幂等）+ Layer 3 Precomputed Serving（fact_rfm_long 纯增量 + dbt-style snapshot）+ Layer 4 Query API（DuckDB-KV 缓存 24h TTL）；② 5 个 WO 详细规范 + 4 周时间线 + 4 阶段灰度迁移；③ Acceptance Criteria 覆盖 3 痛点（ETL < 35min / 不再读到半新半旧 / 历史秒出）；④ 4 个 open questions 已 user 拍板（异步后台跑全历史 / 单 view / 告警+ETL 继续 / miss 走 fact_rfm_long）。Supersedes HANDOFF-etl-perf-2026-06-02.md（13 工单，范围扩展为架构分层）。gstack artifacts 同步：`hutou-main-design-20260604-180114.md`。
+
 ## [0.3.5] - 2026-06-04
 
 ### Performance
