@@ -215,7 +215,14 @@ def _run_rfm_period_live(
     ),
     member_segmented_all AS (SELECT user_id, rfm_segment FROM segmented_all WHERE is_member = TRUE),
     member_segmented_same AS (SELECT user_id, rfm_segment FROM segmented_same WHERE is_member = TRUE),
-    repurchase_users AS (SELECT DISTINCT user_id FROM base_orders),
+    -- P0-102 修复: 复购必须 ≥2 单才算（原 SQL 仅 user_id IN base_orders → 100% 误判）
+    -- 注：base_orders 的每一行已代表一个有效订单（SELECT user_id, actual_amount 来自 orders 单行）
+    -- 所以直接 COUNT(*) 即可，不需要 DISTINCT order_id
+    repurchase_users AS (
+        SELECT user_id FROM base_orders
+        GROUP BY user_id
+        HAVING COUNT(*) >= 2
+    ),
     repurchase_amounts AS (
         SELECT bo.user_id, SUM(bo.actual_amount) AS repurchase_gsv
         FROM base_orders bo INNER JOIN repurchase_users rp ON bo.user_id = rp.user_id
