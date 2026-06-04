@@ -331,6 +331,243 @@ def preload_date(
     ).fetchone()[0]
 
 
+# ============================================================
+# W1 (MT1 GROUPING SETS) — 1 SQL 替代 720 串行循环
+# ============================================================
+# 设计参考：docs/design/etl-phase4-architecture.md §4 W1
+# 验收：row count 1:1 确定性测试（test_w1_grouping_sets.py）
+
+
+def preload_date_batch(
+    conn: duckdb.DuckDBPyConnection,
+    analysis_date: date,
+    lookbacks: List[int] = None,
+    metrics: List[str] = None,
+    channels: List[str] = None,
+) -> int:
+    """W1 GROUPING SETS 重构版：1 个 analysis_date 一次性处理所有 (lookback × metric × channel) 组合。
+
+    替代 N×M×K 次串行循环（之前 720 任务跑 25min），目标 1 SQL 跑完。
+    关键设计：
+      - 1 次扫 orders（用最长 R 窗口 365d 做 WHERE 起点）
+      - GROUPING SETS (user, channel) + (user) 一次产出 9 行/user
+      - 6×UNION ALL 拆出 (lookback × metric) 组合
+      - 调 get_registry() 走语义层（CLAUDE.md 硬规则）
+
+    Trust assumptions（reviews informational finding 1）：
+      - channels 参数来自硬编码 ["全店"] + ACTIVE_UI_CHANNELS 或 ETL 内部调用，
+        不接受外部输入。IN 子句用 f-string 拼字符串是安全的设计选择。
+      - lookbacks/lookback 默认 [30, 90, 180]，是 int。INTERVAL '{lb}' DAY 注入面
+        仅限 int 类型，无 SQL 注入风险。
+
+    Args:
+        conn: DuckDB 连接
+        analysis_date: 分析日
+        lookbacks: F/M 窗口列表，默认 [30, 90, 180]
+        metrics: 度量类型列表，默认 ["GMV", "GSV"]
+        channels: 渠道列表，默认 ["全店"] + ACTIVE_UI_CHANNELS
+
+    Returns:
+        写入 user_rfm 的行数
+    """
+    if lookbacks is None:
+        lookbacks = [30, 90, 180]
+    if metrics is None:
+        metrics = ["GMV", "GSV"]
+    if channels is None:
+        channels = ["全店"] + list(ACTIVE_UI_CHANNELS)
+
+    lookbacks = sorted(set(lookbacks))
+    metrics = list(metrics)
+    registry = get_registry()
+    valid_sql, _ = OrderFilters.valid_order()
+    r_score_sql = registry.build_r_score_sql(RFM_THRESHOLDS["r"])
+    f_score_sql = registry.build_f_score_sql(RFM_THRESHOLDS["f"])
+    m_score_sql = registry.build_m_score_sql(RFM_THRESHOLDS["m"])
+    segment_sql = registry.build_segment_case_when_sql()
+    tier_cn_sql = registry.build_segment_name_case_when_sql("cn")
+    tier_en_sql = registry.build_segment_name_case_when_sql("en")
+
+    date_str = analysis_date.strftime("%Y-%m-%d")
+    max_lb = max(lookbacks)
+
+    # 1. DELETE 旧数据（同一 analysis_date 所有 combo）
+    lb_ph = ",".join(["?"] * len(lookbacks))
+    mt_ph = ",".join(["?"] * len(metrics))
+    ch_ph = ",".join(["?"] * len(channels))
+    conn.execute(
+        f"""
+        DELETE FROM user_rfm
+        WHERE analysis_date = ?
+          AND metric_type IN ({mt_ph})
+          AND lookback_days IN ({lb_ph})
+          AND channel IN ({ch_ph})
+        """,
+        [date_str, *metrics, *lookbacks, *channels],
+    )
+
+    # 2. 构造 lookback 标志位（每个 lookback 一个 CASE WHEN，引用 s.pay_time — scanned 已投影）
+    flag_cases = [
+        f"CASE WHEN s.pay_time >= DATE(?) - INTERVAL '{lb}' DAY THEN 1 ELSE 0 END AS in_{lb}"
+        for lb in lookbacks
+    ]
+    flags_sql = ", ".join(flag_cases)
+
+    # 3. 构造度量列（每个 lookback × metric 一对 m/f 列 — 引用 s.* 因为 scanned 已投影）
+    metric_cols = []
+    for lb in lookbacks:
+        metric_cols.append(f"SUM(CASE WHEN in_{lb} = 1 AND s.actual_amount > 0 THEN s.actual_amount END) AS m_gmv_{lb}")
+        metric_cols.append(f"SUM(CASE WHEN in_{lb} = 1 AND s.actual_amount >= 0 THEN s.actual_amount END) AS m_gsv_{lb}")
+        metric_cols.append(f"COUNT(DISTINCT CASE WHEN in_{lb} = 1 AND s.actual_amount > 0 THEN s.order_id END) AS f_gmv_{lb}")
+        metric_cols.append(f"COUNT(DISTINCT CASE WHEN in_{lb} = 1 AND s.actual_amount >= 0 THEN s.order_id END) AS f_gsv_{lb}")
+    metric_sql = ", ".join(metric_cols)
+
+    # 4. resolved CTE 的列引用
+    resolved_cols = ["user_id", "r_last_pay_time", "COALESCE(channel, '全店') AS channel"]
+    for prefix in ["m_gmv", "m_gsv", "f_gmv", "f_gsv"]:
+        for lb in lookbacks:
+            resolved_cols.append(f"{prefix}_{lb}")
+    resolved_select = ", ".join(resolved_cols)
+
+    # 5. 6×UNION ALL 拆 (lookback × metric) 行 — 仅产 (user, analysis_date, metric_type, lookback_days, channel, recency_days, frequency, monetary) 8 列
+    # 注：r_score / f_score / m_score / segment_id / rfm_tier 都不在这一层算（避免同 SELECT 内前向引用，DuckDB 禁止）
+    unions = []
+    for lb in lookbacks:
+        for metric in metrics:
+            amt_col = f"m_gmv_{lb}" if metric == "GMV" else f"m_gsv_{lb}"
+            frq_col = f"f_gmv_{lb}" if metric == "GMV" else f"f_gsv_{lb}"
+            unions.append(f"""
+            SELECT
+                r.user_id,
+                p.analysis_date,
+                '{metric}' AS metric_type,
+                {lb} AS lookback_days,
+                r.channel,
+                DATEDIFF('day', r.r_last_pay_time, p.analysis_date) AS recency_days,
+                r.{frq_col} AS frequency,
+                COALESCE(r.{amt_col}, 0) AS monetary
+            FROM resolved r, base_params p
+            """)
+    union_sql = "\nUNION ALL\n".join(unions)
+
+    # 6. 拼装完整 SQL — 7 层 CTE 链（修复 UNION ALL 同 SELECT 内前向引用 bug）
+    # 链：base_params → scanned → scanned_with_flags → agg (GROUPING SETS) → resolved
+    #    → metrics_unpivoted (6×UNION ALL 拆 lookback×metric 行)
+    #    → with_scores (算 r/f/m_score, 跨 CTE 引用 metrics_unpivoted — OK)
+    #    → with_segment (算 segment_id + rfm_tier, 跨 CTE 引用 with_scores — OK)
+    sql = f"""
+    WITH base_params AS (
+        SELECT
+            DATE(?) AS analysis_date,
+            DATE(?) - INTERVAL '{max_lb}' DAY AS fm_start_date,
+            DATE(?) - INTERVAL '{R_LOOKBACK_DAYS}' DAY AS r_start_date
+    ),
+    scanned AS (
+        SELECT
+            o.user_id, o.channel, o.actual_amount, o.order_id, o.pay_time, o.is_member
+        FROM orders o
+        CROSS JOIN base_params p
+        WHERE o.pay_time >= p.r_start_date
+          AND o.pay_time < p.analysis_date + INTERVAL '1' DAY
+          AND {valid_sql}
+    ),
+    scanned_with_flags AS (
+        SELECT
+            s.*, p.analysis_date,
+            {flags_sql}
+        FROM scanned s
+        CROSS JOIN base_params p
+    ),
+    agg AS (
+        SELECT
+            s.user_id,
+            s.channel,
+            MAX(s.pay_time) AS r_last_pay_time,
+            {metric_sql}
+        FROM scanned_with_flags s
+        GROUP BY GROUPING SETS (
+            (s.user_id, s.channel),
+            (s.user_id)
+        )
+    ),
+    resolved AS (
+        SELECT {resolved_select}
+        FROM agg
+        -- 过滤掉 channels 列表外的渠道（GROUPING SETS (user, channel) 会对所有有订单的 channel 产行）
+        -- e.g. u03 有 U先 订单 → 产 (u03, U先) 行，但 channels 列表通常不包含 U先
+        WHERE COALESCE(channel, '全店') IN ({', '.join(f"'{c}'" for c in channels)})
+    ),
+    metrics_unpivoted AS (
+        {union_sql}
+    ),
+    metrics_filtered AS (
+        -- 过滤 0 行（与旧 preload_date 行为对齐：fm_orders 阶段就过滤 amount_cond，
+        -- u02 淘客 30d GMV (amount>0) 0 订单 → 旧 loop 不写行；batch 必须用此 WHERE 复现）
+        SELECT *
+        FROM metrics_unpivoted
+        WHERE COALESCE(monetary, 0) > 0 OR COALESCE(frequency, 0) > 0
+    ),
+    with_scores AS (
+        SELECT
+            mu.*,
+            ({r_score_sql}) AS r_score,
+            ({f_score_sql}) AS f_score,
+            ({m_score_sql}) AS m_score
+        FROM metrics_filtered mu
+    ),
+    with_segment AS (
+        SELECT
+            ws.*,
+            ({segment_sql}) AS segment_id,
+            ({tier_cn_sql}) AS rfm_tier,
+            ({tier_en_sql}) AS rfm_tier_en
+        FROM with_scores ws
+    )
+    SELECT
+        user_id,
+        NULL AS user_nickname,
+        analysis_date,
+        metric_type,
+        lookback_days,
+        channel,
+        recency_days,
+        frequency,
+        monetary,
+        r_score,
+        f_score,
+        m_score,
+        rfm_tier,
+        rfm_tier_en,
+        segment_id,
+        NULL::DATE AS first_order_date,
+        NULL::DATE AS last_order_date,
+        NULL::BOOLEAN AS is_member,
+        CURRENT_TIMESTAMP AS created_at
+    FROM with_segment
+    """
+
+    # 7. 参数顺序：3 (base_params) + N (flags) = 3 + len(lookbacks)
+    params = [date_str] * (3 + len(lookbacks))
+
+    # 8. INSERT
+    insert_sql = f"""
+    INSERT INTO user_rfm (
+        user_id, user_nickname, analysis_date, metric_type, lookback_days,
+        channel,
+        recency_days, frequency, monetary,
+        r_score, f_score, m_score,
+        rfm_tier, rfm_tier_en, segment_id,
+        first_order_date, last_order_date, is_member, created_at
+    ) {sql}
+    """
+    conn.execute(insert_sql, params)
+
+    return conn.execute(
+        f"SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ? AND channel IN ({ch_ph})",
+        [date_str, *channels],
+    ).fetchone()[0]
+
+
 def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
     """自动热点预加载，返回执行结果摘要。
 
