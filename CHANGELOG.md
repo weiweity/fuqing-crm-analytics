@@ -88,6 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **DMP_DATA_DIR 空字符串 fallback bug** — `backend/config.py:120` 之前用 `Path(os.environ.get("DMP_DATA_DIR", str(_DEFAULT_DMP_DIR)))`，当 `.env` 设 `DMP_DATA_DIR=`（空字符串）时 `os.environ.get` 返回空字符串不会 fallback 到默认值，`Path("")` 解析为 `Path(".")` 当前目录。改为先 `.strip()` 再判空，空则用 monorepo 默认 `scraper/core`。
 
+### Performance
+- **增量 ETL 跑批入仓（6/4 baseline run 1/3 = 126.4min）** — `python scripts/run_etl.py --update` 跑 6/4 增量（10:42→11:46 wall=126.4min 含 Step 7b 540 组合 RFM 预加载 56.8min），处理 4 个新源文件：店铺 1（任务 21376，1.3MB 6/3 当日 8,350 单）+ 会员 1（任务 21377，676KB）+ 订单状态刷新 2（任务 21378，46MB → 91,307 行 override）。DuckDB 增量：orders 10,636,237 → 10,654,714（+18,477）/ user_first_purchase 4,237,949 → 4,246,328（+8,379）/ user_rfm 62.7M → 72.4M（+9.66M 含 466 组合预加载）/ daily_metrics 6/3 完整（GMV ¥1.40M / GSV ¥946K vs 6/2 ¥1.56M / ¥1.13M 合理回落）。`baseline_2026_06_03.json` 累积 3 个 run：1/3=126.4min（6/4 增量） / 2/3=52.6min（6/3 增量，保留） / 3/3=189.6min（etl_total 累计）。6 道 gates 因增量模式触发 skipped 但 overall=pass；errors=0。**已知 fail-soft（不影响业务）**：`rfm_analysis_cache` 57 行（vs 6/3 baseline 60）——`scripts/etl/pipeline.py:105` 早开 `read_only=True` 连接读历史 order_ids，污染同进程 DuckDB config，导致 `backend/services/health/rfm_analysis/cache.py:_open_write_conn()` 后续开 `access_mode=READ_WRITE` 抛 `Can't open a connection to same database file with a different configuration`；cache.py 已 try/except return 0，Step 6 fail-soft，RFM 缓存维持 6/3 baseline 60 行（仍 valid）。**uvicorn 重启** (PID 19865, /api/v1/health 200, 5.6ms) + E2E 验证 rfm-analysis 1-6月 YTD GSV 8 象限 HTTP 200：TTL=4,244,556（+6,607）/ 重要价值 67.02% / 重要发展 55.60% / 一般价值 54.32% / 重要保持 4.01% / 重要挽留 2.57% 等，符合「高频+高粘+近购买」高复购、「低频+远购买」低复购业务预期；task #102 修复持续生效，无 100% / 0% 异常。
+
 ## [0.3.4] - 2026-06-01
 
 ### Fixed
