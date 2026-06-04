@@ -287,6 +287,14 @@ def save_baseline(
     out_path = Path(path) if path else BASELINE_PATH
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # 修正命名歧义（review skill 揪出 P0 schema 误导）：
+    # 旧字段 wall_time_sec 实际是 sum(per_step.wall_time) 即 step 累计 wall time，
+    # 真实 ETL 跑批 elapsed（ended - started）会用 wall_time_sec 一半左右，
+    # 但旧字段名让人误以为是真实 wall time。
+    # 修法：保留 wall_time_sec 旧字段（向后兼容 baseline JSON 历史），
+    # 新增 step_wall_time_sum 显式命名字段（语义清晰），
+    # meta.total_wall_time 同名误导，也加 meta.real_elapsed_sec 显式命名。
+    # deprecated 注释写在字段定义处。
     total_wall = sum(r.wall_time for r in _RECORDS)
     total_cpu = sum(r.cpu_time for r in _RECORDS)
     peak_mem_kb = max((r.memory_peak_kb for r in _RECORDS), default=0)
@@ -313,11 +321,25 @@ def save_baseline(
         run_id = f"{next_idx}/{total_planned}"
 
     # 当前 run 块（plan §A4.1 必填字段）
+    # 真实 elapsed（ended - started）= 跑批总 wall time（用户体感）
+    real_elapsed_sec = None
+    if _RECORDS and _RECORDS[0].timestamp and _RECORDS[-1].timestamp:
+        from datetime import datetime as _dt
+        s = _dt.fromisoformat(_RECORDS[0].timestamp)
+        e = _dt.fromisoformat(_RECORDS[-1].timestamp)
+        real_elapsed_sec = round((e - s).total_seconds(), 4)
     this_run = {
         "run_id": run_id,
         "host": host or _detect_host(),
         "started_at": _RECORDS[0].timestamp if _RECORDS else None,
         "ended_at": _RECORDS[-1].timestamp if _RECORDS else None,
+        # 真实跑批 elapsed (ended - started) — 显式命名，避免歧义
+        "real_elapsed_sec": real_elapsed_sec,
+        # step 累计 wall time (sum per_step.wall_time) — 不含 step 间 idle/checkpoint 等
+        "step_wall_time_sum": round(total_wall, 4),
+        # ⚠️ DEPRECATED 字段（保留向后兼容 baseline JSON 历史读取方）：
+        # wall_time_sec 实际是 step 累计，**不是**真实 wall time。
+        # 新代码请用 real_elapsed_sec（真实 elapsed）或 step_wall_time_sum（step 累计）。
         "wall_time_sec": round(total_wall, 4),
         "cpu_time_sec": round(total_cpu, 4),
         "rss_peak_mb": peak_mem_mb,
@@ -355,6 +377,12 @@ def save_baseline(
             "platform": platform.platform(),
             "started_at": this_run["started_at"],
             "ended_at": this_run["ended_at"],
+            # 真实跑批 elapsed (ended - started) — 显式命名，meta 段也暴露一份方便读取
+            "real_elapsed_sec": this_run["real_elapsed_sec"],
+            # step 累计 wall time (sum per_step.wall_time) — 显式命名
+            "step_wall_time_sum": this_run["step_wall_time_sum"],
+            # ⚠️ DEPRECATED 字段：total_wall_time 实际 = step 累计，**不是**真实 wall time。
+            # 新代码请用 real_elapsed_sec 或 step_wall_time_sum。
             "total_wall_time": this_run["wall_time_sec"],
             "total_cpu_time": this_run["cpu_time_sec"],
             "peak_memory_kb": peak_mem_kb,
