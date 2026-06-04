@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import csv
 import json
+import subprocess
 import sys
-import urllib.error
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -271,77 +271,106 @@ class TestCheckCopyDay:
 
 
 # ============================================================
-# 飞书 webhook
+# lark-cli 告警（替代原飞书 webhook）
 # ============================================================
 
-class TestFeishuWebhook:
-    def test_skip_when_no_url(self, monkeypatch):
-        monkeypatch.delenv("FEISHU_WEBHOOK_URL", raising=False)
-        sent, reason = sanity_check._send_feishu_alert("test message")
+class TestLarkCliAlert:
+    """Mock subprocess.run 模拟 lark-cli 输出。"""
+
+    def test_skip_when_no_open_id(self, monkeypatch):
+        monkeypatch.delenv("LARK_OPEN_ID", raising=False)
+        sent, reason = sanity_check._send_lark_alert("test message")
         assert sent is False
         assert "未配置" in reason
 
-    def test_skip_when_url_blank(self, monkeypatch):
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "   ")
-        sent, reason = sanity_check._send_feishu_alert("test message")
+    def test_skip_when_open_id_blank(self, monkeypatch):
+        monkeypatch.setenv("LARK_OPEN_ID", "   ")
+        sent, reason = sanity_check._send_lark_alert("test message")
         assert sent is False
         assert "未配置" in reason
 
     def test_success_call(self, monkeypatch):
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://open.feishu.cn/fake")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = b'{"StatusCode":0,"StatusMessage":"success"}'
-        mock_resp.__enter__ = lambda self: self
-        mock_resp.__exit__ = lambda *args: None
-        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_open:
-            sent, reason = sanity_check._send_feishu_alert("hello 飞书")
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = json.dumps({
+            "ok": True, "identity": "bot",
+            "data": {"chat_id": "oc_xxx", "message_id": "om_xxx"},
+        })
+        with patch("subprocess.run", return_value=mock_proc) as mock_run:
+            sent, reason = sanity_check._send_lark_alert("hello lark")
             assert sent is True
             assert reason == "OK"
-            # 验证 POST 调用确实发生
-            assert mock_open.call_count == 1
-            req = mock_open.call_args[0][0]
-            assert req.method == "POST"
-            body = json.loads(req.data.decode("utf-8"))
-            assert body["msg_type"] == "text"
-            assert body["content"]["text"] == "hello 飞书"
+            # 验证 subprocess.run 调用确实发生 + 参数正确
+            assert mock_run.call_count == 1
+            args = mock_run.call_args[0][0]
+            assert args[0] == "/Users/hutou/homebrew/bin/lark-cli"
+            assert args[1:3] == ["im", "+messages-send"]
+            assert "--user-id" in args
+            assert "ou_test" in args
+            assert "--text" in args
+            assert "hello lark" in args
+            assert "--as" in args
+            assert "bot" in args
 
-    def test_feishu_rejected_code_non_zero(self, monkeypatch):
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://open.feishu.cn/fake")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = b'{"code":19021,"msg":"sign mismatch"}'
-        mock_resp.__enter__ = lambda self: self
-        mock_resp.__exit__ = lambda *args: None
-        with patch("urllib.request.urlopen", return_value=mock_resp):
-            sent, reason = sanity_check._send_feishu_alert("x")
+    def test_lark_cli_rejected_ok_false(self, monkeypatch):
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = json.dumps({
+            "ok": False, "identity": "bot",
+            "error": {"type": "validation", "message": "user not found"},
+        })
+        with patch("subprocess.run", return_value=mock_proc):
+            sent, reason = sanity_check._send_lark_alert("x")
         assert sent is False
-        assert "飞书拒绝" in reason
+        assert "lark-cli 拒绝" in reason
+        assert "user not found" in reason
 
-    def test_http_500_handled(self, monkeypatch):
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://open.feishu.cn/fake")
-        with patch("urllib.request.urlopen",
-                   side_effect=urllib.error.HTTPError(
-                       url="x", code=500, msg="ISE", hdrs=None, fp=None)):
-            sent, reason = sanity_check._send_feishu_alert("x")
+    def test_lark_cli_nonzero_exit(self, monkeypatch):
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_proc.stderr = "ERROR: not logged in"
+        with patch("subprocess.run", return_value=mock_proc):
+            sent, reason = sanity_check._send_lark_alert("x")
         assert sent is False
-        assert "500" in reason
+        assert "exit=1" in reason
+        assert "not logged in" in reason
 
-    def test_url_error_handled(self, monkeypatch):
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://open.feishu.cn/fake")
-        with patch("urllib.request.urlopen",
-                   side_effect=urllib.error.URLError("no route to host")):
-            sent, reason = sanity_check._send_feishu_alert("x")
+    def test_subprocess_timeout(self, monkeypatch):
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        with patch("subprocess.run",
+                   side_effect=subprocess.TimeoutExpired(cmd="lark-cli", timeout=5)):
+            sent, reason = sanity_check._send_lark_alert("x")
         assert sent is False
-        assert "URLError" in reason
+        assert "超时" in reason
+
+    def test_lark_bin_not_found(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        monkeypatch.setenv("LARK_BIN", "/nonexistent/lark-cli")
+        sent, reason = sanity_check._send_lark_alert("x")
+        assert sent is False
+        assert "二进制不存在" in reason
 
     def test_arbitrary_exception_graceful(self, monkeypatch):
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://open.feishu.cn/fake")
-        with patch("urllib.request.urlopen", side_effect=RuntimeError("boom")):
-            sent, reason = sanity_check._send_feishu_alert("x")
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        with patch("subprocess.run", side_effect=RuntimeError("boom")):
+            sent, reason = sanity_check._send_lark_alert("x")
         # graceful degrade：不应抛异常，只返回 False
         assert sent is False
         assert "RuntimeError" in reason
+
+    def test_non_json_stdout_treated_as_success(self, monkeypatch):
+        """lark-cli 偶尔返回非 JSON stdout（如警告）应视为成功（不阻断主流程）"""
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = "Warning: deprecated flag\n"
+        with patch("subprocess.run", return_value=mock_proc):
+            sent, reason = sanity_check._send_lark_alert("x")
+        assert sent is True
+        assert "non-JSON" in reason
 
 
 # ============================================================
@@ -391,16 +420,14 @@ class TestRunAll:
         assert result["should_flag_likely_wrong"] is True
         assert "copy_day" in dict(result["failed_gates"])
 
-    def test_webhook_called_on_failure(self, good_data, csv_with_prev_day,
-                                      monkeypatch):
-        """门禁失败时确实调用 webhook（mock）"""
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://open.feishu.cn/fake")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = b'{"StatusCode":0}'
-        mock_resp.__enter__ = lambda self: self
-        mock_resp.__exit__ = lambda *args: None
-        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_open:
+    def test_lark_alert_called_on_failure(self, good_data, csv_with_prev_day,
+                                       monkeypatch):
+        """门禁失败时确实调 lark-cli（mock subprocess.run）"""
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = json.dumps({"ok": True, "identity": "bot", "data": {}})
+        with patch("subprocess.run", return_value=mock_proc) as mock_run:
             result = sanity_check.run_all(
                 data=good_data,
                 csv_file=csv_with_prev_day,
@@ -408,18 +435,17 @@ class TestRunAll:
                 target_date="2026/05/22",
             )
         assert result["alert"]["sent"] is True
-        assert mock_open.call_count == 1
+        assert mock_run.call_count == 1
         # 告警消息正文应包含商品 ID、日期、失败门禁名
-        req = mock_open.call_args[0][0]
-        body = json.loads(req.data.decode("utf-8"))
-        text = body["content"]["text"]
+        args = mock_run.call_args[0][0]
+        text = args[args.index("--text") + 1]
         assert good_data["item_id"] in text
         assert "copy_day" in text
-        assert "DMP Sanity Alert" in text  # 告警关键词（飞书自定义机器人触发条件）
+        assert "DMP Sanity Alert" in text  # 告警关键词（lark 消息前缀）
 
-    def test_webhook_skip_no_alert_when_pass(self, monkeypatch, tmp_path):
-        """全过时 webhook 不调（即使 env 配了）"""
-        monkeypatch.setenv("FEISHU_WEBHOOK_URL", "https://fake")
+    def test_lark_alert_skip_no_alert_when_pass(self, monkeypatch, tmp_path):
+        """全过时 lark-cli 不调（即使 env 配了）"""
+        monkeypatch.setenv("LARK_OPEN_ID", "ou_test")
         csv_file = tmp_path / "empty.csv"
         csv_file.write_text("ID,时间,资产总量\n", encoding="utf-8")
         data = {
@@ -428,14 +454,14 @@ class TestRunAll:
             "qian_zhongcao": 100_000, "shen_zhongcao": 100_000,
             "shougou": 50_000, "fugou": 30_000, "liandai": 10_000,
         }
-        with patch("urllib.request.urlopen") as mock_open:
+        with patch("subprocess.run") as mock_run:
             sanity_check.run_all(data=data, csv_file=str(csv_file),
                                  spa_date="2026-05-22", target_date="2026-05-22")
-        assert mock_open.call_count == 0
+        assert mock_run.call_count == 0
 
     def test_multiple_gate_failures(self, good_data, csv_with_prev_day, monkeypatch):
         """同时违反多条门禁 → failed_gates 应聚合"""
-        monkeypatch.delenv("FEISHU_WEBHOOK_URL", raising=False)
+        monkeypatch.delenv("LARK_OPEN_ID", raising=False)
         # 篡改数据：date_sanity 不一致 + 全 0（触发 api_health "全 0"）
         for k in ("zichan_zongliang", "qian_zhongcao", "shen_zhongcao",
                   "shougou", "fugou", "liandai"):
@@ -458,7 +484,7 @@ class TestRunAll:
         场景：5/27 数据 6 字段全等于 5/26（T+1 未生成，API 返回旧快照）
         → 复制日门禁触发 → should_flag_likely_wrong=True
         """
-        monkeypatch.delenv("FEISHU_WEBHOOK_URL", raising=False)
+        monkeypatch.delenv("LARK_OPEN_ID", raising=False)
         csv_file = tmp_path / "data3.csv"
         with open(csv_file, "w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(
