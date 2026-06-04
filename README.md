@@ -19,11 +19,14 @@
 
 - ✅ 语义层 / 契约层 / 服务层 / 前端 Vue3 全部上线
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
-- ✅ ETL 增量更新正常（截至 2026-05-31）
+- ✅ ETL 增量更新正常（截至 2026-06-04：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M / rfm_analysis_cache 60 / order_status_override 6/4 刷 91,307 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff) + pre-push (pytest) + GitHub Actions
-- ✅ 测试 149 passed / 8 skipped
-- ✅ ETL 性能优化：增量 ETL 从 10 分钟降到 1 分钟，RFM 查询 3x 加速
+- ✅ 测试 153 passed / 8 skipped
+- ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
+- ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
+- ✅ RFM 分析 `real_elapsed_sec` / `step_wall_time_sum` 显式命名 baseline 字段（修 review skill 揪出的 wall_time 字段歧义）
+- ✅ rfm_analysis_cache fail-soft 修（pipeline.py member_order_ids 默认 READ_WRITE 与 cache.py `_open_write_conn` access_mode 兼容）
 
 ---
 
@@ -130,7 +133,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（149 passed / 8 skipped）：
+当前测试覆盖（153 passed / 8 skipped）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -186,3 +189,6 @@ npx playwright test
 | 2026-05-28 | 后端代码审计（23 问题修复），大文件拆分（6 个包），SPU 版本化 |
 | 2026-05-29 | SQL 注入修复，未来日期警告，/docs 白名单，CHANGELOG 建立 |
 | 2026-05-30 | pp 值双重乘法修复，173 lint 错误清理，pre-commit/CI 防线建立 |
+| 2026-05-31 | 17 项 FIX-TASK-LIST 全部完成归档；v0.3.4 release |
+| 2026-06-01 ~ 06-04 | RFM 4 端点 P0/P1 修复合集：8 象限 repurchase 改 ≥2 单（修 100%/0% 异常）、R/F/M TTL 修、value-tiers channel='全店' 特判、rfm-category-drilldown 500→400 |
+| 2026-06-04 | 增量 ETL 跑批 6/4（real elapsed 63.2min / step sum 126.4min，4 新源文件）；baseline wall_time 字段歧义修；rfm_analysis_cache fail-soft 修（pipeline.py read_only 改默认 READ_WRITE） |
