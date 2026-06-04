@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - **ETL Phase 4 架构设计文档入仓（4 层 SaaS 重构）** — `docs/design/etl-phase4-architecture.md` (460 行, APPROVED) 落地：① Layer 1 Source（xlsx→Parquet→DuckDB orders）+ Layer 2 ETL Pipeline（W1 GROUPING SETS / W2 原子 manifest / W3 DQ+幂等）+ Layer 3 Precomputed Serving（fact_rfm_long 纯增量 + dbt-style snapshot）+ Layer 4 Query API（DuckDB-KV 缓存 24h TTL）；② 5 个 WO 详细规范 + 4 周时间线 + 4 阶段灰度迁移；③ Acceptance Criteria 覆盖 3 痛点（ETL < 35min / 不再读到半新半旧 / 历史秒出）；④ 4 个 open questions 已 user 拍板（异步后台跑全历史 / 单 view / 告警+ETL 继续 / miss 走 fact_rfm_long）。Supersedes HANDOFF-etl-perf-2026-06-02.md（13 工单，范围扩展为架构分层）。gstack artifacts 同步：`hutou-main-design-20260604-180114.md`。
+- **ETL Perf 4-Layer design v1.1 增量** — 标题改 "ETL Perf 4-Layer Restructure" 避免和 PRD §11.3 Phase 4 混淆。**新增 W6**（lark-cli ETL 跑完通知，复用 sanity_check.py _send_lark_alert）+ **W7**（DUCKDB_MEMORY_LIMIT_OVERRIDE 临时 16GB，平时 8GB）。**W1-W5 各加 CLAUDE.md 合规段**：W1 走 `backend.semantic.segments`、W2 manifest 用 `os.rename` + fsync + 并发读安全、W3 复用 lark-cli 通道、W4 走语义层 + PRD §4.1/§4.2/§4.3 验收、W5 ThreadSafeCursor 包装。**加 §11 PRD-derived 验收点**（< 3s SLA / 9am 自动刷新 / 改口径只改 1 文件）。**加 §16 12 步 check-list per WO**（分支命名 / commit message / 每个 WO 特殊附加项）。**加 §17 旧 13 工单 stale 审计表**（4 done + 2 被 W1 取代 + 7 stale 不重做）。**reference.md 修 840 → 540**（stale 数据，以 preload_rfm.py:28 注释为准）。
 
 ## [0.3.5] - 2026-06-04
 
