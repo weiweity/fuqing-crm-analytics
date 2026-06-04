@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""DMP 抓数 6 道门禁 + 飞书 webhook 告警 (独立模块)
+"""DMP 抓数 6 道门禁 + lark-cli 告警 (独立模块)
 
 背景：5/28 出现 18 行 likely-wrong 脏数据时**没有主动告警**，要靠运营自己发现。
 本模块把 MEMO_2026-06-02.md / MEMO_2026-06-01.md 识别的 6 道门禁集中到独立
-可 import 的模块，并集成飞书 webhook 告警。
+可 import 的模块，并集成 lark-cli 告警（私聊推送）。
 
 6 道门禁（与现有 dmp_item_insight_scraper.py 内嵌实现一致）：
     1. date_sanity          - SPA 实际显示日期 vs 目标日期
@@ -21,10 +21,11 @@
     result = sanity_check.run_all(data, csv_file=Config.ITEM_DATA_FILE, ...)
     if result['should_flag_likely_wrong']:
         data['_sanity'] = 'likely-wrong'  # append_tocsv 会落到 data_quality_flag
-    # webhook 告警已在 run_all 内自动触发
+    # lark-cli 告警已在 run_all 内自动触发
 
 环境变量：
-    FEISHU_WEBHOOK_URL   - 飞书自定义机器人 webhook（未设时 skip 告警，不报错）
+    LARK_OPEN_ID         - 收件人 user open_id（未设时 skip 告警，不报错）
+    LARK_BIN            - lark-cli 路径（默认 /Users/hutou/homebrew/bin/lark-cli）
 """
 
 from __future__ import annotations
@@ -32,67 +33,80 @@ from __future__ import annotations
 import csv
 import json
 import os
-import urllib.error
-import urllib.request
+import shutil
+import subprocess
 from datetime import datetime, timedelta
 from typing import Any
 
 
 # ============================================================
-# 飞书 webhook（graceful degrade：失败不抛异常，不影响主流程）
+# lark-cli 告警（graceful degrade：失败不抛异常，不影响主流程）
 # ============================================================
 
-def _send_feishu_alert(content: str, webhook_url: str | None = None,
-                       timeout: float = 5.0) -> tuple[bool, str]:
-    """推飞书自定义机器人告警。
+def _send_lark_alert(content: str, open_id: str | None = None,
+                     lark_bin: str | None = None,
+                     timeout: float = 5.0) -> tuple[bool, str]:
+    """推 lark-cli 私聊告警。
+
+    通过 lark-cli subprocess 调 `im +messages-send --user-id --text` 发消息。
+    走 bot 身份（appsecret_cli_xxx 已在 keychain），无需用户交互。
+    默认 0 限频：同 1 门禁在 1 日内可能触发多次（如需要去重由调用方做）。
 
     Args:
-        content: 文本内容（飞书 msg_type=text）
-        webhook_url: 显式传入；不传则从 env FEISHU_WEBHOOK_URL 取
-        timeout: HTTP 超时秒
+        content: 文本内容
+        open_id: 收件人 user open_id（不传走 env LARK_OPEN_ID）
+        lark_bin: lark-cli 路径（不传走 env LARK_BIN，默认 /Users/hutou/homebrew/bin/lark-cli）
+        timeout: subprocess 超时秒
 
     Returns:
         (sent: bool, reason: str)
-        - sent=True 表示已 POST 成功（HTTP 200 + 飞书 code=0）
+        - sent=True 表示 subprocess 成功 + lark-cli 响应 ok=true
         - sent=False 时 reason 说明为何 skip / 失败（never raises）
     """
-    url = (webhook_url or os.environ.get("FEISHU_WEBHOOK_URL", "")).strip()
-    if not url:
-        return False, "未配置 FEISHU_WEBHOOK_URL，跳过告警（不报错）"
+    oid = (open_id or os.environ.get("LARK_OPEN_ID", "")).strip()
+    if not oid:
+        return False, "未配置 LARK_OPEN_ID，跳过告警（不报错）"
 
-    payload = json.dumps(
-        {"msg_type": "text", "content": {"text": content}},
-        ensure_ascii=False,
-    ).encode("utf-8")
-
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
+    bin_path = (
+        lark_bin
+        or os.environ.get("LARK_BIN", "").strip()
+        or shutil.which("lark-cli")
+        or "/Users/hutou/homebrew/bin/lark-cli"
     )
+    if not os.path.exists(bin_path):
+        return False, f"lark-cli 二进制不存在: {bin_path}"
+
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
-            if resp.status != 200:
-                return False, f"HTTP {resp.status}: {body[:200]}"
-            # 飞书自定义机器人成功响应：{"StatusCode":0,"StatusMessage":"success"}
-            # 旧版兼容：{"code":0,"msg":"ok"}
-            try:
-                resp_json = json.loads(body)
-                code = resp_json.get("StatusCode", resp_json.get("code", 0))
-                if code != 0:
-                    return False, f"飞书拒绝: {body[:200]}"
-            except (ValueError, TypeError):
-                pass  # 飞书偶尔返回非 JSON，认为成功
-            return True, "OK"
-    except urllib.error.HTTPError as e:
-        return False, f"HTTPError {e.code}: {str(e)[:200]}"
-    except urllib.error.URLError as e:
-        return False, f"URLError: {str(e.reason)[:200]}"
+        proc = subprocess.run(
+            [
+                bin_path, "im", "+messages-send",
+                "--user-id", oid,
+                "--text", content,
+                "--as", "bot",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"lark-cli 超时（>{timeout}s）"
     except Exception as e:
-        # 兜底：任何异常都不抛出（graceful degrade）
-        return False, f"未知异常: {type(e).__name__}: {str(e)[:200]}"
+        return False, f"lark-cli 启动失败: {type(e).__name__}: {str(e)[:200]}"
+
+    if proc.returncode != 0:
+        stderr = (proc.stderr or "").strip()[:200]
+        return False, f"lark-cli exit={proc.returncode}: {stderr}"
+
+    # lark-cli 成功响应：{"ok": true, "identity": "bot", "data": {...}}
+    try:
+        resp = json.loads(proc.stdout)
+    except (ValueError, TypeError):
+        return True, "OK (non-JSON stdout)"
+
+    if resp.get("ok") is True:
+        return True, "OK"
+    err = resp.get("error", {})
+    return False, f"lark-cli 拒绝: {err.get('type','?')}: {err.get('message','')[:200]}"
 
 
 # ============================================================
@@ -383,7 +397,7 @@ def run_all(data: dict, csv_file: str | None = None,
             spa_date: str | None = None,
             target_date: str | None = None,
             scraper_name: str = "dmp_item_insight",
-            webhook_url: str | None = None) -> dict:
+            open_id: str | None = None) -> dict:
     """跑全部 6 道门禁；任一 fail → 告警 + 标 likely-wrong。
 
     Args:
@@ -392,7 +406,7 @@ def run_all(data: dict, csv_file: str | None = None,
         spa_date: SPA trigger 实际显示日期（date_sanity 用）
         target_date: 抓取目标日期（date_sanity 用）
         scraper_name: 写到告警消息（区分 assets/flow/items）
-        webhook_url: 显式 webhook（不传走 env FEISHU_WEBHOOK_URL）
+        open_id: 收件人 user open_id（不传走 env LARK_OPEN_ID）
 
     Returns:
         dict:
@@ -418,7 +432,7 @@ def run_all(data: dict, csv_file: str | None = None,
     alert_result = {"sent": False, "reason": "无失败门禁，跳过告警"}
     if failed:
         msg = _format_alert_message(data, scraper_name, failed)
-        sent, reason = _send_feishu_alert(msg, webhook_url=webhook_url)
+        sent, reason = _send_lark_alert(msg, open_id=open_id)
         alert_result = {"sent": sent, "reason": reason}
 
     return {
