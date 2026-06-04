@@ -102,7 +102,13 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
             return
         if member_df.empty:
             print("  增量模式：从 DuckDB 加载历史 member_order_ids...")
-            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+            # 修 P0 fail-soft：之前 read_only=True 连接读历史 order_ids，
+            # 污染同进程 DuckDB config，导致 cache.py:_open_write_conn() 后续
+            # 开 access_mode=READ_WRITE 抛 "Can't open a connection to same database
+            # file with a different configuration"。修法：去掉 read_only=True，
+            # 用默认 READ_WRITE 连接，与 cache.py 后续 _open_write_conn() 保持
+            # 一致 access_mode。仅 SELECT DISTINCT order_id 只读查询 + 立刻 close。
+            conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
             try:
                 member_order_ids = set(conn.execute(
                     "SELECT DISTINCT order_id FROM orders WHERE is_member = TRUE"
