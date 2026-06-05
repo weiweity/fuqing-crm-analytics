@@ -68,13 +68,25 @@ def notify_etl_complete(
     if _send_lark_alert is None:
         return False, "scraper._send_lark_alert 不可用（PYTHONPATH 未包含项目根）"
 
-    results = []
-    reasons = []
-    for oid in oids:
-        sent, reason = _send_lark_alert(msg, open_id=oid)
-        results.append(sent)
-        reasons.append(f"{oid[:8]}…={sent}")
+    # FIX-S6: 并行推送（ThreadPoolExecutor），替代 9 oids 串行最坏阻塞 ETL 退出 45s
+    # 每个 _send_lark_alert 内部 timeout=5s, 9 oids 并行 = ~5s worst case
+    from concurrent.futures import ThreadPoolExecutor
+    # max_workers 限制在 [1, min(len(oids), 5)] 避免过多并发
+    max_workers = max(1, min(len(oids), 5))
+    # 按 oids 顺序提交, 按 oids 顺序收集结果 (保留入参顺序, 测试稳定)
+    oid_results: list[tuple[str, bool, str]] = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(_send_lark_alert, msg, open_id=oid) for oid in oids]
+        for oid, future in zip(oids, futures):
+            try:
+                sent, reason = future.result()
+            except Exception as e:
+                # 未来不应抛 (graceful _send_lark_alert 设计), 但兜底
+                sent, reason = False, f"推送异常: {type(e).__name__}: {str(e)[:100]}"
+            oid_results.append((oid, sent, reason))
 
+    results = [r[1] for r in oid_results]
+    reasons = [f"{r[0][:8]}…={r[1]}" for r in oid_results]
     success = all(results)
     summary = f"{sum(results)}/{len(oids)} 推送成功 [{'; '.join(reasons)}]"
     return success, summary

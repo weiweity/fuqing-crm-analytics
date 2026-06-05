@@ -137,8 +137,8 @@ class TestW6Notify:
 
         assert success is True
         assert "3/3 推送成功" in reason
-        # 验证三个 oid 被 trim 后传入
-        called_oids = [c.kwargs.get("open_id") for c in mock_send_lark_alert.call_args_list]
+        # FIX-S6: 并行后 mock 调用顺序非确定, 改用 sorted 验证 set 相等
+        called_oids = sorted(c.kwargs.get("open_id") for c in mock_send_lark_alert.call_args_list)
         assert called_oids == ["ou_a", "ou_b", "ou_c"]
 
     def test_empty_oids_string_after_split(self, monkeypatch, mock_send_lark_alert):

@@ -34,6 +34,35 @@ import duckdb
 
 from backend.db.memory_monitor import check_memory
 
+
+# FIX-S5: run_full_etl 任何异常时调 notify_etl_complete(status='failed')
+# 装饰器避免函数体 indent 1 个 tab; 同时避免 step 1-7 抛异常时 W6 块被跳过 (设计 doc §W6 「失败推 ❌」)
+import functools as _functools
+
+def _safe_etl_notify_on_failure(func):
+    """FIX-S5: run_full_etl 任何异常时调 notify_etl_complete(status='failed').
+    notify 失败不阻塞 (二次 try/except), 原异常 re-raise 不吃掉.
+    """
+    @_functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            try:
+                from scripts.etl.notify import notify_etl_complete
+                notify_etl_complete(
+                    {"orders_count": "?", "user_rfm_count": "?",
+                     "wall_min": 0, "gates_overall": f"failed: {type(e).__name__}"},
+                    status="failed",
+                )
+                print(f"  [W6 通知] step 1-7 异常 status=failed: {type(e).__name__}: {str(e)[:200]}")
+            except Exception as notify_e:
+                print(f"  [W6 通知] 通知失败: {type(notify_e).__name__}: {str(notify_e)[:100]}")
+            raise  # 保持原异常抛出
+    return wrapper
+
+
+@_safe_etl_notify_on_failure
 def run_full_etl(mode='auto', window_days=30, force_continue=False):
     """
     完整 ETL 流程（滑动窗口增量模式）
