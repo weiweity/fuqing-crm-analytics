@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - v0.4.5 Security 段补 16 个 F 编号映射（handoff-2026-06-05.md 第 5 节 source of truth 同步）
 
 
+## [v0.4.6.2] - 2026-06-05 - docs: handoff-2026-06-05-errata 勘误 (10 项失真补全 + trap EXIT)
+
+### Added
+- docs/handoff-2026-06-05-errata.md (100-130 行): 10 项 handoff 失真/缺漏勘误, §3.1 4 层↔17 issues 映射表作实操地图, §7 禁令路径勘误, §8 路径+产物补, 附录 A SHA 错位, 附录 B 数字对齐
+- docs/DOCUMENT-INDEX.md: 加 errata 索引行
+
+### Fixed
+- scripts/etl/cleanup_backups.sh: 加 trap "rm -f $LOCK" EXIT 修 stale 锁 (异常退出不再留 0B lock)
+
+
 ## [v0.4.6.1] - 2026-06-05 - docs: 同步 entry-point 文档到 v0.4.6 状态 (`df5d250`)
 
 ### Fixed
