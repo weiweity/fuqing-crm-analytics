@@ -35,5 +35,8 @@ if [ -n "$STAGED_PY_FILES" ]; then
         exit 1
     fi
 
+    # pytest cleanup orphans (v0.4.7)
+    PYTHONPATH="$(pwd)" pytest backend/tests/test_wo_cleanup_orphans.py -q || exit 1
+
     echo "✅ Lint clean."
 fi
