@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.6.1] - 2026-06-05 - docs: 同步 entry-point 文档到 v0.4.6 状态
+
+### Fixed
+- **CLAUDE.md line 30 stale**: 版本状态 `v0.4.4 (204 passed)` → `v0.4.6 (222 passed)`。CHANGELOG.md v0.4.5/v0.4.6 早已合入，但项目"启动必读"表里仍是 v0.4.4 baseline，会让后续 session 误判测试基线。
+- **README.md line 25 stale**: 测试状态 `153 passed` → `222 passed (v0.4.6)`。同根因：v0.4.4 之前的快照没跟随 v0.4.5/v0.4.6 pytest 套件增长同步。
+
+### Documentation
+- **Coverage gap (未修，留 follow-up)**: v0.4.5/v0.4.6 的 Layer 1-4 防护 (atexit 钩子 / zshrc 告警 / workbuddy cache 规范 / launchd backups) + 349GB 磁盘释放 在 README.md 完全没提。CI 用户/运维新接手时不知道这些治理。建议下次补一个"运维安全/磁盘治理"章节（Critical gap: 新 public surface 零 reference 覆盖）。
+
+
 ## [v0.4.6] - 2026-06-05 - atexit 钩子 ASK 限制项代码层修复
 
 ### Fixed
