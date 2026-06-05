@@ -72,6 +72,7 @@ designs/
 .codebuddy/
 .context/
 .claude/
+.codegraph/
 
 # 一次性维护脚本（本地保留作工具，按脚本文件头自述"不入 git"）
 scripts/etl/_cleanup_staging.py
