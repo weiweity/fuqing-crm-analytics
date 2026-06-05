@@ -6,9 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [v0.4.7] - 2026-06-05 - doc + flag sync: cleanup followups 落地
+## [v0.4.7] - 2026-06-05 - ci: pre-commit pytest cleanup orphans hook
 
 ### Added
+- **Pre-commit pytest hook (cleanup orphans)**: `.pre-commit-config.yaml` + `.githooks/pre-commit` 双 hook 配置, 仅跑 20 个 cleanup 用例, 防止 F3/F7 回归
 - **CLI flag `--cleanup-tmp`** — `python3 scripts/etl/cli.py --cleanup-tmp` 紧急清理 /tmp 孤儿（handoff 6/5 follow-up #3 落地，免依赖 ETL 触发）。调 `_cleanup_fq_tmp_orphans()` + 打印删除计数 + sys.exit(0)。2 个新 pytest 用例覆盖（`TestCleanupTmpFlag::test_argparse_accepts_cleanup_tmp` + `test_cleanup_tmp_prints_audit_path`）。pytest 222/8 → 224/8。
 
 ### Documentation
