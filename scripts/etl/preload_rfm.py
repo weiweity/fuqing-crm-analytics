@@ -394,6 +394,10 @@ def preload_date_batch(
     assert all(1 <= lb <= 3650 for lb in lookbacks), (
         f"lookbacks={lookbacks} 越界, 必须在 [1, 3650] 区间"
     )
+    # P1-#3 防御: metrics 白名单（防 metric 注入 f-string，CLAUDE.md §2 硬规则）
+    assert all(m in ("GMV", "GSV") for m in metrics), (
+        f"metrics={metrics} 越界, 必须在 ('GMV', 'GSV') 集合内"
+    )
     metrics = list(metrics)
     registry = get_registry()
     valid_sql, _ = OrderFilters.valid_order()
@@ -422,8 +426,10 @@ def preload_date_batch(
     )
 
     # 2. 构造 lookback 标志位（每个 lookback 一个 CASE WHEN，引用 s.pay_time — scanned 已投影）
+    # P1-#3: lb 已 assert isinstance + [1,3650] 范围, int() cast 防御性保险
+    # DuckDB 语法不支持 INTERVAL ? DAY, 所以保留 f-string 但加 int() 强制转换
     flag_cases = [
-        f"CASE WHEN s.pay_time >= DATE(?) - INTERVAL '{lb}' DAY THEN 1 ELSE 0 END AS in_{lb}"
+        f"CASE WHEN s.pay_time >= DATE(?) - INTERVAL '{int(lb)}' DAY THEN 1 ELSE 0 END AS in_{int(lb)}"
         for lb in lookbacks
     ]
     flags_sql = ", ".join(flag_cases)
@@ -449,14 +455,15 @@ def preload_date_batch(
     unions = []
     for lb in lookbacks:
         for metric in metrics:
-            amt_col = f"m_gmv_{lb}" if metric == "GMV" else f"m_gsv_{lb}"
-            frq_col = f"f_gmv_{lb}" if metric == "GMV" else f"f_gsv_{lb}"
+            amt_col = f"m_gmv_{int(lb)}" if metric == "GMV" else f"m_gsv_{int(lb)}"
+            frq_col = f"f_gmv_{int(lb)}" if metric == "GMV" else f"f_gsv_{int(lb)}"
+            # P1-#3: metric 已 assert 白名单 (GMV/GSV), 防御性保险保留 f-string
             unions.append(f"""
             SELECT
                 r.user_id,
                 p.analysis_date,
                 '{metric}' AS metric_type,
-                {lb} AS lookback_days,
+                {int(lb)} AS lookback_days,
                 r.channel,
                 DATEDIFF('day', r.r_last_pay_time, p.analysis_date) AS recency_days,
                 r.{frq_col} AS frequency,
