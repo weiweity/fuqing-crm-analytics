@@ -60,6 +60,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pytest 204/8 全绿**, ruff 0 errors
 - **磁盘清理待 owner 决策**：`/data/processed/fuqing_crm.duckdb.backup_pre_full_etl_2026_06_03` 53.8GB (6/3 起未动)。DuckDB 无 `PRAGMA integrity_check` 语法，已验证 45GB 主库 14 表可读 (user_rfm 77M 行 / orders 10.6M / user_first_purchase 4.24M) 0.7s。
 
+
+## [v0.4.0] - 2026-06-05 - WO-5 P2 季度清理 (类型/死列/文档/CLAUDE.md 例外)
+
+### Changed
+- **CLAUDE.md 接口开发六步 - ETL 脚本连接例外条款** (P2-#2) — 新增段落说明 `scripts/etl/*` 12 处 `duckdb.connect` + `conn.close()` 是合理的：① ETL 跑批长（30-60min）会污染单例 config；② `read_only` 与 `access_mode=READ_WRITE` 互斥（同进程单例会抛 `Can't open a connection to same database file with a different configuration`）；③ ETL 进程退出后 OS 回收连接。单例规则仍适用 `backend/services/*` 和 `backend/routers/*`。
+- **CLAUDE.md:30 测试数 153 → 204** — 实际 190 baseline + 6 smoke (WO-1) + 8 边界 (WO-3) = 204 passed / 8 skipped。
+- **CHANGELOG 漂移修复** — 2d64d8c `FIX-S1-regression` commit 的原 v0.3.5 段已通过 v0.3.6 WO-1 完整条目覆盖；测试数 153 → 204 在本条 Changed 段同步。
+
+### Fixed
+- **`scripts/etl/pipeline.py:66` `run_full_etl` 补 `-> None` 类型注解** (P2-#4) — 公共入口函数缺返回类型注解与同模块其他 public 函数不一致，mypy strict 会拦。
+- **`scripts/etl/preload_rfm.py:469` 删除 `fm_start_date` 死列** (P2-#5) — `base_params` CTE 原本定义 `fm_start_date = DATE(?) - INTERVAL '{max_lb}' DAY` 但 `scanned` WHERE 实际走 `r_start_date=365d`，`fm_start_date` 永不被引用。**同步修复**：① base_params 占位符 3→2（移除 fm_start_date 的 `?`）；② `params = [date_str] * (2 + len(lookbacks))` 公式修正；③ 移除 `max_lb = max(lookbacks)` 死代码（ruff F841 警告）。
+- **`scripts/etl/preload_rfm.py` 5 个 public 函数补 Returns docstring** — `get_hot_dates` / `build_rfm_sql` / `preload_date` / `run_auto_preload` / `run_range_preload`。每条 Returns 段说明元素结构（如 `List[Tuple[str, int]]: [(date_iso, rows_written), ...]`），方便 IDE 悬浮提示。
+
+### Quality
+- **pytest 204/8 全绿**, ruff 0 errors
+- **5-WO 计划 4/5 完成** (WO-1 v0.3.6 / WO-2 v0.3.7 / WO-3 v0.3.8 / WO-4 v0.3.9 / WO-5-part1 v0.4.0)；P1 治本 4 项 (SQL f-string / OOM / E2E) 留待下个 sprint
+
 ## [Unreleased]
 
 ### Performance
