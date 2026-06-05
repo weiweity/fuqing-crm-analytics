@@ -42,6 +42,24 @@
 | **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
 | **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
 
+---
+
+## 代码探索（agent 行为）
+
+**agent 探索本项目代码时，优先用 `mcp__codegraph__*` 工具**（不是 `Read` + `Grep` 反复跳文件）：
+
+| 意图 | 工具 |
+|---|---|
+| "X 怎么实现的 / 完整调用链" | `codegraph_explore`（**主工具**，99% 场景） |
+| "X 在哪 / 给我位置" | `codegraph_search` |
+| "谁在调 X / 改 X 会不会炸" | `codegraph_callers` / `codegraph_impact` |
+| "X 调了谁" | `codegraph_callees` |
+| "索引健康吗" | `codegraph_status` |
+
+不要用 `Grep` 找符号——`codegraph_search` 更准更快。详细手册见 `~/Desktop/codegraph 学习指南/工具手册.md`。
+
+跨任务查询前先 `codegraph status`（看 pending sync 警告）。
+
 ### 批量任务执行规范（workflow / 多文件重构）
 
 当 AI 执行多文件修改任务时，**必须遵守**：

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.1] - 2026-06-05 - chore: pickup uncommitted handoff + PR template + codegraph cache gitignore
+
+### Added
+- **.github/pull_request_template.md** (47 行, 新): PR checklist 含 codegraph affected 检查. 项目当前用 merge-to-main 流程 (handoff #1), 模板保留 0 副作用, 为未来协作扩展友好
+- **docs/handoff-2026-06-05.md** (200 行, 新): 6/5 治理事件快照 (TL;DR / 必读 / 时间线 / 4 层防护 / 状态表 / 17 issues / 必做). 不动 handoff 主干 (D1=C errata 路线), handoff 失真以 docs/handoff-2026-06-05-errata.md 单独勘误
+
+### Changed
+- **CLAUDE.md** (linter 段 +18 行, 新): "代码探索" 段, agent 优先用 `mcp__codegraph__*` 工具而非 Read+Grep 跳文件 (codegraph_explore 主, search 找位置, callers/impact 评估影响, callees 找调用, status 看健康)
+- **.gitignore** (+1 line, 新): `.codegraph/` 屏蔽 (10MB DB cache 不入 git, 匹配既有 .workbuddy/.gstack/.codebuddy/.context/.claude/ 模式)
+
+
 ## [v0.4.7] - 2026-06-05 - ci: pre-commit pytest cleanup orphans hook
 
 ### Added
