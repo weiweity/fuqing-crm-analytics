@@ -510,7 +510,8 @@ def preload_date_batch(
         FROM agg
         -- 过滤掉 channels 列表外的渠道（GROUPING SETS (user, channel) 会对所有有订单的 channel 产行）
         -- e.g. u03 有 U先 订单 → 产 (u03, U先) 行，但 channels 列表通常不包含 U先
-        WHERE COALESCE(channel, '全店') IN ({', '.join(f"'{c}'" for c in channels)})
+        -- P1-#2: 改 ? 参数化（与下方 DELETE 块 ch_ph 一致），禁止 f-string 拼 channel 字符串
+        WHERE COALESCE(channel, '全店') IN ({ch_ph})
     ),
     metrics_unpivoted AS (
         {union_sql}
@@ -561,8 +562,9 @@ def preload_date_batch(
     FROM with_segment
     """
 
-    # 7. 参数顺序：2 (base_params: analysis_date + r_start_date) + N (flags) = 2 + len(lookbacks)
-    params = [date_str] * (2 + len(lookbacks))
+    # 7. 参数顺序：2 (base_params: analysis_date + r_start_date) + N (flags) + len(channels) (resolved IN)
+    # = 2 + len(lookbacks) + len(channels)
+    params = [date_str] * (2 + len(lookbacks)) + list(channels)
 
     # 8. INSERT
     insert_sql = f"""
