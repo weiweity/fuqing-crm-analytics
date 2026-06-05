@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<!--
+FIX-M1: Windows Task Scheduler XML for 芙清 ETL daily run (PRD §4.2 9am 承诺)
+
+安装 (PowerShell 管理员):
+  Register-ScheduledTask -TaskName "FuqingETLDaily" `
+    -Xml (Get-Content .\etl_daily_taskscheduler.xml -Raw) `
+    -TaskPath "\Fuqing" `
+    -User "SYSTEM" `
+    -Force
+
+卸载:
+  Unregister-ScheduledTask -TaskName "FuqingETLDaily" -Confirm:$false
+
+设计:
+- 每日 8:30 跑 (9 点 dashboard 留 30min buffer)
+- WorkingDirectory: 项目根 (替换实际路径)
+- exit code != 0 触发 TaskScheduler 发邮件 (管理员配置)
+- run_etl.py exit !=0 时 lark-cli 单独通知 oncall (W6 集成)
+-->
+<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>芙清 CRM ETL 每日 8:30 增量跑批 (W6.5 调度)</Description>
+    <Author>fuqing-crm-analytics</Author>
+    <URI>\Fuqing\ETLDaily</URI>
+  </RegistrationInfo>
+
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-06-01T08:30:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+
+  <Principals>
+    <Principal id="Author">
+      <UserId>SYSTEM</UserId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <ExecutionTimeLimit>PT2H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+
+  <Actions>
+    <Exec>
+      <Command>python</Command>
+      <Arguments>scripts\run_etl.py --update</Arguments>
+      <WorkingDirectory>C:\Users\hutou\Desktop\fuqin date\fuqing-crm-analytics</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
