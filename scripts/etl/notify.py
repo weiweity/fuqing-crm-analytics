@@ -79,7 +79,9 @@ def notify_etl_complete(
         futures = [executor.submit(_send_lark_alert, msg, open_id=oid) for oid in oids]
         for oid, future in zip(oids, futures):
             try:
-                sent, reason = future.result()
+                # WO-4 P2-#1: 加 10s timeout (scraper 内部 5s, 外层放宽 2x)
+                # 防止 scraper SDK 升级后 timeout 失效 / subprocess 卡 stdout 拖累 ETL 退出
+                sent, reason = future.result(timeout=10)
             except Exception as e:
                 # 未来不应抛 (graceful _send_lark_alert 设计), 但兜底
                 sent, reason = False, f"推送异常: {type(e).__name__}: {str(e)[:100]}"
