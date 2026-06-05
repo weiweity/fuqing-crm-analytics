@@ -568,8 +568,12 @@ def preload_date_batch(
     ).fetchone()[0]
 
 
-def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
+def run_auto_preload(today: date = None) -> List[Tuple[str, int]]:
     """自动热点预加载，返回执行结果摘要。
+
+    W1 GROUPING SETS 接入生产（FIX-S1）：内部按 date 调 preload_date_batch(conn, date, lookbacks, metrics, channels)
+    一次 INSERT 跑完该 date 的所有 (lookback × metric × channel) 组合，替代 720 串行 preload_date() 循环。
+    设计: docs/design/etl-phase4-architecture.md §W1
 
     QW0 埋点：plan §A4.1 + plan §2 hot spot #1 — 540 组合串行循环
     入口/出口各打一次 perf_counter（通过 PerfTimer 上下文管理器）。
@@ -596,22 +600,17 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     results = []
     try:
-        total_tasks = len(hot_dates) * len(lookbacks) * len(metrics) * len(channels)
-        _extra["total_tasks"] = total_tasks
-        completed = 0
-        for ch in channels:
-            for d in hot_dates:
-                for lb in lookbacks:
-                    for mt in metrics:
-                        try:
-                            rows = preload_date(conn, d, lb, mt, ch)
-                            conn.commit()
-                            results.append((d.isoformat(), lb, mt, ch, rows))
-                            completed += 1
-                            print(f"[{completed}/{total_tasks}] {d} | {mt} | {lb}天 | {ch} => {rows:,} 行")
-                        except Exception as e:
-                            print(f"[ERROR] {d} | {mt} | {lb}天 | {ch} => {e}")
-                            results.append((d.isoformat(), lb, mt, ch, -1))
+        # FIX-S1: 用 preload_date_batch 1 SQL 跑完每个 date 的所有组合
+        # 替代原 4 重 for 循环（ch × date × lb × mt）逐个调 preload_date()
+        total_combos = len(lookbacks) * len(metrics) * len(channels)
+        for i, d in enumerate(hot_dates, 1):
+            try:
+                rows = preload_date_batch(conn, d, lookbacks, metrics, channels)
+                results.append((d.isoformat(), rows))
+                print(f"[{i}/{len(hot_dates)}] {d} => {rows:,} 行 ({total_combos} 组合/date, 1 SQL)")
+            except Exception as e:
+                print(f"[ERROR] {d} => {e}")
+                results.append((d.isoformat(), -1))
     finally:
         conn.close()
 
@@ -641,8 +640,11 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int, str, int]]:
     return results
 
 
-def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int, str, int]]:
-    """按日期范围每隔 step 天预加载一次。"""
+def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int]]:
+    """按日期范围每隔 step 天预加载一次。
+
+    W1 GROUPING SETS 接入生产（FIX-S1）：内部按 date 调 preload_date_batch(conn, date, lookbacks, metrics, channels)。
+    """
     lookbacks = [30, 90, 180]
     metrics = ["GMV", "GSV"]
     channels = ["全店"] + ACTIVE_UI_CHANNELS
@@ -655,21 +657,16 @@ def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int,
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     results = []
     try:
-        total = len(dates) * len(lookbacks) * len(metrics) * len(channels)
-        completed = 0
-        for ch in channels:
-            for d in dates:
-                for lb in lookbacks:
-                    for mt in metrics:
-                        try:
-                            rows = preload_date(conn, d, lb, mt, ch)
-                            conn.commit()
-                            results.append((d.isoformat(), lb, mt, ch, rows))
-                            completed += 1
-                            print(f"[{completed}/{total}] {d} | {mt} | {lb}天 | {ch} => {rows:,} 行")
-                        except Exception as e:
-                            print(f"[ERROR] {d} | {mt} | {lb}天 | {ch} => {e}")
-                            results.append((d.isoformat(), lb, mt, ch, -1))
+        # FIX-S1: 用 preload_date_batch（同 run_auto_preload）
+        total_combos = len(lookbacks) * len(metrics) * len(channels)
+        for i, d in enumerate(dates, 1):
+            try:
+                rows = preload_date_batch(conn, d, lookbacks, metrics, channels)
+                results.append((d.isoformat(), rows))
+                print(f"[{i}/{len(dates)}] {d} => {rows:,} 行 ({total_combos} 组合/date, 1 SQL)")
+            except Exception as e:
+                print(f"[ERROR] {d} => {e}")
+                results.append((d.isoformat(), -1))
     finally:
         conn.close()
     return results
