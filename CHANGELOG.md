@@ -47,6 +47,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pytest 196/8 → 204/8** (+8 tests) — 治 FIX-S1 漏改根因的测试基建继续积累
 - **ruff 0 errors** — 修 F841 (unused `count` 加 `assert count >= 0`)
 
+
+## [v0.3.9] - 2026-06-05 - WO-4 SRE 可观测性
+
+### Fixed
+- **`scripts/etl/notify.py:84` `future.result()` 加 `timeout=10`** (P2-#1) — scraper 内部 `_send_lark_alert` 已有 5s timeout，但外层未保护：未来 SDK 升级移除内部 timeout / subprocess 卡 stdout 都会让 W6 通知阶段无限 join，拖累 ETL 进程退出。10s = 内部 5s × 2 缓冲。
+
+### Added
+- **`/tmp/fuqing-etl-health.json` 状态文件** (SRE 0 飞书 0 代码状态查询) — `scripts/etl/cli.py:692` 在「一键更新完成」后写 `last_status / ts / mode / gates_overall`。SRE oncall 可直接 `cat /tmp/fuqing-etl-health.json` 验最后跑批状态，**不依赖飞书**（飞书 9 点上班才看，凌晨 2 点出事 = 兜底查询）。写失败非阻塞（try/except 兜底）。
+
+### Quality
+- **pytest 204/8 全绿**, ruff 0 errors
+- **磁盘清理待 owner 决策**：`/data/processed/fuqing_crm.duckdb.backup_pre_full_etl_2026_06_03` 53.8GB (6/3 起未动)。DuckDB 无 `PRAGMA integrity_check` 语法，已验证 45GB 主库 14 表可读 (user_rfm 77M 行 / orders 10.6M / user_first_purchase 4.24M) 0.7s。
+
 ## [Unreleased]
 
 ### Performance
