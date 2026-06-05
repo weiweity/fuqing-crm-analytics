@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.4.1] - 2026-06-06 - fix: VERSION drift 0.3.5 → 0.4.7.4 + CLAUDE.md / README.md 状态同步
+
+### Fixed
+- **`VERSION` 文件 drift**: 写 0.3.5, 实际 v0.4.7.4 (CHANGELOG 顶部对齐). 阻入口混乱, 下次 sprint 起手无歧义
+- **`CLAUDE.md` L30 状态表**: v0.4.6 / 222 passed / 8 skipped → **v0.4.7.4 / 224 passed / 8 skipped** (同步 main HEAD 3c531ec)
+- **`README.md` L25 + L182 状态行**: `222 passed / 8 skipped（v0.4.6）` → `224 passed / 8 skipped（v0.4.7.4）` (同源 drift, 一并修)
+
+
 ## [v0.4.7.4] - 2026-06-06 - docs: 归档 CI 30+ 红修复链的防复发 6 项 follow-up
 
 ### Added
