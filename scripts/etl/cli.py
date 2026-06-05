@@ -20,6 +20,7 @@ from scripts.etl.pipeline import (
     refresh_visitor_data, refresh_campaign_schedule,
 )
 from scripts.etl._timer import PerfTimer, gate_set, gate_record_error, save_baseline as _save_baseline
+from scripts.etl.notify import notify_etl_complete
 
 
 def _save_partial(run_id: str = "1/3") -> None:
@@ -465,7 +466,8 @@ def main():
                     _c0.close()
             else:
                 _before_max, _before_count = None, 0
-        except Exception:
+        except Exception as _e:
+            print(f"  [WO-1 修复] cross_day 前置采样失败: {type(_e).__name__}: {_e}")
             _before_max, _before_count = None, 0
 
         # Step 1: ETL 增量（滑动窗口模式，force_continue 确保 Step 5/6 必定执行）
@@ -474,6 +476,10 @@ def main():
                 run_full_etl(mode='inc', window_days=args.window_days, force_continue=True)
         except Exception as _exc:
             gate_record_error("step1_run_full_etl", _exc)
+            notify_etl_complete(
+                {"failed_step": "step1_run_full_etl", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -483,6 +489,10 @@ def main():
                 update_taoke_channel()
         except Exception as _exc:
             gate_record_error("step2_update_taoke_channel", _exc)
+            notify_etl_complete(
+                {"failed_step": "step2_update_taoke_channel", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -497,6 +507,10 @@ def main():
                 refresh_status_override(DUCKDB_PATH, window_days=args.window_days)
         except Exception as _exc:
             gate_record_error("step3_refresh_status_override", _exc)
+            notify_etl_complete(
+                {"failed_step": "step3_refresh_status_override", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -510,6 +524,10 @@ def main():
                 sync_override_to_orders(DUCKDB_PATH, window_days=args.window_days)
         except Exception as _exc:
             gate_record_error("step4_sync_override_to_orders", _exc)
+            notify_etl_complete(
+                {"failed_step": "step4_sync_override_to_orders", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -522,6 +540,10 @@ def main():
                 refresh_visitor_data()
         except Exception as _exc:
             gate_record_error("step5_refresh_visitor_data", _exc)
+            notify_etl_complete(
+                {"failed_step": "step5_refresh_visitor_data", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -541,6 +563,10 @@ def main():
             print(f"  预计算完成: {count} 个组合")
         except Exception as _exc:
             gate_record_error("step6_precompute_rfm_cache", _exc)
+            notify_etl_complete(
+                {"failed_step": "step6_precompute_rfm_cache", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -560,6 +586,10 @@ def main():
             print(f"  user_rfm 预加载完成: {len(success)}/{len(results)} 个 date 写入行")
         except Exception as _exc:
             gate_record_error("step7_user_rfm_preload", _exc)
+            notify_etl_complete(
+                {"failed_step": "step7_user_rfm_preload", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -572,6 +602,10 @@ def main():
                 refresh_campaign_schedule()
         except Exception as _exc:
             gate_record_error("step7_5_refresh_campaign_schedule", _exc)
+            notify_etl_complete(
+                {"failed_step": "step7_5_refresh_campaign_schedule", "error": str(_exc)[:200], "mode": "auto"},
+                status="failed",
+            )
             raise
         _save_partial()
 
@@ -610,8 +644,11 @@ def main():
                     after_count=_after_count,
                     net_change=_after_count - _before_count,
                 )
-        except Exception:
-            pass
+        except Exception as _e:
+            print(f"  [WO-1 修复] 6 道门禁收尾失败 (cross_day/api_health/dedup): {type(_e).__name__}: {_e}")
+            gate_set("cross_day", "fail", checked=False, error=str(_e)[:200])
+            gate_set("api_health", "fail", checked=False, error=str(_e)[:200])
+            gate_set("dedup", "fail", checked=False, error=str(_e)[:200])
 
         # Step 8: 数据源扫描摘要（防截断，固定输出在结尾）
         print("\n" + "=" * 60)
@@ -642,8 +679,8 @@ def main():
                 print(f"{'DuckDB 用户数':<16} {'—':>8} {total_users:>12,} {'—':>10} {'—':>10}")
             finally:
                 conn.close()
-        except Exception:
-            pass
+        except Exception as _e:
+            print(f"  [WO-1 修复] Step 8 DuckDB 总行数查询失败: {type(_e).__name__}: {_e}")
 
         print("=" * 60)
         print("一键更新完成！")

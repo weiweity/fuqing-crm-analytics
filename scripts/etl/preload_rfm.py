@@ -713,8 +713,9 @@ def main():
         parser.print_help()
         return
 
-    success = [r for r in results if r[4] > 0]
-    failed = [r for r in results if r[4] == -1]
+    # FIX-S1-regression-complete: run_auto_preload / run_range_preload 返 2-tuple (date_str, rows)
+    success = [r for r in results if r[1] > 0]
+    failed = [r for r in results if r[1] == -1]
     print(f"\n=== 完成: 成功 {len(success)} 个任务, 失败 {len(failed)} 个任务 ===")
 
 
