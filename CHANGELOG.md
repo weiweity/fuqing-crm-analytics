@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.4] - 2026-06-06 - docs: 归档 CI 30+ 红修复链的防复发 6 项 follow-up
+
+### Added
+- **`docs/FOLLOWUPS.md`** (新): 归档 v0.4.7.3 4 步修链的根因复盘 (3 条) + 6 项防复发 follow-up 方案 (P0-P3, 含工作量 + 收益 + 验收), 关联 commit / QA 报告 / handoff 文档索引. 状态 "待执行", 触发条件是下次 sprint 起新工作前 review 一遍挑可做的入 sprint backlog
+
+### 防复发方案 (P0-P3, 工作量从 2min 到 1h)
+- **P0** pre-commit import 完整性检查 — 根因预防, 0.5h
+- **P1** nightly CI 健康检查 — 早发现, 0.5h
+- **P1** requirements-lock.txt — 防"装包漂移", 1h
+- **P2** test 顺序无关 lint — 防 flaky test, 1h
+- **P2** GitHub 通知收敛 — 立即可做, 2min
+- **P3** 每周 CI 健康报告 — 趋势可见, 0.5h
+
+详见 `docs/FOLLOWUPS.md` §防复发方案
+
+
 ## [v0.4.7.3.3] - 2026-06-06 - ci: 修 test_byte_cap 跨平台 flaky (闭合 v0.4.7.3.2 漏的 test bug)
 
 ### Fixed
