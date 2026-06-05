@@ -121,6 +121,8 @@ class TestCleanupFqTmpOrphans:
              patch.object(cli_mod, "os") as mock_os:
             mock_os.path.getsize.return_value = 50 * 1024**3
             mock_os.path.getmtime.return_value = time.time() - 48 * 3600
+            mock_os.path.islink.return_value = False  # F7: 全部视为非 symlink
+            mock_os.path.exists.return_value = False  # F3: marker 不存在（保守模式）
             mock_os.remove = os.remove  # 真实 remove 行为
             deleted_count = cli._cleanup_fq_tmp_orphans()
 
@@ -240,3 +242,173 @@ class TestCleanupFqTmpConstants:
         """count cap 是 5（防御性批量误删）。"""
         from scripts.etl import cli
         assert 1 <= cli._FQ_TMP_MAX_DELETE_PER_RUN <= 20
+
+
+class TestF3MarkerAndF7Symlink:
+    """F3 marker-based 异常退出检测 + F7 symlink skip 行为测试。
+
+    F3 修复：atexit 钩子无法覆盖 kill -9 / os._exit / OOM killer
+    （Python 文档明确），marker 文件作为"近 24h 是否有 ETL 在跑"的
+    旁路信号。main() 入口写 marker，cleanup 钩子读 marker 判断。
+
+    F7 修复：symlink getmtime/getsize 跟随 target 误报 size，且 os.remove
+    只删 link 不动 target，难以判断 target 是否 active。保守起见不删 symlink。
+    """
+
+    def test_f3_marker_written_in_main(self, tmp_path, monkeypatch):
+        """F3 修复：main() 入口在 atexit 注册前必须先写 marker。
+
+        验证：
+          1. main() 被调用后，marker 文件存在
+          2. marker 内容包含 pid / started_at / script 三个字段
+          3. _write_fq_etl_marker() 在 atexit.register() 之前被调用
+        """
+        import argparse
+        import json
+        from unittest.mock import MagicMock
+        from scripts.etl import cli
+
+        marker_path = tmp_path / "fuqing-etl-marker.json"
+        monkeypatch.setattr(cli, "_FQ_TMP_MARKER_PATH", str(marker_path))
+
+        # mock argparse 走 no-op 分支（既不是 --update 也不是 --rescan-*）
+        ns = argparse.Namespace(
+            full=False, inc=False, update=False, update_taoke=False,
+            refresh_status=False, window_days=30, rescan_spu=False,
+            rescan_channel=False, product_ids=[], since=None,
+            dry_run=False, apply=False,
+        )
+
+        # 用 mock 替换 _write_fq_etl_marker，记录调用顺序
+        call_order = []
+        real_write = cli._write_fq_etl_marker
+
+        def tracked_write():
+            call_order.append("write")
+            return real_write()
+
+        # 替换 atexit.register 为追踪版本（实际不注册，避免污染后续测试）
+        def tracked_register(*args, **kwargs):
+            call_order.append("register")
+            return None
+
+        with patch.object(cli, "_write_fq_etl_marker", side_effect=tracked_write), \
+             patch.object(cli.atexit, "register", side_effect=tracked_register), \
+             patch.object(cli, "argparse") as mock_argparse, \
+             patch.object(cli, "run_full_etl"):
+            mock_parser = MagicMock()
+            mock_parser.parse_args.return_value = ns
+            mock_argparse.ArgumentParser.return_value = mock_parser
+            try:
+                cli.main()
+            except SystemExit:
+                pass  # argparse 走 default 分支后会调 run_full_etl，然后 sys.exit
+
+        # 验证 marker 被写
+        assert marker_path.exists(), f"main() 入口应写 marker 到 {marker_path}"
+
+        # 验证 marker 内容 schema
+        marker = json.loads(marker_path.read_text())
+        assert marker["pid"] == os.getpid(), "marker.pid 应等于当前进程 PID"
+        assert "started_at" in marker and marker["started_at"], "marker 缺 started_at"
+        assert marker["script"] == "cli.py", "marker.script 应为 cli.py"
+
+        # 验证调用顺序：write 在 register 之前
+        assert "write" in call_order, "_write_fq_etl_marker 未被调用"
+        assert "register" in call_order, "atexit.register 未被调用"
+        assert call_order.index("write") < call_order.index("register"), (
+            f"F3 修复：_write_fq_etl_marker 必须在 atexit.register 之前调用，"
+            f"实际顺序: {call_order}"
+        )
+
+    def test_f3_marker_cleared_on_cleanup(self, tmp_path, monkeypatch):
+        """F3 修复：cleanup 后 marker 必须被删（无论原本是否存在）。
+
+        场景 A：marker 原本存在 → cleanup 后被删
+        场景 B：marker 原本不存在 → cleanup 不报错（软失败）
+        """
+        from scripts.etl import cli
+
+        marker_path = tmp_path / "fuqing-etl-marker.json"
+        monkeypatch.setattr(cli, "_FQ_TMP_MARKER_PATH", str(marker_path))
+
+        # 场景 A：marker 存在 → cleanup 后被删
+        marker_path.write_text(
+            '{"pid": 12345, "started_at": "2026-06-05T00:00:00+00:00", "script": "cli.py"}'
+        )
+        assert marker_path.exists(), "前置：marker 应被预创建"
+
+        new_prefixes = (str(tmp_path / "fuqing_"),)
+        with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
+            cli._cleanup_fq_tmp_orphans()
+
+        assert not marker_path.exists(), (
+            "F3 修复：cleanup 后 marker 必须被删（场景 A：原本存在）"
+        )
+
+        # 场景 B：marker 不存在 → cleanup 不抛异常
+        with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
+            # 软失败：不应抛 SystemExit / OSError
+            cli._cleanup_fq_tmp_orphans()
+        # 验证确实没抛异常 + marker 仍不存在
+        assert not marker_path.exists(), "场景 B：marker 仍不存在"
+
+    def test_f7_skip_symlink(self, tmp_path):
+        """F7 修复：symlink 不删（避免误报 size + 难判断 target active）。
+
+        验证：
+          1. 在白名单前缀下创建 symlink → 不被删
+          2. target 不动（双重确认）
+          3. 删除计数为 0
+        """
+        from scripts.etl import cli
+
+        # target 文件：不在白名单前缀下，避免被 _collect 误扫
+        target = tmp_path / "real_target.duckdb"
+        target.write_bytes(b"x" * 100)
+        old_time = time.time() - 48 * 3600
+        os.utime(target, (old_time, old_time))
+
+        # symlink：在白名单前缀下
+        link = tmp_path / "fuqing_link.duckdb"
+        os.symlink(str(target), str(link))
+
+        # 前置：symlink 创建成功
+        assert link.is_symlink(), "前置：symlink 应被创建"
+        assert os.path.islink(str(link)) is True, "前置：os.path.islink 应返回 True"
+
+        new_prefixes = (str(tmp_path / "fuqing_"),)
+        with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
+            deleted_count = cli._cleanup_fq_tmp_orphans()
+
+        # 验证 1：symlink 不被删（仍然存在且是 symlink）
+        assert link.is_symlink(), (
+            "F7 修复：symlink 不应被删（os.remove 只删 link 不动 target，"
+            "但我们更保守——直接跳过）"
+        )
+        # 验证 2：删除计数为 0
+        assert deleted_count == 0, "F7 修复：symlink 应被跳过，删除计数为 0"
+        # 验证 3：target 不动
+        assert target.exists(), "target 不应被 cleanup 影响"
+
+
+class TestF3MarkerConstants:
+    """F3 marker 常量 sanity 检查（防回归）。"""
+
+    def test_marker_path_constant_exists(self):
+        from scripts.etl import cli
+        assert hasattr(cli, "_FQ_TMP_MARKER_PATH"), "F3: marker path 常量缺失"
+        assert cli._FQ_TMP_MARKER_PATH.endswith(".json"), "marker 应为 JSON 文件"
+
+    def test_marker_path_is_absolute(self):
+        """marker 必须用绝对路径（/tmp 下，避免相对路径解析歧义）。"""
+        from scripts.etl import cli
+        assert os.path.isabs(cli._FQ_TMP_MARKER_PATH), (
+            "F3: marker path 必须是绝对路径"
+        )
+
+    def test_write_helper_exists(self):
+        """F3: _write_fq_etl_marker 函数必须存在。"""
+        from scripts.etl import cli
+        assert hasattr(cli, "_write_fq_etl_marker"), "F3: _write_fq_etl_marker 缺失"
+        assert callable(cli._write_fq_etl_marker), "F3: _write_fq_etl_marker 必须可调用"

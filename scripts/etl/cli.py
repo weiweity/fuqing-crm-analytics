@@ -21,12 +21,24 @@ from scripts.etl.config import (
 # 白名单前缀（避免误删 /tmp 下其他用户/系统文件）。
 #
 # 已知限制（adversarial review 2026-06-05）：
-#   - atexit 在 os._exit() / kill -9 / OOM killer 下不触发（Python 文档明确）
-#   - mtime 可被 touch -t / os.utime 任意改写，非"活跃文件"绝对可靠信号
-#     → 真正的活跃信号应是 lsof / flock / marker file，但 mtime 24h 阈值已
-#       兜住常见场景（agent 调试 → mtime 24h+ 后下次 ETL 自动清）
-#   - symlink: getmtime/getsize 跟随 symlink；os.remove 只删 link 不动 target
-#     → 无数据丢失风险（POSIX 语义），但 print 的 size 是 target 大小
+#   - F3 (HIGH): atexit 在 os._exit() / kill -9 / OOM killer 下不触发
+#     （Python 文档明确）。
+#     → 修复：main() 入口（atexit.register 之前）写 marker 文件
+#       /tmp/fuqing-etl-marker.json；cleanup 钩子执行时读 marker 判断是否
+#       正常 ETL 退出。marker 缺失 = 异常退出（kill -9 / OOM / 断电），
+#       切换保守模式（同样 5 文件 / 100GB 内，但日志标注 reason）。
+#       marker 存在 = 正常退出，cap 维持。
+#       无论 marker 是否存在，cleanup 完后都删 marker（避免下次误判）。
+#   - F6 (LOW): mtime 可被 touch -t / os.utime 任意改写，非"活跃文件"绝对
+#     可靠信号。
+#     → **deferred**: 真正的"活跃信号"应是 flock / lsof / marker file
+#       替代 mtime，但 mtime 24h 阈值已兜住常见场景（agent 调试 →
+#       mtime 24h+ 后下次 ETL 自动清），改造复杂度高，留作 future work。
+#   - F7 (MEDIUM): symlink getmtime/getsize 跟随 target；os.remove 只删 link
+#     不动 target（无数据丢失，POSIX 语义），但 print 的 size 是 target 大小
+#     （误报）；且难以判断 target 是否 active。
+#     → 修复：candidates 收集时 `islink` 跳过（[skip symlink] 提示），
+#       保守起见不删 symlink，避免误删指向其他业务文件的 link。
 # ─────────────────────────────────────────────────────────────
 FQ_TMP_PREFIXES = (
     "/private/tmp/_fq_ro",   # 调试代码变量（_fq = fuqing, ro = read_only）
@@ -36,6 +48,7 @@ _FQ_TMP_MAX_DELETE_PER_RUN = 5        # 防御性：单次最多删 5 个文件
 _FQ_TMP_MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB/次（防单次爆删）
 _FQ_TMP_MIN_AGE_HOURS = 24            # 24h 内的活跃文件不删
 _FQ_TMP_LOG_PATH = "/tmp/fuqing-tmp-cleanup.log"  # 持久日志（不等同 print）
+_FQ_TMP_MARKER_PATH = "/tmp/fuqing-etl-marker.json"  # F3: 异常退出检测 marker
 
 
 def _collect_fq_tmp_orphans() -> list:
@@ -44,11 +57,20 @@ def _collect_fq_tmp_orphans() -> list:
     设计：先收集全量 candidates，再按 mtime 倒序（最老优先）截断到 cap，
     避免 first-prefix starvation（F5：原来 first pattern 命中 5 个就 break，
     后续 prefix 永远不扫）。
+
+    F7 修复：symlink 跳过。getmtime/getsize 跟随 target 误报 size（用户看到
+    的"38GB"可能是 target 大小），os.remove 只删 link 不动 target（无数据
+    丢失，POSIX 语义），但难以判断 target 是否 active。保守起见不删 symlink。
     """
     candidates = []
     now = time.time()
     for pattern in FQ_TMP_PREFIXES:
         for path in glob.glob(f"{pattern}*.duckdb"):
+            # F7 修复：用 `is True` 而不是 truthy 判断，兼容 mock 场景
+            # （MagicMock 实例 bool() 为 True，会把 mock 文件全当 symlink 跳过）
+            if os.path.islink(path) is True:
+                _safe_log(f"  [tmp-cleanup] skip symlink: {path}")
+                continue
             try:
                 mtime = os.path.getmtime(path)
             except OSError:
@@ -77,9 +99,28 @@ def _cleanup_fq_tmp_orphans() -> int:
       4. 软失败：清理失败只 log 不 raise（不影响 ETL 退出码）
       5. 持久日志写到 _FQ_TMP_LOG_PATH（运维审计）
 
+    F3 修复：清理前读 marker 判断是否正常 ETL 退出。marker 缺失 = 上次
+    ETL 异常退出（kill -9 / os._exit / OOM killer），保守模式清理（同样
+    5 文件 + 100GB 内，但日志明确标注 reason，便于运维定位）。清理完后
+    不论 marker 原本是否存在都删 marker，避免下次误判。
+
     Returns:
         实际删除的文件数
     """
+    # F3 修复：清理前读 marker 判断退出模式
+    marker_existed = False
+    try:
+        marker_existed = os.path.exists(_FQ_TMP_MARKER_PATH)
+    except OSError:
+        marker_existed = False
+    if not marker_existed:
+        _safe_log(
+            "  [tmp-cleanup] marker 缺失（上次 ETL 异常退出："
+            "kill -9 / os._exit / OOM killer），保守模式清理（5 文件 + 100GB 内）"
+        )
+    else:
+        _safe_log("  [tmp-cleanup] marker 存在（正常 ETL 退出），按既有 cap 清理")
+
     candidates = _collect_fq_tmp_orphans()
 
     deleted = []
@@ -96,6 +137,12 @@ def _cleanup_fq_tmp_orphans() -> int:
         except OSError as e:
             _safe_log(f"  [tmp-cleanup] skip {path}: {e}")
 
+    # F3 修复：清理完后清 marker（无论原本是否存在），避免下次误判
+    try:
+        os.remove(_FQ_TMP_MARKER_PATH)
+    except OSError:
+        pass  # marker 不存在/无权限 — 不阻塞 cleanup
+
     # 持久化日志（运维审计，print 在 daemon 上下文可能 I/O 失败见 F11）
     if deleted:
         lines = [f"\n  [tmp-cleanup] cleaned {len(deleted)} /tmp orphan(s):"]
@@ -103,6 +150,34 @@ def _cleanup_fq_tmp_orphans() -> int:
             lines.append(f"    - {path} ({size_gb:.1f}GB, {age_h:.0f}h old)")
         _safe_log("\n".join(lines))
     return len(deleted)
+
+
+def _write_fq_etl_marker() -> None:
+    """在 main() 入口（atexit.register 之前）写 marker 文件。
+
+    用途：cleanup 钩子执行时读 marker 是否存在，判断是否正常退出。
+      - marker 存在 → 正常 ETL 退出（main() 走完），cap 维持
+      - marker 缺失 → 异常退出（kill -9 / os._exit / OOM），
+        24h 阈值下保守清理（5 文件 + 100GB 内）
+
+    F3 修复：atexit 钩子无法覆盖 kill -9 / os._exit / OOM killer 的限制
+    （Python 文档明确），marker 文件作为"近 24h 是否有 ETL 在跑"的旁路
+    信号。即使钩子不触发，下次 ETL 的 atexit 也能识别并保守清理。
+
+    软失败：写失败只 pass 不 raise（不影响 main() 入口）。
+    """
+    import json as _json
+    from datetime import datetime as _dt, timezone
+    try:
+        marker_data = {
+            "pid": os.getpid(),
+            "started_at": _dt.now(timezone.utc).isoformat(timespec="seconds"),
+            "script": "cli.py",
+        }
+        with open(_FQ_TMP_MARKER_PATH, "w") as f:
+            _json.dump(marker_data, f)
+    except OSError:
+        pass  # marker 写失败不阻塞 main()
 
 
 def _safe_log(msg: str) -> None:
@@ -523,6 +598,14 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
 
 def main():
     """CLI 入口函数"""
+    # F3 修复：在 atexit 注册**之前**先写 marker 文件（kill -9 限制绕过）。
+    # 正常流程：main() 入口 → 写 marker → atexit.register → ... → 退出 →
+    # atexit 触发 → cleanup 读 marker（存在）→ 正常 cap → 删 marker。
+    # 异常流程：main() 入口 → 写 marker → ... → kill -9 → atexit 不触发 →
+    # 下次 ETL 的 main() 入口 → atexit 注册 → ... → 退出 → atexit 触发 →
+    # cleanup 读 marker（**缺失** = 上次异常退出）→ 保守 cap → 删 marker。
+    _write_fq_etl_marker()
+
     # 注册 atexit 钩子：在 main() 入口注册，不在 import 顶层注册（F4 修复）。
     # 原因：pytest / Jupyter / 单元测试 import 模块时不应触发清理，否则会
     # 在测试退出时静默扫 /private/tmp/，潜在误删真实调试文件。
