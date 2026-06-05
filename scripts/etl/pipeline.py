@@ -137,6 +137,10 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
         if shop_df.empty:
             print("错误: 没有加载到任何店铺数据!")
             return
+        # P2 散点: pipeline.py 10 处 duckdb.connect 是合理 ETL 单例例外 (见 CLAUDE.md §2
+        # "ETL 脚本连接例外条款")。每次新开连接 + 立刻 close 是为了让 read_only/READ_WRITE
+        # config 不互相污染 (DUCKDB-#1: Can't open a connection to same database file
+        # with a different configuration)。同进程单例会踩这个坑。
         if member_df.empty:
             print("  增量模式：从 DuckDB 加载历史 member_order_ids...")
             # 修 P0 fail-soft：之前 read_only=True 连接读历史 order_ids，

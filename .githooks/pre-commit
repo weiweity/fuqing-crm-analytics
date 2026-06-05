@@ -1,19 +1,39 @@
 #!/bin/bash
-# Pre-commit hook: run ruff lint check on staged Python files
+# Pre-commit hook: ruff lint + CHANGELOG 跟随 + 禁止 bare except
 # Install: git config core.hooksPath .githooks
 
-STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
-if [ -z "$STAGED_PY" ]; then
-    exit 0
-fi
+# P2 散点: CHANGELOG.md 跟随 — 改 .py / docs/ 时必须同步改 CHANGELOG.md
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+STAGED_PY=$(echo "$STAGED" | grep -E '\.py$|docs/|\.md$' || true)
+STAGED_CHANGELOG=$(echo "$STAGED" | grep '^CHANGELOG\.md$' || true)
 
-echo "Running ruff check..."
-ruff check . --quiet
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "❌ Lint errors found. Fix them before committing."
-    echo "   Run: ruff check . --fix"
+if [ -n "$STAGED_PY" ] && [ -z "$STAGED_CHANGELOG" ]; then
+    echo "❌ CHANGELOG.md 未跟随 commit"
+    echo "   修改了 $(echo "$STAGED_PY" | wc -l | tr -d ' ') 个文件但 CHANGELOG.md 未变更"
+    echo "   修复: git add CHANGELOG.md 同步加版本号条目"
+    echo "   例外: 纯 docs/ 改动 + hotfix 紧急可 git commit --no-verify"
     exit 1
 fi
 
-echo "✅ Lint clean."
+# P2 散点: 禁止 bare except (防 静默吞噬 复发)
+STAGED_PY_FILES=$(echo "$STAGED" | grep '\.py$' || true)
+if [ -n "$STAGED_PY_FILES" ]; then
+    BARE_EXCEPT=$(grep -nE '^\s*except\s*:\s*$' $STAGED_PY_FILES 2>/dev/null | head -5 || true)
+    if [ -n "$BARE_EXCEPT" ]; then
+        echo "❌ 检测到 bare except (P2 散点: 防 静默吞噬 复发)"
+        echo "$BARE_EXCEPT" | head -5
+        echo "   修复: 改 except Exception as e: + print/log, 或加 # noqa: BLE001"
+        exit 1
+    fi
+
+    echo "Running ruff check..."
+    ruff check . --quiet
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "❌ Lint errors found. Fix them before committing."
+        echo "   Run: ruff check . --fix"
+        exit 1
+    fi
+
+    echo "✅ Lint clean."
+fi
