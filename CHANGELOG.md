@@ -92,6 +92,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pytest 204/8 全绿**, ruff 0 errors
 - **trust barrier 强化**: 即使未来 channels 列表从外部源（CSV/PM 配置后台）传入，也不会注入 SQL
 
+
+## [v0.4.2] - 2026-06-05 - P1-#3 INTERVAL/metric f-string 防御
+
+### Fixed
+- **`scripts/etl/preload_rfm.py:393` metrics 加 `assert all(m in ("GMV", "GSV") for m in metrics)`** (P1-#3) — 与 channel/lookback 防御一致，防 metric 注入 `'{metric}' AS metric_type` 字符串字面量。拒绝 `metrics=['INVALID']` 等不在白名单的值。
+- **`scripts/etl/preload_rfm.py:426/450` f-string 加 `int(lb)` 防御性 cast** — DuckDB 语法不支持 `INTERVAL ? DAY`（强约束），保留 f-string 是唯一选择。但 `int(lb)` cast 强制 `lb` 是 int 类型，防止字符串注入（如 `lookbacks=["30; DROP TABLE orders; --"]` 触发 TypeError 而非 SQL 注入）。
+- **`scripts/etl/preload_rfm.py:450` m_gmv/m_gsv/f_gmv/f_gsv 列名 `_{int(lb)}`** — 同上防御性保险。
+
+### Trade-off
+- **保留 f-string**（DuckDB 语法限制）+ **Python 侧 assert + int() cast** 双重保险
+- 完全 `?` 参数化需要重写整个 SQL 为「先算 lookback 起始日期，再按 `lookback × metric × 6 cols` × N 行展开」= 30+ 个独立日期 `?`，复杂度高、得益小
+
 ## [Unreleased]
 
 ### Performance
