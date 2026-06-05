@@ -685,6 +685,23 @@ def main():
         print("=" * 60)
         print("一键更新完成！")
         print("=" * 60)
+
+        # WO-4: 写 etl_health.json (SRE 0 代码 / 0 飞书 状态查询)
+        try:
+            from pathlib import Path
+            import json as _json
+            from datetime import datetime as _dt
+            _health_path = Path("/tmp/fuqing-etl-health.json")
+            _health_path.write_text(_json.dumps({
+                "last_run_wall": "see baseline",
+                "last_status": "success",
+                "ts": _dt.now().isoformat(timespec="seconds"),
+                "mode": "auto",
+                "gates_overall": "see _timer.py baseline",
+            }, ensure_ascii=False, indent=2))
+        except Exception as _e:
+            print(f"  [WO-4] etl_health.json 写失败 (非阻塞): {type(_e).__name__}: {_e}")
+
         sys.exit(0)
 
     # 渠道重匹配子命令
