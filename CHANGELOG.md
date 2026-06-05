@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.3.6] - 2026-06-05 - WO-1 hotfix (P0 阻断 + 调度器恢复)
+
+### Fixed
+- **P0-#1+#2 r[4]→r[1] IndexError 修复（3 处全修）** — `scripts/etl/pipeline.py:307` + `scripts/etl/preload_rfm.py:716-717` 共 3 处。FIX-S1 commit 2d64d8c 当时只改了 cli.py:559，pipeline.py:305 + preload_rfm.py:716-717 漏改。run_full_etl 全量模式 Step 7 必抛 IndexError，CLI --auto / --range 模式必抛。本次热修彻底关掉。
+- **P0-#3 W6 飞书通知贯穿 --update 入口** — `scripts/etl/cli.py` 8 处 step raise 前加 `notify_etl_complete({"failed_step": ..., "error": str(_exc)[:200], "mode": "auto"}, status="failed")`。原 W6 装饰器只挂在 `run_full_etl`，cli.py:472-575 step 1-7.5 失败时老板收不到告警。
+- **P1-#1 existing_ids 退化改 raise（数据污染防御）** — `scripts/etl/pipeline.py:231` 原 `except Exception: existing_ids = set()` 静默退化为空集，导致会员行被当新订单 INSERT（重复 order_id）。现改 raise RuntimeError，ETL 拒绝在数据有损坏时继续。
+- **P1-#6 3 处 except: pass 改 fail-loud** — `scripts/etl/cli.py:468` (cross_day 前置采样) + `:615` (6 道门禁收尾 cross_day/api_health/dedup，fail 时调 `gate_set('fail', error=...)`) + `:645` (Step 8 DuckDB 摘要)。原"狼来了"静默模式 → 看板永远假绿。
+- **SRE 盲点：launchd plist 装回** — `bash scripts/etl/scheduler/install_macos.sh` 装回 `~/Library/LaunchAgents/com.fuqing.etl.daily.plist`。审计前 6/3 之后无 baseline = 整个 41 finding 都基于"有 cron 跑"的伪假设，本次装回后 8 道门禁 + partial baseline + scraper lark 通道真发挥价值。
+- **W6 通知环境变量** — `.env` 加 `NOTIFY_OPEN_IDS=ou_boss_placeholder,ou_op_placeholder` (placeholder 待老板/运营提供真 open_id 后替换; graceful degrade 已就绪)
+
+### Added
+- **`backend/tests/test_wo1_smoke.py` 6 个 smoke E2E** (test_pipeline_import / test_preload_import / test_cli_import / test_notify_import / test_cli_notify_import_wired / test_cli_fail_loud_markers) — 治 FIX-S1 漏改根因 (P1-#8 test_w7_e2e_override.py 名实不副)，pytest 190/8 → 196/8
+
+### Security
+- W6 飞书通知链路完整化 = 老板/运营 9 点上班能看到 ETL 失败告警，dashboard 不再假绿。launchd 调度器恢复 = 数据每日自动更新无需人工触发。
+
 ## [Unreleased]
 
 ### Performance
