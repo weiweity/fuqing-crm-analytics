@@ -294,3 +294,125 @@ class TestW1GroupingSetsRowCount1to1:
 
         assert u02_gmv == 150.0, f"u02 GMV 30d 应为 150，实际 {u02_gmv}"
         assert u02_gsv == 150.0, f"u02 GSV 30d 应为 150 (o12 退款被 valid_order 过滤)，实际 {u02_gsv}"
+
+
+# ============================================================
+# WO-3 边界用例 (P1-#9 治本 — audit 41 findings 推荐新增)
+# ============================================================
+
+class TestW1BoundaryConditions:
+    """P1-#9 边界用例: lookback 越界 / 空 DB / channels 空等 fail-loud."""
+
+    ANALYSIS_DATE = date(2026, 4, 1)
+
+    def test_batch_lookback_at_min_boundary(self, test_db):
+        """lookback=1 (边界最小值): 跑通, 不抛, 至少 0 行。"""
+        conn = test_db
+        # ANALYSIS_DATE=2026-04-01, lookback=1 → 窗口 [2026-03-31, 2026-04-02)
+        # 现有 fixture 在 4/1 没有订单, 所以应该写 0 行
+        count = preload_date_batch(
+            conn,
+            self.ANALYSIS_DATE,
+            lookbacks=[1],
+            metrics=["GMV"],
+            channels=["全店"],
+        )
+        assert count == 0, f"lookback=1 边界值, 4/1 无订单, 期望 0 行, 实际 {count}"
+
+    def test_batch_lookback_at_max_boundary(self, test_db):
+        """lookback=3650 (10年, 边界最大值): 跑通, 包含所有日期。"""
+        conn = test_db
+        count = preload_date_batch(
+            conn,
+            self.ANALYSIS_DATE,
+            lookbacks=[3650],
+            metrics=["GMV"],
+            channels=["全店"],
+        )
+        assert count >= 0, f"lookback=3650 跑通应非负, 实际 {count}"
+        # 3650d 窗口 = 10年, 覆盖 o11 (2025-06-01) 也在内
+        # 有效 GMV 订单: o01, o02, o03, o04, o05, o06, o07 (o08 退款, o09 购物金, o10 关闭, o11 一年前有效, o12 退款)
+        # u01: o01(100) + o02(200) + o03(50) + o11(999) = 1349
+        rows = conn.execute("""
+            SELECT user_id, monetary
+            FROM user_rfm
+            WHERE metric_type = 'GMV' AND lookback_days = 3650 AND channel = '全店'
+            ORDER BY user_id
+        """).fetchall()
+        user_map = dict(rows)
+        assert "u01" in user_map, "u01 1年内 + 1年前 o11 都在, 应保留"
+        assert user_map["u01"] == 1349.0, (
+            f"u01 lookback=3650 应为 1349 (100+200+50+999), 实际 {user_map.get('u01')}"
+        )
+
+    def test_batch_raises_on_lookback_zero(self, test_db):
+        """lookback=0 → AssertionError (WO-2 库内 assert 防御)。"""
+        with pytest.raises(AssertionError, match=r"lookbacks=.*越界"):
+            preload_date_batch(
+                test_db,
+                self.ANALYSIS_DATE,
+                lookbacks=[0],
+                metrics=["GMV"],
+                channels=["全店"],
+            )
+
+    def test_batch_raises_on_lookback_too_large(self, test_db):
+        """lookback=3651 → AssertionError (WO-2 库内 assert 防御)。"""
+        with pytest.raises(AssertionError, match=r"lookbacks=.*越界"):
+            preload_date_batch(
+                test_db,
+                self.ANALYSIS_DATE,
+                lookbacks=[3651],
+                metrics=["GMV"],
+                channels=["全店"],
+            )
+
+    def test_batch_raises_on_negative_lookback(self, test_db):
+        """lookback=-100 → AssertionError (防止负数变未来日期触发 OOM)。"""
+        with pytest.raises(AssertionError, match=r"lookbacks=.*越界"):
+            preload_date_batch(
+                test_db,
+                self.ANALYSIS_DATE,
+                lookbacks=[-100],
+                metrics=["GMV"],
+                channels=["全店"],
+            )
+
+    def test_batch_with_empty_orders_table(self, test_db):
+        """空 orders 表 → 跑通, 0 行, 不抛 (边界 0 数据)."""
+        conn = test_db
+        # 清空 orders 保留 schema/user_rfm
+        conn.execute("DELETE FROM orders")
+
+        count = preload_date_batch(
+            conn,
+            self.ANALYSIS_DATE,
+            lookbacks=[30, 90, 180],
+            metrics=["GMV", "GSV"],
+            channels=["全店"],
+        )
+        assert count == 0, f"空 orders 表, 期望 0 行, 实际 {count}"
+        total = conn.execute("SELECT COUNT(*) FROM user_rfm").fetchone()[0]
+        assert total == 0, f"空 orders 表, user_rfm 期望 0 行, 实际 {total}"
+
+    def test_batch_raises_on_empty_channels(self, test_db):
+        """channels=[] → AssertionError (FIX-M8 防御: SQL IN () 语法报错)。"""
+        with pytest.raises(AssertionError, match=r"FIX-M8"):
+            preload_date_batch(
+                test_db,
+                self.ANALYSIS_DATE,
+                lookbacks=[30],
+                metrics=["GMV"],
+                channels=[],
+            )
+
+    def test_batch_raises_on_out_of_range_in_mixed_lookbacks(self, test_db):
+        """lookbacks=[30, 90, 5000] → AssertionError (5 个全检, 不只第一个)。"""
+        with pytest.raises(AssertionError, match=r"lookbacks=.*5000"):
+            preload_date_batch(
+                test_db,
+                self.ANALYSIS_DATE,
+                lookbacks=[30, 90, 5000],
+                metrics=["GMV"],
+                channels=["全店"],
+            )
