@@ -77,6 +77,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pytest 204/8 全绿**, ruff 0 errors
 - **5-WO 计划 4/5 完成** (WO-1 v0.3.6 / WO-2 v0.3.7 / WO-3 v0.3.8 / WO-4 v0.3.9 / WO-5-part1 v0.4.0)；P1 治本 4 项 (SQL f-string / OOM / E2E) 留待下个 sprint
 
+
+## [v0.4.1] - 2026-06-05 - P1-#2 channel IN 参数化
+
+### Fixed
+- **`scripts/etl/preload_rfm.py:513` `resolved` CTE 改 `?` 参数化** (P1-#2) — 原 `WHERE COALESCE(channel, '全店') IN ({', '.join(f"'{c}'" for c in channels)})` 改 `WHERE ... IN ({ch_ph})`，复用上方 DELETE 块已定义的 `ch_ph = ",".join(["?"] * len(channels))` 占位符。`params = [date_str] * (2 + len(lookbacks))` 追加 `+ list(channels)` 绑定。**符合 CLAUDE.md 接口开发六步 §2 硬规则**（禁止 f-string 拼 SQL，必须 `?` 参数化）。**全仓 5 处 `IN` 现在全部参数化**：
+  - `preload_rfm.py:417` DELETE `metric_type IN ({mt_ph})` ✓
+  - `preload_rfm.py:418` DELETE `lookback_days IN ({lb_ph})` ✓
+  - `preload_rfm.py:419` DELETE `channel IN ({ch_ph})` ✓
+  - `preload_rfm.py:513` resolved `channel IN ({ch_ph})` ✓ (本 commit)
+  - `preload_rfm.py:581` SELECT COUNT `channel IN ({ch_ph})` ✓
+
+### Quality
+- **pytest 204/8 全绿**, ruff 0 errors
+- **trust barrier 强化**: 即使未来 channels 列表从外部源（CSV/PM 配置后台）传入，也不会注入 SQL
+
 ## [Unreleased]
 
 ### Performance
