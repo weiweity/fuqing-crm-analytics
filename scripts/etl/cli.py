@@ -2,13 +2,127 @@
 命令行参数解析、子命令分发。
 """
 import sys
+import atexit
 import argparse
+import glob
+import os
+import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from scripts.etl.config import (
     DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, PROCESSED_DATA_DIR, _ETL_SOURCE_STATS,
 )
+
+# ─────────────────────────────────────────────────────────────
+# Layer 1 of 4（2026-06-05 /tmp 孤儿治理）
+# 6/1-6/4 期间子 agent 调试 E2E 测试手工 cp 主库到 /tmp，累计 7 个 38-44GB
+# 孤儿 duckdb 文件，占用磁盘 ~349GB。本钩子在 ETL 退出时清理 24h+ 旧孤儿。
+# 白名单前缀（避免误删 /tmp 下其他用户/系统文件）。
+#
+# 已知限制（adversarial review 2026-06-05）：
+#   - atexit 在 os._exit() / kill -9 / OOM killer 下不触发（Python 文档明确）
+#   - mtime 可被 touch -t / os.utime 任意改写，非"活跃文件"绝对可靠信号
+#     → 真正的活跃信号应是 lsof / flock / marker file，但 mtime 24h 阈值已
+#       兜住常见场景（agent 调试 → mtime 24h+ 后下次 ETL 自动清）
+#   - symlink: getmtime/getsize 跟随 symlink；os.remove 只删 link 不动 target
+#     → 无数据丢失风险（POSIX 语义），但 print 的 size 是 target 大小
+# ─────────────────────────────────────────────────────────────
+FQ_TMP_PREFIXES = (
+    "/private/tmp/_fq_ro",   # 调试代码变量（_fq = fuqing, ro = read_only）
+    "/private/tmp/fuqing_",  # 人工命名 / 业务模块命名
+)
+_FQ_TMP_MAX_DELETE_PER_RUN = 5        # 防御性：单次最多删 5 个文件
+_FQ_TMP_MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB/次（防单次爆删）
+_FQ_TMP_MIN_AGE_HOURS = 24            # 24h 内的活跃文件不删
+_FQ_TMP_LOG_PATH = "/tmp/fuqing-tmp-cleanup.log"  # 持久日志（不等同 print）
+
+
+def _collect_fq_tmp_orphans() -> list:
+    """收集 FQ_TMP_PREFIXES 下所有超过 _FQ_TMP_MIN_AGE_HOURS 的候选文件。
+
+    设计：先收集全量 candidates，再按 mtime 倒序（最老优先）截断到 cap，
+    避免 first-prefix starvation（F5：原来 first pattern 命中 5 个就 break，
+    后续 prefix 永远不扫）。
+    """
+    candidates = []
+    now = time.time()
+    for pattern in FQ_TMP_PREFIXES:
+        for path in glob.glob(f"{pattern}*.duckdb"):
+            try:
+                mtime = os.path.getmtime(path)
+            except OSError:
+                continue
+            age_h = (now - mtime) / 3600
+            if age_h < _FQ_TMP_MIN_AGE_HOURS:
+                continue
+            try:
+                size_bytes = os.path.getsize(path)
+            except OSError:
+                continue
+            candidates.append((path, size_bytes, age_h))
+    # 按 mtime 倒序（最老优先）；同 mtime 按 size 倒序（大先）
+    candidates.sort(key=lambda x: (-x[2], -x[1]))
+    return candidates
+
+
+def _cleanup_fq_tmp_orphans() -> int:
+    """ETL 退出时清理 /private/tmp 下 fq_ 系列孤儿 duckdb。
+
+    设计原则：
+      1. 只删 FQ_TMP_PREFIXES 白名单（避免误删用户/系统文件）
+      2. 只删 _FQ_TMP_MIN_AGE_HOURS 小时前的（保留当前跑批产物）
+      3. 单次最多删 _FQ_TMP_MAX_DELETE_PER_RUN 个文件（防御性批量误删）
+         且累计字节 ≤ _FQ_TMP_MAX_DELETE_BYTES_PER_RUN（防单次爆删）
+      4. 软失败：清理失败只 log 不 raise（不影响 ETL 退出码）
+      5. 持久日志写到 _FQ_TMP_LOG_PATH（运维审计）
+
+    Returns:
+        实际删除的文件数
+    """
+    candidates = _collect_fq_tmp_orphans()
+
+    deleted = []
+    bytes_deleted = 0
+    for path, size_bytes, age_h in candidates:
+        if len(deleted) >= _FQ_TMP_MAX_DELETE_PER_RUN:
+            break
+        if bytes_deleted + size_bytes > _FQ_TMP_MAX_DELETE_BYTES_PER_RUN:
+            break
+        try:
+            os.remove(path)
+            deleted.append((path, size_bytes / (1024**3), age_h))
+            bytes_deleted += size_bytes
+        except OSError as e:
+            _safe_log(f"  [tmp-cleanup] skip {path}: {e}")
+
+    # 持久化日志（运维审计，print 在 daemon 上下文可能 I/O 失败见 F11）
+    if deleted:
+        lines = [f"\n  [tmp-cleanup] cleaned {len(deleted)} /tmp orphan(s):"]
+        for path, size_gb, age_h in deleted:
+            lines.append(f"    - {path} ({size_gb:.1f}GB, {age_h:.0f}h old)")
+        _safe_log("\n".join(lines))
+    return len(deleted)
+
+
+def _safe_log(msg: str) -> None:
+    """atexit 安全日志：print + 写文件，stdout 关闭时降级到文件（F11 修复）。"""
+    try:
+        print(msg)
+    except (ValueError, OSError):
+        pass  # I/O on closed file / 等异常，atexit 不应 propagate
+    try:
+        from datetime import datetime as _dt, timezone
+        with open(_FQ_TMP_LOG_PATH, "a") as f:
+            f.write(f"[{_dt.now(timezone.utc).isoformat()}] {msg}\n")
+    except OSError:
+        pass  # log 失败不阻塞 atexit
+
+
+# 注：atexit.register 故意放在 main() 内部，不在 import 顶层（F4 修复）。
+# 原因：pytest collection 阶段 import scripts.etl.cli → atexit 触发 → pytest
+# 退出时静默删真 /private/tmp/ 调试文件。改为 main() 入口注册后，单纯 import
+# 模块（CI 测试 / 单元测试 / Jupyter）不会触发清理。
 
 from scripts.etl.sources import (
     load_spu_mapping, load_channel_rules,
@@ -409,6 +523,11 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
 
 def main():
     """CLI 入口函数"""
+    # 注册 atexit 钩子：在 main() 入口注册，不在 import 顶层注册（F4 修复）。
+    # 原因：pytest / Jupyter / 单元测试 import 模块时不应触发清理，否则会
+    # 在测试退出时静默扫 /private/tmp/，潜在误删真实调试文件。
+    atexit.register(_cleanup_fq_tmp_orphans)
+
     parser = argparse.ArgumentParser(description='芙清 CRM ETL')
     parser.add_argument('--full', action='store_true', help='强制全量重建')
     parser.add_argument('--inc', action='store_true', help='强制增量')

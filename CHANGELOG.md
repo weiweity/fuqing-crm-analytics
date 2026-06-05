@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.5] - 2026-06-05 - WO-x /tmp 孤儿治理（4 层防护）
+
+### Fixed
+- **/private/tmp 7 个孤儿 duckdb 清理（~349GB 释放）** — 6/1-6/4 期间 c346e96e / a6de2e19 子 agent 调试 E2E 测试手工 `cp` 主库到 `/tmp`，累计 7 个 38-44GB 孤儿（`_fq_ro.duckdb` × 2 + `fuqing_query.duckdb` + `fuqing_repurchase.duckdb` + `fuqing_crm_readonly.duckdb` + `fuqing_tmp.duckdb` + `claude-501/tmpzc3i2h38.duckdb`），磁盘从 53% 满载降到 22%。lsof 0 进程占用、uvicorn 单例 read_only 句柄仅指向主库，零业务影响。
+
+### Added
+- **Layer 1 — `scripts/etl/cli.py` atexit 钩子 `_cleanup_fq_tmp_orphans()`** — ETL 退出时清理 `/private/tmp` 下 `FQ_TMP_PREFIXES` 白名单（`_fq_ro*` + `fuqing_*`）24h+ 旧文件。**不在 import 顶层注册**（防 pytest 退出时静默扫真 `/tmp`，F4 修复）。**5 个文件 cap + 100GB 字节 cap** 双限（防单次爆删）。**sort by mtime 倒序取 top N**（治 first-prefix starvation）。软失败 + 持久日志到 `/tmp/fuqing-tmp-cleanup.log`。
+- **Layer 1 — `backend/tests/test_wo_cleanup_orphans.py` 12 个 pytest 用例** — 覆盖白名单 / 24h 阈值 / count cap / byte cap / cap starvation / 软失败 / 持久日志 / atexit 不在 import 时注册 / 常量 sanity。完整 pytest 套 **216 passed, 8 skipped**（v0.4.4 基线 204 + 12 新增, 0 回归）。
+- **Layer 2 — `~/.zshrc` `_check_fq_tmp_orphans()` 磁盘告警** — zsh 启动时检测 `/tmp` 50GB+ 占用并打印告警（不删文件）。
+- **Layer 3 — `~/.workbuddy/cache/fq-etl-validation/` 持久化规范** — 子 agent / gstack 调试副本改写到这里（30 天 TTL + 命名带时间戳），不再污染 `/tmp`。
+- **Layer 4 — `scripts/etl/cleanup_backups.sh` + `scripts/etl/launchd/com.fuqing.backup-cleanup.weekly.plist`** — `data/processed/backups/` 7 天保留清理，周日凌晨 3 点 launchd 触发（`set -euo pipefail` + 显式 PATH + mkdir-based lock 兼容 macOS）。
+
+### Security
+- **Adversarial review 修复 17 个真实 issues** — CRITICAL 2 个（atexit 顶层注册 + 测试不隔离）+ HIGH 11 个（cap starvation / byte cap / 持久日志 / 软失败 / launchd PATH / pipefail / find 错误处理 / plist repo 化 / flock 兼容 / 测试假成功 / cli mock 兼容 Python 3.14）+ MED/LOW 4 个。3 个 Python 限制（kill -9 不触发 atexit / mtime 可改写 / symlink size 跟随）已文档化在 `cli.py` 注释，无法代码层修复。
+
+### Performance
+- `cap starvation` 修复后 100GB byte cap 限制单次累计删除字节，避免原始 7 个孤儿 (349GB) 单次只清 5 个 220GB 仍残留 130GB 的次优路径。
+
+
 ## [v0.3.6] - 2026-06-05 - WO-1 hotfix (P0 阻断 + 调度器恢复)
 
 ### Fixed
