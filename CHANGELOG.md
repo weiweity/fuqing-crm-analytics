@@ -29,6 +29,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **P1-#4 --lookback 缺 [1,3650] 校验 (P1-#4 防御)** — `scripts/etl/preload_rfm.py:683` 新增 `_valid_lookback(s)` argparse validator，CLI 入口拒绝 0/负数/>3650/非整数（错误信息清晰：`--lookback=0 越界, 必须在 [1, 3650] 区间`）。`preload_rfm.py:384` 库内调用也加 `assert all(1<=lb<=3650 for lb in lookbacks)`，不依赖 CLI 入口，双层防御。**测试**：CLI `0/-1/3651/abc` 全拒，`1/90/3650` 全过（90 写 372,588 行）；pytest 196/8 全绿，ruff 0 errors。
 - **副作用**：未来 `--lookback=0` / `--lookback=20000` 等"数字看着合理但实际越界"的输入会立即被拦下，避免触发 DuckDB 8GB OOM。
 
+
+## [v0.3.8] - 2026-06-05 - WO-3 W1 GROUPING SETS 边界用例
+
+### Added
+- **`backend/tests/test_w1_grouping_sets.py::TestW1BoundaryConditions` 8 个边界用例** (P1-#9 治本)：
+  - `test_batch_lookback_at_min_boundary` (lookback=1 边界最小, 4/1 无订单 → 0 行)
+  - `test_batch_lookback_at_max_boundary` (lookback=3650 边界最大, 含 1 年前订单 u01=1349)
+  - `test_batch_raises_on_lookback_zero` (WO-2 库内 assert 防御, 0 越界)
+  - `test_batch_raises_on_lookback_too_large` (lookback=3651 越界)
+  - `test_batch_raises_on_negative_lookback` (-100 越界, 防负数变未来日期)
+  - `test_batch_with_empty_orders_table` (空 orders 表 0 行不抛)
+  - `test_batch_raises_on_empty_channels` (FIX-M8 防御, channels=[])
+  - `test_batch_raises_on_out_of_range_in_mixed_lookbacks` (混合列表 5 个全检, 不只第一个)
+
+### Quality
+- **pytest 196/8 → 204/8** (+8 tests) — 治 FIX-S1 漏改根因的测试基建继续积累
+- **ruff 0 errors** — 修 F841 (unused `count` 加 `assert count >= 0`)
+
 ## [Unreleased]
 
 ### Performance
