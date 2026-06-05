@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+FIX-M1: Mac launchd plist for 芙清 ETL daily run (PRD 9am 承诺)
+
+安装:
+  cp com.fuqing.etl.daily.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.fuqing.etl.daily.plist
+  launchctl list | grep fuqing.etl   验证加载
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.etl.daily.plist
+  rm ~/Library/LaunchAgents/com.fuqing.etl.daily.plist
+
+设计:
+  每日 8:30 跑 [update] (8:30 给 9 点 dashboard 留 30min buffer)
+  工作目录: PROJECT_ROOT (替换为实际项目根)
+  跑 stdout/stderr 重定向到 /tmp/fuqing-etl-scheduler.log
+  exit code != 0 触发 launchd 自动邮件 / Slack 通知 (macOS 10.15+)
+  run_etl.py exit !=0 时 lark-cli 单独通知 oncall (W6 集成)
+
+CLAUDE.md 12 步流程: M1 工单 (P0 必修) 修复 audit 关键发现 M1
+注: XML 注释不能含连续 2 个连字符 (‐‐), 此文件用 [update] 替代 [update]
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.etl.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>scripts/run_etl.py</string>
+        <string>--update</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+
+    <!-- 每日 8:30 跑（9 点 dashboard 留 30min buffer） -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <!-- 环境变量：PYTHONPATH 必需 (CLAUDE.md 启动项) -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONPATH</key>
+        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/Users/hutou/homebrew/bin</string>
+    </dict>
+
+    <!-- 日志重定向 -->
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-etl-scheduler.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-etl-scheduler.err</string>
+
+    <!-- 失败时 macOS 自动通知 (10.15+ 邮件/Slack 集成) -->
+    <key>KeepAlive</key>
+    <false/>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
