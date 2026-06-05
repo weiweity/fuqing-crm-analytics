@@ -634,7 +634,19 @@ def main():
                         help='仅预览变更，不写入DuckDB（与--rescan-spu/--rescan-channel配合）')
     parser.add_argument('--apply', action='store_true',
                         help='执行变更并写入DuckDB（与--rescan-spu/--rescan-channel配合）')
+    parser.add_argument('--cleanup-tmp', action='store_true',
+                        help='紧急清理 /private/tmp 下 fq_ 系列孤儿（24h+ 旧文件，cap 5/100GB）')
     args = parser.parse_args()
+
+    # 紧急清理 /tmp 孤儿（handoff 6/5 follow-up #3 落地：暴露运维入口免依赖 ETL 触发）
+    if args.cleanup_tmp:
+        print("\n" + "=" * 60)
+        print("紧急清理 /private/tmp 下 fq_ 系列孤儿（24h+ / 5 文件 / 100GB cap）")
+        print("=" * 60)
+        deleted = _cleanup_fq_tmp_orphans()
+        print(f"\n完成：删除 {deleted} 个文件")
+        print("审计日志：/tmp/fuqing-tmp-cleanup.log")
+        sys.exit(0)
 
     # 单独刷新状态覆盖表
     if args.refresh_status:

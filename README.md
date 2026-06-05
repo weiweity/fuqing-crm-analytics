@@ -124,6 +124,52 @@ fuqing-crm-analytics/
 
 ---
 
+## 运维安全 / 磁盘治理
+
+2026-06-05 治理后,系统落地 4 层防护防止子 agent 调试 / ETL 异常退出时 `/private/tmp` 累积巨型 duckdb 孤儿（曾一度 7 个 38-44GB 文件吃满 349GB 磁盘）。接手者必读。
+
+### 4 层防护
+
+| 层 | 路径 | 触发 | 作用 |
+|---|---|---|---|
+| 1. atexit 钩子 | `scripts/etl/cli.py:_cleanup_fq_tmp_orphans` | ETL 进程退出 | 主防线:扫 `FQ_TMP_PREFIXES` 白名单,删 24h+ / 5 文件 / 100GB cap,软失败+持久日志 |
+| 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线:检测 50GB+ 占用打印告警,不删 |
+| 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试时主动 cp | 调试便捷:30 天 TTL + 时间戳命名,不再污染 /tmp |
+| 4. launchd backups | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | data 目录独立防线:`data/processed/backups/` 7 天保留清理 |
+
+### 紧急清理命令
+
+```bash
+# 紧急清理 /tmp 下 fq_ 系列孤儿（不依赖 ETL 触发,运维手动跑）
+PYTHONPATH="$(pwd)" python3 scripts/etl/cli.py --cleanup-tmp
+```
+
+### launchd 调度状态
+
+```bash
+launchctl list | grep fuqing
+# 期望输出 2 行:
+# - 0  com.fuqing.backup-cleanup.weekly
+# - 0  com.fuqing.etl.daily
+```
+
+### 审计与状态查询
+
+| 文件 | 含义 |
+|---|---|
+| `/tmp/fuqing-tmp-cleanup.log` | Layer 1 钩子执行日志（持续增长,60KB+ 正常） |
+| `/tmp/fuqing-etl-marker.json` | F3 marker（ETL 运行时存在,退出时删,缺失 = 上次异常退出） |
+| `/tmp/fuqing-etl-health.json` | SRE 0 飞书 0 代码状态查询入口（最近一次 ETL 跑批结果） |
+| `/tmp/fuqing-backup-cleanup.lock` + `.log` | Layer 4 锁文件 + 执行日志 |
+
+### 重要协议
+
+- **F3 marker 不要 rm** — 钩子依赖 marker 判断上次是否异常退出,强删会导致下次误判
+- **`/private/tmp/_fq_ro*` / `fuqing_*` / `claude-501/tmp*` 不要强删** — atexit 自动处理,强删会留 marker 孤儿
+- **ms-playwright 缓存删除前** — 先 `find ~/Library/Caches/ms-playwright/ -name 'headless_shell*'` 确认无活跃进程,备份当前版本号 `cat ~/Library/Caches/ms-playwright/.links` 记录,删后 `playwright install --with-deps` 不会自动恢复 1208 版本（gstack browse 唯一兼容版本）
+
+---
+
 ## 测试
 
 ### 后端单元测试
@@ -133,7 +179,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（153 passed / 8 skipped）：
+当前测试覆盖（222 passed / 8 skipped，v0.4.6）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -146,6 +192,7 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 - `test_rfm_analysis.py` - RFM 分析
 - `test_fill_parquet_cache.py` - Parquet 缓存
 - `test_etl_atomicity.py` - ETL 原子写入
+- `test_wo_cleanup_orphans.py` - /tmp 孤儿清理钩子（F3 marker + F7 symlink + cap 边界，20 用例）
 
 ### CI/CD
 

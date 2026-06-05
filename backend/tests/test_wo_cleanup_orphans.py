@@ -21,6 +21,8 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -276,7 +278,7 @@ class TestF3MarkerAndF7Symlink:
             full=False, inc=False, update=False, update_taoke=False,
             refresh_status=False, window_days=30, rescan_spu=False,
             rescan_channel=False, product_ids=[], since=None,
-            dry_run=False, apply=False,
+            dry_run=False, apply=False, cleanup_tmp=False,
         )
 
         # 用 mock 替换 _write_fq_etl_marker，记录调用顺序
@@ -412,3 +414,42 @@ class TestF3MarkerConstants:
         from scripts.etl import cli
         assert hasattr(cli, "_write_fq_etl_marker"), "F3: _write_fq_etl_marker 缺失"
         assert callable(cli._write_fq_etl_marker), "F3: _write_fq_etl_marker 必须可调用"
+
+
+class TestCleanupTmpFlag:
+    """--cleanup-tmp CLI 早退出路径测试（handoff 6/5 follow-up #3 落地）。
+
+    验证：
+      - argparse 接 --cleanup-tmp 不报错
+      - main() 走 cleanup 早退出路径，调一次 _cleanup_fq_tmp_orphans
+      - sys.exit(0) 退出（不进入 ETL 主流程）
+    """
+
+    def test_argparse_accepts_cleanup_tmp(self):
+        """cli.py main() 应能解析 --cleanup-tmp 并早退出（SystemExit 0）。"""
+        from scripts.etl import cli
+        with patch.object(sys, "argv", ["cli.py", "--cleanup-tmp"]):
+            with patch.object(cli, "_cleanup_fq_tmp_orphans", return_value=0) as m:
+                with patch("scripts.etl.cli.sys.exit", side_effect=SystemExit(0)) as mock_exit:
+                    with pytest.raises(SystemExit):
+                        cli.main()
+        # 验证 1：cleanup 函数被调一次
+        m.assert_called_once()
+        # 验证 2：sys.exit(0) 被调（早退出，不进 ETL）
+        mock_exit.assert_called_once_with(0)
+
+    def test_cleanup_tmp_prints_audit_path(self, capsys):
+        """--cleanup-tmp 应打印审计日志路径提示（运维友好）。"""
+        from scripts.etl import cli
+        with patch.object(sys, "argv", ["cli.py", "--cleanup-tmp"]):
+            with patch.object(cli, "_cleanup_fq_tmp_orphans", return_value=3):
+                with patch("scripts.etl.cli.sys.exit", side_effect=SystemExit(0)):
+                    with pytest.raises(SystemExit):
+                        cli.main()
+        captured = capsys.readouterr()
+        # 验证 1：输出包含审计日志路径
+        assert "/tmp/fuqing-tmp-cleanup.log" in captured.out, (
+            "运维提示应包含审计日志路径"
+        )
+        # 验证 2：输出包含删除计数
+        assert "3" in captured.out, "应显示删除的文件数"
