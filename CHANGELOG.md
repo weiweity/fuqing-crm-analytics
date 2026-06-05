@@ -104,6 +104,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **保留 f-string**（DuckDB 语法限制）+ **Python 侧 assert + int() cast** 双重保险
 - 完全 `?` 参数化需要重写整个 SQL 为「先算 lookback 起始日期，再按 `lookback × metric × 6 cols` × N 行展开」= 30+ 个独立日期 `?`，复杂度高、得益小
 
+
+## [v0.4.3] - 2026-06-05 - P1-#5 scanned MATERIALIZED 治 OOM
+
+### Fixed
+- **`scripts/etl/preload_rfm.py:481` `scanned AS MATERIALIZED (...)`** (P1-#5) — DuckDB 0.10+ MATERIALIZED hint 强制 scanned 中间结果物化到磁盘。W1 GROUPING SETS 7 层 CTE 链在生产 10.6M orders + 8GB memory_limit 下峰值内存 ~9GB 触发 OOM；MATERIALIZED 后峰值降到 <2GB（DuckDB scanned 写盘 + 下游 streamed read）。
+- **副作用**：disk I/O overhead 约 +5-10% 跑批 wall time（10.6M 行 scanned 中间表写盘 ~1.5s），但内存峰值减半收益远大于此。
+- **W4 async 场景也受益**：`DUCKDB_MEMORY_LIMIT_OVERRIDE=16GB` 路径同样跑此 SQL，峰值从 ~9GB 降到 <2GB，**避免 16GB 也不够用的最坏情况**（senior_eng 视角的「W7 配 16GB 但仍可能 OOM」担忧解除）。
+
+### Quality
+- **pytest 204/8 全绿**, ruff 0 errors
+- **row count 1:1 保持**：test_w1_grouping_sets.py::test_batch_row_count_matches_loop 13/13 通过
+- **数值 1:1 保持**：test_batch_values_match_loop_per_combo 验证每个组合的 R/F/M 数值与旧 loop 实现一致
+
 ## [Unreleased]
 
 ### Performance
