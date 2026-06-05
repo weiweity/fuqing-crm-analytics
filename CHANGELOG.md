@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.3.1] - 2026-06-06 - ci: 补 bcrypt 到 requirements.txt (闭合 v0.4.7.3 漏的 import)
+
+### Fixed
+- **`requirements.txt` 漏 `bcrypt`**: v0.4.7.3 只补了 fastapi, 真 CI 跑起来又发现 `backend/routers/auth.py:16 import bcrypt` ModuleNotFoundError. backend/ 唯一真缺 third-party (其它 stdlib 不算). 修: `bcrypt>=4.0.0` 加到工具段, local 是 5.0.0
+
+### 根因复盘
+v0.4.7.3 那个 workflow 报告"ModuleNotFoundError: No module named 'fastapi'" 是正确的, 但只解了 1/2 路径. `pip install -r requirements.txt` 装上 fastapi 后, 下一个 import chain (`backend.main` → `backend.routers.__init__` → `auth.py:16`) 又撞 bcrypt. **通用经验: 修 CI ImportError 永远只解当前一个是不够的, 一次把缺失依赖全量补齐**
+
+
 ## [v0.4.7.3] - 2026-06-06 - ci: GitHub Actions test job 用 requirements.txt 单一来源 (修 30/30 red CI)
 
 ### Fixed
