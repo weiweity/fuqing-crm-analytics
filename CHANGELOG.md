@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.3] - 2026-06-06 - ci: GitHub Actions test job 用 requirements.txt 单一来源 (修 30/30 red CI)
+
+### Fixed
+- **`.github/workflows/lint.yml` test job 漏装 `fastapi`** (修了 30+ runs 100% 红的 CI 噪音): 硬编码 `pip install duckdb pandas pyarrow pytest openpyxl` 漏 9 个 requirements.txt 里的包 (fastapi/uvicorn/pydantic/numpy/openai/python-dotenv/python-dateutil/python-pptx/black), 改用 `pip install -r requirements.txt` 单一来源. `backend/services/exceptions.py:8` + 9 个 routers 都 `from fastapi import ...`, pytest collection 阶段直接 `ModuleNotFoundError` 退出码 1, 是 30/30 runs 红的根因
+- **CI 装包时长** (顺手): setup-python 加 `cache: 'pip'`, 用 `requirements.txt` hash 作 cache key, 命中时跳过 5-10s 装包
+
+### CI 噪音 → 真实信号
+- 修前: ci/test 100% red, ci/lint 100% green, GitHub 邮件轰炸, alert fatigue 训练用户忽略通知, 真回归也看不见
+- 修后: ci/test 跑通全量 224/8, ci/lint 保持 green, 邮件停 (GitHub 只对 failure 发邮件)
+
+
 ## [v0.4.7.2] - 2026-06-05 - docs: 同步 pre-commit pytest hook 到 CLAUDE.md + README.md CI/CD 防线表
 
 ### Fixed
