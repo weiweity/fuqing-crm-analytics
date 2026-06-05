@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **README 测试段 stale**：153 → 222 passed（v0.4.6.1 doc 同步只改了当前状态段 L25，测试段 L136 12 文件列表 + 153 数字未跟进），并补 `test_wo_cleanup_orphans.py` 20 用例到列表。
+- **`--cleanup-tmp` 双触发审计日志污染** — QA 阶段发现：`--cleanup-tmp` 显式调 `_cleanup_fq_tmp_orphans()` 后 `sys.exit(0)` 仍触发 atexit 二次调用，1 次 CLI 产生 2 条 audit log（幂等无数据风险但污染）。修复：显式调用前 `atexit.unregister(_cleanup_fq_tmp_orphans)` 取消二次注册。
 
 ### CHANGELOG 锚点补全
 - v0.4.5 标题补 commit SHA `db70b75` (merge) + `cd71c68` (Layer 1) + `48f7f31` (Layer 4)
