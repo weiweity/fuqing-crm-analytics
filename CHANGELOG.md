@@ -134,6 +134,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pytest 204/8 全绿**, ruff 0 errors
 - **CI pre-push hook 自动跑** (CLAUDE.md §5 pre-push pytest)
 
+
+## [v0.4.5] - 2026-06-05 - P2 散点 batch (CI/CD + 文档)
+
+### Changed
+- **`.githooks/pre-commit` 升级** (P2 散点 batch):
+  - **新闸 1 - CHANGELOG 跟随**：改 .py / docs/ / .md 时必须同步改 CHANGELOG.md，否则 commit 被拦。**防 P2 散点 CHANGELOG 漂移复发**。例外：`git commit --no-verify` (hotfix 紧急)。
+  - **新闸 2 - bare except 检测**：扫描 staged .py 文件，禁止 `except:` 单独一行（必须 `except Exception as e:` 或 `# noqa: BLE001`）。**防 P1-#6 同类 静默吞噬 复发**。
+  - ruff lint 保留为第 3 闸（仅在有 .py 改动时跑）
+
+### Quality
+- **`scripts/etl/preload_rfm.py:413-422` 文档化 P2-#3 trade-off**：DELETE + INSERT 不在显式事务（DuckDB autocommit），失败时 user_rfm 该 date 真空但下次跑批会补回。完整事务化需重构（staging 表），留 W4 WIP
+- **`scripts/etl/pipeline.py:142-145` 10 处 `duckdb.connect` 块注释**：解释 ETL 单例例外（避免 read_only / READ_WRITE config 互相污染的 DUCKDB-#1），让新人不要把 10 处当 bug 重构
+- **pytest 204/8 全绿**, ruff 0 errors
+
 ## [Unreleased]
 
 ### Performance

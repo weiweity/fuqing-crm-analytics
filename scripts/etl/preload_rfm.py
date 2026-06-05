@@ -411,6 +411,11 @@ def preload_date_batch(
     date_str = analysis_date.strftime("%Y-%m-%d")
 
     # 1. DELETE 旧数据（同一 analysis_date 所有 combo）
+    # P2-#3 已知 trade-off: DuckDB Python 默认 autocommit, DELETE + INSERT 不在同一显式事务。
+    # 如果 INSERT 失败, 旧数据已 DELETE → user_rfm 该 date 真空。修复需要重构把 INSERT
+    # 提前到 DELETE 之前 (or 用 staging 表), 当前为已知风险, 接受 (CLAUDE.md 4-Layer 设计
+    # §W4 WIP)。FAIL 模式: ETL 异常 → user_rfm 该 date 0 行, 下次跑批 DELETE 0 行 + INSERT
+    # 重新填回, 不会永久数据丢失, 但期间 query 会"看不到数据"。
     lb_ph = ",".join(["?"] * len(lookbacks))
     mt_ph = ",".join(["?"] * len(metrics))
     ch_ph = ",".join(["?"] * len(channels))
