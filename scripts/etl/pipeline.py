@@ -12,6 +12,8 @@ from scripts.etl.config import (
     _load_processed_files, _save_processed_files,
     _get_file_hash, PARQUET_DATA_DIR,
 )
+# FIX-S2: 9 行 import 改 1 行用 helper 验 E2E (其余 8 行保留 DUCKDB_MEMORY_LIMIT 常量向后兼容)
+from backend.config import get_duckdb_memory_limit  # noqa: E402  W7 helper
 
 from scripts.etl.sources import (
     load_spu_mapping, load_channel_rules,
@@ -45,7 +47,9 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     """
     print("=" * 60)
     print(f"芙清 CRM - 数据清洗 ETL v6 (滑动窗口: {window_days}天)")
-    print(f"内存限制: {DUCKDB_MEMORY_LIMIT}")
+    # FIX-S2: 用 get_duckdb_memory_limit() helper, 实时读 DUCKDB_MEMORY_LIMIT_OVERRIDE env
+    # (W4 async 跑批时 setup_async_memory() export 16GB, 此处 print 应输出 16GB 而非默认 8GB)
+    print(f"内存限制: {get_duckdb_memory_limit()}")
     print("=" * 60)
     check_memory(label="ETL 启动")
 
