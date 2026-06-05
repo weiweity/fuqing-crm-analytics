@@ -6,7 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [v0.4.6.1] - 2026-06-05 - docs: 同步 entry-point 文档到 v0.4.6 状态
+## [v0.4.7] - 2026-06-05 - doc + flag sync: cleanup followups 落地
+
+### Added
+- **CLI flag `--cleanup-tmp`** — `python3 scripts/etl/cli.py --cleanup-tmp` 紧急清理 /tmp 孤儿（handoff 6/5 follow-up #3 落地，免依赖 ETL 触发）。调 `_cleanup_fq_tmp_orphans()` + 打印删除计数 + sys.exit(0)。2 个新 pytest 用例覆盖（`TestCleanupTmpFlag::test_argparse_accepts_cleanup_tmp` + `test_cleanup_tmp_prints_audit_path`）。pytest 222/8 → 224/8。
+
+### Documentation
+- **README "运维安全 / 磁盘治理" 章节** — 4 层防护表 + 紧急清理命令 + launchd 调度状态查询 + 审计/状态文件清单 + F3 marker / ms-playwright 协议。闭环 v0.4.6.1 留的 "新 public surface 零 reference 覆盖" follow-up。
+
+### Fixed
+- **README 测试段 stale**：153 → 222 passed（v0.4.6.1 doc 同步只改了当前状态段 L25，测试段 L136 12 文件列表 + 153 数字未跟进），并补 `test_wo_cleanup_orphans.py` 20 用例到列表。
+- **`--cleanup-tmp` 双触发审计日志污染** — QA 阶段发现：`--cleanup-tmp` 显式调 `_cleanup_fq_tmp_orphans()` 后 `sys.exit(0)` 仍触发 atexit 二次调用，1 次 CLI 产生 2 条 audit log（幂等无数据风险但污染）。修复：显式调用前 `atexit.unregister(_cleanup_fq_tmp_orphans)` 取消二次注册。
+
+### CHANGELOG 锚点补全
+- v0.4.5 标题补 commit SHA `db70b75` (merge) + `cd71c68` (Layer 1) + `48f7f31` (Layer 4)
+- v0.4.6 标题补 commit SHA `5e64ba3` (merge) + `797b769` (F3+F7)
+- v0.4.6.1 标题补 commit SHA `df5d250` (doc sync)
+- v0.4.5 Security 段补 16 个 F 编号映射（handoff-2026-06-05.md 第 5 节 source of truth 同步）
+
+
+## [v0.4.6.1] - 2026-06-05 - docs: 同步 entry-point 文档到 v0.4.6 状态 (`df5d250`)
 
 ### Fixed
 - **CLAUDE.md line 30 stale**: 版本状态 `v0.4.4 (204 passed)` → `v0.4.6 (222 passed)`。CHANGELOG.md v0.4.5/v0.4.6 早已合入，但项目"启动必读"表里仍是 v0.4.4 baseline，会让后续 session 误判测试基线。
@@ -16,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Coverage gap (未修，留 follow-up)**: v0.4.5/v0.4.6 的 Layer 1-4 防护 (atexit 钩子 / zshrc 告警 / workbuddy cache 规范 / launchd backups) + 349GB 磁盘释放 在 README.md 完全没提。CI 用户/运维新接手时不知道这些治理。建议下次补一个"运维安全/磁盘治理"章节（Critical gap: 新 public surface 零 reference 覆盖）。
 
 
-## [v0.4.6] - 2026-06-05 - atexit 钩子 ASK 限制项代码层修复
+## [v0.4.6] - 2026-06-05 - atexit 钩子 ASK 限制项代码层修复 (`5e64ba3` merge, `797b769` F3+F7)
 
 ### Fixed
 - **F3 (HIGH): marker 文件检测异常退出** — atexit 在 `kill -9` / `os._exit()` / OOM killer 下不触发（Python 文档明确），通过 `main()` 入口（`atexit.register` 之前）写 `/tmp/fuqing-etl-marker.json` 旁路信号，`_cleanup_fq_tmp_orphans` 读 marker 判断是否正常 ETL 退出。marker 缺失 = 上次异常退出，保守模式清理（5 文件 + 100GB 内，log 标注 reason）；marker 存在 = 正常退出。清理完后无论原本是否存在都删 marker，避免下次误判。
@@ -33,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整 pytest 套 **222 passed, 8 skipped**（v0.4.5 基线 216 + 6 新增, 0 回归）。ruff check 0 errors。
 
 
-## [v0.4.5] - 2026-06-05 - WO-x /tmp 孤儿治理（4 层防护）
+## [v0.4.5] - 2026-06-05 - WO-x /tmp 孤儿治理（4 层防护）(`db70b75` merge, `cd71c68` Layer 1, `48f7f31` Layer 4)
 
 ### Fixed
 - **/private/tmp 7 个孤儿 duckdb 清理（~349GB 释放）** — 6/1-6/4 期间 c346e96e / a6de2e19 子 agent 调试 E2E 测试手工 `cp` 主库到 `/tmp`，累计 7 个 38-44GB 孤儿（`_fq_ro.duckdb` × 2 + `fuqing_query.duckdb` + `fuqing_repurchase.duckdb` + `fuqing_crm_readonly.duckdb` + `fuqing_tmp.duckdb` + `claude-501/tmpzc3i2h38.duckdb`），磁盘从 53% 满载降到 22%。lsof 0 进程占用、uvicorn 单例 read_only 句柄仅指向主库，零业务影响。
@@ -47,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - **Adversarial review 修复 17 个真实 issues** — CRITICAL 2 个（atexit 顶层注册 + 测试不隔离）+ HIGH 11 个（cap starvation / byte cap / 持久日志 / 软失败 / launchd PATH / pipefail / find 错误处理 / plist repo 化 / flock 兼容 / 测试假成功 / cli mock 兼容 Python 3.14）+ MED/LOW 4 个。3 个 Python 限制（kill -9 不触发 atexit / mtime 可改写 / symlink size 跟随）已文档化在 `cli.py` 注释，无法代码层修复。
+- **v0.4.5 16 个 F 编号映射**（handoff-2026-06-05.md 第 5 节 source of truth）：F1 / F2 / F4 / F5 / F8 / F11 / F12 / F13 / F16 / F17 / F18 / F19 / F20 / F23 / F26 / F27。完整描述 ↔ 严重级别对应见 handoff 附录 B。F3 / F6 / F7 在 v0.4.6 收尾（F3+F7 代码强化 = `797b769`，F6 文档化为 future work = mtime 改 flock/lsof/marker 留作 deferred）。
 
 ### Performance
 - `cap starvation` 修复后 100GB byte cap 限制单次累计删除字节，避免原始 7 个孤儿 (349GB) 单次只清 5 个 220GB 仍残留 130GB 的次优路径。
