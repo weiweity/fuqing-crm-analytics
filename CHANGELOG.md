@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.6] - 2026-06-05 - atexit 钩子 ASK 限制项代码层修复
+
+### Fixed
+- **F3 (HIGH): marker 文件检测异常退出** — atexit 在 `kill -9` / `os._exit()` / OOM killer 下不触发（Python 文档明确），通过 `main()` 入口（`atexit.register` 之前）写 `/tmp/fuqing-etl-marker.json` 旁路信号，`_cleanup_fq_tmp_orphans` 读 marker 判断是否正常 ETL 退出。marker 缺失 = 上次异常退出，保守模式清理（5 文件 + 100GB 内，log 标注 reason）；marker 存在 = 正常退出。清理完后无论原本是否存在都删 marker，避免下次误判。
+- **F7 (MEDIUM): symlink 不再被误报 size + 直接跳过清理** — `os.path.getmtime` / `os.path.getsize` 跟随 symlink target 误报 size，且 `os.remove` 只删 link 不动 target、target 是否 active 难以判断。`_collect_fq_tmp_orphans` 加 `islink is True` 检查（用 `is True` 兼容 mock 场景），匹配到 symlink 直接 `[skip symlink]` 跳过。
+
+### Added
+- **3 个新 pytest 用例 + 3 个常量 sanity** — `test_f3_marker_written_in_main`（验证 main() 入口写 marker + 调用顺序）、`test_f3_marker_cleared_on_cleanup`（场景 A marker 存在 / 场景 B marker 缺失均软失败）、`test_f7_skip_symlink`（创建 symlink 验证不被删 + target 不动）。
+
+### Documentation
+- **F6 (LOW) deferred 文档化** — `mtime` 可被 `touch -t` 改写，非"活跃文件"绝对可靠信号。真正的活跃信号应是 `flock` / `lsof` / marker file 替代 mtime，但改造复杂度高（v0.4.5 mtime 24h 阈值已兜住常见场景），留作 future work。在 `cli.py` Layer 1 注释明确标注 deferred 原因。
+
+### Quality
+- `test_byte_cap` 兼容更新：补 `mock_os.path.islink.return_value = False`（F7 新增检查）+ `mock_os.path.exists.return_value = False`（F3 marker 检测），避免 mock 把所有文件当 symlink 跳过 / 误判 marker 存在。
+- 完整 pytest 套 **222 passed, 8 skipped**（v0.4.5 基线 216 + 6 新增, 0 回归）。ruff check 0 errors。
+
+
 ## [v0.4.5] - 2026-06-05 - WO-x /tmp 孤儿治理（4 层防护）
 
 ### Fixed
