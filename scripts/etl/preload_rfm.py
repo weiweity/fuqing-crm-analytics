@@ -484,7 +484,12 @@ def preload_date_batch(
             DATE(?) - INTERVAL '{R_LOOKBACK_DAYS}' DAY AS r_start_date
             -- fm_start_date 删除 (WO-5 P2-#5: 死列, scanned 实际走 r_start_date=365d)
     ),
-    scanned AS (
+    scanned AS MATERIALIZED (
+        -- P1-#5: MATERIALIZED hint 强制 DuckDB 把 scanned 中间结果物化到磁盘
+        -- 默认 DuckDB 8GB memory_limit 跑 10.6M orders × 6 cols ≈ 1.5-2GB 中间表
+        -- + scanned_with_flags + agg GROUPING SETS 展开 + 6×UNION ALL 4GB 峰值
+        -- MATERIALIZED 把 scanned 写盘, 下游 streamed read, 峰值内存降到 <2GB
+        -- DuckDB 0.10+ 支持 MATERIALIZED hint (我们用 1.5.2)
         SELECT
             o.user_id, o.channel, o.actual_amount, o.order_id, o.pay_time, o.is_member
         FROM orders o
