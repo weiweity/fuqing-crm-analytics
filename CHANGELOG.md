@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.3.2] - 2026-06-06 - ci: 补 xxhash 到 requirements.txt (闭合 v0.4.7.3.1 漏的 lazy import)
+
+### Fixed
+- **`requirements.txt` 漏 `xxhash`**: v0.4.7.3.1 解了 bcrypt, 真 CI 又过 62 个 test, 撞 `scripts/etl/config.py:198 import xxhash` (lazy import, 在 `_file_xxhash` 函数内). `test_fill_parquet_cache_basic` 因 xxhash 缺失导致文件被标"跳过", `assert converted == 1` 失败 (`assert 0 == 1`)
+
+### 根因复盘 2
+这次不 whack-a-mole, 一次扫全 pytest-walkable 路径 (`backend/` + `scripts/etl/*.py` + transitive) 的 third-party imports vs requirements.txt, 只剩 xxhash. 全量扫全补齐, 应该没有第 4 个了
+
+### Whack-a-mole 通用教训
+- 修 CI ImportError 不能只解 pytest 报告的那一个, 下一个 import chain 可能撞另一个
+- 正确做法: AST 扫所有 pytest 可达路径的 `import X` / `from X`, 跟 requirements.txt 全量对账, 缺的批量补, 一次 push 验证
+
+
 ## [v0.4.7.3.1] - 2026-06-06 - ci: 补 bcrypt 到 requirements.txt (闭合 v0.4.7.3 漏的 import)
 
 ### Fixed
