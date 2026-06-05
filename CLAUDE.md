@@ -76,7 +76,7 @@
 
 | 层 | 位置 | 拦什么 |
 |---|---|---|
-| pre-commit | `.githooks/pre-commit` | ruff lint |
+| pre-commit | `.githooks/pre-commit` | ruff lint + pytest (20/8 cleanup) |
 | pre-push | `.githooks/pre-push` | pytest |
 | GitHub Actions | `.github/workflows/lint.yml` | ruff + pytest |
 

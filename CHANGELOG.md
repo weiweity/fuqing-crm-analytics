@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.2] - 2026-06-05 - docs: 同步 pre-commit pytest hook 到 CLAUDE.md + README.md CI/CD 防线表
+
+### Fixed
+- **CLAUDE.md L79** (CI/CD 防线表): pre-commit 拦截内容 `ruff lint` → `ruff lint + pytest (20/8 cleanup)`, 同步 v0.4.7 落地的 pre-commit pytest hook
+- **README.md L24** (项目状态列表): `pre-commit (ruff)` → `pre-commit (ruff + pytest 20/8)`, 同步同上
+
+
 ## [v0.4.7.1] - 2026-06-05 - chore: pickup uncommitted handoff + PR template + codegraph cache gitignore
 
 ### Added
