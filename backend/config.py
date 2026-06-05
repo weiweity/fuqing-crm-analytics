@@ -132,6 +132,44 @@ DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(_DEFAULT_DUCKDB)))
 # DuckDB 默认使用 80% 系统 RAM，在 16GB 机器上约 12.7GB，容易导致 OOM
 DUCKDB_MEMORY_LIMIT = os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB")
 
+# W7: DuckDB 内存 override（W4 全历史预计算需要 16GB，平时 8GB）
+# 用法：export DUCKDB_MEMORY_LIMIT_OVERRIDE=16GB  临时调高；不设 = 跟默认
+# 调用方优先用 get_duckdb_memory_limit() helper；DUCKDB_MEMORY_LIMIT 常量保留
+# 向后兼容（8 处 import 仍可用，但读到的是默认 8GB，不会读 override——override
+# 仅在 W4 async 跑批期间通过 get_duckdb_memory_limit() 生效）
+# DUCKDB_MEMORY_LIMIT_OVERRIDE 不在 module-level 缓存（每次 get_duckdb_memory_limit()
+# 动态读 os.environ，monkeypatch.setenv 测试场景正常工作）
+# 常量保留仅为向后兼容（业务代码可读这个，但用 helper 才能拿到 override 生效值）
+DUCKDB_MEMORY_LIMIT_OVERRIDE = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "").strip()
+
+
+def get_duckdb_memory_limit() -> str:
+    """返回当前生效的 DuckDB 内存限制（override 优先于默认，动态读 env）。
+
+    Returns:
+        str: 形如 "8GB" / "16GB" / "1024MB" 的 DuckDB memory_limit 配置值。
+
+    Examples:
+        >>> os.environ.pop("DUCKDB_MEMORY_LIMIT_OVERRIDE", None)
+        >>> get_duckdb_memory_limit()  # 默认 8GB
+        '8GB'
+        >>> os.environ["DUCKDB_MEMORY_LIMIT_OVERRIDE"] = "16GB"
+        >>> get_duckdb_memory_limit()
+        '16GB'
+        >>> os.environ["DUCKDB_MEMORY_LIMIT_OVERRIDE"] = ""  # 空字符串 = 走默认
+        >>> get_duckdb_memory_limit()
+        '8GB'
+
+    CLAUDE.md 合规：
+        ① 不破坏现有 DUCKDB_MEMORY_LIMIT=8GB 默认值（向后兼容）
+        ② 临时 override 只在 W4 async 期间生效（export 后 unset），不影响日常 ETL
+    """
+    # 动态读 env（不缓存 module-level），让 monkeypatch.setenv / W4 async export 实时生效
+    override = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "").strip()
+    if override:
+        return override
+    return os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB")
+
 # 日志配置
 LOG_LEVEL = "INFO"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
