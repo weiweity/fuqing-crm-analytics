@@ -228,8 +228,13 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
                     existing_ids = set(conn.execute(
                         "SELECT DISTINCT order_id FROM orders WHERE order_id IS NOT NULL"
                     ).fetchdf()['order_id'].dropna())
-                except Exception:
-                    existing_ids = set()
+                except Exception as _exc:
+                    # P1-#1 fail-loud: existing_ids 退化空集 → 所有会员行被当新订单 INSERT
+                    # 触发重复 order_id 数据污染 (orders 表无 UNIQUE 约束)
+                    raise RuntimeError(
+                        f"FATAL: 加载 existing_ids 失败, 拒绝退化避免数据污染: "
+                        f"{type(_exc).__name__}: {_exc}"
+                    ) from _exc
 
                 # 第一轮：INSERT全新订单（会员文件中有但店铺数据中没有的）
                 all_member_order_ids = set()
@@ -302,7 +307,8 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         create_user_rfm_table()
         from scripts.etl.preload_rfm import run_auto_preload
         results = run_auto_preload()
-        success = [r for r in results if r[4] > 0]
+        # FIX-S1-regression-complete: run_auto_preload 返 2-tuple (date_str, rows); r[1]=rows
+        success = [r for r in results if r[1] > 0]
         print(f"  user_rfm 预加载完成: {len(success)} 个组合")
     else:
         # ===== 增量模式：保持原逻辑 =====
