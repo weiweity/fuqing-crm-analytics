@@ -63,7 +63,7 @@ def _safe_etl_notify_on_failure(func):
 
 
 @_safe_etl_notify_on_failure
-def run_full_etl(mode='auto', window_days=30, force_continue=False):
+def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
     """
     完整 ETL 流程（滑动窗口增量模式）
 

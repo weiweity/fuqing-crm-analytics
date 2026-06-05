@@ -49,6 +49,9 @@ def get_hot_dates(today: date = None) -> List[date]:
     """
     生成常用分析周期对应的热点日期。
     这些日期是 RFM 流转矩阵/桑基图最常查询的 from_date / to_date。
+
+    Returns:
+        List[date]: 热点日期列表（含昨日、上周日/周六、上月最后一日、季末等）
     """
     if today is None:
         today = date.today()
@@ -118,6 +121,9 @@ def build_rfm_sql(metric_type: str, channel: str = "全店") -> str:
     R 窗口固定365天（独立计算 recency_days）；
     F/M 窗口复用 lookback_days 参数。
     channel='全店' 时不过滤渠道，为特定渠道时按 channel 过滤。
+
+    Returns:
+        str: 完整 SQL（含 WITH CTE + INSERT SELECT），可直接 conn.execute() 跑
     """
     registry = get_registry()
     r_score_sql = registry.build_r_score_sql(RFM_THRESHOLDS["r"])
@@ -262,6 +268,9 @@ def preload_date(
 
     R 窗口固定365天（独立于 lookback_days），确保 recency_days 反映完整购买历史。
     channel='全店' 不过滤渠道，为其他值时精确过滤。
+
+    Returns:
+        int: 写入 user_rfm 的行数（通常 = (user_with_orders_in_window) 行）
     """
     start_date = analysis_date - timedelta(days=lookback_days)
     date_str = analysis_date.strftime("%Y-%m-%d")
@@ -396,7 +405,6 @@ def preload_date_batch(
     tier_en_sql = registry.build_segment_name_case_when_sql("en")
 
     date_str = analysis_date.strftime("%Y-%m-%d")
-    max_lb = max(lookbacks)
 
     # 1. DELETE 旧数据（同一 analysis_date 所有 combo）
     lb_ph = ",".join(["?"] * len(lookbacks))
@@ -466,8 +474,8 @@ def preload_date_batch(
     WITH base_params AS (
         SELECT
             DATE(?) AS analysis_date,
-            DATE(?) - INTERVAL '{max_lb}' DAY AS fm_start_date,
             DATE(?) - INTERVAL '{R_LOOKBACK_DAYS}' DAY AS r_start_date
+            -- fm_start_date 删除 (WO-5 P2-#5: 死列, scanned 实际走 r_start_date=365d)
     ),
     scanned AS (
         SELECT
@@ -553,8 +561,8 @@ def preload_date_batch(
     FROM with_segment
     """
 
-    # 7. 参数顺序：3 (base_params) + N (flags) = 3 + len(lookbacks)
-    params = [date_str] * (3 + len(lookbacks))
+    # 7. 参数顺序：2 (base_params: analysis_date + r_start_date) + N (flags) = 2 + len(lookbacks)
+    params = [date_str] * (2 + len(lookbacks))
 
     # 8. INSERT
     insert_sql = f"""
@@ -581,9 +589,11 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int]]:
     W1 GROUPING SETS 接入生产（FIX-S1）：内部按 date 调 preload_date_batch(conn, date, lookbacks, metrics, channels)
     一次 INSERT 跑完该 date 的所有 (lookback × metric × channel) 组合，替代 720 串行 preload_date() 循环。
     设计: docs/design/etl-phase4-architecture.md §W1
-
     QW0 埋点：plan §A4.1 + plan §2 hot spot #1 — 540 组合串行循环
     入口/出口各打一次 perf_counter（通过 PerfTimer 上下文管理器）。
+
+    Returns:
+        List[Tuple[str, int]]: [(date_iso, rows_written), ...] 按 hot_dates 顺序
     """
     # QW0 埋点 — 入口 perf_counter
     _wall_start = time.perf_counter()
@@ -651,6 +661,9 @@ def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int]
     """按日期范围每隔 step 天预加载一次。
 
     W1 GROUPING SETS 接入生产（FIX-S1）：内部按 date 调 preload_date_batch(conn, date, lookbacks, metrics, channels)。
+
+    Returns:
+        List[Tuple[str, int]]: [(date_iso, rows_written), ...] 范围 [start, end] 内每 step 天一个
     """
     lookbacks = [30, 90, 180]
     metrics = ["GMV", "GSV"]
