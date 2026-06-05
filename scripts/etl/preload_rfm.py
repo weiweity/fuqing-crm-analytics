@@ -377,6 +377,9 @@ def preload_date_batch(
     if channels is None:
         channels = ["全店"] + list(ACTIVE_UI_CHANNELS)
 
+    # FIX-M8: 空 channels 列表防御, 防止 IN () SQL 报错
+    assert channels, "FIX-M8: channels cannot be empty (SQL IN () invalid syntax)"
+
     lookbacks = sorted(set(lookbacks))
     metrics = list(metrics)
     registry = get_registry()
