@@ -49,6 +49,10 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
     print("=" * 60)
     check_memory(label="ETL 启动")
 
+    # W6: 记录 ETL 真实 elapsed wall time（用于 notify_etl_complete stats）
+    import time as _time
+    _etl_wall_start = _time.perf_counter()
+
     # Step 0: 确定模式（get_db_max_pay_time 有 lru_cache，重复调用无开销）
     cached_max_time = get_db_max_pay_time()
     db_has_data = cached_max_time is not None
@@ -355,6 +359,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
 
     # Step 8: 品类看板 v2 预计算（品类流转 + 流失预警）
     print("\n品类看板 v2 预计算...")
+    step8_ok = False
     try:
         from scripts.etl.precompute_category_flow import run_full_precomputation as run_flow_full
         from scripts.etl.precompute_category_churn import run_full_precomputation as run_churn_full
@@ -364,12 +369,44 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False):
         with PerfTimer("pl_step8b_category_churn"):
             run_churn_full()
         print("  预计算完成")
+        step8_ok = True
     except Exception as e:
         print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
 
     print("\n" + "=" * 60)
     print("滑动窗口 ETL 完成!")
     print("=" * 60)
+
+    # W6: ETL 跑完 lark-cli 通知（复用 6 道门禁通道，graceful degrade）
+    # 失败时也推（避免静默成功假象）。通知失败不能阻塞 ETL 已完成的事实。
+    try:
+        from scripts.etl.notify import notify_etl_complete
+        # 收集 stats（部分字段缺失时 '?' 占位，不抛 KeyError）
+        _etl_wall_min = round((_time.perf_counter() - _etl_wall_start) / 60, 1)
+        _orders_count = "?"
+        _user_rfm_count = "?"
+        try:
+            _conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+            try:
+                _orders_count = _conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+                _user_rfm_count = _conn.execute("SELECT COUNT(*) FROM user_rfm").fetchone()[0]
+            finally:
+                _conn.close()
+        except Exception as _e:
+            print(f"  [W6 stats] 收集行数失败: {type(_e).__name__}: {str(_e)[:100]}")
+        _stats = {
+            "orders_count": _orders_count,
+            "user_rfm_count": _user_rfm_count,
+            "wall_min": _etl_wall_min,
+            "mode": mode,
+            "run_mode": run_mode,
+            "gates_overall": "pass" if step8_ok else "failed",
+        }
+        _sent, _reason = notify_etl_complete(_stats, status="success" if step8_ok else "failed")
+        print(f"  [W6 通知] sent={_sent} reason={_reason}")
+    except Exception as e:
+        # 通知失败不能阻塞 ETL 已完成的事实
+        print(f"  [W6 通知] 异常跳过: {type(e).__name__}: {str(e)[:200]}")
 
     # 强制 GC 立即释放 DuckDB 文件锁，避免 ETL 完成后后端仍被阻塞
     import gc as _gc
