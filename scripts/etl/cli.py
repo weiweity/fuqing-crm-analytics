@@ -555,8 +555,9 @@ def main():
             from scripts.etl.preload_rfm import run_auto_preload
             with PerfTimer("step7b_run_auto_preload"):
                 results = run_auto_preload()
-            success = [r for r in results if r[4] > 0]
-            print(f"  user_rfm 预加载完成: {len(success)} 个组合")
+            # FIX-S1 regression fix: run_auto_preload 返回 2-tuple (date_str, rows); r[1] = rows
+            success = [r for r in results if r[1] > 0]
+            print(f"  user_rfm 预加载完成: {len(success)}/{len(results)} 个 date 写入行")
         except Exception as _exc:
             gate_record_error("step7_user_rfm_preload", _exc)
             raise
