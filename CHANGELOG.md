@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.3.3] - 2026-06-06 - ci: 修 test_byte_cap 跨平台 flaky (闭合 v0.4.7.3.2 漏的 test bug)
+
+### Fixed
+- **`test_byte_cap` 跨平台 flaky**: 3 个文件各 50GB, cap 100GB, 期望删 2 留 1. 原 assertion `assert files[2].exists()` 假设 files[2] 保留, 但 `_collect_fq_tmp_orphans` 用 `glob.glob` + 稳定排序, 3 文件同 mtime 同 size 时返回顺序由文件系统决定. macOS extfs 和 Linux ext4 返回顺序不同, 本地 (mac) 删 0/1 留 2 (test 过), CI (ubuntu) 删 1/2 留 0 (test 挂 `assert False`). 修: 顺序无关断言 `sum(1 for f in files if f.exists()) == 1`
+
+### 根因复盘 3
+v0.4.7.3.2 那个"应该没有第 4 个了" 错. 实际第 4 个是 test 自身的 order 假设, 不是 deps 缺. whack-a-mole 还能往后延: 装对 deps → test 业务逻辑通过 → test 自身的隐藏假设暴露. 真正的解是 **修 test, 不修代码** (代码行为对, 是 test 写错了)
+
+
 ## [v0.4.7.3.2] - 2026-06-06 - ci: 补 xxhash 到 requirements.txt (闭合 v0.4.7.3.1 漏的 lazy import)
 
 ### Fixed

@@ -130,8 +130,11 @@ class TestCleanupFqTmpOrphans:
 
         # 3 × 50GB = 150GB，cap 100GB → 应只删 2 个（2×50=100GB 命中 cap）
         assert deleted_count == 2
-        # 第 3 个应保留（byte cap 阻止）
-        assert files[2].exists(), "byte cap 阻止后第 3 个文件应保留"
+        # 顺序无关断言: byte cap 阻止后应只保留 1 个文件（具体哪个不固定，
+        # 取决于 glob.glob 在当前文件系统的返回顺序）
+        assert sum(1 for f in files if f.exists()) == 1, (
+            "byte cap 阻止后应只保留 1 个文件"
+        )
 
     def test_cap_starvation_avoided(self, tmp_path):
         """first-prefix starvation 修复验证（F5）：两个 prefix 都能被扫到。"""
