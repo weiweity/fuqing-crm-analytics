@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - W6 飞书通知链路完整化 = 老板/运营 9 点上班能看到 ETL 失败告警，dashboard 不再假绿。launchd 调度器恢复 = 数据每日自动更新无需人工触发。
 
+
+## [v0.3.7] - 2026-06-05 - WO-2 lookback 边界校验
+
+### Fixed
+- **P1-#4 --lookback 缺 [1,3650] 校验 (P1-#4 防御)** — `scripts/etl/preload_rfm.py:683` 新增 `_valid_lookback(s)` argparse validator，CLI 入口拒绝 0/负数/>3650/非整数（错误信息清晰：`--lookback=0 越界, 必须在 [1, 3650] 区间`）。`preload_rfm.py:384` 库内调用也加 `assert all(1<=lb<=3650 for lb in lookbacks)`，不依赖 CLI 入口，双层防御。**测试**：CLI `0/-1/3651/abc` 全拒，`1/90/3650` 全过（90 写 372,588 行）；pytest 196/8 全绿，ruff 0 errors。
+- **副作用**：未来 `--lookback=0` / `--lookback=20000` 等"数字看着合理但实际越界"的输入会立即被拦下，避免触发 DuckDB 8GB OOM。
+
 ## [Unreleased]
 
 ### Performance
