@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
-> **最后更新**: 2026-06-04
-> **状态**: v0.3.5 待 release（6/4 增量 ETL 跑批完成 + RFM 4 端点 P0/P1 修复合集 + baseline wall_time 字段歧义修 + rfm_analysis_cache fail-soft 修）
+> **最后更新**: 2026-06-05
+> **状态**: v0.4.4 已 release（WO-1 ~ WO-5 + P1-#2/#3/#5/#8 共 8 个版本入仓，详见 CHANGELOG.md v0.3.6~v0.4.4 段）
 
 ---
 
