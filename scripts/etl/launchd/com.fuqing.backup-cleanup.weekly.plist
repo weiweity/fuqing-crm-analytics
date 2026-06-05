@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+FIX-M1 + Layer 4 of 4 (2026-06-05 治理): Mac launchd plist for 芙清 backups/ 7-day retention cleanup
+
+安装:
+  cp com.fuqing.backup-cleanup.weekly.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
+  launchctl list | grep fuqing.backup   验证加载
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
+  rm ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
+
+设计:
+  每周日 3:00 跑（避开 ETL 跑批窗口：每日 8:30）
+  清理 data/processed/backups/ 下 mtime > 7 天的 .parquet / .duckdb
+  stdout/stderr 重定向到 /tmp/fuqing-backup-cleanup.log
+  exit code != 0 触发 launchd 自动通知
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.backup-cleanup.weekly</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/cleanup_backups.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>  <!-- 0 = 周日 -->
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-backup-cleanup.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-backup-cleanup.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
