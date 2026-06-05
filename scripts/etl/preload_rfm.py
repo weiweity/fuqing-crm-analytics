@@ -381,6 +381,10 @@ def preload_date_batch(
     assert channels, "FIX-M8: channels cannot be empty (SQL IN () invalid syntax)"
 
     lookbacks = sorted(set(lookbacks))
+    # WO-2 防御: 库内调用也必须校验, 不依赖 CLI 入口
+    assert all(1 <= lb <= 3650 for lb in lookbacks), (
+        f"lookbacks={lookbacks} 越界, 必须在 [1, 3650] 区间"
+    )
     metrics = list(metrics)
     registry = get_registry()
     valid_sql, _ = OrderFilters.valid_order()
@@ -679,11 +683,35 @@ def run_range_preload(start: date, end: date, step: int) -> List[Tuple[str, int]
 # CLI
 # ============================================================
 
+def _valid_lookback(s: str) -> int:
+    """CLI --lookback 校验: 必须在 [1, 3650] 区间 (WO-2 P1-#4 防御).
+
+    Args:
+        s: argparse 传入的字符串
+
+    Returns:
+        int: 校验通过的 lookback_days
+
+    Raises:
+        argparse.ArgumentTypeError: 越界时给清晰错误信息
+    """
+    try:
+        lb = int(s)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"--lookback 必须是整数, 收到 {s!r}")
+    if not (1 <= lb <= 3650):
+        raise argparse.ArgumentTypeError(
+            f"--lookback={lb} 越界, 必须在 [1, 3650] 区间 "
+            f"(1d=当天, 3650d=10年, 防止负数变未来日期触发 OOM)"
+        )
+    return lb
+
+
 def main():
     parser = argparse.ArgumentParser(description="RFM 热点日期预加载")
     parser.add_argument("--auto", action="store_true", help="自动计算常用周期节点")
     parser.add_argument("--date", type=str, help="指定单个日期 (YYYY-MM-DD)")
-    parser.add_argument("--lookback", type=int, default=90, help="lookback_days")
+    parser.add_argument("--lookback", type=_valid_lookback, default=90, help="lookback_days (1-3650)")
     parser.add_argument("--metric", type=str, default="GMV", choices=["GMV", "GSV"], help="metric_type")
     parser.add_argument("--channel", type=str, default="全店", help="渠道名称（默认'全店'）")
     parser.add_argument("--range", nargs=2, metavar=("START", "END"), help="日期范围 (YYYY-MM-DD YYYY-MM-DD)")
