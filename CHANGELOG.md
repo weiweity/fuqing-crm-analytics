@@ -117,6 +117,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **row count 1:1 保持**：test_w1_grouping_sets.py::test_batch_row_count_matches_loop 13/13 通过
 - **数值 1:1 保持**：test_batch_values_match_loop_per_combo 验证每个组合的 R/F/M 数值与旧 loop 实现一致
 
+
+## [v0.4.4] - 2026-06-05 - P1-#8 E2E 名实相符
+
+### Changed
+- **`backend/tests/test_w7_e2e_override.py` 4 个 E2E 重写** (P1-#8 治本):
+  - ~~旧: 4 个测试都只 `print(get_duckdb_memory_limit())` 然后 assert stdout 含值（"名实不副"，不验实际 DuckDB 行为）~~
+  - 新: 4 个测试**真开 DuckDB** + 查 `duckdb_settings().memory_limit` 字段
+    - `test_duckdb_actual_memory_limit_default_8gb`: 无 override, memory_limit ≈ 8GB (DuckDB 报 7.4 GiB)
+    - `test_duckdb_actual_memory_limit_override_16gb`: OVERRIDE=16GB, memory_limit ≈ 16GB (DuckDB 报 14.9 GiB)
+    - `test_duckdb_actual_memory_limit_empty_override_falls_back`: 空白 override fallback 8GB
+    - `test_preload_rfm_cli_help_works`: 真跑 `scripts/etl/preload_rfm.py --help`, 验 12 步 CLI 链路 + WO-2 加的 `[1,3650]` 边界说明
+
+### Quality
+- **治 FIX-S1 漏改根因**: 任何改 `get_duckdb_memory_limit()` / `DUCKDB_MEMORY_LIMIT` / preload_rfm.py CLI 入口的 PR 都被 E2E 抓
+- **pytest 204/8 全绿**, ruff 0 errors
+- **CI pre-push hook 自动跑** (CLAUDE.md §5 pre-push pytest)
+
 ## [Unreleased]
 
 ### Performance
