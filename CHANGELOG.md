@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.9] - 2026-06-06 - feat(ci): B6 P3 每周 CI 健康报告
+
+### Added
+- **`.github/workflows/weekly-report.yml`** (新): 每周一 UTC 1:00 (北京时间 9:00) 跑全量 pytest, 输出 junit XML + 上传 artifact (90 天保留) + 写 step summary. 跟 nightly.yml (B3) 风格一致, 但 trigger cron 是每周一. 加 `workflow_dispatch` 允许手动触发
+
+### 趋势可见
+- **Artifact 下载**: GitHub repo → Actions → Weekly Health Report → 任意 run → Artifacts → `pytest-results` (90 天内可下)
+- **Step summary**: 每个 run 的 Summary tab 显示 `tests=N failures=N errors=N skipped=N time=Ns`, 一目了然
+- **对账场景**: 周一上午 9 点 GitHub mail 提醒, 团队 review 上周 pass/fail trend, 早 1 周发现回归
+
+### B6 配套: CI 防复发 6 件套 + 报告
+- B1 (2 min): GitHub 通知收敛 — 减噪
+- B2 (P0): pre-commit import 完整性检查 — 根因预防
+- B3 (P1): nightly 健康检查 — 早 1 天发现
+- B4 (P1): requirements-lock.txt — 防装包漂移
+- B5 (P2): test 顺序无关 lint — 防 flaky test
+- **B6 (P3)**: 每周健康报告 — 趋势可见 (本 commit)
+- **总**: 6 件全 0.5-1h 小块, 总 ~3.5h, CI 防御 100% 完备
+
+
 ## [v0.4.7.8] - 2026-06-06 - feat(ci): B5 P2 test 顺序无关性 lint
 
 ### Added
