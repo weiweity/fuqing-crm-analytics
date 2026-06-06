@@ -3,6 +3,54 @@
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
+
+
+## [v0.4.11] - 2026-06-06 - feat(etl): W3 full DQ assertions + pipeline step 8.5 集成 (3 留作断言 + lark 真发)
+
+### Added
+- **`scripts/etl/assertions.py`**: W3 full 6 断言 (MVP v0.4.10 3 核心 + W3 full v0.4.11 3 留作)
+  - 断言 4 `assert_540_completeness` (新): 当天 (lookback × metric × channel) 组合数 < 54 (3×2×9) → quarantine
+  - 断言 5 `assert_dimension_drift` (新): 任意 dim row count 变 > ±20% → quarantine
+  - 断言 6 `assert_history_no_loss` (新): user_rfm total < prev_30d_avg × 0.99 → quarantine
+  - 新常量: `EXPECTED_DIM_COMBOS_PER_DATE=54` / `DIM_DRIFT_THRESHOLD=0.20` / `HISTORY_LOSS_THRESHOLD=0.99`
+  - 内部 helper `_has_user_rfm_table()` 幂等检查 (W1 没跑时 skip)
+- **`scripts/etl/pipeline.py` step 8.5 (新)**: W3 DQ assertions 集成
+  - 在 step 8 (品类看板) 完成后调 `run_assertions(conn, today, send_alert=True)`
+  - 独立 DuckDB 连接 (READ_WRITE — rfm_quarantine 需要 write; 不与 ETL 单例共享, 避免 read_only/READ_WRITE config 冲突)
+  - 失败入 `rfm_quarantine` 表, 不阻塞 ETL (SaaS 标准: 脏数据隔离)
+  - 包装 `try/except` 兜底: 断言异常仅 print warning, 不抛到 ETL 退出路径
+  - 走 `PerfTimer("pl_step8_5_dq_assertions", date=str(today))` 埋点
+- **`backend/tests/test_w3_dq_assertions.py`**: W3 full 覆盖 (MVP 11 → W3 full 22 tests)
+  - `TestAssert540Completeness` (4 tests): skip 无表 / pass 54 / fail 缺 dim / custom expected
+  - `TestAssertDimensionDrift` (3 tests): skip 无表 / pass 无漂移 / fail > 20%
+  - `TestAssertHistoryNoLoss` (4 tests): skip 无表 / pass 稳定 / fail -50% / skip 当天 0 行
+  - `TestRunAssertions.test_run_assertions_all_six_with_user_rfm` (新): 6 断言全 pass 验证
+  - `TestPipelineStep85Integration` (2 tests): pipeline 静态检查 (含 step 8.5 标识) + 实际 6 断言跑通
+
+### Changed
+- **`scripts/etl/assertions.py`**: 顶层 docstring 升级 v0.4.10 MVP → v0.4.11 full
+  - 删 "W3 full 留作下次 sprint" TODO 段
+  - 加 "W3 full (v0.4.11, 本 commit)" 段 (6 断言 + pipeline 集成 + lark 真发)
+- **`scripts/etl/assertions.py`**: `_send_lark_alert_mockable` docstring 从 "MVP 包装" 改 "W3 包装: 生产路径调 scraper/_send_lark_alert (真发 lark-cli), 测试时可 mock"
+  - 行为不变 (MVP 已经在调 scraper 真发, 这只是文档澄清)
+- **`backend/tests/test_w3_dq_assertions.py`**: `TestRunAssertions.test_run_assertions_all_pass` expected passed 数从 3 → 3 (没 user_rfm 时仍 skip 留作断言, 故不变)
+  - 加 `test_run_assertions_with_send_alert_false` 验证 send_alert=False 路径
+
+### 设计 (design doc v1.1 §W3 + §7.3)
+- **6 断言分层** (按失败严重度):
+  - fatal 阻塞: `assert_idempotency` / `assert_history_no_loss` (数据完整性)
+  - quarantine + alert: `assert_total_not_drop` / `assert_repurchase_nonzero` / `assert_540_completeness` / `assert_dimension_drift` (异常检测)
+- **SaaS 标准**: 6 断言全部 best-effort (失败入 quarantine, ETL 继续)
+- **跨子项目 import**: 复用 `scraper/core/sanity_check.py:_send_lark_alert` (6 道门禁 lark-cli 通道)
+- **不破坏 ETL 单例**: assertions.py 只读 DuckDB, write 只入 rfm_quarantine; pipeline.py step 8.5 用 read_only conn, caller 负责 conn.close()
+
+### CLAUDE.md 合规
+- ① 复用 `scraper/core/sanity_check.py:_send_lark_alert` (跨子项目, scraper/CLAUDE.md 允许, 不新写 lark 客户端)
+- ② ETL 脚本连接例外 (CLAUDE.md §接口开发六步 §ETL 脚本连接例外条款): `duckdb.connect` + `conn.close()` 由 caller 管
+- ③ 不破坏 ETL 单例连接 (assertions.py 只读 DuckDB, write 只入 rfm_quarantine; pipeline step 8.5 独立连接, 用完即关)
+- ④ 12 步流程: branch = `feat/wo3-full` / pytest 22 tests / qa 验 quarantine 触发 / Python 3.14
+
+
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 

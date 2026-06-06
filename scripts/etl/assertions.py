@@ -1,19 +1,14 @@
 """
-W3 MVP DQ assertions + 幂等性 (v0.4.10) — design doc v1.1 §W3 + §7.3
+W3 full DQ assertions + 幂等性 (v0.4.11) — design doc v1.1 §W3 + §7.3
 
 痛点 2 收尾: ETL 跑完末 step 8 跑 6 断言, 失败入 rfm_quarantine 表, 不阻塞 ETL
 (SaaS 标准: 脏数据隔离不阻塞业务). 走 lark-cli 6 道门禁通道 (复用 scraper/_send_lark_alert).
 
-MVP 范围 (v0.4.10, 本 commit):
-- 3 核心断言: assert_total_not_drop / assert_repurchase_nonzero / assert_idempotency
-- rfm_quarantine 表 schema + 写入函数
-- run_assertions(conn, target_date) 总入口
-- pytest 覆盖 3 断言 + quarantine 不阻塞 ETL
-
-W3 full (留作下次 sprint):
-- 3 留作断言: assert_540_completeness / assert_dimension_drift / assert_history_no_loss
-- pipeline.py 在 step 8 调 run_assertions()
-- lark-cli 真发消息 (MVP mock 掉, 测试时 _send_lark_alert 不真发)
+W3 full (v0.4.11, 本 commit):
+- 6 断言: assert_total_not_drop / assert_repurchase_nonzero / assert_idempotency
+         + assert_540_completeness / assert_dimension_drift / assert_history_no_loss
+- pipeline.py 在 step 8 调 run_assertions(conn, today, send_alert=True)
+- lark-cli 真发消息 (生产路径直接走 scraper/_send_lark_alert, 测试用 patch 绕过)
 
 CLAUDE.md 合规:
 - ① 复用 scraper/core/sanity_check.py:_send_lark_alert (不新写 lark 客户端, 走 6 道门禁通道)
@@ -31,9 +26,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
 # W3 复用 scraper/core/sanity_check.py:_send_lark_alert (跨子项目, scraper/CLAUDE.md 允许)
-# MVP 测试时 mock 掉避免真发 lark
+# 生产路径直接调 scraper (真发 lark-cli), 测试时 unittest.mock.patch 绕过
 def _send_lark_alert_mockable(content: str, open_id: Optional[str] = None) -> tuple[bool, str]:
-    """W3 MVP 包装: 复用 scraper/_send_lark_alert, 测试时可 mock.
+    """W3 包装: 生产路径调 scraper/_send_lark_alert (真发 lark-cli), 测试时可 mock.
 
     Returns:
         (sent, reason) 同 scraper/_send_lark_alert 签名
@@ -47,7 +42,7 @@ def _send_lark_alert_mockable(content: str, open_id: Optional[str] = None) -> tu
 
 
 # ─────────────────────────────────────────────────────────────
-# W3 MVP: 6 断言中的 3 核心 + rfm_quarantine
+# W3: 6 断言 + rfm_quarantine
 # ─────────────────────────────────────────────────────────────
 
 QUARANTINE_TABLE = "rfm_quarantine"
@@ -77,6 +72,9 @@ def create_quarantine_table(conn) -> None:
 TOTAL_DROP_THRESHOLD = 0.3            # total < prev_30d_avg × 0.3 视为异常
 REPURCHASE_MIN_THRESHOLD = 100         # prev_30d_avg > 100 时, repurchase 应 > 0
 PREV_WINDOW_DAYS = 30                  # 30 天历史平均
+DIM_DRIFT_THRESHOLD = 0.20             # 任意维度 row count 变化超过 ±20% 告警
+HISTORY_LOSS_THRESHOLD = 0.99          # user_rfm 总数 < prev × 0.99 视为丢失
+EXPECTED_DIM_COMBOS_PER_DATE = 54      # 3 lookbacks × 2 metrics × 9 channels (W1 跑全量 = 54 combos/date)
 
 
 def _write_quarantine(conn, target_date: date, assertion_name: str, reason: str, raw_data: Optional[dict] = None) -> int:
@@ -195,8 +193,163 @@ def assert_idempotency(conn, target_date: date) -> bool:
     return True
 
 
+# ─────────────────────────────────────────────────────────────
+# W3 full (v0.4.11): 3 留作断言
+# ─────────────────────────────────────────────────────────────
+
+def _has_user_rfm_table(conn) -> bool:
+    """检查 user_rfm 表是否存在 (W1/W3 跑过后才有, 没跑过则 skip)."""
+    row = conn.execute("""
+        SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'user_rfm'
+    """).fetchone()
+    return bool(row and row[0] > 0)
+
+
+# 断言 4: assert_540_completeness
+def assert_540_completeness(conn, target_date: date, expected_combos: int = EXPECTED_DIM_COMBOS_PER_DATE) -> bool:
+    """target_date 在 user_rfm 表的 (lookback_days × metric_type × channel) 组合数 < expected → quarantine.
+
+    防 RFM 预计算丢维度 (ETL 部分失败 / GROUPING SETS SQL 漏 GROUPING).
+
+    expected_combos 默认 54 (3 lookbacks × 2 metrics × 9 channels, W1 跑全量 per-date 组合数).
+    设计 doc v1.1 §W3 提到的 "540" 是 54 × 10 hot_dates 的累计, per-date 期望 54.
+    """
+    if not _has_user_rfm_table(conn):
+        # W1/W3 还没跑, skip
+        return True
+
+    actual_combos = conn.execute(
+        """SELECT COUNT(*) FROM (
+              SELECT DISTINCT lookback_days, metric_type, channel
+              FROM user_rfm
+              WHERE analysis_date = ?::DATE
+           )""",
+        [target_date],
+    ).fetchone()[0]
+
+    if actual_combos < expected_combos:
+        reason = f"dim combos={actual_combos} < expected={expected_combos} (3 lookbacks × 2 metrics × 9 channels 缺维度)"
+        _write_quarantine(conn, target_date, "assert_540_completeness", reason, {
+            "actual_combos": int(actual_combos),
+            "expected_combos": expected_combos,
+        })
+        return False
+    return True
+
+
+# 断言 5: assert_dimension_drift
+def assert_dimension_drift(conn, target_date: date) -> bool:
+    """任意 (lookback × metric × channel) dim 的 user_rfm row count 变化 > ±20% → quarantine.
+
+    防 RFM 8 象限行数突变 (修过 P0-102, 防回归).
+    """
+    if not _has_user_rfm_table(conn):
+        return True
+
+    # 当天各 dim 的 row count
+    today_rows = conn.execute(
+        """SELECT lookback_days, metric_type, channel, COUNT(*) as cnt
+           FROM user_rfm
+           WHERE analysis_date = ?::DATE
+           GROUP BY lookback_days, metric_type, channel""",
+        [target_date],
+    ).fetchall()
+
+    if not today_rows:
+        return True  # 当天 0 行, 不告警 (数据还没来)
+
+    # 历史 30 天各 dim 的 avg row count
+    prev_rows = conn.execute(
+        """SELECT lookback_days, metric_type, channel, AVG(cnt) as avg_cnt
+           FROM (
+               SELECT lookback_days, metric_type, channel, analysis_date, COUNT(*) as cnt
+               FROM user_rfm
+               WHERE analysis_date >= ?::DATE - INTERVAL '30 days'
+                 AND analysis_date < ?::DATE
+               GROUP BY lookback_days, metric_type, channel, analysis_date
+           )
+           GROUP BY lookback_days, metric_type, channel""",
+        [target_date, target_date],
+    ).fetchall()
+
+    if not prev_rows:
+        return True  # 无历史, skip
+
+    prev_map = {(lb, mt, ch): float(avg) for lb, mt, ch, avg in prev_rows}
+
+    drift_dims = []
+    for lb, mt, ch, cnt in today_rows:
+        prev_avg = prev_map.get((lb, mt, ch))
+        if prev_avg is None or prev_avg == 0:
+            continue
+        delta_pct = abs(float(cnt) - prev_avg) / prev_avg
+        if delta_pct > DIM_DRIFT_THRESHOLD:
+            drift_dims.append({
+                "dim": f"lb={lb}|mt={mt}|ch={ch}",
+                "today": int(cnt),
+                "prev_avg": round(prev_avg, 1),
+                "delta_pct": round(delta_pct, 3),
+            })
+
+    if drift_dims:
+        # 只列前 3 个避免 reason 字段爆长
+        reason = f"{len(drift_dims)} dim drift > ±{DIM_DRIFT_THRESHOLD*100:.0f}%: {drift_dims[:3]}"
+        _write_quarantine(conn, target_date, "assert_dimension_drift", reason, {
+            "drift_dims": drift_dims[:10],
+            "drift_count": len(drift_dims),
+        })
+        return False
+    return True
+
+
+# 断言 6: assert_history_no_loss
+def assert_history_no_loss(conn, target_date: date) -> bool:
+    """user_rfm 总数 < prev_30d_avg × 0.99 → quarantine (fatal: 阻塞 commit 提示).
+
+    防 user_rfm 历史表数据丢失 (W1 GROUPING SETS 漏跑 / DELETE 后未 INSERT).
+    """
+    if not _has_user_rfm_table(conn):
+        return True
+
+    today_total = conn.execute(
+        "SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ?::DATE",
+        [target_date],
+    ).fetchone()[0]
+    if today_total is None or today_total == 0:
+        return True  # 当天 0 行, skip (避免冷启动误报)
+
+    prev_avg = conn.execute(
+        """SELECT COALESCE(AVG(daily_cnt), 0) FROM (
+              SELECT analysis_date, COUNT(*) as daily_cnt
+              FROM user_rfm
+              WHERE analysis_date >= ?::DATE - INTERVAL '30 days'
+                AND analysis_date < ?::DATE
+              GROUP BY analysis_date
+           )""",
+        [target_date, target_date],
+    ).fetchone()[0]
+    if prev_avg is None or prev_avg == 0:
+        return True  # 无历史, skip
+
+    threshold = float(prev_avg) * HISTORY_LOSS_THRESHOLD
+    if float(today_total) < threshold:
+        reason = f"user_rfm total={today_total} < prev_30d_avg × 0.99 = {threshold:.0f} (历史丢失)"
+        _write_quarantine(conn, target_date, "assert_history_no_loss", reason, {
+            "today_total": int(today_total),
+            "prev_30d_avg": float(prev_avg),
+            "threshold": threshold,
+        })
+        return False
+    return True
+
+
 def run_assertions(conn, target_date: date, send_alert: bool = True) -> dict:
-    """W3 MVP 跑批入口: 跑 3 核心断言, 失败入 quarantine, best-effort alert.
+    """W3 full 跑批入口: 跑 6 断言, 失败入 quarantine, best-effort alert.
+
+    Args:
+        conn: DuckDB 连接 (caller 管 lifecycle, assertions.py 不 close)
+        target_date: 目标日期 (datetime.date)
+        send_alert: 失败时是否推 lark-cli (默认 True; 测试或 dry-run 时传 False)
 
     Returns:
         dict: {"passed": int, "failed": int, "failed_names": [str], "alert_sent": bool}
@@ -207,6 +360,9 @@ def run_assertions(conn, target_date: date, send_alert: bool = True) -> dict:
         "assert_total_not_drop": assert_total_not_drop(conn, target_date),
         "assert_repurchase_nonzero": assert_repurchase_nonzero(conn, target_date),
         "assert_idempotency": assert_idempotency(conn, target_date),
+        "assert_540_completeness": assert_540_completeness(conn, target_date),
+        "assert_dimension_drift": assert_dimension_drift(conn, target_date),
+        "assert_history_no_loss": assert_history_no_loss(conn, target_date),
     }
 
     passed = sum(1 for v in results.values() if v)
@@ -242,12 +398,12 @@ def run_assertions(conn, target_date: date, send_alert: bool = True) -> dict:
 
 
 if __name__ == "__main__":
-    # CLI 入口 (W3 MVP): python3 scripts/etl/assertions.py --date=2026-06-05
+    # CLI 入口 (W3 full): python3 scripts/etl/assertions.py --date=2026-06-05
     import argparse
     import duckdb
     from scripts.etl.config import DUCKDB_PATH as _DUCKDB_PATH
 
-    parser = argparse.ArgumentParser(description="W3 DQ assertions (v0.4.10 MVP)")
+    parser = argparse.ArgumentParser(description="W3 DQ assertions (v0.4.11 full)")
     parser.add_argument("--date", type=str, required=True, help="目标日期 YYYY-MM-DD")
     parser.add_argument("--no-alert", action="store_true", help="不发 lark 告警")
     args = parser.parse_args()
@@ -255,6 +411,6 @@ if __name__ == "__main__":
     conn = duckdb.connect(str(_DUCKDB_PATH), read_only=True)
     try:
         result = run_assertions(conn, target, send_alert=not args.no_alert)
-        print(f"W3 MVP 跑批: {result}")
+        print(f"W3 full 跑批: {result}")
     finally:
         conn.close()
