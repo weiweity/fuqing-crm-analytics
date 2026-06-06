@@ -69,6 +69,37 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - **`CI run 27062413467`**: ✅ **success** (lint ✅ + test ✅) — 修 sprint 1 以来 30+ CI 红
 
 
+## [v0.4.15.1] - 2026-06-06 - chore(ci): /review 前 git log 自动化 lint (sprint 3 P1-3)
+
+### Added
+- **`.githooks/check_review_ground_truth.py`** (新): pre-commit 钩子, 扫 `docs/` 下 .md 触发词
+  - 触发词: `未集成 / 不存在 / 占位 / TODO / FIXME / 缺失 / 待集成 / 还没接` (中英 9 个)
+  - 证据模式: `git log`/`git show` 命令 / 7-40 位 commit SHA / `已验证|已确认|已核对|已落地|已合入|已集成|已实现|已存在` 白名单 (任意 1 个即通过)
+  - 范围 narrow: 只扫 `docs/`, 排除 `CHANGELOG.md / reference.md / DOCUMENT-INDEX.md / README.md`
+  - 误伤规避: 只检查 **新增** 行, 不检查删除行; 跳过 `backend/ frontend-vue3/ scripts/ scraper/`
+  - 救火: `FQA_GROUND_TRUTH_SKIP=1 git commit ...`
+- **`.githooks/pre-commit`**: 接 P1-3 检查到末尾 (B2/B5/cleanup 之外)
+- **`backend/tests/test_check_review_ground_truth.py`** (新, 46 tests / 5 类):
+  - `TestIsReviewFile` (5): scope 边界
+  - `TestTriggerDetection` (5): 触发词 + 单词边界
+  - `TestEvidenceDetection` (5): evidence 模式
+  - `TestParseAddedLines` (4): unified diff 解析
+  - `TestCheckFile` (5): 单文件端到端
+  - `TestMainEndToEnd` (12): 11 red team + regression + 真 git repo
+  - `TestCLIRun` (3): argparse / env / 真 git
+  - `TestScriptInGitRepo` (3): 在 tmp git repo 里 red team + regression
+
+### Background
+- D-4 (2026-06-06) 飞书架构 7 份刷出现 4 个 ground truth 错误, agent 凭 memory / stale 文档下结论
+- 教训: "pipeline.py W3 step 7b 未集成" → 实际 step **8.5** 早就合 (v0.4.11)
+- CLAUDE.md L119-134 有纪律但靠人记, 自动化 lint 防回归
+
+### Verified
+- 46/46 tests passed
+- Red team (5): 故意写 `未集成/不存在/占位/TODO` 进 `docs/`, 全被拦 (rc=1)
+- Regression (8): 真实 commit 模式 (含 git log / SHA / 已验证 / CHANGELOG / code comment) 全通过
+- 真 git repo: 3 tests (`test_real_git_*`) 在 tmp git 里端到端验证
+
 ## [v0.4.11] - 2026-06-06 - feat(etl): W3 full DQ assertions + pipeline step 8.5 集成 (3 留作断言 + lark 真发)
 
 ### Added
