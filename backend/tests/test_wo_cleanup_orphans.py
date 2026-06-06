@@ -282,6 +282,7 @@ class TestF3MarkerAndF7Symlink:
             refresh_status=False, window_days=30, rescan_spu=False,
             rescan_channel=False, product_ids=[], since=None,
             dry_run=False, apply=False, cleanup_tmp=False,
+            skip_dq=False, skip_w4=False,
         )
 
         # 用 mock 替换 _write_fq_etl_marker，记录调用顺序
