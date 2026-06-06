@@ -35,6 +35,19 @@ if [ -n "$STAGED_PY_FILES" ]; then
         exit 1
     fi
 
+    # B2 P0 根因预防 (FOLLOWUPS.md §B2): import 完整性检查
+    # 扫 backend/ + scripts/etl/ 3rd-party imports, 跟 requirements.txt 对账
+    # 根因: v0.4.7.3 → .3.2 链式 CI ImportError 修链
+    echo "Running B2 import check..."
+    if ! python3 .githooks/check_imports.py; then
+        echo ""
+        echo "❌ B2 import check failed — 修复:"
+        echo "   1. 在 requirements.txt 加缺失的包"
+        echo "   2. 重跑 commit"
+        echo "   例外 (deps 故意未声明): git commit --no-verify"
+        exit 1
+    fi
+
     # pytest cleanup orphans (v0.4.7)
     PYTHONPATH="$(pwd)" pytest backend/tests/test_wo_cleanup_orphans.py -q || exit 1
 
