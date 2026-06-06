@@ -416,6 +416,30 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
     except Exception as e:
         print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
 
+    # Step 8.5: W3 DQ assertions (6 断言) — 设计 doc v1.1 §W3 + §7.3
+    # 失败入 rfm_quarantine, 不阻塞 ETL (SaaS 标准: 脏数据隔离不阻塞业务)
+    # 复用 scraper/_send_lark_alert 真发 lark-cli (生产路径), 测试用 patch 绕过
+    print("\nW3 DQ assertions (6 断言)...")
+    try:
+        from datetime import date as _date
+        from scripts.etl.assertions import run_assertions
+        from scripts.etl.config import DUCKDB_PATH as _DUCKDB_PATH
+        # 独立连接 (READ_WRITE — rfm_quarantine 需要 write; 不与 ETL 单例共享, 避免 read_only/READ_WRITE config 冲突)
+        _assert_conn = duckdb.connect(str(_DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+        try:
+            _assert_target = _date.today()
+            with PerfTimer("pl_step8_5_dq_assertions", date=str(_assert_target)):
+                _assert_result = run_assertions(_assert_conn, _assert_target, send_alert=True)
+            print(f"  DQ assertions: passed={_assert_result['passed']} failed={_assert_result['failed']} "
+                  f"alert_sent={_assert_result['alert_sent']}")
+            if _assert_result["failed_names"]:
+                print(f"  ⚠️ 失败断言: {_assert_result['failed_names']} (详见 rfm_quarantine 表)")
+        finally:
+            _assert_conn.close()
+    except Exception as e:
+        # 断言失败不阻塞 ETL 已完成的事实 (但要告警)
+        print(f"  ⚠️ DQ assertions 异常跳过: {type(e).__name__}: {str(e)[:200]}")
+
     print("\n" + "=" * 60)
     print("滑动窗口 ETL 完成!")
     print("=" * 60)
