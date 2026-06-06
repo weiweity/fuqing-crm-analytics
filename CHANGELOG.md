@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.10.1] - 2026-06-06 - fix: VERSION drift 复发 (0.4.7.4 → 0.4.10) + CLAUDE.md/README.md 同步 (224 → 258)
+
+### Fixed
+- **VERSION drift 复发** (`VERSION`): `0.4.7.4` → `0.4.10`（实际 main 状态）
+- **CLAUDE.md L30 版本表同步**: `v0.4.7.4（main，2026-06-06 release），测试 224 passed / 8 skipped` → `v0.4.10（main，2026-06-06 release），测试 258 passed / 8 skipped`
+- **README.md L25 / L89 / L182 同步**:
+  - L25: `测试 224 passed / 8 skipped（v0.4.7.4）` → `测试 258 passed / 8 skipped（v0.4.10）`
+  - L89: `tests/  # 单元测试（12 个文件，149 passed）` → `tests/  # 单元测试（22 个 backend/tests/*.py + 根 tests/, 258 passed）`
+  - L182: `当前测试覆盖（224 passed / 8 skipped，v0.4.7.4）` → `当前测试覆盖（258 passed / 8 skipped，v0.4.10）`
+
+### 根因
+- 之前 (commit 1917e08 之前) 一直忘了同步 VERSION/CLAUDE.md/README.md, 导致 v0.4.10 已经 merge 后 docs 仍是 v0.4.7.4
+- 12 步流程 (CLAUDE.md) 没有强制卡 "merge 前比对 pytest 输出 vs docs 中测试数字", 这次手动核对发现
+
+### 教训 (写入 CLAUDE.md 候选, 后续 PR 跟进)
+- 12 步流程加一步: "merge 前必须 `pytest --collect-only -q | tail -1` 拿测试数字, 对比 docs 中的数字, 不一致先改 docs 再 merge"
+- pre-commit 加 VERSION 校验: VERSION 必须是最近 3 个 commit tag 之一, 否则告警
+
 ## [v0.4.10] - 2026-06-06 - feat(etl): W3 MVP DQ assertions + 幂等性 — 痛点 2 质量保证
 
 ### Added

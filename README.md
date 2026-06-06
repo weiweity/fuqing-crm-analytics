@@ -22,7 +22,7 @@
 - ✅ ETL 增量更新正常（截至 2026-06-04：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M / rfm_analysis_cache 60 / order_status_override 6/4 刷 91,307 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions
-- ✅ 测试 224 passed / 8 skipped（v0.4.7.4）
+- ✅ 测试 258 passed / 8 skipped（v0.4.10）
 - ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
 - ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
 - ✅ RFM 分析 `real_elapsed_sec` / `step_wall_time_sum` 显式命名 baseline 字段（修 review skill 揪出的 wall_time 字段歧义）
@@ -86,7 +86,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/  # DMP 资产（store/product/other）
 │   ├── routers/                # API 路由（16 个模块）
 │   ├── db/                     # 数据库连接
-│   └── tests/                  # 单元测试（12 个文件，149 passed）
+│   └── tests/                  # 单元测试（22 个 backend/tests/*.py + 根 tests/, 258 passed）
 ├── frontend-vue3/              # Vue3 前端
 ├── scripts/                    # ETL 脚本
 ├── config/                     # 配置（健康评分、RFM 阈值）
@@ -179,7 +179,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（224 passed / 8 skipped，v0.4.7.4）：
+当前测试覆盖（258 passed / 8 skipped，v0.4.10）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
