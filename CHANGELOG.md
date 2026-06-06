@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.6] - 2026-06-06 - feat(ci): B3 P1 nightly 健康检查 workflow
+
+### Added
+- **`.github/workflows/nightly.yml`** (39 行, 新): 每天 UTC 13:00 (北京时间 21:00) 跑全量 pytest + ruff + B2 import 完整性复检. 跟 `lint.yml` 风格一致 (Python 3.14 + `pip install -r requirements.txt` 单一来源). 加 `workflow_dispatch` 允许手动触发 (测试 + 应急验证)
+
+### 防复发效果
+- **周末/夜间回归早 1 天发现**: 不会再 v0.4.7.3 那种 30+ run 红了才看到
+- **B2 双保险**: 本地 pre-commit 防线 (B2/v0.4.7.5) + nightly 复检 (B3/v0.4.7.6), 即使 `git commit --no-verify` 绕过本地, nightly 仍能抓 import 漏装
+- **手动触发**: GitHub repo → Actions → Nightly Health Check → Run workflow, 验证 cron 之外随时可跑
+
+### 触发时间
+- 北京 21:00 (UTC 13:00) — 跟 FOLLOWUPS.md §B3 描述一致. GitHub cron 是 UTC, 时区在 cron 字符串里直接算
+
+
 ## [v0.4.7.5] - 2026-06-06 - feat(ci): B2 P0 根因预防 — pre-commit import 完整性检查
 
 ### Added
