@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.10] - 2026-06-06 - feat(etl): W3 MVP DQ assertions + 幂等性 — 痛点 2 质量保证
+
+### Added
+- **`scripts/etl/assertions.py`** (~220 行, 新): W3 MVP 实现
+  - 3 核心断言: `assert_total_not_drop` (total < prev_30d_avg × 0.3 → quarantine) / `assert_repurchase_nonzero` (防 P0-102 100%/0% 回归) / `assert_idempotency` ((date, dim, version) 唯一)
+  - `rfm_quarantine` 表 (id, date, failed_assertion, reason, raw_data JSON, created_at) + seq
+  - `_write_quarantine()` 自带 `create_quarantine_table` (idempotent, 断言函数可独立调用)
+  - `_send_lark_alert_mockable()` 包装 scraper/_send_lark_alert (跨子项目 import, scraper/CLAUDE.md 允许)
+  - `run_assertions(conn, target_date, send_alert=True)` 总入口: 返回 `{passed, failed, failed_names, alert_sent}`
+  - CLI 入口: `python3 scripts/etl/assertions.py --date=2026-06-05 [--no-alert]`
+- **`backend/tests/test_w3_dq_assertions.py`** (11 tests, 新): MVP 覆盖
+  - quarantine 表幂等创建
+  - 3 断言 pass / fail / skip 路径全覆盖
+  - total 暴跌 + 重复 dim+version 触发 quarantine
+  - W4 还没跑 (无 fact_rfm_long) 时 repurchase_nonzero skip
+  - run_assertions 总入口: 全 pass / 部分 fail + alert 触发
+  - mock lark 不真发 (MVP 测试不触发 lark-cli)
+
+### 设计 (design doc v1.1 §W3)
+- **SaaS 标准**: 脏数据隔离不阻塞业务 — 失败入 quarantine + 告警, ETL 继续
+- **跨子项目 import**: 复用 `scraper/core/sanity_check.py:_send_lark_alert` (6 道门禁 lark-cli 通道, 不新写 lark 客户端)
+- **W4 配套**: assert_repurchase_nonzero 查 fact_rfm_long (W4/MVP v0.4.9 表), W4 没跑时 skip
+- **idempotency 跟 W4 配套**: (date, dim, version) UNIQUE INDEX (W4/MVP 已加), W3 跑去重检
+
+### W3 full 留作下次 sprint
+- [ ] 3 留作断言: `assert_540_completeness` / `assert_dimension_drift` / `assert_history_no_loss`
+- [ ] `scripts/etl/pipeline.py` 在 step 8 调 `run_assertions()` (W3 集成, MVP 不含)
+- [ ] lark-cli 真发消息 (MVP mock 掉, 测试时 _send_lark_alert 不真发)
+- [ ] E2E 测: 注入 history -50% 脏数据, 验 quarantine 触发 + lark 告警
+
+### CLAUDE.md 合规
+- ① 复用 `scraper/core/sanity_check.py:_send_lark_alert` (跨子项目, scraper/CLAUDE.md 允许, 不新写 lark 客户端)
+- ② ETL 脚本连接例外 (CLAUDE.md §接口开发六步 §ETL 脚本连接例外条款): `duckdb.connect` + `conn.close()` 由 caller 管
+- ③ 不破坏 ETL 单例连接 (assertions.py 只读 DuckDB, write 只入 rfm_quarantine)
+- ④ 12 步: `feat/wo3-dq-assertions-mvp` 分支 / pytest 258/8 / Python 3.14
+
+### 验收 (design doc v1.1 §7.3 MVP)
+- [x] `scripts/etl/assertions.py` 3 断言函数 + pytest 11 tests
+- [x] `rfm_quarantine` 表 (id, date, failed_assertion, reason, raw_data JSON)
+- [ ] pipeline.py 在 step 8 调 assertions (W3 full 集成)
+- [ ] pytest 6 断言 + quarantine 不阻塞后续 ETL (W3 full)
+
+
 ## [v0.4.9] - 2026-06-06 - feat(etl): W4 MVP fact_rfm_long 预计算 — 痛点 3 部分缓解
 
 ### Added
