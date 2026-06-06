@@ -2,8 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+## [v0.4.7.7] - 2026-06-06 - feat(ci): B4 P1 requirements-lock.txt 锁版本
+
+### Added
+- **`requirements-lock.txt`** (124 行, 新): `pip freeze` 输出, pin 死所有 transitive deps. 杜绝"装包列表跟声明漂移"复发 (v0.4.7.3 根因)
+
+### Changed
+- **`.github/workflows/lint.yml`**: `pip install -r requirements.txt` → `pip install -r requirements-lock.txt`. CI 装版本与本机 lock 严格一致
+- **`.github/workflows/nightly.yml`** (v0.4.7.6): 同上
+
+### Lock 维护约定
+- **新增依赖**: `pip install X` → 跟 `requirements.txt` 同步 (声明) + `pip freeze > requirements-lock.txt` (锁版本) → 一起 commit
+- **改版本**: `requirements.txt` 升下限 + lock 重 freeze, 两个文件一起 PR (声明 + 锁)
+- **lock 漂移检测**: 跑 `pip install -r requirements-lock.txt` 跟当前 venv 对比, 一致 = 0 漂移
+- **验收**: 故意改 `requirements-lock.txt` 某版本号 → CI lint job 应挂 (装包失败或 pytest fail)
+
+### Trade-off
+- lock 文件含 venv 全局污染 (124 个包, 项目直接用 ~16). CI 装 30-60s, 但保 0 漂移. 收益 > 成本
+- 真要最小化 lock: 用 `pip-compile requirements.txt -o requirements-lock.txt` (项目没装 pip-tools, 后续可加)
 
 
 ## [v0.4.7.6] - 2026-06-06 - feat(ci): B3 P1 nightly 健康检查 workflow
