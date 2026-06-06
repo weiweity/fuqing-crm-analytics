@@ -35,8 +35,10 @@ jobs:
 
       - name: P1-3 ground truth lint (B2 nightly 扫已合 main 历史)
         # 扫已合 main 的 docs/ review 文件, 防止 D-4 类错误混入历史
+        # P1-3 二轮 B2 修 (2026-06-07): 改用 --committed 模式 (git show HEAD:<path>),
+        # 旧 staged 模式对已 commit 文件永远 no-op
         run: |
-          python3 .githooks/check_review_ground_truth.py --files \
+          python3 .githooks/check_review_ground_truth.py --committed --files \
             "docs/validation-reports/*.md" \
             "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (nightly)"
 

@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.4] - 2026-06-07 - fix(ci): P1-3 review 二轮 3 件 (B2 NOOP + H1 HEX + BRANCH-STATE)
+
+### Fixed
+- **B2 NOOP (blocker) — CI 结构性 no-op**: 旧实现只读 `git diff --cached` (staged content), CI 跑已 commit 文件时永远 0 字节 → 永远 rc=0, 是结构性 no-op
+  - 加 `--committed` 模式: 用 `git show HEAD:<path>` 拉已 commit 文件内容, `parse_whole_file` 整文件当 added_lines 扫 (diff_scope_filter='whole_file')
+  - `.github/workflows/lint.yml` + `nightly.yml` ground-truth-lint step 改用 `--committed --files` 模式
+  - 新测试 `TestB2CommittedMode` (8 cases): `test_parse_whole_file_*` / `test_get_committed_content_*` / `test_check_file_committed_mode_*` / `test_committed_mode_end_to_end_in_git_repo` (真 tmp git repo commit 验证)
+- **H1 HEX-COLOR-BACKDOOR (high) — hex color 旁路**: SHA regex `(?:commit[:\s]+|tag[:\s]+|PR\s*#?[:\s]*|#|@)\b[0-9a-f]{7,40}\b` 接受 `#` 前缀, `#ff00aabb` (8 hex) 被算 evidence (false positive 旁路)
+  - `_is_pseudo_sha` (重命名自 `_looks_like_phone_or_id_card`) 加 hex color 模式: `re.search(r'#[0-9a-f]{6,8}\b', text)` → 视为伪 SHA
+  - 加 `HEX_COLOR_RE` + `_filter_hex_color_evidence()`, `find_evidence_nearby` 显式抠掉 evidence 中所有 #xxxxxx
+  - 新测试 `TestH1HexColorExclusion` (7 cases): red team `X 未集成 #ff00aabb` 被拦 + 正例 `commit ff00aabb` (无 # 前缀) 仍算 evidence
+- **BRANCH-STATE-MESS (medium) — 修复在错分支**: 修在 `fix/sprint3-p13-review-lint-fixes` (0d7b9bb), 原 `fix/sprint3-p13-review-lint` 还指 33c7fe3 旧版, merge 会拿到 broken 版本
+  - 修后 force-push 0d7b9bb + 新 commit 到原分支 `fix/sprint3-p13-review-lint`
+  - 删除 `fix/sprint3-p13-review-lint-fixes` 分支 (本地 + remote)
+
+### Note
+- `--committed` 模式 + staged 模式互斥, 通过 `--committed` flag 切换, 默认仍是 staged (本地 pre-commit 钩子不变)
+- hex color 黑名单覆盖 6-8 位 (#fff #ffffff #ffff 带 alpha), 3/4 位短形式 (少见) 不在白名单
+- end-to-end committed 测试会 init tmp git repo, 已用 GIT_CONFIG_GLOBAL=/dev/null 隔离, 不会污染 worktree
+
 ## [v0.4.14.3] - 2026-06-07 - fix(ci): P1-3 review 修 5 件 (2 blocker + 3 high)
 
 ### Fixed

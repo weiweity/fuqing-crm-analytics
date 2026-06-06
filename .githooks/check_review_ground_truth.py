@@ -29,11 +29,20 @@ Sprint 3 P1-3: pre-commit 钩子 — 拦截未带 git log 实证的"未集成/�
   - 仅检查 staged diff (git diff --cached), 不检查 unstaged
   - 跳过 review 抬头中的元数据 (例如 "未集成" 在表头/索引/链接不算)
   - 提供 `FQA_GROUND_TRUTH_SKIP=1` 环境变量绕过 (救火用)
+  - 黑名单: hex color (#ff00aabb / #ffffff 等带 # 前缀) / 11位手机号 / 15/18位身份证
+    → 都不算 evidence (防 false positive 旁路)
 
 用法:
   - 自动: 由 .githooks/pre-commit 调
-  - 手动: python3 .githooks/check_review_ground_truth.py [--staged] [--files FILE] [--verbose]
+  - 手动: python3 .githooks/check_review_ground_truth.py [--staged] [--committed] [--files FILE] [--verbose]
   - 测试: pytest backend/tests/test_check_review_ground_truth.py -v
+
+P1-3 二轮 (2026-06-07) — 3 修:
+  - B2 NOOP fix: 加 --committed 模式, 跑 git show HEAD:<path> 拉已 commit 文件
+    内容, 解决 CI 跑已 commit 文件时 git diff --cached 永远 0 字节的 no-op 问题
+  - H1 HEX backdoor fix: 增强 _is_pseudo_sha 黑名单, 加 hex color 模式
+    (re.search(r'#[0-9a-f]{6,8}\\b', text)) 排除 "#ff00aabb" 类伪 evidence
+  - 已 commit 文件扫: commit 模式 whole_file parse, diff_scope_filter='whole_file'
 """
 from __future__ import annotations
 
@@ -72,11 +81,19 @@ EVIDENCE_PATTERNS: tuple[re.Pattern[str], ...] = (
 )
 
 
-def _looks_like_phone_or_id_card(s: str) -> bool:
-    """黑名单: 11位 全数字 (手机号) / 15/18位 (身份证) 不是 commit SHA.
+def _is_pseudo_sha(s: str) -> bool:
+    """黑名单: 不是真 commit SHA 的伪 evidence.
 
-    这些是中文 review 文档里常见的"伪 evidence", 旧 regex \b[0-9a-f]{7,40}\b 会误判.
+    P1-3 H1 (2026-06-07): 11位 全数字 (手机号) / 15/18位 (身份证) — 旧 regex
+    \b[0-9a-f]{7,40}\b 误判.
+
+    P1-3 二轮 H1 HEX (2026-06-07): hex color (#ff00aabb / #ffffff 等带 # 前缀)
+    — "#" 是 SHA regex 的合法前导 (#ff00aabb 8 位 hex 满足 7-40), 但 CSS hex
+    color 不是 commit SHA, 必须从 evidence 排除.
     """
+    # hex color: # 开头 + 6-8 位 hex (覆盖 #fff #ffffff #ffff 八位带 alpha)
+    if re.search(r"#[0-9a-f]{6,8}\b", s, re.IGNORECASE):
+        return True
     digits_only = re.sub(r"\D", "", s)
     if len(digits_only) == 11 and digits_only.isdigit():
         return True  # 手机号
@@ -86,12 +103,21 @@ def _looks_like_phone_or_id_card(s: str) -> bool:
 
 
 def _filter_sha_evidence(text: str) -> str:
-    """过滤掉 phone/ID-card 假阳性 SHA, 保留真 git commit/tag 上下文."""
+    """过滤掉 phone/ID-card/hex-color 假阳性 SHA, 保留真 git commit/tag 上下文."""
     return re.sub(
         r"\b[0-9a-f]{7,40}\b",
-        lambda m: m.group(0) if not _looks_like_phone_or_id_card(m.group(0)) else "",
+        lambda m: m.group(0) if not _is_pseudo_sha(m.group(0)) else "",
         text,
     )
+
+
+# P1-3 二轮 H1 HEX (2026-06-07): 显式 hex color 模式, 抠掉 evidence 中所有 #xxxxxx
+HEX_COLOR_RE = re.compile(r"#[0-9a-f]{6,8}\b", re.IGNORECASE)
+
+
+def _filter_hex_color_evidence(text: str) -> str:
+    """从 evidence 抠掉所有 hex color (#ff00aabb 等), 防 # 前缀 SHA 旁路."""
+    return HEX_COLOR_RE.sub("", text)
 
 # 检查范围: 只扫 docs/ 下 .md 文件 (review/audit 风格输出)
 # 显式白名单 + 显式黑名单 (避免误拦代码/版本声明)
@@ -171,6 +197,41 @@ def get_staged_diff(path: str) -> str:
     return result.stdout
 
 
+def get_committed_content(path: str) -> str:
+    """P1-3 二轮 B2 修: 拉已 commit 文件的完整内容 (git show HEAD:<path>).
+
+    用于 CI 模式: 跑已 commit 文件, 没有 staged diff, 必须直接拿文件内容.
+
+    Returns:
+        完整文件内容 (UTF-8 字符串), 失败返空字符串.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "show", f"HEAD:{path}"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            return ""
+        return result.stdout
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return ""
+
+
+def parse_whole_file(content: str) -> list[tuple[int, str]]:
+    """P1-3 二轮 B2 修: 整文件内容当 added_lines 解析 (committed 模式).
+
+    把每行当 (line_no, content), 用 1-based 行号. 这是 committed 模式的核心:
+    没有 diff, 只能扫整文件.
+    """
+    out: list[tuple[int, str]] = []
+    for i, line in enumerate(content.splitlines(), start=1):
+        out.append((i, line))
+    return out
+
+
 def parse_added_lines(diff: str) -> list[tuple[int, str]]:
     """Parse unified diff, return [(line_no, content)] for added lines.
 
@@ -207,6 +268,7 @@ def find_evidence_nearby(added_lines: list[tuple[int, str]], trigger_idx: int, w
 
     P1-3 H1 修 (2026-06-07): SHA 段先过 phone/ID 卡 filter, 排除 11/15/18 位 数字伪 evidence.
     P1-3 H3 修 (2026-06-07): "git log" 字符串出现 + 文件在 git 历史中存在 → 双重验证.
+    P1-3 二轮 H1 HEX (2026-06-07): evidence 抠掉 hex color (#ff00aabb 等), 防 # 前缀旁路.
     """
     if not added_lines:
         return False
@@ -215,6 +277,8 @@ def find_evidence_nearby(added_lines: list[tuple[int, str]], trigger_idx: int, w
     nearby_text = "\n".join(line for _, line in added_lines[start:end])
     # H1: 先过 phone/ID 卡 filter, 抠掉 11/15/18 位 数字伪 SHA
     filtered_text = _filter_sha_evidence(nearby_text)
+    # P1-3 二轮 H1 HEX: 抠掉 hex color (#ff00aabb 等带 # 前缀的 6-8 位 hex)
+    filtered_text = _filter_hex_color_evidence(filtered_text)
     for pat in EVIDENCE_PATTERNS:
         if pat.search(filtered_text):
             return True
@@ -276,8 +340,8 @@ def find_triggers(added_lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
     return triggers
 
 
-def check_file(path: str) -> list[tuple[int, str, str]]:
-    """检查单个 staged 文件. 返回 [(lineno, trigger, reason), ...] violations.
+def check_file(path: str, committed: bool = False) -> list[tuple[int, str, str]]:
+    """检查单个 staged / committed 文件. 返回 [(lineno, trigger, reason), ...] violations.
 
     reason 是 "no_evidence" (无 evidence) 或 "no_real_evidence" (字符串有但 git log 跑空) 等.
 
@@ -285,12 +349,25 @@ def check_file(path: str) -> list[tuple[int, str, str]]:
       L1 cheap: 触发词附近有 git log / SHA / 已集成 等 evidence 字符串
       L2 real:  真跑 git log --all -- <path>, 验证该文件在 git 历史中真存在
       → expensive case ("写了 git log 但没跑 / 跑空") 仍需 /review skill 人工护航
+
+    P1-3 二轮 B2 (2026-06-07): committed=True 模式
+      - 不读 staged diff (CI 跑已 commit 文件, 永远空)
+      - 用 git show HEAD:<path> 拉文件内容
+      - parse_whole_file 把每行当 added_lines (diff_scope_filter='whole_file')
+      - 解决 CI 结构性 no-op 问题
     """
     violations: list[tuple[int, str, str]] = []
-    diff = get_staged_diff(path)
-    if not diff.strip():
-        return violations
-    added_lines = parse_added_lines(diff)
+    if committed:
+        # B2 修: 已 commit 文件模式, 整文件扫
+        content = get_committed_content(path)
+        if not content.strip():
+            return violations
+        added_lines = parse_whole_file(content)
+    else:
+        diff = get_staged_diff(path)
+        if not diff.strip():
+            return violations
+        added_lines = parse_added_lines(diff)
     triggers = find_triggers(added_lines)
     # H3: 用 git 根目录跑 git log (cwd 决定 history 范围, worktree vs main repo 不同)
     git_root = _git_root()
@@ -324,6 +401,12 @@ def _git_root() -> str | None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check staged review files for unbacked ground-truth claims")
     parser.add_argument("--staged", action="store_true", default=True, help="Check staged diffs (default)")
+    parser.add_argument(
+        "--committed",
+        action="store_true",
+        default=False,
+        help="P1-3 二轮 B2: 扫已 commit 文件 (git show HEAD:<path>), 用于 CI 模式",
+    )
     parser.add_argument("--files", nargs="*", help="Specific files to check (overrides --staged)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args(argv)
@@ -334,16 +417,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.files:
         files = list(args.files)
+    elif args.committed:
+        # committed 模式: 取文件列表 (--files 或默认 docs/ scope)
+        files = list(args.files) if args.files else []
     else:
         files = [f for f in get_staged_files() if is_review_file(f)]
 
     if not files:
-        print("[ok] check_review_ground_truth: 无 review-style staged 文件, 跳过")
+        if args.committed:
+            print("[ok] check_review_ground_truth (--committed): 无 review 文件传入, 跳过")
+        else:
+            print("[ok] check_review_ground_truth: 无 review-style staged 文件, 跳过")
         return 0
 
     total_violations = 0
     for path in files:
-        violations = check_file(path)
+        violations = check_file(path, committed=args.committed)
         if violations:
             total_violations += len(violations)
             print(f"\n[fail] {path}: {len(violations)} 个未附 git log 实证的 ground-truth 声明:")
@@ -363,7 +452,10 @@ def main(argv: list[str] | None = None) -> int:
         print("\n  救火绕过: FQA_GROUND_TRUTH_SKIP=1 git commit ...")
         return 1
 
-    print(f"[ok] check_review_ground_truth: 扫了 {len(files)} 个 review 文件, 无未附实证的 ground-truth 声明")
+    if args.committed:
+        print(f"[ok] check_review_ground_truth (--committed): 扫了 {len(files)} 个 review 文件, 无未附实证的 ground-truth 声明")
+    else:
+        print(f"[ok] check_review_ground_truth: 扫了 {len(files)} 个 review 文件, 无未附实证的 ground-truth 声明")
     return 0
 
 

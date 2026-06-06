@@ -14,8 +14,10 @@ jobs:
 
   ground-truth-lint:
     runs-on: ubuntu-latest
-    # P1-3 B2: 镜像本地 pre-commit 钩子, 防止 agent 走 PR 漏判 ground-truth 错误
+    # P1-3 B2 (2026-06-06): 镜像本地 pre-commit 钩子, 防止 agent 走 PR 漏判 ground-truth 错误
     # 教训 D-4 (2026-06-06): 飞书架构 7 份刷出现 4 个未附 git log 实证的 ground-truth 声明
+    # P1-3 二轮 B2 修 (2026-06-07): 改用 --committed 模式, 跑 git show HEAD:<path>
+    # 拉已 commit 文件内容 (旧 staged 模式对已 commit 文件永远 no-op)
     # 非阻塞起步 (|| echo warning), 观察 false positive 率后再考虑改 blocking
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +26,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - name: Ground truth lint (B2 P1-3)
+      - name: Ground truth lint (B2 P1-3 + 二轮 B2 committed 模式)
         run: |
-          python3 .githooks/check_review_ground_truth.py --files \
+          python3 .githooks/check_review_ground_truth.py --committed --files \
             "docs/validation-reports/*.md" \
             "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (non-blocking for now)"
 
