@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.5] - 2026-06-06 - feat(ci): B2 P0 根因预防 — pre-commit import 完整性检查
+
+### Added
+- **`.githooks/check_imports.py`** (194 行, 新): Python AST 扫 `backend/` + `scripts/etl/` 3rd-party imports, 跟 `requirements.txt` 对账. 缺任意一个 → exit 1 拦截 commit. 根因预防 v0.4.7.3 → .3.2 链式 CI ImportError 修链. 自动检测项目本地包 (有 `__init__.py` 的目录) + monorepo namespace package (scraper/scripts/tests)
+- **`.githooks/pre-commit`**: ruff 后 + pytest 前 加 B2 step 调 `check_imports.py`, 失败 print 缺失包 + 实际使用文件, 修法指引
+
+### 防复发效果
+- **验收测试**: 故意从 `requirements.txt` 删 bcrypt 行 → B2 exit 1 拦截, 提示 `bcrypt (used in: backend/routers/auth.py)`. 恢复 → exit 0 放行
+- **CI 0 噪音**: 本地 pre-commit 拦下, GitHub Actions 不会再撞 v0.4.7.3 那种 30+ 红 CI 修链
+- **限**: 静态 AST 扫, 跳 dynamic import (`importlib.import_module("X")`). 后续如需补, 改 check_imports.py 加 try-except import 即可
+
+### 已知 PIP 别名 (项目实际可能用)
+- `dotenv` ↔ `python-dotenv`, `pptx` ↔ `python-pptx`, `dateutil` ↔ `python-dateutil`, `yaml` ↔ `pyyaml`, `bs4` ↔ `beautifulsoup4`, `pil` ↔ `pillow`, `cv2` ↔ `opencv-python`, `sklearn` ↔ `scikit-learn`, `skimage` ↔ `scikit-image`, `crypto` ↔ `pycryptodome`, `attr` ↔ `attrs`, `magic` ↔ `python-magic`, `serial` ↔ `pyserial`, `grpc` ↔ `grpcio`
+
+
 ## [v0.4.7.4.1] - 2026-06-06 - fix: VERSION drift 0.3.5 → 0.4.7.4 + CLAUDE.md / README.md 状态同步
 
 ### Fixed
