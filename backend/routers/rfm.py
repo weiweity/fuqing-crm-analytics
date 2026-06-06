@@ -13,6 +13,7 @@ from backend.contracts.schemas import (
     RFMMFlowResponse,
     SegmentOrdersResponse,
 )
+from backend.services.rfm.loader import get_rfm_manifest_info  # W2 v0.4.8
 from backend.services.rfm import (
     get_rfm_r_flow,
     get_rfm_f_flow,
@@ -146,3 +147,16 @@ def get_segment_orders_api(
         channel=channel,
         exclude_channels=exclude_channels,
     )
+
+
+# W2 v0.4.8: manifest version endpoint (设计 doc v1.1 §6 完成标志第 4 条)
+@router.get("/version")
+def get_rfm_manifest_version():
+    """返回当前 active manifest 信息 (active_view / version / ts / path).
+
+    用途:
+    - 调试 ETL 跑批后 manifest 是否更新
+    - W5 cache invalidate 配套 (manifest 变化触发整表失效)
+    - 监控告警 (active_view 空 = ETL 还没跑过)
+    """
+    return get_rfm_manifest_info()

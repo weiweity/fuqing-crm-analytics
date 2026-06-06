@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.8] - 2026-06-06 - feat(etl): W2 原子 snapshot 切换 — 痛点 2 根因修复
+
+### Added
+- **`scripts/etl/manifest.py`** (~180 行, 新): `SnapshotManifest` 类实现 POSIX atomic 切换. 写: tmp file + `os.fsync` + `os.rename` (POSIX atomic, near-atomic on Windows). 读: `open().read()` 短读原子. 旧版本保留 7 天 (`.versions/{ts}_v{N}.json`). 损坏兼容 (`read_active()` 返回空串不抛异常). 单 view (user 拍板 v1.1 §13)
+- **`backend/services/rfm/loader.py`** (~50 行, 新): API 层入口. `get_rfm_view_name()` 读 manifest 拿 active view 名. `get_rfm_manifest_info()` 给 `/api/v1/rfm/version` endpoint
+- **`/api/v1/rfm/version`** endpoint (backend/routers/rfm.py): 返回 `{"active_view": str, "version": int, "ts": str, "path": str}`. 用途: 调试 ETL manifest 更新 + W5 cache invalidate 配套 + 监控告警
+- **`backend/tests/test_w2_manifest.py`** (16 tests, 新): 覆盖 write/read 原子性 + 损坏兼容 + 7 天保留 + 过期清理 + concurrent write + **SIGKILL 中途不破坏** (POSIX atomic rename 兜底) + endpoint schema
+
+### 设计 (design doc v1.1 §6)
+- **写流程**: tmp + fsync → 复制旧版本到 .versions/ → os.rename tmp → manifest (POSIX atomic on same FS, 失败回滚安全)
+- **读流程**: open().read() — Python 内核层保证 < 4KB 原子, 多 API 线程并发安全
+- **7 天保留**: `.versions/{ts}_v{N}.json`, lazy cleanup on write
+- **单 view**: 出问题直接回滚到 .versions/ 里的上一版, 不支持多 view 并行灰度
+
+### CLAUDE.md 合规
+- ① 走 `os.rename` + `os.fsync` (POSIX atomic 兜底)
+- ② 多 API 线程并发读安全 (短读 + atomic rename 后单文件原子)
+- ③ 不动 ETL 单例连接 (manifest.py 只读 FS, 与 DuckDB 无关)
+- ④ 12 步: `feat/wo2-manifest-snapshot` 分支 / pytest 240/8 / Python 3.14 / qa 验 SIGKILL 安全 (16/16 test 覆盖)
+
+### 验收 (design doc v1.1 §7.2 完成标志)
+- [x] manifest.json 旧版本保留 7 天 (`.versions/`, 12 retention_days 段测试)
+- [x] 模拟 ETL 写到一半被 kill (SIGKILL) → API 仍读到旧 view (`test_sigkill_during_write_leaves_manifest_intact`)
+- [x] pytest 测 concurrent read during write (`test_concurrent_writes_last_wins`)
+- [x] API 文档更新: GET /api/v1/rfm/version 返回当前 active view
+
+### 配套
+- **W3 (DQ + 幂等)**: W2 manifest 不依赖, 可独立做
+- **W4 (fact_rfm_long 预计算)**: 写 view 后 `write_active("fact_rfm_view_v{N}")` 让 API 自动切新表
+- **W5 (DuckDB-KV cache)**: cache invalidate 钩子读 manifest.version, 变化 → 整表失效 (本 commit 已留 `get_rfm_manifest_info` 接口)
+
+### 限
+- 当前 ETL 未调 `write_active()` (W2 验收不要求), 实际触发是 W3/W4 时集成 (`scripts/etl/pipeline.py` ETL 末尾调 `manifest.write_active(...)`)
+- manifest.json 缺失/损坏时 `read_active()` 返回空串, API 需 fallback 处理 (本 commit 默认抛 "ETL not run yet")
+
+
 ## [v0.4.7.9] - 2026-06-06 - feat(ci): B6 P3 每周 CI 健康报告
 
 ### Added
