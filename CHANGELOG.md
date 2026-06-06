@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.3] - 2026-06-07 - fix(ci): P1-3 review 修 5 件 (2 blocker + 3 high)
+
+### Fixed
+- **B1 core.hooksPath 死代码**: 加 scripts/setup-hooks.sh 一次性激活; README "快速开始" 段加激活指引; CLAUDE.md 加演示代码检查绕过提醒
+- **B2 CI 完全没调 check_review_ground_truth**: .github/workflows/lint.yml 加 ground-truth-lint job (非阻塞 warning 起步); nightly.yml 也加
+- **H1 SHA evidence 正则过宽**: 旧 \b[0-9a-f]{7,40}\b 误判中国身份证/手机号/hex color; 新正则要求 commit/tag/PR/#/@ 前导, 加 phone/ID 黑名单
+- **H2 46 测试 trivial 内部**: 压到 30 tests (5 is_review_file + 6 trigger + 6 evidence + 4 diff + 3 e2e + 2 env/CLI + 2 H3 + 2 misc), 648 → 350 行
+- **H3 evidence 只验字符串出现**: 加 has_real_git_evidence 真跑 git log 双重验证 (cheap L1 字符串 → real L2 git log 跑通)
+
+### Note
+- H3 限制: 仍依赖 PR review 人工护航 expensive case ("写了 git log 但实际跑空")
+- B2 ground-truth-lint 起步 non-blocking, 观察 false positive 率再考虑改 blocking
+
 
 ## [v0.4.14.1] - 2026-06-06 - docs: D-4 飞书架构 7 份刷 — 修 15 findings (PR #19)
 

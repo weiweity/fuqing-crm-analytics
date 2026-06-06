@@ -12,6 +12,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
 
+  ground-truth-lint:
+    runs-on: ubuntu-latest
+    # P1-3 B2: 镜像本地 pre-commit 钩子, 防止 agent 走 PR 漏判 ground-truth 错误
+    # 教训 D-4 (2026-06-06): 飞书架构 7 份刷出现 4 个未附 git log 实证的 ground-truth 声明
+    # 非阻塞起步 (|| echo warning), 观察 false positive 率后再考虑改 blocking
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需全历史给 ground-truth lint 跑 git log --all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Ground truth lint (B2 P1-3)
+        run: |
+          python3 .githooks/check_review_ground_truth.py --files \
+            "docs/validation-reports/*.md" \
+            "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (non-blocking for now)"
+
   test:
     runs-on: ubuntu-latest
     steps:

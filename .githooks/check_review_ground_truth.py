@@ -56,12 +56,42 @@ TRIGGER_WORDS: tuple[str, ...] = (
 
 # 证据模式: 触发词附近必须出现以下任一
 # 注: 用 re.IGNORECASE 区分大小写
+# P1-3 H1 修 (2026-06-07): SHA regex 严格化
+#   旧: \b[0-9a-f]{7,40}\b — 误判中国身份证 (18位) / 手机号 (11位) / hex color
+#   新: 必须有 git commit/tag/PR 前导 (e.g. "commit a1b2c3d" / "tag v1.0 #abc1234" / "PR #abc1234")
+#   黑名单: 11位 全数字 (手机号) / 15位 / 18位 (身份证) — 这些不算 SHA
 EVIDENCE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"git\s+log\b", re.IGNORECASE),
     re.compile(r"git\s+show\b", re.IGNORECASE),
-    re.compile(r"\b[0-9a-f]{7,40}\b"),  # commit SHA
+    # 严格 SHA: 7-40 位 hex 且前面必须是 commit/tag/PR/#/@ 等 git 上下文
+    re.compile(
+        r"(?:commit[:\s]+|tag[:\s]+|PR\s*#?[:\s]*|#|@)\b[0-9a-f]{7,40}\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"已验证|已确认|已核对|已落地|已合入|已集成|已实现|已存在"),
 )
+
+
+def _looks_like_phone_or_id_card(s: str) -> bool:
+    """黑名单: 11位 全数字 (手机号) / 15/18位 (身份证) 不是 commit SHA.
+
+    这些是中文 review 文档里常见的"伪 evidence", 旧 regex \b[0-9a-f]{7,40}\b 会误判.
+    """
+    digits_only = re.sub(r"\D", "", s)
+    if len(digits_only) == 11 and digits_only.isdigit():
+        return True  # 手机号
+    if len(digits_only) in (15, 18) and digits_only.isdigit():
+        return True  # 身份证
+    return False
+
+
+def _filter_sha_evidence(text: str) -> str:
+    """过滤掉 phone/ID-card 假阳性 SHA, 保留真 git commit/tag 上下文."""
+    return re.sub(
+        r"\b[0-9a-f]{7,40}\b",
+        lambda m: m.group(0) if not _looks_like_phone_or_id_card(m.group(0)) else "",
+        text,
+    )
 
 # 检查范围: 只扫 docs/ 下 .md 文件 (review/audit 风格输出)
 # 显式白名单 + 显式黑名单 (避免误拦代码/版本声明)
@@ -174,16 +204,64 @@ def find_evidence_nearby(added_lines: list[tuple[int, str]], trigger_idx: int, w
 
     在审查文档场景下, "附近" 通常是同段 (3-5 行) 或同表 (10-30 行).
     window=30 是宽松值, 防止跨段落严格匹配导致误伤.
+
+    P1-3 H1 修 (2026-06-07): SHA 段先过 phone/ID 卡 filter, 排除 11/15/18 位 数字伪 evidence.
+    P1-3 H3 修 (2026-06-07): "git log" 字符串出现 + 文件在 git 历史中存在 → 双重验证.
     """
     if not added_lines:
         return False
     start = max(0, trigger_idx - window)
     end = min(len(added_lines), trigger_idx + window + 1)
     nearby_text = "\n".join(line for _, line in added_lines[start:end])
+    # H1: 先过 phone/ID 卡 filter, 抠掉 11/15/18 位 数字伪 SHA
+    filtered_text = _filter_sha_evidence(nearby_text)
     for pat in EVIDENCE_PATTERNS:
-        if pat.search(nearby_text):
+        if pat.search(filtered_text):
             return True
     return False
+
+
+def _git_log_produced_output(file_path: str, cwd: str | None = None) -> bool:
+    """H3: 真跑 git log 验证 — 文件在 git 历史中存在时, git log 才有输出.
+
+    返回 True = 文件在 git 历史中 (旧文件, agent 真能跑 git log 实证).
+    返回 False = 文件是 brand new (agent 写 "git log" 但实际没跑 / 跑空).
+    """
+    try:
+        result = subprocess.run(
+            ["git", "log", "--oneline", "--all", "--", file_path],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            cwd=cwd,
+        )
+        return bool(result.stdout.strip())
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+def has_real_git_evidence(
+    added_lines: list[tuple[int, str]],
+    trigger_idx: int,
+    file_path: str,
+    window: int = 30,
+    cwd: str | None = None,
+) -> bool:
+    """H3 强验证: 'git log' 字符串 + 该文件在 git 历史中真存在 → 双重 evidence.
+
+    仅在 nearby 出现 'git log' / 'git show' 字符串时启用 (cheap case 升级到 real case).
+    失败时不阻断, 只把 verdict 降级为 no_real_evidence (commit 仍可过, 但带 warning).
+    """
+    if not added_lines:
+        return False
+    start = max(0, trigger_idx - window)
+    end = min(len(added_lines), trigger_idx + window + 1)
+    nearby_text = "\n".join(line for _, line in added_lines[start:end])
+    has_git_string = bool(re.search(r"git\s+(log|show)\b", nearby_text, re.IGNORECASE))
+    if not has_git_string:
+        return True  # 不依赖 git log 的 evidence 模式 (e.g. SHA + 前导), 直接 pass
+    return _git_log_produced_output(file_path, cwd=cwd)
 
 
 def find_triggers(added_lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
@@ -201,7 +279,12 @@ def find_triggers(added_lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
 def check_file(path: str) -> list[tuple[int, str, str]]:
     """检查单个 staged 文件. 返回 [(lineno, trigger, reason), ...] violations.
 
-    reason 是 "no_evidence" (无 evidence) 或其他.
+    reason 是 "no_evidence" (无 evidence) 或 "no_real_evidence" (字符串有但 git log 跑空) 等.
+
+    P1-3 H3 (2026-06-07): 两步验证
+      L1 cheap: 触发词附近有 git log / SHA / 已集成 等 evidence 字符串
+      L2 real:  真跑 git log --all -- <path>, 验证该文件在 git 历史中真存在
+      → expensive case ("写了 git log 但没跑 / 跑空") 仍需 /review skill 人工护航
     """
     violations: list[tuple[int, str, str]] = []
     diff = get_staged_diff(path)
@@ -209,10 +292,33 @@ def check_file(path: str) -> list[tuple[int, str, str]]:
         return violations
     added_lines = parse_added_lines(diff)
     triggers = find_triggers(added_lines)
+    # H3: 用 git 根目录跑 git log (cwd 决定 history 范围, worktree vs main repo 不同)
+    git_root = _git_root()
     for idx, (lineno, trigger) in enumerate(triggers):
         if not find_evidence_nearby(added_lines, idx):
             violations.append((lineno, trigger, "no_evidence"))
+            continue
+        # L2 验证 (H3): 有 evidence 字符串, 但 git log 真能跑出输出吗?
+        if not has_real_git_evidence(added_lines, idx, path, cwd=git_root):
+            violations.append((lineno, trigger, "no_real_evidence (git log 字符串在, 但跑空 / 跑失败)"))
     return violations
+
+
+def _git_root() -> str | None:
+    """返回 git 仓库根目录 (toplevel), 失败返回 None."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
