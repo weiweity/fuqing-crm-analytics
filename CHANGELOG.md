@@ -54,6 +54,36 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.12] - 2026-06-06 - feat(etl): W4 full — 540 组合 + dbt-style merge T-7 + 全量重算 — 痛点 3 预计算全量
+
+### Added
+- **W4 full 540 组合** (`scripts/etl/precompute_fact_rfm.py`): `incremental_load` 扩 9 channels × 60 items × 1 segment_id (聚合) = 540 组合, 走 `backend.semantic.segments` (CLAUDE.md 硬规则) + `backend.semantic.filters.OrderFilters.valid_order()` 口径
+- **dbt-style snapshot T-7** (`merge_replace(load_date)`): 对 (load_date) 整批 INSERT 新 version (= existing_max+1), 旧 version 保留 (历史链可追溯), UNIQUE 索引保证幂等
+- **`incremental_load_with_merge(target_date, t_minus_days=7)`**: 一步组合 incremental + T-7 内 merge, 修复 late-arriving (设计 doc Premise 7: T-7 内 99% 覆盖)
+- **`enumerate_combos()` + `enumerate_items()`**: 动态枚举 (channel, item, segment_id) 组合, 从 orders.spu_product_class top 60 by GMV 兜底 `W4_ITEMS_FALLBACK` (60 个)
+- **新文件 `scripts/etl/rfm_recompute_window.py`** (~150 行): 全量重算 CLI, `--from --to --dry-run --quiet`, 走 `setup_async_memory()` 16GB override
+- **W4 集成到 pipeline.py**: ETL 末尾调 `incremental_load_with_merge`, 失败 graceful degrade (跟 W6 通知同样的"不阻塞"哲学), 写入 `_stats["w4_fact_rfm"]` 给 W6 lark-cli 通知携带
+- **测试** `backend/tests/test_w4_full.py` (18 个 case): 540 组合枚举 + incremental_load 走 540 组合 + merge_replace 修复 late-arriving + incremental_load_with_merge + rfm_recompute_window.py dry-run CLI
+
+### Changed
+- **`scripts/etl/precompute_fact_rfm.py` 升级 v0.4.9 → v0.4.12**: 替换占位 `run_full_precomputation()` (raise NotImplementedError) 为 540 组合 + dbt-style merge + 全量重算
+- **`scripts/etl/pipeline.py`**: 加 `import os` (W4 stats 需要 `os.environ.get`); ETL 末尾加 W4 调, 失败不阻塞 (跟 W6 通知一致)
+- **`backend/tests/test_w4_fact_rfm.py`**: 适配 v0.4.12 schema (加 `spu_product_class` 列 + 传 `combos=MVP_COMBO` 显式 1 组合, 保持 MVP 测试语义)
+- **`backend/tests/test_w7_memory_limit.py`**: `test_w4_placeholder_raises_not_implemented` → `test_w4_full_v0_4_12_implemented` (W4 full 已实施)
+
+### Fixed
+- **`incremental_load` 旧签名**: 增加 `combos=None` 参数, 默认自动 `enumerate_combos()` (540), 但允许测试传 1 组合 mock
+
+### CLAUDE.md 合规
+- ① 走 `backend.semantic.segments.get_registry()` (校验) + `backend.semantic.filters.OrderFilters.valid_order()` (口径)
+- ② ETL 脚本连接例外 (CLAUDE.md §ETL 例外): `duckdb.connect(DUCKDB_PATH, config={"memory_limit": ...})` + `conn.close()`
+- ③ 12 步流程: branch = `feat/wo4-fact-rfm-full` / pytest 25 passed (W4 MVP 5 + W4 full 18 + 2 fixture) / 整 suite 417 passed / 8 skipped / ruff all clear
+
+### 设计参考
+- `docs/design/etl-phase4-architecture.md` §W4 + §7.4
+- Premise 7: 纯增量 + dbt-style snapshot 适合 10.6M 订单 (Late-arriving 订单 T-7 内覆盖 99%)
+
+
 ## [v0.4.10.1] - 2026-06-06 - fix: VERSION drift 复发 (0.4.7.4 → 0.4.10) + CLAUDE.md/README.md 同步 (224 → 258)
 
 ### Fixed

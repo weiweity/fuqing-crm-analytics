@@ -8,7 +8,12 @@ MVP 覆盖 (4 个核心):
 4. test_incremental_load_version_increments: 连续跑 version 续号
 
 CLAUDE.md 合规: pytest 走 homebrew Python 3.14, in-memory DuckDB 隔离.
+
+v0.4.12 调整: 适配 540 组合 (channel × item × segment_id).
+- mock orders 表加 spu_product_class 列
+- 单测调 incremental_load 时传 explicit 1-combo list (保持 MVP 1 组合语义)
 """
+import json
 import sys
 from datetime import date
 from pathlib import Path
@@ -26,12 +31,23 @@ from scripts.etl.precompute_fact_rfm import (  # noqa: E402
 )
 
 
+# MVP 1 组合 (channel='全店', item='全品' 兼容 v0.4.9 测试语义)
+MVP_COMBO = [{
+    "channel": "全店",
+    "item": "全品",
+    "segment_id": 0,
+    "dimension_key": "channel=全店",
+    "dimension_json": json.dumps({"channel": "全店", "item": "全品", "segment_id": 0}, ensure_ascii=False),
+}]
+
+
 @pytest.fixture
 def duckdb_conn():
     """In-memory DuckDB with mock orders table (3 rows: 2 users, 1 repurchase).
 
     Schema 跟生产 orders 表匹配 (subset: user_id, order_id, actual_amount,
-    pay_time, channel, valid_sql).
+    pay_time, channel, spu_product_class, is_goujinjin, is_refund, order_status).
+    v0.4.12: 加 spu_product_class 列 (item 维度需要).
     """
     conn = duckdb.connect(":memory:")
     conn.execute("""
@@ -41,18 +57,21 @@ def duckdb_conn():
             actual_amount DECIMAL(18,2),
             pay_time TIMESTAMP,
             channel VARCHAR,
-            valid_sql INTEGER
+            spu_product_class VARCHAR,
+            is_goujinjin BOOLEAN,
+            is_refund BOOLEAN,
+            order_status VARCHAR
         )
     """)
     # 灌测试数据: 3 个 user, 1 个复购
     # 昨天 (T-1): 2026-06-05
     conn.execute("""
         INSERT INTO orders VALUES
-            (1, 'o1', 100.00, '2026-06-05 10:00:00', '全店', 1),
-            (2, 'o2', 200.00, '2026-06-05 11:00:00', '全店', 1),
-            (2, 'o3', 150.00, '2026-06-05 12:00:00', '全店', 1),
-            (3, 'o4', 50.00,  '2026-06-04 10:00:00', '全店', 1),  -- 昨天之前
-            (4, 'o5', 999.00, '2026-06-05 10:00:00', '抖音', 1)   -- 其他 channel
+            (1, 'o1', 100.00, '2026-06-05 10:00:00', '全店', '全品', FALSE, FALSE, '已支付'),
+            (2, 'o2', 200.00, '2026-06-05 11:00:00', '全店', '全品', FALSE, FALSE, '已支付'),
+            (2, 'o3', 150.00, '2026-06-05 12:00:00', '全店', '全品', FALSE, FALSE, '已支付'),
+            (3, 'o4', 50.00,  '2026-06-04 10:00:00', '全店', '全品', FALSE, FALSE, '已支付'),
+            (4, 'o5', 999.00, '2026-06-05 10:00:00', '抖音', '全品', FALSE, FALSE, '已支付')
     """)
     yield conn
     conn.close()
@@ -91,13 +110,16 @@ class TestFactRfmTable:
 
 
 class TestIncrementalLoad:
-    """MVP 增量加载: 1 组合 (channel='全店') 验证机制."""
+    """MVP 增量加载: 1 组合 (channel='全店') 验证机制.
+
+    v0.4.12: 显式传 1-combo 列表, 保持 MVP 1 组合测试语义.
+    """
 
     def test_incremental_load_basic(self, duckdb_conn):
         """基本增量: T-1 (2026-06-05) 数据 1 组合插入成功."""
         create_fact_rfm_table(duckdb_conn)
         target = date(2026, 6, 6)
-        inserted = incremental_load(duckdb_conn, target)
+        inserted = incremental_load(duckdb_conn, target, combos=MVP_COMBO)
         assert inserted == 1
         # 验: load_date = 2026-06-05 (T-1)
         row = duckdb_conn.execute(
@@ -121,11 +143,11 @@ class TestIncrementalLoad:
         create_fact_rfm_table(duckdb_conn)
         target = date(2026, 6, 6)
         # 第 1 次
-        inserted_1 = incremental_load(duckdb_conn, target)
+        inserted_1 = incremental_load(duckdb_conn, target, combos=MVP_COMBO)
         assert inserted_1 == 1
         # 第 2 次 (同一天) — version 续 +1, 但 ON CONFLICT (date, dim, version) DO NOTHING
         # 实际 ON CONFLICT 是 (date, dim, version) 三元组, 第 2 次 version=2 不冲突, 会插入
-        inserted_2 = incremental_load(duckdb_conn, target)
+        inserted_2 = incremental_load(duckdb_conn, target, combos=MVP_COMBO)
         # 重要: 第 2 次应该插入新行 (version=2), 不是 0
         assert inserted_2 == 1
         # 验: 总行数 2 (v1 + v2 同一天)
@@ -145,7 +167,7 @@ class TestIncrementalLoad:
         create_fact_rfm_table(duckdb_conn)
         target = date(2026, 6, 6)
         for i in range(1, 4):
-            incremental_load(duckdb_conn, target)
+            incremental_load(duckdb_conn, target, combos=MVP_COMBO)
         versions = duckdb_conn.execute(
             f"SELECT version FROM {FACT_RFM_TABLE} WHERE date = '2026-06-05' ORDER BY version"
         ).fetchall()
@@ -155,7 +177,7 @@ class TestIncrementalLoad:
         """增量只 append T-1, 不影响其他日期 (orders 里 6/4 数据不会被 load)."""
         create_fact_rfm_table(duckdb_conn)
         target = date(2026, 6, 6)
-        incremental_load(duckdb_conn, target)
+        incremental_load(duckdb_conn, target, combos=MVP_COMBO)
         # 验: 6/4 (前天) 不在 fact_rfm_long 里 (orders 6/4 有 1 行, 但不在 load_date=T-1 范围)
         rows = duckdb_conn.execute(
             f"SELECT date FROM {FACT_RFM_TABLE}"
@@ -168,7 +190,7 @@ class TestIncrementalLoad:
         """MVP 只算 channel='全店', 其他 channel 不算 (user 4 在 '抖音' 不进 user_count)."""
         create_fact_rfm_table(duckdb_conn)
         target = date(2026, 6, 6)
-        incremental_load(duckdb_conn, target)
+        incremental_load(duckdb_conn, target, combos=MVP_COMBO)
         user_count = duckdb_conn.execute(
             f"SELECT user_count FROM {FACT_RFM_TABLE} WHERE date = '2026-06-05'"
         ).fetchone()[0]

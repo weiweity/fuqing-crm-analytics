@@ -2,6 +2,7 @@
 run_full_etl、增量更新、RFM 预计算、访客数据刷新。
 """
 import gc
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -444,6 +445,39 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
     print("滑动窗口 ETL 完成!")
     print("=" * 60)
 
+    # W4 full v0.4.12: 调 fact_rfm_long 预计算 (incremental + merge_replace T-7)
+    # 设计 doc v1.1 §W4: 540 组合 append T-1 + dbt-style snapshot 修复 late-arriving
+    # pipeline 集成点: ETL 末尾 (Step 8 之后), 失败不阻塞 W6 通知
+    w4_stats = {"incremental": 0, "merge": 0, "merge_dates": [], "skipped": True, "reason": "未启用"}
+    try:
+        from scripts.etl.precompute_fact_rfm import (
+            create_fact_rfm_table as _w4_create_table,
+            incremental_load_with_merge,
+        )
+        # 16GB override 跑 W4 (W7 helper)
+        from scripts.etl.precompute_fact_rfm import setup_async_memory, cleanup_async_memory
+        setup_async_memory()
+        _memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "16GB")
+        _w4_conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": _memory_limit})
+        try:
+            _w4_create_table(_w4_conn)
+            from datetime import date as _date
+            _inc, _merge, _dates = incremental_load_with_merge(_w4_conn, _date.today(), t_minus_days=7)
+            w4_stats = {
+                "incremental": _inc,
+                "merge": _merge,
+                "merge_dates": _dates,
+                "skipped": False,
+            }
+            print(f"  [W4 fact_rfm_long] incremental={_inc} 行, merge={_merge} 行 ({len(_dates)} 天修复)")
+        finally:
+            _w4_conn.close()
+            cleanup_async_memory()
+    except Exception as _e:
+        # W4 失败不阻塞 ETL 已完成的事实 (跟 W6 通知同样 graceful degrade)
+        w4_stats = {"skipped": True, "reason": f"{type(_e).__name__}: {str(_e)[:200]}"}
+        print(f"  [W4 fact_rfm_long] 跳过（可稍后手动运行 rfm_recompute_window.py）：{w4_stats['reason']}")
+
     # W6: ETL 跑完 lark-cli 通知（复用 6 道门禁通道，graceful degrade）
     # 失败时也推（避免静默成功假象）。通知失败不能阻塞 ETL 已完成的事实。
     try:
@@ -468,6 +502,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
             "mode": mode,
             "run_mode": run_mode,
             "gates_overall": "pass" if step8_ok else "failed",
+            "w4_fact_rfm": w4_stats,  # W4 full v0.4.12 预计算结果
         }
         _sent, _reason = notify_etl_complete(_stats, status="success" if step8_ok else "failed")
         print(f"  [W6 通知] sent={_sent} reason={_reason}")

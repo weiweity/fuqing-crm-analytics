@@ -153,10 +153,19 @@ class TestW7SetupAsyncMemory:
         precompute_fact_rfm.cleanup_async_memory()
         assert get_duckdb_memory_limit() == "8GB"
 
-    def test_w4_placeholder_raises_not_implemented(self):
-        """W4 run_full_precomputation() 当前 raise NotImplementedError（占位）。"""
-        with pytest.raises(NotImplementedError, match="W4"):
-            precompute_fact_rfm.run_full_precomputation()
+    def test_w4_full_v0_4_12_implemented(self):
+        """W4 full v0.4.12 — 540 组合 + dbt-style merge 已实施, run_full_precomputation 占位已替换.
+
+        旧 v0.4.9 时代占位: raise NotImplementedError("W4")
+        v0.4.12 W4 full 实施: incremental_load + merge_replace + rfm_recompute_window.py
+        验证方法: 540 组合 / dbt-style merge / 全量重算 都已在 test_w4_full.py 覆盖.
+        """
+        # W4 full 已实施, 验证关键 API 存在
+        assert hasattr(precompute_fact_rfm, "incremental_load"), "incremental_load 应存在"
+        assert hasattr(precompute_fact_rfm, "merge_replace"), "merge_replace 应存在"
+        assert hasattr(precompute_fact_rfm, "incremental_load_with_merge"), "incremental_load_with_merge 应存在"
+        assert hasattr(precompute_fact_rfm, "W4_TOTAL_COMBOS"), "W4_TOTAL_COMBOS 应存在"
+        assert precompute_fact_rfm.W4_TOTAL_COMBOS == 540, "W4_TOTAL_COMBOS 应 == 540"
 
 
 # 局部 import 避免 module-level 副作用
