@@ -1,0 +1,38 @@
+name: Nightly Health Check
+
+# B3 P1: 每天定时跑全量 pytest + 单独跑一遍 import 完整性 (FOLLOWUPS.md §B3)
+# 收益: 周末/夜间回归早 1 天发现, 不会再 30+ run 红了才看到
+# 验收: workflow_dispatch 手动触发, 故意改坏, 等晚上 9 点 (UTC 13:00 = 北京 21:00), 看 GitHub mail
+
+on:
+  schedule:
+    # 每天 UTC 13:00 = 北京时间 21:00 (晚 9 点, 跟 FOLLOWUPS.md §B3 描述一致)
+    - cron: '0 13 * * *'
+  workflow_dispatch:  # 允许手动触发 (测试 + 应急验证)
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies (单一来源, v0.4.7.3 修链)
+        run: pip install -r requirements.txt
+
+      - name: B2 import completeness check (根因预防复检)
+        # B2 是本地 pre-commit 防线, nightly 再跑一遍防止 B2 钩子被 --no-verify 绕过
+        run: python3 .githooks/check_imports.py
+
+      - name: Run ruff
+        run: ruff check .
+
+      - name: Run full pytest
+        run: PYTHONPATH=. pytest backend/tests/ -q
