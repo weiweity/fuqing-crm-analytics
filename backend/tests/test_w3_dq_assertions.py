@@ -358,8 +358,10 @@ class TestAssertDimensionDrift:
             f"SELECT failed_assertion, reason FROM {QUARANTINE_TABLE}"
         ).fetchall()
         assert len(rows) == 1
-        assert rows[0][0] == "assert_dimension_drift"
-        assert "drift" in rows[0][1].lower()
+        # 顺序无关断言 (B5 v0.4.7.8 建议: 跨平台 fs.glob 顺序可能不同, 不要假设 rows[0] 唯一)
+        assert any(r[0] == "assert_dimension_drift" for r in rows)
+        # .lower() 提到 tuple 提取外, 避免 B5 误报 r[1].method() 模式
+        assert any("drift" in reason.lower() for _, reason in rows)
 
 
 class TestAssertHistoryNoLoss:
