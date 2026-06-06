@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
 
+## [v0.4.14.7] - 2026-06-06 - test(etl): W3/W4 pipeline CI smoke test (sprint 3 P1-1)
+
+### Added
+- **`backend/tests/test_w3w4_pipeline_smoke.py`** (新, 8 tests / 4 类)
+  - `TestSkipDqFlagEndToEnd` (2 tests): `skip_dq=True` → rfm_quarantine 空; `skip_dq=False` (默认) → 暴跌数据触发 `assert_total_not_drop` → quarantine 1 行
+  - `TestW4IdempotencyEndToEnd` (2 tests): `run_full_etl` 跑 2 次不抛 PK 冲突 + `UNIQUE (date, dim)` 组合数一致 (dbt-style snapshot 幂等)
+  - `TestSkipW4FlagEndToEnd` (2 tests): `skip_w4=True` → fact_rfm_long 表空; `skip_w4=False` (默认) → W4 块建表
+  - `TestEndToEndPipelineRun` (2 tests): 端到端 `run_full_etl` 不抛错 + 关键表保留
+  - 用 `temp_duckdb_path` + `mock_parquet_dirs` fixture 隔离, monkeypatch 短路所有重活儿 (113 xlsx + 41GB 单例锁)
+  - 跑批 14s < 5min, CI 不超时
+
+### Note
+- 补 sprint 2 task 1 (e60dbfd) 留下的 CI 缺口: `test_w3w4_pipeline_integration.py` 走 inspect 抽源码 + exec 块验证, 改 W3/W4 集成代码 CI 拦不住
+- 本 smoke test 真跑 `run_full_etl` 端到端, 改 W3/W4 集成 (pipeline.py step 8.5 / step 8) CI 立即可见
+
+
 ## [v0.4.14.1] - 2026-06-06 - docs: D-4 飞书架构 7 份刷 — 修 15 findings (PR #19)
 
 ### Fixed
