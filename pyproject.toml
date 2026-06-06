@@ -31,12 +31,9 @@ exclude = ["scripts/archive/*"]
 "backend/tests/*.py" = ["E402"]
 
 # ── pytest 配置 ───────────────────────────────────────────────
-# Sprint 8 P1: 删 testpaths, 恢复 pytest auto-discovery (./tests/ + backend/tests/)
-# 历史:
-#   Sprint 3 P1-2 (83d000c) 加 testpaths = ["backend/tests"] 绕开 16 个 root test
-#   跟 uvicorn dev 进程的 DuckDB 锁冲突 (本地 ./tests/ 必失败 IOException)。
-#   Sprint 7 P0 治根后 16 root test 全部跑通, ignore 路线已不需要。
-#   CI 显式调用 `pytest backend/tests/ -x -q` + `pytest ./tests/ -q`,
-#   删 testpaths 让本地默认行为对齐 auto-discovery。
+# Sprint 8 P1 + P3 折中: testpaths = ["backend/tests"] 强制本地默认对齐 CI,
+# ./tests/ 16 legacy 不再默认扫 (跟 Sprint 3 P1-2 一致), 避免本地 ./tests/
+# 撞生产 DuckDB 锁。显式 `pytest ./tests/` 仍可用。
 [tool.pytest.ini_options]
+testpaths = ["backend/tests"]
 addopts = ["-ra", "--strict-markers", "--disable-warnings"]
