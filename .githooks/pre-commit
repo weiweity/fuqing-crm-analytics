@@ -48,6 +48,12 @@ if [ -n "$STAGED_PY_FILES" ]; then
         exit 1
     fi
 
+    # B5 P2 test 顺序无关性 lint (FOLLOWUPS.md §B5)
+    # 扫 backend/tests/ + tests/ 检测 N-index 断言, 警告但不阻断
+    # 根因: v0.4.7.3.3 跨平台 flaky test (macOS extfs vs Linux ext4 glob 顺序)
+    echo "Running B5 test order lint..."
+    python3 .githooks/check_test_order.py || true  # WARN 不 fail, 让 user 看自己改
+
     # pytest cleanup orphans (v0.4.7)
     PYTHONPATH="$(pwd)" pytest backend/tests/test_wo_cleanup_orphans.py -q || exit 1
 

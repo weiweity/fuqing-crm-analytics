@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.7.8] - 2026-06-06 - feat(ci): B5 P2 test 顺序无关性 lint
+
+### Added
+- **`.githooks/check_test_order.py`** (~85 行, 新): AST 扫 `backend/tests/` + `tests/` 检测 N-index 断言 (`assert X[N].method()` 模式), WARN 不阻断 commit. 根因预防 v0.4.7.3.3 跨平台 flaky test (macOS extfs vs Linux ext4 glob 返回顺序不同, 索引断言跨平台 flaky)
+- **`.githooks/pre-commit`**: B2 step 后 + pytest 前 加 B5 step 调 `check_test_order.py`, `|| true` 保证 WARN 不 fail
+
+### 设计选择
+- **WARN 不 FAIL**: 故意 N-index (固定 list, mock data) 多, 强 fail 误伤. 跟 ruff 类似规则 (W 是 warn, E 是 error) 一致
+- **检测模式**: `assert X[N].method()` (N 是 int literal, .method() 是 call). 例 `assert files[0].exists()` / `assert arr[2].is_file()` 都报
+- **修法推荐**: 改顺序无关断言 `sum(1 for f in files if f.exists()) == 1`
+
+### 验收
+- 故意写 `backend/tests/_tmp_b5_mock.py` 含 `assert files[0].exists()` + `assert files[2].is_file()` → B5 报 2 处. 清理后 ✅ 无 N-index 顺序依赖
+- 项目当前 N-index 顺序依赖断言 0 处 (v0.4.7.3.3 修链已修干净)
+
+
 ## [v0.4.7.7] - 2026-06-06 - feat(ci): B4 P1 requirements-lock.txt 锁版本
 
 ### Added
