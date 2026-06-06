@@ -5,6 +5,70 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
 
+## [v0.4.14.1] - 2026-06-06 - docs: D-4 飞书架构 7 份刷 — 修 15 findings (PR #19)
+
+### Fixed
+- **`docs/飞书版架构文档/00-系统总览.md`** + 5 个姐妹 doc: 修 15 findings
+  - W2 函数名漂移 → `SnapshotManifest.read_active()` + `loader.py:get_rfm_view_name()`
+  - W4 fact_rfm_long 表结构列名 + PK + UNIQUE INDEX 全面对齐 v0.4.12
+  - 组合数 540: `3×3×5×12` → `9 channel × 60 item × 1 segment`
+  - SQL: 删 `LIKE ANY (?)` (DuckDB 不支持), `changes()` → `RETURNING`
+  - W5 端点 `segments/distribution/fact` → `r-flow/f-flow/m-flow/segment-orders/version`
+
+
+## [v0.4.14.2] - 2026-06-06 - feat(etl): W3/W4 pipeline 集成补 skip flag + DELETE 幂等 (sprint 2 task 1)
+
+### Added
+- **`scripts/etl/pipeline.py:run_full_etl`**: `skip_dq=False, skip_w4=False` 参数, W3/W4 块 `if not skip_dq/w4:` 守卫
+- **`scripts/etl/pipeline.py` step 8.5**: W3 块调 `run_assertions` 前 `DELETE FROM rfm_quarantine WHERE date = ?` (幂等)
+- **`scripts/etl/cli.py`**: argparse 加 `--skip-dq` / `--skip-w4` flag
+- **`backend/tests/test_w3w4_pipeline_integration.py`** (新, 18 tests / 5 类)
+
+### Note
+- main 实际早已集成 W3 step 8.5 (v0.4.11) + W4 step 8 (v0.4.12), 此 commit 只补 skip flag + 幂等保障
+
+
+## [v0.4.14.3] - 2026-06-06 - chore(etl): W4 T-7 跑批验证报告 + 4 integration tests (sprint 2 task 2)
+
+### Added
+- **`backend/tests/test_w4_t7_integration.py`** (新, 4 tests / 4 类)
+- **`docs/validation-reports/w4-full-t7-2026-06-06.md`** (新, 190 行占位)
+
+### Note
+- 实测值在 v0.4.14.5 补全: `incremental_inserted=540` / `merge_inserted=3780` / `total rows=12,960` / `version 1..6`
+
+
+## [v0.4.14.4] - 2026-06-06 - docs: D-5 飞书架构续 — 5 outdated 标注更新 (sprint 2 task 4)
+
+### Fixed
+- 4 个飞书架构 doc: pipeline W3/W4 集成状态从 "未集成" 改 "已集成 (v0.4.11/12)"
+- 00-系统总览 §9 增 §9.6/§9.7 W4 full + W5 release notes
+- D-4 ground truth 4 errors 纠正
+
+
+## [v0.4.14.5] - 2026-06-06 - fix(etl): 痛点 3 真闭环 + CLAUDE.md 加固 + CI 第一层 PyYAML (sprint 2 维修 round 1)
+
+### Added
+- **`docs/validation-reports/w4-full-t7-2026-06-06.md`**: 痛点 3 真闭环 (4/4 tests PASSED in 496.34s)
+  - `incremental_inserted=540` / `merge_inserted=3780` / `merge_dates=7` / `total rows=12,960` / `version 1..6` / `数据质量 10/10 pass`
+
+### Changed
+- **`CLAUDE.md`** 12 步流程: /review 前增 "强制 git log --all 验证" (D-4 ground truth 教训)
+
+### Fixed
+- **`requirements-lock.txt` L87**: `PyYAML==6.0.3` → `6.0.2` (匹配 paddlex 3.4.3)
+- **`backend/tests/test_w7_memory_limit.py:173`**: 删 unused `import pytest` (F401)
+
+
+## [v0.4.14.6] - 2026-06-06 - fix(ci): setuptools 81.0.0 解第二层冲突 + CI 真绿 (sprint 2 维修 round 2)
+
+### Fixed
+- **`requirements-lock.txt` L100**: `setuptools==82.0.1` → `81.0.0` (匹配 torch 2.11.0 <82)
+
+### CI
+- **`CI run 27062413467`**: ✅ **success** (lint ✅ + test ✅) — 修 sprint 1 以来 30+ CI 红
+
+
 ## [v0.4.11] - 2026-06-06 - feat(etl): W3 full DQ assertions + pipeline step 8.5 集成 (3 留作断言 + lark 真发)
 
 ### Added
