@@ -105,7 +105,7 @@
 ① git checkout -b feature/xxx
 ② 写代码
 ③ pytest backend/tests/ -x -q
-④ review skill
+④ review skill    ← 跑前必须先看下面"强制验证"
 ⑤ 修复 review 问题
 ⑥ git commit -m "feat: xxx"
 ⑦ git push origin feature/xxx
@@ -115,6 +115,23 @@
 ⑪ git pull origin main --ff-only
 ⑫ kill 并重启 uvicorn + 更新 CHANGELOG.md
 ```
+
+#### /review 前强制验证（2026-06-06 加，教训 D-4 ground truth 4 errors）
+
+在跑 `/review` 之前，**必须**先跑这 2 条命令验证代码/集成状态，不能凭 memory / stale 文档下结论：
+
+```bash
+git log --all --oneline | head -50                                # 验 main 是否已合相关 commit
+git log main --oneline -- <relevant_file_or_dir>                  # 验相关文件修改历史
+```
+
+**常见陷阱（D-4 案例）**：
+
+- "pipeline.py W3 step 7b 未集成" → 实际 step **8.5** 早就合（v0.4.11）
+- "X.py 不存在" → 实际已落地在 `scripts/etl/`
+- "test_X.py 是占位" → 实际是真实 pytest 测试
+
+**任何 "未集成" / "不存在" / "占位" 结论，必须有 `git log` / `git show` 实证**。
 
 ---
 
