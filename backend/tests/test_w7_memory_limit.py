@@ -170,4 +170,3 @@ class TestW7SetupAsyncMemory:
 
 # 局部 import 避免 module-level 副作用
 import os  # noqa: E402  必须在 test 类之外
-import pytest  # noqa: E402
