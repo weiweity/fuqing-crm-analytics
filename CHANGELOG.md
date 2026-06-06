@@ -84,6 +84,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Premise 7: 纯增量 + dbt-style snapshot 适合 10.6M 订单 (Late-arriving 订单 T-7 内覆盖 99%)
 
 
+## [v0.4.14] - 2026-06-06 - feat(frontend): RFM Version Banner — 顶栏显示当前 manifest 版本 + 切换时间
+
+### Added
+- **`frontend-vue3/src/components/RfmVersionBanner.vue`** (新): 顶栏彩色横条,展示当前 active RFM manifest 信息
+  - 三态: loading (skeleton 占位) / success (绿色, active_view 正常) / warn (琥珀, active_view 为空) / error (灰条, 不阻塞)
+  - 交互: 悬停主文本 → NTooltip 展示完整 manifest 路径; 右侧刷新按钮 (loading 时禁用)
+  - 数据源: `GET /api/v1/rfm/version` (TanStack Vue Query, 30 min staleTime, 切批后点刷新即看到新版本)
+- **`frontend-vue3/src/api/rfm.ts`** (新): `fetchRfmManifestVersion()` 封装 `/v1/rfm/version`
+- **`frontend-vue3/src/types/rfm.ts`** (新): `RfmVersionInfo` interface (`active_view` / `version` / `ts` / `path`)
+
+### Changed
+- **`frontend-vue3/src/views/RFMView.vue`**: 在 `<PageHeader>` 后插入 `<RfmVersionBanner />`,3 行 diff
+
+### 验证
+- `vue-tsc -b` 通过 (exit 0)
+- `npm run build` 通过 (772ms, 47 chunks, 唯一 warning 是预存在的 chunk-size 提示)
+
+
 ## [v0.4.13] - 2026-06-06 - feat(etl): W5 DuckDB-KV cache + 4 RFM 端点 + manifest invalidate — 痛点 3 部分缓解
 
 ### Added

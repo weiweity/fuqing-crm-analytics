@@ -15,6 +15,7 @@ import {
 } from '@/api/flow'
 import MetricCard from '@/components/MetricCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import RfmVersionBanner from '@/components/RfmVersionBanner.vue'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -568,6 +569,8 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
 <template>
   <div class="space-y-5">
     <PageHeader title="RFM分析" subtitle="人群流转与象限变迁洞察" />
+
+    <RfmVersionBanner />
 
     <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
       <n-gi :span="1">
