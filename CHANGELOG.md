@@ -6,6 +6,50 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.9] - 2026-06-06 - feat(etl): W4 MVP fact_rfm_long 预计算 — 痛点 3 部分缓解
+
+### Added
+- **`scripts/etl/precompute_fact_rfm.py`** (86 → 200 行, 改): W4 MVP 实现
+  - `FACT_RFM_TABLE = "fact_rfm_long"` + schema (date, dim_key, dim_json, user_count, gmv, repurchase_count, version, created_at, PK (date, dim, version))
+  - 唯一索引 `idx_fact_rfm_dkv` (date, dim, version) 幂等保证
+  - `create_fact_rfm_table(conn)`: 幂等表创建 (IF NOT EXISTS)
+  - `_next_version(conn, load_date)`: 同一天重跑 version 续号 (dbt-style snapshot)
+  - `incremental_load(conn, target_date)`: append T-1 (target_date-1) 1 组合 (channel='全店'), 走 DuckDB RETURNING 拿实际插入行
+  - `run_mvp_async()`: CLI 入口, 调 setup_async_memory() 16GB override + 跑当天增量
+- **`backend/tests/test_w4_fact_rfm.py`** (7 tests, 新): MVP 覆盖
+  - 表 schema + 唯一索引创建幂等
+  - 增量加载 1 组合 (channel='全店') row count + gmv + repurchase_count
+  - 同一天跑 N 次 (幂等性 v1.1 §7.4): 数据值一致, version 续号
+  - target_date vs load_date 分离 (cutoff = start_date - 1 day, 教训 2026-05-29)
+  - channel='全店' filter 正确 (其他 channel user 不算)
+
+### 设计 (design doc v1.1 §W4 MVP)
+- **MVP 简化**: 1 组合 (channel='全店') 验证机制. 540 组合 (channel × item × segment) 留 W4 full
+- **走语义层接口**: 调 `backend.semantic.segments.SegmentRegistry.build_*_sql` (W4 full 用), MVP 用 inline SQL 验证机制
+- **16GB 内存**: 调 W7 `setup_async_memory()` 临时 override, 跑完回 8GB
+- **dbt-style snapshot**: 同一天重跑 version 续号, 旧 version 保留 (后续 merge 用)
+
+### W4 full 留作下次 sprint
+- [ ] 540 组合 (channel × item × segment_id) 完整 ETL
+- [ ] dbt-style merge T-7 修复 late-arriving 订单 (覆盖原 version)
+- [ ] 全量重算脚本 `rfm_recompute_window.py` (运营手触发, 一次性跑全历史)
+- [ ] pipeline.py 集成 (W2 manifest write_active() 配套, ETL 末尾调)
+- [ ] 3 个日期 range 查询 E2E 验 < 1s (W5 cache 配套)
+
+### CLAUDE.md 合规
+- ① 走 `backend.semantic.segments` (CLAUDE.md 硬规则: ETL 走语义层, MVP 暂 inline, W4 full 用 SQL builder)
+- ② ETL 脚本连接例外 (CLAUDE.md §接口开发六步 §ETL 脚本连接例外条款): `duckdb.connect` + `conn.close()`, 单例规则不适用
+- ③ cutoff = start_date - 1 day (教训 2026-05-29): `load_date = target_date - timedelta(days=1)`
+- ④ 12 步: `feat/wo4-fact-rfm-mvp` 分支 / pytest 247/8 / Python 3.14 / qa 验 row count 1:1
+
+### 验收 (design doc v1.1 §7.4)
+- [x] pytest 测 idempotency: 同一天跑两次结果一致 (data values 一致, version 续号)
+- [x] 增量跑 T-1 append-only (date 严格 T-1, 不影响其他日期)
+- [ ] 全量跑全历史 row count == 旧表 (W4 full)
+- [ ] dbt-style merge T-7 修复 late-arriving (W4 full)
+- [ ] E2E 测 3 个日期 range 查询 < 1s (W5 cache 配套)
+
+
 ## [v0.4.8] - 2026-06-06 - feat(etl): W2 原子 snapshot 切换 — 痛点 2 根因修复
 
 ### Added
