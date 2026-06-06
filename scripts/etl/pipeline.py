@@ -64,7 +64,8 @@ def _safe_etl_notify_on_failure(func):
 
 
 @_safe_etl_notify_on_failure
-def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
+def run_full_etl(mode='auto', window_days=30, force_continue=False,
+                 skip_dq=False, skip_w4=False) -> None:
     """
     完整 ETL 流程（滑动窗口增量模式）
 
@@ -74,6 +75,15 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
       'inc'     - 强制增量（数据库必须已有数据）
     window_days:
       滑动窗口天数，刷新最近 N 天的订单状态（默认30天，覆盖退款周期）
+    skip_dq:
+      跳过 W3 DQ assertions (6 断言 + rfm_quarantine 写入) — 调试/QA 用
+    skip_w4:
+      跳过 W4 fact_rfm_long 预计算 (incremental + merge T-7) — 调试/QA 用
+
+    幂等性:
+      - W3: 跑 run_assertions 前清空当天 rfm_quarantine 行（重跑不会累积冗余）
+      - W4: _next_version() 续号 + UNIQUE(date, dim_key, version) + ON CONFLICT DO NOTHING
+            → 同 date 重跑产生新 version 行（dbt-style snapshot 保留历史链）
     """
     print("=" * 60)
     print(f"芙清 CRM - 数据清洗 ETL v6 (滑动窗口: {window_days}天)")
@@ -420,26 +430,38 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
     # Step 8.5: W3 DQ assertions (6 断言) — 设计 doc v1.1 §W3 + §7.3
     # 失败入 rfm_quarantine, 不阻塞 ETL (SaaS 标准: 脏数据隔离不阻塞业务)
     # 复用 scraper/_send_lark_alert 真发 lark-cli (生产路径), 测试用 patch 绕过
-    print("\nW3 DQ assertions (6 断言)...")
-    try:
-        from datetime import date as _date
-        from scripts.etl.assertions import run_assertions
-        from scripts.etl.config import DUCKDB_PATH as _DUCKDB_PATH
-        # 独立连接 (READ_WRITE — rfm_quarantine 需要 write; 不与 ETL 单例共享, 避免 read_only/READ_WRITE config 冲突)
-        _assert_conn = duckdb.connect(str(_DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+    # skip_dq=True 跳过整块（调试/QA 场景，生产路径走默认 False）
+    if not skip_dq:
+        print("\nW3 DQ assertions (6 断言)...")
         try:
-            _assert_target = _date.today()
-            with PerfTimer("pl_step8_5_dq_assertions", date=str(_assert_target)):
-                _assert_result = run_assertions(_assert_conn, _assert_target, send_alert=True)
-            print(f"  DQ assertions: passed={_assert_result['passed']} failed={_assert_result['failed']} "
-                  f"alert_sent={_assert_result['alert_sent']}")
-            if _assert_result["failed_names"]:
-                print(f"  ⚠️ 失败断言: {_assert_result['failed_names']} (详见 rfm_quarantine 表)")
-        finally:
-            _assert_conn.close()
-    except Exception as e:
-        # 断言失败不阻塞 ETL 已完成的事实 (但要告警)
-        print(f"  ⚠️ DQ assertions 异常跳过: {type(e).__name__}: {str(e)[:200]}")
+            from datetime import date as _date
+            from scripts.etl.assertions import run_assertions
+            from scripts.etl.config import DUCKDB_PATH as _DUCKDB_PATH
+            # 独立连接 (READ_WRITE — rfm_quarantine 需要 write; 不与 ETL 单例共享, 避免 read_only/READ_WRITE config 冲突)
+            _assert_conn = duckdb.connect(str(_DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+            try:
+                _assert_target = _date.today()
+                # 幂等性: 跑前清空当天 quarantine 行, 重跑不会累积冗余历史
+                # (W3 设计目的: 反映"当前 ETL 数据状态", 失败记录每次应反映最新检查结果)
+                from scripts.etl.assertions import create_quarantine_table, QUARANTINE_TABLE
+                create_quarantine_table(_assert_conn)
+                _assert_conn.execute(
+                    f"DELETE FROM {QUARANTINE_TABLE} WHERE date = ?::DATE",
+                    [_assert_target],
+                )
+                with PerfTimer("pl_step8_5_dq_assertions", date=str(_assert_target)):
+                    _assert_result = run_assertions(_assert_conn, _assert_target, send_alert=True)
+                print(f"  DQ assertions: passed={_assert_result['passed']} failed={_assert_result['failed']} "
+                      f"alert_sent={_assert_result['alert_sent']}")
+                if _assert_result["failed_names"]:
+                    print(f"  ⚠️ 失败断言: {_assert_result['failed_names']} (详见 rfm_quarantine 表)")
+            finally:
+                _assert_conn.close()
+        except Exception as e:
+            # 断言失败不阻塞 ETL 已完成的事实 (但要告警)
+            print(f"  ⚠️ DQ assertions 异常跳过: {type(e).__name__}: {str(e)[:200]}")
+    else:
+        print("\nW3 DQ assertions 跳过 (--skip-dq)")
 
     print("\n" + "=" * 60)
     print("滑动窗口 ETL 完成!")
@@ -448,35 +470,40 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False) -> None:
     # W4 full v0.4.12: 调 fact_rfm_long 预计算 (incremental + merge_replace T-7)
     # 设计 doc v1.1 §W4: 540 组合 append T-1 + dbt-style snapshot 修复 late-arriving
     # pipeline 集成点: ETL 末尾 (Step 8 之后), 失败不阻塞 W6 通知
+    # skip_w4=True 跳过整块（调试/QA 场景，生产路径走默认 False）
     w4_stats = {"incremental": 0, "merge": 0, "merge_dates": [], "skipped": True, "reason": "未启用"}
-    try:
-        from scripts.etl.precompute_fact_rfm import (
-            create_fact_rfm_table as _w4_create_table,
-            incremental_load_with_merge,
-        )
-        # 16GB override 跑 W4 (W7 helper)
-        from scripts.etl.precompute_fact_rfm import setup_async_memory, cleanup_async_memory
-        setup_async_memory()
-        _memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "16GB")
-        _w4_conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": _memory_limit})
+    if not skip_w4:
         try:
-            _w4_create_table(_w4_conn)
-            from datetime import date as _date
-            _inc, _merge, _dates = incremental_load_with_merge(_w4_conn, _date.today(), t_minus_days=7)
-            w4_stats = {
-                "incremental": _inc,
-                "merge": _merge,
-                "merge_dates": _dates,
-                "skipped": False,
-            }
-            print(f"  [W4 fact_rfm_long] incremental={_inc} 行, merge={_merge} 行 ({len(_dates)} 天修复)")
-        finally:
-            _w4_conn.close()
-            cleanup_async_memory()
-    except Exception as _e:
-        # W4 失败不阻塞 ETL 已完成的事实 (跟 W6 通知同样 graceful degrade)
-        w4_stats = {"skipped": True, "reason": f"{type(_e).__name__}: {str(_e)[:200]}"}
-        print(f"  [W4 fact_rfm_long] 跳过（可稍后手动运行 rfm_recompute_window.py）：{w4_stats['reason']}")
+            from scripts.etl.precompute_fact_rfm import (
+                create_fact_rfm_table as _w4_create_table,
+                incremental_load_with_merge,
+            )
+            # 16GB override 跑 W4 (W7 helper)
+            from scripts.etl.precompute_fact_rfm import setup_async_memory, cleanup_async_memory
+            setup_async_memory()
+            _memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "16GB")
+            _w4_conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": _memory_limit})
+            try:
+                _w4_create_table(_w4_conn)
+                from datetime import date as _date
+                _inc, _merge, _dates = incremental_load_with_merge(_w4_conn, _date.today(), t_minus_days=7)
+                w4_stats = {
+                    "incremental": _inc,
+                    "merge": _merge,
+                    "merge_dates": _dates,
+                    "skipped": False,
+                }
+                print(f"  [W4 fact_rfm_long] incremental={_inc} 行, merge={_merge} 行 ({len(_dates)} 天修复)")
+            finally:
+                _w4_conn.close()
+                cleanup_async_memory()
+        except Exception as _e:
+            # W4 失败不阻塞 ETL 已完成的事实 (跟 W6 通知同样 graceful degrade)
+            w4_stats = {"skipped": True, "reason": f"{type(_e).__name__}: {str(_e)[:200]}"}
+            print(f"  [W4 fact_rfm_long] 跳过（可稍后手动运行 rfm_recompute_window.py）：{w4_stats['reason']}")
+    else:
+        w4_stats = {"incremental": 0, "merge": 0, "merge_dates": [], "skipped": True, "reason": "--skip-w4"}
+        print("  [W4 fact_rfm_long] 跳过 (--skip-w4)")
 
     # W6: ETL 跑完 lark-cli 通知（复用 6 道门禁通道，graceful degrade）
     # 失败时也推（避免静默成功假象）。通知失败不能阻塞 ETL 已完成的事实。

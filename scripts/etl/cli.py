@@ -636,6 +636,10 @@ def main():
                         help='执行变更并写入DuckDB（与--rescan-spu/--rescan-channel配合）')
     parser.add_argument('--cleanup-tmp', action='store_true',
                         help='紧急清理 /private/tmp 下 fq_ 系列孤儿（24h+ 旧文件，cap 5/100GB）')
+    parser.add_argument('--skip-dq', action='store_true',
+                        help='跳过 W3 DQ assertions (6 断言 + rfm_quarantine 写入)')
+    parser.add_argument('--skip-w4', action='store_true',
+                        help='跳过 W4 fact_rfm_long 预计算 (incremental + merge T-7)')
     args = parser.parse_args()
 
     # 紧急清理 /tmp 孤儿（handoff 6/5 follow-up #3 落地：暴露运维入口免依赖 ETL 触发）
@@ -690,7 +694,8 @@ def main():
         # Step 1: ETL 增量（滑动窗口模式，force_continue 确保 Step 5/6 必定执行）
         try:
             with PerfTimer("step1_run_full_etl", mode="inc", window_days=args.window_days):
-                run_full_etl(mode='inc', window_days=args.window_days, force_continue=True)
+                run_full_etl(mode='inc', window_days=args.window_days, force_continue=True,
+                             skip_dq=args.skip_dq, skip_w4=args.skip_w4)
         except Exception as _exc:
             gate_record_error("step1_run_full_etl", _exc)
             notify_etl_complete(
@@ -968,7 +973,8 @@ def main():
     print(f"ETL 跑批（mode={_mode}, window_days={args.window_days}）")
     print("=" * 60)
     with PerfTimer(f"run_etl_{_mode}", mode=_mode, window_days=args.window_days):
-        run_full_etl(mode=_pipeline_mode, window_days=args.window_days, force_continue=True)
+        run_full_etl(mode=_pipeline_mode, window_days=args.window_days, force_continue=True,
+                     skip_dq=args.skip_dq, skip_w4=args.skip_w4)
     print("\n" + "=" * 60)
     print(f"ETL 跑批完成（mode={_mode}）")
     print("=" * 60)
