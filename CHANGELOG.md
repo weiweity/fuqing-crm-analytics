@@ -84,6 +84,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Premise 7: 纯增量 + dbt-style snapshot 适合 10.6M 订单 (Late-arriving 订单 T-7 内覆盖 99%)
 
 
+## [v0.4.13] - 2026-06-06 - feat(etl): W5 DuckDB-KV cache + 4 RFM 端点 + manifest invalidate — 痛点 3 部分缓解
+
+### Added
+- **`backend/services/rfm/cache.py`** (~210 行, 新): W5 DuckDB-KV 缓存
+  - `RfmQueryCache` class: `ensure_table` / `get` / `set` / `invalidate` / `cleanup_expired` / `list_keys` / `stats`
+  - `rfm_query_cache` 表: `key VARCHAR PK` (SHA-256 hex) / `endpoint` / `params_hash` / `value JSON` / `expire_at` / `created_at`
+  - SHA-256 规范化 key derivation: 等价请求 (key 顺序无关) 生成同一 hash, 防 cache poisoning (§7.5 风险 W5 cache poisoning)
+  - TTL 24h, 过期行 `cleanup_expired` 一键清理 (避免表无限增长)
+  - `_ManifestTracker`: manifest version 变化 → 自动整表失效 (W2 atomic snapshot 集成)
+  - 进程内单例 `_manifest_tracker_singleton` (避免每次 new 重建状态)
+- **`backend/routers/rfm.py`** 集成 cache: 4 端点 (`r-flow` / `f-flow` / `m-flow` / `segment-orders`) 都走 `_cached_rfm_call`
+  - 命中: ~1ms 返回 (走 cache.get 锁内预取)
+  - miss: 调底层 service, 结果写 cache (走 ThreadSafeCursor 锁内预取, 防并发覆盖)
+  - 3 个调试端点: `GET /cache/stats` / `POST /cache/invalidate` / `GET /cache/keys?endpoint=xxx&limit=50`
+- **`backend/main.py`** lifespan 启动时 `RfmQueryCache().ensure_table()` (W5 startup hook)
+- **`backend/services/rfm/__init__.py`** 导出 `RfmQueryCache`
+- **`backend/tests/test_w5_cache.py`** (12 tests, 新): MVP 覆盖
+  - 表幂等 + schema 验证
+  - cache hit / miss / overwrite / 不同 endpoint / 不同 params / canonicalization
+  - TTL 过期返回 None
+  - 10 线程并发 set/get 不崩溃 + 数据一致
+  - manifest version 1 → 2 触发整表清空
+  - manifest version 不变时多次 get 不清空
+  - `_cached_rfm_call` 集成验证: 第二次 hit 不再调 compute_fn
+
+### Performance
+- **RFM 端点 cache hit < 5ms** (设计目标 §4.1 SLA): SELECT 单行 + JSON parse
+- **RFM 端点 cache miss < 200ms** (设计目标 §4.1 SLA): 走 fact_rfm_long (W4 产物)
+- manifest version 检测: 单次 JSON read < 1ms, 不阻塞 query
+
+### CLAUDE.md 合规
+- ① **ThreadSafeCursor 包装**: `RfmQueryCache.get/set` 用 `get_connection()` (锁内预取) — 引用 `reference.md` 2026-05-31 教训
+- ② **连接规范**: 走单例 `get_connection()`, 禁止 `conn.close()`
+- ③ **接口只读**: cache 是 read-mostly, invalidate 是 admin 端点
+- ④ **SHA-256 防 cache poisoning**: 64 字符 hex, 碰撞概率 ~0 (§7.5 风险)
+- ⑤ **TTL 自动过期**: 不依赖后台 cleanup, `expire_at > now()` 在 get 时过滤
+
+### 设计依据
+- design doc `docs/design/etl-phase4-architecture.md` §W5 (设计) + §7.5 (测试) + §13 决策 4 (cache miss 不做双轨, 一步到位走 fact_rfm_long)
+
+### 关联
+- W2 `feat/wo2-manifest-snapshot` (v0.4.8) — manifest.json 提供 cache invalidate 信号
+- W4 `feat/wo4-fact-rfm-long` (v0.4.9) — cache miss 的快速回退路径
+
+
 ## [v0.4.10.1] - 2026-06-06 - fix: VERSION drift 复发 (0.4.7.4 → 0.4.10) + CLAUDE.md/README.md 同步 (224 → 258)
 
 ### Fixed

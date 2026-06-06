@@ -21,6 +21,8 @@ import logging
 
 from backend.services.exceptions import ServiceError, ValidationError, NotFoundError
 
+logger = logging.getLogger(__name__)
+
 
 # ─────────────────────────────────────────────────────────────
 # 应用生命周期
@@ -31,6 +33,14 @@ async def lifespan(application: FastAPI):
     from backend.db.memory_monitor import start_memory_watchdog, check_memory
     start_memory_watchdog(interval=60)
     check_memory(label="应用启动")
+    # W5 v0.4.13: 初始化 RFM cache 表 + 同步 manifest version
+    # (后续每次 cache.get() 内部 _ManifestTracker 还会做变化检测)
+    try:
+        from backend.services.rfm.cache import RfmQueryCache
+        RfmQueryCache().ensure_table()
+        logger.info("W5 RFM cache 表已就绪")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("W5 RFM cache 启动失败 (不阻塞服务): %s", e)
     yield
     # 关闭时停止内存监控并释放全局 DuckDB 连接
     from backend.db.memory_monitor import stop_memory_watchdog
