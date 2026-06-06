@@ -24,8 +24,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Install dependencies (单一来源, v0.4.7.3 修链)
-        run: pip install -r requirements.txt
+      - name: Install dependencies (lock 锁版本, v0.4.7.7 B4)
+        run: pip install -r requirements-lock.txt
 
       - name: B2 import completeness check (根因预防复检)
         # B2 是本地 pre-commit 防线, nightly 再跑一遍防止 B2 钩子被 --no-verify 绕过
