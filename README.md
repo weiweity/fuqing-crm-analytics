@@ -21,8 +21,10 @@
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
 - ✅ ETL 增量更新正常（截至 2026-06-04：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M / rfm_analysis_cache 60 / order_status_override 6/4 刷 91,307 行）
 - ✅ 后端代码审计完成，大文件拆分完成
-- ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions
-- ✅ 测试 453+ passed / 8 skipped（v0.4.13，CI 真绿）
+- ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions + ground-truth-lint (P1-3 sprint 3)
+- ✅ 测试 459+ passed / 8 skipped（v0.4.13 sprint 3 收口, CI 三连绿 run 27082443532 / 27062413467 / 27063611644）
+- ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3)
+- ✅ Sprint 3 收口：4/5 done (P0-1 痛点 1 + P1-1 W3/W4 CI smoke + P1-2 16 root tests isolation + P1-3 ground-truth lint), P0-2 DuckDB 备份 deferred Sprint 4
 - ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
 - ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
 - ✅ RFM 分析 `real_elapsed_sec` / `step_wall_time_sum` 显式命名 baseline 字段（修 review skill 揪出的 wall_time 字段歧义）
@@ -187,7 +189,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（453+ passed / 8 skipped，v0.4.13）：
+当前测试覆盖（459+ passed / 8 skipped，v0.4.13 sprint 3 收口）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -201,6 +203,9 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 - `test_fill_parquet_cache.py` - Parquet 缓存
 - `test_etl_atomicity.py` - ETL 原子写入
 - `test_wo_cleanup_orphans.py` - /tmp 孤儿清理钩子（F3 marker + F7 symlink + cap 边界，20 用例）
+- `test_w3w4_pipeline_smoke.py` - W3/W4 pipeline CI smoke test (P1-1 sprint 3, 8 用例, 端到端跑 run_full_etl)
+- `test_w4_t7_integration.py` - W4 T-7 真跑验证 (痛点 3 闭环, 4 用例)
+- `test_check_review_ground_truth.py` - P1-3 ground-truth lint (28 用例, 含 6 B2 idx/lineno + 7 H1 hex color + 8 B2 NOOP committed mode + 3 M1 fallback + 4 集成 e2e)
 
 ### CI/CD
 
@@ -247,3 +252,4 @@ npx playwright test
 | 2026-05-31 | 17 项 FIX-TASK-LIST 全部完成归档；v0.3.4 release |
 | 2026-06-01 ~ 06-04 | RFM 4 端点 P0/P1 修复合集：8 象限 repurchase 改 ≥2 单（修 100%/0% 异常）、R/F/M TTL 修、value-tiers channel='全店' 特判、rfm-category-drilldown 500→400 |
 | 2026-06-04 | 增量 ETL 跑批 6/4（real elapsed 63.2min / step sum 126.4min，4 新源文件）；baseline wall_time 字段歧义修；rfm_analysis_cache fail-soft 修（pipeline.py read_only 改默认 READ_WRITE） |
+| 2026-06-06 ~ 06-07 | **Sprint 3 收口 4/5** (P0-1 痛点 1 W1 GROUPING SETS 13.4 min 闭环 + P1-1 W3/W4 CI smoke + P1-2 16 root tests isolation + P1-3 ground-truth lint 4 轮修). P0-2 DuckDB 备份 deferred Sprint 4. CI 三连绿 |
