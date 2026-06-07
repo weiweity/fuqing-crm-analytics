@@ -5,6 +5,8 @@
 > **北极星**: 5/5 done + CI 真绿 + memory 同步
 > **总工时**: ~10.5h (1.5 工作日)
 > **完成标准**: 每件走 CLAUDE.md 12 步流程 (branch → review → qa → merge → push → pull → restart) + /document-release
+> **收口状态**: 2026-06-07 4/5 done (P0-1 痛点 1 闭环 + P1-1 W3/W4 CI smoke + P1-2 16 root tests isolation + P1-3 ground-truth lint 4 轮修). P0-2 DuckDB 41GB 增量备份 deferred Sprint 4.
+> **CI 状态**: 三连绿 (run 27082443532 / 27062413467 / 27063611644)
 
 ---
 
@@ -155,14 +157,26 @@
 
 ---
 
-## 验收总览
+## 验收总览 (2026-06-07 sprint 3 收口 4/5)
+
+| 任务 | 状态 | 关键交付 | 合并 commit |
+|---|---|---|---|
+| **P0-1** 痛点 1 跑批验证 | ✅ **done** (闭环 🟢) | W1 GROUPING SETS 3 次跑批 13.4 min 平均 < 35 min 目标, CV 9.4%. 报告 `docs/validation-reports/etl-3-runs-2026-06-07.md` 340 行 | `d34fda7` (docs) |
+| **P0-2** DuckDB 41GB 增量备份 | ⏳ **deferred Sprint 4** | 41GB 备份占磁盘风险, 待 `df -h` 验证后启动. 立项保留, 排 Sprint 4 第 1 件 | n/a (未启动) |
+| **P1-1** W3/W4 pipeline CI smoke test | ✅ done | `test_w3w4_pipeline_smoke.py` 8 tests 真跑 `run_full_etl` 端到端, monkeypatch 短路重活 (113 xlsx + 41GB 锁), 跑批 14s < 5min | `67689fd` (merge) + `c875f2d` (feat) + `5cce5fb` (review fix 10) + `83d000c` |
+| **P1-2** 16 root ./tests/ isolation | ✅ done | `pyproject.toml` `[tool.pytest.ini_options]testpaths` 收窄到 `["backend/tests"]`, 16 个 root 隔离失败不再污染默认 pytest 收集 | `ecc3483` (merge) + `83d000c` (fix) |
+| **P1-3** /review 前 git log 自动化 lint | ✅ done (4 轮修) | `.githooks/check_review_ground_truth.py` 28 tests 覆盖 5 类 (B1 core.hooksPath / B2 NOOP / H1 hex / H2 trivial / H3 真 git 验证). CI lint.yml + nightly.yml 用 `--committed --files` 模式 | `79fab8fb` (merge) + `33c7fe3` (feat) + `0d7b9bb` (5 件) + `3324b18` (3 件) + `f385cc4` (2 件) |
+
+**收口合计**: 4 commits (P0-1/P1-1/P1-2/P1-3) + 9 个 fix commits (review 修) → main 79fab8fb ahead 5 commits from e498143 (sprint 2 收口)
+**/document-release**: 4 文档同步 (README/CLAUDE.md/DOCUMENT-INDEX/CHANGELOG) + 1 自检 (本文件)
+**memory**: project_sprint3.md + project_etl_perf_plan.md + MEMORY.md 索引同步
 
 ```
-[P0-1] 痛点 1 三次跑批真数据 + 状态更新  → project_etl_perf_plan.md
-[P0-2] data/backups/duckdb_*.db 真存在 + launchd scheduled  → README.md
-[P1-1] pytest backend/tests/test_w3w4_pipeline_smoke.py -v PASS + CI 跑  → CI run
-[P1-2] pytest ./tests/ 全绿 or 默认 ignore  → pyproject.toml
-[P1-3] red team 假 "未集成" 被拦 + 真实 commit 通过  → .githooks/pre-commit
+[P0-1] 痛点 1 三次跑批真数据 + 状态更新  → ✅ done (d34fda7)
+[P0-2] data/backups/duckdb_*.db 真存在 + launchd scheduled  → ⏳ deferred Sprint 4
+[P1-1] pytest backend/tests/test_w3w4_pipeline_smoke.py -v PASS + CI 跑  → ✅ done (67689fd)
+[P1-2] pytest ./tests/ 全绿 or 默认 ignore  → ✅ done (ecc3483)
+[P1-3] red team 假 "未集成" 被拦 + 真实 commit 通过  → ✅ done (79fab8fb)
 
-[Final] 5 commits merge main + /document-release + memory sync
+[Final] 4/5 done + /document-release 4 文件 1 自检 + memory 同步 ✅
 ```
