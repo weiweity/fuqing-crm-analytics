@@ -1,6 +1,6 @@
 # 芙清 CRM — 数据源映射
 
-> 最后更新: 2026-05-27
+> 最后更新: 2026-06-07
 
 ## 数据源一览
 
@@ -55,3 +55,6 @@ DuckDB orders 表 (10.5M 行)
 | `user_first_purchase` | 4,090,000 | 首购日期 |
 | `daily_visitors` | ~900 | 日粒度访客数据 |
 | `order_status_override` | ~30K | 近30天订单状态覆盖 |
+| `fact_rfm_long` | ~62M | RFM 长表（按周期展开） |
+| `rfm_quarantine` | ~10K | RFM 隔离表（异常数据） |
+| `rfm_query_cache` | ~5K | RFM 查询缓存 |
