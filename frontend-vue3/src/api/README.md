@@ -56,6 +56,22 @@ import type {
 } from '@/api/types'
 ```
 
+## API 模块清单
+
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| **audience** | `audience.ts` | 人群看板 API |
+| **breakdown** | `breakdown.ts` | 一键拆解 API |
+| **category** | `category.ts` | 品类分析 API |
+| **churn** | `churn.ts` | 流失分析 API |
+| **export** | `export.ts` | 数据导出 API |
+| **flow** | `flow.ts` | 人群流转 API |
+| **geo** | `geo.ts` | 地域分析 API |
+| **health** | `health.ts` | 老客健康 API |
+| **marketFocus** | `marketFocus.ts` | 市场对焦 API |
+| **rfm** | `rfm.ts` | RFM 分析 API |
+| **sampling** | `sampling.ts` | U先派样 API |
+
 ## 已生成的类型清单
 
 | 类型名 | 用途 |
