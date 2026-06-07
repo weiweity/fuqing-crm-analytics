@@ -4,6 +4,53 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.12] - 2026-06-07 - feat(cleanup+docs): sprint6 4 件 P0/P1/P2 收口 (5→6 层防护 + W7 + D-6)
+
+### Added
+- **scripts/etl/cleanup_subagent.py** (新, 276 行): Layer 6 核心 cleanup_subagent_tmp() 函数 + CLI
+  扫 /private/tmp + /tmp 1h+ 1GB+ 非白名单, 排除项目根 + layer 1 自身状态文件
+  cap 5 文件 / 100GB. dry_run 模式. log /tmp/fuqing-subagent-cleanup.log
+- **scripts/etl/launchd/com.fuqing.tmp-cleanup.hourly.plist** (新, 67 行)
+  launchd hourly StartInterval=3600, 跟 weekly cleanup 模板一致
+- 部署: ~/Library/LaunchAgents/com.fuqing.tmp-cleanup.hourly.plist
+- launchctl list | grep fuqing: 4 服务 (weekly + hourly + daily backup + etl.daily)
+- Dummy 5GB 验证: dd 5GB + mtime 1 年前 + 跑 cleanup_subagent.py → DELETED
+
+### Fixed
+- **backend/tests/test_w7_e2e_override.py**: env dict 加 DUCKDB_MEMORY_LIMIT_OVERRIDE: "" 显式置空
+  根因: subprocess 继承父进程 DUCKDB_MEMORY_LIMIT_OVERRIDE=16GB env
+  修法 3 (subprocess env 显式置空) — 不动父进程 os.environ
+  pytest: W7 4 passed, 全量 1 failed / 391 passed / 12 skipped (不 regress)
+
+### Docs
+- CLAUDE.md: 4 层 → 6 层防护表格 + v0.4.14 → v0.4.14.11
+- README.md: 4 层 → 6 层 (跟 CLAUDE.md 一致)
+- docs/DOCUMENT-INDEX.md: 状态行 sprint 4+5 真闭环
+- docs/飞书版架构文档/05-前端架构.md: v3.1 → v3.2
+
+### Decision
+- 16 root tests (141 个) 真修 vs ignore 决策: 维持 ignore 现状 (pyproject.toml testpaths)
+  根因: monkeypatch 引用拷贝 Python 坑
+  修复时机建议: 留 Sprint 7 P0 重构 service import 模式
+
+### Verified
+- pytest backend/tests/: 1 failed / 391 passed / 12 skipped (不 regress)
+- launchctl list | grep fuqing: 4 服务运行
+- Dummy 5GB 删除: DELETED 5.0GB, log 持久, 0 错误
+
+## [v0.4.14.11] - 2026-06-07 - fix(etl): sprint5 P0-3 hotfix 4 Fix A 痛点 1 端到端真闭环
+
+### Fixed
+- **scripts/etl/load.py:506-575** 改 1 个 tx (DELETE+INSERT) → 2 个 tx (DELETE+COMMIT 跟 INSERT+COMMIT 分开)
+- **真根因 (deep dive subagent 5 真实验找到)**: DuckDB 1.5.2 UNIQUE INDEX 在同一 transaction 内 INSERT 时不感知本事务内未提交的 DELETE
+- 之前 hotfix 1/2/3 (ON CONFLICT/NOT EXISTS) 都没用, 因为 UNIQUE INDEX 仍报错
+- 5 err_ids 跑 5 行 OK 但 100 行 fail 的 asymmetry: 行数少时 race 概率低
+
+### Verified
+- 真跑批 --update 1 次 ~17 min ✅ 无 constraint error (290,121 行 + 9/9 W1 GROUPING SETS date)
+- Fix A 拆 2 tx: tx1 DELETE+COMMIT 让 UNIQUE INDEX 看到 DELETE, tx2 INSERT NOT EXISTS
+- Sprint 5 痛点 1 端到端: 🟡 部分 → 🟢 真闭环 (代码层 + 跑批真验)
+
 ## [v0.4.14.10] - 2026-06-07 - fix(etl): sprint5 P0-3 hotfix 3 _upsert_to_duckdb_body 改用 NOT EXISTS
 
 ### Fixed
