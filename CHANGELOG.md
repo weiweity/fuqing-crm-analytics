@@ -4,7 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
-## [v0.4.14.5] - 2026-06-07 - fix(ci): P1-3 review 四轮 2 件 (B2 idx->lineno 修复 + M1 committed 默认 scope)
+## [v0.4.14.1] - 2026-06-07 - docs(etl): P0-1 痛点 1 跑批 3 次验证闭环 — W1 GROUPING SETS 13.4 min 平均 < 35 min 目标 (sprint 3 P0-1)
+
+### Added
+- **`docs/validation-reports/etl-3-runs-2026-06-07.md`** (新, 340 行): P0-1 痛点 1 跑批 3 次真数据验证报告
+  - W1 GROUPING SETS 代码路径真生效验证: `git log --all` 验 commit 682f0cd + 5 hotfix 已在 main, `run_auto_preload:605` 调 `preload_date_batch:350` 1 SQL/date 替代 720 串行 (12x 减少)
+  - 3 次跑批实测: RUN #1 710.24s / RUN #2 817.15s / RUN #3 878.90s (平均 802.10s ≈ 13.4 min, CV 9.4%)
+  - 性能对比: vs 旧 2/3 (16.2 min) 1.4x 加速 / vs 旧 3/3 (56.8 min) 6.5x 加速
+  - 60 组合/date × 9 dates = 540 组合/跑, 写入 37M rows/跑 (3 × 37M = 111M rows)
+  - RSS 峰值 6.1 GB (DuckDB 缓冲增长, 正常), 无 OOM 无 crash
+
+### Note
+- 痛点 1 闭环: 🟡 部分 → 🟢 闭环 (W1 GROUPING SETS 单步 13.4 min < 35 min 目标, 3/3 成功)
+- 已知 issue: `--update` 路径 Step 1 撞 (order_id, sub_order_id) 重复 constraint error (独立数据 quality issue), 修后即可端到端验 < 35 min
+- baseline_2026_06_03.json 新增 3 run: w1v2-1/3, w1v2-2/3, w1v2-3/3 (real_elapsed_sec broken 已知 bug, 真值在 per_step[0].wall_sec)
+
+## [v0.4.14.6] - 2026-06-07 - fix(ci): P1-3 review 四轮 2 件 (B2 idx->lineno 修复 + M1 committed 默认 scope)
 
 ### Fixed
 - **B2-FALSENEG-COMMITTED-MODE (blocker) - committed 模式 idx/lineno 不一致 false negative**: `check_file()` 把 idx (triggers 列表索引) 传给 `find_evidence_nearby()` 和 `has_real_git_evidence()`, 这俩函数把 idx 当 added_lines 索引
@@ -24,7 +39,7 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - M1 fallback 只在 `args.committed and not args.files` 时启用, 显式传 `--files` 仍优先 (不破坏 CI workflow)
 - 测试总数: 47 -> 55 (新增 8: 6 B2 + 3 M1 - 1 旧 idx test 转 lineno)
 
-## [v0.4.14.4] - 2026-06-07 - fix(ci): P1-3 review 二轮 3 件 (B2 NOOP + H1 HEX + BRANCH-STATE)
+## [v0.4.14.5] - 2026-06-07 - fix(ci): P1-3 review 二轮 3 件 (B2 NOOP + H1 HEX + BRANCH-STATE)
 
 ### Fixed
 - **B2 NOOP (blocker) — CI 结构性 no-op**: 旧实现只读 `git diff --cached` (staged content), CI 跑已 commit 文件时永远 0 字节 → 永远 rc=0, 是结构性 no-op
@@ -44,7 +59,7 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - hex color 黑名单覆盖 6-8 位 (#fff #ffffff #ffff 带 alpha), 3/4 位短形式 (少见) 不在白名单
 - end-to-end committed 测试会 init tmp git repo, 已用 GIT_CONFIG_GLOBAL=/dev/null 隔离, 不会污染 worktree
 
-## [v0.4.14.3] - 2026-06-07 - fix(ci): P1-3 review 修 5 件 (2 blocker + 3 high)
+## [v0.4.14.4] - 2026-06-07 - fix(ci): P1-3 review 修 5 件 (2 blocker + 3 high)
 
 ### Fixed
 - **B1 core.hooksPath 死代码**: 加 scripts/setup-hooks.sh 一次性激活; README "快速开始" 段加激活指引; CLAUDE.md 加演示代码检查绕过提醒
@@ -58,7 +73,7 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - B2 ground-truth-lint 起步 non-blocking, 观察 false positive 率再考虑改 blocking
 
 
-## [v0.4.14.7] - 2026-06-06 - test(etl): W3/W4 pipeline CI smoke test (sprint 3 P1-1)
+## [v0.4.14.2] - 2026-06-06 - test(etl): W3/W4 pipeline CI smoke test (sprint 3 P1-1)
 
 ### Added
 - **`backend/tests/test_w3w4_pipeline_smoke.py`** (新, 8 tests / 4 类)
