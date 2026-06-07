@@ -539,7 +539,9 @@ def _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
                     conn.execute(f"CREATE TEMP TABLE {tmp_stage} AS SELECT * FROM orders WHERE 1=0")
                     conn.execute(f"COPY {tmp_stage} ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
                     os.remove(parquet_path)
-                    # 从 staging 表 INSERT DISTINCT 行到 orders
+                    # Sprint 5 P0-3 hotfix 3: 改用 NOT EXISTS (更可靠, 不依赖 DuckDB 1.5.2
+                    # ON CONFLICT 边界 case). DuckDB 测试 100% OK 但生产跑批仍撞 constraint.
+                    # NOT EXISTS 走 DuckDB 内部 subquery 机制, 跟 _copy_df_to_duckdb:601 路线一致.
                     conn.execute(f"""
                         INSERT INTO orders ({cols_joined})
                         SELECT {cols_joined} FROM (
@@ -547,7 +549,10 @@ def _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
                                 PARTITION BY order_id, sub_order_id ORDER BY pay_time DESC
                             ) AS _rn FROM {tmp_stage}
                         ) t WHERE t._rn = 1
-                        ON CONFLICT (order_id, sub_order_id) DO NOTHING
+                        AND NOT EXISTS (
+                            SELECT 1 FROM orders o
+                            WHERE o.order_id = t.order_id AND o.sub_order_id = t.sub_order_id
+                        )
                     """)
                     inserted = conn.execute(f"SELECT COUNT(*) FROM {tmp_stage}").fetchone()[0]
                     conn.execute(f"DROP TABLE IF EXISTS {tmp_stage}")
