@@ -1,6 +1,6 @@
 # DMP 项目 Workflows
 
-> 最后更新：2026-06-01
+> 最后更新：2026-06-07
 > 项目目标：保留核心 DMP 抓数功能和前端需要的 date, date2, date3 文件
 
 ---
@@ -9,59 +9,15 @@
 
 本目录包含 DMP 数据采集项目的自动化工作流脚本。这些工作流用于：
 
-1. **项目审核**：代码质量、文档完整性、依赖检查
-2. **项目清理**：临时文件清理、日志整理
-3. **日常运行**：数据采集、数据同步、监控告警
+1. **数据采集**：每日数据采集、数据同步
+2. **数据修复**：数据质量修复、数据验证
+3. **监控告警**：运行状态监控、异常告警
 
 ---
 
 ## 工作流列表
 
-### 1. 项目审核工作流
-
-**文件**：`dmp-project-audit.js`
-**用途**：全面审核 DMP 项目
-**阶段**：
-- 代码审核：审核核心爬虫代码质量和结构
-- 文档审核：检查文档完整性和准确性
-- 依赖审核：检查 Python 依赖和配置
-
-**运行方式**：
-```bash
-# 在 Claude Code 中运行
-Workflow({scriptPath: "dmp-project-audit.js"})
-```
-
-### 2. 项目清理工作流
-
-**文件**：`dmp-cleanup.js`
-**用途**：清理临时文件和日志
-**阶段**：
-- 清理临时文件：删除临时文件和日志
-- 整理项目文件：整理项目文件结构
-
-**运行方式**：
-```bash
-# 在 Claude Code 中运行
-Workflow({scriptPath: "dmp-cleanup.js"})
-```
-
-### 3. 项目优化工作流
-
-**文件**：`dmp-optimization.js`
-**用途**：执行项目优化计划
-**阶段**：
-- 代码审核：检查代码中的优化点
-- 立即修复：执行第一阶段优化任务
-- 验证测试：验证优化效果
-
-**运行方式**：
-```bash
-# 在 Claude Code 中运行
-Workflow({scriptPath: "dmp-optimization.js"})
-```
-
-### 4. 日常运行工作流
+### 1. 每日数据采集工作流
 
 **文件**：`dmp-daily-run.js`
 **用途**：每日数据采集
@@ -77,7 +33,7 @@ Workflow({scriptPath: "dmp-optimization.js"})
 Workflow({scriptPath: "dmp-daily-run.js"})
 ```
 
-### 5. 数据同步工作流
+### 2. 数据同步工作流
 
 **文件**：`dmp-data-sync.js`
 **用途**：同步数据到前端
@@ -92,7 +48,37 @@ Workflow({scriptPath: "dmp-daily-run.js"})
 Workflow({scriptPath: "dmp-data-sync.js"})
 ```
 
-### 6. 监控告警工作流
+### 3. 数据修复工作流
+
+**文件**：`dmp-data-fix.js`
+**用途**：修复数据质量问题
+**阶段**：
+- 问题诊断：识别数据质量问题
+- 数据修复：执行修复操作
+- 修复验证：验证修复结果
+
+**运行方式**：
+```bash
+# 在 Claude Code 中运行
+Workflow({scriptPath: "dmp-data-fix.js"})
+```
+
+### 4. 数据验证工作流
+
+**文件**：`dmp-data-verify.js`
+**用途**：验证数据完整性
+**阶段**：
+- 数据检查：检查数据文件完整性
+- 质量验证：验证数据质量
+- 报告生成：生成验证报告
+
+**运行方式**：
+```bash
+# 在 Claude Code 中运行
+Workflow({scriptPath: "dmp-data-verify.js"})
+```
+
+### 5. 监控告警工作流
 
 **文件**：`dmp-monitor.js`
 **用途**：监控运行状态和异常
@@ -116,16 +102,16 @@ Workflow({scriptPath: "dmp-monitor.js"})
 在 Claude Code 中，使用 `Workflow` 工具运行工作流：
 
 ```javascript
-// 运行项目审核工作流
+// 运行每日数据采集工作流
 Workflow({
-  scriptPath: "/Users/hutou/Desktop/work plat/DMP_test_package/workflows/dmp-project-audit.js",
-  name: "dmp-project-audit"
+  scriptPath: "scraper/workflows/dmp-daily-run.js",
+  name: "dmp-daily-run"
 })
 
-// 运行项目清理工作流
+// 运行数据修复工作流
 Workflow({
-  scriptPath: "/Users/hutou/Desktop/work plat/DMP_test_package/workflows/dmp-cleanup.js",
-  name: "dmp-cleanup"
+  scriptPath: "scraper/workflows/dmp-data-fix.js",
+  name: "dmp-data-fix"
 })
 ```
 
@@ -143,7 +129,7 @@ Workflow({
 
 ```javascript
 Workflow({
-  scriptPath: "/Users/hutou/Desktop/work plat/DMP_test_package/workflows/dmp-project-audit.js",
+  scriptPath: "scraper/workflows/dmp-daily-run.js",
   resumeFromRunId: "wf_xxxxxxxx"
 })
 ```
@@ -183,7 +169,7 @@ return { result1, result2 }
 
 ## 最佳实践
 
-1. **工作流命名**：使用小写字母和连字符，例如 `dmp-project-audit`
+1. **工作流命名**：使用小写字母和连字符，例如 `dmp-daily-run`
 2. **阶段命名**：使用中文，清晰描述阶段内容
 3. **任务标签**：使用简洁的中文标签，便于识别
 4. **错误处理**：在工作流中添加错误处理逻辑
@@ -216,4 +202,4 @@ return { result1, result2 }
 
 ---
 
-*此文件由 AI 维护*
+*此文件由 AI 维护，最后更新：2026-06-07*

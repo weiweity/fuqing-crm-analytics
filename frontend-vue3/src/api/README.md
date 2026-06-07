@@ -11,34 +11,32 @@ API_URL=http://localhost:8000/openapi.json npm run gen:types
 
 ## 使用方式
 
-### 1. API 调用（useApi）
+### 1. API 调用（推荐方式）
 
 ```typescript
-import { useApi } from '@/api/useApi'
-import type { paths } from '@/api/types'
+import { client } from '@/api/client'
+import type { OverviewMetrics } from '@/api/types'
 
-// GET 请求 — 自动推断返回类型
-const { data, isLoading, error, refetch } = useApi('/api/v1/metrics/overview', {
-  query: computed(() => ({
+// GET 请求 — 使用 client.get()
+const { data } = await client.get<OverviewMetrics>('/v1/metrics/overview', {
+  params: {
     start_date: '2026-01-01',
     end_date: '2026-01-31',
     metric_type: 'GMV'
-  }))
+  }
 })
 
-// data 类型自动推断为 paths['/api/v1/metrics/overview']['get']['responses']['200']['application/json']
+// data 类型自动推断为 OverviewMetrics
 ```
 
 ### 2. POST 请求
 
 ```typescript
-import { useApiPost } from '@/api/useApi'
+import { client } from '@/api/client'
 
-const { data } = useApiPost('/api/v1/export/ppt', {
-  body: computed(() => ({
-    start_date: '2026-01-01',
-    end_date: '2026-01-31'
-  }))
+const { data } = await client.post('/v1/export/ppt', {
+  start_date: '2026-01-01',
+  end_date: '2026-01-31'
 })
 ```
 
@@ -57,6 +55,22 @@ import type {
   FlowMatrixResponse,   // 流转矩阵
 } from '@/api/types'
 ```
+
+## API 模块清单
+
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| **audience** | `audience.ts` | 人群看板 API |
+| **breakdown** | `breakdown.ts` | 一键拆解 API |
+| **category** | `category.ts` | 品类分析 API |
+| **churn** | `churn.ts` | 流失分析 API |
+| **export** | `export.ts` | 数据导出 API |
+| **flow** | `flow.ts` | 人群流转 API |
+| **geo** | `geo.ts` | 地域分析 API |
+| **health** | `health.ts` | 老客健康 API |
+| **marketFocus** | `marketFocus.ts` | 市场对焦 API |
+| **rfm** | `rfm.ts` | RFM 分析 API |
+| **sampling** | `sampling.ts` | U先派样 API |
 
 ## 已生成的类型清单
 
@@ -94,15 +108,15 @@ export function fetchKPIMetrics(params): Promise<{
 
 ```typescript
 // ✅ 类型自动，补全友好
-import { useApi } from '@/api/useApi'
-import type { paths } from '@/api/types'
+import { client } from '@/api/client'
+import type { OverviewMetrics } from '@/api/types'
 
-const { data } = useApi('/api/v1/metrics/overview', {
-  query: computed(() => ({ start_date: '2026-01-01', end_date: '2026-01-31', metric_type: 'GMV' }))
+const { data } = await client.get<OverviewMetrics>('/v1/metrics/overview', {
+  params: { start_date: '2026-01-01', end_date: '2026-01-31', metric_type: 'GMV' }
 })
 
-// data.value 类型：paths['/api/v1/metrics/overview']['get']['responses']['200']['application/json']
-// IDE 自动补全：data.value.amount, data.value.new_users ...
+// data 类型：OverviewMetrics
+// IDE 自动补全：data.amount, data.new_users ...
 ```
 
 ## 规范
@@ -110,3 +124,15 @@ const { data } = useApi('/api/v1/metrics/overview', {
 1. **禁止手写 API 返回类型** — 所有类型必须从 `types.ts` 导入
 2. **修改后端接口后** — 记得 `npm run gen:types` 重新生成
 3. **API 契约变更** — 通知前端更新，前端更新 types 后全量编译检查
+4. **使用 client.get()** — 不要使用 useApi，项目中统一使用 client.get() 方式
+
+## 认证机制
+
+- Token 存储在 `sessionStorage`
+- 401 响应自动触发 refresh
+- 失败触发 `auth:expired` 事件
+
+## 响应拦截器
+
+- `client.get()` 返回的是 `response.data` 而非 AxiosResponse
+- 直接使用返回值即可，无需 `.data`

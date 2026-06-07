@@ -1,7 +1,7 @@
 # DMP 数据采集项目
 
 > 芙清旗舰店达摩盘（DMP）数据自动采集工具
-> 最后更新：2026-06-01
+> 最后更新：2026-06-07
 
 ---
 
@@ -40,10 +40,14 @@ python3 dmp_master.py               # 运行所有模块
 ## 目录结构
 
 ```
-DMP_test_package/
+scraper/
 ├── CLAUDE.md                          ← AI 操作手册
 ├── README.md                          ← 你正在读的文件
 ├── KB-数据采集-SPA接口拦截.md          ← 知识库
+├── .env.example                       ← 环境变量示例
+├── requirements.txt                   ← Python 依赖
+├── START.sh                           ← 快速启动脚本
+├── CLEANUP_FINAL.md                   ← 清理完成说明
 ├── core/                              ← 核心脚本
 │   ├── dmp_master.py                 ← 统一入口
 │   ├── dmp_common.py                 ← 公共模块
@@ -51,18 +55,25 @@ DMP_test_package/
 │   ├── dmp_flow_scraper.py           ← 流转数据抓取
 │   ├── dmp_item_insight_scraper.py   ← 单品洞察抓取
 │   ├── anti_detect.py                ← 反检测模块
+│   ├── sanity_check.py               ← 数据质量检查
 │   ├── run.sh                        ← 交互式菜单
 │   ├── account.txt                   ← 千牛账号密码（⚠️ 不要泄露）
 │   ├── data.csv                      ← 流转数据（⚠️ 只追加不覆盖）
 │   ├── data2.csv                     ← 资产诊断数据
 │   ├── data3.csv                     ← 单品洞察数据
 │   ├── config/                       ← 配置目录
-│   ├── completed_items.json          ← 断点续传缓存
 │   ├── BUGFIX_2026-04-06.md          ← Bug 修复报告
-│   └── MEMO_2026-05-26.md            ← 最近改动记录
+│   ├── MEMO_2026-05-26.md            ← 改动记录
+│   ├── MEMO_2026-06-01.md            ← 改动记录
+│   └── MEMO_2026-06-02.md            ← 改动记录
 ├── chrome_profile/                    ← 浏览器配置（⚠️ 不要删除！）
 ├── .learnings/                        ← 经验日志
 └── workflows/                         ← 工作流
+    ├── dmp-daily-run.js              ← 每日数据采集
+    ├── dmp-data-sync.js              ← 数据同步
+    ├── dmp-data-fix.js               ← 数据修复
+    ├── dmp-data-verify.js            ← 数据验证
+    └── dmp-monitor.js                ← 监控告警
 ```
 
 ---

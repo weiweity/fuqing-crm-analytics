@@ -620,7 +620,9 @@ def main():
         return False
     
     # 使用浏览器上下文管理器
-    with BrowserManager(headless=False) as browser:
+    # headless=True: 单品洞察 API 拦截在有头模式下失败(页面调整后),
+    # 无头模式验证通过。资产诊断和流转在无头模式下也正常。
+    with BrowserManager(headless=True) as browser:
         page = browser.new_page()
         page.set_viewport_size({'width': 1920, 'height': 1080})
         
@@ -730,7 +732,7 @@ def main():
                                     pass
                                 time.sleep(3)
                                 try:
-                                    new_browser = BrowserManager(headless=False).__enter__()
+                                    new_browser = BrowserManager(headless=True).__enter__()
                                     page = new_browser.new_page()
                                     page.set_viewport_size({'width': 1920, 'height': 1080})
                                     # 注意：这里 browser 被重新赋值，但旧 browser 已在 __exit__ 中关闭

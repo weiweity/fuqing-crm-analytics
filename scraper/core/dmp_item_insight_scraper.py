@@ -378,8 +378,8 @@ def fetch_item_data(page, item_id, target_date, fallback_date):
     else:
         date_str = str(target_date)
     
-    # 正确格式: ?spm=xxx#!/route?itemId=xxx&endDate=2026-04-03
-    url = f"{Config.DMP_BASE_URL}?spm={spm}{route}?itemId={item_id}&endDate={date_str}"
+    # 正确格式: ?spm=xxx#!/route?itemId=xxx&endDate=2026-04-03&analysisTab=compete
+    url = f"{Config.DMP_BASE_URL}?spm={spm}{route}?itemId={item_id}&endDate={date_str}&analysisTab=compete"
     log(f"访问单品洞察页面（含日期参数）: {url}")
 
     # ===== 先注册API拦截器，再访问页面 =====
@@ -404,7 +404,7 @@ def fetch_item_data(page, item_id, target_date, fallback_date):
         if "404" in page_title or "not found" in page_title.lower() or "找不到" in page_content:
             log("⚠️ 检测到页面404，尝试备用URL格式...")
             # 备用URL：不带spm参数的旧格式
-            fallback_url = f"https://dmp.taobao.com/index_new.html{Config.DMP_ROUTE_ITEM}?itemId={item_id}"
+            fallback_url = f"https://dmp.taobao.com/index_new.html{Config.DMP_ROUTE_ITEM}?itemId={item_id}&analysisTab=compete"
             log(f"访问备用URL: {fallback_url}")
             page.goto(fallback_url, wait_until="domcontentloaded", timeout=120000)
 
@@ -1397,7 +1397,7 @@ def extract_item_data_by_api(page, item_id, target_date):
 
         spm = Config.DMP_SPM
         route = Config.DMP_ROUTE_ITEM
-        url = f"{Config.DMP_BASE_URL}?spm={spm}{route}?itemId={item_id}&endDate={date_str}"
+        url = f"{Config.DMP_BASE_URL}?spm={spm}{route}?itemId={item_id}&endDate={date_str}&analysisTab=compete"
 
         log(f"[API] 刷新页面: {url[:100]}...")
         # 使用 domcontentloaded 而不是 networkidle（SPA页面有长轮询，networkidle会超时）

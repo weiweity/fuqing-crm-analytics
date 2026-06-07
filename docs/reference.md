@@ -101,7 +101,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/ ← DMP 资产
 │   ├── routers/           ← API 路由（16 个模块）
 │   ├── db/                ← 数据库连接（get_connection）
-│   └── tests/             ← 单元测试（12 个文件，149 passed / 8 skipped）
+│   └── tests/             ← 单元测试（12 个文件，391+ passed / 12 skipped）
 ├── frontend-vue3/
 │   └── src/
 │       ├── views/         ← 页面组件
@@ -169,6 +169,17 @@ fuqing-crm-analytics/
 |------|--------|------|
 | user_rfm 全局累计值 | P2 | ETL 预计算的 user_rfm 在查历史周期时 RFM 分类全部错误，需 ETL 重构 |
 | 测试深度 | P2 | 当前测试以边界+结构验证为主，缺少业务逻辑验证 |
+
+---
+
+## Sprint 历史教训 (Sprint 5-8)
+
+| 日期 | Sprint | 事故/问题 | 根因 | 教训 |
+|------|--------|-----------|------|------|
+| 2026-06-07 | Sprint 5 | DuckDB UNIQUE INDEX race condition | DuckDB 1.5.2 并发写入 UNIQUE INDEX 时 race | Fix A 拆 2 tx：先 DELETE 再 INSERT，避免单 tx 内 race |
+| 2026-06-07 | Sprint 6 | 16 root test 失败 | pyproject.toml testpaths 配置错误 | 删 testpaths 恢复默认，16 root test 改 ignore |
+| 2026-06-07 | Sprint 7 | P0 治根 10 root test fail | 测试文件路径和导入问题 | 修复测试文件路径，确保导入正确 |
+| 2026-06-07 | Sprint 8 | YOYBadge 模式不统一 | 前端组件模式判断逻辑不一致 | 统一 YOYBadge 模式判断，R 桶 pre_cutoff 改 end_dt |
 
 ---
 

@@ -74,7 +74,7 @@ class Config:
     # 达摩盘 URL 配置
     DMP_BASE_URL = "https://dmp.taobao.com/index_new.html"
     # spm 参数（从浏览器地址栏复制，当前有效值，变动时需更新）
-    DMP_SPM = "a2e3k.28338430.c0d46757f.de019e68a.1d1125ebOCRO8L"
+    DMP_SPM = "a2e3k.28338430.c0d46757f.de019e68a.1d1125eblwdosJ"
     # 各模块路由路径
     DMP_ROUTE_ASSETS = "#!/deeplink-new/assets-diagnose"
     DMP_ROUTE_FLOW = "#!/deeplink/flow"

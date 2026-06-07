@@ -22,7 +22,7 @@
 - ✅ ETL 增量更新正常（截至 2026-06-04：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M / rfm_analysis_cache 60 / order_status_override 6/4 刷 91,307 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions + ground-truth-lint (P1-3 sprint 3)
-- ✅ 测试 459+ passed / 8 skipped（v0.4.14.11 sprint 4+5 真闭环, CI 三连绿 run 27082443532 / 27062413467 / 27063611644）
+- ✅ 测试 391+ passed / 12 skipped（v0.4.14.16 sprint 8 收口, CI 三连绿）
 - ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (P0-3 sprint 4 load.py:550 加 ON CONFLICT + sprint 5 load.py:550 改 NOT EXISTS)
 - ✅ Sprint 4 + 5 收口：3/3 P0 done (P0-2 DuckDB 55GB 每日备份 + P0-3 dedup 测试 + hotfix 2/3 ON CONFLICT/NOT EXISTS), NOT EXISTS 测试 100% OK 但生产跑批 2 次仍撞留 Sprint 6
 - ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
@@ -96,7 +96,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/  # DMP 资产（store/product/other）
 │   ├── routers/                # API 路由（16 个模块）
 │   ├── db/                     # 数据库连接
-│   └── tests/                  # 单元测试（22 个 backend/tests/*.py + 根 tests/, 258 passed）
+│   └── tests/                  # 单元测试（22 个 backend/tests/*.py + 根 tests/, 391+ passed / 12 skipped）
 ├── frontend-vue3/              # Vue3 前端
 ├── scripts/                    # ETL 脚本
 ├── config/                     # 配置（健康评分、RFM 阈值）
@@ -118,19 +118,19 @@ fuqing-crm-analytics/
 
 ## 文档导航
 
-详细文档分类和状态请查看 [📖 文档索引](./docs/DOCUMENT-INDEX.md)
+详细文档分类和状态请查看 [📖 文档索引](./docs/document-index.md)
 
 ### 核心文档速查
 
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [docs/product/PRD-v3.0.md](./docs/product/PRD-v3.0.md) | 产品需求文档 |
-| [docs/飞书版架构文档/00-系统总览.md](./docs/飞书版架构文档/00-系统总览.md) | 系统架构总览 |
-| [docs/飞书版架构文档/07-常见问题汇总.md](./docs/飞书版架构文档/07-常见问题汇总.md) | Bug 修复记录和经验教训 |
+| [docs/archive/product/prd-v3.0.md](./docs/archive/product/prd-v3.0.md) | 产品需求文档（归档） |
+| [docs/feishu-architecture/00-system-overview.md](./docs/feishu-architecture/00-system-overview.md) | 系统架构总览 |
+| [docs/feishu-architecture/07-faq.md](./docs/feishu-architecture/07-faq.md) | Bug 修复记录和经验教训 |
 | [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
-| [docs/DEPLOY-WINDOWS.md](./docs/DEPLOY-WINDOWS.md) | Windows Server 部署指南 |
-| [docs/DOCUMENT-INDEX.md](./docs/DOCUMENT-INDEX.md) | 完整文档索引 |
+| [docs/deploy-windows.md](./docs/deploy-windows.md) | Windows Server 部署指南 |
+| [docs/document-index.md](./docs/document-index.md) | 完整文档索引 |
 
 ---
 
@@ -194,7 +194,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（459+ passed / 8 skipped，v0.4.14.11 sprint 4+5 真闭环）：
+当前测试覆盖（391+ passed / 12 skipped，v0.4.14.16 sprint 8 收口）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务

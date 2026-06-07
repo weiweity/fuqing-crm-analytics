@@ -28,8 +28,6 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
 ## [v0.4.14.15] - 2026-06-07 - docs: sprint7 P2 6 层防护清理文档 (cleanup.md 516 行)
 
-## [v0.4.14.15] - 2026-06-07 - docs: sprint7 P2 6 层防护清理文档 (cleanup.md 516 行)
-
 ### Added
 - **docs/operations/cleanup.md** (新, 516 行): 6 层磁盘治理运维文档
   - 6 层防护详细表格 (atexit / zshrc / workbuddy / weekly / daily backup / hourly subagent)
@@ -97,8 +95,6 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - 走 12 步流程 (checkout → commit → push → merge --no-ff → push main → pull --ff-only → restart uvicorn)
 
 refs: docs/SPRINT-7-PLAN.md Sprint 7 P0 任务 1
-
-## [v0.4.14.12] - 2026-06-07 - feat(cleanup+docs): sprint6 4 件 P0/P1/P2 收口 (5→6 层防护 + W7 + D-6)
 
 ## [v0.4.14.12] - 2026-06-07 - feat(cleanup+docs): sprint6 4 件 P0/P1/P2 收口 (5→6 层防护 + W7 + D-6)
 
