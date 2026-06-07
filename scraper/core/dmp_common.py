@@ -95,54 +95,6 @@ def detect_encoding(file_path):
     return 'utf-8'
 
 
-# ============ CSV写入公共函数 ============
-def safe_write_csv(csv_file, new_rows, dedup_key_fn=None):
-    """
-    安全写入CSV：先读取现有数据，去重，再写入
-    
-    Args:
-        csv_file: CSV文件路径
-        new_rows: 新数据行列表（字典列表）
-        dedup_key_fn: 去重键函数，接收row返回key（可选）
-    
-    Returns:
-        bool: 是否成功写入
-    """
-    import csv
-    existing_rows = []
-    if os.path.exists(csv_file):
-        try:
-            encoding = detect_encoding(csv_file)
-            with open(csv_file, 'r', encoding=encoding) as f:
-                reader = csv.DictReader(f)
-                existing_rows = list(reader)
-        except Exception as e:
-            log(f"读取现有CSV失败: {e}")
-    
-    if dedup_key_fn and existing_rows:
-        existing_keys = {dedup_key_fn(r) for r in existing_rows}
-        new_rows = [r for r in new_rows if dedup_key_fn(r) not in existing_keys]
-    
-    all_rows = existing_rows + new_rows
-    if not all_rows:
-        return True
-    
-    fieldnames = list(all_rows[0].keys())
-    file_dir = os.path.dirname(csv_file)
-    if file_dir:
-        os.makedirs(file_dir, exist_ok=True)
-    
-    try:
-        with open(csv_file, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(all_rows)
-        return True
-    except Exception as e:
-        log(f"写入CSV失败: {e}")
-        return False
-
-
 # ============ 日期工具 ============
 def parse_date(date_str):
     """解析多种格式的日期字符串"""

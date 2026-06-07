@@ -33,12 +33,7 @@ try:
 except ImportError:
     HAS_ANTI_DETECT = False
 
-# 导入YAML配置
-try:
-    import yaml
-    HAS_YAML = True
-except ImportError:
-    HAS_YAML = False
+import yaml
 
 # 尝试导入选择器引擎
 try:
@@ -2140,20 +2135,6 @@ def _mark_completed(item_id, date_str):
         os.replace(tmp_file, cache_file)
     except Exception as e:
         log(f"写入完成缓存失败: {e}")
-
-def _is_completed(item_id, date_str):
-    """检查任务是否已完成"""
-    cache_file = _get_completed_cache_path()
-    if not Path(cache_file).exists():
-        return False
-    try:
-        with open(cache_file, 'r', encoding='utf-8') as f:
-            cache = json.load(f)
-        key = f"{item_id}_{date_str.replace('/', '-')}"
-        return key in cache
-    except Exception:
-        return False
-
 
 def _get_latest_row_for_item(csv_file, item_id):
     """获取某商品在CSV中的最新一条记录（按日期最晚）
