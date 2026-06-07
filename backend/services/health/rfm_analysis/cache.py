@@ -26,7 +26,7 @@ from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 
 from backend.config import DUCKDB_PATH
-from backend.db.connection import get_duckdb_config
+from backend.db import connection as bdc
 from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 
@@ -57,7 +57,7 @@ def _open_write_conn() -> duckdb.DuckDBPyConnection:
     注意：duckdb.connect 默认 access_mode=READ_WRITE,这里显式
     声明意图 + 防御性兜底。
     """
-    cfg = get_duckdb_config()
+    cfg = bdc.get_duckdb_config()
     cfg["access_mode"] = "READ_WRITE"
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:

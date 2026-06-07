@@ -5,7 +5,7 @@
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
-from backend.db.connection import get_connection
+from backend.db import connection as bdc
 from backend.services.rfm._shared import (
     _VALID_BASE, _VALID_BASE_T,
 )
@@ -161,7 +161,7 @@ def get_segment_orders(
 
     params = hist_params + [segment, cur_start_dt, cur_end_dt] + base_params_extra + exc_params
 
-    conn = get_connection()
+    conn = bdc.get_connection()
     try:
         rows = conn.execute(sql, params).fetchall()
     finally:

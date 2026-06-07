@@ -14,7 +14,7 @@ from typing import Dict, Any, List, Optional
 import duckdb
 
 from backend.config import DUCKDB_PATH
-from backend.db.connection import get_connection, get_duckdb_config
+from backend.db import connection as bdc
 from backend.services.rfm import _resolve_date_ranges
 from ._shared import _fetch_max_pay_time
 from .period import _run_rfm_period, _build_rows
@@ -31,7 +31,7 @@ def _new_duckdb_conn() -> duckdb.DuckDBPyConnection:
 
     测试时通过 monkeypatch 此函数注入 mock 连接。
     """
-    cfg = get_duckdb_config()
+    cfg = bdc.get_duckdb_config()
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:
         cfg["password"] = db_password
@@ -74,7 +74,7 @@ def get_rfm_analysis(
     is_historical = cur_end_date < today
 
     # ── 全量 live SQL 计算（所有周期走同一口径，保证一致性） ──
-    conn = get_connection()
+    conn = bdc.get_connection()
     try:
         # 预先获取 data_version 与 orders 行数快照,避免后续每个函数都新建连接
         # Stale 修复: orders_count 是陈旧检测的第二维度（ETL 续传场景 max_pay_time

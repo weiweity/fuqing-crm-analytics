@@ -15,7 +15,7 @@ import duckdb
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
-from backend.db.connection import get_connection
+from backend.db import connection as bdc
 from backend.services.rfm._shared import (
     _VALID_BASE,
     _resolve_date_ranges,
@@ -450,7 +450,7 @@ def get_rfm_flow(
     if cached is not None:
         return cached
 
-    conn = get_connection()
+    conn = bdc.get_connection()
     try:
         cur_all, cur_same, cur_member_all, cur_member_same = run_flow_period(
             conn, cur_start_dt, cur_end_dt, cutoff,
