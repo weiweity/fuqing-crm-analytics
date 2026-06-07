@@ -1,0 +1,6 @@
+# 芙清 CRM - DuckDB 每日备份目录 (Sprint 4 P0-2, 2026-06-07)
+#
+# 文件命名规范: fuqing_crm_YYYY-MM-DD.duckdb.zst
+# 保留策略: 7 天 (com.fuqing.backup-cleanup.weekly.plist 周日 03:00 清理)
+# 备份脚本: scripts/etl/ (每日 03:30 launchd 调度)
+# 备份方式: shutil.copy2 (os-level) + zstd 压缩 (55GB → ~21GB)
