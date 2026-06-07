@@ -235,8 +235,8 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
 |---|---|---|
 | `CLAUDE.md` | 行为规则（本文件） | 自动加载 |
 | `docs/reference.md` | 参考手册（口径/教训/目录结构） | 按需 Read |
-| `docs/product/prd-v3.0.md` | 产品需求文档 | 按需 Read |
-| `docs/feishu-architecture/` | 系统架构文档（7 份） | 按需 Read |
+| `docs/archive/product/prd-v3.0.md` | 产品需求文档（归档） | 按需 Read |
+| `docs/feishu-architecture/` | 系统架构文档（2 份核心） | 按需 Read |
 | `docs/document-index.md` | 完整文档索引 | 按需 Read |
 | `CHANGELOG.md` | 版本变更记录 | 按需 Read |
 

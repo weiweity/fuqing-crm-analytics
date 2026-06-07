@@ -118,14 +118,14 @@ fuqing-crm-analytics/
 
 ## 文档导航
 
-详细文档分类和状态请查看 [📖 文档索引](./docs/DOCUMENT-INDEX.md)
+详细文档分类和状态请查看 [📖 文档索引](./docs/document-index.md)
 
 ### 核心文档速查
 
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [docs/product/prd-v3.0.md](./docs/product/prd-v3.0.md) | 产品需求文档 |
+| [docs/archive/product/prd-v3.0.md](./docs/archive/product/prd-v3.0.md) | 产品需求文档（归档） |
 | [docs/feishu-architecture/00-system-overview.md](./docs/feishu-architecture/00-system-overview.md) | 系统架构总览 |
 | [docs/feishu-architecture/07-faq.md](./docs/feishu-architecture/07-faq.md) | Bug 修复记录和经验教训 |
 | [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
