@@ -31,12 +31,12 @@ exclude = ["scripts/archive/*"]
 "backend/tests/*.py" = ["E402"]
 
 # ── pytest 配置 ───────────────────────────────────────────────
-# P1-2 Sprint 3: 限制默认 test 收集范围到 backend/tests/
-# 原因: ./tests/ 根目录的 16 个 legacy 测试 (test_breakdown_service 等) 依赖
-# 真实 DuckDB 文件 data/processed/fuqing_crm.duckdb, 与 uvicorn dev 进程
-# (PID 66129) 持 41GB 锁冲突, 本地 pytest ./tests/ 必失败 (DuckDB IOException)。
-# CI 已显式指定 pytest backend/tests/ -x -q, 加 testpaths 让本地默认行为对齐 CI。
-# 显式调用 `pytest ./tests/` 仍可用, 只是不再默认扫根目录。
+# Sprint 8 P1: 删 testpaths, 恢复 pytest auto-discovery (./tests/ + backend/tests/)
+# 历史:
+#   Sprint 3 P1-2 (83d000c) 加 testpaths = ["backend/tests"] 绕开 16 个 root test
+#   跟 uvicorn dev 进程的 DuckDB 锁冲突 (本地 ./tests/ 必失败 IOException)。
+#   Sprint 7 P0 治根后 16 root test 全部跑通, ignore 路线已不需要。
+#   CI 显式调用 `pytest backend/tests/ -x -q` + `pytest ./tests/ -q`,
+#   删 testpaths 让本地默认行为对齐 auto-discovery。
 [tool.pytest.ini_options]
-testpaths = ["backend/tests"]
 addopts = ["-ra", "--strict-markers", "--disable-warnings"]
