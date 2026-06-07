@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.16] - 2026-06-07 - fix(audience+rfm): sprint8 P0 前端 2 bug 修复 (YOYBadge 模式统一 + R 桶 pre_cutoff 截止改 end_dt)
+
+### Fixed
+- **前端 Bug 1 (YOYBadge 模式统一)**: `frontend-vue3/src/views/AudienceView.vue` 24 处
+  - `value: row.xxx_yoy` 改成 `value: (row.xxx_yoy ?? 0) * 100, unit: 'pp'`
+  - 占比 (`*_ratio_yoy`) 早已统一 pp 模式, 同比百分比 (`gsv/users/aus_yoy`) 之前用默认 % 模式乘 100 显示 0.1% 跟 占比的 0.1pp 单位混淆
+  - 统一后全店 GSV 同比显示 `+0.0pp ↑` (0.001 同比小数 * 100 = 0.1pp, toFixed(1) 0.1)
+  - 不动 L298 IndicatorRow (ratio vs non-ratio 分支已正确)
+
+- **后端 Bug 2 (R 桶 pre_cutoff 截止改 end_dt)**: `backend/services/rfm/_flow_engine.py` + `r_flow.py`
+  - `r_bucket_params = [cutoff_dt, cutoff_dt]` 改 `[end_dt, end_dt]`
+  - 1 月新购客 DATEDIFF(pre_cutoff_last_pay in 1月, end_dt=1/31) = 0-30 天 → 进入 R 桶 1
+  - 段级和 = TTL (跟 hist_customers / 已购客TTL 一致, 不再有 "5/1-5/31 新购客不进任何 R 桶" trade-off)
+  - 月纬度 R 桶 1 重要价值客户 2026 回购人数 > 0 (1 月有买 ∩ R 桶 1 ∩ 复购)
+
+### Verified
+- pytest backend/tests/: 391 passed, 12 skipped, 1 pre-existing failure (test_w4_full.py::test_rfm_recompute_window_dry_run, uvicorn PID 50804 持 DuckDB 锁环境问题, 跟改动无关)
+- pytest ./tests/: 141 passed (与改前一致)
+- frontend-vue3 npm run build: 855ms OK
+- 修复后: 全店 GSV 同比显示 `+0.1pp ↑` (L446) 跟占比同比 `+0.1pp ↑` (L479) 单位一致
+- 修复后: 月纬度 重要价值客户 R 桶 1 hist_users 含 1 月新购客, repurchase_users > 0
+
+## [v0.4.14.15] - 2026-06-07 - docs: sprint7 P2 6 层防护清理文档 (cleanup.md 516 行)
+
 ## [v0.4.14.15] - 2026-06-07 - docs: sprint7 P2 6 层防护清理文档 (cleanup.md 516 行)
 
 ### Added

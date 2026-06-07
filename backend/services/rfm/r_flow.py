@@ -14,14 +14,10 @@ from backend.semantic.filters import expand_channels
 
 
 # ── R 维度配置 ──
-# R 桶窗口：用 cutoff_dt (start_dt - 1) 而非 end_dt 作 recency 参考日。
-# 原因：end_dt 截止时，5/1-5/31 当期有订单的用户 MAX(pay_time) 都在 5/1-5/31，
-#       距 end_dt 0-30 天 → 全部归入"近1个月已购客"，
-#       导致 R 桶 2-6 ∩ base_orders = ∅，回购率恒为 0.0%（数学不可能）。
-# 修法：R 桶分桶基于 pre_cutoff_last_pay (MAX(pay_time) WHERE pay_time <= cutoff_dt)
-#       + DATEDIFF 到 cutoff_dt，5/1-5/31 新购客（pre_cutoff=NULL）不进任何 R 桶。
-# 段级和 ≠ TTL：5/1-5/31 新购客（无 pre-period 历史）不在 R 桶 1-6 任何桶，
-#              仅在"已购客TTL"行出现。这是 R 桶业务语义正确的代价。
+# R 桶窗口：Sprint 8 P0 改 end_dt 截止（与 hist_customers 一致），
+# 让 1 月新购客 (pre_cutoff_last_pay in 1月) 进入 R 桶 1。
+# 段级和 = TTL（不再有"5/1-5/31 新购客不进任何 R 桶"的 trade-off）。
+# 注：1 月新购客 DATEDIFF(pre_cutoff_last_pay, end_dt) = 0-30 天 → R 桶 1。
 _R_BUCKET_SEGMENTATION_TEMPLATE = """
     pre_cutoff_users AS (
         SELECT user_id, MAX(pay_time) AS pre_cutoff_last_pay
