@@ -82,6 +82,8 @@
 
 激活 hooks：`git config core.hooksPath .githooks`
 
+**必要的演示代码检查**会跳过 hooks, 需运行 `bash scripts/setup-hooks.sh` 激活 (一次性, session 保持)
+
 ---
 
 ## Git 工作流

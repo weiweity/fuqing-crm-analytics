@@ -32,6 +32,14 @@
 
 ## 快速开始
 
+### 一次性激活 githooks
+
+```bash
+bash scripts/setup-hooks.sh   # 激活 pre-commit / pre-push (一次性, session 保持)
+```
+
+> **根因 (B1 P1-3 review, 2026-06-06)**: `core.hooksPath` 默认指向空目录, `.githooks/pre-commit` 在大多数开发者机器上是死代码。演示代码检查 (gstack review / autopilot) 会跳过 hooks, 必须手动激活。
+
 ### 启动服务
 
 ```bash

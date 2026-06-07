@@ -4,6 +4,59 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.5] - 2026-06-07 - fix(ci): P1-3 review 四轮 2 件 (B2 idx->lineno 修复 + M1 committed 默认 scope)
+
+### Fixed
+- **B2-FALSENEG-COMMITTED-MODE (blocker) - committed 模式 idx/lineno 不一致 false negative**: `check_file()` 把 idx (triggers 列表索引) 传给 `find_evidence_nearby()` 和 `has_real_git_evidence()`, 这俩函数把 idx 当 added_lines 索引
+  - 在 committed 模式下 added_lines = 整文件 (e.g. 340 行), trigger 在末尾的 idx 在 triggers 列表里 = 0, 但在 added_lines 里 = 339. window=30 滑到 added_lines[0:30] (文件头, 有早期 commit SHA), trigger 被屏蔽, false negative
+  - 加 `_find_line_index(added_lines, target_lineno)` helper: 在 added_lines 中找 lineno == target_lineno 的真 idx
+  - `find_evidence_nearby` / `has_real_git_evidence` 改签名 `trigger_idx` -> `trigger_lineno` (1-based 行号, NOT triggers list idx), 内部用 `_find_line_index` 反查真 idx 算窗口
+  - `check_file()` 主循环改传 `lineno` (不是 `idx`)
+  - 新测试 `TestB2LargeFileRegression` (6 cases): `test_find_evidence_nearby_uses_lineno_not_triggers_idx` (核心) / `test_find_evidence_nearby_lineno_in_340_line_file` (340 行场景) / `test_has_real_git_evidence_uses_lineno_not_triggers_idx` / `test_find_line_index_helper` / `test_check_file_committed_mode_long_file_ends_with_violation` (50 行集成) / `test_committed_mode_integration_340_line_file` (真 git repo 340 行文件)
+  - 旧 9 个 EVIDENCE_CASES / H1 HEX / H3 测试 trigger_idx=0 改 trigger_lineno=1 (语义更清晰)
+- **M1-COMMITTED-NO-OP-WITHOUT-FILES (medium) - committed 默认 scope 修 false sense of safety**: `--committed` 没 `--files` 时, 旧版静默 no-op (files=[]). CI 跑 `--files` glob 没事, 但开发者手动 `--committed` 会得 false sense of safety
+  - `main()` argparse 处理: `args.committed and not args.files` 时自动 fallback 到 `docs/validation-reports/*.md` + `docs/飞书版架构文档/*.md` (匹配 `.github/workflows/lint.yml` + `nightly.yml` ground-truth-lint step 的 scope)
+  - 加注释说明 fallback 行为 + 用 `sorted(set(...))` 稳定输出
+  - 新测试 `TestM1CommittedDefaultScope` (3 cases): `test_committed_fallback_scans_validation_reports` (e2e 端到端) / `test_committed_fallback_empty_repo_no_violation` (graceful 退出) / `test_committed_with_explicit_files_overrides_fallback` (显式 --files 仍 work, 不破坏 CI)
+
+### Note
+- B2 修是 silent correctness fix, 不改变 staged 模式行为, 不影响现有 user workflow
+- M1 fallback 只在 `args.committed and not args.files` 时启用, 显式传 `--files` 仍优先 (不破坏 CI workflow)
+- 测试总数: 47 -> 55 (新增 8: 6 B2 + 3 M1 - 1 旧 idx test 转 lineno)
+
+## [v0.4.14.4] - 2026-06-07 - fix(ci): P1-3 review 二轮 3 件 (B2 NOOP + H1 HEX + BRANCH-STATE)
+
+### Fixed
+- **B2 NOOP (blocker) — CI 结构性 no-op**: 旧实现只读 `git diff --cached` (staged content), CI 跑已 commit 文件时永远 0 字节 → 永远 rc=0, 是结构性 no-op
+  - 加 `--committed` 模式: 用 `git show HEAD:<path>` 拉已 commit 文件内容, `parse_whole_file` 整文件当 added_lines 扫 (diff_scope_filter='whole_file')
+  - `.github/workflows/lint.yml` + `nightly.yml` ground-truth-lint step 改用 `--committed --files` 模式
+  - 新测试 `TestB2CommittedMode` (8 cases): `test_parse_whole_file_*` / `test_get_committed_content_*` / `test_check_file_committed_mode_*` / `test_committed_mode_end_to_end_in_git_repo` (真 tmp git repo commit 验证)
+- **H1 HEX-COLOR-BACKDOOR (high) — hex color 旁路**: SHA regex `(?:commit[:\s]+|tag[:\s]+|PR\s*#?[:\s]*|#|@)\b[0-9a-f]{7,40}\b` 接受 `#` 前缀, `#ff00aabb` (8 hex) 被算 evidence (false positive 旁路)
+  - `_is_pseudo_sha` (重命名自 `_looks_like_phone_or_id_card`) 加 hex color 模式: `re.search(r'#[0-9a-f]{6,8}\b', text)` → 视为伪 SHA
+  - 加 `HEX_COLOR_RE` + `_filter_hex_color_evidence()`, `find_evidence_nearby` 显式抠掉 evidence 中所有 #xxxxxx
+  - 新测试 `TestH1HexColorExclusion` (7 cases): red team `X 未集成 #ff00aabb` 被拦 + 正例 `commit ff00aabb` (无 # 前缀) 仍算 evidence
+- **BRANCH-STATE-MESS (medium) — 修复在错分支**: 修在 `fix/sprint3-p13-review-lint-fixes` (0d7b9bb), 原 `fix/sprint3-p13-review-lint` 还指 33c7fe3 旧版, merge 会拿到 broken 版本
+  - 修后 force-push 0d7b9bb + 新 commit 到原分支 `fix/sprint3-p13-review-lint`
+  - 删除 `fix/sprint3-p13-review-lint-fixes` 分支 (本地 + remote)
+
+### Note
+- `--committed` 模式 + staged 模式互斥, 通过 `--committed` flag 切换, 默认仍是 staged (本地 pre-commit 钩子不变)
+- hex color 黑名单覆盖 6-8 位 (#fff #ffffff #ffff 带 alpha), 3/4 位短形式 (少见) 不在白名单
+- end-to-end committed 测试会 init tmp git repo, 已用 GIT_CONFIG_GLOBAL=/dev/null 隔离, 不会污染 worktree
+
+## [v0.4.14.3] - 2026-06-07 - fix(ci): P1-3 review 修 5 件 (2 blocker + 3 high)
+
+### Fixed
+- **B1 core.hooksPath 死代码**: 加 scripts/setup-hooks.sh 一次性激活; README "快速开始" 段加激活指引; CLAUDE.md 加演示代码检查绕过提醒
+- **B2 CI 完全没调 check_review_ground_truth**: .github/workflows/lint.yml 加 ground-truth-lint job (非阻塞 warning 起步); nightly.yml 也加
+- **H1 SHA evidence 正则过宽**: 旧 \b[0-9a-f]{7,40}\b 误判中国身份证/手机号/hex color; 新正则要求 commit/tag/PR/#/@ 前导, 加 phone/ID 黑名单
+- **H2 46 测试 trivial 内部**: 压到 30 tests (5 is_review_file + 6 trigger + 6 evidence + 4 diff + 3 e2e + 2 env/CLI + 2 H3 + 2 misc), 648 → 350 行
+- **H3 evidence 只验字符串出现**: 加 has_real_git_evidence 真跑 git log 双重验证 (cheap L1 字符串 → real L2 git log 跑通)
+
+### Note
+- H3 限制: 仍依赖 PR review 人工护航 expensive case ("写了 git log 但实际跑空")
+- B2 ground-truth-lint 起步 non-blocking, 观察 false positive 率再考虑改 blocking
+
 
 ## [v0.4.14.7] - 2026-06-06 - test(etl): W3/W4 pipeline CI smoke test (sprint 3 P1-1)
 
@@ -84,6 +137,37 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 ### CI
 - **`CI run 27062413467`**: ✅ **success** (lint ✅ + test ✅) — 修 sprint 1 以来 30+ CI 红
 
+
+## [v0.4.15.1] - 2026-06-06 - chore(ci): /review 前 git log 自动化 lint (sprint 3 P1-3)
+
+### Added
+- **`.githooks/check_review_ground_truth.py`** (新): pre-commit 钩子, 扫 `docs/` 下 .md 触发词
+  - 触发词: `未集成 / 不存在 / 占位 / TODO / FIXME / 缺失 / 待集成 / 还没接` (中英 9 个)
+  - 证据模式: `git log`/`git show` 命令 / 7-40 位 commit SHA / `已验证|已确认|已核对|已落地|已合入|已集成|已实现|已存在` 白名单 (任意 1 个即通过)
+  - 范围 narrow: 只扫 `docs/`, 排除 `CHANGELOG.md / reference.md / DOCUMENT-INDEX.md / README.md`
+  - 误伤规避: 只检查 **新增** 行, 不检查删除行; 跳过 `backend/ frontend-vue3/ scripts/ scraper/`
+  - 救火: `FQA_GROUND_TRUTH_SKIP=1 git commit ...`
+- **`.githooks/pre-commit`**: 接 P1-3 检查到末尾 (B2/B5/cleanup 之外)
+- **`backend/tests/test_check_review_ground_truth.py`** (新, 46 tests / 5 类):
+  - `TestIsReviewFile` (5): scope 边界
+  - `TestTriggerDetection` (5): 触发词 + 单词边界
+  - `TestEvidenceDetection` (5): evidence 模式
+  - `TestParseAddedLines` (4): unified diff 解析
+  - `TestCheckFile` (5): 单文件端到端
+  - `TestMainEndToEnd` (12): 11 red team + regression + 真 git repo
+  - `TestCLIRun` (3): argparse / env / 真 git
+  - `TestScriptInGitRepo` (3): 在 tmp git repo 里 red team + regression
+
+### Background
+- D-4 (2026-06-06) 飞书架构 7 份刷出现 4 个 ground truth 错误, agent 凭 memory / stale 文档下结论
+- 教训: "pipeline.py W3 step 7b 未集成" → 实际 step **8.5** 早就合 (v0.4.11)
+- CLAUDE.md L119-134 有纪律但靠人记, 自动化 lint 防回归
+
+### Verified
+- 46/46 tests passed
+- Red team (5): 故意写 `未集成/不存在/占位/TODO` 进 `docs/`, 全被拦 (rc=1)
+- Regression (8): 真实 commit 模式 (含 git log / SHA / 已验证 / CHANGELOG / code comment) 全通过
+- 真 git repo: 3 tests (`test_real_git_*`) 在 tmp git 里端到端验证
 
 ## [v0.4.11] - 2026-06-06 - feat(etl): W3 full DQ assertions + pipeline step 8.5 集成 (3 留作断言 + lark 真发)
 

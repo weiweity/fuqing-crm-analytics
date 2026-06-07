@@ -59,3 +59,13 @@ if [ -n "$STAGED_PY_FILES" ]; then
 
     echo "✅ Lint clean."
 fi
+
+# Sprint 3 P1-3: 拦截 docs/ review 风格输出中未附 git log 实证的 ground-truth 声明
+# 教训: D-4 飞书架构 7 份刷出现 4 个 ground truth 错误, agent 凭 memory / stale 文档下结论
+# 触发词: 未集成 / 不存在 / 占位 / TODO / FIXME / 缺失 / 待集成 / 还没接
+# 证据模式: git log 命令 / 7-40 位 commit SHA / 已验证/已落地 等白名单词
+# 范围: 仅 docs/ 下 .md, 排除 CHANGELOG.md / reference.md / DOCUMENT-INDEX.md
+# 跳过: backend/ frontend-vue3/ scripts/ scraper/ 下的 code comment
+# 救火: FQA_GROUND_TRUTH_SKIP=1 git commit ...
+echo "Running P1-3 review ground-truth lint..."
+python3 .githooks/check_review_ground_truth.py || exit 1
