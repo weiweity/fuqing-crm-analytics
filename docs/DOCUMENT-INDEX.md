@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
 > **最后更新**: 2026-06-07
-> **状态**: v0.4.13 sprint 3 收口 (P0-1 痛点 1 闭环 + 3 件 P1 CI/测试加固, 4/5 done, CI 三连绿). P0-2 DuckDB 备份 deferred Sprint 4
+> **状态**: v0.4.14.11 sprint 4+5 真闭环 (Fix A 拆 2 tx, 痛点 1 端到端 < 35 min, 3/3 P0 done). Sprint 4 收口: P0-2 DuckDB 55GB 每日备份 + P0-3 dedup 端到端. CI 三连绿.
 
 ---
 
