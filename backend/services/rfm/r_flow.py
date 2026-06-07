@@ -14,10 +14,12 @@ from backend.semantic.filters import expand_channels
 
 
 # ── R 维度配置 ──
-# R 桶窗口：Sprint 8 P0 改 end_dt 截止（与 hist_customers 一致），
-# 让 1 月新购客 (pre_cutoff_last_pay in 1月) 进入 R 桶 1。
-# 段级和 = TTL（不再有"5/1-5/31 新购客不进任何 R 桶"的 trade-off）。
-# 注：1 月新购客 DATEDIFF(pre_cutoff_last_pay, end_dt) = 0-30 天 → R 桶 1。
+# R 桶窗口：Sprint 8 P0 改回 cutoff_dt (= start_dt - 1) 截止，
+# 与 hist_customers 改用 start_dt 保持一致：R 桶分桶必须基于 pre-period 行为。
+# 否则有当期订单的回购用户 pre_cutoff_last_pay 落在当期 → DATEDIFF 到 end_dt = 0-6 天
+# → 全部归入近1个月，R 桶 2-6 ∩ base_orders = ∅，回购率恒为 0%（Sprint 7 教训）。
+# 当前期间新购客（pre_cutoff=NULL）不归入任何 R 桶，仅出现在已购客TTL行。
+# 段级和 < TTL by 当期新购客数（业务语义正确的代价）。
 _R_BUCKET_SEGMENTATION_TEMPLATE = """
     pre_cutoff_users AS (
         SELECT user_id, MAX(pay_time) AS pre_cutoff_last_pay
