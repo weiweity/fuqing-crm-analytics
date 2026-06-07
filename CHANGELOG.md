@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.17] - 2026-06-08 - fix(rfm): R 桶分桶改回 cutoff_dt 截止，6 个 R 桶回购率全部 > 0
+
+### Fixed
+- **后端 R 区间流转 Bug**: `backend/services/rfm/_flow_engine.py` + `r_flow.py`
+  - **根因**: `5fbeffb` 把 `hist_customers` 改用 `start_dt` 截止（pre-period 行为），
+    但 `r_bucket_params` 仍用 `end_dt` 截止（bc65360 Sprint 8 P0 设计）。
+    两口径不一致导致有当期订单的回购用户 `pre_cutoff_last_pay` 落在当期，
+    `DATEDIFF(pre_cutoff_last_pay, end_dt) = 0-6 天` → 全部归入近1个月，
+    R 桶 2-6 ∩ base_orders = ∅，回购率恒为 0%（Sprint 7 a73dfac 教训重现）。
+  - **修法**: `r_bucket_params` 改回 `[cutoff_dt, cutoff_dt]` (= `start_dt - 1`)
+  - **结果**: 6 个 R 桶全部有非零回购率，符合业务语义
+
+### Added
+- **回归测试**: `tests/test_rfm_service.py::test_r_bucket_uses_preperiod_recency`
+  - 3 用户场景：U1 (pre+current) / U2 (pre-only) / U3 (current-only)
+  - 关键断言：U2 归入近2-3个月（不是近1个月），repurchase=0
+
+### Verified
+- pytest tests/: 456 passed, 8 skipped, 1 pre-existing fail (DuckDB lock env, 跟改动无关)
+- **6/1-6/7 2026 实测 (DuckDB 缓存清后)**:
+  - 近1个月: hist=180,248 / 回购=3,209 (1.78%)
+  - 近2-3个月: hist=187,945 / 回购=2,621 (1.39%)
+  - 近4-6月: hist=205,736 / 回购=1,761 (0.86%)
+  - 近7-12个月: hist=486,118 / 回购=2,349 (0.48%)
+  - 近13-24个月: hist=938,052 / 回购=1,658 (0.18%)
+  - 2年外: hist=2,234,013 / 回购=1,394 (0.06%)
+  - 已购客TTL: hist=4,249,634 / 回购=27,146 (0.64%)
+- **段级和 < TTL by 14,082 (= 当期新购客)**: 业务语义正确的代价（新购客 pre_cutoff=NULL，不归入任何 R 桶）
+
+### Deployment Notes
+- **缓存清理**: `DELETE FROM rfm_query_cache WHERE endpoint = 'r-flow';` 必须执行
+  （DuckDB-KV cache 不像 JSON 文件那样容易清，必须直连数据库）
+- 5/31 整天（cutoff_dt=start_dt-1）订单的用户被排除在 pre_cutoff_users 外，
+  这是 `pay_time <= cutoff_dt::TIMESTAMP` 语义边界（cutoff_dt=5/31 00:00:00 排除 5/31 全天）
+  已知 trade-off，影响 ~1% 用户
+
 ## [v0.4.14.16] - 2026-06-07 - fix(audience+rfm): sprint8 P0 前端 2 bug 修复 (YOYBadge 模式统一 + R 桶 pre_cutoff 截止改 end_dt)
 
 ### Fixed
