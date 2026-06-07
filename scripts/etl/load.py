@@ -503,45 +503,52 @@ def _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
                 conn.execute(f"COPY {tmp_table} FROM '{ids_parquet}' (FORMAT PARQUET)")
                 os.remove(ids_parquet)
 
-                # 2. 显式事务：DELETE + INSERT 原子执行（防 INSERT 失败导致窗口数据丢失）
+                # 2. tx1: DELETE + COMMIT (D-4 教训深二: DuckDB 1.5.2 UNIQUE INDEX 在同
+                #    一 transaction 内 INSERT 时不感知本事务内未提交的 DELETE. 拆 2 tx 解决)
                 conn.execute("BEGIN TRANSACTION")
                 try:
                     conn.execute(f"""
                         DELETE FROM orders
                         WHERE order_id IN (SELECT order_id FROM {tmp_table})
                     """)
-                    after_delete = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-                    deleted = before_count - after_delete
-                    print(f"  🗑️  精确删除待刷新记录: {deleted:,} 行 ({len(refresh_ids):,} 个 order_id)")
+                    conn.execute("COMMIT")  # 立即 COMMIT, 让 UNIQUE INDEX 看到 DELETE
+                except Exception:
+                    conn.execute("ROLLBACK")
+                    raise
 
-                    conn.execute(f"DROP TABLE IF EXISTS {tmp_table}")
+                after_delete = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+                deleted = before_count - after_delete
+                print(f"  🗑️  精确删除待刷新记录: {deleted:,} 行 ({len(refresh_ids):,} 个 order_id)")
 
-                    # 3. 去重：同一个 (order_id, sub_order_id) 保留最后一行
-                    # ID列统一转字符串后再去重，防止类型不一致（float vs string）导致去重失败
-                    for _col in ['order_id', 'sub_order_id']:
-                        if _col in df_refresh.columns:
-                            df_refresh[_col] = df_refresh[_col].astype(str).replace('nan', '').replace('None', '')
-                    df_refresh = df_refresh.drop_duplicates(
-                        subset=['order_id', 'sub_order_id'], keep='last'
-                    )
-                    total_refresh_deduped = len(df_refresh)
-                    if total_refresh_deduped < total_refresh:
-                        print(f"  ⚠️  去重: {total_refresh} → {total_refresh_deduped} 行")
+                conn.execute(f"DROP TABLE IF EXISTS {tmp_table}")
 
-                    # 4. 插入刷新数据：staging 表（无 UNIQUE INDEX） + COPY 防主键冲突
-                    df_insert = df_refresh[existing_cols].copy()
-                    import uuid as _uuid_refresh
-                    tmp_stage = f"_stage_refresh_{_uuid_refresh.uuid4().hex[:8]}"
-                    parquet_path = os.path.join(tempfile.gettempdir(), 'orders_refresh.parquet')
-                    df_insert.to_parquet(parquet_path, index=False)
-                    cols_joined = ', '.join(existing_cols)
+                # 3. 去重：同一个 (order_id, sub_order_id) 保留最后一行
+                # ID列统一转字符串后再去重，防止类型不一致（float vs string）导致去重失败
+                for _col in ['order_id', 'sub_order_id']:
+                    if _col in df_refresh.columns:
+                        df_refresh[_col] = df_refresh[_col].astype(str).replace('nan', '').replace('None', '')
+                df_refresh = df_refresh.drop_duplicates(
+                    subset=['order_id', 'sub_order_id'], keep='last'
+                )
+                total_refresh_deduped = len(df_refresh)
+                if total_refresh_deduped < total_refresh:
+                    print(f"  ⚠️  去重: {total_refresh} → {total_refresh_deduped} 行")
 
+                # 4. 插入刷新数据：staging 表（无 UNIQUE INDEX） + COPY 防主键冲突
+                df_insert = df_refresh[existing_cols].copy()
+                import uuid as _uuid_refresh
+                tmp_stage = f"_stage_refresh_{_uuid_refresh.uuid4().hex[:8]}"
+                parquet_path = os.path.join(tempfile.gettempdir(), 'orders_refresh.parquet')
+                df_insert.to_parquet(parquet_path, index=False)
+                cols_joined = ', '.join(existing_cols)
+
+                # 5. tx2: 单独 tx 写 staging + INSERT NOT EXISTS
+                #    (跟 tx1 DELETE+COMMIT 分开, UNIQUE INDEX 已看到 DELETE 提交)
+                conn.execute("BEGIN TRANSACTION")
+                try:
                     conn.execute(f"CREATE TEMP TABLE {tmp_stage} AS SELECT * FROM orders WHERE 1=0")
                     conn.execute(f"COPY {tmp_stage} ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
                     os.remove(parquet_path)
-                    # Sprint 5 P0-3 hotfix 3: 改用 NOT EXISTS (更可靠, 不依赖 DuckDB 1.5.2
-                    # ON CONFLICT 边界 case). DuckDB 测试 100% OK 但生产跑批仍撞 constraint.
-                    # NOT EXISTS 走 DuckDB 内部 subquery 机制, 跟 _copy_df_to_duckdb:601 路线一致.
                     conn.execute(f"""
                         INSERT INTO orders ({cols_joined})
                         SELECT {cols_joined} FROM (
