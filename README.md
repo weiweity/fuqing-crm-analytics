@@ -23,8 +23,8 @@
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions + ground-truth-lint (P1-3 sprint 3)
 - ✅ 测试 459+ passed / 8 skipped（v0.4.13 sprint 3 收口, CI 三连绿 run 27082443532 / 27062413467 / 27063611644）
-- ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3)
-- ✅ Sprint 3 收口：4/5 done (P0-1 痛点 1 + P1-1 W3/W4 CI smoke + P1-2 16 root tests isolation + P1-3 ground-truth lint), P0-2 DuckDB 备份 deferred Sprint 4
+- ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (P0-3 sprint 4 load.py:550 加 ON CONFLICT, 不再撞 constraint)
+- ✅ Sprint 4 收口：2/2 P0 done (P0-2 DuckDB 55GB 每日备份 launchd daily + zstd 压缩 + P0-3 dedup 测试 + hotfix 2 ON CONFLICT), CI 跑批 13.4 min 闭环
 - ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
 - ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
 - ✅ RFM 分析 `real_elapsed_sec` / `step_wall_time_sum` 显式命名 baseline 字段（修 review skill 揪出的 wall_time 字段歧义）
@@ -136,16 +136,17 @@ fuqing-crm-analytics/
 
 ## 运维安全 / 磁盘治理
 
-2026-06-05 治理后,系统落地 4 层防护防止子 agent 调试 / ETL 异常退出时 `/private/tmp` 累积巨型 duckdb 孤儿（曾一度 7 个 38-44GB 文件吃满 349GB 磁盘）。接手者必读。
+2026-06-05 治理后,系统落地 5 层防护防止子 agent 调试 / ETL 异常退出时 `/private/tmp` 累积巨型 duckdb 孤儿（曾一度 7 个 38-44GB 文件吃满 349GB 磁盘）。接手者必读。Sprint 4 加 P0-2 launchd 每日备份变第 5 层 (数据灾备兜底)。
 
-### 4 层防护
+### 5 层防护
 
 | 层 | 路径 | 触发 | 作用 |
 |---|---|---|---|
 | 1. atexit 钩子 | `scripts/etl/cli.py:_cleanup_fq_tmp_orphans` | ETL 进程退出 | 主防线:扫 `FQ_TMP_PREFIXES` 白名单,删 24h+ / 5 文件 / 100GB cap,软失败+持久日志 |
 | 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线:检测 50GB+ 占用打印告警,不删 |
 | 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试时主动 cp | 调试便捷:30 天 TTL + 时间戳命名,不再污染 /tmp |
-| 4. launchd backups | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | data 目录独立防线:`data/processed/backups/` 7 天保留清理 |
+| 4. launchd weekly cleanup | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | data 目录独立防线:`data/processed/backups/` 7 天保留清理 |
+| 5. **launchd daily backup (Sprint 4 P0-2)** | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备:55GB DuckDB shutil.copy2 (os-level, 不冲突 uvicorn 持锁) + zstd 压缩 → 21GB (.duckdb.zst), 7 天由 weekly cleanup 兜底, 含 post-copy verify 防 APFS torn copy |
 
 ### 紧急清理命令
 

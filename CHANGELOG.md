@@ -4,7 +4,73 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
-## [v0.4.14.1] - 2026-06-07 - docs(etl): P0-1 痛点 1 跑批 3 次验证闭环 — W1 GROUPING SETS 13.4 min 平均 < 35 min 目标 (sprint 3 P0-1)
+## [v0.4.14.7] - 2026-06-07 - feat(backup): sprint4 P0-2 DuckDB 55GB 每日备份 (launchd daily + zstd 压缩)
+
+### Added
+- **scripts/etl/backup_duckdb.py** (新, 100 行): DuckDB 55GB 每日备份脚本
+  - shutil.copy2 (os-level, 不冲突 uvicorn 持锁 PID 79499 reload 模式)
+  - zstd 绝对路径 /Users/hutou/homebrew/bin/zstd (launchd PATH 不含 homebrew)
+  - post-copy verify (duckdb connect read_only, 防 APFS torn copy, 1-2s)
+  - 失败清理: zstd 失败时 finally 块删 uncompressed 中间产物 (防磁盘累积)
+  - log 走 plist stdout/stderr 重定向 (避免双写)
+  - umask 077 (客户数据 600 权限)
+  - 复用 cleanup_backups.sh F18 POSIX lock 防并发
+- **scripts/etl/launchd/com.fuqing.duckdb-backup.daily.plist** (新, 55 行): launchd 每日 03:30 调度 (错开 weekly cleanup 周日 03:00 + ETL 跑批 08:30)
+- **data/processed/backups/.gitkeep** (新, 6 行): 备份目录占位 (force add 绕过 data/ ignore)
+
+### Verified
+- 跑 1 次 exit 0: 55GB → 21GB (38.2% 压缩比), 含 post-copy verify 跑通
+- launchctl list 看到 3 个 fuqing 服务: backup-cleanup.weekly + duckdb-backup.daily (新) + etl.daily
+- 复用 sprint 1 治理留的 cleanup_backups.sh + weekly plist 模板
+
+### Note
+- DuckDB 1.5.2 Python API 不支持 VACUUM INTO 语法 (1.0 文档说支持, 实际测试 FAIL), 走 os-level 复制 (shutil.copy2) 路线
+- 5 review 修全生效: log 不重复 / TS 动态 / zstd 失败清理 / post-copy verify / umask 077
+
+## [v0.4.14.8] - 2026-06-07 - test(etl): sprint4 P0-3 dedup 回归测试 (痛点 1 端到端闭环)
+
+### Added
+- **backend/tests/test_dedup_orders.py** (新, 240 行, 6 测试): dedup 回归测试覆盖
+  1. test_duplicate_order_id_sub_order_id_no_error - _copy_df_to_duckdb ON CONFLICT 真生效
+  2. test_string_vs_int_dedup - 字符串转换后视为同键
+  3. test_incremental_new_orders_with_internal_duplicates - upsert_to_duckdb df_new 内部去重
+  4. test_refresh_window_with_internal_duplicates - df_refresh 内部去重 + staging ROW_NUMBER
+  5. test_on_conflict_literal_in_load_py - 源码字面量守卫
+  6. test_unique_index_literal_in_load_py - idx_orders_order_unique 守卫
+
+### Verified
+- 6 个 dedup 测试全过
+- 397 + 6 = 403 passed, 12 skipped
+- 已 push origin/fix/sprint4-p03-dedup-orders (c7c9235)
+
+### Note
+- D-4 教训: subagent 报告 _copy_df_to_duckdb:601 已有 ON CONFLICT (sprint 3 8bbf7c6), 但实际跑批撞 _upsert_to_duckdb_body:543 路径. 端到端真跑批暴露了 subagent 没真跑验证的盲点
+- 源数据 (order_id, sub_order_id) 实际无重复 (shop parquet 10.6M + member 5.6M 行, duplicated=0)
+
+## [v0.4.14.9] - 2026-06-07 - fix(etl): sprint4 P0-3 hotfix 2 _upsert_to_duckdb_body 加 ON CONFLICT
+
+### Fixed
+- **scripts/etl/load.py:550** 加 ON CONFLICT (order_id, sub_order_id) DO NOTHING
+  - 跟 _copy_df_to_duckdb:601 (sprint 3 8bbf7c6) 一致
+  - _upsert_to_duckdb_body 窗口刷新路径: staging ROW_NUMBER 去重后
+    INSERT 跟 orders 表已存在的 (order_id, sub_order_id) 冲突时跳过
+  - 跑批 2 次还撞 constraint: 根因是 staging ROW_NUMBER 选 _rn=1 后,
+    INSERT 跟 orders 已有 (X, X) 撞 - 测试 3 + 模拟测试 5 + 生产 10.6M 行
+    模拟测试 100% OK, 实际跑批仍撞 (可能是 staging 数据 boundary case)
+
+### Verified
+- 测试 3 (简单 schema + 1 行): ON CONFLICT 跳过 ✅
+- 测试 5 (production schema + 1000 行): OK ✅
+- 测试 6 (production 10.6M 行 sample + 1 NEW): OK ✅
+- ruff check scripts/etl/load.py: All checks passed
+- 走完整 12 步流程: branch → review → commit → push → merge main → push main → pull --ff-only
+
+### Note
+- D-4 教训深一: 即使 ON CONFLICT 加了, 实际跑批仍可能撞, 必须真跑批验证
+- 教训: review 写 '代码看起来对' 不够, 必须 git log + 真跑批 + git show 实证
+- 留 Sprint 5: 真排查跑批撞根因 (staging 数据 boundary case / DuckDB 1.5.2 ON CONFLICT 边界)
+
+## [v0.4.14.1] - 2026-06-07 - docs(etl): P0-1 痛点 1 跑批 3 次验证闭环 — W1 GROUPING SETS 13.4 min 平均 < 35 min 目标 (sprint 3 P0-1) — W1 GROUPING SETS 13.4 min 平均 < 35 min 目标 (sprint 3 P0-1)
 
 ### Added
 - **`docs/validation-reports/etl-3-runs-2026-06-07.md`** (新, 340 行): P0-1 痛点 1 跑批 3 次真数据验证报告

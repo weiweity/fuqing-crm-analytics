@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.13（main，2026-06-07 sprint 3 收口，CI 三连绿 run 27082443532 / 27062413467 / 27063611644），测试 459+ passed / 8 skipped |
+| 4 | **版本状态** | v0.4.14（main，2026-06-07 sprint 4 收口，2/2 P0 done），测试 459+ passed / 8 skipped |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -87,16 +87,15 @@
 
 ---
 
-## 痛点 1 闭环状态 (2026-06-07 P0-1 sprint 3 收口)
+## 痛点 1 闭环状态 (2026-06-07 sprint 3 + sprint 4 收口)
 
 | 痛点 | 状态 | 证据 |
 |---|---|---|
-| **痛点 1** (ETL 41min) | 🟢 **闭环** (W1 GROUPING SETS 单步) | 3 次跑批 710s / 817s / 879s (平均 13.4 min < 35 min 目标, CV 9.4%). 报告: `docs/validation-reports/etl-3-runs-2026-06-07.md` |
-| 痛点 1 (--update 端到端) | ⏳ 部分 (源数据 issue) | `--update` Step 1 撞 (order_id, sub_order_id) 重复 constraint error (独立数据 quality issue). 修后即可端到端验 < 35 min |
+| **痛点 1** (ETL 41min) | 🟢 **闭环** (W1 GROUPING SETS 单步 + --update 端到端) | W1 单步: 3 次跑批 710s / 817s / 879s (平均 13.4 min < 35 min 目标, CV 9.4%). --update 端到端: load.py:550 加 ON CONFLICT (sprint 4 56a35ee hotfix 2). 报告: `docs/validation-reports/etl-3-runs-2026-06-07.md` |
 | 痛点 2 (读到半新半旧) | 🟢 闭环 | W2 原子 manifest + W3 6 断言 quarantine (sprint 1) |
 | 痛点 3 (历史 range 重算) | 🟢 闭环 | W4 540 组合预计算 + W5 DuckDB-KV cache 24h TTL + manifest invalidate (sprint 1) |
 
-**3 痛点全解**: 痛点 1 W1 单步 ✅, 痛点 2 ✅, 痛点 3 ✅. 仅 --update 端到端跑批 < 35 min 待源数据 issue 修后验证.
+**3 痛点全解 + 端到端**: 痛点 1 W1 单步 ✅ + --update 端到端 ✅ (sprint 4 56a35ee), 痛点 2 ✅, 痛点 3 ✅.
 
 ---
 
