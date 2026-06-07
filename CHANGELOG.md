@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.5] - 2026-06-07 - fix(ci): P1-3 review 四轮 2 件 (B2 idx->lineno 修复 + M1 committed 默认 scope)
+
+### Fixed
+- **B2-FALSENEG-COMMITTED-MODE (blocker) - committed 模式 idx/lineno 不一致 false negative**: `check_file()` 把 idx (triggers 列表索引) 传给 `find_evidence_nearby()` 和 `has_real_git_evidence()`, 这俩函数把 idx 当 added_lines 索引
+  - 在 committed 模式下 added_lines = 整文件 (e.g. 340 行), trigger 在末尾的 idx 在 triggers 列表里 = 0, 但在 added_lines 里 = 339. window=30 滑到 added_lines[0:30] (文件头, 有早期 commit SHA), trigger 被屏蔽, false negative
+  - 加 `_find_line_index(added_lines, target_lineno)` helper: 在 added_lines 中找 lineno == target_lineno 的真 idx
+  - `find_evidence_nearby` / `has_real_git_evidence` 改签名 `trigger_idx` -> `trigger_lineno` (1-based 行号, NOT triggers list idx), 内部用 `_find_line_index` 反查真 idx 算窗口
+  - `check_file()` 主循环改传 `lineno` (不是 `idx`)
+  - 新测试 `TestB2LargeFileRegression` (6 cases): `test_find_evidence_nearby_uses_lineno_not_triggers_idx` (核心) / `test_find_evidence_nearby_lineno_in_340_line_file` (340 行场景) / `test_has_real_git_evidence_uses_lineno_not_triggers_idx` / `test_find_line_index_helper` / `test_check_file_committed_mode_long_file_ends_with_violation` (50 行集成) / `test_committed_mode_integration_340_line_file` (真 git repo 340 行文件)
+  - 旧 9 个 EVIDENCE_CASES / H1 HEX / H3 测试 trigger_idx=0 改 trigger_lineno=1 (语义更清晰)
+- **M1-COMMITTED-NO-OP-WITHOUT-FILES (medium) - committed 默认 scope 修 false sense of safety**: `--committed` 没 `--files` 时, 旧版静默 no-op (files=[]). CI 跑 `--files` glob 没事, 但开发者手动 `--committed` 会得 false sense of safety
+  - `main()` argparse 处理: `args.committed and not args.files` 时自动 fallback 到 `docs/validation-reports/*.md` + `docs/飞书版架构文档/*.md` (匹配 `.github/workflows/lint.yml` + `nightly.yml` ground-truth-lint step 的 scope)
+  - 加注释说明 fallback 行为 + 用 `sorted(set(...))` 稳定输出
+  - 新测试 `TestM1CommittedDefaultScope` (3 cases): `test_committed_fallback_scans_validation_reports` (e2e 端到端) / `test_committed_fallback_empty_repo_no_violation` (graceful 退出) / `test_committed_with_explicit_files_overrides_fallback` (显式 --files 仍 work, 不破坏 CI)
+
+### Note
+- B2 修是 silent correctness fix, 不改变 staged 模式行为, 不影响现有 user workflow
+- M1 fallback 只在 `args.committed and not args.files` 时启用, 显式传 `--files` 仍优先 (不破坏 CI workflow)
+- 测试总数: 47 -> 55 (新增 8: 6 B2 + 3 M1 - 1 旧 idx test 转 lineno)
+
 ## [v0.4.14.4] - 2026-06-07 - fix(ci): P1-3 review 二轮 3 件 (B2 NOOP + H1 HEX + BRANCH-STATE)
 
 ### Fixed

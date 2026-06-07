@@ -260,11 +260,38 @@ def parse_added_lines(diff: str) -> list[tuple[int, str]]:
     return added
 
 
-def find_evidence_nearby(added_lines: list[tuple[int, str]], trigger_idx: int, window: int = 30) -> bool:
+def _find_line_index(added_lines: list[tuple[int, str]], target_lineno: int) -> int:
+    """P1-3 四轮 B2 修 (2026-06-07): 在 added_lines 中找 lineno == target_lineno 的真 idx.
+
+    在 committed 模式下, added_lines = 整文件 (e.g. 340 行), 但调用方传的是
+    trigger 在 triggers 列表里的 idx — 这俩在长文件里差很大 (triggers 列表 idx
+    = 0 时, added_lines idx 可能 = 339). 必须用 lineno 反查真 idx 才能算窗口.
+
+    Returns 0 if not found (graceful default, 不崩).
+    """
+    for i, (lineno, _) in enumerate(added_lines):
+        if lineno == target_lineno:
+            return i
+    return 0
+
+
+def find_evidence_nearby(
+    added_lines: list[tuple[int, str]],
+    trigger_lineno: int,
+    window: int = 30,
+) -> bool:
     """检查触发词附近 (window 行内) 是否有 evidence.
 
     在审查文档场景下, "附近" 通常是同段 (3-5 行) 或同表 (10-30 行).
     window=30 是宽松值, 防止跨段落严格匹配导致误伤.
+
+    Args:
+        added_lines: list of (line_no, content) tuples.
+        trigger_lineno: 触发词的 1-based 行号 (NOT the index in the triggers list).
+            P1-3 四轮 B2 修 (2026-06-07): committed 模式下 added_lines = 整文件,
+            triggers list idx 与 added_lines idx 不一定一致 (e.g. 末尾 trigger
+            triggers idx=0, added_lines idx=339). 必须用 lineno 反查.
+        window: how many lines around the trigger to consider.
 
     P1-3 H1 修 (2026-06-07): SHA 段先过 phone/ID 卡 filter, 排除 11/15/18 位 数字伪 evidence.
     P1-3 H3 修 (2026-06-07): "git log" 字符串出现 + 文件在 git 历史中存在 → 双重验证.
@@ -272,8 +299,10 @@ def find_evidence_nearby(added_lines: list[tuple[int, str]], trigger_idx: int, w
     """
     if not added_lines:
         return False
-    start = max(0, trigger_idx - window)
-    end = min(len(added_lines), trigger_idx + window + 1)
+    # P1-3 四轮 B2 修: 用 lineno 反查真 idx (不是直接用 callers 传进来的 idx)
+    real_idx = _find_line_index(added_lines, trigger_lineno)
+    start = max(0, real_idx - window)
+    end = min(len(added_lines), real_idx + window + 1)
     nearby_text = "\n".join(line for _, line in added_lines[start:end])
     # H1: 先过 phone/ID 卡 filter, 抠掉 11/15/18 位 数字伪 SHA
     filtered_text = _filter_sha_evidence(nearby_text)
@@ -307,7 +336,7 @@ def _git_log_produced_output(file_path: str, cwd: str | None = None) -> bool:
 
 def has_real_git_evidence(
     added_lines: list[tuple[int, str]],
-    trigger_idx: int,
+    trigger_lineno: int,
     file_path: str,
     window: int = 30,
     cwd: str | None = None,
@@ -316,11 +345,25 @@ def has_real_git_evidence(
 
     仅在 nearby 出现 'git log' / 'git show' 字符串时启用 (cheap case 升级到 real case).
     失败时不阻断, 只把 verdict 降级为 no_real_evidence (commit 仍可过, 但带 warning).
+
+    Args:
+        added_lines: list of (line_no, content) tuples.
+        trigger_lineno: 触发词的 1-based 行号 (NOT the index in the triggers list).
+            P1-3 四轮 B2 修 (2026-06-07): committed 模式下 added_lines = 整文件,
+            triggers list idx 与 added_lines idx 不一致, 必须用 lineno 反查真 idx.
+        file_path: 用于 git log -- <path> 真跑验证.
+        window: 多少行内算 nearby.
+        cwd: git log 跑批的工作目录 (默认 None = 当前进程 cwd).
+
+    P1-3 四轮 B2 修 (2026-06-07): trigger_idx → trigger_lineno (跟 find_evidence_nearby
+    保持一致, 防止长文件 false negative).
     """
     if not added_lines:
         return False
-    start = max(0, trigger_idx - window)
-    end = min(len(added_lines), trigger_idx + window + 1)
+    # P1-3 四轮 B2 修: 用 lineno 反查真 idx (与 find_evidence_nearby 同款)
+    real_idx = _find_line_index(added_lines, trigger_lineno)
+    start = max(0, real_idx - window)
+    end = min(len(added_lines), real_idx + window + 1)
     nearby_text = "\n".join(line for _, line in added_lines[start:end])
     has_git_string = bool(re.search(r"git\s+(log|show)\b", nearby_text, re.IGNORECASE))
     if not has_git_string:
@@ -371,12 +414,16 @@ def check_file(path: str, committed: bool = False) -> list[tuple[int, str, str]]
     triggers = find_triggers(added_lines)
     # H3: 用 git 根目录跑 git log (cwd 决定 history 范围, worktree vs main repo 不同)
     git_root = _git_root()
-    for idx, (lineno, trigger) in enumerate(triggers):
-        if not find_evidence_nearby(added_lines, idx):
+    # P1-3 四轮 B2 修 (2026-06-07): 不传 idx, 改传 trigger 实际 lineno
+    # 旧版传 idx (triggers 列表索引) 在 committed 模式下 (added_lines = 整文件)
+    # 与 added_lines 真 idx 不一致, 导致长文件末尾 trigger 的 window 滑到文件头,
+    # evidence 错误命中 → false negative
+    for lineno, trigger in triggers:
+        if not find_evidence_nearby(added_lines, lineno):
             violations.append((lineno, trigger, "no_evidence"))
             continue
         # L2 验证 (H3): 有 evidence 字符串, 但 git log 真能跑出输出吗?
-        if not has_real_git_evidence(added_lines, idx, path, cwd=git_root):
+        if not has_real_git_evidence(added_lines, lineno, path, cwd=git_root):
             violations.append((lineno, trigger, "no_real_evidence (git log 字符串在, 但跑空 / 跑失败)"))
     return violations
 
@@ -415,11 +462,25 @@ def main(argv: list[str] | None = None) -> int:
         print("[skip] FQA_GROUND_TRUTH_SKIP=1, bypass check_review_ground_truth")
         return 0
 
+    files: list[str] = []
     if args.files:
         files = list(args.files)
     elif args.committed:
-        # committed 模式: 取文件列表 (--files 或默认 docs/ scope)
-        files = list(args.files) if args.files else []
+        # P1-3 四轮 M1 修 (2026-06-07): --committed 没 --files 时自动 fallback
+        # 扫 docs/validation-reports/ + docs/飞书版架构文档/ — 匹配 CI workflow 的 scope
+        # (lint.yml + nightly.yml ground-truth-lint step 都用这两个 glob).
+        # 修前: 静默 no-op (files=[]) → false sense of safety, 开发者手动跑 --committed
+        #       以为有保护, 实际没扫任何文件.
+        # 修后: 不传 --files 也自动扫 review scope, 跟 CI 行为一致.
+        import glob
+        fallback_patterns = (
+            "docs/validation-reports/*.md",
+            "docs/飞书版架构文档/*.md",
+        )
+        for pat in fallback_patterns:
+            files.extend(glob.glob(pat))
+        # 按路径排序 → 输出稳定
+        files = sorted(set(files))
     else:
         files = [f for f in get_staged_files() if is_review_file(f)]
 
