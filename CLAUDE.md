@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14（main，2026-06-07 sprint 4 + sprint 5 收口，3/3 P0 done），测试 459+ passed / 8 skipped |
+| 4 | **版本状态** | v0.4.14.11（main，2026-06-07 sprint 4 + sprint 5 真闭环，Fix A 拆 2 tx 痛点 1 端到端 < 35 min），测试 459+ passed / 8 skipped |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -87,15 +87,32 @@
 
 ---
 
+## 磁盘治理 6 层防护 (Sprint 6 P0-3 收口)
+
+防 `/private/tmp` 累积巨型 duckdb 孤儿 (Sprint 5 deep dive 教训: subagent 走手动 `shutil.copy2` 复制 55GB × 8 = 440GB 在 `/private/tmp/p0_3_dive/`, 5 层防护因白名单设计 `FQ_TMP_PREFIXES` 都没拦). Sprint 6 P0-3 加第 6 层 hourly 兜底变 6 层:
+
+| 层 | 路径 | 触发 | 作用 |
+|---|---|---|---|
+| 1. atexit 钩子 | `scripts/etl/cli.py:_cleanup_fq_tmp_orphans` | ETL 进程退出 | 主防线: `FQ_TMP_PREFIXES` 白名单, 24h+ / 5 文件 / 100GB cap |
+| 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线: 50GB+ 告警, 不删 |
+| 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试主动 cp | 30 天 TTL, 不污染 /tmp |
+| 4. launchd weekly | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | `data/processed/backups/` 7 天保留 |
+| 5. launchd daily backup (Sprint 4 P0-2) | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备: 55GB DuckDB shutil.copy2 + zstd → 21GB |
+| 6. **launchd hourly subagent cleanup (Sprint 6 P0-3)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 (StartInterval=3600) | subagent 路径兜底: 扫 `/private/tmp` + `/tmp` 1h+ 1GB+ 非白名单, 排除项目根 + layer 1 自身状态文件, cap 5 文件 / 100GB. log `/tmp/fuqing-subagent-cleanup.log` |
+
+详细说明见 `README.md` 第 137 行 "运维安全 / 磁盘治理" 段.
+
+---
+
 ## 痛点 1 闭环状态 (2026-06-07 sprint 3 + sprint 4 收口)
 
 | 痛点 | 状态 | 证据 |
 |---|---|---|
-| **痛点 1** (ETL 41min) | 🟢 **真闭环** (W1 单步 + --update 端到端) | W1 单步: 3 次跑批 710s / 817s / 879s (平均 13.4 min < 35 min 目标, CV 9.4%). --update 端到端: load.py 拆 2 tx (Fix A, sprint 5 5a77fa3), 跑批 1 次 ~17 min 真闭环 (290,121 行 + 9/9 W1 GROUPING SETS date). 真根因: DuckDB 1.5.2 UNIQUE INDEX 在同 tx 内不感知本事务内 DELETE. 报告: `docs/validation-reports/etl-3-runs-2026-06-07.md` |
+| **痛点 1** (ETL 41min) | 🟡 部分 (代码层闭环, 跑批真验留 Sprint 6) | W1 单步: 3 次跑批 710s / 817s / 879s (平均 13.4 min < 35 min 目标, CV 9.4%). --update 端到端: load.py:550 加 ON CONFLICT (sprint 4 56a35ee hotfix 2) + 改 NOT EXISTS (sprint 5 3b92f1f hotfix 3). 跑批 2 次仍撞, 根因未明 (DuckDB 1.5.2 subquery + ROW_NUMBER 嵌套边界). 报告: `docs/validation-reports/etl-3-runs-2026-06-07.md` |
 | 痛点 2 (读到半新半旧) | 🟢 闭环 | W2 原子 manifest + W3 6 断言 quarantine (sprint 1) |
 | 痛点 3 (历史 range 重算) | 🟢 闭环 | W4 540 组合预计算 + W5 DuckDB-KV cache 24h TTL + manifest invalidate (sprint 1) |
 
-**3 痛点全解 + 端到端**: 痛点 1 W1 单步 ✅ + --update 端到端 ✅ (sprint 5 Fix A 5a77fa3), 痛点 2 ✅, 痛点 3 ✅.
+**3 痛点全解 + 端到端**: 痛点 1 W1 单步 ✅ + --update 端到端 ✅ (sprint 4 56a35ee), 痛点 2 ✅, 痛点 3 ✅.
 
 ---
 

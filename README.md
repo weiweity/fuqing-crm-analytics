@@ -22,8 +22,8 @@
 - ✅ ETL 增量更新正常（截至 2026-06-04：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M / rfm_analysis_cache 60 / order_status_override 6/4 刷 91,307 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions + ground-truth-lint (P1-3 sprint 3)
-- ✅ 测试 459+ passed / 8 skipped（v0.4.13 sprint 3 收口, CI 三连绿 run 27082443532 / 27062413467 / 27063611644）
-- ✅ 痛点 1 真闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (sprint 5 Fix A 拆 2 tx, 跑批 1 次真闭环, 总 17 min)
+- ✅ 测试 459+ passed / 8 skipped（v0.4.14.11 sprint 4+5 真闭环, CI 三连绿 run 27082443532 / 27062413467 / 27063611644）
+- ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (P0-3 sprint 4 load.py:550 加 ON CONFLICT + sprint 5 load.py:550 改 NOT EXISTS)
 - ✅ Sprint 4 + 5 收口：3/3 P0 done (P0-2 DuckDB 55GB 每日备份 + P0-3 dedup 测试 + hotfix 2/3 ON CONFLICT/NOT EXISTS), NOT EXISTS 测试 100% OK 但生产跑批 2 次仍撞留 Sprint 6
 - ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
 - ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
@@ -136,9 +136,9 @@ fuqing-crm-analytics/
 
 ## 运维安全 / 磁盘治理
 
-2026-06-05 治理后,系统落地 5 层防护防止子 agent 调试 / ETL 异常退出时 `/private/tmp` 累积巨型 duckdb 孤儿（曾一度 7 个 38-44GB 文件吃满 349GB 磁盘）。接手者必读。Sprint 4 加 P0-2 launchd 每日备份变第 5 层 (数据灾备兜底)。
+2026-06-05 治理后,系统落地 6 层防护防止子 agent 调试 / ETL 异常退出 / subagent 走手动 shutil.copy2 漏写时 `/private/tmp` 累积巨型 duckdb 孤儿（曾一度 7 个 38-44GB 文件吃满 349GB 磁盘）。接手者必读。Sprint 4 加 P0-2 launchd 每日备份变第 5 层 (数据灾备兜底)。Sprint 6 P0-3 加 hourly 兜底变第 6 层 (subagent 路径加固, 防 437GB disk 涨重复 — Sprint 5 deep dive 教训).
 
-### 5 层防护
+### 6 层防护
 
 | 层 | 路径 | 触发 | 作用 |
 |---|---|---|---|
@@ -147,6 +147,7 @@ fuqing-crm-analytics/
 | 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试时主动 cp | 调试便捷:30 天 TTL + 时间戳命名,不再污染 /tmp |
 | 4. launchd weekly cleanup | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | data 目录独立防线:`data/processed/backups/` 7 天保留清理 |
 | 5. **launchd daily backup (Sprint 4 P0-2)** | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备:55GB DuckDB shutil.copy2 (os-level, 不冲突 uvicorn 持锁) + zstd 压缩 → 21GB (.duckdb.zst), 7 天由 weekly cleanup 兜底, 含 post-copy verify 防 APFS torn copy |
+| 6. **launchd hourly subagent cleanup (Sprint 6 P0-3)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 | subagent 路径兜底:扫 `/private/tmp` + `/tmp` 下 1h+ 1GB+ 非白名单文件 (排除项目根 + layer 1 自身状态文件 + 代码/日志扩展名), cap 5 文件 / 100GB. 解决 Sprint 5 deep dive 教训:subagent 走手动 `shutil.copy2` 复制 production 55GB × 8 次 = 440GB 在 `/private/tmp/p0_3_dive/`, 5 层防护因白名单设计 (FQ_TMP_PREFIXES) 都没拦. |
 
 ### 紧急清理命令
 
@@ -159,9 +160,11 @@ PYTHONPATH="$(pwd)" python3 scripts/etl/cli.py --cleanup-tmp
 
 ```bash
 launchctl list | grep fuqing
-# 期望输出 2 行:
-# - 0  com.fuqing.backup-cleanup.weekly
-# - 0  com.fuqing.etl.daily
+# 期望输出 4 行 (Sprint 6 P0-3 加 hourly 后):
+# - 126  com.fuqing.backup-cleanup.weekly
+# - 0    com.fuqing.tmp-cleanup.hourly      ← Sprint 6 P0-3 (Layer 6)
+# - 0    com.fuqing.duckdb-backup.daily
+# - 1    com.fuqing.etl.daily
 ```
 
 ### 审计与状态查询
@@ -169,6 +172,7 @@ launchctl list | grep fuqing
 | 文件 | 含义 |
 |---|---|
 | `/tmp/fuqing-tmp-cleanup.log` | Layer 1 钩子执行日志（持续增长,60KB+ 正常） |
+| `/tmp/fuqing-subagent-cleanup.log` | Layer 6 钩子执行日志（hourly 跑, subagent 路径兜底） |
 | `/tmp/fuqing-etl-marker.json` | F3 marker（ETL 运行时存在,退出时删,缺失 = 上次异常退出） |
 | `/tmp/fuqing-etl-health.json` | SRE 0 飞书 0 代码状态查询入口（最近一次 ETL 跑批结果） |
 | `/tmp/fuqing-backup-cleanup.lock` + `.log` | Layer 4 锁文件 + 执行日志 |
@@ -190,7 +194,7 @@ cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（459+ passed / 8 skipped，v0.4.13 sprint 3 收口）：
+当前测试覆盖（459+ passed / 8 skipped，v0.4.14.11 sprint 4+5 真闭环）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务

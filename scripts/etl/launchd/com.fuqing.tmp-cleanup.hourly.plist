@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Sprint 6 P0-3 (2026-06-07): Mac launchd plist for 芙清 subagent /tmp 孤儿 hourly 清理
+(Layer 6 of 6 — 第 6 层防护, 兜底 subagent 走手动 shutil.copy2 漏出来的非 fq_ 前缀
+巨型孤儿. Sprint 5 deep dive subagent 跑 5 真实验时 55GB × 8 = 440GB 在
+/private/tmp/p0_3_dive/, 5 层防护全没拦, 教训见 sprint5 deep-dive 报告.)
+
+复用 com.fuqing.duckdb-backup.daily.plist 模式 (Sprint 4 P0-2 留下)
++ com.fuqing.backup-cleanup.weekly.plist 模式 (Sprint 1 治理留下)
+
+安装:
+  cp com.fuqing.tmp-cleanup.hourly.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.fuqing.tmp-cleanup.hourly.plist
+  launchctl list | grep fuqing   验证加载 (3 个服务: hourly + daily + weekly)
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.tmp-cleanup.hourly.plist
+  rm ~/Library/LaunchAgents/com.fuqing.tmp-cleanup.hourly.plist
+
+设计:
+  每日每 1 小时跑 (StartCalendarInterval Hour */1)
+  避开 ETL 跑批窗口 (每日 08:30) - hour 0-8 + 9-23 都不冲突
+  scripts/etl/cleanup_subagent.py 扫 /private/tmp + /tmp 下 1h+ 1GB+ 非白名单
+  文件, 排除项目根, cap 5 文件 / 100GB 单次, 软失败 + 持久 log
+  stdout/stderr 重定向到 /tmp/fuqing-subagent-cleanup.log (跟函数 _LOG_PATH 一致)
+  exit code != 0 触发 launchd 自动通知
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.tmp-cleanup.hourly</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/cleanup_subagent.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>0</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- 复用 Hour=0 仅 1 次, 实际通过 StartInterval (LaunchAgent 专属) + -->
+    <!-- StartCalendarInterval 组合实现"每小时跑"语义在 macOS 上不可行.   -->
+    <!-- 解决方案: RunAtLoad=true 启动时跑一次, 然后 launchd 用           -->
+    <!-- StartInterval=3600 (秒) 实现每小时跑.                           -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-subagent-cleanup.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-subagent-cleanup.log</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>

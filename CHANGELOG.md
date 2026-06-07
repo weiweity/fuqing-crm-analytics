@@ -4,25 +4,6 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
-## [v0.4.14.11] - 2026-06-07 - fix(etl): sprint5 P0-3 hotfix 4 Fix A 痛点 1 端到端真闭环
-
-### Fixed
-- **scripts/etl/load.py:506-575** 改 1 个 tx (DELETE+INSERT) → 2 个 tx (DELETE+COMMIT 跟 INSERT+COMMIT 分开)
-- **真根因 (deep dive subagent 5 真实验找到)**: DuckDB 1.5.2 UNIQUE INDEX 在同一 transaction 内 INSERT 时不感知本事务内未提交的 DELETE
-- 之前 hotfix 1/2/3 (ON CONFLICT/NOT EXISTS) 都没用, 因为 UNIQUE INDEX 仍报错
-- 5 err_ids 跑 5 行 OK 但 100 行 fail 的 asymmetry: 行数少时 race 概率低
-
-### Verified
-- 真跑批 --update 1 次 ✅ 无 constraint error (290,121 行 + 9/9 W1 GROUPING SETS date)
-- Fix A 拆 2 tx: tx1 DELETE+COMMIT 让 UNIQUE INDEX 看到 DELETE, tx2 INSERT NOT EXISTS
-- Sprint 5 痛点 1 端到端: 🟡 部分 → 🟢 真闭环 (代码层 + 跑批真验)
-- 真闭环总跑批时间 ~17 min (Sprint 3 W1 GROUPING SETS 13.4 min 基准 + Fix A 拆 2 tx 略长)
-
-### Note
-- D-4 教训深二: 5 维度 subagent 测试 OK 不够, deep dive 加真实验 (timing race) 找到真根因
-- 教训: review subagent 报告 "代码已修" + "测试 OK" + "生产模拟 OK" 都不够, 必须真跑批 + 抓 log + 验证 row count + timing race
-- 5 层防护 subagent 路径加固 (防 437GB 重复) 留 Sprint 6
-
 ## [v0.4.14.10] - 2026-06-07 - fix(etl): sprint5 P0-3 hotfix 3 _upsert_to_duckdb_body 改用 NOT EXISTS
 
 ### Fixed
