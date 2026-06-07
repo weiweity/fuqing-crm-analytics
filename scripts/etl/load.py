@@ -547,6 +547,7 @@ def _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
                                 PARTITION BY order_id, sub_order_id ORDER BY pay_time DESC
                             ) AS _rn FROM {tmp_stage}
                         ) t WHERE t._rn = 1
+                        ON CONFLICT (order_id, sub_order_id) DO NOTHING
                     """)
                     inserted = conn.execute(f"SELECT COUNT(*) FROM {tmp_stage}").fetchone()[0]
                     conn.execute(f"DROP TABLE IF EXISTS {tmp_stage}")
