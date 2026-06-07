@@ -12,7 +12,7 @@ from datetime import date, timedelta, datetime
 from calendar import monthrange
 from backend.semantic.time import PeriodBuilder
 from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
-from backend.db.connection import get_connection
+from backend.db import connection as bdc
 from backend.config import DATA_DIR
 
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ def _resolve_date_ranges(
 
 def _fetch_data_version() -> str:
     """获取数据版本（orders.max_pay_time）。"""
-    conn = get_connection()
+    conn = bdc.get_connection()
     try:
         row = conn.execute("SELECT MAX(pay_time)::TEXT FROM orders").fetchone()
         return row[0] or "no_data"
