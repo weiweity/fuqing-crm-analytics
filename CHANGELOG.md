@@ -4,6 +4,41 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.13] - 2026-06-07 - fix(rfm): sprint7 P0 重构 service import 模式 (治根 10 root test fail)
+
+### Fixed
+- **10 root test 治根** (10 fail → 0 fail, 141 passed)
+  - tests/test_rfm_analysis.py 6 个 (health/rfm_analysis/*)
+  - tests/test_rfm_service.py::TestSegmentOrders 2 个 (rfm/segment_orders.py)
+  - tests/test_rfm_service.py::TestRFMRFlow 2 个 (rfm/_flow_engine.py → r_flow.py)
+
+- **根因**: Python `from backend.db.connection import get_connection` 拷贝引用到模块 __dict__,
+  monkeypatch 修改原模块时,模块内的本地引用不变 → mock 不生效
+
+- **修法**: 改 `from backend.db.connection import get_connection` → `from backend.db import connection as bdc`,
+  调用方 `bdc.get_connection()` 走模块属性查找,monkeypatch 立即生效
+
+- 涉及 5 个文件 (11 insertions / 11 deletions):
+  - backend/services/health/rfm_analysis/analysis.py (L17/L34/L77)
+  - backend/services/health/rfm_analysis/cache.py (L29/L60)
+  - backend/services/rfm/segment_orders.py (L8/L164)
+  - backend/services/rfm/_flow_engine.py (L18/L453)
+  - backend/services/rfm/_shared.py (L15/L170)
+
+### Verification
+- pytest ./tests/: **141 passed** (10 fail → 0 fail)
+- pytest backend/tests/: 395 passed / 8 skipped (不 regress,1 pre-existing DB lock fail 与改动无关)
+- uvicorn 重启: 200 OK,Application startup complete
+
+### Workflow
+- branch: fix/sprint7-p0-service-import-refactor
+- commit: ad9f9b9 → merge: 70f60f1
+- 走 12 步流程 (checkout → commit → push → merge --no-ff → push main → pull --ff-only → restart uvicorn)
+
+refs: docs/SPRINT-7-PLAN.md Sprint 7 P0 任务 1
+
+## [v0.4.14.12] - 2026-06-07 - feat(cleanup+docs): sprint6 4 件 P0/P1/P2 收口 (5→6 层防护 + W7 + D-6)
+
 ## [v0.4.14.12] - 2026-06-07 - feat(cleanup+docs): sprint6 4 件 P0/P1/P2 收口 (5→6 层防护 + W7 + D-6)
 
 ### Added
