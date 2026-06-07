@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.11（main，2026-06-07 sprint 4 + sprint 5 真闭环，Fix A 拆 2 tx 痛点 1 端到端 < 35 min），测试 459+ passed / 8 skipped |
+| 4 | **版本状态** | v0.4.14.16（main，2026-06-07 sprint 8 收口），测试 391+ passed / 12 skipped |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -235,9 +235,9 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
 |---|---|---|
 | `CLAUDE.md` | 行为规则（本文件） | 自动加载 |
 | `docs/reference.md` | 参考手册（口径/教训/目录结构） | 按需 Read |
-| `docs/product/PRD-v3.0.md` | 产品需求文档 | 按需 Read |
-| `docs/飞书版架构文档/` | 系统架构文档（7 份） | 按需 Read |
-| `docs/DOCUMENT-INDEX.md` | 完整文档索引 | 按需 Read |
+| `docs/product/prd-v3.0.md` | 产品需求文档 | 按需 Read |
+| `docs/feishu-architecture/` | 系统架构文档（7 份） | 按需 Read |
+| `docs/document-index.md` | 完整文档索引 | 按需 Read |
 | `CHANGELOG.md` | 版本变更记录 | 按需 Read |
 
 ---

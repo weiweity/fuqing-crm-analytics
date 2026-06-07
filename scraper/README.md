@@ -1,7 +1,7 @@
 # DMP 数据采集项目
 
 > 芙清旗舰店达摩盘（DMP）数据自动采集工具
-> 最后更新：2026-06-01
+> 最后更新：2026-06-07
 
 ---
 
@@ -40,7 +40,7 @@ python3 dmp_master.py               # 运行所有模块
 ## 目录结构
 
 ```
-DMP_test_package/
+scraper/
 ├── CLAUDE.md                          ← AI 操作手册
 ├── README.md                          ← 你正在读的文件
 ├── KB-数据采集-SPA接口拦截.md          ← 知识库
@@ -57,7 +57,6 @@ DMP_test_package/
 │   ├── data2.csv                     ← 资产诊断数据
 │   ├── data3.csv                     ← 单品洞察数据
 │   ├── config/                       ← 配置目录
-│   ├── completed_items.json          ← 断点续传缓存
 │   ├── BUGFIX_2026-04-06.md          ← Bug 修复报告
 │   └── MEMO_2026-05-26.md            ← 最近改动记录
 ├── chrome_profile/                    ← 浏览器配置（⚠️ 不要删除！）

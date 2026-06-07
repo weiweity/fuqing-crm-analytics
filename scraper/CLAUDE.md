@@ -25,7 +25,7 @@
 ## 二、目录结构
 
 ```
-DMP_test_package/
+scraper/
 ├── CLAUDE.md                          ← 你正在读的文件
 ├── README.md                          ← 项目说明
 ├── KB-数据采集-SPA接口拦截.md          ← 知识库
@@ -42,7 +42,6 @@ DMP_test_package/
 │   ├── data2.csv                     ← 资产诊断数据（⚠️ 只追加不覆盖）
 │   ├── data3.csv                     ← 单品洞察数据（⚠️ 只追加不覆盖）
 │   ├── config/                       ← 配置目录
-│   ├── completed_items.json          ← 断点续传缓存
 │   ├── BUGFIX_2026-04-06.md          ← Bug 修复报告
 │   └── MEMO_2026-05-26.md            ← 最近改动记录
 ├── chrome_profile/                    ← 浏览器配置（⚠️ 不要删除！含登录Cookie）
@@ -86,7 +85,7 @@ core/data*.csv（源数据，只追加）
 | 修改 `dmp_common.py` | 先确认所有 import 依赖 | 三个模块全部崩溃 |
 | 修改 `Config.ITEM_IDS` | 必须同步更新商品ID文档 | 数据不完整 |
 | 删除 `chrome_profile/` | **绝对禁止** | 登录态丢失，需手动登录 |
-| 修改 `selectors.json` | 先确认页面选择器确实已变 | 抓取失败 |
+| 修改选择器逻辑 | 先确认页面选择器确实已变 | 抓取失败 |
 
 ### 4.2 代码修改约束
 
@@ -163,7 +162,7 @@ python3 dmp_master.py               # 运行所有模块
 需要修改什么？
 │
 ├── 抓取失败 / 选择器失效？
-│   └── 先检查 selectors.json → 如果不够，修改对应 scraper 的提取逻辑
+│   └── 修改对应 scraper 的提取逻辑
 │       └── 用中文标签 + .font-tahoma 定位，不要用随机 class 名
 │
 ├── 新增商品ID？
@@ -190,7 +189,7 @@ python3 dmp_master.py               # 运行所有模块
 
 | 问题 | 状态 | 注意事项 |
 |------|------|----------|
-| selector_engine.py Windows 硬编码路径 | ✅ 已修复 | 但如重写此文件，路径要用 `os.path.dirname(__file__)` |
+| selector_engine.py Windows 硬编码路径 | ✅ 已删除 | 选择器已硬编码在脚本中 |
 | 资产诊断全同值（弹窗干扰） | ✅ 已修复 | 有全同值检测保护，但新弹窗类型可能绕过 |
 | 新增人群流转数据为0 | ✅ 已修复 | statusId=0 用 DOM 回退，不要依赖 API |
 | API key 明文在代码中 | ⚠️ 已知 | 如处理此问题，用环境变量方案 |
@@ -235,9 +234,10 @@ python3 dmp_master.py               # 运行所有模块
 
 | 工作流 | 文件 | 用途 |
 |--------|------|------|
-| 项目优化 | `workflows/dmp-optimization.js` | 执行优化计划 |
 | 数据采集 | `workflows/dmp-daily-run.js` | 每日数据采集 |
 | 数据同步 | `workflows/dmp-data-sync.js` | 同步数据到前端 |
+| 数据修复 | `workflows/dmp-data-fix.js` | 修复数据质量问题 |
+| 数据验证 | `workflows/dmp-data-verify.js` | 验证数据完整性 |
 | 监控告警 | `workflows/dmp-monitor.js` | 监控运行状态 |
 
 ### 运行工作流
@@ -259,4 +259,4 @@ Workflow({scriptPath: "workflows/dmp-monitor.js"})
 
 ---
 
-*此文件由 AI 维护，最后更新：2026-06-01*
+*此文件由 AI 维护，最后更新：2026-06-07*

@@ -81,16 +81,16 @@ Unregister-ScheduledTask -TaskName "FuqingETLDaily" -Confirm:$false
   ↓
 [TaskScheduler / launchd 检测]
   ↓
-[自动发邮件 (管理员配置) / Slack 集成]
+[launchd/TaskScheduler 系统级失败通知]
   ↓
-[W6 集成: pipeline.py:380-410 调 notify_etl_complete(status='failed')]
+[W6 集成: pipeline.py run_full_etl() 调 notify_etl_complete(status='failed')]
   ↓
 [lark-cli → 飞书私聊 oncall (NOTIFY_OPEN_IDS 配置)]
 ```
 
 ## 注意事项
 
-1. **PYTHONPATH 必需**: plist / XML 显式设 `PYTHONPATH` 指向项目根（CLAUDE.md 启动项）
+1. **PYTHONPATH 必需**: plist 显式设 `PYTHONPATH` 指向项目根（CLAUDE.md 启动项）
 2. **工作目录**: plist / XML 显式设 `WorkingDirectory` 指向项目根
 3. **lark-cli 路径**:
    - Mac: `/Users/hutou/homebrew/bin/lark-cli`（plist env PATH 包含）
@@ -101,6 +101,5 @@ Unregister-ScheduledTask -TaskName "FuqingETLDaily" -Confirm:$false
 
 - **8:30 而非 9:00**: 8:30 跑完（假设 30min wall time）→ 9:00 dashboard 数据 ready
 - **Background ProcessType**: 跑批不阻塞 shell，launchd 不强制保持进程
-- **ExecutionTimeLimit PT2H**: 2 小时硬超时（防御 ETL 死循环）
 - **RunAtLoad false**: 不在 launchd 加载时跑（避免误触发）
 - **KeepAlive false**: 跑完就退，下次按 schedule 触发
