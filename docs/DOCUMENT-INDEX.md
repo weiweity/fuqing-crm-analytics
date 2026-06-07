@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
-> **最后更新**: 2026-06-06
-> **状态**: v0.4.13 已 release (W2-W5 + Sprint 2 4 task + 维修 round 1+2, CI 真绿)
+> **最后更新**: 2026-06-07
+> **状态**: v0.4.13 sprint 3 收口 (P0-1 痛点 1 闭环 + 3 件 P1 CI/测试加固, 4/5 done, CI 三连绿). P0-2 DuckDB 备份 deferred Sprint 4
 
 ---
 
@@ -21,6 +21,8 @@
 | CRM业务知识 | [业务知识/](./业务知识/) |
 | Windows Server 部署 | [DEPLOY-WINDOWS.md](./DEPLOY-WINDOWS.md) |
 | 历史文档归档 | [archive/](./archive/) |
+| **Sprint 3 收口报告** (2026-06-07) | [SPRINT-3-PLAN.md](./SPRINT-3-PLAN.md) ← 4/5 done + 痛点 1 闭环 |
+| **痛点 1 跑批验证** (2026-06-07) | [validation-reports/etl-3-runs-2026-06-07.md](./validation-reports/etl-3-runs-2026-06-07.md) ← 3 次 13.4 min 平均 |
 
 ---
 
@@ -66,6 +68,13 @@
 |---|---|---|
 | [handoff-2026-06-05.md](./handoff-2026-06-05.md) | ✅ 当前 | 2026-06-05 运维交接文档（disk/重启/数据回灌 SOP） |
 | [handoff-2026-06-05-errata.md](./handoff-2026-06-05-errata.md) | 🩹 勘误 | 2026-06-05 handoff 勘误（10 项失真补全，§3.1 4 层 ↔ 17 issues 映射表） |
+
+### 🚀 Sprint 3 收口 (2026-06-07)
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| [SPRINT-3-PLAN.md](./SPRINT-3-PLAN.md) | ✅ 4/5 done | Sprint 3 5 件事立项 + 验收（P0-1/P1-1/P1-2/P1-3 done, P0-2 deferred Sprint 4） |
+| [validation-reports/etl-3-runs-2026-06-07.md](./validation-reports/etl-3-runs-2026-06-07.md) | ✅ 闭环 | P0-1 痛点 1 跑批 3 次验证（W1 GROUPING SETS 平均 13.4 min） |
+| [validation-reports/w4-full-t7-2026-06-06.md](./validation-reports/w4-full-t7-2026-06-06.md) | ✅ 闭环 | sprint 2 痛点 3 T-7 真跑 4/4 PASSED（sprint 2 维修 round 1） |
 
 ### 📦 归档文档
 | 目录 | 说明 |
