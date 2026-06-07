@@ -74,7 +74,7 @@
 |---|---|---|
 | [SPRINT-3-PLAN.md](./SPRINT-3-PLAN.md) | ✅ 4/5 done | Sprint 3 5 件事立项 + 验收（P0-1/P1-1/P1-2/P1-3 done, P0-2 deferred Sprint 4） |
 | [SPRINT-4-PLAN.md](./SPRINT-4-PLAN.md) | ✅ 2/2 P0 done | Sprint 4 2 件 P0 立项 + 验收（P0-2 DuckDB 55GB 每日备份 + P0-3 dedup 测试 + hotfix 2） |
-| [SPRINT-5-PLAN.md](./SPRINT-5-PLAN.md) (已清理) | 🟢 真闭环 | Sprint 5 P0-3 排查 + Fix A 拆 2 tx (5a77fa3) 已合 main (61f2a69), 跑批 1 次 ~17 min 真闭环 |
+| [SPRINT-5-PLAN.md](./SPRINT-5-PLAN.md) (已清理) | 🟡 部分 | Sprint 5 P0-3 排查 + NOT EXISTS hotfix 3 已合 main (d9165bb), 跑批真验留 Sprint 6 |
 | [validation-reports/etl-3-runs-2026-06-07.md](./validation-reports/etl-3-runs-2026-06-07.md) | ✅ 闭环 | P0-1 痛点 1 跑批 3 次验证（W1 GROUPING SETS 平均 13.4 min） |
 | [validation-reports/w4-full-t7-2026-06-06.md](./validation-reports/w4-full-t7-2026-06-06.md) | ✅ 闭环 | sprint 2 痛点 3 T-7 真跑 4/4 PASSED（sprint 2 维修 round 1） |
 

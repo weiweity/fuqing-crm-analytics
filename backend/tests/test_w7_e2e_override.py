@@ -27,6 +27,10 @@ class TestW7E2EOverride:
 
         通过 duckdb_settings() 查 memory_limit 字段 (DuckDB 1.5.2 有此 catalog function).
         DuckDB 8GB config 实际报告 "7.4 GiB" (reserve 系统开销), 所以用范围断言.
+
+        FIX-S6-subagent-4: 显式置空 DUCKDB_MEMORY_LIMIT_OVERRIDE, 防父进程 env
+        (e.g. P0-3 跑批时 export=16GB) 通过 `**os.environ` 漏给 subprocess, 导致断言看
+        到 14.9 GiB 而非 7.4/8 GiB. 空串 = `get_duckdb_memory_limit` fallback 到默认 8GB.
         """
         result = subprocess.run(
             [sys.executable, "-c",
@@ -37,7 +41,10 @@ class TestW7E2EOverride:
              "ml = conn.execute(\"SELECT value FROM duckdb_settings() WHERE name='memory_limit'\").fetchone()[0]; "
              "print(f'MEMORY_LIMIT={ml}')"],
             cwd=PROJECT_ROOT,
-            env={**os.environ, "DUCKDB_MEMORY_LIMIT": "8GB", "PYTHONPATH": PROJECT_ROOT},
+            env={**os.environ,
+                 "DUCKDB_MEMORY_LIMIT_OVERRIDE": "",
+                 "DUCKDB_MEMORY_LIMIT": "8GB",
+                 "PYTHONPATH": PROJECT_ROOT},
             capture_output=True, text=True, timeout=30,
         )
         assert result.returncode == 0, f"subprocess 失败: {result.stderr}"

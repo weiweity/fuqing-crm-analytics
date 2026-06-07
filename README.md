@@ -23,7 +23,7 @@
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions + ground-truth-lint (P1-3 sprint 3)
 - ✅ 测试 459+ passed / 8 skipped（v0.4.13 sprint 3 收口, CI 三连绿 run 27082443532 / 27062413467 / 27063611644）
-- ✅ 痛点 1 真闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (sprint 5 Fix A 拆 2 tx, 跑批 1 次真闭环, 总 17 min)
+- ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (P0-3 sprint 4 load.py:550 加 ON CONFLICT + sprint 5 load.py:550 改 NOT EXISTS)
 - ✅ Sprint 4 + 5 收口：3/3 P0 done (P0-2 DuckDB 55GB 每日备份 + P0-3 dedup 测试 + hotfix 2/3 ON CONFLICT/NOT EXISTS), NOT EXISTS 测试 100% OK 但生产跑批 2 次仍撞留 Sprint 6
 - ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
 - ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
