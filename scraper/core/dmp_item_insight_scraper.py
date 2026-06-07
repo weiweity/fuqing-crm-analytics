@@ -651,9 +651,9 @@ def fetch_item_data(page, item_id, target_date, fallback_date):
                 return None
             data['item_id'] = item_id
             # selected_date在URL参数化方案中未定义，使用target_date作为默认值
-            # 格式化日期为字符串
+            # 格式化日期为字符串（%-m/%-d 不带前导零，与历史数据格式一致）
             if hasattr(target_date, 'strftime'):
-                date_str = target_date.strftime('%Y/%m/%d')
+                date_str = target_date.strftime('%Y/%-m/%-d')
             else:
                 date_str = str(target_date)
             data['date'] = date_str
