@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.13（main，2026-06-06 release，CI 真绿 run 27062413467 success），测试 453+ passed / 8 skipped |
+| 4 | **版本状态** | v0.4.13（main，2026-06-07 sprint 3 收口，CI 三连绿 run 27082443532 / 27062413467 / 27063611644），测试 459+ passed / 8 skipped |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -76,13 +76,27 @@
 
 | 层 | 位置 | 拦什么 |
 |---|---|---|
-| pre-commit | `.githooks/pre-commit` | ruff lint + pytest (20/8 cleanup) |
+| pre-commit | `.githooks/pre-commit` | ruff lint + pytest (20/8 cleanup) + ground-truth lint (P1-3 sprint 3) |
 | pre-push | `.githooks/pre-push` | pytest |
-| GitHub Actions | `.github/workflows/lint.yml` | ruff + pytest |
+| GitHub Actions | `.github/workflows/lint.yml` | ruff + pytest + ground-truth-lint (committed mode) |
+| GitHub Actions | `.github/workflows/nightly.yml` | ground-truth-lint (committed mode) |
 
 激活 hooks：`git config core.hooksPath .githooks`
 
 **必要的演示代码检查**会跳过 hooks, 需运行 `bash scripts/setup-hooks.sh` 激活 (一次性, session 保持)
+
+---
+
+## 痛点 1 闭环状态 (2026-06-07 P0-1 sprint 3 收口)
+
+| 痛点 | 状态 | 证据 |
+|---|---|---|
+| **痛点 1** (ETL 41min) | 🟢 **闭环** (W1 GROUPING SETS 单步) | 3 次跑批 710s / 817s / 879s (平均 13.4 min < 35 min 目标, CV 9.4%). 报告: `docs/validation-reports/etl-3-runs-2026-06-07.md` |
+| 痛点 1 (--update 端到端) | ⏳ 部分 (源数据 issue) | `--update` Step 1 撞 (order_id, sub_order_id) 重复 constraint error (独立数据 quality issue). 修后即可端到端验 < 35 min |
+| 痛点 2 (读到半新半旧) | 🟢 闭环 | W2 原子 manifest + W3 6 断言 quarantine (sprint 1) |
+| 痛点 3 (历史 range 重算) | 🟢 闭环 | W4 540 组合预计算 + W5 DuckDB-KV cache 24h TTL + manifest invalidate (sprint 1) |
+
+**3 痛点全解**: 痛点 1 W1 单步 ✅, 痛点 2 ✅, 痛点 3 ✅. 仅 --update 端到端跑批 < 35 min 待源数据 issue 修后验证.
 
 ---
 
@@ -134,6 +148,15 @@ git log main --oneline -- <relevant_file_or_dir>                  # 验相关文
 - "test_X.py 是占位" → 实际是真实 pytest 测试
 
 **任何 "未集成" / "不存在" / "占位" 结论，必须有 `git log` / `git show` 实证**。
+
+#### Sprint 3 P1 三件 4 轮修教训（2026-06-07 加，P1-1/P1-2/P1-3 收口）
+
+Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → restart）暴露 4 类新教训，必读：
+
+1. **Worktree 分支命名要严格匹配** (P1-2 教训): `git worktree add ../wt-sprint3-p12 -b fix/sprint3-p12-16-tests-isolation` 必须用同一份分支名贯穿 `add` / `commit` / `push` / `merge`，否则推送到 `fix/sprint3-p12` 时 PR 看不到提交。Sprint 3 P1-2 一开始分支命名漂移 → force-push 修正。
+2. **P1-3 review 走 4 轮才 PASS，不要信第 1 轮结论** (P1-3 教训): `pre-commit` ground-truth lint 钩子本身 4 轮 review 揪出 11 个问题（B1 core.hooksPath 死代码 / B2 CI NOOP 结构性 / H1 SHA 正则过宽 / H2 46 测试 trivial / H3 evidence 只验字符串出现 + 二轮 B2 NOOP committed 模式 / H1 hex color 旁路 / 三轮 SHA regex 收紧 + 三件 + 四轮 B2 idx/lineno bug / M1 committed 默认 scope）。每轮 review 都基于前一轮 diff，**不要假设 1 轮就够**。
+3. **CI 跑 committed 模式 vs 本地 staged 模式互斥** (P1-3 二轮 B2 教训): `check_review_ground_truth.py` 旧实现只读 `git diff --cached` → CI 跑已 commit 文件永远 0 字节 → 永远 rc=0，是结构性 no-op。加 `--committed` flag + `parse_whole_file` 整文件扫。`lint.yml` + `nightly.yml` 改用 `--committed --files` 模式。
+4. **Ground truth 验证不能信**"代码看起来对"**(D-4 + P1-3 共训): 凭"代码长这样"不能下"未集成"结论。**任何 "未集成" / "不存在" / "占位" / "X 没生效" 必须有 `git log <path>` + `git show <sha>:<path>` + 实证（跑批日志 / pytest -v 输出 / 真 GitHub Actions run）佐证。P1-3 钩子的 `find_evidence_nearby` + `has_real_git_evidence` 就是把 "reviewer 写了" 升级为 "git log 跑通"。
 
 ---
 
