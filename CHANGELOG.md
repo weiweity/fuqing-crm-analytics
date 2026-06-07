@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.14] - 2026-06-07 - test: sprint7 P2 DuckDB 升级测试 + Fix A 决策 (KEEP 2-tx)
+
+### Decision
+- **Fix A 保留 (2-tx workaround)**: DuckDB 1.5.3 未修 UNIQUE INDEX race bug (新连接场景), 1-tx 路线在生产路径下 0/1 通过, 2-tx 路线 1/1 通过
+- **DuckDB 不升级**: 保持 1.5.2 (requirements-lock.txt), 1.5.3 对当前痛点无功能收益
+- **load.py 不变更**: 5a77fa3 Fix A 拆 2 tx 维持, 真根因 (Sprint 5 deep dive) 仍存在
+
+### Verification
+- DuckDB 1.5.3 单连接 100/100 单元测试 4/4 路线通过 (误导性, in-memory state)
+- DuckDB 1.5.3 新连接 1 次生产路径测试: 1-tx 0/1 失败, 2-tx 1/1 通过
+- pytest backend/tests/: 459+ passed / 8 skipped (与升级前一致)
+- 报告: `docs/validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md`
+
+### Lessons (D-7)
+- **单连接测试不能推广到生产**: DuckDB file-backed 模式下, 同一 connection 的 in-memory state 与新 connection 的 file state 行为不一致. 真实生产 ETL 总是新连接 per call. 任何 ETL 决策必须有"模拟生产"测试.
+- 加到 CLAUDE.md "Sprint 3 P1 三件 4 轮修教训" 第 5 条
+
+### Why
+- Sprint 5 deep dive 5 维度 subagent 排查 (A: 72% 主流量, B: ON CONFLICT 3 场景 OK, C: 1:1 模式 production 存在, D: VARCHAR 传递无损, E: ROW_NUMBER 精确) 确认 DuckDB 1.5.2 UNIQUE INDEX race
+- Sprint 7 P2 复测 1.5.3 确认 race 在新连接场景下未修复
+
 ## [v0.4.14.13] - 2026-06-07 - fix(rfm): sprint7 P0 重构 service import 模式 (治根 10 root test fail)
 
 ### Fixed
