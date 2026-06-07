@@ -50,5 +50,9 @@ FIX-M1 + Layer 4 of 4 (2026-06-05 治理): Mac launchd plist for 芙清 backups/
 
     <key>RunAtLoad</key>
     <false/>
+
+    <!-- FIX: macOS TCC 阻止系统上下文访问 Desktop 目录, 改为 Aqua 用户会话 -->
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
 </dict>
 </plist>
