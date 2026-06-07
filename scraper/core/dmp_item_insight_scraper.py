@@ -2468,18 +2468,9 @@ def append_tocsv(csv_file, data):
         except Exception as e:
             log(f"去重扫描失败: {e}")
 
-    # ========== Gate 1: 与最新一条实质相同则跳过（T+1未更新）==========
-    # 判断标准：完全相同 OR 所有字段变化率 < 0.01%（微小噪声）
-    try:
-        latest_row = _get_latest_row_for_item(csv_file, data['item_id'])
-        if latest_row is not None and _is_data_essentially_same(latest_row, data):
-            total = int(data.get('zichan_zongliang', 0))
-            log(f"⏭️ 商品 {data['item_id']} {data['date']} 数据实质相同（资产总量={total:,}），"
-                f"判定为T+1未更新，跳过写入")
-            _mark_completed(data['item_id'], data['date'])
-            return True
-    except Exception as e:
-        log(f"Gate 1 校验失败: {e}")
+    # Gate 1 已删除：不按数值跳过，每个日期都写入（即使数值与前一天相同）
+    # 日期去重已在上方 L2465 处理（同商品同日期才跳过）
+
 
     # 追加写入（不排序，跑完后统一排序）
     try:

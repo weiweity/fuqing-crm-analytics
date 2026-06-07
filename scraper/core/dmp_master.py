@@ -345,34 +345,9 @@ def run_items_module(page, username, password):
                 log(f"随机延迟 {delay:.1f}秒后处理下一个商品...")
                 time.sleep(delay)
 
-        # -------- 第二步：Date级Gate判断（Gate 2）--------
-        # 如果所有商品的数据都与前一天完全相同（或都为空），
-        # 则跳过整个日期的写入，视为T+1未更新
-        # 注意：Gate 2 触发时【不标记】_mark_completed，
-        # 这样下次运行 missing_dates 检测到缺数据时会自然重新抓取
-        items_with_new_data = 0
-        for item_id, data in all_data.items():
-            if data and data.get('zichan_zongliang', 0) > 0:
-                # 读取该商品最新一条历史数据做对比（与 Gate 1 一致的判断标准）
-                latest = _get_latest_row_for_item_cached(item_id)
-                if latest:
-                    # 使用 dmp_item_insight_scraper 的共享判断函数（完全相同 OR 变化率<0.01%）
-                    if dmp_item_insight_scraper._is_data_essentially_same(latest, data):
-                        log(f"  {item_id}: 与历史实质相同，无新数据")
-                    else:
-                        items_with_new_data += 1
-                        log(f"  {item_id}: 有新数据，将写入")
-                else:
-                    # 没有历史记录，视为新数据
-                    items_with_new_data += 1
-                    log(f"  {item_id}: 无历史记录，视为新数据")
+        # Gate 2 已删除：不按数值跳过日期，每个日期都写入
+        # 日期去重由 append_tocsv 的 L2465 处理（同商品同日期才跳过）
 
-        if items_with_new_data == 0:
-            log(f"\n⚠️ Date级Gate触发: 日期 {date_str} 所有 {len(all_data)} 个商品数据均无变化，"
-                f"判定为T+1未更新，跳过整个日期写入（不标记completed，下次会重新检测）")
-            continue
-
-        log(f"\nDate级Gate通过: {items_with_new_data}/{len(all_data)} 个商品有新数据，将写入")
 
         # -------- 第三步：写入数据（逐个，过滤空数据）--------
         for task in date_tasks:
