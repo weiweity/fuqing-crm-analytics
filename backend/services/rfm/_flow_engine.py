@@ -202,12 +202,11 @@ def run_flow_period(
 
     base_params = [start_dt, end_dt] + base_extra
 
-    # hist_customers CTE 改用 end_dt 截止（与 ttl_users_* 一致），
-    # R/F/M 段级分桶基于截至 end_dt 的全量用户集，确保段级和 = TTL。
-    # cutoff_dt 仍用于 RFM 分类口径（period.py 8 象限），但 flow 段级
-    # 走 end_dt 让段级和与已购客TTL 对齐（避免 5/30 整天 user 缺失）。
-    hist_all_params = [end_dt, end_dt] + hist_all_extra
-    hist_same_params = [end_dt, end_dt] + hist_same_extra
+    # hist_customers CTE 改用 start_dt 截止（观察期前行为，避免循环论证）。
+    # R/F/M 段级分桶基于 start_dt 之前的行为，与 R/F/M 区间流转一致。
+    # TTL 仍基于 end_dt（含当期），是商业指标。
+    hist_all_params = [start_dt, start_dt] + hist_all_extra
+    hist_same_params = [start_dt, start_dt] + hist_same_extra
 
     # ttl_users CTE（独立口径）：截至 end_dt（含当期）的累计去重用户，
     # 与 hist_customers 的 cutoff 语义解耦 —— RFM 分类基于观察期前行为
@@ -221,7 +220,7 @@ def run_flow_period(
     # R 桶专用：_R_BUCKET_SEGMENTATION_CTE 用 pre_cutoff MAX(pay_time) + DATEDIFF 到 end_dt。
     # 2 个占位符：(1) pre_cutoff_users subquery 的 WHERE 上限 (TIMESTAMP)，
     #             (2) cutoff_ref 的 DATEDIFF 参考日 (DATE)。
-    # Sprint 8 P0 改 end_dt 截止（与 hist_customers 一致），让 1 月新购客进入 R 桶 1。
+    # R 桶仍基于 end_dt（含当期），是商业指标。
     # 仅 R flow 注入此 CTE（r_flow.py），F/M 的 segmentation_cte 无 ? 占位符。
     r_bucket_params: List = []
     if dimension == "r":
@@ -258,7 +257,7 @@ def run_flow_period(
             {extra_prefix},
             BOOL_OR(is_member) AS is_member
         FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
+        WHERE pay_time < ?::TIMESTAMP
           AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
@@ -270,7 +269,7 @@ def run_flow_period(
             {extra_prefix},
             BOOL_OR(is_member) AS is_member
         FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
+        WHERE pay_time < ?::TIMESTAMP
           AND {_VALID_BASE}
           {refund_where}
           {channel_where_hist}

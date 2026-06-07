@@ -53,21 +53,18 @@ def _run_rfm_period_live(
 
     参数顺序（对应 SQL 占位符）：
     1. base_orders: start_dt, end_dt [, channel]
-    2. user_stats_all: end_dt
-    3. user_stats_same: end_dt [, channel]
-    4. rfm_scored_all: end_dt × 4
-    5. rfm_scored_same: end_dt × 4
+    2. user_stats_all: start_dt（观察期前行为）
+    3. user_stats_same: start_dt [, channel]（观察期前行为）
+    4. rfm_scored_all: start_dt × 4（DATEDIFF 参考 start_dt）
+    5. rfm_scored_same: start_dt × 4（DATEDIFF 参考 start_dt）
     6. ttl_users_all: end_dt
     7. ttl_users_same: end_dt [, channel]
     8. ttl_users_all (member 子查询): end_dt
     9. ttl_users_same (member 子查询): end_dt
 
-    修 task#89 P0 关联：原 user_stats_* 用 cutoff_dt（start_date - 1 截止），
-    8 象限段级和 = 3,889,253（cutoff 用户）< TTL = 4,237,390（end_dt 用户），
-    差 348,137 = 2026 年首购用户（cutoff 之前无历史）。照搬 02ab0a5 修法：
-    user_stats_* 截止由 cutoff_dt → end_dt，让段级和 = TTL = 4,237,390。
-    R/F/M 分类基于"截至 end_dt 行为"（与 ttl_users_* 同口径），新购用户
-    按 end_dt 截止的 F/M 自然归入 8 象限（一般发展/挽留客户），不再丢失。
+    R/F/M 分类基于"start_dt 之前的行为"（观察期前行为，避免循环论证）。
+    回购口径：≥1 单（与 R/F/M 区间流转一致）。
+    TTL 仍基于 end_dt（含当期），是商业指标。
     """
     params: List[Any] = [start_dt, end_dt]
 
@@ -87,13 +84,13 @@ def _run_rfm_period_live(
             channel_where_hist = f" AND o.channel IN ({placeholders})"
             params.extend(db_channels)
 
-    params.append(end_dt)  # user_stats_all（end_dt 截止，与 ttl_users_* 对齐，让段级和=TTL）
-    params.append(end_dt)  # user_stats_same（同上）
+    params.append(start_dt)  # user_stats_all（观察期前行为）
+    params.append(start_dt)  # user_stats_same（观察期前行为）
     if db_channels:
         params.extend(db_channels)  # user_stats_same channel
 
-    params.extend([end_dt] * 4)  # rfm_scored_all DATEDIFF 参考 end_dt
-    params.extend([end_dt] * 4)  # rfm_scored_same DATEDIFF 参考 end_dt
+    params.extend([start_dt] * 4)  # rfm_scored_all DATEDIFF 参考 start_dt
+    params.extend([start_dt] * 4)  # rfm_scored_same DATEDIFF 参考 start_dt
 
     # ── TTL 独立口径：截至 end_dt（含当期）的累计去重用户 ──
     # 与 8 象限 RFM 分类的 cutoff 语义解耦：RFM 分类基于观察期前行为
@@ -140,7 +137,7 @@ def _run_rfm_period_live(
                SUM(actual_amount) as gsv,
                BOOL_OR(is_member) AS is_member
         FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
+        WHERE pay_time < ?::TIMESTAMP
           AND {_VALID_BASE}
           {refund_where}
           {exclude_where_base}
@@ -152,7 +149,7 @@ def _run_rfm_period_live(
                SUM(actual_amount) as gsv,
                BOOL_OR(is_member) AS is_member
         FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
+        WHERE pay_time < ?::TIMESTAMP
           AND {_VALID_BASE}
           {refund_where}
           {channel_where_hist}
@@ -215,13 +212,8 @@ def _run_rfm_period_live(
     ),
     member_segmented_all AS (SELECT user_id, rfm_segment FROM segmented_all WHERE is_member = TRUE),
     member_segmented_same AS (SELECT user_id, rfm_segment FROM segmented_same WHERE is_member = TRUE),
-    -- P0-102 修复: 复购必须 ≥2 单才算（原 SQL 仅 user_id IN base_orders → 100% 误判）
-    -- 注：base_orders 的每一行已代表一个有效订单（SELECT user_id, actual_amount 来自 orders 单行）
-    -- 所以直接 COUNT(*) 即可，不需要 DISTINCT order_id
     repurchase_users AS (
-        SELECT user_id FROM base_orders
-        GROUP BY user_id
-        HAVING COUNT(*) >= 2
+        SELECT DISTINCT user_id FROM base_orders
     ),
     repurchase_amounts AS (
         SELECT bo.user_id, SUM(bo.actual_amount) AS repurchase_gsv
