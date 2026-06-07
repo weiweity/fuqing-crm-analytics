@@ -217,14 +217,19 @@ def run_flow_period(
     ttl_member_all_params = [end_dt] + hist_all_extra
     ttl_member_same_params = [end_dt] + hist_same_extra
 
-    # R 桶专用：_R_BUCKET_SEGMENTATION_CTE 用 pre_cutoff MAX(pay_time) + DATEDIFF 到 end_dt。
+    # R 桶专用：_R_BUCKET_SEGMENTATION_CTE 用 pre_cutoff MAX(pay_time) + DATEDIFF 到 cutoff_dt。
     # 2 个占位符：(1) pre_cutoff_users subquery 的 WHERE 上限 (TIMESTAMP)，
     #             (2) cutoff_ref 的 DATEDIFF 参考日 (DATE)。
-    # R 桶仍基于 end_dt（含当期），是商业指标。
+    # Sprint 8 P0 改回 cutoff_dt (= start_dt - 1)：hist_customers 已改 start_dt，
+    # R 桶分桶必须保持 pre-period 行为语义一致，否则有当期订单的回购用户
+    # pre_cutoff_last_pay 落在当期 → DATEDIFF(pre_cutoff_last_pay, end_dt)=0-6 天
+    # → 全部归入近1个月，R 桶 2-6 ∩ base_orders = ∅，回购率恒为 0%（Sprint 7 教训）。
+    # 5/1-5/31 当期新购客（pre_cutoff=NULL）不归入任何 R 桶，仅出现在已购客TTL行。
+    # 段级和 < TTL by 当期新购客数（业务语义正确的代价）。
     # 仅 R flow 注入此 CTE（r_flow.py），F/M 的 segmentation_cte 无 ? 占位符。
     r_bucket_params: List = []
     if dimension == "r":
-        r_bucket_params = [end_dt, end_dt]
+        r_bucket_params = [cutoff_dt, cutoff_dt]
 
     full_params = (
         base_params

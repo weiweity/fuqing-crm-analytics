@@ -205,6 +205,86 @@ class TestRFMRFlow:
         )
         assert isinstance(result, dict)
 
+    def test_r_bucket_uses_preperiod_recency(self, monkeypatch):
+        """Sprint 8 P0 回归测试：R 桶分桶必须基于 pre-period 行为。
+
+        Bug 场景：period=2025-05-01~05-31，R 桶用 end_dt=05-31 截止时，
+        有 5/1-5/31 当期订单的回购用户 pre_cutoff_last_pay 落在当期，
+        DATEDIFF(pre_cutoff_last_pay, end_dt)=0-30 天 → 全部归入近1个月，
+        近2-3个月 ∩ base_orders = ∅，回购率恒为 0%（Sprint 7 a73dfac 教训）。
+
+        修复：R 桶改回 cutoff_dt (= start_dt - 1 = 04-30) 截止，
+        pre-period 4/15 订单的用户归入近2-3个月且能识别为回购。
+
+        数据：U1 (4/15 + 5/3 双单)、U2 (3/10 单)、U3 (5/10 当期新购)
+        """
+        import duckdb
+        from tests.conftest import _create_orders_table
+
+        conn = duckdb.connect(database=":memory:")
+        _create_orders_table(conn)
+
+        n = None
+        orders = [
+            # U1: 4/15 pre-period + 5/3 current-period 双单 → 应归入近2-3个月，且是回购
+            ("O1","O1-1","U1","用户1","2025-04-15 09:00","2025-04-15 10:00",n,"普通订单","交易成功",n,n,"产品A","SKU1","SKU001","规格A",1,200,n,0,200,"上海","上海",n,n,n,n,n,n,n,n,2025,4,True,"护肤","精华","高端","功效类","美白","30ml","货架",False,False),
+            ("O2","O2-1","U1","用户1","2025-05-03 09:00","2025-05-03 10:00",n,"普通订单","交易成功",n,n,"产品A","SKU1","SKU001","规格A",1,200,n,0,200,"上海","上海",n,n,n,n,n,n,n,n,2025,5,True,"护肤","精华","高端","功效类","美白","30ml","货架",False,False),
+            # U2: 3/10 pre-period 单 → 应归入近4-6月 (DATEDIFF(3/10, 4/30)=51 天)
+            ("O3","O3-1","U2","用户2","2025-03-10 09:00","2025-03-10 10:00",n,"普通订单","交易成功",n,n,"产品B","SKU2","SKU002","规格B",1,100,n,0,100,"北京","北京",n,n,n,n,n,n,n,n,2025,3,True,"护肤","面霜","中端","功效类","保湿","50g","达播",False,False),
+            # U3: 5/10 current-period 单 → 不归入任何 R 桶（pre_cutoff=NULL）
+            ("O4","O4-1","U3","用户3","2025-05-10 09:00","2025-05-10 10:00",n,"普通订单","交易成功",n,n,"产品C","SKU3","SKU003","规格C",1,150,n,0,150,"广东","广州",n,n,n,n,n,n,n,n,2025,5,True,"护肤","水乳","中端","基础类","补水","100ml","货架",False,False),
+        ]
+        placeholders = ",".join(["?" for _ in range(42)])
+        for row in orders:
+            assert len(row) == 42
+            conn.execute(f"INSERT INTO orders VALUES ({placeholders})", list(row))
+        conn.execute("""
+            CREATE TABLE user_rfm (
+                user_id VARCHAR, analysis_date DATE, metric_type VARCHAR,
+                lookback_days INTEGER, r_segment VARCHAR, f_segment VARCHAR,
+                m_segment VARCHAR, r_score INTEGER, f_score INTEGER, m_score INTEGER
+            )
+        """)
+
+        monkeypatch.setattr("backend.db.connection.get_connection", lambda: conn)
+
+        from backend.services.rfm import get_rfm_r_flow
+        result = get_rfm_r_flow(
+            year=2025,
+            start_date="2025-05-01",
+            end_date="2025-05-31",
+            metric_type="GSV",
+        )
+        rows = {r["r_segment"]: r for r in result["rows"]}
+
+        # U1 (4/15 + 5/3): pre-period 4/15 → DATEDIFF(4/15, 4/30)=15 → 近1个月
+        # (但 U1 也是 5/3 当期订单回购用户，回购 = 1)
+        # U2 (3/10): pre-period 3/10 → DATEDIFF(3/10, 4/30)=51 → 近2-3个月
+        # (U2 不是回购用户：0)
+        # U3 (5/10 only): pre_cutoff=NULL → 不归入任何 R 桶，仅在 TTL
+        # （但 U3 是 5/10 当期订单回购用户，TTL 回购 = 1）
+
+        # 关键回归断言：Sprint 7 bug 复现条件已消除
+        # 近1个月 hist_users 应包含 U1（pre-period 4/15 在 [04-30 - 30, 04-30] 范围内: 4/15 不在，
+        # 实际 DATEDIFF(4/15, 4/30)=15 → 近1个月 ✓），U2 不在 (51 > 30)
+        assert rows["近1个月已购客"]["hist_users_current"] == 1, \
+            f"近1个月 应只有 U1, 实际 {rows['近1个月已购客']['hist_users_current']}"
+        # U1 是回购用户 (5/3 当期订单)，归入近1个月
+        assert rows["近1个月已购客"]["repurchase_users_current"] == 1, \
+            f"近1个月 应有 1 个回购用户 (U1), 实际 {rows['近1个月已购客']['repurchase_users_current']}"
+        # 近2-3个月: DATEDIFF(3/10, 4/30)=51 天 → U2 归入
+        assert rows["近2-3个月已购客"]["hist_users_current"] == 1, \
+            f"近2-3个月 应只有 U2, 实际 {rows['近2-3个月已购客']['hist_users_current']}"
+        # U2 不是回购用户（5/1-5/31 无订单）
+        assert rows["近2-3个月已购客"]["repurchase_users_current"] == 0, \
+            f"近2-3个月 应 0 个回购, 实际 {rows['近2-3个月已购客']['repurchase_users_current']}"
+        # TTL 应包含所有用户：U1 (4/15+5/3) + U2 (3/10) + U3 (5/10) = 3
+        assert rows["已购客TTL"]["hist_users_current"] == 3, \
+            f"TTL 应有 3 个用户, 实际 {rows['已购客TTL']['hist_users_current']}"
+        # TTL 回购: U1 (5/3) + U3 (5/10) = 2
+        assert rows["已购客TTL"]["repurchase_users_current"] == 2, \
+            f"TTL 应有 2 个回购用户, 实际 {rows['已购客TTL']['repurchase_users_current']}"
+
 
 # ── 口径一致性测试 ────────────────────────────────────────────
 
