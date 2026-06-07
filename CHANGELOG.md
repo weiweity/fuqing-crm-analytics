@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.15] - 2026-06-07 - docs: sprint7 P2 6 层防护清理文档 (cleanup.md 516 行)
+
+### Added
+- **docs/operations/cleanup.md** (新, 516 行): 6 层磁盘治理运维文档
+  - 6 层防护详细表格 (atexit / zshrc / workbuddy / weekly / daily backup / hourly subagent)
+  - 各层详细说明 (代码路径 / 触发 / 常量 / 协议 / CLI 入口)
+  - 紧急清理命令 (Layer 1 --cleanup-tmp / Layer 6 cleanup_subagent.py --dry-run / Layer 4 shell / Layer 5 backup / 手动 rm 应急)
+  - launchd 调度状态 (期望 3 行, query 命令, kickstart / unload 调试)
+  - 重要协议 (F3 marker / _fq_* 不强删 / ms-playwright 1208 缓存 / /private/tmp vs /tmp symlink)
+  - 6 个审计 log 路径表 + 查询命令速查
+  - Sprint 5 deep dive 教训 (440GB 残留, 5 层失效原因, Layer 6 设计原则)
+  - 容量监控 + 告警阈值 + 接手者 follow-up + 关键文件路径索引 + 附录 A 差异表 + 附录 B 紧急速查
+
+### Verified
+- 格式跟 docs/handoff-2026-06-05.md 风格一致 (标题 + TL;DR + 章节编号 + 表格 + 代码块 + 附录)
+
 ## [v0.4.14.14] - 2026-06-07 - test: sprint7 P2 DuckDB 升级测试 + Fix A 决策 (KEEP 2-tx)
 
 ### Decision
