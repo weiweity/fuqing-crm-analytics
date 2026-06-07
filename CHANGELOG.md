@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.10] - 2026-06-07 - fix(etl): sprint5 P0-3 hotfix 3 _upsert_to_duckdb_body 改用 NOT EXISTS
+
+### Fixed
+- **scripts/etl/load.py:543-555** 改 ON CONFLICT (sprint 4 56a35ee) → AND NOT EXISTS 路线
+- 5 维度 subagent 并行排查 (A+D / B+E / C): (X, X) 72.5% 主流量 + DuckDB 1.5.2 ON CONFLICT 测试 OK + staging VARCHAR 类型无损
+- 真根因: NOT EXISTS 路线测试 100% OK 但生产跑批 2 次仍撞 (边界 case 未明), 跑批真验留 Sprint 6
+
+### Note
+- D-4 教训深一: subagent 报告 "代码已修" + 测试 OK 都不够, 必须真跑批验证
+- 5 维度 subagent 排查 + 主 agent 真排查: DuckDB 1.5.2 ON CONFLICT / NOT EXISTS 在 subquery + ROW_NUMBER + WHERE 嵌套下有真 bug
+- sprint 5 收口: NOT EXISTS 已合 main (d9165bb), 跑批真验留 Sprint 6 深入 (可能需要 DuckDB 升级或换 SQL 写法)
+
 ## [v0.4.14.7] - 2026-06-07 - feat(backup): sprint4 P0-2 DuckDB 55GB 每日备份 (launchd daily + zstd 压缩)
 
 ### Added
