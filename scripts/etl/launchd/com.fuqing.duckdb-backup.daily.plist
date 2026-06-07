@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Sprint 4 P0-2 (2026-06-07): Mac launchd plist for 芙清 DuckDB 每日备份
+
+复用 com.fuqing.backup-cleanup.weekly.plist 模式 (Sprint 1 治理留下)
+
+安装:
+  cp com.fuqing.duckdb-backup.daily.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.fuqing.duckdb-backup.daily.plist
+  launchctl list | grep fuqing.backup   验证加载 (2 个服务: daily + weekly cleanup)
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.duckdb-backup.daily.plist
+  rm ~/Library/LaunchAgents/com.fuqing.duckdb-backup.daily.plist
+
+设计:
+  每日 03:30 跑（避开 ETL 跑批窗口 08:30 + 错开 weekly cleanup 周日 03:00）
+  scripts/etl/backup_duckdb.py 用 shutil.copy2 复制 + zstd 压缩
+  7 天保留由 com.fuqing.backup-cleanup.weekly.plist 兜底
+  stdout/stderr 重定向到 /tmp/fuqing-duckdb-backup.log
+  exit code != 0 触发 launchd 自动通知
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.duckdb-backup.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/backup_duckdb.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-duckdb-backup.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-duckdb-backup.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
