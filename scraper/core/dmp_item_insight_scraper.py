@@ -265,14 +265,16 @@ def get_missing_dates(csv_file, item_ids, days_to_check=7):
     """
     from datetime import datetime, timedelta
     
-    # 生成最近N天的日期列表（从昨天开始倒推）
+    # 生成最近N天的日期列表
+    # T+1 保护: 跳过今天(i=0)和昨天(i=1), 达摩盘单品数据 T+1 滞后,
+    # 抓'今天'会拿到前天的复制数据。从 2 天前开始。
     today = datetime.now()
     target_dates = []
-    for i in range(1, days_to_check + 1):
+    for i in range(2, days_to_check + 1):
         date = today - timedelta(days=i)
         target_dates.append(format_date_for_csv(date))
     
-    log(f"需要检查的日期: {target_dates}")
+    log(f'需要检查的日期: {target_dates} (T+1 保护: 跳过今天和昨天)')
     
     # 读取CSV中已有的数据
     existing_data = {}  # {item_id: set(dates)}
