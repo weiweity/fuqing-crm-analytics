@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.22] - 2026-06-08 - fix(etl): Sprint 10 B3 — daily backup BJ date + size assert + loud-fail (osascript + mail)
+
+### Fixed
+- **backup 文件名 UTC → BJ 时间** (`scripts/etl/backup_duckdb.py`):
+  - 改的原因: launchd 03:30 BJ 跑出的 backup 用 UTC 日期命名成 "2026-06-07",
+    用户视角看像 6/7 没 6/8 backup (实际是 6/8 BJ backup, 文件名错叫 6/7).
+  - 改法: `BJ_TZ = timezone(timedelta(hours=8))` + `TODAY = datetime.now(BJ_TZ)`.
+    6/8 03:30 BJ 现在正确命名 "2026-06-08" 跟用户日历日期一致.
+  - 6/8 backup 已补跑: 25.4GB zst 创建成功 (`fuqing_crm_2026-06-08.duckdb.zst`).
+- **compressed zst 0 字节盲点** (`scripts/etl/backup_duckdb.py`):
+  - 加 `compressed_bytes > 0` assert, 防 zstd 假成功 (subprocess.run check=True
+    只查 exit code 不查文件大小, 历史上 0 字节输出也可能 exit 0).
+
+### Added
+- **loud_fail(reason) 函数** (`scripts/etl/backup_duckdb.py`):
+  - 失败时主动 macOS 桌面通知 (osascript display notification)
+  - + /usr/bin/mail 发到 hutou@fuqing.local
+  - 防止 launchd StandardErrorPath 静默失败, 留 visible trace 给运维.
+  - log 时间戳也改 BJ (+08:00 时区), 跟 backup 文件名一致.
+
+### Changed
+- **plist 注释更新** (`scripts/etl/launchd/com.fuqing.duckdb-backup.daily.plist`):
+  - 加 B3 loud-fail 说明, 卸载命令加 `2>/dev/null` (unload 失败不阻塞 load).
+
 ## [v0.4.14.21] - 2026-06-08 - fix(etl): Sprint 10 preflight B1 — staging NOT EXISTS + W4 8GB + RSS 12GB 硬限
 
 ### Changed
