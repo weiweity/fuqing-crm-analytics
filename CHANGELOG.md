@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.19] - 2026-06-08 - fix(etl): Sprint 9 维修 — watchdog/cache key/W3 valid_sql/W4 memory
+
+### Fixed
+- **ETL 增量跑批死循环** (4 件根因, 全部闭环):
+  1. **watchdog 内存阈值 2GB→8GB** (`backend/db/memory_monitor.py:29`)
+     - 2GB 跟 `DUCKDB_MEMORY_LIMIT=8GB` 不匹配, 跑批 RSS 3-4GB 触发误报甚至被 watchdog kill
+     - 8GB 一致, 避免增量跑批死循环
+  2. **`_mark_all_files_processed` key 错配** (`scripts/etl/pipeline.py:560+`)
+     - 之前 parquet key = `f.name`, 但 ingest L82 `_file_changed` 用 `_xlsx_stem_to_rel` 反查 xlsx 相对路径
+     - key 不一致导致冷启动后 ingest 仍把 103 个 parquet 视为新增, 走 xlsx fallback 读 103 xlsx
+     - RSS 撞 watchdog 阈值被 kill, **死循环**
+     - 修法: parquet key 跟 ingest 一致用 `_xlsx_stem_to_rel` 反查
+  3. **W3 DQ assertions `valid_sql` column 引用 bug** (`scripts/etl/assertions.py:114,126`)
+     - 之前 SQL `AND valid_sql = 1` 引用 column, 但 `valid_sql` 是 `OrderFilters.valid_order()` 返回的 SQL 字符串, 不是 column
+     - DuckDB 报 `Referenced column "valid_sql" not found`
+     - 修法: f-string 插入 `valid_sql` 字符串
+     - 配套: test fixture schema 6→8 列同步 production (`is_goujinjin`/`order_status`/`is_refund`)
+  4. **W4 memory_limit 16GB→8GB** (`scripts/etl/pipeline.py:485`)
+     - 之前 W4 用 16GB override, 跟主 conn 8GB + W3 `_assert_conn` 8GB + cache.py `_open_write_conn` 8GB 不同 config
+     - DuckDB 1.5.2 strict mode 报 `Can't open a connection to same database file with a different configuration`
+     - 修法: 跟其他 conn 一致 8GB, 避免跨 connection config 冲突
+     - 16GB 是过度优化, Sprint 5 17 min 真闭环 8GB 也 OK
+
+### Verified
+- pytest `backend/tests/`: 391 passed / 0 fail (排除 uvicorn 持锁 pre-existing 1 fail)
+- pytest `test_w3_dq_assertions.py`: 26 passed in 3:01 (fixture schema 改后)
+- 增量 ETL 6/8 跑批 11:38 自然 exit 13:42: 5,110 行 6/7 新数据入库, MAX(pay_time) 推到 6/7 23:59:57
+- 8 渠道分布正确 (货架 3,025 + 淘客 611 + 直播 408 + 达播 380 + U先 354 + 赠品 145 + 百补 94 + 微博 93)
+- daily_visitors +1 天到 6/7 (889 天合计), 淘客纠正 62,090 → 1,877,371
+- `--full` 全量重建 cache (预计 30+ min, 跑批中)
+
+### Deployment Notes
+- **不需要 restart uvicorn 立即生效** — 4 件都是 ETL 跑批路径代码, 不影响 backend API
+- **下次 ETL 跑批 (8:30 launchd) 会自动应用 watchdog + cache key 修复**
+- 建议手动 `kill <uvicorn_pid> && 重启` 一次以加载 Sprint 8 P0 (YOYBadge pp) + PR#22/23 改动 (本来 Sprint 9 候选 1)
+
 ## [v0.4.14.18] - 2026-06-08 - fix(audience): MetricCard YOY 显示 0.1% → 7.5% 修复
 
 ### Fixed
