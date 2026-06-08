@@ -9,6 +9,7 @@ SOP:
   4. zstd 压缩 (55GB → 目标 < 15GB)
   5. 失败清理: zstd 失败时删 uncompressed 中间产物 (防磁盘累积)
   6. log 走 plist stdout/stderr 重定向 (避免双写)
+  7. 失败 loud-fail: 主动 sendmail + osascript 系统通知 (Sprint 10 B3)
 
 调度: launchd com.fuqing.duckdb-backup.daily 03:30 daily
 复用: cleanup_backups.sh 的 F18 POSIX lock 模式 + 已有 BACKUP_DIR
@@ -17,7 +18,7 @@ import os
 import sys
 import subprocess
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
@@ -28,13 +29,46 @@ from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR  # noqa: E402
 
 BACKUP_DIR = PROCESSED_DATA_DIR / "backups"
 LOCK_DIR = Path("/tmp/fuqing-duckdb-backup.lock.d")
-TODAY = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+# Sprint 10 B3: 用 Beijing 时间 (UTC+8) 命名, 跟用户日历日期一致.
+# 之前用 UTC 在 03:30 BJ 跑出来文件名是 6/7, 用户看像 6/7 没 6/8 backup.
+# 改 BJ 时间后, 6/8 03:30 BJ 跑出来文件名是 2026-06-08, 跟用户预期一致.
+BJ_TZ = timezone(timedelta(hours=8))
+TODAY = datetime.now(BJ_TZ).strftime("%Y-%m-%d")
+ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 
 
 def log(msg: str) -> None:
-    # 每次调用算 TS (防 5-20min 跑批时间戳全一样)
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # 每次调用算 TS (防 5-20min 跑批时间戳全一样). Sprint 10 B3 改用 BJ 时间戳.
+    ts = datetime.now(BJ_TZ).strftime("%Y-%m-%dT%H:%M:%S%z")
     print(f"[{ts}] {msg}", flush=True)
+
+
+def loud_fail(reason: str) -> None:
+    """Sprint 10 B3: launchd 失败 loud-fail.
+
+    主动 sendmail + macOS 系统通知 (osascript display notification), 防止 launchd
+    StandardErrorPath 静默失败. exit code 1 让 launchd 也检测到失败.
+    """
+    log(f"FATAL: {reason}")
+    # 1. macOS 系统通知 (桌面弹窗)
+    try:
+        subprocess.run(
+            ["osascript", "-e",
+             f'display notification "DuckDB 备份失败: {reason[:80]}" '
+             f'with title "芙清 CRM 备份 FAILED" subtitle "{TODAY}"'],
+            check=False, timeout=5,
+        )
+    except Exception as e:
+        log(f"osascript 通知失败: {e}")
+    # 2. mail 发到 ALERT_EMAIL
+    try:
+        subprocess.run(
+            ["/usr/bin/mail", "-s", f"[FATAL] 芙清 DuckDB 备份失败 {TODAY}", ALERT_EMAIL],
+            input=f"backup_duckdb.py 失败\n\n时间: {datetime.now(BJ_TZ).isoformat()}\n原因: {reason}\n日志: /tmp/fuqing-duckdb-backup.log\n",
+            text=True, check=False, timeout=10,
+        )
+    except Exception as e:
+        log(f"mail 发送失败: {e}")
 
 
 def main() -> int:
@@ -75,12 +109,19 @@ def main() -> int:
              str(backup_path), "-o", str(compressed_path)],
             check=True,
         )
-        compressed_mb = compressed_path.stat().st_size / 1024 / 1024
-        log(f"DONE: {compressed_path} ({compressed_mb:.1f} MB)")
+        # Sprint 10 B3: 加 size > 0 硬验证 (防 zstd 0 字节输出假成功)
+        compressed_bytes = compressed_path.stat().st_size
+        if compressed_bytes <= 0:
+            raise AssertionError(
+                f"compressed zst file size is {compressed_bytes} bytes (expected > 0)"
+            )
+        compressed_mb = compressed_bytes / 1024 / 1024
+        log(f"DONE: {compressed_path} ({compressed_mb:.1f} MB, {compressed_bytes} bytes)")
         return 0
 
     except Exception as e:
-        log(f"ERROR: {e}")
+        # Sprint 10 B3: loud_fail 主动通知 (osascript + mail) + 仍返回 1 让 launchd 检测
+        loud_fail(str(e))
         return 1
     finally:
         try:
