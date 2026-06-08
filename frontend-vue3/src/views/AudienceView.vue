@@ -232,6 +232,18 @@ function visitorChange(yoyField: keyof VisitorSummary, momField: keyof VisitorSu
   return isMOM.value ? ((visitorSummary.value as any)[momField] ?? 0) : ((visitorSummary.value as any)[yoyField] ?? 0)
 }
 
+// ── MetricCard 口径映射 ──
+// MetricCard unit='%' 模板直接显示 change（不乘 100），调用方需先 * 100
+// MetricCard unit='pp' 模板内部 * 100，调用方传 decimal 即可
+function kpiChangePct(yoyField: keyof KPIMetrics, momField: keyof KPIMetrics): number | undefined {
+  const v = kpiChange(yoyField, momField)
+  return v == null ? undefined : v * 100
+}
+function visitorChangePct(yoyField: keyof VisitorSummary, momField: keyof VisitorSummary): number | undefined {
+  const v = visitorChange(yoyField, momField)
+  return v == null ? undefined : v * 100
+}
+
 /** 动态对比标签（用于图表 legend / 说明文字） */
 const compareLabelShort = computed(() => {
   if (filterStore.compareMode === 'auto_mom') return '上期'
@@ -1800,7 +1812,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="全店GSV"
           :value="kpiData ? formatKPI(kpiData.gsv, 'currency') : '—'"
-          :change="kpiChange('gsv_yoy', 'gsv_mom')"
+          :change="kpiChangePct('gsv_yoy', 'gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1808,7 +1820,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="老客GSV"
           :value="kpiData ? formatKPI(kpiData.old_gsv, 'currency') : '—'"
-          :change="kpiChange('old_gsv_yoy', 'old_gsv_mom')"
+          :change="kpiChangePct('old_gsv_yoy', 'old_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1816,7 +1828,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新客GSV"
           :value="kpiData ? formatKPI(kpiData.new_gsv, 'currency') : '—'"
-          :change="kpiChange('new_gsv_yoy', 'new_gsv_mom')"
+          :change="kpiChangePct('new_gsv_yoy', 'new_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1824,7 +1836,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员GSV"
           :value="kpiData ? formatKPI(kpiData.member_gsv, 'currency') : '—'"
-          :change="kpiChange('member_gsv_yoy', 'member_gsv_mom')"
+          :change="kpiChangePct('member_gsv_yoy', 'member_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1863,7 +1875,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员溢价"
           :value="kpiData ? Number(kpiData.member_premium).toFixed(2) : '—'"
-          :change="kpiChange('member_premium_yoy', 'member_premium_mom')"
+          :change="kpiChangePct('member_premium_yoy', 'member_premium_mom')"
           :loading="kpiLoading"
           unit="%"
         />
@@ -1876,7 +1888,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="访客数"
           :value="visitorSummary ? Number(visitorSummary.visitors).toLocaleString() : '—'"
-          :change="visitorChange('visitors_yoy', 'visitors_mom')"
+          :change="visitorChangePct('visitors_yoy', 'visitors_mom')"
           :loading="visitorLoading"
           unit="%"
         />
@@ -1885,7 +1897,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新增会员数"
           :value="visitorSummary ? Number(visitorSummary.new_members).toLocaleString() : '—'"
-          :change="visitorChange('new_members_yoy', 'new_members_mom')"
+          :change="visitorChangePct('new_members_yoy', 'new_members_mom')"
           :loading="visitorLoading"
           unit="%"
         />
