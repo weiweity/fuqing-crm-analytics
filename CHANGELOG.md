@@ -4,6 +4,63 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.20] - 2026-06-08 - fix(scraper): DMP 爬虫 7 件修复 + T_OFFSET 调度
+
+### Changed
+- **DMP_SPM 更新**: `...1d1125ebOCRO8L` → `...1d1125eblwdosJ` (达摩盘页面调整, 旧 spm 失效)
+- **单品洞察 URL**: 加 `&analysisTab=compete` 参数 (3 处: `dmp_item_insight_scraper.py:382/407/1400`)
+- **headless 修复**: `dmp_master.py:625/735` `headless=False` → `True`
+  - 单品洞察 API 拦截 (`goods/view/overview/v2`) 在有头模式下失败 (12 秒 0 响应)
+  - 无头模式验证通过, 资产诊断/流转在无头下也正常
+- **单品洞察日期格式**: `strftime('%Y/%m/%d')` → `'%Y/%-m/%-d'` (与历史 CSV 一致)
+
+### Fixed
+- **Gate 1 删除** (`dmp_item_insight_scraper.py:2471-2482`): 单品洞察不再按数值变化率 (<0.01%) 跳过写入
+  - 误判: 6/2~6/5 数据与 6/1 实质相同 → 全部跳过 → 看板缺 4 天数据
+  - 根因: 达摩盘单品数据变化 <0.01% 时 Gate 1 误判为 T+1 未更新
+  - 修法: 移除 Gate 1 数值比较, 仅保留 append_tocsv 内的同日期去重 (L2465)
+- **Gate 2 删除** (`dmp_master.py:348-375`): 日期级 Gate 也按数值比较跳过整个日期, 同样问题, 一起删
+- **达摩盘 T+1 跨日问题**: 6/7 数据 6/8 下午 15:00 才出, 早上跑会抓 6/6 复制
+  - 临时方案: 删除 6/7 虚假数据 (15 行)
+  - 长期方案: `T_OFFSET` 环境变量动态控制 (默认 1=T+1, 可设 2=T+2 早 9 点跑保险)
+- **数据格式不一致**: 1186 行 `2026/06/01` 统一为 `2026/6/1` (与历史一致, 不带前导零)
+- **5/30 流转脏数据**: 删除 8 行全 0 记录 (浏览器崩溃导致 API 拦截失败)
+
+### Removed
+- **死代码 68 行**:
+  - `dmp_common.py:99-143` `safe_write_csv` 函数 (全 scraper 0 引用, dmp_scraper/dmp_flow 用 append 模式手写) — 48 行
+  - `dmp_item_insight_scraper.py:2144-2155` `_is_completed` 函数 (0 调用) — 12 行
+  - `dmp_item_insight_scraper.py:36-41` `try/except import yaml` (HAS_YAML 常量无引用) — 6 行
+  - 注意: `check_dmp_session` (`dmp_common.py:530-558`) 误判 0 引用已纠正 (实际 `dmp_master.py:30` import + `:633` 调用)
+
+### Added
+- **T_OFFSET 环境变量** (`dmp_common.py:360`): `get_missing_dates_item` 支持动态 T+ 偏移
+- **launchd 调度配置** (2 个 plist):
+  - `com.fuqing.dmp-scraper.morning.plist` (早 9:00, T_OFFSET=2)
+  - `com.fuqing.dmp-scraper.afternoon.plist` (下午 16:00, T_OFFSET=1)
+  - ⚠️ plist 已生成在 `~/Library/LaunchAgents/`, 但需用户手动 `launchctl load` (auto mode 拦截)
+- **launchd 调度文档** (`scraper/core/README-dmp-scraper-launchd.md`)
+
+### Verified
+- 模块加载验证: 5/5 模块 OK (dmp_common, dmp_item_insight_scraper, dmp_flow_scraper, dmp_scraper, dmp_master)
+- 数据更新:
+  - data.csv (流转): 最新 2026/6/5 (T-2 口径)
+  - data2.csv (资产诊断): 最新 2026/6/6 (T-1 口径)
+  - data3.csv (单品洞察): 最新 2026/6/6 (15/15 商品, 6/7 虚假数据已删)
+- codegraph 同步: 280 文件已索引, 含本次全部修改 (`dmp_common.py:343` `get_missing_dates_item` 等)
+
+### Risk
+- **淘宝风控**: 6/8 跑批触发达摩盘反爬 (短时间内多次大批量抓取)
+- 建议: 24 小时后再跑 (等风控标记过期), `chrome_profile/` 登录态应还在
+- 下次跑批会自动应用 T_OFFSET 调度 (早 9 点 T+2, 下午 16 点 T+1)
+
+### Deployment Notes
+- **不需要 restart uvicorn** — 纯 scraper 模块, 不影响 backend API
+- **下次 launchd 调度** (今天 16:00): 自动跑 T+1, 应能抓到 6/7 真实数据
+- **手动 `launchctl load`**: 详见 `scraper/core/README-dmp-scraper-launchd.md`
+
+---
+
 ## [v0.4.14.19] - 2026-06-08 - fix(etl): Sprint 9 维修 — watchdog/cache key/W3 valid_sql/W4 memory
 
 ### Fixed

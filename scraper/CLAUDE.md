@@ -1,8 +1,32 @@
 # DMP 数据采集项目 — AI 操作手册
 
 > **适用对象**：在此目录下工作的 AI 助手
-> **最后更新**：2026-06-02（已并入 fuqing-crm-analytics monorepo）
+> **最后更新**：2026-06-08（Sprint 1: 7 件修复 + T_OFFSET 调度）
 > **项目路径**：`fuqing-crm-analytics/scraper/`（原 `/Users/hutou/Desktop/work plat/DMP_test_package/`）
+
+---
+
+## 0. 6/8 变更摘要（AI 必读）
+
+**避免重复踩坑** — 今天 6/8 修复的 7 件事, 后续 AI 必须知道:
+
+1. **SPM 已更新** (`dmp_common.py:77`): `...1d1125ebOCRO8L` → `...1d1125eblwdosJ`
+   旧 SPM 已 404, **不要回滚**
+2. **单品洞察 URL** (`dmp_item_insight_scraper.py:382/407/1400`): 含 `&analysisTab=compete`
+3. **headless=True** (`dmp_master.py:625, 735`): 有头模式下 API 拦截失败, **不要改回 False**
+4. **Gate 1+Gate 2 已删** (`dmp_item_insight_scraper.py:2471-2482`, `dmp_master.py:348-375`):
+   数值变化 <0.01% 时会误判 T+1 未更新, **不要重建**。日期去重由 `append_tocsv` L2465 处理
+5. **T_OFFSET 环境变量** (`dmp_common.py:360`): `get_missing_dates_item` 支持动态 T+ 偏移
+6. **数据日期格式** (`dmp_item_insight_scraper.py:656`): `strftime('%Y/%-m/%-d')` 不带前导零
+   (与历史 CSV 一致, **不要改回 `'%Y/%m/%d'`**)
+7. **死代码**: `safe_write_csv`/`_is_completed`/YAML try-except 已删, 68 行净删
+
+**达摩盘数据特性**: T+1 跨日更新 (6/7 数据 6/8 下午 15:00 才出), 多次跑批会触发风控。
+
+**调度**: `~/Library/LaunchAgents/com.fuqing.dmp-scraper.{morning,afternoon}.plist`
+(需用户手动 `launchctl load`, auto mode 不允许 agent 加载)
+
+详细见 `CHANGELOG.md` v0.4.14.20 + `.learnings/ERRORS.md` + `scraper/core/README-dmp-scraper-launchd.md`。
 
 ---
 

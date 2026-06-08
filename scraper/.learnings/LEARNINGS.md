@@ -5,6 +5,93 @@
 
 ---
 
+## [LRN-20260608-001] Edit 工具的字节级匹配陷阱
+
+**Logged**: 2026-06-08T10:30:00Z
+**Priority**: high
+**Status**: active
+**Area**: tooling
+
+### Summary
+Edit 工具报"成功"但实际未生效, 反复出现 2 次:
+1. 修 `dmp_item_insight_scraper.py` Gate 1 块 — 报成功但 git diff 无变化
+2. 修 `dmp_master.py` headless — 报成功但 git diff 无变化
+3. 修 `dmp_common.py` T+1 → T+2 保护 — 同样问题
+
+### Root Cause
+Edit 用字节级匹配 old_string, 看起来对得上, 但实际文件可能有不可见字符差异
+(CRLF vs LF, trailing whitespace, 中文字符宽度等)。Edit 报"成功"可能是匹配了某行
+但没完整替换。
+
+### Workaround
+**用 Python re 强制修改** (绕过 Edit 工具):
+```python
+import re
+with open(p, 'r') as f:
+    content = f.read()
+old = re.compile(r"...")
+new_content, n = old.subn(new, content)
+if n > 0:
+    with open(p, 'w') as f:
+        f.write(new_content)
+    print(f"替换成功 ({n} 处)")
+else:
+    print("未匹配")
+```
+
+**事后验证**: `git diff` 看是否真的有变化 (而不是相信 Edit 报"成功")。
+
+### Why
+CLAUDE.md 准则: "禁止信'代码看起来对'" — Edit 报"成功"也算"看起来对", 必须有 git diff 实证。
+
+---
+
+## [LRN-20260608-002] 达摩盘数据特性: T+1 跨日 + 单品高稳定性
+
+**Logged**: 2026-06-08T11:45:00Z
+**Priority**: high
+**Status**: active
+**Area**: scraper/scheduling
+
+### Key Insights
+1. **单品数据变化极小**: 同一商品的资产总量常常几天不变 (变化 <0.01%)
+   → Gate 1 按数值跳过会误伤真实数据 → 必须按日期去重
+2. **T+1 跨日**: 数据 6/8 下午 15:00 才出 (而不是 6/8 早上)
+   → 单次跑批不能保证抓到昨天数据
+3. **流转 vs 单品 更新节奏不同**:
+   - 流转 (T-2 口径): 6/6 数据要 6/8 才能抓到 (达摩盘 T+1)
+   - 单品洞察 (每日): 6/7 数据 6/8 15:00 出
+
+### Schedule
+- **早 9:00**: T_OFFSET=2 (抓前天, 保险)
+- **下午 16:00**: T_OFFSET=1 (抓昨天, 15:00 数据更新完)
+- **晚 21:00** (可选): T_OFFSET=0 (抓今天, 兜底)
+
+### Why
+避免"以为是 T+1 实际 T+2 跨日"导致复制数据污染 CSV。
+
+---
+
+## [LRN-20260608-003] 死代码清理: 报告与实证差距
+
+**Logged**: 2026-06-08T10:00:00Z
+**Priority**: medium
+**Status**: active
+**Area**: code-review
+
+### Summary
+最初 WF1 报告说 `check_dmp_session` 全 scraper 0 引用, 但实际 `dmp_master.py:30` import + `:633` 调用。
+删除后模块加载失败 (`ImportError`)。
+
+### Lesson
+**任何"未集成" / "0 引用" / "未使用" 结论, 必须有 `git log` / `grep -rn` 实证**。
+不能信 agent 自报 (尤其是 subagent 报告) — 跟 CLAUDE.md P1-3 教训一致 (4 轮 review 才 PASS)。
+
+### Verified
+最终用 `grep -rn "check_dmp_session" scraper/` 验证: 实际 2 处引用, 0 引用是错的。
+
+---
+
 ## [LRN-20260403-001] DMP项目技术栈全景
 
 **Logged**: 2026-04-03T18:10:00Z
