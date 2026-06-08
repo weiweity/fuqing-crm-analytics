@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.18] - 2026-06-08 - fix(audience): MetricCard YOY 显示 0.1% → 7.5% 修复
+
+### Fixed
+- **前端 Bug**: `frontend-vue3/src/views/AudienceView.vue` 7 处 `unit='%'` 卡片
+  - **根因**: `MetricCard.vue` 模板两种 unit 模式口径不一致：
+    - `unit='%'`: 模板直接 `.toFixed(1)` 显示 change（**不**乘 100），调用方需传 * 100 后的百分比
+    - `unit='pp'`: 模板内部 * 100，调用方传 decimal
+  - 但 AudienceView 7 个 `unit='%'` 卡片（全店GSV/老客GSV/新客GSV/会员GSV/会员溢价/访客数/新增会员数）都直接传 `kpiChange()`/`visitorChange()` 返回的原始 decimal (0.0749)
+  - → `Math.abs(0.0749).toFixed(1) = "0.1"` → 显示 `↑0.1%`（应该是 `↑7.5%`）
+  - 4 个 `unit='pp'` 卡片（老客占比/新客占比/会员GSV占比/会员入会率）传 decimal 是正确的（MetricCard 内部 * 100）
+  - 其他视图用了正确包装器：`HealthOverviewTab fmtYoy/fmtPpt`、`RFMView` 内联 * 100
+  - **修法**: 添加 `kpiChangePct` / `visitorChangePct` 包装器（与 `HealthOverviewTab fmtYoy` 命名一致），7 个 `unit='%'` 卡片改用 `*Pct` 版本
+
+### Verified
+- frontend-vue3 npm run build: 849ms OK
+- pytest tests/test_rfm_service.py: 17 passed
+- API 实测全店 GSV YOY=+7.49%，修复后应显示 `↑7.5%`
+- 其他视图（HealthOverviewTab/RFMView）不受影响：它们用 `fmtYoy = v * 100` 或内联 `* 100`，本身传的就是 percentage
+
 ## [v0.4.14.17] - 2026-06-08 - fix(rfm): R 桶分桶改回 cutoff_dt 截止，6 个 R 桶回购率全部 > 0
 
 ### Fixed
