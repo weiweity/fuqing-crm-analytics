@@ -4,6 +4,56 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.24] - 2026-06-08 - feat(deps+test+etl): Sprint 11 — DuckDB 1.5.3 治根 ART race + 前端 vitest 立框架 + WO-1 conn config 修复
+
+### Fixed (S11-1 P0 治根)
+- **DuckDB 1.5.2 ART index race 治根** (`requirements-lock.txt` 升 1.5.3):
+  - 之前 Sprint 10 B2 v3 用 DROP 6 secondary indexes 临时绕过的 race,
+    1.5.3 修了 (PR #22094 "fix commit iteration offset bug + relax RemoveFromIndexes assertion")
+  - 真测 race (大表 10.6M orders JOIN 4.6M membership_mark 强制错位):
+    - Test 1 (DROP 6 idx): UPDATE 0.2s, 0 race ✅
+    - Test 2 (WITH all idx, DROP 绕路失效场景): UPDATE 336.8s, 0 race ✅
+  - 保守**保留** Fix A (load.py 2-tx) + DROP 6 idx 绕路, 理由:
+    Test 2 带 idx UPDATE 336.8s 慢, Test 1 DROP idx + 重建 20s + UPDATE
+    0.2s = 20.2s 整体快 16x. 性能 vs 治根冗余, 选性能.
+  - Sprint 12 调研是否可删 Fix A (用更细的子查询 / transaction 隔离).
+
+### Fixed (S11-3 P1 验证)
+- **WO-1 修复 2 处 read_only conn 缺 config** (`scripts/etl/cli.py:686, 843`):
+  - S11-3 跑一次 manual --update ETL 验证 Sprint 10 全部改动 (44.5 min exit 0):
+    - orders 守恒 10,675,572 → 10,675,572 (delta 0)
+    - is_member 守住 5,629,675 (52.73%)
+    - fact_rfm 增量 103,680 → 108,000
+    - user_rfm 9/9 dates 写入
+  - 但有 2 个 WO-1 修复 ConnectionException 警告 (跟其他 8GB conn 触发 strict mode config conflict).
+  - 修法: L686 + L843 加 `config={"memory_limit": DUCKDB_MEMORY_LIMIT}` 跟其他 8GB conn 一致.
+
+### Added (S11-4 P2 立框架)
+- **前端 vitest 单元测试框架** (`frontend-vue3/vitest.config.ts`):
+  - 装 vitest 4.1.8 + @vue/test-utils 2.4.11 + @vitest/ui + jsdom 29.1.1
+    (用 --legacy-peer-deps 解决 openapi-typescript peer conflict)
+  - 跟 vite.config.ts 共享 alias + vue plugin
+  - jsdom env 给组件挂载 DOM
+- **npm scripts 加 4 个** (`frontend-vue3/package.json`):
+  - test:unit (vitest run) / test:unit:watch (dev) / test:unit:ui (UI 模式)
+  - test:unit:coverage (覆盖率)
+- **首个组件单测样板** (`EmptyState.test.ts`): 4 个 test PASS
+  - 默认/自定义 description / emoji / DOM 结构
+  - 后续 Sprint 12 扩展 audience/RFM/health 3 个核心 view (5-10 个组件单测)
+
+### Verified
+- pytest 全套 (跨 W3/W1/sim-prod): 0 fail (8 个 s = skip 预期)
+- vitest: 4/4 PASS
+- S11-3 manual --update ETL: 44.5 min exit 0, 数据守恒
+- 1.5.3 race 真测: 2 个 test 都没报 race
+
+### Sprint 11 deferred (留 Sprint 12+)
+- **S11-2 Alternative 1** 删 is_member 字段改派生: is_member 在 143 处引用,
+  删字段破 API + W3 6 断言重写 + 老 RFM 快照 join 风险, 留 Sprint 12 评估
+- **Fix A 删除评估** (load.py 2-tx): 等 S11-1 1.5.3 实际生产再跑 1-2 周看 race 是否仍 0
+- **vitest 组件单测扩展** (audience/RFM/health 5-10 个): Sprint 12 0.5-1d
+- **customer-health.spec.ts playwright 跑通**: 需 dev server + uvicorn 同启, Sprint 12
+
 ## [v0.4.14.23] - 2026-06-08 - feat(etl): Sprint 10 B2-merged — is_member 全 False 根因修复 (1.8s 修 3.48M 行)
 
 ### Fixed
