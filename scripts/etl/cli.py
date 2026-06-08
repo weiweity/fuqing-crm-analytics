@@ -679,7 +679,11 @@ def main():
             from backend.config import DUCKDB_PATH as _DDB
             import duckdb as _dd2
             if _DDB.exists():
-                _c0 = _dd2.connect(str(_DDB), read_only=True)
+                # Sprint 11 S11-3 修: 加 config={"memory_limit": DUCKDB_MEMORY_LIMIT},
+                # 跟其他 8GB conn 保持一致. 之前没传 config 触发 DuckDB strict mode
+                # "Can't open a connection to same database file with a different configuration"
+                # (跟 Step 5/6 W4 precompute 等 8GB conn 冲突).
+                _c0 = _dd2.connect(str(_DDB), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
                 try:
                     _before_max = _c0.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
                     _before_count = _c0.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
@@ -836,7 +840,9 @@ def main():
             from backend.config import DUCKDB_PATH as _DDB2
             import duckdb as _dd3
             if _DDB2.exists():
-                _c1 = _dd3.connect(str(_DDB2), read_only=True)
+                # Sprint 11 S11-3 修: 加 config={"memory_limit": DUCKDB_MEMORY_LIMIT},
+                # 跟其他 8GB conn 保持一致, 避免 DuckDB strict mode config conflict
+                _c1 = _dd3.connect(str(_DDB2), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
                 try:
                     _after_max = _c1.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
                     _after_count = _c1.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
