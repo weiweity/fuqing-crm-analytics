@@ -29,6 +29,11 @@ _ALERT_THRESHOLD_PCT = 0.85  # 85%
 # Sprint 9 维修: 2GB 太低, ETL 跑批正常 RSS 3-4GB 触发误报甚至被 watchdog kill.
 # 调到 8GB 跟 DUCKDB_MEMORY_LIMIT=8GB 一致.
 _RSS_ALERT_BYTES = 8 * 1024 * 1024 * 1024  # 8GB
+# 硬限阈值：超过即 sys.exit(1)，防 OOM 把整个 Mac 拖崩
+# Sprint 10 preflight B1: 8GB 告警只是 logger.warning, 跑批继续. 加 12GB 硬限做
+# last-line-of-defense, 跑批如果 RSS > 12GB 立即 sys.exit(1) 让 launchd 检测到
+# 失败 exit code 并告警. 阈值定 12GB (8GB DuckDB + 4GB pandas/其他 Python 对象).
+_RSS_HARD_LIMIT_BYTES = 12 * 1024 * 1024 * 1024  # 12GB
 
 # 内存统计缓存（避免频繁查询 DuckDB）
 _stats_cache: Dict[str, Any] = {}
@@ -145,7 +150,26 @@ def check_memory(label: str = "", conn: Optional[duckdb.DuckDBPyConnection] = No
 
     Returns:
         bool: True 表示正常，False 表示触发告警
+
+    Raises:
+        SystemExit: 如果 RSS 超过硬限 (_RSS_HARD_LIMIT_BYTES = 12GB),
+            立即 sys.exit(1). Sprint 10 preflight B1 加的 last-line-of-defense,
+            防 ETL 跑批 RSS 持续增长把 Mac 拖崩.
     """
+    import sys
+    rss_bytes = _get_process_rss_bytes()
+    if rss_bytes > _RSS_HARD_LIMIT_BYTES:
+        rss_mb = rss_bytes / (1024 * 1024)
+        hard_limit_mb = _RSS_HARD_LIMIT_BYTES // (1024 * 1024)
+        msg = (
+            f"[内存监控] {label or ''} FATAL: RSS {rss_mb:.1f}MB 超过硬限 "
+            f"{hard_limit_mb}MB, 立即退出 (防 OOM 把 Mac 拖崩). "
+            f"建议: 调小 _memory_limit, 或检查是否有内存泄漏."
+        )
+        logger.critical(msg)
+        # Sprint 10 preflight B1: launchd 检测 exit code != 0 会发告警邮件
+        sys.exit(1)
+
     stats = get_memory_stats(conn)
     prefix = f"[内存监控] {label} " if label else "[内存监控] "
 

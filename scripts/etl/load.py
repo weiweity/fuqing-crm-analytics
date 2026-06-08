@@ -610,10 +610,17 @@ def _copy_df_to_duckdb(df, conn, existing_cols):
         # 2. COPY 数据到 staging 表
         conn.execute(f"COPY {tmp_table} ({cols_joined}) FROM '{parquet_path}' (FORMAT PARQUET)")
         # 3. 从 staging 表 INSERT 到 orders（已存在的行自动跳过）
+        # Sprint 10 preflight B1: 改 ON CONFLICT → WHERE NOT EXISTS, 跟 staging 模式一致.
+        # 改的原因: production UNIQUE INDEX (idx_orders_order_unique) 被 B1 prod migration 删了,
+        # ON CONFLICT 必须有 unique constraint, 删了会报 "no UNIQUE/PRIMARY KEY constraint".
+        # WHERE NOT EXISTS 走应用层 dedup, 不依赖 DuckDB UNIQUE INDEX, 行为等价.
         conn.execute(f"""
             INSERT INTO orders ({cols_joined})
-            SELECT {cols_joined} FROM {tmp_table}
-            ON CONFLICT (order_id, sub_order_id) DO NOTHING
+            SELECT {cols_joined} FROM {tmp_table} AS s
+            WHERE NOT EXISTS (
+                SELECT 1 FROM orders AS o
+                WHERE o.order_id = s.order_id AND o.sub_order_id = s.sub_order_id
+            )
         """)
         copied = conn.execute(f"SELECT COUNT(*) FROM {tmp_table}").fetchone()[0]
     finally:
