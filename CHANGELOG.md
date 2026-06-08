@@ -4,6 +4,43 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.21] - 2026-06-08 - fix(etl): Sprint 10 preflight B1 — staging NOT EXISTS + W4 8GB + RSS 12GB 硬限
+
+### Changed
+- **staging INSERT 改写** (`scripts/etl/load.py:616`): `ON CONFLICT (order_id, sub_order_id) DO NOTHING` → `WHERE NOT EXISTS (...)`
+  - 改的原因: prod UNIQUE INDEX 被删, ON CONFLICT 需 unique constraint 会报 "no UNIQUE/PRIMARY KEY constraint"
+  - 行为等价, 走应用层 dedup, 不依赖 DuckDB UNIQUE INDEX
+  - 烟测 PASS (重复行 amount 保持原值, 新行正确写入)
+- **DUCKDB_MEMORY_LIMIT_OVERRIDE 16GB → 8GB** (`scripts/etl/precompute_fact_rfm.py:42, 423, 456`)
+  - 16GB 跟主 conn 8GB + W3 8GB + cache 8GB 不同 config, DuckDB 1.5.2 strict mode 报
+    "Can't open a connection to same database file with a different configuration"
+  - 16GB 过度设计, Sprint 5 真闭环 17 min 跑批 8GB 也 OK
+
+### Fixed
+- **prod UNIQUE INDEX 删除** (DB migration): `DROP INDEX IF EXISTS idx_orders_order_unique`
+  - 跟 staging NOT EXISTS 改写配套, 避免 ON CONFLICT 路径断掉
+  - 烟测验证: prod orders 表 UNIQUE indexes = [] (已删)
+- **is_member 跟 UNIQUE INDEX race 关联诊断错误**: 原 Sprint 10 plan 假设是 DuckDB 1.5.2 UNIQUE INDEX race
+  致 is_member 全 False. codex 0.137.0 交叉审核指出真根因在 staging INSERT 把 raw parquet 的 is_member
+  写入 (load.py:616), 首次写入时 is_member 就是 False (member xlsx 没 JOIN), DO NOTHING 跳过现有行
+  永远修不回来. 留 B2-merged 治根 (从 membership_mark replay is_member, 不走 staging overwrite).
+
+### Added
+- **RSS 12GB 硬限 sys.exit(1)** (`backend/db/memory_monitor.py`): 加 `_RSS_HARD_LIMIT_BYTES = 12GB` +
+  `check_memory()` 启动时检查, 超限立即 `sys.exit(1)`. last-line-of-defense 防 ETL 跑批 RSS 持续增长
+  把 Mac 拖崩. 8GB 告警保留为 warning (跟原来一样), 12GB 才是 fatal. launchd 检测 exit code != 0
+  会发告警邮件.
+
+### Removed
+- **idx_orders_order_unique UNIQUE INDEX** (DB): prod 已 DROP. 后续依赖这个 index 的代码路径已迁移到
+  应用层 dedup (staging + WHERE NOT EXISTS).
+
+### Plan Doc
+- **docs/SPRINT-10-PLAN.md 重塑**: codex 0.137.0 交叉审核 (2026-06-08) 找出 4 个问题 (Option A 内部矛盾 +
+  is_member 根因误判 + Phase 4 调研浪费 + Phase 5 hygiene scope), 12 件任务 → 5 件, 2.5 天
+  (B1 preflight / B2-merged upsert+replay / B3 backup loud-fail / B6-lite lsof / A2 D-7 sim-prod).
+  详见 plan doc.
+
 ## [v0.4.14.20] - 2026-06-08 - fix(scraper): DMP 爬虫 7 件修复 + T_OFFSET 调度
 
 ### Changed

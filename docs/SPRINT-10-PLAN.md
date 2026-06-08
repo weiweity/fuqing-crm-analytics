@@ -1,20 +1,15 @@
-# Sprint 10 Plan: 合并原 Sprint 9 留口候选 + 今天新发现 is_member bug
+# Sprint 10 Plan: codex 0.137.0 重塑版 (2.5 天精炼)
 
 ## 上下文 (Context)
 
-**Sprint 9 收口时 (昨天) 留了 4 件 Sprint 10 候选** (uvicorn 重启 / D-7 应用 / 前端 E2E / cleanup.md) + **今天新发现 is_member 字段全 False (UNIQUE INDEX race)**。本计划把两份合并。
+**原 Sprint 10 计划 12 件任务, codex 0.137.0 交叉审核 (2026-06-08) 找出 4 个关键问题**:
 
-**两份独立来源**:
-- **原 Sprint 10 候选** (Sprint 8 收口留口, project_sprint8.md:80-86): uvicorn 重启 (已 done) / D-7 教训应用 / 前端 E2E / cleanup.md 5→6 层附录
-- **新 Sprint 10 候选** (今天 6/8 增量 ETL 暴露): is_member 字段全 False / DuckDB 1.5.2 UNIQUE INDEX race / 6/8 daily backup 缺失 / 修法 #4 16GB 残留
+1. **Option A 内部矛盾**: 删 `idx_orders_order_unique` UNIQUE INDEX, 但 `load.py:616` 已经在用 `ON CONFLICT (order_id, sub_order_id) DO NOTHING` 依赖这个 index. 删 index → L616 增量路径立即断. 真修法: 保留 index, 改 L616 `ON CONFLICT` → `WHERE NOT EXISTS` (跟 staging 模式一致).
+2. **is_member 根因误判**: 原计划假设 UNIQUE INDEX race 致 is_member corruption. codex 指出真根因是 staging INSERT (`load.py:616` 的 `INSERT INTO orders ({cols_joined}) SELECT {cols_joined} FROM {tmp_table} ON CONFLICT DO NOTHING`) 把 raw parquet 的 is_member 写入 — 首次写入时 is_member 就是 False (member xlsx 没 JOIN), DO NOTHING 跳过现有行 → 永远修不回来. Option C (staging UPDATE band-aid) 治标不治本.
+3. **Phase 4 调研 = 浪费**: B5 (is_member 派生字段) Sprint 5 已验, B6 (uvicorn 持锁) `lsof` 5 min 出结果, 不需要 2h 调研.
+4. **Phase 5 = 卫生工作**: A3 (前端 E2E) / A4 (cleanup.md 5→6 层) / B8 (运维成熟度评审) 是 hygiene, 不是 Sprint 10 范围.
 
-## 上下文 (Context)
-
-6/8 跑增量 ETL 时:
-1. 6/7 任务 21580 (5,110 行) 入库 ✅
-2. **is_member 字段全部 False** ❌ (frontend dashboard 会员 GSV/新老客/占比 全 0)
-3. 根因: DuckDB 1.5.2 UNIQUE INDEX race (Sprint 7 已验 1.5.3 仍 fail)
-4. 走 Fix A 拆 2 tx 仍然: tx1 DELETE 失败 → database invalidated → tx2 INSERT 回滚
+**重塑原则**: 砍掉内部矛盾的任务, 治根路径, 已知答案不调研, hygiene 留 Sprint 11+.
 
 ## Sprint 9 已完成 (committed, merged)
 
@@ -22,144 +17,147 @@
 - `799339b` docs(changelog): v0.4.14.19
 - `35d109a` merge to main, pushed, uvicorn 9010 加载
 
-## 提议的 Sprint 10 范围 (proposed)
+## 重塑后的 Sprint 10 范围 (5 件, 2.5 天)
 
-### Option A: 完全绕开 UNIQUE INDEX (推荐, 半天, P0)
-- 删 `idx_orders_order_unique` UNIQUE INDEX
-- 改用 staging 表 + `INSERT ... ON CONFLICT DO NOTHING` 走应用层去重
-- upsert 走 staging + COPY, 不依赖 DuckDB UNIQUE INDEX 去重
+| # | 任务 | 工时 | 优先级 | 状态 |
+|---|---|---|---|---|
+| **B6-lite** | uvicorn 持锁 `lsof` 调查 (PID 9010 确认) | 15m | P1 | ✅ 已 done |
+| **B1** | preflight: prod 删 UNIQUE INDEX + L616 改 NOT EXISTS + 16GB→8GB + W3 fixture + RSS 硬限 | 30m | P0 | pending |
+| **B3** | 6/8 daily backup 补跑 + size>0 验证 + launchd sendmail loud-fail | 1h | P1 | pending |
+| **A2** | D-7 sim-prod: 新连接 100+ 跑批 (DuckDB 1.5.2 race 验证) | 0.5d | P1 | pending |
+| **B2-merged** | 修 upsert 不覆盖 is_member + 从 membership_mark replay (Option C + Alternative 1 合并) | 1d | P0 | pending |
 
-### Option B: 升级 DuckDB 1.5.3 重试 (半天, P1)
-- Sprint 7 验 1.5.3 仍 fail
-- 1.5.4 / 1.5.5 也许修了 UNIQUE INDEX race
-- 需要跑 100+ 单元测试 + W1 GROUPING SETS + W4 集成测试
+总工时: 2.5 天 (P0+P1 混合, 没有 P2/P3 hygiene)
 
-### Option C: 手工 staging UPDATE 修复 is_member (1h, P0 临时)
-- 读 78 会员 xlsx → member_order_ids
-- staging 表 → SQL UPDATE (不走 UNIQUE INDEX 路径)
-- 临时绕过 1.5.2 bug, 等 Option A 闭环
+## 已删 (defer to Sprint 11+)
 
-### Option D: 6/8 daily backup 补跑 (5 min, P1)
-- launchd 03:30 exit 0 但文件没生成
-- 立即补跑 + 排查 launchd 失败根因
+| 旧任务 | 原因 | 移到 |
+|---|---|---|
+| **B4** Option A 删 UNIQUE INDEX | 与 L616 ON CONFLICT 路径矛盾, codex 拒绝 | — (留 index, 改 NOT EXISTS) |
+| **B5** Alternative 1 调研 1h | Sprint 5 已验, 答案已知, 直接并入 B2-merged | B2-merged (1d, 直接实施) |
+| **B6** uvicorn 持锁 2h 调研 | 缩成 15m lsof, 已 done | B6-lite ✅ |
+| **B7** DuckDB 1.5.4/1.5.5 升级调研 | 不是当前 sprint 优先级, 1.5.3 已验仍 fail | Sprint 11 调研 |
+| **A3** 前端 vitest+playwright E2E | hygiene, 跟当前 P0 is_member bug 无关 | Sprint 11 tech debt Friday |
+| **A4** cleanup.md 5→6 层附录 | hygiene, 跟当前 P0 is_member bug 无关 | Sprint 11 tech debt Friday |
+| **B8** 5+6 层防护 → 运维治理成熟度评审 | 一周, 跟当前 P0 is_member bug 无关 | Sprint 12 |
 
 ## NOT in scope (defer)
 
-- DuckDB 1.5.2 升级到 1.5.3+ (Option B 单独 sprint)
+- DuckDB 1.5.2 升级到 1.5.3+ (Sprint 11 单独 sprint)
 - rfm_query_cache.data_version column 漂移 (production schema 漂移, 不影响前端)
 - 前端 YOYBadge pp 模式 (PR#23 已合)
 - 本地领先 origin 3 commit 未 push (Sprint 7/8 期间用户本地 commit)
+- Alternative 1 full 实施 (4-6h 治根, 已在 B2-merged 内部完成, 不再单独 sprint)
+- 50M 行 scale 架构重构 (Sprint 13+)
 
 ## What already exists (复用现有代码)
 
-- `scripts/etl/load.py:_upsert_to_duckdb_body` (Fix A 拆 2 tx)
+- `scripts/etl/load.py:_upsert_to_duckdb_body` (Fix A 拆 2 tx, 保留)
 - `scripts/etl/pipeline.py:_mark_all_files_processed` (cache key 修复后一致)
 - `backend/services/health/rfm_analysis/cache.py:_open_write_conn` (READ_WRITE pattern)
 - `backend/db/memory_monitor.py:_RSS_ALERT_BYTES` (8GB 修复)
+- `scripts/etl/load.py:605-622 _copy_df_to_duckdb` (L616 改 NOT EXISTS 目标位置)
+- `scripts/etl/load.py:132, 448` (orders table column list, 含 is_member)
 
 ## 风险与权衡
 
 | 风险 | 概率 | 缓解 |
 |---|---|---|
-| 删 UNIQUE INDEX 性能下降 | 中 | staging 表 + application-level dedup, 实测性能 |
-| staging 表 + COPY 在大表 (10.6M 行) 慢 | 中 | temp-table + 分批 |
-| 升级 DuckDB 引入新 bug | 高 (1.5.3 仍 fail 已知) | 1.5.4/1.5.5 实测 |
-| 手工 staging UPDATE 跟 Option A 路径不一致 | 低 | 文档化 + Option A 闭环后用 Option A 路径 |
-| 6/8 daily backup launchd 失败根因排查耗时 | 中 | 优先补跑, 排查留 Sprint 11 |
+| B1 prod DROP INDEX 影响 L616 ON CONFLICT 路径 (历史事实) | 高 | B1 同时改 L616 ON CONFLICT → WHERE NOT EXISTS, 保持等效语义 |
+| B2-merged 一次性 replay 全表 is_member 在 10.6M 行慢 | 中 | 分批 UPDATE, 每批 100K 行 |
+| B2-merged replay 跟 staging INSERT 新数据时序冲突 | 低 | replay 在 ETL 跑批之前 (--update mode), 跑批后用 staging JOIN 修 |
+| A2 sim-prod 100+ 跑批暴露新 bug | 中 | 跑批前先 B1 (preflight), 暴露即修 |
+| B3 backup launchd 失败根因不在 exit code | 中 | 先补跑, 根因排查留 Sprint 11 |
 
 ## 验证标准 (success criteria)
 
-- [ ] is_member=True 实际行数 > 0 (跟历史 11:38 跑批前一致)
+- [ ] production DuckDB 不再含 `idx_orders_order_unique` (B1 prod migration)
+- [ ] `load.py:616` 用 `WHERE NOT EXISTS` 替代 `ON CONFLICT` (B1 code change)
+- [ ] `precompute_fact_rfm.py` async 跑批 `memory_limit = 8GB` (B1 code change)
+- [ ] W3 6 断言 fixture schema 跟 production 一致 (B1 test sync)
+- [ ] `memory_monitor.py` RSS > 12GB 硬限告警 (B1 second-level alert)
+- [ ] is_member=True 实际行数 > 0 (B2-merged replay 验证)
 - [ ] 6/4-6/7 每天 is_member=True + False 混合 (跟源数据一致)
 - [ ] frontend dashboard 会员 GSV/新老客/占比 不再全 0
-- [ ] pytest backend/tests/ 0 fail (排除 pre-existing)
-- [ ] launchd 8/30 自动跑批不撞锁, 不重蹈 6/7 死循环
-- [ ] 6/8 daily backup 文件存在 (data/processed/backups/)
+- [ ] pytest backend/tests/ 391+ passed 维持
+- [ ] A2 sim-prod 100+ 跑批 0 fail, 0 lock conflict
+- [ ] 6/8 daily backup 文件存在 (data/processed/backups/fuqing_crm_2026-06-08.duckdb.zst)
+- [ ] backup_duckdb.py 加 file size > 0 验证
+- [ ] launchd plist 加 failure sendmail loud-fail
 
-## 合并 Sprint 10 范围 (12 件任务)
+## 实施步骤 (2.5 天)
 
-### A. 原 Sprint 9 留口候选 (4 件)
+### Step 0: B6-lite (15m) — ✅ 已 done
+1. `lsof data/processed/fuqing_crm.duckdb`
+2. 确认 PID 9010 (uvicorn) 持锁
+3. 记录到 CLAUDE.md "跑 ETL 前必须 kill 9010"
 
-| # | 任务 | 工时 | 来源 | 优先级 |
-|---|---|---|---|---|
-| A1 | uvicorn 重启 (加载 Sprint 8 P0 + PR#22/23 改动) | 5 min | Sprint 8 收口 | ✅ 已 done (PID 9010) |
-| A2 | **D-7 教训应用**: 跑所有 ETL 决策"模拟生产"测试 (DuckDB 1.5.2 新连接 vs 单连接) | 1d | Sprint 8 收口 | P1 |
-| A3 | **前端 E2E 测试** (vitest + playwright 跑 1 次 npm run test) | 0.5d | Sprint 8 收口 | P2 |
-| A4 | **Sprint 6 6 层防护 cleanup.md 增 5→6 层附录 + 维护** | 0.5d | Sprint 8 收口 | P2 |
+### Step 1: B1 preflight (30m, P0)
+1. `git checkout -b feature/sprint10-upsert-fix` (已建)
+2. kill uvicorn PID 9010 (B1 prod migration 需要 DB 锁)
+3. `ALTER TABLE orders DROP INDEX IF EXISTS idx_orders_order_unique` (production 库)
+4. `load.py:616` `ON CONFLICT (order_id, sub_order_id) DO NOTHING` → `WHERE NOT EXISTS (SELECT 1 FROM orders o2 WHERE o2.order_id=... AND o2.sub_order_id=...)`
+5. `precompute_fact_rfm.py:42, 423, 456` `DUCKDB_MEMORY_LIMIT_OVERRIDE_ASYNC` 16GB → 8GB
+6. `test_w3_dq_assertions.py` 其他 5 断言 fixture 同步 production schema (跟 Sprint 9 W3 维修模式一致)
+7. `memory_monitor.py` 加 second-level alert: `RSS > 12GB` 硬限 sys.exit(1)
+8. pytest 跑 6 断言 fixture 全绿
+9. git commit + push + merge to main + 重启 uvicorn
 
-### B. 今天新发现 (autopilot 提议, 8 件)
+### Step 2: B3 backup loud-fail (1h, P1)
+1. `python3 scripts/etl/backup_duckdb.py` 立即补跑 6/8 backup
+2. 验证 `data/processed/backups/fuqing_crm_2026-06-08.duckdb.zst` 存在 + size > 0
+3. `backup_duckdb.py` 加 `assert zst_size > 0 else sys.exit(2)`
+4. 排查 launchd 03:30 失败根因 (查 `/tmp/com.fuqing.duckdb-backup.daily.log`)
+5. launchd plist 加 `KeepAlive=false` + `RunAtLoad=false` + sendmail on failure
+6. git commit + push + merge to main
 
-| # | 任务 | 工时 | 来源 | 优先级 |
-|---|---|---|---|---|
-| B1 | **P0-0 preflight**: 修 3 HIGH 隐藏问题 (production UNIQUE INDEX migration / load.py:616 ON CONFLICT / precompute_fact_rfm.py 16GB 残留) + W3 其他 5 断言 fixture 同步 | 30 min | autopilot Eng | P0 |
-| B2 | **Option C-revised** 修 is_member (3h) 让 dashboard 当下能用 | 3h | autopilot CEO | P0 |
-| B3 | **Option D + loud-fail**: 6/8 daily backup 补跑 + backup_duckdb.py 加 file size > 0 验证 + launchd 失败 sendmail | 1h | autopilot CEO/Eng | P1 |
-| B4 | **Option A full** 删 UNIQUE INDEX + migration + 改 ON CONFLICT → NOT EXISTS + 简化 Fix A | 1d | autopilot Eng | P0 |
-| B5 | **Alternative 1 调研** is_member 改派生 (删字段, SQL LEFT JOIN membership_mark) | 1h | autopilot CEO | P2 (Sprint 11 input) |
-| B6 | **ETL 跑批期 uvicorn 持锁调查** (autopilot CEO user challenge #3) | 2h | autopilot CEO | P1 |
-| B7 | **DuckDB 1.5.4/1.5.5 升级调研** (sprint 11 单独跑, 100+ 单元测试 + W1/W4 集成测试) | 1d | autopilot CEO/Eng | P3 |
-| B8 | **5/5+6 层防护 → 运维治理成熟度评审** (autopilot CEO user challenge #4) | 1 周 | autopilot CEO | P3 (Sprint 12) |
+### Step 3: A2 D-7 sim-prod (0.5d, P1)
+1. 写 `backend/tests/sim_prod_etl.py`: 100+ 次 `--update` ETL, 每次用新连接 + commit/close
+2. 跑批前 snapshot: row count + is_member 分布
+3. 跑批后 verify: row count + is_member 分布 + W3 6 断言 + W4 fact_rfm 增量
+4. pytest 0 fail
+5. 跑批期间监控 RSS, 确认 8GB cap 不撞
+6. git commit + push + merge to main
 
-## NOT in scope (defer)
+### Step 4: B2-merged (1d, P0)
+1. **修 upsert SQL** (`load.py:616`): staging INSERT 前先 LEFT JOIN membership_mark 取 is_member
+   ```sql
+   INSERT INTO orders ({cols_joined}, is_member)
+   SELECT s.{cols_joined}, COALESCE(m.is_member, FALSE)
+   FROM {tmp_table} s
+   LEFT JOIN membership_mark m ON s.user_id = m.user_id
+   ON CONFLICT (order_id, sub_order_id) DO NOTHING
+   -- 等等, B1 已改 NOT EXISTS, 这里也需要相应改
+   ```
+2. **生成 membership_mark 表**: 读 78 会员 xlsx → user_id → is_member 字典 → CREATE TABLE membership_mark (user_id VARCHAR PRIMARY KEY, is_member BOOLEAN)
+3. **一次性 replay 全表 is_member** (10.6M 行):
+   ```sql
+   UPDATE orders o
+   SET is_member = COALESCE(m.is_member, FALSE)
+   FROM membership_mark m
+   WHERE o.user_id = m.user_id
+     AND o.is_member != COALESCE(m.is_member, FALSE)
+   ```
+4. **分批执行**: 每批 100K 行, commit per batch, 防 OOM
+5. **验证**: 
+   - `SELECT COUNT(*) FROM orders WHERE is_member = TRUE` > 0
+   - 6/4-6/7 每天 `is_member=True + False` 混合
+   - frontend dashboard 会员 GSV/新老客/占比 不再全 0
+6. pytest + frontend E2E (curl /api/v1/dashboard/member-gmv)
+7. git commit + push + merge to main + 重启 uvicorn
 
-- Alternative 1 full 实施 (治根, sprint 11)
-- DuckDB 1.5.4+ 升级 full (sprint 11 调研后定)
-- rfm_query_cache schema 重新核对 (误判, sprint 11)
-- precompute_fact_rfm.py 16GB override 残留彻底修 (B1 preflight 已修)
-- W3 其他 5 断言 fixture 同步 (B1 preflight 已修)
-- 50M 行 scale 架构重构 (Sprint 13+)
+### Sprint 11+ 候选 (defer, 不在 Sprint 10 范围)
+- DuckDB 1.5.4+ 升级 full (1d)
+- A3 前端 vitest+playwright E2E
+- A4 cleanup.md 5→6 层附录
+- B8 运维治理成熟度评审
+- 50M 行 scale 架构 (Sprint 13+)
 
-## 实施步骤 (合并 + 排序)
+## Code Review Note (2026-06-08 codex 0.137.0)
 
-### Phase 0: P0-0 preflight (30 min, B1)
-1. ALTER TABLE orders DROP INDEX IF EXISTS idx_orders_order_unique (production 库)
-2. load.py:616 ON CONFLICT → WHERE NOT EXISTS
-3. precompute_fact_rfm.py:42,423,456 DUCKDB_MEMORY_LIMIT_OVERRIDE_ASYNC 16GB → 8GB
-4. test_w3_dq_assertions.py 其他 5 断言 fixture 同步 production schema
-5. memory_monitor.py 加 second-level alert (RSS > 12GB 硬限)
-
-### Phase 1: 立即修 is_member (3h, B2)
-1. 读 78 会员 xlsx → member_order_ids
-2. staging 表 → SQL UPDATE (不走 _upsert_to_duckdb_body 路径, 避免 UNIQUE INDEX race)
-3. 验证 is_member=True 实际行数 > 0
-4. 验证 frontend dashboard 会员数据不再全 0
-
-### Phase 2: 6/8 backup + loud-fail (1h, B3)
-1. 立即补跑 backup_duckdb.py 生成 6/8 zst
-2. 排查 launchd 03:30 失败根因
-3. backup_duckdb.py 加 file size > 0 验证
-4. launchd plist 加 failure sendmail
-
-### Phase 3: Option A full (半天, B4)
-1. load.py:112,262,325 删 idx_orders_order_unique 创建
-2. load.py:_create_indexes (L256-265) 删 UNIQUE INDEX 那行
-3. 简化 load.py:507-571 Fix A 拆 2 tx → 单 tx
-4. pytest backend/tests/ 391 passed 维持
-5. frontend dashboard 验证 is_member 跟 production 一致
-
-### Phase 4: Alternative 1 调研 (1h, B5) + uvicorn 持锁调查 (2h, B6)
-- 给 Sprint 11 提供 input
-
-### Phase 5: D-7 教训应用 (1d, A2) + 前端 E2E (0.5d, A3) + cleanup.md (0.5d, A4)
-- Sprint 9 留口 3 件 (uvicorn 重启已 done)
-
-### Sprint 11+ 候选 (defer)
-- Alternative 1 full (4-6h, 治根)
-- DuckDB 1.5.4/1.5.5 升级 full (1d, B7)
-- rfm_query_cache schema 重新核对 (半天)
-- 50M 行 scale 架构 (sprint 13+)
-
-## 验证标准 (success criteria)
-
-- [ ] is_member=True 实际行数 > 0 (跟历史一致)
-- [ ] 6/4-6/7 每天 is_member=True + False 混合
-- [ ] frontend dashboard 会员 GSV/新老客/占比 不再全 0
-- [ ] pytest backend/tests/ 0 fail
-- [ ] launchd 8/30 跑批不撞锁
-- [ ] 6/8 daily backup 文件存在
-- [ ] D-7 "模拟生产" 测试通过 (新连接 100+ 跑批)
-- [ ] 前端 vitest+playwright E2E 全过
-- [ ] cleanup.md 6 层附录完成
-- [ ] production DuckDB 不再含 idx_orders_order_unique
-- [ ] precompute_fact_rfm.py async 跑批 memory_limit = 8GB
-- [ ] W3 6 断言 fixture schema 跟 production 一致
+- Codex ran consult on 5 min timeout, output 6,526 tokens
+- Findings: 4 critical (internal contradiction + root cause misidentification + waste research + hygiene scope)
+- Recommendation accepted: 12 件 → 5 件, 2.5 天
+- Codex 0.137.0 配置仅 cosmetic warning (`--enable web_search_cached` 弃用), 不影响功能, 跳过
+- Codex 0.137.0 + MiniMax provider (`wire_api="responses"` + `env_key="MINIMAX_API_KEY"`) 链路 OK, link test 90s 通过
+- Codex 0.137.0 shell tool 拼接 bug (`cat && -n` join) 已修, 正确用 `/bin/zsh -lc`
