@@ -355,11 +355,13 @@ def get_missing_dates_item(csv_file, item_ids, max_days_to_fill=90, data_retenti
     # 取CSV中最早日期和保留期限的较大值（不早于保留期限）
     effective_min_date = max(min_date, retention_boundary)
     
-    # T+2 保护: 达摩盘单品数据 T+2 滞后, 抓'今天/昨天'会拿到更早的复制数据
-    target_end = min(today - tdelta(days=2), max_date + tdelta(days=max_days_to_fill))
+    # T+1 保护 + 调度覆盖: 默认 T+1 (今天数据不出), 但 ENV T_OFFSET 可覆盖
+    # T_OFFSET=2 早 9 点跑 (T+2 保险), T_OFFSET=1 下午跑 (T+1)
+    t_offset = int(os.environ.get('T_OFFSET', '1'))
+    target_end = min(today - tdelta(days=t_offset), max_date + tdelta(days=max_days_to_fill))
     
     log(f'单品洞察：CSV日期范围 {min_date} ~ {max_date}')
-    log(f'单品洞察：有效追溯范围 {effective_min_date} ~ {target_end}（保留期限{data_retention_days}天，T+2保护）')
+    log(f'单品洞察：有效追溯范围 {effective_min_date} ~ {target_end} (保留期限{data_retention_days}天, T_OFFSET={t_offset})')
     
     # 生成完整日期范围内的所有日期字符串
     all_target_dates = []
