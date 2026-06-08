@@ -491,7 +491,7 @@ def run_items_module(page, username, password):
     
     # 抓取完成后统一排序CSV（append_to_csv改为追加模式后的性能优化）
     try:
-        dmp_item_insight_scraper.sort_csv_by_date(Config.ITEM_DATA_FILE)
+        dmp_item_insight_scraper.sortcsv_by_date(Config.ITEM_DATA_FILE)
         log("单品洞察CSV已按日期排序")
     except Exception as e:
         log(f"排序CSV失败: {e}")

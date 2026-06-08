@@ -2,7 +2,6 @@
 run_full_etl、增量更新、RFM 预计算、访客数据刷新。
 """
 import gc
-import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
