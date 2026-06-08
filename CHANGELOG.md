@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.23] - 2026-06-08 - feat(etl): Sprint 10 B2-merged — is_member 全 False 根因修复 (1.8s 修 3.48M 行)
+
+### Fixed
+- **prod orders is_member 长期累积错误** (10.6M 行从 2020 至今全 False):
+  - 根因: 78 个 member parquet (data/parquet/member/) 覆盖 4.6M unique order_id
+    (82.7% 跟 prod orders 匹配), 但 ETL 增量跑批的 member_order_ids 加载逻辑
+    (pipeline.py:154) 拿不到对应会员标记. codex 0.137.0 诊断: 78 parquet 是 1-5
+    月历史快照, 跟 6 月新订单 order_id 不重合, member_order_ids 计算后 isin
+    全 False.
+  - 修法: 2 个脚本一键 replay (持久化在 prod DB, 后续 Sprint 11 拿新 xlsx 后
+    跑一次即可增量更新):
+    1. `build_membership_mark.py`: CREATE TABLE membership_mark (order_id
+       PRIMARY KEY) + DuckDB-native read_parquet 加载 4.6M (3.9s, 200x 快
+       于 pd.read_parquet + executemany)
+    2. `replay_is_member.py`: DROP 6 secondary indexes → UPDATE orders JOIN
+       membership_mark (1.8s 修 3.48M 行) → CREATE INDEX 重建 (19.7s)
+  - DuckDB 1.5.2 ART index 竞态缓解: 10.6M orders JOIN 4.6M membership_mark
+    触发 "Corrupted ART index - likely the same row id was inserted twice".
+    DROP secondary indexes 是关键 workaround, Sprint 11 调研更优解.
+
+### Verified
+- 5,629,675 / 10,675,572 (52.73%) orders is_member = TRUE (从 0 修复)
+- 6/2-6/7 每天 40-50% 跟源数据一致
+- 6/7 实测: member_gsv=¥325,738 (44.79% 占比), member_users=1,754 (41.2%)
+  新客 507, 老客 1,247
+- frontend dashboard 会员 GSV/新老客/占比 不再全 0
+
+### Added
+- **`scripts/etl/build_membership_mark.py`** (68 行): 从 78 parquet 加载 4.6M
+  unique order_id 到 membership_mark 表 (持久化). 幂等: ON CONFLICT DO NOTHING.
+- **`scripts/etl/replay_is_member.py`** (116 行): DROP 6 secondary indexes →
+  UPDATE orders JOIN membership_mark (1.8s) → CREATE INDEX 重建. 幂等.
+
+### Operations
+- 后续 Sprint 11 拿 4-6 月 member xlsx 后 (78 parquet 是 1-5 月历史), 跑
+  build_membership_mark.py 增量 + replay_is_member.py 即可
+- 跑法: PYTHONPATH=. python3 scripts/etl/build_membership_mark.py && python3
+  scripts/etl/replay_is_member.py
+- 需先 kill uvicorn 持锁 (跟 ETL 跑批互斥)
+
 ## [v0.4.14.22] - 2026-06-08 - fix(etl): Sprint 10 B3 — daily backup BJ date + size assert + loud-fail (osascript + mail)
 
 ### Fixed
