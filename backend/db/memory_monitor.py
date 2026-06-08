@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 # 告警阈值：DuckDB 内存使用超过 memory_limit 的百分比
 _ALERT_THRESHOLD_PCT = 0.85  # 85%
 # 告警阈值：系统进程 RSS 超过此值（字节）
-_RSS_ALERT_BYTES = 2 * 1024 * 1024 * 1024  # 2GB
+# Sprint 9 维修: 2GB 太低, ETL 跑批正常 RSS 3-4GB 触发误报甚至被 watchdog kill.
+# 调到 8GB 跟 DUCKDB_MEMORY_LIMIT=8GB 一致.
+_RSS_ALERT_BYTES = 8 * 1024 * 1024 * 1024  # 8GB
 
 # 内存统计缓存（避免频繁查询 DuckDB）
 _stats_cache: Dict[str, Any] = {}

@@ -110,20 +110,26 @@ def assert_total_not_drop(conn, target_date: date) -> bool:
 
     防数据大量丢失 (上游 ETL 漏跑 / 数据源断供).
     """
+    # Sprint 9 维修: 之前 SQL 'AND valid_sql = 1' 引用 column, 实际 valid_sql 是
+    # OrderFilters.valid_order() 返回的 SQL 字符串, 不是 column. DuckDB 报
+    # 'Referenced column valid_sql not found'. 修法: f-string 插入 valid_sql.
+    from backend.semantic.filters import OrderFilters
+    valid_sql, _ = OrderFilters.valid_order()
+
     today_total = conn.execute(
-        "SELECT COALESCE(SUM(actual_amount), 0) FROM orders WHERE DATE(pay_time) = ?::DATE AND valid_sql = 1",
+        f"SELECT COALESCE(SUM(actual_amount), 0) FROM orders WHERE DATE(pay_time) = ?::DATE AND {valid_sql}",
         [target_date],
     ).fetchone()[0]
     if today_total is None:
         today_total = 0
 
     prev_avg = conn.execute(
-        """SELECT COALESCE(AVG(daily_total), 0) FROM (
+        f"""SELECT COALESCE(AVG(daily_total), 0) FROM (
               SELECT SUM(actual_amount) as daily_total
               FROM orders
               WHERE DATE(pay_time) >= ?::DATE - INTERVAL '30 days'
                 AND DATE(pay_time) < ?::DATE
-                AND valid_sql = 1
+                AND {valid_sql}
               GROUP BY DATE(pay_time)
            )""",
         [target_date, target_date],

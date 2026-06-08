@@ -481,7 +481,12 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
             # 16GB override 跑 W4 (W7 helper)
             from scripts.etl.precompute_fact_rfm import setup_async_memory, cleanup_async_memory
             setup_async_memory()
-            _memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "16GB")
+            # Sprint 9 维修: 之前 _w4_conn 用 16GB override, 跟主 conn 8GB + W3 _assert_conn 8GB
+            # + cache.py _open_write_conn 8GB 不同 config. DuckDB 1.5.2 strict mode 报
+            # "Can't open a connection to same database file with a different configuration".
+            # 修法: 用跟主 conn 一致的 8GB memory_limit, 避免跨 connection config 冲突.
+            # 16GB 过度设计, Sprint 5 真闭环 17 min 跑批 8GB 也 OK.
+            _memory_limit = DUCKDB_MEMORY_LIMIT
             _w4_conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": _memory_limit})
             try:
                 _w4_create_table(_w4_conn)
@@ -565,11 +570,17 @@ def _mark_all_files_processed():
                 'mtime': f.stat().st_mtime,
                 'hash': _get_file_hash(f)
             }
-        # 同时标记 Parquet 缓存文件（key = 文件名，与 _file_changed 一致）
+        # Sprint 9 维修: 之前 parquet key = f.name (parquet 文件名), 但 ingest L82
+        # _file_changed 用 _xlsx_stem_to_rel 反查 xlsx 相对路径. key 不一致
+        # 导致冷启动后 ingest 仍把 103 个 parquet 视为新增, 走 xlsx fallback
+        # 读 103 xlsx, RSS 撞 watchdog 阈值被 kill, 死循环. 修法: parquet
+        # key 跟 ingest 一致, 用 _xlsx_stem_to_rel 反查 xlsx 相对路径.
+        _xlsx_stem_to_rel = {xf.stem: str(xf.relative_to(data_source)) for xf in files}
         pq_dir = PARQUET_DATA_DIR / data_type
         if pq_dir.exists():
             for f in pq_dir.glob("*.parquet"):
-                processed[f.name] = {
+                key = _xlsx_stem_to_rel.get(f.stem, f.name)
+                processed[key] = {
                     'mtime': f.stat().st_mtime,
                     'hash': _get_file_hash(f)
                 }

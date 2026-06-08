@@ -45,7 +45,11 @@ def duckdb_conn():
     不含 user_rfm 表 (W3 MVP core 断言测试用, 让 3 留作断言 skip).
     """
     conn = duckdb.connect(":memory:")
-    # orders 表
+    # orders 表 (跟 production schema 一致, 跟 load.py L250-251 同步)
+    # Sprint 9 维修: 之前 fixture 有 valid_sql INTEGER column, 但 production orders
+    # schema 实际是 is_goujinjin BOOLEAN + is_refund BOOLEAN + order_status VARCHAR
+    # (没有 valid_sql). assertions.py 改用 OrderFilters.valid_order() 之后,
+    # fixture 必须跟 production schema 一致, 否则测试 fail.
     conn.execute("""
         CREATE TABLE orders (
             user_id INTEGER,
@@ -53,7 +57,9 @@ def duckdb_conn():
             actual_amount DECIMAL(18,2),
             pay_time TIMESTAMP,
             channel VARCHAR,
-            valid_sql INTEGER
+            is_goujinjin BOOLEAN DEFAULT FALSE,
+            order_status VARCHAR DEFAULT '交易成功',
+            is_refund BOOLEAN DEFAULT FALSE
         )
     """)
     # fact_rfm_long 表 (W4 已合 main, 模拟其 schema)
@@ -78,7 +84,7 @@ def duckdb_conn():
     for i in range(30):
         d = base - datetime.timedelta(days=i+1)
         conn.execute(
-            "INSERT INTO orders VALUES (1, 'o', 1000.00, ?, '全店', 1)",
+            "INSERT INTO orders VALUES (1, 'o', 1000.00, ?, '全店', FALSE, '交易成功', FALSE)",
             [f"{d.isoformat()} 10:00:00"],
         )
     yield conn
@@ -159,7 +165,7 @@ class TestAssertTotalNotDrop:
         """当天 total ≈ prev_30d_avg (1000): pass."""
         # 加当天正常数据 (1000)
         duckdb_conn.execute(
-            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', 1)"
+            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"
         )
         ok = assert_total_not_drop(duckdb_conn, date(2026, 6, 5))
         assert ok is True
@@ -170,7 +176,7 @@ class TestAssertTotalNotDrop:
     def test_fail_when_total_drop_below_30pct(self, duckdb_conn, mock_lark):
         """当天 total=100 (<< prev_30d_avg × 0.3 = 300): fail + quarantine."""
         duckdb_conn.execute(
-            "INSERT INTO orders VALUES (1, 'today', 100.00, '2026-06-05 10:00:00', '全店', 1)"
+            "INSERT INTO orders VALUES (1, 'today', 100.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"
         )
         ok = assert_total_not_drop(duckdb_conn, date(2026, 6, 5))
         assert ok is False
@@ -411,7 +417,7 @@ class TestRunAssertions:
         """
         # 数据正常: total 1000, fact_rfm_long v1 正常, 无重复
         duckdb_conn.execute(
-            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', 1)"
+            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"
         )
         duckdb_conn.execute(
             "INSERT INTO fact_rfm_long VALUES "
@@ -430,7 +436,7 @@ class TestRunAssertions:
         """6 断言全 pass (含 user_rfm): passed=6."""
         # 当天 total 正常
         duckdb_conn_with_user_rfm.execute(
-            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', 1)"
+            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"
         )
         duckdb_conn_with_user_rfm.execute(
             "INSERT INTO fact_rfm_long VALUES "
@@ -447,7 +453,7 @@ class TestRunAssertions:
         + 1 fail (total_not_drop) = 5 passed / 1 failed.
         """
         duckdb_conn.execute(
-            "INSERT INTO orders VALUES (1, 'today', 100.00, '2026-06-05 10:00:00', '全店', 1)"  # total 暴跌
+            "INSERT INTO orders VALUES (1, 'today', 100.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"  # total 暴跌
         )
         # fact_rfm_long 正常 (repurchase_nonzero + idempotency pass)
         duckdb_conn.execute(
@@ -464,7 +470,7 @@ class TestRunAssertions:
     def test_run_assertions_with_send_alert_false(self, duckdb_conn, mock_lark):
         """send_alert=False 时不调 lark, 即便有失败."""
         duckdb_conn.execute(
-            "INSERT INTO orders VALUES (1, 'today', 100.00, '2026-06-05 10:00:00', '全店', 1)"
+            "INSERT INTO orders VALUES (1, 'today', 100.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"
         )
         duckdb_conn.execute(
             "INSERT INTO fact_rfm_long VALUES "
@@ -497,7 +503,7 @@ class TestPipelineStep85Integration:
         # duckdb_conn_with_user_rfm 含完整 54 combos user_rfm 数据
         # 加当天正常 orders + fact_rfm_long 让 6 断言全 pass
         duckdb_conn_with_user_rfm.execute(
-            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', 1)"
+            "INSERT INTO orders VALUES (1, 'today', 1000.00, '2026-06-05 10:00:00', '全店', FALSE, '交易成功', FALSE)"
         )
         duckdb_conn_with_user_rfm.execute(
             "INSERT INTO fact_rfm_long VALUES "
