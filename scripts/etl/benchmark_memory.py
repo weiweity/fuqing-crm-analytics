@@ -204,7 +204,7 @@ def bench_concurrency(db_path: Path, label: str) -> dict[str, Any]:
                 try:
                     elapsed = f.result()
                     per_query_times[qname].append(elapsed)
-                except Exception as e:
+                except Exception:
                     per_query_times[qname].append(-1.0)
 
         wall_total = time.perf_counter() - t_start
@@ -385,7 +385,7 @@ def main() -> int:
         print(f"\n  [冷/热查询] {label} ({db_path.name}) ...")
         r = bench_cold_vs_hot(db_path, label)
         cold_hot_results.append(r)
-        print(f"    完成")
+        print("    完成")
 
     print_cold_hot_table(cold_hot_results)
 
@@ -395,7 +395,7 @@ def main() -> int:
         print(f"\n  [并发查询] {label} ({db_path.name}) ...")
         r = bench_concurrency(db_path, label)
         conc_results.append(r)
-        print(f"    完成")
+        print("    完成")
 
     print_concurrency_table(conc_results)
 

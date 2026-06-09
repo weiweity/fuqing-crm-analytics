@@ -19,11 +19,10 @@ benchmark_queries.py — 10.6M vs 50M 查询性能对比基准测试
   - 每个场景独立连接，避免缓存干扰
 """
 
-import os
 import sys
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 
 # 项目根目录
 ROOT = Path(__file__).resolve().parents[2]

@@ -207,7 +207,7 @@ def main() -> int:
     try:
         tmp_fd, tmp_db = tempfile.mkstemp(suffix=".duckdb")
         os.close(tmp_fd)
-        log(f"复制数据库到临时文件以避免锁冲突...")
+        log("复制数据库到临时文件以避免锁冲突...")
         shutil.copy2(str(DUCKDB_PATH), tmp_db)
 
         import duckdb
