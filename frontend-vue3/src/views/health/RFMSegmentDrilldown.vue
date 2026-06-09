@@ -171,7 +171,7 @@ const tableColumns = computed(() => [
       if (v == null) return '-'
       const color = v >= 0 ? '#16a34a' : '#dc2626'
       const arrow = v >= 0 ? '↑' : '↓'
-      return markRaw(h('span', { style: { color, fontWeight: 600 } }, `${arrow}${Math.abs(v * 100).toFixed(1)}pp`))
+      return markRaw(h('span', { style: { color, fontWeight: 600 } }, `${arrow}${Math.abs(v).toFixed(1)}pp`))
     },
   },
   {
@@ -191,7 +191,7 @@ function fmtPct(v: number | null | undefined): string {
 }
 function fmtYoY(v: number | null | undefined): string {
   if (v == null) return '-'
-  return (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + 'pp'
+  return (v >= 0 ? '+' : '') + v.toFixed(1) + 'pp'
 }
 function yoyClass(v: number | null | undefined): string {
   if (v == null) return ''

@@ -166,10 +166,11 @@ function fmtYoy(v: number | null, isRate: boolean): string {
   if (v === null || v === undefined) return '—'
   if (!Number.isFinite(v) || Number.isNaN(v)) return '—'
   if (isRate) {
-    // 百分点差
-    return `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}pp`
+    // 百分点差 (caller 已 *100 传 pp 数值, pass-through)
+    return `${v >= 0 ? '+' : ''}${v.toFixed(1)}pp`
   }
-  return `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`
+  // 百分比 (caller 已 *100 传 percentage 数值, pass-through)
+  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
 }
 
 // 安全格式化百分比（防 NaN）

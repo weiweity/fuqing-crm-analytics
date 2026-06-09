@@ -254,7 +254,8 @@ const fullColumns = computed<DataTableColumns<any>>(() => [
     align: 'center',
     render: (row: any) => {
       if (row.confidence_change == null) return '—'
-      const v = row.confidence_change * 100
+      // confidence_change 已是 pp 数值, pass-through
+      const v = row.confidence_change
       const color = v > 0 ? 'text-red-500' : v < 0 ? 'text-green-500' : 'text-slate-500'
       const sign = v > 0 ? '+' : ''
       return h('span', { class: color }, `${sign}${v.toFixed(1)}pp`)
