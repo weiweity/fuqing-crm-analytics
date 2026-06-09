@@ -13,7 +13,8 @@ import { NSkeleton } from 'naive-ui'
 function humanizeChange(v: number, unit: '%' | 'pp'): string {
   if (!Number.isFinite(v)) return `0.00${unit}`
   const raw = Math.abs(v)
-  return `${raw.toFixed(2)}${unit}`
+  const display = unit === 'pp' ? raw * 100 : raw
+  return `${display.toFixed(2)}${unit}`
 }
 
 withDefaults(defineProps<{
