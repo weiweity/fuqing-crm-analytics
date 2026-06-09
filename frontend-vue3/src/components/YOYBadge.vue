@@ -1,22 +1,21 @@
 <script setup lang="ts">
 /**
- * Sprint 11 修: humanizeChange 按 unit 区分, 统一 0.00 形式.
+ * humanizeChange: 格式化变化值, 统一 0.00 形式.
  *
- * 跟 MetricCard.vue 同步逻辑:
- *   - unit='%': caller 已 *100 传 percentage 值
- *   - unit='pp': caller 传 0-1 ratio, humanizeChange 内部 *100
+ * Caller 已 *100 传 percentage/pp 数值, humanizeChange 只做 abs + toFixed(2).
+ * 跟 MetricCard.vue 同步契约.
  *
- * @param v  - unit='%': percentage 值
- *           - unit='pp': 0-1 ratio
- * @param unit  '%' | 'pp'
- * @returns  e.g. "14.00%", "80.61%", "10.00pp", "3.58pp", "0.00%"
+ * @param v  - 变化值 (caller 已 *100 后的 percentage 或 pp 数值)
+ * @param unit  '%' (百分比) | 'pp' (百分点差)
+ * @returns  e.g. "14.00%", "5.00pp", "0.00%"
  */
-function humanizeChange(v: number, unit: '%' | 'pp'): string {
+function humanizeChange(v: number | null | undefined, unit: '%' | 'pp'): string {
+  if (v == null) return '—'
   if (!Number.isFinite(v)) return `0.00${unit}`
-  const raw = Math.abs(v)
-  const display = unit === 'pp' ? raw * 100 : raw
+  const display = Math.abs(v)
   return `${display.toFixed(2)}${unit}`
 }
+
 
 withDefaults(defineProps<{
   value: number | null | undefined

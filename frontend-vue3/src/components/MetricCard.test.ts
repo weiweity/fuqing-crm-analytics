@@ -1,7 +1,8 @@
-// Sprint 11 修: humanizeChange 按 unit 区分, 统一 0.00 形式
-// 设计 (跟 AudienceView caller 配套):
-//   - unit='%': caller (kpiChangePct) 已 *100, 传 percentage 值 (e.g. 14 for 14%)
-//   - unit='pp': caller (kpiChange) 传 0-1 ratio (e.g. 0.10 for 10pp), humanizeChange 内部 *100
+// Sprint 13 修: humanizeChange pass-through 契约
+// 设计 (跟 caller 配套, 跟 YOYBadge 同步):
+//   - unit='%': caller 已 *100, 传 percentage 值 (e.g. 25 for 25%)
+//   - unit='pp': caller 已 *100, 传 pp 数值 (e.g. 5 for 5pp)
+//   - humanizeChange 只做 abs + toFixed(2), 不再内部 *100
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import MetricCard from './MetricCard.vue'
@@ -22,10 +23,10 @@ describe('MetricCard YOY/pp display (Sprint 11 修, 0.00 形式)', () => {
     expect(getChangeText(wrapper)).toBe('↑14.00%')
   })
 
-  it('integer pp ratio 0.10 (pp unit) 显示 "↑10.00pp" (*100 后 0.00 形式)', () => {
-    // caller 模式: kpiChange 返 0.10 (0-1 ratio, 未 *100)
+  it('integer pp ratio 10 (pp unit) 显示 "↑10.00pp" (caller 已 *100, 0.00 形式)', () => {
+    // Sprint 13 改: caller 模式: kpiChange 返 10 (已 *100), humanizeChange 不再 *100
     const wrapper = mount(MetricCard, {
-      props: { title: '老客占比', value: '53.4%', change: 0.10, unit: 'pp' },
+      props: { title: '老客占比', value: '53.4%', change: 10, unit: 'pp' },
     })
     expect(getChangeText(wrapper)).toBe('↑10.00pp')
   })
@@ -38,10 +39,10 @@ describe('MetricCard YOY/pp display (Sprint 11 修, 0.00 形式)', () => {
     expect(getChangeText(wrapper)).toBe('↑80.61%')
   })
 
-  it('non-integer pp ratio 0.0358 显示 "↓3.58pp" (*100 + 2 位)', () => {
-    // caller 模式: kpiChange 返 -0.0358
+  it('non-integer pp ratio -3.58 显示 "↓3.58pp" (caller 已 *100, 2 位)', () => {
+    // Sprint 13 改: caller 模式: kpiChange 返 -3.58 (已 *100), humanizeChange 不再 *100
     const wrapper = mount(MetricCard, {
-      props: { title: '去年同期入会率', value: '4.81%', change: -0.0358, unit: 'pp' },
+      props: { title: '去年同期入会率', value: '4.81%', change: -3.58, unit: 'pp' },
     })
     expect(getChangeText(wrapper)).toBe('↓3.58pp')
   })
@@ -77,10 +78,10 @@ describe('MetricCard YOY/pp display (Sprint 11 修, 0.00 形式)', () => {
     expect(getChangeText(wrapper)).toBe('↓7.00%')
   })
 
-  it('negative pp ratio -0.5381 显示 "↓53.81pp" (会员入会率 1.23% vs 4.81% 差)', () => {
-    // caller 模式: visitorChange 返 -0.5381
+  it('negative pp ratio -53.81 显示 "↓53.81pp" (会员入会率 1.23% vs 4.81% 差, caller 已 *100)', () => {
+    // Sprint 13 改: caller 模式: visitorChange 返 -53.81 (已 *100)
     const wrapper = mount(MetricCard, {
-      props: { title: '会员入会率', value: '1.23%', change: -0.5381, unit: 'pp' },
+      props: { title: '会员入会率', value: '1.23%', change: -53.81, unit: 'pp' },
     })
     expect(getChangeText(wrapper)).toBe('↓53.81pp')
   })
@@ -90,5 +91,51 @@ describe('MetricCard YOY/pp display (Sprint 11 修, 0.00 形式)', () => {
       props: { title: 'test', value: '0', change: NaN, unit: '%' },
     })
     expect(getChangeText(wrapper)).toBe('0.00%')
+  })
+})
+
+// Sprint 13 收口: humanizeChange pass-through 契约单测 (跟 YOYBadge 同步)
+// 工单 W14: 验证 caller 已 *100 传 pp/percentage 数值, humanizeChange 不再 *100
+describe('MetricCard pass-through 契约 (Sprint 13 修)', () => {
+  it('pp 5.0 (caller 已 *100) → "↑5.00pp"', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: '老客占比', value: '53.4%', change: 5.0, unit: 'pp' },
+    })
+    expect(getChangeText(wrapper)).toBe('↑5.00pp')
+  })
+
+  it('pp -3.5 (caller 已 *100) → "↓3.50pp" (abs)', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: '入会率', value: '4.81%', change: -3.5, unit: 'pp' },
+    })
+    expect(getChangeText(wrapper)).toBe('↓3.50pp')
+  })
+
+  it('pp 0 (caller 已 *100) → "0.00pp"', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: 'test', value: '0', change: 0, unit: 'pp' },
+    })
+    expect(getChangeText(wrapper)).toBe('0.00pp')
+  })
+
+  it('% 25 (caller 已 *100) → "↑25.00%"', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: '新客GSV', value: '¥260.5万', change: 25, unit: '%' },
+    })
+    expect(getChangeText(wrapper)).toBe('↑25.00%')
+  })
+
+  it('pp NaN → "0.00pp" (fallback)', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: 'test', value: '0', change: NaN, unit: 'pp' },
+    })
+    expect(getChangeText(wrapper)).toBe('0.00pp')
+  })
+
+  it('% Infinity → "↑0.00%" (fallback, Infinity>=0 走 if 分支带箭头)', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: 'test', value: '0', change: Infinity, unit: '%' },
+    })
+    expect(getChangeText(wrapper)).toBe('↑0.00%')
   })
 })
