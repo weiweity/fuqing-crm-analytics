@@ -106,17 +106,17 @@ class TestW7MemoryLimitOverride:
 class TestW7SetupAsyncMemory:
     """W7 W4 占位 helper：setup_async_memory() / cleanup_async_memory()。"""
 
-    def test_setup_async_memory_exports_override_16gb(self, monkeypatch):
-        """setup_async_memory() export 16GB override + 返回 16GB。"""
+    def test_setup_async_memory_exports_override_8gb(self, monkeypatch):
+        """setup_async_memory() export 8GB override + 返回 8GB (Sprint 10 B1: 16GB→8GB)。"""
         monkeypatch.delenv("DUCKDB_MEMORY_LIMIT_OVERRIDE", raising=False)
         monkeypatch.delenv("DUCKDB_MEMORY_LIMIT_OVERRIDE_ASYNC", raising=False)
         monkeypatch.setenv("DUCKDB_MEMORY_LIMIT", "8GB")
 
         memory_limit = precompute_fact_rfm.setup_async_memory()
 
-        assert memory_limit == "16GB"
-        assert os.environ["DUCKDB_MEMORY_LIMIT_OVERRIDE"] == "16GB"
-        assert precompute_fact_rfm.DEFAULT_ASYNC_OVERRIDE == "16GB"
+        assert memory_limit == "8GB"
+        assert os.environ["DUCKDB_MEMORY_LIMIT_OVERRIDE"] == "8GB"
+        assert precompute_fact_rfm.DEFAULT_ASYNC_OVERRIDE == "8GB"
 
     def test_setup_async_memory_respects_custom_async_override(self, monkeypatch):
         """DUCKDB_MEMORY_LIMIT_OVERRIDE_ASYNC=24GB → setup_async_memory 用 24GB。"""
@@ -145,9 +145,9 @@ class TestW7SetupAsyncMemory:
         # 1. setup 前：默认 8GB
         assert get_duckdb_memory_limit() == "8GB"
 
-        # 2. setup：override 16GB
+        # 2. setup：override 8GB (Sprint 10 B1: 16GB→8GB 跟主 conn 一致)
         precompute_fact_rfm.setup_async_memory()
-        assert get_duckdb_memory_limit() == "16GB"
+        assert get_duckdb_memory_limit() == "8GB"
 
         # 3. cleanup：恢复 8GB
         precompute_fact_rfm.cleanup_async_memory()
