@@ -1,17 +1,20 @@
 <script setup lang="ts">
 /**
- * Sprint 11 修: humanizeChange 把 0-1 ratio 转成可读字符串.
- * - 用 Math.round 替代 toFixed (避免 toFixed 的 IEEE 754 banker's rounding bug)
- * - 自动 trim 整数 trailing zeros: 14.00 → "14", 14.55 → "14.55"
+ * Sprint 11 修: humanizeChange 按 unit 区分, 统一 0.00 形式.
  *
- * @param v  0-1 ratio (e.g. 0.1437 = 14.37%)
- * @param unit  '%' (百分比) | 'pp' (百分点差)
- * @returns  e.g. "14%", "14.5%", "14.55%", "10pp", "3.58pp"
+ * 跟 MetricCard.vue 同步逻辑:
+ *   - unit='%': caller 已 *100 传 percentage 值
+ *   - unit='pp': caller 传 0-1 ratio, humanizeChange 内部 *100
+ *
+ * @param v  - unit='%': percentage 值
+ *           - unit='pp': 0-1 ratio
+ * @param unit  '%' | 'pp'
+ * @returns  e.g. "14.00%", "80.61%", "10.00pp", "3.58pp", "0.00%"
  */
 function humanizeChange(v: number, unit: '%' | 'pp'): string {
-  if (v === 0 || !Number.isFinite(v)) return `0${unit}`
-  const pct = Math.round(Math.abs(v) * 100 * 100) / 100
-  return `${pct}${unit}`
+  if (!Number.isFinite(v)) return `0.00${unit}`
+  const raw = unit === 'pp' ? Math.round(Math.abs(v) * 100 * 100) / 100 : Math.abs(v)
+  return `${raw.toFixed(2)}${unit}`
 }
 
 withDefaults(defineProps<{

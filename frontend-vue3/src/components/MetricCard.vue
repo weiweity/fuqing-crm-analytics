@@ -2,21 +2,28 @@
 import { NSkeleton } from 'naive-ui'
 
 /**
- * Sprint 11 修: humanizeChange 把 0-1 ratio 转成可读字符串.
- * - 用 Math.round 替代 toFixed (避免 toFixed 的 IEEE 754 banker's rounding bug, e.g. 0.005 → '0.00' 而非 '0.01')
- * - 自动 trim 整数 trailing zeros: 14.00 → "14%", 14.55 → "14.55%"
- * - 0 显示 "0%" / "0pp" (而非 "0.00%")
+ * Sprint 11 修: humanizeChange 按 unit 区分, 统一 0.00 形式.
  *
- * @param v  0-1 ratio (e.g. 0.1437 = 14.37%)
+ * Caller 设计 (AudienceView L237-242 注释):
+ *   - unit='%': caller (kpiChangePct) 已 *100 传 percentage 值 (e.g. 14 表示 14%)
+ *   - unit='pp': caller (kpiChange) 传 0-1 ratio (e.g. 0.10 表示 10pp), humanizeChange 内部 *100
+ *
+ * 0.00 形式: 用 toFixed(2) 保留 2 位小数, 不 trim 整数 trailing zeros
+ *   (e.g. 14 → "14.00", 14.5 → "14.50", 14.55 → "14.55").
+ *
+ * Math.round 替代 toFixed 治 IEEE 754 banker's rounding bug (e.g. 0.145 → "14.5" 而非 "14.49").
+ *
+ * @param v  - unit='%': percentage 值 (e.g. 14)
+ *           - unit='pp': 0-1 ratio (e.g. 0.10)
  * @param unit  '%' (百分比) | 'pp' (百分点差)
- * @returns  e.g. "14%", "14.5%", "14.55%", "10pp", "3.58pp"
+ * @returns  e.g. "14.00%", "80.61%", "10.00pp", "3.58pp", "0.00%"
  */
 function humanizeChange(v: number, unit: '%' | 'pp'): string {
-  if (v === 0 || !Number.isFinite(v)) return `0${unit}`
-  // 先 * 100 拿到 percentage value, 再 round 到 2 位, 再 toString 自动 trim trailing zeros
-  const pct = Math.round(Math.abs(v) * 100 * 100) / 100
-  // 0.x → "0.5", 14.55 → "14.55", 14 → "14"
-  return `${pct}${unit}`
+  if (!Number.isFinite(v)) return `0.00${unit}`
+  // pp 单元: caller 传 0-1 ratio, 内部 *100 拿 pp 值
+  // % 单元: caller 已 *100, 直接用
+  const raw = unit === 'pp' ? Math.round(Math.abs(v) * 100 * 100) / 100 : Math.abs(v)
+  return `${raw.toFixed(2)}${unit}`
 }
 
 withDefaults(defineProps<{
