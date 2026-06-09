@@ -187,7 +187,7 @@ const fFlowColumns = computed<DataTableColumns<RFMFRFlowRow>>(() => {
       key: 'yoy_repurchase_rate',
       width: 110,
       align: 'center',
-      render: (r: RFMFRFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_rate }),
+      render: (r: RFMFRFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_rate, unit: 'pp' }),
     },
     {
       title: `${yr}同比回购GSV`,
@@ -201,7 +201,7 @@ const fFlowColumns = computed<DataTableColumns<RFMFRFlowRow>>(() => {
       key: 'yoy_repurchase_gsv_ratio',
       width: 110,
       align: 'center',
-      render: (r: RFMFRFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio }),
+      render: (r: RFMFRFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio, unit: 'pp' }),
     },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
     {
