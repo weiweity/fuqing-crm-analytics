@@ -4,6 +4,47 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.25] - 2026-06-09 - fix(frontend): Sprint 11+ — YOY/pp unit-aware 0.00 形式 + vite HMR no-store 头
+
+### Fixed (Sprint 11 后续, 用户反馈驱动)
+- **YOY/pp 显示 1400% bug** (`frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue`):
+  - 根因: 第一版 humanizeChange 总是不区分 unit 都 *100, 跟 % caller
+    (kpiChangePct 已 *100) 重复 *100 → 全店GSV ↑1400% bug.
+  - 第二版按 unit 区分 (跟 AudienceView L237-242 caller 注释对齐):
+    - `%` unit: caller (kpiChangePct) 已 *100 传 percentage, MetricCard 不 *100
+    - `pp` unit: caller (kpiChange) 传 0-1 ratio, MetricCard 内部 *100
+  - 0.00 形式 (用户要 14.00% 不 14%, 10.00pp 不 10pp): toFixed(2) 保留 2 位
+  - Math.round 治 toFixed IEEE 754 banker's rounding bug (0.145 → 14.5 而非 14.49)
+  - 14/14 vitest PASS, vue-tsc 0 错, vite build 0 错
+- **vite dev Cmd+Shift+R 刷不了前端缓存** (`frontend-vue3/vite.config.ts`):
+  - 根因: vite 默认 Cache-Control: no-cache 允许 revalidate 路径,
+    浏览器内存里仍持有旧 module, HMR push 后 Vue 组件不一定真 unmount/remount.
+  - 修法 2 层:
+    1. `server.headers` 显式 no-store: `Cache-Control: no-store, no-cache,
+       must-revalidate, proxy-revalidate` + `Pragma: no-cache` + `Expires: 0`
+       强制每次都从 server 拉新, 不允许 revalidate 路径
+    2. plugins 加 `sprint11-force-reload-on-hmr`: handleHotUpdate 触发
+       `server.ws.send({ type: 'full-reload' })`, 每次 .vue 改动强制整页 reload,
+       跳过内存 HMR cache
+
+### Verified
+- Backend MTD 6/1-6/8 actual YOY (指示器):
+  - 全店GSV 0.139 → display "↑13.90%"
+  - 老客GSV 0.4142 → "↑41.42%"
+  - 老客占比 0.104 → "↑10.40pp"
+  - 等等
+- vitest 14/14 PASS (4 EmptyState + 10 MetricCard)
+- vite build ✓ built in 732ms, 0 错
+- vite dev 起来后 curl 验证:
+  - GET / 头: `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate` ✓
+  - GET /src/components/MetricCard.vue 头: 同上 ✓
+
+### Sprint 11+ 后续 (留 Sprint 12)
+- vitest 组件单测扩展 (audience/RFM/health 5-10 个)
+- customer-health.spec.ts playwright 跑通
+- S11-2 Alternative 1 删 is_member 改派生
+- 50M 行 scale 架构
+
 ## [v0.4.14.24] - 2026-06-08 - feat(deps+test+etl): Sprint 11 — DuckDB 1.5.3 治根 ART race + 前端 vitest 立框架 + WO-1 conn config 修复
 
 ### Fixed (S11-1 P0 治根)
