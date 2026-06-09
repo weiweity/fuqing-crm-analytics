@@ -235,14 +235,6 @@ function visitorChange(yoyField: keyof VisitorSummary, momField: keyof VisitorSu
 // ── MetricCard 口径映射 ──
 // MetricCard unit='%' 模板直接显示 change（不乘 100），调用方需先 * 100
 // MetricCard unit='pp' 模板内部 * 100，调用方传 decimal 即可
-function kpiChangePct(yoyField: keyof KPIMetrics, momField: keyof KPIMetrics): number | undefined {
-  const v = kpiChange(yoyField, momField)
-  return v == null ? undefined : v * 100
-}
-function visitorChangePct(yoyField: keyof VisitorSummary, momField: keyof VisitorSummary): number | undefined {
-  const v = visitorChange(yoyField, momField)
-  return v == null ? undefined : v * 100
-}
 
 /** 动态对比标签（用于图表 legend / 说明文字） */
 const compareLabelShort = computed(() => {
@@ -259,7 +251,7 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
   const renderValue = (yearKey: string) => (row: IndicatorRow) => {
     const v = row.values_by_year?.[yearKey] ?? null
     if (v == null) return '—'
-    if (row.kind === 'ratio') return `${(v * 100).toFixed(1)}%`
+    if (row.kind === 'ratio') return `${v.toFixed(2)}%`
     if (row.kind === 'count') return v.toLocaleString()
     if (row.kind === 'aus') return `¥${v.toFixed(1)}`
     return `¥${(v / 10000).toFixed(1)}万`
@@ -307,7 +299,7 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
     key: 'yoy',
     width: 120,
     align: 'center',
-    render: (row: IndicatorRow) => h(YOYBadge, { value: row.kind === 'ratio' ? (row.yoy ?? 0) * 100 : row.yoy, unit: row.kind === 'ratio' ? 'pp' : '%' }),
+    render: (row: IndicatorRow) => h(YOYBadge, { value: row.yoy, unit: row.kind === 'ratio' ? 'pp' : '%' }),
   })
   return cols
 })
@@ -488,7 +480,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_yoy ?? 0) - (b.new_gsv_ratio_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.new_gsv_ratio_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.new_gsv_ratio_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -620,7 +612,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_yoy ?? 0) - (b.old_gsv_ratio_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.old_gsv_ratio_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.old_gsv_ratio_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -867,7 +859,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_yoy ?? 0) - (b.new_gsv_ratio_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.new_gsv_ratio_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.new_gsv_ratio_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -999,7 +991,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_yoy ?? 0) - (b.old_gsv_ratio_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.old_gsv_ratio_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.old_gsv_ratio_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -1098,7 +1090,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_ratio_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_ratio_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -1137,7 +1129,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_new_vs_all_new_yoy ?? 0) - (b.member_new_vs_all_new_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_new_vs_all_new_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_new_vs_all_new_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -1176,7 +1168,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         width: 90,
         align: 'center',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_old_vs_all_old_yoy ?? 0) - (b.member_old_vs_all_old_yoy ?? 0),
-        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_old_vs_all_old_yoy ?? 0) * 100, unit: 'pp' }),
+        render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_old_vs_all_old_yoy ?? 0), unit: 'pp' }),
       },
     ],
   },
@@ -1256,7 +1248,7 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       children: [
         { title: yr, key: 'member_ratio_2026', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2026 ?? 0) * 100).toFixed(1)}%` },
         { title: yr2, key: 'member_ratio_2025', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1)}%` },
-        { title: yoyLabel, key: 'member_ratio_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_ratio_yoy ?? 0) * 100, unit: 'pp' }) },
+        { title: yoyLabel, key: 'member_ratio_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_ratio_yoy ?? 0), unit: 'pp' }) },
       ],
     },
   ]
@@ -1812,7 +1804,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="全店GSV"
           :value="kpiData ? formatKPI(kpiData.gsv, 'currency') : '—'"
-          :change="kpiChangePct('gsv_yoy', 'gsv_mom')"
+          :change="kpiChange('gsv_yoy', 'gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1820,7 +1812,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="老客GSV"
           :value="kpiData ? formatKPI(kpiData.old_gsv, 'currency') : '—'"
-          :change="kpiChangePct('old_gsv_yoy', 'old_gsv_mom')"
+          :change="kpiChange('old_gsv_yoy', 'old_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1828,7 +1820,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新客GSV"
           :value="kpiData ? formatKPI(kpiData.new_gsv, 'currency') : '—'"
-          :change="kpiChangePct('new_gsv_yoy', 'new_gsv_mom')"
+          :change="kpiChange('new_gsv_yoy', 'new_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1836,7 +1828,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员GSV"
           :value="kpiData ? formatKPI(kpiData.member_gsv, 'currency') : '—'"
-          :change="kpiChangePct('member_gsv_yoy', 'member_gsv_mom')"
+          :change="kpiChange('member_gsv_yoy', 'member_gsv_mom')"
           :loading="kpiLoading"
         />
       </n-gi>
@@ -1875,7 +1867,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="会员溢价"
           :value="kpiData ? Number(kpiData.member_premium).toFixed(2) : '—'"
-          :change="kpiChangePct('member_premium_yoy', 'member_premium_mom')"
+          :change="kpiChange('member_premium_yoy', 'member_premium_mom')"
           :loading="kpiLoading"
           unit="%"
         />
@@ -1888,7 +1880,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="访客数"
           :value="visitorSummary ? Number(visitorSummary.visitors).toLocaleString() : '—'"
-          :change="visitorChangePct('visitors_yoy', 'visitors_mom')"
+          :change="visitorChange('visitors_yoy', 'visitors_mom')"
           :loading="visitorLoading"
           unit="%"
         />
@@ -1897,7 +1889,7 @@ const channelMemberXlsxColumns = computed(() => {
         <MetricCard
           title="新增会员数"
           :value="visitorSummary ? Number(visitorSummary.new_members).toLocaleString() : '—'"
-          :change="visitorChangePct('new_members_yoy', 'new_members_mom')"
+          :change="visitorChange('new_members_yoy', 'new_members_mom')"
           :loading="visitorLoading"
           unit="%"
         />

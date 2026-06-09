@@ -285,24 +285,23 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
     mom_old_amount = mom_absolute(current['old_user_amount'], prev['old_user_amount']) or 0
     mom_new_amount = mom_absolute(current['new_user_amount'], prev['new_user_amount']) or 0
     mom_member_amount = mom_absolute(current['member_amount'], prev['member_amount']) or 0
-    # 占比 MoM 百分点差
-    curr_old_ratio = current['old_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
-    curr_new_ratio = current['new_user_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
-    curr_member_ratio = current['member_amount'] / current['amount'] * 100 if current['amount'] > 0 else 0
-    prev_old_ratio = prev['old_user_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
-    prev_new_ratio = prev['new_user_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
-    prev_member_ratio = prev['member_amount'] / prev['amount'] * 100 if prev['amount'] > 0 else 0
-    # FIX: mom_ratio 期望小数输入，curr/prev已经是百分比，需要除以100转换
-    mom_old_ratio = mom_ratio(curr_old_ratio / 100, prev_old_ratio / 100) or 0
-    mom_new_ratio = mom_ratio(curr_new_ratio / 100, prev_new_ratio / 100) or 0
-    mom_member_ratio = mom_ratio(curr_member_ratio / 100, prev_member_ratio / 100) or 0
+    # 占比（小数形式，如 0.75 表示 75%）
+    curr_old_ratio = current['old_user_amount'] / current['amount'] if current['amount'] > 0 else 0
+    curr_new_ratio = current['new_user_amount'] / current['amount'] if current['amount'] > 0 else 0
+    curr_member_ratio = current['member_amount'] / current['amount'] if current['amount'] > 0 else 0
+    prev_old_ratio = prev['old_user_amount'] / prev['amount'] if prev['amount'] > 0 else 0
+    prev_new_ratio = prev['new_user_amount'] / prev['amount'] if prev['amount'] > 0 else 0
+    prev_member_ratio = prev['member_amount'] / prev['amount'] if prev['amount'] > 0 else 0
+    mom_old_ratio = mom_ratio(curr_old_ratio, prev_old_ratio) or 0
+    mom_new_ratio = mom_ratio(curr_new_ratio, prev_new_ratio) or 0
+    mom_member_ratio = mom_ratio(curr_member_ratio, prev_member_ratio) or 0
 
     # 会员溢价 = 会员AUS / 全店AUS（比值，不乘100）
     member_avg_order_value = current['member_amount'] / current['member_order_count'] if current['member_order_count'] > 0 else 0
     member_premium = member_avg_order_value / current['avg_order_value'] if current['avg_order_value'] > 0 else 0
     prev_member_avg = prev['member_amount'] / prev['member_order_count'] if prev['member_order_count'] > 0 else 0
     prev_member_premium = prev_member_avg / prev['avg_order_value'] if prev['avg_order_value'] > 0 else 0
-    mom_member_premium = member_premium - prev_member_premium
+    mom_member_premium = mom_absolute(member_premium, prev_member_premium) or 0
 
     # ── 同比期（1 次查询，支持自定义对比期覆盖 Y-1 推算）──
     if compare_start_date and compare_end_date:
@@ -318,13 +317,12 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
     yoy_old_amount = yoy_absolute(current['old_user_amount'], last_year['old_user_amount']) or 0
     yoy_new_amount = yoy_absolute(current['new_user_amount'], last_year['new_user_amount']) or 0
     yoy_member_amount = yoy_absolute(current['member_amount'], last_year['member_amount']) or 0
-    ly_old_ratio = last_year['old_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
-    ly_new_ratio = last_year['new_user_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
-    ly_member_ratio = last_year['member_amount'] / last_year['amount'] * 100 if last_year['amount'] > 0 else 0
-    # FIX: yoy_ratio 期望小数输入，curr/ly已经是百分比，需要除以100转换
-    yoy_old_ratio = yoy_ratio(curr_old_ratio / 100, ly_old_ratio / 100) or 0
-    yoy_new_ratio = yoy_ratio(curr_new_ratio / 100, ly_new_ratio / 100) or 0
-    yoy_member_ratio = yoy_ratio(curr_member_ratio / 100, ly_member_ratio / 100) or 0
+    ly_old_ratio = last_year['old_user_amount'] / last_year['amount'] if last_year['amount'] > 0 else 0
+    ly_new_ratio = last_year['new_user_amount'] / last_year['amount'] if last_year['amount'] > 0 else 0
+    ly_member_ratio = last_year['member_amount'] / last_year['amount'] if last_year['amount'] > 0 else 0
+    yoy_old_ratio = yoy_ratio(curr_old_ratio, ly_old_ratio) or 0
+    yoy_new_ratio = yoy_ratio(curr_new_ratio, ly_new_ratio) or 0
+    yoy_member_ratio = yoy_ratio(curr_member_ratio, ly_member_ratio) or 0
 
     ly_member_avg = last_year['member_amount'] / last_year['member_order_count'] if last_year['member_order_count'] > 0 else 0
     ly_member_premium = ly_member_avg / last_year['avg_order_value'] if last_year['avg_order_value'] > 0 else 0
@@ -344,32 +342,32 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
         "member_amount": round(current['member_amount'], 2),
         "member_count": current['member_count'],
         "member_order_count": current['member_order_count'],
-        "old_user_ratio": round(curr_old_ratio, 2),
-        "new_user_ratio": round(curr_new_ratio, 2),
-        "member_ratio": round(curr_member_ratio, 2),
+        "old_user_ratio": round(curr_old_ratio * 100, 2),
+        "new_user_ratio": round(curr_new_ratio * 100, 2),
+        "member_ratio": round(curr_member_ratio * 100, 2),
         "member_avg_order_value": round(member_avg_order_value, 2),
         "member_premium": round(member_premium, 2),
         "mom_change": {
-            "amount_pct": round(mom_amount, 4),
-            "order_count_pct": round(mom_orders, 4),
-            "old_user_amount_pct": round(mom_old_amount, 4),
-            "new_user_amount_pct": round(mom_new_amount, 4),
-            "member_amount_pct": round(mom_member_amount, 4),
-            "old_user_ratio_ppt": round(mom_old_ratio, 4),
-            "new_user_ratio_ppt": round(mom_new_ratio, 4),
-            "member_ratio_ppt": round(mom_member_ratio, 4),
-            "member_premium_ppt": round(mom_member_premium, 4),
+            "amount_pct": round(mom_amount, 2),
+            "order_count_pct": round(mom_orders, 2),
+            "old_user_amount_pct": round(mom_old_amount, 2),
+            "new_user_amount_pct": round(mom_new_amount, 2),
+            "member_amount_pct": round(mom_member_amount, 2),
+            "old_user_ratio_ppt": round(mom_old_ratio, 2),
+            "new_user_ratio_ppt": round(mom_new_ratio, 2),
+            "member_ratio_ppt": round(mom_member_ratio, 2),
+            "member_premium_ppt": round(mom_member_premium, 2),
         },
         "yoy_change": {
-            "amount_pct": round(yoy_amount, 4),
-            "order_count_pct": round(yoy_orders, 4),
-            "old_user_amount_pct": round(yoy_old_amount, 4),
-            "new_user_amount_pct": round(yoy_new_amount, 4),
-            "member_amount_pct": round(yoy_member_amount, 4),
-            "old_user_ratio_ppt": round(yoy_old_ratio, 4),
-            "new_user_ratio_ppt": round(yoy_new_ratio, 4),
-            "member_ratio_ppt": round(yoy_member_ratio, 4),
-            "member_premium_ppt": round(yoy_member_premium, 4),
+            "amount_pct": round(yoy_amount, 2),
+            "order_count_pct": round(yoy_orders, 2),
+            "old_user_amount_pct": round(yoy_old_amount, 2),
+            "new_user_amount_pct": round(yoy_new_amount, 2),
+            "member_amount_pct": round(yoy_member_amount, 2),
+            "old_user_ratio_ppt": round(yoy_old_ratio, 2),
+            "new_user_ratio_ppt": round(yoy_new_ratio, 2),
+            "member_ratio_ppt": round(yoy_member_ratio, 2),
+            "member_premium_ppt": round(yoy_member_premium, 2),
         }
     }
 

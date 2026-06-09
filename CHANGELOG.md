@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.26] - 2026-06-09 - refactor: YOY/pp 后端返回可显示值，前端只做展示
+
+### Changed (YOY/pp 全链路重构)
+- **后端 calculations.py 返回值语义变更**:
+  - `yoy_absolute()`: 返回值从 0-1 小数 → 百分比值 (如 0.25 → 25.0), round(2)
+  - `yoy_ratio()`: 返回值从 0-1 小数 pp 差 → pp 值 (如 0.05 → 5.0), round(2)
+  - `mom_absolute()`: 同 yoy_absolute
+  - `mom_ratio()`: 同 yoy_ratio
+  - 所有调用方自动生效 (audience_table/summary, health, category, visitor, sampling, rfm)
+- **后端 overview.py**:
+  - 占比计算去掉 `*100 / 100` 对冲操作, 直接传小数
+  - 输出精度 round(4) → round(2)
+  - 占比字段 (old_user_ratio 等) 输出百分比值
+  - member_premium_ppt MoM 改用 `mom_absolute()` 与 YoY 语义统一
+- **前端 MetricCard.vue + YOYBadge.vue**:
+  - `humanizeChange` 简化: 去掉 pp 内部 *100, 统一 `Math.abs(v).toFixed(2) + unit`
+  - 前端不再做任何数学运算, 只做展示拼接
+- **前端 AudienceView.vue**:
+  - 删除 `kpiChangePct` / `visitorChangePct` 函数
+  - MetricCard 改用 `kpiChange` / `visitorChange`
+  - 去掉所有 YOYBadge `*100` (indicatorColumns, channelColumns, 会员占比列)
+  - renderValue 占比显示去掉 `*100`
+- **前端 HealthOverviewTab.vue**: 删除 `fmtYoy`, 去掉内联 `*100`
+- **前端 RFMView.vue**: 自算 yoy `*100`, MetricCard 去掉 `*100`
+- **前端 CategoryView / CategoryRepurchaseTab / ProductClassRepurchaseTab**:
+  ratio 类 YOYBadge 统一添加 `unit='pp'`
+
+### Fixed
+- **30指标表格 YOY 列**: 之前显示 +0.14% (应为 +14.00%), 现在正确
+- **渠道概览 YOY 列**: 同上
+- **老客占比/新客占比 pp 列**: 之前显示 +1040.00pp (应为 +10.40pp), 现在正确
+- **CategoryView ratio 类 YOY**: 之前用默认 unit='%' 导致 pp 值偏小 100 倍
+
+### Verified
+- test_calculations.py: 38 passed ✅
+- 全量 pytest: 394 passed, 1 failed (DuckDB 锁冲突, 非本次改动), 12 skipped ✅
+- 浏览器验证: 全店GSV ↑14.00%, 老客占比 ↑10.40pp 等均正确 ✅
+
 ## [v0.4.14.25] - 2026-06-09 - fix(frontend): Sprint 11+ — YOY/pp unit-aware 0.00 形式 + vite HMR no-store 头
 
 ### Fixed (Sprint 11 后续, 用户反馈驱动)

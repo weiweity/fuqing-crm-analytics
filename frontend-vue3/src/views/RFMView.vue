@@ -130,7 +130,7 @@ const repurchase3YData = computed(() => {
   const totalRepPrev2 = validRows.reduce((s, r) => s + r.repurchase_users_prev2, 0)
   const prev2Rate = totalHistPrev2 > 0 ? totalRepPrev2 / totalHistPrev2 : 0
 
-  const yoy = compRate > 0 ? (curRate - compRate) / compRate : null
+  const yoy = compRate > 0 ? (curRate - compRate) / compRate * 100 : null
   return {
     cur: curRate,
     comp: compRate,
@@ -495,7 +495,7 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
           width: 90,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_rate }),
+          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_rate, unit: 'pp' }),
         },
         {
           title: '回购金额',
@@ -511,7 +511,7 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
           width: 90,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_gsv_ratio }),
+          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_gsv_ratio, unit: 'pp' }),
         },
       ],
     },
@@ -584,7 +584,7 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
         <MetricCard
           title="回购率(3年)"
           :value="repurchase3YData ? formatKPI(repurchase3YData.cur, 'percent') : '—'"
-          :change="repurchase3YData?.yoy != null ? repurchase3YData.yoy * 100 : undefined"
+          :change="repurchase3YData?.yoy != null ? repurchase3YData.yoy : undefined"
           :loading="rFlowLoading && activeTab === 'r-flow'"
         />
       </n-gi>

@@ -2,11 +2,11 @@
 Tests for backend/semantic/calculations.py - unified calculation rules.
 
 Covers:
-- yoy_absolute: absolute value YOY (amounts, counts)
-- yoy_ratio: ratio/percentage YOY (percentage point diff)
+- yoy_absolute: absolute value YOY (amounts, counts) → returns percentage (* 100)
+- yoy_ratio: ratio/percentage YOY (percentage point diff * 100)
 - yoy_repurchase_rate: repurchase rate YOY (alias of yoy_ratio)
-- mom_absolute: absolute value MOM
-- mom_ratio: ratio/percentage MOM
+- mom_absolute: absolute value MOM → returns percentage (* 100)
+- mom_ratio: ratio/percentage MOM → returns percentage (* 100)
 - safe_ratio: safe division (zero-denominator protection)
 - percentage_to_ratio / ratio_to_percentage: unit conversion
 """
@@ -24,15 +24,15 @@ from backend.semantic.calculations import (
 
 
 class TestYoyAbsolute:
-    """Test absolute value YOY calculation."""
+    """Test absolute value YOY calculation. Returns percentage (* 100)."""
 
     def test_positive_growth(self):
-        """(100 - 80) / 80 = 0.25 (25% growth)"""
-        assert yoy_absolute(100, 80) == 0.25
+        """(100 - 80) / 80 = 0.25 * 100 = 25.0%"""
+        assert yoy_absolute(100, 80) == 25.0
 
     def test_negative_growth(self):
-        """(60 - 80) / 80 = -0.25 (25% decline)"""
-        assert yoy_absolute(60, 80) == -0.25
+        """(60 - 80) / 80 = -0.25 * 100 = -25.0%"""
+        assert yoy_absolute(60, 80) == -25.0
 
     def test_zero_growth(self):
         """Equal values => 0%"""
@@ -47,8 +47,8 @@ class TestYoyAbsolute:
         assert yoy_absolute(0, 0) is None
 
     def test_cur_none_treated_as_zero(self):
-        """None current => 0 / comp"""
-        assert yoy_absolute(None, 100) == -1.0
+        """None current => 0 / comp * 100 = -100.0"""
+        assert yoy_absolute(None, 100) == -100.0
 
     def test_comp_none_treated_as_zero(self):
         """None comparison => cur / 0 => None"""
@@ -60,21 +60,21 @@ class TestYoyAbsolute:
 
     def test_string_input(self):
         """String numbers are converted"""
-        assert yoy_absolute("100", "80") == 0.25
+        assert yoy_absolute("100", "80") == 25.0
 
     def test_invalid_string_returns_none(self):
         """Non-numeric string => None"""
         assert yoy_absolute("abc", 100) is None
 
     def test_rounding(self):
-        """Result is rounded to 4 decimal places"""
+        """Result is rounded to 2 decimal places (percentage)"""
         result = yoy_absolute(100, 3)
-        assert result == round((100 - 3) / 3, 4)
+        assert result == round((100 - 3) / 3 * 100, 2)
 
     def test_large_values(self):
         """Large values should not overflow"""
         result = yoy_absolute(1_000_000, 800_000)
-        assert result == 0.25
+        assert result == 25.0
 
     def test_tiny_comp_near_zero(self):
         """Comparison near zero threshold => None"""
@@ -82,23 +82,23 @@ class TestYoyAbsolute:
 
 
 class TestYoyRatio:
-    """Test ratio/percentage YOY (percentage point difference)."""
+    """Test ratio/percentage YOY (percentage point difference * 100)."""
 
     def test_positive_pp(self):
-        """0.60 - 0.55 = 0.05 (5pp)"""
-        assert yoy_ratio(0.60, 0.55) == 0.05
+        """(0.60 - 0.55) * 100 = 5.0"""
+        assert yoy_ratio(0.60, 0.55) == 5.0
 
     def test_negative_pp(self):
-        """0.55 - 0.60 = -0.05 (-5pp)"""
-        assert yoy_ratio(0.55, 0.60) == -0.05
+        """(0.55 - 0.60) * 100 = -5.0"""
+        assert yoy_ratio(0.55, 0.60) == -5.0
 
     def test_zero_diff(self):
-        """Same values => 0pp"""
+        """Same values => 0"""
         assert yoy_ratio(0.50, 0.50) == 0.0
 
     def test_comp_zero_ok(self):
-        """Ratio YOY doesn't divide, so 0 comp is fine"""
-        assert yoy_ratio(0.30, 0) == 0.30
+        """(0.30 - 0) * 100 = 30.0"""
+        assert yoy_ratio(0.30, 0) == 30.0
 
     def test_both_zero(self):
         """Both zero => 0"""
@@ -106,11 +106,11 @@ class TestYoyRatio:
 
     def test_none_treated_as_zero(self):
         """None => 0"""
-        assert yoy_ratio(None, 0.5) == -0.5
-        assert yoy_ratio(0.5, None) == 0.5
+        assert yoy_ratio(None, 0.5) == -50.0
+        assert yoy_ratio(0.5, None) == 50.0
 
     def test_string_input(self):
-        assert yoy_ratio("0.60", "0.55") == 0.05
+        assert yoy_ratio("0.60", "0.55") == 5.0
 
 
 class TestYoyRepurchaseRate:
@@ -124,15 +124,15 @@ class TestYoyRepurchaseRate:
 
 
 class TestMomAbsolute:
-    """Test absolute value MOM (month-over-month)."""
+    """Test absolute value MOM (month-over-month). Returns percentage (* 100)."""
 
     def test_positive_mom(self):
-        """(120 - 100) / 100 = 0.2"""
-        assert mom_absolute(120, 100) == 0.2
+        """(120 - 100) / 100 * 100 = 20.0"""
+        assert mom_absolute(120, 100) == 20.0
 
     def test_negative_mom(self):
-        """(80 - 100) / 100 = -0.2"""
-        assert mom_absolute(80, 100) == -0.2
+        """(80 - 100) / 100 * 100 = -20.0"""
+        assert mom_absolute(80, 100) == -20.0
 
     def test_prev_zero_returns_none(self):
         """Previous = 0 => divide by zero => None"""
@@ -144,25 +144,28 @@ class TestMomAbsolute:
 
     def test_none_inputs(self):
         """None treated as 0"""
-        assert mom_absolute(None, 100) == -1.0
+        assert mom_absolute(None, 100) == -100.0
         assert mom_absolute(100, None) is None
 
 
 class TestMomRatio:
-    """Test ratio/percentage MOM (percentage point difference)."""
+    """Test ratio/percentage MOM (percentage point difference * 100)."""
 
     def test_positive_mom(self):
-        assert mom_ratio(0.65, 0.60) == 0.05
+        """(0.65 - 0.60) * 100 = 5.0"""
+        assert mom_ratio(0.65, 0.60) == 5.0
 
     def test_negative_mom(self):
-        assert mom_ratio(0.55, 0.60) == -0.05
+        """(0.55 - 0.60) * 100 = -5.0"""
+        assert mom_ratio(0.55, 0.60) == -5.0
 
     def test_prev_zero_ok(self):
-        """No division, so 0 is fine"""
-        assert mom_ratio(0.30, 0) == 0.30
+        """(0.30 - 0) * 100 = 30.0"""
+        assert mom_ratio(0.30, 0) == 30.0
 
     def test_none_inputs(self):
-        assert mom_ratio(None, 0.5) == -0.5
+        """(0 - 0.5) * 100 = -50.0"""
+        assert mom_ratio(None, 0.5) == -50.0
 
 
 class TestSafeRatio:

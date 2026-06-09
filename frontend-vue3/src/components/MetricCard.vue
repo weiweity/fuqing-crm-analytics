@@ -2,27 +2,17 @@
 import { NSkeleton } from 'naive-ui'
 
 /**
- * Sprint 11 修: humanizeChange 按 unit 区分, 统一 0.00 形式.
+ * humanizeChange: 格式化变化值, 统一 0.00 形式.
  *
- * Caller 设计 (AudienceView L237-242 注释):
- *   - unit='%': caller (kpiChangePct) 已 *100 传 percentage 值 (e.g. 14 表示 14%)
- *   - unit='pp': caller (kpiChange) 传 0-1 ratio (e.g. 0.10 表示 10pp), humanizeChange 内部 *100
+ * Caller 已处理 *100, 这里只做 abs + toFixed(2).
  *
- * 0.00 形式: 用 toFixed(2) 保留 2 位小数, 不 trim 整数 trailing zeros
- *   (e.g. 14 → "14.00", 14.5 → "14.50", 14.55 → "14.55").
- *
- * Math.round 替代 toFixed 治 IEEE 754 banker's rounding bug (e.g. 0.145 → "14.5" 而非 "14.49").
- *
- * @param v  - unit='%': percentage 值 (e.g. 14)
- *           - unit='pp': 0-1 ratio (e.g. 0.10)
+ * @param v  - 变化值 (caller 已 *100)
  * @param unit  '%' (百分比) | 'pp' (百分点差)
- * @returns  e.g. "14.00%", "80.61%", "10.00pp", "3.58pp", "0.00%"
+ * @returns  e.g. "14.00%", "10.00pp", "0.00%"
  */
 function humanizeChange(v: number, unit: '%' | 'pp'): string {
   if (!Number.isFinite(v)) return `0.00${unit}`
-  // pp 单元: caller 传 0-1 ratio, 内部 *100 拿 pp 值
-  // % 单元: caller 已 *100, 直接用
-  const raw = unit === 'pp' ? Math.round(Math.abs(v) * 100 * 100) / 100 : Math.abs(v)
+  const raw = Math.abs(v)
   return `${raw.toFixed(2)}${unit}`
 }
 

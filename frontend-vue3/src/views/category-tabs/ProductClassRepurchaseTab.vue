@@ -166,7 +166,7 @@ const simpleColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 100,
-    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy }),
+    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy, unit: 'pp' }),
   },
   { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {
@@ -226,7 +226,7 @@ const expandedColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 100,
-    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy }),
+    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy, unit: 'pp' }),
   },
   { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {
@@ -358,7 +358,7 @@ const expandedColumnsCross: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 100,
-    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy }),
+    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy, unit: 'pp' }),
   },
   { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {

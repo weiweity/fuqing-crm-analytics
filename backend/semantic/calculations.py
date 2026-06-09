@@ -36,7 +36,7 @@ def yoy_absolute(cur: Optional[float], comp: Optional[float]) -> Optional[float]
         cur_f = float(cur) if cur is not None else 0.0
         comp_f = float(comp) if comp is not None else 0.0
         if abs(comp_f) > 1e-6:
-            return round((cur_f - comp_f) / comp_f, 4)
+            return round((cur_f - comp_f) / comp_f * 100, 2)
     except (TypeError, ValueError):
         pass
     return None
@@ -55,7 +55,7 @@ def yoy_ratio(cur: Optional[float], comp: Optional[float]) -> Optional[float]:
     try:
         cur_f = float(cur) if cur is not None else 0.0
         comp_f = float(comp) if comp is not None else 0.0
-        return round(cur_f - comp_f, 4)
+        return round((cur_f - comp_f) * 100, 2)
     except (TypeError, ValueError):
         pass
     return None
@@ -85,7 +85,7 @@ def mom_absolute(cur: Optional[float], prev: Optional[float]) -> Optional[float]
         cur_f = float(cur) if cur is not None else 0.0
         prev_f = float(prev) if prev is not None else 0.0
         if prev_f != 0:
-            return round((cur_f - prev_f) / prev_f, 4)
+            return round((cur_f - prev_f) / prev_f * 100, 2)
     except (TypeError, ValueError):
         pass
     return None
@@ -101,7 +101,7 @@ def mom_ratio(cur: Optional[float], prev: Optional[float]) -> Optional[float]:
     try:
         cur_f = float(cur) if cur is not None else 0.0
         prev_f = float(prev) if prev is not None else 0.0
-        return round(cur_f - prev_f, 4)
+        return round((cur_f - prev_f) * 100, 2)
     except (TypeError, ValueError):
         pass
     return None

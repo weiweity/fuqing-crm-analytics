@@ -142,11 +142,6 @@ function fmtCount(v?: number | null): string {
   return v.toLocaleString()
 }
 
-function fmtYoy(v?: number | null): number | undefined {
-  if (v == null) return undefined
-  return v * 100
-}
-
 // pp 类型的 MetricCard 模板会自己乘100，所以这里不乘
 function fmtPpt(v?: number | null): number | undefined {
   if (v == null) return undefined
@@ -399,28 +394,28 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="老客GSV"
             :value="fmtCurrency(data.old_gsv)"
-            :change="fmtYoy(data.yoy_old_gsv)"
+            :change="data.yoy_old_gsv"
           />
         </n-gi>
         <n-gi>
           <MetricCard
             title="老客人数"
             :value="fmtCount(data.old_users)"
-            :change="fmtYoy(data.yoy_old_users)"
+            :change="data.yoy_old_users"
           />
         </n-gi>
         <n-gi>
           <MetricCard
             title="老客AUS"
             :value="fmtCurrency(data.old_customer_aus)"
-            :change="fmtYoy(data.yoy_old_customer_aus)"
+            :change="data.yoy_old_customer_aus"
           />
         </n-gi>
         <n-gi>
           <MetricCard
             title="老客GSV占比"
             :value="fmtPercent(data.old_customer_gsv_ratio)"
-            :change="fmtPpt(data.yoy_old_customer_gsv_ratio)"
+            :change="data.yoy_old_customer_gsv_ratio"
             unit="pp"
           />
         </n-gi>
@@ -432,28 +427,28 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="会员老客GSV"
             :value="fmtCurrency(data.member_old_gsv)"
-            :change="fmtYoy(data.yoy_member_old_gsv)"
+            :change="data.yoy_member_old_gsv"
           />
         </n-gi>
         <n-gi>
           <MetricCard
             title="会员老客人数"
             :value="fmtCount(data.member_old_users)"
-            :change="fmtYoy(data.yoy_member_old_users)"
+            :change="data.yoy_member_old_users"
           />
         </n-gi>
         <n-gi>
           <MetricCard
             title="会员老客AUS"
             :value="fmtCurrency(data.member_old_customer_aus)"
-            :change="fmtYoy(data.yoy_member_old_customer_aus)"
+            :change="data.yoy_member_old_customer_aus"
           />
         </n-gi>
         <n-gi>
           <MetricCard
             title="会员老客GSV占比"
             :value="fmtPercent(data.member_old_customer_gsv_ratio)"
-            :change="fmtPpt(data.yoy_member_old_customer_gsv_ratio)"
+            :change="data.yoy_member_old_customer_gsv_ratio"
             unit="pp"
           />
         </n-gi>
@@ -509,7 +504,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
             <p v-if="data.mom_period_repurchase_users != null" class="text-xs mt-1">
               <span :class="data.mom_period_repurchase_users >= 0 ? 'text-emerald-600' : 'text-rose-600'">
                 {{ data.mom_period_repurchase_users >= 0 ? '↑' : '↓' }}
-                {{ Math.abs(data.mom_period_repurchase_users * 100).toFixed(1) }}%
+                {{ data.mom_period_repurchase_users.toFixed(2) }}%
               </span>
               <span class="text-slate-400 ml-1">环比</span>
             </p>
@@ -517,7 +512,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
             <p v-if="data.yoy_period_repurchase_users != null" class="text-xs mt-0.5">
               <span :class="data.yoy_period_repurchase_users >= 0 ? 'text-emerald-600' : 'text-rose-600'">
                 {{ data.yoy_period_repurchase_users >= 0 ? '↑' : '↓' }}
-                {{ Math.abs(data.yoy_period_repurchase_users * 100).toFixed(1) }}%
+                {{ data.yoy_period_repurchase_users.toFixed(2) }}%
               </span>
               <span class="text-slate-400 ml-1">同比</span>
             </p>

@@ -13,7 +13,7 @@
  */
 function humanizeChange(v: number, unit: '%' | 'pp'): string {
   if (!Number.isFinite(v)) return `0.00${unit}`
-  const raw = unit === 'pp' ? Math.round(Math.abs(v) * 100 * 100) / 100 : Math.abs(v)
+  const raw = Math.abs(v)
   return `${raw.toFixed(2)}${unit}`
 }
 
