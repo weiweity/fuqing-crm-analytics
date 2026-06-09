@@ -72,11 +72,6 @@ const wideTable = computed((): WideRow[] => {
   const rows: WideRow[] = []
 
   for (let i = 0; i < weekCount; i++) {
-    // 过滤脏数据：任一产品在该周被标记 likely-wrong（work plat 采集 date picker 错位等），
-    // 整周隐藏。默认显示 legacy + verified。
-    const isLikelyWrong = products.some(p => p.weeks[i]?.quality_flag === 'likely-wrong')
-    if (isLikelyWrong) continue
-
     const row: WideRow = {
       week_label: products[0].weeks[i].week_label,
     }
@@ -118,17 +113,12 @@ const wideTable = computed((): WideRow[] => {
   return rows
 })
 
-/** 找到最近一个没被标记 likely-wrong 的周 index（从后往前） */
+/** 最后一周 index */
 function findLatestVisibleIndex(
   products: NonNullable<typeof weeklyData.value>['products'],
   weekCount: number,
 ): number {
-  for (let i = weekCount - 1; i >= 0; i--) {
-    if (!products.some(p => p.weeks[i]?.quality_flag === 'likely-wrong')) {
-      return i
-    }
-  }
-  return -1
+  return weekCount - 1
 }
 
 // 格式化
