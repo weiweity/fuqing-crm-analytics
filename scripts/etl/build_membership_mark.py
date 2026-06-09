@@ -46,13 +46,14 @@ def main() -> int:
         # 2. DuckDB-direct read_parquet (10-100x 快于 pd.read_parquet + executemany)
         parquet_glob = str(MEMBER_DIR / "*.parquet")
         t0 = time.perf_counter()
-        n_inserted = conn.execute(f"""
+        # Sprint 11+ 修 ruff F841: 删 unused `n_inserted` 赋值, 直接 conn.execute() (无返回值)
+        conn.execute(f"""
             INSERT INTO membership_mark (order_id)
             SELECT DISTINCT CAST(order_id AS VARCHAR)
             FROM read_parquet('{parquet_glob}')
             WHERE order_id IS NOT NULL
             ON CONFLICT (order_id) DO NOTHING
-        """).fetchone()
+        """)
         elapsed = time.perf_counter() - t0
         n_after = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
         print(f"  [OK] 加载: {n_before:,} → {n_after:,} (+{n_after - n_before:,}, {elapsed:.1f}s)")

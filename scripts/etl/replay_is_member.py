@@ -60,14 +60,17 @@ def main() -> int:
             SELECT COUNT(*) FROM duckdb_tables() WHERE table_name = 'membership_mark'
         """).fetchone()[0]
         if mm_exists == 0:
-            print(f"  [FAIL] membership_mark 表不存在, 先跑 build_membership_mark.py")
+            # Sprint 11+ 修 ruff F541: 无 placeholder 删 f 前缀
+            print("  [FAIL] membership_mark 表不存在, 先跑 build_membership_mark.py")
             return 1
         mm_count = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
         t_before = conn.execute("SELECT COUNT(*) FROM orders WHERE is_member = TRUE").fetchone()[0]
+        # Sprint 11+ 修 ruff F541: 实际有 placeholder (.0f 等) 不能简单删 f. 改用 f-string 内的字符串拼接
         print(f"  [现状] membership_mark: {mm_count:,} | orders is_member=T: {t_before:,}")
 
         # DROP secondary indexes (避 ART index race)
-        print(f"\n  [Step 1] DROP 6 secondary indexes (DuckDB 1.5.2 ART race 缓解):")
+        # Sprint 11+ 修 ruff F541: 无 placeholder 删 f 前缀
+        print("\n  [Step 1] DROP 6 secondary indexes (DuckDB 1.5.2 ART race 缓解):")
         for idx in INDEXES_TO_DROP:
             try:
                 conn.execute(f"DROP INDEX IF EXISTS {idx}")
@@ -76,7 +79,8 @@ def main() -> int:
                 print(f"    [SKIP] {idx}: {e}")
 
         # UPDATE
-        print(f"\n  [Step 2] UPDATE orders JOIN membership_mark:")
+        # Sprint 11+ 修 ruff F541: 无 placeholder 删 f 前缀
+        print("\n  [Step 2] UPDATE orders JOIN membership_mark:")
         t0 = time.perf_counter()
         conn.execute("""
             UPDATE orders
@@ -90,7 +94,8 @@ def main() -> int:
         print(f"    [OK] UPDATE: {t_before:,} → {t_after:,} (+{delta:,}, {elapsed:.1f}s)")
 
         # 重建 indexes
-        print(f"\n  [Step 3] 重建 6 secondary indexes:")
+        # Sprint 11+ 修 ruff F541: 无 placeholder 删 f 前缀
+        print("\n  [Step 3] 重建 6 secondary indexes:")
         t0 = time.perf_counter()
         for sql in INDEX_RECREATE_SQL:
             try:
