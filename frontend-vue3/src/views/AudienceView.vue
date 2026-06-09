@@ -24,6 +24,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import YOYBadge from '@/components/YOYBadge.vue'
+import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
@@ -1797,6 +1798,8 @@ const channelMemberXlsxColumns = computed(() => {
 <template>
   <div class="space-y-5">
     <PageHeader title="人群看板" subtitle="洞察用户结构与消费趋势" />
+
+    <RatioConventionBanner />
 
     <!-- KPI Cards 第一行：人群 GSV -->
     <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
