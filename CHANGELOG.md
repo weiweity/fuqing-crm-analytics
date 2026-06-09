@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.27] - 2026-06-09 - fix: 30指标占比显示修正 (0.53% → 53.35%)
+
+### Fixed
+- **后端 audience_summary.py**: 所有 ratio 字段 ×100 返回百分比格式
+  - Panel A `_extract_metrics()`: 10 个 ratio 字段 (老客/新客/会员 GSV占比+人数占比+渗透率)
+  - Panel B 全店渠道: ratio/new_gsv_ratio/old_gsv_ratio + TTL (100.0)
+  - Panel C 会员渠道: ratio/member_ratio/new_gsv_ratio/old_gsv_ratio + 交叉指标 + TTL
+- **前端 AudienceView.vue**: 渠道表格 render 去掉 `* 100` (14 处)
+  - 后端已返回百分比，前端直接 `v.toFixed(1)%` 展示
+
+### 根因
+- `_extract_metrics()` 返回 0-1 小数 (如 0.5335)，前端 `v.toFixed(2)%` 显示 "0.53%"
+- 注释 "API ratio 字段已返回 % 格式" 过时，实际后端返回 0-1 小数
+
 ## [v0.4.14.26] - 2026-06-09 - refactor: YOY/pp 后端返回可显示值，前端只做展示
 
 ### Changed (YOY/pp 全链路重构)
