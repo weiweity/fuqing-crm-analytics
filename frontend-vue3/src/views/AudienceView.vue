@@ -252,7 +252,7 @@ const indicatorColumns = computed<DataTableColumns<IndicatorRow>>(() => {
   const renderValue = (yearKey: string) => (row: IndicatorRow) => {
     const v = row.values_by_year?.[yearKey] ?? null
     if (v == null) return '—'
-    if (row.kind === 'ratio') return `${v.toFixed(2)}%`
+    if (row.kind === 'ratio') return `${(v * 100).toFixed(2)}%`  // Sprint 13 W6: 0-1 decimal → percentage
     if (row.kind === 'count') return v.toLocaleString()
     if (row.kind === 'aus') return `¥${v.toFixed(1)}`
     return `¥${(v / 10000).toFixed(1)}万`
@@ -1652,10 +1652,15 @@ async function handleExportIndicators() {
       ? { t: 'n', f: `=B${excelRow}-C${excelRow}` } as any
       : { t: 'n', f: `=(B${excelRow}-C${excelRow})/C${excelRow}` } as any
 
+    // Sprint 13 W6: ratio 是 0-1 decimal, Excel 导出 *100 转 percentage
+    const v2026 = isRatio ? (row.values_by_year?.['2026'] ?? 0) * 100 : (row.values_by_year?.['2026'] ?? 0)
+    const v2025 = isRatio ? (row.values_by_year?.['2025'] ?? 0) * 100 : (row.values_by_year?.['2025'] ?? 0)
+    const v2024 = isRatio ? (row.values_by_year?.['2024'] ?? 0) * 100 : (row.values_by_year?.['2024'] ?? 0)
+
     if (mode === 'auto_yoy') {
-      aoa.push([row.field, row.values_by_year?.['2026'] ?? 0, row.values_by_year?.['2025'] ?? 0, row.values_by_year?.['2024'] ?? 0, yoyCell])
+      aoa.push([row.field, v2026, v2025, v2024, yoyCell])
     } else {
-      aoa.push([row.field, row.values_by_year?.['2026'] ?? 0, row.values_by_year?.['2025'] ?? 0, yoyCell])
+      aoa.push([row.field, v2026, v2025, yoyCell])
     }
   })
 
