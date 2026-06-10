@@ -1413,7 +1413,8 @@ const trendChartOption = computed(() => {
         for (const p of arr) {
           const val = p.value
           const isRatio = p.seriesName.includes('占比')
-          const displayVal = isRatio ? `${val.toFixed(1)}%` : `¥${(val / 10000).toFixed(1)}万`
+          // Sprint 14 A.1 治根: API ratio 返 0-1 decimal, caller 自乘 (跟 Sprint 13 治理一致)
+          const displayVal = isRatio ? `${(val * 100).toFixed(1)}%` : `¥${(val / 10000).toFixed(1)}万`
           html += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">`
           html += `<span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span>`
           html += `<span style="flex:1">${p.seriesName}</span>`
