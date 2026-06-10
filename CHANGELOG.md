@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.36] - 2026-06-11 - fix(contracts): Sprint 15 Wave 1 — PercentageField 放宽到 ±1B (gsv_yoy 越界治根)
+
+### Fixed
+- **`backend/contracts/types.py` PercentageField ge=-1B le=1B** (0-1M → 0-1B) — 25 6/1-6/8 单独拉 `/api/v1/category/overview` 返 500 (gsv_yoy=1,157,823.86% 越界 1M) 治根. 跟 Sprint 14 QA 0-1M 退让一致, 进一步放宽到 0-1B 兼容 yoy_absolute *100 后万倍异常值 (eg. 新品类从 0 涨到有量, 涨 1 万倍仍合理)
+- **`backend/tests/test_percentage_yoy_over_1m.py` 8 测试** — 真实 1.15M 通过 + 边界 1B 通过 + 负 YOY -1M 通过 + 1B+1 / -1B-1 仍拒 + 0/50/25 正常值通过
+
+### Plan
+- `docs/SPRINT-15-PLAN-RATIO-AUDIT.md` — Sprint 15 完整计划 + /autoplan 4 phase review 拍板 (调整后 8 任务: 删 C, 加 D.1 P0, 加 P2.7 P1, 加 1 浅 feature)
+
+### Sprint 15 Wave 1 完成
+- ✅ P0 A: gsv_yoy 治根 (本 commit)
+- ⏳ P0 D.1: replay_is_member 包 BEGIN/COMMIT (Sprint 15 Wave 2)
+- ⏳ P1 B1: audience 28 字段补标 (Sprint 15 Wave 3)
+- ⏳ P1 P2.7: cache_key md5 full (Sprint 15 Wave 4)
+- ⏳ P1 B2 试点: category + health + metrics 3 contract audit (Sprint 15 Wave 5)
+- ⏳ P2 浅 feature: YOYBadge 异常值守卫 (Sprint 15 Wave 6)
+- ❌ C 任务已删 (user 拍板, 跟 f214505 双保险冲突)
+
+### Sprint 13 治理契约保留
+- RatioField 0-1 严守, 不放宽
+- PpField -100~+100 严守, 不放宽
+- PercentageField 仅放宽到 0-1B (兼容 yoy_absolute *100 后万倍异常值), 真实 > 1e6 建议前端 YOYBadge 守卫 ("数据异常")
+
 ## [v0.4.14.35] - 2026-06-10 - fix(rfm): Sprint 14.5 增量 2 hotfix — W5 DuckDB-KV cache key 含 algo_version
 
 ### Fixed
