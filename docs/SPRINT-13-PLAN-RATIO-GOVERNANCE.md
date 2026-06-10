@@ -5,6 +5,10 @@
 **前置调研**: `pp-ratio-audit` workflow (8 agent / 562K tokens / 28min)
 **模式**: SELECTIVE EXPANSION (hold scope on 33 个 bug 修复 + cherry-pick 契约层加固)
 
+**状态**: ✅ 收口 (2026-06-10, main @ ad1cb20)
+**复盘**: `docs/SPRINT-13-RETROSPECTIVE.md`
+**下一阶段**: `docs/SPRINT-14-PLAN-RATIO-STAGE2.md` (Stage 2 Pydantic 契约加固)
+
 ---
 
 ## 1. Problem Statement

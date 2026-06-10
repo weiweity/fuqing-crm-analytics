@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.30] - 2026-06-10 - chore: Sprint 13 收口 (8 commits, ETL 2 次跑批验证, 文档同步)
+
+### Sprint 13 收口
+- **8 commits 合入 main** (5eef1fe → 20a37d5 → 74b9697 → c98adf5 → 4394fd0 → a5c4362 → d40a7ce → ad1cb20).
+- **6/9 数据进库**: 增量 ETL 第二次跑批 (11:28-11:52) 写入 orders 6,445 行 + user_first_purchase 2,133 行 + fact_rfm_long 1,080 行 + user_rfm 4,777,544 行. orders max(pay_time) 2026-06-09 23:59:57.
+- **Health score 70 → 98 (+28)**: 4 个用户报告 bug 全部修好 (老客占比 1040pp → 10.40pp, 渠道 528pp → 5.28pp, 30 指标 104000pp → 10.40pp, 老客 GSV 0.41% 保留真实值).
+- **文档同步**: docs/reference.md "Ratio Convention (Sprint 13 更新)" 章节 + CLAUDE.md "Ratio Convention (Sprint 13+)" 章节 + 4 页面 banner 3 天 TTL (RatioConventionBanner.vue).
+
+### Sprint 14 待启动 (Stage 2 Pydantic 契约加固)
+- 范围: 6 个 contract (audience/metrics/category/health/rfm) 加 `Annotated[float, Field(ge/le/decimal_places)]` validator + openapi-typescript codegen + processed_files 误用 bug 修.
+- 计划: `docs/SPRINT-14-PLAN-RATIO-STAGE2.md` (4-5 天).
+
 ## [v0.4.14.29] - 2026-06-10 - refactor(ratio): Sprint 13 比率口径统一 (33 处 100× + 1 处 10000× + 1 处 0% + Excel 4 处全部修)
 
 ### Fixed
