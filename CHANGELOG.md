@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.35] - 2026-06-10 - fix(rfm): Sprint 14.5 增量 2 hotfix — W5 DuckDB-KV cache key 含 algo_version
+
+### Fixed
+- **`backend/services/rfm/cache.py` `_hash_key` 含 `FLOW_ALGO_VERSION`** — Sprint 14.5 P1.4 改了 file cache (data/cache/rfm_flow/*.json) 加 algo_version 校验, 但 W5 DuckDB-KV cache (rfm_query_cache 表) 漏改, 24h TTL 内仍存旧 ratio=0.0 命中返 500 修后值. 修法: W5 key 拼 FLOW_ALGO_VERSION, 算法/version 变 → key 变 → miss → 重算
+- **`FLOW_ALGO_VERSION` bump `v0.4.14.34` → `v0.4.14.35`** — 强制现有 cache (file + W5) 全部失效, 触发重算
+
+### 教训 (Sprint 15 治理 #1)
+Sprint 14.5 P1.4 只改了一半: file cache 加 algo_version 字段, 但 W5 DuckDB-KV cache 走 key 路由. **两套 cache 必须同步加校验**, 不能只改一套. Sprint 15 加 W5 invalidation hook 时统一处理.
+
 ## [v0.4.14.34] - 2026-06-10 - fix(rfm): Sprint 14.5 增量 2 (Codex audit) — contract Optional 治根 + W5 cache algo_version
 
 ### Fixed
