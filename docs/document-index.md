@@ -1,8 +1,18 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
-> **最后更新**: 2026-06-07
-> **状态**: v0.4.14.16 sprint 8 收口 (391+ passed / 12 skipped, main a6389c8)
+> **最后更新**: 2026-06-10
+> **状态**: v0.4.14.30 sprint 13 收口 (Health 70→98, main ad1cb20)
 > **文档策略**: 精简为核心 5 份 + 归档 44 份（详见下方说明）
+
+---
+
+## 当前 Sprint
+
+| Sprint | 状态 | 文档 |
+|--------|------|------|
+| **Sprint 13** (Ratio 治理 Stage 1) | ✅ 收口 2026-06-10 | [SPRINT-13-PLAN-RATIO-GOVERNANCE.md](./SPRINT-13-PLAN-RATIO-GOVERNANCE.md) + [SPRINT-13-RETROSPECTIVE.md](./SPRINT-13-RETROSPECTIVE.md) |
+| **Sprint 14** (Stage 2 Pydantic) | ⏳ 待启动 | [SPRINT-14-PLAN-RATIO-STAGE2.md](./SPRINT-14-PLAN-RATIO-STAGE2.md) |
+| Sprint 15 (Stage 3 useFormat + Branded + Lint) | 📋 计划中 | (Stage 2 收口后启动) |
 
 ---
 
