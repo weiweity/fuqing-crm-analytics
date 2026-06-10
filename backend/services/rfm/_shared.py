@@ -21,6 +21,14 @@ logger = logging.getLogger(__name__)
 FLOW_CACHE_DIR = DATA_DIR / "cache" / "rfm_flow"
 FLOW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+
+# Sprint 14.5 P1.4 (Codex audit): W5 flow cache 之前只用 data_version 失效,
+# 不含算法 version. 改 ratio/契约/service 算法时, 24h 内 cache 命中返旧值
+# (Sprint 14.5 真实踩坑: ttl_gsv 越界 2.87 在 cache 里直到 invalidate).
+# 修法: cache 写时附 ALGO_VERSION, 读时校验. 算法改动 → 手动 bump 这个常量.
+# 不依赖文件 mtime (etcd/deploy 容器 mtime 不稳).
+FLOW_ALGO_VERSION = "v0.4.14.34"
+
 # 语义层统一口径（向后兼容别名）
 _VALID_BASE = VALID_ORDER_BASE
 _VALID_BASE_T = VALID_ORDER_BASE_PREFIXED
@@ -207,7 +215,11 @@ def _get_cached_flow(
     cache_key: str,
     data_version: str,
 ) -> Optional[Dict[str, Any]]:
-    """读取缓存的 flow 结果。数据版本不匹配返回 None。"""
+    """读取缓存的 flow 结果。数据/算法版本不匹配返回 None。
+
+    Sprint 14.5 P1.4: 校验 FLOW_ALGO_VERSION, 防止算法改动后 cache 返旧值.
+    旧 cache 没 algo_version 字段 → 视为失效, 触发重算.
+    """
     cache_file = FLOW_CACHE_DIR / cache_key
     if not cache_file.exists():
         return None
@@ -215,6 +227,11 @@ def _get_cached_flow(
         with open(cache_file, "r", encoding="utf-8") as f:
             cached = json.load(f)
         if cached.get("data_version") != data_version:
+            return None
+        if cached.get("algo_version") != FLOW_ALGO_VERSION:
+            logger.info(
+                f"Cache STALE (algo_version mismatch {cached.get('algo_version')} → {FLOW_ALGO_VERSION}): {cache_key}"
+            )
             return None
         logger.info(f"Cache HIT: {cache_key}")
         return cached.get("result")
@@ -228,10 +245,11 @@ def _set_cached_flow(
     data_version: str,
     result: Dict[str, Any],
 ) -> None:
-    """写入 flow 结果缓存。"""
+    """写入 flow 结果缓存 (附 algo_version 供读时校验)."""
     cache_file = FLOW_CACHE_DIR / cache_key
     cache_data = {
         "data_version": data_version,
+        "algo_version": FLOW_ALGO_VERSION,
         "timestamp": datetime.now().isoformat(),
         "result": result,
     }
