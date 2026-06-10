@@ -8,11 +8,12 @@ W5 DuckDB-KV 缓存 (v0.4.13) — design doc v1.1 §W5 + §7.5
 - ② SHA-256 hash key: 几乎不可能碰撞 (防 cache poisoning)
 - ③ TTL 24h, 过期自动失效 (不依赖后台 cleanup)
 - ④ manifest 变更触发整表失效 (与 W2 atomic snapshot 配套)
-- ⑤ key 不含 value 字段, 只含 date_range + dims + endpoint, 避免用户/数据耦合
+- ⑤ key 不含 value 字段, 只含 date_range + dims + endpoint + algo_version, 避免用户/数据耦合
+- ⑥ Sprint 14.5 P1.4: key 含 algo_version, 算法改动 → key 变 → miss → 重算 (防 24h 内返旧值)
 
 schema:
     rfm_query_cache(
-        key VARCHAR PRIMARY KEY,        -- SHA-256 hex
+        key VARCHAR PRIMARY KEY,        -- SHA-256 hex (含 algo_version)
         endpoint VARCHAR NOT NULL,      -- 'r-flow' / 'f-flow' / 'm-flow' / 'segment-orders'
         params_hash VARCHAR NOT NULL,   -- SHA-256 hex of canonical params
         value JSON NOT NULL,            -- 序列化结果
@@ -39,6 +40,7 @@ from typing import Any, Optional
 
 from backend.db.connection import get_connection
 from scripts.etl.manifest import DEFAULT_MANIFEST_PATH
+from backend.services.rfm._shared import FLOW_ALGO_VERSION  # Sprint 14.5 P1.4
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +64,12 @@ def _canonical_params(params: dict) -> str:
 
 
 def _hash_key(endpoint: str, params: dict) -> str:
-    """生成 cache key (endpoint + params 的 SHA-256 hex)."""
-    raw = f"{endpoint}|{_canonical_params(params)}"
+    """生成 cache key (endpoint + params + algo_version 的 SHA-256 hex).
+
+    Sprint 14.5 P1.4: 含 FLOW_ALGO_VERSION, 算法改动 → key 变 → miss → 重算.
+    不依赖 manifest (manifest 只跟数据变化同步, 不跟算法同步).
+    """
+    raw = f"{endpoint}|{FLOW_ALGO_VERSION}|{_canonical_params(params)}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
