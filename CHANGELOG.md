@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.32] - 2026-06-10 - docs: Sprint 1-14 文档收口 (排查 + 剔除 + retrospective 新建)
+
+### Changed
+- **剔除 `tests/` 11 个重复 test_*.py** (跟 backend/tests/ 重复, 6/8 后再没改动, 统一收 backend/tests/)
+- **archive 3 个老 plan** → `docs/archive/sprints/`:
+  - `SPRINT-12-PLAN.md` → `SPRINT-12-PLAN-2026-06-10-archived.md`
+  - `SPRINT-13-PLAN-RATIO-GOVERNANCE.md` → `SPRINT-13-PLAN-RATIO-GOVERNANCE-2026-06-10-archived.md`
+  - `SPRINT-13-RETROSPECTIVE.md` → `SPRINT-13-RETROSPECTIVE-2026-06-10-archived.md`
+- **`docs/SPRINT-14-PLAN-RATIO-STAGE2.md` 加 "✅ 收口" 标记** (留根目录作为"上一个 sprint 文档")
+- **新建 `docs/SPRINT-14-RETROSPECTIVE.md`** (8 章节: 结果 + 关键 bug 复盘 + 决策审计 + 治理债务 + 教训 + 时间线 + 未来 Sprint 建议 + 关键指标)
+- **清理 `/tmp/etl-sprint14-*.log`** (2 个 1.5KB incomplete log 剔除, 保留 etl-direct-run.log)
+
+### 不动 (5 核心 + 规则)
+- 5 核心文档 (CLAUDE/CHANGELOG/README/reference/feishu-arch)
+- `backend/tests/` 27 个 test_*.py (规范目录)
+- Memory 文件 (Sprint 1-14 memory 跨 session 价值)
+- `docs/archive/*` 13+ 文件 (已是归档)
+
+## [v0.4.14.31] - 2026-06-10 - fix: Sprint 14 0.5% 显示根治 + vue-tsc pre-commit 防线
+
 ## [v0.4.14.31] - 2026-06-10 - fix: Sprint 14 0.5% 显示根治 + vue-tsc pre-commit 防线
 
 ### Fixed
