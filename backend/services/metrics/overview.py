@@ -342,9 +342,10 @@ def get_overview_metrics(start_date: str, end_date: str, metric_type: str = "GMV
         "member_amount": round(current['member_amount'], 2),
         "member_count": current['member_count'],
         "member_order_count": current['member_order_count'],
-        "old_user_ratio": round(curr_old_ratio * 100, 2),
-        "new_user_ratio": round(curr_new_ratio * 100, 2),
-        "member_ratio": round(curr_member_ratio * 100, 2),
+        # Sprint 14.5 治根: service /100 同步 RatioField 0-1 contract (codex P0 建议)
+        "old_user_ratio": round(curr_old_ratio, 4),
+        "new_user_ratio": round(curr_new_ratio, 4),
+        "member_ratio": round(curr_member_ratio, 4),
         "member_avg_order_value": round(member_avg_order_value, 2),
         "member_premium": round(member_premium, 2),
         "mom_change": {

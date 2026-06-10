@@ -464,7 +464,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.new_gsv_ratio_2026 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yr2,
@@ -473,7 +473,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2025 ?? 0) - (b.new_gsv_ratio_2025 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.new_gsv_ratio_2025 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2025 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yoyLabel,
@@ -596,7 +596,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.old_gsv_ratio_2026 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yr2,
@@ -605,7 +605,7 @@ const channelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2025 ?? 0) - (b.old_gsv_ratio_2025 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.old_gsv_ratio_2025 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2025 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yoyLabel,
@@ -843,7 +843,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.new_gsv_ratio_2026 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yr2,
@@ -852,7 +852,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2025 ?? 0) - (b.new_gsv_ratio_2025 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.new_gsv_ratio_2025 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2025 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yoyLabel,
@@ -975,7 +975,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.old_gsv_ratio_2026 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yr2,
@@ -984,7 +984,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2025 ?? 0) - (b.old_gsv_ratio_2025 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.old_gsv_ratio_2025 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2025 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yoyLabel,
@@ -1074,7 +1074,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.member_ratio_2026 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.member_ratio_2026 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yr2,
@@ -1083,7 +1083,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         align: 'center',
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0),
-        render: (row: ChannelGSVRow) => `${(row.member_ratio_2025 ?? 0).toFixed(1)}%`,
+        render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1) }%`,
       },
       {
         title: yoyLabel,
@@ -1197,7 +1197,7 @@ const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
       children: addChannelGroupSep([
         { title: 'GSV', key: 'new_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
         { title: yoyLabel, key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.new_gsv_yoy ?? 0), unit: '%' }) },
-        { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${(row.new_gsv_ratio_2026 ?? 0).toFixed(1)}%` },
+        { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%` },
       ]),
     },
     {
@@ -1205,7 +1205,7 @@ const compactChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
       children: addChannelGroupSep([
         { title: 'GSV', key: 'old_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
         { title: yoyLabel, key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.old_gsv_yoy ?? 0), unit: '%' }) },
-        { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${(row.old_gsv_ratio_2026 ?? 0).toFixed(1)}%` },
+        { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%` },
       ]),
     },
   ]
@@ -1233,7 +1233,7 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       children: addChannelGroupSep([
         { title: 'GSV', key: 'new_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_2026 ?? 0) - (b.new_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.new_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
         { title: yoyLabel, key: 'new_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_yoy ?? 0) - (b.new_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.new_gsv_yoy ?? 0), unit: '%' }) },
-        { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${(row.new_gsv_ratio_2026 ?? 0).toFixed(1)}%` },
+        { title: '占比', key: 'new_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.new_gsv_ratio_2026 ?? 0) - (b.new_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.new_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%` },
       ]),
     },
     {
@@ -1241,14 +1241,14 @@ const compactMemberChannelColumns = computed<DataTableColumns<ChannelGSVRow>>(()
       children: addChannelGroupSep([
         { title: 'GSV', key: 'old_gsv_2026', width: 110, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_2026 ?? 0) - (b.old_gsv_2026 ?? 0), render: (row: ChannelGSVRow) => `¥${((row.old_gsv_2026 ?? 0) / 10000).toFixed(1)}万` },
         { title: yoyLabel, key: 'old_gsv_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_yoy ?? 0) - (b.old_gsv_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.old_gsv_yoy ?? 0), unit: '%' }) },
-        { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${(row.old_gsv_ratio_2026 ?? 0).toFixed(1)}%` },
+        { title: '占比', key: 'old_gsv_ratio_2026', width: 85, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.old_gsv_ratio_2026 ?? 0) - (b.old_gsv_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.old_gsv_ratio_2026 ?? 0) * 100).toFixed(1) }%` },
       ]),
     },
     {
       title: '会员GSV占比', key: 'member_ratio_group', align: 'center',
       children: [
-        { title: yr, key: 'member_ratio_2026', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${(row.member_ratio_2026 ?? 0).toFixed(1)}%` },
-        { title: yr2, key: 'member_ratio_2025', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0), render: (row: ChannelGSVRow) => `${(row.member_ratio_2025 ?? 0).toFixed(1)}%` },
+        { title: yr, key: 'member_ratio_2026', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2026 ?? 0) - (b.member_ratio_2026 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2026 ?? 0) * 100).toFixed(1) }%` },
+        { title: yr2, key: 'member_ratio_2025', width: 90, align: 'center', className: 'bi-cell-number', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_2025 ?? 0) - (b.member_ratio_2025 ?? 0), render: (row: ChannelGSVRow) => `${((row.member_ratio_2025 ?? 0) * 100).toFixed(1) }%` },
         { title: yoyLabel, key: 'member_ratio_yoy', width: 90, align: 'center', sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_ratio_yoy ?? 0) - (b.member_ratio_yoy ?? 0), render: (row: ChannelGSVRow) => h(YOYBadge, { value: (row.member_ratio_yoy ?? 0), unit: 'pp' }) },
       ],
     },

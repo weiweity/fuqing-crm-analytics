@@ -30,11 +30,11 @@ RatioField = Annotated[
 ]
 
 # 0-100 percentage (e.g. 42.0 = 42%, 旧名 *_pct, 已 *100)
-# Sprint 14 QA 修: 上限放宽 0-1_000_000, 兼容 yoy_absolute 返 *100 后 percentage (e.g. 117829.76)
+# Sprint 14 QA 修: 范围放宽到 ±1M, 兼容 yoy_absolute 返 *100 后 percentage (e.g. -50.0 负 YOY 或 1178.29% 千倍异常值)
 # Sprint 14.5 治根: service yoy_absolute 不 *100 OR 加 normalized 字段
 PercentageField = Annotated[
     float,
-    Field(ge=0.0, le=1_000_000.0, description="0-100 percentage (e.g. 42.0 = 42%) 或 yoy_absolute *100 后范围, 2 位精度"),
+    Field(ge=-1_000_000.0, le=1_000_000.0, description="0-100 percentage 或 yoy_absolute *100 后 ±范围 (含负 YOY), 2 位精度"),
 ]
 
 # -100 ~ +100 pp 差 (e.g. 5.28 = +5.28pp, 旧名 *_ppt / *_yoy_ppt, 已 *100)
