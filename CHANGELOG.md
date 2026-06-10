@@ -12,9 +12,16 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - **Health score 70 → 98 (+28)**: 4 个用户报告 bug 全部修好 (老客占比 1040pp → 10.40pp, 渠道 528pp → 5.28pp, 30 指标 104000pp → 10.40pp, 老客 GSV 0.41% 保留真实值).
 - **文档同步**: docs/reference.md "Ratio Convention (Sprint 13 更新)" 章节 + CLAUDE.md "Ratio Convention (Sprint 13+)" 章节 + 4 页面 banner 3 天 TTL (RatioConventionBanner.vue).
 
-### Sprint 14 待启动 (Stage 2 Pydantic 契约加固)
-- 范围: 6 个 contract (audience/metrics/category/health/rfm) 加 `Annotated[float, Field(ge/le/decimal_places)]` validator + openapi-typescript codegen + processed_files 误用 bug 修.
-- 计划: `docs/SPRINT-14-PLAN-RATIO-STAGE2.md` (4-5 天).
+### Sprint 14 待启动 (Stage 2 Pydantic 契约加固 + ETL 治根)
+- **范围** (2026-06-10 拍板): A + B (扩) + B+ (新增) + H
+  - A.1-A.3: 6 个 contract (audience/metrics/category/health/rfm) 加 `Annotated[float, Field(ge/le/decimal_places)]` validator + openapi-typescript codegen
+  - B (扩): processed_files_*.json mtime 语义错位修复 (方案 A: 统一用源 xlsx mtime, ingest.py:144-151 改 1 行)
+  - B+ (新): is_member replay 集成 (方案 P: pipeline.py 加 Step 4.6+4.7 调 build_membership_mark + replay_is_member)
+  - H: /tmp/etl-*.log + 旧备份清理
+- **Sprint 14 扩范围原因** (2026-06-10 调研):
+  1. **Bug 1 (file scan)**: `processed_files_*.json` mtime 字段语义错位 — parquet 路径写 parquet mtime, xlsx 路径写 xlsx mtime, _file_changed 比较时间基准不一致
+  2. **Bug 2 (is_member)**: `pipeline.py:329` 增量模式 member_order_ids 来源有缺陷 (DB 鸡生蛋循环 / 新 parquet 覆盖老会员), Sprint 10 写了 2 个手动救火脚本未集成
+- 计划: `docs/SPRINT-14-PLAN-RATIO-STAGE2.md` (5-6 天, 扩 1.5d).
 
 ## [v0.4.14.29] - 2026-06-10 - refactor(ratio): Sprint 13 比率口径统一 (33 处 100× + 1 处 10000× + 1 处 0% + Excel 4 处全部修)
 

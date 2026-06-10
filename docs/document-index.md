@@ -11,7 +11,7 @@
 | Sprint | 状态 | 文档 |
 |--------|------|------|
 | **Sprint 13** (Ratio 治理 Stage 1) | ✅ 收口 2026-06-10 | [SPRINT-13-PLAN-RATIO-GOVERNANCE.md](./SPRINT-13-PLAN-RATIO-GOVERNANCE.md) + [SPRINT-13-RETROSPECTIVE.md](./SPRINT-13-RETROSPECTIVE.md) |
-| **Sprint 14** (Stage 2 Pydantic) | ⏳ 待启动 | [SPRINT-14-PLAN-RATIO-STAGE2.md](./SPRINT-14-PLAN-RATIO-STAGE2.md) |
+| **Sprint 14** (Stage 2 Pydantic + ETL 治根) | ⏳ 待启动 5-6d | [SPRINT-14-PLAN-RATIO-STAGE2.md](./SPRINT-14-PLAN-RATIO-STAGE2.md) (含 A+B+B+ 三组工单) |
 | Sprint 15 (Stage 3 useFormat + Branded + Lint) | 📋 计划中 | (Stage 2 收口后启动) |
 
 ---
