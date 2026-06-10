@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.31] - 2026-06-10 - fix: Sprint 14 0.5% 显示根治 + vue-tsc pre-commit 防线
+
+### Fixed
+- **audience_summary.py + overview.py service /100** (50 行 + 3 行) — Sprint 14 A.1 治根, ratio 字段存 0-1 decimal 跟 RatioField contract 对齐, 跟 Sprint 13 治理一致
+- **_mark_all_files_processed mtime 写源 xlsx** (跟 ingest.py:144-151 一致, B 修一半补完)
+- **PercentageField ge=-1M le=1M** (允许负 YOY + 千倍异常值, 之前 ge=0 拒负 YOY 500)
+- **audience/table + audience/summary + category/overview + metrics/overview 4 端点全 200** (Sprint 14 引入 regression 全治根)
+- **AudienceView.vue 4 处 member_*_vs_all_* ratio 显示加 *100** (用户报 0.5% 显示 → 真实 50%)
+- **AudienceView.vue:1416 趋势图 tooltip ratio 加 *100** (echarts formatter 漏改)
+- **AudienceView.vue:1694 fmtRatio() 函数加 *100** (4 页面共享 util)
+- **AudienceView.vue 4 处 'const v = row.const v = row.X' 语法错** (regex backref 漏改紧急修)
+
+### Changed
+- **Sprint 14 .githooks/pre-commit 加 vue-tsc --noEmit 强制 type check** (Sprint 14 教训: vitest 不 import .vue 模板, 漏 3 次 commit 语法错. 防 Sprint 15+ 重犯)
+
+### Sprint 14 完整收口
+
+8 commits 合入 main:
+- adabf5a docs(sprint14): 扩 plan 范围
+- cc0f478 fix(etl): processed_files mtime 语义统一 (B)
+- 2f0e8d0 feat(etl): is_member replay 集成 (B+)
+- ac4ee1e feat(contracts): Stage 2 Pydantic 6 contract (A.1+A.3)
+- 14a7f24 feat(frontend): openapi-typescript codegen (A.2)
+- 67b794d fix(contracts): QA 修 PercentageField 0-1M
+- 8b2352c fix(contracts+etl+frontend): /codex 治根 4 P0
+- f72cbe3/1126957/ba745ca 紧急修 0.5% 显示 (前端 *100)
+- 3cf1066/0e80b5d/ba745ca merge
+
+### Sprint 14.5 留治根 (4 P2)
+1. `AudienceRow.yoy_*` 28 字段加 `PercentageField` (Sprint 14 漏标, 改风险大)
+2. `replay_is_member.py` 包 `BEGIN; ... COMMIT;` (DROP INDEX 6 秒窗口数据风险)
+3. `replay_is_member.py` member 删除不清 (mark rebuild 后 is_member 不清)
+4. Step 4.6/4.7 fail-soft 隐藏 mark drift
+
+## [v0.4.14.30] - 2026-06-10 - chore: Sprint 13 收口 (8 commits, ETL 2 次跑批验证, 文档同步)
+
 ## [v0.4.14.30] - 2026-06-10 - chore: Sprint 13 收口 (8 commits, ETL 2 次跑批验证, 文档同步)
 
 ### Sprint 13 收口

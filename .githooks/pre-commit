@@ -82,3 +82,20 @@ if [ -n "$STAGED_CONTRACTS" ]; then
     echo "   例外 (不打算同步前端): git commit --no-verify"
     # 不阻断, 只 WARN
 fi
+
+# Sprint 14 教训: 改 frontend-vue3/src/ 时强制 vue-tsc 真编译 (Sprint 14 f72cbe3/1126957/ba745ca
+# 3 次 commit 漏错, 因为 vitest 不 import AudienceView 模板, 只跑 vue-tsc 才发现
+# 'const v = row.const v = row.X' 语法错). 阻断, 不许 --no-verify 跳过.
+STAGED_VUE=$(echo "$STAGED" | grep -E '^frontend-vue3/src/.*\.(vue|ts)$' || true)
+if [ -n "$STAGED_VUE" ]; then
+    echo ""
+    echo "Running vue-tsc --noEmit (Sprint 14 教训, 强制真编译 .vue 模板)..."
+    cd frontend-vue3 && npx vue-tsc --noEmit -p . 2>&1 | tail -20
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        echo ""
+        echo "❌ vue-tsc 失败 — 修复语法/类型错后再 commit"
+        echo "   例外 (紧急 hotfix): git commit --no-verify"
+        exit 1
+    fi
+    cd ..
+fi
