@@ -1,8 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, Field
 from .asset import ProductClassRepurchase
-
+from .types import RatioField, PercentageField, PpField  # Sprint 14 A.3
 class HealthAlertItem(BaseModel):
     """健康度告警项"""
     alert_type: str = Field(..., description="告警类型编码")
@@ -21,47 +22,47 @@ class HealthOverviewMetrics(BaseModel):
     period_days: int = Field(default=30, description="分析周期天数")
 
     # 核心指标（当期）
-    all_store_repurchase_rate: float = Field(..., description="全店复购率")
-    same_product_repurchase_rate: float = Field(..., description="本品复购率")
+    all_store_repurchase_rate: "RatioField" = Field(..., description="全店复购率 0-1 decimal")
+    same_product_repurchase_rate: "RatioField" = Field(..., description="本品复购率 0-1 decimal")
     period_repurchase_users: int = Field(..., description="周期复购人数（同分析周期）")
 
     # 老客指标
     old_gsv: float = Field(..., description="老客GSV")
     old_users: int = Field(..., description="老客人数")
-    old_customer_gsv_ratio: float = Field(..., description="老客GSV占比")
+    old_customer_gsv_ratio: "RatioField" = Field(..., description="老客GSV占比 0-1 decimal")
     old_customer_aus: float = Field(..., description="老客AUS")
 
     # 会员老客指标
     member_old_gsv: float = Field(..., description="会员老客GSV")
     member_old_users: int = Field(..., description="会员老客人数")
-    member_old_customer_gsv_ratio: float = Field(..., description="会员老客GSV占比")
+    member_old_customer_gsv_ratio: "RatioField" = Field(..., description="会员老客GSV占比 0-1 decimal")
     member_old_customer_aus: float = Field(..., description="会员老客AUS")
 
     # 健康评分（归一化后加权 0-100）
     health_score: float = Field(..., description="健康评分 0-100")
     health_level: str = Field(..., description="healthy | warning | critical")
     ly_health_score: Optional[float] = Field(None, description="去年同期健康评分")
-    health_score_yoy: Optional[float] = Field(None, description="健康评分同比（百分点差）")
+    health_score_yoy: Optional["PpField"] = Field(None, description="健康评分同比（百分点差）")
 
     # 去年同期原始值（用于雷达图两年对比）
-    ly_all_store_repurchase_rate: Optional[float] = Field(None, description="去年同期全店复购率")
-    ly_same_product_repurchase_rate: Optional[float] = Field(None, description="去年同期本品复购率")
-    ly_old_customer_gsv_ratio: Optional[float] = Field(None, description="去年同期老客GSV占比")
+    ly_all_store_repurchase_rate: Optional["RatioField"] = Field(None, description="去年同期全店复购率 0-1 decimal")
+    ly_same_product_repurchase_rate: Optional["RatioField"] = Field(None, description="去年同期本品复购率 0-1 decimal")
+    ly_old_customer_gsv_ratio: Optional["RatioField"] = Field(None, description="去年同期老客GSV占比 0-1 decimal")
     ly_old_customer_aus: Optional[float] = Field(None, description="去年同期老客AUS")
     ly_period_repurchase_users: Optional[int] = Field(None, description="去年同期周期复购人数")
 
     # 同比（vs去年同期同周期）
-    yoy_all_store_repurchase_rate: Optional[float] = Field(None, description="全店复购率同比")
-    yoy_same_product_repurchase_rate: Optional[float] = Field(None, description="本品复购率同比")
-    yoy_old_customer_gsv_ratio: Optional[float] = Field(None, description="老客占比同比")
-    yoy_old_customer_aus: Optional[float] = Field(None, description="老客AUS同比")
-    yoy_period_repurchase_users: Optional[float] = Field(None, description="周期复购人数同比")
-    yoy_old_gsv: Optional[float] = Field(None, description="老客GSV同比")
-    yoy_old_users: Optional[float] = Field(None, description="老客人数同比")
-    yoy_member_old_gsv: Optional[float] = Field(None, description="会员老客GSV同比")
-    yoy_member_old_users: Optional[float] = Field(None, description="会员老客人数同比")
-    yoy_member_old_customer_gsv_ratio: Optional[float] = Field(None, description="会员老客GSV占比同比")
-    yoy_member_old_customer_aus: Optional[float] = Field(None, description="会员老客AUS同比")
+    yoy_all_store_repurchase_rate: Optional["PpField"] = Field(None, description="全店复购率同比 (pp 差)")
+    yoy_same_product_repurchase_rate: Optional["PpField"] = Field(None, description="本品复购率同比 (pp 差)")
+    yoy_old_customer_gsv_ratio: Optional["PpField"] = Field(None, description="老客占比同比 (pp 差)")
+    yoy_old_customer_aus: Optional["PercentageField"] = Field(None, description="老客AUS同比 (percentage)")
+    yoy_period_repurchase_users: Optional["PercentageField"] = Field(None, description="周期复购人数同比 (percentage)")
+    yoy_old_gsv: Optional["PercentageField"] = Field(None, description="老客GSV同比 (percentage)")
+    yoy_old_users: Optional["PercentageField"] = Field(None, description="老客人数同比 (percentage)")
+    yoy_member_old_gsv: Optional["PercentageField"] = Field(None, description="会员老客GSV同比 (percentage)")
+    yoy_member_old_users: Optional["PercentageField"] = Field(None, description="会员老客人数同比 (percentage)")
+    yoy_member_old_customer_gsv_ratio: Optional["PpField"] = Field(None, description="会员老客GSV占比同比 (pp 差)")
+    yoy_member_old_customer_aus: Optional["PercentageField"] = Field(None, description="会员老客AUS同比 (percentage)")
 
     # 环比（vs上一个等长周期）
     mom_period_repurchase_users: Optional[float] = Field(None, description="周期复购人数环比")
@@ -80,16 +81,16 @@ class RepurchaseBucket(BaseModel):
     bucket_start: int = Field(..., description="桶起始天数")
     bucket_end: Optional[int] = Field(None, description="桶结束天数（None表示无上限）")
     user_count: int = Field(..., description="该桶人数")
-    user_ratio: float = Field(..., description="占复购人群比例")
+    user_ratio: "RatioField" = Field(..., description="占复购人群比例 0-1 decimal")
     # 去年同期
     ly_user_count: Optional[int] = Field(None, description="去年同期该桶人数")
-    ly_user_ratio: Optional[float] = Field(None, description="去年同期占比")
+    ly_user_ratio: Optional["RatioField"] = Field(None, description="去年同期占比 0-1 decimal")
     # 前年同期
     prev2_user_count: Optional[int] = Field(None, description="前年同期该桶人数")
-    prev2_user_ratio: Optional[float] = Field(None, description="前年同期占比")
+    prev2_user_ratio: Optional["RatioField"] = Field(None, description="前年同期占比 0-1 decimal")
     # YOY
-    user_count_yoy: Optional[float] = Field(None, description="人数同比（绝对值变化）")
-    user_ratio_yoy: Optional[float] = Field(None, description="占比同比（pp变化）")
+    user_count_yoy: Optional["PercentageField"] = Field(None, description="人数同比（percentage 已 *100）")
+    user_ratio_yoy: Optional["PpField"] = Field(None, description="占比同比 (pp 差)")
 
 
 class RepurchaseCycleOverview(BaseModel):
