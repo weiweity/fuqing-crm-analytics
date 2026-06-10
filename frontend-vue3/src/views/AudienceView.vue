@@ -1108,8 +1108,9 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_new_vs_all_new_2026 ?? 0) - (b.member_new_vs_all_new_2026 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.member_new_vs_all_new_2026
-          return v != null ? `${v.toFixed(1)}%` : '—'
+          const v = row.const v = row.member_new_vs_all_new_2026
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
       {
@@ -1120,8 +1121,9 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_new_vs_all_new_2025 ?? 0) - (b.member_new_vs_all_new_2025 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.member_new_vs_all_new_2025
-          return v != null ? `${v.toFixed(1)}%` : '—'
+          const v = row.const v = row.member_new_vs_all_new_2025
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
       {
@@ -1147,8 +1149,9 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_old_vs_all_old_2026 ?? 0) - (b.member_old_vs_all_old_2026 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.member_old_vs_all_old_2026
-          return v != null ? `${v.toFixed(1)}%` : '—'
+          const v = row.const v = row.member_old_vs_all_old_2026
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
       {
@@ -1159,8 +1162,9 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_old_vs_all_old_2025 ?? 0) - (b.member_old_vs_all_old_2025 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.member_old_vs_all_old_2025
-          return v != null ? `${v.toFixed(1)}%` : '—'
+          const v = row.const v = row.member_old_vs_all_old_2025
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
       {
@@ -1688,10 +1692,12 @@ function formatKPI(value: number, type: 'currency' | 'number' | 'percent') {
   return value.toLocaleString()
 }
 
-// API ratio 字段已返回 % 格式（如 55.0 = 55%），直接展示
+// Sprint 14 A.1 治根: API ratio 字段改返 0-1 decimal (e.g. 0.55 = 55%),
+// 跟 Sprint 13 治理一致, 前端 caller 自乘. 老注释 "API 返 % 格式" 是 Sprint 13 写法,
+// Sprint 14 改了. 旧返 50.0, 新返 0.5, 显示需 *100 还原.
 function fmtRatio(v: number | null | undefined): string {
   if (v == null) return '—'
-  return `${v.toFixed(1)}%`
+  return `${(v * 100).toFixed(1)}%`
 }
 
 // ── 渠道 Excel 导出列定义 ──
