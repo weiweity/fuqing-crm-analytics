@@ -69,3 +69,16 @@ fi
 # 救火: FQA_GROUND_TRUTH_SKIP=1 git commit ...
 echo "Running P1-3 review ground-truth lint..."
 python3 .githooks/check_review_ground_truth.py || exit 1
+
+# Sprint 14 A.2: 改 backend/contracts/ 时必须同步更新 types.generated.ts
+# 跟其他 lint 一样 WARN 模式不阻断 (codegen 需要 uvicorn 跑最新代码)
+STAGED_CONTRACTS=$(echo "$STAGED" | grep -E '^backend/contracts/.*\.py$' || true)
+if [ -n "$STAGED_CONTRACTS" ]; then
+    echo ""
+    echo "⚠️  Sprint 14 A.2: 改了 backend/contracts/ $(echo "$STAGED_CONTRACTS" | wc -l | tr -d ' ') 个文件"
+    echo "   提醒: 跑 codegen 同步 frontend-vue3/src/api/types.generated.ts"
+    echo "     1) 启 uvicorn 跑最新代码: PYTHONPATH=. nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &"
+    echo "     2) cd frontend-vue3 && npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.generated.ts"
+    echo "   例外 (不打算同步前端): git commit --no-verify"
+    # 不阻断, 只 WARN
+fi
