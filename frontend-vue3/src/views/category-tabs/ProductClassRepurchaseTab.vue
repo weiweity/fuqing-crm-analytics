@@ -92,7 +92,8 @@ const productXlsxColumnsSame: XlsxColumn[] = [
   { header: '复购人数', key: 'repurchase_users', width: 10, numFmt: '#,##0' },
   { header: '复购率', key: 'repurchase_rate', width: 10, numFmt: '0.0%' },
   { header: '去年同期复购率', key: 'ly_repurchase_rate', width: 14, numFmt: '0.0%' },
-  { header: '复购率YOY', key: 'repurchase_rate_yoy', width: 12, numFmt: '0.0%' },
+  { header: '复购率YOY', key: 'repurchase_rate_yoy', width: 12, numFmt: '0.00' },
+  { header: '复购率YOY (pp)', key: 'repurchase_rate_yoy_label', width: 14 },
   { header: '中位天数', key: 'median_days', width: 10 },
   { header: '去年同期中位天数', key: 'ly_median_days', width: 14 },
   { header: '中位天数YOY', key: 'median_days_yoy', width: 12 },
@@ -104,10 +105,12 @@ const productXlsxColumnsSame: XlsxColumn[] = [
   { header: '客单价（含首购）', key: 'avg_order_value', width: 14, numFmt: '¥#,##0' },
   { header: 'GSV（含首购）', key: 'gsv', width: 14, numFmt: '¥#,##0' },
   { header: '去年同期GSV', key: 'ly_gsv', width: 14, numFmt: '¥#,##0' },
-  { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.0%' },
+  { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.00' },
+  { header: 'GSV YOY (pp)', key: 'gsv_yoy_label', width: 12 },
   { header: '复购客单价', key: 'repurchase_order_value', width: 12, numFmt: '¥#,##0' },
   { header: '复购GSV', key: 'repurchase_gsv', width: 12, numFmt: '¥#,##0' },
 ]
+
 
 // ── Excel 导出列定义（跨品类回购店铺） ──
 const productXlsxColumnsCross: XlsxColumn[] = [
@@ -116,7 +119,8 @@ const productXlsxColumnsCross: XlsxColumn[] = [
   { header: '回购人数', key: 'repurchase_users', width: 10, numFmt: '#,##0' },
   { header: '回购率', key: 'repurchase_rate', width: 10, numFmt: '0.0%' },
   { header: '去年同期回购率', key: 'ly_repurchase_rate', width: 14, numFmt: '0.0%' },
-  { header: '回购率YOY', key: 'repurchase_rate_yoy', width: 12, numFmt: '0.0%' },
+  { header: '回购率YOY', key: 'repurchase_rate_yoy', width: 12, numFmt: '0.00' },
+  { header: '回购率YOY (pp)', key: 'repurchase_rate_yoy_label', width: 14 },
   { header: '中位天数', key: 'median_days', width: 10 },
   { header: '去年同期中位天数', key: 'ly_median_days', width: 14 },
   { header: '中位天数YOY', key: 'median_days_yoy', width: 12 },
@@ -128,7 +132,8 @@ const productXlsxColumnsCross: XlsxColumn[] = [
   { header: '入口客单价（首购）', key: 'avg_order_value', width: 16, numFmt: '¥#,##0' },
   { header: '入口GSV（首购）', key: 'gsv', width: 16, numFmt: '¥#,##0' },
   { header: '去年同期GSV', key: 'ly_gsv', width: 14, numFmt: '¥#,##0' },
-  { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.0%' },
+  { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.00' },
+  { header: 'GSV YOY (pp)', key: 'gsv_yoy_label', width: 12 },
   { header: '回流客单价', key: 'repurchase_order_value', width: 14, numFmt: '¥#,##0' },
   { header: '回流GSV', key: 'repurchase_gsv', width: 14, numFmt: '¥#,##0' },
 ]

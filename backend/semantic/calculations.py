@@ -4,10 +4,16 @@
 本文件是所有 YOY、占比、MOM 等计算规则的唯一真实来源。
 任何计算逻辑的修改必须在此修改，所有 Service 调用此处函数。
 
-计算规则：
-1. 绝对值 YOY：（当年 - 去年）/ 去年 → 百分比变化
-2. 占比/比率 YOY：当年 - 去年 → 百分点差（pp）
-3. 回购率 YOY：当年回购率 - 去年回购率 → 百分点差
+计算规则 (Sprint 13 更新):
+1. 绝对值 YOY：(当年 - 去年) / 去年 * 100 → 百分比数值 (已 *100, e.g. 25.0 = +25%)
+2. 占比/比率 YOY：(当年 - 去年) * 100 → pp 数值 (已 *100, e.g. 5.0 = +5pp)
+3. 回购率 YOY：当年回购率 - 去年回购率 → pp 数值 (已 *100)
+
+调用契约:
+- yoy_absolute() 返回 percentage (已 *100, 25.0 = 25%)
+- yoy_ratio() / yoy_repurchase_rate() / mom_ratio() 返回 pp 数值 (已 *100, 5.0 = 5pp)
+- 前端 caller 不要再 *100, 直接 pass-through 给 YOYBadge / MetricCard
+- 命名约定: *_ratio (0-1 decimal) / *_pct (percentage 已 *100) / *_ppt (pp 差已 *100)
 """
 
 from typing import Optional

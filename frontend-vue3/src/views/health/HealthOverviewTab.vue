@@ -11,6 +11,7 @@ import ErrorState from '@/components/ErrorState.vue'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import YOYBadge from '@/components/YOYBadge.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
+import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
 
 const emit = defineEmits<{
@@ -331,7 +332,8 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
   { header: '渠道', key: 'channel', width: 10 },
   { header: '当期评分', key: 'health_score', width: 12, numFmt: '0.0' },
   { header: '去年同期', key: 'ly_health_score', width: 12, numFmt: '0.0' },
-  { header: '同比变化', key: 'health_score_yoy', width: 12, numFmt: '0.0%' },
+  { header: '同比变化', key: 'health_score_yoy', width: 12, numFmt: '0.00' },
+  { header: '同比变化 (pp)', key: 'health_score_yoy_label', width: 14 },
 ]
 </script>
 
@@ -348,6 +350,9 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
 
     <!-- 正常展示 -->
     <template v-else>
+      <!-- Sprint 13 比率口径 banner (3 天自动消失) -->
+      <RatioConventionBanner class="mb-4" />
+
       <!-- 告警横幅 -->
       <div v-if="hasAlerts" class="alert-section mb-4">
         <NAlert

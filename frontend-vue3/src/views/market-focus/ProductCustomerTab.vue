@@ -536,12 +536,14 @@ function fmtPct(v: number): string {
 
 function fmtYoy(v: number): string {
   const sign = v > 0 ? '+' : ''
-  return `${sign}${(v * 100).toFixed(1)}%`
+  // caller 已 *100 传 percentage 数值, pass-through
+  return `${sign}${v.toFixed(1)}%`
 }
 
 function fmtPctChange(v: number): string {
   const sign = v > 0 ? '+' : ''
-  return `${sign}${(v * 100).toFixed(1)}pp`
+  // caller 已 *100 传 pp 数值, pass-through
+  return `${sign}${v.toFixed(1)}pp`
 }
 
 function changeClass(v: number): string {

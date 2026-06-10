@@ -4,18 +4,20 @@ import { NSkeleton } from 'naive-ui'
 /**
  * humanizeChange: 格式化变化值, 统一 0.00 形式.
  *
- * Caller 已处理 *100, 这里只做 abs + toFixed(2).
+ * Caller 已 *100 传 percentage/pp 数值, humanizeChange 只做 abs + toFixed(2).
+ * 跟 YOYBadge.vue 同步契约.
  *
- * @param v  - 变化值 (caller 已 *100)
+ * @param v  - 变化值 (caller 已 *100 后的 percentage 或 pp 数值)
  * @param unit  '%' (百分比) | 'pp' (百分点差)
- * @returns  e.g. "14.00%", "10.00pp", "0.00%"
+ * @returns  e.g. "14.00%", "5.00pp", "0.00%"
  */
-function humanizeChange(v: number, unit: '%' | 'pp'): string {
+function humanizeChange(v: number | null | undefined, unit: '%' | 'pp'): string {
+  if (v == null) return '—'
   if (!Number.isFinite(v)) return `0.00${unit}`
-  const raw = Math.abs(v)
-  const display = unit === 'pp' ? raw * 100 : raw
+  const display = Math.abs(v)
   return `${display.toFixed(2)}${unit}`
 }
+
 
 withDefaults(defineProps<{
   title: string

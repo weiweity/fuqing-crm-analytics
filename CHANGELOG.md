@@ -4,6 +4,37 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.29] - 2026-06-10 - refactor(ratio): Sprint 13 比率口径统一 (33 处 100× + 1 处 10000× + 1 处 0% + Excel 4 处全部修)
+
+### Fixed
+- **ratio 口径统一**: 后端 `yoy_ratio` 仍返已 `*100` pp 数值, 前端 `humanizeChange` 改 pass-through. 33 处 caller 修掉 100× bug.
+- **30 指标对比表 10000× bug**: `audience_summary._extract_metrics` 9 个 ratio 字段不再 `*100` 存.
+- **visitor_service 入会率 MOM 100× bug**: line 70+86 `(rate/100) - (comp/100)` → `(rate - comp)` 公式对齐.
+- **品类详情页新客占比永远 0%**: `churn.py:336` 完整实现 `is_new`, 不再 hardcode `[0.0] * len(dates)`.
+- **RFM/R/F/M 区间 + ValueTierTab 8 处 unit 漏标**: 补 `unit="pp"`.
+- **MarketBasket 置信度变化 100× bug**: `MarketBasketTab.vue:255-261` 去掉 `*100`, 对齐 `lift_change` decimal 差.
+- **Excel 导出 5 处 numFmt 100× bug**: `ProductClassRepurchaseTab` + `HealthOverviewTab` 改双列 (`'0.0"%"'` / `'0.0"pp"'`).
+- **None 透传显示 `—`**: `humanizeChange` 加 `v == null` 守卫.
+
+### Changed
+- **`MetricCard.vue` / `YOYBadge.vue` `humanizeChange`**: 去掉 `unit='pp'` 内部 `*100`, 改 pass-through. JSDoc 同步 (`caller 已 *100, 组件只做 abs + toFixed(2)`).
+- **`SamplingView` / `RFMSegmentDrilldown` / `ProductCustomerTab` 4 处 `fmtYoy` / `fmtYoY` 散落 `*100`**: 去掉, 对齐契约.
+- **audience_summary ratio 字段** `_extract_metrics`: ratio 字段不再 `*100` 存, 保持 0-1 decimal, 前端展示时 `*100`.
+
+### Added
+- **`RatioConventionBanner.vue`**: 4 页面 (AudienceView / CategoryView / RFMView / HealthOverviewTab) 顶部 banner, 3 天后自动消失 (localStorage).
+- **ratio 契约文档**:
+  - `docs/reference.md` 新增 "Ratio Convention (Sprint 13 更新)" 章节 (line 148 旧规则已 deprecate)
+  - `CLAUDE.md` 新增 "Ratio Convention (Sprint 13+)" 章节 (末尾, 不动现有 12 章节)
+- **单测覆盖** (pass-through 契约):
+  - `MetricCard.test.ts` +6 个 case (pp/% caller 已 *100)
+  - `YOYBadge.test.ts` +6 个 case (pp/% caller 已 *100, NaN/Infinity fallback)
+
+### Migration Notes
+- `docs/reference.md:148` 旧规则 (pp 类型 MetricCard 用 `fmtPpt()` 直传原值) 已正式 deprecate.
+- Sprint 11/12 caller 模式 (caller 传 0-1 + 组件 `*100`) 全部失效, 必须改 caller 已 `*100` + 组件 pass-through.
+- 命名建议: 新加字段优先用 `*_yoy_ppt` / `*_yoy_pct` 后缀避免歧义, 老字段 (`yoy_repurchase_rate` 等) 暂未重命名.
+
 ## [v0.4.14.27] - 2026-06-09 - fix: 30指标占比显示修正 (0.53% → 53.35%)
 
 ### Fixed

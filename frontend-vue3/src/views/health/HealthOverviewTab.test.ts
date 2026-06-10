@@ -84,7 +84,7 @@ vi.mock('naive-ui', () => {
   const { defineComponent, h } = require('vue')
   const stub = (name: string) => defineComponent({
     name,
-    props: { type: String, title: String, closable: Boolean, description: String, text: Boolean, size: String },
+    props: { type: String, title: String, closable: Boolean, description: String, text: Boolean, size: String, component: [String, Object] },
     setup(_: any, { slots }: any) {
       return () => h('div', slots.default?.())
     },
@@ -95,6 +95,7 @@ vi.mock('naive-ui', () => {
     NGi: stub('NGi'),
     NEmpty: stub('NEmpty'),
     NButton: stub('NButton'),
+    NIcon: stub('NIcon'),  // Sprint 13: RatioConventionBanner 使用 NIcon
   }
 })
 

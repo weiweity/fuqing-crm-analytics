@@ -17,6 +17,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import YOYBadge from '@/components/YOYBadge.vue'
+import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import { CHART_COLORS } from '@/composables/useChartTheme'
 import ValueTierTab from './category-tabs/ValueTierTab.vue'
@@ -514,6 +515,8 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
 <template>
   <div class="space-y-5">
     <PageHeader title="品类看板" subtitle="品类分布与人群交叉分析" />
+
+    <RatioConventionBanner />
 
     <!-- 6-Tab 主体 -->
     <div class="p-4" style="background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">

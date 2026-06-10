@@ -315,8 +315,12 @@ def get_category_daily_trend(
         SELECT
             {date_col} AS {date_key_name},
             SUM(actual_amount) AS gmv,
-            COUNT(DISTINCT user_id) AS user_count
-        FROM orders
+            COUNT(DISTINCT o.user_id) AS user_count,
+            COUNT(DISTINCT CASE
+                WHEN u.first_pay_date > ?::DATE THEN o.user_id
+            END) AS new_user_count
+        FROM orders o
+        JOIN user_first_purchase u ON o.user_id = u.user_id
         WHERE pay_time >= ?
           AND pay_time < DATE(?) + INTERVAL '1' DAY
           AND {valid_sql}
@@ -324,16 +328,22 @@ def get_category_daily_trend(
         GROUP BY {date_col}
         ORDER BY {date_col}
     )
-    SELECT {date_key_name}, gmv, user_count
+    SELECT {date_key_name}, gmv, user_count, new_user_count
     FROM daily_data
     """
-    result = conn.execute(sql, [start_date, end_date, category_id]).fetchall()
+    # cutoff = start_date - 1天 (参考 overview.py:55 calculate_new_old_users 口径)
+    cutoff_date = (datetime.strptime(start_date, "%Y-%m-%d").date() - timedelta(days=1)).strftime("%Y-%m-%d")
+    result = conn.execute(sql, [cutoff_date, start_date, end_date, category_id]).fetchall()
 
     dates = [row[0] for row in result]
     gmv = [float(row[1] or 0) for row in result]
     user_count = [int(row[2] or 0) for row in result]
+    new_user_count = [int(row[3] or 0) for row in result]
     aus = [round(g / u if u > 0 else 0, 2) for g, u in zip(gmv, user_count)]
-    new_customer_ratio = [0.0] * len(dates)  # 简化
+    new_customer_ratio = [
+        round(n / u, 4) if u > 0 else 0.0
+        for n, u in zip(new_user_count, user_count)
+    ]
 
     return {
         "category_id": category_id,

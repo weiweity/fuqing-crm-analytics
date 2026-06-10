@@ -259,3 +259,48 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+---
+
+## Ratio Convention (Sprint 13+)
+
+> 本节是 ratio / pct / ppt 类字段的强契约，Sprint 13 起强制生效。改前端展示、传值、命名必读。
+
+### 字段命名（后端，强制）
+
+| 后缀 | 数值范围 | 是否已 *100 | 示例 |
+|---|---|---|---|
+| `*_ratio` | 0-1 decimal | **否** | `old_gsv_ratio`, `member_ratio` |
+| `*_pct` | 0-100 percentage | **是** | `gsv_yoy_pct`, `member_penetration_pct` |
+| `*_ppt` | -100 ~ +100 pp 差 | **是** | `old_gsv_ratio_yoy_ppt`, `lock_rate_yoy_ppt` |
+| `*_yoy` / `*_mom` | 按上面 3 种后缀对应 | 视字段而定 | `gsv_yoy` (pct), `old_gsv_ratio_yoy` (ppt) |
+
+**核心契约**:
+
+- `yoy_ratio()` / `mom_ratio()` 返回 **pp 数值**（已 `*100`，e.g. 0.05 → 5.0）
+- `yoy_absolute()` / `mom_absolute()` 返回 **percentage**（已 `*100`，e.g. 0.25 → 25.0）
+- `audience_summary._extract_metrics` ratio 字段不再 `*100` 存（避免 10000× bug）
+- `churn.py:336` `new_customer_ratio` 真正实现（禁止 hardcode 0 占位）
+
+### 前端契约（pass-through）
+
+- `YOYBadge` / `MetricCard` 的 `humanizeChange`: **caller 已 `*100` 传值，组件只做 `abs + toFixed(2)`**
+- **不要在前端 `* 100`** — Sprint 11/12 散落 `*100` 模式已 deprecate
+- `fmtYoy` / `fmtYoY` / `fmtPctChange` 等自定义函数: caller 传已 `*100` 数值，函数不乘
+- YOYBadge `unit` 默认 `'%'`，ratio 类必须显式 `unit="pp"`
+- None 透传显示 `—`（`humanizeChange` 已加 `v == null` 守卫）
+
+### 禁止（lint 待加）
+
+1. **前端 0 处散落 `* 100`** — caller 自乘，组件不乘
+2. **命名冲突** — `*_ratio_yoy` vs `*_yoy_ratio` 强制统一为 `*_yoy_ppt` / `*_yoy_pct`
+3. **hardcode 0 占位** — 禁止 `series = [0.0] * len(dates)`（Sprint 13 P3 教训）
+4. **Excel numFmt 错配** — pp 字段用 `'0.0"pp"'` 字面量后缀，% 字段用 `'0.0"%"'`
+
+### 文档
+
+- 完整契约: `docs/reference.md` "Ratio Convention (Sprint 13 更新)" 章节
+- 字段语义: `backend/semantic/calculations.py` docstring（`yoy_ratio` / `yoy_absolute` / `mom_*`）
+- 组件实现: `frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue` JSDoc
+- 改版历史: `CHANGELOG.md` v0.4.14.26 (Sprint 12) + v0.4.14.29 (Sprint 13)
+- 4 页面 banner: `frontend-vue3/src/components/RatioConventionBanner.vue` (3 天自动消失)

@@ -146,6 +146,7 @@ fuqing-crm-analytics/
 | 2026-05-31 | DuckDB 内存 Swap | memory_limit=12.7GB 超出物理内存 | 添加 `DUCKDB_MEMORY_LIMIT` 环境变量，默认 8GB |
 | 2026-05-30 | 173 个 ruff lint 错误持续累积 | 无 pre-commit hook、无 CI，错误无人拦 | 三层防线：pre-commit (ruff) + pre-push (pytest) + GitHub Actions CI |
 | 2026-05-30 | 老客GSV占比 pp 显示 155pp/193pp | `fmtYoy()` ×100 + MetricCard pp 模板 ×100 = 双重乘法 | pp 类型 MetricCard 用 `fmtPpt()` 直传原值，YOYBadge ratio 列用 `unit='pp'` + 调用方 ×100 |
+| 2026-06-10 | Sprint 13 比率口径治理 | 33 处 100× + 1 处 10000× + 1 处 0% + Excel 4 处 + 8 处 unit 漏标 | 契约统一: 后端 `yoy_ratio` 返 pp 数值, 前端 `humanizeChange` 改 pass-through. 详见下文 **Ratio Convention** 章节 |
 | 2026-05-30 | `_r_interval_sql` 安全设计决策 | DuckDB 不支持 `DATE ?` 语法 | 函数入口加 regex + `datetime.strptime` 双重校验 |
 | 2026-05-30 | DuckDB INSERT 列数不匹配 | f-string 硬编码值容易漏列或多列 | 用参数化 INSERT `conn.execute(sql, [v1, v2, ...])` |
 | 2026-05-30 | 测试 monkeypatch 目标错误 | `from x import get_connection` 把名称绑定到本地模块 | monkeypatch 目标必须是 use site，不是定义 site |
@@ -180,6 +181,105 @@ fuqing-crm-analytics/
 | 2026-06-07 | Sprint 6 | 16 root test 失败 | pyproject.toml testpaths 配置错误 | 删 testpaths 恢复默认，16 root test 改 ignore |
 | 2026-06-07 | Sprint 7 | P0 治根 10 root test fail | 测试文件路径和导入问题 | 修复测试文件路径，确保导入正确 |
 | 2026-06-07 | Sprint 8 | YOYBadge 模式不统一 | 前端组件模式判断逻辑不一致 | 统一 YOYBadge 模式判断，R 桶 pre_cutoff 改 end_dt |
+
+---
+
+## Ratio Convention (Sprint 13 更新)
+
+> 本节取代 line 148 旧规则。Sprint 11/12 的"前端 caller 散落 `*100`"模式已正式 deprecate，从 Sprint 13 起改用 **pass-through 契约**。
+>
+> 适用范围：所有 ratio / pct / ppt 类字段（YOY、MOM、占比、同比差、绝对值变化等）。
+
+### 1. 旧规则 (Sprint 11/12) — DEPRECATE
+
+- `MetricCard.vue` / `YOYBadge.vue` 的 `humanizeChange` 在 `unit='pp'` 时内部 `*100`，调用方传 0-1 decimal
+- 前端 `fmtYoy` / `fmtYoY` / `fmtPctChange` 散落 `*100`
+- 命名: `*_rate` / `*_ratio` / `*_pct` 含义模糊，依赖调用方自行判断
+- 结果: 33 处 100× bug + 1 处 10000× bug（Sprint 13 audit 查出）
+
+### 2. 新规则 (Sprint 13 起) — 当前生效
+
+| 字段名后缀 | 数值范围 | 是否已 *100 | 典型字段 |
+|---|---|---|---|
+| `*_ratio` | 0-1 decimal | 否 | `old_gsv_ratio`, `member_ratio` |
+| `*_pct` | 0-100 percentage | **是** | `gsv_yoy_pct`, `member_penetration_pct` |
+| `*_ppt` | -100 ~ +100 pp 差 | **是** | `old_gsv_ratio_yoy_ppt`, `lock_rate_yoy_ppt` |
+| `*_yoy` / `*_mom` | 按上面 3 种语义对应 | 视字段而定 | `gsv_yoy` (pct), `old_gsv_ratio_yoy` (ppt) |
+
+**核心契约**:
+
+- `yoy_ratio()` / `mom_ratio()` 返回 **pp 数值**（已 `*100`）— 例如 0.05 → 5.0
+- `yoy_absolute()` / `mom_absolute()` 返回 **percentage**（已 `*100`）— 例如 0.25 → 25.0
+- `audience_summary._extract_metrics` 不再 `*100` 存 ratio 字段（避免 10000× bug）
+- `visitor_service` `rate - comp` 公式对齐其它 yoy 字段
+- `churn.py:336` `new_customer_ratio` 真正实现（不 hardcode 0）
+
+### 3. 命名约定（强制）
+
+| 类型 | 命名 | 示例 | 说明 |
+|---|---|---|---|
+| 后端 ratio 字段 | `*_ratio` | `old_gsv_ratio` | 0-1 decimal，**前端展示需 `*100`** |
+| 后端 percentage 字段 | `*_pct` | `gsv_yoy_pct` | 已 *100，前端直接 `toFixed(2)+'%'` |
+| 后端 pp 差字段 | `*_ppt` | `old_gsv_ratio_yoy_ppt` | 已 *100，前端直接 `toFixed(2)+'pp'` |
+| YOY/MOM 字段 | `*_yoy` / `*_mom` + 上面 3 种后缀 | `gsv_yoy_pct`, `lock_rate_yoy_ppt` | 类型由后缀决定 |
+| 命名冲突 | `*_ratio_yoy` vs `*_yoy_ratio` | — | 禁止: 必须用 `*_yoy_ppt` 或 `*_yoy_pct` |
+
+### 4. 字段单位速查表
+
+| 场景 | 后端字段 | 单位 | 前端组件 | caller 传值 |
+|---|---|---|---|---|
+| 全店 GSV 同比 | `gsv_yoy` | % | `YOYBadge unit='%'` | 已 *100 (e.g. 14) |
+| 老客 GSV 同比 | `old_gsv_yoy` | % | `YOYBadge unit='%'` | 已 *100 |
+| 老客 GSV 占比同比 | `old_gsv_ratio_yoy` | pp | `YOYBadge unit='pp'` | 已 *100 (e.g. 5.28) |
+| 锁权率 同比 | `lock_rate_yoy` | pp | `YOYBadge unit='pp'` | 已 *100 |
+| 复购率 同比 | `repurchase_rate_yoy` | pp | `YOYBadge unit='pp'` | 已 *100 |
+| 入会率 同比 | `member_join_rate_yoy` | pp | `YOYBadge unit='pp'` | 已 *100 |
+| 老客 GSV 占比当前值 | `old_gsv_ratio` | ratio (0-1) | `MetricCard value` + caller `*100` | 0-1, 展示时 *100 |
+| 30 指标对比表 ratio 列 | `*_ratio` | ratio (0-1) | `renderValue` `v.toFixed(2)+'%'` | 0-1, 展示时 *100 |
+
+### 5. caller 模式示例
+
+**示例 1: 占比 YOY（pp 类）**
+
+```typescript
+// 后端: old_gsv_ratio_yoy (pp 数值, 已 *100, e.g. 5.28)
+<YOYBadge :value="row.old_gsv_ratio_yoy" unit="pp" />
+// 显示: +5.28pp ↑
+// MetricCard 内部 humanizeChange: caller 已 *100, 只做 abs + toFixed(2)
+```
+
+**示例 2: GSV YOY（% 类）**
+
+```typescript
+// 后端: gsv_yoy (percentage 数值, 已 *100, e.g. 14.0)
+<YOYBadge :value="row.gsv_yoy" unit="%" />
+// 显示: +14.00% ↑
+// MetricCard 内部 humanizeChange: caller 已 *100, 只做 abs + toFixed(2)
+```
+
+**示例 3: 复购率 YOY（pp 类）**
+
+```typescript
+// 后端: repurchase_rate_yoy (pp 数值, 已 *100, e.g. 3.5)
+<YOYBadge :value="row.repurchase_rate_yoy" unit="pp" />
+// 显示: +3.50pp ↑
+// RFMSegmentDrilldown.vue:174,194 fmtYoY 去掉 v * 100
+```
+
+### 6. 文档链接
+
+- 行为规则：`CLAUDE.md` "Ratio Convention (Sprint 13+)" 章节
+- 契约定义：`backend/semantic/calculations.py` docstring（`yoy_ratio` / `yoy_absolute`）
+- 组件实现：`frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue` `humanizeChange` JSDoc
+- 改版历史：本文件 line 148 旧规则 + CHANGELOG.md v0.4.14.26 / v0.4.14.29
+
+### 7. 禁止事项（lint 规则待加）
+
+1. **前端 0 处散落 `* 100`** — caller 自乘，组件不乘
+2. **命名冲突** — `*_ratio_yoy` vs `*_yoy_ratio` 二选一，强制用 `*_yoy_ppt` / `*_yoy_pct`
+3. **hardcode 0 占位** — 禁止 `series = [0.0] * len(dates)` 之类占位（Sprint 13 P3 教训）
+4. **Excel numFmt 错配** — pp 字段用 `'0.0"pp"'` 字面量后缀，% 字段用 `'0.0"%"'`
+5. **YOYBadge / MetricCard 不传 unit** — 默认 `%`，但 ratio 类必须显式 `unit="pp"`
 
 ---
 
