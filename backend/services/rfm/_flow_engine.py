@@ -146,8 +146,10 @@ def _parse_flow_rows(
         total = totals[mode]
         for seg in result:
             if seg == "已购客TTL":
-                # TTL 是汇总行, 比率语义跟 R/F/M 桶不同, 留 0 避免越界
-                result[seg]["repurchase_gsv_ratio"] = 0.0
+                # TTL 是汇总行, 比率语义跟 R/F/M 桶不同 (TTL gsv > sum_R_buckets,
+                # 必越界 RatioField 0-1). 留 None, contract 字段是 Optional,
+                # 前端 RFMView 已 .filter 过滤此段显示.
+                result[seg]["repurchase_gsv_ratio"] = None
                 continue
             gsv = result[seg]["repurchase_gsv"]
             result[seg]["repurchase_gsv_ratio"] = gsv / total if total > 0 else 0.0
@@ -486,6 +488,10 @@ def get_rfm_flow(
         pass
 
     def _build_rows(all_data, comp_data, prev2_data):
+        def _ratio_or_none(v):
+            """TTL 段 ratio 是 None (语义: 不参与占比, contract Optional), 其他段 round 4 位."""
+            return None if v is None else round(v, 4)
+
         rows = []
         for seg in segment_order:
             c = all_data.get(seg, {})
@@ -497,17 +503,17 @@ def get_rfm_flow(
                 "repurchase_users_current": c.get("repurchase_users", 0),
                 "repurchase_rate_current": round(c.get("repurchase_rate", 0.0), 4),
                 "repurchase_gsv_current": round(c.get("repurchase_gsv", 0.0), 2),
-                "repurchase_gsv_ratio_current": round(c.get("repurchase_gsv_ratio", 0.0), 4),
+                "repurchase_gsv_ratio_current": _ratio_or_none(c.get("repurchase_gsv_ratio")),
                 "hist_users_comp": p.get("hist_users", 0),
                 "repurchase_users_comp": p.get("repurchase_users", 0),
                 "repurchase_rate_comp": round(p.get("repurchase_rate", 0.0), 4),
                 "repurchase_gsv_comp": round(p.get("repurchase_gsv", 0.0), 2),
-                "repurchase_gsv_ratio_comp": round(p.get("repurchase_gsv_ratio", 0.0), 4),
+                "repurchase_gsv_ratio_comp": _ratio_or_none(p.get("repurchase_gsv_ratio")),
                 "hist_users_prev2": p2.get("hist_users", 0),
                 "repurchase_users_prev2": p2.get("repurchase_users", 0),
                 "repurchase_rate_prev2": round(p2.get("repurchase_rate", 0.0), 4),
                 "repurchase_gsv_prev2": round(p2.get("repurchase_gsv", 0.0), 2),
-                "repurchase_gsv_ratio_prev2": round(p2.get("repurchase_gsv_ratio", 0.0), 4),
+                "repurchase_gsv_ratio_prev2": _ratio_or_none(p2.get("repurchase_gsv_ratio")),
                 "yoy_hist_users": yoy_absolute(c.get("hist_users", 0), p.get("hist_users", 0)),
                 "yoy_repurchase_users": yoy_absolute(c.get("repurchase_users", 0), p.get("repurchase_users", 0)),
                 "yoy_repurchase_rate": yoy_repurchase_rate(c.get("repurchase_rate", 0.0), p.get("repurchase_rate", 0.0)),

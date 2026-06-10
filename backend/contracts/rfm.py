@@ -11,19 +11,22 @@ class RFMRFlowRow(BaseModel):
     repurchase_users_current: int = 0
     repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: "RatioField" = 0.0
+    # Sprint 14.5 P1.1 (Codex audit): TTL 段 ratio 必 > 1.0 越界 RatioField 0-1,
+    # 改 Optional 让 None 通过. Service 端 _parse_flow_rows 给 TTL 段写 None
+    # (语义: 不参与 R/F/M 桶占比), 前端 RFMView 已 .filter 过滤此段显示.
+    repurchase_gsv_ratio_current: Optional["RatioField"] = None
 
     hist_users_comp: int = 0
     repurchase_users_comp: int = 0
     repurchase_rate_comp: "RatioField" = 0.0
     repurchase_gsv_comp: float = 0.0
-    repurchase_gsv_ratio_comp: "RatioField" = 0.0
+    repurchase_gsv_ratio_comp: Optional["RatioField"] = None
 
     hist_users_prev2: int = 0
     repurchase_users_prev2: int = 0
     repurchase_rate_prev2: "RatioField" = 0.0
     repurchase_gsv_prev2: float = 0.0
-    repurchase_gsv_ratio_prev2: "RatioField" = 0.0
+    repurchase_gsv_ratio_prev2: Optional["RatioField"] = None
 
     yoy_hist_users: Optional["PercentageField"] = None
     yoy_repurchase_users: Optional["PercentageField"] = None
@@ -50,19 +53,20 @@ class RFMFRFlowRow(BaseModel):
     repurchase_users_current: int = 0
     repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: "RatioField" = 0.0
+    # Sprint 14.5 P1.1: TTL 段 ratio 改 Optional (见 RFMRFlowRow 注释)
+    repurchase_gsv_ratio_current: Optional["RatioField"] = None
 
     hist_users_comp: int = 0
     repurchase_users_comp: int = 0
     repurchase_rate_comp: "RatioField" = 0.0
     repurchase_gsv_comp: float = 0.0
-    repurchase_gsv_ratio_comp: "RatioField" = 0.0
+    repurchase_gsv_ratio_comp: Optional["RatioField"] = None
 
     hist_users_prev2: int = 0
     repurchase_users_prev2: int = 0
     repurchase_rate_prev2: "RatioField" = 0.0
     repurchase_gsv_prev2: float = 0.0
-    repurchase_gsv_ratio_prev2: "RatioField" = 0.0
+    repurchase_gsv_ratio_prev2: Optional["RatioField"] = None
 
     yoy_hist_users: Optional["PercentageField"] = None
     yoy_repurchase_users: Optional["PercentageField"] = None
@@ -93,19 +97,20 @@ class RFMMFlowRow(BaseModel):
     repurchase_users_current: int = 0
     repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: "RatioField" = 0.0
+    # Sprint 14.5 P1.1: TTL 段 ratio 改 Optional (见 RFMRFlowRow 注释)
+    repurchase_gsv_ratio_current: Optional["RatioField"] = None
 
     hist_users_comp: int = 0
     repurchase_users_comp: int = 0
     repurchase_rate_comp: "RatioField" = 0.0
     repurchase_gsv_comp: float = 0.0
-    repurchase_gsv_ratio_comp: "RatioField" = 0.0
+    repurchase_gsv_ratio_comp: Optional["RatioField"] = None
 
     hist_users_prev2: int = 0
     repurchase_users_prev2: int = 0
     repurchase_rate_prev2: "RatioField" = 0.0
     repurchase_gsv_prev2: float = 0.0
-    repurchase_gsv_ratio_prev2: "RatioField" = 0.0
+    repurchase_gsv_ratio_prev2: Optional["RatioField"] = None
 
     yoy_hist_users: Optional["PercentageField"] = None
     yoy_repurchase_users: Optional["PercentageField"] = None

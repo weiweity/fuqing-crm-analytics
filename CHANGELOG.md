@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.34] - 2026-06-10 - fix(rfm): Sprint 14.5 增量 2 (Codex audit) — contract Optional 治根 + W5 cache algo_version
+
+### Fixed
+- **`contracts/rfm.py` 14 个 ratio 字段改 `Optional[RatioField] = None`** (R/F/M 3 维度 × 3 时段 + RFMAnalysisRow 5 段) — Codex P1.1 治根: TTL 段 ratio 必 > 1.0 越界 RatioField 0-1, 留 0.0 是 silent failure trap, 改 Optional 让 None 透传
+- **`_flow_engine.py` TTL 段写 None 透传** — `_build_rows` 用 `_ratio_or_none` helper, None 透传到 contract, 不 round 不漂移
+- **`_shared.py` W5 flow cache 加 `algo_version` 校验** — `_get_cached_flow` 校验 `FLOW_ALGO_VERSION`, 算法改动 → 自动 cache 失效, 防 24h 内返旧值 (Sprint 14.5 真实踩坑 ttl_gsv 2.87 越界直到 invalidate). `FLOW_ALGO_VERSION = "v0.4.14.34"` 写时附读时校
+
+### Tests (Codex P1.2 / P1.3 / P2.1 / P2.2 / P2.8)
+- **`backend/tests/test_rfm_flow_ttl_ratio.py` 13 测试** (从 5 扩到 13):
+  - P1.2 F/M 桶同样验证 (_parse_flow_rows 共享引擎)
+  - P1.3 Pydantic 端到端断言 (RFMRFlowRow/RFMFRFlowRow/RFMMFlowRow 不抛 ValidationError)
+  - P1.3 回归: ratio=1.5 仍被拒收 (确保 Optional 没破坏 RatioField 0-1)
+  - P2.1 非均匀 GSV 分布下单段 ratio ≤ 1.0 (浮点边界)
+  - P2.2 全 0 数据场景不抛异常
+  - P2.8 test_ttl_ratio_none_regardless_of_ttl_gsv 加 gsv 保留断言 (防后人误读)
+
 ## [v0.4.14.33] - 2026-06-10 - fix(rfm): Sprint 14.5 治根 "已购客TTL" 段 ratio 越界 (Pydantic 500)
 
 ### Fixed
