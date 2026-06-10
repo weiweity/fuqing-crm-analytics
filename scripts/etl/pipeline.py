@@ -597,13 +597,17 @@ def _mark_all_files_processed():
         # 导致冷启动后 ingest 仍把 103 个 parquet 视为新增, 走 xlsx fallback
         # 读 103 xlsx, RSS 撞 watchdog 阈值被 kill, 死循环. 修法: parquet
         # key 跟 ingest 一致, 用 _xlsx_stem_to_rel 反查 xlsx 相对路径.
+        # Sprint 14 B 修 (codex P0-3): mtime 写源 xlsx mtime (而非 parquet mtime), 跟 ingest.py:144-151
+        # 一致. xlsx 缺失时回退 parquet mtime (防御性, 跟 ingest 同模式).
         _xlsx_stem_to_rel = {xf.stem: str(xf.relative_to(data_source)) for xf in files}
         pq_dir = PARQUET_DATA_DIR / data_type
         if pq_dir.exists():
             for f in pq_dir.glob("*.parquet"):
                 key = _xlsx_stem_to_rel.get(f.stem, f.name)
+                xlsx_path = data_source / key
+                xlsx_mtime = xlsx_path.stat().st_mtime if xlsx_path.exists() else f.stat().st_mtime
                 processed[key] = {
-                    'mtime': f.stat().st_mtime,
+                    'mtime': xlsx_mtime,
                     'hash': _get_file_hash(f)
                 }
         _save_processed_files(data_type, processed)
