@@ -385,6 +385,29 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                     _save_processed_files(dtype, processed)
                     print(f"  [事务化] 已标记 {len(updates)} 个 {dtype} 文件为已处理")
 
+        # Sprint 14 B+ is_member replay 集成: 调 Sprint 10 写的 2 个手动救火脚本
+        # 根因: pipeline.py:329 增量模式 shop_df.is_member = order_id in member_order_ids,
+        # member_order_ids 来源有缺陷 (line 144-174):
+        #   - member parquet 空 → 走 fallback 从 DuckDB WHERE is_member = TRUE → 鸡生蛋循环
+        #   - member parquet 新增 → 只用新文件 order_id → 老会员丢失 → 老会员被标 FALSE
+        # 修法: 调 build_membership_mark.py 重建 4.6M unique order_id 持久表,
+        #       调 replay_is_member.py DROP 6 idx → UPDATE 1.8s → 重建 19.7s, 全表 is_member 重写
+        # 跑批时间增量: +1-2 min (1.8s UPDATE + 19.7s index + 0.5s build)
+        # 幂等: 两个脚本已幂等 (ON CONFLICT DO NOTHING / 只 UPDATE is_member=FALSE)
+        with PerfTimer("pl_step4_6_membership_mark"):
+            try:
+                from scripts.etl.build_membership_mark import main as _build_membership_mark_main
+                _build_membership_mark_main()
+            except Exception as _e:
+                # is_member 集成失败不阻塞 ETL 已完成的事实 (跟 W6 通知同样 graceful degrade)
+                print(f"  [Step 4.6 membership_mark] 跳过: {type(_e).__name__}: {str(_e)[:200]}")
+        with PerfTimer("pl_step4_7_replay_is_member"):
+            try:
+                from scripts.etl.replay_is_member import main as _replay_is_member_main
+                _replay_is_member_main()
+            except Exception as _e:
+                print(f"  [Step 4.7 replay_is_member] 跳过: {type(_e).__name__}: {str(_e)[:200]}")
+
         # Step 5: 预计算每日指标（增量模式）— 已挪到 Step 6 user_first_purchase 之后
         # 原因：metrics SQL 用 LEFT JOIN user_first_purchase 算 new/old_user_count，
         # 必须先建好 user_first_purchase 表。详见 _update_incremental_metrics docstring。

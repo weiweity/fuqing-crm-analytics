@@ -1,7 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from .common import DateRangeResponse, YearComparisonRow
+from .types import RatioField, PercentageField, PpField  # Sprint 14 A.1
 
 class AudienceTableRequest(BaseModel):
     dimension: str = Field(default="channel", description="维度：channel / spu_tier / spu_product_class / spu_product_subclass")
@@ -147,72 +149,72 @@ class ChannelGSVRow(BaseModel):
     channel: str
     gsv_2026: float = 0.0
     gsv_2025: float = 0.0
-    yoy: Optional[float] = None          # YOY增长率
-    ratio_2026: Optional[float] = None   # 2026年占全店比例
-    ratio_2025: Optional[float] = None   # 2025年占全店比例
-    ratio_yoy: Optional[float] = None   # 占比YOY
+    yoy: Optional["PercentageField"] = None          # YOY增长率 (已 *100 pp)
+    ratio_2026: Optional["RatioField"] = None   # 2026年占全店比例 (0-1 decimal)
+    ratio_2025: Optional["RatioField"] = None   # 2025年占全店比例 (0-1 decimal)
+    ratio_yoy: Optional["PpField"] = None   # 占比YOY (pp 差)
     # 人数（Panel B=全店人数, Panel C=会员人数）
     users_2026: Optional[float] = None
     users_2025: Optional[float] = None
-    users_yoy: Optional[float] = None
+    users_yoy: Optional["PercentageField"] = None
     # AUS（Panel B=全店AUS, Panel C=会员AUS）
     aus_2026: Optional[float] = None
     aus_2025: Optional[float] = None
-    aus_yoy: Optional[float] = None
+    aus_yoy: Optional["PercentageField"] = None
     # 新客GSV
     new_gsv_2026: Optional[float] = None
     new_gsv_2025: Optional[float] = None
-    new_gsv_yoy: Optional[float] = None
-    new_gsv_ratio_2026: Optional[float] = None
-    new_gsv_ratio_2025: Optional[float] = None
-    new_gsv_ratio_yoy: Optional[float] = None
+    new_gsv_yoy: Optional["PercentageField"] = None
+    new_gsv_ratio_2026: Optional["RatioField"] = None
+    new_gsv_ratio_2025: Optional["RatioField"] = None
+    new_gsv_ratio_yoy: Optional["PpField"] = None
     # 老客GSV
     old_gsv_2026: Optional[float] = None
     old_gsv_2025: Optional[float] = None
-    old_gsv_yoy: Optional[float] = None
-    old_gsv_ratio_2026: Optional[float] = None
-    old_gsv_ratio_2025: Optional[float] = None
-    old_gsv_ratio_yoy: Optional[float] = None
+    old_gsv_yoy: Optional["PercentageField"] = None
+    old_gsv_ratio_2026: Optional["RatioField"] = None
+    old_gsv_ratio_2025: Optional["RatioField"] = None
+    old_gsv_ratio_yoy: Optional["PpField"] = None
     # 新客人数（Panel B=全店新客人数, Panel C=会员新客人数）
     new_users_2026: Optional[float] = None
     new_users_2025: Optional[float] = None
-    new_users_yoy: Optional[float] = None
+    new_users_yoy: Optional["PercentageField"] = None
     # 新客AUS（Panel B=全店新客AUS, Panel C=会员新客AUS）
     new_aus_2026: Optional[float] = None
     new_aus_2025: Optional[float] = None
-    new_aus_yoy: Optional[float] = None
+    new_aus_yoy: Optional["PercentageField"] = None
     # 老客人数（Panel B=全店老客人数, Panel C=会员老客人数）
     old_users_2026: Optional[float] = None
     old_users_2025: Optional[float] = None
-    old_users_yoy: Optional[float] = None
+    old_users_yoy: Optional["PercentageField"] = None
     # 老客AUS（Panel B=全店老客AUS, Panel C=会员老客AUS）
     old_aus_2026: Optional[float] = None
     old_aus_2025: Optional[float] = None
-    old_aus_yoy: Optional[float] = None
+    old_aus_yoy: Optional["PercentageField"] = None
     # 会员占该渠道比例（Panel C 专用）
-    member_ratio_2026: Optional[float] = None
-    member_ratio_2025: Optional[float] = None
-    member_ratio_yoy: Optional[float] = None
+    member_ratio_2026: Optional["RatioField"] = None
+    member_ratio_2025: Optional["RatioField"] = None
+    member_ratio_yoy: Optional["PpField"] = None
     # 会员视角新/老客GSV（供 channel_member 列扩展使用）
     member_new_gsv_2026: Optional[float] = None
     member_new_gsv_2025: Optional[float] = None
-    member_new_gsv_yoy: Optional[float] = None
-    member_new_gsv_ratio_2026: Optional[float] = None
-    member_new_gsv_ratio_2025: Optional[float] = None
-    member_new_gsv_ratio_yoy: Optional[float] = None
+    member_new_gsv_yoy: Optional["PercentageField"] = None
+    member_new_gsv_ratio_2026: Optional["RatioField"] = None
+    member_new_gsv_ratio_2025: Optional["RatioField"] = None
+    member_new_gsv_ratio_yoy: Optional["PpField"] = None
     member_old_gsv_2026: Optional[float] = None
     member_old_gsv_2025: Optional[float] = None
-    member_old_gsv_yoy: Optional[float] = None
-    member_old_gsv_ratio_2026: Optional[float] = None
-    member_old_gsv_ratio_2025: Optional[float] = None
-    member_old_gsv_ratio_yoy: Optional[float] = None
+    member_old_gsv_yoy: Optional["PercentageField"] = None
+    member_old_gsv_ratio_2026: Optional["RatioField"] = None
+    member_old_gsv_ratio_2025: Optional["RatioField"] = None
+    member_old_gsv_ratio_yoy: Optional["PpField"] = None
     # 交叉指标：会员新客/老客 GSV 占全店新客/老客 GSV 比例
-    member_new_vs_all_new_2026: Optional[float] = None
-    member_new_vs_all_new_2025: Optional[float] = None
-    member_new_vs_all_new_yoy: Optional[float] = None
-    member_old_vs_all_old_2026: Optional[float] = None
-    member_old_vs_all_old_2025: Optional[float] = None
-    member_old_vs_all_old_yoy: Optional[float] = None
+    member_new_vs_all_new_2026: Optional["RatioField"] = None
+    member_new_vs_all_new_2025: Optional["RatioField"] = None
+    member_new_vs_all_new_yoy: Optional["PpField"] = None
+    member_old_vs_all_old_2026: Optional["RatioField"] = None
+    member_old_vs_all_old_2025: Optional["RatioField"] = None
+    member_old_vs_all_old_yoy: Optional["PpField"] = None
 
 class AudiencePeriodMetrics(BaseModel):
     """单个周期的30项指标"""

@@ -145,8 +145,14 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                         for f in pq_files:
                             # 使用 xlsx 相对路径作为 key（与 _file_changed 一致）
                             key = _xlsx_stem_to_rel.get(f.stem, f.name)
+                            # Sprint 14 B 修 mtime 语义统一: parquet 路径写源 xlsx mtime (而非
+                            # parquet 自己的 mtime), 保证 processed_files_*.json 中 mtime 字段
+                            # 跟 _file_changed 比较的"源 mtime"基准一致. _xlsx_stem_to_rel 在
+                            # ingest.py:75-77 已构建, key 反查 100% 命中 (Sprint 9 维修时已加固).
+                            xlsx_path = data_source / key
+                            xlsx_mtime = xlsx_path.stat().st_mtime if xlsx_path.exists() else f.stat().st_mtime
                             pq_updates[key] = {
-                                'mtime': f.stat().st_mtime,
+                                'mtime': xlsx_mtime,
                                 'hash': _get_file_hash(f)
                             }
                         combined_pq.attrs['_etl_processed_updates'] = pq_updates

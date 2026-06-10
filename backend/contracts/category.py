@@ -1,7 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, Field
 from .common import WoolPartyBreakdown, DualAxisLineData
+from .types import RatioField, PercentageField, PpField  # Sprint 14 A.3
 
 class CategoryDistributionItem(BaseModel):
     name: str
@@ -26,33 +28,33 @@ class CategoryDistributionResponse(BaseModel):
 class CategoryOverviewItem(BaseModel):
     name: str
     gsv: float
-    gsv_yoy: Optional[float] = None
+    gsv_yoy: Optional["PercentageField"] = None
     users: int
-    users_yoy: Optional[float] = None
+    users_yoy: Optional["PercentageField"] = None
     aus: float
-    aus_yoy: Optional[float] = None
+    aus_yoy: Optional["PercentageField"] = None
     old_gsv: float
-    old_gsv_yoy: Optional[float] = None
-    old_ratio: float
-    old_ratio_yoy: Optional[float] = None
+    old_gsv_yoy: Optional["PercentageField"] = None
+    old_ratio: "RatioField"
+    old_ratio_yoy: Optional["PpField"] = None
     old_users: int
-    old_users_yoy: Optional[float] = None
+    old_users_yoy: Optional["PercentageField"] = None
     old_aus: float
-    old_aus_yoy: Optional[float] = None
+    old_aus_yoy: Optional["PercentageField"] = None
     new_gsv: float
-    new_gsv_yoy: Optional[float] = None
-    new_ratio: float
-    new_ratio_yoy: Optional[float] = None
+    new_gsv_yoy: Optional["PercentageField"] = None
+    new_ratio: "RatioField"
+    new_ratio_yoy: Optional["PpField"] = None
     new_users: int
-    new_users_yoy: Optional[float] = None
+    new_users_yoy: Optional["PercentageField"] = None
     new_aus: float
-    new_aus_yoy: Optional[float] = None
-    old_users_ratio: Optional[float] = None
-    old_users_ratio_yoy: Optional[float] = None
-    new_users_ratio: Optional[float] = None
-    new_users_ratio_yoy: Optional[float] = None
-    member_ratio: Optional[float] = None
-    member_ratio_yoy: Optional[float] = None
+    new_aus_yoy: Optional["PercentageField"] = None
+    old_users_ratio: Optional["RatioField"] = None
+    old_users_ratio_yoy: Optional["PpField"] = None
+    new_users_ratio: Optional["RatioField"] = None
+    new_users_ratio_yoy: Optional["PpField"] = None
+    member_ratio: Optional["RatioField"] = None
+    member_ratio_yoy: Optional["PpField"] = None
 
 
 class CategoryOverviewResponse(BaseModel):
@@ -96,21 +98,22 @@ class CategoryRepurchaseFlowRow(BaseModel):
 
     hist_users_current: int = 0
     repurchase_users_current: int = 0
-    repurchase_rate_current: float = 0.0
+    repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: float = 0.0
+    repurchase_gsv_ratio_current: "RatioField" = 0.0
 
     hist_users_comp: int = 0
-    repurchase_rate_comp: float = 0.0
+    repurchase_rate_comp: "RatioField" = 0.0
 
     hist_users_prev2: int = 0
-    repurchase_rate_prev2: float = 0.0
+    repurchase_rate_prev2: "RatioField" = 0.0
 
-    yoy_hist_users: Optional[float] = None
-    yoy_repurchase_users: Optional[float] = None
-    yoy_repurchase_rate: Optional[float] = None
-    yoy_repurchase_gsv: Optional[float] = None
-    yoy_repurchase_gsv_ratio: Optional[float] = None
+    yoy_hist_users: Optional["PercentageField"] = None
+    yoy_repurchase_users: Optional["PercentageField"] = None
+    # Sprint 13 修: 字段名带 _rate 但语义是 pp 差, 加 unit='pp' caller 端, 契约层是 PercentageField
+    yoy_repurchase_rate: Optional["PpField"] = None
+    yoy_repurchase_gsv: Optional["PercentageField"] = None
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
 
 
 class CategoryRepurchaseFlowResponse(BaseModel):
@@ -129,9 +132,9 @@ class ValueTierTableRow(BaseModel):
     category_name: str
     total_users: int
     high_value_users: int
-    high_value_ratio: float
+    high_value_ratio: "RatioField"
     wool_party: WoolPartyBreakdown
-    member_ratio: float
+    member_ratio: "RatioField"
     avg_aus: float
     value_score: float
     value_grade: str  # A/B/C/D/E

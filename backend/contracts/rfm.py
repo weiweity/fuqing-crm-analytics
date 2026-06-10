@@ -1,33 +1,36 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel, Field
+from .types import RatioField, PercentageField, PpField  # Sprint 14 A.3
 
 class RFMRFlowRow(BaseModel):
     r_segment: str
 
     hist_users_current: int = 0
     repurchase_users_current: int = 0
-    repurchase_rate_current: float = 0.0
+    repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: float = 0.0
+    repurchase_gsv_ratio_current: "RatioField" = 0.0
 
     hist_users_comp: int = 0
     repurchase_users_comp: int = 0
-    repurchase_rate_comp: float = 0.0
+    repurchase_rate_comp: "RatioField" = 0.0
     repurchase_gsv_comp: float = 0.0
-    repurchase_gsv_ratio_comp: float = 0.0
+    repurchase_gsv_ratio_comp: "RatioField" = 0.0
 
     hist_users_prev2: int = 0
     repurchase_users_prev2: int = 0
-    repurchase_rate_prev2: float = 0.0
+    repurchase_rate_prev2: "RatioField" = 0.0
     repurchase_gsv_prev2: float = 0.0
-    repurchase_gsv_ratio_prev2: float = 0.0
+    repurchase_gsv_ratio_prev2: "RatioField" = 0.0
 
-    yoy_hist_users: Optional[float] = None
-    yoy_repurchase_users: Optional[float] = None
-    yoy_repurchase_rate: Optional[float] = None
-    yoy_repurchase_gsv: Optional[float] = None
-    yoy_repurchase_gsv_ratio: Optional[float] = None
+    yoy_hist_users: Optional["PercentageField"] = None
+    yoy_repurchase_users: Optional["PercentageField"] = None
+    # Sprint 13 修: 字段名带 _rate 但语义是 pp 差, 加 unit='pp' caller 端, 契约层是 PpField
+    yoy_repurchase_rate: Optional["PpField"] = None
+    yoy_repurchase_gsv: Optional["PercentageField"] = None
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
 
 
 class RFMRFlowResponse(BaseModel):
@@ -45,27 +48,27 @@ class RFMFRFlowRow(BaseModel):
 
     hist_users_current: int = 0
     repurchase_users_current: int = 0
-    repurchase_rate_current: float = 0.0
+    repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: float = 0.0
+    repurchase_gsv_ratio_current: "RatioField" = 0.0
 
     hist_users_comp: int = 0
     repurchase_users_comp: int = 0
-    repurchase_rate_comp: float = 0.0
+    repurchase_rate_comp: "RatioField" = 0.0
     repurchase_gsv_comp: float = 0.0
-    repurchase_gsv_ratio_comp: float = 0.0
+    repurchase_gsv_ratio_comp: "RatioField" = 0.0
 
     hist_users_prev2: int = 0
     repurchase_users_prev2: int = 0
-    repurchase_rate_prev2: float = 0.0
+    repurchase_rate_prev2: "RatioField" = 0.0
     repurchase_gsv_prev2: float = 0.0
-    repurchase_gsv_ratio_prev2: float = 0.0
+    repurchase_gsv_ratio_prev2: "RatioField" = 0.0
 
-    yoy_hist_users: Optional[float] = None
-    yoy_repurchase_users: Optional[float] = None
-    yoy_repurchase_rate: Optional[float] = None
-    yoy_repurchase_gsv: Optional[float] = None
-    yoy_repurchase_gsv_ratio: Optional[float] = None
+    yoy_hist_users: Optional["PercentageField"] = None
+    yoy_repurchase_users: Optional["PercentageField"] = None
+    yoy_repurchase_rate: Optional["PpField"] = None
+    yoy_repurchase_gsv: Optional["PercentageField"] = None
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
 
 
 class RFMFRFlowResponse(BaseModel):
@@ -88,27 +91,27 @@ class RFMMFlowRow(BaseModel):
 
     hist_users_current: int = 0
     repurchase_users_current: int = 0
-    repurchase_rate_current: float = 0.0
+    repurchase_rate_current: "RatioField" = 0.0
     repurchase_gsv_current: float = 0.0
-    repurchase_gsv_ratio_current: float = 0.0
+    repurchase_gsv_ratio_current: "RatioField" = 0.0
 
     hist_users_comp: int = 0
     repurchase_users_comp: int = 0
-    repurchase_rate_comp: float = 0.0
+    repurchase_rate_comp: "RatioField" = 0.0
     repurchase_gsv_comp: float = 0.0
-    repurchase_gsv_ratio_comp: float = 0.0
+    repurchase_gsv_ratio_comp: "RatioField" = 0.0
 
     hist_users_prev2: int = 0
     repurchase_users_prev2: int = 0
-    repurchase_rate_prev2: float = 0.0
+    repurchase_rate_prev2: "RatioField" = 0.0
     repurchase_gsv_prev2: float = 0.0
-    repurchase_gsv_ratio_prev2: float = 0.0
+    repurchase_gsv_ratio_prev2: "RatioField" = 0.0
 
-    yoy_hist_users: Optional[float] = None
-    yoy_repurchase_users: Optional[float] = None
-    yoy_repurchase_rate: Optional[float] = None
-    yoy_repurchase_gsv: Optional[float] = None
-    yoy_repurchase_gsv_ratio: Optional[float] = None
+    yoy_hist_users: Optional["PercentageField"] = None
+    yoy_repurchase_users: Optional["PercentageField"] = None
+    yoy_repurchase_rate: Optional["PpField"] = None
+    yoy_repurchase_gsv: Optional["PercentageField"] = None
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
 
 
 class RFMMFlowResponse(BaseModel):
@@ -126,24 +129,24 @@ class RFMAnalysisRow(BaseModel):
     rfm_segment: str = Field(..., description="人群标签，如 重要价值客户")
     hist_users_current: int = Field(default=0)
     repurchase_users_current: int = Field(default=0)
-    repurchase_rate_current: float = Field(default=0.0)
+    repurchase_rate_current: "RatioField" = Field(default=0.0)
     repurchase_gsv_current: float = Field(default=0.0)
-    repurchase_gsv_ratio_current: float = Field(default=0.0)
+    repurchase_gsv_ratio_current: "RatioField" = Field(default=0.0)
     hist_users_comp: int = Field(default=0)
     repurchase_users_comp: int = Field(default=0)
-    repurchase_rate_comp: float = Field(default=0.0)
+    repurchase_rate_comp: "RatioField" = Field(default=0.0)
     repurchase_gsv_comp: float = Field(default=0.0)
-    repurchase_gsv_ratio_comp: float = Field(default=0.0)
+    repurchase_gsv_ratio_comp: "RatioField" = Field(default=0.0)
     hist_users_prev2: int = Field(default=0)
     repurchase_users_prev2: int = Field(default=0)
-    repurchase_rate_prev2: float = Field(default=0.0)
+    repurchase_rate_prev2: "RatioField" = Field(default=0.0)
     repurchase_gsv_prev2: float = Field(default=0.0)
-    repurchase_gsv_ratio_prev2: float = Field(default=0.0)
-    yoy_hist_users: Optional[float] = Field(None)
-    yoy_repurchase_users: Optional[float] = Field(None)
-    yoy_repurchase_rate: Optional[float] = Field(None)
-    yoy_repurchase_gsv: Optional[float] = Field(None)
-    yoy_repurchase_gsv_ratio: Optional[float] = Field(None)
+    repurchase_gsv_ratio_prev2: "RatioField" = Field(default=0.0)
+    yoy_hist_users: Optional["PercentageField"] = Field(None)
+    yoy_repurchase_users: Optional["PercentageField"] = Field(None)
+    yoy_repurchase_rate: Optional["PpField"] = Field(None)
+    yoy_repurchase_gsv: Optional["PercentageField"] = Field(None)
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = Field(None)
 
 
 class RFMAnalysisResponse(BaseModel):
