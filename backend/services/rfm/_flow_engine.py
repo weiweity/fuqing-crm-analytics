@@ -136,9 +136,19 @@ def _parse_flow_rows(
             totals[mode] += float(repurchase_gsv or 0)
 
     # 计算 gsv_ratio
+    # 关键: "已购客TTL" 段是商业指标汇总 (含当期新购客复购), 跟 6 个 R/F/M 桶段
+    # 是子集+真子集关系. R/F/M 桶累计 GSV 是 TTL GSV 的子集 (差 = 当期新购客复购),
+    # 如果把 TTL 也循环算 ratio, ttl_gsv / sum(R_buckets) > 1.0 越界 contract RatioField 0-1.
+    # Sprint 14 A.3 引入的 regression (contract 加 RatioField 0-1 后, service 端
+    # TTL 段算出 2.87 越界). 治根: 排除 TTL 段 ratio 计算, ratio 留 0.0, 前端 RFMView
+    # 已 .filter((r) => r.r_segment !== '已购客TTL') 过滤此段 (frontend RFMView.vue:120,286).
     for mode, result in result_map.items():
         total = totals[mode]
         for seg in result:
+            if seg == "已购客TTL":
+                # TTL 是汇总行, 比率语义跟 R/F/M 桶不同, 留 0 避免越界
+                result[seg]["repurchase_gsv_ratio"] = 0.0
+                continue
             gsv = result[seg]["repurchase_gsv"]
             result[seg]["repurchase_gsv_ratio"] = gsv / total if total > 0 else 0.0
 

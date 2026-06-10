@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.33] - 2026-06-10 - fix(rfm): Sprint 14.5 治根 "已购客TTL" 段 ratio 越界 (Pydantic 500)
+
+### Fixed
+- **`_flow_engine.py:139-143` 排除 "已购客TTL" 段 ratio 计算** — Sprint 14 A.3 加 `RatioField` 0-1 验证后, service 算出 ttl_gsv / (sum_R_buckets) = 2.8754 越界, `rfm/r-flow` 返 500. 治根: TTL 是商业指标汇总行 (含当期新购客复购, 跟 R 桶是真子集关系), 跟 R/F/M 桶 ratio 语义不同, 留 0.0. 前端 `RFMView.vue:120,286` 已 `.filter((r) => r.r_segment !== '已购客TTL')` 过滤此段显示
+- **`backend/tests/test_rfm_flow_ttl_ratio.py`** 5 测试, 验证 6 段 R 桶 ratio ∈ [0,1] + 缺失段 ratio = 0 + 4 mode (all/same/member_all/member_same) 全部生效
+
 ## [v0.4.14.32] - 2026-06-10 - docs: Sprint 1-14 文档收口 (排查 + 剔除 + retrospective 新建)
 
 ### Changed
