@@ -1108,8 +1108,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_new_vs_all_new_2026 ?? 0) - (b.member_new_vs_all_new_2026 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.const v = row.member_new_vs_all_new_2026
-          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          const v = row.member_new_vs_all_new_2026
           return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
@@ -1121,8 +1120,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_new_vs_all_new_2025 ?? 0) - (b.member_new_vs_all_new_2025 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.const v = row.member_new_vs_all_new_2025
-          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          const v = row.member_new_vs_all_new_2025
           return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
@@ -1149,8 +1147,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_old_vs_all_old_2026 ?? 0) - (b.member_old_vs_all_old_2026 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.const v = row.member_old_vs_all_old_2026
-          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          const v = row.member_old_vs_all_old_2026
           return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
@@ -1162,8 +1159,7 @@ const channelMemberColumns = computed<DataTableColumns<ChannelGSVRow>>(() => {
         className: 'bi-cell-number',
         sorter: (a: ChannelGSVRow, b: ChannelGSVRow) => (a.member_old_vs_all_old_2025 ?? 0) - (b.member_old_vs_all_old_2025 ?? 0),
         render: (row: ChannelGSVRow) => {
-          const v = row.const v = row.member_old_vs_all_old_2025
-          return v != null ? `${(v * 100).toFixed(1)}%` : '—'
+          const v = row.member_old_vs_all_old_2025
           return v != null ? `${(v * 100).toFixed(1)}%` : '—'
         },
       },
