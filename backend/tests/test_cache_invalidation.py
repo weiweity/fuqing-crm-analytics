@@ -21,7 +21,7 @@ import pytest
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from backend.services.rfm.cache import (  # noqa: E402
+from backend.services.rfm.cache import (  # noqa: E402, F401
     CACHE_TABLE,
     RfmQueryCache,
     _ManifestTracker,
