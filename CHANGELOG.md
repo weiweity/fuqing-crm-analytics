@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.38] - 2026-06-11 - fix(rfm): Sprint 16.5 P2.7 — cache_key 改 MD5 full + namespace prefix (W5/file 双层防撞)
+
+### Fixed
+- **`backend/services/rfm/_shared.py:194 _flow_cache_key`** — CodeX audit 治根. 旧版 2 个真坑: (1) 8 维参数用 `_` 拼接, 文件名相似排查极难; (2) `exclude_channels` 用 `MD5[:8]` 截断 (32 bit) → 生日悖论 2^16 = 65K 列表 50% 碰撞, 大 exclude list 必误命中. 修法: 8 维参数 + `FLOW_ALGO_VERSION` 全部进 MD5 full (128 bit, 2^64 列表才有 50% 碰撞), 加 namespace prefix `flow_` 防跟 W5 DuckDB-KV 串扰
+- **`backend/services/rfm/cache.py:66 _hash_key`** — 加 namespace prefix `w5kv_` 防跟 file cache (`flow_`) 跨 cache 误命中. 保留 Sprint 14.5 P1.4 的 `FLOW_ALGO_VERSION` 校验 (算法改动 → key 变 → miss → 重算)
+- **`backend/tests/test_w5_cache.py` +6 tests** — `TestFlowCacheKeyMd5Full` 类, 6 件套覆盖: (1) 不同参数 → 不同 key / (2) 同参数 100 次幂等 / (3) MD5 full 32 char 格式校验 / (4) 截断 vs full 冲突对比 / (5) `algo_version` 变更 → key 失效 / (6) 跨 namespace 隔离 (`flow_` vs `w5kv_`)
+
+### 治根效果 (生产 uvicorn 实跑)
+- `r-flow`: 1st cache miss 6.45s → 2nd cache hit 0.005s (**1180× 加速**)
+- `f-flow` / `m-flow` / `segment-orders` 4 端点全 200
+- 23/23 tests passed (17 老的 W5 cache 回归 + 6 个新加)
+- 旧 cache 文件名 (e.g. `r_flow_v123_2026-01-01_2026-01-31_GSV.json`) 跟新格式 (`flow_<32hex>.json`) 完全不同, 24h TTL 内自然失效
+- 兼容 `_flow_engine.py:461` + `scripts/warm_flow_cache.py:96` 2 个调用方 (签名未变)
+
 ## [v0.4.14.37] - 2026-06-11 - fix(etl): Sprint 15 Wave 3 — is_member per-user 治根 (老客回购标 FALSE)
 
 ### Fixed
