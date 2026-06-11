@@ -70,8 +70,36 @@ describe('YOYBadge pass-through 契约 (Sprint 13 修)', () => {
     expect(getText(wrapper)).toBe('0.00pp ↓')
   })
 
-  it('% Infinity → "+0.00% ↑" (fallback, Infinity>=0 走 if 分支)', () => {
+  it('% Infinity → "数据异常" (Sprint 16.5: |v|>1e6 守卫优先于显示, 改 Sprint 13 期望)', () => {
+    // Sprint 16.5 P2 Wave 6: 异常值守卫放到模板层, |Infinity| = Infinity > 1e6 → "数据异常"
+    // 跟 backend/contracts/types.py PercentageField "真实值 > 1e6 建议前端 YOYBadge 守卫" 一致
     const wrapper = mount(YOYBadge, { props: { value: Infinity, unit: '%' } })
+    expect(getText(wrapper)).toBe('数据异常')
+  })
+})
+
+// Sprint 16.5 P2 Wave 6: YOYBadge 异常值守卫
+// 跟 backend/contracts/types.py PercentageField 注释对齐: "真实值 > 1e6 建议前端 YOYBadge 守卫"
+// 防止 UI 显示 +1157823.86% 等万倍异常值误导用户
+describe('YOYBadge 异常值守卫 (Sprint 16.5 P2 Wave 6)', () => {
+  it('value=100 unit=% → "+100.00% ↑" (边界内正常值)', () => {
+    const wrapper = mount(YOYBadge, { props: { value: 100, unit: '%' } })
+    expect(getText(wrapper)).toBe('+100.00% ↑')
+  })
+
+  it('value=-100 unit=% → "100.00% ↓" (边界内负值, abs 后显示)', () => {
+    const wrapper = mount(YOYBadge, { props: { value: -100, unit: '%' } })
+    expect(getText(wrapper)).toBe('100.00% ↓')
+  })
+
+  it('value=1e7 unit=% → "数据异常" (|v|>1e6 触发守卫, 不显示炸弹)', () => {
+    // 模拟万倍异常值: 1e7 = 1000 万 %, 触发守卫
+    const wrapper = mount(YOYBadge, { props: { value: 1e7, unit: '%' } })
+    expect(getText(wrapper)).toBe('数据异常')
+  })
+
+  it('value=0 unit=% → "+0.00% ↑" (零值边界, 不触发守卫)', () => {
+    const wrapper = mount(YOYBadge, { props: { value: 0, unit: '%' } })
     expect(getText(wrapper)).toBe('+0.00% ↑')
   })
 })
