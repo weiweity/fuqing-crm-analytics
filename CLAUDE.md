@@ -41,6 +41,7 @@
 | **push 前** | 准备 `git push` | `pytest` 全绿 | 测试失败 → 禁止 push |
 | **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
 | **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
+| **改 contract 字段** | 增删改 `backend/contracts/*.py` 字段 (类型/范围/命名) | `python -m backend.contracts._lint` | 未跑 lint → 禁止 commit (见 `docs/LINTING.md`) |
 
 ---
 
@@ -276,14 +277,41 @@ Key routing rules:
 - 任何 contract 字段必须用 `RatioField` / `PercentageField` / `PpField` / `Annotated[*, Field(ge, le)]`
 - `List[T]` 字段必须 `List[Annotated[inner, Field(...)]]` 不是 `List["PercentageField"]` (Pydantic v2 知识点)
 - 新增 contract 文件必跑 ground-truth-lint 通过才允许 commit (留 Sprint 17)
+- ✅ Sprint 17 已升级到 'Ratio Convention' 主章节 (见下)
 
 详见 `docs/SPRINT-16-5-RETROSPECTIVE.md` + `docs/SPRINT-16-5-B2-AUDIT.md`
 
 ---
 
-## Ratio Convention (Sprint 13+)
+## Ratio Convention (B1+B2 模式, Sprint 13+ 升级 Sprint 17)
 
-> 本节是 ratio / pct / ppt 类字段的强契约，Sprint 13 起强制生效。改前端展示、传值、命名必读。
+> 本节是 ratio / pct / ppt / rate 类字段的强契约，Sprint 13 起强制、Sprint 17 B1+B2 模式正式挪进本主章节统一治理。改前端展示、传值、命名、Pydantic 契约必读。
+
+### B1 模式 — mark 字段补标 + ETL 触发反向回填
+
+- **定义**: 数据已落地但缺 mark 字段 → 在 service / ETL 流程加 mark 写入逻辑 → 触发反向回填补齐历史数据
+- **典型案例**: Sprint 15 Wave 3 `is_member` per-user 治根 (18 老客补齐, T2 Step 4.6 跳过 + T3 Step 4.7 增量 UPDATE)
+- **前置条件**: 字段语义清晰、有可幂等 ETL trigger 入口
+- **反模式**: 直接在前端 hardcode mark 字段 (e.g. `is_member = true` 占位), 应回填真实数据
+
+### B2 模式 — contract 字段补标 + Pydantic 422 拦截
+
+- **定义**: API response schema 字段无 Pydantic 范围约束 → 改用 `RatioField` / `PercentageField` / `PpField` 强类型 → API 入口 422 拦截越界值
+- **典型案例**: Sprint 16.5 #91 B2 试点 (category + metrics + health 3 contract 9 mark 字段补标, 13/13 tests), Sprint 17 #120 全量 9 contract audit
+- **前置条件**: 字段后缀清晰 (见下表"强制规则"), 范围约定明确
+- **反模式**: 用裸 `float = Field(...)` 定义 ratio 字段, 错值传 5.0 不拦截导致 500
+
+### 强制规则 (B1+B2, 适用于 `backend/contracts/*.py` 全部文件)
+
+| Contract 字段名后缀 | 必须使用的 Pydantic 类型 | 数值范围 |
+|---|---|---|
+| `*_ratio` | `RatioField` | 0-1 decimal (0.42 = 42%) |
+| `*_pct` | `PercentageField` | 0-1B (含 YOY 异常值, e.g. gsv_yoy 万倍涨) |
+| `*_ppt` | `PpField` | -100 ~ +100 pp 差 |
+| `*_rate` | `PercentageField` (0-100) | 0-100 percentage (eg. `repurchase_rate` 复购率) |
+| `List[X]` (X 是约束类型) | `List[Annotated[X, Field(...)]]` | **禁止** `List["X"]` 前向引用 (Pydantic v2 知识点) |
+
+> **Sprint 13 ratio 治理契约 0-1 严守保留** (B1+B2 跟 Sprint 13 不冲突, 是补强): 真实 ratio 字段仍是 0-1; `PercentageField` 上限放宽到 1B 仅作为 `yoy_absolute *100` 兼容兜底 (Sprint 14 QA + Sprint 15 治根决策), 前端 `YOYBadge` 加 `|v|>1e6` 异常值守卫防 UI 误导.
 
 ### 字段命名（后端，强制）
 
@@ -292,7 +320,8 @@ Key routing rules:
 | `*_ratio` | 0-1 decimal | **否** | `old_gsv_ratio`, `member_ratio` |
 | `*_pct` | 0-100 percentage | **是** | `gsv_yoy_pct`, `member_penetration_pct` |
 | `*_ppt` | -100 ~ +100 pp 差 | **是** | `old_gsv_ratio_yoy_ppt`, `lock_rate_yoy_ppt` |
-| `*_yoy` / `*_mom` | 按上面 3 种后缀对应 | 视字段而定 | `gsv_yoy` (pct), `old_gsv_ratio_yoy` (ppt) |
+| `*_rate` | 0-100 percentage | **是** | `repurchase_rate` |
+| `*_yoy` / `*_mom` | 按上面 4 种后缀对应 | 视字段而定 | `gsv_yoy` (pct), `old_gsv_ratio_yoy` (ppt) |
 
 **核心契约**:
 
@@ -307,19 +336,27 @@ Key routing rules:
 - **不要在前端 `* 100`** — Sprint 11/12 散落 `*100` 模式已 deprecate
 - `fmtYoy` / `fmtYoY` / `fmtPctChange` 等自定义函数: caller 传已 `*100` 数值，函数不乘
 - YOYBadge `unit` 默认 `'%'`，ratio 类必须显式 `unit="pp"`
+- `|v|>1e6` 异常值守卫: `humanizeChange` 返 `'数据异常'` (Sprint 16.5 #92, Sprint 17 #124 扩到 MetricCard / RFMSegmentDrilldown)
 - None 透传显示 `—`（`humanizeChange` 已加 `v == null` 守卫）
 
-### 禁止（lint 待加）
+### 禁止（lint 强制, Sprint 17 #121 ground-truth-lint）
 
 1. **前端 0 处散落 `* 100`** — caller 自乘，组件不乘
 2. **命名冲突** — `*_ratio_yoy` vs `*_yoy_ratio` 强制统一为 `*_yoy_ppt` / `*_yoy_pct`
 3. **hardcode 0 占位** — 禁止 `series = [0.0] * len(dates)`（Sprint 13 P3 教训）
 4. **Excel numFmt 错配** — pp 字段用 `'0.0"pp"'` 字面量后缀，% 字段用 `'0.0"%"'`
+5. **contract 裸 float** — 禁止 `field: float = Field(...)`, 必须用 `RatioField` / `PercentageField` / `PpField` / `Annotated[float, Field(ge, le)]`
+6. **List 前向引用** — 禁止 `List["PercentageField"]`, 必须 `List[Annotated[PercentageField, Field(...)]]` (Pydantic v2)
 
-### 文档
+### 文档 / 跨链
 
 - 完整契约: `docs/reference.md` "Ratio Convention (Sprint 13 更新)" 章节
 - 字段语义: `backend/semantic/calculations.py` docstring（`yoy_ratio` / `yoy_absolute` / `mom_*`）
+- 类型定义: `backend/contracts/types.py` (`RatioField` / `PercentageField` / `PpField`)
+- B2 试点: `docs/SPRINT-16-5-B2-AUDIT.md` (Sprint 16.5 #91 9 mark 字段补标)
+- 任务来源: `docs/SPRINT-16-5-RETROSPECTIVE.md` Section 5 治理债务 #4 + Section 6 教训
+- Lint 规则: `docs/LINTING.md` (Sprint 17 #121 新建, 给 ground-truth-lint 提供语义)
+- 全量 audit: `docs/SPRINT-17-B2-AUDIT-FULL.md` (Sprint 17 #120 新建, 9 contract 全量)
 - 组件实现: `frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue` JSDoc
-- 改版历史: `CHANGELOG.md` v0.4.14.26 (Sprint 12) + v0.4.14.29 (Sprint 13)
+- 改版历史: `CHANGELOG.md` v0.4.14.26 (Sprint 12) + v0.4.14.29 (Sprint 13) + v0.4.14.41 (Sprint 17)
 - 4 页面 banner: `frontend-vue3/src/components/RatioConventionBanner.vue` (3 天自动消失)
