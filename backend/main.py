@@ -41,6 +41,13 @@ async def lifespan(application: FastAPI):
         logger.info("W5 RFM cache 表已就绪")
     except Exception as e:  # noqa: BLE001
         logger.warning("W5 RFM cache 启动失败 (不阻塞服务): %s", e)
+    # Sprint 18 #123: 启动 hook — 跨进程 manifest version 对齐
+    # 改 ratio/契约后, 重启 uvicorn 自动 invalidate W5 cache, 不再需要手动
+    try:
+        from backend.services.rfm.cache import check_manifest_version_and_invalidate
+        check_manifest_version_and_invalidate()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("W5 startup hook 启动失败 (不阻塞服务): %s", e)
     yield
     # 关闭时停止内存监控并释放全局 DuckDB 连接
     from backend.db.memory_monitor import stop_memory_watchdog

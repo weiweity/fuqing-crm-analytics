@@ -27,7 +27,10 @@ FLOW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 # (Sprint 14.5 真实踩坑: ttl_gsv 越界 2.87 在 cache 里直到 invalidate).
 # 修法: cache 写时附 ALGO_VERSION, 读时校验. 算法改动 → 手动 bump 这个常量.
 # 不依赖文件 mtime (etcd/deploy 容器 mtime 不稳).
-FLOW_ALGO_VERSION = "v0.4.14.35"
+#
+# Sprint 18 #123 bump: 加了 check_manifest_version_and_invalidate() 启动 hook,
+# 跨进程持久化 last_seen_manifest_version. 行为变化 → bump v0.4.14.35 → v0.4.14.47.
+FLOW_ALGO_VERSION = "v0.4.14.47"
 
 # 语义层统一口径（向后兼容别名）
 _VALID_BASE = VALID_ORDER_BASE
