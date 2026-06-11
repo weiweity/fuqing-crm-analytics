@@ -420,7 +420,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="老客GSV占比"
             :value="fmtPercent(data.old_customer_gsv_ratio)"
-            :change="data.yoy_old_customer_gsv_ratio"
+            :change="data.yoy_old_customer_gsv_ratio_ppt"
             unit="pp"
           />
         </n-gi>
@@ -453,7 +453,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="会员老客GSV占比"
             :value="fmtPercent(data.member_old_customer_gsv_ratio)"
-            :change="data.yoy_member_old_customer_gsv_ratio"
+            :change="data.yoy_member_old_customer_gsv_ratio_ppt"
             unit="pp"
           />
         </n-gi>

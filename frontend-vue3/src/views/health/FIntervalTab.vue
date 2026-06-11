@@ -198,10 +198,10 @@ const fFlowColumns = computed<DataTableColumns<RFMFRFlowRow>>(() => {
     },
     {
       title: `${yr}同比回购GSV占比`,
-      key: 'yoy_repurchase_gsv_ratio',
+      key: 'yoy_repurchase_gsv_ratio_ppt',
       width: 110,
       align: 'center',
-      render: (r: RFMFRFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio, unit: 'pp' }),
+      render: (r: RFMFRFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }),
     },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
     {
@@ -238,7 +238,7 @@ const fFlowXlsxColumns = computed<XlsxColumn[]>(() => {
     { header: `${yr}同比回购人数`, key: 'yoy_repurchase_users', width: 12, numFmt: '0.0%' },
     { header: `${yr}同比回购率`, key: 'yoy_repurchase_rate', width: 12, numFmt: '0.0%' },
     { header: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 12, numFmt: '0.0%' },
-    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio', width: 14, numFmt: '0.0%' },
+    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio_ppt', width: 14, numFmt: '0.0%' },
     { header: `${yr2}历史人数`, key: 'hist_users_comp', width: 12, numFmt: '#,##0' },
     { header: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 10, numFmt: '0.00%' },
     { header: `${yr3}历史人数`, key: 'hist_users_prev2', width: 12, numFmt: '#,##0' },

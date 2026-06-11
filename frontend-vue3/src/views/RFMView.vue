@@ -508,11 +508,11 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
         },
         {
           title: '占比',
-          key: 'yoy_repurchase_gsv_ratio',
+          key: 'yoy_repurchase_gsv_ratio_ppt',
           width: 90,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_gsv_ratio, unit: 'pp' }),
+          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }),
         },
       ],
     },

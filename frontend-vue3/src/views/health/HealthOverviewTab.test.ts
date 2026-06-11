@@ -137,11 +137,11 @@ function makeData(overrides: Record<string, any> = {}) {
     yoy_old_gsv: null,
     yoy_old_users: null,
     yoy_old_customer_aus: null,
-    yoy_old_customer_gsv_ratio: null,
+    yoy_old_customer_gsv_ratio_ppt: null,
     yoy_member_old_gsv: null,
     yoy_member_old_users: null,
     yoy_member_old_customer_aus: null,
-    yoy_member_old_customer_gsv_ratio: null,
+    yoy_member_old_customer_gsv_ratio_ppt: null,
     alerts: [],
     ...overrides,
   }
