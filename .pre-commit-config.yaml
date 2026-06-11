@@ -12,3 +12,10 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+      - id: contract-ground-truth-lint
+        name: Contract Pydantic Field metadata lint (Sprint 17 #121, Sprint 18 #142)
+        entry: python -m backend.contracts._lint
+        language: system
+        pass_filenames: false
+        files: 'backend/contracts/.*\.py$'
+        stages: [pre-commit]
