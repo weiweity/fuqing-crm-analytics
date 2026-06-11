@@ -19,7 +19,6 @@ CLAUDE.md 合规: pytest 走 homebrew Python 3.14, in-memory DuckDB 隔离.
 """
 from pathlib import Path
 import sys
-import textwrap
 
 import duckdb
 import pandas as pd
@@ -215,26 +214,41 @@ class TestUpsertRefreshWindowDedup:
 
 
 # ─────────────────────────────────────────────────────────────
-# ⑤ load.py 源码内含 ON CONFLICT (order_id, sub_order_id) DO NOTHING 字面量
+# ⑤ load.py 源码内含 dedup 机制 (Sprint 10 preflight B1 后改 WHERE NOT EXISTS)
 # ─────────────────────────────────────────────────────────────
 
 class TestLoadPySourceGuard:
-    """源码层守卫: ON CONFLICT 字面量必须在 load.py 存在, 防 refactor 误删."""
+    """源码层守卫: dedup 机制必须在 load.py 存在, 防 refactor 误删.
 
-    def test_on_conflict_literal_in_load_py(self):
+    Sprint 10 P0 治根: production UNIQUE INDEX (idx_orders_order_unique) 被 B1 prod migration 删了,
+    ON CONFLICT 改 WHERE NOT EXISTS (应用层 dedup, 行为等价). 测试从
+    "ON CONFLICT 字面量" 改 "WHERE NOT EXISTS + order_id/sub_order_id dedup pattern".
+    """
+
+    def test_where_not_exists_dedup_in_load_py(self):
         load_py = (ROOT / "scripts" / "etl" / "load.py").read_text()
-        assert "ON CONFLICT (order_id, sub_order_id) DO NOTHING" in load_py, (
-            "load.py 必须保留 'ON CONFLICT (order_id, sub_order_id) DO NOTHING' 字面量\n"
-            "(sprint 3 commit 8bbf7c6 P1 修: 防 dedup 退化)\n"
+        # Sprint 10 preflight B1 修后: 改用 WHERE NOT EXISTS 应用层 dedup
+        assert "WHERE NOT EXISTS" in load_py, (
+            "load.py 必须保留 'WHERE NOT EXISTS' 应用层 dedup 模式\n"
+            "(Sprint 10 preflight B1: production UNIQUE INDEX 被删后, 改 WHERE NOT EXISTS 行为等价)\n"
             "如确认是 false positive, 改用 SELECT COUNT(*) FROM orders 替代, "
             "并加理由说明。"
         )
-
-    def test_unique_index_literal_in_load_py(self):
-        load_py = (ROOT / "scripts" / "etl" / "load.py").read_text()
-        assert "idx_orders_order_unique" in load_py, (
-            "load.py 必须保留 'idx_orders_order_unique' 唯一索引创建语句"
+        # 同时确保 dedup 条件用对字段
+        assert "order_id = s.order_id AND sub_order_id = s.sub_order_id" in load_py or \
+               "o.order_id = s.order_id AND o.sub_order_id = s.sub_order_id" in load_py, (
+            "load.py WHERE NOT EXISTS 必须按 (order_id, sub_order_id) 联合去重"
         )
-        assert "CREATE UNIQUE INDEX" in load_py, (
-            "load.py 必须保留 CREATE UNIQUE INDEX 语句"
+
+    def test_unique_index_removed_in_load_py(self):
+        """Sprint 10 preflight B1: UNIQUE INDEX idx_orders_order_unique 已删.
+
+        此测试文档化这一变更, 防后续误重新添加 UNIQUE INDEX (会跟 B1 prod migration 不一致).
+        """
+        load_py = (ROOT / "scripts" / "etl" / "load.py").read_text()
+        # Sprint 10 后: 不应再有 CREATE UNIQUE INDEX idx_orders_order_unique
+        assert "idx_orders_order_unique" not in load_py or "B1 prod migration" in load_py, (
+            "Sprint 10 preflight B1 已删 idx_orders_order_unique 唯一索引, "
+            "load.py 不应重新添加 (跟 B1 prod migration 不一致). "
+            "如确认需要, 改用 WHERE NOT EXISTS 应用层 dedup."
         )
