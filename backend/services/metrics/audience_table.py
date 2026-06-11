@@ -434,16 +434,17 @@ def get_audience_table(
             ),
             "yoy_member_new_aus": yoy_absolute(round(member_new_aus, 2), round(comp_member_new_aus_val, 2)),
             # ---- Ratio YOY（占比结构变化，百分点 = cur_ratio - comp_ratio）
-            "yoy_old_gsv_ratio": yoy_ratio(old_gsv_ratio, comp_old_gsv_ratio_val),
-            "yoy_old_users_ratio": yoy_ratio(old_users_ratio, comp_old_users_ratio_val),
-            "yoy_new_gsv_ratio": yoy_ratio(new_gsv_ratio, comp_new_gsv_ratio_val),
-            "yoy_new_users_ratio": yoy_ratio(new_users_ratio, comp_new_users_ratio_val),
-            "yoy_member_gsv_ratio": yoy_ratio(member_gsv_ratio, comp_member_gsv_ratio_val),
-            "yoy_member_users_ratio": yoy_ratio(member_users_ratio, comp_member_users_ratio_val),
-            "yoy_member_old_gsv_ratio": yoy_ratio(member_old_gsv_ratio, comp_member_old_gsv_ratio_val),
-            "yoy_member_old_users_ratio": yoy_ratio(member_old_users_ratio, comp_member_old_users_ratio_val),
-            "yoy_member_new_gsv_ratio": yoy_ratio(member_new_gsv_ratio, comp_member_new_gsv_ratio_val),
-            "yoy_member_new_users_ratio": yoy_ratio(member_new_users_ratio, comp_member_new_users_ratio_val),
+            # Sprint 19 #2: 改命名 yoy_*_ratio → yoy_*_ratio_ppt
+            "yoy_old_gsv_ratio_ppt": yoy_ratio(old_gsv_ratio, comp_old_gsv_ratio_val),
+            "yoy_old_users_ratio_ppt": yoy_ratio(old_users_ratio, comp_old_users_ratio_val),
+            "yoy_new_gsv_ratio_ppt": yoy_ratio(new_gsv_ratio, comp_new_gsv_ratio_val),
+            "yoy_new_users_ratio_ppt": yoy_ratio(new_users_ratio, comp_new_users_ratio_val),
+            "yoy_member_gsv_ratio_ppt": yoy_ratio(member_gsv_ratio, comp_member_gsv_ratio_val),
+            "yoy_member_users_ratio_ppt": yoy_ratio(member_users_ratio, comp_member_users_ratio_val),
+            "yoy_member_old_gsv_ratio_ppt": yoy_ratio(member_old_gsv_ratio, comp_member_old_gsv_ratio_val),
+            "yoy_member_old_users_ratio_ppt": yoy_ratio(member_old_users_ratio, comp_member_old_users_ratio_val),
+            "yoy_member_new_gsv_ratio_ppt": yoy_ratio(member_new_gsv_ratio, comp_member_new_gsv_ratio_val),
+            "yoy_member_new_users_ratio_ppt": yoy_ratio(member_new_users_ratio, comp_member_new_users_ratio_val),
         })
 
     return {

@@ -334,13 +334,13 @@ def _compute_yoy_metrics(conn, analysis_date: str, period_days: int,
     return {
         "yoy_all_store_repurchase_rate": prev_repurchase_rate,
         "yoy_same_product_repurchase_rate": prev_product_rate,
-        "yoy_old_customer_gsv_ratio": prev_old_metrics["old_customer_gsv_ratio"],
+        "yoy_old_customer_gsv_ratio_ppt": prev_old_metrics["old_customer_gsv_ratio"],
         "yoy_old_customer_aus": prev_old_metrics["old_customer_aus"],
         "yoy_old_gsv": prev_old_metrics["old_gsv"],
         "yoy_old_users": prev_old_metrics["old_users"],
         "yoy_member_old_gsv": prev_old_metrics["member_old_gsv"],
         "yoy_member_old_users": prev_old_metrics["member_old_users"],
-        "yoy_member_old_customer_gsv_ratio": prev_old_metrics["member_old_customer_gsv_ratio"],
+        "yoy_member_old_customer_gsv_ratio_ppt": prev_old_metrics["member_old_customer_gsv_ratio"],
         "yoy_member_old_customer_aus": prev_old_metrics["member_old_customer_aus"],
         "yoy_period_repurchase_users": prev_repurchase_users,
         "yoy_health_score": prev_health_score,
@@ -564,7 +564,7 @@ def get_overview(
         # 计算YOY变化率
         yoy_all_store = yoy_ratio(all_store_repurchase_rate, yoy_prev.get("yoy_all_store_repurchase_rate"))
         yoy_same_product = yoy_ratio(same_product_repurchase_rate, yoy_prev.get("yoy_same_product_repurchase_rate"))
-        yoy_old_ratio = yoy_ratio(old_metrics["old_customer_gsv_ratio"], yoy_prev.get("yoy_old_customer_gsv_ratio"))
+        yoy_old_ratio = yoy_ratio(old_metrics["old_customer_gsv_ratio"], yoy_prev.get("yoy_old_customer_gsv_ratio_ppt"))
         yoy_old_aus = yoy_absolute(old_metrics["old_customer_aus"], yoy_prev.get("yoy_old_customer_aus"))
         yoy_period_repurchase = yoy_absolute(period_repurchase_users, yoy_prev.get("yoy_period_repurchase_users"))
         # 新增指标 YOY
@@ -572,7 +572,7 @@ def get_overview(
         yoy_old_users = yoy_absolute(old_metrics["old_users"], yoy_prev.get("yoy_old_users"))
         yoy_member_old_gsv = yoy_absolute(old_metrics["member_old_gsv"], yoy_prev.get("yoy_member_old_gsv"))
         yoy_member_old_users = yoy_absolute(old_metrics["member_old_users"], yoy_prev.get("yoy_member_old_users"))
-        yoy_member_old_ratio = yoy_ratio(old_metrics["member_old_customer_gsv_ratio"], yoy_prev.get("yoy_member_old_customer_gsv_ratio"))
+        yoy_member_old_ratio = yoy_ratio(old_metrics["member_old_customer_gsv_ratio"], yoy_prev.get("yoy_member_old_customer_gsv_ratio_ppt"))
         yoy_member_old_aus = yoy_absolute(old_metrics["member_old_customer_aus"], yoy_prev.get("yoy_member_old_customer_aus"))
 
         # 4. 计算环比（上一个等长周期）
@@ -628,13 +628,13 @@ def get_overview(
             # 去年同期原始值（雷达图两年对比）
             "ly_all_store_repurchase_rate": yoy_prev.get("yoy_all_store_repurchase_rate"),
             "ly_same_product_repurchase_rate": yoy_prev.get("yoy_same_product_repurchase_rate"),
-            "ly_old_customer_gsv_ratio": yoy_prev.get("yoy_old_customer_gsv_ratio"),
+            "ly_old_customer_gsv_ratio": yoy_prev.get("yoy_old_customer_gsv_ratio_ppt"),
             "ly_old_customer_aus": yoy_prev.get("yoy_old_customer_aus"),
             "ly_period_repurchase_users": int(yoy_prev.get("yoy_period_repurchase_users", 0)) if yoy_prev.get("yoy_period_repurchase_users") is not None else None,
             # YOY（比例类）
             "yoy_all_store_repurchase_rate": yoy_all_store,
             "yoy_same_product_repurchase_rate": yoy_same_product,
-            "yoy_old_customer_gsv_ratio": yoy_old_ratio,
+            "yoy_old_customer_gsv_ratio_ppt": yoy_old_ratio,
             "yoy_old_customer_aus": yoy_old_aus,
             "yoy_period_repurchase_users": yoy_period_repurchase,
             # YOY（新增绝对值类）
@@ -642,7 +642,7 @@ def get_overview(
             "yoy_old_users": yoy_old_users,
             "yoy_member_old_gsv": yoy_member_old_gsv,
             "yoy_member_old_users": yoy_member_old_users,
-            "yoy_member_old_customer_gsv_ratio": yoy_member_old_ratio,
+            "yoy_member_old_customer_gsv_ratio_ppt": yoy_member_old_ratio,
             "yoy_member_old_customer_aus": yoy_member_old_aus,
             # MoM（环比）
             "mom_period_repurchase_users": mom_period_repurchase,

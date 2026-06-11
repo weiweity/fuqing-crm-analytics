@@ -74,7 +74,7 @@ def get_category_repurchase_flow(
                 "yoy_repurchase_users": yoy_absolute(c.get("repurchase_users", 0), p.get("repurchase_users", 0)),
                 "yoy_repurchase_rate": yoy_ratio(c.get("repurchase_rate", 0.0), p.get("repurchase_rate", 0.0)),
                 "yoy_repurchase_gsv": yoy_absolute(c.get("repurchase_gsv", 0.0), p.get("repurchase_gsv", 0.0)),
-                "yoy_repurchase_gsv_ratio": yoy_ratio(c.get("repurchase_gsv_ratio", 0.0), p.get("repurchase_gsv_ratio", 0.0)),
+                "yoy_repurchase_gsv_ratio_ppt": yoy_ratio(c.get("repurchase_gsv_ratio", 0.0), p.get("repurchase_gsv_ratio", 0.0)),
             })
         return rows
 
@@ -150,7 +150,7 @@ def get_category_repurchase_flow_by_rfm(
                 "yoy_repurchase_users": yoy_absolute(c.get("repurchase_users", 0), p.get("repurchase_users", 0)),
                 "yoy_repurchase_rate": yoy_ratio(c.get("repurchase_rate", 0.0), p.get("repurchase_rate", 0.0)),
                 "yoy_repurchase_gsv": yoy_absolute(c.get("repurchase_gsv", 0.0), p.get("repurchase_gsv", 0.0)),
-                "yoy_repurchase_gsv_ratio": yoy_ratio(c.get("repurchase_gsv_ratio", 0.0), p.get("repurchase_gsv_ratio", 0.0)),
+                "yoy_repurchase_gsv_ratio_ppt": yoy_ratio(c.get("repurchase_gsv_ratio", 0.0), p.get("repurchase_gsv_ratio", 0.0)),
             })
         return rows
 
