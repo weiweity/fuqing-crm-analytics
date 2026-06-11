@@ -11,8 +11,9 @@ from datetime import datetime
 from typing import Tuple
 
 # 跨子项目 import scraper 6 道门禁通道（monorepo 内 PYTHONPATH="$(pwd)" 包含项目根）
+# B1 治根 (Sprint 16.5+1): 改走 ETL 自己的 lark 通道 (scripts/etl/common/lark.py)
 try:
-    from scraper.core.sanity_check import _send_lark_alert
+    from scripts.etl.common.lark import _send_lark_alert
 except ImportError:  # 单测 / 独立运行兼容
     _send_lark_alert = None  # type: ignore[assignment]
 

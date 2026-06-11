@@ -34,7 +34,8 @@ def _send_lark_alert_mockable(content: str, open_id: Optional[str] = None) -> tu
         (sent, reason) 同 scraper/_send_lark_alert 签名
     """
     try:
-        from scraper.core.sanity_check import _send_lark_alert
+        # B1 治根 (Sprint 16.5+1): 改走 ETL 自己的 lark 通道
+        from scripts.etl.common.lark import _send_lark_alert
         return _send_lark_alert(content, open_id=open_id)
     except (ImportError, OSError) as e:
         # scraper 不可用 / lark-cli 不可用 — 不阻断 ETL (走 quarantine 路径, alert 是 best-effort)

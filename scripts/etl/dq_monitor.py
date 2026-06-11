@@ -70,7 +70,8 @@ def save_snapshot(snapshot: dict) -> None:
 def send_lark_alert(content: str) -> tuple:
     """调 lark-cli 发送告警（复用 scraper 6 道门禁通道）"""
     try:
-        from scraper.core.sanity_check import _send_lark_alert
+        # B1 治根 (Sprint 16.5+1): 改走 ETL 自己的 lark 通道
+        from scripts.etl.common.lark import _send_lark_alert
         return _send_lark_alert(content)
     except (ImportError, OSError) as e:
         return (False, f"lark unavailable: {type(e).__name__}: {str(e)[:80]}")
