@@ -1,23 +1,17 @@
 <script setup lang="ts">
 import { NSkeleton } from 'naive-ui'
+import YOYGuard from './YOYGuard.vue'
 
 /**
- * humanizeChange: 格式化变化值, 统一 0.00 形式.
+ * Sprint 18 #124: 抽 YOYGuard 通用组件, MetricCard 集成守卫.
  *
- * Caller 已 *100 传 percentage/pp 数值, humanizeChange 只做 abs + toFixed(2).
- * 跟 YOYBadge.vue 同步契约.
+ * 老 humanizeChange 逻辑下沉到 YOYGuard:
+ * - 异常值守卫: |v|>1e6 → "数据异常" (Sprint 16.5 同款)
+ * - NaN/Infinity fallback
+ * - null/undefined → '—'
  *
- * @param v  - 变化值 (caller 已 *100 后的 percentage 或 pp 数值)
- * @param unit  '%' (百分比) | 'pp' (百分点差)
- * @returns  e.g. "14.00%", "5.00pp", "0.00%"
+ * 跟 YOYBadge 同步契约: caller 已 *100 传 percentage/pp 数值, 组件只做 abs + toFixed(2).
  */
-function humanizeChange(v: number | null | undefined, unit: '%' | 'pp'): string {
-  if (v == null) return '—'
-  if (!Number.isFinite(v)) return `0.00${unit}`
-  const display = Math.abs(v)
-  return `${display.toFixed(2)}${unit}`
-}
-
 
 withDefaults(defineProps<{
   title: string
@@ -50,7 +44,7 @@ withDefaults(defineProps<{
         ]"
         :style="change > 0 ? 'background-color: rgba(21, 190, 83, 0.08); color: #108c3d;' : change < 0 ? 'background-color: rgba(234, 34, 97, 0.08); color: #c41d4e;' : undefined"
       >
-        {{ change > 0 ? '↑' : change < 0 ? '↓' : '' }}{{ humanizeChange(change, unit) }}
+        {{ change > 0 ? '↑' : change < 0 ? '↓' : '' }}<YOYGuard :value="change" :unit="unit" />
       </span>
     </div>
     <div class="mt-1.5">

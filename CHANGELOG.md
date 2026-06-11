@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.48] - 2026-06-11 - feat(frontend): Sprint 18 #124 YOYGuard 通用组件 + 扩 MetricCard / RFMSegmentDrilldown
+
+### Added
+- **`frontend-vue3/src/components/YOYGuard.vue`** (新, 61 行) — 通用 YOY/同比 守卫 + 格式化组件, props(value, unit, threshold=1e6, empty='—', precision=2). 核心: |v|>threshold → "数据异常" (Sprint 16.5 #92 守卫扩面), NaN/Infinity fallback 到 `0.00${unit}`, null/undefined 返 `empty`. unit 支持 '%' | 'pp' | 'raw' 3 种.
+
+### Changed
+- **`frontend-vue3/src/components/YOYBadge.vue`** (29 行减) — refactor 为 thin wrapper, 内部 `humanizeChange` 函数抽出, 守卫 + 格式化下沉到 YOYGuard, 只保留箭头 (↑/↓) + 颜色 (绿/红) 包装
+- **`frontend-vue3/src/components/MetricCard.vue`** (22 行改) — 内部 `humanizeChange` 抽出, change 显示改用 `<YOYGuard :value="change" :unit="unit" />`, 跟 YOYBadge 守卫行为同步 (|v|>1e6 → "数据异常")
+- **`frontend-vue3/src/views/health/RFMSegmentDrilldown.vue`** (5 行改) — 表格 yoy_repurchase_rate 列硬编码 `Math.abs(v).toFixed(1)+'pp'` 改用 `<YOYGuard>`, 箭头 + 颜色由调用方控制, 数值格式化复用 YOYGuard
+
+### Tests
+- **`frontend-vue3/src/components/YOYGuard.test.ts`** (新, 88 行, 15 测试) — 4 unit 类型 + null/undefined/empty 定制 + NaN/Infinity/边界值 + raw unit
+- **`frontend-vue3/src/components/MetricCard.test.ts`** (扩 30 行) — 加 3 个 YOYGuard 集成测试 (1e7/-1e7/100), 改 1 个 Sprint 16.5 老期望 (Infinity → "↑数据异常" 跟 YOYBadge 同步)
+- **`frontend-vue3/src/views/health/RFMSegmentDrilldown.test.ts`** (新, 165 行, 3 测试) — 表格 cell 渲染验证 (↑2.5pp / ↓3.1pp / 数据异常)
+
+### 验证
+- vitest 63/63 passed (老 16 + 新 47) — 6 文件 (YOYGuard + YOYBadge + MetricCard + RFMSegmentDrilldown + 2 老组件)
+- 4 老 YOYBadge 测试无回归 (Sprint 13 契约 + Sprint 16.5 #92 守卫同步生效)
+- 前端 build 已知 TS 错误 (HealthOverviewTab.vue 4 个 + HealthOverviewTab.test.ts 5 个 + ProductAssetsTab.vue 2 个 + 新 RFMSegmentDrilldown.test.ts 9 个) **全部是 baseline pre-existing** (stash 验证过 main 同样错), 不算 Sprint 18 #124 回归
+
+### 任务来源
+- Sprint 16.5 retrospective Section 8 #6 治理债务 — YOYBadge 异常值守卫扩面
+- 跟 backend/contracts/types.py PercentageField 注释对齐: "真实值 > 1e6 建议前端 YOYBadge 守卫"
+
 ## [v0.4.14.43] - 2026-06-11 - fix(contracts): Sprint 17 #120 B2 全量 audit 10 contract 60+ mark 字段 (asset/audience/breakdown/churn/common/flow/geo/rfm/sampling/visitor)
 
 ### Changed
