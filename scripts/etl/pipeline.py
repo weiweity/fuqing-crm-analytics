@@ -172,6 +172,47 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                 conn.close()
         else:
             member_order_ids = set(member_df['order_id'].dropna())
+
+        # Sprint 15 B2 治根: mark 增量同步 (增量模式)
+        # 之前增量 ETL 跑批时, member_order_ids 进了 orders 表的 is_member 字段,
+        # 但**没 append 到 membership_mark** → mark 表 stale (1M 缺口永远在).
+        # 修法: 跑批时把新拉的 member_df 跟历史会员 order_id 都 append 到 mark 表,
+        # idempotent ON CONFLICT DO NOTHING, 跑批时间 +0.5s.
+        # 配套 D.1 (replay_is_member.py 包事务) + B1 (mark 缺口反向回填).
+        if member_order_ids:
+            try:
+                conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+                try:
+                    mm_exists = conn.execute("""
+                        SELECT COUNT(*) FROM duckdb_tables() WHERE table_name = 'membership_mark'
+                    """).fetchone()[0]
+                    if mm_exists == 0:
+                        # Sprint 15 B1 首次跑: 兜底建表
+                        conn.execute("""
+                            CREATE TABLE IF NOT EXISTS membership_mark (
+                                order_id VARCHAR PRIMARY KEY,
+                                is_member BOOLEAN DEFAULT TRUE,
+                                loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                    n_mark_before = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
+                    # 批量 append (100k 一批, 避免 N 个单 INSERT)
+                    id_list = sorted(member_order_ids)
+                    batch_size = 100000
+                    for i in range(0, len(id_list), batch_size):
+                        batch = id_list[i:i+batch_size]
+                        # DuckDB VALUES 语法: VALUES (CAST(? AS VARCHAR)), (CAST(? AS VARCHAR)), ...
+                        values_clause = ','.join(['(CAST(? AS VARCHAR))' for _ in batch])
+                        sql = f"INSERT INTO membership_mark (order_id) VALUES {values_clause} ON CONFLICT (order_id) DO NOTHING"
+                        conn.execute(sql, batch)
+                    n_mark_after = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
+                    print(f"  [Sprint 15 B2] mark 增量同步 (增量模式): {n_mark_before:,} → {n_mark_after:,} (+{n_mark_after - n_mark_before:,})")
+                finally:
+                    conn.close()
+            except Exception as _e:
+                # Sprint 15 B2 fail-soft: mark 同步失败不阻塞 ETL 已完成的事实
+                # (跟 W6 通知同样的 graceful degrade, B1 兜底 + replay 补)
+                print(f"  [Sprint 15 B2] mark 同步失败 (D.1 兜底): {type(_e).__name__}: {str(_e)[:200]}")
     else:
         # 全量模式：不预加载所有数据，避免内存耗尽
         shop_df = pd.DataFrame()
@@ -299,6 +340,34 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                     conn.execute(sql, params)
                     updated_total += len(batch)
                 print(f"  会员标记更新: {updated_total:,} 行")
+
+                # Sprint 15 B2 治根: mark 增量同步 (全量模式)
+                # 之前 all_member_order_ids 进了 orders 表, 但没 append 到 membership_mark
+                # → mark 表 stale, 下次 replay 算错. 修法: 全量跑批时同步 mark 表.
+                # idempotent ON CONFLICT DO NOTHING, 跑批时间 +0.5s.
+                if all_member_order_ids:
+                    n_mark_before = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
+                    mm_exists = conn.execute("""
+                        SELECT COUNT(*) FROM duckdb_tables() WHERE table_name = 'membership_mark'
+                    """).fetchone()[0]
+                    if mm_exists == 0:
+                        # Sprint 15 B1 首次跑: 兜底建表 (跟 build_membership_mark.py 一致)
+                        conn.execute("""
+                            CREATE TABLE IF NOT EXISTS membership_mark (
+                                order_id VARCHAR PRIMARY KEY,
+                                is_member BOOLEAN DEFAULT TRUE,
+                                loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                    # 批量 INSERT (避免 100k 个单 INSERT)
+                    for i in range(0, len(id_list), batch_size):
+                        batch = id_list[i:i+batch_size]
+                        # DuckDB VALUES 语法: VALUES (CAST(? AS VARCHAR)), (CAST(? AS VARCHAR)), ...
+                        values_clause = ','.join(['(CAST(? AS VARCHAR))' for _ in batch])
+                        sql = f"INSERT INTO membership_mark (order_id) VALUES {values_clause} ON CONFLICT (order_id) DO NOTHING"
+                        conn.execute(sql, batch)
+                    n_mark_after = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
+                    print(f"  [Sprint 15 B2] mark 增量同步: {n_mark_before:,} → {n_mark_after:,} (+{n_mark_after - n_mark_after:,})")
             else:
                 print("  会员库无文件")
 
