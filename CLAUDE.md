@@ -41,7 +41,7 @@
 | **push 前** | 准备 `git push` | `pytest` 全绿 | 测试失败 → 禁止 push |
 | **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
 | **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
-| **改 contract 字段** | 增删改 `backend/contracts/*.py` 字段 (类型/范围/命名) | `python -m backend.contracts._lint` | 未跑 lint → 禁止 commit (见 `docs/LINTING.md`) |
+| **改 contract 字段** | 增删改 `backend/contracts/*.py` 字段 (类型/范围/命名) | 跑 `python -m backend.contracts._lint` + **pre-commit hook 自动拦截** (Sprint 18 #142) | 未跑 lint → 禁止 commit (见 `docs/LINTING.md` + `docs/PRE-COMMIT.md`) |
 
 ---
 

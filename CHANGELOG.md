@@ -2147,3 +2147,40 @@ v0.4.7.3 那个 workflow 报告"ModuleNotFoundError: No module named 'fastapi'" 
 | PATCH | 向后兼容的缺陷修复（如 BugFix、安全补丁） |
 
 > 注意：当前 MAJOR = 0 表示项目仍在初始开发阶段，API 可能在 MINOR 版本中变化。
+
+## [v0.4.14.49] - 2026-06-11 - docs(sprint18): Sprint 18 治理收口 — retrospective + cross-doc 同步
+
+### Added
+- **`docs/SPRINT-18-RETROSPECTIVE.md`** (新, 266 行) — Sprint 18 治理收口复盘, 8 sections (跟 Sprint 17 同样结构): Sprint 结果 / 4 任务治根复盘 / 决策审计 (12 决策) / 治理债务 (8 backlog) / 5 大教训 / 时间线 / Sprint 19 预告 / 关键指标
+
+### Changed
+- **`CLAUDE.md` AI 执行检查点** "改 contract 字段" 行 — 描述补 "pre-commit hook 自动拦截 (Sprint 18 #142)", 文档指针加 `docs/PRE-COMMIT.md`
+- **`docs/document-index.md`** — 加 Sprint 18 行 + 3 文档指针 (SPRINT-18-YOY-FIX.md / CACHE-INVALIDATION.md / PRE-COMMIT.md), 跟 Sprint 17/16.5/16 P0 等历史 sprint 同组
+
+### Sprint 18 4 段治理总结
+- **#141 26 YOY ratio 字段命名/语义冲突治根** (P0) — 白名单 14 字段 (`_YOY_PPT_FIELDS`) + 类型补标 6 字段 + linter 0 issue. 0 字段名改动 = 0 跨文件破坏. 走"白名单 + 改类型" 混合方案, 避开改命名 14+ 文件风险
+- **#123 W5 cache invalidation 启动 hook** (P1) — 跨进程持久化 `last_seen_manifest_version` 到 `data/cache/w5kv_manifest_state.json`, 跟进程内 `_ManifestTracker` 互补. 闭环 Sprint 14.5 留的"改 ratio/契约后必须手动 invalidate" 痛点
+- **#142 pre-commit ground-truth-lint hook** (P1) — `.pre-commit-config.yaml` + `scripts/test-precommit.sh` + 335 行 docs. 跟 `.githooks` 双轨并存
+- **#124 YOYGuard 通用组件 + 扩 MetricCard / RFMSegmentDrilldown** (P2) — `YOYGuard.vue` 61 行抽公共, 3 组件 refactor (YOYBadge/MetricCard/RFM 表格)
+
+### 治理债务 (留 Sprint 19+)
+1. 🔴 P0: DuckDB 1.5.4 release 监控 + 跑批真验 (Sprint 16 P0 abort 续, 第 3 次留)
+2. 🟡 P1: linter 增强 List element-wise Field 元数据检查 (Sprint 18 #141 留, 移除 `_LIST_RATIO_FIELDS` 白名单)
+3. 🟡 P1: 改命名 14 字段 (Sprint 18 走白名单, Sprint 19 真改)
+4. 🟢 P2: 前端 `types.ts` 自动生成
+5. 🟢 P2: pre-commit framework CI 接入
+6. 🟢 P2: .githooks 跟 .pre-commit-config.yaml 二选一
+7. 🟢 P2: YOYGuard threshold 全局配置
+8. 🟢 P2: W5 cache invalidation ETL 末尾调 (可选)
+
+### 验证
+- pytest 507+12 passed (3 pre-existing failed 跟代码无关: test_sim_prod_etl race + test_w4_full DuckDB 锁 + 1 sim-prod)
+- vitest 63 passed (含 #124 YOYGuard 3 + 沿用 Sprint 16.5 YOYBadge 4)
+- ground-truth-lint 0 issue (26→0, #141 治根)
+- uvicorn: /health=401 (认证), /docs=200, /api/v1/health=200 (public), v1/r-flow=401, v1/rfm=401, v1/metrics=401
+- 4 v1 端点 (3 401 expected + 1 200 public) 全合规
+- main @ f467192 (4 subagent merge 全部合)
+
+### 任务来源
+- Sprint 17 retrospective Section 4 治理债务 #1+#2+#4+#5 → Sprint 18 #141+#142+#123+#124 全部闭环
+- Sprint 16.5 #92 YOYBadge 异常值守卫 → Sprint 18 #124 扩到 MetricCard + RFM 表格

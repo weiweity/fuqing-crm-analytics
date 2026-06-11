@@ -10,6 +10,7 @@
 
 | Sprint | 状态 | 文档 |
 |--------|------|------|
+| **Sprint 18** (26 YOY 命名冲突治根 + W5 cache invalidation hook + pre-commit lint + YOYGuard 通用化) | ✅ 收口 2026-06-11 | [SPRINT-18-RETROSPECTIVE.md](./SPRINT-18-RETROSPECTIVE.md) + [SPRINT-18-YOY-FIX.md](./SPRINT-18-YOY-FIX.md) (299 行) + [CACHE-INVALIDATION.md](./CACHE-INVALIDATION.md) (333 行) + [PRE-COMMIT.md](./PRE-COMMIT.md) (335 行) |
 | **Sprint 17** (B1+B2 Pydantic Contract 模式: CLAUDE.md + ground-truth-lint + B2 全量 audit) | ✅ 收口 2026-06-11 | [SPRINT-17-RETROSPECTIVE.md](./SPRINT-17-RETROSPECTIVE.md) + [SPRINT-17-B2-AUDIT-FULL.md](./SPRINT-17-B2-AUDIT-FULL.md) (299 行) + [LINTING.md](./LINTING.md) (359 行) |
 | **Sprint 16.5** (P1/P2 治理: cache_key MD5 + 3 contract audit + YOYBadge 守卫) | ✅ 收口 2026-06-11 | [SPRINT-16-5-RETROSPECTIVE.md](./SPRINT-16-5-RETROSPECTIVE.md) + [SPRINT-16-5-B2-AUDIT.md](./SPRINT-16-5-B2-AUDIT.md) (252 行 audit 报告) |
 | **Sprint 16 P0** (DuckDB 1.5.3 race 治根) | ❌ 中止 (等 1.5.4) | [SPRINT-16-5-README.md](./SPRINT-16-5-README.md) (40 行, 等 1.5.4 release 激活) |
@@ -48,6 +49,9 @@
 | [SPRINT-17-B2-AUDIT-FULL.md](./SPRINT-17-B2-AUDIT-FULL.md) | Sprint 17 B2 全量 audit 10 contract (299 行, 60+ mark 字段治根) |
 | [SPRINT-16-5-B2-AUDIT.md](./SPRINT-16-5-B2-AUDIT.md) | Sprint 16.5 B2 试点 3 contract audit (252 行, 9 mark 字段治根) |
 | [LINTING.md](./LINTING.md) | Sprint 17 ground-truth-lint 使用文档 (359 行, 4 规则 R1/R2/R3/R4) |
+| [SPRINT-18-YOY-FIX.md](./SPRINT-18-YOY-FIX.md) | Sprint 18 #141 26 YOY ratio 字段命名/语义冲突治根 (299 行, 白名单 + 类型补标混合) |
+| [CACHE-INVALIDATION.md](./CACHE-INVALIDATION.md) | Sprint 18 #123 W5 DuckDB-KV cache invalidation 启动 hook 使用文档 (333 行, 跨进程 manifest 同步) |
+| [PRE-COMMIT.md](./PRE-COMMIT.md) | Sprint 18 #142 pre-commit ground-truth-lint hook 使用文档 (335 行, 跟 .githooks 双轨并存) |
 | [validation-reports/etl-3-runs-2026-06-07.md](./validation-reports/etl-3-runs-2026-06-07.md) | P0-1 痛点 1 跑批 3 次验证（13.4 min 平均） |
 | [validation-reports/w4-full-t7-2026-06-06.md](./validation-reports/w4-full-t7-2026-06-06.md) | W4 T-7 真跑验证（4/4 PASSED） |
 | [validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md](./validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md) | Sprint 7 P2 DuckDB 升级验证 |
