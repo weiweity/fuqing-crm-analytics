@@ -142,7 +142,9 @@ class ValueTierDefinition(BaseModel):
     gsv_threshold_max: Optional[float] = Field(None, description="GSV上限")
     user_count: int = Field(..., description="人数")
     gsv: float = Field(..., description="GSV")
-    gsv_ratio: float = Field(..., description="占全店GSV比例")
+    # Sprint 16.5 B2 试点治根: 2 个 ratio/金额 字段补标注 (跟 audience.py B1 模式一致)
+    # 修法: gsv_ratio 0-1 decimal 越界 (e.g. service 返 1.2 错值) 在 API 入口 422
+    gsv_ratio: "RatioField" = Field(..., description="占全店GSV比例 0-1 decimal")
 
 
 class FrequencyTierDefinition(BaseModel):
@@ -162,7 +164,9 @@ class CustomerSegmentItem(BaseModel):
     frequency_tier: str = Field(..., description="频次层级")
     user_count: int = Field(..., description="人数")
     gsv: float = Field(..., description="GSV")
-    gsv_ratio: float = Field(..., description="GSV占比")
+    # Sprint 16.5 B2 试点治根: 第 3 个 mark — gsv_ratio 补 RatioField 标注
+    # 修法: 0-1 decimal 越界 (e.g. service 返 1.5 错值) 在 API 入口 422, 不再 500
+    gsv_ratio: "RatioField" = Field(..., description="GSV占比 0-1 decimal")
     avg_order_value: float = Field(..., description="客单价")
     avg_orders_per_user: float = Field(..., description="人均订单数")
     suggested_action: str = Field(..., description="建议运营动作")
@@ -190,7 +194,9 @@ class TierFlowRow(BaseModel):
     repurchase_users_current: int = Field(default=0)
     repurchase_rate_current: float = Field(default=0.0)
     repurchase_gsv_current: float = Field(default=0.0)
-    repurchase_gsv_ratio_current: float = Field(default=0.0)
+    # Sprint 16.5 B2 试点治根: 1 个 ratio 字段补 RatioField 标注 (跟 audience.py B1 模式一致)
+    # 修法: repurchase_gsv_ratio 0-1 decimal 越界在 API 入口 422
+    repurchase_gsv_ratio_current: "RatioField" = Field(default=0.0, description="回购GSV占全店GSV比例 0-1 decimal")
     hist_users_comp: int = Field(default=0)
     repurchase_users_comp: int = Field(default=0)
     repurchase_rate_comp: float = Field(default=0.0)

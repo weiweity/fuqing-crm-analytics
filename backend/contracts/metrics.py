@@ -1,6 +1,6 @@
 """芙清 CRM - Pydantic 契约模型"""
 from __future__ import annotations
-from typing import List, Dict
+from typing import List, Dict, Annotated  # Sprint 16.5 B2 试点: Annotated for element-wise
 from pydantic import BaseModel, Field
 from .common import DateRangeResponse
 from .types import RatioField, PercentageField, PpField  # Sprint 14 A.1
@@ -31,7 +31,11 @@ class TrendData(BaseModel):
     metric_type: str
     dates: List[str]
     amounts: List[float]
-    member_ratios: List[float] = Field(default_factory=list, description="今年会员占比 %")
-    ly_amounts: List[float] = Field(default_factory=list, description="去年同周期金额")
-    ly_member_ratios: List[float] = Field(default_factory=list, description="去年同周期会员占比 %")
+    # Sprint 16.5 B2 试点治根: 3 个 List 字段补标注 (跟 audience.py B1 模式一致)
+    # 修法: caller 错传 (e.g. percentage >100) 在 API 入口 ValidationError, 不再 500
+    # Pydantic v2: List[Annotated[T, Field(...)]] 支持 element-wise 约束 (TypeAdapter 解析时生效)
+    # 注: 直接 List["PercentageField"] 不会触发 element-wise 约束 (前向引用解析为 float, Field 丢失), 必须 Annotated
+    member_ratios: List[Annotated[float, Field(ge=0.0, le=100.0)]] = Field(default_factory=list, description="今年会员占比 % (已 *100, 0-100 范围)")
+    ly_amounts: List[Annotated[float, Field(ge=0.0)]] = Field(default_factory=list, description="去年同周期金额 (>=0)")
+    ly_member_ratios: List[Annotated[float, Field(ge=0.0, le=100.0)]] = Field(default_factory=list, description="去年同周期会员占比 % (已 *100, 0-100 范围)")
 
