@@ -132,10 +132,36 @@ describe('MetricCard pass-through 契约 (Sprint 13 修)', () => {
     expect(getChangeText(wrapper)).toBe('0.00pp')
   })
 
-  it('% Infinity → "↑0.00%" (fallback, Infinity>=0 走 if 分支带箭头)', () => {
+  it('% Infinity → "↑数据异常" (Sprint 18 #124: |Infinity|>1e6 守卫生效, 跟 YOYBadge 同步)', () => {
+    // Sprint 18 #124 扩守卫到 MetricCard, 跟 YOYBadge 行为一致
     const wrapper = mount(MetricCard, {
       props: { title: 'test', value: '0', change: Infinity, unit: '%' },
     })
-    expect(getChangeText(wrapper)).toBe('↑0.00%')
+    expect(getChangeText(wrapper)).toBe('↑数据异常')
+  })
+})
+
+// Sprint 18 #124: MetricCard 集成 YOYGuard 守卫扩展测试
+// 跟 YOYBadge 一致: |v|>1e6 触发守卫, NaN/Infinity 也走守卫
+describe('MetricCard YOYGuard 集成 (Sprint 18 #124)', () => {
+  it('change=1e7 unit=% → "↑数据异常" (万倍异常值守卫生效)', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: '全店GSV', value: '¥559.2万', change: 1e7, unit: '%' },
+    })
+    expect(getChangeText(wrapper)).toBe('↑数据异常')
+  })
+
+  it('change=-1e7 unit=pp → "↓数据异常" (负向万倍异常值守卫)', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: '老客占比', value: '53.4%', change: -1e7, unit: 'pp' },
+    })
+    expect(getChangeText(wrapper)).toBe('↓数据异常')
+  })
+
+  it('change=100 unit=% → "↑100.00%" (边界内正常值, 不触发守卫, 跟 YOYBadge 同款)', () => {
+    const wrapper = mount(MetricCard, {
+      props: { title: 'test', value: '0', change: 100, unit: '%' },
+    })
+    expect(getChangeText(wrapper)).toBe('↑100.00%')
   })
 })

@@ -82,6 +82,7 @@ import { ref, computed, watch, onMounted, h, markRaw } from 'vue'
 import { NButton, NSpin } from 'naive-ui'
 import { Close } from '@vicons/ionicons5'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 
 // 用于空白区域点击：获取 ECharts 实例进行坐标转换
 const chartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
@@ -169,9 +170,11 @@ const tableColumns = computed(() => [
     render: (r: any) => {
       const v = r.yoy_repurchase_rate
       if (v == null) return '-'
+      // Sprint 18 #124: 用 YOYGuard 替代硬编码 Math.abs(v).toFixed(1) + 'pp', 加 |v|>1e6 守卫
+      // 箭头 ↑/↓ 由 v 正负决定, 颜色亦然, 数值通过 YOYGuard 格式化 (含 |v|>1e6 守卫 → "数据异常")
       const color = v >= 0 ? '#16a34a' : '#dc2626'
       const arrow = v >= 0 ? '↑' : '↓'
-      return markRaw(h('span', { style: { color, fontWeight: 600 } }, `${arrow}${Math.abs(v).toFixed(1)}pp`))
+      return markRaw(h('span', { style: { color, fontWeight: 600 } }, [arrow, h(YOYGuard, { value: v, unit: 'pp', precision: 1, empty: '0.0pp' })]))
     },
   },
   {
