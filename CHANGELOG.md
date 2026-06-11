@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.39] - 2026-06-11 - fix(contracts): Sprint 16.5 B2 试点 — 3 contract 9 mark 字段补标 (category + metrics + health)
+
+### Fixed
+- **`backend/contracts/category.py:14-16 CategoryDistributionItem.pct/penetration_rate/member_ratio`** — 3 个 ratio 字段从 `float` 改 `"RatioField"` (ge=0, le=1). 跟 Sprint 15 B1 (audience.py 28 字段) 模式一致. service 端返错值 (e.g. pct=1.5 越界) 原本 API 层 500, 改后 Pydantic v2 ValidationError → FastAPI 422
+- **`backend/contracts/metrics.py:34-36 TrendData.member_ratios/ly_amounts/ly_member_ratios`** — 3 个 List 字段从 `List[float]` 改 `List[Annotated[float, Field(ge, le)]]`. Pydantic v2 知识点: `List["PercentageField"]` 不会触发 element-wise 约束 (前向引用解析为 float, Field 元数据丢失), 必须 `List[Annotated[float, Field(...)]]` 才会 TypeAdapter 解析
+- **`backend/contracts/health.py:145 ValueTierDefinition.gsv_ratio`** + **`:167 CustomerSegmentItem.gsv_ratio`** + **`:193 TierFlowRow.repurchase_gsv_ratio_current`** — 3 个 ratio 字段从 `float = Field(...)` 改 `"RatioField" = Field(...)`. 0-1 decimal 越界在 API 入口 422 拦截
+
+### 治根效果 (本地 + 生产 uvicorn 验证)
+- `category/overview` + `metrics/trend` + `customer-health/overview` + `customer-health/value-tiers` 4 端点全 200
+- `pytest backend/tests/test_b2_contract_mark_pilot.py -v` 13/13 passed
+- `pytest backend/tests/ --ignore=backend/tests/test_sim_prod_etl.py` 437 passed + 12 skipped, 0 contract-related failures
+- `pytest backend/tests/test_b2_contract_mark_pilot.py` baseline 3 happy path test 证明合法值 (0-1 decimal) 接受, 不破老 service 调用
+
+### 文档
+- `docs/SPRINT-16-5-B2-AUDIT.md` (252 行) — 9 mark 清单 + 改前后对比 + 服务层 mark 缺口验证 + Sprint 17+ 全量 audit 建议 (剩 9 contract ~50+ 字段)
+- `backend/tests/test_b2_contract_mark_pilot.py` (170 行) — 9 mark 越界 + 1 合法值 + 3 baseline happy path
+
+### Sprint 17+ 后续 (留 backlog)
+1. 全量 audit 剩下 9 contract (audience_summary / audience_table / repurchase / conversion / promotion / rfm_category_drilldown / tier_flow / tiers / config)
+2. 加 ground-truth-lint 规则强制新 contract 字段必须用 `RatioField` / `PercentageField` / `PpField` / `Annotated[*, Field(ge, le)]`
+3. 把 B1+B2 模式写进 `CLAUDE.md` Ratio Convention 章节强制生效
+
 ## [v0.4.14.38] - 2026-06-11 - fix(rfm): Sprint 16.5 P2.7 — cache_key 改 MD5 full + namespace prefix (W5/file 双层防撞)
 
 ### Fixed
