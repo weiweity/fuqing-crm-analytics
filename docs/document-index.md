@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
 > **最后更新**: 2026-06-11
-> **状态**: v0.4.14.40 sprint 16.5 收口 (3/4 P1/P2 治理完成 + 1 NO-OP, main 953f1d1)
+> **状态**: v0.4.14.43 sprint 17 收口 (3/3 P1 治理完成 #120+#121+#122, main 31db7ef, 26 YOY ratio 字段命名冲突留 Sprint 18)
 > **文档策略**: 精简为核心 5 份 + 归档 44 份（详见下方说明）
 
 ---
@@ -10,6 +10,7 @@
 
 | Sprint | 状态 | 文档 |
 |--------|------|------|
+| **Sprint 17** (B1+B2 Pydantic Contract 模式: CLAUDE.md + ground-truth-lint + B2 全量 audit) | ✅ 收口 2026-06-11 | [SPRINT-17-RETROSPECTIVE.md](./SPRINT-17-RETROSPECTIVE.md) + [SPRINT-17-B2-AUDIT-FULL.md](./SPRINT-17-B2-AUDIT-FULL.md) (299 行) + [LINTING.md](./LINTING.md) (359 行) |
 | **Sprint 16.5** (P1/P2 治理: cache_key MD5 + 3 contract audit + YOYBadge 守卫) | ✅ 收口 2026-06-11 | [SPRINT-16-5-RETROSPECTIVE.md](./SPRINT-16-5-RETROSPECTIVE.md) + [SPRINT-16-5-B2-AUDIT.md](./SPRINT-16-5-B2-AUDIT.md) (252 行 audit 报告) |
 | **Sprint 16 P0** (DuckDB 1.5.3 race 治根) | ❌ 中止 (等 1.5.4) | [SPRINT-16-5-README.md](./SPRINT-16-5-README.md) (40 行, 等 1.5.4 release 激活) |
 | **Sprint 15** (Wave 1/2/3 治根) | ✅ 收口 2026-06-11 | [SPRINT-15-PLAN-RATIO-AUDIT.md](./SPRINT-15-PLAN-RATIO-AUDIT.md) (326 行 plan) |
@@ -44,7 +45,9 @@
 
 | 文档 | 说明 |
 |---|---|
+| [SPRINT-17-B2-AUDIT-FULL.md](./SPRINT-17-B2-AUDIT-FULL.md) | Sprint 17 B2 全量 audit 10 contract (299 行, 60+ mark 字段治根) |
 | [SPRINT-16-5-B2-AUDIT.md](./SPRINT-16-5-B2-AUDIT.md) | Sprint 16.5 B2 试点 3 contract audit (252 行, 9 mark 字段治根) |
+| [LINTING.md](./LINTING.md) | Sprint 17 ground-truth-lint 使用文档 (359 行, 4 规则 R1/R2/R3/R4) |
 | [validation-reports/etl-3-runs-2026-06-07.md](./validation-reports/etl-3-runs-2026-06-07.md) | P0-1 痛点 1 跑批 3 次验证（13.4 min 平均） |
 | [validation-reports/w4-full-t7-2026-06-06.md](./validation-reports/w4-full-t7-2026-06-06.md) | W4 T-7 真跑验证（4/4 PASSED） |
 | [validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md](./validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md) | Sprint 7 P2 DuckDB 升级验证 |
