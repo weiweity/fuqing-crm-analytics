@@ -22,13 +22,25 @@ from typing import Optional
 
 
 def get_pypi_duckdb() -> dict:
-    """Query PyPI for duckdb package metadata."""
+    """Query PyPI for duckdb package metadata. Falls back to curl if Python SSL fails."""
+    import subprocess
+    # Try Python urllib first (uses system cert store)
     try:
         with urllib.request.urlopen("https://pypi.org/pypi/duckdb/json", timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
-        print(f"[ERROR] PyPI query failed: {e}", file=sys.stderr)
-        return {}
+        pass  # Fall through to curl
+    # Fallback: use system curl (which uses system certs differently)
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "--max-time", "10", "https://pypi.org/pypi/duckdb/json"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0 and result.stdout:
+            return json.loads(result.stdout)
+    except Exception as e:
+        print(f"[ERROR] PyPI query failed (Python + curl both): {e}", file=sys.stderr)
+    return {}
 
 
 def parse_duckdb_version(ver: str) -> tuple:
