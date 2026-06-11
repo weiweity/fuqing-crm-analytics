@@ -1047,12 +1047,46 @@ def _update_taoke_channel_impl():
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
-    before = conn.execute(
-        "SELECT COUNT(*) FROM orders WHERE channel = '淘客'"
-    ).fetchone()[0]
-    print("纠正前淘客订单: " + str(before) + " 条")
-
+    # Sprint 16 P0 治根: 跟 Sprint 10 B2-merged (99c0196) 同路 — DuckDB 1.5.x ART index
+    # 内部 vector 类型推断 race, 触发 'Vector::Reference used on vector of different
+    # type (source VARCHAR referenced TIMESTAMP)' 错误. 修法: 包 BEGIN/COMMIT, DROP
+    # 2 个 channel 相关 secondary index, UPDATE 跟 SELECT 走 heap (无 index 触发 race),
+    # 重建 index, COMMIT. 跟 Sprint 10 fix (replay_is_member.py DROP 6 indexes) 同一模式,
+    # 治标: 1.5.x ART index 本身; 治本: 升级 DuckDB 1.5.3+ (requirements-lock.txt:18 已 1.5.3,
+    # 但 1.5.2 积压的 index state 残留在 file 里, 1.5.3 也触发, 需要 DROP 重建清状态).
+    # Sprint 10 fix 修了 replay_is_member 但漏修 _update_taoke_channel_impl, 这就是
+    # Sprint 16 P0 治根目标.
+    _CHANNEL_INDEXES = [
+        "idx_orders_channel_pay_time",
+        "idx_orders_channel_member",
+    ]
+    _CHANNEL_INDEX_RECREATE = [
+        "CREATE INDEX idx_orders_channel_pay_time ON orders(channel, pay_time)",
+        "CREATE INDEX idx_orders_channel_member ON orders(channel, is_member)",
+    ]
     try:
+        # Sprint 16 P0 治根 (v2): 加 CHECKPOINT 前置, 强制 WAL 落盘, 清 1.5.x
+        # 升级积压的 stale index state. 之前 v1 跑出来新 race: 'Failed to delete
+        # all rows from index. Only deleted 0 out of 2048 rows' (DROP INDEX 删不掉
+        # 残留 2048 行 ART metadata). 修法: CHECKPOINT 强制 buffer 落盘, 然后
+        # DROP INDEX 干净.
+        try:
+            conn.execute("CHECKPOINT")
+        except Exception as _e:
+            print(f"  [WARN] CHECKPOINT skip: {_e}")
+        conn.execute("BEGIN")
+        # 1. DROP channel 相关 index (race 触发点, channel 字段 VARCHAR 跟 index metadata 类型错乱)
+        for idx in _CHANNEL_INDEXES:
+            try:
+                conn.execute(f"DROP INDEX IF EXISTS {idx}")
+            except Exception as _e:
+                print(f"  [WARN] DROP {idx} skip: {_e}")
+        # 2. 跟 Sprint 10 fix 一样, 单事务保证 atomicity
+        before = conn.execute(
+            "SELECT COUNT(*) FROM orders WHERE channel = '淘客'"
+        ).fetchone()[0]
+        print("纠正前淘客订单: " + str(before) + " 条")
+
         # Step 1: 仅将当前标为'淘客'的订单重置为'其他'（历史误标纠正）
         # 其他渠道（U先/百补/赠品/直播/货架/微博/达播/购物金）完全不动
         reset_sql = (
@@ -1112,8 +1146,28 @@ def _update_taoke_channel_impl():
         delta = after - before
         print("\n纠正完成！淘客订单: " + str(before) + " -> " + str(after) + "（净变化: " + ("+" if delta >= 0 else "") + str(delta) + "）")
 
+        # 3. 重建 2 个 channel index (跟 Sprint 10 fix 同一模式, 跑批后立刻重建给下游 query 加速)
+        for sql in _CHANNEL_INDEX_RECREATE:
+            try:
+                conn.execute(sql)
+            except Exception as _e:
+                print(f"  [WARN] CREATE INDEX skip: {_e}")
+        # 4. COMMIT 整个 DROP+UPDATE+RECREATE 序列 (D.1 atomicity 一致)
+        conn.execute("COMMIT")
+        print(f"  [Sprint 16 P0 治根] 事务 COMMIT: DROP 2 index → UPDATE 3 步 → RECREATE 2 index 全部落盘")
+    except Exception:
+        # Sprint 16 P0 治根: 中途 crash 自动 ROLLBACK, 跟 D.1 replay_is_member.py:90-152 一致
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
     finally:
-        conn.execute("DROP TABLE IF EXISTS _taoke_ids")
+        # 不管成功失败, 都尝试清 TEMP TABLE (跟原来 finally 一致)
+        try:
+            conn.execute("DROP TABLE IF EXISTS _taoke_ids")
+        except Exception:
+            pass
         conn.close()
 
 
