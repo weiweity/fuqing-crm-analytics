@@ -184,3 +184,76 @@ class Bad(BaseModel
         assert len(issues) == 1
         assert issues[0].rule == "SYNTAX"
         assert issues[0].severity == "error"
+
+
+# ============================================================
+# Sprint 19 #1 R5: 递归 List element-wise 检查 (4 个)
+# ============================================================
+
+class TestR5ListElementWise:
+    """R5 (Sprint 19 #1): List[T] 字段 (T 是 ratio/pct/ppt 约束类型) 必须用
+    List[Annotated[float, Field(ge, le)]] 否则 Pydantic 不会触发 element-wise 约束.
+
+    4 个测试:
+    - 2 个 true-positive (违规,期望 R5 issue)
+    - 2 个 false-positive (合规,期望 0 issue)
+    """
+
+    def test_r5_list_ratio_field(self, tmp_path):
+        """R5: List[RatioField] (无 Annotated 包装) -> R5 issue."""
+        content = '''from typing import List
+from pydantic import BaseModel
+from backend.contracts.types import RatioField
+
+class BadContract(BaseModel):
+    daily_ratios: List[RatioField] = []
+'''
+        p = _write_tmp(tmp_path, "bad_list_ratio.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert len(r5) == 1, f"期望 1 个 R5, 实际 {len(r5)}: {[i.message for i in r5]}"
+        assert "RatioField" in r5[0].message
+        assert "Annotated" in r5[0].message
+
+    def test_r5_list_pct_field(self, tmp_path):
+        """R5: List[PercentageField] (无 Annotated 包装) -> R5 issue."""
+        content = '''from typing import List
+from pydantic import BaseModel
+from backend.contracts.types import PercentageField
+
+class BadContract(BaseModel):
+    daily_pcts: List[PercentageField] = []
+'''
+        p = _write_tmp(tmp_path, "bad_list_pct.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert len(r5) == 1, f"期望 1 个 R5, 实际 {len(r5)}: {[i.message for i in r5]}"
+        assert "PercentageField" in r5[0].message
+
+    def test_r5_list_annotated_compliant(self, tmp_path):
+        """合规: List[Annotated[float, Field(ge, le)]] -> 0 issue."""
+        content = '''from typing import List, Annotated
+from pydantic import BaseModel, Field
+
+class GoodContract(BaseModel):
+    daily_ratios: List[Annotated[float, Field(ge=0.0, le=1.0)]] = []
+    daily_pcts: List[Annotated[float, Field(ge=-1_000_000_000.0, le=1_000_000_000.0)]] = []
+    daily_ppts: List[Annotated[float, Field(ge=-100.0, le=100.0)]] = []
+'''
+        p = _write_tmp(tmp_path, "good_list_annotated.py", content)
+        issues = lint_contract_file(p)
+        assert issues == [], f"期望 0 issue, 实际: {[i.message for i in issues]}"
+
+    def test_r5_list_non_ratio(self, tmp_path):
+        """非 ratio 类型 List[str] / List[int] -> 不报 (R5 不触发)."""
+        content = '''from typing import List
+from pydantic import BaseModel
+
+class GoodContract(BaseModel):
+    names: List[str] = []
+    counts: List[int] = []
+'''
+        p = _write_tmp(tmp_path, "good_list_non_ratio.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert r5 == [], f"R5 不应触发, 实际: {[i.message for i in r5]}"

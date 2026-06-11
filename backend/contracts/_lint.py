@@ -1,12 +1,13 @@
-"""Sprint 17 #121 ground-truth-lint.
+"""Sprint 17 #121 + Sprint 19 #1 ground-truth-lint.
 
 强制新 contract 字段用 Pydantic Field 元数据, 防 LLM 写无 RatioField/PercentageField/PpField 的 contract.
 
-4 条规则 (从 Sprint 16.5 retrospective Section 6.3 提取):
+5 条规则 (Sprint 16.5 retrospective Section 6.3 + Sprint 19 #1 R5 递归):
   R1: 字段名以 _ratio 结尾 -> 必须 RatioField (0-1) 或 Annotated[float, Field(ge=0, le=1)]
   R2: 字段名以 _pct 结尾  -> 必须 PercentageField (0-1B) 或 Annotated[float, Field(ge=-1e9, le=1e9)]
   R3: 字段名以 _ppt 结尾  -> 必须 PpField (-100~+100) 或 Annotated[float, Field(ge=-100, le=100)]
   R4: List[X] 字段 where X 是 RatioField/PercentageField/PpField -> 必须用 List[Annotated[X, Field(...)]] 不许 List["X"] 前向引用
+  R5: List[RatioField] / List[PercentageField] / List[PpField] (无 Annotated 包装) -> 不会触发 Pydantic element-wise 约束, 改 List[Annotated[float, Field(ge, le)]]
 
 使用:
     cd backend && python -m backend.contracts._lint
@@ -25,12 +26,23 @@ RATIO_GE_LE = (0.0, 1.0)            # RatioField: 0-1 decimal
 PCT_GE_LE = (-1_000_000_000.0, 1_000_000_000.0)  # PercentageField: 0-1B (yoy_absolute 兼容)
 PPT_GE_LE = (-100.0, 100.0)         # PpField: -100~+100 pp 差
 
-# Sprint 19 #2: yoy_*_ratio 字段已改命名 yoy_*_ratio_ppt, 走 R3 (_ppt 后缀) 检查, 移除 _YOY_PPT_FIELDS 白名单
-# 决策见 docs/SPRINT-19-YOY-RENAME.md "决策审计" 表 (Sprint 18 #141 白名单替代方案)
-
-# 已知 List[Annotated[float, Field(ge, le)]] 合规字段 (linter 暂不识别 list element-wise)
-_LIST_RATIO_FIELDS = frozenset({
-    "new_customer_ratio",  # churn.py CategoryDailyTrendResponse
+# Sprint 18 #141 白名单: yoy_*_ratio 字段实际语义是 pp 差 (PpField),
+# 命名 _ratio 是历史遗留 (Sprint 14 之前 ratio 字段没 Pydantic 时约定),
+# 改命名跨 14+ 文件影响太大 (audience/rfm/category/health 前端), 走白名单兜底.
+# 决策见 docs/SPRINT-18-YOY-FIX.md "决策审计" 表.
+_YOY_PPT_FIELDS = frozenset({
+    # audience.py: 10 字段
+    "yoy_old_gsv_ratio", "yoy_old_users_ratio",
+    "yoy_new_gsv_ratio", "yoy_new_users_ratio",
+    "yoy_member_gsv_ratio", "yoy_member_users_ratio",
+    "yoy_member_old_gsv_ratio", "yoy_member_old_users_ratio",
+    "yoy_member_new_gsv_ratio", "yoy_member_new_users_ratio",
+    # rfm.py: 1 字段 (5 处重复使用, 同一 schema 名)
+    "yoy_repurchase_gsv_ratio",
+    # category.py: 1 字段
+    # (yoy_repurchase_gsv_ratio 同上)
+    # health.py: 2 字段
+    "yoy_old_customer_gsv_ratio", "yoy_member_old_customer_gsv_ratio",
 })
 
 
@@ -77,6 +89,7 @@ def _annotation_has_constrained_float(annotation: ast.AST, ge: float, le: float)
       3) RatioField | None (PEP 604 BinOp)
       4) Annotated[float, Field(ge, le)] (Subscript of Annotated, 含 Field(ge, le) kwargs)
       5) "RatioField" (字符串前向引用, 单字段 OK — Pydantic v2 会解析为类型 alias)
+      6) List[Annotated[float, Field(ge, le)]] / Optional[List[Annotated[...]]] (R5 element-wise 约束)
     """
     # 写法 5: 字符串前向引用 "RatioField" — ast.Constant
     if isinstance(annotation, ast.Constant) and isinstance(annotation.value, str):
@@ -94,6 +107,16 @@ def _annotation_has_constrained_float(annotation: ast.AST, ge: float, le: float)
         # Annotated[float, Field(ge, le)]
         if isinstance(annotation.value, ast.Name) and annotation.value.id == "Annotated":
             return _is_annotated_float_with_field(annotation.slice, ge, le)
+        # List[Annotated[float, Field(ge, le)]] / Optional[List[Annotated[...]]] — 写法 6 (R5 element-wise)
+        if isinstance(annotation.value, ast.Name) and annotation.value.id in ("List", "list"):
+            inner = annotation.slice
+            # Optional[List[Annotated[...]]] — 递归剥 Optional
+            if isinstance(inner, ast.Subscript) and isinstance(inner.value, ast.Name) and inner.value.id in ("Optional", "Union"):
+                inner = inner.slice
+            # inner = Annotated[float, Field(ge, le)]
+            if isinstance(inner, ast.Subscript) and isinstance(inner.value, ast.Name) and inner.value.id == "Annotated":
+                return _is_annotated_float_with_field(inner.slice, ge, le)
+            return False
         # 直接是 Name ("RatioField" / "PercentageField" / "PpField" — 前向引用)
         if isinstance(annotation.value, ast.Name):
             return _name_matches_constrained(annotation.value.id, ge, le)
@@ -193,6 +216,36 @@ def _is_list_with_forward_ref(annotation: ast.AST) -> bool:
     return False
 
 
+def _check_list_element_constraint(annotation: ast.AST) -> Optional[str]:
+    """R5 (Sprint 19 #1): 检查 List[T] 字段 where T 是 ratio/pct/ppt 约束类型.
+
+    合规: List[Annotated[float, Field(ge, le)]] (或 List[Annotated[RatioField, Field(...)]])
+    违规: List[RatioField] / List["RatioField"] / List[PercentageField] / List[PpField] (无 Annotated)
+    不报: List[str] / List[int] / List[Annotated[float, ...]] (T 是非约束类型)
+
+    返回违规消息字符串, 合规返 None.
+    """
+    if not isinstance(annotation, ast.Subscript):
+        return None
+    # List / list
+    if not (isinstance(annotation.value, ast.Name) and annotation.value.id in ("List", "list")):
+        return None
+    slice_node = annotation.slice
+    # Optional[List[X]] — 递归查内部
+    if isinstance(slice_node, ast.Subscript):
+        if isinstance(slice_node.value, ast.Name) and slice_node.value.id in ("Optional", "Union"):
+            return _check_list_element_constraint(slice_node.slice)
+        return None
+    # 字符串前向引用 List["X"]: R4 负责, R5 不重复报
+    if isinstance(slice_node, ast.Constant) and isinstance(slice_node.value, str):
+        return None
+    # 直接 Name 引用 List[RatioField] / List[PercentageField] / List[PpField] — 触发 R5
+    if isinstance(slice_node, ast.Name) and slice_node.id in ("RatioField", "PercentageField", "PpField"):
+        return (f"List[{slice_node.id}] 不会触发 Pydantic element-wise 约束. "
+                f"改 List[Annotated[float, Field(ge, le)]] (或 List[Annotated[{slice_node.id}, Field(...)]])")
+    return None
+
+
 def lint_contract_file(py_path: Path) -> List[LintIssue]:
     """解析 1 个 contract .py, 返回 LintIssue 列表."""
     issues: List[LintIssue] = []
@@ -215,10 +268,14 @@ def lint_contract_file(py_path: Path) -> List[LintIssue]:
 
             # R1-R3: ratio/pct/ppt 命名约定
             if field_name.endswith("_ratio"):
-                # Sprint 18 #141 白名单: 已知合规 List[Annotated[float, Field(ge, le)]] 字段
-                # (linter 暂不识别 list element-wise Field 元数据, 留 Sprint 19 linter 增强)
-                if field_name in _LIST_RATIO_FIELDS:
-                    pass
+                # Sprint 18 #141 白名单: yoy_*_ratio 实际 PpField (pp 差) — 命名 _ratio 是历史遗留
+                if field_name in _YOY_PPT_FIELDS:
+                    if not _annotation_has_constrained_float(annotation, *PPT_GE_LE):
+                        issues.append(LintIssue(
+                            str(py_path), field_line, field_name, "R1",
+                            f"{field_name} 是 yoy_*_ratio 白名单字段, 实际是 PpField (-100~+100 pp 差), 需用 PpField 或 Annotated[float, Field(ge=-100, le=100)]",
+                            "error",
+                        ))
                 elif not _annotation_has_constrained_float(annotation, *RATIO_GE_LE):
                     issues.append(LintIssue(
                         str(py_path), field_line, field_name, "R1",
@@ -245,6 +302,15 @@ def lint_contract_file(py_path: Path) -> List[LintIssue]:
                 issues.append(LintIssue(
                     str(py_path), field_line, field_name, "R4",
                     f"{field_name} 是 List[\"X\"] 前向引用, 不会触发 Pydantic element-wise 约束. 改 List[Annotated[float, Field(...)] 或显式 List[RatioField]",
+                    "error",
+                ))
+
+            # R5 (Sprint 19 #1): List[T] element-wise 检查 — T 是 ratio/pct/ppt 约束类型
+            r5_msg = _check_list_element_constraint(annotation)
+            if r5_msg:
+                issues.append(LintIssue(
+                    str(py_path), field_line, field_name, "R5",
+                    f"{field_name}: {r5_msg}",
                     "error",
                 ))
     return issues
