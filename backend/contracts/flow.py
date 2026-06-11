@@ -1,7 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from enum import Enum
 from pydantic import BaseModel, Field
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 class FlowMatrixResponse(BaseModel):
     flow_matrix: List[Dict[str, Any]]
     segments: List[Dict[str, Any]]
@@ -42,7 +44,8 @@ class FlowMatrixCell(BaseModel):
     source_category: str
     target_category: str
     user_count: int
-    ratio: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    ratio: "RatioField"
     concentration_risk: bool  # True if TOP1来源占比>60%
 
 
@@ -61,7 +64,8 @@ class AssociationItem(BaseModel):
     user_count: int
     order_count: int
     gsv: float
-    ratio: float  # 占该品类购买用户的比例
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    ratio: "RatioField"  # 占该品类购买用户的比例 (0-1 decimal)
     avg_days_gap: float  # 与目标品类的平均购买间隔天数
 
 
