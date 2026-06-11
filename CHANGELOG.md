@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.49] - 2026-06-11 - chore(precommit): Sprint 18 #142 — ground-truth-lint 接 pre-commit framework
+
+### Added
+- **`.pre-commit-config.yaml`** (加 1 hook) — `contract-ground-truth-lint` 本地 hook, `entry: python -m backend.contracts._lint`, `files: 'backend/contracts/.*\.py$'` 触发条件, `stages: [pre-commit]`. 跟现有 ruff + pytest-cleanup-orphans hook 并存, 跟 `.githooks/pre-commit` 双轨并存
+- **`docs/PRE-COMMIT.md`** (新, 334 行) — pre-commit 框架使用文档, 12 节: 简介 / install / 启用 / 触发 / 跳过 / 跟 Sprint 17/18 关系 / CI 集成 / 故障排查
+- **`scripts/test-precommit.sh`** (新, 146 行, +x) — hook 触发验证脚本, 7 步: baseline → 注入 R1 违规 → 验 hook 拦到 (rc=1) → revert → 验复原 (rc=0) → 可选跑 framework
+
+### Tests
+- **test-precommit.sh 验证 PASS** — baseline 26 issue (Sprint 18 #141 治根中残留) → 注入 1 个 R1 违规 (bad_field_ratio 裸 float) → hook rc=1, issue 27 (delta=1) → revert 后 issue 26, rc=0. hook 拦到 + 复原逻辑全部正确
+
+### 契约对齐
+- 跟 Sprint 3 P1-3 双轨并存 (`.githooks/pre-commit` 仍有 ground-truth-lint, 跟 framework 互不冲突)
+- 跟 Sprint 17 #121 工具代码**不动** (`backend/contracts/_lint.py` 主体保持, 跟 #142 scope 一致)
+- 跟 Sprint 18 #141 同步: 当前 lint 26 issue 是 #141 治根中残留, hook 拦到是期望行为; #141 收口后 hook 自动 0 issue pass
+
+### 已知限制
+- **local hook 跨开发者兼容性**: `python -m backend.contracts._lint` 跑本机 Python, 假设开发环境装好 (PEP 668 系统 Python 受限, 需 pipx/uv/venv)
+- **跟 .githooks 双轨并存**: 重复逻辑, Sprint 19 考虑二选一 (推荐保留 .githooks, 装更轻量)
+- **不影响运行时**: pre-commit hook 是开发者工具, 不影响 uvicorn 启动 / API 响应
+
 ## [v0.4.14.43] - 2026-06-11 - fix(contracts): Sprint 17 #120 B2 全量 audit 10 contract 60+ mark 字段 (asset/audience/breakdown/churn/common/flow/geo/rfm/sampling/visitor)
 
 ### Changed
