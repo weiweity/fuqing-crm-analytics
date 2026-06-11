@@ -1,6 +1,8 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, Field
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class AssetSummaryResponse(BaseModel):
     date: str
@@ -21,7 +23,9 @@ class ProductClassRepurchase(BaseModel):
     product_class: str = Field(..., description="品类名称")
     total_buyers: int = Field(..., description="购买人数")
     repurchase_users: int = Field(..., description="复购人数")
-    repurchase_rate: float = Field(..., description="复购率")
+    # Sprint 17 B2 全量 audit: 6 个 ratio/yoy 字段补标
+    # repurchase_rate 0-1 decimal, ly 同期值, yoy pp 差 (cur-ly *100 后 0-1 → 0-100pp)
+    repurchase_rate: "RatioField" = Field(..., description="复购率 0-1 decimal")
     median_days: int = Field(..., description="中位复购天数")
     p25_days: int = Field(..., description="P25复购天数")
     p75_days: int = Field(..., description="P75复购天数")
@@ -31,15 +35,16 @@ class ProductClassRepurchase(BaseModel):
     repurchase_order_value: float = Field(..., description="复购客单价（仅复购订单）")
     repurchase_gsv: float = Field(..., description="复购GSV（仅复购订单）")
     # 同比
-    ly_repurchase_rate: Optional[float] = Field(None, description="去年同期复购率")
+    ly_repurchase_rate: Optional["RatioField"] = Field(None, description="去年同期复购率 0-1 decimal")
     ly_median_days: Optional[int] = Field(None, description="去年同期中位天数")
     ly_avg_days: Optional[float] = Field(None, description="去年同期平均天数")
     ly_gsv: Optional[float] = Field(None, description="去年同期GSV")
-    # YOY
-    repurchase_rate_yoy: Optional[float] = Field(None, description="复购率同比(pp)")
-    median_days_yoy: Optional[float] = Field(None, description="中位天数同比(pp)")
-    avg_days_yoy: Optional[float] = Field(None, description="平均天数YOY")
-    gsv_yoy: Optional[float] = Field(None, description="GSV同比")
+    # YOY: repurchase_rate_yoy 是 pp 差 (cur-ly *100), gsv_yoy 是 0-1 ratio
+    # median_days_yoy / avg_days_yoy 是原始天数差 (cur-ly), 不约束
+    repurchase_rate_yoy: Optional["PpField"] = Field(None, description="复购率同比(pp 差 -100~+100)")
+    median_days_yoy: Optional[float] = Field(None, description="中位天数同比（原始天数差 cur-ly）")
+    avg_days_yoy: Optional[float] = Field(None, description="平均天数YOY（原始天数差 cur-ly）")
+    gsv_yoy: Optional["RatioField"] = Field(None, description="GSV同比 0-1 decimal (cur-ly)/ly")
 
 class StoreAssetWeek(BaseModel):
     """全店资产-单周数据"""

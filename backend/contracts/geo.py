@@ -1,13 +1,16 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import List, Any, Dict
 from pydantic import BaseModel
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class GeoDistributionItem(BaseModel):
     name: str
     user_count: int
     gmv: float
-    user_ratio: float
-    gmv_ratio: float
+    # Sprint 17 B2 全量 audit: 2 个 0-1 decimal ratio 字段补 RatioField 标注
+    user_ratio: "RatioField"
+    gmv_ratio: "RatioField"
 
 
 class GeoDistributionResponse(BaseModel):

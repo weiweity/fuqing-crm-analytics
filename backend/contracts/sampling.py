@@ -1,6 +1,8 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class SamplingChannelSummary(BaseModel):
     """派样渠道汇总"""
@@ -9,9 +11,10 @@ class SamplingChannelSummary(BaseModel):
     repurchase_users_7d: int
     repurchase_users_30d: int
     repurchase_users_60d: int
-    repurchase_rate_7d: float
-    repurchase_rate_30d: float
-    repurchase_rate_60d: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    repurchase_rate_7d: "RatioField"
+    repurchase_rate_30d: "RatioField"
+    repurchase_rate_60d: "RatioField"
     repurchase_gsv_7d: float
     repurchase_gsv_30d: float
     repurchase_gsv_60d: float
@@ -26,11 +29,12 @@ class SamplingCategoryRow(BaseModel):
     category: str
     sample_users: int
     repurchase_users: int
-    repurchase_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    repurchase_rate: "RatioField"
     repurchase_gsv: float
     repurchase_aus: float
     same_category_repurchase: int
-    same_category_rate: float
+    same_category_rate: "RatioField"
 
 
 class SamplingROITimeRange(BaseModel):
@@ -62,34 +66,35 @@ class SamplingLockYearData(BaseModel):
     """锁权分析单年数据"""
     total_uv: int
     locked_users: int
-    lock_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    lock_rate: "RatioField"
     converted_users: int
-    conversion_rate: float
+    conversion_rate: "RatioField"
     lock_gsv: float
     lock_aus: float
     new_locked_users: int
-    new_locked_ratio: float
+    new_locked_ratio: "RatioField"
     new_converted_users: int
-    new_conversion_rate: float
+    new_conversion_rate: "RatioField"
     new_lock_gsv: float
     new_lock_aus: float
 
 
 class SamplingLockYOY(BaseModel):
-    """锁权分析同比数据"""
-    total_uv: Optional[float] = None
-    locked_users: Optional[float] = None
-    lock_rate: Optional[float] = None
-    converted_users: Optional[float] = None
-    conversion_rate: Optional[float] = None
-    lock_gsv: Optional[float] = None
-    lock_aus: Optional[float] = None
-    new_locked_users: Optional[float] = None
-    new_locked_ratio: Optional[float] = None
-    new_converted_users: Optional[float] = None
-    new_conversion_rate: Optional[float] = None
-    new_lock_gsv: Optional[float] = None
-    new_lock_aus: Optional[float] = None
+    """锁权分析同比数据 - yoy_ratio() 返 pp 差"""
+    total_uv: Optional["PercentageField"] = None
+    locked_users: Optional["PercentageField"] = None
+    lock_rate: Optional["PpField"] = None
+    converted_users: Optional["PercentageField"] = None
+    conversion_rate: Optional["PpField"] = None
+    lock_gsv: Optional["PercentageField"] = None
+    lock_aus: Optional["PercentageField"] = None
+    new_locked_users: Optional["PercentageField"] = None
+    new_locked_ratio: Optional["PpField"] = None
+    new_converted_users: Optional["PercentageField"] = None
+    new_conversion_rate: Optional["PpField"] = None
+    new_lock_gsv: Optional["PercentageField"] = None
+    new_lock_aus: Optional["PercentageField"] = None
 
 
 class SamplingLockAnalysisResponse(BaseModel):
@@ -109,38 +114,39 @@ class RollingYearMetrics(BaseModel):
     phase: str = Field(..., description="当前阶段：sample(派样期) 或 conversion(转化期)")
     total_uv: int
     locked_users: int
-    lock_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    lock_rate: "RatioField"
     new_locked_users: int
-    new_locked_ratio: float
+    new_locked_ratio: "RatioField"
     old_locked_users: int
-    old_locked_ratio: float
+    old_locked_ratio: "RatioField"
     converted_users: int
-    conversion_rate: float
+    conversion_rate: "RatioField"
     conv_gsv: float
     conv_aus: float
     new_converted_users: int
-    new_conversion_rate: float
+    new_conversion_rate: "RatioField"
     new_conv_gsv: float
     new_conv_aus: float
     old_converted_users: int
-    old_conversion_rate: float
+    old_conversion_rate: "RatioField"
 
 
 class RollingYOY(BaseModel):
-    """滚动对比 YoY"""
-    total_uv: Optional[float] = None
-    locked_users: Optional[float] = None
-    lock_rate: Optional[float] = None
-    new_locked_users: Optional[float] = None
-    new_locked_ratio: Optional[float] = None
-    converted_users: Optional[float] = None
-    conversion_rate: Optional[float] = None
-    conv_gsv: Optional[float] = None
-    conv_aus: Optional[float] = None
-    new_converted_users: Optional[float] = None
-    new_conversion_rate: Optional[float] = None
-    new_conv_gsv: Optional[float] = None
-    new_conv_aus: Optional[float] = None
+    """滚动对比 YoY - yoy_ratio() 返 pp 差, yoy_absolute() 返 percentage"""
+    total_uv: Optional["PercentageField"] = None
+    locked_users: Optional["PercentageField"] = None
+    lock_rate: Optional["PpField"] = None
+    new_locked_users: Optional["PercentageField"] = None
+    new_locked_ratio: Optional["PpField"] = None
+    converted_users: Optional["PercentageField"] = None
+    conversion_rate: Optional["PpField"] = None
+    conv_gsv: Optional["PercentageField"] = None
+    conv_aus: Optional["PercentageField"] = None
+    new_converted_users: Optional["PercentageField"] = None
+    new_conversion_rate: Optional["PpField"] = None
+    new_conv_gsv: Optional["PercentageField"] = None
+    new_conv_aus: Optional["PercentageField"] = None
 
 
 class RollingTimeline(BaseModel):

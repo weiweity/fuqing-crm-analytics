@@ -216,13 +216,15 @@ class SegmentOrdersResponse(BaseModel):
 class DecliningCategoryItem(BaseModel):
     """下滑品类项"""
     name: str = Field(..., description="品类名称")
-    yoy_repurchase_rate: float = Field(..., description="回购率 YOY（pp）")
+    # Sprint 17 B2 全量 audit: yoy_repurchase_rate 是 pp 差, 补 PpField 标注
+    yoy_repurchase_rate: "PpField" = Field(..., description="回购率 YOY（pp 差 -100~+100）")
 
 
 class ImprovingCategoryItem(BaseModel):
     """上升品类项"""
     name: str = Field(..., description="品类名称")
-    yoy_repurchase_rate: float = Field(..., description="回购率 YOY（pp）")
+    # Sprint 17 B2 全量 audit: yoy_repurchase_rate 是 pp 差, 补 PpField 标注
+    yoy_repurchase_rate: "PpField" = Field(..., description="回购率 YOY（pp 差 -100~+100）")
 
 
 class RFMCategoryDrilldownRow(BaseModel):
@@ -232,37 +234,42 @@ class RFMCategoryDrilldownRow(BaseModel):
     # 当前期
     hist_users_current: int = Field(default=0)
     repurchase_users_current: int = Field(default=0)
-    repurchase_rate_current: float = Field(default=0.0)
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    repurchase_rate_current: "RatioField" = Field(default=0.0)
     repurchase_gsv_current: float = Field(default=0.0)
-    repurchase_gsv_ratio_current: float = Field(default=0.0)
+    repurchase_gsv_ratio_current: "RatioField" = Field(default=0.0)
 
     # 对比期
     hist_users_comp: int = Field(default=0)
     repurchase_users_comp: int = Field(default=0)
-    repurchase_rate_comp: float = Field(default=0.0)
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    repurchase_rate_comp: "RatioField" = Field(default=0.0)
     repurchase_gsv_comp: float = Field(default=0.0)
-    repurchase_gsv_ratio_comp: float = Field(default=0.0)
+    repurchase_gsv_ratio_comp: "RatioField" = Field(default=0.0)
 
     # 前年期
     hist_users_prev2: int = Field(default=0)
     repurchase_users_prev2: int = Field(default=0)
-    repurchase_rate_prev2: float = Field(default=0.0)
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    repurchase_rate_prev2: "RatioField" = Field(default=0.0)
     repurchase_gsv_prev2: float = Field(default=0.0)
-    repurchase_gsv_ratio_prev2: float = Field(default=0.0)
+    repurchase_gsv_ratio_prev2: "RatioField" = Field(default=0.0)
 
     # YOY（当前 vs 对比）
-    yoy_hist_users: Optional[float] = Field(None)
-    yoy_repurchase_users: Optional[float] = Field(None)
-    yoy_repurchase_rate: Optional[float] = Field(None)
-    yoy_repurchase_gsv: Optional[float] = Field(None)
-    yoy_repurchase_gsv_ratio: Optional[float] = Field(None)
+    # *_gsv/*_users → yoy_absolute 返 percentage, *_rate/*_ratio → yoy_repurchase_rate 返 pp
+    yoy_hist_users: Optional["PercentageField"] = Field(None)
+    yoy_repurchase_users: Optional["PercentageField"] = Field(None)
+    yoy_repurchase_rate: Optional["PpField"] = Field(None)
+    yoy_repurchase_gsv: Optional["PercentageField"] = Field(None)
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = Field(None)
 
 
 class TopDriverItem(BaseModel):
     """影响因子 TOP 品类"""
     category_name: str
-    repurchase_rate_current: float = Field(default=0.0)
-    yoy_repurchase_rate: Optional[float] = Field(None)
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    repurchase_rate_current: "RatioField" = Field(default=0.0)
+    yoy_repurchase_rate: Optional["PpField"] = Field(None)
     hist_users_current: int = Field(default=0)
 
 
@@ -270,9 +277,11 @@ class RFMCategoryDrilldownSummary(BaseModel):
     """RFM 品类下钻汇总"""
     total_hist_users: int = Field(default=0)
     total_repurchase_users: int = Field(default=0)
-    overall_repurchase_rate: float = Field(default=0.0)
-    overall_repurchase_rate_comp: float = Field(default=0.0)
-    overall_repurchase_rate_yoy: float = Field(default=0.0)
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    overall_repurchase_rate: "RatioField" = Field(default=0.0)
+    overall_repurchase_rate_comp: "RatioField" = Field(default=0.0)
+    # yoy 是 pp 差
+    overall_repurchase_rate_yoy: "PpField" = Field(default=0.0)
     segment_user_count: int = Field(default=0, description="象限内去重用户数")
     top_drivers: List[TopDriverItem] = Field(default_factory=list, description="影响因子 TOP 品类")
     declining_categories: List[DecliningCategoryItem] = Field(default_factory=list)
