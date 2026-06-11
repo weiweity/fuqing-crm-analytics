@@ -62,6 +62,34 @@ def _safe_etl_notify_on_failure(func):
     return wrapper
 
 
+def _mark_user_id_history_member(shop_df: pd.DataFrame, conn) -> int:
+    """Sprint 15 Wave 3 治根: 老客回购 per-user 标.
+
+    之前 per-order 标 (line 398) 导致老客回购标 FALSE (新单 order_id 不在历史 mark,
+    但 user_id 跟历史 is_member=TRUE 订单的 user_id 重叠). 6/9+ 64 个新订单
+    里有 18 个老客 (历史 is_member=TRUE) 全标 FALSE, 前端会员数据缺失.
+
+    修法: 老客 (is_member=FALSE) 但 user_id 跟历史 is_member=TRUE 重叠 → 标 TRUE.
+    Return: 标为老客回购的订单数.
+
+    Edge cases:
+        - shop_df 空或无 user_id 列 → 返 0
+        - user_id IS NULL → 跳过 (WHERE 过滤)
+        - shop_df.is_member 已为 TRUE → 不动 (old_customer_mask 已排除)
+        - 重复调 → idempotent (loc[mask] 覆盖写同样值)
+    """
+    if shop_df.empty or 'user_id' not in shop_df.columns:
+        return 0
+    historical_member_user_ids = set(conn.execute(
+        "SELECT DISTINCT user_id FROM orders WHERE is_member = TRUE AND user_id IS NOT NULL"
+    ).fetchdf()['user_id'].dropna())
+    old_customer_mask = (~shop_df['is_member']) & shop_df['user_id'].isin(historical_member_user_ids)
+    n_old = int(old_customer_mask.sum())
+    if n_old > 0:
+        shop_df.loc[old_customer_mask, 'is_member'] = True
+    return n_old
+
+
 @_safe_etl_notify_on_failure
 def run_full_etl(mode='auto', window_days=30, force_continue=False,
                  skip_dq=False, skip_w4=False) -> None:
@@ -397,6 +425,17 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         # ===== 增量模式：保持原逻辑 =====
         shop_df['is_member'] = shop_df['order_id'].isin(member_order_ids)
 
+        # Sprint 15 Wave 3 治根 (老客回购 per-user 标): 调 _mark_user_id_history_member
+        # helper. 见 helper docstring 完整治根说明 (老客回购标 FALSE bug 6/9+ 18 老客).
+        if not shop_df.empty and 'user_id' in shop_df.columns:
+            conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+            try:
+                n_old = _mark_user_id_history_member(shop_df, conn)
+                if n_old > 0:
+                    print(f"  [Sprint 15 Wave 3] per-user 治根: {n_old} 个老客回购标 is_member=TRUE")
+            finally:
+                conn.close()
+
         # 合并：店铺全部保留，再拼接会员新增的（不在店铺里的）订单
         if not member_df.empty:
             member_only = member_df[~member_df['order_id'].isin(member_order_ids)]
@@ -463,19 +502,49 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         #       调 replay_is_member.py DROP 6 idx → UPDATE 1.8s → 重建 19.7s, 全表 is_member 重写
         # 跑批时间增量: +1-2 min (1.8s UPDATE + 19.7s index + 0.5s build)
         # 幂等: 两个脚本已幂等 (ON CONFLICT DO NOTHING / 只 UPDATE is_member=FALSE)
-        with PerfTimer("pl_step4_6_membership_mark"):
+        # Sprint 15 Wave 3 治根: 增量模式下 B2 (line 182-215) 已做 mark 增量 append,
+        # 跟 Step 4.6 build_membership_mark 全表重扫冗余, 增量模式跳过 Step 4.6 (B2 已覆盖).
+        # 全量模式 (line 391 if 块之前) 仍跑 Step 4.6 兜底, 不动.
+        if False:  # B2 已做增量 append, mark 跟增量数据一致, 增量模式跳过冗余全扫
+            with PerfTimer("pl_step4_6_membership_mark"):
+                try:
+                    from scripts.etl.build_membership_mark import main as _build_membership_mark_main
+                    _build_membership_mark_main()
+                except Exception as _e:
+                    # is_member 集成失败不阻塞 ETL 已完成的事实 (跟 W6 通知同样 graceful degrade)
+                    print(f"  [Step 4.6 membership_mark] 跳过: {type(_e).__name__}: {str(_e)[:200]}")
+        # Sprint 15 Wave 3 治根: Step 4.7 改增量 UPDATE (只新拉 order_id, 不全表 UPDATE + 不重建 6 索引).
+        # 之前 replay_is_member.py 全表 UPDATE 10.6M + DROP/CREATE 6 索引 = 21s, 增量模式不需要.
+        # 修法: BEGIN/COMMIT 包单事务 (跟 D.1 一致), UPDATE WHERE order_id IN member_order_ids.
+        with PerfTimer("pl_step4_7_replay_is_member_incremental"):
             try:
-                from scripts.etl.build_membership_mark import main as _build_membership_mark_main
-                _build_membership_mark_main()
+                if member_order_ids:
+                    conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+                    try:
+                        # Sprint 15 D.1 atomicity 一致: 单事务包裹, 失败 ROLLBACK.
+                        conn.execute("BEGIN")
+                        # 增量 UPDATE: 只本次新拉 order_id 的 is_member 跟 mark 对齐.
+                        # 跟 T1 per-user 标 + B2 增量 append 配套, mark 跟 orders.is_member 永远一致.
+                        placeholders = ','.join(['?' for _ in member_order_ids])
+                        conn.execute(f"""
+                            UPDATE orders
+                            SET is_member = TRUE
+                            WHERE order_id IN ({placeholders})
+                            AND order_id IS NOT NULL
+                        """, list(member_order_ids))
+                        n_updated = conn.execute(
+                            "SELECT COUNT(*) FROM orders WHERE order_id = ANY(?) AND is_member = TRUE",
+                            [list(member_order_ids)],
+                        ).fetchone()[0]
+                        conn.execute("COMMIT")
+                        print(f"  [Step 4.7 增量] 本次 UPDATE 影响 {n_updated} 单 is_member=TRUE")
+                    except Exception:
+                        conn.execute("ROLLBACK")
+                        raise
+                    finally:
+                        conn.close()
             except Exception as _e:
-                # is_member 集成失败不阻塞 ETL 已完成的事实 (跟 W6 通知同样 graceful degrade)
-                print(f"  [Step 4.6 membership_mark] 跳过: {type(_e).__name__}: {str(_e)[:200]}")
-        with PerfTimer("pl_step4_7_replay_is_member"):
-            try:
-                from scripts.etl.replay_is_member import main as _replay_is_member_main
-                _replay_is_member_main()
-            except Exception as _e:
-                print(f"  [Step 4.7 replay_is_member] 跳过: {type(_e).__name__}: {str(_e)[:200]}")
+                print(f"  [Step 4.7 增量] 跳过: {type(_e).__name__}: {str(_e)[:200]}")
 
         # Step 5: 预计算每日指标（增量模式）— 已挪到 Step 6 user_first_purchase 之后
         # 原因：metrics SQL 用 LEFT JOIN user_first_purchase 算 new/old_user_count，
