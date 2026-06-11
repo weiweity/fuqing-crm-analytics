@@ -4,33 +4,37 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
-## [v0.4.14.51] - 2026-06-11 - fix(contracts): Sprint 19 #2 — 14 yoy_*_ratio 字段真改命名 (→ yoy_*_ratio_ppt)
+## [v0.4.14.52] - 2026-06-11 - docs: Sprint 1-12 retrospective 反推补齐 (12 docs + 1 index)
+
+### Added
+- **`docs/SPRINT-1-RETROSPECTIVE.md`** (新, 42 行) — Sprint 1 反推补齐: 项目 init (1a2647d) + ETL 4 阶段 (QW2 read_only / QW4 baseline / S1 GROUPING SETS / S2 override / M1 scheduler) + 市场对焦看板 4 Tab + 飞书架构奠基
+- **`docs/SPRINT-2-RETROSPECTIVE.md`** (新, 36 行) — Sprint 2 反推补齐: W3/W4 pipeline 集成 + RFM version banner + 飞书架构 7 份文档 refresh + W4 T-7 真跑验证 (留 Sprint 3-7 baseline)
+- **`docs/SPRINT-3-RETROSPECTIVE.md`** (新, 40 行) — Sprint 3 反推补齐: 5/5 P0+P1 done, 痛点 1 闭环 13.4 min, 3 workflow 并行 + 5 轮 review + 4 轮 P1-3 修, v0.4.13, 459+ tests
+- **`docs/SPRINT-4-RETROSPECTIVE.md`** (新, 36 行) — Sprint 4 反推补齐: 2/2 P0 done (痛点 1 端到端 + DuckDB 55GB 备份) + P0-3 hotfix 2 dedup, main 3882f91
+- **`docs/SPRINT-5-RETROSPECTIVE.md`** (新, 39 行) — Sprint 5 反推补齐: 5 维度 + deep dive 找真根因 DuckDB 1.5.2 UNIQUE INDEX race, Fix A 拆 2 tx (5a77fa3), 跑批真闭环 17 min, 清理 513GB
+- **`docs/SPRINT-6-RETROSPECTIVE.md`** (新, 37 行) — Sprint 6 反推补齐: 4 subagent 并行 15 min 196K tokens, 5→6 层防护 + W7 pytest 修复 + D-6 版本同步, 5 commit
+- **`docs/SPRINT-7-RETROSPECTIVE.md`** (新, 40 行) — Sprint 7 反推补齐: 3 subagent 并行 2.5h 264K tokens, P0 治根 10 root test fail 141 passed + P2 6 层防护 cleanup.md 516 行 + P2 DuckDB Fix A KEEP
+- **`docs/SPRINT-8-RETROSPECTIVE.md`** (新, 34 行) — Sprint 8 反推补齐: 2 subagent 并行 30 min 140K tokens, P0 前端 2 bug (YOYBadge 模式统一 + R 桶 pre_cutoff 改 end_dt) + P1 16 root test ignore 删
+- **`docs/SPRINT-9-RETROSPECTIVE.md`** (新, 49 行) — Sprint 9 反推补齐: 维修 4 件根因 (watchdog 阈值 / cache key / W3 valid_sql / W4 memory) + 13 衍生 + DMP 6/8 文档同步
+- **`docs/SPRINT-10-RETROSPECTIVE.md`** (新, 47 行) — Sprint 10 反推补齐: codex 0.137.0 重塑 plan 12→5 件 + B1 preflight 3 件根因 + is_member 根因重诊断, sim-prod 260 次 0 错误
+- **`docs/SPRINT-11-RETROSPECTIVE.md`** (新, 61 行) — Sprint 11 反推补齐: codex audit 4→3 件 + YOY/pp 5 层修法 (frontend humanizeChange v2 + backend round 精度 + vite no-store + CI 修 + 全链路重构)
+- **`docs/SPRINT-12-RETROSPECTIVE.md`** (新, 44 行) — Sprint 12 反推补齐: 7/7 质量加固 + 50M benchmark (查询 5.82x, RSS 3.9GB) + 架构方案 A + 清理 56GB
 
 ### Changed
-- **14 字段真改命名** (Sprint 18 #141 走白名单治根, Sprint 19 跨文件真改):
-  - **`backend/contracts/audience.py`** (10 字段): `yoy_old_gsv_ratio` / `yoy_old_users_ratio` / `yoy_new_gsv_ratio` / `yoy_new_users_ratio` / `yoy_member_gsv_ratio` / `yoy_member_users_ratio` / `yoy_member_old_gsv_ratio` / `yoy_member_old_users_ratio` / `yoy_member_new_gsv_ratio` / `yoy_member_new_users_ratio` → `*_ratio_ppt`
-  - **`backend/contracts/category.py`** (1 字段): `yoy_repurchase_gsv_ratio` → `*_ppt`
-  - **`backend/contracts/health.py`** (3 字段): `yoy_old_customer_gsv_ratio` / `yoy_member_old_customer_gsv_ratio` / TierFlowResponse `yoy_repurchase_gsv_ratio` → `*_ppt`
-  - **`backend/contracts/rfm.py`** (5 字段同名, 5 class): `yoy_repurchase_gsv_ratio` → `*_ppt`
-  - **`backend/contracts/_lint.py`** — 移除 `_YOY_PPT_FIELDS` frozenset 白名单 (Sprint 18 #141 加的 14 字段), 改命名后字段名带 `_ppt` 后缀自动走 R3 强校验
-- **跨文件同步 (26 文件)**:
-  - backend services: `metrics/audience_table.py` (10) + `health/overview.py` (7) + `health/tier_flow.py` (1) + `health/rfm_category_drilldown.py` (1) + `health/rfm_analysis/period.py` (1) + `category_service/repurchase/api.py` (2) + `rfm/_flow_engine.py` (1) = 23 处 dict key
-  - backend tests: `test_contracts_b2_audit.py` (1 test_audience_row_yoy_old_gsv_ratio_ppt_invalid_rejected, 1 docstring, 1 fixture, 2 assertion)
-  - frontend-vue3: `api/types.ts` (20) + `api/types.generated.ts` (20) + `api/category.ts` (1) + `api/flow.ts` (1) + `api/health.ts` (3) + 8 view 文件 (20)
+- **`docs/document-index.md`** (加 12 行) — 当前 Sprint 表按时间倒序插 Sprint 1-12 共 12 行 (Sprint 12 插 Sprint 13 之前), 每行带行数 (34-61 行) + 反推补齐日期 2026-06-11
 
 ### 痛点闭环
-- Sprint 18 retrospective Section 4 #2: "改命名 14 字段 (Sprint 18 走白名单, Sprint 19 真改) yoy_*_ratio → yoy_*_ratio_ppt 跨 14+ 文件" ✅ 闭环
-- Sprint 13 ratio 治理契约 0-1 严守保留 (Sprint 17 B1+B2 配套, Sprint 18 #141 走白名单兜底, Sprint 19 字段名跟命名统一)
+- Sprint 1-12 缺乏正式 retrospective 文档 (历史 sprint 收口时跳过了 retrospective 步骤, 只有 docs commit) ✅ 闭环: 12 个 retrospective docs 反推补齐, 跟 Sprint 13-18 retrospective 模板对齐 (60-100 行简短格式, Sprint 结果 / 关键 commit / 教训 / 关键指标 4 段)
+- document-index 缺 Sprint 1-12 入口 (用户 / 新人翻 sprint 历史无路径) ✅ 闭环: document-index 加 12 行, 按时间倒序排 (Sprint 12 → Sprint 1), 跟现有 Sprint 13-18 表同样格式
 
-### 任务来源
-- Sprint 18 retrospective Section 4 #2 (留 Sprint 19 P2) → Sprint 19 #2 真改命名
+### 已知限制
+- **4 个 memory (Sprint 1/2/4/9) 不在 worktree 写入 scope**: `~/.claude/projects/-Users-hutou/memory/project_sprint*.md` 是 Claude Code 全局状态, 不在 git worktree 内, 需从主 worktree 单独写. Sprint 4 memory 已存在 (`project_sprint4.md` 6213 bytes), 不重写. Sprint 1/2/9 memory 缺失, 需在主 worktree 用同样 YAML frontmatter 格式补. 本次 PR 留 TODO
 
 ### 验证
-- `python -m backend.contracts._lint`: **0 issue** (R3 _ppt 强校验自动接管)
-- pytest: **489 passed + 12 skipped** (跨文件破坏 0, 跟 Sprint 18 末 507 接近, w4_t7_integration 4 个跳过因 DuckDB 锁, 跟代码无关)
-- vitest: **63 passed** (跟 Sprint 18 末一致)
-
-## [v0.4.14.50] - 2026-06-11 - fix(contracts): Sprint 18 #141 — 26 YOY ratio 字段命名/语义冲突治根 (白名单 + 类型补标)
+- 12 个文件全部 wc -l 验证 (34-61 行, 跟 Sprint 13-18 retrospective 同量级简短)
+- 0 个文件含占位 / placeholder 文字 (per user 严禁条款)
+- git log 顺序: 12 retrospective commit (1 per sprint) + 1 document-index commit = 13 commits, 全部在 chore/sprint-1-12-retrospective 分支
+- pytest/lint/vitest 不变 (无 backend/frontend 改动, 不需要重跑)
 
 ## [v0.4.14.47] - 2026-06-11 - fix(cache): Sprint 18 #123 W5 cache invalidation 启动 hook (跨进程 manifest 同步)
 
