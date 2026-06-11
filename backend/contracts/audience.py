@@ -127,17 +127,18 @@ class AudienceRow(BaseModel):
     yoy_member_aus: Optional["PercentageField"] = None
     yoy_member_old_aus: Optional["PercentageField"] = None
     yoy_member_new_aus: Optional["PercentageField"] = None
-    # *_ratio → yoy_ratio 返 pp 差 (e.g. 5.28 = +5.28pp)
-    yoy_old_gsv_ratio: Optional["PpField"] = None
-    yoy_old_users_ratio: Optional["PpField"] = None
-    yoy_new_gsv_ratio: Optional["PpField"] = None
-    yoy_new_users_ratio: Optional["PpField"] = None
-    yoy_member_gsv_ratio: Optional["PpField"] = None
-    yoy_member_users_ratio: Optional["PpField"] = None
-    yoy_member_old_gsv_ratio: Optional["PpField"] = None
-    yoy_member_old_users_ratio: Optional["PpField"] = None
-    yoy_member_new_gsv_ratio: Optional["PpField"] = None
-    yoy_member_new_users_ratio: Optional["PpField"] = None
+    # Sprint 19 #2: 改命名 yoy_*_ratio → yoy_*_ratio_ppt, 实际语义是 pp 差 (PpField)
+    # 历史命名 _ratio 是 Sprint 14 之前 ratio 字段没 Pydantic 时遗留, 跟 Sprint 13 0-1 ratio 严守冲突
+    yoy_old_gsv_ratio_ppt: Optional["PpField"] = None
+    yoy_old_users_ratio_ppt: Optional["PpField"] = None
+    yoy_new_gsv_ratio_ppt: Optional["PpField"] = None
+    yoy_new_users_ratio_ppt: Optional["PpField"] = None
+    yoy_member_gsv_ratio_ppt: Optional["PpField"] = None
+    yoy_member_users_ratio_ppt: Optional["PpField"] = None
+    yoy_member_old_gsv_ratio_ppt: Optional["PpField"] = None
+    yoy_member_old_users_ratio_ppt: Optional["PpField"] = None
+    yoy_member_new_gsv_ratio_ppt: Optional["PpField"] = None
+    yoy_member_new_users_ratio_ppt: Optional["PpField"] = None
 
 
 class AudienceTableResponse(BaseModel):

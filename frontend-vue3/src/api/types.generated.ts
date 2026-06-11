@@ -1712,25 +1712,25 @@ export interface components {
             /** Yoy Member New Aus */
             yoy_member_new_aus: number | null;
             /** Yoy Old Gsv Ratio */
-            yoy_old_gsv_ratio: number | null;
+            yoy_old_gsv_ratio_ppt: number | null;
             /** Yoy Old Users Ratio */
-            yoy_old_users_ratio: number | null;
+            yoy_old_users_ratio_ppt: number | null;
             /** Yoy New Gsv Ratio */
-            yoy_new_gsv_ratio: number | null;
+            yoy_new_gsv_ratio_ppt: number | null;
             /** Yoy New Users Ratio */
-            yoy_new_users_ratio: number | null;
+            yoy_new_users_ratio_ppt: number | null;
             /** Yoy Member Gsv Ratio */
-            yoy_member_gsv_ratio: number | null;
+            yoy_member_gsv_ratio_ppt: number | null;
             /** Yoy Member Users Ratio */
-            yoy_member_users_ratio: number | null;
+            yoy_member_users_ratio_ppt: number | null;
             /** Yoy Member Old Gsv Ratio */
-            yoy_member_old_gsv_ratio: number | null;
+            yoy_member_old_gsv_ratio_ppt: number | null;
             /** Yoy Member Old Users Ratio */
-            yoy_member_old_users_ratio: number | null;
+            yoy_member_old_users_ratio_ppt: number | null;
             /** Yoy Member New Gsv Ratio */
-            yoy_member_new_gsv_ratio: number | null;
+            yoy_member_new_gsv_ratio_ppt: number | null;
             /** Yoy Member New Users Ratio */
-            yoy_member_new_users_ratio: number | null;
+            yoy_member_new_users_ratio_ppt: number | null;
         };
         /** AudienceSummaryResponse */
         AudienceSummaryResponse: {
@@ -2402,7 +2402,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /** CategorySegmentMatrixResponse */
         CategorySegmentMatrixResponse: {
@@ -3310,7 +3310,7 @@ export interface components {
              * Yoy Old Customer Gsv Ratio
              * @description 老客占比同比 (pp 差)
              */
-            yoy_old_customer_gsv_ratio?: number | null;
+            yoy_old_customer_gsv_ratio_ppt?: number | null;
             /**
              * Yoy Old Customer Aus
              * @description 老客AUS同比 (percentage)
@@ -3345,7 +3345,7 @@ export interface components {
              * Yoy Member Old Customer Gsv Ratio
              * @description 会员老客GSV占比同比 (pp 差)
              */
-            yoy_member_old_customer_gsv_ratio?: number | null;
+            yoy_member_old_customer_gsv_ratio_ppt?: number | null;
             /**
              * Yoy Member Old Customer Aus
              * @description 会员老客AUS同比 (percentage)
@@ -4171,7 +4171,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /**
          * RFMCategoryDrilldownResponse
@@ -4310,7 +4310,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /**
          * RFMCategoryDrilldownSummary
@@ -4493,7 +4493,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /** RFMMFlowResponse */
         RFMMFlowResponse: {
@@ -4617,7 +4617,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /** RFMRFlowResponse */
         RFMRFlowResponse: {
@@ -4750,7 +4750,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /**
          * RFMThresholds
@@ -5580,7 +5580,7 @@ export interface components {
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio */
-            yoy_repurchase_gsv_ratio?: number | null;
+            yoy_repurchase_gsv_ratio_ppt?: number | null;
         };
         /**
          * TopDriverItem

@@ -250,10 +250,10 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
     },
     {
       title: `${yr}同比回购GSV占比`,
-      key: 'yoy_repurchase_gsv_ratio',
+      key: 'yoy_repurchase_gsv_ratio_ppt',
       width: 120,
       align: 'center',
-      render: (r) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio, unit: 'pp' }),
+      render: (r) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }),
     },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
     {
