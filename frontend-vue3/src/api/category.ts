@@ -389,7 +389,7 @@ export interface CategoryRepurchaseFlowRow {
   yoy_repurchase_users: number | null
   yoy_repurchase_rate: number | null
   yoy_repurchase_gsv: number | null
-  yoy_repurchase_gsv_ratio: number | null
+  yoy_repurchase_gsv_ratio_ppt: number | null
 }
 
 export interface CategoryRepurchaseFlowResponse {

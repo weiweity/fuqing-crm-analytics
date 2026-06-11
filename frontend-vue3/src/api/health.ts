@@ -97,7 +97,7 @@ export interface TierFlowRow {
   yoy_repurchase_users: number | null
   yoy_repurchase_rate: number | null
   yoy_repurchase_gsv: number | null
-  yoy_repurchase_gsv_ratio: number | null
+  yoy_repurchase_gsv_ratio_ppt: number | null
 }
 
 export interface TierFlowResponse {
@@ -148,7 +148,7 @@ export interface RFMAnalysisRow {
   yoy_repurchase_users: number | null
   yoy_repurchase_rate: number | null
   yoy_repurchase_gsv: number | null
-  yoy_repurchase_gsv_ratio: number | null
+  yoy_repurchase_gsv_ratio_ppt: number | null
 }
 
 export interface RFMAnalysisResponse {
@@ -288,7 +288,7 @@ export interface RFMCategoryDrilldownRow {
   repurchase_gsv_prev2: number; repurchase_gsv_ratio_prev2: number
   yoy_hist_users: number | null; yoy_repurchase_users: number | null
   yoy_repurchase_rate: number | null; yoy_repurchase_gsv: number | null
-  yoy_repurchase_gsv_ratio: number | null
+  yoy_repurchase_gsv_ratio_ppt: number | null
 }
 export interface TopDriverItem {
   category_name: string; repurchase_rate_current: number
