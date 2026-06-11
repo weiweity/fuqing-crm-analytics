@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.47] - 2026-06-11 - fix(cache): Sprint 18 #123 W5 cache invalidation 启动 hook (跨进程 manifest 同步)
+
+### Added
+- **`backend/services/rfm/cache.py:check_manifest_version_and_invalidate()`** (新, 89 行) — 启动 hook, 跨进程持久化 `last_seen_manifest_version` 到 `data/cache/w5kv_manifest_state.json` (env `FQ_W5KV_STATE_PATH` 可覆盖). 跟现有进程内 `_ManifestTracker` 互补: 进程内检测本进程 manifest 变化, 启动 hook 检测跨进程 (uvicorn 重启 / ETL 跑批后) 变化. 不一致时整表清空 12 orphan keys, 写新 state. best-effort: 任何异常被吞 + log warning, 不阻塞 uvicorn 启动
+- **`backend/tests/test_cache_invalidation.py`** (新, 318 行, 10 测试) — 6 类场景覆盖: 1) 没 manifest → hook 静默; 2) 首次跑 (state 缺失) → invalidate + 写 state; 3) state 一致 → no-op; 4) manifest 升 → invalidate + 更新 state; 5) state 写失败 / manifest 损坏 → best-effort 不抛; 6) hook 跟 `cache.get()` 兼容
+- **`docs/CACHE-INVALIDATION.md`** (新, 333 行) — 使用文档, 10 节: 背景 / 设计 / 触发条件 / 跟 Sprint 14.5/16.5/17 关系 / 跟跑批关系 / 手动触发 / 监控 / 验证 / FAQ (7 问) / 变更日志
+
+### Changed
+- **`backend/services/rfm/_shared.py:FLOW_ALGO_VERSION`** `v0.4.14.35` → `v0.4.14.47` — 行为变化 (新增启动 hook), 触发 cache key 全 miss 一次 (后续重算), 跟 Sprint 14.5 P1.4 约定一致
+- **`backend/main.py:lifespan`** (7 行加) — startup event 调 `check_manifest_version_and_invalidate()`, 跟现有 `RfmQueryCache().ensure_table()` 配套, 包 try/except 不阻塞服务
+
+### 痛点闭环
+- Sprint 14.5 留治理债务 #4: "改 ratio/契约后必须手动 invalidate W5 DuckDB-KV cache (12 keys)" ✅ 闭环
+- Sprint 17 retrospective Section 4 #4: 同上, 标记 P1, Sprint 18 #123 实现 ✅
+
+### 任务来源
+- Sprint 14.5 留 (Codex audit P1.4 配套治理) → Sprint 17 retrospective Section 4 #4 跟踪 → Sprint 18 #123 闭环
+
+### 验证
+- 新 10 个 pytest 全过 (`backend/tests/test_cache_invalidation.py`) — 0.47s
+- 跟既有 w5_cache.py 23 测试兼容 (`33 passed in 1.79s` 含新 10)
+- main 全套 pytest: 288 passed + 8 skipped (deselect 2 个 test_sim_prod_etl.py 已知 state-leak race, 跟本次改动无关)
+
 ## [v0.4.14.48] - 2026-06-11 - feat(frontend): Sprint 18 #124 YOYGuard 通用组件 + 扩 MetricCard / RFMSegmentDrilldown
 
 ### Added
