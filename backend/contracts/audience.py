@@ -23,28 +23,29 @@ class AudienceRow(BaseModel):
     old_users: int
     old_gsv: float
     old_aus: float
-    old_gsv_ratio: float
-    old_users_ratio: float
+    # Sprint 17 B2 全量 audit: ratio 字段补 RatioField 标注 (0-1 decimal)
+    old_gsv_ratio: "RatioField"
+    old_users_ratio: "RatioField"
     new_users: int
     new_gsv: float
     new_aus: float
-    new_gsv_ratio: float
-    new_users_ratio: float
+    new_gsv_ratio: "RatioField"
+    new_users_ratio: "RatioField"
     member_users: int
     member_gsv: float
     member_aus: float
-    member_gsv_ratio: float
-    member_users_ratio: float
+    member_gsv_ratio: "RatioField"
+    member_users_ratio: "RatioField"
     member_old_users: int
     member_old_gsv: float
     member_old_aus: float
-    member_old_gsv_ratio: float
-    member_old_users_ratio: float
+    member_old_gsv_ratio: "RatioField"
+    member_old_users_ratio: "RatioField"
     member_new_users: int
     member_new_gsv: float
     member_new_aus: float
-    member_new_gsv_ratio: float
-    member_new_users_ratio: float
+    member_new_gsv_ratio: "RatioField"
+    member_new_users_ratio: "RatioField"
 
     # 去年（comparison）
     comp_gsv_users: int
@@ -53,28 +54,28 @@ class AudienceRow(BaseModel):
     comp_old_users: int
     comp_old_gsv: float
     comp_old_aus: float
-    comp_old_gsv_ratio: float
-    comp_old_users_ratio: float
+    comp_old_gsv_ratio: "RatioField"
+    comp_old_users_ratio: "RatioField"
     comp_new_users: int
     comp_new_gsv: float
     comp_new_aus: float
-    comp_new_gsv_ratio: float
-    comp_new_users_ratio: float
+    comp_new_gsv_ratio: "RatioField"
+    comp_new_users_ratio: "RatioField"
     comp_member_users: int
     comp_member_gsv: float
     comp_member_aus: float
-    comp_member_gsv_ratio: float
-    comp_member_users_ratio: float
+    comp_member_gsv_ratio: "RatioField"
+    comp_member_users_ratio: "RatioField"
     comp_member_old_users: int
     comp_member_old_gsv: float
     comp_member_old_aus: float
-    comp_member_old_gsv_ratio: float
-    comp_member_old_users_ratio: float
+    comp_member_old_gsv_ratio: "RatioField"
+    comp_member_old_users_ratio: "RatioField"
     comp_member_new_users: int
     comp_member_new_gsv: float
     comp_member_new_aus: float
-    comp_member_new_gsv_ratio: float
-    comp_member_new_users_ratio: float
+    comp_member_new_gsv_ratio: "RatioField"
+    comp_member_new_users_ratio: "RatioField"
 
     # 前年（prev2）
     prev2_gsv_users: int
@@ -83,58 +84,60 @@ class AudienceRow(BaseModel):
     prev2_old_users: int
     prev2_old_gsv: float
     prev2_old_aus: float
-    prev2_old_gsv_ratio: float
-    prev2_old_users_ratio: float
+    prev2_old_gsv_ratio: "RatioField"
+    prev2_old_users_ratio: "RatioField"
     prev2_new_users: int
     prev2_new_gsv: float
     prev2_new_aus: float
-    prev2_new_gsv_ratio: float
-    prev2_new_users_ratio: float
+    prev2_new_gsv_ratio: "RatioField"
+    prev2_new_users_ratio: "RatioField"
     prev2_member_users: int
     prev2_member_gsv: float
     prev2_member_aus: float
-    prev2_member_gsv_ratio: float
-    prev2_member_users_ratio: float
+    prev2_member_gsv_ratio: "RatioField"
+    prev2_member_users_ratio: "RatioField"
     prev2_member_old_users: int
     prev2_member_old_gsv: float
     prev2_member_old_aus: float
-    prev2_member_old_gsv_ratio: float
-    prev2_member_old_users_ratio: float
+    prev2_member_old_gsv_ratio: "RatioField"
+    prev2_member_old_users_ratio: "RatioField"
     prev2_member_new_users: int
     prev2_member_new_gsv: float
     prev2_member_new_aus: float
-    prev2_member_new_gsv_ratio: float
-    prev2_member_new_users_ratio: float
+    prev2_member_new_gsv_ratio: "RatioField"
+    prev2_member_new_users_ratio: "RatioField"
 
     # YoY（当年 vs 去年）
-    yoy_gsv: Optional[float]
-    yoy_gsv_users: Optional[float]
-    yoy_old_gsv: Optional[float]
-    yoy_old_users: Optional[float]
-    yoy_new_gsv: Optional[float]
-    yoy_new_users: Optional[float]
-    yoy_member_gsv: Optional[float]
-    yoy_member_users: Optional[float]
-    yoy_member_old_gsv: Optional[float]
-    yoy_member_old_users: Optional[float]
-    yoy_member_new_gsv: Optional[float]
-    yoy_member_new_users: Optional[float]
-    yoy_aus: Optional[float]
-    yoy_old_aus: Optional[float]
-    yoy_new_aus: Optional[float]
-    yoy_member_aus: Optional[float]
-    yoy_member_old_aus: Optional[float]
-    yoy_member_new_aus: Optional[float]
-    yoy_old_gsv_ratio: Optional[float]
-    yoy_old_users_ratio: Optional[float]
-    yoy_new_gsv_ratio: Optional[float]
-    yoy_new_users_ratio: Optional[float]
-    yoy_member_gsv_ratio: Optional[float]
-    yoy_member_users_ratio: Optional[float]
-    yoy_member_old_gsv_ratio: Optional[float]
-    yoy_member_old_users_ratio: Optional[float]
-    yoy_member_new_gsv_ratio: Optional[float]
-    yoy_member_new_users_ratio: Optional[float]
+    # *_gsv/*_users/*_aus → yoy_absolute 返 percentage (e.g. 25.0 = +25%)
+    yoy_gsv: Optional["PercentageField"] = None
+    yoy_gsv_users: Optional["PercentageField"] = None
+    yoy_old_gsv: Optional["PercentageField"] = None
+    yoy_old_users: Optional["PercentageField"] = None
+    yoy_new_gsv: Optional["PercentageField"] = None
+    yoy_new_users: Optional["PercentageField"] = None
+    yoy_member_gsv: Optional["PercentageField"] = None
+    yoy_member_users: Optional["PercentageField"] = None
+    yoy_member_old_gsv: Optional["PercentageField"] = None
+    yoy_member_old_users: Optional["PercentageField"] = None
+    yoy_member_new_gsv: Optional["PercentageField"] = None
+    yoy_member_new_users: Optional["PercentageField"] = None
+    yoy_aus: Optional["PercentageField"] = None
+    yoy_old_aus: Optional["PercentageField"] = None
+    yoy_new_aus: Optional["PercentageField"] = None
+    yoy_member_aus: Optional["PercentageField"] = None
+    yoy_member_old_aus: Optional["PercentageField"] = None
+    yoy_member_new_aus: Optional["PercentageField"] = None
+    # *_ratio → yoy_ratio 返 pp 差 (e.g. 5.28 = +5.28pp)
+    yoy_old_gsv_ratio: Optional["PpField"] = None
+    yoy_old_users_ratio: Optional["PpField"] = None
+    yoy_new_gsv_ratio: Optional["PpField"] = None
+    yoy_new_users_ratio: Optional["PpField"] = None
+    yoy_member_gsv_ratio: Optional["PpField"] = None
+    yoy_member_users_ratio: Optional["PpField"] = None
+    yoy_member_old_gsv_ratio: Optional["PpField"] = None
+    yoy_member_old_users_ratio: Optional["PpField"] = None
+    yoy_member_new_gsv_ratio: Optional["PpField"] = None
+    yoy_member_new_users_ratio: Optional["PpField"] = None
 
 
 class AudienceTableResponse(BaseModel):
@@ -226,32 +229,33 @@ class AudiencePeriodMetrics(BaseModel):
     old_gsv: float = 0.0
     old_users: int = 0
     old_aus: float = 0.0
-    old_gsv_ratio: float = 0.0
-    old_users_ratio: float = 0.0
+    # Sprint 17 B2 全量 audit: 9 个 ratio 字段补 RatioField 标注 (0-1 decimal)
+    old_gsv_ratio: "RatioField" = 0.0
+    old_users_ratio: "RatioField" = 0.0
     # 新客
     new_gsv: float = 0.0
     new_users: int = 0
     new_aus: float = 0.0
-    new_gsv_ratio: float = 0.0
-    new_users_ratio: float = 0.0
+    new_gsv_ratio: "RatioField" = 0.0
+    new_users_ratio: "RatioField" = 0.0
     # 会员
     member_gsv: float = 0.0
     member_users: int = 0
     member_aus: float = 0.0
-    member_penetration: float = 0.0   # 会员渗透率 = 会员人数/全店人数
-    member_users_ratio: float = 0.0
+    member_penetration: "RatioField" = 0.0   # 会员渗透率 = 会员人数/全店人数 (0-1 decimal)
+    member_users_ratio: "RatioField" = 0.0
     # 会员老客
     member_old_gsv: float = 0.0
     member_old_users: int = 0
     member_old_aus: float = 0.0
-    member_old_gsv_ratio: float = 0.0
-    member_old_users_ratio: float = 0.0
+    member_old_gsv_ratio: "RatioField" = 0.0
+    member_old_users_ratio: "RatioField" = 0.0
     # 会员新客
     member_new_gsv: float = 0.0
     member_new_users: int = 0
     member_new_aus: float = 0.0
-    member_new_gsv_ratio: float = 0.0
-    member_new_users_ratio: float = 0.0
+    member_new_gsv_ratio: "RatioField" = 0.0
+    member_new_users_ratio: "RatioField" = 0.0
 
 
 class AudienceSummaryRequest(BaseModel):
