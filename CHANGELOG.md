@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.40] - 2026-06-11 - feat(frontend): YOYBadge 异常值守卫 (Sprint 16.5 P2 Wave 6)
+
+### Added
+- **`frontend-vue3/src/components/YOYBadge.vue` humanizeChange 守卫** — |v| > 1e6 (即 > 100 万%) 返 `'数据异常'`, 避免 UI 显示 `+1157823.86%` 等万倍异常值误导用户
+- **`frontend-vue3/src/components/YOYBadge.vue` 模板 v-else-if 分支** — 单独显示灰色 (`text-slate-400`, 跟 null 态一致) `数据异常` 标签, `title` tooltip 提示原因
+
+### Tests
+- **`frontend-vue3/src/components/YOYBadge.test.ts` 4 个新 vitest 测试** — 边界内正常值 (100/-100/0) + 异常值 (1e7) 全部覆盖
+- **改 1 个 Sprint 13 老测试** — `% Infinity` 期望从 `+0.00% ↑` 改 `数据异常` (Sprint 16.5 守卫优先于显示, 跟 backend 注释对齐)
+- **16/16 vitest passed** (12 老 + 4 新) / 全套 42/42 无回归
+
+### 契约对齐
+- 跟 `backend/contracts/types.py:46` PercentageField 注释对齐: "**真实值 > 1e6 建议前端 YOYBadge 守卫**" — Sprint 15 Wave 1 PercentageField 放宽到 ±1B, 前端必须补守卫
+- 不动后端契约, 不影响 4 个并行 subagent (cache_key / audience / contracts) 的 scope
+
+### 截图验证
+- 老客分析 (customer-health) 现状概览 8 个 MetricCard 正常态: `↑19.16%` / `↓4.98%` / `↑10.44pp` 等
+- 品类看板 (category) 现状概览 46.8% 等正常显示
+- 异常态 (|v|>1e6 → `数据异常`) 由 vitest 1e7 测试覆盖, 单元测试已验证
+
+### 治根效果
+- 防止前端 UI 显示万倍异常百分比误导运营
+- 跟 Sprint 15 Wave 1 backend 放宽契约配套, 前后端契约一致
+
+---
+
 ## [v0.4.14.39] - 2026-06-11 - fix(contracts): Sprint 16.5 B2 试点 — 3 contract 9 mark 字段补标 (category + metrics + health)
 
 ### Fixed
