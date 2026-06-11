@@ -1,6 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Annotated
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class DateRangeResponse(BaseModel):
     start: str
@@ -17,8 +20,9 @@ class YearComparisonRow(BaseModel):
 class DualAxisLineData(BaseModel):
     """双轴折线图数据"""
     categories: List[str]
-    wool_party_ratios: List[float]
-    high_value_ratios: List[float]
+    # Sprint 17 B2 全量 audit: List[RatioField] 必须用 Annotated 才能触发 element-wise 约束
+    wool_party_ratios: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 羊毛党占比")]]
+    high_value_ratios: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 高价值用户占比")]]
 
 class SankeyNode(BaseModel):
     """桑基图节点"""
@@ -44,6 +48,7 @@ class WoolPartyBreakdown(BaseModel):
     type1_count: int  # 历史有正装，后续一直买小样
     type2_count: int  # 历史只买小样
     total_count: int
-    type1_ratio: float
-    type2_ratio: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    type1_ratio: "RatioField"
+    type2_ratio: "RatioField"
 

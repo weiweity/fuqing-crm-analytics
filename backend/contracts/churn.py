@@ -1,6 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Annotated
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class ChurnSegmentItem(BaseModel):
     name: str
@@ -16,7 +19,8 @@ class ChurnDistributionResponse(BaseModel):
     high_risk: int
     medium_risk: int
     low_risk: int
-    high_risk_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    high_risk_rate: "RatioField"
     by_segment: Dict[str, ChurnSegmentItem]
 
 
@@ -41,7 +45,8 @@ class ChurnScatterPoint(BaseModel):
     """流失预警-散点数据"""
     category_name: str
     current_users: int
-    mom_change_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    mom_change_rate: "RatioField"
     churn_users: int
     inter_churn: int     # 品类间流失
     silent_churn: int    # 沉默流失
@@ -52,7 +57,8 @@ class ChurnBarData(BaseModel):
     category_name: str
     current_users: int
     previous_users: int
-    mom_change_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    mom_change_rate: "RatioField"
 
 
 class ChurnTableRow(BaseModel):
@@ -60,13 +66,14 @@ class ChurnTableRow(BaseModel):
     category_name: str
     current_users: int
     previous_users: int
-    mom_change_rate: float
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    mom_change_rate: "RatioField"
     inter_churn: int
     silent_churn: int
     top_churn_dest1: str
-    top_churn_dest1_ratio: float
+    top_churn_dest1_ratio: "RatioField"
     top_churn_dest2: str
-    top_churn_dest2_ratio: float
+    top_churn_dest2_ratio: "RatioField"
     挽回建议: str
 
 
@@ -92,7 +99,8 @@ class CategoryDailyTrendResponse(BaseModel):
     gmv: List[float]
     user_count: List[int]
     aus: List[float]
-    new_customer_ratio: List[float]
+    # Sprint 17 B2 全量 audit: List[RatioField] 必须用 Annotated 才能触发 element-wise 约束
+    new_customer_ratio: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 新客占比")]]
 
 
 class UserDetail(BaseModel):

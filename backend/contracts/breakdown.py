@@ -1,7 +1,9 @@
 """芙清 CRM - Pydantic 契约模型"""
+from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from .common import DateRangeResponse
+from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class BreakdownRequest(BaseModel):
     """一键拆解请求 v2"""
@@ -10,7 +12,8 @@ class BreakdownRequest(BaseModel):
     activity_end: str = Field(..., description="活动结束日期 YYYY-MM-DD")
     last_year_start: Optional[str] = Field(default=None, description="去年同期开始 YYYY-MM-DD（不传则自动推算）")
     last_year_end: Optional[str] = Field(default=None, description="去年同期结束 YYYY-MM-DD（不传则自动推算）")
-    old_customer_ratio_target: Optional[float] = Field(default=0.6, description="老客占比目标（默认60%）")
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    old_customer_ratio_target: Optional["RatioField"] = Field(default=0.6, description="老客占比目标（默认60%）")
     breakdown_mode: str = Field(default="forward", description="拆解模式：forward(顺拆) 或 reverse(倒拆)")
 
 
@@ -21,8 +24,9 @@ class BreakdownRIntervalRow(BaseModel):
     r_interval: str = Field(..., description="R区间标签")
     f_segment: str = Field(..., description="F段：F>1 或 F=1")
     user_count: int = Field(..., description="当前该区间用户数")
-    ly_repurchase_rate: float = Field(..., description="去年同期该区间回购率")
-    est_repurchase_rate: float = Field(..., description="预估回购率（经活动系数调整）")
+    # Sprint 17 B2 全量 audit: ratio 字段补 RatioField 标注
+    ly_repurchase_rate: "RatioField" = Field(..., description="去年同期该区间回购率 0-1 decimal")
+    est_repurchase_rate: "RatioField" = Field(..., description="预估回购率（经活动系数调整）0-1 decimal")
     est_aus: float = Field(..., description="预估客单价")
     est_gmv: float = Field(..., description="预估GMV")
     ly_total_users: int = Field(default=0, description="去年同期该区间总人数")
@@ -34,12 +38,13 @@ class BreakdownRIntervalReverseRow(BaseModel):
     r_interval: str = Field(..., description="R区间标签")
     f_segment: str = Field(..., description="F段：F>1 或 F=1")
     current_users: int = Field(..., description="当前该区间用户数")
-    est_repurchase_rate: float = Field(..., description="预估回购率")
+    # Sprint 17 B2 全量 audit: ratio 字段补 RatioField 标注
+    est_repurchase_rate: "RatioField" = Field(..., description="预估回购率 0-1 decimal")
     est_aus: float = Field(..., description="预估客单价")
     interval_target_gmv: float = Field(..., description="该区间目标GMV")
     needed_users: int = Field(..., description="所需用户数")
     user_gap: int = Field(..., description="用户数缺口")
-    ly_repurchase_rate: float = Field(default=0, description="去年回购率参考")
+    ly_repurchase_rate: "RatioField" = Field(default=0, description="去年回购率参考 0-1 decimal")
     ly_total_users: int = Field(default=0, description="去年该区间总人数")
 
 
@@ -82,7 +87,8 @@ class BreakdownNewCustomer(BaseModel):
     new_gmv_gap: Optional[float] = Field(default=None, description="新客gap（顺拆有值）")
     channel_breakdown: List = Field(default_factory=list, description="新客渠道拆解明细")
     uv_reference: int = Field(default=0, description="参考UV")
-    member_join_rate: float = Field(default=0.0, description="参考入会率")
+    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
+    member_join_rate: "RatioField" = Field(default=0.0, description="参考入会率 0-1 decimal")
     needed_uv: Optional[int] = Field(default=None, description="所需UV（倒拆）")
     uv_gap: Optional[int] = Field(default=None, description="UV缺口（倒拆）")
 
