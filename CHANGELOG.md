@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.53] - 2026-06-12 - refactor(etl): Sprint 16.5+1 B1 治根 — 抽 lark 通道到 ETL 自己 (跨子项目依赖解耦)
+
+### Background
+Sprint 16.5+1 scraper 解耦准备 (v0.4.14.52) 时发现 3 个 ETL 脚本 (notify.py:13-17, assertions.py:37, dq_monitor.py:73) 跨子项目 import scraper.core.sanity_check._send_lark_alert, 5 处命中带 ImportError fallback. 跨子项目依赖违反 CLAUDE.md "层边界不可跨越" 约束, 治根.
+
+### Changed
+- **新建 `scripts/etl/common/__init__.py`**
+- **新建 `scripts/etl/common/lark.py`** (从 `scraper/core/sanity_check.py:_send_lark_alert` 抽完整实现, 保留 LARK_OPEN_ID / LARK_WEBHOOK / lark_oapi SDK 调用)
+- **`scripts/etl/notify.py:13-17`**: `from scraper.core.sanity_check import _send_lark_alert` → `from scripts.etl.common.lark import _send_lark_alert`
+- **`scripts/etl/assertions.py:37`**: 同上 (函数内 lazy import)
+- **`scripts/etl/dq_monitor.py:73`**: 同上 (函数内 lazy import)
+
+### 痛点闭环
+- Sprint 16.5+1 scraper 解耦准备留 B1 治根 ✅
+- 跨子项目依赖 (`from scraper.core.sanity_check import _send_lark_alert`) → ETL 自治 (`from scripts.etl.common.lark import _send_lark_alert`)
+
+### 任务来源
+- Sprint 16.5+1 scraper 解耦准备阶段 4 (3 ETL import 命中) → Sprint 16.5+1 B1 治根
+
+### 验证
+- `pytest backend/tests/ -x -q`: ETL 测试不破 ✅
+- 跑批业务 (data3.csv +45 行) 不阻塞
+
+### 后续
+- 主项目 scraper/ 软删 + symlink 留 Sprint 19+ 治理 (阶段 4 留)
+- check_dmp_session 业务层 session 验证 留 Sprint 19+ 治理 #141
+- 5 行修重建 留 Sprint 19+ 治理 #142
+- 主项目 scraper 旧版 5 文件清理 留 Sprint 19+ 治理 #143
+
 ## [v0.4.14.52] - 2026-06-11 - docs: Sprint 1-12 retrospective 反推补齐 (12 docs + 1 index)
 
 ### Added
