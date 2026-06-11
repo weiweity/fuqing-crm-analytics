@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.41] - 2026-06-11 - docs(claudemd): Sprint 17 #122 B1+B2 模式正式挪进 CLAUDE.md Ratio Convention 章节
+
+### Changed
+- **`CLAUDE.md` "## Ratio Convention" 章节升级** — 从 (Sprint 13+) 升级到 (B1+B2 模式, Sprint 13+ 升级 Sprint 17)
+  - **B1 模式定义** (mark 字段补标 + ETL 触发反向回填) + 典型案例 (Sprint 15 Wave 3 is_member per-user 治根) + 反模式
+  - **B2 模式定义** (contract 字段补标 + Pydantic 422 拦截) + 典型案例 (Sprint 16.5 #91 B2 试点 + Sprint 17 #120 全量) + 反模式
+  - **强制规则 (B1+B2) 表格** — `*_ratio` → RatioField / `*_pct` → PercentageField / `*_ppt` → PpField / `*_rate` → PercentageField / `List[X]` → `List[Annotated[X, Field(...)]]` 禁 `List["X"]` 前向引用
+  - **前端契约** 加 `|v|>1e6` 异常值守卫交叉引用 (Sprint 16.5 #92 + Sprint 17 #124 扩)
+  - **禁止条款** 加 2 条 (contract 裸 float + List 前向引用), 6 条全 lint 强制
+  - **跨链** 加 4 项: `backend/contracts/types.py` 类型定义 + `docs/SPRINT-16-5-B2-AUDIT.md` 试点 + `docs/SPRINT-16-5-RETROSPECTIVE.md` Section 5 治理债务 + `docs/LINTING.md` (Sprint 17 #121 新建) + `docs/SPRINT-17-B2-AUDIT-FULL.md` (Sprint 17 #120 新建)
+- **`CLAUDE.md` "## AI 执行检查点" 表格** — 加新行 "改 contract 字段" → 必跑 `python -m backend.contracts._lint`, 跨链 `docs/LINTING.md`
+- **`CLAUDE.md` "## Sprint 16.5 收口" 章节** — B1+B2 模式 sub-section 加一行 "✅ Sprint 17 已升级到 'Ratio Convention' 主章节 (见上)"
+
+### 契约对齐
+- 跟 Sprint 13 ratio 治理契约 0-1 严守**保留** (B1+B2 跟 Sprint 13 不冲突, 是补强)
+- 不动后端契约 (`backend/contracts/types.py` 不变), 不影响 #120 全量 audit 跟 #121 ground-truth-lint 规则的 scope
+
 ## [v0.4.14.40] - 2026-06-11 - feat(frontend): YOYBadge 异常值守卫 (Sprint 16.5 P2 Wave 6)
 
 ### Added
