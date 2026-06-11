@@ -4,6 +4,68 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.43] - 2026-06-11 - fix(contracts): Sprint 17 #120 B2 全量 audit 10 contract 60+ mark 字段 (asset/audience/breakdown/churn/common/flow/geo/rfm/sampling/visitor)
+
+### Changed
+- **`backend/contracts/asset.py`** (4 mark 字段补标) — `repurchase_rate: PercentageField` + `ly_repurchase_rate: Optional[PercentageField]`
+- **`backend/contracts/audience.py`** (50+ mark 字段补标, AudienceRow + AudiencePeriodMetrics 全 ratio 字段) — `old_gsv_ratio: RatioField` + `member_old_gsv_ratio: RatioField` + 100+ 老 ratio 字段从裸 float 升级 Pydantic 422 拦截
+- **`backend/contracts/breakdown.py`** (5 mark 字段) — `old_customer_ratio_target: PercentageField` + 4 ratio 字段
+- **`backend/contracts/churn.py`** (7 mark 字段) — `top_churn_dest1/2_ratio: RatioField` + `new_customer_ratio: RatioField` (List 字段)
+- **`backend/contracts/common.py`** (4 mark 字段) — `wool_party_ratios` + `high_value_ratios` + `type1/2_ratio: RatioField` (List + Optional 都改)
+- **`backend/contracts/flow.py`** (2 mark 字段) — `ratio: RatioField` + `concentration_risk: bool` 不动
+- **`backend/contracts/geo.py`** (2 mark 字段) — `user_ratio: RatioField` + `gmv_ratio: RatioField`
+- **`backend/contracts/rfm.py`** (13 mark 字段) — 新加 12 个 R 桶 / F 桶 / M 桶 ratio 字段 Pydantic 化, 1 个 `yoy_repurchase_gsv_ratio` 沿用 Sprint 14.5 P1.1 的 `Optional[PpField]`
+- **`backend/contracts/sampling.py`** (12 mark 字段) — `new_locked_ratio: RatioField` + `old_locked_ratio: RatioField` (2 个 class)
+- **`backend/contracts/visitor.py`** (4 mark 字段) — ratio 字段 Pydantic 化
+
+### Added
+- **`backend/tests/test_contracts_b2_audit.py`** (676 行) — 10 contract 聚合越界测试, 验证 schema 422 拦截
+- **`docs/SPRINT-17-B2-AUDIT-FULL.md`** (299 行) — 10 contract audit 报告, 跟 Sprint 16.5 B2 audit 同样 markdown 结构, 每 contract 1 段 (字段数 + before/after diff + pytest 验证)
+
+### Tests
+- **新增 50+ pytest 测试** (10 contract × 5 mark 字段越界测试 + 1 happy path) — 全过
+- **全套件 454 passed + 12 skipped** (#121 lint 10 + #120 B2 50+)
+- **3 pre-existing failed** (test_sim_prod_etl DuckDB race + test_w4_full DuckDB 锁冲突) — 跟 #120 改动无关, 留 Sprint 18
+
+### 契约对齐
+- 跟 Sprint 13 ratio 治理契约 0-1 严守**保留** (B2 audit 用 RatioField/PercentageField/PpField 跟 Sprint 13 一致)
+- 跟 Sprint 14 Stage 2 Pydantic 契约**延伸** (Sprint 14 写 3 个 Annotated 类型, Sprint 17 推全量应用)
+- 跟 Sprint 15 B1 (is_member per-user 反向回填) **配套** (B1 ETL + B2 contract 双管齐下)
+- 跟 Sprint 16.5 B2 试点 (3 contract 9 mark) **延伸** (Sprint 17 推全量 10 contract 60+ mark)
+
+### Follow-up (Sprint 18)
+- **26 lint 残留**: 主要在 `yoy_*_ratio` 字段命名冲突 (实际 PpField 不是 RatioField) — 留 Sprint 18 改命名 or 扩 lint 白名单
+- **ground-truth-lint 长期挂 26 issue** — Sprint 18 治根 (要么改命名, 要么 lint rule 加 YOY 字段 PpField 允许规则)
+
+## [v0.4.14.42] - 2026-06-11 - feat(lint): Sprint 17 #121 ground-truth-lint 规则强制 Pydantic Field 元数据 (R1/R2/R3/R4)
+
+### Added
+- **`backend/contracts/_lint.py`** (260 行) — ground-truth-lint 工具, AST 扫描 contract 文件
+  - **R1**: `*_ratio` 字段必须 `RatioField` (0-1) 或 `Annotated[float, Field(ge=0, le=1)]`
+  - **R2**: `*_pct` 字段必须 `PercentageField` (-1B~1B) 或 `Annotated[float, Field(ge=-1e9, le=1e9)]`
+  - **R3**: `*_ppt` 字段必须 `PpField` (-100~+100) 或 `Annotated[float, Field(ge=-100, le=100)]`
+  - **R4**: `List[X]` 字段 where X 是约束类型, 必须 `List[Annotated[X, Field(...)]]` 不许 `List["X"]` 前向引用 (Pydantic v2 不触发 element-wise 约束)
+  - **CLI**: `python -m backend.contracts._lint` 返 0 / 1 exit code
+  - **跳过**: `_lint.py` / `__init__.py` / `types.py` / `schemas.py` 自身 + 通用 schema
+- **`backend/contracts/tests/test_lint.py`** (186 行) — 10 pytest 测试 (4 true-positive + 4 false-positive + 2 skip rules)
+- **`docs/LINTING.md`** (359 行) — 4 规则详细解释 + 用法 + 跟 Sprint 17 #120 B2 audit 配合 + 跟 #122 B1+B2 模式配套
+
+### Tests
+- **10/10 lint 测试 passed** (8 rule coverage + 2 skip rules)
+- **全套件 454 passed** (含 10 新 lint 测试, 0 回归)
+- **3 pre-existing failed** (test_sim_prod_etl race + test_w4_full DuckDB 锁) — 跟 lint 改动无关
+
+### 契约对齐
+- 跟 Sprint 13 ratio 治理契约 0-1 严守**保留** (lint R1 强制 0-1 约束)
+- 跟 Sprint 16.5 retrospective Section 6.3 Pydantic v2 List 踩坑**治根** (R4 强制 List[Annotated[...]] 写法)
+- 跟 Sprint 17 #120 B2 全量 audit **互补** (#120 修现有 contract, #121 lint 防未来 contract 退步)
+- 跟 Sprint 17 #122 B1+B2 模式 → CLAUDE.md **配套** (#122 写规则, #121 工具层强制)
+
+### 治根效果
+- 防止 LLM 写无 Pydantic Field 元数据 contract (eg. 裸 `float: Field(...)` 而不 `RatioField: Field(...)`)
+- 防 Pydantic v2 `List["X"]` 前向引用踩坑 (Sprint 16.5 13/13 tests 第一次跑 3 fail 教训)
+- CI 集成: 改 contract 时 `python -m backend.contracts._lint` 应该 0 issue (留 Sprint 18 接 pre-commit)
+
 ## [v0.4.14.41] - 2026-06-11 - docs(claudemd): Sprint 17 #122 B1+B2 模式正式挪进 CLAUDE.md Ratio Convention 章节
 
 ### Changed
