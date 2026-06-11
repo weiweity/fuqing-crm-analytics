@@ -4,6 +4,33 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.37] - 2026-06-11 - fix(etl): Sprint 15 Wave 3 — is_member per-user 治根 (老客回购标 FALSE)
+
+### Fixed
+- **`scripts/etl/pipeline.py:65 _mark_user_id_history_member helper`** — Sprint 15 Wave 3 治根 (老客回购 per-user 标). 之前 line 398 per-order 标导致老客 (user_id 跟历史 is_member=TRUE 重叠) 但新单 order_id 不在历史 mark → 标 FALSE. 6/9+ 64 订单 18 老客全标 FALSE, 前端会员数据缺失. 修法: 老客 (is_member=FALSE) 但 user_id 跟历史 is_member=TRUE 重叠 → 标 TRUE
+- **`scripts/etl/pipeline.py:425 T1 调 helper`** — 增量模式在 line 398 per-order 标后调 helper, 新单走 per-order (member_order_ids), 老客走 per-user (historical_member_user_ids), 治根 18 老客
+- **`scripts/etl/pipeline.py:508 T2 Step 4.6 增量模式跳过`** — B2 (line 182-215) 已做 mark 增量 append, 跟 Step 4.6 build_membership_mark 全表重扫冗余, 增量模式跳过. 全量模式 (line 391 if 块之前) 仍跑 Step 4.6 兜底, 不动
+- **`scripts/etl/pipeline.py:519 T3 Step 4.7 改增量 UPDATE`** — 之前 replay_is_member.py 全表 UPDATE 10.6M + DROP/CREATE 6 索引 = 21s, 增量模式不需要. 修法: BEGIN/COMMIT 包单事务 (跟 D.1 一致), `UPDATE orders SET is_member = TRUE WHERE order_id = ANY(?)`, 不重建 6 索引. 跟 T1 per-user 标 + B2 增量 append 配套, mark 跟 orders.is_member 永远一致
+- **`backend/tests/test_is_member_userid_history.py` 6 tests** — 老客回购标 TRUE (主治根) / 全新客不标 / NULL user_id 守卫 / 空 shop_df 早返 / 重复跑 idempotent / 6/9+ 18 老客回归 (Sprint 15 真根因)
+
+### 撤回
+- **T4 Step 7b preload_rfm 增量模式跳过 — 撤回 (noop)** — 增量模式天然不跑 preload_rfm (line 391 在 if 块, line 396 else 增量模式不进), 56 min 是全量模式, 增量模式已 ~30s 极快, 跟 plan-eng-review 拍板时确认. 撤回 T4 避免误改
+
+### Sprint 15 Wave 3 完成
+- ✅ P0 治根 is_member per-user (本 commit, 3 件套)
+- ⏳ P1 B1: audience 28 字段补标 (Sprint 16)
+- ⏳ P1 P2.7: cache_key md5 full (Sprint 16)
+- ⏳ P1 B2 试点: category + health + metrics 3 contract audit (Sprint 16)
+- ⏳ P2 浅 feature: YOYBadge 异常值守卫 (Sprint 16)
+
+### 已知 DuckDB 1.5.2 race (跟本 PR 无关, 留 Sprint 16)
+- `_update_taoke_channel_impl` 段 Vector::Reference VARCHAR/TIMESTAMP error (cli.py:715)
+- baseline (无本 PR 改动) 同样错误, 跟 Sprint 5 P0 教训同类
+- sim_prod_etl 2 flaky test (CI 已知 flaky, 371ccb2 跳过, RSS 4.5GB 撞 1GB 限制) 跟本 PR 无关
+
+### Plan
+- `~/.gstack/projects/fuqing-crm-analytics/main-plan-eng-review-sprint15-wave3-20260611.md` — Sprint 15 Wave 3 plan + 4 sections review (Architecture / Code Quality / Test / Performance) + 1 PR 拍板
+
 ## [v0.4.14.36] - 2026-06-11 - fix(contracts): Sprint 15 Wave 1 — PercentageField 放宽到 ±1B (gsv_yoy 越界治根)
 
 ### Fixed
