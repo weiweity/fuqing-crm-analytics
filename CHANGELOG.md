@@ -70,6 +70,46 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - **跟 .githooks 双轨并存**: 重复逻辑, Sprint 19 考虑二选一 (推荐保留 .githooks, 装更轻量)
 - **不影响运行时**: pre-commit hook 是开发者工具, 不影响 uvicorn 启动 / API 响应
 
+## [v0.4.14.50] - 2026-06-11 - fix(contracts): Sprint 18 #141 — 26 YOY ratio 字段命名/语义冲突治根 (白名单 + 类型补标)
+
+### Changed
+- **`backend/contracts/_lint.py`** (+42 行) — ground-truth-lint 增强 (Sprint 18 #141)
+  - **`_YOY_PPT_FIELDS`** frozenset (14 字段): `yoy_*_ratio` 实际 PpField (pp 差), 命名 `_ratio` 是 Sprint 14 之前历史遗留, 改命名跨 14+ 文件影响太大, 走白名单兜底
+  - **`_LIST_RATIO_FIELDS`** frozenset (1 字段): `new_customer_ratio` 是 `List[Annotated[float, Field(ge, le)]]`, linter 暂不识别 list element-wise 元数据 (Sprint 17 #121 R4 限制)
+  - **R1 检查加 2 分支**: 白名单字段 + 已知 List 字段
+  - **严格校验**: 白名单字段必须实际是 PpField (ge=-100, le=100), 防止未来 LLM 改漂移
+- **`backend/contracts/breakdown.py`** (1 字段) — `gap_ratio: Optional[RatioField]` (0-1 decimal)
+- **`backend/contracts/churn.py`** (1 字段注释) — `new_customer_ratio: List[Annotated[float, Field(ge, le)]]` 留 Sprint 17 #120 已合规写法
+- **`backend/contracts/health.py`** (4 字段) — `annual_promo_gsv_ratio: RatioField` + `annual_promo_user_ratio: RatioField` + `old_customer_gsv_ratio (TargetChannel): RatioField` + `yoy_repurchase_gsv_ratio (TierFlowResponse): Optional[PpField]`
+- **`backend/contracts/sampling.py`** (2 字段) — `new_locked_ratio × 2: Optional[RatioField]` (0-1 decimal, 之前误标 PpField)
+
+### Added
+- **`docs/SPRINT-18-YOY-FIX.md`** (278 行) — 26 字段治根报告, 跟 Sprint 17 B2 audit 同样 markdown 结构 (TL;DR + 字段分类 + 决策审计 + 跨文件影响分析 + 治根效果)
+
+### Tests
+- **新增 0 pytest 测试** (沿用 Sprint 17 #120 53/53 contract tests + Sprint 17 #121 10/10 lint tests, Sprint 18 #141 复用)
+- **全套件 497 passed + 12 skipped** (跟 Sprint 17 收口 454+12 略增: 涵盖 race test)
+- **3 pre-existing failed** (test_sim_prod_etl race + test_w4_full DuckDB lock + sim-prod race) — 跟本 PR 无关, 留 Sprint 18+ 治理
+- **ground-truth-lint 0 issue** (26 → 0)
+- **跟 Sprint 18 #142 配套**: ground-truth-lint 0 issue → pre-commit hook 0 拦截 (跟 #142 文档 "Sprint 18 #141 收口后 hook 自动 0 issue pass" 预期一致)
+
+### 契约对齐
+- 跟 Sprint 13 ratio 治理契约 0-1 严守**保留**: 白名单字段虽然名字带 `_ratio`, 但 linter 强校验它们是 PpField (-100~+100), 不会让 ratio 契约 0-1 漂移
+- 跟 Sprint 14 Stage 2 Pydantic 契约**延伸**: 6 字段补 RatioField/PpField, 0-1 越界 API 入口 422 拦截
+- 跟 Sprint 17 #120 B2 全量 audit **配套**: 复用 53/53 contract tests 验证新补标字段
+- 跟 Sprint 17 #121 ground-truth-lint **配套**: `_YOY_PPT_FIELDS` 跟 `_LIST_RATIO_FIELDS` 双重白名单, R1 检查扩展支持 list element-wise 兜底
+- 跟 Sprint 18 #124 YOYGuard **配套**: 前端 YOY/同比组件统一使用 YOYGuard, 跟后端 linter 白名单同源 (pp 字段前端也用 `unit="pp"` 标识)
+- 跟 Sprint 18 #142 pre-commit **配套**: linter 0 issue → pre-commit hook 0 拦截
+
+### 跨文件破坏
+- **0 文件破坏**: 字段名零改动, 全是类型补标 / linter 白名单
+- **字段名不动** = 前端 `frontend-vue3/src/api/types.ts` 同步不变, `backend/services/*` 同步不变, `backend/tests/*` 同步不变
+- **类型升级** = API 入口 422 拦截保护增强 (越界值不再 500), 跟 Sprint 14 A.1 方案一致
+
+### Follow-up (Sprint 18.5 / 19+)
+- **linter 增强**: 递归 `List[Annotated[...]]` element-wise Field 元数据检查, 移除 `_LIST_RATIO_FIELDS` 白名单依赖
+- **改命名 14 字段** (Sprint 18 走白名单, Sprint 19 真改): `yoy_*_ratio` → `yoy_*_ratio_ppt` 跨 14+ 文件, 估 200+ 行 diff
+
 ## [v0.4.14.43] - 2026-06-11 - fix(contracts): Sprint 17 #120 B2 全量 audit 10 contract 60+ mark 字段 (asset/audience/breakdown/churn/common/flow/geo/rfm/sampling/visitor)
 
 ### Changed

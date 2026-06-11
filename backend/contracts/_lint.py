@@ -25,6 +25,34 @@ RATIO_GE_LE = (0.0, 1.0)            # RatioField: 0-1 decimal
 PCT_GE_LE = (-1_000_000_000.0, 1_000_000_000.0)  # PercentageField: 0-1B (yoy_absolute 兼容)
 PPT_GE_LE = (-100.0, 100.0)         # PpField: -100~+100 pp 差
 
+# Sprint 18 #141 白名单: yoy_*_ratio 字段实际语义是 pp 差 (PpField),
+# 命名 _ratio 是历史遗留 (Sprint 14 之前 ratio 字段没 Pydantic 时约定),
+# 改命名跨 14+ 文件影响太大 (audience/rfm/category/health 前端), 走白名单兜底.
+# 决策见 docs/SPRINT-18-YOY-FIX.md "决策审计" 表.
+_YOY_PPT_FIELDS = frozenset({
+    # audience.py: 10 字段
+    "yoy_old_gsv_ratio", "yoy_old_users_ratio",
+    "yoy_new_gsv_ratio", "yoy_new_users_ratio",
+    "yoy_member_gsv_ratio", "yoy_member_users_ratio",
+    "yoy_member_old_gsv_ratio", "yoy_member_old_users_ratio",
+    "yoy_member_new_gsv_ratio", "yoy_member_new_users_ratio",
+    # rfm.py: 1 字段 (5 处重复使用, 同一 schema 名)
+    "yoy_repurchase_gsv_ratio",
+    # category.py: 1 字段
+    # (yoy_repurchase_gsv_ratio 同上)
+    # health.py: 2 字段
+    "yoy_old_customer_gsv_ratio", "yoy_member_old_customer_gsv_ratio",
+    # Sprint 18 #141 已知合规 List[RATIO] 字段: linter 暂不支持 List[Annotated[...]] element-wise 识别
+    # (Sprint 17 #121 R4 只检查前向引用, 没查 element-wise Field 元数据)
+    # 已知用 Annotated[float, Field(ge, le)] 正确写法的 List[RatioField] 字段白名单
+    "_LIST_RATIO_FIELDS_PLACEHOLDER",  # 不放字段名, 实际用 _LIST_RATIO_FIELDS
+})
+
+# 已知 List[Annotated[float, Field(ge, le)]] 合规字段 (linter 暂不识别 list element-wise)
+_LIST_RATIO_FIELDS = frozenset({
+    "new_customer_ratio",  # churn.py CategoryDailyTrendResponse
+})
+
 
 @dataclass
 class LintIssue:
@@ -207,7 +235,19 @@ def lint_contract_file(py_path: Path) -> List[LintIssue]:
 
             # R1-R3: ratio/pct/ppt 命名约定
             if field_name.endswith("_ratio"):
-                if not _annotation_has_constrained_float(annotation, *RATIO_GE_LE):
+                # Sprint 18 #141 白名单: 已知合规 List[Annotated[float, Field(ge, le)]] 字段
+                # (linter 暂不识别 list element-wise Field 元数据, 留 Sprint 18.5 linter 增强)
+                if field_name in _LIST_RATIO_FIELDS:
+                    pass
+                # Sprint 18 #141 白名单: yoy_*_ratio 实际 PpField (pp 差) — 命名 _ratio 是历史遗留
+                elif field_name in _YOY_PPT_FIELDS:
+                    if not _annotation_has_constrained_float(annotation, *PPT_GE_LE):
+                        issues.append(LintIssue(
+                            str(py_path), field_line, field_name, "R1",
+                            f"{field_name} 是 yoy_*_ratio 白名单字段, 实际是 PpField (-100~+100 pp 差), 需用 PpField 或 Annotated[float, Field(ge=-100, le=100)]",
+                            "error",
+                        ))
+                elif not _annotation_has_constrained_float(annotation, *RATIO_GE_LE):
                     issues.append(LintIssue(
                         str(py_path), field_line, field_name, "R1",
                         f"{field_name} 字段名以 _ratio 结尾, 必须用 RatioField (0-1) 或 Annotated[float, Field(ge=0, le=1)]",

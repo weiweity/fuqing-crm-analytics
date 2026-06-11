@@ -211,7 +211,8 @@ class TierFlowRow(BaseModel):
     yoy_repurchase_users: Optional[float] = Field(None)
     yoy_repurchase_rate: Optional[float] = Field(None)
     yoy_repurchase_gsv: Optional[float] = Field(None)
-    yoy_repurchase_gsv_ratio: Optional[float] = Field(None)
+    # Sprint 18 #141: yoy_repurchase_gsv_ratio 在 TierFlowResponse 实际 yoy (pp 差), 改 PpField
+    yoy_repurchase_gsv_ratio: Optional["PpField"] = Field(None)
 
 
 class TierFlowResponse(BaseModel):
@@ -253,8 +254,9 @@ class PromotionCalendarResponse(BaseModel):
     """大促日历响应"""
     analysis_year: int = Field(...)
     promotions: List[PromotionVsDailyMetrics] = Field(default_factory=list)
-    annual_promo_gsv_ratio: float = Field(default=0.0)
-    annual_promo_user_ratio: float = Field(default=0.0)
+    # Sprint 18 #141: 真实 0-1 decimal ratio, 改 RatioField
+    annual_promo_gsv_ratio: "RatioField" = Field(default=0.0, description="全年大促GSV占比 0-1 decimal")
+    annual_promo_user_ratio: "RatioField" = Field(default=0.0, description="全年大促用户占比 0-1 decimal")
     promo_dependency_score: float = Field(default=0.0)
     dependency_level: str = Field(default="low")
 
@@ -281,7 +283,8 @@ class HealthTargetsResponse(BaseModel):
     # 五项指标目标值（沿用去年同周期实际值）
     all_store_repurchase_rate: float = Field(..., description="全店复购率目标")
     same_product_repurchase_rate: float = Field(..., description="本品复购率目标")
-    old_customer_gsv_ratio: float = Field(..., description="老客占比目标")
+    # Sprint 18 #141: 真实 0-1 decimal ratio 目标值, 改 RatioField
+    old_customer_gsv_ratio: "RatioField" = Field(..., description="老客占比目标 0-1 decimal")
     old_customer_aus: float = Field(..., description="老客AUS目标")
     recent_7d_repurchase_users: int = Field(..., description="周均复购人数目标")
 
