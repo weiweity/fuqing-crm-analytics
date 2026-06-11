@@ -18,6 +18,18 @@
 | **Sprint 14.5** (RFM TTL ratio 500 治根) | ✅ 收口 2026-06-10 | [SPRINT-14-5-RETROSPECTIVE.md](./SPRINT-14-5-RETROSPECTIVE.md) |
 | **Sprint 14** (Stage 2 Pydantic + ETL 治根) | ✅ 收口 2026-06-10 | [SPRINT-14-PLAN-RATIO-STAGE2.md](./SPRINT-14-PLAN-RATIO-STAGE2.md) + [SPRINT-14-RETROSPECTIVE.md](./SPRINT-14-RETROSPECTIVE.md) |
 | **Sprint 13** (Ratio 治理 Stage 1) | ✅ 收口 2026-06-10 | [SPRINT-13-RETROSPECTIVE.md](./SPRINT-13-RETROSPECTIVE.md) |
+| **Sprint 12** (7/7 质量加固 + 50M benchmark) | ✅ 收口 2026-06-09 (反推补齐 2026-06-11) | [SPRINT-12-RETROSPECTIVE.md](./SPRINT-12-RETROSPECTIVE.md) (44 行) |
+| **Sprint 11** (codex audit 4→3 件 + YOY/pp 5 层修法) | ✅ 收口 2026-06-09 (反推补齐 2026-06-11) | [SPRINT-11-RETROSPECTIVE.md](./SPRINT-11-RETROSPECTIVE.md) (61 行) |
+| **Sprint 10** (codex 重塑 plan 12→5 件 + B1 preflight) | ✅ 收口 2026-06-08 (反推补齐 2026-06-11) | [SPRINT-10-RETROSPECTIVE.md](./SPRINT-10-RETROSPECTIVE.md) (47 行) |
+| **Sprint 9** (维修 4 件根因: watchdog / cache key / W3 valid_sql / W4 memory) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-9-RETROSPECTIVE.md](./SPRINT-9-RETROSPECTIVE.md) (49 行) |
+| **Sprint 8** (P0 前端 2 bug 修复 + P1 16 root test 删) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-8-RETROSPECTIVE.md](./SPRINT-8-RETROSPECTIVE.md) (34 行) |
+| **Sprint 7** (治根 10 root test fail + P2 6 层防护) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-7-RETROSPECTIVE.md](./SPRINT-7-RETROSPECTIVE.md) (40 行) |
+| **Sprint 6** (5→6 层防护 + W7 pytest 修复) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-6-RETROSPECTIVE.md](./SPRINT-6-RETROSPECTIVE.md) (37 行) |
+| **Sprint 5** (UNIQUE INDEX race Fix A 拆 2 tx, 跑批真闭环 17 min) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-5-RETROSPECTIVE.md](./SPRINT-5-RETROSPECTIVE.md) (39 行) |
+| **Sprint 4** (2/2 P0 done, 痛点 1 端到端 + DuckDB 55GB 备份) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-4-RETROSPECTIVE.md](./SPRINT-4-RETROSPECTIVE.md) (36 行) |
+| **Sprint 3** (5/5 P0+P1 done, 痛点 1 闭环 13.4 min) | ✅ 收口 2026-06-07 (反推补齐 2026-06-11) | [SPRINT-3-RETROSPECTIVE.md](./SPRINT-3-RETROSPECTIVE.md) (40 行) |
+| **Sprint 2** (W3/W4 pipeline 集成 + RFM banner + 飞书 refresh + W4 T-7) | ✅ 收口 2026-05 下 (反推补齐 2026-06-11) | [SPRINT-2-RETROSPECTIVE.md](./SPRINT-2-RETROSPECTIVE.md) (36 行) |
+| **Sprint 1** (项目 init + ETL 4 阶段奠基) | ✅ 收口 2026-05 中 (反推补齐 2026-06-11) | [SPRINT-1-RETROSPECTIVE.md](./SPRINT-1-RETROSPECTIVE.md) (42 行) |
 
 ---
 
