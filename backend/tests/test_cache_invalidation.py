@@ -316,3 +316,112 @@ class TestHookAfterGetCompat:
         # 调 set + get 验证
         cache.set("r-flow", {"x": 1}, {"v": "new"})
         assert cache.get("r-flow", {"x": 1}) == {"v": "new"}
+
+
+# ─────────────────────────────────────────────────────────────
+# 7. Sprint 19 P2-4: etl_post_run_hook 测试
+# 跟启动 hook 区别: 启动 hook 在 main.py lifespan startup 调,
+# post-run hook 在 scripts/etl/cli.py main() 末尾调, 不依赖 uvicorn 重启
+# ─────────────────────────────────────────────────────────────
+class TestEtlPostRunHook:
+    def test_post_run_hook_manifest_changed_invalidates(self, cache_with_state):
+        """manifest version 变化 → post-run hook 触发 invalidate + 更新 state.
+
+        模拟: 跑批前 state 记录 v=1, 跑批写 manifest v=2, 跑批末尾调 hook.
+        预期: hook 返回 True, cache 表被清空, state 更新到 v=2.
+        """
+        from backend.services.rfm.cache import etl_post_run_hook
+
+        cache, state_path, manifest_path, conn = cache_with_state
+        # 准备: manifest v=2, state=1 (旧), cache 表有 3 行
+        manifest_path.write_text(json.dumps({"version": 2, "active_view": "v2"}))
+        _write_state_file(state_path, 1)
+        for i in range(3):
+            cache.set("r-flow", {"i": i}, {"v": i})
+        assert cache.stats()["total"] == 3, "sanity: 3 cache rows"
+
+        # 调 etl_post_run_hook (走默认 _default_state_path, 用 env 覆盖)
+        import os
+        old_env = os.environ.get("FQ_W5KV_STATE_PATH")
+        os.environ["FQ_W5KV_STATE_PATH"] = str(state_path)
+        try:
+            result = etl_post_run_hook()
+        finally:
+            if old_env is None:
+                os.environ.pop("FQ_W5KV_STATE_PATH", None)
+            else:
+                os.environ["FQ_W5KV_STATE_PATH"] = old_env
+
+        assert result is True, "manifest 变化应返回 True (invalidate 触发)"
+        assert cache.stats()["total"] == 0, "post-run hook 应清空 cache 表"
+        last_seen = _read_state_file(state_path)
+        assert last_seen == 2, f"state 应更新到 v=2, 实际 {last_seen}"
+
+    def test_post_run_hook_manifest_unchanged_noop(self, cache_with_state):
+        """manifest version 一致 → post-run hook 不 invalidate (no-op).
+
+        模拟: 跑批前 state 已是 v=2, 跑批未升 version. 预期: hook 返回 False, cache 保留.
+        """
+        from backend.services.rfm.cache import etl_post_run_hook
+
+        cache, state_path, manifest_path, conn = cache_with_state
+        manifest_path.write_text(json.dumps({"version": 2, "active_view": "v2"}))
+        _write_state_file(state_path, 2)  # state 跟 manifest 一致
+        cache.set("r-flow", {"x": 1}, {"v": "keep"})
+
+        import os
+        old_env = os.environ.get("FQ_W5KV_STATE_PATH")
+        os.environ["FQ_W5KV_STATE_PATH"] = str(state_path)
+        try:
+            result = etl_post_run_hook()
+        finally:
+            if old_env is None:
+                os.environ.pop("FQ_W5KV_STATE_PATH", None)
+            else:
+                os.environ["FQ_W5KV_STATE_PATH"] = old_env
+
+        assert result is False, "manifest 一致应返回 False (no-op)"
+        assert cache.stats()["total"] == 1, "no-op 时 cache 应保留"
+
+    def test_post_run_hook_no_manifest_noop(self, cache_with_state):
+        """manifest 缺失 → post-run hook 不报错, 返回 False (跟启动 hook 一致).
+
+        场景: 首次跑 ETL, manifest 还没写, post-run hook 调也安全.
+        """
+        from backend.services.rfm.cache import etl_post_run_hook
+
+        cache, state_path, manifest_path, conn = cache_with_state
+        if manifest_path.exists():
+            manifest_path.unlink()
+        cache.set("r-flow", {"x": 1}, {"v": "keep"})
+
+        import os
+        old_env = os.environ.get("FQ_W5KV_STATE_PATH")
+        os.environ["FQ_W5KV_STATE_PATH"] = str(state_path)
+        try:
+            result = etl_post_run_hook()
+        finally:
+            if old_env is None:
+                os.environ.pop("FQ_W5KV_STATE_PATH", None)
+            else:
+                os.environ["FQ_W5KV_STATE_PATH"] = old_env
+
+        assert result is False, "manifest 缺失应返回 False (best-effort)"
+        assert cache.stats()["total"] == 1, "manifest 缺失时 cache 应保留"
+
+    def test_post_run_hook_exception_does_not_propagate(self, monkeypatch, cache_with_state):
+        """hook 内部异常被吞, 不抛 (跟启动 hook 同 best-effort 契约).
+
+        场景: post-run hook 调 check_manifest_version_and_invalidate 时
+        抛异常 (e.g. DuckDB connection 故障). post-run hook 应 catch + log + 返 False.
+        """
+        from backend.services.rfm import cache as cache_mod
+
+        def fail_invalidate(*args, **kwargs):
+            raise RuntimeError("simulated DuckDB fault")
+
+        monkeypatch.setattr(cache_mod, "check_manifest_version_and_invalidate", fail_invalidate)
+
+        # 不应抛
+        result = cache_mod.etl_post_run_hook()
+        assert result is False, "异常应被吞, 返回 False"

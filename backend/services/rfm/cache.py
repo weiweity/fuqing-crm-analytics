@@ -411,3 +411,35 @@ def check_manifest_version_and_invalidate(
         # best-effort: 任何异常不阻塞服务启动
         logger.warning("W5 startup hook 失败 (不阻塞服务): %s", e)
         return False
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 19 P2-4: ETL post-run hook — 跑批末尾调, 不依赖 uvicorn 重启
+# 也能 invalidate W5 DuckDB-KV cache. 跟启动 hook 互补:
+#   - 启动 hook: 跨进程 (uvicorn 重启后) 启动时对齐
+#   - post-run hook: ETL 跑批末尾主动调, uvicorn 还没重启也提前清
+#
+# 痛点 (Sprint 14.5 + Sprint 18 #123 留): 改 ratio/契约后, 12 keys
+# 必须 invalidate 才会重算. 启动 hook 解决"uvicorn 重启"路径, 但
+# ETL 跑完 uvicorn 未必立刻重启 → 用户访问仍然拿旧值. post-run hook
+# 让 ETL 跑完 → 主动 invalidate → 12 keys 失效 → 下次访问 miss 重算.
+# ─────────────────────────────────────────────────────────────
+def etl_post_run_hook() -> bool:
+    """ETL 跑批末尾调, 不依赖 uvicorn 重启也能 invalidate W5 cache.
+
+    跟 check_manifest_version_and_invalidate 共享同一份 state_path,
+    调用后状态文件同步 (跟启动 hook 行为一致). 失败被吞 + log warning,
+    不阻塞 ETL 跑批结果 (best-effort, ETL 跑完是更重要的结果).
+
+    Returns:
+        bool: True = 触发了 invalidate, False = no-op / 失败
+
+    集成位置: scripts/etl/cli.py main() 末尾, ETL 跑批成功后调.
+    测试: backend/tests/services/rfm/test_cache_etl_post_run_hook.py
+    """
+    try:
+        return check_manifest_version_and_invalidate()
+    except Exception as e:  # noqa: BLE001
+        # best-effort: 任何异常不阻塞 ETL 跑批收口
+        logger.warning("W5 cache ETL post-run hook 失败 (不阻塞 ETL 收口): %s", e)
+        return False

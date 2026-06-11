@@ -985,6 +985,18 @@ def main():
     print(f"ETL 跑批完成（mode={_mode}）")
     print("=" * 60)
 
+    # Sprint 19 P2-4: ETL 跑批末尾调 W5 cache invalidation hook
+    # 不依赖 uvicorn 重启也能 invalidate (12 keys 在用户下次访问时重算)
+    # 跟 Sprint 18 #123 启动 hook 互补: 启动 hook 解决 "uvicorn 重启" 路径
+    # post-run hook 解决 "uvicorn 还没重启" 路径, 跑批完立刻清 cache
+    try:
+        from backend.services.rfm.cache import etl_post_run_hook
+        invalidated = etl_post_run_hook()
+        print(f"W5 cache invalidation: {'invalidate 触发' if invalidated else 'no-op (manifest version 一致)'}")
+    except Exception as e:  # noqa: BLE001
+        # best-effort: 失败不阻塞 ETL 收口
+        print(f"WARN: W5 cache etl_post_run_hook 失败 (不阻塞收口): {e}")
+
 
 if __name__ == '__main__':
     main()
