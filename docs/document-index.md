@@ -1,7 +1,7 @@
 # 芙清 CRM 客户分析系统 - 文档索引
 
-> **最后更新**: 2026-06-10
-> **状态**: v0.4.14.30 sprint 13 收口 (Health 70→98, main ad1cb20)
+> **最后更新**: 2026-06-11
+> **状态**: v0.4.14.40 sprint 16.5 收口 (3/4 P1/P2 治理完成 + 1 NO-OP, main 953f1d1)
 > **文档策略**: 精简为核心 5 份 + 归档 44 份（详见下方说明）
 
 ---
@@ -10,9 +10,12 @@
 
 | Sprint | 状态 | 文档 |
 |--------|------|------|
-| **Sprint 13** (Ratio 治理 Stage 1) | ✅ 收口 2026-06-10 | [SPRINT-13-PLAN-RATIO-GOVERNANCE.md](./SPRINT-13-PLAN-RATIO-GOVERNANCE.md) + [SPRINT-13-RETROSPECTIVE.md](./SPRINT-13-RETROSPECTIVE.md) |
-| **Sprint 14** (Stage 2 Pydantic + ETL 治根) | ⏳ 待启动 5-6d | [SPRINT-14-PLAN-RATIO-STAGE2.md](./SPRINT-14-PLAN-RATIO-STAGE2.md) (含 A+B+B+ 三组工单) |
-| Sprint 15 (Stage 3 useFormat + Branded + Lint) | 📋 计划中 | (Stage 2 收口后启动) |
+| **Sprint 16.5** (P1/P2 治理: cache_key MD5 + 3 contract audit + YOYBadge 守卫) | ✅ 收口 2026-06-11 | [SPRINT-16-5-RETROSPECTIVE.md](./SPRINT-16-5-RETROSPECTIVE.md) + [SPRINT-16-5-B2-AUDIT.md](./SPRINT-16-5-B2-AUDIT.md) (252 行 audit 报告) |
+| **Sprint 16 P0** (DuckDB 1.5.3 race 治根) | ❌ 中止 (等 1.5.4) | [SPRINT-16-5-README.md](./SPRINT-16-5-README.md) (40 行, 等 1.5.4 release 激活) |
+| **Sprint 15** (Wave 1/2/3 治根) | ✅ 收口 2026-06-11 | [SPRINT-15-PLAN-RATIO-AUDIT.md](./SPRINT-15-PLAN-RATIO-AUDIT.md) (326 行 plan) |
+| **Sprint 14.5** (RFM TTL ratio 500 治根) | ✅ 收口 2026-06-10 | [SPRINT-14-5-RETROSPECTIVE.md](./SPRINT-14-5-RETROSPECTIVE.md) |
+| **Sprint 14** (Stage 2 Pydantic + ETL 治根) | ✅ 收口 2026-06-10 | [SPRINT-14-PLAN-RATIO-STAGE2.md](./SPRINT-14-PLAN-RATIO-STAGE2.md) + [SPRINT-14-RETROSPECTIVE.md](./SPRINT-14-RETROSPECTIVE.md) |
+| **Sprint 13** (Ratio 治理 Stage 1) | ✅ 收口 2026-06-10 | [SPRINT-13-RETROSPECTIVE.md](./SPRINT-13-RETROSPECTIVE.md) |
 
 ---
 
@@ -41,6 +44,7 @@
 
 | 文档 | 说明 |
 |---|---|
+| [SPRINT-16-5-B2-AUDIT.md](./SPRINT-16-5-B2-AUDIT.md) | Sprint 16.5 B2 试点 3 contract audit (252 行, 9 mark 字段治根) |
 | [validation-reports/etl-3-runs-2026-06-07.md](./validation-reports/etl-3-runs-2026-06-07.md) | P0-1 痛点 1 跑批 3 次验证（13.4 min 平均） |
 | [validation-reports/w4-full-t7-2026-06-06.md](./validation-reports/w4-full-t7-2026-06-06.md) | W4 T-7 真跑验证（4/4 PASSED） |
 | [validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md](./validation-reports/sprint7-p2-duckdb-upgrade-2026-06-07.md) | Sprint 7 P2 DuckDB 升级验证 |
@@ -125,4 +129,4 @@
 
 ---
 
-*此文件由 AI 维护，最后更新：2026-06-07*
+*此文件由 AI 维护，最后更新：2026-06-11*

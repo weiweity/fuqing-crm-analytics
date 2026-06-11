@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.16（main，2026-06-07 sprint 8 收口），测试 391+ passed / 12 skipped |
+| 4 | **版本状态** | v0.4.14.40（main @ 953f1d1，2026-06-11 sprint 16.5 收口），测试 437+ passed / 12 skipped / 16 vitest (Sprint 16.5: 4 subagent workflow 1.5h, 3 P1/P2 治根 + 1 NO-OP, r-flow 1180× 加速 + 9 mark 422 拦截 + YOYBadge 异常值守卫) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -259,6 +259,25 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+---
+
+## Sprint 16.5 收口 (2026-06-11, 3/4 治理完成 + 1 NO-OP)
+
+| 任务 | 状态 | 关键产出 |
+|---|---|---|
+| #90 P2.7 cache_key MD5 full | ✅ | r-flow 1180× 加速 (6.45s→0.005s), `_flow_cache_key` 8 维参数 + `FLOW_ALGO_VERSION` 全进 MD5 full + `flow_` namespace prefix |
+| #91 B2 试点 3 contract audit | ✅ | 9 mark 字段治根 (category + metrics + health), 13/13 tests + 252 行 audit 报告 |
+| #92 YOYBadge 异常值守卫 | ✅ | `humanizeChange` |v|>1e6 → 返 `'数据异常'`, 4/4 vitest |
+| #89 B1 audience 28 字段 | ❌ NO-OP | agent 正确识别 task description vs body vs code 矛盾停下 |
+| main | 953f1d1 | v0.4.14.40, 跟 Sprint 15 Wave 3 (1694c8b) 兼容 |
+
+**B1+B2 模式 (Sprint 16.5 起强制, Sprint 17+ 写进 ground-truth-lint)**:
+- 任何 contract 字段必须用 `RatioField` / `PercentageField` / `PpField` / `Annotated[*, Field(ge, le)]`
+- `List[T]` 字段必须 `List[Annotated[inner, Field(...)]]` 不是 `List["PercentageField"]` (Pydantic v2 知识点)
+- 新增 contract 文件必跑 ground-truth-lint 通过才允许 commit (留 Sprint 17)
+
+详见 `docs/SPRINT-16-5-RETROSPECTIVE.md` + `docs/SPRINT-16-5-B2-AUDIT.md`
 
 ---
 
