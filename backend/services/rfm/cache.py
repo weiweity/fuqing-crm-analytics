@@ -10,6 +10,9 @@ W5 DuckDB-KV 缓存 (v0.4.13) — design doc v1.1 §W5 + §7.5
 - ④ manifest 变更触发整表失效 (与 W2 atomic snapshot 配套)
 - ⑤ key 不含 value 字段, 只含 date_range + dims + endpoint + algo_version, 避免用户/数据耦合
 - ⑥ Sprint 14.5 P1.4: key 含 algo_version, 算法改动 → key 变 → miss → 重算 (防 24h 内返旧值)
+- ⑦ Sprint 18 #123: 启动时 check_manifest_version_and_invalidate() 主动对齐 manifest version,
+   跨进程持久化 last_seen_version 到 w5kv_manifest_state.json, 解决改 ratio/契约后
+   必须手动 invalidate 12 keys 的痛点 (Sprint 14.5 留).
 
 schema:
     rfm_query_cache(
@@ -27,12 +30,14 @@ API:
     cache.set(endpoint, params_dict, result)
     cache.invalidate()  # manifest 变更时全表清空
     cache.list_keys()  # 调试
+    check_manifest_version_and_invalidate()  # 启动 hook (Sprint 18 #123)
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
+import os
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -50,6 +55,26 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────
 CACHE_TABLE = "rfm_query_cache"
 DEFAULT_TTL_HOURS = 24
+
+# Sprint 18 #123: 跨进程持久化 manifest version 跟踪 (跟 _ManifestTracker 互补)
+# 进程内 _ManifestTracker 检测本进程内 manifest 变化, 启动 hook 检测跨进程
+# (uvicorn 重启 / ETL 跑批后) 的 manifest 变化. 状态文件用 OS env 覆盖
+# 方便 test 用 tmp_path, 默认放 data/cache/ 跟 ETL 缓存同目录.
+W5KV_STATE_FILENAME = "w5kv_manifest_state.json"
+W5KV_STATE_ENV = "FQ_W5KV_STATE_PATH"
+
+
+def _default_state_path() -> Path:
+    """默认状态文件路径: data/cache/w5kv_manifest_state.json.
+
+    跟 data/processed/manifest.json 同根目录的 data/cache/, 避免污染 W2 manifest.
+    """
+    env = os.environ.get(W5KV_STATE_ENV)
+    if env:
+        return Path(env)
+    # data/ 跟 manifest.py 的 DEFAULT_MANIFEST_PATH 的 parent 同级
+    # manifest 默认是 data/processed/manifest.json → parent.parent = data/
+    return DEFAULT_MANIFEST_PATH.parent.parent / "cache" / W5KV_STATE_FILENAME
 
 
 # ─────────────────────────────────────────────────────────────
@@ -283,3 +308,106 @@ class RfmQueryCache:
 # 进程内单例 (避免每次 new 重建 tracker 状态)
 # ─────────────────────────────────────────────────────────────
 _manifest_tracker_singleton = _ManifestTracker()
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 18 #123: 启动 hook — check_manifest_version_and_invalidate
+# 跨进程持久化 last_seen_manifest_version, 跟进程内 _ManifestTracker 互补:
+#   - 进程内 _ManifestTracker: 检测本进程内 cache.get() 时的 manifest 变化
+#   - 启动 hook: 跨进程 (uvicorn 重启 / ETL 跑批后) 启动时对齐
+#
+# 痛点 (Sprint 14.5 留): 改 ratio/契约后必须手动 invalidate W5 DuckDB-KV cache
+# (12 keys). 修法: 启动时自动同步, 改完代码 → 重启 uvicorn → 启动 hook 自动
+# 检测到 manifest 变化 (ETL 跑批后 version 升) → 整表清空 12 orphan keys.
+# 跨进程持久化用 data/cache/w5kv_manifest_state.json (可用 FQ_W5KV_STATE_PATH
+# 覆盖, test 用 tmp_path).
+# ─────────────────────────────────────────────────────────────
+def _read_state_file(state_path: Path) -> Optional[int]:
+    """读状态文件里的 last_seen_version. 缺失/损坏返回 None."""
+    if not state_path.exists():
+        return None
+    try:
+        with open(state_path) as f:
+            data = json.load(f)
+        v = data.get("last_seen_manifest_version")
+        return int(v) if v is not None else None
+    except (json.JSONDecodeError, ValueError, OSError):
+        return None
+
+
+def _write_state_file(state_path: Path, version: int) -> None:
+    """原子写状态文件 (tmp + rename 模式, 跟 W2 manifest 一致)."""
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "last_seen_manifest_version": version,
+        "ts": datetime.now().isoformat(),
+    }
+    tmp = state_path.with_suffix(f".tmp.{os.getpid()}.{os.getpid()}")
+    try:
+        with open(tmp, "w") as f:
+            json.dump(payload, f, ensure_ascii=False)
+        os.replace(tmp, state_path)
+    except OSError:
+        # 写失败不阻塞启动 (cache 状态是 best-effort)
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+
+
+def check_manifest_version_and_invalidate(
+    state_path: Optional[Path] = None,
+    cache: Optional[RfmQueryCache] = None,
+) -> bool:
+    """启动 hook: 对齐 manifest version, 不一致时自动 invalidate W5 cache.
+
+    设计 (Sprint 18 #123):
+    - 读 state_path (默认 data/cache/w5kv_manifest_state.json) 里记录的
+      last_seen_manifest_version
+    - 读当前 manifest version (manifest.py 同逻辑)
+    - 不一致 (含 None -> int, 即首次启动) → 整表 invalidate + 更新状态文件
+    - 一致 → no-op (24h 内的 cache 保留)
+
+    时机: main.py lifespan startup 调用, 不在 import 时调 (避免测试 import 触发)
+    失败处理: 任何异常被吞掉 + log warning, 不阻塞服务启动 (best-effort)
+
+    Args:
+        state_path: 状态文件路径, 默认 data/cache/w5kv_manifest_state.json
+                    (FQ_W5KV_STATE_PATH 环境变量可覆盖)
+        cache: RfmQueryCache 实例, 默认走模块级单例行为 (新建 RfmQueryCache())
+
+    Returns:
+        bool: True = 触发了 invalidate, False = no-op
+    """
+    sp = Path(state_path) if state_path else _default_state_path()
+    c = cache or RfmQueryCache()
+
+    try:
+        # 读 manifest 当前 version
+        current = _manifest_tracker_singleton.current_version()
+        if current is None:
+            # manifest 不存在 (没跑过 ETL) → 不做任何事, 等 ETL 跑完首次
+            # 写入 manifest 后由 _ManifestTracker 接管
+            logger.debug("W5 startup hook: manifest 缺失, 跳过 (等 ETL 跑批)")
+            return False
+
+        # 读状态文件
+        last_seen = _read_state_file(sp)
+
+        if last_seen == current:
+            logger.debug("W5 startup hook: manifest version 一致 (v=%s), 跳过", current)
+            return False
+
+        # 不一致 → 整表 invalidate + 持久化新 version
+        n = c.invalidate()
+        _write_state_file(sp, current)
+        logger.info(
+            "W5 startup hook: manifest version 变化 (%s -> %s), invalidated %d cache rows",
+            last_seen, current, n,
+        )
+        return True
+    except Exception as e:  # noqa: BLE001
+        # best-effort: 任何异常不阻塞服务启动
+        logger.warning("W5 startup hook 失败 (不阻塞服务): %s", e)
+        return False
