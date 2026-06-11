@@ -64,13 +64,15 @@ def _canonical_params(params: dict) -> str:
 
 
 def _hash_key(endpoint: str, params: dict) -> str:
-    """生成 cache key (endpoint + params + algo_version 的 SHA-256 hex).
+    """生成 W5 DuckDB-KV cache key (namespace prefix `w5kv_` + SHA-256 hex).
 
     Sprint 14.5 P1.4: 含 FLOW_ALGO_VERSION, 算法改动 → key 变 → miss → 重算.
+    Sprint 16.5 P2.7 (Codex audit): 加 namespace prefix `w5kv_` 防跟
+    _flow_cache_key (file cache, prefix `flow_`) 误命名空间冲突.
     不依赖 manifest (manifest 只跟数据变化同步, 不跟算法同步).
     """
     raw = f"{endpoint}|{FLOW_ALGO_VERSION}|{_canonical_params(params)}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return f"w5kv_{hashlib.sha256(raw.encode('utf-8')).hexdigest()}"
 
 
 # ─────────────────────────────────────────────────────────────

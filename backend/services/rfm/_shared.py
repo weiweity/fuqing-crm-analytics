@@ -183,6 +183,14 @@ def _fetch_data_version() -> str:
         pass
 
 
+# Sprint 16.5 P2.7: cache_key 改用 MD5 full (32 char) 替代拼接 + 截断 hash.
+# 旧版 2 个真坑:
+#   1) start_date 加减 1 天 → 直接拼进 key, 看似不冲突, 但跨 prefix 时仍可能误命中
+#      (例: 旧 cache "r_flow_v123_2026-01-01_2026-01-31_GSV.json" vs 新查询
+#       "r_flow_v123_2026-01-02_2026-02-01_GSV.json" — 文件名相似, 排查极难)
+#   2) exclude_channels 用 MD5[:8] 截断 (8 hex = 32 bit) → 生日悖论: 32-bit
+#      空间 2^16 = 65K 列表就有 50% 碰撞率, 真实场景大 exclude list 极可能误命中
+# 修法: 8 维参数全部进 MD5 (无截断), 拼 namespace prefix 防 W5 DuckDB-KV key 串扰.
 def _flow_cache_key(
     flow_type: str,
     start_date: str,
@@ -194,21 +202,22 @@ def _flow_cache_key(
     compare_end_date: Optional[str],
     data_version: str,
 ) -> str:
-    """生成缓存文件名。"""
-    parts = [flow_type, data_version]
-    if start_date and end_date:
-        parts.append(f"{start_date}_{end_date}")
-    if channel and channel != "全店":
-        safe_ch = channel.replace("'", "''")
-        parts.append(f"ch_{safe_ch}")
-    parts.append(metric_type)
-    if exclude_channels:
-        ch_str = ",".join(sorted(exclude_channels))
-        ch_hash = hashlib.md5(ch_str.encode()).hexdigest()[:8]
-        parts.append(f"ex_{ch_hash}")
-    if compare_start_date and compare_end_date:
-        parts.append(f"cmp_{compare_start_date}_{compare_end_date}")
-    return "_".join(parts) + ".json"
+    """生成缓存文件名 (MD5 full 32 char + namespace prefix `flow_`).
+
+    Sprint 16.5 P2.7 (Codex audit): 含 FLOW_ALGO_VERSION, 算法改动 → key 变 → miss.
+    含 namespace prefix `flow_` 防跟 W5 DuckDB-KV cache (prefix `w5kv_`) 串扰.
+    """
+    # 8 维参数全部进 MD5, 顺序固定 (sorted_exclude) 保证幂等
+    exclude_part = (
+        ",".join(sorted(exclude_channels)) if exclude_channels else ""
+    )
+    payload = (
+        f"{flow_type}|{start_date}|{end_date}|{channel or ''}|"
+        f"{metric_type}|{exclude_part}|{compare_start_date or ''}|"
+        f"{compare_end_date or ''}|{data_version}|{FLOW_ALGO_VERSION}"
+    )
+    digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # full 32 char
+    return f"flow_{digest}.json"
 
 
 def _get_cached_flow(

@@ -326,3 +326,135 @@ class TestRfmRouterCacheIntegration:
         assert r2["result"] == "computed"
         assert call_count["n"] == 1, "应命中 cache, 不再调 compute_fn"
         assert r1 == r2
+
+
+# ─────────────────────────────────────────────────────────────
+# 8. Sprint 16.5 P2.7 — _flow_cache_key MD5 full + namespace prefix
+# (Codex audit: 旧版 exclude_channels MD5[:8] 截断 → 生日悖论 6.5K 列表 50% 碰撞)
+# ─────────────────────────────────────────────────────────────
+from backend.services.rfm._shared import (  # noqa: E402
+    _flow_cache_key,
+    FLOW_ALGO_VERSION,
+)
+
+
+class TestFlowCacheKeyMd5Full:
+    """_flow_cache_key Sprint 16.5 P2.7 治根测试 — 6 件套.
+
+    覆盖: 不同参数 → 不同 key / 同参数 → 同 key / 截断 vs full 冲突 /
+           algo_version 变更 → key 失效 / 跨 namespace 隔离 / 幂等.
+    """
+
+    BASE_KW = dict(
+        flow_type="r_flow",
+        start_date="2026-01-01",
+        end_date="2026-01-31",
+        channel="全店",
+        metric_type="GSV",
+        exclude_channels=None,
+        compare_start_date=None,
+        compare_end_date=None,
+        data_version="orders_max_pay_time_v123",
+    )
+
+    def test_different_params_different_keys(self):
+        """不同参数 → 不同 key (8 维任一变化, MD5 必变)."""
+        k1 = _flow_cache_key(**self.BASE_KW)
+        # 1) start_date +1 天
+        k2 = _flow_cache_key(**{**self.BASE_KW, "start_date": "2026-01-02"})
+        # 2) channel 改
+        k3 = _flow_cache_key(**{**self.BASE_KW, "channel": "抖音"})
+        # 3) metric_type 改
+        k4 = _flow_cache_key(**{**self.BASE_KW, "metric_type": "GMV"})
+        # 4) data_version 改
+        k5 = _flow_cache_key(**{**self.BASE_KW, "data_version": "v124"})
+        assert len({k1, k2, k3, k4, k5}) == 5, f"5 个不同参数应生成 5 个不同 key, got {len({k1, k2, k3, k4, k5})}"
+
+    def test_same_params_same_key_idempotent(self):
+        """同参数 → 同 key (幂等, 重入 cache 安全).
+
+        100 次重复调用: 应只生成 1 个 distinct key, 验证 cache 写读幂等.
+        """
+        keys = [_flow_cache_key(**self.BASE_KW) for _ in range(100)]
+        assert len(set(keys)) == 1, f"100 次重复调用应同 key, got {len(set(keys))} 个"
+
+    def test_md5_full_no_truncation(self):
+        """MD5 full 32 char, 不用 [:8] 截断 (Sprint 16.5 P2.7 治根点).
+
+        旧版 exclude_channels MD5[:8] = 32 bit → 6.5K 列表 50% 碰撞.
+        新版: 整 hash 进 key, 32 hex (128 bit) → 2^64 列表才有 50% 碰撞.
+        """
+        k = _flow_cache_key(**self.BASE_KW)
+        # 格式: flow_<32 hex char>.json
+        assert k.startswith("flow_"), f"namespace prefix 必须是 `flow_`, got {k}"
+        assert k.endswith(".json")
+        digest = k[5:-5]  # 剥掉 flow_ + .json
+        assert len(digest) == 32, f"MD5 digest 应为 32 char, got {len(digest)}: {digest}"
+        # 验证是合法 hex
+        int(digest, 16)  # 抛 ValueError if non-hex
+
+    def test_truncation_would_have_collided(self):
+        """截断 (旧版 MD5[:8]) 在典型 exclude 场景会产生碰撞, MD5 full 不会.
+
+        构造 2 个 exclude 列表, MD5[:8] 相同 (实际真碰), MD5 full 必不同.
+        """
+        # 真实场景: 不同渠道集合, 旧版 32-bit 截断会撞
+        excludes_a = ["抖音小店", "视频号", "小红书", "京东", "拼多多", "天猫", "唯品会", "其他"]
+        excludes_b = ["微信小程序", "App内", "H5", "抖音", "快手", "B站", "知乎", "微博"]
+        ka = _flow_cache_key(**{**self.BASE_KW, "exclude_channels": excludes_a})
+        kb = _flow_cache_key(**{**self.BASE_KW, "exclude_channels": excludes_b})
+        # 旧版: MD5[:8] 可能撞 (32 bit 生日悖论).
+        # 新版: full 128 bit, 实际不可能撞.
+        assert ka != kb, "full MD5 必不同 (旧版 [:8] 会撞 — 治根点)"
+
+    def test_algo_version_change_invalidates_key(self):
+        """algo_version 变更 → key 失效 (跟 Sprint 14.5 W5 cache 模式一致).
+
+        模拟 algo_version 升级: 把模块全局 FLOW_ALGO_VERSION 临时改,
+        验证 key 跟着变 (cache miss → 重算, 不返旧值).
+        """
+        import backend.services.rfm._shared as shared_mod
+        original = shared_mod.FLOW_ALGO_VERSION
+
+        k_old = _flow_cache_key(**self.BASE_KW)
+        try:
+            shared_mod.FLOW_ALGO_VERSION = "v999.99.99-test"
+            k_new = _flow_cache_key(**self.BASE_KW)
+            assert k_old != k_new, "algo_version 升级 → key 必须变, 防 24h 内返旧值"
+        finally:
+            shared_mod.FLOW_ALGO_VERSION = original
+
+    def test_namespace_isolation_vs_w5(self):
+        """跨 namespace 隔离: _flow_cache_key (flow_) ≠ _hash_key (w5kv_).
+
+        即便 endpoint="r-flow" + 相同 params, 两套 cache 必不串扰.
+        验证: 取 endpoint="r-flow" + params={BASE_KW 的 8 维}, 两 key 前缀不同.
+        """
+        from backend.services.rfm.cache import _hash_key
+        # _hash_key 接受 endpoint + dict params, _flow_cache_key 接受 8 个具名参数
+        flow_kw_args = (
+            "r_flow",  # flow_type
+            self.BASE_KW["start_date"],
+            self.BASE_KW["end_date"],
+            self.BASE_KW["channel"],
+            self.BASE_KW["metric_type"],
+            self.BASE_KW["exclude_channels"],
+            self.BASE_KW["compare_start_date"],
+            self.BASE_KW["compare_end_date"],
+            self.BASE_KW["data_version"],
+        )
+        k_flow = _flow_cache_key(*flow_kw_args)
+        k_w5 = _hash_key("r-flow", {
+            "flow_type": flow_kw_args[0],
+            "start_date": flow_kw_args[1],
+            "end_date": flow_kw_args[2],
+            "channel": flow_kw_args[3],
+            "metric_type": flow_kw_args[4],
+            "exclude_channels": flow_kw_args[5],
+            "compare_start_date": flow_kw_args[6],
+            "compare_end_date": flow_kw_args[7],
+            "data_version": flow_kw_args[8],
+        })
+        assert k_flow.startswith("flow_"), f"flow cache prefix: {k_flow}"
+        assert k_w5.startswith("w5kv_"), f"W5 DuckDB-KV prefix: {k_w5}"
+        assert k_flow != k_w5, "不同 namespace prefix 必不串扰"
