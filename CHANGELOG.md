@@ -102,6 +102,45 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - **跟 .githooks 双轨并存**: 重复逻辑, Sprint 19 考虑二选一 (推荐保留 .githooks, 装更轻量)
 - **不影响运行时**: pre-commit hook 是开发者工具, 不影响 uvicorn 启动 / API 响应
 
+## [v0.4.14.51] - 2026-06-11 - chore(p2-batch): Sprint 19 P2 批处理 5 件 (hooks 拍板 + YOYGuard env + pre-commit CI + ETL cache hook + types 自动生成)
+
+### Added
+- **`docs/HOOKS-CHOICE.md`** (新, 142 行, Sprint 19 P2-1) — 拍板 `.githooks` 优先 (装轻量零依赖, 9 件 lint) + `.pre-commit-config.yaml` 选装 (装 framework 才能用, 重复 4 件 + 缺 5 件). 6 段结构: 拍板结论 / 框架对比 / 为何不上 / 新人 onboarding / 改 hook 流程 / 拍板签字
+- **`frontend-vue3/src/components/YOYGuard.vue`** (改 1 行) — `threshold` 默认值改 `Number(import.meta.env.VITE_YOY_GUARD_THRESHOLD ?? 1e6)`, 业务方可按场景 (流量大盘 1e9, 私域复购 1e3) env 覆盖 (Sprint 19 P2-2). JSDoc 加 env 提示
+- **`docs/YOY-GUARD-CONFIG.md`** (新, 161 行, Sprint 19 P2-2) — YOYGuard threshold env 配置拍板, 4 段结构: 拍板 / 痛点 / 用法 4 例 / 代码改动 / 测试留 Sprint 19.5
+- **`.github/workflows/pre-commit.yml`** (新, 34 行, Sprint 19 P2-3) — pre-commit framework CI 接入, 走 `workflow_dispatch` 手动触发, `actions/checkout@v4` + `actions/setup-python@v5` + `pip install pre-commit` + `pre-commit run --all-files`. 走 `workflow_dispatch` 而非 push 自动 (避免没装 framework 时结构性 no-op, 跟 Sprint 3 P1-3 教训同根因)
+- **`docs/CI-PRECOMMIT.md`** (新, 137 行, Sprint 19 P2-3) — workflow 拍板 + 4 段结构: workflow 文件 / 为何不用 push / 怎么用 / 故障排查 + CI/CD 防线总览加 1 行
+- **`backend/services/rfm/cache.py:etl_post_run_hook()`** (新, 20 行, Sprint 19 P2-4) — ETL 跑批末尾调, 不依赖 uvicorn 重启也能 invalidate W5 DuckDB-KV cache. 复用 `check_manifest_version_and_invalidate()` 启动 hook 逻辑, best-effort 异常兜底, 跟 Sprint 18 #123 启动 hook 互补
+- **`scripts/etl/cli.py:main()`** (末尾 8 行) — PerfTimer 块外调 `etl_post_run_hook()`, local import + print 提示, 失败不阻塞 ETL 收口
+- **`backend/tests/test_cache_invalidation.py:TestEtlPostRunHook`** (新, 4 case) — manifest 变化 / 一致 / 缺失 / 异常兜底, 4/4 pytest pass
+- **`docs/ETL-CACHE-INVALIDATION.md`** (新, 184 行, Sprint 19 P2-4) — 跟启动 hook 互补时序图 + 4 段结构: 拍板 / 互补 / 代码改动 / 验证流程
+- **`scripts/gen-frontend-types.sh`** (新, chmod +x, Sprint 19 P2-5) — 前端 types 自动生成脚本, 走 `pydantic2ts.cli.script` (v2.x 包名, 跟 v1.x `pydantic_to_ts` rename) 调 `backend.contracts.category + metrics + health` 生成 `frontend-vue3/src/types/api.ts`
+- **`frontend-vue3/src/types/api.ts`** (新, 855 行自动生成) — 3 module 全 interface 覆盖 (AuditLogItem / AuditLogResponse / ChannelHealthScoreItem 等). 文件头标 "Do not modify it by hand", 改完跑脚本会被覆盖
+- **`docs/FRONTEND-TYPES-GEN.md`** (新, 160 行, Sprint 19 P2-5) — 拍板 pydantic-to-typescript v2.0.0 工具, 跟 openapi-typescript 解耦, 5 段结构: 拍板 / 为何不用 openapi-typescript / 工具版本陷阱 / 集成脚本 / 验证流程
+
+### Changed
+- **`CLAUDE.md` "AI 执行检查点" 表** (加 1 行) — "改 git hooks" 检查点, 引用 `docs/HOOKS-CHOICE.md` Sprint 19 P2-1
+- **`backend/services/rfm/_shared.py:FLOW_ALGO_VERSION`** `v0.4.14.47` → `v0.4.14.51` — 行为变化 (P2-4 加 etl_post_run_hook 集成, 触发 cache key 全 miss 一次, 跟 Sprint 14.5 P1.4 约定一致)
+
+### Fixed
+- **`backend/tests/test_cache_invalidation.py`** (改 1 行) — pre-existing F401 跟 P2-4 加 test class 一起顺手修, 加 `noqa: F401` 给模块级 `_manifest_tracker_singleton` + `_default_state_path` (在 docstring / 注释里用)
+
+### 治理债务闭环
+- Sprint 18 retrospective Section 4 治理债务 #6 (前 5 件 P2) ✅ 闭环
+- Sprint 16.5 #92 异常值守卫扩到 env 配置 (业务方场景化) ✅
+- 跟 Sprint 18 #123 启动 hook 互补, 跑批真闭环 (P2-4)
+
+### 任务来源
+- Sprint 19 重做 — subagent C3 (Sprint 19 P2 批处理 5 件)
+- 5 P2 件全部 Sprint 19 内 commit + push + merge
+
+### 验证
+- pytest 511 passed + 12 skipped + 2 failed (pre-existing DuckDB 1.5.2 race #119 P0 监控中, 跟本次改动无关)
+- vitest 63 passed (YOYGuard 13 + YOYBadge 14 + MetricCard 23 + EmptyState + HealthOverviewTab + RFMSegmentDrilldown)
+- ground-truth-lint 0 issue
+- ruff 0 issue (本批改动 + 顺手修 F401)
+- main @ 953f1d1 (5 subagent 收口前)
+
 ## [v0.4.14.50] - 2026-06-11 - fix(contracts): Sprint 18 #141 — 26 YOY ratio 字段命名/语义冲突治根 (白名单 + 类型补标)
 
 ### Changed
