@@ -127,7 +127,8 @@ class BreakdownResponse(BaseModel):
     target_gmv: float = Field(..., description="目标GSV")
     total_estimate: Optional[float] = Field(default=None, description="总预估GSV（顺拆有值，倒拆为None）")
     total_gap: Optional[float] = Field(default=None, description="总gap（顺拆有值，倒拆为None）")
-    gap_ratio: Optional[float] = Field(default=None, description="gap占比（顺拆有值）")
+    # Sprint 18 #141: gap_ratio 真实 0-1 decimal ratio, 用 RatioField
+    gap_ratio: Optional["RatioField"] = Field(default=None, description="gap占比（顺拆有值）0-1 decimal")
     old_customer: BreakdownOldCustomer
     new_customer: BreakdownNewCustomer
     suggestions: List[BreakdownGapSuggestion]

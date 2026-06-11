@@ -90,7 +90,9 @@ class SamplingLockYOY(BaseModel):
     lock_gsv: Optional["PercentageField"] = None
     lock_aus: Optional["PercentageField"] = None
     new_locked_users: Optional["PercentageField"] = None
-    new_locked_ratio: Optional["PpField"] = None
+    # Sprint 18 #141: new_locked_ratio 实际是 0-1 decimal ratio (safe_ratio(new_locked, locked_users))
+    # 改 RatioField (0-1), 之前误标 PpField
+    new_locked_ratio: Optional["RatioField"] = None
     new_converted_users: Optional["PercentageField"] = None
     new_conversion_rate: Optional["PpField"] = None
     new_lock_gsv: Optional["PercentageField"] = None
@@ -138,7 +140,9 @@ class RollingYOY(BaseModel):
     locked_users: Optional["PercentageField"] = None
     lock_rate: Optional["PpField"] = None
     new_locked_users: Optional["PercentageField"] = None
-    new_locked_ratio: Optional["PpField"] = None
+    # Sprint 18 #141: new_locked_ratio 实际是 0-1 decimal ratio (safe_ratio(new_locked, locked_users))
+    # 改 RatioField (0-1), 之前误标 PpField
+    new_locked_ratio: Optional["RatioField"] = None
     converted_users: Optional["PercentageField"] = None
     conversion_rate: Optional["PpField"] = None
     conv_gsv: Optional["PercentageField"] = None

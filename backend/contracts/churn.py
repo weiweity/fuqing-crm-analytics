@@ -100,6 +100,7 @@ class CategoryDailyTrendResponse(BaseModel):
     user_count: List[int]
     aus: List[float]
     # Sprint 17 B2 全量 audit: List[RatioField] 必须用 Annotated 才能触发 element-wise 约束
+    # Sprint 18 #141: 字段名 _ratio 已被 linter 强制要求 RatioField 0-1 范围, 0-1 decimal
     new_customer_ratio: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 新客占比")]]
 
 
