@@ -115,7 +115,8 @@ class CategoryRepurchaseFlowRow(BaseModel):
     # Sprint 13 修: 字段名带 _rate 但语义是 pp 差, 加 unit='pp' caller 端, 契约层是 PercentageField
     yoy_repurchase_rate: Optional["PpField"] = None
     yoy_repurchase_gsv: Optional["PercentageField"] = None
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
+    # Sprint 19 #2: 改命名 yoy_*_ratio → yoy_*_ratio_ppt, 实际语义是 pp 差 (PpField)
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = None
 
 
 class CategoryRepurchaseFlowResponse(BaseModel):

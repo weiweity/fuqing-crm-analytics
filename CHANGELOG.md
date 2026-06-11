@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.51] - 2026-06-11 - fix(contracts): Sprint 19 #2 — 14 yoy_*_ratio 字段真改命名 (→ yoy_*_ratio_ppt)
+
+### Changed
+- **14 字段真改命名** (Sprint 18 #141 走白名单治根, Sprint 19 跨文件真改):
+  - **`backend/contracts/audience.py`** (10 字段): `yoy_old_gsv_ratio` / `yoy_old_users_ratio` / `yoy_new_gsv_ratio` / `yoy_new_users_ratio` / `yoy_member_gsv_ratio` / `yoy_member_users_ratio` / `yoy_member_old_gsv_ratio` / `yoy_member_old_users_ratio` / `yoy_member_new_gsv_ratio` / `yoy_member_new_users_ratio` → `*_ratio_ppt`
+  - **`backend/contracts/category.py`** (1 字段): `yoy_repurchase_gsv_ratio` → `*_ppt`
+  - **`backend/contracts/health.py`** (3 字段): `yoy_old_customer_gsv_ratio` / `yoy_member_old_customer_gsv_ratio` / TierFlowResponse `yoy_repurchase_gsv_ratio` → `*_ppt`
+  - **`backend/contracts/rfm.py`** (5 字段同名, 5 class): `yoy_repurchase_gsv_ratio` → `*_ppt`
+  - **`backend/contracts/_lint.py`** — 移除 `_YOY_PPT_FIELDS` frozenset 白名单 (Sprint 18 #141 加的 14 字段), 改命名后字段名带 `_ppt` 后缀自动走 R3 强校验
+- **跨文件同步 (26 文件)**:
+  - backend services: `metrics/audience_table.py` (10) + `health/overview.py` (7) + `health/tier_flow.py` (1) + `health/rfm_category_drilldown.py` (1) + `health/rfm_analysis/period.py` (1) + `category_service/repurchase/api.py` (2) + `rfm/_flow_engine.py` (1) = 23 处 dict key
+  - backend tests: `test_contracts_b2_audit.py` (1 test_audience_row_yoy_old_gsv_ratio_ppt_invalid_rejected, 1 docstring, 1 fixture, 2 assertion)
+  - frontend-vue3: `api/types.ts` (20) + `api/types.generated.ts` (20) + `api/category.ts` (1) + `api/flow.ts` (1) + `api/health.ts` (3) + 8 view 文件 (20)
+
+### 痛点闭环
+- Sprint 18 retrospective Section 4 #2: "改命名 14 字段 (Sprint 18 走白名单, Sprint 19 真改) yoy_*_ratio → yoy_*_ratio_ppt 跨 14+ 文件" ✅ 闭环
+- Sprint 13 ratio 治理契约 0-1 严守保留 (Sprint 17 B1+B2 配套, Sprint 18 #141 走白名单兜底, Sprint 19 字段名跟命名统一)
+
+### 任务来源
+- Sprint 18 retrospective Section 4 #2 (留 Sprint 19 P2) → Sprint 19 #2 真改命名
+
+### 验证
+- `python -m backend.contracts._lint`: **0 issue** (R3 _ppt 强校验自动接管)
+- pytest: **489 passed + 12 skipped** (跨文件破坏 0, 跟 Sprint 18 末 507 接近, w4_t7_integration 4 个跳过因 DuckDB 锁, 跟代码无关)
+- vitest: **63 passed** (跟 Sprint 18 末一致)
+
+## [v0.4.14.50] - 2026-06-11 - fix(contracts): Sprint 18 #141 — 26 YOY ratio 字段命名/语义冲突治根 (白名单 + 类型补标)
+
 ## [v0.4.14.47] - 2026-06-11 - fix(cache): Sprint 18 #123 W5 cache invalidation 启动 hook (跨进程 manifest 同步)
 
 ### Added

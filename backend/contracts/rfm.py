@@ -33,7 +33,7 @@ class RFMRFlowRow(BaseModel):
     # Sprint 13 修: 字段名带 _rate 但语义是 pp 差, 加 unit='pp' caller 端, 契约层是 PpField
     yoy_repurchase_rate: Optional["PpField"] = None
     yoy_repurchase_gsv: Optional["PercentageField"] = None
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = None
 
 
 class RFMRFlowResponse(BaseModel):
@@ -72,7 +72,7 @@ class RFMFRFlowRow(BaseModel):
     yoy_repurchase_users: Optional["PercentageField"] = None
     yoy_repurchase_rate: Optional["PpField"] = None
     yoy_repurchase_gsv: Optional["PercentageField"] = None
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = None
 
 
 class RFMFRFlowResponse(BaseModel):
@@ -116,7 +116,7 @@ class RFMMFlowRow(BaseModel):
     yoy_repurchase_users: Optional["PercentageField"] = None
     yoy_repurchase_rate: Optional["PpField"] = None
     yoy_repurchase_gsv: Optional["PercentageField"] = None
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = None
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = None
 
 
 class RFMMFlowResponse(BaseModel):
@@ -151,7 +151,7 @@ class RFMAnalysisRow(BaseModel):
     yoy_repurchase_users: Optional["PercentageField"] = Field(None)
     yoy_repurchase_rate: Optional["PpField"] = Field(None)
     yoy_repurchase_gsv: Optional["PercentageField"] = Field(None)
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = Field(None)
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = Field(None)
 
 
 class RFMAnalysisResponse(BaseModel):
@@ -261,7 +261,7 @@ class RFMCategoryDrilldownRow(BaseModel):
     yoy_repurchase_users: Optional["PercentageField"] = Field(None)
     yoy_repurchase_rate: Optional["PpField"] = Field(None)
     yoy_repurchase_gsv: Optional["PercentageField"] = Field(None)
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = Field(None)
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = Field(None)
 
 
 class TopDriverItem(BaseModel):

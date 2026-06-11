@@ -54,14 +54,14 @@ class HealthOverviewMetrics(BaseModel):
     # 同比（vs去年同期同周期）
     yoy_all_store_repurchase_rate: Optional["PpField"] = Field(None, description="全店复购率同比 (pp 差)")
     yoy_same_product_repurchase_rate: Optional["PpField"] = Field(None, description="本品复购率同比 (pp 差)")
-    yoy_old_customer_gsv_ratio: Optional["PpField"] = Field(None, description="老客占比同比 (pp 差)")
+    yoy_old_customer_gsv_ratio_ppt: Optional["PpField"] = Field(None, description="老客占比同比 (pp 差)")
     yoy_old_customer_aus: Optional["PercentageField"] = Field(None, description="老客AUS同比 (percentage)")
     yoy_period_repurchase_users: Optional["PercentageField"] = Field(None, description="周期复购人数同比 (percentage)")
     yoy_old_gsv: Optional["PercentageField"] = Field(None, description="老客GSV同比 (percentage)")
     yoy_old_users: Optional["PercentageField"] = Field(None, description="老客人数同比 (percentage)")
     yoy_member_old_gsv: Optional["PercentageField"] = Field(None, description="会员老客GSV同比 (percentage)")
     yoy_member_old_users: Optional["PercentageField"] = Field(None, description="会员老客人数同比 (percentage)")
-    yoy_member_old_customer_gsv_ratio: Optional["PpField"] = Field(None, description="会员老客GSV占比同比 (pp 差)")
+    yoy_member_old_customer_gsv_ratio_ppt: Optional["PpField"] = Field(None, description="会员老客GSV占比同比 (pp 差)")
     yoy_member_old_customer_aus: Optional["PercentageField"] = Field(None, description="会员老客AUS同比 (percentage)")
 
     # 环比（vs上一个等长周期）
@@ -211,8 +211,8 @@ class TierFlowRow(BaseModel):
     yoy_repurchase_users: Optional[float] = Field(None)
     yoy_repurchase_rate: Optional[float] = Field(None)
     yoy_repurchase_gsv: Optional[float] = Field(None)
-    # Sprint 18 #141: yoy_repurchase_gsv_ratio 在 TierFlowResponse 实际 yoy (pp 差), 改 PpField
-    yoy_repurchase_gsv_ratio: Optional["PpField"] = Field(None)
+    # Sprint 19 #2: 改命名 yoy_*_ratio → yoy_*_ratio_ppt, 实际语义是 pp 差 (PpField)
+    yoy_repurchase_gsv_ratio_ppt: Optional["PpField"] = Field(None)
 
 
 class TierFlowResponse(BaseModel):
