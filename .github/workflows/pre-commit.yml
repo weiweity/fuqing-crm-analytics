@@ -1,0 +1,37 @@
+# pre-commit framework CI (Sprint 19 P2-3)
+#
+# 拍板: .githooks 默认优先 (装轻量零依赖, 9 件 lint), .pre-commit-config.yaml 选装.
+# 本 workflow 走 pre-commit/action, 需 pre-commit framework 装包才能跑.
+# 本仓库默认不装 framework, 所以本 workflow 默认跑也走空跑 (pre-commit run 找不到 hook 时 rc=0).
+#
+# 启用方式 (任选一):
+#   1. 推 PR 时手动跑 (workflow_dispatch 模式):
+#      GitHub UI → Actions → pre-commit → Run workflow → 选择 branch
+#   2. 装 framework 走 push 自动跑:
+#      pip install pre-commit && pre-commit install
+#      推 PR 会自动跑本 workflow
+#
+# 详见 docs/CI-PRECOMMIT.md (Sprint 19 P2-3) + docs/HOOKS-CHOICE.md (Sprint 19 P2-1)
+
+name: pre-commit
+
+on:
+  workflow_dispatch:  # 手动触发, 避免空跑浪费 CI 分钟
+  # 注释掉 push / pull_request 自动触发 (默认不装 framework):
+  # on: [push, pull_request]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install pre-commit framework
+        run: pip install pre-commit
+      - name: Run pre-commit
+        # --all-files 强制跑全部 hook (跟 staged 模式互斥, 见 CLAUDE.md "Sprint 3 P1 三件 4 轮修教训")
+        # .pre-commit-config.yaml 只有 4 hook (ruff + 2 local), 跟 .githooks 9 hook 互补不互斥
+        # 装了 framework 才能跑, 未装时 framework 自身空跑 rc=0 不算 pass (审计: pre-commit run 必须有 hook 列表)
+        run: pre-commit run --all-files
