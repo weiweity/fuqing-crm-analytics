@@ -11,7 +11,7 @@
  * Props:
  * - value: 数值 (caller 已 *100 后的 percentage 或 pp 数值)
  * - unit: '%' (百分比) | 'pp' (百分点差) | 'raw' (无后缀, 给自定义场景)
- * - threshold: 异常值阈值, 默认 1e6
+ * - threshold: 异常值阈值, 默认 1e6, 可由 `VITE_YOY_GUARD_THRESHOLD` env 覆盖 (Sprint 19 P2-2)
  * - empty: null/undefined 时返回的字符串, 默认 '—'
  * - precision: 小数位数, 默认 2
  *
@@ -36,7 +36,7 @@ const props = withDefaults(
   }>(),
   {
     unit: '%',
-    threshold: 1e6,
+    threshold: Number(import.meta.env.VITE_YOY_GUARD_THRESHOLD ?? 1e6),
     empty: '—',
     precision: 2,
   },
