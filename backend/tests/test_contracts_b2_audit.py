@@ -11,7 +11,7 @@
 
 测试覆盖 13 contract (除已 B2-done 的 category/metrics/health) × ≥ 2 mark:
 - asset.py: ProductClassRepurchase.repurchase_rate / ly_repurchase_rate / repurchase_rate_yoy / gsv_yoy
-- audience.py: AudiencePeriodMetrics.old_gsv_ratio / AudienceRow.old_gsv_ratio / AudienceRow.yoy_old_gsv_ratio
+- audience.py: AudiencePeriodMetrics.old_gsv_ratio / AudienceRow.old_gsv_ratio / AudienceRow.yoy_old_gsv_ratio_ppt
 - breakdown.py: BreakdownRIntervalRow.est_repurchase_rate / BreakdownRequest.old_customer_ratio_target
 - churn.py: ChurnDistributionResponse.high_risk_rate / ChurnTableRow.mom_change_rate / ChurnTableRow.top_churn_dest1_ratio
 - common.py: WoolPartyBreakdown.type1_ratio / DualAxisLineData.wool_party_ratios
@@ -182,8 +182,8 @@ class TestAudienceContractMark:
                 # comp/prev2/yoy 留 None
             )
 
-    def test_audience_row_yoy_old_gsv_ratio_invalid_rejected(self):
-        """mark 3: AudienceRow.yoy_old_gsv_ratio (PpField) 越界 +150 触发 422"""
+    def test_audience_row_yoy_old_gsv_ratio_ppt_invalid_rejected(self):
+        """mark 3: AudienceRow.yoy_old_gsv_ratio_ppt (PpField) 越界 +150 触发 422"""
         with pytest.raises(ValidationError):
             AudienceRow(
                 dimension="channel", gsv_users=100, gsv=10000.0, aus=100.0,
@@ -197,7 +197,7 @@ class TestAudienceContractMark:
                 member_old_gsv_ratio=0.3, member_old_users_ratio=0.3,
                 member_new_users=20, member_new_gsv=2000.0, member_new_aus=100.0,
                 member_new_gsv_ratio=0.2, member_new_users_ratio=0.2,
-                yoy_old_gsv_ratio=150.0,  # 越界
+                yoy_old_gsv_ratio_ppt=150.0,  # 越界
             )
 
     def test_audience_row_yoy_gsv_invalid_rejected(self):
@@ -257,10 +257,10 @@ class TestAudienceContractMark:
             prev2_member_new_users=13, prev2_member_new_gsv=1300.0, prev2_member_new_aus=100.0,
             prev2_member_new_gsv_ratio=0.5, prev2_member_new_users_ratio=0.5,
             # yoy
-            yoy_gsv=25.0, yoy_old_gsv_ratio=5.0,
+            yoy_gsv=25.0, yoy_old_gsv_ratio_ppt=5.0,
         )
         assert row.yoy_gsv == 25.0
-        assert row.yoy_old_gsv_ratio == 5.0
+        assert row.yoy_old_gsv_ratio_ppt == 5.0
 
 
 # ============================================================
