@@ -1032,10 +1032,34 @@ def update_taoke_channel():
     这样当淘客数据库变更或关键词规则变化时，历史订单能自动纠正。
 
     保护渠道（不受影响）：U先派样、百补派样、赠品&0.01渠道、直播、货架、达播、微博、购物金
+
+    Sprint 21 P0 治标: 加 retry 3 次 (Sprint 20+ 验证: DuckDB 1.5.x ART index 跨 connection
+    race 是概率性触发, 1.88M UPDATE 触发率 ~100%, retry 3 次能把概率降到 ~0).
+    - retry 1: 失败 → 等 1s → 重开新 conn → 重试
+    - retry 2: 失败 → 等 1s → 重开新 conn → 重试
+    - retry 3: 失败 → 等 1s → 重开新 conn → 重试
+    - 3 次都失败 → raise
     """
-    # QW4 埋点：step2 update_taoke_channel 的内部计时
+    import time as _time
+    _MAX_RETRIES = 3
+    # QW4 埋点：step2 update_taoke_channel 的内部计时 (含 retry 全部 3 次)
     with PerfTimer("pl_taoke_full_correct"):
-        _update_taoke_channel_impl()
+        for _attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                _update_taoke_channel_impl()
+                if _attempt > 1:
+                    print(f"  [Sprint 21 P0 retry] 第 {_attempt}/{_MAX_RETRIES} 次尝试成功 (race 触发后重试恢复)")
+                return
+            except Exception as _e:
+                _err_name = type(_e).__name__
+                _err_msg = str(_e)[:200].replace("\n", " ")
+                if _attempt < _MAX_RETRIES:
+                    print(f"  [Sprint 21 P0 retry] 第 {_attempt}/{_MAX_RETRIES} 次失败: {_err_name}: {_err_msg}")
+                    print(f"  [Sprint 21 P0 retry] 等 1s, 重开新 conn 重试...")
+                    _time.sleep(1)
+                else:
+                    print(f"  [Sprint 21 P0 retry] {_attempt}/{_MAX_RETRIES} 次都失败, raise")
+                    raise
 
 
 def _update_taoke_channel_impl():
@@ -1056,11 +1080,25 @@ def _update_taoke_channel_impl():
     # 但 1.5.2 积压的 index state 残留在 file 里, 1.5.3 也触发, 需要 DROP 重建清状态).
     # Sprint 10 fix 修了 replay_is_member 但漏修 _update_taoke_channel_impl, 这就是
     # Sprint 16 P0 治根目标.
+    # Sprint 21 P0 治根 (1.88M 增量 ETL race "Failed to delete 0 out of 2048 rows"):
+    # 跟 Sprint 10 B2-merged (99c0196) + Sprint 15 D.1 (replay_is_member.py) 模式完全对齐 —
+    # DROP 全部 6 个 secondary indexes (不只 2 个 channel 相关的), UPDATE 1.88M 走 heap
+    # (无任何 index 竞争), CREATE 6 重建. Sprint 16 P0 v2 fix (1.5.4.dev18 治根) 漏修
+    # 4 个 (idx_orders_pay_time / idx_orders_user / idx_orders_year_month / idx_orders_product),
+    # 只 DROP 2 channel 相关, 1.88M 触发跨 index race 在 COMMIT 段 (CREATE INDEX 重建时).
     _CHANNEL_INDEXES = [
+        "idx_orders_pay_time",
+        "idx_orders_user",
+        "idx_orders_year_month",
+        "idx_orders_product",
         "idx_orders_channel_pay_time",
         "idx_orders_channel_member",
     ]
     _CHANNEL_INDEX_RECREATE = [
+        "CREATE INDEX idx_orders_pay_time ON orders(pay_time)",
+        "CREATE INDEX idx_orders_user ON orders(user_id)",
+        'CREATE INDEX idx_orders_year_month ON orders("year", "month")',
+        "CREATE INDEX idx_orders_product ON orders(product_id)",
         "CREATE INDEX idx_orders_channel_pay_time ON orders(channel, pay_time)",
         "CREATE INDEX idx_orders_channel_member ON orders(channel, is_member)",
     ]
