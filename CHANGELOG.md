@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.54] - 2026-06-12 - feat(lint): Sprint 20 P1-1 R5 扩 Optional / PEP 604 / Union 包装 (5 新 R5a tests)
+
+### Background
+Sprint 19 #1 R5 治根 List[RatioField/PercentageField/PpField] 时漏了 Optional 包装场景:
+- `Optional[List[RatioField]]`  (Sprint 19 漏掉, Sprint 20 治根)
+- `List[Optional[RatioField]]`  (Sprint 20 P1-1 新增)
+- `List[PpField | None]`        (PEP 604 inside List)
+- `Union[List[PpField], None]`  (Union Tuple slice)
+
+Pydantic v2 跟 Sprint 19 一样不触发 element-wise Field 约束, 必须 `List[Annotated[float, Field(ge, le)]]`. 4 个场景都是潜在 R5 漏报.
+
+### Changed
+- **`backend/contracts/_lint.py:_list_inner_type_name`**: 顶层加 `Optional`/`Union` 包装识别 + 递归到 `_extract_inner_name`
+- **`backend/contracts/_lint.py:_extract_inner_name` (新增)**: 递归 unwrap Optional / PEP 604 / Union Tuple / 字符串 forward ref. Annotated 节点视为合规返 None
+- **`backend/contracts/tests/test_lint.py`**: 加 5 个 TestR5OptionalWrappers 测试覆盖 4 true-positive + 1 false-positive
+
+### 治理
+- Sprint 20+ backlog P1-1 (linter 增强) ✅ 完成
+- Sprint 19 R5 漏报修复 (Optional 套 List) ✅
+
+### 任务来源
+- Sprint 19 retrospective Section 4 治理债务 #1 (linter 增强) → Sprint 20 P1-1
+
+### 验证
+- `pytest backend/contracts/tests/test_lint.py -v`: 19/19 passed (14 老 + 5 新 R5a)
+- `python -m backend.contracts._lint`: 0 issue
+- Sprint 17 R1-R4 + Sprint 19 R5 + Sprint 20 P1-1 R5a 全部 OK
+
+### 后续
+- Sprint 20+ P1-2 (YOYGuard 扩 4 老组件) — backlog 4 组件名跟实际 yoy 状况不符, 需 user 决策调整范围
+- Sprint 20+ P0 (DuckDB 1.5.4 stable 监控) — 等外部 release
+
 ## [v0.4.14.53] - 2026-06-12 - refactor(etl): Sprint 16.5+1 B1 治根 — 抽 lark 通道到 ETL 自己 (跨子项目依赖解耦)
 
 ### Background

@@ -2,11 +2,17 @@
 
 强制新 contract 字段用 Pydantic Field 元数据, 防 LLM 写无 RatioField/PercentageField/PpField 的 contract.
 
-4 条规则 (从 Sprint 16.5 retrospective Section 6.3 提取):
+5 条规则 (Sprint 17 R1-R4 + Sprint 19 R5 + Sprint 20 P1-1 R5 扩 Optional):
   R1: 字段名以 _ratio 结尾 -> 必须 RatioField (0-1) 或 Annotated[float, Field(ge=0, le=1)]
   R2: 字段名以 _pct 结尾  -> 必须 PercentageField (0-1B) 或 Annotated[float, Field(ge=-1e9, le=1e9)]
   R3: 字段名以 _ppt 结尾  -> 必须 PpField (-100~+100) 或 Annotated[float, Field(ge=-100, le=100)]
   R4: List[X] 字段 where X 是 RatioField/PercentageField/PpField -> 必须用 List[Annotated[X, Field(...)]] 不许 List["X"] 前向引用
+  R5: List[RatioField/PercentageField/PpField] (没 Annotated) -> 改 List[Annotated[float, Field(ge, le)]]
+       Sprint 20 P1-1 扩展: 覆盖 Optional 包装场景
+       - Optional[List[RatioField]]  (Optional 套 List)   — R5 fires
+       - List[Optional[RatioField]]  (List 套 Optional)   — R5 fires
+       - List[RatioField | None]     (PEP 604 inside List) — R5 fires
+       - List["RatioField"]          (字符串 forward ref)  — R4 覆盖
 
 使用:
     cd backend && python -m backend.contracts._lint
@@ -216,17 +222,72 @@ def _is_list_with_forward_ref(annotation: ast.AST) -> bool:
 def _list_inner_type_name(annotation: ast.AST) -> Optional[str]:
     """提取 List[X] 里的 X 类型名 (X 是 Name 节点, e.g. 'RatioField' / 'str').
 
-    递归 Optional[List[X]] 也支持. 如果不是 List 类型或 X 不是 Name, 返 None.
+    递归支持 (Sprint 20 P1-1 扩展):
+    - Optional[List[X]] (Optional 套 List) — Sprint 19 已部分支持, 实际 Sprint 20 修
+    - List[Optional[X]] (List 套 Optional) — Sprint 20 P1-1 新增
+    - List[X | None]    (PEP 604 inside List) — Sprint 20 P1-1 新增
+    - Union[List[X], None] (Union Tuple slice) — Sprint 20 P1-1 新增
+    如果不是 List 类型或最里层 X 不是 Name, 返 None.
+    Annotated 节点视为合规 (返 None 让 R5 跳过).
     """
     if not isinstance(annotation, ast.Subscript):
         return None
+    # 顶层 Optional / Union 包装 (Optional[X] 走 Subscript slice, Union 走 Tuple slice):
+    #   Optional[List[RatioField]] -> 递归 slice
+    #   Union[List[RatioField], None] -> 递归 slice (Tuple)
+    if isinstance(annotation.value, ast.Name) and annotation.value.id in ("Optional", "Union"):
+        return _list_inner_type_name(annotation.slice)
+    # 顶层必须是 List / list
     if not (isinstance(annotation.value, ast.Name) and annotation.value.id in ("List", "list")):
         return None
-    slice_node = annotation.slice
-    if isinstance(slice_node, ast.Name):
-        return slice_node.id
-    if isinstance(slice_node, ast.Subscript):
-        return _list_inner_type_name(slice_node)
+    # 提取 slice 的类型名
+    return _extract_inner_name(annotation.slice)
+
+
+def _extract_inner_name(annotation: ast.AST) -> Optional[str]:
+    """从 list slice 节点提取类型名 (递归 unwrap Optional / PEP 604 / Union / 字符串 forward ref).
+
+    支持 (Sprint 20 P1-1 扩展):
+    - Name('RatioField')                  -> 'RatioField'
+    - Constant('RatioField') (字符串)       -> 'RatioField'  (但 R4 也会触发, 双重提示)
+    - Subscript(value=Optional, ...)      -> 递归 slice
+    - BinOp(BitOr, Name, Constant(None))  -> 拿非 None 那一边的 Name
+    - Tuple (Union[A, B] slice)           -> 拿第一个非 None 元素的 Name
+    - Annotated / 其他                     -> None (合规, 让 R5 跳过)
+
+    不支持嵌套 Optional (Optional[Optional[X]]) — 实际工程不出现, 跳过.
+    """
+    if isinstance(annotation, ast.Name):
+        return annotation.id
+    if isinstance(annotation, ast.Constant):
+        # 字符串 forward ref (e.g. "RatioField" 在 List["RatioField"] 里)
+        if isinstance(annotation.value, str):
+            return annotation.value.strip('"').strip("'")
+        return None
+    if isinstance(annotation, ast.Subscript):
+        # Optional[Name] / Union[Name, ...]
+        if isinstance(annotation.value, ast.Name) and annotation.value.id in ("Optional", "Union"):
+            return _extract_inner_name(annotation.slice)
+        # Annotated / Dict / 其他: 视为合规
+        return None
+    if isinstance(annotation, ast.BinOp) and isinstance(annotation.op, ast.BitOr):
+        # PEP 604: X | None 拿非 None 那一边的 Name
+        for side in (annotation.left, annotation.right):
+            if isinstance(side, ast.Constant) and side.value is None:
+                continue
+            if isinstance(side, ast.Name) and side.id == "None":
+                continue
+            return _extract_inner_name(side)
+        return None
+    if isinstance(annotation, ast.Tuple):
+        # Union[A, B, ...] slice: 拿第一个非 None 元素的 Name
+        for elt in annotation.elts:
+            if isinstance(elt, ast.Constant) and elt.value is None:
+                continue
+            if isinstance(elt, ast.Name) and elt.id == "None":
+                continue
+            return _extract_inner_name(elt)
+        return None
     return None
 
 
@@ -238,7 +299,16 @@ def _is_list_with_constrained_type_without_annotated(annotation: ast.AST) -> boo
     后者才会触发.
 
     合规写法: List[Annotated[float, Field(ge, le)]]
-    不合规: List[RatioField] / List[PercentageField] / List[PpField] (Sprint 18 #141 留治标, Sprint 19 R5 治根)
+    不合规 (Sprint 19 R5 起步, Sprint 20 P1-1 扩 Optional 包装):
+    - List[RatioField] / List[PercentageField] / List[PpField]
+    - Optional[List[RatioField]] / List[Optional[RatioField]]
+    - List[RatioField | None] (PEP 604)
+    - Union[List[RatioField], None] (Union Tuple)
+
+    合规 (R5 不触发):
+    - List[Annotated[float, Field(ge, le)]]
+    - List[Optional[Annotated[float, Field(...)]]]
+    - List[str] / List[int] (非约束类型)
     """
     inner = _list_inner_type_name(annotation)
     if inner is None:

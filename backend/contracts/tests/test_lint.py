@@ -1,8 +1,10 @@
 """Sprint 17 #121 ground-truth-lint 测试.
 
-8 个 test:
+19 个 test (Sprint 17 R1-R4 + Sprint 19 R5 + Sprint 20 P1-1 R5 扩 Optional):
 - 4 个 true-positive (R1 缺 RatioField, R2 缺 PercentageField, R3 缺 PpField, R4 List["X"] 前向引用)
 - 4 个 false-positive 检查 (合规 RatioField, 合规 PercentageField, 合规 PpField, 合规 List[Annotated[X, Field(...)]])
+- 4 个 R5 (Sprint 19): List[RatioField/PercentageField] + Annotated 合规 + 非 ratio
+- 5 个 R5a (Sprint 20 P1-1): Optional[List[X]] / List[Optional[X]] / List[X|None] / Union[List[X],None] / 合规 Annotated
 
 每个 test 创建临时 .py 文件, 调用 lint_contract_file, assert issue 数.
 """
@@ -257,3 +259,95 @@ class GoodContract(BaseModel):
         issues = lint_contract_file(p)
         r5 = [i for i in issues if i.rule == "R5"]
         assert r5 == [], f"R5 不应触发, 实际: {[i.message for i in r5]}"
+
+
+# ============================================================
+# Sprint 20 P1-1 R5 扩 Optional 包装 (5 个)
+# ============================================================
+
+class TestR5OptionalWrappers:
+    """R5 Sprint 20 P1-1 扩展: Optional / PEP 604 / Union 包装的 List 字段.
+
+    4 个 true-positive (违规,期望 R5 issue):
+    - Optional[List[RatioField]]  (Optional 套 List)
+    - List[Optional[RatioField]]  (List 套 Optional)
+    - List[RatioField | None]     (PEP 604 inside List)
+    - Union[List[PpField], None]  (Union Tuple slice)
+    1 个 false-positive (合规,期望 0 issue):
+    - List[Optional[Annotated[float, Field(...)]]]  (Annotated 算合规)
+    """
+
+    def test_r5a_optional_list_ratio(self, tmp_path):
+        """R5a: Optional[List[RatioField]] -> R5 issue (Sprint 19 漏掉, Sprint 20 治根)."""
+        content = '''from typing import List, Optional
+from pydantic import BaseModel
+from backend.contracts.types import RatioField
+
+class BadContract(BaseModel):
+    daily_ratios: Optional[List[RatioField]] = None
+'''
+        p = _write_tmp(tmp_path, "bad_opt_list_ratio.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert len(r5) == 1, f"期望 1 个 R5, 实际 {len(r5)}: {[i.message for i in r5]}"
+        assert "RatioField" in r5[0].message
+        assert "Annotated" in r5[0].message
+
+    def test_r5a_list_optional_pct(self, tmp_path):
+        """R5a: List[Optional[PercentageField]] -> R5 issue (Sprint 20 P1-1 新增)."""
+        content = '''from typing import List, Optional
+from pydantic import BaseModel
+from backend.contracts.types import PercentageField
+
+class BadContract(BaseModel):
+    daily_pcts: List[Optional[PercentageField]] = []
+'''
+        p = _write_tmp(tmp_path, "bad_list_opt_pct.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert len(r5) == 1, f"期望 1 个 R5, 实际 {len(r5)}: {[i.message for i in r5]}"
+        assert "PercentageField" in r5[0].message
+
+    def test_r5a_list_pep604_ppt(self, tmp_path):
+        """R5a: List[PpField | None] (PEP 604) -> R5 issue (Sprint 20 P1-1 新增)."""
+        content = '''from typing import List
+from pydantic import BaseModel
+from backend.contracts.types import PpField
+
+class BadContract(BaseModel):
+    daily_ppts: List[PpField | None] = []
+'''
+        p = _write_tmp(tmp_path, "bad_list_pep604_ppt.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert len(r5) == 1, f"期望 1 个 R5, 实际 {len(r5)}: {[i.message for i in r5]}"
+        assert "PpField" in r5[0].message
+
+    def test_r5a_union_list_ppt(self, tmp_path):
+        """R5a: Union[List[PpField], None] (Union Tuple slice) -> R5 issue (Sprint 20 P1-1 新增)."""
+        content = '''from typing import List, Union
+from pydantic import BaseModel
+from backend.contracts.types import PpField
+
+class BadContract(BaseModel):
+    daily_ppts: Union[List[PpField], None] = None
+'''
+        p = _write_tmp(tmp_path, "bad_union_list_ppt.py", content)
+        issues = lint_contract_file(p)
+        r5 = [i for i in issues if i.rule == "R5"]
+        assert len(r5) == 1, f"期望 1 个 R5, 实际 {len(r5)}: {[i.message for i in r5]}"
+        assert "PpField" in r5[0].message
+
+    def test_r5a_list_optional_annotated_compliant(self, tmp_path):
+        """合规: List[Optional[Annotated[float, Field(...)]]] -> 0 issue (Annotated 算合规)."""
+        content = '''from typing import List, Optional, Annotated
+from pydantic import BaseModel, Field
+
+class GoodContract(BaseModel):
+    daily_ratios: List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]] = []
+    daily_pcts: List[Optional[Annotated[float, Field(ge=-1_000_000_000.0, le=1_000_000_000.0)]]] = []
+    daily_ppts: Optional[List[Annotated[float, Field(ge=-100.0, le=100.0)]]] = None
+'''
+        p = _write_tmp(tmp_path, "good_list_opt_annotated.py", content)
+        issues = lint_contract_file(p)
+        assert issues == [], f"期望 0 issue, 实际: {[i.message for i in issues]}"
