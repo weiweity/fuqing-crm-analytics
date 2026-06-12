@@ -17,7 +17,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { XlsxColumn } from '@/utils/exportXlsx'
@@ -276,11 +276,11 @@ const rfmColumns = computed<DataTableColumns<RFMAnalysisRow>>(() => {
     { title: `${yr}回购率`, key: 'repurchase_rate_current', width: 80, align: 'right', render: (r) => h('span', { class: 'font-medium text-slate-800' }, formatRate(r.repurchase_rate_current)) },
     { title: `${yr}回购GSV`, key: 'repurchase_gsv_current', width: 90, align: 'right', render: (r) => r.repurchase_gsv_current >= 10000 ? `${(r.repurchase_gsv_current / 10000).toFixed(1)}万` : r.repurchase_gsv_current.toLocaleString() },
     { title: `${yr}回购GSV占比`, key: 'repurchase_gsv_ratio_current', width: 90, align: 'right', render: (r) => `${(r.repurchase_gsv_ratio_current * 100).toFixed(2)}%` },
-    { title: `${yr}年同比历史人数`, key: 'yoy_hist_users', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_hist_users }) },
-    { title: `${yr}年同比人数`, key: 'yoy_repurchase_users', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_repurchase_users }) },
-    { title: `${yr}同比回购率`, key: 'yoy_repurchase_rate', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_repurchase_rate, unit: 'pp' }) },
-    { title: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv }) },
-    { title: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio_ppt', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }) },
+    { title: `${yr}年同比历史人数`, key: 'yoy_hist_users', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYGuard, { value: r.yoy_hist_users, styled: true}) },
+    { title: `${yr}年同比人数`, key: 'yoy_repurchase_users', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYGuard, { value: r.yoy_repurchase_users, styled: true}) },
+    { title: `${yr}同比回购率`, key: 'yoy_repurchase_rate', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYGuard, { value: r.yoy_repurchase_rate, unit: 'pp', styled: true}) },
+    { title: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYGuard, { value: r.yoy_repurchase_gsv, styled: true}) },
+    { title: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio', width: 110, align: 'center', render: (r: RFMAnalysisRow) => h(YOYGuard, { value: r.yoy_repurchase_gsv_ratio, unit: 'pp', styled: true}) },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
     { title: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 80, align: 'right', render: (r) => formatRate(r.repurchase_rate_comp) },
     { title: `${yr3}历史人数`, key: 'hist_users_prev2', width: 90, align: 'right', render: (r) => r.hist_users_prev2.toLocaleString() },
@@ -304,7 +304,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
     { header: `${yr}同比回购人数`, key: 'yoy_repurchase_users', width: 12, numFmt: '0.0%' },
     { header: `${yr}同比回购率`, key: 'yoy_repurchase_rate', width: 12, numFmt: '0.0%' },
     { header: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 12, numFmt: '0.0%' },
-    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio_ppt', width: 14, numFmt: '0.0%' },
+    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio', width: 14, numFmt: '0.0%' },
     { header: `${yr2}历史人数`, key: 'hist_users_comp', width: 12, numFmt: '#,##0' },
     { header: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 10, numFmt: '0.00%' },
     { header: `${yr3}历史人数`, key: 'hist_users_prev2', width: 12, numFmt: '#,##0' },

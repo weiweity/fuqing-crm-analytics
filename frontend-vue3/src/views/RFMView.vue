@@ -23,7 +23,7 @@ import ErrorState from '@/components/ErrorState.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 
 const filterStore = useFilterStore()
 const activeTab = ref('r-flow')
@@ -480,7 +480,7 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
           width: 100,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_hist_users }),
+          render: (row) => h(YOYGuard, { value: row.yoy_hist_users, styled: true}),
         },
         {
           title: '回购人数',
@@ -488,7 +488,7 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
           width: 100,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_users }),
+          render: (row) => h(YOYGuard, { value: row.yoy_repurchase_users, styled: true}),
         },
         {
           title: '回购率',
@@ -496,7 +496,7 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
           width: 90,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_rate, unit: 'pp' }),
+          render: (row) => h(YOYGuard, { value: row.yoy_repurchase_rate, unit: 'pp', styled: true}),
         },
         {
           title: '回购金额',
@@ -504,15 +504,15 @@ const rFlowColumns = computed<DataTableColumns<RFMRFlowRow>>(() => {
           width: 100,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_gsv }),
+          render: (row) => h(YOYGuard, { value: row.yoy_repurchase_gsv, styled: true}),
         },
         {
           title: '占比',
-          key: 'yoy_repurchase_gsv_ratio_ppt',
+          key: 'yoy_repurchase_gsv_ratio',
           width: 90,
           align: 'center',
           className: 'bi-cell-number',
-          render: (row) => h(YOYBadge, { value: row.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }),
+          render: (row) => h(YOYGuard, { value: row.yoy_repurchase_gsv_ratio, unit: 'pp', styled: true}),
         },
       ],
     },

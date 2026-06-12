@@ -16,7 +16,7 @@ import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import { CHART_COLORS } from '@/composables/useChartTheme'
@@ -211,7 +211,7 @@ function gsvChildren(valKey: string, yoyKey: string): SubCol[] {
       width: 85,
       align: 'center',
       sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
-      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+      render: (row: any) => h(YOYGuard, { value: row[yoyKey], styled: true}),
     },
   ]
 }
@@ -233,7 +233,7 @@ function usersChildren(valKey: string, yoyKey: string): SubCol[] {
       width: 85,
       align: 'center',
       sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
-      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+      render: (row: any) => h(YOYGuard, { value: row[yoyKey], styled: true}),
     },
   ]
 }
@@ -255,7 +255,7 @@ function ausChildren(valKey: string, yoyKey: string): SubCol[] {
       width: 85,
       align: 'center',
       sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
-      render: (row: any) => h(YOYBadge, { value: row[yoyKey] }),
+      render: (row: any) => h(YOYGuard, { value: row[yoyKey], styled: true}),
     },
   ]
 }
@@ -277,7 +277,7 @@ function ratioChildren(valKey: string, yoyKey: string): SubCol[] {
       width: 85,
       align: 'center',
       sorter: (a: any, b: any) => (a[yoyKey] ?? 0) - (b[yoyKey] ?? 0),
-      render: (row: any) => h(YOYBadge, { value: row[yoyKey], unit: 'pp' }),
+      render: (row: any) => h(YOYGuard, { value: row[yoyKey], unit: 'pp', styled: true}),
     },
   ]
 }
@@ -362,7 +362,7 @@ const compactMemberColumns: DataTableColumns<CategoryOverviewItem> = [
         width: 85,
         align: 'center',
         sorter: (a: any, b: any) => (a['member_ratio_yoy'] ?? 0) - (b['member_ratio_yoy'] ?? 0),
-        render: (row: any) => h(YOYBadge, { value: row['member_ratio_yoy'], unit: 'pp' }),
+        render: (row: any) => h(YOYGuard, { value: row['member_ratio_yoy'], unit: 'pp', styled: true}),
       },
     ],
   },
@@ -416,7 +416,7 @@ const allColumns: DataTableColumns<CategoryOverviewItem> = [
         width: 85,
         align: 'center',
         sorter: (a: any, b: any) => (a['member_ratio_yoy'] ?? 0) - (b['member_ratio_yoy'] ?? 0),
-        render: (row: any) => h(YOYBadge, { value: row['member_ratio_yoy'], unit: 'pp' }),
+        render: (row: any) => h(YOYGuard, { value: row['member_ratio_yoy'], unit: 'pp', styled: true}),
       },
       ...usersChildren('users', 'users_yoy'),
       ...ausChildren('aus', 'aus_yoy'),
@@ -477,7 +477,7 @@ const memberColumns: DataTableColumns<CategoryOverviewItem> = [
         width: 85,
         align: 'center',
         sorter: (a: any, b: any) => (a['member_ratio_yoy'] ?? 0) - (b['member_ratio_yoy'] ?? 0),
-        render: (row: any) => h(YOYBadge, { value: row['member_ratio_yoy'], unit: 'pp' }),
+        render: (row: any) => h(YOYGuard, { value: row['member_ratio_yoy'], unit: 'pp', styled: true}),
       },
       ...usersChildren('users', 'users_yoy'),
       ...ausChildren('aus', 'aus_yoy'),

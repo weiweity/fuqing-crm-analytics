@@ -9,7 +9,7 @@ import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
@@ -420,7 +420,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="老客GSV占比"
             :value="fmtPercent(data.old_customer_gsv_ratio)"
-            :change="data.yoy_old_customer_gsv_ratio_ppt"
+            :change="data.yoy_old_customer_gsv_ratio"
             unit="pp"
           />
         </n-gi>
@@ -453,7 +453,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="会员老客GSV占比"
             :value="fmtPercent(data.member_old_customer_gsv_ratio)"
-            :change="data.yoy_member_old_customer_gsv_ratio_ppt"
+            :change="data.yoy_member_old_customer_gsv_ratio"
             unit="pp"
           />
         </n-gi>
@@ -487,7 +487,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
                   <span class="text-[11px] text-slate-400">
                     去年同期 {{ data.ly_health_score ?? '—' }}分
                   </span>
-                  <YOYBadge :value="data.health_score_yoy" unit="pp" />
+                  <YOYGuard :value="data.health_score_yoy" unit="pp" styled />
                 </div>
               </div>
             </div>
@@ -563,7 +563,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
                   {{ item.ly_health_score != null ? item.ly_health_score.toFixed(1) : '—' }}
                 </td>
                 <td class="py-2.5 px-3 text-right tabular-nums">
-                  <YOYBadge v-if="item.health_score_yoy != null" :value="item.health_score_yoy" unit="pp" />
+                  <YOYGuard v-if="item.health_score_yoy != null" :value="item.health_score_yoy" unit="pp" styled />
                   <span v-else class="text-slate-400">—</span>
                 </td>
               </tr>

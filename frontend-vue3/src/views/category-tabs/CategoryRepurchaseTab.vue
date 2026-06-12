@@ -15,7 +15,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
@@ -225,35 +225,35 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
       key: 'yoy_hist_users',
       width: 110,
       align: 'center',
-      render: (r) => h(YOYBadge, { value: r.yoy_hist_users }),
+      render: (r) => h(YOYGuard, { value: r.yoy_hist_users, styled: true}),
     },
     {
       title: `${yr}同比回购人数`,
       key: 'yoy_repurchase_users',
       width: 110,
       align: 'center',
-      render: (r) => h(YOYBadge, { value: r.yoy_repurchase_users }),
+      render: (r) => h(YOYGuard, { value: r.yoy_repurchase_users, styled: true}),
     },
     {
       title: `${yr}同比回购率`,
       key: 'yoy_repurchase_rate',
       width: 110,
       align: 'center',
-      render: (r) => h(YOYBadge, { value: r.yoy_repurchase_rate, unit: 'pp' }),
+      render: (r) => h(YOYGuard, { value: r.yoy_repurchase_rate, unit: 'pp', styled: true}),
     },
     {
       title: `${yr}同比回购GSV`,
       key: 'yoy_repurchase_gsv',
       width: 110,
       align: 'center',
-      render: (r) => h(YOYBadge, { value: r.yoy_repurchase_gsv }),
+      render: (r) => h(YOYGuard, { value: r.yoy_repurchase_gsv, styled: true}),
     },
     {
       title: `${yr}同比回购GSV占比`,
-      key: 'yoy_repurchase_gsv_ratio_ppt',
+      key: 'yoy_repurchase_gsv_ratio',
       width: 120,
       align: 'center',
-      render: (r) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }),
+      render: (r) => h(YOYGuard, { value: r.yoy_repurchase_gsv_ratio, unit: 'pp', styled: true}),
     },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
     {

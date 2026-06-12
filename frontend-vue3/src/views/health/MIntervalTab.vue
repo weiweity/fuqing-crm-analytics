@@ -13,7 +13,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
@@ -173,35 +173,35 @@ const mFlowColumns = computed<DataTableColumns<RFMMFlowRow>>(() => {
       key: 'yoy_hist_users',
       width: 110,
       align: 'center',
-      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_hist_users }),
+      render: (r: RFMMFlowRow) => h(YOYGuard, { value: r.yoy_hist_users, styled: true}),
     },
     {
       title: `${yr}年同比人数`,
       key: 'yoy_repurchase_users',
       width: 110,
       align: 'center',
-      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_users }),
+      render: (r: RFMMFlowRow) => h(YOYGuard, { value: r.yoy_repurchase_users, styled: true}),
     },
     {
       title: `${yr}同比回购率`,
       key: 'yoy_repurchase_rate',
       width: 110,
       align: 'center',
-      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_rate, unit: 'pp' }),
+      render: (r: RFMMFlowRow) => h(YOYGuard, { value: r.yoy_repurchase_rate, unit: 'pp', styled: true}),
     },
     {
       title: `${yr}同比回购GSV`,
       key: 'yoy_repurchase_gsv',
       width: 110,
       align: 'center',
-      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv }),
+      render: (r: RFMMFlowRow) => h(YOYGuard, { value: r.yoy_repurchase_gsv, styled: true}),
     },
     {
       title: `${yr}同比回购GSV占比`,
-      key: 'yoy_repurchase_gsv_ratio_ppt',
+      key: 'yoy_repurchase_gsv_ratio',
       width: 110,
       align: 'center',
-      render: (r: RFMMFlowRow) => h(YOYBadge, { value: r.yoy_repurchase_gsv_ratio_ppt, unit: 'pp' }),
+      render: (r: RFMMFlowRow) => h(YOYGuard, { value: r.yoy_repurchase_gsv_ratio, unit: 'pp', styled: true}),
     },
     { title: `${yr2}历史人数`, key: 'hist_users_comp', width: 90, align: 'right', render: (r) => r.hist_users_comp.toLocaleString() },
     {
@@ -238,7 +238,7 @@ const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
     { header: `${yr}同比回购人数`, key: 'yoy_repurchase_users', width: 12, numFmt: '0.0%' },
     { header: `${yr}同比回购率`, key: 'yoy_repurchase_rate', width: 12, numFmt: '0.0%' },
     { header: `${yr}同比回购GSV`, key: 'yoy_repurchase_gsv', width: 12, numFmt: '0.0%' },
-    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio_ppt', width: 14, numFmt: '0.0%' },
+    { header: `${yr}同比回购GSV占比`, key: 'yoy_repurchase_gsv_ratio', width: 14, numFmt: '0.0%' },
     { header: `${yr2}历史人数`, key: 'hist_users_comp', width: 12, numFmt: '#,##0' },
     { header: `${yr2}回购率`, key: 'repurchase_rate_comp', width: 10, numFmt: '0.00%' },
     { header: `${yr3}历史人数`, key: 'hist_users_prev2', width: 12, numFmt: '#,##0' },

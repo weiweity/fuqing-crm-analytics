@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.55] - 2026-06-12 - refactor(frontend): Sprint 20 P1-2 YOYGuard 吸 YOYBadge 风格 + 9 组件迁移 (拿掉 YOYBadge wrapper 间接层)
+
+### Background
+Sprint 18 #124 抽 YOYGuard 通用组件时 YOYBadge 改成 thin wrapper, 但保留独立文件. Sprint 20+ backlog "YOYGuard 扩 4 老组件" 4 组件名跟实际 yoy 状况不符, 实际 Sprint 20 P1-2 scope 改为:
+
+方案 A: 9 个 YOYBadge 用户 (AudienceView/CategoryView/RFMView/CategoryRepurchaseTab/ProductClassRepurchaseTab/health/{F,M,R}IntervalTab/ValueTierTab/HealthOverviewTab) 全部迁移到 YOYGuard 直接调用, YOYGuard 加 `styled` prop 吸收原 YOYBadge 的箭头 + 颜色 styling, 删 YOYBadge.vue.
+
+### Changed
+- **`frontend-vue3/src/components/YOYGuard.vue`**: 加 `styled?: boolean` prop (默认 false). `styled=true` 渲染 YOYBadge 同款样式 (箭头 ↑/↓ + 绿/红背景色 + "数据异常" 灰色守卫)
+- **`frontend-vue3/src/components/YOYBadge.vue`**: **删除** (被 YOYGuard styled 模式替代)
+- **`frontend-vue3/src/components/YOYGuard.test.ts`**: 加 8 个 styled 模式 vitest (null/正/负/零/异常值/边界), 23/23 全部 pass
+- **9 个视图文件**: `h(YOYBadge, ...)` → `h(YOYGuard, { ..., styled: true })` (table render) / `<YOYBadge>` → `<YOYGuard styled />` (template)
+  - AudienceView.vue (33 处)
+  - CategoryView.vue (7 处)
+  - RFMView.vue (5 处)
+  - CategoryRepurchaseTab.vue (5 处)
+  - ProductClassRepurchaseTab.vue (5 处)
+  - FIntervalTab.vue / MIntervalTab.vue / RIntervalTab.vue / ValueTierTab.vue (各 5 处)
+  - HealthOverviewTab.vue (2 处 template)
+
+### 治理
+- Sprint 20+ P1-2 (YOYGuard 扩 4 老组件, 实际拿掉 YOYBadge 间接层) ✅ 完成
+- YOYBadge.vue wrapper 删除, YOYGuard 是唯一 YOY 入口 (single source of truth)
+- 9 组件 ~50 处间接调用合并为直接调用, 减少 wrapper 层
+
+### 任务来源
+- Sprint 19 retrospective Section 4 治理债务 #5 (YOYGuard 扩 4 老组件) → Sprint 20 P1-2
+
+### 验证
+- `npx vitest run src/components/YOYGuard.test.ts`: 23/23 passed (15 unstyled + 8 styled)
+- `npx vue-tsc --noEmit`: 0 type error
+- 9 视图文件 YOYBadge 0 引用 (迁移完成)
+- YOYBadge 同款契约保留: null → "—", 0 → "+0.00% ↑", 1e6 boundary → "+1000000.00% ↑", 1e7 → "数据异常"
+
+### 后续
+- Sprint 20+ P0 (DuckDB 1.5.4 stable 监控) — 等外部 release
+- Sprint 20+ 6/9+ 18 老客 `is_member=TRUE` 验证 — 等 prod 跑批
+
 ## [v0.4.14.54] - 2026-06-12 - feat(lint): Sprint 20 P1-1 R5 扩 Optional / PEP 604 / Union 包装 (5 新 R5a tests)
 
 ### Background

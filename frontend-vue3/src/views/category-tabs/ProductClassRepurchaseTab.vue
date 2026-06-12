@@ -7,7 +7,7 @@ import { useFilterStore } from '@/stores/filterStore'
 import { fetchRepurchaseCycle } from '@/api/health'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
@@ -171,7 +171,7 @@ const simpleColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 100,
-    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy, unit: 'pp' }),
+    render: (row) => h(YOYGuard, { value: row.repurchase_rate_yoy, unit: 'pp', styled: true}),
   },
   { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {
@@ -231,7 +231,7 @@ const expandedColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 100,
-    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy, unit: 'pp' }),
+    render: (row) => h(YOYGuard, { value: row.repurchase_rate_yoy, unit: 'pp', styled: true}),
   },
   { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {
@@ -314,7 +314,7 @@ const expandedColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 90,
-    render: (row) => h(YOYBadge, { value: row.gsv_yoy }),
+    render: (row) => h(YOYGuard, { value: row.gsv_yoy, styled: true}),
   },
   {
     title: '复购客单价',
@@ -363,7 +363,7 @@ const expandedColumnsCross: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 100,
-    render: (row) => h(YOYBadge, { value: row.repurchase_rate_yoy, unit: 'pp' }),
+    render: (row) => h(YOYGuard, { value: row.repurchase_rate_yoy, unit: 'pp', styled: true}),
   },
   { title: '中位天数', key: 'median_days', align: 'center', sorter: 'default', width: 95 },
   {
@@ -446,7 +446,7 @@ const expandedColumnsCross: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 90,
-    render: (row) => h(YOYBadge, { value: row.gsv_yoy }),
+    render: (row) => h(YOYGuard, { value: row.gsv_yoy, styled: true}),
   },
   {
     title: '回流客单价',

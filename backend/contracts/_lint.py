@@ -232,10 +232,18 @@ def _list_inner_type_name(annotation: ast.AST) -> Optional[str]:
     """
     if not isinstance(annotation, ast.Subscript):
         return None
-    # 顶层 Optional / Union 包装 (Optional[X] 走 Subscript slice, Union 走 Tuple slice):
-    #   Optional[List[RatioField]] -> 递归 slice
-    #   Union[List[RatioField], None] -> 递归 slice (Tuple)
+    # 顶层 Optional / Union 包装:
+    #   Optional[X]: slice 是 Subscript (单元素, 跟 PEP 484 一致)
+    #   Union[A, B, ...]: slice 是 Tuple (多元素)
     if isinstance(annotation.value, ast.Name) and annotation.value.id in ("Optional", "Union"):
+        if isinstance(annotation.slice, ast.Tuple):
+            # Union[A, B, ...]: 找第一个 List[...] 元素的 inner name
+            for elt in annotation.slice.elts:
+                if (isinstance(elt, ast.Subscript)
+                        and isinstance(elt.value, ast.Name)
+                        and elt.value.id in ("List", "list")):
+                    return _extract_inner_name(elt.slice)
+            return None
         return _list_inner_type_name(annotation.slice)
     # 顶层必须是 List / list
     if not (isinstance(annotation.value, ast.Name) and annotation.value.id in ("List", "list")):
