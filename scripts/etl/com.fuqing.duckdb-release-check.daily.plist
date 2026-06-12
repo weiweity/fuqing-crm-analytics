@@ -27,11 +27,11 @@ Sprint 20+ P0 监控: 每日检查 DuckDB 1.5.4 stable release
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/check_duckdb_release_cron.sh</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/check_duckdb_release_cron.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
 
     <key>StartCalendarInterval</key>
     <dict>

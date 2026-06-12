@@ -258,7 +258,7 @@
 
 ### 数据库路径
 ```
-/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
+/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
 ```
 
 ### 核心表一览

@@ -46,7 +46,7 @@ from scripts.etl.precompute_fact_rfm import (  # noqa: E402
 # 但 worktree 跑 pytest 时, ROOT 是 worktree 路径, 不一定有 data/processed
 # 这里用绝对路径兜底: 既支持 main repo, 也支持 worktree (因为 data/ 是 gitignored,
 # worktree 里没有 data/, 必须指 main repo)
-MAIN_REPO_ROOT = Path("/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics")
+MAIN_REPO_ROOT = Path("/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics")
 PROD_DUCKDB_PATH = MAIN_REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
 
 

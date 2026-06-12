@@ -87,7 +87,7 @@
 **触发**: `./tests/` 根目录 16 测试跑失败 (CI scope `pytest backend/tests/` 不影响, 但本地体验污染)
 
 **关键步骤**:
-1. `cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" && pytest ./tests/ --collect-only` 列出 16 个
+1. `cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" && pytest ./tests/ --collect-only` 列出 16 个
 2. 跑 1 次看具体失败原因 (分类型: fixture scope 冲突 / DuckDB lock / 状态污染)
 3. 决策:
    - **修**: 加 `conftest.py` fixture scope=session / 临时 DuckDB 路径

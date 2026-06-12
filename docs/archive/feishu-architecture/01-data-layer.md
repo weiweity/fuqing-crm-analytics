@@ -12,7 +12,7 @@
 ```python
 # backend/config.py
 from pathlib import Path
-DATA_DIR = Path("/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/data")
+DATA_DIR = Path("/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data")
 DUCKDB_PATH = DATA_DIR / "processed" / "fuqing_crm.duckdb"
 ```
 
@@ -102,11 +102,11 @@ CREATE INDEX idx_orders_channel_member ON orders(channel, is_member);
 
 ```bash
 # 增量更新（推荐每日使用；必须用 homebrew Python 3.14，workbuddy Python 3.13 有代码签名冲突）
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
 /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --update
 
 # 全量重建（数据异常时使用）
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
 /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --full
 ```
 

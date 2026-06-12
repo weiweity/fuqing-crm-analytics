@@ -68,7 +68,7 @@ fi
 TMP_TRIPLE=""
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true; [[ -n "$TMP_TRIPLE" ]] && rm -f "$TMP_TRIPLE" 2>/dev/null || true' EXIT
 
-BACKUP_DIR="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/data/processed/backups"
+BACKUP_DIR="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/backups"
 LOG_FILE="/tmp/fuqing-backup-cleanup.log"
 RETENTION_DAYS=7
 KEEP_RECENT_COUNT=3      # 阶段 2: 保留最近 N 个

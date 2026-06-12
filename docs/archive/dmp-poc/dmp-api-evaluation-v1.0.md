@@ -4,7 +4,7 @@
 > **评估时间**：2026-06-02
 > **工时上限**：12h
 > **作者**：Claude（agent）
-> **报告路径**：`/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/docs/dmp-poc/达摩盘官方API评估报告v1.0.md`
+> **报告路径**：`/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/docs/dmp-poc/达摩盘官方API评估报告v1.0.md`
 
 ---
 
@@ -35,8 +35,8 @@
 | `dmp_flow_scraper.py` | `/Users/hutou/Desktop/work plat/DMP_test_package/core/dmp_flow_scraper.py` | data.csv 走 Network 拦截业务方 XHR：`asset/deeplink/transfer/{overview,transfer}` |
 | `dmp_item_insight_scraper.py` | `/Users/hutou/Desktop/work plat/DMP_test_package/core/dmp_item_insight_scraper.py` | data3 走千牛后台单品洞察页面，DOM 提取 |
 | `KB-数据采集-SPA接口拦截.md` | `/Users/hutou/Desktop/work plat/DMP_test_package/KB-数据采集-SPA接口拦截.md` | 知识库明说："数据在 API 里，不在 DOM 里" —— 但这些 API 是业务方内部 XHR，**不是阿里妈妈开放平台** |
-| `dmp_api_client.py` | `/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_api_client.py` | 所谓"API 客户端"用 Cookie 调 `dmp.taobao.com/api_2/...`，**仍属业务方后台**，**不**是开放平台 |
-| `dmp_asset_service/_helpers.py` | `/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend/services/dmp_asset_service/_helpers.py` | 确认 data2/data3 真实字段（8+6 列 AIPL/资产） |
+| `dmp_api_client.py` | `/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_api_client.py` | 所谓"API 客户端"用 Cookie 调 `dmp.taobao.com/api_2/...`，**仍属业务方后台**，**不**是开放平台 |
+| `dmp_asset_service/_helpers.py` | `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/services/dmp_asset_service/_helpers.py` | 确认 data2/data3 真实字段（8+6 列 AIPL/资产） |
 | `dmp_crowd_data_clean_2026-Q1.csv` | 同上人群数据库/爬虫/ | 现有 dmp_api_client 输出样本：5 维画像（性别/年龄/城市/消费/策略人群）|
 
 ---
@@ -259,18 +259,18 @@
 
 **CRM monorepo 侧**（DMP 资产消费方）：
 
-- `/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend/config.py` — DMP_DATA*_PATH 配置
-- `/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend/services/dmp_asset_service/_helpers.py` — data2/data3 字段解析
-- `/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend/services/dmp_asset_service/store.py` — data2 服务
-- `/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend/services/dmp_asset_service/product.py` — data3 服务
-- `/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/backend/contracts/asset.py` — API 契约
+- `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/config.py` — DMP_DATA*_PATH 配置
+- `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/services/dmp_asset_service/_helpers.py` — data2/data3 字段解析
+- `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/services/dmp_asset_service/store.py` — data2 服务
+- `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/services/dmp_asset_service/product.py` — data3 服务
+- `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/contracts/asset.py` — API 契约
 
 **爬虫 + 暗 API 路径**（现网 dmp_api_client.py，跟 data2/data3 无字段重叠）：
 
-- `/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_api_client.py` — 暗 API 客户端（5 维画像）
-- `/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_crowd_scanner.py` — crowdId 扫描器（Playwright）
-- `/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_extract_data.py` — 画像数据提取
-- `/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_crowd_data_clean_2026-Q1.csv` — 5 维画像样本（282 行）
+- `/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_api_client.py` — 暗 API 客户端（5 维画像）
+- `/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_crowd_scanner.py` — crowdId 扫描器（Playwright）
+- `/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_extract_data.py` — 画像数据提取
+- `/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/人群数据库/爬虫/dmp_crowd_data_clean_2026-Q1.csv` — 5 维画像样本（282 行）
 
 ### 附录 B：5/28 脏数据根因摘要
 

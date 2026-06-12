@@ -199,7 +199,7 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 
 ```bash
 # 后端（端口 8000）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
 PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 >> /tmp/fuqin-crm-backend.log 2>&1 &

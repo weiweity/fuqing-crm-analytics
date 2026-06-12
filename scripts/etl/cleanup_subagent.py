@@ -10,7 +10,7 @@
 设计原则:
   1. 扫 /private/tmp + /tmp 下所有 不在 FQ_TMP_PREFIXES 白名单的 1h+ 1GB+ 文件
      (避开 macOS 系统服务, 只针对用户态巨型文件)
-  2. 排除项目根 /Users/hutou/Desktop/fuqin date/ 路径 (业务文件, 不会误删)
+  2. 排除项目根 /Users/hutou/Desktop/fuqin-date/ 路径 (业务文件, 不会误删)
   3. 排除 FQ_TMP_PREFIXES 下文件 (留给 layer 1 atexit 处理)
   4. 排除 sub-process 活进程写入的标志文件 (避开当前 subagent / IDE 调试中的
      活文件; 1h+ 阈值是兜底, launchd hourly 跑意味着 1h 内会再扫一次)
@@ -55,7 +55,7 @@ _SCAN_ROOTS = (
 
 # 排除路径前缀 (项目根, 不会误删业务文件)
 _EXCLUDE_PATH_PREFIXES = (
-    "/Users/hutou/Desktop/fuqin date",
+    "/Users/hutou/Desktop/fuqin-date",
 )
 
 # Layer 1 自身 log + marker + launchd 锁 — 不能让 layer 6 误删这些

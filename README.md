@@ -45,7 +45,7 @@ bash scripts/setup-hooks.sh   # 激活 pre-commit / pre-push (一次性, session
 ### 启动服务
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
 PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 --reload --reload-dir backend \
@@ -190,7 +190,7 @@ launchctl list | grep fuqing
 ### 后端单元测试
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 

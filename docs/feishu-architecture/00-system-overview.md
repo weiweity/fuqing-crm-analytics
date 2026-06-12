@@ -131,8 +131,8 @@ GMV口径  = is_goujinjin = FALSE AND order_status != '交易关闭'（含退款
 
 ```bash
 # 数据路径
-DATA="/Users/hutou/Desktop/fuqin date/芙清CRM数据库"
-PROJECT="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+DATA="/Users/hutou/Desktop/fuqin-date/芙清CRM数据库"
+PROJECT="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 
 # 后端（端口 8000）
 cd "$PROJECT"

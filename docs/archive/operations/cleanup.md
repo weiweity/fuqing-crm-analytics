@@ -154,7 +154,7 @@ launchctl load ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
 
 ```bash
 # 清理 /private/tmp 下 fq_ 系列孤儿 (24h+ / 5 文件 / 100GB cap)
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" python3 scripts/etl/cli.py --cleanup-tmp
 
 # 行为:
@@ -169,7 +169,7 @@ PYTHONPATH="$(pwd)" python3 scripts/etl/cli.py --cleanup-tmp
 
 ```bash
 # 扫 /private/tmp + /tmp 下 1h+ 1GB+ 非白名单 (含 dry-run 模式)
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" python3 scripts/etl/cleanup_subagent.py
 
 # 只扫描不删 (供测试 / 运维验证用)
@@ -194,7 +194,7 @@ bash scripts/etl/cleanup_backups.sh
 
 ```bash
 # 手动跑 Layer 5
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/etl/backup_duckdb.py
 
 # 行为: shutil.copy2 复制 + zstd 压缩, 55GB → 21GB, 输出到 data/processed/backups/
@@ -277,7 +277,7 @@ launchctl load ~/Library/LaunchAgents/com.fuqing.tmp-cleanup.hourly.plist
 | `/private/tmp/_fq_ro*.duckdb` / `fuqing_*.duckdb` | Layer 1 白名单内, atexit 自动处理 (24h+ 才删), 强删会留 marker 孤儿 + 审计日志断档 | 等 Layer 1 自动清, 紧急用 `--cleanup-tmp` CLI |
 | `/private/tmp/claude-501/tmp*.duckdb` | 调试残留, Layer 2 zshrc 告警会列出, 强删可能误伤活文件 | 优先用 `--cleanup-tmp` 走 cap 清理 |
 | `/Library/Caches/ms-playwright/chromium_headless_shell-1208/` | gstack browse 唯一可用的 headless shell, 删了 /qa 跑不动 | 严禁 rm, 升 playwright 版本用 `playwright install` 不要 `--force` |
-| `/Users/hutou/Desktop/fuqin date/` (整个项目根) | Layer 6 排除路径, 业务文件, 不会误删 | 严禁 Layer 6 涉及, 实际保护名单已写死 |
+| `/Users/hutou/Desktop/fuqin-date/` (整个项目根) | Layer 6 排除路径, 业务文件, 不会误删 | 严禁 Layer 6 涉及, 实际保护名单已写死 |
 | `~/.workbuddy/cache/fq-etl-validation/` 30 天内文件 | Layer 3 主动 cp 持久化, 重跑 ETL 不用重做 | 30 天后 Layer 3 自动清 |
 
 ### 5.2 F3 marker 协议
@@ -372,7 +372,7 @@ cat /tmp/fuqing-etl-marker.json 2>/dev/null && echo "WARN: marker 存在" || ech
 1. **不依赖白名单**: 扫所有 1GB+ 巨型文件, 排除名单用 `_PROTECTED_BASENAMES` (白名单反模式)
 2. **hourly 高频**: 比 weekly/daily 频, 兜底 subagent 长跑任务 (8h+ 实验也能在 1h 后清)
 3. **1h+ 1GB+ 严苛阈值**: 比 Layer 1 的 24h 严, 1h 是 subagent 跑完的合理缓冲 (不会误删活文件, 因为活文件 1h 内 mtime 会更新)
-4. **排除项目根**: `_EXCLUDE_PATH_PREFIXES = ("/Users/hutou/Desktop/fuqin date",)` 防止误删业务文件
+4. **排除项目根**: `_EXCLUDE_PATH_PREFIXES = ("/Users/hutou/Desktop/fuqin-date",)` 防止误删业务文件
 5. **保护 Layer 1 状态文件**: `fuqing-tmp-cleanup.log`, `fuqing-etl-marker.json`, `fuqing-subagent-cleanup.log` 等
 6. **软失败**: OSError 不 raise, 漏扫一个文件不影响其他
 7. **dry-run 模式**: `--dry-run` 只扫不删, 供测试 / 运维验证用
@@ -410,7 +410,7 @@ df -h /private/tmp
 find /private/tmp -maxdepth 2 -size +1G 2>/dev/null
 
 # backups 占用
-du -sh "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/data/processed/backups" 2>/dev/null
+du -sh "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/backups" 2>/dev/null
 
 # Layer 6 最近 24h 清理记录
 grep "$(date -u +%Y-%m-%d)" /tmp/fuqing-subagent-cleanup.log | tail -30

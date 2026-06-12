@@ -21,11 +21,11 @@
 ### 2.1 后端服务
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 
 # 启动后端（端口 8000，uvicorn + 热重载；用 homebrew Python 3.14）
 export HEALTH_API_KEY=$(grep '^HEALTH_API_KEY=' .env | cut -d= -f2)
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
   nohup /Users/hutou/homebrew/bin/python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 \
   >> /tmp/fuqin-crm-backend.log 2>&1 &
@@ -37,7 +37,7 @@ curl -s http://localhost:8000/api/v1/health
 ### 2.2 前端服务
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/frontend-vue3"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/frontend-vue3"
 
 # 安装依赖（首次）
 npm install
@@ -53,14 +53,14 @@ npm run build
 
 ```bash
 # 后端（端口 8000）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
   nohup ~/.workbuddy/binaries/python/envs/default/bin/python -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 --reload --reload-dir backend \
   >> /tmp/fuqin-crm-backend.log 2>&1 &
 
 # 前端（端口 5173）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/frontend-vue3"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/frontend-vue3"
 npm run dev
 ```
 
@@ -71,16 +71,16 @@ npm run dev
 ### 3.1 增量更新（日常）
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
   ~/.workbuddy/binaries/python/envs/default/bin/python scripts/run_etl.py --update
 ```
 
 ### 3.2 全量重建（数据异常时）
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
   ~/.workbuddy/binaries/python/envs/default/bin/python scripts/run_etl.py --full
 ```
 
@@ -95,8 +95,8 @@ tail -100 /tmp/fuqin-crm-backend.log
 
 ```bash
 # 刷新 RFM 数据（象限计算）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
   ~/.workbuddy/binaries/python/envs/default/bin/python -c \
   "from scripts.etl.precompute_fact_rfm import run_mvp_async; run_mvp_async()"
 ```
@@ -108,8 +108,8 @@ PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
 ### 4.1 DuckDB 连接验证
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
-PYTHONPATH="/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics" \
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+PYTHONPATH="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics" \
   ~/.workbuddy/binaries/python/envs/default/bin/python -c "
 import duckdb
 from backend.config import DUCKDB_PATH

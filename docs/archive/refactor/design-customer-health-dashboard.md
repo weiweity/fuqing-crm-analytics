@@ -645,7 +645,7 @@ FROM repurchase_stats;
 # backend/config.py 追加
 PROMOTION_CSV_PATH = PROJECT_ROOT / "data" / "promotions" / "promotion_calendar.csv"
 # 或从现有CSV路径加载: 
-# PROMOTION_CSV_PATH = Path(r"/Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/芙清全年平台活动节奏 - Sheet2.csv")
+# PROMOTION_CSV_PATH = Path(r"/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/芙清全年平台活动节奏 - Sheet2.csv")
 ```
 
 ```python

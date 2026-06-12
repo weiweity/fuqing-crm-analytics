@@ -16,7 +16,7 @@
 
 ```bash
 # Step 1 — 交叉导入校验（自动发现所有遗漏的 NameError）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" python3 -c "
 import importlib, sys
 modules = ['backend.services.xxx.sub1', 'backend.services.xxx.sub2']
