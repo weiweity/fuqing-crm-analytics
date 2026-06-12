@@ -196,6 +196,37 @@ Sprint 16.5+1 scraper 解耦准备 (v0.4.14.52) 时发现 3 个 ETL 脚本 (noti
 - git log 顺序: 12 retrospective commit (1 per sprint) + 1 document-index commit = 13 commits, 全部在 chore/sprint-1-12-retrospective 分支
 - pytest/lint/vitest 不变 (无 backend/frontend 改动, 不需要重跑)
 
+## [v0.4.14.46] - 2026-06-12 - refactor(scraper): Sprint 5 #15 — 主项目根 scraper/ 软删 + 数据挪 + symlink (跟独立 repo fuqing-scraper/ 解耦)
+
+### 背景
+Sprint 4 (独立 repo v0.4.14.45) 10 untracked Sprint 20+ P0 DuckDB 升 prod 后续修改落地后, 主项目根 scraper/ 还有 (521M, 15 子目录, 6/8 15:13), 4 件数据文件 (data.csv 130.8K + data2.csv 56K + data3.csv 578K + completed_items.json 10K = 774.6K) 还在主项目根 scraper/core/ 里. Sprint 5 #15 (P0) 软删 + 数据挪 + symlink 收口. 跑批工具 5 .py md5sum 跟独立 repo 100% 一致, 仅数据文件 + chrome_profile/ + account.txt 留在主项目根 (因跑批业务需要).
+
+### Changed
+- **主项目根 scraper/ → scraper.legacy/** (软删, mv, 521M)
+- **数据文件 挪到独立 repo fuqing-scraper/core/**:
+  - data.csv (流转数据, 130.8K)
+  - data2.csv (资产诊断数据, 56K)
+  - data3.csv (单品洞察数据, 578K, md5sum 一致)
+  - completed_items.json (断点续传缓存, 10K)
+- **主项目根 scraper symlink → 独立 repo fuqing-scraper/**:
+  - `ln -s /Users/hutou/Desktop/fuqin date/fuqing-scraper scraper`
+- **独立 repo .gitignore 已经配好** data*.csv + completed_items.json + chrome_profile/ + account.txt (不进 git, 数据文件留本地)
+- **主项目根 .gitignore 增量** scraper.legacy/ + scraper (2 行, 软删备份 + symlink 不进 git, 521M 安全隔离)
+
+### 验证
+- **跑批业务不阻塞**: `python3 -c "from scraper.core import dmp_common; print('import OK')"` ✅ + `from scraper.core import dmp_master` ✅ (走 symlink 走通, 5 单文件跑批工具 md5sum 跟独立 repo 100% 一致)
+- **主项目 pytest**: 506 passed + 12 skipped (Sprint 18 v0.4.14.49 baseline, 1 个 rfm_recompute_window_dry_run 失败是 DuckDB 锁冲突 PID 15138 跟本任务无关)
+- **数据文件 md5sum 一致** (data.csv b274a74cad04b076569b41295068466f + data2.csv 0f5713c01188406c51ceb8f7beec4826 + data3.csv f4cd887696b2582ceb584863f6efa917 + completed_items.json 8d563ab157549aeef3602bdff0b01479, 1 步到位挪走, 无损)
+- **独立 repo .gitignore 已经配好** (account.txt + chrome_profile/ + *.csv + *.xlsx + completed_items.json + completed_items*.json, 数据文件不进 git), 主项目根 .gitignore 增量 scraper.legacy/ + scraper (2 行)
+- **5 单文件跑批工具 md5sum 一致** (dmp_master.py 9d885406e9e6a1541f9dbba931283bd5 + dmp_common.py 3e4deacc93ee0e14f5bada3cafb4d536 + dmp_item_insight_scraper.py 0428bc1c08c083cd123fd483ee0c5a6e + dmp_scraper.py 2dde9e2ec12098fbd0ef863ba55ad675 + dmp_flow_scraper.py ab7035cd6fda36e7e2de8dd716ad6512, 跑批工具已完整迁到独立 repo, 仅数据文件需挪)
+
+### 后续
+- **1-3 天观察期** (跑批业务不受软删影响) 验证后删 scraper.legacy (Sprint 5+ 后续处置, Task #11 #144)
+- 独立 repo Sprint 5 #16 (P1) 双层清理 (`/scraper/core/` 跟 `/core/` 选一留一删) - Task #16
+- 独立 repo Sprint 5 #17 (P2) 5 行修重建 + commit - Task #17
+- 独立 repo Sprint 5 #18 (P1) 简历文档 dmp-data-scraper.md 跟新 - Task #18
+- Sprint 20+ #143 工单自动完成 (主项目根 scraper/ 已软删, 数据文件已挪, symlink 已走通)
+
 ## [v0.4.14.47] - 2026-06-11 - fix(cache): Sprint 18 #123 W5 cache invalidation 启动 hook (跨进程 manifest 同步)
 
 ### Added

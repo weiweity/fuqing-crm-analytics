@@ -86,3 +86,10 @@ docs/reports/
 
 # UV 锁文件（可选，如果不用 uv 管理依赖）
 # uv.lock
+
+# Sprint 5 #15 (P0) — 主项目根 scraper/ 软删 + symlink
+# scraper.legacy/ 是 521M 软删备份 (1-3 天观察期后处置)
+# scraper 是 symlink → 独立 repo fuqing-scraper/
+# 两个都不进 git, 跑批业务通过 symlink 走
+scraper.legacy/
+scraper
