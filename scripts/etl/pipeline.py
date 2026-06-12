@@ -148,15 +148,25 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
 
     # Step 0.5: 冷启动修复 — 数据库有数据但 processed_files 为空时，自动标记历史文件
     # 这样第一次增量就不会把 113 个历史 xlsx 全读一遍
+    # Sprint 21+ P0 修复 (2026-06-12): 加 parquet 缓存目录存在性检测. 之前 bug: 用户手动
+    # 删 parquet 缓存 (data/parquet) + 重置 processed_files 后, 冷启动逻辑假设 DB 跟
+    # processed_files 同步, 自动标 107+82 文件"已处理" 跳过加载, 06-10/06-11/06-12 数据
+    # 没进 DB, 06-09 会员数据 is_member 全 False 修复不了. 现在: parquet 目录不存在
+    # (用户手动删了) → 跳过冷启动, 让 fill_parquet_cache 重新生成 + ingest 重新加载
     if run_mode == 'incremental':
-        for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
-            processed = _load_processed_files(data_type)
-            if not processed and data_source.exists():
-                total_files = len(list(data_source.rglob("*.xlsx")))
-                if total_files > 0:
-                    print(f"  [冷启动] {data_type}: 数据库有数据但无处理记录，自动标记 {total_files} 个历史文件")
-                    _mark_all_files_processed()
-                    break  # _mark_all_files_processed 一次性标记 shop+member
+        _parquet_exists = PARQUET_DATA_DIR.exists() and any(PARQUET_DATA_DIR.rglob("*.parquet"))
+        if not _parquet_exists:
+            print("  [Sprint 21+ 修复] parquet 缓存目录不存在或为空, 跳过冷启动标记, 强制重新加载")
+            print("  [Sprint 21+ 修复] 跑批后 fill_parquet_cache 重新生成 + ingest 重新加载所有源文件")
+        else:
+            for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
+                processed = _load_processed_files(data_type)
+                if not processed and data_source.exists():
+                    total_files = len(list(data_source.rglob("*.xlsx")))
+                    if total_files > 0:
+                        print(f"  [冷启动] {data_type}: 数据库有数据但无处理记录，自动标记 {total_files} 个历史文件")
+                        _mark_all_files_processed()
+                        break  # _mark_all_files_processed 一次性标记 shop+member
 
     # Step 1: 加载 SPU 匹配表、渠道规则、淘客数据和直播数据源
     with PerfTimer("pl_step1_load_ref_data"):
@@ -1055,7 +1065,7 @@ def update_taoke_channel():
                 _err_msg = str(_e)[:200].replace("\n", " ")
                 if _attempt < _MAX_RETRIES:
                     print(f"  [Sprint 21 P0 retry] 第 {_attempt}/{_MAX_RETRIES} 次失败: {_err_name}: {_err_msg}")
-                    print(f"  [Sprint 21 P0 retry] 等 1s, 重开新 conn 重试...")
+                    print("  [Sprint 21 P0 retry] 等 1s, 重开新 conn 重试...")
                     _time.sleep(1)
                 else:
                     print(f"  [Sprint 21 P0 retry] {_attempt}/{_MAX_RETRIES} 次都失败, raise")
@@ -1192,7 +1202,7 @@ def _update_taoke_channel_impl():
                 print(f"  [WARN] CREATE INDEX skip: {_e}")
         # 4. COMMIT 整个 DROP+UPDATE+RECREATE 序列 (D.1 atomicity 一致)
         conn.execute("COMMIT")
-        print(f"  [Sprint 16 P0 治根] 事务 COMMIT: DROP 2 index → UPDATE 3 步 → RECREATE 2 index 全部落盘")
+        print("  [Sprint 16 P0 治根] 事务 COMMIT: DROP 2 index → UPDATE 3 步 → RECREATE 2 index 全部落盘")
     except Exception:
         # Sprint 16 P0 治根: 中途 crash 自动 ROLLBACK, 跟 D.1 replay_is_member.py:90-152 一致
         try:

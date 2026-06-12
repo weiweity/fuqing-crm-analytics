@@ -17,6 +17,7 @@ Sprint 20+ P0 DuckDB 1.5.4 race false-positive 之后, 6 个 race 修复尝试 (
 ### Changed
 - **`scripts/etl/cli.py`** — 加 `--read-only` flag (line 643), 跳过 step 2 (淘客渠道纠正, 1.88M UPDATE 跨 connection race) + step 6 (RFM 缓存预计算, rfm_analysis_cache race)
 - **`scripts/etl/pipeline.py`** — `_update_taoke_channel_impl` v2 code: DROP 2 index 扩到 6 index (跟 Sprint 10 fix 完全一致, 治 orders race), 加 retry 3 次 (兜底, race 100% 触发时减少人工介入)
+- **`scripts/etl/cleanup_backups.sh`** — 三阶段备份清理: 7 天 mtime 保留 + 最近 3 个 count cap + 100GB size cap, 修复 glob 漏 `.zst` 导致原 7 天保留失效, 加 `--dry-run` 测试模式
 - **`scripts/check_duckdb_release.py`** — 加 1.6.0 stable 检测, `_check_pypi_duckdb_releases()` helper
 - **`scripts/etl/check_duckdb_release_cron.sh`** — flag 换 `/tmp/duckdb-1.6.0-stable-available.flag`, 飞书告警标题加 "A' 路径激活窗口开启"
 
@@ -24,6 +25,7 @@ Sprint 20+ P0 DuckDB 1.5.4 race false-positive 之后, 6 个 race 修复尝试 (
 - **D 路径 (DB 恢复)**: 89.97 GB broken DB (1.6.0.dev12 跑崩后) → `fuqing_crm.duckdb.broken-2026-06-12-1.6.0-dev12` (保留作 forensic), 从 06-11 16:55 backup (37 GB zst → 89.97 GB raw) 恢复, DB 收口 1,880,195 淘客 + 102,337 其他 + 110,650,505 user_rfm
 - **6-index DROP 治 orders race**: 1.88M UPDATE 写淘客标成功 (06-11 16:55 backup 0 淘客 → 现在 1,880,195), race 不再触发在 orders 表
 - **read-only 模式跑批**: 24 min 跑通 (PID 58549), 0 race 触发, step 1/3/4/5/7/7.5 全过, step 2/6 跳过
+- **`scripts/etl/pipeline.py` 冷启动 bug 修复**: 增量模式跑批前, 只有 parquet 缓存目录存在且非空时才自动标记历史文件为已处理; 用户手动删 parquet 缓存 + 重置 processed_files 后, 不再误标 107+82 文件为已处理, 确保 06-10/06-11/06-12 新数据 + 06-09 会员率正确进 DB
 
 ### 关键教训 (跟 Sprint 20+ P0 一起)
 - **dev release 假阳性 3/3**: 1.5.4.dev18 / 1.5.4.dev18 + v2 + retry 3 / 1.6.0.dev12 全部 unit tests + small batch 全过, prod 1.88M 仍 race/崩
