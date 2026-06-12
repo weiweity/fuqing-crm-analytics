@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Sprint 20+ P0 监控: 每日检查 DuckDB 1.5.4 stable release
+激活 Sprint 16 P0 治根 (DuckDB 1.5.3 ART race) 升 1.5.4 stable 路径
+
+安装:
+  cp scripts/etl/com.fuqing.duckdb-release-check.daily.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.fuqing.duckdb-release-check.daily.plist
+  launchctl list | grep fuqing.duckdb-release   验证加载
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.duckdb-release-check.daily.plist
+  rm ~/Library/LaunchAgents/com.fuqing.duckdb-release-check.daily.plist
+
+设计:
+  每日 9:00 跑 (避开 ETL 跑批窗口 8:30)
+  检查 PyPI 1.5.4 stable release
+  1.5.4 stable release 后, 写 /tmp/fuqing-duckdb-release-stable.flag 触发 Sprint 20+ P0 激活
+  stdout/stderr 重定向到 /tmp/fuqing-duckdb-release-check.log
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.duckdb-release-check</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/check_duckdb_release_cron.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-duckdb-release-check.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-duckdb-release-check.log</string>
+</dict>
+</plist>
