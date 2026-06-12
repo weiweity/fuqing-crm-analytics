@@ -26,9 +26,9 @@
 #     (launchd 不解析 JSON 也不消费输出, 仅靠 exit code 判断成败)
 #
 # 安装 (沿用 Sprint 4 P0-2 文档):
-#   cp ~/Desktop/fuqin\ date/fuqing-crm-analytics/scripts/etl/cleanup_backups.sh /usr/local/bin/
+#   cp ~/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_backups.sh /usr/local/bin/
 #   chmod +x /usr/local/bin/cleanup_backups.sh
-#   cp ~/Desktop/fuqin\ date/fuqing-crm-analytics/scripts/etl/launchd/com.fuqing.backup-cleanup.weekly.plist ~/Library/LaunchAgents/
+#   cp ~/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/launchd/com.fuqing.backup-cleanup.weekly.plist ~/Library/LaunchAgents/
 #   launchctl load ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
 #
 # Dry-run (新增, 用于测试):

@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.59] - 2026-06-13 - 完成 'fuqin date' → 'fuqin-date' rename sweep (12 files, completing 7dfb02c)
+
+### 背景
+父 commit `7dfb02c` (2026-06-12) 做首次 rename 漏 12 个文件. 本次 (1) 补完残留, (2) 加 `_DEFAULT_CRM_BASE` pytest 覆盖, (3) 加 pre-commit 守卫防 round 3.
+
+### Changed
+- 12 文件 `fuqin date` (空格) / `fuqin\ date` (escaped) / `fuqin\\ date` (double-escaped) 路径字符串 → `fuqin-date`:
+  - `.env.example` (SHOP/MEMBER_DATA_SOURCE 示例)
+  - `backend/config.py:21` (`_DEFAULT_CRM_BASE` 默认值)
+  - `docs/archive/backend/data-source-map.md:9-10` (2 行表头)
+  - `docs/archive/refactor/refactor-plan.md:62` (数据源表)
+  - `docs/archive/feishu-architecture/03-contract-layer.md:129` (openapi-typescript 命令)
+  - `docs/archive/feishu-architecture/05-frontend-architecture.md:146,180` (openapi-typescript + npm run dev 命令)
+  - `scripts/etl/cleanup_backups.sh:29,31` (用户面安装注释)
+  - `scripts/etl/run-etl.sh:51` (zsh alias 推荐)
+  - `scripts/etl/scheduler/README.md:38` (Windows 安装命令)
+  - `scripts/etl/scheduler/etl_daily_taskscheduler.xml:63` (WorkingDirectory)
+  - `scripts/etl/scheduler/install_macos.sh:46` (echo hint)
+  - `scripts/etl/scheduler/install_windows.ps1:26-27` (`$ProjectRoot` + `-replace` 模式)
+
+### Added
+- **`backend/tests/test_config.py`** (新) — 4 个测试覆盖 `_DEFAULT_CRM_BASE` 解析: (1) hyphenation guard, (2) env 缺失时 fallback 正确, (3) env 覆盖优先, (4) dev 机上路径存在. Sprint 21+ #141 治根后首次给 `config.py` 加回归覆盖.
+- **`.githooks/pre-commit` rg 守卫** — grep `fuqin date` (空格) + `work plat` (空格) 在 `.py`/`.md`/`.sh`/`.ps1`/`.xml`/`.js`/`.yml`/`.yaml` 失败则 commit 拒. 防 round 3 漏改.
+
+### Out of scope (明确不在这 commit)
+- `work plat` 路径 (`scraper/workflows/*.js` 6 文件) — 独立 workstream, 见 Sprint 5 #20 跟 Sprint 16.5+1.
+- `.env` `DMP_DATA_DIR` (gitignored) 改独立 repo 路径 — 跟 Sprint 5 #20 软删同步.
+- `scripts/etl/notify.py` B1 lark-decouple (v0.4.14.53) — 不在本 branch lineage, 单独 PR.
+
 ## [v0.4.14.58] - 2026-06-12 - Sprint 21+ P0 DuckDB race 治根 + 增量 ETL read-only workaround (C 路径) + cron 监控改 1.6.0 stable (A' 路径)
 
 ### 背景

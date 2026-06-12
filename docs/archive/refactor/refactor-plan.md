@@ -59,7 +59,7 @@ ETL 脚本:       5,700+ 行
 
 | 数据源 | 物理位置 | 配置方式 | 风险 |
 |--------|---------|---------|------|
-| 店铺数据库 | `~/Desktop/fuqin date/芙清CRM数据库/` | `.env` | ✅ 已配置 |
+| 店铺数据库 | `~/Desktop/fuqin-date/芙清CRM数据库/` | `.env` | ✅ 已配置 |
 | DMP 数据 | `~/Desktop/work plat/DMP_test_package/` | `.env` | ✅ 已配置 |
 | 人群画像数据 | `workplat/` 内 | 未纳入项目 | ⚠️ 高风险 |
 | 爬虫脚本 | `workplat/` 内 | 未纳入项目 | ⚠️ 高风险 |

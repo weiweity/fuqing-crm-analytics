@@ -143,7 +143,7 @@ export const SEGMENT_COLORS: Record<number, string> = {
 
 ```bash
 # 后端必须运行在 localhost:8000
-cd /Users/hutou/Desktop/fuqin\\ date/fuqing-crm-analytics/frontend-vue3
+cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/frontend-vue3
 npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts
 ```
 
@@ -177,7 +177,7 @@ export interface RFMSegmentResponse {
 
 ```bash
 # 开发模式（热重载）
-cd /Users/hutou/Desktop/fuqin\\ date/fuqing-crm-analytics/frontend-vue3
+cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/frontend-vue3
 npm run dev
 
 # 生产构建

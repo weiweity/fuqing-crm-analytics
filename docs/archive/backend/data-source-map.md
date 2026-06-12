@@ -6,8 +6,8 @@
 
 | 数据源 | 物理位置 | 配置方式 | 用途 |
 |--------|---------|---------|------|
-| 店铺订单数据 | `~/Desktop/fuqin date/芙清CRM数据库/` | `.env` SHOP_DATA_SOURCE | ETL 主数据源 |
-| 会员数据 | `~/Desktop/fuqin date/芙清CRM数据库/` | `.env` MEMBER_DATA_SOURCE | 会员标签 |
+| 店铺订单数据 | `~/Desktop/fuqin-date/芙清CRM数据库/` | `.env` SHOP_DATA_SOURCE | ETL 主数据源 |
+| 会员数据 | `~/Desktop/fuqin-date/芙清CRM数据库/` | `.env` MEMBER_DATA_SOURCE | 会员标签 |
 | SPU映射表 | 项目内 `config/` | `.env` SPU_MAPPING_SOURCE | 品类映射 |
 | 渠道规则 | 项目内 `config/` | `.env` CHANNEL_RULES_SOURCE | 渠道匹配 |
 | 淘客订单号 | 外部CSV | `.env` TAOKE_DATA_SOURCE | 淘客渠道标记 |

@@ -18,7 +18,7 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 PARQUET_DATA_DIR = DATA_DIR / "parquet"  # Parquet 缓存（ETL 增量写入）
 
 # P3 fix: 路径环境变量化，默认值使用当前用户 home 目录（避免硬编码用户名）
-_DEFAULT_CRM_BASE = Path.home() / "Desktop" / "fuqin date" / "芙清CRM数据库" / "芙清crm原始数据库"
+_DEFAULT_CRM_BASE = Path.home() / "Desktop" / "fuqin-date" / "芙清CRM数据库" / "芙清crm原始数据库"
 
 SHOP_DATA_SOURCE = Path(os.environ.get(
     "SHOP_DATA_SOURCE",

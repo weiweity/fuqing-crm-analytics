@@ -23,8 +23,8 @@ Write-Host ""
 $XmlContent = Get-Content $XmlPath -Raw
 
 # 2. 替换项目根路径 (用户可改)
-$ProjectRoot = "C:\Users\hutou\Desktop\fuqin date\fuqing-crm-analytics"
-$XmlContent = $XmlContent -replace "C:\\Users\\hutou\\Desktop\\fuqin date\\fuqing-crm-analytics", $ProjectRoot
+$ProjectRoot = "C:\Users\hutou\Desktop\fuqin-date\fuqing-crm-analytics"
+$XmlContent = $XmlContent -replace "C:\\Users\\hutou\\Desktop\\fuqin-date\\fuqing-crm-analytics", $ProjectRoot
 
 # 3. 卸载旧版本 (如果存在)
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue

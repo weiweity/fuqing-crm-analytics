@@ -70,6 +70,28 @@ fi
 echo "Running P1-3 review ground-truth lint..."
 python3 .githooks/check_review_ground_truth.py || exit 1
 
+# Sprint 21+ housekeeping: 拦截残留的空格路径 (Sprint 22 教训: rename sweep 3 次才全清)
+# 根因: 7dfb02c (rename round 1) 跟 fix/fuqin-date-paths (round 2) 各自漏文件. 强制 grep 防 round 3.
+# 范围: .py / .md / .sh / .ps1 / .xml / .js / .yml / .yaml 全部扫
+# 例外: FQ_PATH_LINT_SKIP=1 git commit ...
+if [ -z "${FQ_PATH_LINT_SKIP:-}" ]; then
+    STAGED_TEXT=$(echo "$STAGED" | grep -E '\.(py|md|sh|ps1|xml|js|yml|yaml|env\.example)$' || true)
+    if [ -n "$STAGED_TEXT" ]; then
+        FUQIN_DATE_HITS=$(grep -nE 'fuqin[[:space:]]+date|fuqin\\\\\\\\[[:space:]]+date|fuqin\\\\[[:space:]]+date' $STAGED_TEXT 2>/dev/null | head -10 || true)
+        WORK_PLAT_HITS=$(grep -nE 'work[[:space:]]+plat' $STAGED_TEXT 2>/dev/null | head -10 || true)
+        if [ -n "$FUQIN_DATE_HITS" ] || [ -n "$WORK_PLAT_HITS" ]; then
+            echo ""
+            echo "❌ 残留空格路径 (Sprint 21+ housekeeping, 防 rename round 3):"
+            [ -n "$FUQIN_DATE_HITS" ] && echo "$FUQIN_DATE_HITS"
+            [ -n "$WORK_PLAT_HITS" ] && echo "$WORK_PLAT_HITS"
+            echo ""
+            echo "   修复: 改 'fuqin-date' / 'fuqing-scraper' (work plat 已拆独立 repo)"
+            echo "   例外: FQ_PATH_LINT_SKIP=1 git commit ...  (记录在 CHANGELOG)"
+            exit 1
+        fi
+    fi
+fi
+
 # Sprint 14 A.2: 改 backend/contracts/ 时必须同步更新 types.generated.ts
 # 跟其他 lint 一样 WARN 模式不阻断 (codegen 需要 uvicorn 跑最新代码)
 STAGED_CONTRACTS=$(echo "$STAGED" | grep -E '^backend/contracts/.*\.py$' || true)

@@ -60,7 +60,7 @@ FIX-M1: Windows Task Scheduler XML for 芙清 ETL daily run (PRD §4.2 9am 承�
     <Exec>
       <Command>python</Command>
       <Arguments>scripts\run_etl.py --update</Arguments>
-      <WorkingDirectory>C:\Users\hutou\Desktop\fuqin date\fuqing-crm-analytics</WorkingDirectory>
+      <WorkingDirectory>C:\Users\hutou\Desktop\fuqin-date\fuqing-crm-analytics</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>

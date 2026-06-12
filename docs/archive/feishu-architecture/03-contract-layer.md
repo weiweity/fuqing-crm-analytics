@@ -126,7 +126,7 @@ src/api/types.ts（1786行 TypeScript 类型）
 ### 4.2 生成命令
 
 ```bash
-cd /Users/hutou/Desktop/fuqin\\ date/fuqing-crm-analytics/frontend-vue3
+cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/frontend-vue3
 npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts
 ```
 
