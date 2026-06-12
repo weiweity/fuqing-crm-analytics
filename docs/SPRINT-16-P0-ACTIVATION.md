@@ -1,7 +1,17 @@
-# Sprint 16 P0 激活报告 (2026-06-12) — DuckDB 1.5.4.dev18 治根实证
+# Sprint 16 P0 激活报告 (2026-06-12, REVISED 2026-06-12 13:50) — DuckDB 1.5.4 race false-positive 发现
 
-## 结论
-✅ **DuckDB 1.5.4.dev18 治根 Sprint 16 P0 ART race** — 5 轮 idempotent batch + 4 unit tests 全部通过, prod race 触发率 0%。
+## 结论 (REVISED)
+❌ **DuckDB 1.5.4.dev18 误判 "治根"** — 5 轮 10K batch + 4 unit tests 全部通过 (false-positive 假象), 实际 prod 1.88M 跑批仍触发 race。
+
+**今日 06-12 增量跑批实证 (跟 Sprint 19 P0 假结论矛盾)**:
+- 第 1 轮 (12:33): 1.5.4.dev18 + 原版 pipeline.py, 跑崩 at `conn.execute(p6_sql)` line 1088
+- 第 2 轮 (13:00): 1.5.4.dev18 + v2 code (fix/sprint16-p0-* branch, 包整段 BEGIN/COMMIT, line 1076-1156), 跑崩 at 单事务内 `conn.execute(p6_sql)` 段
+- 实证 log: `/tmp/fuqing-etl-incremental-v2-20260612-130017.log` "纠正完成: 0 -> 1,880,195 净变化 +1,880,195" 后 race
+- 错误: `FATAL Error: database has been invalidated because of a previous fatal error. Original error: "Invalid Input Error: Failed to delete all rows from index. Only deleted 0 out of 2048 rows."`
+
+**真实状态**: 1.5.4.dev18 + v2 code (单事务 BEGIN/COMMIT 包整段) **仍不治根**。D-7 教训 (单连接测试不推广到生产) 血证: 4 unit tests + 5 轮 10K batch 不能作为治根判定。
+
+**A 路径锁定** (2026-06-12): 不重设计 v3 workaround (v2 已包整段, 任何增量 DROP+RECREATE 边际收益接近 0), 等 DuckDB 1.5.4 stable release (cron daily 9:00 监控, flag + 飞书告警)。
 
 ## 探索路径 (Sprint 16 → Sprint 16.5 → Sprint 19 重做 → Sprint 16 P0 激活)
 
