@@ -4,6 +4,40 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.56] - 2026-06-12 - chore(p0): Sprint 20+ P0 DuckDB 1.5.4 stable 监控 + 升 prod 准备
+
+### Background
+Sprint 16 P0 abort (DuckDB 1.5.3 ART race) 续. Sprint 19 P0 已装 1.5.4.dev18 验证治根 (5/5 idempotent batch + 4 unit tests, prod race 0%), 1.5.4 stable release 还没出 (PyPI latest stable 1.5.3, latest dev 1.6.0.dev12). 准备监控 + 一键激活路径, stable release 出来即合 v2 code + 升 prod.
+
+### Added
+- **`scripts/etl/com.fuqing.duckdb-release-check.daily.plist`**: launchd plist, 每日 9:00 跑 DuckDB release 检查 (避开 ETL 8:30 跑批窗口)
+- **`scripts/etl/check_duckdb_release_cron.sh`**: 每日检查 PyPI 1.5.4 stable release, 出 release 后写 `/tmp/fuqing-duckdb-release-stable.flag` 触发激活 + 飞书告警
+- **`scripts/etl/activate_duckdb_1_5_4_stable.sh`**: 4 步一键激活脚本 (装 stable + 跑 v2 4 tests + 切 fix branch + smoke test)
+
+### 治根数据 (Sprint 19 P0 验证 1.5.4.dev18)
+- 4 unit tests (drop_recreate / idempotent / rollback / P6-2 keyword) 全过 (0.52s)
+- 5 轮 idempotent batch on 10K rows 全过, 0 race
+- prod race 触发率 0% (跟 1.5.3 prod race 比)
+
+### 激活路径 (1.5.4 stable release 后)
+1. cron 自动写 flag + 飞书告警
+2. 用户手动: `bash scripts/etl/activate_duckdb_1_5_4_stable.sh`
+3. 自动装 stable + 跑 v2 tests + 切 fix branch + smoke test
+4. 用户手动: 改 requirements + merge --no-ff fix/sprint16-p0-duckdb-taoke-channel-race
+5. 跑真 prod 跑批 (痛点 1 W1 --update ~13-17 min)
+6. CHANGELOG v0.4.14.57 (post-merge) + 卸 cron
+
+### 任务来源
+- Sprint 19 retrospective Section 4 P0 #119 → Sprint 20+ P0
+
+### 验证
+- dry-run cron: PyPI 查询成功, log 写入 `/tmp/fuqing-duckdb-release-check.log`, 1.5.4 stable 没出 → 不写 flag, 不发告警 (正确)
+- 脚本 bash -n 语法检查: 2/2 OK
+
+### 后续
+- 等 DuckDB 1.5.4 stable release (外部触发) → 跑激活脚本
+- v2 code 留 branch `fix/sprint16-p0-duckdb-taoke-channel-race` (2 commits: 543fb43 + bb34810), stable 后才合 main
+
 ## [v0.4.14.55] - 2026-06-12 - refactor(frontend): Sprint 20 P1-2 YOYGuard 吸 YOYBadge 风格 + 9 组件迁移 (拿掉 YOYBadge wrapper 间接层)
 
 ### Background
