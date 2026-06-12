@@ -4,6 +4,33 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 
+## [v0.4.14.45] - 2026-06-12 - wip: Sprint 20+ P0 DuckDB 1.5.4 升 prod 后续 10 个 WIP 修改落地
+
+### 背景
+Sprint 5 #20 软删 (v0.4.14.44) 完整收口之前, subagent 找到主项目根有 33 个未提交修改 (Sprint 20+ P0 DuckDB 1.5.4 升 prod 准备后续), 走修 bare 标记 (`.git/config [core] bare = false`) + 查全盘 stash (5 个) + 解决 baseline 冲突 (`data/processed/etl_perf/baseline_2026_06_03.json`) + 删 1 个 stash (stash@{0}) 之后, 10 untracked 修改保留在 working tree.
+
+### Added (WIP)
+- **docs/SPRINT-16-P0-ACTIVATION.md** (Sprint 16 P0 DuckDB 1.5.3 激活报告)
+- **frontend-vue3/src/AudienceView.vue** (受众视图 WIP)
+- **frontend-vue3/src/CategoryView.vue** (类目视图 WIP)
+- **frontend-vue3/src/RFMView.vue** (RFM 视图 WIP)
+- **frontend-vue3/src/category-tabs/CategoryRepurchaseTab.vue** (类目回购 Tab)
+- **frontend-vue3/src/category-tabs/ProductClassRepurchaseTab.vue** (产品类回购 Tab)
+- **frontend-vue3/src/health/{F,M,R}IntervalTab.vue** (3 个健康间隔 Tab)
+- **frontend-vue3/src/health/HealthOverviewTab.vue** (健康总览 Tab)
+- **frontend-vue3/src/health/RFMSegmentDrilldown.vue** (RFM 段下钻 Tab)
+- **frontend-vue3/src/health/ValueTierTab.vue** (价值层 Tab)
+- **scripts/check_duckdb_release.py** (DuckDB 1.5.4 release 检查)
+- **scripts/etl/activate_duckdb_1_5_4_stable.sh** (DuckDB 1.5.4 stable 激活脚本)
+- **scripts/etl/check_duckdb_release_cron.sh** (定时检查)
+- **scripts/etl/com.fuqing.duckdb-release-check.daily.plist** (launchd 调度)
+
+### 后续
+- Sprint 5 #20 软删留 Sprint 5+ 后续处置 (主项目根 scraper/ 521M 还有, 数据文件 4 件还在 scraper/core/, 不挪到独立 repo)
+- 独立 repo Sprint 5 #21 双层清理 (`/scraper/core/` 跟 `/core/` 选一留一删)
+- 独立 repo Sprint 5 #22 5 行修重建 + commit
+- 独立 repo Sprint 5 #23 简历文档 dmp-data-scraper.md 跟新
+
 ## [v0.4.14.56] - 2026-06-12 - chore(p0): Sprint 20+ P0 DuckDB 1.5.4 stable 监控 + 升 prod 准备
 
 ### Background
