@@ -1,4 +1,18 @@
-## [v0.4.14.63] - 2026-06-13 - chore(rescue): cherry-pick 3 个 sprint 3-21 未合 commit (痛点 1 dedup / ship post-merge / pytest testpaths)
+## [v0.4.14.64] - 2026-06-13 - fix(contracts): Sprint 21 P0-1 visitor schema 回归测试 + repo 公开
+
+### Added
+- **`backend/tests/test_visitor_schema.py`** (新, 86 行, 7 测试) — 防 `VisitorSummaryResponse` / `VisitorDailyTrendItem` 顶层 forward ref ("PercentageField" / "PpField") 在 Pydantic v2 + `from __future__ import annotations` 下退化成裸 float 导致 500. 测 3 个 case: 字段类型 (PercentageField ge=-1B le=1B / PpField ge=-100 le=100) + 业务边界 (累计入会率 >100% 接受 / pp 差 <0 接受).
+
+### Verified
+- **uvicorn 重启** (PID 94740 → 4339) — 加载 main HEAD `d660352` (RatioField → PercentageField 修正) 后, `/api/v1/visitor/summary` 不再返 500. d660352 在 uvicorn 启动之后 commit, 旧进程 schema 仍是 RatioField le=1.0 → 真实数据 1.2726 / 4.1546 / -2.88 抛 ResponseValidationError.
+- **`pytest backend/tests/test_visitor_schema.py`** 7/7 passed (Pydantic schema 接受 service 真实数据)
+- **`pytest backend/tests/`** 475 passed + 12 skipped + 1 failed (rfm_recompute_window_dry_run 失败是 uvicorn 占 DuckDB 锁冲突, 跟 schema fix 无关, uvicorn 不在时单跑 PASSED)
+- **repo 公开** — `weiweity/fuqing-crm-analytics` `visibility: PRIVATE → PUBLIC` (gh repo edit --visibility public --accept-visibility-change-consequences). 公开前 audit: 0 真实 secret 命中 (10.0.0 命中是依赖版本号, 192.168 命中是 npmmirror 域名, password 命中是前端 UI 变量名, X-API-Key 命中是 header 描述, DUCKDB_PASSWORD 是 env var 名).
+
+### Cleanup
+- **删 3 个 stale 分支** (main 已 supersede): `chore/public-repo-sanitize` (本地, 0 差异) + `fix/sprint3-p13-review-lint-wf` (babbdbe lint, Sprint 17/18 #121 #142 完整版) + `fix/sprint4-p03-dedup-orders` (c7c9235 dedup, 已 cherry-pick 为 04580a1)
+
+
 
 ### Added
 - **`backend/tests/test_dedup_orders.py`** (新, 240 行) — cherry-pick 自 `c7c9235` (Sprint 4 P0-3). 痛点 1 端到端回归保护: 验证现有 dedup 链路真生效, 防未来 refactor 误删导致 `--update` 重新撞 unique 约束. 覆盖: `_copy_df_to_duckdb` 端到端 dedup / 字符串 vs int 类型一致性 / `upsert_to_duckdb` 增量+窗口刷新协作 / `load.py` 源码字面量守卫.
