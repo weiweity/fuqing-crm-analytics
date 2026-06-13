@@ -28,6 +28,7 @@ python-dateutil>=2.8.0  # 日期处理
 pyarrow>=15.0.0         # Arrow 格式支持
 bcrypt>=4.0.0           # 密码哈希（routers/auth.py token 认证）
 xxhash>=3.0.0           # 文件指纹（scripts/etl/config.py:198 lazy import, parquet cache 内容变更检测）
+psutil>=5.9.0           # 内存监控（scripts/etl/benchmark_memory.py）
 
 # 开发工具
 pytest>=8.0.0           # 测试框架

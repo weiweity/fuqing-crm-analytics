@@ -8,10 +8,9 @@
 
 每个 test 创建临时 .py 文件, 调用 lint_contract_file, assert issue 数.
 """
-import pytest
 from pathlib import Path
 
-from backend.contracts._lint import lint_contract_file, LintIssue
+from backend.contracts._lint import lint_contract_file
 
 
 def _write_tmp(tmp_path: Path, name: str, content: str) -> Path:

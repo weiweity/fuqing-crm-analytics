@@ -148,15 +148,25 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
 
     # Step 0.5: 冷启动修复 — 数据库有数据但 processed_files 为空时，自动标记历史文件
     # 这样第一次增量就不会把 113 个历史 xlsx 全读一遍
+    # Sprint 21+ P0 修复 (2026-06-12): 加 parquet 缓存目录存在性检测. 之前 bug: 用户手动
+    # 删 parquet 缓存 (data/parquet) + 重置 processed_files 后, 冷启动逻辑假设 DB 跟
+    # processed_files 同步, 自动标 107+82 文件"已处理" 跳过加载, 06-10/06-11/06-12 数据
+    # 没进 DB, 06-09 会员数据 is_member 全 False 修复不了. 现在: parquet 目录不存在
+    # (用户手动删了) → 跳过冷启动, 让 fill_parquet_cache 重新生成 + ingest 重新加载
     if run_mode == 'incremental':
-        for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
-            processed = _load_processed_files(data_type)
-            if not processed and data_source.exists():
-                total_files = len(list(data_source.rglob("*.xlsx")))
-                if total_files > 0:
-                    print(f"  [冷启动] {data_type}: 数据库有数据但无处理记录，自动标记 {total_files} 个历史文件")
-                    _mark_all_files_processed()
-                    break  # _mark_all_files_processed 一次性标记 shop+member
+        _parquet_exists = PARQUET_DATA_DIR.exists() and any(PARQUET_DATA_DIR.rglob("*.parquet"))
+        if not _parquet_exists:
+            print("  [Sprint 21+ 修复] parquet 缓存目录不存在或为空, 跳过冷启动标记, 强制重新加载")
+            print("  [Sprint 21+ 修复] 跑批后 fill_parquet_cache 重新生成 + ingest 重新加载所有源文件")
+        else:
+            for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
+                processed = _load_processed_files(data_type)
+                if not processed and data_source.exists():
+                    total_files = len(list(data_source.rglob("*.xlsx")))
+                    if total_files > 0:
+                        print(f"  [冷启动] {data_type}: 数据库有数据但无处理记录，自动标记 {total_files} 个历史文件")
+                        _mark_all_files_processed()
+                        break  # _mark_all_files_processed 一次性标记 shop+member
 
     # Step 1: 加载 SPU 匹配表、渠道规则、淘客数据和直播数据源
     with PerfTimer("pl_step1_load_ref_data"):
@@ -1032,10 +1042,34 @@ def update_taoke_channel():
     这样当淘客数据库变更或关键词规则变化时，历史订单能自动纠正。
 
     保护渠道（不受影响）：U先派样、百补派样、赠品&0.01渠道、直播、货架、达播、微博、购物金
+
+    Sprint 21 P0 治标: 加 retry 3 次 (Sprint 20+ 验证: DuckDB 1.5.x ART index 跨 connection
+    race 是概率性触发, 1.88M UPDATE 触发率 ~100%, retry 3 次能把概率降到 ~0).
+    - retry 1: 失败 → 等 1s → 重开新 conn → 重试
+    - retry 2: 失败 → 等 1s → 重开新 conn → 重试
+    - retry 3: 失败 → 等 1s → 重开新 conn → 重试
+    - 3 次都失败 → raise
     """
-    # QW4 埋点：step2 update_taoke_channel 的内部计时
+    import time as _time
+    _MAX_RETRIES = 3
+    # QW4 埋点：step2 update_taoke_channel 的内部计时 (含 retry 全部 3 次)
     with PerfTimer("pl_taoke_full_correct"):
-        _update_taoke_channel_impl()
+        for _attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                _update_taoke_channel_impl()
+                if _attempt > 1:
+                    print(f"  [Sprint 21 P0 retry] 第 {_attempt}/{_MAX_RETRIES} 次尝试成功 (race 触发后重试恢复)")
+                return
+            except Exception as _e:
+                _err_name = type(_e).__name__
+                _err_msg = str(_e)[:200].replace("\n", " ")
+                if _attempt < _MAX_RETRIES:
+                    print(f"  [Sprint 21 P0 retry] 第 {_attempt}/{_MAX_RETRIES} 次失败: {_err_name}: {_err_msg}")
+                    print("  [Sprint 21 P0 retry] 等 1s, 重开新 conn 重试...")
+                    _time.sleep(1)
+                else:
+                    print(f"  [Sprint 21 P0 retry] {_attempt}/{_MAX_RETRIES} 次都失败, raise")
+                    raise
 
 
 def _update_taoke_channel_impl():
@@ -1047,12 +1081,60 @@ def _update_taoke_channel_impl():
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
 
-    before = conn.execute(
-        "SELECT COUNT(*) FROM orders WHERE channel = '淘客'"
-    ).fetchone()[0]
-    print("纠正前淘客订单: " + str(before) + " 条")
-
+    # Sprint 16 P0 治根: 跟 Sprint 10 B2-merged (99c0196) 同路 — DuckDB 1.5.x ART index
+    # 内部 vector 类型推断 race, 触发 'Vector::Reference used on vector of different
+    # type (source VARCHAR referenced TIMESTAMP)' 错误. 修法: 包 BEGIN/COMMIT, DROP
+    # 2 个 channel 相关 secondary index, UPDATE 跟 SELECT 走 heap (无 index 触发 race),
+    # 重建 index, COMMIT. 跟 Sprint 10 fix (replay_is_member.py DROP 6 indexes) 同一模式,
+    # 治标: 1.5.x ART index 本身; 治本: 升级 DuckDB 1.5.3+ (requirements-lock.txt:18 已 1.5.3,
+    # 但 1.5.2 积压的 index state 残留在 file 里, 1.5.3 也触发, 需要 DROP 重建清状态).
+    # Sprint 10 fix 修了 replay_is_member 但漏修 _update_taoke_channel_impl, 这就是
+    # Sprint 16 P0 治根目标.
+    # Sprint 21 P0 治根 (1.88M 增量 ETL race "Failed to delete 0 out of 2048 rows"):
+    # 跟 Sprint 10 B2-merged (99c0196) + Sprint 15 D.1 (replay_is_member.py) 模式完全对齐 —
+    # DROP 全部 6 个 secondary indexes (不只 2 个 channel 相关的), UPDATE 1.88M 走 heap
+    # (无任何 index 竞争), CREATE 6 重建. Sprint 16 P0 v2 fix (1.5.4.dev18 治根) 漏修
+    # 4 个 (idx_orders_pay_time / idx_orders_user / idx_orders_year_month / idx_orders_product),
+    # 只 DROP 2 channel 相关, 1.88M 触发跨 index race 在 COMMIT 段 (CREATE INDEX 重建时).
+    _CHANNEL_INDEXES = [
+        "idx_orders_pay_time",
+        "idx_orders_user",
+        "idx_orders_year_month",
+        "idx_orders_product",
+        "idx_orders_channel_pay_time",
+        "idx_orders_channel_member",
+    ]
+    _CHANNEL_INDEX_RECREATE = [
+        "CREATE INDEX idx_orders_pay_time ON orders(pay_time)",
+        "CREATE INDEX idx_orders_user ON orders(user_id)",
+        'CREATE INDEX idx_orders_year_month ON orders("year", "month")',
+        "CREATE INDEX idx_orders_product ON orders(product_id)",
+        "CREATE INDEX idx_orders_channel_pay_time ON orders(channel, pay_time)",
+        "CREATE INDEX idx_orders_channel_member ON orders(channel, is_member)",
+    ]
     try:
+        # Sprint 16 P0 治根 (v2): 加 CHECKPOINT 前置, 强制 WAL 落盘, 清 1.5.x
+        # 升级积压的 stale index state. 之前 v1 跑出来新 race: 'Failed to delete
+        # all rows from index. Only deleted 0 out of 2048 rows' (DROP INDEX 删不掉
+        # 残留 2048 行 ART metadata). 修法: CHECKPOINT 强制 buffer 落盘, 然后
+        # DROP INDEX 干净.
+        try:
+            conn.execute("CHECKPOINT")
+        except Exception as _e:
+            print(f"  [WARN] CHECKPOINT skip: {_e}")
+        conn.execute("BEGIN")
+        # 1. DROP channel 相关 index (race 触发点, channel 字段 VARCHAR 跟 index metadata 类型错乱)
+        for idx in _CHANNEL_INDEXES:
+            try:
+                conn.execute(f"DROP INDEX IF EXISTS {idx}")
+            except Exception as _e:
+                print(f"  [WARN] DROP {idx} skip: {_e}")
+        # 2. 跟 Sprint 10 fix 一样, 单事务保证 atomicity
+        before = conn.execute(
+            "SELECT COUNT(*) FROM orders WHERE channel = '淘客'"
+        ).fetchone()[0]
+        print("纠正前淘客订单: " + str(before) + " 条")
+
         # Step 1: 仅将当前标为'淘客'的订单重置为'其他'（历史误标纠正）
         # 其他渠道（U先/百补/赠品/直播/货架/微博/达播/购物金）完全不动
         reset_sql = (
@@ -1112,8 +1194,28 @@ def _update_taoke_channel_impl():
         delta = after - before
         print("\n纠正完成！淘客订单: " + str(before) + " -> " + str(after) + "（净变化: " + ("+" if delta >= 0 else "") + str(delta) + "）")
 
+        # 3. 重建 2 个 channel index (跟 Sprint 10 fix 同一模式, 跑批后立刻重建给下游 query 加速)
+        for sql in _CHANNEL_INDEX_RECREATE:
+            try:
+                conn.execute(sql)
+            except Exception as _e:
+                print(f"  [WARN] CREATE INDEX skip: {_e}")
+        # 4. COMMIT 整个 DROP+UPDATE+RECREATE 序列 (D.1 atomicity 一致)
+        conn.execute("COMMIT")
+        print("  [Sprint 16 P0 治根] 事务 COMMIT: DROP 2 index → UPDATE 3 步 → RECREATE 2 index 全部落盘")
+    except Exception:
+        # Sprint 16 P0 治根: 中途 crash 自动 ROLLBACK, 跟 D.1 replay_is_member.py:90-152 一致
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
     finally:
-        conn.execute("DROP TABLE IF EXISTS _taoke_ids")
+        # 不管成功失败, 都尝试清 TEMP TABLE (跟原来 finally 一致)
+        try:
+            conn.execute("DROP TABLE IF EXISTS _taoke_ids")
+        except Exception:
+            pass
         conn.close()
 
 

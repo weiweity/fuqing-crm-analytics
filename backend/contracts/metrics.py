@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Annotated  # Sprint 16.5 B2 试点: Annotated for element-wise
 from pydantic import BaseModel, Field
 from .common import DateRangeResponse
-from .types import RatioField, PercentageField, PpField  # Sprint 14 A.1
+from .types import RatioField  # Sprint 14 A.1
 
 class OverviewMetrics(BaseModel):
     metric_type: str

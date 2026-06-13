@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from enum import Enum
 from pydantic import BaseModel, Field
-from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
+from .types import RatioField  # Sprint 17 B2 全量 audit
 class FlowMatrixResponse(BaseModel):
     flow_matrix: List[Dict[str, Any]]
     segments: List[Dict[str, Any]]

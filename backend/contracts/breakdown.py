@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from .common import DateRangeResponse
-from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
+from .types import RatioField  # Sprint 17 B2 全量 audit
 
 class BreakdownRequest(BaseModel):
     """一键拆解请求 v2"""

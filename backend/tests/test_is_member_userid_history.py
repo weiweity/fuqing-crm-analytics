@@ -86,10 +86,10 @@ class TestUserIdHistoryMember:
 
         # 3 个老客回购标 TRUE, 1 个新客保持 FALSE
         assert n_old == 3, f"应标 3 个老客, 实际 {n_old}"
-        assert shop_df.loc[0, "is_member"] is True or shop_df.loc[0, "is_member"] == True
-        assert shop_df.loc[1, "is_member"] is True or shop_df.loc[1, "is_member"] == True
-        assert shop_df.loc[2, "is_member"] is True or shop_df.loc[2, "is_member"] == True
-        assert shop_df.loc[3, "is_member"] is False or shop_df.loc[3, "is_member"] == False
+        assert shop_df.loc[0, "is_member"] is True or shop_df.loc[0, "is_member"]
+        assert shop_df.loc[1, "is_member"] is True or shop_df.loc[1, "is_member"]
+        assert shop_df.loc[2, "is_member"] is True or shop_df.loc[2, "is_member"]
+        assert shop_df.loc[3, "is_member"] is False or not shop_df.loc[3, "is_member"]
 
     def test_new_user_new_order_unchanged(self, temp_duckdb_with_history):
         """新客 (user_id 不在历史 is_member=TRUE) 新单 → is_member 保持 FALSE."""
@@ -103,7 +103,7 @@ class TestUserIdHistoryMember:
         n_old = _mark_user_id_history_member(shop_df, conn)
 
         assert n_old == 0, f"新客应标 0 个, 实际 {n_old}"
-        assert shop_df.loc[0, "is_member"] is False or shop_df.loc[0, "is_member"] == False
+        assert shop_df.loc[0, "is_member"] is False or not shop_df.loc[0, "is_member"]
 
     def test_user_id_none_safely_handled(self, temp_duckdb_with_history):
         """user_id IS NULL 守卫: 不报错, 不标 (跟 DuckDB WHERE user_id IS NOT NULL 一致)."""
@@ -117,7 +117,7 @@ class TestUserIdHistoryMember:
         n_old = _mark_user_id_history_member(shop_df, conn)  # 不应抛异常
 
         assert n_old == 0, f"NULL user_id 应跳过, 实际 {n_old}"
-        assert shop_df.loc[0, "is_member"] is False or shop_df.loc[0, "is_member"] == False
+        assert shop_df.loc[0, "is_member"] is False or not shop_df.loc[0, "is_member"]
 
     def test_empty_shop_df_returns_zero(self, temp_duckdb_with_history):
         """shop_df 空返 0 (early return, 避免无谓查询)."""
@@ -142,7 +142,7 @@ class TestUserIdHistoryMember:
 
         assert n_first == 1, f"第一次应标 1 个, 实际 {n_first}"
         assert n_second == 0, f"第二次 idempotent 应 0, 实际 {n_second}"
-        assert shop_df.loc[0, "is_member"] is True or shop_df.loc[0, "is_member"] == True
+        assert shop_df.loc[0, "is_member"] is True or shop_df.loc[0, "is_member"]
 
     def test_6_9_18_old_user_regression(self, temp_duckdb_with_history):
         """Sprint 15 真根因回归: 6/9+ 64 订单 18 老客 + 39 新客 + 7 单 → 18 老客标 TRUE.

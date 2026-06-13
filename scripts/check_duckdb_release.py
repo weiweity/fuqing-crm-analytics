@@ -18,7 +18,6 @@ PyPI 监控:
 import json
 import sys
 import urllib.request
-from typing import Optional
 
 
 def get_pypi_duckdb() -> dict:
@@ -28,7 +27,7 @@ def get_pypi_duckdb() -> dict:
     try:
         with urllib.request.urlopen("https://pypi.org/pypi/duckdb/json", timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
-    except Exception as e:
+    except Exception:
         pass  # Fall through to curl
     # Fallback: use system curl (which uses system certs differently)
     try:

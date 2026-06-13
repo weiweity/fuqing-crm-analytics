@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel
-from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
+from .types import RatioField, PercentageField  # Sprint 17 B2 全量 audit
 
 class VisitorSummaryResponse(BaseModel):
     """访客入会率汇总响应.

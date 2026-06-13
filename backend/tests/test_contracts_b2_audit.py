@@ -25,7 +25,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend.contracts.asset import ProductClassRepurchase
-from backend.contracts.audience import AudiencePeriodMetrics, AudienceRow, ChannelGSVRow
+from backend.contracts.audience import AudiencePeriodMetrics, AudienceRow
 from backend.contracts.breakdown import (
     BreakdownRequest,
     BreakdownRIntervalRow,
@@ -44,18 +44,15 @@ from backend.contracts.flow import FlowMatrixCell, AssociationItem
 from backend.contracts.geo import GeoDistributionItem
 from backend.contracts.rfm import (
     DecliningCategoryItem,
-    ImprovingCategoryItem,
     RFMCategoryDrilldownRow,
     RFMCategoryDrilldownSummary,
     TopDriverItem,
 )
 from backend.contracts.sampling import (
     SamplingChannelSummary,
-    SamplingCategoryRow,
     SamplingLockYearData,
     SamplingLockYOY,
     RollingYearMetrics,
-    RollingYOY,
 )
 from backend.contracts.visitor import VisitorSummaryResponse, VisitorDailyTrendItem
 

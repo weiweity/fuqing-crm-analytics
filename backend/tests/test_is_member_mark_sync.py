@@ -16,9 +16,7 @@ import pytest
 import duckdb
 import tempfile
 import os
-from pathlib import Path
 
-from backend.config import DUCKDB_MEMORY_LIMIT  # noqa: E402
 
 
 @pytest.fixture
@@ -58,7 +56,6 @@ def temp_duckdb():
         # 插入 orders 表 (10.6M)
         # 4.6M mark 覆盖 + 1M 缺口 + 5M 非会员
         all_member = member_marked + member_unmarked
-        all_orders_ids = all_member + non_member
         conn.execute(f"INSERT INTO orders (order_id, is_member) SELECT order_id, TRUE FROM (VALUES {','.join(['(?)' for _ in all_member])}) t(order_id) WHERE TRUE",
                     all_member)
         conn.execute(f"INSERT INTO orders (order_id, is_member) SELECT order_id, FALSE FROM (VALUES {','.join(['(?)' for _ in non_member])}) t(order_id) WHERE TRUE",
@@ -222,7 +219,6 @@ class TestB1B2D1Integration:
             conn.execute(sql, batch)
 
         # Step 4: 模拟 D.1 replay (UPDATE orders JOIN mark)
-        n_true_before = conn.execute("SELECT COUNT(*) FROM orders WHERE is_member = TRUE").fetchone()[0]
         conn.execute("""
             UPDATE orders SET is_member = m.is_member
             FROM membership_mark m

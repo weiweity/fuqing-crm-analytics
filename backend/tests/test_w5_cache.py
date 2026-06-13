@@ -334,7 +334,6 @@ class TestRfmRouterCacheIntegration:
 # ─────────────────────────────────────────────────────────────
 from backend.services.rfm._shared import (  # noqa: E402
     _flow_cache_key,
-    FLOW_ALGO_VERSION,
 )
 
 

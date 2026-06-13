@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, Field
-from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
+from .types import RatioField, PpField  # Sprint 17 B2 全量 audit
 
 class AssetSummaryResponse(BaseModel):
     date: str

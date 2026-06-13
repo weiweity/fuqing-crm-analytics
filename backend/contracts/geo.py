@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import List, Any, Dict
 from pydantic import BaseModel
-from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
+from .types import RatioField  # Sprint 17 B2 全量 audit
 
 class GeoDistributionItem(BaseModel):
     name: str

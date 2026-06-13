@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Dict
 from pydantic import BaseModel, Field
 from typing import Annotated
-from .types import RatioField, PercentageField, PpField  # Sprint 17 B2 全量 audit
+from .types import RatioField  # Sprint 17 B2 全量 audit
 
 class ChurnSegmentItem(BaseModel):
     name: str

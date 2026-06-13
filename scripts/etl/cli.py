@@ -640,6 +640,8 @@ def main():
                         help='跳过 W3 DQ assertions (6 断言 + rfm_quarantine 写入)')
     parser.add_argument('--skip-w4', action='store_true',
                         help='跳过 W4 fact_rfm_long 预计算 (incremental + merge T-7)')
+    parser.add_argument('--read-only', action='store_true',
+                        help='Sprint 21+ P0 read-only workaround: 跳过 step 2 (淘客渠道纠正, 1.88M UPDATE 跨 connection race) + step 6 (RFM 缓存预计算, rfm_analysis_cache race). 跑批跑通, 接受淘客指标陈旧 (从 06-11 16:55 backup 状态). 等 DuckDB 1.6.0 stable release 关掉 read-only 模式')
     args = parser.parse_args()
 
     # 紧急清理 /tmp 孤儿（handoff 6/5 follow-up #3 落地：暴露运维入口免依赖 ETL 触发）
@@ -710,16 +712,23 @@ def main():
         _save_partial()
 
         # Step 2: 淘客渠道同步（确保新增淘客订单被正确标记）
-        try:
-            with PerfTimer("step2_update_taoke_channel"):
-                update_taoke_channel()
-        except Exception as _exc:
-            gate_record_error("step2_update_taoke_channel", _exc)
-            notify_etl_complete(
-                {"failed_step": "step2_update_taoke_channel", "error": str(_exc)[:200], "mode": "auto"},
-                status="failed",
-            )
-            raise
+        if args.read_only:
+            print("\n" + "-" * 40)
+            print("Step 2: 淘客渠道同步 (Sprint 21+ P0 read-only workaround: 跳过, 1.88M UPDATE 跨 connection race 100% 触发, DuckDB 上游 1.5.x ART index bug)")
+            print("-" * 40)
+            print("  [SKIP] step2_update_taoke_channel (read-only 模式)")
+            print("  [INFO] 淘客指标保持 06-11 16:55 backup 状态 (1,982,532 其他 + 0 淘客 + max pay_time 2026-06-09)")
+        else:
+            try:
+                with PerfTimer("step2_update_taoke_channel"):
+                    update_taoke_channel()
+            except Exception as _exc:
+                gate_record_error("step2_update_taoke_channel", _exc)
+                notify_etl_complete(
+                    {"failed_step": "step2_update_taoke_channel", "error": str(_exc)[:200], "mode": "auto"},
+                    status="failed",
+                )
+                raise
         _save_partial()
 
         # Step 3: 刷新订单状态覆盖表（从 zip/csv 读取最新退款/交易关闭状态）
@@ -778,22 +787,27 @@ def main():
         print("Step 6: 预计算 RFM 8象限历史周期缓存")
         print("-" * 40)
         from backend.services.health.rfm_analysis import precompute_rfm_cache, clear_rfm_cache
-        try:
-            # Stale 缓存修复: 预计算前先清空旧缓存（ETL 行数恢复后旧缓存 key 仍存在,
-            # 即便 mtime 没变,旧缓存也携带错误的 orders_count_at_write,需清掉再重算）
-            cleared = clear_rfm_cache()
-            if cleared:
-                print(f"  清空旧缓存: {cleared} 行")
-            with PerfTimer("step6_precompute_rfm_cache"):
-                count = precompute_rfm_cache()
-            print(f"  预计算完成: {count} 个组合")
-        except Exception as _exc:
-            gate_record_error("step6_precompute_rfm_cache", _exc)
-            notify_etl_complete(
-                {"failed_step": "step6_precompute_rfm_cache", "error": str(_exc)[:200], "mode": "auto"},
-                status="failed",
-            )
-            raise
+        if args.read_only:
+            print("  [SKIP] step6_precompute_rfm_cache (read-only 模式)")
+            print("  [SKIP] rfm_analysis_cache clear_rfm_cache (read-only 模式)")
+            print("  [INFO] RFM 缓存保持上一次成功状态, 接受缓存陈旧 (DuckDB 1.5.x 跨 connection race 100% 触发)")
+        else:
+            try:
+                # Stale 缓存修复: 预计算前先清空旧缓存（ETL 行数恢复后旧缓存 key 仍存在,
+                # 即便 mtime 没变,旧缓存也携带错误的 orders_count_at_write,需清掉再重算）
+                cleared = clear_rfm_cache()
+                if cleared:
+                    print(f"  清空旧缓存: {cleared} 行")
+                with PerfTimer("step6_precompute_rfm_cache"):
+                    count = precompute_rfm_cache()
+                print(f"  预计算完成: {count} 个组合")
+            except Exception as _exc:
+                gate_record_error("step6_precompute_rfm_cache", _exc)
+                notify_etl_complete(
+                    {"failed_step": "step6_precompute_rfm_cache", "error": str(_exc)[:200], "mode": "auto"},
+                    status="failed",
+                )
+                raise
         _save_partial()
 
         # Step 7: 创建 user_rfm 表 + 热点日期预加载（品类/地域等服务的依赖）

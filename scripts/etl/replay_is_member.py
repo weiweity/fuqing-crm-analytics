@@ -143,7 +143,7 @@ def main() -> int:
 
             # Sprint 15 D.1: 全部成功才 COMMIT, 失败自动 ROLLBACK (D.1 治根)
             conn.execute("COMMIT")
-            print(f"\n  [D.1 事务 COMMIT] 全部 4 步成功, 整段已落盘 (atomicity 保证)")
+            print("\n  [D.1 事务 COMMIT] 全部 4 步成功, 整段已落盘 (atomicity 保证)")
         except Exception as e:
             # D.1 治根: 中途 crash 自动 ROLLBACK, 回到 BEGIN 之前状态 (indexes 还在, UPDATE 未写)
             conn.execute("ROLLBACK")
