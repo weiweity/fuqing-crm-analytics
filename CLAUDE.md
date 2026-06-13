@@ -1,4 +1,4 @@
-# 芙清 CRM — AI 执行手册
+# Sample CRM — AI 执行手册
 
 > 本文件每次会话自动加载。只放行为规则，不放参考材料。
 > 参考手册见 `docs/reference.md`（按需读取）。
@@ -99,7 +99,7 @@
 | 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线: 50GB+ 告警, 不删 |
 | 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试主动 cp | 30 天 TTL, 不污染 /tmp |
 | 4. launchd weekly | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | `data/processed/backups/` 7 天保留 |
-| 5. launchd daily backup (Sprint 4 P0-2) | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备: 55GB DuckDB shutil.copy2 + zstd → 21GB |
+| 5. launchd daily backup (Sprint 4 P0-2) | `scripts/etl/backup_duckdb.py` + `com.sample.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备: 55GB DuckDB shutil.copy2 + zstd → 21GB |
 | 6. **launchd hourly subagent cleanup (Sprint 6 P0-3)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 (StartInterval=3600) | subagent 路径兜底: 扫 `/private/tmp` + `/tmp` 1h+ 1GB+ 非白名单, 排除项目根 + layer 1 自身状态文件, cap 5 文件 / 100GB. log `/tmp/fuqing-subagent-cleanup.log` |
 
 详细说明见 `README.md` 第 137 行 "运维安全 / 磁盘治理" 段.
@@ -201,7 +201,7 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 
 ```bash
 # 后端（端口 8000）
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
 PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 >> /tmp/fuqin-crm-backend.log 2>&1 &
@@ -210,7 +210,7 @@ PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
 cd frontend-vue3 && npm run dev
 
 # ETL（必须用 homebrew Python 3.14）
-PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --update
+PYTHONPATH="$(pwd)" /Users/yourname/homebrew/bin/python3 scripts/run_etl.py --update
 
 # 测试
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v

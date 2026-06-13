@@ -51,9 +51,9 @@ def test_db(tmp_path):
         # user1: 货架渠道
         ("o01", "u01", "货架", 100.0, "2026-01-15 10:00:00", False, False, "交易完成", False),
         ("o02", "u01", "货架", 200.0, "2026-03-20 14:00:00", True, False, "交易完成", False),
-        ("o03", "u01", "淘客", 50.0, "2026-03-25 09:00:00", False, False, "交易完成", False),
-        # user2: 淘客
-        ("o04", "u02", "淘客", 300.0, "2026-02-10 11:00:00", False, False, "交易完成", False),
+        ("o03", "u01", "affiliate", 50.0, "2026-03-25 09:00:00", False, False, "交易完成", False),
+        # user2: affiliate
+        ("o04", "u02", "affiliate", 300.0, "2026-02-10 11:00:00", False, False, "交易完成", False),
         ("o05", "u02", "货架", 150.0, "2026-03-30 16:00:00", True, False, "交易完成", False),
         # user3: U先
         ("o06", "u03", "U先", 80.0, "2026-03-15 12:00:00", False, False, "交易完成", False),
@@ -67,7 +67,7 @@ def test_db(tmp_path):
         # 一年前的订单（R 窗口外，但 FM 180天窗口外）
         ("o11", "u01", "货架", 999.0, "2025-06-01 10:00:00", False, False, "交易完成", False),
         # GSV 测试：退款订单（GSV 不过滤退款）
-        ("o12", "u02", "淘客", 50.0, "2026-03-22 13:00:00", False, False, "交易完成", True),
+        ("o12", "u02", "affiliate", 50.0, "2026-03-22 13:00:00", False, False, "交易完成", True),
     ]
     conn.executemany(
         "INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -113,7 +113,7 @@ class TestW1GroupingSetsRowCount1to1:
     ANALYSIS_DATE = date(2026, 4, 1)
     LOOKBACKS = [30, 90, 180]
     METRICS = ["GMV", "GSV"]
-    CHANNELS = ["全店", "货架", "淘客"]  # 简化测试 3 个 channel
+    CHANNELS = ["全店", "货架", "affiliate"]  # 简化测试 3 个 channel
 
     def test_batch_row_count_matches_loop(self, test_db):
         """对比 18 组合 (3 lookback × 2 metric × 3 channel) 的 row count 1:1。"""
@@ -214,13 +214,13 @@ class TestW1GroupingSetsRowCount1to1:
             self.ANALYSIS_DATE,
             lookbacks=[30],
             metrics=["GMV"],
-            channels=["全店", "货架", "淘客"],
+            channels=["全店", "货架", "affiliate"],
         )
 
-        # u01 在 lookback=30 内 GMV 订单：o02(200) + o03(50) = 250 (货架 + 淘客)
+        # u01 在 lookback=30 内 GMV 订单：o02(200) + o03(50) = 250 (货架 + affiliate)
         # u01 在 '全店' 聚合：o02 + o03 = 250
         # u01 在 '货架'：o02 = 200
-        # u01 在 '淘客'：o03 = 50
+        # u01 在 'affiliate'：o03 = 50
         rows = conn.execute("""
             SELECT channel, monetary
             FROM user_rfm
@@ -231,7 +231,7 @@ class TestW1GroupingSetsRowCount1to1:
         channel_map = dict(rows)
         assert channel_map["全店"] == 250.0
         assert channel_map["货架"] == 200.0
-        assert channel_map["淘客"] == 50.0
+        assert channel_map["affiliate"] == 50.0
 
     def test_batch_filters_invalid_orders(self, test_db):
         """valid_sql 过滤：退款/购物金/关闭订单应被排除。"""

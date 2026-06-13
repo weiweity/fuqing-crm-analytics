@@ -36,7 +36,7 @@ class TestCleanupFqTmpOrphans:
 
         wl_files = [
             tmp_path / "_fq_ro_old.duckdb",
-            tmp_path / "fuqing_query_old.duckdb",
+            tmp_path / "sample_query_old.duckdb",
         ]
         non_wl_file = tmp_path / "user_important_data.duckdb"
         for f in wl_files + [non_wl_file]:
@@ -46,7 +46,7 @@ class TestCleanupFqTmpOrphans:
 
         new_prefixes = (
             str(tmp_path / "_fq_ro"),
-            str(tmp_path / "fuqing_"),
+            str(tmp_path / "sample_"),
         )
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
             deleted_count = cli._cleanup_fq_tmp_orphans()
@@ -83,13 +83,13 @@ class TestCleanupFqTmpOrphans:
         # 造 8 个老白名单文件（应只删 5 个 = MAX）
         files = []
         for i in range(8):
-            f = tmp_path / f"fuqing_old_{i}.duckdb"
+            f = tmp_path / f"sample_old_{i}.duckdb"
             f.write_bytes(b"x" * 100)
             old_time = time.time() - 48 * 3600
             os.utime(f, (old_time, old_time))
             files.append(f)
 
-        new_prefixes = (str(tmp_path / "fuqing_"),)
+        new_prefixes = (str(tmp_path / "sample_"),)
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
             deleted_count = cli._cleanup_fq_tmp_orphans()
 
@@ -111,13 +111,13 @@ class TestCleanupFqTmpOrphans:
 
         files = []
         for i in range(3):
-            f = tmp_path / f"fuqing_huge_{i}.duckdb"
+            f = tmp_path / f"sample_huge_{i}.duckdb"
             f.write_bytes(b"x" * 10)  # 物理上只写 10 字节
             old_time = time.time() - 48 * 3600
             os.utime(f, (old_time, old_time))
             files.append(f)
 
-        new_prefixes = (str(tmp_path / "fuqing_huge_"),)
+        new_prefixes = (str(tmp_path / "sample_huge_"),)
         # patch 在 cli 模块命名空间（os 是 frozen 不能直接 mock）
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes), \
              patch.object(cli_mod, "os") as mock_os:
@@ -140,9 +140,9 @@ class TestCleanupFqTmpOrphans:
         """first-prefix starvation 修复验证（F5）：两个 prefix 都能被扫到。"""
         from scripts.etl import cli
 
-        # 造 8 个 _fq_ro* + 2 个 fuqing_*，都用同 mtime
+        # 造 8 个 _fq_ro* + 2 个 sample_*，都用同 mtime
         ro_files = [tmp_path / f"_fq_ro_x{i}.duckdb" for i in range(8)]
-        fq_files = [tmp_path / f"fuqing_x{i}.duckdb" for i in range(2)]
+        fq_files = [tmp_path / f"sample_x{i}.duckdb" for i in range(2)]
         all_files = ro_files + fq_files
         for f in all_files:
             f.write_bytes(b"x" * 100)
@@ -151,27 +151,27 @@ class TestCleanupFqTmpOrphans:
 
         new_prefixes = (
             str(tmp_path / "_fq_ro"),
-            str(tmp_path / "fuqing_"),
+            str(tmp_path / "sample_"),
         )
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
             deleted_count = cli._cleanup_fq_tmp_orphans()
 
-        # 5 个 cap 全用于 _fq_ro*（按 mtime 倒序）；fuqing_* 全部保留
+        # 5 个 cap 全用于 _fq_ro*（按 mtime 倒序）；sample_* 全部保留
         assert deleted_count == 5
         assert all(not f.exists() for f in ro_files[:5])
         assert all(f.exists() for f in ro_files[5:])
-        assert all(f.exists() for f in fq_files), "fuqing_* 应被扫到（即使 cap 5 已用完）"
+        assert all(f.exists() for f in fq_files), "sample_* 应被扫到（即使 cap 5 已用完）"
 
     def test_soft_fail_on_permission_error(self, tmp_path):
         """rm 失败不抛异常（软失败），且**文件不能被真删**（F27 修复）。"""
         from scripts.etl import cli
 
-        f = tmp_path / "fuqing_perm_denied.duckdb"
+        f = tmp_path / "sample_perm_denied.duckdb"
         f.write_bytes(b"x" * 100)
         old_time = time.time() - 48 * 3600
         os.utime(f, (old_time, old_time))
 
-        new_prefixes = (str(tmp_path / "fuqing_"),)
+        new_prefixes = (str(tmp_path / "sample_"),)
 
         def mock_remove(_path, _err=PermissionError("mock denied")):
             raise _err
@@ -188,13 +188,13 @@ class TestCleanupFqTmpOrphans:
         """清理结果写到 _FQ_TMP_LOG_PATH（F12 修复：返回值的归宿）。"""
         from scripts.etl import cli
 
-        f = tmp_path / "fuqing_log_test.duckdb"
+        f = tmp_path / "sample_log_test.duckdb"
         f.write_bytes(b"x" * 100)
         old_time = time.time() - 48 * 3600
         os.utime(f, (old_time, old_time))
 
         log_file = tmp_path / "fuqing-tmp-cleanup.log"
-        new_prefixes = (str(tmp_path / "fuqing_"),)
+        new_prefixes = (str(tmp_path / "sample_"),)
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes), \
              patch.object(cli, "_FQ_TMP_LOG_PATH", str(log_file)):
             cli._cleanup_fq_tmp_orphans()
@@ -344,7 +344,7 @@ class TestF3MarkerAndF7Symlink:
         )
         assert marker_path.exists(), "前置：marker 应被预创建"
 
-        new_prefixes = (str(tmp_path / "fuqing_"),)
+        new_prefixes = (str(tmp_path / "sample_"),)
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
             cli._cleanup_fq_tmp_orphans()
 
@@ -376,14 +376,14 @@ class TestF3MarkerAndF7Symlink:
         os.utime(target, (old_time, old_time))
 
         # symlink：在白名单前缀下
-        link = tmp_path / "fuqing_link.duckdb"
+        link = tmp_path / "sample_link.duckdb"
         os.symlink(str(target), str(link))
 
         # 前置：symlink 创建成功
         assert link.is_symlink(), "前置：symlink 应被创建"
         assert os.path.islink(str(link)) is True, "前置：os.path.islink 应返回 True"
 
-        new_prefixes = (str(tmp_path / "fuqing_"),)
+        new_prefixes = (str(tmp_path / "sample_"),)
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes):
             deleted_count = cli._cleanup_fq_tmp_orphans()
 

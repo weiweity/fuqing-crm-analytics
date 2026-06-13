@@ -42,7 +42,7 @@ function onWeeksChange(val: number) {
 // 注意：仅覆盖Tab1常用渠道，完整渠道列表见 backend/semantic/channels.py CHANNEL_ORDER
 const channelOptions = [
   { label: '全店', value: '全店' },
-  { label: '淘客', value: '淘客' },
+  { label: 'affiliate', value: 'affiliate' },
   { label: '直播', value: '直播' },
   { label: '货架', value: '货架' },
 ]

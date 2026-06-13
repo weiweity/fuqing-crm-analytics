@@ -1,7 +1,7 @@
 """
-Tests for backend/services/dmp_asset_service/_helpers.py cache invalidation.
+Tests for backend/services/sample_asset_service/_helpers.py cache invalidation.
 
-Regression test for: dmp_asset_service result 缓存不感知 mtime 变化的 bug。
+Regression test for: sample_asset_service result 缓存不感知 mtime 变化的 bug。
 
 根因：_cache["data3"]["result"] 按 _weeks 单字段 key 缓存，文件 mtime 变化时
 _check_reload 只刷 mtime + df，不动 result 缓存，导致 product.py / other.py
@@ -44,7 +44,7 @@ def dmp_csv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     csv_path = tmp_path / "data3.csv"
     _write_csv(csv_path, ["2026/5/20", "2026/5/21", "2026/5/22"])
 
-    from backend.services.dmp_asset_service import _helpers
+    from backend.services.sample_asset_service import _helpers
     # _load_data3 在 _helpers.py 模块内引用 DMP_DATA3_PATH，只需 patch 这一处
     monkeypatch.setattr(_helpers, "DMP_DATA3_PATH", csv_path)
 
@@ -61,7 +61,7 @@ class TestDmpAssetCacheInvalidation:
 
     def test_mtime_unchanged_returns_cached_result(self, dmp_csv: Path) -> None:
         """mtime 没变 → 第二次调应当 return 同一对象（缓存命中）"""
-        from backend.services.dmp_asset_service.product import get_product_assets
+        from backend.services.sample_asset_service.product import get_product_assets
 
         d1 = get_product_assets(weeks=4, days=0)
         d2 = get_product_assets(weeks=4, days=0)
@@ -69,7 +69,7 @@ class TestDmpAssetCacheInvalidation:
 
     def test_mtime_changed_invalidates_result_cache(self, dmp_csv: Path) -> None:
         """mtime 变 → 第二次调必须重算（不返回旧对象）"""
-        from backend.services.dmp_asset_service.product import get_product_assets
+        from backend.services.sample_asset_service.product import get_product_assets
 
         d1 = get_product_assets(weeks=4, days=0)
         old_total = d1["products"][0]["weeks"][-1]["total"]
@@ -86,7 +86,7 @@ class TestDmpAssetCacheInvalidation:
 
     def test_other_product_assets_also_invalidated(self, dmp_csv: Path) -> None:
         """other 缓存（result_other）必须跟 result 同步失效"""
-        from backend.services.dmp_asset_service.other import get_other_product_assets
+        from backend.services.sample_asset_service.other import get_other_product_assets
 
         d1 = get_other_product_assets(weeks=4, days=0)
         time.sleep(0.05)
@@ -96,7 +96,7 @@ class TestDmpAssetCacheInvalidation:
 
     def test_different_weeks_creates_separate_cache(self, dmp_csv: Path) -> None:
         """weeks=4 和 weeks=8 算出不同的 _weeks 字段（不同缓存 key）"""
-        from backend.services.dmp_asset_service.product import get_product_assets
+        from backend.services.sample_asset_service.product import get_product_assets
 
         d4 = get_product_assets(weeks=4, days=0)
         d8 = get_product_assets(weeks=8, days=0)

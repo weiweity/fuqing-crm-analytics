@@ -1,5 +1,5 @@
 """
-芙清 CRM - RFM R 区间流转
+Sample CRM - RFM R 区间流转
 
 R 维度：按最近购买时间（recency_days）分段。
 配置驱动，核心逻辑在 _flow_engine 中。

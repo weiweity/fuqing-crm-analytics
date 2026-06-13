@@ -25,7 +25,7 @@ const activeKey = computed(() => route.path)
       <div class="flex items-center gap-3">
         <div class="sidebar-logo-icon">芙</div>
         <div>
-          <h1 class="sidebar-logo-title">芙清 CRM</h1>
+          <h1 class="sidebar-logo-title">Sample CRM</h1>
           <p class="sidebar-logo-subtitle">数据分析平台</p>
         </div>
       </div>
@@ -48,7 +48,7 @@ const activeKey = computed(() => route.path)
 
     <!-- Footer -->
     <div class="sidebar-footer">
-      <p>© 2026 芙清数据团队</p>
+      <p>© 2026 Sample数据团队</p>
     </div>
   </aside>
 </template>

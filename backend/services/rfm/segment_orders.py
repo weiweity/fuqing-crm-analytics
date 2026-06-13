@@ -1,5 +1,5 @@
 """
-芙清 CRM - RFM 区间流转
+Sample CRM - RFM 区间流转
 """
 
 from datetime import date, timedelta

@@ -1,4 +1,4 @@
-# 芙清 CRM 客户分析系统
+# Sample CRM 客户分析系统
 
 > 内部运营中台工具 · 数据驱动的客户洞察 · 每日 9 点自动推送
 
@@ -6,7 +6,7 @@
 
 ## 项目简介
 
-芙清 CRM 客户分析系统是为芙清电商运营团队打造的内部数据中台，处理 **1030 万订单 / 410 万用户**（2020-2026）的数据规模，提供实时的客户洞察能力。
+Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据中台，处理 **1030 万订单 / 410 万用户**（2020-2026）的数据规模，提供实时的客户洞察能力。
 
 ### 核心价值
 
@@ -45,7 +45,7 @@ bash scripts/setup-hooks.sh   # 激活 pre-commit / pre-push (一次性, session
 ### 启动服务
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
 PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
   --host 0.0.0.0 --port 8000 --reload --reload-dir backend \
@@ -61,7 +61,7 @@ cd frontend-vue3 && npm run dev
 
 ```bash
 # 必须用 homebrew Python 3.14（workbuddy Python 3.13 有代码签名冲突）
-PYTHONPATH="$(pwd)" /Users/hutou/homebrew/bin/python3 scripts/run_etl.py --update
+PYTHONPATH="$(pwd)" /Users/yourname/homebrew/bin/python3 scripts/run_etl.py --update
 ```
 
 ---
@@ -146,7 +146,7 @@ fuqing-crm-analytics/
 | 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线:检测 50GB+ 占用打印告警,不删 |
 | 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试时主动 cp | 调试便捷:30 天 TTL + 时间戳命名,不再污染 /tmp |
 | 4. launchd weekly cleanup | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | data 目录独立防线:`data/processed/backups/` 7 天保留清理 |
-| 5. **launchd daily backup (Sprint 4 P0-2)** | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备:55GB DuckDB shutil.copy2 (os-level, 不冲突 uvicorn 持锁) + zstd 压缩 → 21GB (.duckdb.zst), 7 天由 weekly cleanup 兜底, 含 post-copy verify 防 APFS torn copy |
+| 5. **launchd daily backup (Sprint 4 P0-2)** | `scripts/etl/backup_duckdb.py` + `com.sample.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备:55GB DuckDB shutil.copy2 (os-level, 不冲突 uvicorn 持锁) + zstd 压缩 → 21GB (.duckdb.zst), 7 天由 weekly cleanup 兜底, 含 post-copy verify 防 APFS torn copy |
 | 6. **launchd hourly subagent cleanup (Sprint 6 P0-3)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 | subagent 路径兜底:扫 `/private/tmp` + `/tmp` 下 1h+ 1GB+ 非白名单文件 (排除项目根 + layer 1 自身状态文件 + 代码/日志扩展名), cap 5 文件 / 100GB. 解决 Sprint 5 deep dive 教训:subagent 走手动 `shutil.copy2` 复制 production 55GB × 8 次 = 440GB 在 `/private/tmp/p0_3_dive/`, 5 层防护因白名单设计 (FQ_TMP_PREFIXES) 都没拦. |
 
 ### 紧急清理命令
@@ -163,7 +163,7 @@ launchctl list | grep fuqing
 # 期望输出 4 行 (Sprint 6 P0-3 加 hourly 后):
 # - 126  com.fuqing.backup-cleanup.weekly
 # - 0    com.fuqing.tmp-cleanup.hourly      ← Sprint 6 P0-3 (Layer 6)
-# - 0    com.fuqing.duckdb-backup.daily
+# - 0    com.sample.duckdb-backup.daily
 # - 1    com.fuqing.etl.daily
 ```
 
@@ -190,7 +190,7 @@ launchctl list | grep fuqing
 ### 后端单元测试
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 

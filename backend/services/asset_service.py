@@ -1,5 +1,5 @@
 """
-芙清 CRM 客户分析系统 - 资产分析服务
+Sample CRM 客户分析系统 - 资产分析服务
 Week 3 资产趋势（用订单模拟）
 
 接入语义层: 使用 semantic/segments.py 和 semantic/filters.py 作为唯一真实数据源。

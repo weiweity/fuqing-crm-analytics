@@ -1,5 +1,5 @@
 """
-芙清 CRM - 语义层 (Semantic Layer)
+Sample CRM - 语义层 (Semantic Layer)
 
 统一管理业务口径、计算逻辑、维度定义和人群分层。
 所有 Service 层的 SQL 构造必须通过本层提供的 API，禁止硬编码过滤条件。

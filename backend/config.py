@@ -1,5 +1,5 @@
 """
-芙清 CRM 客户分析系统 - 后端配置
+Sample CRM 客户分析系统 - 后端配置
 """
 
 import os
@@ -18,7 +18,7 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 PARQUET_DATA_DIR = DATA_DIR / "parquet"  # Parquet 缓存（ETL 增量写入）
 
 # P3 fix: 路径环境变量化，默认值使用当前用户 home 目录（避免硬编码用户名）
-_DEFAULT_CRM_BASE = Path.home() / "Desktop" / "fuqin date" / "芙清CRM数据库" / "芙清crm原始数据库"
+_DEFAULT_CRM_BASE = Path.home() / "Desktop" / "fuqin date" / "SampleCRM数据库" / "Samplecrm原始数据库"
 
 SHOP_DATA_SOURCE = Path(os.environ.get(
     "SHOP_DATA_SOURCE",
@@ -55,7 +55,7 @@ VISITOR_XLSX_FILE = Path(os.environ.get(
 # 活动节奏数据（大促时间表）
 CAMPAIGN_SCHEDULE_SOURCE = Path(os.environ.get(
     "CAMPAIGN_SCHEDULE_SOURCE",
-    str(_DEFAULT_CRM_BASE / "芙清全年平台活动节奏 - Sheet2.csv")
+    str(_DEFAULT_CRM_BASE / "Sample全年平台活动节奏 - Sheet2.csv")
 ))
 
 # 渠道判定规则表
@@ -64,16 +64,16 @@ CHANNEL_RULES_SOURCE = Path(os.environ.get(
     str(_DEFAULT_CRM_BASE / "渠道判定.csv")
 ))
 
-# 淘客数据库
+# affiliate数据库
 TAOKE_DATA_SOURCE = Path(os.environ.get(
     "TAOKE_DATA_SOURCE",
-    str(_DEFAULT_CRM_BASE / "淘客数据库")
+    str(_DEFAULT_CRM_BASE / "affiliate数据库")
 ))
 
-# 淘客商品ID表
+# affiliate商品ID表
 TAOKE_PRODUCT_SOURCE = Path(os.environ.get(
     "TAOKE_PRODUCT_SOURCE",
-    str(_DEFAULT_CRM_BASE / "天猫_淘客数据商品ID_数据表.csv")
+    str(_DEFAULT_CRM_BASE / "天猫_affiliate数据商品ID_数据表.csv")
 ))
 
 # 直播间数据源
@@ -93,7 +93,7 @@ def get_member_files():
 def get_shop_status_files():
     """获取店铺今日放入的状态刷新文件（优先 .zip，兼容 .csv，只取最新一个）
 
-    扫描路径: SHOP_STATUS_REFRESH_DIR（芙清crm原始数据库/订单状态刷新/）
+    扫描路径: SHOP_STATUS_REFRESH_DIR（Samplecrm原始数据库/订单状态刷新/）
     用户每天将最新状态 zip 放入该目录，脚本自动解压并读取。
     只读取今天修改的文件，避免误用旧文件。
     """
@@ -125,7 +125,7 @@ DMP_DATA3_PATH = DMP_DATA_DIR / "data3.csv"   # 单品资产（周级）
 DMP_DATA_PATH = DMP_DATA_DIR / "data.csv"     # 人群漏斗流转数据（日级）
 
 # DuckDB 数据库路径（默认使用项目内相对路径）
-_DEFAULT_DUCKDB = PROJECT_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
+_DEFAULT_DUCKDB = PROJECT_ROOT / "data" / "processed" / "sample_crm.duckdb"
 DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(_DEFAULT_DUCKDB)))
 
 # DuckDB 内存限制（默认 8GB，避免占用过多系统内存）
@@ -205,6 +205,6 @@ REPURCHASE_ADJUSTMENT = {
     "日常": 1.0,
     "年货节": 1.10,
     "3.8": 1.08,
-    "618": 1.20,
+    "summer_sale": 1.20,
     "双11": 1.25,
 }

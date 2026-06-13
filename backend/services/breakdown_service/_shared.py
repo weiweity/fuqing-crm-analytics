@@ -25,7 +25,7 @@ NEW_CUSTOMER_GROWTH_FACTOR = 1.1
 DEFAULT_MEMBER_JOIN_RATE = 0.025
 UV_MULTIPLIER = 20
 
-CHANNEL_ORDER = ['货架', '达播', '直播', '淘客', '微博', 'U先派样', '百补派样', '赠品&0.01', '其他']
+CHANNEL_ORDER = ['货架', '达播', '直播', 'affiliate', '微博', 'U先派样', '百补派样', '赠品&0.01', '其他']
 
 # ── 工具函数 ─────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ def _detect_activity_type(start: str, end: str) -> str:
     if month == 11 and day >= 1:
         return "双11"
     elif month == 6:
-        return "618"
+        return "summer_sale"
     elif month == 3 and day >= 1:
         return "3.8"
     elif month == 1:
@@ -264,7 +264,7 @@ def _get_new_customer_by_channel(
     ly_end: str
 ) -> List[Dict[str, Any]]:
     """
-    获取去年同期各渠道新客数据（按芙清8层渠道漏斗）
+    获取去年同期各渠道新客数据（按Sample8层渠道漏斗）
     新客定义：首次购买在活动期间的用户
     """
     ly_end_full = ly_end + " 23:59:59"

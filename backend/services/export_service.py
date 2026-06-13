@@ -1,5 +1,5 @@
 """
-芙清 CRM 客户分析系统 - PPT 导出服务
+Sample CRM 客户分析系统 - PPT 导出服务
 Week 4 PPT 报告生成
 """
 
@@ -364,7 +364,7 @@ def generate_ppt_report(
     # 生成各模块幻灯片
     for module in valid_modules:
         if module == "cover":
-            _create_cover_slide(prs, "芙清 CRM 客户分析报告", report_type.upper(), date_range)
+            _create_cover_slide(prs, "Sample CRM 客户分析报告", report_type.upper(), date_range)
 
         elif module == "metrics":
             try:

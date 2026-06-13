@@ -1,4 +1,4 @@
-"""芙清 CRM - Pydantic 契约模型（统一导出）"""
+"""Sample CRM - Pydantic 契约模型（统一导出）"""
 
 from .common import DateRangeResponse, YearComparisonRow, DualAxisLineData, SankeyNode, SankeyLink, SankeyGraphData, WoolPartyBreakdown
 from .metrics import OverviewMetrics, TrendData

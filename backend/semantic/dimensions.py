@@ -1,5 +1,5 @@
 """
-芙清 CRM - 维度注册表 (Dimensions Registry)
+Sample CRM - 维度注册表 (Dimensions Registry)
 
 统一管理所有分析维度，包括：
 - 维度字段名（数据库列名）

@@ -93,12 +93,12 @@ FREQUENCY_TIER_THRESHOLDS = {
 PROMOTION_PERIODS: Dict[int, List[Dict[str, Any]]] = {
     2025: [
         {"name": "38节日", "start_date": "03-01", "end_date": "03-10"},
-        {"name": "618节日", "start_date": "05-20", "end_date": "06-20"},
+        {"name": "summer_sale", "start_date": "05-20", "end_date": "06-20"},
         {"name": "双11", "start_date": "10-20", "end_date": "11-11"},
     ],
     2026: [
         {"name": "38节日", "start_date": "03-01", "end_date": "03-10"},
-        {"name": "618节日", "start_date": "05-20", "end_date": "06-20"},
+        {"name": "summer_sale", "start_date": "05-20", "end_date": "06-20"},
         {"name": "双11", "start_date": "10-20", "end_date": "11-11"},
     ],
 }

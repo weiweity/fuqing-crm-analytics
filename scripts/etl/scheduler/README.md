@@ -22,7 +22,7 @@
 ## Mac 安装
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin date/sample-crm-analytics"
 bash scripts/etl/scheduler/install_macos.sh
 ```
 
@@ -35,7 +35,7 @@ bash scripts/etl/scheduler/install_macos.sh
 
 ```powershell
 # PowerShell 管理员
-cd "C:\Users\hutou\Desktop\fuqin date\fuqing-crm-analytics"
+cd "C:\Users\hutou\Desktop\fuqin date\sample-crm-analytics"
 .\scripts\etl\scheduler\install_windows.ps1
 ```
 

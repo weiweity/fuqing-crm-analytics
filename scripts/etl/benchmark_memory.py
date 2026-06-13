@@ -8,8 +8,8 @@ benchmark_memory.py — DuckDB 查询内存 & 并发性能基准测试
   3. 并发查询性能（1 vs 4 workers）
 
 数据库：
-  - 10.6M: data/processed/fuqing_crm.duckdb
-  - 50M:   data/processed/fuqing_crm_50m.duckdb
+  - 10.6M: data/processed/sample_crm.duckdb
+  - 50M:   data/processed/sample_crm_50m.duckdb
 
 用法：python3 scripts/etl/benchmark_memory.py
 """
@@ -31,8 +31,8 @@ import psutil
 
 # ── 路径 ────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parents[2]
-DB_10M = ROOT / "data" / "processed" / "fuqing_crm.duckdb"
-DB_50M = ROOT / "data" / "processed" / "fuqing_crm_50m.duckdb"
+DB_10M = ROOT / "data" / "processed" / "sample_crm.duckdb"
+DB_50M = ROOT / "data" / "processed" / "sample_crm_50m.duckdb"
 
 # ── 测试查询（真实业务场景） ─────────────────────────────────────
 QUERIES: dict[str, str] = {

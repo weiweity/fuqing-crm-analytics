@@ -1,5 +1,5 @@
 """
-芙清 CRM - 核心指标计算服务（薄包装层）
+Sample CRM - 核心指标计算服务（薄包装层）
 实际实现已拆分到 backend/services/metrics/ 包中。
 
 向后兼容：

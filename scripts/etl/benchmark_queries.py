@@ -31,8 +31,8 @@ sys.path.insert(0, str(ROOT))
 import duckdb
 
 # ── 数据库路径 ────────────────────────────────────────────────────
-DB_10M = ROOT / "data" / "processed" / "fuqing_crm.duckdb"
-DB_50M = ROOT / "data" / "processed" / "fuqing_crm_50m.duckdb"
+DB_10M = ROOT / "data" / "processed" / "sample_crm.duckdb"
+DB_50M = ROOT / "data" / "processed" / "sample_crm_50m.duckdb"
 
 RUNS = 3  # 每个场景跑 3 次取平均
 

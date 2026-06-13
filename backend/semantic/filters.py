@@ -1,5 +1,5 @@
 """
-芙清 CRM - 统一过滤条件构造器
+Sample CRM - 统一过滤条件构造器
 
 禁止在任何 Service/ETL 中直接硬编码以下字符串：
 - "order_status LIKE '%成功%'"

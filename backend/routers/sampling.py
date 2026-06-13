@@ -46,7 +46,7 @@ def get_sampling_roi_api(
 
 @router.get("/lock-analysis", response_model=SamplingLockAnalysisResponse)
 def get_sampling_lock_analysis_api(
-    campaign_name: str = Query(default="618节日", description="大促名称：618节日/双11/38节日"),
+    campaign_name: str = Query(default="summer_sale", description="大促名称：summer_sale/双11/38节日"),
     year: int = Query(default=2026, description="年份"),
 ):
     """

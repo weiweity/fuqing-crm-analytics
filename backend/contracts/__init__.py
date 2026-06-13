@@ -1,4 +1,4 @@
-"""芙清 CRM - Pydantic 契约模型包
+"""Sample CRM - Pydantic 契约模型包
 
 所有模型统一从 schemas.py 导出，本文件仅做包初始化。
 """

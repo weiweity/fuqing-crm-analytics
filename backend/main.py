@@ -1,5 +1,5 @@
 """
-芙清 CRM 客户分析系统 - FastAPI 后端
+Sample CRM 客户分析系统 - FastAPI 后端
 
 本文件仅负责：
 - app 初始化
@@ -60,7 +60,7 @@ async def lifespan(application: FastAPI):
 # App 初始化
 # ─────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="芙清 CRM 客户分析系统 API",
+    title="Sample CRM 客户分析系统 API",
     description="提供核心指标、RFM、人群流转等数据 API",
     version="1.0.0",
     lifespan=lifespan,

@@ -1,5 +1,5 @@
 """
-芙清 CRM 客户分析系统 - 人群流转分析服务
+Sample CRM 客户分析系统 - 人群流转分析服务
 Week 3 人群流转矩阵 + 桑基图数据
 
 接入语义层: 使用 semantic/segments.py 中的 SegmentRegistry 作为唯一真实数据源。

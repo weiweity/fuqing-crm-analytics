@@ -1,3 +1,40 @@
+## [v0.4.14.60] - 2026-06-13 - chore: 公开前最终清理 - 删飞书/618/业务规划/回顾文档
+
+### Removed
+- 飞书架构文档: docs/feishu-architecture/ + docs/archive/feishu-architecture/
+- 业务活动: docs/archive/618-breakdown/
+- 业务知识: docs/archive/business-knowledge/
+- 业务测试: docs/archive/dmp-poc/
+- Sprint 1-21 回顾: docs/SPRINT-*-RETROSPECTIVE.md 跟 docs/archive/sprints/
+- 规划/重构: docs/archive/{plans,refactor,product,design}/
+- 索引: docs/{document-index,reference}.md (引用已删文档)
+- 残留: docs/archive/{operations,reports,validation-reports}/
+
+### Changed
+- 测试 fixture `test_taoke_channel_duckdb_race.py` → `test_affiliate_channel_duckdb_race.py`
+- 业务专名 618 → summer_sale, 双11 → double11, 38 节日 → double12
+- `backend/services/dmp_asset_service/` → `sample_asset_service/` (含 _helpers, other, product, store)
+- 代码注释跟错误信息中的"飞书架构 7 份" → "Sample CRM 架构 7 份"
+
+### Pending
+- 删 docs/validation-reports/bad.md + good.md (Sprint 14-17 期间)
+- 跑 git push --force-with-lease 上 origin/main
+- 决策: 实际公开仓库 (gh repo edit --visibility public) - 不可逆, 需用户明确拍板
+
+## [v0.4.14.59] - 2026-06-13 - chore: 公开前脱敏 - 替换业务专有名词跟个人路径
+
+### Changed
+- 脱敏映射: 芙清→Sample, fuqing→sample, 达摩盘→DMP Platform, 淘客→affiliate, 莲带→loyalty tier
+- 路径: /Users/hutou/ → /Users/yourname/
+- 涵盖 backend/ frontend-vue3/ .github/ .env.example CLAUDE.md README.md (77 files)
+- dmp_asset_service 重命名 sample_asset_service
+- CHANGELOG.md 跟 docs/ 历史记录保留原状 (项目历史不该被脱敏篡改)
+
+### Pending
+- 删 docs/飞书版架构文档/ docs/archive/feishu-architecture/ docs/archive/618-breakdown/
+- 删 docs/SPRINT-*-RETROSPECTIVE.md 含业务痛点/老板运营
+- 删 docs/archive/business-knowledge/ docs/archive/dmp-poc/
+
 # Changelog
 
 All notable changes to this project are documented in this file.

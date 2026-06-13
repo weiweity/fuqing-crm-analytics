@@ -1,5 +1,5 @@
 """
-芙清 CRM - 人群分层定义 (Segments Registry)
+Sample CRM - 人群分层定义 (Segments Registry)
 
 统一管理所有人群分层规则：
 - RFM 8象限（经典分割，>=4 vs <4）
