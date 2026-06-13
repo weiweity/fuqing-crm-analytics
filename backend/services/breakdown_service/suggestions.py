@@ -7,7 +7,7 @@
 - 支持顺拆（现状→预估）和倒拆（目标→反推）两种模式
 - 仅GSV口径
 
-参考：[PROCEDURE] 芙清老客拆解四步法、[PROCEDURE] 芙清新客拆解、[PROCEDURE] 老客RFM分析四步法
+参考：[PROCEDURE] Sample老客拆解四步法、[PROCEDURE] Sample新客拆解、[PROCEDURE] 老客RFM分析四步法
 """
 
 from typing import List, Dict, Any

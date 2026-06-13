@@ -1,4 +1,4 @@
-# 芙清 CRM - 计算规则文档
+# Sample CRM - 计算规则文档
 
 > 所有计算规则必须在 `calculations.py` 中定义，所有 Service 必须调用此处函数，禁止自行定义。
 

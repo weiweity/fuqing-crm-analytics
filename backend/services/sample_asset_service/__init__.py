@@ -1,5 +1,5 @@
 """
-dmp_asset_service 包
+sample_asset_service 包
 """
 
 from .store import get_store_assets

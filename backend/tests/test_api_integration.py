@@ -30,7 +30,7 @@ if "FQ_CRM_PASSWORDS" not in os.environ:
 # Check if database exists before running integration tests
 DB_PATH = os.environ.get(
     "FUQING_DB_PATH",
-    str(Path(__file__).parent.parent.parent / "data" / "processed" / "fuqing.duckdb"),
+    str(Path(__file__).parent.parent.parent / "data" / "processed" / "sample.duckdb"),
 )
 DB_EXISTS = Path(DB_PATH).exists()
 

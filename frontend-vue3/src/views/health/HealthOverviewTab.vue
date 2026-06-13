@@ -23,8 +23,8 @@ const radarChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 
-// ── 渠道评分表格排序（仅显示全店/货架/达播/直播/淘客）──
-const HEALTH_SCORE_CHANNEL_ORDER = ['全店', '货架', '达播', '直播', '淘客']
+// ── 渠道评分表格排序（仅显示全店/货架/达播/直播/affiliate）──
+const HEALTH_SCORE_CHANNEL_ORDER = ['全店', '货架', '达播', '直播', 'affiliate']
 
 // ── 渠道过滤：单渠道优先，排除低价渠道 ──
 const queryParams = computed(() => {

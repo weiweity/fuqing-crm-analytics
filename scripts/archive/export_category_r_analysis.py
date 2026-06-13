@@ -383,7 +383,7 @@ if __name__ == "__main__":
         print("\n计算R区间（全店人群版）...")
         r_all = compute_r区间_全店版本(conn, CUTOFF_DT, START_DATE, END_DATE)
 
-        base = "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/exports"
+        base = "/Users/hutou/Desktop/fuqin date/sample-crm-analytics/exports"
         os.makedirs(base, exist_ok=True)
 
         export_30_metrics(rows, f"{base}/品类30指标对比_2026年5月6日-6月21日.xlsx")

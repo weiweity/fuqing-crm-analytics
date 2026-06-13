@@ -14,7 +14,7 @@ const channelOptions = [
   { label: '货架', value: '货架' },
   { label: '达播', value: '达播' },
   { label: '直播', value: '直播' },
-  { label: '淘客', value: '淘客' },
+  { label: 'affiliate', value: 'affiliate' },
   { label: '微博', value: '微博' },
   { label: 'U先派样', value: 'U先派样' },
   { label: '百补派样', value: '百补派样' },

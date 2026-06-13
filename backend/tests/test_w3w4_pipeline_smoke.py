@@ -233,7 +233,7 @@ def w3w4_smoke_env(temp_duckdb_path, mock_parquet_dirs, monkeypatch):
         lambda: _today_ts,
     )
 
-    # 短路 SPU/渠道/淘客/直播 loader
+    # 短路 SPU/渠道/affiliate/直播 loader
     monkeypatch.setattr(
         pipeline, "load_spu_mapping", lambda: pd.DataFrame(),
     )

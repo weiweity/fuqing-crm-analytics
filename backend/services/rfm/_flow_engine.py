@@ -1,5 +1,5 @@
 """
-芙清 CRM - RFM Flow 通用引擎
+Sample CRM - RFM Flow 通用引擎
 
 将 R/F/M 三个维度的区间流转逻辑抽象为参数化引擎。
 三个维度的差异仅在于：

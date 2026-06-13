@@ -43,7 +43,7 @@ echo "  launchctl unload $PLIST_DST"
 echo "  rm $PLIST_DST"
 echo
 echo "=== 手动跑 1 次 (验证) ==="
-echo "  cd '$HOME/Desktop/fuqin date/fuqing-crm-analytics'"
+echo "  cd '$HOME/Desktop/fuqin date/sample-crm-analytics'"
 echo "  PYTHONPATH=\"\$(pwd)\" python3 scripts/run_etl.py --update"
 echo
 echo "=== 看 log ==="

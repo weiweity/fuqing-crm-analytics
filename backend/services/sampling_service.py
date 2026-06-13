@@ -1,5 +1,5 @@
 """
-芙清 CRM - 派样看板服务
+Sample CRM - 派样看板服务
 
 两个核心 API：
 1. get_sampling_roi()   — U先/百补 派样ROI分析（7/30/60天回购，按品类拆分）

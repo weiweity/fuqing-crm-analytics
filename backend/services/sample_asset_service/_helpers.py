@@ -1,8 +1,8 @@
 """
-dmp_asset_service 包共享辅助函数
+sample_asset_service 包共享辅助函数
 
-从 dmp_asset_service.py (809行) 拆分后恢复。
-原始文件: backend/services/dmp_asset_service.py (commit c411cde)
+从 sample_asset_service.py (809行) 拆分后恢复。
+原始文件: backend/services/sample_asset_service.py (commit c411cde)
 """
 
 import os

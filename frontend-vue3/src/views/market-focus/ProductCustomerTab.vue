@@ -703,7 +703,7 @@ function rowClassName(row: TableRow): string {
     <!-- 数据来源说明 -->
     <div class="mb-4">
       <NAlert type="info" :bordered="false" class="text-xs">
-        核心单品新老客数据来源: 订单表SQL聚合；全店资产/单品资产Tab数据来源: 达摩盘DMP导出。两套口径的"用户"定义不同。
+        核心单品新老客数据来源: 订单表SQL聚合；全店资产/单品资产Tab数据来源: DMP PlatformDMP导出。两套口径的"用户"定义不同。
       </NAlert>
     </div>
 

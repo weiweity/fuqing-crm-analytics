@@ -1,5 +1,5 @@
 """
-芙清 CRM - 指标注册表 (Metrics Registry)
+Sample CRM - 指标注册表 (Metrics Registry)
 
 所有业务指标必须在此注册，包含：
 - 指标唯一标识（snake_case）

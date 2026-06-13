@@ -1,4 +1,4 @@
-# 芙清 CRM - 前端 Dockerfile
+# Sample CRM - 前端 Dockerfile
 # 多阶段构建：Node构建 + nginx托管（非特权，安全增强）
 
 # Stage 1: 构建

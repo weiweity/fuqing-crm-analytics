@@ -93,7 +93,7 @@ router.beforeEach((to, _from, next) => {
 })
 
 router.afterEach((to) => {
-  document.title = (to.meta.title as string) || '芙清CRM'
+  document.title = (to.meta.title as string) || 'SampleCRM'
 })
 
 export default router

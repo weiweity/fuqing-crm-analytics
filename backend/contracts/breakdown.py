@@ -1,4 +1,4 @@
-"""芙清 CRM - Pydantic 契约模型"""
+"""Sample CRM - Pydantic 契约模型"""
 from __future__ import annotations
 from typing import Optional, List
 from pydantic import BaseModel, Field

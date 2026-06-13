@@ -1,5 +1,5 @@
 """
-芙清 CRM - RFM F 区间流转
+Sample CRM - RFM F 区间流转
 
 F 维度：按历史购买频次（frequency）分段。
 配置驱动，核心逻辑在 _flow_engine 中。

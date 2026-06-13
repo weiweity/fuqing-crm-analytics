@@ -1,3 +1,17 @@
+## [v0.4.14.59] - 2026-06-13 - chore: 公开前脱敏 - 替换业务专有名词跟个人路径
+
+### Changed
+- 脱敏映射: 芙清→Sample, fuqing→sample, 达摩盘→DMP Platform, 淘客→affiliate, 莲带→loyalty tier
+- 路径: /Users/hutou/ → /Users/yourname/
+- 涵盖 backend/ frontend-vue3/ .github/ .env.example CLAUDE.md README.md (77 files)
+- dmp_asset_service 重命名 sample_asset_service
+- CHANGELOG.md 跟 docs/ 历史记录保留原状 (项目历史不该被脱敏篡改)
+
+### Pending
+- 删 docs/飞书版架构文档/ docs/archive/feishu-architecture/ docs/archive/618-breakdown/
+- 删 docs/SPRINT-*-RETROSPECTIVE.md 含业务痛点/老板运营
+- 删 docs/archive/business-knowledge/ docs/archive/dmp-poc/
+
 # Changelog
 
 All notable changes to this project are documented in this file.

@@ -7,7 +7,7 @@
 - 支持顺拆（现状→预估）和倒拆（目标→反推）两种模式
 - 仅GSV口径
 
-参考：[PROCEDURE] 芙清老客拆解四步法、[PROCEDURE] 芙清新客拆解、[PROCEDURE] 老客RFM分析四步法
+参考：[PROCEDURE] Sample老客拆解四步法、[PROCEDURE] Sample新客拆解、[PROCEDURE] 老客RFM分析四步法
 """
 
 from typing import Dict, Any
@@ -205,9 +205,9 @@ def _reverse_breakdown(
         },
         "breakdown_logic": {
             "old_customer_formula": "老客目标 → 按去年各R区间GMV占比拆分 → 反推各区所需人数 = 目标GMV/(回购率×客单价) → gap = 所需-现状",
-            "old_customer_source": "参见 [PROCEDURE] 芙清老客拆解四步法、[PROCEDURE] 老客RFM分析四步法",
+            "old_customer_source": "参见 [PROCEDURE] Sample老客拆解四步法、[PROCEDURE] 老客RFM分析四步法",
             "new_customer_formula": "新客目标 → 按去年各渠道GMV占比拆分 → 反推所需UV = 新客目标/(客单价×入会率×转化率)",
-            "new_customer_source": "参见 [PROCEDURE] 芙清新客拆解、[PROCEDURE] 新客预估三步走、[PROCEDURE] 会员招募量预估三方法",
+            "new_customer_source": "参见 [PROCEDURE] Sample新客拆解、[PROCEDURE] 新客预估三步走、[PROCEDURE] 会员招募量预估三方法",
         },
     }
 

@@ -1,5 +1,5 @@
 """
-芙清 CRM - Service 层统一异常定义
+Sample CRM - Service 层统一异常定义
 
 所有 Service 抛出的业务异常应使用以下类型，禁止使用裸 except。
 异常被 main.py 中的全局处理器捕获，返回统一的 JSON 错误响应。

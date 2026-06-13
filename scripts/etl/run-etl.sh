@@ -48,8 +48,8 @@ if [ "$MODE" = "--help" ] || [ "$MODE" = "-h" ]; then
     echo "  --help:         看这个 help"
     echo ""
     echo "zsh alias 推荐 (加到 ~/.zshrc):"
-    echo "  alias fuqing-etl='/Users/hutou/Desktop/fuqin\\ date/fuqing-crm-analytics/scripts/etl/run-etl.sh'"
-    echo "  alias fuqing-restart='lsof -ti :8000 | xargs kill; export HEALTH_API_KEY=\$(python3 -c \"import secrets; print(secrets.token_urlsafe(32))\"); cd \"/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics\" && PYTHONPATH=\$(pwd) nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 >> /tmp/fuqing-crm-backend.log 2>&1 & '"
+    echo "  alias fuqing-etl='/Users/hutou/Desktop/fuqin\\ date/sample-crm-analytics/scripts/etl/run-etl.sh'"
+    echo "  alias fuqing-restart='lsof -ti :8000 | xargs kill; export HEALTH_API_KEY=\$(python3 -c \"import secrets; print(secrets.token_urlsafe(32))\"); cd \"/Users/hutou/Desktop/fuqin date/sample-crm-analytics\" && PYTHONPATH=\$(pwd) nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 >> /tmp/fuqing-crm-backend.log 2>&1 & '"
     echo ""
     echo "常用流程:"
     echo "  1. 把新 xlsx 放到 data/raw/ 下"
@@ -76,11 +76,11 @@ if [ -n "$UVICORN_PID" ]; then
 fi
 
 # 3. DuckDB 锁检测 (跟 uvicorn 同一文件)
-DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
+DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/sample_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
 if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
     echo "  ⚠️  DuckDB 锁被以下进程持有: $DUCKDB_LOCK_HOLDER"
     echo "     跑批会 IO Error. 建议先 kill:"
-    echo "     lsof -ti $PROJECT_ROOT/data/processed/fuqing_crm.duckdb | xargs kill"
+    echo "     lsof -ti $PROJECT_ROOT/data/processed/sample_crm.duckdb | xargs kill"
     echo ""
     read -p "  按 Enter 继续 (有锁), Ctrl+C 中断: "
 fi
