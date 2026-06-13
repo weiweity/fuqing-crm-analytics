@@ -1,4 +1,18 @@
-## [v0.4.14.66] - 2026-06-13 - fix(tests): Sprint 22 batch-2 (12 pytest skipped 路径占位符)
+## [v0.4.14.67] - 2026-06-13 - test(duckdb): Sprint 22 #30 DuckDB 1.5.2 race 治根验证 (1.5.4 上游已修)
+
+### Added
+- **`backend/tests/test_duckdb_race_regression.py`** (新, 3 测试) — Sprint 22 #30 regression test: 验 DuckDB >= 1.5.3 + 30 workers × 100 writes stress test 0 race 错 + 3000 行全落盘. Sprint 16 留的 1.5.2 ART index 跨连接 race 已被上游修复 (当前 1.5.4.dev18), 100% 治根, 0 race 复现.
+
+### Verified
+- `duckdb.__version__ = 1.5.4.dev18` (>= 1.5.3 race fix 阈值)
+- 30 workers × 100 writes 并发 stress test 0 errors, 3000/3000 行全落盘 (Sprint 16 race 100% 治根)
+- `pytest backend/tests/test_duckdb_race_regression.py` 3/3 passed
+- ruff check 干净
+
+### Noted
+- **#30 治根决策**: 跨 5+ sprint (16-21) 没人动, 不是 backlog — 而是 **Sprint 16 决策时 (1.5.2 race 严重) 跟现状 (1.5.4 已修) 严重脱节**. 实测 race 0 复现, 关闭 task 不需要改 DuckDB 也不需要全局锁. 加 regression test 留 audit trail 防未来升级降级触发.
+
+
 
 ### Changed
 - **`backend/tests/test_api_integration.py::DB_PATH`** — 默认 DuckDB 文件名 `sample.duckdb` → `fuqing_crm.duckdb` (跟 backend/config.py `_DEFAULT_DUCKDB` 一致 + 真实生产文件). 公开后用户 clone 跑 = 0 skip.
