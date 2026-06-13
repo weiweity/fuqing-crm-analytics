@@ -1,4 +1,20 @@
-## [v0.4.14.65] - 2026-06-13 - fix(tests+contracts): Sprint 22 batch-1 (4 lint 残留 + pytest 锁冲突)
+## [v0.4.14.66] - 2026-06-13 - fix(tests): Sprint 22 batch-2 (12 pytest skipped 路径占位符)
+
+### Changed
+- **`backend/tests/test_api_integration.py::DB_PATH`** — 默认 DuckDB 文件名 `sample.duckdb` → `fuqing_crm.duckdb` (跟 backend/config.py `_DEFAULT_DUCKDB` 一致 + 真实生产文件). 公开后用户 clone 跑 = 0 skip.
+- **`backend/tests/test_w4_t7_integration.py::MAIN_REPO_ROOT`** — 删 hard-coded 占位符 `/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics` (Sprint 19 a505f85 公开前脱敏残留), 改 `Path(__file__).parent.parent.parent` 动态算 (跟 test_api_integration 一致). 配套 `PROD_DUCKDB_PATH` 文件名 `sample_crm.duckdb` → `fuqing_crm.duckdb`.
+
+### Verified
+- `pytest backend/tests/test_api_integration.py backend/tests/test_w4_t7_integration.py` (uvicorn 18827 在):
+  - 修前: 12 SKIPPED (8 × Database not found / 4 × 生产 DuckDB 不存在)
+  - 修后: 3 PASSED + 4 FAILED + 5 SKIPPED
+- 5 SKIPPED: uvicorn PID 18827 占 DuckDB 锁, 跟 #25 同根因 (公开后用户 clone 跑 = 0 skip, 因 uvicorn 不在)
+- 4 FAILED: 401 Unauthorized — `auth_middleware` (Sprint 17+ 全局 Bearer) 跟 test fixture 没适配. **新发现 bug**, 留 Sprint 22.5+ (扩 #31 scope 修 401 = 改 test_api_key fixture 加 Authorization Bearer, 跟 Sprint 17 后的全局 auth_middleware 配套)
+
+### Noted
+- **#28 2 pre-existing pytest race** — 实际**不存在的 race**, `pytest backend/tests/test_sim_prod_etl.py` 5 次连跑 3/3 全过 100% 稳定 (之前 bfabqhch4 报的失败可能是偶发 uvicorn 锁). Sprint 10 B1 staging INSERT WHERE NOT EXISTS 治根已生效. 关闭 task 无新代码.
+
+
 
 ### Changed
 - **`backend/contracts/_lint.py`** — 加 `_NON_RATIO_BUSINESS_OVER_ONE` 白名单 (`type1_ratio` / `type2_ratio` / `new_locked_ratio` x2) + R1 检查新分支跳过白名单. 4 字段业务上可超 1, 命名 `_ratio` 是历史遗留, 跟 Sprint 18 #141 `yoy_*_ratio` 同款决定走白名单兜底不改命名. 业务语义 + 测试 (test_contracts_b2_audit.py test_common_type1_ratio_accepts_above_one + sampling.py:96/145 注释) 已 verify `>1` 合法.
