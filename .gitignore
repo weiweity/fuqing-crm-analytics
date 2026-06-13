@@ -87,9 +87,9 @@ docs/reports/
 # UV 锁文件（可选，如果不用 uv 管理依赖）
 # uv.lock
 
-# Sprint 5 #15 (P0) — 主项目根 scraper/ 软删 + symlink
-# scraper.legacy/ 是 521M 软删备份 (1-3 天观察期后处置)
-# scraper 是 symlink → 独立 repo fuqing-scraper/
-# 两个都不进 git, 跑批业务通过 symlink 走
+# Sprint 5 #20 (P0) — 主项目根 scraper/ 软删 + symlink (v0.4.14.46)
+# 修复 f16b947 漏做: 真正 git rm scraper/ (31 tracked files) + ln -s → 独立 repo fuqing-scraper
+# scraper.legacy/ 是 521M 软删备份 (1-3 天观察期后处置 Sprint 5+)
+# scraper 自身是 symlink → /Users/hutou/Desktop/fuqin date/fuqing-scraper (不进 git, OS 跟踪)
 scraper.legacy/
-scraper
+/scraper
