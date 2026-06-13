@@ -59,6 +59,19 @@ _LIST_RATIO_FIELDS = frozenset({
     "new_customer_ratio",  # churn.py CategoryDailyTrendResponse
 })
 
+# Sprint 22 #29 白名单: 4 字段业务上可超 1, 命名 _ratio 是历史遗留, 实际既不是 0-1 ratio
+# 也不是 -100~+100 pp 差. 跟 Sprint 18 #141 yoy_*_ratio 同款决定走白名单兜底, 不改类型不改命名.
+# 业务语义: 单品类 0-1, 跨品类累加或 (cur-ly)*100 可超 1.
+# 验证: backend/tests/test_contracts_b2_audit.py test_common_type1_ratio_accepts_above_one
+#  (type1_ratio=1.5 > 1 合法, 跨品类用户重复计) 跟 sampling.py:96/145 注释 "实际可超 1".
+_NON_RATIO_BUSINESS_OVER_ONE = frozenset({
+    # common.py: WoolPartyBreakdown.type1/2_ratio — type1/2 人数 / 品类总人数, 跨品类累加可超 1
+    "type1_ratio", "type2_ratio",
+    # sampling.py: SamplingLockYOY/SamplingSamplingLockAnalysis new_locked_ratio —
+    # (cur_ratio - ly_ratio) * 100, 实际值可超 1 (e.g. cur=0.55, ly=0.1 → 0.45 → 45)
+    "new_locked_ratio",
+})
+
 
 @dataclass
 class LintIssue:
@@ -358,6 +371,9 @@ def lint_contract_file(py_path: Path) -> List[LintIssue]:
                             f"{field_name} 是 yoy_*_ratio 白名单字段, 实际是 PpField (-100~+100 pp 差), 需用 PpField 或 Annotated[float, Field(ge=-100, le=100)]",
                             "error",
                         ))
+                # Sprint 22 #29 白名单: 4 字段业务上可超 1, 走裸 float 不约束 (跟 Sprint 18 #141 同款)
+                elif field_name in _NON_RATIO_BUSINESS_OVER_ONE:
+                    pass
                 elif not _annotation_has_constrained_float(annotation, *RATIO_GE_LE):
                     issues.append(LintIssue(
                         str(py_path), field_line, field_name, "R1",
