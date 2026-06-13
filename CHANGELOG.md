@@ -32,6 +32,10 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
   - P0: main force push 成功 (origin/main @ 7224857), 修复 4 类契约 500 错误 + RSS 限制 + certifi SSL
   - P1 #1: DuckDB 1.5.4 stable 监控 cron 在跑 (launchd PID 78), 1.5.4 stable 仍未 release (PyPI 最新 1.5.3)
   - P1 #2: scraper 软删效果已生效 (main tracked 无 scraper/ 文件 + .gitignore 排除 scraper/scraper.legacy/), Sprint 5 #20 (d70f7b7) 真软删 commit 在 rebase 时被跳过但功能无差异. 独立 repo 路径待 Sprint 22+ 重新创建 (CHANGELOG 留 Sprint 5+ 后续处置)
+- CI 减量 (2026-06-13): GitHub Free plan 2,000 min/月 私仓额度用完 (cost = $0, 全 discount), 改 workflow 减量:
+  - `.github/workflows/lint.yml`: 加 `paths:` 过滤, docs 提交不触发 CI (省 ~80% push 触发)
+  - `.github/workflows/nightly.yml`: 改成周一到周五 cron (省 28% 夜间触发)
+  - reset 18 天后 (7月初) 自动重置 free 分钟
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试

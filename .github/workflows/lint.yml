@@ -1,9 +1,22 @@
 name: CI
 
+# 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI (6/12 一次性 docs push 就用掉 50+ min)
+# Free plan 2,000 min/月 私仓额度用完后 CI 立即 fail, 此过滤可省 ~80% 用量
 on:
   pull_request:
   push:
     branches: [main]
+    paths:
+      - 'backend/**'
+      - 'scripts/**'
+      - 'frontend-vue3/src/**'
+      - 'requirements.txt'
+      - 'requirements-lock.txt'
+      - 'pyproject.toml'
+      - '.githooks/**'
+      - '.github/workflows/**'
+      - 'docs/validation-reports/**'
+      - 'docs/飞书版架构文档/**'
 
 jobs:
   lint:

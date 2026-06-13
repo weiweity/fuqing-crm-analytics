@@ -6,8 +6,9 @@ name: Nightly Health Check
 
 on:
   schedule:
-    # 每天 UTC 13:00 = 北京时间 21:00 (晚 9 点, 跟 FOLLOWUPS.md §B3 描述一致)
-    - cron: '0 13 * * *'
+    # 2026-06-13 减量: 改成周一到周五 (省 28% 跑批)
+    # Free plan 2,000 min/月私仓额度优化
+    - cron: '0 13 * * 1-5'
   workflow_dispatch:  # 允许手动触发 (测试 + 应急验证)
 
 jobs:
