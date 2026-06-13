@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
   - `ChurnScatterPoint/BarData/TableRow.mom_change_rate` RatioField (0-1) → float（可负）
 - 修复派样看板锁权分析 `/sampling/lock-analysis` ResponseValidationError 500
   - `SamplingLockYOY.new_locked_ratio` RatioField (0-1) → float（YOY 变化可超 1）
+  - `RollingYOY.new_locked_ratio` 同问题 → float（实际值 12.49）
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试

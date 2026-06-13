@@ -141,9 +141,8 @@ class RollingYOY(BaseModel):
     locked_users: Optional["PercentageField"] = None
     lock_rate: Optional["PpField"] = None
     new_locked_users: Optional["PercentageField"] = None
-    # Sprint 18 #141: new_locked_ratio 实际是 0-1 decimal ratio (safe_ratio(new_locked, locked_users))
-    # 改 RatioField (0-1), 之前误标 PpField
-    new_locked_ratio: Optional["RatioField"] = None
+    # 跟 SamplingLockYOY 同问题: Sprint 18 #141 误标 RatioField, 实际 YOY 可超 1
+    new_locked_ratio: Optional[float] = None
     converted_users: Optional["PercentageField"] = None
     conversion_rate: Optional["PpField"] = None
     conv_gsv: Optional["PercentageField"] = None
