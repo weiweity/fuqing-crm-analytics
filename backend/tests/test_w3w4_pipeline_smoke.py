@@ -241,13 +241,13 @@ def w3w4_smoke_env(temp_duckdb_path, mock_parquet_dirs, monkeypatch):
         pipeline, "load_channel_rules", lambda: ({}, {}),
     )
     monkeypatch.setattr(
-        pipeline, "load_taoke_order_ids", lambda: set(),
+        pipeline, "load_affiliate_order_ids", lambda: set(),
     )
     monkeypatch.setattr(
         pipeline, "load_live_order_ids", lambda: set(),
     )
     monkeypatch.setattr(
-        pipeline, "load_taoke_product_rules", lambda: [],
+        pipeline, "load_affiliate_product_rules", lambda: [],
     )
 
     # 短路 load_data_files → 返回 1 行 (绕过 "没有加载到任何店铺数据" early return,

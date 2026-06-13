@@ -45,7 +45,7 @@ def _detect_activity_type(start: str, end: str) -> str:
     if month == 11 and day >= 1:
         return "双11"
     elif month == 6:
-        return "618"
+        return "summer_sale"
     elif month == 3 and day >= 1:
         return "3.8"
     elif month == 1:

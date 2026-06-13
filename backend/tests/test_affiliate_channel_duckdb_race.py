@@ -1,15 +1,15 @@
 """
-Sprint 16 P0 治根测试: 验证 _update_taoke_channel_impl 的 DuckDB 1.5.x ART index
+Sprint 16 P0 治根测试: 验证 _update_affiliate_channel_impl 的 DuckDB 1.5.x ART index
 race 治根 (DROP 2 channel index + BEGIN/COMMIT + RECREATE 序列).
 
 背景: Sprint 15 Wave 3 跑批真验时, baseline (无 Wave 3 改动) 同样崩
 'Vector::Reference used on vector of different type (VARCHAR referenced TIMESTAMP)'
-在 _update_taoke_channel_impl (cli.py:715 → pipeline.py:1050) 段. 根因: DuckDB 1.5.x
+在 _update_affiliate_channel_impl (cli.py:715 → pipeline.py:1050) 段. 根因: DuckDB 1.5.x
 ART index 在 UPDATE 场景下 channel 字段 (VARCHAR) 跟 index metadata 类型错乱, 触发
 BoundIndex::ApplyBufferedReplays 内部 vector reference race.
 
 Sprint 10 B2-merged (99c0196) 治根同路: DROP 6 secondary indexes → UPDATE →
-CREATE INDEX 重建 (replay_is_member.py). 但 Sprint 10 fix 漏修 _update_taoke_channel_impl,
+CREATE INDEX 重建 (replay_is_member.py). 但 Sprint 10 fix 漏修 _update_affiliate_channel_impl,
 本次 Sprint 16 P0 治根补这一刀 (DROP 2 channel index + 包 BEGIN/COMMIT, 跟 D.1 atomicity 一致).
 
 测试覆盖 (D-7 教训: 模拟生产新连接, 不用单连接 in-memory 误导):
@@ -68,7 +68,7 @@ def temp_orders_with_channel_index():
 
 
 class TestTaokeChannelRace:
-    """Sprint 16 P0 治根: _update_taoke_channel_impl DuckDB race 治根测试 (DROP 2 + BEGIN/COMMIT)."""
+    """Sprint 16 P0 治根: _update_affiliate_channel_impl DuckDB race 治根测试 (DROP 2 + BEGIN/COMMIT)."""
 
     def test_drop_recreate_index_no_crash(self, temp_orders_with_channel_index):
         """Sprint 16 治根序列: BEGIN → DROP 2 channel index → UPDATE → RECREATE 2 index → COMMIT 不崩.
@@ -78,7 +78,7 @@ class TestTaokeChannelRace:
         SELECT 走 heap (无 index 触发 race), UPDATE 走 heap, RECREATE index, COMMIT.
         """
         conn, path = temp_orders_with_channel_index
-        # 模拟 _update_taoke_channel_impl 的 BEGIN+DROP+UPDATE+RECREATE+COMMIT 序列
+        # 模拟 _update_affiliate_channel_impl 的 BEGIN+DROP+UPDATE+RECREATE+COMMIT 序列
         conn.execute("BEGIN")
         # 1. DROP 2 channel index (race 触发点)
         conn.execute("DROP INDEX IF EXISTS idx_orders_channel_pay_time")
@@ -99,7 +99,7 @@ class TestTaokeChannelRace:
         assert n_other == 100, f"reset 后其他应为 100, 实际 {n_other}"
 
     def test_idempotent_rerun(self, temp_orders_with_channel_index):
-        """重复跑 _update_taoke_channel_impl 治根序列 → idempotent (跟 Sprint 15 D.1 一致).
+        """重复跑 _update_affiliate_channel_impl 治根序列 → idempotent (跟 Sprint 15 D.1 一致).
 
         跟 Sprint 15 Wave 2 D.1 replay_is_member.py 一致: 重复跑只 UPDATE 仍 is_member=FALSE
         的行, 不破坏现有数据.
@@ -141,8 +141,8 @@ class TestTaokeChannelRace:
         """).fetchone()[0]
         assert idx_after == 2, f"ROLLBACK 应保留 2 channel index, 实际 {idx_after}"
         # 验证: 50 affiliate订单数未变
-        n_taoke = conn.execute("SELECT COUNT(*) FROM orders WHERE channel = 'affiliate'").fetchone()[0]
-        assert n_taoke == 50, f"ROLLBACK 应保留 50 affiliate, 实际 {n_taoke}"
+        n_affiliate = conn.execute("SELECT COUNT(*) FROM orders WHERE channel = 'affiliate'").fetchone()[0]
+        assert n_affiliate == 50, f"ROLLBACK 应保留 50 affiliate, 实际 {n_affiliate}"
 
     def test_p6_2_keyword_re_mark_after_drop(self, temp_orders_with_channel_index):
         """Sprint 16 治根 + 业务: P6-2 关键词匹配 (product_title LIKE '%t1%') 在 DROP index 后仍正常."""
@@ -159,15 +159,15 @@ class TestTaokeChannelRace:
                  OR LOWER(product_title) LIKE '%t4%' OR LOWER(product_title) LIKE '%tk%')
         """)
         # 20 个 P6-2 标记
-        n_taoke = conn.execute("SELECT COUNT(*) FROM orders WHERE channel = 'affiliate'").fetchone()[0]
+        n_affiliate = conn.execute("SELECT COUNT(*) FROM orders WHERE channel = 'affiliate'").fetchone()[0]
         conn.execute("CREATE INDEX idx_orders_channel_pay_time ON orders(channel, pay_time)")
         conn.execute("CREATE INDEX idx_orders_channel_member ON orders(channel, is_member)")
         conn.execute("COMMIT")
 
         # 验证: 50 原affiliate + 20 NEW_OTHER 标了affiliate = 70 (P6-2 关键词匹配, 没改原 50 affiliate)
-        assert n_taoke == 70, f"P6-2 后affiliate应为 70 (50 原 + 20 NEW_OTHER), 实际 {n_taoke}"
+        assert n_affiliate == 70, f"P6-2 后affiliate应为 70 (50 原 + 20 NEW_OTHER), 实际 {n_affiliate}"
         # 验证: 20 NEW_OTHER 是新标affiliate (跟 P6 订单号匹配不一样的逻辑, 通过 product_title LIKE 触发)
-        n_new_other_taoke = conn.execute(
+        n_new_other_affiliate = conn.execute(
             "SELECT COUNT(*) FROM orders WHERE order_id LIKE 'NEW_OTHER_%' AND channel = 'affiliate'"
         ).fetchone()[0]
-        assert n_new_other_taoke == 20, f"NEW_OTHER 标affiliate应 20, 实际 {n_new_other_taoke}"
+        assert n_new_other_affiliate == 20, f"NEW_OTHER 标affiliate应 20, 实际 {n_new_other_affiliate}"
