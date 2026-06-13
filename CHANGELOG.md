@@ -28,6 +28,10 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
   - `test_b2_contract_mark_pilot.py` + `test_contracts_b2_audit.py` 同步改 pct/mom_change_rate/type1_ratio/gsv_yoy 新 float 类型
 - 修 DuckDB release check cron 脚本 SSL 验证失败 (macOS Python 3.14 缺 CA bundle)
   - `check_duckdb_release.py` 优先注入 certifi.where() 到 ssl context, fallback curl
+- P0/P1 工单收口 (2026-06-13):
+  - P0: main force push 成功 (origin/main @ 7224857), 修复 4 类契约 500 错误 + RSS 限制 + certifi SSL
+  - P1 #1: DuckDB 1.5.4 stable 监控 cron 在跑 (launchd PID 78), 1.5.4 stable 仍未 release (PyPI 最新 1.5.3)
+  - P1 #2: scraper 软删效果已生效 (main tracked 无 scraper/ 文件 + .gitignore 排除 scraper/scraper.legacy/), Sprint 5 #20 (d70f7b7) 真软删 commit 在 rebase 时被跳过但功能无差异. 独立 repo 路径待 Sprint 22+ 重新创建 (CHANGELOG 留 Sprint 5+ 后续处置)
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试
