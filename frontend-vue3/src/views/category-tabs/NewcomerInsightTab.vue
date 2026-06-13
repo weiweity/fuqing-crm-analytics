@@ -58,7 +58,7 @@ const barChartOption = computed(() => {
         return `${item.name}<br/>新客人数: ${item.value.toLocaleString()}<br/>新客GMV: ¥${(barItem.new_gmv / 10000).toFixed(1)}万`
       },
     },
-    grid: { left: 12, right: 24, top: 20, bottom: 8, outerBounds: true },
+    grid: { left: 12, right: 24, top: 20, bottom: 8 },
     xAxis: {
       type: 'category',
       data: bars.map((b: { category_name: string }) => b.category_name),

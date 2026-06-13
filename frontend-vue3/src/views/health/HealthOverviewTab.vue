@@ -143,12 +143,6 @@ function fmtCount(v?: number | null): string {
   return v.toLocaleString()
 }
 
-// pp 类型的 MetricCard 模板会自己乘100，所以这里不乘
-function fmtPpt(v?: number | null): number | undefined {
-  if (v == null) return undefined
-  return v
-}
-
 // ── 五维雷达图配置 ──
 const radarOption = computed((): EChartsOption => {
   if (!data.value) return {}
@@ -420,7 +414,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="老客GSV占比"
             :value="fmtPercent(data.old_customer_gsv_ratio)"
-            :change="data.yoy_old_customer_gsv_ratio"
+            :change="data.yoy_old_customer_gsv_ratio_ppt"
             unit="pp"
           />
         </n-gi>
@@ -453,7 +447,7 @@ const channelScoreXlsxColumns: XlsxColumn[] = [
           <MetricCard
             title="会员老客GSV占比"
             :value="fmtPercent(data.member_old_customer_gsv_ratio)"
-            :change="data.yoy_member_old_customer_gsv_ratio"
+            :change="data.yoy_member_old_customer_gsv_ratio_ppt"
             unit="pp"
           />
         </n-gi>

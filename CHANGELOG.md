@@ -1,3 +1,32 @@
+## [v0.4.14.62] - 2026-06-13 - chore(frontend): P3 类型重生 + ECharts 警告 + 重复目录清理
+
+### Changed
+- `frontend-vue3/src/api/types.generated.ts` + `types.ts` 从空文件重生 (openapi-typescript 7.13.0 × 后端 /openapi.json, 8473 行)
+- 后端 `_ppt` 字段名同步前端调用点 (Sprint 18+ 字段命名升级):
+  - `yoy_repurchase_gsv_ratio` → `yoy_repurchase_gsv_ratio_ppt` (10+ 文件)
+  - `yoy_old_customer_gsv_ratio` → `yoy_old_customer_gsv_ratio_ppt`
+  - `yoy_member_old_customer_gsv_ratio` → `yoy_member_old_customer_gsv_ratio_ppt`
+- `MetricCard.change` prop 接受 `number | null` (后端 schema `yoy_*` 是 `number | null | undefined`, 模板改 `change != null` 同时挡 null/undefined)
+- `tsconfig.app.json` types 加 `node` (测试文件 vi.mock jsdom 报错 process/require undeclared)
+
+### Fixed
+- ECharts 6 警告: `EChartsWrapper.vue` 注册 `GraphicComponent` (CategoryFlowTab.vue `graphic: [{ type: 'text' }]` 运行时警告已消除)
+- ECharts 6 移除: `NewcomerInsightTab.vue` 删除 `grid.outerBounds: true` (ECharts 5 deprecated → 6 removed)
+- `HealthOverviewTab.test.ts` 测试修复: `process.on('unhandledRejection')` listener 签名改 2 参, `delete d.field` 改 `= undefined`, `makeData` 返回类型加 `Record<string, any>` 允许覆盖
+- `RFMSegmentDrilldown.test.ts` 测试修复: 同上 unhandledRejection + mock setup props 加 `any` 类型
+
+### Removed
+- 重复旧目录 (vue-tsc 暴露 17 文件 import 错误):
+  - `src/CategoryView.vue` (路由指向 `views/CategoryView.vue`, 根目录副本)
+  - `src/RFMView.vue` (同上)
+  - `src/health/` (6 文件副本, 实际是 `src/views/health/`)
+  - `src/category-tabs/` (2 文件副本, 实际是 `src/views/category-tabs/`)
+
+### Verification
+- `npx vue-tsc -b --noEmit` 0 错误 (之前 30+ 类型错误, 全部清空)
+- `npm run test:unit` 71/71 passed (vitest 4.1.8)
+- `pytest backend/tests/ -q` 462 passed + 12 skipped + 0 failed
+
 ## [v0.4.14.61] - 2026-06-13 - fix(tests): test fixture 跟 pipeline.py 函数名一致
 
 ### Fixed

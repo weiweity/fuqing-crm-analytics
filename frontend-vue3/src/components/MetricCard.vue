@@ -16,7 +16,7 @@ import YOYGuard from './YOYGuard.vue'
 withDefaults(defineProps<{
   title: string
   value: string | number
-  change?: number
+  change?: number | null
   suffix?: string
   loading?: boolean
   format?: 'number' | 'currency' | 'percent'
@@ -33,7 +33,7 @@ withDefaults(defineProps<{
     <div class="flex items-center justify-between">
       <p class="text-[13px] font-medium text-slate-500">{{ title }}</p>
       <span
-        v-if="!loading && change !== undefined"
+        v-if="!loading && change != null"
         :class="[
           'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold',
           change > 0

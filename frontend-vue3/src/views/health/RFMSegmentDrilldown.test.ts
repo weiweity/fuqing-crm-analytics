@@ -14,7 +14,7 @@ beforeAll(() => {
   process.on('unhandledRejection', (reason: any) => {
     const msg = String(reason?.message ?? reason)
     if (msg.includes('Cannot convert object to primitive value') || msg.includes('__vnode')) return
-    origUnhandled.forEach(h => h(reason as any))
+    origUnhandled.forEach(h => h(reason as any, Promise.resolve()))
   })
 })
 
@@ -52,7 +52,7 @@ vi.mock('@/components/DataTablePro.vue', () => {
     default: defineComponent({
       name: 'DataTablePro',
       props: ['columns', 'data'],
-      setup(props) {
+      setup(props: any) {
         return () => h('div', { 'data-testid': 'data-table-pro' },
           (props.data || []).map((row: any) =>
             h('div', { 'data-testid': 'row', key: row.category_name },
@@ -72,8 +72,8 @@ vi.mock('@/components/DataTablePro.vue', () => {
 vi.mock('naive-ui', () => {
   const { defineComponent, h } = require('vue')
   return {
-    NButton: defineComponent({ name: 'NButton', setup(_, { slots }: any) { return () => h('button', slots.default?.()) } }),
-    NSpin: defineComponent({ name: 'NSpin', setup(_, { slots }: any) { return () => h('div', slots.default?.()) } }),
+    NButton: defineComponent({ name: 'NButton', setup(_props: any, { slots }: any) { return () => h('button', slots.default?.()) } }),
+    NSpin: defineComponent({ name: 'NSpin', setup(_props: any, { slots }: any) { return () => h('div', slots.default?.()) } }),
   }
 })
 

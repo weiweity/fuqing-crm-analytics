@@ -14,7 +14,7 @@ beforeAll(() => {
     const msg = String(reason?.message ?? reason)
     if (msg.includes('Cannot convert object to primitive value') || msg.includes('__vnode')) return
     // 其他 unhandled rejection 正常抛出
-    origUnhandled.forEach(h => h(reason as any))
+    origUnhandled.forEach(h => h(reason as any, Promise.resolve()))
   })
 })
 
@@ -108,7 +108,7 @@ function mountWithData(data: any) {
 }
 
 // ── 构造最小可用的 data 对象 ──
-function makeData(overrides: Record<string, any> = {}) {
+function makeData(overrides: Record<string, any> = {}): Record<string, any> {
   return {
     health_score: 75,
     health_level: 'healthy',
@@ -167,7 +167,7 @@ describe('HealthOverviewTab fmtPercent / fmtCount', () => {
 
   it('fmtPercent(undefined) → "—" (当 old_customer_gsv_ratio 为 undefined)', () => {
     const d = makeData()
-    delete d.old_customer_gsv_ratio
+    d.old_customer_gsv_ratio = undefined
     const wrapper = mountWithData(d)
     const cards = wrapper.findAll('[data-testid="metric-card"]')
     const ratioCard = cards[3]

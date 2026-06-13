@@ -12,6 +12,7 @@ import {
   DataZoomComponent,
   RadarComponent,
   VisualMapComponent,
+  GraphicComponent,
 } from 'echarts/components'
 import { useChartTheme } from '@/composables/useChartTheme'
 
@@ -33,6 +34,7 @@ echarts.use([
   DataZoomComponent,
   RadarComponent,
   VisualMapComponent,
+  GraphicComponent,
 ])
 
 const props = defineProps<{

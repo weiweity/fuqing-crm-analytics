@@ -115,7 +115,7 @@ const wideTable = computed((): WideRow[] => {
 
 /** 最后一周 index */
 function findLatestVisibleIndex(
-  products: NonNullable<typeof weeklyData.value>['products'],
+  _products: NonNullable<typeof weeklyData.value>['products'],
   weekCount: number,
 ): number {
   return weekCount - 1
