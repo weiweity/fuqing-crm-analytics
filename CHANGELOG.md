@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - DuckDB 1.5.x ART index 跨 connection race 导致 ETL 跑批崩溃 (1.88M 淘客订单 UPDATE 触发 "Failed to delete 0/2048 rows")
 - 新增 `--read-only` flag 跳过 step 2 (淘客渠道纠正) + step 6 (RFM 缓存预计算), 24min 跑通 0 race
 - 保留 v2 DROP+RECREATE index workaround 在 `scripts/etl/pipeline.py`, 等 DuckDB 1.6.0 stable 后移除
+- 修复 `VisitorSummaryResponse` / `CategoryDistributionItem.pct` 契约类型错误导致的 500 ResponseValidationError
+  - `member_join_rate` / `ly_member_join_rate`: RatioField → PercentageField
+  - `member_join_rate_yoy` / `mom`: RatioField → PpField
+  - `CategoryDistributionItem.pct`: RatioField → PercentageField
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试

@@ -11,9 +11,8 @@ class CategoryDistributionItem(BaseModel):
     member_count: int = 0
     gmv: float
     member_gsv: float = 0.0
-    # Sprint 16.5 B2 试点治根: 3 个 ratio 字段补 RatioField 标注 (跟 audience.py B1 模式一致)
-    # 修法: 0-1 decimal 越界 (e.g. service 返 1.5 错值) 在 API 入口 422, 不再 500
-    pct: "RatioField"
+    # Sprint 16.5 B2 试点治根: pct 是 0-100 percentage, penetration_rate/member_ratio 是 0-1 decimal
+    pct: "PercentageField"
     penetration_rate: "RatioField" = 0.0
     member_ratio: "RatioField" = 0.0
 

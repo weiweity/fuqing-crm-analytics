@@ -622,24 +622,24 @@ class TestSamplingContractMark:
 # ============================================================
 
 class TestVisitorContractMark:
-    """visitor.py × 2 mark 字段: VisitorSummaryResponse.member_join_rate (RatioField) / VisitorDailyTrendItem.member_join_rate (PercentageField)"""
+    """visitor.py × 2 mark 字段: VisitorSummaryResponse.member_join_rate (PercentageField) / VisitorDailyTrendItem.member_join_rate (PercentageField)"""
 
     def test_visitor_summary_member_join_rate_valid(self):
-        """mark 1: VisitorSummaryResponse.member_join_rate 0-1 decimal 合法值"""
+        """mark 1: VisitorSummaryResponse.member_join_rate 0-100 percentage 合法值"""
         resp = VisitorSummaryResponse(
             start_date="2026-01-01", end_date="2026-01-31",
-            visitors=1000, new_members=300, member_join_rate=0.3,
-            ly_visitors=800, ly_new_members=200, ly_member_join_rate=0.25,
+            visitors=1000, new_members=300, member_join_rate=30.0,
+            ly_visitors=800, ly_new_members=200, ly_member_join_rate=25.0,
         )
-        assert resp.member_join_rate == 0.3
+        assert resp.member_join_rate == 30.0
 
     def test_visitor_summary_member_join_rate_invalid_rejected(self):
-        """mark 1: VisitorSummaryResponse.member_join_rate 越界 1.5 触发 422"""
+        """mark 1: VisitorSummaryResponse.member_join_rate 越界 2e9 触发 422"""
         with pytest.raises(ValidationError):
             VisitorSummaryResponse(
                 start_date="2026-01-01", end_date="2026-01-31",
-                visitors=1000, new_members=300, member_join_rate=1.5,
-                ly_visitors=800, ly_new_members=200, ly_member_join_rate=0.25,
+                visitors=1000, new_members=300, member_join_rate=2_000_000_000.0,
+                ly_visitors=800, ly_new_members=200, ly_member_join_rate=25.0,
             )
 
     def test_visitor_daily_member_join_rate_valid(self):
@@ -664,10 +664,10 @@ class TestVisitorContractMark:
         """all mark 字段合法值全接受"""
         resp = VisitorSummaryResponse(
             start_date="2026-01-01", end_date="2026-01-31",
-            visitors=1000, new_members=300, member_join_rate=0.3,
-            ly_visitors=800, ly_new_members=200, ly_member_join_rate=0.25,
-            member_join_rate_yoy=0.05,  # +0.05 raw pp diff
-            member_join_rate_mom=0.02,
+            visitors=1000, new_members=300, member_join_rate=30.0,
+            ly_visitors=800, ly_new_members=200, ly_member_join_rate=25.0,
+            member_join_rate_yoy=5.0,  # +5.0 pp diff
+            member_join_rate_mom=2.0,
         )
-        assert resp.member_join_rate == 0.3
-        assert resp.member_join_rate_yoy == 0.05
+        assert resp.member_join_rate == 30.0
+        assert resp.member_join_rate_yoy == 5.0
