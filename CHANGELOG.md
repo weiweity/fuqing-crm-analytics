@@ -1,4 +1,27 @@
-## [v0.4.14.64] - 2026-06-13 - fix(contracts): Sprint 21 P0-1 visitor schema 回归测试 + repo 公开
+## [v0.4.14.65] - 2026-06-13 - fix(tests+contracts): Sprint 22 batch-1 (4 lint 残留 + pytest 锁冲突)
+
+### Changed
+- **`backend/contracts/_lint.py`** — 加 `_NON_RATIO_BUSINESS_OVER_ONE` 白名单 (`type1_ratio` / `type2_ratio` / `new_locked_ratio` x2) + R1 检查新分支跳过白名单. 4 字段业务上可超 1, 命名 `_ratio` 是历史遗留, 跟 Sprint 18 #141 `yoy_*_ratio` 同款决定走白名单兜底不改命名. 业务语义 + 测试 (test_contracts_b2_audit.py test_common_type1_ratio_accepts_above_one + sampling.py:96/145 注释) 已 verify `>1` 合法.
+- **`backend/tests/conftest.py`** — 加 `skip_if_uvicorn_alive` fixture: `lsof -t` 探测生产 DuckDB 文件被哪个 PID 占 fd, 占用则 `pytest.skip()` 整 test. 跨进程 DuckDB write 锁冲突 (uvicorn PID 18827 + 任何 subprocess) 防假 fail.
+- **`backend/tests/test_w4_full.py::TestRfmRecomputeWindow::test_rfm_recompute_window_dry_run`** — 加 `skip_if_uvicorn_alive` fixture 参数.
+
+### Added
+- **`backend/tests/test_lint_whitelist.py`** (新, 4 测试) — Sprint 22 #29 regression test: 验 `_NON_RATIO_BUSINESS_OVER_ONE` 白名单含 4 字段 + `_lint` 实际返 0 R1 issue + 4 字段 `>1` 业务合法 (跨品类用户重复计 / `(cur-ly)*100`).
+
+### Verified
+- `python3 -m backend.contracts._lint` 0 issue (4 R1 残留全清)
+- `pytest backend/tests/test_lint_whitelist.py` 4/4 passed
+- `pytest backend/tests/test_contracts_b2_audit.py` 53/53 passed
+- `pytest backend/tests/test_visitor_schema.py` 7/7 passed
+- `pytest backend/tests/test_w4_full.py::TestRfmRecomputeWindow::test_rfm_recompute_window_dry_run`:
+  - uvicorn PID 18827 在 → SKIPPED (带 reason: "生产 DuckDB 被 PID 18827 占 fd")
+  - uvicorn kill → PASSED
+- ruff check 干净
+
+### Noted
+- **#27 YOYGuard env threshold 测试 (Sprint 19.5 留)** — **实际已完成**, `frontend-vue3/src/components/YOYGuard.test.ts` 23/23 测试全过 (含 env threshold 4 边界: |v|==1e6 / |v|>1e6 / 1e7 / Infinity). Sprint 19 P1-2 已补齐, CHANGELOG:447 19.5 留的"测试"实际已写, 关闭 task 无新代码.
+
+
 
 ### Added
 - **`backend/tests/test_visitor_schema.py`** (新, 86 行, 7 测试) — 防 `VisitorSummaryResponse` / `VisitorDailyTrendItem` 顶层 forward ref ("PercentageField" / "PpField") 在 Pydantic v2 + `from __future__ import annotations` 下退化成裸 float 导致 500. 测 3 个 case: 字段类型 (PercentageField ge=-1B le=1B / PpField ge=-100 le=100) + 业务边界 (累计入会率 >100% 接受 / pp 差 <0 接受).
