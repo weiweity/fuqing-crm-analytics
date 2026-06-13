@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
   - `ProductClassRepurchase.gsv_yoy` RatioField (0-1) → float（变化率可负可超 1）
   - `WoolPartyBreakdown.type1/2_ratio` RatioField (0-1) → float（count/total_users 可超 1）
   - `ChurnScatterPoint/BarData/TableRow.mom_change_rate` RatioField (0-1) → float（可负）
+- 修复派样看板锁权分析 `/sampling/lock-analysis` ResponseValidationError 500
+  - `SamplingLockYOY.new_locked_ratio` RatioField (0-1) → float（YOY 变化可超 1）
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试
