@@ -22,14 +22,14 @@ class TestCategoryContractMark:
     """category.py × 3 mark 字段: CategoryDistributionItem.pct / penetration_rate / member_ratio"""
 
     def test_category_pct_valid_ratio(self):
-        """mark 1: pct 0-1 decimal 合法值接受"""
-        item = CategoryDistributionItem(name="面膜", user_count=100, gmv=50000.0, pct=0.42)
-        assert item.pct == 0.42
+        """mark 1: pct 0-100 percentage 合法值接受"""
+        item = CategoryDistributionItem(name="面膜", user_count=100, gmv=50000.0, pct=42.0)
+        assert item.pct == 42.0
 
     def test_category_pct_invalid_ratio_rejected(self):
-        """mark 1: pct 越界 1.5 触发 422 ValidationError (不再 500)"""
+        """mark 1: pct 越界 2e9 触发 422 ValidationError (不再 500)"""
         with pytest.raises(ValidationError) as exc_info:
-            CategoryDistributionItem(name="面膜", user_count=100, gmv=50000.0, pct=1.5)
+            CategoryDistributionItem(name="面膜", user_count=100, gmv=50000.0, pct=2_000_000_000.0)
         errors = exc_info.value.errors()
         assert any("pct" in str(e.get("loc", "")) for e in errors)
 

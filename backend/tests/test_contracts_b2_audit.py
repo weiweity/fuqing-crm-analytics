@@ -116,15 +116,34 @@ class TestAssetContractMark:
                 repurchase_order_value=250.0, repurchase_gsv=7500.0,
             )
 
-    def test_asset_gsv_yoy_invalid_rejected(self):
-        """mark 4: gsv_yoy (RatioField) 越界 1.5 触发 422"""
-        with pytest.raises(ValidationError):
-            ProductClassRepurchase(
-                product_class="面膜", total_buyers=100, repurchase_users=30,
-                repurchase_rate=0.3, gsv_yoy=1.5, median_days=30,
-                p25_days=15, p75_days=60, avg_order_value=200.0, gsv=10000.0,
-                repurchase_order_value=250.0, repurchase_gsv=7500.0,
-            )
+    def test_asset_gsv_yoy_accepts_any_value(self):
+        """mark 4: gsv_yoy (float) 接受任何值 (含 > 1, < 0)
+        2026-06-13 改: 实际值是 (cur-ly)/ly 变化率, 可负可超 1, 改 float 兼容.
+        0-1 强约束 (原 RatioField) 跟实际语义不符."""
+        # 正值 (正常增长)
+        item = ProductClassRepurchase(
+            product_class="面膜", total_buyers=100, repurchase_users=30,
+            repurchase_rate=0.3, gsv_yoy=1.5, median_days=30,
+            p25_days=15, p75_days=60, avg_order_value=200.0, gsv=10000.0,
+            repurchase_order_value=250.0, repurchase_gsv=7500.0,
+        )
+        assert item.gsv_yoy == 1.5
+        # 负值 (衰退)
+        item2 = ProductClassRepurchase(
+            product_class="面膜", total_buyers=100, repurchase_users=30,
+            repurchase_rate=0.3, gsv_yoy=-0.5, median_days=30,
+            p25_days=15, p75_days=60, avg_order_value=200.0, gsv=10000.0,
+            repurchase_order_value=250.0, repurchase_gsv=7500.0,
+        )
+        assert item2.gsv_yoy == -0.5
+        # 超大正值 (新品类从 0 涨起)
+        item3 = ProductClassRepurchase(
+            product_class="面膜", total_buyers=100, repurchase_users=30,
+            repurchase_rate=0.3, gsv_yoy=42.94, median_days=30,
+            p25_days=15, p75_days=60, avg_order_value=200.0, gsv=10000.0,
+            repurchase_order_value=250.0, repurchase_gsv=7500.0,
+        )
+        assert item3.gsv_yoy == 42.94
 
     def test_asset_all_legitimate_values(self):
         """all 4 mark 字段合法值全接受"""
@@ -341,17 +360,18 @@ class TestChurnContractMark:
                 high_risk_rate=1.5,
             )
 
-    def test_churn_mom_change_rate_invalid_rejected(self):
-        """mark 2: ChurnTableRow.mom_change_rate 越界 -2.0 触发 422"""
-        with pytest.raises(ValidationError):
-            ChurnTableRow(
-                category_name="面膜", current_users=100, previous_users=200,
-                mom_change_rate=-2.0,  # 越界
-                inter_churn=10, silent_churn=5,
-                top_churn_dest1="其他", top_churn_dest1_ratio=0.5,
-                top_churn_dest2="精华", top_churn_dest2_ratio=0.3,
-                挽回建议="加大投放",
-            )
+    def test_churn_mom_change_rate_accepts_negative(self):
+        """mark 2: ChurnTableRow.mom_change_rate (float) 接受负值和超 1 值
+        2026-06-13 改: 实际值是 (cur-prev)/prev 变化率, 可负, 改 float 兼容."""
+        item = ChurnTableRow(
+            category_name="面膜", current_users=100, previous_users=200,
+            mom_change_rate=-1.0,  # 减半, 合法
+            inter_churn=10, silent_churn=5,
+            top_churn_dest1="其他", top_churn_dest1_ratio=0.5,
+            top_churn_dest2="精华", top_churn_dest2_ratio=0.3,
+            挽回建议="加大投放",
+        )
+        assert item.mom_change_rate == -1.0
 
     def test_churn_top_churn_dest1_ratio_invalid_rejected(self):
         """mark 3: ChurnTableRow.top_churn_dest1_ratio 越界 1.5 触发 422"""
@@ -400,13 +420,21 @@ class TestCommonContractMark:
         )
         assert wp.type1_ratio == pytest.approx(10/30)
 
-    def test_common_type1_ratio_invalid_rejected(self):
-        """mark 1: type1_ratio 越界 1.5 触发 422"""
-        with pytest.raises(ValidationError):
-            WoolPartyBreakdown(
-                type1_count=10, type2_count=20, total_count=30,
-                type1_ratio=1.5, type2_ratio=0.5,
-            )
+    def test_common_type1_ratio_accepts_above_one(self):
+        """mark 1: type1_ratio (float) 接受 > 1 值
+        2026-06-13 改: 实际值是 count/total_users, 可超 1 (单用户跨多品类), 改 float 兼容."""
+        wp = WoolPartyBreakdown(
+            type1_count=10, type2_count=20, total_count=30,
+            type1_ratio=1.5,  # > 1 合法 (跨品类用户重复计)
+            type2_ratio=0.5,
+        )
+        assert wp.type1_ratio == 1.5
+        # 同时接受 0 边界
+        wp2 = WoolPartyBreakdown(
+            type1_count=0, type2_count=0, total_count=0,
+            type1_ratio=0.0, type2_ratio=0.0,
+        )
+        assert wp2.type1_ratio == 0.0
 
     def test_common_wool_party_ratios_list_invalid_rejected(self):
         """mark 2: DualAxisLineData.wool_party_ratios List element-wise 越界"""

@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - 修复派样看板锁权分析 `/sampling/lock-analysis` ResponseValidationError 500
   - `SamplingLockYOY.new_locked_ratio` RatioField (0-1) → float（YOY 变化可超 1）
   - `RollingYOY.new_locked_ratio` 同问题 → float（实际值 12.49）
+- 修 pre-existing 测试 RSS 限制 + 同步更新 stale 契约测试期望
+  - `test_sim_prod_etl.py` RSS 限制 1GB → 6GB (pytest 全套累计 5GB+ 不再误判)
+  - `test_b2_contract_mark_pilot.py` + `test_contracts_b2_audit.py` 同步改 pct/mom_change_rate/type1_ratio/gsv_yoy 新 float 类型
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试
