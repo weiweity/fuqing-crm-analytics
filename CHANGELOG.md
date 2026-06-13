@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
   - `member_join_rate` / `ly_member_join_rate`: RatioField → PercentageField
   - `member_join_rate_yoy` / `mom`: RatioField → PpField
   - `CategoryDistributionItem.pct`: RatioField → PercentageField
+- 修复 RFM 8象限分析 `repurchase_gsv_ratio` > 1 越界 (TTL segment 被错误排除在 total 之外)
+  - `tier_flow.py` + `rfm_analysis/period.py`: total 累加移到 segment 判断外，所有 segment 都计入分母
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试

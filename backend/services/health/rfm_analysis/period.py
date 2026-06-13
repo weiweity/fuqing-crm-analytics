@@ -359,28 +359,18 @@ def _run_rfm_period_live(
             "repurchase_gsv": float(repurchase_gsv or 0),
             "repurchase_gsv_ratio": 0.0,
         }
-        if segment != "已购客TTL":
-            if mode == "all":
-                total_gsv_all += float(repurchase_gsv or 0)
-                all_result[segment] = entry
-            elif mode == "same":
-                total_gsv_same += float(repurchase_gsv or 0)
-                same_result[segment] = entry
-            elif mode == "member_all":
-                total_gsv_member_all += float(repurchase_gsv or 0)
-                member_all_result[segment] = entry
-            elif mode == "member_same":
-                total_gsv_member_same += float(repurchase_gsv or 0)
-                member_same_result[segment] = entry
-        else:
-            if mode == "all":
-                all_result[segment] = entry
-            elif mode == "same":
-                same_result[segment] = entry
-            elif mode == "member_all":
-                member_all_result[segment] = entry
-            elif mode == "member_same":
-                member_same_result[segment] = entry
+        if mode == "all":
+            total_gsv_all += float(repurchase_gsv or 0)
+            all_result[segment] = entry
+        elif mode == "same":
+            total_gsv_same += float(repurchase_gsv or 0)
+            same_result[segment] = entry
+        elif mode == "member_all":
+            total_gsv_member_all += float(repurchase_gsv or 0)
+            member_all_result[segment] = entry
+        elif mode == "member_same":
+            total_gsv_member_same += float(repurchase_gsv or 0)
+            member_same_result[segment] = entry
 
     # repurchase_gsv_ratio
     for seg in all_result:
