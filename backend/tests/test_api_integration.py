@@ -28,9 +28,10 @@ if "FQ_CRM_PASSWORDS" not in os.environ:
     os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 # Check if database exists before running integration tests
+# Sprint 22 #31: 默认名 sample.duckdb 改 fuqing_crm.duckdb (跟 backend/config.py 一致 + 真实生产文件)
 DB_PATH = os.environ.get(
     "FUQING_DB_PATH",
-    str(Path(__file__).parent.parent.parent / "data" / "processed" / "sample.duckdb"),
+    str(Path(__file__).parent.parent.parent / "data" / "processed" / "fuqing_crm.duckdb"),
 )
 DB_EXISTS = Path(DB_PATH).exists()
 

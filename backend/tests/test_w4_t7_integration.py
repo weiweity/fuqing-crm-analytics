@@ -43,11 +43,10 @@ from scripts.etl.precompute_fact_rfm import (  # noqa: E402
 
 # 生产 DuckDB 路径 (走 backend.config.DUCKDB_PATH, 避免 worktree 跑时 path 漂移)
 # DUCKDB_PATH 在 backend/config.py 是基于 PROJECT_ROOT = backend/.. (即源码 ROOT) 计算的
-# 但 worktree 跑 pytest 时, ROOT 是 worktree 路径, 不一定有 data/processed
-# 这里用绝对路径兜底: 既支持 main repo, 也支持 worktree (因为 data/ 是 gitignored,
-# worktree 里没有 data/, 必须指 main repo)
-MAIN_REPO_ROOT = Path("/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics")
-PROD_DUCKDB_PATH = MAIN_REPO_ROOT / "data" / "processed" / "sample_crm.duckdb"
+# Sprint 22 #31: 占位符 "/Users/yourname/..." 来自 Sprint 19 公开前脱敏 a505f85 残留,
+# 改动态算 (跟 test_api_integration.py 一致). 文件名 sample_crm.duckdb → fuqing_crm.duckdb 跟生产 uvicorn 共享.
+MAIN_REPO_ROOT = Path(__file__).parent.parent.parent
+PROD_DUCKDB_PATH = MAIN_REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
 
 
 def _open_production_duckdb():
