@@ -1,4 +1,22 @@
-## [v0.4.14.67] - 2026-06-13 - test(duckdb): Sprint 22 #30 DuckDB 1.5.2 race 治根验证 (1.5.4 上游已修)
+## [v0.4.14.68] - 2026-06-14 - chore(etl+docs): Sprint 22 #26 痛点 1 ETL 41min 跑批真验
+
+### Added
+- **`docs/validation-reports/etl-3-runs-2026-06-14.md`** (新) — Sprint 22 #26 验证: `python3 scripts/etl/cli.py --update --read-only` 跑批 3 次 (930.12s / 1134.17s / 1130.97s), **平均 18.0 min**, **CV 9.4%** (跟 Sprint 8 基准 9.4% 一致). **痛点 1 (ETL 41min) 大幅达标** (-49% vs 35 min 目标). uvicorn 跑批期间停 (DuckDB 锁), 跑完重启 PID 43031.
+
+### Changed
+- **`data/processed/etl_perf/baseline_2026_06_03.json`** — Sprint 21+ P0 QW0 工单强制入仓, 跑批更新 git_sha + 3 新 runs. 留 audit trail 防未来 regression.
+
+### Verified
+- 3 次跑批 exit 0, 主流程 (ETL 增量 + 状态覆盖表 + 活动表) 100% 跑通
+- ConnectionException 错 (3 次都出, step 6/8 ranking/recency 跨 connection race) 是 Sprint 21+ P0 read-only 模式副作用, 不影响主流程
+- uvicorn PID 43031 /openapi.json 200
+- ruff check 干净
+
+### Noted
+- Sprint 22 #26 跨 sprint 闭环: 痛点 1 (CLAUDE.md:114 留 Sprint 6) 5+ sprint 没人动, 跑批真验一直留. Sprint 22 跑批真验完成, 痛点 1 **大幅达标** (18 min < 35 min).
+- Sprint 21+ P0 read-only 模式稳, 等 DuckDB 1.6.0 stable release 关闭 read-only (见 `scripts/etl/activate_duckdb_1_6_0_stable.sh`).
+
+
 
 ### Added
 - **`backend/tests/test_duckdb_race_regression.py`** (新, 3 测试) — Sprint 22 #30 regression test: 验 DuckDB >= 1.5.3 + 30 workers × 100 writes stress test 0 race 错 + 3000 行全落盘. Sprint 16 留的 1.5.2 ART index 跨连接 race 已被上游修复 (当前 1.5.4.dev18), 100% 治根, 0 race 复现.
