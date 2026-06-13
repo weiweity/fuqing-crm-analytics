@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 from typing import Annotated
-from .types import RatioField  # Sprint 17 B2 全量 audit
+# WoolPartyBreakdown.type1/2_ratio 已用 float (跨品类可超 1) - 不需要 RatioField
 
 class DateRangeResponse(BaseModel):
     start: str
@@ -48,7 +48,7 @@ class WoolPartyBreakdown(BaseModel):
     type1_count: int  # 历史有正装，后续一直买小样
     type2_count: int  # 历史只买小样
     total_count: int
-    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
-    type1_ratio: "RatioField"
-    type2_ratio: "RatioField"
+    # type1/2_ratio = count / total_users (品类级), 可超 1 (单用户跨多品类)
+    type1_ratio: float = Field(..., description="type1 人数 / 品类总人数, 0-1 decimal, 可超 1")
+    type2_ratio: float = Field(..., description="type2 人数 / 品类总人数, 0-1 decimal, 可超 1")
 

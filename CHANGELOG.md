@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
   - `CategoryDistributionItem.pct`: RatioField → PercentageField
 - 修复 RFM 8象限分析 `repurchase_gsv_ratio` > 1 越界 (TTL segment 被错误排除在 total 之外)
   - `tier_flow.py` + `rfm_analysis/period.py`: total 累加移到 segment 判断外，所有 segment 都计入分母
+- 修复品类复购周期 / 羊毛党 / 风险预警 3 个端点 ResponseValidationError 500
+  - `ProductClassRepurchase.gsv_yoy` RatioField (0-1) → float（变化率可负可超 1）
+  - `WoolPartyBreakdown.type1/2_ratio` RatioField (0-1) → float（count/total_users 可超 1）
+  - `ChurnScatterPoint/BarData/TableRow.mom_change_rate` RatioField (0-1) → float（可负）
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试

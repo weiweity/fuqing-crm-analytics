@@ -45,8 +45,8 @@ class ChurnScatterPoint(BaseModel):
     """流失预警-散点数据"""
     category_name: str
     current_users: int
-    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
-    mom_change_rate: "RatioField"
+    # mom_change_rate 是 (cur-prev)/prev 变化率, 0-1 decimal, 可负 (-1 表示减半)
+    mom_change_rate: float = Field(..., description="环比变化率 0-1 decimal, 可负")
     churn_users: int
     inter_churn: int     # 品类间流失
     silent_churn: int    # 沉默流失
@@ -57,8 +57,7 @@ class ChurnBarData(BaseModel):
     category_name: str
     current_users: int
     previous_users: int
-    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
-    mom_change_rate: "RatioField"
+    mom_change_rate: float = Field(..., description="环比变化率 0-1 decimal, 可负")
 
 
 class ChurnTableRow(BaseModel):
@@ -66,8 +65,7 @@ class ChurnTableRow(BaseModel):
     category_name: str
     current_users: int
     previous_users: int
-    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
-    mom_change_rate: "RatioField"
+    mom_change_rate: float = Field(..., description="环比变化率 0-1 decimal, 可负")
     inter_churn: int
     silent_churn: int
     top_churn_dest1: str

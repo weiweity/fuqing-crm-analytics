@@ -44,7 +44,8 @@ class ProductClassRepurchase(BaseModel):
     repurchase_rate_yoy: Optional["PpField"] = Field(None, description="复购率同比(pp 差 -100~+100)")
     median_days_yoy: Optional[float] = Field(None, description="中位天数同比（原始天数差 cur-ly）")
     avg_days_yoy: Optional[float] = Field(None, description="平均天数YOY（原始天数差 cur-ly）")
-    gsv_yoy: Optional["RatioField"] = Field(None, description="GSV同比 0-1 decimal (cur-ly)/ly")
+    # gsv_yoy 是 (cur-ly)/ly 变化率 0-1 decimal, 可负可超 1 (新品类从 0 涨起万倍)
+    gsv_yoy: Optional[float] = Field(None, description="GSV同比 0-1 decimal (cur-ly)/ly, 可负可超 1")
 
 class StoreAssetWeek(BaseModel):
     """全店资产-单周数据"""
