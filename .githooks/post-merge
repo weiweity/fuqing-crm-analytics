@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Post-merge hook (Meta-Sprint): 当 git merge 完成 (含 fast-forward / --no-ff),
+# 自动跑 /ship audit trail, 把 merge 到 main 的 commit 记录到 .ship-audit.log.
+#
+# 配合 CLAUDE.md "AI 执行检查点" 的 "sprint 收口" 检查点使用.
+# Install: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+# 只在 main / master 留 audit, feature branch 跳过 (避免 noise)
+if [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; then
+    exit 0
+fi
+
+# 跨平台日期: macOS / Linux 都支持 `date -u +%Y-%m-%dT%H:%M:%SZ`
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+LAST_COMMIT=$(git log -1 --pretty=format:"%H %s" 2>/dev/null || echo "unknown")
+AUDIT_LOG=".ship-audit.log"
+
+# 写 audit 行 (追加模式, 永不覆盖, 留历史)
+printf "[%s] SHIPPED to %s: %s\n" "$TIMESTAMP" "$BRANCH" "$LAST_COMMIT" >> "$AUDIT_LOG"
+
+echo "📦 Shipped: $LAST_COMMIT (logged to $AUDIT_LOG)"

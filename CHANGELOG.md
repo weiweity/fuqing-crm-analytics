@@ -1,3 +1,23 @@
+## [v0.4.14.63] - 2026-06-13 - chore(rescue): cherry-pick 3 个 sprint 3-21 未合 commit (痛点 1 dedup / ship post-merge / pytest testpaths)
+
+### Added
+- **`backend/tests/test_dedup_orders.py`** (新, 240 行) — cherry-pick 自 `c7c9235` (Sprint 4 P0-3). 痛点 1 端到端回归保护: 验证现有 dedup 链路真生效, 防未来 refactor 误删导致 `--update` 重新撞 unique 约束. 覆盖: `_copy_df_to_duckdb` 端到端 dedup / 字符串 vs int 类型一致性 / `upsert_to_duckdb` 增量+窗口刷新协作 / `load.py` 源码字面量守卫.
+- **`.githooks/post-merge`** + **`.githooks/README.md`** (新) — cherry-pick 自 `01c74b8` (Meta-Sprint). post-merge hook 25 行, `git merge` 到 main/master 时自动追加 `[时间] SHIPPED to <branch>: <SHA> <subject>` 到 `.ship-audit.log`, 配 `docs/SHIP.md` 91 行使用文档. feature branch 跳过避免 noise.
+- **`docs/SHIP.md`** (新, 91 行) — `/ship` 接入使用文档: 背景 / skill 位置 / 实施 / verify / 跟 Sprint 1-18 retrospective 关系 / 跟 CLAUDE.md 检查点配套 / FAQ. main 已有 `CLAUDE.md` "AI 执行检查点" `sprint 收口` 引用此文件, 补齐实物.
+
+### Changed
+- **`pyproject.toml [tool.pytest.ini_options]`** — cherry-pick 自 `48c1dea` (Sprint 3 P1-2) + main Sprint 8 P1 折中. 加 `testpaths = ["backend/tests"]` 让本地 `pytest` 默认走 backend/tests/ 跟 CI 对齐 (避免 `./tests/` 16 legacy 撞生产 DuckDB 锁). 显式 `pytest ./tests/` 仍可用.
+- **`backend/tests/test_dedup_orders.py::TestLoadPySourceGuard`** — 源码字面量守卫从 `ON CONFLICT (order_id, sub_order_id) DO NOTHING` 改 `WHERE NOT EXISTS` (Sprint 10 preflight B1 治根: production UNIQUE INDEX `idx_orders_order_unique` 被 B1 prod migration 删了, 改 WHERE NOT EXISTS 应用层 dedup 行为等价). 同步删 `test_unique_index_literal_in_load_py`, 改 `test_unique_index_removed_in_load_py` 文档化 B1 migration.
+
+### Skipped
+- **`babbdbe` Sprint 3 P1-3 ground-truth lint** — main 已有 Sprint 17 #121 + Sprint 18 #142 完整版 (`scripts/check_review_ground_truth.py` 25KB + `backend/tests/test_check_review_ground_truth.py` 26KB), babbdbe 早期版被完整版 supersede.
+- **`2ed9ea1` rfm cache P0 (member_order_ids READ_WRITE)** — main `scripts/etl/pipeline.py:112` 已经有 `conn = duckdb.connect(str(DUCKDB_PATH), config={...})` 去掉 `read_only=True`, 2ed9ea1 修复内容已 supersede. 仅注释风格微调未合.
+- **`v0.4.14.51 ship CHANGELOG 段`** — 01c74b8 段使用 v0.4.14.51 跟 main Sprint 19 P2 batch 段重号, 挪到本 v0.4.14.63 rescue 段.
+
+### Verification
+- `pytest backend/tests/test_dedup_orders.py` 6/6 passed (Sprint 10 P0 后适配)
+- `pytest backend/tests/` 469 passed + 12 skipped + 0 failed (比 main 多 6 个 dedup 测试)
+
 ## [v0.4.14.62] - 2026-06-13 - chore(frontend): P3 类型重生 + ECharts 警告 + 重复目录清理
 
 ### Changed
