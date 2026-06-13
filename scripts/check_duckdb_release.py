@@ -21,15 +21,31 @@ import urllib.request
 
 
 def get_pypi_duckdb() -> dict:
-    """Query PyPI for duckdb package metadata. Falls back to curl if Python SSL fails."""
+    """Query PyPI for duckdb package metadata.
+
+    2026-06-13 修: macOS Python 3.14 缺 CA bundle, urllib 默认 SSL 验证失败
+    (CERTIFICATE_VERIFY_FAILED). 优先用 certifi.where() 作为 cafile 注入 ssl context,
+    fallback 到 curl (用系统 cert store, macOS 上是 SecureTransport).
+    """
+    import ssl
     import subprocess
-    # Try Python urllib first (uses system cert store)
+
+    # 1) Python urllib + certifi (or system cert store if certifi 不在)
+    ctx = ssl.create_default_context()
     try:
-        with urllib.request.urlopen("https://pypi.org/pypi/duckdb/json", timeout=10) as resp:
+        import certifi
+        ctx.load_verify_locations(certifi.where())
+    except ImportError:
+        pass  # 用系统 cert store
+    try:
+        with urllib.request.urlopen(
+            "https://pypi.org/pypi/duckdb/json", timeout=10, context=ctx
+        ) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         pass  # Fall through to curl
-    # Fallback: use system curl (which uses system certs differently)
+
+    # 2) Fallback: use system curl (macOS 用 SecureTransport, 不依赖 Python cert)
     try:
         result = subprocess.run(
             ["curl", "-s", "--max-time", "10", "https://pypi.org/pypi/duckdb/json"],

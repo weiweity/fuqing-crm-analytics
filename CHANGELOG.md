@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepchangelog.com/en/1.1.0/),
 - 修 pre-existing 测试 RSS 限制 + 同步更新 stale 契约测试期望
   - `test_sim_prod_etl.py` RSS 限制 1GB → 6GB (pytest 全套累计 5GB+ 不再误判)
   - `test_b2_contract_mark_pilot.py` + `test_contracts_b2_audit.py` 同步改 pct/mom_change_rate/type1_ratio/gsv_yoy 新 float 类型
+- 修 DuckDB release check cron 脚本 SSL 验证失败 (macOS Python 3.14 缺 CA bundle)
+  - `check_duckdb_release.py` 优先注入 certifi.where() 到 ssl context, fallback curl
 
 ### Added
 - `backend/tests/test_taoke_channel_duckdb_race.py`: 4 个 race 回归测试
