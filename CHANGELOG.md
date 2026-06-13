@@ -1,3 +1,10 @@
+## [v0.4.14.61] - 2026-06-13 - fix(tests): test fixture 跟 pipeline.py 函数名一致
+
+### Fixed
+- 恢复 test_w3w4_pipeline_smoke.py fixture: load_affiliate_order_ids → load_taoke_order_ids
+- 恢复 test_wo_cleanup_orphans.py fixture: update_affiliate=False → update_taoke=False
+- 脱敏范围限定: 不改业务关键 pipeline 函数名, 避免 break production
+
 ## [v0.4.14.60] - 2026-06-13 - chore: 公开前最终清理 - 删飞书/618/业务规划/回顾文档
 
 ### Removed
