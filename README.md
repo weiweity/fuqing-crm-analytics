@@ -19,16 +19,14 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 
 - ✅ 语义层 / 契约层 / 服务层 / 前端 Vue3 全部上线
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
-- ✅ ETL 增量更新正常（截至 2026-06-04：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M / rfm_analysis_cache 60 / order_status_override 6/4 刷 91,307 行）
+- ✅ ETL 增量更新正常（截至 2026-06-14：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M）
 - ✅ 后端代码审计完成，大文件拆分完成
-- ✅ CI/CD 防线：pre-commit (ruff + pytest 20/8) + pre-push (pytest) + GitHub Actions + ground-truth-lint (P1-3 sprint 3)
-- ✅ 测试 391+ passed / 12 skipped（v0.4.14.16 sprint 8 收口, CI 三连绿）
-- ✅ 痛点 1 闭环：W1 GROUPING SETS 3 次跑批平均 13.4 min (< 35 min 目标, P0-1 sprint 3) + 端到端 (P0-3 sprint 4 load.py:550 加 ON CONFLICT + sprint 5 load.py:550 改 NOT EXISTS)
-- ✅ Sprint 4 + 5 收口：3/3 P0 done (P0-2 DuckDB 55GB 每日备份 + P0-3 dedup 测试 + hotfix 2/3 ON CONFLICT/NOT EXISTS), NOT EXISTS 测试 100% OK 但生产跑批 2 次仍撞留 Sprint 6
-- ✅ ETL 增量跑批 6/4 baseline run 1/3 = real elapsed 63.2min / step_wall_time_sum 126.4min（处理 4 个新源文件：店铺 1 + 会员 1 + 状态刷新 2；DuckDB 增量 orders +18,477 / user_first_purchase +8,379 / user_rfm +9.66M；Step 7b 540 组合 RFM 预加载完成 466 个）
-- ✅ RFM 8 象限 repurchase 改 ≥2 单复购口径（修 P0-102 100%/0% 异常）
-- ✅ RFM 分析 `real_elapsed_sec` / `step_wall_time_sum` 显式命名 baseline 字段（修 review skill 揪出的 wall_time 字段歧义）
-- ✅ rfm_analysis_cache fail-soft 修（pipeline.py member_order_ids 默认 READ_WRITE 与 cache.py `_open_write_conn` access_mode 兼容）
+- ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
+- ✅ 测试 499+ passed / 15 skipped（v0.4.14.72, Sprint 22+23 收口）
+- ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
+- ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
+- ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 2 skills (regen-types + ship-pr) + MCP context7
+- ✅ repo 公开：weiweity/fuqing-crm-analytics (PUBLIC, 2026-06-13)
 
 ---
 
@@ -72,7 +70,7 @@ PYTHONPATH="$(pwd)" /Users/yourname/homebrew/bin/python3 scripts/run_etl.py --up
 |---|---|
 | 数据处理 | Python + Pandas + DuckDB |
 | 后端 API | FastAPI + Pydantic |
-| 前端界面 | Vue3 + Vite + ECharts 5 + Tailwind CSS + naive-ui |
+| 前端界面 | Vue3 + Vite + ECharts 6 + Tailwind CSS + naive-ui |
 | 状态管理 | Pinia + TanStack Query |
 | 语义层 | backend/semantic/（口径唯一真实数据源） |
 | 契约层 | backend/contracts/schemas.py（Pydantic → OpenAPI → TypeScript） |
@@ -96,7 +94,7 @@ fuqing-crm-analytics/
 │   │   └── dmp_asset_service/  # DMP 资产（store/product/other）
 │   ├── routers/                # API 路由（16 个模块）
 │   ├── db/                     # 数据库连接
-│   └── tests/                  # 单元测试（22 个 backend/tests/*.py + 根 tests/, 391+ passed / 12 skipped）
+│   └── tests/                  # 单元测试（41 个 test 文件, 499+ passed / 15 skipped）
 ├── frontend-vue3/              # Vue3 前端
 ├── scripts/                    # ETL 脚本
 ├── config/                     # 配置（健康评分、RFM 阈值）
@@ -125,12 +123,12 @@ fuqing-crm-analytics/
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [docs/archive/product/prd-v3.0.md](./docs/archive/product/prd-v3.0.md) | 产品需求文档（归档） |
-| [docs/feishu-architecture/00-system-overview.md](./docs/feishu-architecture/00-system-overview.md) | 系统架构总览 |
-| [docs/feishu-architecture/07-faq.md](./docs/feishu-architecture/07-faq.md) | Bug 修复记录和经验教训 |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
-| [docs/deploy-windows.md](./docs/deploy-windows.md) | Windows Server 部署指南 |
-| [docs/document-index.md](./docs/document-index.md) | 完整文档索引 |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.72) |
+| [docs/AUTOMATION.md](./docs/AUTOMATION.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
+| [docs/SHIP.md](./docs/SHIP.md) | /ship skill 使用文档 |
+| [docs/LINTING.md](./docs/LINTING.md) | ground-truth-lint 规则 (Sprint 17 #121) |
+| [docs/validation-reports/](./docs/validation-reports/) | ETL 跑批验证报告 |
+| [docs/design/50m-scale-architecture.md](./docs/design/50m-scale-architecture.md) | 50M 订单规模架构设计 |
 
 ---
 
@@ -194,7 +192,7 @@ cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（391+ passed / 12 skipped，v0.4.14.16 sprint 8 收口）：
+当前测试覆盖（499+ passed / 15 skipped，v0.4.14.72 Sprint 22+23 收口）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -258,3 +256,4 @@ npx playwright test
 | 2026-06-01 ~ 06-04 | RFM 4 端点 P0/P1 修复合集：8 象限 repurchase 改 ≥2 单（修 100%/0% 异常）、R/F/M TTL 修、value-tiers channel='全店' 特判、rfm-category-drilldown 500→400 |
 | 2026-06-04 | 增量 ETL 跑批 6/4（real elapsed 63.2min / step sum 126.4min，4 新源文件）；baseline wall_time 字段歧义修；rfm_analysis_cache fail-soft 修（pipeline.py read_only 改默认 READ_WRITE） |
 | 2026-06-06 ~ 06-07 | **Sprint 3 收口 4/5** (P0-1 痛点 1 W1 GROUPING SETS 13.4 min 闭环 + P1-1 W3/W4 CI smoke + P1-2 16 root tests isolation + P1-3 ground-truth lint 4 轮修). P0-2 DuckDB 备份 deferred Sprint 4. CI 三连绿 |
+| 2026-06-13 ~ 06-14 | **Sprint 22-23 收口** (痛点 1 跑批 18 min 达标 + DuckDB race 治根 + 3 hooks + 2 skills + MCP context7 + repo 公开 + 项目整洁清理) |

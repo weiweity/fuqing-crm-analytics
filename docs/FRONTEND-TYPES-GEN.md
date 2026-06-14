@@ -14,8 +14,8 @@
 | **包名** | `pydantic2ts` (v2.x 改名, CLI 入口 `pydantic2ts.cli.script`) |
 | **入口 module** | 3 个: `backend.contracts.category` / `backend.contracts.metrics` / `backend.contracts.health` |
 | **输出文件** | `frontend-vue3/src/types/api.ts` (跟 `types/echarts.ts` `types/rfm.ts` 同目录) |
-| **集成脚本** | `scripts/gen-frontend-types.sh` (chmod +x, 一行调用) |
-| **触发时机** | 改 `backend/contracts/*.py` 字段后手动跑, 走 `bash scripts/gen-frontend-types.sh` |
+| **集成脚本** | ~~`scripts/gen-frontend-types.sh`~~ (已删, 改用 `npm run gen:types` via openapi-typescript) |
+| **触发时机** | 改 `backend/contracts/*.py` 字段后, 跑 `cd frontend-vue3 && npm run gen:types` (openapi-typescript) |
 | **CI 集成** | 不自动跑 (改 contract 字段是 P0/P1 行为, sprint 收口时跑 1 次即可) |
 
 ---
