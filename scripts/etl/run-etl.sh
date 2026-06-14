@@ -37,13 +37,11 @@ if [ "$MODE" = "--help" ] || [ "$MODE" = "-h" ]; then
     echo "  --help:         看这个 help"
     echo ""
     echo "zsh alias 推荐 (加到 ~/.zshrc):"
-    echo "  alias fuqing-etl='/Users/hutou/Desktop/fuqin\\ date/sample-crm-analytics/scripts/etl/run-etl.sh'"
-    echo "  alias fuqing-restart='lsof -ti :8000 | xargs kill; export HEALTH_API_KEY=\$(python3 -c \"import secrets; print(secrets.token_urlsafe(32))\"); cd \"/Users/hutou/Desktop/fuqin date/sample-crm-analytics\" && PYTHONPATH=\$(pwd) nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 >> /tmp/fuqing-crm-backend.log 2>&1 & '"
+    echo "  alias fuqing-etl='/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/run-etl.sh'"
     echo ""
     echo "常用流程:"
     echo "  1. 把新 xlsx 放到 data/raw/ 下"
-    echo "  2. fuqing-etl          # 一键跑增量"
-    echo "  3. fuqing-restart      # 重启 uvicorn 加载新数据"
+    echo "  2. fuqing-etl          # 一键跑增量 (自动停/重启 uvicorn)"
     exit 0
 fi
 

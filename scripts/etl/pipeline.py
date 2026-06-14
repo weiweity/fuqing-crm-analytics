@@ -424,7 +424,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         print("\n" + "-" * 40)
         print("Step 6: 创建 user_rfm 表 + 热点日期预加载")
         print("-" * 40)
-        from backend.database import create_user_rfm_table
+        from backend.db.init import create_user_rfm_table
         create_user_rfm_table()
         from scripts.etl.preload_rfm import run_auto_preload
         results = run_auto_preload()

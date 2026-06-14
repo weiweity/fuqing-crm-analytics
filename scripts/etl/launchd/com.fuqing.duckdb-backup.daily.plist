@@ -33,11 +33,11 @@ Sprint 10 B3 (2026-06-08): 失败 loud-fail (脚本内置 osascript + mail)
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/backup_duckdb.py</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/backup_duckdb.py</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
 
     <key>StartCalendarInterval</key>
     <dict>

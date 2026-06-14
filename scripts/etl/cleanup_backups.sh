@@ -14,9 +14,9 @@
 #     （launchd 不解析 JSON 也不消费输出，仅靠 exit code 判断成败）
 #
 # 安装:
-#   cp ~/Desktop/fuqin\ date/sample-crm-analytics/scripts/etl/cleanup_backups.sh /usr/local/bin/
+#   cp ~/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_backups.sh /usr/local/bin/
 #   chmod +x /usr/local/bin/cleanup_backups.sh
-#   cp ~/Desktop/fuqin\ date/sample-crm-analytics/scripts/etl/launchd/com.fuqing.backup-cleanup.weekly.plist ~/Library/LaunchAgents/
+#   cp ~/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/launchd/com.fuqing.backup-cleanup.weekly.plist ~/Library/LaunchAgents/
 #   launchctl load ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
 # ============================================================================
 
@@ -38,7 +38,7 @@ fi
 # trap 确保任何退出路径都释放锁
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
-BACKUP_DIR="/Users/hutou/Desktop/fuqin date/sample-crm-analytics/data/processed/backups"
+BACKUP_DIR="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/backups"
 LOG_FILE="/tmp/fuqing-backup-cleanup.log"
 RETENTION_DAYS=7
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")

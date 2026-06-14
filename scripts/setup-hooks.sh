@@ -11,7 +11,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
 if [ ! -d ".githooks" ]; then
-    echo "FAIL: .githooks/ 目录不存在, 请确认在 sample-crm-analytics 仓库根目录运行"
+    echo "FAIL: .githooks/ 目录不存在, 请确认在 fuqing-crm-analytics 仓库根目录运行"
     exit 1
 fi
 

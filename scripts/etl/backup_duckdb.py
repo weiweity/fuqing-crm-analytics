@@ -4,7 +4,7 @@
 
 SOP:
   1. umask 077 (客户数据 600 权限, 其他用户不可读)
-  2. shutil.copy2 主 DuckDB → backups/sample_crm_YYYY-MM-DD.duckdb
+  2. shutil.copy2 主 DuckDB → backups/fuqing_crm_YYYY-MM-DD.duckdb
   3. post-copy verify (duckdb connect 验证备份可打开, 防 APFS torn copy)
   4. zstd 压缩 (55GB → 目标 < 15GB)
   5. 失败清理: zstd 失败时删 uncompressed 中间产物 (防磁盘累积)
@@ -89,7 +89,7 @@ def main() -> int:
             return 1
 
         BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-        backup_path = BACKUP_DIR / f"sample_crm_{TODAY}.duckdb"
+        backup_path = BACKUP_DIR / f"fuqing_crm_{TODAY}.duckdb"
         compressed_path = backup_path.with_suffix(".duckdb.zst")
 
         # Step 1: os-level 复制 (不需 DuckDB lock)

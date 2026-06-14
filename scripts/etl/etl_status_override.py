@@ -512,7 +512,7 @@ USAGE = """
 
 【每日状态刷新流程（CSV 模式）】
   1. 每天从 ERP/OMS 导出近30天订单 CSV
-  2. 手动复制 CSV 到: /Users/hutou/Desktop/fuqin date/芙清CRM数据库/芙清crm原始数据库/
+  2. 手动复制 CSV 到: /Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库/
   3. 运行状态刷新:
      cd "<项目根目录>"
      PYTHONPATH="." python -c "

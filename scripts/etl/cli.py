@@ -814,7 +814,7 @@ def main():
         print("\n" + "-" * 40)
         print("Step 7: 创建 user_rfm 表 + 热点日期预加载")
         print("-" * 40)
-        from backend.database import create_user_rfm_table
+        from backend.db.init import create_user_rfm_table
         try:
             with PerfTimer("step7a_create_user_rfm_table"):
                 create_user_rfm_table()

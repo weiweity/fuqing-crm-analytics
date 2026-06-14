@@ -35,7 +35,7 @@ CLAUDE.md 12 步流程: M1 工单 (P0 必修) 修复 audit 关键发现 M1
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
 
     <!-- 每日 8:30 跑（9 点 dashboard 留 30min buffer） -->
     <key>StartCalendarInterval</key>
@@ -50,7 +50,7 @@ CLAUDE.md 12 步流程: M1 工单 (P0 必修) 修复 audit 关键发现 M1
     <key>EnvironmentVariables</key>
     <dict>
         <key>PYTHONPATH</key>
-        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/Users/hutou/homebrew/bin</string>
     </dict>

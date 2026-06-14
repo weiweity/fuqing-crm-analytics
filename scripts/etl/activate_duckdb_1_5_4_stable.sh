@@ -9,7 +9,7 @@
 #   Step 1: 装 1.5.4 stable (--upgrade + 保留 dev 包)
 #   Step 2: 跑 v2 4 unit tests (确认 stable 治根)
 #   Step 3: 切到 fix branch + merge --no-ff v2 code 到 main
-#   Step 4: 跑 batch 真验 + CHANGELOG v0.4.14.56
+#   Step 4: 跑 batch 真验 + CHANGELOG v0.4.14.72
 #
 # 跑法: bash scripts/etl/activate_duckdb_1_5_4_stable.sh
 
@@ -80,6 +80,6 @@ echo "  1. 切回 main: git checkout main" | tee -a "$LOG"
 echo "  2. 改 requirements (如果有) → duckdb==$NEW_VERSION" | tee -a "$LOG"
 echo "  3. merge --no-ff fix/sprint16-p0-duckdb-taoke-channel-race" | tee -a "$LOG"
 echo "  4. 跑真 prod 跑批 (痛点 1 W1 --update, ~13-17 min)" | tee -a "$LOG"
-echo "  5. CHANGELOG v0.4.14.56 + 合 main + /ship" | tee -a "$LOG"
+echo "  5. CHANGELOG v0.4.14.72 + 合 main + /ship" | tee -a "$LOG"
 echo "  6. 删 /tmp/fuqing-duckdb-release-stable.flag" | tee -a "$LOG"
 echo "  7. 卸载 cron: launchctl unload ~/Library/LaunchAgents/com.fuqing.duckdb-release-check.daily.plist" | tee -a "$LOG"

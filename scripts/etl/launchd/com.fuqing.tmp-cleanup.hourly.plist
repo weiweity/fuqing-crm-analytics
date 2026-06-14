@@ -34,11 +34,11 @@ Sprint 6 P0-3 (2026-06-07): Mac launchd plist for 芙清 subagent /tmp 孤儿 ho
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics/scripts/etl/cleanup_subagent.py</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_subagent.py</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
 
     <key>StartCalendarInterval</key>
     <dict>
