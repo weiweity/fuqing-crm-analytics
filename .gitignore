@@ -74,6 +74,14 @@ designs/
 .claude/
 .codegraph/
 
+# Sprint 22.5+ claude-automation-recommender 落地 (跟 data/processed/etl_perf/ precedent 一致):
+# .claude/ 例外化让 settings.json (3 hooks) + skills/ (regen-types, ship-pr) 入仓, 团队共享.
+# 父目录链必须逐级例外化（不要写 !.claude/，会把 .claude/ 全部重新包含进来）
+!.claude/settings.json
+!.claude/skills/
+!.claude/skills/*/
+!.claude/skills/*/SKILL.md
+
 # 一次性维护脚本（本地保留作工具，按脚本文件头自述"不入 git"）
 scripts/etl/_cleanup_staging.py
 

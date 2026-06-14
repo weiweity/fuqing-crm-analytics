@@ -1,4 +1,25 @@
-## [v0.4.14.69] - 2026-06-14 - fix(tests): Sprint 22.5 #S22.5-1 修 test_api_integration 7 fail auth_401
+## [v0.4.14.70] - 2026-06-14 - chore(automation): Sprint 22.5+ claude-automation-recommender 落地 (3 hooks + 2 skills + MCP 装说明)
+
+### Added
+- **`.claude/settings.json`** (新) — 3 PostToolUse / PreToolUse hooks 保护项目安全:
+  - **P0-1 PreToolUse** `Edit|Write` 禁 `.env` / `.env.local` / `.env.*.local` / `data/processed/*.duckdb` 编辑 (防 100GB DuckDB 文件误删 + secrets 误改, exit 2 拦)
+  - **P0-2 PostToolUse** `Edit|Write` 改 `backend/contracts/*.py` 时打印提醒 "跑 /regen-types 重新生成 frontend types.ts" (防契约漂移 30+ vue-tsc 错)
+  - **P0-3 PostToolUse** `Edit|Write` 改 `.py` 时自动 `ruff check <file>` (session 内早抓 lint 错, 不等 commit)
+- **`.claude/skills/regen-types/SKILL.md`** (新, 50 行) — 改 backend/contracts/*.py 后手动跑 regen 流程: 启 uvicorn 临时 :8001 → curl /openapi.json → npx openapi-typescript 生 types.ts → vue-tsc -b 验 0 错. 失败排查 4 例.
+- **`.claude/skills/ship-pr/SKILL.md`** (新, 60 行) — 标准化 PR 流程 (替 P3 session 直接 merge --no-ff main): 1) feat/fix branch  2) commit  3) push  4) `gh pr create`  5) CI 绿  6) `gh pr merge --squash`. 跟 CLAUDE.md 12 步流程对照表.
+- **`docs/AUTOMATION.md`** (新) — 3 hooks + 2 skills 详细说明 + 跟 CLAUDE.md 12 步流程配合表 + 优先级 (P0/P1/P2/P3 + 后续 Sprint 23+).
+
+### Noted
+- **MCP context7 (P2-1) 待用户授权**: auto mode 拦截 `.mcp.json` (需下载/跑外部 npx `@upstash/context7-mcp` 包, 用户需显式授权). 用户后续可手动跑 `claude mcp add context7 -- npx -y @upstash/context7-mcp` 或参考 https://github.com/upstash/context7. 装后重启 claude code session 即生效.
+- **duckdb-optimizer subagent (P2-2) + duckdb-stress skill (P3-1) + contract-auditor subagent (P3-2) 留 Sprint 23+**.
+
+### Verified
+- `pytest backend/tests/` (uvicorn PID 71120 在, 跑 9.5 min) — **480 passed + 15 skipped + 0 failed** (Sprint 22.5+ 完整治根 + 新 3 hooks 跑稳)
+- ruff check 干净
+- 3 hooks 行为验证: `.env` → 拦, `.duckdb` → 拦, `backend/main.py` → 放行
+- 2 skills SKILL.md 格式合规 (YAML frontmatter + disable-model-invocation flag 正确)
+
+
 
 ### Changed
 - **`backend/tests/test_api_integration.py::api_key` fixture** — 改返 Bearer token (调 `/api/v1/auth/login` 拿 testuser token, 跟 main.py:124 auth_middleware 协议一致). 原 fixture 返 `X-API-Key` header (给 health router 内部用), 但 Sprint 17+ 全局 auth_middleware 强制 `Authorization: Bearer {token}` → 7 个 integration test 一律 401.
