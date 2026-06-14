@@ -15,6 +15,7 @@ dist-ssr
 # E2E test artifacts
 e2e/screenshots/
 e2e/videos/
+test-results/
 
 # Editor directories and files
 .vscode/*
