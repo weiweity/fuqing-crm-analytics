@@ -61,9 +61,25 @@ def _open_production_duckdb():
     if not PROD_DUCKDB_PATH.exists():
         pytest.skip(f"生产 DuckDB 不存在: {PROD_DUCKDB_PATH}")
 
-    # 16GB override (W4 async 推荐, setup_async_memory 走 env)
+    # Sprint 23 #2 (W4 T-7 hang fix): 跟 backend 单例锁冲突时, 整 module skip.
+    # 用 conftest.skip_if_duckdb_locked 一样的 lsof 探测 (复用 9 行 helper).
+    # 比 duckdb.connect() 抛 IOError 更早 skip, 避免无谓的 connect 失败尝试.
+    from backend.tests.conftest import _duckdb_lock_holder_pid
+    holder_pid = _duckdb_lock_holder_pid()
+    if holder_pid is not None:
+        pytest.skip(
+            f"生产 DuckDB 被 PID {holder_pid} 占 fd (uvicorn 单例或另一测试进程), "
+            f"整 module 跳过, 避免跨进程锁冲突. "
+            f"如需跑, 先 kill {holder_pid} 或用 --no-uvicorn 起测试环境."
+        )
+        return None  # 不可达
+
+    # memory_limit 对齐 uvicorn 单例 (backend/config.py 默认 8GB, 跟 W4 async 8GB 一致).
+    # Sprint 10 preflight B1 教训: 不同 memory_limit 触发 DuckDB 1.5.x strict mode
+    # "Can't open a connection to same database file with a different configuration".
+    # 16GB override (W4 async) 已不必要 — Sprint 5 真闭环 17 min 跑批 8GB 也 OK.
     setup_async_memory()
-    memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "16GB")
+    memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "8GB")
 
     try:
         conn = duckdb.connect(
