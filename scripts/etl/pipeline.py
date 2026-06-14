@@ -10,7 +10,7 @@ from scripts.etl.config import (
     DUCKDB_PATH, DUCKDB_MEMORY_LIMIT,
     SHOP_DATA_SOURCE, MEMBER_DATA_SOURCE,
     _load_processed_files, _save_processed_files,
-    _get_file_hash, PARQUET_DATA_DIR,
+    _get_processed_files_path, _get_file_hash, PARQUET_DATA_DIR,
 )
 # FIX-S2: 9 行 import 改 1 行用 helper 验 E2E (其余 8 行保留 DUCKDB_MEMORY_LIMIT 常量向后兼容)
 from backend.config import get_duckdb_memory_limit  # noqa: E402  W7 helper
@@ -161,10 +161,13 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         else:
             for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
                 processed = _load_processed_files(data_type)
-                if not processed and data_source.exists():
+                processed_path = _get_processed_files_path(data_type)
+                # FIX: 只有 tracker 文件不存在时才走冷启动；空 {} 或旧格式迁移后
+                # 不应把全部历史文件标为已处理，否则新增文件会被跳过。
+                if not processed_path.exists() and data_source.exists():
                     total_files = len(list(data_source.rglob("*.xlsx")))
                     if total_files > 0:
-                        print(f"  [冷启动] {data_type}: 数据库有数据但无处理记录，自动标记 {total_files} 个历史文件")
+                        print(f"  [冷启动] {data_type}: 数据库有数据但 tracker 不存在，自动标记 {total_files} 个历史文件")
                         _mark_all_files_processed()
                         break  # _mark_all_files_processed 一次性标记 shop+member
 
