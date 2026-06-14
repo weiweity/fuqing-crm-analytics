@@ -85,12 +85,32 @@ echo "  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "============================================================"
 echo ""
 
-# 5. 跑 ETL (所有输出 tee 到日志, 实时可查)
+# 5. 跑 ETL (所有输出 tee 到日志 + 进度计时器)
 START=$(date +%s)
-echo "  日志: $LOG (另开终端 tail -f 可实时看)"
+echo "  日志: $LOG"
 echo ""
+
+# 后台计时器: 每 30 秒打印一次耗时 (让终端不"沉默")
+(
+    while true; do
+        sleep 30
+        NOW=$(date +%s)
+        ELAPSED=$(( NOW - START ))
+        MINS=$(( ELAPSED / 60 ))
+        SECS=$(( ELAPSED % 60 ))
+        echo "  ⏱️  已跑 ${MINS} 分 ${SECS} 秒..."
+    done
+) &
+TICKER_PID=$!
+
+# 跑 ETL
 "$PYTHON" scripts/run_etl.py "$MODE" 2>&1 | tee -a "$LOG"
 EXIT_CODE=${PIPESTATUS[0]}
+
+# 停计时器
+kill $TICKER_PID 2>/dev/null
+wait $TICKER_PID 2>/dev/null
+
 ELAPSED=$(( $(date +%s) - START ))
 
 echo ""
