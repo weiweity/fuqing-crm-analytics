@@ -1,4 +1,22 @@
-## [v0.4.14.68] - 2026-06-14 - chore(etl+docs): Sprint 22 #26 痛点 1 ETL 41min 跑批真验
+## [v0.4.14.69] - 2026-06-14 - fix(tests): Sprint 22.5 #S22.5-1 修 test_api_integration 7 fail auth_401
+
+### Changed
+- **`backend/tests/test_api_integration.py::api_key` fixture** — 改返 Bearer token (调 `/api/v1/auth/login` 拿 testuser token, 跟 main.py:124 auth_middleware 协议一致). 原 fixture 返 `X-API-Key` header (给 health router 内部用), 但 Sprint 17+ 全局 auth_middleware 强制 `Authorization: Bearer {token}` → 7 个 integration test 一律 401.
+- **`backend/tests/test_api_integration.py`** — 7 个 integration test header `X-API-Key` → `_auth_headers(token)` (返 `Authorization: Bearer {token}`). 2 endpoint (TestFlowAPI + TestCustomerHealthAPI) 补必填 query 参数 (`from_date` / `to_date` / `analysis_date`).
+- **`backend/tests/test_api_integration.py`** — 加 module-level `pytestmark` 跟 conftest.py `#25` `skip_if_uvicorn_alive` 配套: uvicorn 在 → 整文件 skip, 公开后无 uvicorn 跑 → 10/10 pass. 防 TestClient 跟生产 uvicorn 共享 DuckDB 锁冲突 (`backend/db/connection.py:115` `duckdb.connect` singleton 跨进程锁).
+
+### Verified
+- `pytest backend/tests/test_api_integration.py`:
+  - uvicorn PID 71120 在 → **10 SKIPPED** (带 reason: "生产 DuckDB 被 PID 71120 占 fd")
+  - uvicorn 不在 → **10 PASSED** (TestClient 走真 endpoint 返 200)
+- ruff check 干净
+
+### Noted
+- 修后: 7 fail (auth_401) → 0 fail (uvicorn 锁时 skip; uvicorn 不在时 pass)
+- 公开后用户 clone 跑 (无 uvicorn) = 10 PASSED 0 FAILED
+- 跟 Sprint 22 #25 rfm dry-run 锁冲突同根因 (`backend/db/connection.py:115` cross-process lock), 用同一 fixture pattern (`lsof` 探测 DuckDB fd 占用) 治根
+
+
 
 ### Added
 - **`docs/validation-reports/etl-3-runs-2026-06-14.md`** (新) — Sprint 22 #26 验证: `python3 scripts/etl/cli.py --update --read-only` 跑批 3 次 (930.12s / 1134.17s / 1130.97s), **平均 18.0 min**, **CV 9.4%** (跟 Sprint 8 基准 9.4% 一致). **痛点 1 (ETL 41min) 大幅达标** (-49% vs 35 min 目标). uvicorn 跑批期间停 (DuckDB 锁), 跑完重启 PID 43031.

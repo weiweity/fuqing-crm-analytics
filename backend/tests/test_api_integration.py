@@ -36,6 +36,26 @@ DB_PATH = os.environ.get(
 DB_EXISTS = Path(DB_PATH).exists()
 
 
+# Sprint 22.5 #S22.5-1: TestClient 跟生产 uvicorn 共享 DuckDB 锁冲突 (跟 #25 同根因).
+# dev 跑测试前先停 uvicorn (锁 release), 或公开后用户 clone 跑 (无 uvicorn = 0 锁).
+# 简化: module-level skipif — uvicorn 在就整文件 skip, 跟 conftest.py skip_if_uvicorn_alive 配套.
+import os as _os
+import subprocess as _sp
+_PROD_DUCKDB = Path(__file__).parent.parent.parent / "data" / "processed" / "fuqing_crm.duckdb"
+_UVICORN_LOCK_PID = (
+    int(_sp.run(["lsof", "-t", str(_PROD_DUCKDB)], capture_output=True, text=True, timeout=5).stdout.strip().split()[0])
+    if _PROD_DUCKDB.exists() and _sp.run(["lsof", "-t", str(_PROD_DUCKDB)], capture_output=True, text=True, timeout=5).stdout.strip()
+    else None
+)
+pytestmark = pytest.mark.skipif(
+    _UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid(),
+    reason=(
+        f"生产 DuckDB 被 PID {_UVICORN_LOCK_PID} 占 fd, TestClient 跟 uvicorn 共享 DuckDB 锁冲突. "
+        f"先 kill {_UVICORN_LOCK_PID} 或公开后无 uvicorn 跑 = 0 冲突."
+    ),
+)
+
+
 def get_test_client():
     """Create a FastAPI TestClient (lazy import to avoid module-level errors)."""
     from fastapi.testclient import TestClient
@@ -50,9 +70,25 @@ def client():
 
 
 @pytest.fixture
-def api_key():
-    """API key for authentication."""
-    return os.environ.get("HEALTH_API_KEY", "test-key")
+def api_key(client):
+    """Bearer token for auth_middleware (Sprint 17+ 全局).
+
+    Sprint 22.5 #S22.5-1 修: 原 fixture 返 X-API-Key (给 health router 内部用),
+    但 main.py:124 auth_middleware 强制 Authorization: Bearer {token}, 7 个 integration
+    test 一律 401. 改走 /api/v1/auth/login 拿真实 token (FQ_CRM_PASSWORDS=testuser:testpass123,
+    见 module-level os.environ 设值).
+    """
+    resp = client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "password": "testpass123"},
+    )
+    assert resp.status_code == 200, f"login 失败: {resp.status_code} {resp.text}"
+    return resp.json()["token"]
+
+
+def _auth_headers(token: str) -> dict:
+    """Bearer token header, 跟 auth_middleware (main.py:137) 协议一致."""
+    return {"Authorization": f"Bearer {token}"}
 
 
 # ── Smoke tests (always run) ──────────────────────────────────
@@ -85,14 +121,14 @@ class TestMetricsAPI:
     def test_overview_returns_200(self, client, api_key):
         response = client.get(
             "/api/v1/metrics/overview",
-            headers={"X-API-Key": api_key},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
 
     def test_overview_has_required_keys(self, client, api_key):
         response = client.get(
             "/api/v1/metrics/overview",
-            headers={"X-API-Key": api_key},
+            headers=_auth_headers(api_key),
         )
         data = response.json()
         # Should contain at least some metric keys
@@ -102,7 +138,7 @@ class TestMetricsAPI:
     def test_trend_returns_200(self, client, api_key):
         response = client.get(
             "/api/v1/metrics/trend",
-            headers={"X-API-Key": api_key},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
 
@@ -114,7 +150,7 @@ class TestAudienceAPI:
     def test_audience_table(self, client, api_key):
         response = client.get(
             "/api/v1/audience/table",
-            headers={"X-API-Key": api_key},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
 
@@ -126,7 +162,7 @@ class TestGeoAPI:
     def test_geo_distribution(self, client, api_key):
         response = client.get(
             "/api/v1/geo/distribution",
-            headers={"X-API-Key": api_key},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
 
@@ -138,7 +174,7 @@ class TestCategoryAPI:
     def test_category_distribution(self, client, api_key):
         response = client.get(
             "/api/v1/category/distribution",
-            headers={"X-API-Key": api_key},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
 
@@ -148,9 +184,11 @@ class TestFlowAPI:
     """Test RFM flow matrix API."""
 
     def test_flow_matrix(self, client, api_key):
+        # Sprint 22.5 #S22.5-1: /api/v1/flow/matrix 必填 from_date + to_date (Query)
         response = client.get(
             "/api/v1/flow/matrix",
-            headers={"X-API-Key": api_key},
+            params={"from_date": "2026-05-13", "to_date": "2026-06-12"},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
 
@@ -160,8 +198,10 @@ class TestCustomerHealthAPI:
     """Test customer health endpoints."""
 
     def test_health_overview(self, client, api_key):
+        # Sprint 22.5 #S22.5-1: /api/v1/customer-health/overview 必填 analysis_date (Query)
         response = client.get(
             "/api/v1/customer-health/overview",
-            headers={"X-API-Key": api_key},
+            params={"analysis_date": "2026-06-12"},
+            headers=_auth_headers(api_key),
         )
         assert response.status_code == 200
