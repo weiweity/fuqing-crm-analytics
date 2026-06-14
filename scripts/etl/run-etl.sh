@@ -25,42 +25,65 @@ cd "$PROJECT_ROOT"
 export PYTHONPATH="$PROJECT_ROOT"
 
 # 0. 解析参数 (优先, --help 立即退出, 跳过锁检测)
-MODE="${1:---update}"
+# 1. 选模式 (命令行参数优先, 无参数则交互选择)
+if [ -n "$1" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
+    # 有命令行参数, 直接用
+    MODE="$1"
+else
+    # 无参数, 交互选择
+    echo ""
+    echo "============================================================"
+    echo "芙清 CRM - ETL 跑批"
+    echo "============================================================"
+    echo ""
+    echo "  请选择模式:"
+    echo ""
+    echo "    1) 增量更新 (默认, 扫新数据 + 淘客 + 状态刷新, 10-18 min)"
+    echo "    2) 强制增量 (只跑增量, 数据库必须已有数据, 8-12 min)"
+    echo "    3) 全量重建 (DROP+CREATE 表, 从头算, 5-10 min)"
+    echo ""
+    read -p "  输入 1/2/3 (直接回车=1 增量更新): " CHOICE
+    echo ""
+    case "$CHOICE" in
+        2) MODE="--inc" ;;
+        3) MODE="--full" ;;
+        *) MODE="--update" ;;
+    esac
+fi
+
+# help
 if [ "$MODE" = "--help" ] || [ "$MODE" = "-h" ]; then
-    echo "芙清 CRM - ETL 手动触发 (Sprint 10+)"
+    echo "芙清 CRM - ETL 手动触发"
     echo ""
     echo "用法: $0 [--update|--inc|--full|--help]"
     echo ""
-    echo "  --update (默认): 一键增量更新 (ETL + 淘客 + 状态刷新, 10-15 min)"
-    echo "  --inc:          强制增量 (数据库必须已有数据)"
+    echo "  --update (默认): 一键增量更新 (ETL + 淘客 + 状态刷新, 10-18 min)"
+    echo "  --inc:          强制增量 (数据库必须已有数据, 8-12 min)"
     echo "  --full:         强制全量重建 (DROP+CREATE 表, 5-10 min)"
     echo "  --help:         看这个 help"
     echo ""
-    echo "zsh alias 推荐 (加到 ~/.zshrc):"
-    echo "  alias fuqing-etl='/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/run-etl.sh'"
-    echo ""
     echo "常用流程:"
     echo "  1. 把新 xlsx 放到 data/raw/ 下"
-    echo "  2. fuqing-etl          # 一键跑增量 (自动停/重启 uvicorn)"
+    echo "  2. ./scripts/etl/run-etl.sh    # 交互选模式"
+    echo "  3. ./scripts/etl/run-etl.sh --update  # 直接跑增量 (不问)"
     exit 0
 fi
 
-# 1. 跑前环境检查
+# 2. 跑前环境检查
 echo "============================================================"
-echo "芙清 CRM - ETL 手动触发 (Sprint 10+)"
+echo "芙清 CRM - ETL 跑批"
 echo "============================================================"
 echo "  project: $PROJECT_ROOT"
 echo "  python:  $PYTHON"
 echo "  log:     $LOG"
 echo ""
 
-# 2. 自动停 uvicorn (释放 DuckDB 锁)
+# 3. 自动停 uvicorn (释放 DuckDB 锁)
 UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
 if [ -n "$UVICORN_PID" ]; then
     echo "  🔄 自动停 uvicorn PID $UVICORN_PID (释放 DuckDB 锁)..."
     kill "$UVICORN_PID" 2>/dev/null
     sleep 2
-    # 确认停了
     if lsof -ti :8000 >/dev/null 2>&1; then
         echo "  ⚠️  uvicorn 未停, 强制 kill..."
         kill -9 "$UVICORN_PID" 2>/dev/null
@@ -71,7 +94,7 @@ else
     echo "  ✅ uvicorn 未运行 (无需停)"
 fi
 
-# 3. DuckDB 锁最终检测 (兜底: 如果有非 uvicorn 进程持锁)
+# 4. DuckDB 锁最终检测
 DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
 if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
     echo "  ❌ DuckDB 锁被以下进程持有: $DUCKDB_LOCK_HOLDER"
@@ -80,7 +103,11 @@ if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
     exit 1
 fi
 
-echo "  模式: $MODE"
+MODE_NAME="--update → 增量更新"
+[ "$MODE" = "--inc" ] && MODE_NAME="--inc → 强制增量"
+[ "$MODE" = "--full" ] && MODE_NAME="--full → 全量重建"
+
+echo "  模式: $MODE_NAME"
 echo "  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "============================================================"
 echo ""
