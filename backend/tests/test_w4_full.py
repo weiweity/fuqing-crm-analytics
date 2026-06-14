@@ -316,7 +316,7 @@ class TestIncrementalLoadWithMerge:
 class TestRfmRecomputeWindow:
     """scripts/etl/rfm_recompute_window.py 全量重算脚本 (CLI 测试)."""
 
-    def test_rfm_recompute_window_dry_run(self, tmp_path, skip_if_uvicorn_alive):
+    def test_rfm_recompute_window_dry_run(self, tmp_path, skip_if_duckdb_locked):
         """rfm_recompute_window.py --dry-run 不写入 (Sprint 22 #25: skip-if-DuckDB-locked fixture 防 uvicorn 锁冲突)."""
         # 跑 CLI: --from 2026-06-04 --to 2026-06-05 --dry-run
         result = subprocess.run(

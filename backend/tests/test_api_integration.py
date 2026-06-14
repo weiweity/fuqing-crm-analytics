@@ -38,7 +38,7 @@ DB_EXISTS = Path(DB_PATH).exists()
 
 # Sprint 22.5 #S22.5-1: TestClient 跟生产 uvicorn 共享 DuckDB 锁冲突 (跟 #25 同根因).
 # dev 跑测试前先停 uvicorn (锁 release), 或公开后用户 clone 跑 (无 uvicorn = 0 锁).
-# 简化: module-level skipif — uvicorn 在就整文件 skip, 跟 conftest.py skip_if_uvicorn_alive 配套.
+# 简化: module-level skipif — uvicorn 在就整文件 skip, 跟 conftest.py skip_if_duckdb_locked 配套.
 import os as _os
 import subprocess as _sp
 _PROD_DUCKDB = Path(__file__).parent.parent.parent / "data" / "processed" / "fuqing_crm.duckdb"
