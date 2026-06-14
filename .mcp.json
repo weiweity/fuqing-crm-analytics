@@ -1,0 +1,10 @@
+{
+  "_comment": "Sprint 23 P2-1 project-level MCP 共享. user-level 装用: claude mcp add context7 -- npx -y @upstash/context7-mcp. 团队 clone 后 session 启动即生效.",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {}
+    }
+  }
+}

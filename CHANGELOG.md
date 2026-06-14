@@ -1,4 +1,34 @@
-## [v0.4.14.70] - 2026-06-14 - chore(automation): Sprint 22.5+ claude-automation-recommender 落地 (3 hooks + 2 skills + MCP 装说明)
+## [v0.4.14.72] - 2026-06-14 - chore(automation): Sprint 23 P2-1 .mcp.json project-level MCP 共享 (context7 给团队)
+
+### Added
+- **`.mcp.json`** (新) — project-level MCP config 团队共享. 团队成员 clone 后 session 启动即生效, 无需每成员手动 `claude mcp add`. 含 `context7` 实时文档查询 (FastAPI / Pydantic v2 / Vue 3.5 / ECharts 6 / Vitest / Playwright / openapi-typescript 7.13).
+
+### Noted
+- v0.4.14.71 user-level `claude mcp add context7` 是当前 session 立即生效 (Connected), v0.4.14.72 project-level `.mcp.json` 是给未来团队成员 / 新 clone 准备的共享配置, 两者互补.
+
+### Verified
+- `.mcp.json` JSON 合法
+- `claude mcp list` (user-level): `codegraph: ✔ Connected` + `context7: ✔ Connected`
+
+
+
+### Added
+- **MCP context7 (user-level)** — 装 via `claude mcp add context7 -- npx -y @upstash/context7-mcp`. 当前 user-level MCP list: `codegraph: ✔ Connected` + `context7: ✔ Connected` (2 个 MCP 跑着). 实时查 FastAPI / Pydantic v2 / Vue 3.5 / ECharts 6 / Vitest / Playwright / openapi-typescript 7.13 文档.
+
+### Noted
+- **`.mcp.json` project-level 共享未加**: 用户授权范围仅 user-level `claude mcp add`, 未含 project-level 共享. 用户后续若想给团队共享, 可手动跑:
+  ```bash
+  echo '{"mcpServers":{"context7":{"command":"npx","args":["-y","@upstash/context7-mcp"],"env":{}}}}' > .mcp.json
+  git add .mcp.json
+  ```
+  团队成员 clone 后即生效 (无需每成员手动装).
+
+### Verified
+- `claude mcp list` 显示 context7 ✔ Connected (跟 codegraph 并列)
+- user-level 装在 `~/.claude.json` (项目根: `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics`)
+- 重启 claude code session 后即可在 session 内用 mcp__context7__* 工具实时查文档
+
+
 
 ### Added
 - **`.claude/settings.json`** (新) — 3 PostToolUse / PreToolUse hooks 保护项目安全:
