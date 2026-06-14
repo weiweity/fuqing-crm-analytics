@@ -1,3 +1,19 @@
+## [v0.4.14.74] - 2026-06-14 - fix(etl): W4 T-7 集成测试挂起 (锁检测 + 复合索引消除全表扫)
+
+### Fixed
+- **`backend/tests/test_w4_t7_integration.py:_open_production_duckdb`** — 复用 `conftest._duckdb_lock_holder_pid` 做 lsof 探测，uvicorn 或另一 pytest 进程占生产 DuckDB 时整 module skip；同时把 `memory_limit` 从 16GB 改 8GB 对齐 uvicorn 单例 (Sprint 10 preflight B1 教训: 不同 memory_limit 触发 DuckDB 1.5.x strict mode "Can't open a connection to same database file with a different configuration")。
+- **`scripts/etl/precompute_fact_rfm.py`** — 新增 `ensure_orders_composite_index()` helper，给 `orders` 表建 `(pay_time, channel, spu_product_class)` 复合索引，W4 每次跑批 4,320 次 `DATE(pay_time)=? AND channel=? AND spu_product_class=?` 全表扫消除，10.7M 行查询从 ~0.05s 降到 < 0.001s。`incremental_load_with_merge` / `run_mvp_async` / CLI 入口都幂等调 `CREATE INDEX IF NOT EXISTS`，首次跑 ~30s 建索引，后续跳过。
+
+### Verified
+- `pytest backend/tests/test_w4_t7_integration.py` 4/4 PASSED, 759s (旧测试 `test_b_w4_idempotency` 在 uvicorn 占用时挂 > 30min)。
+- `pytest backend/tests/test_w4_full.py` 18/18 PASSED, 3.40s (in-memory 回归)。
+- `pytest backend/tests/test_w3w4_pipeline_smoke.py` 12/12 PASSED, 25.4s (含新增 `TestColdStartEmptyTrackerDoesNotMarkAllProcessed`)。
+
+### Noted
+- W4 T-7 集成测试运行 12min 仍远高于 in-memory 4s，因为 fixture 灌的是 mock 数据 (5 单 today-1)，生产 DuckDB 真实跑批 4,320 次 combo query。复合索引生效后单 query 已 < 1ms，但 4,320 次单连接执行仍有 100ms+ Python↔DuckDB 序列化开销。后续 Sprint 24 P0 考虑批量 INSERT (UNNEST) 把 4,320 → 1 次 execute，可压到 30s 内。本次为最小修（治根：锁检测 + 索引），不动 ETL 核心循环。
+- 旧 `setup_async_memory()` 16GB override 显式删除，跟 backend 单例对齐到 8GB。Sprint 5 真闭环 17 min 跑批 8GB 已验证够用，无需 16GB。
+
+
 ## [v0.4.14.73] - 2026-06-14 - fix(etl): 冷启动空 tracker 误判导致增量跑批跳过新文件
 
 ### Fixed
