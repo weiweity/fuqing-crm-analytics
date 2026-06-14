@@ -1,8 +1,5 @@
 #!/bin/bash
-# 芙清 CRM - ETL 手动触发脚本 (Sprint 10 之后)
-#
-# 背景: Sprint 10 之前用 launchd 每天 8:30 定时跑 (com.fuqing.etl.daily), 但实际
-# 原始数据晚到 (8:30 经常没新数据), launchd 自动跑没意义. Sprint 10 改成手动触发.
+# 芙清 CRM - ETL 一键跑批脚本 (Sprint 22+)
 #
 # 用法:
 #   ./scripts/etl/run-etl.sh                # 增量 update (推荐, 扫增量数据)
@@ -10,20 +7,12 @@
 #   ./scripts/etl/run-etl.sh --inc          # 强制增量
 #   ./scripts/etl/run-etl.sh --help         # 看 help
 #
-# 跑前必读:
-#   - uvicorn 持 DuckDB 文件锁, 跑前 kill uvicorn PID 避免 IO Error:
-#     lsof -ti :8000 | xargs kill
-#   - 跑完建议重启 uvicorn 让前端加载新数据:
-#     export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
-#     PYTHONPATH=. nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 \
-#       >> /tmp/fuqing-crm-backend.log 2>&1 &
-#   - 跑批期间不要中断 (10-15 min), DuckDB 锁会卡其他读写
-#   - 跑批日志 / 6 道门禁 / W3 6 断言 / W4 fact_rfm 增量 都在脚本 stdout
+# 自动处理:
+#   1. 跑前自动停 uvicorn (释放 DuckDB 锁)
+#   2. 跑 ETL (10-18 min)
+#   3. 跑完自动重启 uvicorn (前端加载新数据)
 #
-# 为什么不用 launchd:
-#   - 原始数据晚到, 8:30 跑经常没新数据, 浪费跑批 + 容易撞 uvicorn
-#   - 手动触发可以在加完 xlsx 后立即跑, 数据新鲜度最高
-#   - 用户(PM) 方便操作, 不需要理解 launchd / cron
+# 跑批期间不要中断 (10-18 min), DuckDB 锁会卡其他读写
 
 set -e
 
@@ -67,22 +56,30 @@ echo "  python:  $PYTHON"
 echo "  log:     $LOG"
 echo ""
 
-# 2. uvicorn 持锁检测
+# 2. 自动停 uvicorn (释放 DuckDB 锁)
 UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
 if [ -n "$UVICORN_PID" ]; then
-    echo "  ⚠️  uvicorn PID $UVICORN_PID 持 DuckDB 锁, 跑批期间前端会断"
-    echo "     建议先 kill: lsof -ti :8000 | xargs kill"
-    echo ""
+    echo "  🔄 自动停 uvicorn PID $UVICORN_PID (释放 DuckDB 锁)..."
+    kill "$UVICORN_PID" 2>/dev/null
+    sleep 2
+    # 确认停了
+    if lsof -ti :8000 >/dev/null 2>&1; then
+        echo "  ⚠️  uvicorn 未停, 强制 kill..."
+        kill -9 "$UVICORN_PID" 2>/dev/null
+        sleep 1
+    fi
+    echo "  ✅ uvicorn 已停"
+else
+    echo "  ✅ uvicorn 未运行 (无需停)"
 fi
 
-# 3. DuckDB 锁检测 (跟 uvicorn 同一文件)
-DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/sample_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
+# 3. DuckDB 锁最终检测 (兜底: 如果有非 uvicorn 进程持锁)
+DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
 if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
-    echo "  ⚠️  DuckDB 锁被以下进程持有: $DUCKDB_LOCK_HOLDER"
-    echo "     跑批会 IO Error. 建议先 kill:"
-    echo "     lsof -ti $PROJECT_ROOT/data/processed/sample_crm.duckdb | xargs kill"
-    echo ""
-    read -p "  按 Enter 继续 (有锁), Ctrl+C 中断: "
+    echo "  ❌ DuckDB 锁被以下进程持有: $DUCKDB_LOCK_HOLDER"
+    echo "     跑批会 IO Error. 手动 kill 后重试:"
+    echo "     lsof -ti $PROJECT_ROOT/data/processed/fuqing_crm.duckdb | xargs kill"
+    exit 1
 fi
 
 echo "  模式: $MODE"
@@ -100,15 +97,29 @@ echo ""
 echo "============================================================"
 if [ $EXIT_CODE -eq 0 ]; then
     echo "  ✅ ETL 完成 (exit 0, 耗时 ${ELAPSED}s)"
-    echo ""
-    echo "  下一步: 重启 uvicorn 让前端加载新数据"
-    echo "    lsof -ti :8000 | xargs kill"
-    echo "    export HEALTH_API_KEY=\$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
-    echo "    PYTHONPATH=. nohup python3 -m uvicorn backend.main:app \\"
-    echo "      --host 0.0.0.0 --port 8000 >> /tmp/fuqing-crm-backend.log 2>&1 &"
 else
     echo "  ❌ ETL 失败 (exit $EXIT_CODE, 耗时 ${ELAPSED}s)"
     echo "  查日志: $LOG"
-    exit $EXIT_CODE
+fi
+
+# 6. 自动重启 uvicorn (不管 ETL 成功失败都重启, 让前端可用)
+echo ""
+echo "  🔄 自动重启 uvicorn..."
+export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
+nohup "$PYTHON" -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 \
+    >> /tmp/fuqing-crm-backend.log 2>&1 &
+NEW_PID=$!
+sleep 3
+if lsof -ti :8000 >/dev/null 2>&1; then
+    echo "  ✅ uvicorn 已重启 (PID $NEW_PID)"
+    echo "  前端: http://localhost:5173"
+    echo "  API:  http://localhost:8000/docs"
+else
+    echo "  ⚠️  uvicorn 重启可能失败, 手动检查:"
+    echo "    lsof -ti :8000"
 fi
 echo "============================================================"
+
+if [ $EXIT_CODE -ne 0 ]; then
+    exit $EXIT_CODE
+fi
