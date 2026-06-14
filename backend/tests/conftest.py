@@ -1,7 +1,6 @@
 """
 Pytest fixtures for backend service tests.
 """
-import os
 import subprocess
 import pytest
 import sys
@@ -43,13 +42,17 @@ def _duckdb_lock_holder_pid() -> int | None:
 
 
 @pytest.fixture
-def skip_if_uvicorn_alive():
-    """test fixture: 如果生产 DuckDB 被其他进程占, pytest.skip 整 test.
+def skip_if_duckdb_locked():
+    """test fixture: 如果生产 DuckDB 被任何进程占 (含本 pytest 进程), pytest.skip 整 test.
+
+    背景: backend/db/connection.py 单例连接会在首次 get_connection() 后一直占住生产
+    DuckDB 文件。此时再调 subprocess 跑 scripts/etl/*.py 去 duckdb.connect 同一文件会
+    触发 IO Error: Could not set lock。因此只要 lsof 探测到任何 PID 占 fd, 就跳过。
 
     适用: 调 subprocess 跑 scripts/etl/*.py 而该脚本会 duckdb.connect(_PROD_DUCKDB_PATH).
     """
     holder_pid = _duckdb_lock_holder_pid()
-    if holder_pid is not None and holder_pid != os.getpid():
+    if holder_pid is not None:
         pytest.skip(
             f"生产 DuckDB 被 PID {holder_pid} 占 fd, 跳过 (避免跨进程锁冲突). "
             f"如需跑, 先 kill {holder_pid} 或用 --no-uvicorn 起测试环境."

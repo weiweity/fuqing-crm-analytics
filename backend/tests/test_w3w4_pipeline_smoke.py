@@ -741,3 +741,48 @@ class TestModeFullVsIncremental:
             pytest.fail(
                 f"mode='full' 端到端应不抛错, 实际: {type(e).__name__}: {e}"
             )
+
+
+class TestColdStartEmptyTrackerDoesNotMarkAllProcessed:
+    """Regression: processed_files_*.json 存在但为空 {} 时, 冷启动不应标记全部文件已处理.
+
+    之前 bug: `if not processed` 把空 dict 当成"无处理记录", 调用 _mark_all_files_processed()
+    把包括新增文件在内的所有历史文件标为已处理, 导致增量跑批跳过新增文件.
+    修复后: 只有 tracker 文件不存在时才走冷启动; 空 {} 不触发.
+    """
+
+    def test_empty_tracker_file_does_not_trigger_cold_start_mark_all(self, w3w4_smoke_env):
+        """tracker 文件存在但内容为空 {} 时, _mark_all_files_processed 不应被调用."""
+        from unittest.mock import MagicMock
+        from scripts.etl import pipeline
+        from scripts.etl.pipeline import run_full_etl
+
+        monkeypatch = w3w4_smoke_env["monkeypatch"]
+
+        # tracker 文件存在 (tmp 空文件)
+        empty_tracker = Path(w3w4_smoke_env["duckdb_path"]).parent / "processed_files_empty.json"
+        empty_tracker.write_text("{}")
+
+        monkeypatch.setattr(
+            pipeline, "_get_processed_files_path",
+            lambda data_type: empty_tracker,
+        )
+        monkeypatch.setattr(
+            pipeline, "_load_processed_files",
+            lambda data_type: {},
+        )
+
+        mark_all_mock = MagicMock()
+        monkeypatch.setattr(pipeline, "_mark_all_files_processed", mark_all_mock)
+
+        try:
+            run_full_etl(mode="inc", skip_dq=True, skip_w4=True, window_days=30,
+                         force_continue=True)
+        except Exception as e:
+            pytest.fail(
+                f"空 tracker 修复后跑批应不抛错, 实际: {type(e).__name__}: {e}"
+            )
+
+        assert not mark_all_mock.called, (
+            "tracker 文件存在但为空 {} 时, _mark_all_files_processed 不应被调用"
+        )

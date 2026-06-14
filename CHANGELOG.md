@@ -1,3 +1,19 @@
+## [v0.4.14.73] - 2026-06-14 - fix(etl): 冷启动空 tracker 误判导致增量跑批跳过新文件
+
+### Fixed
+- **`scripts/etl/pipeline.py:164`** — 修复冷启动逻辑：当 `processed_files_*.json` 存在但为空 `{}` 时，旧代码会把所有历史文件（含新增文件）标记为已处理，导致 6/12-6/14 数据被跳过。改为仅当 tracker 文件不存在时才走冷启动标记。
+- **`backend/tests/conftest.py`** — `skip_if_uvicorn_alive` 改名为 `skip_if_duckdb_locked`，并修复当 pytest 自身通过 `backend/db/connection.py` 单例占住 DuckDB 时未 skip 的问题，解决 `test_w4_full.py::test_rfm_recompute_window_dry_run` 在全量测试套件中因锁冲突 flaky fail。
+
+### Added
+- **`backend/tests/test_w3w4_pipeline_smoke.py`** — 新增回归测试 `TestColdStartEmptyTrackerDoesNotMarkAllProcessed`，验证空 tracker 文件不会触发 `_mark_all_files_processed`。
+
+### Verified
+- 删除 `processed_files_shop.json` / `processed_files_member.json` 中 6/12-6/14 被误标的条目后，跑一次 `--update` 成功恢复：
+  - 6/12: 4,448 orders
+  - 6/13: 8,575 orders
+- `pytest backend/tests/test_w3w4_pipeline_smoke.py backend/tests/test_w6_pipeline_integration.py backend/tests/test_w6_etl_notify.py` — 27 passed, 0 failed
+
+
 ## [v0.4.14.72] - 2026-06-14 - chore(automation): Sprint 23 P2-1 .mcp.json project-level MCP 共享 (context7 给团队)
 
 ### Added
