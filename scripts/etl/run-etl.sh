@@ -85,9 +85,11 @@ echo "  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "============================================================"
 echo ""
 
-# 5. 跑 ETL
+# 5. 跑 ETL (所有输出 tee 到日志, 实时可查)
 START=$(date +%s)
-"$PYTHON" scripts/run_etl.py "$MODE" 2>&1 | tee "$LOG"
+echo "  日志: $LOG (另开终端 tail -f 可实时看)"
+echo ""
+"$PYTHON" scripts/run_etl.py "$MODE" 2>&1 | tee -a "$LOG"
 EXIT_CODE=${PIPESTATUS[0]}
 ELAPSED=$(( $(date +%s) - START ))
 
