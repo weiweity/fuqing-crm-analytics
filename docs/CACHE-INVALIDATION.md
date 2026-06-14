@@ -285,7 +285,7 @@ uvicorn 启动时, 看 `[INFO] W5 startup hook: manifest version 变化 ... inva
 
 跑测试:
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/test_cache_invalidation.py -v
 # 10 passed in <5s
 ```

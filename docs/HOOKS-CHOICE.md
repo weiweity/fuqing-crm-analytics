@@ -93,7 +93,7 @@ Sprint 3 P1-3 教训 #3 (CLAUDE.md "Sprint 3 P1 三件 4 轮修教训"):
 ### 4.1 默认路径 (1 分钟)
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 bash scripts/setup-hooks.sh        # 装 .githooks 路径
 git commit -m "feat: xxx"           # 9 件 lint 自动跑
 ```
