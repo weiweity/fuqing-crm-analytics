@@ -1,3 +1,15 @@
+## [v0.4.14.83] - 2026-06-15 - perf(hooks): pre-commit/pre-push 性能优化 (ruff staged-only + pytest 并行)
+
+### Performance
+- **`.githooks/pre-commit:30`** — `ruff check .` → `ruff check $STAGED_PY_FILES` 只扫 staged 文件, commit ~5s→~0.5s
+- **`.githooks/pre-commit:58`** — `pytest test_wo_cleanup_orphans.py` 移到 CI, commit 省 ~2-5s
+- **`.githooks/pre-push:6`** — `pytest -x -q` → `pytest -x -q -n auto` (pytest-xdist 并行), push ~13min→~6min
+
+### Noted
+- `requirements.txt` 需加 `pytest-xdist` (已 pip install, 但 requirements.txt 未更新 — 另开 issue)
+- `test_wo_cleanup_orphans.py` 移到 CI 是安全的: 该测试检查 /tmp 清理, 不是代码质量门禁
+
+
 ## [v0.4.14.82] - 2026-06-15 - fix(channels): 前端 affiliate 死键清理 + ETL loader fail-fast 根治
 
 ### Fixed

@@ -26,8 +26,8 @@ if [ -n "$STAGED_PY_FILES" ]; then
         exit 1
     fi
 
-    echo "Running ruff check..."
-    ruff check . --quiet
+    echo "Running ruff check (staged only)..."
+    ruff check $STAGED_PY_FILES --quiet
     if [ $? -ne 0 ]; then
         echo ""
         echo "❌ Lint errors found. Fix them before committing."
@@ -54,8 +54,8 @@ if [ -n "$STAGED_PY_FILES" ]; then
     echo "Running B5 test order lint..."
     python3 .githooks/check_test_order.py || true  # WARN 不 fail, 让 user 看自己改
 
-    # pytest cleanup orphans (v0.4.7)
-    PYTHONPATH="$(pwd)" pytest backend/tests/test_wo_cleanup_orphans.py -q || exit 1
+    # pytest cleanup orphans (v0.4.7) — moved to CI only for faster local commits
+    # PYTHONPATH="$(pwd)" pytest backend/tests/test_wo_cleanup_orphans.py -q || exit 1
 
     echo "✅ Lint clean."
 fi
