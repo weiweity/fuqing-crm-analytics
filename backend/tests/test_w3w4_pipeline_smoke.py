@@ -217,6 +217,16 @@ def w3w4_smoke_env(temp_duckdb_path, mock_parquet_dirs, monkeypatch):
 
     monkeypatch.setattr(pipeline, "DUCKDB_PATH", Path(temp_duckdb_path))
     monkeypatch.setattr(_config, "DUCKDB_PATH", Path(temp_duckdb_path))
+    # 从源头 patch backend.config.DUCKDB_PATH, 所有 from backend.config import DUCKDB_PATH 的模块生效
+    import backend.config as _backend_config
+    monkeypatch.setattr(_backend_config, "DUCKDB_PATH", Path(temp_duckdb_path))
+    # preload_rfm/backend.db.init/backend.db.connection 各自缓存了 import 时的引用, 需逐个 patch
+    from scripts.etl import preload_rfm as _preload_rfm
+    monkeypatch.setattr(_preload_rfm, "DUCKDB_PATH", Path(temp_duckdb_path))
+    from backend.db import init as _db_init
+    monkeypatch.setattr(_db_init, "DUCKDB_PATH", Path(temp_duckdb_path))
+    from backend.db import connection as _db_conn
+    monkeypatch.setattr(_db_conn, "DUCKDB_PATH", Path(temp_duckdb_path))
     # 指向空 mock 目录, 跑批 0 xlsx → 0 行新增
     monkeypatch.setattr(pipeline, "SHOP_DATA_SOURCE", mock_parquet_dirs["shop"])
     monkeypatch.setattr(pipeline, "MEMBER_DATA_SOURCE", mock_parquet_dirs["member"])
@@ -285,7 +295,7 @@ def w3w4_smoke_env(temp_duckdb_path, mock_parquet_dirs, monkeypatch):
 
     # 短路 create_user_rfm_table + run_auto_preload (Step 6 全量)
     monkeypatch.setattr(
-        "backend.database.create_user_rfm_table", lambda: None,
+        "backend.db.init.create_user_rfm_table", lambda: None,
     )
     monkeypatch.setattr(
         "scripts.etl.preload_rfm.run_auto_preload",
