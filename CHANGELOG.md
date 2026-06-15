@@ -1,3 +1,19 @@
+## [v0.4.14.77] - 2026-06-15 - fix(config): 3 处 sample_crm.duckdb/sample.duckdb 残留改 fuqing_crm.duckdb (跟生产一致)
+
+### Fixed
+- **`backend/config.py:128`** — `_DEFAULT_DUCKDB` 从 `sample_crm.duckdb` → `fuqing_crm.duckdb` (跟 `data/processed/fuqing_crm.duckdb` 实际生产文件一致). CHANGELOG v0.4.14.51 #31 写"sample.duckdb → fuqing_crm.duckdb"但仅改了 `test_api_integration.py` 跟 `test_w4_t7_integration.py` 的局部 DB_PATH, 主 default `_DEFAULT_DUCKDB` 跟 `.env.example` 漏改.
+- **`backend/services/health/overview.py:35`** — `DB_FILE` 从 `sample_crm.duckdb` → `fuqing_crm.duckdb` (跟生产 + `_DEFAULT_DUCKDB` 对齐, `_data_version()` mtime 探测能正确读到生产 DuckDB).
+- **`.env.example:23`** — `DUCKDB_PATH` 从 `data/processed/sample.duckdb` → `data/processed/fuqing_crm.duckdb` (新克隆者跑 uvicorn 不再 Database not found).
+
+### Verified
+- `python3 -c "from backend.config import _DEFAULT_DUCKDB; print(_DEFAULT_DUCKDB)"` → `.../data/processed/fuqing_crm.duckdb`
+- ruff check 干净
+- uvicorn 不重启也能从环境读真路径 (`.env` 里 `DUCKDB_PATH` 显式指向 `fuqing_crm.duckdb`, 行为不变)
+
+### Noted
+- 实际生产 `.env` (gitignore) 里 `DUCKDB_PATH` 早已指向 `fuqing_crm.duckdb`, 主 default 跟 `.env.example` 漏改是公开前脱敏 sprint (v0.4.14.59) 残留 — 跟 Sprint 19 a505f85 公开前脱敏 `MAIN_REPO_ROOT` 路径问题同根因, 但 config.py 的 _DEFAULT_DUCKDB 没在 #31 scope 内被 sweep. 此次为最小修 (3 行 + 1 CHANGELOG 段), 不动 `scripts/archive/benchmark_*.py` 的 `sample_crm.duckdb` 引用 (archive 目录 ruff exclude, 仅 bench 用).
+
+
 ## [v0.4.14.76] - 2026-06-15 - fix(tests): 隔离 test_fill_parquet_cache 测试路径, 防污染生产 tracker
 
 ### Fixed

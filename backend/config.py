@@ -125,7 +125,7 @@ DMP_DATA3_PATH = DMP_DATA_DIR / "data3.csv"   # 单品资产（周级）
 DMP_DATA_PATH = DMP_DATA_DIR / "data.csv"     # 人群漏斗流转数据（日级）
 
 # DuckDB 数据库路径（默认使用项目内相对路径）
-_DEFAULT_DUCKDB = PROJECT_ROOT / "data" / "processed" / "sample_crm.duckdb"
+_DEFAULT_DUCKDB = PROJECT_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
 DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(_DEFAULT_DUCKDB)))
 
 # DuckDB 内存限制（默认 8GB，避免占用过多系统内存）
