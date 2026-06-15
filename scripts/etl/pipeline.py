@@ -485,6 +485,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         # Step 2.5: 滑动窗口过滤（全新订单 + 窗口内刷新）
         new_df, refresh_df = combined_df.copy(), pd.DataFrame()
         if run_mode == 'incremental':
+            _step_log("Step 2.5 滑动窗口过滤", "start")
             with PerfTimer("pl_step2_5_filter_rolling_window", window_days=window_days):
                 max_time = get_db_max_pay_time()
                 if max_time:
@@ -497,6 +498,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                             return
 
         # Step 3: 清洗数据
+        _step_log("Step 3 清洗数据", f"start (new={len(new_df):,}, refresh={len(refresh_df):,})")
         if len(new_df) > 0:
             with PerfTimer("pl_step3_clean_data_new", rows=len(new_df)):
                 new_df = clean_data(new_df, spu_df, keyword_rules, id_rules,
@@ -511,6 +513,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                                        force_continue=force_continue)
 
         # Step 4: 写入数据库（滑动窗口模式）
+        _step_log("Step 4 写入 DuckDB", f"start (new={len(new_df):,}, refresh={len(refresh_df):,})")
         with PerfTimer("pl_step4_upsert_to_duckdb",
                        new_rows=len(new_df), refresh_rows=len(refresh_df)):
             upsert_to_duckdb(new_df, refresh_df, mode=run_mode, window_days=window_days)
@@ -548,6 +551,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         # Sprint 15 Wave 3 治根: Step 4.7 改增量 UPDATE (只新拉 order_id, 不全表 UPDATE + 不重建 6 索引).
         # 之前 replay_is_member.py 全表 UPDATE 10.6M + DROP/CREATE 6 索引 = 21s, 增量模式不需要.
         # 修法: BEGIN/COMMIT 包单事务 (跟 D.1 一致), UPDATE WHERE order_id IN member_order_ids.
+        _step_log("Step 4.7 is_member 增量", f"start ({len(member_order_ids):,} order_ids)")
         with PerfTimer("pl_step4_7_replay_is_member_incremental"):
             try:
                 if member_order_ids:
@@ -583,12 +587,16 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         # 必须先建好 user_first_purchase 表。详见 _update_incremental_metrics docstring。
 
     # Step 6: 维护 user_first_purchase 表（滑动窗口模式）
+    _step_log("Step 6 user_first_purchase", f"start (mode={run_mode})")
     with PerfTimer("pl_step6_user_first_purchase", run_mode=run_mode, window_days=window_days):
-        _build_user_first_purchase_table(run_mode, window_days=window_days)
+        _build_user_first_purchase_table(run_mode, window_days=window_days,
+                                          new_df=new_df, refresh_df=refresh_df)
 
     # Step 6.5: 维护 user_recency 表（RFM flow 查询加速）
+    _step_log("Step 6.5 user_recency", f"start (mode={run_mode})")
     with PerfTimer("pl_step6_5_user_recency", run_mode=run_mode, window_days=window_days):
-        _build_user_recency_table(run_mode, window_days=window_days)
+        _build_user_recency_table(run_mode, window_days=window_days,
+                                   new_df=new_df, refresh_df=refresh_df)
 
     # Step 6.7: 计算 daily_metrics（必须在 user_first_purchase 之后，SQL 用 LEFT JOIN）
     _step_log("Step 6.7 daily_metrics", "start")
@@ -605,20 +613,26 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
             _mark_all_files_processed()
 
     # Step 8: 品类看板 v2 预计算（品类流转 + 流失预警）
-    print("\n品类看板 v2 预计算...")
-    step8_ok = False
-    try:
-        from scripts.etl.precompute_category_flow import run_full_precomputation as run_flow_full
-        from scripts.etl.precompute_category_churn import run_full_precomputation as run_churn_full
-        # 全量预计算（覆盖写入幂等）
-        with PerfTimer("pl_step8a_category_flow"):
-            run_flow_full()
-        with PerfTimer("pl_step8b_category_churn"):
-            run_churn_full()
-        print("  预计算完成")
+    # O5 优化: 增量模式无新数据时跳过
+    _has_new_data = len(new_df) > 0 or len(refresh_df) > 0
+    if run_mode == 'incremental' and not _has_new_data:
+        print("\n品类看板 v2 预计算跳过（增量模式无新数据）")
         step8_ok = True
-    except Exception as e:
-        print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
+    else:
+        print("\n品类看板 v2 预计算...")
+        step8_ok = False
+        try:
+            from scripts.etl.precompute_category_flow import run_full_precomputation as run_flow_full
+            from scripts.etl.precompute_category_churn import run_full_precomputation as run_churn_full
+            # 全量预计算（覆盖写入幂等）
+            with PerfTimer("pl_step8a_category_flow"):
+                run_flow_full()
+            with PerfTimer("pl_step8b_category_churn"):
+                run_churn_full()
+            print("  预计算完成")
+            step8_ok = True
+        except Exception as e:
+            print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
 
     # Step 8.5: W3 DQ assertions (6 断言) — 设计 doc v1.1 §W3 + §7.3
     # 失败入 rfm_quarantine, 不阻塞 ETL (SaaS 标准: 脏数据隔离不阻塞业务)
@@ -854,7 +868,10 @@ def _rebuild_metrics():
 
 
 def _update_incremental_metrics(new_df, refresh_df, window_days=30):
-    """增量更新每日指标（滑动窗口模式：新日期 + 窗口内日期都刷新）
+    """增量更新每日指标（只处理实际变化的日期）
+
+    O4 优化: 之前对整个30天窗口 DELETE+重算，现在只处理 new_df + refresh_df
+    涉及的日期。refresh_df 已覆盖窗口内需要刷新的订单。
 
     新/老客口径（与 user_first_purchase 表保持一致）：
       - new_user: first_pay_date = 当日（用 ufp 判定，因为 ufp 只收录有效首购用户）
@@ -864,9 +881,7 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
       - new/old_user_gmv 加 is_refund=FALSE 过滤，与 gsv 口径一致
         （仅统计有效购买金额，不含退款）
     """
-    from datetime import datetime, timedelta
-
-    # 收集所有需要更新的日期
+    # O4 优化: 只收集实际变化的日期（不扩展到整个窗口）
     all_dates = set()
     if not new_df.empty:
         all_dates.update(new_df['pay_time'].dt.date.dropna().unique())
@@ -876,14 +891,8 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
     if not all_dates:
         return
 
-    # 窗口内的日期也要加入（已有订单状态变化可能影响历史日期的指标）
-    today = datetime.now().date()
-    window_start = today - timedelta(days=window_days)
-    for d in pd.date_range(start=window_start, end=today):
-        all_dates.add(d.date())
-
     date_list = sorted(all_dates)
-    print(f"\n增量更新每日指标 ({len(date_list)} 个日期)...")
+    print(f"\n增量更新每日指标 ({len(date_list)} 个日期, 之前是 {window_days + 1} 天窗口)...")
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     conn.execute("DELETE FROM daily_metrics WHERE date IN (SELECT unnest(?))", [date_list])
@@ -941,7 +950,8 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
     conn.close()
 
 
-def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30):
+def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30,
+                                      new_df=None, refresh_df=None):
     """
     构建 user_first_purchase 表（滑动窗口模式）。
 
@@ -950,7 +960,6 @@ def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30):
       1. 窗口内用户：DELETE 后重新计算（状态变化可能影响首购日期）
       2. 全新用户：INSERT 不在表中的用户
     """
-    from datetime import datetime, timedelta
     print("\n维护 user_first_purchase 表...")
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
@@ -977,9 +986,6 @@ def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30):
         count = conn.execute("SELECT COUNT(*) FROM user_first_purchase").fetchone()[0]
         print(f"  user_first_purchase 全量重建: {count:,} 用户")
     else:
-        today = datetime.now().date()
-        window_start = today - timedelta(days=window_days)
-
         existing_tables = [t[0] for t in conn.execute("SHOW TABLES").fetchall()]
         if 'user_first_purchase' not in existing_tables:
             conn.execute("""
@@ -989,52 +995,57 @@ def _build_user_first_purchase_table(mode: str = 'full', window_days: int = 30):
                 )
             """)
 
-        # 1. 窗口内用户：先删除再重新计算
-        conn.execute("""
-            DELETE FROM user_first_purchase
-            WHERE user_id IN (
-                SELECT DISTINCT user_id FROM orders
-                WHERE DATE(pay_time) >= ? AND DATE(pay_time) <= ?
-            )
-        """, [window_start, today])
+        # O2 优化: 只处理新/刷新订单涉及的用户，而非整个窗口
+        affected_user_ids = set()
+        if new_df is not None and not new_df.empty and 'user_id' in new_df.columns:
+            affected_user_ids.update(new_df['user_id'].dropna().astype(str).unique())
+        if refresh_df is not None and not refresh_df.empty and 'user_id' in refresh_df.columns:
+            affected_user_ids.update(refresh_df['user_id'].dropna().astype(str).unique())
+        # 过滤空值
+        affected_user_ids.discard('')
+        affected_user_ids.discard('nan')
+        affected_user_ids.discard('None')
 
-        conn.execute("""
-            INSERT INTO user_first_purchase
-            SELECT user_id, MIN(DATE(pay_time)) AS first_pay_date
-            FROM orders
-            WHERE pay_time IS NOT NULL
-              AND is_goujinjin = FALSE
-              AND is_refund = FALSE
-              AND user_id IS NOT NULL
-              AND user_id != ''
-              AND user_id IN (
-                  SELECT DISTINCT user_id FROM orders
-                  WHERE DATE(pay_time) >= ? AND DATE(pay_time) <= ?
-              )
-            GROUP BY user_id
-        """, [window_start, today])
+        if affected_user_ids:
+            # 1. 只删除受影响的用户
+            id_list = sorted(affected_user_ids)
+            batch_size = 10000
+            for i in range(0, len(id_list), batch_size):
+                batch = id_list[i:i+batch_size]
+                placeholders = ','.join(['?' for _ in batch])
+                conn.execute(f"""
+                    DELETE FROM user_first_purchase
+                    WHERE user_id IN ({placeholders})
+                """, batch)
 
-        # 2. 全新用户
-        conn.execute("""
-            INSERT INTO user_first_purchase
-            SELECT user_id, MIN(DATE(pay_time)) AS first_pay_date
-            FROM orders
-            WHERE pay_time IS NOT NULL
-              AND is_goujinjin = FALSE
-              AND is_refund = FALSE
-              AND user_id IS NOT NULL
-              AND user_id != ''
-              AND user_id NOT IN (SELECT user_id FROM user_first_purchase)
-            GROUP BY user_id
-        """)
+            # 2. 重新计算受影响用户的 first_pay_date（全历史，不只是窗口内）
+            for i in range(0, len(id_list), batch_size):
+                batch = id_list[i:i+batch_size]
+                placeholders = ','.join(['?' for _ in batch])
+                conn.execute(f"""
+                    INSERT INTO user_first_purchase
+                    SELECT user_id, MIN(DATE(pay_time)) AS first_pay_date
+                    FROM orders
+                    WHERE pay_time IS NOT NULL
+                      AND is_goujinjin = FALSE
+                      AND is_refund = FALSE
+                      AND user_id IS NOT NULL
+                      AND user_id != ''
+                      AND user_id IN ({placeholders})
+                    GROUP BY user_id
+                """, batch)
+            print(f"  user_first_purchase 增量更新: {len(affected_user_ids):,} 个受影响用户")
+        else:
+            print("  user_first_purchase: 无受影响用户，跳过")
+
         count = conn.execute("SELECT COUNT(*) FROM user_first_purchase").fetchone()[0]
         print(f"  user_first_purchase 增量更新: 当前合计 {count:,} 用户")
 
     conn.close()
 
-def _build_user_recency_table(mode: str = 'full', window_days: int = 30):
+def _build_user_recency_table(mode: str = 'full', window_days: int = 30,
+                               new_df=None, refresh_df=None):
     """构建 user_recency 表（全量/增量），用于 RFM flow 查询加速。"""
-    from datetime import datetime, timedelta
     print("\n维护 user_recency 表...")
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     _VB = "is_goujinjin = FALSE AND order_status != '交易关闭'"
@@ -1046,13 +1057,47 @@ def _build_user_recency_table(mode: str = 'full', window_days: int = 30):
         cnt = conn.execute("SELECT COUNT(*) FROM user_recency").fetchone()[0]
         print(f"  user_recency 全量重建: {cnt:,} 用户")
     else:
-        td = datetime.now().date()
-        ws = td - timedelta(days=window_days)
+        # O3 优化: 只处理新/刷新订单涉及的用户，而非整个窗口
+        affected_user_ids = set()
+        if new_df is not None and not new_df.empty and 'user_id' in new_df.columns:
+            affected_user_ids.update(new_df['user_id'].dropna().astype(str).unique())
+        if refresh_df is not None and not refresh_df.empty and 'user_id' in refresh_df.columns:
+            affected_user_ids.update(refresh_df['user_id'].dropna().astype(str).unique())
+        affected_user_ids.discard('')
+        affected_user_ids.discard('nan')
+        affected_user_ids.discard('None')
+
         if 'user_recency' not in [t[0] for t in conn.execute("SHOW TABLES").fetchall()]:
             conn.execute("CREATE TABLE user_recency (user_id VARCHAR PRIMARY KEY, last_pay_time TIMESTAMP, is_member BOOLEAN DEFAULT FALSE, recency_days INTEGER, total_orders INTEGER DEFAULT 0, total_amount DECIMAL(14,2) DEFAULT 0)")
-        conn.execute("DELETE FROM user_recency WHERE user_id IN (SELECT DISTINCT user_id FROM orders WHERE DATE(pay_time) >= ? AND DATE(pay_time) <= ?)", [ws, td])
-        conn.execute(f"INSERT INTO user_recency SELECT user_id, MAX(pay_time), MAX(CASE WHEN is_member THEN TRUE ELSE FALSE END), DATEDIFF('day', MAX(pay_time), CURRENT_DATE), COUNT(*), SUM(actual_amount) FROM orders WHERE {_VB} AND user_id IS NOT NULL AND user_id != '' AND user_id IN (SELECT DISTINCT user_id FROM orders WHERE DATE(pay_time) >= ? AND DATE(pay_time) <= ?) GROUP BY user_id", [ws, td])
-        conn.execute(f"INSERT INTO user_recency SELECT user_id, MAX(pay_time), MAX(CASE WHEN is_member THEN TRUE ELSE FALSE END), DATEDIFF('day', MAX(pay_time), CURRENT_DATE), COUNT(*), SUM(actual_amount) FROM orders WHERE {_VB} AND user_id IS NOT NULL AND user_id != '' AND user_id NOT IN (SELECT user_id FROM user_recency) GROUP BY user_id")
+
+        if affected_user_ids:
+            id_list = sorted(affected_user_ids)
+            batch_size = 10000
+            # 1. 只删除受影响的用户
+            for i in range(0, len(id_list), batch_size):
+                batch = id_list[i:i+batch_size]
+                placeholders = ','.join(['?' for _ in batch])
+                conn.execute(f"DELETE FROM user_recency WHERE user_id IN ({placeholders})", batch)
+
+            # 2. 重新计算受影响用户的 recency（全历史聚合）
+            for i in range(0, len(id_list), batch_size):
+                batch = id_list[i:i+batch_size]
+                placeholders = ','.join(['?' for _ in batch])
+                conn.execute(f"""
+                    INSERT INTO user_recency
+                    SELECT user_id, MAX(pay_time),
+                           MAX(CASE WHEN is_member THEN TRUE ELSE FALSE END),
+                           DATEDIFF('day', MAX(pay_time), CURRENT_DATE),
+                           COUNT(*), SUM(actual_amount)
+                    FROM orders
+                    WHERE {_VB} AND user_id IS NOT NULL AND user_id != ''
+                      AND user_id IN ({placeholders})
+                    GROUP BY user_id
+                """, batch)
+            print(f"  user_recency 增量更新: {len(affected_user_ids):,} 个受影响用户")
+        else:
+            print("  user_recency: 无受影响用户，跳过")
+
         cnt = conn.execute("SELECT COUNT(*) FROM user_recency").fetchone()[0]
         print(f"  user_recency 增量更新: 当前合计 {cnt:,} 用户")
     conn.close()

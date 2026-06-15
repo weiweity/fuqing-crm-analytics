@@ -1,3 +1,17 @@
+## [v0.4.14.86] - 2026-06-16 - perf(etl): 增量 ETL 8 项性能优化
+
+### Performance
+- **O1 参考数据 pickle 缓存** — `sources.py`: taoke/live 订单号 set 序列化到 pickle, 文件 mtime fingerprint 检测, 未变化直接加载 (跳过 2M+ set 重建, ~30s→~1s)
+- **O2/O3 user_first_purchase/recency 增量** — `pipeline.py`: 增量模式只处理新/刷新订单的用户, 非整个30天窗口 (10K+→~100-500 用户)
+- **O4 daily_metrics 增量** — `pipeline.py`: 只处理实际变化日期, 移除30天窗口扩展 (31天→1-3天)
+- **O5 品类预计算跳过** — `pipeline.py`: 增量无新数据时跳过 Step 8
+- **O7 RFM 按需跳过** — `preload_rfm.py`: 历史热点日期已有数据且未变化时跳过 (12日期→~1-2日期)
+- **O6 增量进度日志** — `pipeline.py`: Step 2.5/3/4/4.7/6/6.5 加 `_step_log()`
+
+### Noted
+- **O8 淘客策略** — 确认保持现有全量重标逻辑 (`update_taoke_channel` reset+reapply)
+
+
 ## [v0.4.14.85] - 2026-06-15 - fix(etl): ConnectionException 治根 + 原子化重建 + 进度日志
 
 ### Fixed
