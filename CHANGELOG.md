@@ -1,3 +1,14 @@
+## [v0.4.14.76] - 2026-06-15 - fix(tests): 隔离 test_fill_parquet_cache 测试路径, 防污染生产 tracker
+
+### Fixed
+- **`backend/tests/test_fill_parquet_cache.py:TestFillParquetCache`** — 加 `autouse=True` fixture 把 `PROCESSED_DATA_DIR` 指向 `tmp_path / "processed"`，真实 `_save_processed_files` 写到 temp dir（pytest 自动清理）。此前 6 个 test 只有 1 个 mock `_save_processed_files`，其余 5 个跑完写生产 `data/processed/processed_files_*.json`，pre-push pytest 跑后污染生产 tracker。
+- 2026-06-15 真实事故链：pytest 写 `test_order.xlsx` 1 条到生产 tracker → 下次 ETL 冷启动标记所有源文件已处理 → 6/14 数据未加载 → 人群看板 6/14 ¥0。
+
+### Verified
+- `pytest backend/tests/test_fill_parquet_cache.py` 9/9 PASSED (含原 skip_unchanged 仍能走 skip 分支，因为 `_save_processed_files` 真实调用非 mock)
+- 跑完 `ls data/processed/processed_files_*.json` 为空（无生产污染）
+
+
 ## [v0.4.14.75] - 2026-06-15 - fix(etl): 跑完 ETL 后 uvicorn 未自动重启 (set -e + ticker kill/wait 提前 exit)
 
 ### Fixed

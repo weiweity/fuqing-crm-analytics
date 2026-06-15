@@ -15,9 +15,32 @@ import pandas as pd
 class TestFillParquetCache:
     """fill_parquet_cache.py 单元测试"""
 
+    @pytest.fixture(autouse=True)
+    def _isolate_test_paths(self, tmp_path, monkeypatch):
+        """autouse fixture: 隔离 tmp_path, 防止污染生产 data/processed/processed_files_*.json
+
+        2026-06-15 真实事故根因: 此前 6 个 test 只有 1 个 mock _save_processed_files,
+        其余 5 个跑完会在生产 tracker 写 1 条 test_order.xlsx. pre-push pytest 跑后
+        生产 tracker 被覆盖, 下次 ETL 冷启动误判, 6/14 源文件不加载 → dashboard ¥0.
+
+        修法: 把 PROCESSED_DATA_DIR 指向 tmp_path / "processed", 真实 _save_processed_files
+        会写到 temp dir (pytest 自动清理), 既防污染又让 skip test 仍能跑 (需要真实
+        save 让第二次调用 skip)。1 个 fixture 覆盖 class 全部 test, 比每个 test 重复
+        patch 5 处好维护。
+        """
+        pq_dir = tmp_path / "parquet"
+        processed_dir = tmp_path / "processed"
+        pq_dir.mkdir()
+        processed_dir.mkdir()
+        monkeypatch.setattr('scripts.etl.config.PARQUET_DATA_DIR', pq_dir)
+        monkeypatch.setattr('scripts.etl.config.PROCESSED_DATA_DIR', processed_dir)
+        monkeypatch.setattr('scripts.etl.fill_parquet_cache.PARQUET_DATA_DIR', pq_dir)
+        # 关键: PROCESSED_DATA_DIR 指向 temp, 真实 _save_processed_files 写到 temp
+        # (不要 mock _save_processed_files, skip test 需要真实 save 走 skip 分支)
+
     @pytest.fixture
     def temp_dir(self):
-        """创建临时目录"""
+        """创建临时目录（保留以兼容现有 test，autouse 已隔离）"""
         with tempfile.TemporaryDirectory() as tmpdir:
             yield Path(tmpdir)
 
