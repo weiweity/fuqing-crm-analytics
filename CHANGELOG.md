@@ -1,3 +1,17 @@
+## [v0.4.14.85] - 2026-06-15 - fix(etl): ConnectionException 治根 + 原子化重建 + 进度日志
+
+### Fixed
+- **`scripts/run_etl.py:52`** — DuckDB 连接加 `config={"memory_limit": DUCKDB_MEMORY_LIMIT}`. 根因: 无 memory_limit 的连接跟 8GB 连接同时打开, DuckDB 1.5.x strict mode 报 "different configuration" → ETL 卡死.
+- **`scripts/etl/pipeline.py:267`** — `DROP TABLE` → `DELETE FROM orders`. 中断时表结构保留, 不丢旧数据. (TRUNCATE 可能 sigsegv, DROP 中断丢数据 — DELETE 是安全中间方案)
+- **`scripts/etl/run-etl.sh:135`** — trap handler 加 `pkill -f "run_etl.py"`, Ctrl+C 后 Python 子进程不再持有 DuckDB 锁.
+
+### Added
+- **`scripts/etl/pipeline.py:38-43`** — `_step_log()` 辅助函数, 关键步骤打印 `[Step X] start: HH:MM:SS` / `[Step X] done: HH:MM:SS` 日志.
+
+### Noted
+- D5 checkpoint/resume 未实现: 现有 INSERT `WHERE NOT EXISTS` 已去重, 中断重跑安全 (只是重复工作). 后续优化.
+
+
 ## [v0.4.14.84] - 2026-06-15 - perf(hooks): 分层测试 pre-push 6min→10s (slow marker + pytest -m "not slow")
 
 ### Performance

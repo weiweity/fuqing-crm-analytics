@@ -130,15 +130,16 @@ echo ""
 ) &
 TICKER_PID=$!
 
-# 保险清理: 不管脚本如何退出 (set -e 触发 / 正常完成 / Ctrl+C) 都 kill ticker
-# (原手动 kill/wait 在 set -e 下若 ticker 已死会返非零 → 触发提前 exit → 跳过重启 uvicorn 那步 → 前端 502)
+# 保险清理: 不管脚本如何退出 (set -e 触发 / 正常完成 / Ctrl+C) 都 kill ticker + ETL 子进程
 cleanup_ticker() {
     if [ -n "${TICKER_PID:-}" ]; then
         kill "$TICKER_PID" 2>/dev/null || true
         wait "$TICKER_PID" 2>/dev/null || true
     fi
+    # 杀残留的 Python ETL 进程 (防止 Ctrl+C 后 Python 子进程继续持有 DuckDB 锁)
+    pkill -f "run_etl.py.*$MODE" 2>/dev/null || true
 }
-trap cleanup_ticker EXIT
+trap cleanup_ticker EXIT INT TERM
 
 # 跑 ETL
 "$PYTHON" scripts/run_etl.py "$MODE" 2>&1 | tee -a "$LOG"

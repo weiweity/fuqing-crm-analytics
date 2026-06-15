@@ -48,8 +48,9 @@ if __name__ == '__main__':
         try:
             from backend.config import DUCKDB_PATH
             import duckdb as _dd
+            from backend.config import DUCKDB_MEMORY_LIMIT
             if DUCKDB_PATH.exists():
-                _c = _dd.connect(str(DUCKDB_PATH), read_only=True)
+                _c = _dd.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
                 try:
                     row = _c.execute("""
                         SELECT
