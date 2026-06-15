@@ -34,6 +34,13 @@ import duckdb
 
 from backend.db.memory_monitor import check_memory
 
+from datetime import datetime as _dt
+
+def _step_log(step_name, event="start"):
+    """打印带时间戳的步骤日志，方便监控 ETL 进度。"""
+    ts = _dt.now().strftime("%H:%M:%S")
+    print(f"  [{step_name}] {event}: {ts}")
+
 
 # FIX-S5: run_full_etl 任何异常时调 notify_etl_complete(status='failed')
 # 装饰器避免函数体 indent 1 个 tab; 同时避免 step 1-7 抛异常时 W6 块被跳过 (设计 doc §W6 「失败推 ❌」)
@@ -125,6 +132,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
     _etl_wall_start = _time.perf_counter()
 
     # Step 0: 确定模式（get_db_max_pay_time 有 lru_cache，重复调用无开销）
+    _step_log("Step 0 确定模式", "start")
     cached_max_time = get_db_max_pay_time()
     db_has_data = cached_max_time is not None
 
@@ -172,6 +180,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                         break  # _mark_all_files_processed 一次性标记 shop+member
 
     # Step 1: 加载 SPU 匹配表、渠道规则、淘客数据和直播数据源
+    _step_log("Step 1 加载参考数据", "start")
     with PerfTimer("pl_step1_load_ref_data"):
         spu_df = load_spu_mapping()
         keyword_rules, id_rules = load_channel_rules()
@@ -262,12 +271,21 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
 
     if run_mode == 'full':
         # ===== 全量模式：逐文件处理，不累积DataFrame，彻底避免内存峰值 =====
+        _step_log("全量模式 orders 重建", "start")
         conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
-        # FIX(2026-04-27): DuckDB大库执行TRUNCATE可能段错误(sigsegv)，改用DROP+重建
-        conn.execute("DROP TABLE IF EXISTS orders")
-        _create_orders_table(conn)
-        _create_indexes(conn)
-        print("  [全量模式] 已重建 orders 表")
+        # 原子化: DELETE 替代 DROP。中断时表结构保留，不丢旧数据。
+        # (TRUNCATE 可能 sigsegv, DROP 中断丢数据 — DELETE 是安全中间方案)
+        has_orders = conn.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'orders'"
+        ).fetchone()[0] > 0
+        if has_orders:
+            n_before = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+            conn.execute("DELETE FROM orders")
+            print(f"  [全量模式] 已清空 orders 表 ({n_before:,} 行)")
+        else:
+            _create_orders_table(conn)
+            _create_indexes(conn)
+            print("  [全量模式] 已创建 orders 表")
         try:
             table_columns = [
                 'order_id', 'sub_order_id', 'user_id', 'user_nickname',
@@ -424,6 +442,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         # 必须先建好 user_first_purchase 表。详见 _rebuild_metrics docstring。
 
         # Step 6: 创建 user_rfm 表 + 热点日期预加载
+        _step_log("Step 6 user_rfm 预加载", "start")
         print("\n" + "-" * 40)
         print("Step 6: 创建 user_rfm 表 + 热点日期预加载")
         print("-" * 40)
@@ -572,6 +591,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         _build_user_recency_table(run_mode, window_days=window_days)
 
     # Step 6.7: 计算 daily_metrics（必须在 user_first_purchase 之后，SQL 用 LEFT JOIN）
+    _step_log("Step 6.7 daily_metrics", "start")
     if run_mode == 'full':
         with PerfTimer("pl_step6_7_rebuild_metrics_after_ufp"):
             _rebuild_metrics()
