@@ -9,6 +9,7 @@ RFM 预加载脚本
 """
 
 import argparse
+import os
 import sys
 import time
 from datetime import date, timedelta
@@ -636,10 +637,40 @@ def run_auto_preload(today: date = None) -> List[Tuple[str, int]]:
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     results = []
     try:
+        # O7 优化: 检测哪些热点日期需要重算
+        # 增量模式: 只重算有新数据的日期（昨天），跳过历史热点日期
+        _skip_unchanged = os.environ.get("FQ_RFM_SKIP_UNCHANGED", "1") == "1"
+        _dates_to_skip = set()
+        if _skip_unchanged:
+            try:
+                # 获取 orders 表最新数据日期
+                max_pay = conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
+                if max_pay is not None:
+                    max_date = max_pay.date() if hasattr(max_pay, 'date') else max_pay
+                    # 检查每个热点日期是否已有 user_rfm 数据
+                    for d in hot_dates:
+                        if d < max_date:
+                            # 历史日期: 检查是否已有数据
+                            has_data = conn.execute(
+                                "SELECT COUNT(*) FROM user_rfm WHERE analysis_date = ?::DATE",
+                                [d.isoformat()]
+                            ).fetchone()[0] > 0
+                            if has_data:
+                                _dates_to_skip.add(d)
+                    if _dates_to_skip:
+                        print(f"  [O7] 跳过 {len(_dates_to_skip)} 个未变化热点日期: {sorted(_dates_to_skip)}")
+            except Exception as _e:
+                # 检测失败不影响正常流程
+                print(f"  [O7] 日期变化检测失败，全量重算: {_e}")
+
         # FIX-S1: 用 preload_date_batch 1 SQL 跑完每个 date 的所有组合
         # 替代原 4 重 for 循环（ch × date × lb × mt）逐个调 preload_date()
         total_combos = len(lookbacks) * len(metrics) * len(channels)
         for i, d in enumerate(hot_dates, 1):
+            if d in _dates_to_skip:
+                results.append((d.isoformat(), 0))
+                print(f"[{i}/{len(hot_dates)}] {d} => 跳过（数据未变化）")
+                continue
             try:
                 rows = preload_date_batch(conn, d, lookbacks, metrics, channels)
                 results.append((d.isoformat(), rows))

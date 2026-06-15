@@ -203,3 +203,38 @@ def _get_file_hash(file_path):
     return h.hexdigest()
 
 
+def _get_set_pickle_path(data_type):
+    """pickle 缓存路径（存储最终的 set 对象，避免每次重建）"""
+    return PROCESSED_DATA_DIR / "cache" / f"{data_type}_order_ids.pkl"
+
+
+def _load_set_pickle(data_type):
+    """加载 pickle 缓存的 set。返回 (set, cache_mtime_fingerprint) 或 (None, None)。"""
+    import pickle
+    path = _get_set_pickle_path(data_type)
+    if not path.exists():
+        return None, None
+    try:
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        return data.get('ids'), data.get('fingerprint')
+    except Exception:
+        return None, None
+
+
+def _save_set_pickle(data_type, ids_set, fingerprint):
+    """保存 set 到 pickle 缓存。"""
+    import pickle
+    path = _get_set_pickle_path(data_type)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix('.pkl.tmp')
+    try:
+        with open(tmp_path, 'wb') as f:
+            pickle.dump({'ids': ids_set, 'fingerprint': fingerprint}, f)
+        os.rename(tmp_path, path)
+    except Exception:
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+
+

@@ -12,6 +12,7 @@ from scripts.etl.config import (
     TAOKE_COL,
     _load_taoke_cache, _save_taoke_cache,
     _load_live_cache, _save_live_cache,
+    _load_set_pickle, _save_set_pickle,
     _ETL_SOURCE_STATS,
 )
 
@@ -232,6 +233,7 @@ def load_taoke_order_ids():
     """
     读取淘客数据库所有文件，返回去重后的订单号集合。
     使用文件级缓存（mtime 检测）：未变化的文件直接跳过，只读新增/修改过的文件。
+    增加 pickle 缓存：所有文件 mtime 未变时直接加载 pickle set，跳过 set 重建。
     """
     global _TAOKE_ORDER_IDS_CACHE, _ETL_SOURCE_STATS
     if _TAOKE_ORDER_IDS_CACHE is not None:
@@ -246,6 +248,18 @@ def load_taoke_order_ids():
     # 过滤出支持的文件类型
     files = [f for f in files if f.suffix.lower() in ('.csv', '.xlsx', '.xls')]
     print(f"  找到 {len(files)} 个文件")
+
+    # O1 优化: pickle 缓存 — 所有文件 mtime 未变时直接加载 set
+    file_fingerprint = '|'.join(f"{f.name}:{f.stat().st_mtime}" for f in sorted(files, key=lambda x: x.name))
+    cached_set, cached_fp = _load_set_pickle('taoke')
+    if cached_set is not None and cached_fp == file_fingerprint:
+        print(f"  [缓存] pickle 命中，直接加载 {len(cached_set):,} 条 (跳过 set 重建)")
+        _TAOKE_ORDER_IDS_CACHE = cached_set
+        _ETL_SOURCE_STATS['taoke'] = {
+            'files': len(files), 'reloaded': 0, 'skipped': len(files),
+            'total_ids': len(cached_set),
+        }
+        return cached_set
 
     cache = _load_taoke_cache()  # {filename: {"mtime": float, "ids": [str]}}
     all_ids = set()
@@ -297,6 +311,12 @@ def load_taoke_order_ids():
     _save_taoke_cache(cache)
     print(f"  淘客订单号合计（去重后）: {len(all_ids):,} 条")
     print(f"  [缓存] 重新读取: {reloaded} 个文件, 跳过: {skipped} 个文件, 清理: {len(removed)} 个")
+
+    # O1 优化: 保存 pickle 缓存（set 对象直接序列化，下次免重建）
+    if all_ids:
+        _save_set_pickle('taoke', all_ids, file_fingerprint)
+        print(f"  [缓存] pickle 已保存 ({len(all_ids):,} 条)")
+
     _TAOKE_ORDER_IDS_CACHE = all_ids
     _ETL_SOURCE_STATS['taoke'] = {
         'files': len(files),
@@ -312,6 +332,7 @@ def load_live_order_ids():
     读取直播间数据源所有 CSV/XLSX 文件，返回去重后的父订单号集合。
     文件级缓存：基于 mtime 检测变更，未变更文件直接复用缓存。
     匹配键：父订单id/父订单ID（去掉 ID_ 前缀得到纯数字，即 orders.order_id）
+    增加 pickle 缓存：所有文件 mtime 未变时直接加载 pickle set，跳过 set 重建。
     """
     global _LIVE_ORDER_IDS_CACHE, _ETL_SOURCE_STATS
     if _LIVE_ORDER_IDS_CACHE is not None:
@@ -327,6 +348,18 @@ def load_live_order_ids():
     xlsx_files = list(LIVE_DATA_SOURCE.glob("*.xlsx"))
     files = csv_files + xlsx_files
     print(f"  找到 {len(csv_files)} 个 CSV 文件, {len(xlsx_files)} 个 XLSX 文件")
+
+    # O1 优化: pickle 缓存 — 所有文件 mtime 未变时直接加载 set
+    file_fingerprint = '|'.join(f"{f.name}:{f.stat().st_mtime}" for f in sorted(files, key=lambda x: x.name))
+    cached_set, cached_fp = _load_set_pickle('live')
+    if cached_set is not None and cached_fp == file_fingerprint:
+        print(f"  [缓存] pickle 命中，直接加载 {len(cached_set):,} 条 (跳过 set 重建)")
+        _LIVE_ORDER_IDS_CACHE = cached_set
+        _ETL_SOURCE_STATS['live'] = {
+            'files': len(files), 'reloaded': 0, 'skipped': len(files),
+            'total_ids': len(cached_set),
+        }
+        return cached_set
 
     cache = _load_live_cache()  # {filename: {"mtime": float, "ids": [str]}}
     all_ids = set()
@@ -381,6 +414,12 @@ def load_live_order_ids():
     _save_live_cache(cache)
     print(f"  直播订单号合计（去重后）: {len(all_ids):,} 条")
     print(f"  [缓存] 重新读取: {reloaded} 个文件, 跳过: {skipped} 个文件, 清理: {len(removed)} 个")
+
+    # O1 优化: 保存 pickle 缓存（set 对象直接序列化，下次免重建）
+    if all_ids:
+        _save_set_pickle('live', all_ids, file_fingerprint)
+        print(f"  [缓存] pickle 已保存 ({len(all_ids):,} 条)")
+
     _LIVE_ORDER_IDS_CACHE = all_ids
     _ETL_SOURCE_STATS['live'] = {
         'files': len(files),
