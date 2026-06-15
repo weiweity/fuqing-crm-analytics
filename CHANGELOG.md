@@ -1,3 +1,25 @@
+## [v0.4.14.80] - 2026-06-15 - fix(channels): 治根 a505f85 脱敏副作用, 渠道死键 affiliate → 淘客 (A3 双兼容)
+
+### Fixed
+- **`backend/semantic/channels.py:67-72`** — `CHANNEL_FUNNEL[6]`: `key="affiliate"` → `key="淘客"`, `name="affiliate"` → `name="淘客"`. 治根 a505f85 公开前脱敏 commit 把原始 `淘客` 改成 `affiliate`, 形成跟 ETL `transform.py:131,139` 实际写 DB 真值 `'淘客'` 的命名漂移. 前端下拉筛 `affiliate` 返 0 行的根因.
+- **`backend/semantic/channels.py:112-113`** — `DB_TO_UI` 加 A3 双兼容: `affiliate` (旧 alias) 仍映射到 `淘客`, 新 key `淘客` 显式注册. 旧前端代码筛 `affiliate` 不破.
+- **`backend/semantic/channels.py:126`** — `CHANNEL_ORDER` 把 `affiliate` 替换为 `淘客` (下拉顺序统一中文).
+- **`backend/semantic/channels.py:138-140`** — `get_channel_def()` 接受旧 alias `affiliate` → 返回 `淘客` def, 防止旧调用方 NPE.
+
+### Noted
+- `CHANNEL_FUNNEL[6].description` 加 "Sprint 24 P0 治根 a505f85 脱敏副作用" 注释, 防止未来回滚.
+- `DB_TO_UI` 故意保留 `affiliate` alias (A3 双兼容), 不是 dead key, 是 legacy bridge.
+- 4 个 loader (`scripts/etl/sources.py:129,214,294,379`) 缺文件静默返空仍存在, 是独立 sprint 活.
+- 6/14 + 5/6-6/14 数据 channel 列仍错 (a505f85 期间加载的旧数据), 见 Task 80 SQL update 修复.
+
+### Verified
+- `from backend.semantic.channels import CHANNEL_FUNNEL, DB_TO_UI, CHANNEL_ORDER, get_channel_def` 成功
+- `get_channel_def("affiliate")` 返 `淘客` def (alias 工作)
+- `get_channel_def("淘客")` 返 `淘客` def (新 key 工作)
+- `DB_TO_UI` 含 `{"affiliate": "淘客", "淘客": "淘客", "货架": "货架", ...}` (A3 双兼容)
+- `CHANNEL_ORDER` 不含 `affiliate` 字符串 (治根清理)
+
+
 ## [v0.4.14.79] - 2026-06-15 - fix(config): 2 个 TAOKE 默认路径 affiliate→淘客 (跟 v0.4.14.78 同根因收口)
 
 ### Fixed
