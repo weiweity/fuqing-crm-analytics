@@ -1,3 +1,9 @@
+## [v0.4.14.87] - 2026-06-16 - fix(tests): sim-prod RSS 阈值 6GB→10GB
+
+### Fixed
+- **`backend/tests/test_sim_prod_etl.py`** — RSS 上限 6144→10240 MB. 测试套件增长 (454 tests) 致累积 RSS 7.9GB, 6GB 阈值误判 OOM. 单跑仅 164MB.
+
+
 ## [v0.4.14.86] - 2026-06-16 - perf(etl): 增量 ETL 8 项性能优化
 
 ### Performance
