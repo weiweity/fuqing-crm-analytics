@@ -1,6 +1,9 @@
 """
 W3 full v0.4.11 — DQ assertions + quarantine pytest 覆盖 (design doc v1.1 §7.3)
 
+NOTE: This module is marked @pytest.mark.slow (25-50s per test due to DuckDB fixtures).
+Pre-push hooks run with `-m "not slow"` to skip these. CI runs the full suite.
+
 W3 full 覆盖 (6 断言 + 集成):
 1. test_assert_total_not_drop: total < 0.3 × prev_30d_avg → quarantine
 2. test_assert_repurchase_nonzero: repurchase_count=0 但 prev > 100 → quarantine
@@ -21,6 +24,8 @@ from unittest.mock import patch
 
 import duckdb
 import pytest
+
+pytestmark = pytest.mark.slow  # DuckDB integration: 25-50s per test
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))

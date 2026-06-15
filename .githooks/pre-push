@@ -1,14 +1,16 @@
 #!/bin/bash
 # Pre-push hook: run tests before pushing to remote
 # Install: git config core.hooksPath .githooks
+# Slow tests (DuckDB integration) run in CI only.
 
-echo "Running tests before push..."
-PYTHONPATH="$(git rev-parse --show-toplevel)" python3 -m pytest backend/tests/ -x -q 2>/dev/null
+echo "Running tests before push (parallel, excluding slow)..."
+PYTHONPATH="$(git rev-parse --show-toplevel)" python3 -m pytest backend/tests/ -x -q -n auto -m "not slow" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Tests failed. Fix them before pushing."
     echo "   Run: PYTHONPATH=. pytest backend/tests/ -x -q"
+    echo "   Full suite (including slow): PYTHONPATH=. pytest backend/tests/ -x -q -n auto"
     exit 1
 fi
 
-echo "✅ Tests passed."
+echo "✅ Tests passed. (slow tests run in CI)"

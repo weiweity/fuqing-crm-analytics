@@ -11,6 +11,20 @@ backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
 
+def pytest_collection_modifyitems(config, items):
+    """Auto-mark tests in slow modules with @pytest.mark.slow if not already marked."""
+    slow_modules = {
+        "test_is_member_mark_sync",
+        "test_w3_dq_assertions",
+        "test_w3w4_pipeline_integration",
+        "test_w3w4_pipeline_smoke",
+    }
+    for item in items:
+        module_name = item.module.__name__.rsplit(".", 1)[-1]
+        if module_name in slow_modules and "slow" not in item.keywords:
+            item.add_marker(pytest.mark.slow)
+
+
 # ─────────────────────────────────────────────────────────────
 # Sprint 22 #25: skip-if-DuckDB-locked fixture
 #

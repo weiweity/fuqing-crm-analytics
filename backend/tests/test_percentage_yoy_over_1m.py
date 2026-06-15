@@ -35,16 +35,16 @@ class TestPercentageYoyOver1m:
         m = _YoyModel(yoy=-999_999.99)
         assert m.yoy == -999_999.99
 
-    def test_above_1b_rejected(self):
-        """超过 1B 上限仍拒 (eg. 10B 是脏数据, 不是 1 万倍涨)."""
+    def test_above_1t_rejected(self):
+        """超过 1T 上限仍拒 (eg. 10T 是脏数据)."""
         with pytest.raises(ValidationError) as exc:
-            _YoyModel(yoy=1_000_000_001.0)
+            _YoyModel(yoy=1_000_000_000_001.0)
         assert "less_than_equal" in str(exc.value)
 
-    def test_below_neg_1b_rejected(self):
-        """低于 -1B 下限仍拒."""
+    def test_below_neg_1t_rejected(self):
+        """低于 -1T 下限仍拒."""
         with pytest.raises(ValidationError) as exc:
-            _YoyModel(yoy=-1_000_000_001.0)
+            _YoyModel(yoy=-1_000_000_000_001.0)
         assert "greater_than_equal" in str(exc.value)
 
     def test_zero_passes(self):

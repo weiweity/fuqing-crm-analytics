@@ -217,7 +217,7 @@ class TestAudienceContractMark:
             )
 
     def test_audience_row_yoy_gsv_invalid_rejected(self):
-        """mark 4: AudienceRow.yoy_gsv (PercentageField) 越界 -2e9 触发 422"""
+        """mark 4: AudienceRow.yoy_gsv (PercentageField) 越界 -2e12 触发 422"""
         with pytest.raises(ValidationError):
             AudienceRow(
                 dimension="channel", gsv_users=100, gsv=10000.0, aus=100.0,
@@ -231,7 +231,7 @@ class TestAudienceContractMark:
                 member_old_gsv_ratio=0.3, member_old_users_ratio=0.3,
                 member_new_users=20, member_new_gsv=2000.0, member_new_aus=100.0,
                 member_new_gsv_ratio=0.2, member_new_users_ratio=0.2,
-                yoy_gsv=-2_000_000_000.0,  # 越界 (PercentageField ge=-1B)
+                yoy_gsv=-2_000_000_000_000.0,  # 越界 (PercentageField ge=-1T)
             )
 
     def test_audience_all_legitimate_values(self):
@@ -662,11 +662,11 @@ class TestVisitorContractMark:
         assert resp.member_join_rate == 30.0
 
     def test_visitor_summary_member_join_rate_invalid_rejected(self):
-        """mark 1: VisitorSummaryResponse.member_join_rate 越界 2e9 触发 422"""
+        """mark 1: VisitorSummaryResponse.member_join_rate 越界 2e12 触发 422"""
         with pytest.raises(ValidationError):
             VisitorSummaryResponse(
                 start_date="2026-01-01", end_date="2026-01-31",
-                visitors=1000, new_members=300, member_join_rate=2_000_000_000.0,
+                visitors=1000, new_members=300, member_join_rate=2_000_000_000_000.0,
                 ly_visitors=800, ly_new_members=200, ly_member_join_rate=25.0,
             )
 
@@ -680,11 +680,11 @@ class TestVisitorContractMark:
         assert item.member_join_rate == 30.0
 
     def test_visitor_daily_member_join_rate_invalid_rejected(self):
-        """mark 2: VisitorDailyTrendItem.member_join_rate 越界 2e9 触发 422"""
+        """mark 2: VisitorDailyTrendItem.member_join_rate 越界 2e12 触发 422"""
         with pytest.raises(ValidationError):
             VisitorDailyTrendItem(
                 date="2026-01-01", visitors=1000, new_members=300,
-                member_join_rate=2_000_000_000.0,  # 越界 PercentageField ge=-1B
+                member_join_rate=2_000_000_000_000.0,  # 越界 PercentageField ge=-1T
                 ly_visitors=800, ly_new_members=200, ly_member_join_rate=25.0,
             )
 
