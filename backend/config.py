@@ -64,16 +64,16 @@ CHANNEL_RULES_SOURCE = Path(os.environ.get(
     str(_DEFAULT_CRM_BASE / "渠道判定.csv")
 ))
 
-# affiliate数据库
+# 淘客数据库（历史曾称 affiliate）
 TAOKE_DATA_SOURCE = Path(os.environ.get(
     "TAOKE_DATA_SOURCE",
-    str(_DEFAULT_CRM_BASE / "affiliate数据库")
+    str(_DEFAULT_CRM_BASE / "淘客数据库")
 ))
 
-# affiliate商品ID表
+# 淘客商品ID表（历史曾称 affiliate）
 TAOKE_PRODUCT_SOURCE = Path(os.environ.get(
     "TAOKE_PRODUCT_SOURCE",
-    str(_DEFAULT_CRM_BASE / "天猫_affiliate数据商品ID_数据表.csv")
+    str(_DEFAULT_CRM_BASE / "天猫_淘客数据商品ID_数据表.csv")
 ))
 
 # 直播间数据源

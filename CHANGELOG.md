@@ -1,3 +1,17 @@
+## [v0.4.14.79] - 2026-06-15 - fix(config): 2 个 TAOKE 默认路径 affiliate→淘客 (跟 v0.4.14.78 同根因收口)
+
+### Fixed
+- **`backend/config.py:70,76`** — `_DEFAULT_CRM_BASE` 下 2 个 TAOKE 默认值 (`affiliate数据库` / `天猫_affiliate数据商品ID_数据表.csv`) → `淘客数据库` / `天猫_淘客数据商品ID_数据表.csv`。跟 v0.4.14.78 第 4 行 `.env` 实际覆盖一致。变量名 (`TAOKE_DATA_SOURCE` / `TAOKE_PRODUCT_SOURCE`) + env override (`TAOKE_DATA_SOURCE` / `TAOKE_PRODUCT_SOURCE` 环境变量) 不变 → 向后兼容。blast radius: grep 全仓 0 处 `affiliate数据库` / `affiliate数据商品ID` 字面量残留;`scripts/etl/sources.py:224,391,398` 引用的是常量名而非字面量。
+
+### Noted
+- 跟 v0.4.14.78 "Noted" 第 2 条同根因(英文 `affiliate` 残留 vs 中文 `淘客` 真实目录),补齐 config.py 字面量这层。`backend/semantic/channels.py:67-73` `key="affiliate"` 命名漂移由 P1 #50-#54 单独 sprint 处理。
+
+### Verified
+- `git grep -n "affiliate数据库\|affiliate数据商品ID" -- '*.py' '*.md' '*.json' '*.sh' '*.yml'` → 0 命中
+- pytest 全量 491 passed / 9 failed (failed 全部 B2 contract + pipeline smoke 预存失败, 与本改动无关, 验证方式: `git stash` 后跑同一组仍 fail)
+
+---
+
 ## [v0.4.14.78] - 2026-06-15 - fix(config): _DEFAULT_CRM_BASE 旧 SampleCRM 路径 → 芙清CRM 真实路径 + PercentageField 1B→1T
 
 ### Fixed
