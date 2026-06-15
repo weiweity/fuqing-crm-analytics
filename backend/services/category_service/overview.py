@@ -230,6 +230,21 @@ def get_category_overview(
     comp = _compute_category_period(conn, ly_start, ly_end, ly_cutoff, level, metric_type, channel, exclude_channels)
 
 
+    def _clamp_yoy(v):
+        """钳 YOY 到 PercentageField 上限 ±1B-1 范围内, 避免 Pydantic 422。
+
+        单价/客单价类基数极小时 (e.g. aus=0.01), yoy_absolute *100 远超 1B。
+        Pydantic PercentageField (le=1B) 会拦为 422 → 接口 500。
+        钳到 1B-1 留 1 单位缓冲, 前端 YOYBadge |v|>1e6 守卫 ("数据异常") 已兜底展示。
+        """
+        if v is None:
+            return None
+        if v > 999_999_999.0:
+            return 999_999_999.0
+        if v < -999_999_999.0:
+            return -999_999_999.0
+        return v
+
     def _build_row(name: str, c: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:
         # 老客/新客人数占比
         users = c.get("users", 0)
@@ -247,27 +262,27 @@ def get_category_overview(
         return {
             "name": name,
             "gsv": round(c.get("gsv", 0), 2),
-            "gsv_yoy": yoy_absolute(c.get("gsv", 0), p.get("gsv", 0)),
+            "gsv_yoy": _clamp_yoy(yoy_absolute(c.get("gsv", 0), p.get("gsv", 0))),
             "users": c.get("users", 0),
-            "users_yoy": yoy_absolute(c.get("users", 0), p.get("users", 0)),
+            "users_yoy": _clamp_yoy(yoy_absolute(c.get("users", 0), p.get("users", 0))),
             "aus": round(c.get("aus", 0), 2),
-            "aus_yoy": yoy_absolute(c.get("aus", 0), p.get("aus", 0)),
+            "aus_yoy": _clamp_yoy(yoy_absolute(c.get("aus", 0), p.get("aus", 0))),
             "old_gsv": round(c.get("old_gsv", 0), 2),
-            "old_gsv_yoy": yoy_absolute(c.get("old_gsv", 0), p.get("old_gsv", 0)),
+            "old_gsv_yoy": _clamp_yoy(yoy_absolute(c.get("old_gsv", 0), p.get("old_gsv", 0))),
             "old_ratio": round(c.get("old_ratio", 0), 4),
             "old_ratio_yoy": yoy_ratio(c.get("old_ratio", 0), p.get("old_ratio", 0)),
             "old_users": c.get("old_users", 0),
-            "old_users_yoy": yoy_absolute(c.get("old_users", 0), p.get("old_users", 0)),
+            "old_users_yoy": _clamp_yoy(yoy_absolute(c.get("old_users", 0), p.get("old_users", 0))),
             "old_aus": round(c.get("old_aus", 0), 2),
-            "old_aus_yoy": yoy_absolute(c.get("old_aus", 0), p.get("old_aus", 0)),
+            "old_aus_yoy": _clamp_yoy(yoy_absolute(c.get("old_aus", 0), p.get("old_aus", 0))),
             "new_gsv": round(c.get("new_gsv", 0), 2),
-            "new_gsv_yoy": yoy_absolute(c.get("new_gsv", 0), p.get("new_gsv", 0)),
+            "new_gsv_yoy": _clamp_yoy(yoy_absolute(c.get("new_gsv", 0), p.get("new_gsv", 0))),
             "new_ratio": round(c.get("new_ratio", 0), 4),
             "new_ratio_yoy": yoy_ratio(c.get("new_ratio", 0), p.get("new_ratio", 0)),
             "new_users": c.get("new_users", 0),
-            "new_users_yoy": yoy_absolute(c.get("new_users", 0), p.get("new_users", 0)),
+            "new_users_yoy": _clamp_yoy(yoy_absolute(c.get("new_users", 0), p.get("new_users", 0))),
             "new_aus": round(c.get("new_aus", 0), 2),
-            "new_aus_yoy": yoy_absolute(c.get("new_aus", 0), p.get("new_aus", 0)),
+            "new_aus_yoy": _clamp_yoy(yoy_absolute(c.get("new_aus", 0), p.get("new_aus", 0))),
             "old_users_ratio": old_users_ratio,
             "old_users_ratio_yoy": yoy_ratio(old_users_ratio, comp_old_users_ratio),
             "new_users_ratio": new_users_ratio,
