@@ -43,7 +43,7 @@ RatioField = Annotated[
 #   前端 YOYBadge 加异常值守卫 (abs(v) > 1e6 → "数据异常") 防止 UI 误导.
 PercentageField = Annotated[
     float,
-    Field(ge=-1_000_000_000.0, le=1_000_000_000.0, description="0-100 percentage 或 yoy_absolute *100 后 ±1B 范围 (含负 YOY + 万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫"),
+    Field(ge=-1e12, le=1e12, description="0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500"),
 ]
 
 # -100 ~ +100 pp 差 (e.g. 5.28 = +5.28pp, 旧名 *_ppt / *_yoy_ppt, 已 *100)

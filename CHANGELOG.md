@@ -1,3 +1,35 @@
+## [v0.4.14.78] - 2026-06-15 - fix(config): _DEFAULT_CRM_BASE 旧 SampleCRM 路径 → 芙清CRM 真实路径 + PercentageField 1B→1T
+
+### Fixed
+- **`backend/config.py:21`** — `_DEFAULT_CRM_BASE` 从不存在的 `~/Desktop/fuqin date/SampleCRM数据库/Samplecrm原始数据库`（3 年前改名后残留）改为 `~/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库`。`.env` 此前已覆盖 7 个路径，但 `CHANNEL_RULES_SOURCE` / `TAOKE_DATA_SOURCE` / `TAOKE_PRODUCT_SOURCE` / `LIVE_DATA_SOURCE` 4 个没覆盖，落到错默认 → ETL 找不到 4 个文件 → 渠道判定 P3/P4/P5/P6 全 0 → 达播/微博/淘客等渠道静默漏判。改名后未来新加 path 不用每次 .env 覆盖。
+- **`backend/contracts/types.py:46`** — `PercentageField` 上限从 ±1B 放宽到 ±1T。2026-06-14 新品类 class 级别 `aus_yoy` 算出 3.35e9%（基期 0 元/人），Pydantic 1B 上限被撞 → FastAPI serialize_response 阶段抛 `ResponseValidationError` → 500。`/api/v1/category/overview` 6/8-6/14 7 天窗口因此挂掉，**核心单品新老客 Tab**（`ProductCustomerTab.vue` 借道 `category/overview`）同步挂。前端 YOYBadge `|v|>1e6 → "数据异常"` 守卫仍生效，UI 不被误导。
+
+### Noted
+- workflow agent v0.4.14.77 用了 `cat /tmp/fuqing-crm-backend.log | grep` 报告说"修复了 PercentageField"，实际未改 `.env` 4 路径中文名（用了 `affiliate` 而真实目录是 `淘客`）、未改 `_DEFAULT_CRM_BASE`、未改 `PercentageField` 上限。**本次手动 3 处修复是真正落地版**。
+- `backend/semantic/channels.py:67-73` 硬编码英文 `key="affiliate"`，但 `transform.py:131,139` 实际写中文 `淘客`，命名漂移导致前端下拉"显示但筛不出数据"——这是独立 sprint 活（8 处常量表 + 多个测试），不阻塞本次修复。
+- 4 个 loader (`scripts/etl/sources.py:129,214,294,379`) 文件不存在时静默返空集合，不 fail-fast——下次 ETL 仍可能"跑通但 P5/P6 全 0"被忽略，独立 sprint 活。
+
+### Verified
+- `from backend.config import _DEFAULT_CRM_BASE, CHANNEL_RULES_SOURCE, TAOKE_DATA_SOURCE, TAOKE_PRODUCT_SOURCE, LIVE_DATA_SOURCE` + `Path.exists()` 验证 4 个文件**全部 True**（修改前 4 个全 False）
+- 改后 `_DEFAULT_CRM_BASE` 路径: `/Users/hutou/Desktop/fuqin-date/芙清CRM数据库/芙清crm原始数据库` (跟 .env 现有覆盖一致)
+
+
+## [v0.4.14.77] - 2026-06-15 - fix(config): 3 处 sample_crm.duckdb/sample.duckdb 残留改 fuqing_crm.duckdb (跟生产一致)
+
+### Fixed
+- **`backend/config.py:128`** — `_DEFAULT_DUCKDB` 从 `sample_crm.duckdb` → `fuqing_crm.duckdb` (跟 `data/processed/fuqing_crm.duckdb` 实际生产文件一致). CHANGELOG v0.4.14.51 #31 写"sample.duckdb → fuqing_crm.duckdb"但仅改了 `test_api_integration.py` 跟 `test_w4_t7_integration.py` 的局部 DB_PATH, 主 default `_DEFAULT_DUCKDB` 跟 `.env.example` 漏改.
+- **`backend/services/health/overview.py:35`** — `DB_FILE` 从 `sample_crm.duckdb` → `fuqing_crm.duckdb` (跟生产 + `_DEFAULT_DUCKDB` 对齐, `_data_version()` mtime 探测能正确读到生产 DuckDB).
+- **`.env.example:23`** — `DUCKDB_PATH` 从 `data/processed/sample.duckdb` → `data/processed/fuqing_crm.duckdb` (新克隆者跑 uvicorn 不再 Database not found).
+
+### Verified
+- `python3 -c "from backend.config import _DEFAULT_DUCKDB; print(_DEFAULT_DUCKDB)"` → `.../data/processed/fuqing_crm.duckdb`
+- ruff check 干净
+- uvicorn 不重启也能从环境读真路径 (`.env` 里 `DUCKDB_PATH` 显式指向 `fuqing_crm.duckdb`, 行为不变)
+
+### Noted
+- 实际生产 `.env` (gitignore) 里 `DUCKDB_PATH` 早已指向 `fuqing_crm.duckdb`, 主 default 跟 `.env.example` 漏改是公开前脱敏 sprint (v0.4.14.59) 残留 — 跟 Sprint 19 a505f85 公开前脱敏 `MAIN_REPO_ROOT` 路径问题同根因, 但 config.py 的 _DEFAULT_DUCKDB 没在 #31 scope 内被 sweep. 此次为最小修 (3 行 + 1 CHANGELOG 段), 不动 `scripts/archive/benchmark_*.py` 的 `sample_crm.duckdb` 引用 (archive 目录 ruff exclude, 仅 bench 用).
+
+
 ## [v0.4.14.76] - 2026-06-15 - fix(tests): 隔离 test_fill_parquet_cache 测试路径, 防污染生产 tracker
 
 ### Fixed

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 CACHE_DIR = DATA_DIR / "cache" / "health_overview"
 
 # DuckDB 文件路径（用于数据版本感知）
-DB_FILE = DATA_DIR / "processed" / "sample_crm.duckdb"
+DB_FILE = DATA_DIR / "processed" / "fuqing_crm.duckdb"
 
 
 def _data_version() -> str:
