@@ -1,3 +1,17 @@
+## [v0.4.14.81] - 2026-06-15 - fix(tests): 修 CI 红 (B2 contract 越界值 2e9→2e12 跟 PercentageField 1B→1T 同步)
+
+### Fixed
+- **`backend/tests/test_b2_contract_mark_pilot.py:29-37 test_category_pct_invalid_ratio_rejected`** — 越界值从 `2e9` 改为 `2e12`, 跟 v0.4.14.78 PercentageField 上限 1B→1T 同步. 否则 2e9 现在合法 (< 1e12), 测试断言 `pytest.raises(ValidationError)` 失败 → CI 爆红.
+
+### Noted
+- Sprint 16.5 #91 B2 试点合同审计的 "2e9 越界" 是 v0.4.14.74 写测试时的 PercentageField 上限 (1B). Sprint 24 P0 治根放宽到 1T 后, 2e9 已是合法值, 测试需同步. **`backend/contracts/types.py:46` PercentageField description 加了 "Sprint 24 P0 1B→1T 治根" 注释**, 但 B2 测试没自动改 → 这次手动同步.
+- 3 类 B2 测试 13 个全跑过 (CategoryContractMark 4 + MetricsContractMark 3 + HealthContractMark 3 + BaselineHappyPath 3).
+
+### Verified
+- `pytest backend/tests/test_b2_contract_mark_pilot.py -v` 13/13 passed (含原 2e9→2e12 同步)
+- `pytest backend/tests/test_b2_contract_mark_pilot.py::TestMetricsContractMark -v` 3/3 passed (member_ratios 150 + ly_member_ratios 200 仍触发 ValidationError, 不受 1T 改动影响)
+
+
 ## [v0.4.14.80] - 2026-06-15 - fix(channels): 治根 a505f85 脱敏副作用, 渠道死键 affiliate → 淘客 (A3 双兼容)
 
 ### Fixed

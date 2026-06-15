@@ -27,9 +27,13 @@ class TestCategoryContractMark:
         assert item.pct == 42.0
 
     def test_category_pct_invalid_ratio_rejected(self):
-        """mark 1: pct 越界 2e9 触发 422 ValidationError (不再 500)"""
+        """mark 1: pct 越界 2e12 触发 422 ValidationError (不再 500).
+
+        Sprint 24 P0: PercentageField 上限从 1B 放宽到 1T (治根 6/14 aus_yoy=3.35e9 不再 500),
+        越界值相应提到 2e12. 1e12 仍接受 (兼容 yoy 万倍涨), 2e12 触发 ValidationError.
+        """
         with pytest.raises(ValidationError) as exc_info:
-            CategoryDistributionItem(name="面膜", user_count=100, gmv=50000.0, pct=2_000_000_000.0)
+            CategoryDistributionItem(name="面膜", user_count=100, gmv=50000.0, pct=2_000_000_000_000.0)
         errors = exc_info.value.errors()
         assert any("pct" in str(e.get("loc", "")) for e in errors)
 
