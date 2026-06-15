@@ -13,6 +13,8 @@ Sprint 15 Wave 2 治根测试: 验证 B1 (mark 缺口回填) + B2 (mark 增量�
 3. D.1: 事务 ROLLBACK (mock 异常, 验证 indexes 没被 DROP)
 """
 import pytest
+
+pytestmark = pytest.mark.slow  # DuckDB integration: 50-99s per test
 import duckdb
 import tempfile
 import os

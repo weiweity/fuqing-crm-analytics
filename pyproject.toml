@@ -37,3 +37,6 @@ exclude = ["scripts/archive/*"]
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 addopts = ["-ra", "--strict-markers", "--disable-warnings"]
+markers = [
+    "slow: marks tests as slow (DuckDB integration, >10s per test). Use '-m not slow' to skip.",
+]

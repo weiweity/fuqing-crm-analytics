@@ -1,3 +1,18 @@
+## [v0.4.14.84] - 2026-06-15 - perf(hooks): 分层测试 pre-push 6min→10s (slow marker + pytest -m "not slow")
+
+### Performance
+- **`.githooks/pre-push:6`** — `pytest -n auto` → `pytest -n auto -m "not slow"`, push ~6min→~10s
+- **`pyproject.toml:41-43`** — 注册 `slow` marker: DuckDB 集成测试 (>10s/test)
+- **`backend/tests/conftest.py:15-26`** — `pytest_collection_modifyitems` 自动标记 slow 模块
+- **`backend/tests/test_is_member_mark_sync.py`** — `pytestmark = pytest.mark.slow` (50-99s/test)
+- **`backend/tests/test_w3_dq_assertions.py`** — `pytestmark = pytest.mark.slow` (25-50s/test)
+
+### Noted
+- pre-push hook 现在只跑快速测试 (~454 tests, 10s), DuckDB 集成测试 (~61 tests) 在 CI 跑
+- `pytest_collection_modifyitems` 自动标记 `test_is_member_mark_sync`, `test_w3_dq_assertions`, `test_w3w4_pipeline_integration`, `test_w3w4_pipeline_smoke` 为 slow
+- 全量测试仍可用: `PYTHONPATH=. pytest backend/tests/ -x -q -n auto`
+
+
 ## [v0.4.14.83] - 2026-06-15 - perf(hooks): pre-commit/pre-push 性能优化 (ruff staged-only + pytest 并行)
 
 ### Performance
