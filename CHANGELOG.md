@@ -1,3 +1,16 @@
+## [v0.4.14.75] - 2026-06-15 - fix(etl): 跑完 ETL 后 uvicorn 未自动重启 (set -e + ticker kill/wait 提前 exit)
+
+### Fixed
+- **`scripts/etl/run-etl.sh:121-167`** — 跑批完成时手动 `kill $TICKER_PID` / `wait $TICKER_PID` 在 `set -e` 下若 ticker 已自然死会返非零，触发脚本在第 138-139 行 `exit 1`，根本走不到第 152 行的 `🔄 自动重启 uvicorn...` 步骤。前端 502 持续到人工重启 uvicorn。修法 3 件：
+  1. ticker 启动后立即 `trap cleanup_ticker EXIT`，清理函数内 `kill`/`wait` 加 `|| true`（保险：异常退出 / Ctrl+C 也能清 ticker）
+  2. 删除原第 138-139 行手动 `kill`/`wait`（trap 统一处理）
+  3. uvicorn `nohup ... &` 后加 `disown $NEW_PID || true`（保险：bash exit 时 SIGHUP 不影响 uvicorn）
+
+### Verified
+- `bash -n scripts/etl/run-etl.sh` SYNTAX OK
+- 冒烟测试：模拟 set -e + ticker 早死 + 老 `kill/wait` → 提前 exit；新 `trap EXIT + || true` → 继续执行（"REACHED after wait" 打印成功）
+
+
 ## [v0.4.14.74] - 2026-06-14 - fix(etl): W4 T-7 集成测试挂起 (锁检测 + 复合索引消除全表扫)
 
 ### Fixed

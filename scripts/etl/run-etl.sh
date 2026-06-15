@@ -130,13 +130,21 @@ echo ""
 ) &
 TICKER_PID=$!
 
+# 保险清理: 不管脚本如何退出 (set -e 触发 / 正常完成 / Ctrl+C) 都 kill ticker
+# (原手动 kill/wait 在 set -e 下若 ticker 已死会返非零 → 触发提前 exit → 跳过重启 uvicorn 那步 → 前端 502)
+cleanup_ticker() {
+    if [ -n "${TICKER_PID:-}" ]; then
+        kill "$TICKER_PID" 2>/dev/null || true
+        wait "$TICKER_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup_ticker EXIT
+
 # 跑 ETL
 "$PYTHON" scripts/run_etl.py "$MODE" 2>&1 | tee -a "$LOG"
 EXIT_CODE=${PIPESTATUS[0]}
 
-# 停计时器
-kill $TICKER_PID 2>/dev/null
-wait $TICKER_PID 2>/dev/null
+# 停计时器: 由 trap cleanup_ticker EXIT 统一处理 (见 ticker 启动后)
 
 ELAPSED=$(( $(date +%s) - START ))
 
@@ -156,6 +164,7 @@ export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(
 nohup "$PYTHON" -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 \
     >> /tmp/fuqing-crm-backend.log 2>&1 &
 NEW_PID=$!
+disown $NEW_PID 2>/dev/null || true
 sleep 3
 if lsof -ti :8000 >/dev/null 2>&1; then
     echo "  ✅ uvicorn 已重启 (PID $NEW_PID)"
