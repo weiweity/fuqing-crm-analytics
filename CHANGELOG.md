@@ -1,3 +1,30 @@
+## [v0.4.14.82] - 2026-06-15 - fix(channels): 前端 affiliate 死键清理 + ETL loader fail-fast 根治
+
+### Fixed
+- **`frontend-vue3/src/AudienceView.vue:39`** — CHANNEL_ORDER `'affiliate'` → `'淘客'`
+- **`frontend-vue3/src/views/AudienceView.vue:39`** — 同上
+- **`frontend-vue3/src/components/AppFilterBar.vue:17`** — filter option `'affiliate'` → `'淘客'`
+- **`frontend-vue3/src/views/MarketFocusView.vue:45`** — 同上
+- **`frontend-vue3/src/views/BreakdownView.vue:56`** — CH_ORDER `'affiliate'` → `'淘客'`
+- **`frontend-vue3/src/views/health/HealthOverviewTab.vue:27`** — HEALTH_SCORE_CHANNEL_ORDER `'affiliate'` → `'淘客'`
+- **`scripts/etl/sources.py:18-35`** — 新增 `_check_source()` 辅助函数, 默认严格模式: 文件缺失 → `FileNotFoundError`, ETL 非零退出. `FQ_ETL_LENIENT_LOAD=1` 降级为警告 + 空容器.
+- **`scripts/etl/sources.py:129,214,294,379`** — 4 个 loader 改用 `_check_source()`, 统一返回类型 (宽容模式: `([], [])`, `set()`, `{}`).
+
+### Added
+- **`backend/tests/test_sources_failfast.py`** — 13 个 fail-fast 测试 (strict/lenient × 4 loader + helper)
+- **`backend/tests/test_channels.py:TestAffiliateAlias`** — affiliate → 淘客回归测试
+
+### Noted
+- 这是 v0.4.14.80 channels.py 后端修复的前端侧收口 + ETL loader 根治.
+- 6 处前端 affiliate 硬编码是 a505f85 "公开前脱敏" commit 的遗留, dashboard 渠道下拉仍会显示 affiliate 选项 (死键). 本次彻底清理.
+- 4 个 loader 的 `_check_source()` 默认严格模式, 是 5/6-6/14 渠道错分 (loader 返空 → P4/P5/P6 0 命中) 的根治防线.
+- 附带修复 4 个测试文件的 PercentageField 1B→1T 越界值同步 (v0.4.14.81 遗漏).
+
+### Verified
+- `pytest backend/tests/ -k "not (test_mode_full_runs_full_branch or test_api_integration)"` — 515 passed, 5 skipped (DuckDB锁), 0 failed
+- `grep -R "'affiliate'\|\"affiliate\"" frontend-vue3/src/` — 无渠道名命中
+
+
 ## [v0.4.14.81] - 2026-06-15 - fix(tests): 修 CI 红 (B2 contract 越界值 2e9→2e12 跟 PercentageField 1B→1T 同步)
 
 ### Fixed

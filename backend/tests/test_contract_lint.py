@@ -146,7 +146,7 @@ class GoodContract(BaseModel):
     amounts: List[Annotated[float, Field(ge=0.0)]] = []
     pct_values: List[Annotated[float, Field(ge=0.0, le=100.0)]] = []
     # _pct 结尾 + Annotated[float, Field(ge=-1e9, le=1e9)] 也合规
-    yoy_pcts: List[Annotated[float, Field(ge=-1_000_000_000.0, le=1_000_000_000.0)]] = []
+    yoy_pcts: List[Annotated[float, Field(ge=-1_000_000_000_000.0, le=1_000_000_000_000.0)]] = []
 '''
         p = _write_tmp(tmp_path, "good_list.py", content)
         issues = lint_contract_file(p)
@@ -238,7 +238,7 @@ from pydantic import BaseModel, Field
 
 class GoodContract(BaseModel):
     daily_ratios: List[Annotated[float, Field(ge=0.0, le=1.0)]] = []
-    daily_pcts: List[Annotated[float, Field(ge=-1_000_000_000.0, le=1_000_000_000.0)]] = []
+    daily_pcts: List[Annotated[float, Field(ge=-1_000_000_000_000.0, le=1_000_000_000_000.0)]] = []
     daily_ppts: List[Annotated[float, Field(ge=-100.0, le=100.0)]] = []
 '''
         p = _write_tmp(tmp_path, "good_list_annotated.py", content)
@@ -344,7 +344,7 @@ from pydantic import BaseModel, Field
 
 class GoodContract(BaseModel):
     daily_ratios: List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]] = []
-    daily_pcts: List[Optional[Annotated[float, Field(ge=-1_000_000_000.0, le=1_000_000_000.0)]]] = []
+    daily_pcts: List[Optional[Annotated[float, Field(ge=-1_000_000_000_000.0, le=1_000_000_000_000.0)]]] = []
     daily_ppts: Optional[List[Annotated[float, Field(ge=-100.0, le=100.0)]]] = None
 '''
         p = _write_tmp(tmp_path, "good_list_opt_annotated.py", content)

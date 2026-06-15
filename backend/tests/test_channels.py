@@ -49,8 +49,11 @@ class TestChannelMapping:
     """Test DB <-> UI channel name mapping."""
 
     def test_db_to_ui_roundtrip(self):
-        """DB -> UI -> DB should preserve channel names."""
+        """DB -> UI -> DB should preserve channel names (aliases excluded)."""
+        _ALIASES = {"affiliate"}  # forward-only alias, not in UI_TO_DB
         for db_name in DB_TO_UI:
+            if db_name in _ALIASES:
+                continue
             ui_name = DB_TO_UI[db_name]
             assert UI_TO_DB[ui_name] == db_name
 
@@ -86,3 +89,15 @@ class TestGetChannelDef:
         ch = get_channel_def("不存在的渠道")
         assert ch.priority == 99
         assert ch.key == "不存在的渠道"
+
+
+class TestAffiliateAlias:
+    """a505f85 脱敏回归: affiliate → 淘客 映射."""
+
+    def test_get_channel_def_affiliate_returns_taoke(self):
+        ch = get_channel_def("affiliate")
+        assert ch.key == "淘客"
+        assert ch.name == "淘客"
+
+    def test_db_to_ui_affiliate_alias(self):
+        assert DB_TO_UI.get("affiliate") == "淘客"

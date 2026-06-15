@@ -15,7 +15,25 @@ from scripts.etl.config import (
     _ETL_SOURCE_STATS,
 )
 
+import os
 import pandas as pd
+
+
+def _check_source(path, *, label=""):
+    """检查 ETL 数据源路径是否存在，严格模式下抛错。
+
+    默认严格模式：文件缺失 → raise FileNotFoundError。
+    宽容模式（FQ_ETL_LENIENT_LOAD=1）：文件缺失 → 打印警告并返回 False。
+    """
+    lenient = os.environ.get("FQ_ETL_LENIENT_LOAD") == "1"
+    if not path.exists():
+        msg = f"ETL 数据源缺失{' (' + label + ')' if label else ''}: {path}"
+        if lenient:
+            print(f"  ⚠️ {msg}（宽容模式，继续）")
+            return False
+        raise FileNotFoundError(msg)
+    return True
+
 
 _TAOKE_ORDER_IDS_CACHE = None  # 全局缓存，避免重复加载
 _LIVE_ORDER_IDS_CACHE = None
@@ -130,9 +148,8 @@ def load_channel_rules():
     """加载渠道判定规则"""
     print("\n加载渠道判定规则...")
     channel_file = CHANNEL_RULES_SOURCE
-    if not channel_file.exists():
-        print(f"  渠道判定文件不存在: {channel_file}")
-        return None, None
+    if not _check_source(channel_file, label="渠道判定规则"):
+        return [], []
 
     try:
         # 多编码尝试
@@ -221,8 +238,7 @@ def load_taoke_order_ids():
         return _TAOKE_ORDER_IDS_CACHE
 
     print("\n加载淘客数据库...")
-    if not TAOKE_DATA_SOURCE.exists():
-        print(f"  淘客数据库目录不存在: {TAOKE_DATA_SOURCE}")
+    if not _check_source(TAOKE_DATA_SOURCE, label="淘客数据库"):
         _TAOKE_ORDER_IDS_CACHE = set()
         return _TAOKE_ORDER_IDS_CACHE
 
@@ -302,8 +318,7 @@ def load_live_order_ids():
         return _LIVE_ORDER_IDS_CACHE
 
     print("\n加载直播间数据源...")
-    if not LIVE_DATA_SOURCE.exists():
-        print(f"  直播间数据源目录不存在: {LIVE_DATA_SOURCE}")
+    if not _check_source(LIVE_DATA_SOURCE, label="直播间数据源"):
         _LIVE_ORDER_IDS_CACHE = set()
         _ETL_SOURCE_STATS['live'] = {'files': 0, 'reloaded': 0, 'skipped': 0, 'total_ids': 0}
         return _LIVE_ORDER_IDS_CACHE
@@ -388,8 +403,7 @@ def load_taoke_product_rules():
         return _TAOKE_PRODUCT_RULES_CACHE
 
     print("\n加载淘客商品ID表...")
-    if not TAOKE_PRODUCT_SOURCE.exists():
-        print(f"  淘客商品ID表不存在: {TAOKE_PRODUCT_SOURCE}")
+    if not _check_source(TAOKE_PRODUCT_SOURCE, label="淘客商品ID表"):
         _TAOKE_PRODUCT_RULES_CACHE = {}
         _ETL_SOURCE_STATS['taoke_product'] = {'files': 0, 'total_rules': 0}
         return _TAOKE_PRODUCT_RULES_CACHE
