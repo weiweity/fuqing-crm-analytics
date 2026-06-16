@@ -41,6 +41,47 @@ from scripts.etl.config import (
 
 import pandas as pd
 
+
+def _file_changed(file_path, processed_files, data_source, xlsx_stem_to_rel):
+    """判断单个文件是否需要重读 (Sprint 24 技术债 #2 抽到 module-level).
+
+    v2 格式：mtime 变了才计算 hash, 避免每次 ETL 都读文件内容.
+
+    判定顺序（不依赖 rec.get() 真值, 避免误判）:
+      ① key not in processed_files → True (新文件, 强制重读)
+      ② entry 缺少 cold_start_marked 字段 → True (老格式 entry, 视为未真正加载.
+         向后兼容: 部署 Sprint 24 修复后, 现有 tracker 条目一次性强制重载,
+         解决 6/15 数据已被假阳性的问题)
+      ③ cold_start_marked=True → True (冷启动登记, 未真正加载.
+         _clean_processed_updates 加载成功后会把字段置 False, 走正常流程)
+      ④ mtime <= old_mtime → False (mtime 短路, 未变更)
+      ⑤ hash 比对: 旧 hash 缺失或新 hash 不等 → True, 否则 False
+
+    抽到 module-level 后可独立单测, 防止"测试过但真函数 typo"的盲点
+    (Sprint 24 之前是 nested closure, 测试只能模拟判定逻辑).
+    """
+    # Parquet 文件使用对应 xlsx 的 key (保持一致性)
+    if file_path.suffix == '.parquet':
+        key = xlsx_stem_to_rel.get(file_path.stem, file_path.name)
+    else:
+        key = str(file_path.relative_to(data_source)) if data_source in file_path.parents else file_path.name
+    mtime = file_path.stat().st_mtime
+    if key not in processed_files:
+        return True
+    rec = processed_files[key]
+    if isinstance(rec, dict) and 'cold_start_marked' not in rec:
+        return True
+    if isinstance(rec, dict) and rec.get('cold_start_marked'):
+        return True
+    old_mtime = rec.get('mtime', 0) if isinstance(rec, dict) else rec
+    if mtime <= old_mtime:
+        return False
+    # mtime 变了, 算 hash 确认内容是否真的变了
+    old_hash = rec.get('hash', '') if isinstance(rec, dict) else ''
+    if not old_hash:
+        return True  # 无旧 hash, 视为变更
+    return _get_file_hash(file_path) != old_hash
+
 def rename_columns(df):
     """重命名列名为英文"""
     rename_map = {}
@@ -104,50 +145,19 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     for _xf in data_source.rglob("*.xlsx"):
         _xlsx_stem_to_rel[_xf.stem] = str(_xf.relative_to(data_source))
 
-    def _file_changed(f, processed_files):
-        """v2 格式：mtime 变了才计算 hash，避免每次 ETL 都读文件内容"""
-        # Parquet 文件使用对应 xlsx 的 key（保持一致性）
-        if f.suffix == '.parquet':
-            key = _xlsx_stem_to_rel.get(f.stem, f.name)
-        else:
-            key = str(f.relative_to(data_source)) if data_source in f.parents else f.name
-        mtime = f.stat().st_mtime
-        if key not in processed_files:
-            return True
-        rec = processed_files[key]
-        # Sprint 24 修复: 冷启动假阳性检测 (Option B — 字段存在性判断)
-        # 判定顺序（不依赖 rec.get() 真值，避免误判）:
-        #   ① entry 缺少 cold_start_marked 字段 → 老格式 entry, 视为未真正加载
-        #      (向后兼容: 部署此修复后, 现有 tracker 条目一次性强制重载, 解决
-        #       6/15 数据已被假阳性的问题)
-        #   ② cold_start_marked=True → 冷启动登记, 未真正加载
-        #      (_clean_processed_updates 加载成功后会把字段移除, 走正常流程)
-        if isinstance(rec, dict) and 'cold_start_marked' not in rec:
-            return True
-        if isinstance(rec, dict) and rec.get('cold_start_marked'):
-            return True
-        old_mtime = rec.get('mtime', 0) if isinstance(rec, dict) else rec
-        if mtime <= old_mtime:
-            return False
-        # mtime 变了，算 hash 确认内容是否真的变了
-        old_hash = rec.get('hash', '') if isinstance(rec, dict) else ''
-        if not old_hash:
-            return True  # 无旧 hash，视为变更
-        return _get_file_hash(f) != old_hash
-
     if pq_files:
         should_read_parquet = True
         # 增量模式：只加载新增或修改过的 Parquet 文件（hash 校验）
         if run_mode == 'incremental':
             processed_files = _load_processed_files(data_type)
-            new_files = [f for f in pq_files if _file_changed(f, processed_files)]
+            new_files = [f for f in pq_files if _file_changed(f, processed_files, data_source, _xlsx_stem_to_rel)]
             if not new_files:
                 print("  [Parquet 缓存] 无新增/变更 parquet 文件，继续检查 xlsx 原始文件")
                 should_read_parquet = False
             else:
                 # FIX(2026-04-29): 检查xlsx源是否有新文件，防止parquet缓存过期导致新xlsx被跳过
                 xlsx_files = list(data_source.rglob("*.xlsx"))
-                xlsx_new = [f for f in xlsx_files if _file_changed(f, processed_files)]
+                xlsx_new = [f for f in xlsx_files if _file_changed(f, processed_files, data_source, _xlsx_stem_to_rel)]
                 if xlsx_new:
                     print(f"  [Parquet 缓存] 发现 {len(xlsx_new)} 个新xlsx文件，跳过parquet直接读xlsx（避免缓存过期）")
                     should_read_parquet = False
@@ -209,7 +219,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     # 增量模式：只读新增或修改过的 xlsx 文件（hash 校验，防 mtime 不变但内容变）
     if run_mode == 'incremental':
         processed_files = _load_processed_files(data_type)
-        new_files = [f for f in files if _file_changed(f, processed_files)]
+        new_files = [f for f in files if _file_changed(f, processed_files, data_source, _xlsx_stem_to_rel)]
         if not new_files:
             latest = max(files, key=lambda f: f.stat().st_mtime) if files else None
             latest_key = str(latest.relative_to(data_source)) if latest else ""

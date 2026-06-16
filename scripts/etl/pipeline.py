@@ -569,7 +569,7 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                             AND order_id IS NOT NULL
                         """, list(member_order_ids))
                         n_updated = conn.execute(
-                            "SELECT COUNT(*) FROM orders WHERE order_id = ANY(?) AND is_member = TRUE",
+                            "SELECT COUNT(*) FROM orders WHERE order_id = ANY(CAST(? AS VARCHAR[])) AND is_member = TRUE",
                             [list(member_order_ids)],
                         ).fetchone()[0]
                         conn.execute("COMMIT")
@@ -771,16 +771,22 @@ def _mark_all_files_processed():
             continue
         files = list(data_source.rglob("*.xlsx"))
         # v2 格式：存储 {mtime, hash, cold_start_marked, marked_at} dict
-        # cold_start_marked=True 表示该 entry 是"冷启动登记"产物, 尚未经 Step 4.5
-        # 真正加载. Step 4.5 加载成功后会重写 entry 移除 cold_start_marked, 避免
-        # 冷启动后增量误判为"已处理"而跳过实际加载.
+        # Sprint 24 P0-1 治根 (2026-06-16): cold_start_marked 必须写 False (而非 True).
+        # 旧实现 True 会触发 ingest._file_changed 路径 [B] (rec.get('cold_start_marked'))
+        # → 强制返回 True → 冷启动后每次增量把 197 个文件全重读 (16-32h 灾难).
+        # 新语义: cold_start_marked=False 表示"已登记" (mtime 短路够用), 不触发 [B].
+        # 真"需重读"由 _file_changed 路径 [A] (key not in processed_files) 触发,
+        # 那是 O2 增量 entry 模式 (新文件才需要), 跟冷启动批量登记无关.
+        # marked_at 仍保留 (审计用, 证明这个 entry 是冷启动全量登记产物).
+        # Step 4.5 加载成功后, _clean_processed_updates 把 cold_start_marked
+        # 保留 (置 False) + 追加 last_processed_at, 走正常 mtime/hash 比对.
         processed = {}
         for f in files:
             rel_path = str(f.relative_to(data_source))
             processed[rel_path] = {
                 'mtime': f.stat().st_mtime,
                 'hash': _get_file_hash(f),
-                'cold_start_marked': True,
+                'cold_start_marked': False,
                 'marked_at': _time.time()
             }
         # Sprint 9 维修: 之前 parquet key = f.name (parquet 文件名), 但 ingest L82
@@ -800,7 +806,9 @@ def _mark_all_files_processed():
                 processed[key] = {
                     'mtime': xlsx_mtime,
                     'hash': _get_file_hash(f),
-                    'cold_start_marked': True,
+                    # 同上: Parquet 缓存 entry 也写 cold_start_marked=False
+                    # (已登记), 避免冷启动后增量走 [B] 重读所有 parquet 缓存.
+                    'cold_start_marked': False,
                     'marked_at': _time.time()
                 }
         _save_processed_files(data_type, processed)
@@ -903,7 +911,7 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
     print(f"\n增量更新每日指标 ({len(date_list)} 个日期, 之前是 {window_days + 1} 天窗口)...")
 
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
-    conn.execute("DELETE FROM daily_metrics WHERE date IN (SELECT unnest(?))", [date_list])
+    conn.execute("DELETE FROM daily_metrics WHERE d IN (SELECT unnest(?))", [date_list])
 
     has_ufp = conn.execute("""
         SELECT COUNT(*) FROM information_schema.tables
@@ -914,7 +922,7 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
         conn.execute("""
             INSERT INTO daily_metrics
             SELECT
-                DATE(o.pay_time) as date,
+                DATE(o.pay_time) as d,
                 COALESCE(SUM(o.actual_amount), 0) as gmv,
                 COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
                 COUNT(DISTINCT o.order_id) as order_count,
@@ -936,7 +944,7 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
         conn.execute("""
             INSERT INTO daily_metrics
             SELECT
-                DATE(pay_time) as date,
+                DATE(pay_time) as d,
                 COALESCE(SUM(actual_amount), 0) as gmv,
                 COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
                 COUNT(DISTINCT order_id) as order_count,
