@@ -1,3 +1,41 @@
+## [v0.4.14.99] - 2026-06-17 - feat: Sprint 26 F6 mtime→lsof 副检 (Sprint 26 收口)
+
+> 防御性 follow-up, 1 commit sprint 收口模式 (跟 Sprint 25 一致). Sprint 25 评估"当前 6 层已够防误删" 仍然成立, 本次只是把 mtime 单信号升级成 mtime + lsof 双信号, 多等下一次跑批的代价 (<2s/candidate) 换取误删风险进一步降低.
+
+### Added (F6 lsof 副检)
+- **`scripts/etl/common/open_check.py`** (新文件, 1 helper) — `is_open_by_any_process(path) -> (bool, reason)` 走 macOS /usr/sbin/lsof (项目不引 psutil 依赖, 跟 Layer 7 cleanup_orphan_pytest.py:lsof -t 同模式, b5fe3eb 2026-06-15 模式复用). 软失败统一返 `(False, reason)`: lsof 不可用 / 超时 / OSError 都不阻塞 cleanup. 超时 2s (lsof 默认 1s 太短, fork+exec 慢场景会假阴性).
+- **`scripts/etl/cli.py:142-148` (Layer 1 atexit)** — `_cleanup_fq_tmp_orphans()` 删前调 `is_open_by_any_process()`, 跳过正在被打开的文件. 软失败日志 `  [tmp-cleanup] skip (lsof open): {path} — {reason}`.
+- **`scripts/etl/cleanup_subagent.py:248-253` (Layer 6 hourly)** — `cleanup_subagent_tmp()` 删前调同一 helper, 跳过正在被打开的文件. result dict 加 `skipped_open_count` 字段 (审计用, 表示 lsof 副检跳过的文件数).
+
+### Added (9 个 test)
+- **`backend/tests/test_lsof_protection.py`** (新文件, 9 case) — Sprint 26 case
+  - `TestIsOpenByAnyProcess` (5 case): 直接单测 helper
+    - `test_empty_stdout_returns_false`: lsof 仅 header → (False, ...)
+    - `test_nonempty_stdout_returns_true`: lsof 有 fd 行 → (True, ...)
+    - `test_lsof_missing_soft_fails_to_false`: lsof 不在 PATH → (False, "保守放行")
+    - `test_lsof_timeout_soft_fails_to_false`: lsof 超时 → (False, ...)
+    - `test_lsof_oserror_soft_fails_to_false`: lsof OSError → (False, ...)
+  - `TestCleanupSubagentLsofGuard` (3 case): Layer 6 集成
+    - `test_lsof_open_prevents_delete`: mock lsof 报开 → deleted=0, skipped_open=1, 文件保留
+    - `test_lsof_empty_allows_delete`: mock lsof 报空 → deleted=1, skipped_open=0
+    - `test_lsof_missing_soft_fails_still_deletes`: lsof 软失败 → deleted=1 (维持原 mtime 决策)
+  - `TestCleanupFqTmpLsofGuard` (1 case): Layer 1 集成
+    - `test_lsof_layer1_skips_open`: Layer 1 atexit 也走同一护栏
+
+### Test
+- `pytest backend/tests/test_lsof_protection.py` → 9/9 passed
+- `pytest backend/tests/` → **538 passed / 15 skipped / 0 failed** (baseline 529 + 9 新 lsof = 538 一致, 0 回归.
+  15 skipped 是 uvicorn 持锁跨进程冲突, 跟 Sprint 25 baseline 一致)
+- `python -m ruff check scripts/etl/common/open_check.py scripts/etl/cleanup_subagent.py scripts/etl/cli.py backend/tests/test_lsof_protection.py` → All checks passed!
+
+### Verified
+- 不需要 ETL 跑批验证 (本次只改 cleanup 钩子 + 1 helper + 1 test 文件, 不改 ETL 跑批路径)
+- 6 层防护维持 byte cap 100GB / 5 文件 cap 不变 (跟最初清理 103GB /tmp/fuqing_liangcha.duckdb 路径兼容)
+- FQ_TMP_PREFIXES 白名单 + 24h+ mtime 阈值不变 (lsof 仅副检, 不替代 mtime)
+- Layer 7 lsof -t (找占锁 PID) 跟本副检互补 (Layer 7 找"占锁PID杀进程", 本副检找"被打开的fd跳过删除")
+
+---
+
 ## [v0.4.14.98] - 2026-06-16 - chore: Sprint 25 备份系统可信化 + 6 层防护加固 (1 commit 收口)
 
 > 1 commit sprint 收口模式 (跟 Sprint 24 e378030 一致), 主 #1 cleanup_backups.sh 已 e0fdea9 单独 commit, 本 commit 收口主 #2/#3 撤回/#4 + 顺 B-1 + 3 restore test + CHANGELOG/VERSION
