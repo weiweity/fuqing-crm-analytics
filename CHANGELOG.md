@@ -1,3 +1,22 @@
+## [v0.4.14.91] - 2026-06-16 - fix(etl): daily_metrics SQL INSERT 13 列 vs 表 6 列 — 适配当前生产 schema
+
+### Fixed
+- **`scripts/etl/pipeline.py:_update_incremental_metrics()`** (2 处) — `INSERT INTO daily_metrics SELECT ...` 提供 13 列 (gmv/gsv_order_count/new_user_count/old_user_count/member_gmv/member_count/avg_order_value/new_user_gmv/old_user_gmv) 但生产表是 6 列. 改为 6 列 (d, order_count, user_count, gsv, member_user_count, member_gsv), 与生产 schema 一致.
+- **`scripts/etl/pipeline.py:_rebuild_metrics()`** (2 处) — 同上, 改为 6 列.
+- **`scripts/etl/load.py:_create_metrics_tables()`** — 同步 6 列, 避免新表被创建成 13 列.
+
+### Root Cause
+- 历史 `_create_metrics_tables` 是 13 列 (date + 12 metrics).
+- 某个时间点生产 daily_metrics 表被手工简化成 6 列 (d, order_count, user_count, gsv, member_user_count, member_gsv) — 推测是 Sprint 22 性能优化.
+- 但 `_rebuild_metrics` / `_update_incremental_metrics` 的 INSERT SELECT 仍是 13 列, 触发 "table daily_metrics has 6 columns but 13 values were supplied" BinderError.
+- 之前没暴露: 因为 batch2 修复 `date` → `d` 之前, column-not-found 错先触发. batch2 修完 column name 后, 列数不匹配的错才暴露.
+
+### Impact
+- **6/15 daily_metrics 现在能正常写入**: order_count=13,097, user_count=11,834, gsv=¥1,523,995.53, member_user_count=5,989, member_gsv=¥815,873.84
+- ETL exit code 从 1 (失败) → 0 (成功)
+- daily_metrics 总行数 59 → 60 (新增 6/15)
+
+
 ## [v0.4.14.90] - 2026-06-16 - fix(etl): Sprint 24 P0-1 收口 — 5 个后续修复 (治根 + 3 bug + 重构)
 
 ### Fixed (P0 治根)
@@ -35,14 +54,6 @@
 - 部署后第一次跑 `--update` → 老 tracker 一次性重载 → 6/15 数据自动进 orders → dashboard 立即有数据.
 - 之后每天跑增量正常 (mtime/hash 命中, 不触发冷启动重载, 性能不退化).
 - 未来冷启动不再产生假阳性 (Sprint 21 P0-3 已修"误标"问题, 此 PR 补"误标后能否重识别").
-
-
-## [v0.4.14.88] - 2026-06-16 - chore: 前端渠道常量化 + pre-commit 清理
-
-### Changed
-- **`frontend-vue3/src/constants/channels.ts`** — 新增 `ACTIVE_CHANNELS`/`CHANNEL_ORDER`/`HEALTH_SCORE_CHANNELS`/`ALL_CHANNEL_OPTIONS`, 替换 5 个 Vue 文件的硬编码渠道数组.
-- **删除 `src/AudienceView.vue`** — 与 `src/views/AudienceView.vue` 完全重复的过期副本.
-- **`.pre-commit-config.yaml`** — 移除 `pytest-cleanup-orphans` hook (CI 已覆盖 `backend/tests/` 全量).
 
 
 ## [v0.4.14.87] - 2026-06-16 - fix(tests): CI 红修复 (RSS 阈值 + smoke fixture)
