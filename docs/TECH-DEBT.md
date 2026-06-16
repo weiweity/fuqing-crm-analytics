@@ -3,9 +3,10 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-16 (v0.4.14.97 债 #3 归档 / 债 #195+#196 收口 / 6 处失效引用清理)
+**最后更新**: 2026-06-16 (Sprint 25 v0.4.14.98 收口, 备份系统可信化 + 50m-scale 延后决策立账)
 **当前债数**: 0 条 (全闭环)
 **已修复**: 9 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196)
+**延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 
 ---
 
@@ -279,6 +280,35 @@ Sprint 25+ 跟债 #195 一起排期。
 2. **修复债**: 移到文末 "已修复债" 表, 记录 Sprint + commit
 3. **优先级变更**: 改 P 级别时必须附 1 行理由
 4. **Sprint 收口必 review**: `merge --no-ff` 到 main 前必须 git diff docs/TECH-DEBT.md
+
+## 延后决策 (Sprint 25 立账, 不算 P0/P1/P2/P3 债)
+
+### 50m-scale-architecture Phase 1-3 (延后到 30M 数据量触发)
+
+**触发场景**: Sprint 25 收口前检查 `docs/design/50m-scale-architecture.md` 3 个 phase 未实施 (Phase 1 预计算表 / Phase 2 索引 + ANALYZE / Phase 3 生产部署).
+
+**当前数据规模** (2026-06-16):
+- `data/processed/fuqing_crm.duckdb` 103GB, **未到 50M 行** (实际 ~5.6M orders, 距离 50M 还有 ~9× 空间)
+- pytest 529 passed / 15 skipped (baseline 526 + 3 新 test = 529, 0 回归)
+- ETL 18 min < 35 min SLO (Sprint 22 #26 痛点 1 闭环)
+- 痛点 1/2/3 全闭环
+
+**延后理由**:
+- 当前 0 性能压力, 18 min SLO 远低于 35 min 阈值
+- 50M 行基准是 Sprint 21 容量规划的预期, 实际数据增长曲线未触发
+- Phase 1-3 总估时 2 人日 (1d Phase 1 + 0.5d Phase 2 + 0.5d Phase 3), 投在 0 压力场景 ROI 低
+- 早做是为未来的钱浪费今天, 跟 Sprint 25 "治根不治标" 原则一致
+
+**触发条件** (任一):
+1. `data/processed/fuqing_crm.duckdb` 行数 >= 30M (留 1.67× buffer, 不等到 50M 才慌)
+2. ETL 跑批时长 > 30 min (痛点 1 SLO 35 min 的 85% 阈值)
+3. 看板 P95 响应 > 5s
+
+**重评估时机**: Sprint 30+ 或任一触发条件命中时, 重新打开此决策 + 排期.
+
+**估时** (如需实施): 2 人日 (Phase 1 1d + Phase 2 0.5d + Phase 3 0.5d)
+
+
 
 ## 索引
 
