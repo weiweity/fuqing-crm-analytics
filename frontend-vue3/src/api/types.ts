@@ -2212,7 +2212,7 @@ export interface components {
             member_gsv: number;
             /**
              * Pct
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1B 范围 (含负 YOY + 万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫
+             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
              */
             pct: number;
             /**
@@ -5756,7 +5756,7 @@ export interface components {
             amounts: number[];
             /**
              * Member Ratios
-             * @description 今年会员占比 % (已 *100, 0-100 范围)
+             * @description 今年会员GSV占比 0-1 decimal (e.g. 0.5346 = 53.46%)
              */
             member_ratios?: number[];
             /**
@@ -5766,9 +5766,21 @@ export interface components {
             ly_amounts?: number[];
             /**
              * Ly Member Ratios
-             * @description 去年同周期会员占比 % (已 *100, 0-100 范围)
+             * @description 去年同周期会员GSV占比 0-1 decimal (e.g. 0.4838 = 48.38%)
              */
             ly_member_ratios?: number[];
+            /**
+             * Overall Member Ratio
+             * @description 整体会员GSV占比 0-1 decimal (e.g. 0.5346 = 53.46%)
+             * @default 0
+             */
+            overall_member_ratio: number;
+            /**
+             * Overall Member Ratio Ly
+             * @description 去年同周期整体会员GSV占比 0-1 decimal
+             * @default 0
+             */
+            overall_member_ratio_ly: number;
         };
         /**
          * UserDetail
@@ -5926,7 +5938,7 @@ export interface components {
             new_members: number;
             /**
              * Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1B 范围 (含负 YOY + 万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫
+             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
              */
             member_join_rate: number;
             /** Ly Visitors */
@@ -5935,7 +5947,7 @@ export interface components {
             ly_new_members: number;
             /**
              * Ly Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1B 范围 (含负 YOY + 万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫
+             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
              */
             ly_member_join_rate: number;
         };
@@ -5968,7 +5980,7 @@ export interface components {
             new_members: number;
             /**
              * Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1B 范围 (含负 YOY + 万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫
+             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
              */
             member_join_rate: number;
             /** Ly Visitors */
@@ -5977,7 +5989,7 @@ export interface components {
             ly_new_members: number;
             /**
              * Ly Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1B 范围 (含负 YOY + 万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫
+             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
              */
             ly_member_join_rate: number;
             /** Visitors Yoy */

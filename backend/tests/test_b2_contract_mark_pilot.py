@@ -62,11 +62,14 @@ class TestMetricsContractMark:
     """metrics.py × 3 mark 字段: TrendData.member_ratios / ly_amounts / ly_member_ratios"""
 
     def test_metrics_member_ratios_invalid_rejected(self):
-        """mark 1: member_ratios 元素 > 100 (percentage 越界) 触发 422"""
+        """mark 1: member_ratios 元素 > 1 (ratio 越界, 0-1 decimal) 触发 422.
+        Sprint 27 治根: member_ratios 改 RatioField 0-1, 跟 Sprint 13+ 0-1 ratio 严守契约一致.
+        之前 150.0 是 percentage 越界 (0-100), 治根后 1.5 是 ratio 越界 (0-1).
+        """
         with pytest.raises(ValidationError) as exc_info:
             TrendData(
                 metric_type="GSV", dates=["2026-01-01"], amounts=[1000.0],
-                member_ratios=[150.0],  # 150% 越界 PercentageField 0-100
+                member_ratios=[1.5],  # 越界 RatioField 0-1
             )
         errors = exc_info.value.errors()
         assert any("member_ratios" in str(e.get("loc", "")) for e in errors)
@@ -82,11 +85,11 @@ class TestMetricsContractMark:
         assert any("ly_amounts" in str(e.get("loc", "")) for e in errors)
 
     def test_metrics_ly_member_ratios_invalid_rejected(self):
-        """mark 3: ly_member_ratios 元素 > 100 触发 422"""
+        """mark 3: ly_member_ratios 元素 > 1 触发 422 (Sprint 27 治根 0-1 decimal)."""
         with pytest.raises(ValidationError) as exc_info:
             TrendData(
                 metric_type="GSV", dates=["2026-01-01"], amounts=[1000.0],
-                ly_member_ratios=[200.0],  # 200% 越界
+                ly_member_ratios=[1.5],  # 越界 RatioField 0-1
             )
         errors = exc_info.value.errors()
         assert any("ly_member_ratios" in str(e.get("loc", "")) for e in errors)
@@ -145,11 +148,11 @@ class TestB2BaselineHappyPath:
         """metrics 3 mark 全部合法值"""
         td = TrendData(
             metric_type="GSV", dates=["2026-01-01"], amounts=[1000.0],
-            member_ratios=[42.0], ly_amounts=[800.0], ly_member_ratios=[38.0],
+            member_ratios=[0.5346], ly_amounts=[800.0], ly_member_ratios=[0.4838],
         )
-        assert td.member_ratios == [42.0]
+        assert td.member_ratios == [0.5346]
         assert td.ly_amounts == [800.0]
-        assert td.ly_member_ratios == [38.0]
+        assert td.ly_member_ratios == [0.4838]
 
     def test_health_all_legitimate_values(self):
         """health 3 mark 全部合法值"""
