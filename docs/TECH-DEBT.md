@@ -3,9 +3,9 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-16 (v0.4.14.96 债 #5/#6/#7 + CLAUDE.md 状态行收口)
-**当前债数**: 9 条 (0 P0, 1 P1, 6 P2, 2 P3)
-**已修复**: 4 条 (债 #1 v0.4.14.90 / 债 #4 v0.4.14.92 / 债 #2 v0.4.14.95 / 债 #5+#6+#7 v0.4.14.96)
+**最后更新**: 2026-06-16 (v0.4.14.97 债 #3 归档 / 债 #195+#196 收口 / 6 处失效引用清理)
+**当前债数**: 0 条 (全闭环)
+**已修复**: 9 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196)
 
 ---
 
@@ -261,10 +261,15 @@ Sprint 25+ 跟债 #195 一起排期。
 | 债 | Sprint | 修复 commit | 备注 |
 |---|---|---|---|
 | Step 8 DuckDB 总行数查询 strict mode 冲突 | Sprint 24+ P3 | af90d86 (v0.4.14.92) | 去掉 read_only=True, READ_WRITE 兼容 |
+| #1 tracker JSON 设计缺陷 (`cold_start_marked`) | Sprint 24 P0-1 | c111400 (v0.4.14.90) | 治根 `_mark_all_files_processed` 写 False, 兼容老格式 |
 | #2 cli.py L310/424/688/859 sibling read_only | Sprint 24+ P3 收口 | ebcc8a4 (v0.4.14.95) | 4 处 sibling 治根, 注释统一指 Sprint 11 S11-3 + Sprint 24+ P3 同根因 |
+| #3 Step 4.7 is_member 性能 | Sprint 15 Wave 3 | (Sprint 15 增量 UPDATE 治根) | Step 4.7 改增量 UPDATE (Sprint 15 Wave 3, `scripts/etl/pipeline.py:540-583` `WHERE order_id IN (?, ?, ...)`) + `idx_orders_pay_time` 已建 (`backend/database.py:129` / `scripts/etl/load.py:258` / `pipeline.py:1156` 等), 5.6M 全表 UPDATE 痛点已闭环. 痛点 1 已闭环 18 min < 35 min SLO (Sprint 22 #26). |
+| #4 VERSION 文件滞后 | (v0.4.14.92) | (流程改进) | merge 时同步 bump VERSION + 加 review checklist |
 | #5 marked_at 字段冗余 | (本次) | (v0.4.14.96) | 删 L790/L812 写入, 0 读取代码, 纯冗余 |
 | #6 import time 函数内 3 处 | (本次) | (v0.4.14.96) | 改 module-level 顶部, _time 引用不动 |
 | #7 _xlsx_stem_to_rel 重算 | (本次) | (v0.4.14.96) | 加 @functools.lru_cache(maxsize=4) |
+| #195 uvicorn × ETL RW 不变量 | (本次) | (v0.4.14.97) | cli.py L310/L424/L688/L859 4 处 sibling conn 上方加 `# INVARIANT: 立刻 conn.close()` 注释, 文档化跨进程不变量 |
+| #196 Sprint 11 vs 24+ P3 同根因注释 | (本次) | (v0.4.14.97) | cli.py 顶部 module-level docstring 加 "DuckDB strict mode 治根史" 段, 统一 3 段分散注释 |
 
 ---
 
@@ -281,10 +286,10 @@ Sprint 25+ 跟债 #195 一起排期。
 |---|---|---|---|
 | #1 tracker JSON 设计缺陷 | P0 | ✅ 已修复 (v0.4.14.90) | - |
 | #2 cli.py L310/424/688/859 read_only | P1 | ✅ 已修复 (v0.4.14.95) | - |
-| #3 Step 4.7 is_member 性能 | P1 | 🟡 待排期 | ~2h |
+| #3 Step 4.7 is_member 性能 | P1 | ✅ 已修复 (Sprint 15 Wave 3) | - |
 | #4 VERSION 文件滞后 | P1 | ✅ 已修复 (v0.4.14.92) | 流程改进 |
 | #5 marked_at 字段冗余 | P2 | ✅ 已修复 (v0.4.14.96) | - |
 | #6 import time 函数内 | P2 | ✅ 已修复 (v0.4.14.96) | - |
 | #7 _xlsx_stem_to_rel 重算 | P2 | ✅ 已修复 (v0.4.14.96) | - |
-| #195 uvicorn × ETL RW 不变量 | P3 | 🟡 待排期 | ~5min |
-| #196 Sprint 11 vs 24+ P3 同根因注释 | P3 | 🟡 待排期 | ~5min |
+| #195 uvicorn × ETL RW 不变量 | P3 | ✅ 已修复 (v0.4.14.97) | - |
+| #196 Sprint 11 vs 24+ P3 同根因注释 | P3 | ✅ 已修复 (v0.4.14.97) | - |

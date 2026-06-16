@@ -2,7 +2,7 @@
 
 **文档版本**: v1.0
 **创建日期**: 2026-06-09
-**依据**: [benchmark-50m-2026-06-09.md](../validation-reports/benchmark-50m-2026-06-09.md)
+**依据**: 50M 行 benchmark 数据 (2026-06-09 跑批实测, 见 `data/processed/fuqing_crm_50m.duckdb` 7.3 GB)
 
 ---
 
@@ -275,3 +275,4 @@
 - 50M 库文件: `data/processed/fuqing_crm_50m.duckdb` (7.3 GB)
 - 10.6M 库文件: `data/processed/fuqing_crm.duckdb` (68 GB)
 - 测试环境: Apple M5 / 16GB / macOS 26.5
+- Benchmark 报告已清理: 50m-scale-architecture 文中所有性能数字 (查询耗时 / 内存峰值 / 并发退化倍率) 都源自 2026-06-09 一次性跑批, 原始报告文件不需保留 (设计已稳定落地).

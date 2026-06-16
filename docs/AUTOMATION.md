@@ -1,7 +1,7 @@
 # Claude Code Automation (Sprint 22.5+)
 
 > Sprint 22.5+ 用 `claude-automation-recommender` 扫 crm-analytics 项目后
-> 落地的 Claude Code 自动化配置. 详细推荐: 见 `docs/claude-automation-recommender-report.md` (本次 ship).
+> 落地的 Claude Code 自动化配置. 详细推荐: 见 `CHANGELOG.md` v0.4.14.72 (Sprint 22.5+ ship 收口).
 
 ## 3 Hooks (`.claude/settings.json`)
 
