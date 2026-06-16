@@ -27,6 +27,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR  # noqa: E402
 
+# Sprint 25: 复用 ETL 自己的 lark 通道 (替代 osascript 弹窗, 走 webhook 私聊)
+# 失败 graceful degrade: 未配置 LARK_OPEN_ID 时 skip, 不影响主流程
+from scripts.etl.common.lark import _send_lark_alert  # noqa: E402
+
 BACKUP_DIR = PROCESSED_DATA_DIR / "backups"
 LOCK_DIR = Path("/tmp/fuqing-duckdb-backup.lock.d")
 # Sprint 10 B3: 用 Beijing 时间 (UTC+8) 命名, 跟用户日历日期一致.
@@ -44,13 +48,30 @@ def log(msg: str) -> None:
 
 
 def loud_fail(reason: str) -> None:
-    """Sprint 10 B3: launchd 失败 loud-fail.
+    """Sprint 10 B3 + Sprint 25: launchd 失败 loud-fail.
 
-    主动 sendmail + macOS 系统通知 (osascript display notification), 防止 launchd
-    StandardErrorPath 静默失败. exit code 1 让 launchd 也检测到失败.
+    Sprint 25 升级: 飞书 webhook 私聊告警 (复用 scripts.etl.common.lark) 走主通道,
+    osascript 弹窗 + mail 保留作 fallback. 防止 launchd StandardErrorPath 静默失败.
+    exit code 1 让 launchd 也检测到失败.
     """
     log(f"FATAL: {reason}")
-    # 1. macOS 系统通知 (桌面弹窗)
+    lark_content = (
+        f"[芙清 CRM 备份 FAILED] {TODAY}\n"
+        f"原因: {reason}\n"
+        f"时间: {datetime.now(BJ_TZ).isoformat()}\n"
+        f"日志: /tmp/fuqing-duckdb-backup.log\n"
+        f"机器: {os.uname().nodename if hasattr(os, 'uname') else '?'}"
+    )
+    # 1. 飞书 webhook 私聊告警 (主通道, Sprint 25 升级)
+    try:
+        sent, lark_reason = _send_lark_alert(lark_content, timeout=5.0)
+        if sent:
+            log("lark 告警已发送: OK")
+        else:
+            log(f"lark 告警跳过/失败: {lark_reason} (fallback 走 osascript + mail)")
+    except Exception as e:
+        log(f"lark 告警异常: {e}")
+    # 2. macOS 系统通知 (fallback)
     try:
         subprocess.run(
             ["osascript", "-e",
@@ -60,7 +81,7 @@ def loud_fail(reason: str) -> None:
         )
     except Exception as e:
         log(f"osascript 通知失败: {e}")
-    # 2. mail 发到 ALERT_EMAIL
+    # 3. mail 发到 ALERT_EMAIL (fallback)
     try:
         subprocess.run(
             ["/usr/bin/mail", "-s", f"[FATAL] 芙清 DuckDB 备份失败 {TODAY}", ALERT_EMAIL],
@@ -89,7 +110,10 @@ def main() -> int:
             return 1
 
         BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-        backup_path = BACKUP_DIR / f"fuqing_crm_{TODAY}.duckdb"
+        # Sprint 25: 文件名加 _{HHMM} 时间戳, 真滚动保留 7 天历史 (修复 cleanup_backups.sh 7 天清理伪命题)
+        # 之前每天同名覆盖, 7 天滚动其实是 1 份文件
+        hhmm = datetime.now(BJ_TZ).strftime("%H%M")
+        backup_path = BACKUP_DIR / f"fuqing_crm_{TODAY}_{hhmm}.duckdb"
         compressed_path = backup_path.with_suffix(".duckdb.zst")
 
         # Step 1: os-level 复制 (不需 DuckDB lock)

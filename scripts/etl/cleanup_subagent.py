@@ -80,6 +80,8 @@ _EXCLUDE_EXTENSIONS = (
 # Cap
 _MAX_DELETE_PER_RUN = 5                    # 防御性: 单次最多删 5 个
 _MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB/次
+# Sprint 25 P1-3 review 撤回 per-file cap: byte cap 100GB 已是单文件误删防护,
+# per-file 20GB 跟实际常见孤儿尺寸 (50-103GB) 冲突, 反而卡住清理. 维持单层 byte cap.
 _MIN_AGE_HOURS = 1                         # 1h+ (比 layer 1 的 24h 严,
                                             # 因为 hourly 跑, 1h 是安全缓冲)
 _MIN_SIZE_BYTES = 1 * 1024**3              # 1GB+ (只针对巨型文件,

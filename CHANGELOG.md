@@ -1,3 +1,59 @@
+## [v0.4.14.98] - 2026-06-16 - chore: Sprint 25 备份系统可信化 + 6 层防护加固 (1 commit 收口)
+
+> 1 commit sprint 收口模式 (跟 Sprint 24 e378030 一致), 主 #1 cleanup_backups.sh 已 e0fdea9 单独 commit, 本 commit 收口主 #2/#3 撤回/#4 + 顺 B-1 + 3 restore test + CHANGELOG/VERSION
+
+### Fixed (备份系统可信化 — 主 #1 + 主 #2)
+- **`scripts/etl/cleanup_backups.sh:53,67,70`** — 修 7 天清理伪命题: 三处 find 表达式加 `-o -name "*.duckdb.zst"` 模式
+  (修复前只匹配 `.parquet + .duckdb`, 漏掉 zstd 压缩后的 `.duckdb.zst`, 7 天清理永远不生效,
+  `data/processed/backups/` 永久累积 280GB). **主 #1, e0fdea9 单独 commit**
+- **`scripts/etl/backup_duckdb.py:46-71` `loud_fail()`** — 失败告警从 osascript 桌面弹窗 + 本地 mail (远程运维无感,
+  mail 静默失败) 升级到 `_send_lark_alert` 走 lark-cli webhook 私聊 (主通道, 复用 `scripts/etl/common/lark.py`,
+  Sprint 16.5+1 ETL 自有通道), osascript + mail 保留作 fallback. **主 #2**
+- **`scripts/etl/backup_duckdb.py:92-95`** — 文件名加 `_{HHMM}` 时间戳 (修复前 `fuqing_crm_{TODAY}.duckdb` 每天同名覆盖,
+  7 天清理后只剩 1 份历史). 改 `fuqing_crm_{TODAY}_{hhmm}.duckdb` 真滚动, 7 天保留 7 份不同时间戳备份. **主 #2**
+
+### Added (3 个 restore 演练 test — case #3)
+- **`backend/tests/test_backup_duckdb.py`** (新文件, 3 case) — Sprint 25 case #3
+  - `test_find_pattern_matches_all_backup_formats`: subprocess find 验证 .parquet + .duckdb + .duckdb.zst 都被匹配
+  - `test_compressed_corruption_reports_lark_alert`: mock shutil.copy2 raise, 验证 _send_lark_alert 走 webhook 1 次
+  - `test_timestamped_filename_includes_hhmm`: inspect source 验证 main() 文件名含 `_{HHMM}` 后缀
+
+### Changed (文档分叉修复 — 主 #4)
+- **`README.md:148` + `CLAUDE.md:103`** — 文档跟实现分叉修复
+  - "55GB DuckDB → 21GB (.duckdb.zst)" 实际 "103GB → 40GB (2.575:1 压缩比, zstd level 3)"
+  - plist Label `com.sample.duckdb-backup.daily` 实际 `com.fuqing.duckdb-backup.daily` (跟 `~/Library/LaunchAgents/` 真实安装对齐)
+
+### Refactored (主 #3 撤回 — 诚实交代)
+- **`scripts/etl/cli.py:54-55` + `scripts/etl/cleanup_subagent.py:81-82`** — 撤回 per-file cap 20GB 设计.
+  - **根因**: P1-3 review 验证发现 per-file 20GB 跟实际常见孤儿尺寸 (50-103GB) 冲突, 会卡住清理路径.
+  - **修复**: byte cap 100GB/run 已是单文件误删防护 (单次最多 1 个 100GB+ 文件被删, 删完 100GB cap 触发 break,
+    后续 200GB+ skip). per-file 守卫是冗余, 撤回保持单层 byte cap.
+  - **保留**: 5 行注释说明设计冗余理由 (跟 Sprint 3 P1-3 教训一致: review 多轮, 不要信第 1 轮)
+  - **test 验证**: `test_byte_cap` 20/20 pass (50GB 假文件走 byte cap 100GB 触发, 期望删 2 个, 实际删 2 个)
+
+### Added (顺 B-1)
+- **`scripts/etl/cleanup_backups.sh:84-85`** — 末尾加 `df -h "$BACKUP_DIR"` 监控输出, cleanup 完输出剩余空间到 plist stdout,
+  给 Layer 2 zshrc 50GB 告警补盲点. **e0fdea9 合并**
+
+### Test
+- `pytest backend/tests/test_backup_duckdb.py` → 3/3 passed
+- `pytest backend/tests/test_wo_cleanup_orphans.py` → 20/20 passed (含 test_byte_cap)
+- `pytest backend/tests/` → **529 passed / 15 skipped / 0 failed** (baseline 526 + 3 新 case = 529 一致, 0 回归.
+  15 skipped 是 uvicorn 持锁跨进程冲突, 跟 Sprint 24 baseline 一致)
+- `python -m backend.contracts._lint` → All contracts pass ground-truth-lint
+- `bash -n scripts/etl/cleanup_backups.sh` → exit 0
+
+### Verified
+- 不需要 ETL 跑批验证 (本次只改备份脚本 + 文档 + test, 不改 ETL 跑批路径)
+- 备份恢复首次落地 (3 个 restore 演练 test), 7 天真滚动 + lark 远程告警 + 文档对齐
+- 磁盘治理维持 byte cap 100GB 单层防护 (跟最初清理 103GB /tmp/fuqing_liangcha.duckdb 路径兼容)
+
+### 排期状态
+- Sprint 25 收口, 0 条待排期债
+- Sprint 26+ 候选 (P0-1 value-tiers channel="全店" 0 行 / 50m-scale 30M 触发 / F6 mtime→flock 重构)
+
+---
+
 ## [v0.4.14.97] - 2026-06-16 - chore: 3 条债全闭环 (#3 归档 / #195 + #196 注释) + 6 处失效引用清理
 
 ### Added
