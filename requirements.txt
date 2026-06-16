@@ -33,4 +33,5 @@ packaging>=24.0         # 版本比较（backend/tests/test_duckdb_race_regressi
 
 # 开发工具
 pytest>=8.0.0           # 测试框架
+pytest-xdist>=3.5.0     # 并行测试 (pytest -n auto)
 black>=24.0.0           # 代码格式化
