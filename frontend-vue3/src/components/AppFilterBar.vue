@@ -3,24 +3,13 @@ import { computed, watch } from 'vue'
 import { NDatePicker, NSelect, NSwitch } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { getPeriodDateRange, formatDate } from '@/utils/date'
+import { ALL_CHANNEL_OPTIONS } from '@/constants/channels'
 
 const filterStore = useFilterStore()
 
 let isProgrammaticUpdate = false
 
-const channelOptions = [
-  { label: '全店', value: '全店' },
-  { label: '纯派样', value: '纯派样' },
-  { label: '货架', value: '货架' },
-  { label: '达播', value: '达播' },
-  { label: '直播', value: '直播' },
-  { label: '淘客', value: '淘客' },
-  { label: '微博', value: '微博' },
-  { label: 'U先派样', value: 'U先派样' },
-  { label: '百补派样', value: '百补派样' },
-  { label: '赠品&0.01', value: '赠品&0.01' },
-  { label: '其他', value: '其他' },
-]
+const channelOptions = ALL_CHANNEL_OPTIONS
 
 const periodTypeOptions = [
   { label: '昨日', value: 'yesterday' },

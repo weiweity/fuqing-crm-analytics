@@ -21,10 +21,10 @@ const emit = defineEmits<{
 const filterStore = useFilterStore()
 const radarChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 
-import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { LOW_PRICE_CHANNELS, HEALTH_SCORE_CHANNELS } from '@/constants/channels'
 
 // ── 渠道评分表格排序（仅显示全店/货架/达播/直播/淘客）──
-const HEALTH_SCORE_CHANNEL_ORDER = ['全店', '货架', '达播', '直播', '淘客']
+const HEALTH_SCORE_CHANNEL_ORDER = HEALTH_SCORE_CHANNELS
 
 // ── 渠道过滤：单渠道优先，排除低价渠道 ──
 const queryParams = computed(() => {

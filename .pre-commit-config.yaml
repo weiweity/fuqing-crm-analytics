@@ -6,12 +6,6 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
   - repo: local
     hooks:
-      - id: pytest-cleanup-orphans
-        name: pytest cleanup orphans (v0.4.7)
-        entry: bash -c 'PYTHONPATH="$(pwd)" pytest backend/tests/test_wo_cleanup_orphans.py -q'
-        language: system
-        pass_filenames: false
-        types: [python]
       - id: contract-ground-truth-lint
         name: Contract Pydantic Field metadata lint (Sprint 17 #121, Sprint 18 #142)
         entry: python -m backend.contracts._lint

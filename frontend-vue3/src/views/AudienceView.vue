@@ -35,11 +35,7 @@ const filterStore = useFilterStore()
 const trendChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 const visitorTrendChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 
-const CHANNEL_ORDER = [
-  '货架', '达播', '直播', '淘客', '微博', 'U先派样', '百补派样', '赠品&0.01', '其他',
-]
-
-import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { CHANNEL_ORDER, LOW_PRICE_CHANNELS } from '@/constants/channels'
 
 const channelSortState = ref<{ columnKey: string; order: 'ascend' | 'descend' | false }>({
   columnKey: 'channel',

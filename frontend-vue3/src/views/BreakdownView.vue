@@ -53,7 +53,7 @@ function handleSubmit() {
 }
 
 /* ---------- 渠道排序 ---------- */
-const CH_ORDER = ['货架','淘客','直播','U先派样','赠品&0.01','达播','微博','百补派样','其他']
+import { CHANNEL_ORDER as CH_ORDER } from '@/constants/channels'
 
 const isForward = computed(() => result.value?.mode === 'forward')
 

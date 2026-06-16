@@ -1,3 +1,11 @@
+## [v0.4.14.88] - 2026-06-16 - chore: 前端渠道常量化 + pre-commit 清理
+
+### Changed
+- **`frontend-vue3/src/constants/channels.ts`** — 新增 `ACTIVE_CHANNELS`/`CHANNEL_ORDER`/`HEALTH_SCORE_CHANNELS`/`ALL_CHANNEL_OPTIONS`, 替换 5 个 Vue 文件的硬编码渠道数组.
+- **删除 `src/AudienceView.vue`** — 与 `src/views/AudienceView.vue` 完全重复的过期副本.
+- **`.pre-commit-config.yaml`** — 移除 `pytest-cleanup-orphans` hook (CI 已覆盖 `backend/tests/` 全量).
+
+
 ## [v0.4.14.87] - 2026-06-16 - fix(tests): CI 红修复 (RSS 阈值 + smoke fixture)
 
 ### Fixed
