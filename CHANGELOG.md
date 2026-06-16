@@ -1,3 +1,16 @@
+## [v0.4.14.94] - 2026-06-16 - docs(TECH-DEBT): 修债 #6 行号 (3 处 131/768/1113) + 债 #2 加 ground-truth 验证
+
+### Fixed
+- **`docs/TECH-DEBT.md` 债 #6** — 行号 `pipeline.py:768` 修正为 `pipeline.py:131/768/1113`. grep 实证 3 处都有 `import time as _time` 在函数体内.
+
+### Added
+- **`docs/TECH-DEBT.md` 债 #2 + 债 #6** — 加 "Ground-truth 验证" section, 附 `grep -n` 输出. 后续债清理的人可以直接复用验证命令.
+
+### Review Note
+- codex 第三方评审发现: 债 #6 行号 1 行写错 (用户验收前诚实交代), 债 #2/债 #4 ground-truth 没验证 (现在补 grep 证据). 7 个债 ground-truth 验证覆盖: 3/7 (债 #1 之前已验, 债 #2 / 债 #6 这次补).
+- 剩余 4 个债 (债 #3 #5 #7 + 已修债 #4) 仍待下次清理时逐条 git log 实证.
+
+
 ## [v0.4.14.93] - 2026-06-16 - docs: 新增 docs/TECH-DEBT.md 统一管理项目技术债 (7 债立账)
 
 ### Added
