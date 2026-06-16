@@ -1,3 +1,29 @@
+## [v0.4.14.95] - 2026-06-16 - fix(etl): cli.py L310/424/688/859 4 处 read_only=True → 默认 READ_WRITE (Sprint 24+ P3 治根收口)
+
+### Fixed
+- **`scripts/etl/cli.py`** 4 处 sibling `read_only=True` 去掉 (L310/L424/L688/L859):
+  - L310 `rescan_channel` Step 2 读 orders
+  - L424 `rescan_spu_mapping` Step 3 读 orders
+  - L688 6 道门禁 `_c0` 前置 SELECT (MAX pay_time + COUNT)
+  - L859 6 道门禁 `_c1` 收尾 SELECT (MAX pay_time + COUNT)
+- 4 处都加注释统一指 Sprint 11 S11-3 (e1a99d5) + Sprint 24+ P3 (v0.4.14.92 af90d86) 同根因 — DuckDB 1.5+ strict mode 拒绝同 file 多连接 config 或 access_mode 不一致.
+
+### Root Cause
+- Sprint 24 P3 (v0.4.14.92) 修了 Step 8 (L916) 但 4 处 sibling 没修
+- 4 处都是 SELECT-only (跟 L916 验证对等), READ_WRITE 兼容
+- 4 处都在 `--update` 流程内, 跟 `--read-only` flag 业务语义完全解耦 (Sprint 21+ P0 跳过 step2/step6)
+
+### Impact
+- cli.py 所有 duckdb.connect config + access_mode 现在全一致
+- 4 处 sibling 不再 strict mode 报错 (被 try/except 吞了, 不影响主流程, 但消除错误噪音)
+- 未来重构若违反 "4 处 conn.close() 立刻释放" 不变量, 风险在 uvicorn read_only 单例 × ETL 多 RW 并发场景 (adversarial review Finding 2, 架构债立 P3)
+
+### Review Note
+- Adversarial review: 0 critical, 7 findings (3 None ✓, 2 Low doc debt, 1 Medium 架构债, 1 Trivial)
+- 架构债 #195 立 P3 等 Sprint 25+: uvicorn read_only 单例 × ETL 多 RW 连接不变量
+- 文档债 #196 立 P3: Sprint 11 S11-3 vs Sprint 24+ P3 同根因注释未合并 (本次部分解决: 4 处 sibling 互相引用, 但 Sprint 11 注释本身未改)
+
+
 ## [v0.4.14.94] - 2026-06-16 - docs(TECH-DEBT): 修债 #6 行号 (3 处 131/768/1113) + 债 #2 加 ground-truth 验证
 
 ### Fixed
