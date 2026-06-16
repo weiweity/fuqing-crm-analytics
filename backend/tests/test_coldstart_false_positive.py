@@ -117,8 +117,13 @@ class TestOldFormatEntryWithoutColdStartFlagIsReloaded:
 
     def test_loaded_entry_not_reloaded_after_processing(self):
         """加载成功后的 entry (cold_start_marked 字段被 _clean_processed_updates
-        移除, 只剩 mtime/hash/last_processed_at) → 下次增量必须走 mtime/hash
+        置 False + last_processed_at 已写入) → 下次增量必须走 mtime/hash
         正常流程, 不再触发强制重载.
+
+        ⚠️ 这是 QA 发现的死循环 bug 的回归测试:
+        之前实现是 del cold_start_marked 字段, 导致加载成功后 entry 缺字段,
+        _file_changed ① 'cold_start_marked' not in rec → True, 每次都重读.
+        现在改成置 False (字段保留), 字段存在 → 不命中 ①.
         """
         from scripts.etl.ingest import _clean_processed_updates
 
@@ -133,17 +138,19 @@ class TestOldFormatEntryWithoutColdStartFlagIsReloaded:
         }
         cleaned = _clean_processed_updates(updates)
 
-        # 关键断言: cold_start_marked 必须被移除
-        assert "cold_start_marked" not in cleaned["shop/loaded.xlsx"], (
-            "加载成功后 cold_start_marked 必须被 _clean_processed_updates 移除, "
-            "否则下次增量会无限循环重载."
+        # 关键断言: cold_start_marked 字段必须保留 + 值为 False
+        # (如果 del 字段, _file_changed ① 会判为老格式 → 死循环)
+        assert "cold_start_marked" in cleaned["shop/loaded.xlsx"], (
+            "加载成功后 cold_start_marked 字段必须保留, "
+            "置 False 而非 del, 否则 _file_changed 会无限重载."
         )
+        assert cleaned["shop/loaded.xlsx"]["cold_start_marked"] is False
         # last_processed_at 必须被添加
         assert "last_processed_at" in cleaned["shop/loaded.xlsx"]
         # mtime/hash 必须保留
         assert cleaned["shop/loaded.xlsx"]["mtime"] == 1700000000.0
         assert cleaned["shop/loaded.xlsx"]["hash"] == "abc"
-        # 但 marked_at 仍保留 (审计用, 没问题, P2 finding 已记录)
+        # marked_at 仍保留 (审计用, 没问题)
         assert "marked_at" in cleaned["shop/loaded.xlsx"]
 
 
@@ -261,9 +268,16 @@ class TestColdStartMarkClearedAfterProcessing:
         )
 
         for key, rec in cleaned.items():
-            assert "cold_start_marked" not in rec, (
-                f"{key} 处理后必须移除 cold_start_marked 字段 "
-                f"(否则下次增量会再触发冷启动重载, 假阳性复发)"
+            # ⚠️ 关键: 字段必须保留 (置 False), 不能 del.
+            # 因为 _file_changed ① 判定条件是 'cold_start_marked' not in rec,
+            # 如果 del 字段, 加载成功后 entry 命中 ① → 死循环全量重载.
+            assert "cold_start_marked" in rec, (
+                f"{key} 处理后必须保留 cold_start_marked 字段 (置 False), "
+                f"不能 del (否则 _file_changed ① 会判为老格式, 每天全量重载)"
+            )
+            assert rec["cold_start_marked"] is False, (
+                f"{key} 处理后 cold_start_marked 必须为 False "
+                f"(表示已真正加载过, 下次走 mtime/hash 正常流程)"
             )
             assert "last_processed_at" in rec, (
                 f"{key} 处理后必须追加 last_processed_at 时间戳"

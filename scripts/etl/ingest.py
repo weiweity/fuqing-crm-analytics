@@ -9,18 +9,25 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
 def _clean_processed_updates(updates):
-    """事务化标记清理：移除 cold_start_marked，加 last_processed_at。
+    """事务化标记清理：cold_start_marked 置 False（不删），加 last_processed_at。
 
     Step 4.5 upsert 成功后, ingest 产出的 updates 会覆盖冷启动登记的 entry,
-    此时必须移除 cold_start_marked (因为现在已经真正加载了) 并记录处理时间戳,
-    避免下次增量误判为冷启动假阳性而重复读取.
+    此时必须把 cold_start_marked 置 False (因为现在已经真正加载了) 并记录处理
+    时间戳, 避免下次增量误判为冷启动假阳性而重复读取.
+
+    ⚠️ 关键: 必须保留字段 (置 False), 不能 del. 因为 _file_changed 判定:
+        ① entry 缺 cold_start_marked 字段 → 老格式 → 强制重载
+        ② cold_start_marked=True → 冷启动 → 强制重载
+        ③ cold_start_marked=False + mtime 一致 → 正常不重载
+    如果 del 字段, 加载成功后 entry 变成"缺字段", 命中 ① → 每天增量全量重读.
     """
     if not updates:
         return updates
     cleaned = {}
     for key, rec in updates.items():
         if isinstance(rec, dict):
-            clean_rec = {k: v for k, v in rec.items() if k != 'cold_start_marked'}
+            clean_rec = dict(rec)  # 复制所有字段（包括 cold_start_marked）
+            clean_rec['cold_start_marked'] = False  # 置 False（不删）
             clean_rec['last_processed_at'] = time.time()
             cleaned[key] = clean_rec
         else:
