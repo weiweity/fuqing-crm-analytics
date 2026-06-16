@@ -240,6 +240,7 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
 | `docs/AUTOMATION.md` | Claude Code 自动化配置 | 按需 Read |
 | `docs/SHIP.md` | /ship skill 使用文档 | 按需 Read |
 | `docs/LINTING.md` | ground-truth-lint 规则 | 按需 Read |
+| `docs/TECH-DEBT.md` | 技术债台账 (P0/P1/P2 分级, 每债含触发场景+修复方案+估时) | 按需 Read |
 | `docs/validation-reports/` | ETL 跑批验证报告 | 按需 Read |
 | `CHANGELOG.md` | 版本变更记录 | 按需 Read |
 

@@ -1,3 +1,23 @@
+## [v0.4.14.93] - 2026-06-16 - docs: 新增 docs/TECH-DEBT.md 统一管理项目技术债 (7 债立账)
+
+### Added
+- **`docs/TECH-DEBT.md`** — 项目技术债唯一台账. 按 P0/P1/P2 分级, 每条带触发场景+根因+影响+修复方案+估时. 含 Sprint 21-24 累积债 + Step 8 修复时暴露的 sibling sites + VERSION 滞后.
+- **`CLAUDE.md` 文档导航表** 加一行指针 `docs/TECH-DEBT.md`, 明确"唯一台账"语义.
+
+### 债列表 (7 条)
+- **#1 P0** tracker JSON 设计缺陷 (`cold_start_marked` 语义不清) — ✅ 已修复 (v0.4.14.89)
+- **#2 P1** cli.py L310/424/688/859 sibling read_only=True — 🟡 待修 (Sprint 25 推荐)
+- **#3 P1** Step 4.7 is_member 7 分钟 5.6M UPDATE — 🟡 待修 (加 idx_orders_pay_time 10× 加速)
+- **#4 P1** VERSION 文件滞后 17 版本 — ✅ 已修复 (本次同步修, 流程改进加 review checklist)
+- **#5 P2** `_mark_all_files_processed` 写 `marked_at` 字段但 ETL 内部不读 — 🟡 待修
+- **#6 P2** `import time` 在函数内 (pipeline.py:768) — 🟡 待修
+- **#7 P2** `_file_changed` 中 `_xlsx_stem_to_rel` 每次 load_data_files 都重算 — 🟡 待修
+
+### 维护规则
+- Sprint 收口 (`merge --no-ff` 到 main) 前必须 review 本文件
+- 新增债加条目, 修复债移到文末"已修复债"表
+
+
 ## [v0.4.14.92] - 2026-06-16 - fix(etl): Step 8 DuckDB 总行数查询 — 去掉 read_only=True 修跨连接 strict mode 冲突
 
 ### Fixed
