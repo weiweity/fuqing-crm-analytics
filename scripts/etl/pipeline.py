@@ -833,49 +833,36 @@ def _rebuild_metrics():
     conn.execute("DELETE FROM daily_metrics")
 
     if has_ufp:
+        # Sprint 24 修复: 适配 6 列 schema (同 _update_incremental_metrics)
         conn.execute("""
             INSERT INTO daily_metrics
             SELECT
-                DATE(o.pay_time) as date,
-                COALESCE(SUM(o.actual_amount), 0) as gmv,
-                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
+                DATE(o.pay_time) as d,
                 COUNT(DISTINCT o.order_id) as order_count,
-                COUNT(DISTINCT CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.order_id END) as gsv_order_count,
-                COUNT(DISTINCT CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.user_id END) as new_user_count,
-                COUNT(DISTINCT CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.user_id END) as old_user_count,
-                COALESCE(SUM(CASE WHEN o.is_member = TRUE THEN o.actual_amount ELSE 0 END), 0) as member_gmv,
-                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
-                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
-                COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
+                COUNT(DISTINCT o.user_id) as user_count,
+                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_user_count,
+                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv
             FROM orders o
             LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
             WHERE o.pay_time IS NOT NULL
             GROUP BY DATE(o.pay_time)
-            ORDER BY date
+            ORDER BY d
         """)
     else:
         conn.execute("""
             INSERT INTO daily_metrics
             SELECT
-                DATE(pay_time) as date,
-                COALESCE(SUM(actual_amount), 0) as gmv,
-                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
+                DATE(pay_time) as d,
                 COUNT(DISTINCT order_id) as order_count,
-                COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
-                COUNT(DISTINCT user_id) as new_user_count,
-                0 as old_user_count,
-                COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
-                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
-                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
-                COALESCE(AVG(actual_amount), 0) as avg_order_value,
-                0 as new_user_gmv,
-                0 as old_user_gmv
+                COUNT(DISTINCT user_id) as user_count,
+                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_user_count,
+                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv
             FROM orders
             WHERE pay_time IS NOT NULL
             GROUP BY DATE(pay_time)
-            ORDER BY date
+            ORDER BY d
         """)
 
     count = conn.execute("SELECT COUNT(*) FROM daily_metrics").fetchone()[0]
@@ -919,22 +906,18 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
     """).fetchone()[0] > 0
 
     if has_ufp:
+        # Sprint 24 修复: 适配当前生产 6 列 daily_metrics schema
+        # (历史 _create_metrics_tables 仍是 13 列, 但生产表被手工简化成 6 列)
+        # 6 列: d, order_count, user_count, gsv, member_user_count, member_gsv
         conn.execute("""
             INSERT INTO daily_metrics
             SELECT
                 DATE(o.pay_time) as d,
-                COALESCE(SUM(o.actual_amount), 0) as gmv,
-                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
                 COUNT(DISTINCT o.order_id) as order_count,
-                COUNT(DISTINCT CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.order_id END) as gsv_order_count,
-                COUNT(DISTINCT CASE WHEN ufp.first_pay_date = DATE(o.pay_time) THEN o.user_id END) as new_user_count,
-                COUNT(DISTINCT CASE WHEN ufp.first_pay_date < DATE(o.pay_time) THEN o.user_id END) as old_user_count,
-                COALESCE(SUM(CASE WHEN o.is_member = TRUE THEN o.actual_amount ELSE 0 END), 0) as member_gmv,
-                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv,
-                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_count,
-                COALESCE(AVG(o.actual_amount), 0) as avg_order_value,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date = DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as new_user_gmv,
-                COALESCE(SUM(CASE WHEN ufp.first_pay_date < DATE(o.pay_time) AND o.is_refund = FALSE THEN o.actual_amount ELSE 0 END), 0) as old_user_gmv
+                COUNT(DISTINCT o.user_id) as user_count,
+                COALESCE(SUM(CASE WHEN (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT CASE WHEN o.is_member = TRUE THEN o.user_id END) as member_user_count,
+                COALESCE(SUM(CASE WHEN o.is_member = TRUE AND (o.is_goujinjin = FALSE AND o.is_refund = FALSE) THEN o.actual_amount ELSE 0 END), 0) as member_gsv
             FROM orders o
             LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
             WHERE o.pay_time IS NOT NULL AND DATE(o.pay_time) IN (SELECT unnest(?))
@@ -945,18 +928,11 @@ def _update_incremental_metrics(new_df, refresh_df, window_days=30):
             INSERT INTO daily_metrics
             SELECT
                 DATE(pay_time) as d,
-                COALESCE(SUM(actual_amount), 0) as gmv,
-                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
                 COUNT(DISTINCT order_id) as order_count,
-                COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN order_id END) as gsv_order_count,
-                COUNT(DISTINCT user_id) as new_user_count,
-                0 as old_user_count,
-                COALESCE(SUM(CASE WHEN is_member = TRUE THEN actual_amount ELSE 0 END), 0) as member_gmv,
-                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv,
-                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_count,
-                COALESCE(AVG(actual_amount), 0) as avg_order_value,
-                0 as new_user_gmv,
-                0 as old_user_gmv
+                COUNT(DISTINCT user_id) as user_count,
+                COALESCE(SUM(CASE WHEN (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as gsv,
+                COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END) as member_user_count,
+                COALESCE(SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND is_refund = FALSE) THEN actual_amount ELSE 0 END), 0) as member_gsv
             FROM orders
             WHERE pay_time IS NOT NULL AND DATE(pay_time) IN (SELECT unnest(?))
             GROUP BY DATE(pay_time)

@@ -328,22 +328,18 @@ def _create_indexes_custom(conn, table_name="orders"):
 
 
 def _create_metrics_tables(conn):
-    """创建指标表"""
+    """创建指标表
+    Sprint 24 简化: 历史 13 列 (gmv/gsv_order_count/new_user_count/...) 被手工简化
+    成 6 列. 此函数同步为 6 列避免新表与 SQL INSERT 不一致.
+    """
     conn.execute("""
         CREATE TABLE daily_metrics (
-            date DATE PRIMARY KEY,
-            gmv DECIMAL(14,2),
-            gsv DECIMAL(14,2),
-            order_count INTEGER,
-            gsv_order_count INTEGER,
-            new_user_count INTEGER,
-            old_user_count INTEGER,
-            member_gmv DECIMAL(14,2),
-            member_gsv DECIMAL(14,2),
-            member_count INTEGER,
-            avg_order_value DECIMAL(10,2),
-            new_user_gmv DECIMAL(14,2),
-            old_user_gmv DECIMAL(14,2)
+            d DATE PRIMARY KEY,
+            order_count BIGINT,
+            user_count BIGINT,
+            gsv DECIMAL(38,2),
+            member_user_count BIGINT,
+            member_gsv DECIMAL(38,2)
         )
     """)
     conn.execute("""
