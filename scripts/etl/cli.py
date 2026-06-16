@@ -20,6 +20,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from scripts.etl.config import (
     DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, PROCESSED_DATA_DIR, _ETL_SOURCE_STATS,
 )
+# Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跳过正在被打开的文件
+# 跟 Layer 6 cleanup_subagent.py 同模式 (lsof -t / is_open_by_any_process)
+from scripts.etl.common.open_check import is_open_by_any_process
 
 # ─────────────────────────────────────────────────────────────
 # Layer 1 of 4（2026-06-05 /tmp 孤儿治理）
@@ -139,6 +142,12 @@ def _cleanup_fq_tmp_orphans() -> int:
             break
         if bytes_deleted + size_bytes > _FQ_TMP_MAX_DELETE_BYTES_PER_RUN:
             break
+        # Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跳过正在被打开的文件
+        # 软失败: lsof 不可用 / 超时 → (False, reason) 保守放行, 跟原 mtime 决策一致
+        is_open, reason = is_open_by_any_process(path)
+        if is_open:
+            _safe_log(f"  [tmp-cleanup] skip (lsof open): {path} — {reason}")
+            continue
         try:
             os.remove(path)
             deleted.append((path, size_bytes / (1024**3), age_h))

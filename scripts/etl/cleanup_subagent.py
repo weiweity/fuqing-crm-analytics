@@ -38,6 +38,10 @@ import json
 import argparse
 from datetime import datetime, timezone
 
+# Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跟 Layer 1 cli.py 同模式
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from scripts.etl.common.open_check import is_open_by_any_process  # noqa: E402
+
 # ─────────────────────────────────────────────────────────────
 # 常量
 # ─────────────────────────────────────────────────────────────
@@ -211,6 +215,7 @@ def cleanup_subagent_tmp(dry_run: bool = False) -> dict:
         "freed_bytes": 0,
         "errors": [],
         "candidates_scanned": 0,
+        "skipped_open_count": 0,  # Sprint 26 F6: lsof 副检跳过的文件数
         "dry_run": dry_run,
     }
 
@@ -240,6 +245,13 @@ def cleanup_subagent_tmp(dry_run: bool = False) -> dict:
         if bytes_deleted + size_bytes > _MAX_DELETE_BYTES_PER_RUN:
             _log(f"  [sub-cleanup] cap hit: max {_MAX_DELETE_BYTES_PER_RUN / 1024**3:.0f}GB per run")
             break
+        # Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跳过正在被打开的文件
+        # 软失败: lsof 不可用 / 超时 → (False, reason) 保守放行, 不阻塞 cleanup
+        is_open, reason = is_open_by_any_process(path)
+        if is_open:
+            result["skipped_open_count"] = result.get("skipped_open_count", 0) + 1
+            _log(f"  [sub-cleanup] skip (lsof open): {path} — {reason}")
+            continue
         try:
             os.remove(path)
             result["deleted_count"] += 1
