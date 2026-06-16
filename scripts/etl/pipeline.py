@@ -35,6 +35,7 @@ import duckdb
 from backend.db.memory_monitor import check_memory
 
 from datetime import datetime as _dt
+import time as _time
 
 def _step_log(step_name, event="start"):
     """打印带时间戳的步骤日志，方便监控 ETL 进度。"""
@@ -128,7 +129,6 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
     check_memory(label="ETL 启动")
 
     # W6: 记录 ETL 真实 elapsed wall time（用于 notify_etl_complete stats）
-    import time as _time
     _etl_wall_start = _time.perf_counter()
 
     # Step 0: 确定模式（get_db_max_pay_time 有 lru_cache，重复调用无开销）
@@ -765,21 +765,20 @@ def _mark_all_files_processed():
     同时标记 Parquet 缓存文件，避免增量运行时重复读取。
     """
     print("\n标记所有源文件为已处理...")
-    import time as _time
     for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
         if not data_source.exists():
             continue
         files = list(data_source.rglob("*.xlsx"))
-        # v2 格式：存储 {mtime, hash, cold_start_marked, marked_at} dict
+        # v2 格式：存储 {mtime, hash, cold_start_marked} dict
         # Sprint 24 P0-1 治根 (2026-06-16): cold_start_marked 必须写 False (而非 True).
         # 旧实现 True 会触发 ingest._file_changed 路径 [B] (rec.get('cold_start_marked'))
         # → 强制返回 True → 冷启动后每次增量把 197 个文件全重读 (16-32h 灾难).
         # 新语义: cold_start_marked=False 表示"已登记" (mtime 短路够用), 不触发 [B].
         # 真"需重读"由 _file_changed 路径 [A] (key not in processed_files) 触发,
         # 那是 O2 增量 entry 模式 (新文件才需要), 跟冷启动批量登记无关.
-        # marked_at 仍保留 (审计用, 证明这个 entry 是冷启动全量登记产物).
         # Step 4.5 加载成功后, _clean_processed_updates 把 cold_start_marked
         # 保留 (置 False) + 追加 last_processed_at, 走正常 mtime/hash 比对.
+        # Sprint 24+ P3 (v0.4.14.95) 删 marked_at 字段 (冗余, ETL 内部从不读, 审计用 last_processed_at 足够)
         processed = {}
         for f in files:
             rel_path = str(f.relative_to(data_source))
@@ -787,7 +786,6 @@ def _mark_all_files_processed():
                 'mtime': f.stat().st_mtime,
                 'hash': _get_file_hash(f),
                 'cold_start_marked': False,
-                'marked_at': _time.time()
             }
         # Sprint 9 维修: 之前 parquet key = f.name (parquet 文件名), 但 ingest L82
         # _file_changed 用 _xlsx_stem_to_rel 反查 xlsx 相对路径. key 不一致
@@ -809,7 +807,6 @@ def _mark_all_files_processed():
                     # 同上: Parquet 缓存 entry 也写 cold_start_marked=False
                     # (已登记), 避免冷启动后增量走 [B] 重读所有 parquet 缓存.
                     'cold_start_marked': False,
-                    'marked_at': _time.time()
                 }
         _save_processed_files(data_type, processed)
         print(f"  {data_type}: 标记 {len(processed)} 个文件为已处理")
@@ -1110,7 +1107,6 @@ def update_taoke_channel():
     - retry 3: 失败 → 等 1s → 重开新 conn → 重试
     - 3 次都失败 → raise
     """
-    import time as _time
     _MAX_RETRIES = 3
     # QW4 埋点：step2 update_taoke_channel 的内部计时 (含 retry 全部 3 次)
     with PerfTimer("pl_taoke_full_correct"):

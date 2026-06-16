@@ -4,6 +4,7 @@
 import os
 import sys
 import time
+import functools
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -106,6 +107,21 @@ def parse_date(date_str):
     return None
 
 
+@functools.lru_cache(maxsize=4)
+def _build_xlsx_stem_to_rel(data_source_str: str) -> dict:
+    """构建 xlsx stem → 相对路径映射, lru_cache 缓存避免 load_data_files 每次重算.
+
+    data_source 路径变化时 cache 自动 invalidate (lru_cache 用 data_source_str 作 key).
+    maxsize=4 支持 4 个 data_type (shop/member/taoke_product/live) 各自缓存.
+    """
+    from pathlib import Path
+    data_source = Path(data_source_str)
+    _xlsx_stem_to_rel = {}
+    for _xf in data_source.rglob("*.xlsx"):
+        _xlsx_stem_to_rel[_xf.stem] = str(_xf.relative_to(data_source))
+    return _xlsx_stem_to_rel
+
+
 def load_data_files(data_source, data_type='shop', run_mode='full'):
     """
     加载数据文件。优先读 Parquet 缓存，fallback 到 xlsx。
@@ -141,9 +157,10 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     # FIX(2026-05-31): 构建 xlsx stem → 相对路径映射，使 Parquet 缓存 key 与 xlsx 一致
     # Parquet 文件名 {stem}.parquet 对应 xlsx 文件 {relative_path}/{stem}.xlsx
     # 使用 xlsx 的相对路径作为 key，确保 processed_files 中的 key 格式统一
-    _xlsx_stem_to_rel = {}
-    for _xf in data_source.rglob("*.xlsx"):
-        _xlsx_stem_to_rel[_xf.stem] = str(_xf.relative_to(data_source))
+    # FIX(v0.4.14.96): 加 lru_cache(maxsize=1) 缓存到 module-level, 避免每次 load_data_files
+    # (~200 file rglob ~10ms × N 次调用) 重算. data_source 路径变化时 cache 自动 invalidate
+    # (lru_cache 用 data_source str 作 key).
+    _xlsx_stem_to_rel = _build_xlsx_stem_to_rel(str(data_source))
 
     if pq_files:
         should_read_parquet = True

@@ -3,9 +3,9 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-16 (v0.4.14.92 + 5 债立账)
-**当前债数**: 7 条 (1 P0, 4 P1, 2 P2)
-**已修复**: 1 条 (Step 8 strict mode 冲突, Sprint 24+ P3)
+**最后更新**: 2026-06-16 (v0.4.14.96 债 #5/#6/#7 + CLAUDE.md 状态行收口)
+**当前债数**: 9 条 (0 P0, 1 P1, 6 P2, 2 P3)
+**已修复**: 4 条 (债 #1 v0.4.14.90 / 债 #4 v0.4.14.92 / 债 #2 v0.4.14.95 / 债 #5+#6+#7 v0.4.14.96)
 
 ---
 
@@ -96,6 +96,9 @@ C) **加 idx_orders_pay_time** 让全表 UPDATE 走索引扫描
 
 ### 推荐
 **C** 最快见效 (DuckDB ART 索引对 UPDATE 加速 10×+), A 是治根。
+
+### 排期
+**待排期** (跟用户当前 sprint 序列)。痛点 1 已闭环 (18 min < 35 min SLO), 紧迫性中等。
 
 ---
 
@@ -191,11 +194,77 @@ human 10min / CC 2min
 
 ---
 
+## 债 #195 (P3) uvicorn read_only 单例 × ETL 多 RW 连接不变量
+
+### 触发场景
+Sprint 24+ P3 adversarial review (v0.4.14.95 Branch 1 Finding 2) 指出: cli.py 4 处 sibling connection 改成 READ_WRITE 后, 4 处 + pipeline 内部 RW + 6 道门禁 L688/L859 + Step 8 baseline L916 都同时存在。如果未来有人重构成 "RW conn 跨函数持有" (例如把 `_c0` 留到 step1 跑完再关), 多 RW 写锁会跟 uvicorn 进程的 read_only 单例 + DuckDB 1.5.x ART index 互动出未定义行为。
+
+### 根因
+- `backend/services/health/rfm_analysis/cache.py:4-16`: uvicorn 启动时永久持有 read_only 单例 (fd 持有至进程退出)
+- `backend/main.py` 通过 `get_connection()` 启动时永久持有
+- ETL 是独立进程, 但 `_open_write_conn()` 仍可同进程 RW 写入 (cache.py:43)
+- 4 处 sibling + Step 8 baseline 都立即 conn.close() 释放, 所以当前 **0 风险**
+- 但**不变量**没文档化, 未来重构可能违反
+
+### 影响
+当前 0 风险 (4 处都 conn.close() 立即释放)。未来违反不变量, 可能出现:
+- DuckDB 1.5.x ART index + 多 RW 写锁 contention
+- 跨 connection access_mode race (Sprint 21+ P0 治根的同根因)
+- uvicorn 重启触发 read_only 单例重连 + ETL 多 RW 互斥等待
+
+### 修复方案
+- 在 cli.py 4 处 sibling connection 上方加 `# INVARIANT: 立刻 conn.close(), 不持有跨 step` 注释
+- 提取 `_open_duckdb_ro(path)` helper 函数 (Sprint 11 S11-3 思路) + 加 invariant docstring
+- (Optional) pre-commit hook 检查 "duckdb.connect" 后 5 行内必须 `conn.close()`
+
+### 估时
+- A: human 5min / CC 1min (注释)
+- B: human 1h / CC 10min (helper + 测试)
+- C: human 4h / CC 30min (hook 写 + 验证)
+
+### 推荐
+A 最小化, B 治根。Sprint 25+ 跟债 #3 一起排期。
+
+---
+
+## 债 #196 (P3) Sprint 11 S11-3 vs Sprint 24+ P3 同根因注释未合并
+
+### 触发场景
+Sprint 24+ P3 adversarial review (v0.4.14.95 Branch 1 Finding 5) 指出: cli.py 现在 3 段不同位置的注释讲同一根因 (DuckDB 1.5+ strict mode 拒绝同 file 多连接 config 或 access_mode 不一致):
+1. Sprint 11 S11-3 注释 (cli.py:686-689) — config dict 缺省
+2. Sprint 24+ P3 注释 (cli.py:916-923) — access_mode 不一致
+3. (本次 v0.4.14.95) 4 处 sibling 注释互相引用
+
+### 根因
+3 段注释分散在 cli.py 3 个不同位置, 描述同一根因的不同面, 缺少"统一入口"或互相引用。
+
+### 影响
+- 无功能影响
+- 文档债务: 下次 onboarding 困惑 "为什么 3 段注释讲同一件事"
+- 未来类似 bug 修复时, 开发者可能只改其中 1 段, 漏掉其他
+
+### 修复方案
+- 在 cli.py 顶部加 module-level docstring 段, 说明 "DuckDB strict mode 治根史 (Sprint 11 S11-3 / Sprint 24+ P3 / 24+ P3 收口)"
+- 或者: 在 Sprint 11 S11-3 注释处 (cli.py:686-689) 加 "同根因: Sprint 24+ P3 (v0.4.14.92 af90d86) 修了 access_mode 一致性, v0.4.14.95 (ebcc8a4) 4 处 sibling 治根" 引用
+
+### 估时
+- A: human 5min / CC 1min
+- B: human 5min / CC 1min
+
+### 排期
+Sprint 25+ 跟债 #195 一起排期。
+
+---
+
 ## 已修复债 (历史归档)
 
 | 债 | Sprint | 修复 commit | 备注 |
 |---|---|---|---|
 | Step 8 DuckDB 总行数查询 strict mode 冲突 | Sprint 24+ P3 | af90d86 (v0.4.14.92) | 去掉 read_only=True, READ_WRITE 兼容 |
+| #2 cli.py L310/424/688/859 sibling read_only | Sprint 24+ P3 收口 | ebcc8a4 (v0.4.14.95) | 4 处 sibling 治根, 注释统一指 Sprint 11 S11-3 + Sprint 24+ P3 同根因 |
+| #5 marked_at 字段冗余 | (本次) | (v0.4.14.96) | 删 L790/L812 写入, 0 读取代码, 纯冗余 |
+| #6 import time 函数内 3 处 | (本次) | (v0.4.14.96) | 改 module-level 顶部, _time 引用不动 |
+| #7 _xlsx_stem_to_rel 重算 | (本次) | (v0.4.14.96) | 加 @functools.lru_cache(maxsize=4) |
 
 ---
 
@@ -211,9 +280,11 @@ human 10min / CC 2min
 | 债 | 优先级 | 状态 | 估时 |
 |---|---|---|---|
 | #1 tracker JSON 设计缺陷 | P0 | ✅ 已修复 (v0.4.14.90) | - |
-| #2 cli.py L310/424/688/859 read_only | P1 | 🟡 待修 | ~2h |
-| #3 Step 4.7 is_member 性能 | P1 | 🟡 待修 | ~2h |
+| #2 cli.py L310/424/688/859 read_only | P1 | ✅ 已修复 (v0.4.14.95) | - |
+| #3 Step 4.7 is_member 性能 | P1 | 🟡 待排期 | ~2h |
 | #4 VERSION 文件滞后 | P1 | ✅ 已修复 (v0.4.14.92) | 流程改进 |
-| #5 marked_at 字段冗余 | P2 | 🟡 待修 | ~5min |
-| #6 import time 函数内 | P2 | 🟡 待修 | ~2min |
-| #7 _xlsx_stem_to_rel 重算 | P2 | 🟡 待修 | ~10min |
+| #5 marked_at 字段冗余 | P2 | ✅ 已修复 (v0.4.14.96) | - |
+| #6 import time 函数内 | P2 | ✅ 已修复 (v0.4.14.96) | - |
+| #7 _xlsx_stem_to_rel 重算 | P2 | ✅ 已修复 (v0.4.14.96) | - |
+| #195 uvicorn × ETL RW 不变量 | P3 | 🟡 待排期 | ~5min |
+| #196 Sprint 11 vs 24+ P3 同根因注释 | P3 | 🟡 待排期 | ~5min |
