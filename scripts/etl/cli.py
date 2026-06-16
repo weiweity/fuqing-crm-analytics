@@ -913,7 +913,11 @@ def main():
 
         # DuckDB 总行数
         try:
-            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+            # 不能用 read_only=True: Step 8 跑在 pipeline 上游 RW 连接持有周期内,
+            # DuckDB 1.5+ strict mode 拒绝同 database file 以不同 access_mode 开多连接
+            # (Sprint 24+ P3 Step 8 收口, v0.4.14.92).
+            # 仅 SELECT COUNT(*), READ_WRITE 兼容.
+            conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
             try:
                 total_orders = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
                 total_users = conn.execute("SELECT COUNT(DISTINCT user_id) FROM orders").fetchone()[0]

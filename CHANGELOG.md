@@ -1,3 +1,20 @@
+## [v0.4.14.92] - 2026-06-16 - fix(etl): Step 8 DuckDB 总行数查询 — 去掉 read_only=True 修跨连接 strict mode 冲突
+
+### Fixed
+- **`scripts/etl/cli.py:918` Step 8 数据源摘要** — `duckdb.connect(DUCKDB_PATH, read_only=True, ...)` → `duckdb.connect(DUCKDB_PATH, config={...})` (去掉 read_only). 修复 Step 8 DuckDB 总行数查询 100% 失败的 ConnectionException (Sprint 24 P3).
+
+### Root Cause
+- Step 8 跑在 pipeline 上游 RW 连接持有周期内, DuckDB 1.5+ strict mode 拒绝同 database file 以不同 access_mode (READ_ONLY vs READ_WRITE) 开多连接.
+- 之前每次 ETL 跑批最后出 `[WO-1 修复] Step 8 DuckDB 总行数查询失败: ConnectionException` 警告, 但 ETL 本身成功 (错误被 try/except 吞了). 不影响数据正确性, 但 dashboard 摘要少 2 行 (总订单数, 总用户数).
+
+### Impact
+- **修复后**: Step 8 输出 `DuckDB 订单表` + `DuckDB 用户数` 两行, 摘要完整.
+- **Sibling 债** (记入 TECH-DEBT): cli.py L310/L424/L688/L859 4 处 read_only=True 在 pipeline 不同阶段打开, 同样有 strict mode 风险 (本次只修 Step 8).
+
+### Review Note
+- Sprint 11 S11-3 WO-1 修过 read_only conn 缺 config 的问题 (e1a99d5), 加了 `config={memory_limit: 8GB}` 与其他 conn 一致. 但当时未识别 access_mode 维度的冲突, 留下 Step 8 长期债. Sprint 24+ P3 收口.
+
+
 ## [v0.4.14.91] - 2026-06-16 - fix(etl): daily_metrics SQL INSERT 13 列 vs 表 6 列 — 适配当前生产 schema
 
 ### Fixed
