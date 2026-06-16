@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.72（main @ f92408c，2026-06-14 Sprint 23 收口），测试 499+ passed / 15 skipped (Sprint 22: 痛点 1 跑批 18 min 达标 + DuckDB race 治根 + 3 hooks + 2 skills + MCP context7 + repo 公开) |
+| 4 | **版本状态** | v0.4.14.96（main @ 0d712eb，2026-06-16 Sprint 24 收口 + Branch 2 债 #5/#6/#7 收口），测试 526+ passed / 15 skipped (Sprint 24: 痛点 1 18min SLO + DuckDB race 治根 v0.4.14.89-92 + Step 8 strict mode v0.4.14.92 + 4 处 sibling read_only 治根 v0.4.14.95 + P2 清理 v0.4.14.96) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 

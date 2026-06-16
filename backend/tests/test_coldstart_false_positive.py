@@ -344,7 +344,8 @@ class TestMarkAllFilesProcessedAddsColdStartFlag:
     def test_mark_all_files_processed_adds_cold_start_flag(self, tmp_path, monkeypatch):
         """创建临时目录, 放 1 个 xlsx, mock SHOP/MEMBER_DATA_SOURCE 指向它,
         调用 _mark_all_files_processed, 读取生成的 tracker JSON,
-        断言每个 entry 都有 cold_start_marked=False (已登记) + marked_at (审计).
+        断言每个 entry 都有 cold_start_marked=False (已登记). Sprint 24+ P3 (v0.4.14.96)
+        删了 marked_at 字段 (债 #5, ETL 内部无读取代码, 冗余), 所以不再断言该字段.
         """
         from scripts.etl import pipeline
         from scripts.etl import config as _config
@@ -418,10 +419,10 @@ class TestMarkAllFilesProcessedAddsColdStartFlag:
             f"实际: {shop_entry}. "
             f"⚠️ Sprint 24 P0-1 治根: True 会让 _file_changed 每次都重读所有文件"
         )
-        assert "marked_at" in shop_entry, (
-            "shop entry 必须记录 marked_at 时间戳 (用于审计, 证明是冷启动登记产物)"
+        # Sprint 24+ P3 (v0.4.14.96) 删 marked_at 字段 (债 #5, 冗余)
+        assert "marked_at" not in shop_entry, (
+            "shop entry 不应再含 marked_at 字段 (v0.4.14.96 债 #5 删)"
         )
-        assert isinstance(shop_entry["marked_at"], (int, float))
         assert "mtime" in shop_entry
         assert shop_entry["hash"] == "fake_hash_for_test"
 

@@ -1,3 +1,34 @@
+## [v0.4.14.96] - 2026-06-16 - chore(etl): P2 清理 + 台账/CLAUDE.md 收口 (债 #5/#6/#7 + 债 #195/#196 立账)
+
+### Removed
+- **`scripts/etl/pipeline.py:790, :812`** 删 `marked_at` 字段写入 (债 #5). ingest.py 0 引用, 0 读取代码, 纯冗余. 老 tracker JSON 字段残留不影响行为 (_file_changed 跟 _clean_processed_updates 都不读).
+- **`scripts/etl/pipeline.py:131, :768, :1113`** 删 3 处函数内 `import time as _time` (债 #6). 改 module 顶部 L37, startup ~15ms 性能提升.
+- **`docs/TECH-DEBT.md`** 注释: pipeline.py:773, :780 删 marked_at 字段描述 (债 #5 配套).
+
+### Added
+- **`scripts/etl/ingest.py:111-122`** 新增 `_build_xlsx_stem_to_rel()` 函数 with `@functools.lru_cache(maxsize=4)` (债 #7). 调用方 L150 改用缓存. maxsize=4 支持 4 个 data_type 各自缓存, data_source 路径变化时 cache 自动 invalidate.
+- **`docs/TECH-DEBT.md`** 债 #195 (P3) uvicorn read_only 单例 × ETL 多 RW 连接不变量 (Medium 架构债, Sprint 24+ P3 adversarial review 立账).
+- **`docs/TECH-DEBT.md`** 债 #196 (P3) Sprint 11 S11-3 vs Sprint 24+ P3 同根因注释未合并 (Low 文档债).
+
+### Changed
+- **`docs/TECH-DEBT.md`** 债 #3 排期: "Sprint 25 推荐" → "待排期" (跟用户当前 sprint 序列, Sprint 25+ 重排).
+- **`docs/TECH-DEBT.md`** 索引: 7 条债 (1 P0, 4 P1, 2 P2) → 9 条债 (0 P0, 1 P1, 6 P2, 2 P3). 债 #1/#2/#4/#5/#6/#7 移到"已修复债"section.
+- **`CLAUDE.md`** 状态行: v0.4.14.72 Sprint 23 收口 → v0.4.14.96 Sprint 24 收口 + Branch 2 债 #5/#6/#7 收口 (1 行精简版).
+
+### Test Update
+- **`backend/tests/test_coldstart_false_positive.py:test_mark_all_files_processed_adds_cold_start_flag`** 同步删 marked_at 字段断言 (v0.4.14.96 写入不再含 marked_at). test_loaded_entry_not_reloaded_after_processing 保留 _clean_processed_updates 的 marked_at 保留行为 (我没改这函数).
+
+### Verified
+- pytest 509 passed (跳过 3 个 uvicorn 锁模块, 跟之前一致)
+- pre-commit ground-truth lint pass
+- 不需要 ETL 跑批验证 (债 #5/#6/#7 都是 cleanup, 不影响跑批路径)
+
+### 排期状态
+- 债 #3 P1 Step 4.7 is_member 性能 — 待排期
+- 债 #195 P3 uvicorn × ETL RW 不变量 — 待排期
+- 债 #196 P3 Sprint 11 vs 24+ P3 同根因注释 — 待排期
+
+
 ## [v0.4.14.95] - 2026-06-16 - fix(etl): cli.py L310/424/688/859 4 处 read_only=True → 默认 READ_WRITE (Sprint 24+ P3 治根收口)
 
 ### Fixed
