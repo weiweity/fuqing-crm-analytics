@@ -53,6 +53,8 @@ FQ_TMP_PREFIXES = (
 )
 _FQ_TMP_MAX_DELETE_PER_RUN = 5        # 防御性：单次最多删 5 个文件
 _FQ_TMP_MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB/次（防单次爆删）
+# Sprint 25 P1-3 review 撤回 per-file cap: byte cap 100GB 已是单文件误删防护,
+# per-file 20GB 跟实际常见孤儿尺寸 (50-103GB) 冲突, 反而卡住清理. 维持单层 byte cap.
 _FQ_TMP_MIN_AGE_HOURS = 24            # 24h 内的活跃文件不删
 _FQ_TMP_LOG_PATH = "/tmp/fuqing-tmp-cleanup.log"  # 持久日志（不等同 print）
 _FQ_TMP_MARKER_PATH = "/tmp/fuqing-etl-marker.json"  # F3: 异常退出检测 marker

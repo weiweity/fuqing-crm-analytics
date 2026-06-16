@@ -145,7 +145,7 @@ fuqing-crm-analytics/
 | 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线:检测 50GB+ 占用打印告警,不删 |
 | 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试时主动 cp | 调试便捷:30 天 TTL + 时间戳命名,不再污染 /tmp |
 | 4. launchd weekly cleanup | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | data 目录独立防线:`data/processed/backups/` 7 天保留清理 |
-| 5. **launchd daily backup (Sprint 4 P0-2)** | `scripts/etl/backup_duckdb.py` + `com.sample.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备:55GB DuckDB shutil.copy2 (os-level, 不冲突 uvicorn 持锁) + zstd 压缩 → 21GB (.duckdb.zst), 7 天由 weekly cleanup 兜底, 含 post-copy verify 防 APFS torn copy |
+| 5. **launchd daily backup (Sprint 4 P0-2)** | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备:103GB DuckDB shutil.copy2 (os-level, 不冲突 uvicorn 持锁) + zstd 压缩 → 40GB (.duckdb.zst, 2.575:1 压缩比, level 3), 7 天由 weekly cleanup 兜底, 含 post-copy verify 防 APFS torn copy |
 | 6. **launchd hourly subagent cleanup (Sprint 6 P0-3)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 | subagent 路径兜底:扫 `/private/tmp` + `/tmp` 下 1h+ 1GB+ 非白名单文件 (排除项目根 + layer 1 自身状态文件 + 代码/日志扩展名), cap 5 文件 / 100GB. 解决 Sprint 5 deep dive 教训:subagent 走手动 `shutil.copy2` 复制 production 55GB × 8 次 = 440GB 在 `/private/tmp/p0_3_dive/`, 5 层防护因白名单设计 (FQ_TMP_PREFIXES) 都没拦. |
 
 ### 紧急清理命令

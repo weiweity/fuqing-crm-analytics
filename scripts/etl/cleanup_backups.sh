@@ -50,11 +50,13 @@ if [[ ! -d "$BACKUP_DIR" ]]; then
 fi
 
 # 2. 统计清理前（F20 修复：不吞 find 错误，显式判断）
-BEFORE_COUNT=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" \) 2>&1 | tee /dev/stderr | wc -l | tr -d ' ') || {
+#    Sprint 25: find 模式加 *.duckdb.zst 修复 7 天清理伪命题
+#    (cleanup_backups.sh 之前只删 .parquet + .duckdb, 漏掉 zstd 压缩后的 .duckdb.zst)
+BEFORE_COUNT=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" -o -name "*.duckdb.zst" \) 2>&1 | tee /dev/stderr | wc -l | tr -d ' ') || {
     echo "[$TIMESTAMP] ERROR: find failed on $BACKUP_DIR" | tee -a "$LOG_FILE"
     exit 1
 }
-BEFORE_BYTES=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" \) -exec stat -f "%z" {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
+BEFORE_BYTES=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" -o -name "*.duckdb.zst" \) -exec stat -f "%z" {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
 
 # 3. 清理 7 天前的文件（软失败：rm 失败只 log 不 exit）
 DELETED_NAMES=()
@@ -64,11 +66,11 @@ while IFS= read -r f; do
     else
         echo "[$TIMESTAMP] WARN: rm failed: $f" | tee -a "$LOG_FILE" >&2
     fi
-done < <(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" \) -mtime +$RETENTION_DAYS 2>/dev/null)
+done < <(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" -o -name "*.duckdb.zst" \) -mtime +$RETENTION_DAYS 2>/dev/null)
 
 # 4. 统计清理后
-AFTER_COUNT=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" \) 2>/dev/null | wc -l | tr -d ' ')
-AFTER_BYTES=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" \) -exec stat -f "%z" {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
+AFTER_COUNT=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" -o -name "*.duckdb.zst" \) 2>/dev/null | wc -l | tr -d ' ')
+AFTER_BYTES=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" -o -name "*.duckdb.zst" \) -exec stat -f "%z" {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
 
 # 5. 输出结果（plain text，launchd 仅看 exit code）
 BEFORE_MB=$((BEFORE_BYTES / 1024 / 1024))
@@ -81,5 +83,7 @@ if [[ ${#DELETED_NAMES[@]} -gt 0 ]]; then
     SUMMARY="$SUMMARY | files: ${DELETED_NAMES[*]}"
 fi
 echo "$SUMMARY" | tee -a "$LOG_FILE"
+# Sprint 25 顺 B-1: cleanup 完输出剩余空间到 plist stdout, 给 Layer 2 zshrc 50GB 告警补盲点
+echo "[$TIMESTAMP] disk_free_after_cleanup: $(df -h "$BACKUP_DIR" | tail -1) | backups_size_total=${AFTER_MB}MB" | tee -a "$LOG_FILE"
 
 # trap EXIT 会自动 rmdir 锁目录
