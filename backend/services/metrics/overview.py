@@ -445,30 +445,32 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
             ORDER BY date
         """, params_ly).fetchall()
 
-        # 今年会员GSV占比（%）
+        # 今年会员GSV占比（0-1 decimal, 跟 Sprint 14.5 OverviewMetrics.member_ratio 治根路线一致;
+        # Sprint 27 借机补: 之前 service 端 ×100 返 0-100 percentage, 违反 CLAUDE.md Ratio Convention;
+        # 现在改 0-1 decimal, 前端展示层 (tooltip / Y 轴 formatter) 自己 ×100)
         member_ratios = []
         for r in result:
             total_amount = r[1] if r[1] else 0
             member_amount = r[2] if r[2] else 0
-            ratio = (member_amount / total_amount * 100) if total_amount > 0 else 0
-            member_ratios.append(round(ratio, 2))
+            ratio = (member_amount / total_amount) if total_amount > 0 else 0
+            member_ratios.append(round(ratio, 4))
 
-        # 去年会员GSV占比（%）
+        # 去年同周期会员GSV占比（0-1 decimal, 跟 member_ratios 对齐）
         ly_member_ratios = []
         for r in result_ly:
             total_amount = r[1] if r[1] else 0
             member_amount = r[2] if r[2] else 0
-            ratio = (member_amount / total_amount * 100) if total_amount > 0 else 0
-            ly_member_ratios.append(round(ratio, 2))
+            ratio = (member_amount / total_amount) if total_amount > 0 else 0
+            ly_member_ratios.append(round(ratio, 4))
 
-        # 计算整体会员GSV占比（与人群看板一致）
+        # 计算整体会员GSV占比（与人群看板一致, 0-1 decimal）
         total_amount = sum(float(r[1]) for r in result) if result else 0
         total_member_amount = sum(float(r[2]) for r in result) if result else 0
-        overall_member_ratio = round(total_member_amount / total_amount * 100, 2) if total_amount > 0 else 0
+        overall_member_ratio = round(total_member_amount / total_amount, 4) if total_amount > 0 else 0
 
         total_amount_ly = sum(float(r[1]) for r in result_ly) if result_ly else 0
         total_member_amount_ly = sum(float(r[2]) for r in result_ly) if result_ly else 0
-        overall_member_ratio_ly = round(total_member_amount_ly / total_amount_ly * 100, 2) if total_amount_ly > 0 else 0
+        overall_member_ratio_ly = round(total_member_amount_ly / total_amount_ly, 4) if total_amount_ly > 0 else 0
 
         return {
             "metric_type": metric_type,
