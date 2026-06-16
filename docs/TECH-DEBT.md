@@ -38,6 +38,16 @@ Sprint 24 P0-1 (v0.4.14.90, commit `c111400`): `_mark_all_files_processed()` 写
 ### 触发场景
 Step 8 修复 (v0.4.14.92) 时发现: `scripts/etl/cli.py` 4 处 read_only=True 连接 (L310/L424/L688/L859) 跟 Step 8 一样的 strict mode 风险。本次**只修 Step 8**, 这 4 处未修。
 
+### Ground-truth 验证
+```
+$ grep -n "read_only=True" scripts/etl/cli.py
+310:    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+424:    conn = duckdb.connect(str(DUCKDB_PATH), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+688:                _c0 = _dd2.connect(str(_DDB), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+859:                _c1 = _dd3.connect(str(_DDB2), read_only=True, config={"memory_limit": DUCKDB_MEMORY_LIMIT})
+```
+4 处全部使用 `read_only=True` (其中 L688/L859 用 `_dd2/_dd3` alias).
+
 ### 根因
 - L310/L424: 备份场景读 DuckDB (Step 1, 2 backup)
 - L688/L859: 6 道门禁 gate check (跨日, dedup)
@@ -140,16 +150,25 @@ C) **保持现状**
 
 ---
 
-## 债 #6 (P2) `import time` 在函数内 (pipeline.py:768)
+## 债 #6 (P2) `import time` 在函数内 (pipeline.py:131/768/1113)
 
 ### 触发场景
-Sprint 19 pre-commit hook 抓过几次, `import time` 在函数体内 (而不是 module 顶部), 影响启动速度 ~5ms。
+`scripts/etl/pipeline.py` 有 3 处 `import time as _time` 在函数体内 (L131, L768, L1113) 而不是 module 顶部。每次 ETL 跑批调用到这 3 个函数, Python 重新做模块查找 + sys.modules 检查, 影响启动速度 ~5ms × 3 = ~15ms。
+
+### Ground-truth 验证
+```
+$ grep -n "^    import time as _time\|^import time as _time" scripts/etl/pipeline.py
+131:    import time as _time
+768:    import time as _time
+1113:    import time as _time
+```
+3 处, 全部在函数体内。
 
 ### 影响
 微. 仅 startup 性能, 无功能影响。
 
 ### 修复方案
-**移到 module 顶部** (5 行 refactor)
+**统一移到 module 顶部** (3 行 refactor, L4 附近)
 
 ### 估时
 human 2min / CC 30s
