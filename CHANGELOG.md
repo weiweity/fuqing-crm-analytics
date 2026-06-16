@@ -1,3 +1,26 @@
+## [v0.4.14.90] - 2026-06-16 - fix(etl): Sprint 24 P0-1 收口 — 5 个后续修复 (治根 + 3 bug + 重构)
+
+### Fixed (P0 治根)
+- **`scripts/etl/pipeline.py:_mark_all_files_processed()`** — `cold_start_marked: True` → `False`. 旧实现写 True 触发 `_file_changed` 路径 [B] 强制重读, 冷启动后每次增量把 197 个文件全重读 (16-32h 灾难). 新语义: False = "已登记", 不触发 [B]; 真"需重读"由路径 [A] (新文件) 触发.
+
+### Fixed (P0 bugs)
+- **`scripts/etl/pipeline.py:_update_incremental_metrics()`** (3 处) — `daily_metrics` SQL 引用列名 `date` 但表是 `d`, 改 `date` → `d`. 让 6/15 daily_metrics 能正常写入.
+- **`scripts/etl/pipeline.py:run_full_etl()` Step 4.7** — `WHERE order_id = ANY(?)` → `ANY(CAST(? AS VARCHAR[]))`. 修 VARCHAR vs BIGINT Binder Error, 让 6,798 个 6/15 会员订单 is_member 标记成功.
+
+### Refactored (技术债清理)
+- **`scripts/etl/ingest.py:_file_changed()`** — 从 nested closure 抽到 module-level, 4 个显式参数. 防止"测试过但真函数 typo" 的盲点.
+- **`backend/tests/test_coldstart_false_positive.py`** — 5 个测试改用真 `_file_changed` 函数, 删 simulate/fake mirror.
+
+### Test
+- 全量 pytest: **536 passed / 5 skipped / 0 failed** (环境 skip 是 uvicorn 持锁, 与本次无关).
+
+### Impact
+- **下次冷启动不再引发 16-32h 全量重读灾难** (治根).
+- **6/15 dashboard daily_metrics 正常** (修 SQL bug).
+- **is_member 6,798 标记成功** (修 type cast).
+- **未来 _file_changed 重构不再有测试盲点** (module-level + 真函数测试).
+
+
 ## [v0.4.14.89] - 2026-06-16 - fix(etl): 冷启动假阳性 — Option B 字段存在性判断, 兼容老格式 tracker
 
 ### Fixed
