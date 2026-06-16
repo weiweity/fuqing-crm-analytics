@@ -5,7 +5,7 @@
 - **`CLAUDE.md` 文档导航表** 加一行指针 `docs/TECH-DEBT.md`, 明确"唯一台账"语义.
 
 ### 债列表 (7 条)
-- **#1 P0** tracker JSON 设计缺陷 (`cold_start_marked` 语义不清) — ✅ 已修复 (v0.4.14.89)
+- **#1 P0** tracker JSON 设计缺陷 (`cold_start_marked` 语义不清) — ✅ 已修复 (v0.4.14.90, 完整修复链含 v0.4.14.89 forward-compat)
 - **#2 P1** cli.py L310/424/688/859 sibling read_only=True — 🟡 待修 (Sprint 25 推荐)
 - **#3 P1** Step 4.7 is_member 7 分钟 5.6M UPDATE — 🟡 待修 (加 idx_orders_pay_time 10× 加速)
 - **#4 P1** VERSION 文件滞后 17 版本 — ✅ 已修复 (本次同步修, 流程改进加 review checklist)
