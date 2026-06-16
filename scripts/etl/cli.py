@@ -1,5 +1,12 @@
 """ETL CLI 入口
 命令行参数解析、子命令分发。
+
+DuckDB strict mode 治根史 (Sprint 11 S11-3 / Sprint 24+ P3 / Sprint 24+ P3 收口):
+DuckDB 1.5+ strict mode 拒绝同 database file 多连接 config 或 access_mode 不一致.
+本文件 4 处 sibling connection (L310/L424/L688/L859) 跟 uvicorn read_only 单例 +
+ETL 内部 RW 写入 同进程交互, 严格遵守 1 个不变量: 立刻 conn.close() (try/finally),
+不持有跨 step. 4 处都有 # INVARIANT 注释 + 引用 Sprint 11 S11-3 (config dict) +
+Sprint 24+ P3 (access_mode 统一) 治根史, 跟 `docs/TECH-DEBT.md` 债 #196 配套.
 """
 import sys
 import atexit
@@ -310,6 +317,8 @@ def rescan_channel(since: str = None, dry_run: bool = True):
     # read_only=True 跟 pipeline 上游 RW 连接冲突 (Sprint 24+ P3 治根, 详见 L916, v0.4.14.95)
     # 同根因 (Sprint 11 S11-3 + Sprint 24+ P3 治根): DuckDB 1.5+ strict mode 拒绝同 file 多连接
     # config 或 access_mode 不一致. 4 处 sibling 已全部统一 (L310/L424/L688/L859, v0.4.14.95).
+    # INVARIANT: 立刻 conn.close() (try/finally), 不持有跨 step. 4 处 sibling + uvicorn read_only
+    # 单例 + ETL 多 RW 并发, 任一 conn 跨 step 持有都会触发 DuckDB 1.5.x ART index 写锁 contention.
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         if since:
@@ -427,6 +436,8 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
     # read_only=True 跟 pipeline 上游 RW 连接冲突 (Sprint 24+ P3 治根, 详见 L916, v0.4.14.95)
     # 同根因 (Sprint 11 S11-3 + Sprint 24+ P3 治根): DuckDB 1.5+ strict mode 拒绝同 file 多连接
     # config 或 access_mode 不一致. 4 处 sibling 已全部统一 (L310/L424/L688/L859, v0.4.14.95).
+    # INVARIANT: 立刻 conn.close() (try/finally), 不持有跨 step. 4 处 sibling + uvicorn read_only
+    # 单例 + ETL 多 RW 并发, 任一 conn 跨 step 持有都会触发 DuckDB 1.5.x ART index 写锁 contention.
     conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
     try:
         if product_ids:
@@ -694,6 +705,8 @@ def main():
                 # read_only=True 跟 pipeline 上游 RW 连接冲突 (Sprint 24+ P3 治根, 详见 L916, v0.4.14.95)
                 # 同根因 (Sprint 11 S11-3 + Sprint 24+ P3 治根): DuckDB 1.5+ strict mode 拒绝同 file 多连接
                 # config 或 access_mode 不一致. 4 处 sibling 已全部统一 (L310/L424/L688/L859, v0.4.14.95).
+                # INVARIANT: 立刻 _c0.close() (try/finally), 不持有跨 step. 6 道门禁前置 + uvicorn
+                # read_only 单例 + ETL 多 RW 并发, 任一 conn 跨 step 持有触发 DuckDB ART 写锁 contention.
                 _c0 = _dd2.connect(str(_DDB), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
                 try:
                     _before_max = _c0.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
@@ -868,6 +881,8 @@ def main():
                 # read_only=True 跟 pipeline 上游 RW 连接冲突 (Sprint 24+ P3 治根, 详见 L916, v0.4.14.95)
                 # 同根因 (Sprint 11 S11-3 + Sprint 24+ P3 治根): DuckDB 1.5+ strict mode 拒绝同 file 多连接
                 # config 或 access_mode 不一致. 4 处 sibling 已全部统一 (L310/L424/L688/L859, v0.4.14.95).
+                # INVARIANT: 立刻 _c1.close() (try/finally), 不持有跨 step. 6 道门禁收尾 + uvicorn
+                # read_only 单例 + ETL 多 RW 并发, 任一 conn 跨 step 持有触发 DuckDB ART 写锁 contention.
                 _c1 = _dd3.connect(str(_DDB2), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
                 try:
                     _after_max = _c1.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]

@@ -328,7 +328,7 @@ pre-commit hook 是**开发者工具**, 不影响 backend runtime. backend 跑
 - 工具文档: `docs/LINTING.md` (Sprint 17 #121, 4 条规则详细)
 - 配对配置: `.githooks/pre-commit` (Sprint 3 P1-3, ground-truth-lint 第一版)
 - 配对配置: `.pre-commit-config.yaml` (Sprint 18 #142, framework 版)
-- 任务来源: `docs/SPRINT-17-RETROSPECTIVE.md` Section 4 #2
+- 任务来源: `CHANGELOG.md` v0.4.14.41 (Sprint 17 #121)
 - 计划: Sprint 18 Plan agent 段 B
 - 26 命名冲突治根: Sprint 18 #141
 - B1+B2 模式: `CLAUDE.md` Ratio Convention 章节 (Sprint 17 #122)

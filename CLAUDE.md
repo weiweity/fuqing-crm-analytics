@@ -1,7 +1,7 @@
 # Sample CRM — AI 执行手册
 
 > 本文件每次会话自动加载。只放行为规则，不放参考材料。
-> 参考手册见 `docs/reference.md`（按需读取）。
+> 参考手册见 `docs/*.md`（按需读取，按专题分文件）。
 
 ---
 
@@ -192,7 +192,7 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 
 **ETL 脚本连接例外条款** (WO-5 P2-#2)：`scripts/etl/*` 是独立离线脚本（不与 backend 同进程），允许 `duckdb.connect(DUCKDB_PATH, config={"memory_limit": ...})` + `conn.close()`，因为：① ETL 跑批时间长（30-60min），同进程单例连接会污染 config；② `read_only=True` 与 `access_mode=READ_WRITE` 互斥，单例会触发 `Can't open a connection to same database file with a different configuration`；③ ETL 完成后进程退出，连接由 OS 回收。单例规则仍适用于 `backend/services/*` 和 `backend/routers/*` 的 Web 请求路径。
 
-详细示例见 `docs/reference.md`。
+详细示例见 `scripts/etl/cli.py` 顶部 module docstring "DuckDB strict mode 治根史" 段 (Sprint 24+ P3 收口, v0.4.14.97).
 
 ---
 
@@ -282,7 +282,7 @@ Key routing rules:
 - 新增 contract 文件必跑 ground-truth-lint 通过才允许 commit (留 Sprint 17)
 - ✅ Sprint 17 已升级到 'Ratio Convention' 主章节 (见下)
 
-详见 `docs/SPRINT-16-5-RETROSPECTIVE.md` + `docs/SPRINT-16-5-B2-AUDIT.md`
+详见 `CHANGELOG.md` v0.4.14.40 (Sprint 16.5 #91) + v0.4.14.41 (Sprint 17 #120/121/122)
 
 ---
 
@@ -353,13 +353,13 @@ Key routing rules:
 
 ### 文档 / 跨链
 
-- 完整契约: `docs/reference.md` "Ratio Convention (Sprint 13 更新)" 章节
+- 完整契约: 本文件 "Ratio Convention (B1+B2 模式, Sprint 13+ 升级 Sprint 17)" 主章节 (本文件)
 - 字段语义: `backend/semantic/calculations.py` docstring（`yoy_ratio` / `yoy_absolute` / `mom_*`）
 - 类型定义: `backend/contracts/types.py` (`RatioField` / `PercentageField` / `PpField`)
-- B2 试点: `docs/SPRINT-16-5-B2-AUDIT.md` (Sprint 16.5 #91 9 mark 字段补标)
-- 任务来源: `docs/SPRINT-16-5-RETROSPECTIVE.md` Section 5 治理债务 #4 + Section 6 教训
+- B2 试点: `CHANGELOG.md` v0.4.14.40 (Sprint 16.5 #91 9 mark 字段补标)
+- 任务来源: `CHANGELOG.md` v0.4.14.40 Section "B2 试点" + Sprint 16.5 retrospective (已公开清理)
 - Lint 规则: `docs/LINTING.md` (Sprint 17 #121 新建, 给 ground-truth-lint 提供语义)
-- 全量 audit: `docs/SPRINT-17-B2-AUDIT-FULL.md` (Sprint 17 #120 新建, 9 contract 全量)
+- 全量 audit: `CHANGELOG.md` v0.4.14.41 (Sprint 17 #120 新建, 9 contract 全量)
 - 组件实现: `frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue` JSDoc
 - 改版历史: `CHANGELOG.md` v0.4.14.26 (Sprint 12) + v0.4.14.29 (Sprint 13) + v0.4.14.41 (Sprint 17)
 - 4 页面 banner: `frontend-vue3/src/components/RatioConventionBanner.vue` (3 天自动消失)

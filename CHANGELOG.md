@@ -1,3 +1,33 @@
+## [v0.4.14.97] - 2026-06-16 - chore: 3 条债全闭环 (#3 归档 / #195 + #196 注释) + 6 处失效引用清理
+
+### Added
+- **`scripts/etl/cli.py:1-15` module docstring** — 加 "DuckDB strict mode 治根史" 段, 引用 Sprint 11 S11-3 / Sprint 24+ P3 / Sprint 24+ P3 收口 (债 #196 治根). 统一 3 段分散注释, 顶部 docstring 一目了然.
+- **`scripts/etl/cli.py` 4 处 sibling connection 上方** — 加 `# INVARIANT: 立刻 conn.close() (try/finally), 不持有跨 step` 注释 (债 #195 治根). L310/L424 是 Step 2/3 读 orders, L688/L859 是 6 道门禁前后置查询.
+
+### Closed (债台账)
+- **债 #3 (P1) Step 4.7 is_member 性能** — 移 "已修复债" 表. Sprint 15 Wave 3 已改增量 UPDATE (`pipeline.py:540-583` `WHERE order_id IN (?, ?, ...)`) + `idx_orders_pay_time` 索引已建 (`backend/database.py:129` / `scripts/etl/load.py:258` / `pipeline.py:1156` 等), 5.6M 全表 UPDATE 痛点不存在. 痛点 1 已闭环 18 min < 35 min SLO (Sprint 22 #26).
+- **债 #195 (P3) uvicorn × ETL RW 不变量** — 移 "已修复债" 表. cli.py 4 处 sibling 上方 `# INVARIANT` 注释, 文档化跨进程不变量.
+- **债 #196 (P3) Sprint 11 vs 24+ P3 同根因注释未合并** — 移 "已修复债" 表. cli.py 顶部 module docstring 段统一 3 段分散注释.
+
+### Changed
+- **`docs/TECH-DEBT.md`** — 债台账顶部 "最后更新" + "当前债数" 收口: 9 条 (0 P0, 1 P1, 6 P2, 2 P3) → 0 条 (全闭环). 索引表全表移到 "已修复债" section.
+- **`docs/TECH-DEBT.md`** — 加债 #1 修复记录 (之前已修但未入台账) + 债 #3 修复记录 (Sprint 15 Wave 3 治根).
+- **`docs/TECH-DEBT.md`** — 债 #2 修复 commit SHA `af90d86 (v0.4.14.92)` → 修正为 `ebcc8a4 (v0.4.14.95)`, 跟 CHANGELOG v0.4.14.95 一致.
+- **`README.md`** — 状态行 v0.4.14.72 Sprint 22+23 → v0.4.14.96 Sprint 22-24 + 测试 499+ → 509+ passed / 15 skipped. 文档导航删失效 `[📖 文档索引](./docs/document-index.md)` 链接, 改 "完整文档列表见 `docs/` 目录 + `CHANGELOG.md`". 变更历史加 2026-06-16 Sprint 24 收口行.
+- **`CLAUDE.md`** — 删 4 处失效 `docs/reference.md` 引用, 改 "按专题分文件". 删 3 处失效 `SPRINT-16-5-RETROSPECTIVE.md` + `SPRINT-16-5-B2-AUDIT.md` + `SPRINT-17-B2-AUDIT-FULL.md` 引用, 改 "见 `CHANGELOG.md` v0.4.14.40/v0.4.14.41". 删 1 处失效 `SPRINT-17-RETROSPECTIVE.md` 引用, 改 "见 `CHANGELOG.md` v0.4.14.41".
+- **`docs/AUTOMATION.md`** — 删失效 `docs/claude-automation-recommender-report.md` 引用, 改 "见 `CHANGELOG.md` v0.4.14.72".
+- **`docs/design/50m-scale-architecture.md`** — 删失效 `docs/validation-reports/benchmark-50m-2026-06-09.md` 引用, 改 "见 50M 行 benchmark 数据 (2026-06-09 跑批实测, 见 `data/processed/fuqing_crm_50m.duckdb` 7.3 GB)".
+- **`docs/PRE-COMMIT.md`** — 删失效 `docs/SPRINT-17-RETROSPECTIVE.md` 引用, 改 "见 `CHANGELOG.md` v0.4.14.41".
+
+### Verified
+- pytest 536 passed / 5 skipped (跟 v0.4.14.96 baseline 一致, 5 skip 是 uvicorn 持锁跨进程跳过, 跟本次改动无关)
+- pre-commit ground-truth lint pass (只动注释 + 文档, 无 ratio/pct/ppt 字段变化)
+- 不需要 ETL 跑批验证 (债 #195/#196 是注释 + docstring, 债 #3 是台账归档, README/CLAUDE/docs 是文字更新, 都不影响 ETL 跑批路径)
+
+### 排期状态
+**全闭环, 0 条待排期债** (3 条 #3/#195/#196 全部移到 "已修复债" section).
+
+
 ## [v0.4.14.96] - 2026-06-16 - chore(etl): P2 清理 + 台账/CLAUDE.md 收口 (债 #5/#6/#7 + 债 #195/#196 立账)
 
 ### Removed

@@ -22,11 +22,12 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ ETL 增量更新正常（截至 2026-06-14：orders 10,654,714 / user_first_purchase 4,246,328 / user_rfm 72.4M）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 499+ passed / 15 skipped（v0.4.14.72, Sprint 22+23 收口）
+- ✅ 测试 509+ passed / 15 skipped (v0.4.14.96, Sprint 22-24 收口)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
 - ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 2 skills (regen-types + ship-pr) + MCP context7
 - ✅ repo 公开：weiweity/fuqing-crm-analytics (PUBLIC, 2026-06-13)
+- ✅ Sprint 24 收口：Step 8 strict mode 修 (v0.4.14.92) + 4 处 sibling read_only 治根 (v0.4.14.95) + P2 清理 (v0.4.14.96) + 3 条债全闭环 (v0.4.14.97)
 
 ---
 
@@ -116,14 +117,14 @@ fuqing-crm-analytics/
 
 ## 文档导航
 
-详细文档分类和状态请查看 [📖 文档索引](./docs/document-index.md)
+完整文档列表见 `docs/` 目录 + `CHANGELOG.md` 版本变更记录。
 
 ### 核心文档速查
 
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.72) |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.96) |
 | [docs/AUTOMATION.md](./docs/AUTOMATION.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/SHIP.md](./docs/SHIP.md) | /ship skill 使用文档 |
 | [docs/LINTING.md](./docs/LINTING.md) | ground-truth-lint 规则 (Sprint 17 #121) |
@@ -192,7 +193,7 @@ cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（499+ passed / 15 skipped，v0.4.14.72 Sprint 22+23 收口）：
+当前测试覆盖（509+ passed / 15 skipped，v0.4.14.96 Sprint 22-24 收口）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -257,3 +258,4 @@ npx playwright test
 | 2026-06-04 | 增量 ETL 跑批 6/4（real elapsed 63.2min / step sum 126.4min，4 新源文件）；baseline wall_time 字段歧义修；rfm_analysis_cache fail-soft 修（pipeline.py read_only 改默认 READ_WRITE） |
 | 2026-06-06 ~ 06-07 | **Sprint 3 收口 4/5** (P0-1 痛点 1 W1 GROUPING SETS 13.4 min 闭环 + P1-1 W3/W4 CI smoke + P1-2 16 root tests isolation + P1-3 ground-truth lint 4 轮修). P0-2 DuckDB 备份 deferred Sprint 4. CI 三连绿 |
 | 2026-06-13 ~ 06-14 | **Sprint 22-23 收口** (痛点 1 跑批 18 min 达标 + DuckDB race 治根 + 3 hooks + 2 skills + MCP context7 + repo 公开 + 项目整洁清理) |
+| 2026-06-16 | **Sprint 24 收口** (Step 8 strict mode 修 v0.4.14.92 + 4 处 sibling read_only 治根 v0.4.14.95 + P2 清理 v0.4.14.96 + 3 条债全闭环 v0.4.14.97) |
