@@ -3,8 +3,29 @@
 """
 import os
 import sys
+import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+
+def _clean_processed_updates(updates):
+    """事务化标记清理：移除 cold_start_marked，加 last_processed_at。
+
+    Step 4.5 upsert 成功后, ingest 产出的 updates 会覆盖冷启动登记的 entry,
+    此时必须移除 cold_start_marked (因为现在已经真正加载了) 并记录处理时间戳,
+    避免下次增量误判为冷启动假阳性而重复读取.
+    """
+    if not updates:
+        return updates
+    cleaned = {}
+    for key, rec in updates.items():
+        if isinstance(rec, dict):
+            clean_rec = {k: v for k, v in rec.items() if k != 'cold_start_marked'}
+            clean_rec['last_processed_at'] = time.time()
+            cleaned[key] = clean_rec
+        else:
+            cleaned[key] = rec
+    return cleaned
 
 from scripts.etl.config import (
     COLUMN_MAPPING, PARQUET_DATA_DIR,
@@ -87,6 +108,17 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
         if key not in processed_files:
             return True
         rec = processed_files[key]
+        # Sprint 24 修复: 冷启动假阳性检测 (Option B — 字段存在性判断)
+        # 判定顺序（不依赖 rec.get() 真值，避免误判）:
+        #   ① entry 缺少 cold_start_marked 字段 → 老格式 entry, 视为未真正加载
+        #      (向后兼容: 部署此修复后, 现有 tracker 条目一次性强制重载, 解决
+        #       6/15 数据已被假阳性的问题)
+        #   ② cold_start_marked=True → 冷启动登记, 未真正加载
+        #      (_clean_processed_updates 加载成功后会把字段移除, 走正常流程)
+        if isinstance(rec, dict) and 'cold_start_marked' not in rec:
+            return True
+        if isinstance(rec, dict) and rec.get('cold_start_marked'):
+            return True
         old_mtime = rec.get('mtime', 0) if isinstance(rec, dict) else rec
         if mtime <= old_mtime:
             return False
@@ -155,7 +187,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                                 'mtime': xlsx_mtime,
                                 'hash': _get_file_hash(f)
                             }
-                        combined_pq.attrs['_etl_processed_updates'] = pq_updates
+                        combined_pq.attrs['_etl_processed_updates'] = _clean_processed_updates(pq_updates)
                     print(f"  Parquet 数据合计: {len(combined_pq):,} 行")
                     if run_mode == 'incremental':
                         return combined_pq
@@ -240,7 +272,7 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
             # 合并 parquet 和 xlsx 的更新（如果之前 parquet 分支没 return）
             existing_updates = getattr(combined, 'attrs', {}).get('_etl_processed_updates', {})
             existing_updates.update(processed_new)
-            combined.attrs['_etl_processed_updates'] = existing_updates
+            combined.attrs['_etl_processed_updates'] = _clean_processed_updates(existing_updates)
         print(f"  数据合计: {len(combined)} 行")
         return combined
     else:

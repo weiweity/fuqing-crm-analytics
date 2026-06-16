@@ -1,3 +1,18 @@
+## [v0.4.14.89] - 2026-06-16 - fix(etl): 冷启动假阳性 — Option B 字段存在性判断, 兼容老格式 tracker
+
+### Fixed
+- **`scripts/etl/pipeline.py:_mark_all_files_processed()`** — 标记时 entry 加 `cold_start_marked=True` + `marked_at` 时间戳, 区分"冷启动登记"与"已真加载".
+- **`scripts/etl/ingest.py:_file_changed()`** — Option B 字段存在性判断: ① 缺 `cold_start_marked` 字段 → 老格式 tracker entry, 一次性强制重载 (迁移) ② `cold_start_marked=True` → 冷启动登记, 强制重载 ③ mtime/hash 正常流程.
+- **`scripts/etl/ingest.py:_clean_processed_updates()`** (新增) — Step 4.5 加载成功后清理 entry: 移除 `cold_start_marked` 字段, 追加 `last_processed_at` 时间戳, 避免下次增量无限循环重载.
+
+### Added
+- **`backend/tests/test_coldstart_false_positive.py`** — 9 个测试覆盖: 冷启动强制重载 / 老格式迁移 (Option B 核心) / 加载成功后停止重载 / mtime+hash 短路 / 边界 / 幂等性.
+
+### Impact
+- 部署后第一次跑 `--update` → 老 tracker 一次性重载 → 6/15 数据自动进 orders → dashboard 立即有数据.
+- 未来冷启动不再产生假阳性 (Sprint 21 P0-3 已修"误标"问题, 此 PR 补"误标后能否重识别").
+
+
 ## [v0.4.14.88] - 2026-06-16 - chore: 前端渠道常量化 + pre-commit 清理
 
 ### Changed

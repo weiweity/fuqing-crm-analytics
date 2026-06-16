@@ -765,17 +765,23 @@ def _mark_all_files_processed():
     同时标记 Parquet 缓存文件，避免增量运行时重复读取。
     """
     print("\n标记所有源文件为已处理...")
+    import time as _time
     for data_type, data_source in [('shop', SHOP_DATA_SOURCE), ('member', MEMBER_DATA_SOURCE)]:
         if not data_source.exists():
             continue
         files = list(data_source.rglob("*.xlsx"))
-        # v2 格式：存储 {mtime, hash} dict（与 _file_changed 一致）
+        # v2 格式：存储 {mtime, hash, cold_start_marked, marked_at} dict
+        # cold_start_marked=True 表示该 entry 是"冷启动登记"产物, 尚未经 Step 4.5
+        # 真正加载. Step 4.5 加载成功后会重写 entry 移除 cold_start_marked, 避免
+        # 冷启动后增量误判为"已处理"而跳过实际加载.
         processed = {}
         for f in files:
             rel_path = str(f.relative_to(data_source))
             processed[rel_path] = {
                 'mtime': f.stat().st_mtime,
-                'hash': _get_file_hash(f)
+                'hash': _get_file_hash(f),
+                'cold_start_marked': True,
+                'marked_at': _time.time()
             }
         # Sprint 9 维修: 之前 parquet key = f.name (parquet 文件名), 但 ingest L82
         # _file_changed 用 _xlsx_stem_to_rel 反查 xlsx 相对路径. key 不一致
@@ -793,7 +799,9 @@ def _mark_all_files_processed():
                 xlsx_mtime = xlsx_path.stat().st_mtime if xlsx_path.exists() else f.stat().st_mtime
                 processed[key] = {
                     'mtime': xlsx_mtime,
-                    'hash': _get_file_hash(f)
+                    'hash': _get_file_hash(f),
+                    'cold_start_marked': True,
+                    'marked_at': _time.time()
                 }
         _save_processed_files(data_type, processed)
         print(f"  {data_type}: 标记 {len(processed)} 个文件为已处理")
