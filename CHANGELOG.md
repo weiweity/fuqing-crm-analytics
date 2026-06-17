@@ -1,3 +1,28 @@
+## [v0.4.14.106] - 2026-06-17 - chore(hooks): pre-commit CHANGELOG hard block → soft WARN (Sprint 30.2, Sprint 28+ #4 收口)
+
+> Sprint 30.2: 改 pre-commit hook CHANGELOG 强制从 hard block (exit 1) 到 soft WARN (print 不阻断), 紧急回切用 `STRICT_CHANGELOG_HOOK=1` env 守卫. Post-merge hook 加 CHANGELOG hint 段 (`git log <last-tag>..HEAD` 校验 commit message 是否含 CHANGELOG / v0.4. / vX.Y.Z 关键字, 不含就 WARN). 解决 Sprint 27 教训: 用户用 `--no-verify` 绕过 hook 是反 pattern.
+
+### Changed
+
+1. **`.githooks/pre-commit`** (+21/-7 行) — CHANGELOG 强制段: 默认 soft WARN (不 exit 1, 只 print 提醒), 加 `STRICT_CHANGELOG_HOOK=1` env 守卫保留原 hard block 行为
+2. **`.githooks/post-merge`** (+34/-0 行) — 新增 Sprint 30.2 CHANGELOG post-merge hint 段: `git log <last-tag>..HEAD` 校验, 不阻断, 只 WARN
+
+### Added
+
+3. **`backend/tests/test_precommit_changelog.py`** (+75 行, 2 case) — `TestPreCommitChangelogSoftWarn` + `TestPostMergeChangelogHint`:
+   - pre-commit hook 源码 verify: 默认 soft WARN 路径, strict mode 仍 hard exit 1
+   - post-merge hook 源码 verify: CHANGELOG hint 段存在 + 关键字 grep 模式正确
+
+### Risk
+
+- 无业务代码改动 (净 +55/-7 行仅 .githooks/ + tests/)
+- 无 API / schema / ETL 行为变化
+- 行为变化: pre-commit 不再硬拦 CHANGELOG 缺失, post-merge 阶段多 1 次 WARN
+- 默认行为: soft WARN (不阻断); 紧急回切 hard block: `STRICT_CHANGELOG_HOOK=1 git commit ...`
+- 跨进程/跨机部署不受影响 (hook 是本地配置, 不影响生产)
+
+---
+
 ## [v0.4.14.105] - 2026-06-17 - perf(etl): W4 540 combo batch INSERT 性能治根 (4,320→1 次 conn.execute, ~50× 加速)
 
 > Sprint 30.1: codex 新发现 A 治根. W4 full 增量加载从 4,320 次串行 conn.execute (540 combo × 8 次循环) 改为单次 STRUCT[] + LATERAL batch INSERT. 端到端 W4 阶段 165s → ~3s (真 DuckDB 50.4× 加速, 远超 3× 阈值).
