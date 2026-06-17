@@ -1,3 +1,38 @@
+## [v0.4.14.110] - 2026-06-17 - fix(backup): loud_fail osascript 改为 lark 失败 fallback — 防 test mock 副作用导致 macOS 通知 spam
+
+> 用户报告 6 张 "芙清 CRM 备份 FAILED / disk full (Sprint 25 test mock)" 通知 (15:04-17:58), 根因: `loud_fail()` 实际生产 `scripts/etl/backup_duckdb.py:74-83` osascript + mail 是**无条件**调用 (独立 try/except block, 跟 lark 状态无关), 而 `test_compressed_corruption_reports_lark_alert` test mock `shutil.copy2 raise IOError("disk full (Sprint 25 test mock)")` 触发 `loud_fail()` 时, macOS 通知真发. Sprint 25 加 lark 主通道时只动了 import + 调用, 没改 osascript 逻辑位置. 治根: osascript + mail 改为仅 lark 失败时调用 (lark = 主通道, osascript + mail = fallback 链).
+
+### Fixed
+
+1. **`scripts/etl/backup_duckdb.py`** `loud_fail()` (L50-93, +13/-8 行) — osascript + mail fallback 链从无条件改为 lark 失败触发:
+   - 加 `lark_sent` 标志, 记录 `_send_lark_alert` 调用结果
+   - osascript `subprocess.run` block 缩进到 `if not lark_sent:` 内
+   - mail `subprocess.run` block 缩进到 `if not lark_sent:` 内
+   - docstring 标注 "治根 (2026-06-17)" 跟 Sprint 25 旧设计对比
+
+### Added
+
+2. **`backend/tests/test_backup_duckdb.py`** `TestBackupDuckdbSprint25` (+85/-8 行) — 2 case 治根验证:
+   - `test_compressed_corruption_reports_lark_alert` (改造) — 加 `subprocess.run` mock 记录 osascript/mail 调用, 验证 **lark OK 时 osascript + mail fallback 不被调** (assert `len(osascript_calls) == 0`), 0 副作用
+   - `test_loud_fail_falls_back_to_osascript_on_lark_failure` (新增 Case 2b) — 验证 **lark 真失败时** osascript + mail fallback 链正常触发 (assert 各 1 次), 保证 fallback 链不断
+
+### Risk
+
+- 无业务代码改动 (备份流程 main() 路径不变, loud_fail 调用不变)
+- 无 API / schema / ETL 行为变化
+- 行为变化: lark OK 时不再 spam osascript (静默成功路径, 用户体验更好)
+- lark 失败时 fallback 链 (osascript + mail) 行为不变 (Case 2b 验证)
+- test 跑 loud_fail 路径 0 副作用 (Case 2 mock 验证)
+- 跟 Sprint 25 旧实现的 fallback 语义对比: 旧 = "lark + osascript + mail 三通道并", 新 = "lark 主 + (osascript + mail) fallback"
+
+### Recurring pattern (跨 sprint 复用)
+
+- Test mock 不全 = 真副作用 (跟 Sprint 28+#197 RFM `_open_write_conn` DuckDB config 冲突同根因: **修一处忘修另一处**)
+- 防 pattern: 任何 test 走 "loud_fail / 告警 / 通知" 路径, 必须 mock 所有外部副作用 (lark + osascript + mail), 不能只 mock lark
+- 防 pattern: loud_fail / 类似多通道告警设计, 通道之间应该是 **fallback 链** (前一个成功就跳过后面), 不是 **并联** (全部都跑)
+
+---
+
 ## [v0.4.14.109] - 2026-06-17 - chore(docs): Sprint 30 收口 meta — VERSION 同步 + 文档版本状态对齐 (债 #4 流程合规)
 
 > Sprint 30 (v0.4.14.105~108) 全部 4 子任务 (30.1 W4 batch INSERT / 30.2 pre-commit soft WARN / 30.3 cohort retention matrix B2 audit / 30.4 *_rate 文档对齐) commit 已就位但缺 meta 收口: VERSION 文件停在 0.4.14.100 (债 #4 重犯: 17 个版本没 bump) / CLAUDE.md §必读·启动项 #4 状态行还写 v0.4.14.100 / CHANGELOG 缺 v0.4.14.108 登记. 治根: 一次性 doc-only chore 把 VERSION bump + 状态行同步 + CHANGELOG 补登走完, 满足债 #4 流程 (merge 时 VERSION + CHANGELOG + git tag 三同步). 0 业务代码改动, 仅 VERSION + CHANGELOG + CLAUDE.md + docs/TECH-DEBT.md.
