@@ -295,23 +295,72 @@ def _compute_combo_sql(combo: dict, load_date: date) -> str:
     """
 
 
-def incremental_load(
+def _compute_batch_sql(load_date: date, version: int) -> str:
+    """Sprint 30.1: 生成单次 batch INSERT SQL (STRUCT 数组 + LATERAL).
+
+    输入参数顺序 (1 个 STRUCT 数组, 1 batch execute):
+      $1 = STRUCT(d DATE, c VARCHAR, i VARCHAR, k VARCHAR, j VARCHAR, s INTEGER, v INTEGER)[]
+          长度 = combo 数 (e.g. 540). date/version 重复元素 (broadcast).
+
+    DuckDB Python 驱动: STRUCT[] 必须包成 unnest(?::STRUCT(...)[]), 放子查询, 外层 r.col 访问.
+
+    LATERAL 子查询: 走 idx_orders_pay_channel_item 复合索引, 每 row 算聚合.
+    ON CONFLICT (date, dimension_key, version) DO NOTHING 走 idx_fact_rfm_dkv 唯一索引.
+
+    Args:
+        load_date: 数据日期 (T-1, 跟 fact_rfm_long.date 列匹配)
+        version: 本次 batch 共用 version
+    """
+    from backend.semantic.filters import OrderFilters
+    valid_sql, _ = OrderFilters.valid_order()
+
+    return f"""
+        INSERT INTO {FACT_RFM_TABLE}
+            (date, dimension_key, dimension_json, user_count, gmv, repurchase_count, segment_id, version)
+        SELECT
+            r.d,
+            r.k,
+            CAST(r.j AS JSON),
+            agg.user_count,
+            agg.gmv,
+            agg.repurchase_count,
+            r.s,
+            r.v
+        FROM (SELECT unnest(?::STRUCT(d DATE, c VARCHAR, i VARCHAR, k VARCHAR, j VARCHAR, s INTEGER, v INTEGER)[]) AS r) sub
+        CROSS JOIN LATERAL (
+            SELECT
+                COUNT(DISTINCT user_id) as user_count,
+                SUM(actual_amount) as gmv,
+                COUNT(DISTINCT CASE WHEN cnt >= 2 THEN user_id END) as repurchase_count
+            FROM (
+                SELECT
+                    user_id,
+                    actual_amount,
+                    COUNT(order_id) OVER (PARTITION BY user_id) as cnt
+                FROM orders
+                WHERE DATE(pay_time) = r.d
+                  AND channel = r.c
+                  AND spu_product_class = r.i
+                  AND {valid_sql}
+            ) o
+        ) agg
+        ON CONFLICT (date, dimension_key, version) DO NOTHING
+        RETURNING date
+    """
+
+
+def _incremental_load_serial(
     conn,
     target_date: date,
     combos: list = None,
 ) -> int:
-    """W4 full 增量加载: append T-1 (target_date - 1) 当天数据, 540 组合.
+    """Sprint 30.1 保留旧版: incremental_load 串行实现 (540 次 conn.execute).
 
-    走 backend.semantic.segments (校验) + 走 backend.semantic.filters (口径).
-    Sprint 23 #2: 走 idx_orders_pay_channel_item 复合索引 (消除全表扫).
-
-    Args:
-        conn: duckdb.Connection
-        target_date: 触发日期 (= today), 实际加载 T-1 (target_date - 1)
-        combos: 自定义 combos 列表, 传 None 时自动 enumerate (540 默认)
+    private 但 export 兼容 (rfm_recompute_window.py:34 等 import 'incremental_load' / 'merge_replace' 时
+    实际不直接调此函数, 调 incremental_load / merge_replace, 这里 export 给 env var 切回走老路径用).
 
     Returns:
-        int: 实际插入行数 (含 ON CONFLICT DO NOTHING 跳过)
+        int: 实际插入行数
     """
     # T-1: target_date - 1 = 增量当天 (cutoff = start_date - 1 day, 教训 2026-05-29)
     load_date = target_date - timedelta(days=1)
@@ -339,18 +388,57 @@ def incremental_load(
     return total_inserted
 
 
-def merge_replace(conn, load_date: date, combos: list = None) -> int:
-    """W4 dbt-style snapshot: 对 (load_date) 整批 UPDATE 同一 (date) 旧 version 行 → INSERT 新 version.
+def incremental_load(
+    conn,
+    target_date: date,
+    combos: list = None,
+) -> int:
+    """W4 full 增量加载: append T-1 (target_date - 1) 当天数据, 540 组合.
 
-    用途: 修复 late-arriving 订单 (T-7 内 99% 覆盖, 设计 doc v1.1 Premise 7).
-    dbt-style snapshot 语义: 同一 (date, dimension_key) 的历史 version 保留可追溯,
-    但 API 默认查 MAX(version). 当 late-arriving 订单到达时, 重算 + version++ 即可.
+    走 backend.semantic.segments (校验) + 走 backend.semantic.filters (口径).
     Sprint 23 #2: 走 idx_orders_pay_channel_item 复合索引 (消除全表扫).
+    Sprint 30.1: UNNEST 7-array + LATERAL batch INSERT (4,320 → 1 次 conn.execute).
+    env var W4_USE_BATCH_INSERT=0 切回串行版 (默认 1).
 
     Args:
         conn: duckdb.Connection
-        load_date: 要 merge 的目标日期 (T-N, 通常 N in [1, 7])
-        combos: 自定义 combos 列表, 传 None 时自动 enumerate
+        target_date: 触发日期 (= today), 实际加载 T-1 (target_date - 1)
+        combos: 自定义 combos 列表, 传 None 时自动 enumerate (540 默认)
+
+    Returns:
+        int: 实际插入行数 (含 ON CONFLICT DO NOTHING 跳过)
+    """
+    # Sprint 30.1: env var 切回串行版 (默认 batch 开)
+    if os.environ.get("W4_USE_BATCH_INSERT", "1") == "0":
+        return _incremental_load_serial(conn, target_date, combos)
+
+    # T-1: target_date - 1 = 增量当天 (cutoff = start_date - 1 day, 教训 2026-05-29)
+    load_date = target_date - timedelta(days=1)
+    _combos = combos if combos is not None else enumerate_combos(conn)
+
+    version = _next_version(conn, load_date)  # 一次 batch 共用一个 version
+
+    # 1 个 STRUCT 数组: 7 字段 zip 模式 (DuckDB 不支持 7 array positional UNNEST, 用 STRUCT 数组)
+    struct_arr = [
+        {
+            "d": load_date,
+            "c": c["channel"],
+            "i": c["item"],
+            "k": c["dimension_key"],
+            "j": c["dimension_json"],
+            "s": c["segment_id"],
+            "v": version,
+        }
+        for c in _combos
+    ]
+
+    sql = _compute_batch_sql(load_date, version)
+    result = conn.execute(sql, [struct_arr]).fetchall()
+    return len(result)
+
+
+def _merge_replace_serial(conn, load_date: date, combos: list = None) -> int:
+    """Sprint 30.1 保留旧版: merge_replace 串行实现 (540 次 conn.execute).
 
     Returns:
         int: 实际 INSERT 新 version 行数
@@ -408,6 +496,52 @@ def merge_replace(conn, load_date: date, combos: list = None) -> int:
         ).fetchall()
         total_inserted += len(result)
     return total_inserted
+
+
+def merge_replace(conn, load_date: date, combos: list = None) -> int:
+    """W4 dbt-style snapshot: 对 (load_date) 整批 UPDATE 同一 (date) 旧 version 行 → INSERT 新 version.
+
+    用途: 修复 late-arriving 订单 (T-7 内 99% 覆盖, 设计 doc v1.1 Premise 7).
+    dbt-style snapshot 语义: 同一 (date, dimension_key) 的历史 version 保留可追溯,
+    但 API 默认查 MAX(version). 当 late-arriving 订单到达时, 重算 + version++ 即可.
+    Sprint 23 #2: 走 idx_orders_pay_channel_item 复合索引 (消除全表扫).
+    Sprint 30.1: UNNEST 7-array + LATERAL batch INSERT (540 → 1 次 conn.execute).
+    env var W4_USE_BATCH_INSERT=0 切回串行版 (默认 1).
+
+    Args:
+        conn: duckdb.Connection
+        load_date: 要 merge 的目标日期 (T-N, 通常 N in [1, 7])
+        combos: 自定义 combos 列表, 传 None 时自动 enumerate
+
+    Returns:
+        int: 实际 INSERT 新 version 行数
+    """
+    # Sprint 30.1: env var 切回串行版 (默认 batch 开)
+    if os.environ.get("W4_USE_BATCH_INSERT", "1") == "0":
+        return _merge_replace_serial(conn, load_date, combos)
+
+    _combos = combos if combos is not None else enumerate_combos(conn)
+
+    # 1. 算 version (在已有 version 基础上 +1, 即使已有 v99 也不冲突)
+    new_version = _next_version(conn, load_date)
+
+    # 2. 走 batch: 1 个 STRUCT 数组 + 单次 UNNEST INSERT
+    struct_arr = [
+        {
+            "d": load_date,
+            "c": c["channel"],
+            "i": c["item"],
+            "k": c["dimension_key"],
+            "j": c["dimension_json"],
+            "s": c["segment_id"],
+            "v": new_version,
+        }
+        for c in _combos
+    ]
+
+    sql = _compute_batch_sql(load_date, new_version)
+    result = conn.execute(sql, [struct_arr]).fetchall()
+    return len(result)
 
 
 def incremental_load_with_merge(conn, target_date: date, t_minus_days: int = 7) -> tuple:
