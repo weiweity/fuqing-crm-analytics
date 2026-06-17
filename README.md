@@ -22,12 +22,15 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ ETL 增量更新正常（截至 2026-06-17：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 569 passed / 15 skipped (v0.4.14.100, Sprint 28+#198 收口)
+- ✅ 测试 633 passed / 15 skipped (v0.4.14.115, Sprint 31.2 收口; 含 Sprint 31.2 新增 14 个 ratio/rate 越界 freeze test)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
 - ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 2 skills (regen-types + ship-pr) + MCP context7
 - ✅ repo 公开：weiweity/fuqing-crm-analytics (PUBLIC, 2026-06-13)
 - ✅ Sprint 25-29+#198 完整收口 (v0.4.14.98 备份系统 + v0.4.14.99 F6 mtime→lsof + v0.4.14.100 Tooltip 5346% + v0.4.14.101 冷启动 mtime 阈值 + v0.4.14.102 RFM config 冲突 + v0.4.14.103 disk full 上游 + #198 RFM stuck index)
+- ✅ Sprint 30.1-30.5 完整收口 (v0.4.14.105 W4 540 combo batch INSERT 50.4× 加速 + v0.4.14.106 CHANGELOG post-merge hint + v0.4.14.107 cohort matrix B2 audit + v0.4.14.108 `*_rate` 文档对齐 + v0.4.14.109 端到端真验 W4 < 30s)
+- ✅ Sprint 31.1-31.2 完整收口 (v0.4.14.111-113 tracker-database 模式 5 次复发终极治根 + v0.4.14.115 Sprint 30.3 留 12 字段 ratio/rate 范围约束补标, 14 test case)
+- ✅ Sprint 32.1 收口 (v0.4.14.114 Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 config + Node 端 cert 信任)
 
 ---
 
@@ -124,7 +127,7 @@ fuqing-crm-analytics/
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.100) |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.115, Sprint 31.2 收口) |
 | [docs/AUTOMATION.md](./docs/AUTOMATION.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/SHIP.md](./docs/SHIP.md) | /ship skill 使用文档 |
 | [docs/LINTING.md](./docs/LINTING.md) | ground-truth-lint 规则 (Sprint 17 #121) |
@@ -192,7 +195,7 @@ cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（569 passed / 15 skipped，v0.4.14.100 Sprint 28+#198 收口）：
+当前测试覆盖（633 passed / 15 skipped，v0.4.14.115 Sprint 31.2 收口）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务
@@ -259,3 +262,8 @@ npx playwright test
 | 2026-06-13 ~ 06-14 | **Sprint 22-23 收口** (痛点 1 跑批 18 min 达标 + DuckDB race 治根 + 3 hooks + 2 skills + MCP context7 + repo 公开 + 项目整洁清理) |
 | 2026-06-16 | **Sprint 24 收口** (Step 8 strict mode 修 v0.4.14.92 + 4 处 sibling read_only 治根 v0.4.14.95 + P2 清理 v0.4.14.96 + 3 条债全闭环 v0.4.14.97) |
 | 2026-06-17 | **Sprint 25-29+#198 完整收口** (v0.4.14.98 备份系统可信化 + v0.4.14.99 F6 mtime→lsof 副检 + v0.4.14.100 Tooltip 5346% 治根 + v0.4.14.101 冷启动 mtime 阈值 + v0.4.14.102 RFM config 冲突 + v0.4.14.103 disk full 上游 + #198 RFM stuck index. 5 次复发 recurring pattern 治根, 端到端 ETL 跑批 ~32min ×2 验证, codex 第三方架构评审砍 Sprint 28+ #1/#4 patch 路线. 569/569 pytest + ruff pass + /qa 100/100. Sprint 30-32 待办: W4 540 combo batch INSERT + tracker-database 模式 + CHANGELOG post-merge) |
+| 2026-06-17 | **Sprint 30.1-30.5 完整收口** (v0.4.14.105 W4 540 combo batch INSERT 50.4× 加速 + v0.4.14.106 pre-commit CHANGELOG 改 post-merge hint + v0.4.14.107 cohort retention matrix 4 字段 B2 audit + v0.4.14.108 `*_rate` 文档对齐 + v0.4.14.109 端到端真验 W4 < 30s. 591/591 pytest + ruff pass. 留 Sprint 30.3 剩余 contract 字段走 Sprint 31+) |
+| 2026-06-17 | **Sprint 31.1 收口** (v0.4.14.111+v0.4.14.112 tracker-database 模式替代 prefix matching 机制错误, 5 次复发终极治根, SQLite sidecar `/private/tmp/fuqing-tmp-tracker.db` source of truth, bootstrap 1 run 治根 + 24h list_expired 2 run 治本. 564/564 pytest + ruff pass + 6 层防护表更新) |
+| 2026-06-17 | **Sprint 31.1 P2 fix + VERSION 同步** (v0.4.14.113 tracker DB 加进 _PROTECTED_BASENAMES defense-in-depth, 2 P3 fix 闭环) |
+| 2026-06-17 | **Sprint 32.1 收口** (v0.4.14.114 Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 config + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN. 571 pass / 15 skip + 2/3 e2e 验证. 留 Sprint 32.2 e2e spec 回归) |
+| 2026-06-18 | **Sprint 31.2 收口 + codex P3 fix** (v0.4.14.115 Sprint 30.3 留 12 字段 ratio/rate 范围约束补标 — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio, 14 test case, 业务实证 `yoy_repurchase_rate` = PpField 来自 `semantic.calculations.py:70-80`. 633 pass / 15 skip + 0 linter violation + codex review P3 fix: 删 `_YOY_PPT_FIELDS` dead code 3 行) |
