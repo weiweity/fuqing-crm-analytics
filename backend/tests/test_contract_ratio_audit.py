@@ -151,3 +151,82 @@ class TestRegressionNoRevert:
                 member_old_customer_aus=50.0,
                 health_score=80.0, health_level="healthy",
             )
+
+
+# ============================================================
+# Sprint 30.3 #120 B2 audit 4 类型覆盖 (Task #21)
+# ============================================================
+
+class TestRatioConventionTypeCoverage:
+    """Sprint 30.3 Task #21: 4 个 Ratio Convention 强类型每种至少 1 case 验证 Pydantic 422 拦截.
+
+    覆盖 (跟 CLAUDE.md §强制规则 表格一致):
+    - RatioField: 0-1 decimal (e.g. 0.42 = 42%)
+    - PercentageField: 0-1B 兼容 YOY 异常值 (e.g. yoy_absolute *100 万倍涨)
+    - PpField: -100~+100 pp 差 (e.g. 5.28 = +5.28pp)
+    - Annotated[float, Field(ge, le)]: 自定义范围 (e.g. cohort 0-1, day7_rate 0-1)
+
+    用既有 Sprint 16.5/17 B2 试点字段做 import-based test, 不需新增 contract 字段, 零 hook 还原风险.
+    """
+
+    def test_ratio_field_coverage(self):
+        """Type 1: RatioField (0-1 decimal) 越界 1.5 触发 422"""
+        from backend.contracts.health import HealthOverviewMetrics
+        with pytest.raises(ValidationError) as exc_info:
+            HealthOverviewMetrics(
+                analysis_date="2026-01-01", period_days=30,
+                all_store_repurchase_rate=0.3, same_product_repurchase_rate=0.2,
+                period_repurchase_users=100,
+                old_gsv=10000.0, old_users=200, old_customer_gsv_ratio=1.5,  # 越界 0-1
+                old_customer_aus=100.0,
+                member_old_gsv=5000.0, member_old_users=100, member_old_customer_gsv_ratio=0.5,
+                member_old_customer_aus=50.0,
+                health_score=80.0, health_level="healthy",
+            )
+        assert any("old_customer_gsv_ratio" in str(e.get("loc", "")) for e in exc_info.value.errors())
+
+    def test_percentage_field_coverage(self):
+        """Type 2: PercentageField (0-1B 兼容 YOY 异常值) 越界 ±1T 触发 422"""
+        from backend.contracts.health import HealthOverviewMetrics
+        with pytest.raises(ValidationError) as exc_info:
+            HealthOverviewMetrics(
+                analysis_date="2026-01-01", period_days=30,
+                all_store_repurchase_rate=0.3, same_product_repurchase_rate=0.2,
+                period_repurchase_users=100,
+                old_gsv=10000.0, old_users=200, old_customer_gsv_ratio=0.6,
+                old_customer_aus=100.0,
+                member_old_gsv=5000.0, member_old_users=100, member_old_customer_gsv_ratio=0.5,
+                member_old_customer_aus=50.0,
+                health_score=80.0, health_level="healthy",
+                yoy_old_gsv=2e12,  # 越界 PercentageField ge=-1T (Sprint 15 治根 1B→1T 兼容 YOY)
+            )
+        assert any("yoy_old_gsv" in str(e.get("loc", "")) for e in exc_info.value.errors())
+
+    def test_pp_field_coverage(self):
+        """Type 3: PpField (-100~+100 pp 差) 越界 +150 触发 422"""
+        from backend.contracts.health import HealthOverviewMetrics
+        with pytest.raises(ValidationError) as exc_info:
+            HealthOverviewMetrics(
+                analysis_date="2026-01-01", period_days=30,
+                all_store_repurchase_rate=0.3, same_product_repurchase_rate=0.2,
+                period_repurchase_users=100,
+                old_gsv=10000.0, old_users=200, old_customer_gsv_ratio=0.6,
+                old_customer_aus=100.0,
+                member_old_gsv=5000.0, member_old_users=100, member_old_customer_gsv_ratio=0.5,
+                member_old_customer_aus=50.0,
+                health_score=80.0, health_level="healthy",
+                yoy_old_customer_gsv_ratio_ppt=150.0,  # 越界 PpField -100~+100
+            )
+        assert any("yoy_old_customer_gsv_ratio_ppt" in str(e.get("loc", "")) for e in exc_info.value.errors())
+
+    def test_annotated_float_field_coverage(self):
+        """Type 4: Annotated[float, Field(ge, le)] (自定义范围) 越界触发 422"""
+        # Sprint 30.3 实际增量: CohortRetentionResponse.matrix 元素约束
+        # (List[List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]])
+        with pytest.raises(ValidationError) as exc_info:
+            CohortRetentionResponse(
+                cohort_months=["2026-01"],
+                periods=["M0"],
+                matrix=[[2.5]],  # 越界 Annotated[float, Field(ge=0, le=1)]
+            )
+        assert any("matrix" in str(e.get("loc", "")) for e in exc_info.value.errors())
