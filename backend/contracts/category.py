@@ -156,9 +156,9 @@ class MarketBasketItem(BaseModel):
     """购物篮关联项"""
     category_name: str
     co_order_count: int          # 同单关联订单数
-    support: float               # 支持度 = co_order_count / total_orders
-    confidence: float            # 置信度 = co_order_count / target_orders
-    lift: float                  # 提升度 = confidence / item_prob
+    support: "RatioField"        # 支持度 = co_order_count / total_orders  (0-1 decimal)
+    confidence: "RatioField"     # 置信度 = co_order_count / target_orders (0-1 decimal)
+    lift: float                  # 提升度 = confidence / item_prob (倍数, 可超 1)
     target_order_count: int      # 目标品类订单数（分母）
     co_gsv: float                # 连带订单整单GSV = 同时含目标品类+关联品类的订单的actual_amount总和（跨品类可加总时会重复计算）
     co_own_gsv: float            # 关联品类自身GSV = 该品类在连带订单中的实际销售金额（可加总，不重复）
