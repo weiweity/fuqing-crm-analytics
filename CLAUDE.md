@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.100（main @ b3a523d，2026-06-17 Sprint 28+#198 收口），测试 569 passed / 15 skipped (Sprint 25-29+#198: 备份系统可信化 v0.4.14.98 + F6 mtime→lsof v0.4.14.99 + Tooltip 5346% 治根 v0.4.14.100 + 冷启动 mtime 阈值 v0.4.14.101 + RFM _open_write_conn config v0.4.14.102 + disk full 上游 + #198 RFM stuck index v0.4.14.103) |
+| 4 | **版本状态** | v0.4.14.109（main @ 31411ed，2026-06-17 Sprint 30 收口），测试 597 passed / 15 skipped (Sprint 30: W4 540 combo batch INSERT v0.4.14.105 + pre-commit CHANGELOG soft WARN v0.4.14.106 + cohort retention matrix B2 audit v0.4.14.107 + *_rate 文档对齐 v0.4.14.108) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -384,7 +384,7 @@ Key routing rules:
 | 30.1 | **W4 540 combo batch INSERT** — `precompute_fact_rfm.py` 用 `STRUCT[] + LATERAL` 替代 540 次串行 INSERT (4,320 → 1 次 conn.execute, ~50× 加速) | ~1 天 | codex 新发现 A | ✅ 闭环 (v0.4.14.105) |
 | 30.2 | **pre-commit CHANGELOG 改 post-merge hint** — hook 不再强制每 commit,改 `git log <last-tag>..HEAD` post-merge WARN 提示 | ~1h | codex 推荐, Sprint 28+ #4 | ✅ 闭环 (v0.4.14.106) |
 | 30.3 | **Sprint 17 #120 全量 9 contract audit 剩余字段** — Pydantic 范围约束补标 | ~2h | Sprint 28+ 待办 #3 | ✅ 闭环 (v0.4.14.107) — 仅 cohort retention matrix 4 字段, 其他 contract 字段走 Sprint 31+ |
-| 30.4 | **CLAUDE.md `*_rate` 表格 stale 文档对齐** — `*_rate` 表格写 `PercentageField 0-100` 实际用 `RatioField 0-1`,文档修 | ~30min | Sprint 28+ 待办 #4 | ⏳ Sprint 30.4 |
+| 30.4 | **CLAUDE.md `*_rate` 表格 stale 文档对齐** — `*_rate` 表格写 `PercentageField 0-100` 实际用 `RatioField 0-1`,文档修 | ~30min | Sprint 28+ 待办 #4 | ✅ 闭环 (v0.4.14.108) |
 
 ### Sprint 31: 6 层防护终极治根 (~3-4 天)
 
