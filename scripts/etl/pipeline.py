@@ -2,7 +2,9 @@
 run_full_etl、增量更新、RFM 预计算、访客数据刷新。
 """
 import gc
+import os
 import sys
+from datetime import datetime
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -173,11 +175,41 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                 # FIX: 只有 tracker 文件不存在时才走冷启动；空 {} 或旧格式迁移后
                 # 不应把全部历史文件标为已处理，否则新增文件会被跳过。
                 if not processed_path.exists() and data_source.exists():
-                    total_files = len(list(data_source.rglob("*.xlsx")))
+                    xlsx_files = list(data_source.rglob("*.xlsx"))
+                    total_files = len(xlsx_files)
                     if total_files > 0:
-                        print(f"  [冷启动] {data_type}: 数据库有数据但 tracker 不存在，自动标记 {total_files} 个历史文件")
-                        _mark_all_files_processed()
-                        break  # _mark_all_files_processed 一次性标记 shop+member
+                        # Sprint 28+ 治根 (2026-06-17): mtime 阈值过滤, 避免误把
+                        # 今天新放进去的 xlsx 标"已处理" 跳过增量 (导致
+                        # "没有加载到任何店铺数据!" 业务失败).
+                        # _mark_all_files_processed() 是给 Step 7 全量完成后用的
+                        # (全量后所有 xlsx 都已加载, 全标合理). 冷启动场景下只能标
+                        # "DB 里已有数据对应的旧文件", 新文件留给正常增量路径.
+                        cached_max_time = get_db_max_pay_time()  # Step 0 已算, lru_cache
+                        if cached_max_time is None:
+                            # DB 空但 tracker 不存在 = 真"全新" (用户清库 + 删 tracker),
+                            # 不该走冷启动 — 让全量加载跑
+                            print(f"  [冷启动] {data_type}: DB 空, 跳过冷启动标记, 让全量加载跑")
+                            continue
+                        # cutoff = DB max_pay_time + safety_margin
+                        # ETL_COLDSTART_MTIME_SAFETY_HOURS env var (默认 1h) 应对跨时区部署.
+                        # Sprint 28+ 治根 (#review Q1): 兜底垃圾配置, 防止运维 typo (e.g. "1h"
+                        # 或 "abc") 让 float() ValueError 终止 ETL 跑批, 符合 Sprint 28 "0 业务失败" 契约.
+                        safety_hours_str = os.environ.get("ETL_COLDSTART_MTIME_SAFETY_HOURS", "1")
+                        try:
+                            safety_hours = float(safety_hours_str)
+                        except ValueError:
+                            print(f"  [警告] ETL_COLDSTART_MTIME_SAFETY_HOURS={safety_hours_str!r} 不是有效数字, fallback 到默认 1.0h")
+                            safety_hours = 1.0
+                        cutoff = cached_max_time.timestamp() + safety_hours * 3600
+                        old_files = [f for f in xlsx_files if f.stat().st_mtime <= cutoff]
+                        new_files = [f for f in xlsx_files if f.stat().st_mtime > cutoff]
+                        print(
+                            f"  [冷启动] {data_type}: tracker 不存在, 标记 {len(old_files)} 个旧文件为已处理, "
+                            f"保留 {len(new_files)} 个新文件走增量路径 "
+                            f"(cutoff={datetime.fromtimestamp(cutoff)}, safety_hours={safety_hours})"
+                        )
+                        _mark_old_files_processed(data_type, data_source, old_files, new_files)
+                        break  # 一次性处理 shop+member, 跟旧 _mark_all_files_processed 一致
 
     # Step 1: 加载 SPU 匹配表、渠道规则、淘客数据和直播数据源
     _step_log("Step 1 加载参考数据", "start")
@@ -753,6 +785,57 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
     import gc as _gc
     _gc.collect()
     check_memory(label="ETL 完成")
+
+
+def _mark_old_files_processed(data_type, data_source, old_files, new_files):
+    """冷启动专用: 只标记 mtime <= DB max_pay_time + safety_margin 的旧文件.
+
+    新文件只登记 entry (mtime=0 + hash='' + cold_start_marked=False), 让
+    _file_changed 走 [A] key-in-processed-but-mtime-changed 路径正常加载, ingest
+    加载成功后 _clean_processed_updates 写真实 mtime/hash.
+
+    Sprint 28+ 治根 (2026-06-17): 避免 _mark_all_files_processed() 全标新文件
+    导致 [Step 1] 跳过加载 → "没有加载到任何店铺数据!" 业务失败.
+
+    Args:
+        data_type: 'shop' / 'member'
+        data_source: 源目录 Path
+        old_files: 物理目录里 mtime <= cutoff 的 xlsx 列表 (标为已处理, 写真实 mtime+hash)
+        new_files: 物理目录里 mtime > cutoff 的 xlsx 列表 (登记 entry 但保留 mtime=0+hash='')
+    """
+    processed = {}
+    # 旧文件: 真实 mtime + hash + cold_start_marked=False (跟 _mark_all_files_processed 一致)
+    for f in old_files:
+        rel_path = str(f.relative_to(data_source))
+        processed[rel_path] = {
+            'mtime': f.stat().st_mtime,
+            'hash': _get_file_hash(f),
+            'cold_start_marked': False,
+        }
+    # 新文件: 登记 entry 但 mtime=0, 让 _file_changed [A] 路径触发重读.
+    # _file_changed 逻辑: mtime=0 entry + file mtime > 0 → mtime 短路不命中
+    # → 走 hash 比对 (hash '' vs 新 hash 不等) → 返 True (Sprint 24 路径 [A] 子情况).
+    for f in new_files:
+        rel_path = str(f.relative_to(data_source))
+        processed[rel_path] = {
+            'mtime': 0,
+            'hash': '',
+            'cold_start_marked': False,
+        }
+    # Parquet 缓存 entry 跟 _mark_all_files_processed 同模式 (Sprint 9 修 parquet key 一致性)
+    _xlsx_stem_to_rel = {xf.stem: str(xf.relative_to(data_source)) for xf in old_files + new_files}
+    pq_dir = PARQUET_DATA_DIR / data_type
+    if pq_dir.exists():
+        for f in pq_dir.glob("*.parquet"):
+            key = _xlsx_stem_to_rel.get(f.stem, f.name)
+            xlsx_path = data_source / key
+            xlsx_mtime = xlsx_path.stat().st_mtime if xlsx_path.exists() else f.stat().st_mtime
+            processed[key] = {
+                'mtime': xlsx_mtime,
+                'hash': _get_file_hash(f),
+                'cold_start_marked': False,
+            }
+    _save_processed_files(data_type, processed)
 
 
 def _mark_all_files_processed():

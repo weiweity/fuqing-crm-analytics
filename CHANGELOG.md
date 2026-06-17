@@ -1,3 +1,64 @@
+## [v0.4.14.101] - 2026-06-17 (Sprint 28 收口时定版) - fix(etl): Sprint 28+ 冷启动 mtime 阈值过滤治根
+
+> 用户报告: 2026-06-17 10:40 ETL 增量跑批失败, "错误: 没有加载到任何店铺数据!" 但 exit 0. 根因是冷启动误标记: tracker 文件不存在时, Step 0.5 复用 `_mark_all_files_processed()` 把当前所有 xlsx (含今天新放进去的) 全标已处理, `_file_changed` 看到 key 在 processed_files + mtime 一致 → 跳过加载 → 业务失败. 这是 Sprint 6 P0-3 / Sprint 21 P0 / Sprint 24 d81148c 第三次复发, 治根采用 mtime 阈值过滤 (Sprint 24 d81148c 修的是 tracker **空 {}** case, 本次修的是 tracker **不存在** case, 互补不冲突).
+
+### Fixed
+
+1. **`scripts/etl/pipeline.py:178-205`** — Step 0.5 冷启动分支改写. 复用 `_mark_all_files_processed()` → 新 `_mark_old_files_processed()` helper. cutoff = `DB max_pay_time + safety_margin` (默认 1h, env var `ETL_COLDSTART_MTIME_SAFETY_HOURS` 可调, 跨时区部署). 只标 mtime <= cutoff 的旧文件写真实 mtime+hash, mtime > cutoff 的新文件登记 entry 但 mtime=0+hash='' 让 `_file_changed` 走 [A] 子情况触发重读. `_clean_processed_updates` 加载成功后写真实 mtime (Sprint 24 路径一致).
+
+2. **`scripts/etl/pipeline.py:198-204`** — env var 兜底 (Q1 review): `float(os.environ.get(...))` 加 try/except, 垃圾配置 (e.g. "1h", "abc", "") 不再 ValueError 终止 ETL, fallback 到 1.0h + print warning. 符合 Sprint 28 "0 业务失败" 契约.
+
+3. **`scripts/etl/pipeline.py:188-192`** — DB 空 (cached_max_time=None) 分支: tracker 不存在但 DB 完全空 = 真"全新" 场景 (用户清库 + 删 tracker), 不该走冷启动, 让全量加载跑. 防止重蹈 d81148c "tracker 误判" 覆辙.
+
+4. **`scripts/etl/pipeline.py:783-831`** — 新 `_mark_old_files_processed(data_type, data_source, old_files, new_files)` helper. Parquet 缓存 entry 沿用 `_mark_all_files_processed` 同模式 (Sprint 9 修 parquet key + Sprint 14 B 修 mtime). `_xlsx_stem_to_rel` 内联重建 (跟 ingest.py `_build_xlsx_stem_to_rel` 模式一致).
+
+### Added (8 个 test)
+
+- **`backend/tests/test_coldstart_mtime_threshold.py`** (新文件, 8 case) — Sprint 28+ 治根专项, 防 d81148c 互补 case 复发:
+  - `TestMarkOldFilesProcessed::test_old_files_get_real_mtime_and_hash` (case 1): 旧文件真实 mtime+hash, 新文件 mtime=0+hash=''
+  - `TestMarkOldFilesProcessed::test_all_old_files_when_no_new_files` (case 1b): 全旧文件时无 mtime=0 占位 (防"过度修复把旧文件丢给增量")
+  - `TestColdStartNewFilesTriggerReload::test_coldstart_new_file_triggers_reload` (case 2): 端到端, 新文件 entry 走真 `_file_changed` 返 True (跟 Sprint 7 P2 教训一致: 不 mock 走真函数)
+  - `TestColdStartNewFilesTriggerReload::test_coldstart_old_file_does_not_reload` (case 2b): 对照, 旧文件 entry 走真 `_file_changed` 返 False (防 16-32h 全重读灾难)
+  - `TestColdStartSafetyMargin::test_safety_margin_default_1h`: 默认 1h 源码验证
+  - `TestColdStartSafetyMargin::test_safety_margin_via_env_var`: env var=6 验证
+  - `TestColdStartSafetyMargin::test_safety_margin_garbage_value_falls_back_to_default`: 垃圾 env ("1h"/"abc"/""/"  "/"null"/"None") 兜底 1.0h + caplog warning (Q1 review)
+  - `TestColdStartDBEmptySkipsMark::test_db_empty_branch_skips_mark`: DB 空分支源码验证 + 防止 `_mark_all_files_processed(` 被误加回 (Q4 review)
+
+### Test
+
+- `pytest backend/tests/test_coldstart_mtime_threshold.py` → **8/8 passed**
+- `pytest backend/tests/` → **556 passed / 15 skipped / 0 failed** (baseline 549 + 8 新增 - 1 失效 = 556, 0 回归. 15 skipped 跟 Sprint 27 baseline 一致是 uvicorn PID 87113 持锁跨进程冲突)
+- `ruff check scripts/etl/pipeline.py backend/tests/test_coldstart_mtime_threshold.py` → All checks passed
+- 8 项安全检查方法论 (Sprint 28 tmp orphan 实战沉淀): lsof/inode/sparse/duckdb 头/时间线/grep/活跃 fd/同目录最近大文件 — 全过才动 rm
+
+### Verified (Adversarial Review)
+
+8 个对抗问题调查:
+
+| # | 风险 | 分类 | 状态 |
+|---|------|------|------|
+| Q1 | env var 垃圾值 | FIXABLE | ✅ Auto-fixed (try/except) |
+| Q2 | 时区错位 | INVESTIGATE | safety_hours=1h 覆盖 |
+| Q3 | pre-1970 OSError | INVESTIGATE | 实务 0 触发 |
+| Q4 | mtime=0 副作用 | NOT-A-BUG | 测试 + 注释双保险 |
+| Q5 | 并发 race | INVESTIGATE | launchd 单实例 |
+| Q6 | 跨机时钟漂移 | INVESTIGATE | safety_hours=1h 够 |
+| Q7 | stem 映射错 | NOT-A-BUG | 跟 ingest 同步 |
+| Q8 | orphan parquet | NOT-A-BUG | 跟旧实现一致 |
+
+### Risk
+
+- 无 DB 迁移 / 无缓存重建 / 无 API contract 变化, 一次性发版可接受
+- 性能影响: mtime 比较 O(n) + helper 写 tracker 一次, 冷启动总耗时不变 (<2s)
+- 跨时区部署需调大 `ETL_COLDSTART_MTIME_SAFETY_HOURS` (默认 1h, Windows Server 等 UTC 部署建议 6h)
+
+### Sprint 28+ 待办联动
+
+- Sprint 28 tmp orphan 实战 (103GB `/private/tmp/fuqing_sampling2.duckdb`) 暴露的"tracker 异常丢失 → 冷启动 → 全标" 是同根因诱因之一. 治根本次完成, 后续 P1 任务 (cli.py:54-55 FQ_TMP_PREFIXES 排除 sampling) 是 cleanup 兜底, 跟本次修复互补.
+- 待办 #2 (pre-commit hook "CHANGELOG 强制同 commit" 改为允许 feature branch 共享 entry) 本次仍用 hook 修 CHANGELOG 跟随 commit 解决 (单 commit fix 不需要 hook 改动).
+
+---
+
 ## [v0.4.14.100] - 2026-06-17 - fix: Sprint 27 TrendData member_ratios 双 ×100 bug 治根 (4 处 Ratio Convention 违反点)
 
 > 用户报告: 人群看板 → 日趋势 → "全店GSV与会员占比" 折线图 tooltip 显示 5346.0% (期望 53.46%). 根因不是单点 bug, 是 4 处 Ratio Convention (CLAUDE.md §"Ratio Convention B1+B2") 违反点形成的 ×100 放大链: service 端 ×100 返 percentage → contract 0-100 范围 → 前端 formatter 再 ×100 → 5346×100=5346.0×100=534600% 错乱. Sprint 27 一次性治根, 跟 Sprint 14.5 OverviewMetrics.member_ratio 路线一致 (caller 传 0-1 decimal, 展示层自 ×100).
