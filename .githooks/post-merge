@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Post-merge hook (Meta-Sprint): 当 git merge 完成 (含 fast-forward / --no-ff),
 # 自动跑 /ship audit trail, 把 merge 到 main 的 commit 记录到 .ship-audit.log.
+# + Sprint 30.2: CHANGELOG post-merge hint — 校验 git log <last-tag>..HEAD 的
+#   commit message 是否提到 CHANGELOG / v0.4. / vX.Y.Z, 不含就 WARN (不阻断).
 #
 # 配合 CLAUDE.md "AI 执行检查点" 的 "sprint 收口" 检查点使用.
 # Install: git config core.hooksPath .githooks
@@ -23,3 +25,35 @@ AUDIT_LOG=".ship-audit.log"
 printf "[%s] SHIPPED to %s: %s\n" "$TIMESTAMP" "$BRANCH" "$LAST_COMMIT" >> "$AUDIT_LOG"
 
 echo "📦 Shipped: $LAST_COMMIT (logged to $AUDIT_LOG)"
+
+# --- Sprint 30.2: CHANGELOG post-merge hint (WARN, 不阻断) ---
+# 配 Sprint 30.2 pre-commit soft WARN 改造: commit 阶段不再硬拦 CHANGELOG, 改在
+# merge 后看 last-tag..HEAD 的 commit message 是否有 CHANGELOG / v0.4. / vX.Y.Z 关键字.
+# 不阻断: hotfix / docs-only / 跨 sprint batch 都会触发, 但 ship audit 已记录,
+# sprint 收口检查点会人工 review.
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [ -n "$LAST_TAG" ]; then
+    RANGE="${LAST_TAG}..HEAD"
+else
+    # 无 tag 时回退看最近 20 commit (避免 noise 拖垮 hook)
+    RANGE="HEAD~20..HEAD"
+fi
+
+# 提取 commit subject, 匹配 CHANGELOG / v0.4. / vX.Y.Z
+MSG_HITS=$(git log "$RANGE" --pretty=format:"%s" 2>/dev/null \
+    | grep -E 'CHANGELOG|v0\.[0-9]+\.[0-9]+|v[0-9]+\.[0-9]+\.[0-9]+' \
+    | head -3 || true)
+
+# 同时检查 staged 状态: 如果 merge 后 staged 含 CHANGELOG.md, 也算已跟随
+STAGED_CHANGELOG=$(git diff --cached --name-only 2>/dev/null | grep '^CHANGELOG\.md$' || true)
+WORKTREE_CHANGELOG=$(git status --porcelain 2>/dev/null | grep -E '^\?\? CHANGELOG\.md$|^\s*M CHANGELOG\.md$' || true)
+
+if [ -z "$MSG_HITS" ] && [ -z "$STAGED_CHANGELOG" ] && [ -z "$WORKTREE_CHANGELOG" ]; then
+    echo ""
+    echo "⚠️  Sprint 30.2 post-merge hint: $RANGE 的 commits 未提到 CHANGELOG / v0.4."
+    echo "   建议: 在 CHANGELOG.md 顶部加 Unreleased 或下一个版本号 entry"
+    echo "   跳过: 纯 docs / 紧急 hotfix (下次 sprint 收口时统一补)"
+else
+    echo "✅ Sprint 30.2 CHANGELOG hint: $RANGE 已含 CHANGELOG 引用"
+    [ -n "$MSG_HITS" ] && echo "$MSG_HITS" | head -3 | sed 's/^/   /'
+fi

@@ -382,7 +382,7 @@ Key routing rules:
 | # | 任务 | 工作量 | 来源 | 状态 |
 |---|---|---|---|---|
 | 30.1 | **W4 540 combo batch INSERT** — `precompute_fact_rfm.py` 用 `STRUCT[] + LATERAL` 替代 540 次串行 INSERT (4,320 → 1 次 conn.execute, ~50× 加速) | ~1 天 | codex 新发现 A | ✅ 闭环 (v0.4.14.105) |
-| 30.2 | **pre-commit CHANGELOG 改 post-merge hint** — hook 不再强制每 commit,改 `git log <last-tag>..HEAD` post-merge WARN 提示 | ~1h | codex 推荐, Sprint 28+ #4 | ⏳ Sprint 30.2 |
+| 30.2 | **pre-commit CHANGELOG 改 post-merge hint** — hook 不再强制每 commit,改 `git log <last-tag>..HEAD` post-merge WARN 提示 | ~1h | codex 推荐, Sprint 28+ #4 | ✅ 闭环 (v0.4.14.106) |
 | 30.3 | **Sprint 17 #120 全量 9 contract audit 剩余字段** — Pydantic 范围约束补标 | ~2h | Sprint 28+ 待办 #3 | ⏳ Sprint 30.3 |
 | 30.4 | **CLAUDE.md `*_rate` 表格 stale 文档对齐** — `*_rate` 表格写 `PercentageField 0-100` 实际用 `RatioField 0-1`,文档修 | ~30min | Sprint 28+ 待办 #4 | ⏳ Sprint 30.4 |
 
