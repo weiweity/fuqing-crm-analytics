@@ -1405,7 +1405,9 @@ const trendChartOption = computed(() => {
         for (const p of arr) {
           const val = p.value
           const isRatio = p.seriesName.includes('占比')
-          // Sprint 14 A.1 治根: API ratio 返 0-1 decimal, caller 自乘 (跟 Sprint 13 治理一致)
+          // Sprint 27 治根: API ratio 返 0-1 decimal (TrendData.member_ratios 对齐 Ratio Convention,
+          // 跟 Sprint 14.5 OverviewMetrics.member_ratio 治根路线一致); tooltip 格式化时 ×100 展示,
+          // 这跟"前端只展示"边界一致 — ×100 是显示格式化 (0.5346 → 53.5%), 非业务计算
           const displayVal = isRatio ? `${(val * 100).toFixed(1)}%` : `¥${(val / 10000).toFixed(1)}万`
           html += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">`
           html += `<span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span>`
@@ -1450,13 +1452,14 @@ const trendChartOption = computed(() => {
         name: '会员GSV占比',
         position: 'right',
         min: 0,
-        max: 100,
+        max: 1,  // Sprint 27 治根: API 返 0-1 decimal (跟 member_ratios contract 对齐), 显示时 formatter ×100
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
           color: '#94a3b8',
           fontSize: 11,
-          formatter: (v: number) => `${v.toFixed(0)}%`,
+          // Sprint 27 治根: v 是 0-1 decimal, ×100 后显示百分比 (0.5346 → "53%")
+          formatter: (v: number) => `${(v * 100).toFixed(0)}%`,
         },
         splitLine: { show: false },
       },

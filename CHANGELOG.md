@@ -1,3 +1,49 @@
+## [v0.4.14.100] - 2026-06-17 - fix: Sprint 27 TrendData member_ratios 双 ×100 bug 治根 (4 处 Ratio Convention 违反点)
+
+> 用户报告: 人群看板 → 日趋势 → "全店GSV与会员占比" 折线图 tooltip 显示 5346.0% (期望 53.46%). 根因不是单点 bug, 是 4 处 Ratio Convention (CLAUDE.md §"Ratio Convention B1+B2") 违反点形成的 ×100 放大链: service 端 ×100 返 percentage → contract 0-100 范围 → 前端 formatter 再 ×100 → 5346×100=5346.0×100=534600% 错乱. Sprint 27 一次性治根, 跟 Sprint 14.5 OverviewMetrics.member_ratio 路线一致 (caller 传 0-1 decimal, 展示层自 ×100).
+
+### Fixed (4 处 Ratio Convention 违反点)
+
+1. **`backend/services/metrics/overview.py:449-471`** — `get_daily_trend()` member_ratios / ly_member_ratios / overall_member_ratio / overall_member_ratio_ly 4 个 ratio 字段去 ×100, `round(_, 4)` 改 4 位精度 (跟 `OverviewMetrics.member_ratio` Sprint 14.5 路线一致). 治根后 service 返 0.5346 而非 53.46.
+
+2. **`backend/contracts/metrics.py:38-46`** — `TrendData.member_ratios` / `ly_member_ratios` 从 `Field(ge=0, le=100)` 改 `Field(ge=0, le=1.0)` (0-1 decimal). 新增 `overall_member_ratio` / `overall_member_ratio_ly`: `RatioField` (Sprint 16.5 B2 试点漏网, 借本次补标, 避免 Sprint 17 #120 全量 audit 返工).
+
+3. **`frontend-vue3/src/views/AudienceView.vue:1407-1409, 1448-1462`** — tooltip 注释校准 (Sprint 14 → Sprint 27, 治根后 val 是 0-1, formatter ×100 是显示格式化非业务计算). Y 轴 `max: 100` → `max: 1`, formatter `\`${v.toFixed(0)}%\`` → `\`${(v * 100).toFixed(0)}%\`` (0.5346 → "53%"). tooltip formatter (val*100).toFixed(1) 保留, 治根后注释跟代码对齐.
+
+4. **`backend/services/report_service.py:142-146`** — PPT 导出 `member_ratio:.1f}%` 漏 ×100 修复. `overview.member_ratio` 是 0-1 ratio (Sprint 14.5 治根), 显示时 caller 自 ×100 跟 AudienceView.vue:1073 模式一致.
+
+### Added (11 个 test)
+- **`backend/tests/test_trend_ratio_root_cause.py`** (新文件, 11 case) — Sprint 27 治根专项, 防回归 (有人改回 ×100 立即 422 报警)
+  - `TestTrendMemberRatiosSprint27` (6 case): member_ratios accept 0-1, reject 老 percentage 53.46, boundary 0/1 accept, 负值拒绝, ly_member_ratios accept 0.4838
+  - `TestOverallMemberRatioSprint27` (3 case): overall_member_ratio[_ly] accept 0-1, reject 53.46, default 0.0
+  - `TestOverviewMetricsMemberRatioConsistency` (2 case): OverviewMetrics.member_ratio 跟 TrendData 一致 (Sprint 14.5 0-1)
+- **`frontend-vue3/e2e/audience-daily-trend.spec.ts`** (新文件, 1 case) — Playwright e2e 验 tooltip 渲染 53.X% 而非 5346%, Y 轴 0-100% 刻度正常. 复用 customer-health.spec.ts 模式 (登录 + 导航 + hover + 断言).
+- **`backend/tests/test_b2_contract_mark_pilot.py`** (改 5 处边界值): `member_ratios=[1.5]` (越界 0-1), `ly_member_ratios=[1.5]`, `member_ratios=[0.5346]`, `ly_member_ratios=[0.4838]` (Sprint 27 治根对齐).
+
+### Test
+- `pytest backend/tests/test_b2_contract_mark_pilot.py` → 13/13 passed
+- `pytest backend/tests/test_trend_ratio_root_cause.py` → 11/11 passed
+- `pytest backend/tests/` → **549 passed / 15 skipped / 0 failed** (baseline 538 + 11 新增 = 549, 0 回归. 15 skipped 跟 Sprint 25/26 baseline 一致是 uvicorn 持锁跨进程冲突)
+- `python -m backend.contracts._lint` → 0 issue (R1 + R5 合规)
+- `npx vue-tsc --noEmit` → 0 error (types regenerated 后类型契约对齐)
+
+### Verified
+- 端到端 curl: `curl -H "Authorization: Bearer $TOKEN" 'http://localhost:8000/api/v1/metrics/trend?start_date=2026-05-01&end_date=2026-05-31&metric_type=GSV'` → `member_ratios: [0.4346, 0.4386, 0.4198, 0.4135, 0.3859]`, `overall_member_ratio: 0.567`, `overall_member_ratio_ly: 0.6494`. 64 个值全 0-1 区间 ✓
+- 浏览器手动验证 (登录后 /audience → 日趋势 → hover tooltip): 会员GSV占比 显示 "43.5%" 等, 不再有 5346.0% 错乱
+- regen types (Commit 7): `frontend-vue3/src/api/types.generated.ts` + `types.ts` 自动同步新 JSDoc "0-1 decimal (e.g. 0.5346 = 53.46%)"
+
+### Sprint 17 联动
+- #120 全量 9 contract audit: 本次借机补 `overall_member_ratio[_ly]` 2 个 RatioField 标注 (Sprint 16.5 B2 试点漏网, 跟本次一起合)
+- #121 ground-truth-lint: Contract 用 RatioField + List[Annotated[float, Field(ge, le)]] 模式, R1/R5 合规
+- #122 文档: 已在 CLAUDE.md "Ratio Convention" 主章节, 本次遵循
+
+### Risk
+- 无 DB 迁移 / 无缓存依赖 / 无前端持久化, 一次性发版可接受
+- 业务 max member_ratio 业务上不可能到 1.0 (总有非会员), Y 轴 max=1 不会截掉正常数据
+- `overall_member_ratio[_ly]` 是 dead data (前端不消费), Sprint 17 #120 audit 复用此标注
+
+---
+
 ## [v0.4.14.99] - 2026-06-17 - feat: Sprint 26 F6 mtime→lsof 副检 (Sprint 26 收口)
 
 > 防御性 follow-up, 1 commit sprint 收口模式 (跟 Sprint 25 一致). Sprint 25 评估"当前 6 层已够防误删" 仍然成立, 本次只是把 mtime 单信号升级成 mtime + lsof 双信号, 多等下一次跑批的代价 (<2s/candidate) 换取误删风险进一步降低.
