@@ -100,7 +100,7 @@ fuqing-crm-analytics/
 ├── scripts/                    # ETL 脚本
 ├── config/                     # 配置（健康评分、RFM 阈值）
 ├── data/                       # 数据（raw/processed/parquet/cache）
-└── docs/                       # 文档（见 DOCUMENT-INDEX.md）
+└── docs/                       # 项目文档（CLAUDE.md / CHANGELOG.md / TECH-DEBT.md / ...）
 ```
 
 ---
@@ -128,7 +128,6 @@ fuqing-crm-analytics/
 | [docs/AUTOMATION.md](./docs/AUTOMATION.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/SHIP.md](./docs/SHIP.md) | /ship skill 使用文档 |
 | [docs/LINTING.md](./docs/LINTING.md) | ground-truth-lint 规则 (Sprint 17 #121) |
-| [docs/validation-reports/](./docs/validation-reports/) | ETL 跑批验证报告 |
 | [docs/design/50m-scale-architecture.md](./docs/design/50m-scale-architecture.md) | 50M 订单规模架构设计 |
 
 ---
