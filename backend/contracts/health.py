@@ -1,6 +1,6 @@
 """Sample CRM - Pydantic 契约模型"""
 from __future__ import annotations
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Annotated  # Sprint 30.3: List 元素强类型 (B2 Pydantic 422 拦截)
 from pydantic import BaseModel, Field
 from .asset import ProductClassRepurchase
 from .types import RatioField, PercentageField, PpField  # Sprint 14 A.3
@@ -124,10 +124,12 @@ class CohortRetentionResponse(BaseModel):
     """Cohort留存矩阵"""
     cohort_months: List[str] = Field(default_factory=list, description="首购月份列表")
     periods: List[str] = Field(default_factory=list, description="周期标签 M0/M1/M2...")
-    matrix: List[List[Optional[float]]] = Field(default_factory=list, description="复购率矩阵")
-    avg_by_period: List[Optional[float]] = Field(default_factory=list, description="各周期平均复购率")
-    ly_matrix: List[List[Optional[float]]] = Field(default_factory=list, description="去年同期复购率矩阵")
-    ly_avg_by_period: List[Optional[float]] = Field(default_factory=list, description="去年同期各周期平均复购率")
+    # Sprint 30.3 #120 B2 audit: 复购率 0-1 decimal (repurchase.py:584 round(rate, 4)), 嵌套 List[Optional[T]] 必须嵌套 Annotated
+    # 元素 None (无 cohort 周期) 透传, 0-1 范围约束只对实数值生效
+    matrix: List[List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]] = Field(default_factory=list, description="复购率矩阵 0-1 decimal")
+    avg_by_period: List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]] = Field(default_factory=list, description="各周期平均复购率 0-1 decimal")
+    ly_matrix: List[List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]] = Field(default_factory=list, description="去年同期复购率矩阵 0-1 decimal")
+    ly_avg_by_period: List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]] = Field(default_factory=list, description="去年同期各周期平均复购率 0-1 decimal")
 
 
 # ─────────────────────────────────────────────────────────────

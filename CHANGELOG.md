@@ -1,3 +1,33 @@
+## [v0.4.14.107] - 2026-06-17 - feat(contracts): Sprint 30.3 Sprint 17 #120 B2 audit cohort retention matrix (嵌套 List 强类型, Pydantic 422 拦截)
+
+> Sprint 30.3 收口: CohortRetentionResponse 4 个嵌套 List 字段补 Annotated[float, Field(ge=0, le=1)] 强类型 (CLAUDE.md §禁止 第 6 条: List 前向引用禁止, 必须 Annotated). 简化范围只改 cohort matrix, 其他 contract 字段 (TierFlowRow ratio / NewCustomerConversionFunnel rate) 走 Sprint 31+ 单独 sprint 风险 review (Pydantic v2 strict 模式可能越界 freeze 部分 baseline API 响应).
+
+### Changed
+
+1. **`backend/contracts/health.py`** (+5/-4 行) — CohortRetentionResponse 4 字段补强类型:
+   - `matrix: List[List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]]`
+   - `avg_by_period: List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]`
+   - `ly_matrix`: 同 matrix
+   - `ly_avg_by_period`: 同 avg_by_period
+2. **`backend/contracts/health.py`** (+1 行) — import 加 `Annotated` (Sprint 30.3 强类型约束)
+
+### Added
+
+3. **`backend/tests/test_sprint30_3_contract_audit.py`** (+62 行, 3 case) — `TestSprint303CohortRetentionMatrixB2`:
+   - `test_cohort_matrix_accepts_valid_0_to_1`: 合法 0-1 + None 透传
+   - `test_cohort_matrix_rejects_above_1`: 1.5 Pydantic 422 拦截
+   - `test_cohort_matrix_rejects_below_0`: -0.1 Pydantic 422 拦截
+
+### Risk
+
+- API contract 行为变化: 越界值 (>1 或 <0) 之前可能 200 OK (透传), 现在 422
+- 影响范围: 仅 `/health` CohortRetention endpoint 响应 schema 强校验
+- 无 frontend 改动 (Sprint 31+ 跟 regen-types 同步, 不在 Sprint 30.3 范围)
+- 无 DB schema / 业务代码改动
+- Sprint 31+ 待办: 其他 contract 字段 (TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence) 需走单独 sprint + ground-truth-lint review (Pydantic v2 strict 模式越界 freeze 风险)
+
+---
+
 ## [v0.4.14.106] - 2026-06-17 - chore(hooks): pre-commit CHANGELOG hard block → soft WARN (Sprint 30.2, Sprint 28+ #4 收口)
 
 > Sprint 30.2: 改 pre-commit hook CHANGELOG 强制从 hard block (exit 1) 到 soft WARN (print 不阻断), 紧急回切用 `STRICT_CHANGELOG_HOOK=1` env 守卫. Post-merge hook 加 CHANGELOG hint 段 (`git log <last-tag>..HEAD` 校验 commit message 是否含 CHANGELOG / v0.4. / vX.Y.Z 关键字, 不含就 WARN). 解决 Sprint 27 教训: 用户用 `--no-verify` 绕过 hook 是反 pattern.
