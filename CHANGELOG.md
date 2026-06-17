@@ -1,3 +1,57 @@
+## [v0.4.14.102] - 2026-06-17 (Sprint 28 收口时定版) - fix(rfm): Sprint 28+ #197 RFM 缓存 _open_write_conn DuckDB config 冲突治根
+
+> 实战暴露 (Sprint 28+ 跑批 11:57-12:23): ETL 跑批 exit 0 但 log 报 "RFM 缓存清空失败: Connection Error: Can't open a connection to same database file with a different configuration" + "RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？）". Sprint 24+ P3 (v0.4.14.95, ebcc8a4) 修了 cli.py L310/424/688/859 4 处 read_only=True → 默认 READ_WRITE, 但漏了 cache.py._open_write_conn(). 治根: 删 cfg 多传 access_mode 字段的行, 跟 cli.py._c0 严格一致 (只有 memory_limit), 让 DuckDB 1.5+ strict mode config dict 匹配.
+
+### Fixed
+
+1. **`backend/services/health/rfm_analysis/cache.py:43-71`** — `_open_write_conn()` 删 cfg 多传 access_mode 字段的赋值行. 之前 cache.py config = `{memory_limit, access_mode: READ_WRITE}`, cli.py._c0 config = `{memory_limit}` → DuckDB 1.5+ strict mode 按 config dict 严格匹配 → 抛 "different configuration" → RFM 缓存清空 + 预计算 fail (但 ETL exit 0 fail-soft). 治根后 cache.py config 跟 cli.py sibling 严格一致, 共享同 DuckDB file.
+
+2. **`backend/services/health/rfm_analysis/cache.py:43-66`** — 注释更新. QW2 Phase 2 老注释说 "uvicorn 永远 read_only", 但 Sprint 24+ P3 (v0.4.14.95) 已经把 cli.py 4 处 read_only=True 全删, uvicorn 现在默认 READ_WRITE. 注释补 Sprint 11 S11-3 + Sprint 24+ P3 + Sprint 28+ (#197) 同根因三处治根史, 防未来 refactor 误加 access_mode 字段.
+
+### Added (7 个 test)
+
+- **`backend/tests/test_rfm_cache_write_conn.py`** (新文件, 7 case) — Sprint 28+ (#197) 治根专项, 防 access_mode 字段误加回导致 bug 复发:
+  - `TestOpenWriteConnConfigMatchesCliStyle::test_no_explicit_access_mode_in_source`: 源码 verify 无 cfg 多传 access_mode 行 (Sprint 24+ P3 同模式)
+  - `TestOpenWriteConnConfigMatchesCliStyle::test_uses_get_duckdb_config_helper`: 必须走 `bdc.get_duckdb_config()` helper
+  - `TestOpenWriteConnConfigMatchesCliStyle::test_supports_db_password_env_var`: db_password env var 支持保留 (跟 cli.py sibling)
+  - `TestOpenWriteConnRealConnectionNoError::test_open_write_conn_succeeds`: 真 _open_write_conn() 不抛 "different configuration" 错误 (Sprint 7 P2 教训: 不 mock 走真连接)
+  - `TestOpenWriteConnRealConnectionNoError::test_sibling_connection_pattern_works`: 模拟生产 ETL 双连接共存 (cli.py._c0 + cache.py._open_write_conn), 互相能读写
+  - `TestClearRfmCacheEndToEnd::test_clear_rfm_cache_no_longer_fails`: 端到端验证 clear_rfm_cache 成功 (Sprint 28 跑批 fail-soft 返 0, 现在返 N)
+  - `TestSprint28FixAnchor::test_source_mentions_sprint28_fix`: 修复锚点 (#197 + Sprint 28+) 防未来误删
+
+### Test
+
+- `pytest backend/tests/test_rfm_cache_write_conn.py` → **7/7 passed**
+- `pytest backend/tests/` → **564 passed / 15 skipped / 0 failed** (baseline 556 + 7 新增 = 563 + 1 替换 = 564, 0 回归. 15 skipped 跟 Sprint 27 baseline 一致是 uvicorn PID 21371 持锁跨进程冲突)
+- `ruff check backend/services/health/rfm_analysis/cache.py backend/tests/test_rfm_cache_write_conn.py` → All checks passed
+
+### Verified (实战跑批 2026-06-17 12:23 端到端)
+
+Sprint 28+ 跑批 (修复前) log 输出:
+```
+RFM 缓存清空失败: Connection Error: Can't open a connection to same database file with a different configuration
+RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？...）: ConnectionException
+```
+
+Sprint 28+ 跑批 (本次修复后) 期望:
+```
+RFM 缓存清空: 共 N 行
+RFM 预计算完成: 12 / 12 个组合
+```
+
+### Risk
+
+- 无 DB schema 变化 / 无 cache API 变化, 一次性发版可接受
+- 性能影响: _open_write_conn config dict 字段减少 1 个, microsecond 级
+- 跨进程/跨机部署不受影响 (config dict 跟 cli.py sibling 严格一致, 行为统一)
+
+### Sprint 24+ P3 联动
+
+- Sprint 24+ P3 (v0.4.14.95, commit ebcc8a4) 修了 cli.py 4 处 read_only=True, 但漏了 cache.py._open_write_conn. 本次 Sprint 28+ (#197) 收口 cache.py, Sprint 24+ P3 治根完整闭环.
+- 未来同类 read_only/access_mode bug 应在 cache.py / precompute_fact_rfm.py / 任何 `duckdb.connect()` 处继续排查 (CLAUDE.md "ETL 脚本连接例外条款" 允许单实例 RW + 新连接 RW 共存).
+
+---
+
 ## [v0.4.14.101] - 2026-06-17 (Sprint 28 收口时定版) - fix(etl): Sprint 28+ 冷启动 mtime 阈值过滤治根
 
 > 用户报告: 2026-06-17 10:40 ETL 增量跑批失败, "错误: 没有加载到任何店铺数据!" 但 exit 0. 根因是冷启动误标记: tracker 文件不存在时, Step 0.5 复用 `_mark_all_files_processed()` 把当前所有 xlsx (含今天新放进去的) 全标已处理, `_file_changed` 看到 key 在 processed_files + mtime 一致 → 跳过加载 → 业务失败. 这是 Sprint 6 P0-3 / Sprint 21 P0 / Sprint 24 d81148c 第三次复发, 治根采用 mtime 阈值过滤 (Sprint 24 d81148c 修的是 tracker **空 {}** case, 本次修的是 tracker **不存在** case, 互补不冲突).

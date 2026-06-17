@@ -41,24 +41,30 @@ RFM_CACHE_TTL_HOURS = 24
 # ============================================================
 
 def _open_write_conn() -> duckdb.DuckDBPyConnection:
-    """打开一个独立的 DuckDB 写连接（绕开 read_only 单例）。
+    """打开一个独立的 DuckDB 写连接（RFM 缓存专用）。
 
-    QW2 Phase 2: uvicorn 永远 read_only（QW2 Phase 1），
-    但 RFM 缓存需要 DDL（CREATE/ALTER/INDEX）+ INSERT/DELETE。
-    get_connection(read_only=False) 因单例已被 read_only 锁定,
-    仍返回 read_only 包装器,无法写。
+    Sprint 28+ (#197) 治根: 删 cfg 字典里多传的 access_mode 字段赋值行.
+    QW2 Phase 2 老注释说 "uvicorn 永远 read_only",但 Sprint 24+ P3
+    (v0.4.14.95) 已经把 cli.py 4 处 sibling read_only=True 全删,
+    uvicorn 现在是默认 READ_WRITE. 本函数之前显式加 access_mode
+    字段 → DuckDB 1.5+ strict mode 判定本 conn config ({memory_limit,
+    access_mode}) ≠ cli.py._c0 config ({memory_limit}) → 抛
+    "Can't open a connection to same database file with a different
+    configuration" → RFM 缓存清空 + 预计算全失败.
 
-    所以 cache.py 写操作直接 duckdb.connect(..., access_mode=READ_WRITE)
-    拿短生命周期写连接,调用方负责 close。
+    修复: 跟 cli.py._c0 (Sprint 24+ P3) 严格一致, 只传 memory_limit,
+    不显式传 access_mode (默认值 = READ_WRITE, 跟 cli.py._c0 默认一致).
 
-    DuckDB 多读单写模型：uvicorn 持 read_only 单例时,本进程
-    仍可打开独立写连接（与 read_only 单例共存,不互斥）。
+    Sprint 11 S11-3 + Sprint 24+ P3 同根因 (3 处治根):
+    - Sprint 11: config dict 缺省 (memory_limit 不一致)
+    - Sprint 24+ P3: access_mode 不一致 (read_only=True)
+    - Sprint 28+ (#197): access_mode 字段多传 (即使值都是 READ_WRITE, strict mode
+      按 config dict 严格匹配)
 
-    注意：duckdb.connect 默认 access_mode=READ_WRITE,这里显式
-    声明意图 + 防御性兜底。
+    db_password 仍保留 (Sprint 24 P3 同期, 加 password 字段时跟其他 sibling 比对
+    通过 DUCKDB_PASSWORD env var 一致性保证; 实际生产不设 password).
     """
     cfg = bdc.get_duckdb_config()
-    cfg["access_mode"] = "READ_WRITE"
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:
         cfg["password"] = db_password
