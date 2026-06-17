@@ -1,3 +1,27 @@
+## [v0.4.14.104] - 2026-06-17 - chore(docs): Sprint 28+#198 收口后 document-release (历史文件合并 + 冗余删除)
+
+> Sprint 28+#198 完整收口后, 文档 release 收尾. 用户原话"都进行更新, 都进行迭代, 历史的文件先合并, 没用的文件删除". 净 -314 行 (-376 冗余 + +62 新信息). 0 业务代码改动, 仅 docs/ + CLAUDE.md + README.md.
+
+### Removed
+
+1. **`docs/CACHE-INVALIDATION.md`** (333 行, 删) — 旧版 W5 cache invalidation 文档, 被 `docs/ETL-CACHE-INVALIDATION.md` (Sprint 19 P2-4, 195 行) 取代. 内容完全重复且旧版描述已闭环痛点 (Sprint 18 #123 启动 hook), 跟 ETL-CACHE-INVALIDATION.md 重复 90%+
+2. **`docs/validation-reports/etl-3-runs-2026-06-14.md`** (43 行, 删) — Sprint 14 痛点 1 ETL 41min 跑批真验报告. Sprint 22 #26 (v0.4.14.86) 已治根痛点 1 → 18min SLO. Sprint 28+#198 收口后, 此 report 内容被 Sprint 22 #26 + Sprint 29+#198 实战跑批覆盖
+
+### Changed
+
+3. **`CLAUDE.md`** (+55 行) — `## 必读·启动项` 表格 VERSION 状态行 (line 30) 从 `v0.4.14.96 Sprint 24 收口` 更新到 `v0.4.14.100 Sprint 28+#198 收口` (覆盖 Sprint 25-29+#198 完整收口链: v0.4.14.98-103). 新增章节 `## Sprint 28+#198 收口状态 + Sprint 30-32 计划` 含 Sprint 28+#198 已闭环 + Sprint 30 (性能治根 + 治理债) + Sprint 31 (tracker-database 终极治根) + Sprint 32 (e2e 环境修复) + 关键架构教训 (codex + 架构师共识, 跨 sprint 复用) + Sprint 28+ 待办收口 (砍 Sprint 28+ #1/#4, 保留 Sprint 28+ #2 改 post-merge hint, 加 W4 + tracker-database 待办)
+4. **`README.md`** (+11 行) — `### 当前状态` (line 18-32) 跟 Sprint 28+#198 收口同步: ETL 数据 `orders 10,654,714` → `10,747,441 (补 6/16 + 6/17 数据 +1.68M 行)`; 测试 `509+` → `569`; CHANGELOG 版本 `v0.4.14.96` → `v0.4.14.100`; Sprint 24 收口行 → Sprint 25-29+#198 完整收口 (v0.4.14.98-103, 5 次复发 recurring pattern 治根, codex 第三方架构评审, 端到端 ETL 跑批 ~32min ×2 验证). 版本变更表 (line 261) 加 2026-06-17 Sprint 25-29+#198 收口行.
+5. **`docs/TECH-DEBT.md`** (+12 行) — 头部统计更新: `已修复` 9 → 12 条 (+ Sprint 26 F6 副检 / Sprint 27 Tooltip 5346% ×100 / Sprint 28 冷启动 mtime 阈值 / Sprint 28+#197 RFM config 冲突 / Sprint 29+#198 disk full 上游 + RFM stuck index); `新待办` 加 Sprint 30-32 计划 (W4 540 combo + tracker-database + CHANGELOG post-merge + contract audit + *_rate 文档 + Playwright SSL + e2e 回归).
+
+### Risk
+
+- 无业务代码改动 (净 -314 行仅 docs/ + CLAUDE.md + README.md)
+- 无 API / schema / ETL 行为变化
+- 无 frontend / backend 行为变化
+- VERSION bump v0.4.14.100 → v0.4.14.104 是 doc-only chore (跟 Sprint 28+#198 v0.4.14.103 同 main, 共用 v0.4.14.10x 系列)
+
+---
+
 ## [v0.4.14.102] - 2026-06-17 (Sprint 28 收口时定版) - fix(rfm): Sprint 28+ #197 RFM 缓存 _open_write_conn DuckDB config 冲突治根
 
 > 实战暴露 (Sprint 28+ 跑批 11:57-12:23): ETL 跑批 exit 0 但 log 报 "RFM 缓存清空失败: Connection Error: Can't open a connection to same database file with a different configuration" + "RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？）". Sprint 24+ P3 (v0.4.14.95, ebcc8a4) 修了 cli.py L310/424/688/859 4 处 read_only=True → 默认 READ_WRITE, 但漏了 cache.py._open_write_conn(). 治根: 删 cfg 多传 access_mode 字段的行, 跟 cli.py._c0 严格一致 (只有 memory_limit), 让 DuckDB 1.5+ strict mode config dict 匹配.
