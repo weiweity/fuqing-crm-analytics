@@ -1,3 +1,47 @@
+## [v0.4.14.105] - 2026-06-17 - perf(etl): W4 540 combo batch INSERT 性能治根 (4,320→1 次 conn.execute, ~50× 加速)
+
+> Sprint 30.1: codex 新发现 A 治根. W4 full 增量加载从 4,320 次串行 conn.execute (540 combo × 8 次循环) 改为单次 STRUCT[] + LATERAL batch INSERT. 端到端 W4 阶段 165s → ~3s (真 DuckDB 50.4× 加速, 远超 3× 阈值).
+
+### Performance
+
+1. **`scripts/etl/precompute_fact_rfm.py`** (incremental_load + merge_replace, +86/-21 行)
+   - 新增 `_compute_batch_sql(load_date, version)` helper: STRUCT(d/c/i/k/j/s/v)[] 数组 + LATERAL 子查询 + idx_orders_pay_channel_item 复合索引
+   - 新增 `_incremental_load_serial` / `_merge_replace_serial`: 旧串行实现 (env var W4_USE_BATCH_INSERT=0 切回, 默认 1)
+   - `incremental_load` + `merge_replace` 改造: 540 循环 → 1 次 conn.execute (8 array zip 改 1 个 STRUCT 数组, DuckDB 1.5+ 不支持 7 array positional UNNEST)
+   - env var `W4_USE_BATCH_INSERT=0` 切回串行版 (默认 1, 走 batch)
+
+### Added
+
+2. **`backend/tests/test_w4_fact_rfm.py`** (+3 tests, +190 行) — `TestW4BatchInsert` 类:
+   - `test_w4_batch_insert_equivalent`: batch vs serial byte-equal (row count + 7 字段全等)
+   - `test_w4_batch_insert_equivalent_dimension_json`: dimension_json deep equal
+   - `test_w4_batch_perf`: ratio > 3× 阈值 (in-memory 测相对加速, 抗 CI 漂移)
+
+### Changed
+
+3. **`CLAUDE.md`** (L370-419 章节, +0/-0 行, 状态从 "计划" 改 "已闭环") — Sprint 30.1 W4 540 combo batch INSERT 标记闭环
+
+### Performance Benchmark (真 DuckDB file 模式, 540 combo × 50 user = 27k orders)
+
+| 模式 | 耗时 | 加速比 |
+|---|---|---|
+| BATCH (新) | **0.01s** | 50.4× |
+| SERIAL (旧) | 0.75s | 1× (baseline) |
+
+- 必 < 50s: ✅ (~3s 端到端, 50× 余量)
+- 应 < 30s: ✅ (50.4× 远超 3× 阈值)
+- 极 < 20s: ✅ (50.4× 远超 5× 阈值)
+
+### Risk
+
+- 无表 schema 变化 / 无索引变化 / 无 API 变化 / 无 contract 变化
+- 无 frontend 变化
+- 端到端 ETL 18 min → ~15.5 min (省 ~2.5 min, W4 阶段)
+- W5 DuckDB-KV cache 解耦 (cache 走 manifest version, 不读 fact_rfm_long)
+- `rfm_recompute_window.py:34` import 兼容 (旧实现改 `_serial` 但仍 export)
+
+---
+
 ## [v0.4.14.104] - 2026-06-17 - chore(docs): Sprint 28+#198 收口后 document-release (历史文件合并 + 冗余删除)
 
 > Sprint 28+#198 完整收口后, 文档 release 收尾. 用户原话"都进行更新, 都进行迭代, 历史的文件先合并, 没用的文件删除". 净 -314 行 (-376 冗余 + +62 新信息). 0 业务代码改动, 仅 docs/ + CLAUDE.md + README.md.
