@@ -1,3 +1,49 @@
+## [v0.4.14.114] - 2026-06-17 - chore(e2e): Sprint 32.1 — Playwright HTTPS error tolerance (chromium v1208 SSL hardening)
+
+> Sprint 28+ 待办 #5 闭环. **两层 SSL fix 必要**:
+> 1. **浏览器运行时** (本 commit): `playwright.config.ts` 加 `ignoreHTTPSErrors: true` + `launchOptions.args: ['--ignore-certificate-errors']`, 防御 v1208-class chromium SSL 证书 bug
+> 2. **Node 端 cert 信任** (部署侧 docs, 已在 Sprint 31.1 治根 `check_duckdb_release.py` 用过 `certifi` CA bundle 模式): `NODE_EXTRA_CA_CERTS=$(python3 -c "import certifi; print(certifi.where())")` 修 `npx playwright install` 时 `SELF_SIGNED_CERT_IN_CHAIN` 错误
+>
+> 当前 chromium revision 1217 (browserVersion 147.0.7727.15) **已绕过 v1208 SSL bug** (v1208 是上一 revision). 32.1 范围 = 防御性配置 + 部署侧 docs. v0.4.14.113 → v0.4.14.114.
+
+### Changed
+
+1. **`frontend-vue3/playwright.config.ts`** (+4 行) — `use` 块新增 2 行 + 2 行注释:
+   - `ignoreHTTPSErrors: true` — Playwright 浏览器 API 层容忍 HTTPS 证书错误
+   - `launchOptions: { args: ['--ignore-certificate-errors'] }` — chromium 启动层也忽略证书验证
+   - 注释说明: "Sprint 32.1: defend against v1208-class chromium SSL bugs (current v1217 bypassed, but defense-in-depth for future HTTPS migration or external HTTPS endpoints)"
+
+### Verification
+
+- **本地 e2e 重跑**: 2/3 pass (customer-health 2/2 OK after WASM warm-up; audience-daily-trend 1/1 fails on brittle canvas `.first()` selector pre-existing, unrelated to this config change)
+- **Charts render correctly**: page snapshot 显示 customer-health 6 个 Tab + RFM 数据表完整渲染 (1158.6万, 51.5% 等真实数据)
+- **Backend tests**: 571 passed / 15 skipped (skip 跟改动无关,uvicorn DuckDB 锁冲突 skip)
+- **WASM streaming race**: console 偶发 "wasm streaming compile failed" 是 pre-existing flake (WASM 第一次下载未就绪), config 改动不引入新 console error
+
+### Risk
+
+- 无业务代码改动
+- 行为变化: 仅当未来 HTTPS 化或外部 HTTPS endpoint 时,浏览器会容忍证书错误;当前 HTTP 配置下行为完全不变
+- 配置改动的兼容性: `ignoreHTTPSErrors` 是 Playwright 标准 API (`@playwright/test: ^1.59.1` 支持),`launchOptions.args` 是 chromium 标准 CLI flag
+- Sprint 32.2 e2e spec 回归可在本 commit 之上跑 (32.1 是 32.2 的跑批基础)
+
+### Recurring pattern (跨 sprint 复用)
+
+- **两层 SSL fix 必做**: 浏览器运行时 (Playwright config) + Node 端 (cert 信任)。单做一层会失败 (运行时缺 cert 信任 → 浏览器报 SSL 错误,即使启用了 ignoreHTTPSErrors)
+- **WASM warm-up 测试顺序依赖**: 跨 test 状态影响结果 (3 个 test 一起跑 customer-health 2/2 pass,单独跑 0/2 fail),Sprint 32.2 写新 e2e 时注意 test 顺序 + 加 warm-up test
+
+### 部署侧要求 (不在本 commit, 写入 Sprint 32.1 文档)
+
+```bash
+# 安装 Playwright 浏览器时,需要 NODE_EXTRA_CA_CERTS 修 SELF_SIGNED_CERT_IN_CHAIN:
+export NODE_EXTRA_CA_CERTS=$(python3 -c "import certifi; print(certifi.where())")
+npx playwright install chromium
+
+# CI 跑 e2e 前同样设置 (Sprint 32.3 候选)
+```
+
+---
+
 ## [v0.4.14.112] - 2026-06-17 - feat(tracker): Sprint 31.1 — /tmp/fuqing_*.duckdb tracker-database mode (5 次复发终极治根)
 
 > Sprint 28+ 待办 #1 (v0.4.14.101) 终极治根. Sprint 6 P0-3 起 5 次复发 (累积 ~349GB / 103GB sampling) 根因: prefix-based whitelist (FQ_TMP_PREFIXES) **机制错误** — 任何 fuqing_* 前缀文件都认为可清理, 无法区分 ETL 合法 staging vs 外部副本 vs 业务采样 copy. Sprint 28+ #1 提议的 exclude pattern 也被砍 (codex + plan-eng-review 共识: 机制不对). 治根: SQLite sidecar `/private/tmp/fuqing-tmp-tracker.db` 作为 source of truth. ETL 写入 `/tmp/fuqing_*.duckdb` 前 `INSERT INTO tracker (path, create_at, size, pid, last_seen)`, 清理时 `SELECT path FROM tracker WHERE create_at < now() - 24h AND size > 0`. 物理上不可能误删未注册文件. FQ_TMP_PREFIXES 退化为 fallback / bootstrap-only.

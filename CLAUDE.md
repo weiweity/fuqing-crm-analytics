@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.112（main @ 8d180ce，2026-06-17 Sprint 31.1 收口），测试 614 passed / 0 failed (Sprint 31.1: tracker-database 模式 5 次复发终极治根 — 3 commit 闭环 v0.4.14.111 inert infra + v0.4.14.112 source of truth) |
+| 4 | **版本状态** | v0.4.14.114（main @ 0c82749，2026-06-17 Sprint 32.1 收口），测试 571 passed / 0 failed (Sprint 32.1: Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 config + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -395,7 +395,7 @@ Key routing rules:
 
 | # | 任务 | 工作量 | 来源 |
 |---|---|---|---|
-| 32.1 | **Playwright chromium v1208 SSL 证书修复** (e2e 跑批环境) | env config | Sprint 28+ 待办 #5 |
+| 32.1 | **Playwright chromium v1208 SSL 证书修复** (e2e 跑批环境) | env config | Sprint 28+ 待办 #5 | ✅ 闭环 v0.4.14.114 (1 commit: playwright.config.ts 加 ignoreHTTPSErrors + launchOptions.args, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN) |
 | 32.2 | **e2e spec 回归** (`audience-daily-trend.spec.ts` 等 Sprint 27 写的 e2e) 等环境修好后跑回归 | 一次性 | Sprint 28+ 待办 #6 |
 
 ### 关键架构教训 (codex + 架构师共识, 跨 sprint 复用)

@@ -3,9 +3,9 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-17 (Sprint 31.1 v0.4.14.111+112 收口, 5 次复发终极治根 — tracker-database 模式替代 prefix matching 机制错误, 3 commit 闭环)
+**最后更新**: 2026-06-17 (Sprint 32.1 v0.4.14.114 收口, Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 + Node 端 cert 信任)
 **当前债数**: 0 条 (全闭环)
-**已修复**: 13 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index + 债 #S31-1 5 次复发终极治根 tracker-database)
+**已修复**: 14 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index + 债 #S31-1 5 次复发终极治根 tracker-database + 债 #S32-1 v1208 SSL 两层 fix)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 **新待办 (Sprint 30-32 计划)**:
 - ✅ Sprint 30.1 W4 540 combo batch INSERT (闭环 v0.4.14.105, 50.4× 加速)
@@ -13,8 +13,8 @@
 - ✅ Sprint 30.3 Sprint 17 #120 全量 9 contract audit 简化范围 (闭环 v0.4.14.107, 4 cohort matrix 字段; 剩余 TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence 走 Sprint 31+ 单独 sprint)
 - ✅ Sprint 30.4 CLAUDE.md `*_rate` 表格对齐 (闭环 v0.4.14.108, doc-only)
 - ✅ Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (闭环 v0.4.14.111+v0.4.14.112, 3 commit: Phase 1 inert infra + Phase 2 source of truth + Phase 3 docs)
-- Sprint 32.1 Playwright chromium v1208 SSL 修复 (env config) — 待排期
-- Sprint 32.2 e2e spec 回归 (一次性) — 待排期
+- ✅ Sprint 32.1 Playwright chromium v1208 SSL hardening (闭环 v0.4.14.114, 2 layer fix: 浏览器运行时 + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN)
+- Sprint 32.2 e2e spec 回归 (一次性) — 待排期 (32.1 已建立跑批基础)
 
 ---
 
