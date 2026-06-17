@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.96（main @ 0d712eb，2026-06-16 Sprint 24 收口 + Branch 2 债 #5/#6/#7 收口），测试 526+ passed / 15 skipped (Sprint 24: 痛点 1 18min SLO + DuckDB race 治根 v0.4.14.89-92 + Step 8 strict mode v0.4.14.92 + 4 处 sibling read_only 治根 v0.4.14.95 + P2 清理 v0.4.14.96) |
+| 4 | **版本状态** | v0.4.14.100（main @ b3a523d，2026-06-17 Sprint 28+#198 收口），测试 569 passed / 15 skipped (Sprint 25-29+#198: 备份系统可信化 v0.4.14.98 + F6 mtime→lsof v0.4.14.99 + Tooltip 5346% 治根 v0.4.14.100 + 冷启动 mtime 阈值 v0.4.14.101 + RFM _open_write_conn config v0.4.14.102 + disk full 上游 + #198 RFM stuck index v0.4.14.103) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -363,3 +363,56 @@ Key routing rules:
 - 组件实现: `frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue` JSDoc
 - 改版历史: `CHANGELOG.md` v0.4.14.26 (Sprint 12) + v0.4.14.29 (Sprint 13) + v0.4.14.41 (Sprint 17)
 - 4 页面 banner: `frontend-vue3/src/components/RatioConventionBanner.vue` (3 天自动消失)
+
+---
+
+## Sprint 28+#198 收口状态 + Sprint 30-32 计划 (2026-06-17)
+
+### Sprint 28+#198 已闭环 (v0.4.14.101 + v0.4.14.102 + v0.4.14.103)
+
+| Sprint | 修复 | 版本 |
+|---|---|---|
+| Sprint 28 | **冷启动误标记 mtime 阈值过滤** (5 次复发第 3 次治根, 互补 Sprint 24 d81148c) | v0.4.14.101 |
+| Sprint 28+#197 | **RFM `_open_write_conn` DuckDB config 冲突** (Sprint 24+ P3 遗漏修复, 删 `access_mode` 字段) | v0.4.14.102 |
+| Sprint 29+#198 | **disk full 上游修复** (`backup_duckdb.py --verify-only` + `cli.py` df 预留检查) | v0.4.14.103 |
+| Sprint 29+#198 | **RFM cache stuck index** (`clear_rfm_cache` DROP+CREATE 替代 DELETE) | v0.4.14.103 |
+
+### Sprint 30: 性能治根 + 治理债 (~1.5 天)
+
+| # | 任务 | 工作量 | 来源 |
+|---|---|---|---|
+| 30.1 | **W4 540 combo batch INSERT** — `precompute_fact_rfm.py` 用 `UNNEST + STRUCT_PACK` 替代 540 次串行 INSERT (25min → 8min) | ~1 天 | codex 新发现 A |
+| 30.2 | **pre-commit CHANGELOG 改 post-merge hint** — hook 不再强制每 commit,改 `git log <last-tag>..HEAD` post-merge WARN 提示 | ~1h | codex 推荐, Sprint 28+ #4 |
+| 30.3 | **Sprint 17 #120 全量 9 contract audit 剩余字段** — Pydantic 范围约束补标 | ~2h | Sprint 28+ 待办 #3 |
+| 30.4 | **CLAUDE.md `*_rate` 表格 stale 文档对齐** — `*_rate` 表格写 `PercentageField 0-100` 实际用 `RatioField 0-1`,文档修 | ~30min | Sprint 28+ 待办 #4 |
+
+### Sprint 31: 6 层防护终极治根 (~3-4 天)
+
+| # | 任务 | 工作量 | 来源 |
+|---|---|---|---|
+| 31.1 | **`/tmp/fuqing_*.duckdb` tracker-database 模式** — SQLite sidecar `/tmp/fuqing-tmp-tracker.db` 替代 prefix 匹配;ETL 写入 `/tmp/fuqing_*.duckdb` 前 `INSERT INTO tracker (path, create_at, size, pid)`,清理时 `SELECT path FROM tracker WHERE create_at < now() - 24h AND size > 0`;物理上不可能再发生 5 次复发模式 | 3-4 天 | codex 新发现 C |
+
+### Sprint 32: e2e 环境修复 (~1-2 天)
+
+| # | 任务 | 工作量 | 来源 |
+|---|---|---|---|
+| 32.1 | **Playwright chromium v1208 SSL 证书修复** (e2e 跑批环境) | env config | Sprint 28+ 待办 #5 |
+| 32.2 | **e2e spec 回归** (`audience-daily-trend.spec.ts` 等 Sprint 27 写的 e2e) 等环境修好后跑回归 | 一次性 | Sprint 28+ 待办 #6 |
+
+### 关键架构教训 (codex + 架构师共识, 跨 sprint 复用)
+
+1. **上游治根 > 下游补丁** (5 次复发 recurring bug 模式证明 prefix 匹配机制根本缺陷)
+2. **端到端真连接测试 > mock 测试** (Sprint 7 P2 教训)
+3. **git log 验证 > 信 stale 文档** (D-4 教训)
+4. **真跑 ETL 验证修复 > pytest 信修复** (Sprint 27+ 教训)
+5. **12 步流程完整走 > 跳过流程** (CLAUDE.md 第 145-152 行)
+
+### Sprint 28+ 待办收口 (本次合并)
+
+- ✅ **#198 RFM cache stuck index cleanup** (本次 Sprint 29+#198 修复)
+- ❌ **Sprint 28+ #1 FQ_TMP_PREFIXES exclude pattern** — **砍** (跟 #1 重复且机制错误, codex 推荐)
+- ⚠️ **Sprint 28+ #4 pre-commit CHANGELOG 强制** — **保留 Sprint 30.2** (codex 建议改 post-merge hint)
+- 📋 **新待办 W4 540 combo batch INSERT** → Sprint 30.1
+- 📋 **新待办 tracker-database 模式** → Sprint 31.1
+
+详细 memory 见 `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint28_close.md`
