@@ -48,6 +48,9 @@ _YOY_PPT_FIELDS = frozenset({
     # (yoy_repurchase_gsv_ratio 同上)
     # health.py: 2 字段
     "yoy_old_customer_gsv_ratio", "yoy_member_old_customer_gsv_ratio",
+    # Sprint 31.2: yoy_repurchase_rate 业务实证 (semantic.calculations.py:70-80) 是 PpField
+    # (cur - comp) * 100 = pp 差, 跟 yoy_repurchase_gsv_ratio_ppt 是同一函数
+    "yoy_repurchase_rate",
     # Sprint 18 #141 已知合规 List[RATIO] 字段: linter 暂不支持 List[Annotated[...]] element-wise 识别
     # (Sprint 17 #121 R4 只检查前向引用, 没查 element-wise Field 元数据)
     # 已知用 Annotated[float, Field(ge, le)] 正确写法的 List[RatioField] 字段白名单
