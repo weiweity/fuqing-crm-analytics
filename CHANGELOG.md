@@ -14,7 +14,7 @@
    - `support/confidence` `float` → `"RatioField"` (0-1 decimal, service 层 `basket.py:233-234` 实证 0 越界)
    - `lift/gsv_lift` **保持 float** (倍数可超 1, Sprint 30.3 `test_contracts_b2_audit.py:13` 明确"lift / 提升度 -> 保留 float, 不约束 0-1")
 
-3. **`backend/contracts/_lint.py`** (+3 行) — Linter `_YOY_PPT_FIELDS` 白名单加 `yoy_repurchase_rate` (Sprint 18 #141 模式, 跟 `yoy_old_customer_gsv_ratio` 等 14 个白名单同级)
+3. **`backend/contracts/_lint.py`** (+0 行, codex review P3 finding) — Sprint 18 #141 `_YOY_PPT_FIELDS` 白名单**不**加 `yoy_repurchase_rate`: linter R1 只匹配 `endswith("_ratio")` 字段, `yoy_repurchase_rate` 以 `_rate` 结尾永不被 flag, 加白名单是 dead code no-op. 实际 fix 是 `health.py:216` annotation 改 `Optional["PpField"]`, 跟白名单无关.
 
 ### Added
 
@@ -27,13 +27,13 @@
 
 - 行为变化 (vs Sprint 30.3): Pydantic v2 strict 模式下, 12 字段补 RatioField/PpField 后, service 层若某路径返回越界值, API 入口 422 freeze (而非 500 错值透传)
 - service 层端到端真验: 0 越界值流入 (TierFlowRow 7/7 + NewCustomerConversionFunnel 4/4 + MarketBasketItem 4/4 = **15/15 字段全合规**)
-- linter: 0 violation (Sprint 31.2 之前 `yoy_repurchase_rate` R1 会误报, 白名单加后消除)
+- linter: 0 violation (Sprint 31.2 之前 `yoy_repurchase_rate` R1 不会误报, 字段名 `_rate` 结尾不在 R1 范围; 实际 fix 是 annotation 改 `Optional["PpField"]`)
 - 跟 Sprint 18 #141 模式一致: `yoy_*_ratio` 字段名历史遗留, 实际 PpField, 走白名单兜底不改命名 (跨 14+ 文件影响大)
 
 ### Verification
 
 - `pytest backend/tests/test_contract_ratio_audit_sprint_31_2.py -v`: **14/14 pass**
-- `python -m backend.contracts._lint`: OK All contracts pass (0 violation)
+- `python -m backend.contracts._lint`: OK All contracts pass (0 violation) — `yoy_repurchase_rate` 字段名以 `_rate` 结尾不在 R1 范围, 不需白名单 (codex review P3 finding)
 - `ruff check backend/contracts/`: All checks passed
 - `pytest backend/tests/`: 633 passed / 15 skipped (跟改动无关, uvicorn DuckDB 锁冲突 skip)
 - service 端到端: 15/15 字段实际数据都在范围 (TierFlowRow 7/7 safe_ratio, Conversion 4/4 safe_ratio, Basket 4/4 safe_ratio)

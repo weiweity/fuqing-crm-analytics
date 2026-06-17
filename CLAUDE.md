@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.115（main @ e808f94，2026-06-18 Sprint 31.2 收口），测试 571 passed / 0 failed (Sprint 31.2: Sprint 30.3 留 12 字段 ratio/rate 范围约束补标 — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio, 14 test case + linter 0 violation) |
+| 4 | **版本状态** | v0.4.14.115（main @ e808f94，2026-06-18 Sprint 31.2 收口），测试 633 passed / 15 skipped (Sprint 31.2: Sprint 30.3 留 12 字段 ratio/rate 范围约束补标 — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio, 14 test case + linter 0 violation) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
