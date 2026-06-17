@@ -1,3 +1,44 @@
+## [v0.4.14.109] - 2026-06-17 - chore(docs): Sprint 30 收口 meta — VERSION 同步 + 文档版本状态对齐 (债 #4 流程合规)
+
+> Sprint 30 (v0.4.14.105~108) 全部 4 子任务 (30.1 W4 batch INSERT / 30.2 pre-commit soft WARN / 30.3 cohort retention matrix B2 audit / 30.4 *_rate 文档对齐) commit 已就位但缺 meta 收口: VERSION 文件停在 0.4.14.100 (债 #4 重犯: 17 个版本没 bump) / CLAUDE.md §必读·启动项 #4 状态行还写 v0.4.14.100 / CHANGELOG 缺 v0.4.14.108 登记. 治根: 一次性 doc-only chore 把 VERSION bump + 状态行同步 + CHANGELOG 补登走完, 满足债 #4 流程 (merge 时 VERSION + CHANGELOG + git tag 三同步). 0 业务代码改动, 仅 VERSION + CHANGELOG + CLAUDE.md + docs/TECH-DEBT.md.
+
+### Changed
+
+1. **`VERSION`** — `0.4.14.100` → `0.4.14.109` (债 #4 流程合规: 跟 Sprint 30 v0.4.14.105~108 实际 main HEAD `31411ed` 对齐)
+2. **`CLAUDE.md`** `## 必读·启动项` 表格 #4 版本状态行 (line 30) — 从 `v0.4.14.100（main @ b3a523d，2026-06-17 Sprint 28+#198 收口）` 更新到 `v0.4.14.109（main @ 31411ed，2026-06-17 Sprint 30 收口）` + 列举 Sprint 30 全部 4 个子任务 (v0.4.14.105~108)
+3. **`CLAUDE.md`** `## Sprint 30-32 计划` 段 Sprint 30.4 行 (line 387) — 状态从 `⏳ Sprint 30.4` 改为 `✅ 闭环 (v0.4.14.108)`, 跟 git log `76eff3b` 一致
+4. **`docs/TECH-DEBT.md`** `新待办 (Sprint 30-32 计划)` 段 — Sprint 30.1~30.4 全部标记 `✅ 闭环 (v0.4.14.105~108)`; Sprint 31.1/32.1/32.2 维持待办状态
+5. **`CHANGELOG.md`** — 补 `v0.4.14.108` 条目 (76eff3b 当时漏写)
+
+### Risk
+
+- 无业务代码改动 (净 +0 行业务代码, 纯文档/版本同步)
+- 无 API / schema / ETL 行为变化
+- 无 frontend / backend 行为变化
+- VERSION bump v0.4.14.100 → v0.4.14.109 是 doc-only chore (跟 Sprint 30 v0.4.14.105~108 同 main, 共用 v0.4.14.10x 系列)
+- 唯一可能影响: `scripts/run_etl.py` 用 VERSION 做 health check, bump 后下一次 health check 报告新版本号 (预期行为)
+- pytest 597 passed / 15 skipped / 0 failed (跟 Sprint 30.3 baseline 一致, 15 skipped 全部是 uvicorn PID 6213 持生产 DuckDB fd 跨进程锁冲突, 跟本次改动无关)
+
+---
+
+## [v0.4.14.108] - 2026-06-17 - docs(changelog): Sprint 30.4 CLAUDE.md *_rate 表格 stale 文档对齐
+
+> Sprint 30.4 doc-only chore: CLAUDE.md §强制规则 L313 表格写 `*_rate | PercentageField (0-100)`, 实际 backend/contracts/*.py 多数 `*_rate` 字段 (eg. `repurchase_rate`) 用 `RatioField` (0-1). 80% 字段是 RatioField, 20% 是 PercentageField. 表格跟实际不一致, 治根: 实证 + 文档修. 0 业务代码改动, 仅 docs + CLAUDE.md 表格状态调整.
+
+### Changed
+
+1. **`CLAUDE.md`** `## 强制规则 (B1+B2, 适用于 backend/contracts/*.py 全部文件)` 表格 — `*_rate` 行 (line 313) 调整: `PercentageField (0-100)` 范围从 `0-100 percentage` 改为 `0-1 decimal` (跟 `*_ratio` 同 RangeField 模式, 因为 `repurchase_rate` 等字段实际用 RatioField 0-1)
+2. **`CLAUDE.md`** `## 字段命名（后端，强制）` 表格 — `*_rate` 行 (line 326) 调整: `是否已 *100` 改为 `否` (跟 `*_ratio` 同列对齐), 跟实际 backend/contracts/*.py 80% 用 `RatioField` (0-1) 实证一致
+
+### Risk
+
+- 无业务代码改动 (纯文档对齐)
+- 无 API / schema / ETL 行为变化
+- 文档语义变化: `*_rate` 字段范围从 0-100 percentage 改为 0-1 decimal, 跟实际 backend/contracts 字段类型一致 (Sprint 30.4 实证: 80% RatioField, 20% PercentageField)
+- Sprint 30.3 已补标 4 个 cohort retention matrix 字段, 其他 contract 字段 (`*_rate` 类型) 不在 Sprint 30.3 范围, 走 Sprint 31+ 单独 sprint + ground-truth-lint review
+
+---
+
 ## [v0.4.14.107] - 2026-06-17 - feat(contracts): Sprint 30.3 Sprint 17 #120 B2 audit cohort retention matrix (嵌套 List 强类型, Pydantic 422 拦截)
 
 > Sprint 30.3 收口: CohortRetentionResponse 4 个嵌套 List 字段补 Annotated[float, Field(ge=0, le=1)] 强类型 (CLAUDE.md §禁止 第 6 条: List 前向引用禁止, 必须 Annotated). 简化范围只改 cohort matrix, 其他 contract 字段 (TierFlowRow ratio / NewCustomerConversionFunnel rate) 走 Sprint 31+ 单独 sprint 风险 review (Pydantic v2 strict 模式可能越界 freeze 部分 baseline API 响应).

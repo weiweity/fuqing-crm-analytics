@@ -8,13 +8,13 @@
 **已修复**: 12 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 **新待办 (Sprint 30-32 计划)**:
-- Sprint 30.1 W4 540 combo batch INSERT (25min → 8min 性能治根, ~1 天)
-- Sprint 30.2 pre-commit CHANGELOG 改 post-merge hint (~1h)
-- Sprint 30.3 Sprint 17 #120 全量 9 contract audit (~2h)
-- Sprint 30.4 CLAUDE.md `*_rate` 表格对齐 (~30min)
-- Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (3-4 天, 6 层防护终极治根)
-- Sprint 32.1 Playwright chromium v1208 SSL 修复 (env config)
-- Sprint 32.2 e2e spec 回归 (一次性)
+- ✅ Sprint 30.1 W4 540 combo batch INSERT (闭环 v0.4.14.105, 50.4× 加速)
+- ✅ Sprint 30.2 pre-commit CHANGELOG 改 post-merge hint (闭环 v0.4.14.106, soft WARN)
+- ✅ Sprint 30.3 Sprint 17 #120 全量 9 contract audit 简化范围 (闭环 v0.4.14.107, 4 cohort matrix 字段; 剩余 TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence 走 Sprint 31+ 单独 sprint)
+- ✅ Sprint 30.4 CLAUDE.md `*_rate` 表格对齐 (闭环 v0.4.14.108, doc-only)
+- Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (3-4 天, 6 层防护终极治根) — 待排期
+- Sprint 32.1 Playwright chromium v1208 SSL 修复 (env config) — 待排期
+- Sprint 32.2 e2e spec 回归 (一次性) — 待排期
 
 ---
 
