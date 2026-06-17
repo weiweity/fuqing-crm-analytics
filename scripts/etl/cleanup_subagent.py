@@ -75,6 +75,13 @@ _PROTECTED_BASENAMES = {
     "fuqing-subagent-cleanup.log",  # 本文件自己的 log
     "fuqing-etl-health.json",
     "fuqing-crm-backend.log",
+    # Sprint 31.1 P2 finding: tracker DB + WAL sidecars — 当前 ~16KB 远小于
+    # 1GB 阈值 Layer 6 不会删, 但 defense-in-depth: 万一 bootstrap 写满
+    # (10万+ rows) 或 _MIN_SIZE_BYTES 改小, Layer 6 1h+ 1GB+ 扫描会误删
+    # tracker DB, 整个 cleanup 失明. 跟 layer 1 marker / log 同级 protection.
+    "fuqing-tmp-tracker.db",
+    "fuqing-tmp-tracker.db-wal",
+    "fuqing-tmp-tracker.db-shm",
 }
 
 # 排除扩展名 (sub-process 调试临时脚本/源码, 不是巨型数据)

@@ -224,3 +224,46 @@ class TestCleanupFqTmpLsofGuard:
 
         assert deleted_count == 0
         assert wl_file.exists(), "Layer 1: lsof 报开的文件绝不能删"
+
+
+# ============================================================
+# Sprint 31.1 P2 finding: tracker DB + WAL sidecars 必须被 Layer 6 保护
+# ============================================================
+
+class TestSprint31TrackerDbProtection:
+    """Sprint 31.1 P2 review finding: tracker DB 文件加进 _PROTECTED_BASENAMES.
+
+    Defense-in-depth: 万一 tracker DB 长大 (e.g. 10万 rows 写满 1GB+) 触到
+    Layer 6 1h+ 1GB+ 扫描阈值, 静态白名单保护避免整个 cleanup 失明.
+    """
+
+    def test_tracker_db_in_protected_basenames(self):
+        """Sprint 31.1 P2: tracker DB + WAL sidecars 在保护名单."""
+        from scripts.etl import cleanup_subagent
+
+        required = {
+            "fuqing-tmp-tracker.db",
+            "fuqing-tmp-tracker.db-wal",
+            "fuqing-tmp-tracker.db-shm",
+        }
+        missing = required - cleanup_subagent._PROTECTED_BASENAMES
+        assert not missing, f"tracker DB basenames 缺失: {missing}"
+
+    def test_layer6_skips_tracker_db_files(self, tmp_path, monkeypatch):
+        """集成: Layer 6 扫描时 tracker DB 命名格式被 _is_protected 跳过."""
+        from scripts.etl import cleanup_subagent
+
+        # 造 3 个 tracker DB 命名文件, 1h+ 1GB+ (用 _MIN_SIZE_BYTES=1 触发)
+        db_file = tmp_path / "fuqing-tmp-tracker.db"
+        wal_file = tmp_path / "fuqing-tmp-tracker.db-wal"
+        shm_file = tmp_path / "fuqing-tmp-tracker.db-shm"
+        for f in (db_file, wal_file, shm_file):
+            f.write_bytes(b"x" * 100)
+            old = time.time() - 2 * 3600  # 2h 前
+            os.utime(f, (old, old))
+
+        # 验证 _is_protected 对 3 个文件都返 True
+        for f in (db_file, wal_file, shm_file):
+            assert cleanup_subagent._is_protected(str(f)) is True, (
+                f"Layer 6 _is_protected 必须跳过 {f.name}"
+            )
