@@ -53,6 +53,11 @@ def loud_fail(reason: str) -> None:
     Sprint 25 升级: 飞书 webhook 私聊告警 (复用 scripts.etl.common.lark) 走主通道,
     osascript 弹窗 + mail 保留作 fallback. 防止 launchd StandardErrorPath 静默失败.
     exit code 1 让 launchd 也检测到失败.
+
+    治根 (2026-06-17): 原实现 osascript + mail 是无条件调用 (独立 try/except block),
+    跟 lark 状态无关 → test 跑 loud_fail 触发 shutil.copy2 mock IOError 时,
+    实际生产环境的 macOS 通知被 spam. 修复: osascript + mail 改为仅 lark 失败时
+    调用 (lark = 主通道, osascript + mail = fallback 链).
     """
     log(f"FATAL: {reason}")
     lark_content = (
@@ -63,33 +68,36 @@ def loud_fail(reason: str) -> None:
         f"机器: {os.uname().nodename if hasattr(os, 'uname') else '?'}"
     )
     # 1. 飞书 webhook 私聊告警 (主通道, Sprint 25 升级)
+    lark_sent = False
     try:
-        sent, lark_reason = _send_lark_alert(lark_content, timeout=5.0)
-        if sent:
+        lark_sent, lark_reason = _send_lark_alert(lark_content, timeout=5.0)
+        if lark_sent:
             log("lark 告警已发送: OK")
         else:
-            log(f"lark 告警跳过/失败: {lark_reason} (fallback 走 osascript + mail)")
+            log(f"lark 告警跳过/失败: {lark_reason} (走 osascript + mail fallback)")
     except Exception as e:
-        log(f"lark 告警异常: {e}")
-    # 2. macOS 系统通知 (fallback)
-    try:
-        subprocess.run(
-            ["osascript", "-e",
-             f'display notification "DuckDB 备份失败: {reason[:80]}" '
-             f'with title "芙清 CRM 备份 FAILED" subtitle "{TODAY}"'],
-            check=False, timeout=5,
-        )
-    except Exception as e:
-        log(f"osascript 通知失败: {e}")
-    # 3. mail 发到 ALERT_EMAIL (fallback)
-    try:
-        subprocess.run(
-            ["/usr/bin/mail", "-s", f"[FATAL] 芙清 DuckDB 备份失败 {TODAY}", ALERT_EMAIL],
-            input=f"backup_duckdb.py 失败\n\n时间: {datetime.now(BJ_TZ).isoformat()}\n原因: {reason}\n日志: /tmp/fuqing-duckdb-backup.log\n",
-            text=True, check=False, timeout=10,
-        )
-    except Exception as e:
-        log(f"mail 发送失败: {e}")
+        log(f"lark 告警异常: {e} (走 osascript + mail fallback)")
+    # 2 + 3. fallback 链仅在 lark 失败时触发 (治根: 避免 test 副作用 + 多通道 spam)
+    if not lark_sent:
+        # 2. macOS 系统通知
+        try:
+            subprocess.run(
+                ["osascript", "-e",
+                 f'display notification "DuckDB 备份失败: {reason[:80]}" '
+                 f'with title "芙清 CRM 备份 FAILED" subtitle "{TODAY}"'],
+                check=False, timeout=5,
+            )
+        except Exception as e:
+            log(f"osascript 通知失败: {e}")
+        # 3. mail 发到 ALERT_EMAIL
+        try:
+            subprocess.run(
+                ["/usr/bin/mail", "-s", f"[FATAL] 芙清 DuckDB 备份失败 {TODAY}", ALERT_EMAIL],
+                input=f"backup_duckdb.py 失败\n\n时间: {datetime.now(BJ_TZ).isoformat()}\n原因: {reason}\n日志: /tmp/fuqing-duckdb-backup.log\n",
+                text=True, check=False, timeout=10,
+            )
+        except Exception as e:
+            log(f"mail 发送失败: {e}")
 
 
 def main(verify_only: bool = False) -> int:

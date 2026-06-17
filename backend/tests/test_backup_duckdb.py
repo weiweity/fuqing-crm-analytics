@@ -64,9 +64,13 @@ class TestBackupDuckdbSprint25:
         修复前: loud_fail 只用 osascript display notification (本机弹窗, 远程看不到) +
                 mail 发到 hutou@fuqing.local (本地 mail 可能不工作, 静默失败)
         修复后: _send_lark_alert 走 lark-cli webhook 私聊 (主通道),
-                osascript + mail 保留作 fallback.
+                osascript + mail 保留作 fallback (仅 lark 失败时触发).
+
+        治根 (2026-06-17): 加 osascript subprocess.run mock 防 test 副作用 (之前
+        loud_fail osascript 无条件调用, 跑 test 时 macOS 真通知被 spam).
         """
         from scripts.etl import backup_duckdb
+        import subprocess
 
         # 准备假 DUCKDB_PATH + BACKUP_DIR (mock 真实路径, 隔离测试)
         fake_duckdb = tmp_path / "fake_crm.duckdb"
@@ -83,13 +87,23 @@ class TestBackupDuckdbSprint25:
 
         monkeypatch.setattr(backup_duckdb, "_send_lark_alert", mock_send_lark)
 
+        # mock osascript + mail subprocess.run 防 macOS 通知 spam (loud_fail fallback 链)
+        # 关键: 治根 2026-06-17 — 之前 osascript 无条件调用, 跑 test 时 macOS 真通知被 spam.
+        subprocess_calls: list[tuple] = []
+
+        def mock_subprocess_run(*args, **kwargs):
+            subprocess_calls.append((args, kwargs))
+            return subprocess.CompletedProcess(args=args[0] if args else [], returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(backup_duckdb.subprocess, "run", mock_subprocess_run)
+
         # mock shutil.copy2 raise (模拟 copy / zstd 上游失败, 触发 loud_fail)
         def mock_copy2_fail(*args, **kwargs):
             raise IOError("disk full (Sprint 25 test mock)")
 
         monkeypatch.setattr(backup_duckdb.shutil, "copy2", mock_copy2_fail)
 
-        # 跑 main(), 期望 exit 1 + lark 被调
+        # 跑 main(), 期望 exit 1 + lark 被调 + osascript 不被调 (lark OK 时跳过 fallback)
         exit_code = backup_duckdb.main()
         assert exit_code == 1, f"期望 exit 1, 实际 {exit_code}"
         assert len(lark_calls) == 1, f"期望 _send_lark_alert 被调 1 次, 实际 {len(lark_calls)}"
@@ -97,6 +111,64 @@ class TestBackupDuckdbSprint25:
         assert "FAILED" in lark_content
         assert "disk full (Sprint 25 test mock)" in lark_content
         assert "fuqing-duckdb-backup.log" in lark_content  # 日志路径提示
+        # 治根验证: lark OK 时 osascript + mail fallback 不应触发 (无 subprocess_calls)
+        osascript_calls = [c for c in subprocess_calls if c[0] and c[0][0] and "osascript" in str(c[0][0])]
+        assert len(osascript_calls) == 0, (
+            f"lark OK 时 osascript 不应被调 (避免 macOS 通知 spam), "
+            f"实际调用 {len(osascript_calls)} 次: {osascript_calls}"
+        )
+
+    def test_loud_fail_falls_back_to_osascript_on_lark_failure(self, tmp_path, monkeypatch):
+        """Case 2b: lark 失败时, loud_fail 应走 osascript + mail fallback 链 (治根验证).
+
+        2026-06-17 治根: 之前 osascript 是无条件调用, 现在改为仅 lark 失败时调用.
+        这个 case 验证 fallback 链在 lark 真失败时仍能跑通.
+        """
+        from scripts.etl import backup_duckdb
+        import subprocess
+
+        fake_duckdb = tmp_path / "fake_crm.duckdb"
+        fake_duckdb.write_bytes(b"x" * 100)
+        monkeypatch.setattr(backup_duckdb, "DUCKDB_PATH", fake_duckdb)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path / "backups")
+
+        # mock _send_lark_alert 返回 False (模拟 lark 真失败)
+        lark_calls: list[str] = []
+
+        def mock_send_lark_fail(content, **kwargs):
+            lark_calls.append(content)
+            return (False, "lark webhook 4xx (test mock)")
+
+        monkeypatch.setattr(backup_duckdb, "_send_lark_alert", mock_send_lark_fail)
+
+        # mock subprocess.run 记录 osascript + mail 调用 (不真发, 但允许记录 args)
+        subprocess_calls: list[tuple] = []
+
+        def mock_subprocess_run(*args, **kwargs):
+            subprocess_calls.append((args, kwargs))
+            return subprocess.CompletedProcess(args=args[0] if args else [], returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(backup_duckdb.subprocess, "run", mock_subprocess_run)
+
+        def mock_copy2_fail(*args, **kwargs):
+            raise IOError("disk full (lark fail fallback test mock)")
+
+        monkeypatch.setattr(backup_duckdb.shutil, "copy2", mock_copy2_fail)
+
+        # 跑 main(), 期望 exit 1 + lark 被调 + osascript + mail fallback 被调
+        exit_code = backup_duckdb.main()
+        assert exit_code == 1
+        assert len(lark_calls) == 1
+        # lark 失败 → osascript fallback 应被调 1 次
+        osascript_calls = [c for c in subprocess_calls if c[0] and c[0][0] and "osascript" in str(c[0][0])]
+        assert len(osascript_calls) == 1, (
+            f"lark 失败时 osascript fallback 应被调 1 次, 实际 {len(osascript_calls)} 次"
+        )
+        # mail fallback 也应被调 1 次
+        mail_calls = [c for c in subprocess_calls if c[0] and c[0][0] and "/usr/bin/mail" in str(c[0][0])]
+        assert len(mail_calls) == 1, (
+            f"lark 失败时 mail fallback 应被调 1 次, 实际 {len(mail_calls)} 次"
+        )
 
     def test_timestamped_filename_includes_hhmm(self):
         """Case 3: backup_duckdb.py main() 文件名带 _{HHMM} 后缀, 真滚动不覆盖.
