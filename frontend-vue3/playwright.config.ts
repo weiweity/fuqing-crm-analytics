@@ -11,6 +11,10 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Sprint 32.1: defend against v1208-class chromium SSL bugs (current v1217 bypassed,
+    // but defense-in-depth for future HTTPS migration or external HTTPS endpoints)
+    ignoreHTTPSErrors: true,
+    launchOptions: { args: ['--ignore-certificate-errors'] },
   },
   projects: [
     {
