@@ -92,7 +92,7 @@ def loud_fail(reason: str) -> None:
         log(f"mail 发送失败: {e}")
 
 
-def main() -> int:
+def main(verify_only: bool = False) -> int:
     # 客户数据保护: 文件 600 权限 (其他用户不可读)
     os.umask(0o077)
 
@@ -108,6 +108,29 @@ def main() -> int:
         if not DUCKDB_PATH.exists():
             log(f"ERROR: {DUCKDB_PATH} not found")
             return 1
+
+        # Sprint 29+#198 上游治根 (codex 推荐): --verify-only 模式跳过 shutil.copy2 +
+        # zstd 压缩, 走 in-process duckdb.connect(read_only=True) verify, 不物理复制
+        # 104GB+ DB. 之前 ETL 跑批验证 backup 111GB DB 到 /private/tmp/sprint28-verify/
+        # 导致 disk full (FQ_TMP_PREFIXES 白名单不覆盖), 走 --verify-only 避免这种用法.
+        if verify_only:
+            log(f"verify-only mode (跳过 shutil.copy2 + zstd): {DUCKDB_PATH.name}")
+            import duckdb  # noqa: PLC0415
+            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+            try:
+                # 跟 SOP post-copy verify 一致: 连接 + 简单 SELECT 验证
+                row = conn.execute(
+                    "SELECT COUNT(*), MAX(pay_time) FROM orders"
+                ).fetchone()
+                if row is None:
+                    raise AssertionError("verify SELECT returned no row")
+                log(
+                    f"DONE (verify-only): orders count={row[0]:,}, max_pay_time={row[1]} "
+                    f"(no file copied, 0 bytes disk usage)"
+                )
+            finally:
+                conn.close()
+            return 0
 
         BACKUP_DIR.mkdir(parents=True, exist_ok=True)
         # Sprint 25: 文件名加 _{HHMM} 时间戳, 真滚动保留 7 天历史 (修复 cleanup_backups.sh 7 天清理伪命题)
@@ -162,4 +185,16 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="芙清 CRM DuckDB 每日备份 + Sprint 29+ verify-only 模式"
+    )
+    parser.add_argument(
+        "--verify-only",
+        action="store_true",
+        help="跳过 shutil.copy2 + zstd 压缩, 走 in-process duckdb.connect(read_only=True) verify. "
+             "0 字节磁盘占用. 适合 ETL 跑批前的 duckdb file sanity check "
+             "(替代 backup 104GB+ DB 到 /private/tmp/sprint28-verify/ 的反模式).",
+    )
+    args = parser.parse_args()
+    sys.exit(main(verify_only=args.verify_only))

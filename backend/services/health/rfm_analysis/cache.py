@@ -237,6 +237,10 @@ def is_stale(
 def clear_rfm_cache() -> int:
     """手动清空 RFM 缓存（ETL 完成后调用,确保下次读全走 live SQL）。
 
+    Sprint 29+#198 简化版 (codex 推荐): 用 `DROP TABLE IF EXISTS` + `CREATE` 替代 `DELETE FROM`.
+    DELETE 走 index, 遇到 index state corruption 会抛 "Failed to delete all rows from index"
+    (Sprint 28+ 跑批实战: 12 行只删 8 行). DROP + CREATE 绕开 index 状态机, 永远成功.
+
     Returns: 被清理的行数（0 = 表为空 / 写连接失败）。
     """
     try:
@@ -245,8 +249,10 @@ def clear_rfm_cache() -> int:
             _ensure_db_cache_table(_wc)
             cur = _wc.execute(f"SELECT COUNT(*) FROM {RFM_CACHE_TABLE}").fetchone()
             count = int(cur[0]) if cur else 0
-            _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE}")
-            logger.info(f"RFM 缓存清空: 共 {count} 行")
+            # Sprint 29+#198: DROP + CREATE 替代 DELETE (avoid index state corruption)
+            _wc.execute(f"DROP TABLE IF EXISTS {RFM_CACHE_TABLE}")
+            _ensure_db_cache_table(_wc)  # 重建 (含 cache_key 唯一索引 + period idx)
+            logger.info(f"RFM 缓存清空 (DROP + CREATE): 共 {count} 行")
             return count
         finally:
             _wc.close()
