@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 # Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跟 Layer 1 cli.py 同模式
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from scripts.etl.common.open_check import is_open_by_any_process  # noqa: E402
+# Sprint 31.1: cross-reference tracker (track 过的 = Layer 1 24h 接管, Layer 6 跳过)
+from scripts.etl.common.tmp_tracker import TrackerDB  # noqa: E402
 
 # ─────────────────────────────────────────────────────────────
 # 常量
@@ -115,8 +117,24 @@ def _is_protected(path: str) -> bool:
     return False
 
 
-def _is_in_whitelist(path: str) -> bool:
-    """检查路径是否在 FQ_TMP_PREFIXES 白名单 (留给 layer 1 处理)."""
+def _is_in_whitelist(path: str, tracker: TrackerDB | None = None) -> bool:
+    """Sprint 31.1: 跨层判断 — track 过的 = Layer 1 24h 接管, Layer 6 跳过.
+
+    Args:
+        path: candidate file path
+        tracker: TrackerDB 实例 (调用方传入, 避免每次构造). 可为 None
+                (默认) 表示 tracker 不可用, 此时降级到 _FQ_TMP_PREFIXES
+                静态白名单. 保留 default 兼容现有 test_lsof_protection.py
+                调用形式 (patch 后用旧 1-arg 形式 mock).
+
+    Returns:
+        True if path 应该留给 Layer 1 处理 (tracked 或在静态白名单).
+    """
+    # 1. 优先: tracker 跟踪 = Layer 1 24h 周期会清理
+    if tracker is not None and tracker.is_available():
+        if tracker.is_tracked(path):
+            return True
+    # 2. 降级: 静态 FQ_TMP_PREFIXES 白名单 (tracker 不可用时)
     for prefix in _FQ_TMP_PREFIXES:
         if path.startswith(prefix):
             return True
@@ -129,8 +147,11 @@ def _is_excluded_ext(path: str) -> bool:
     return ext.lower() in _EXCLUDE_EXTENSIONS
 
 
-def _collect_candidates() -> list[tuple[str, int, float]]:
+def _collect_candidates(tracker: TrackerDB | None = None) -> list[tuple[str, int, float]]:
     """收集扫描根目录下所有 1h+ 1GB+ 不在白名单/保护名单的候选文件.
+
+    Sprint 31.1: tracker 参数 — cross-reference Layer 1 ownership. tracker
+    跟踪的 path 留给 Layer 1 24h 周期处理 (避免 Layer 6 抢删).
 
     Returns:
         list of (path, size_bytes, age_h) tuples, 按 age 倒序 (最老优先).
@@ -155,8 +176,8 @@ def _collect_candidates() -> list[tuple[str, int, float]]:
             # 跳过 symlink (保守 — 跟 layer 1 一致)
             if os.path.islink(path) is True:
                 continue
-            # 跳过白名单 (留给 layer 1)
-            if _is_in_whitelist(path):
+            # Sprint 31.1: 跨层判断 — tracker 跟踪的跳过 (Layer 1 接管)
+            if _is_in_whitelist(path, tracker):
                 continue
             # 跳过保护名单
             if _is_protected(path):
@@ -216,10 +237,16 @@ def cleanup_subagent_tmp(dry_run: bool = False) -> dict:
         "errors": [],
         "candidates_scanned": 0,
         "skipped_open_count": 0,  # Sprint 26 F6: lsof 副检跳过的文件数
+        "skipped_tracked_count": 0,  # Sprint 31.1: tracker 跟踪的 = Layer 1 接管
         "dry_run": dry_run,
     }
 
-    candidates = _collect_candidates()
+    # Sprint 31.1: 构造 tracker (cross-reference Layer 1 ownership).
+    # tracker 不可用时 _is_in_whitelist 降级到静态 _FQ_TMP_PREFIXES, 行为跟
+    # Phase 1 之前一致. 这里不 raise — 软失败.
+    tracker = TrackerDB()
+
+    candidates = _collect_candidates(tracker)
     result["candidates_scanned"] = len(candidates)
 
     if not candidates:

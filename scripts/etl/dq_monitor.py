@@ -22,7 +22,6 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -204,22 +203,25 @@ def main() -> int:
 
     # 复制数据库文件以避免写锁冲突（DuckDB 有写连接时 read_only 也会被阻塞）
     # 参考 backup_duckdb.py 的 shutil.copy2 模式
-    # Sprint 31.1: register 到 tracker (Phase 1 inert, dq_monitor 行为不变 — still
-    # mkstemp + finally unlink. register/remove 是 observability + 未来 crash 兜底)
+    # Sprint 31.1: 切到 fuqing_* 命名 + tracker register. 跟 Phase 1 mkstemp 不同:
+    #   - 路径确定 (fuqing_dq_monitor_<pid>_<ts>.duckdb) 而非 mkstemp 随机
+    #   - tracker.register 在 copy 前: copy 中途崩溃也能被 cleanup 24h 后发现
+    #   - tracker.remove 在 finally: 正常路径清理 tracker row
+    #   - 软失败: tracker 任何错误不阻塞 dq
     from scripts.etl.common.tmp_tracker import TrackerDB
     tracker = TrackerDB()
     tmp_db = None
     try:
-        tmp_fd, tmp_db = tempfile.mkstemp(suffix=".duckdb")
-        os.close(tmp_fd)
-        log("复制数据库到临时文件以避免锁冲突...")
+        # 改 mkstemp → 确定路径 (fuqing_* prefix, 这样 tracker 跟踪有意义)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        tmp_db = f"/tmp/fuqing_dq_monitor_{os.getpid()}_{ts}.duckdb"
+        log(f"复制数据库到 {tmp_db} 以避免锁冲突...")
         shutil.copy2(str(DUCKDB_PATH), tmp_db)
-        # Sprint 31.1: register (size = DUCKDB_PATH 文件大小, 不是 tmp_db — tmp_db
-        # 会被 finally unlink 删, register 它的 size 没意义; register DUCKDB_PATH
-        # 才有未来价值. 这里用 tmp_db 实际 size 作 inert 行为)
+        # Sprint 31.1: register 早于 duckdb.connect — copy 中途崩溃也能被 24h cleanup
+        # 软失败 — register 失败不阻塞 dq
         try:
             tracker.register(tmp_db, size=os.path.getsize(tmp_db), pid=os.getpid())
-        except Exception:  # 软失败 — register 失败不阻塞 dq
+        except Exception:
             pass
 
         import duckdb
@@ -229,11 +231,9 @@ def main() -> int:
         finally:
             conn.close()
     finally:
+        # Sprint 31.1: 正常路径清理 (tracker + file), crash 路径由 Layer 1 24h cleanup 兜底
         if tmp_db and os.path.exists(tmp_db):
             os.unlink(tmp_db)
-        # Sprint 31.1: remove tracker entry (dormant — 实际 tmp_db mkstemp 路径随机
-        # 不在 fuqing_* prefix 里, register 没业务影响. 这里保 remove 兜底
-        # Phase 2 把 dq_monitor 切到 fuqing_* 命名时这逻辑就生效了)
         if tmp_db:
             try:
                 tracker.remove(tmp_db)

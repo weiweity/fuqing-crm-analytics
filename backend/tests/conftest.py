@@ -98,3 +98,46 @@ def rfm_thresholds():
     """Standard RFM thresholds (from semantic/segments.py RFM_THRESHOLDS)."""
     from backend.semantic.segments import RFM_THRESHOLDS
     return RFM_THRESHOLDS
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 31.1: tmp tracker DB per-test 隔离 fixture (autouse)
+#
+# 背景: scripts/etl/cli.py:_collect_fq_tmp_orphans 在 Sprint 31.1 后用
+# TrackerDB 作为 source of truth. TrackerDB 默认 db_path = /tmp/fuqing-tmp-tracker.db
+# (production 路径). 多个 test 共享同一 db 会造成 row 残留 (例如 test_lsof_layer1
+# skip 删除 → tracker row 残留 → 下个 test list_expired 拾起 → candidate 数量
+# 偏离 test 预期).
+#
+# 修法: autouse fixture 把 cli._FQ_TMP_TRACKER_PATH 临时指向 tmp_path/test-tracker.db,
+# test 结束清 WAL/SHM/journal 残留. 现有 17 个 test 不需改 (行为跟 Phase 1 之前一致).
+# 只影响 cli._FQ_TMP_TRACKER_PATH 单一变量, 不污染其它模块.
+# ─────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def isolate_tmp_tracker(tmp_path):
+    """Sprint 31.1: per-test 隔离 tmp tracker DB. autouse 确保每个 test 干净.
+
+    patch 两处:
+      - cli._FQ_TMP_TRACKER_PATH (Layer 1 读这个)
+      - tmp_tracker.TRACKER_DB_PATH (TrackerDB() 默认参数读这个)
+    """
+    from scripts.etl import cli
+    from scripts.etl.common import tmp_tracker
+    import os
+    original_cli_path = cli._FQ_TMP_TRACKER_PATH
+    original_tracker_default = tmp_tracker.TRACKER_DB_PATH
+    test_db = str(tmp_path / "test-tracker.db")
+    cli._FQ_TMP_TRACKER_PATH = test_db
+    tmp_tracker.TRACKER_DB_PATH = test_db
+    try:
+        yield test_db
+    finally:
+        cli._FQ_TMP_TRACKER_PATH = original_cli_path
+        tmp_tracker.TRACKER_DB_PATH = original_tracker_default
+        # 清理 WAL/SHM/journal 副作用文件
+        for suffix in ("", "-shm", "-wal", "-journal"):
+            try:
+                os.unlink(test_db + suffix)
+            except OSError:
+                pass

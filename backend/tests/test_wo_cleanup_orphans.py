@@ -105,9 +105,13 @@ class TestCleanupFqTmpOrphans:
 
         模拟场景：3 个文件各 50GB，总和 150GB > 100GB cap。
         期望：只删 2 个（100GB），剩 1 个（50GB）保留。
+
+        Sprint 31.1: 现在 cleanup 通过 TrackerDB.bootstrap 拿 size, 需同步
+        patch tmp_tracker.os (tracker 独立 import os, mock 不自动传过去).
         """
         from scripts.etl import cli
         import scripts.etl.cli as cli_mod
+        from scripts.etl.common import tmp_tracker
 
         files = []
         for i in range(3):
@@ -118,9 +122,11 @@ class TestCleanupFqTmpOrphans:
             files.append(f)
 
         new_prefixes = (str(tmp_path / "sample_huge_"),)
-        # patch 在 cli 模块命名空间（os 是 frozen 不能直接 mock）
+        # patch 在 cli + tmp_tracker 模块命名空间（os 是 frozen 不能直接 mock；
+        # Sprint 31.1 后 TrackerDB 在 tmp_tracker 模块独立 os 命名空间）
         with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes), \
-             patch.object(cli_mod, "os") as mock_os:
+             patch.object(cli_mod, "os") as mock_os, \
+             patch.object(tmp_tracker, "os", mock_os):
             mock_os.path.getsize.return_value = 50 * 1024**3
             mock_os.path.getmtime.return_value = time.time() - 48 * 3600
             mock_os.path.islink.return_value = False  # F7: 全部视为非 symlink
