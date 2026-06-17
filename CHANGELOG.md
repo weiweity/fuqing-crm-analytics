@@ -1,3 +1,37 @@
+## [v0.4.14.116] - 2026-06-18 - test(e2e): Sprint 32.2 — 债 #S32-2 audience-daily-trend brittle canvas selector 治根 (3/3 e2e pass)
+
+> Sprint 32.1 验证时 1/3 e2e fail (audience-daily-trend brittle `canvas.first()` selector 选错 chart, hover 不触发 tooltip) 闭环. 治根: 用 `.bi-card` + `filter({ hasText: '日趋势' })` 定位日趋势 chart container + `waitForUntil(canvas visible, 15s)` 等数据 fetch + `scrollIntoViewIfNeeded()` 避免视口外 hover + WASM streaming race filter (跨 spec 共有, 过滤已知网络瞬态无害错误). v0.4.14.115 → v0.4.14.116.
+
+### Changed
+
+1. **`frontend-vue3/e2e/audience-daily-trend.spec.ts`** (+26/-5 行) — 治根 (债 #S32-2):
+   - `page.locator('canvas').first()` → `page.locator('.bi-card').filter({ hasText: '日趋势' }).first().locator('canvas').first()` (bi-card + filter 模式, 跟 customer-health spec 一致)
+   - 加 `await expect(chart).toBeVisible({ timeout: 15000 })` 等 chart 真正渲染 (之前 `waitForTimeout(2000)` 太短, data fetch 还没完)
+   - 加 `await trendCard.scrollIntoViewIfNeeded()` 避免 chart 在视口外 hover 不响应
+   - `consoleErrors` filter 加 `wasm streaming compile failed` / `falling back to ArrayBuffer instantiation` 跨 spec 共有 (dev server 首次加载 DuckDB-WASM 网络瞬态 race, 不影响业务逻辑)
+
+2. **`frontend-vue3/e2e/customer-health.spec.ts`** (+9/-1 行) — 同样 WASM streaming race filter (跟 audience 同根因, 保持 2 spec 行为一致)
+
+### Risk
+
+- 仅改 e2e spec, 不动 frontend Vue 组件, 不动 backend
+- WASM filter 仅过滤已知网络瞬态无害错误 (`wasm streaming compile failed` + `falling back to ArrayBuffer instantiation`), 保留真 e2e 业务错误捕获能力
+- consoleErrors 断言仍然有效: 任何非 WASM 的 `console.error` 仍会 fail test
+
+### Verification
+
+- **e2e 重跑 3/3 pass** (audience-daily-trend 1/1 + customer-health 2/2) — Sprint 32.1 验证时 1/3 → Sprint 32.2 收口 3/3
+- **backend tests**: 571 passed / 15 skipped (跟改动无关, uvicorn DuckDB 锁冲突 skip)
+
+### Recurring pattern (跨 sprint 复用)
+
+- **bi-card + filter locator 模式** (跟 customer-health.spec.ts 一致): 当页面有多个相似 chart container, 用 `.bi-card` + `filter({ hasText: '具体文本' })` 精准定位, 避免 `canvas.first()` 等模糊选择
+- **data fetch 等真实可见**: `waitForTimeout(N)` 不可靠, 用 `expect(element).toBeVisible({ timeout: N })` 真正等元素出现
+- **scroll-into-view 避免视口外 hover**: ECharts 折线图经常在视口外, hover 坐标可能不触发 mousemove 事件
+- **WASM streaming race filter**: dev server 首次加载 DuckDB-WASM 跨页面 state 泄漏到 console, 过滤已知无害网络瞬态错误
+
+---
+
 ## [v0.4.14.115] - 2026-06-18 - feat(contracts): Sprint 31.2 — Sprint 30.3 剩余 12 字段 ratio/rate 范围约束补标 (合同层 5x10 Pydantic strict 防御)
 
 > Sprint 30.3 (v0.4.14.107) 留的"剩余 TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence 走 Sprint 31+ 单独 sprint 风险 review" 闭环. 治根: 补 Pydantic v2 strict 0-1 / pp 范围约束, 防 service 层某路径返回越界值时 API 入口 422 freeze (跟 Sprint 30.3 模式一致). v0.4.14.114 → v0.4.14.115.
