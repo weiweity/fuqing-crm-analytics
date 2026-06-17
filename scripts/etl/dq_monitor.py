@@ -204,12 +204,23 @@ def main() -> int:
 
     # 复制数据库文件以避免写锁冲突（DuckDB 有写连接时 read_only 也会被阻塞）
     # 参考 backup_duckdb.py 的 shutil.copy2 模式
+    # Sprint 31.1: register 到 tracker (Phase 1 inert, dq_monitor 行为不变 — still
+    # mkstemp + finally unlink. register/remove 是 observability + 未来 crash 兜底)
+    from scripts.etl.common.tmp_tracker import TrackerDB
+    tracker = TrackerDB()
     tmp_db = None
     try:
         tmp_fd, tmp_db = tempfile.mkstemp(suffix=".duckdb")
         os.close(tmp_fd)
         log("复制数据库到临时文件以避免锁冲突...")
         shutil.copy2(str(DUCKDB_PATH), tmp_db)
+        # Sprint 31.1: register (size = DUCKDB_PATH 文件大小, 不是 tmp_db — tmp_db
+        # 会被 finally unlink 删, register 它的 size 没意义; register DUCKDB_PATH
+        # 才有未来价值. 这里用 tmp_db 实际 size 作 inert 行为)
+        try:
+            tracker.register(tmp_db, size=os.path.getsize(tmp_db), pid=os.getpid())
+        except Exception:  # 软失败 — register 失败不阻塞 dq
+            pass
 
         import duckdb
         conn = duckdb.connect(tmp_db, read_only=True)
@@ -220,6 +231,14 @@ def main() -> int:
     finally:
         if tmp_db and os.path.exists(tmp_db):
             os.unlink(tmp_db)
+        # Sprint 31.1: remove tracker entry (dormant — 实际 tmp_db mkstemp 路径随机
+        # 不在 fuqing_* prefix 里, register 没业务影响. 这里保 remove 兜底
+        # Phase 2 把 dq_monitor 切到 fuqing_* 命名时这逻辑就生效了)
+        if tmp_db:
+            try:
+                tracker.remove(tmp_db)
+            except Exception:
+                pass
 
     # 保存快照供下次比对
     snapshot = {
