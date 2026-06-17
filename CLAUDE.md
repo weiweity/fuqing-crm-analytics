@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.109（main @ 31411ed，2026-06-17 Sprint 30 收口），测试 597 passed / 15 skipped (Sprint 30: W4 540 combo batch INSERT v0.4.14.105 + pre-commit CHANGELOG soft WARN v0.4.14.106 + cohort retention matrix B2 audit v0.4.14.107 + *_rate 文档对齐 v0.4.14.108) |
+| 4 | **版本状态** | v0.4.14.112（main @ 8d180ce，2026-06-17 Sprint 31.1 收口），测试 614 passed / 0 failed (Sprint 31.1: tracker-database 模式 5 次复发终极治根 — 3 commit 闭环 v0.4.14.111 inert infra + v0.4.14.112 source of truth) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -96,12 +96,12 @@
 
 | 层 | 路径 | 触发 | 作用 |
 |---|---|---|---|
-| 1. atexit 钩子 | `scripts/etl/cli.py:_cleanup_fq_tmp_orphans` | ETL 进程退出 | 主防线: `FQ_TMP_PREFIXES` 白名单, 24h+ / 5 文件 / 100GB cap |
+| 1. atexit 钩子 | `scripts/etl/cli.py:_cleanup_fq_tmp_orphans` | ETL 进程退出 | 主防线 (Sprint 31.1): `TrackerDB.list_expired(24)` source of truth + `bootstrap_from_filesystem(FQ_TMP_PREFIXES)` 拾起外部副本; FQ_TMP_PREFIXES 退化为 fallback / bootstrap-only; 5 文件 / 100GB cap + lsof 副检 |
 | 2. zshrc 告警 | `~/.zshrc:_check_fq_tmp_orphans` | zsh 启动 | 人因防线: 50GB+ 告警, 不删 |
 | 3. workbuddy cache | `~/.workbuddy/cache/fq-etl-validation/` | 调试主动 cp | 30 天 TTL, 不污染 /tmp |
 | 4. launchd weekly | `scripts/etl/cleanup_backups.sh` + plist | 每周日 03:00 | `data/processed/backups/` 7 天保留 |
 | 5. launchd daily backup (Sprint 4 P0-2) | `scripts/etl/backup_duckdb.py` + `com.fuqing.duckdb-backup.daily.plist` | 每日 03:30 | 数据灾备: 103GB DuckDB shutil.copy2 + zstd → 40GB |
-| 6. **launchd hourly subagent cleanup (Sprint 6 P0-3)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 (StartInterval=3600) | subagent 路径兜底: 扫 `/private/tmp` + `/tmp` 1h+ 1GB+ 非白名单, 排除项目根 + layer 1 自身状态文件, cap 5 文件 / 100GB. log `/tmp/fuqing-subagent-cleanup.log` |
+| 6. **launchd hourly subagent cleanup (Sprint 6 P0-3 + Sprint 31.1)** | `scripts/etl/cleanup_subagent.py` + `com.fuqing.tmp-cleanup.hourly.plist` | 每日每 1 小时 (StartInterval=3600) | subagent 路径兜底: 扫 `/private/tmp` + `/tmp` 1h+ 1GB+ 非白名单. Sprint 31.1 加 tracker cross-ref (tracked → Layer 1 接管, 跳过). 排除项目根 + layer 1 自身状态文件, cap 5 文件 / 100GB. log `/tmp/fuqing-subagent-cleanup.log` |
 
 详细说明见 `README.md` 第 137 行 "运维安全 / 磁盘治理" 段.
 
@@ -389,7 +389,7 @@ Key routing rules:
 
 | # | 任务 | 工作量 | 来源 |
 |---|---|---|---|
-| 31.1 | **`/tmp/fuqing_*.duckdb` tracker-database 模式** — SQLite sidecar `/tmp/fuqing-tmp-tracker.db` 替代 prefix 匹配;ETL 写入 `/tmp/fuqing_*.duckdb` 前 `INSERT INTO tracker (path, create_at, size, pid)`,清理时 `SELECT path FROM tracker WHERE create_at < now() - 24h AND size > 0`;物理上不可能再发生 5 次复发模式 | 3-4 天 | codex 新发现 C |
+| 31.1 | **`/tmp/fuqing_*.duckdb` tracker-database 模式** — SQLite sidecar `/tmp/fuqing-tmp-tracker.db` 替代 prefix 匹配;ETL 写入 `/tmp/fuqing_*.duckdb` 前 `INSERT INTO tracker (path, create_at, size, pid)`,清理时 `SELECT path FROM tracker WHERE create_at < now() - 24h AND size > 0`;物理上不可能再发生 5 次复发模式 | 3-4 天 | codex 新发现 C | ✅ 闭环 v0.4.14.111+v0.4.14.112 (3 commit: Phase 1 inert infra + Phase 2 source of truth + Phase 3 docs) |
 
 ### Sprint 32: e2e 环境修复 (~1-2 天)
 

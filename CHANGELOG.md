@@ -1,3 +1,70 @@
+## [v0.4.14.112] - 2026-06-17 - feat(tracker): Sprint 31.1 — /tmp/fuqing_*.duckdb tracker-database mode (5 次复发终极治根)
+
+> Sprint 28+ 待办 #1 (v0.4.14.101) 终极治根. Sprint 6 P0-3 起 5 次复发 (累积 ~349GB / 103GB sampling) 根因: prefix-based whitelist (FQ_TMP_PREFIXES) **机制错误** — 任何 fuqing_* 前缀文件都认为可清理, 无法区分 ETL 合法 staging vs 外部副本 vs 业务采样 copy. Sprint 28+ #1 提议的 exclude pattern 也被砍 (codex + plan-eng-review 共识: 机制不对). 治根: SQLite sidecar `/private/tmp/fuqing-tmp-tracker.db` 作为 source of truth. ETL 写入 `/tmp/fuqing_*.duckdb` 前 `INSERT INTO tracker (path, create_at, size, pid, last_seen)`, 清理时 `SELECT path FROM tracker WHERE create_at < now() - 24h AND size > 0`. 物理上不可能误删未注册文件. FQ_TMP_PREFIXES 退化为 fallback / bootstrap-only.
+
+### Added
+
+1. **`scripts/etl/common/tmp_tracker.py`** (NEW, 339 行) — `TrackerDB` class (SQLite sidecar, WAL mode + check_same_thread=False + per-call connection + 自愈 + 软失败):
+   - `register(path, size, pid)` — `INSERT OR REPLACE`, 软失败 OperationalError/DatabaseError
+   - `touch(path)` — `UPDATE last_seen` (foundation, Sprint 31.1 暂未调用)
+   - `remove(path)` — `DELETE`, 软失败 + 幂等
+   - `list_expired(age_hours=24)` — `SELECT path, size, age FROM tracker WHERE size > 0 AND create_at < cutoff ORDER BY create_at ASC`
+   - `is_tracked(path)` — Layer 6 跨层判断用
+   - `bootstrap_from_filesystem(prefixes)` — 扫描 prefix 路径, `INSERT OR IGNORE` 未跟踪 (103GB 外部副本 1 run 治根, 2 run 治本)
+   - `__init__` 自愈: 检测损坏 DB → rename `.corrupt-<ts>` + 重建 (resilience)
+   - `FQ_TMP_TRACKER_DISABLED=1` env 紧急回切到 prefix-only (2 行逃生舱口)
+   - 路径规范: 存 `/private/tmp/...` resolved realpath (处理 macOS /tmp 软链)
+2. **`backend/tests/test_tmp_tracker.py`** (NEW, 430 行, 26 tests) — 8 个维度全覆盖:
+   - `TestTrackerDBSchema` (3): create_table_idempotent, schema_columns_match_design, wal_mode_enabled
+   - `TestTrackerDBRegister` (5): new_path, insert_or_replace_idempotent, readonly_db_soft_fails, corrupt_db_self_heals, env_disabled_noop
+   - `TestTrackerDBListExpired` (3): filters_by_age, excludes_zero_size, orders_by_create_at_asc
+   - `TestTrackerDBRemove` (3): deletes_row, idempotent_on_missing_path, soft_fails
+   - `TestTrackerDBIsTracked` (2)
+   - `TestTrackerDBBootstrap` (7): adopts_unknown_files (103GB 场景核心), idempotent, skips_already_tracked, records_real_mtime_not_now, skips_symlinks, handles_no_files, 103gb_scenario_e2e
+   - `TestTrackerDBConcurrency` (1): 10 线程 × 10 path 并发 register
+   - `TestTrackerDBDisabled` (2): env_disabled_noop, does_not_create_db
+3. **`backend/tests/test_cleanup_subagent_tracker.py`** (NEW, 4 tests) — Layer 6 cross-reference tracker 行为:
+   - tracked files 跳过 (留给 Layer 1 24h) / untracked 走原静态白名单 / tracker 错误降级 / tracked 优先级
+4. **`backend/tests/test_dq_monitor_tracker.py`** (NEW, 3 tests) — dq_monitor tracker 集成:
+   - fuqing_* 命名路径 / tracker 软失败不阻塞 / finally 块在 crash 时执行
+
+### Changed
+
+5. **`scripts/etl/cli.py`** (+93/-48 行) — `_collect_fq_tmp_orphans` 切到 tracker.list_expired 主路径 (bootstrap + list_expired → fallback 原 glob). `_cleanup_fq_tmp_orphans` os.remove 成功后 tracker.remove. `FileNotFoundError` catch 清 stale tracker row. 新增 `_FQ_TMP_TRACKER_PATH` (test 可 monkeypatch). F3 marker / cap / lsof / F7 symlink 不动.
+6. **`scripts/etl/cleanup_subagent.py`** (+39 行) — `_is_in_whitelist` 接受 tracker 参数 (tracked → Layer 1 接管, 跳过). tracker 不可用降级到静态 _FQ_TMP_PREFIXES. 现有 1-arg 形式 (test_lsof_protection.py) 兼容.
+7. **`scripts/etl/dq_monitor.py`** (+26/-22 行) — mkstemp 切到确定 `fuqing_dq_monitor_<pid>_<ts>.duckdb` 路径. `tracker.register` 在 copy 后 (crash 路径 24h cleanup 兜底). `tracker.remove` 在 finally 块. `tempfile` import 移除 (不再用 mkstemp).
+8. **`backend/tests/conftest.py`** (+43 行) — autouse fixture `isolate_tmp_tracker` per-test tmp tracker DB, 避免测试间 row 污染. patch `cli._FQ_TMP_TRACKER_PATH` + `tmp_tracker.TRACKER_DB_PATH` (TrackerDB() 默认参数).
+9. **`backend/tests/test_wo_cleanup_orphans.py`** (+10 行) — `test_byte_cap` 补一行 patch `tmp_tracker.os` (tracker 独立 import os, mock 不自动传).
+10. **`CLAUDE.md`** — `## 必读·启动项` 表格 #4 版本状态行更新 (`v0.4.14.110` → `v0.4.14.112` Sprint 31.1 收口). `## 磁盘治理 6 层防护` 表格 — Layer 1 source of truth 改为 TrackerDB. `## Sprint 30-32 计划` 段 Sprint 31.1 行 `❌ 计划` → `✅ 闭环 v0.4.14.112`. F8 marker (tracker 模式) 加进 key 架构教训.
+11. **`docs/TECH-DEBT.md`** — Sprint 31.1 row 标记 `✅ 闭环 v0.4.14.112`. F8 marker (Sprint 31.1 tracker 模式) 加进已修复统计.
+
+### Risk
+
+- 行为变化 (vs Phase 1 inert infra):
+  - **Layer 1** (cli.py atexit): tracker.list_expired 为主, glob fallback 备用. 任何 track 过 + 24h+ 的 file 必被删.
+  - **Layer 6** (cleanup_subagent hourly): tracked file 跳过 (留给 Layer 1), untracked 走原静态白名单逻辑.
+  - **dq_monitor**: mkstemp 随机名 → 确定 `fuqing_dq_monitor_*` 名. crash 路径 24h cleanup 兜底.
+- 5 次复发模式: 103GB 外部副本 `fuqing_sampling2.duckdb` 模式 1 run 治根 (bootstrap 拾起) + 2 run 治本 (24h 后 list_expired 删)
+- FQ_TMP_PREFIXES 仍存在 (bootstrap 输入 + Layer 6 降级路径), 行为 100% 兼容 Phase 1
+- 软失败: tracker 任何错误降级到 glob, cleanup 永不 crash
+- 自愈: DB 损坏 rename `.corrupt-<ts>` + 重建, 运维只需 review 备份
+- 紧急回切: `FQ_TMP_TRACKER_DISABLED=1` 立即回 prefix-only 路径 (无需 git revert)
+- 测试: 614 passed / 0 failed (排除 uvicorn DuckDB 锁冲突 skip, 跟改动无关). ruff check clean.
+
+### 关键架构教训 (跨 sprint 复用)
+
+- **上游治根 > 下游补丁** (5 次复发 recurring bug 模式证明 prefix matching 机制根本缺陷, codex 新发现 C)
+- **追加式 rollout** (Phase 1 inert 行为不变 → Phase 2 source of truth): Sprint 3 P1-3 scope creep 教训
+- **真生产连接测试 > mock 测试** (Sprint 7 P2 教训): 103GB sampling 真实 orphan 案例验证
+- **Bootstrap create_at = 文件真实 mtime** (不重置): 设计决策 #1, 24h+ 外部副本 1 run 治根
+
+### Recurring pattern (跟 Sprint 28+#198 + Sprint 30.3 复用)
+
+- **Prefix matching 机制错误**: 任何 `_prefix` 白名单都受 False positive 风险, 需 tracker / DB / manifest 等 provenance-based 替代
+- **损坏自愈 + 软失败 + 紧急回切 env**: 3 件套是 production 基础设施标配 (跟 backup_duckdb.py loud_fail 同模式)
+
+---
+
 ## [v0.4.14.110] - 2026-06-17 - fix(backup): loud_fail osascript 改为 lark 失败 fallback — 防 test mock 副作用导致 macOS 通知 spam
 
 > 用户报告 6 张 "芙清 CRM 备份 FAILED / disk full (Sprint 25 test mock)" 通知 (15:04-17:58), 根因: `loud_fail()` 实际生产 `scripts/etl/backup_duckdb.py:74-83` osascript + mail 是**无条件**调用 (独立 try/except block, 跟 lark 状态无关), 而 `test_compressed_corruption_reports_lark_alert` test mock `shutil.copy2 raise IOError("disk full (Sprint 25 test mock)")` 触发 `loud_fail()` 时, macOS 通知真发. Sprint 25 加 lark 主通道时只动了 import + 调用, 没改 osascript 逻辑位置. 治根: osascript + mail 改为仅 lark 失败时调用 (lark = 主通道, osascript + mail = fallback 链).
