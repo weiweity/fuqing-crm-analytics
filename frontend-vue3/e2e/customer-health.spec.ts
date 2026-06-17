@@ -8,7 +8,16 @@ test.describe('customer-health 路由', () => {
     page.on('console', (msg) => {
       // 过滤 ECharts cosmetic warn，只收集 error
       if (msg.type() === 'error') {
-        consoleErrors.push(msg.text())
+        // Sprint 32.2: 过滤 WASM streaming race 网络瞬态 (跟 audience-daily-trend 同根因)
+        // "wasm streaming compile failed" / "falling back to ArrayBuffer instantiation"
+        // 是 dev server 启动首次加载 DuckDB-WASM 时的 race, e2e 跨页面状态泄漏到 console,
+        // 不影响业务逻辑, 但污染 consoleErrors 断言.
+        const text = msg.text()
+        if (text.includes('wasm streaming compile failed') ||
+            text.includes('falling back to ArrayBuffer instantiation')) {
+          return
+        }
+        consoleErrors.push(text)
       }
     })
 

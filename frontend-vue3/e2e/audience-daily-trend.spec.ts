@@ -21,7 +21,18 @@ test.describe('audience 日趋势会员占比 tooltip', () => {
   test.beforeEach(async ({ page }) => {
     consoleErrors.length = 0
     page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text())
+      if (msg.type() === 'error') {
+        // Sprint 32.2: 过滤 WASM streaming race 网络瞬态 (跟 customer-health 同根因)
+        // "wasm streaming compile failed" / "falling back to ArrayBuffer instantiation"
+        // 是 dev server 启动首次加载 DuckDB-WASM 时的 race, e2e 跨页面状态泄漏到 console,
+        // 不影响业务逻辑, 但污染 consoleErrors 断言. 真 e2e 业务错误仍会被捕获.
+        const text = msg.text()
+        if (text.includes('wasm streaming compile failed') ||
+            text.includes('falling back to ArrayBuffer instantiation')) {
+          return
+        }
+        consoleErrors.push(text)
+      }
     })
 
     // 登录 (复用 customer-health.spec.ts 模式)
@@ -42,9 +53,21 @@ test.describe('audience 日趋势会员占比 tooltip', () => {
     // 等待 ECharts canvas 渲染
     await page.waitForTimeout(2000)
 
-    // ECharts tooltip 默认挂在 body 上 (z-index 高), 直接 hover canvas 触发
-    // canvas 是 ECharts 渲染的目标, hover 中间点触发 tooltip
-    const chart = page.locator('canvas').first()
+    // Sprint 32.2 治根 (债 #S32-2): 用 bi-card + filter 模式定位日趋势 chart container,
+    // 避免 page.locator('canvas').first() 选错其它 canvas (e.g. 顶部 stat card sparkline)
+    const trendCard = page.locator('.bi-card').filter({ hasText: '日趋势' }).first()
+    await expect(trendCard).toBeVisible({ timeout: 10000 })
+
+    // Sprint 32.2: wait for ECharts canvas 真正渲染 (数据 fetch 完 + ECharts 画完).
+    // 之前用 waitForTimeout(2000) 太短, data 还没加载完 chart 不存在
+    const chart = trendCard.locator('canvas').first()
+    await expect(chart).toBeVisible({ timeout: 15000 })
+
+    // Sprint 32.2: 滚动 trend card 到视口中心, 避免 chart 在视口外 hover 不响应
+    // ECharts tooltip 默认 append 到 body, 视口外坐标可能不触发 hover
+    await trendCard.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(500)
+
     const box = await chart.boundingBox()
     if (!box) throw new Error('日趋势 chart canvas 未找到')
 
