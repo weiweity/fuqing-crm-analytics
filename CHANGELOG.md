@@ -13,10 +13,16 @@
 
 ### Added
 
-3. **`backend/tests/test_sprint30_3_contract_audit.py`** (+62 行, 3 case) — `TestSprint303CohortRetentionMatrixB2`:
-   - `test_cohort_matrix_accepts_valid_0_to_1`: 合法 0-1 + None 透传
-   - `test_cohort_matrix_rejects_above_1`: 1.5 Pydantic 422 拦截
-   - `test_cohort_matrix_rejects_below_0`: -0.1 Pydantic 422 拦截
+3. **`backend/tests/test_contract_ratio_audit.py`** (+127 行, 9 case) — `TestCohortRetentionElementWise` (8) + `TestRegressionNoRevert` (1):
+   - `test_matrix_valid`: 合法 0-1 + None 透传 (cohort 周期不齐透传 None)
+   - `test_matrix_element_invalid_rejected`: matrix 元素 1.5 Pydantic 422 拦截
+   - `test_avg_by_period_element_invalid_rejected`: avg_by_period 元素 1.5 拦截
+   - `test_ly_matrix_element_invalid_rejected`: ly_matrix 元素 1.5 拦截
+   - `test_ly_avg_by_period_element_invalid_rejected`: ly_avg_by_period 元素 1.5 拦截
+   - `test_negative_element_rejected`: matrix 元素 -0.1 拦截
+   - `test_above_one_element_rejected`: ly_matrix 元素 1.2 拦截
+   - `test_empty_matrix_valid`: 空 matrix 合法 (无 cohort 场景)
+   - `test_health_overview_old_customer_gsv_ratio_still_ratio`: 回归 Sprint 16.5 B2 试点字段保留
 
 ### Risk
 
