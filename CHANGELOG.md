@@ -1,3 +1,51 @@
+## [v0.4.14.115] - 2026-06-18 - feat(contracts): Sprint 31.2 — Sprint 30.3 剩余 12 字段 ratio/rate 范围约束补标 (合同层 5x10 Pydantic strict 防御)
+
+> Sprint 30.3 (v0.4.14.107) 留的"剩余 TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence 走 Sprint 31+ 单独 sprint 风险 review" 闭环. 治根: 补 Pydantic v2 strict 0-1 / pp 范围约束, 防 service 层某路径返回越界值时 API 入口 422 freeze (跟 Sprint 30.3 模式一致). v0.4.14.114 → v0.4.14.115.
+
+### Changed
+
+1. **`backend/contracts/health.py`** (10 字段注解) — `TierFlowRow` 5 ratio + 1 PpField + `NewCustomerConversionFunnel` 4 rate:
+   - `TierFlowRow.repurchase_rate_current/comp/prev2` `float` → `"RatioField"` (0-1 decimal, 跟 `repurchase_gsv_ratio_current` 模式对齐)
+   - `TierFlowRow.repurchase_gsv_ratio_comp/prev2` `float` → `"RatioField"` (注释写"0-1"但注解是 float, 补注解对齐)
+   - `TierFlowRow.yoy_repurchase_rate` `Optional[float]` → `Optional["PpField"]` (-100~+100 pp 差, **业务实证**: `semantic/calculations.py:70-80` 函数定义 = `yoy_ratio` = `(cur - comp) * 100`, 跟 `yoy_repurchase_gsv_ratio_ppt` 是同一函数, 命名不一致是 Sprint 19 改名遗留)
+   - `NewCustomerConversionFunnel.day7_rate/day30_rate/day90_rate/year_rate` `float` → `"RatioField"` (service 层 `conversion.py:108-126` 用 `safe_ratio(..., 0.0)` 保护, 0 越界)
+
+2. **`backend/contracts/category.py`** (2 字段注解) — `MarketBasketItem`:
+   - `support/confidence` `float` → `"RatioField"` (0-1 decimal, service 层 `basket.py:233-234` 实证 0 越界)
+   - `lift/gsv_lift` **保持 float** (倍数可超 1, Sprint 30.3 `test_contracts_b2_audit.py:13` 明确"lift / 提升度 -> 保留 float, 不约束 0-1")
+
+3. **`backend/contracts/_lint.py`** (+3 行) — Linter `_YOY_PPT_FIELDS` 白名单加 `yoy_repurchase_rate` (Sprint 18 #141 模式, 跟 `yoy_old_customer_gsv_ratio` 等 14 个白名单同级)
+
+### Added
+
+4. **`backend/tests/test_contract_ratio_audit_sprint_31_2.py`** (NEW, 14 cases) — 8 维度全覆盖:
+   - `TestTierFlowRowRatioBounds` (7): repurchase_rate_current/comp/prev2 + repurchase_gsv_ratio_comp/prev2 越界 freeze + yoy_repurchase_rate PpField 范围 + None 透传
+   - `TestNewCustomerConversionFunnelRatioBounds` (4): day7/30/90 + year rate 越界 freeze
+   - `TestMarketBasketItemRatioBounds` (3): support/confidence 越界 freeze + lift/gsv_lift 1.5/3.0 倍数应 pass
+
+### Risk
+
+- 行为变化 (vs Sprint 30.3): Pydantic v2 strict 模式下, 12 字段补 RatioField/PpField 后, service 层若某路径返回越界值, API 入口 422 freeze (而非 500 错值透传)
+- service 层端到端真验: 0 越界值流入 (TierFlowRow 7/7 + NewCustomerConversionFunnel 4/4 + MarketBasketItem 4/4 = **15/15 字段全合规**)
+- linter: 0 violation (Sprint 31.2 之前 `yoy_repurchase_rate` R1 会误报, 白名单加后消除)
+- 跟 Sprint 18 #141 模式一致: `yoy_*_ratio` 字段名历史遗留, 实际 PpField, 走白名单兜底不改命名 (跨 14+ 文件影响大)
+
+### Verification
+
+- `pytest backend/tests/test_contract_ratio_audit_sprint_31_2.py -v`: **14/14 pass**
+- `python -m backend.contracts._lint`: OK All contracts pass (0 violation)
+- `ruff check backend/contracts/`: All checks passed
+- `pytest backend/tests/`: 633 passed / 15 skipped (跟改动无关, uvicorn DuckDB 锁冲突 skip)
+- service 端到端: 15/15 字段实际数据都在范围 (TierFlowRow 7/7 safe_ratio, Conversion 4/4 safe_ratio, Basket 4/4 safe_ratio)
+
+### Recurring pattern (跨 sprint 复用)
+
+- **Sprint 30.3 ratio 模式**: 扁平字段用 `RatioField` alias, 嵌套 List 用 `List[Optional[Annotated[float, Field(ge, le)]]]`, 测试用 `pytest.raises(ValidationError) + exc_info.value.errors() + loc` 字段名检查
+- **Sprint 18 #141 yoy_*_ratio 白名单模式**: 字段名历史遗留, 实际 PpField, 走 `_YOY_PPT_FIELDS` 白名单兜底
+- **业务实证 > 业务确认**: `semantic.calculations.py:70-80` 函数定义直接证明 `yoy_repurchase_rate` 是 pp 差, 无需 ask user 业务确认
+
+---
+
 ## [v0.4.14.114] - 2026-06-17 - chore(e2e): Sprint 32.1 — Playwright HTTPS error tolerance (chromium v1208 SSL hardening)
 
 > Sprint 28+ 待办 #5 闭环. **两层 SSL fix 必要**:
