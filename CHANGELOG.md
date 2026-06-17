@@ -52,6 +52,58 @@ RFM 预计算完成: 12 / 12 个组合
 
 ---
 
+## [v0.4.14.103] - 2026-06-17 (Sprint 29 收口时定版) - fix(etl): Sprint 29+#198 disk full 上游修复 + RFM cache 简化版
+
+> Sprint 28+ 治理收口后, 端到端 ETL 跑批实战暴露 2 个未治根问题. Sprint 29 plan-eng-review + codex 第三方视角评审共识: 砍 Sprint 28+ 待办 #1 (FQ_TMP_PREFIXES exclude pattern 是机制错误, 跟 #1 重复) + 待办 #4 (pre-commit CHANGELOG 强制是 process 病, 根因不在 hook). 改走 **P0 上游 (disk full)** + **P1 简化版 (RFM cache)** 组合.
+
+### Fixed
+
+1. **`scripts/etl/backup_duckdb.py:96-122, 175-194`** — 加 `--verify-only` flag (argparse). 跳过 shutil.copy2 + zstd 压缩, 走 in-process `duckdb.connect(read_only=True)` verify, **0 字节磁盘占用**. 替代 ETL 跑批验证 backup 104GB+ DB 到 `/tmp/sprint28-verify/` 的反模式 (2026-06-17 06:00 launchd 备份失败 disk full alert 真凶). 日常 launchd 备份仍走默认 copy+zstd 路径, 行为不变.
+
+2. **`scripts/etl/cli.py:629-643`** — main() 入口加 df 预留检查. 默认 50GB, env var `ETL_MIN_DISK_GB` 可调 (跨机部署容量不同). 不够直接 `sys.exit(1)` 早退 (FATAL log + 不写 marker), 防止 ETL 跑批 / 备份写到一半才发现 disk full. 跟 Sprint 28+ 修复 #197 同模式: 早 fail 不留半状态.
+
+3. **`backend/services/health/rfm_analysis/cache.py:231-260`** — `clear_rfm_cache` 简化: `DROP TABLE IF EXISTS` + `CREATE TABLE` (用 `_ensure_db_cache_table` 已有 schema) 替代 `DELETE FROM`. DROP 绕开 DuckDB index 状态机, **永远成功**. 解决 Sprint 28+ 跑批 (13:54-14:00) #198 RFM cache stuck index (`Invalid Input Error: Failed to delete all rows from index. Only deleted 8 out of 12 rows`). 原 DELETE 模式 fail-soft 返 0 + log error; DROP 模式永远成功, 后续 `_write_db_cache` INSERT 走 `cache_key PRIMARY KEY` + `period idx`, 无影响.
+
+### Added (5 个 test)
+
+- **`backend/tests/test_rfm_cache_drop_recreate.py`** (新文件, 5 case) — Sprint 29+#198 治根专项, 防未来 refactor 误回 DELETE:
+  - `TestClearRfmCacheDropRecreate::test_drop_recreate_clears_all_rows`: 写 5 行 → DROP+CREATE → 0 行
+  - `TestClearRfmCacheDropRecreate::test_drop_recreate_preserves_schema`: 重建后 schema 完整 (cache_key PRIMARY KEY + orders_count_at_write + period idx)
+  - `TestClearRfmCacheIdempotent::test_multiple_clears_idempotent`: 连续 3 次 clear 幂等
+  - `TestClearRfmCacheIndexStateCorruption::test_clear_succeeds_after_index_corruption`: DROP 不依赖 index 状态, 永远成功
+  - `TestSprint29FixAnchor::test_clear_rfm_cache_source_uses_drop_not_delete`: 源码锚点 #198 防未来 refactor
+  - `TestSprint29FixAnchor::test_no_write_db_cache_uses_drop`: `_write_db_cache` 路径解耦
+
+### Test
+
+- `pytest backend/tests/test_rfm_cache_drop_recreate.py backend/tests/test_rfm_cache_write_conn.py` → **13/13 passed** (5 + 8)
+- `pytest backend/tests/` → **569 passed / 15 skipped / 0 failed** (baseline 564 + 5 新增 = 569)
+- `ruff check backend/services/health/rfm_analysis/cache.py backend/tests/test_rfm_cache_drop_recreate.py scripts/etl/backup_duckdb.py scripts/etl/cli.py` → All checks passed
+
+### Verified (plan-eng-review + codex 第三方视角)
+
+Sprint 29 plan-eng-review + codex consult mode 共识:
+- **disk full** 治根: 架构师方案 A (改 backup 路径) 是 patch 路线; **codex 上游** (--verify-only + df 预留) 是真上游治根
+- **#198 RFM cache** 治根: 架构师提案 multi-stage fallback recovery path 是过度设计; **codex DROP+CREATE** 是 DuckDB index state corruption 标准解法
+- **砍 Sprint 28+ #1** (FQ_TMP_PREFIXES exclude pattern): 跟 #1 重复且机制错误
+- **砍 Sprint 28+ #4** (pre-commit CHANGELOG 强制): process 病, 根因不在 hook
+
+### Risk
+
+- 无 DB schema 变化 (rfm_analysis_cache schema 不变)
+- 无 API contract 变化 (clear_rfm_cache / backup_duckdb.py 公开签名不变)
+- 性能 microsecond 级 (DROP+CREATE vs DELETE 都是 O(N), DROP 跳过 index 路径实际更稳)
+- 跨进程/跨机部署不受影响 (config dict 跟 cli.py sibling 严格一致)
+- df 检查新增 ETL_MIN_DISK_GB env var (默认 50GB, 跨机部署可调)
+
+### Sprint 28+ 待办收口
+
+- ✅ **#198 RFM cache stuck index cleanup** (P2 → 升 P1): 本次修复
+- ❌ **Sprint 28+ #1 FQ_TMP_PREFIXES exclude pattern** (P1): **砍**, 跟 #1 重复 + 机制错误
+- ⚠️ **Sprint 28+ #4 pre-commit hook CHANGELOG 强制** (P1): **保留待 Sprint 30+**, codex 建议改 post-merge hint 或 release-please (process 改造, 不在本次 scope)
+
+---
+
 ## [v0.4.14.101] - 2026-06-17 (Sprint 28 收口时定版) - fix(etl): Sprint 28+ 冷启动 mtime 阈值过滤治根
 
 > 用户报告: 2026-06-17 10:40 ETL 增量跑批失败, "错误: 没有加载到任何店铺数据!" 但 exit 0. 根因是冷启动误标记: tracker 文件不存在时, Step 0.5 复用 `_mark_all_files_processed()` 把当前所有 xlsx (含今天新放进去的) 全标已处理, `_file_changed` 看到 key 在 processed_files + mtime 一致 → 跳过加载 → 业务失败. 这是 Sprint 6 P0-3 / Sprint 21 P0 / Sprint 24 d81148c 第三次复发, 治根采用 mtime 阈值过滤 (Sprint 24 d81148c 修的是 tracker **空 {}** case, 本次修的是 tracker **不存在** case, 互补不冲突).

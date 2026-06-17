@@ -626,6 +626,23 @@ def rescan_spu_mapping(product_ids: list = None, dry_run: bool = True):
 
 def main():
     """CLI 入口函数"""
+    # Sprint 29+#198 上游治根 (codex 推荐): df 预留检查, 不够直接 fail-fast 早退,
+    # 防止 ETL 跑批 / launchd backup 写到一半才发现 disk full (跟 2026-06-17 备份失败
+    # "disk full" 同根因). 阈值 50GB: 备份压缩后 ~40GB + 跑批 +log +temp 安全余量.
+    # env var ETL_MIN_DISK_GB 可调 (跨机部署容量不同).
+    import shutil as _shutil_disk
+    _min_disk_gb = int(os.environ.get("ETL_MIN_DISK_GB", "50"))
+    _free_bytes = _shutil_disk.disk_usage(PROCESSED_DATA_DIR).free
+    _free_gb = _free_bytes / 1024**3
+    if _free_gb < _min_disk_gb:
+        print(
+            f"FATAL: disk full, only {_free_gb:.1f}GB free at {PROCESSED_DATA_DIR}, "
+            f"need >= {_min_disk_gb}GB (set ETL_MIN_DISK_GB to override). "
+            f"ETL aborted before marker write (no half-state).",
+            file=sys.stderr, flush=True,
+        )
+        sys.exit(1)
+
     # F3 修复：在 atexit 注册**之前**先写 marker 文件（kill -9 限制绕过）。
     # 正常流程：main() 入口 → 写 marker → atexit.register → ... → 退出 →
     # atexit 触发 → cleanup 读 marker（存在）→ 正常 cap → 删 marker。
