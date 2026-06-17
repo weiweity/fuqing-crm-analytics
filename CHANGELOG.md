@@ -7,7 +7,7 @@
 1. **`backend/contracts/health.py`** (10 字段注解) — `TierFlowRow` 5 ratio + 1 PpField + `NewCustomerConversionFunnel` 4 rate:
    - `TierFlowRow.repurchase_rate_current/comp/prev2` `float` → `"RatioField"` (0-1 decimal, 跟 `repurchase_gsv_ratio_current` 模式对齐)
    - `TierFlowRow.repurchase_gsv_ratio_comp/prev2` `float` → `"RatioField"` (注释写"0-1"但注解是 float, 补注解对齐)
-   - `TierFlowRow.yoy_repurchase_rate` `Optional[float]` → `Optional["PpField"]` (-100~+100 pp 差, **业务实证**: `semantic/calculations.py:70-80` 函数定义 = `yoy_ratio` = `(cur - comp) * 100`, 跟 `yoy_repurchase_gsv_ratio_ppt` 是同一函数, 命名不一致是 Sprint 19 改名遗留)
+   - `TierFlowRow.yoy_repurchase_rate` `Optional[float]` → `Optional["PpField"]` (-100~+100 pp 差, **业务实证**: `semantic/calculations.py:51-69` `yoy_ratio` 原始定义 + `70-80` `yoy_repurchase_rate` alias 文档 = `(cur - comp) * 100` pp 差, 跟 `yoy_repurchase_gsv_ratio_ppt` 语义对齐, 命名不一致是 Sprint 19 改名遗留)
    - `NewCustomerConversionFunnel.day7_rate/day30_rate/day90_rate/year_rate` `float` → `"RatioField"` (service 层 `conversion.py:108-126` 用 `safe_ratio(..., 0.0)` 保护, 0 越界)
 
 2. **`backend/contracts/category.py`** (2 字段注解) — `MarketBasketItem`:

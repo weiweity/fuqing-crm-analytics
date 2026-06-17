@@ -383,7 +383,7 @@ Key routing rules:
 | 30.1 | **W4 540 combo batch INSERT** — `precompute_fact_rfm.py` 用 `STRUCT[] + LATERAL` 替代 540 次串行 INSERT (4,320 → 1 次 conn.execute, ~50× 加速) | ~1 天 | codex 新发现 A | ✅ 闭环 (v0.4.14.105) |
 | 30.2 | **pre-commit CHANGELOG 改 post-merge hint** — hook 不再强制每 commit,改 `git log <last-tag>..HEAD` post-merge WARN 提示 | ~1h | codex 推荐, Sprint 28+ #4 | ✅ 闭环 (v0.4.14.106) |
 | 30.3 | **Sprint 17 #120 全量 9 contract audit 剩余字段** — Pydantic 范围约束补标 | ~2h | Sprint 28+ 待办 #3 | ✅ 闭环 (v0.4.14.107) — 仅 cohort retention matrix 4 字段, 其他 contract 字段走 Sprint 31+ |
-| 31.2 | **Sprint 30.3 剩余 12 字段 ratio/rate 范围约束补标** — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio + linter 白名单 1 字段 | ~0.5-1 天 | Sprint 30.3 留 Sprint 31+ 风险 review | ✅ 闭环 (v0.4.14.115, 14 test case) |
+| 31.2 | **Sprint 30.3 剩余 12 字段 ratio/rate 范围约束补标** — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio, 14 test case (codex review P3 finding: linter `_YOY_PPT_FIELDS` 白名单**未**加, 字段名 `_rate` 结尾不在 R1 范围, 加白名单是 dead code no-op) | ~0.5-1 天 | Sprint 30.3 留 Sprint 31+ 风险 review | ✅ 闭环 (v0.4.14.115, 14 test case) |
 | 30.4 | **CLAUDE.md `*_rate` 表格 stale 文档对齐** — `*_rate` 表格写 `PercentageField 0-100` 实际用 `RatioField 0-1`,文档修 | ~30min | Sprint 28+ 待办 #4 | ✅ 闭环 (v0.4.14.108) |
 
 ### Sprint 31: 6 层防护终极治根 (~3-4 天)

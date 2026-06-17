@@ -29,7 +29,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ repo 公开：weiweity/fuqing-crm-analytics (PUBLIC, 2026-06-13)
 - ✅ Sprint 25-29+#198 完整收口 (v0.4.14.98 备份系统 + v0.4.14.99 F6 mtime→lsof + v0.4.14.100 Tooltip 5346% + v0.4.14.101 冷启动 mtime 阈值 + v0.4.14.102 RFM config 冲突 + v0.4.14.103 disk full 上游 + #198 RFM stuck index)
 - ✅ Sprint 30.1-30.5 完整收口 (v0.4.14.105 W4 540 combo batch INSERT 50.4× 加速 + v0.4.14.106 CHANGELOG post-merge hint + v0.4.14.107 cohort matrix B2 audit + v0.4.14.108 `*_rate` 文档对齐 + v0.4.14.109 端到端真验 W4 < 30s)
-- ✅ Sprint 31.1-31.2 完整收口 (v0.4.14.111-113 tracker-database 模式 5 次复发终极治根 + v0.4.14.115 Sprint 30.3 留 12 字段 ratio/rate 范围约束补标, 14 test case)
+- ✅ Sprint 31.1-31.2 完整收口 (v0.4.14.111+v0.4.14.112 tracker-database 模式 5 次复发终极治根 + v0.4.14.113 P2 fix tracker DB 加进 _PROTECTED_BASENAMES + v0.4.14.115 Sprint 30.3 留 12 字段 ratio/rate 范围约束补标, 14 test case)
 - ✅ Sprint 32.1 收口 (v0.4.14.114 Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 config + Node 端 cert 信任)
 
 ---

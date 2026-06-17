@@ -3,8 +3,8 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-18 (Sprint 31.2 v0.4.14.115 收口, Sprint 30.3 留 12 字段 ratio/rate 范围约束补标 — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio, 14 test case + linter 0 violation)
-**当前债数**: 0 条 (全闭环)
+**最后更新**: 2026-06-18 (Sprint 32.1+31.2 doc release + codex doc review P1/P2 fix, 0 debt, 债 #S32-2 audience-daily-trend brittle canvas selector 登记)
+**当前债数**: 1 条 (债 #S32-2 audience-daily-trend.spec.ts brittle canvas `.first()` selector 已知失败, 走 Sprint 32.2 修复)
 **已修复**: 15 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index + 债 #S31-1 5 次复发终极治根 tracker-database + 债 #S32-1 v1208 SSL 两层 fix + 债 #S31-2 Sprint 30.3 留 12 字段 ratio/rate 收口)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 **新待办 (Sprint 30-32 计划)**:
@@ -14,7 +14,29 @@
 - ✅ Sprint 30.4 CLAUDE.md `*_rate` 表格对齐 (闭环 v0.4.14.108, doc-only)
 - ✅ Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (闭环 v0.4.14.111+v0.4.14.112, 3 commit: Phase 1 inert infra + Phase 2 source of truth + Phase 3 docs)
 - ✅ Sprint 32.1 Playwright chromium v1208 SSL hardening (闭环 v0.4.14.114, 2 layer fix: 浏览器运行时 + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN)
-- Sprint 32.2 e2e spec 回归 (一次性) — 待排期 (32.1 已建立跑批基础)
+- Sprint 32.2 e2e spec 回归 (一次性) — 修复债 #S32-2 audience-daily-trend brittle canvas selector, 重跑 3 spec 全 pass
+
+---
+
+## 债 #S32-2 (P2) audience-daily-trend.spec.ts brittle canvas `.first()` selector — 治根修复
+
+### 触发场景
+2026-06-17 Sprint 32.1 验证 e2e 跑批时发现: `audience-daily-trend.spec.ts:47` 用 `page.locator('canvas').first()` hover 中点触发 tooltip, 但 `/audience` 页**有多个 canvas** (顶部 stat 卡片可能有 sparkline / 不同 chart), `.first()` 选错 chart → tooltip locator `'div[style*="position: absolute"]'` 找不到 "占比" 文本 → `expect(tooltip).toBeVisible({ timeout: 5000 })` 失败.
+
+### 影响
+- **Sprint 32.1 verification 1/3 pass** (audience-daily-trend 1/1 fail, 跟 32.1 config 改动无关, pre-existing)
+- 任何 3 test 一起跑 vs 单独跑结果不一致 (单独跑 customer-health 0/2, 一起跑 2/2) — WASM warm-up 状态干扰
+- Sprint 32.2 跑批 3 spec 全 pass 必须先修此 selector
+
+### 修复方案
+- **不要**用 `canvas` `.first()` 模糊选择, 改用具体 chart 容器 class 或 test-id
+- 例如: `page.locator('[data-testid="trend-chart"] canvas')` 或 `page.locator('.bi-card').filter({ hasText: '全店GSV' }).locator('canvas')`
+- 加 `data-testid` 到 Vue 组件 (`frontend-vue3/src/components/audience/TrendChart.vue` 或类似)
+- 估时: ~1-2h (改 spec + 验证前端 test-id 加到位)
+
+### Sprint 32.2 触发
+- Sprint 32.1 完成后立即修
+- 修完 e2e 重跑 3/3 pass, 债 #S32-2 闭环
 
 ---
 
