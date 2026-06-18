@@ -62,12 +62,17 @@ test.describe('category-detail 路由', () => {
       // 用户明细表可能在空数据时不渲染, 接受
     })
 
-    // 无 error 级别控制台日志 (Sprint 33.2 fix: 容许 backend 500, 路由数据依赖真实 category id,
-    // e2e focus 在路由能加载 + 关键 MetricCard 渲染, 数据正确性由 backend test 覆盖)
-    const real500s = consoleErrors.filter(e => e.includes('Failed to load resource'))
-    if (real500s.length > 0) {
-      console.warn(`[Sprint 33.2] category-detail spec 容忍 ${real500s.length} 个 backend 500 (路由可加载 + UI 元素渲染断言通过)`)
-    }
-    expect(consoleErrors.filter(e => !e.includes('Failed to load resource'))).toHaveLength(0)
+    // Sprint 36-2 业务断言: /api/v1/category/overview?category_id=1 返回 200 + overview dict
+    const overviewResp = await page.request.get('/api/v1/category/overview', {
+      params: { category_id: 1 },
+    })
+    // Sprint 36-2 fix: 不再容忍 backend 500, 期望真 200 (category id=1 在生产 DuckDB 存在)
+    expect(overviewResp.status(), '/api/v1/category/overview 业务断言').toBe(200)
+    const overviewJson = await overviewResp.json()
+    expect(typeof overviewJson, 'overview 应为 dict').toBe('object')
+
+    // 无 error 级别控制台日志
+    // Sprint 36-2 fix: 删 Sprint 33.2 backend 500 容忍 (用真业务断言替代, 不再需要 500 容忍)
+    expect(consoleErrors).toHaveLength(0)
   })
 })
