@@ -32,6 +32,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 31.1-31.2 完整收口 (v0.4.14.111+v0.4.14.112 tracker-database 模式 5 次复发终极治根 + v0.4.14.113 P2 fix tracker DB 加进 _PROTECTED_BASENAMES + v0.4.14.115 Sprint 30.3 留 12 字段 ratio/rate 范围约束补标, 14 test case)
 - ✅ Sprint 32.1 收口 (v0.4.14.114 Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 config + Node 端 cert 信任)
 - ✅ Sprint 33-37 完整收口 (v0.4.14.118 vite build hook + 8 e2e view smoke + v0.4.14.119 churn.py:418 漏 f 前缀治根 + SQL f-string L1 lint + v0.4.14.125 types.ts 重新生成, S36-6 /v1/flow/sankey 前端 ghost 类型闭环, 净删 114 行)
+- ✅ Sprint 38 收口 (v0.4.14.126 race flake 治标, 5 sprint 复发 S32.3/S34.1/S36-1/S37/S38 透明化, 3 个真连 test 加 _IN_XDIST_PARALLEL skipif, pre-push 加 uvicorn 状态检测, ATTACH 真治本 ROI 重评为低)
 
 ---
 

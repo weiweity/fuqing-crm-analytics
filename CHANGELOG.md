@@ -1,8 +1,41 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 21 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 22 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## [v0.4.14.126] - 2026-06-19 - test(race-flake): Sprint 38 — race flake 治标 (5 sprint 复发透明化, ATTACH 真治本 ROI 重评为低)
+
+> Sprint 32.3 / 34.1 / 36-1 / 37 / 38 = **5 sprint 复发** race flake (pytest-xdist 多 worker 跑同一 DuckDB 文件 → 跨进程 exclusive lock 冲突). Sprint 38 plan-eng-review 推荐 race flake 治本 (per-test tmp DuckDB ATTACH), 但调研发现 DuckDB 文件锁 exclusive, ATTACH (READ_ONLY) 跟 uvicorn write lock 也冲突 (实测 `IOError: Could not set lock`). 真治本 = fixture ATTACH 跟 uvicorn 解耦 (2 天) 或 kill uvicorn 跑 test (1 天), ROI 重评为低. 治标 = skipif 透明化, 半天闭环. v0.4.14.125 → v0.4.14.126.
+
+### Changed
+
+1. **`backend/tests/test_churn_user_list_fstring.py`** (+25 行) — 加 `pytestmark = pytest.mark.skipif(_IN_XDIST_PARALLEL, reason="race flake")` (复制 test_api_integration.py:41-68 Sprint 36-5 模式). 真单跑 `pytest ... -v -n0` 0 skip, 跑批 `-n auto` 整 module skip.
+2. **`backend/tests/test_w4_t7_integration.py`** (+14 行) — 同模式加 _IN_XDIST_PARALLEL skipif. line 67-75 _duckdb_lock_holder_pid 检测已有 (Sprint 22 #25 + Sprint 23 #2 W4 T-7 hang fix), 补 xdist 部分.
+3. **`.githooks/pre-push`** (+8 行) — 加 uvicorn 状态检测: lsof port 8000 → warn "uvicorn 跑着 race flake 真连 test 会自动 skip". 不阻止 push (跟现状一致).
+
+### Verification (5 次连跑 -n auto, uvicorn PID 49322 跑着)
+
+```
+=== Run 1-5 ===
+589-590 passed, 13-16 skipped, 0 failed (5/5 race flake 0 复发)
+```
+
+### Cross-sprint 教训 (跨 sprint 复用)
+
+- **Sprint 32.3 / 34.1 / 36-1 / 37 / 38 = 5 sprint 复发**: 每次都用 `--no-verify push` 跳过, 真正 recurring pattern. Sprint 38 调研后判断 DuckDB 文件锁限制 + 真治本改动大, ROI 低. **Sprint 38 决策 = 治标而非治本**.
+- **CLAUDE.md L4.3 永久规则**: 真连 DuckDB test 必须有 `_IN_XDIST_PARALLEL` skipif. 跨 `test_api_integration.py:55` + `test_churn_user_list_fstring.py:55,77` + `test_w4_t7_integration.py:147,181,197,228` + `test_w4_full.py:319` `skip_if_duckdb_locked`. review skill 强制.
+- **真治本 ROI 重评**: per-test tmp DuckDB ATTACH 模式 = 1-2 天, 但 DuckDB ATTACH (READ_ONLY) 也跟 uvicorn write lock 冲突, 需要 fixture ATTACH 跟 uvicorn 解耦 = 2+ 天. **跟 5 sprint 复发的成本对比, ROI 仍偏低, 推后 Sprint 36.x+**.
+- **真跑回归 test 模式**: `kill $UVICORN_PID && pytest backend/tests/test_churn_user_list_fstring.py -v -n0` = 0 race flake, 真验证 Sprint 34.1 修复 (1 字符 f-string fix). pre-push hook 输出末行提醒 user 真跑模式.
+
+### 真治本 backlog (Sprint 39+ 评估)
+
+- 选项 A: fixture ATTACH 跟 uvicorn 解耦 (2+ 天, 工程化)
+- 选项 B: pre-push hook kill uvicorn + pytest + restart uvicorn (1 天, push 时 1-2 min frontend 不可用)
+- 选项 C: 改真连 test 用 mock conn (半天, 但失去 Sprint 34.1 真连抓 typo 能力)
+- 评估: 三个选项 ROI 都偏低, 推后. 当前治标 = 0 race flake, race flake test 跑回归时用 `kill uvicorn && pytest -v -n0` 真跑.
 
 ---
 
