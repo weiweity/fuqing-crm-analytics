@@ -2,6 +2,7 @@ name: CI
 
 # 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI (6/12 一次性 docs push 就用掉 50+ min)
 # Free plan 2,000 min/月 私仓额度用完后 CI 立即 fail, 此过滤可省 ~80% 用量
+# Sprint 41 (2026-06-19): 加 frontend-vue3/e2e/** + playwright.config.ts 触发 e2e job
 on:
   pull_request:
   push:
@@ -10,6 +11,8 @@ on:
       - 'backend/**'
       - 'scripts/**'
       - 'frontend-vue3/src/**'
+      - 'frontend-vue3/e2e/**'
+      - 'frontend-vue3/playwright.config.ts'
       - 'requirements.txt'
       - 'requirements-lock.txt'
       - 'pyproject.toml'
@@ -55,3 +58,55 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements-lock.txt
       - run: PYTHONPATH=. pytest backend/tests/ -x -q
+
+  # Sprint 41: GH Actions 跑 e2e (Sprint 32.1 留尾, Sprint 40 audit 后实施)
+  # 强依赖 Sprint 33.2 spec 稳定 (10/10 view smoke pass) + Sprint 39.1 baseline CI 修完
+  # 部署侧: NODE_EXTRA_CA_CERTS=certifi cacert.pem 修 SELF_SIGNED_CERT_IN_CHAIN
+  # (Sprint 32.1 实战过, v1208 → v1217 已绕过但 defense-in-depth 保留)
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-vue3/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install Python deps (certifi for NODE_EXTRA_CA_CERTS)
+        run: pip install certifi
+      - name: Install Node deps
+        run: |
+          cd frontend-vue3
+          npm ci
+      - name: Install Playwright browsers
+        env:
+          # Sprint 32.1 实战: macOS 跑 e2e 报 SELF_SIGNED_CERT_IN_CHAIN, 修法
+          NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
+        run: |
+          cd frontend-vue3
+          npx playwright install --with-deps chromium
+      - name: Build (Vite) + Start preview server
+        env:
+          NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
+        run: |
+          cd frontend-vue3
+          # Build + start preview server, wait for ready
+          npm run build
+          npx vite preview --port 5173 --host 0.0.0.0 &
+          PREVIEW_PID=$!
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q 200; then
+              echo "✅ Preview server ready"
+              break
+            fi
+            sleep 1
+          done
+      - name: Run e2e (10/10 view smoke expected)
+        env:
+          NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
+        run: |
+          cd frontend-vue3
+          npx playwright test --reporter=list
