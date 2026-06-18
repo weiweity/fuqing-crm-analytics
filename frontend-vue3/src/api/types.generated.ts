@@ -8140,7 +8140,7 @@ export interface operations {
     get_sampling_lock_analysis_api_api_v1_sampling_lock_analysis_get: {
         parameters: {
             query?: {
-                /** @description 大促名称：summer_sale/双11/38节日 */
+                /** @description 大促名称：summer_sale/double11/spring_festival */
                 campaign_name?: string;
                 /** @description 年份 */
                 year?: number;

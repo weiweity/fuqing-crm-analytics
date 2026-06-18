@@ -223,14 +223,14 @@ def get_sampling_roi(
 
 
 def get_sampling_lock_analysis(
-    campaign_name: str = '618节日',
+    campaign_name: str = 'summer_sale',
     year: int = 2026,
 ) -> Dict[str, Any]:
     """
     0.01派样锁权分析
 
     Args:
-        campaign_name: 大促名称（618节日/双11/38节日）
+        campaign_name: 大促名称（summer_sale/double11/spring_festival）
         year: 年份
 
     Returns:
