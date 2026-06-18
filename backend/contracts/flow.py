@@ -1,4 +1,8 @@
-"""Sample CRM - Pydantic 契约模型"""
+"""Sample CRM - Pydantic 契约模型
+
+Sprint 36-6: 删 FlowSankeyResponse (前端 0 + 后端 0 业务消费, S36-1 留尾闭环).
+保留 SankeyNode/SankeyLink/CategoryFlowResponse 等 (category 路由在用).
+"""
 from __future__ import annotations
 from typing import Optional, List, Any, Dict
 from enum import Enum
@@ -13,12 +17,6 @@ class FlowMatrixResponse(BaseModel):
     to_total: int
     summary: Dict[str, float]
 
-
-class FlowSankeyResponse(BaseModel):
-    nodes: List[Dict[str, Any]]
-    links: List[Dict[str, Any]]
-    from_date: str
-    to_date: str
 
 class SankeyNode(BaseModel):
     """桑基图节点"""

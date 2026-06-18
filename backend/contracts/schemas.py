@@ -3,7 +3,7 @@
 from .common import DateRangeResponse, YearComparisonRow, DualAxisLineData, SankeyNode, SankeyLink, SankeyGraphData, WoolPartyBreakdown
 from .metrics import OverviewMetrics, TrendData
 from .audience import AudienceTableRequest, AudienceRow, AudienceTableResponse, ChannelGSVRow, AudiencePeriodMetrics, AudienceSummaryRequest, AudienceSummaryResponse
-from .flow import FlowMatrixResponse, FlowSankeyResponse, FlowMatrixCell, FlowMatrix, AssociationItem, CategoryFlowResponse, CategoryFlowAssociationResponse, CategoryFlowMatrixResponse, AnchorMode, PathDepth
+from .flow import FlowMatrixResponse, FlowMatrixCell, FlowMatrix, AssociationItem, CategoryFlowResponse, CategoryFlowAssociationResponse, CategoryFlowMatrixResponse, AnchorMode, PathDepth
 from .churn import ChurnSegmentItem, ChurnDistributionResponse, ChurnUserItem, ChurnUsersResponse, ChurnScatterPoint, ChurnBarData, ChurnTableRow, CategoryChurnResponse, CategoryDailyTrendResponse, UserDetail, CategoryUserListResponse
 from .asset import AssetSummaryResponse, AssetTrendResponse, ProductClassRepurchase, StoreAssetWeek, StoreAssetResponse, ProductAssetWeek, ProductAssetItem, ProductAssetResponse
 from .geo import GeoDistributionItem, GeoDistributionResponse, GeoSegmentMatrixResponse, GeoTrendResponse
@@ -20,7 +20,7 @@ __all__ = [
     "OverviewMetrics", "TrendData",
     "AudienceTableRequest", "AudienceRow", "AudienceTableResponse",
     "ChannelGSVRow", "AudiencePeriodMetrics", "AudienceSummaryRequest", "AudienceSummaryResponse",
-    "FlowMatrixResponse", "FlowSankeyResponse", "FlowMatrixCell", "FlowMatrix",
+    "FlowMatrixResponse", "FlowMatrixCell", "FlowMatrix",
     "AssociationItem", "CategoryFlowResponse", "CategoryFlowAssociationResponse", "CategoryFlowMatrixResponse",
     "AnchorMode", "PathDepth",
     "ChurnSegmentItem", "ChurnDistributionResponse", "ChurnUserItem", "ChurnUsersResponse",

@@ -1,7 +1,8 @@
 """
 Sample CRM 客户分析系统 - 人群流转分析服务
-Week 3 人群流转矩阵 + 桑基图数据
+Week 3 人群流转矩阵数据
 
+Sprint 36-6 清理: 删 get_flow_sankey (前端 0 + 后端 0 业务消费).
 接入语义层: 使用 semantic/segments.py 中的 SegmentRegistry 作为唯一真实数据源。
 """
 
@@ -304,87 +305,6 @@ def get_flow_matrix(
                 "upgrade_rate": upgrade_rate,
                 "downgrade_rate": downgrade_rate
             }
-        }
-    finally:
-        pass
-
-
-def get_flow_sankey(
-    from_date: str,
-    to_date: str,
-    lookback_days: int = 90,
-    metric_type: str = "GMV",
-    exclude_channels: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """
-    获取桑基图数据（8象限版本）
-
-    Returns:
-        {
-            "nodes": List[{"id": str, "name": str, "color": str, "stage": str}],
-            "links": List[{"source": str, "target": str, "value": int}]
-        }
-    """
-    conn = get_connection()
-
-    try:
-        df_from = _compute_user_segments_sql(conn, from_date, lookback_days, metric_type, exclude_channels)
-        df_to = _compute_user_segments_sql(conn, to_date, lookback_days, metric_type, exclude_channels)
-
-        df_from = df_from.rename(columns={"segment_id": "from_segment"})
-        df_to = df_to.rename(columns={"segment_id": "to_segment"})
-
-        df_merged = df_from.merge(
-            df_to[["user_id", "to_segment"]],
-            on="user_id",
-            how="left"
-        )
-        df_merged["to_segment"] = df_merged["to_segment"].fillna(8).astype(int)
-
-        # 使用语义层获取所有象限
-        registry = get_registry()
-        all_segments = registry.list_all()
-        segment_ids = sorted([s.segment_id for s in all_segments if s.segment_id != 9]) + [9]
-
-        # Nodes: 左节点（from阶段）+ 右节点（to阶段）
-        nodes = []
-        for seg_id in segment_ids:
-            seg = registry.get(seg_id)
-            if seg:
-                nodes.append({
-                    "id": f"from_{seg_id}",
-                    "name": seg.name_cn,
-                    "color": seg.color,
-                    "stage": "from"
-                })
-                nodes.append({
-                    "id": f"to_{seg_id}",
-                    "name": seg.name_cn,
-                    "color": seg.color,
-                    "stage": "to"
-                })
-
-        # Links: 用 groupby 一次性聚合，替代 N*N 逐对过滤
-        flow_counts = (
-            df_merged.groupby(["from_segment", "to_segment"])
-            .size()
-            .reset_index(name="count")
-        )
-        links = [
-            {
-                "source": f"from_{int(row.from_segment)}",
-                "target": f"to_{int(row.to_segment)}",
-                "value": int(row["count"]),
-            }
-            for _, row in flow_counts.iterrows()
-            if row["count"] > 0
-        ]
-
-        return {
-            "nodes": nodes,
-            "links": links,
-            "from_date": from_date,
-            "to_date": to_date
         }
     finally:
         pass
