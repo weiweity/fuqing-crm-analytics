@@ -273,11 +273,19 @@ class TestF3MarkerAndF7Symlink:
           1. main() 被调用后，marker 文件存在
           2. marker 内容包含 pid / started_at / script 三个字段
           3. _write_fq_etl_marker() 在 atexit.register() 之前被调用
+
+        Sprint 41.1 follow-up: GH Actions runner 默认 14GB disk, scripts/etl/cli.py:673
+        ETL_MIN_DISK_GB 默认 50GB 阈值, 跑批前 disk check FATAL → 0 marker write → test fail.
+        Test 只验证 F3 marker 写逻辑, 跟 disk check 无关, monkeypatch.setenv 跳过.
         """
         import argparse
         import json
         from unittest.mock import MagicMock
         from scripts.etl import cli
+
+        # Sprint 41.1 follow-up: CI runner disk 7.8GB < 50GB default, 跳过 disk check
+        # (test 只验证 F3 marker 写逻辑, 不依赖实际磁盘容量)
+        monkeypatch.setenv("ETL_MIN_DISK_GB", "0")
 
         marker_path = tmp_path / "fuqing-etl-marker.json"
         monkeypatch.setattr(cli, "_FQ_TMP_MARKER_PATH", str(marker_path))
