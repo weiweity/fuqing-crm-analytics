@@ -22,7 +22,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ ETL 增量更新正常（截至 2026-06-17：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 633 passed / 15 skipped + 3/3 e2e pass (v0.4.14.116, Sprint 32.2 收口; 含 Sprint 31.2 新增 14 个 ratio/rate 越界 freeze test)
+- ✅ 测试 585 passed / 15 skipped + Vite build 0 错误 (v0.4.14.117, Sprint 32.3 收口; 含 Sprint 31.2 新增 14 个 ratio/rate 越界 freeze test)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
 - ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 2 skills (regen-types + ship-pr) + MCP context7
@@ -127,7 +127,7 @@ fuqing-crm-analytics/
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.116, Sprint 32.2 收口) |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.117, Sprint 32.3 收口) |
 | [docs/AUTOMATION.md](./docs/AUTOMATION.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/SHIP.md](./docs/SHIP.md) | /ship skill 使用文档 |
 | [docs/LINTING.md](./docs/LINTING.md) | ground-truth-lint 规则 (Sprint 17 #121) |
