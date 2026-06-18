@@ -376,3 +376,4 @@ Sprint 25+ 跟债 #195 一起排期。
 | #S37-1 S36-6 /v1/flow/sankey ghost endpoint 前端类型滞后 | P3 | ✅ 已修复 (v0.4.14.125) | 净删 114 行 |
 | #S38-1 race flake 5 sprint 复发 (S32.3/S34.1/S36-1/S37/S38) | P3 | ✅ 已修复 (v0.4.14.126) | 治标, 3 个真连 test 加 _IN_XDIST_PARALLEL skipif + pre-push 加 uvicorn 检测; ATTACH 真治本 ROI 重评为低, 推后 |
 | #S39-1 GH Actions CI 7+ sprint 一直红 (Sprint 32-38 merge CI 全部 fail) | P3 | ✅ 已修复 (v0.4.14.127) | 根因 Sprint 38 race flake skipif 只挡 xdist, CI 跑 serial + 缺生产 DuckDB → CatalogException; 修复 conftest.py 加 _PROD_DUCKDB_AVAILABLE + 3 个真连 test 加 skipif |
+| #S39-2 Sprint 36-1 visitor chain "业务风险高" 误判 | P3 | ✅ 已修复 (v0.4.14.128) | Sprint 39.2 ground-truth audit 校正: visitor backend 100% 活跃 + frontend API 100% 活跃 + AudienceView 真消费, 唯一缺 frontend router/index.ts 没注册 /visitor. 详见 `docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`. 激活路径 3 选项 (注册路由 / 维持 / 合并到 audience) 是产品决策, 留给 user. |

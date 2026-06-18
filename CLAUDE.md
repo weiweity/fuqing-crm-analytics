@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.127（main @ 52af508，2026-06-19 Sprint 39.1 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 修复 (7+ sprint 一直红闭环, 模拟 CI DUCKDB_PATH=/tmp/nonexistent 跑 16 skipped / 0 failed / exit 0) (Sprint 39.1: GH CI 爆红治根, 根因 Sprint 38 race flake skipif 只在 xdist 生效 + CI 跑 serial + production DuckDB 不在 repo → 真连空 DuckDB → CatalogException fail; 修复 = conftest.py 加 _PROD_DUCKDB_AVAILABLE skipif 跨 3 个真连 test; Sprint 39.2+ 待办: dead code 治理 + visitor audit + 50m scale 延后) |
+| 4 | **版本状态** | v0.4.14.128（main @ TBD，2026-06-19 Sprint 39.2 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 修复 (7+ sprint 一直红闭环, Sprint 39.2 visitor chain + export/report chain ground-truth audit 闭环) (Sprint 39.2: visitor chain audit 校正 Sprint 36-1 误判 "业务风险高", 实查 visitor backend 100% 活跃 + frontend API 100% 活跃 + AudienceView 真消费, 唯一缺 = frontend router/index.ts 没注册 /visitor; export/report chain 同模式 backend 活跃 + frontend 0 调用; 激活路径产品决策留给 user, 详见 `docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
