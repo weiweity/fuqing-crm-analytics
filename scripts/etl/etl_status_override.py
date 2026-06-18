@@ -446,7 +446,7 @@ WHERE pay_time >= ? AND pay_time <= ?
 """
 
 # 等价形式（用 LEFT JOIN）：
-GSV_OVERRIDE_JOIN_SQL = """
+GSV_OVERRIDE_JOIN_SQL = f"""
 SELECT
     SUM(CASE WHEN
         {_VALID_BASE_T}

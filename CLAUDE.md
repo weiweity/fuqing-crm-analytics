@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.120（main @ TBD，2026-06-18 Sprint 36-1 收口），测试 587 passed / 15 skipped + Vite build 0 错误 (842ms) + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (Sprint 36-1: 范围 A — 删 RFMView.vue 真 dead code ~810 行, Sprint 33.2 留尾闭环, dual lens 架构师 CEO 9/Eng 7 综合 8 评判推荐, CLAUDE.md 三铁律全过, 后端 ghost endpoint 留 Sprint 36.x 独立评估) |
+| 4 | **版本状态** | v0.4.14.121（main @ TBD，2026-06-18 Sprint 36-1 + 36-4 收口），测试 591 passed / 15 skipped + Vite build 0 错误 (842ms) + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) (Sprint 36-1: 删 RFMView.vue 真 dead code ~810 行, Sprint 33.2 留尾闭环; Sprint 36-4: SQL f-string L1 lint 对称补盲 backend/scripts + scripts/etl, 抓到 1 个真 violation etl_status_override.py:449 漏 f 前缀, 跟 Sprint 34.1 churn.py 同构 bug, AI write safety net 完整闭环 P0+P1+P2) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -179,15 +179,17 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 
 5. **单连接测试不能推广到生产** (D-7 Sprint 7 P2 教训): DuckDB file-backed 模式下, **同一 connection 的 in-memory state 与新 connection 的 file state 行为不一致**. 100/100 单连接单元测试可能完全误导, 真实生产 ETL 总是新连接 per call. Sprint 7 P2 DuckDB 升级测试 1-tx 路线单连接 100/100 通过, 新连接 1/1 失败 (ConstraintException). **任何 ETL 决策必须有"模拟生产"测试** (新连接 + commit/close 模式), 否则 100% 单元测试通过可能完全是误导. 详见 `CHANGELOG.md` v0.4.14.96 Sprint 24 P3 收口 (Sprint 7 P2 决策被 Sprint 24+ P3 改写).
 
-### AI 写代码 typo 防御规范 (Sprint 33 + Sprint 34.1)
+### AI 写代码 typo 防御规范 (Sprint 33 + Sprint 34.1 + Sprint 36.4)
 
 | 层 | 防御 | 触发点 | Sprint | 文件 |
 |---|---|---|---|---|
 | L1 frontend | .vue 结构 sanity grep (`<template>` 或 `<script>`) | pre-commit + vite build 兜底 | Sprint 33 | `.githooks/pre-commit:114-145` |
-| L1 backend | SQL f-string 一致性 lint (三引号 SQL body 含 `{var}` 必须 f 前缀) | pre-commit | Sprint 34.1 | `backend/scripts/check_sql_fstring_consistency.py` |
-| L2 (可选) | AST parser 升级版 lint | pre-commit + nightly | Sprint 34.2 backlog | — |
+| L1 backend | SQL f-string 一致性 lint (三引号 SQL body 含 `{var}` 必须 f 前缀), 范围: `backend/services/**` + `backend/scripts/**` + `scripts/etl/**` (Sprint 36-4 对称补盲) | pre-commit | Sprint 34.1 + **Sprint 36.4** | `backend/scripts/check_sql_fstring_consistency.py` |
+| L1 backend fixture | `pytest backend/tests/test_check_sql_fstring_consistency.py` 4 case 跨范围验证 (Sprint 36-4 实战 "破坏 → 验证 → 恢复") | pytest | Sprint 36.4 | `backend/tests/test_check_sql_fstring_consistency.py` |
+| L2 (可选) | AST parser 升级版 lint | pre-commit + nightly | Sprint 34.2 / 36.5 backlog | — |
 | L3 (可选) | 弃 `{valid_sql}` 字符串内嵌, 全面 `FilterBuilder.build()` 参数化 | — | Sprint 35+ backlog | — |
 | **L4 (流程)** | **/review checklist**: SQL 三引号赋值若含 `{var}` 必须 f 前缀 | review skill 强制 | **Sprint 34.1** | 本节 |
+| **L4.2 (流程)** | **任何 Python 写三引号 SQL 字符串 (跨 backend/services/backend/scripts/scripts/etl 范围), 若 body 含 `{identifier}` 必须 f 前缀** | review skill 强制 (Sprint 36-4 范围扩大) | **Sprint 36.4** | 本节 |
 
 **L4 永久规则 (跟 Sprint 3 P1-3 4 轮修教训同位)**:
 
