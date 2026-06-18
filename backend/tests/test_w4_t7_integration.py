@@ -49,18 +49,34 @@ MAIN_REPO_ROOT = Path(__file__).parent.parent.parent
 PROD_DUCKDB_PATH = MAIN_REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
 
 
-# Sprint 38 race flake 治标 (跟 test_api_integration.py:41-68 Sprint 36-5 模式一致):
-# - uvicorn 跑着时: 整 module skip (line 67-75 _duckdb_lock_holder_pid 检测已有, 这里只补 xdist 部分)
-# - pytest-xdist 多 worker 时: 整 module skip, 避免 worker 之间竞争同一文件锁
-# - 单跑 (`pytest ... -v`) serial 模式: 0 skip, 真跑 W4 T-7 集成测试
+# Sprint 39 CI 爆红修复 + Sprint 38 race flake 治标 (双层防护):
+# - Sprint 39 第 1 层: production DuckDB 不可用 → 整 module skip
+#   (CI / fresh checkout 没 data/processed/fuqing_crm.duckdb, 真连空 DuckDB
+#   → CatalogException fail)
+# - Sprint 38 race flake 第 2 层: pytest-xdist 多 worker → 整 module skip
+# - 单跑 (`pytest ... -v -n0`) serial 模式: 0 skip, 真跑 W4 T-7 集成测试
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE  # noqa: E402
+
 _XDIST_WORKER_COUNT = os.environ.get("PYTEST_XDIST_WORKER_COUNT")
 _IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1
 pytestmark = pytest.mark.skipif(
-    _IN_XDIST_PARALLEL,
+    not _PROD_DUCKDB_AVAILABLE or _IN_XDIST_PARALLEL,
     reason=(
-        f"生产 DuckDB lock 冲突: pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
-        f"用 `pytest backend/tests/test_w4_t7_integration.py -n0` serial mode 跑 = 0 冲突. "
-        f"真治本留 Sprint 36.x+ (per-test tmp DuckDB ATTACH 模式, Sprint 38 调研 ROI 低)."
+        (
+            "生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件). "
+            "本地真跑: 先 ETL 跑批生成 data/processed/fuqing_crm.duckdb. "
+        )
+        if not _PROD_DUCKDB_AVAILABLE
+        else ""
+    )
+    + (
+        (
+            f"生产 DuckDB lock 冲突: pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
+            f"用 `pytest backend/tests/test_w4_t7_integration.py -n0` serial mode 跑 = 0 冲突. "
+            f"真治本留 Sprint 36.x+ (per-test tmp DuckDB ATTACH 模式, Sprint 38 调研 ROI 低)."
+        )
+        if _IN_XDIST_PARALLEL
+        else ""
     ),
 )
 
