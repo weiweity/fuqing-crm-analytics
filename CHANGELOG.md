@@ -6,6 +6,55 @@
 
 ---
 
+## [v0.4.14.121] - 2026-06-18 - chore(scripts): Sprint 36-4 — SQL f-string L1 lint 对称补盲 + 1 个真 violation 治根 (AI safety net 最后一公里)
+
+> Sprint 34.1 实施 SQL f-string L1 lint 钩子时, 范围仅 `backend/services/**/*.py` (70 files). Sprint 36-4 架构师 re-survey 发现 `backend/scripts/**` + `scripts/etl/**` 是对称盲区, 跨范围扫描立刻抓到 1 个真 violation: `scripts/etl/etl_status_override.py:449` `GSV_OVERRIDE_JOIN_SQL` 漏 f 前缀, 跟 Sprint 34.1 churn.py:418 完全同构 bug. 1 字符 fix 治根 + 加 fixture test 实战 "破坏 → 验证 → 恢复" 循环. v0.4.14.120 → v0.4.14.121.
+
+### Fixed (Sprint 36-4.1-36-4.2)
+
+1. **`scripts/etl/etl_status_override.py:449`** (+1 行) — `GSV_OVERRIDE_JOIN_SQL = """` → `= f"""`. 跟 Sprint 34.1 churn.py:418 同款 1 字符 fix. 该字符串当前 0 调用方 (注释代码 "等价形式 (用 LEFT JOIN)"), 但若未来启用则会因为缺 f 前缀触发 DuckDB ParserException. Sprint 36-4 L1 扩展后**第一次跑就抓到**, 治根价值实证.
+
+### Added (Sprint 36-4.3-36-4.5)
+
+2. **`backend/scripts/check_sql_fstring_consistency.py`** (+12 行, 改 main() 函数) — Sprint 36-4 对称补盲: 默认 scan_dirs 从 `[backend/services]` 扩到 `[backend/services, backend/scripts, scripts/etl]`. 70 files → 101 files, 跑批 0.49s (跟 Sprint 34.1 0.49s 一致, 性能零退化). L1 防御范围从 "services" 完整覆盖到 "全 Python 写三引号 SQL" 的三个 dir.
+
+3. **`backend/tests/test_check_sql_fstring_consistency.py`** (+96 行, 新文件) — Sprint 36-4 fixture test (4 case). 复刻 Sprint 34.1 test_churn_user_list_fstring.py 模式 (Sprint 24+ P3 单连接教训应用: 故意破坏 → 验证 FAIL → 恢复 → 验证 PASS):
+   - `test_missing_f_prefix_should_violate`: 故意造 missing f-prefix → 期望 rc=1 + 命中 BAD_SQL
+   - `test_correct_f_string_should_pass`: 故意造 correct f-string → 期望 rc=0 + "0 violations"
+   - `test_no_interpolation_should_not_violate`: 故意造无 `{var}` 三引号 → 期望 rc=0 (false positive 防护)
+   - `test_extended_default_scan_includes_scripts_etl`: 跑全目录验证 scripts/etl/ 范围生效, 不 rc=2 (scan error)
+   - 跑批时间 1.14s (4 case), 跟 Sprint 34.1 churn f-string test 同节奏.
+
+### Skipped (Sprint 36-4 范围决策)
+
+4. **`.githooks/check_review_ground_truth.py`** **不动** — 跟 SQL f-string lint 不对称的原因:
+   - Ground-truth-lint 范围 (review 风格输出拦截) 是 `docs/`.md 限定, **实测 backend/scripts/ 0 触发词** (1 file 0 review-style claim), **scripts/etl/ 11 个潜在命中但全部是说明性 docstring/print message** (e.g. "parquet 文件不存在" 是给用户提示, 不是 review "未集成" claim)
+   - 扩范围纯增加跑批时间, 0 实际拦截价值 — 违反 CLAUDE.md "精准修改" 原则
+   - 留 Sprint 36.x 单独评估, 如果未来 backend/scripts 或 scripts/etl 出现真 review-style claim, 可独立 PR 扩范围 (跟 Sprint 33.2 RFMView 发现 → Sprint 36-1 删的渐进模式一致)
+
+### Documentation
+
+5. **`CLAUDE.md` "AI 写代码 typo 防御规范" 节** (+2 行) — L1 backend 行说明扩范围, 加 L1 backend fixture 行 (test_check_sql_fstring_consistency.py), 加 **L4.2 永久规则**: "任何 Python 写三引号 SQL 字符串 (跨 backend/services/backend/scripts/scripts/etl 范围), 若 body 含 `{identifier}` 必须 f 前缀". 跟 Sprint 3 P1-3 4 轮修教训 + Sprint 34.1 L4 规则同位 (CLAUDE.md 第 192 行附近).
+
+### Verification (S36-4 12 步流程)
+
+- **L1 lint 跨范围**: `python3 -m backend.scripts.check_sql_fstring_consistency` → `[OK] 0 violations in 101 file(s)` (从 Sprint 34.1 70 files 扩到 101 files, 性能零退化 0.49s)
+- **故意破坏验证**: 改回 etl_status_override.py:449 `"""` → lint 立刻报 violation, 改回 `f"""` → 通过
+- **fixture test 实战**: `pytest backend/tests/test_check_sql_fstring_consistency.py -v` → 4/4 PASS
+- **0 false positive**: 无 `{var}` 的三引号 SQL 字符串 (DBT / ad-hoc) 不会被误拦
+- **pre-commit hook**: `.githooks/pre-commit` 未改, hook 已自动跑扩范围 lint (Sprint 34.1 已接入)
+- **CLAUDE.md L4.2 规则**: review checklist 加一条, 跟 L4 (Sprint 34.1) 同位
+
+### Risk
+
+- **0 false positive 实证**: 101 files 0 violation, 跨 3 dir 都是干净. fixture test 验 3 种 case (good/bad/no-interp) 全 pass
+- **跑批性能**: 0.49s vs Sprint 34.1 0.49s (3 dir 共 101 files vs 70 files, hook 阈值 ≤ 10s 远超满足)
+- **业务影响**: 0 (L1 lint 范围扩, 已修 1 个潜在 bug; fixture test 0 新生产逻辑)
+- **ground-truth-lint 延后评估**: 跟 SQL lint 不对称, 因为 0 触发词 + 0 实际拦截价值, 留 Sprint 36.x 单独 PR 扩 (跟 S36-1 渐进模式一致)
+- **跟 Sprint 33/34.1 完整闭环**: Sprint 33 (前端 .vue) + Sprint 34.1 (后端 services) + Sprint 36.4 (后端 scripts + etl) = **AI write safety net 完整闭环 P0+P1+P2**, 5+ 天未发现的 AI 写代码 typo 类事故未来 100% 拦截 (a9b1d91 模式 + churn.py 模式 + etl_status_override.py 模式)
+
+---
+
 ## [v0.4.14.120] - 2026-06-18 - chore(views): Sprint 36-1 — RFMView.vue dead code 清理 (范围 A, ~810 行, Sprint 33.2 留尾闭环)
 
 > Sprint 33.2 实施时架构师发现 `frontend-vue3/src/views/RFMView.vue` (797 行, 含 fetchFlowMatrix/Sankey/RFlow 3 useQuery + 2 ECharts) 存在但 `frontend-vue3/src/router/index.ts` 未注册 `/rfm` 路由 → dead code, 留 Sprint 35+ 评估激活/删除方案. Sprint 36-1 经 dual lens 架构师评判 (CEO 9/Eng 7 综合 8 vs B 7.5/C 6.5) 选 A 方案: 只清前端 ~810 行, 后端 ghost endpoint (受 export_service.py:378 + report_service.py:9 真消费影响) 留 Sprint 36.x 独立评估. v0.4.14.119 → v0.4.14.120.

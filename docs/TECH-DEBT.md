@@ -3,9 +3,9 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-18 (Sprint 34.1 收口 v0.4.14.119, 债 #S34-1 churn.py:418 漏 f 前缀治根 + L1 SQL f-string 一致性 lint 钩子, a9b1d91 对称教训 P0+P1 防御)
+**最后更新**: 2026-06-18 (Sprint 36-1 + 36-4 收口 v0.4.14.121, RFMView dead code 清理 + SQL f-string L1 lint 对称补盲, AI write safety net 完整闭环)
 **当前债数**: 0 条 (全闭环)
-**已修复**: 20 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + #S33-1 + #S33-2 + **债 #S34-1** churn.py:418 漏 f 前缀治根 + L1 SQL f-string lint 钩子)
+**已修复**: 22 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + #S33-1 + #S33-2 + **债 #S34-1** churn.py:418 漏 f 前缀治根 + L1 SQL f-string lint 钩子 + **Sprint 36-1** RFMView.vue 797 行 dead code 清理 + **Sprint 36-4** L1 SQL f-string lint 对称补盲 (backend/scripts + scripts/etl) 抓到 etl_status_override.py:449 漏 f 前缀)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 **Sprint 34+ backlog**: 2 条
 - 📋 **债 #S34-2** (P2) L2 升级 AST parser 替换 regex lint (更准, 跨 multiline + nested string) — Sprint 34.2 立项, ~0.5 天
@@ -24,6 +24,8 @@
 - ✅ Sprint 32.3 SamplingView 空白修复 (闭环 v0.4.14.117)
 - ✅ Sprint 33.1 债 #S33-1 pre-commit 加 vite build hook (闭环 v0.4.14.118 part-1, 防 a9b1d91 类 .vue 误清空 P1 防御性)
 - ✅ Sprint 33.2 债 #S33-2 e2e 10/10 router-registered view smoke (闭环 v0.4.14.118 part-2, 治根 a9b1d91 5+ 天盲区 P0 检测)
+- ✅ Sprint 36-1 RFMView.vue 797 行 dead code 清理 (闭环 v0.4.14.120, 范围 A, 架构师 dual lens CEO 9/Eng 7 推荐, Sprint 33.2 留尾闭环)
+- ✅ Sprint 36-4 SQL f-string L1 lint 对称补盲 (闭环 v0.4.14.121, 范围 70→101 files, 抓到 etl_status_override.py:449 漏 f 前缀 1 字符 fix)
 - 📋 **Sprint 34 (候选 4)**: CI 跑 e2e (lint.yml 加 e2e job) — 等 Sprint 33 候选 3 spec 稳定后立项
 - 📋 **Sprint 35+ (候选 2)**: commit message ↔ diff 一致性 CI check — 复用 ground-truth lint 扩展, 误报率高推后
 - ✅ **RFMView.vue 797 行 dead code** (Sprint 33.2 发现 → Sprint 36-1 闭环): 范围 A 选项 (CEO 9/Eng 7 dual lens) 删 RFMView.vue + 联动前端 flow.ts/types/README/YOYGuard ~810 行 (v0.4.14.120). 后端 ghost endpoint (`/v1/flow/matrix` + `/v1/flow/sankey` + flow_service.py + flow contract) 留 Sprint 36.x 独立评估 (受 export_service.py:378 + report_service.py:9 真消费影响).

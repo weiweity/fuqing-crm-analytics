@@ -7,7 +7,7 @@ Root cause (a9b1d91 对称教训): churn.py:418 count_sql 漏写 f 前缀,
 DuckDB 解析字面量 {valid_sql} 抛 ParserException, 5+ 天未发现.
 
 L1 防御机制:
-- 扫 backend/services/**/*.py
+- 扫 backend/services/**/*.py + backend/scripts/**/*.py + scripts/etl/**/*.py (Sprint 36-4 对称补盲)
 - 规则: 三引号 SQL 字符串 body 含 {identifier} 但缺 f 前缀 = violation
 - 跨多行扫描 (opening line + body lines + closing line)
 
@@ -172,11 +172,20 @@ def main() -> int:
         paths = [Path(p) for p in sys.argv[1:]]
     else:
         repo_root = Path(__file__).resolve().parent.parent.parent
-        services_dir = repo_root / "backend" / "services"
-        if not services_dir.exists():
-            print(f"[error] {services_dir} not found", file=sys.stderr)
+        # Sprint 36-4: 对称补盲扩范围 — services + scripts (backend + etl)
+        # 跟 Sprint 33 .vue / Sprint 34.1 services SQL lint 完整闭环 AI safety net
+        scan_dirs = [
+            repo_root / "backend" / "services",
+            repo_root / "backend" / "scripts",
+            repo_root / "scripts" / "etl",
+        ]
+        paths = []
+        for d in scan_dirs:
+            if d.exists():
+                paths.extend(sorted(d.rglob("*.py")))
+        if not paths:
+            print("[error] no scan dirs found", file=sys.stderr)
             return 2
-        paths = sorted(services_dir.rglob("*.py"))
 
     total_violations = 0
     files_with_violations = 0
