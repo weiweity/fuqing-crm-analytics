@@ -486,26 +486,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/flow/sankey": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Flow Sankey Api
-         * @description 桑基图数据：返回 nodes + links，用于可视化
-         */
-        get: operations["get_flow_sankey_api_api_v1_flow_sankey_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/churn/distribution": {
         parameters: {
             query?: never;
@@ -2909,22 +2889,22 @@ export interface components {
             periods?: string[];
             /**
              * Matrix
-             * @description 复购率矩阵
+             * @description 复购率矩阵 0-1 decimal
              */
             matrix?: (number | null)[][];
             /**
              * Avg By Period
-             * @description 各周期平均复购率
+             * @description 各周期平均复购率 0-1 decimal
              */
             avg_by_period?: (number | null)[];
             /**
              * Ly Matrix
-             * @description 去年同期复购率矩阵
+             * @description 去年同期复购率矩阵 0-1 decimal
              */
             ly_matrix?: (number | null)[][];
             /**
              * Ly Avg By Period
-             * @description 去年同期各周期平均复购率
+             * @description 去年同期各周期平均复购率 0-1 decimal
              */
             ly_avg_by_period?: (number | null)[];
         };
@@ -3146,21 +3126,6 @@ export interface components {
             summary: {
                 [key: string]: number;
             };
-        };
-        /** FlowSankeyResponse */
-        FlowSankeyResponse: {
-            /** Nodes */
-            nodes: {
-                [key: string]: unknown;
-            }[];
-            /** Links */
-            links: {
-                [key: string]: unknown;
-            }[];
-            /** From Date */
-            from_date: string;
-            /** To Date */
-            to_date: string;
         };
         /**
          * FrequencyTierDefinition
@@ -3580,9 +3545,15 @@ export interface components {
             category_name: string;
             /** Co Order Count */
             co_order_count: number;
-            /** Support */
+            /**
+             * Support
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             */
             support: number;
-            /** Confidence */
+            /**
+             * Confidence
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             */
             confidence: number;
             /** Lift */
             lift: number;
@@ -3702,6 +3673,7 @@ export interface components {
             day7_repurchase: number;
             /**
              * Day7 Rate
+             * @description 7日回购率 0-1 decimal
              * @default 0
              */
             day7_rate: number;
@@ -3712,6 +3684,7 @@ export interface components {
             day30_repurchase: number;
             /**
              * Day30 Rate
+             * @description 30日回购率 0-1 decimal
              * @default 0
              */
             day30_rate: number;
@@ -3722,6 +3695,7 @@ export interface components {
             day90_repurchase: number;
             /**
              * Day90 Rate
+             * @description 90日回购率 0-1 decimal
              * @default 0
              */
             day90_rate: number;
@@ -3732,6 +3706,7 @@ export interface components {
             year_repurchase: number;
             /**
              * Year Rate
+             * @description 年度回购率 0-1 decimal
              * @default 0
              */
             year_rate: number;
@@ -5650,6 +5625,7 @@ export interface components {
             repurchase_users_current: number;
             /**
              * Repurchase Rate Current
+             * @description 回购率 0-1 decimal
              * @default 0
              */
             repurchase_rate_current: number;
@@ -5676,6 +5652,7 @@ export interface components {
             repurchase_users_comp: number;
             /**
              * Repurchase Rate Comp
+             * @description 回购率 0-1 decimal
              * @default 0
              */
             repurchase_rate_comp: number;
@@ -5686,6 +5663,7 @@ export interface components {
             repurchase_gsv_comp: number;
             /**
              * Repurchase Gsv Ratio Comp
+             * @description 回购GSV占比 0-1 decimal
              * @default 0
              */
             repurchase_gsv_ratio_comp: number;
@@ -5701,6 +5679,7 @@ export interface components {
             repurchase_users_prev2: number;
             /**
              * Repurchase Rate Prev2
+             * @description 回购率 0-1 decimal
              * @default 0
              */
             repurchase_rate_prev2: number;
@@ -5711,6 +5690,7 @@ export interface components {
             repurchase_gsv_prev2: number;
             /**
              * Repurchase Gsv Ratio Prev2
+             * @description 回购GSV占比 0-1 decimal
              * @default 0
              */
             repurchase_gsv_ratio_prev2: number;
@@ -5718,7 +5698,10 @@ export interface components {
             yoy_hist_users?: number | null;
             /** Yoy Repurchase Users */
             yoy_repurchase_users?: number | null;
-            /** Yoy Repurchase Rate */
+            /**
+             * Yoy Repurchase Rate
+             * @description 回购率同比 (pp 差)
+             */
             yoy_repurchase_rate?: number | null;
             /** Yoy Repurchase Gsv */
             yoy_repurchase_gsv?: number | null;
@@ -6831,46 +6814,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FlowMatrixResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_flow_sankey_api_api_v1_flow_sankey_get: {
-        parameters: {
-            query: {
-                /** @description 起始日期 YYYY-MM-DD */
-                from_date: string;
-                /** @description 结束日期 YYYY-MM-DD */
-                to_date: string;
-                /** @description 回溯天数 */
-                lookback_days?: number;
-                /** @description GMV/GSV */
-                metric_type?: string;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FlowSankeyResponse"];
                 };
             };
             /** @description Validation Error */
