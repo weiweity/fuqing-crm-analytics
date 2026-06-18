@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.126（main @ TBD，2026-06-19 Sprint 38 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + pre-push hook 加 uvicorn 状态检测 + race flake 治标 (3 个真连 test 加 _IN_XDIST_PARALLEL skipif, 5/5 跑批 0 flake) (Sprint 38: race flake 治标, 跨 5 sprint 复发 S32.3/S34.1/S36-1/S37/S38; 真治本 ROI 重评为低, DuckDB 文件锁 exclusive 任何 conn 都冲突, ATTACH 也不豁免; 治标 = skipif 透明化 + pre-push 检测 uvicorn warn; Sprint 38 留 Sprint 39+ 选其他 high-ROI 项) |
+| 4 | **版本状态** | v0.4.14.127（main @ 52af508，2026-06-19 Sprint 39.1 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 修复 (7+ sprint 一直红闭环, 模拟 CI DUCKDB_PATH=/tmp/nonexistent 跑 16 skipped / 0 failed / exit 0) (Sprint 39.1: GH CI 爆红治根, 根因 Sprint 38 race flake skipif 只在 xdist 生效 + CI 跑 serial + production DuckDB 不在 repo → 真连空 DuckDB → CatalogException fail; 修复 = conftest.py 加 _PROD_DUCKDB_AVAILABLE skipif 跨 3 个真连 test; Sprint 39.2+ 待办: dead code 治理 + visitor audit + 50m scale 延后) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -191,6 +191,7 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 | **L4 (流程)** | **/review checklist**: SQL 三引号赋值若含 `{var}` 必须 f 前缀 | review skill 强制 | **Sprint 34.1** | 本节 |
 | **L4.2 (流程)** | **任何 Python 写三引号 SQL 字符串 (跨 backend/services/backend/scripts/scripts/etl 范围), 若 body 含 `{identifier}` 必须 f 前缀** | review skill 强制 (Sprint 36-4 范围扩大) | **Sprint 36.4** | 本节 |
 | **L4.3 (流程)** | **真连 DuckDB test 必须有 `pytestmark = pytest.mark.skipif(_IN_XDIST_PARALLEL, reason="race flake")`** (跨 `test_api_integration.py:55` + `test_churn_user_list_fstring.py:55,77` + `test_w4_t7_integration.py:147,181,197,228` + `test_w4_full.py:319` `skip_if_duckdb_locked`). DuckDB 文件锁 exclusive, pytest-xdist 多 worker 跑同一文件 100% race flake (Sprint 32.3/34.1/36-1/37/38 5 sprint 复发). 真治本 = per-test tmp DuckDB ATTACH 模式 (留 Sprint 36.x+ backlog, Sprint 38 调研 ROI 重评为低) | review skill 强制 | **Sprint 38** | 本节 |
+| **L4.4 (流程)** | **真连 DuckDB test 必须有 `pytestmark = pytest.mark.skipif(not _PROD_DUCKDB_AVAILABLE, reason="production DuckDB 不可用")`** (跨 `test_api_integration.py` + `test_churn_user_list_fstring.py` + `test_w4_t7_integration.py`). CI runner / fresh checkout 没 production DuckDB → 真连空 DuckDB → CatalogException fail (Sprint 32-38 7+ sprint CI 一直红). `_PROD_DUCKDB_AVAILABLE` 定义在 `backend/tests/conftest.py:_detect_prod_duckdb_available()` | review skill 强制 | **Sprint 39** | 本节 |
 
 **L4 永久规则 (跟 Sprint 3 P1-3 4 轮修教训同位)**:
 

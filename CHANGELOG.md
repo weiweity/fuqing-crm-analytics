@@ -1,8 +1,34 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 22 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 23 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## [v0.4.14.127] - 2026-06-19 - fix(tests): Sprint 39 — GH CI 爆红修复 (7+ sprint 复发, production DuckDB skipif 透明化)
+
+> GH Actions CI 跨 7+ sprint 一直红 (最近 Sprint 32-38 全部 merge commit CI fail). 根因: Sprint 38 加的 `_IN_XDIST_PARALLEL` skipif 只在 pytest-xdist 模式生效, 但 `.github/workflows/lint.yml:57` 跑 `pytest -x -q` serial mode. CI runner 上 production DuckDB 不存在 (103GB 不上传), 真连空 DuckDB → `CatalogException: Table 'orders' does not exist!` → CI fail. 7+ sprint 复发, 一直没修. v0.4.14.126 → v0.4.14.127.
+
+### Changed
+
+1. **`backend/tests/conftest.py`** (+48 行) — 加 `_detect_prod_duckdb_available()` 函数 + module-level `_PROD_DUCKDB_AVAILABLE` 常量. 动态从 `backend.config.DUCKDB_PATH` 检测, 文件存在 + `duckdb.connect(read_only=True)` 不抛异常 = 可用. 替代 Sprint 22 #25 hardcoded `_PROD_DUCKDB_PATH` (只适合 hutou 本机).
+2. **`backend/tests/test_churn_user_list_fstring.py`** (+35/-X 行) — module-level `pytestmark` 加 `not _PROD_DUCKDB_AVAILABLE` condition. 三层防护: 不可用 / xdist / 都 OK 时真跑. Sprint 38 race flake condition 保留.
+3. **`backend/tests/test_w4_t7_integration.py`** (+32/-X 行) — 同模式. line 67-75 `_duckdb_lock_holder_pid` (Sprint 22 #25 + Sprint 23 #2) 保留. 双层防护.
+4. **`backend/tests/test_api_integration.py`** (+15/-X 行) — module-level `pytestmark` 加 `not _PROD_DUCKDB_AVAILABLE` condition. Sprint 36-5 `_UVICORN_LOCK_PID` + `_IN_XDIST_PARALLEL` 保留.
+
+### Verification
+
+- **本地** (生产 DuckDB 存在): 行为不变, 真连 test 跑 (xdist 模式 skip, serial 模式真跑)
+- **模拟 CI** (`DUCKDB_PATH=/tmp/nonexistent.duckdb`): 16 skipped / 0 failed / pytest exit 0 ✅
+- **GH Actions CI** (Sprint 39 commit 52af508 push 后): 期望变绿 (本次 commit 后第一次绿, 7+ sprint 复发闭环)
+
+### Cross-sprint 教训 (跨 sprint 复用)
+
+- **Sprint 38 race flake 治标是必要但不充分**: 加 `_IN_XDIST_PARALLEL` skipif 只挡 pytest-xdist, 没想到 CI 跑 serial mode. 跨 sprint 教训: **CI 配置 + 本地 skipif 必须双向验证**, 不能只信一个环境.
+- **GH Actions CI 复用 lint.yml**: lint.yml:57 跑 `pytest -x -q` serial mode 没改. Sprint 39 不动 lint.yml (避免大改), 改 conftest.py + 3 个真连 test 加 `_PROD_DUCKDB_AVAILABLE` skipif. CI runner 没 production DuckDB → test skip → pytest exit 0 → CI 绿.
+- **真治本留 Sprint 39.2+**: per-test tmp DuckDB ATTACH 跟 uvicorn 解耦 (2+ 天). Sprint 38 调研 ROI 重评为低. 当前治标 = skipif 透明化 + 本地不破坏. Sprint 39.2 后评估.
+- **CLAUDE.md L4.4 永久规则** (本次 commit 加): 真连 DuckDB test 必须有 `_PROD_DUCKDB_AVAILABLE` skipif (新增) + `_IN_XDIST_PARALLEL` skipif (Sprint 38) + `_UVICORN_LOCK_PID` skipif (Sprint 36-5). review skill 强制.
 
 ---
 
