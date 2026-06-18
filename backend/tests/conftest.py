@@ -55,6 +55,54 @@ def _duckdb_lock_holder_pid() -> int | None:
         return None
 
 
+# ─────────────────────────────────────────────────────────────
+# Sprint 39 CI 爆红修复: 动态检测 production DuckDB 可用性
+#
+# 背景: Sprint 38 race flake 治标加 _IN_XDIST_PARALLEL skipif 只在 pytest-xdist
+# 模式生效. CI 跑 serial mode (-n 0) → _IN_XDIST_PARALLEL=False → skipif 不生效.
+# 然后 CI 上 production DuckDB 不存在 (103GB 不在 repo) → test 真连空 DuckDB
+# → CatalogException: Table 'orders' does not exist → CI fail.
+#
+# 修法: 加 _PROD_DUCKDB_AVAILABLE module-level 常量, 跨多个 test 用作 skipif
+# 条件. CI 没数据 → test skip, 本地有数据 → test 跑 (xdist 模式 race flake skip).
+# ─────────────────────────────────────────────────────────────
+
+def _detect_prod_duckdb_available() -> bool:
+    """动态检测 production DuckDB 是否可访问: 文件存在 + duckdb.connect() 不抛异常.
+
+    Sprint 39: 替代 hardcoded _PROD_DUCKDB_PATH (Sprint 22 #25 那个). 跨工作树/clone/CI
+    友好. 只 check 文件存在 + 可连接 (read_only=True 不抢 write lock), 不 check 表存在
+    (避免 sprint 期间 schema 变动引发 false negative).
+
+    Returns:
+        True if production DuckDB 可访问 (本地开发 / 用户 clone + 自己跑 ETL 跑批后)
+        False if 不可访问 (fresh checkout / CI runner / data/processed/ 不存在)
+    """
+    try:
+        from backend.config import DUCKDB_PATH
+        path = Path(str(DUCKDB_PATH))
+    except Exception:
+        # backend.config 不可 import (CI 早期失败) → 不可访问
+        return False
+
+    if not path.exists():
+        return False
+
+    # 文件存在, 进一步 check 可连接 (read_only 不抢 write lock, 不会跟 uvicorn 冲突)
+    try:
+        import duckdb
+        conn = duckdb.connect(str(path), read_only=True)
+        conn.execute("SELECT 1").fetchone()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+# Module-level 常量: 跨多个 test 共享 skipif 条件
+_PROD_DUCKDB_AVAILABLE = _detect_prod_duckdb_available()
+
+
 @pytest.fixture
 def skip_if_duckdb_locked():
     """test fixture: 如果生产 DuckDB 被任何进程占 (含本 pytest 进程), pytest.skip 整 test.

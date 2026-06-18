@@ -50,11 +50,24 @@ _UVICORN_LOCK_PID = (
 # Sprint 36-5 race flake 治标: pytest-xdist 多 worker 跨进程也撞 DuckDB file lock.
 # 旧 skipif 只拦 uvicorn PID, 不拦 pytest-xdist worker 之间互锁. 加 worker count 探测
 # → 多 worker 时整 module skip, 提示用 `pytest -n0` serial mode 跑.
+# Sprint 39 CI 爆红修复: CI 跑 serial mode + production DuckDB 不存在 → 真连空 DuckDB
+# → CatalogException fail. 加 _PROD_DUCKDB_AVAILABLE check (CI 没数据时整 module skip).
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE  # noqa: E402
 _XDIST_WORKER_COUNT = _os.environ.get("PYTEST_XDIST_WORKER_COUNT")
 _IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1
 pytestmark = pytest.mark.skipif(
-    (_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid()) or _IN_XDIST_PARALLEL,
+    not _PROD_DUCKDB_AVAILABLE
+    or (_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid())
+    or _IN_XDIST_PARALLEL,
     reason=(
+        (
+            "生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件). "
+            "本地真跑: 先 ETL 跑批生成 data/processed/fuqing_crm.duckdb. "
+        )
+        if not _PROD_DUCKDB_AVAILABLE
+        else ""
+    )
+    + (
         "生产 DuckDB lock 冲突: "
         + (
             f"PID {_UVICORN_LOCK_PID} 占 fd (uvicorn 或 xdist worker), TestClient 跨进程锁冲突. "

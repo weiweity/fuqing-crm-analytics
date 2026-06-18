@@ -30,21 +30,40 @@ import pytest
 from backend.services.category_service.churn import get_category_user_list
 
 
-# Sprint 38 race flake 治标 (跟 test_api_integration.py:41-68 Sprint 36-5 模式一致):
-# - uvicorn 跑着时: 整 module skip, 避免跨进程 DuckDB 锁冲突
-# - pytest-xdist 多 worker 时: 整 module skip, 避免 worker 之间竞争同一文件锁
-# - 单跑 (`pytest ... -v`) serial 模式: 0 skip, 真跑回归测试 (Sprint 34.1 价值保留)
+# Sprint 39 CI 爆红修复 + Sprint 38 race flake 治标 (三层防护):
+# - Sprint 39 第 1 层: production DuckDB 不可用 → 整 module skip
+#   (CI / fresh checkout 没 data/processed/fuqing_crm.duckdb, 真连空 DuckDB
+#   → CatalogException fail)
+# - Sprint 38 race flake 第 2 层: pytest-xdist 多 worker → 整 module skip
+#   (worker 之间竞争同一文件锁)
+# - 单跑 (`pytest ... -v -n0`) serial 模式: 0 skip, 真跑回归测试 (Sprint 34.1 价值保留)
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE  # noqa: E402
+
 _UVICORN_LOCK_PID = (
     _os.environ.get("_FICTIONAL_UVICORN_PID_FOR_TEST")  # 留 hook for future test
 )
 _XDIST_WORKER_COUNT = _os.environ.get("PYTEST_XDIST_WORKER_COUNT")
 _IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1
 pytestmark = pytest.mark.skipif(
-    (_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid()) or _IN_XDIST_PARALLEL,
+    not _PROD_DUCKDB_AVAILABLE
+    or (_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid())
+    or _IN_XDIST_PARALLEL,
     reason=(
-        f"生产 DuckDB lock 冲突: pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
-        f"用 `pytest backend/tests/test_churn_user_list_fstring.py -n0` serial mode 跑 = 0 冲突. "
-        f"真治本留 Sprint 36.x+ (per-test tmp DuckDB ATTACH 模式, Sprint 38 调研 ROI 低)."
+        (
+            "生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件). "
+            "本地真跑: 先 ETL 跑批生成 data/processed/fuqing_crm.duckdb. "
+        )
+        if not _PROD_DUCKDB_AVAILABLE
+        else ""
+    )
+    + (
+        (
+            f"生产 DuckDB lock 冲突: pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
+            f"用 `pytest backend/tests/test_churn_user_list_fstring.py -n0` serial mode 跑 = 0 冲突. "
+            f"真治本留 Sprint 36.x+ (per-test tmp DuckDB ATTACH 模式, Sprint 38 调研 ROI 低)."
+        )
+        if _IN_XDIST_PARALLEL
+        else ""
     ),
 )
 
