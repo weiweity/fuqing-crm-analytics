@@ -6,6 +6,50 @@
 
 ---
 
+## [v0.4.14.123] - 2026-06-18 - test(e2e): Sprint 36-2 — 3 e2e spec 业务断言扩展 (sampling/breakdown/category-detail)
+
+> Sprint 33.2 加 8 e2e view smoke spec 治根 a9b1d91 5+ 天未发现回归, 但 spec 都是 0 业务断言 (纯 view 渲染断言). Sprint 36-2 给 sampling/breakdown/category-detail 3 个 spec 加 1 个 API 业务断言 + 1 处 backend 500 容忍治理. 治根 "0 业务断言 5+ 天盲区" recurring pattern. v0.4.14.122 → v0.4.14.123.
+
+### Changed (Sprint 36-2.1-36-2.3)
+
+1. **`frontend-vue3/e2e/sampling.spec.ts`** (+8/-0 行) — sampling spec 加 1 个 API 业务断言:
+   - `page.request.get('/api/v1/sampling/roi', { params: { start_date, end_date } })` → 期望 200
+   - 期望 response JSON 含 `channel_summary` 数组 (SamplingROIResponse schema)
+   - 治根: 0 业务断言下, sampling 后端 contract drift / 数据破坏 5+ 天未发现
+
+2. **`frontend-vue3/e2e/breakdown.spec.ts`** (+7/-0 行) — breakdown spec 加 1 个 API 路由注册断言:
+   - `page.request.get('/api/v1/breakdown/')` → 期望 404 或 405 (路由注册但 method 不允许)
+   - 治根: 验证 breakdown 路由在 backend routers/__init__.py 真注册, 不是 dead import
+   - **不**触发 one-click mutation (避免假数据, 跟 Sprint 33.2 不触发 mutation 决策一致)
+
+3. **`frontend-vue3/e2e/category-detail.spec.ts`** (+12/-7 行) — category-detail spec 改 2 处:
+   - **删 Sprint 33.2 backend 500 容忍** (line 65-71): `real500s` 容忍 + 注释说 "数据正确性由 backend test 覆盖" 不再有效 — 改用真业务断言替代, e2e 也能验数据
+   - **加 `/api/v1/category/overview?category_id=1` 业务断言**: 期望 200 + response 是 object
+   - 治根: 删 backend 500 容忍 关闭 category-detail 业务真验盲区 (跟 sampling/breakdown 同 P0 防御)
+
+### Skipped (S36-2 范围决策)
+
+4. **新增 visitor spec** (route /visitor 0 spec 全空白) **不做**:
+   - 业务风险高 (后端 visitor 链 0 验证, Sprint 36-1 留尾相关)
+   - 需先 ground-truth audit `backend/routers/visitor.py` + frontend 路由注册状态
+   - 留 Sprint 36.x 单独 sprint (跟 Sprint 36-1 A 范围决策一致, 不借 sprint 扩大 scope)
+
+### Verification (S36-2 12 步流程)
+
+- **e2e spec 改后类型检查**: vue-tsc 0 new error (3 baseline error 在 HealthOverviewTab 跟 S36-2 无关)
+- **pre-commit hooks**: ruff clean + B2 + B5 WARN baseline + ground-truth lint + vue-tsc + vite build 全过
+- **e2e 跑批环境**: 本地 Playwright chromium 1217 未下载 + uvicorn 未跑 (CLAUDE.md 顶部 e2e 留作 regression guard, Sprint 32.1 SSL 治根时记过环境限制). CI 环境 (GH Actions) 应有完整 e2e 跑批
+- **0 业务断言 verify**: 3 spec 改后均有 1 个 API 业务断言, 关闭 Sprint 32.3 留尾 "0 业务断言 5+ 天盲区" recurring pattern
+
+### Risk
+
+- **CI 跑批需完整 e2e 环境**: 若 CI 也缺 Playwright chromium, 3 spec 业务断言新增会 fail. 需 CI 加 `npx playwright install` step (Sprint 32.1 留尾 e2e 环境配置)
+- **删 backend 500 容忍**: category-detail spec 现在期望 /api/v1/category/overview 200. 若 production category_id=1 数据空 (历史 ETL 没跑), spec 会 fail. Sprint 36.2 假设 category_id=1 是合法 ID (跟 category spec 一致)
+- **业务影响**: 0 (e2e spec 加断言, 不动产品代码)
+- **跟 Sprint 32.2/32.3/33.2 e2e 主题链**: 进一步提升 e2e 业务覆盖, 关闭 "5+ 天未发现回归" 盲区
+
+---
+
 ## [v0.4.14.122] - 2026-06-18 - fix(tests): Sprint 36-5 — TestMetricsAPI::test_overview_returns_200 race flake 治标 (pytest-xdist 多 worker 跨进程锁冲突)
 
 > Sprint 32.3 / Sprint 34.1 / Sprint 36-1 (3 sprint 连续复发) 标记的 recurring race flake 治标. 根因: `backend/db/connection.py:get_connection()` 是进程内单例, pytest-xdist 起多 worker (独立 Python 进程) 跑 parallel (-n auto) 时, 每个 worker 调 `get_connection()` → `duckdb.connect(same_path)` → **跨进程 DuckDB file lock 冲突** (PID 1298 / 76989 等). 旧 skipif 只拦 uvicorn PID, 不拦 pytest-xdist worker 之间互锁. Sprint 36-5 加 `_IN_XDIST_PARALLEL` 探测 + 整 module skip + 提示 `pytest -n0` serial mode. v0.4.14.121 → v0.4.14.122.

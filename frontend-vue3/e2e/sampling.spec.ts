@@ -57,6 +57,14 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     // 等待 ROI sub-tab 数据 fetch
     await page.waitForTimeout(2000)
 
+    // Sprint 36-2 业务断言: /api/v1/sampling/roi 返回 200 + 有 channel_summary 数组
+    const roiResp = await page.request.get('/api/v1/sampling/roi', {
+      params: { start_date: '2025-01-01', end_date: '2025-12-31' },
+    })
+    expect(roiResp.status(), '/api/v1/sampling/roi 业务断言').toBe(200)
+    const roiJson = await roiResp.json()
+    expect(Array.isArray(roiJson.channel_summary), 'channel_summary 应为数组').toBe(true)
+
     // 无 error 级别控制台日志 (a9b1d91 当时 Vite 编译错会污染 console)
     expect(consoleErrors).toHaveLength(0)
 
