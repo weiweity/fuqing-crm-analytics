@@ -110,3 +110,46 @@ if [ -n "$STAGED_VUE" ]; then
     fi
     cd ..
 fi
+
+# Sprint 33 候选 1: .vue/.ts 结构 sanity check + vite build (防 a9b1d91 类 .vue 误清空)
+# 教训: a9b1d91 commit (2026-06-13) 误清空 SamplingView.vue (32653 字节 → 699 字节, 699 个 newline),
+#       5+ 天未发现. 验证发现 (Sprint 33.1 实施时):
+#       - vue-tsc --noEmit 不报 (空 .vue 文件结构合法, vue-tsc 跳过未引用的 .vue)
+#       - vite build lazy load 跳过未引用的 .vue (a9b1d91 SamplingView 在 router 里但 build OK,
+#         原因是当前 Vite 版本对空 SFC (newline-only) 兼容, 不报 'At least one <template>'
+#       - 真正捕获 a9b1d91 类事故的 = 访问路由触发实际编译 (候选 3 e2e 11 view 治根)
+# 本 hook 提供 P1 防御性:
+#   (a) grep sanity check: 任何 .vue 必须含 <template 或 <script 标记, 直接拦截整文件清空
+#   (b) vite build: 兜底未来 Vite 升级回归 + 引用 .vue 的真实结构性破坏
+# 成本: grep < 100ms + vite build ~1s (981ms baseline) = ~1.1s/commit
+STAGED_VUE_FILES=$(echo "$STAGED" | grep -E '^frontend-vue3/src/.*\.vue$' || true)
+if [ -n "$STAGED_VUE_FILES" ]; then
+    echo ""
+    echo "Running .vue structure sanity check (Sprint 33 候选 1a, grep <template|<script)..."
+    for f in $STAGED_VUE_FILES; do
+        if [ -f "$f" ] && ! grep -qE '<template|<script' "$f"; then
+            echo ""
+            echo "❌ $f 缺 <template>/<script> 标记 — 防 a9b1d91 类整文件清空"
+            echo "   文件大小: $(wc -c < "$f" | tr -d ' ') bytes"
+            echo "   Sprint 32.3 教训: a9b1d91 commit 误清空 SamplingView.vue (32653→699 字节), 5+ 天未发现"
+            echo "   修复: 还原 .vue 文件或 git restore --staged $f"
+            echo "   例外 (紧急 hotfix): git commit --no-verify"
+            exit 1
+        fi
+    done
+fi
+
+STAGED_VUE_BUILD=$(echo "$STAGED" | grep -E '^frontend-vue3/src/.*\.(vue|ts)$' || true)
+if [ -n "$STAGED_VUE_BUILD" ]; then
+    echo ""
+    echo "Running npx vite build (Sprint 33 候选 1b, 兜底未来 Vite 升级回归 + 引用 .vue 错)..."
+    cd frontend-vue3 && npx vite build 2>&1 | tail -20
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        echo ""
+        echo "❌ vite build 失败 — 引用 .vue/.ts 文件结构性破坏"
+        echo "   修复: 检查 commit diff 中被引用的 .vue/.ts 文件结构"
+        echo "   例外 (紧急 hotfix): git commit --no-verify"
+        exit 1
+    fi
+    cd ..
+fi
