@@ -52,7 +52,6 @@ import type {
   CategorySegment,       // 品类分段
   ChurnDistribution,    // 流失分布
   RfmSegment,           // RFM 象限
-  FlowMatrixResponse,   // 流转矩阵
 } from '@/api/types'
 ```
 
@@ -84,7 +83,6 @@ import type {
 | `CategoryDistributionResponse` | 品类分布 |
 | `ChurnDistribution` | 流失分析 |
 | `RfmSegment` | RFM 象限 |
-| `FlowMatrixResponse` | 人群流转矩阵 |
 | `AssetSummary` | 资产概览 |
 | `ReportSummaryResponse` | 报告汇总 |
 

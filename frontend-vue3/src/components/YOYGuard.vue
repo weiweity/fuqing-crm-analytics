@@ -8,7 +8,7 @@
  *   组件只做 abs + toFixed, 不再内部 *100
  * - 通用: 不耦合 UI 样式, 调用方负责包装颜色/箭头 (RFMSegmentDrilldown 表格用法)
  * - styled 模式 (Sprint 20 P1-2 新增): 跟原 YOYBadge 完全一致 — 箭头 (↑/↓) + 颜色 (绿/红),
- *   9 个表格组件 (AudienceView/CategoryView/RFMView/CategoryRepurchaseTab/ProductClassRepurchaseTab/
+ *   8 个表格组件 (AudienceView/CategoryView/CategoryRepurchaseTab/ProductClassRepurchaseTab/
  *   health/{F,M,R}IntervalTab/ValueTierTab/HealthOverviewTab) 改用 YOYGuard styled=true,
  *   删 YOYBadge.vue wrapper
  *
