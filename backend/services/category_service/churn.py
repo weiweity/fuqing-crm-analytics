@@ -415,7 +415,7 @@ def get_category_user_list(
     result = conn.execute(sql, [start_date, end_date, category_id, limit]).fetchall()
 
     # 获取总用户数
-    count_sql = """
+    count_sql = f"""
     SELECT COUNT(DISTINCT user_id)
     FROM orders
     WHERE pay_time >= ? AND pay_time < DATE(?) + INTERVAL '1' DAY
