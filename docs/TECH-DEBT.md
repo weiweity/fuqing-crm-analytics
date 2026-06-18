@@ -318,6 +318,7 @@ Sprint 25+ 跟债 #195 一起排期。
 | #7 _xlsx_stem_to_rel 重算 | (本次) | (v0.4.14.96) | 加 @functools.lru_cache(maxsize=4) |
 | #195 uvicorn × ETL RW 不变量 | (本次) | (v0.4.14.97) | cli.py L310/L424/L688/L859 4 处 sibling conn 上方加 `# INVARIANT: 立刻 conn.close()` 注释, 文档化跨进程不变量 |
 | #196 Sprint 11 vs 24+ P3 同根因注释 | (本次) | (v0.4.14.97) | cli.py 顶部 module-level docstring 加 "DuckDB strict mode 治根史" 段, 统一 3 段分散注释 |
+| #S37-1 S36-6 /v1/flow/sankey ghost endpoint 前端类型滞后 | Sprint 37 | 1862abd (v0.4.14.125) | types.ts/types.generated.ts 从 uvicorn /openapi.json 重新生成, 删 /api/v1/flow/sankey 路由完整块 + get_flow_sankey_api operation, 净删 114 行 (50 +/164 -). 后端 S36-6 已删, 前端 types 漏重生成, Sprint 37 闭环 |
 
 ---
 
@@ -370,3 +371,4 @@ Sprint 25+ 跟债 #195 一起排期。
 | #7 _xlsx_stem_to_rel 重算 | P2 | ✅ 已修复 (v0.4.14.96) | - |
 | #195 uvicorn × ETL RW 不变量 | P3 | ✅ 已修复 (v0.4.14.97) | - |
 | #196 Sprint 11 vs 24+ P3 同根因注释 | P3 | ✅ 已修复 (v0.4.14.97) | - |
+| #S37-1 S36-6 /v1/flow/sankey ghost endpoint 前端类型滞后 | P3 | ✅ 已修复 (v0.4.14.125) | 净删 114 行 |
