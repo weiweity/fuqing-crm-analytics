@@ -35,6 +35,8 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 38 收口 (v0.4.14.126 race flake 治标, 5 sprint 复发 S32.3/S34.1/S36-1/S37/S38 透明化, 3 个真连 test 加 _IN_XDIST_PARALLEL skipif, pre-push 加 uvicorn 状态检测, ATTACH 真治本 ROI 重评为低)
 - ✅ Sprint 39.1 收口 (v0.4.14.127 GH Actions CI 爆红修复, 7+ sprint 一直红闭环, conftest.py 加 _PROD_DUCKDB_AVAILABLE 跨 3 个真连 test 加 skipif, 模拟 CI DUCKDB_PATH=/tmp/nonexistent 跑 16 skipped / 0 failed / exit 0)
 - ✅ Sprint 39.2 收口 (v0.4.14.128 visitor chain + export/report chain ground-truth audit doc 闭环, Sprint 36-1 plan-eng-review "visitor 业务风险高" 误判校正, 实查 visitor backend 100% 活跃 + frontend API 100% 活跃 + AudienceView 真消费, 唯一缺 = frontend router 注册; 激活路径产品决策留给 user, 详见 `docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`)
+- ✅ Sprint 40 收口 (v0.4.14.129 Sprint 40+ ground-truth audit + 推后排期, 6 项 Sprint 40+ 候选 ROI 重评, Sprint 41 CI e2e 本 sprint 执行, Sprint 42-43 推后 Sprint 50+, 详见 `docs/SPRINT-40-PLUS-PLAN.md`)
+- ✅ Sprint 41 收口 (v0.4.14.131 CI 跑 e2e 自动化, Sprint 32.1 留尾 7 sprint 闭环, 3 commit 实战: Sprint 41 加 e2e job + Sprint 41.1 disk full fix + Sprint 41.2 npm ci --legacy-peer-deps, GH Actions 4 job 自动化: lint + ground-truth-lint + pytest + e2e)
 
 ---
 

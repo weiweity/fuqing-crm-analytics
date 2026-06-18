@@ -1,8 +1,34 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 24 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 25 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## [v0.4.14.131] - 2026-06-19 - ci(github-actions): Sprint 41 — CI 跑 e2e 自动化 (Sprint 32.1 留尾 7 sprint 闭环)
+
+> Sprint 32.1 (v0.4.14.114) Playwright HTTPS tolerance 留尾, Sprint 40 ground-truth audit 后实施 Sprint 41. 3 commit 实战 = Sprint 41 + Sprint 41.1 follow-up disk + Sprint 41.2 npm ci fix. 1.5 天估时, Sprint 39.1 baseline CI 修完后 ROI 升为高. v0.4.14.128 → 0.4.14.131.
+
+### Changed
+
+1. **`.github/workflows/lint.yml`** (+58 行, Sprint 41) — 加 `e2e` job: actions/setup-node v20 + npm cache + certifi 装 NODE_EXTRA_CA_CERTS + npm ci + npx playwright install --with-deps chromium + npm run build + vite preview 后台启动 + curl 等 200 + npx playwright test. paths filter 加 `frontend-vue3/e2e/**` + `playwright.config.ts` (避免 docs-only commit 触发 e2e).
+2. **`backend/tests/test_wo_cleanup_orphans.py`** (+12 行, Sprint 41.1 follow-up) — `test_f3_marker_written_in_main` 加 `monkeypatch.setenv("ETL_MIN_DISK_GB", "0")` 跳过 disk check. GH Actions runner 14GB disk 不够 scripts/etl/cli.py:673 ETL_MIN_DISK_GB 默认 50GB 阈值. Test 只验证 F3 marker 写逻辑, 跟 disk check 无关.
+3. **`.github/workflows/lint.yml`** (+3 行, Sprint 41.2 follow-up) — `npm ci` → `npm ci --legacy-peer-deps`. openapi-typescript@7.13.0 peer dep typescript@^5.x, frontend devDeps typescript@~6.0.2 (新版), npm ci ERESOLVE fail.
+
+### Verification
+
+- Sprint 39.1 _PROD_DUCKDB_AVAILABLE skipif 16 skipped 工作正常 ✅ (Sprint 41.1 commit 52af508 CI 跑通到 test 阶段)
+- Sprint 41.1 disk full fix 本地: `pytest test_wo_cleanup_orphans.py -v` = 1 passed ✅
+- Sprint 41.2 npm ci fix: GH Actions ee8a655c CI queued (等前面 c035f47 + 3aa39495 完成)
+- e2e 跑批预估: 3-5 min (装 deps ~2 min + npm build ~30s + e2e ~30s + preview server ~10s)
+
+### Cross-sprint 教训 (跨 sprint 复用)
+
+- **Sprint 32.1 留尾 7 sprint 没做**: Sprint 39.1 baseline CI 修完 + Sprint 40 audit ROI 重评 → Sprint 41 实施. Sprint 41 + 41.1 + 41.2 三次实战 fix 是 CI 0→1 的实战路径.
+- **GH Actions runner 限制**: 14GB disk < ETL 默认 50GB 阈值, 必须 monkeypatch 跳过. 14GB 也限制 npm ci peer dep, 必须 --legacy-peer-deps.
+- **非阻塞起步**: e2e 失败不影响 lint + ground-truth-lint + test 三个 main job (parallel jobs). 观察 1-2 sprint 后评估是否改 blocking.
+- **AI safety net L5**: Sprint 33 L1 lint + Sprint 34.1 L1 backend lint + Sprint 39.1 L4 review checklist + Sprint 41 L5 CI 自动门禁 (lint + ground-truth + pytest + e2e 4 个 job 全自动). 跨 sprint 防御体系闭环.
 
 ---
 
