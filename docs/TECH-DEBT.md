@@ -3,10 +3,14 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-18 (Sprint 33 收口 v0.4.14.118, 债 #S33-1 pre-commit vite build hook + 债 #S33-2 e2e 10/10 view smoke 覆盖, a9b1d91 类事故 P0+P1 治根)
+**最后更新**: 2026-06-18 (Sprint 34.1 收口 v0.4.14.119, 债 #S34-1 churn.py:418 漏 f 前缀治根 + L1 SQL f-string 一致性 lint 钩子, a9b1d91 对称教训 P0+P1 防御)
 **当前债数**: 0 条 (全闭环)
-**已修复**: 19 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + **债 #S33-1** pre-commit vite build hook P1 防御性 + **债 #S33-2** e2e 10/10 view smoke 覆盖 P0 治根)
+**已修复**: 20 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + #S33-1 + #S33-2 + **债 #S34-1** churn.py:418 漏 f 前缀治根 + L1 SQL f-string lint 钩子)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
+**Sprint 34+ backlog**: 2 条
+- 📋 **债 #S34-2** (P2) L2 升级 AST parser 替换 regex lint (更准, 跨 multiline + nested string) — Sprint 34.2 立项, ~0.5 天
+- 📋 **债 #S34-3** (P3) L3 churn.py 改用 FilterBuilder.build() 全面参数化 (弃 `{valid_sql}` 字符串内嵌) — Sprint 35+ 评估, ~1.5-2 天
+- ⚠️ **Recurring race flake**: TestMetricsAPI::test_overview_returns_200 在 parallel (-n auto) 偶发 fail (跟 uvicorn 单例 + DuckDB 锁冲突), baseline main HEAD 也 fail. Sprint 32.3 memory 提. 解决方向 Sprint 34.2 一起评估
 **新待办 (Sprint 30-33 计划)**:
 - ✅ Sprint 30.1 W4 540 combo batch INSERT (闭环 v0.4.14.105, 50.4× 加速)
 - ✅ Sprint 30.2 pre-commit CHANGELOG 改 post-merge hint (闭环 v0.4.14.106, soft WARN)

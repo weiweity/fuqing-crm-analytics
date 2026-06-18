@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.118（main @ 0b0e645，2026-06-18 Sprint 33 收口），测试 585 passed / 15 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass (Sprint 33: 债 #S33-1 pre-commit 加 vite build hook 防 a9b1d91 类 .vue 误清空 + 债 #S33-2 e2e 10/10 view smoke 覆盖 a9b1d91 5+ 天盲区治根. 双件 = 完整 AI-write safety net P1 防御 + P0 检测) |
+| 4 | **版本状态** | v0.4.14.119（main @ 0646aa8，2026-06-18 Sprint 34.1 收口），测试 587 passed / 15 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (Sprint 34.1: 债 #S34-1 churn.py:418 漏 f 前缀治根 + L1 SQL f-string 一致性 lint 钩子接入 pre-commit. 跟 Sprint 33 防御前端 (.vue typo) 对称, 共同构成 AI write safety net P0+P1 闭环) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -178,6 +178,46 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 4. **Ground truth 验证不能信**"代码看起来对"**(D-4 + P1-3 共训): 凭"代码长这样"不能下"未集成"结论。**任何 "未集成" / "不存在" / "占位" / "X 没生效" 必须有 `git log <path>` + `git show <sha>:<path>` + 实证（跑批日志 / pytest -v 输出 / 真 GitHub Actions run）佐证。P1-3 钩子的 `find_evidence_nearby` + `has_real_git_evidence` 就是把 "reviewer 写了" 升级为 "git log 跑通"。
 
 5. **单连接测试不能推广到生产** (D-7 Sprint 7 P2 教训): DuckDB file-backed 模式下, **同一 connection 的 in-memory state 与新 connection 的 file state 行为不一致**. 100/100 单连接单元测试可能完全误导, 真实生产 ETL 总是新连接 per call. Sprint 7 P2 DuckDB 升级测试 1-tx 路线单连接 100/100 通过, 新连接 1/1 失败 (ConstraintException). **任何 ETL 决策必须有"模拟生产"测试** (新连接 + commit/close 模式), 否则 100% 单元测试通过可能完全是误导. 详见 `CHANGELOG.md` v0.4.14.96 Sprint 24 P3 收口 (Sprint 7 P2 决策被 Sprint 24+ P3 改写).
+
+### AI 写代码 typo 防御规范 (Sprint 33 + Sprint 34.1)
+
+| 层 | 防御 | 触发点 | Sprint | 文件 |
+|---|---|---|---|---|
+| L1 frontend | .vue 结构 sanity grep (`<template>` 或 `<script>`) | pre-commit + vite build 兜底 | Sprint 33 | `.githooks/pre-commit:114-145` |
+| L1 backend | SQL f-string 一致性 lint (三引号 SQL body 含 `{var}` 必须 f 前缀) | pre-commit | Sprint 34.1 | `backend/scripts/check_sql_fstring_consistency.py` |
+| L2 (可选) | AST parser 升级版 lint | pre-commit + nightly | Sprint 34.2 backlog | — |
+| L3 (可选) | 弃 `{valid_sql}` 字符串内嵌, 全面 `FilterBuilder.build()` 参数化 | — | Sprint 35+ backlog | — |
+| **L4 (流程)** | **/review checklist**: SQL 三引号赋值若含 `{var}` 必须 f 前缀 | review skill 强制 | **Sprint 34.1** | 本节 |
+
+**L4 永久规则 (跟 Sprint 3 P1-3 4 轮修教训同位)**:
+
+**任何 SQL 三引号赋值若 body 含 `{identifier}` 占位符, opening 行必须 f-string** (有 `f` 或 `rf` 前缀).
+
+```python
+# ❌ WRONG: missing f prefix, DuckDB parses literal "{valid_sql}"
+count_sql = """
+SELECT COUNT(*) FROM orders WHERE {valid_sql}
+"""
+
+# ✅ RIGHT: f-string prefix, DuckDB sees interpolated SQL fragment
+count_sql = f"""
+SELECT COUNT(*) FROM orders WHERE {valid_sql}
+"""
+```
+
+**根因教训 (a9b1d91 对称)**:
+
+- Sprint 32.3: a9b1d91 commit (Claude Opus 4.8 1M context) 误清空 `SamplingView.vue` (32653 字节 → 699 字节 newline), Vite 编译错 `[plugin:vite:vue] At least one <template> or <script> is required` 阻塞 `/sampling` 路由 5+ 天未发现
+- Sprint 34.1: churn.py:418 count_sql 漏写 f 前缀, DuckDB 抛 `ParserException: syntax error at or near "}"` 100% 触发 `/category-detail/:id` 路由 5+ 天未发现
+
+**两次事故根因都是 "AI 写代码 typo 类 5+ 天未发现"**. 两次治根都是 "1 字符 fix + lint 钩子机制防御". Sprint 33 (.vue) + Sprint 34.1 (.sql) 共同构成 AI write safety net 完整闭环.
+
+**跨 sprint 复用教训**:
+
+1. **静态分析不够**: vue-tsc 不报空 .vue (合法 SFC), DuckDB 不报 `{valid_sql}` 字面量 (语法 OK). 必须 lint 钩子扫源码层
+2. **真编译/真执行才能发现**: Sprint 32.3 vite build lazy load 跳过未引用 .vue, Sprint 34.1 真 SQL 执行才能发现 ParserException. 必须 e2e / 真连接 regression test 触发
+3. **"破坏 → 验证 → 恢复" 循环**: Sprint 24+ P3 单连接教训应用. 单测能 "跑通" 不证明 "抓到 typo", 必须故意改坏验证 test 真 FAIL, 再恢复验证 PASS
+4. **pre-commit hook 是 commit 路径关键**: Sprint 3 P1-3 4 轮修揪 11 个问题 (CLAUDE.md 第 158 行附近). Sprint 34.1 lint hook 走 1 critical pass, Sprint 34.2 L2 升级时走 4 轮
 
 ---
 
