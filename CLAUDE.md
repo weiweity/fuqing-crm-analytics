@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.128（main @ TBD，2026-06-19 Sprint 39.2 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 修复 (7+ sprint 一直红闭环, Sprint 39.2 visitor chain + export/report chain ground-truth audit 闭环) (Sprint 39.2: visitor chain audit 校正 Sprint 36-1 误判 "业务风险高", 实查 visitor backend 100% 活跃 + frontend API 100% 活跃 + AudienceView 真消费, 唯一缺 = frontend router/index.ts 没注册 /visitor; export/report chain 同模式 backend 活跃 + frontend 0 调用; 激活路径产品决策留给 user, 详见 `docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`) |
+| 4 | **版本状态** | v0.4.14.131（main @ TBD，2026-06-19 Sprint 41 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 修复 (Sprint 39.1 + Sprint 41 + Sprint 41.1 disk + Sprint 41.2 npm ci 4 步实战闭环, baseline + e2e 2 job 自动化) (Sprint 40 audit 推后 4 项; Sprint 41 Sprint 32.1 留尾 7 sprint 闭环: 加 e2e job + disk skip + npm ci fix; Sprint 41 留 Sprint 42+ 推后项) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
