@@ -80,7 +80,9 @@ jobs:
       - name: Install Node deps
         run: |
           cd frontend-vue3
-          npm ci
+          # openapi-typescript@7.13.0 peer dep typescript@^5.x, 但 frontend devDeps typescript@~6.0.2 (新版).
+          # Sprint 41 实战: npm ci 报 ERESOLVE → e2e job fail. 用 --legacy-peer-deps 跳过.
+          npm ci --legacy-peer-deps
       - name: Install Playwright browsers
         env:
           # Sprint 32.1 实战: macOS 跑 e2e 报 SELF_SIGNED_CERT_IN_CHAIN, 修法
