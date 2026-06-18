@@ -6,6 +6,48 @@
 
 ---
 
+## [v0.4.14.122] - 2026-06-18 - fix(tests): Sprint 36-5 — TestMetricsAPI::test_overview_returns_200 race flake 治标 (pytest-xdist 多 worker 跨进程锁冲突)
+
+> Sprint 32.3 / Sprint 34.1 / Sprint 36-1 (3 sprint 连续复发) 标记的 recurring race flake 治标. 根因: `backend/db/connection.py:get_connection()` 是进程内单例, pytest-xdist 起多 worker (独立 Python 进程) 跑 parallel (-n auto) 时, 每个 worker 调 `get_connection()` → `duckdb.connect(same_path)` → **跨进程 DuckDB file lock 冲突** (PID 1298 / 76989 等). 旧 skipif 只拦 uvicorn PID, 不拦 pytest-xdist worker 之间互锁. Sprint 36-5 加 `_IN_XDIST_PARALLEL` 探测 + 整 module skip + 提示 `pytest -n0` serial mode. v0.4.14.121 → v0.4.14.122.
+
+### Fixed (Sprint 36-5.1-36-5.2)
+
+1. **`backend/tests/test_api_integration.py`** (+19/-3 行, 改 module-level skipif) — Sprint 36-5 race flake 治标:
+   - 旧 skipif 只覆盖 "生产 DuckDB 被 uvicorn 占" case, 不覆盖 "pytest-xdist 多 worker 互锁" case. 2 case 互补, 必须 1 触发就 skip
+   - 新加 `_XDIST_WORKER_COUNT = os.environ.get("PYTEST_XDIST_WORKER_COUNT")` + `_IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1`
+   - skipif 条件: `(_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid()) or _IN_XDIST_PARALLEL`
+   - skip 理由含 "用 `pytest backend/tests/test_api_integration.py -n0` serial mode 跑 = 0 冲突" 提示
+
+### Skipped (Sprint 36-5 范围决策)
+
+2. **L2 AST parser 升级 L1 regex** **不做** — 跟 S36-4 跳过 ground-truth-lint 扩范围决策一致:
+   - L1 regex 启发式在 101 files 0 violation 验证 (Sprint 36-4 跨范围扫描), 跨多行 + docstring tracking 都覆盖
+   - L2 AST parser 价值: 识别 `varname = "..."; ...; varname += "..."` 跨 statement 拼接 — 实际生产 0 出现, 0 实际拦截价值
+   - L2 跟 L1 性能差 10× (AST parse 全文件 vs regex skip), 跨 101 files 跑批从 0.49s 变 ~5s, hook 阈值 ≤ 10s 接近临界
+   - 留 Sprint 36.x 评估 (跟 S36-4 ground-truth-lint 延后评估同位)
+3. **Race flake 真治本 (per-test tmp DuckDB ATTACH 模式)** **不做** — 超出 S36-5 1 天范围:
+   - 真治本需要重写 conftest 让 test_api_integration 不用生产 DuckDB (per-test tmp DuckDB ATTACH 复制 schema only 或 :memory: + W4 最小 data)
+   - 生产 DuckDB 103GB, cp 不可行, ATTACH schema-only + INSERT fake rows 需重写 service init
+   - 留 Sprint 36.x 单独 sprint 重构, 1-2 天 effort
+
+### Verification (S36-5 12 步流程)
+
+- **race flake 复现**: 5 次 `pytest -n auto` 跑批 100% fail (6/10 tests fail, 5 次 fail 模式不同但都是 DuckDB lock conflict PID 1298)
+- **fix 后 parallel**: `pytest -n auto` 跑 → 10 skipped in 0.78s (race 100% 消失)
+- **fix 后 serial**: `pytest -n 0` 跑 → 10 passed in 5.16s (业务真验过)
+- **L1 SQL f-string lint 不受影响**: 101 files 0 violation (Sprint 36-4 验证)
+- **pre-commit hook**: ruff clean + B2 import check + B5 WARN baseline + ground-truth lint + vue-tsc + vite build 全过
+- **pytest -n 0 跑 4 个相关 module**: 16 passed in 5.93s (test_api_integration + test_check_review_ground_truth + test_check_sql_fstring_consistency + test_churn_user_list_fstring)
+
+### Risk
+
+- **race flake 真治本 (per-test tmp DuckDB) 留 Sprint 36.x**: 治标方案把 "parallel 跑" 改成 "serial 跑", 跑批时间 0.78s (skip) → 5.16s (serial). 跟 Sprint 24+ P3 单连接教训应用, 治标先, 治本后
+- **3 sprint 连续复发 (Sprint 32.3 / 34.1 / 36-1) 历史**: Sprint 36-5 治标, 后续 push 不再需要 `--no-verify` (serial 跑全 pass). Sprint 36.x 真治本 (per-test tmp DuckDB) 后回归 parallel
+- **CLAUDE.md 12 步流程 step ⑩**: race flake 治标后, push 阶段 pytest 全绿 (serial mode), `--no-verify` 不再需要
+- **业务影响**: 0 (test 跑批方式变, 不动产品代码)
+
+---
+
 ## [v0.4.14.121] - 2026-06-18 - chore(scripts): Sprint 36-4 — SQL f-string L1 lint 对称补盲 + 1 个真 violation 治根 (AI safety net 最后一公里)
 
 > Sprint 34.1 实施 SQL f-string L1 lint 钩子时, 范围仅 `backend/services/**/*.py` (70 files). Sprint 36-4 架构师 re-survey 发现 `backend/scripts/**` + `scripts/etl/**` 是对称盲区, 跨范围扫描立刻抓到 1 个真 violation: `scripts/etl/etl_status_override.py:449` `GSV_OVERRIDE_JOIN_SQL` 漏 f 前缀, 跟 Sprint 34.1 churn.py:418 完全同构 bug. 1 字符 fix 治根 + 加 fixture test 实战 "破坏 → 验证 → 恢复" 循环. v0.4.14.120 → v0.4.14.121.

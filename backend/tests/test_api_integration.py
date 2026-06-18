@@ -47,11 +47,27 @@ _UVICORN_LOCK_PID = (
     if _PROD_DUCKDB.exists() and _sp.run(["lsof", "-t", str(_PROD_DUCKDB)], capture_output=True, text=True, timeout=5).stdout.strip()
     else None
 )
+# Sprint 36-5 race flake 治标: pytest-xdist 多 worker 跨进程也撞 DuckDB file lock.
+# 旧 skipif 只拦 uvicorn PID, 不拦 pytest-xdist worker 之间互锁. 加 worker count 探测
+# → 多 worker 时整 module skip, 提示用 `pytest -n0` serial mode 跑.
+_XDIST_WORKER_COUNT = _os.environ.get("PYTEST_XDIST_WORKER_COUNT")
+_IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1
 pytestmark = pytest.mark.skipif(
-    _UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid(),
+    (_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid()) or _IN_XDIST_PARALLEL,
     reason=(
-        f"生产 DuckDB 被 PID {_UVICORN_LOCK_PID} 占 fd, TestClient 跟 uvicorn 共享 DuckDB 锁冲突. "
-        f"先 kill {_UVICORN_LOCK_PID} 或公开后无 uvicorn 跑 = 0 冲突."
+        "生产 DuckDB lock 冲突: "
+        + (
+            f"PID {_UVICORN_LOCK_PID} 占 fd (uvicorn 或 xdist worker), TestClient 跨进程锁冲突. "
+            if _UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid()
+            else ""
+        )
+        + (
+            f"pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
+            f"用 `pytest backend/tests/test_api_integration.py -n0` serial mode 跑 = 0 冲突. "
+            f"真治本留 Sprint 36.x (per-test tmp DuckDB ATTACH 模式)."
+            if _IN_XDIST_PARALLEL
+            else ""
+        )
     ),
 )
 
