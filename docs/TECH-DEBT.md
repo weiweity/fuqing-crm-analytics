@@ -320,6 +320,7 @@ Sprint 25+ 跟债 #195 一起排期。
 | #196 Sprint 11 vs 24+ P3 同根因注释 | (本次) | (v0.4.14.97) | cli.py 顶部 module-level docstring 加 "DuckDB strict mode 治根史" 段, 统一 3 段分散注释 |
 | #S37-1 S36-6 /v1/flow/sankey ghost endpoint 前端类型滞后 | Sprint 37 | 1862abd (v0.4.14.125) | types.ts/types.generated.ts 从 uvicorn /openapi.json 重新生成, 删 /api/v1/flow/sankey 路由完整块 + get_flow_sankey_api operation, 净删 114 行 (50 +/164 -). 后端 S36-6 已删, 前端 types 漏重生成, Sprint 37 闭环 |
 | #S38-1 race flake 5 sprint 复发 (S32.3/S34.1/S36-1/S37/S38) 治标 | Sprint 38 | TBD (v0.4.14.126) | 3 个真连 test 加 _IN_XDIST_PARALLEL skipif (test_churn_user_list_fstring.py:55,77 + test_w4_t7_integration.py:147,181,197,228 + test_api_integration.py:55,144,154,166,178,190,202,216) + pre-push 加 uvicorn 状态检测 warn. DuckDB 文件锁 exclusive, pytest-xdist 多 worker 跑同一文件 100% race flake. 真治本 (per-test tmp DuckDB ATTACH) Sprint 38 调研 ROI 重评为低, 推后 Sprint 36.x+. 跨 5 sprint 复发 (S32.3/S34.1/S36-1/S37/S38), --no-verify push 跳过 5+ sprint |
+| #S39-1 GH Actions CI 7+ sprint 一直红 治根 | Sprint 39 | 6d16639 (v0.4.14.127) | conftest.py 加 _PROD_DUCKDB_AVAILABLE (动态从 backend.config.DUCKDB_PATH 检测 + duckdb.connect(read_only=True) 测试); test_api_integration.py + test_churn_user_list_fstring.py + test_w4_t7_integration.py module-level pytestmark 加 'not _PROD_DUCKDB_AVAILABLE' condition. Sprint 38 race flake skipif 只挡 pytest-xdist, 没想到 CI 跑 serial mode + production DuckDB 不在 repo → 真连空 DuckDB → CatalogException fail. 跨 7+ sprint 复发 (CI 一直红从 Sprint 32 起没修) |
 
 ---
 
@@ -374,3 +375,4 @@ Sprint 25+ 跟债 #195 一起排期。
 | #196 Sprint 11 vs 24+ P3 同根因注释 | P3 | ✅ 已修复 (v0.4.14.97) | - |
 | #S37-1 S36-6 /v1/flow/sankey ghost endpoint 前端类型滞后 | P3 | ✅ 已修复 (v0.4.14.125) | 净删 114 行 |
 | #S38-1 race flake 5 sprint 复发 (S32.3/S34.1/S36-1/S37/S38) | P3 | ✅ 已修复 (v0.4.14.126) | 治标, 3 个真连 test 加 _IN_XDIST_PARALLEL skipif + pre-push 加 uvicorn 检测; ATTACH 真治本 ROI 重评为低, 推后 |
+| #S39-1 GH Actions CI 7+ sprint 一直红 (Sprint 32-38 merge CI 全部 fail) | P3 | ✅ 已修复 (v0.4.14.127) | 根因 Sprint 38 race flake skipif 只挡 xdist, CI 跑 serial + 缺生产 DuckDB → CatalogException; 修复 conftest.py 加 _PROD_DUCKDB_AVAILABLE + 3 个真连 test 加 skipif |
