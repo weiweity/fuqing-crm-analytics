@@ -397,7 +397,7 @@ Key routing rules:
 | # | 任务 | 工作量 | 来源 |
 |---|---|---|---|
 | 32.1 | **Playwright chromium v1208 SSL 证书修复** (e2e 跑批环境) | env config | Sprint 28+ 待办 #5 | ✅ 闭环 v0.4.14.114 (1 commit: playwright.config.ts 加 ignoreHTTPSErrors + launchOptions.args, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN) |
-| 32.2 | **e2e spec 回归** (`audience-daily-trend.spec.ts` 等 Sprint 27 写的 e2e) 等环境修好后跑回归 | 一次性 | Sprint 28+ 待办 #6 |
+| 32.2 | **e2e spec 回归** (`audience-daily-trend.spec.ts` 等 Sprint 27 写的 e2e) 等环境修好后跑回归 | 一次性 | Sprint 28+ 待办 #6 | ✅ 闭环 v0.4.14.116 (债 #S32-2 audience-daily-trend brittle canvas selector 修复 + WASM streaming race filter, bi-card + filter 模式 + canvas wait + scroll-into-view 治根, 3/3 e2e pass) |
 
 ### 关键架构教训 (codex + 架构师共识, 跨 sprint 复用)
 

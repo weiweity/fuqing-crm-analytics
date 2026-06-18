@@ -14,7 +14,7 @@
 - ✅ Sprint 30.4 CLAUDE.md `*_rate` 表格对齐 (闭环 v0.4.14.108, doc-only)
 - ✅ Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (闭环 v0.4.14.111+v0.4.14.112, 3 commit: Phase 1 inert infra + Phase 2 source of truth + Phase 3 docs)
 - ✅ Sprint 32.1 Playwright chromium v1208 SSL hardening (闭环 v0.4.14.114, 2 layer fix: 浏览器运行时 + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN)
-- Sprint 32.2 e2e spec 回归 (一次性) — 修复债 #S32-2 audience-daily-trend brittle canvas selector, 重跑 3 spec 全 pass
+- ✅ Sprint 32.2 e2e spec 回归 (闭环 v0.4.14.116, 债 #S32-2 brittle canvas selector 修复 + WASM streaming race filter, 3/3 e2e pass)
 
 ---
 
