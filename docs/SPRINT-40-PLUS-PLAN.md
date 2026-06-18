@@ -12,7 +12,7 @@
 | Sprint | 任务 | 工作量 | ROI 重评 | 决策 |
 |---|---|---|---|---|
 | **40** | race flake 真治本 (Sprint 38 调研 3 选 1) | 2+ 天 | **ROI 偏低** (跟 Sprint 38 一致) | **推后 Sprint 36.x+ (DuckDB 2.x 触发)** |
-| **41** | CI 跑 e2e 自动化 (GitHub Actions) | 1.5 天 | **ROI 高** (Sprint 39.1 baseline CI 修完闭环) | **本 sprint 执行** |
+| **41** | CI 跑 e2e 自动化 (GitHub Actions) | 1.5 天 | **ROI 高** (Sprint 39.1 baseline CI 修完闭环) | **✅ v0.4.14.131 完成, 4 commit 实战 (e2e job + disk full + npm ci fix + 收口)** |
 | **42** | L2 AST parser + ground-truth-lint 扩 | 半天 + 1h | **ROI 低** (L1 已够, 0 触发词) | **推后 Sprint 50+** |
 | **43** | commit msg check + 50m scale | 1 天 + 2 人日 | **ROI 负/低** (误报率高, 0 紧迫) | **推后 Sprint 50+ (50m 触发 30M)** |
 
@@ -119,6 +119,31 @@
 **决策**: 推后到 30M 触发, 不主动排期。
 
 ---
+
+## Sprint 41 实战总结 (v0.4.14.131 已完成, 2026-06-19)
+
+**实施**: 1.5 天估时, 4 commit 实战:
+
+| Commit | 内容 | 失败原因 |
+|---|---|---|
+| ef22b2a (Sprint 41) | 加 e2e job (lint.yml +55 行) | — |
+| d44804b (Sprint 41.1 follow-up) | test_wo_cleanup_orphans.py 加 monkeypatch.setenv("ETL_MIN_DISK_GB", "0") | Sprint 39.1 留尾债: GH Actions runner 14GB disk < ETL 50GB 阈值 → FATAL disk full → 0 marker write → test fail |
+| ee8a655 (Sprint 41.2 follow-up) | npm ci → npm ci --legacy-peer-deps | openapi-typescript@7.13.0 peer dep typescript@^5.x vs frontend typescript@~6.0.2 → ERESOLVE → e2e job fail |
+| 2676a8b (Sprint 41 收口) | VERSION bump + CHANGELOG + CLAUDE.md + README.md + TECH-DEBT.md | — |
+
+**关键发现 (实战教训)**:
+
+1. **GH Actions runner 14GB disk** 限制 ETL 默认 50GB 阈值 (Sprint 24 #26 设计防御), 必须 monkeypatch 跳过
+2. **GH Actions runner npm ci peer dep 冲突** (openapi-typescript@7.13.0 vs typescript@~6.0.2), 必须 --legacy-peer-deps
+3. **CI 0→1 实战路径** = baseline fix (Sprint 39.1) + audit (Sprint 40) + 实施 (Sprint 41) + 3 次 follow-up (e2e + disk + npm ci) = 4 commit 才能完全闭环
+4. **跨 sprint 教训**: Sprint 32.1 留尾 7 sprint 没做, Sprint 41 三次实战 fix 验证 "实战 fix 模式" 比 "一次性完美实施" 更有效
+
+**当前 CI 状态** (等 GH Actions runner 完成):
+- ee8a655 (Sprint 41.2 npm ci fix): queued → in_progress
+- c035f47 (Sprint 41.1 follow-up disk): in_progress (e2e 跑批中)
+- 3aa3949 (Sprint 41 原始 e2e job): in_progress (disk full fail 阻塞)
+
+**期望最终结果**: CI 全绿 (lint + ground-truth-lint + test + e2e 4 job 全 pass)
 
 ## Sprint 41 实施计划 (本 sprint 执行)
 
