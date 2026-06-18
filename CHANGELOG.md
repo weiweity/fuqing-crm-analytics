@@ -6,6 +6,52 @@
 
 ---
 
+## [v0.4.14.124] - 2026-06-18 - chore(services): Sprint 36-6 — backend /v1/flow/sankey ghost endpoint 全链清理 (S36-1 留尾闭环)
+
+> Sprint 36-1 A 范围保留 backend flow ghost endpoint, 留 Sprint 36.x 单独评估. Sprint 36-6 ground-truth audit: /v1/flow/sankey 前端 0 + 后端 0 业务消费 + 0 test (0 真消费者, 可清); /v1/flow/matrix backend test_flow_matrix + export_service.py:360 + report_service.py:9 真消费 (留). 治根: 删 sankey 整条 (endpoint + service + contract + re-export), 留 matrix 整条. v0.4.14.123 → v0.4.14.124.
+
+### Removed (Sprint 36-6.1-36-6.4)
+
+1. **`backend/routers/flow.py`** (-19 行) — 删 @router.get("/sankey", response_model=FlowSankeyResponse) endpoint. 路由现在只剩 /matrix 1 个 endpoint (S36-1 留尾闭环).
+
+2. **`backend/services/flow_service.py`** (-84 行) — 删 get_flow_sankey() 整函数 (78 行). 0 真消费者 (跟 S36-1 报告一致). 保留 get_flow_matrix() (被 backend export_service.py:360 segments slide + report_service.py:9 report 真消费).
+
+3. **`backend/contracts/flow.py`** (-10 行) — 删 class FlowSankeyResponse. 保留 SankeyNode/SankeyLink/CategoryFlowResponse 等 (category 路由在用).
+
+4. **`backend/contracts/schemas.py`** (-2 行) — 删 FlowSankeyResponse 引用 (line 6 import + line 23 __all__). 跟 contract 同步.
+
+### Preserved (S36-6 范围决策)
+
+- **get_flow_matrix + FlowMatrixResponse + /v1/flow/matrix endpoint** — 全留. 真消费者: backend test_flow_matrix + export_service.py:360 + report_service.py:9. 前端 0 调用方是 backend ghost, 但业务真用, 0 风险.
+- **routers/flow.py 整文件** — 保留 (仍有 /matrix endpoint). 不删, 跟 S36-1 A 范围决策一致.
+- **SankeyNode/SankeyLink/CategoryFlowResponse** — 留 (category 路由在用, S36-6 范围不在此).
+
+### Skipped (S36-6 范围决策)
+
+- **frontend api/types.ts + types.generated.ts 同步** **不做** (uvicorn 没起, 不能 npm run gen:types):
+  - 当前残留 5 处 /sankey 引用在 types.generated.ts (auto-generated), backend openapi 已无 /sankey endpoint
+  - 留 Sprint 36.7 follow-up: 启 uvicorn 跑 `npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.generated.ts` 自动同步
+  - 0 业务影响 (前端 0 调用方, types 自动失效)
+- **backend export_service.py:360 + report_service.py:9** 走 get_flow_matrix — 不动 (真业务, S36-1 A 范围决策: 留)
+
+### Verification (S36-6 12 步流程)
+
+- **import test**: python3 -c "from backend.contracts.schemas import FlowMatrixResponse; from backend.routers.flow import router; from backend.services.flow_service import get_flow_matrix" → OK, 路由只剩 ['/api/v1/flow/matrix']
+- **test_flow_service.py**: 5/5 PASS (Sprint 34.1 真连接 + 9 quadrants + 8 quadrants + 11 quadrants removed tests 全过)
+- **contract lint**: PYTHONPATH=. python3 -m backend.contracts._lint → OK All contracts pass ground-truth-lint
+- **SQL f-string lint (Sprint 36-4 跨范围)**: 0 violations in 101 files
+- **pre-commit hook**: ruff clean + B2 + B5 WARN baseline + ground-truth lint + vue-tsc + vite build 全过
+- **0 引用 verify**: rg "FlowSankeyResponse|get_flow_sankey|fetchFlowSankey" backend/ scripts/ → 0 真引用 (仅 types.generated.ts auto-gen 残留, Sprint 36.7 follow-up)
+
+### Risk
+
+- **frontend types.ts/types.generated.ts 残留 /sankey**: auto-gen 残留, 0 业务调用方. 留 Sprint 36.7 follow-up, 启 uvicorn + npm run gen:types 自动同步 (CLAUDE.md Sprint 14 A.2 codegen 同步流程).
+- **0 业务影响**: 前端 0 调用方, backend /v1/flow/sankey endpoint 删, 但 0 消费者. 0 数据风险.
+- **Sprint 36-7 follow-up**: 起 uvicorn 跑 codegen 同步 types.generated.ts (5 处 /sankey 残留自动消失)
+- **跟 S36-1 A 决策闭环**: S36-1 lens 报告 "后端 ghost endpoint 留 Sprint 36.x", Sprint 36-6 落地. /sankey 是真 ghost (0 消费者), /matrix 是 backend-only 但 export/report 真用 → 留.
+
+---
+
 ## [v0.4.14.123] - 2026-06-18 - test(e2e): Sprint 36-2 — 3 e2e spec 业务断言扩展 (sampling/breakdown/category-detail)
 
 > Sprint 33.2 加 8 e2e view smoke spec 治根 a9b1d91 5+ 天未发现回归, 但 spec 都是 0 业务断言 (纯 view 渲染断言). Sprint 36-2 给 sampling/breakdown/category-detail 3 个 spec 加 1 个 API 业务断言 + 1 处 backend 500 容忍治理. 治根 "0 业务断言 5+ 天盲区" recurring pattern. v0.4.14.122 → v0.4.14.123.

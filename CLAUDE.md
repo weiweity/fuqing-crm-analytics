@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.123（main @ TBD，2026-06-18 Sprint 36-1 + 36-2 + 36-4 + 36-5 收口），测试 591 passed / 15 skipped + Vite build 0 错误 (842ms) + e2e 10/10 router-registered view smoke pass + 3 e2e spec 加 API 业务断言 (sampling/breakdown/category-detail) + SQL f-string lint 0 violations (101 files, 3 dir) (Sprint 36-1: 删 RFMView.vue 真 dead code ~810 行; Sprint 36-2: 3 e2e spec 加 API 业务断言, 删 category-detail backend 500 容忍; Sprint 36-4: SQL f-string L1 lint 对称补盲, 抓到 etl_status_override.py:449 漏 f 前缀; Sprint 36-5: TestMetricsAPI race flake 治标, 3 sprint 连续复发 S32.3/S34.1/S36-1 收口) |
+| 4 | **版本状态** | v0.4.14.124（main @ TBD，2026-06-18 Sprint 36-1 + 36-2 + 36-4 + 36-5 + 36-6 全部 5 子任务收口），测试 591 passed / 15 skipped + Vite build 0 错误 (842ms) + e2e 10/10 router-registered view smoke pass + 3 e2e spec 加 API 业务断言 + SQL f-string lint 0 violations (101 files, 3 dir) (Sprint 36-1: 删 RFMView.vue 真 dead code ~810 行; Sprint 36-2: 3 e2e spec 业务断言; Sprint 36-4: SQL f-string L1 lint 对称补盲; Sprint 36-5: race flake 治标; Sprint 36-6: backend /v1/flow/sankey ghost endpoint 全链清理, S36-1 留尾闭环) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
