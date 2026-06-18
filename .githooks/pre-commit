@@ -153,3 +153,25 @@ if [ -n "$STAGED_VUE_BUILD" ]; then
     fi
     cd ..
 fi
+
+# Sprint 34.1 L1 防御: SQL f-string 一致性 lint 钩子 (防 churn.py:418 类 5+ 天未发现 typo)
+# 教训: a9b1d91 对称 — 2026-06-13 commit 误清空 .vue 文件 5+ 天未发现 (Sprint 32.3 教训),
+#       2026-06-18 backend/services/category_service/churn.py:418 漏写 f 前缀同样 5+ 天未发现
+#       (Sprint 33 期间 backend log 暴露 DuckDB ParserException).
+# L1 防御: regex 扫 backend/services/**/*.py, 三引号 SQL 字符串 body 含 {identifier} 但缺 f 前缀 = violation
+# L2 (可选, Sprint 34.2): AST parser 升级版
+# L4 (Sprint 34.1): review checklist 加一条, 写 CLAUDE.md
+# 成本: ~50ms (全目录 70 files 扫一遍, < 5s 阈值)
+STAGED_PY_BACKEND=$(echo "$STAGED" | grep -E '^backend/services/.*\.py$' || true)
+if [ -n "$STAGED_PY_BACKEND" ]; then
+    echo ""
+    echo "Running SQL f-string consistency lint (Sprint 34.1 L1, 防 churn.py:418 类 typo)..."
+    if ! python3 backend/scripts/check_sql_fstring_consistency.py $STAGED_PY_BACKEND; then
+        echo ""
+        echo "❌ SQL f-string consistency check failed — 修复:"
+        echo "   三引号赋值 SQL 字符串 (varname 含 sql/query) 必须在 triple-quote 前加 f 前缀"
+        echo "   Sprint 34.1 案例: churn.py:418 count_sql = ''' → count_sql = f'''"
+        echo "   例外 (紧急 hotfix): git commit --no-verify"
+        exit 1
+    fi
+fi
