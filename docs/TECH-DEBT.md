@@ -3,9 +3,9 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-18 (Sprint 32.2 收口 v0.4.14.116, 债 #S32-2 e2e spec 修复闭环, 3/3 e2e pass)
+**最后更新**: 2026-06-18 (Sprint 32.3 收口 v0.4.14.117, 债 #S32-3 SamplingView 空白修复 + 8 处业务专名 drift 闭环)
 **当前债数**: 0 条 (全闭环)
-**已修复**: 16 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index + 债 #S31-1 5 次复发终极治根 tracker-database + 债 #S32-1 v1208 SSL 两层 fix + 债 #S31-2 Sprint 30.3 留 12 字段 ratio/rate 收口 + 债 #S32-2 audience-daily-trend brittle canvas selector + WASM filter)
+**已修复**: 17 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index + 债 #S31-1 5 次复发终极治根 tracker-database + 债 #S32-1 v1208 SSL 两层 fix + 债 #S31-2 Sprint 30.3 留 12 字段 ratio/rate 收口 + 债 #S32-2 audience-daily-trend brittle canvas selector + WASM filter + 债 #S32-3 SamplingView 空白修复 + 8 处业务专名 drift)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 **新待办 (Sprint 30-32 计划)**:
 - ✅ Sprint 30.1 W4 540 combo batch INSERT (闭环 v0.4.14.105, 50.4× 加速)

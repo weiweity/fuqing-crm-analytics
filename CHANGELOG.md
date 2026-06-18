@@ -1,3 +1,50 @@
+## [v0.4.14.117] - 2026-06-18 - fix(views): Sprint 32.3 — 债 #S32-3 SamplingView.vue 空白修复 (Vite 编译错 /sampling 路由不可达 + 8 处业务专名 drift 闭环)
+
+> 5+ 天前 (2026-06-13) `a9b1d91` commit (公开前最终清理, Claude Opus 4.8 (1M context) Co-Authored) 误清空 `frontend-vue3/src/views/SamplingView.vue` (32653 字节 / 699 行 → 699 字节 / 699 个 newline), Vite 编译错 `[plugin:vite:vue] At least one <template> or <script> is required` 阻塞 /sampling 路由. 顺带修 8 处业务专名 drift (a9b1d91 commit message 声称做 sed 实测只改 1/8 处). v0.4.14.116 → v0.4.14.117.
+
+### Fixed
+
+1. **`frontend-vue3/src/views/SamplingView.vue`** (8 行) — 从父 commit `a505f85b` restore 完整 32653 字节 / 699 行 SFC (script setup + 3 tab layout: 派样 ROI / 0.01 锁权分析 / 滚动对比), 含 8 月份手工打磨 UX. 业务专名 sed:
+   - L83 `campaignName = ref('618节日')` → `ref('summer_sale')`
+   - L87 `{ label: '618节日', value: '618节日' }` → `{ label: 'summer_sale', value: 'summer_sale' }`
+   - L88 `{ label: '双11', value: '双11' }` → `{ label: 'double11', value: 'double11' }`
+   - L89 `{ label: '38节日', value: '38节日' }` → `{ label: 'spring_festival', value: 'spring_festival' }`
+
+2. **`backend/services/sampling_service.py`** (4 行) — 业务专名 drift:
+   - L226 `campaign_name: str = '618节日'` → `'summer_sale'` (跟 backend routers/sampling.py:49 default 一致)
+   - L233 docstring `campaign_name: 大促名称（618节日/双11/38节日）` → `（summer_sale/double11/spring_festival）`
+
+3. **`backend/routers/sampling.py`** (2 行) — 修 description drift (之前 1 行 default 已改, description 没动):
+   - L49 description `大促名称：summer_sale/双11/38节日` → `summer_sale/double11/spring_festival`
+
+4. **`frontend-vue3/src/api/types.ts` + `types.generated.ts`** (各 2 行) — 业务专名 sed:
+   - L8143 `大促名称：summer_sale/双11/38节日` → `summer_sale/double11/spring_festival` (跟 backend API description 同步)
+
+### Risk
+
+- **保留未改**: `backend/config.py:208-209` (summer_sale=1.20, 双11=1.25 holiday key), `backend/services/health/config.py:95-102` (health 模块 holiday 配置), `backend/services/breakdown_service/_shared.py:46` (breakdown 模块). 这些是**独立模块**的 holiday 业务配置, 不在 sampling 范畴, 跨模块独立保留 (跟 commit a9b1d91 一致).
+- **业务影响**: 0 (派样看板从 Vite 编译错恢复, 8 处业务专名跟 a9b1d91 commit message 意图对齐, 跟 backend API 同步)
+- **测试影响**: 0 (Sprint 32.2 e2e 3/3 不变, backend sampling 实际跑业务逻辑无 'Sampling' test name, 585 tests pass)
+- **上下游 blast radius**: 0 调用方 (fetchSamplingROI / LockAnalysis / RollingComparison 在 frontend 0 caller, SamplingView 是唯一 entry)
+
+### Verification
+
+- **Vite build**: 成功 983ms, 0 SamplingView 错误 (frontend-vue3 真编译)
+- **Backend linter**: 0 violation (backend.contracts._lint OK All contracts pass)
+- **Backend tests**: 585 passed / 15 skipped (跟改动无关, uvicorn DuckDB 锁冲突 skip)
+- **Drift verify**: `grep -rn '618\|双11\|38节日' backend/ frontend-vue3/src/ --include='*.py' --include='*.ts' --include='*.vue' | grep -v 'summer_sale\|double11\|spring_festival'` 剩 5 处 holiday config (保留)
+- **5 文件 9 +/9 -** (最小 diff, 跟 Sprint 32.2 路径零冲突)
+- **Pre-commit hook**: `vue-tsc --noEmit` 强制真编译 .vue 模板 (Sprint 14 教训) 通过
+
+### 教训 (跨 sprint 复用)
+
+- **公开清理 commit 必须跑 `npx vite build`**: a9b1d91 commit Co-Authored-By Claude Opus 4.8 (1M context) 走 NUCLEAR wipe 路径清空整个 .vue 文件. `pre-commit` hook 现在有 `vue-tsc --noEmit` (Sprint 14 加), 但缺 `npx vite build` 真编译检查. 加 build 步骤治根.
+- **commit message 必须跟实际 diff 一致**: a9b1d91 commit 声称做 8 处业务专名 sed, 实际只改 1 处 (frontend/sampling.py:49 default). 后续 sprint 找业务专名残留时浪费 0.5h. CI 应加 commit message ↔ diff 一致性 check (或 reviewer 强制).
+- **5+ 天未发现回归**: SamplingView 空白到 fix 期间, 0 e2e 覆盖 (e2e 只跑 audience + customer-health, 不跑 sampling), 0 smoke test (vite dev server 不报警), 0 监控. 加 e2e 覆盖 (至少 1 个 e2e per view route) 治根.
+- **架构 review 重要性**: Drift fix 1 个发现 (7 处业务专名残留) 来自架构 review agent 跟 codegraph 联合扫描, 不靠 grep 局部搜索能发现.
+
+---
+
 ## [v0.4.14.116] - 2026-06-18 - test(e2e): Sprint 32.2 — 债 #S32-2 audience-daily-trend brittle canvas selector 治根 (3/3 e2e pass)
 
 > Sprint 32.1 验证时 1/3 e2e fail (audience-daily-trend brittle `canvas.first()` selector 选错 chart, hover 不触发 tooltip) 闭环. 治根: 用 `.bi-card` + `filter({ hasText: '日趋势' })` 定位日趋势 chart container + `waitForUntil(canvas visible, 15s)` 等数据 fetch + `scrollIntoViewIfNeeded()` 避免视口外 hover + WASM streaming race filter (跨 spec 共有, 过滤已知网络瞬态无害错误). v0.4.14.115 → v0.4.14.116.

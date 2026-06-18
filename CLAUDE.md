@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.116（main @ dc9ca27，2026-06-18 Sprint 32.2 收口），测试 633 passed / 15 skipped + 3/3 e2e pass (Sprint 32.2: 债 #S32-2 audience-daily-trend brittle canvas selector 修复 + WASM streaming race filter, bi-card + filter 模式 + canvas wait + scroll-into-view 治根) |
+| 4 | **版本状态** | v0.4.14.117（main @ 7e0bdc9，2026-06-18 Sprint 32.3 收口），测试 585 passed / 15 skipped + Vite build 0 错误 (Sprint 32.3: 债 #S32-3 SamplingView 空白修复 — 从父 commit a505f85b restore 32653 字节 + 8 处业务专名 drift 闭环, a9b1d91 commit 误清空 frontend 治根) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
