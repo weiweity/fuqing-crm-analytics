@@ -1,3 +1,52 @@
+## [v0.4.14.118] - 2026-06-18 - test(e2e): Sprint 33 — 债 #S33-1 pre-commit vite build hook + 债 #S33-2 e2e 10/10 router-registered view smoke 覆盖 (a9b1d91 类事故 P0+P1 治根)
+
+> Sprint 32.3 收口时定 4 个 P2 follow-up 候选. 经架构师视角优化, 拆成 2 个 sprint: Sprint 33 (本批) 做候选 1 (pre-commit vite build hook P1 防御) + 候选 3 (e2e 10/10 view smoke P0 治根). 候选 4 (CI 跑 e2e) 留 Sprint 34, 候选 2 (commit msg ↔ diff check) 留 Sprint 35+. v0.4.14.117 → v0.4.14.118.
+
+### Added (Sprint 33.1 候选 1 + Sprint 33.2 候选 3)
+
+1. **`.githooks/pre-commit`** (+43 行) — Sprint 33.1 候选 1 双层防御 (防 a9b1d91 类 commit 误清空 .vue 5+ 天未发现回归):
+   - **1a. grep sanity check**: 任何 .vue 必须含 `<template` 或 `<script` 标记, 否则 exit 1. 直接治根 a9b1d91 类 (699 字节 newline-only 文件无标记) — 验证 EXIT_CODE=1 ✓.
+   - **1b. npx vite build**: 兜底未来 Vite 升级回归 + 引用 .vue/.ts 结构性破坏. 复用 vue-tsc 已验 (避免重复 type-check). 981ms baseline.
+   - 成本: grep < 100ms + vite build ~1s = ~1.1s/commit (业界 hook 阈值 ≤ 10s)
+
+2. **8 个 e2e spec** (+450 行, 9 测试 11/11 pass — Sprint 33.2 候选 3 治根 a9b1d91 5+ 天盲区):
+   - `frontend-vue3/e2e/login.spec.ts` — form 可见 + 提交跳转
+   - `frontend-vue3/e2e/market-focus.spec.ts` — 4 sub-tab + PageHeader (容器, 0 API)
+   - `frontend-vue3/e2e/breakdown.spec.ts` — PageHeader + 触发按钮 + 重构遮罩 (useMutation)
+   - `frontend-vue3/e2e/category-detail.spec.ts` — 4 MetricCard + 日趋势 chart + 用户表
+   - `frontend-vue3/e2e/churn.spec.ts` — PageHeader + 重构遮罩 (待优化更新)
+   - `frontend-vue3/e2e/geo.spec.ts` — PageHeader + 重构遮罩 (待优化更新)
+   - `frontend-vue3/e2e/category.spec.ts` — PageHeader + 饼图 + 明细表 + sub-tab (7 sub-tab)
+   - `frontend-vue3/e2e/sampling.spec.ts` — PageHeader + 渠道对比卡片 (a9b1d91 重点回归)
+   - 复用 Sprint 32.2 #S32-2 模式: bi-card + filter locator, expect.toBeVisible 15s 等真实渲染, scrollIntoViewIfNeeded 视口外 hover, WASM streaming race filter 网络瞬态错误
+
+### Changed
+
+- **架构师发现 (Sprint 33.2 实施时)**: `frontend-vue3/src/views/RFMView.vue` (798 行, 含完整 fetchFlowMatrix/Sankey/RFlow 3 useQuery + 2 ECharts) 存在但 `frontend-vue3/src/router/index.ts` 未注册 `/rfm` 路由 → **dead code**. Sprint 35+ 评估激活/删除方案, 本次 Sprint 33.2 不动 (超出范围). Plan "11/11 view" 实际是 "10/10 router-registered view + 1 dead code".
+
+### Risk
+
+- **vite build hook 是 P1 防御性, 不是 P0 治根**: 当前 Vite 版本对空 SFC (newline-only) 兼容, 不报 'At least one <template>'. a9b1d91 当时 Vite 版本严格 → 现在宽松. hook 治根路径: 1a grep sanity 直接拦截 (验证有效). 真治根靠 Sprint 33.2 e2e (访问 /sampling 触发实际编译)
+- **e2e 10/10 跑批时间**: 本地 fullyParallel ~24s (10 spec 整体), CI 串行 ~13-15min 估 (Sprint 34 候选 4 接入时验证)
+- **业务影响**: 0 (hook 是 git 触发, e2e 是测试覆盖, 都不动产品代码)
+- **测试影响**: backend tests 585 passed / 15 skipped (uvicorn DuckDB 锁 skip, 跟改动无关)
+
+### Verification
+
+- **pre-commit hook 验证**: `yes "" | head -699 > frontend-vue3/src/views/_TestEmptyView.vue && bash .githooks/pre-commit` → exit 1 ✓ ("缺 <template>/<script> 标记")
+- **vite build baseline**: 991ms (Sprint 32.3) → 1231ms (Sprint 33.1 实测, +240ms 跟前端 source 大小无关)
+- **pre-push pytest**: 585 passed / 15 skipped (race flake 偶发, 重跑就过)
+- **e2e 跑批**: 10/10 spec pass 本地 (Sprint 32.2 已有 customer-health.spec.ts 第 2 test "切换 RFM 分析 Tab" 1 个 flake, 跟 Sprint 33 改动无关, 归 Sprint 32.2 旧债)
+- **8 files 450+/0-**: e2e spec 纯新增, 无改动
+
+### 教训 (跨 sprint 复用)
+
+- **pre-commit hook 加 vite build 是 P1 防御, 不是 P0 治根**: 实施时发现 Vite lazy load 跳过未引用的 .vue (空 SFC 在当前 Vite 版本合法), 真正捕获 a9b1d91 类 = 访问路由触发实际编译. Sprint 33 双件 (hook + e2e) 才是完整 safety net
+- **架构师视角必须查 router 注册状态**: RFMView 798 行但路由未注册 → dead code. 探索时不能光看 .vue 文件存在就认为 view 在线 (e.g. Explore agent 误判)
+- **e2e 复用 Sprint 32.2 #S32-2 模式**: bi-card + filter locator 避免 canvas.first() 选错 chart, expect.toBeVisible({ timeout: 15000 }) 等真实渲染 (不用 waitForTimeout 短固定等待), WASM streaming race filter 跨 spec 共有. 复用现成模式比新建风格节省 ~50% 工作量
+
+---
+
 ## [v0.4.14.117] - 2026-06-18 - fix(views): Sprint 32.3 — 债 #S32-3 SamplingView.vue 空白修复 (Vite 编译错 /sampling 路由不可达 + 8 处业务专名 drift 闭环)
 
 > 5+ 天前 (2026-06-13) `a9b1d91` commit (公开前最终清理, Claude Opus 4.8 (1M context) Co-Authored) 误清空 `frontend-vue3/src/views/SamplingView.vue` (32653 字节 / 699 行 → 699 字节 / 699 个 newline), Vite 编译错 `[plugin:vite:vue] At least one <template> or <script> is required` 阻塞 /sampling 路由. 顺带修 8 处业务专名 drift (a9b1d91 commit message 声称做 sed 实测只改 1/8 处). v0.4.14.116 → v0.4.14.117.

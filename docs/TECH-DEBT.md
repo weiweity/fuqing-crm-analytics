@@ -3,18 +3,26 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-18 (Sprint 32.3 收口 v0.4.14.117, 债 #S32-3 SamplingView 空白修复 + 8 处业务专名 drift 闭环)
+**最后更新**: 2026-06-18 (Sprint 33 收口 v0.4.14.118, 债 #S33-1 pre-commit vite build hook + 债 #S33-2 e2e 10/10 view smoke 覆盖, a9b1d91 类事故 P0+P1 治根)
 **当前债数**: 0 条 (全闭环)
-**已修复**: 17 条 (债 #1/#2/#3/#4/#5/#6/#7 + 债 #195 + 债 #196 + 债 #S26-1 F6 副检 + 债 #S27-1 Tooltip 5346% ×100 + 债 #S28-1 冷启动 mtime 阈值 + 债 #S28+#197 RFM config 冲突 + 债 #S29+#198 disk full 上游 + 债 #S29+#198 RFM stuck index + 债 #S31-1 5 次复发终极治根 tracker-database + 债 #S32-1 v1208 SSL 两层 fix + 债 #S31-2 Sprint 30.3 留 12 字段 ratio/rate 收口 + 债 #S32-2 audience-daily-trend brittle canvas selector + WASM filter + 债 #S32-3 SamplingView 空白修复 + 8 处业务专名 drift)
+**已修复**: 19 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + **债 #S33-1** pre-commit vite build hook P1 防御性 + **债 #S33-2** e2e 10/10 view smoke 覆盖 P0 治根)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
-**新待办 (Sprint 30-32 计划)**:
+**新待办 (Sprint 30-33 计划)**:
 - ✅ Sprint 30.1 W4 540 combo batch INSERT (闭环 v0.4.14.105, 50.4× 加速)
 - ✅ Sprint 30.2 pre-commit CHANGELOG 改 post-merge hint (闭环 v0.4.14.106, soft WARN)
-- ✅ Sprint 30.3 Sprint 17 #120 全量 9 contract audit 简化范围 (闭环 v0.4.14.107, 4 cohort matrix 字段; 剩余 TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence 走 Sprint 31+ 单独 sprint)
+- ✅ Sprint 30.3 Sprint 17 #120 全量 9 contract audit 简化范围 (闭环 v0.4.14.107, 4 cohort matrix 字段)
 - ✅ Sprint 30.4 CLAUDE.md `*_rate` 表格对齐 (闭环 v0.4.14.108, doc-only)
-- ✅ Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (闭环 v0.4.14.111+v0.4.14.112, 3 commit: Phase 1 inert infra + Phase 2 source of truth + Phase 3 docs)
-- ✅ Sprint 32.1 Playwright chromium v1208 SSL hardening (闭环 v0.4.14.114, 2 layer fix: 浏览器运行时 + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN)
-- ✅ Sprint 32.2 e2e spec 回归 (闭环 v0.4.14.116, 债 #S32-2 brittle canvas selector 修复 + WASM streaming race filter, 3/3 e2e pass)
+- ✅ Sprint 30.5 W4 端到端真验 < 30s (闭环 v0.4.14.109)
+- ✅ Sprint 31.1 `/tmp/fuqing_*.duckdb` tracker-database 模式 (闭环 v0.4.14.111+112+113, 3 commit)
+- ✅ Sprint 31.2 Sprint 30.3 留 12 字段 ratio/rate 收口 (闭环 v0.4.14.115, 14 test case)
+- ✅ Sprint 32.1 Playwright chromium v1208 SSL hardening (闭环 v0.4.14.114)
+- ✅ Sprint 32.2 e2e spec 回归 (闭环 v0.4.14.116, 3/3 e2e pass)
+- ✅ Sprint 32.3 SamplingView 空白修复 (闭环 v0.4.14.117)
+- ✅ Sprint 33.1 债 #S33-1 pre-commit 加 vite build hook (闭环 v0.4.14.118 part-1, 防 a9b1d91 类 .vue 误清空 P1 防御性)
+- ✅ Sprint 33.2 债 #S33-2 e2e 10/10 router-registered view smoke (闭环 v0.4.14.118 part-2, 治根 a9b1d91 5+ 天盲区 P0 检测)
+- 📋 **Sprint 34 (候选 4)**: CI 跑 e2e (lint.yml 加 e2e job) — 等 Sprint 33 候选 3 spec 稳定后立项
+- 📋 **Sprint 35+ (候选 2)**: commit message ↔ diff 一致性 CI check — 复用 ground-truth lint 扩展, 误报率高推后
+- ⚠️ **RFMView.vue 798 行 dead code**: 路由 `/rfm` 未注册 (Sprint 33.2 实施时架构师发现). Sprint 35+ 评估激活/删除方案
 
 ---
 
