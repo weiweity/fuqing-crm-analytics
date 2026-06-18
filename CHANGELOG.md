@@ -1,8 +1,30 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 23 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 24 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## [v0.4.14.128] - 2026-06-19 - docs(audit): Sprint 39.2 — visitor chain + export/report chain ground-truth audit (Sprint 36-1 留尾 #10 闭环)
+
+> Sprint 36-1 plan-eng-review 报告评估 "visitor 业务风险高, 不做" 没做 ground-truth audit. Sprint 39.2 audit 实查发现 **事实校正**: visitor backend 100% 活跃 (5 文件 106 行, 0 dead code) + frontend API client 100% 活跃 (audience.ts:354-368 fetchVisitorSummary/DailyTrend) + AudienceView.vue:11-12,194,208 真在消费. 唯一缺 = frontend router/index.ts 没注册 /visitor. Export/Report 链同样: backend 100% 活跃 (5 文件 711 行), frontend 0 调用. 写 audit doc 把现状记下来, 激活路径是产品决策, 留给 user. v0.4.14.127 → v0.4.14.128.
+
+### Added
+
+1. **`docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`** (302 行, +302 行净) — Sprint 39.2 ground-truth audit doc, 6 章节:
+   - TL;DR: visitor backend 100% 活跃 + frontend API 100% 活跃 + 唯一缺 = router 注册
+   - 实地调查 (Ground Truth): backend 文件清单 + frontend API client + 调用方 + router 状态
+   - Sprint 36-1 plan-eng-review 报告校正: "visitor 业务风险高" 评估错, 没做 audit
+   - 激活路径: 3 选项 (注册路由 + 写页面 / 维持现状 / 合并到 audience)
+   - Export/Report chain 同模式 audit: backend 活跃 + frontend 0 调用
+   - 总结: 事实校正 + Sprint 39.2 收口 + 跨 sprint 教训
+
+### Cross-sprint 教训 (跨 sprint 复用)
+
+- **plan-eng-review 必须 ground-truth audit 先**: Sprint 36-1 留尾 "visitor 业务风险高" 没真查 backend 代码就下结论, 导致 Sprint 36-1 / 36.2 / 37 / 38 都没真评估 visitor chain. Sprint 39.2 audit 校正: visitor backend 100% 活跃, 不是 dead code. 跨 sprint 教训: **任何留尾决策先 grep + Read 实查**, 不能只看 commit message / sprint memory / plan-eng-review 推断.
+- **Backend vs frontend 调用链分离**: visitor / export / report 都是 backend 活跃 + frontend 0 调用 (或间接调用). 清 dead code 不能跨 backend / frontend 笼统说, 必须分清. Sprint 36-1 plan-eng-review 报告说 "清 -810 行 export_service" 是错的 — backend 真用, frontend 0 行可清.
+- **本 audit doc 作为跨 sprint truth source**: Sprint 40+ 留尾决策 visitor / export / report 任何方向前先读本文件 + grep + Read 实查.
 
 ---
 
