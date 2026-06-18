@@ -26,7 +26,7 @@
 - ✅ Sprint 33.2 债 #S33-2 e2e 10/10 router-registered view smoke (闭环 v0.4.14.118 part-2, 治根 a9b1d91 5+ 天盲区 P0 检测)
 - 📋 **Sprint 34 (候选 4)**: CI 跑 e2e (lint.yml 加 e2e job) — 等 Sprint 33 候选 3 spec 稳定后立项
 - 📋 **Sprint 35+ (候选 2)**: commit message ↔ diff 一致性 CI check — 复用 ground-truth lint 扩展, 误报率高推后
-- ⚠️ **RFMView.vue 798 行 dead code**: 路由 `/rfm` 未注册 (Sprint 33.2 实施时架构师发现). Sprint 35+ 评估激活/删除方案
+- ✅ **RFMView.vue 797 行 dead code** (Sprint 33.2 发现 → Sprint 36-1 闭环): 范围 A 选项 (CEO 9/Eng 7 dual lens) 删 RFMView.vue + 联动前端 flow.ts/types/README/YOYGuard ~810 行 (v0.4.14.120). 后端 ghost endpoint (`/v1/flow/matrix` + `/v1/flow/sankey` + flow_service.py + flow contract) 留 Sprint 36.x 独立评估 (受 export_service.py:378 + report_service.py:9 真消费影响).
 
 ---
 

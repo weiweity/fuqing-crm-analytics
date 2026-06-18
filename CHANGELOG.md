@@ -6,6 +6,43 @@
 
 ---
 
+## [v0.4.14.120] - 2026-06-18 - chore(views): Sprint 36-1 — RFMView.vue dead code 清理 (范围 A, ~810 行, Sprint 33.2 留尾闭环)
+
+> Sprint 33.2 实施时架构师发现 `frontend-vue3/src/views/RFMView.vue` (797 行, 含 fetchFlowMatrix/Sankey/RFlow 3 useQuery + 2 ECharts) 存在但 `frontend-vue3/src/router/index.ts` 未注册 `/rfm` 路由 → dead code, 留 Sprint 35+ 评估激活/删除方案. Sprint 36-1 经 dual lens 架构师评判 (CEO 9/Eng 7 综合 8 vs B 7.5/C 6.5) 选 A 方案: 只清前端 ~810 行, 后端 ghost endpoint (受 export_service.py:378 + report_service.py:9 真消费影响) 留 Sprint 36.x 独立评估. v0.4.14.119 → v0.4.14.120.
+
+### Removed (Sprint 36-1.1)
+
+1. **`frontend-vue3/src/views/RFMView.vue`** (-797 行) — 真 dead code: router 11 条全部 dump 无 `/rfm` 注册, 5+ 天 0 引用方 (除 YOYGuard.vue:11 docstring). 含 fetchFlowMatrix + fetchFlowSankey + fetchRFMRFlow 3 useQuery + 2 ECharts 完整 view.
+
+2. **`frontend-vue3/src/api/flow.ts`** (-33 行) — 联动删除 `fetchFlowMatrix` + `fetchFlowSankey` + `FlowMatrixParams` + `FlowMatrixResponse` + `FlowSankeyResponse` interface (仅 RFMView 1 个消费者). 保留 `RFMRFlowParams` / `fetchRFMRFlow` 等 RFM 区间流转函数 (MIntervalTab/RIntervalTab 真用).
+
+### Changed
+
+3. **`frontend-vue3/src/api/README.md`** (-2 行) — 文档 import 示例 + 类型清单去 `FlowMatrixResponse` 引用.
+4. **`frontend-vue3/src/components/YOYGuard.vue`** (+1/-1 行) — docstring 表格组件列表 `9 个 (含 RFMView)` → `8 个`, 删 RFMView 标记.
+
+### Preserved (S36-1 A 范围决策)
+
+- **`backend/routers/flow.py`** + **`backend/services/flow_service.py`** + **`backend/contracts/flow.py`** — 不删. `get_flow_matrix` 被 `export_service.py:378` (PPT 报告 segments slide 客户象限分布页) + `report_service.py:9` 真业务消费, 直接删会触发 PPT 报告 500 或缺页. 留 Sprint 36.x 独立评估 (audit cron/脚本/部署侧消费者 + 决策 inline 重写 vs 保留).
+- **`frontend-vue3/src/views/health/RFMSegmentDrilldown.vue`** — **不删**. ground-truth 校验 (rg) 发现被 `ValueTierTab.vue:15+440` 真用 (/customer-health 路由 → CustomerHealthView → ValueTierTab → RFMSegmentDrilldown). 一开始 lens 误判 -1001 行包含 RFMSegmentDrilldown, 实际可清 ~810 行.
+- **`frontend-vue3/src/api/types.ts`** + **`types.generated.ts`** — 不动. openapi-typescript auto-generated (file header 显式禁手改), backend 未改 → schema 不变. 后端 ghost endpoint 移除后由 `npm run gen:types` 自动同步.
+
+### Verification (S36-1 12 步流程)
+
+- **Vite build**: 842ms pass 0 error. dist/ 输出无 RFMView chunk (Vite tree-shake 确认).
+- **test_flow_service.py**: 5/5 pass (后端 flow service 保留完整).
+- **vue-tsc**: 0 new error (3 baseline error 在 HealthOverviewTab.vue 跟本任务无关).
+- **0 引用 verify**: `rg "RFMView|fetchFlowMatrix|fetchFlowSankey|FlowMatrixResponse|FlowSankeyResponse|FlowMatrixParams" frontend-vue3/src/` 返回 0 结果 (仅 CategoryFlowMatrixResponse 同前缀不同类型保留).
+- **git diff stat**: 4 files / +1 / -833 净行删除.
+
+### Risk
+
+- **后端 ghost endpoint 留 Sprint 36.x**: `/v1/flow/matrix` + `/v1/flow/sankey` 暂时变 backend-only (前端 0 调用方, backend 仍可 curl/cron). 需 Sprint 36.x audit 外部消费者后决策.
+- **架构师评判依据**: CLAUDE.md 顶部 "精准修改"/"不重构没坏"/"超出要求不做" 三铁律全过, dual lens (CEO+Eng) 推荐结论完全一致 (A), confidence: high.
+- **业务影响**: 0 (RFMView 5+ 天 0 路由引用 + 0 调用方, e2e Sprint 33.2 10/10 view smoke 不含 /rfm, 删除后路由仍 10 条不变).
+
+---
+
 ## [v0.4.14.119] - 2026-06-18 - fix(services): Sprint 34.1 — 债 #S34-1 churn.py:418 漏 f 前缀治根 + L1 SQL f-string 一致性 lint 钩子 (a9b1d91 对称教训 L1 防御)
 
 > Sprint 33 期间 backend log 发现 DuckDB ParserException: syntax error at or near "}" LINE 5: AND {valid_sql}. 根因: `backend/services/category_service/churn.py:418` `count_sql = """` 漏写 f 前缀, DuckDB 解析字面量 `{valid_sql}` 抛错. 100% 触发 (/category-detail/:id 路由任何 category_id 都 500). 5+ 天未发现 (Sprint 33 e2e 不覆盖此路由). v0.4.14.118 → v0.4.14.119.

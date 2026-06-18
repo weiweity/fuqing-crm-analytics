@@ -1,38 +1,5 @@
 import client from './index'
 
-export interface FlowMatrixParams {
-  from_date: string
-  to_date: string
-  lookback_days?: number
-  metric_type?: string
-  exclude_channels?: string[]
-}
-
-export interface FlowMatrixResponse {
-  flow_matrix: { from_segment: string; to_segment: string; count: number; ratio: number }[]
-  segments: { id: number; name: string; count: number }[]
-  from_date: string
-  to_date: string
-  from_total: number
-  to_total: number
-  summary: { retention_rate: number; upgrade_rate: number; downgrade_rate: number }
-}
-
-export interface FlowSankeyResponse {
-  nodes: { id: number; name: string; value: number }[]
-  links: { source: number; target: number; value: number }[]
-  from_date: string
-  to_date: string
-}
-
-export function fetchFlowMatrix(params: FlowMatrixParams): Promise<FlowMatrixResponse> {
-  return client.get('/v1/flow/matrix', { params })
-}
-
-export function fetchFlowSankey(params: FlowMatrixParams): Promise<FlowSankeyResponse> {
-  return client.get('/v1/flow/sankey', { params })
-}
-
 // ============================================================
 // RFM - R区间流转看板
 // ============================================================
