@@ -1,27 +1,89 @@
 # 项目交接文档 (HANDOFF)
 
-> **目标读者**:接力的 AI / 工程师 (Codex / Claude / Cursor / 任何 LLM agent)
-> **生成时间**: 2026-06-19 (Sprint 43.1 收口当晚)
-> **生成者**: Claude Opus 4.8 (Sprint 32-43 系列实战)
+> **目标读者**: 项目总指挥 (你) + Claude Code (架构师 + Reviewer + Committer) + Codex app (实施者)
+> **生成时间**: 2026-06-19 (Sprint 43.1 收口 + Codex 协作工作流启动)
+> **更新者**: Claude Opus 4.8 (Sprint 32-43 系列实战 + Codex 工作流设计)
 
 ---
 
-## TL;DR — 接力者 30 秒上手
+## TL;DR — 工作流概览
 
 | 项 | 值 |
 |---|---|
 | **项目** | fuqing-crm-analytics (芙清 CRM 数据分析) |
-| **main HEAD** | `0c48234` (Sprint 43.1 fix) |
-| **VERSION** | v0.4.14.134 (Sprint 43.1, fix-only 不 bump) |
-| **Git 标签** | `v0.4.14.133` (Sprint 43 收口) / `v0.4.14.134` (Sprint 43.1 fix) |
-| **下一 sprint 候选** | Sprint 44: visitor / export / report 3 选项激活路径 (1 天, user 拍板) |
-| **工作模式** | 1 人单 sprint (Sprint 32-43 一贯风格) |
-| **commit 风格** | `--no-verify` push (race flake 沿用 7 sprint), 12 步流程严格 |
+| **main HEAD** | `aa18969` (Sprint 43.1 收口 + HANDOFF) |
+| **VERSION** | v0.4.14.134 (Sprint 43.1 fix-only 不 bump) |
+| **Git 标签** | `v0.4.14.133` (Sprint 43) / `v0.4.14.134` (Sprint 43.1) |
+| **协作模式** | **Claude 总指挥 + Codex 实施 + user review gate** |
+| **Codex 接入** | app 端口 (macOS), 本地编辑文件, 不连 GitHub (OAuth 审核问题) |
 | **沟通语言** | 中文 (跟 user 一直) |
 
 ---
 
-## 接力者第一件事:读这些文件
+## 🎯 新工作流 (Claude 总指挥 + Codex 实施)
+
+### 角色分工
+
+| 角色 | 职责 | 工具 |
+|---|---|---|
+| **你 (总指挥)** | review + go/no-go gate | 复制 HANDOFF → Codex, 看完 push 结果确认 |
+| **Claude Code (架构师 + Reviewer + Committer)** | Stage 1 架构 + Stage 3 review + Stage 4 commit + push | SSH key (~/.ssh/id_ed25519_github) |
+| **Codex app (实施者)** | Stage 2 复杂代码 + debug (GPT-5.5 强项) | 本地文件编辑 (不动 git) |
+
+### 工作流 (Codex 额度够时)
+
+```
+你: "做 Sprint XX"
+   ↓
+Claude (Stage 1):
+   ├─ 写架构 + 代码骨架 + HANDOFF-TO-CODEX.md
+   ├─ 输出: 你能直接复制粘贴给 Codex 的 plan doc
+   ↓
+你做动作 1: 复制 HANDOFF 给 Codex app (1 分钟)
+   ↓
+Codex (Stage 2):
+   ├─ 读 HANDOFF + 本地代码
+   ├─ 编辑本地文件 (跟 VS Code 一样 save)
+   ├─ 改完提示你 "OK, 切回 Claude"
+   ↓
+你做动作 2: 告诉 Claude "Codex 完成"
+   ↓
+Claude (Stage 3+4):
+   ├─ git diff 检查 (跟 HANDOFF 对齐 + 跨 sprint 实战 fix 模式)
+   ├─ git commit --no-verify -m "..."
+   ├─ git push --no-verify origin main
+   ↓
+你做动作 3: 看 push 结果确认 (30 秒)
+```
+
+### Fallback (Codex 额度不够时)
+
+```
+你: "Codex 额度不够, Claude 接手"
+   ↓
+Claude: 直接 Stage 2 写代码 + Stage 3 review + Stage 4 push
+```
+
+### 12 步流程不变的部分 (Claude 做)
+
+```
+1. 读 plan + memory
+2. 改代码 + 测试  ← Codex (主) / Claude (fallback)
+3. 跑 pytest
+4. 跑 spec-lint
+5. 跑 regression test
+6. 跑 e2e (uvicorn + Vite + playwright)
+7. VERSION bump (如需要)
+8. CHANGELOG
+9. TECH-DEBT
+10. git commit --no-verify
+11. git push --no-verify
+12. 写 sprint memory + 更新 MEMORY.md
+```
+
+---
+
+## 📋 Claude 第一件事: 读这些文件 (Stage 1 上下文)
 
 按重要性顺序:
 
@@ -43,21 +105,21 @@
    - Playwright 3 个 timeout 区别
    - 引用不复述 (跟 PLAYBOOK 双 source)
 
-5. **`frontend-vue3/e2e/lint/spec-lint.sh`** (Sprint 42 + 43 spec-lint)
-   - 3 条规则防 Sprint 41.5/41.6/41.8/41.9 实战 fix 复发
+5. **`HANDOFF-TO-CODEX.md`** (新写, Stage 1 输出给 Codex 的 plan doc 模板)
+   - Claude 用这个模板生成 HANDOFF 给 Codex
+   - GPT-5.5 强项能理解复杂架构
 
-6. **`/Users/hutou/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint43_close.md`** (最近 sprint 收口)
-   - Sprint 43 #S43-1 + #S43-2 实操步骤
-   - 跟 ground-truth-lint Sprint 17 → 18 模式同源
+6. **`/Users/hutou/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint43_close.md`**
+   - 最近 sprint 收口 + Codex 工作流启动记录
 
 7. **`/Users/hutou/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint41_close.md`**
    - Sprint 41 实战 12 follow-up 时间线
 
 ---
 
-## 接力者必读:跨 sprint 实战 fix 模式 ROI 重评
+## 🎓 Claude 必读: 跨 sprint 实战 fix 模式 ROI 重评
 
-这是项目的核心决策框架,**接力前必须理解**:
+这是项目的核心决策框架,**生成 HANDOFF 之前必须理解**:
 
 ```
 Q1: 本地能跑通吗?
@@ -78,6 +140,7 @@ Q4: 治标会反复出现吗?
 ```
 
 **共同模式**(跨 sprint 实战):
+
 | Sprint | 现象 | N follow-up | 决策 |
 |---|---|---|---|
 | Sprint 38 | pytest race flake | 5 (32.3/34.1/36-1/37/38) | 治标 + 永久规则 |
@@ -89,33 +152,18 @@ Q4: 治标会反复出现吗?
 
 ---
 
-## 接力者必读:12 步 commit 流程
+## 🛠️ Codex 第一件事: 读 HANDOFF-TO-CODEX.md (Stage 2 输入)
 
-**严格 12 步**(Sprint 32-43 一直沿用):
+**不要**让 Codex 读全部 5 个文件 — Codex 只做 Stage 2 实施,**只读**:
+1. **HANDOFF-TO-CODEX.md**(当前 sprint 的 plan doc, Claude Stage 1 生成)
+2. **CLAUDE.md L5.1 + L5.2**(spec 写法原则 + CI 留尾 ROI 重评)
+3. 涉及的具体文件 (HANDOFF 里指明)
 
-```
-1. 读 sprint plan + 跨 sprint memory (MEMORY.md + sprint close memory)
-2. 改代码 + 改测试
-3. 跑 pytest (排除 race flake test: test_api_integration / test_churn_user_list_fstring / test_w4_t7_integration / test_w4_full / test_wo_cleanup_orphans)
-4. 跑 spec-lint (验证 0 violation)
-5. 跑 regression test (frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh, 3/3 case pass)
-6. 跑本地 e2e (uvicorn 8000 + Vite preview 5173 + playwright test, 期望 11/11 spec pass)
-7. VERSION bump (如需要, doc-only 不 bump 跟 Sprint 30.4 风格)
-8. CHANGELOG.md 加 entry (详细, 跟 Sprint 24+ P3 风格一致)
-9. docs/TECH-DEBT.md 加新待办 + 已修复债
-10. git commit --no-verify -m "<type>(scope): ..." (race flake 沿用 7 sprint)
-11. git push --no-verify origin main (race flake)
-12. 写 sprint close memory + 更新 MEMORY.md 索引
-```
-
-**绝对禁止**:
-- 不要跑完整 pytest (会因 race flake 失败 8 个, sprint 38/41 都跳过)
-- 不要用 `git add -A` (按 file name stage)
-- 不要 bump VERSION 当纯 doc 改动
+GPT-5.5 强项 = 复杂代码 + debug。给它严谨的 plan doc + 实施步骤, 它能直接产出。
 
 ---
 
-## 接力者必读:开发环境
+## 🛠️ 开发环境命令 (Claude 验证用)
 
 ### 启 backend (port 8000)
 
@@ -130,14 +178,12 @@ PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
 ### 启 frontend (port 5173)
 
 ```bash
-# 注意 playwright baseURL 是 5173
 nohup npx vite preview --port 5173 --host 0.0.0.0 --strictPort > /tmp/vite-preview.log 2>&1 &
 ```
 
-### 跑 e2e
+### 跑 e2e (期望 11/11 spec pass)
 
 ```bash
-# 本地 11 spec 应 28s pass
 npx playwright test
 ```
 
@@ -154,124 +200,88 @@ PYTHONPATH=. pytest backend/tests/ -q \
 
 ---
 
-## 接力者必读:repo 关键路径
+## 📁 repo 关键路径
 
 ```
 /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/
-├── CLAUDE.md                    # 项目永久规则 (L4.3/L4.4/L5.1/L5.2)
-├── HANDOFF.md                   # 本文件 (接力文档)
-├── README.md                    # 项目说明 + sprint 收口历史
-├── CHANGELOG.md                 # sprint 24+ P3 起的详细 entry
-├── CHANGELOG_HISTORY.md         # sprint 24 之前的历史 entry
-├── VERSION                      # 当前 v0.4.14.134
-├── .pre-commit-config.yaml      # ruff + contract-ground-truth-lint + spec-lint (blocking)
-├── .ship-audit.log              # ship audit (非 git tracked)
+├── HANDOFF.md                  # 本文件 (工作流文档)
+├── HANDOFF-TO-CODEX.md        # Stage 1 → Codex 的 plan doc 模板
+├── CLAUDE.md                   # 项目永久规则 (L4.3/L4.4/L5.1/L5.2)
+├── README.md                   # 项目说明 + sprint 收口历史
+├── CHANGELOG.md                # sprint 24+ P3 起的详细 entry
+├── CHANGELOG_HISTORY.md        # sprint 24 之前的历史 entry
+├── VERSION                     # 当前 v0.4.14.134
+├── .pre-commit-config.yaml     # ruff + contract-ground-truth-lint + spec-lint (blocking)
 ├── backend/
-│   ├── main.py                  # FastAPI app entry
-│   ├── routers/                 # 路由模块 (auth, audience, sampling, category 等)
-│   ├── services/                # 业务逻辑
-│   ├── contracts/               # Pydantic contracts + _lint.py
-│   └── tests/                   # pytest (含 race flake test 加 skipif)
+│   ├── main.py                 # FastAPI app entry
+│   ├── routers/                # 路由模块 (auth, audience, sampling, category 等)
+│   ├── services/               # 业务逻辑
+│   ├── contracts/              # Pydantic contracts + _lint.py
+│   └── tests/                  # pytest (含 race flake test 加 skipif)
 ├── frontend-vue3/
-│   ├── src/                     # Vue 3 + TypeScript 业务代码
+│   ├── src/                    # Vue 3 + TypeScript 业务代码
 │   ├── e2e/
-│   │   ├── *.spec.ts            # 11 spec (Playwright)
+│   │   ├── *.spec.ts           # 11 spec (Playwright)
 │   │   └── lint/
-│   │       ├── spec-lint.sh     # 3 条规则防 Sprint 41 实战 fix 复发
+│   │       ├── spec-lint.sh    # 3 条规则防 Sprint 41 实战 fix 复发
 │   │       └── __tests__/
-│   │           └── spec-lint.test.sh  # 3/3 case pass 真连 regression test
-│   └── playwright.config.ts     # baseURL 5173, timeout 本地 10s/CI 60s, serial mode
+│   │           └── spec-lint.test.sh
+│   └── playwright.config.ts    # baseURL 5173, timeout 本地 10s/CI 60s, serial mode
 ├── docs/
 │   ├── CI-DEFENSE-PLAYBOOK.md           # Sprint 42 3 层防御 (Q1-Q4 决策树)
 │   ├── SPRINT-41-CI-LESSONS-LEARNED.md  # Sprint 41 12 follow-up 时间线
 │   ├── SPRINT-40-PLUS-PLAN.md           # Sprint 40 audit + Sprint 41 实战总结
 │   ├── VISITOR-CHAIN-AUDIT-SPRINT39.md # Sprint 39 visitor 链 audit
 │   ├── TECH-DEBT.md                     # 全部技术债台账 (Sprint 25+ 起)
-│   └── PRE-COMMIT.md / LINTING.md / SHIP.md / HOOKS-CHOICE.md / CI-PRECOMMIT.md  # 流程文档
+│   └── PRE-COMMIT.md / LINTING.md / SHIP.md / HOOKS-CHOICE.md / CI-PRECOMMIT.md
 └── .github/workflows/lint.yml           # GH Actions 4 jobs (lint + ground-truth-lint + pytest + e2e advisory)
 
 ~/.claude/projects/-Users-hutou/memory/
 ├── MEMORY.md                    # 全局索引
 └── project_fuqing_crm_analytics_sprint{24,25,26,27,28,30,32.1,32.2,32.3,33,34.1,37,38,39,40+41,41,42,43}_close.md
-                                # 全部 sprint 收口 memory (Sprint 32-43 系列实战记录)
 ```
 
 ---
 
-## Sprint 44+ 留尾 (从 Sprint 43 留尾)
+## 🎯 Sprint 44+ 留尾 (从 Sprint 43 留尾)
 
 按推荐优先级:
 
 ### ⭐ 近期(1-2 sprint 内做)
 
-| # | 任务 | 来源 | 工作量 |
-|---|---|---|---|
-| 1 | Sprint 50+ #S43-3 pre-flight check shell script | Sprint 42 留尾 | 半天 |
-| 2 | Sprint 44: visitor / export / report 3 选项激活路径 | Sprint 39.2 audit 留尾 (产品决策) | 1 天 |
+| # | 任务 | 来源 | 工作量 | 适合 Codex? |
+|---|---|---|---|---|
+| 1 | Sprint 44: visitor / export / report 3 选项激活路径 | Sprint 39.2 audit (产品决策) | 1 天 | 部分 (决策需要 user 拍板) |
+| 2 | Sprint 50+: pre-flight check shell script | Sprint 42 留尾, 跟 spec-lint 配合 | 半天 | ✅ (bash + 4 项 check, GPT-5.5 强项) |
 
 ### 📅 中期(3-5 sprint 内)
 
-| # | 任务 | 来源 | 工作量 |
-|---|---|---|---|
-| 3 | Sprint 50+ race flake 真治本 | Sprint 38 留尾 (ROI 重评为低) | 2+ 天 |
-| 4 | Sprint 50+ L2 AST parser + ground-truth-lint 扩 | Sprint 34.2 + 36-4 (spec-lint bash 起步, 漏报才升) | 半天 + 1h |
-| 5 | Sprint 50+ commit msg ↔ diff check | Sprint 35 (ROI 负) | 1 天 |
+| # | 任务 | 来源 | 工作量 | 适合 Codex? |
+|---|---|---|---|---|
+| 3 | Sprint 50+: race flake 真治本 | Sprint 38 (ROI 重评为低) | 2+ 天 | 部分 (架构调研) |
+| 4 | Sprint 50+: L2 AST parser + ground-truth-lint 扩 | Sprint 34.2 + 36-4 | 半天 + 1h | ✅ (复杂 AST 实现) |
+| 5 | Sprint 50+: commit msg ↔ diff check | Sprint 35 (ROI 负) | 1 天 | ⚠️ (ROI 负, 跳过) |
 
 ### 🕰 长期(数据触发)
 
 | # | 任务 | 来源 | 工作量 |
 |---|---|---|---|
 | 6 | 30M 50m-scale | Sprint 25 (目前 10.75M) | 2 人日 |
-| 7 | Sprint 50+ e2e CI 重新评估 | Sprint 41.12 advisory 触发 | 1 天 |
+| 7 | Sprint 50+: e2e CI 重新评估 | Sprint 41.12 advisory 触发 | 1 天 |
 
 ---
 
-## 给接力 AI 的 prompt 模板
+## ✅ 接力完成 Checklist
 
-把这段贴给 codex / 任何接力 AI:
+新接手一次 sprint 时:
 
-```markdown
-你接力 fuqing-crm-analytics 项目。当前状态:
-
-- main HEAD: 0c48234 (Sprint 43.1 收口)
-- VERSION: v0.4.14.134
-- 最近 sprint: Sprint 43 (#S43-1 spec-lint blocking + #S43-2 修 7 真违反)
-- 接力时间: 2026-06-19
-
-必读 5 个文件 (按顺序):
-1. /Users/hutou/.claude/projects/-Users-hutou/memory/MEMORY.md
-2. CLAUDE.md (项目根) - L4.3/L4.4/L5.1/L5.2 永久规则
-3. docs/CI-DEFENSE-PLAYBOOK.md - 3 层防御 + Q1-Q4 决策树
-4. /Users/hutou/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint43_close.md
-5. /Users/hutou/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint41_close.md
-
-核心决策框架:
-- 实战 fix 模式 ROI 重评 (治本 1-2 天阈值)
-- 12 步 commit 流程严格 (--no-verify push race flake)
-- N > 5 还没闭环 → 改治标/advisory 0→1 (不是失败, 是务实)
-- 跨 sprint 实战教训沉淀 = playbook(规范时) 跟 lessons learned(过去时) 双 source, 引用不复述
-
-下一个建议 sprint: Sprint 44 visitor / export / report 3 选项激活路径 (1 天, user 拍板为主)
-或 Sprint 50+ pre-flight check shell script (半天, 跟 spec-lint 配合)
-
-确认你已读 HANDOFF.md + 5 个文件, 然后告诉我你准备做哪个 sprint。
-```
-
----
-
-## 接力完成 Checklist
-
-接力者确认:
-
-- [ ] 读了 HANDOFF.md (本文件)
-- [ ] 读了 MEMORY.md (全局索引)
-- [ ] 读了 CLAUDE.md L4.3/L4.4/L5.1/L5.2 永久规则
-- [ ] 读了 docs/CI-DEFENSE-PLAYBOOK.md (3 层防御)
-- [ ] 读了 Sprint 43 + Sprint 41 close memory (最近 2 个 sprint 收口)
-- [ ] git tag 看到 v0.4.14.133 + v0.4.14.134 (Sprint 43 + 43.1 收口标记)
-- [ ] git log --oneline -10 看到 Sprint 32-43 系列历史
-- [ ] 测试过启 uvicorn + Vite preview + playwright test (确认 dev 环境可用)
-- [ ] 跟 user 确认下一个 sprint 候选
+- [ ] 跟 Claude 说 "做 Sprint XX" (给方向)
+- [ ] Claude 输出 HANDOFF-TO-CODEX.md (Stage 1 产物)
+- [ ] 复制给 Codex app (动作 1, 1 分钟)
+- [ ] Codex 改完提示你 (动作 2, 等待)
+- [ ] Claude review + commit + push (Stage 3+4 自动)
+- [ ] 看 push 结果确认 (动作 3, 30 秒)
+- [ ] 写 sprint close memory + 更新 MEMORY.md (Step 12)
 
 ---
 
@@ -279,11 +289,11 @@ PYTHONPATH=. pytest backend/tests/ -q \
 
 - 项目 owner: hutou
 - 沟通语言: 中文
-- 风格偏好: 简洁优先 + 精准修改 + 目标驱动执行 (跟 CLAUDE.md 一致)
+- 风格偏好: 简洁优先 + 精准修改 + 目标驱动执行
 - 不确定时: 先问 user, 不要默默假设
 
 ---
 
 **HANDOFF.md 完。**
-**当前 sprint 状态: Sprint 43.1 收口完成 (v0.4.14.134), main HEAD 0c48234, 11/11 e2e pass。**
-**准备接力。**
+**当前 sprint 状态: Sprint 43.1 收口完成 (v0.4.14.134), main HEAD aa18969, 11/11 e2e pass。**
+**新工作流就绪: Claude 总指挥 + Codex 实施。**
