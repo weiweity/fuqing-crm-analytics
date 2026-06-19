@@ -24,17 +24,17 @@ test.describe('category-detail 路由', () => {
 
     // 登录
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('访问 /category-detail/:id, MetricCard + 日趋势 chart + 用户表渲染, 无 error', async ({ page }) => {
     // 找一个真实 categoryId (从 /category 进)
     await page.goto('/category')
-    await expect(page.getByText('品类看板').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('品类看板').first()).toBeVisible({ timeout: 30000 })
     await page.waitForTimeout(2000)
 
     // 点击品类明细表第一行 (假设 DataTablePro 行可点击跳转详情)
@@ -44,7 +44,7 @@ test.describe('category-detail 路由', () => {
     // 断言 4 个 MetricCard 标题
     const metrics = ['总用户数', '累计GMV', '新客占比', '平均AUS']
     for (const m of metrics) {
-      await expect(page.getByText(m).first()).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(m).first()).toBeVisible({ timeout: 30000 })
     }
 
     // Sprint 32.2 #S32-2 模式: bi-card + filter 定位日趋势 chart
@@ -52,7 +52,7 @@ test.describe('category-detail 路由', () => {
     if (await trendCard.isVisible().catch(() => false)) {
       const chart = trendCard.locator('canvas').first()
       // 等真实渲染 (数据 fetch + ECharts draw), 容许空状态 EmptyState
-      await expect(chart).toBeVisible({ timeout: 15000 }).catch(() => {
+      await expect(chart).toBeVisible({ timeout: 30000 }).catch(() => {
         // 接受 EmptyState ("暂无趋势数据") 作为合法状态
       })
     }

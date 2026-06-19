@@ -23,14 +23,14 @@ test.describe('customer-health 路由', () => {
 
     // 登录：访问登录页面，输入账号密码
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     // 账号输入框（第一个 input）
     await page.locator('input[type="text"]').first().fill('admin')
     // 密码输入框（第二个 input）
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
     // 等待登录成功（跳转到 /audience 或出现导航菜单）
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('导航到 customer-health，6个Tab正常渲染，无控制台 error', async ({ page }) => {

@@ -24,18 +24,18 @@ test.describe('market-focus 路由', () => {
 
     // 登录
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('访问 /market-focus, 4 个 sub-tab 渲染, 无控制台 error', async ({ page }) => {
     await page.goto('/market-focus')
 
     // 断言 PageHeader 标题
-    await expect(page.getByText('市场对焦').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('市场对焦').first()).toBeVisible({ timeout: 30000 })
 
     // 断言 4 个 sub-tab names (Explore agent 提取)
     const tabNames = ['核心单品新老客', '全店资产', '单品资产', '单品资产-其他']

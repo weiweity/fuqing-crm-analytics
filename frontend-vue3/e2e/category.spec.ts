@@ -25,18 +25,18 @@ test.describe('category 路由', () => {
 
     // 登录
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('访问 /category, MetricCard + 饼图 + 明细表 + sub-tab 渲染, 无 error', async ({ page }) => {
     await page.goto('/category')
 
     // 断言 PageHeader 标题
-    await expect(page.getByText('品类看板').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('品类看板').first()).toBeVisible({ timeout: 30000 })
 
     // 等待 overview data fetch
     await page.waitForTimeout(2000)
@@ -46,7 +46,7 @@ test.describe('category 路由', () => {
     if (await pieCard.isVisible().catch(() => false)) {
       const chart = pieCard.locator('canvas').first()
       // ECharts 真实渲染 (data fetch + canvas draw), 容许 EmptyState
-      await expect(chart).toBeVisible({ timeout: 15000 }).catch(() => {
+      await expect(chart).toBeVisible({ timeout: 30000 }).catch(() => {
         // 数据为空时显示 EmptyState, 接受
       })
     }

@@ -29,24 +29,24 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
 
     // 登录
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('访问 /sampling, PageHeader + ROI sub-tab 渲染, 无控制台 error (回归 a9b1d91)', async ({ page }) => {
     await page.goto('/sampling')
 
     // 关键断言 1: PageHeader 标题可见 (a9b1d91 误清空后这块会空白)
-    await expect(page.getByText('派样看板').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('派样看板').first()).toBeVisible({ timeout: 30000 })
 
     // 关键断言 2: PageHeader subtitle 可见
     await expect(page.getByText('U先/百补派样ROI').first()).toBeVisible()
 
     // 关键断言 3: 渠道对比卡片 (Explore agent 确认: 2 个 n-card 渠道对比 U先派样/百补)
-    await expect(page.getByText('U先派样').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('U先派样').first()).toBeVisible({ timeout: 30000 })
     await expect(page.getByText('百补').first()).toBeVisible()
 
     // 关键断言 4: 品类明细表

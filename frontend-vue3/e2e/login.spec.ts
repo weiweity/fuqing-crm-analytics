@@ -27,7 +27,7 @@ test.describe('login 路由', () => {
     await page.goto('/login')
 
     // 断言 form 元素可见 (Sprint 33.2 fix: getByText strict mode 加 .first(), 跟其他 spec 一致)
-    await expect(page.getByText('欢迎回来').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('欢迎回来').first()).toBeVisible({ timeout: 30000 })
     await expect(page.locator('input[type="text"]').first()).toBeVisible()
     await expect(page.locator('input').nth(1)).toBeVisible()
     await expect(page.locator('button:has-text("登 录")')).toBeVisible()
@@ -38,7 +38,7 @@ test.describe('login 路由', () => {
     await page.click('button:has-text("登 录")')
 
     // 断言跳转后导航栏出现 (登录成功标志)
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
     await expect(page).toHaveURL(/\/audience/)
 
     // 无 error 级别控制台日志

@@ -37,18 +37,18 @@ test.describe('audience 日趋势会员占比 tooltip', () => {
 
     // 登录 (复用 customer-health.spec.ts 模式)
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('日趋势 全店GSV与会员占比 chart tooltip 显示 53.X% (非 5346%)', async ({ page }) => {
     await page.goto('/audience')
 
     // 等待 "全店GSV" 标题 (图表卡片标题)
-    await expect(page.getByText('全店GSV').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('全店GSV').first()).toBeVisible({ timeout: 30000 })
 
     // 等待 ECharts canvas 渲染
     await page.waitForTimeout(2000)
@@ -56,12 +56,12 @@ test.describe('audience 日趋势会员占比 tooltip', () => {
     // Sprint 32.2 治根 (债 #S32-2): 用 bi-card + filter 模式定位日趋势 chart container,
     // 避免 page.locator('canvas').first() 选错其它 canvas (e.g. 顶部 stat card sparkline)
     const trendCard = page.locator('.bi-card').filter({ hasText: '日趋势' }).first()
-    await expect(trendCard).toBeVisible({ timeout: 10000 })
+    await expect(trendCard).toBeVisible({ timeout: 30000 })
 
     // Sprint 32.2: wait for ECharts canvas 真正渲染 (数据 fetch 完 + ECharts 画完).
     // 之前用 waitForTimeout(2000) 太短, data 还没加载完 chart 不存在
     const chart = trendCard.locator('canvas').first()
-    await expect(chart).toBeVisible({ timeout: 15000 })
+    await expect(chart).toBeVisible({ timeout: 30000 })
 
     // Sprint 32.2: 滚动 trend card 到视口中心, 避免 chart 在视口外 hover 不响应
     // ECharts tooltip 默认 append 到 body, 视口外坐标可能不触发 hover

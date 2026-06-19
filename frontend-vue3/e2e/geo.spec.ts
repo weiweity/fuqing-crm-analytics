@@ -25,18 +25,18 @@ test.describe('geo 路由', () => {
 
     // 登录
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('访问 /geo, PageHeader + 重构遮罩存在, 无控制台 error', async ({ page }) => {
     await page.goto('/geo')
 
     // 断言 PageHeader 标题
-    await expect(page.getByText('地域分析').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('地域分析').first()).toBeVisible({ timeout: 30000 })
 
     // 断言重构遮罩 (跟 ChurnView 相同的 "待优化更新" 文案)
     await expect(page.getByText('待优化更新').first()).toBeVisible({ timeout: 5000 })

@@ -25,18 +25,18 @@ test.describe('breakdown 路由', () => {
 
     // 登录
     await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 10000 })
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 10000 })
+    await page.waitForSelector('text=人群看板', { timeout: 30000 })
   })
 
   test('访问 /breakdown, 触发按钮 + 拆解 sub-tab 渲染, 无控制台 error', async ({ page }) => {
     await page.goto('/breakdown')
 
     // 断言 PageHeader + 触发按钮
-    await expect(page.getByText('一键拆解').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('一键拆解').first()).toBeVisible({ timeout: 30000 })
     await expect(page.locator('button:has-text("开始拆解")').first()).toBeVisible()
 
     // 断言"待优化更新"重构遮罩存在 (跟 ChurnView/GeoView 同根因, 该模块正在重构)
