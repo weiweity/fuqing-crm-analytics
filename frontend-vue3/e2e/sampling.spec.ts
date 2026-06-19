@@ -66,7 +66,8 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     })
     expect(roiResp.status(), '/api/v1/sampling/roi 业务断言').toBe(200)
     const roiJson = await roiResp.json()
-    expect(Array.isArray(roiJson.channel_summary), 'channel_summary 应为数组').toBe(true)
+    // Sprint 41.6 fix: backend 实际返 `summary.channels` array, spec 原写 channel_summary (跟 Sprint 36-2 business assertion 一致), Sprint 41.6 跑批发现 typo
+    expect(Array.isArray(roiJson.summary?.channels), 'summary.channels 应为数组').toBe(true)
 
     // 无 error 级别控制台日志 (a9b1d91 当时 Vite 编译错会污染 console)
     expect(consoleErrors).toHaveLength(0)
