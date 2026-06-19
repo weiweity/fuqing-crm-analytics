@@ -90,7 +90,7 @@ jobs:
         run: |
           cd frontend-vue3
           npx playwright install --with-deps chromium
-      - name: Build (Vite) + Start preview server
+      - name: Build (Vite) + Start preview server + Start uvicorn backend
         env:
           NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
         run: |
@@ -102,6 +102,24 @@ jobs:
           for i in {1..30}; do
             if curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q 200; then
               echo "✅ Preview server ready"
+              break
+            fi
+            sleep 1
+          done
+          # Sprint 41.4: 起 uvicorn backend (e2e spec 调 /api/v1/... 需要 backend 返 200, 不然 401)
+          # GH Actions runner 没 production DuckDB (103GB 不在 repo), 但 spec 期望 channel_summary 是 array
+          # (空数组也算), 所以空 DB 也 PASS. CI 只需 uvicorn 跑 + 任何 spec 调 /api 都返 200.
+          cd ..
+          pip install -r requirements-lock.txt > /tmp/uvicorn-pip.log 2>&1 || true
+          # Sprint 36-4 L1 lint 后端 SQL f-string 一致性 hook 跑过, backend 应该 0 violation
+          # 用 minimal FQ_CRM_PASSWORDS + ETL_MIN_DISK_GB=0 (避免 disk full, Sprint 41.1 实战过)
+          FQ_CRM_PASSWORDS="admin:123456" \
+            ETL_MIN_DISK_GB=0 \
+            nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn-ci.log 2>&1 &
+          UVICORN_PID=$!
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health | grep -q 200; then
+              echo "✅ Uvicorn backend ready (PID $UVICORN_PID)"
               break
             fi
             sleep 1
