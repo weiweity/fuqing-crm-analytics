@@ -79,8 +79,8 @@ Claude (Stage 4): git commit --no-verify + git push --no-verify
 ### ⚠️ AGENTS.md 注意事项
 
 - **Codex 自动注入 `AGENTS.md`**（本地文件，.gitignore 排除），**不会读 `CLAUDE.md`**
-- `AGENTS.md` 跟 `CLAUDE.md` 内容相同，自引用已修正为 Codex 版本
-- **修改规则时两个文件都要改**，或改一个后同步到另一个
+- `AGENTS.md` 由 `scripts/sync-agents.sh` 从 `CLAUDE.md` 自动生成（单一 source of truth）
+- **改规则只改 `CLAUDE.md`**，然后跑 `bash scripts/sync-agents.sh` 同步
 - `HANDOFF.md` 是 Codex 工作流详细规范，Claude 在 Stage 1 时读取
 
 ---
