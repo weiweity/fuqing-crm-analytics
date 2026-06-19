@@ -106,24 +106,32 @@ jobs:
             fi
             sleep 1
           done
-          # Sprint 41.4: 起 uvicorn backend (e2e spec 调 /api/v1/... 需要 backend 返 200, 不然 401)
-          # GH Actions runner 没 production DuckDB (103GB 不在 repo), 但 spec 期望 channel_summary 是 array
-          # (空数组也算), 所以空 DB 也 PASS. CI 只需 uvicorn 跑 + 任何 spec 调 /api 都返 200.
+          # Sprint 41.11 fix: uvicorn 启动错误被 '|| true' 吞, 改 set +e + 显式 error. 让 GH Actions log 看到 uvicorn 真实状态.
           cd ..
-          pip install -r requirements-lock.txt > /tmp/uvicorn-pip.log 2>&1 || true
-          # Sprint 36-4 L1 lint 后端 SQL f-string 一致性 hook 跑过, backend 应该 0 violation
-          # 用 minimal FQ_CRM_PASSWORDS + ETL_MIN_DISK_GB=0 (避免 disk full, Sprint 41.1 实战过)
+          # Sprint 41.11: 显式 set -e 让 pip install 失败时 e2e step fail (避免 '|| true' 吞错)
+          set -e
+          pip install -r requirements-lock.txt
+          # Sprint 41.11: uvicorn 不写 /tmp/, redirect 到 GH Actions log (>&1). 启动错误可见.
           FQ_CRM_PASSWORDS="admin:123456" \
             ETL_MIN_DISK_GB=0 \
-            nohup python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn-ci.log 2>&1 &
+            python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
           UVICORN_PID=$!
-          for i in {1..30}; do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health | grep -q 200; then
+          # Sprint 41.11: 等 uvicorn 60s (CI runner 慢, 之前 30s 不够)
+          UVICORN_READY=false
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health 2>/dev/null | grep -q 200; then
               echo "✅ Uvicorn backend ready (PID $UVICORN_PID)"
+              UVICORN_READY=true
               break
             fi
             sleep 1
           done
+          if [ "$UVICORN_READY" != "true" ]; then
+            echo "❌ Uvicorn backend failed to start in 60s"
+            exit 1
+          fi
+          # Sprint 41.11: set -e 关闭 (后续 playwright 不要 'fail-fast', 让 spec 跑完)
+          set +e
       - name: Run e2e (10/10 view smoke expected)
         env:
           NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
