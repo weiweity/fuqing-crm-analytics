@@ -38,8 +38,7 @@ test.describe('category 路由', () => {
     // 断言 PageHeader 标题
     await expect(page.getByText('品类看板').first()).toBeVisible({ timeout: 30000 })
 
-    // 等待 overview data fetch
-    await page.waitForTimeout(2000)
+    // 等待 overview data fetch (Sprint 43 #S43-2: 删 waitForTimeout, 下面 expect chart 自己 wait)
 
     // Sprint 32.2 #S32-2 模式: bi-card + filter 定位品类GSV分布饼图
     const pieCard = page.locator('.bi-card').filter({ hasText: '品类GSV分布' }).first()

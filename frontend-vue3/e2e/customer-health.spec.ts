@@ -42,8 +42,7 @@ test.describe('customer-health 路由', () => {
       await expect(page.getByText(name).first()).toBeVisible()
     }
 
-    // 等待数据加载（现状概览默认激活）
-    await page.waitForTimeout(3000)
+    // 等待数据加载（现状概览默认激活） (Sprint 43 #S43-2: 删冗余 waitForTimeout, expect tab 已 wait)
 
     // 断言无 error 级别日志
     expect(consoleErrors).toHaveLength(0)
@@ -54,7 +53,7 @@ test.describe('customer-health 路由', () => {
 
     // 点击 RFM分析 tab
     await page.getByText('RFM分析').first().click()
-    await page.waitForTimeout(3000)
+    // Sprint 43 #S43-2: 删冗余 waitForTimeout, 下面 expect .rfm-analysis-tab 自己 wait
 
     // 断言图表容器存在
     await expect(page.locator('.rfm-analysis-tab')).toBeVisible()

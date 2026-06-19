@@ -44,7 +44,7 @@ test.describe('breakdown 路由', () => {
     await expect(page.getByText('待优化更新').first()).toBeVisible({ timeout: 5000 })
 
     // 不触发 mutation (避免假数据, useMutation 需手动点击)
-    await page.waitForTimeout(1000)
+    // Sprint 43 #S43-2: 删冗余 waitForTimeout, expect assertion 自己 wait
 
     // Sprint 36-2 业务断言: /api/v1/breakdown/one-click POST schema 验证 (空 body 期望 422)
     // 业务上 breakdown 是 useMutation, 需手动触发. e2e 测 schema 边界 (认证 + body 校验)

@@ -43,8 +43,7 @@ test.describe('market-focus 路由', () => {
       await expect(page.getByText(name).first()).toBeVisible()
     }
 
-    // 等待 sub-tab 默认加载
-    await page.waitForTimeout(2000)
+    // 等待 sub-tab 默认加载 (Sprint 43 #S43-2: 删 waitForTimeout, expect tab 已 wait)
 
     // 无 error 级别控制台日志
     expect(consoleErrors).toHaveLength(0)

@@ -35,9 +35,10 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 38 收口 (v0.4.14.126 race flake 治标, 5 sprint 复发 S32.3/S34.1/S36-1/S37/S38 透明化, 3 个真连 test 加 _IN_XDIST_PARALLEL skipif, pre-push 加 uvicorn 状态检测, ATTACH 真治本 ROI 重评为低)
 - ✅ Sprint 39.1 收口 (v0.4.14.127 GH Actions CI 爆红修复, 7+ sprint 一直红闭环, conftest.py 加 _PROD_DUCKDB_AVAILABLE 跨 3 个真连 test 加 skipif, 模拟 CI DUCKDB_PATH=/tmp/nonexistent 跑 16 skipped / 0 failed / exit 0)
 - ✅ Sprint 39.2 收口 (v0.4.14.128 visitor chain + export/report chain ground-truth audit doc 闭环, Sprint 36-1 plan-eng-review "visitor 业务风险高" 误判校正, 实查 visitor backend 100% 活跃 + frontend API 100% 活跃 + AudienceView 真消费, 唯一缺 = frontend router 注册; 激活路径产品决策留给 user, 详见 `docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`)
-- ✅ Sprint 40 收口 (v0.4.14.129 Sprint 40+ ground-truth audit + 推后排期, 6 项 Sprint 40+ 候选 ROI 重评, Sprint 41 CI e2e 本 sprint 执行, Sprint 42-43 推后 Sprint 50+, 详见 `docs/SPRINT-40-PLUS-PLAN.md`)
+- ✅ Sprint 40 收口 (v0.4.14.129 Sprint 40+ ground-truth audit + 推后排期, 6 项 Sprint 40+ 候选 ROI 重评, Sprint 41 CI e2e 本 sprint 执行, 详见 `docs/SPRINT-40-PLUS-PLAN.md`)
 - ✅ Sprint 41 收口 (v0.4.14.131 CI 跑 e2e 自动化, Sprint 32.1 留尾 7 sprint 闭环, 3 commit 实战: Sprint 41 加 e2e job + Sprint 41.1 disk full fix + Sprint 41.2 npm ci --legacy-peer-deps, GH Actions 4 job 自动化: lint + ground-truth-lint + pytest + e2e)
 - ✅ Sprint 41 实战 follow-up (v0.4.14.132, 12 follow-up commits: Sprint 41.1 disk + 41.2 npm ci + 41.3 vue-tsc + 41.4 uvicorn + 41.5 token + 41.6 spec typo + 41.7 serial + 41.8/41.9/41.10 3 个 timeout + 41.11 set -e + 41.12 e2e advisory, GH Actions 实战 fix 闭环 0→1 失败改 advisory 0→1 跟 ground-truth-lint 一致, 实战教训写入 `docs/SPRINT-41-CI-LESSONS-LEARNED.md`)
+- ✅ Sprint 42 收口 (v0.4.14.132 spec-lint 预防层 + CI 实战 fix 框架沉淀, doc-only, 4 产出物: `docs/CI-DEFENSE-PLAYBOOK.md` 3 层防御 + Q1-Q4 决策树 + 5 步响应流程 + `frontend-vue3/e2e/lint/spec-lint.sh` 3 条规则防 Sprint 41.5/41.6/41.8/41.9 复发 + regression test 3/3 case pass + `CLAUDE.md` L5.1 + L5.2 永久规则, 起步 advisory 跟 ground-truth-lint 一致; 实战 fix 模式 ROI 重评: 治本 < 1 天 + 治本后 0 复发 → 治本, 治本 > 2 天 OR 治本不现实 → 治标, 跟 Sprint 38 race flake 治标同源)
 
 ---
 

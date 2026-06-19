@@ -50,8 +50,7 @@ test.describe('audience 日趋势会员占比 tooltip', () => {
     // 等待 "全店GSV" 标题 (图表卡片标题)
     await expect(page.getByText('全店GSV').first()).toBeVisible({ timeout: 30000 })
 
-    // 等待 ECharts canvas 渲染
-    await page.waitForTimeout(2000)
+    // 等待 ECharts canvas 渲染 (Sprint 43 #S43-2: 删冗余 waitForTimeout, expect canvas 自己 wait)
 
     // Sprint 32.2 治根 (债 #S32-2): 用 bi-card + filter 模式定位日趋势 chart container,
     // 避免 page.locator('canvas').first() 选错其它 canvas (e.g. 顶部 stat card sparkline)
@@ -59,21 +58,21 @@ test.describe('audience 日趋势会员占比 tooltip', () => {
     await expect(trendCard).toBeVisible({ timeout: 30000 })
 
     // Sprint 32.2: wait for ECharts canvas 真正渲染 (数据 fetch 完 + ECharts 画完).
-    // 之前用 waitForTimeout(2000) 太短, data 还没加载完 chart 不存在
+    // 之前用 waitForTimeout 太短, data 还没加载完 chart 不存在. Sprint 43 删冗余
     const chart = trendCard.locator('canvas').first()
     await expect(chart).toBeVisible({ timeout: 30000 })
 
     // Sprint 32.2: 滚动 trend card 到视口中心, 避免 chart 在视口外 hover 不响应
     // ECharts tooltip 默认 append 到 body, 视口外坐标可能不触发 hover
     await trendCard.scrollIntoViewIfNeeded()
-    await page.waitForTimeout(500)
+    // Sprint 43 #S43-2: 删冗余 waitForTimeout, scrollIntoViewIfNeeded 已经 wait
 
     const box = await chart.boundingBox()
     if (!box) throw new Error('日趋势 chart canvas 未找到')
 
     // hover canvas 中点偏右 (X 轴日期中段, 必有数据)
     await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
-    await page.waitForTimeout(500)
+    // Sprint 43 #S43-2: 删冗余 waitForTimeout, expect tooltip 自己 wait
 
     // ECharts tooltip 默认 append 到 body, class 默认包含 'tooltip'
     const tooltip = page.locator('div[style*="position: absolute"]').filter({ hasText: '占比' }).first()

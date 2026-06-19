@@ -35,7 +35,7 @@ test.describe('category-detail 路由', () => {
     // 找一个真实 categoryId (从 /category 进)
     await page.goto('/category')
     await expect(page.getByText('品类看板').first()).toBeVisible({ timeout: 30000 })
-    await page.waitForTimeout(2000)
+    // Sprint 43 #S43-2: 删冗余 waitForTimeout, 后面 expect MetricCard 自己 wait
 
     // 点击品类明细表第一行 (假设 DataTablePro 行可点击跳转详情)
     // 若点击不可行, 退而求其次直接访问 /category-detail/1 (route 接受任意 id, 后端 404 时仍能验证页面渲染)

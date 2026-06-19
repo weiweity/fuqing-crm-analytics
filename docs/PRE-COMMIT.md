@@ -121,6 +121,7 @@ pre-commit run --all-files
 | `git commit --no-verify` | **跳过** (紧急用, 但 Sprint 18 #142 强烈不建议) |
 | `pre-commit run --all-files` | 手动跑全部 hook, 不需要 commit |
 | `pre-commit run contract-ground-truth-lint` | 只跑 contract hook |
+| `pre-commit run spec-lint` | 只跑 e2e spec hook (Sprint 42 #S42-1) |
 
 ### 4.3 contract-ground-truth-lint 怎么跑
 
@@ -130,6 +131,23 @@ entry: python -m backend.contracts._lint
 language: system
 pass_filenames: false
 files: 'backend/contracts/.*\.py$'
+```
+
+### 4.4 spec-lint 怎么跑 (Sprint 42 #S42-1)
+
+防 Sprint 41.5/41.6/41.8/41.9 实战 fix 复发. 3 条规则: ① 不 hardcode 业务数据长度 ② 不 `waitForTimeout` 死等 ③ `page.request` 缺 Authorization. 起步 advisory 模式 (跟 ground-truth-lint 一样, 1-2 sprint 观察 false positive 率后改 blocking). 详见 `docs/CI-DEFENSE-PLAYBOOK.md` 跟 `CLAUDE.md` L5.2.
+
+```bash
+# Hook entry
+entry: bash frontend-vue3/e2e/lint/spec-lint.sh --advisory
+language: system
+pass_filenames: false
+files: 'frontend-vue3/e2e/.*\.spec\.ts$'
+
+# 手动跑
+bash frontend-vue3/e2e/lint/spec-lint.sh                  # blocking 模式
+bash frontend-vue3/e2e/lint/spec-lint.sh --advisory       # advisory 模式
+bash frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh   # 跑 regression test (3/3 case)
 ```
 
 **关键**:

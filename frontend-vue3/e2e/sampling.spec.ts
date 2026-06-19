@@ -54,8 +54,7 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
       // 数据 fetch 后才渲染, 接受 EmptyState
     })
 
-    // 等待 ROI sub-tab 数据 fetch
-    await page.waitForTimeout(2000)
+    // 等待 ROI sub-tab 数据 fetch (Sprint 43 #S43-2: 删 waitForTimeout, page.request 自己 wait network)
 
     // Sprint 36-2 业务断言: /api/v1/sampling/roi 返回 200 + 有 channel_summary 数组
     // Sprint 41.5: page.request 不带 sessionStorage token,手动从 sessionStorage 拿 + 加 Authorization header
