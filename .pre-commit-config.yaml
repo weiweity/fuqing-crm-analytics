@@ -13,3 +13,13 @@ repos:
         pass_filenames: false
         files: 'backend/contracts/.*\.py$'
         stages: [pre-commit]
+      - id: spec-lint
+        # Sprint 42 #S42-1: e2e spec 写法 lint 防 Sprint 41.5/41.6/41.9 复发
+        # 起步 advisory 模式 (跟 ground-truth-lint 一样), 1-2 sprint 观察 false positive 率后改 blocking
+        # 关联 docs/CI-DEFENSE-PLAYBOOK.md §预防层 + CLAUDE.md L5.2
+        name: e2e spec 写法 lint (Sprint 42 #S42-1, advisory)
+        entry: bash frontend-vue3/e2e/lint/spec-lint.sh --advisory
+        language: system
+        pass_filenames: false
+        files: 'frontend-vue3/e2e/.*\.spec\.ts$'
+        stages: [pre-commit]
