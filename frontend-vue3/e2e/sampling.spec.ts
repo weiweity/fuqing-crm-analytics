@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/auth.fixture'
 
 /**
  * Sprint 33.2 候选 3: /sampling 路由 smoke 验证 — Sprint 32.3 a9b1d91 教训核心
@@ -11,32 +11,8 @@ import { test, expect } from '@playwright/test'
  * - 当前文件 32653 bytes / 699 行 (Sprint 33.2 验证: e2e 1 test 触达此路由)
  */
 test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
-  const consoleErrors: string[] = []
-
-  test.beforeEach(async ({ page }) => {
-    consoleErrors.length = 0
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        // Sprint 32.2: WASM streaming race filter
-        const text = msg.text()
-        if (text.includes('wasm streaming compile failed') ||
-            text.includes('falling back to ArrayBuffer instantiation')) {
-          return
-        }
-        consoleErrors.push(text)
-      }
-    })
-
-    // 登录
-    await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
-    await page.locator('input[type="text"]').first().fill('admin')
-    await page.locator('input').nth(1).fill('123456')
-    await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 30000 })
-  })
-
-  test('访问 /sampling, PageHeader + ROI sub-tab 渲染, 无控制台 error (回归 a9b1d91)', async ({ page }) => {
+  test.setTimeout(30000)  // /sampling 数据 fetch + 渲染较慢, 突破默认 10s
+  test('访问 /sampling, PageHeader + ROI sub-tab 渲染, 无控制台 error (回归 a9b1d91)', async ({ authenticatedPage: page, consoleErrors }) => {
     await page.goto('/sampling')
 
     // 关键断言 1: PageHeader 标题可见 (a9b1d91 误清空后这块会空白)

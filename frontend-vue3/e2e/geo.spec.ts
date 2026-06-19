@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/auth.fixture'
 
 /**
  * Sprint 33.2 候选 3: /geo 路由 smoke 验证
@@ -7,32 +7,7 @@ import { test, expect } from '@playwright/test'
  *       e2e 断言 PageHeader + 遮罩文字, 跳过 chart 断言 (被遮罩挡住)
  */
 test.describe('geo 路由', () => {
-  const consoleErrors: string[] = []
-
-  test.beforeEach(async ({ page }) => {
-    consoleErrors.length = 0
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        // Sprint 32.2: WASM streaming race filter
-        const text = msg.text()
-        if (text.includes('wasm streaming compile failed') ||
-            text.includes('falling back to ArrayBuffer instantiation')) {
-          return
-        }
-        consoleErrors.push(text)
-      }
-    })
-
-    // 登录
-    await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
-    await page.locator('input[type="text"]').first().fill('admin')
-    await page.locator('input').nth(1).fill('123456')
-    await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 30000 })
-  })
-
-  test('访问 /geo, PageHeader + 重构遮罩存在, 无控制台 error', async ({ page }) => {
+  test('访问 /geo, PageHeader + 重构遮罩存在, 无控制台 error', async ({ authenticatedPage: page, consoleErrors }) => {
     await page.goto('/geo')
 
     // 断言 PageHeader 标题

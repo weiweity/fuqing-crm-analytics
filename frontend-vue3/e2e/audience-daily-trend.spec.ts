@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/auth.fixture'
 
 /**
  * Sprint 27 治根 e2e 验证: 人群看板 → 日趋势 → "全店GSV与会员占比" 折线图 tooltip
@@ -16,35 +16,7 @@ import { test, expect } from '@playwright/test'
  *   - Y 轴右侧标签含 "%" 但不应有 "3500" / "5346" 异常值
  */
 test.describe('audience 日趋势会员占比 tooltip', () => {
-  const consoleErrors: string[] = []
-
-  test.beforeEach(async ({ page }) => {
-    consoleErrors.length = 0
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        // Sprint 32.2: 过滤 WASM streaming race 网络瞬态 (跟 customer-health 同根因)
-        // "wasm streaming compile failed" / "falling back to ArrayBuffer instantiation"
-        // 是 dev server 启动首次加载 DuckDB-WASM 时的 race, e2e 跨页面状态泄漏到 console,
-        // 不影响业务逻辑, 但污染 consoleErrors 断言. 真 e2e 业务错误仍会被捕获.
-        const text = msg.text()
-        if (text.includes('wasm streaming compile failed') ||
-            text.includes('falling back to ArrayBuffer instantiation')) {
-          return
-        }
-        consoleErrors.push(text)
-      }
-    })
-
-    // 登录 (复用 customer-health.spec.ts 模式)
-    await page.goto('/')
-    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
-    await page.locator('input[type="text"]').first().fill('admin')
-    await page.locator('input').nth(1).fill('123456')
-    await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 30000 })
-  })
-
-  test('日趋势 全店GSV与会员占比 chart tooltip 显示 53.X% (非 5346%)', async ({ page }) => {
+  test('日趋势 全店GSV与会员占比 chart tooltip 显示 53.X% (非 5346%)', async ({ authenticatedPage: page, consoleErrors }) => {
     await page.goto('/audience')
 
     // 等待 "全店GSV" 标题 (图表卡片标题)
