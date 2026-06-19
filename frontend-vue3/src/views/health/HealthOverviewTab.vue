@@ -24,7 +24,10 @@ const radarChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 import { LOW_PRICE_CHANNELS, HEALTH_SCORE_CHANNELS } from '@/constants/channels'
 
 // ── 渠道评分表格排序（仅显示全店/货架/达播/直播/淘客）──
-const HEALTH_SCORE_CHANNEL_ORDER = HEALTH_SCORE_CHANNELS
+// Sprint 41.3 fix: HEALTH_SCORE_CHANNELS 是 tuple literal type, s.channel 是 string (backend 返回),
+// .includes(s.channel) / .indexOf(s.channel) 报 TS2345 type 不匹配. Cast 成 readonly string[] 让类型匹配.
+// (跟 Sprint 33 类型严格化时,frontend dev 跳过 vue-tsc strict check, CI 跑 npm run build 才暴露.)
+const HEALTH_SCORE_CHANNEL_ORDER: readonly string[] = HEALTH_SCORE_CHANNELS
 
 // ── 渠道过滤：单渠道优先，排除低价渠道 ──
 const queryParams = computed(() => {
