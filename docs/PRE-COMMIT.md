@@ -138,10 +138,10 @@ files: 'backend/contracts/.*\.py$'
 Sprint 50.1 起, pre-commit 默认跑 L2 AST parser (`frontend-vue3/e2e/lint/spec-lint-l2.sh`):
 
 ```bash
-# 直接跑 (L2 可用时走 L2, tree-sitter 不可用时自动 fallback L1)
+# 直接跑 (从项目根目录运行, L2 可用时走 L2, tree-sitter 不可用时自动 fallback L1)
 bash frontend-vue3/e2e/lint/spec-lint-l2.sh
 
-# 或从 frontend-vue3 目录用 npm script
+# 或从 frontend-vue3 目录用 npm script (script 内已传 e2e 参数)
 cd frontend-vue3
 npm run lint:spec
 ```
