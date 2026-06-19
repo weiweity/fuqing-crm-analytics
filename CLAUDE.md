@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.132（main @ e9020a1，2026-06-19 Sprint 41 实战 12 follow-up 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 本地 11/11 router-registered view smoke pass (CI advisory, Sprint 41.12 改 non-blocking 跟 ground-truth-lint 一致) + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 实战教训 (12 follow-up: disk + npm ci + vue-tsc + uvicorn + token + spec typo + serial mode + 3 个 timeout + set -e + advisory) (Sprint 41 Sprint 32.1 留尾 7 sprint 闭环改实战 fix 0→1 失败 → 改 advisory 0→1, ROI 重评为低, 跨 sprint 实战教训写入 `docs/SPRINT-41-CI-LESSONS-LEARNED.md`) |
+| 4 | **版本状态** | v0.4.14.136（feature/sprint50-1-l2-spec-lint-hook @ 8b2bd04，2026-06-19 Sprint 50.1 L2 AST spec-lint 切默认 hook + npm script 收口），测试 633 passed / 15 skipped + Vite build 0 错误 + e2e 本地 11/11 router-registered view smoke pass (CI advisory) + SQL f-string lint 0 violations + L2 spec-lint 5/5 + L1 fallback 3/3 pass + pre-commit hook 默认 L2 wrapper |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
@@ -186,14 +186,14 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 | L1 frontend | .vue 结构 sanity grep (`<template>` 或 `<script>`) | pre-commit + vite build 兜底 | Sprint 33 | `.githooks/pre-commit:114-145` |
 | L1 backend | SQL f-string 一致性 lint (三引号 SQL body 含 `{var}` 必须 f 前缀), 范围: `backend/services/**` + `backend/scripts/**` + `scripts/etl/**` (Sprint 36-4 对称补盲) | pre-commit | Sprint 34.1 + **Sprint 36.4** | `backend/scripts/check_sql_fstring_consistency.py` |
 | L1 backend fixture | `pytest backend/tests/test_check_sql_fstring_consistency.py` 4 case 跨范围验证 (Sprint 36-4 实战 "破坏 → 验证 → 恢复") | pytest | Sprint 36.4 | `backend/tests/test_check_sql_fstring_consistency.py` |
-| L2 (可选) | AST parser 升级版 lint | pre-commit + nightly | Sprint 34.2 / 36.5 backlog | — |
+| L2 (已默认) | AST parser 升级版 lint (`frontend-vue3/e2e/lint/spec-lint-l2.py` + `spec-lint-l2.sh`), tree-sitter-typescript 解析, L1 fallback | pre-commit spec-lint hook | **Sprint 50+ #S43-L2 / Sprint 50.1** | `frontend-vue3/e2e/lint/spec-lint-l2.py` |
 | L3 (可选) | 弃 `{valid_sql}` 字符串内嵌, 全面 `FilterBuilder.build()` 参数化 | — | Sprint 35+ backlog | — |
 | **L4 (流程)** | **/review checklist**: SQL 三引号赋值若含 `{var}` 必须 f 前缀 | review skill 强制 | **Sprint 34.1** | 本节 |
 | **L4.2 (流程)** | **任何 Python 写三引号 SQL 字符串 (跨 backend/services/backend/scripts/scripts/etl 范围), 若 body 含 `{identifier}` 必须 f 前缀** | review skill 强制 (Sprint 36-4 范围扩大) | **Sprint 36.4** | 本节 |
 | **L4.3 (流程)** | **真连 DuckDB test 必须有 `pytestmark = pytest.mark.skipif(_IN_XDIST_PARALLEL, reason="race flake")`** (跨 `test_api_integration.py:55` + `test_churn_user_list_fstring.py:55,77` + `test_w4_t7_integration.py:147,181,197,228` + `test_w4_full.py:319` `skip_if_duckdb_locked`). DuckDB 文件锁 exclusive, pytest-xdist 多 worker 跑同一文件 100% race flake (Sprint 32.3/34.1/36-1/37/38 5 sprint 复发). 真治本 = per-test tmp DuckDB ATTACH 模式 (留 Sprint 36.x+ backlog, Sprint 38 调研 ROI 重评为低) | review skill 强制 | **Sprint 38** | 本节 |
 | **L4.4 (流程)** | **真连 DuckDB test 必须有 `pytestmark = pytest.mark.skipif(not _PROD_DUCKDB_AVAILABLE, reason="production DuckDB 不可用")`** (跨 `test_api_integration.py` + `test_churn_user_list_fstring.py` + `test_w4_t7_integration.py`). CI runner / fresh checkout 没 production DuckDB → 真连空 DuckDB → CatalogException fail (Sprint 32-38 7+ sprint CI 一直红). `_PROD_DUCKDB_AVAILABLE` 定义在 `backend/tests/conftest.py:_detect_prod_duckdb_available()` | review skill 强制 | **Sprint 39** | 本节 |
 | **L5.1 (流程)** | **CI 留尾 ROI 重评规则**: 治本 < 1 天闭环 + 治本后 0 复发 → 治本; 治本 > 2 天 OR 治本不现实(基础设施) → 治标. Sprint 32.1 留尾 7 sprint ROI 重评为低, 改 advisory. Sprint 38 race flake 治本 ROI 低(DuckDB 文件锁 exclusive), 改治标. Sprint 41 e2e CI 12 follow-up 仍 fail, 改 advisory. **决策树**: Q1 本地能跑吗? → Q2 根因是 spec 还是环境? → Q3 治本 1-2 天能闭环吗? → Q4 治标会反复出现吗? 详细 `docs/CI-DEFENSE-PLAYBOOK.md` | review skill 强制 | **Sprint 42** | 本节 |
-| **L5.2 (流程)** | **spec 写法"环境无关"原则**: ① 不 hardcode 业务数据长度(`toBe(5)` 禁, 用 `length > 0` 替); ② 不 `waitForTimeout(N)` 死等(用 `waitForSelector` / `expect.toBeVisible` 替); ③ `page.request` 加 Authorization header(从 sessionStorage 拿 `fq_crm_auth_token`). 配合 `frontend-vue3/e2e/lint/spec-lint.sh` pre-commit hook. **Sprint 43 #S43-1**: spec-lint 改 blocking 模式(原 advisory 起步,Sprint 43 #S43-2 修 7 真违反后 0 violation). 防 Sprint 41.5/41.6/41.8/41.9 类实战 fix 复发 | review skill 强制 | **Sprint 43** | 本节 |
+| **L5.2 (流程)** | **spec 写法"环境无关"原则**: ① 不 hardcode 业务数据长度(`toBe(5)` 禁, 用 `length > 0` 替); ② 不 `waitForTimeout(N)` 死等(用 `waitForSelector` / `expect.toBeVisible` 替); ③ `page.request` 加 Authorization header(从 sessionStorage 拿 `fq_crm_auth_token`). 配合 `frontend-vue3/e2e/lint/spec-lint-l2.sh` pre-commit hook (L2 默认, L1 fallback). **Sprint 43 #S43-1**: spec-lint 改 blocking 模式; **Sprint 50.1**: 默认升 L2 AST parser | review skill 强制 | **Sprint 43 / Sprint 50.1** | 本节 |
 
 **L4 永久规则 (跟 Sprint 3 P1-3 4 轮修教训同位)**:
 

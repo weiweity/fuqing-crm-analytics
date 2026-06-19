@@ -14,11 +14,11 @@ repos:
         files: 'backend/contracts/.*\.py$'
         stages: [pre-commit]
       - id: spec-lint
-        # Sprint 42 #S42-1: e2e spec 写法 lint 防 Sprint 41.5/41.6/41.9 复发
-        # Sprint 43 #S43-1: 改 blocking 模式 (Sprint 43 #S43-2 修 7 真违反后 0 violation)
+        # Sprint 50.1: 默认走 L2 AST parser (tree-sitter-typescript), L1 fallback 保底
+        # Sprint 42 #S42-1 起源 / Sprint 43 #S43-1 改 blocking / Sprint 50+ #S43-L2 AST 升级
         # 关联 docs/CI-DEFENSE-PLAYBOOK.md §预防层 + CLAUDE.md L5.2
-        name: e2e spec 写法 lint (Sprint 43 #S43-1, blocking)
-        entry: bash frontend-vue3/e2e/lint/spec-lint.sh
+        name: e2e spec 写法 lint L2 (Sprint 50.1, L1 fallback)
+        entry: bash frontend-vue3/e2e/lint/spec-lint-l2.sh
         language: system
         pass_filenames: false
         files: 'frontend-vue3/e2e/.*\.spec\.ts$'

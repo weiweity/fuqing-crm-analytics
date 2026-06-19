@@ -6,6 +6,29 @@
 
 ---
 
+## [v0.4.14.136] - 2026-06-19 - ci(pre-commit): Sprint 50.1 — L2 AST spec-lint 切默认 hook + npm script
+
+> Sprint 50+ #S43-L2 已实现 L2 AST parser (v0.4.14.135), 本 Sprint 收尾: pre-commit spec-lint hook 默认走 L2 wrapper, L1 保留 fallback。修正原 plan 中 "package.json 加 tree-sitter npm devDependencies" — 当前 L2 是 Python-based, npm 包不会被使用, 故改为加 `lint:spec` npm script + 文档说明 Python 依赖安装。
+
+### Changed
+
+1. **`.pre-commit-config.yaml`** — spec-lint hook entry 从 `spec-lint.sh` 切到 `spec-lint-l2.sh` (L2 优先, L1 fallback)。
+2. **`frontend-vue3/package.json`** — 新增 npm script `"lint:spec": "bash e2e/lint/spec-lint-l2.sh e2e"`。
+3. **`docs/PRE-COMMIT.md`** — 4.4 段更新为 L2 默认 + L1 fallback + Python 依赖说明。
+
+### Verification
+
+- ✅ L2 regression test 5/5 case pass
+- ✅ L1 regression test 3/3 case pass (fallback 不破)
+- ✅ pre-commit run spec-lint pass
+- ✅ 真实 10 spec 0 violation 0 warn
+
+### 关联
+
+- `frontend-vue3/e2e/lint/spec-lint-l2.sh` (L2 wrapper)
+- `frontend-vue3/e2e/lint/spec-lint.sh` (L1 fallback)
+- Sprint 50+ #S43-L2 CHANGELOG entry
+
 ## [v0.4.14.135] - 2026-06-19 - feat(lint): Sprint 50+ #S43-L2 — L2 AST parser 升级 spec-lint (3 文件新功能, scope 缩小: pre-commit hook 切换 + package.json 留 Sprint 50.1)
 
 > Sprint 42 spec-lint 起步 advisory (3 条规则 grep 简单模式) + Sprint 43 改 blocking (7 真违反修). Sprint 50+ #S43-L2 升级 L2 AST parser (tree-sitter-typescript), 跨 multiline + 字符串模板 + nested call 准 catch (L1 grep 漏报). L1 (spec-lint.sh) 保留作为 fallback. **VERSION drift fix**: 0.4.14.132 → 0.4.14.135 (Sprint 43 跟 43.1 都应 bump 但漏, 这次 Sprint 50+ 一次性补 3 个 minor).
