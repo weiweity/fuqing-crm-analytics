@@ -12,7 +12,8 @@
     "test:unit:watch": "vitest",
     "test:unit:ui": "vitest --ui",
     "test:unit:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lint:spec": "bash e2e/lint/spec-lint-l2.sh e2e"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.37.5",

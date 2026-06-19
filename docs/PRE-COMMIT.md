@@ -133,29 +133,33 @@ pass_filenames: false
 files: 'backend/contracts/.*\.py$'
 ```
 
-### 4.4 spec-lint 怎么跑 (Sprint 42 #S42-1)
+### 4.4 e2e spec 写法 lint (L2 AST parser)
 
-防 Sprint 41.5/41.6/41.8/41.9 实战 fix 复发. 3 条规则: ① 不 hardcode 业务数据长度 ② 不 `waitForTimeout` 死等 ③ `page.request` 缺 Authorization. 起步 advisory 模式 (跟 ground-truth-lint 一样, 1-2 sprint 观察 false positive 率后改 blocking). 详见 `docs/CI-DEFENSE-PLAYBOOK.md` 跟 `CLAUDE.md` L5.2.
+Sprint 50.1 起, pre-commit 默认跑 L2 AST parser (`frontend-vue3/e2e/lint/spec-lint-l2.sh`):
 
 ```bash
-# Hook entry
-entry: bash frontend-vue3/e2e/lint/spec-lint.sh --advisory
-language: system
-pass_filenames: false
-files: 'frontend-vue3/e2e/.*\.spec\.ts$'
+# 直接跑 (L2 可用时走 L2, tree-sitter 不可用时自动 fallback L1)
+bash frontend-vue3/e2e/lint/spec-lint-l2.sh
 
-# 手动跑
-bash frontend-vue3/e2e/lint/spec-lint.sh                  # blocking 模式
-bash frontend-vue3/e2e/lint/spec-lint.sh --advisory       # advisory 模式
-bash frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh   # 跑 regression test (3/3 case)
+# 或从 frontend-vue3 目录用 npm script
+cd frontend-vue3
+npm run lint:spec
 ```
 
-**关键**:
-- `pass_filenames: false` — 跑全 contract 目录 (不只是 staged 文件), 跟 Sprint 16.5
-  P1-3 教训一致 (CI 跑 committed 模式必须看全部, 不只是 staged)
-- `files: 'backend/contracts/.*\.py$'` — pre-commit framework **触发条件**: staged 文件
-  match 这个 regex 才跑. 改 contract 才会触发, 改 frontend / backend service 不触发.
-  避免每次 commit 都跑 (慢).
+L2 依赖 Python 包 `tree-sitter` + `tree-sitter-typescript`。如果本地没装, wrapper 会 fallback 到 L1 (`spec-lint.sh`) 并提示:
+
+```bash
+pip install tree-sitter tree-sitter-typescript
+```
+
+规则:
+- Rule 1 (FAIL): 不 hardcode 业务数据长度 (`expect(...length).toBe(N)`)
+- Rule 2 (FAIL): 不 `waitForTimeout` 死等
+- Rule 3 (WARN): `page.request` 缺 `Authorization` header
+
+Regression tests:
+- `bash frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (L1, 3 case)
+- `bash frontend-vue3/e2e/lint/__tests__/spec-lint-l2.test.sh` (L2, 5 case)
 
 ## 5. 跳过
 
