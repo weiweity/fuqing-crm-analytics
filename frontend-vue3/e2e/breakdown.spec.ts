@@ -50,7 +50,10 @@ test.describe('breakdown 路由', () => {
     // 业务上 breakdown 是 useMutation, 需手动触发. e2e 测 schema 边界 (认证 + body 校验)
     // 跳过 one-click 业务断言 (会创建真实 data, 跟 Sprint 33.2 不触发 mutation 决策一致)
     // 改断言: breakdown 路由 GET (无 GET endpoint) → 用 404 验证路由注册存在
-    const breakdownNotFound = await page.request.get('/api/v1/breakdown/')
+    const token = await page.evaluate(() => sessionStorage.getItem('fq_crm_auth_token') || '')
+    const breakdownNotFound = await page.request.get('/api/v1/breakdown/', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
     expect([404, 405]).toContain(breakdownNotFound.status())  // 路由注册但 method 不允许
 
     // 无 error 级别控制台日志

@@ -58,8 +58,11 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     await page.waitForTimeout(2000)
 
     // Sprint 36-2 业务断言: /api/v1/sampling/roi 返回 200 + 有 channel_summary 数组
+    // Sprint 41.5: page.request 不带 sessionStorage token,手动从 sessionStorage 拿 + 加 Authorization header
+    const token = await page.evaluate(() => sessionStorage.getItem('fq_crm_auth_token') || '')
     const roiResp = await page.request.get('/api/v1/sampling/roi', {
       params: { start_date: '2025-01-01', end_date: '2025-12-31' },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     expect(roiResp.status(), '/api/v1/sampling/roi 业务断言').toBe(200)
     const roiJson = await roiResp.json()

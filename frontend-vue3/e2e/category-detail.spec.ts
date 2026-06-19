@@ -63,8 +63,10 @@ test.describe('category-detail 路由', () => {
     })
 
     // Sprint 36-2 业务断言: /api/v1/category/overview?category_id=1 返回 200 + overview dict
+    const token = await page.evaluate(() => sessionStorage.getItem('fq_crm_auth_token') || '')
     const overviewResp = await page.request.get('/api/v1/category/overview', {
       params: { category_id: 1 },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     // Sprint 36-2 fix: 不再容忍 backend 500, 期望真 200 (category id=1 在生产 DuckDB 存在)
     expect(overviewResp.status(), '/api/v1/category/overview 业务断言').toBe(200)
