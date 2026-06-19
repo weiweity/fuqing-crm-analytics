@@ -6,6 +6,58 @@
 
 ---
 
+## [v0.4.14.137] - 2026-06-20 - feat(dq_monitor) + test(e2e): Sprint 51 — 磁盘/增长监控 + e2e auth fixture 抽离
+
+> Sprint 51 执行 3 项高 ROI backlog: DQ monitor 新增磁盘空间与订单异常增长检查, e2e 抽离共享 auth fixture 消除 9 个 spec 的重复登录代码, 并修复 sampling 慢加载超时。
+
+### The numbers that matter
+
+来源: 本地 pytest + Playwright e2e 跑批验证。
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| dq_monitor 检查项 | 4 项 | 6 项 | +2 |
+| e2e spec 登录 boilerplate 行数 | ~200 行分散在 9 文件 | 1 个 fixture | −254 行 |
+| pytest | — | 655 passed / 17 skipped | ✅ |
+| e2e | — | 11/11 passed | ✅ |
+
+最显著的改进: e2e 维护成本下降 — 改登录逻辑只需动 `auth.fixture.ts` 一处; DQ 监控现在能在订单异常膨胀或磁盘不足时提前告警。
+
+### What this means for 运维 + QA
+
+磁盘检查和订单增长检查让 ETL 跑批有主动防御: 107GB DuckDB 事件不会再静默撑满磁盘, 异常写入导致订单量暴增 50%+ 也会触发告警。e2e auth fixture 让新增 spec 的边际成本降低, 登录超时/selector 调整可以统一处理。
+
+### Itemized changes
+
+#### Added
+
+1. **`scripts/etl/dq_monitor.py`** — Check 5: 磁盘可用空间 < max(DuckDB 大小×2, 200GB) 时告警; Check 6: 订单量环比增长 >50% 时告警。
+2. **`backend/tests/test_dq_monitor_tracker.py`** — `TestDqMonitorDiskAndGrowth` 4 个 test 覆盖磁盘空间高低阈值与订单增长正常/异常场景。
+3. **`frontend-vue3/e2e/fixtures/auth.fixture.ts`** — 新共享 Playwright fixture, 提供 `authenticatedPage` + `consoleErrors`, 统一登录 + WASM streaming race 过滤。
+
+#### Changed
+
+1. **9 个 e2e spec** — `audience-daily-trend`, `breakdown`, `category`, `category-detail`, `churn`, `customer-health`, `geo`, `market-focus`, `sampling` 切到 `auth.fixture`, 删除各自 `beforeEach` 登录代码。
+
+#### Fixed
+
+1. **`frontend-vue3/e2e/sampling.spec.ts`** — 加 `test.setTimeout(30000)`, 修复 `/sampling` 数据加载慢导致默认 10s test timeout 失败。
+
+### Verification
+
+- ✅ pytest `backend/tests/` 655 passed / 17 skipped
+- ✅ e2e `frontend-vue3` 11/11 passed
+- ✅ pre-commit ruff + B2 import + B5 lint 通过
+
+### 关联
+
+- `scripts/etl/dq_monitor.py`
+- `backend/tests/test_dq_monitor_tracker.py`
+- `frontend-vue3/e2e/fixtures/auth.fixture.ts`
+- Sprint 51 close memory (待写)
+
+---
+
 ## [v0.4.14.136] - 2026-06-19 - ci(pre-commit): Sprint 50.1 — L2 AST spec-lint 切默认 hook + npm script
 
 > Sprint 50+ #S43-L2 已实现 L2 AST parser (v0.4.14.135), 本 Sprint 收尾: pre-commit spec-lint hook 默认走 L2 wrapper, L1 保留 fallback。修正原 plan 中 "package.json 加 tree-sitter npm devDependencies" — 当前 L2 是 Python-based, npm 包不会被使用, 故改为加 `lint:spec` npm script + 文档说明 Python 依赖安装。

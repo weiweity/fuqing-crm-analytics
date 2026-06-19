@@ -144,3 +144,94 @@ class TestDqMonitorTracker:
         assert any("/fuqing_dq_monitor_" in p for p in unlink_called), (
             f"finally 块应调 unlink(fuqing_dq_monitor_*), 实际 unlinks={unlink_called}"
         )
+
+
+class TestDqMonitorDiskAndGrowth:
+    """Sprint 51 — Check 5 (磁盘空间) + Check 6 (订单增长) 测试."""
+
+    def test_disk_space_alert_when_low(self, tmp_path, monkeypatch):
+        """磁盘可用空间 < 阈值时应告警."""
+        from scripts.etl import dq_monitor
+
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake.duckdb")
+        (tmp_path / "fake.duckdb").write_bytes(b"x" * 100)
+
+        # mock shutil.disk_usage 返回低可用空间 (100GB free, 阈值 max(0.0001GB*2, 200GB) = 200GB)
+        class _LowDisk:
+            def __init__(self):
+                self.total = 500 * 1024**3
+                self.used = 400 * 1024**3
+                self.free = 100 * 1024**3  # 100GB free < 200GB threshold
+        monkeypatch.setattr(dq_monitor.shutil, "disk_usage", lambda _: _LowDisk())
+
+        result = dq_monitor.run_checks(_StubConn())
+        check5 = result["checks"]["disk_space"]
+        assert check5["passed"] is False
+        assert "磁盘可用空间不足" in check5["detail"]
+
+    def test_disk_space_pass_when_enough(self, tmp_path, monkeypatch):
+        """磁盘空间充足时应通过."""
+        from scripts.etl import dq_monitor
+
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake.duckdb")
+        (tmp_path / "fake.duckdb").write_bytes(b"x" * 100)
+
+        class _EnoughDisk:
+            def __init__(self):
+                self.total = 1000 * 1024**3
+                self.used = 500 * 1024**3
+                self.free = 500 * 1024**3  # 500GB > 200GB threshold
+        monkeypatch.setattr(dq_monitor.shutil, "disk_usage", lambda _: _EnoughDisk())
+
+        result = dq_monitor.run_checks(_StubConn())
+        check5 = result["checks"]["disk_space"]
+        assert check5["passed"] is True
+        assert "正常" in check5["detail"]
+
+    def test_orders_growth_alert_when_abnormal(self, tmp_path, monkeypatch):
+        """订单量增长 >50% 时应告警."""
+        from scripts.etl import dq_monitor
+
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake.duckdb")
+        (tmp_path / "fake.duckdb").write_bytes(b"x" * 100)
+
+        # mock disk space to pass
+        class _EnoughDisk:
+            def __init__(self):
+                self.total = 1000 * 1024**3
+                self.used = 500 * 1024**3
+                self.free = 500 * 1024**3
+        monkeypatch.setattr(dq_monitor.shutil, "disk_usage", lambda _: _EnoughDisk())
+
+        # 设置快照: 上次 100 条, StubConn 返回 100 条 → 增长 0% (不触发)
+        # 需要 mock load_snapshot 返回 50 条 → (100-50)/50 = 100% > 50%
+        snapshot = {"orders_count": 50, "member_ratio": 0.5, "timestamp": "2026-06-01"}
+        monkeypatch.setattr(dq_monitor, "load_snapshot", lambda: snapshot)
+
+        result = dq_monitor.run_checks(_StubConn())
+        check6 = result["checks"]["orders_growth"]
+        assert check6["passed"] is False
+        assert "异常增长" in check6["detail"]
+
+    def test_orders_growth_pass_when_normal(self, tmp_path, monkeypatch):
+        """订单量正常增长时应通过."""
+        from scripts.etl import dq_monitor
+
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake.duckdb")
+        (tmp_path / "fake.duckdb").write_bytes(b"x" * 100)
+
+        class _EnoughDisk:
+            def __init__(self):
+                self.total = 1000 * 1024**3
+                self.used = 500 * 1024**3
+                self.free = 500 * 1024**3
+        monkeypatch.setattr(dq_monitor.shutil, "disk_usage", lambda _: _EnoughDisk())
+
+        # 上次 90 条, 当前 100 条 → 增长 11% < 50%
+        snapshot = {"orders_count": 90, "member_ratio": 0.5, "timestamp": "2026-06-01"}
+        monkeypatch.setattr(dq_monitor, "load_snapshot", lambda: snapshot)
+
+        result = dq_monitor.run_checks(_StubConn())
+        check6 = result["checks"]["orders_growth"]
+        assert check6["passed"] is True
+        assert "正常" in check6["detail"]
