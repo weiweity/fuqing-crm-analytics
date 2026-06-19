@@ -1,8 +1,57 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 26 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 27 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## [v0.4.14.135] - 2026-06-19 - feat(lint): Sprint 50+ #S43-L2 — L2 AST parser 升级 spec-lint (3 文件新功能, scope 缩小: pre-commit hook 切换 + package.json 留 Sprint 50.1)
+
+> Sprint 42 spec-lint 起步 advisory (3 条规则 grep 简单模式) + Sprint 43 改 blocking (7 真违反修). Sprint 50+ #S43-L2 升级 L2 AST parser (tree-sitter-typescript), 跨 multiline + 字符串模板 + nested call 准 catch (L1 grep 漏报). L1 (spec-lint.sh) 保留作为 fallback. **VERSION drift fix**: 0.4.14.132 → 0.4.14.135 (Sprint 43 跟 43.1 都应 bump 但漏, 这次 Sprint 50+ 一次性补 3 个 minor).
+
+### Added (3 文件, Codex Stage 2 实施)
+
+1. **`frontend-vue3/e2e/lint/spec-lint-l2.py`** (新, ~357 行) — Python + tree-sitter-typescript 真 parse .spec.ts. 3 条规则 AST 升级:
+   - Rule 1: 找 `expect(...length).toBe(N)` CallExpression (跨多行 + 注释 / 字符串不误报)
+   - Rule 2: 找 `waitForTimeout` CallExpression (跨字符串模板 `${1000}` 不漏报)
+   - Rule 3: `page.request.X(...)` 同 scope 有 `Authorization` header (变量间接传 `{ headers: { Authorization } }` 也不误报, scope chain + collect_visible_variable_values)
+   - dataclass Finding + argparse + iterator pattern + tree-sitter API 0.20/0.21+ TypeError fallback
+2. **`frontend-vue3/e2e/lint/spec-lint-l2.sh`** (新, ~30 行) — L2 wrapper + L1 fallback. Python 候选链: `FQ_SPEC_LINT_PYTHON` env > `.venv/bin/python` > `python3`. 检测 `tree_sitter + tree_sitter_typescript` 双 import, 缺则 fallback L1 (warning + exit 0).
+3. **`frontend-vue3/e2e/lint/__tests__/spec-lint-l2.test.sh`** (新, ~135 行) — 5 case regression test: Case 1 clean/comment/string PASS (AST 真区分代码 vs 注释 vs 字符串) + Case 2 Rule 1 跨多行 catch + Case 3 Rule 2 nested/template string catch + Case 4 Rule 3 scope-level WARN + Case 5 Rule 3 变量间接传 Authorization PASS (变量 scope chain 验证).
+
+### Scope 缩小 (Stage 3 review 评估)
+
+- ❌ **没改 `.pre-commit-config.yaml` spec-lint hook entry** (HANDOFF §3.4 要求) — L1 仍默认, L2 opt-in (`.venv/bin/python` 自动检测)
+- ❌ **没改 `frontend-vue3/package.json` devDependencies** (HANDOFF §3.1 要求) — tree-sitter-typescript 用 pip install 装在 `.venv/`, 不污染 frontend npm deps
+- 📋 **Sprint 50.1 留尾**: 切换 pre-commit hook entry 默认 L2 + 加 package.json devDependencies (CI runner 自动装)
+
+### Cross-sprint 教训 (Codex 工作流实战 + Sprint 50+ 实战 fix 模式)
+
+- **Codex 实施比 HANDOFF 预期更严谨**: HANDOFF §3 预期 150 行 + 4 case, Codex 实际 357 行 + 5 case (变量 scope chain + tree-sitter API TypeError fallback). Stage 3 review 接受 Codex scope 决策 (scope 缩小 + 实施升级 = 务实).
+- **L2 起步 opt-in 不切 hook**: 跟 ground-truth-lint Sprint 17 #121 advisory 起步 1-2 sprint 观察 false positive 率后改 blocking 一致. L1 仍是 default, L2 等 Sprint 50.1 验证 false positive 率稳定后改 blocking.
+- **VERSION drift 修复模式**: Sprint 43 + 43.1 commit message 都标 bump 但 git log -- VERSION 没显示 (实际没改文件, 只 git tag). Sprint 50+ 一次性补 3 个 minor (0.4.14.132 → 0.4.14.135). 跟 Sprint 30 close memory "VERSION drift 复发" 同 pattern, 修复方案: commit 时必 `git diff -- VERSION` 验证实际改了文件, 不只 commit message 提.
+
+### Verification (Stage 3)
+
+- ✅ L1 3/3 case pass (Sprint 42 regression test 不破)
+- ✅ L2 5/5 case pass (Sprint 50+ 新增)
+- ✅ L2 在真实 10 spec 上 0 violation + 0 warn
+- ✅ L1 在真实 10 spec 上 0 violation + 0 warn (L1 不破)
+- ✅ L1 fallback 验证: `FQ_SPEC_LINT_PYTHON=/usr/bin/python3 bash spec-lint-l2.sh frontend-vue3/e2e` → warning + L1 跑通 0 violation
+- ✅ e2e 11/11 pass (31.1s, 跟 Sprint 43.1 baseline 一致)
+- ✅ pytest 610 passed / 3 failed (Sprint 17-18 mark sync test 已知 timeout, 跟 L2 无关, infra 问题)
+
+### 关联文件
+
+- `frontend-vue3/e2e/lint/spec-lint-l2.py` (L2 AST parser, Codex 实施)
+- `frontend-vue3/e2e/lint/spec-lint-l2.sh` (L2 wrapper + L1 fallback)
+- `frontend-vue3/e2e/lint/__tests__/spec-lint-l2.test.sh` (5 case regression test)
+- `frontend-vue3/e2e/lint/spec-lint.sh` (L1 保留, Sprint 42 + 43)
+- `frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (L1 3 case regression test, 不破)
+- `HANDOFF-TO-CODEX-Sprint50-L2-AST-Parser.md` (Sprint 50+ plan doc, Stage 1 Claude 输出)
+- `HANDOFF.md` (Claude 总指挥 + Codex 实施工作流文档)
+- `docs/TECH-DEBT.md` 债 #S34-2 闭环 (L2 AST parser) + Sprint 50.1 留尾
 
 ---
 
