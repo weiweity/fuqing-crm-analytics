@@ -7,6 +7,8 @@
   2. is_member = TRUE 占比（不能从 50%+ 掉到 10% 以下）
   3. 最近 7 天有数据（不能断更）
   4. GSV 不为 0
+  5. 磁盘可用空间（不能低于 DuckDB 文件大小 ×2 或 200GB）
+  6. 订单量异常增长（不能比上次多 50%+）
 
 用法:
   python3 scripts/etl/dq_monitor.py              # 输出检查结果到 stdout (JSON)
@@ -183,6 +185,67 @@ def run_checks(conn) -> dict:
         check4["detail"] = f"今日 GSV = {gsv_today:,.2f}"
     result["checks"]["gsv_nonzero"] = check4
     if not check4["passed"]:
+        result["all_passed"] = False
+
+    # ── Check 5: 磁盘可用空间（Sprint 51, 防 107GB DuckDB 膨胀撑满磁盘） ──
+    # 阈值: max(DuckDB文件大小×2, 200GB) — 107GB DB + 40GB backup + 余量
+    try:
+        duckdb_size = DUCKDB_PATH.stat().st_size if DUCKDB_PATH.exists() else 0
+        disk = shutil.disk_usage(str(DUCKDB_PATH.parent))
+        free_gb = disk.free / (1024**3)
+        duckdb_gb = duckdb_size / (1024**3)
+        threshold_gb = max(duckdb_gb * 2, 200)
+        check5 = {
+            "name": "disk_space",
+            "current": round(free_gb, 1),
+            "duckdb_size_gb": round(duckdb_gb, 1),
+            "threshold_gb": round(threshold_gb, 1),
+            "passed": True,
+            "detail": "",
+        }
+        if free_gb < threshold_gb:
+            check5["passed"] = False
+            check5["detail"] = (
+                f"磁盘可用空间不足: {free_gb:.1f}GB "
+                f"(DuckDB {duckdb_gb:.1f}GB, 阈值 {threshold_gb:.0f}GB)"
+            )
+        else:
+            check5["detail"] = f"磁盘可用空间 {free_gb:.1f}GB, 正常 (阈值 {threshold_gb:.0f}GB)"
+    except OSError as e:
+        check5 = {
+            "name": "disk_space",
+            "current": None,
+            "passed": False,
+            "detail": f"磁盘检查异常: {e}",
+        }
+    result["checks"]["disk_space"] = check5
+    if not check5["passed"]:
+        result["all_passed"] = False
+
+    # ── Check 6: 订单量异常增长（Sprint 51, 防异常写入撑满磁盘） ──
+    # 阈值: >50% 增长告警 — 正常 ETL 跑批 (Sprint 28 +1.68M = +15%) 不会触发
+    prev_count_for_growth = prev.get("orders_count")
+    check6 = {
+        "name": "orders_growth",
+        "current": current_count,
+        "previous": prev_count_for_growth,
+        "passed": True,
+        "detail": "",
+    }
+    if prev_count_for_growth is not None and prev_count_for_growth > 0:
+        growth_rate = (current_count - prev_count_for_growth) / prev_count_for_growth
+        if growth_rate > 0.50:
+            check6["passed"] = False
+            check6["detail"] = (
+                f"订单量异常增长: {growth_rate:.1%} "
+                f"({prev_count_for_growth:,} -> {current_count:,}), 超过 50% 阈值"
+            )
+        else:
+            check6["detail"] = f"订单量变化 {growth_rate:.1%}, 正常"
+    else:
+        check6["detail"] = "无历史快照, 跳过增长检查"
+    result["checks"]["orders_growth"] = check6
+    if not check6["passed"]:
         result["all_passed"] = False
 
     return result
