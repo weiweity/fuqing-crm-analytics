@@ -47,6 +47,44 @@
 
 ---
 
+## Codex 协作工作流 (Claude 架构 + Codex 实施)
+
+> Sprint 43 启动, Sprint 50+ 实战验证。详见 `HANDOFF.md`。
+
+### 角色分工
+
+| 角色 | 职责 | 工具 |
+|---|---|---|
+| **你 (总指挥)** | review + go/no-go gate | 复制 HANDOFF → Codex, 看完 push 结果确认 |
+| **Claude Code (架构师)** | Stage 1 架构 + Stage 3 review + Stage 4 commit/push | 本文件自动加载 |
+| **Codex app (实施者)** | Stage 2 复杂代码实施 (GPT-5.5 强项) | AGENTS.md 自动注入（.gitignore 排除） |
+
+### 工作流
+
+```
+你: "做 Sprint XX"
+   ↓
+Claude (Stage 1): 写架构 + HANDOFF-TO-CODEX-SprintXX.md
+   ↓
+你: 复制 HANDOFF 给 Codex app (1 分钟)
+   ↓
+Codex (Stage 2): 读 HANDOFF + AGENTS.md, 本地编辑代码, 不动 git
+   ↓
+你: 告诉 Claude "Codex 完成"
+   ↓
+Claude (Stage 3): git diff review + verification
+Claude (Stage 4): git commit --no-verify + git push --no-verify
+```
+
+### ⚠️ AGENTS.md 注意事项
+
+- **Codex 自动注入 `AGENTS.md`**（本地文件，.gitignore 排除），**不会读 `CLAUDE.md`**
+- `AGENTS.md` 跟 `CLAUDE.md` 内容相同，自引用已修正为 Codex 版本
+- **修改规则时两个文件都要改**，或改一个后同步到另一个
+- `HANDOFF.md` 是 Codex 工作流详细规范，Claude 在 Stage 1 时读取
+
+---
+
 ## 代码探索（agent 行为）
 
 **agent 探索本项目代码时，优先用 `mcp__codegraph__*` 工具**（不是 `Read` + `Grep` 反复跳文件）：
