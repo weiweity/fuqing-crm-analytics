@@ -39,6 +39,8 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 41 收口 (v0.4.14.131 CI 跑 e2e 自动化, Sprint 32.1 留尾 7 sprint 闭环, 3 commit 实战: Sprint 41 加 e2e job + Sprint 41.1 disk full fix + Sprint 41.2 npm ci --legacy-peer-deps, GH Actions 4 job 自动化: lint + ground-truth-lint + pytest + e2e)
 - ✅ Sprint 41 实战 follow-up (v0.4.14.132, 12 follow-up commits: Sprint 41.1 disk + 41.2 npm ci + 41.3 vue-tsc + 41.4 uvicorn + 41.5 token + 41.6 spec typo + 41.7 serial + 41.8/41.9/41.10 3 个 timeout + 41.11 set -e + 41.12 e2e advisory, GH Actions 实战 fix 闭环 0→1 失败改 advisory 0→1 跟 ground-truth-lint 一致, 实战教训写入 `docs/SPRINT-41-CI-LESSONS-LEARNED.md`)
 - ✅ Sprint 42 收口 (v0.4.14.132 spec-lint 预防层 + CI 实战 fix 框架沉淀, doc-only, 4 产出物: `docs/CI-DEFENSE-PLAYBOOK.md` 3 层防御 + Q1-Q4 决策树 + 5 步响应流程 + `frontend-vue3/e2e/lint/spec-lint.sh` 3 条规则防 Sprint 41.5/41.6/41.8/41.9 复发 + regression test 3/3 case pass + `CLAUDE.md` L5.1 + L5.2 永久规则, 起步 advisory 跟 ground-truth-lint 一致; 实战 fix 模式 ROI 重评: 治本 < 1 天 + 治本后 0 复发 → 治本, 治本 > 2 天 OR 治本不现实 → 治标, 跟 Sprint 38 race flake 治标同源)
+- ✅ Sprint 50+ #S43-L2 收口 (v0.4.14.135 L2 AST parser 升级 spec-lint, 3 文件新功能: `frontend-vue3/e2e/lint/spec-lint-l2.py` 357 行 + wrapper + 5 case regression test, L1 保留 fallback, VERSION drift fix 0.4.14.132 → 0.4.14.135)
+- ✅ Sprint 50.1 收口 (v0.4.14.136 pre-commit spec-lint hook 默认切 L2 wrapper + `frontend-vue3/package.json` 新增 `lint:spec` npm script, L1 fallback 保留, 不加未使用 npm tree-sitter 包)
 
 ---
 
@@ -135,7 +137,7 @@ fuqing-crm-analytics/
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.117, Sprint 32.3 收口) |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.136, Sprint 50.1 收口) |
 | [docs/AUTOMATION.md](./docs/AUTOMATION.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/SHIP.md](./docs/SHIP.md) | /ship skill 使用文档 |
 | [docs/LINTING.md](./docs/LINTING.md) | ground-truth-lint 规则 (Sprint 17 #121) |
