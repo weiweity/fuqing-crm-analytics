@@ -10,6 +10,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
+  // Sprint 41.8 fix: CI runner headless Linux 渲染慢, 默认 10s timeout 不够 (Sprint 41.7 CI 11/11 spec TimeoutError).
+  // CI 改 30s (headless 渲染 + DuckDB fetch 慢), 本地保留 10s (Chrome 真实渲染快).
+  timeout: process.env.CI ? 30000 : 10000,
+  expect: { timeout: process.env.CI ? 15000 : 5000 },
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:5173',
@@ -19,6 +23,8 @@ export default defineConfig({
     // but defense-in-depth for future HTTPS migration or external HTTPS endpoints)
     ignoreHTTPSErrors: true,
     launchOptions: { args: ['--ignore-certificate-errors'] },
+    // Sprint 41.8: CI navigation timeout 30s (跟全局 timeout 一致)
+    navigationTimeout: process.env.CI ? 30000 : 15000,
   },
   projects: [
     {
