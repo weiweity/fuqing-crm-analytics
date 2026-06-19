@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.131（main @ TBD，2026-06-19 Sprint 41 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 修复 (Sprint 39.1 + Sprint 41 + Sprint 41.1 disk + Sprint 41.2 npm ci 4 步实战闭环, baseline + e2e 2 job 自动化) (Sprint 40 audit 推后 4 项; Sprint 41 Sprint 32.1 留尾 7 sprint 闭环: 加 e2e job + disk skip + npm ci fix; Sprint 41 留 Sprint 42+ 推后项) |
+| 4 | **版本状态** | v0.4.14.132（main @ e9020a1，2026-06-19 Sprint 41 实战 12 follow-up 收口），测试 590 passed / 16 skipped + Vite build 0 错误 + e2e 本地 11/11 router-registered view smoke pass (CI advisory, Sprint 41.12 改 non-blocking 跟 ground-truth-lint 一致) + SQL f-string lint 0 violations (101 files, 3 dir) + GH Actions CI 实战教训 (12 follow-up: disk + npm ci + vue-tsc + uvicorn + token + spec typo + serial mode + 3 个 timeout + set -e + advisory) (Sprint 41 Sprint 32.1 留尾 7 sprint 闭环改实战 fix 0→1 失败 → 改 advisory 0→1, ROI 重评为低, 跨 sprint 实战教训写入 `docs/SPRINT-41-CI-LESSONS-LEARNED.md`) |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 

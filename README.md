@@ -37,6 +37,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 39.2 收口 (v0.4.14.128 visitor chain + export/report chain ground-truth audit doc 闭环, Sprint 36-1 plan-eng-review "visitor 业务风险高" 误判校正, 实查 visitor backend 100% 活跃 + frontend API 100% 活跃 + AudienceView 真消费, 唯一缺 = frontend router 注册; 激活路径产品决策留给 user, 详见 `docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`)
 - ✅ Sprint 40 收口 (v0.4.14.129 Sprint 40+ ground-truth audit + 推后排期, 6 项 Sprint 40+ 候选 ROI 重评, Sprint 41 CI e2e 本 sprint 执行, Sprint 42-43 推后 Sprint 50+, 详见 `docs/SPRINT-40-PLUS-PLAN.md`)
 - ✅ Sprint 41 收口 (v0.4.14.131 CI 跑 e2e 自动化, Sprint 32.1 留尾 7 sprint 闭环, 3 commit 实战: Sprint 41 加 e2e job + Sprint 41.1 disk full fix + Sprint 41.2 npm ci --legacy-peer-deps, GH Actions 4 job 自动化: lint + ground-truth-lint + pytest + e2e)
+- ✅ Sprint 41 实战 follow-up (v0.4.14.132, 12 follow-up commits: Sprint 41.1 disk + 41.2 npm ci + 41.3 vue-tsc + 41.4 uvicorn + 41.5 token + 41.6 spec typo + 41.7 serial + 41.8/41.9/41.10 3 个 timeout + 41.11 set -e + 41.12 e2e advisory, GH Actions 实战 fix 闭环 0→1 失败改 advisory 0→1 跟 ground-truth-lint 一致, 实战教训写入 `docs/SPRINT-41-CI-LESSONS-LEARNED.md`)
 
 ---
 
