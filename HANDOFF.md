@@ -11,8 +11,8 @@
 | 项 | 值 |
 |---|---|
 | **项目** | fuqing-crm-analytics (芙清 CRM 数据分析) |
-| **main HEAD** | `aa18969` (Sprint 43.1 收口 + HANDOFF) |
-| **VERSION** | v0.4.14.134 (Sprint 43.1 fix-only 不 bump) |
+| **main HEAD** | `ae0cc62` (Sprint 50.1 收口, v0.4.14.136) |
+| **VERSION** | v0.4.14.136 |
 | **Git 标签** | `v0.4.14.133` (Sprint 43) / `v0.4.14.134` (Sprint 43.1) |
 | **协作模式** | **Claude 总指挥 + Codex 实施 + user review gate** |
 | **Codex 接入** | app 端口 (macOS), 本地编辑文件, 不连 GitHub (OAuth 审核问题) |
@@ -88,13 +88,17 @@ Claude: 直接 Stage 2 写代码 + Stage 3 review + Stage 4 push
 按重要性顺序:
 
 1. **`/Users/hutou/.claude/projects/-Users-hutou/memory/MEMORY.md`** (全局工作记忆索引)
-   - 用户画像 + 项目 sprint close memory 索引 (Sprint 24-43 全部)
+   - 用户画像 + 项目 sprint close memory 索引 (Sprint 24-50+ 全部)
    - 30 秒理解整个项目历史
 
-2. **`CLAUDE.md`** (项目根目录)
+2. **`CLAUDE.md`** (项目根目录, Claude Code **自动加载**)
    - L4.3 (race flake skipif) / L4.4 (production DuckDB skipif) 永久规则
    - L5.1 (CI 留尾 ROI 重评) / L5.2 (spec 写法"环境无关") 永久规则
    - 顶部状态行 + 快速启动命令 (uvicorn + Vite + ETL)
+
+   > ⚠️ **Codex 不会自动读 CLAUDE.md**。Codex 自动注入的是 `AGENTS.md`（本地文件，.gitignore 排除）。
+   > CLAUDE.md 和 AGENTS.md 内容相同（AGENTS.md 的自引用已修正为 Codex 版本）。
+   > 修改规则时**两个文件都要改**，或改一个后同步到另一个。
 
 3. **`docs/CI-DEFENSE-PLAYBOOK.md`** (Sprint 42 实战 fix 框架)
    - 3 层防御 + Q1-Q4 决策树 + 5 步响应流程
