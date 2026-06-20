@@ -1,8 +1,41 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 28 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 29 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## Sprint 53.5 — L3 FilterBuilder 治本 (2026-06-20, v0.4.14.138, main @ f0e0f0d)
+
+> churn.py 中 5 处 `{valid_sql}` 字符串内嵌 + 多处 channel/level/granularity/category_id f-string 内嵌 → 全部走 `FilterBuilder.build()` + DuckDB `?` 参数化. 闭环 CLAUDE.md L3 backlog (`#S34-3`), 跟 Sprint 33 + Sprint 34.1 共同构成 AI write safety net.
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| churn.py `{valid_sql}` 残留 | 5 处 | 0 处 | ✅ 全部消除 |
+| churn.py 用户输入 f-string 内嵌 | 5+ 处 (channel/level/granularity/category_id) | 0 处 | ✅ |
+| Sprint 53.5 新增回归测试 | — | 6 case | ✅ |
+| full suite | 677 passed / 1 skipped | 683 passed / 1 skipped | +6 测试 |
+
+### Itemized changes
+
+#### Refactored
+
+1. **`backend/services/category_service/churn.py`** — 新增 3 个 helper (`_build_churn_filter` / `_build_daily_trend_filter` / `_build_user_list_filter`). 重构 `get_category_churn` (双 CTE 对称) / `get_category_daily_trend` (单 CTE) / `get_category_user_list` + count_sql (主 SQL + count 共用 filter).
+2. **`backend/tests/test_churn_filter_builder.py`** — 新增 6 case: 源码扫描 `{valid_sql}` 残留 / 双 CTE params 独立性 / channel/granularity 参数化验证.
+
+### Verification
+
+- ✅ target tests: 8/8 passed
+- ✅ full suite -n4: 683 passed / 1 skipped (Sprint 53 race flake fixture 兼容)
+
+### 关联
+
+- `backend/semantic/filters.py::FilterBuilder` (复用, 不改)
+- `backend/services/metrics/overview.py` / `backend/services/health/overview.py` / `backend/services/health/conversion.py` (FilterBuilder 现有用户)
+- Codex Stage 2 实施 + Claude Stage 3 review
 
 ---
 

@@ -8,7 +8,7 @@
 **已修复**: 27 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + #S33-1 + #S33-2 + **债 #S34-1** churn.py:418 漏 f 前缀治根 + L1 SQL f-string lint 钩子 + **Sprint 36-1** RFMView.vue 797 行 dead code 清理 + **Sprint 36-4** L1 SQL f-string lint 对称补盲 抓到 etl_status_override.py:449 漏 f 前缀 + **Sprint 36-5** TestMetricsAPI race flake 治标, 3 sprint 连续复发 (S32.3/S34.1/S36-1) 收口 + **Sprint 36-2** 3 e2e spec 加 API 业务断言 + 删 category-detail backend 500 容忍 + **Sprint 36-6** /v1/flow/sankey ghost endpoint 全链清理 + **Sprint 50+ #S43-L2** L2 AST parser 升级 spec-lint (3 文件: spec-lint-l2.py + spec-lint-l2.sh + spec-lint-l2.test.sh, 357 行 + 5 case regression test, Codex 实施) + **Sprint 50.1** L2 AST spec-lint 切默认 hook + npm script)
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
 **Sprint 34+ backlog**: 2 条
-- 📋 **债 #S34-3** (P3) L3 churn.py 改用 FilterBuilder.build() 全面参数化 (弃 `{valid_sql}` 字符串内嵌) — Sprint 35+ 评估, ~1.5-2 天
+- ~~📋 **债 #S34-3** (P3) L3 churn.py 改用 FilterBuilder.build() 全面参数化~~ → ✅ Sprint 53.5 闭环 (v0.4.14.138): churn.py 5 处 `{valid_sql}` + channel/level/granularity/category_id f-string 内嵌全部参数化, 新增 3 个 helper + 6 case 回归测试. 全量 683 passed / 1 skipped.
 - ✅ **Sprint 50.1 留尾** (已闭环 v0.4.14.136): `.pre-commit-config.yaml` spec-lint hook 默认走 L2 wrapper + `frontend-vue3/package.json` 加 `lint:spec` npm script。L1 fallback 保留, 不强制 npm tree-sitter 包 (L2 为 Python-based)。
 - ⚠️ **Recurring race flake**: TestMetricsAPI::test_overview_returns_200 在 parallel (-n auto) 偶发 fail (跟 uvicorn 单例 + DuckDB 锁冲突), baseline main HEAD 也 fail. Sprint 32.3 memory 提. 解决方向 Sprint 34.2 一起评估
 **新待办 (Sprint 30-33 计划)**:
