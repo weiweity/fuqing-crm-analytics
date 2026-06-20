@@ -18,7 +18,8 @@ fi
 # 关键: 让 .githooks/pre-commit 真正被 git 调
 git config core.hooksPath .githooks
 
-echo "✅ githooks activated (.githooks/pre-commit)"
+echo "✅ githooks activated (.githooks/pre-commit + commit-msg)"
 echo "   当前 core.hooksPath: $(git config core.hooksPath)"
 echo "   验证: ls -la \$(git rev-parse --git-path hooks)/pre-commit"
+echo "         ls -la \$(git rev-parse --git-path hooks)/commit-msg"
 echo "   下次 commit 会自动跑 ruff + pytest + ground-truth lint"
