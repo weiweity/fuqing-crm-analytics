@@ -11,7 +11,7 @@
 #      pip install pre-commit && pre-commit install
 #      推 PR 会自动跑本 workflow
 #
-# 详见 docs/CI-PRECOMMIT.md (Sprint 19 P2-3) + docs/HOOKS-CHOICE.md (Sprint 19 P2-1)
+# 详见 docs/operating/ci-precommit.md (Sprint 19 P2-3) + docs/operating/hooks-choice.md (Sprint 19 P2-1)
 
 name: pre-commit
 

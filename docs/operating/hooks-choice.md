@@ -110,7 +110,7 @@ pre-commit install                  # 装 .pre-commit-config.yaml 4 hook
 
 `.github/workflows/pre-commit.yml` 已加, 默认 disable 状态 — workflow 文件常驻不主动跑, **只在装了 framework 的 repo 分支 (e.g. 未来切到 `ci/use-pre-commit-framework` 分支) 才有效**. 改 `on: [push, pull_request]` 为 `on: workflow_dispatch` 即可手动触发.
 
-详见 `docs/CI-PRECOMMIT.md` (Sprint 19 P2-3).
+详见 `docs/operating/ci-precommit.md` (Sprint 19 P2-3).
 
 ---
 
@@ -137,8 +137,8 @@ pre-commit install                  # 装 .pre-commit-config.yaml 4 hook
 
 **相关文档**:
 - `CLAUDE.md` "CI/CD 防线" 表 — 4 层 hook 总结
-- `docs/CI-PRECOMMIT.md` (Sprint 19 P2-3) — GitHub Actions workflow 拍板
-- `docs/LINTING.md` (Sprint 17 #121) — ground-truth-lint 规则
-- `docs/PRE-COMMIT.md` (Sprint 18 #142) — 接入 pre-commit hook 教训
+- `docs/operating/ci-precommit.md` (Sprint 19 P2-3) — GitHub Actions workflow 拍板
+- `docs/operating/linting.md` (Sprint 17 #121) — ground-truth-lint 规则
+- `docs/operating/pre-commit.md` (Sprint 18 #142) — 接入 pre-commit hook 教训
 
 **Sprint 19 P2-1 完成**: `.githooks` 拍板, `.pre-commit-config.yaml` 选装, CLAUDE.md "AI 执行检查点" 改 contract 字段行加 1 行说明.

@@ -11,8 +11,11 @@ fuqing-crm-analytics/docs/
 ├── architecture/                      [系统设计 - 为什么]
 │   ├── AI_SAFETY_NET.md              (L1 lint + L2 AST + L3 FilterBuilder 3 层防线)
 │   ├── DATA_PIPELINE.md              (ETL 4 阶段: W1-W4)
-│   ├── TEST_INFRASTRUCTURE.md        (Sprint 53 race flake fixture 模式)
+│   ├── TEST_INFRASTRUCTURE.md        (Sprint 53 race flake fixture 模式 + L4.3/L4.4/L4.6)
 │   └── 50m-scale-architecture.md     (Sprint 52 P2 留尾, 30M 数据触发)
+│
+├── data/                              [数据目录布局]
+│   └── data-layout.md                (data/cache exports parquet processed raw 5 区用途+读写+清理)
 │
 ├── operating/                         [操作手册 - 怎么用]
 │   ├── ship.md                       (原 SHIP.md, 12 步流程)
@@ -46,15 +49,17 @@ fuqing-crm-analytics/docs/
 | 改 contract ratio 字段 | `development/ratio-convention.md` |
 | 排查 CI 失败 | `operating/ci-defense-playbook.md` + `operating/ci-e2e-history.md` |
 | 看历史 sprint | `history/SPRINT_INDEX.md` (高密度索引) |
-| 状态总览 (版本/测试/debt) | `STATUS.md` (计划新增) |
+| 状态总览 (版本/测试/debt) | `STATUS.md` (项目根, 单一 source of truth) |
+| data/ 目录布局 | `data/data-layout.md` (cache/exports/parquet/processed/raw) |
 
 ## 跨 sprint 维护规则
 
 **每个 Sprint 收口必做**:
 1. `CHANGELOG.md` 加 entry (近 30 entry 滚动)
 2. `TECH-DEBT.md` 更新 (新债 / 已修数)
-3. `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{N}.md` 写收口记忆
-4. `HANDOFF-*.md` 用完即删 (一次性)
+3. `STATUS.md` 更新 (版本 + pytest + debt + e2e 状态行)
+4. `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{N}.md` 写收口记忆
+5. `HANDOFF-*.md` 用完即删 (一次性)
 
 **跨 sprint 留尾意识** (L4.5 + L5.1 应用):
 - 改 docs 之前先 `git log --oneline -- <doc_path>` 看历史
@@ -63,8 +68,8 @@ fuqing-crm-analytics/docs/
 
 ## 推荐下一步 (Sprint 56+ 评估)
 
-1. **重构 docs/ 到 operating/ development/ architecture/ history/ 子目录** — 当前 11 个散文件, 子目录后维护更清晰
-2. **新增 STATUS.md** (合并 README "当前状态" + CLAUDE.md "版本状态" 段) — 单一 status source
+1. ~~**重构 docs/ 到 operating/ development/ architecture/ history/ 子目录**~~ ✅ Sprint 55 闭环
+2. ~~**新增 STATUS.md**~~ ✅ Sprint 56 闭环 (本 sprint 4 doc 任务闭环, 见项目根 `STATUS.md`)
 3. **新增 history/SPRINT_INDEX.md** (索引 27+ memory file) — 减少冷启动 token
 
 按用户节奏, **本 Sprint 不强推** (跨 sprint recurring 风险, 跟 Sprint 41 实战 fix 模式一致)。

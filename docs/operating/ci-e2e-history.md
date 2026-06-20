@@ -99,6 +99,6 @@ python3 -m uvicorn ... &
 
 - `.github/workflows/lint.yml` (e2e job config)
 - `frontend-vue3/playwright.config.ts` (timeout + serial mode)
-- `docs/CI-DEFENSE-PLAYBOOK.md` (防御策略)
+- `docs/operating/ci-defense-playbook.md` (防御策略)
 - `docs/SPRINT-40-PLUS-PLAN.md` (原始 Sprint 40 计划, 已合并)
 - `docs/SPRINT-41-CI-LESSONS-LEARNED.md` (原始 lessons, 已合并)

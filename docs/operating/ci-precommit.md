@@ -125,7 +125,7 @@ pip install pre-commit && pre-commit install  # 装 4 hook 选装路径
 | `ruff hook failed` | 代码有 ruff 违规 | `ruff check . --fix` 自动修, 手动 git add 再 commit |
 | `pytest cleanup orphans failed` | ETL 进程未正常退出留了 /tmp 孤儿 | 跑 `bash scripts/etl/cleanup_backups.sh` |
 | `contract ground-truth lint failed` | Pydantic Field 元数据缺失 | `python -m backend.contracts._lint` 看具体 issue, 按 B1+B2 模式补 |
-| `workflow 绿但本机 git commit 红` | .githooks (本机) 跟 .pre-commit-config.yaml (CI) hook 集不同 | 走 .githooks 单一源真值, 修本机即可 (见 docs/HOOKS-CHOICE.md) |
+| `workflow 绿但本机 git commit 红` | .githooks (本机) 跟 .pre-commit-config.yaml (CI) hook 集不同 | 走 .githooks 单一源真值, 修本机即可 (见 docs/operating/hooks-choice.md) |
 
 ---
 
@@ -136,12 +136,12 @@ pip install pre-commit && pre-commit install  # 装 4 hook 选装路径
 | 1 | workflow 加 cache (pre-commit venv 缓存) | 5s → 1s, 走 actions/cache@v4 |
 | 2 | workflow 加 ruff format check | 跟 lint 分离, 防止 `ruff check --fix` 自动改 staged 文件 |
 | 3 | 评估 `pre-commit.ci` (官方 SaaS, 免费 tier 1 repo) | 跟 GitHub Actions 互补 |
-| 4 | 把 .githooks 9 hook 拆成 9 个独立 `language: system` entry 进 .pre-commit-config.yaml | 走 framework 单一源真值 (不推荐, 见 docs/HOOKS-CHOICE.md "单一源真值" 段) |
+| 4 | 把 .githooks 9 hook 拆成 9 个独立 `language: system` entry 进 .pre-commit-config.yaml | 走 framework 单一源真值 (不推荐, 见 docs/operating/hooks-choice.md "单一源真值" 段) |
 
 ---
 
 **相关文档**:
-- `docs/HOOKS-CHOICE.md` (Sprint 19 P2-1) — 拍板 .githooks 优先 + .pre-commit-config.yaml 选装
+- `docs/operating/hooks-choice.md` (Sprint 19 P2-1) — 拍板 .githooks 优先 + .pre-commit-config.yaml 选装
 - `.pre-commit-config.yaml` (Sprint 18 #142) — 4 hook 选装配置
 - `.github/workflows/lint.yml` — 已有 ruff + pytest workflow
 - `.github/workflows/nightly.yml` — 已有 ground-truth-lint 定时
