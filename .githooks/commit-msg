@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Sprint 52 #5b: commit message vs staged diff consistency (WARN only).
+
+set -u
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+python3 "$REPO_ROOT/scripts/git/check_commit_msg_diff_consistency.py" "$1"
+exit 0
