@@ -21,140 +21,67 @@ CLAUDE.md 合规:
 - 跑批走 homebrew Python 3.14 (避免 .venv 版本差异)
 """
 import json
-import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-import duckdb
 import pytest
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from scripts.etl.precompute_fact_rfm import (  # noqa: E402
+    FACT_RFM_SCHEMA_SQL,
     FACT_RFM_TABLE,
+    FACT_RFM_UNIQUE_INDEX_SQL,
     W4_TOTAL_COMBOS,
-    create_fact_rfm_table,
     incremental_load_with_merge,
-    setup_async_memory,
 )
+from scripts.etl import precompute_fact_rfm as _precompute_fact_rfm  # noqa: E402
 
 
-# 生产 DuckDB 路径 (走 backend.config.DUCKDB_PATH, 避免 worktree 跑时 path 漂移)
-# DUCKDB_PATH 在 backend/config.py 是基于 PROJECT_ROOT = backend/.. (即源码 ROOT) 计算的
-# Sprint 22 #31: 占位符 "/Users/yourname/..." 来自 Sprint 19 公开前脱敏 a505f85 残留,
-# 改动态算 (跟 test_api_integration.py 一致). 文件名 sample_crm.duckdb → fuqing_crm.duckdb 跟生产 uvicorn 共享.
-MAIN_REPO_ROOT = Path(__file__).parent.parent.parent
-PROD_DUCKDB_PATH = MAIN_REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
-
-
-# Sprint 39 CI 爆红修复 + Sprint 38 race flake 治标 (双层防护):
-# - Sprint 39 第 1 层: production DuckDB 不可用 → 整 module skip
-#   (CI / fresh checkout 没 data/processed/fuqing_crm.duckdb, 真连空 DuckDB
-#   → CatalogException fail)
-# - Sprint 38 race flake 第 2 层: pytest-xdist 多 worker → 整 module skip
-# - 单跑 (`pytest ... -v -n0`) serial 模式: 0 skip, 真跑 W4 T-7 集成测试
+# Sprint 53: 每个 xdist worker 使用 temp DuckDB + ATTACH production read_only。
+# CI / fresh checkout 没 production DuckDB 时仍跳过。
 from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE  # noqa: E402
 
-_XDIST_WORKER_COUNT = os.environ.get("PYTEST_XDIST_WORKER_COUNT")
-_IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1
-pytestmark = pytest.mark.skipif(
-    not _PROD_DUCKDB_AVAILABLE or _IN_XDIST_PARALLEL,
-    reason=(
-        (
-            "生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件). "
-            "本地真跑: 先 ETL 跑批生成 data/processed/fuqing_crm.duckdb. "
-        )
-        if not _PROD_DUCKDB_AVAILABLE
-        else ""
-    )
-    + (
-        (
-            f"生产 DuckDB lock 冲突: pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
-            f"用 `pytest backend/tests/test_w4_t7_integration.py -n0` serial mode 跑 = 0 冲突. "
-            f"真治本留 Sprint 36.x+ (per-test tmp DuckDB ATTACH 模式, Sprint 38 调研 ROI 低)."
-        )
-        if _IN_XDIST_PARALLEL
-        else ""
+pytestmark = [
+    pytest.mark.skipif(
+        not _PROD_DUCKDB_AVAILABLE,
+        reason="生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)",
     ),
-)
-
-
-def _open_production_duckdb():
-    """打开生产 DuckDB, 走 ETL 例外条款 (duckdb.connect + conn.close()).
-
-    Returns:
-        duckdb.Connection
-
-    Raises:
-        pytest.skip.Exception: 当生产 DB 不可访问 (路径不存在 / 被锁 / 无表) 时跳过
-    """
-    if not PROD_DUCKDB_PATH.exists():
-        pytest.skip(f"生产 DuckDB 不存在: {PROD_DUCKDB_PATH}")
-
-    # Sprint 23 #2 (W4 T-7 hang fix): 跟 backend 单例锁冲突时, 整 module skip.
-    # 用 conftest.skip_if_duckdb_locked 一样的 lsof 探测 (复用 9 行 helper).
-    # 比 duckdb.connect() 抛 IOError 更早 skip, 避免无谓的 connect 失败尝试.
-    from backend.tests.conftest import _duckdb_lock_holder_pid
-    holder_pid = _duckdb_lock_holder_pid()
-    if holder_pid is not None:
-        pytest.skip(
-            f"生产 DuckDB 被 PID {holder_pid} 占 fd (uvicorn 单例或另一测试进程), "
-            f"整 module 跳过, 避免跨进程锁冲突. "
-            f"如需跑, 先 kill {holder_pid} 或用 --no-uvicorn 起测试环境."
-        )
-        return None  # 不可达
-
-    # memory_limit 对齐 uvicorn 单例 (backend/config.py 默认 8GB, 跟 W4 async 8GB 一致).
-    # Sprint 10 preflight B1 教训: 不同 memory_limit 触发 DuckDB 1.5.x strict mode
-    # "Can't open a connection to same database file with a different configuration".
-    # 16GB override (W4 async) 已不必要 — Sprint 5 真闭环 17 min 跑批 8GB 也 OK.
-    setup_async_memory()
-    memory_limit = os.environ.get("DUCKDB_MEMORY_LIMIT_OVERRIDE", "8GB")
-
-    try:
-        conn = duckdb.connect(
-            str(PROD_DUCKDB_PATH),
-            config={"memory_limit": memory_limit},
-        )
-    except Exception as e:
-        pytest.skip(f"无法连接生产 DuckDB (可能 uvicorn 后台锁了): {e}")
-        return None  # 不可达
-
-    # 验表存在
-    try:
-        tables = conn.execute("SHOW TABLES").fetchall()
-        table_names = [t[0] for t in tables]
-        if "orders" not in table_names:
-            pytest.skip(f"生产 DuckDB 缺 orders 表 (现有: {table_names})")
-        if FACT_RFM_TABLE not in table_names:
-            # 第一次跑: 建表
-            create_fact_rfm_table(conn)
-    except Exception as e:
-        try:
-            conn.close()
-        except Exception:
-            pass
-        pytest.skip(f"生产 DuckDB 元数据查询失败: {e}")
-        return None  # 不可达
-
-    return conn
+]
 
 
 @pytest.fixture(scope="module")
-def prod_conn():
-    """生产 DuckDB 连接 (module scope, 4 个 test 共享避免重复打开).
+def prod_conn(isolated_duckdb):
+    """使用隔离连接，并把 W4 写操作限定到 temp DB。"""
+    # search_path 只会让新表默认建在 main；如果 prod 已有同名表，直接 INSERT
+    # 仍会解析到只读 prod。因此显式创建本地 shadow table。
+    local_schema_sql = FACT_RFM_SCHEMA_SQL.replace(
+        f"CREATE TABLE IF NOT EXISTS {FACT_RFM_TABLE}",
+        f"CREATE TABLE IF NOT EXISTS main.{FACT_RFM_TABLE}",
+        1,
+    )
+    local_index_sql = FACT_RFM_UNIQUE_INDEX_SQL.replace(
+        f"ON {FACT_RFM_TABLE}",
+        f"ON main.{FACT_RFM_TABLE}",
+        1,
+    )
+    isolated_duckdb.execute(local_schema_sql)
+    isolated_duckdb.execute(local_index_sql)
 
-    不可达时, 整个 module 的 test 都 skip.
-    """
-    conn = _open_production_duckdb()
-    yield conn
-    if conn is not None:
-        try:
-            conn.close()
-        except Exception:
-            pass
+    # incremental_load_with_merge() 的生产路径会给 orders 建复合索引；测试只读
+    # ATTACH 的 prod，且生产库已有该索引，因此这里跳过这条幂等 DDL。
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        _precompute_fact_rfm,
+        "ensure_orders_composite_index",
+        lambda _conn: None,
+    )
+    try:
+        yield isolated_duckdb
+    finally:
+        monkeypatch.undo()
 
 
 class TestW4T7ActualRun:
@@ -245,6 +172,10 @@ class TestW4DataQuality:
         """数据质量检查: 抽 10 行, 关键字段非空 / 非负."""
         target = date.today()
         load_date = target - timedelta(days=1)
+
+        # xdist 会把同一 module 的 test 分发到不同 worker。每个 worker 都有
+        # 独立 temp DB，不能依赖 test_a/test_b 在另一个 worker 写入的数据。
+        incremental_load_with_merge(prod_conn, target, t_minus_days=7)
 
         # 抽 10 行 (T-1 当天, 最新 version)
         rows = prod_conn.execute(
