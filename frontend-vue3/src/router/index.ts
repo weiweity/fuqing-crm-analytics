@@ -15,6 +15,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '人群看板', requiresAuth: true },
   },
   {
+    path: '/visitor',
+    name: 'Visitor',
+    component: () => import('@/views/AudienceView.vue'),
+    meta: { title: '访客看板', requiresAuth: true },
+  },
+  {
     path: '/category',
     component: () => import('@/views/CategoryView.vue'),
     meta: { title: '品类看板', requiresAuth: true },
