@@ -4,12 +4,12 @@ Sample CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
-from .._shared import _cat_expr, _excluded_cat_filter
+from backend.semantic.filters import FilterBuilder, MetricType
+from .._shared import _cat_expr
 
 
 SPU_LEVELS = {
@@ -29,6 +29,57 @@ EXCLUDED_PRODUCT_CATEGORIES = (
     '加湿器', '起泡网', '吸油纸', '硅胶刷', '湿敷棉',
     '洗脸巾', 'PR礼盒', '多品类集合链',
 )
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 54 Lane B L3 FilterBuilder helpers
+#
+# 品类流转矩阵 (`get_category_flow_matrix`) 原 3 处 `(valid_order filter)` f-string
+# 内嵌 + 多处 channel/exclude/excluded_cat 字符串拼接 — 全部收到 `?` DB-API
+# 参数化. 设计原则:
+#   1. 所有用户输入 (channel / exclude_channels / start_date / end_date /
+#      top_n) 都走 `?` 占位, helper 返回的 params 列表即 DuckDB execute 参数.
+#   2. valid_order / channel / exclude_channels 用 FilterBuilder.build() 统一产出.
+#   3. excluded_cat (静态白名单) 走 `add_extra` 进 helper.
+#   4. pay_time 范围用 `add_extra` (跟 temporal.py 一样保持 DATE() 形式).
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_all_orders_filter(
+    level_col: str,
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """品类流转矩阵 all_orders CTE 过滤器 (top_cat_sql + flow_sql 共用).
+
+    等价于原 WHERE 子句:
+        WHERE o.pay_time >= ?
+          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+          AND (valid_order filter)
+          AND TRIM(COALESCE(o.{level_col}, '未知')) NOT IN (...)
+          (channel filter)
+          (exclude-channel filter)
+
+    Returns:
+        (where_sql, params) — 拼到 all_orders CTE 的 WHERE 内, 顺序对齐:
+        [start_dt, end_date, EXCLUDED..., channel..., exclude...].
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+    # 时间范围 + excluded_cat 进 add_extra
+    extra_sql = "o.pay_time >= ? AND o.pay_time < DATE(?) + INTERVAL '1' DAY"
+    extra_params: List[Any] = [f"{start_date} 00:00:00", end_date]
+    placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
+    extra_sql += f" AND TRIM(COALESCE(o.{level_col}, '未知')) NOT IN ({placeholders})"
+    extra_params.extend(EXCLUDED_PRODUCT_CATEGORIES)
+    return f"{extra_sql} AND {where_sql}", extra_params + params
 
 
 
@@ -84,41 +135,22 @@ def get_category_flow_matrix(
         window_start = (start_dt - timedelta(days=window_days)).strftime("%Y-%m-%d")
 
         level_col = SPU_LEVELS.get(level, "spu_product_class")
-        valid_sql, _ = OrderFilters.valid_order()
-        excluded_cat_sql = _excluded_cat_filter(level_col)
 
-        base_params: List[Any] = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
-
-        channel_sql = ""
-        db_channels: List[str] = []
-        if channel and channel != "全店":
-            db_channels = [c for c in expand_channels([channel]) if c]
-            if not db_channels:
-                raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-            if len(db_channels) == 1:
-                channel_sql = "AND o.channel = ?"
-                base_params.append(db_channels[0])
-            else:
-                placeholders = ",".join(["?"] * len(db_channels))
-                channel_sql = f"AND o.channel IN ({placeholders})"
-                base_params.extend(db_channels)
-
-        exclude_sql = ""
-        db_ex: List[str] = []
-        if exclude_channels:
-            from backend.semantic.filters import expand_channels as _ec
-            db_ex = _ec(exclude_channels)
-            placeholders = ",".join(["?"] * len(db_ex))
-            exclude_sql = f"AND o.channel NOT IN ({placeholders})"
-            base_params.extend(db_ex)
+        # all_orders CTE 过滤器 (top_cat_sql + flow_sql 共用)
+        all_where, all_params = _build_all_orders_filter(
+            level_col=level_col,
+            start_date=window_start,
+            end_date=end_date,
+            channel=channel,
+            exclude_channels=exclude_channels,
+        )
 
         # TOP N 品类
         top_cat_sql = f"""
         WITH all_orders AS (
             SELECT {_cat_expr(level_col)} AS category_name, o.user_id, o.pay_time, o.order_id
             FROM orders o
-            WHERE o.pay_time >= ? AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql} {excluded_cat_sql} {channel_sql} {exclude_sql}
+            WHERE {all_where}
         ),
         user_first_order AS (
             SELECT user_id, category_name AS first_category, pay_time
@@ -128,25 +160,18 @@ def get_category_flow_matrix(
         SELECT first_category, COUNT(DISTINCT user_id) AS first_users
         FROM user_first_order GROUP BY first_category ORDER BY first_users DESC LIMIT ?
         """
-        top_cats_result = conn.execute(top_cat_sql + " OFFSET 0", base_params + [top_n]).fetchall()
+        top_cats_result = conn.execute(top_cat_sql + " OFFSET 0", all_params + [top_n]).fetchall()
         top_cats = [row[0] for row in top_cats_result]
         if len(top_cats) < top_n:
-            top_cats_result = conn.execute(top_cat_sql, base_params + [top_n]).fetchall()
+            top_cats_result = conn.execute(top_cat_sql, all_params + [top_n]).fetchall()
             top_cats = [row[0] for row in top_cats_result[:top_n]]
 
         # 全量流转
-        params_flow = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
-        if channel and channel != "全店":
-            params_flow.extend(db_channels)
-        if exclude_channels:
-            params_flow.extend(db_ex)
-
         flow_sql = f"""
         WITH all_orders AS (
             SELECT {_cat_expr(level_col)} AS category_name, o.user_id, o.pay_time, o.order_id
             FROM orders o
-            WHERE o.pay_time >= ? AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql} {excluded_cat_sql} {channel_sql} {exclude_sql}
+            WHERE {all_where}
         ),
         user_first_order AS (
             SELECT user_id, category_name AS first_category, pay_time
@@ -168,7 +193,7 @@ def get_category_flow_matrix(
         )
         SELECT from_cat, to_cat, flow_users FROM flow_pairs WHERE from_cat != to_cat ORDER BY flow_users DESC
         """
-        flow_result = conn.execute(flow_sql, params_flow).fetchall()
+        flow_result = conn.execute(flow_sql, all_params).fetchall()
 
         # 构建桑基图
         other_node = "其他"

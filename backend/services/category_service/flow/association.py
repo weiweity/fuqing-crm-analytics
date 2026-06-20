@@ -4,13 +4,13 @@ Sample CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
 from backend.db.connection import get_connection
-from .._shared import _assoc_cache_lock, _assoc_cache, _ASSOC_CACHE_MAX_SIZE, _cat_expr, _excluded_cat_filter
+from .._shared import _assoc_cache_lock, _assoc_cache, _ASSOC_CACHE_MAX_SIZE, _cat_expr
 from .temporal import _compute_temporal_association
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType
 
 
 SPU_LEVELS = {
@@ -30,6 +30,51 @@ EXCLUDED_PRODUCT_CATEGORIES = (
     '加湿器', '起泡网', '吸油纸', '硅胶刷', '湿敷棉',
     '洗脸巾', 'PR礼盒', '多品类集合链',
 )
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 54 Lane B L3 FilterBuilder helpers
+#
+# 品类流转 (`get_category_flow`) 原 3 处 `(valid_order filter)` f-string 内嵌 + 多处
+# channel/exclude/excluded_cat 字符串拼接 — 全部收到 `?` DB-API 参数化.
+# (跟 matrix.py 的 `_build_all_orders_filter` 同模式, 独立维护避免耦合.)
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_all_orders_filter(
+    level_col: str,
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """品类流转 all_orders CTE 过滤器 (top_cat_sql + flow_sql 共用).
+
+    等价于原 WHERE 子句:
+        WHERE o.pay_time >= ?
+          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+          AND (valid_order filter)
+          AND TRIM(COALESCE(o.{level_col}, '未知')) NOT IN (...)
+          (channel filter)
+          (exclude-channel filter)
+
+    Returns:
+        (where_sql, params) — 拼到 all_orders CTE 的 WHERE 内, 顺序对齐:
+        [start_dt, end_date, EXCLUDED..., channel..., exclude...].
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+    extra_sql = "o.pay_time >= ? AND o.pay_time < DATE(?) + INTERVAL '1' DAY"
+    extra_params: List[Any] = [f"{start_date} 00:00:00", end_date]
+    placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
+    extra_sql += f" AND TRIM(COALESCE(o.{level_col}, '未知')) NOT IN ({placeholders})"
+    extra_params.extend(EXCLUDED_PRODUCT_CATEGORIES)
+    return f"{extra_sql} AND {where_sql}", extra_params + params
 
 
 
@@ -133,49 +178,55 @@ def get_category_flow(
         window_days: 流转时间窗口(天)
         channel: 渠道筛选
         exclude_channels: 排除渠道列表（默认排除赠品&0.01、其他）
-        target_category: 目标品类(传入时返回前后置购买关联)
-        path_depth: 路径深度(1=直接前后置, 2=再向外延伸一步)
-
-    Returns:
-        CategoryFlowResponse 结构（matrix为全量矩阵，含row_totals）
+        target_category: 时序关联分析的目标品类
+        anchor_mode: 时序关联的锚点模式 (first/last/every)
+        path_depth: 路径深度(1/2)
     """
     import json
     from pathlib import Path
+    import hashlib
 
-    # 默认排除赠品&0.01和其他渠道，避免污染品类流转数据
-    # 注意：UI名后续通过 expand_channels() 映射为 DB 名
-    # 数据来源：channels.py UI_TO_DB 的键名
+    # 默认排除赠品&0.01和其他渠道
     DEFAULT_EXCLUDED_CHANNELS = ['赠品&0.01', '其他']
     if exclude_channels is None:
         exclude_channels = DEFAULT_EXCLUDED_CHANNELS.copy()
     else:
-        # 合并用户指定和默认排除的渠道
         merged = list(dict.fromkeys(exclude_channels + DEFAULT_EXCLUDED_CHANNELS))
         exclude_channels = merged
 
-    # 有 target_category 时不走缓存(动态分析)
     cache_dir = Path("backend/cache/category_flow")
-    import hashlib
-    channel_key = (channel or "") + "|" + "|".join(sorted(exclude_channels or []))
-    channel_hash = hashlib.md5(channel_key.encode()).hexdigest()[:8]
-    # 缓存key增加 _full 后缀，与旧版10x10矩阵缓存区分
-    cache_file = cache_dir / f"flow_{start_date}_{end_date}_w{window_days}_full_{level}_{channel_hash}.json"
+    _excluded = tuple(sorted(exclude_channels)) if exclude_channels else ()
+    cache_key = hashlib.md5(
+        f"{start_date}|{end_date}|{level}|{top_n}|{window_days}|{channel}|{_excluded}".encode()
+    ).hexdigest()
+    cache_file = cache_dir / f"flow_full_{cache_key}.json"
 
-    # 尝试读取缓存(仅在无 target_category 时)
-    data_stale = False
-    if target_category is None and cache_file.exists():
+    # 尝试读取缓存（24小时TTL）
+    import time
+    _CACHE_TTL_SECONDS = 24 * 3600
+    data_stale = True
+    if cache_file.exists():
         try:
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            # 时序关联为空(缓存数据不带此字段)
-            cached.setdefault("target_category", None)
-            cached.setdefault("post_purchase", None)
-            cached.setdefault("pre_purchase", None)
-            return {
-                **cached,
-                "data_stale": False,
-                "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
-            }
+            if time.time() - cache_file.stat().st_mtime < _CACHE_TTL_SECONDS:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                result = {
+                    **cached,
+                    "data_stale": False,
+                    "data_quality_note": f"本Tab基于 {start_date}~{end_date} 窗口 {window_days} 天的流转数据计算（已排除赠品&0.01、其他渠道）",
+                }
+                # 时序关联分析
+                if target_category:
+                    conn = get_connection()
+                    temporal = _compute_temporal_association(
+                        conn, target_category, start_date, end_date,
+                        level, window_days, channel, exclude_channels, anchor_mode, path_depth)
+                    result["target_category"] = target_category
+                    result["post_purchase"] = temporal["post_purchase"]
+                    result["pre_purchase"] = temporal["pre_purchase"]
+                    result["post_sankey"] = temporal["post_sankey"]
+                    result["pre_sankey"] = temporal["pre_sankey"]
+                return result
         except Exception:
             data_stale = True
 
@@ -185,34 +236,15 @@ def get_category_flow(
         window_start = (start_dt - timedelta(days=window_days)).strftime("%Y-%m-%d")
 
         level_col = SPU_LEVELS.get(level, "spu_product_class")
-        valid_sql, _ = OrderFilters.valid_order()
-        excluded_cat_sql = _excluded_cat_filter(level_col)
 
-        # 构建基础 params(只包含日期过滤,channel/exclude 动态追加)
-        base_params: List[Any] = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
-
-        channel_sql = ""
-        db_channels: List[str] = []
-        if channel and channel != "全店":
-            db_channels = [c for c in expand_channels([channel]) if c]
-            if not db_channels:
-                raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-            if len(db_channels) == 1:
-                channel_sql = "AND o.channel = ?"
-                base_params.append(db_channels[0])
-            else:
-                placeholders = ",".join(["?"] * len(db_channels))
-                channel_sql = f"AND o.channel IN ({placeholders})"
-                base_params.extend(db_channels)
-
-        exclude_sql = ""
-        db_ex: List[str] = []
-        if exclude_channels:
-            from backend.semantic.filters import expand_channels as _ec
-            db_ex = _ec(exclude_channels)
-            placeholders = ",".join(["?"] * len(db_ex))
-            exclude_sql = f"AND o.channel NOT IN ({placeholders})"
-            base_params.extend(db_ex)
+        # all_orders CTE 过滤器 (top_cat_sql + flow_sql 共用)
+        all_where, all_params = _build_all_orders_filter(
+            level_col=level_col,
+            start_date=window_start,
+            end_date=end_date,
+            channel=channel,
+            exclude_channels=exclude_channels,
+        )
 
         # 查找TOP N品类（仅用于桑基图归类）
         top_cat_sql = f"""
@@ -223,12 +255,7 @@ def get_category_flow(
                 o.pay_time,
                 o.order_id
             FROM orders o
-            WHERE o.pay_time >= ?
-              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql}
-              {excluded_cat_sql}
-              {channel_sql}
-              {exclude_sql}
+            WHERE {all_where}
         ),
         user_first_order AS (
             SELECT user_id, category_name AS first_category, pay_time
@@ -254,21 +281,14 @@ def get_category_flow(
         ORDER BY first_users DESC
         LIMIT ?
         """
-        top_cats_result = conn.execute(top_cat_sql + " OFFSET 0", base_params + [top_n]).fetchall()
+        top_cats_result = conn.execute(top_cat_sql + " OFFSET 0", all_params + [top_n]).fetchall()
         top_cats = [row[0] for row in top_cats_result]
 
         if len(top_cats) < top_n:
-            top_cats_result = conn.execute(top_cat_sql, base_params + [top_n]).fetchall()
+            top_cats_result = conn.execute(top_cat_sql, all_params + [top_n]).fetchall()
             top_cats = [row[0] for row in top_cats_result[:top_n]]
 
         # 全量流转SQL：不限制在top_cats内，查询全部品类的流转
-        # 参数: 2个日期 + excluded_cat + channel + exclude
-        params_flow = [window_start, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
-        if channel and channel != "全店":
-            params_flow.extend(db_channels)
-        if exclude_channels:
-            params_flow.extend(db_ex)
-
         flow_sql = f"""
         WITH all_orders AS (
             SELECT
@@ -277,12 +297,7 @@ def get_category_flow(
                 o.pay_time,
                 o.order_id
             FROM orders o
-            WHERE o.pay_time >= ?
-              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql}
-              {excluded_cat_sql}
-              {channel_sql}
-              {exclude_sql}
+            WHERE {all_where}
         ),
         user_first_order AS (
             SELECT user_id, category_name AS first_category, pay_time
@@ -316,7 +331,7 @@ def get_category_flow(
         WHERE from_cat != to_cat
         ORDER BY flow_users DESC
         """
-        flow_result = conn.execute(flow_sql, params_flow).fetchall()
+        flow_result = conn.execute(flow_sql, all_params).fetchall()
 
         # 构建桑基图数据（仍按TOP10+其他归类，保证可视化可读性）
         other_node = "其他"
