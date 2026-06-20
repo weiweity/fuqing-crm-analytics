@@ -2,9 +2,12 @@
 Pytest fixtures for backend service tests.
 """
 import subprocess
-import pytest
 import sys
+import tempfile
 from pathlib import Path
+
+import duckdb
+import pytest
 
 # Add backend/ to path for imports
 backend_path = Path(__file__).parent.parent.parent
@@ -101,6 +104,94 @@ def _detect_prod_duckdb_available() -> bool:
 
 # Module-level 常量: 跨多个 test 共享 skipif 条件
 _PROD_DUCKDB_AVAILABLE = _detect_prod_duckdb_available()
+
+
+@pytest.fixture(scope="session")
+def isolated_duckdb():
+    """为每个 pytest-xdist worker 提供隔离 DuckDB。
+
+    worker 只写自己的临时数据库，并以只读方式 ATTACH 生产库。search_path
+    让业务代码继续用无 schema 前缀的表名读取生产数据。
+    """
+    if not _PROD_DUCKDB_AVAILABLE:
+        pytest.skip("production DuckDB 不可用")
+
+    from backend.config import DUCKDB_MEMORY_LIMIT, DUCKDB_PATH
+
+    tmp = tempfile.NamedTemporaryFile(suffix=".duckdb", delete=False)
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    # DuckDB 1.5+ 会拒绝已存在但为空的文件；保留安全生成的路径即可。
+    tmp_path.unlink()
+    conn = None
+
+    try:
+        conn = duckdb.connect(
+            str(tmp_path),
+            config={"memory_limit": DUCKDB_MEMORY_LIMIT},
+        )
+        prod_path = str(DUCKDB_PATH).replace("'", "''")
+        conn.execute(f"ATTACH '{prod_path}' AS prod (READ_ONLY)")
+        conn.execute("PRAGMA search_path='main,prod'")
+        yield conn
+    finally:
+        if conn is not None:
+            conn.close()
+        tmp_path.unlink(missing_ok=True)
+
+
+@pytest.fixture
+def monkeypatch_connection(isolated_duckdb):
+    """让当前 test 的服务层连接使用当前 worker 的隔离 DuckDB。"""
+    from backend.db import connection
+
+    class FakeThreadSafeConnection:
+        """测试用最小连接包装器；查询结果直接使用 DuckDB 原生 cursor。"""
+
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, query, parameters=None):
+            if parameters is not None:
+                return self._conn.execute(query, parameters)
+            return self._conn.execute(query)
+
+        def close(self):
+            pass
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    original_conn = connection._conn
+    original_get_connection = connection.get_connection
+
+    def _fake_get_connection():
+        return FakeThreadSafeConnection(isolated_duckdb)
+
+    # pytest 先收集全部 test module，再创建 fixture。收集期间已经用
+    # ``from ... import get_connection`` 绑定的 service 也必须一起替换。
+    for module in tuple(sys.modules.values()):
+        if (
+            module is not None
+            and getattr(module, "get_connection", None) is original_get_connection
+        ):
+            module.get_connection = _fake_get_connection
+
+    connection._conn = None
+    connection.get_connection = _fake_get_connection
+
+    try:
+        yield isolated_duckdb
+    finally:
+        # test 执行期间延迟 import 的 service 也可能绑定 fake；一并恢复，避免
+        # 当前 worker 后续无关 test 继续使用本 fixture 的隔离连接。
+        for module in tuple(sys.modules.values()):
+            if module is None:
+                continue
+            if getattr(module, "get_connection", None) is _fake_get_connection:
+                module.get_connection = original_get_connection
+        connection.get_connection = original_get_connection
+        connection._conn = original_conn
 
 
 @pytest.fixture

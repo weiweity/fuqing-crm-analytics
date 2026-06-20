@@ -21,11 +21,10 @@ import os
 import secrets
 from pathlib import Path
 
-# Ensure HEALTH_API_KEY & FQ_CRM_PASSWORDS are set before importing backend.main
-if "HEALTH_API_KEY" not in os.environ:
-    os.environ["HEALTH_API_KEY"] = secrets.token_urlsafe(32)
-if "FQ_CRM_PASSWORDS" not in os.environ:
-    os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
+# Force test credentials — must override .env's FQ_CRM_PASSWORDS (load_dotenv in auth.py
+# reads .env before this module runs; setdefault would NOT override the .env value).
+os.environ["HEALTH_API_KEY"] = os.environ.get("HEALTH_API_KEY") or secrets.token_urlsafe(32)
+os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 # Check if database exists before running integration tests
 # Sprint 22 #31: 默认名 sample.duckdb 改 fuqing_crm.duckdb (跟 backend/config.py 一致 + 真实生产文件)
@@ -36,53 +35,20 @@ DB_PATH = os.environ.get(
 DB_EXISTS = Path(DB_PATH).exists()
 
 
-# Sprint 22.5 #S22.5-1: TestClient 跟生产 uvicorn 共享 DuckDB 锁冲突 (跟 #25 同根因).
-# dev 跑测试前先停 uvicorn (锁 release), 或公开后用户 clone 跑 (无 uvicorn = 0 锁).
-# 简化: module-level skipif — uvicorn 在就整文件 skip, 跟 conftest.py skip_if_duckdb_locked 配套.
-import os as _os
-import subprocess as _sp
-_PROD_DUCKDB = Path(__file__).parent.parent.parent / "data" / "processed" / "fuqing_crm.duckdb"
-_UVICORN_LOCK_PID = (
-    int(_sp.run(["lsof", "-t", str(_PROD_DUCKDB)], capture_output=True, text=True, timeout=5).stdout.strip().split()[0])
-    if _PROD_DUCKDB.exists() and _sp.run(["lsof", "-t", str(_PROD_DUCKDB)], capture_output=True, text=True, timeout=5).stdout.strip()
-    else None
-)
-# Sprint 36-5 race flake 治标: pytest-xdist 多 worker 跨进程也撞 DuckDB file lock.
-# 旧 skipif 只拦 uvicorn PID, 不拦 pytest-xdist worker 之间互锁. 加 worker count 探测
-# → 多 worker 时整 module skip, 提示用 `pytest -n0` serial mode 跑.
-# Sprint 39 CI 爆红修复: CI 跑 serial mode + production DuckDB 不存在 → 真连空 DuckDB
-# → CatalogException fail. 加 _PROD_DUCKDB_AVAILABLE check (CI 没数据时整 module skip).
+# Sprint 53: 每个 xdist worker 使用 temp DuckDB + ATTACH production read_only，
+# 不再因生产库文件锁跳过并行测试。CI 无生产数据时仍保持 skip。
 from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE  # noqa: E402
-_XDIST_WORKER_COUNT = _os.environ.get("PYTEST_XDIST_WORKER_COUNT")
-_IN_XDIST_PARALLEL = _XDIST_WORKER_COUNT is not None and int(_XDIST_WORKER_COUNT) > 1
-pytestmark = pytest.mark.skipif(
-    not _PROD_DUCKDB_AVAILABLE
-    or (_UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid())
-    or _IN_XDIST_PARALLEL,
-    reason=(
-        (
-            "生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件). "
-            "本地真跑: 先 ETL 跑批生成 data/processed/fuqing_crm.duckdb. "
-        )
-        if not _PROD_DUCKDB_AVAILABLE
-        else ""
-    )
-    + (
-        "生产 DuckDB lock 冲突: "
-        + (
-            f"PID {_UVICORN_LOCK_PID} 占 fd (uvicorn 或 xdist worker), TestClient 跨进程锁冲突. "
-            if _UVICORN_LOCK_PID is not None and _UVICORN_LOCK_PID != _os.getpid()
-            else ""
-        )
-        + (
-            f"pytest-xdist 多 worker ({_XDIST_WORKER_COUNT}) 跑 race flake. "
-            f"用 `pytest backend/tests/test_api_integration.py -n0` serial mode 跑 = 0 冲突. "
-            f"真治本留 Sprint 36.x (per-test tmp DuckDB ATTACH 模式)."
-            if _IN_XDIST_PARALLEL
-            else ""
-        )
+pytestmark = [
+    pytest.mark.skipif(
+        not _PROD_DUCKDB_AVAILABLE,
+        reason="生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)",
     ),
-)
+]
+
+
+@pytest.fixture(autouse=True)
+def _use_isolated_db(monkeypatch_connection):
+    """所有 API 测试使用当前 worker 的隔离 DuckDB。"""
 
 
 def get_test_client():
@@ -93,7 +59,7 @@ def get_test_client():
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch_connection):
     """FastAPI test client fixture."""
     return get_test_client()
 
