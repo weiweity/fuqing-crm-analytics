@@ -14,11 +14,20 @@ from pathlib import Path
 def run_lint(tmp_path: Path) -> int:
     """跑 ground-truth-lint, 返回 exit code."""
     script = Path(__file__).resolve().parent.parent / "scripts" / "check_filter_builder_usage.py"
+    target = tmp_path / "test_service.py"
     result = subprocess.run(
-        [sys.executable, str(script), "--files", str(tmp_path / "test_service.py")],
+        [sys.executable, str(script), "--files", str(target)],
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        # Sprint 55.1 CI 调试: 捕获 stderr 让 CI log 显式可见 (本地 rc=0 但 CI rc=1)
+        print(f"\n[LINT rc={result.returncode}] stdout: {result.stdout}")
+        print(f"[LINT rc={result.returncode}] stderr: {result.stderr}")
+        try:
+            print(f"[LINT rc={result.returncode}] file: {target.read_text()}")
+        except Exception as e:
+            print(f"[LINT rc={result.returncode}] file read error: {e}")
     return result.returncode
 
 
