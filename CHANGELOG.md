@@ -64,7 +64,7 @@
 - `scripts/git/check_commit_msg_diff_consistency.py`
 - Sprint 39 close memory (visitor audit)
 - Sprint 32.3 close memory (a9b1d91 教训)
-- `HANDOFF-TO-CODEX-Sprint52.md`
+- `HANDOFF.md` (Codex 协作工作流规范)
 
 ---
 
@@ -227,8 +227,8 @@
 
 ### 关联
 
-- `docs/SPRINT-41-CI-LESSONS-LEARNED.md` (12 follow-up 详细实战教训, 跨 sprint 复用)
-- `docs/SPRINT-40-PLUS-PLAN.md` (Sprint 40 audit doc + Sprint 41 实战总结段)
+- `docs/CI-E2E-HISTORY.md` (12 follow-up 详细实战教训, 跨 sprint 复用)
+- `docs/CI-E2E-HISTORY.md` (Sprint 40 audit doc + Sprint 41 实战总结段)
 - Sprint 38 close memory (race flake 治标 + DuckDB 文件锁 exclusive 限制, 同样改治标)
 - Sprint 39 close memory (GH CI baseline fix 实战教训)
 
@@ -265,7 +265,7 @@
 - `frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (regression test)
 - `CLAUDE.md` L5.1 + L5.2 (永久规则)
 - `.pre-commit-config.yaml` (spec-lint hook 集成)
-- `docs/SPRINT-41-CI-LESSONS-LEARNED.md` (实战 12 follow-up 总结, 引用不复述)
+- `docs/CI-E2E-HISTORY.md` (实战 12 follow-up 总结, 引用不复述)
 - `docs/TECH-DEBT.md` 债 #S42-1 闭环 (line 32 新待办 + line 386 已修复段)
 
 ---
@@ -307,7 +307,7 @@
 - `frontend-vue3/e2e/lint/spec-lint.sh` (Sprint 42 #S42-1 3 条规则 + Sprint 43 blocking)
 - `frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (Sprint 42 regression test 3/3 case pass)
 - `docs/CI-DEFENSE-PLAYBOOK.md` (Sprint 42 3 层防御, 引用不复述)
-- `docs/SPRINT-41-CI-LESSONS-LEARNED.md` (Sprint 41 实战 12 follow-up, 引用不复述)
+- `docs/CI-E2E-HISTORY.md` (Sprint 41 实战 12 follow-up, 引用不复述)
 
 ---
 
@@ -343,7 +343,7 @@
 
 ### Added
 
-1. **`docs/VISITOR-CHAIN-AUDIT-SPRINT39.md`** (302 行, +302 行净) — Sprint 39.2 ground-truth audit doc, 6 章节:
+1. **`docs/CI-E2E-HISTORY.md`** (302 行, +302 行净) — Sprint 39.2 ground-truth audit doc, 6 章节:
    - TL;DR: visitor backend 100% 活跃 + frontend API 100% 活跃 + 唯一缺 = router 注册
    - 实地调查 (Ground Truth): backend 文件清单 + frontend API client + 调用方 + router 状态
    - Sprint 36-1 plan-eng-review 报告校正: "visitor 业务风险高" 评估错, 没做 audit

@@ -104,7 +104,7 @@ Claude: 直接 Stage 2 写代码 + Stage 3 review + Stage 4 push
    - 3 层防御 + Q1-Q4 决策树 + 5 步响应流程
    - 实战 fix 模式 ROI 重评核心
 
-4. **`docs/SPRINT-41-CI-LESSONS-LEARNED.md`** (Sprint 41 12 follow-up 教训)
+4. **`docs/CI-E2E-HISTORY.md`** (Sprint 32.1→41→52 CI e2e 实施历程)
    - GH Actions runner 跟本地差异 (14GB disk + headless + 没 DuckDB)
    - Playwright 3 个 timeout 区别
    - 引用不复述 (跟 PLAYBOOK 双 source)
@@ -233,9 +233,7 @@ PYTHONPATH=. pytest backend/tests/ -q \
 │   └── playwright.config.ts    # baseURL 5173, timeout 本地 10s/CI 60s, serial mode
 ├── docs/
 │   ├── CI-DEFENSE-PLAYBOOK.md           # Sprint 42 3 层防御 (Q1-Q4 决策树)
-│   ├── SPRINT-41-CI-LESSONS-LEARNED.md  # Sprint 41 12 follow-up 时间线
-│   ├── SPRINT-40-PLUS-PLAN.md           # Sprint 40 audit + Sprint 41 实战总结
-│   ├── VISITOR-CHAIN-AUDIT-SPRINT39.md # Sprint 39 visitor 链 audit
+│   ├── CI-E2E-HISTORY.md               # CI e2e 实施历程 (Sprint 32.1→41→52)
 │   ├── TECH-DEBT.md                     # 全部技术债台账 (Sprint 25+ 起)
 │   └── PRE-COMMIT.md / LINTING.md / SHIP.md / HOOKS-CHOICE.md / CI-PRECOMMIT.md
 └── .github/workflows/lint.yml           # GH Actions 4 jobs (lint + ground-truth-lint + pytest + e2e advisory)
