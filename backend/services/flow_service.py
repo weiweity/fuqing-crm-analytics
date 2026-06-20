@@ -8,11 +8,60 @@ Sprint 36-6 清理: 删 get_flow_sankey (前端 0 + 后端 0 业务消费).
 
 import duckdb
 import pandas as pd
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from functools import lru_cache
 from backend.db.connection import get_connection
 from backend.semantic.segments import get_registry
-from backend.semantic.filters import OrderFilters
+from backend.semantic.filters import FilterBuilder, MetricType
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 54 Lane A L3 FilterBuilder helpers
+#
+# 两个 helper 把 flow_service 2 处 valid_sql f-string 内嵌统一收到 `?` DB-API 参数化.
+# 设计原则 (跟 Sprint 53.5 churn.py 一致):
+#   1. F/M 指标 (lookback_days 窗口) 应用 channel 排除; R 指标 (365 天固定) 不应用
+#      (与 preload_rfm.py 口径一致).
+#   2. 所有用户输入 (channel) 走 `?` 占位符.
+#   3. 返回 (where_sql, params) 直接拼到 SQL 的 WHERE 子句.
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_flow_fm_filter(
+    start_date: str,
+    end_date: str,
+    exclude_channels: Optional[List[str]] = None,
+) -> Tuple[str, List[Any]]:
+    """flow_service F/M 指标过滤器 (含 time + valid_order + exclude_channels).
+
+    Returns:
+        (where_sql, params) — 含 time range (lookback_days 窗口) + valid_order 三条件
+        + exclude_channels NOT IN.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    return fb.build()
+
+
+def _build_flow_r_filter(
+    start_date: str,
+    end_date: str,
+) -> Tuple[str, List[Any]]:
+    """flow_service R 指标过滤器 (含 time + valid_order, 不含 channel 过滤).
+
+    R 指标用固定 365 天窗口, 不应用 channel 过滤 (与 preload_rfm.py 口径一致).
+
+    Returns:
+        (where_sql, params) — 含 time range + valid_order 三条件.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    return fb.build()
+
 
 
 # ============================================================
@@ -83,12 +132,15 @@ def _compute_user_segments_raw(
 ) -> pd.DataFrame:
     """
     原始 SQL 计算指定日期的用户象限分布（参数化查询，无 SQL 注入）。
+
+    Sprint 54 Lane A L3: 2 处 valid_sql 字符串内嵌 → FilterBuilder.build() 参数化.
+    F/M 窗口 (lookback_days) 应用 channel 过滤, R 窗口 (365 天) 不应用 (跟预计算口径一致).
     """
     from datetime import datetime, timedelta
     from backend.semantic.segments import RFM_THRESHOLDS
 
     start_date = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
-    valid_sql, _ = OrderFilters.valid_order()
+    r_start_date = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=365)).strftime("%Y-%m-%d")
     amount_cond = "actual_amount > 0" if metric_type == "GMV" else "actual_amount >= 0"
 
     registry = get_registry()
@@ -97,33 +149,40 @@ def _compute_user_segments_raw(
     m_score_sql = registry.build_m_score_sql(RFM_THRESHOLDS["m"])
     segment_sql = registry.build_segment_case_when_sql()
 
-    # R窗口固定365天（与preload_rfm.py口径一致），F/M窗口用lookback_days
-    params = [date, start_date, date, date, date, date]
-
-    channel_where = ""
+    # F/M 指标: lookback_days 窗口 + channel 过滤
+    fb_fm = FilterBuilder()
+    fb_fm.with_metric_type(MetricType.GSV)
+    fb_fm.with_time_range(start_date, date)
     if exclude_channels:
-        # 安全内联：channel 值来自预定义白名单，使用单引号转义避免注入
-        safe_channels = [ch.replace("'", "''") for ch in exclude_channels]
-        quoted = ", ".join([f"'{ch}'" for ch in safe_channels])
-        channel_where = f"AND o.channel NOT IN ({quoted})"
+        fb_fm.with_exclude_channels(exclude_channels)
+    where_fm, params_fm = fb_fm.build()
+
+    # R 指标: 365 天固定窗口, 不带 channel 过滤 (与 preload_rfm.py 口径一致)
+    fb_r = FilterBuilder()
+    fb_r.with_metric_type(MetricType.GSV)
+    fb_r.with_time_range(r_start_date, date)
+    where_r, params_r = fb_r.build()
+
+    # params 顺序:
+    # 1. base_params CTE: analysis_date, start_date, r_start_date (3 个)
+    # 2. user_with_rfm: recency_days (1 个)
+    # 3. where_fm params (time range + exclude channels)
+    # 4. where_r params (time range)
+    params = [date, start_date, r_start_date, date] + params_fm + params_r
 
     sql = f"""
     WITH base_params AS (
         SELECT
             DATE(?) AS analysis_date,
             DATE(?) AS start_date,
-            DATE(?) - INTERVAL '365' DAY AS r_start_date
+            DATE(?) AS r_start_date
     ),
-    -- F/M 指标：使用 lookback_days 窗口，应用 channel 过滤
+    -- F/M 指标: 使用 lookback_days 窗口, 应用 channel 过滤
     fm_orders AS (
         SELECT o.user_id, o.actual_amount, o.order_id, o.pay_time
         FROM orders o
-        CROSS JOIN base_params p
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
+        WHERE {where_fm}
           AND ({amount_cond})
-          {channel_where}
     ),
     fm_metrics AS (
         SELECT
@@ -134,14 +193,11 @@ def _compute_user_segments_raw(
         FROM fm_orders
         GROUP BY user_id
     ),
-    -- R 指标：使用固定365天窗口，不应用 channel 过滤（与预计算口径一致）
+    -- R 指标: 使用固定 365 天窗口, 不应用 channel 过滤 (与预计算口径一致)
     r_orders AS (
         SELECT o.user_id, MAX(o.pay_time) AS r_last_pay_time
         FROM orders o
-        CROSS JOIN base_params p
-        WHERE o.pay_time >= p.r_start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
+        WHERE {where_r}
           AND ({amount_cond})
         GROUP BY o.user_id
     ),
@@ -150,7 +206,7 @@ def _compute_user_segments_raw(
             fm.user_id,
             fm.monetary,
             fm.frequency,
-            -- R基于365天窗口的最近购买，F/M基于lookback_days窗口
+            -- R基于 365 天窗口的最近购买, F/M 基于 lookback_days 窗口
             DATEDIFF('day', COALESCE(r.r_last_pay_time, fm.last_pay_time), DATE(?)) AS recency_days
         FROM fm_metrics fm
         LEFT JOIN r_orders r ON fm.user_id = r.user_id

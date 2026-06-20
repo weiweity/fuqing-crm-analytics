@@ -5,11 +5,11 @@ Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 import duckdb
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
-from backend.semantic.filters import OrderFilters, expand_channels
-from .._shared import _cat_expr, _excluded_cat_filter
+from backend.semantic.filters import FilterBuilder, MetricType
+from .._shared import _cat_expr
 
 
 SPU_LEVELS = {
@@ -30,6 +30,117 @@ EXCLUDED_PRODUCT_CATEGORIES = (
     '洗脸巾', 'PR礼盒', '多品类集合链',
 )
 
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 54 Lane B L3 FilterBuilder helpers
+#
+# 时序关联分析 (`_compute_temporal_association`) 原 14 处 `(valid_order filter)` f-string
+# 内嵌 + 多处 channel/exclude/excluded_cat 字符串拼接 — 全部收到 `?` DB-API
+# 参数化. 设计原则:
+#   1. 所有用户输入 (channel / exclude_channels / target_category / window_days)
+#      都走 `?` 占位, helper 返回的 params 列表即 DuckDB execute 参数.
+#   2. valid_order / channel / exclude_channels 用 FilterBuilder.build() 统一产出.
+#   3. excluded_cat (静态白名单) 走 `add_extra` 进 helper, 调用方不再手工拼.
+#   4. _cat_expr(level_col) = ? / != ? 进 add_extra (level_col 是 SPU_LEVELS
+#      白名单, 字符串拼接安全).
+#   5. pay_time 的 DATE(?) + INTERVAL '1' DAY 形式保留 (用 add_extra) — 不切到
+#      with_time_range, 避免与原 SQL 语义差异.
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_target_orders_filter(
+    level_col: str,
+    target_category: str,
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """时序关联 target_orders CTE 过滤器 (first/last/every 三个 anchor_mode 共用).
+
+    等价于原 WHERE 子句:
+        WHERE _cat_expr(level_col) = ?
+          AND o.pay_time >= ?
+          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
+          AND (valid_order filter)
+          (channel filter)
+          (exclude-channel filter)
+
+    Returns:
+        (where_sql, params) — 直接拼到 CTE 内 `WHERE {where_sql}`, 参数顺序对齐.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    # 渠道参数
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+    # 品类 + 时间范围 (DATE() 形式) 进 add_extra
+    cat_expr = f"COALESCE(TRIM(o.{level_col}), '未知')"
+    extra_sql = (
+        f"{cat_expr} = ? "
+        f"AND o.pay_time >= ? "
+        f"AND o.pay_time < DATE(?) + INTERVAL '1' DAY"
+    )
+    extra_params: List[Any] = [target_category, f"{start_date} 00:00:00", end_date]
+    return f"{extra_sql} AND {where_sql}", extra_params + params
+
+
+def _build_assoc_filter(
+    level_col: str,
+    target_category: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """时序关联 post/pre_orders/step1/step2 子查询过滤器 (全部共用).
+
+    等价于原 WHERE 子句 (post_orders / pre_orders / post_users / pre_users
+    / step1 / step2 共享同一组过滤项, 调用方只加时间锚点条件):
+        WHERE _cat_expr(level_col) != ?
+          AND (valid_order filter)
+          (excluded-category filter)
+          (channel filter)
+          (exclude-channel filter)
+
+    注意: window_days / target_category (step1 IN top_cats) / step1 vs target 差
+    别 由调用方在 SQL 外用 `?` 占位, 不进本 helper.
+
+    Returns:
+        (where_sql, params) — 拼到 post_orders / pre_orders / step1 / step2 的
+        WHERE 内, 配合时间锚点比较用 AND 连接.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+    # _cat_expr != target_category + excluded_cat 进 add_extra
+    cat_expr = f"COALESCE(TRIM(o.{level_col}), '未知')"
+    extra_sql = f"{cat_expr} != ?"
+    extra_params: List[Any] = [target_category]
+    placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
+    extra_sql += f" AND TRIM(COALESCE(o.{level_col}, '未知')) NOT IN ({placeholders})"
+    extra_params.extend(EXCLUDED_PRODUCT_CATEGORIES)
+    return f"{extra_sql} AND {where_sql}", extra_params + params
+
+
+def _build_extra_cats_in_filter(
+    level_col: str,
+    extra_cats: List[str],
+) -> Tuple[str, List[Any]]:
+    """step1 中 `_cat_expr(level_col) IN (...)` 的参数化片段.
+
+    Returns:
+        (sql_fragment, params) — 形如 `AND _cat_expr(level_col) IN (?, ?, ...)`,
+        params 是 extra_cats 列表.
+    """
+    placeholders = ",".join(["?"] * len(extra_cats))
+    cat_expr = f"COALESCE(TRIM(o.{level_col}), '未知')"
+    return f"AND {cat_expr} IN ({placeholders})", list(extra_cats)
 
 
 def _compute_temporal_association(
@@ -59,66 +170,41 @@ def _compute_temporal_association(
     target_start = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=window_days)).strftime("%Y-%m-%d")
 
     level_col = SPU_LEVELS.get(level, "spu_product_class")
-    valid_sql, _ = OrderFilters.valid_order()
-    excluded_cat_sql = _excluded_cat_filter(level_col)
 
-    # 渠道参数
-    channel_params: List[Any] = []
-    exclude_params: List[Any] = []
-    excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
-    channel_sql = ""
-    if channel and channel != "全店":
-
-        db_channels = [c for c in expand_channels([channel]) if c]
-
-        if not db_channels:
-
-            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        if len(db_channels) == 1:
-            channel_sql = "AND o.channel = ?"
-            channel_params = [db_channels[0]]
-        else:
-            placeholders = ",".join(["?"] * len(db_channels))
-            channel_sql = f"AND o.channel IN ({placeholders})"
-            channel_params = list(db_channels)
-
-    exclude_sql = ""
-    if exclude_channels:
-        db_ex = [c for c in expand_channels(exclude_channels) if c]
-        placeholders = ",".join(["?"] * len(db_ex))
-        exclude_sql = f"AND o.channel NOT IN ({placeholders})"
-        exclude_params = list(db_ex)
+    # target_orders CTE 过滤器 (3 个 anchor_mode 共享)
+    target_where, target_params = _build_target_orders_filter(
+        level_col=level_col,
+        target_category=target_category,
+        start_date=target_start,
+        end_date=end_date,
+        channel=channel,
+        exclude_channels=exclude_channels,
+    )
+    # post/pre/step1/step2 共享过滤器 (含 _cat_expr != target + excluded_cat + valid + channel/exclude)
+    assoc_where, assoc_params = _build_assoc_filter(
+        level_col=level_col,
+        target_category=target_category,
+        channel=channel,
+        exclude_channels=exclude_channels,
+    )
 
     # 根据锚点模式生成 target_orders SQL
     if anchor_mode == "last":
         target_orders_sql = f"""SELECT o.user_id, MAX(o.pay_time) as anchor_pay_time
         FROM orders o
-        WHERE {_cat_expr(level_col)} = ?
-          AND o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {channel_sql}
-          {exclude_sql}
+        WHERE {target_where}
         GROUP BY o.user_id"""
     elif anchor_mode == "every":
         target_orders_sql = f"""SELECT DISTINCT o.user_id, o.pay_time as anchor_pay_time, o.order_id
         FROM orders o
-        WHERE {_cat_expr(level_col)} = ?
-          AND o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {channel_sql}
-          {exclude_sql}"""
+        WHERE {target_where}"""
     else:  # default: first
         target_orders_sql = f"""SELECT o.user_id, MIN(o.pay_time) as anchor_pay_time
         FROM orders o
-        WHERE {_cat_expr(level_col)} = ?
-          AND o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {channel_sql}
-          {exclude_sql}
+        WHERE {target_where}
         GROUP BY o.user_id"""
+    # target_orders 共用 params
+    target_orders_params = target_params
 
     # 后置购买: 买 target 之后买的其他品类(限制 window_days 内)
     post_sql = f"""
@@ -136,11 +222,7 @@ def _compute_temporal_association(
         INNER JOIN target_orders t ON o.user_id = t.user_id
         WHERE o.pay_time > t.anchor_pay_time
           AND o.pay_time <= t.anchor_pay_time + INTERVAL '1' DAY * ?
-          AND {_cat_expr(level_col)} != ?
-          AND {valid_sql}
-          {excluded_cat_sql}
-          {channel_sql}
-          {exclude_sql}
+          AND {assoc_where}
     )
     SELECT
         category_name,
@@ -153,8 +235,7 @@ def _compute_temporal_association(
     ORDER BY user_count DESC
     LIMIT 20
     """
-    # target_category, target_start, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
-    post_params = [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
+    post_params = target_orders_params + [window_days] + assoc_params
     post_result = conn.execute(post_sql, post_params).fetchall()
 
     # 前置购买: 买 target 之前买的其他品类(限制 window_days 内)
@@ -173,11 +254,7 @@ def _compute_temporal_association(
         INNER JOIN target_orders t ON o.user_id = t.user_id
         WHERE o.pay_time < t.anchor_pay_time
           AND o.pay_time >= t.anchor_pay_time - INTERVAL '1' DAY * ?
-          AND {_cat_expr(level_col)} != ?
-          AND {valid_sql}
-          {excluded_cat_sql}
-          {channel_sql}
-          {exclude_sql}
+          AND {assoc_where}
     )
     SELECT
         category_name,
@@ -190,22 +267,16 @@ def _compute_temporal_association(
     ORDER BY user_count DESC
     LIMIT 20
     """
-    # target_category, target_start, end_date, + channel + exclude + window_days + target_category + excluded_cat + channel + exclude
-    pre_params = [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params
+    pre_params = target_orders_params + [window_days] + assoc_params
     pre_result = conn.execute(pre_sql, pre_params).fetchall()
 
     # 目标品类总购买用户数(用于计算 ratio)
     total_sql = f"""
     SELECT COUNT(DISTINCT user_id)
     FROM orders o
-    WHERE {_cat_expr(level_col)} = ?
-      AND o.pay_time >= ?
-      AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-      AND {valid_sql}
-      {channel_sql}
-      {exclude_sql}
+    WHERE {target_where}
     """
-    total_result = conn.execute(total_sql, [target_category, target_start, end_date] + channel_params + exclude_params).fetchone()
+    total_result = conn.execute(total_sql, target_orders_params).fetchone()
     total_users = int(total_result[0] or 0) if total_result else 0
 
     # 计算有前置/后置购买的用户数（用于流失分析）
@@ -218,13 +289,10 @@ def _compute_temporal_association(
     INNER JOIN target_orders t ON o.user_id = t.user_id
     WHERE o.pay_time > t.anchor_pay_time
       AND o.pay_time <= t.anchor_pay_time + INTERVAL '1' DAY * ?
-      AND {_cat_expr(level_col)} != ?
-      AND {valid_sql}
-      {excluded_cat_sql}
-      {channel_sql}
-      {exclude_sql}
+      AND {assoc_where}
     """
-    post_users_result = conn.execute(post_users_sql, [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params).fetchone()
+    post_users_params = target_orders_params + [window_days] + assoc_params
+    post_users_result = conn.execute(post_users_sql, post_users_params).fetchone()
     post_users_with_purchase = int(post_users_result[0] or 0) if post_users_result else 0
 
     pre_users_sql = f"""
@@ -236,13 +304,10 @@ def _compute_temporal_association(
     INNER JOIN target_orders t ON o.user_id = t.user_id
     WHERE o.pay_time < t.anchor_pay_time
       AND o.pay_time >= t.anchor_pay_time - INTERVAL '1' DAY * ?
-      AND {_cat_expr(level_col)} != ?
-      AND {valid_sql}
-      {excluded_cat_sql}
-      {channel_sql}
-      {exclude_sql}
+      AND {assoc_where}
     """
-    pre_users_result = conn.execute(pre_users_sql, [target_category, target_start, end_date] + channel_params + exclude_params + [window_days, target_category] + excluded_params + channel_params + exclude_params).fetchone()
+    pre_users_params = target_orders_params + [window_days] + assoc_params
+    pre_users_result = conn.execute(pre_users_sql, pre_users_params).fetchone()
     pre_users_with_purchase = int(pre_users_result[0] or 0) if pre_users_result else 0
 
     def _build_assoc(rows) -> List[Dict[str, Any]]:
@@ -271,7 +336,7 @@ def _compute_temporal_association(
         # 后置2步：从step1的TOP品类再往后走一步
         # 取TOP10品类作为中间节点（避免查询爆炸）
         top_post_cats = [item["category_name"] for item in post_assoc[:10]]
-        placeholders = ",".join(["?"] * len(top_post_cats))
+        step1_in_sql, step1_in_params = _build_extra_cats_in_filter(level_col, top_post_cats)
         post_step2_sql = f"""
         WITH target_orders AS (
             {target_orders_sql}
@@ -285,12 +350,8 @@ def _compute_temporal_association(
             INNER JOIN target_orders t ON o.user_id = t.user_id
             WHERE o.pay_time > t.anchor_pay_time
               AND o.pay_time <= t.anchor_pay_time + INTERVAL '1' DAY * ?
-              AND {_cat_expr(level_col)} != ?
-              AND {_cat_expr(level_col)} IN ({placeholders})
-              AND {valid_sql}
-              {excluded_cat_sql}
-              {channel_sql}
-              {exclude_sql}
+              {step1_in_sql}
+              AND {assoc_where}
             QUALIFY ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.pay_time) = 1
         ),
         step2 AS (
@@ -303,11 +364,7 @@ def _compute_temporal_association(
             WHERE o.pay_time > s.step1_time
               AND o.pay_time <= s.step1_time + INTERVAL '1' DAY * ?
               AND {_cat_expr(level_col)} != s.step1_cat
-              AND {_cat_expr(level_col)} != ?
-              AND {valid_sql}
-              {excluded_cat_sql}
-              {channel_sql}
-              {exclude_sql}
+              AND {assoc_where}
             QUALIFY ROW_NUMBER() OVER (PARTITION BY o.user_id, s.step1_cat ORDER BY o.pay_time) = 1
         )
         SELECT step1_cat, step2_cat, COUNT(DISTINCT user_id) as user_count
@@ -317,9 +374,9 @@ def _compute_temporal_association(
         LIMIT 20
         """
         post_step2_params = (
-            [target_category, target_start, end_date] + channel_params + exclude_params +
-            [window_days, target_category] + top_post_cats + excluded_params + channel_params + exclude_params +
-            [window_days, target_category] + excluded_params + channel_params + exclude_params
+            target_orders_params
+            + [window_days] + step1_in_params + assoc_params
+            + [window_days] + assoc_params
         )
         post_step2_result = conn.execute(post_step2_sql, post_step2_params).fetchall()
         for row in post_step2_result:
@@ -332,7 +389,7 @@ def _compute_temporal_association(
     if path_depth >= 2 and pre_assoc:
         # 前置2步：从step1的TOP品类再往前走一步
         top_pre_cats = [item["category_name"] for item in pre_assoc[:10]]
-        placeholders = ",".join(["?"] * len(top_pre_cats))
+        step1_in_sql, step1_in_params = _build_extra_cats_in_filter(level_col, top_pre_cats)
         pre_step2_sql = f"""
         WITH target_orders AS (
             {target_orders_sql}
@@ -346,12 +403,8 @@ def _compute_temporal_association(
             INNER JOIN target_orders t ON o.user_id = t.user_id
             WHERE o.pay_time < t.anchor_pay_time
               AND o.pay_time >= t.anchor_pay_time - INTERVAL '1' DAY * ?
-              AND {_cat_expr(level_col)} != ?
-              AND {_cat_expr(level_col)} IN ({placeholders})
-              AND {valid_sql}
-              {excluded_cat_sql}
-              {channel_sql}
-              {exclude_sql}
+              {step1_in_sql}
+              AND {assoc_where}
             QUALIFY ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.pay_time DESC) = 1
         ),
         step2 AS (
@@ -364,11 +417,7 @@ def _compute_temporal_association(
             WHERE o.pay_time < s.step1_time
               AND o.pay_time >= s.step1_time - INTERVAL '1' DAY * ?
               AND {_cat_expr(level_col)} != s.step1_cat
-              AND {_cat_expr(level_col)} != ?
-              AND {valid_sql}
-              {excluded_cat_sql}
-              {channel_sql}
-              {exclude_sql}
+              AND {assoc_where}
             QUALIFY ROW_NUMBER() OVER (PARTITION BY o.user_id, s.step1_cat ORDER BY o.pay_time DESC) = 1
         )
         SELECT step1_cat, step2_cat, COUNT(DISTINCT user_id) as user_count
@@ -378,9 +427,9 @@ def _compute_temporal_association(
         LIMIT 20
         """
         pre_step2_params = (
-            [target_category, target_start, end_date] + channel_params + exclude_params +
-            [window_days, target_category] + top_pre_cats + excluded_params + channel_params + exclude_params +
-            [window_days, target_category] + excluded_params + channel_params + exclude_params
+            target_orders_params
+            + [window_days] + step1_in_params + assoc_params
+            + [window_days] + assoc_params
         )
         pre_step2_result = conn.execute(pre_step2_sql, pre_step2_params).fetchall()
         for row in pre_step2_result:

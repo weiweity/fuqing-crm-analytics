@@ -6,10 +6,9 @@ from typing import Optional, List, Dict, Any
 
 from dateutil.relativedelta import relativedelta
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, FilterBuilder, MetricType
+from backend.semantic.filters import FilterBuilder, MetricType
 from backend.semantic.calculations import yoy_ratio, yoy_absolute, mom_absolute, mom_ratio
 
-from ._shared import _expand_channel
 
 def calculate_metrics(start_date: str, end_date: str, metric_type: str = "GMV",
                       channel: Optional[str] = None,
@@ -71,27 +70,16 @@ def calculate_new_old_users(start_date: str, end_date: str,
         start_dt_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
         cutoff_date = (start_dt_obj - timedelta(days=1)).strftime("%Y-%m-%d")
 
-        time_sql, time_params = OrderFilters.pay_time_between_dates(start_date, end_date)
-        valid_sql, _ = OrderFilters.valid_order()
-
-        ch_sql = ""
-        ch_params = []
-        db_channels = _expand_channel(channel)
-        if len(db_channels) == 1:
-            ch_sql = "AND channel = ?"
-            ch_params = [db_channels[0]]
-        elif len(db_channels) > 1:
-            placeholders = ",".join(["?"] * len(db_channels))
-            ch_sql = f"AND channel IN ({placeholders})"
-            ch_params = db_channels
-
+        # Sprint 54 Lane A L3: 用 FilterBuilder.build() 替代 f-string 拼接
+        # (time_sql, valid_sql, ch_sql 三段全部走 ? 参数化).
+        fb = FilterBuilder()
+        fb.with_metric_type(MetricType.GSV)
+        fb.with_time_range(start_date, end_date)
+        if channel and channel != "全店":
+            fb.with_channels([channel])
         if exclude_channels:
-            ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels)
-            ch_sql += f" AND {ex_sql}"
-            ch_params.extend(ex_params)
-        else:
-            ex_sql = ""
-            ex_params = []
+            fb.with_exclude_channels(exclude_channels)
+        where_sql, where_params = fb.build()
 
         result = conn.execute(f"""
             WITH period_users AS (
@@ -100,9 +88,7 @@ def calculate_new_old_users(start_date: str, end_date: str,
                     SUM(o.actual_amount) as period_amount
                 FROM orders o
                 JOIN user_first_purchase u ON o.user_id = u.user_id
-                WHERE {time_sql}
-                  AND {valid_sql}
-                  {ch_sql}
+                WHERE {where_sql}
                 GROUP BY o.user_id
             ),
             enriched AS (
@@ -119,7 +105,7 @@ def calculate_new_old_users(start_date: str, end_date: str,
                 COALESCE(SUM(CASE WHEN is_new = 1 THEN period_amount ELSE 0 END), 0) AS new_user_amount,
                 COALESCE(SUM(CASE WHEN is_new = 0 THEN period_amount ELSE 0 END), 0) AS old_user_amount
             FROM enriched
-        """, time_params + ch_params + [cutoff_date]).fetchone()
+        """, where_params + [cutoff_date]).fetchone()
 
         return {
             "new_user_count": int(result[0]) if result[0] else 0,

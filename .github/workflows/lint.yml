@@ -117,7 +117,9 @@ jobs:
           set -e
           pip install -r requirements-lock.txt
           # Sprint 41.11: uvicorn 不写 /tmp/, redirect 到 GH Actions log (>&1). 启动错误可见.
-          FQ_CRM_PASSWORDS="admin:123456" \
+          # Sprint 55 fix: 加 HEALTH_API_KEY (Sprint 53.5 CI 爆根因 - uvicorn 启动 RuntimeError "HEALTH_API_KEY 未设置").
+          HEALTH_API_KEY="ci-fake-health-api-key-$(date +%s)-$$" \
+            FQ_CRM_PASSWORDS="admin:123456" \
             ETL_MIN_DISK_GB=0 \
             python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
           UVICORN_PID=$!

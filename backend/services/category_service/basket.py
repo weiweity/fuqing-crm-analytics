@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 
 
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 
 
 SPU_LEVELS = {
@@ -42,6 +42,15 @@ def _excluded_cat_filter(field: str) -> str:
     return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
 
 
+def _build_basket_valid_filter() -> tuple:
+    """Sprint 54 Lane C L3: 收编 valid_order() 到 FilterBuilder.add_extra()
+    避免 f-string 内嵌.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    return fb.build()
+
+
 def _compute_market_basket(
     conn: "duckdb.DuckDBPyConnection",
     target_category: str,
@@ -72,8 +81,9 @@ def _compute_market_basket(
         }
     """
     level_col = SPU_LEVELS.get(level, "spu_product_class")
-    valid_sql, _ = OrderFilters.valid_order()
     excluded_cat_sql = _excluded_cat_filter(level_col)
+    # Sprint 54 Lane C L3: valid_order() 字符串收编到 FilterBuilder
+    valid_where_sql, valid_where_params = _build_basket_valid_filter()
 
     # 渠道参数
     channel_params: List[Any] = []
@@ -104,7 +114,8 @@ def _compute_market_basket(
 
     # 日期参数
     date_params = [start_date, end_date]
-    base_params = date_params + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params + exclude_params
+    # Sprint 54 Lane C L3: valid_where_params (FilterBuilder 输出) 放在最前
+    base_params = valid_where_params + date_params + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params + exclude_params
 
     sql = f"""
     WITH
@@ -114,7 +125,7 @@ def _compute_market_basket(
         FROM orders o
         WHERE o.pay_time >= ?
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
+          AND {valid_where_sql}
           {excluded_cat_sql}
           {channel_sql}
           {exclude_sql}

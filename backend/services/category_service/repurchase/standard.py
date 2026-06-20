@@ -2,12 +2,32 @@
 import duckdb
 from typing import Dict, Optional, List
 
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 from backend.semantic.segments import RFM_THRESHOLDS
 
 from .._shared import (
     _RFM_SEGMENT_ORDER,
 )
+
+
+def _build_repurchase_period_filter(
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> tuple:
+    """Sprint 54 Lane C L3: 收编 valid_order() + channel + exclude 到 FilterBuilder
+    避免 f-string 内嵌 (本函数本身无 f-string 输出,所有用户输入走 add_extra 参数化).
+
+    Returns:
+        (where_clause, params) — where_clause 拼到 SQL 模板 `AND {where_clause}` 中;
+        params 拼到 conn.execute 参数列表中(与时间范围 params 拼接).
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    return fb.build()
 
 
 def _run_category_repurchase_period(
@@ -34,30 +54,8 @@ def _run_category_repurchase_period(
     - member_cross: 会员-跨品类回购
     """
 
-    valid_sql, _ = OrderFilters.valid_order()
-
-    # 渠道过滤
-    channel_where_base = ""
-    base_params_extra: List[str] = []
-    if channel and channel != "全店":
-        db_channels = [c for c in expand_channels([channel]) if c]
-        if not db_channels:
-            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        if len(db_channels) == 1:
-            channel_where_base = " AND o.channel = ?"
-            base_params_extra = [db_channels[0]]
-        else:
-            ph = ",".join(["?"] * len(db_channels))
-            channel_where_base = f" AND o.channel IN ({ph})"
-            base_params_extra = list(db_channels)
-
-    exclude_where = ""
-    exclude_params: List[str] = []
-    if exclude_channels:
-        db_ex = [c for c in expand_channels(exclude_channels) if c]
-        ex_ph = ",".join(["?"] * len(db_ex))
-        exclude_where = f" AND o.channel NOT IN ({ex_ph})"
-        exclude_params = list(db_ex)
+    # Sprint 54 Lane C L3: valid_order + channel + exclude 收编到 FilterBuilder
+    valid_where_clause, valid_where_params = _build_repurchase_period_filter(channel, exclude_channels)
 
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
 
@@ -73,7 +71,8 @@ def _run_category_repurchase_period(
     # hist_customers: 1(cutoff_DATEDIFF) + 1(category) + 1(cutoff_pay_time) + ex
     # base_orders: start_dt, end_dt
     base_params: List[str] = [start_dt, end_dt]
-    hist_params: List[str] = [cutoff_dt, safe_category, cutoff_dt] + exclude_params
+    # Sprint 54 Lane C L3: valid_where_params (含 ch+ex) 替代原 exclude_params
+    hist_params: List[str] = [cutoff_dt, safe_category, cutoff_dt] + list(valid_where_params)
 
     sql = f"""
     WITH
@@ -82,9 +81,7 @@ def _run_category_repurchase_period(
         FROM orders o
         WHERE pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND {valid_sql}
-          {channel_where_base}
-          {exclude_where}
+          AND {valid_where_clause}
           {refund_where}
     ),
     hist_customers AS (
@@ -97,8 +94,7 @@ def _run_category_repurchase_period(
         FROM orders o
         WHERE o.{category_field} = ?
           AND pay_time <= ?::TIMESTAMP
-          AND {valid_sql}
-          {exclude_where}
+          AND {valid_where_clause}
         GROUP BY user_id
     ),
     rfm_scored AS (
@@ -140,9 +136,7 @@ def _run_category_repurchase_period(
         WHERE o.{category_field} = ?
           AND pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND {valid_sql}
-          {channel_where_base}
-          {exclude_where}
+          AND {valid_where_clause}
           {refund_where}
     ),
     -- 跨品类回购：分析期内购买任何其他品类的用户
@@ -153,9 +147,7 @@ def _run_category_repurchase_period(
           AND o.{category_field} != ?
           AND pay_time >= ?::TIMESTAMP
           AND pay_time <= ?::TIMESTAMP
-          AND {valid_sql}
-          {channel_where_base}
-          {exclude_where}
+          AND {valid_where_clause}
           {refund_where}
     ),
     -- 同品回购金额
@@ -165,9 +157,7 @@ def _run_category_repurchase_period(
         WHERE o.{category_field} = ?
           AND o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
-          AND {valid_sql}
-          {channel_where_base}
-          {exclude_where}
+          AND {valid_where_clause}
           {refund_where}
         GROUP BY o.user_id
     ),
@@ -179,9 +169,7 @@ def _run_category_repurchase_period(
           AND o.{category_field} != ?
           AND o.pay_time >= ?::TIMESTAMP
           AND o.pay_time <= ?::TIMESTAMP
-          AND {valid_sql}
-          {channel_where_base}
-          {exclude_where}
+          AND {valid_where_clause}
           {refund_where}
         GROUP BY o.user_id
     ),
@@ -290,13 +278,14 @@ def _run_category_repurchase_period(
     # cross_repurchase_amounts: 1(cat) + 2(start,end) + ch + ex = 7
     # LEFT JOIN 引用已定义 CTE 不占额外参数
     # SQL ?顺序: category → start → end → channel → exclude
-    _sr = [safe_category] + base_params + base_params_extra + exclude_params
-    _cr = [safe_category] + base_params + base_params_extra + exclude_params
-    _sa = [safe_category] + base_params + base_params_extra + exclude_params
-    _ca = [safe_category] + base_params + base_params_extra + exclude_params
+    # Sprint 54 Lane C L3: valid_where_params (含 ch+ex) 替代 base_params_extra + exclude_params
+    _sr = [safe_category] + base_params + list(valid_where_params)
+    _cr = [safe_category] + base_params + list(valid_where_params)
+    _sa = [safe_category] + base_params + list(valid_where_params)
+    _ca = [safe_category] + base_params + list(valid_where_params)
     full_params = (
-        base_params + base_params_extra + exclude_params
-        + hist_params  # must include ALL hist_customers params: cutoff_DATEDIFF, category, cutoff_pay_time, exclude...
+        base_params + list(valid_where_params)
+        + hist_params  # hist_customers params: cutoff_DATEDIFF, category, cutoff_pay_time, ex
         + _sr + _cr + _sa + _ca
     )
 

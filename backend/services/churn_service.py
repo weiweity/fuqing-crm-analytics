@@ -2,13 +2,23 @@
 Sample CRM 客户分析系统 - 流失预警服务
 Week 3 流失风险分析（动态阈值 + 单品类）
 所有 SQL 均使用参数化查询，无 SQL 注入风险
+
+Sprint 54 Lane B L3 FilterBuilder 改造:
+- 4 个 builder (_build_dynamic_churn_sql / _build_fixed_churn_sql /
+  _build_dynamic_user_sql / _build_fixed_user_sql) 中 6 处 (valid_order filter) +
+  多处 ex_clause 字符串拼接 — 全部收到 `?` DB-API 参数化.
+- 设计原则:
+  1. valid_order / exclude_channels 用 FilterBuilder.build() 统一产出.
+  2. pay_time >= ? 进 add_extra (保留原始 date 字符串形式, 不切到 with_time_range
+     因为 builder 需要 lookback_start 而不是 start_dt/end_dt 范围).
+  3. order_intervals 特有的 `spu_product_class IS NOT NULL` 走专用 helper.
 """
 
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters
+from backend.semantic.filters import FilterBuilder, MetricType
 from backend.semantic.segments import get_registry
 
 
@@ -20,6 +30,82 @@ def _segment_name(seg_id: int) -> str:
 
 # 固定阈值（当购买次数 < 3 或 churn_mode=fixed 时使用）
 FIXED_R_THRESHOLD = 90  # R > 90天 为高风险
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 54 Lane B L3 FilterBuilder helpers
+#
+# 三个 helper 把 churn_service.py 4 个 builder 的 WHERE 统一收到 `?` DB-API
+# 参数化:
+#   _build_order_intervals_where — 动态流失 order_intervals CTE 用 (含 spu_product_class 检查)
+#   _build_user_orders_where     — 4 个 builder 的 user_last_order / ulo 子查询共用
+#   _build_segment_filter        — segment_id 可选过滤 (用 add_extra)
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_order_intervals_where(
+    lookback_start: str,
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """动态流失 order_intervals CTE 过滤器.
+
+    等价于原 WHERE:
+        WHERE (valid_order filter)
+          AND o.spu_product_class IS NOT NULL
+          AND o.pay_time >= ?
+          AND (exclude-channel filter, optional)
+
+    Returns:
+        (where_sql, params) — [lookback_start, ...ex_params].
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+    extra_sql = "o.spu_product_class IS NOT NULL AND o.pay_time >= ?"
+    extra_params: List[Any] = [lookback_start]
+    return f"{extra_sql} AND {where_sql}", extra_params + params
+
+
+def _build_user_orders_where(
+    lookback_start: str,
+    exclude_channels: Optional[List[str]],
+    alias: str = "o",
+) -> Tuple[str, List[Any]]:
+    """user_last_order / ulo 过滤器 (4 个 builder 共用).
+
+    等价于原 WHERE (alias 默认为 "o", 固定阈值的 ulo 子查询用 alias="" 表示无别名):
+        WHERE (valid_order filter)
+          AND {alias}pay_time >= ?
+          AND (exclude-channel filter, optional)
+
+    Args:
+        alias: 表别名 ("o" 表示 `FROM orders o`, "" 表示 `FROM orders`).
+
+    Returns:
+        (where_sql, params) — [lookback_start, ...ex_params].
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+    prefix = f"{alias}." if alias else ""
+    extra_sql = f"{prefix}pay_time >= ?"
+    extra_params: List[Any] = [lookback_start]
+    return f"{extra_sql} AND {where_sql}", extra_params + params
+
+
+def _build_segment_filter(segment_id: Optional[int]) -> Tuple[str, List[Any]]:
+    """segment_id 可选过滤器.
+
+    Returns:
+        ("AND r.segment_id = ?", [segment_id]) 或 ("", []).
+    """
+    if segment_id is None:
+        return "", []
+    return "AND r.segment_id = ?", [segment_id]
 
 
 def get_churn_risk_distribution(
@@ -106,34 +192,6 @@ def get_churn_risk_users(
 ) -> Dict[str, Any]:
     """
     获取高流失风险用户列表
-
-    Args:
-        date: 分析日期
-        risk_level: high/medium/low，可选
-        segment_id: 象限筛选
-        churn_mode: dynamic 或 fixed
-        fixed_threshold: 固定阈值天数
-        limit: 返回条数上限
-
-    Returns:
-        {
-            "date": str,
-            "mode": str,
-            "total_matched": int,
-            "users": [
-                {
-                    "user_id": str,
-                    "segment_id": int,
-                    "segment_name": str,
-                    "risk_score": float,
-                    "risk_level": str,
-                    "last_order_days": int,
-                    "frequency": int,
-                    "monetary": float
-                },
-                ...
-            ]
-        }
     """
     conn = get_connection()
 
@@ -150,34 +208,37 @@ def get_churn_risk_users(
                 "date": date,
                 "mode": churn_mode,
                 "total_matched": 0,
-                "users": []
+                "users": [],
             }
 
-        # 过滤 risk_level
         if risk_level:
             df = df[df["risk_level"] == risk_level]
 
         total_matched = len(df)
+        users = df.to_dict("records")
+        for row in users:
+            row["segment_name"] = _segment_name(int(row.get("segment_id", 9)))
+            row["risk_score"] = float(row.get("risk_score", 0) or 0.0)
 
-        users = []
-        for _, row in df.iterrows():
-            seg_id = int(row.get("segment_id", 9))
-            users.append({
-                "user_id": row["user_id"],
-                "segment_id": seg_id,
-                "segment_name": _segment_name(seg_id),
-                "risk_score": float(row["risk_score"]) if "risk_score" in row else 0.0,
+        # 简化返回结构
+        user_list = []
+        for row in users:
+            user_list.append({
+                "user_id": row.get("user_id", ""),
+                "segment_id": int(row.get("segment_id", 9)),
+                "segment_name": row.get("segment_name", "其他"),
+                "risk_score": row.get("risk_score", 0.0),
                 "risk_level": row.get("risk_level", "low"),
-                "last_order_days": int(row["last_order_days"]) if "last_order_days" in row else 0,
-                "frequency": int(row["frequency"]) if "frequency" in row else 0,
-                "monetary": float(row["monetary"]) if "monetary" in row else 0.0
+                "last_order_days": int(row.get("last_order_days", 0) or 0),
+                "frequency": int(row.get("frequency", 0) or 0),
+                "monetary": float(row.get("monetary", 0.0) or 0.0),
             })
 
         return {
             "date": date,
             "mode": churn_mode,
             "total_matched": total_matched,
-            "users": users[:limit]
+            "users": user_list[:limit]
         }
     finally:
         pass
@@ -189,26 +250,28 @@ def _build_dynamic_churn_sql(
     """
     构建动态阈值流失分布 SQL（参数化查询）
     Returns: (sql_string, params_list)
-    """
-    # 使用语义层构建过滤条件
-    valid_sql, _ = OrderFilters.valid_order()
-    ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
-    ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
+    SQL 中 ? 出现顺序:
+        order_intervals(lookback, ex) → user_last_order(lookback, ex) →
+        DATE(?) → analysis_date=? → seg_filter(?)
+    """
     analysis_date = datetime.strptime(date, "%Y-%m-%d")
     lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
 
-    # SQL 中 ? 出现顺序：order_intervals(lookback, ex) → user_last_order(lookback, ex) → DATE(?) → analysis_date=? → seg_filter(?)
-    params = []
-    params.append(lookback_start) # order_intervals: o.pay_time >= ?
-    params.extend(ex_params)      # order_intervals: ex_clause
-    params.append(lookback_start) # user_last_order: o.pay_time >= ?
-    params.extend(ex_params)      # user_last_order: ex_clause
-    params.append(date)           # DATE(?)
-    params.append(date)           # analysis_date = ?
-    if segment_id is not None:
-        params.append(segment_id)
-    seg_filter = "AND r.segment_id = ?" if segment_id else ""
+    # order_intervals 过滤器 (含 spu_product_class IS NOT NULL)
+    oi_where, oi_params = _build_order_intervals_where(lookback_start, exclude_channels)
+    # user_last_order 过滤器
+    ulo_where, ulo_params = _build_user_orders_where(lookback_start, exclude_channels)
+    # segment_id 过滤
+    seg_sql, seg_params = _build_segment_filter(segment_id)
+
+    # params 顺序: oi + ulo + DATE(?) + analysis_date + seg
+    params: List[Any] = []
+    params.extend(oi_params)
+    params.extend(ulo_params)
+    params.append(date)  # DATE(?)
+    params.append(date)  # analysis_date = ?
+    params.extend(seg_params)
 
     sql = f"""
     WITH order_intervals AS (
@@ -221,10 +284,7 @@ def _build_dynamic_churn_sql(
                 ORDER BY o.pay_time
             ) AS prev_pay_time
         FROM orders o
-        WHERE {valid_sql}
-          AND o.spu_product_class IS NOT NULL
-          AND o.pay_time >= ?
-          {ex_clause}
+        WHERE {oi_where}
     ),
     user_cycle AS (
         SELECT
@@ -244,9 +304,7 @@ def _build_dynamic_churn_sql(
             COUNT(DISTINCT o.order_id) AS frequency,
             SUM(o.actual_amount) AS monetary
         FROM orders o
-        WHERE {valid_sql}
-          AND o.pay_time >= ?
-          {ex_clause}
+        WHERE {ulo_where}
         GROUP BY o.user_id
     ),
     user_rfm_base AS (
@@ -264,7 +322,7 @@ def _build_dynamic_churn_sql(
             AND r.metric_type = 'GMV'
             AND r.lookback_days = 90
         WHERE ulo.last_pay_time IS NOT NULL
-        {seg_filter}
+        {seg_sql}
     ),
     user_churn AS (
         SELECT
@@ -321,24 +379,22 @@ def _build_fixed_churn_sql(
     """
     构建固定阈值流失分布 SQL（参数化查询）
     Returns: (sql_string, params_list)
-    """
-    # 使用语义层构建过滤条件
-    valid_sql, _ = OrderFilters.valid_order()
-    ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
-    ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
+    SQL 中 ? 顺序:
+        DATE(?)x4 → ulo 子查询(lookback, ex) → analysis_date=? → seg_filter(?)
+    """
     analysis_date = datetime.strptime(date, "%Y-%m-%d")
     lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
 
-    # SQL 中 ? 顺序：ulo 子查询(lookback, ex) → DATE(?)x4 → analysis_date=? → seg_filter(?)
-    params = []
-    params.append(lookback_start)  # ulo: pay_time >= ?
-    params.extend(ex_params)       # ulo: ex_clause
+    ulo_where, ulo_params = _build_user_orders_where(lookback_start, exclude_channels, alias="")
+    seg_sql, seg_params = _build_segment_filter(segment_id)
+
+    # params 顺序: DATE(?)x4 + ulo + analysis_date + seg
+    params: List[Any] = []
     params.extend([date, date, date, date])  # 4 个 DATE(?)
+    params.extend(ulo_params)
     params.append(date)  # analysis_date = ?
-    if segment_id is not None:
-        params.append(segment_id)
-    seg_filter = "AND r.segment_id = ?" if segment_id else ""
+    params.extend(seg_params)
 
     sql = f"""
     SELECT
@@ -358,9 +414,7 @@ def _build_fixed_churn_sql(
                COUNT(DISTINCT order_id) AS frequency,
                SUM(actual_amount) AS monetary
         FROM orders
-        WHERE {valid_sql}
-          AND pay_time >= ?
-          {ex_clause}
+        WHERE {ulo_where}
         GROUP BY user_id
     ) ulo
     LEFT JOIN user_rfm r
@@ -369,7 +423,7 @@ def _build_fixed_churn_sql(
         AND r.metric_type = 'GMV'
         AND r.lookback_days = 90
     WHERE 1=1
-    {seg_filter}
+    {seg_sql}
     """
     return sql, params
 
@@ -380,26 +434,24 @@ def _build_dynamic_user_sql(
     """
     构建动态阈值用户列表 SQL（参数化查询）
     Returns: (sql_string, params_list)
-    """
-    # 使用语义层构建过滤条件
-    valid_sql, _ = OrderFilters.valid_order()
-    ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
-    ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
+    SQL 中 ? 顺序:
+        order_intervals(lookback, ex) → user_last_order(lookback, ex) →
+        DATE(?) → analysis_date=? → seg_filter(?) → LIMIT ?
+    """
     analysis_date = datetime.strptime(date, "%Y-%m-%d")
     lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
 
-    # SQL 中 ? 顺序：order_intervals(lookback, ex) → user_last_order(lookback, ex) → DATE(?) → analysis_date=? → seg_filter(?) → LIMIT ?
-    params = []
-    params.append(lookback_start) # order_intervals: o.pay_time >= ?
-    params.extend(ex_params)      # order_intervals: ex_clause
-    params.append(lookback_start) # user_last_order: o.pay_time >= ?
-    params.extend(ex_params)      # user_last_order: ex_clause
-    params.append(date)           # DATE(?)
-    params.append(date)           # analysis_date = ?
-    if segment_id is not None:
-        params.append(segment_id)
-    seg_filter = "AND r.segment_id = ?" if segment_id else ""
+    oi_where, oi_params = _build_order_intervals_where(lookback_start, exclude_channels)
+    ulo_where, ulo_params = _build_user_orders_where(lookback_start, exclude_channels)
+    seg_sql, seg_params = _build_segment_filter(segment_id)
+
+    params: List[Any] = []
+    params.extend(oi_params)
+    params.extend(ulo_params)
+    params.append(date)  # DATE(?)
+    params.append(date)  # analysis_date = ?
+    params.extend(seg_params)
     params.append(limit)
 
     sql = f"""
@@ -413,10 +465,7 @@ def _build_dynamic_user_sql(
                 ORDER BY o.pay_time
             ) AS prev_pay_time
         FROM orders o
-        WHERE {valid_sql}
-          AND o.spu_product_class IS NOT NULL
-          AND o.pay_time >= ?
-          {ex_clause}
+        WHERE {oi_where}
     ),
     user_cycle AS (
         SELECT
@@ -435,9 +484,7 @@ def _build_dynamic_user_sql(
             COUNT(DISTINCT o.order_id) AS frequency,
             SUM(o.actual_amount) AS monetary
         FROM orders o
-        WHERE {valid_sql}
-          AND o.pay_time >= ?
-          {ex_clause}
+        WHERE {ulo_where}
         GROUP BY o.user_id
     ),
     user_rfm_base AS (
@@ -455,7 +502,7 @@ def _build_dynamic_user_sql(
             AND r.metric_type = 'GMV'
             AND r.lookback_days = 90
         WHERE ulo.last_pay_time IS NOT NULL
-        {seg_filter}
+        {seg_sql}
     ),
     user_churn AS (
         SELECT
@@ -505,24 +552,21 @@ def _build_fixed_user_sql(
     """
     构建固定阈值用户列表 SQL（参数化查询）
     Returns: (sql_string, params_list)
-    """
-    # 使用语义层构建过滤条件
-    valid_sql, _ = OrderFilters.valid_order()
-    ex_sql, ex_params = OrderFilters.channel_not_in(exclude_channels) if exclude_channels else ("", [])
-    ex_clause = f" AND {ex_sql}" if ex_sql else ""
 
+    SQL 中 ? 顺序:
+        DATE(?)x4 → ulo 子查询(lookback, ex) → analysis_date=? → seg_filter(?) → LIMIT ?
+    """
     analysis_date = datetime.strptime(date, "%Y-%m-%d")
     lookback_start = (analysis_date - timedelta(days=730)).strftime("%Y-%m-%d")
 
-    # SQL 中 ? 顺序：ulo 子查询(lookback, ex) → DATE(?)x4 → analysis_date=? → seg_filter(?) → LIMIT ?
-    params = []
-    params.append(lookback_start)  # ulo: pay_time >= ?
-    params.extend(ex_params)       # ulo: ex_clause
+    ulo_where, ulo_params = _build_user_orders_where(lookback_start, exclude_channels, alias="")
+    seg_sql, seg_params = _build_segment_filter(segment_id)
+
+    params: List[Any] = []
     params.extend([date, date, date, date])  # 4 个 DATE(?)
+    params.extend(ulo_params)
     params.append(date)  # analysis_date = ?
-    if segment_id is not None:
-        params.append(segment_id)
-    seg_filter = "AND r.segment_id = ?" if segment_id else ""
+    params.extend(seg_params)
     params.append(limit)
 
     sql = f"""
@@ -543,9 +587,7 @@ def _build_fixed_user_sql(
                COUNT(DISTINCT order_id) AS frequency,
                SUM(actual_amount) AS monetary
         FROM orders
-        WHERE {valid_sql}
-          AND pay_time >= ?
-          {ex_clause}
+        WHERE {ulo_where}
         GROUP BY user_id
     ) ulo
     LEFT JOIN user_rfm r
@@ -554,7 +596,7 @@ def _build_fixed_user_sql(
         AND r.metric_type = 'GMV'
         AND r.lookback_days = 90
     WHERE 1=1
-    {seg_filter}
+    {seg_sql}
     ORDER BY risk_score DESC
     LIMIT ?
     """

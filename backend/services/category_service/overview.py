@@ -5,10 +5,10 @@ Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 import duckdb
 from datetime import datetime, timedelta, date
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
 
 
@@ -42,6 +42,89 @@ def _excluded_cat_filter(field: str) -> str:
     return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
 
 
+# ─────────────────────────────────────────────────────────────
+# Sprint 54 Lane A L3 FilterBuilder helpers
+#
+# 三个 helper 把 overview.py 4 处 SQL 字符串内嵌统一收到 `?` DB-API 参数化.
+# 设计原则 (跟 Sprint 53.5 churn.py 一致):
+#   1. 所有用户输入 (channel / exclude_channels / level) 走 `?` 占位符.
+#   2. metric_type 动态 (GMV/GSV) → fb.with_metric_type(MetricType.GMV/GSV).
+#   3. excluded_cat 用 add_extra 收编 (level_col 是 SPU_LEVELS 白名单).
+#   4. amount_cond / SAMPLE_CHANNELS 等受控值保留字面量拼接 (白名单安全).
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_category_period_filter(
+    start_date: str,
+    end_date: str,
+    metric_type: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """_compute_category_period 过滤器 (动态 metric_type GMV/GSV).
+
+    Returns:
+        (where_sql, params) — 含 time range + metric_type base (gmv_base/valid_order)
+        + channel IN + exclude_channels NOT IN.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GMV if metric_type == "GMV" else MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if channel and channel != "全店":
+        db_channels = [c for c in expand_channels([channel]) if c]
+        if not db_channels:
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
+        fb.with_channels(db_channels)
+    if exclude_channels:
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
+        if db_ex:
+            fb.with_exclude_channels(db_ex)
+    return fb.build()
+
+
+def _build_wool_party_filter(
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+) -> Tuple[str, List[Any]]:
+    """_compute_wool_party_breakdown 过滤器 (GSV 口径, 不应用 exclude_channels).
+
+    NOTE: 羊毛党定义依赖低价渠道订单, exclude_channels 通常就是低价渠道列表,
+    若应用则 sample_orders 永远为 0.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if channel and channel != "全店":
+        db_channels = [c for c in expand_channels([channel]) if c]
+        if not db_channels:
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
+        fb.with_channels(db_channels)
+    return fb.build()
+
+
+def _build_value_tier_filter(
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> Tuple[str, List[Any]]:
+    """_compute_value_tier_base 过滤器 (GSV 口径)."""
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if channel and channel != "全店":
+        db_channels = [c for c in expand_channels([channel]) if c]
+        if not db_channels:
+            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
+        fb.with_channels(db_channels)
+    if exclude_channels:
+        db_ex = [c for c in expand_channels(exclude_channels) if c]
+        if db_ex:
+            fb.with_exclude_channels(db_ex)
+    return fb.build()
+
+
 def _compute_category_period(
     conn: duckdb.DuckDBPyConnection,
     start_date: str,
@@ -70,28 +153,16 @@ def _compute_category_period(
         }
     """
     level_col = SPU_LEVELS.get(level, "spu_type")
-    valid_sql, _ = OrderFilters.gmv_base() if metric_type == "GMV" else OrderFilters.valid_order()
     amount_cond = "o.actual_amount > 0" if metric_type == "GMV" else "o.actual_amount >= 0"
     excluded_cat_sql = _excluded_cat_filter(level_col)
-    channel_sql = ""
-    exclude_sql = ""
-    params = [cutoff, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES)
-    if channel and channel != "全店":
-        db_channels = [c for c in expand_channels([channel]) if c]
-        if not db_channels:
-            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        if len(db_channels) == 1:
-            channel_sql = "AND o.channel = ?"
-            params.append(db_channels[0])
-        else:
-            placeholders = ",".join(["?"] * len(db_channels))
-            channel_sql = f"AND o.channel IN ({placeholders})"
-            params.extend(db_channels)
-    if exclude_channels:
-        db_ex = [c for c in expand_channels(exclude_channels) if c]
-        placeholders = ",".join(["?"] * len(db_ex))
-        exclude_sql = f"AND o.channel NOT IN ({placeholders})"
-        params.extend(db_ex)
+
+    # Sprint 54 Lane A L3: 用 _build_category_period_filter 替代 f-string 拼接
+    # (time range + metric_type base + channel + exclude_channels 全走 ? 占位).
+    where_sql, where_params = _build_category_period_filter(
+        start_date, end_date, metric_type, channel, exclude_channels,
+    )
+    # params 顺序: cutoff + start_date + end_date (period_orders 里 3 个) + EXCLUDED_PRODUCT_CATEGORIES + where_params
+    params = [cutoff, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + where_params
 
     sql = f"""
     WITH period_orders AS (
@@ -103,13 +174,9 @@ def _compute_category_period(
             CASE WHEN ufp.first_pay_date >= DATE(?) THEN 1 ELSE 0 END AS is_new
         FROM orders o
         LEFT JOIN user_first_purchase ufp ON o.user_id = ufp.user_id
-        WHERE o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
+        WHERE {where_sql}
           AND ({amount_cond})
           {excluded_cat_sql}
-          {channel_sql}
-          {exclude_sql}
     )
     SELECT
         CASE WHEN GROUPING(category_name) = 1 THEN 'TTL' ELSE category_name END AS category_name,
@@ -403,31 +470,18 @@ def _compute_wool_party_breakdown(
           exclude_channels 通常就是低价渠道列表，若应用则 sample_orders 永远为 0。
     """
     level_col = SPU_LEVELS.get(level, "spu_product_class")
-    valid_sql, _ = OrderFilters.valid_order()
     excluded_cat_sql = _excluded_cat_filter(level_col)
-
-    channel_params = []
-
-    channel_sql = ""
-    if channel and channel != "全店":
-
-        db_channels = [c for c in expand_channels([channel]) if c]
-
-        if not db_channels:
-
-            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        if len(db_channels) == 1:
-            channel_sql = "AND o.channel = ?"
-            channel_params = [db_channels[0]]
-        else:
-            placeholders = ",".join(["?"] * len(db_channels))
-            channel_sql = f"AND o.channel IN ({placeholders})"
-            channel_params = list(db_channels)
 
     # 正装 = 非低价渠道；小样 = 低价渠道
     SAMPLE_CHANNELS = ('U先派样', '百补派样', '赠品&0.01渠道', '其他')
 
-    params = [start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params
+    # Sprint 54 Lane A L3: 用 _build_wool_party_filter 替代 f-string 拼接
+    # (time range + valid_order + channel 全走 ? 占位; 不应用 exclude_channels).
+    where_sql, where_params = _build_wool_party_filter(
+        start_date, end_date, channel,
+    )
+    # params 顺序: start_date + end_date (window_orders 里 2 个) + EXCLUDED_PRODUCT_CATEGORIES + where_params
+    params = [start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + where_params
 
     sql = f"""
     WITH window_orders AS (
@@ -436,11 +490,8 @@ def _compute_wool_party_breakdown(
             o.user_id,
             o.channel
         FROM orders o
-        WHERE o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
+        WHERE {where_sql}
           {excluded_cat_sql}
-          {channel_sql}
     ),
     user_window_summary AS (
         SELECT
@@ -456,7 +507,7 @@ def _compute_wool_party_breakdown(
         SELECT DISTINCT o.user_id
         FROM orders o
         WHERE o.user_id IN (SELECT DISTINCT user_id FROM window_orders)
-          AND {valid_sql}
+          AND {where_sql}
           AND o.channel NOT IN {SAMPLE_CHANNELS}
     ),
     wool_classified AS (
@@ -497,34 +548,7 @@ def _compute_value_tier_base(
 ) -> tuple:
     """计算价值分层基础数据（高价值人数 + 总用户 + 总GMV + 会员GMV）"""
     level_col = SPU_LEVELS.get(level, "spu_product_class")
-    valid_sql, _ = OrderFilters.valid_order()
     excluded_cat_sql = _excluded_cat_filter(level_col)
-
-    channel_params = []
-    exclude_params = []
-
-    channel_sql = ""
-    if channel and channel != "全店":
-
-        db_channels = [c for c in expand_channels([channel]) if c]
-
-        if not db_channels:
-
-            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        if len(db_channels) == 1:
-            channel_sql = "AND o.channel = ?"
-            channel_params = [db_channels[0]]
-        else:
-            placeholders = ",".join(["?"] * len(db_channels))
-            channel_sql = f"AND o.channel IN ({placeholders})"
-            channel_params = list(db_channels)
-
-    exclude_sql = ""
-    if exclude_channels:
-        db_ex = [c for c in expand_channels(exclude_channels) if c]
-        placeholders = ",".join(["?"] * len(db_ex))
-        exclude_sql = f"AND o.channel NOT IN ({placeholders})"
-        exclude_params = list(db_ex)
 
     # 查询 user_rfm 最新分析日期
     latest_rfm_row = conn.execute(
@@ -532,7 +556,14 @@ def _compute_value_tier_base(
     ).fetchone()
     latest_rfm_date = latest_rfm_row[0] if latest_rfm_row and latest_rfm_row[0] else cutoff
 
-    params = [latest_rfm_date, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + channel_params + exclude_params
+    # Sprint 54 Lane A L3: 用 _build_value_tier_filter 替代 f-string 拼接
+    # (time range + valid_order + channel + exclude_channels 全走 ? 占位).
+    where_sql, where_params = _build_value_tier_filter(
+        start_date, end_date, channel, exclude_channels,
+    )
+    # params 顺序: latest_rfm_date + start_date + end_date (period_orders 里 3 个)
+    # + EXCLUDED_PRODUCT_CATEGORIES + where_params
+    params = [latest_rfm_date, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + where_params
 
     sql = f"""
     WITH period_orders AS (
@@ -542,8 +573,8 @@ def _compute_value_tier_base(
         FROM orders o
         LEFT JOIN user_rfm r ON o.user_id = r.user_id
             AND r.analysis_date = DATE(?) AND r.metric_type = 'GMV' AND r.lookback_days = 90
-        WHERE o.pay_time >= ? AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql} {excluded_cat_sql} {channel_sql} {exclude_sql}
+        WHERE {where_sql}
+          {excluded_cat_sql}
     )
     SELECT category_name,
            COUNT(DISTINCT user_id) AS total_users,
