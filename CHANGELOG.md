@@ -1,8 +1,45 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 27 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 28 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## Sprint 53 — race flake 真治本 (2026-06-20, v0.4.14.138, main @ 81b43cd)
+
+> 消除 DuckDB race flake 根因 (Sprint 32.3/34.1/36-1/37/38 5 sprint 复发). 每个 pytest-xdist worker 创建独立 temp DuckDB, ATTACH production 为 READ_ONLY, PRAGMA search_path='main,prod'. 4 worker 并发 0 锁冲突.
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| test_api_integration parallel | skip (xdist) | 10/10 passed | ✅ |
+| test_churn parallel | skip (xdist) | 2/2 passed | ✅ |
+| test_w4_t7 parallel | skip (xdist) | 4/4 passed | ✅ |
+| full suite | 666 passed / 17 skipped | 677 passed / 1 skipped | +11 真跑 |
+
+### Itemized changes
+
+#### Fixed
+
+1. **`backend/tests/conftest.py`** — 新增 `isolated_duckdb` (session scope) + `monkeypatch_connection` (function scope) fixture. per-worker tmp DuckDB + ATTACH production read_only + search_path.
+2. **`backend/tests/test_api_integration.py`** — 删 `_IN_XDIST_PARALLEL` + `_UVICORN_LOCK_PID` skipif, 用 `monkeypatch_connection`. 修 `.env` load_dotenv 覆盖 test credentials (setdefault → 强制 override).
+3. **`backend/tests/test_churn_user_list_fstring.py`** — 删 skipif, 用 `monkeypatch_connection`.
+4. **`backend/tests/test_w4_t7_integration.py`** — 删 `_open_production_duckdb()`, 用 `isolated_duckdb`.
+
+### Verification
+
+- ✅ serial: 16/16 passed
+- ✅ parallel (-n4): 16/16 passed, 0 skip, 0 flake
+- ✅ full suite: 677 passed, 1 skipped
+
+### 关联
+
+- `backend/tests/conftest.py::isolated_duckdb`
+- `backend/db/connection.py::get_connection` (monkeypatch, 不改源码)
+- CLAUDE.md L4.3 更新 (skipif → fixture)
+- Codex Stage 2 实施 + Claude Stage 3 review (.env fix)
 
 ---
 

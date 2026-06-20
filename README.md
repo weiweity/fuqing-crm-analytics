@@ -43,6 +43,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 50.1 收口 (v0.4.14.136 pre-commit spec-lint hook 默认切 L2 wrapper + `frontend-vue3/package.json` 新增 `lint:spec` npm script, L1 fallback 保留, 不加未使用 npm tree-sitter 包)
 - ✅ Sprint 51 收口 (v0.4.14.137 DQ 磁盘/增长监控 + e2e auth fixture 抽离 + sampling timeout 修复)
 - ✅ Sprint 52 收口 (v0.4.14.138 visitor 路由激活 + 50m scale benchmark + commit-msg diff 一致性 WARN hook, Codex 协作工作流验证)
+- ✅ Sprint 53 收口 (v0.4.14.138 race flake 真治本: per-worker tmp DuckDB + ATTACH read_only, 5 sprint 复发根因消除, 677 passed / 1 skipped)
 
 ---
 
