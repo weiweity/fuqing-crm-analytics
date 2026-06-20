@@ -1,8 +1,71 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.96 (Sprint 1 - Sprint 24+ P3 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (3167 行, 2026-06-18 Sprint 35 文档清理).
-> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 29 entry 详细.
+> **本文件保留**: Sprint 24+ P3 收口起 (v0.4.14.97, 2026-06-16) 至今 30 entry 详细.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+---
+
+## Sprint 54 — L3 FilterBuilder 100% 闭环 (2026-06-20, v0.4.14.138, main @ 84a7b88)
+
+> Sprint 53.5 闭环 `churn.py` 后审计发现 14 个 service 文件还含 ~100 处 `{valid_sql}` f-string 内嵌 (L3 覆盖率仅 7%). Sprint 54 通过 Codex 3-lane 并行 (Lane A 高访问量 4 service + Lane B 5 service + Lane C 5 service) + Claude Stage 3 review 修 distribution.py channel_filter 漏改, 闭环 L3 全 14/14 service + 加 L4.5/L4.6 永久规则 + ground-truth-lint 钩子.
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| L3 FilterBuilder 覆盖率 | 1/14 (7%) | **14/14 (100%)** | ✅ 全部闭环 |
+| `{valid_sql}` f-string 残留 | ~100 处 (14 service) | 0 处 (全 services) | ✅ |
+| 业务字段 f-string 内嵌 (channel/category_id/level/granularity/user_id) | ~30 处 | 0 处 | ✅ |
+| Sprint 54 新增回归测试 | — | **70+ case** (14 test file) | ✅ |
+| full suite | 683 passed / 1 skipped | **749 passed / 1 skipped** | +66 测试 |
+| Codex 实施 worktree 并行 | — | 3 lane (A/B/C) | ✅ |
+| Stage 3 review 抓 Codex 漏改 | — | 1 (distribution.py channel_filter NameError) | ✅ |
+
+### 改动文件 (14 service + 14 test + 1 lint script + 1 lint test + 1 rule update)
+
+**Lane A — 高访问量 4 service** (commit `5525e9c` + merge `a15e373`):
+- `backend/services/flow_service.py` (3 处 → 2 helper)
+- `backend/services/geo_service.py` (10 处 → 1 helper)
+- `backend/services/metrics/overview.py` (3 处 → inline FilterBuilder)
+- `backend/services/category_service/overview.py` (7 处 → 3 helper)
+- + 4 个新 test_*_filter_builder.py (19 case)
+
+**Lane B — category_service/flow + churn + user_profile** (commit `2859b69` + merge `088b12a`):
+- `backend/services/category_service/flow/temporal.py` (14 处 → 2 helper)
+- `backend/services/category_service/flow/matrix.py` (3 处 → 1 helper)
+- `backend/services/category_service/flow/association.py` (3 处 → 1 helper)
+- `backend/services/churn_service.py` (10 处 → 3 helper)
+- `backend/services/category_service/user_profile.py` (5 处 → 2 helper)
+- + 5 个新 test_*_filter_builder.py (32 case)
+
+**Lane C — distribution + basket + repurchase + asset** (commit `b590d1d` via `.tmp-repo` workaround + cherry-picked `84a7b88`):
+- `backend/services/category_service/distribution.py` (5 处 → 2 helper, 含 Stage 3 review fix)
+- `backend/services/category_service/basket.py` (1 处 → 1 helper)
+- `backend/services/category_service/repurchase/standard.py` (6 处 → 1 helper)
+- `backend/services/category_service/repurchase/rfm.py` (7 处 → 1 helper, 死代码仍 L3 化)
+- `backend/services/asset_service.py` (1 处 → 1 helper)
+- + 5 个新 test_*_filter_builder.py (18 case)
+
+**Ground-truth-lint (新增)**:
+- `backend/scripts/check_filter_builder_usage.py` (172 行) — 扫 `backend/services/**` 抓 SQL 变量赋值时 f-string 内嵌用户输入
+- `backend/tests/test_check_filter_builder_usage.py` (6 case) — regression test
+
+**CLAUDE.md 永久规则**:
+- L3 段描述更新 (1/14 → 14/14 全量闭环)
+- L4.5 新增: backend/services 函数必须用 FilterBuilder + ? 参数化, 禁止 f-string 内嵌用户输入
+- L4.6 新增: worktree 跑 pytest 必须设 DUCKDB_PATH 指向主仓 production db
+
+### 实战教训
+
+1. **Codex Stage 2 sandbox 限制**: Codex 在 `-s workspace-write` 模式下无法写 worktree 外的 `.git/worktrees/lane-X/index.lock` → 用 workaround (`.tmp-repo` 独立 git repo + bundle) 解决. Stage 3 review 必须由 Claude 主 agent 在 sandbox 外 commit + push.
+2. **Codex Stage 2 容易漏改**: Lane C distribution.py SQL 模板引用 `{channel_filter}` / `{exclude_filter}` 但 Codex 漏定义变量 → Stage 3 review 抓 1 真 bug (NameError), 修 `_build_distribution_channel_filter` 返回三元组 + 2 处 SQL 引用同步修正.
+3. **worktree pytest 环境隔离**: worktree 共享 .git 但不共享 `data/processed/fuqing_crm.duckdb` (`.gitignore` 排除). L4.6 永久规则要求显式 `DUCKDB_PATH` export.
+4. **ground-truth-lint false positive 风险**: 初版 regex 太宽误报 `raise ValueError(f"...{channel}...")` → 收紧到 "SQL 变量赋值" 才检查. 跑 regression test "破坏 → 验证 → 恢复" 闭环确认 lint 真能抓真违规.
+
+### Sprint 55+ 留尾
+
+- 0 项 (L3 + L4.5 + L4.6 永久规则闭环, 无新 backlog)
 
 ---
 
