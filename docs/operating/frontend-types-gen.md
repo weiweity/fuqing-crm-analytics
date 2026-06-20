@@ -207,7 +207,7 @@ cd frontend-vue3 && npx eslint src/types/api.ts
 - `scripts/gen-frontend-types.sh` (本 P2-5 新增脚本)
 - `frontend-vue3/src/types/api.ts` (本 P2-5 生成, 855 行)
 - `docs/SPRINT-18-PRE-COMMIT.md` (Sprint 14 A.2 contract 同步 WARN 提醒)
-- `docs/LINTING.md` (Sprint 17 #121 ground-truth-lint 跟 Pydantic Field 元数据)
+- `docs/operating/linting.md` (Sprint 17 #121 ground-truth-lint 跟 Pydantic Field 元数据)
 - 仓库 2 份生成文件: `types/api.ts` (本 P2-5) + `api/types.generated.ts` (Sprint 14 openapi-typescript)
 
 **Sprint 19 P2-5 完成**: 前端 types.ts 自动生成 (pydantic-to-typescript), 1 脚本 + 1 产物 (855 行) + 1 docs.

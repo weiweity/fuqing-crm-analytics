@@ -4,8 +4,8 @@
 # 跟 ground-truth-lint 一样 non-blocking 起步, 1-2 sprint 观察 false positive 率
 #
 # 关联:
-# - docs/CI-DEFENSE-PLAYBOOK.md(预防层 + 4 条原则)
-# - docs/CI-E2E-HISTORY.md(CI e2e 实施历程, 实战教训)
+# - docs/operating/ci-defense-playbook.md(预防层 + 4 条原则)
+# - docs/operating/ci-e2e-history.md(CI e2e 实施历程, 实战教训)
 # - CLAUDE.md L5.2(spec 写法原则)
 #
 # 用法:

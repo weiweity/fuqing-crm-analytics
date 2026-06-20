@@ -28,4 +28,4 @@ git config core.hooksPath .githooks
 - 跨平台兼容 (macOS / Linux), 用 `date -u +"%Y-%m-%dT%H:%M:%SZ"`
 - 仅在 main / master 触发, feature branch 跳过避免 noise
 
-详细使用文档见 `docs/SHIP.md`。
+详细使用文档见 `docs/operating/ship.md`。

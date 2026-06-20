@@ -41,9 +41,9 @@
 | **push 前** | 准备 `git push` | `pytest` 全绿 | 测试失败 → 禁止 push |
 | **merge 前** | 准备 merge 到 main | `/qa` skill | 未跑 qa → 禁止 merge |
 | **重启前** | merge 后重启 uvicorn | `git pull origin main` | 未 pull → 禁止重启 |
-| **sprint 收口** | merge --no-ff 到 main | 必跑 /ship skill (留 audit trail) | post-merge hook 未追加 `.ship-audit.log` → 视为 sprint 没收口 (Meta-Sprint /ship 接入,见 `docs/SHIP.md`) |
-| **改 contract 字段** | 增删改 `backend/contracts/*.py` 字段 (类型/范围/命名) | 跑 `python -m backend.contracts._lint` + **pre-commit hook 自动拦截** (Sprint 18 #142) | 未跑 lint → 禁止 commit (见 `docs/LINTING.md` + `docs/PRE-COMMIT.md`) |
-| **改 git hooks** | 增删改 `.githooks/*` / `.pre-commit-config.yaml` | 默认走 `.githooks` (装轻量零依赖, 9 件 lint), `.pre-commit-config.yaml` 选装 (装 framework 才能用) | 走错路径 → 跟 Sprint 3-18 治理脱节 (见 `docs/HOOKS-CHOICE.md` Sprint 19 P2-1) |
+| **sprint 收口** | merge --no-ff 到 main | 必跑 /ship skill (留 audit trail) | post-merge hook 未追加 `.ship-audit.log` → 视为 sprint 没收口 (Meta-Sprint /ship 接入,见 `docs/operating/ship.md`) |
+| **改 contract 字段** | 增删改 `backend/contracts/*.py` 字段 (类型/范围/命名) | 跑 `python -m backend.contracts._lint` + **pre-commit hook 自动拦截** (Sprint 18 #142) | 未跑 lint → 禁止 commit (见 `docs/operating/linting.md` + `docs/operating/pre-commit.md`) |
+| **改 git hooks** | 增删改 `.githooks/*` / `.pre-commit-config.yaml` | 默认走 `.githooks` (装轻量零依赖, 9 件 lint), `.pre-commit-config.yaml` 选装 (装 framework 才能用) | 走错路径 → 跟 Sprint 3-18 治理脱节 (见 `docs/operating/hooks-choice.md` Sprint 19 P2-1) |
 
 ---
 
@@ -232,7 +232,7 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 | **L4.4 (流程)** | **真连 DuckDB test 必须有 `pytestmark = pytest.mark.skipif(not _PROD_DUCKDB_AVAILABLE, reason="production DuckDB 不可用")`** (跨 `test_api_integration.py` + `test_churn_user_list_fstring.py` + `test_w4_t7_integration.py`). CI runner / fresh checkout 没 production DuckDB → 真连空 DuckDB → CatalogException fail (Sprint 32-38 7+ sprint CI 一直红). `_PROD_DUCKDB_AVAILABLE` 定义在 `backend/tests/conftest.py:_detect_prod_duckdb_available()` | review skill 强制 | **Sprint 39** | 本节 |
 | **L4.5 (流程)** | **任何 backend/services 函数必须用 `FilterBuilder` + `?` 参数化, 禁止 f-string 内嵌用户输入** (channel / category_id / level / granularity / user_id 等). Sprint 54 闭环 14/14 service, 新增 service 函数一律走 FilterBuilder. 反例: `f"... WHERE channel = '{channel}'"` → 改: `fb.with_channels([channel])` + `where_sql, params = fb.build()`. 反例: 漏改导致 `{channel_filter}` `{exclude_filter}` 等占位符 NameError (Sprint 54 Lane C Stage 3 review 抓到). | review skill 强制 + ground-truth-lint | **Sprint 54** | 本节 + `backend/services/**` |
 | **L4.6 (流程)** | **worktree 跑 pytest 必须设 `DUCKDB_PATH` 指向主仓 production db**. `git worktree add` 创建的 worktree 不带 `data/processed/fuqing_crm.duckdb` (`.gitignore` 排除), 默认会读到空 DuckDB → 15+ 真连 test 报 `Catalog Error: Table with name orders does not exist!`. **修复**: 跑 pytest 前 export `DUCKDB_PATH=/path/to/main/data/processed/fuqing_crm.duckdb`, 或用 `git worktree add --checkout` 带数据 (不推荐, 数据大). Sprint 54 Lane A Stage 3 review 抓到 1 例, 改后 702 passed. | review skill 强制 | **Sprint 54** | 本节 |
-| **L5.1 (流程)** | **CI 留尾 ROI 重评规则**: 治本 < 1 天闭环 + 治本后 0 复发 → 治本; 治本 > 2 天 OR 治本不现实(基础设施) → 治标. Sprint 32.1 留尾 7 sprint ROI 重评为低, 改 advisory. Sprint 38 race flake 治本 ROI 低(DuckDB 文件锁 exclusive), 改治标. Sprint 41 e2e CI 12 follow-up 仍 fail, 改 advisory. **决策树**: Q1 本地能跑吗? → Q2 根因是 spec 还是环境? → Q3 治本 1-2 天能闭环吗? → Q4 治标会反复出现吗? 详细 `docs/CI-DEFENSE-PLAYBOOK.md` | review skill 强制 | **Sprint 42** | 本节 |
+| **L5.1 (流程)** | **CI 留尾 ROI 重评规则**: 治本 < 1 天闭环 + 治本后 0 复发 → 治本; 治本 > 2 天 OR 治本不现实(基础设施) → 治标. Sprint 32.1 留尾 7 sprint ROI 重评为低, 改 advisory. Sprint 38 race flake 治本 ROI 低(DuckDB 文件锁 exclusive), 改治标. Sprint 41 e2e CI 12 follow-up 仍 fail, 改 advisory. **决策树**: Q1 本地能跑吗? → Q2 根因是 spec 还是环境? → Q3 治本 1-2 天能闭环吗? → Q4 治标会反复出现吗? 详细 `docs/operating/ci-defense-playbook.md` | review skill 强制 | **Sprint 42** | 本节 |
 | **L5.2 (流程)** | **spec 写法"环境无关"原则**: ① 不 hardcode 业务数据长度(`toBe(5)` 禁, 用 `length > 0` 替); ② 不 `waitForTimeout(N)` 死等(用 `waitForSelector` / `expect.toBeVisible` 替); ③ `page.request` 加 Authorization header(从 sessionStorage 拿 `fq_crm_auth_token`). 配合 `frontend-vue3/e2e/lint/spec-lint-l2.sh` pre-commit hook (L2 默认, L1 fallback). **Sprint 43 #S43-1**: spec-lint 改 blocking 模式; **Sprint 50.1**: 默认升 L2 AST parser | review skill 强制 | **Sprint 43 / Sprint 50.1** | 本节 |
 
 **L4 永久规则 (跟 Sprint 3 P1-3 4 轮修教训同位)**:
@@ -323,9 +323,9 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
 | 文件 | 说明 | 加载方式 |
 |---|---|---|
 | `CLAUDE.md` | 行为规则（本文件） | 自动加载 |
-| `docs/AUTOMATION.md` | Claude Code 自动化配置 | 按需 Read |
-| `docs/SHIP.md` | /ship skill 使用文档 | 按需 Read |
-| `docs/LINTING.md` | ground-truth-lint 规则 | 按需 Read |
+| `docs/operating/automation.md` | Claude Code 自动化配置 | 按需 Read |
+| `docs/operating/ship.md` | /ship skill 使用文档 | 按需 Read |
+| `docs/operating/linting.md` | ground-truth-lint 规则 | 按需 Read |
 | `docs/TECH-DEBT.md` | 技术债台账 (P0/P1/P2 分级, 每债含触发场景+修复方案+估时) | 按需 Read |
 | `CHANGELOG.md` | 版本变更记录 | 按需 Read |
 
@@ -423,7 +423,7 @@ Key routing rules:
 - 类型定义: `backend/contracts/types.py` (`RatioField` / `PercentageField` / `PpField`)
 - B2 试点: `CHANGELOG.md` v0.4.14.40 (Sprint 16.5 #91 9 mark 字段补标)
 - 任务来源: `CHANGELOG.md` v0.4.14.40 Section "B2 试点" + Sprint 16.5 retrospective (已公开清理)
-- Lint 规则: `docs/LINTING.md` (Sprint 17 #121 新建, 给 ground-truth-lint 提供语义)
+- Lint 规则: `docs/operating/linting.md` (Sprint 17 #121 新建, 给 ground-truth-lint 提供语义)
 - 全量 audit: `CHANGELOG.md` v0.4.14.41 (Sprint 17 #120 新建, 9 contract 全量)
 - 组件实现: `frontend-vue3/src/components/MetricCard.vue` + `YOYBadge.vue` JSDoc
 - 改版历史: `CHANGELOG.md` v0.4.14.26 (Sprint 12) + v0.4.14.29 (Sprint 13) + v0.4.14.41 (Sprint 17)

@@ -40,7 +40,7 @@ backend/
 │   ├── metrics/               # 指标服务
 │   ├── rfm/                   # RFM 区间流转（r_flow/f_flow/m_flow/segment_orders）
 │   ├── breakdown_service/     # 一键拆解（forward/reverse/suggestions/main）
-│   └── sample_asset_service/     # Sample Asset（store/product/other）
+│   └── asset_focus_service/     # Sample Asset（store/product/other）
 ├── routers/                   # API 路由（16 个模块）
 │   ├── overview.py            # 指标概览
 │   ├── audience.py            # 人群看板
@@ -110,7 +110,7 @@ Pydantic 模型统一导出，OpenAPI → TypeScript 自动生成。
 | `metrics/` | 指标服务 |
 | `rfm/` | RFM 区间流转（r_flow/f_flow/m_flow/segment_orders） |
 | `breakdown_service/` | 一键拆解（forward/reverse/suggestions） |
-| `sample_asset_service/` | Sample Asset（store/product/other） |
+| `asset_focus_service/` | Sample Asset（store/product/other） |
 
 ### 路由层 (routers/)
 

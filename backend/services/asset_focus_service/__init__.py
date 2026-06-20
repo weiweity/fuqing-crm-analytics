@@ -1,5 +1,5 @@
 """
-sample_asset_service 包
+asset_focus_service 包
 """
 
 from .store import get_store_assets

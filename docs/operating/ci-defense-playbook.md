@@ -178,7 +178,7 @@ Q4: 治标会反复出现吗?
 
 ## 关联文件
 
-- [docs/CI-E2E-HISTORY.md](./CI-E2E-HISTORY.md) — CI e2e 实施历程 (Sprint 32.1→41→52, 实战教训)
+- [docs/operating/ci-e2e-history.md](./ci-e2e-history.md) — CI e2e 实施历程 (Sprint 32.1→41→52, 实战教训)
 - `CLAUDE.md` L4.3(race flake)+ L4.4(production DuckDB skipif 永久规则)
 - `CLAUDE.md` L5.1(CI 留尾 ROI 重评)+ L5.2(spec 写法原则) — Sprint 42 新增
 - `frontend-vue3/e2e/lint/spec-lint-l2.sh` — 预防层自动检查 (L2 默认, L1 fallback)
