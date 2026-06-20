@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 55.5 docs 治理 + 命名重构 收口, v0.4.14.139, branch `refactor/p0-naming-cleanup-2026-06-21`)
+**最后更新**: 2026-06-21 (Sprint 55.5 docs 治理 + 命名重构 收口, v0.4.14.139, main HEAD `a2cd801`)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.139` |
-| git HEAD (main) | `351adfd` (Sprint 55.3 CI subprocess cwd fix) |
-| 当前分支 | `refactor/p0-naming-cleanup-2026-06-21` (Sprint 55.5 待 ff-merge, merge 后由 /ship Step 13 自动更新) |
-| 最近 sprint | Sprint 55.5 (docs 子目录化 + P0 命名重构 + 4 新 doc + 4 stub) |
+| git HEAD (main) | `a2cd801` (Sprint 55.5 merge commit, ff-merge from `refactor/p0-naming-cleanup-2026-06-21`) |
+| 当前分支 | `main` |
+| 最近 sprint | Sprint 55.5 (docs 子目录化 + P0 命名重构 + 4 新 doc + 4 stub + review fix) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 7 commit 0 debt (Sprint 55.5: e0a9298 facade 删 + bd95cd8 rename + 1 chore docs) |
+| 上次合入 | 6 commit 0 debt (Sprint 55.5: e0a9298 + bd95cd8 + 2765c20 + 52d87bd + f10f01b + a2cd801 merge) |
 
 ---
 
