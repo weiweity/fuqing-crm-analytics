@@ -4,9 +4,9 @@ Week 4 地域分布、地域象限矩阵、地域趋势
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters
+from backend.semantic.filters import FilterBuilder, MetricType
 from backend.semantic.segments import _segment_meta
 from backend.semantic.time import normalize_date as _normalize_date
 
@@ -14,6 +14,30 @@ from backend.semantic.time import normalize_date as _normalize_date
 def _coalesce_field(field: str, replacement: str = "未知") -> str:
     """处理 NULL 值"""
     return f"COALESCE({field}, '{replacement}')"
+
+
+def _build_geo_filter(
+    start_date: str,
+    end_date: str,
+    exclude_channels: Optional[List[str]] = None,
+    segment_id: Optional[int] = None,
+) -> Tuple[str, List[Any]]:
+    """geo_service 过滤器 (Sprint 54 Lane A L3: 替代 valid_sql f-string 内嵌).
+
+    返回 (where_sql, params) — 含 time range + valid_order 三条件 + exclude_channels +
+    可选 segment_id (用于 get_geo_distribution 的 r.segment_id 过滤).
+
+    注意: 原 SQL 用半开区间 [start, end+1), FilterBuilder.with_time_range 用
+    闭区间 [start 00:00:00, end 23:59:59.999999], 语义等价.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    if segment_id is not None:
+        fb.add_extra("r.segment_id = ?", [segment_id])
+    return fb.build()
 
 
 def get_geo_distribution(
@@ -49,31 +73,19 @@ def get_geo_distribution(
         date_str = _normalize_date(date)
         start_date = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
-        # 使用语义层构建过滤条件
-        valid_sql, _ = OrderFilters.valid_order()
-
         # 地域字段
         geo_field = "province" if level == "省份" else "city"
         geo_field_expr = f"COALESCE(o.{geo_field}, '未知')"
 
-        # 象限筛选
-        segment_filter = ""
-        if segment_id is not None:
-            segment_filter = "AND r.segment_id = ?"
+        # Sprint 54 Lane A L3: 用 _build_geo_filter 替代 f-string 拼接.
+        # where_sql 包含 time range + valid_order + exclude_channels + segment_id.
+        # params 顺序对齐 SQL 中 ? 顺序.
+        where_sql, where_params = _build_geo_filter(
+            start_date, date_str, exclude_channels, segment_id,
+        )
 
-        # 排除渠道
-        exclude_filter = ""
-        exclude_params = []
-        if exclude_channels:
-            placeholders = ",".join(["?"] * len(exclude_channels))
-            exclude_filter = f"AND o.channel NOT IN ({placeholders})"
-            exclude_params = list(exclude_channels)
-
-        # 参数顺序: date_str(analysis_date), start_date, date_str(analysis_date for r join), lookback_days, date_str(end_date for +INTERVAL), [segment_id], [exclude_channels]
-        base_params = [date_str, start_date, date_str, lookback_days, date_str]
-        if segment_id is not None:
-            base_params.append(segment_id)
-        base_params.extend(exclude_params)
+        # base_params 仍给 user_rfm JOIN 用 (analysis_date, lookback_days)
+        rfm_params = [date_str, lookback_days]
 
         # 主查询 - 地域分布
         sql = f"""
@@ -93,11 +105,7 @@ def get_geo_distribution(
                 AND r.analysis_date = ?
                 AND r.metric_type = 'GMV'
                 AND r.lookback_days = ?
-            WHERE o.pay_time >= p.start_date
-              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql}
-              {segment_filter}
-              {exclude_filter}
+            WHERE {where_sql}
         ),
         geo_summary AS (
             SELECT
@@ -116,7 +124,9 @@ def get_geo_distribution(
         LIMIT ?
         """
 
-        result = conn.execute(sql, base_params + [top_n]).fetchall()
+        # params 顺序: base_params (2) + rfm_params (2) + where_params + top_n
+        all_params = [date_str, start_date] + rfm_params + where_params + [top_n]
+        result = conn.execute(sql, all_params).fetchall()
 
         # 总计查询
         total_query = f"""
@@ -134,14 +144,10 @@ def get_geo_distribution(
             AND r.analysis_date = ?
             AND r.metric_type = 'GMV'
             AND r.lookback_days = ?
-        WHERE o.pay_time >= p.start_date
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {segment_filter}
-          {exclude_filter}
+        WHERE {where_sql}
         """
 
-        total_result = conn.execute(total_query, base_params).fetchone()
+        total_result = conn.execute(total_query, [date_str, start_date] + rfm_params + where_params).fetchone()
         total_users = int(total_result[0]) if total_result[0] else 0
         total_gmv = float(total_result[1]) if total_result[1] else 0.0
     finally:
@@ -200,18 +206,13 @@ def get_geo_segment_matrix(
     conn = get_connection()
     try:
         date_str = _normalize_date(date)
-        (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+        start_date = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
-        # 使用语义层构建过滤条件
-        valid_sql, _ = OrderFilters.valid_order()
-
-        # 排除渠道
-        exclude_filter = ""
-        exclude_params = []
-        if exclude_channels:
-            placeholders = ",".join(["?"] * len(exclude_channels))
-            exclude_filter = f"AND o.channel NOT IN ({placeholders})"
-            exclude_params = list(exclude_channels)
+        # Sprint 54 Lane A L3: 用 _build_geo_filter 替代 f-string 拼接.
+        where_sql, where_params = _build_geo_filter(
+            start_date, date_str, exclude_channels, None,
+        )
+        rfm_params = [date_str, lookback_days]
 
         sql = f"""
         WITH base_params AS (
@@ -231,10 +232,7 @@ def get_geo_segment_matrix(
                 AND r.analysis_date = ?
                 AND r.metric_type = 'GMV'
                 AND r.lookback_days = ?
-            WHERE o.pay_time >= p.start_date
-              AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-              AND {valid_sql}
-              {exclude_filter}
+            WHERE {where_sql}
         ),
         geo_segment AS (
             SELECT
@@ -254,8 +252,7 @@ def get_geo_segment_matrix(
         ORDER BY segment_id, user_count DESC
         """
 
-        params = [date_str, date_str, date_str, lookback_days, date_str]
-        params.extend(exclude_params)
+        params = [date_str, start_date] + rfm_params + where_params
         result = conn.execute(sql, params).fetchall()
     finally:
         pass
@@ -317,16 +314,10 @@ def get_geo_trend(
         start_str = _normalize_date(start_date)
         end_str = _normalize_date(end_date)
 
-        # 使用语义层构建过滤条件
-        valid_sql, _ = OrderFilters.valid_order()
-
-        # 排除渠道
-        exclude_filter = ""
-        exclude_params = []
-        if exclude_channels:
-            placeholders = ",".join(["?"] * len(exclude_channels))
-            exclude_filter = f"AND o.channel NOT IN ({placeholders})"
-            exclude_params = list(exclude_channels)
+        # Sprint 54 Lane A L3: 用 _build_geo_filter 替代 f-string 拼接.
+        where_sql, where_params = _build_geo_filter(
+            start_str, end_str, exclude_channels, None,
+        )
 
         # 生成时间点（每月一个）
         from datetime import datetime
@@ -361,10 +352,7 @@ def get_geo_trend(
                 o.pay_time
             FROM orders o
             CROSS JOIN base_params p
-            WHERE o.pay_time >= p.start_date
-              AND o.pay_time <= p.end_date + INTERVAL '1' DAY
-              AND {valid_sql}
-              {exclude_filter}
+            WHERE {where_sql}
         ),
         province_summary AS (
             SELECT
@@ -379,7 +367,7 @@ def get_geo_trend(
         LIMIT ?
         """
 
-        top_provinces_result = conn.execute(top_provinces_query, [start_str, end_str] + exclude_params + [top_n]).fetchall()
+        top_provinces_result = conn.execute(top_provinces_query, [start_str, end_str] + where_params + [top_n]).fetchall()
         top_provinces = [row[0] for row in top_provinces_result]
 
         # 用单条 SQL 按月查出所有省份分组数据
@@ -397,10 +385,7 @@ def get_geo_trend(
                 DATE_TRUNC('month', o.pay_time)::DATE AS month_start
             FROM orders o
             CROSS JOIN base_params p
-            WHERE o.pay_time >= p.start_date
-              AND o.pay_time <= p.end_date + INTERVAL '1' DAY
-              AND {valid_sql}
-              {exclude_filter}
+            WHERE {where_sql}
         )
         SELECT
             province,
@@ -414,7 +399,7 @@ def get_geo_trend(
         """
 
         month_result = conn.execute(
-            month_sql, [start_str, end_str] + exclude_params + top_provinces
+            month_sql, [start_str, end_str] + where_params + top_provinces
         ).fetchall()
 
         # 用字典 {province: {month_str: (users, gmv)}} 映射
