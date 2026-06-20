@@ -12,7 +12,7 @@
 |---|---|
 | VERSION | `0.4.14.139` |
 | git HEAD (main) | `351adfd` (Sprint 55.3 CI subprocess cwd fix) |
-| 当前分支 | `refactor/p0-naming-cleanup-2026-06-21` (Sprint 55.5 待 ff-merge) |
+| 当前分支 | `refactor/p0-naming-cleanup-2026-06-21` (Sprint 55.5 待 ff-merge, merge 后由 /ship Step 13 自动更新) |
 | 最近 sprint | Sprint 55.5 (docs 子目录化 + P0 命名重构 + 4 新 doc + 4 stub) |
 | 收口日 | 2026-06-21 |
 | 上次合入 | 7 commit 0 debt (Sprint 55.5: e0a9298 facade 删 + bd95cd8 rename + 1 chore docs) |
@@ -54,7 +54,7 @@
 | 维度 | 状态 | 最近 sprint | 详情 doc |
 |---|---|---|---|
 | 部署 | 本地即生产, merge → `git pull` → restart uvicorn | 持续 | `CLAUDE.md` §必读 #1 |
-| 数据 ETL | W1→W2→W3→W4 4 阶段, 10.75M 订单, 67.8GB DuckDB | Sprint 28+ 验证 | `docs/architecture/DATA_PIPELINE.md` |
+| 数据 ETL | W1→W2→W3→W4 4 阶段, 10.75M 订单, ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) | Sprint 28+ 验证 | `docs/architecture/DATA_PIPELINE.md` |
 | AI Safety Net | L1 lint + L2 AST + L3 FilterBuilder 3 层防线 100% 闭环 | Sprint 54 | `docs/architecture/AI_SAFETY_NET.md` |
 | Race flake | 治本 (per-worker tmp DuckDB + ATTACH read_only + search_path) | Sprint 53 | `docs/architecture/TEST_INFRASTRUCTURE.md` |
 | e2e CI | advisory `continue-on-error: true` (50+MB OOM) | Sprint 41+ | `docs/operating/ci-e2e-history.md` |

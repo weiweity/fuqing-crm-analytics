@@ -6,7 +6,7 @@
 
 ---
 
-## Sprint 55.5 — docs 子目录化 + P0 命名重构 + 4 新 doc (2026-06-21, v0.4.14.139, main @ TBD)
+## Sprint 55.5 — docs 子目录化 + P0 命名重构 + 4 新 doc (2026-06-21, v0.4.14.139, branch `refactor/p0-naming-cleanup-2026-06-21` @ 52d87bd, 待 ff-merge)
 
 > Sprint 55 收口后审计发现 22 项文档/命名问题: docs/ 11 散文件 + P0 重名 (category_service.py facade + sample_asset_service/) + 4 个核心 doc 缺失 (STATUS / data-layout / DATA_PIPELINE / TEST_INFRASTRUCTURE). 通过 5 phase workflow (子目录化 + 命名重构 + 4 doc + 架构师验证 + 程序员验证) 闭环.
 

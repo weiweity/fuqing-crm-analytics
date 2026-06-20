@@ -32,6 +32,13 @@ backend/services/
 | `sample_asset_service/` (误导成 demo) | `asset_focus_service/` | Sprint 55.5 rename |
 | `category_service.py` + `category_service/` (单文件 + 子包重名) | 只用子包, `__init__.py` re-export | Sprint 55.5 facade 删 |
 
+### 改名流程 (asset_focus_service rename 实战 4 步)
+
+1. `git mv backend/services/old_name backend/services/new_name`
+2. `sed -i '' 's/backend\.services\.old_name/backend.services.new_name/g' backend/routers/*.py backend/tests/*.py`
+3. 全仓 `grep -rn old_name --include="*.py" --include="*.md"` 验证 0 残留
+4. 1 commit per logical change, commit message 用 `refactor: rename old_name → new_name (原因)`
+
 ## 4. 14 个现有 service
 
 | Service | 入口 | 业务领域 |
