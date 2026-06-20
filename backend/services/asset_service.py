@@ -8,7 +8,7 @@ Week 3 资产趋势（用订单模拟）
 from typing import Dict, Any
 from backend.db.connection import get_connection
 from backend.semantic.segments import get_registry
-from backend.semantic.filters import OrderFilters
+from backend.semantic.filters import FilterBuilder, MetricType
 
 
 def get_asset_summary(date: str) -> Dict[str, Any]:
@@ -100,6 +100,20 @@ def get_asset_summary(date: str) -> Dict[str, Any]:
         pass
 
 
+
+def _build_asset_trend_filter(
+    start_date: str,
+    end_date: str,
+) -> tuple:
+    """Sprint 54 Lane C L3: 把 valid_order() 字符串收编到 FilterBuilder.add_extra()
+    避免 f-string 内嵌,保持 L3 完整性.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    return fb.build()
+
+
 def get_asset_trend(
     start_date: str,
     end_date: str,
@@ -129,8 +143,8 @@ def get_asset_trend(
         else:
             date_trunc = "STRFTIME(pay_time, '%Y-W%W')"
 
-        # 使用语义层构建过滤条件
-        valid_sql, _ = OrderFilters.valid_order()
+        # Sprint 54 Lane C L3: valid_order() 通过 FilterBuilder.add_extra() 收编
+        where_sql, where_params = _build_asset_trend_filter(start_date, end_date)
 
         sql = f"""
         WITH period_orders AS (
@@ -150,7 +164,7 @@ def get_asset_trend(
                 AND r.lookback_days = 90
             WHERE o.pay_time >= ?
               AND o.pay_time <= ?
-              AND {valid_sql}
+              AND {where_sql}
         ),
         segment_trend AS (
             SELECT
@@ -170,7 +184,7 @@ def get_asset_trend(
         ORDER BY period, segment_id
         """
 
-        df = conn.execute(sql, [end_date, start_date, f"{end_date} 23:59:59"]).fetchdf()
+        df = conn.execute(sql, where_params + [end_date, start_date, f"{end_date} 23:59:59"]).fetchdf()
 
         if df.empty:
             registry = get_registry()

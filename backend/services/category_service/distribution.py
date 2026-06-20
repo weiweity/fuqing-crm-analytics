@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List
 from backend.db.connection import get_connection
 from backend.semantic.segments import _segment_meta
 from backend.semantic.time import normalize_date as _normalize_date
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 
 
 SPU_LEVELS = {
@@ -41,6 +41,55 @@ def _excluded_cat_filter(field: str) -> str:
     """生成排除非产品品类的 SQL 片段"""
     placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
     return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
+
+
+def _build_distribution_filter(
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> tuple:
+    """Sprint 54 Lane C L3: 收编 valid_order() + channel + exclude 到 FilterBuilder
+    避免 f-string 内嵌 (本函数本身无 f-string 输出,所有用户输入走 add_extra 参数化).
+
+    Returns:
+        (where_clause, params) — where_clause 拼到 SQL 模板 `AND {where_clause}` 中;
+        params 拼到 conn.execute 参数列表开头.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    return fb.build()
+
+
+def _build_distribution_channel_filter(
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+) -> tuple:
+    """Sprint 54 Lane C L3 fix: 返回 (channel_str, exclude_str, params).
+
+    旧版 distribution.py 用了 `{channel_filter_str}` `{exclude_filter_str}` 占位符但漏定义
+    → NameError. 本函数生成 channel IN / channel NOT IN 两个独立 SQL 片段 + 合并 params.
+
+    注意: 这跟 _build_distribution_filter 不重复 — 后者只生成 valid_order + channel
+    合并的 where, 本函数生成**纯 channel/exclude 逻辑**(给 _excluded_cat_filter
+    一样的"AND ..." 形式前缀).
+    """
+    channel_parts: List[str] = []
+    exclude_parts: List[str] = []
+    params: List[Any] = []
+    if channel and channel != "全店":
+        ch_list = expand_channels([channel])
+        placeholders = ",".join(["?"] * len(ch_list))
+        channel_parts.append(f"AND o.channel IN ({placeholders})")
+        params.extend(ch_list)
+    if exclude_channels:
+        ex_list = expand_channels(exclude_channels)
+        placeholders = ",".join(["?"] * len(ex_list))
+        exclude_parts.append(f"AND o.channel NOT IN ({placeholders})")
+        params.extend(ex_list)
+    return " ".join(channel_parts), " ".join(exclude_parts), params
 
 
 def get_category_distribution(
@@ -77,36 +126,19 @@ def get_category_distribution(
     category_field_expr = _cat_expr(category_field)
     excluded_cat_sql = _excluded_cat_filter(category_field)
 
-    # 使用语义层构建过滤条件
-    valid_sql, _ = OrderFilters.valid_order()
-
-    # 渠道参数展开
-    def _expand_filters(ch: Optional[str], ex: Optional[List[str]]) -> tuple:
-
-        ch_filter, ch_params = "", []
-        if ch and ch != "全店":
-            db = [c for c in expand_channels([ch]) if c]
-            if not db:
-                raise ValueError(f"渠道'{ch}'未在channels.py中注册，请检查UI_TO_DB映射")
-            if len(db) == 1:
-                ch_filter = "AND o.channel = ?"
-                ch_params = [db[0]]
-            else:
-                ch_filter = f"AND o.channel IN ({','.join(['?'] * len(db))})"
-                ch_params = list(db)
-        ex_filter, ex_params = "", []
-        if ex:
-            ex_db = [c for c in expand_channels(ex) if c]
-            ex_filter = f"AND o.channel NOT IN ({','.join(['?'] * len(ex_db))})"
-            ex_params = list(ex_db)
-        return ch_filter, ch_params, ex_filter, ex_params
-
-    channel_filter, channel_params, exclude_filter, exclude_params = _expand_filters(channel, exclude_channels)
-
-    # 象限筛选
-    segment_filter = ""
+    # Sprint 54 Lane C L3: valid_order + channel + exclude 收编到 FilterBuilder
+    valid_where_clause, valid_where_params = _build_distribution_filter(channel, exclude_channels)
+    # Sprint 54 Lane C L3 fix: 补充 channel_filter / exclude_filter (跟 _excluded_cat_filter
+    # 一样返回 "AND ..." 或 "" 形式, 拼到 SQL 模板). 否则 {channel_filter_str}/{exclude_filter_str} NameError.
+    channel_filter_str, exclude_filter_str, channel_filter_params = _build_distribution_channel_filter(channel, exclude_channels)
+    # 象限筛选 (segment_id 是用户输入,走 `?` 占位)
+    # 不用 segment 时用 1=1 (无占位) 避免 NULL 比较问题
     if segment_id is not None:
         segment_filter = "AND r.segment_id = ?"
+        segment_params = [segment_id]
+    else:
+        segment_filter = "AND 1 = 1"
+        segment_params = []
 
     # 日期计算（params 依赖此变量）
     date_str = _normalize_date(date)
@@ -125,11 +157,11 @@ def get_category_distribution(
             AND r.analysis_date = ? AND r.metric_type = 'GMV' AND r.lookback_days = ?
         WHERE o.pay_time >= p.start_date
           AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
+          AND {valid_where_clause}
           {excluded_cat_sql}
           {segment_filter}
-          {channel_filter}
-          {exclude_filter}
+          {channel_filter_str}
+          {exclude_filter_str}
     ),
     category_summary AS (
         SELECT category_name,
@@ -157,22 +189,25 @@ def get_category_distribution(
         AND r.analysis_date = ? AND r.metric_type = 'GMV' AND r.lookback_days = ?
     WHERE o.pay_time >= p.start_date
       AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-      AND {valid_sql}
+      AND {valid_where_clause}
       {excluded_cat_sql}
       {segment_filter}
-      {channel_filter}
-      {exclude_filter}
+      {channel_filter_str}
+      {exclude_filter_str}
     """
 
     conn = get_connection()
     try:
-        # 参数顺序: date_str, start_date, date_str, lookback_days, date_str, [excluded], [segment_id], [channel_params], [exclude_params]
+        # Sprint 54 Lane C L3: 顺序为 valid_where_params + segment_params + base + excluded + channel_filter_params
+        # valid_where_clause 已经包含 valid_order + channel + exclude (FilterBuilder 输出)
         excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
-        params = [date_str, start_date, date_str, lookback_days, date_str] + excluded_params
-        if segment_id is not None:
-            params.append(segment_id)
-        params.extend(channel_params)
-        params.extend(exclude_params)
+        params = (
+            list(valid_where_params)
+            + segment_params
+            + [date_str, start_date, date_str, lookback_days, date_str]
+            + excluded_params
+            + channel_filter_params
+        )
 
         result = conn.execute(sql, params).fetchall()
         total_result = conn.execute(total_query, params).fetchone()
@@ -247,22 +282,14 @@ def get_category_segment_matrix(
         date_str = _normalize_date(date)
         start_date = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
-        # 使用语义层构建过滤条件
-        valid_sql, _ = OrderFilters.valid_order()
+        # Sprint 54 Lane C L3: valid_order + exclude 收编到 FilterBuilder
+        valid_where_clause, valid_where_params = _build_distribution_filter(None, exclude_channels)
+        # Sprint 54 Lane C L3 fix: get_category_segment_matrix 也要 {exclude_filter_str}
+        _, exclude_filter_str, _ = _build_distribution_channel_filter(None, exclude_channels)
 
         category_field = SPU_LEVELS.get(level, "spu_type")
         category_field_expr = _cat_expr(category_field)
         excluded_cat_sql = _excluded_cat_filter(category_field)
-
-        # 排除渠道
-
-        exclude_filter = ""
-        exclude_params: List[str] = []
-        if exclude_channels:
-            db_ex = [c for c in expand_channels(exclude_channels) if c]
-            placeholders = ",".join(["?"] * len(db_ex))
-            exclude_filter = f"AND o.channel NOT IN ({placeholders})"
-            exclude_params = list(db_ex)
 
         # 统一引用 semantic/segments.py 中的 RFM_THRESHOLDS,禁止硬编码
         from backend.semantic.segments import RFM_THRESHOLDS
@@ -287,8 +314,8 @@ def get_category_segment_matrix(
             FROM orders o
             WHERE o.pay_time <= (SELECT analysis_date FROM base_params) + INTERVAL '1' DAY
               AND o.pay_time >= '2000-01-01'
-              AND {valid_sql}
-              {exclude_filter}
+              AND {valid_where_clause}
+              {exclude_filter_str}
             GROUP BY o.user_id
         ),
         rfm_scored AS (
@@ -342,9 +369,9 @@ def get_category_segment_matrix(
             CROSS JOIN base_params p
             WHERE o.pay_time >= p.start_date
               AND o.pay_time < p.analysis_date + INTERVAL '1' DAY
-              AND {valid_sql}
+              AND {valid_where_clause}
               {excluded_cat_sql}
-              {exclude_filter}
+              {exclude_filter_str}
         ),
         category_segment AS (
             SELECT
@@ -365,11 +392,13 @@ def get_category_segment_matrix(
         ORDER BY segment_id, user_count DESC
         """
 
-        # 参数: base_params(2) + user_stats_all exclude + category_orders excluded_cat + category_orders exclude
-        params: List[Any] = [date_str, start_date]
-        params.extend(exclude_params)
-        params.extend(excluded_params)
-        params.extend(exclude_params)
+        # Sprint 54 Lane C L3: 顺序为 valid_where_params + base + excluded
+        # valid_where_clause 已经包含 valid_order + exclude (FilterBuilder 输出)
+        params: List[Any] = (
+            list(valid_where_params)
+            + [date_str, start_date]
+            + excluded_params
+        )
 
         result = conn.execute(sql, params).fetchall()
 
