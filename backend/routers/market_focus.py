@@ -8,7 +8,7 @@ from fastapi import APIRouter, Query, HTTPException
 import logging
 
 from backend.contracts.schemas import StoreAssetResponse, ProductAssetResponse
-from backend.services.sample_asset_service import (
+from backend.services.asset_focus_service import (
     get_store_assets,
     get_product_assets,
     get_other_product_assets,
