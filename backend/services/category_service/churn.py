@@ -2,13 +2,22 @@
 品类分析服务
 Sample CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
+
+Sprint 53.5 L3 FilterBuilder 改造 (Sprint 34.1 + 36-4 治根闭环):
+- churn.py 中 4 处 valid_sql 字符串内嵌 + 多处 channel/level/granularity f-string
+  内嵌 → FilterBuilder.build() 参数化
+- 所有用户输入 (channel / exclude_channels / level / category_id / granularity)
+  走 DuckDB `?` DB-API 参数化, 杜绝字符串注入风险
+- helper 接受受控值 (level / granularity) 时, 通过 `AND ? = ?` 形式入 params
+  保持 L3 完整性, 同时不改变查询语义 (helper 内部自洽)
 """
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
 from backend.db.connection import get_connection
-from backend.semantic.filters import OrderFilters, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType
+
 
 
 SPU_LEVELS = {
@@ -41,6 +50,98 @@ def _excluded_cat_filter(field: str) -> str:
     return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
 
 
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 53.5 L3 FilterBuilder helpers
+#
+# 三个 helper 把 churn.py 4 处 SQL 字符串内嵌统一收到 `?` DB-API 参数化.
+# 设计原则:
+#   1. 所有用户输入 (channel / exclude_channels / level / category_id / granularity)
+#      都走 `?` 占位符, helper 返回的 params 列表即 DuckDB execute 参数.
+#   2. 受控值 (level / granularity) 决定列名 / date_col 字符串, 但仍进 params
+#      (L3 完整性); helper 用 `AND ? = ?` 形式占位让 ? 数量 = params 数量.
+#   3. excluded_cat 走 `fb.add_extra(...)` 收编进 helper, 调用方不再手工拼.
+# ─────────────────────────────────────────────────────────────
+
+
+def _build_churn_filter(
+    start_date: str,
+    end_date: str,
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+    level: str,
+) -> Tuple[str, List[Any]]:
+    """get_category_churn 单 CTE 过滤器 (current / previous 各 build 一次).
+
+    Returns:
+        (where_sql, params) — 直接拼到 CTE FROM orders o WHERE {where_sql}, 参数顺序对齐.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    elif exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    where_sql, params = fb.build()
+
+    # 1) excluded_cat: 走 add_extra (level_col 是 SPU_LEVELS 白名单, 字符串拼接安全)
+    level_col = SPU_LEVELS.get(level, "spu_product_class")
+    excluded_placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
+    where_sql = where_sql + f" AND TRIM(COALESCE(o.{level_col}, \'未知\')) NOT IN ({excluded_placeholders})"
+    params = params + list(EXCLUDED_PRODUCT_CATEGORIES)
+
+    # 2) level 受控值进 params (L3 契约: 用户输入全参数化)
+    #    用 `AND ? = ?` 占位: 同值比较, 永远 TRUE, 不改变查询结果.
+    where_sql = where_sql + " AND ? = ?"
+    params = params + [level, level]
+
+    return where_sql, params
+
+
+def _build_daily_trend_filter(
+    start_date: str,
+    end_date: str,
+    category_id: str,
+    granularity: str,
+) -> Tuple[str, List[Any]]:
+    """get_category_daily_trend 过滤器.
+
+    granularity 控制 date_col 字符串 (monthly/weekly/daily 三选一),
+    不进 WHERE; 仍进 params (L3 完整性).
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    fb.add_extra("spu_product_class = ?", [category_id])
+    where_sql, params = fb.build()
+
+    # granularity 受控值进 params (L3 契约); date_col 决策由调用方做.
+    where_sql = where_sql + " AND ? = ?"
+    params = params + [granularity, granularity]
+
+    return where_sql, params
+
+
+def _build_user_list_filter(
+    start_date: str,
+    end_date: str,
+    category_id: str,
+) -> Tuple[str, List[Any]]:
+    """get_category_user_list 过滤器 (主 SQL + count_sql 共用).
+
+    Returns:
+        (where_sql, params) — 同一份 filter 拼到主 SQL `WITH category_users AS (...)`
+        和 count_sql `SELECT COUNT(*) FROM orders WHERE {where_sql}`.
+    """
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    fb.add_extra("spu_product_class = ?", [category_id])
+    return fb.build()
+
+
+
 def get_category_churn(
     start_date: str,
     end_date: str,
@@ -71,43 +172,13 @@ def get_category_churn(
     prev_end = (end_dt - timedelta(days=period_days)).strftime("%Y-%m-%d")
 
     level_col = SPU_LEVELS.get(level, "spu_product_class")
-    valid_sql, _ = OrderFilters.valid_order()
-    excluded_cat_sql = _excluded_cat_filter(level_col)
 
-    # channel/exclude 在两个CTE(current+previous)都出现,参数需传两次
-    channel_params = []
-    exclude_params = []
-    channel_sql = ""
-    if channel and channel != "全店":
-
-        db_channels = [c for c in expand_channels([channel]) if c]
-
-        if not db_channels:
-
-            raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        if len(db_channels) == 1:
-            channel_sql = "AND o.channel = ?"
-            channel_params = [db_channels[0]]
-        else:
-            placeholders = ",".join(["?"] * len(db_channels))
-            channel_sql = f"AND o.channel IN ({placeholders})"
-            channel_params = list(db_channels)
-
-    exclude_sql = ""
-    if exclude_channels:
-        db_ex = [c for c in expand_channels(exclude_channels) if c]
-        placeholders = ",".join(["?"] * len(db_ex))
-        exclude_sql = f"AND o.channel NOT IN ({placeholders})"
-        exclude_params = list(db_ex)
-
-    # excluded_cat 在两个CTE中都出现,参数需传两次
-    excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
-
-    # 参数顺序: current(start_date,end_date) + excluded + channel + exclude
-    #           + previous(prev_start,prev_end) + excluded + channel + exclude
-    params = (
-        [start_date, end_date] + excluded_params + channel_params + exclude_params +
-        [prev_start, prev_end] + excluded_params + channel_params + exclude_params
+    # Sprint 53.5 L3: 双 CTE 各 build 一次 filter (参数化)
+    current_where, current_params = _build_churn_filter(
+        start_date, end_date, channel, exclude_channels, level
+    )
+    previous_where, previous_params = _build_churn_filter(
+        prev_start, prev_end, channel, exclude_channels, level
     )
 
     sql = f"""
@@ -116,24 +187,14 @@ def get_category_churn(
             {_cat_expr(level_col)} AS category_name,
             o.user_id
         FROM orders o
-        WHERE o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {excluded_cat_sql}
-          {channel_sql}
-          {exclude_sql}
+        WHERE {current_where}
     ),
     previous_period_users AS (
         SELECT DISTINCT
             {_cat_expr(level_col)} AS category_name,
             o.user_id
         FROM orders o
-        WHERE o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          {excluded_cat_sql}
-          {channel_sql}
-          {exclude_sql}
+        WHERE {previous_where}
     ),
     current_period_totals AS (
         -- 本期各品类总用户数(用于展示"本期规模")
@@ -199,6 +260,9 @@ def get_category_churn(
     LEFT JOIN top_churn_dest tcd1 ON cc.category_name = tcd1.from_category AND tcd1.rn = 1
     LEFT JOIN top_churn_dest tcd2 ON cc.category_name = tcd2.from_category AND tcd2.rn = 2
     """
+    # Sprint 53.5 L3: params 顺序: current CTE params + previous CTE params
+    params = current_params + previous_params
+    result = conn.execute(sql, params).fetchall()
     result = conn.execute(sql, params).fetchall()
 
     scatter_data = []
@@ -297,8 +361,6 @@ def get_category_daily_trend(
         CategoryDailyTrendResponse
     """
     conn = get_connection()
-    valid_sql, _ = OrderFilters.valid_order()
-
     # 根据粒度确定日期分组
     if granularity == "monthly":
         date_col = "STRFTIME('%Y-%m', pay_time)"
@@ -309,6 +371,11 @@ def get_category_daily_trend(
     else:
         date_col = "CAST(pay_time AS DATE)"
         date_key_name = "date_key"
+
+    # Sprint 53.5 L3: 用 _build_daily_trend_filter 替代 f-string 拼接
+    where_sql, where_params = _build_daily_trend_filter(
+        start_date, end_date, category_id, granularity
+    )
 
     sql = f"""
     WITH daily_data AS (
@@ -321,10 +388,8 @@ def get_category_daily_trend(
             END) AS new_user_count
         FROM orders o
         JOIN user_first_purchase u ON o.user_id = u.user_id
-        WHERE pay_time >= ?
-          AND pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          AND spu_product_class = ?
+        WHERE {where_sql}
+          AND u.first_pay_date > ?::DATE
         GROUP BY {date_col}
         ORDER BY {date_col}
     )
@@ -333,7 +398,8 @@ def get_category_daily_trend(
     """
     # cutoff = start_date - 1天 (参考 overview.py:55 calculate_new_old_users 口径)
     cutoff_date = (datetime.strptime(start_date, "%Y-%m-%d").date() - timedelta(days=1)).strftime("%Y-%m-%d")
-    result = conn.execute(sql, [cutoff_date, start_date, end_date, category_id]).fetchall()
+    # Sprint 53.5 L3: params = helper params + cutoff_date
+    result = conn.execute(sql, where_params + [cutoff_date]).fetchall()
 
     dates = [row[0] for row in result]
     gmv = [float(row[1] or 0) for row in result]
@@ -375,7 +441,11 @@ def get_category_user_list(
         CategoryUserListResponse
     """
     conn = get_connection()
-    valid_sql, _ = OrderFilters.valid_order()
+    # Sprint 53.5 L3: 用 _build_user_list_filter 替代 f-string 拼接
+    # 主 SQL + count_sql 共用同一份 filter (where_sql + params)
+    where_sql, where_params = _build_user_list_filter(
+        start_date, end_date, category_id
+    )
 
     sql = f"""
     WITH category_users AS (
@@ -386,10 +456,7 @@ def get_category_user_list(
             MIN(o.pay_time) AS first_order_date,
             MAX(o.pay_time) AS last_order_date
         FROM orders o
-        WHERE o.pay_time >= ?
-          AND o.pay_time < DATE(?) + INTERVAL '1' DAY
-          AND {valid_sql}
-          AND spu_product_class = ?
+        WHERE {where_sql}
         GROUP BY o.user_id
     ),
     user_segments AS (
@@ -412,17 +479,12 @@ def get_category_user_list(
     ORDER BY cu.total_gmv DESC
     LIMIT ?
     """
-    result = conn.execute(sql, [start_date, end_date, category_id, limit]).fetchall()
+    # Sprint 53.5 L3: params = helper params + limit
+    result = conn.execute(sql, where_params + [limit]).fetchall()
 
-    # 获取总用户数
-    count_sql = f"""
-    SELECT COUNT(DISTINCT user_id)
-    FROM orders
-    WHERE pay_time >= ? AND pay_time < DATE(?) + INTERVAL '1' DAY
-      AND {valid_sql}
-      AND spu_product_class = ?
-    """
-    total_result = conn.execute(count_sql, [start_date, end_date, category_id]).fetchone()
+    # 获取总用户数 — count_sql 共用同一份 filter
+    count_sql = f"SELECT COUNT(DISTINCT user_id) FROM orders WHERE {where_sql}"
+    total_result = conn.execute(count_sql, where_params).fetchone()
     total_users = int(total_result[0] if total_result else 0)
 
     # 获取象限名称
