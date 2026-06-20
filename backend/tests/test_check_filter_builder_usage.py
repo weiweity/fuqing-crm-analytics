@@ -13,19 +13,23 @@ from pathlib import Path
 
 def run_lint(tmp_path: Path) -> int:
     """跑 ground-truth-lint, 返回 exit code."""
-    script = Path(__file__).resolve().parent.parent / "scripts" / "check_filter_builder_usage.py"
-    target = tmp_path / "test_service.py"
+    # Sprint 55.3 fix: 显式传 cwd (CI runner 上 subprocess 用 str() 转换 absolute path 触发 Python
+    # getpath 内部 error "failed to make path absolute", 跟 Python 3.14 venv symlink 解析相关.
+    # 解决: 用 cd 切到项目根 + 相对路径, 避免绝对路径 OS-level 解析.
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    script_rel = "backend/scripts/check_filter_builder_usage.py"
+    target_rel = str(tmp_path / "test_service.py")
     result = subprocess.run(
-        [sys.executable, str(script), "--files", str(target)],
+        [sys.executable, script_rel, "--files", target_rel],
         capture_output=True,
         text=True,
+        cwd=str(repo_root),
     )
     if result.returncode != 0:
-        # Sprint 55.1 CI 调试: 捕获 stderr 让 CI log 显式可见 (本地 rc=0 但 CI rc=1)
         print(f"\n[LINT rc={result.returncode}] stdout: {result.stdout}")
         print(f"[LINT rc={result.returncode}] stderr: {result.stderr}")
         try:
-            print(f"[LINT rc={result.returncode}] file: {target.read_text()}")
+            print(f"[LINT rc={result.returncode}] file: {Path(target_rel).read_text()}")
         except Exception as e:
             print(f"[LINT rc={result.returncode}] file read error: {e}")
     return result.returncode
