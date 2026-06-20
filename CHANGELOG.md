@@ -6,6 +6,68 @@
 
 ---
 
+## [v0.4.14.138] - 2026-06-20 - feat(frontend) + perf(etl) + feat(git): Sprint 52 — 激活 visitor 路由 + 50m scale benchmark + commit-msg diff 一致性警告
+
+> Sprint 52 执行 3 项 backlog: 激活 /visitor 路由复用 AudienceView, 新增 50m scale benchmark 框架（10k/1m 实测, 5m/10m/50m 容量门）, 新增 commit-msg hook 对 message 与 diff 不一致发出 WARN。
+
+### The numbers that matter
+
+来源: 本地 pytest + Playwright e2e + scale benchmark 跑批验证。
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| e2e spec 覆盖路由数 | 11 个 | 12 个 | +1 (/visitor) |
+| scale benchmark 实测量级 | 无 | 10k / 1m | ✅ |
+| commit-msg diff 一致性检查 | 无 | WARN 模式 | ✅ |
+| pytest | — | ~659 passed / 17 skipped | ✅ |
+| e2e | — | 12/12 passed | ✅ |
+
+最显著的改进: visitor 路由补齐了 Sprint 39 audit 唯一缺口; scale benchmark 给出 1m orders 49.84s / RSS 3.37GiB 基线, 并暴露 `pl_step4_7_replay_is_member_incremental` 是最慢阶段; commit-msg hook 给 a9b1d91 类事故增加一道预防层。
+
+### What this means for 产品 + 运维 + 开发
+
+`/visitor` 现在是可访问路由, 用户能从侧边栏直接进入访客看板。benchmark 框架让容量规划有据可依, 5m/10m/50m 跑完就能知道真实瓶颈。commit-msg WARN hook 让"message 说清理业务专名、实际 diff 清空整个文件"类错误在 commit 时可见, 不阻断但提醒。
+
+### Itemized changes
+
+#### Added
+
+1. **`frontend-vue3/src/router/index.ts`** — 注册 `/visitor` 路由, 复用 `AudienceView.vue`。
+2. **`frontend-vue3/src/components/Sidebar.vue`** — 新增“访客看板”导航入口。
+3. **`frontend-vue3/e2e/visitor.spec.ts`** — `/visitor` smoke test (auth.fixture 复用)。
+4. **`scripts/etl/benchmarks/generate_synthetic_orders.py`** — 生成 production-shaped synthetic Parquet。
+5. **`scripts/etl/benchmarks/run_scale_benchmark.py`** — 隔离生产库跑真实 ETL, 输出 `result.json` + 自动渲染报告。
+6. **`scripts/etl/benchmarks/scale_report_50m.md`** — 10k/1m 实测结果、容量门、瓶颈分析。
+7. **`backend/tests/test_scale_smoke.py`** — 10k fast regression test。
+8. **`.githooks/commit-msg`** — 调用 checker 的 hook (WARN only, rc=0)。
+9. **`scripts/git/check_commit_msg_diff_consistency.py`** — 解析 message 中提到的文件, 若删除比例 >80% 且未声明删除/重构则 WARN。
+10. **`backend/tests/test_commit_msg_diff_consistency.py`** — 4 case regression test。
+
+#### Changed
+
+1. **`.githooks/README.md`** — 增加 commit-msg hook 说明。
+2. **`scripts/setup-hooks.sh`** — 激活提示包含 commit-msg。
+
+### Verification
+
+- ✅ e2e `frontend-vue3` 12/12 passed
+- ✅ pytest `backend/tests/` ~659 passed / 17 skipped
+- ✅ scale 10k: 0.80s / 1m: 49.84s, RSS 3.37GiB
+- ✅ commit-msg hook 手动验证通过
+
+### 关联
+
+- `frontend-vue3/src/router/index.ts`
+- `frontend-vue3/src/views/AudienceView.vue`
+- `scripts/etl/benchmarks/`
+- `.githooks/commit-msg`
+- `scripts/git/check_commit_msg_diff_consistency.py`
+- Sprint 39 close memory (visitor audit)
+- Sprint 32.3 close memory (a9b1d91 教训)
+- `HANDOFF-TO-CODEX-Sprint52.md`
+
+---
+
 ## [v0.4.14.137] - 2026-06-20 - feat(dq_monitor) + test(e2e): Sprint 51 — 磁盘/增长监控 + e2e auth fixture 抽离
 
 > Sprint 51 执行 3 项高 ROI backlog: DQ monitor 新增磁盘空间与订单异常增长检查, e2e 抽离共享 auth fixture 消除 9 个 spec 的重复登录代码, 并修复 sampling 慢加载超时。
