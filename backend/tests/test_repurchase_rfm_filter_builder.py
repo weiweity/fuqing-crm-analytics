@@ -8,7 +8,6 @@ FilterBuilder.build() + DuckDB `?` DB-API 参数化.
 注意: rfm.py 是死代码 (Sprint 33 留尾, 路由未注册). 仍做 L3 改造 (代码质量).
 """
 import inspect
-import pytest
 
 from backend.services.category_service.repurchase import rfm
 from backend.services.category_service.repurchase.rfm import _build_repurchase_rfm_filter

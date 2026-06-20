@@ -6,7 +6,6 @@ Root cause: asset_service.py 1 处 `{valid_sql}` 字符串内嵌 (get_asset_tren
 走 FilterBuilder.build() + DuckDB `?` DB-API 参数化.
 """
 import inspect
-import pytest
 
 from backend.services import asset_service
 from backend.services.asset_service import _build_asset_trend_filter

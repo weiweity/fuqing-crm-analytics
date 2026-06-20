@@ -5,7 +5,6 @@ Sprint 54 Lane C L3 FilterBuilder 改造 (basket.py) 回归测试.
 Root cause: basket.py 1 处 `{valid_sql}` 字符串内嵌 → 走 FilterBuilder.build() 参数化.
 """
 import inspect
-import pytest
 
 from backend.services.category_service import basket
 from backend.services.category_service.basket import _build_basket_valid_filter

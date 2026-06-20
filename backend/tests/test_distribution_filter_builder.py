@@ -8,7 +8,6 @@ Root cause: distribution.py 4 处 `{valid_sql}` 字符串内嵌 → 全部走 Fi
 防回归: 任何后续修改把 f-string 拼接/字符串内嵌放回 distribution.py 都会被本测试集捕获.
 """
 import inspect
-import pytest
 
 from backend.services.category_service import distribution
 from backend.services.category_service.distribution import _build_distribution_filter

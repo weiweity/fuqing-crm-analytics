@@ -2,7 +2,7 @@
 import duckdb
 from typing import Dict, Optional, List
 
-from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
+from backend.semantic.filters import FilterBuilder, MetricType
 from backend.semantic.segments import RFM_THRESHOLDS
 
 from .._shared import (
