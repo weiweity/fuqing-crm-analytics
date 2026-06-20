@@ -349,12 +349,6 @@ Key routing rules:
 
 ---
 
-## Sprint 16.5 收口 (2026-06-11) — 摘要
-
-3/4 治理完成 + 1 NO-OP。详见 `CHANGELOG.md` v0.4.14.40 + v0.4.14.41。
-
----
-
 ## Ratio Convention (B1+B2 模式, Sprint 13+ 升级 Sprint 17)
 
 > 本节是 ratio / pct / ppt / rate 类字段的强契约，Sprint 13 起强制、Sprint 17 B1+B2 模式正式挪进本主章节统一治理。改前端展示、传值、命名、Pydantic 契约必读。
