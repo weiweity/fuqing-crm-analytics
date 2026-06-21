@@ -109,20 +109,33 @@ def _build_value_tier_filter(
     channel: Optional[str],
     exclude_channels: Optional[List[str]],
 ) -> Tuple[str, List[Any]]:
-    """_compute_value_tier_base 过滤器 (GSV 口径)."""
+    """_compute_value_tier_base 过滤器 (GSV 口径).
+
+    Sprint 60.1 fix: channel/exclude 改走手写 `o.channel IN/NOT IN`,
+    避免 FilterBuilder 输出无表别名跟 `LEFT JOIN user_rfm r` 冲突触发 DuckDB Binder 错.
+    """
     fb = FilterBuilder()
     fb.with_metric_type(MetricType.GSV)
     fb.with_time_range(start_date, end_date)
+    base_sql, base_params = fb.build()
+    # channel/exclude 走手写 (有 o. 前缀, 配 LEFT JOIN user_rfm r 兼容)
+    extra_parts: List[str] = []
+    extra_params: List[Any] = []
     if channel and channel != "全店":
         db_channels = [c for c in expand_channels([channel]) if c]
         if not db_channels:
             raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
-        fb.with_channels(db_channels)
+        placeholders = ",".join(["?"] * len(db_channels))
+        extra_parts.append(f"AND o.channel IN ({placeholders})")
+        extra_params.extend(db_channels)
     if exclude_channels:
         db_ex = [c for c in expand_channels(exclude_channels) if c]
         if db_ex:
-            fb.with_exclude_channels(db_ex)
-    return fb.build()
+            placeholders = ",".join(["?"] * len(db_ex))
+            extra_parts.append(f"AND o.channel NOT IN ({placeholders})")
+            extra_params.extend(db_ex)
+    final_sql = base_sql + " " + " ".join(extra_parts) if extra_parts else base_sql
+    return final_sql, base_params + extra_params
 
 
 def _compute_category_period(

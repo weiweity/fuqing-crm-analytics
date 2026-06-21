@@ -76,3 +76,40 @@ class TestDistributionFilterBuilder:
         # channel=None 时, params 含低价的 db_name
         # 两者 params 不同 (因为不同选择路径)
         assert params_with_ch != params_no_ch
+
+
+class TestSprint601ChannelAliasRegression:
+    """Sprint 60.1 治本: _build_distribution_filter / _build_value_tier_filter
+    输出 SQL 加 `o.channel` 别名前缀, 跟 `LEFT JOIN user_rfm r` 共存时不再触发
+    DuckDB Binder 错 (Ambiguous reference to column name "channel").
+
+    根因: FilterBuilder.channel_in/channel_not_in 输出 `channel IN/NOT IN` 无表别名,
+    跟 `r.channel` 冲突. Sprint 60.1 fix: 在生成 SQL 后做一次 `channel` → `o.channel`
+    replace (精准修改, 不动其他字段).
+    """
+
+    def test_distribution_filter_channel_has_alias(self):
+        """_build_distribution_filter 加 channel 时, SQL 必须含 `o.channel` 前缀."""
+        sql, params = _build_distribution_filter(
+            channel="直播", exclude_channels=None
+        )
+        assert "o.channel IN" in sql, (
+            f"channel 字段需加 o. 别名, 实际 SQL: {sql}"
+        )
+        # 防回归: 不能出现无别名 `channel IN` (跟 LEFT JOIN user_rfm r 冲突).
+        # 严格模式: SQL 全文不能含裸 `channel IN` (前面没有 o.):
+        # 用 regex 扫 `(?<!o\.)\bchannel IN\b` 应该找不到.
+        import re
+        bare_channel_in = re.findall(r"(?<!o\.)\bchannel IN\b", sql)
+        assert not bare_channel_in, (
+            f"channel IN 必须加 o. 前缀, 实际 SQL: {sql}, 命中: {bare_channel_in}"
+        )
+
+    def test_distribution_filter_exclude_channel_has_alias(self):
+        """_build_distribution_filter 加 exclude_channels 时, SQL 必须含 `o.channel` 前缀."""
+        sql, params = _build_distribution_filter(
+            channel=None, exclude_channels=["U先派样", "百补派样"]
+        )
+        assert "o.channel NOT IN" in sql, (
+            f"channel NOT IN 需加 o. 别名, 实际 SQL: {sql}"
+        )

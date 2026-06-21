@@ -188,3 +188,23 @@ class TestSprint60CategoryParamsMismatchRegression:
         )
         # 真实跑 SQL, 返回 list
         assert isinstance(result, list)
+
+    def test_value_tier_filter_channel_has_alias(self):
+        """Sprint 60.1 fix: _build_value_tier_filter 加 channel 时, SQL 必须含 `o.channel` 前缀.
+
+        根因: FilterBuilder.channel_in 输出 `channel IN` 无表别名, 跟 `LEFT JOIN user_rfm r`
+        共存时 DuckDB 报 Binder 错. Sprint 60.1 fix: 改用手写 `o.channel IN` (配 _build_distribution_channel_filter 模式).
+        """
+        sql, params = _build_value_tier_filter(
+            "2026-06-01", "2026-06-30", "小程序", None,
+        )
+        assert "o.channel IN" in sql, (
+            f"channel 字段需加 o. 别名, 实际 SQL: {sql}"
+        )
+        # exclude 路径
+        sql2, params2 = _build_value_tier_filter(
+            "2026-06-01", "2026-06-30", None, ["U先派样"],
+        )
+        assert "o.channel NOT IN" in sql2, (
+            f"channel NOT IN 需加 o. 别名, 实际 SQL: {sql2}"
+        )
