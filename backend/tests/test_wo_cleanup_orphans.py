@@ -445,12 +445,14 @@ class TestCleanupTmpFlag:
 
     def test_argparse_accepts_cleanup_tmp(self):
         """cli.py main() 应能解析 --cleanup-tmp 并早退出（SystemExit 0）。"""
+        import os
         from scripts.etl import cli
-        with patch.object(sys, "argv", ["cli.py", "--cleanup-tmp"]):
-            with patch.object(cli, "_cleanup_fq_tmp_orphans", return_value=0) as m:
-                with patch("scripts.etl.cli.sys.exit", side_effect=SystemExit(0)) as mock_exit:
-                    with pytest.raises(SystemExit):
-                        cli.main()
+        with patch.dict(os.environ, {"ETL_MIN_DISK_GB": "0"}):
+            with patch.object(sys, "argv", ["cli.py", "--cleanup-tmp"]):
+                with patch.object(cli, "_cleanup_fq_tmp_orphans", return_value=0) as m:
+                    with patch("scripts.etl.cli.sys.exit", side_effect=SystemExit(0)) as mock_exit:
+                        with pytest.raises(SystemExit):
+                            cli.main()
         # 验证 1：cleanup 函数被调一次
         m.assert_called_once()
         # 验证 2：sys.exit(0) 被调（早退出，不进 ETL）
@@ -458,12 +460,14 @@ class TestCleanupTmpFlag:
 
     def test_cleanup_tmp_prints_audit_path(self, capsys):
         """--cleanup-tmp 应打印审计日志路径提示（运维友好）。"""
+        import os
         from scripts.etl import cli
-        with patch.object(sys, "argv", ["cli.py", "--cleanup-tmp"]):
-            with patch.object(cli, "_cleanup_fq_tmp_orphans", return_value=3):
-                with patch("scripts.etl.cli.sys.exit", side_effect=SystemExit(0)):
-                    with pytest.raises(SystemExit):
-                        cli.main()
+        with patch.dict(os.environ, {"ETL_MIN_DISK_GB": "0"}):
+            with patch.object(sys, "argv", ["cli.py", "--cleanup-tmp"]):
+                with patch.object(cli, "_cleanup_fq_tmp_orphans", return_value=3):
+                    with patch("scripts.etl.cli.sys.exit", side_effect=SystemExit(0)):
+                        with pytest.raises(SystemExit):
+                            cli.main()
         captured = capsys.readouterr()
         # 验证 1：输出包含审计日志路径
         assert "/tmp/fuqing-tmp-cleanup.log" in captured.out, (
