@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 56 Phase 1+2 收口, v0.4.14.140, main HEAD `277a4b1`)
+**最后更新**: 2026-06-21 (Sprint 56 Phase 1+2 + Phase 3 drift fix 收口, v0.4.14.140, main HEAD `9bc53fe`)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.140` |
-| git HEAD (main) | `277a4b1` (Sprint 56 Phase 1+2 merge + VERSION bump, ff-merge from `refactor/sprint56-phase1-phase2`) |
+| git HEAD (main) | `9bc53fe` (Sprint 56 Phase 3 drift fix, testing.md + SPRINT_INDEX.md 补内容) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 56 (CHANGELOG 30 entry 滚动 + 4 stub doc 补实 + DRY 拆解) |
+| 最近 sprint | Sprint 56 (CHANGELOG 30 entry 滚动 + 4 stub doc 补实 + DRY 拆解 + Phase 3 drift fix) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 4 commit 0 debt (Sprint 56: a145a1a + de40843 + b22dbe9 merge + 277a4b1 VERSION bump) |
+| 上次合入 | 6 commit 0 debt (Sprint 56: a145a1a + de40843 + b22dbe9 merge + 277a4b1 VERSION + d872dcd STATUS/CHANGELOG + 9bc53fe drift fix) |
 
 ---
 
