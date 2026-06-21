@@ -37,10 +37,10 @@
 | commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
 
 <!-- STATUS-AUTO-START -->
-| pytest collected | **764** | Sprint 59 自动抓 |
-| pytest skipped | **0** | Sprint 59 自动抓 |
-| 当前债数 | **0** | Sprint 59 自动抓 |
-| 最近 sprint | **Sprint 59** | Sprint 59 自动抓 |
+| pytest collected | **764** | Sprint 60 自动抓 |
+| pytest skipped | **1** | Sprint 60 手动 (跨 sprint 留尾, pytest --co 抓不到) |
+| 当前债数 | **0** | Sprint 60 自动抓 |
+| 最近 sprint | **Sprint 60** | Sprint 60 手动 (CHANGELOG.md 还没 commit 抓不到) |
 <!-- STATUS-AUTO-END -->
 
 ---
