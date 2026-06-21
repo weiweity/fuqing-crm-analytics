@@ -113,3 +113,35 @@ class TestSprint601ChannelAliasRegression:
         assert "o.channel NOT IN" in sql, (
             f"channel NOT IN 需加 o. 别名, 实际 SQL: {sql}"
         )
+
+
+class TestSprint6011DistributionParamsOrderRegression:
+    """Sprint 60.1.1 治本: get_category_distribution params 顺序对齐 SQL `?` 占位符.
+
+    根因 (跟 Sprint 60 同根因类型, Sprint 60 漏修 Lane C):
+    get_category_distribution SQL 模板的 `?` 占位符顺序是
+    base_params DATE(?) × 2 → rfm r.analysis_date = ? → r.lookback_days = ? → DATE(?) end_date
+    → valid_where_clause (pay_time × 2 + channel × 4) → excluded_cat_sql × 18 → channel_filter × 4.
+    修前 valid_where_params 在前 → SQL 第 1 个 DATE(?) 拿到 pay_time start, 错位 2 params
+    → DuckDB ConversionException: invalid date field format: "百补派样" → API 500.
+
+    防御: 故意 rollback 验证 test 真 FAIL (Sprint 34.1 "破坏 → 验证 → 恢复" 模式).
+    """
+
+    def test_get_category_distribution_params_aligned_with_sql(self, monkeypatch_connection):
+        """get_category_distribution + exclude_channels 真跑 SQL, 验证不抛 ConversionException."""
+        from backend.services.category_service.distribution import get_category_distribution
+        result = get_category_distribution(
+            date="2026-06-20",
+            lookback_days=19,
+            level="class",
+            exclude_channels=["U先派样", "百补派样", "赠品&0.01", "其他"],
+        )
+        # 修复后应该不抛 ConversionException
+        assert isinstance(result, dict)
+        assert "date" in result
+        assert "distribution" in result
+        # total_users > 0 (排除低价后还应有真实品类用户)
+        assert result.get("total_users", 0) > 0, (
+            f"修复后 total_users 应 > 0, 实际: {result.get('total_users')}"
+        )
