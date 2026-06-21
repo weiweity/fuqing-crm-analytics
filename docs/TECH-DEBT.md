@@ -12,7 +12,7 @@
 - 📋 **FilterBuilder 治本** (Sprint 60+ 留尾): 加 `o.channel` 前缀 (14+ service audit + ground-truth-lint 扫 `FROM orders` 无别名, 半天 ~ 1d). Sprint 60.1 治标 2 个 endpoint 加 `o.`, 治本 (改 FilterBuilder) 会冲击 14+ service
 - ✅ **L4.8 业务定义 SSOT 文档化** (Sprint 60+ 留尾已闭环): 写 `docs/business/RFM_DEFINITIONS.md` (v0.4.14.147, 跟 Sprint 14.5 P1.1 注释对齐)
 - ✅ **Sprint 60+ ruff 留尾 3 闭环**: `test_status_update.py:8 F401 sys` + `37+38 F541 extraneous f prefix` (Sprint 60.3 修)
-- 📋 **CI e2e 真实数据缺失**: CI runner 无 `data/processed/fuqing_crm.duckdb`, e2e 恢复 `continue-on-error: true` 治标, 治本需 seed/mock DuckDB (推后评估)
+- ✅ **CI e2e 真实数据缺失 闭环 (C+)**: Sprint 60.3+ 把 e2e 降级为纯 UI smoke + `auth.fixture.ts` 统一 API 5xx 拦截, 不再依赖 production DuckDB, 去掉 `continue-on-error: true` 后 4/4 CI pass. 业务数值端到端验证保留给本地真数据 e2e。
 
 **Sprint 60+ 闭环** (4 sprint 累计 11 commit 0 debt, v0.4.14.144 → v0.4.14.147):
 - ✅ Sprint 60 params 顺序错位治本 (v0.4.14.144, 5 commit 0 debt, pytest 763/1)

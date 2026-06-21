@@ -4,6 +4,18 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.149] - 2026-06-21
+
+### Changed
+- Sprint 60.3+ C+: e2e 降级为纯 UI smoke + 统一 API 5xx 拦截
+  - `audience-daily-trend.spec.ts` / `category-detail.spec.ts` / `sampling.spec.ts` 去掉真实数据业务断言
+  - `auth.fixture.ts` 加 `page.on('response')` 拦截 `/api/` 5xx, smoke 仍保留后端健康检查
+  - `.github/workflows/e2e.yml` 去掉 `continue-on-error: true`, e2e 恢复 blocking
+
+### Fixed
+- CI e2e 因 runner 缺 production DuckDB 导致 12/12 spec 失败 — 用 smoke 方案治本, 不再 advisory
+- `category-detail.spec.ts` 用 Playwright route mock `/api/v1/category/detail/**`, 避免 CI 无数据时 API 500 console error
+
 ## [0.4.14.148] - 2026-06-21
 
 ### Fixed

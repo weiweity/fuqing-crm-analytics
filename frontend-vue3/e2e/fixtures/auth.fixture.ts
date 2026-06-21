@@ -34,6 +34,13 @@ export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string
       }
     })
 
+    // Sprint 60.3 C+: 拦截 API 5xx，让 smoke e2e 仍保留后端健康检查能力
+    page.on('response', (response) => {
+      if (response.url().includes('/api/') && response.status() >= 500) {
+        consoleErrors.push(`API ${response.status()}: ${response.url()}`)
+      }
+    })
+
     // 登录
     await page.goto('/')
     await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
