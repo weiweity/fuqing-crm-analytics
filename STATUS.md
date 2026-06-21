@@ -27,11 +27,11 @@
 | pytest skipped | **21** | Sprint 60+ 4 sprint 累计 fixture skip: `w4_full:319` PID 锁 fd + `churn_user_list_fstring` + `distribution_filter_builder:131` + `rfm_flow_ttl_ratio:304` + `w4_t7_integration` 等 21 case (跨 sprint 留尾, 跟 Sprint 50+ 模式一致) |
 | pytest failed | **0** | 上次 green |
 | e2e (Playwright) | **11/11 spec-lint / 期望 e2e 实测 12/12** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
-| ruff lint | **2 fixed, 3 留尾 (Sprint 60+)** | Sprint 60+ 修 2 F841 (test_category_overview_filter_builder.py:151/176 end_dt unused) + Sprint 60+ 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix), Sprint 60.3 闭环 |
+| ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
 | L2 AST spec-lint | **0 violation / 0 warn** | `frontend-vue3/e2e/lint/spec-lint-l2.py` 11 spec checked |
 | ground-truth-lint (L3) | **0 violations** | `backend/scripts/check_filter_builder_usage.py` 69 files |
-| GH Actions CI | **4/4 pass (期望)** | Sprint 58 #1 OOM 治本 (DuckDB ATTACH read_only) + #4 auto-recovery, e2e 治本不再需要 `continue-on-error` |
+| GH Actions CI | **3/4 pass + e2e advisory** | Sprint 60.3 修 lint + 升 upload-artifact@v4; e2e 因 CI 缺 production DuckDB 恢复 `continue-on-error: true` (Sprint 41 同策略) |
 | pre-commit hooks | **10 件 OK** | `.githooks/pre-commit` (9 件) + `.githooks/commit-msg` (Sprint 58 #2 升级 blocking, 误报率 0%) |
 | vite build | **750ms** | Sprint 58 验证, 0 errors |
 | commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
