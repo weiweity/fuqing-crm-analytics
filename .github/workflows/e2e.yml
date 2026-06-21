@@ -61,14 +61,14 @@ jobs:
           cd frontend-vue3
           npx playwright install --with-deps chromium
 
-      - name: Setup DuckDB ATTACH (Sprint 58 #1)
+      - name: Setup e2e DuckDB schema-only fixture (Sprint 60.3+ C+)
         run: |
           python3 - <<'PY'
           import duckdb
 
           conn = duckdb.connect('/tmp/e2e_duckdb.duckdb')
-          conn.execute("ATTACH 'data/processed/fuqing_crm.duckdb' AS prod (READ_ONLY)")
-          conn.execute("PRAGMA search_path='main,prod'")
+          with open('scripts/ci/e2e_schema.sql') as f:
+              conn.execute(f.read())
           conn.execute('SELECT 1').fetchone()
           conn.close()
           PY
