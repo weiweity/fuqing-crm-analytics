@@ -280,3 +280,84 @@ class TestRfmFlowPydanticContract:
                 repurchase_gsv_ratio_current=1.5,
             )
         assert "less_than_equal" in str(exc.value)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Sprint 60.2 治根: RFM 8 象限 (period.py) 老客 GSV TTL 100% 治本
+# ─────────────────────────────────────────────────────────────────
+
+class TestSprint602OldCustomerGsvTtl:
+    """Sprint 60.2 治本: RFM 8 象限 (period.py _run_rfm_period_live) TTL 行
+    跟 8 象限口径一致 (老客 GSV TTL = 8 象限老客 GSV 之和, 自己除以自己 ratio 100%).
+
+    根因 (Sprint 60.1.1 端到端验证暴露): period.py 之前用 base_orders 全部 (含新客)
+    算 TTL 行的 repurchase_users/gsv, 跟 8 象限口径不一致, 算 ratio 67.34% 错.
+    修后: TTL hist_users 用 user_stats_all (RFM 评分用户, 老客 3,317,779),
+    repurchase_users/gsv 用 user_stats_all JOIN base_orders (老客 ∩ base),
+    ratio 100% (自己除以自己).
+
+    跟 R/F/M 治根 (Sprint 14.5 P1.1) 模式一致, 但 RFM 8 象限采用 ratio=1.0 强类型
+    (不是 None), 因为 8 象限跟 TTL 业务上是"分桶 vs 合计"层级关系, 9 行 sum=200%
+    业务合理双计 (跟 Sprint 60.1.1 wool_party 强截断模式一致).
+    """
+
+    def test_rfm_analysis_old_customer_ttl_100_percent(self, monkeypatch_connection):
+        """Sprint 60.2 治本: RFM 8 象限 endpoint 端到端验证 TTL 行 ratio = 100%.
+
+        跟用户截图 (2026-06-01 ~ 2026-06-20, 全店, 排除低价) 一致:
+        - 8 象限 ratio sum = 100% (各象限 / 老客 GSV 合计)
+        - TTL ratio = 100% (老客 GSV / 老客 GSV, 自己除以自己)
+        - TTL rep_gsv = 8 象限 sum gsv (老客 GSV, 跟 8 象限口径一致)
+        """
+        from backend.services.health.rfm_analysis import analysis
+
+        result = analysis.get_rfm_analysis(
+            year=2026,
+            metric_type="GSV",
+            start_date="2026-06-01",
+            end_date="2026-06-20",
+            compare_start_date="2025-06-01",
+            compare_end_date="2025-06-20",
+            exclude_channels=["U先派样", "百补派样", "赠品&0.01", "其他"],
+        )
+        rows = result.get("rows", [])
+        # 期望 9 行 (8 象限 + TTL)
+        assert len(rows) == 9, f"期望 9 行, 实际 {len(rows)}"
+
+        # 8 象限 ratio sum = 100% (分桶 100% 分配)
+        eight_seg_ratio_sum = 0.0
+        eight_seg_gsv_sum = 0.0
+        ttl_row = None
+        for r in rows:
+            seg = r.get("rfm_segment", "")
+            ratio = r.get("repurchase_gsv_ratio_current")
+            gsv = r.get("repurchase_gsv_current", 0) or 0
+            if seg == "已购客TTL":
+                ttl_row = r
+            else:
+                if ratio is not None:
+                    eight_seg_ratio_sum += ratio
+                eight_seg_gsv_sum += gsv
+
+        # 8 象限 ratio sum ≈ 1.0 (容差 0.01)
+        assert abs(eight_seg_ratio_sum - 1.0) < 0.01, (
+            f"8 象限 ratio sum 应 ≈ 1.0, 实际 {eight_seg_ratio_sum}"
+        )
+
+        # TTL ratio = 1.0 (自己除以自己)
+        assert ttl_row is not None, "TTL 行缺失"
+        assert ttl_row.get("repurchase_gsv_ratio_current") == 1.0, (
+            f"TTL ratio 应 = 1.0 (自己除以自己), 实际 {ttl_row.get('repurchase_gsv_ratio_current')}"
+        )
+
+        # TTL rep_gsv = 8 象限 sum gsv (老客 GSV, 自己除以自己)
+        ttl_gsv = ttl_row.get("repurchase_gsv_current", 0)
+        assert abs(ttl_gsv - eight_seg_gsv_sum) < 1.0, (
+            f"TTL rep_gsv ({ttl_gsv}) 应 = 8 象限 sum gsv ({eight_seg_gsv_sum})"
+        )
+
+        # TTL hist_users = 3,317,779 (老客, RFM 评分用户, 跟 8 象限口径一致)
+        ttl_hist = ttl_row.get("hist_users_current", 0)
+        assert 3_000_000 < ttl_hist < 3_500_000, (
+            f"TTL hist_users 应约 3,317,779 (老客), 实际 {ttl_hist}"
+        )
