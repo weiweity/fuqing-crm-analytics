@@ -106,10 +106,11 @@ jobs:
           set +e
 
       - name: Run e2e with auto-recovery (Sprint 58 #4 wrapper)
+        working-directory: frontend-vue3
         run: |
           export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
-          chmod +x scripts/ci/auto_recover_ci.sh
-          bash scripts/ci/auto_recover_ci.sh npx playwright test --reporter=list
+          chmod +x ../scripts/ci/auto_recover_ci.sh
+          bash ../scripts/ci/auto_recover_ci.sh npx playwright test --reporter=list
 
       - name: Upload auto-recovery log on failure
         if: failure()
