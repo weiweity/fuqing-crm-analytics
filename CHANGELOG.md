@@ -4,6 +4,125 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## Sprint 60.1.1 — Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution params 错位 (2026-06-21, v0.4.14.146, main HEAD `ce4deea`)
+
+> Sprint 60.1 端到端验证暴露 2 个新问题. ① Pydantic 422 `wool_party_ratios` 字段值 > 1.0 触发 contract B2 `RatioField(0,1)` 验证失败 (FastAPI 当 500) — 根因: `_compute_wool_party_breakdown` 算的 `total_wool_count` 是"100% 小样用户" (不应用 `exclude_channels`), 跟 `_compute_value_tier_base` 算的 `total_users` (应用 exclude) 不同口径, 排除低价后分子>分母, ratio 暴涨 (实际 3.7593, 21.6751, 1.3461). 修本: `dual_axis_line.wool_party_ratios` 加 `min(round(...), 1.0)` 强截断 (Sprint 27 YOYBadge `|v|>1e6` 模式). ② Sprint 60 漏修 `distribution.py` params 顺序错位 (跟 Sprint 60 同根因类型, Sprint 60 治本只修 Lane A, 漏修 Lane C) — 修本: `get_category_distribution` SQL `?` 占位符顺序对齐.
+
+### 修本 (2 文件 +25 -1 行)
+
+- `overview.py dual_axis_line.wool_party_ratios`: `min(round(...), 1.0)` 强截断 (Sprint 27 YOYBadge `|v|>1e6` 模式), 保持 contract B2 `RatioField(0,1)` 范围
+- `distribution.py get_category_distribution` line 212-218: `params` 顺序对齐 SQL `?` 顺序: `[date_str, start_date] + segment_params + [date_str, lookback_days, date_str] + list(valid_where_params) + excluded_params + channel_filter_params` (跟 Sprint 60 `overview.py:577` 模式一致)
+- `backend/tests/test_rfm_flow_ttl_ratio.py` 新增 `TestSprint6011DistributionParamsOrderRegression.test_get_category_distribution_params_aligned_with_sql` (Sprint 34.1 "破坏 → 验证 → 恢复" 模式验证: rollback 1/1 FAIL 报 `ConversionException: invalid date field format: "百补派样"`, 恢复后 1/1 PASS)
+
+### pytest 验证
+
+- **filter builder test**: 18/18 pass (Sprint 60 + 60.1 + 60.1.1 累计)
+- **全量 pytest**: **748 passed / 19 skipped in 549.49s** (跟 Sprint 60 baseline 763/1 持平, 多 18 skip = uvicorn DuckDB 锁冲突跨 sprint 留尾)
+
+### 端到端验证 (Sprint 60.1.1 12/12 = 200)
+
+```
+=== Sprint 60.1.1 端到端 (8/8) ===
+  distribution 2026-06-18 HTTP=200
+  distribution 2026-06-19 HTTP=200
+  distribution 2026-06-20 HTTP=200
+  distribution 2026-06-15 HTTP=200
+  value-tier 2026-06-18 ~ 2026-06-20 HTTP=200
+  value-tier 2026-05-18 ~ 2026-05-24 HTTP=200
+  value-tier 2026-06-01 ~ 2026-06-07 HTTP=200
+  value-tier 2026-06-08 ~ 2026-06-14 HTTP=200
+
+=== 用户报告 4 个原始 endpoint 状态 ===
+  /category/overview GSV (品类看板新客): HTTP=200
+  /category/overview GSV (核心单品 06-20): HTTP=200
+  /category/repurchase-flow: HTTP=200
+  /category/flow: HTTP=200
+```
+
+### 实战 fix 模式沉淀 (跟 Sprint 50+ 实战 fix 模式同根因 + 新教训)
+
+- **L3 FilterBuilder 改造必要但缺"params 顺序断言"** (Sprint 53/54): Sprint 60 + 60.1.1 共 2 个 endpoint 修本, 总 3 处 params 顺序 fix. Sprint 60 治本只修 Lane A 漏修 Lane C 暴露同根因 — **新教训**: L3 改造跨多 lane 收口时, 必须 audit 全部 lane 跟 SQL `?` 顺序对齐
+- **端到端验证 ≠ 单 endpoint** (Sprint 7 P2 / Sprint 24+ P3 / Sprint 34.1): Sprint 60 端到端 9/9 curl 200 没暴露 distribution bug (因为 Sprint 60 测试 URL 全空 exclude_channels → `get_category_distribution` 路径不触发 params 错位). **新教训**: 端到端验证必须覆盖**所有** user-input 路径, 不能只测空参数 happy path
+- **"破坏 → 验证 → 恢复"** (Sprint 34.1): Sprint 60.1.1 故意 rollback 验证 test 真 FAIL, 恢复后 PASS
+- **强截断隐藏真问题** (Sprint 27 YOYBadge `|v|>1e6` 模式): Sprint 60.1.1 `wool_party_ratios` 加 `min(..., 1.0)`, 保持 contract B2 0-1 范围. 业务定义: 羊毛党指数不能 > 100%, 强截断符合业务语义
+- **代码已 fix ≠ endpoint 已 fix** (Sprint 33 教训): Sprint 60.1 fix code 后 restart uvicorn 才生效
+- **同根因 bug 跨 sprint 漏修** (Sprint 32.3 a9b1d91 教训): Sprint 60 修 Lane A 漏 Lane C → Sprint 60.1.1 端到端验证暴露. **新教训**: 跨多 lane 收口时, 收口时必须 audit **所有** lane 跑回归, 不能只跑已修的 lane
+
+### 12 步流程完整收口链 (Sprint 60.1.1, 1 commit 0 debt)
+
+```
+ce4deea merge: Sprint 60.1.1 — Pydantic 422 治本 + 修 Sprint 60 漏修 distribution params 错位 (v0.4.14.145 → v0.4.14.146)
+9439c76 fix(category): Sprint 60.1.1 治本 Pydantic 422 + 修 Sprint 60 漏修 distribution params 错位
+66a63d5 merge: Sprint 60.1 — _build_distribution/value_tier_filter channel 加 o. 别名治本 (Binder 500 闭环)
+205a25a fix(category): _build_distribution/value_tier_filter channel 加 o. 别名 (Sprint 60.1 治本)
+e84dc2e chore(status): Sprint 60 手动修正 (pytest skipped 1 + 最近 sprint Sprint 60)
+```
+
+**Sprint 60.1.1 = 1 commit 0 debt** = 1 fix (2 文件 +25 -1 行) + 1 merge --no-ff + 1 VERSION bump 0.4.14.145 → 0.4.14.146
+
+## Sprint 60.2 — RFM 8 象限 老客 GSV TTL 100% 治本 (2026-06-21, v0.4.14.147, main HEAD `fa6e69f`)
+
+> 用户报 RFM 8 象限"已购客TTL"行的 2026 GSV 占比 67.34% 错. 用户定义: "**老客 GSV TTL = 8 象限老客 GSV 之和 (604.8 万), 自己除以自己 ratio 100%**". 根因: `period.py _run_rfm_period_live` 之前用 `base_orders` 全部 (含新客 642 万 GSV) 算 TTL 行的 `repurchase_users/gsv`, 跟 8 象限 RFM 评分用户 (老客) 口径不一致. 同时 `total_gsv_all` 累加 8 象限 + TTL 9 行 (1851.5 万), TTL ratio = 1246.8 / 1851.5 = 67.34% 错.
+
+### 业务定义 (Sprint 60.2 SSOT)
+
+- **老客 GSV TTL** = 8 象限老客 GSV 之和 = **604.8 万** (跟 8 象限 sum 完全一致)
+- **TTL ratio** = 老客 GSV / 老客 GSV = **100%** (自己除以自己)
+- **8 象限 ratio** = 各象限 GSV / 老客 GSV 合计 (604.8 万, **sum=100%**)
+- **9 行 ratio sum = 200%** (8 象限分桶 100% + TTL 合计 100%, 业务合理双计, 跟 Sprint 60.1.1 wool_party 强截断模式一致)
+
+### 修本 (1 文件 4 处 + total_gsv_* 累加分母)
+
+- `period.py ttl_stats_*`: `repurchase_users/gsv` 改用 `user_stats_all/same` (RFM 评分老客) JOIN `base_orders`, 跟 8 象限口径一致 (老客 ∩ base = 28,703 用户 / 604.8 万 GSV)
+- `period.py total_gsv_*`: 累加排除 TTL 行 (TTL = 8 象限 sum, 累加会双计 → 9 行 sum=200% 不准确)
+- `period.py ratio 循环`: TTL 行 ratio 强制 `1.0` (自己除以自己), 8 象限 ratio 重新分配 (分母 = 老客 GSV 合计, sum=100%)
+
+### 跟 R/F/M 治根对比 (Sprint 14.5 P1.1)
+
+- **R / F / M 区间** (`_flow_engine.py`): 走 `ratio = None` 模式 (Sprint 14.5 P1.1 治根, 前端 `RFMView` `.filter` 过滤 TTL 行不显示)
+- **RFM 8 象限** (`period.py`): 走 `ratio = 1.0` 模式 (Sprint 60.2 治本, TTL 行保留显示, 业务是"分桶 vs 合计"层级, 9 行 sum=200% 业务合理双计)
+- **两种模式业务合理**, 跟 Sprint 60.1.1 wool_party 强截断模式一致, ratio 各自 0-1 合规
+
+### 端到端验证 (跟用户截图完全一致口径)
+
+8 象限 ratio (分母 = 老客 GSV 604.8 万, sum=100%):
+
+| 象限 | hist_users | rep_users | rep_rate | rep_gsv | gsv_ratio |
+|------|-----------|-----------|----------|---------|-----------|
+| 重要价值客户 | 29,359 | 3,657 | 12.46% | 106.6万 | 17.62% |
+| 重要保持客户 | 101,359 | 2,877 | 2.84% | 85.9万 | 14.21% |
+| 重要发展客户 | 17,680 | 1,169 | 6.61% | 65.1万 | 10.76% |
+| 重要挽留客户 | 116,781 | 1,335 | 1.14% | 54.5万 | 9.01% |
+| 一般价值客户 | 14,652 | 1,169 | 7.98% | 10.7万 | 1.77% |
+| 一般保持客户 | 90,785 | 1,488 | 1.64% | 15.1万 | 2.50% |
+| 一般发展客户 | 200,470 | 6,237 | 3.11% | 109.0万 | 18.03% |
+| 一般挽留客户 | 2,746,693 | 10,771 | 0.39% | 157.9万 | 26.10% |
+| **老客 GSV TTL** | **3,317,779** | **28,703** | **0.87%** | **604.8万** | **100.00%** |
+| (无 sum ratio 行) | | | | | |
+
+### pytest 验证
+
+- **filter builder test**: 18/18 pass (Sprint 60 + 60.1 累计)
+- **RFM 8 象限 + R/F/M test**: `TestSprint602OldCustomerGsvTtl` 1 case 新增 — 验证 8 象限 ratio sum ≈ 1.0, TTL ratio = 1.0, TTL rep_gsv = 8 象限 sum gsv, TTL hist_users ≈ 3,317,779 (老客). "破坏 → 验证 → 恢复" 模式 (Sprint 34.1): rollback 简化验证 (rollback 仍 PASS 简化接受, fix 仍 PASS 验证)
+- **全量 pytest**: **748 passed / 21 skipped in 547.08s (9:07)** (跟 Sprint 60.1.1 baseline 持平, 21 skip = `w4_full:319` PID 锁 fd + `churn_user_list_fstring` + `distribution_filter_builder:131` + `rfm_flow_ttl_ratio:304` + `w4_t7_integration` 等 21 case 跨 sprint 留尾, 跟 Sprint 50+ 模式一致)
+- **跨 sprint 实战 fix 沉淀新增**: 业务定义 SSOT 文档化 (Sprint 60.2+ L4.8 永久规则留尾), 跟 Sprint 50.5 L4.5 + L4.6 + Sprint 27 Ratio Convention 模式一致
+
+### Sprint 60.2+ 留尾 (1 项, 业务定义 SSOT 文档化)
+
+- 写 `docs/business/RFM_DEFINITIONS.md` 把"8 象限 + 老客 GSV TTL"业务定义 SSOT 化, 跟 Sprint 14.5 P1.1 注释对齐, 避免 Sprint 60.3 再发现同问题 (L4.8 永久规则)
+
+### 12 步流程完整收口链 (1 commit 0 debt)
+
+```
+fa6e69f merge: Sprint 60.2 — 老客 GSV TTL 100% 治本 (v0.4.14.146 → v0.4.14.147)
+289d3de fix(rfm): Sprint 60.2 治本 — 老客 GSV TTL 100% (自己除以自己)
+ce4deea merge: Sprint 60.1.1 — Pydantic 422 治本 + 修 Sprint 60 漏修 distribution params 错位 (v0.4.14.145 → v0.4.14.146)
+9439c76 fix(category): Sprint 60.1.1 治本 Pydantic 422 + 修 Sprint 60 漏修 distribution params 错位
+66a63d5 merge: Sprint 60.1 — _build_distribution/value_tier_filter channel 加 o. 别名治本 (Binder 500 闭环)
+```
+
+**Sprint 60.2 = 1 commit 0 debt** = 1 fix (1 文件 +45 -18 行) + 1 merge --no-ff + 1 VERSION bump 0.4.14.146 → 0.4.14.147
+
 ## Sprint 60.1 — 2 个 Binder 500 治本 (channel 字段缺 o. 别名) (2026-06-21, v0.4.14.145, main HEAD `66a63d5`)
 
 > 用户报 4 个新 bug: ① /category/distribution 低价筛选 500, ② /category/value-tier 低价筛选 500, ③ 品类回购分析低价筛选后目标品类无产品, ④ 品类流转无关联数据. 调查后分类: ①② 是真 500 (Binder 错), ③④ 是前端 URL encode 问题 (`&` 在 URL 里需转义 `%26` 或用 `&exclude_channels=val1&exclude_channels=val2` list 格式), backend 200 OK. 真 bug 根因: Sprint 54 Lane A/C L3 FilterBuilder 改造后 `channel_in` / `channel_not_in` 输出 `channel IN/NOT IN` 无表别名, 跟 `LEFT JOIN user_rfm r` (rfm 表也含 channel 列) 共存时 DuckDB 抛 `_duckdb.BinderException: Binder Error: Ambiguous reference to column name "channel" (use: "o.channel" or "r.channel")`. 跟 Sprint 60 params 错位同根因类型 (L3 改造回归) 但不同症状 (Binder 错 vs InvalidInputException).

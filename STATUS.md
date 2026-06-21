@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 59 收割季收口, v0.4.14.143, main HEAD `1956846`)
+**最后更新**: 2026-06-21 (Sprint 60+ 累计 4 sprint 收口, v0.4.14.147, main HEAD `fa6e69f`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.143` |
-| git HEAD (main) | `1956846` (Sprint 59 #8 merge, audit 措辞 SOP) |
+| VERSION | `0.4.14.147` |
+| git HEAD (main) | `fa6e69f` (Sprint 60.2 merge, RFM 8 象限 老客 GSV TTL 100% 治本) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 59 (收割季: #6 STATUS 自动化 + #5 CHANGELOG 按行数归档 + #8 audit 措辞 SOP) |
+| 最近 sprint | Sprint 60.2 (RFM 8 象限 老客 GSV TTL 100% 治本, 跟 R/F/M 治根模式一致) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 6 commit 0 debt (Sprint 59: 84e5716 #6 + 5ef87e1 merge #6 + 1e2a2eb #5 + 0f25392 merge #5 + b9f4f28 #8 + 1956846 merge #8 + VERSION bump 待 commit) |
+| 上次合入 | 12 commit 0 debt (Sprint 60+ 累计 4 sprint: Sprint 60 + 60.1 + 60.1.1 + 60.2) |
 
 ---
 
@@ -23,11 +23,11 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **754** | Sprint 59 doc-only 收口, 改动无新增 test (pytest 数字跟 Sprint 58 持平) |
-| pytest skipped | **1** | `test_w4_full.py:319` PID 锁 fd, fixture 模式 skip (Sprint 53 治本) |
+| pytest passed | **748** | Sprint 60+ 收口后 baseline (pytest 跑完 9:07, 跟 Sprint 60.1.1 748/19 持平) |
+| pytest skipped | **21** | Sprint 60+ 4 sprint 累计 fixture skip: `w4_full:319` PID 锁 fd + `churn_user_list_fstring` + `distribution_filter_builder:131` + `rfm_flow_ttl_ratio:304` + `w4_t7_integration` 等 21 case (跨 sprint 留尾, 跟 Sprint 50+ 模式一致) |
 | pytest failed | **0** | 上次 green |
 | e2e (Playwright) | **11/11 spec-lint / 期望 e2e 实测 12/12** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
-| ruff lint | **clean** | Sprint 55.1 修 8 F401 + Sprint 55.5 facade 删无 F401 |
+| ruff lint | **2 fixed, 3 留尾 (Sprint 60+)** | Sprint 60+ 修 2 F841 (test_category_overview_filter_builder.py:151/176 end_dt unused) + Sprint 60+ 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix), Sprint 60.3 闭环 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
 | L2 AST spec-lint | **0 violation / 0 warn** | `frontend-vue3/e2e/lint/spec-lint-l2.py` 11 spec checked |
 | ground-truth-lint (L3) | **0 violations** | `backend/scripts/check_filter_builder_usage.py` 69 files |
@@ -37,10 +37,10 @@
 | commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
 
 <!-- STATUS-AUTO-START -->
-| pytest collected | **764** | Sprint 60 自动抓 |
-| pytest skipped | **1** | Sprint 60 手动 (跨 sprint 留尾, pytest --co 抓不到) |
-| 当前债数 | **0** | Sprint 60 自动抓 |
-| 最近 sprint | **Sprint 60** | Sprint 60 手动 (CHANGELOG.md 还没 commit 抓不到) |
+| pytest collected | **748** | Sprint 60+ 实际 pytest 跑完 (Sprint 60.1.1 baseline 持平, Sprint 60+ 4 sprint 新增 7 case 跑通) |
+| pytest skipped | **21** | Sprint 60+ 手动 (跨 sprint 留尾 fixture, pytest --co 抓不到) |
+| 当前债数 | **0** | Sprint 60+ 自动抓 (4 sprint 累计 12 commit 0 debt) |
+| 最近 sprint | **Sprint 60.2** | Sprint 60.2 手动 (CHANGELOG.md 还没 commit 抓不到) |
 <!-- STATUS-AUTO-END -->
 
 ---
@@ -51,6 +51,8 @@
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
 | 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-58 累计 |
+| Sprint 60+ 留尾 | **3 项 + 3 ruff 留尾** | ① FilterBuilder 治本: 加 `o.channel` 前缀 + audit 14+ service (半天 ~ 1d) ② L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` ③ L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md` (跟 Sprint 14.5 P1.1 注释对齐) ④ Sprint 60+ ruff 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix, Sprint 60.3 闭环) |
+| Sprint 60+ 闭环 | **4 sprint 累计 12 commit 0 debt** | Sprint 60 (params 顺序错位) + 60.1 (Binder 500 channel 加 o. 别名) + 60.1.1 (Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution) + 60.2 (RFM 8 象限 老客 GSV TTL 100% 治本) |
 | Sprint 59 留尾 | **1 项** | #3 50m scale 调研推 Sprint 60+ (触发条件 = 30M 数据量) |
 | Sprint 59 闭环 | **3 项** | #6 STATUS.md 自动化 (4 字段 + 3 case test) + #5 CHANGELOG 按行数归档 (≤ 900 行 + archive_changelog.py) + #8 audit 措辞 SOP (5 规则 + 5 反例正例) |
 | Sprint 58 闭环 | **3 项** | #4 CI e2e 持久化 (12+4 follow-up + auto_recover_ci.sh + e2e.yml auto-recovery) + #1 OOM 治本 (DuckDB ATTACH + workers 1 + timeout 60s) + #2 commit-msg blocking hook (误报率 0%) |

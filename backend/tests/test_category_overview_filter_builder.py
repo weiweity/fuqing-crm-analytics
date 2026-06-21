@@ -148,7 +148,6 @@ class TestSprint60CategoryParamsMismatchRegression:
         from datetime import timedelta
 
         start_dt = date(2026, 6, 1)
-        end_dt = date(2026, 6, 20)
         cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
 
         # 修复后应该不抛 InvalidInputException; 跟 fixture DuckDB 真实跑 SQL
@@ -173,7 +172,6 @@ class TestSprint60CategoryParamsMismatchRegression:
         from datetime import timedelta
 
         start_dt = date(2026, 6, 1)
-        end_dt = date(2026, 6, 20)
         cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
 
         # 修复后应该不抛 InvalidInputException
