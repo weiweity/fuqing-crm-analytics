@@ -4,6 +4,35 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.150] - 2026-06-22
+
+### Fixed
+- Sprint 61 P2 治本: uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (修接错空/过期 DuckDB 静默 0 数据风险)
+  - `backend/config.py` +8 行: `FQ_DB_MODE` (env) + `DB_MODE` (默认 `production`) + `DB_FRESHNESS_DAYS` (默认 30 天) 3 个常量
+  - `backend/main.py` +125 行: `validate_startup_db()` 函数 + `lifespan` 启动调用. 校验 DB realpath/size/`orders.count`/`max(pay_time)` 新鲜度. profile-aware: `production` raise / `schema_test` WARN only / 未知 mode 默认 production. 用临时 `read_only duckdb.connect` 校验, 不污染全局单例
+  - `backend/tests/test_startup_validation.py` +136 行新文件: 5 case 全过 (含 Sprint 24+ P3 "故意破坏 → 验证 FAIL → 恢复 PASS" 模式)
+  - **5/5 端到端场景验证全过 (Phase 3)**: happy_path (107GB + 10.76M orders 启动 OK) / fail_fast_A (空库 → uvicorn exit 3 + RuntimeError) / fail_fast_B (2020-01-01 → 距今 2364 天 > 30 天阈值 → uvicorn exit 3) / ci_mode (`FQ_DB_MODE=schema_test` 跳过校验 + WARN) / e2e (audience summary 返回真实 GSV 12,756,616.17)
+  - **设计原则 (拒绝自动 fallback + 全局 1GB 阈值)**: 自动 fallback 污染测试边界 (接错 DB 静默切到生产, 反而更难定位); 1GB 全局阈值误伤合法 <1GB 测试库 (schema_test 场景天然 <1GB). 当前 production 模式用 `orders.count` + freshness 双信号精准判断, schema_test 模式显式 opt-in
+  - 端到端测试结果: 753 passed / 21 skipped / 0 failed (550.18s = 9:10, 跨 sprint baseline 持续, 21 skipped 都是 production DuckDB 不可用 / PID lock 跨 sprint 留尾)
+  - 跟 Sprint 60+ 留尾 1 项 (FilterBuilder `_compute_*` params count 断言) 不冲突: 留尾项位置 `backend/services/category_service/overview.py` (Sprint 60 Lane A scope), 本次修改位置 `backend/main.py` (lifespan) + `backend/config.py` (env) + `backend/tests/test_startup_validation.py`, 完全不同的代码路径
+  - 新增 recurring pattern (c): uvicorn 接错 DB 静默 0 数据 P2 风险 → Sprint 61 治本 (FQ_DB_MODE profile-aware fail-fast)
+
+### Changed
+- Sprint 61 docs sync: README.md 同步 Sprint 34.1 → Sprint 61 (15 行, < 4000 字符)
+  - 测试行 587 → 768 (跨 Sprint 34.1+36.4+50+50.1+53+53.5+54 累计 AI write safety net)
+  - Sprint 53.5 后追加 9 条 Sprint 54-61 状态行 (54 L3 100% / 55 CI 4 fix / 55.5 audit / 56 doc drift / 57 docs 沉淀 / 58 工具链 / 59 收割季 / 60+ 累计 4 sprint / 60.3+ CI / 61 cleanup + P2)
+  - CHANGELOG 链接 v0.4.14.136 → v0.4.14.149 (Sprint 50.1 → Sprint 61)
+  - 变更历史表追加 2026-06-22 一行
+  - 风格统一中文+emoji+一行一个 sprint, 不动 CHANGELOG (按 /document-release skill 规则)
+- Sprint 61 cleanup (chore, 4 dead code 删 + 2 过气 doc 删 + CHANGELOG 归档 ≤ 900 行 + STATUS 同步): commit `285d912` 已合 main
+- Sprint 60.3+ CI fix (commit `f31626e`, main HEAD): CI test job 排除 `pytest.mark.slow` 避免 10.6M 行 DuckDB integration 测试 hang, CI 4/4 全绿 (lint + ground-truth-lint + test + e2e advisory)
+
+### 留尾
+- P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+)
+- Sprint 60+ 留尾 1 项 (FilterBuilder `_compute_*` params count 断言, 0.5d) 跨 sprint 累计
+- L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)`
+- L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md`
+
 ## [0.4.14.149] - 2026-06-21
 
 ### Changed
@@ -840,47 +869,6 @@ Sprint 57 闭环率: 3/10 = 30% (剩余 7 项分布 Sprint 58 工具链实战 fi
 - `.pre-commit-config.yaml` (spec-lint hook 集成)
 - `docs/CI-E2E-HISTORY.md` (实战 12 follow-up 总结, 引用不复述)
 - `docs/TECH-DEBT.md` 债 #S42-1 闭环 (line 32 新待办 + line 386 已修复段)
-
----
-
-## [v0.4.14.133] - 2026-06-19 - test(e2e): Sprint 43 #S43-1 + #S43-2 — 7 个 spec 删冗余 waitForTimeout + spec-lint 改 blocking
-
-> Sprint 42 #S42-1 spec-lint 起步 advisory, 1-2 sprint 观察 false positive 率后改 blocking. Sprint 43 #S43-2 修 7 真违反 (10 个 waitForTimeout 调用), #S43-1 改 blocking. 跟 ground-truth-lint Sprint 17 #121 (advisory 起步) → Sprint 18 #142 (blocking) 模式同源. v0.4.14.132 → 0.4.14.133.
-
-### Changed (7 spec + .pre-commit-config.yaml)
-
-1. **`frontend-vue3/e2e/{breakdown,sampling,category,category-detail,customer-health,market-focus,audience-daily-trend}.spec.ts`** (Sprint 43 #S43-2) — 删 10 个冗余 `waitForTimeout(N)` 调用 + 简化注释引用. 全部 `waitForTimeout` 删除, 后面 expect/toBeVisible 自己 wait 30s. 跟 Sprint 41.9 实战 fix 改 timeout 没换治本同根因, 这次 Sprint 43 治本(预期 e2e 11/11 spec 仍然 pass, 跑批留 Sprint 43.1 post-merge 验证).
-2. **`.pre-commit-config.yaml`** (Sprint 43 #S43-1) — spec-lint hook entry 去掉 `--advisory` flag, 改 blocking 模式. 跟 ground-truth-lint Sprint 17 → 18 模式一致.
-3. **`CLAUDE.md` L5.2** (Sprint 43 实施标) — spec 写法"环境无关"原则 + spec-lint 改 blocking 时间点标 Sprint 43.
-4. **`README.md`** (ship 后收尾时改, 跟 Sprint 43 一起 commit) — Sprint 42 收口状态行补 (Sprint 42 #S42-1 spec-lint 4 产出物).
-5. **`docs/PRE-COMMIT.md`** (ship 后收尾时改, 跟 Sprint 43 一起 commit) — 加 4.4 段 spec-lint 怎么跑 (跟 contract-ground-truth-lint 4.3 段并列).
-
-### 跨 sprint 教训 (实战 fix 模式 ROI 重评)
-
-- **spec-lint 起步 advisory 1-2 sprint 改 blocking** 跟 ground-truth-lint Sprint 17 #121 → Sprint 18 #142 模式同源. 实战 fix 闭环 ROI 重评: 治本 < 1 天 + 治本后 0 复发 → 治本. Sprint 43 #S43-2 修 7 真违反 1h 闭环, 治本后 0 复发, 改 blocking.
-- **删冗余 waitForTimeout** vs Sprint 41.9 实战 fix 改 timeout 30s 没换治本 — Sprint 43 治本: waitForTimeout 后面 expect visible 自己 wait 30s, waitForTimeout 是冗余的.
-- **注释里也引用 waitForTimeout(N) 触发 spec-lint** — Sprint 43 教训: spec-lint 简单 grep-based 不区分代码 vs 注释, 注释里描述历史删改也要避免数字参数语法.
-
-### 留尾 (Sprint 44+ backlog)
-
-- 📋 Sprint 43.1 (post-merge) 本地 e2e 11/11 spec 跑批验证 (uvicorn + Vite preview + playwright test 完整 setup, 留 sprint 43.1 验证)
-- 📋 Sprint 50+ #S43-3 pre-flight check shell script (跟 spec-lint 配合)
-- 📋 Sprint 44+ visitor / export / report 3 选项激活路径 user 拍板 (Sprint 39.2 留尾)
-- 📋 Sprint 50+ race flake 真治本 (Sprint 38 留尾, ROI 重评为低)
-- 📋 Sprint 50+ L2 AST parser (spec-lint bash 起步, 漏报才升)
-- 📋 Sprint 50+ commit msg ↔ diff check (Sprint 35 留尾, ROI 负)
-- 📋 Sprint 30M 50m-scale (Sprint 25 留尾, 数据触发)
-- 📋 Sprint 50+ e2e CI 重新评估 (Sprint 41.12 advisory 触发条件)
-
-### 关联文件
-
-- `frontend-vue3/e2e/{7 spec}.spec.ts` (Sprint 43 #S43-2 删 waitForTimeout)
-- `.pre-commit-config.yaml` (Sprint 43 #S43-1 spec-lint blocking)
-- `CLAUDE.md` L5.2 (Sprint 43 实施标)
-- `frontend-vue3/e2e/lint/spec-lint.sh` (Sprint 42 #S42-1 3 条规则 + Sprint 43 blocking)
-- `frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (Sprint 42 regression test 3/3 case pass)
-- `docs/CI-DEFENSE-PLAYBOOK.md` (Sprint 42 3 层防御, 引用不复述)
-- `docs/CI-E2E-HISTORY.md` (Sprint 41 实战 12 follow-up, 引用不复述)
 
 ---
 

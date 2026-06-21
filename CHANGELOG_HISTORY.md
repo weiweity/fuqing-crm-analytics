@@ -1,3 +1,44 @@
+## [v0.4.14.133] - 2026-06-19 - test(e2e): Sprint 43 #S43-1 + #S43-2 — 7 个 spec 删冗余 waitForTimeout + spec-lint 改 blocking
+
+> Sprint 42 #S42-1 spec-lint 起步 advisory, 1-2 sprint 观察 false positive 率后改 blocking. Sprint 43 #S43-2 修 7 真违反 (10 个 waitForTimeout 调用), #S43-1 改 blocking. 跟 ground-truth-lint Sprint 17 #121 (advisory 起步) → Sprint 18 #142 (blocking) 模式同源. v0.4.14.132 → 0.4.14.133.
+
+### Changed (7 spec + .pre-commit-config.yaml)
+
+1. **`frontend-vue3/e2e/{breakdown,sampling,category,category-detail,customer-health,market-focus,audience-daily-trend}.spec.ts`** (Sprint 43 #S43-2) — 删 10 个冗余 `waitForTimeout(N)` 调用 + 简化注释引用. 全部 `waitForTimeout` 删除, 后面 expect/toBeVisible 自己 wait 30s. 跟 Sprint 41.9 实战 fix 改 timeout 没换治本同根因, 这次 Sprint 43 治本(预期 e2e 11/11 spec 仍然 pass, 跑批留 Sprint 43.1 post-merge 验证).
+2. **`.pre-commit-config.yaml`** (Sprint 43 #S43-1) — spec-lint hook entry 去掉 `--advisory` flag, 改 blocking 模式. 跟 ground-truth-lint Sprint 17 → 18 模式一致.
+3. **`CLAUDE.md` L5.2** (Sprint 43 实施标) — spec 写法"环境无关"原则 + spec-lint 改 blocking 时间点标 Sprint 43.
+4. **`README.md`** (ship 后收尾时改, 跟 Sprint 43 一起 commit) — Sprint 42 收口状态行补 (Sprint 42 #S42-1 spec-lint 4 产出物).
+5. **`docs/PRE-COMMIT.md`** (ship 后收尾时改, 跟 Sprint 43 一起 commit) — 加 4.4 段 spec-lint 怎么跑 (跟 contract-ground-truth-lint 4.3 段并列).
+
+### 跨 sprint 教训 (实战 fix 模式 ROI 重评)
+
+- **spec-lint 起步 advisory 1-2 sprint 改 blocking** 跟 ground-truth-lint Sprint 17 #121 → Sprint 18 #142 模式同源. 实战 fix 闭环 ROI 重评: 治本 < 1 天 + 治本后 0 复发 → 治本. Sprint 43 #S43-2 修 7 真违反 1h 闭环, 治本后 0 复发, 改 blocking.
+- **删冗余 waitForTimeout** vs Sprint 41.9 实战 fix 改 timeout 30s 没换治本 — Sprint 43 治本: waitForTimeout 后面 expect visible 自己 wait 30s, waitForTimeout 是冗余的.
+- **注释里也引用 waitForTimeout(N) 触发 spec-lint** — Sprint 43 教训: spec-lint 简单 grep-based 不区分代码 vs 注释, 注释里描述历史删改也要避免数字参数语法.
+
+### 留尾 (Sprint 44+ backlog)
+
+- 📋 Sprint 43.1 (post-merge) 本地 e2e 11/11 spec 跑批验证 (uvicorn + Vite preview + playwright test 完整 setup, 留 sprint 43.1 验证)
+- 📋 Sprint 50+ #S43-3 pre-flight check shell script (跟 spec-lint 配合)
+- 📋 Sprint 44+ visitor / export / report 3 选项激活路径 user 拍板 (Sprint 39.2 留尾)
+- 📋 Sprint 50+ race flake 真治本 (Sprint 38 留尾, ROI 重评为低)
+- 📋 Sprint 50+ L2 AST parser (spec-lint bash 起步, 漏报才升)
+- 📋 Sprint 50+ commit msg ↔ diff check (Sprint 35 留尾, ROI 负)
+- 📋 Sprint 30M 50m-scale (Sprint 25 留尾, 数据触发)
+- 📋 Sprint 50+ e2e CI 重新评估 (Sprint 41.12 advisory 触发条件)
+
+### 关联文件
+
+- `frontend-vue3/e2e/{7 spec}.spec.ts` (Sprint 43 #S43-2 删 waitForTimeout)
+- `.pre-commit-config.yaml` (Sprint 43 #S43-1 spec-lint blocking)
+- `CLAUDE.md` L5.2 (Sprint 43 实施标)
+- `frontend-vue3/e2e/lint/spec-lint.sh` (Sprint 42 #S42-1 3 条规则 + Sprint 43 blocking)
+- `frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (Sprint 42 regression test 3/3 case pass)
+- `docs/CI-DEFENSE-PLAYBOOK.md` (Sprint 42 3 层防御, 引用不复述)
+- `docs/CI-E2E-HISTORY.md` (Sprint 41 实战 12 follow-up, 引用不复述)
+
+---
+
 ## [v0.4.14.131] - 2026-06-19 - ci(github-actions): Sprint 41 — CI 跑 e2e 自动化 (Sprint 32.1 留尾 7 sprint 闭环)
 
 > Sprint 32.1 (v0.4.14.114) Playwright HTTPS tolerance 留尾, Sprint 40 ground-truth audit 后实施 Sprint 41. 3 commit 实战 = Sprint 41 + Sprint 41.1 follow-up disk + Sprint 41.2 npm ci fix. 1.5 天估时, Sprint 39.1 baseline CI 修完后 ROI 升为高. v0.4.14.128 → 0.4.14.131.
