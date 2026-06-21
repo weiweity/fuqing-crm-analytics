@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 60+ 累计 4 sprint 收口, v0.4.14.147, main HEAD `ea44dd4`)
+**最后更新**: 2026-06-22 (Sprint 60.3+ CI fix + Sprint 61 cleanup, v0.4.14.149, main HEAD `f31626e`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.147` |
-| git HEAD (main) | `fa6e69f` (Sprint 60.2 merge, RFM 8 象限 老客 GSV TTL 100% 治本) |
+| VERSION | `0.4.14.149` |
+| git HEAD (main) | `f31626e` (Sprint 60.3+ fix(ci): CI test job 排除 pytest.mark.slow 避免 10.6M 行 DuckDB integration 测试 hang) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 60.2 (RFM 8 象限 老客 GSV TTL 100% 治本, 跟 R/F/M 治根模式一致) |
-| 收口日 | 2026-06-21 |
-| 上次合入 | 12 commit 0 debt (Sprint 60+ 累计 4 sprint: Sprint 60 + 60.1 + 60.1.1 + 60.2) |
+| 最近 sprint | Sprint 61 (cleanup + release, 4 dead code 删 + 2 过气 doc 删 + CHANGELOG 归档 + STATUS 同步, 0 debt) |
+| 收口日 | 2026-06-22 |
+| 上次合入 | Sprint 60.3+ (fix(ci) 1 commit) + Sprint 61 cleanup (chore 1 commit, 见下方) |
 
 ---
 
@@ -23,8 +23,8 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **748** | Sprint 60+ 收口后 baseline (pytest 跑完 9:07, 跟 Sprint 60.1.1 748/19 持平) |
-| pytest skipped | **21** | Sprint 60+ 4 sprint 累计 fixture skip: `w4_full:319` PID 锁 fd + `churn_user_list_fstring` + `distribution_filter_builder:131` + `rfm_flow_ttl_ratio:304` + `w4_t7_integration` 等 21 case (跨 sprint 留尾, 跟 Sprint 50+ 模式一致) |
+| pytest passed | **768** | Sprint 61 实测 (pytest 9:31, 1 case PID 锁 skip) |
+| pytest skipped | **1** | `w4_full:319` PID 锁 fd 跨进程冲突 (Sprint 60.1.1 起跨 sprint 留尾, 跟 Sprint 53 race flake 治本 fixture 兼容) |
 | pytest failed | **0** | 上次 green |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
@@ -37,10 +37,10 @@
 | commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
 
 <!-- STATUS-AUTO-START -->
-| pytest collected | **748** | Sprint 60.3+ 本地实测 pytest 跑完 |
-| pytest skipped | **21** | Sprint 60.3+ 手动 (跨 sprint 留尾 fixture, pytest --co 抓不到) |
-| 当前债数 | **0** | Sprint 60.3+ 自动抓 |
-| 最近 sprint | **Sprint 60.3+** | Sprint 60.3+ 手动 (CHANGELOG.md 已记 entry) |
+| pytest collected | **768** | Sprint 61 自动抓 |
+| pytest skipped | **1** | Sprint 61 自动抓 |
+| 当前债数 | **0** | Sprint 61 自动抓 |
+| 最近 sprint | **Sprint 61** | Sprint 61 自动抓 |
 <!-- STATUS-AUTO-END -->
 
 ---

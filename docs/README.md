@@ -26,8 +26,7 @@ fuqing-crm-analytics/docs/
 │   ├── ci-precommit.md               (原 CI-PRECOMMIT.md, GitHub Actions 配置)
 │   ├── ci-e2e-history.md             (原 CI-E2E-HISTORY.md, Sprint 41 实战 follow-up 12)
 │   ├── hooks-choice.md               (原 HOOKS-CHOICE.md, .githooks vs .pre-commit-config)
-│   ├── frontend-types-gen.md         (原 FRONTEND-TYPES-GEN.md, regen-types 工具)
-│   └── yoy-guard-config.md           (原 YOY-GUARD-CONFIG.md, |v|>1e6 异常值守卫)
+│   └── (frontend-types-gen.md / yoy-guard-config.md 已于 Sprint 61 清理, 改用 .claude/skills/regen-types/ + pre-commit hook)
 │
 ├── development/                       [开发指南 - 怎么改]
 │   ├── testing.md                    (test 怎么写, mock data, race flake 模式)
