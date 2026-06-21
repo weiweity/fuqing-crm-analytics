@@ -1,6 +1,6 @@
 # Testing 开发指南
 
-> test 怎么写, fixture 模式, mock data, race flake 防御。新加 test 必读。
+> **本文档是 quick card (≤60 行), 完整 fixture 实现 + L4.3/L4.4/L4.5/L4.6 详见 `docs/architecture/TEST_INFRASTRUCTURE.md`**。
 
 ## 1. Fixture 模式 (Sprint 53 治本)
 
@@ -8,6 +8,7 @@
 |---------|-------|------|
 | `isolated_duckdb` | session | per-worker tmp DuckDB + ATTACH production READ_ONLY + `PRAGMA search_path='main,prod'` |
 | `monkeypatch_connection` | function | 函数级 connection 隔离, 跑完自动 unpatch |
+| `_PROD_DUCKDB_AVAILABLE` | module | 跨 3 个真连 test 共享的 skipif 判定常量, 见 conftest.py:_detect_prod_duckdb_available() |
 
 **新增 fixture 见** `docs/architecture/TEST_INFRASTRUCTURE.md` §1。
 
@@ -32,8 +33,10 @@ pytestmark = pytest.mark.skipif(
 ## 4. E2E spec 写法 (L5.2)
 
 - 不 `waitForTimeout(N)` 死等, 用 `expect.toBeVisible({ timeout: N })`
-- 不 hardcode 业务数据长度
+- 不 hardcode 业务数据长度 (`toBe(5)` 禁, 用 `length > 0` 替)
 - 视口外元素先 `scrollIntoViewIfNeeded()`
+- `page.request` 加 Authorization header (从 sessionStorage 拿 `fq_crm_auth_token`)
+- 配合 `frontend-vue3/e2e/lint/spec-lint-l2.sh` pre-commit hook (L2 默认, L1 fallback)
 
 详见 `docs/operating/ci-e2e-history.md` + `docs/architecture/TEST_INFRASTRUCTURE.md`。
 

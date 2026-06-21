@@ -1,6 +1,6 @@
 # Ratio Convention 开发指南
 
-> ratio / pct / ppt / rate 类字段命名规范 (B1+B2 模式)。改 contract / 前端展示必读。
+> **本文档是 `CLAUDE.md` §Ratio Convention (B1+B2 模式) 的详细展开, 主章节是 single source of truth, 改动先改 `CLAUDE.md` 再同步本文件**。
 
 ## 1. 字段命名 (后端, 强制)
 
@@ -25,9 +25,11 @@
 ## 3. 前端契约 (pass-through)
 
 - `YOYBadge` / `MetricCard` 的 `humanizeChange`: **caller 已 `*100` 传值, 组件只做 `abs + toFixed(2)`**
+- `fmtYoy` / `fmtYoY` / `fmtPctChange` 等自定义函数: caller 传已 `*100` 数值, 函数不乘
 - **不要在前端 `* 100`**
 - `YOYBadge` `unit` 默认 `'%'`, ratio 类必须显式 `unit="pp"`
-- `|v|>1e6` 异常值守卫: `humanizeChange` 返 `'数据异常'`
+- `|v|>1e6` 异常值守卫: `humanizeChange` 返 `'数据异常'` (Sprint 16.5 #92 + Sprint 17 #124 扩到 MetricCard)
+- None 透传显示 `—` (`humanizeChange` 已加 `v == null` 守卫)
 
 ## 4. 反模式 (Sprint 13 P3 / Sprint 17 #121 ground-truth-lint)
 
@@ -39,6 +41,12 @@
 | pp 字段用 `'0.0"%"'` numFmt | pp 用 `'0.0"pp"'` 字面量后缀 |
 | `field: float = Field(...)` 裸 float | `RatioField` / `PercentageField` / `PpField` |
 | `List["PercentageField"]` 前向引用 | `List[Annotated[PercentageField, Field(...)]]` |
+
+## 5. 字段命名约定
+
+- **B1 模式** (mark 字段补标 + ETL 反向回填): 详见 `CLAUDE.md` §B1 模式
+- **B2 模式** (contract 字段补标 + Pydantic 422 拦截): 详见 `CLAUDE.md` §B2 模式
+- **字段后缀选型** (`*_ratio` / `*_pct` / `*_ppt` / `*_rate`): 严格按 §1 + `CLAUDE.md` §字段命名
 
 ## 关联文档
 
