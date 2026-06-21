@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 58 工具链实战 fix 闭环收口, v0.4.14.142, main HEAD `17b5361`)
+**最后更新**: 2026-06-21 (Sprint 59 收割季收口, v0.4.14.143, main HEAD `1956846`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.142` |
-| git HEAD (main) | `17b5361` (Sprint 58 #2 阶段 B merge, commit-msg blocking 升级) |
+| VERSION | `0.4.14.143` |
+| git HEAD (main) | `1956846` (Sprint 59 #8 merge, audit 措辞 SOP) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 58 (工具链实战 fix: #4 CI e2e 持久化 + #1 OOM 治本 + #2 commit-msg blocking hook) |
+| 最近 sprint | Sprint 59 (收割季: #6 STATUS 自动化 + #5 CHANGELOG 按行数归档 + #8 audit 措辞 SOP) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 7 commit 0 debt (Sprint 58: 09e2a18 + b567a68 #1 amend + 5c3794b + 6a5b12b #2A + 11416b5 + 17b5361 #2B + VERSION bump 待 commit) |
+| 上次合入 | 6 commit 0 debt (Sprint 59: 84e5716 #6 + 5ef87e1 merge #6 + 1e2a2eb #5 + 0f25392 merge #5 + b9f4f28 #8 + 1956846 merge #8 + VERSION bump 待 commit) |
 
 ---
 
@@ -23,7 +23,7 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **754** | Sprint 58 收口, Sprint 58 doc + code 改动无新增 test (pytest 数字跟 Sprint 57 持平) |
+| pytest passed | **754** | Sprint 59 doc-only 收口, 改动无新增 test (pytest 数字跟 Sprint 58 持平) |
 | pytest skipped | **1** | `test_w4_full.py:319` PID 锁 fd, fixture 模式 skip (Sprint 53 治本) |
 | pytest failed | **0** | 上次 green |
 | e2e (Playwright) | **11/11 spec-lint / 期望 e2e 实测 12/12** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
@@ -40,7 +40,7 @@
 | pytest collected | **762** | Sprint 59 自动抓 |
 | pytest skipped | **0** | Sprint 59 自动抓 |
 | 当前债数 | **0** | Sprint 59 自动抓 |
-| 最近 sprint | **Sprint 58** | Sprint 59 自动抓 |
+| 最近 sprint | **Sprint 59** | Sprint 59 自动抓 |
 <!-- STATUS-AUTO-END -->
 
 ---
@@ -50,8 +50,9 @@
 | 项 | 数 | 详情 |
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
-| 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-55 累计 |
-| Sprint 58 留尾 | **4 项** | Sprint 59 收割季 (#6 STATUS 自动化 + #5 CHANGELOG 阈值收紧 + #8 audit 措辞精确化) + #3 50m scale 调研推后 |
+| 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-58 累计 |
+| Sprint 59 留尾 | **1 项** | #3 50m scale 调研推 Sprint 60+ (触发条件 = 30M 数据量) |
+| Sprint 59 闭环 | **3 项** | #6 STATUS.md 自动化 (4 字段 + 3 case test) + #5 CHANGELOG 按行数归档 (≤ 900 行 + archive_changelog.py) + #8 audit 措辞 SOP (5 规则 + 5 反例正例) |
 | Sprint 58 闭环 | **3 项** | #4 CI e2e 持久化 (12+4 follow-up + auto_recover_ci.sh + e2e.yml auto-recovery) + #1 OOM 治本 (DuckDB ATTACH + workers 1 + timeout 60s) + #2 commit-msg blocking hook (误报率 0%) |
 | 延后决策 | **1 条** | 50m-scale-architecture Phase 1-3 触发条件 = 30M 数据量 (Sprint 52 P2 留尾) |
 | Sprint 34+ backlog | **1 条** | 候选 4: CI 跑 e2e (Sprint 58 期望 4/4 pass 闭环) |
@@ -75,6 +76,9 @@
 | **Sprint 58 #4 实战 fix 沉淀** | **CI e2e 持久化 (12+4 follow-up + auto_recover_ci.sh)** | **Sprint 58** | `docs/operating/ci-e2e-history.md` + `docs/sprints/HANDOFF-TO-CODEX-Sprint58-01.md` |
 | **Sprint 58 #2 commit-msg blocking** | **WARN → blocking 升级 (误报率 17/20 → 0/14, Sprint 3 P1-3 4 轮修模式算法优化)** | **Sprint 58** | `scripts/commit_msg_check.py` + `.githooks/commit-msg` |
 | **Sprint 实战 fix 沉淀** | **LESSONS_LEARNED.md 9 项 pattern 闭环** (DUCKDB_PATH / subagent / race flake / spec-lint / Codex / 12 步流程 / "破坏→验证→恢复" / commit msg↔diff / empty vs stub) | **Sprint 57** | `docs/development/LESSONS_LEARNED.md` |
+| **Sprint 59 #6 STATUS 自动化** | **4 字段 + 3 case test, 闭环手改漂移** | **Sprint 59** | `scripts/status_update.py` |
+| **Sprint 59 #5 CHANGELOG 按行数归档** | **≤ 900 行 + archive_changelog.py 脚本化滚动** | **Sprint 59** | `scripts/archive_changelog.py` |
+| **Sprint 59 #8 audit 措辞 SOP** | **5 规则 + 5 反例正例 (Codex review #23 战略收缩)** | **Sprint 59** | `docs/development/AUDIT-WORDING.md` |
 
 ---
 
@@ -111,4 +115,4 @@ uvicorn backend.app:app --reload
 - [docs/architecture/AI_SAFETY_NET.md](docs/architecture/AI_SAFETY_NET.md) — AI typo 防御 3 层
 - [docs/architecture/TEST_INFRASTRUCTURE.md](docs/architecture/TEST_INFRASTRUCTURE.md) — pytest fixture + race flake
 - [docs/architecture/50m-scale-architecture.md](docs/architecture/50m-scale-architecture.md) — 50M 行 benchmark
-- [CHANGELOG.md](CHANGELOG.md) — 近 30 entry 滚动 (v0.4.14.119+)
+- [CHANGELOG.md](CHANGELOG.md) — 近 30 entry 滚动 (v0.4.14.119+) + Sprint 59 #5 阈值 ≤ 900 行 (archive_changelog.py 脚本化)

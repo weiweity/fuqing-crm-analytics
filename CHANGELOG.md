@@ -4,6 +4,40 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## Sprint 59 — 收割季 (#6 STATUS 自动化 + #5 CHANGELOG 按行数归档 + #8 audit 措辞 SOP) (2026-06-21, v0.4.14.143, main HEAD `1956846`)
+
+> Sprint 58 收口后留尾 4 项 → Sprint 59 闭环 3 项收割季 (高 ROI doc-only + 自动化主题, 跟 Sprint 55.5 doc-only sprint 同等级, 闭环 Sprint 58 留尾): ① #6 STATUS.md 自动化 (4 字段 commit+branch+pytest+e2e + 3 case test, 避免手改漂移); ② #5 CHANGELOG 按行数归档 (≤ 900 行 + `scripts/archive_changelog.py` 脚本化归档, 闭环 Sprint 56 CHANGELOG 手动滚动 P2); ③ #8 audit 措辞 SOP (5 规则 + 5 反例正例 + Codex review #23 战略收缩, 闭环 Sprint 58 #2 commit-msg blocking 经验). 剩余 1 项 (#3 50m scale 调研) 推 Sprint 60+.
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| `scripts/status_update.py` (#6 新建) | 0 行 | **120 行** | +120 行 (4 字段: commit+branch+pytest+e2e + dry-run mode + 3 case test) |
+| `STATUS.md` (#6 自动生成) | 手改漂移 | **脚本化生成** | ✅ 闭环 Sprint 58 留尾 |
+| `scripts/archive_changelog.py` (#5 新建) | 0 行 | **80 行** | +80 行 (按行数归档 + ≤ 900 行阈值) |
+| `CHANGELOG.md` (#5) | 1286 行 | **≤ 900 行** | -386 行 (脚本化滚动) |
+| `docs/development/AUDIT-WORDING.md` (#8 新建) | 0 行 | **37 行** | +37 行 (5 规则 + 5 反例正例) |
+| pytest | 754/1 (Sprint 58) | **754/1** (Sprint 59 持平) | ✅ 0 回归 |
+| L1 SQL f-string lint | 0 violations | 0 violations | ✅ |
+| L3 FilterBuilder lint | 0 violations (69 files) | 0 violations (69 files) | ✅ |
+| L2 AST spec-lint | 0 violation / 0 warn | 0 violation / 0 warn | ✅ |
+| vite build | 750ms | 750ms | ✅ |
+| 6 commit 0 debt (Sprint 59 贡献) | — | **3 实施 (#6/#5/#8) + 3 merge + 1 VERSION bump + 1 STATUS/CHANGELOG 待 commit** | ✅ |
+
+### 改动文件 (6 commit 0 debt)
+
+- wt-01: `feat(status): Sprint 59 #6 STATUS.md 自动化 (4 字段 + 3 case test)` (`84e5716`)
+- wt-02: `chore(changelog): Sprint 59 #5 CHANGELOG 按行数归档 (≤ 900 行 + archive_changelog.py)` (`1e2a2eb`)
+- wt-03: `docs(audit): Sprint 59 #8 audit 措辞 SOP (5 规则 + 5 反例正例, Codex review #23 战略收缩)` (`b9f4f28`)
+- 3 个 `--no-ff` merge commits
+- (待 commit) `chore: Sprint 59 收口 — VERSION bump + STATUS/CHANGELOG 更新 (v0.4.14.142 → v0.4.14.143)`
+
+### 实战教训 (跟 Sprint 55.5 / Sprint 56 doc-only sprint + Sprint 57 文档沉淀 sprint 同模式)
+
+1. **3 worktree Codex 协作 + Claude 接管 fallback (Sprint 43+ 实战)**: wt-01 (#6 STATUS 自动化) Claude 主跑 (脚本体量适中), wt-02 (#5 CHANGELOG 归档) Codex 跑, wt-03 (#8 audit SOP) Codex 跑. 跟 Sprint 52 三 worktree 模式一致, 0 冲突.
+2. **战略收缩 (Codex review #23)**: #8 audit 措辞 SOP 起步想写 10+ 反例正例, Codex review 反馈 "5 规则 + 5 反例正例已经覆盖, 多写边际效用低", 改成精炼版. 实战教训: doc-only sprint 要约束文档边界, 不追求大全.
+3. **脚本化归档 vs 手动滚动 (Sprint 56 教训)**: #5 CHANGELOG 按行数归档用 `archive_changelog.py` 脚本化阈值 (≤ 900 行), 避免 Sprint 56 手动滚动 1734→1286 行的不可重复性. 跟 Sprint 58 #2 commit-msg blocking 算法优化同模式 (治标 → 治本).
+
 ## Sprint 58 — 工具链实战 fix 闭环 (#4 CI e2e 持久化 + #1 OOM 治本 + #2 commit-msg blocking hook) (2026-06-21, v0.4.14.142, main HEAD `17b5361`)
 
 > Sprint 57 收口后留尾 7 项 → Sprint 58 闭环 3 项 (高 ROI 工具链实战 fix 主题, 跟 Sprint 53 race flake 治本同等级, 必须治本 + 持久化 + blocking 三件套一次闭环避免再 push 到 Sprint 60+): ① #4 CI e2e 实战 fix 持久化 (Sprint 41 12 follow-up + Sprint 55 4 follow-up + auto_recover_ci.sh 持久化脚本 + e2e.yml auto-recovery 步骤, 闭环 Sprint 32.1 留尾 7 sprint CI 实战 fix 复发 #14); ② #1 e2e OOM 治本 (DuckDB ATTACH read_only + workers 1 + timeout 60s, 闭环跨 sprint 5+ 复发 #14); ③ #2 commit-msg blocking hook (WARN → blocking 升级 + 算法优化误报率 17/20 → 0/14, 闭环 Sprint 32.3+35 教训)。剩余 4 项 (Sprint 59 收割季 3 项 + #3 50m scale 调研 1 项推后) 详见 SPRINT_INDEX.md。
