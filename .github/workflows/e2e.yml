@@ -1,0 +1,110 @@
+name: CI e2e
+
+# Sprint 58 #4: CI e2e 实战 fix 持久化
+# SSOT: docs/operating/ci-e2e-history.md
+# auto-recovery: scripts/ci/auto_recover_ci.sh
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'scripts/**'
+      - 'frontend-vue3/src/**'
+      - 'frontend-vue3/e2e/**'
+      - 'frontend-vue3/playwright.config.ts'
+      - 'requirements.txt'
+      - 'requirements-lock.txt'
+      - 'pyproject.toml'
+      - '.githooks/**'
+      - '.github/workflows/**'
+      - 'docs/operating/ci-e2e-history.md'
+      - 'docs/operating/ci-defense-playbook.md'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    # Sprint 41.12 / Sprint 55 延续: 先保留信号，再观察 auto-recovery 是否足够
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-vue3/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install Python deps (certifi for NODE_EXTRA_CA_CERTS)
+        run: pip install certifi
+
+      - name: Install Node deps
+        run: |
+          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
+          cd frontend-vue3
+          npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: |
+          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
+          cd frontend-vue3
+          npx playwright install --with-deps chromium
+
+      - name: Build preview server and start backend
+        run: |
+          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
+          cd frontend-vue3
+          npm run build
+          npx vite preview --port 5173 --host 0.0.0.0 &
+          PREVIEW_PID=$!
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q 200; then
+              echo "✅ Preview server ready"
+              break
+            fi
+            sleep 1
+          done
+          cd ..
+          set -e
+          pip install -r requirements-lock.txt
+          HEALTH_API_KEY="ci-fake-health-api-key-$(date +%s)-$$" \
+            FQ_CRM_PASSWORDS="admin:123456" \
+            ETL_MIN_DISK_GB=0 \
+            python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
+          UVICORN_PID=$!
+          UVICORN_READY=false
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health 2>/dev/null | grep -q 200; then
+              echo "✅ Uvicorn backend ready (PID $UVICORN_PID)"
+              UVICORN_READY=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$UVICORN_READY" != "true" ]; then
+            echo "❌ Uvicorn backend failed to start in 60s"
+            exit 1
+          fi
+          set +e
+
+      - name: Run e2e with auto-recovery (Sprint 58 #4)
+        run: |
+          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
+          chmod +x scripts/ci/auto_recover_ci.sh
+          bash scripts/ci/auto_recover_ci.sh npx playwright test --reporter=list
+
+      - name: Upload auto-recovery log on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ci-auto-recovery-log
+          path: /tmp/auto_recover_ci.log
+
+# ## Stage 2 完成 — Sprint 58 #4
+# - 完成时间: 2026-06-21
+# - 关键点: e2e 步骤用 auto-recovery wrapper, 不改 11 spec 跑批方式
+# - Stage 3: 请核对 SSOT 链、artifact 上传和 env 注入
