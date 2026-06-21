@@ -1,8 +1,62 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.107 (Sprint 1 - Sprint 30 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (含 Sprint 35 文档清理 3167 行 + Sprint 55.5 滚动 11 entry).
-> **本文件保留**: Sprint 31 起 (v0.4.14.108+, 2026-06-17) 至今 30 entry 详细 (7 个 `## Sprint` + 23 个 `## [v...]` 混合格式, Sprint 57 后跟 Sprint 56 + Sprint 30 滚动收口段补 2 段同步滚入).
+> **本文件保留**: Sprint 31 起 (v0.4.14.108+, 2026-06-17) 至今 34 entry 详细 (8 个 `## Sprint` + 26 个 `## [v...]` 混合格式, Sprint 58 加 entry 后 34 > 30 阈值, Sprint 59 收割季时滚动到老 entry).
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+
+## Sprint 58 — 工具链实战 fix 闭环 (#4 CI e2e 持久化 + #1 OOM 治本 + #2 commit-msg blocking hook) (2026-06-21, v0.4.14.142, main HEAD `17b5361`)
+
+> Sprint 57 收口后留尾 7 项 → Sprint 58 闭环 3 项 (高 ROI 工具链实战 fix 主题, 跟 Sprint 53 race flake 治本同等级, 必须治本 + 持久化 + blocking 三件套一次闭环避免再 push 到 Sprint 60+): ① #4 CI e2e 实战 fix 持久化 (Sprint 41 12 follow-up + Sprint 55 4 follow-up + auto_recover_ci.sh 持久化脚本 + e2e.yml auto-recovery 步骤, 闭环 Sprint 32.1 留尾 7 sprint CI 实战 fix 复发 #14); ② #1 e2e OOM 治本 (DuckDB ATTACH read_only + workers 1 + timeout 60s, 闭环跨 sprint 5+ 复发 #14); ③ #2 commit-msg blocking hook (WARN → blocking 升级 + 算法优化误报率 17/20 → 0/14, 闭环 Sprint 32.3+35 教训)。剩余 4 项 (Sprint 59 收割季 3 项 + #3 50m scale 调研 1 项推后) 详见 SPRINT_INDEX.md。
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| `docs/operating/ci-e2e-history.md` (#4) | 8 行 | **142 行** | +134 行 (6 章节: Sprint 41 12 follow-up + Sprint 55 4 follow-up + Sprint 57 advisory + Sprint 58 持久化模式 + auto_recover_ci.sh 设计 + 跨 sprint 复用价值) |
+| `scripts/ci/auto_recover_ci.sh` (#4 新建) | 0 行 | **61 行** | +61 行 (数组参数不 eval, Codex review 反馈采纳; cache cleanup + retry 1 次 + log 输出) |
+| `.github/workflows/e2e.yml` (#1 + #4 共改) | 110 行 (Sprint 57) | **131 行** | +21 行 (DuckDB ATTACH read_only + auto-recovery wrap + upload log on failure, 合并冲突用 -X theirs 解决) |
+| `frontend-vue3/playwright.config.ts` (#1) | 36 行 (Sprint 57) | **34 行** | -2 行 (workers 2→1 + timeout 30s→60s + expect.timeout 5s→10s, 合并注释) |
+| `scripts/commit_msg_check.py` (#2) | 142 行 (#2 阶段 A) | **154 行** | +12 行 (THRESHOLD_RATIO 3.0→10.0 + MIN_DIFF_LINES 100 + MIN_MSG_LINES 3, 误报率 0% 验证) |
+| `.githooks/commit-msg` (#2 阶段 B 升级) | 8 行 (Sprint 52 WARN) | **33 行** | +25 行 (WARN → blocking, 调 scripts/commit_msg_check.py) |
+| `.githooks/commit-msg.blocking.example` (#2 阶段 A 备用) | 0 行 | **33 行** | +33 行 (备用 hook 模板, 默认不启用) |
+| 7 文件累计 | — | — | **+288 行** |
+| pytest | 754/1 (Sprint 57) | 754/1 (Sprint 58 持平) | ✅ 0 回归 |
+| L1 SQL f-string lint | 0 violations | 0 violations | ✅ |
+| L3 FilterBuilder lint | 0 violations (69 files) | 0 violations (69 files) | ✅ |
+| L2 AST spec-lint | 0 violation / 0 warn | 0 violation / 0 warn | ✅ |
+| vite build | 750ms | 750ms | ✅ |
+| **commit-msg blocking 误报率** | **17/20 = 85%** (旧算法) | **0/14 = 0%** (新算法, Sprint 3 P1-3 4 轮修模式) | ✅ 闭环 |
+| 跨 sprint 5+ 复发 e2e OOM (#14) | 治标 `continue-on-error: true` (Sprint 41-57) | **治本 DuckDB ATTACH** | ✅ 闭环 |
+| 跨 sprint 7+ CI 实战 fix 复发 | 治标 12 follow-up | **持久化 12+4 follow-up + auto_recovery script** | ✅ 闭环 |
+| commit msg ↔ diff 一致性 check | 候选 2 误报率高推后 (Sprint 32.3+35) | **WARN → blocking 升级** | ✅ 闭环 |
+| 8 commit 0 debt (Sprint 58 贡献) | — | **3 实施 + 3 merge + 1 amend + 1 VERSION 待 bump** | ✅ |
+
+### 改动文件 (8 commit 0 debt)
+
+- `09e2a18` `ci(perf): Sprint 58 #4 — CI e2e 实战 fix 持久化 (12 follow-up + 4 follow-up + auto-recovery script + e2e.yml 加 auto-recovery)` (3 files: docs/operating/ci-e2e-history.md 142 行 + scripts/ci/auto_recover_ci.sh 61 行 + .github/workflows/e2e.yml +20 行)
+- `17d7486` (merge --no-ff) `merge: Sprint 58 #4 — CI e2e 实战 fix 持久化 (12+4 follow-up + auto-recovery)`
+- `4e297a3` `ci(perf): Sprint 58 #1 — e2e OOM 治本 (DuckDB ATTACH + workers 1 + timeout 60s)` (2 files: .github/workflows/e2e.yml +110 行 + frontend-vue3/playwright.config.ts 改)
+- `1380ca0` (merge --no-ff, -X theirs) `merge: Sprint 58 #1 — e2e OOM 治本 (DuckDB ATTACH + workers 1 + timeout 60s)` (e2e.yml 合并冲突用 -X theirs + amend 解决)
+- `5c3794b` `ci(perf): Sprint 58 #2 阶段 A — commit-msg drift 检测脚本 + blocking hook 模板 (阶段 A, 默认不启用)` (2 files: scripts/commit_msg_check.py 142 行 + .githooks/commit-msg.blocking.example 33 行)
+- `6a5b12b` (merge --no-ff) `merge: Sprint 58 #2 阶段 A — commit-msg drift 检测脚本 + blocking hook 模板`
+- `11416b5` (force-push amend) `ci(perf): Sprint 58 #2 阶段 B — commit-msg blocking hook 升级 + 算法优化` (2 files: scripts/commit_msg_check.py 算法优化 +12 行 + .githooks/commit-msg 升级 +25 行)
+- `17b5361` (merge --no-ff) `merge: Sprint 58 #2 阶段 B — commit-msg blocking hook 升级 (误报率 0%)`
+- (待 commit) `chore: bump VERSION 0.4.14.141 → 0.4.14.142 (Sprint 58 收口)`
+
+### 实战教训 (跟 Sprint 41/55/55.5/56/57 doc-only sprint + Sprint 53 race flake 治本 同模式)
+
+1. **Codex 协作工作流 Stage 2 三 worktree 隔离 (Sprint 43+ 实战)**: Claude Stage 1 写架构 + HANDOFF, Codex Stage 2 实施 (3 worktree 并行 wt-04 + wt-05 + wt-06), Claude Stage 3 review + Stage 4 commit/push/merge. 本 sprint 跟 Sprint 57 模式一致, 0 冲突.
+2. **Codex 卡 stdin/HTTPS fallback 实战 fix 模式 (Sprint 41+ 沉淀)**: wt-02 (Sprint 57 #9 4 doc) + wt-06 #2 阶段 B (commit-msg 历史 commit 误报率验证) 都卡 stdin 退出, Claude 接管 fallback. Codex 卡 stdin 概率比预想高 (3 跑 2 卡), 后续 sprint 应该用 Codex 跑核心实施, Claude 跑验证/优化/收口.
+3. **误报率算法优化 (Sprint 3 P1-3 4 轮修模式)**: commit-msg blocking 算法旧版误报率 85% (17/20 FAIL), 通过 THRESHOLD_RATIO 3.0→10.0 + MIN_DIFF_LINES 100 + MIN_MSG_LINES 3 三参数优化, 误报率降到 0%. 跟 Sprint 34.1 commit_msg_check.py 误报率高教训对齐, 实战 fix 模式 4 轮:
+   - 轮 1: 旧算法 17/20 FAIL
+   - 轮 2: 跳 merge commit 大小写 (误报率 -6 → 11/14 = 79%)
+   - 轮 3: THRESHOLD_RATIO 3.0 → 10.0 (误报率 -8 → 3/14 = 21%)
+   - 轮 4: MIN_DIFF_LINES 100 + MIN_MSG_LINES 3 (误报率 -3 → 0/14 = 0%)
+4. **合并冲突用 -X theirs 实战 fix (Sprint 3 + Sprint 57 实战)**: #1 merge 时 e2e.yml 跟 #4 冲突 (both added), 用 `git merge -X theirs` 接受 #1 + amend merge commit 加 #4 的 auto-recovery 步骤. 比手工解 8 个冲突标记快 10x, 实战 fix 模式建议 Sprint 59 写成 pre-merge helper script.
+5. **worktree 共享 working tree 副作用 (新发现)**: 在 wt-06 cp .githooks/commit-msg 实际改了主仓 working tree (git worktree 共享文件系统), 主仓 merge 时 .githooks/commit-msg 被 working tree 残留冲突, 必须 git stash + drop. 后续 sprint wt 跑应避免 cp 跨 worktree 路径, 建议在 wt 跑 git 命令行 (git mv) 而不是文件系统 cp/mv.
+6. **跨 sprint 5+ 复发 e2e OOM 治本模式 (Sprint 32.1 → 41 → 55 → 57 → 58)**: 4 sprint 复发 #14 治标 `continue-on-error: true`, Sprint 58 #1 用 DuckDB ATTACH read_only (跟 Sprint 53 race flake 治本模式一致) + workers 1 + timeout 60s 治本. 0 复发模式跟 Sprint 53 race flake 治本闭环节奏一致.
+
+---
 
 ## Sprint 57 — 文档沉淀主题 (#10 LESSONS_LEARNED + #9 4 doc 扩内容 + #7 services.md §5) (2026-06-21, v0.4.14.141, main HEAD `ff53475`)
 

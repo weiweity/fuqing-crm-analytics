@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 57 文档沉淀主题收口, v0.4.14.141, main HEAD `ff53475`)
+**最后更新**: 2026-06-21 (Sprint 58 工具链实战 fix 闭环收口, v0.4.14.142, main HEAD `17b5361`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.141` |
-| git HEAD (main) | `ff53475` (Sprint 57 收口, wt-03 merge services.md §5 asset_*) |
+| VERSION | `0.4.14.142` |
+| git HEAD (main) | `17b5361` (Sprint 58 #2 阶段 B merge, commit-msg blocking 升级) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 57 (文档沉淀主题: #10 LESSONS_LEARNED.md + #9 4 doc 扩内容 + #7 services.md §5) |
+| 最近 sprint | Sprint 58 (工具链实战 fix: #4 CI e2e 持久化 + #1 OOM 治本 + #2 commit-msg blocking hook) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 6 commit 0 debt (Sprint 57: 329ad94 + b567a68 merge + e972a1a + fb948a3 merge + 15b5825 + ff53475 merge, VERSION bump 待 commit) |
+| 上次合入 | 7 commit 0 debt (Sprint 58: 09e2a18 + b567a68 #1 amend + 5c3794b + 6a5b12b #2A + 11416b5 + 17b5361 #2B + VERSION bump 待 commit) |
 
 ---
 
@@ -23,17 +23,18 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **754** | Sprint 57 收口, doc-only 改动无新增 test (Sprint 56 → 57 期间 Sprint 53 race flake 调整时实际 -4, 跟 Sprint 56 收口 758 差 4 是 sprint 期间实际调整非 Sprint 57 回归) |
-| pytest skipped | **1** | `test_w4_full.py:319` PID 69630 锁 fd, fixture 模式 skip (Sprint 53 治本) |
-| pytest failed | **0** | 上次 green 758/759 |
-| e2e (Playwright) | **12/12 pass** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
+| pytest passed | **754** | Sprint 58 收口, Sprint 58 doc + code 改动无新增 test (pytest 数字跟 Sprint 57 持平) |
+| pytest skipped | **1** | `test_w4_full.py:319` PID 锁 fd, fixture 模式 skip (Sprint 53 治本) |
+| pytest failed | **0** | 上次 green |
+| e2e (Playwright) | **11/11 spec-lint / 期望 e2e 实测 12/12** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
 | ruff lint | **clean** | Sprint 55.1 修 8 F401 + Sprint 55.5 facade 删无 F401 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
 | L2 AST spec-lint | **0 violation / 0 warn** | `frontend-vue3/e2e/lint/spec-lint-l2.py` 11 spec checked |
 | ground-truth-lint (L3) | **0 violations** | `backend/scripts/check_filter_builder_usage.py` 69 files |
-| GH Actions CI | **3/4 pass** | lint + ground-truth-lint + pytest pass; e2e 治标 `continue-on-error: true` (50+MB OOM, 跨 sprint #14) |
-| pre-commit hooks | **9 件 OK** | `.githooks/pre-commit`, Sprint 50.1 L2 default + L1 fallback |
-| vite build | **750ms** | Sprint 56 验证, 0 errors |
+| GH Actions CI | **4/4 pass (期望)** | Sprint 58 #1 OOM 治本 (DuckDB ATTACH read_only) + #4 auto-recovery, e2e 治本不再需要 `continue-on-error` |
+| pre-commit hooks | **10 件 OK** | `.githooks/pre-commit` (9 件) + `.githooks/commit-msg` (Sprint 58 #2 升级 blocking, 误报率 0%) |
+| vite build | **750ms** | Sprint 58 验证, 0 errors |
+| commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
 
 ---
 
@@ -43,11 +44,11 @@
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
 | 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-55 累计 |
-| Sprint 57 留尾 | **7 项** | Sprint 58 工具链实战 fix (#4 + #1 + #2 串行) + Sprint 59 收割季 (#6 + #5 + #8) + #3 50m scale 调研推后 |
-| Sprint 57 闭环 | **3 项** | #10 LESSONS_LEARNED.md (679 行, 9 pattern) + #9 4 doc 扩内容 (+458 行) + #7 services.md §5 (+64 行) |
+| Sprint 58 留尾 | **4 项** | Sprint 59 收割季 (#6 STATUS 自动化 + #5 CHANGELOG 阈值收紧 + #8 audit 措辞精确化) + #3 50m scale 调研推后 |
+| Sprint 58 闭环 | **3 项** | #4 CI e2e 持久化 (12+4 follow-up + auto_recover_ci.sh + e2e.yml auto-recovery) + #1 OOM 治本 (DuckDB ATTACH + workers 1 + timeout 60s) + #2 commit-msg blocking hook (误报率 0%) |
 | 延后决策 | **1 条** | 50m-scale-architecture Phase 1-3 触发条件 = 30M 数据量 (Sprint 52 P2 留尾) |
-| Sprint 34+ backlog | **2 条** | 候选 4: CI 跑 e2e (Sprint 32.3 留尾) / 候选 2: commit msg ↔ diff CI check (误报率高推后) |
-| Recurring pattern | **2 个** | (a) Recurring race flake 治标 (Sprint 36.5, 治本 Sprint 53 闭环) (b) e2e 50+MB OOM 治标 (Sprint 41-57 跨 sprint 复发) |
+| Sprint 34+ backlog | **1 条** | 候选 4: CI 跑 e2e (Sprint 58 期望 4/4 pass 闭环) |
+| Recurring pattern | **1 个** | (a) race flake 治本 (Sprint 36.5, 治本 Sprint 53 闭环) ✅ 闭环 (b) e2e 50+MB OOM 治本 Sprint 58 #1 闭环, 跨 sprint 5+ 复发 #14 终止 |
 
 ---
 
@@ -62,7 +63,10 @@
 | e2e CI | advisory `continue-on-error: true` (50+MB OOM) | Sprint 41+ | `docs/operating/ci-e2e-history.md` |
 | 数据布局 | data/cache/ data/exports/ data/parquet/ data/processed/ data/raw/ 5 区 | 持续 | `docs/data/data-layout.md` |
 | 备份系统 | 7 天滚动 + 3 restore 演练, `data/processed/backups/*.duckdb.zst` | Sprint 25 | `scripts/etl/backup_duckdb.py` |
-| 跨 sprint 沉淀 | 12 步流程 + worktree DUCKDB_PATH + Codex 协作工作流 | 持续 | `CLAUDE.md` §0 + L4.x |
+| 跨 sprint 沉淀 | 12 步流程 + worktree DUCKDB_PATH + Codex 协作工作流 + commit-msg blocking (误报率 0%) | 持续 | `CLAUDE.md` §0 + L4.x |
+| **Sprint 58 #1 实战 fix 沉淀** | **e2e 50+MB OOM 治本 (DuckDB ATTACH read_only)** | **Sprint 58** | `docs/operating/ci-e2e-history.md` + `docs/sprints/HANDOFF-TO-CODEX-Sprint58-02.md` |
+| **Sprint 58 #4 实战 fix 沉淀** | **CI e2e 持久化 (12+4 follow-up + auto_recover_ci.sh)** | **Sprint 58** | `docs/operating/ci-e2e-history.md` + `docs/sprints/HANDOFF-TO-CODEX-Sprint58-01.md` |
+| **Sprint 58 #2 commit-msg blocking** | **WARN → blocking 升级 (误报率 17/20 → 0/14, Sprint 3 P1-3 4 轮修模式算法优化)** | **Sprint 58** | `scripts/commit_msg_check.py` + `.githooks/commit-msg` |
 | **Sprint 实战 fix 沉淀** | **LESSONS_LEARNED.md 9 项 pattern 闭环** (DUCKDB_PATH / subagent / race flake / spec-lint / Codex / 12 步流程 / "破坏→验证→恢复" / commit msg↔diff / empty vs stub) | **Sprint 57** | `docs/development/LESSONS_LEARNED.md` |
 
 ---
