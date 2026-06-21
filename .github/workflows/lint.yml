@@ -57,7 +57,9 @@ jobs:
           python-version: "3.14"
           cache: 'pip'
       - run: pip install -r requirements-lock.txt
-      - run: PYTHONPATH=. pytest backend/tests/ -x -q
+      # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
+      # 排除 pytest.mark.slow，避免 job hang。
+      - run: PYTHONPATH=. pytest backend/tests/ -x -q -m "not slow"
 
   # Sprint 41: GH Actions 跑 e2e (Sprint 32.1 留尾, Sprint 40 audit 后实施)
   # Sprint 60.3+ C+: CI runner 无 production DuckDB，用 scripts/ci/e2e_schema.sql 初始化空 schema，
