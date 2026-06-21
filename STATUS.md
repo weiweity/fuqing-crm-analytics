@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 60+ 累计 4 sprint 收口, v0.4.14.147, main HEAD `fa6e69f`)
+**最后更新**: 2026-06-21 (Sprint 60+ 累计 4 sprint 收口, v0.4.14.147, main HEAD `ea44dd4`)
 
 ---
 
