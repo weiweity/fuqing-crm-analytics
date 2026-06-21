@@ -11,7 +11,13 @@ status_update.py — Sprint 59 #6 STATUS.md 4 字段自动抓取 (90 行 stdlib)
 退出码: 0=对齐 1=需更新 2=抓取失败/marker异常.
 """
 from __future__ import annotations
-import argparse, os, re, subprocess, sys, tempfile
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -144,8 +150,10 @@ def main():
         return 0
     if args.check:
         print("DIFF: STATUS.md auto-block needs update")
-        print("--- current ---"); print(current)
-        print("--- expected ---"); print(new_block.rstrip("\n"))
+        print("--- current ---")
+        print(current)
+        print("--- expected ---")
+        print(new_block.rstrip("\n"))
         return 1
 
     # --apply atomic write
@@ -159,8 +167,10 @@ def main():
                 f.write(new_text)
             os.replace(tmp, STATUS_MD)
         except Exception:
-            try: os.unlink(tmp)
-            except OSError: pass
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
             raise
     except OSError as e:
         print(f"ERROR: atomic write failed: {e}", file=sys.stderr)

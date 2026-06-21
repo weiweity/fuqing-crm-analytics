@@ -4,6 +4,15 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.148] - 2026-06-21
+
+### Fixed
+- Sprint 60.3 修 CI lint 8 errors (`scripts/status_update.py` 5 PEP8 + `backend/tests/test_status_update.py` 3 ruff)
+- 升 `actions/upload-artifact@v3` → `v4` 修复 e2e workflow 自动失败
+
+### Changed
+- e2e CI job 恢复 `continue-on-error: true`: CI runner 缺 production DuckDB, 先治标避免 main 持续红, 后续 Sprint 评估 seed/mock 数据治本
+
 ## Sprint 60.1.1 — Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution params 错位 (2026-06-21, v0.4.14.146, main HEAD `ce4deea`)
 
 > Sprint 60.1 端到端验证暴露 2 个新问题. ① Pydantic 422 `wool_party_ratios` 字段值 > 1.0 触发 contract B2 `RatioField(0,1)` 验证失败 (FastAPI 当 500) — 根因: `_compute_wool_party_breakdown` 算的 `total_wool_count` 是"100% 小样用户" (不应用 `exclude_channels`), 跟 `_compute_value_tier_base` 算的 `total_users` (应用 exclude) 不同口径, 排除低价后分子>分母, ratio 暴涨 (实际 3.7593, 21.6751, 1.3461). 修本: `dual_axis_line.wool_party_ratios` 加 `min(round(...), 1.0)` 强截断 (Sprint 27 YOYBadge `|v|>1e6` 模式). ② Sprint 60 漏修 `distribution.py` params 顺序错位 (跟 Sprint 60 同根因类型, Sprint 60 治本只修 Lane A, 漏修 Lane C) — 修本: `get_category_distribution` SQL `?` 占位符顺序对齐.
