@@ -161,6 +161,86 @@ Regression tests:
 - `bash frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (L1, 3 case)
 - `bash frontend-vue3/e2e/lint/__tests__/spec-lint-l2.test.sh` (L2, 5 case)
 
+### 4.5 spec-lint L1 fallback 触发条件 (Sprint 50.1 实战, Sprint 57 沉淀)
+
+> 本节是 Sprint 50.1 L2 wrapper 切默认后 L1 fallback 的触发条件 + 切换机制, 给后续 sprint 加新 spec 或 CI runner 内存不足时直接参考。
+
+#### 4.5.1 默认行为 (Sprint 50.1+)
+
+```bash
+# 默认跑 L2 AST parser (Sprint 50+ L2 wrapper 升级)
+bash frontend-vue3/e2e/lint/spec-lint-l2.sh
+# 或
+cd frontend-vue3 && npm run lint:spec
+```
+
+L2 wrapper 走 `frontend-vue3/e2e/lint/spec-lint-l2.py` (tree-sitter AST 解析), 自动检测环境:
+
+- L2 可用 (Python 包 `tree-sitter` + `tree-sitter-typescript` 已装) → 走 L2
+- L2 不可用 (包缺失 / CI runner 内存不足 / Python 版本不兼容) → **自动 fallback L1**
+
+#### 4.5.2 L1 fallback 触发场景
+
+| 场景 | 触发条件 | 行为 | Sprint 来源 |
+|------|----------|------|------------|
+| **Python 包缺失** | `tree-sitter` / `tree-sitter-typescript` 未装 | L2 wrapper 自动调 `spec-lint.sh` (L1) | Sprint 50.1 |
+| **CI runner 内存不足** | L2 AST 解析比 L1 内存高 ~3× (e.g. < 1GB free) | 自动 fallback L1, 提示升级 memory_limit | Sprint 50.1 + Sprint 41 实战 |
+| **Python 版本不兼容** | Python < 3.10 (tree-sitter-typescript 要求) | 自动 fallback L1 | Sprint 50.1 |
+| **强制 L1 (用户决定)** | `SPEC_LINT_LEVEL=l1 bash spec-lint-l2.sh` | 跳过 L2 检测, 跑 L1 | Sprint 50.1 |
+| **L2 检测抛异常** | L2 wrapper 内部 panic / tree-sitter 解析错 | fallback L1 + stderr 提示 | Sprint 50.1 |
+
+#### 4.5.3 切换机制
+
+```bash
+# L2 默认 (Sprint 50+ 推荐)
+./frontend-vue3/e2e/lint/spec-lint-l2.sh
+# 内部自动检测 + 必要时 fallback
+
+# 强制 L1
+SPEC_LINT_LEVEL=l1 ./frontend-vue3/e2e/lint/spec-lint-l2.sh
+# 等价直接跑 L1:
+./frontend-vue3/e2e/lint/spec-lint.sh
+
+# 验证 L1 fallback 可用 (CI runner 内存不足时)
+SPEC_LINT_LEVEL=l1 ./frontend-vue3/e2e/lint/spec-lint-l2.sh
+# 期望: exit 0, 0 violation
+```
+
+#### 4.5.4 L1 fallback 实战 sprint
+
+| Sprint | 改动 | 实战 fix 模式 |
+|--------|------|---------------|
+| Sprint 50 | L2 AST parser 升级 (3 文件新功能, `spec-lint-l2.py` 357 行 + wrapper + 5 case regression test) | Codex 实施 + L1 保留 fallback |
+| Sprint 50.1 | pre-commit hook 切 L2 wrapper (`spec-lint-l2.sh`), `frontend-vue3/package.json` 新增 `lint:spec` npm script | L2 默认 + L1 fallback |
+| Sprint 57 | 加 §4.5 spec-lint L1 fallback 触发条件文档 (本节) | 文档沉淀, 不改 hook |
+
+#### 4.5.5 L1 vs L2 检测能力对比
+
+| 规则 | L1 (grep) | L2 (AST) | 备注 |
+|------|-----------|----------|------|
+| Rule 1: 不 hardcode 业务数据长度 | ✅ | ✅ | L2 更准 (AST 上下文) |
+| Rule 2: 不 `waitForTimeout` 死等 | ✅ | ✅ | L1 grep `waitForTimeout(` 字符串 |
+| Rule 3 (WARN): `page.request` 缺 Authorization | ✅ | ✅ | L2 更准 (AST 节点上下文) |
+| 复杂嵌套表达式检测 | ❌ 易漏 | ✅ | L2 优势 |
+| `expect.toBeVisible({ timeout: N })` 检测 | ❌ 易误判 | ✅ | L2 优势 |
+| 注释 vs 代码区分 | ❌ | ✅ | L2 优势 |
+
+**L1 fallback 适用**: 简单 spec lint (Sprint 42-50 时期); **L2 默认适用**: Sprint 50+ (AST 解析更准, 误报率低)。
+
+#### 4.5.6 实战教训 (跨 sprint 复用)
+
+1. **L2 wrapper 自动 fallback 是关键** (Sprint 50.1): 不强制要求所有 dev 装 tree-sitter, 没装自动降级 L1, 0 摩擦
+2. **CI runner 内存预算是 50MB / spec** (Sprint 41 实战): L2 AST 比 L1 内存高 ~3×, 50+ spec 同时跑可能 OOM, L1 fallback 是兜底
+3. **强制 L1 用 env var 不改 config** (跟 Sprint 30.1 W4 batch 切换一致): `SPEC_LINT_LEVEL=l1` 是 env 不是 config, 跨 dev 0 冲突
+4. **L1 + L2 共存是双轨** (跟 Sprint 18 #142 pre-commit framework 双轨一致): 不强制迁移, 旧版 (L1) 默认保留, 新版 (L2) opt-in
+
+#### 4.5.7 相关 memory + 文档
+
+- `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{42,50,50_1}.md`
+- `frontend-vue3/e2e/lint/spec-lint-l2.sh` — L2 wrapper 脚本
+- `frontend-vue3/e2e/lint/spec-lint.sh` — L1 fallback 脚本
+- `frontend-vue3/e2e/lint/spec-lint-l2.py` — L2 AST parser 实现
+
 ## 5. 跳过
 
 ### 5.1 单次跳过
@@ -354,3 +434,14 @@ pre-commit hook 是**开发者工具**, 不影响 backend runtime. backend 跑
 - 计划: Sprint 18 Plan agent 段 B
 - 26 命名冲突治根: Sprint 18 #141
 - B1+B2 模式: `CLAUDE.md` Ratio Convention 章节 (Sprint 17 #122)
+
+---
+
+## Stage 2 完成 — pre-commit.md (Sprint 57 #9 实施)
+
+- **完成时间**: 2026-06-21T04:35:00Z
+- **实施者**: **Claude 接管** (Codex 卡 stdin/HTTPS fallback 退出)
+- **改动**: 新增 §4.5 spec-lint L1 fallback 触发条件 (Sprint 50.1 实战, +约 60 行)
+- **Commit SHA 实证**: `8b2bd04` — chore(pre-commit): L2 wrapper 切换 (Sprint 50.1 收口, git log 已验证)
+- **引用合规**: 不引用 `docs/development/LESSONS_LEARNED.md` (#10) / `docs/development/services.md` (#7)
+- **Stage 3 等待**: Claude review (跟 wt-01 + wt-03 一起)
