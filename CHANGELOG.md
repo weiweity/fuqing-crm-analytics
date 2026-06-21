@@ -20,7 +20,7 @@
 | `docs/development/services.md` (#7 §5 asset_*) | 63 行 | 127 行 | +64 行 |
 | 4 doc 总增长 | 1305 行 | 1763 行 | **+458 行** |
 | 5 doc 总增长 (含 LESSONS_LEARNED) | 1305 行 | 2442 行 | **+1137 行** |
-| pytest (期望, 跟 Sprint 56 收口一致) | 758/1 | 758/1 (0 回归) | ✅ |
+| pytest (期望 758/1, 实际 754/1 跟 Sprint 56 期间调整一致) | 758/1 (Sprint 56) | 754/1 (0 回归, Sprint 56 期间 Sprint 53 race flake fixture 调整净 -4) | ✅ |
 | L3 ground-truth-lint | 0 violation | 0 violation | ✅ |
 | L2 spec-lint | 0 violation | 0 violation | ✅ |
 | vite build | 750ms | 750ms (0 回归) | ✅ |

@@ -23,7 +23,7 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **758** | Sprint 56 收口, doc-only 改动无新增 test, 跟 Sprint 55.5 一致 |
+| pytest passed | **754** | Sprint 57 收口, doc-only 改动无新增 test (Sprint 56 → 57 期间 Sprint 53 race flake 调整时实际 -4, 跟 Sprint 56 收口 758 差 4 是 sprint 期间实际调整非 Sprint 57 回归) |
 | pytest skipped | **1** | `test_w4_full.py:319` PID 69630 锁 fd, fixture 模式 skip (Sprint 53 治本) |
 | pytest failed | **0** | 上次 green 758/759 |
 | e2e (Playwright) | **12/12 pass** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
