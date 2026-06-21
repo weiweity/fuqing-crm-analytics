@@ -5,7 +5,6 @@ Codex review #13 反馈: marker 缺失 / 重复 / pytest 输出变化必须有�
 """
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "status_update.py"
@@ -34,8 +33,8 @@ def test_marker_missing_raises(tmp_path):
 def test_marker_duplicate_raises(tmp_path):
     """STATUS.md 有多个 <!-- STATUS-AUTO-START --> 标记时 returncode != 0."""
     status_text = (
-        f"<!-- STATUS-AUTO-START -->\n| a | 1 | x |\n<!-- STATUS-AUTO-END -->\n"
-        f"<!-- STATUS-AUTO-START -->\n| b | 2 | y |\n<!-- STATUS-AUTO-END -->\n"
+        "<!-- STATUS-AUTO-START -->\n| a | 1 | x |\n<!-- STATUS-AUTO-END -->\n"
+        "<!-- STATUS-AUTO-START -->\n| b | 2 | y |\n<!-- STATUS-AUTO-END -->\n"
     )
     result = _run_in(tmp_path, status_text)
     assert result.returncode != 0, f"expected non-zero rc, got {result.returncode}"
