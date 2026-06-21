@@ -161,8 +161,15 @@ def _compute_category_period(
     where_sql, where_params = _build_category_period_filter(
         start_date, end_date, metric_type, channel, exclude_channels,
     )
-    # params 顺序: cutoff + start_date + end_date (period_orders 里 3 个) + EXCLUDED_PRODUCT_CATEGORIES + where_params
-    params = [cutoff, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + where_params
+    # params 顺序: SQL `?` 占位符位置一一对应.
+    # SQL 顺序 (按 SQL 文本出现位置):
+    #   1) DATE(?) cutoff (line 174 `ufp.first_pay_date >= DATE(?)`)
+    #   2-3) pay_time >= ? AND pay_time <= ? (where_sql time range, line 177)
+    #   4-21) NOT IN (?,?,...×18) EXCLUDED_PRODUCT_CATEGORIES (line 179)
+    # Sprint 60 治本: 之前 `[cutoff, start_date, end_date] + EXCLUDED + where_params` 把
+    # start_date/end_date 错位插在 EXCLUDED 之前 → 多了 2 个 params → DuckDB InvalidInputException
+    # "excess parameters: 22, 23" → API 500. 正确顺序: cutoff + where_params + EXCLUDED.
+    params = [cutoff] + list(where_params) + list(EXCLUDED_PRODUCT_CATEGORIES)
 
     sql = f"""
     WITH period_orders AS (
@@ -561,9 +568,13 @@ def _compute_value_tier_base(
     where_sql, where_params = _build_value_tier_filter(
         start_date, end_date, channel, exclude_channels,
     )
-    # params 顺序: latest_rfm_date + start_date + end_date (period_orders 里 3 个)
-    # + EXCLUDED_PRODUCT_CATEGORIES + where_params
-    params = [latest_rfm_date, start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + where_params
+    # params 顺序: SQL `?` 占位符位置一一对应.
+    # SQL 顺序 (按 SQL 文本出现位置):
+    #   1) DATE(?) latest_rfm_date (line 575 JOIN ON `r.analysis_date = DATE(?)`)
+    #   2-3) pay_time >= ? AND pay_time <= ? (where_sql time range, line 576)
+    #   4-21) NOT IN (?,?,...×18) EXCLUDED_PRODUCT_CATEGORIES (line 577)
+    # Sprint 60 治本: 跟 _compute_category_period 同根因错位, 修正顺序.
+    params = [latest_rfm_date] + list(where_params) + list(EXCLUDED_PRODUCT_CATEGORIES)
 
     sql = f"""
     WITH period_orders AS (
