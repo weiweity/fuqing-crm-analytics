@@ -298,27 +298,33 @@ def _run_rfm_period_live(
     ),
     ttl_stats_all AS (
         SELECT '已购客TTL' AS rfm_segment,
-               (SELECT COUNT(*) FROM ttl_users_all) AS hist_users,
-               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
-               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+               -- Sprint 60.2 治本: hist_users 改用 user_stats_all (RFM 评分用户, 老客)
+               -- 跟 8 象限口径一致 (老客 GSV TTL = 8 象限老客 GSV 之和).
+               -- 修前用 ttl_users_all (`pay_time <= end_dt` 含新客), 算 3,352,390 多 34,611 新客.
+               (SELECT COUNT(*) FROM user_stats_all) AS hist_users,
+               -- Sprint 60.2 治本: TTL 行 repurchase_users/gsv 用 user_stats_all JOIN base_orders
+               -- (老客 GSV TTL = 8 象限老客 GSV 之和, 自己除以自己 ratio 100%).
+               -- 修前用 base_orders 全部 (含新客 642 万 GSV), 算 ratio 67.34% 错.
+               (SELECT COUNT(DISTINCT bo.user_id) FROM base_orders bo INNER JOIN user_stats_all us ON bo.user_id = us.user_id) AS repurchase_users,
+               (SELECT COALESCE(SUM(bo.actual_amount), 0) FROM base_orders bo INNER JOIN user_stats_all us ON bo.user_id = us.user_id) AS repurchase_gsv
     ),
     ttl_stats_same AS (
         SELECT '已购客TTL' AS rfm_segment,
-               (SELECT COUNT(*) FROM ttl_users_same) AS hist_users,
-               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
-               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+               (SELECT COUNT(*) FROM user_stats_same) AS hist_users,
+               (SELECT COUNT(DISTINCT bo.user_id) FROM base_orders bo INNER JOIN user_stats_same us ON bo.user_id = us.user_id) AS repurchase_users,
+               (SELECT COALESCE(SUM(bo.actual_amount), 0) FROM base_orders bo INNER JOIN user_stats_same us ON bo.user_id = us.user_id) AS repurchase_gsv
     ),
     member_ttl_stats_all AS (
         SELECT '已购客TTL' AS rfm_segment,
                (SELECT COUNT(*) FROM member_ttl_users_all) AS hist_users,
-               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
-               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+               (SELECT COUNT(DISTINCT bo.user_id) FROM base_orders bo INNER JOIN user_stats_all us ON bo.user_id = us.user_id AND us.is_member = TRUE) AS repurchase_users,
+               (SELECT COALESCE(SUM(bo.actual_amount), 0) FROM base_orders bo INNER JOIN user_stats_all us ON bo.user_id = us.user_id AND us.is_member = TRUE) AS repurchase_gsv
     ),
     member_ttl_stats_same AS (
         SELECT '已购客TTL' AS rfm_segment,
                (SELECT COUNT(*) FROM member_ttl_users_same) AS hist_users,
-               (SELECT COUNT(DISTINCT user_id) FROM repurchase_users) AS repurchase_users,
-               (SELECT COALESCE(SUM(actual_amount), 0) FROM base_orders) AS repurchase_gsv
+               (SELECT COUNT(DISTINCT bo.user_id) FROM base_orders bo INNER JOIN user_stats_same us ON bo.user_id = us.user_id AND us.is_member = TRUE) AS repurchase_users,
+               (SELECT COALESCE(SUM(bo.actual_amount), 0) FROM base_orders bo INNER JOIN user_stats_same us ON bo.user_id = us.user_id AND us.is_member = TRUE) AS repurchase_gsv
     )
     SELECT 'all' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
         SELECT * FROM segment_stats_all UNION ALL SELECT * FROM ttl_stats_all
@@ -360,31 +366,52 @@ def _run_rfm_period_live(
             "repurchase_gsv_ratio": 0.0,
         }
         if mode == "all":
-            total_gsv_all += float(repurchase_gsv or 0)
+            # Sprint 60.2 治本: total_gsv_all 累加排除 TTL 行 (TTL = 8 象限老客 GSV 之和,
+            # 跟 8 象限 sum 重合, 累加会双计). 修后 8 象限 ratio 分母 = 8 象限 sum = 老客 GSV,
+            # 8 象限 ratio 之和 = 100%, TTL ratio = 1.0 (自己除以自己, 用户新定义).
+            if segment != "已购客TTL":
+                total_gsv_all += float(repurchase_gsv or 0)
             all_result[segment] = entry
         elif mode == "same":
-            total_gsv_same += float(repurchase_gsv or 0)
+            if segment != "已购客TTL":
+                total_gsv_same += float(repurchase_gsv or 0)
             same_result[segment] = entry
         elif mode == "member_all":
-            total_gsv_member_all += float(repurchase_gsv or 0)
+            if segment != "已购客TTL":
+                total_gsv_member_all += float(repurchase_gsv or 0)
             member_all_result[segment] = entry
         elif mode == "member_same":
-            total_gsv_member_same += float(repurchase_gsv or 0)
+            if segment != "已购客TTL":
+                total_gsv_member_same += float(repurchase_gsv or 0)
             member_same_result[segment] = entry
 
     # repurchase_gsv_ratio
+    # Sprint 60.2 治本: TTL 行 ratio 强制 1.0 (老客 GSV / 老客 GSV, 自己除以自己)
+    # 8 象限 ratio 跟 TTL ratio 各自独立 (分桶 vs 合计, 业务合理双计, 9 行 sum = 200%)
     for seg in all_result:
         gsv = all_result[seg]["repurchase_gsv"]
-        all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_all, 4) if total_gsv_all > 0 else 0.0
+        if seg == "已购客TTL":
+            all_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_all, 4) if total_gsv_all > 0 else 0.0
     for seg in same_result:
         gsv = same_result[seg]["repurchase_gsv"]
-        same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_same, 4) if total_gsv_same > 0 else 0.0
+        if seg == "已购客TTL":
+            same_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_same, 4) if total_gsv_same > 0 else 0.0
     for seg in member_all_result:
         gsv = member_all_result[seg]["repurchase_gsv"]
-        member_all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_all, 4) if total_gsv_member_all > 0 else 0.0
+        if seg == "已购客TTL":
+            member_all_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            member_all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_all, 4) if total_gsv_member_all > 0 else 0.0
     for seg in member_same_result:
         gsv = member_same_result[seg]["repurchase_gsv"]
-        member_same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_same, 4) if total_gsv_member_same > 0 else 0.0
+        if seg == "已购客TTL":
+            member_same_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            member_same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_same, 4) if total_gsv_member_same > 0 else 0.0
 
     # 补零
     for seg in RFM_SEGMENT_ORDER:
