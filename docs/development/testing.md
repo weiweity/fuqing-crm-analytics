@@ -12,6 +12,8 @@
 
 **新增 fixture 见** `docs/architecture/TEST_INFRASTRUCTURE.md` §1。
 
+**真连 fixture 范本**: `backend/tests/test_dmp_asset_cache.py` (Sprint 55.5 rename 后验证 `asset_focus_service/_helpers.py` cache invalidation, 4622 字节真实 test).
+
 ## 2. 真连 test skipif (L4.4)
 
 ```python

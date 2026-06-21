@@ -37,6 +37,14 @@
 | **28-31** | ... | 备份 + ETL + 50m scale | (见 CHANGELOG) |
 | **1-27** | ... | 早期奠基 | (见 CHANGELOG_HISTORY) |
 
+## 维护规则
+
+- **跨 sprint 留尾意识** (跟 Sprint 41 / 55 / 55.5 / 56 实战 fix 模式一致):
+  - **重大改 doc 之前先 `git log --oneline -- <doc_path>` 看历史** (避免误删, Sprint 55.5 11 文件 mv + 19 路径引用教训)
+  - **"未集成"/"不存在" 结论必须有 git log 实证** (CLAUDE.md §"强制验证" 规则)
+  - **空白槽位 vs stub 内容选择**: 选 stub 内容而非空目录 (Sprint 55.5 4 stub 填 P0 死链接教训)
+- **Sprint 索引自动维护**: 每次 sprint 收口必更新本表 + 顶部最后更新字段
+
 ## 关联文档
 
 - `~/.claude/projects/-Users-hutou/memory/MEMORY.md` — 全局工作记忆索引
