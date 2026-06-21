@@ -3619,3 +3619,110 @@ v0.4.7.3 那个 workflow 报告"ModuleNotFoundError: No module named 'fastapi'" 
 ### 任务来源
 - Sprint 17 retrospective Section 4 治理债务 #1+#2+#4+#5 → Sprint 18 #141+#142+#123+#124 全部闭环
 - Sprint 16.5 #92 YOYBadge 异常值守卫 → Sprint 18 #124 扩到 MetricCard + RFM 表格
+
+## Sprint 57 滚动段 — 2 entry 滚动 (2026-06-21, Sprint 57 文档沉淀主题收口后维护, v0.4.14.114 - v0.4.14.115, Sprint 31.2 + Sprint 32.1)
+
+> Sprint 57 收口后, CHANGELOG.md 7 Sprint + 25 [v] = 32 entry 超 30 entry 阈值 (Sprint 56 滚动经验值), 1377 行超 1000 行阈值。滚动最老 2 entry (Sprint 31.2 + Sprint 32.1) 到 HISTORY, 32 → 30 entry 恢复舒适区。Sprint 58+ 阈值收紧建议: 30 → 25 entry (Sprint 56/57 期间 sprint 节奏快, 30 entry 阈值 5 sprint 就触发, 25 entry 拉长到 8 sprint)。
+
+### Recurring pattern (跨 sprint 复用)
+
+- **Sprint 30.3 ratio 模式 (Sprint 31.2)**: 扁平字段用 `RatioField` alias, 嵌套 List 用 `List[Optional[Annotated[float, Field(ge, le)]]]`, 测试用 `pytest.raises(ValidationError) + exc_info.value.errors() + loc` 字段名检查
+- **Sprint 18 #141 yoy_*_ratio 白名单模式 (Sprint 31.2)**: 字段名历史遗留, 实际 PpField, 走 `_YOY_PPT_FIELDS` 白名单兜底
+- **业务实证 > 业务确认 (Sprint 31.2)**: `semantic.calculations.py:70-80` 函数定义直接证明 `yoy_repurchase_rate` 是 pp 差, 无需 ask user 业务确认
+- **两层 SSL fix (Sprint 32.1)**: 浏览器运行时 (Playwright config) + Node 端 (cert 信任)。单做一层会失败 (运行时缺 cert 信任 → 浏览器报 SSL 错误,即使启用了 ignoreHTTPSErrors)
+- **WASM warm-up 测试顺序依赖 (Sprint 32.1)**: 跨 test 状态影响结果, Sprint 32.2 写新 e2e 时注意 test 顺序 + 加 warm-up test
+- **CHANGELOG 滚动阈值 (Sprint 57 维护)**: 30 entry / 1000 行经验值 (Sprint 56 沉淀), 跨 sprint 留尾意识推动阈值收紧建议 (Sprint 58 → 25 entry)
+
+---
+
+### Sprint 31.2 完整 entry (原 [v0.4.14.115])
+
+## [v0.4.14.115] - 2026-06-18 - feat(contracts): Sprint 31.2 — Sprint 30.3 剩余 12 字段 ratio/rate 范围约束补标 (合同层 5x10 Pydantic strict 防御)
+
+> Sprint 30.3 (v0.4.14.107) 留的"剩余 TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence 走 Sprint 31+ 单独 sprint 风险 review" 闭环. 治根: 补 Pydantic v2 strict 0-1 / pp 范围约束, 防 service 层某路径返回越界值时 API 入口 422 freeze (跟 Sprint 30.3 模式一致). v0.4.14.114 → v0.4.14.115.
+
+### Changed
+
+1. **`backend/contracts/health.py`** (10 字段注解) — `TierFlowRow` 5 ratio + 1 PpField + `NewCustomerConversionFunnel` 4 rate:
+   - `TierFlowRow.repurchase_rate_current/comp/prev2` `float` → `"RatioField"` (0-1 decimal, 跟 `repurchase_gsv_ratio_current` 模式对齐)
+   - `TierFlowRow.repurchase_gsv_ratio_comp/prev2` `float` → `"RatioField"` (注释写"0-1"但注解是 float, 补注解对齐)
+   - `TierFlowRow.yoy_repurchase_rate` `Optional[float]` → `Optional["PpField"]` (-100~+100 pp 差, **业务实证**: `semantic/calculations.py:51-69` `yoy_ratio` 原始定义 + `70-80` `yoy_repurchase_rate` alias 文档 = `(cur - comp) * 100` pp 差, 跟 `yoy_repurchase_gsv_ratio_ppt` 语义对齐, 命名不一致是 Sprint 19 改名遗留)
+   - `NewCustomerConversionFunnel.day7_rate/day30_rate/day90_rate/year_rate` `float` → `"RatioField"` (service 层 `conversion.py:108-126` 用 `safe_ratio(..., 0.0)` 保护, 0 越界)
+
+2. **`backend/contracts/category.py`** (2 字段注解) — `MarketBasketItem`:
+   - `support/confidence` `float` → `"RatioField"` (0-1 decimal, service 层 `basket.py:233-234` 实证 0 越界)
+   - `lift/gsv_lift` **保持 float** (倍数可超 1, Sprint 30.3 `test_contracts_b2_audit.py:13` 明确"lift / 提升度 -> 保留 float, 不约束 0-1")
+
+3. **`backend/contracts/_lint.py`** (+0 行, codex review P3 finding) — Sprint 18 #141 `_YOY_PPT_FIELDS` 白名单**不**加 `yoy_repurchase_rate`: linter R1 只匹配 `endswith("_ratio")` 字段, `yoy_repurchase_rate` 以 `_rate` 结尾永不被 flag, 加白名单是 dead code no-op. 实际 fix 是 `health.py:216` annotation 改 `Optional["PpField"]`, 跟白名单无关.
+
+### Added
+
+4. **`backend/tests/test_contract_ratio_audit_sprint_31_2.py`** (NEW, 14 cases) — 8 维度全覆盖:
+   - `TestTierFlowRowRatioBounds` (7): repurchase_rate_current/comp/prev2 + repurchase_gsv_ratio_comp/prev2 越界 freeze + yoy_repurchase_rate PpField 范围 + None 透传
+   - `TestNewCustomerConversionFunnelRatioBounds` (4): day7/30/90 + year rate 越界 freeze
+   - `TestMarketBasketItemRatioBounds` (3): support/confidence 越界 freeze + lift/gsv_lift 1.5/3.0 倍数应 pass
+
+### Risk
+
+- 行为变化 (vs Sprint 30.3): Pydantic v2 strict 模式下, 12 字段补 RatioField/PpField 后, service 层若某路径返回越界值, API 入口 422 freeze (而非 500 错值透传)
+- service 层端到端真验: 0 越界值流入 (TierFlowRow 7/7 + NewCustomerConversionFunnel 4/4 + MarketBasketItem 4/4 = **15/15 字段全合规**)
+- linter: 0 violation (Sprint 31.2 之前 `yoy_repurchase_rate` R1 不会误报, 字段名 `_rate` 结尾不在 R1 范围; 实际 fix 是 annotation 改 `Optional["PpField"]`)
+- 跟 Sprint 18 #141 模式一致: `yoy_*_ratio` 字段名历史遗留, 实际 PpField, 走白名单兜底不改命名 (跨 14+ 文件影响大)
+
+### Verification
+
+- `pytest backend/tests/test_contract_ratio_audit_sprint_31_2.py -v`: **14/14 pass**
+- `python -m backend.contracts._lint`: OK All contracts pass (0 violation) — `yoy_repurchase_rate` 字段名以 `_rate` 结尾不在 R1 范围, 不需白名单 (codex review P3 finding)
+- `ruff check backend/contracts/`: All checks passed
+- `pytest backend/tests/`: 633 passed / 15 skipped (跟改动无关, uvicorn DuckDB 锁冲突 skip)
+- service 端到端: 15/15 字段实际数据都在范围 (TierFlowRow 7/7 safe_ratio, Conversion 4/4 safe_ratio, Basket 4/4 safe_ratio)
+
+---
+
+### Sprint 32.1 完整 entry (原 [v0.4.14.114])
+
+## [v0.4.14.114] - 2026-06-17 - chore(e2e): Sprint 32.1 — Playwright HTTPS error tolerance (chromium v1208 SSL hardening)
+
+> Sprint 28+ 待办 #5 闭环. **两层 SSL fix 必要**:
+> 1. **浏览器运行时** (本 commit): `playwright.config.ts` 加 `ignoreHTTPSErrors: true` + `launchOptions.args: ['--ignore-certificate-errors']`, 防御 v1208-class chromium SSL 证书 bug
+> 2. **Node 端 cert 信任** (部署侧 docs, 已在 Sprint 31.1 治根 `check_duckdb_release.py` 用过 `certifi` CA bundle 模式): `NODE_EXTRA_CA_CERTS=$(python3 -c "import certifi; print(certifi.where())")` 修 `npx playwright install` 时 `SELF_SIGNED_CERT_IN_CHAIN` 错误
+>
+> 当前 chromium revision 1217 (browserVersion 147.0.7727.15) **已绕过 v1208 SSL bug** (v1208 是上一 revision). 32.1 范围 = 防御性配置 + 部署侧 docs. v0.4.14.113 → v0.4.14.114.
+
+### Changed
+
+1. **`frontend-vue3/playwright.config.ts`** (+4 行) — `use` 块新增 2 行 + 2 行注释:
+   - `ignoreHTTPSErrors: true` — Playwright 浏览器 API 层容忍 HTTPS 证书错误
+   - `launchOptions: { args: ['--ignore-certificate-errors'] }` — chromium 启动层也忽略证书验证
+   - 注释说明: "Sprint 32.1: defend against v1208-class chromium SSL bugs (current v1217 bypassed, but defense-in-depth for future HTTPS migration or external HTTPS endpoints)"
+
+### Verification
+
+- **本地 e2e 重跑**: 2/3 pass (customer-health 2/2 OK after WASM warm-up; audience-daily-trend 1/1 fails on brittle canvas `.first()` selector pre-existing, unrelated to this config change)
+- **Charts render correctly**: page snapshot 显示 customer-health 6 个 Tab + RFM 数据表完整渲染 (1158.6万, 51.5% 等真实数据)
+- **Backend tests**: 571 passed / 15 skipped (skip 跟改动无关,uvicorn DuckDB 锁冲突 skip)
+- **WASM streaming race**: console 偶发 "wasm streaming compile failed" 是 pre-existing flake (WASM 第一次下载未就绪), config 改动不引入新 console error
+
+### Risk
+
+- 无业务代码改动
+- 行为变化: 仅当未来 HTTPS 化或外部 HTTPS endpoint 时,浏览器会容忍证书错误;当前 HTTP 配置下行为完全不变
+- 配置改动的兼容性: `ignoreHTTPSErrors` 是 Playwright 标准 API (`@playwright/test: ^1.59.1` 支持),`launchOptions.args` 是 chromium 标准 CLI flag
+- Sprint 32.2 e2e spec 回归可在本 commit 之上跑 (32.1 是 32.2 的跑批基础)
+
+### Recurring pattern (跨 sprint 复用)
+
+- **两层 SSL fix 必做**: 浏览器运行时 (Playwright config) + Node 端 (cert 信任)。单做一层会失败 (运行时缺 cert 信任 → 浏览器报 SSL 错误,即使启用了 ignoreHTTPSErrors)
+- **WASM warm-up 测试顺序依赖**: 跨 test 状态影响结果 (3 个 test 一起跑 customer-health 2/2 pass,单独跑 0/2 fail),Sprint 32.2 写新 e2e 时注意 test 顺序 + 加 warm-up test
+
+### 部署侧要求 (不在本 commit, 写入 Sprint 32.1 文档)
+
+```bash
+# 安装 Playwright 浏览器时,需要 NODE_EXTRA_CA_CERTS 修 SELF_SIGNED_CERT_IN_CHAIN:
+export NODE_EXTRA_CA_CERTS=$(python3 -c "import certifi; print(certifi.where())")
+npx playwright install chromium
+
+# CI 跑 e2e 前同样设置 (Sprint 32.3 候选)
+```
+
+---

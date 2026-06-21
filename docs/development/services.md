@@ -118,10 +118,3 @@ other = get_other_product_assets(store_id="store_001", period="2026-06")
 
 - `docs/architecture/AI_SAFETY_NET.md` — FilterBuilder pattern
 - `CLAUDE.md` §"AI 写代码 typo 防御规范" L4.5
-
-## Stage 2 完成 — services.md
-
-- **完成时间**: 2026-06-21T03:32:09Z
-- **Codex 实施**: `feat/sprint57-03-asset-service-map` 分支
-- **改动**: `docs/development/services.md`，新增 §5 asset_* 服务概念边界与 Stage 2 完成标记
-- **Stage 3 等待**: Claude review
