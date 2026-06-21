@@ -60,16 +60,15 @@ jobs:
       - run: PYTHONPATH=. pytest backend/tests/ -x -q
 
   # Sprint 41: GH Actions 跑 e2e (Sprint 32.1 留尾, Sprint 40 audit 后实施)
-  # 强依赖 Sprint 33.2 spec 稳定 (10/10 view smoke pass) + Sprint 39.1 baseline CI 修完
-  # 部署侧: NODE_EXTRA_CA_CERTS=certifi cacert.pem 修 SELF_SIGNED_CERT_IN_CHAIN
-  # (Sprint 32.1 实战过, v1208 → v1217 已绕过但 defense-in-depth 保留)
+  # Sprint 60.3+ C+: CI runner 无 production DuckDB，用 scripts/ci/e2e_schema.sql 初始化空 schema，
+  # e2e 恢复 blocking，同时保留 auth/health 真实后端健康检查。
   e2e:
     runs-on: ubuntu-latest
-    # Sprint 41.12 fix: e2e 改 non-blocking (跟 ground-truth-lint 一样).
-    # 理由: Sprint 41.1-41.11 11 次 follow-up 还 fail, 根因 GH Actions runner 14GB disk + headless Linux + 没 production DuckDB (103GB 不在 repo)
-    # CI runner 跟本地差异巨大, spec 本身没问题 (本地 11/11 pass). CI 跑 e2e 实际价值低 (本地跑有效).
-    # 跟 Sprint 32.1 实战一致: '非阻塞起步, 观察 false positive 率后再考虑改 blocking'.
-    continue-on-error: true
+    env:
+      DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
+      HEALTH_API_KEY: ci-fake-health-api-key
+      FQ_CRM_PASSWORDS: admin:123456
+      ETL_MIN_DISK_GB: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -116,6 +115,15 @@ jobs:
           # Sprint 41.11: 显式 set -e 让 pip install 失败时 e2e step fail (避免 '|| true' 吞错)
           set -e
           pip install -r requirements-lock.txt
+          # Sprint 60.3+ C+: 初始化 schema-only DB，让 smoke e2e 不依赖 production DuckDB
+          python3 - <<'PY'
+          import duckdb
+          conn = duckdb.connect('/tmp/e2e_duckdb.duckdb')
+          with open('scripts/ci/e2e_schema.sql') as f:
+              conn.execute(f.read())
+          conn.execute('SELECT 1').fetchone()
+          conn.close()
+          PY
           # Sprint 41.11: uvicorn 不写 /tmp/, redirect 到 GH Actions log (>&1). 启动错误可见.
           # Sprint 55 fix: 加 HEALTH_API_KEY (Sprint 53.5 CI 爆根因 - uvicorn 启动 RuntimeError "HEALTH_API_KEY 未设置").
           HEALTH_API_KEY="ci-fake-health-api-key-$(date +%s)-$$" \
