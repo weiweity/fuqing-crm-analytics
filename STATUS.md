@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 56 Phase 1+2 + Phase 3 drift fix 收口, v0.4.14.140, main HEAD `9bc53fe`)
+**最后更新**: 2026-06-21 (Sprint 57 文档沉淀主题收口, v0.4.14.141, main HEAD `ff53475`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.140` |
-| git HEAD (main) | `9bc53fe` (Sprint 56 Phase 3 drift fix, testing.md + SPRINT_INDEX.md 补内容) |
+| VERSION | `0.4.14.141` |
+| git HEAD (main) | `ff53475` (Sprint 57 收口, wt-03 merge services.md §5 asset_*) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 56 (CHANGELOG 30 entry 滚动 + 4 stub doc 补实 + DRY 拆解 + Phase 3 drift fix) |
+| 最近 sprint | Sprint 57 (文档沉淀主题: #10 LESSONS_LEARNED.md + #9 4 doc 扩内容 + #7 services.md §5) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 6 commit 0 debt (Sprint 56: a145a1a + de40843 + b22dbe9 merge + 277a4b1 VERSION + d872dcd STATUS/CHANGELOG + 9bc53fe drift fix) |
+| 上次合入 | 6 commit 0 debt (Sprint 57: 329ad94 + b567a68 merge + e972a1a + fb948a3 merge + 15b5825 + ff53475 merge, VERSION bump 待 commit) |
 
 ---
 
@@ -43,10 +43,11 @@
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
 | 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-55 累计 |
-| Sprint 56 留尾 | **5 项** | 4 stub doc 内容已补实; 5 项核心 + 14 项 P2/P3 推 Sprint 57+ |
+| Sprint 57 留尾 | **7 项** | Sprint 58 工具链实战 fix (#4 + #1 + #2 串行) + Sprint 59 收割季 (#6 + #5 + #8) + #3 50m scale 调研推后 |
+| Sprint 57 闭环 | **3 项** | #10 LESSONS_LEARNED.md (679 行, 9 pattern) + #9 4 doc 扩内容 (+458 行) + #7 services.md §5 (+64 行) |
 | 延后决策 | **1 条** | 50m-scale-architecture Phase 1-3 触发条件 = 30M 数据量 (Sprint 52 P2 留尾) |
 | Sprint 34+ backlog | **2 条** | 候选 4: CI 跑 e2e (Sprint 32.3 留尾) / 候选 2: commit msg ↔ diff CI check (误报率高推后) |
-| Recurring pattern | **2 个** | (a) Recurring race flake 治标 (Sprint 36.5, 治本 Sprint 53 闭环) (b) e2e 50+MB OOM 治标 (Sprint 41-55 跨 sprint 复发) |
+| Recurring pattern | **2 个** | (a) Recurring race flake 治标 (Sprint 36.5, 治本 Sprint 53 闭环) (b) e2e 50+MB OOM 治标 (Sprint 41-57 跨 sprint 复发) |
 
 ---
 
@@ -62,6 +63,7 @@
 | 数据布局 | data/cache/ data/exports/ data/parquet/ data/processed/ data/raw/ 5 区 | 持续 | `docs/data/data-layout.md` |
 | 备份系统 | 7 天滚动 + 3 restore 演练, `data/processed/backups/*.duckdb.zst` | Sprint 25 | `scripts/etl/backup_duckdb.py` |
 | 跨 sprint 沉淀 | 12 步流程 + worktree DUCKDB_PATH + Codex 协作工作流 | 持续 | `CLAUDE.md` §0 + L4.x |
+| **Sprint 实战 fix 沉淀** | **LESSONS_LEARNED.md 9 项 pattern 闭环** (DUCKDB_PATH / subagent / race flake / spec-lint / Codex / 12 步流程 / "破坏→验证→恢复" / commit msg↔diff / empty vs stub) | **Sprint 57** | `docs/development/LESSONS_LEARNED.md` |
 
 ---
 

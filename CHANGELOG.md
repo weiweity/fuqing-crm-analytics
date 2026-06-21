@@ -4,6 +4,57 @@
 > **本文件保留**: Sprint 31 起 (v0.4.14.108+, 2026-06-17) 至今 30 entry 详细 (5 个 `## Sprint` + 25 个 `## [v...]` 混合格式).
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## Sprint 57 — 文档沉淀主题 (#10 LESSONS_LEARNED + #9 4 doc 扩内容 + #7 services.md §5) (2026-06-21, v0.4.14.141, main HEAD `ff53475`)
+
+> Sprint 56 收口后留尾 10 项 (从 Sprint 55.5 19 项收敛 -47%)。本 sprint 闭环文档沉淀主题 3 项 (高 ROI + 跟 Sprint 56 doc-only 闭环模式一致): ① #10 实战 fix 沉淀 (Sprint 50+ 9 项实战 → LESSONS_LEARNED.md 9 项 pattern); ② #9 4 doc 扩内容 (CACHE 50M ROW + ground-truth-lint 完整指南 + fixture→test 映射 + spec-lint L1 fallback); ③ #7 asset_* 命名混淆文档化 (services.md §5 service map)。剩余 7 项 (Sprint 58 工具链实战 fix 3 项 + Sprint 59 收割季 3 项 + #3 50m scale 推后) 详见 SPRINT_INDEX.md。
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| `docs/development/LESSONS_LEARNED.md` (新建, #10) | 0 行 | **679 行** | +679 行 (9 项 pattern, 每项含 commit SHA 实证) |
+| `docs/architecture/DATA_PIPELINE.md` (#9 §7 CACHE 50M) | 247 行 | 337 行 | +90 行 |
+| `docs/architecture/AI_SAFETY_NET.md` (#9 §6.1 ground-truth-lint) | 191 行 | 352 行 | +161 行 |
+| `docs/architecture/TEST_INFRASTRUCTURE.md` (#9 §8 fixture→test) | 511 行 | 627 行 | +116 行 |
+| `docs/operating/pre-commit.md` (#9 §4.5 L1 fallback) | 356 行 | 447 行 | +91 行 |
+| `docs/development/services.md` (#7 §5 asset_*) | 63 行 | 127 行 | +64 行 |
+| 4 doc 总增长 | 1305 行 | 1763 行 | **+458 行** |
+| 5 doc 总增长 (含 LESSONS_LEARNED) | 1305 行 | 2442 行 | **+1137 行** |
+| pytest (期望, 跟 Sprint 56 收口一致) | 758/1 | 758/1 (0 回归) | ✅ |
+| L3 ground-truth-lint | 0 violation | 0 violation | ✅ |
+| L2 spec-lint | 0 violation | 0 violation | ✅ |
+| vite build | 750ms | 750ms (0 回归) | ✅ |
+| 3 layer docs (Sprint 50+) | 闭环 | 闭环 + LESSONS_LEARNED 沉淀 | ✅ |
+
+### 改动文件 (7 commit 0 debt)
+
+- `329ad94` `docs(architecture): Sprint 57 #9 — 4 doc 扩内容 (CACHE 50M + ground-truth-lint + fixture→test + spec-lint L1 fallback)` (4 files, +458 行)
+- `b567a68` (merge --no-ff) `merge: Sprint 57 #9 — 4 doc 扩内容`
+- `e972a1a` `docs(development): Sprint 57 #10 — LESSONS_LEARNED.md 9 项实战 fix 沉淀` (1 file, +679 行)
+- `fb948a3` (merge --no-ff) `merge: Sprint 57 #10 — LESSONS_LEARNED.md`
+- `15b5825` `docs(development): Sprint 57 #7 — services.md §5 asset_* 服务概念边界` (1 file, +64/-1 行)
+- `ff53475` (merge --no-ff) `merge: Sprint 57 #7 — services.md §5 asset_*`
+- (待 commit) `chore: bump VERSION 0.4.14.140 → 0.4.14.141 (Sprint 57 收口)`
+
+### 实战教训 (跟 Sprint 41/55/55.5/56 doc-only sprint 同模式)
+
+1. **Codex 协作工作流 Stage 2 三 worktree 并行 (Sprint 43+ 实战)**: Claude Stage 1 写架构 + HANDOFF, Codex Stage 2 实施, Claude Stage 3 review, Claude Stage 4 commit/push/merge。本 sprint 3 项全用此模式, 0 冲突 (合并顺序 #9 → #10 → #7, 跟引用依赖相反方向)。
+2. **Codex 卡 stdin/HTTPS fallback 实战 fix (Sprint 41+ 模式沉淀)**: #9 4 doc 扩内容 Codex 卡 stdin 0 输出 >30 分钟, kill + Claude 接管 fallback (doc-only 改动允许, 跟 Sprint 41 e2e CI 12 follow-up 实战 fix 模式一致)。#7 + #10 Codex 正常完成 (5-10 分钟), 说明 Codex 卡 stdin 不是常态, 可能是 race condition。
+3. **9 项 pattern 沉淀 commit SHA 实证** (CLAUDE.md D-4 教训应用): LESSONS_LEARNED.md 13 commit SHA 全部 git log 验证真实 (跨 Sprint 32.3 → 56)。任何"未集成"/"不存在"结论必须有 git log 实证。
+4. **引用合规严格化** (避免 Stage 4 合并冲突): 3 worktree 互不引用 (#10 不引 services.md/pre-commit.md, #9 不引 LESSONS_LEARNED.md/services.md, #7 不引 LESSONS_LEARNED.md/docs/*)。Stage 4 串行合并按"被引用方先合"顺序 (#9 → #10 → #7), 0 冲突。
+5. **跨 sprint 实战 fix 沉淀成可复用 pattern** (Sprint 50+ 9 项 → LESSONS_LEARNED.md 9 项): DUCKDB_PATH / subagent / race flake / spec-lint / Codex / 12 步流程 / "破坏→验证→恢复" / commit msg↔diff / empty vs stub。后续 sprint 加新内容可直接引用, 避免重复踩坑。
+6. **CHANGELOG 30 entry 滚动阈值收紧建议** (从 Sprint 56 留尾): Sprint 57 加 1 entry 后 31 entry, 临界。Sprint 58+ 收口时建议合并相邻 entry 或加滚动阈值 (参考 Sprint 56 30 entry 滚动经验)。
+
+### 跨 sprint 留尾收敛 (Sprint 56 → 57)
+
+| Sprint | 留尾项数 | 处理 |
+|--------|---------|------|
+| 55 | 19 项 | Sprint 55.5 闭环 0 项 + Sprint 56 留尾 10 项 (Sprint 56 闭环其中 5 项) |
+| 55.5 | 19 项 | Sprint 56 闭环 9 项 (CHANGELOG 滚动 + 4 stub 补实 + DRY 拆解) + 留尾 10 项 |
+| 56 | 10 项 | **本 sprint (Sprint 57) 闭环 3 项 (#10 + #9 + #7)** + 留尾 7 项 (Sprint 58/59 + #3 50m scale 推后) |
+
+Sprint 57 闭环率: 3/10 = 30% (剩余 7 项分布 Sprint 58 工具链实战 fix 3 项 + Sprint 59 收割季 3 项 + #3 50m scale 调研 1 项)。
+
 ---
 
 ## Sprint 56 — CHANGELOG 30 entry 滚动 + 4 stub doc 补实 + DRY 拆解 (2026-06-21, v0.4.14.140, main HEAD `277a4b1`)
