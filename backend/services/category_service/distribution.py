@@ -206,13 +206,23 @@ def get_category_distribution(
 
     conn = get_connection()
     try:
-        # Sprint 54 Lane C L3: 顺序为 valid_where_params + segment_params + base + excluded + channel_filter_params
-        # valid_where_clause 已经包含 valid_order + channel + exclude (FilterBuilder 输出)
+        # Sprint 60.1.1 fix: params 顺序对齐 SQL `?` 占位符位置 (跟 Sprint 60 治本同根因类型).
+        # SQL `?` 顺序 (按 SQL 文本出现位置):
+        #   1-2) base_params DATE(?) × 2 (analysis_date, start_date)
+        #   3) period_orders r.analysis_date = ?
+        #   4) period_orders r.lookback_days = ?
+        #   5) period_orders DATE(?) + INTERVAL '1' DAY (end_date)
+        #   6-7) valid_where_clause (FilterBuilder): pay_time >= ? AND pay_time <= ?  (2)
+        #   8-11) valid_where_clause: o.channel NOT IN (?,?,?,?) (exclude × 4, 已 Sprint 60.1 加 o. 前缀)
+        #   12-29) excluded_cat_sql NOT IN (?,?,...×18) EXCLUDED_PRODUCT_CATEGORIES
+        # 修前: valid_where_params 在前 → SQL 第 1 个 DATE(?) 拿到 pay_time start, 错位 2 params.
+        # 修后: base+rfm 在前, valid_where_params 在中, EXCLUDED 在后, 跟 SQL `?` 一一对应.
         excluded_params = list(EXCLUDED_PRODUCT_CATEGORIES)
         params = (
-            list(valid_where_params)
+            [date_str, start_date]
             + segment_params
-            + [date_str, start_date, date_str, lookback_days, date_str]
+            + [date_str, lookback_days, date_str]
+            + list(valid_where_params)
             + excluded_params
             + channel_filter_params
         )

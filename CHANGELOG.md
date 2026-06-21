@@ -4,6 +4,24 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## Sprint 60.1 — 2 个 Binder 500 治本 (channel 字段缺 o. 别名) (2026-06-21, v0.4.14.145, main HEAD `66a63d5`)
+
+> 用户报 4 个新 bug: ① /category/distribution 低价筛选 500, ② /category/value-tier 低价筛选 500, ③ 品类回购分析低价筛选后目标品类无产品, ④ 品类流转无关联数据. 调查后分类: ①② 是真 500 (Binder 错), ③④ 是前端 URL encode 问题 (`&` 在 URL 里需转义 `%26` 或用 `&exclude_channels=val1&exclude_channels=val2` list 格式), backend 200 OK. 真 bug 根因: Sprint 54 Lane A/C L3 FilterBuilder 改造后 `channel_in` / `channel_not_in` 输出 `channel IN/NOT IN` 无表别名, 跟 `LEFT JOIN user_rfm r` (rfm 表也含 channel 列) 共存时 DuckDB 抛 `_duckdb.BinderException: Binder Error: Ambiguous reference to column name "channel" (use: "o.channel" or "r.channel")`. 跟 Sprint 60 params 错位同根因类型 (L3 改造回归) 但不同症状 (Binder 错 vs InvalidInputException).
+
+- **修本**: 2 个 endpoint 走 SQL 加 `o.channel` 前缀, 精准修改 (不动 FilterBuilder 共享组件 — 治本 FilterBuilder 加 o. 前缀会冲击 14+ service 用 `FROM orders` 无别名的 SQL, ROI 评估推 Sprint 60+ 留尾 L4.7)
+  - `backend/services/category_service/distribution.py` line 65-66: `_build_distribution_filter` 输出 SQL 加 `replace("channel IN/NOT IN (", "o.channel IN/NOT IN (")` (2 行 replace, 不影响其他字段如 `pay_time` / `is_goujinjin` 跟 `r.*` 不冲突)
+  - `backend/services/category_service/overview.py` line 106-138: `_build_value_tier_filter` 改用手写 `o.channel IN/NOT IN` 段 (跟 `_build_distribution_channel_filter` 模式一致, 加 `expand_channels` 自动展开)
+- **防回归 (Sprint 34.1 "破坏 → 验证 → 恢复" 模式)**: 故意 rollback 验证 2 case test 真 FAIL (2/2 FAIL), 恢复后 PASS
+  - `test_distribution_filter_channel_has_alias`: 严格 regex `(?<!o\.)\bchannel IN\b` 不能命中
+  - `test_value_tier_filter_channel_has_alias`: 断言 `o.channel IN/NOT IN` 在 SQL
+- **端到端验证 (Sprint 60 模式)**: curl 8/8 (4 distribution + 4 value-tier 不同日期/level 组合) 200
+- **pytest**: 16/16 filter test pass + 763/1 全量 pass (Sprint 60 baseline 持平)
+- **12 步流程**: ① fix/sprint601-channel-binder-ambiguous → ② 改 distribution.py + overview.py + 加 2 case test → ③ pytest 16/16 + 763/1 全量 pass → ④ review (simple bug fix skip, 跟 Sprint 60 一致) → ⑤ fix (2 行 replace + 手写) → ⑥ commit (205a25a) → ⑦ push → ⑧ qa (skip simple fix) → ⑨ merge --no-ff (66a63d5) → ⑩ push main → ⑪ pull --ff-only (already up to date) → ⑫ VERSION bump + restart uvicorn + 端到端 8/8 curl 200
+- **新发现 Sprint 60+ 留尾 (3 项, 跟用户报的范围无关, 是 endpoint 暴露的边界)**:
+  - **FilterBuilder 治本**: 加 `o.channel` 前缀 (14+ service audit + ground-truth-lint 扫 `FROM orders` 无别名, 半天 ~ 1d)
+  - **Pydantic 422 新错** (端到端验证时发现): `wool_party_ratios` 字段值 > 1.0 (实际 3.7593, 21.6751, 1.3461) 触发 contract B2 `RatioField(0,1)` 验证失败. 业务定义不确定: 羊毛党指数是否 0-1 还是 0-100? 需业务确认 ratio 范围定义, 不在 Sprint 60.1 范围
+  - Sprint 60 #1 留尾 `_build_*_filter` 加 `sql.count('?') == len(params)` 断言扩到 `_compute_*` 调用链 (0.5d)
+
 ## Sprint 60 — 500 错误治本 (_compute_category_period / _compute_value_tier_base params 顺序错位) (2026-06-21, v0.4.14.144, main HEAD `285aac1`)
 
 > 用户报 4 个 500 错误 (品类看板新客 GSV + 羊毛党分析 + 市场对焦核心单品新老客 tab 多日期): `_duckdb.InvalidInputException: Invalid Input Error: Parameter argument/count mismatch, identifiers of the excess parameters: 22, 23`. 根因: Sprint 54 Lane A L3 FilterBuilder 改造回归, `_compute_category_period` (line 201) 跟 `_compute_value_tier_base` (line 586) 的 `params` 列表把 `start_date/end_date` 错位插在 `EXCLUDED_PRODUCT_CATEGORIES` 之前, 多了 2 个 params → DuckDB InvalidInputException "excess parameters: 22, 23" → API 500. 修复: 改 params 顺序为 `[cutoff/latest_rfm_date] + where_params + EXCLUDED`, 跟 SQL `?` 占位符位置一一对应 (DATE(?) + time range(?) + NOT IN(?×18)). 防御: 加 `TestSprint60CategoryParamsMismatchRegression` 2 case 真连接 + 真 SQL 调 `_compute_category_period` / `_compute_value_tier_base`, 跑通无异常 = fix 生效. 跨 sprint 实战 fix 模式 (跟 Sprint 7 P2 / Sprint 24+ P3 / Sprint 34.1 / Sprint 38 race flake 治本 / Sprint 53 L3 治本 / Sprint 53.5 churn.py 同根因): 单连接 fixture test 兼容, 但生产真实 DuckDB 错位没测到, Sprint 60 增 real-DuckDB 回归测试.

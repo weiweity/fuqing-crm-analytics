@@ -724,7 +724,12 @@ def get_category_value_tier(
 
     dual_axis = {
         "categories": [c["category_name"] for c in cat_data],
-        "wool_party_ratios": [round(c["wool_party"]["total_count"] / c["total_users"], 4) for c in cat_data],
+        # Sprint 60.1.1 fix: wool_party.total_count 是"100% 小样用户" (不应用 exclude_channels),
+        # 但 total_users 应用了 exclude_channels, 羊毛党用户 100% 在低价 → 排除低价后
+        # total_users 缩水, ratio 数学上可能 > 1. 强截断到 1.0 保持 contract 0-1 范围
+        # (跟 Sprint 27 YOYBadge |v|>1e6 异常值守卫模式一致).
+        # 注: cat_data 在 line 664 已经过滤 total_users == 0, 这里不需要重复.
+        "wool_party_ratios": [min(round(c["wool_party"]["total_count"] / c["total_users"], 4), 1.0) for c in cat_data],
         "high_value_ratios": [round(c["high_value_ratio"], 4) for c in cat_data],
     }
     table = [{"category_name": c["category_name"],
