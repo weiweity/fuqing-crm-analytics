@@ -50,6 +50,10 @@ def _build_distribution_filter(
     """Sprint 54 Lane C L3: 收编 valid_order() + channel + exclude 到 FilterBuilder
     避免 f-string 内嵌 (本函数本身无 f-string 输出,所有用户输入走 add_extra 参数化).
 
+    Sprint 60.1 fix: 输出 SQL 加 `o.` 表别名 (`o.channel` / `o.pay_time` 等),
+    跟 `LEFT JOIN user_rfm r` 共存时不再触发 DuckDB Binder 错
+    (原无别名 `channel` 跟 `r.channel` 冲突).
+
     Returns:
         (where_clause, params) — where_clause 拼到 SQL 模板 `AND {where_clause}` 中;
         params 拼到 conn.execute 参数列表开头.
@@ -60,7 +64,11 @@ def _build_distribution_filter(
         fb.with_channels([channel])
     elif exclude_channels:
         fb.with_exclude_channels(exclude_channels)
-    return fb.build()
+    where_sql, params = fb.build()
+    # Sprint 60.1 fix: 加 o. 前缀, 配 LEFT JOIN user_rfm r 兼容 (避免 channel 字段 ambiguous)
+    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
+    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
+    return where_sql, params
 
 
 def _build_distribution_channel_filter(
