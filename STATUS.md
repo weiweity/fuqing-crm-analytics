@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-21 (Sprint 55.5 docs 治理 + 命名重构 收口, v0.4.14.139, main HEAD `a2cd801`)
+**最后更新**: 2026-06-21 (Sprint 56 Phase 1+2 收口, v0.4.14.140, main HEAD `277a4b1`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.139` |
-| git HEAD (main) | `a2cd801` (Sprint 55.5 merge commit, ff-merge from `refactor/p0-naming-cleanup-2026-06-21`) |
+| VERSION | `0.4.14.140` |
+| git HEAD (main) | `277a4b1` (Sprint 56 Phase 1+2 merge + VERSION bump, ff-merge from `refactor/sprint56-phase1-phase2`) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 55.5 (docs 子目录化 + P0 命名重构 + 4 新 doc + 4 stub + review fix) |
+| 最近 sprint | Sprint 56 (CHANGELOG 30 entry 滚动 + 4 stub doc 补实 + DRY 拆解) |
 | 收口日 | 2026-06-21 |
-| 上次合入 | 6 commit 0 debt (Sprint 55.5: e0a9298 + bd95cd8 + 2765c20 + 52d87bd + f10f01b + a2cd801 merge) |
+| 上次合入 | 4 commit 0 debt (Sprint 56: a145a1a + de40843 + b22dbe9 merge + 277a4b1 VERSION bump) |
 
 ---
 
@@ -23,7 +23,7 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **758** | Sprint 55.5 收口, 含 Sprint 55 实战 fix 4 commit + Sprint 55.5 L3 6 case regression |
+| pytest passed | **758** | Sprint 56 收口, doc-only 改动无新增 test, 跟 Sprint 55.5 一致 |
 | pytest skipped | **1** | `test_w4_full.py:319` PID 69630 锁 fd, fixture 模式 skip (Sprint 53 治本) |
 | pytest failed | **0** | 上次 green 758/759 |
 | e2e (Playwright) | **12/12 pass** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
@@ -33,7 +33,7 @@
 | ground-truth-lint (L3) | **0 violations** | `backend/scripts/check_filter_builder_usage.py` 69 files |
 | GH Actions CI | **3/4 pass** | lint + ground-truth-lint + pytest pass; e2e 治标 `continue-on-error: true` (50+MB OOM, 跨 sprint #14) |
 | pre-commit hooks | **9 件 OK** | `.githooks/pre-commit`, Sprint 50.1 L2 default + L1 fallback |
-| vite build | **572ms** | Sprint 55.5 验证, 0 errors |
+| vite build | **750ms** | Sprint 56 验证, 0 errors |
 
 ---
 
@@ -43,6 +43,7 @@
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
 | 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-55 累计 |
+| Sprint 56 留尾 | **5 项** | 4 stub doc 内容已补实; 5 项核心 + 14 项 P2/P3 推 Sprint 57+ |
 | 延后决策 | **1 条** | 50m-scale-architecture Phase 1-3 触发条件 = 30M 数据量 (Sprint 52 P2 留尾) |
 | Sprint 34+ backlog | **2 条** | 候选 4: CI 跑 e2e (Sprint 32.3 留尾) / 候选 2: commit msg ↔ diff CI check (误报率高推后) |
 | Recurring pattern | **2 个** | (a) Recurring race flake 治标 (Sprint 36.5, 治本 Sprint 53 闭环) (b) e2e 50+MB OOM 治标 (Sprint 41-55 跨 sprint 复发) |

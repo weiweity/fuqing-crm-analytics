@@ -6,6 +6,46 @@
 
 ---
 
+## Sprint 56 — CHANGELOG 30 entry 滚动 + 4 stub doc 补实 + DRY 拆解 (2026-06-21, v0.4.14.140, main HEAD `277a4b1`)
+
+> Sprint 55.5 收口后审计发现: ① CHANGELOG.md 1734 行膨胀 (Sprint 55.5 滚动后), 老 entry 31-54 段 (v0.4.14.110-118) 应滚动到 HISTORY 保持近 30 entry 详细; ② docs/development/testing.md + ratio-convention.md 在 Sprint 55.5 闭环后仍是 stub, 实战 8 项 DRY 拆解 (quick card + single source of truth 警告 + 字段命名约定 + 异常值守卫 + None 透传) 待补. 闭环 Sprint 55.5 P2 留尾 #2/#3 + 加 docs README 治理密度.
+
+### The numbers that matter
+
+| 指标 | Before | After | Δ |
+|---|---|---|---|
+| CHANGELOG.md | 1734 行 | 1286 行 | -448 行 (-26%) |
+| CHANGELOG_HISTORY.md | 3167 行 | 3621 行 | +454 行 |
+| 4 stub doc (testing + ratio-convention + services + SPRINT_INDEX) | 4 stub | 4 真内容 | ✅ Sprint 55.5 闭环 + Sprint 56 DRY 拆解 |
+| testing.md DRY | 60 行 (内容已 OK) | 60 行 + quick card 警告 + 4 项补 | ✅ |
+| ratio-convention.md DRY | 56 行 (无 SSOT 警告) | 60 行 + SSOT 警告 + §5 字段命名 | ✅ |
+| pytest | 758/1 | 758/1 (无回归) | ✅ |
+| L3 ground-truth-lint | 0 violation | 0 violation | ✅ |
+| vite build | 572ms | 750ms | ✅ |
+| git commit | — | 3 (a145a1a + de40843 + 277a4b1 VERSION bump) | ✅ |
+| merge --no-ff | — | b22dbe9 | ✅ |
+
+### 改动文件 (3 commit 0 debt)
+
+- `a145a1a` `docs(changelog): Sprint 56 — CHANGELOG.md 30 entry 滚动 + 老 entry 迁移 CHANGELOG_HISTORY.md` (2 files, 452+/-)
+- `de40843` `refactor(docs): Sprint 56 — testing.md + ratio-convention.md DRY 拆解 (quick card + single source of truth 警告)` (2 files, 15+/4-)
+- `b22dbe9` (merge --no-ff) `merge: Sprint 56 Phase 1+2 — CHANGELOG 30 entry 滚动 + 4 stub 补实 + DRY 拆解`
+- `277a4b1` `chore: bump VERSION 0.4.14.139 → 0.4.14.140 (Sprint 56 Phase 1+2 收口)` (1 file, 1+/-)
+
+### 实战教训 (跟 Sprint 41/55/55.5 doc-only sprint 同模式)
+
+1. **doc-only sprint 走 git workflow 5 phase**: 跟 Sprint 41 (CI e2e 0→1) + Sprint 55 (CI 实战 fix 4 次) + Sprint 55.5 (docs 治理 5 phase) 一致. 流程: 滚动 CHANGELOG → DRY 拆解 → pytest 验证 → ff-merge → VERSION bump. doc-only 改动不跑 /review + /qa (无代码改动), 但仍走完整 12 步.
+2. **DRY 拆解触发场景**: Sprint 55.5 闭环 4 stub 后, 实战发现 stub 内容已 OK 但"single source of truth" 警告缺失. testing.md 顶部加 quick card 警告指 TEST_INFRASTRUCTURE.md; ratio-convention.md 顶部加 SSOT 警告指 CLAUDE.md §Ratio Convention. 避免双 source drift.
+3. **CHANGELOG 30 entry 滚动阈值**: Sprint 55.5 滚动后 1734 行 (40 entry), 实战发现 >1500 行 LLM 处理慢, 应触发滚动. 阈值经验值 = 30 entry / 1000 行 / 跨 5 sprint 必滚动. Sprint 56 滚动后 1286 行 (30 entry) 处于舒适区.
+4. **git 工作流 12 步是 doc-only 也必走**: 跳过 ④ review + ⑧ qa (无代码) 但 ① ③ ⑤ ⑥ ⑦ ⑨ ⑩ ⑪ ⑫ 必走. 跟 Sprint 41 + Sprint 55 实战 fix 模式一致, doc-only 跑分仍能发现 config drift (e.g. main 落后 feature branch 5+ commit).
+
+### Sprint 56 留尾 (推 Sprint 57+)
+
+- 5 项核心 (P1): (1) DRY 拆解覆盖剩余 2 doc (services.md + SPRINT_INDEX.md 缺 SSOT 警告) / (2) Sprint 32.1 e2e CI 50+MB OOM 治本 / (3) commit-msg diff 一致性 blocking hook (Sprint 35+ 候选 2) / (4) 50m scale architecture Phase 2-3 触发 (Sprint 52 留尾) / (5) Sprint 35+ 候选 4 CI 跑 e2e 实战 fix 持久化
+- 14 项 P2/P3 优化: STATUS 自动化 (Sprint 55.5 P2) + asset_* 命名混淆 (Sprint 55.5 P2) + audit 措辞 (Sprint 55.5 P2) + 4 doc 扩内容 (CACHE 50M ROW 实测 + ground-truth-lint 完整指南) + 5 项 Sprint 50+ 实战 fix 经验 (DUCKDB_PATH 实战 + subagent 验证)
+
+---
+
 ## Sprint 55.5 — docs 子目录化 + P0 命名重构 + 4 新 doc (2026-06-21, v0.4.14.139, branch `refactor/p0-naming-cleanup-2026-06-21` @ 52d87bd, 待 ff-merge)
 
 > Sprint 55 收口后审计发现 22 项文档/命名问题: docs/ 11 散文件 + P0 重名 (category_service.py facade + sample_asset_service/) + 4 个核心 doc 缺失 (STATUS / data-layout / DATA_PIPELINE / TEST_INFRASTRUCTURE). 通过 5 phase workflow (子目录化 + 命名重构 + 4 doc + 架构师验证 + 程序员验证) 闭环.
