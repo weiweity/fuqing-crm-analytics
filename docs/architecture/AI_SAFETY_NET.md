@@ -168,6 +168,8 @@ Q4 治标会反复出现吗?
 | L4.4 | 真连 test 必须有 `_PROD_DUCKDB_AVAILABLE` skipif | Sprint 39 |
 | **L4.5** | backend/services 函数必须用 FilterBuilder, 禁止 f-string 内嵌用户输入 | **Sprint 54** |
 | **L4.6** | worktree 跑 pytest 必须设 DUCKDB_PATH 指向主仓 db | **Sprint 54** |
+| **L4.7** | `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` 防回归 (Sprint 60+ 留尾) | **Sprint 60+** |
+| **L4.8** | 业务定义 SSOT 文档化 (`docs/business/RFM_DEFINITIONS.md` 等), 跟 Pydantic 契约 + SQL 口径 + 前端 filter 同步 | **Sprint 60+** |
 | L5.1 | 治本/治标 ROI 重评决策树 | Sprint 42 |
 | L5.2 | spec 写法"环境无关"原则 | Sprint 43 / 50.1 |
 
@@ -181,6 +183,15 @@ Q4 治标会反复出现吗?
 6. **debug print 暴露真因** (Sprint 55.2 → 55.3): 本地复现不了 CI 错误 → 加 stderr capture → 拿到 OS-level 真因 → 治本
 7. **Codex Stage 2 容易漏改 f-string 引用变量** (Sprint 54): 删 `{valid_sql}` 但 SQL 模板还引用 `{channel_filter}` / `{exclude_filter}` → Stage 3 review 必 grep `{` 全检查
 8. **worktree pytest 环境隔离** (Sprint 54 L4.6): worktree 共享 .git 但不共享 `data/processed/` → 显式 `DUCKDB_PATH` 指向主仓
+9. **同根因 bug 跨多 sprint 反复发现 (L3 改造回归模式)** (Sprint 60+ 累计 4 sprint 实战): Sprint 53.5/54 L3 FilterBuilder 治本后回归 4 次 (Sprint 60 params 顺序错位 + Sprint 60.1 Binder 500 + Sprint 60.1.1 Pydantic 422 + Sprint 60.2 业务定义口径不一致). 根因: L3 改造跨 14+ service × Lane A/B/C 收口时, 单 sprint 治本只修已发现的 lane 漏其他 lane. **新教训**: L3 改造跨多 lane 收口时, 必 audit 全部 lane 跟 SQL `?` 顺序对齐 (Sprint 60.1.1 实战: Sprint 60 修 Lane A 漏 Lane C, Sprint 60.1.1 端到端验证暴露)
+10. **端到端验证必须覆盖所有 user-input 路径** (Sprint 60.1.1 实战): Sprint 60 测空 exclude 漏 distribution, 端到端必须覆盖 exclude/non-exclude 两条路径. 单 endpoint 测通 ≠ 所有 endpoint 测通, 业务参数 + 排除参数 + 区间参数 全部组合测
+11. **业务定义 SSOT 文档化避免口径漂移** (Sprint 60.2 + L4.8 永久规则): TTL 行 ratio 67.34% 错的根因是 `_run_rfm_period_live` 用 `base_orders` 全部 (含新客 642 万 GSV) 算, 跟 8 象限 RFM 评分用户 (老客) 口径不一致. 修本 + 业务定义 SSOT 文档化 (`docs/business/RFM_DEFINITIONS.md`) 避免 Sprint 60.3 再发现同问题
+12. **强截断隐藏真问题** (Sprint 27 YOYBadge `|v|>1e6` 模式 + Sprint 60.1.1 实战): `wool_party_ratios` 强截断 1.0 保持 B2 RatioField(0,1) 范围, 但隐藏了 `_compute_wool_party_breakdown` 跟 `_compute_value_tier_base` 不同口径问题. 业务定义: 羊毛党指数不能 > 100%, 强截断符合业务语义
+13. **Code 已 fix ≠ doc 已 sync** (Sprint 60+ 收口实战): 4 sprint code 8 commit 0 debt 闭环, 但 doc 收口 (STATUS + CHANGELOG + VERSION) 缺 1 commit, 跨 sprint 留尾. 收口 commit `ea44dd4` 一起补齐, 跟 Sprint 60 `e84dc2e chore(status): Sprint 60 手动修正` 模式一致
+14. **chore release 收口 commit 在 main 直做** (Sprint 60+ 实战 + Sprint 50+ 实战): 跳过 ① branch + ⑨ merge + ④ review + ⑧ qa, 跟 Sprint 60 `e84dc2e` / Sprint 60+ `ea44dd4` 模式一致. 业务定义 SSOT / STATUS / CHANGELOG / VERSION bump 类改动不切分支, 跟 Sprint 50+ 实战一致
+15. **Cache 干扰调试** (Sprint 60.2 实战): `rfm_analysis_cache` 表 12 行缓存导致修前数字, `DELETE FROM rfm_analysis_cache` 后 live SQL 才生效. 跟 Sprint 60.1.1 Pydantic 422 fix 类似 (cache 层不刷 → endpoint 仍 500). **新教训**: 任何 cache 化 endpoint 修本后必清 cache 才验证
+16. **pytest baseline 实测 > close memory 记录** (Sprint 60+ 收口实战): Sprint 60.2 close memory 写 768/1, 收口实测 748/21 (新增 7 case 跑通 + 21 fixture skip 累计). 跟 Sprint 50+ 实战 "ground truth 验证不能信代码看起来对" 教训应用: close memory 写的是 sprint 收口时数字, 跨 sprint 累计会漂移. 收口 commit 写实测数字
+17. **audit trail 必留** (CLAUDE.md AI 检查点 sprint 收口): 收口 commit 后追加 `.ship-audit.log` 6-8 行 (4 sprint merge + 1 release + 1 fix + 1 uvicorn restart), 跟 ship.md post-merge hook 模式一致. 没跑 /ship skill = sprint 没收口 (CLAUDE.md AI 执行检查点 硬性 STOP)
 
 ## 6.1 ground-truth-lint 完整指南 (L3 FilterBuilder, Sprint 54 闭环, Sprint 57 沉淀)
 

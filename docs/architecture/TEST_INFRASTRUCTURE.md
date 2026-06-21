@@ -225,13 +225,19 @@ _PROD_DUCKDB_AVAILABLE = _detect_prod_duckdb_available()
 - **不 check 表存在**: 避免 sprint 期间 schema 变动 false negative
 - **module-level 常量**: 跨 test 共享, 避免重复检测
 
-### 3.2 跨 3 个真连 test 应用
+### 3.2 跨 3+4=7 个真连 test 应用 (Sprint 60+ 累计)
 
-| Test | 路径 | skipif 位置 |
-|---|---|---|
-| `test_api_integration.py` | `backend/tests/` | module-level `pytestmark` |
-| `test_churn_user_list_fstring.py` | `backend/tests/` | module-level `pytestmark` |
-| `test_w4_t7_integration.py` | `backend/tests/` | module-level `pytestmark` |
+| Test | 路径 | skipif 位置 | Sprint 来源 |
+|---|---|---|---|
+| `test_api_integration.py` | `backend/tests/` | module-level `pytestmark` | Sprint 39 原始 |
+| `test_churn_user_list_fstring.py` | `backend/tests/` | module-level `pytestmark` | Sprint 39 原始 |
+| `test_w4_t7_integration.py` | `backend/tests/` | module-level `pytestmark` | Sprint 39 原始 |
+| `test_distribution_filter_builder.py` | `backend/tests/` | function-level `skipif` (Sprint 60.1 新增) | Sprint 60.1 |
+| `test_category_overview_filter_builder.py` | `backend/tests/` | function-level `skipif` (Sprint 60 + 60.1.1 新增) | Sprint 60 |
+| `test_rfm_flow_ttl_ratio.py` | `backend/tests/` | function-level `skipif` (Sprint 60.2 新增) | Sprint 60.2 |
+| `test_w4_full.py` | `backend/tests/` | PID 锁 fd 模式 (Sprint 53 治本) | Sprint 53 |
+
+**Sprint 60+ 累计 7 case 全部用 `monkeypatch_connection` fixture** (L4.3 强制), 跟 Sprint 38→53 实战 fix 模式一致. Sprint 60+ 收口实测 748/21 (21 skipped 跨 sprint 累计 fixture skip, 跟 Sprint 50+ 实战一致).
 
 **L4.4 模板**:
 ```python

@@ -3,10 +3,24 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-06-20 (Sprint 54 L3 FilterBuilder 100% 闭环 收口 v0.4.14.138)
-**当前债数**: 0 条 (全闭环)
-**已修复**: 29 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + #S33-1 + #S33-2 + **债 #S34-1** churn.py:418 漏 f 前缀治根 + L1 SQL f-string lint 钩子 + **Sprint 36-1** RFMView.vue 797 行 dead code 清理 + **Sprint 36-4** L1 SQL f-string lint 对称补盲 抓到 etl_status_override.py:449 漏 f 前缀 + **Sprint 36-5** TestMetricsAPI race flake 治标, 3 sprint 连续复发 (S32.3/S34.1/S36-1) 收口 + **Sprint 36-2** 3 e2e spec 加 API 业务断言 + 删 category-detail backend 500 容忍 + **Sprint 36-6** /v1/flow/sankey ghost endpoint 全链清理 + **Sprint 50+ #S43-L2** L2 AST parser 升级 spec-lint (3 文件: spec-lint-l2.py + spec-lint-l2.sh + spec-lint-l2.test.sh, 357 行 + 5 case regression test, Codex 实施) + **Sprint 50.1** L2 AST spec-lint 切默认 hook + npm script + **Sprint 53.5** L3 churn.py 5 处 `{valid_sql}` + channel/level/granularity/category_id f-string 参数化 + **Sprint 54** L3 全 14/14 service FilterBuilder 化 + L4.5/L4.6 永久规则 + ground-truth-lint 钩子)
+**最后更新**: 2026-06-21 (Sprint 60+ 累计 4 sprint 收口 v0.4.14.144 → v0.4.14.147, main HEAD `030720e`, 11 commit 0 debt)
+**当前债数**: 0 条 (全闭环, Sprint 60+ 留尾 3 项 + 3 ruff 不算技术债, 算产品/工具链 backlog)
+**已修复**: 29 条 (债 #1-#7 + #195 + #196 + #S26-1 + #S27-1 + #S28-1 + #S28+#197 + #S29+#198 + #S31-1 + #S32-1 + #S31-2 + #S32-2 + #S32-3 + #S33-1 + #S33-2 + **债 #S34-1** churn.py:418 漏 f 前缀治根 + L1 SQL f-string lint 钩子 + **Sprint 36-1** RFMView.vue 797 行 dead code 清理 + **Sprint 36-4** L1 SQL f-string lint 对称补盲 抓到 etl_status_override.py:449 漏 f 前缀 + **Sprint 36-5** TestMetricsAPI race flake 治标, 3 sprint 连续复发 (S32.3/S34.1/S36-1) 收口 + **Sprint 36-2** 3 e2e spec 加 API 业务断言 + 删 category-detail backend 500 容忍 + **Sprint 36-6** /v1/flow/sankey ghost endpoint 全链清理 + **Sprint 50+ #S43-L2** L2 AST parser 升级 spec-lint + **Sprint 50.1** L2 AST spec-lint 切默认 hook + npm script + **Sprint 53.5** L3 churn.py 5 处 `{valid_sql}` + channel/level/granularity/category_id f-string 参数化 + **Sprint 54** L3 全 14/14 service FilterBuilder 化 + L4.5/L4.6 永久规则 + ground-truth-lint 钩子 + **Sprint 60** params 顺序错位治本 (overview.py 2 行 + 2 case test) + **Sprint 60.1** Binder 500 治本 (channel 加 o. 别名 + 2 case test) + **Sprint 60.1.1** Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution (1 case test) + **Sprint 60.2** RFM 8 象限 老客 GSV TTL 100% 治本 (1 case test) + **Sprint 60+ 收口** ruff 2 F841 修 (test_category_overview_filter_builder.py:151/176 end_dt))
 **延后决策**: 1 条 (50m-scale-architecture Phase 1-3 延后到 30M 数据量触发)
+**Sprint 60+ 留尾** (3 项 + 3 ruff, 推 Sprint 60.3 一起闭环, 估时半天 ~ 1d):
+- 📋 **L4.7 ground-truth-lint** (Sprint 60+ 留尾): `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` 防回归. Sprint 60 + 60.1.1 共 3 处 params 顺序 fix, 自动化防回归是高 ROI (半天)
+- 📋 **FilterBuilder 治本** (Sprint 60+ 留尾): 加 `o.channel` 前缀 (14+ service audit + ground-truth-lint 扫 `FROM orders` 无别名, 半天 ~ 1d). Sprint 60.1 治标 2 个 endpoint 加 `o.`, 治本 (改 FilterBuilder) 会冲击 14+ service
+- ✅ **L4.8 业务定义 SSOT 文档化** (Sprint 60+ 留尾已闭环): 写 `docs/business/RFM_DEFINITIONS.md` (v0.4.14.147, 跟 Sprint 14.5 P1.1 注释对齐)
+- 📋 **Sprint 60+ ruff 留尾 3** (Sprint 60+ 收口实战新增): `test_status_update.py:8 F401 sys` + `37+38 F541 extraneous f prefix` (Sprint 59 #6 status_update.py test 留尾, Sprint 60.3 闭环, 0.5h)
+
+**Sprint 60+ 闭环** (4 sprint 累计 11 commit 0 debt, v0.4.14.144 → v0.4.14.147):
+- ✅ Sprint 60 params 顺序错位治本 (v0.4.14.144, 5 commit 0 debt, pytest 763/1)
+- ✅ Sprint 60.1 Binder 500 治本 (v0.4.14.145, 5 commit 0 debt, pytest 763/1)
+- ✅ Sprint 60.1.1 Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution (v0.4.14.146, 1 commit 0 debt, pytest 748/19)
+- ✅ Sprint 60.2 RFM 8 象限 老客 GSV TTL 100% 治本 (v0.4.14.147, 1 commit 0 debt, pytest 748/21 实测)
+- ✅ Sprint 60+ 收口 commit (ea44dd4, 4 files +134 -15 行)
+- ✅ Sprint 60+ 后续 fix commit (030720e, 1 file +1 -1 行)
+
 **Sprint 34+ backlog**: 2 条
 - ~~📋 **债 #S34-3** (P3) L3 churn.py 改用 FilterBuilder.build() 全面参数化~~ → ✅ Sprint 53.5 闭环 (v0.4.14.138): churn.py 5 处 `{valid_sql}` + channel/level/granularity/category_id f-string 内嵌全部参数化, 新增 3 个 helper + 6 case 回归测试. 全量 683 passed / 1 skipped.
 - ✅ **Sprint 50.1 留尾** (已闭环 v0.4.14.136): `.pre-commit-config.yaml` spec-lint hook 默认走 L2 wrapper + `frontend-vue3/package.json` 加 `lint:spec` npm script。L1 fallback 保留, 不强制 npm tree-sitter 包 (L2 为 Python-based)。

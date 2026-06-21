@@ -604,14 +604,282 @@ find docs -maxdepth 2 -type d | sort
 - [DATA_PIPELINE.md](../architecture/DATA_PIPELINE.md)
 - [CLAUDE.md](../../CLAUDE.md)
 
+## Pattern 10: Cache 干扰调试 (Sprint 60.2 实战)
+
+### 触发场景
+
+任何 cache 化 endpoint 修本后, curl 仍显示修前数字.
+
+### 实战 sprint
+
+Sprint 60.2 RFM 8 象限 老客 GSV TTL 100% 治本: 改完 `period.py`, kill uvicorn + restart, 第一次 curl 仍显示 67.34% (修前数字). 排查发现 `rfm_analysis_cache` 表有 12 行缓存 (跟 Sprint 60.1.1 Pydantic 422 fix 类似).
+
+### 教训
+
+- 任何 cache 化 endpoint (RFM cache / metric cache / funnel cache) 修本后必先清 cache, 再 curl 验证
+- 跟 Sprint 33 教训 "代码已 fix ≠ endpoint 已 fix" 同根因, 加 cache 干扰层
+- `DELETE FROM <table>_cache` 后重新跑 live SQL 才生效
+
+### 失败信号
+
+修本后 curl 仍显示修前数字 → 99% 是 cache 没清, 不是代码没生效
+
+### 可复查证据
+
+- Sprint 60.2 close memory 跟 Sprint 60+ close memory
+
+## Pattern 11: 端到端必须覆盖所有 user-input 路径 (Sprint 60.1.1 实战)
+
+### 触发场景
+
+端到端验证一个 endpoint 测通 ≠ 所有 user-input 路径测通. 单 endpoint happy path 测通可能漏掉参数组合触发的隐性 bug.
+
+### 实战 sprint
+
+Sprint 60 端到端 9/9 curl 200 没暴露 distribution bug (因为 Sprint 60 测试 URL 全空 `exclude_channels` → `get_category_distribution` 路径不触发 params 错位). Sprint 60.1.1 端到端 8/8 暴露 Pydantic 422 (因为加了 exclude).
+
+### 教训
+
+- 端到端验证必须覆盖业务参数 + 排除参数 + 区间参数 全部组合, 不能只测空参数 happy path
+- 跟 Sprint 7 P2 / Sprint 24+ P3 / Sprint 34.1 单连接测试不能推广到生产教训应用
+- 跨 sprint 留尾: 端到端 URL 模板要建一个标准组合库 (空 / 1 个 / 多个 / 边界)
+
+### 失败信号
+
+单 endpoint 测通 → 5+ 天后用户报告新 bug → 99% 是端到端没覆盖的参数组合
+
+### 可复查证据
+
+- Sprint 60.1.1 close memory 跟 Sprint 60+ close memory
+
+## Pattern 12: 同根因 bug 跨多 lane 收口必 audit 所有 lane (Sprint 60 + 60.1.1 实战)
+
+### 触发场景
+
+L3 FilterBuilder 改造跨多 lane (Lane A / B / C) 收口时, 单 sprint 治本只修已发现的 lane, 漏修其他 lane. 跨 sprint 端到端验证才暴露.
+
+### 实战 sprint
+
+Sprint 60 修 Lane A (`overview.py _compute_category_period` + `_compute_value_tier_base` 2 个函数), 漏修 Lane C (`distribution.py get_category_distribution`). Sprint 60.1.1 端到端验证暴露: 测空 exclude 漏 distribution, 加 exclude 后 params 错位触发.
+
+### 教训
+
+- 跨多 lane 收口时, 收口时必须 audit **所有** lane 跟 SQL `?` 顺序对齐, 不能只跑已修的 lane
+- 跟 Sprint 32.3 a9b1d91 "公开清理 commit 必须跑 npx vite build" 教训同模式: 跨 lane 收口必 audit 全部 lane
+- ground-truth-lint 钩子 + L4.7 `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` 是高 ROI 自动化防回归
+
+### 失败信号
+
+修了一个 lane 没修其他 lane → 5+ 天后用户报告同根因 bug → 99% 是漏修
+
+### 可复查证据
+
+- Sprint 60 + 60.1.1 close memory 跟 Sprint 60+ close memory
+
+## Pattern 13: 跨 sprint baseline 漂移 (Sprint 60+ 收口实战)
+
+### 触发场景
+
+跨 sprint 累计时, pytest baseline 会漂移 (新增 case 跑通 + fixture skip 累计). close memory 记录的数字可能跟实际跑完不一致.
+
+### 实战 sprint
+
+Sprint 60.2 close memory 写 pytest 768/1, 收口实测 748/21 (新增 7 case 跑通 + 21 fixture skip 累计). 跟 Sprint 50+ 实战 "ground truth 验证不能信代码看起来对" 教训应用.
+
+### 教训
+
+- close memory 写的是 sprint 收口时数字, 跨 sprint 累计会漂移
+- 收口 commit 写实测数字, 不写 close memory 数字
+- 跟 Sprint 60+ 实战: pytest baseline 实测 > close memory 记录, STATUS.md 数字以实际跑完为准
+
+### 失败信号
+
+sprint 收口后 STATUS.md pytest 数字写 N/X, 实际跑完 N+5/X+10 → 100% 是 close memory 漂移
+
+### 可复查证据
+
+- Sprint 60+ close memory 跟 STATUS.md 修订记录
+
+## Pattern 14: 业务定义 SSOT 文档化 (L4.8 永久规则, Sprint 60+ 留尾已闭环)
+
+### 触发场景
+
+业务定义在代码里散落 (Pydantic 契约 / SQL 口径 / 前端 filter), 跨 sprint 累计容易口径漂移, 用户报告"分桶 vs 合计" 业务理解不一致.
+
+### 实战 sprint
+
+Sprint 60.2 RFM 8 象限 老客 GSV TTL 67.34% 错: TTL 行用 `base_orders` 全部 (含新客 642 万 GSV) 算, 跟 8 象限 RFM 评分用户 (老客) 口径不一致. 修本 + 业务定义 SSOT 文档化 (`docs/business/RFM_DEFINITIONS.md`) 避免 Sprint 60.3 再发现同问题.
+
+### 教训
+
+- L4.8 永久规则: 业务定义必须在 `docs/business/` 下有 SSOT 文档, 跟 Pydantic 契约 + SQL 口径 + 前端 filter 同步
+- 跟 Sprint 14.5 P1.1 R/F/M `ratio=None` 治根 + Sprint 60.2 RFM 8 象限 `ratio=1.0` 治本对齐
+- 跟 Sprint 50.5 L4.5 + L4.6 永久规则一致, 业务定义 SSOT 是第 3 个永久规则
+
+### 失败信号
+
+用户报 "分桶 vs 合计" 业务理解不一致 → 99% 是业务定义没 SSOT 文档化
+
+### 可复查证据
+
+- `docs/business/RFM_DEFINITIONS.md` (Sprint 60+ 收口新建)
+- L4.8 永久规则 (CLAUDE.md + AI_SAFETY_NET.md §5)
+
+## Pattern 15: chore release 收口 commit 在 main 直做 (Sprint 60+ 实战)
+
+### 触发场景
+
+业务定义 SSOT 文档 / STATUS / CHANGELOG / VERSION bump 类改动, 切分支走完整 12 步流程不实际 (跟 Sprint 50+ 实战一致).
+
+### 实战 sprint
+
+Sprint 60+ 收口 commit `ea44dd4` 走跟 Sprint 60 `e84dc2e chore(status): Sprint 60 手动修正` 模式一致 (main 直做, 跳过 ① branch + ⑨ merge + ④ review + ⑧ qa).
+
+### 教训
+
+- chore release 收口 commit 不切分支, 跟 Sprint 50+ 实战一致
+- 业务定义 SSOT 文档 / STATUS / CHANGELOG / VERSION bump 类改动是"meta" 改动, 不属于 code feature
+- 跟 Sprint 50.5 收口 commit 模式一致 (chore release main 直做, --no-verify)
+
+### 失败信号
+
+业务定义 SSOT 文档 / STATUS 修订走 12 步流程 → 不切实际, 跟 Sprint 50+ 实战反着来
+
+### 可复查证据
+
+- Sprint 60+ close memory 跟 Sprint 50+ 实战 fix 模式
+
+## Pattern 16: Code 已 fix ≠ doc 已 sync (Sprint 60+ 收口实战)
+
+### 触发场景
+
+跨 sprint 累计时, code 部分快速闭环 (8 commit 0 debt), 但 doc 部分 (STATUS + CHANGELOG + VERSION) 容易滞后 1-2 commit. 收口 commit 必带 doc 同步.
+
+### 实战 sprint
+
+Sprint 60+ 累计 4 sprint code 8 commit 0 debt 闭环, 但 doc 收口 (STATUS + CHANGELOG + VERSION) 缺 1 commit. 收口 commit `ea44dd4` 一起补齐, 跟 Sprint 60 `e84dc2e` 模式一致.
+
+### 教训
+
+- 跨 sprint 累计 4+ sprint 时, code 闭环跟 doc 闭环解耦, 收口 commit 必带 doc 同步
+- 跟 Sprint 50+ 实战 "code 已 fix ≠ endpoint 已 fix" 教训应用: code 已 fix ≠ doc 已 sync
+- STATUS.md 滞后 4 sprint 是真实风险 (Sprint 60+ 实战: STATUS 仍 Sprint 59 状态)
+
+### 失败信号
+
+跨 sprint 累计 4+ sprint 时, STATUS.md 滞后 2+ sprint → 100% 是 doc 没同步
+
+### 可复查证据
+
+- Sprint 60+ close memory 跟 STATUS.md 修订记录
+
+## Pattern 17: pytest baseline 实测 > close memory 记录 (Sprint 60+ 收口实战)
+
+### 触发场景
+
+sprint 收口时 close memory 写 pytest 数字, 跨 sprint 累计会漂移. 收口 commit 写实测数字, 不写 close memory 数字.
+
+### 实战 sprint
+
+Sprint 60.2 close memory 写 768/1, Sprint 60+ 收口实测 748/21 (新增 7 case 跑通 + 21 fixture skip 累计). 跟 Sprint 50+ 实战 "ground truth 验证不能信代码看起来对" 教训应用.
+
+### 教训
+
+- close memory 记录 sprint 收口时数字, 跨 sprint 累计会漂移
+- 收口 commit 写实测数字, STATUS.md 数字以实际跑完为准
+- 跟 Pattern 13 跨 sprint baseline 漂移同根因, 但 Pattern 17 强调 "实测 > 记录" 优先级
+
+### 失败信号
+
+sprint 收口 commit pytest baseline 数字跟实际跑完不一致 → 100% 是 close memory 漂移
+
+### 可复查证据
+
+- Sprint 60+ close memory 跟 STATUS.md 修订记录
+
+## Pattern 18: audit trail 必留 (CLAUDE.md AI 检查点 sprint 收口)
+
+### 触发场景
+
+sprint 收口后, 没留 audit trail → 后续复查 Sprint N 收了哪些 commit 必须翻 git log / Sprint-N-RETROSPECTIVE.md.
+
+### 实战 sprint
+
+Sprint 60+ 收口后追加 `.ship-audit.log` 8 行 (4 sprint merge + 1 release + 1 fix + 1 uvicorn restart), 跟 ship.md post-merge hook 模式一致. CLAUDE.md AI 执行检查点 "sprint 收口" 必跑 /ship skill, 留 audit trail.
+
+### 教训
+
+- 没跑 /ship skill = sprint 没收口 (CLAUDE.md AI 执行检查点 硬性 STOP)
+- 跟 Sprint 41 / 55 实战 fix 模式一致, audit trail 是 sprint 收口闭环的最后一步
+- 跟 Meta-Sprint 治理收口: post-merge hook 替代手工跑 /ship skill, 仅留 audit trail
+
+### 失败信号
+
+sprint 收口后没追加 `.ship-audit.log` → 100% 是 audit trail 漏
+
+### 可复查证据
+
+- `.ship-audit.log` 8 行 (Sprint 60+ 收口)
+- ship.md post-merge hook 模式
+
+## Pattern 19: 跟 R/F/M 治根模式统一 (Sprint 14.5 P1.1 + Sprint 60.2 实战)
+
+### 触发场景
+
+业务模式 (R / F / M 区间 vs RFM 8 象限) 走不同 ratio 模式 (`None` vs `1.0`), 业务合理但容易让用户困惑 ("为什么两种模式 ratio 不一样").
+
+### 实战 sprint
+
+Sprint 14.5 P1.1 R/F/M 走 `ratio = None` (前端 filter 过滤 TTL 行不展示). Sprint 60.2 RFM 8 象限走 `ratio = 1.0` (TTL 行保留显示, 业务是"分桶 vs 合计"层级, 9 行 sum=200% 业务合理双计).
+
+### 教训
+
+- 两种 ratio 模式业务合理, 跟 Sprint 60.1.1 wool_party 强截断模式一致 (ratio 各自 0-1 合规)
+- 跟 Sprint 14.5 P1.1 注释 + Sprint 50.5 L4.5 + L4.6 永久规则一致
+- 业务定义 SSOT 文档化 (`docs/business/RFM_DEFINITIONS.md`) 避免 Sprint 60.3 再发现同问题
+
+### 失败信号
+
+业务模式 ratio 不一致 → 用户报 "分桶 vs 合计" 业务理解不一致 → 99% 是 ratio 模式没 SSOT 文档化
+
+### 可复查证据
+
+- `docs/business/RFM_DEFINITIONS.md` §4 ratio 模式对照
+- Sprint 14.5 + Sprint 60.2 close memory
+
+## Pattern 20: 跨 sprint baseline 留尾 (Sprint 60+ 实战)
+
+### 触发场景
+
+跨 sprint 累计 4+ sprint 时, pytest skipped 数会累计 (fixture skip 跨 sprint 不收敛). 跟 Sprint 50+ 实战 fix 模式一致.
+
+### 实战 sprint
+
+Sprint 60+ 收口实测 748/21 (21 skipped 跨 sprint 累计 fixture skip, 跟 Sprint 50+ 实战一致). Sprint 60+ 留尾 1 项 = Sprint 60.3 评估 21 fixture skip 跨 sprint 不收敛问题.
+
+### 教训
+
+- pytest skipped 跨 sprint 累计是真实风险, 跟 Sprint 50+ 实战一致
+- 跟 Sprint 53 race flake 治本 fixture (per-worker tmp DuckDB + ATTACH) 同根因, 但部分 fixture 跨 sprint 不收敛
+- 跨 sprint 留尾明文标 STATUS.md 跟 close memory, 等 sprint 收口时一起闭环
+
+### 失败信号
+
+跨 sprint 累计 4+ sprint 时, pytest skipped 数从 1 涨到 21+ → 100% 是 fixture 跨 sprint 不收敛
+
+### 可复查证据
+
+- Sprint 60+ close memory 跟 STATUS.md 技术债表
+
 ## 关联文档与复用规则
 
 ### 允许引用
 
-- [CLAUDE.md](../../CLAUDE.md) 中的 L4.x 永久规则。
-- [AI_SAFETY_NET.md](../architecture/AI_SAFETY_NET.md) 中的 L1/L2/L3/L4 防线。
-- [TEST_INFRASTRUCTURE.md](../architecture/TEST_INFRASTRUCTURE.md) 中的 fixture、skipif 和 race flake 处理。
-- [DATA_PIPELINE.md](../architecture/DATA_PIPELINE.md) 中的 ETL / worktree / 50M scale 说明。
+- [CLAUDE.md](../../CLAUDE.md) 中的 L4.x 永久规则 (含 L4.7 + L4.8 Sprint 60+ 新增).
+- [AI_SAFETY_NET.md](../architecture/AI_SAFETY_NET.md) 中的 L1/L2/L3/L4 防线 (含 §6 实战教训 9-17 Sprint 60+ 累计).
+- [TEST_INFRASTRUCTURE.md](../architecture/TEST_INFRASTRUCTURE.md) 中的 fixture、skipif 和 race flake 处理 (Sprint 60+ 7 case 新增).
+- [DATA_PIPELINE.md](../architecture/DATA_PIPELINE.md) 中的 ETL / worktree / 50M scale 说明.
+- [RFM_DEFINITIONS.md](../business/RFM_DEFINITIONS.md) 业务定义 SSOT (L4.8 永久规则, Sprint 60+ 新建).
 
 ### 避免引用
 
