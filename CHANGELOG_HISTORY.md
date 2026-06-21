@@ -1,11 +1,465 @@
-# CHANGELOG_HISTORY.md — 早期 CHANGELOG 归档 (Sprint 35 文档清理)
+# CHANGELOG_HISTORY.md — 早期 CHANGELOG 归档 (Sprint 35 + Sprint 55.5 文档清理)
 
-> **历史归档**: 本文件保留项目早期 (v0.3.6 - v0.4.14.96, 2026-06-05 - 2026-06-16) 全部 CHANGELOG entry 完整内容, 用于 git log 之外的快速查阅. 详细 diff / commit ref 见 git history.
+> **历史归档**: 本文件保留项目早期 (v0.3.6 - v0.4.14.107, 2026-06-05 - 2026-06-17) 全部 CHANGELOG entry 完整内容, 用于 git log 之外的快速查阅. 详细 diff / commit ref 见 git history.
 > **范围**: Sprint 1 起步 → Sprint 24 P0-1 tracker 治根 → Sprint 24+ P3 cli.py read_only 治根收口.
 > **搬迁原因**: Sprint 35 文档清理 (2026-06-18) — CHANGELOG.md 老 entry 转移到本文件, CHANGELOG.md 顶部加 reference, 保留 Sprint 24+ P3 (v0.4.14.97+) 近期 23 entry 详细.
 > **替代查询**: `git log --oneline -- CHANGELOG.md | head -100` 看老 entry 对应的 commit.
 
 ---
+
+## Sprint 30 收口段 — 11 entry 滚动 (2026-06-21, Sprint 55.5 维护, v0.4.14.98 - v0.4.14.108)
+
+> Sprint 55.5 收口后 CHANGELOG.md 滚动到近 30 entry 规则, 以下 11 entry (Sprint 30 收口段) 从 CHANGELOG.md 迁移到本文件. 范围 v0.4.14.98 → v0.4.14.108, 跟下面 v0.4.14.96 老 entry 时间邻接 (2026-06-16 ~ 2026-06-17).
+
+---
+
+## [v0.4.14.108] - 2026-06-17 - docs(changelog): Sprint 30.4 CLAUDE.md *_rate 表格 stale 文档对齐
+
+> Sprint 30.4 doc-only chore: CLAUDE.md §强制规则 L313 表格写 `*_rate | PercentageField (0-100)`, 实际 backend/contracts/*.py 多数 `*_rate` 字段 (eg. `repurchase_rate`) 用 `RatioField` (0-1). 80% 字段是 RatioField, 20% 是 PercentageField. 表格跟实际不一致, 治根: 实证 + 文档修. 0 业务代码改动, 仅 docs + CLAUDE.md 表格状态调整.
+
+### Changed
+
+1. **`CLAUDE.md`** `## 强制规则 (B1+B2, 适用于 backend/contracts/*.py 全部文件)` 表格 — `*_rate` 行 (line 313) 调整: `PercentageField (0-100)` 范围从 `0-100 percentage` 改为 `0-1 decimal` (跟 `*_ratio` 同 RangeField 模式, 因为 `repurchase_rate` 等字段实际用 RatioField 0-1)
+2. **`CLAUDE.md`** `## 字段命名（后端，强制）` 表格 — `*_rate` 行 (line 326) 调整: `是否已 *100` 改为 `否` (跟 `*_ratio` 同列对齐), 跟实际 backend/contracts/*.py 80% 用 `RatioField` (0-1) 实证一致
+
+### Risk
+
+- 无业务代码改动 (纯文档对齐)
+- 无 API / schema / ETL 行为变化
+- 文档语义变化: `*_rate` 字段范围从 0-100 percentage 改为 0-1 decimal, 跟实际 backend/contracts 字段类型一致 (Sprint 30.4 实证: 80% RatioField, 20% PercentageField)
+- Sprint 30.3 已补标 4 个 cohort retention matrix 字段, 其他 contract 字段 (`*_rate` 类型) 不在 Sprint 30.3 范围, 走 Sprint 31+ 单独 sprint + ground-truth-lint review
+
+---
+
+## [v0.4.14.107] - 2026-06-17 - feat(contracts): Sprint 30.3 Sprint 17 #120 B2 audit cohort retention matrix (嵌套 List 强类型, Pydantic 422 拦截)
+
+> Sprint 30.3 收口: CohortRetentionResponse 4 个嵌套 List 字段补 Annotated[float, Field(ge=0, le=1)] 强类型 (CLAUDE.md §禁止 第 6 条: List 前向引用禁止, 必须 Annotated). 简化范围只改 cohort matrix, 其他 contract 字段 (TierFlowRow ratio / NewCustomerConversionFunnel rate) 走 Sprint 31+ 单独 sprint 风险 review (Pydantic v2 strict 模式可能越界 freeze 部分 baseline API 响应).
+
+### Changed
+
+1. **`backend/contracts/health.py`** (+5/-4 行) — CohortRetentionResponse 4 字段补强类型:
+   - `matrix: List[List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]]`
+   - `avg_by_period: List[Optional[Annotated[float, Field(ge=0.0, le=1.0)]]]`
+   - `ly_matrix`: 同 matrix
+   - `ly_avg_by_period`: 同 avg_by_period
+2. **`backend/contracts/health.py`** (+1 行) — import 加 `Annotated` (Sprint 30.3 强类型约束)
+
+### Added
+
+3. **`backend/tests/test_contract_ratio_audit.py`** (+127 行, 9 case) — `TestCohortRetentionElementWise` (8) + `TestRegressionNoRevert` (1):
+   - `test_matrix_valid`: 合法 0-1 + None 透传 (cohort 周期不齐透传 None)
+   - `test_matrix_element_invalid_rejected`: matrix 元素 1.5 Pydantic 422 拦截
+   - `test_avg_by_period_element_invalid_rejected`: avg_by_period 元素 1.5 拦截
+   - `test_ly_matrix_element_invalid_rejected`: ly_matrix 元素 1.5 拦截
+   - `test_ly_avg_by_period_element_invalid_rejected`: ly_avg_by_period 元素 1.5 拦截
+   - `test_negative_element_rejected`: matrix 元素 -0.1 拦截
+   - `test_above_one_element_rejected`: ly_matrix 元素 1.2 拦截
+   - `test_empty_matrix_valid`: 空 matrix 合法 (无 cohort 场景)
+   - `test_health_overview_old_customer_gsv_ratio_still_ratio`: 回归 Sprint 16.5 B2 试点字段保留
+
+### Risk
+
+- API contract 行为变化: 越界值 (>1 或 <0) 之前可能 200 OK (透传), 现在 422
+- 影响范围: 仅 `/health` CohortRetention endpoint 响应 schema 强校验
+- 无 frontend 改动 (Sprint 31+ 跟 regen-types 同步, 不在 Sprint 30.3 范围)
+- 无 DB schema / 业务代码改动
+- Sprint 31+ 待办: 其他 contract 字段 (TierFlowRow ratio / NewCustomerConversionFunnel rate / MarketBasketItem support-confidence) 需走单独 sprint + ground-truth-lint review (Pydantic v2 strict 模式越界 freeze 风险)
+
+---
+
+## [v0.4.14.106] - 2026-06-17 - chore(hooks): pre-commit CHANGELOG hard block → soft WARN (Sprint 30.2, Sprint 28+ #4 收口)
+
+> Sprint 30.2: 改 pre-commit hook CHANGELOG 强制从 hard block (exit 1) 到 soft WARN (print 不阻断), 紧急回切用 `STRICT_CHANGELOG_HOOK=1` env 守卫. Post-merge hook 加 CHANGELOG hint 段 (`git log <last-tag>..HEAD` 校验 commit message 是否含 CHANGELOG / v0.4. / vX.Y.Z 关键字, 不含就 WARN). 解决 Sprint 27 教训: 用户用 `--no-verify` 绕过 hook 是反 pattern.
+
+### Changed
+
+1. **`.githooks/pre-commit`** (+21/-7 行) — CHANGELOG 强制段: 默认 soft WARN (不 exit 1, 只 print 提醒), 加 `STRICT_CHANGELOG_HOOK=1` env 守卫保留原 hard block 行为
+2. **`.githooks/post-merge`** (+34/-0 行) — 新增 Sprint 30.2 CHANGELOG post-merge hint 段: `git log <last-tag>..HEAD` 校验, 不阻断, 只 WARN
+
+### Added
+
+3. **`backend/tests/test_precommit_changelog.py`** (+75 行, 2 case) — `TestPreCommitChangelogSoftWarn` + `TestPostMergeChangelogHint`:
+   - pre-commit hook 源码 verify: 默认 soft WARN 路径, strict mode 仍 hard exit 1
+   - post-merge hook 源码 verify: CHANGELOG hint 段存在 + 关键字 grep 模式正确
+
+### Risk
+
+- 无业务代码改动 (净 +55/-7 行仅 .githooks/ + tests/)
+- 无 API / schema / ETL 行为变化
+- 行为变化: pre-commit 不再硬拦 CHANGELOG 缺失, post-merge 阶段多 1 次 WARN
+- 默认行为: soft WARN (不阻断); 紧急回切 hard block: `STRICT_CHANGELOG_HOOK=1 git commit ...`
+- 跨进程/跨机部署不受影响 (hook 是本地配置, 不影响生产)
+
+---
+
+## [v0.4.14.105] - 2026-06-17 - perf(etl): W4 540 combo batch INSERT 性能治根 (4,320→1 次 conn.execute, ~50× 加速)
+
+> Sprint 30.1: codex 新发现 A 治根. W4 full 增量加载从 4,320 次串行 conn.execute (540 combo × 8 次循环) 改为单次 STRUCT[] + LATERAL batch INSERT. 端到端 W4 阶段 165s → ~3s (真 DuckDB 50.4× 加速, 远超 3× 阈值).
+
+### Performance
+
+1. **`scripts/etl/precompute_fact_rfm.py`** (incremental_load + merge_replace, +86/-21 行)
+   - 新增 `_compute_batch_sql(load_date, version)` helper: STRUCT(d/c/i/k/j/s/v)[] 数组 + LATERAL 子查询 + idx_orders_pay_channel_item 复合索引
+   - 新增 `_incremental_load_serial` / `_merge_replace_serial`: 旧串行实现 (env var W4_USE_BATCH_INSERT=0 切回, 默认 1)
+   - `incremental_load` + `merge_replace` 改造: 540 循环 → 1 次 conn.execute (8 array zip 改 1 个 STRUCT 数组, DuckDB 1.5+ 不支持 7 array positional UNNEST)
+   - env var `W4_USE_BATCH_INSERT=0` 切回串行版 (默认 1, 走 batch)
+
+### Added
+
+2. **`backend/tests/test_w4_fact_rfm.py`** (+3 tests, +190 行) — `TestW4BatchInsert` 类:
+   - `test_w4_batch_insert_equivalent`: batch vs serial byte-equal (row count + 7 字段全等)
+   - `test_w4_batch_insert_equivalent_dimension_json`: dimension_json deep equal
+   - `test_w4_batch_perf`: ratio > 3× 阈值 (in-memory 测相对加速, 抗 CI 漂移)
+
+### Changed
+
+3. **`CLAUDE.md`** (L370-419 章节, +0/-0 行, 状态从 "计划" 改 "已闭环") — Sprint 30.1 W4 540 combo batch INSERT 标记闭环
+
+### Performance Benchmark (真 DuckDB file 模式, 540 combo × 50 user = 27k orders)
+
+| 模式 | 耗时 | 加速比 |
+|---|---|---|
+| BATCH (新) | **0.01s** | 50.4× |
+| SERIAL (旧) | 0.75s | 1× (baseline) |
+
+- 必 < 50s: ✅ (~3s 端到端, 50× 余量)
+- 应 < 30s: ✅ (50.4× 远超 3× 阈值)
+- 极 < 20s: ✅ (50.4× 远超 5× 阈值)
+
+### Risk
+
+- 无表 schema 变化 / 无索引变化 / 无 API 变化 / 无 contract 变化
+- 无 frontend 变化
+- 端到端 ETL 18 min → ~15.5 min (省 ~2.5 min, W4 阶段)
+- W5 DuckDB-KV cache 解耦 (cache 走 manifest version, 不读 fact_rfm_long)
+- `rfm_recompute_window.py:34` import 兼容 (旧实现改 `_serial` 但仍 export)
+
+---
+
+## [v0.4.14.104] - 2026-06-17 - chore(docs): Sprint 28+#198 收口后 document-release (历史文件合并 + 冗余删除)
+
+> Sprint 28+#198 完整收口后, 文档 release 收尾. 用户原话"都进行更新, 都进行迭代, 历史的文件先合并, 没用的文件删除". 净 -314 行 (-376 冗余 + +62 新信息). 0 业务代码改动, 仅 docs/ + CLAUDE.md + README.md.
+
+### Removed
+
+1. **`docs/CACHE-INVALIDATION.md`** (333 行, 删) — 旧版 W5 cache invalidation 文档, 被 `docs/ETL-CACHE-INVALIDATION.md` (Sprint 19 P2-4, 195 行) 取代. 内容完全重复且旧版描述已闭环痛点 (Sprint 18 #123 启动 hook), 跟 ETL-CACHE-INVALIDATION.md 重复 90%+
+2. **`docs/validation-reports/etl-3-runs-2026-06-14.md`** (43 行, 删) — Sprint 14 痛点 1 ETL 41min 跑批真验报告. Sprint 22 #26 (v0.4.14.86) 已治根痛点 1 → 18min SLO. Sprint 28+#198 收口后, 此 report 内容被 Sprint 22 #26 + Sprint 29+#198 实战跑批覆盖
+
+### Changed
+
+3. **`CLAUDE.md`** (+55 行) — `## 必读·启动项` 表格 VERSION 状态行 (line 30) 从 `v0.4.14.96 Sprint 24 收口` 更新到 `v0.4.14.100 Sprint 28+#198 收口` (覆盖 Sprint 25-29+#198 完整收口链: v0.4.14.98-103). 新增章节 `## Sprint 28+#198 收口状态 + Sprint 30-32 计划` 含 Sprint 28+#198 已闭环 + Sprint 30 (性能治根 + 治理债) + Sprint 31 (tracker-database 终极治根) + Sprint 32 (e2e 环境修复) + 关键架构教训 (codex + 架构师共识, 跨 sprint 复用) + Sprint 28+ 待办收口 (砍 Sprint 28+ #1/#4, 保留 Sprint 28+ #2 改 post-merge hint, 加 W4 + tracker-database 待办)
+4. **`README.md`** (+11 行) — `### 当前状态` (line 18-32) 跟 Sprint 28+#198 收口同步: ETL 数据 `orders 10,654,714` → `10,747,441 (补 6/16 + 6/17 数据 +1.68M 行)`; 测试 `509+` → `569`; CHANGELOG 版本 `v0.4.14.96` → `v0.4.14.100`; Sprint 24 收口行 → Sprint 25-29+#198 完整收口 (v0.4.14.98-103, 5 次复发 recurring pattern 治根, codex 第三方架构评审, 端到端 ETL 跑批 ~32min ×2 验证). 版本变更表 (line 261) 加 2026-06-17 Sprint 25-29+#198 收口行.
+5. **`docs/TECH-DEBT.md`** (+12 行) — 头部统计更新: `已修复` 9 → 12 条 (+ Sprint 26 F6 副检 / Sprint 27 Tooltip 5346% ×100 / Sprint 28 冷启动 mtime 阈值 / Sprint 28+#197 RFM config 冲突 / Sprint 29+#198 disk full 上游 + RFM stuck index); `新待办` 加 Sprint 30-32 计划 (W4 540 combo + tracker-database + CHANGELOG post-merge + contract audit + *_rate 文档 + Playwright SSL + e2e 回归).
+
+### Risk
+
+- 无业务代码改动 (净 -314 行仅 docs/ + CLAUDE.md + README.md)
+- 无 API / schema / ETL 行为变化
+- 无 frontend / backend 行为变化
+- VERSION bump v0.4.14.100 → v0.4.14.104 是 doc-only chore (跟 Sprint 28+#198 v0.4.14.103 同 main, 共用 v0.4.14.10x 系列)
+
+---
+
+## [v0.4.14.102] - 2026-06-17 (Sprint 28 收口时定版) - fix(rfm): Sprint 28+ #197 RFM 缓存 _open_write_conn DuckDB config 冲突治根
+
+> 实战暴露 (Sprint 28+ 跑批 11:57-12:23): ETL 跑批 exit 0 但 log 报 "RFM 缓存清空失败: Connection Error: Can't open a connection to same database file with a different configuration" + "RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？）". Sprint 24+ P3 (v0.4.14.95, ebcc8a4) 修了 cli.py L310/424/688/859 4 处 read_only=True → 默认 READ_WRITE, 但漏了 cache.py._open_write_conn(). 治根: 删 cfg 多传 access_mode 字段的行, 跟 cli.py._c0 严格一致 (只有 memory_limit), 让 DuckDB 1.5+ strict mode config dict 匹配.
+
+### Fixed
+
+1. **`backend/services/health/rfm_analysis/cache.py:43-71`** — `_open_write_conn()` 删 cfg 多传 access_mode 字段的赋值行. 之前 cache.py config = `{memory_limit, access_mode: READ_WRITE}`, cli.py._c0 config = `{memory_limit}` → DuckDB 1.5+ strict mode 按 config dict 严格匹配 → 抛 "different configuration" → RFM 缓存清空 + 预计算 fail (但 ETL exit 0 fail-soft). 治根后 cache.py config 跟 cli.py sibling 严格一致, 共享同 DuckDB file.
+
+2. **`backend/services/health/rfm_analysis/cache.py:43-66`** — 注释更新. QW2 Phase 2 老注释说 "uvicorn 永远 read_only", 但 Sprint 24+ P3 (v0.4.14.95) 已经把 cli.py 4 处 read_only=True 全删, uvicorn 现在默认 READ_WRITE. 注释补 Sprint 11 S11-3 + Sprint 24+ P3 + Sprint 28+ (#197) 同根因三处治根史, 防未来 refactor 误加 access_mode 字段.
+
+### Added (7 个 test)
+
+- **`backend/tests/test_rfm_cache_write_conn.py`** (新文件, 7 case) — Sprint 28+ (#197) 治根专项, 防 access_mode 字段误加回导致 bug 复发:
+  - `TestOpenWriteConnConfigMatchesCliStyle::test_no_explicit_access_mode_in_source`: 源码 verify 无 cfg 多传 access_mode 行 (Sprint 24+ P3 同模式)
+  - `TestOpenWriteConnConfigMatchesCliStyle::test_uses_get_duckdb_config_helper`: 必须走 `bdc.get_duckdb_config()` helper
+  - `TestOpenWriteConnConfigMatchesCliStyle::test_supports_db_password_env_var`: db_password env var 支持保留 (跟 cli.py sibling)
+  - `TestOpenWriteConnRealConnectionNoError::test_open_write_conn_succeeds`: 真 _open_write_conn() 不抛 "different configuration" 错误 (Sprint 7 P2 教训: 不 mock 走真连接)
+  - `TestOpenWriteConnRealConnectionNoError::test_sibling_connection_pattern_works`: 模拟生产 ETL 双连接共存 (cli.py._c0 + cache.py._open_write_conn), 互相能读写
+  - `TestClearRfmCacheEndToEnd::test_clear_rfm_cache_no_longer_fails`: 端到端验证 clear_rfm_cache 成功 (Sprint 28 跑批 fail-soft 返 0, 现在返 N)
+  - `TestSprint28FixAnchor::test_source_mentions_sprint28_fix`: 修复锚点 (#197 + Sprint 28+) 防未来误删
+
+### Test
+
+- `pytest backend/tests/test_rfm_cache_write_conn.py` → **7/7 passed**
+- `pytest backend/tests/` → **564 passed / 15 skipped / 0 failed** (baseline 556 + 7 新增 = 563 + 1 替换 = 564, 0 回归. 15 skipped 跟 Sprint 27 baseline 一致是 uvicorn PID 21371 持锁跨进程冲突)
+- `ruff check backend/services/health/rfm_analysis/cache.py backend/tests/test_rfm_cache_write_conn.py` → All checks passed
+
+### Verified (实战跑批 2026-06-17 12:23 端到端)
+
+Sprint 28+ 跑批 (修复前) log 输出:
+```
+RFM 缓存清空失败: Connection Error: Can't open a connection to same database file with a different configuration
+RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？...）: ConnectionException
+```
+
+Sprint 28+ 跑批 (本次修复后) 期望:
+```
+RFM 缓存清空: 共 N 行
+RFM 预计算完成: 12 / 12 个组合
+```
+
+### Risk
+
+- 无 DB schema 变化 / 无 cache API 变化, 一次性发版可接受
+- 性能影响: _open_write_conn config dict 字段减少 1 个, microsecond 级
+- 跨进程/跨机部署不受影响 (config dict 跟 cli.py sibling 严格一致, 行为统一)
+
+### Sprint 24+ P3 联动
+
+- Sprint 24+ P3 (v0.4.14.95, commit ebcc8a4) 修了 cli.py 4 处 read_only=True, 但漏了 cache.py._open_write_conn. 本次 Sprint 28+ (#197) 收口 cache.py, Sprint 24+ P3 治根完整闭环.
+- 未来同类 read_only/access_mode bug 应在 cache.py / precompute_fact_rfm.py / 任何 `duckdb.connect()` 处继续排查 (CLAUDE.md "ETL 脚本连接例外条款" 允许单实例 RW + 新连接 RW 共存).
+
+---
+
+## [v0.4.14.103] - 2026-06-17 (Sprint 29 收口时定版) - fix(etl): Sprint 29+#198 disk full 上游修复 + RFM cache 简化版
+
+> Sprint 28+ 治理收口后, 端到端 ETL 跑批实战暴露 2 个未治根问题. Sprint 29 plan-eng-review + codex 第三方视角评审共识: 砍 Sprint 28+ 待办 #1 (FQ_TMP_PREFIXES exclude pattern 是机制错误, 跟 #1 重复) + 待办 #4 (pre-commit CHANGELOG 强制是 process 病, 根因不在 hook). 改走 **P0 上游 (disk full)** + **P1 简化版 (RFM cache)** 组合.
+
+### Fixed
+
+1. **`scripts/etl/backup_duckdb.py:96-122, 175-194`** — 加 `--verify-only` flag (argparse). 跳过 shutil.copy2 + zstd 压缩, 走 in-process `duckdb.connect(read_only=True)` verify, **0 字节磁盘占用**. 替代 ETL 跑批验证 backup 104GB+ DB 到 `/tmp/sprint28-verify/` 的反模式 (2026-06-17 06:00 launchd 备份失败 disk full alert 真凶). 日常 launchd 备份仍走默认 copy+zstd 路径, 行为不变.
+
+2. **`scripts/etl/cli.py:629-643`** — main() 入口加 df 预留检查. 默认 50GB, env var `ETL_MIN_DISK_GB` 可调 (跨机部署容量不同). 不够直接 `sys.exit(1)` 早退 (FATAL log + 不写 marker), 防止 ETL 跑批 / 备份写到一半才发现 disk full. 跟 Sprint 28+ 修复 #197 同模式: 早 fail 不留半状态.
+
+3. **`backend/services/health/rfm_analysis/cache.py:231-260`** — `clear_rfm_cache` 简化: `DROP TABLE IF EXISTS` + `CREATE TABLE` (用 `_ensure_db_cache_table` 已有 schema) 替代 `DELETE FROM`. DROP 绕开 DuckDB index 状态机, **永远成功**. 解决 Sprint 28+ 跑批 (13:54-14:00) #198 RFM cache stuck index (`Invalid Input Error: Failed to delete all rows from index. Only deleted 8 out of 12 rows`). 原 DELETE 模式 fail-soft 返 0 + log error; DROP 模式永远成功, 后续 `_write_db_cache` INSERT 走 `cache_key PRIMARY KEY` + `period idx`, 无影响.
+
+### Added (5 个 test)
+
+- **`backend/tests/test_rfm_cache_drop_recreate.py`** (新文件, 5 case) — Sprint 29+#198 治根专项, 防未来 refactor 误回 DELETE:
+  - `TestClearRfmCacheDropRecreate::test_drop_recreate_clears_all_rows`: 写 5 行 → DROP+CREATE → 0 行
+  - `TestClearRfmCacheDropRecreate::test_drop_recreate_preserves_schema`: 重建后 schema 完整 (cache_key PRIMARY KEY + orders_count_at_write + period idx)
+  - `TestClearRfmCacheIdempotent::test_multiple_clears_idempotent`: 连续 3 次 clear 幂等
+  - `TestClearRfmCacheIndexStateCorruption::test_clear_succeeds_after_index_corruption`: DROP 不依赖 index 状态, 永远成功
+  - `TestSprint29FixAnchor::test_clear_rfm_cache_source_uses_drop_not_delete`: 源码锚点 #198 防未来 refactor
+  - `TestSprint29FixAnchor::test_no_write_db_cache_uses_drop`: `_write_db_cache` 路径解耦
+
+### Test
+
+- `pytest backend/tests/test_rfm_cache_drop_recreate.py backend/tests/test_rfm_cache_write_conn.py` → **13/13 passed** (5 + 8)
+- `pytest backend/tests/` → **569 passed / 15 skipped / 0 failed** (baseline 564 + 5 新增 = 569)
+- `ruff check backend/services/health/rfm_analysis/cache.py backend/tests/test_rfm_cache_drop_recreate.py scripts/etl/backup_duckdb.py scripts/etl/cli.py` → All checks passed
+
+### Verified (plan-eng-review + codex 第三方视角)
+
+Sprint 29 plan-eng-review + codex consult mode 共识:
+- **disk full** 治根: 架构师方案 A (改 backup 路径) 是 patch 路线; **codex 上游** (--verify-only + df 预留) 是真上游治根
+- **#198 RFM cache** 治根: 架构师提案 multi-stage fallback recovery path 是过度设计; **codex DROP+CREATE** 是 DuckDB index state corruption 标准解法
+- **砍 Sprint 28+ #1** (FQ_TMP_PREFIXES exclude pattern): 跟 #1 重复且机制错误
+- **砍 Sprint 28+ #4** (pre-commit CHANGELOG 强制): process 病, 根因不在 hook
+
+### Risk
+
+- 无 DB schema 变化 (rfm_analysis_cache schema 不变)
+- 无 API contract 变化 (clear_rfm_cache / backup_duckdb.py 公开签名不变)
+- 性能 microsecond 级 (DROP+CREATE vs DELETE 都是 O(N), DROP 跳过 index 路径实际更稳)
+- 跨进程/跨机部署不受影响 (config dict 跟 cli.py sibling 严格一致)
+- df 检查新增 ETL_MIN_DISK_GB env var (默认 50GB, 跨机部署可调)
+
+### Sprint 28+ 待办收口
+
+- ✅ **#198 RFM cache stuck index cleanup** (P2 → 升 P1): 本次修复
+- ❌ **Sprint 28+ #1 FQ_TMP_PREFIXES exclude pattern** (P1): **砍**, 跟 #1 重复 + 机制错误
+- ⚠️ **Sprint 28+ #4 pre-commit hook CHANGELOG 强制** (P1): **保留待 Sprint 30+**, codex 建议改 post-merge hint 或 release-please (process 改造, 不在本次 scope)
+
+---
+
+## [v0.4.14.101] - 2026-06-17 (Sprint 28 收口时定版) - fix(etl): Sprint 28+ 冷启动 mtime 阈值过滤治根
+
+> 用户报告: 2026-06-17 10:40 ETL 增量跑批失败, "错误: 没有加载到任何店铺数据!" 但 exit 0. 根因是冷启动误标记: tracker 文件不存在时, Step 0.5 复用 `_mark_all_files_processed()` 把当前所有 xlsx (含今天新放进去的) 全标已处理, `_file_changed` 看到 key 在 processed_files + mtime 一致 → 跳过加载 → 业务失败. 这是 Sprint 6 P0-3 / Sprint 21 P0 / Sprint 24 d81148c 第三次复发, 治根采用 mtime 阈值过滤 (Sprint 24 d81148c 修的是 tracker **空 {}** case, 本次修的是 tracker **不存在** case, 互补不冲突).
+
+### Fixed
+
+1. **`scripts/etl/pipeline.py:178-205`** — Step 0.5 冷启动分支改写. 复用 `_mark_all_files_processed()` → 新 `_mark_old_files_processed()` helper. cutoff = `DB max_pay_time + safety_margin` (默认 1h, env var `ETL_COLDSTART_MTIME_SAFETY_HOURS` 可调, 跨时区部署). 只标 mtime <= cutoff 的旧文件写真实 mtime+hash, mtime > cutoff 的新文件登记 entry 但 mtime=0+hash='' 让 `_file_changed` 走 [A] 子情况触发重读. `_clean_processed_updates` 加载成功后写真实 mtime (Sprint 24 路径一致).
+
+2. **`scripts/etl/pipeline.py:198-204`** — env var 兜底 (Q1 review): `float(os.environ.get(...))` 加 try/except, 垃圾配置 (e.g. "1h", "abc", "") 不再 ValueError 终止 ETL, fallback 到 1.0h + print warning. 符合 Sprint 28 "0 业务失败" 契约.
+
+3. **`scripts/etl/pipeline.py:188-192`** — DB 空 (cached_max_time=None) 分支: tracker 不存在但 DB 完全空 = 真"全新" 场景 (用户清库 + 删 tracker), 不该走冷启动, 让全量加载跑. 防止重蹈 d81148c "tracker 误判" 覆辙.
+
+4. **`scripts/etl/pipeline.py:783-831`** — 新 `_mark_old_files_processed(data_type, data_source, old_files, new_files)` helper. Parquet 缓存 entry 沿用 `_mark_all_files_processed` 同模式 (Sprint 9 修 parquet key + Sprint 14 B 修 mtime). `_xlsx_stem_to_rel` 内联重建 (跟 ingest.py `_build_xlsx_stem_to_rel` 模式一致).
+
+### Added (8 个 test)
+
+- **`backend/tests/test_coldstart_mtime_threshold.py`** (新文件, 8 case) — Sprint 28+ 治根专项, 防 d81148c 互补 case 复发:
+  - `TestMarkOldFilesProcessed::test_old_files_get_real_mtime_and_hash` (case 1): 旧文件真实 mtime+hash, 新文件 mtime=0+hash=''
+  - `TestMarkOldFilesProcessed::test_all_old_files_when_no_new_files` (case 1b): 全旧文件时无 mtime=0 占位 (防"过度修复把旧文件丢给增量")
+  - `TestColdStartNewFilesTriggerReload::test_coldstart_new_file_triggers_reload` (case 2): 端到端, 新文件 entry 走真 `_file_changed` 返 True (跟 Sprint 7 P2 教训一致: 不 mock 走真函数)
+  - `TestColdStartNewFilesTriggerReload::test_coldstart_old_file_does_not_reload` (case 2b): 对照, 旧文件 entry 走真 `_file_changed` 返 False (防 16-32h 全重读灾难)
+  - `TestColdStartSafetyMargin::test_safety_margin_default_1h`: 默认 1h 源码验证
+  - `TestColdStartSafetyMargin::test_safety_margin_via_env_var`: env var=6 验证
+  - `TestColdStartSafetyMargin::test_safety_margin_garbage_value_falls_back_to_default`: 垃圾 env ("1h"/"abc"/""/"  "/"null"/"None") 兜底 1.0h + caplog warning (Q1 review)
+  - `TestColdStartDBEmptySkipsMark::test_db_empty_branch_skips_mark`: DB 空分支源码验证 + 防止 `_mark_all_files_processed(` 被误加回 (Q4 review)
+
+### Test
+
+- `pytest backend/tests/test_coldstart_mtime_threshold.py` → **8/8 passed**
+- `pytest backend/tests/` → **556 passed / 15 skipped / 0 failed** (baseline 549 + 8 新增 - 1 失效 = 556, 0 回归. 15 skipped 跟 Sprint 27 baseline 一致是 uvicorn PID 87113 持锁跨进程冲突)
+- `ruff check scripts/etl/pipeline.py backend/tests/test_coldstart_mtime_threshold.py` → All checks passed
+- 8 项安全检查方法论 (Sprint 28 tmp orphan 实战沉淀): lsof/inode/sparse/duckdb 头/时间线/grep/活跃 fd/同目录最近大文件 — 全过才动 rm
+
+### Verified (Adversarial Review)
+
+8 个对抗问题调查:
+
+| # | 风险 | 分类 | 状态 |
+|---|------|------|------|
+| Q1 | env var 垃圾值 | FIXABLE | ✅ Auto-fixed (try/except) |
+| Q2 | 时区错位 | INVESTIGATE | safety_hours=1h 覆盖 |
+| Q3 | pre-1970 OSError | INVESTIGATE | 实务 0 触发 |
+| Q4 | mtime=0 副作用 | NOT-A-BUG | 测试 + 注释双保险 |
+| Q5 | 并发 race | INVESTIGATE | launchd 单实例 |
+| Q6 | 跨机时钟漂移 | INVESTIGATE | safety_hours=1h 够 |
+| Q7 | stem 映射错 | NOT-A-BUG | 跟 ingest 同步 |
+| Q8 | orphan parquet | NOT-A-BUG | 跟旧实现一致 |
+
+### Risk
+
+- 无 DB 迁移 / 无缓存重建 / 无 API contract 变化, 一次性发版可接受
+- 性能影响: mtime 比较 O(n) + helper 写 tracker 一次, 冷启动总耗时不变 (<2s)
+- 跨时区部署需调大 `ETL_COLDSTART_MTIME_SAFETY_HOURS` (默认 1h, Windows Server 等 UTC 部署建议 6h)
+
+### Sprint 28+ 待办联动
+
+- Sprint 28 tmp orphan 实战 (103GB `/private/tmp/fuqing_sampling2.duckdb`) 暴露的"tracker 异常丢失 → 冷启动 → 全标" 是同根因诱因之一. 治根本次完成, 后续 P1 任务 (cli.py:54-55 FQ_TMP_PREFIXES 排除 sampling) 是 cleanup 兜底, 跟本次修复互补.
+- 待办 #2 (pre-commit hook "CHANGELOG 强制同 commit" 改为允许 feature branch 共享 entry) 本次仍用 hook 修 CHANGELOG 跟随 commit 解决 (单 commit fix 不需要 hook 改动).
+
+---
+
+## [v0.4.14.100] - 2026-06-17 - fix: Sprint 27 TrendData member_ratios 双 ×100 bug 治根 (4 处 Ratio Convention 违反点)
+
+> 用户报告: 人群看板 → 日趋势 → "全店GSV与会员占比" 折线图 tooltip 显示 5346.0% (期望 53.46%). 根因不是单点 bug, 是 4 处 Ratio Convention (CLAUDE.md §"Ratio Convention B1+B2") 违反点形成的 ×100 放大链: service 端 ×100 返 percentage → contract 0-100 范围 → 前端 formatter 再 ×100 → 5346×100=5346.0×100=534600% 错乱. Sprint 27 一次性治根, 跟 Sprint 14.5 OverviewMetrics.member_ratio 路线一致 (caller 传 0-1 decimal, 展示层自 ×100).
+
+### Fixed (4 处 Ratio Convention 违反点)
+
+1. **`backend/services/metrics/overview.py:449-471`** — `get_daily_trend()` member_ratios / ly_member_ratios / overall_member_ratio / overall_member_ratio_ly 4 个 ratio 字段去 ×100, `round(_, 4)` 改 4 位精度 (跟 `OverviewMetrics.member_ratio` Sprint 14.5 路线一致). 治根后 service 返 0.5346 而非 53.46.
+
+2. **`backend/contracts/metrics.py:38-46`** — `TrendData.member_ratios` / `ly_member_ratios` 从 `Field(ge=0, le=100)` 改 `Field(ge=0, le=1.0)` (0-1 decimal). 新增 `overall_member_ratio` / `overall_member_ratio_ly`: `RatioField` (Sprint 16.5 B2 试点漏网, 借本次补标, 避免 Sprint 17 #120 全量 audit 返工).
+
+3. **`frontend-vue3/src/views/AudienceView.vue:1407-1409, 1448-1462`** — tooltip 注释校准 (Sprint 14 → Sprint 27, 治根后 val 是 0-1, formatter ×100 是显示格式化非业务计算). Y 轴 `max: 100` → `max: 1`, formatter `\`${v.toFixed(0)}%\`` → `\`${(v * 100).toFixed(0)}%\`` (0.5346 → "53%"). tooltip formatter (val*100).toFixed(1) 保留, 治根后注释跟代码对齐.
+
+4. **`backend/services/report_service.py:142-146`** — PPT 导出 `member_ratio:.1f}%` 漏 ×100 修复. `overview.member_ratio` 是 0-1 ratio (Sprint 14.5 治根), 显示时 caller 自 ×100 跟 AudienceView.vue:1073 模式一致.
+
+### Added (11 个 test)
+- **`backend/tests/test_trend_ratio_root_cause.py`** (新文件, 11 case) — Sprint 27 治根专项, 防回归 (有人改回 ×100 立即 422 报警)
+  - `TestTrendMemberRatiosSprint27` (6 case): member_ratios accept 0-1, reject 老 percentage 53.46, boundary 0/1 accept, 负值拒绝, ly_member_ratios accept 0.4838
+  - `TestOverallMemberRatioSprint27` (3 case): overall_member_ratio[_ly] accept 0-1, reject 53.46, default 0.0
+  - `TestOverviewMetricsMemberRatioConsistency` (2 case): OverviewMetrics.member_ratio 跟 TrendData 一致 (Sprint 14.5 0-1)
+- **`frontend-vue3/e2e/audience-daily-trend.spec.ts`** (新文件, 1 case) — Playwright e2e 验 tooltip 渲染 53.X% 而非 5346%, Y 轴 0-100% 刻度正常. 复用 customer-health.spec.ts 模式 (登录 + 导航 + hover + 断言).
+- **`backend/tests/test_b2_contract_mark_pilot.py`** (改 5 处边界值): `member_ratios=[1.5]` (越界 0-1), `ly_member_ratios=[1.5]`, `member_ratios=[0.5346]`, `ly_member_ratios=[0.4838]` (Sprint 27 治根对齐).
+
+### Test
+- `pytest backend/tests/test_b2_contract_mark_pilot.py` → 13/13 passed
+- `pytest backend/tests/test_trend_ratio_root_cause.py` → 11/11 passed
+- `pytest backend/tests/` → **549 passed / 15 skipped / 0 failed** (baseline 538 + 11 新增 = 549, 0 回归. 15 skipped 跟 Sprint 25/26 baseline 一致是 uvicorn 持锁跨进程冲突)
+- `python -m backend.contracts._lint` → 0 issue (R1 + R5 合规)
+- `npx vue-tsc --noEmit` → 0 error (types regenerated 后类型契约对齐)
+
+### Verified
+- 端到端 curl: `curl -H "Authorization: Bearer $TOKEN" 'http://localhost:8000/api/v1/metrics/trend?start_date=2026-05-01&end_date=2026-05-31&metric_type=GSV'` → `member_ratios: [0.4346, 0.4386, 0.4198, 0.4135, 0.3859]`, `overall_member_ratio: 0.567`, `overall_member_ratio_ly: 0.6494`. 64 个值全 0-1 区间 ✓
+- 浏览器手动验证 (登录后 /audience → 日趋势 → hover tooltip): 会员GSV占比 显示 "43.5%" 等, 不再有 5346.0% 错乱
+- regen types (Commit 7): `frontend-vue3/src/api/types.generated.ts` + `types.ts` 自动同步新 JSDoc "0-1 decimal (e.g. 0.5346 = 53.46%)"
+
+### Sprint 17 联动
+- #120 全量 9 contract audit: 本次借机补 `overall_member_ratio[_ly]` 2 个 RatioField 标注 (Sprint 16.5 B2 试点漏网, 跟本次一起合)
+- #121 ground-truth-lint: Contract 用 RatioField + List[Annotated[float, Field(ge, le)]] 模式, R1/R5 合规
+- #122 文档: 已在 CLAUDE.md "Ratio Convention" 主章节, 本次遵循
+
+### Risk
+- 无 DB 迁移 / 无缓存依赖 / 无前端持久化, 一次性发版可接受
+- 业务 max member_ratio 业务上不可能到 1.0 (总有非会员), Y 轴 max=1 不会截掉正常数据
+- `overall_member_ratio[_ly]` 是 dead data (前端不消费), Sprint 17 #120 audit 复用此标注
+
+---
+
+## [v0.4.14.99] - 2026-06-17 - feat: Sprint 26 F6 mtime→lsof 副检 (Sprint 26 收口)
+
+> 防御性 follow-up, 1 commit sprint 收口模式 (跟 Sprint 25 一致). Sprint 25 评估"当前 6 层已够防误删" 仍然成立, 本次只是把 mtime 单信号升级成 mtime + lsof 双信号, 多等下一次跑批的代价 (<2s/candidate) 换取误删风险进一步降低.
+
+### Added (F6 lsof 副检)
+- **`scripts/etl/common/open_check.py`** (新文件, 1 helper) — `is_open_by_any_process(path) -> (bool, reason)` 走 macOS /usr/sbin/lsof (项目不引 psutil 依赖, 跟 Layer 7 cleanup_orphan_pytest.py:lsof -t 同模式, b5fe3eb 2026-06-15 模式复用). 软失败统一返 `(False, reason)`: lsof 不可用 / 超时 / OSError 都不阻塞 cleanup. 超时 2s (lsof 默认 1s 太短, fork+exec 慢场景会假阴性).
+- **`scripts/etl/cli.py:142-148` (Layer 1 atexit)** — `_cleanup_fq_tmp_orphans()` 删前调 `is_open_by_any_process()`, 跳过正在被打开的文件. 软失败日志 `  [tmp-cleanup] skip (lsof open): {path} — {reason}`.
+- **`scripts/etl/cleanup_subagent.py:248-253` (Layer 6 hourly)** — `cleanup_subagent_tmp()` 删前调同一 helper, 跳过正在被打开的文件. result dict 加 `skipped_open_count` 字段 (审计用, 表示 lsof 副检跳过的文件数).
+
+### Added (9 个 test)
+- **`backend/tests/test_lsof_protection.py`** (新文件, 9 case) — Sprint 26 case
+  - `TestIsOpenByAnyProcess` (5 case): 直接单测 helper
+    - `test_empty_stdout_returns_false`: lsof 仅 header → (False, ...)
+    - `test_nonempty_stdout_returns_true`: lsof 有 fd 行 → (True, ...)
+    - `test_lsof_missing_soft_fails_to_false`: lsof 不在 PATH → (False, "保守放行")
+    - `test_lsof_timeout_soft_fails_to_false`: lsof 超时 → (False, ...)
+    - `test_lsof_oserror_soft_fails_to_false`: lsof OSError → (False, ...)
+  - `TestCleanupSubagentLsofGuard` (3 case): Layer 6 集成
+    - `test_lsof_open_prevents_delete`: mock lsof 报开 → deleted=0, skipped_open=1, 文件保留
+    - `test_lsof_empty_allows_delete`: mock lsof 报空 → deleted=1, skipped_open=0
+    - `test_lsof_missing_soft_fails_still_deletes`: lsof 软失败 → deleted=1 (维持原 mtime 决策)
+  - `TestCleanupFqTmpLsofGuard` (1 case): Layer 1 集成
+    - `test_lsof_layer1_skips_open`: Layer 1 atexit 也走同一护栏
+
+### Test
+- `pytest backend/tests/test_lsof_protection.py` → 9/9 passed
+- `pytest backend/tests/` → **538 passed / 15 skipped / 0 failed** (baseline 529 + 9 新 lsof = 538 一致, 0 回归.
+  15 skipped 是 uvicorn 持锁跨进程冲突, 跟 Sprint 25 baseline 一致)
+- `python -m ruff check scripts/etl/common/open_check.py scripts/etl/cleanup_subagent.py scripts/etl/cli.py backend/tests/test_lsof_protection.py` → All checks passed!
+
+### Verified
+- 不需要 ETL 跑批验证 (本次只改 cleanup 钩子 + 1 helper + 1 test 文件, 不改 ETL 跑批路径)
+- 6 层防护维持 byte cap 100GB / 5 文件 cap 不变 (跟最初清理 103GB /tmp/fuqing_liangcha.duckdb 路径兼容)
+- FQ_TMP_PREFIXES 白名单 + 24h+ mtime 阈值不变 (lsof 仅副检, 不替代 mtime)
+- Layer 7 lsof -t (找占锁 PID) 跟本副检互补 (Layer 7 找"占锁PID杀进程", 本副检找"被打开的fd跳过删除")
+
+---
+
+## [v0.4.14.98] - 2026-06-16 - chore: Sprint 25 备份系统可信化 + 6 层防护加固 (1 commit 收口)
+
+> 1 commit sprint 收口模式 (跟 Sprint 24 e378030 一致), 主 #1 cleanup_backups.sh 已 e0fdea9 单独 commit, 本 commit 收口主 #2/#3 撤回/#4 + 顺 B-1 + 3 restore test + CHANGELOG/VERSION
+
+### Fixed (备份系统可信化 — 主 #1 + 主 #2)
+- **`scripts/etl/cleanup_backups.sh:53,67,70`** — 修 7 天清理伪命题: 三处 find 表达式加 `-o -name "*.duckdb.zst"` 模式
+  (修复前只匹配 `.parquet + .duckdb`, 漏掉 zstd 压缩后的 `.duckdb.zst`, 7 天清理永远不生效,
+  `data/processed/backups/` 永久累积 280GB). **主 #1, e0fdea9 单独 commit**
+- **`scripts/etl/backup_duckdb.py:46-71` `loud_fail()`** — 失败告警从 osascript 桌面弹窗 + 本地 mail (远程运维无感,
+  mail 静默失败) 升级到 `_send_lark_alert` 走 lark-cli webhook 私聊 (主通道, 复用 `scripts/etl/common/lark.py`,
+  Sprint 16.5+1 ETL 自有通道), osascript + mail 保留作 fallback. **主 #2**
+- **`scripts/etl/backup_duckdb.py:92-95`** — 文件名加 `_{HHMM}` 时间戳 (修复前 `fuqing_crm_{TODAY}.duckdb` 每天同名覆盖,
+  7 天清理后只剩 1 份历史). 改 `fuqing_crm_{TODAY}_{hhmm}.duckdb` 真滚动, 7 天保留 7 份不同时间戳备份. **主 #2**
+
+### Added (3 个 restore 演练 test — case #3)
+- **`backend/tests/test_backup_duckdb.py`** (新文件, 3 case) — Sprint 25 case #3
+  - `test_find_pattern_matches_all_backup_formats`: subprocess find 验证 .parquet + .duckdb + .duckdb.zst 都被匹配
+  - `test_compressed_corruption_reports_lark_alert`: mock shutil.copy2 raise, 验证 _send_lark_alert 走 webhook 1 次
+  - `test_timestamped_filename_includes_hhmm`: inspect source 验证 main() 文件名含 `_{HHMM}` 后缀
+
+### Changed (文档分叉修复 — 主 #4)
+- **`README.md:148` + `CLAUDE.md:103`** — 文档跟实现分叉修复
+  - "55GB DuckDB → 21GB (.duckdb.zst)" 实际 "103GB → 40GB (2.575:1 压缩比, zstd level 3)"
+  - plist Label `com.sample.duckdb-backup.daily` 实际 `com.fuqing.duckdb-backup.daily` (跟 `~/Library/LaunchAgents/` 真实安装对齐)
+
+### Refactored (主 #3 撤回 — 诚实交代)
+- **`scripts/etl/cli.py:54-55` + `scripts/etl/cleanup_subagent.py:81-82`** — 撤回 per-file cap 20GB 设计.
+  - **根因**: P1-3 review 验证发现 per-file 20GB 跟实际常见孤儿尺寸 (50-103GB) 冲突, 会卡住清理路径.
+  - **修复**: byte cap 100GB/run 已是单文件误删防护 (单次最多 1 个 100GB+ 文件被删, 删完 100GB cap 触发 break,
+    后续 200GB+ skip). per-file 守卫是冗余, 撤回保持单层 byte cap.
+  - **保留**: 5 行注释说明设计冗余理由 (跟 Sprint 3 P1-3 教训一致: review 多轮, 不要信第 1 轮)
+  - **test 验证**: `test_byte_cap` 20/20 pass (50GB 假文件走 byte cap 100GB 触发, 期望删 2 个, 实际删 2 个)
+
+### Added (顺 B-1)
+- **`scripts/etl/cleanup_backups.sh:84-85`** — 末尾加 `df -h "$BACKUP_DIR"` 监控输出, cleanup 完输出剩余空间到 plist stdout,
+  给 Layer 2 zshrc 50GB 告警补盲点. **e0fdea9 合并**
+
+### Test
+- `pytest backend/tests/test_backup_duckdb.py` → 3/3 passed
+- `pytest backend/tests/test_wo_cleanup_orphans.py` → 20/20 passed (含 test_byte_cap)
+- `pytest backend/tests/` → **529 passed / 15 skipped / 0 failed** (baseline 526 + 3 新 case = 529 一致, 0 回归.
+  15 skipped 是 uvicorn 持锁跨进程冲突, 跟 Sprint 24 baseline 一致)
+- `python -m backend.contracts._lint` → All contracts pass ground-truth-lint
+- `bash -n scripts/etl/cleanup_backups.sh` → exit 0
+
+### Verified
+- 不需要 ETL 跑批验证 (本次只改备份脚本 + 文档 + test, 不改 ETL 跑批路径)
+- 备份恢复首次落地 (3 个 restore 演练 test), 7 天真滚动 + lark 远程告警 + 文档对齐
+- 磁盘治理维持 byte cap 100GB 单层防护 (跟最初清理 103GB /tmp/fuqing_liangcha.duckdb 路径兼容)
 
 
 ### Added
