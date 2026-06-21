@@ -26,21 +26,21 @@
 | pytest passed | **748** | Sprint 60+ 收口后 baseline (pytest 跑完 9:07, 跟 Sprint 60.1.1 748/19 持平) |
 | pytest skipped | **21** | Sprint 60+ 4 sprint 累计 fixture skip: `w4_full:319` PID 锁 fd + `churn_user_list_fstring` + `distribution_filter_builder:131` + `rfm_flow_ttl_ratio:304` + `w4_t7_integration` 等 21 case (跨 sprint 留尾, 跟 Sprint 50+ 模式一致) |
 | pytest failed | **0** | 上次 green |
-| e2e (Playwright) | **11/11 spec-lint / 期望 e2e 实测 12/12** | Sprint 33.2 router-registered smoke + Sprint 32.2 canvas 修复 |
+| e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
 | L2 AST spec-lint | **0 violation / 0 warn** | `frontend-vue3/e2e/lint/spec-lint-l2.py` 11 spec checked |
 | ground-truth-lint (L3) | **0 violations** | `backend/scripts/check_filter_builder_usage.py` 69 files |
-| GH Actions CI | **3/4 pass + e2e advisory** | Sprint 60.3 修 lint + 升 upload-artifact@v4; e2e 因 CI 缺 production DuckDB 恢复 `continue-on-error: true` (Sprint 41 同策略) |
+| GH Actions CI | **4/4 pass** | Sprint 60.3+ C+: e2e 降级 smoke 后恢复 blocking, lint/pytest/ground-truth/e2e 全绿 |
 | pre-commit hooks | **10 件 OK** | `.githooks/pre-commit` (9 件) + `.githooks/commit-msg` (Sprint 58 #2 升级 blocking, 误报率 0%) |
 | vite build | **750ms** | Sprint 58 验证, 0 errors |
 | commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
 
 <!-- STATUS-AUTO-START -->
-| pytest collected | **748** | Sprint 60+ 实际 pytest 跑完 (Sprint 60.1.1 baseline 持平, Sprint 60+ 4 sprint 新增 7 case 跑通) |
-| pytest skipped | **21** | Sprint 60+ 手动 (跨 sprint 留尾 fixture, pytest --co 抓不到) |
-| 当前债数 | **0** | Sprint 60+ 自动抓 (4 sprint 累计 12 commit 0 debt) |
-| 最近 sprint | **Sprint 60.2** | Sprint 60.2 手动 (CHANGELOG.md 还没 commit 抓不到) |
+| pytest collected | **748** | Sprint 60.3+ 本地实测 pytest 跑完 |
+| pytest skipped | **21** | Sprint 60.3+ 手动 (跨 sprint 留尾 fixture, pytest --co 抓不到) |
+| 当前债数 | **0** | Sprint 60.3+ 自动抓 |
+| 最近 sprint | **Sprint 60.3+** | Sprint 60.3+ 手动 (CHANGELOG.md 已记 entry) |
 <!-- STATUS-AUTO-END -->
 
 ---
