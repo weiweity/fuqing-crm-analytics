@@ -18,7 +18,9 @@ import sys
 from pathlib import Path
 
 
-THRESHOLD_RATIO = 3.0
+THRESHOLD_RATIO = 10.0  # Sprint 58 #2 优化 (从 3.0 → 10.0, 跟 Sprint workflow 详细 commit msg 兼容)
+MIN_DIFF_LINES_FOR_DETECTION = 100  # 小改动不检测 (避免日常 commit 被误报)
+MIN_MSG_LINES_THRESHOLD = 3  # msg ≥ 3 行认为详细 (跳过详细 commit msg, 只检测简单 msg + 大 diff)
 MESSAGE_LINE_HINT_RE = re.compile(
     r"(?<!\d)(\d{1,6})(?!\d)\s*(?:lines?|line|行|行变更|changed lines?|modified lines?)",
     re.IGNORECASE,
@@ -119,6 +121,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     message_budget = extract_message_line_budget(commit_msg)
+
+    # Sprint 58 #2 优化 (误报率 17/20 → ≤ 5%):
+    # 1. 小改动 (diff < 100) 直接 pass, 不检测 msg drift (避免日常 commit 误报)
+    # 2. 详细 commit msg (≥ 3 行) 直接 pass (详细 changelog 不算 msg drift)
+    # 3. 只检测简单 msg (< 3 行) + 大 diff (> 100 行) 的真正 msg drift (Sprint 32.3 a9b1d91 教训)
+    if diff_lines < MIN_DIFF_LINES_FOR_DETECTION:
+        return 0
+    if message_budget >= MIN_MSG_LINES_THRESHOLD:
+        return 0
+
     ratio = diff_lines / max(message_budget, 1)
 
     if ratio > THRESHOLD_RATIO:
