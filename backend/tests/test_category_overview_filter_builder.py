@@ -124,3 +124,67 @@ class TestCategoryOverviewFilterBuilder:
         assert "U先派样" not in sql
         assert sql.count("?") == len(params)
         assert "is_refund = FALSE" in sql
+
+
+class TestSprint60CategoryParamsMismatchRegression:
+    """Sprint 60 治本: _compute_category_period / _compute_value_tier_base params 顺序错位.
+
+    根因: Sprint 54 Lane A L3 改造时, 两个函数的 params 列表把 start_date/end_date
+    错位插在 EXCLUDED_PRODUCT_CATEGORIES 之前, 而 SQL `?` 占位符顺序是
+    DATE(?) + time range(?) + EXCLUDED(?) + where_params(?) — 多 2 个 params
+    触发 DuckDB InvalidInputException "excess parameters: 22, 23" → API 500.
+
+    防御: 真连接 + 真 SQL 调 _compute_category_period / _compute_value_tier_base,
+    跑通无异常 = fix 生效; 故意改回旧顺序 (Stage 3 review 验证 test 真 FAIL).
+    """
+
+    def test_compute_category_period_params_order_fixed(self, monkeypatch_connection):
+        """_compute_category_period 用 monkeypatch_connection fixture (Sprint 53 隔离 DuckDB).
+
+        修复后 params 顺序正确, SQL 21 个 `?` 跟 params 21 个一一对应, 不抛 InvalidInputException.
+        """
+        from backend.services.category_service.overview import _compute_category_period
+        from datetime import date
+        from datetime import timedelta
+
+        start_dt = date(2026, 6, 1)
+        end_dt = date(2026, 6, 20)
+        cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        # 修复后应该不抛 InvalidInputException; 跟 fixture DuckDB 真实跑 SQL
+        result = _compute_category_period(
+            conn=monkeypatch_connection,
+            start_date="2026-06-01",
+            end_date="2026-06-20",
+            cutoff=cutoff,
+            level="class",
+            metric_type="GSV",
+        )
+        # 至少返回 __ttl__ 键 (空 DuckDB 也应该返回空 dict, 不抛异常)
+        assert isinstance(result, dict)
+
+    def test_compute_value_tier_base_params_order_fixed(self, monkeypatch_connection):
+        """_compute_value_tier_base 同样 params 顺序错位 bug, 修复后跑通.
+
+        验证 _compute_value_tier_base 跟 _compute_category_period 同根因同治本.
+        """
+        from backend.services.category_service.overview import _compute_value_tier_base
+        from datetime import date
+        from datetime import timedelta
+
+        start_dt = date(2026, 6, 1)
+        end_dt = date(2026, 6, 20)
+        cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        # 修复后应该不抛 InvalidInputException
+        result, wool = _compute_value_tier_base(
+            conn=monkeypatch_connection,
+            start_date="2026-06-01",
+            end_date="2026-06-20",
+            cutoff=cutoff,
+            level="class",
+            channel=None,
+            exclude_channels=None,
+        )
+        # 真实跑 SQL, 返回 list
+        assert isinstance(result, list)
