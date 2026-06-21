@@ -10,11 +10,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  // Sprint 41.10 fix: CI runner headless Linux 渲染慢 + 没 DuckDB fetch 慢, 默认 10s/30s timeout 不够 (Sprint 41.7/41.8/41.9 CI 11/11 spec TimeoutError).
-  // Sprint 41.10: CI 改 60s (beforeEach login + test body 总和 30-50s), 本地保留 10s (Chrome 真实渲染快).
-  // Sprint 41.9 spec hardcode timeout 改 30000 (Sprint 41.8 config 不覆盖 spec hardcode).
-  timeout: process.env.CI ? 60000 : 10000,
-  expect: { timeout: process.env.CI ? 30000 : 5000 },
+  // Sprint 58 #1 OOM 治本: 全局 60s + expect 10s, 降低 CI 重试/渲染峰值下的假超时。
+  timeout: 60000,
+  expect: { timeout: 10000 },
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:5173',

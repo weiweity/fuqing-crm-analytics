@@ -1,10 +1,17 @@
-name: CI e2e
+name: e2e
 
-# Sprint 58 #4: CI e2e 实战 fix 持久化
-# SSOT: docs/operating/ci-e2e-history.md
-# auto-recovery: scripts/ci/auto_recover_ci.sh
 on:
   pull_request:
+    paths:
+      - 'backend/**'
+      - 'scripts/**'
+      - 'frontend-vue3/src/**'
+      - 'frontend-vue3/e2e/**'
+      - 'frontend-vue3/playwright.config.ts'
+      - 'requirements.txt'
+      - 'requirements-lock.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/**'
   push:
     branches: [main]
     paths:
@@ -16,16 +23,16 @@ on:
       - 'requirements.txt'
       - 'requirements-lock.txt'
       - 'pyproject.toml'
-      - '.githooks/**'
       - '.github/workflows/**'
-      - 'docs/operating/ci-e2e-history.md'
-      - 'docs/operating/ci-defense-playbook.md'
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    # Sprint 41.12 / Sprint 55 延续: 先保留信号，再观察 auto-recovery 是否足够
-    continue-on-error: true
+    env:
+      DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
+      HEALTH_API_KEY: ci-fake-health-api-key
+      FQ_CRM_PASSWORDS: admin:123456
+      ETL_MIN_DISK_GB: '0'
     steps:
       - uses: actions/checkout@v4
 
@@ -39,24 +46,35 @@ jobs:
         with:
           python-version: '3.14'
 
-      - name: Install Python deps (certifi for NODE_EXTRA_CA_CERTS)
-        run: pip install certifi
+      - name: Install Python deps
+        run: |
+          pip install duckdb certifi
+          pip install -r requirements-lock.txt
 
       - name: Install Node deps
         run: |
-          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
           cd frontend-vue3
           npm ci --legacy-peer-deps
 
       - name: Install Playwright browsers
         run: |
-          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
           cd frontend-vue3
           npx playwright install --with-deps chromium
 
-      - name: Build preview server and start backend
+      - name: Setup DuckDB ATTACH (Sprint 58 #1)
         run: |
-          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
+          python3 - <<'PY'
+          import duckdb
+
+          conn = duckdb.connect('/tmp/e2e_duckdb.duckdb')
+          conn.execute("ATTACH 'data/processed/fuqing_crm.duckdb' AS prod (READ_ONLY)")
+          conn.execute("PRAGMA search_path='main,prod'")
+          conn.execute('SELECT 1').fetchone()
+          conn.close()
+          PY
+
+      - name: Build (Vite) + Start preview server + Start uvicorn backend
+        run: |
           cd frontend-vue3
           npm run build
           npx vite preview --port 5173 --host 0.0.0.0 &
@@ -70,11 +88,7 @@ jobs:
           done
           cd ..
           set -e
-          pip install -r requirements-lock.txt
-          HEALTH_API_KEY="ci-fake-health-api-key-$(date +%s)-$$" \
-            FQ_CRM_PASSWORDS="admin:123456" \
-            ETL_MIN_DISK_GB=0 \
-            python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
+          python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
           UVICORN_PID=$!
           UVICORN_READY=false
           for i in {1..60}; do
@@ -91,7 +105,7 @@ jobs:
           fi
           set +e
 
-      - name: Run e2e with auto-recovery (Sprint 58 #4)
+      - name: Run e2e with auto-recovery (Sprint 58 #4 wrapper)
         run: |
           export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
           chmod +x scripts/ci/auto_recover_ci.sh
@@ -104,7 +118,14 @@ jobs:
           name: ci-auto-recovery-log
           path: /tmp/auto_recover_ci.log
 
-# ## Stage 2 完成 — Sprint 58 #4
-# - 完成时间: 2026-06-21
-# - 关键点: e2e 步骤用 auto-recovery wrapper, 不改 11 spec 跑批方式
-# - Stage 3: 请核对 SSOT 链、artifact 上传和 env 注入
+# ## Stage 2 完成 — Sprint 58 #1
+# - 完成时间: 2026-06-21T13:48:45+08:00
+# - Codex 实施: `feat/sprint58-01-oom-fix` 分支
+# - 改动:
+#   - .github/workflows/e2e.yml: +DuckDB ATTACH read_only 步骤, 单路径不切片
+#   - frontend-vue3/playwright.config.ts: workers 1, timeout 60000
+# - 本地 e2e: 待 Claude Stage 3 review 验证
+# - pytest: 待 Claude Stage 3 review 验证
+# - 依赖: #4 (CI e2e 持久化) 已 merge 到 main
+# - Codex 反馈采纳: 删切片脚本, 单路径 ATTACH 更稳
+# - Stage 3 等待: Claude review
