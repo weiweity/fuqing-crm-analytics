@@ -58,7 +58,70 @@ backend/services/
 | `report_service.py` | (单文件) | 报告 |
 | `visitor_service.py` | (单文件) | 访客分析 |
 
+## §5 asset_* 服务概念边界 (Sprint 55.5 rename + Sprint 57 沉淀)
+
+### 5.1 命名差异（避免误用）
+
+| 服务 | 路径 | 形态 | 用途 | exports |
+|------|------|------|------|---------|
+| **`asset_service`** | `backend/services/asset_service.py` | 单文件 facade | DMP 资产摘要 / 趋势，全店概览口径 | `get_asset_summary`, `get_asset_trend` |
+| **`asset_focus_service`** | `backend/services/asset_focus_service/` | 子包，`__init__.py` re-export | DMP 资产聚焦，7 核心单品 + 8 其他单品 | `get_store_assets`, `get_product_assets`, `get_other_product_assets` |
+
+### 5.2 何时用哪个
+
+- **`asset_service`**：用于概览页、经营看板、全店资产走势分析，关注的是聚合后的资产口径。
+- **`asset_focus_service`**：用于 DMP 营销页、单品投放页、资产聚焦明细，关注的是具体单品集合。
+- 两者名字都带 `asset`，但业务语义不同，不能把“全店摘要”误当成“单品聚焦”。
+- 若需求描述里出现“总览 / 趋势 / 全店”，优先考虑 `asset_service`。
+- 若需求描述里出现“核心单品 / 其他单品 / 聚焦 / 投放”，优先考虑 `asset_focus_service`。
+
+### 5.3 调用场景示例
+
+```python
+# 场景 1: 全店资产汇总（概览页）
+from backend.services.asset_service import get_asset_summary
+
+summary = get_asset_summary(start_date="2026-06-01", end_date="2026-06-30")
+# 返回: dict，通常包含 gmv / order_count / user_count / 走势数据
+
+# 场景 2: 7 大核心单品资产聚焦（DMP 营销页）
+from backend.services.asset_focus_service import get_store_assets
+
+focused = get_store_assets(store_id="store_001", period="2026-06")
+# 返回: list[dict]，包含 7 核心单品资产详情
+
+# 场景 3: 8 个其他单品资产聚焦（DMP 营销页）
+from backend.services.asset_focus_service import get_other_product_assets
+
+other = get_other_product_assets(store_id="store_001", period="2026-06")
+# 返回: list[dict]，包含 8 其他单品资产详情
+```
+
+### 5.4 rename 历史（Sprint 55.5 实战）
+
+- 原名：`sample_asset_service/`，当时命名会让人误以为是 demo 或 sample 代码。
+- 改名 sprint：Sprint 55.5（P0 命名重构）。
+- commit：`bd95cd8`，对应 `refactor: rename sample_asset_service → asset_focus_service`。
+- 影响：8 个文件通过 `sed` 改 import，外加 `routers/market_focus.py`、`test_dmp_asset_cache.py` 的 7 处引用，以及 `backend/README.md`。
+- 验证：全仓 `grep sample_asset_service` 结果为 0 残留。
+- 来源：`~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint55_5_close.md`。
+
+### 5.5 命名混淆防御（跨 sprint 复用）
+
+- 命名相似不代表概念相同，后续 sprint 最容易在“资产”这个词上误用。
+- 典型误用是把 `asset_service.get_asset_summary` 当成单品资产聚焦接口，结果数据范围直接错位。
+- 防御方式是三层一起保留：命名差异表、调用场景示例、rename 历史。
+- 这不是一次性说明，而是后续新增/改造 service 时的固定检查项。
+- 与 CLAUDE.md 中的 L4.5 永久规则保持一致：新 service 必须先确认口径，再补文档表格行，避免命名漂移。
+
 ## 关联文档
 
 - `docs/architecture/AI_SAFETY_NET.md` — FilterBuilder pattern
 - `CLAUDE.md` §"AI 写代码 typo 防御规范" L4.5
+
+## Stage 2 完成 — services.md
+
+- **完成时间**: 2026-06-21T03:32:09Z
+- **Codex 实施**: `feat/sprint57-03-asset-service-map` 分支
+- **改动**: `docs/development/services.md`，新增 §5 asset_* 服务概念边界与 Stage 2 完成标记
+- **Stage 3 等待**: Claude review
