@@ -28,7 +28,6 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
       HEALTH_API_KEY: ci-fake-health-api-key
