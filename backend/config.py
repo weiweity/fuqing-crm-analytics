@@ -132,6 +132,14 @@ DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(_DEFAULT_DUCKDB)))
 # DuckDB 默认使用 80% 系统 RAM，在 16GB 机器上约 12.7GB，容易导致 OOM
 DUCKDB_MEMORY_LIMIT = os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB")
 
+# 数据库模式 (Sprint 61 P2 治本): 控制 lifespan 启动校验严格度
+# - "production" (默认): 缺 orders 表 / 0 行 / max(pay_time) < today-30d → raise RuntimeError 拒绝启动
+# - "schema_test" (CI e2e / schema_test): 跳过数据量检查, 只 WARN log
+# - 其他值: 默认 production 行为 (fail-fast)
+DB_MODE = os.environ.get("FQ_DB_MODE", "production").strip().lower()
+# 数据新鲜度阈值（天）: orders.max(pay_time) 距今超过此天数 → 拒绝启动
+DB_FRESHNESS_DAYS = int(os.environ.get("FQ_DB_FRESHNESS_DAYS", "30"))
+
 # W7: DuckDB 内存 override（W4 全历史预计算需要 16GB，平时 8GB）
 # 用法：export DUCKDB_MEMORY_LIMIT_OVERRIDE=16GB  临时调高；不设 = 跟默认
 # 调用方优先用 get_duckdb_memory_limit() helper；DUCKDB_MEMORY_LIMIT 常量保留
