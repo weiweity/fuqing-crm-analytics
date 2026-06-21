@@ -4,6 +4,21 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## Sprint 60 — 500 错误治本 (_compute_category_period / _compute_value_tier_base params 顺序错位) (2026-06-21, v0.4.14.144, main HEAD `285aac1`)
+
+> 用户报 4 个 500 错误 (品类看板新客 GSV + 羊毛党分析 + 市场对焦核心单品新老客 tab 多日期): `_duckdb.InvalidInputException: Invalid Input Error: Parameter argument/count mismatch, identifiers of the excess parameters: 22, 23`. 根因: Sprint 54 Lane A L3 FilterBuilder 改造回归, `_compute_category_period` (line 201) 跟 `_compute_value_tier_base` (line 586) 的 `params` 列表把 `start_date/end_date` 错位插在 `EXCLUDED_PRODUCT_CATEGORIES` 之前, 多了 2 个 params → DuckDB InvalidInputException "excess parameters: 22, 23" → API 500. 修复: 改 params 顺序为 `[cutoff/latest_rfm_date] + where_params + EXCLUDED`, 跟 SQL `?` 占位符位置一一对应 (DATE(?) + time range(?) + NOT IN(?×18)). 防御: 加 `TestSprint60CategoryParamsMismatchRegression` 2 case 真连接 + 真 SQL 调 `_compute_category_period` / `_compute_value_tier_base`, 跑通无异常 = fix 生效. 跨 sprint 实战 fix 模式 (跟 Sprint 7 P2 / Sprint 24+ P3 / Sprint 34.1 / Sprint 38 race flake 治本 / Sprint 53 L3 治本 / Sprint 53.5 churn.py 同根因): 单连接 fixture test 兼容, 但生产真实 DuckDB 错位没测到, Sprint 60 增 real-DuckDB 回归测试.
+
+- **修本**: 2 文件 +80 -5 行, 2 行 params 顺序 fix + 64 行 regression test
+  - `backend/services/category_service/overview.py` line 165-166 (cutoff + where_params + EXCLUDED) + line 568-570 (latest_rfm_date + where_params + EXCLUDED)
+  - `backend/tests/test_category_overview_filter_builder.py` 新增 `TestSprint60CategoryParamsMismatchRegression` (2 case: test_compute_category_period_params_order_fixed + test_compute_value_tier_base_params_order_fixed)
+- **端到端验证**: 9/9 curl 200 (用户报告 3 个 500 endpoint + 6 个相邻日期), 凉茶次抛 / 医用洁面 / 经典膜 / 白膜 等品类数据正常返回
+- **pytest**: 763 passed / 1 skipped in 634.74s (Sprint 53 race flake fixture 跨 sprint 留尾, 跟 Sprint 50+ 模式一致)
+- **12 步流程**: ① fix/sprint60-category-params-mismatch → ② 改 overview.py + 加 test → ③ pytest 10/10 filter builder pass + 763/1 全量 pass → ④ review (simple bug fix skip) → ⑤ fix (2 次: 第一次 EXCLUDED+where_params 错位, 改 [cutoff]+where+EXCLUDED) → ⑥ commit (3d477ee) → ⑦ push → ⑧ qa (skip simple fix) → ⑨ merge --no-ff (6b7bf82) → ⑩ push main → ⑪ pull --ff-only (already up to date) → ⑫ VERSION bump + restart uvicorn PID 46751 + curl 9/9 200 + 收口
+- **Sprint 60+ 留尾 (1 项 + 2 跨 sprint)**:
+  - `_build_category_period_filter` / `_build_value_tier_filter` 返回时加 `sql.count('?') == len(params)` 断言 (跟 helper test 已加类似断言, Sprint 60 漏扩到 _compute_* 调用链, Sprint 60+ 评估)
+  - Sprint 60+ #3 50m scale Phase 1 调研 (等数据量 30M 触发, 2d)
+  - 17 pytest skipped (跨 sprint 累积, Sprint 53 race flake fixture 遗留)
+
 ## Sprint 59 — 收割季 (#6 STATUS 自动化 + #5 CHANGELOG 按行数归档 + #8 audit 措辞 SOP) (2026-06-21, v0.4.14.143, main HEAD `1956846`)
 
 > Sprint 58 收口后留尾 4 项 → Sprint 59 闭环 3 项收割季 (高 ROI doc-only + 自动化主题, 跟 Sprint 55.5 doc-only sprint 同等级, 闭环 Sprint 58 留尾): ① #6 STATUS.md 自动化 (4 字段 commit+branch+pytest+e2e + 3 case test, 避免手改漂移); ② #5 CHANGELOG 按行数归档 (≤ 900 行 + `scripts/archive_changelog.py` 脚本化归档, 闭环 Sprint 56 CHANGELOG 手动滚动 P2); ③ #8 audit 措辞 SOP (5 规则 + 5 反例正例 + Codex review #23 战略收缩, 闭环 Sprint 58 #2 commit-msg blocking 经验). 剩余 1 项 (#3 50m scale 调研) 推 Sprint 60+.
