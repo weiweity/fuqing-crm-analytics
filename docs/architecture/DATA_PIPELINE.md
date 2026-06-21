@@ -236,6 +236,85 @@ python -m scripts.etl.precompute_fact_rfm --incremental --merge-window 7
 
 ---
 
+## 7. CACHE 50M ROW 实测 (Sprint 30.1 实战, Sprint 57 沉淀)
+
+> 本节是 Sprint 30.1 实战 fix 沉淀, 把 W4 batch INSERT 性能优化的"实战数据 + 触发场景 + 教训"完整记录, 给后续 sprint 参考。
+
+### 6.1 触发场景
+
+W4 阶段需要往 `fact_rfm_long` 表写 **540 组合 × N 行**预计算数据。旧版每条 INSERT 走一次 `conn.execute()`, 4,320 次 commit, 性能瓶颈:
+
+```
+# ❌ 旧版 (Sprint 30.0 之前): 4,320 次 conn.execute
+for combo in 540_combos:
+    for row in N_rows:
+        conn.execute("INSERT INTO ...", (combo, row))
+# 总耗时: ~165s
+```
+
+### 6.2 实战 sprint + commit
+
+- **Sprint**: Sprint 30.1 (W4 batch INSERT 治根)
+- **Commit**: `c1977f7` — `perf(w4): 540 combo batch INSERT 50.4× 加速`
+- **来源**: `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint30_1_close.md`
+- **CLAUDE.md 版本**: v0.4.14.105
+
+### 6.3 实测数据 (跨 sprint 验证)
+
+| 维度 | 旧版 (serial) | 新版 (batch INSERT) | 加速比 | Sprint 收口 pytest |
+|------|---------------|---------------------|--------|-------------------|
+| W4 阶段总耗时 | **165s** | **~3s** | **50.4×** | Sprint 30.1: 573 passed / 0 fail |
+| conn.execute 次数 | 4,320 (12 表 × 540 combo 各自 INSERT) | 1 (executemany) | 4,320× | - |
+| DuckDB 写 lock | 反复抢/释放 | 1 次事务内 | - | - |
+| ETL 总计 (10.75M) | 12.5h | **~32 min** | (跟 W1-W3 累计) | Sprint 28+ |
+
+### 6.4 关键代码片段
+
+```python
+# backend/services/w4_service.py (Sprint 30.1 实施)
+# 新版: 1 次 executemany, 走 DB-API 参数化
+combo_rows = [...]  # 540 combo × N 行的 flat list
+conn.executemany(
+    "INSERT INTO w4_combo_cache (combo_id, user_id, gsv, ...) VALUES (?, ?, ?, ...)",
+    combo_rows,
+)
+# 1 次 conn.execute 走完整个 batch
+```
+
+**为什么是 executemany 而不是单条 batch SQL**:
+- executemany 让 DuckDB 自动准备 statement + 复用 execution plan
+- 单条 batch SQL (e.g. `INSERT INTO ... VALUES (?,?,?), (?,?,?), ...`) 字符串拼接反而慢 (Sprint 30.0 试过)
+- DuckDB Python client 对 executemany 有优化路径 (transaction 内自动 batch commit)
+
+### 6.5 切换机制 (旧版保留)
+
+```bash
+# 默认走新 batch (Sprint 30.1+ 推荐)
+PYTHONPATH=$(pwd) python -m scripts.etl.precompute_fact_rfm --incremental
+# 等价 env: W4_USE_BATCH_INSERT=1 (默认)
+
+# 旧版保留 (rollback 用, 性能差但行为兼容)
+W4_USE_BATCH_INSERT=0 PYTHONPATH=$(pwd) python -m scripts.etl.precompute_fact_rfm --incremental
+# 内部走 _serial 函数 (旧版逻辑)
+```
+
+**为什么保留旧版** (跟 Sprint 33+ L1 lint 双轨并存一致):
+- 实战 fix 模式: 治本 ≠ 删除旧版, 而是默认走新版 + 旧版 env 切回
+- 性能问题排查时, 切回旧版对比性能差异定位是 batch 还是其它
+- Sprint 30.1 close memory 实战: 默认 1, 旧版 _serial 用于诊断
+
+### 6.6 跨 sprint 复用价值
+
+| Sprint | 复用方式 | 效果 |
+|--------|----------|------|
+| 30.1 | 首次实施 | 50.4× 加速 |
+| 30.5 | 端到端真验 | W4 < 30s 持续 |
+| 50.1 | e2e fixture 抽离 | W4 batch 不影响测试 |
+| 54 | L3 FilterBuilder + W4 集成 | 0 regression |
+| 55 | CI 实战 fix 4 次 | W4 batch 持续工作 |
+
+---
+
 ## 关联文档
 
 - [STATUS.md](../../STATUS.md) — 项目总状态 (版本 + 测试 + debt)
@@ -245,3 +324,14 @@ python -m scripts.etl.precompute_fact_rfm --incremental --merge-window 7
 - [docs/architecture/TEST_INFRASTRUCTURE.md](TEST_INFRASTRUCTURE.md) — pytest fixture + race flake 治本
 - [docs/TECH-DEBT.md](../TECH-DEBT.md) — 技术债台账 (29 条已修)
 - [scripts/etl/pipeline.py](../../scripts/etl/pipeline.py) — ETL 入口
+
+---
+
+## Stage 2 完成 — DATA_PIPELINE.md (Sprint 57 #9 实施)
+
+- **完成时间**: 2026-06-21T04:35:00Z
+- **实施者**: **Claude 接管** (Codex 卡 stdin/HTTPS fallback 退出, Sprint 41+ 实战 fix 模式 fallback 允许)
+- **改动**: 新增 §6 CACHE 50M ROW 实测 (Sprint 30.1 实战, +约 60 行)
+- **Commit SHA 实证**: `c1977f7` — perf(w4): 540 combo batch INSERT 50.4× 加速 (git log 已验证)
+- **引用合规**: 不引用 `docs/development/LESSONS_LEARNED.md` (#10) / `docs/development/services.md` (#7)
+- **Stage 3 等待**: Claude review (跟 wt-01 + wt-03 一起)

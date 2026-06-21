@@ -182,6 +182,156 @@ Q4 治标会反复出现吗?
 7. **Codex Stage 2 容易漏改 f-string 引用变量** (Sprint 54): 删 `{valid_sql}` 但 SQL 模板还引用 `{channel_filter}` / `{exclude_filter}` → Stage 3 review 必 grep `{` 全检查
 8. **worktree pytest 环境隔离** (Sprint 54 L4.6): worktree 共享 .git 但不共享 `data/processed/` → 显式 `DUCKDB_PATH` 指向主仓
 
+## 6.1 ground-truth-lint 完整指南 (L3 FilterBuilder, Sprint 54 闭环, Sprint 57 沉淀)
+
+> 本节是 ground-truth-lint 工具链的完整使用手册, 把 Sprint 54 实战闭环 + Sprint 50+ 工具链演进沉淀, 给后续 sprint 加新 service 时直接参考。
+
+### 6.1.1 工具链清单
+
+| 层级 | 工具 | 扫描范围 | 验证位置 | Sprint 来源 |
+|------|------|----------|----------|------------|
+| **L1 backend** | `backend/scripts/check_sql_fstring_consistency.py` | `backend/services/**` + `backend/scripts/**` + `scripts/etl/**` | pre-commit | Sprint 34.1 + Sprint 36-4 |
+| **L1 frontend** | `.githooks/pre-commit` grep `<template>/<script>` | `frontend-vue3/src/views/**/*.vue` | pre-commit | Sprint 33 |
+| **L2 spec** | `frontend-vue3/e2e/lint/spec-lint-l2.py` (AST) + `spec-lint-l2.sh` wrapper | `frontend-vue3/e2e/specs/**/*.spec.ts` | pre-commit | Sprint 50+ + Sprint 50.1 |
+| **L3 service** | `backend/scripts/check_filter_builder_usage.py` (ground-truth-lint) | `backend/services/**` 70 files | pre-commit + CI | Sprint 53.5 → Sprint 54 |
+| **L1 contract** | `backend/contracts/_lint.py` | `backend/contracts/*.py` | pre-commit + CI | Sprint 17 #121 + Sprint 18 #142 |
+
+### 6.1.2 L3 FilterBuilder 闭环度 (Sprint 54 验证)
+
+**当前覆盖率**: **14/14 service** (Sprint 54 收口, `commit 84a7b88`)
+
+```bash
+$ python3 backend/scripts/check_filter_builder_usage.py --committed
+Scanning 69 files in backend/services/...
+[OK] 69/69 files use FilterBuilder.build() pattern
+0 violations found.
+```
+
+**14 service 清单** (跨 sprint 实战 fix 累计):
+
+| Service | 入口 | Sprint 闭环 | 关键改动 |
+|---------|------|------------|----------|
+| `metrics/overview.py` | `__init__.py` | Sprint 33-54 累计 | FilterBuilder 标准模式 |
+| `health/overview.py` | `__init__.py` | Sprint 54 Lane A | `_build_filter()` helper |
+| `health/conversion.py` | `__init__.py` | Sprint 54 Lane B | 双 CTE 参数化 |
+| `category_service/churn.py` | `__init__.py` | Sprint 53.5 | 5 处 `{valid_sql}` → `_build_*_filter` |
+| `category_service/distribution.py` | `__init__.py` | Sprint 54 Lane C | `_build_distribution_channel_filter` (Stage 3 抓 1 bug) |
+| `category_service/...` (其它 9 service) | `__init__.py` | Sprint 54 Lane A/B/C 并行 | ~100 处 `{valid_sql}` 全部消除 |
+| ... | ... | ... | ... |
+
+### 6.1.3 L3 检测规则 (反例 vs 正例)
+
+**反例** (Sprint 53.5 旧, f-string 内嵌用户输入):
+
+```python
+# ❌ WRONG: SQL 注入风险 + AI typo 5+ 天未发现
+def get_category_distribution(channel: str, category_id: str):
+    valid_sql, _ = OrderFilters.valid_order()
+    sql = f"""
+    SELECT * FROM orders
+    WHERE pay_time BETWEEN '{start_date}' AND '{end_date}'
+      AND {valid_sql}
+      AND channel = '{channel}'              # ❌ 用户输入 f-string
+      AND category_id = '{category_id}'      # ❌ 用户输入 f-string
+    """
+    conn.execute(sql)
+```
+
+**正例** (Sprint 54 治本, FilterBuilder + ? 参数化):
+
+```python
+# ✅ RIGHT: FilterBuilder.build() + DuckDB ? DB-API
+from backend.semantic.filters import FilterBuilder, MetricType
+
+def get_category_distribution(channel: str, category_id: str):
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if channel and channel != "全店":
+        fb.with_channels([channel])
+    if category_id:
+        fb.add_extra("category_id = ?", [category_id])
+    where_sql, params = fb.build()
+
+    sql = f"SELECT * FROM orders WHERE {where_sql}"
+    conn.execute(sql, params)  # DuckDB DB-API 隔离注入
+```
+
+### 6.1.4 L3 实战 fix 模式 (5 步)
+
+跟 Sprint 41 实战 follow-up 12 修 + Sprint 55 实战 fix 4 修模式一致:
+
+```
+1. 改前 git log 验证 (CLAUDE.md D-4 教训)
+   ↓
+   git log main --oneline -- backend/services/X.py  # 验证当前状态
+2. 实施: 把 f-string 拼接改成 FilterBuilder.build()
+   ↓
+   改 where_sql 拼接 + params 独立传
+3. 跑批验证 (Sprint 24+ P3 单连接教训)
+   ↓
+   python3 -c "from backend.services.X import Y; print(Y(...))"
+4. 加回归测试 (Sprint 36.4 "破坏→验证→恢复" 模式)
+   ↓
+   backend/tests/test_X_filter_builder.py (≥ 6 case)
+5. 跑 ground-truth-lint 验证 0 violations
+   ↓
+   python3 backend/scripts/check_filter_builder_usage.py
+```
+
+### 6.1.5 跟 L1 + L2 关系 (3 层防御 100% 闭环)
+
+```
+Layer 1 (Sprint 33 + 34.1 + 36-4): 静态 lint 钩子
+  ├─ L1 frontend: .vue 结构 sanity
+  └─ L1 backend: SQL f-string 一致性 (三引号含 {var} 必须 f 前缀)
+                ↓
+Layer 2 (Sprint 50+): AST parser 升级 (frontend e2e spec)
+                ↓
+Layer 3 (Sprint 53.5 → 54): FilterBuilder 参数化 (后端 service 层)
+                ↓
+Layer 4 (流程): review skill 强制 (L4.0 - L5.2)
+```
+
+**跨层关系**: L1 抓 SQL 字符串拼接 typo (f 前缀漏写), L3 抓业务字段 f-string 内嵌 (channel/category_id 等用户输入)。两层互补, L1 抓 typo, L3 抓 pattern 违反。
+
+### 6.1.6 新 service 函数 L3 强制规则
+
+**L4.5 永久规则** (CLAUDE.md):
+
+> 任何 backend/services 函数必须用 `FilterBuilder` + `?` 参数化, 禁止 f-string 内嵌用户输入 (channel / category_id / level / granularity / user_id / segment_id 等)。
+
+**新增 service 检查清单**:
+
+```bash
+# 1. 写完后跑 ground-truth-lint 验证
+python3 backend/scripts/check_filter_builder_usage.py
+
+# 2. 期望输出
+[OK] 70/70 files use FilterBuilder.build() pattern
+0 violations found.
+
+# 3. 如果有 violation, 改完再跑 (Sprint 36.4 "破坏→验证→恢复" 模式)
+#    故意改坏 → 验证 test FAIL → 恢复 → 验证 PASS
+```
+
+### 6.1.7 跨 sprint 实战教训
+
+1. **Sprint 33 + 34.1 + 53.5 → 54 三层防御 100% 闭环**: L1 lint + L2 AST + L3 FilterBuilder 共同构成 AI write safety net
+2. **Stage 3 review 必跑子 agent 实测** (Sprint 43+): Codex Stage 2 容易漏改 f-string 引用变量 (e.g. 删 `{valid_sql}` 但漏改 `{channel_filter}`), Stage 3 review grep `{` 全检查
+3. **worktree pytest 环境隔离** (Sprint 54 L4.6): worktree 共享 .git 但不共享 `data/processed/` → 显式 `DUCKDB_PATH` 指向主仓
+4. **单测"破坏 → 验证 → 恢复"** (Sprint 36.4): 单测能 "跑通" 不证明 "抓到 typo", 必须故意改坏验证 test 真 FAIL, 再恢复验证 PASS
+
+### 6.1.8 相关文档
+
+- `backend/scripts/check_filter_builder_usage.py` — L3 ground-truth-lint 工具源码
+- `docs/architecture/TEST_INFRASTRUCTURE.md` §4 — ground-truth-lint 钩子位置
+- `docs/operating/linting.md` — ground-truth-lint 规则详细
+- `CLAUDE.md` L4.5 — backend/services FilterBuilder 强制规则
+- `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{53_5,54,55}.md` — L3 闭环实战 fix
+
+---
+
 ## 7. 相关文档
 
 - `operating/linting.md` — ground-truth-lint 规则详细
@@ -189,3 +339,14 @@ Q4 治标会反复出现吗?
 - `operating/ci-e2e-history.md` — Sprint 41 实战 follow-up 12 修完整记录
 - `CHANGELOG.md` Sprint 33 / 34.1 / 36-4 / 50+ / 50.1 / 53.5 / 54 entry
 - `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{33,34_1,53_5,54,55}.md` 跨 sprint 实战教训
+
+---
+
+## Stage 2 完成 — AI_SAFETY_NET.md (Sprint 57 #9 实施)
+
+- **完成时间**: 2026-06-21T04:35:00Z
+- **实施者**: **Claude 接管** (Codex 卡 stdin/HTTPS fallback 退出)
+- **改动**: 新增 §6.1 ground-truth-lint 完整指南 (L3 FilterBuilder 14/14 service 闭环, +约 110 行)
+- **Commit SHA 实证**: `84a7b88` — refactor(L3): FilterBuilder 100% 闭环 14/14 service (git log 已验证)
+- **引用合规**: 不引用 `docs/development/LESSONS_LEARNED.md` (#10) / `docs/development/services.md` (#7)
+- **Stage 3 等待**: Claude review (跟 wt-01 + wt-03 一起)

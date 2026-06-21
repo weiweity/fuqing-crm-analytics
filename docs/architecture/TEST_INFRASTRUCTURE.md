@@ -497,6 +497,111 @@ pytest backend/tests/test_my_service.py -v
 
 ---
 
+## 8. fixture → test 映射表 (Sprint 57 沉淀, Sprint 50+ 实战)
+
+> 本节是 Sprint 50+ 跨 sprint 实战沉淀, 把每个 fixture 对应的 test 文件 + Sprint 来源 + 实战验证命令整理成表, 给后续 sprint 加新 test 时直接参考。
+
+### 8.1 3 个核心 fixture + 关联 test 映射
+
+| Fixture | Scope | 用途 | 关联 test 文件 | Sprint 来源 |
+|---------|-------|------|----------------|------------|
+| `isolated_duckdb` | session | per-worker tmp DuckDB + ATTACH production READ_ONLY + `PRAGMA search_path='main,prod'` | `backend/tests/test_dmp_asset_cache.py` (4622 字节真连验证) | Sprint 53 治本 (Sprint 38 治标 → Sprint 53 治本) |
+| `monkeypatch_connection` | function | 函数级 connection 隔离, 跑完自动 unpatch (遍历 sys.modules 找延迟 import service) | `backend/tests/test_*.py` 大量使用 | Sprint 53 Stage 3 review 抓 .env 覆盖坑 |
+| `_PROD_DUCKDB_AVAILABLE` | module-level 常量 | 跨 3 个真连 test 共享的 skipif 判定常量 | `conftest.py:_detect_prod_duckdb_available()` | Sprint 39 CI 7+ sprint 一直红闭环 |
+
+### 8.2 fixture 实现位置
+
+```python
+# backend/tests/conftest.py 关键位置
+:73-106    # _detect_prod_duckdb_available() 函数定义
+:109-140   # isolated_duckdb session-scope fixture
+:143-194   # monkeypatch_connection function-scope fixture (含 sys.modules 遍历)
+```
+
+### 8.3 真连 test skipif 模板 (L4.4 强制)
+
+```python
+# backend/tests/test_*.py 任何真连 test 必须有
+import pytest
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE
+
+pytestmark = pytest.mark.skipif(
+    not _PROD_DUCKDB_AVAILABLE,
+    reason="production DuckDB 不可用 (CI runner / fresh checkout)"
+)
+
+
+def test_my_real_query(monkeypatch_connection):
+    """真连 test — 必须用 monkeypatch_connection fixture (L4.3)."""
+    from backend.services.my_service import get_my_data
+    result = get_my_data(channel="直播", start_date="2026-01-01")
+    assert len(result) > 0
+```
+
+### 8.4 Sprint 53 race flake 治本 → fixture 闭环
+
+| Sprint | 模式 | 状态 |
+|--------|------|------|
+| 38 | race flake 治标 (3 真连 test 加 `_IN_XDIST_PARALLEL` skipif) | 5 sprint 复发 |
+| 53 | race flake 治本 (per-worker tmp + ATTACH + search_path) | **0 复发** |
+| 53 | Stage 3 review 抓 1 真 bug (`.env` load_dotenv 覆盖 test credentials) | Claude 主 agent 修 |
+
+**fixture 闭环度验证**:
+- Sprint 53 收口: 677 passed / 1 skipped
+- Sprint 54 收口: 749 passed / 1 skipped (加 70+ 新 test, 0 race flake)
+- Sprint 55.5 收口: 758 passed / 1 skipped (doc-only 0 regression)
+- Sprint 56 收口: 758 passed / 1 skipped (跟 Sprint 55.5 一致)
+
+### 8.5 fixture 跟 CI 关系
+
+| 环境 | `_PROD_DUCKDB_AVAILABLE` | 真连 test 行为 | Sprint 来源 |
+|------|---------------------------|----------------|-------------|
+| 本地开发 (有 db) | `True` | 真连跑 (Sprint 53 治本后无 race flake) | Sprint 53 |
+| CI runner (无 db) | `False` | skip (rc=0) | Sprint 39 |
+| fresh checkout (无 db) | `False` | skip (rc=0) | Sprint 39 |
+| worktree (无 db, .gitignore 排除) | `False` (除非 export `DUCKDB_PATH`) | skip (rc=0) | Sprint 54 L4.6 |
+
+**L4.6 强制规则** (worktree 跑 pytest):
+
+```bash
+# worktree 跑 pytest 前必须 export DUCKDB_PATH 指向主仓 production db
+export DUCKDB_PATH=/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
+PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
+# 期望: 758 passed / 1 skipped
+```
+
+### 8.6 新增 fixture 流程 (5 步)
+
+```
+1. 在 conftest.py 加 fixture (function/session/module scope 选一)
+   ↓
+2. 加真连 test (例: backend/tests/test_my_service.py)
+   ↓
+3. 跑批验证单文件
+   pytest backend/tests/test_my_service.py -v
+   ↓
+4. 加 CI skipif (L4.4 模板) - 真连 test 必加
+   ↓
+5. 更新本表 (新 fixture + 关联 test)
+```
+
+### 8.7 fixture 实战教训 (跨 sprint 复用)
+
+1. **DuckDB 1.5+ 拒绝空文件**: `tempfile.NamedTemporaryFile` + `unlink()` 后 DuckDB.connect() 才能正常 (Sprint 53 Stage 2 实战)
+2. **fixture protocol 必须 function scope restore**: `monkeypatch_connection` 遍历 sys.modules 找延迟 import service, 一并恢复 (Sprint 53 Stage 3 抓的 .env 覆盖坑)
+3. **ATTACH READ_ONLY 不会抢 write lock**: ATTACH 跟直接 connect 行为不同, ATTACH 用只读句柄访问生产库 (Sprint 53 治本关键)
+4. **PRAGMA search_path 是关键**: 业务代码 0 改动, schema prefix 由 search_path 解析 (Sprint 53 治本关键)
+5. **worktree pytest 环境隔离** (Sprint 54 L4.6): worktree 共享 .git 但不共享 `data/processed/` → 显式 `DUCKDB_PATH` 指向主仓
+
+### 8.8 相关 memory + 文档
+
+- `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{38,39,53,53_5,54,55_5}.md`
+- `docs/development/testing.md` §1 — Fixture 模式 quick card
+- `CLAUDE.md` L4.3 / L4.4 / L4.6 — 永久规则完整版
+- `backend/tests/conftest.py` — fixture 实现源码
+
+---
+
 ## 关联文档
 
 - [STATUS.md](../../STATUS.md) — 项目总状态 (749 pass / 0 debt)
@@ -509,3 +614,14 @@ pytest backend/tests/test_my_service.py -v
 - [backend/tests/conftest.py](../../backend/tests/conftest.py) — `isolated_duckdb` + `monkeypatch_connection` fixture 实现
 - [backend/scripts/check_filter_builder_usage.py](../../backend/scripts/check_filter_builder_usage.py) — L3 ground-truth-lint
 - [backend/scripts/check_sql_fstring_consistency.py](../../backend/scripts/check_sql_fstring_consistency.py) — L1 SQL f-string lint
+
+---
+
+## Stage 2 完成 — TEST_INFRASTRUCTURE.md (Sprint 57 #9 实施)
+
+- **完成时间**: 2026-06-21T04:35:00Z
+- **实施者**: **Claude 接管** (Codex 卡 stdin/HTTPS fallback 退出)
+- **改动**: 新增 §8 fixture → test 映射表 (Sprint 50+ 跨 sprint 实战, +约 90 行)
+- **Commit SHA 实证**: `81b43cd` — fix: race flake 治本 per-worker tmp DuckDB (git log 已验证)
+- **引用合规**: 不引用 `docs/development/LESSONS_LEARNED.md` (#10) / `docs/development/services.md` (#7)
+- **Stage 3 等待**: Claude review (跟 wt-01 + wt-03 一起)
