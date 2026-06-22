@@ -4,6 +4,7 @@ name: CI
 # Free plan 2,000 min/月 私仓额度用完后 CI 立即 fail, 此过滤可省 ~80% 用量
 # Sprint 41 (2026-06-19): 加 frontend-vue3/e2e/** + playwright.config.ts 触发 e2e job
 # Sprint 83 (2026-06-23): 加 CLAUDE.md + docs/maintenance/** + docs/operating/** + docs/business/** + memory/** 触发 CI (L4.16 永久规则沉淀, Sprint 82 真因发现: 之前 paths 不含 CLAUDE.md → Sprint 77 push L4.15 永久规则 0 CI run 跑, 跨 sprint 4 sprint 滞后异常 stable 模式真因 = workflow paths 限制)
+# Sprint 85 (2026-06-23): Node 20 → Node 24 升级 (L4.17 永久规则沉淀, Sprint 84 CI annotations 实战). ruff-action@v3 → v3.6.1 锁 stable (Sprint 63 P2 教训: v4 pre-release GH Actions git ref 解析失败, L4.9 永久规则 gh api tags 验证) + setup-node@v5 强制 Node 24 (覆盖 ruff-action 内部 Node 20)
 on:
   pull_request:
   push:
@@ -32,7 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/ruff-action@v3
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'  # Sprint 85: L4.17 永久规则, 强制 Node 24 (覆盖 ruff-action 内部 Node 20 deprecation)
+      - uses: astral-sh/ruff-action@v3.6.1  # Sprint 85: 锁 v3.6.1 stable tag (Sprint 63 P2 教训: v4 pre-release GH Actions git ref 解析失败, L4.9 永久规则)
 
   ground-truth-lint:
     runs-on: ubuntu-latest
@@ -85,7 +89,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'  # Sprint 85: L4.17 永久规则, Node 20 → Node 24 (Node 20 deprecation 修复)
           cache: 'npm'
           cache-dependency-path: frontend-vue3/package-lock.json
       - uses: actions/setup-python@v6
