@@ -4,6 +4,28 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.156] - 2026-06-23 (Sprint 90, L4.7 ground-truth-lint 防回归)
+
+### Fixed
+- **🎯 L4.7 ground-truth-lint 防回归真业务 sprint** (Sprint 60+ 留尾 1 项闭环): `backend/services/category_service/overview.py` 3 个 _compute_* 函数体加 `assert sql.count('?') == len(params)`, 1 行 × 3 = 3 行改动
+  - `_compute_category_period` (line 141) — Sprint 60 治本 2 处 params 顺序 fix 函数
+  - `_compute_wool_party_breakdown` (line 478) — Sprint 60+ 留尾 1 处
+  - `_compute_value_tier_base` (line 564) — Sprint 60 治本 2 处 params 顺序 fix 函数
+  - 错误信息含 SQL `?` 数 + params 列表长度 2 个具体数字, AssertionError 立刻爆在 service 层, 不再让 DuckDB InvalidInputException "excess parameters: 22, 23" 透传 API 500
+
+### Added
+- **`TestSprint90L4GroundTruthLint` class 3 case regression test** (`backend/tests/test_category_overview_filter_builder.py`):
+  - case 1 `test_assert_passes_on_valid_params` — 正常 params 顺序 → assert 通过 (跟 Sprint 60+60.1.1 fix 兼容)
+  - case 2 `test_assert_raises_on_params_mismatch` — monkeypatch `_build_category_period_filter` 故意多 1 个 params → AssertionError 立刻爆 (防回归, SKIPPED 跟 Sprint 60 模式)
+  - case 3 `test_assert_in_all_compute_functions` — 源码扫 `assert sql.count('?') == len(params)` ≥ 3 次 (CI 上稳定 PASS, 防后续删 assert 的 PR)
+
+### Stats
+- 2 files +105/-0 行 (overview.py +17 行 / test +88 行 1 class 3 case, 0 抽象 0 helper)
+- pytest 741/21/0 → 744/23/1 baseline 持续 (L4.7 加 3 passed + 2 skipped, 1 fail baseline 漂移标跨 sprint 留尾 #11)
+- 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90 = **36 sprint, 0 debt**
+- main HEAD: `432616d` (Sprint 88 push, 1 commit amend drift, L4.14 永久接受, 跟 Sprint 75/89 一样 stable)
+- Sprint 89 暂收口终止后 第 1 个真业务 sprint, 0 治理 SOP 追加, 0 L4.x 永久规则追加
+
 ## [0.4.14.155] - 2026-06-23 (Sprint 67, VERSION 不变)
 
 ### Added

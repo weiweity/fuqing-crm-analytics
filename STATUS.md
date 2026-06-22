@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 72 amend: amend drift 修 (Sprint 71 1 commit drift) + L4.14 永久接受 amend 物理限制 + L4.13/L4.x verify 必保持, v0.4.14.155 不变, main HEAD `100a5a2` + pytest 741/21/0 baseline 持续, 累计 18 sprint 0 debt)
+**最后更新**: 2026-06-23 (Sprint 90 收口: 🎯 L4.7 ground-truth-lint 防回归真业务 sprint (Sprint 60+ 留尾 1 项闭环), v0.4.14.155 → v0.4.14.156, main HEAD `432616d` 不变 + 1 fail baseline 漂移标跨 sprint 留尾 #11, pytest 741/21/0 → 744/23/1 baseline 持续 + 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90 = 36 sprint 0 debt 持续, L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加, Sprint 89 暂收口终止后 第 1 个真业务 sprint)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.155` |
+| VERSION | `0.4.14.156` (Sprint 90 L4.7 ground-truth-lint 防回归 bump 0.4.14.155 → 0.4.14.156) |
 | git HEAD (main) | `100a5a2` (Sprint 67+68+69+70+71+72 amend, 1 commit 闭环: 留尾 SSOT 治理 L4.12 + 4 follow-up gap + MEMORY dedupe + L4.1+L4.13+L4.14 永久规则 + drift 修 + 永久接受 amend 物理限制) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 67+68 (留尾 SSOT 治理 + 4 follow-up gap, 1 commit 0 debt, L4.12 永久规则 + UserPromptSubmit hook + 3 case regression + 4 项跨 sprint 推后进 SSOT) |

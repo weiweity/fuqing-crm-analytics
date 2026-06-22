@@ -218,6 +218,13 @@ def _compute_category_period(
     ORDER BY is_ttl, total_gsv DESC
     """
 
+    # Sprint 90 L4.7 ground-truth-lint: 防 params 顺序错位回归 (Sprint 60+60.1.1 实战 fix 模式).
+    # SQL `?` 占位符数 vs params 列表长度 必一一对应, 不等 → AssertionError 立刻爆, 不再让 DuckDB
+    # InvalidInputException 透传到 API 500. 错误信息含两者具体数字, 便于定位.
+    assert sql.count('?') == len(params), (
+        f"_compute_category_period params mismatch: SQL has {sql.count('?')} ? placeholders "
+        f"but params list has {len(params)} items. Check params order vs SQL `?` positions."
+    )
     result = conn.execute(sql, params).fetchall()
     data: Dict[str, Dict[str, Any]] = {}
     for row in result:
@@ -551,6 +558,11 @@ def _compute_wool_party_breakdown(
     FROM wool_classified
     GROUP BY category_name
     """
+    # Sprint 90 L4.7 ground-truth-lint: 防 params 顺序错位回归 (Sprint 60+60.1.1 实战 fix 模式).
+    assert sql.count('?') == len(params), (
+        f"_compute_wool_party_breakdown params mismatch: SQL has {sql.count('?')} ? placeholders "
+        f"but params list has {len(params)} items. Check params order vs SQL `?` positions."
+    )
     result = conn.execute(sql, params).fetchall()
     return {
         row[0]: {
@@ -607,6 +619,11 @@ def _compute_value_tier_base(
            SUM(CASE WHEN is_member THEN actual_amount ELSE 0 END) AS member_gsv
     FROM period_orders GROUP BY category_name
     """
+    # Sprint 90 L4.7 ground-truth-lint: 防 params 顺序错位回归 (Sprint 60+60.1.1 实战 fix 模式).
+    assert sql.count('?') == len(params), (
+        f"_compute_value_tier_base params mismatch: SQL has {sql.count('?')} ? placeholders "
+        f"but params list has {len(params)} items. Check params order vs SQL `?` positions."
+    )
     result = conn.execute(sql, params).fetchall()
 
     # 计算羊毛党细分
