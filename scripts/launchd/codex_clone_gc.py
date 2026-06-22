@@ -76,21 +76,31 @@ def _collect_clones() -> list[Path]:
     """扫描所有 target name 的 clone 目录 (按 mtime 倒序, 最新优先).
 
     用 base_dir.glob("*/X") 支持 test monkeypatch base_dir.
+
+    Sprint 66 P1 排查: CI runner 上 gc_once() deleted=0 但本地 PASS.
+    加 print debug 输出 (只在 FAIL 时能看到).
     """
     clones: list[Path] = []
     if not X_DIR_GLOB_BASE.is_dir():
+        print(f"[codex_clone_gc DEBUG] X_DIR_GLOB_BASE={X_DIR_GLOB_BASE} not is_dir, return []")
         return clones
+    print(f"[codex_clone_gc DEBUG] X_DIR_GLOB_BASE={X_DIR_GLOB_BASE} glob {X_DIR_GLOB_PATTERN}")
     for x_dir in X_DIR_GLOB_BASE.glob(X_DIR_GLOB_PATTERN):
         if not x_dir.is_dir():
+            print(f"[codex_clone_gc DEBUG] {x_dir} not is_dir, skip")
             continue
         for target in TARGET_NAMES:
             target_dir = x_dir / target
             if not target_dir.is_dir():
+                print(f"[codex_clone_gc DEBUG] {target_dir} not is_dir, skip")
                 continue
             for entry in target_dir.iterdir():
                 if entry.name.startswith(f"{target}."):
                     clones.append(entry)
+                else:
+                    print(f"[codex_clone_gc DEBUG] {entry.name} not startswith {target}., skip")
     clones.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    print(f"[codex_clone_gc DEBUG] collected {len(clones)} clones: {[c.name for c in clones]}")
     return clones
 
 

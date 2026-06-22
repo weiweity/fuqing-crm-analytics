@@ -71,6 +71,10 @@ jobs:
       HEALTH_API_KEY: ci-fake-health-api-key
       FQ_CRM_PASSWORDS: admin:123456
       ETL_MIN_DISK_GB: '0'
+      # Sprint 66 P0 治根: 跟 .github/workflows/e2e.yml 同步加 FQ_DB_MODE=schema_test
+      # Sprint 63 P1b 只改了独立 e2e workflow, CI workflow 的 e2e job (在 lint.yml) 漏了
+      # → Sprint 64+65 CI test+e2e 双 FAILURE 5+sprint 复发
+      FQ_DB_MODE: schema_test
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
