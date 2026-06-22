@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.155` |
-| git HEAD (main) | `56fc924` (Sprint 66 收口 merge: P0 lint.yml FQ_DB_MODE + P1 codex_clone_gc 平台检查迁移 main + L4.10 + VERSION bump) |
+| git HEAD (main) | `3a6f49e` (Sprint 66 收口 merge: P0 lint.yml FQ_DB_MODE + P1 codex_clone_gc 平台检查迁移 main + L4.10 + VERSION bump + /document-release audit 修 3 处漂移 + L4.11 Codex checkpoint 永久规则) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 66 (CI 维修, 2 commit 0 debt, P0 lint.yml FQ_DB_MODE 漏修 5+sprint 复发治根 + P1 codex_clone_gc Linux runner 平台检查反模式治根) |
 | 收口日 | 2026-06-22 |
@@ -56,6 +56,7 @@
 | Sprint 62.5 实战 fix 沉淀 | **3 项 pattern** | (a) 100GB byte cap 反过来保护 109GB orphan → giant standalone 治理 (b) Sprint 25 backup retention 设计意图未实施 → 4 zst 169GB 累积 (c) Codex code_sign_clone 无 GC → 40 份 53GB 累积. 全部治根 + 永久测试覆盖 |
 | Sprint 66 闭环 | **2 commit 0 debt (PR direct main 直做)** | P0 治根: `.github/workflows/lint.yml` e2e job env `FQ_DB_MODE: schema_test` (Sprint 63 P1b 漏修跨 5+sprint 复发). P1 治根: `gc_once()` 平台检查移到 `main()` 入口 (Linux CI runner 4 case FAILURE 真因). pytest 741/21/0 Linux runner 实证. CI 4/4 jobs 全绿 |
 | Sprint 66 实战 fix 沉淀 | **2 项 pattern** | (a) Sprint 63 P1b 漏修跨 workflow 同步 e2e env → 5+sprint 复发 → 治根 + 3 个 regression test strict match. (b) 平台检查放核心逻辑 vs 入口反模式 → CI runner 跨平台 100% FAILURE → L4.10 永久规则 + 2 个 main()/gc_once() 配对 regression test |
+| Sprint 66 housekeeping 闭环 | **3 类 stale state 清理 + L4.11 永久规则** | (1) 2 stale remote 删除 (tmp/work-plat) (2) 6 git stash clear (3) 13 Codex turn-diffs checkpoint refs + git gc --prune=now 清 21 dangling objects. Codex UI 不再误显示"未提交分支" |
 | Sprint 61 留尾 | **2 项** | ① P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+) ② Sprint 60+ 留尾 1 项 (FilterBuilder params count 断言, 0.5d) 跨 sprint 累计 |
 | Sprint 61 闭环 | **2 commit 0 debt (PR #27 待 merge)** | ① docs(readme) sync Sprint 54-61 状态行 (15 行) ② fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (5/5 端到端场景验证全过) |
 | Sprint 60+ 留尾 | **3 项 + 3 ruff 留尾** | ① FilterBuilder params count 断言 (0.5d) ② L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` ③ L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md` (跟 Sprint 14.5 P1.1 注释对齐) ④ Sprint 60+ ruff 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix, Sprint 60.3 闭环) |
@@ -95,6 +96,7 @@
 | **Sprint 61 P2 治本** | **uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (production raise / schema_test WARN only / 未知 mode 默认 production), 5/5 端到端场景验证全过 (happy_path + fail_fast_A/B + ci_mode + e2e). 拒绝自动 fallback + 全局 1GB 阈值 (污染测试边界 + 误伤 <1GB 测试库).** | **Sprint 61** | `backend/main.py:validate_startup_db()` + `backend/config.py:FQ_DB_MODE` |
 | **Sprint 66 P0 治根** | **`.github/workflows/lint.yml` e2e job env 加 `FQ_DB_MODE: schema_test`** (Sprint 63 P1b 只改了独立 e2e workflow, 漏 CI workflow e2e job → 5+sprint CI test+e2e 双 FAILURE 复发). 配套 3 个 regression test (strict match `FQ_DB_MODE: schema_test` 整行, 防 substring 误报) | **Sprint 66** | `.github/workflows/lint.yml:77` + `backend/tests/test_ci_workflows_fq_db_mode.py` |
 | **Sprint 66 P1 治根** | **`scripts/launchd/codex_clone_gc.py` 平台检查从 `gc_once()` 移到 `main()` 入口** (CI runner sys.platform=="linux" → gc_once() 永远 return (0,0) → 4 case 全 FAILURE 跨平台不兼容). 配套 L4.10 永久规则 + 2 个 regression test (`test_main_skips_on_non_darwin` + `test_main_calls_gc_once_on_darwin`). Linux CI runner 实证 741 passed / 21 skipped / 62 deselected | **Sprint 66** | `scripts/launchd/codex_clone_gc.py` + `CLAUDE.md L4.10` |
+| **Sprint 66 housekeeping 闭环** | **收口后清 3 类 stale state**: ① 2 stale remote (`tmp` 来自 wt-sprint54/lane-c/.tmp-repo 路径不存在, `work-plat` 来自不同项目 DMP_test_package 误关联) ② 6 git stash (跨 4-9 sprint 旧数据, 内容已集成或 wip 残留) ③ 13 Codex turn-diffs checkpoint refs (`.git/refs/codex/turn-diffs/checkpoints/` 下悬空 commit 累积, Codex UI 误显示"未提交分支") + `git gc --prune=now` 清 21 个 dangling commit/tree/blob. `git fsck` 干净验证. 配套 L4.11 永久规则 (Codex checkpoint 每次 sprint 收口必清) | **Sprint 66** | `CLAUDE.md L4.11` |
 
 ---
 
