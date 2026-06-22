@@ -12,7 +12,9 @@ data/
 *.csv
 *.zip
 
-# 例外：ETL perf baseline（QW0 工单 0，plan §A4.1 强制入仓）
+# 例外：ETL perf baseline（QW0 §A4.1 首次入仓 baseline, Sprint 22+ 漂移不入仓）
+# baseline JSON 是 ETL 跑批运行时 auto-drift 产物 (每次 run_etl.py --update 重写)
+# 首次 baseline 入仓作为参考基线; 后续漂移不入仓避免 git log 噪声 + merge conflict
 # 父目录链必须逐级例外化（不要写 !data/，会把 data/ 全部重新包含进来）
 !data/processed/etl_perf/
 !data/processed/etl_perf/*.json
