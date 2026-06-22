@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 63 收口: CI 维修, lint E741 + e2e fail-fast env + Node 24 升级, v0.4.14.153, main HEAD `4c4c693` + pytest 8/8 P0+P1b 验证 test baseline)
+**最后更新**: 2026-06-22 (Sprint 64 收口: GH Actions 维修 ruff-action v4→v3 revert + L4.9 永久规则, v0.4.14.154, main HEAD `1874c7a` + pytest 8/8 Sprint 63 baseline 持续)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.153` |
-| git HEAD (main) | `4c4c693` (Sprint 63 merge: CI 维修 lint E741 + e2e fail-fast env + Node 24, 8 文件 +87/-22 行, 3 case regression test) |
+| VERSION | `0.4.14.154` |
+| git HEAD (main) | `1874c7a` (Sprint 64 merge: ruff-action v4→v3 revert + L4.9 永久规则 + VERSION bump) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 63 (CI 维修, 1 commit 0 debt, 3 case regression test, 0 回归) |
+| 最近 sprint | Sprint 64 (GH Actions 维修, 2 commit 0 debt, ruff-action v4 不存在治根) |
 | 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 63 (PR merge `4c4c693`, 1 commit 合并) |
+| 上次合入 | Sprint 64 (PR merge `1874c7a`, 2 commit 合并) |
 
 ---
 
