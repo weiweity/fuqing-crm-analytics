@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Sprint 60.2 P3 uvicorn 守护 (2026-06-22): Mac launchd plist for 芙清 CRM uvicorn 常驻服务
+
+复用 com.fuqing.duckdb-backup.daily.plist 模式 (Sprint 4 P0-2), 但本 plist 是常驻 keepalive,
+不是定时任务. 解决痛点: 本次会话 uvicorn 已挂 2 次 (1 次 system shutdown + 1 次前端 admin
+登录 502, 进程死但无 crash log), 每次都要手动 kill + 重启 + 验证 audience API.
+
+设计:
+  - Label: com.fuqing.uvicorn (跟其他 fuqing.* 服务一致)
+  - ProgramArguments: python3 + scripts/uvicorn_launchd.py (不用 bash, 避开 macOS launchd sandbox deny)
+  - WorkingDirectory: 主仓根 (跟脚本内 os.chdir 冗余, 防御 launchd 环境变量被 reset)
+  - RunAtLoad: true (launchctl load 之后立即启动)
+  - KeepAlive: Crashed=true (核心: 进程死了自动重启, SuccessfulExit=false 让正常退出也重启)
+  - ThrottleInterval: 5 (防 restart loop, 跟 launchd 默认一致)
+  - StandardOutPath + StandardErrorPath: /tmp/fuqing-uvicorn-launchd.log
+  - EnvironmentVariables: PATH 包含 /Users/hutou/homebrew/bin (python 3.14)
+  - 不限 session type (跟 duckdb-backup.daily 一致, Background session 也能跑)
+
+安装:
+  cp scripts/launchd/com.fuqing.uvicorn.plist ~/Library/LaunchAgents/
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.uvicorn.plist 2>/dev/null
+  launchctl load -w ~/Library/LaunchAgents/com.fuqing.uvicorn.plist
+  launchctl list | grep fuqing.uvicorn   验证加载 (PID + LastExitStatus)
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.uvicorn.plist
+  rm ~/Library/LaunchAgents/com.fuqing.uvicorn.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.uvicorn</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/uvicorn_launchd.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-uvicorn-launchd.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-uvicorn-launchd.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/hutou/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
