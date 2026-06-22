@@ -22,7 +22,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ ETL 增量更新正常（截至 2026-06-17：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 768 passed / 21 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.150, Sprint 61+62 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net)
+- ✅ 测试 768 passed / 21 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.151, Sprint 61+62 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
 - ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 3 skills (regen-types + ship-pr + /ad-hoc-query 即席查询 CLI, Sprint 62 扩 3 子命令 daily-gsv/yoy-battle/channel-slice) + MCP context7
