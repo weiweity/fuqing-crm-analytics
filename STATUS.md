@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 61 收口: docs(readme) sync + fix(backend) startup fail-fast, v0.4.14.150, branch `docs/sprint61-readme-sync-2026-06-22` HEAD `fb605ed`, PR #27)
+**最后更新**: 2026-06-22 (Sprint 61 收口: PR #27 已 merge main `ef3d41f`, v0.4.14.150, main HEAD `ef3d41f`)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.150` (bump 待 merge 后) |
-| git HEAD (main) | `f31626e` (Sprint 60.3+ fix(ci) 收口) |
-| 当前分支 | `docs/sprint61-readme-sync-2026-06-22` (PR #27 待 merge) |
-| 最近 sprint | Sprint 61 (cleanup + release + P2 fail-fast, 2 commit 0 debt, PR #27) |
+| VERSION | `0.4.14.150` |
+| git HEAD (main) | `ef3d41f` (Sprint 61 PR #27 merge: docs(readme) + fix(backend) fail-fast + docs(status,changelog) + feat(ad-hoc-query) MVP + fix(track) SKILL.md) |
+| 当前分支 | `main` |
+| 最近 sprint | Sprint 61 (cleanup + release + P2 fail-fast + /ad-hoc-query MVP, 6 commit 0 debt, PR #27 ✅ merged) |
 | 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 60.3+ (fix(ci) 1 commit) + Sprint 61 cleanup (chore 1 commit, 已合 main) + Sprint 61 P2 fail-fast (fix(backend) 1 commit, 待 PR #27 merge) |
+| 上次合入 | Sprint 61 (PR #27, 6 commit 合并) |
 
 ---
 
@@ -37,10 +37,10 @@
 | commit-msg blocking 误报率 | **0/14 = 0%** | Sprint 58 #2 阶段 B 验证 N=20 commit sample (6 merge skip, 14 普通 commit 全 pass) |
 
 <!-- STATUS-AUTO-START -->
-| pytest collected | **768** | Sprint 61 自动抓 |
-| pytest skipped | **1** | Sprint 61 自动抓 |
-| 当前债数 | **0** | Sprint 61 自动抓 |
-| 最近 sprint | **Sprint 61** | Sprint 61 自动抓 |
+| pytest collected | **803** | Sprint 59 自动抓 |
+| pytest skipped | **0** | Sprint 59 自动抓 |
+| 当前债数 | **0** | Sprint 59 自动抓 |
+| 最近 sprint | **Sprint 61** | Sprint 59 自动抓 |
 <!-- STATUS-AUTO-END -->
 
 ---
