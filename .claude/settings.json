@@ -1,5 +1,5 @@
 {
-  "_comment": "Sprint 22.5+ P0 hooks (claude-automation-recommender 推荐). 3 hooks: 禁 .env/.duckdb 编辑, 改 contract 提醒 regen types, .py 自动 ruff lint. 详细: docs/AUTOMATION.md",
+  "_comment": "Sprint 22.5+ P0 hooks + Sprint 67 UserPromptSubmit hook (留尾 SSOT 治理). 4 hooks. 详细: docs/AUTOMATION.md",
   "hooks": {
     "PreToolUse": [
       {
@@ -19,6 +19,17 @@
           {
             "type": "command",
             "command": "python3 -c \"import sys, json, re, subprocess; d=json.loads(sys.stdin.read() or '{}'); p=d.get('tool_input',{}).get('file_path',''); \nif p.endswith('.py'):\n  try: subprocess.run(['ruff','check', p], check=False, timeout=30)\n  except: pass\nif re.search(r'backend/contracts/.*\\.py$', p):\n  print('[contract 改动] 提醒: 跑 /regen-types 重新生成 frontend types.ts')\n\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "剩余任务|留尾|backlog|todo|剩余待办",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/check_remaining_tasks.py || true"
           }
         ]
       }

@@ -10,6 +10,10 @@
 **Sprint 60+ 留尾** (3 项 + 3 ruff, 推 Sprint 60.3 一起闭环, 估时半天 ~ 1d):
 - 📋 **L4.7 ground-truth-lint** (Sprint 60+ 留尾): `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` 防回归. Sprint 60 + 60.1.1 共 3 处 params 顺序 fix, 自动化防回归是高 ROI (半天)
 - 📋 **FilterBuilder 治本** (Sprint 60+ 留尾): 加 `o.channel` 前缀 (14+ service audit + ground-truth-lint 扫 `FROM orders` 无别名, 半天 ~ 1d). Sprint 60.1 治标 2 个 endpoint 加 `o.`, 治本 (改 FilterBuilder) 会冲击 14+ service
+- 📋 **D1 50m-scale benchmark** (跨 sprint 推后, Sprint 38+ → 58 推 60+): 调研 0 进展, 触发条件 = 30M 数据量. Sprint 58 #1 OOM 治本部分解, 仍需独立 benchmark sprint
+- 📋 **D2 e2e 50+MB OOM** (Sprint 55+ recurring #14, Sprint 66 P0 部分解): CI e2e 仍 `continue-on-error: true`, 跨 sprint 待治本
+- 📋 **D3 4 stub 内容补实** (Sprint 55.5 留尾): docs/ 4 个 stub file (architecture/development/operating/history) 内容待补, 估时 半天
+- 📋 **D4 asset_* 命名混淆** (Sprint 55.5 留尾): docs/services.md §5 asset_* 命名 127 行待 cleanup, 跟 Sprint 65 文档审计同源
 - ✅ **L4.8 业务定义 SSOT 文档化** (Sprint 60+ 留尾已闭环): 写 `docs/business/RFM_DEFINITIONS.md` (v0.4.14.147, 跟 Sprint 14.5 P1.1 注释对齐)
 - ✅ **Sprint 60+ ruff 留尾 3 闭环**: `test_status_update.py:8 F401 sys` + `37+38 F541 extraneous f prefix` (Sprint 60.3 修)
 - ✅ **CI e2e 真实数据缺失 闭环 (C+)**: Sprint 60.3+ 把 e2e 降级为纯 UI smoke + `auth.fixture.ts` 统一 API 5xx 拦截, 不再依赖 production DuckDB, 去掉 `continue-on-error: true` 后 4/4 CI pass. 业务数值端到端验证保留给本地真数据 e2e。

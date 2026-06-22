@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 66 收口: CI 维修 P0+P1 治根闭环, v0.4.14.155, main HEAD `61ae76a` + pytest 741/21/0 Linux CI runner 实证, CI 4/4 jobs 全绿)
+**最后更新**: 2026-06-23 (Sprint 67+68 收口: 留尾 SSOT 治理 L4.12 + UserPromptSubmit hook + 4 follow-up gap 闭环, v0.4.14.155 不变, main HEAD `076e129` + pytest 741/21/0 baseline 持续, 累计 14 sprint 0 debt)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.155` |
-| git HEAD (main) | `6a2a990` (Sprint 66 final doc-sync 自身: P0 + P1 + housekeeping + baseline + L4.10 + L4.11 + /document-release audit 全闭环) |
+| git HEAD (main) | `076e129` (Sprint 67+68 amend, 1 commit 闭环: 留尾 SSOT 治理 L4.12 + 4 follow-up gap) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 66 (CI 维修, 2 commit 0 debt, P0 lint.yml FQ_DB_MODE 漏修 5+sprint 复发治根 + P1 codex_clone_gc Linux runner 平台检查反模式治根) |
-| 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 66 (PR direct `61ae76a`, 2 commit 串行, chore release main 直做模式) |
+| 最近 sprint | Sprint 67+68 (留尾 SSOT 治理 + 4 follow-up gap, 1 commit 0 debt, L4.12 永久规则 + UserPromptSubmit hook + 3 case regression + 4 项跨 sprint 推后进 SSOT) |
+| 收口日 | 2026-06-23 |
+| 上次合入 | Sprint 67+68 (commit `076e129` amended, 1 commit main 直做, 治理 sprint 非功能 sprint 不 bump VERSION) |
 
 ---
 

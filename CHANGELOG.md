@@ -4,6 +4,26 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.155] - 2026-06-23 (Sprint 67, VERSION 不变)
+
+### Added
+- **Sprint 67 留尾 SSOT 治理** (L4.12 永久规则): `docs/TECH-DEBT.md` 留尾章节 = 跨 sprint 唯一权威
+  - `scripts/check_remaining_tasks.py` 30 行 极简 (grep `- 📋` bullet, `--tech-debt` flag, fail-open)
+  - `.claude/settings.json` UserPromptSubmit hook (matcher: 剩余任务|留尾|backlog) 自动注入
+  - `backend/tests/test_check_remaining_tasks.py` 3 case PASS (happy + fail-open + 中文)
+  - 治根: 跨 sprint 误列已闭环 4 次, 重复列 L4.7 + RFM_DEFINITIONS 3 次
+- **Sprint 68 4 follow-up gap 闭环** (amend 修 Sprint 67 漏 .claude/settings.json):
+  - `docs/TECH-DEBT.md` 留尾章节补 D1-D4 (50m scale / e2e OOM / 4 stub / asset_* 命名)
+  - CLAUDE.md L4.12 补 MEMORY.md 29.6KB 平台限制注释 (非项目债)
+  - `docs/maintenance/BOOTSTRAP.md` (新) — 修 .claude/ 例外化跟踪 gap
+- `docs/maintenance/BOOTSTRAP.md` (新): 新开发者 clone 后必读, 包含 `.claude/settings.json` UserPromptSubmit hook 启用步骤
+
+### Stats
+- 7 文件 +189/-1 行 (Sprint 67+68 累计, 含 1 amend 修 .claude 漏 commit)
+- pytest 741/21/0 baseline 持续 (3/3 新 case: happy + fail-open + 中文)
+- 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68 = **14 sprint, 0 debt**
+- main HEAD: `076e129` (Sprint 67+68 amend, 1 commit 闭环)
+
 ## [0.4.14.155] - 2026-06-22
 
 ### Fixed
