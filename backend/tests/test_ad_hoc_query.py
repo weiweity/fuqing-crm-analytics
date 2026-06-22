@@ -206,7 +206,7 @@ def test_cli_daily_gsv_table(tmp_duckdb, monkeypatch):
     assert "gsv" in result.stdout
     assert "yoy_pct" in result.stdout
     # 验 3 行数据 + 1 行 header
-    lines = [l for l in result.stdout.splitlines() if l.strip()]
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
     assert len(lines) >= 4  # header + sep + 3 days
 
 
