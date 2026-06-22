@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.155` |
-| git HEAD (main) | `61ae76a` (Sprint 66 P1 merge: codex_clone_gc 平台检查迁移 main() + L4.10 永久规则 + VERSION bump) |
+| git HEAD (main) | `56fc924` (Sprint 66 收口 merge: P0 lint.yml FQ_DB_MODE + P1 codex_clone_gc 平台检查迁移 main + L4.10 + VERSION bump) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 66 (CI 维修, 2 commit 0 debt, P0 lint.yml FQ_DB_MODE 漏修 5+sprint 复发治根 + P1 codex_clone_gc Linux runner 平台检查反模式治根) |
 | 收口日 | 2026-06-22 |

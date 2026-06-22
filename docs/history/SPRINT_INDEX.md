@@ -12,6 +12,19 @@
 
 | Sprint | 版本 | 主要内容 | Memory |
 |--------|------|----------|--------|
+| **66** | v0.4.14.155 | CI 维修 P0+P1 治根 (lint.yml FQ_DB_MODE 漏修跨 5+sprint 复发 + codex_clone_gc 平台检查从 gc_once 迁 main + L4.10 永久规则 + 5 regression test + pytest 741/21/0 Linux CI runner 实证 + CI 4/4 jobs 全绿) | ✅ |
+| **65** | v0.4.14.154 | /document-release 总览文档漂移修正 (4 文件 +10/-10 行, 跨文档一致性 100% PASS) | ✅ |
+| **64** | v0.4.14.154 | ruff-action v4→v3 revert + L4.9 永久规则 (1 文件 +1/-1 行) | ✅ |
+| **63** | v0.4.14.153 | CI 维修 (lint E741 + e2e FQ_DB_MODE=schema_test + 5 unique action major 升级 Node 24) | ✅ |
+| **62.5** | v0.4.14.152 | 4 项磁盘清理治根 (B1 backup retention + B2 giant file bypass cap + B3 /ad-hoc-query tmp_write_conn + B4 Codex clone GC LaunchAgent) | ✅ |
+| **62** | v0.4.14.151 | /ad-hoc-query 3 子命令 + P3 uvicorn launchd 守护 | ✅ |
+| **61** | v0.4.14.150 | docs(readme) sync Sprint 54-61 + fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE profile-aware | ✅ |
+| **60+** | v0.4.14.147 | 5 sprint 累计 14 commit 0 debt (Sprint 60 + 60.1 + 60.1.1 + 60.2 + 61) | ✅ |
+| **60** | v0.4.14.144 | params 顺序错位治本 (overview.py 2 行 + 2 case test) | ✅ |
+| **59** | v0.4.14.143 | 收割季: STATUS 自动化 + CHANGELOG 按行数归档 + audit 措辞 SOP | ✅ |
+| **58** | v0.4.14.142 | 工具链实战 fix 闭环 (#4 CI e2e 持久化 + #1 OOM 治本 + #2 commit-msg blocking) | ✅ |
+| **57** | v0.4.14.141 | 文档沉淀主题 (LESSONS_LEARNED 9 pattern + 4 doc 扩内容 + asset_* 命名混淆) | ✅ |
+| **56** | v0.4.14.140 | doc-only 5 phase (CHANGELOG 滚动 + 4 stub DRY + testing 链) | ✅ |
 | **55.5** | v0.4.14.139 | docs 子目录化 + 命名重构 + 4 doc + (本任务) | (本次收口后) |
 | **55** | v0.4.14.138 | CI 实战 fix 4 次 (HEALTH_API_KEY + F401 + getpath) | ✅ |
 | **54** | v0.4.14.138 | L3 FilterBuilder 100% 闭环 (14/14 service) | ✅ |
