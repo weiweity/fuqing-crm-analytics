@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.154（main @ 1874c7a，2026-06-22 Sprint 64 GH Actions 维修: ruff-action v4→v3 revert + L4.9 永久规则 + pytest 768/21/0 baseline 持续. 累计 Sprint 54-64: L3 FilterBuilder 14/14 + Sprint 60+60.1+60.1.1+60.2 500 错误治根 + Sprint 61 P2 fail-fast + Sprint 62 /ad-hoc-query + Sprint 62.5 4 项磁盘清理 + Sprint 63 CI 维修 + Sprint 64 ruff-action revert, 0 debt 跨 9 sprint） |
+| 4 | **版本状态** | v0.4.14.155（main @ 61ae76a，2026-06-22 Sprint 66 CI 维修闭环: P0 lint.yml FQ_DB_MODE 漏修治根 + P1 codex_clone_gc 平台检查迁移 main() + L4.10 永久规则 + pytest 741/21/0 Linux CI runner 实证 + CI 4/4 jobs 全绿. 累计 Sprint 54-66: L3 FilterBuilder 14/14 + Sprint 60+60.1+60.1.1+60.2 500 错误治根 + Sprint 61 P2 fail-fast + Sprint 62 /ad-hoc-query + Sprint 62.5 4 项磁盘清理 + Sprint 63 CI 维修 + Sprint 64 ruff-action revert + Sprint 66 CI 维修, 0 debt 跨 12 sprint） |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 

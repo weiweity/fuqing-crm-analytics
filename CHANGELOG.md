@@ -4,6 +4,25 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.155] - 2026-06-22
+
+### Fixed
+- **Sprint 66 P0 治根**: `.github/workflows/lint.yml` e2e job env 加 `FQ_DB_MODE: schema_test`
+  (Sprint 63 P1b 只改了独立 e2e workflow, 漏 CI workflow e2e job → 5+sprint CI test+e2e 双 FAILURE 复发)
+  - 配套 3 个 regression test (strict match `FQ_DB_MODE: schema_test` 整行, 防 substring 误报, Sprint 63 review 抓的 same bug)
+- **Sprint 66 P1 治根**: `scripts/launchd/codex_clone_gc.py` 平台检查从 `gc_once()` 移到 `main()` 入口
+  (Linux CI runner sys.platform == "linux" → gc_once() 永远 return (0,0) → 4 case 全 FAILURE 跨平台不兼容)
+  - 配套 2 个 regression test (`test_main_skips_on_non_darwin` + `test_main_calls_gc_once_on_darwin`)
+  - L4.10 永久规则加 CLAUDE.md: **平台特定检查 (`sys.platform` / `os.name` / `platform.system()`) 必须放在 `main()`/CLI 入口, 不能在 `_core()` 逻辑函数里**
+
+### Stats
+- 3 文件 +77/-36 行 (Sprint 66 P1 主 commit `61ae76a`)
+- 本地 macOS pytest 6/6 PASS (test_codex_clone_gc 4 旧 case + 2 新 regression test)
+- Linux CI runner pytest 741 passed / 21 skipped / 62 deselected (Sprint 66 P1 治根真生效)
+- CI 4/4 jobs 全绿: lint SUCCESS + ground-truth-lint SUCCESS + test SUCCESS + e2e SUCCESS
+- 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66 = **12 sprint, 0 debt**
+- main HEAD: `61ae76a`
+
 ## [0.4.14.154] - 2026-06-22
 
 ### Fixed
