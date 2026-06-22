@@ -10,13 +10,19 @@
 - Sprint 63 CI 维修 (Codex consult 排查 PR #28 CI 3 job 爆红真因):
   - **lint E741**: 2 处 `l` 变量改 `line` (`backend/tests/test_ad_hoc_query.py:209` + `test_ad_hoc_query_sprint61plus.py:266`)
   - **e2e fail-fast env 缺**: `.github/workflows/e2e.yml` 加 `FQ_DB_MODE=schema_test` (CI 走 WARN only 路径, 不抛 Sprint 61 P2 fail-fast 默认 raise)
-  - **Node 20 → Node 24**: 6 个 action major 升级 (`actions/checkout@v5` + `setup-node@v5` + `setup-python@v6` + `upload-artifact@v5` + `ruff-action@v4`)
-- 防再发 3 case regression test (`backend/tests/test_ci_e2e_env_config.py`, strict match 防 substring 误报)
+  - **5 个 unique action major 升级** (跨 5 个 workflow 13 处 occurrences, Node 20 不变):
+    - `actions/checkout@v4→v5`
+    - `actions/setup-node@v4→v5`
+    - `actions/setup-python@v5→v6`
+    - `actions/upload-artifact@v4→v5`
+    - `astral-sh/ruff-action@v3→v4`
+- 防再发 3 case regression test (`backend/tests/test_ci_e2e_env_config.py`, strict match `{1..60}` 整段防 substring false-positive)
 
 ### Stats
-- 8 文件 +87/-22 行
+- 11 文件 +107/-28 行 (含 CHANGELOG/STATUS/VERSION 3 文档)
 - pytest 8/8 (P0+P1b 验证 test) baseline 持续
 - main HEAD: `4c4c693` (merge commit `feat(Sprint 63)`)
+- Sprint 63 adversarial review 抓 2 MEDIUM + 3 LOW, 全部已修
 
 ## [0.4.14.152] - 2026-06-22
 

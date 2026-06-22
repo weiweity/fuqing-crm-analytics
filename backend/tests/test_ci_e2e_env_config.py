@@ -40,9 +40,10 @@ def test_e2e_workflow_uses_60s_uvicorn_readiness_timeout():
     如果 < 60s, Sprint 61 fail-fast 路径下 uvicorn 还没 startup 完成就 timeout.
     """
     e2e_yml = (ROOT / ".github" / "workflows" / "e2e.yml").read_text()
-    # grep "{1..60}" 模式
-    assert "{1..60}" in e2e_yml or "60}" in e2e_yml, (
-        "e2e.yml uvicorn readiness 等待窗口必须 ≥ 60s, 当前 < 60s 会跟 Sprint 61 fail-fast 冲突"
+    # strict match "{1..60}" 整段 (避免 "60}" OR 子句在 {2..60} 场景下误报).
+    # Sprint 63 adversarial review 抓: OR 子句是 false-negative ({2..60} 含 60} 会 PASS).
+    assert "{1..60}" in e2e_yml, (
+        "e2e.yml uvicorn readiness 等待窗口必须 = 60s, 当前 < 60s 会跟 Sprint 61 fail-fast 冲突"
     )
 
 
