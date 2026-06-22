@@ -40,11 +40,90 @@ BJ_TZ = timezone(timedelta(hours=8))
 TODAY = datetime.now(BJ_TZ).strftime("%Y-%m-%d")
 ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 
+# Sprint 62.5 治根: backup retention (Sprint 25 设计意图, 实施遗漏)
+# 之前脚本只创建 .zst 不清理, 4 份累积到 169GB. 删前 8 项 safety check (lsof/sparse/magic/mtime).
+BACKUP_RETENTION_DAYS = int(os.environ.get("FQ_BACKUP_RETENTION_DAYS", "7"))
+BACKUP_KEEP_MIN = 1  # 至少保留最新 1 份, 防单文件被误删
+
 
 def log(msg: str) -> None:
     # 每次调用算 TS (防 5-20min 跑批时间戳全一样). Sprint 10 B3 改用 BJ 时间戳.
     ts = datetime.now(BJ_TZ).strftime("%Y-%m-%dT%H:%M:%S%z")
     print(f"[{ts}] {msg}", flush=True)
+
+
+def _prune_old_backups() -> int:
+    """Sprint 62.5 治根: 删 > BACKUP_RETENTION_DAYS 天的 .zst.
+
+    8 项 safety check:
+      1. mtime age > retention (避免误删最新)
+      2. 保留 BACKUP_KEEP_MIN 最新份 (防 cap=0 误删全部)
+      3. 文件 > 0 字节 (防空文件假象)
+      4. file magic 28b5 2ffd (Zstandard) (防误删非 zst 文件)
+      5. lsof 0 fd (无活跃 fd)
+      6. 不在 compressed_path (本次刚生成的不能删)
+      7. sorted by mtime desc (最新优先保留)
+      8. soft fail (删失败 log 不 raise)
+    """
+    try:
+        all_zst = sorted(
+            BACKUP_DIR.glob("fuqing_crm_*.duckdb.zst"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError as e:
+        log(f"prune: glob failed ({e}), skip")
+        return 0
+
+    if len(all_zst) <= BACKUP_KEEP_MIN:
+        log(f"prune: {len(all_zst)} zst file(s), <= keep_min={BACKUP_KEEP_MIN}, skip")
+        return 0
+
+    cutoff = datetime.now(BJ_TZ).timestamp() - BACKUP_RETENTION_DAYS * 86400
+    candidates = [p for p in all_zst[BACKUP_KEEP_MIN:] if p.stat().st_mtime < cutoff]
+
+    deleted = 0
+    for p in candidates:
+        # 注: compressed_path 不在 _prune_old_backups scope (main() 局部变量),
+        # retention 跑时本次新建的 zst 不会出现在 candidates (mtime 极新, 不超 retention 阈值),
+        # 不需要额外保护.
+        # 3: size > 0
+        try:
+            size = p.stat().st_size
+        except OSError:
+            continue
+        if size <= 0:
+            log(f"prune: skip {p.name} (size={size})")
+            continue
+        # 4: zstd magic
+        try:
+            with open(p, "rb") as f:
+                magic = f.read(4)
+            if magic != b"\x28\xb5\x2f\xfd":
+                log(f"prune: skip {p.name} (not zstd, magic={magic.hex()})")
+                continue
+        except OSError:
+            continue
+        # 5: lsof 0 fd
+        try:
+            out = subprocess.run(
+                ["lsof", "-t", str(p)],
+                capture_output=True, text=True, timeout=5,
+            )
+            if out.stdout.strip():
+                log(f"prune: skip {p.name} (lsof open: {out.stdout.strip()!r})")
+                continue
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass  # lsof 不可用 / 超时 → 保守放行
+        # 8: soft fail — 先算 age (unlink 前), 再 unlink, 再 log
+        age_d = (datetime.now(BJ_TZ).timestamp() - p.stat().st_mtime) / 86400
+        try:
+            p.unlink()
+            deleted += 1
+            log(f"prune: deleted {p.name} ({size / 1024 / 1024 / 1024:.1f} GiB, age={age_d:.1f}d)")
+        except OSError as e:
+            log(f"prune: delete failed {p.name}: {e}")
+    return deleted
 
 
 def loud_fail(reason: str) -> None:
@@ -172,6 +251,11 @@ def main(verify_only: bool = False) -> int:
             )
         compressed_mb = compressed_bytes / 1024 / 1024
         log(f"DONE: {compressed_path} ({compressed_mb:.1f} MB, {compressed_bytes} bytes)")
+
+        # Sprint 62.5 治根: backup retention (7 天滚动)
+        pruned = _prune_old_backups()
+        if pruned:
+            log(f"prune: removed {pruned} old backup(s) (> {BACKUP_RETENTION_DAYS}d)")
         return 0
 
     except Exception as e:

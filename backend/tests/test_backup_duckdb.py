@@ -202,3 +202,115 @@ class TestBackupDuckdbSprint25:
         # 注: 不做"反向验证修复前模式不存在"严格检查, 因为 compressed_path
         # 用 backup_path.with_suffix(".duckdb.zst") 仍会展开 f"fuqing_crm_{TODAY}_{hhmm}.duckdb"
         # 子串, 误报率高. 改"正向验证修复后模式存在" 即可.
+
+
+class TestBackupDuckdbSprint625Retention:
+    """Sprint 62.5 B1: backup retention 治根 — 4 个 case 验证 _prune_old_backups.
+
+    Sprint 25 设计意图 (7 天滚动), 实施遗漏导致 4 份 zst 累积 169GB.
+    Sprint 62.5 加 _prune_old_backups(), 8 项 safety check 后删 >7d zst.
+
+    4 case 覆盖: age threshold / keep_min 守护 / 跳过非 zstd / 跳过 lsof open.
+    """
+
+    def _make_zst(self, path: Path, days_old: int) -> Path:
+        """造 zst magic 头 + 设 mtime."""
+        path.write_bytes(b"\x28\xb5\x2f\xfd" + b"\x00" * 100)
+        old_time = time.time() - days_old * 86400
+        os.utime(path, (old_time, old_time))
+        return path
+
+    def test_prune_deletes_zst_older_than_retention(self, tmp_path, monkeypatch):
+        """Case 1: > BACKUP_RETENTION_DAYS 天的 zst 被删, 新保留."""
+        from scripts.etl import backup_duckdb
+
+        monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_RETENTION_DAYS", 7)
+
+        new = self._make_zst(tmp_path / "fuqing_crm_2026-06-22_0330.duckdb.zst", days_old=1)
+        old1 = self._make_zst(tmp_path / "fuqing_crm_2026-06-14_0330.duckdb.zst", days_old=8)
+        old2 = self._make_zst(tmp_path / "fuqing_crm_2026-06-10_0330.duckdb.zst", days_old=12)
+
+        deleted = backup_duckdb._prune_old_backups()
+
+        assert deleted == 2, f"期望删 2 个 (> 7d), 实际 {deleted}"
+        assert new.exists(), "新 zst 不应被删"
+        assert not old1.exists(), "old1 应被删"
+        assert not old2.exists(), "old2 应被删"
+
+    def test_prune_keeps_at_least_keep_min(self, tmp_path, monkeypatch):
+        """Case 2: 即便全部 > retention, 至少保留最新 BACKUP_KEEP_MIN 份.
+
+        守护: 防 cap=0 / retention=0 时误删全部.
+        """
+        from scripts.etl import backup_duckdb
+
+        monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_RETENTION_DAYS", 7)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_KEEP_MIN", 2)
+
+        # 造 3 份全部 > 7d (最老优先删, 但保留最新 2 份)
+        self._make_zst(tmp_path / "fuqing_crm_2026-06-10_0330.duckdb.zst", days_old=12)
+        self._make_zst(tmp_path / "fuqing_crm_2026-06-14_0330.duckdb.zst", days_old=8)
+        self._make_zst(tmp_path / "fuqing_crm_2026-06-21_0330.duckdb.zst", days_old=1)
+
+        deleted = backup_duckdb._prune_old_backups()
+
+        assert deleted == 1, f"期望删 1 个 (留最新 2 份), 实际 {deleted}"
+        remaining = sorted(tmp_path.glob("*.duckdb.zst"), key=lambda p: p.stat().st_mtime, reverse=True)
+        assert len(remaining) == 2, f"期望保留 2 份, 实际 {len(remaining)}"
+        # 保留的是最新 2 份 (按 mtime 倒序)
+        assert "06-21" in remaining[0].name, f"最新应是 06-21, 实际 {remaining[0].name}"
+        assert "06-14" in remaining[1].name, f"次新应是 06-14, 实际 {remaining[1].name}"
+
+    def test_prune_skips_non_zstd_files(self, tmp_path, monkeypatch):
+        """Case 3: 缺 zstd magic 头的文件不被删 (防误删 .duckdb 等其他格式).
+
+        Sprint 25 测试用 cleanup_backups.sh find *.parquet + *.duckdb + *.duckdb.zst,
+        Sprint 62.5 Python 版只 glob *.duckdb.zst + magic 校验, 更严格.
+        """
+        from scripts.etl import backup_duckdb
+
+        monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_RETENTION_DAYS", 7)
+
+        # 造非 zst (空文件, magic 不匹配)
+        non_zst = tmp_path / "fuqing_crm_2026-06-10_0330.duckdb"
+        non_zst.write_bytes(b"not zstd")
+        old_time = time.time() - 10 * 86400
+        os.utime(non_zst, (old_time, old_time))
+
+        # 造真 zst (应被删)
+        old_zst = self._make_zst(tmp_path / "fuqing_crm_2026-06-10_0330.duckdb.zst", days_old=10)
+        # 造新 zst (应保留)
+        new_zst = self._make_zst(tmp_path / "fuqing_crm_2026-06-22_0330.duckdb.zst", days_old=1)
+
+        deleted = backup_duckdb._prune_old_backups()
+
+        assert deleted == 1, f"期望只删 1 个真 zst, 实际 {deleted}"
+        assert non_zst.exists(), "非 zst 不应被删"
+        assert not old_zst.exists(), "老 zst 应被删"
+        assert new_zst.exists(), "新 zst 应保留"
+
+    def test_prune_skips_lsof_open_files(self, tmp_path, monkeypatch):
+        """Case 4: 正在被进程打开的 zst 不被删 (lsof 副检).
+
+        Sprint 26 F6 经验: mtime 决策 + lsof 副检, 防 race condition.
+        """
+        from scripts.etl import backup_duckdb
+
+        monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_RETENTION_DAYS", 7)
+
+        open_zst = self._make_zst(tmp_path / "fuqing_crm_2026-06-10_0330.duckdb.zst", days_old=10)
+
+        # mock lsof 返回非空 (模拟有进程在用)
+        def mock_lsof_open(*args, **kwargs):
+            return subprocess.CompletedProcess(args=["lsof"], returncode=0, stdout="12345\n", stderr="")
+
+        monkeypatch.setattr(backup_duckdb.subprocess, "run", mock_lsof_open)
+
+        deleted = backup_duckdb._prune_old_backups()
+
+        assert deleted == 0, f"lsof open 时应跳过, 实际删了 {deleted}"
+        assert open_zst.exists(), "lsof open 的 zst 不应被删"

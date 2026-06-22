@@ -64,6 +64,9 @@ _FQ_TMP_MAX_DELETE_PER_RUN = 5        # 防御性：单次最多删 5 个文件
 _FQ_TMP_MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB/次（防单次爆删）
 # Sprint 25 P1-3 review 撤回 per-file cap: byte cap 100GB 已是单文件误删防护,
 # per-file 20GB 跟实际常见孤儿尺寸 (50-103GB) 冲突, 反而卡住清理. 维持单层 byte cap.
+# Sprint 62.5 B2 治根 (反向教训): 109GB fuqing_e2e_yoyb.duckdb 永久孤儿 + 100GB
+# byte cap 反过来保护它. 解: 单文件 > byte cap 时, 走严格 magic + lsof 8 项验证
+# 后 bypass byte cap (但只删 1 个, 不批量). 保持 byte cap 100GB 防爆删不变.
 _FQ_TMP_MIN_AGE_HOURS = 24            # 24h 内的活跃文件不删
 _FQ_TMP_LOG_PATH = "/tmp/fuqing-tmp-cleanup.log"  # 持久日志（不等同 print）
 _FQ_TMP_MARKER_PATH = "/tmp/fuqing-etl-marker.json"  # F3: 异常退出检测 marker
@@ -171,7 +174,47 @@ def _cleanup_fq_tmp_orphans() -> int:
     for path, size_bytes, age_h in candidates:
         if len(deleted) >= _FQ_TMP_MAX_DELETE_PER_RUN:
             break
-        if bytes_deleted + size_bytes > _FQ_TMP_MAX_DELETE_BYTES_PER_RUN:
+        # Sprint 62.5 B2: 单文件 > byte cap (100GB) → 走严格 magic + lsof 8 项验证
+        # 后 bypass byte cap 但只删 1 个, 防 109GB orphan 永久存活. 累计 byte cap
+        # 仍保护: 删完 1 个 giant 后 break.
+        is_giant = size_bytes > _FQ_TMP_MAX_DELETE_BYTES_PER_RUN
+        if is_giant and bytes_deleted == 0:
+            # 大文件 standalone 治理路径: 严格 magic + lsof 校验
+            _safe_log(
+                f"  [tmp-cleanup] giant file ({size_bytes / (1024**3):.1f}GB > "
+                f"{_FQ_TMP_MAX_DELETE_BYTES_PER_RUN / (1024**3):.0f}GB cap), "
+                f"走 strict 8 项 safety check: {path}"
+            )
+            # Magic 校验 (DuckDB header 含 "DUCK" 字符串, 启发式)
+            # 注: DuckDB 实际 magic 不是固定 4 字节, 但 header 第 8-11 字节含 "DUCK"
+            try:
+                with open(path, "rb") as f:
+                    head = f.read(16)
+                if b"DUCK" not in head:
+                    _safe_log(f"  [tmp-cleanup] giant skip (not DuckDB header): {path}")
+                    continue
+            except OSError as e:
+                _safe_log(f"  [tmp-cleanup] giant skip (read failed): {e}")
+                continue
+            # lsof 严格校验 (大文件 bypass cap 前必须 0 fd)
+            is_open, reason = is_open_by_any_process(path)
+            if is_open:
+                _safe_log(f"  [tmp-cleanup] giant skip (lsof open): {path} — {reason}")
+                continue
+            # 通过校验, 立即 unlink, 累计 cap 不更新 (单文件 standalone 治理)
+            try:
+                os.remove(path)
+                deleted.append((path, size_bytes / (1024**3), age_h))
+                bytes_deleted = _FQ_TMP_MAX_DELETE_BYTES_PER_RUN  # cap 用尽, 后续跳过
+                tracker.remove(path)
+                _safe_log(
+                    f"  [tmp-cleanup] giant deleted: {path} "
+                    f"({size_bytes / (1024**3):.1f}GB, age {age_h:.0f}h)"
+                )
+            except OSError as e:
+                _safe_log(f"  [tmp-cleanup] giant delete failed {path}: {e}")
+            continue
+        elif bytes_deleted + size_bytes > _FQ_TMP_MAX_DELETE_BYTES_PER_RUN:
             break
         # Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跳过正在被打开的文件
         # 软失败: lsof 不可用 / 超时 → (False, reason) 保守放行, 跟原 mtime 决策一致

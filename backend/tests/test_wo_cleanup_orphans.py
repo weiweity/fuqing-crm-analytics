@@ -142,6 +142,63 @@ class TestCleanupFqTmpOrphans:
             "byte cap 阻止后应只保留 1 个文件"
         )
 
+    def test_giant_file_bypass_byte_cap(self, tmp_path):
+        """Sprint 62.5 B2: 单文件 > byte cap (109GB > 100GB) 走 strict path 删掉.
+
+        反向教训: Sprint 25 byte cap 100GB 反过来保护 109GB fuqing_e2e_yoyb.duckdb
+        永久存活. B2 加 giant standalone 治理路径: magic + lsof 8 项校验后 bypass cap.
+        """
+        from scripts.etl import cli
+        import scripts.etl.cli as cli_mod
+        from scripts.etl.common import tmp_tracker
+
+        # 造 109GB giant (写真 DuckDB magic head)
+        giant = tmp_path / "fuqing_e2e_yoyb.duckdb"
+        giant.write_bytes(b"\x52\xf6\x0d\xaa" + b"DUCK" + b"\x00" * 100)
+        old_time = time.time() - 48 * 3600
+        os.utime(giant, (old_time, old_time))
+
+        new_prefixes = (str(tmp_path / "fuqing_"),)
+        with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes), \
+             patch.object(cli_mod, "os") as mock_os, \
+             patch.object(tmp_tracker, "os", mock_os):
+            mock_os.path.getsize.return_value = 109 * 1024**3  # 109GB > 100GB cap
+            mock_os.path.getmtime.return_value = time.time() - 48 * 3600
+            mock_os.path.islink.return_value = False
+            mock_os.path.exists.return_value = False
+            mock_os.remove = os.remove
+            deleted_count = cli._cleanup_fq_tmp_orphans()
+
+        # giant 应被 bypass 删掉 (1 个)
+        assert deleted_count == 1, f"期望 giant 被 bypass 删 1 个, 实际 {deleted_count}"
+        assert not giant.exists(), "giant 应被删"
+
+    def test_giant_file_skipped_if_not_duckdb_header(self, tmp_path):
+        """Sprint 62.5 B2: giant 但 header 不含 DUCK → 跳过 (防误删)."""
+        from scripts.etl import cli
+        import scripts.etl.cli as cli_mod
+        from scripts.etl.common import tmp_tracker
+
+        giant = tmp_path / "fuqing_random_data.bin"
+        giant.write_bytes(b"x" * 100)  # 写 x 不含 DUCK
+        old_time = time.time() - 48 * 3600
+        os.utime(giant, (old_time, old_time))
+
+        new_prefixes = (str(tmp_path / "fuqing_"),)
+        with patch.object(cli, "FQ_TMP_PREFIXES", new_prefixes), \
+             patch.object(cli_mod, "os") as mock_os, \
+             patch.object(tmp_tracker, "os", mock_os):
+            mock_os.path.getsize.return_value = 109 * 1024**3
+            mock_os.path.getmtime.return_value = time.time() - 48 * 3600
+            mock_os.path.islink.return_value = False
+            mock_os.path.exists.return_value = False
+            mock_os.remove = os.remove
+            deleted_count = cli._cleanup_fq_tmp_orphans()
+
+        # 非 DuckDB header 不应被 bypass 删
+        assert deleted_count == 0, f"非 DuckDB header giant 应跳过, 实际删 {deleted_count}"
+        assert giant.exists(), "非 DuckDB giant 不应被删"
+
     def test_cap_starvation_avoided(self, tmp_path):
         """first-prefix starvation 修复验证（F5）：两个 prefix 都能被扫到。"""
         from scripts.etl import cli
