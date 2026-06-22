@@ -4,6 +4,19 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.154] - 2026-06-22
+
+### Fixed
+- Sprint 64 P0 治根: revert `astral-sh/ruff-action@v4` → `@v3`
+  (Sprint 63 P2 升 v4 是错的, GH Actions 报 `Unable to resolve ruff-action@v4, unable to find version v4`)
+- L4.9 永久规则加: **任何 GitHub Action major 升级必须先 `gh api repos/OWNER/REPO/tags --jq '.[0:5] | .[] | .name'` 验证 stable tag 真存在**
+
+### Stats
+- 1 文件 +1/-1 行 (ruff-action@v4 → @v3)
+- Sprint 64 排查发现 e2e workflow **真 SUCCESS** (Sprint 63 P1b 修对了 FQ_DB_MODE=schema_test 生效)
+- Sprint 64 排查发现 lint + test FAILURE 真因仅 1 个 action major 错升
+- main HEAD: `3ce2f35`
+
 ## [0.4.14.153] - 2026-06-22
 
 ### Fixed
