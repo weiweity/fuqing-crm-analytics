@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.155` |
-| git HEAD (main) | `9eec44b` (Sprint 66 收口 merge: P0 lint.yml FQ_DB_MODE + P1 codex_clone_gc 平台检查迁移 main + L4.10 + VERSION bump + /document-release audit 修 3 处漂移 + L4.11 Codex checkpoint 永久规则 + 3 类 housekeeping 清理 + baseline 入仓) |
+| git HEAD (main) | `6a2a990` (Sprint 66 final doc-sync 自身: P0 + P1 + housekeeping + baseline + L4.10 + L4.11 + /document-release audit 全闭环) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 66 (CI 维修, 2 commit 0 debt, P0 lint.yml FQ_DB_MODE 漏修 5+sprint 复发治根 + P1 codex_clone_gc Linux runner 平台检查反模式治根) |
 | 收口日 | 2026-06-22 |

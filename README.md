@@ -19,10 +19,10 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 
 - ✅ 语义层 / 契约层 / 服务层 / 前端 Vue3 全部上线
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
-- ✅ ETL 增量更新正常（截至 2026-06-17：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行）
+- ✅ ETL 增量更新正常（截至 2026-06-22：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行 / 6/22 baseline 入仓）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 768 passed / 21 skipped (本地 macOS) + Linux CI runner 741 passed / 21 skipped / 62 deselected (Sprint 66 P1 治根实证) + Vite build 0 错误 + e2e 12/12 PASS + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.155, Sprint 66 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net + Sprint 60+60.1+60.1.1+60.2 500 错误治根 + Sprint 61 P2 fail-fast + Sprint 62 /ad-hoc-query 3 子命令 + Sprint 62.5 4 项磁盘清理治根 (169GB→95GB+53GB 释放) + Sprint 63 CI 维修 + Sprint 64 ruff-action v4 revert + Sprint 66 CI 维修 P0+P1 (lint.yml FQ_DB_MODE 漏修跨 5+sprint 复发治根 + codex_clone_gc 平台检查从 gc_once 迁 main) + L4.6/L4.7/L4.8/L4.9/L4.10 永久规则)
+- ✅ 测试 768 passed / 21 skipped (本地 macOS) + Linux CI runner 741 passed / 21 skipped / 62 deselected (Sprint 66 P1 治根实证) + Vite build 0 错误 + e2e 12/12 PASS + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.155, Sprint 66 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net + Sprint 60+60.1+60.1.1+60.2 500 错误治根 + Sprint 61 P2 fail-fast + Sprint 62 /ad-hoc-query 3 子命令 + Sprint 62.5 4 项磁盘清理治根 (169GB→95GB+53GB 释放) + Sprint 63 CI 维修 + Sprint 64 ruff-action v4 revert + Sprint 66 CI 维修 P0+P1 (lint.yml FQ_DB_MODE 漏修跨 5+sprint 复发治根 + codex_clone_gc 平台检查从 gc_once 迁 main) + housekeeping 3 类清理 (2 stale remote + 6 git stash + 13 Codex turn-diffs checkpoint) + L4.6/L4.7/L4.8/L4.9/L4.10/L4.11 永久规则)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
 - ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 3 skills (regen-types + ship-pr + /ad-hoc-query 即席查询 CLI, Sprint 62 扩 3 子命令 daily-gsv/yoy-battle/channel-slice) + MCP context7
@@ -192,7 +192,7 @@ fuqing-crm-analytics/
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.149, Sprint 61 收口) |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.155, Sprint 66 收口) |
 | [docs/operating/automation.md](./docs/operating/automation.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/operating/ship.md](./docs/operating/ship.md) | /ship skill 使用文档 |
 | [docs/operating/linting.md](./docs/operating/linting.md) | ground-truth-lint 规则 (Sprint 17 #121) |
@@ -260,7 +260,7 @@ cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 ```
 
-当前测试覆盖（633 passed / 15 skipped，v0.4.14.115 Sprint 31.2 收口）：
+当前测试覆盖（741 passed / 21 skipped，Linux CI runner 实证 v0.4.14.155 Sprint 66 收口；本地 macOS 768 passed / 21 skipped）：
 - `test_exceptions.py` - 异常类型和 HTTP 状态码映射
 - `test_segments.py` - RFM 分群注册表和阈值定义
 - `test_flow_service.py` - 人群流转服务

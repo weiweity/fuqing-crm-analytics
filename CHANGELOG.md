@@ -21,7 +21,7 @@
 - Linux CI runner pytest 741 passed / 21 skipped / 62 deselected (Sprint 66 P1 治根真生效)
 - CI 4/4 jobs 全绿: lint SUCCESS + ground-truth-lint SUCCESS + test SUCCESS + e2e SUCCESS
 - 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66 = **12 sprint, 0 debt**
-- main HEAD: `61ae76a`
+- main HEAD: `6a2a990` (final doc-sync, Sprint 66 + housekeeping + baseline 完整闭环)
 
 ## [0.4.14.154] - 2026-06-22
 

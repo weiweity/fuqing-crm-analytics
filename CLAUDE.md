@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.155（main @ 9eec44b，2026-06-22 Sprint 66 CI 维修闭环 + housekeeping + baseline 入仓: P0 lint.yml FQ_DB_MODE 漏修治根 + P1 codex_clone_gc 平台检查迁移 main() + L4.10 永久规则 + pytest 741/21/0 Linux CI runner 实证 + CI 4/4 jobs 全绿 + L4.11 Codex checkpoint 永久规则 + 清 2 stale remote + 6 git stash + 13 Codex turn-diffs checkpoint + baseline 入仓 (跟 Sprint 22 precedent). 累计 Sprint 54-66: L3 FilterBuilder 14/14 + Sprint 60+60.1+60.1.1+60.2 500 错误治根 + Sprint 61 P2 fail-fast + Sprint 62 /ad-hoc-query + Sprint 62.5 4 项磁盘清理 + Sprint 63 CI 维修 + Sprint 64 ruff-action revert + Sprint 66 CI 维修 + housekeeping, 0 debt 跨 12 sprint） |
+| 4 | **版本状态** | v0.4.14.155（main @ 6a2a990，2026-06-22 Sprint 66 CI 维修闭环 + housekeeping + baseline 入仓 + final doc-sync: P0 lint.yml FQ_DB_MODE 漏修治根 + P1 codex_clone_gc 平台检查迁移 main() + L4.10 永久规则 + pytest 741/21/0 Linux CI runner 实证 + CI 4/4 jobs 全绿 + L4.11 Codex checkpoint 永久规则 + 清 2 stale remote + 6 git stash + 13 Codex turn-diffs checkpoint + baseline 入仓 (跟 Sprint 22 precedent) + final doc-sync (4 commit 8 文件全部同步到 6a2a990). 累计 Sprint 54-66: L3 FilterBuilder 14/14 + Sprint 60+60.1+60.1.1+60.2 500 错误治根 + Sprint 61 P2 fail-fast + Sprint 62 /ad-hoc-query + Sprint 62.5 4 项磁盘清理 + Sprint 63 CI 维修 + Sprint 64 ruff-action revert + Sprint 66 CI 维修 + housekeeping + final audit, 0 debt 跨 12 sprint） |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 

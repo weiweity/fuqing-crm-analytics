@@ -14,6 +14,9 @@ fuqing-crm-analytics/docs/
 │   ├── TEST_INFRASTRUCTURE.md        (Sprint 53 race flake fixture 模式 + L4.3/L4.4/L4.6)
 │   └── 50m-scale-architecture.md     (Sprint 52 P2 留尾, 30M 数据触发)
 │
+├── business/                          [业务定义 SSOT]
+│   └── RFM_DEFINITIONS.md            (Sprint 60+ L4.8 永久规则, RFM 阈值/口径定义)
+│
 ├── data/                              [数据目录布局]
 │   └── data-layout.md                (data/cache exports parquet processed raw 5 区用途+读写+清理)
 │
@@ -32,10 +35,12 @@ fuqing-crm-analytics/docs/
 ├── development/                       [开发指南 - 怎么改]
 │   ├── testing.md                    (test 怎么写, mock data, race flake 模式)
 │   ├── services.md                   (新增 service 的 pattern, FilterBuilder 强制)
-│   └── ratio-convention.md           (B1+B2 ratio/pct/ppt/rate 命名规范)
+│   ├── ratio-convention.md           (B1+B2 ratio/pct/ppt/rate 命名规范)
+│   ├── LESSONS_LEARNED.md            (Sprint 57 沉淀 9 项实战 fix pattern: DUCKDB_PATH / subagent / race flake / spec-lint / Codex / 12 步流程 / 破坏→验证→恢复 / commit msg↔diff / empty vs stub)
+│   └── AUDIT-WORDING.md              (Sprint 59 #8 audit 措辞 SOP, 5 规则 + 5 反例正例)
 │
 └── history/                           [历史归档]
-    └── SPRINT_INDEX.md               (Sprint 1-55 索引, 27+ memory file 入口)
+    └── SPRINT_INDEX.md               (Sprint 1-66 索引, 27+ memory file 入口)
 ```
 
 ## 何时用哪个
@@ -43,7 +48,8 @@ fuqing-crm-analytics/docs/
 | 你想... | 看 |
 |--------|-----|
 | 了解项目全貌 | `README.md` (项目根) |
-| 跑 sprint 收口 | `operating/ship.md` |
+| 看 AI 行为规则 (L4.1-L4.11 永久规则) | `CLAUDE.md` (项目根) |
+| 跑 sprint 收口 | `operating/ship.md` + `STATUS.md` (项目根) |
 | 加新 service | `development/services.md` + `architecture/AI_SAFETY_NET.md` |
 | 写新 test | `development/testing.md` |
 | 改 contract ratio 字段 | `development/ratio-convention.md` |
@@ -53,6 +59,9 @@ fuqing-crm-analytics/docs/
 | 看历史 sprint | `history/SPRINT_INDEX.md` (高密度索引) |
 | 状态总览 (版本/测试/debt) | `STATUS.md` (项目根, 单一 source of truth) |
 | data/ 目录布局 | `data/data-layout.md` (cache/exports/parquet/processed/raw) |
+| 业务定义 SSOT (RFM 阈值) | `business/RFM_DEFINITIONS.md` (Sprint 60+ L4.8 永久规则) |
+| 实战 fix pattern (9 项) | `development/LESSONS_LEARNED.md` (Sprint 57 沉淀) |
+| audit 措辞 SOP | `development/AUDIT-WORDING.md` (Sprint 59 #8 沉淀) |
 
 ## 跨 sprint 维护规则
 
