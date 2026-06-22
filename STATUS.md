@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 62 收口: PR #28 已 merge main `91578b6`, v0.4.14.151, main HEAD `91578b6` + L4.8 永久规则)
+**最后更新**: 2026-06-22 (Sprint 62.5 收口: 4 项磁盘清理治根 B1+B2+B3+B4, v0.4.14.152, main HEAD `63d3ff5` + pytest 795/21/0 baseline 维持)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.151` |
-| git HEAD (main) | `91578b6` (Sprint 62 PR #28 merge: feat(sprint62) /ad-hoc-query 扩 yoy-battle/channel-slice + P3 uvicorn launchd 守护 + docs(release) Sprint 62 收口 + chore(CLAUDE.md) L4.8) |
+| VERSION | `0.4.14.152` |
+| git HEAD (main) | `63d3ff5` (Sprint 62.5 merge: 4 项磁盘清理治根 B1+B2+B3+B4, 9 文件 +783/-6 行, pytest 795/21/0 baseline 维持) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 62 (/ad-hoc-query 扩 + P3 uvicorn 守护 + Sprint 62 收口 + L4.8 永久规则, 4 commit 0 debt, PR #28 ✅ merged) |
+| 最近 sprint | Sprint 62.5 (4 项磁盘清理治根, 9 commit 0 debt, 4 case + 2 case + 3 case + 4 case regression test, 0 回归) |
 | 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 62 (PR #28, 4 commit 合并) |
+| 上次合入 | Sprint 62.5 (PR merge `63d3ff5`, 9 commit 合并) |
 
 ---
 
@@ -51,6 +51,9 @@
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
 | 已修复 (历史) | **30 条** | 债 #1-#7 + Sprint 26-58 累计 + Sprint 61 P2 治本 (uvicorn 接错空/过期 DB) |
+| Sprint 62.5 留尾 | **0 项** | 全部闭环 (B1+B2+B3+B4 + D4 ruff 留尾) |
+| Sprint 62.5 闭环 | **9 commit 0 debt** | B1 backup retention (4 case) + B2 giant file bypass cap (2 case) + B3 ad-hoc-query tmp_write_conn (3 case) + B4 Codex clone GC (4 case). pytest 795/21/0 baseline 维持 |
+| Sprint 62.5 实战 fix 沉淀 | **3 项 pattern** | (a) 100GB byte cap 反过来保护 109GB orphan → giant standalone 治理 (b) Sprint 25 backup retention 设计意图未实施 → 4 zst 169GB 累积 (c) Codex code_sign_clone 无 GC → 40 份 53GB 累积. 全部治根 + 永久测试覆盖 |
 | Sprint 61 留尾 | **2 项** | ① P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+) ② Sprint 60+ 留尾 1 项 (FilterBuilder params count 断言, 0.5d) 跨 sprint 累计 |
 | Sprint 61 闭环 | **2 commit 0 debt (PR #27 待 merge)** | ① docs(readme) sync Sprint 54-61 状态行 (15 行) ② fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (5/5 端到端场景验证全过) |
 | Sprint 60+ 留尾 | **3 项 + 3 ruff 留尾** | ① FilterBuilder params count 断言 (0.5d) ② L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` ③ L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md` (跟 Sprint 14.5 P1.1 注释对齐) ④ Sprint 60+ ruff 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix, Sprint 60.3 闭环) |
@@ -83,6 +86,10 @@
 | **Sprint 59 #6 STATUS 自动化** | **4 字段 + 3 case test, 闭环手改漂移** | **Sprint 59** | `scripts/status_update.py` |
 | **Sprint 59 #5 CHANGELOG 按行数归档** | **≤ 900 行 + archive_changelog.py 脚本化滚动** | **Sprint 59** | `scripts/archive_changelog.py` |
 | **Sprint 59 #8 audit 措辞 SOP** | **5 规则 + 5 反例正例 (Codex review #23 战略收缩)** | **Sprint 59** | `docs/development/AUDIT-WORDING.md` |
+| **Sprint 62.5 B1 治根** | **backup_duckdb.py 加 _prune_old_backups() (Sprint 25 设计意图从未实施, 4 zst 169GB 累积). 8 项 safety check (mtime / keep_min / size / zstd magic / lsof / soft fail). 4 case regression test.** | **Sprint 62.5** | `scripts/etl/backup_duckdb.py` |
+| **Sprint 62.5 B2 治根** | **cleanup cap giant standalone 治理路径 (100GB byte cap 反过来保护 109GB fuqing_e2e_yoyb.duckdb 永久孤儿. 加 strict magic + lsof 8 项校验后 bypass cap 但只删 1 个). 2 case regression test.** | **Sprint 62.5** | `scripts/etl/cli.py:_cleanup_fq_tmp_orphans` |
+| **Sprint 62.5 B3 治根** | **/ad-hoc-query tmp_write_conn() helper (TrackerDB.register + auto unlink + tracker.remove, 防 Bash 直调 duckdb 留 109GB orphan). 3 case regression test.** | **Sprint 62.5** | `scripts/ad_hoc_queries/_utils.py` |
+| **Sprint 62.5 B4 治根** | **Codex code_sign_clone GC LaunchAgent (累积 40 份 = 53GB. 每天 03:00 清理 > 7d, 保留最新 1 份, 8 项 safety check). 4 case regression test.** | **Sprint 62.5** | `scripts/launchd/codex_clone_gc.py` + `com.local.codex-clone-gc.plist` |
 | **Sprint 61 P2 治本** | **uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (production raise / schema_test WARN only / 未知 mode 默认 production), 5/5 端到端场景验证全过 (happy_path + fail_fast_A/B + ci_mode + e2e). 拒绝自动 fallback + 全局 1GB 阈值 (污染测试边界 + 误伤 <1GB 测试库).** | **Sprint 61** | `backend/main.py:validate_startup_db()` + `backend/config.py:FQ_DB_MODE` |
 
 ---

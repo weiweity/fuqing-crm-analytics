@@ -4,6 +4,20 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.152] - 2026-06-22
+
+### Fixed
+- Sprint 62.5 4 项磁盘清理治根 (2026-06-22 磁盘急救发现):
+  - **B1 backup retention**: `scripts/etl/backup_duckdb.py` 加 `_prune_old_backups()`, main() 末尾 success path 自动调用. 8 项 safety check (mtime / keep_min / size / zstd magic / lsof / soft fail). 4 case regression test. Sprint 25 设计意图 (7 天滚动), 实施遗漏, 4 zst 累积 169GB.
+  - **B2 giant file standalone 治理**: `scripts/etl/cli.py` cleanup 加 giant path (> byte cap 时走 strict magic + lsof 8 项校验后 bypass cap). 反向教训: 100GB byte cap 反过来保护 109GB `fuqing_e2e_yoyb.duckdb` 永久孤儿. 2 case regression test.
+  - **B3 /ad-hoc-query tmp_write_conn helper**: `scripts/ad_hoc_queries/_utils.py` 加 `tmp_write_conn()` context manager (TrackerDB.register + auto unlink). 3 case regression test. 防 Bash 直调 `duckdb.connect(/private/tmp/...)` 留孤儿.
+  - **B4 Codex code_sign_clone GC LaunchAgent**: `scripts/launchd/codex_clone_gc.py` (151 行, 8 项 safety check) + `scripts/launchd/com.local.codex-clone-gc.plist` (68 行, 每天 03:00 StartCalendarInterval). 4 case regression test. 累积 40 份 = 53GB 治根.
+
+### Stats
+- 9 文件 + 783 行 / -6 行
+- pytest 795 passed / 21 skipped / 0 failed baseline 维持 (10 分钟跑批验证 0 回归)
+- main HEAD: `63d3ff5` (merge commit `feat(Sprint 62.5)`)
+
 ## [0.4.14.151] - 2026-06-22
 
 ### Added
