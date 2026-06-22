@@ -26,6 +26,7 @@ fuqing-crm-analytics/docs/
 │   ├── ci-precommit.md               (原 CI-PRECOMMIT.md, GitHub Actions 配置)
 │   ├── ci-e2e-history.md             (原 CI-E2E-HISTORY.md, Sprint 41 实战 follow-up 12)
 │   ├── hooks-choice.md               (原 HOOKS-CHOICE.md, .githooks vs .pre-commit-config)
+│   ├── launchd-uvicorn.md            (Sprint 62 P3, launchd KeepAlive uvicorn 守护)
 │   └── (frontend-types-gen.md / yoy-guard-config.md 已于 Sprint 61 清理, 改用 .claude/skills/regen-types/ + pre-commit hook)
 │
 ├── development/                       [开发指南 - 怎么改]
@@ -47,6 +48,8 @@ fuqing-crm-analytics/docs/
 | 写新 test | `development/testing.md` |
 | 改 contract ratio 字段 | `development/ratio-convention.md` |
 | 排查 CI 失败 | `operating/ci-defense-playbook.md` + `operating/ci-e2e-history.md` |
+| 启动 uvicorn 后端 | `operating/launchd-uvicorn.md` (Sprint 62 P3 launchd 守护, kill 自动重启) |
+| 即席查询 GSV / YOY / 渠道 | `/ad-hoc-query` skill (Sprint 62 3 子命令 daily-gsv / yoy-battle / channel-slice) |
 | 看历史 sprint | `history/SPRINT_INDEX.md` (高密度索引) |
 | 状态总览 (版本/测试/debt) | `STATUS.md` (项目根, 单一 source of truth) |
 | data/ 目录布局 | `data/data-layout.md` (cache/exports/parquet/processed/raw) |

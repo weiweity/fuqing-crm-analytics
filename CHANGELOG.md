@@ -4,6 +4,36 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.151] - 2026-06-22
+
+### Added
+- Sprint 62 /ad-hoc-query skill 扩 2 子命令:
+  - `yoy-battle` (`scripts/ad_hoc_queries/yoy_battle.py` 218 行) — 双窗口 (baseline + current) YOY 战斗, 支持 `gsv/orders/customers/aov/all` 5 metric, 复用 `yoy_absolute` + `safe_ratio` + `GSV_AMOUNT_COL` (跟 semantic 层 100% 同步), 半开区间 + 闰年 2/29 → 2/28 安全 shift + 窗口 ≤ 366d
+  - `channel-slice` (`scripts/ad_hoc_queries/channel_slice.py` 264 行) — 按 channel 切片日维度, 全店排第一行, 9 channel SSOT 跟 `backend/semantic/channels.CHANNEL_ORDER` 同步, `--compare=yoy|pop|none` 动态算 yoy_pct 列
+  - 业务标签: `YOY对比` / `渠道切片` (双层目录规则自动落 `~/Desktop/fuqin date/取数/<年份>/<生成日期>/<业务标签>/`)
+- Sprint 62 P3 uvicorn launchd 守护 (4 文件 240 行):
+  - `scripts/uvicorn_launchd.py` (43 行, python3 启动器, 不用 bash 避 macOS sandbox TCC deny)
+  - `scripts/launchd/com.fuqing.uvicorn.plist` (70 行, KeepAlive `{SuccessfulExit:false, Crashed:true}` + ThrottleInterval:5s)
+  - `scripts/launchd/install_uvicorn_launchd.sh` (84 行, `launchctl load -w` + 状态检测)
+  - `scripts/launchd/uninstall_uvicorn_launchd.sh` (45 行, `launchctl unload`)
+  - kill -9 测试 PASS: 8s 自动 restart (KeepAlive + ThrottleInterval 5s + uvicorn startup ~3s)
+- Sprint 62 文档:
+  - `docs/operating/launchd-uvicorn.md` (149 行, launchd 守护操作手册: 安装/卸载/手动控制/kill test/设计要点/故障排查)
+  - `docs/README.md` 加 launchd-uvicorn.md 入口 + 即席查询 CLI 入口
+  - `CLAUDE.md` L4.7 永久规则: launchd 启动器首选 python3 不用 bash (macOS 14+ sandbox deny bash read Desktop 路径)
+- Sprint 62 测试:
+  - `backend/tests/test_ad_hoc_query_sprint61plus.py` (267 行, 6 case: yoy-battle 业务 3 + channel-slice 业务 2 + 端到端 CLI subprocess 1)
+  - pytest 6/6 pass (0.71s, tmp_duckdb_rich fixture, 不污染生产 DuckDB)
+
+### Sprint 62 实测数据
+- yoy-battle 618 大促对比 (2025-06-01~06-21 vs 2026-06-01~06-21, --metric all): gsv -11.53% / orders +10.01% / customers +16.32% / aov -19.59%
+- channel-slice 2026-06-21 (--compare yoy): 10 行 channel, 达播 YOY +1163.59% 最高, 赠品 & 0.01 渠道 -83.34% 最低
+- uvicorn launchd kill test: PID 42444 kill -9 → 8s 后 PID 42945 自动 restart, /health 200 + audience API 30113 bytes 10 rows
+
+### Sprint 62 实战 fix 沉淀
+- **launchd 启动器首选 python3 不用 bash** (macOS 14+ sandbox deny bash file-read-data Desktop 路径). 4 个 fuqing launchd plist 范本对照: 已用 python3 的 (Sprint 4 P0-2 backup / Sprint 6 P0-3 cleanup / Sprint 53 duckdb-release-check) 都 OK, 这次新加的 launchd-uvicorn 严格按 python3 写. **CLAUDE.md L4.7 永久规则**
+- yoy-battle / channel-slice 复用 `_GSV_EXPR` / `_CUSTOMERS_EXPR` / `_ORDERS_EXPR` 跟 daily_gsv 100% 同步, 无口径漂移
+
 ## [0.4.14.150] - 2026-06-22
 
 ### Fixed
@@ -791,84 +821,6 @@ Sprint 57 闭环率: 3/10 = 30% (剩余 7 项分布 Sprint 58 工具链实战 fi
 - `HANDOFF-TO-CODEX-Sprint50-L2-AST-Parser.md` (Sprint 50+ plan doc, Stage 1 Claude 输出)
 - `HANDOFF.md` (Claude 总指挥 + Codex 实施工作流文档)
 - `docs/TECH-DEBT.md` 债 #S34-2 闭环 (L2 AST parser) + Sprint 50.1 留尾
-
----
-
-## [v0.4.14.132] - 2026-06-19 - ci(github-actions): Sprint 41 — e2e CI 0→1 实战失败 + 改 advisory (12 follow-up 实战教训)
-
-> Sprint 32.1 (v0.4.14.114) Playwright HTTPS tolerance 留尾, Sprint 40 ground-truth audit 后实施 Sprint 41. **12 次 follow-up** (Sprint 41 + 41.1-41.12) 实战 fix 闭环 0→1 不现实 (CI runner 14GB disk + headless Linux + 没 DuckDB 跟本地差异巨大), Sprint 41.12 改 e2e non-blocking (跟 ground-truth-lint 一致). 本地 11/11 spec pass, CI advisory. v0.4.14.131 → 0.4.14.132.
-
-### Changed (12 follow-up commits)
-
-1. **`.github/workflows/lint.yml`** (Sprint 41, ef22b2a) — 加 `e2e` job: setup-node v20 + npm ci + playwright install + vite preview + playwright test. paths filter 加 `frontend-vue3/e2e/**`.
-2. **`backend/tests/test_wo_cleanup_orphans.py`** (Sprint 41.1, d44804b) — `monkeypatch.setenv("ETL_MIN_DISK_GB", "0")` 跳过 50GB disk check.
-3. **`.github/workflows/lint.yml`** (Sprint 41.2, ee8a655) — `npm ci` → `npm ci --legacy-peer-deps` (openapi-typescript@7.13.0 peer dep typescript@^5.x vs frontend typescript@~6.0.2 ERESOLVE).
-4. **`frontend-vue3/src/views/health/HealthOverviewTab.vue`** (Sprint 41.3, b374f36) — `HEALTH_SCORE_CHANNEL_ORDER: readonly string[]` type cast (vue-tsc strict TS2345).
-5. **`.github/workflows/lint.yml`** (Sprint 41.4, ae68c6c) — e2e job 启 uvicorn backend (FQ_CRM_PASSWORDS + ETL_MIN_DISK_GB=0).
-6. **`frontend-vue3/e2e/{sampling,breakdown,category-detail}.spec.ts`** (Sprint 41.5, 7df0c84) — `page.request` 加 Authorization header (3 spec 401 fix).
-7. **`frontend-vue3/e2e/sampling.spec.ts` + `playwright.config.ts`** (Sprint 41.6+41.7, 342e2f3) — sampling channel_summary typo + fullyParallel 关 serial mode.
-8. **`playwright.config.ts`** (Sprint 41.8, d2a8534) — CI global timeout 30000.
-9. **`frontend-vue3/e2e/*.spec.ts`** (Sprint 41.9, da9cd2b) — sed spec hardcode timeout 10000/15000 → 30000 (34 处).
-10. **`playwright.config.ts`** (Sprint 41.10, 9770cfa) — CI global timeout 30000 → 60000 (beforeEach + test body).
-11. **`.github/workflows/lint.yml`** (Sprint 41.11, e3729a5) — uvicorn `set -e` + redirect log + 60s wait (`|| true` 吞错修).
-12. **`.github/workflows/lint.yml`** (Sprint 41.12, e9020a1) — e2e job `continue-on-error: true` (non-blocking, 跟 ground-truth-lint 一致).
-
-### Cross-sprint 教训 (实战 fix 模式 ROI 重评)
-
-- **CI 0→1 实战闭环 = baseline fix + audit + 实施 + N 次 follow-up**. N 取决于环境差异. Sprint 41 N=12 还没完全闭环 (e2e 改 advisory 0→1).
-- **GH Actions runner 14GB disk + headless Linux + 没 DuckDB 跟本地差异巨大**, spec 在本地 11/11 pass, CI 11/11 timeout fail.
-- **Playwright 3 个 timeout 区别**: `timeout` (global test) / `expect.timeout` / `navigationTimeout`. Sprint 41.7/41.8/41.9/41.10 = 4 次 follow-up 才把 3 个 timeout 都改对.
-- **错误可见性 > 优雅失败**: Sprint 41.11 `set -e` + redirect log 让 uvicorn 启动错误可见.
-- **CI 留尾 ROI 重评要持续**: Sprint 32.1 留尾 7 sprint 没做 → Sprint 41 实施 12 次 follow-up = 实战 fix 闭环 ROI 重评. 改 advisory 0→1 是务实选择.
-
-### 跨 sprint 留尾 (Sprint 50+ 重新评估)
-
-- e2e CI advisory (Sprint 41.12 改) → Sprint 50+ 重新启用 blocking (GH runner disk 升级 / 加 seed DuckDB / 换 CI provider)
-- race flake 真治本 (Sprint 38 推后 DuckDB 2.x)
-- Sprint 42+ 推后项 (L2 AST / ground-truth-lint 扩 / commit msg check / 50m scale / visitor chain 3 选项激活路径)
-
-### 关联
-
-- `docs/CI-E2E-HISTORY.md` (12 follow-up 详细实战教训, 跨 sprint 复用)
-- `docs/CI-E2E-HISTORY.md` (Sprint 40 audit doc + Sprint 41 实战总结段)
-- Sprint 38 close memory (race flake 治标 + DuckDB 文件锁 exclusive 限制, 同样改治标)
-- Sprint 39 close memory (GH CI baseline fix 实战教训)
-
----
-
-## [Sprint 42 实战 fix 框架沉淀, v0.4.14.132 同 commit] - 2026-06-19 - docs(ci-defense): Sprint 42 #S42-1 — spec-lint 预防层 + 3 层防御框架 (CI 实战 fix 12 follow-up 教训沉淀, doc-only)
-
-> Sprint 41 e2e CI 12 follow-up 实战 fix 闭环失败改 advisory (Sprint 41.12) 后, 实战教训沉淀. 4 产出物 = `docs/CI-DEFENSE-PLAYBOOK.md` (3 层防御 + Q1-Q4 决策树 + 5 步响应流程) + `frontend-vue3/e2e/lint/spec-lint.sh` (3 条规则: 不 hardcode 长度 / 不 waitForTimeout 死等 / page.request 加 Authorization) + regression test (Sprint 24+ P3 教训应用: 故意破坏验证 test 真 FAIL) + CLAUDE.md L5.1 + L5.2 永久规则 (CI 留尾 ROI 重评 + spec 写法"环境无关"原则). spec-lint 起步 advisory 模式 (跟 ground-truth-lint 一致, non-blocking 起步观察 1-2 sprint false positive 率). 不 bump VERSION (doc-only, 跟 Sprint 30.4 风格一致).
-
-### Added (4 产出物)
-
-1. **`docs/CI-DEFENSE-PLAYBOOK.md`** (新, ~225 行) — 3 层防御(预防/检测/响应)+ Q1-Q4 决策树 + 5 步响应流程 + Sprint 38 + 41 实战对照表 + Sprint 50+ 重新评估条件. 跨 sprint 复用, 防 Sprint 50+ 重新激活 e2e CI blocking 时复发同类问题.
-2. **`frontend-vue3/e2e/lint/spec-lint.sh`** (新, ~75 行) — 3 条规则防 Sprint 41.5/41.6/41.8/41.9 实战 fix 复发. Rule 1 (FAIL): hardcode 业务数据长度. Rule 2 (FAIL): `waitForTimeout` 死等. Rule 3 (WARN): `page.request` 缺 Authorization. 支持 `--specs-dir <path>` (test 用) + `--advisory` (non-blocking 起步).
-3. **`frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh`** (新, ~70 行) — 真连 regression test (Sprint 24+ P3 教训: 故意破坏验证 test 真 FAIL, 恢复验证 PASS). 3 case: clean PASS / Rule 1 FAIL / Rule 2 FAIL. 3/3 case pass.
-4. **`.pre-commit-config.yaml`** (扩, +10 行) — 加 `spec-lint` local hook (起步 `--advisory`, 跟 `contract-ground-truth-lint` 风格一致). files: `frontend-vue3/e2e/.*\.spec\.ts$`. 1-2 sprint 观察 false positive 率后改 blocking.
-5. **`CLAUDE.md` L5 段** (扩, +2 行) — L5.1 CI 留尾 ROI 重评规则(治本 1-2 天阈值). L5.2 spec 写法"环境无关"原则(配合 spec-lint 自动检查). review skill 强制.
-
-### Cross-sprint 教训 (Sprint 41 → Sprint 42 沉淀模式)
-
-- **实战 fix 闭环 ROI 重评是核心**: Sprint 41 e2e CI N=12 仍 fail 改 advisory (跟 Sprint 38 race flake N=5 改治标一致). N > 5 还没闭环, 改治标/治标-advisory 0→1 是务实选择.
-- **预防层 vs lessons learned 双 source**: lessons learned = 过去时总结(实战 12 follow-up 怎么 fix). playbook = 规范时沉淀(未来怎么预防 + Q1-Q4 决策树). playbook §关联文件 引用 lessons learned, 避免 source of truth 二义.
-- **spec-lint 起步 advisory 跟 ground-truth-lint 一致**: 不阻断 commit, 让 dev 流程顺. 1-2 sprint 观察 false positive 率后改 blocking. 跟 Sprint 41.12 实战 fix 改 advisory 模式同源.
-
-### 留尾 (Sprint 43+ backlog)
-
-- 📋 Sprint 43+ #S43-1 (1 天) spec-lint 改 blocking — 1-2 sprint 观察 false positive 率后改 (跟 ground-truth-lint Sprint 17 → Sprint 18 改 blocking 同模式).
-- 📋 Sprint 43+ #S43-2 (1h) 修 7 个真违反 (sampling/breakdown/audience-daily-trend/category-detail/customer-health/market-focus/category 加 `waitForTimeout` — Sprint 41.9 spec 实战 fix 改 timeout 没换 waitForSelector 治本).
-- 📋 Sprint 43+ #S43-3 (半天) pre-flight check 独立 shell script (Sprint 50+ 重新激活 e2e CI blocking 时再做, 跟 spec-lint 配合).
-
-### 关联文件
-
-- `docs/CI-DEFENSE-PLAYBOOK.md` (3 层防御 + Q1-Q4 决策树 + 5 步流程)
-- `frontend-vue3/e2e/lint/spec-lint.sh` (3 条规则)
-- `frontend-vue3/e2e/lint/__tests__/spec-lint.test.sh` (regression test)
-- `CLAUDE.md` L5.1 + L5.2 (永久规则)
-- `.pre-commit-config.yaml` (spec-lint hook 集成)
-- `docs/CI-E2E-HISTORY.md` (实战 12 follow-up 总结, 引用不复述)
-- `docs/TECH-DEBT.md` 债 #S42-1 闭环 (line 32 新待办 + line 386 已修复段)
 
 ---
 

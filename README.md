@@ -22,10 +22,11 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ ETL 增量更新正常（截至 2026-06-17：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 768 passed / 21 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.149, Sprint 61 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net)
+- ✅ 测试 768 passed / 21 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.150, Sprint 61+62 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
-- ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 2 skills (regen-types + ship-pr) + MCP context7
+- ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 3 skills (regen-types + ship-pr + /ad-hoc-query 即席查询 CLI, Sprint 62 扩 3 子命令 daily-gsv/yoy-battle/channel-slice) + MCP context7
+- ✅ uvicorn 守护：Sprint 62 launchd plist KeepAlive 守护, kill -9 自动 8s restart (P3 治本, 防止 sleep/wake crash 复发)
 - ✅ repo 公开：weiweity/fuqing-crm-analytics (PUBLIC, 2026-06-13)
 - ✅ Sprint 25-29+#198 完整收口 (v0.4.14.98 备份系统 + v0.4.14.99 F6 mtime→lsof + v0.4.14.100 Tooltip 5346% + v0.4.14.101 冷启动 mtime 阈值 + v0.4.14.102 RFM config 冲突 + v0.4.14.103 disk full 上游 + #198 RFM stuck index)
 - ✅ Sprint 30.1-30.5 完整收口 (v0.4.14.105 W4 540 combo batch INSERT 50.4× 加速 + v0.4.14.106 CHANGELOG post-merge hint + v0.4.14.107 cohort matrix B2 audit + v0.4.14.108 `*_rate` 文档对齐 + v0.4.14.109 端到端真验 W4 < 30s)
@@ -49,6 +50,13 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 55 收口 (v0.4.14.138 CI 实战 fix 4 次: 55.0 HEALTH_API_KEY env + 55.1 F401 unused import + 55.2 test_lint debug print + 55.3 subprocess cwd 显式传修 CI Python 3.14 venv crash)
 - ✅ Sprint 55.5 收口 (v0.4.14.139 22 项 audit workflow 5 phase 闭环 + docs 子目录化 11 git mv + P0 命名重构 facade 删 + sample → asset_focus + 4 新 doc + 4 stub 填 P0 死链接, 758 passed / 1 skipped)
 - ✅ Sprint 56 收口 (v0.4.14.140 doc-only 5 phase + Phase 3 后置 drift fix 闭环 + CHANGELOG 1734→1286 行 + 4 stub doc DRY 拆解 + testing.md + services.md + SPRINT_INDEX.md)
+- ✅ Sprint 57 收口 (v0.4.14.141 文档沉淀主题 3 worktree + Claude 接管 fallback + #10 LESSONS_LEARNED.md 679 行 9 pattern + #9 4 doc 扩内容 +458 行 + #7 services.md §5 asset_* 命名混淆)
+- ✅ Sprint 58 收口 (v0.4.14.142 工具链实战 fix 闭环 + #4 CI e2e 持久化 + auto_recover_ci.sh + #1 OOM 治本 DuckDB ATTACH + #2 commit-msg blocking 误报率 0%)
+- ✅ Sprint 59 收口 (v0.4.14.143 收割季 + Codex consult 24/24 全部吸收 + #6 STATUS.md 自动化 + #5 CHANGELOG 按行数归档 ≤ 900 行 + #8 audit 措辞 SOP only)
+- ✅ Sprint 60+ 累计 4 sprint 收口 (v0.4.14.147 main HEAD ea44dd4 + 9 commit 0 debt + Sprint 60 params 顺序错位 + Sprint 60.1 Binder 500 channel 别名 + Sprint 60.1.1 Pydantic 422 + distribution 漏修 + Sprint 60.2 RFM 8 象限 老客 GSV TTL 100%)
+- ✅ Sprint 60.3+ 收口 (v0.4.14.149 main HEAD f31626e + fix(ci) CI test job 排除 pytest.mark.slow 避免 10.6M 行 DuckDB integration 测试 hang + CI 4/4 全绿)
+- ✅ Sprint 61 收口 (v0.4.14.150 main HEAD 71a3ebc + 4 dead code 删 + 2 过气 doc 删 + CHANGELOG 归档 + STATUS 同步 + 7 commit 0 debt + README Sprint 54-61 状态行 + 后端 main.py 启动 fail-fast + /ad-hoc-query skill MVP)
+- ✅ Sprint 62 收口 (v0.4.14.150 main HEAD 4a5a3e3 / feat/sprint62-rollup-2026-06-22 + /ad-hoc-query 扩 yoy-battle + channel-slice 2 子命令 + P3 uvicorn launchd 守护脚本 + 8 文件 +995 行, 29/29 pytest pass)
 - ✅ Sprint 57 收口 (v0.4.14.141 文档沉淀主题 3 worktree + Claude 接管 fallback + #10 LESSONS_LEARNED.md 679 行 9 pattern + #9 4 doc 扩内容 +458 行 + #7 services.md §5 asset_* 命名混淆)
 - ✅ Sprint 58 收口 (v0.4.14.142 工具链实战 fix 闭环 + #4 CI e2e 持久化 ci-e8-history.md + auto_recover_ci.sh + #1 OOM 治本 DuckDB ATTACH read_only + #2 commit-msg blocking 误报率 0% THRESHOLD_RATIO 10 + MIN_DIFF_LINES 100)
 - ✅ Sprint 59 收口 (v0.4.14.143 收割季 + Codex consult 24/24 全部吸收 + #6 STATUS.md 自动化 scripts/status_update.py + #5 CHANGELOG 按行数归档 ≤ 900 行 + #8 audit 措辞 SOP only AUDIT-WORDING.md)
@@ -89,6 +97,39 @@ cd frontend-vue3 && npm run dev
 # 必须用 homebrew Python 3.14（workbuddy Python 3.13 有代码签名冲突）
 PYTHONPATH="$(pwd)" /Users/yourname/homebrew/bin/python3 scripts/run_etl.py --update
 ```
+
+### 即席查询 CLI（`/ad-hoc-query` skill, Sprint 62 3 子命令）
+
+```bash
+# 日序列 GSV + customers + YOY% (Sprint 61 MVP)
+PYTHONPATH="$(pwd)" python3 scripts/ad_hoc_query.py daily-gsv \
+  --start 2026-06-01 --end 2026-06-21
+
+# 双窗口 YOY 战斗, --metric all 一键 4 指标 (Sprint 62 新增)
+PYTHONPATH="$(pwd)" python3 scripts/ad_hoc_query.py yoy-battle \
+  --baseline-start 2025-06-01 --baseline-end 2025-06-21 \
+  --current-start  2026-06-01 --current-end  2026-06-21 \
+  --metric all
+
+# 按 channel 切片日维度, 全店排第一行 (Sprint 62 新增)
+PYTHONPATH="$(pwd)" python3 scripts/ad_hoc_query.py channel-slice \
+  --date 2026-06-21 --compare yoy
+
+# 走 Claude Code skill (跟 .claude/skills/ 注册同步)
+# 直接说: "跑 daily-gsv 2026-06-01~2026-06-21" 或 "yoy-battle 618 大促去年 vs 今年"
+```
+
+输出双层目录规则（不传 `--output` 时）：
+
+```
+~/Desktop/fuqin date/取数/
+└── 2026年/                                      ← 业务基期年份
+    └── 2026年6月22日/                          ← 生成日期
+        └── 2026年-2026年6月22日-YOY对比/        ← 业务上下文
+            └── YOY对比-2026-06-01至2026-06-21.csv
+```
+
+设计原则：复用 `backend/semantic/` 口径层（`OrderFilters.valid_order` / `calculations.yoy_absolute` / `safe_ratio`）+ `read_only=True` DuckDB 连接跟 uvicorn 共存（Sprint 53 race flake 治本同模式）+ 时间窗口 ≤ 366 天（防 OOM）。详见 `.claude/skills/ad-hoc-query/SKILL.md`。
 
 ---
 
