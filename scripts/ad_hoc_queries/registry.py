@@ -51,6 +51,8 @@ def get(name: str) -> QuerySpec:
 # 延迟导入避免循环依赖 + 启动慢
 def _load_builtins() -> None:
     from scripts.ad_hoc_queries import daily_gsv  # noqa: F401
+    from scripts.ad_hoc_queries import yoy_battle  # noqa: F401
+    from scripts.ad_hoc_queries import channel_slice  # noqa: F401
 
 
 _load_builtins()
