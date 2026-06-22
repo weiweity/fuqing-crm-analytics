@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 67+68 收口: 留尾 SSOT 治理 L4.12 + UserPromptSubmit hook + 4 follow-up gap 闭环, v0.4.14.155 不变, main HEAD `076e129` + pytest 741/21/0 baseline 持续, 累计 14 sprint 0 debt)
+**最后更新**: 2026-06-23 (Sprint 72 amend: amend drift 修 (Sprint 71 1 commit drift) + L4.14 永久接受 amend 物理限制 + L4.13/L4.x verify 必保持, v0.4.14.155 不变, main HEAD `100a5a2` + pytest 741/21/0 baseline 持续, 累计 18 sprint 0 debt)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.155` |
-| git HEAD (main) | `076e129` (Sprint 67+68 amend, 1 commit 闭环: 留尾 SSOT 治理 L4.12 + 4 follow-up gap) |
+| git HEAD (main) | `100a5a2` (Sprint 67+68+69+70+71+72 amend, 1 commit 闭环: 留尾 SSOT 治理 L4.12 + 4 follow-up gap + MEMORY dedupe + L4.1+L4.13+L4.14 永久规则 + drift 修 + 永久接受 amend 物理限制) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 67+68 (留尾 SSOT 治理 + 4 follow-up gap, 1 commit 0 debt, L4.12 永久规则 + UserPromptSubmit hook + 3 case regression + 4 项跨 sprint 推后进 SSOT) |
 | 收口日 | 2026-06-23 |
-| 上次合入 | Sprint 67+68 (commit `076e129` amended, 1 commit main 直做, 治理 sprint 非功能 sprint 不 bump VERSION) |
+| 上次合入 | Sprint 72 (commit `100a5a2` amended, 1 commit main 直做, 治理 sprint 非功能 sprint 不 bump VERSION) |
 
 ---
 

@@ -22,7 +22,7 @@
 - 7 文件 +189/-1 行 (Sprint 67+68 累计, 含 1 amend 修 .claude 漏 commit)
 - pytest 741/21/0 baseline 持续 (3/3 新 case: happy + fail-open + 中文)
 - 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68 = **14 sprint, 0 debt**
-- main HEAD: `076e129` (Sprint 67+68 amend, 1 commit 闭环)
+- main HEAD: `100a5a2` (Sprint 67+68+69+70+71+72 amend, 1 commit 闭环)
 
 ## [0.4.14.155] - 2026-06-22
 
