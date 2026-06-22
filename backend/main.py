@@ -15,7 +15,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 import time
 import logging
 
@@ -24,11 +25,133 @@ from backend.services.exceptions import ServiceError, ValidationError, NotFoundE
 logger = logging.getLogger(__name__)
 
 
+def validate_startup_db() -> None:
+    """Sprint 61 P2 治本: 启动时校验 DuckDB 数据可用性 (fail-fast).
+
+    根因: uvicorn PID 29564 接错 798KB 空 schema DB, 健康检查绿 + 200 OK + 全 0 数据
+    ("静默失真" 模式, 跟 Sprint 60+ 4 个 500 error 同类).
+
+    校验项:
+    - DB 文件存在
+    - orders 表存在
+    - orders 行数 > 0
+    - max(pay_time) 新鲜度 (默认 30 天)
+
+    模式 (FQ_DB_MODE):
+    - production (默认): 任一校验失败 → raise RuntimeError 拒绝启动
+    - schema_test: 跳过数据量检查, 只 WARN log (CI e2e / schema_test 用)
+    - 其他值: 默认 production 行为
+    """
+    from backend.config import DUCKDB_PATH, DB_MODE, DB_FRESHNESS_DAYS
+    import duckdb
+
+    db_realpath = Path(DUCKDB_PATH).resolve()
+    db_size_bytes = db_realpath.stat().st_size if db_realpath.exists() else 0
+    db_size_gb = db_size_bytes / (1024 ** 3)
+
+    logger.info(
+        "[Sprint 61 startup-check] DB realpath=%s size=%.3f GB (%d bytes) mode=%s freshness_days=%d",
+        db_realpath, db_size_gb, db_size_bytes, DB_MODE, DB_FRESHNESS_DAYS,
+    )
+
+    # 文件不存在 → 直接拒绝 (任何模式都拒绝, 跟读不到表同根因)
+    if not db_realpath.exists():
+        msg = f"Startup validation failed: DuckDB file not found at {db_realpath}"
+        logger.error("[Sprint 61 startup-check] %s", msg)
+        raise RuntimeError(msg)
+
+    # 用临时 read_only 连接校验 (避免污染全局单例的 memory_limit/config)
+    try:
+        conn = duckdb.connect(str(db_realpath), read_only=True)
+    except Exception as e:  # noqa: BLE001
+        msg = f"Startup validation failed: cannot open DuckDB at {db_realpath}: {e}"
+        logger.error("[Sprint 61 startup-check] %s", msg)
+        raise RuntimeError(msg) from e
+
+    try:
+        # orders 表存在性
+        try:
+            orders_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+        except duckdb.CatalogException as e:
+            orders_count = 0
+            logger.warning("[Sprint 61 startup-check] orders 表不存在: %s", e)
+
+        # max(pay_time) 新鲜度 (pay_time 字段缺失时容错)
+        max_pay_time = None
+        try:
+            row = conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
+            if row and row[0] is not None:
+                max_pay_time = row[0]
+        except duckdb.Error as e:
+            logger.warning("[Sprint 61 startup-check] pay_time 字段查询失败: %s", e)
+
+        logger.info(
+            "[Sprint 61 startup-check] orders.count=%s max_pay_time=%s",
+            orders_count, max_pay_time,
+        )
+
+        # schema_test 模式: 跳过数据量 + 新鲜度校验, 只 WARN
+        if DB_MODE == "schema_test":
+            logger.warning(
+                "[Sprint 61 startup-check] schema_test mode → 跳过数据量/新鲜度校验 "
+                "(orders.count=%s max_pay_time=%s)",
+                orders_count, max_pay_time,
+            )
+            return
+
+        # production 模式 (含未知 mode 默认): fail-fast
+        if orders_count == 0:
+            msg = (
+                f"Startup validation failed: orders 表为空 (count=0) at {db_realpath}. "
+                f"可能是 DUCKDB_PATH 接错空 schema DB. Set FQ_DB_MODE=schema_test for CI e2e."
+            )
+            logger.error("[Sprint 61 startup-check] %s", msg)
+            raise RuntimeError(msg)
+
+        if max_pay_time is None:
+            msg = (
+                f"Startup validation failed: orders.max(pay_time) 为 NULL at {db_realpath}. "
+                f"可能是 DUCKDB_PATH 接错空 schema DB. Set FQ_DB_MODE=schema_test for CI e2e."
+            )
+            logger.error("[Sprint 61 startup-check] %s", msg)
+            raise RuntimeError(msg)
+
+        # 新鲜度: max(pay_time) 距今超过 DB_FRESHNESS_DAYS 天 → 拒绝启动
+        now = datetime.now()
+        # max_pay_time 可能是 datetime / date / str, 统一转 datetime 比较
+        if isinstance(max_pay_time, datetime):
+            mpt = max_pay_time
+        elif hasattr(max_pay_time, "to_pydatetime"):  # pandas Timestamp
+            mpt = max_pay_time.to_pydatetime()
+        elif hasattr(max_pay_time, "year"):  # date
+            mpt = datetime(max_pay_time.year, max_pay_time.month, max_pay_time.day)
+        else:
+            logger.warning("[Sprint 61 startup-check] max_pay_time 类型未知: %s, 跳过新鲜度校验", type(max_pay_time))
+            return
+
+        age = now - mpt
+        if age > timedelta(days=DB_FRESHNESS_DAYS):
+            msg = (
+                f"Startup validation failed: orders.max(pay_time)={mpt} 距今 {age.days} 天 "
+                f"> {DB_FRESHNESS_DAYS} 天阈值. 可能是 DUCKDB_PATH 接错过期 DB. "
+                f"Set FQ_DB_MODE=schema_test for CI e2e."
+            )
+            logger.error("[Sprint 61 startup-check] %s", msg)
+            raise RuntimeError(msg)
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 # ─────────────────────────────────────────────────────────────
 # 应用生命周期
 # ─────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    # Sprint 61 P2 治本: 启动校验 (fail-fast, 阻断 DUCKDB_PATH 接错空/过期 DB)
+    validate_startup_db()
     # 启动时启动内存监控守护线程
     from backend.db.memory_monitor import start_memory_watchdog, check_memory
     start_memory_watchdog(interval=60)

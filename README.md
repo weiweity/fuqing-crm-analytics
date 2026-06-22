@@ -22,7 +22,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ ETL 增量更新正常（截至 2026-06-17：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行）
 - ✅ 后端代码审计完成，大文件拆分完成
 - ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
-- ✅ 测试 587 passed / 15 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations (v0.4.14.119, Sprint 34.1 收口; 债 #S34-1 churn.py:418 漏 f 前缀治根 + L1 SQL f-string 一致性 lint 钩子接入 pre-commit. 跟 Sprint 33 防御前端 .vue typo 对称, 共同构成 AI write safety net)
+- ✅ 测试 768 passed / 21 skipped + Vite build 0 错误 + e2e 10/10 router-registered view smoke pass + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 (v0.4.14.149, Sprint 61 收口; 累计 Sprint 34.1+36.4+50+50.1+53+53.5+54 共同构成 AI write safety net)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
 - ✅ Claude Code 自动化：3 hooks (PreToolUse 禁 .env/.duckdb + PostToolUse regen 提醒 + ruff) + 2 skills (regen-types + ship-pr) + MCP context7
@@ -45,6 +45,16 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ Sprint 52 收口 (v0.4.14.138 visitor 路由激活 + 50m scale benchmark + commit-msg diff 一致性 WARN hook, Codex 协作工作流验证)
 - ✅ Sprint 53 收口 (v0.4.14.138 race flake 真治本: per-worker tmp DuckDB + ATTACH read_only, 5 sprint 复发根因消除, 677 passed / 1 skipped)
 - ✅ Sprint 53.5 收口 (v0.4.14.138 L3 FilterBuilder 治本: churn.py 5 处 `{valid_sql}` + 用户输入 f-string 内嵌全部参数化, 闭环 CLAUDE.md L3 backlog, 683 passed / 1 skipped)
+- ✅ Sprint 54 收口 (v0.4.14.138 L3 FilterBuilder 100% 闭环 14/14 service + 6 case regression test + 749 passed / 1 skipped, Codex 3-lane 并行 Lane A/B/C + Stage 3 review 抓 1 真 bug distribution.py channel_filter NameError)
+- ✅ Sprint 55 收口 (v0.4.14.138 CI 实战 fix 4 次: 55.0 HEALTH_API_KEY env + 55.1 F401 unused import + 55.2 test_lint debug print + 55.3 subprocess cwd 显式传修 CI Python 3.14 venv crash)
+- ✅ Sprint 55.5 收口 (v0.4.14.139 22 项 audit workflow 5 phase 闭环 + docs 子目录化 11 git mv + P0 命名重构 facade 删 + sample → asset_focus + 4 新 doc + 4 stub 填 P0 死链接, 758 passed / 1 skipped)
+- ✅ Sprint 56 收口 (v0.4.14.140 doc-only 5 phase + Phase 3 后置 drift fix 闭环 + CHANGELOG 1734→1286 行 + 4 stub doc DRY 拆解 + testing.md + services.md + SPRINT_INDEX.md)
+- ✅ Sprint 57 收口 (v0.4.14.141 文档沉淀主题 3 worktree + Claude 接管 fallback + #10 LESSONS_LEARNED.md 679 行 9 pattern + #9 4 doc 扩内容 +458 行 + #7 services.md §5 asset_* 命名混淆)
+- ✅ Sprint 58 收口 (v0.4.14.142 工具链实战 fix 闭环 + #4 CI e2e 持久化 ci-e8-history.md + auto_recover_ci.sh + #1 OOM 治本 DuckDB ATTACH read_only + #2 commit-msg blocking 误报率 0% THRESHOLD_RATIO 10 + MIN_DIFF_LINES 100)
+- ✅ Sprint 59 收口 (v0.4.14.143 收割季 + Codex consult 24/24 全部吸收 + #6 STATUS.md 自动化 scripts/status_update.py + #5 CHANGELOG 按行数归档 ≤ 900 行 + #8 audit 措辞 SOP only AUDIT-WORDING.md)
+- ✅ Sprint 60+ 累计 4 sprint 收口 (v0.4.14.147 main HEAD ea44dd4 + 9 commit 0 debt + Sprint 60 params 顺序错位 DuckDB excess parameters + Sprint 60.1 Binder 500 channel 字段加 o. 别名 + Sprint 60.1.1 Pydantic 422 wool_party_ratios > 1.0 强截断 + distribution 漏修同根因跨 lane + Sprint 60.2 RFM 8 象限老客 GSV TTL 100%)
+- ✅ Sprint 60.3+ 收口 (v0.4.14.149 main HEAD f31626e + fix(ci) CI test job 排除 pytest.mark.slow 避免 10.6M 行 DuckDB integration 测试 hang + CI 4/4 全绿 lint + ground-truth-lint + test + e2e advisory)
+- ✅ Sprint 61 cleanup (v0.4.14.149 + 4 dead code 删 + 2 过气 doc 删 + CHANGELOG 归档 ≤ 900 行 + STATUS 同步 + 768 pytest 持续 + docs/sprint61-readme-sync-2026-06-22 README 同步 Sprint 34.1→61)
 
 ---
 
@@ -141,7 +151,7 @@ fuqing-crm-analytics/
 | 文档 | 说明 |
 |---|---|
 | [CLAUDE.md](./CLAUDE.md) | **项目权威参考**（Git 工作流 + 架构 + 规范 + AI 检查点） |
-| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.136, Sprint 50.1 收口) |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 (v0.4.14.149, Sprint 61 收口) |
 | [docs/operating/automation.md](./docs/operating/automation.md) | Claude Code 自动化配置 (3 hooks + 2 skills + MCP) |
 | [docs/operating/ship.md](./docs/operating/ship.md) | /ship skill 使用文档 |
 | [docs/operating/linting.md](./docs/operating/linting.md) | ground-truth-lint 规则 (Sprint 17 #121) |
@@ -281,3 +291,4 @@ npx playwright test
 | 2026-06-17 | **Sprint 31.1 P2 fix + VERSION 同步** (v0.4.14.113 tracker DB 加进 _PROTECTED_BASENAMES defense-in-depth, 2 P3 fix 闭环) |
 | 2026-06-17 | **Sprint 32.1 收口** (v0.4.14.114 Playwright HTTPS error tolerance — chromium v1208 SSL hardening, 2 layer fix 必要: 浏览器运行时 config + Node 端 cert 信任, 部署侧 `NODE_EXTRA_CA_CERTS=certifi cacert.pem` 修 SELF_SIGNED_CERT_IN_CHAIN. 571 pass / 15 skip + 2/3 e2e 验证. 留 Sprint 32.2 e2e spec 回归) |
 | 2026-06-18 | **Sprint 31.2 收口 + codex P3 fix** (v0.4.14.115 Sprint 30.3 留 12 字段 ratio/rate 范围约束补标 — TierFlowRow 5 ratio + 1 PpField + NewCustomerConversionFunnel 4 rate + MarketBasketItem 2 ratio, 14 test case, 业务实证 `yoy_repurchase_rate` = PpField 来自 `semantic.calculations.py:70-80`. 633 pass / 15 skip + 0 linter violation + codex review P3 fix: 删 `_YOY_PPT_FIELDS` dead code 3 行) |
+| 2026-06-22 | **Sprint 60.3+ CI fix + Sprint 61 cleanup (v0.4.14.149 + f31626e + 285d912, CI 4/4 pass)** |

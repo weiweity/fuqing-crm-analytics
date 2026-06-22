@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 60.3+ CI fix + Sprint 61 cleanup, v0.4.14.149, main HEAD `f31626e`)
+**最后更新**: 2026-06-22 (Sprint 61 收口: docs(readme) sync + fix(backend) startup fail-fast, v0.4.14.150, branch `docs/sprint61-readme-sync-2026-06-22` HEAD `fb605ed`, PR #27)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.149` |
-| git HEAD (main) | `f31626e` (Sprint 60.3+ fix(ci): CI test job 排除 pytest.mark.slow 避免 10.6M 行 DuckDB integration 测试 hang) |
-| 当前分支 | `main` |
-| 最近 sprint | Sprint 61 (cleanup + release, 4 dead code 删 + 2 过气 doc 删 + CHANGELOG 归档 + STATUS 同步, 0 debt) |
+| VERSION | `0.4.14.150` (bump 待 merge 后) |
+| git HEAD (main) | `f31626e` (Sprint 60.3+ fix(ci) 收口) |
+| 当前分支 | `docs/sprint61-readme-sync-2026-06-22` (PR #27 待 merge) |
+| 最近 sprint | Sprint 61 (cleanup + release + P2 fail-fast, 2 commit 0 debt, PR #27) |
 | 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 60.3+ (fix(ci) 1 commit) + Sprint 61 cleanup (chore 1 commit, 见下方) |
+| 上次合入 | Sprint 60.3+ (fix(ci) 1 commit) + Sprint 61 cleanup (chore 1 commit, 已合 main) + Sprint 61 P2 fail-fast (fix(backend) 1 commit, 待 PR #27 merge) |
 
 ---
 
@@ -23,8 +23,8 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **768** | Sprint 61 实测 (pytest 9:31, 1 case PID 锁 skip) |
-| pytest skipped | **1** | `w4_full:319` PID 锁 fd 跨进程冲突 (Sprint 60.1.1 起跨 sprint 留尾, 跟 Sprint 53 race flake 治本 fixture 兼容) |
+| pytest passed | **768** | Sprint 61 P2 实施时实测 (pytest 9:10, 21 skipped 含 production DuckDB 不可用) |
+| pytest skipped | **21** | Sprint 61 P2 实测: 1 `w4_full:319` PID 锁 fd + 20 production DuckDB 不可用跨 sprint 留尾 |
 | pytest failed | **0** | 上次 green |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
@@ -50,15 +50,17 @@
 | 项 | 数 | 详情 |
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
-| 已修复 (历史) | **29 条** | 债 #1-#7 + Sprint 26-58 累计 |
-| Sprint 60+ 留尾 | **3 项 + 3 ruff 留尾** | ① FilterBuilder 治本: 加 `o.channel` 前缀 + audit 14+ service (半天 ~ 1d) ② L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` ③ L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md` (跟 Sprint 14.5 P1.1 注释对齐) ④ Sprint 60+ ruff 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix, Sprint 60.3 闭环) |
-| Sprint 60+ 闭环 | **4 sprint 累计 12 commit 0 debt** | Sprint 60 (params 顺序错位) + 60.1 (Binder 500 channel 加 o. 别名) + 60.1.1 (Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution) + 60.2 (RFM 8 象限 老客 GSV TTL 100% 治本) |
+| 已修复 (历史) | **30 条** | 债 #1-#7 + Sprint 26-58 累计 + Sprint 61 P2 治本 (uvicorn 接错空/过期 DB) |
+| Sprint 61 留尾 | **2 项** | ① P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+) ② Sprint 60+ 留尾 1 项 (FilterBuilder params count 断言, 0.5d) 跨 sprint 累计 |
+| Sprint 61 闭环 | **2 commit 0 debt (PR #27 待 merge)** | ① docs(readme) sync Sprint 54-61 状态行 (15 行) ② fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (5/5 端到端场景验证全过) |
+| Sprint 60+ 留尾 | **3 项 + 3 ruff 留尾** | ① FilterBuilder params count 断言 (0.5d) ② L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` ③ L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md` (跟 Sprint 14.5 P1.1 注释对齐) ④ Sprint 60+ ruff 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix, Sprint 60.3 闭环) |
+| Sprint 60+ 闭环 | **5 sprint 累计 14 commit 0 debt** | Sprint 60 (params 顺序错位) + 60.1 (Binder 500 channel 加 o. 别名) + 60.1.1 (Pydantic 422 强截断 + 修 Sprint 60 漏修 distribution) + 60.2 (RFM 8 象限 老客 GSV TTL 100% 治本) + 61 (P2 fail-fast + docs sync) |
 | Sprint 59 留尾 | **1 项** | #3 50m scale 调研推 Sprint 60+ (触发条件 = 30M 数据量) |
 | Sprint 59 闭环 | **3 项** | #6 STATUS.md 自动化 (4 字段 + 3 case test) + #5 CHANGELOG 按行数归档 (≤ 900 行 + archive_changelog.py) + #8 audit 措辞 SOP (5 规则 + 5 反例正例) |
 | Sprint 58 闭环 | **3 项** | #4 CI e2e 持久化 (12+4 follow-up + auto_recover_ci.sh + e2e.yml auto-recovery) + #1 OOM 治本 (DuckDB ATTACH + workers 1 + timeout 60s) + #2 commit-msg blocking hook (误报率 0%) |
 | 延后决策 | **1 条** | 50m-scale-architecture Phase 1-3 触发条件 = 30M 数据量 (Sprint 52 P2 留尾) |
 | Sprint 34+ backlog | **1 条** | 候选 4: CI 跑 e2e (Sprint 58 期望 4/4 pass 闭环) |
-| Recurring pattern | **1 个** | (a) race flake 治本 (Sprint 36.5, 治本 Sprint 53 闭环) ✅ 闭环 (b) e2e 50+MB OOM 治本 Sprint 58 #1 闭环, 跨 sprint 5+ 复发 #14 终止 |
+| Recurring pattern | **1 个** | (a) race flake 治本 (Sprint 36.5, 治本 Sprint 53 闭环) ✅ 闭环 (b) e2e 50+MB OOM 治本 Sprint 58 #1 闭环, 跨 sprint 5+ 复发 #14 终止 (c) **uvicorn 接错 DB 静默 0 数据 P2 风险 → Sprint 61 治本** (FQ_DB_MODE profile-aware fail-fast) |
 
 ---
 
@@ -81,6 +83,7 @@
 | **Sprint 59 #6 STATUS 自动化** | **4 字段 + 3 case test, 闭环手改漂移** | **Sprint 59** | `scripts/status_update.py` |
 | **Sprint 59 #5 CHANGELOG 按行数归档** | **≤ 900 行 + archive_changelog.py 脚本化滚动** | **Sprint 59** | `scripts/archive_changelog.py` |
 | **Sprint 59 #8 audit 措辞 SOP** | **5 规则 + 5 反例正例 (Codex review #23 战略收缩)** | **Sprint 59** | `docs/development/AUDIT-WORDING.md` |
+| **Sprint 61 P2 治本** | **uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (production raise / schema_test WARN only / 未知 mode 默认 production), 5/5 端到端场景验证全过 (happy_path + fail_fast_A/B + ci_mode + e2e). 拒绝自动 fallback + 全局 1GB 阈值 (污染测试边界 + 误伤 <1GB 测试库).** | **Sprint 61** | `backend/main.py:validate_startup_db()` + `backend/config.py:FQ_DB_MODE` |
 
 ---
 
