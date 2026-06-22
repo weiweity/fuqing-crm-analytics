@@ -41,9 +41,19 @@ class TestCodexCloneGc:
         # 把 glob 路径换成我们的 tmp_path
         monkeypatch.setattr(codex_clone_gc, "X_DIR_GLOB_BASE", tmp_path / "tz")
 
+        # Sprint 66 P1 排查: CI runner 上 deleted=0 但本地 PASS. 加诊断输出 (pytest -s 也捕获不了,
+        # 写断言 message 里). 抓真因靠 assertion message.
+        clones = codex_clone_gc._collect_clones()
         deleted, _ = codex_clone_gc.gc_once()
 
-        assert deleted == 2, f"期望删 2 个 (> 7d), 实际 {deleted}"
+        assert deleted == 2, (
+            f"期望删 2 个 (> 7d), 实际 {deleted}. "
+            f"DEBUG: X_DIR_GLOB_BASE={codex_clone_gc.X_DIR_GLOB_BASE} "
+            f"is_dir={codex_clone_gc.X_DIR_GLOB_BASE.is_dir()} "
+            f"cwd_exists={tmp_path.exists()} "
+            f"target_dir_exists={target_dir.exists()} "
+            f"clones_found={[c.name for c in clones]}"
+        )
         assert new.exists(), "新 clone 不应被删"
         assert not old1.exists(), "old1 应被删"
         assert not old2.exists(), "old2 应被删"
