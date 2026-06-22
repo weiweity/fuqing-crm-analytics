@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 61 收口: PR #27 已 merge main `ef3d41f`, v0.4.14.150, main HEAD `ef3d41f`)
+**最后更新**: 2026-06-22 (Sprint 62 收口: PR #28 已 merge main `91578b6`, v0.4.14.151, main HEAD `91578b6` + L4.8 永久规则)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.150` |
-| git HEAD (main) | `ef3d41f` (Sprint 61 PR #27 merge: docs(readme) + fix(backend) fail-fast + docs(status,changelog) + feat(ad-hoc-query) MVP + fix(track) SKILL.md) |
+| VERSION | `0.4.14.151` |
+| git HEAD (main) | `91578b6` (Sprint 62 PR #28 merge: feat(sprint62) /ad-hoc-query 扩 yoy-battle/channel-slice + P3 uvicorn launchd 守护 + docs(release) Sprint 62 收口 + chore(CLAUDE.md) L4.8) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 61 (cleanup + release + P2 fail-fast + /ad-hoc-query MVP, 6 commit 0 debt, PR #27 ✅ merged) |
+| 最近 sprint | Sprint 62 (/ad-hoc-query 扩 + P3 uvicorn 守护 + Sprint 62 收口 + L4.8 永久规则, 4 commit 0 debt, PR #28 ✅ merged) |
 | 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 61 (PR #27, 6 commit 合并) |
+| 上次合入 | Sprint 62 (PR #28, 4 commit 合并) |
 
 ---
 
@@ -40,7 +40,7 @@
 | pytest collected | **803** | Sprint 59 自动抓 |
 | pytest skipped | **0** | Sprint 59 自动抓 |
 | 当前债数 | **0** | Sprint 59 自动抓 |
-| 最近 sprint | **Sprint 61** | Sprint 59 自动抓 |
+| 最近 sprint | **Sprint 62** | Sprint 59 自动抓 |
 <!-- STATUS-AUTO-END -->
 
 ---
