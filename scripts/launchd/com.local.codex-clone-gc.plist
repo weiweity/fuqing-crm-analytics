@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Sprint 62.5 B4: Codex code_sign_clone GC LaunchAgent (2026-06-22)
+
+痛点: Codex app 每次更新做 code_sign_clone 复制到
+  /private/var/folders/tz/<user>/X/com.openai.codex.code_sign_clone.*/
+  累积 40 份 = 53GB. 2026-06-22 磁盘急救时清理 (释放 ~52GB).
+
+治根: 每天凌晨 03:00 跑 GC, 删 > 7 天的 clone, 保留最新 1 份 (Codex 启动时
+  可能仍需要的最新 Gatekeeper clone).
+
+复用 com.fuqing.duckdb-backup.daily.plist 模式 (Sprint 4 P0-2) +
+  Sprint 60.2 P3 L4.7 永久规则 (launchd 启动器首选 python3 不用 bash).
+
+设计:
+  - Label: com.local.codex-clone-gc
+  - ProgramArguments: python3 + codex_clone_gc.py (避开 macOS sandbox deny bash)
+  - WorkingDirectory: 主仓根
+  - StartCalendarInterval: 03:00 daily (跟 backup 不冲突, backup 03:30)
+  - 不 KeepAlive (单次跑完退出)
+  - StandardOutPath + StandardErrorPath: /tmp/fuqing-codex-clone-gc.log
+
+安装:
+  cp scripts/launchd/com.local.codex-clone-gc.plist ~/Library/LaunchAgents/
+  launchctl unload ~/Library/LaunchAgents/com.local.codex-clone-gc.plist 2>/dev/null
+  launchctl load -w ~/Library/LaunchAgents/com.local.codex-clone-gc.plist
+  launchctl list | grep codex-clone-gc   验证加载
+
+卸载:
+  launchctl unload ~/Library/LaunchAgents/com.local.codex-clone-gc.plist
+  rm ~/Library/LaunchAgents/com.local.codex-clone-gc.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.local.codex-clone-gc</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/launchd/codex_clone_gc.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-codex-clone-gc.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-codex-clone-gc.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/hutou/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

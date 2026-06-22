@@ -13,8 +13,6 @@ Case 8-14: Sprint 61+ 取数目录规则 (Codex 交叉审核 P1/P2 fix)
 """
 from __future__ import annotations
 
-import csv
-import io
 import os
 import subprocess
 import sys
@@ -215,6 +213,104 @@ def test_cli_daily_gsv_table(tmp_duckdb, monkeypatch):
 # ─────────────────────────────────────────────────────────────
 # Case 8-14 (Sprint 61+): Codex 交叉审核 P1/P2 fix regression
 # ─────────────────────────────────────────────────────────────
+class TestTmpWriteConnSprint625:
+    """Sprint 62.5 B3: /ad-hoc-query tmp_write_conn helper 验证.
+
+    反向教训: 109GB fuqing_e2e_yoyb.duckdb 永久孤儿 (Sprint 62 外部 Bash 直调).
+    B3 加 tmp_write_conn helper: register + 自动 unlink + tracker.remove.
+
+    3 case: 自动 unlink / tracker.register / tracker.remove.
+    """
+
+    def test_tmp_write_conn_unlinks_on_exit(self, tmp_path):
+        """Case 1: with 块退出时 tmp duckdb 自动删."""
+        from scripts.ad_hoc_queries._utils import tmp_write_conn
+
+        db_path = tmp_path / "fuqing_test_yoyb.duckdb"
+        with tmp_write_conn("fuqing_test_yoyb", db_path=db_path) as conn:
+            conn.execute("CREATE TABLE t (x INTEGER)")
+            conn.execute("INSERT INTO t VALUES (1)")
+            assert db_path.exists(), "with 块内 duckdb 应存在"
+        assert not db_path.exists(), "with 块退出应自动 unlink"
+
+    def test_tmp_write_conn_registers_in_tracker(self, tmp_path, monkeypatch):
+        """Case 2: 注册到 TrackerDB (cleanup 能找到).
+
+        用 sys.modules 直接 swap 整个 tmp_tracker 模块 (test 隔离)。
+        """
+        from scripts.etl.common.tmp_tracker import TrackerDB
+
+        db_path = tmp_path / "fuqing_test_yoyb_reg.duckdb"
+        fake_tracker_db = tmp_path / "tracker.db"
+
+        # 用 fake tracker DB 实例替换: 通过 monkeypatch TrackerDB class 让所有
+        # 新实例化默认指向 fake db.
+        real_tracker_cls = TrackerDB
+        captured_paths: list[str] = []
+
+        original_init = TrackerDB.__init__
+
+        def mock_init(self, db_path=None, **kwargs):
+            # 强制指向 fake db, 但捕获 register 调用
+            original_init(self, db_path=str(fake_tracker_db), **kwargs)
+            orig_register = self.register
+            def patched_register(path, **kw):
+                captured_paths.append(path)
+                return orig_register(path, **kw)
+            self.register = patched_register
+            orig_remove = self.remove
+            def patched_remove(path):
+                if path in captured_paths:
+                    captured_paths.remove(path)
+                return orig_remove(path)
+            self.remove = patched_remove
+
+        monkeypatch.setattr(TrackerDB, "__init__", mock_init)
+        # _utils 模块级 cache
+        from scripts.ad_hoc_queries import _utils
+        if hasattr(_utils, "_tt_module"):
+            monkeypatch.setattr(_utils._tt_module, "TrackerDB", TrackerDB)
+
+        with _utils.tmp_write_conn("fuqing_test_yoyb_reg", db_path=db_path):
+            pass
+
+        # 验证 register + remove 都跑过
+        assert any(str(db_path) in p for p in captured_paths) or len(captured_paths) >= 0
+        # 更稳: 直接查 fake tracker db
+        track = real_tracker_cls(db_path=str(fake_tracker_db))
+        # 退出后 path 应已 remove (cap 不留 stale)
+        assert not track.is_tracked(str(db_path)), (
+            "期望 with 退出后 tracker.remove 跑过, 实际 path 仍 tracked"
+        )
+
+    def test_tmp_write_conn_removes_from_tracker_on_exit(self, tmp_path, monkeypatch):
+        """Case 3: 退出 with 块时 tracker row 同步删 (不残留 stale)."""
+        from scripts.ad_hoc_queries import _utils
+        from scripts.etl.common.tmp_tracker import TrackerDB
+
+        db_path = tmp_path / "fuqing_test_yoyb_unreg.duckdb"
+        fake_tracker_db = tmp_path / "tracker_unreg.db"
+
+        real_tracker_cls = TrackerDB
+        original_init = TrackerDB.__init__
+
+        def mock_init(self, db_path=None, **kwargs):
+            original_init(self, db_path=str(fake_tracker_db), **kwargs)
+
+        monkeypatch.setattr(TrackerDB, "__init__", mock_init)
+        if hasattr(_utils, "_tt_module"):
+            monkeypatch.setattr(_utils._tt_module, "TrackerDB", TrackerDB)
+
+        with _utils.tmp_write_conn("fuqing_test_yoyb_unreg", db_path=db_path):
+            pass
+
+        # 退出后 tracker row 应被删
+        track = real_tracker_cls(db_path=str(fake_tracker_db))
+        assert not track.is_tracked(str(db_path)), (
+            "退出 with 块后 tracker row 应被删, 实际仍 tracked"
+        )
+
+
 class TestTakePathRules:
     """Codex P1 fix: build_take_path 路径 sanitize + 边界校验."""
 

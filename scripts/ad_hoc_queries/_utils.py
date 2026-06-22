@@ -20,7 +20,7 @@ import re
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable, List, Sequence
+from typing import Any, Iterable, Sequence
 
 # 把项目根加进 path, 跟 scripts/run_etl.py 一致
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -32,8 +32,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT  # noqa: E402
 
 # semantic 层 SSOT
-from backend.semantic.filters import OrderFilters  # noqa: E402
-from backend.semantic.calculations import yoy_absolute  # noqa: E402
 
 # ETL 跑批中标记文件
 ETL_RUNNING_FLAG = Path("/tmp/.etl_running.flag")
@@ -66,6 +64,61 @@ def read_only_conn(db_path: Path | None = None, memory_limit: str | None = None)
         yield conn
     finally:
         conn.close()
+
+
+@contextmanager
+def tmp_write_conn(
+    name_prefix: str,
+    db_path: Path | None = None,
+    memory_limit: str | None = None,
+):
+    """
+    Sprint 62.5 B3 治根: 写 /tmp 临时 DuckDB 必须走 TrackerDB.
+
+    反向教训: Sprint 62 yoy-battle / channel-slice 测试时外部 Bash 直调
+    `duckdb.connect("/private/tmp/fuqing_e2e_yoyb.duckdb")` 留下 109GB 永久孤儿,
+    tracker 没 register, cleanup cap 100GB 兜不住. 治根: /ad-hoc-query 任何写 tmp
+    duckdb 都必须走本 helper, 自动 register → TTL 过期清理.
+
+    用法:
+        with tmp_write_conn("fuqing_e2e_yoyb") as conn:
+            conn.execute("...")  # 写到 /private/tmp/fuqing_e2e_yoyb.duckdb
+        # 自动 unlink + tracker.remove (退出 with 块)
+
+    Args:
+        name_prefix: tracker 跟踪的 prefix (e.g. "fuqing_e2e_yoyb")
+        db_path: 默认 /private/tmp/{name_prefix}.duckdb
+    """
+    import duckdb
+    import os
+    from scripts.etl.common import tmp_tracker as _tt_module
+    _TrackerDBCls = _tt_module.TrackerDB
+
+    path = db_path or Path(f"/private/tmp/{name_prefix}.duckdb")
+    tracker = _TrackerDBCls()
+    # pre-register (让 cleanup 即使异常也能追踪)
+    try:
+        tracker.register(str(path), size=0, pid=os.getpid())
+    except Exception:
+        pass
+
+    conn = None
+    try:
+        limit = memory_limit or DUCKDB_MEMORY_LIMIT
+        conn = duckdb.connect(str(path), config={"memory_limit": limit})
+        yield conn
+    finally:
+        if conn is not None:
+            conn.close()
+        # exit 时 unlink + tracker remove (Sprint 62.5 治根: 不留孤儿)
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        try:
+            tracker.remove(str(path))
+        except Exception:
+            pass
 
 
 def log_audit(command: str, status: str, **fields: Any) -> None:
