@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-22 (Sprint 62.5 收口: 4 项磁盘清理治根 B1+B2+B3+B4, v0.4.14.152, main HEAD `63d3ff5` + pytest 795/21/0 baseline 维持)
+**最后更新**: 2026-06-22 (Sprint 63 收口: CI 维修, lint E741 + e2e fail-fast env + Node 24 升级, v0.4.14.153, main HEAD `4c4c693` + pytest 8/8 P0+P1b 验证 test baseline)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.152` |
-| git HEAD (main) | `63d3ff5` (Sprint 62.5 merge: 4 项磁盘清理治根 B1+B2+B3+B4, 9 文件 +783/-6 行, pytest 795/21/0 baseline 维持) |
+| VERSION | `0.4.14.153` |
+| git HEAD (main) | `4c4c693` (Sprint 63 merge: CI 维修 lint E741 + e2e fail-fast env + Node 24, 8 文件 +87/-22 行, 3 case regression test) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 62.5 (4 项磁盘清理治根, 9 commit 0 debt, 4 case + 2 case + 3 case + 4 case regression test, 0 回归) |
+| 最近 sprint | Sprint 63 (CI 维修, 1 commit 0 debt, 3 case regression test, 0 回归) |
 | 收口日 | 2026-06-22 |
-| 上次合入 | Sprint 62.5 (PR merge `63d3ff5`, 9 commit 合并) |
+| 上次合入 | Sprint 63 (PR merge `4c4c693`, 1 commit 合并) |
 
 ---
 
