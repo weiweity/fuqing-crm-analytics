@@ -263,5 +263,5 @@ def test_cli_yoy_battle_table(tmp_duckdb_rich):
     assert "current_value" in result.stdout
     assert "yoy_pct" in result.stdout
     # 验 4 行 metric (gsv/orders/customers/aov) + header + sep = 6 行
-    lines = [l for l in result.stdout.splitlines() if l.strip()]
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
     assert len(lines) >= 6  # header + sep + 4 metrics

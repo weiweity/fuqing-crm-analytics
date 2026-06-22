@@ -33,16 +33,20 @@ jobs:
       HEALTH_API_KEY: ci-fake-health-api-key
       FQ_CRM_PASSWORDS: admin:123456
       ETL_MIN_DISK_GB: '0'
+      # Sprint 63: CI 空 schema DB 不抛 fail-fast, 走 WARN only
+      # Sprint 61 P2 fail-fast 默认 production raise, e2e schema-only fixture 没 orders 数据
+      # → 必须 FQ_DB_MODE=schema_test 走 warn 路径 (跟 CI runner 设计一致)
+      FQ_DB_MODE: schema_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend-vue3/package-lock.json
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
@@ -114,7 +118,7 @@ jobs:
 
       - name: Upload auto-recovery log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ci-auto-recovery-log
           path: /tmp/auto_recover_ci.log
