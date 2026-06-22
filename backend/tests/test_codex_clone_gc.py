@@ -41,19 +41,9 @@ class TestCodexCloneGc:
         # 把 glob 路径换成我们的 tmp_path
         monkeypatch.setattr(codex_clone_gc, "X_DIR_GLOB_BASE", tmp_path / "tz")
 
-        # Sprint 66 P1 排查: CI runner 上 deleted=0 但本地 PASS. 加诊断输出 (pytest -s 也捕获不了,
-        # 写断言 message 里). 抓真因靠 assertion message.
-        clones = codex_clone_gc._collect_clones()
         deleted, _ = codex_clone_gc.gc_once()
 
-        assert deleted == 2, (
-            f"期望删 2 个 (> 7d), 实际 {deleted}. "
-            f"DEBUG: X_DIR_GLOB_BASE={codex_clone_gc.X_DIR_GLOB_BASE} "
-            f"is_dir={codex_clone_gc.X_DIR_GLOB_BASE.is_dir()} "
-            f"cwd_exists={tmp_path.exists()} "
-            f"target_dir_exists={target_dir.exists()} "
-            f"clones_found={[c.name for c in clones]}"
-        )
+        assert deleted == 2, f"期望删 2 个 (> 7d), 实际 {deleted}"
         assert new.exists(), "新 clone 不应被删"
         assert not old1.exists(), "old1 应被删"
         assert not old2.exists(), "old2 应被删"
@@ -121,3 +111,56 @@ class TestCodexCloneGc:
 
         assert deleted == 1, f"期望删 1 个 (Codex old), 实际 {deleted}"
         assert safari_old.exists(), "Safari clone 不应被 GC 删"
+
+    def test_main_skips_on_non_darwin(self, monkeypatch):
+        """Case 5: main() 在非 darwin 平台跳过 gc_once (Sprint 66 P1 治根).
+
+        防再发: 平台特定检查必须在 main() 入口 (CLAUDE.md L4.10), 不能在 gc_once() 核心逻辑里.
+        Sprint 66 P1 CI FAILURE 真因 = gc_once() 含 sys.platform == "darwin" 检查,
+        Linux CI runner 上 return (0, 0) 直接跳过, 4 个 case 全 FAILURE.
+
+        这个测试验证: main() 在非 darwin 平台 return 0 + 不调 gc_once.
+        """
+        from scripts.launchd import codex_clone_gc
+
+        # 记录 gc_once 是否被调
+        gc_once_called: list[bool] = []
+        def mock_gc_once():
+            gc_once_called.append(True)
+            return 0, 0
+        monkeypatch.setattr(codex_clone_gc, "gc_once", mock_gc_once)
+
+        # 模拟非 darwin 平台 (如 Linux CI runner)
+        monkeypatch.setattr(codex_clone_gc.sys, "platform", "linux")
+
+        result = codex_clone_gc.main()
+
+        assert result == 0, f"main() 在非 darwin 应 return 0, 实际 {result}"
+        assert gc_once_called == [], (
+            f"main() 在非 darwin 平台不应调用 gc_once, 但被调了 {len(gc_once_called)} 次"
+        )
+
+    def test_main_calls_gc_once_on_darwin(self, monkeypatch):
+        """Case 6: main() 在 darwin 平台调 gc_once (Sprint 66 P1 治根配对).
+
+        防再发: 验证 main() 在 darwin 平台会调 gc_once (不能过度防御).
+        跟 Case 5 配对: 平台检查只在 main() 入口, gc_once() 任意 OS 可测.
+        """
+        from scripts.launchd import codex_clone_gc
+
+        # 记录 gc_once 是否被调
+        gc_once_called: list[bool] = []
+        def mock_gc_once():
+            gc_once_called.append(True)
+            return 0, 0
+        monkeypatch.setattr(codex_clone_gc, "gc_once", mock_gc_once)
+
+        # 模拟 darwin 平台 (本地开发)
+        monkeypatch.setattr(codex_clone_gc.sys, "platform", "darwin")
+
+        result = codex_clone_gc.main()
+
+        assert result == 0, f"main() 在 darwin 应 return 0, 实际 {result}"
+        assert gc_once_called == [True], (
+            f"main() 在 darwin 平台应调 gc_once 1 次, 实际 {len(gc_once_called)} 次"
+        )

@@ -14,7 +14,7 @@ Sprint 62.5 B4: Codex code_sign_clone GC (2026-06-22)
   2. mtime age > 7 天
   3. 保留最新 1 份 (防 cap=0 误删全部)
   4. 仅扫描 com.openai.codex.code_sign_clone.* 目录
-  5. 仅在 macOS (其他平台直接 return)
+  5. 仅在 macOS (Sprint 66 P1 移到 main() 入口, 不在 gc_once() 里)
   6. 不动其他 com.* 应用 (Chrome / Safari / WPS 等)
   7. soft fail (任何 OSError log 不 raise, 退出 0)
   8. log 到 /tmp/fuqing-codex-clone-gc.log
@@ -76,51 +76,41 @@ def _collect_clones() -> list[Path]:
     """扫描所有 target name 的 clone 目录 (按 mtime 倒序, 最新优先).
 
     用 base_dir.glob("*/X") 支持 test monkeypatch base_dir.
-
-    Sprint 66 P1 排查: CI runner 上 gc_once() deleted=0 但本地 PASS.
-    加 print debug 输出 (只在 FAIL 时能看到).
     """
     clones: list[Path] = []
     if not X_DIR_GLOB_BASE.is_dir():
-        print(f"[codex_clone_gc DEBUG] X_DIR_GLOB_BASE={X_DIR_GLOB_BASE} not is_dir, return []")
         return clones
-    print(f"[codex_clone_gc DEBUG] X_DIR_GLOB_BASE={X_DIR_GLOB_BASE} glob {X_DIR_GLOB_PATTERN}")
     for x_dir in X_DIR_GLOB_BASE.glob(X_DIR_GLOB_PATTERN):
         if not x_dir.is_dir():
-            print(f"[codex_clone_gc DEBUG] {x_dir} not is_dir, skip")
             continue
         for target in TARGET_NAMES:
             target_dir = x_dir / target
             if not target_dir.is_dir():
-                print(f"[codex_clone_gc DEBUG] {target_dir} not is_dir, skip")
                 continue
             for entry in target_dir.iterdir():
                 if entry.name.startswith(f"{target}."):
                     clones.append(entry)
-                else:
-                    print(f"[codex_clone_gc DEBUG] {entry.name} not startswith {target}., skip")
     clones.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    print(f"[codex_clone_gc DEBUG] collected {len(clones)} clones: {[c.name for c in clones]}")
     return clones
 
 
 def gc_once() -> tuple[int, int]:
     """跑一次 GC. Returns (deleted_count, bytes_freed_gb).
 
-    8 项 safety check:
-      1. 仅 macOS (其他平台 return 0, 0)
-      2. KEEP_MIN 守护 (永远保留最新 KEEP_MIN 份)
-      3. 仅 TARGET_NAMES (不动其他 com.* 应用)
-      4. mtime age > RETENTION_DAYS
-      5. lsof 0 fd
-      6. soft fail (rmtree fail log 不 raise)
-      7. 不在 KEEP_MIN 守护范围
-      8. log 到 LOG_PATH
-    """
-    if not sys.platform == "darwin":
-        log("skip: not macOS")
-        return 0, 0
+    7 项 safety check (Sprint 66 P1 治根: 平台检查从 gc_once() 移到 main()):
+      1. KEEP_MIN 守护 (永远保留最新 KEEP_MIN 份)
+      2. 仅 TARGET_NAMES (不动其他 com.* 应用)
+      3. mtime age > RETENTION_DAYS
+      4. lsof 0 fd
+      5. soft fail (rmtree fail log 不 raise)
+      6. 不在 KEEP_MIN 守护范围
+      7. log 到 LOG_PATH
 
+    Sprint 66 P1 治根: 平台特定检查 (sys.platform == "darwin") 必须在 main() 入口,
+    不能在 _core() 逻辑函数里. 原架构 gc_once() 含平台检查 → Linux CI runner
+    sys.platform == "linux" → gc_once() return (0, 0) 直接跳过 → 4 case 全 FAILURE.
+    治根: gc_once() 任意 OS 可测 (纯逻辑), main() 入口做平台守护.
+    """
     clones = _collect_clones()
     if len(clones) <= KEEP_MIN:
         log(f"found {len(clones)} clone(s), <= keep_min={KEEP_MIN}, nothing to do")
@@ -151,7 +141,14 @@ def gc_once() -> tuple[int, int]:
 
 
 def main() -> int:
+    """LaunchAgent 入口. Sprint 66 P1 治根: 平台检查在这里, 不在 gc_once() 里."""
     log("=== codex-clone-gc start ===")
+    # Sprint 66 P1 治根: 平台检查必须在 main() 入口 (CLAUDE.md L4.10 永久规则).
+    # 原架构问题: gc_once() 是平台无关纯逻辑, 含 sys.platform 检查 → Linux CI runner 4 case 全 FAILURE.
+    # 治根: gc_once() 任意 OS 可测 (逻辑纯), main() 入口做平台守护.
+    if not sys.platform == "darwin":
+        log("skip: not macOS")
+        return 0
     deleted, _ = gc_once()
     log(f"=== codex-clone-gc end ({deleted} deleted) ===")
     return 0  # always 0, 避免 launchd 视为失败
