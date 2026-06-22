@@ -3,6 +3,7 @@ name: CI
 # 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI (6/12 一次性 docs push 就用掉 50+ min)
 # Free plan 2,000 min/月 私仓额度用完后 CI 立即 fail, 此过滤可省 ~80% 用量
 # Sprint 41 (2026-06-19): 加 frontend-vue3/e2e/** + playwright.config.ts 触发 e2e job
+# Sprint 83 (2026-06-23): 加 CLAUDE.md + docs/maintenance/** + docs/operating/** + docs/business/** + memory/** 触发 CI (L4.16 永久规则沉淀, Sprint 82 真因发现: 之前 paths 不含 CLAUDE.md → Sprint 77 push L4.15 永久规则 0 CI run 跑, 跨 sprint 4 sprint 滞后异常 stable 模式真因 = workflow paths 限制)
 on:
   pull_request:
   push:
@@ -18,6 +19,11 @@ on:
       - 'pyproject.toml'
       - '.githooks/**'
       - '.github/workflows/**'
+      - 'CLAUDE.md'
+      - 'docs/maintenance/**'
+      - 'docs/operating/**'
+      - 'docs/business/**'
+      - '~/.claude/projects/**/memory/**'
       - 'docs/validation-reports/**'
       - 'docs/飞书版架构文档/**'
 

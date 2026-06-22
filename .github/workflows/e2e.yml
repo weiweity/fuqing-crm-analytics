@@ -18,6 +18,8 @@ on:
       - 'backend/**'
       - 'scripts/**'
       - 'frontend-vue3/src/**'
+      - 'CLAUDE.md'  # Sprint 83 (2026-06-23): L4.16 永久规则, Sprint 82 真因修复
+      - '.github/workflows/**'  # Sprint 83: workflow 配置变化也触发 e2e 验证
       - 'frontend-vue3/e2e/**'
       - 'frontend-vue3/playwright.config.ts'
       - 'requirements.txt'
