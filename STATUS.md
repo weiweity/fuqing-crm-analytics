@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-24 (Sprint 102 必修 2 项文档漂移修复 + L4.x 永久规则 21 stable 维护 (Sprint 98 Handoff commit + SPRINT_INDEX.md 加 Sprint 67+68+91+99+100+101 共 6 sprint), VERSION 0.4.14.157 不变, pytest 819/23/0 持续, 累计 52 sprint 0 debt 持续)
+**最后更新**: 2026-06-24 (Sprint 103 必修 1 修 DATA_PIPELINE.md 跨文档漂移 + L4.x 永久规则 21 stable 维护, 跟 STATUS.md line 81 同步 (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB), VERSION 0.4.14.157 不变, pytest 819/23/0 持续, 累计 53 sprint 0 debt 持续)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `0488cb0` (Sprint 100 merge；Sprint 101 分支基线) |
-| 当前分支 | `fix/sprint101-mandatory-close-all` |
-| 最近 sprint | Sprint 101 (留尾治理 sprint，L4.21 反 sprint 自我反馈闭环永久规则，0 业务代码，VERSION 不 bump) |
-| 收口日 | 2026-06-23 |
-| 上次合入 | Sprint 100 (merge commit `0488cb0`，L4.20 test 1 CI shallow clone 反噬治根) |
+| git HEAD (main) | `110ce7e` (Sprint 102 merge；Sprint 103 fix branch 基线) |
+| 当前分支 | `fix/sprint103-mandatory-close-data-pipeline-drift` |
+| 最近 sprint | Sprint 103 (留尾治理 sprint，DATA_PIPELINE.md 跨文档漂移修复，0 业务代码，VERSION 不 bump) |
+| 收口日 | 2026-06-24 |
+| 上次合入 | Sprint 102 (merge commit `110ce7e`，必修 2 项文档漂移修复 + L4.x 永久规则 21 stable 维护) |
 
 ---
 

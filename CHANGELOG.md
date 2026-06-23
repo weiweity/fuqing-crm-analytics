@@ -4,6 +4,13 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-24 (Sprint 103, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- 必修 1 修 DATA_PIPELINE.md 跨文档漂移：docs/architecture/DATA_PIPELINE.md §0 最后更新 2026-06-21 → 2026-06-24 + §1 W3 预计算列拆解 ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) + §2 ASCII 数据流图 W3 注释拆解 + §3.1 DuckDB 库表 库大小列拆解 (跟 STATUS.md line 81 同步, 1 行数据布局 reference)
+- 跨文档一致性 100% PASS：check_ssot_drift.py 2 records PASS (1 ✅ 闭环 + 1 📋 推后) + L4.20 4 case regression test PASS + DATA_PIPELINE.md grep 验证 4 处拆解全部跟 STATUS.md 同步
+- 0 业务代码改动 (留尾治理 sprint 模式, 跟 Sprint 91+99+100+101+102 一致), VERSION 不 bump (0.4.14.157 持续), 累计 53 sprint 0 debt 持续, L4.x 永久规则 21 stable 0 新增 (维护不新增)
+
 ## [0.4.14.157] - 2026-06-24 (Sprint 102, VERSION 不变 留尾治理 sprint)
 
 ### Changed
