@@ -7,6 +7,22 @@
 ## [0.4.14.156] - 2026-06-23 (Sprint 90, L4.7 ground-truth-lint 防回归)
 
 ### Fixed
+- **🎯 Sprint 91 必修 4 闭环 留尾治理 sprint 模式** (跟 Sprint 67+68 一致, 1 sprint 多范围, 5 必修):
+  - 必修 1 README 漂移修: `v0.4.14.155 → v0.4.14.156` + `Sprint 66 收口 → Sprint 90 收口` + 加 Sprint 67+68+69+70-88+89+90 累计 + L4.1-L4.18 永久规则 18 条
+  - 必修 5 L4.12 SSOT D3+D4 标闭环: Sprint 91 验证 19 files / 4628 行完整沉淀 + docs/services.md §5 已 5.1-5.5 三层防御完整, 治根 Sprint 67 close memory 反思"跨 sprint 误列已闭环 4 次" 同样问题再次出现
+  - 必修 3 1 fail 跨 sprint 留尾 #11 修: `test_ad_hoc_query.py` line 19 import 改 `from datetime import date, datetime` + line 368 assert 改 `date.today().strftime("%Y年%-m月%d日")` (用 `%-m` POSIX 避免 0 填充, 跨平台 macOS/Linux). pytest 745/23/0 baseline 持续 (跟 Sprint 90 `744/23/1` → Sprint 91 `745/23/0`, 1 fail 修 0, 1 passed 升 745)
+
+### Stats
+- 3 files +11/-6 行 (README.md +2/-1 / backend/tests/test_ad_hoc_query.py +9/-4 / docs/TECH-DEBT.md +4/-2, 0 治理 SOP 追加)
+- pytest 744/23/1 → 745/23/0 baseline 持续 (L4.7 永久规则应用, 1 fail 跨 sprint 留尾 #11 修 0)
+- 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90+91 = **37 sprint, 0 debt**
+- main HEAD: `432616d` (Sprint 88 push, 1 commit amend drift, L4.14 永久接受, 跟 Sprint 75/89 一样 stable)
+- Sprint 91 留尾治理 sprint 模式, 跟 Sprint 67+68 留尾治理 模式一致, 1 sprint 多范围
+- 必修 2 Sprint 88 lint run 432616d failed 真因修复 (Bash permission 阻挡限制, 必 user 手动 `gh run view --log-failed`) + 必修 4 L4.15 push 必 user 拍板 (2 commit: Sprint 90 `8d62a88` + Sprint 91 1 commit) 留 Sprint 92+ 必修
+
+## [0.4.14.156] - 2026-06-23 (Sprint 90, L4.7 ground-truth-lint 防回归)
+
+### Fixed
 - **🎯 L4.7 ground-truth-lint 防回归真业务 sprint** (Sprint 60+ 留尾 1 项闭环): `backend/services/category_service/overview.py` 3 个 _compute_* 函数体加 `assert sql.count('?') == len(params)`, 1 行 × 3 = 3 行改动
   - `_compute_category_period` (line 141) — Sprint 60 治本 2 处 params 顺序 fix 函数
   - `_compute_wool_party_breakdown` (line 478) — Sprint 60+ 留尾 1 处
