@@ -47,7 +47,7 @@ def _compute_product_repurchase(conn, where_sql: str, params: list) -> Dict[str,
                 spu_product_class, user_id, order_id, actual_amount, pay_time,
                 LAG(pay_time) OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as prev_pay_time,
                 ROW_NUMBER() OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as order_seq
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
               AND spu_product_class IS NOT NULL
         ),
@@ -134,7 +134,7 @@ def _compute_cross_category_return(conn, where_sql: str, params: list) -> Dict[s
             SELECT
                 spu_product_class, user_id, order_id, actual_amount, pay_time,
                 ROW_NUMBER() OVER (PARTITION BY user_id, spu_product_class ORDER BY pay_time) as rn
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
               AND spu_product_class IS NOT NULL
         ),
@@ -145,7 +145,7 @@ def _compute_cross_category_return(conn, where_sql: str, params: list) -> Dict[s
         ),
         user_all_orders AS (
             SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
         ),
         next_purchase AS (
@@ -168,7 +168,7 @@ def _compute_cross_category_return(conn, where_sql: str, params: list) -> Dict[s
             FROM first_product_purchase f
             JOIN (
                 SELECT user_id, order_id, actual_amount, pay_time
-                FROM orders
+                FROM orders o
                 WHERE {where_sql}
             ) o
                 ON f.user_id = o.user_id
@@ -284,7 +284,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         row = conn.execute(f"""
             WITH user_orders AS (
                 SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
-                FROM orders
+                FROM orders o
                 WHERE {where_sql}
             ),
             gaps AS (
@@ -347,7 +347,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
             r = conn.execute(f"""
                 WITH user_orders AS (
                     SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
-                    FROM orders
+                    FROM orders o
                     WHERE {where_sql_inner}
                 ),
                 gaps AS (
@@ -505,7 +505,7 @@ def _compute_cohort_matrix(conn, start_month: str, end_month: str,
         WITH valid_orders AS (
             SELECT user_id, pay_time,
                 DATE_TRUNC('month', pay_time) as order_month
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
               AND pay_time >= ?::DATE
               AND pay_time <= ?::DATE

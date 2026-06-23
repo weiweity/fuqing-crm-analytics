@@ -141,7 +141,7 @@ def get_audience_table(
         WITH
         base AS (
             SELECT *
-            FROM orders
+            FROM orders o
             WHERE {where_clause}
         ),
         old_customers AS (

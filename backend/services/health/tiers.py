@@ -65,7 +65,7 @@ def get_value_tiers(analysis_date: Optional[str] = None, lookback_days: int = 36
                     user_id,
                     SUM(actual_amount) as gsv,
                     COUNT(DISTINCT order_id) as order_count
-                FROM orders
+                FROM orders o
                 WHERE {where_sql}
                 GROUP BY user_id
             ),

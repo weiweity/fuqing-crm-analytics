@@ -164,7 +164,7 @@ def _compute_repurchase_rate(conn, where_sql: str, params: list) -> tuple[float,
     row = conn.execute(f"""
         WITH user_orders AS (
             SELECT user_id, COUNT(DISTINCT order_id) as order_count
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
             GROUP BY user_id
         )
@@ -190,7 +190,7 @@ def _compute_product_repurchase_rate(conn, where_sql: str, params: list) -> floa
     row = conn.execute(f"""
         WITH product_users AS (
             SELECT spu_product_class, user_id, COUNT(DISTINCT order_id) as order_count
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
               AND spu_product_class IS NOT NULL
             GROUP BY spu_product_class, user_id
@@ -216,7 +216,7 @@ def _compute_old_customer_metrics(conn, where_sql: str, params: list,
     row = conn.execute(f"""
         WITH period_orders AS (
             SELECT user_id, actual_amount, is_member
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
         ),
         enriched AS (
@@ -276,7 +276,7 @@ def _compute_period_repurchase_users(conn, where_sql: str, params: list) -> int:
         SELECT COUNT(DISTINCT user_id)
         FROM (
             SELECT user_id, COUNT(DISTINCT order_id) as order_count
-            FROM orders
+            FROM orders o
             WHERE {where_sql}
             GROUP BY user_id
             HAVING COUNT(DISTINCT order_id) >= 2
