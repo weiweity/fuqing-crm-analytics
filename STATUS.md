@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 99 收口: 留尾 #11 SSOT 漂移闭环 + L4.20 反 SSOT 漂移永久规则, VERSION 0.4.14.157 不变, pytest 819/23/0 = Sprint 98 baseline 815/23/0 + 新增 4 case)
+**最后更新**: 2026-06-23 (Sprint 100 收口: L4.20 test 1 CI fresh checkout 必修 1 fail 治根 — 移除 git cat-file -e 验证, 保留 commit SHA 字符串 in HANDOFF 验证, VERSION 0.4.14.157 不变, pytest 819/23/0 持续, L4.x 永久规则 20 stable, 累计 50 sprint 0 debt 持续)
 
 ---
 
@@ -25,7 +25,7 @@
 |---|---|---|
 | pytest passed | **819** | Sprint 99 实测: Sprint 98 baseline 815 + L4.20 新增 4 case |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
-| pytest failed | **0** | Sprint 99 全量 `python3 -m pytest --tb=no -q` 实测 |
+| pytest failed | **0** | Sprint 99 全量 `python3 -m pytest --tb=no -q` 实测, Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS, 必修 1 fail 治根 |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |

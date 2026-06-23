@@ -10,6 +10,11 @@
 - 留尾 #11 SSOT 漂移闭环: 验证 Sprint 91 真修 commit `287efb8` 持续生效，close memory 标为 ✅ 闭环；新增 L4.20 永久规则、`backend/scripts/check_ssot_drift.py` 和 4 case regression，阻止已闭环留尾被复制粘贴回 📋 推后
 - STATUS + CHANGELOG + TECH-DEBT + CLAUDE.md 跨文档同步；pytest 819/23/0（Sprint 98 baseline 815/23/0 + 新增 4 case），0 业务代码改动，累计 49 sprint 0 debt 持续
 
+## [0.4.14.157] - 2026-06-23 (Sprint 100, VERSION 不变 留尾治理 sprint)
+
+### Fixed
+- L4.20 test 1 CI fresh checkout 必修 1 fail 治根: 移除 `git cat-file -e ${commit}^{commit}` 验证 (CI runner `actions/checkout@v4` 默认 `fetch-depth: 1` 浅克隆拿不到 Sprint 91 commit `287efb8` history)，保留 `commit=287efb8` 字符串 in HANDOFF 验证 (符合 L4.20 永久规则本意). 模拟 CI shallow clone (`git clone --depth 1 -b fix/sprint100-...`) 验证 4/4 PASS. 累计 50 sprint 0 debt 持续，L4.x 永久规则 20 stable 0 追加.
+
 ## [0.4.14.157] - 2026-06-23 (Sprint 98 FilterBuilder table_alias 真治本)
 
 ### Changed
