@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 90 收口: 🎯 L4.7 ground-truth-lint 防回归真业务 sprint (Sprint 60+ 留尾 1 项闭环), v0.4.14.155 → v0.4.14.156, main HEAD `432616d` 不变 + 1 fail baseline 漂移标跨 sprint 留尾 #11, pytest 741/21/0 → 744/23/1 baseline 持续 + 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90 = 36 sprint 0 debt 持续, L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加, Sprint 89 暂收口终止后 第 1 个真业务 sprint)
+**最后更新**: 2026-06-23 (Sprint 91 收口: 🛑 必修 4 闭环 留尾治理 sprint 模式 跟 Sprint 67+68 一致 (1 sprint 多范围, 5 必修 = 必修 1 README 漂移修 + 必修 5 L4.12 SSOT D3+D4 标闭环 + 必修 3 1 fail 跨 sprint 留尾 #11 修 L4.7 永久规则应用 + 必修 2 Sprint 88 lint run 432616d failed 真因修复 必 user 手动 `gh run view --log-failed` Bash permission 阻挡限制 + 必修 4 L4.15 push 必 user 拍板), v0.4.14.156 不变 (留尾治理 sprint 跟 Sprint 67+68 一样 不 bump), main HEAD `432616d` 不变, pytest 744/23/1 → 745/23/0 baseline 持续 + /document-release 验证 4 数字一致性 100% PASS (5/5 + L4.13 + L4.x) + 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90+91 = 37 sprint 0 debt 持续, L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加)
 
 ---
 

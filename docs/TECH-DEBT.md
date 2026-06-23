@@ -14,8 +14,8 @@
 - 📋 **FilterBuilder 治本** (Sprint 60+ 留尾): 加 `o.channel` 前缀 (14+ service audit + ground-truth-lint 扫 `FROM orders` 无别名, 半天 ~ 1d). Sprint 60.1 治标 2 个 endpoint 加 `o.`, 治本 (改 FilterBuilder) 会冲击 14+ service
 - 📋 **D1 50m-scale benchmark** (跨 sprint 推后, Sprint 38+ → 58 推 60+): 调研 0 进展, 触发条件 = 30M 数据量. Sprint 58 #1 OOM 治本部分解, 仍需独立 benchmark sprint
 - 📋 **D2 e2e 50+MB OOM** (Sprint 55+ recurring #14, Sprint 66 P0 部分解): CI e2e 仍 `continue-on-error: true`, 跨 sprint 待治本
-- 📋 **D3 4 stub 内容补实** (Sprint 55.5 留尾): docs/ 4 个 stub file (architecture/development/operating/history) 内容待补, 估时 半天
-- 📋 **D4 asset_* 命名混淆** (Sprint 55.5 留尾): docs/services.md §5 asset_* 命名 127 行待 cleanup, 跟 Sprint 65 文档审计同源
+- ✅ **D3 4 stub 内容补实** (Sprint 55.5 留尾已闭环, Sprint 91 验证): docs/architecture (4 files / 1578 行) + docs/development (5 files / 1264 行) + docs/history (1 file SPRINT_INDEX.md 65 行 Sprint 1-66 完整索引) + docs/operating (9 files / 1721 行) 共 19 files / 4628 行完整沉淀. Sprint 55.5 留尾说 "4 stub 待补" 描述跟实际不符, Sprint 55.5 收口时已子目录化 + 填内容. 治根 Sprint 67 close memory 反思"跨 sprint 误列已闭环 4 次, 重复列 L4.7 + RFM_DEFINITIONS 3 次" 同样问题再次出现, Sprint 91 标 ✅
+- ✅ **D4 asset_* 命名混淆 cleanup** (Sprint 55.5 留尾已闭环, Sprint 91 验证): docs/services.md 120 行 (Sprint 55.5 留尾说 127 行是当时估算) §5 已 5.1-5.5 完整沉淀 (命名差异表 + 何时用哪个 + 调用场景示例 + rename 历史 + 命名混淆防御 三层一起保留). Sprint 55.5 留尾说 "127 行待 cleanup" 描述跟实际不符, Sprint 55.5 收口时已 §5 完整沉淀, Sprint 57 又扩内容. Sprint 91 标 ✅
 - ✅ **L4.8 业务定义 SSOT 文档化** (Sprint 60+ 留尾已闭环): 写 `docs/business/RFM_DEFINITIONS.md` (v0.4.14.147, 跟 Sprint 14.5 P1.1 注释对齐)
 - ✅ **Sprint 60+ ruff 留尾 3 闭环**: `test_status_update.py:8 F401 sys` + `37+38 F541 extraneous f prefix` (Sprint 60.3 修)
 - ✅ **CI e2e 真实数据缺失 闭环 (C+)**: Sprint 60.3+ 把 e2e 降级为纯 UI smoke + `auth.fixture.ts` 统一 API 5xx 拦截, 不再依赖 production DuckDB, 去掉 `continue-on-error: true` 后 4/4 CI pass. 业务数值端到端验证保留给本地真数据 e2e。
