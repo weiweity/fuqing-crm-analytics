@@ -408,13 +408,16 @@ def get_category_flow(
         row_totals = [sum(row) for row in matrix]
 
         # 来源集中度警告
+        # Sprint 97 fix: matrix 是 N_sources × N_targets, column 索引应该用 targets 不是 sources.
+        # 修前 enumerate(sources) 当 len(sources) > len(targets) 时 matrix[j][i] IndexError.
+        # 修后 enumerate(targets) 让 i ∈ [0, len(targets)), column index 合法.
         concentration_warnings = []
-        for i, src in enumerate(sources):
+        for i, tgt in enumerate(targets):
             total_inflow = sum(matrix[j][i] for j in range(len(sources)))
             if total_inflow > 0:
                 max_source_ratio = max(matrix[j][i] for j in range(len(sources))) / total_inflow
                 if max_source_ratio > 0.6:
-                    concentration_warnings.append(f"{src} 过度依赖单一来源(占比>{int(max_source_ratio*100)}%)")
+                    concentration_warnings.append(f"{tgt} 过度依赖单一来源(占比>{int(max_source_ratio*100)}%)")
 
         flow_matrix_data = {
             "sources": sources,
