@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.156` (Sprint 97 FilterBuilder channel 别名推广) |
+| VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
 | git HEAD (main) | `100a5a2` (Sprint 67+68+69+70+71+72 amend, 1 commit 闭环: 留尾 SSOT 治理 L4.12 + 4 follow-up gap + MEMORY dedupe + L4.1+L4.13+L4.14 永久规则 + drift 修 + 永久接受 amend 物理限制) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 67+68 (留尾 SSOT 治理 + 4 follow-up gap, 1 commit 0 debt, L4.12 永久规则 + UserPromptSubmit hook + 3 case regression + 4 项跨 sprint 推后进 SSOT) |
@@ -57,7 +57,7 @@
 | Sprint 66 闭环 | **2 commit 0 debt (PR direct main 直做)** | P0 治根: `.github/workflows/lint.yml` e2e job env `FQ_DB_MODE: schema_test` (Sprint 63 P1b 漏修跨 5+sprint 复发). P1 治根: `gc_once()` 平台检查移到 `main()` 入口 (Linux CI runner 4 case FAILURE 真因). pytest 741/21/0 Linux runner 实证. CI 4/4 jobs 全绿 |
 | Sprint 66 实战 fix 沉淀 | **2 项 pattern** | (a) Sprint 63 P1b 漏修跨 workflow 同步 e2e env → 5+sprint 复发 → 治根 + 3 个 regression test strict match. (b) 平台检查放核心逻辑 vs 入口反模式 → CI runner 跨平台 100% FAILURE → L4.10 永久规则 + 2 个 main()/gc_once() 配对 regression test |
 | Sprint 66 housekeeping 闭环 | **3 类 stale state 清理 + L4.11 永久规则** | (1) 2 stale remote 删除 (tmp/work-plat) (2) 6 git stash clear (3) 13 Codex turn-diffs checkpoint refs + git gc --prune=now 清 21 dangling objects. Codex UI 不再误显示"未提交分支" |
-| FilterBuilder 12 service 推广 | ✅ 闭环 | Sprint 97 修 5 FilterBuilder + 2 手工拼 + verify 5, 加 L4.19 ground-truth-lint 防回归 |
+| FilterBuilder 12 service 推广 | ✅ 闭环 | Sprint 97 治标 → Sprint 98 真治本 (`OrderFilters.channel_in/not_in` 加 `table_alias`, FilterBuilder 集中处理别名, 全 service 0 post-processing `.replace()`) |
 | Sprint 61 留尾 | **2 项** | ① P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+) ② Sprint 60+ 留尾 1 项 (FilterBuilder params count 断言, 0.5d) 跨 sprint 累计 |
 | Sprint 61 闭环 | **2 commit 0 debt (PR #27 待 merge)** | ① docs(readme) sync Sprint 54-61 状态行 (15 行) ② fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (5/5 端到端场景验证全过) |
 | Sprint 60+ 留尾 | **3 项 + 3 ruff 留尾** | ① FilterBuilder params count 断言 (0.5d) ② L4.7 ground-truth-lint: `_compute_*` 函数体内加 `assert sql.count('?') == len(params)` ③ L4.8 业务定义 SSOT 文档化: 写 `docs/business/RFM_DEFINITIONS.md` (跟 Sprint 14.5 P1.1 注释对齐) ④ Sprint 60+ ruff 留尾 3 (test_status_update.py:8 F401 sys + 37+38 F541 extraneous f prefix, Sprint 60.3 闭环) |
