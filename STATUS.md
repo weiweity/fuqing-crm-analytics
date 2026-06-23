@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 95+96+96.1+96.2+96.3+96.4+96.5 7 sprint 收口: 🎉 D2 e2e 50+MB OOM 治本 必修 2 真因真修 7 sprint 完整链路全闭环, 跟 Sprint 88+92+92.1 模式 2 sprint 延展, 7 步实战 fix 模式 = 1) 改 lint.yml 2) 改 e2e.yml 3) 改相关 test 4) 验证 yaml.safe_load 5) pytest 本地 6) commit 7) push + merge + gh run watch. Sprint 95+96+96.1+96.2+96.3+96.4 必修 2 误诊真因真发现真因真发现真因真发现真因真发现真因真发现真因真发现 (跳 7 步任 1 步) → Sprint 96.5 7 步全走 → 必修 2 真因真修全闭环), v0.4.14.156 不变 (留尾治理 sprint 跟 Sprint 67+68+90+91+92+92.1+92.2+93+94+95 一样 不 bump), main HEAD `3429c14` (Sprint 96.5 merge, L4.14 永久接受 1 commit drift 7 sprint 累计), pytest 745/23/0 baseline 持续 + 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90+91+92+92.1+92.2+93+94+95+96+96.1+96.2+96.3+96.4+96.5 = 45 sprint 0 debt 持续, L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加, 7 sprint 完整链路真因真发现实战 fix 模式新增 (跟 Sprint 88+92+92.1 模式 2 sprint 延展), CI 3/3 jobs ✓ + e2e.yml 独立 4m26s ✓ (跟之前 9m35s 比 -5m, 跟之前 18m+ 比 -14m))
+**最后更新**: 2026-06-23 (Sprint 99 收口: 留尾 #11 SSOT 漂移闭环 + L4.20 反 SSOT 漂移永久规则, VERSION 0.4.14.157 不变, pytest 819/23/0 = Sprint 98 baseline 815/23/0 + 新增 4 case)
 
 ---
 
@@ -23,9 +23,9 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **768** | Sprint 61 P2 实施时实测 (pytest 9:10, 21 skipped 含 production DuckDB 不可用) |
-| pytest skipped | **21** | Sprint 61 P2 实测: 1 `w4_full:319` PID 锁 fd + 20 production DuckDB 不可用跨 sprint 留尾 |
-| pytest failed | **0** | Sprint 66 P1 CI runner 实测 741 passed / 21 skipped / 62 deselected (Linux ubuntu-latest 实证) |
+| pytest passed | **819** | Sprint 99 实测: Sprint 98 baseline 815 + L4.20 新增 4 case |
+| pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
+| pytest failed | **0** | Sprint 99 全量 `python3 -m pytest --tb=no -q` 实测 |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
@@ -57,6 +57,7 @@
 | Sprint 66 闭环 | **2 commit 0 debt (PR direct main 直做)** | P0 治根: `.github/workflows/lint.yml` e2e job env `FQ_DB_MODE: schema_test` (Sprint 63 P1b 漏修跨 5+sprint 复发). P1 治根: `gc_once()` 平台检查移到 `main()` 入口 (Linux CI runner 4 case FAILURE 真因). pytest 741/21/0 Linux runner 实证. CI 4/4 jobs 全绿 |
 | Sprint 66 实战 fix 沉淀 | **2 项 pattern** | (a) Sprint 63 P1b 漏修跨 workflow 同步 e2e env → 5+sprint 复发 → 治根 + 3 个 regression test strict match. (b) 平台检查放核心逻辑 vs 入口反模式 → CI runner 跨平台 100% FAILURE → L4.10 永久规则 + 2 个 main()/gc_once() 配对 regression test |
 | Sprint 66 housekeeping 闭环 | **3 类 stale state 清理 + L4.11 永久规则** | (1) 2 stale remote 删除 (tmp/work-plat) (2) 6 git stash clear (3) 13 Codex turn-diffs checkpoint refs + git gc --prune=now 清 21 dangling objects. Codex UI 不再误显示"未提交分支" |
+| Sprint 99 收口 | **留尾 #11 ✅ 闭环** | Sprint 91 真修 commit `287efb8` 持续生效；新增 L4.20 + `check_ssot_drift.py` 防 close-memory 复制粘贴漂移，0 业务代码、VERSION 不变 |
 | FilterBuilder 12 service 推广 | ✅ 闭环 | Sprint 97 治标 → Sprint 98 真治本 (`OrderFilters.channel_in/not_in` 加 `table_alias`, FilterBuilder 集中处理别名, 全 service 0 post-processing `.replace()`) |
 | Sprint 61 留尾 | **2 项** | ① P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+) ② Sprint 60+ 留尾 1 项 (FilterBuilder params count 断言, 0.5d) 跨 sprint 累计 |
 | Sprint 61 闭环 | **2 commit 0 debt (PR #27 待 merge)** | ① docs(readme) sync Sprint 54-61 状态行 (15 行) ② fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (5/5 端到端场景验证全过) |
