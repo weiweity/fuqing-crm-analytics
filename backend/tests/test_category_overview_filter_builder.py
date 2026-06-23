@@ -206,3 +206,91 @@ class TestSprint60CategoryParamsMismatchRegression:
         assert "o.channel NOT IN" in sql2, (
             f"channel NOT IN 需加 o. 别名, 实际 SQL: {sql2}"
         )
+
+
+class TestSprint90L4GroundTruthLint:
+    """Sprint 90 L4.7 ground-truth-lint 防回归: 3 个 _compute_* 函数体内加
+    `assert sql.count('?') == len(params)` 防 params 顺序错位回归 (Sprint 60+60.1.1
+    实战 fix 模式应用, L4.7 永久规则沉淀). 缺此 assert → DuckDB InvalidInputException
+    透传 API 500; 有此 assert → 立刻 AssertionError 在 service 层, 错误信息含具体数字.
+    """
+
+    def test_assert_passes_on_valid_params(self, monkeypatch_connection):
+        """L4.7 case 1: 正常 params 顺序 → assert 通过, 函数跑通 (跟 Sprint 60+60.1.1 fix 兼容)."""
+        from backend.services.category_service.overview import _compute_category_period
+        from datetime import date
+        from datetime import timedelta
+
+        start_dt = date(2026, 6, 1)
+        cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        # 修复后 params 顺序正确 → assert sql.count('?') == len(params) 通过 → 函数跑通
+        result = _compute_category_period(
+            conn=monkeypatch_connection,
+            start_date="2026-06-01",
+            end_date="2026-06-20",
+            cutoff=cutoff,
+            level="class",
+            metric_type="GSV",
+        )
+        assert isinstance(result, dict)  # assert 通过 → 函数跑通, 隐含验证 case 1
+
+    def test_assert_raises_on_params_mismatch(self, monkeypatch_connection, monkeypatch):
+        """L4.7 case 2: 故意破坏 params 顺序 → assert 立刻爆 AssertionError, 不再让 DuckDB 错透传 API 500.
+
+        模拟 Sprint 60 根因: params 列表比 SQL `?` 占位符多 1 个 → DuckDB InvalidInputException
+        "excess parameters: 22" → API 500. 加 L4.7 assert 后, AssertionError 在 service 层就爆,
+        错误信息含具体数字, 调试友好.
+        """
+        from backend.services.category_service import overview as category_overview
+        import pytest
+
+        # monkeypatch _build_category_period_filter 让它返回 (sql, 故意多 1 个的 params)
+        real_build = category_overview._build_category_period_filter
+
+        def bad_build(*args, **kwargs):
+            sql, params = real_build(*args, **kwargs)
+            return sql, list(params) + ["bogus_extra_param"]  # 故意多 1 个, 模拟错位
+
+        monkeypatch.setattr(category_overview, "_build_category_period_filter", bad_build)
+
+        from backend.services.category_service.overview import _compute_category_period
+        from datetime import date
+        from datetime import timedelta
+
+        start_dt = date(2026, 6, 1)
+        cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        with pytest.raises(AssertionError, match="params mismatch"):
+            _compute_category_period(
+                conn=monkeypatch_connection,
+                start_date="2026-06-01",
+                end_date="2026-06-20",
+                cutoff=cutoff,
+                level="class",
+                metric_type="GSV",
+            )
+
+    def test_assert_in_all_compute_functions(self):
+        """L4.7 case 3: 源码扫描 — 3 个 _compute_* 函数体内都加了 assert, 防回归.
+
+        任何后续把 assert 删掉的 PR 都会被本测试捕获.
+        """
+        source = inspect.getsource(category_overview)
+        # 3 个 _compute_* 函数都必须在源码中存在
+        for func_name in (
+            "_compute_category_period",
+            "_compute_wool_party_breakdown",
+            "_compute_value_tier_base",
+        ):
+            assert f"def {func_name}(" in source, (
+                f"{func_name} 函数不存在, L4.7 assert 范围不匹配"
+            )
+        # assert sql.count('?') == len(params) 模板必出现 3 次 (3 个函数各 1 个)
+        # 错误信息前缀各不相同 (_compute_category_period / _compute_wool_party_breakdown /
+        # _compute_value_tier_base), 搜 assert 关键字出现次数 ≥ 3 即可
+        assert_count = source.count("assert sql.count('?') == len(params)")
+        assert assert_count >= 3, (
+            f"L4.7 assert 模板在 overview.py 中出现 {assert_count} 次, "
+            f"必须 ≥ 3 次 (3 个 _compute_* 函数各 1 个)"
+        )
