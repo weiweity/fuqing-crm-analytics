@@ -79,11 +79,11 @@ def get_sampling_roi(
         ch_placeholders = ','.join(['?'] * len(db_channels))
         sample_users_sql = f"""
             SELECT user_id, channel,
-                   MIN(pay_time) as first_sample_time,
-                   (ARRAY_AGG(COALESCE(spu_category, '未知') ORDER BY pay_time ASC))[1] as sample_category
-            FROM orders
-            WHERE channel IN ({ch_placeholders})
-              AND pay_time >= ?::TIMESTAMP AND pay_time <= ?::TIMESTAMP + INTERVAL '1' DAY
+                   MIN(o.pay_time) as first_sample_time,
+                   (ARRAY_AGG(COALESCE(o.spu_category, '未知') ORDER BY o.pay_time ASC))[1] as sample_category
+            FROM orders o
+            WHERE o.channel IN ({ch_placeholders})
+              AND o.pay_time >= ?::TIMESTAMP AND o.pay_time <= ?::TIMESTAMP + INTERVAL '1' DAY
             GROUP BY user_id, channel
         """
         sample_params = db_channels + [start_date, end_date]
@@ -307,10 +307,10 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end)
     locked = conn.execute("""
         SELECT COUNT(*) as orders, COUNT(DISTINCT user_id) as users
-        FROM orders
-        WHERE channel = ?
-          AND ROUND(actual_amount, 2) = 0.01
-          AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+        FROM orders o
+        WHERE o.channel = ?
+          AND ROUND(o.actual_amount, 2) = 0.01
+          AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
     """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str]).fetchone()
     locked_users = int(locked[1] or 0)
 
@@ -328,10 +328,10 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     converted = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
-            FROM orders
-            WHERE channel = ?
-              AND ROUND(actual_amount, 2) = 0.01
-              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+            FROM orders o
+            WHERE o.channel = ?
+              AND ROUND(o.actual_amount, 2) = 0.01
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT COUNT(DISTINCT o.user_id) as converted_users,
                COALESCE(SUM(o.actual_amount), 0) as lock_gsv
@@ -353,10 +353,10 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     new_data = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
-            FROM orders
-            WHERE channel = ?
-              AND ROUND(actual_amount, 2) = 0.01
-              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+            FROM orders o
+            WHERE o.channel = ?
+              AND ROUND(o.actual_amount, 2) = 0.01
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT
             COUNT(DISTINCT lu.user_id) as total_locked,
@@ -553,10 +553,10 @@ def _compute_rolling_year_metrics(
     # ── 锁权人数 ──
     locked_row = conn.execute("""
         SELECT COUNT(DISTINCT user_id) as users
-        FROM orders
-        WHERE channel = ?
-          AND ROUND(actual_amount, 2) = 0.01
-          AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+        FROM orders o
+        WHERE o.channel = ?
+          AND ROUND(o.actual_amount, 2) = 0.01
+          AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
     """, [GIFT_SAMPLE_DB, sample_start, sample_end_eff]).fetchone()
     locked_users = int(locked_row[0] or 0)
 
@@ -564,10 +564,10 @@ def _compute_rolling_year_metrics(
     new_locked_row = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
-            FROM orders
-            WHERE channel = ?
-              AND ROUND(actual_amount, 2) = 0.01
-              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+            FROM orders o
+            WHERE o.channel = ?
+              AND ROUND(o.actual_amount, 2) = 0.01
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
         )
         SELECT COUNT(DISTINCT CASE WHEN ufp.first_pay_date >= ?::DATE THEN lu.user_id END)
         FROM locked_users lu
@@ -608,10 +608,10 @@ def _compute_rolling_year_metrics(
     conv_row = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
-            FROM orders
-            WHERE channel = ?
-              AND ROUND(actual_amount, 2) = 0.01
-              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+            FROM orders o
+            WHERE o.channel = ?
+              AND ROUND(o.actual_amount, 2) = 0.01
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
         ),
         shelf_users AS (
             SELECT o.user_id, SUM(o.actual_amount) as shelf_total
@@ -635,10 +635,10 @@ def _compute_rolling_year_metrics(
     new_conv_row = conn.execute("""
         WITH locked_users AS (
             SELECT DISTINCT user_id
-            FROM orders
-            WHERE channel = ?
-              AND ROUND(actual_amount, 2) = 0.01
-              AND pay_time >= ?::DATE AND pay_time <= ?::DATE + INTERVAL '1' DAY
+            FROM orders o
+            WHERE o.channel = ?
+              AND ROUND(o.actual_amount, 2) = 0.01
+              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
         ),
         shelf_users AS (
             SELECT o.user_id, SUM(o.actual_amount) as shelf_total

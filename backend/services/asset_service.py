@@ -111,7 +111,11 @@ def _build_asset_trend_filter(
     fb = FilterBuilder()
     fb.with_metric_type(MetricType.GSV)
     fb.with_time_range(start_date, end_date)
-    return fb.build()
+    where_sql, params = fb.build()
+    # Sprint 97 fix: channel 加 o. 前缀, 配 LEFT JOIN user_rfm r 兼容
+    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
+    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
+    return where_sql, params
 
 
 def get_asset_trend(

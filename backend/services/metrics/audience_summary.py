@@ -198,20 +198,22 @@ def calculate_audience_summary(
             params = [start_dt, end_dt]
             # valid_order() 来自语义层 uniform 口径
             valid_sql, _valid_params = OrderFilters.valid_order()
-            where_parts = ["pay_time >= ?::TIMESTAMP", "pay_time <= ?::TIMESTAMP", valid_sql]
+            # Sprint 97 fix: 跟 FROM orders o 别名配套, valid_sql 列加 o. 前缀 (Sprint 60.1 模式)
+            valid_sql = valid_sql.replace('is_goujinjin', 'o.is_goujinjin').replace('order_status', 'o.order_status').replace('is_refund', 'o.is_refund')
+            where_parts = ["o.pay_time >= ?::TIMESTAMP", "o.pay_time <= ?::TIMESTAMP", valid_sql]
             if ch_filter and ch_filter != "全店":
                 db_channels = _expand_channel(ch_filter)
                 if len(db_channels) == 1:
-                    where_parts.append("channel = ?")
+                    where_parts.append("o.channel = ?")
                     params.append(db_channels[0])
                 elif len(db_channels) > 1:
                     placeholders = ",".join(["?"] * len(db_channels))
-                    where_parts.append(f"channel IN ({placeholders})")
+                    where_parts.append(f"o.channel IN ({placeholders})")
                     params.extend(db_channels)
             if ex_channels:
                 db_ex = [UI_TO_DB.get(ch, ch) for ch in ex_channels]
                 placeholders = ",".join(["?"] * len(db_ex))
-                where_parts.append(f"channel NOT IN ({placeholders})")
+                where_parts.append(f"o.channel NOT IN ({placeholders})")
                 params.extend(db_ex)
             where_sql = " AND ".join(where_parts)
             full_params = params + [cutoff_dt]
@@ -219,7 +221,7 @@ def calculate_audience_summary(
             sql = f"""
             WITH
             base AS (
-                SELECT * FROM orders
+                SELECT * FROM orders o
                 WHERE {where_sql}
             ),
             old_customers AS (
