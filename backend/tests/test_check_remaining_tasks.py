@@ -26,9 +26,9 @@ def test_happy_path_parses_tech_debt() -> None:
     out = json.loads(result.stdout)
     assert "remaining" in out
     assert len(out["remaining"]) >= 2, f"应有 ≥ 2 个留尾项, 实际 {len(out['remaining'])}"
-    # 验证 L4.7 必在 (Sprint 60+ 留尾)
+    # Sprint 98 已关闭 FilterBuilder 留尾；验证仍真实存在的规模化 benchmark 留尾
     titles = " ".join(r["title"] for r in out["remaining"])
-    assert "L4.7" in titles or "FilterBuilder" in titles, f"必含 L4.7 或 FilterBuilder, 实际: {titles}"
+    assert "D1 50m-scale benchmark" in titles, f"必含 D1 50m-scale benchmark, 实际: {titles}"
 
 
 # Case 2: fail-open — 缺失 TECH-DEBT.md 不 crash

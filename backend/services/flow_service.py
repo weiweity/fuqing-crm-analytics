@@ -44,9 +44,6 @@ def _build_flow_fm_filter(
     if exclude_channels:
         fb.with_exclude_channels(exclude_channels)
     where_sql, params = fb.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
     return where_sql, params
 
 
@@ -65,9 +62,6 @@ def _build_flow_r_filter(
     fb.with_metric_type(MetricType.GSV)
     fb.with_time_range(start_date, end_date)
     where_sql, params = fb.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
     return where_sql, params
 
 
@@ -164,18 +158,12 @@ def _compute_user_segments_raw(
     if exclude_channels:
         fb_fm.with_exclude_channels(exclude_channels)
     where_fm, params_fm = fb_fm.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-    where_fm = where_fm.replace("channel IN (", "o.channel IN (")
-    where_fm = where_fm.replace("channel NOT IN (", "o.channel NOT IN (")
 
     # R 指标: 365 天固定窗口, 不带 channel 过滤 (与 preload_rfm.py 口径一致)
     fb_r = FilterBuilder()
     fb_r.with_metric_type(MetricType.GSV)
     fb_r.with_time_range(r_start_date, date)
     where_r, params_r = fb_r.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-    where_r = where_r.replace("channel IN (", "o.channel IN (")
-    where_r = where_r.replace("channel NOT IN (", "o.channel NOT IN (")
 
     # params 顺序:
     # 1. base_params CTE: analysis_date, start_date, r_start_date (3 个)

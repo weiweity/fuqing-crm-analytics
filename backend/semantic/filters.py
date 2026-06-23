@@ -123,22 +123,36 @@ class OrderFilters:
         return "is_member = TRUE", []
 
     @staticmethod
-    def channel_in(channels: List[str]) -> Tuple[str, List[Any]]:
-        """渠道 IN 列表（支持组合渠道自动展开）"""
+    def channel_in(
+        channels: List[str], table_alias: str = "o"
+    ) -> Tuple[str, List[Any]]:
+        """渠道 IN 列表（支持组合渠道自动展开）.
+
+        Sprint 98 真治本: 默认使用 orders 的 ``o`` 别名，避免跟 JOIN 表的
+        channel 字段冲突；传空字符串时保留无别名单表查询兼容性。
+        """
         if not channels:
             return "1=1", []
         db_names = _expand_channels(channels)
         placeholders = ",".join(["?"] * len(db_names))
-        return f"channel IN ({placeholders})", db_names
+        prefix = f"{table_alias}." if table_alias else ""
+        return f"{prefix}channel IN ({placeholders})", db_names
 
     @staticmethod
-    def channel_not_in(channels: List[str]) -> Tuple[str, List[Any]]:
-        """渠道 NOT IN 列表（剔除低价等场景，支持组合渠道自动展开）"""
+    def channel_not_in(
+        channels: List[str], table_alias: str = "o"
+    ) -> Tuple[str, List[Any]]:
+        """渠道 NOT IN 列表（剔除低价等场景，支持组合渠道自动展开）.
+
+        Sprint 98 真治本: 默认使用 orders 的 ``o`` 别名，避免跟 JOIN 表的
+        channel 字段冲突；传空字符串时保留无别名单表查询兼容性。
+        """
         if not channels:
             return "1=1", []
         db_names = _expand_channels(channels)
         placeholders = ",".join(["?"] * len(db_names))
-        return f"channel NOT IN ({placeholders})", db_names
+        prefix = f"{table_alias}." if table_alias else ""
+        return f"{prefix}channel NOT IN ({placeholders})", db_names
 
     @staticmethod
     def dimension_eq(dimension: str, value: str) -> Tuple[str, List[Any]]:
@@ -156,7 +170,7 @@ class FilterBuilder:
         fb.with_time_range("2026-01-01", "2026-01-31")
         fb.with_channels(["直播", "货架"])
         sql, params = fb.build()
-        # sql => "pay_time >= ? AND pay_time <= ? AND order_status LIKE '%成功%' AND is_goujinjin = FALSE AND is_refund = FALSE AND channel IN (?, ?)"
+        # sql => "pay_time >= ? AND pay_time <= ? AND order_status LIKE '%成功%' AND is_goujinjin = FALSE AND is_refund = FALSE AND o.channel IN (?,?)"
     """
 
     def __init__(self):
@@ -169,6 +183,7 @@ class FilterBuilder:
         self._member_only: bool = False
         self._dimension: Optional[str] = None
         self._dimension_value: Optional[str] = None
+        self._table_alias: str = "o"
         self._extra_conditions: List[Tuple[str, List[Any]]] = []
 
     def with_metric_type(self, metric_type: MetricType) -> "FilterBuilder":
@@ -190,6 +205,11 @@ class FilterBuilder:
 
     def with_channels(self, channels: Optional[List[str]]) -> "FilterBuilder":
         self._channels = channels
+        return self
+
+    def with_table_alias(self, table_alias: str) -> "FilterBuilder":
+        """设置 orders 表别名；空字符串用于无别名的旧单表查询."""
+        self._table_alias = table_alias
         return self
 
     def with_exclude_channels(self, channels: Optional[List[str]]) -> "FilterBuilder":
@@ -237,13 +257,17 @@ class FilterBuilder:
 
         # 3. 渠道筛选
         if self._channels:
-            ch_sql, ch_params = OrderFilters.channel_in(self._channels)
+            ch_sql, ch_params = OrderFilters.channel_in(
+                self._channels, self._table_alias
+            )
             conditions.append(ch_sql)
             params.extend(ch_params)
 
         # 3.5 排除渠道
         if self._exclude_channels:
-            ex_sql, ex_params = OrderFilters.channel_not_in(self._exclude_channels)
+            ex_sql, ex_params = OrderFilters.channel_not_in(
+                self._exclude_channels, self._table_alias
+            )
             conditions.append(ex_sql)
             params.extend(ex_params)
 

@@ -483,7 +483,7 @@ def get_category_user_list(
     result = conn.execute(sql, where_params + [limit]).fetchall()
 
     # 获取总用户数 — count_sql 共用同一份 filter
-    count_sql = f"SELECT COUNT(DISTINCT user_id) FROM orders WHERE {where_sql}"
+    count_sql = f"SELECT COUNT(DISTINCT user_id) FROM orders o WHERE {where_sql}"
     total_result = conn.execute(count_sql, where_params).fetchone()
     total_users = int(total_result[0] if total_result else 0)
 

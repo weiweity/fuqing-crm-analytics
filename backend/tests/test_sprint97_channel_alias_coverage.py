@@ -6,13 +6,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-FILTER_BUILDER_SERVICES = {
-    "backend/services/flow_service.py": 4,
-    "backend/services/asset_service.py": 1,
-    "backend/services/metrics/overview.py": 7,
-    "backend/services/churn_service.py": 2,
-    "backend/services/geo_service.py": 1,
-}
+FILTER_BUILDER_SERVICES = [
+    "backend/services/flow_service.py",
+    "backend/services/asset_service.py",
+    "backend/services/metrics/overview.py",
+    "backend/services/churn_service.py",
+    "backend/services/geo_service.py",
+]
 
 MANUAL_SERVICES = [
     "backend/services/metrics/audience_summary.py",
@@ -30,11 +30,17 @@ SPRINT60_1_SERVICES = [
 PATTERN = re.compile(r"(?<![\w.])channel\s+(?:(?:NOT\s+IN|IN)\s*\(|=\s*\?)")
 
 
-def test_filter_builder_services_post_process_every_build() -> None:
-    for service, expected_count in FILTER_BUILDER_SERVICES.items():
+def test_filter_builder_services_use_central_channel_alias() -> None:
+    """Sprint 98 后 service 不再自行 replace，默认别名由 FilterBuilder 提供."""
+    from backend.semantic.filters import FilterBuilder
+
+    sql, _ = FilterBuilder().with_channels(["直播"]).build()
+    assert "o.channel IN (?)" in sql
+
+    for service in FILTER_BUILDER_SERVICES:
         text = (ROOT / service).read_text(encoding="utf-8")
-        assert text.count('.replace("channel IN (", "o.channel IN (")') == expected_count, service
-        assert text.count('.replace("channel NOT IN (", "o.channel NOT IN (")') == expected_count, service
+        assert '.replace("channel IN (", "o.channel IN (")' not in text, service
+        assert '.replace("channel NOT IN (", "o.channel NOT IN (")' not in text, service
 
 
 def test_manual_services_have_table_prefix() -> None:

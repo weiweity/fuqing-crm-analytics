@@ -4,6 +4,11 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-23 (Sprint 98 FilterBuilder table_alias 真治本)
+
+### Changed
+- Sprint 98 FilterBuilder 真治本: `OrderFilters.channel_in/not_in` 加 `table_alias` 参数 (default `"o"`), `FilterBuilder` 加集中式别名状态与 `with_table_alias()`；删除 Sprint 60.1/97 全部 service post-processing `.replace()`，并统一仍使用 FilterBuilder 的单表 SQL 为 `FROM orders o`，防 DuckDB Binder channel 歧义跨 service 复发
+
 ## [0.4.14.156] - 2026-06-23 (Sprint 97 FilterBuilder channel 别名推广)
 
 ### Fixed

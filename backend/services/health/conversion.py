@@ -49,7 +49,7 @@ def get_new_customer_conversion(analysis_date: str, lookback_months: int = 12,
         rows = conn.execute(f"""
             WITH valid_orders AS (
                 SELECT user_id, pay_time, actual_amount, channel
-                FROM orders
+                FROM orders o
                 WHERE {where_sql}
             ),
             first_purchase AS (
@@ -136,7 +136,7 @@ def get_new_customer_conversion(analysis_date: str, lookback_months: int = 12,
         channel_rows = conn.execute(f"""
             WITH valid_orders AS (
                 SELECT user_id, pay_time, actual_amount, channel
-                FROM orders
+                FROM orders o
                 WHERE {where_sql}
             ),
             first_purchase AS (

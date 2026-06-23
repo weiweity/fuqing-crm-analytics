@@ -83,9 +83,8 @@ class TestSprint601ChannelAliasRegression:
     输出 SQL 加 `o.channel` 别名前缀, 跟 `LEFT JOIN user_rfm r` 共存时不再触发
     DuckDB Binder 错 (Ambiguous reference to column name "channel").
 
-    根因: FilterBuilder.channel_in/channel_not_in 输出 `channel IN/NOT IN` 无表别名,
-    跟 `r.channel` 冲突. Sprint 60.1 fix: 在生成 SQL 后做一次 `channel` → `o.channel`
-    replace (精准修改, 不动其他字段).
+    根因: 旧 FilterBuilder.channel_in/channel_not_in 输出 `channel IN/NOT IN` 无表别名,
+    跟 `r.channel` 冲突. Sprint 98 真治本后由 FilterBuilder 默认输出 `o.channel`.
     """
 
     def test_distribution_filter_channel_has_alias(self):
