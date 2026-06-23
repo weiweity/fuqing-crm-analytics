@@ -29,9 +29,6 @@ def calculate_metrics(start_date: str, end_date: str, metric_type: str = "GMV",
         if exclude_channels:
             fb.with_exclude_channels(exclude_channels)
         where_sql, params = fb.build()
-        # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-        where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-        where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
 
         amount_expr = fb.build_amount_expr()
         count_expr = fb.build_count_expr()
@@ -83,9 +80,6 @@ def calculate_new_old_users(start_date: str, end_date: str,
         if exclude_channels:
             fb.with_exclude_channels(exclude_channels)
         where_sql, where_params = fb.build()
-        # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-        where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-        where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
 
         result = conn.execute(f"""
             WITH period_users AS (
@@ -138,9 +132,6 @@ def calculate_member_metrics(start_date: str, end_date: str, metric_type: str = 
         if exclude_channels:
             fb.with_exclude_channels(exclude_channels)
         where_sql, params = fb.build()
-        # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-        where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-        where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
 
         amount_expr = fb.build_amount_expr()
         count_expr = fb.build_count_expr()
@@ -178,9 +169,6 @@ def _query_period(conn, start_date: str, end_date: str, metric_type: str,
     if exclude_channels:
         fb.with_exclude_channels(exclude_channels)
     where_sql, where_params = fb.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
 
     # GSV 模式需额外排除退款订单；GMV 模式包含退款
     gsv_cond = "is_refund = FALSE" if metric_type == "GSV" else "TRUE"
@@ -389,9 +377,6 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
         if exclude_channels:
             fb.with_exclude_channels(exclude_channels)
         where_sql, params = fb.build()
-        # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-        where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-        where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
 
         amount_expr = fb.build_amount_expr()
 
@@ -429,9 +414,6 @@ def get_daily_trend(start_date: str, end_date: str, metric_type: str = "GMV",
         if exclude_channels:
             fb_ly.with_exclude_channels(exclude_channels)
         where_ly, params_ly = fb_ly.build()
-        # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-        where_ly = where_ly.replace("channel IN (", "o.channel IN (")
-        where_ly = where_ly.replace("channel NOT IN (", "o.channel NOT IN (")
         amount_ly = fb_ly.build_amount_expr()
 
         member_amount_ly_expr = f"SUM(CASE WHEN is_member = TRUE THEN {AmountExprBuilder.gsv() if metric_type == 'GSV' else 'actual_amount'} ELSE 0 END)"
@@ -498,9 +480,6 @@ def get_product_metrics(start_date: str, end_date: str, limit: int = 20) -> Dict
         fb.with_metric_type(MetricType.GMV)
         fb.with_time_range(start_date, end_date)
         where_sql, params = fb.build()
-        # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-        where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-        where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
 
         result = conn.execute(f"""
             SELECT

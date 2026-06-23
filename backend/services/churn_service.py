@@ -63,9 +63,6 @@ def _build_order_intervals_where(
     if exclude_channels:
         fb.with_exclude_channels(exclude_channels)
     where_sql, params = fb.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 JOIN 兼容 (避免 channel 字段 ambiguous)
-    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
     extra_sql = "o.spu_product_class IS NOT NULL AND o.pay_time >= ?"
     extra_params: List[Any] = [lookback_start]
     return f"{extra_sql} AND {where_sql}", extra_params + params
@@ -91,15 +88,10 @@ def _build_user_orders_where(
     """
     fb = FilterBuilder()
     fb.with_metric_type(MetricType.GSV)
+    fb.with_table_alias(alias)
     if exclude_channels:
         fb.with_exclude_channels(exclude_channels)
     where_sql, params = fb.build()
-    # Sprint 97 fix: 默认 orders 别名为 o；alias="" 的旧单表路径保持无别名兼容
-    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
-    if not alias:
-        where_sql = where_sql.replace("o.channel IN (", "channel IN (")
-        where_sql = where_sql.replace("o.channel NOT IN (", "channel NOT IN (")
     prefix = f"{alias}." if alias else ""
     extra_sql = f"{prefix}pay_time >= ?"
     extra_params: List[Any] = [lookback_start]

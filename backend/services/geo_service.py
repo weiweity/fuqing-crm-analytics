@@ -38,9 +38,6 @@ def _build_geo_filter(
     if segment_id is not None:
         fb.add_extra("r.segment_id = ?", [segment_id])
     where_sql, params = fb.build()
-    # Sprint 97 fix: channel 加 o. 前缀, 配 LEFT JOIN user_rfm r 兼容
-    where_sql = where_sql.replace("channel IN (", "o.channel IN (")
-    where_sql = where_sql.replace("channel NOT IN (", "o.channel NOT IN (")
     return where_sql, params
 
 
