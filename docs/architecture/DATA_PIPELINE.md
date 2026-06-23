@@ -2,8 +2,8 @@
 
 > ETL 4 阶段 (W1→W2→W3→W4) 数据流图 + 关键 metrics + 50M scale 触发条件 + Sprint 52 实战。
 
-**最后更新**: 2026-06-21
-**Sprint 收口验证**: Sprint 28+ 端到端跑批 (10.75M 订单, 12.5h 总计 ~32min)
+**最后更新**: 2026-06-24
+**Sprint 收口验证**: Sprint 28+ 端到端跑批 (10.75M 订单, 12.5h 总计 ~32min); Sprint 103 必修 1 拆解 ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) 跟 STATUS.md line 81 同步
 
 ---
 
@@ -24,7 +24,7 @@ csv (11 渠道)       parquet (列存)       orders + 规范化表    + fact_rfm
 |---|---|---|---|---|
 | **W1** | `scripts/etl/ingest.py` | W2 输入 csv 临时区 | ~2 min | 重试 3 次 + 飞书告警 |
 | **W2** | `scripts/etl/transform.py` | `data/parquet/{member,shop}/` | ~3 min | 跳过无变化 + 飞书告警 |
-| **W3** | `scripts/etl/assertions.py` | DuckDB orders + 6 DQ 断言 | ~5 min | 失败记录到 `rfm_quarantine` 不阻塞 |
+| **W3** | `scripts/etl/assertions.py` | DuckDB orders + 6 DQ 断言 (主表 ~108GB, 总库 ~115GB 含 fact_rfm_long ~5GB + 索引 ~2GB) | ~5 min | 失败记录到 `rfm_quarantine` 不阻塞 |
 | **W4** | `scripts/etl/precompute_fact_rfm.py` | `fact_rfm_long` 540 combo batch | **~3s** (Sprint 30.1 50.4× 加速) | 失败 graceful degrade, 不阻塞 ETL |
 
 ---
@@ -59,7 +59,8 @@ csv (11 渠道)       parquet (列存)       orders + 规范化表    + fact_rfm
                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  W3 预计算 + DQ (scripts/etl/assertions.py)                            │
-│  - DuckDB orders 主表 (~115GB, 10.75M 行)                              │
+│  - DuckDB orders 主表 (~108GB, 10.75M 行)                              │
+│  - 总库 ~115GB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB)         │
 │  - 6 DQ 断言 (member_ratio / orders_count / etc.)                     │
 │  - 失败 → rfm_quarantine 表 (不阻塞)                                   │
 │  - dq_snapshot.json 覆盖写 (单文件, 反映最新状态)                        │
@@ -100,7 +101,7 @@ csv (11 渠道)       parquet (列存)       orders + 规范化表    + fact_rfm
 | 指标 | 当前值 | 来源 | 备注 |
 |---|---|---|---|
 | orders 表行数 | 10.75M | W3 主表 | Sprint 28+ 端到端跑批验证 |
-| 库大小 | 115GB | `data/processed/fuqing_crm.duckdb` | 含预计算表 + 索引 |
+| 库大小 | **~115GB** (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) | `data/processed/fuqing_crm.duckdb` | 跟 STATUS.md line 81 同步, 3 部分拆解 |
 | fact_rfm_long 行数 | ~6M | W4 预计算 | 540 combo × 365 天 |
 | member 维表 | ~5M | `data/parquet/member/` | |
 | shop 维表 | ~500 | `data/parquet/shop/` | |
