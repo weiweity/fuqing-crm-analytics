@@ -93,10 +93,11 @@ jobs:
       FQ_DB_MODE: schema_test
     steps:
       - uses: actions/checkout@v5
-      # Sprint 96 D2 e2e 必修 2 真因真修 (3 真因之一): 改用 microsoft/playwright-actions/setup@v1
-      # 接管 Playwright install + auto cache 跨 runner (避免每次 170.4 MiB Chrome for Testing 重下)
-      # + auto --with-deps 处理 (避免 Sprint 95 必修 2 误诊断的 9 fonts 79.5 MB 重装)
-      - uses: microsoft/playwright-actions/setup@v1
+      # Sprint 96.1 D2 e2e 必修 2 真因真修 (action name 404 fix + cache 跨 runner 持久化):
+      # Sprint 96 必修 2 误诊: `microsoft/playwright-actions/setup@v1` 实际不存在 (gh api 404 Not Found,
+      # L4.9 永久规则 gh api tags 验证 stable tag 真存在 违反, 父 CLAUDE.md "1. 编码前先思考 - 不要假设" 违反).
+      # 真修: actions/cache@v4 cache ~/.cache/ms-playwright/ 跨 runner 持久化 (真因 #3 170.4 MiB Chrome for Testing 重下治本).
+      # 真因 #2 9 fonts 79.5 MB 装在 system path 难 cache, 接受每次重装.
       - uses: actions/setup-node@v5
         with:
           node-version: '24'  # Sprint 85: L4.17 永久规则, Node 20 → Node 24 (Node 20 deprecation 修复)
@@ -115,8 +116,20 @@ jobs:
           # openapi-typescript@7.13.0 peer dep typescript@^5.x, 但 frontend devDeps typescript@~6.0.2 (新版).
           # Sprint 41 实战: npm ci 报 ERESOLVE → e2e job fail. 用 --legacy-peer-deps 跳过.
           npm ci --legacy-peer-deps
-      # Sprint 96: 删 Install Playwright browsers step 整段 (microsoft/playwright-actions/setup@v1 已接管, 真因 #2 9 fonts 79.5 MB 0 重装)
-      # Sprint 96: 删 3 处 env: NODE_EXTRA_CA_CERTS literal (真因 #1: yaml env field literal 不 substitute $(...), Playwright 找不到字面量路径)
+      # Sprint 96.1: 加 actions/cache@v4 + Install Playwright browsers step (Sprint 96 误删)
+      # Sprint 96 真因 #1 必修 2 仍真修: 3 处 env: NODE_EXTRA_CA_CERTS literal 全删 (Sprint 96 commit 0296c0d 改)
+      - name: Cache Playwright Browsers (Sprint 96.1 必修 2 真因 #3 治本, 跨 runner 持久化 ~/.cache/ms-playwright/)
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend-vue3/package-lock.json') }}
+      - name: Install Playwright Browsers (Sprint 96.1 必修 2 真因 #2 接受每次重装, 9 fonts 79.5 MB 装在 system path 难 cache)
+        # cache hit 时跳过, 0 重装 170.4 MiB Chrome for Testing
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: |
+          cd frontend-vue3
+          npx playwright install --with-deps chromium
       - name: Build (Vite) + Start preview server + Start uvicorn backend
         run: |
           cd frontend-vue3
