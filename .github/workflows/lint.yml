@@ -93,6 +93,10 @@ jobs:
       FQ_DB_MODE: schema_test
     steps:
       - uses: actions/checkout@v5
+      # Sprint 96 D2 e2e 必修 2 真因真修 (3 真因之一): 改用 microsoft/playwright-actions/setup@v1
+      # 接管 Playwright install + auto cache 跨 runner (避免每次 170.4 MiB Chrome for Testing 重下)
+      # + auto --with-deps 处理 (避免 Sprint 95 必修 2 误诊断的 9 fonts 79.5 MB 重装)
+      - uses: microsoft/playwright-actions/setup@v1
       - uses: actions/setup-node@v5
         with:
           node-version: '24'  # Sprint 85: L4.17 永久规则, Node 20 → Node 24 (Node 20 deprecation 修复)
@@ -111,18 +115,9 @@ jobs:
           # openapi-typescript@7.13.0 peer dep typescript@^5.x, 但 frontend devDeps typescript@~6.0.2 (新版).
           # Sprint 41 实战: npm ci 报 ERESOLVE → e2e job fail. 用 --legacy-peer-deps 跳过.
           npm ci --legacy-peer-deps
-      - name: Install Playwright browsers
-        env:
-          # Sprint 32.1 实战: macOS 跑 e2e 报 SELF_SIGNED_CERT_IN_CHAIN, 修法
-          NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
-        run: |
-          cd frontend-vue3
-          # Sprint 95 D2 e2e 50+MB OOM 治本: 跳过 --with-deps 避免每次 apt install 9 个字体包 79.5 MB
-          # (Ubuntu runner 默认已有 fonts-liberation + fonts-noto-color-emoji, Playwright chromium 只需要这两个)
-          npx playwright install chromium
+      # Sprint 96: 删 Install Playwright browsers step 整段 (microsoft/playwright-actions/setup@v1 已接管, 真因 #2 9 fonts 79.5 MB 0 重装)
+      # Sprint 96: 删 3 处 env: NODE_EXTRA_CA_CERTS literal (真因 #1: yaml env field literal 不 substitute $(...), Playwright 找不到字面量路径)
       - name: Build (Vite) + Start preview server + Start uvicorn backend
-        env:
-          NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
         run: |
           cd frontend-vue3
           # Build + start preview server, wait for ready
@@ -174,8 +169,6 @@ jobs:
           # Sprint 41.11: set -e 关闭 (后续 playwright 不要 'fail-fast', 让 spec 跑完)
           set +e
       - name: Run e2e (10/10 view smoke expected)
-        env:
-          NODE_EXTRA_CA_CERTS: $(python3 -c "import certifi; print(certifi.where())")
         run: |
           cd frontend-vue3
           npx playwright test --reporter=list
