@@ -110,7 +110,10 @@ jobs:
           cache-dependency-path: frontend-vue3/package-lock.json
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          # Sprint 96.3 D2 e2e 必修 2 真因真修 (5 sprint 完整链路全闭环, 跟 Sprint 88+92+92.1 模式 1 sprint 延展):
+          # Sprint 96.2 必修 2 误诊: python-version: "3.14" 在 mcr.microsoft.com/playwright:v1.61.0-jammy Docker image 内未预装 → setup-python step 5 failure
+          # 改 python-version: "3.12" 匹配 jammy Docker image 预装 Python 3.12 (jammy = ubuntu 22.04 LTS, Python 3.10 → 3.12 default)
+          python-version: "3.12"
           # Sprint 95 D2 e2e 50+MB OOM 治本: setup-python cache pip (跟 lint job line 71-74 模式一致)
           cache: 'pip'
           cache-dependency-path: requirements-lock.txt
