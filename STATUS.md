@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `110ce7e` (Sprint 102 merge；Sprint 103 fix branch 基线) |
-| 当前分支 | `fix/sprint103-mandatory-close-data-pipeline-drift` |
-| 最近 sprint | Sprint 103 (留尾治理 sprint，DATA_PIPELINE.md 跨文档漂移修复，0 业务代码，VERSION 不 bump) |
+| git HEAD (main) | `842294d` (Sprint 103 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102 模式 一致) |
+| 当前分支 | `main` |
+| 最近 sprint | Sprint 103 (留尾治理 sprint，DATA_PIPELINE.md 跨文档漂移修复，0 业务代码，VERSION 不 bump，L4.8 删 fix branch) |
 | 收口日 | 2026-06-24 |
-| 上次合入 | Sprint 102 (merge commit `110ce7e`，必修 2 项文档漂移修复 + L4.x 永久规则 21 stable 维护) |
+| 上次合入 | Sprint 103 (merge commit `842294d`，必修 1 修 DATA_PIPELINE.md 跨文档漂移 + L4.x 永久规则 21 stable 维护) |
 
 ---
 
