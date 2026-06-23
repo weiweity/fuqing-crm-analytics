@@ -82,6 +82,16 @@ jobs:
   # e2e 恢复 blocking，同时保留 auth/health 真实后端健康检查。
   e2e:
     runs-on: ubuntu-latest
+    # Sprint 96.2 D2 e2e 必修 2 真因真修 (3 sprint 完整链路全闭环, 跟 Sprint 88+92+92.1 模式 一致):
+    # Sprint 95 误诊: 跳 --with-deps 跳 9 fonts (错, 仍装)
+    # Sprint 96 误诊: microsoft/playwright-actions/setup@v1 接管 (错, action 不存在)
+    # Sprint 96.1 误诊: actions/cache@v4 cache 跨 runner (错, 9 fonts 装 system path 0 cache, 每次重装 79.5 MB 18m+)
+    # 真修: mcr.microsoft.com/playwright:v1.61.0-jammy 预装 Playwright + 9 fonts + 170.4 MiB Chrome
+    # L4.9 永久规则验证 image tag 真存在 (curl https://mcr.microsoft.com/v2/playwright/tags/list).
+    # 期望 e2e 18m+ → 30s (-17.5m).
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.0-jammy
+      options: --user root  # Docker image 默认 user pwuser, 改 root 才能跑 apt install (虽然 image 已预装)
     env:
       DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
       HEALTH_API_KEY: ci-fake-health-api-key
@@ -93,11 +103,6 @@ jobs:
       FQ_DB_MODE: schema_test
     steps:
       - uses: actions/checkout@v5
-      # Sprint 96.1 D2 e2e 必修 2 真因真修 (action name 404 fix + cache 跨 runner 持久化):
-      # Sprint 96 必修 2 误诊: `microsoft/playwright-actions/setup@v1` 实际不存在 (gh api 404 Not Found,
-      # L4.9 永久规则 gh api tags 验证 stable tag 真存在 违反, 父 CLAUDE.md "1. 编码前先思考 - 不要假设" 违反).
-      # 真修: actions/cache@v4 cache ~/.cache/ms-playwright/ 跨 runner 持久化 (真因 #3 170.4 MiB Chrome for Testing 重下治本).
-      # 真因 #2 9 fonts 79.5 MB 装在 system path 难 cache, 接受每次重装.
       - uses: actions/setup-node@v5
         with:
           node-version: '24'  # Sprint 85: L4.17 永久规则, Node 20 → Node 24 (Node 20 deprecation 修复)
@@ -116,20 +121,7 @@ jobs:
           # openapi-typescript@7.13.0 peer dep typescript@^5.x, 但 frontend devDeps typescript@~6.0.2 (新版).
           # Sprint 41 实战: npm ci 报 ERESOLVE → e2e job fail. 用 --legacy-peer-deps 跳过.
           npm ci --legacy-peer-deps
-      # Sprint 96.1: 加 actions/cache@v4 + Install Playwright browsers step (Sprint 96 误删)
-      # Sprint 96 真因 #1 必修 2 仍真修: 3 处 env: NODE_EXTRA_CA_CERTS literal 全删 (Sprint 96 commit 0296c0d 改)
-      - name: Cache Playwright Browsers (Sprint 96.1 必修 2 真因 #3 治本, 跨 runner 持久化 ~/.cache/ms-playwright/)
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend-vue3/package-lock.json') }}
-      - name: Install Playwright Browsers (Sprint 96.1 必修 2 真因 #2 接受每次重装, 9 fonts 79.5 MB 装在 system path 难 cache)
-        # cache hit 时跳过, 0 重装 170.4 MiB Chrome for Testing
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          cd frontend-vue3
-          npx playwright install --with-deps chromium
+      # Sprint 96.2: 删 Cache Playwright Browsers + Install Playwright Browsers step 整段 (Docker image mcr.microsoft.com/playwright:v1.61.0-jammy 已预装 Playwright + 9 fonts + 170.4 MiB Chrome, 0 重装)
       - name: Build (Vite) + Start preview server + Start uvicorn backend
         run: |
           cd frontend-vue3
