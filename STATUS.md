@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 100 收口: L4.20 test 1 CI fresh checkout 必修 1 fail 治根 — 移除 git cat-file -e 验证, 保留 commit SHA 字符串 in HANDOFF 验证, VERSION 0.4.14.157 不变, pytest 819/23/0 持续, L4.x 永久规则 20 stable, 累计 50 sprint 0 debt 持续)
+**最后更新**: 2026-06-23 (Sprint 101 收口: T1/T2 SSOT 与跨文档一致性全量验证 + L4.21 反 sprint 自我反馈闭环永久规则, VERSION 0.4.14.157 不变, pytest 819/23/0 持续, L4.x 永久规则 20 → 21 stable, 累计 51 sprint 0 debt 持续)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `100a5a2` (Sprint 67+68+69+70+71+72 amend, 1 commit 闭环: 留尾 SSOT 治理 L4.12 + 4 follow-up gap + MEMORY dedupe + L4.1+L4.13+L4.14 永久规则 + drift 修 + 永久接受 amend 物理限制) |
-| 当前分支 | `main` |
-| 最近 sprint | Sprint 67+68 (留尾 SSOT 治理 + 4 follow-up gap, 1 commit 0 debt, L4.12 永久规则 + UserPromptSubmit hook + 3 case regression + 4 项跨 sprint 推后进 SSOT) |
+| git HEAD (main) | `0488cb0` (Sprint 100 merge；Sprint 101 分支基线) |
+| 当前分支 | `fix/sprint101-mandatory-close-all` |
+| 最近 sprint | Sprint 101 (留尾治理 sprint，L4.21 反 sprint 自我反馈闭环永久规则，0 业务代码，VERSION 不 bump) |
 | 收口日 | 2026-06-23 |
-| 上次合入 | Sprint 72 (commit `100a5a2` amended, 1 commit main 直做, 治理 sprint 非功能 sprint 不 bump VERSION) |
+| 上次合入 | Sprint 100 (merge commit `0488cb0`，L4.20 test 1 CI shallow clone 反噬治根) |
 
 ---
 
@@ -23,9 +23,9 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **819** | Sprint 99 实测: Sprint 98 baseline 815 + L4.20 新增 4 case |
+| pytest passed | **819** | Sprint 101 全量复验，Sprint 99 baseline 持续 |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
-| pytest failed | **0** | Sprint 99 全量 `python3 -m pytest --tb=no -q` 实测, Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS, 必修 1 fail 治根 |
+| pytest failed | **0** | Sprint 101 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
@@ -58,6 +58,7 @@
 | Sprint 66 实战 fix 沉淀 | **2 项 pattern** | (a) Sprint 63 P1b 漏修跨 workflow 同步 e2e env → 5+sprint 复发 → 治根 + 3 个 regression test strict match. (b) 平台检查放核心逻辑 vs 入口反模式 → CI runner 跨平台 100% FAILURE → L4.10 永久规则 + 2 个 main()/gc_once() 配对 regression test |
 | Sprint 66 housekeeping 闭环 | **3 类 stale state 清理 + L4.11 永久规则** | (1) 2 stale remote 删除 (tmp/work-plat) (2) 6 git stash clear (3) 13 Codex turn-diffs checkpoint refs + git gc --prune=now 清 21 dangling objects. Codex UI 不再误显示"未提交分支" |
 | Sprint 99 收口 | **留尾 #11 ✅ 闭环** | Sprint 91 真修 commit `287efb8` 持续生效；新增 L4.20 + `check_ssot_drift.py` 防 close-memory 复制粘贴漂移，0 业务代码、VERSION 不变 |
+| Sprint 101 收口 | **0 新债 / 0 新留尾** | Sprint 60+ 留尾 4 项闭环 + D1 按 30M 触发推后；L4.20 test 1 已由 Sprint 100 治根，L4.21 沉淀为永久规则 |
 | FilterBuilder 12 service 推广 | ✅ 闭环 | Sprint 97 治标 → Sprint 98 真治本 (`OrderFilters.channel_in/not_in` 加 `table_alias`, FilterBuilder 集中处理别名, 全 service 0 post-processing `.replace()`) |
 | Sprint 61 留尾 | **2 项** | ① P3 统一启动脚本 (跨 dev/CI/staging/profile, Sprint 62+) ② Sprint 60+ 留尾 1 项 (FilterBuilder params count 断言, 0.5d) 跨 sprint 累计 |
 | Sprint 61 闭环 | **2 commit 0 debt (PR #27 待 merge)** | ① docs(readme) sync Sprint 54-61 状态行 (15 行) ② fix(backend) uvicorn 启动 fail-fast + FQ_DB_MODE 模式分流 (5/5 端到端场景验证全过) |
