@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: requirements-lock.txt
       - name: Install ruff (Sprint 92 L4.9 永久规则锁 version 0.4.10, Sprint 88 锁 0.6.9 违反 L4.9 实战 fix 模式新增)
         run: pip install ruff==0.4.10
-      - name: Run ruff check (Sprint 87: 自定义 step 跑 ruff, 避免 ruff-action 内部 Node 20 deprecation)
+      - name: Run ruff check (Sprint 87 自定义 step 跑 ruff, 避免 ruff-action 内部 Node 20 deprecation)
         run: ruff check backend/
 
   ground-truth-lint:
