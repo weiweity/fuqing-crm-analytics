@@ -1,6 +1,8 @@
 # Sprint 历史索引
 
-> Sprint 1-55+ 索引, 高密度入口, 减少冷启动 token。
+> Sprint 1-101 索引, 高密度入口, 减少冷启动 token。
+> 
+> **最后更新**: 2026-06-24 (Sprint 102 必修 2 项文档漂移修复 — SPRINT_INDEX.md 加 Sprint 67+68+91+99+100+101 共 6 sprint, 跟 MEMORY.md 索引同步)
 
 ## 索引规则
 
@@ -12,6 +14,12 @@
 
 | Sprint | 版本 | 主要内容 | Memory |
 |--------|------|----------|--------|
+| **101** | v0.4.14.157 | 全部收尾 sprint — L4.21 反 sprint 自我反馈闭环永久规则 + 跨文档一致性 100% PASS + Codex 主动扩展 5 项亮点 (CLAUDE.md 版本状态 + CHANGELOG.md 修复 Sprint 100 排序漂移 + STATUS.md 多字段 + TECH-DEBT.md 留尾总表 + L4.20 test 1 entry) | ✅ |
+| **100** | v0.4.14.157 | L4.20 test 1 CI fresh checkout 必修 1 fail 治根 (1 commit 0 debt amend, 跟 Sprint 92.2 L4.9 实战 fix 模式真闭环 一致) | ✅ |
+| **99** | v0.4.14.157 | 留尾 #11 SSOT 漂移闭环 + L4.20 反 SSOT 漂移永久规则 + check_ssot_drift.py 190 行结构化 ground-truth-lint | ✅ |
+| **91** | v0.4.14.156 | 必修 4 闭环 (留尾治理 sprint 模式, 跟 Sprint 67+68 一致, 1 sprint 多范围, 1 commit 0 debt) | ✅ |
+| **68** | v0.4.14.155 | Sprint 67+68 留尾 SSOT 治理 (L4.12 永久规则 + 4 follow-up gap 闭环, 1 commit amend 0 debt) | ✅ |
+| **67** | v0.4.14.155 | Sprint 67 留尾 SSOT 治理 (跟 Sprint 68 amend 闭环) | ✅ |
 | **66** | v0.4.14.155 | CI 维修 P0+P1 治根 (lint.yml FQ_DB_MODE 漏修跨 5+sprint 复发 + codex_clone_gc 平台检查从 gc_once 迁 main + L4.10 永久规则 + 5 regression test + pytest 741/21/0 Linux CI runner 实证 + CI 4/4 jobs 全绿) | ✅ |
 | **65** | v0.4.14.154 | /document-release 总览文档漂移修正 (4 文件 +10/-10 行, 跨文档一致性 100% PASS) | ✅ |
 | **64** | v0.4.14.154 | ruff-action v4→v3 revert + L4.9 永久规则 (1 文件 +1/-1 行) | ✅ |

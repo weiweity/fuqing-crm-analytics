@@ -4,6 +4,12 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-24 (Sprint 102, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- 必修 2 项文档漂移修复 + L4.x 永久规则 21 stable 维护：Sprint 98 Handoff commit (修 Sprint 101 收口后漂移, 跟 Sprint 99+101 Handoff 模式一致) + SPRINT_INDEX.md 加 Sprint 67+68+91+99+100+101 共 6 sprint (修跨文档漂移, 跟 MEMORY.md 索引同步) + 跨文档一致性 100% PASS (8/8 文件同步)
+- 0 业务代码改动 (留尾治理 sprint 模式, 跟 Sprint 91+99+100+101 一致), VERSION 不 bump (0.4.14.157 持续), 累计 52 sprint 0 debt 持续
+
 ## [0.4.14.157] - 2026-06-23 (Sprint 101, VERSION 不变 留尾治理 sprint)
 
 ### Changed
