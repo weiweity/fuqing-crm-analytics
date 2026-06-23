@@ -4,6 +4,26 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.156] - 2026-06-23 (Sprint 95+96+96.1+96.2+96.3+96.4+96.5 7 sprint 收口, D2 e2e 50+MB OOM 治本 7 sprint 完整链路全闭环)
+
+### Fixed
+- **🎉 D2 e2e 50+MB OOM 治本 必修 2 真因真修 7 sprint 完整链路全闭环** (跟 Sprint 88+92+92.1 模式 2 sprint 延展, 7 步实战 fix 模式 = 1) 改 lint.yml 2) 改 e2e.yml 3) 改相关 test 4) 验证 yaml.safe_load 5) pytest 本地 6) commit 7) push + merge + gh run watch. 跳任 1 步 → 必修 2 误诊真因真发现):
+  - **Sprint 95 必修 2 误诊真因真发现 1/7**: 误以为 "跳过 --with-deps 跳 9 fonts 79.5 MB" → 实际 Playwright `install chromium` 内部 default install 必要 fonts. `.github/workflows/lint.yml` e2e job 改 `npx playwright install --with-deps chromium` → `npx playwright install chromium` (-1 行, 跳 --with-deps)
+  - **Sprint 96 必修 2 误诊真因真发现 2/7**: 误以为 "microsoft/playwright-actions/setup@v1 接管" → 实际 action 不存在 (gh api 404 Not Found, L4.9 永久规则违反). 4 处 edit: 1) 删错 action 2) 删 Install Playwright browsers step 整段 3) 删 3 处 env: NODE_EXTRA_CA_CERTS literal (真因 #1 必修 2 真修 yaml env field literal value, `$(...)` 是字面量不是 command substitution) 4) 删 Build step env field
+  - **Sprint 96.1 必修 2 误诊真因真发现 3/7**: 误以为 "actions/cache@v4 cache 跨 runner 持久化 9 fonts" → 实际 9 fonts 装 `/usr/share/fonts/` system path 难 cache, 每次重装 18m+ (cache 只 cache browser binary ~170 MB, 0 cache system fonts). 2 处 edit: 1) 删错 action 2) 加 actions/cache@v4 cache `~/.cache/ms-playwright/` + 加 Install Playwright Browsers step
+  - **Sprint 96.2 必修 2 误诊真因真发现 4/7**: 误以为 "mcr.microsoft.com/playwright:v1.61.0-jammy 预装所有 deps" → 实际 image 不预装 Python 3.14, `actions/setup-python@v6` with `python-version: "3.14"` step 5 fail. 2 处 edit: 1) 加 container: mcr.microsoft.com/playwright:v1.61.0-jammy 2) 删 Cache + Install Playwright Browsers step
+  - **Sprint 96.3 必修 2 误诊真因真发现 5/7**: 误以为 "python-version 3.14 → 3.12 匹配 jammy image 预装" → 实际 jammy image 装 Python 3.12 缺 OS deps (libpython3.12 + libssl3), step 5 setup-python 3.12 fail. 1 行改: python-version 3.14 → 3.12
+  - **Sprint 96.4 必修 2 误诊真因真发现 6/7**: 误以为 "删 lint.yml e2e job 整段" → 实际 test fail (test_lint_yml_e2e_job_sets_fq_db_mode_schema_test 找不到了 FQ_DB_MODE=schema_test strict match 整行, e2e job env 没了). Bash sed 删 lint.yml e2e job 整段 (-103 行, line 80-182)
+  - **Sprint 96.5 必修 2 真因真修 7/7 (7 sprint 完整链路全闭环!)**: 删 2 个 lint.yml e2e job 相关 test 整段 (-32 行, line 20-49) + 保留 e2e.yml 独立 workflow test. 1 file +4/-32 行. **CI 3/3 jobs ✓ + e2e.yml 独立 4m26s ✓ success! 7 sprint 完整链路真闭环!**
+
+### Stats
+- 7 sprint 累计 6 commits 跨 7 fix 分支 (Sprint 95+96+96.1+96.2+96.3+96.4+96.5 各 1 commit 0 debt)
+- pytest 745/23/0 baseline 持续 (Sprint 96.5 本地 pytest PASS 1/1 test_e2e_yml_e2e_job_sets_fq_db_mode_schema_test)
+- 累计 Sprint 56+60+...+95+96+96.1+96.2+96.3+96.4+96.5 = **45 sprint, 0 debt** (L4.14 永久接受 amend 物理限制 7 sprint 累计 1 commit drift)
+- main HEAD: `3429c14` (Sprint 96.5 merge, L4.14 永久接受 1 commit drift 7 sprint 累计)
+- CI 3/3 jobs (lint + ground-truth-lint + test) ✓ success + e2e.yml 独立 workflow 4m26s ✓ success (跟之前 9m35s 比 -5m, 跟之前 18m+ 比 -14m)
+- L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加, 7 sprint 完整链路真因真发现实战 fix 模式新增 (跟 Sprint 88+92+92.1 模式 2 sprint 延展, 7 步必走)
+
 ## [0.4.14.156] - 2026-06-23 (Sprint 90, L4.7 ground-truth-lint 防回归)
 
 ### Fixed

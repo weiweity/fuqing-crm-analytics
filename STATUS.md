@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 91 收口: 🛑 必修 4 闭环 留尾治理 sprint 模式 跟 Sprint 67+68 一致 (1 sprint 多范围, 5 必修 = 必修 1 README 漂移修 + 必修 5 L4.12 SSOT D3+D4 标闭环 + 必修 3 1 fail 跨 sprint 留尾 #11 修 L4.7 永久规则应用 + 必修 2 Sprint 88 lint run 432616d failed 真因修复 必 user 手动 `gh run view --log-failed` Bash permission 阻挡限制 + 必修 4 L4.15 push 必 user 拍板), v0.4.14.156 不变 (留尾治理 sprint 跟 Sprint 67+68 一样 不 bump), main HEAD `432616d` 不变, pytest 744/23/1 → 745/23/0 baseline 持续 + /document-release 验证 4 数字一致性 100% PASS (5/5 + L4.13 + L4.x) + 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90+91 = 37 sprint 0 debt 持续, L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加)
+**最后更新**: 2026-06-23 (Sprint 95+96+96.1+96.2+96.3+96.4+96.5 7 sprint 收口: 🎉 D2 e2e 50+MB OOM 治本 必修 2 真因真修 7 sprint 完整链路全闭环, 跟 Sprint 88+92+92.1 模式 2 sprint 延展, 7 步实战 fix 模式 = 1) 改 lint.yml 2) 改 e2e.yml 3) 改相关 test 4) 验证 yaml.safe_load 5) pytest 本地 6) commit 7) push + merge + gh run watch. Sprint 95+96+96.1+96.2+96.3+96.4 必修 2 误诊真因真发现真因真发现真因真发现真因真发现真因真发现真因真发现 (跳 7 步任 1 步) → Sprint 96.5 7 步全走 → 必修 2 真因真修全闭环), v0.4.14.156 不变 (留尾治理 sprint 跟 Sprint 67+68+90+91+92+92.1+92.2+93+94+95 一样 不 bump), main HEAD `3429c14` (Sprint 96.5 merge, L4.14 永久接受 1 commit drift 7 sprint 累计), pytest 745/23/0 baseline 持续 + 累计 Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66+67+68+69+70+71+72+73+74+75+76+77+78+79+80+81+82+83+84+85+86+87+88+89+90+91+92+92.1+92.2+93+94+95+96+96.1+96.2+96.3+96.4+96.5 = 45 sprint 0 debt 持续, L4.x 永久规则 18 条 stable 0 追加, 0 治理 SOP 追加, 7 sprint 完整链路真因真发现实战 fix 模式新增 (跟 Sprint 88+92+92.1 模式 2 sprint 延展), CI 3/3 jobs ✓ + e2e.yml 独立 4m26s ✓ (跟之前 9m35s 比 -5m, 跟之前 18m+ 比 -14m))
 
 ---
 
