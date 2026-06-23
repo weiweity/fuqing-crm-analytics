@@ -17,38 +17,10 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.parent
 
 
-def test_lint_yml_e2e_job_sets_fq_db_mode_schema_test():
-    """lint.yml e2e job env 必须含 FQ_DB_MODE=schema_test (Sprint 66 P0 治根).
-
-    防再发: Sprint 63 P1b 只改独立 e2e workflow, CI workflow e2e job 漏 → 5+sprint 双 FAILURE.
-    """
-    lint_yml = (ROOT / ".github" / "workflows" / "lint.yml").read_text()
-    # strict match 整行 (防 substring 误报, Sprint 63 review 抓的 same bug)
-    assert any(
-        line.strip() == "FQ_DB_MODE: schema_test"
-        for line in lint_yml.splitlines()
-    ), (
-        "lint.yml env 必须设 FQ_DB_MODE=schema_test (Sprint 66 P0 治根). "
-        "缺这个 env 会导致 Sprint 61 fail-fast 默认 production raise, "
-        "uvicorn 60s 起不来, e2e exit 1."
-    )
-
-
-def test_lint_yml_e2e_job_uses_schema_only_duckdb_fixture():
-    """lint.yml e2e 必须用 /tmp/e2e_duckdb.duckdb schema-only fixture (Sprint 60.3+ C+).
-
-    防再发: Sprint 60.3 之前 CI 试图 ATTACH 117GB 生产库 → 50+MB OOM 5+ sprint 复发.
-    """
-    lint_yml = (ROOT / ".github" / "workflows" / "lint.yml").read_text()
-    assert "e2e_duckdb.duckdb" in lint_yml, (
-        "lint.yml e2e 必须用 /tmp/e2e_duckdb.duckdb schema-only fixture (Sprint 60.3+ C+ 治根)"
-    )
-    # 验证没误用 production path
-    assert "data/processed/fuqing_crm.duckdb" not in lint_yml, (
-        "lint.yml 不应引用 117GB production DB (Sprint 58 #1 OOM 治根: ATTACH read_only)"
-    )
-
-
+# Sprint 96.5 必修 2 真因真修 (7 sprint 完整链路全闭环, 跟 Sprint 88+92+92.1 模式 2 sprint 延展):
+# Sprint 96.4 删 lint.yml e2e job 整段 (跟 Sprint 32.1 留尾 advisory 一致, e2e.yml 独立 workflow 4m26s 跑通),
+# 2 个 lint.yml e2e job 相关 test 必修 2 误诊真因真发现 (e2e job 删了, test 找不到了 FQ_DB_MODE + e2e_duckdb.duckdb).
+# 必修 2 真因真修: 删 2 个 lint.yml e2e job 相关 test 整段, 保留 e2e.yml 独立 workflow 相关 test (e2e.yml 4m26s 跑通).
 def test_e2e_yml_e2e_job_sets_fq_db_mode_schema_test():
     """e2e.yml (独立 e2e workflow) env 必须含 FQ_DB_MODE=schema_test (Sprint 63 P1b).
 
