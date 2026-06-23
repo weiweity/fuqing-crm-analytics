@@ -6,7 +6,6 @@ const route = useRoute()
 
 const menuOptions = [
   { label: '人群看板', key: '/audience' },
-  { label: '访客看板', key: '/visitor' },
   { label: '老客分析', key: '/customer-health' },
   { label: '品类看板', key: '/category' },
   { label: '市场对焦', key: '/market-focus' },
