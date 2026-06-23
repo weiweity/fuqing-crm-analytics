@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-23 (Sprint 101 收口: T1/T2 SSOT 与跨文档一致性全量验证 + L4.21 反 sprint 自我反馈闭环永久规则, VERSION 0.4.14.157 不变, pytest 819/23/0 持续, L4.x 永久规则 20 → 21 stable, 累计 51 sprint 0 debt 持续)
+**最后更新**: 2026-06-24 (Sprint 102 必修 2 项文档漂移修复 + L4.x 永久规则 21 stable 维护 (Sprint 98 Handoff commit + SPRINT_INDEX.md 加 Sprint 67+68+91+99+100+101 共 6 sprint), VERSION 0.4.14.157 不变, pytest 819/23/0 持续, 累计 52 sprint 0 debt 持续)
 
 ---
 
