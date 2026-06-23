@@ -4,6 +4,15 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.156] - 2026-06-23 (Sprint 97 FilterBuilder channel 别名推广)
+
+### Fixed
+- Sprint 97 FilterBuilder 12 service channel 别名推广 (治标 C 方案): 5 FilterBuilder service + 2 手工拼 service 加 `o.` 表别名, 防 DuckDB Binder "Ambiguous reference to column name 'channel'" 跨 service 复发
+
+### Added
+- L4.19 永久规则 + `backend/scripts/check_channel_alias.py` ground-truth-lint 防回归
+- `backend/tests/test_sprint97_channel_alias_coverage.py` 7 service coverage regression
+
 ## [0.4.14.156] - 2026-06-23 (Sprint 95+96+96.1+96.2+96.3+96.4+96.5 7 sprint 收口, D2 e2e 50+MB OOM 治本 7 sprint 完整链路全闭环)
 
 ### Fixed
@@ -967,4 +976,3 @@ Sprint 57 闭环率: 3/10 = 30% (剩余 7 项分布 Sprint 58 工具链实战 fi
 - `docs/TECH-DEBT.md` 债 #S34-2 闭环 (L2 AST parser) + Sprint 50.1 留尾
 
 ---
-
