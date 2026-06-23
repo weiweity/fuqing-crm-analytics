@@ -4,6 +4,12 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-23 (Sprint 99, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- 留尾 #11 SSOT 漂移闭环: 验证 Sprint 91 真修 commit `287efb8` 持续生效，close memory 标为 ✅ 闭环；新增 L4.20 永久规则、`backend/scripts/check_ssot_drift.py` 和 4 case regression，阻止已闭环留尾被复制粘贴回 📋 推后
+- STATUS + CHANGELOG + TECH-DEBT + CLAUDE.md 跨文档同步；pytest 819/23/0（Sprint 98 baseline 815/23/0 + 新增 4 case），0 业务代码改动，累计 49 sprint 0 debt 持续
+
 ## [0.4.14.157] - 2026-06-23 (Sprint 98 FilterBuilder table_alias 真治本)
 
 ### Changed
