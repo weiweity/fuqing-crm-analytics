@@ -1,8 +1,8 @@
 # Sprint 历史索引
 
-> Sprint 1-101 索引, 高密度入口, 减少冷启动 token。
+> Sprint 1-104 索引, 高密度入口, 减少冷启动 token。
 > 
-> **最后更新**: 2026-06-24 (Sprint 102 必修 2 项文档漂移修复 — SPRINT_INDEX.md 加 Sprint 67+68+91+99+100+101 共 6 sprint, 跟 MEMORY.md 索引同步)
+> **最后更新**: 2026-06-24 (Sprint 104 3rd amend 闭环 outstanding 6 处 — 加 Sprint 104 entry + main HEAD `03c9c08` + L4.22 永久规则 amend, 跟 MEMORY.md 索引同步)
 
 ## 索引规则
 
@@ -14,6 +14,7 @@
 
 | Sprint | 版本 | 主要内容 | Memory |
 |--------|------|----------|--------|
+| **104** | v0.4.14.157 | 删 `/visitor` 路由别名 — 留尾治理 sprint 真业务必修 + /investigate + workflow 3 视角审查 3/3 agree (8.67/10) + 3 文件 -25 行纯删除 + 推翻 Sprint 52 commit 50eb241 拍板 + 后端 `/api/v1/visitor/*` 100% 保留 (AudienceView 末尾访客段仍调, #12 误判撤掉) + 3 次 amend (跟 Sprint 100+101+102+103 模式一致) + **L4.22 永久规则** (前端 sprint 收口必 rebuild dist + restart vite preview + activate core.hooksPath) + 3 实战补 (Step 12.5 rebuild dist + Step 12.6 L4.22 amend + Step 12.7 #12 误判撤掉) | ✅ |
 | **101** | v0.4.14.157 | 全部收尾 sprint — L4.21 反 sprint 自我反馈闭环永久规则 + 跨文档一致性 100% PASS + Codex 主动扩展 5 项亮点 (CLAUDE.md 版本状态 + CHANGELOG.md 修复 Sprint 100 排序漂移 + STATUS.md 多字段 + TECH-DEBT.md 留尾总表 + L4.20 test 1 entry) | ✅ |
 | **100** | v0.4.14.157 | L4.20 test 1 CI fresh checkout 必修 1 fail 治根 (1 commit 0 debt amend, 跟 Sprint 92.2 L4.9 实战 fix 模式真闭环 一致) | ✅ |
 | **99** | v0.4.14.157 | 留尾 #11 SSOT 漂移闭环 + L4.20 反 SSOT 漂移永久规则 + check_ssot_drift.py 190 行结构化 ground-truth-lint | ✅ |

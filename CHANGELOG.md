@@ -4,6 +4,33 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-24 (Sprint 104, VERSION 不变 留尾治理 sprint)
+
+### Fixed
+- 删 /visitor 路由别名 (Sprint 52 commit 50eb241 激活后 /audience 看板重复根因): frontend-vue3/src/router/index.ts 删 /visitor 路由 6 行 + frontend-vue3/src/components/Sidebar.vue 删访客看板菜单项 1 行 + frontend-vue3/e2e/visitor.spec.ts 删 e2e smoke test 整文件 18 行, 3 文件 -25 行纯删除 0 业务代码改动外的越界
+- 访客段保留在 AudienceView.vue 末尾 (line 1887-1958: 访客数/新增会员数/会员入会率/对比期入会率 4 卡 + 入会趋势 1 图), /audience 路由仍能用 fetchVisitor* API 调后端 /api/v1/visitor/summary + /daily-trend
+- 后端 /api/v1/visitor/* (routers/visitor.py + services/visitor_service.py + contracts/visitor.py + tests/test_visitor_schema.py) 100% 保留 (AudienceView 末尾访客段 line 11-12 + 194 + 208 仍调 fetchVisitorSummary/DailyTrend, 不是 dead code)
+
+### Added
+- **L4.22 永久规则追加** (Sprint 104 close 实战补 Step 12.5/12.6 amend 闭环): 前端 sprint 收口必 `cd frontend-vue3 && npm run build` rebuild dist + kill 旧 vite preview + restart 跑新 dist (vite preview 跑 dist/ 不是 source, 不 rebuild 用户看到的是旧 dist 代码, Sprint 104 step 12 漏掉实战教训). 配套 `git config core.hooksPath .githooks` 激活 `.githooks/post-merge` hook 自动 append `.ship-audit.log`. L4.x 永久规则 21 → **22 stable** 新增 L4.22, 跟 L4.7 launchd / L4.9 gh api tags / L4.17/18 Node 升级 永久规则同位 (平台特定 hidden assumption 必须 explicit 验证)
+
+### Sprint 流程
+- 3 视角审查 (后端 API 视角 9/10 + 前端 UX 视角 8/10 + 项目历史意图视角 9/10, 平均 confidence 8.67/10) 3/3 agree, decision = 删路由 (方案 A, vs 抽 VisitorView / 智能切换)
+- /review skill 0 critical / 5 informational (全部 Sprint 105+ 留尾或 latent 非 Sprint 104 引入), PR quality 10/10
+- /qa skill source-based 验证 (vite preview 跑 dist/ 不是 source, 跳过 browser-based): 8 项全 PASS
+- 12 步流程: checkout -b → 改 3 处 → pytest 819/23/0 → /review → commit (2233f28) → push origin feature → /qa → merge --no-ff (6d04942) → push origin main (L4.15 explicit "push" 拍板) → pull --ff-only → CHANGELOG/STATUS/TECH-DEBT 收口
+- pytest baseline 819/23/0 持续 0 回归 (Sprint 99 → 104, 累计 54 sprint 0 debt), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 新增 L4.22 (Sprint 104 close 实战补 amend 闭环)
+- **2 次 amend** 跟 Sprint 100+101+102+103 amend 模式一致, L4.14 永久接受 amend drift: d7f0f6f (3 文档初次收口) → 336f19a (L4.22 + STATUS 一致 amend)
+
+### Sprint 52 闭环状态变更
+- 推翻 Sprint 52 commit 50eb241 "复用 AudienceView.vue" 拍板 (user 重新拍板 L4.15 explicit "push")
+- docs/TECH-DEBT.md #S39-2 行更新为 "Sprint 52 + Sprint 104 双重闭环 (前端 /visitor 路由 + Sidebar + e2e 全部删), 留尾 #12 误判撤掉 (后端 /api/v1/visitor/* 不是 dead code 因为 AudienceView 末尾访客段仍调 fetchVisitor*, 保留)"
+
+### Sprint 104 close 后实战补 (Step 12.5/12.6 amend 闭环)
+- **Step 12.5 (user 截图报 "前端 /visitor 仍存在")**: rebuild dist (842ms ✓) → 0 /visitor + 0 访客看板 + 0 visitor assets 验证 → kill 旧 vite preview (PID 23486) + restart (PID 42172, 跑新 dist) → user Cmd+Shift+R hard refresh 后 /visitor 消失
+- **Step 12.6 (L4.22 永久规则 amend 闭环)**: CLAUDE.md 加 L4.22 + 3 文档一致更新 + push --force-with-lease (L4.14) + local `git config core.hooksPath .githooks` activate post-merge hook
+- **误判撤掉 #12**: Sprint 104 close memory 写"留尾 #12 删后端 dead code" 是事实错误, 后端 /api/v1/visitor/* 不是 dead code (AudienceView 末尾访客段仍调), user 质疑"为啥还有留尾 2 条" 触发了重新评估 + 撤掉 + amend 闭环 L4.22
+
 ## [0.4.14.157] - 2026-06-24 (Sprint 103, VERSION 不变 留尾治理 sprint)
 
 ### Changed

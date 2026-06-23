@@ -48,6 +48,8 @@ import type {
   AudienceTableResponse, // 人群看板
   AudienceRow,          // 人群看板单行
   TrendData,            // 趋势数据
+  VisitorSummary,       // 访客入会率 (Sprint 104 删 /visitor 路由后, 仍被 /audience 末尾访客段 AudienceView.vue:1887-1958 调用, 后端 /api/v1/visitor/* 100% 保留)
+  VisitorDailyTrend,    // 访客日趋势 (同上)
   GeoDistributionResponse, // 地域分布
   CategorySegment,       // 品类分段
   ChurnDistribution,    // 流失分布

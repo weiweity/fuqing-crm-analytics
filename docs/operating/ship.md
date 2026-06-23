@@ -42,7 +42,7 @@ LAST_COMMIT=$(git log -1 --pretty=format:"%H %s")
 printf "[%s] SHIPPED to %s: %s\n" "$TIMESTAMP" "$BRANCH" "$LAST_COMMIT" >> .ship-audit.log
 ```
 
-激活: `git config core.hooksPath .githooks`
+激活: `git config core.hooksPath .githooks` (Sprint 67 Meta-Sprint 创建但 Sprint 67-103 跨 37 sprint 未激活; **Sprint 104 close 后实战补 Step 12.6 amend 闭环, user 跑了一次**, 后续 sprint 收口 post-merge hook 自动 append `.ship-audit.log`, 不再需要手动 append workaround)
 
 ---
 

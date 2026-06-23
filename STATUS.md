@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-24 (Sprint 103 必修 1 修 DATA_PIPELINE.md 跨文档漂移 + L4.x 永久规则 21 stable 维护, 跟 STATUS.md line 81 同步 (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB), VERSION 0.4.14.157 不变, pytest 819/23/0 持续, 累计 53 sprint 0 debt 持续)
+**最后更新**: 2026-06-24 (Sprint 104 删 /visitor 路由别名 (留尾治理 sprint 模式, 跟 Sprint 91+92+92.1+92.2+96+96.5+99+100+101+102+103 一致), 3 文件 -25 行纯删除 (router -6 + sidebar -1 + e2e spec -18), 推翻 Sprint 52 commit 50eb241 拍板 (复用 AudienceView.vue 造成 /audience 看板重复), 后端 /api/v1/visitor/* 100% 保留 (AudienceView 末尾访客段仍调 fetchVisitor*, 不是 dead code, #12 留尾误判撤掉), L4.22 永久规则追加 (前端 sprint 收口必 rebuild dist + restart vite preview + activate core.hooksPath, Sprint 104 close 实战补 Step 12.5/12.6 amend 闭环), L4.x 永久规则 21 → **22 stable** 新增 L4.22, VERSION 0.4.14.157 不变 (留尾治理 sprint 不 bump), pytest 819/23/0 持续, 累计 54 sprint 0 debt 持续, main HEAD `336f19a` amend drift 接受 L4.14)
 
 ---
 

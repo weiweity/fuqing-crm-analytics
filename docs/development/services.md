@@ -56,7 +56,7 @@ backend/services/
 | `asset_service.py` | (单文件, DMP 资产) | DMP 资产 (跟 asset_focus_service 是不同概念) |
 | `export_service.py` | (单文件) | 导出 |
 | `report_service.py` | (单文件) | 报告 |
-| `visitor_service.py` | (单文件) | 访客分析 |
+| `visitor_service.py` | (单文件) | 访客分析 (数据接入 `/audience` 末尾访客段 `AudienceView.vue:1887-1958`, 无独立路由, Sprint 104 删 `/visitor` 路由别名, 后端 100% 保留) |
 
 ## §5 asset_* 服务概念边界 (Sprint 55.5 rename + Sprint 57 沉淀)
 
