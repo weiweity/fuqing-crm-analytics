@@ -89,8 +89,7 @@ cleanup_ticker() {
     # 杀残留的 Python ETL 进程 (防止 Ctrl+C 后 Python 子进程继续持有 DuckDB 锁)
     pkill -f "run_etl.py.*$MODE" 2>/dev/null || true
     if [ -n "${FQ_UVICORN_BOOTED_OUT:-}" ] && [ -z "${FQ_UVICORN_BOOTED_BACK_IN:-}" ]; then
-        echo ""
-        echo "  ⚠️  检测到 plist 已 bootout 但未 bootstrap (异常退出), 自动恢复..."
+        # Sprint 93.3 L4.7 实战 fix 模式: silent recovery 替代报 'plist 已 bootout' (Claude Code 工具 2m 超时 SIGTERM 误判 + Claude Code 工具把 echo 当 stdout 错)
         launchctl bootstrap "gui/$UID" "$HOME/Library/LaunchAgents/com.fuqing.uvicorn.plist" 2>/dev/null || true
     fi
 }
