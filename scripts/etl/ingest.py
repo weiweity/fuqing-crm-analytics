@@ -75,7 +75,17 @@ def _file_changed(file_path, processed_files, data_source, xlsx_stem_to_rel):
     if isinstance(rec, dict) and rec.get('cold_start_marked'):
         return True
     old_mtime = rec.get('mtime', 0) if isinstance(rec, dict) else rec
+    # Sprint 109 L4.7 实战 fix 模式: mtime 不变 + 内容变了 (cp -p / Finder 替换 xlsx 保持 mtime)
+    # → 也要算 hash 比对, 不短路跳过. 之前 Sprint 24 mtime 短路 (95% 场景优化) 保留,
+    # 5% 场景 (mtime 不变 + 内容变) 走 hash 比对. 默认走新逻辑 (mtime 不变也 hash 比对),
+    # 老逻辑 (mtime 短路跳过) 通过 ETL_SKIP_MTIME_CHECK_HASH=1 启用 (兼容老跑批 / 测试).
     if mtime <= old_mtime:
+        if os.environ.get('ETL_SKIP_MTIME_CHECK_HASH', '0') == '1':
+            return False  # 老逻辑: mtime 短路跳过
+        # 新逻辑: mtime 不变 + 内容变了 → 算 hash 比对
+        old_hash = rec.get('hash', '') if isinstance(rec, dict) else rec
+        if isinstance(old_hash, str) and old_hash:
+            return _get_file_hash(file_path) != old_hash
         return False
     # mtime 变了, 算 hash 确认内容是否真的变了
     old_hash = rec.get('hash', '') if isinstance(rec, dict) else ''
