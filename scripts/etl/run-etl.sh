@@ -26,7 +26,7 @@ export PYTHONPATH="$PROJECT_ROOT"
 
 # 0. 解析参数 (优先, --help 立即退出, 跳过锁检测)
 # 1. 选模式 (命令行参数优先, 无参数则交互选择)
-if [ -n "$1" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
+if [ -n "${1:-}" ] && [ "${1:-}" != "--help" ] && [ "${1:-}" != "-h" ]; then   # Sprint 93.1 L4.7 实战 fix 模式: ${1:-} 替 $1, 防 set -u + 无参数 unbound variable 错
     # 有命令行参数, 直接用
     MODE="$1"
 else
