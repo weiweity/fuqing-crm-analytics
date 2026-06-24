@@ -887,9 +887,13 @@ def _mark_all_files_processed():
                 processed[key] = {
                     'mtime': xlsx_mtime,
                     'hash': _get_file_hash(f),
-                    # 同上: Parquet 缓存 entry 也写 cold_start_marked=False
-                    # (已登记), 避免冷启动后增量走 [B] 重读所有 parquet 缓存.
-                    'cold_start_marked': False,
+                    # Sprint 108 必修 2 L4.7 实战 fix 模式: parquet cache entry 也写
+                    # cold_start_marked=True (跟 xlsx entry 一致), 避免"手动生成的 parquet 缓存
+                    # 没真写入 DuckDB 但 tracker 写真实 mtime+hash" 假阳性. 配合 xlsx entry
+                    # 走 _file_changed 路径 [B] (cold_start_marked=True) 强制重读, 走 xlsx
+                    # fallback 把数据真写入 DuckDB.
+                    'cold_start_marked': True,
+                    'last_processed_at': None,  # 占位, 跑批后 _clean_processed_updates 写真实
                 }
         _save_processed_files(data_type, processed)
         print(f"  {data_type}: 标记 {len(processed)} 个文件为已处理")

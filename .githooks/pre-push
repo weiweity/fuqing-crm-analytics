@@ -17,7 +17,10 @@ if [ -n "$_UVICORN_PID" ]; then
 fi
 
 echo "Running tests before push (parallel, excluding slow)..."
-PYTHONPATH="$(git rev-parse --show-toplevel)" python3 -m pytest backend/tests/ -x -q -n auto -m "not slow" 2>/dev/null
+# Sprint 108 必修 3 L4.7 实战 fix 模式: 改 -n auto (parallel) → -n0 (serial).
+# xdist parallel pytest 触发 dotenv main.py:358 FileNotFoundError (跟 Sprint 38 race flake 治标同模式).
+# 跟 Sprint 38 治标尾声 + 必修 1 load_dotenv FileNotFoundError 兜底 配套.
+PYTHONPATH="$(git rev-parse --show-toplevel)" python3 -m pytest backend/tests/ -x -q -n0 -m "not slow" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Tests failed. Fix them before pushing."

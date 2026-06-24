@@ -7,7 +7,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # 加载 .env 文件（本地开发配置，不上传 GitHub）
-load_dotenv()
+# Sprint 108 必修 1 L4.7 实战 fix 模式: xdist parallel pytest 触发 dotenv main.py:358 FileNotFoundError
+# (跟 Sprint 38 race flake 治本同模式, 真治本: try/except 兜底, 不再依赖 .env 存在).
+try:
+    load_dotenv()
+except FileNotFoundError:
+    # 无 .env 文件不阻断启动 — 环境变量可来自 CI / shell export / CI secret
+    pass
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent
