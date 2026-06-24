@@ -1,269 +1,45 @@
 {
   "version": "1.0",
-  "git_sha": "844b2870e312c314b9ffeb5f3fc0fac669f1de32",
+  "git_sha": "a08587322f17fdcb0ed1490c964c5c87622ee66b",
   "baseline_date": "2026_06_03",
   "runs": [
     {
       "run_id": "1/3",
       "host": "mac",
-      "started_at": "2026-06-22T10:18:12.977046",
-      "ended_at": "2026-06-22T10:42:24.524606",
-      "real_elapsed_sec": 1451.5476,
-      "step_wall_time_sum": 2308.4468,
-      "wall_time_sec": 2308.4468,
-      "cpu_time_sec": 2922.1757,
-      "rss_peak_mb": 6299.0,
+      "started_at": "2026-06-24T18:47:11.826509",
+      "ended_at": "2026-06-24T18:56:13.540719",
+      "real_elapsed_sec": 541.7142,
+      "step_wall_time_sum": 1024.1293,
+      "wall_time_sec": 1024.1293,
+      "cpu_time_sec": 1451.1108,
+      "rss_peak_mb": 6002.89,
       "duckdb_alloc_mb": 8192,
       "spill_to_disk_mb": 0,
-      "step_count": 30,
+      "step_count": 15,
       "per_step": [
         {
           "name": "pl_step1_load_ref_data",
           "step_name": "pl_step1_load_ref_data",
-          "timestamp": "2026-06-22T10:18:12.977046",
-          "wall_sec": 1.2668,
-          "cpu_sec": 1.1855,
-          "rss_peak_mb": 861.23,
-          "wall_time": 1.2668,
-          "cpu_time": 1.1855,
-          "memory_peak_kb": 881904,
-          "memory_peak_mb": 861.23
-        },
-        {
-          "name": "load_filter_rolling_window",
-          "step_name": "load_filter_rolling_window",
-          "timestamp": "2026-06-22T10:27:22.148141",
-          "wall_sec": 0.014,
-          "cpu_sec": 0.0126,
-          "rss_peak_mb": 4481.8,
-          "wall_time": 0.014,
-          "cpu_time": 0.0126,
-          "memory_peak_kb": 4589360,
-          "memory_peak_mb": 4481.8,
-          "extra": {
-            "input_rows": 27966,
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step2_5_filter_rolling_window",
-          "step_name": "pl_step2_5_filter_rolling_window",
-          "timestamp": "2026-06-22T10:27:22.148188",
-          "wall_sec": 0.0141,
-          "cpu_sec": 0.0127,
-          "rss_peak_mb": 4481.86,
-          "wall_time": 0.0141,
-          "cpu_time": 0.0127,
-          "memory_peak_kb": 4589424,
-          "memory_peak_mb": 4481.86,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "transform_p4_keyword_loop",
-          "step_name": "transform_p4_keyword_loop",
-          "timestamp": "2026-06-22T10:27:22.265753",
-          "wall_sec": 0.0577,
-          "cpu_sec": 0.0577,
-          "rss_peak_mb": 4513.2,
-          "wall_time": 0.0577,
-          "cpu_time": 0.0577,
-          "memory_peak_kb": 4621520,
-          "memory_peak_mb": 4513.2,
-          "extra": {
-            "kw_count": 40
-          }
-        },
-        {
-          "name": "transform_match_channel",
-          "step_name": "transform_match_channel",
-          "timestamp": "2026-06-22T10:27:26.276179",
-          "wall_sec": 4.0774,
-          "cpu_sec": 4.0607,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 4.0774,
-          "cpu_time": 4.0607,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "rows": 27966,
-            "kw_rules": 40,
-            "id_rules": 0
-          }
-        },
-        {
-          "name": "transform_clean_data",
-          "step_name": "transform_clean_data",
-          "timestamp": "2026-06-22T10:27:26.284661",
-          "wall_sec": 4.1363,
-          "cpu_sec": 4.1162,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 4.1363,
-          "cpu_time": 4.1162,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "rows": 27966
-          }
-        },
-        {
-          "name": "pl_step3_clean_data_new",
-          "step_name": "pl_step3_clean_data_new",
-          "timestamp": "2026-06-22T10:27:26.284678",
-          "wall_sec": 4.1364,
-          "cpu_sec": 4.1162,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 4.1364,
-          "cpu_time": 4.1162,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "rows": 27966
-          }
-        },
-        {
-          "name": "load_upsert_to_duckdb",
-          "step_name": "load_upsert_to_duckdb",
-          "timestamp": "2026-06-22T10:27:32.753804",
-          "wall_sec": 6.4689,
-          "cpu_sec": 11.1794,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 6.4689,
-          "cpu_time": 11.1794,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "mode": "incremental",
-            "new_rows": 27966,
-            "refresh_rows": 0
-          }
-        },
-        {
-          "name": "pl_step4_upsert_to_duckdb",
-          "step_name": "pl_step4_upsert_to_duckdb",
-          "timestamp": "2026-06-22T10:27:32.753865",
-          "wall_sec": 6.469,
-          "cpu_sec": 11.1795,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 6.469,
-          "cpu_time": 11.1795,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "new_rows": 27966,
-            "refresh_rows": 0
-          }
-        },
-        {
-          "name": "pl_step4_7_replay_is_member_incremental",
-          "step_name": "pl_step4_7_replay_is_member_incremental",
-          "timestamp": "2026-06-22T10:34:19.990911",
-          "wall_sec": 407.1293,
-          "cpu_sec": 413.1366,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 407.1293,
-          "cpu_time": 413.1366,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36
-        },
-        {
-          "name": "pl_step6_user_first_purchase",
-          "step_name": "pl_step6_user_first_purchase",
-          "timestamp": "2026-06-22T10:34:21.776934",
-          "wall_sec": 1.7845,
-          "cpu_sec": 9.1858,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 1.7845,
-          "cpu_time": 9.1858,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "run_mode": "incremental",
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step6_5_user_recency",
-          "step_name": "pl_step6_5_user_recency",
-          "timestamp": "2026-06-22T10:34:23.994165",
-          "wall_sec": 2.2171,
-          "cpu_sec": 9.115,
-          "rss_peak_mb": 4675.36,
-          "wall_time": 2.2171,
-          "cpu_time": 9.115,
-          "memory_peak_kb": 4787568,
-          "memory_peak_mb": 4675.36,
-          "extra": {
-            "run_mode": "incremental",
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step6_7_update_metrics_after_ufp",
-          "step_name": "pl_step6_7_update_metrics_after_ufp",
-          "timestamp": "2026-06-22T10:34:25.392348",
-          "wall_sec": 1.3981,
-          "cpu_sec": 8.2536,
-          "rss_peak_mb": 4799.03,
-          "wall_time": 1.3981,
-          "cpu_time": 8.2536,
-          "memory_peak_kb": 4914208,
-          "memory_peak_mb": 4799.03,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step8a_category_flow",
-          "step_name": "pl_step8a_category_flow",
-          "timestamp": "2026-06-22T10:34:39.146733",
-          "wall_sec": 13.7351,
-          "cpu_sec": 93.423,
-          "rss_peak_mb": 4815.47,
-          "wall_time": 13.7351,
-          "cpu_time": 93.423,
-          "memory_peak_kb": 4931040,
-          "memory_peak_mb": 4815.47
-        },
-        {
-          "name": "pl_step8b_category_churn",
-          "step_name": "pl_step8b_category_churn",
-          "timestamp": "2026-06-22T10:34:39.191248",
-          "wall_sec": 0.0445,
-          "cpu_sec": 0.189,
-          "rss_peak_mb": 4815.52,
-          "wall_time": 0.0445,
-          "cpu_time": 0.189,
-          "memory_peak_kb": 4931088,
-          "memory_peak_mb": 4815.52
-        },
-        {
-          "name": "pl_step8_5_dq_assertions",
-          "step_name": "pl_step8_5_dq_assertions",
-          "timestamp": "2026-06-22T10:34:39.226288",
-          "wall_sec": 0.0338,
-          "cpu_sec": 0.2136,
-          "rss_peak_mb": 4816.05,
-          "wall_time": 0.0338,
-          "cpu_time": 0.2136,
-          "memory_peak_kb": 4931632,
-          "memory_peak_mb": 4816.05,
-          "extra": {
-            "date": "2026-06-22"
-          }
+          "timestamp": "2026-06-24T18:47:11.826509",
+          "wall_sec": 0.2163,
+          "cpu_sec": 0.2099,
+          "rss_peak_mb": 397.3,
+          "wall_time": 0.2163,
+          "cpu_time": 0.2099,
+          "memory_peak_kb": 406832,
+          "memory_peak_mb": 397.3
         },
         {
           "name": "step1_run_full_etl",
           "step_name": "step1_run_full_etl",
-          "timestamp": "2026-06-22T10:34:43.182715",
-          "wall_sec": 992.0286,
-          "cpu_sec": 1121.4103,
-          "rss_peak_mb": 5075.5,
-          "wall_time": 992.0286,
-          "cpu_time": 1121.4103,
-          "memory_peak_kb": 5197312,
-          "memory_peak_mb": 5075.5,
+          "timestamp": "2026-06-24T18:47:12.064869",
+          "wall_sec": 1.1238,
+          "cpu_sec": 0.939,
+          "rss_peak_mb": 397.3,
+          "wall_time": 1.1238,
+          "cpu_time": 0.939,
+          "memory_peak_kb": 406832,
+          "memory_peak_mb": 397.3,
           "extra": {
             "mode": "inc",
             "window_days": 30
@@ -272,38 +48,38 @@
         {
           "name": "pl_taoke_full_correct",
           "step_name": "pl_taoke_full_correct",
-          "timestamp": "2026-06-22T10:40:04.211369",
-          "wall_sec": 320.7735,
-          "cpu_sec": 395.1281,
-          "rss_peak_mb": 5226.44,
-          "wall_time": 320.7735,
-          "cpu_time": 395.1281,
-          "memory_peak_kb": 5351872,
-          "memory_peak_mb": 5226.44
+          "timestamp": "2026-06-24T18:52:28.165347",
+          "wall_sec": 316.0131,
+          "cpu_sec": 427.1769,
+          "rss_peak_mb": 4750.73,
+          "wall_time": 316.0131,
+          "cpu_time": 427.1769,
+          "memory_peak_kb": 4864752,
+          "memory_peak_mb": 4750.73
         },
         {
           "name": "step2_update_taoke_channel",
           "step_name": "step2_update_taoke_channel",
-          "timestamp": "2026-06-22T10:40:04.214308",
-          "wall_sec": 320.7766,
-          "cpu_sec": 395.1285,
-          "rss_peak_mb": 5226.44,
-          "wall_time": 320.7766,
-          "cpu_time": 395.1285,
-          "memory_peak_kb": 5351872,
-          "memory_peak_mb": 5226.44
+          "timestamp": "2026-06-24T18:52:28.166116",
+          "wall_sec": 316.014,
+          "cpu_sec": 427.1772,
+          "rss_peak_mb": 4751.47,
+          "wall_time": 316.014,
+          "cpu_time": 427.1772,
+          "memory_peak_kb": 4865504,
+          "memory_peak_mb": 4751.47
         },
         {
           "name": "etl_status_override_refresh",
           "step_name": "etl_status_override_refresh",
-          "timestamp": "2026-06-22T10:40:13.529181",
-          "wall_sec": 9.1342,
-          "cpu_sec": 10.4508,
-          "rss_peak_mb": 5260.14,
-          "wall_time": 9.1342,
-          "cpu_time": 10.4508,
-          "memory_peak_kb": 5386384,
-          "memory_peak_mb": 5260.14,
+          "timestamp": "2026-06-24T18:52:37.524375",
+          "wall_sec": 9.2338,
+          "cpu_sec": 15.2058,
+          "rss_peak_mb": 5266.42,
+          "wall_time": 9.2338,
+          "cpu_time": 15.2058,
+          "memory_peak_kb": 5392816,
+          "memory_peak_mb": 5266.42,
           "extra": {
             "window_days": 30
           }
@@ -311,14 +87,14 @@
         {
           "name": "step3_refresh_status_override",
           "step_name": "step3_refresh_status_override",
-          "timestamp": "2026-06-22T10:40:13.529195",
-          "wall_sec": 9.1343,
-          "cpu_sec": 10.4509,
-          "rss_peak_mb": 5260.14,
-          "wall_time": 9.1343,
-          "cpu_time": 10.4509,
-          "memory_peak_kb": 5386384,
-          "memory_peak_mb": 5260.14,
+          "timestamp": "2026-06-24T18:52:37.524397",
+          "wall_sec": 9.2338,
+          "cpu_sec": 15.2058,
+          "rss_peak_mb": 5266.42,
+          "wall_time": 9.2338,
+          "cpu_time": 15.2058,
+          "memory_peak_kb": 5392816,
+          "memory_peak_mb": 5266.42,
           "extra": {
             "window_days": 30
           }
@@ -326,14 +102,14 @@
         {
           "name": "step4_sync_override_to_orders",
           "step_name": "step4_sync_override_to_orders",
-          "timestamp": "2026-06-22T10:40:13.894061",
-          "wall_sec": 0.2749,
-          "cpu_sec": 1.0763,
-          "rss_peak_mb": 5358.25,
-          "wall_time": 0.2749,
-          "cpu_time": 1.0763,
-          "memory_peak_kb": 5486848,
-          "memory_peak_mb": 5358.25,
+          "timestamp": "2026-06-24T18:52:37.771377",
+          "wall_sec": 0.1467,
+          "cpu_sec": 0.725,
+          "rss_peak_mb": 5301.14,
+          "wall_time": 0.1467,
+          "cpu_time": 0.725,
+          "memory_peak_kb": 5428368,
+          "memory_peak_mb": 5301.14,
           "extra": {
             "window_days": 30
           }
@@ -341,62 +117,62 @@
         {
           "name": "pl_refresh_visitor_data",
           "step_name": "pl_refresh_visitor_data",
-          "timestamp": "2026-06-22T10:40:14.076644",
-          "wall_sec": 0.0877,
-          "cpu_sec": 0.091,
-          "rss_peak_mb": 5358.78,
-          "wall_time": 0.0877,
-          "cpu_time": 0.091,
-          "memory_peak_kb": 5487392,
-          "memory_peak_mb": 5358.78
+          "timestamp": "2026-06-24T18:52:37.993974",
+          "wall_sec": 0.1199,
+          "cpu_sec": 0.1161,
+          "rss_peak_mb": 5301.14,
+          "wall_time": 0.1199,
+          "cpu_time": 0.1161,
+          "memory_peak_kb": 5428368,
+          "memory_peak_mb": 5301.14
         },
         {
           "name": "step5_refresh_visitor_data",
           "step_name": "step5_refresh_visitor_data",
-          "timestamp": "2026-06-22T10:40:14.076651",
-          "wall_sec": 0.0878,
-          "cpu_sec": 0.0911,
-          "rss_peak_mb": 5358.78,
-          "wall_time": 0.0878,
-          "cpu_time": 0.0911,
-          "memory_peak_kb": 5487392,
-          "memory_peak_mb": 5358.78
+          "timestamp": "2026-06-24T18:52:37.993985",
+          "wall_sec": 0.12,
+          "cpu_sec": 0.1162,
+          "rss_peak_mb": 5301.14,
+          "wall_time": 0.12,
+          "cpu_time": 0.1162,
+          "memory_peak_kb": 5428368,
+          "memory_peak_mb": 5301.14
         },
         {
           "name": "step6_precompute_rfm_cache",
           "step_name": "step6_precompute_rfm_cache",
-          "timestamp": "2026-06-22T10:41:11.004114",
-          "wall_sec": 56.8261,
-          "cpu_sec": 250.3264,
-          "rss_peak_mb": 6299.0,
-          "wall_time": 56.8261,
-          "cpu_time": 250.3264,
-          "memory_peak_kb": 6450176,
-          "memory_peak_mb": 6299.0
+          "timestamp": "2026-06-24T18:53:35.333548",
+          "wall_sec": 56.0983,
+          "cpu_sec": 247.5725,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 56.0983,
+          "cpu_time": 247.5725,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
         },
         {
           "name": "step7a_create_user_rfm_table",
           "step_name": "step7a_create_user_rfm_table",
-          "timestamp": "2026-06-22T10:41:11.218570",
-          "wall_sec": 0.001,
-          "cpu_sec": 0.0012,
-          "rss_peak_mb": 6299.0,
-          "wall_time": 0.001,
-          "cpu_time": 0.0012,
-          "memory_peak_kb": 6450176,
-          "memory_peak_mb": 6299.0
+          "timestamp": "2026-06-24T18:53:35.530958",
+          "wall_sec": 0.0225,
+          "cpu_sec": 0.0203,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 0.0225,
+          "cpu_time": 0.0203,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
         },
         {
           "name": "preload_rfm",
           "step_name": "preload_rfm",
-          "timestamp": "2026-06-22T10:42:24.382005",
-          "wall_sec": 73.1603,
-          "cpu_sec": 84.2856,
-          "rss_peak_mb": 6299.0,
-          "wall_time": 73.1603,
-          "cpu_time": 84.2856,
-          "memory_peak_kb": 6450176,
-          "memory_peak_mb": 6299.0,
+          "timestamp": "2026-06-24T18:56:13.417720",
+          "wall_sec": 157.8849,
+          "cpu_sec": 158.3163,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 157.8849,
+          "cpu_time": 158.3163,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89,
           "extra": {
             "hot_dates": 9,
             "lookbacks": 3,
@@ -408,38 +184,38 @@
         {
           "name": "step7b_run_auto_preload",
           "step_name": "step7b_run_auto_preload",
-          "timestamp": "2026-06-22T10:42:24.382109",
-          "wall_sec": 73.1604,
-          "cpu_sec": 84.2857,
-          "rss_peak_mb": 6299.0,
-          "wall_time": 73.1604,
-          "cpu_time": 84.2857,
-          "memory_peak_kb": 6450176,
-          "memory_peak_mb": 6299.0
+          "timestamp": "2026-06-24T18:56:13.417830",
+          "wall_sec": 157.885,
+          "cpu_sec": 158.3163,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 157.885,
+          "cpu_time": 158.3163,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
         },
         {
           "name": "pl_refresh_campaign_schedule",
           "step_name": "pl_refresh_campaign_schedule",
-          "timestamp": "2026-06-22T10:42:24.524599",
-          "wall_sec": 0.0092,
-          "cpu_sec": 0.0063,
-          "rss_peak_mb": 6299.0,
-          "wall_time": 0.0092,
-          "cpu_time": 0.0063,
-          "memory_peak_kb": 6450176,
-          "memory_peak_mb": 6299.0
+          "timestamp": "2026-06-24T18:56:13.540709",
+          "wall_sec": 0.0086,
+          "cpu_sec": 0.0068,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 0.0086,
+          "cpu_time": 0.0068,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
         },
         {
           "name": "step7_5_refresh_campaign_schedule",
           "step_name": "step7_5_refresh_campaign_schedule",
-          "timestamp": "2026-06-22T10:42:24.524606",
-          "wall_sec": 0.0092,
-          "cpu_sec": 0.0063,
-          "rss_peak_mb": 6299.0,
-          "wall_time": 0.0092,
-          "cpu_time": 0.0063,
-          "memory_peak_kb": 6450176,
-          "memory_peak_mb": 6299.0
+          "timestamp": "2026-06-24T18:56:13.540719",
+          "wall_sec": 0.0086,
+          "cpu_sec": 0.0068,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 0.0086,
+          "cpu_time": 0.0068,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
         }
       ]
     },
@@ -5499,272 +5275,741 @@
           }
         }
       ]
+    },
+    {
+      "run_id": "21/21",
+      "host": "mac",
+      "started_at": "2026-06-24T18:10:47.256591",
+      "ended_at": "2026-06-24T18:19:58.962090",
+      "real_elapsed_sec": 551.7055,
+      "step_wall_time_sum": 1587.1917,
+      "wall_time_sec": 1587.1917,
+      "cpu_time_sec": 2230.6988,
+      "rss_peak_mb": 5559.09,
+      "duckdb_alloc_mb": 8192,
+      "spill_to_disk_mb": 0,
+      "step_count": 16,
+      "per_step": [
+        {
+          "name": "pl_step1_load_ref_data",
+          "step_name": "pl_step1_load_ref_data",
+          "timestamp": "2026-06-24T18:10:47.256591",
+          "wall_sec": 0.1998,
+          "cpu_sec": 0.1914,
+          "rss_peak_mb": 691.73,
+          "wall_time": 0.1998,
+          "cpu_time": 0.1914,
+          "memory_peak_kb": 708336,
+          "memory_peak_mb": 691.73
+        },
+        {
+          "name": "step1_run_full_etl",
+          "step_name": "step1_run_full_etl",
+          "timestamp": "2026-06-24T18:10:47.535026",
+          "wall_sec": 0.8281,
+          "cpu_sec": 0.6936,
+          "rss_peak_mb": 692.16,
+          "wall_time": 0.8281,
+          "cpu_time": 0.6936,
+          "memory_peak_kb": 708768,
+          "memory_peak_mb": 692.16,
+          "extra": {
+            "mode": "inc",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_taoke_full_correct",
+          "step_name": "pl_taoke_full_correct",
+          "timestamp": "2026-06-24T18:16:05.459747",
+          "wall_sec": 317.8799,
+          "cpu_sec": 378.1699,
+          "rss_peak_mb": 4263.62,
+          "wall_time": 317.8799,
+          "cpu_time": 378.1699,
+          "memory_peak_kb": 4365952,
+          "memory_peak_mb": 4263.62
+        },
+        {
+          "name": "step2_update_taoke_channel",
+          "step_name": "step2_update_taoke_channel",
+          "timestamp": "2026-06-24T18:16:05.460704",
+          "wall_sec": 317.8818,
+          "cpu_sec": 378.1704,
+          "rss_peak_mb": 4264.59,
+          "wall_time": 317.8818,
+          "cpu_time": 378.1704,
+          "memory_peak_kb": 4366944,
+          "memory_peak_mb": 4264.59
+        },
+        {
+          "name": "etl_status_override_refresh",
+          "step_name": "etl_status_override_refresh",
+          "timestamp": "2026-06-24T18:16:14.713469",
+          "wall_sec": 9.1155,
+          "cpu_sec": 15.2842,
+          "rss_peak_mb": 4845.36,
+          "wall_time": 9.1155,
+          "cpu_time": 15.2842,
+          "memory_peak_kb": 4961648,
+          "memory_peak_mb": 4845.36,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step3_refresh_status_override",
+          "step_name": "step3_refresh_status_override",
+          "timestamp": "2026-06-24T18:16:14.713483",
+          "wall_sec": 9.1156,
+          "cpu_sec": 15.2843,
+          "rss_peak_mb": 4845.36,
+          "wall_time": 9.1156,
+          "cpu_time": 15.2843,
+          "memory_peak_kb": 4961648,
+          "memory_peak_mb": 4845.36,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step4_sync_override_to_orders",
+          "step_name": "step4_sync_override_to_orders",
+          "timestamp": "2026-06-24T18:16:14.967698",
+          "wall_sec": 0.1528,
+          "cpu_sec": 0.7462,
+          "rss_peak_mb": 4901.23,
+          "wall_time": 0.1528,
+          "cpu_time": 0.7462,
+          "memory_peak_kb": 5018864,
+          "memory_peak_mb": 4901.23,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_refresh_visitor_data",
+          "step_name": "pl_refresh_visitor_data",
+          "timestamp": "2026-06-24T18:16:15.239343",
+          "wall_sec": 0.1732,
+          "cpu_sec": 0.1695,
+          "rss_peak_mb": 4901.23,
+          "wall_time": 0.1732,
+          "cpu_time": 0.1695,
+          "memory_peak_kb": 5018864,
+          "memory_peak_mb": 4901.23
+        },
+        {
+          "name": "step5_refresh_visitor_data",
+          "step_name": "step5_refresh_visitor_data",
+          "timestamp": "2026-06-24T18:16:15.239353",
+          "wall_sec": 0.1733,
+          "cpu_sec": 0.1696,
+          "rss_peak_mb": 4901.23,
+          "wall_time": 0.1733,
+          "cpu_time": 0.1696,
+          "memory_peak_kb": 5018864,
+          "memory_peak_mb": 4901.23
+        },
+        {
+          "name": "step6_precompute_rfm_cache",
+          "step_name": "step6_precompute_rfm_cache",
+          "timestamp": "2026-06-24T18:17:20.799036",
+          "wall_sec": 64.3475,
+          "cpu_sec": 274.5643,
+          "rss_peak_mb": 5547.44,
+          "wall_time": 64.3475,
+          "cpu_time": 274.5643,
+          "memory_peak_kb": 5680576,
+          "memory_peak_mb": 5547.44
+        },
+        {
+          "name": "step7a_create_user_rfm_table",
+          "step_name": "step7a_create_user_rfm_table",
+          "timestamp": "2026-06-24T18:17:20.922083",
+          "wall_sec": 0.0191,
+          "cpu_sec": 0.0191,
+          "rss_peak_mb": 5547.44,
+          "wall_time": 0.0191,
+          "cpu_time": 0.0191,
+          "memory_peak_kb": 5680576,
+          "memory_peak_mb": 5547.44
+        },
+        {
+          "name": "preload_rfm",
+          "step_name": "preload_rfm",
+          "timestamp": "2026-06-24T18:19:58.369107",
+          "wall_sec": 157.4718,
+          "cpu_sec": 163.0045,
+          "rss_peak_mb": 5559.09,
+          "wall_time": 157.4718,
+          "cpu_time": 163.0045,
+          "memory_peak_kb": 5692512,
+          "memory_peak_mb": 5559.09,
+          "extra": {
+            "hot_dates": 9,
+            "lookbacks": 3,
+            "metrics": 2,
+            "channels": 10,
+            "total_tasks": 0
+          }
+        },
+        {
+          "name": "step7b_run_auto_preload",
+          "step_name": "step7b_run_auto_preload",
+          "timestamp": "2026-06-24T18:19:58.369197",
+          "wall_sec": 157.4718,
+          "cpu_sec": 163.0046,
+          "rss_peak_mb": 5559.09,
+          "wall_time": 157.4718,
+          "cpu_time": 163.0046,
+          "memory_peak_kb": 5692512,
+          "memory_peak_mb": 5559.09
+        },
+        {
+          "name": "pl_refresh_campaign_schedule",
+          "step_name": "pl_refresh_campaign_schedule",
+          "timestamp": "2026-06-24T18:19:58.553141",
+          "wall_sec": 0.008,
+          "cpu_sec": 0.0064,
+          "rss_peak_mb": 5559.09,
+          "wall_time": 0.008,
+          "cpu_time": 0.0064,
+          "memory_peak_kb": 5692512,
+          "memory_peak_mb": 5559.09
+        },
+        {
+          "name": "step7_5_refresh_campaign_schedule",
+          "step_name": "step7_5_refresh_campaign_schedule",
+          "timestamp": "2026-06-24T18:19:58.553151",
+          "wall_sec": 0.0081,
+          "cpu_sec": 0.0065,
+          "rss_peak_mb": 5559.09,
+          "wall_time": 0.0081,
+          "cpu_time": 0.0065,
+          "memory_peak_kb": 5692512,
+          "memory_peak_mb": 5559.09
+        },
+        {
+          "name": "etl_total",
+          "step_name": "etl_total",
+          "timestamp": "2026-06-24T18:19:58.962090",
+          "wall_sec": 552.3454,
+          "cpu_sec": 841.2142,
+          "rss_peak_mb": 5559.09,
+          "wall_time": 552.3454,
+          "cpu_time": 841.2142,
+          "memory_peak_kb": 5692512,
+          "memory_peak_mb": 5559.09,
+          "extra": {
+            "run_id": null
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "22/22",
+      "host": "mac",
+      "started_at": "2026-06-24T18:20:05.160005",
+      "ended_at": "2026-06-24T18:29:09.835068",
+      "real_elapsed_sec": 544.6751,
+      "step_wall_time_sum": 1566.3656,
+      "wall_time_sec": 1566.3656,
+      "cpu_time_sec": 2178.5133,
+      "rss_peak_mb": 5868.19,
+      "duckdb_alloc_mb": 8192,
+      "spill_to_disk_mb": 0,
+      "step_count": 16,
+      "per_step": [
+        {
+          "name": "pl_step1_load_ref_data",
+          "step_name": "pl_step1_load_ref_data",
+          "timestamp": "2026-06-24T18:20:05.160005",
+          "wall_sec": 0.1816,
+          "cpu_sec": 0.1753,
+          "rss_peak_mb": 689.39,
+          "wall_time": 0.1816,
+          "cpu_time": 0.1753,
+          "memory_peak_kb": 705936,
+          "memory_peak_mb": 689.39
+        },
+        {
+          "name": "step1_run_full_etl",
+          "step_name": "step1_run_full_etl",
+          "timestamp": "2026-06-24T18:20:05.477307",
+          "wall_sec": 0.5431,
+          "cpu_sec": 0.4751,
+          "rss_peak_mb": 690.91,
+          "wall_time": 0.5431,
+          "cpu_time": 0.4751,
+          "memory_peak_kb": 707488,
+          "memory_peak_mb": 690.91,
+          "extra": {
+            "mode": "inc",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_taoke_full_correct",
+          "step_name": "pl_taoke_full_correct",
+          "timestamp": "2026-06-24T18:25:15.120346",
+          "wall_sec": 309.6071,
+          "cpu_sec": 367.6029,
+          "rss_peak_mb": 4941.31,
+          "wall_time": 309.6071,
+          "cpu_time": 367.6029,
+          "memory_peak_kb": 5059904,
+          "memory_peak_mb": 4941.31
+        },
+        {
+          "name": "step2_update_taoke_channel",
+          "step_name": "step2_update_taoke_channel",
+          "timestamp": "2026-06-24T18:25:15.120418",
+          "wall_sec": 309.6072,
+          "cpu_sec": 367.603,
+          "rss_peak_mb": 4942.02,
+          "wall_time": 309.6072,
+          "cpu_time": 367.603,
+          "memory_peak_kb": 5060624,
+          "memory_peak_mb": 4942.02
+        },
+        {
+          "name": "etl_status_override_refresh",
+          "step_name": "etl_status_override_refresh",
+          "timestamp": "2026-06-24T18:25:24.385961",
+          "wall_sec": 9.1695,
+          "cpu_sec": 14.9394,
+          "rss_peak_mb": 5420.73,
+          "wall_time": 9.1695,
+          "cpu_time": 14.9394,
+          "memory_peak_kb": 5550832,
+          "memory_peak_mb": 5420.73,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step3_refresh_status_override",
+          "step_name": "step3_refresh_status_override",
+          "timestamp": "2026-06-24T18:25:24.385973",
+          "wall_sec": 9.1695,
+          "cpu_sec": 14.9395,
+          "rss_peak_mb": 5420.73,
+          "wall_time": 9.1695,
+          "cpu_time": 14.9395,
+          "memory_peak_kb": 5550832,
+          "memory_peak_mb": 5420.73,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step4_sync_override_to_orders",
+          "step_name": "step4_sync_override_to_orders",
+          "timestamp": "2026-06-24T18:25:24.636289",
+          "wall_sec": 0.1523,
+          "cpu_sec": 0.7324,
+          "rss_peak_mb": 5433.11,
+          "wall_time": 0.1523,
+          "cpu_time": 0.7324,
+          "memory_peak_kb": 5563504,
+          "memory_peak_mb": 5433.11,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_refresh_visitor_data",
+          "step_name": "pl_refresh_visitor_data",
+          "timestamp": "2026-06-24T18:25:24.915967",
+          "wall_sec": 0.1818,
+          "cpu_sec": 0.181,
+          "rss_peak_mb": 5433.11,
+          "wall_time": 0.1818,
+          "cpu_time": 0.181,
+          "memory_peak_kb": 5563504,
+          "memory_peak_mb": 5433.11
+        },
+        {
+          "name": "step5_refresh_visitor_data",
+          "step_name": "step5_refresh_visitor_data",
+          "timestamp": "2026-06-24T18:25:24.915976",
+          "wall_sec": 0.1818,
+          "cpu_sec": 0.181,
+          "rss_peak_mb": 5433.11,
+          "wall_time": 0.1818,
+          "cpu_time": 0.181,
+          "memory_peak_kb": 5563504,
+          "memory_peak_mb": 5433.11
+        },
+        {
+          "name": "step6_precompute_rfm_cache",
+          "step_name": "step6_precompute_rfm_cache",
+          "timestamp": "2026-06-24T18:26:29.550599",
+          "wall_sec": 63.41,
+          "cpu_sec": 264.7505,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 63.41,
+          "cpu_time": 264.7505,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19
+        },
+        {
+          "name": "step7a_create_user_rfm_table",
+          "step_name": "step7a_create_user_rfm_table",
+          "timestamp": "2026-06-24T18:26:29.739460",
+          "wall_sec": 0.0226,
+          "cpu_sec": 0.0199,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 0.0226,
+          "cpu_time": 0.0199,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19
+        },
+        {
+          "name": "preload_rfm",
+          "step_name": "preload_rfm",
+          "timestamp": "2026-06-24T18:29:09.329447",
+          "wall_sec": 159.5864,
+          "cpu_sec": 163.344,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 159.5864,
+          "cpu_time": 163.344,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19,
+          "extra": {
+            "hot_dates": 9,
+            "lookbacks": 3,
+            "metrics": 2,
+            "channels": 10,
+            "total_tasks": 0
+          }
+        },
+        {
+          "name": "step7b_run_auto_preload",
+          "step_name": "step7b_run_auto_preload",
+          "timestamp": "2026-06-24T18:29:09.329539",
+          "wall_sec": 159.5864,
+          "cpu_sec": 163.3441,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 159.5864,
+          "cpu_time": 163.3441,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19
+        },
+        {
+          "name": "pl_refresh_campaign_schedule",
+          "step_name": "pl_refresh_campaign_schedule",
+          "timestamp": "2026-06-24T18:29:09.430354",
+          "wall_sec": 0.0081,
+          "cpu_sec": 0.0065,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 0.0081,
+          "cpu_time": 0.0065,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19
+        },
+        {
+          "name": "step7_5_refresh_campaign_schedule",
+          "step_name": "step7_5_refresh_campaign_schedule",
+          "timestamp": "2026-06-24T18:29:09.430364",
+          "wall_sec": 0.0082,
+          "cpu_sec": 0.0065,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 0.0082,
+          "cpu_time": 0.0065,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19
+        },
+        {
+          "name": "etl_total",
+          "step_name": "etl_total",
+          "timestamp": "2026-06-24T18:29:09.835068",
+          "wall_sec": 544.9499,
+          "cpu_sec": 820.2121,
+          "rss_peak_mb": 5868.19,
+          "wall_time": 544.9499,
+          "cpu_time": 820.2121,
+          "memory_peak_kb": 6009024,
+          "memory_peak_mb": 5868.19,
+          "extra": {
+            "run_id": null
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "23/23",
+      "host": "mac",
+      "started_at": "2026-06-24T18:47:11.826509",
+      "ended_at": "2026-06-24T18:56:13.922409",
+      "real_elapsed_sec": 542.0959,
+      "step_wall_time_sum": 1567.1121,
+      "wall_time_sec": 1567.1121,
+      "cpu_time_sec": 2309.8645,
+      "rss_peak_mb": 6002.89,
+      "duckdb_alloc_mb": 8192,
+      "spill_to_disk_mb": 0,
+      "step_count": 16,
+      "per_step": [
+        {
+          "name": "pl_step1_load_ref_data",
+          "step_name": "pl_step1_load_ref_data",
+          "timestamp": "2026-06-24T18:47:11.826509",
+          "wall_sec": 0.2163,
+          "cpu_sec": 0.2099,
+          "rss_peak_mb": 397.3,
+          "wall_time": 0.2163,
+          "cpu_time": 0.2099,
+          "memory_peak_kb": 406832,
+          "memory_peak_mb": 397.3
+        },
+        {
+          "name": "step1_run_full_etl",
+          "step_name": "step1_run_full_etl",
+          "timestamp": "2026-06-24T18:47:12.064869",
+          "wall_sec": 1.1238,
+          "cpu_sec": 0.939,
+          "rss_peak_mb": 397.3,
+          "wall_time": 1.1238,
+          "cpu_time": 0.939,
+          "memory_peak_kb": 406832,
+          "memory_peak_mb": 397.3,
+          "extra": {
+            "mode": "inc",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_taoke_full_correct",
+          "step_name": "pl_taoke_full_correct",
+          "timestamp": "2026-06-24T18:52:28.165347",
+          "wall_sec": 316.0131,
+          "cpu_sec": 427.1769,
+          "rss_peak_mb": 4750.73,
+          "wall_time": 316.0131,
+          "cpu_time": 427.1769,
+          "memory_peak_kb": 4864752,
+          "memory_peak_mb": 4750.73
+        },
+        {
+          "name": "step2_update_taoke_channel",
+          "step_name": "step2_update_taoke_channel",
+          "timestamp": "2026-06-24T18:52:28.166116",
+          "wall_sec": 316.014,
+          "cpu_sec": 427.1772,
+          "rss_peak_mb": 4751.47,
+          "wall_time": 316.014,
+          "cpu_time": 427.1772,
+          "memory_peak_kb": 4865504,
+          "memory_peak_mb": 4751.47
+        },
+        {
+          "name": "etl_status_override_refresh",
+          "step_name": "etl_status_override_refresh",
+          "timestamp": "2026-06-24T18:52:37.524375",
+          "wall_sec": 9.2338,
+          "cpu_sec": 15.2058,
+          "rss_peak_mb": 5266.42,
+          "wall_time": 9.2338,
+          "cpu_time": 15.2058,
+          "memory_peak_kb": 5392816,
+          "memory_peak_mb": 5266.42,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step3_refresh_status_override",
+          "step_name": "step3_refresh_status_override",
+          "timestamp": "2026-06-24T18:52:37.524397",
+          "wall_sec": 9.2338,
+          "cpu_sec": 15.2058,
+          "rss_peak_mb": 5266.42,
+          "wall_time": 9.2338,
+          "cpu_time": 15.2058,
+          "memory_peak_kb": 5392816,
+          "memory_peak_mb": 5266.42,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "step4_sync_override_to_orders",
+          "step_name": "step4_sync_override_to_orders",
+          "timestamp": "2026-06-24T18:52:37.771377",
+          "wall_sec": 0.1467,
+          "cpu_sec": 0.725,
+          "rss_peak_mb": 5301.14,
+          "wall_time": 0.1467,
+          "cpu_time": 0.725,
+          "memory_peak_kb": 5428368,
+          "memory_peak_mb": 5301.14,
+          "extra": {
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_refresh_visitor_data",
+          "step_name": "pl_refresh_visitor_data",
+          "timestamp": "2026-06-24T18:52:37.993974",
+          "wall_sec": 0.1199,
+          "cpu_sec": 0.1161,
+          "rss_peak_mb": 5301.14,
+          "wall_time": 0.1199,
+          "cpu_time": 0.1161,
+          "memory_peak_kb": 5428368,
+          "memory_peak_mb": 5301.14
+        },
+        {
+          "name": "step5_refresh_visitor_data",
+          "step_name": "step5_refresh_visitor_data",
+          "timestamp": "2026-06-24T18:52:37.993985",
+          "wall_sec": 0.12,
+          "cpu_sec": 0.1162,
+          "rss_peak_mb": 5301.14,
+          "wall_time": 0.12,
+          "cpu_time": 0.1162,
+          "memory_peak_kb": 5428368,
+          "memory_peak_mb": 5301.14
+        },
+        {
+          "name": "step6_precompute_rfm_cache",
+          "step_name": "step6_precompute_rfm_cache",
+          "timestamp": "2026-06-24T18:53:35.333548",
+          "wall_sec": 56.0983,
+          "cpu_sec": 247.5725,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 56.0983,
+          "cpu_time": 247.5725,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
+        },
+        {
+          "name": "step7a_create_user_rfm_table",
+          "step_name": "step7a_create_user_rfm_table",
+          "timestamp": "2026-06-24T18:53:35.530958",
+          "wall_sec": 0.0225,
+          "cpu_sec": 0.0203,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 0.0225,
+          "cpu_time": 0.0203,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
+        },
+        {
+          "name": "preload_rfm",
+          "step_name": "preload_rfm",
+          "timestamp": "2026-06-24T18:56:13.417720",
+          "wall_sec": 157.8849,
+          "cpu_sec": 158.3163,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 157.8849,
+          "cpu_time": 158.3163,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89,
+          "extra": {
+            "hot_dates": 9,
+            "lookbacks": 3,
+            "metrics": 2,
+            "channels": 10,
+            "total_tasks": 0
+          }
+        },
+        {
+          "name": "step7b_run_auto_preload",
+          "step_name": "step7b_run_auto_preload",
+          "timestamp": "2026-06-24T18:56:13.417830",
+          "wall_sec": 157.885,
+          "cpu_sec": 158.3163,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 157.885,
+          "cpu_time": 158.3163,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
+        },
+        {
+          "name": "pl_refresh_campaign_schedule",
+          "step_name": "pl_refresh_campaign_schedule",
+          "timestamp": "2026-06-24T18:56:13.540709",
+          "wall_sec": 0.0086,
+          "cpu_sec": 0.0068,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 0.0086,
+          "cpu_time": 0.0068,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
+        },
+        {
+          "name": "step7_5_refresh_campaign_schedule",
+          "step_name": "step7_5_refresh_campaign_schedule",
+          "timestamp": "2026-06-24T18:56:13.540719",
+          "wall_sec": 0.0086,
+          "cpu_sec": 0.0068,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 0.0086,
+          "cpu_time": 0.0068,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89
+        },
+        {
+          "name": "etl_total",
+          "step_name": "etl_total",
+          "timestamp": "2026-06-24T18:56:13.922409",
+          "wall_sec": 542.9828,
+          "cpu_sec": 858.7537,
+          "rss_peak_mb": 6002.89,
+          "wall_time": 542.9828,
+          "cpu_time": 858.7537,
+          "memory_peak_kb": 6146960,
+          "memory_peak_mb": 6002.89,
+          "extra": {
+            "run_id": null
+          }
+        }
+      ]
     }
   ],
   "meta": {
     "baseline_date": "2026_06_03",
     "host": "mac",
-    "run_id": "20/20",
+    "run_id": "23/23",
     "python_version": "3.14.4",
     "platform": "macOS-26.5-arm64-arm-64bit-Mach-O",
-    "started_at": "2026-06-22T10:18:12.977046",
-    "ended_at": "2026-06-22T10:42:24.887046",
-    "real_elapsed_sec": 1451.91,
-    "step_wall_time_sum": 3762.2137,
-    "total_wall_time": 3762.2137,
-    "total_cpu_time": 4787.7964,
-    "peak_memory_kb": 6450176,
-    "peak_memory_mb": 6299.0,
-    "step_count": 31
+    "started_at": "2026-06-24T18:47:11.826509",
+    "ended_at": "2026-06-24T18:56:13.922409",
+    "real_elapsed_sec": 542.0959,
+    "step_wall_time_sum": 1567.1121,
+    "total_wall_time": 1567.1121,
+    "total_cpu_time": 2309.8645,
+    "peak_memory_kb": 6146960,
+    "peak_memory_mb": 6002.89,
+    "step_count": 16
   },
   "steps": [
     {
       "name": "pl_step1_load_ref_data",
       "step_name": "pl_step1_load_ref_data",
-      "timestamp": "2026-06-22T10:18:12.977046",
-      "wall_sec": 1.2668,
-      "cpu_sec": 1.1855,
-      "rss_peak_mb": 861.23,
-      "wall_time": 1.2668,
-      "cpu_time": 1.1855,
-      "memory_peak_kb": 881904,
-      "memory_peak_mb": 861.23
-    },
-    {
-      "name": "load_filter_rolling_window",
-      "step_name": "load_filter_rolling_window",
-      "timestamp": "2026-06-22T10:27:22.148141",
-      "wall_sec": 0.014,
-      "cpu_sec": 0.0126,
-      "rss_peak_mb": 4481.8,
-      "wall_time": 0.014,
-      "cpu_time": 0.0126,
-      "memory_peak_kb": 4589360,
-      "memory_peak_mb": 4481.8,
-      "extra": {
-        "input_rows": 27966,
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step2_5_filter_rolling_window",
-      "step_name": "pl_step2_5_filter_rolling_window",
-      "timestamp": "2026-06-22T10:27:22.148188",
-      "wall_sec": 0.0141,
-      "cpu_sec": 0.0127,
-      "rss_peak_mb": 4481.86,
-      "wall_time": 0.0141,
-      "cpu_time": 0.0127,
-      "memory_peak_kb": 4589424,
-      "memory_peak_mb": 4481.86,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "transform_p4_keyword_loop",
-      "step_name": "transform_p4_keyword_loop",
-      "timestamp": "2026-06-22T10:27:22.265753",
-      "wall_sec": 0.0577,
-      "cpu_sec": 0.0577,
-      "rss_peak_mb": 4513.2,
-      "wall_time": 0.0577,
-      "cpu_time": 0.0577,
-      "memory_peak_kb": 4621520,
-      "memory_peak_mb": 4513.2,
-      "extra": {
-        "kw_count": 40
-      }
-    },
-    {
-      "name": "transform_match_channel",
-      "step_name": "transform_match_channel",
-      "timestamp": "2026-06-22T10:27:26.276179",
-      "wall_sec": 4.0774,
-      "cpu_sec": 4.0607,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 4.0774,
-      "cpu_time": 4.0607,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "rows": 27966,
-        "kw_rules": 40,
-        "id_rules": 0
-      }
-    },
-    {
-      "name": "transform_clean_data",
-      "step_name": "transform_clean_data",
-      "timestamp": "2026-06-22T10:27:26.284661",
-      "wall_sec": 4.1363,
-      "cpu_sec": 4.1162,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 4.1363,
-      "cpu_time": 4.1162,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "rows": 27966
-      }
-    },
-    {
-      "name": "pl_step3_clean_data_new",
-      "step_name": "pl_step3_clean_data_new",
-      "timestamp": "2026-06-22T10:27:26.284678",
-      "wall_sec": 4.1364,
-      "cpu_sec": 4.1162,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 4.1364,
-      "cpu_time": 4.1162,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "rows": 27966
-      }
-    },
-    {
-      "name": "load_upsert_to_duckdb",
-      "step_name": "load_upsert_to_duckdb",
-      "timestamp": "2026-06-22T10:27:32.753804",
-      "wall_sec": 6.4689,
-      "cpu_sec": 11.1794,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 6.4689,
-      "cpu_time": 11.1794,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "mode": "incremental",
-        "new_rows": 27966,
-        "refresh_rows": 0
-      }
-    },
-    {
-      "name": "pl_step4_upsert_to_duckdb",
-      "step_name": "pl_step4_upsert_to_duckdb",
-      "timestamp": "2026-06-22T10:27:32.753865",
-      "wall_sec": 6.469,
-      "cpu_sec": 11.1795,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 6.469,
-      "cpu_time": 11.1795,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "new_rows": 27966,
-        "refresh_rows": 0
-      }
-    },
-    {
-      "name": "pl_step4_7_replay_is_member_incremental",
-      "step_name": "pl_step4_7_replay_is_member_incremental",
-      "timestamp": "2026-06-22T10:34:19.990911",
-      "wall_sec": 407.1293,
-      "cpu_sec": 413.1366,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 407.1293,
-      "cpu_time": 413.1366,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36
-    },
-    {
-      "name": "pl_step6_user_first_purchase",
-      "step_name": "pl_step6_user_first_purchase",
-      "timestamp": "2026-06-22T10:34:21.776934",
-      "wall_sec": 1.7845,
-      "cpu_sec": 9.1858,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 1.7845,
-      "cpu_time": 9.1858,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "run_mode": "incremental",
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step6_5_user_recency",
-      "step_name": "pl_step6_5_user_recency",
-      "timestamp": "2026-06-22T10:34:23.994165",
-      "wall_sec": 2.2171,
-      "cpu_sec": 9.115,
-      "rss_peak_mb": 4675.36,
-      "wall_time": 2.2171,
-      "cpu_time": 9.115,
-      "memory_peak_kb": 4787568,
-      "memory_peak_mb": 4675.36,
-      "extra": {
-        "run_mode": "incremental",
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step6_7_update_metrics_after_ufp",
-      "step_name": "pl_step6_7_update_metrics_after_ufp",
-      "timestamp": "2026-06-22T10:34:25.392348",
-      "wall_sec": 1.3981,
-      "cpu_sec": 8.2536,
-      "rss_peak_mb": 4799.03,
-      "wall_time": 1.3981,
-      "cpu_time": 8.2536,
-      "memory_peak_kb": 4914208,
-      "memory_peak_mb": 4799.03,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step8a_category_flow",
-      "step_name": "pl_step8a_category_flow",
-      "timestamp": "2026-06-22T10:34:39.146733",
-      "wall_sec": 13.7351,
-      "cpu_sec": 93.423,
-      "rss_peak_mb": 4815.47,
-      "wall_time": 13.7351,
-      "cpu_time": 93.423,
-      "memory_peak_kb": 4931040,
-      "memory_peak_mb": 4815.47
-    },
-    {
-      "name": "pl_step8b_category_churn",
-      "step_name": "pl_step8b_category_churn",
-      "timestamp": "2026-06-22T10:34:39.191248",
-      "wall_sec": 0.0445,
-      "cpu_sec": 0.189,
-      "rss_peak_mb": 4815.52,
-      "wall_time": 0.0445,
-      "cpu_time": 0.189,
-      "memory_peak_kb": 4931088,
-      "memory_peak_mb": 4815.52
-    },
-    {
-      "name": "pl_step8_5_dq_assertions",
-      "step_name": "pl_step8_5_dq_assertions",
-      "timestamp": "2026-06-22T10:34:39.226288",
-      "wall_sec": 0.0338,
-      "cpu_sec": 0.2136,
-      "rss_peak_mb": 4816.05,
-      "wall_time": 0.0338,
-      "cpu_time": 0.2136,
-      "memory_peak_kb": 4931632,
-      "memory_peak_mb": 4816.05,
-      "extra": {
-        "date": "2026-06-22"
-      }
+      "timestamp": "2026-06-24T18:47:11.826509",
+      "wall_sec": 0.2163,
+      "cpu_sec": 0.2099,
+      "rss_peak_mb": 397.3,
+      "wall_time": 0.2163,
+      "cpu_time": 0.2099,
+      "memory_peak_kb": 406832,
+      "memory_peak_mb": 397.3
     },
     {
       "name": "step1_run_full_etl",
       "step_name": "step1_run_full_etl",
-      "timestamp": "2026-06-22T10:34:43.182715",
-      "wall_sec": 992.0286,
-      "cpu_sec": 1121.4103,
-      "rss_peak_mb": 5075.5,
-      "wall_time": 992.0286,
-      "cpu_time": 1121.4103,
-      "memory_peak_kb": 5197312,
-      "memory_peak_mb": 5075.5,
+      "timestamp": "2026-06-24T18:47:12.064869",
+      "wall_sec": 1.1238,
+      "cpu_sec": 0.939,
+      "rss_peak_mb": 397.3,
+      "wall_time": 1.1238,
+      "cpu_time": 0.939,
+      "memory_peak_kb": 406832,
+      "memory_peak_mb": 397.3,
       "extra": {
         "mode": "inc",
         "window_days": 30
@@ -5773,38 +6018,38 @@
     {
       "name": "pl_taoke_full_correct",
       "step_name": "pl_taoke_full_correct",
-      "timestamp": "2026-06-22T10:40:04.211369",
-      "wall_sec": 320.7735,
-      "cpu_sec": 395.1281,
-      "rss_peak_mb": 5226.44,
-      "wall_time": 320.7735,
-      "cpu_time": 395.1281,
-      "memory_peak_kb": 5351872,
-      "memory_peak_mb": 5226.44
+      "timestamp": "2026-06-24T18:52:28.165347",
+      "wall_sec": 316.0131,
+      "cpu_sec": 427.1769,
+      "rss_peak_mb": 4750.73,
+      "wall_time": 316.0131,
+      "cpu_time": 427.1769,
+      "memory_peak_kb": 4864752,
+      "memory_peak_mb": 4750.73
     },
     {
       "name": "step2_update_taoke_channel",
       "step_name": "step2_update_taoke_channel",
-      "timestamp": "2026-06-22T10:40:04.214308",
-      "wall_sec": 320.7766,
-      "cpu_sec": 395.1285,
-      "rss_peak_mb": 5226.44,
-      "wall_time": 320.7766,
-      "cpu_time": 395.1285,
-      "memory_peak_kb": 5351872,
-      "memory_peak_mb": 5226.44
+      "timestamp": "2026-06-24T18:52:28.166116",
+      "wall_sec": 316.014,
+      "cpu_sec": 427.1772,
+      "rss_peak_mb": 4751.47,
+      "wall_time": 316.014,
+      "cpu_time": 427.1772,
+      "memory_peak_kb": 4865504,
+      "memory_peak_mb": 4751.47
     },
     {
       "name": "etl_status_override_refresh",
       "step_name": "etl_status_override_refresh",
-      "timestamp": "2026-06-22T10:40:13.529181",
-      "wall_sec": 9.1342,
-      "cpu_sec": 10.4508,
-      "rss_peak_mb": 5260.14,
-      "wall_time": 9.1342,
-      "cpu_time": 10.4508,
-      "memory_peak_kb": 5386384,
-      "memory_peak_mb": 5260.14,
+      "timestamp": "2026-06-24T18:52:37.524375",
+      "wall_sec": 9.2338,
+      "cpu_sec": 15.2058,
+      "rss_peak_mb": 5266.42,
+      "wall_time": 9.2338,
+      "cpu_time": 15.2058,
+      "memory_peak_kb": 5392816,
+      "memory_peak_mb": 5266.42,
       "extra": {
         "window_days": 30
       }
@@ -5812,14 +6057,14 @@
     {
       "name": "step3_refresh_status_override",
       "step_name": "step3_refresh_status_override",
-      "timestamp": "2026-06-22T10:40:13.529195",
-      "wall_sec": 9.1343,
-      "cpu_sec": 10.4509,
-      "rss_peak_mb": 5260.14,
-      "wall_time": 9.1343,
-      "cpu_time": 10.4509,
-      "memory_peak_kb": 5386384,
-      "memory_peak_mb": 5260.14,
+      "timestamp": "2026-06-24T18:52:37.524397",
+      "wall_sec": 9.2338,
+      "cpu_sec": 15.2058,
+      "rss_peak_mb": 5266.42,
+      "wall_time": 9.2338,
+      "cpu_time": 15.2058,
+      "memory_peak_kb": 5392816,
+      "memory_peak_mb": 5266.42,
       "extra": {
         "window_days": 30
       }
@@ -5827,14 +6072,14 @@
     {
       "name": "step4_sync_override_to_orders",
       "step_name": "step4_sync_override_to_orders",
-      "timestamp": "2026-06-22T10:40:13.894061",
-      "wall_sec": 0.2749,
-      "cpu_sec": 1.0763,
-      "rss_peak_mb": 5358.25,
-      "wall_time": 0.2749,
-      "cpu_time": 1.0763,
-      "memory_peak_kb": 5486848,
-      "memory_peak_mb": 5358.25,
+      "timestamp": "2026-06-24T18:52:37.771377",
+      "wall_sec": 0.1467,
+      "cpu_sec": 0.725,
+      "rss_peak_mb": 5301.14,
+      "wall_time": 0.1467,
+      "cpu_time": 0.725,
+      "memory_peak_kb": 5428368,
+      "memory_peak_mb": 5301.14,
       "extra": {
         "window_days": 30
       }
@@ -5842,62 +6087,62 @@
     {
       "name": "pl_refresh_visitor_data",
       "step_name": "pl_refresh_visitor_data",
-      "timestamp": "2026-06-22T10:40:14.076644",
-      "wall_sec": 0.0877,
-      "cpu_sec": 0.091,
-      "rss_peak_mb": 5358.78,
-      "wall_time": 0.0877,
-      "cpu_time": 0.091,
-      "memory_peak_kb": 5487392,
-      "memory_peak_mb": 5358.78
+      "timestamp": "2026-06-24T18:52:37.993974",
+      "wall_sec": 0.1199,
+      "cpu_sec": 0.1161,
+      "rss_peak_mb": 5301.14,
+      "wall_time": 0.1199,
+      "cpu_time": 0.1161,
+      "memory_peak_kb": 5428368,
+      "memory_peak_mb": 5301.14
     },
     {
       "name": "step5_refresh_visitor_data",
       "step_name": "step5_refresh_visitor_data",
-      "timestamp": "2026-06-22T10:40:14.076651",
-      "wall_sec": 0.0878,
-      "cpu_sec": 0.0911,
-      "rss_peak_mb": 5358.78,
-      "wall_time": 0.0878,
-      "cpu_time": 0.0911,
-      "memory_peak_kb": 5487392,
-      "memory_peak_mb": 5358.78
+      "timestamp": "2026-06-24T18:52:37.993985",
+      "wall_sec": 0.12,
+      "cpu_sec": 0.1162,
+      "rss_peak_mb": 5301.14,
+      "wall_time": 0.12,
+      "cpu_time": 0.1162,
+      "memory_peak_kb": 5428368,
+      "memory_peak_mb": 5301.14
     },
     {
       "name": "step6_precompute_rfm_cache",
       "step_name": "step6_precompute_rfm_cache",
-      "timestamp": "2026-06-22T10:41:11.004114",
-      "wall_sec": 56.8261,
-      "cpu_sec": 250.3264,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 56.8261,
-      "cpu_time": 250.3264,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0
+      "timestamp": "2026-06-24T18:53:35.333548",
+      "wall_sec": 56.0983,
+      "cpu_sec": 247.5725,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 56.0983,
+      "cpu_time": 247.5725,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89
     },
     {
       "name": "step7a_create_user_rfm_table",
       "step_name": "step7a_create_user_rfm_table",
-      "timestamp": "2026-06-22T10:41:11.218570",
-      "wall_sec": 0.001,
-      "cpu_sec": 0.0012,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 0.001,
-      "cpu_time": 0.0012,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0
+      "timestamp": "2026-06-24T18:53:35.530958",
+      "wall_sec": 0.0225,
+      "cpu_sec": 0.0203,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 0.0225,
+      "cpu_time": 0.0203,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89
     },
     {
       "name": "preload_rfm",
       "step_name": "preload_rfm",
-      "timestamp": "2026-06-22T10:42:24.382005",
-      "wall_sec": 73.1603,
-      "cpu_sec": 84.2856,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 73.1603,
-      "cpu_time": 84.2856,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0,
+      "timestamp": "2026-06-24T18:56:13.417720",
+      "wall_sec": 157.8849,
+      "cpu_sec": 158.3163,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 157.8849,
+      "cpu_time": 158.3163,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89,
       "extra": {
         "hot_dates": 9,
         "lookbacks": 3,
@@ -5909,50 +6154,50 @@
     {
       "name": "step7b_run_auto_preload",
       "step_name": "step7b_run_auto_preload",
-      "timestamp": "2026-06-22T10:42:24.382109",
-      "wall_sec": 73.1604,
-      "cpu_sec": 84.2857,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 73.1604,
-      "cpu_time": 84.2857,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0
+      "timestamp": "2026-06-24T18:56:13.417830",
+      "wall_sec": 157.885,
+      "cpu_sec": 158.3163,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 157.885,
+      "cpu_time": 158.3163,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89
     },
     {
       "name": "pl_refresh_campaign_schedule",
       "step_name": "pl_refresh_campaign_schedule",
-      "timestamp": "2026-06-22T10:42:24.524599",
-      "wall_sec": 0.0092,
-      "cpu_sec": 0.0063,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 0.0092,
-      "cpu_time": 0.0063,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0
+      "timestamp": "2026-06-24T18:56:13.540709",
+      "wall_sec": 0.0086,
+      "cpu_sec": 0.0068,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 0.0086,
+      "cpu_time": 0.0068,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89
     },
     {
       "name": "step7_5_refresh_campaign_schedule",
       "step_name": "step7_5_refresh_campaign_schedule",
-      "timestamp": "2026-06-22T10:42:24.524606",
-      "wall_sec": 0.0092,
-      "cpu_sec": 0.0063,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 0.0092,
-      "cpu_time": 0.0063,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0
+      "timestamp": "2026-06-24T18:56:13.540719",
+      "wall_sec": 0.0086,
+      "cpu_sec": 0.0068,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 0.0086,
+      "cpu_time": 0.0068,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89
     },
     {
       "name": "etl_total",
       "step_name": "etl_total",
-      "timestamp": "2026-06-22T10:42:24.887046",
-      "wall_sec": 1453.7669,
-      "cpu_sec": 1865.6207,
-      "rss_peak_mb": 6299.0,
-      "wall_time": 1453.7669,
-      "cpu_time": 1865.6207,
-      "memory_peak_kb": 6450176,
-      "memory_peak_mb": 6299.0,
+      "timestamp": "2026-06-24T18:56:13.922409",
+      "wall_sec": 542.9828,
+      "cpu_sec": 858.7537,
+      "rss_peak_mb": 6002.89,
+      "wall_time": 542.9828,
+      "cpu_time": 858.7537,
+      "memory_peak_kb": 6146960,
+      "memory_peak_mb": 6002.89,
       "extra": {
         "run_id": null
       }
@@ -5967,11 +6212,11 @@
       "status": "pass",
       "measurements": {
         "checked": true,
-        "before_max_pay_time": "2026-06-17 23:59:57",
-        "after_max_pay_time": "2026-06-21 23:59:57",
-        "before_count": 10759869,
-        "after_count": 10787835,
-        "net_change": 27966
+        "before_max_pay_time": "2026-06-23 23:59:10",
+        "after_max_pay_time": "2026-06-23 23:59:10",
+        "before_count": 10791757,
+        "after_count": 10791757,
+        "net_change": 0
       }
     },
     "api_health": {
@@ -5990,9 +6235,9 @@
       "status": "pass",
       "measurements": {
         "checked": true,
-        "before_count": 10759869,
-        "after_count": 10787835,
-        "net_change": 27966
+        "before_count": 10791757,
+        "after_count": 10791757,
+        "net_change": 0
       }
     },
     "wall_time_stdev": {

@@ -130,7 +130,7 @@ fi
 # 4. DuckDB 锁最终检测 (Sprint 93 L4.7 实战 fix 模式: uvicorn 强制 kill 后 DuckDB 锁可能
 # 被残留 Python 进程 (pytest / Codex / other backend) 持有, 之前直接 exit 1 必 user 手动 kill.
 # 现在加 auto-kill + retry, 跟 line 82-95 uvicorn kill 模式一致).
-DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
+DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u || true)
 if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
     echo "  ⚠️  DuckDB 锁被以下进程持有: $DUCKDB_LOCK_HOLDER (uvicorn 强制 kill 后残留)"
     echo "  🔄 自动 kill DuckDB lock holder..."
@@ -139,7 +139,7 @@ if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
     done
     sleep 2
     # 重检, 锁没释放就强制 kill -9
-    DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
+    DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u || true)
     if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
         echo "  ⚠️  DuckDB 锁未释放, 强制 kill -9..."
         for LOCK_PID in $DUCKDB_LOCK_HOLDER; do
@@ -148,7 +148,7 @@ if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
         sleep 1
     fi
     # 第三次重检, 还持有就放弃 (避免 kill 系统关键进程)
-    DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u)
+    DUCKDB_LOCK_HOLDER=$(lsof "$PROJECT_ROOT/data/processed/fuqing_crm.duckdb" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u || true)
     if [ -n "$DUCKDB_LOCK_HOLDER" ]; then
         echo "  ❌ DuckDB 锁仍被持有: $DUCKDB_LOCK_HOLDER, 手动 kill 后重试:"
         echo "     lsof -ti $PROJECT_ROOT/data/processed/fuqing_crm.duckdb | xargs kill -9"
