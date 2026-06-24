@@ -137,3 +137,18 @@ uvicorn backend.app:app --reload
 - [docs/architecture/TEST_INFRASTRUCTURE.md](docs/architecture/TEST_INFRASTRUCTURE.md) — pytest fixture + race flake
 - [docs/architecture/50m-scale-architecture.md](docs/architecture/50m-scale-architecture.md) — 50M 行 benchmark
 - [CHANGELOG.md](CHANGELOG.md) — 近 30 entry 滚动 (v0.4.14.119+) + Sprint 59 #5 阈值 ≤ 900 行 (archive_changelog.py 脚本化)
+
+---
+
+## Sprint 105 收口 (2026-06-24)
+
+- **VERSION**: 0.4.14.157 (不变, 跟 Sprint 99+100+101+102+103+104 留尾治理 sprint 模式一致)
+- **真业务 sprint 触发**: user 报 "增量ETL报 DuckDB 锁冲突" 触发
+- **根因**: macOS launchd plist `com.fuqing.uvicorn` KeepAlive={SuccessfulExit:false} 5s 重启 race condition
+- **修法**: scripts/etl/run-etl.sh launchctl bootout + bootstrap 治本, 1 file +79/-37 (净 +42), 0 抽象 0 helper
+- **验收**: ETL exit 0 + 40 次采样无 uvicorn 抢锁 + KeepAlive PID 45300→46256 + pytest 819/23/0 baseline 持续
+- **2 commits**: 78673ab fix(etl) + 8b4d8af docs(sprint) HANDOFF, merge commit 01aded6
+- **累计 sprint 0 debt 55** (Sprint 105 闭环后, 跟 Sprint 56+...+104 累计 55 sprint 0 debt 持续)
+- **L4.x 永久规则 22 stable 0 新增** (跟 Sprint 93+97+98+99+100+101+102+103+104 实战 fix 模式一致)
+- **5 项 follow-up Sprint 106+**: SIGTERM fallback 死循环 + cross-user launchctl + DuckDB PID 白名单 + HEALTH_API_KEY 不一致 + 6 MEDIUM 留尾
+- **跨 sprint 留尾治理 sprint 模式 stable 累计 22 sprint**

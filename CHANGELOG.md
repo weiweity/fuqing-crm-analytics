@@ -4,6 +4,28 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-24 (Sprint 105, VERSION 不变 留尾治理 sprint)
+
+### Fixed
+- 增量 ETL 跑不动真因修: scripts/etl/run-etl.sh 加 launchctl bootout + bootstrap 治本 launchd KeepAlive 跟 ETL 抢 DuckDB 锁 (1 真业务 sprint 报 bug 触发, user 报 "增量ETL报 DuckDB 锁冲突")
+- 根因: macOS launchd plist `com.fuqing.uvicorn` KeepAlive={SuccessfulExit:false, Crashed:true} + ThrottleInterval=5s, run-etl.sh 之前用 SIGTERM + sleep 2 杀 uvicorn 后 launchd 5s 立即重启新 uvicorn, 新 uvicorn 在 fastapi startup get_connection() 打开 DuckDB 独占锁, 跟 ETL 抢锁失败 (8 分 30 秒后 step 4 报错)
+- 修法: launchctl bootout plist 临时卸载 (防 launchd 重启) + 跑完 launchctl bootstrap 重新加载 (RunAtLoad=true 自动启动 uvicorn), 跟 Sprint 60.2 P3 plist 守护设计哲学一致 (uvicorn 由 launchd 守护, ETL 临时让位, 跑完恢复)
+- 3 层 fallback: launchctl bootout → SIGTERM sleep 8 (ThrottleInterval 5s + 3s buffer) → SIGKILL + 状态标志 FQ_UVICORN_BOOTED_OUT/BOOTED_BACK_IN 防 Ctrl+C 异常路径永久失守护
+- /review 必修 3 项补丁: set -euo pipefail (Sprint 32.1 pipefail 教训) + trap EXIT/INT/TERM/HUP/PIPE/QUIT 5 信号 (SIGHUP/SIGPIPE/SIGQUIT 在某些 bash 不触发 EXIT) + bootout-poll wait loop (10s 撑过 graceful shutdown)
+- 5 项 follow-up Sprint 106+ 治本: CRITICAL #3 SIGTERM fallback 死循环 + #4 cross-user launchctl + HIGH #3 DuckDB PID 白名单 + #6 HEALTH_API_KEY 不一致 + 6 MEDIUM 留尾
+
+### Sprint 流程
+- 跟 Sprint 93 L4.7 实战 fix 模式 + Sprint 60.2 P3 plist 守护设计哲学一致 (1 范围 1 真业务, 0 抽象 0 helper)
+- 跟 Sprint 89 暂收口终止后真业务 sprint 模式一致 = 第 7 个真业务 sprint (累计 Sprint 90+92+93+97+98+104+105 = 7 真业务 sprint)
+- 5 路证据根因 (跟 Sprint 92+92.1 误诊真因真发现模式一致): plist KeepAlive + launchctl list + run-etl.sh 杀 uvicorn + Sprint 93 "开始前一次性" 锁检查 + 完整时序
+- 跑通验收: ETL exit 0 (21 条订单, 1183s) + 40 次采样无 uvicorn 抢锁 + KeepAlive PID 45300→46256 自动重启验证 + pytest 819/23/0 baseline 持续
+- /plan-eng-review eng 视角 D1=A 1 行 fix (sleep 5→8 ThrottleInterval 5s + 3s buffer) + D2=A 整体评审通过
+- /review skill 6 verify PASS + 4 CRITICAL + 6 HIGH + 6 MEDIUM + 4 INFORMATIONAL findings, 3 项必修 + 5 项 follow-up Sprint 106+
+- /qa skill source-based 8 项全 PASS
+- 12 步流程: 跑通 + L4.16 push trigger paths verify + 2 commits (78673ab fix(etl) + 8b4d8af docs(sprint) HANDOFF) + push fix branch + /qa + merge --no-ff (01aded6) + push origin main (L4.15 user 拍板) + pull --ff-only
+- pytest baseline 819/23/0 持续 0 回归 (Sprint 99 → 105, 累计 55 sprint 0 debt), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 93+97+98+99+100+101+102+103+104 实战 fix 模式一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 22 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105)
+
 ## [0.4.14.157] - 2026-06-24 (Sprint 104, VERSION 不变 留尾治理 sprint)
 
 ### Fixed
