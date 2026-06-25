@@ -4,6 +4,37 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-25 (Sprint 123, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- **lint.yml 加 e2e job 替代 e2e.yml 独立 (1 file workflow 4 jobs 替代 2 file workflow 4 jobs)**: Sprint 123 R2 CI 跑 e2e (Sprint 34 候选 4) 触发 — Sprint 95-96.5 7 sprint 链实战 fix 模式闭环后 e2e.yml 跑 4m29s success 5 次累计稳定 + Sprint 32.1 advisory OOM 18m+ 风险已闭环. 跟 Sprint 60.3+ C+ UI smoke + API 5xx 拦截 一致. lint.yml 4 jobs (lint + ground-truth-lint + test + e2e) 替代 lint.yml 3 jobs + e2e.yml 1 job.
+- **删 .github/workflows/e2e.yml (Sprint 123 集成)**: 1 file -138 行. e2e.yml 10 steps 完整复制到 lint.yml e2e job (10 steps: checkout + setup-node + setup-python + Install Python deps + Install Node deps + Install Playwright browsers + Setup e2e DuckDB schema-only fixture + Build (Vite) + Start preview server + Start uvicorn backend + Run e2e with auto-recovery + Upload auto-recovery log on failure).
+
+### Added
+- **`backend/tests/test_sprint123_lint_yml_e2e_integration.py` NEW 4 case regression**: Sprint 123 集成验证 (破坏→验证→恢复 模式). case 1 (lint.yml 4 jobs 验证) + case 2 (e2e.yml 已删 验证) + case 3 (e2e job 10 steps 完整) + case 4 (e2e job env 5 keys 验证 跟 Sprint 61 P2 fail-fast + Sprint 63 P0 lint.yml e2e env FQ_DB_MODE=schema_test 一致).
+- **`backend/tests/test_sprint123_lint_yml_e2e_integration.py` 3.5 case (Sprint 123 必修 2 真因真修 1/3)**: e2e job step names 完整验证 (跟原 e2e.yml 1:1 一致).
+
+### Fixed
+- **3 个 ruff F401/F541 修 (Sprint 123 必修 2 真因真修 1/3)**: Sprint 120 MagicMock unused + Sprint 123 os unused + Sprint 123 f-string without placeholders. ruff check backend/tests/ clean.
+- **`backend/tests/test_ci_e2e_env_config.py` 3 case 改读 lint.yml (Sprint 123 必修 2 真因真修 1/3)**: e2e.yml 删, test 改验证 lint.yml e2e job 仍含 FQ_DB_MODE=schema_test + 60s uvicorn readiness + e2e_duckdb.duckdb schema-only fixture 3 项关键 env. 1 file +37/-20 行.
+- **`backend/tests/test_ci_workflows_fq_db_mode.py` 1 case 改读 lint.yml (Sprint 123 必修 2 真因真修 2/3)**: Sprint 66 P0 治根 + Sprint 123 集成, e2e.yml 删, test 验证 lint.yml e2e job 仍含 FQ_DB_MODE=schema_test. 1 file +12/-5 行.
+
+### Sprint 流程
+- 真业务 sprint 触发的留尾治理 sprint 模式触发 = R2 CI 跑 e2e (Sprint 34 候选 4) 立项条件达成 (Sprint 33 候选 3 spec 稳定 + Sprint 50+ #S43-L2 spec-lint blocking 已稳定 + Sprint 32.1 brittle selector 修 + Sprint 60.3+ C+ UI smoke 闭环 + Sprint 95-96.5 7 sprint 链实战 fix 模式 OOM 风险已闭环). 0 越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守)
+- L4.7 launchd 永久规则持续合规 (跟 Sprint 123 集成无关, 0 越界)
+- /review skill 0 finding (范围严格对应 R2 CI 跑 e2e + 必修 2 真因真修 2/3, 0 越界)
+- 跑通验收: gh run watch 28181922398 **4/4 jobs 全绿 SUCCESS** (e2e + lint + test + ground-truth-lint 230s 完成) + pytest 14/14 PASS + ruff check backend/tests/ clean + pre-push pytest 13/13 PASS "真验证回归"
+- 12 步流程: 切 fix/sprint123-r2-ci-e2e-lint-yml-integration → 改 lint.yml 加 e2e job (10 steps 完整复制) + 删 e2e.yml + 1 new test file 4 case → /review skill → 0 finding → commit (c226666) → push origin branch → pre-push pytest 4/4 PASS "真验证回归" → merge --no-ff (3aa1586) → push origin main → 必修 2 真因真修 1/3 (c636bad) + 必修 2 真因真修 2/3 (f7fe6f8) → gh run watch 4/4 jobs SUCCESS 闭环
+- pytest baseline 持续 0 回归 (跟 Sprint 120 baseline 837/23/0 一致 + 必修 2 修 4 case PASS), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 30 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120+121+122+123)
+- 实战 fix 模式库 #15 (Sprint 89 暂收口反馈终止后累计 12 真业务 sprint + 30 留尾治理 sprint = 42 sprint 治理循环)
+
+### Sprint 123 必修 2 真因真修 2/3 实战 fix 模式 (跟 Sprint 95-96.5 7 sprint 链实战 fix 模式 一致)
+- **真因 1 (lint job fail)**: 3 个 ruff F401/F541 violations (Sprint 120 MagicMock unused + Sprint 123 os unused + Sprint 123 f-string without placeholders)
+- **真因 2 (test job fail)**: test_ci_e2e_env_config.py 3 case 仍读 e2e.yml (FileNotFoundError) + test_ci_workflows_fq_db_mode.py 1 case 仍读 e2e.yml (FileNotFoundError)
+- **真因 3 (e2e job fail)**: 0 (e2e job 直接 success 跟 Sprint 95-96.5 7 sprint 链实战 fix 模式 闭环后稳定)
+- **必修 2 真因真修 2/3 闭环**: 修 ruff 3 violations + 改 2 个 test file 改读 lint.yml, 跑通 4/4 jobs 全绿
+
 ## [0.4.14.157] - 2026-06-25 (Sprint 120, VERSION 不变 留尾治理 sprint)
 
 ### Changed
