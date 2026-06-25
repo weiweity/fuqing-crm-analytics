@@ -4,6 +4,47 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-25 (Sprint 116, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- **抽 `scripts/etl/common/_prune_lib.py` 解耦 cleanup_backups ↔ backup_duckdb (修 #D7+#D8+#D9+#D10)**: Sprint 116 真 refactor sprint 修 Sprint 112 /review defer 4 项 CRITICAL. 抽 shared lib 含: `_prune_with_safety()` (8 项 safety check, Sprint 112 抽 from backup_duckdb.py, Sprint 116 移至 _prune_lib.py) + `MAGIC_CHECKS` table (per-extension magic: PAR1@0 for .parquet, DUCK@8 for .duckdb, ZSTD_MAGIC@0 for .duckdb.zst, 修 #D7) + `_matches_magic()` helper (per-extension magic check, Sprint 3 P1-3 破坏→验证→恢复 模式) + `BJ_TZ` + `ZSTD_MAGIC` constants (3 文件 SSOT 去重, 修 #D11) + 返 `Tuple[int, list[str]]` (cleanup_backups.py 拼回 '| files: ...' observability 字段, 修 #D9).
+- **scripts/etl/backup_duckdb.py 抽 110 行 → 0 行**: `_prune_old_backups()` 变 thin wrapper (拆 Tuple[int, list[str]] 拿 deleted count). 4 个 sister test (Sprint 62.5) 持续 PASS (assert deleted == N int 兼容). 删 Callable dead-import + BJ_TZ + ZSTD_MAGIC + ZST_SUFFIX 重复定义, 从 _prune_lib import.
+- **scripts/etl/cleanup_backups.py 修 #D8+#D9**: `from scripts.etl import backup_duckdb` → `from scripts.etl.common import _prune_lib` (避免拉起 backup_duckdb 模块 → 拉起 lark SDK 副作用, 跟 Sprint 62 P3 launchd sandbox 教训同根因, launchd daily 凌晨 3 点跑不再触发 lark SDK 加载). BJ_TZ = _prune_lib.BJ_TZ (3 文件 SSOT, is check pass). 接收 Tuple[int, list[str]] 返值 + 拼回 '| files: {names}' observability 字段 (跟 Sprint 111 一致).
+
+### Added
+- **test_sprint116_lsof_missing_path.py NEW 9 case regression**: 修 #D7+#D9+#D10 真测. case 1 (lsof FileNotFoundError 保守放行) + case 2-5 (per-extension magic check: .parquet PAR1 通过, .parquet 非匹配 skip, .duckdb DUCK 通过, 未知后缀 trust caller) + case 6 (Tuple[int, list[str]] 返值) + case 7 (MAGIC_CHECKS table SSOT 恒定, Sprint 3 P1-3 教训应用) + case 8 (retention=0 边界 + KEEP_MIN 守护, Sprint 111 cap=0 风险对应) + case 9 (cleanup_backups.py main() '| files: ...' observability 真测).
+- **test_sprint112_cleanup_backups_refactor.py import path 适配**: sed import path `from scripts.etl import backup_duckdb` → `from scripts.etl.common import _prune_lib` + sed function call `backup_duckdb._prune_with_safety` → `_prune_lib._prune_with_safety` + Tuple unpacking 适配 (Sprint 116 修 #D9 返 Tuple[int, list[str]]). 8 case 持续 PASS.
+
+### Sprint 流程
+- 真业务 sprint 触发 = 修 Sprint 112 /review defer #D7-#D10 留尾, 0 越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守)
+- L4.7 launchd 永久规则持续合规 (cleanup_backups.py 修 #D8 不再拉起 lark SDK)
+- /review skill 14 finding (0 CRITICAL + 14 INFORMATIONAL) testing + maintainability specialists 并行. AUTO-FIX 5 项: dead-import `Callable` + BJ_TZ 抽到 _prune_lib SSOT (3 文件) + test case 7/8/9 (MAGIC_CHECKS SSOT 恒定 + retention=0 边界 + observability 真测). DEFER 4 项 (#D11-#D14 留尾 Sprint 117+, L4.21 0 越界遵守)
+- 跑通验收: pytest 27/23/0 (+3 vs Sprint 112 24 baseline) + ruff + ground-truth lint + P1-3 review (pre-commit hook) 全过
+- 12 步流程: 切 fix/sprint116-fix-d7-d10-refactor-defer → 抽 _prune_lib + 4 file 改 + 9 case test → /review skill → 5 项 auto-fix + 4 项 defer → commit (98059a9) → push origin branch → merge --no-ff (74de50fb) → /document-release 3 文档 amend + push origin main (L4.15 user 拍板)
+- pytest baseline 27/23/0 持续 0 回归 (Sprint 112 → 116, 累计 59 sprint 0 debt, +1 vs Sprint 112 58), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110+111+112 实战 fix 模式 一致)
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 25 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116)
+
+### Sprint 116 /review defer 4 项留尾 (L4.21 0 越界遵守)
+- **#D11**: `_prune_lib` '_' 前缀违反 PEP 8 private 约定 (跨模块访问, maintainability specialist 反馈)
+- **#D12**: `_matches_magic` 返 False log 丢 offset + actual magic info (observability regression, Sprint 60+ 留尾 #D7 修法初心)
+- **#D13**: case-sensitive glob mismatch (Linux HFS+ default case-insensitive vs macOS APFS case-preserving, str(p).endswith() 大小写敏感)
+- **#D14**: longest-wins 依赖 dict iteration order (implicit contract, 后人加新 suffix 不注意顺序会引入 bug)
+
+## [0.4.14.157] - 2026-06-25 (Sprint 115, VERSION 不变 留尾治理 sprint)
+
+### Sprint 流程
+- L4.8 留尾治理 sprint 补做 (PR merge 后 24h 内删分支, Sprint 110 merge 后未删). git branch -d 本地 + git push origin --delete 远程 fix/sprint110-coldstart-test-regression (pre-push pytest 2/2 PASS "真验证回归"). git worktree prune. 1 commit 0 debt 操作. 本地 + 远程 fix branch 3 → 0.
+
+## [0.4.14.157] - 2026-06-25 (Sprint 114, VERSION 不变 留尾治理 sprint)
+
+### Sprint 流程
+- L4.13 留尾治理 sprint verify-only (MEMORY.md size verify + Sprint 114 dedupe -37% to 14.9KB PASS). 0 commit 0 amend. MEMORY.md 22.4KB → 14.9KB (-37%, hook 17.1KB threshold + L4.13 24.4KB absolute limit 双 PASS, 留 ~9.5KB headroom). 跟 Sprint 69 dedupe SOP 一致 (删旧 sprint 索引行 → 1 行指针, 保留高频引用 sprint 详细).
+
+## [0.4.14.157] - 2026-06-25 (Sprint 113, VERSION 不变 留尾治理 sprint)
+
+### Sprint 流程
+- L4.8 留尾治理 sprint 补做 (PR merge 后 24h 内删分支, Sprint 111 + Sprint 112 merge 后未删). git branch -d 本地 + git push origin --delete 远程 fix/sprint111-retention-2day-cleanup + fix/sprint112-refactor-shared-prune-with-safety (pre-push pytest 2/2 PASS "真验证回归"). git worktree prune. 1 commit 0 debt 操作.
+
 ## [0.4.14.157] - 2026-06-25 (Sprint 112, VERSION 不变 留尾治理 sprint)
 
 ### Changed

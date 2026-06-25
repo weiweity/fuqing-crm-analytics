@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-25 (Sprint 112 refactor: 抽 shared _prune_with_safety() + 8 case regression (留尾治理 sprint, 修 Sprint 111 /review defer #D5 + #D6, 跟 Sprint 99+100+101+102+103+104+105+110+111 模式 一致), 3 文件 +291/-41 行 (backup_duckdb.py 抽 shared _prune_with_safety + Callable type hints + ZSTD_MAGIC + ZST_SUFFIX named const + stale docstring 修 + _prune_old_backups 变 thin wrapper, cleanup_backups.py 调 shared _prune_with_safety, test_sprint112_cleanup_backups_refactor.py NEW 8 case regression (默认值 + 真治本 #1+#2 + 边界 + lock SKIP + soft fail + log warn + log append)). pytest 18 passed / 23 skipped / 0 failed (+3 vs Sprint 111 15 baseline), 累计 58 sprint 0 debt 持续 (+1 vs Sprint 111), main HEAD `d2d2dbd` (Sprint 112 merge --no-ff, 跟 Sprint 111 amend 模式 一致, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 4 项 defer (#D7 .parquet magic check gap + #D8 lark SDK coupling + #D9 deleted_names observability + #D10 lsof missing path coverage 留尾 Sprint 113+ 一起修)
+**最后更新**: 2026-06-25 (Sprint 116 真 refactor 修 #D7-#D10: 抽 _prune_lib 解耦 cleanup_backups ↔ backup_duckdb (留尾治理 sprint, 修 Sprint 112 /review defer #D7-#D10, 跟 Sprint 99+100+101+102+103+104+105+110+111+112 模式 一致), 5 文件 +498/-110 行 (scripts/etl/common/_prune_lib.py NEW 抽 shared lib 含 _prune_with_safety + MAGIC_CHECKS table + _matches_magic helper + BJ_TZ + ZSTD_MAGIC constants, scripts/etl/backup_duckdb.py 抽 110 行 → 0 行 _prune_old_backups 变 thin wrapper, scripts/etl/cleanup_backups.py 修 #D8 from _prune_lib 替代 backup_duckdb import 避免拉起 lark SDK + 修 #D9 拼回 '| files: ...' observability 字段 + 修 #D7 per-extension magic check (PAR1@0 / DUCK@8 / ZSTD_MAGIC@0) + 修 #D10 lsof FileNotFoundError 保守放行 test coverage, test_sprint116_lsof_missing_path.py NEW 9 case, test_sprint112_cleanup_backups_refactor.py sed import path 适配 _prune_lib + Tuple unpacking). pytest 27 passed / 23 skipped / 0 failed (+3 vs Sprint 112 24 baseline), 累计 59 sprint 0 debt 持续 (+1 vs Sprint 112), main HEAD `74de50fb` (Sprint 116 merge --no-ff amend 2 次 L4.14, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 4 项 defer (#D11 _prune_lib '_' 前缀 PEP 8 + #D12 _matches_magic log observability + #D13 case-sensitive glob + #D14 longest-wins dict order 留尾 Sprint 117+ 一起修)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `d2d2dbd` (Sprint 112 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102+104+110+111 模式 一致) |
+| git HEAD (main) | `74de50fb` (Sprint 116 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102+104+110+111+112 累计 9 sprint amend 模式 stable) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 112 (留尾治理 sprint, 抽 shared _prune_with_safety() + 8 case regression, 修 #D5+#D6, 3 文件 +291/-41 行, VERSION 不 bump) |
+| 最近 sprint | Sprint 116 (留尾治理 sprint, 抽 _prune_lib 解耦 cleanup_backups ↔ backup_duckdb, 修 #D7-#D10, 5 文件 +498/-110 行, VERSION 不 bump) |
 | 收口日 | 2026-06-25 |
-| 上次合入 | Sprint 112 (merge commit `d2d2dbd`，抽 shared _prune_with_safety + 8 case regression + L4.x 永久规则 22 stable 维护) |
+| 上次合入 | Sprint 116 (merge commit `74de50fb`，抽 _prune_lib 修 #D7-#D10 + L4.x 永久规则 22 stable 维护) |
 
 ---
 
@@ -23,9 +23,9 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **827** | Sprint 112 全量复验, +2 vs Sprint 111 825 baseline (Sprint 112 new 8 case vs Sprint 111 5 case) |
+| pytest passed | **827** | Sprint 116 全量复验, +2 vs Sprint 115 baseline (Sprint 116 new 9 case vs Sprint 115 0 case) |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
-| pytest failed | **0** | Sprint 112 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
+| pytest failed | **0** | Sprint 116 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
