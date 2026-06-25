@@ -61,13 +61,16 @@ class TestSprint112CleanupBackups:
         """Case 3: _prune_with_safety retention_days 参数阈值验证 (Sprint 112 真治本 #1).
 
         验证: retention_days=1 时, > 1d 的 zst 被删, <= 1d 的留 (KEEP_MIN=1 守护).
+
+        Sprint 116 修 #D9: _prune_with_safety 返 Tuple[int, list[str]],
+        deleted_count 通过 unpacking 拿.
         """
-        from scripts.etl import backup_duckdb
+        from scripts.etl.common import _prune_lib
 
         zst_1d = self._make_zst(tmp_path / "fuqing_crm_a.duckdb.zst", days_old=1)
         zst_3d = self._make_zst(tmp_path / "fuqing_crm_b.duckdb.zst", days_old=3)
 
-        deleted = backup_duckdb._prune_with_safety(
+        deleted, _deleted_names = _prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=1,
@@ -83,14 +86,16 @@ class TestSprint112CleanupBackups:
         """Case 4: _prune_with_safety keep_min 参数守护验证 (Sprint 112 真治本 #2).
 
         验证: KEEP_MIN=3 + 5 zst 全 > retention=2 → 删 2 份 (8d+10d), 留 3 份 (2d/4d/6d).
+
+        Sprint 116 修 #D9: 返 Tuple[int, list[str]].
         """
-        from scripts.etl import backup_duckdb
+        from scripts.etl.common import _prune_lib
 
         zsts = []
         for i, days in enumerate([10, 8, 6, 4, 2]):
             zsts.append(self._make_zst(tmp_path / f"fuqing_crm_{i}.duckdb.zst", days_old=days))
 
-        deleted = backup_duckdb._prune_with_safety(
+        deleted, _deleted_names = _prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,
@@ -107,13 +112,15 @@ class TestSprint112CleanupBackups:
 
         验证: keep_min=2 + 2 文件全 > retention → 删 0 (sorted[KEEP_MIN:] 空).
         (跟 backup_duckdb.py:113 'if len(sorted_files) <= keep_min: skip' 互证)
+
+        Sprint 116 修 #D9: 返 Tuple[int, list[str]].
         """
-        from scripts.etl import backup_duckdb
+        from scripts.etl.common import _prune_lib
 
         self._make_zst(tmp_path / "a.duckdb.zst", days_old=5)
         self._make_zst(tmp_path / "b.duckdb.zst", days_old=10)
 
-        deleted = backup_duckdb._prune_with_safety(
+        deleted, _deleted_names = _prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,

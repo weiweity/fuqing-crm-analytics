@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Sprint 111: cleanup_backups.py — L4.7 Python 端口 of cleanup_backups.sh.
-Sprint 112: refactor 用 backup_duckdb._prune_with_safety (8 项 safety check 复用).
+Sprint 112: refactor 用 _prune_with_safety (8 项 safety check 复用).
+Sprint 116: refactor 抽 _prune_lib 解耦 (修 #D8) + per-extension magic check (修 #D7) +
+            Tuple[int, list[str]] 返值 (修 #D9 deleted_names observability).
 
 L4.7 永久规则合规: launchd 首选 python3 不用 bash (/bin/bash macOS sandbox
 deny Desktop 路径, Sprint 111 诊断日志 "Operation not permitted" 确认).
@@ -9,8 +11,8 @@ Sprint 62.5 N3 plist Status=126 失效的 L4.7 治根修复.
 保留原 bash 脚本所有功能:
   - 清理 data/processed/backups/ 下 mtime > RETENTION_DAYS 天的
     .parquet / .duckdb / .duckdb.zst (Sprint 25 加 zst 模式)
-  - 8 项 safety check (Sprint 112 refactor 抽 shared _prune_with_safety):
-    mtime age + keep_min + size>0 + zstd magic (仅 .duckdb.zst) + lsof 0 fd + soft fail
+  - 8 项 safety check (Sprint 116 抽 shared _prune_lib):
+    mtime age + keep_min + size>0 + per-extension magic (PAR1/DUCK/ZSTD_MAGIC) + lsof 0 fd + soft fail
   - 软失败: 单文件 unlink 失败只 log, 不阻塞
   - mkdir-based lock 防并发 (F18 修复, POSIX 兼容)
   - 输出 plain-text 到 /tmp/fuqing-backup-cleanup.log (launchd 仅看 exit code)
@@ -21,13 +23,20 @@ Sprint 111 改动 (跟 backup_duckdb.py 同步):
   - BJ_TZ 时区跟 backup_duckdb.py 一致 (跨 sprint launchd 跑批 03:30 BJ 同步)
 
 Sprint 112 改动:
-  - refactor: 8 项 safety check 抽到 backup_duckdb._prune_with_safety, cleanup_backups.py 调用
+  - refactor: 8 项 safety check 抽到 _prune_with_safety (initially in backup_duckdb.py)
   - 0 代码重复, 1 真业务 sprint 触发的 留尾治理 sprint (#D5 闭环)
+
+Sprint 116 改动:
+  - 修 #D8: cleanup_backups.py 不再 `from scripts.etl import backup_duckdb`
+    (避免拉起 backup_duckdb 模块 → 拉起 lark SDK).
+    改 `from scripts.etl.common import _prune_lib` (干净 import, 不触发 lark 副作用).
+  - 修 #D9: 接收 _prune_lib._prune_with_safety 返 Tuple[int, list[str]],
+    拼回 '| files: ...' observability 字段 (跟 Sprint 111 一致).
 """
 import os
 import shutil
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 # 跟 backup_duckdb.py 同步: script mode 下 sys.path bootstrap
@@ -38,9 +47,9 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent  # noqa: E402
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.config import PROCESSED_DATA_DIR  # noqa: E402
-from scripts.etl import backup_duckdb  # noqa: E402  # Sprint 112 refactor: 调 shared _prune_with_safety
+from scripts.etl.common import _prune_lib  # noqa: E402  # Sprint 116 解耦 (修 #D8): 不再 import backup_duckdb
 
-BJ_TZ = timezone(timedelta(hours=8))  # 跟 backup_duckdb.py 一致
+BJ_TZ = _prune_lib.BJ_TZ  # Sprint 116 修 BJ_TZ 去重 (3 文件 → 1 个 SSOT, 跟 ZSTD_MAGIC 抽法一致)
 BACKUP_DIR = PROCESSED_DATA_DIR / "backups"
 LOG_FILE = Path("/tmp/fuqing-backup-cleanup.log")
 LOCK_DIR = Path("/tmp/fuqing-backup-cleanup.lock.d")
@@ -77,9 +86,11 @@ def main() -> int:
         before_count = len(before_files)
         before_bytes = sum(p.stat().st_size for p in before_files if p.exists())
 
-        # Sprint 112 refactor: 调 shared _prune_with_safety (8 项 safety check)
-        # 修 #D5 (Sprint 111 /review defer): cleanup_backups.py 现在有完整 8 safety check
-        deleted = backup_duckdb._prune_with_safety(
+        # Sprint 116 refactor: 调 _prune_lib._prune_with_safety (8 项 safety check, 修 #D7-#D10)
+        # 修 #D5+#D7+#D8+#D9+#D10 (Sprint 111/112 /review defer): cleanup_backups.py 现在有完整 8 safety check
+        # 修 #D8: 不再 `from scripts.etl import backup_duckdb` (避免拉起 lark SDK)
+        # 修 #D9: 接收 Tuple[int, list[str]] 返值, 拼回 '| files: ...' observability 字段
+        deleted, deleted_names = _prune_lib._prune_with_safety(
             backup_dir=BACKUP_DIR,
             glob_patterns=PATTERNS,
             retention_days=RETENTION_DAYS,
@@ -101,6 +112,9 @@ def main() -> int:
             f"after={after_count} files/{after_mb}MB, "
             f"deleted={deleted} files/{before_mb - after_mb}MB"
         )
+        # Sprint 116 修 #D9: 拼回 '| files: ...' observability 字段 (跟 Sprint 111 一致)
+        if deleted_names:
+            summary += f" | files: {' '.join(deleted_names)}"
         log(summary)
 
         disk_free = shutil.disk_usage(BACKUP_DIR)

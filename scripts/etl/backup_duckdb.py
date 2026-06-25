@@ -18,13 +18,16 @@ import os
 import sys
 import subprocess
 import shutil
-from collections.abc import Callable
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Sprint 116 抽 _prune_lib 解耦 (修 #D8): backup_duckdb.py 从 _prune_lib import _prune_with_safety + BJ_TZ
+# _prune_with_safety + MAGIC_CHECKS + BJ_TZ 都在 _prune_lib.py, 不在 backup_duckdb.py 重复定义.
+from scripts.etl.common import _prune_lib  # noqa: E402
 
 from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR  # noqa: E402
 
@@ -37,7 +40,7 @@ LOCK_DIR = Path("/tmp/fuqing-duckdb-backup.lock.d")
 # Sprint 10 B3: 用 Beijing 时间 (UTC+8) 命名, 跟用户日历日期一致.
 # 之前用 UTC 在 03:30 BJ 跑出来文件名是 6/7, 用户看像 6/7 没 6/8 backup.
 # 改 BJ 时间后, 6/8 03:30 BJ 跑出来文件名是 2026-06-08, 跟用户预期一致.
-BJ_TZ = timezone(timedelta(hours=8))
+BJ_TZ = _prune_lib.BJ_TZ  # Sprint 116 抽到 _prune_lib (3 文件去重)
 TODAY = datetime.now(BJ_TZ).strftime("%Y-%m-%d")
 ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 
@@ -47,9 +50,9 @@ ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 BACKUP_RETENTION_DAYS = int(os.environ.get("FQ_BACKUP_RETENTION_DAYS", "2"))
 BACKUP_KEEP_MIN = 2  # Sprint 111: 1 → 2, 至少保留最新 2 份, 防单文件被误删
 
-# Sprint 112: named const 化 (avoid magic number drift across modules)
-ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"  # Zstandard frame magic
-ZST_SUFFIX = ".duckdb.zst"  # 唯一需要 zstd magic 校验的文件后缀
+# Sprint 116 抽到 scripts/etl/common/_prune_lib.py (修 #D8 解耦):
+# ZSTD_MAGIC, ZST_SUFFIX, BJ_TZ, MAGIC_CHECKS, _matches_magic, _prune_with_safety 全部移到 _prune_lib.
+# backup_duckdb.py 现在只是 thin wrapper (_prune_old_backups) 调 _prune_lib._prune_with_safety.
 
 
 def log(msg: str) -> None:
@@ -61,106 +64,27 @@ def log(msg: str) -> None:
 def _prune_old_backups() -> int:
     """Sprint 62.5 治根: 删 > BACKUP_RETENTION_DAYS 天的 .zst.
 
-    8 项 safety check (跟 _prune_with_safety 一致, 这里是 wrapper):
+    Sprint 116 修 #D8+#D9: thin wrapper 调 _prune_lib._prune_with_safety,
+    返 int (deleted count) 通过拆 Tuple[int, list[str]] 拿 deleted.
+    4 个 sister test (Sprint 62.5) 持续 PASS (assert deleted == N int).
+
+    8 项 safety check (在 _prune_lib._prune_with_safety 实现, 这里是 wrapper):
       1. mtime age > retention (避免误删最新)
       2. 保留 BACKUP_KEEP_MIN 最新份 (防 cap=0 误删全部)
       3. 文件 > 0 字节 (防空文件假象)
-      4. file magic 28b5 2ffd (Zstandard) (防误删非 zst 文件)
-      5. lsof 0 fd (无活跃 fd)
-      6. 不在 compressed_path (本次刚生成的不能删)
+      4. per-extension magic check (Sprint 116 修 #D7: PAR1 / DUCK / ZSTD_MAGIC)
+      5. lsof 0 fd (无活跃 fd, Sprint 116 修 #D10: FileNotFoundError 保守放行)
+      6. caller-side invariant (本次刚生成的 mtime 极新不会超 retention 阈值)
       7. sorted by mtime desc (最新优先保留)
       8. soft fail (删失败 log 不 raise)
     """
-    return _prune_with_safety(
+    deleted, _deleted_names = _prune_lib._prune_with_safety(  # noqa: deleted_names 丢弃 (wrapper 只返 count)
         backup_dir=BACKUP_DIR,
         glob_patterns=("fuqing_crm_*.duckdb.zst",),
         retention_days=BACKUP_RETENTION_DAYS,
         keep_min=BACKUP_KEEP_MIN,
         log_fn=log,
     )
-
-
-def _prune_with_safety(
-    backup_dir: Path,
-    glob_patterns: tuple[str, ...],
-    retention_days: int,
-    keep_min: int,
-    log_fn: Callable[[str], None],
-) -> int:
-    """Sprint 112 抽 shared _prune_with_safety (跟 scripts/etl/cleanup_backups.py 复用).
-
-    8 项 safety check:
-      1. mtime age > retention (避免误删最新)
-      2. 保留 keep_min 最新份 (防 cap=0 误删全部)
-      3. 文件 > 0 字节 (防空文件假象)
-      4. ZSTD_MAGIC (仅 ZST_SUFFIX 文件, 防误删非 zst 文件)
-      5. lsof 0 fd (无活跃 fd)
-      6. caller-side invariant (本次刚生成的 mtime 极新不会超 retention 阈值 — backup_duckdb.py main() 调完 zstd 立刻 _prune_old_backups, cleanup_backups.py launchd 03:00 单独跑, 跟 backup 时点错开 ≥ 23h)
-      7. sorted by mtime desc (最新优先保留)
-      8. soft fail (删失败 log 不 raise)
-
-    Args:
-        backup_dir: 要清理的目录 (e.g. BACKUP_DIR)
-        glob_patterns: glob 模式 (e.g. ("*.parquet", "*.duckdb", "*.duckdb.zst"))
-        retention_days: 保留天数
-        keep_min: 至少保留最新 N 份 (防 cap=0 误删全部)
-        log_fn: 日志函数 (e.g. backup_duckdb.log 或 cleanup_backups.log)
-    """
-    try:
-        all_files = []
-        for pat in glob_patterns:
-            all_files.extend(backup_dir.glob(pat))
-        sorted_files = sorted(all_files, key=lambda p: p.stat().st_mtime, reverse=True)
-    except OSError as e:
-        log_fn(f"prune: glob failed ({e}), skip")
-        return 0
-
-    if len(sorted_files) <= keep_min:
-        log_fn(f"prune: {len(sorted_files)} file(s), <= keep_min={keep_min}, skip")
-        return 0
-
-    cutoff = datetime.now(BJ_TZ).timestamp() - retention_days * 86400
-    candidates = [p for p in sorted_files[keep_min:] if p.stat().st_mtime < cutoff]
-
-    deleted = 0
-    for p in candidates:
-        # 3: size > 0
-        try:
-            size = p.stat().st_size
-        except OSError:
-            continue
-        if size <= 0:
-            log_fn(f"prune: skip {p.name} (size={size})")
-            continue
-        # 4: zstd magic (仅 .duckdb.zst 文件检查)
-        if str(p).endswith(ZST_SUFFIX):
-            try:
-                with open(p, "rb") as f:
-                    magic = f.read(4)
-                if magic != ZSTD_MAGIC:
-                    log_fn(f"prune: skip {p.name} (not zstd, magic={magic.hex()})")
-                    continue
-            except OSError:
-                continue
-        # 5: lsof 0 fd
-        try:
-            out = subprocess.run(
-                ["lsof", "-t", str(p)],
-                capture_output=True, text=True, timeout=5,
-            )
-            if out.stdout.strip():
-                log_fn(f"prune: skip {p.name} (lsof open: {out.stdout.strip()!r})")
-                continue
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass  # lsof 不可用 / 超时 → 保守放行
-        # 8: soft fail — 先算 age (unlink 前), 再 unlink, 再 log
-        age_d = (datetime.now(BJ_TZ).timestamp() - p.stat().st_mtime) / 86400
-        try:
-            p.unlink()
-            deleted += 1
-            log_fn(f"prune: deleted {p.name} ({size / 1024 / 1024 / 1024:.1f} GiB, age={age_d:.1f}d)")
-        except OSError as e:
-            log_fn(f"prune: delete failed {p.name}: {e}")
     return deleted
 
 
