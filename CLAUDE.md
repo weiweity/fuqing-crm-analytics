@@ -101,6 +101,20 @@ Claude (Stage 4): git commit --no-verify + git push --no-verify
 
 跨任务查询前先 `codegraph status`（看 pending sync 警告）。
 
+### CodeGraph 实战案例沉淀 (Sprint 107+108+109 真业务 sprint 触发)
+
+**Sprint 107 实战 fix**: `run-etl.sh line 133/142/151` subshell trap bug 真因排查中, codegraph 验证 `lsof | awk | sort -u` 在 set -euo pipefail + trap EXIT 已注册场景下行为 (Bash 3.2.57 复合 bug), 单测模拟 lsof 不存在 + trap EXIT 注册 4 种组合 (env=0/1 + mtime 短路开/关), 0.18s 验证修法.
+
+**Sprint 108 必修 2 实战 fix**: `ingest.py _file_changed()` mtime 短路 bug 真因排查中, codegraph 探索 `cold_start_marked` 字段写入路径 (`pipeline.py:_mark_old_files_processed` + `_clean_processed_updates` + `ingest.py:_file_changed` 4 步), 发现代码写真实 `cold_start_marked: False` 但 Sprint 28+ 注释说 `True`, 注释 vs 代码矛盾 + tracker 写真实 mtime/hash 但 DuckDB 没真写入假阳性.
+
+**Sprint 109 真治本**: `ingest.py _file_changed` mtime 不变短路 bug 真治本, codegraph 探索 `xlsx → ingest → tracker → parquet cache → DuckDB` 完整数据流, 4 个 Explore agents 并行 (DuckDB 数据 + tracker 假阳性 + dedup 逻辑) 1 sprint 1 范围 1 真业务闭环, regression test 4 test cases PASS (mtime 不变 + 内容变 → True, 95% 场景短路保留, 老逻辑 env 兼容).
+
+**CodeGraph 用法共识 (Sprint 107+108+109 沉淀)**:
+- 跑批真因排查**必须先用** `codegraph_explore` 看完整调用链 (e.g. `run-etl.sh → cleanup_ticker → duckdb.connect`)
+- 增量检测逻辑排查**必用** `codegraph_callers` 看 `_file_changed` / `_mark_old_files_processed` / `_clean_processed_updates` 3 个函数互调关系
+- DuckDB 表 schema / 列改动**必用** `codegraph_search` 看所有引用点, 改 schema 前必查 callers
+- 跑批前**必跑** `codegraph_status` (看 pending sync, 避免 stale index 误判)
+
 ### 批量任务执行规范（workflow / 多文件重构）
 
 当 AI 执行多文件修改任务时，**必须遵守**：
