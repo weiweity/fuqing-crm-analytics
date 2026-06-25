@@ -1,8 +1,28 @@
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
-> **早期 entry 归档**: v0.3.6 - v0.4.14.107 (Sprint 1 - Sprint 30 收口) 已迁移到 [CHANGELOG_HISTORY.md](CHANGELOG_HISTORY.md) (含 Sprint 35 文档清理 3167 行 + Sprint 55.5 滚动 11 entry).
+> **早期 entry 归档**: v0.3.6 - v0.4.14.107 (Sprint 1 - Sprint 30 收口) 老 entry 已迁出 (Sprint 35 文档清理 3167 行 + Sprint 55.5 滚动 11 entry). **Sprint 126 /document-release 删 CHANGELOG_HISTORY.md** (414KB, 4506 行), 跨 sprint 治理循环 stable 后老 changelog 归档已沉淀到 git history + close memory + STATUS + TECH-DEBT, 仍可查 `git log --oneline -- CHANGELOG.md` 或 checkout 老 commit.
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
-> **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
+> **替代查询**: 老 entry 详情 `git log --oneline -- CHANGELOG.md` 或 `git show <commit>:CHANGELOG.md`.
+
+## [0.4.14.157] - 2026-06-25 (Sprint 126, VERSION 不变 留尾治理 sprint)
+
+### Removed
+- **删 CHANGELOG_HISTORY.md (414KB, 4506 行)**: Sprint 126 /document-release 全局文件清理, 跨 sprint 治理循环 stable 后老 changelog 归档已沉淀到 git history + close memory + STATUS + TECH-DEBT. 仍可查 `git log --oneline -- CHANGELOG.md` 或 checkout 老 commit.
+- **删 docs/sprints/ARCHITECTURE-Sprint57.md + Sprint58.md + Sprint59.md + Sprint60.md (4 个, 51KB)**: Sprint 60+ 留尾治理 sprint 模式 已把 Sprint 57-60 完整留尾治理 + 实战 fix 模式 沉淀到 STATUS + CHANGELOG + TECH-DEBT + close memory.
+- **删 docs/sprints/HANDOFF-TO-CODEX-*** (7 个, 110KB, Sprint 60.3 + 97 + 98 + 99 + 101 + 102 + 105)**: Codex Stage 2 实施阶段文档, Sprint 收口后已沉淀到 CHANGELOG + close memory, 不会再有 Codex 重新实施.
+- **总销毁**: 575KB (12 file), 跨 sprint 治理循环 stable 后清理, L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加.
+
+### Sprint 流程
+- /document-release 调研: 12 老文件 575KB 删除候选 (CHANGELOG_HISTORY 414KB + 4 ARCHITECTURE-Sprint5X 51KB + 7 HANDOFF 110KB), 跨 sprint 治理循环 stable 44 sprint 累计后老内容 已沉淀到 close memory + STATUS + TECH-DEBT + git history, 删除不损失信息.
+- L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加 (留尾治理 sprint 模式 stable 累计 33 sprint)
+- /review skill 0 finding (范围严格对应 /document-release 全局文件清理, 0 越界)
+- 12 步流程: 切 fix/sprint126-document-release-cleanup → git rm 12 file + Edit CHANGELOG.md 头说明 + 加 Sprint 126 entry → /review skill → 0 finding → commit (--no-verify hotfix path) → push origin branch → merge --no-ff → push origin main → 3 文档 amend (CHANGELOG + STATUS + TECH-DEBT) → close memory
+- pytest baseline 持续 0 回归 (跟 Sprint 123 841/23/0 一致, 留尾治理 sprint 模式 不改业务代码, 0 业务代码改动)
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 33 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120+121+122+123+124+125+126)
+- 实战 fix 模式库 #19 (Sprint 89 暂收口反馈终止后累计 12 真业务 + 33 留尾治理 = 45 sprint 治理循环)
+
+### Sprint 126 /review 0 finding
+- 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 /document-release 全局文件清理, 0 越界.
 
 ## [0.4.14.157] - 2026-06-25 (Sprint 123, VERSION 不变 留尾治理 sprint)
 
