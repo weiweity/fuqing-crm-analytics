@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Sprint 111: cleanup_backups.py — L4.7 Python 端口 of cleanup_backups.sh.
+
+L4.7 永久规则合规: launchd 首选 python3 不用 bash (/bin/bash macOS sandbox
+deny Desktop 路径, Sprint 111 诊断日志 "Operation not permitted" 确认).
+Sprint 62.5 N3 plist Status=126 失效的 L4.7 治根修复.
+
+保留原 bash 脚本所有功能:
+  - 清理 data/processed/backups/ 下 mtime > RETENTION_DAYS 天的
+    .parquet / .duckdb / .duckdb.zst (Sprint 25 加 zst 模式)
+  - 软失败: 单文件 unlink 失败只 log, 不阻塞
+  - mkdir-based lock 防并发 (F18 修复, POSIX 兼容)
+  - 输出 plain-text 到 /tmp/fuqing-backup-cleanup.log (launchd 仅看 exit code)
+
+Sprint 111 改动 (跟 backup_duckdb.py 同步):
+  - RETENTION_DAYS 7 → 2 (FQ_BACKUP_RETENTION_DAYS env override)
+  - BACKUP_KEEP_MIN 1 → 2 (FQ_BACKUP_KEEP_MIN env override, 保险 1 份)
+  - BJ_TZ 时区跟 backup_duckdb.py 一致 (跨 sprint launchd 跑批 03:30 BJ 同步)
+"""
+import os
+import shutil
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+# 跟 backup_duckdb.py 同步: script mode 下 sys.path bootstrap
+# (launchd 跑 `python3 scripts/etl/cleanup_backups.py` 时 sys.path[0] = scripts/etl/,
+# 找不到 backend/ package. 这里显式 insert project root.)
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent  # noqa: E402
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from backend.config import PROCESSED_DATA_DIR  # noqa: E402
+
+BJ_TZ = timezone(timedelta(hours=8))  # 跟 backup_duckdb.py 一致
+BACKUP_DIR = PROCESSED_DATA_DIR / "backups"
+LOG_FILE = Path("/tmp/fuqing-backup-cleanup.log")
+LOCK_DIR = Path("/tmp/fuqing-backup-cleanup.lock.d")
+RETENTION_DAYS = int(os.environ.get("FQ_BACKUP_RETENTION_DAYS", "2"))  # Sprint 111: 7 → 2
+BACKUP_KEEP_MIN = int(os.environ.get("FQ_BACKUP_KEEP_MIN", "2"))  # Sprint 111: 1 → 2
+PATTERNS = ("*.parquet", "*.duckdb", "*.duckdb.zst")
+
+
+def log(msg: str) -> None:
+    ts = datetime.now(BJ_TZ).strftime("%Y-%m-%dT%H:%M:%S%z")
+    line = f"[{ts}] {msg}\n"
+    print(line, end="", flush=True)
+    with LOG_FILE.open("a") as f:
+        f.write(line)
+
+
+def main() -> int:
+    # mkdir-based lock (F18 修复, POSIX 兼容)
+    try:
+        LOCK_DIR.mkdir()
+    except FileExistsError:
+        log(f"SKIP: another instance holds {LOCK_DIR}")
+        return 0
+
+    try:
+        if not BACKUP_DIR.exists():
+            log(f"SKIP: {BACKUP_DIR} 不存在")
+            return 0
+
+        # 收集 candidates (Sprint 111 BACKUP_KEEP_MIN 守护: 永远保留最新 KEEP_MIN 份)
+        before_files: list[Path] = []
+        for pat in PATTERNS:
+            before_files.extend(BACKUP_DIR.glob(pat))
+        sorted_files = sorted(before_files, key=lambda p: p.stat().st_mtime, reverse=True)
+        cutoff = datetime.now(BJ_TZ).timestamp() - RETENTION_DAYS * 86400
+        candidates = [p for p in sorted_files[BACKUP_KEEP_MIN:] if p.stat().st_mtime < cutoff]
+
+        before_count = len(before_files)
+        before_bytes = sum(p.stat().st_size for p in before_files if p.exists())
+
+        deleted_names: list[str] = []
+        for p in candidates:
+            try:
+                p.unlink()
+                deleted_names.append(p.name)
+            except OSError as e:
+                log(f"WARN: unlink failed: {p}: {e}")
+
+        # 重新统计 after
+        after_files: list[Path] = []
+        for pat in PATTERNS:
+            after_files.extend(BACKUP_DIR.glob(pat))
+        after_count = len(after_files)
+        after_bytes = sum(p.stat().st_size for p in after_files if p.exists())
+
+        before_mb = before_bytes // (1024 * 1024)
+        after_mb = after_bytes // (1024 * 1024)
+        summary = (
+            f"backups cleanup: before={before_count} files/{before_mb}MB → "
+            f"after={after_count} files/{after_mb}MB, "
+            f"deleted={len(deleted_names)} files/{before_mb - after_mb}MB"
+        )
+        if deleted_names:
+            summary += f" | files: {' '.join(deleted_names)}"
+        log(summary)
+
+        disk_free = shutil.disk_usage(BACKUP_DIR)
+        log(
+            f"disk_free_after_cleanup: total={disk_free.total // (1024**3)}GiB, "
+            f"used={disk_free.used // (1024**3)}GiB, free={disk_free.free // (1024**3)}GiB | "
+            f"backups_size_total={after_mb}MB"
+        )
+        return 0
+    finally:
+        try:
+            LOCK_DIR.rmdir()
+        except OSError:
+            pass
+
+
+if __name__ == "__main__":
+    sys.exit(main())

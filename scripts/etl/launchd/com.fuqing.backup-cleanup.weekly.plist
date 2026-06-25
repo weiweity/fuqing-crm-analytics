@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-FIX-M1 + Layer 4 of 4 (2026-06-05 治理): Mac launchd plist for 芙清 backups/ 7-day retention cleanup
+FIX-M1 + Layer 4 of 4 (2026-06-05 治理) + Sprint 111 L4.7 Python 端口:
+Mac launchd plist for 芙清 backups/ 2-day retention cleanup (L4.7 + 项目小)
 
 安装:
   cp com.fuqing.backup-cleanup.weekly.plist ~/Library/LaunchAgents/
-  launchctl load ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
+  launchctl unload ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist 2>/dev/null
+  launchctl load -w ~/Library/LaunchAgents/com.fuqing.backup-cleanup.weekly.plist
   launchctl list | grep fuqing.backup   验证加载
 
 卸载:
@@ -13,7 +15,8 @@ FIX-M1 + Layer 4 of 4 (2026-06-05 治理): Mac launchd plist for 芙清 backups/
 
 设计:
   每周日 3:00 跑（避开 ETL 跑批窗口：每日 8:30）
-  清理 data/processed/backups/ 下 mtime > 7 天的 .parquet / .duckdb
+  清理 data/processed/backups/ 下 mtime > 2 天的 .parquet / .duckdb / .duckdb.zst
+  Sprint 111: ProgramArguments 改 python3 + cleanup_backups.py (L4.7 永久规则合规)
   stdout/stderr 重定向到 /tmp/fuqing-backup-cleanup.log
   exit code != 0 触发 launchd 自动通知
 -->
@@ -25,8 +28,8 @@ FIX-M1 + Layer 4 of 4 (2026-06-05 治理): Mac launchd plist for 芙清 backups/
 
     <key>ProgramArguments</key>
     <array>
-        <string>/bin/bash</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_backups.sh</string>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_backups.py</string>
     </array>
 
     <key>WorkingDirectory</key>

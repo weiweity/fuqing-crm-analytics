@@ -42,8 +42,9 @@ ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 
 # Sprint 62.5 治根: backup retention (Sprint 25 设计意图, 实施遗漏)
 # 之前脚本只创建 .zst 不清理, 4 份累积到 169GB. 删前 8 项 safety check (lsof/sparse/magic/mtime).
-BACKUP_RETENTION_DAYS = int(os.environ.get("FQ_BACKUP_RETENTION_DAYS", "7"))
-BACKUP_KEEP_MIN = 1  # 至少保留最新 1 份, 防单文件被误删
+# Sprint 111: 7 → 2 天滚动 (项目小, 2 天容灾足够). KEEP_MIN 1 → 2 保险 (连续 2 天失败仍有 2 份).
+BACKUP_RETENTION_DAYS = int(os.environ.get("FQ_BACKUP_RETENTION_DAYS", "2"))
+BACKUP_KEEP_MIN = 2  # Sprint 111: 1 → 2, 至少保留最新 2 份, 防单文件被误删
 
 
 def log(msg: str) -> None:
