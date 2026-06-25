@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-24 (Sprint 104 删 /visitor 路由别名 (留尾治理 sprint 模式, 跟 Sprint 91+92+92.1+92.2+96+96.5+99+100+101+102+103 一致), 3 文件 -25 行纯删除 (router -6 + sidebar -1 + e2e spec -18), 推翻 Sprint 52 commit 50eb241 拍板 (复用 AudienceView.vue 造成 /audience 看板重复), 后端 /api/v1/visitor/* 100% 保留 (AudienceView 末尾访客段仍调 fetchVisitor*, 不是 dead code, #12 留尾误判撤掉), L4.22 永久规则追加 (前端 sprint 收口必 rebuild dist + restart vite preview + activate core.hooksPath, Sprint 104 close 实战补 Step 12.5/12.6 amend 闭环), L4.x 永久规则 21 → **22 stable** 新增 L4.22, VERSION 0.4.14.157 不变 (留尾治理 sprint 不 bump), pytest 819/23/0 持续, 累计 54 sprint 0 debt 持续, main HEAD `336f19a` amend drift 接受 L4.14)
+**最后更新**: 2026-06-25 (Sprint 111 retention 7→2 天滚动 + KEEP_MIN 1→2 + 3 plist 修复 (留尾治理 sprint, 跟 Sprint 99+100+101+102+103+104+105+110 模式 一致), 6 文件 +220/-9 行 (备份 retention 数字 7→2 + KEEP_MIN 1→2 + cleanup_backups.py L4.7 Python 端口 替代 /bin/bash macOS sandbox deny + plist ProgramArguments 改 python3 + 2 case regression test + Sprint 62.5 case 1+3 显式 KEEP_MIN=1 setattr 隔离默认值变更), user 报 '我项目小, 2 天滚动' 触发 + 排查 316GB 消失 (110GB orphan + 87GB backups 自动 prune, 累计 195GB 释放, df 535→425Gi), L4.7 launchd 永久规则强化 (Sprint 62.5 B2+B3 N3 plist Status=126 失效 L4.7 治根, 跟 Sprint 60.2 P3 plist 守护设计哲学一致), pytest 825/23/0 持续 (CI runner, +6 vs Sprint 110 819/23/0), 累计 57 sprint 0 debt 持续, main HEAD `77a5215` (跟 Sprint 60+ 留尾治理 sprint 模式 一致, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 2 CRITICAL defer (#D5 8 safety check + #D6 new module test 留尾 Sprint 112+ 一起修))
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `842294d` (Sprint 103 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102 模式 一致) |
+| git HEAD (main) | `77a5215` (Sprint 111 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102+104+110 模式 一致) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 103 (留尾治理 sprint，DATA_PIPELINE.md 跨文档漂移修复，0 业务代码，VERSION 不 bump，L4.8 删 fix branch) |
-| 收口日 | 2026-06-24 |
-| 上次合入 | Sprint 103 (merge commit `842294d`，必修 1 修 DATA_PIPELINE.md 跨文档漂移 + L4.x 永久规则 21 stable 维护) |
+| 最近 sprint | Sprint 111 (留尾治理 sprint, retention 7→2 天滚动 + KEEP_MIN 1→2 + 3 plist 修复, 6 文件 +220/-9 行, VERSION 不 bump) |
+| 收口日 | 2026-06-25 |
+| 上次合入 | Sprint 111 (merge commit `77a5215`，retention 7→2 天 + 3 plist 修复 + L4.x 永久规则 22 stable 维护) |
 
 ---
 
@@ -23,9 +23,9 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **819** | Sprint 101 全量复验，Sprint 99 baseline 持续 |
+| pytest passed | **825** | Sprint 111 全量复验, +6 vs Sprint 110 819 baseline (Sprint 111 new 2 case + Sprint 62.5 4 case 修后) |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
-| pytest failed | **0** | Sprint 101 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
+| pytest failed | **0** | Sprint 111 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |

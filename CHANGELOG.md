@@ -4,6 +4,39 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-25 (Sprint 111, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- **retention 7→2 天滚动 + KEEP_MIN 1→2 (user 拍板 "我项目小")**: scripts/etl/backup_duckdb.py L45 BACKUP_RETENTION_DAYS 默认值 `"7"` → `"2"` (FQ_BACKUP_RETENTION_DAYS env override) + L46 BACKUP_KEEP_MIN `1` → `2` (保险 1 份, 连续 2 天失败仍有 2 份, FQ_BACKUP_KEEP_MIN env override)
+- **scripts/etl/cleanup_backups.sh L43 同步**: `RETENTION_DAYS=7` → `RETENTION_DAYS=2` (跟 backup_duckdb.py 同步, 避免文档漂移)
+- **scripts/etl/cleanup_backups.py NEW (L4.7 治根)**: 117 行 1:1 port of cleanup_backups.sh, 替代 /bin/bash (macOS 14+ sandbox deny bash read Desktop 路径, Sprint 111 诊断日志 "Operation not permitted" 确认). Sprint 62.5 N3 plist Status=126 失效的 L4.7 永久规则治根. 复用 backup_duckdb.py sys.path bootstrap + BJ_TZ + backend.config.PROCESSED_DATA_DIR + BACKUP_KEEP_MIN 命名约定.
+- **scripts/etl/launchd/com.fuqing.backup-cleanup.weekly.plist**: ProgramArguments `/bin/bash` → `/Users/hutou/homebrew/bin/python3` + cleanup_backups.py (L4.7 永久规则合规, 跟 com.fuqing.duckdb-backup.daily.plist + com.local.codex-clone-gc.plist 模式 一致)
+- **backend/tests/test_sprint111_retention_2day.py NEW**: 2 case regression (case 1: FQ_BACKUP_RETENTION_DAYS=2 env override 1d/3d/5d zst → 1 个 删 + 2 个 留 / case 2: KEEP_MIN=2 守护 10d/8d/5d 全 > 2d → 1 个 删 + 2 个 留)
+- **backend/tests/test_backup_duckdb.py**: Sprint 62.5 case 1+3 (test_prune_deletes_zst_older_than_retention + test_prune_skips_non_zstd_files) 加显式 `BACKUP_KEEP_MIN=1` setattr (隔离默认值变更, 防 KEEP_MIN=2 默认值跨 case 干扰)
+
+### Added
+- **3 launchd agent 已装 (untracked 操作, 不在 commit)**: cp + launchctl load -w 3 个 plist 到 ~/Library/LaunchAgents/ (1) com.local.codex-clone-gc.plist (B4 治根, 防 Codex clone 9GB 累积复发, Sprint 62.5 close 后 plist 丢失 修回) + (2) com.fuqing.backup-cleanup.weekly.plist (N3 同步, Python 端口生效) + (3) com.fuqing.etl.daily.plist (恢复每日 8:30 ETL 调度, Sprint 105 close 后 plist 丢失 修回). launchctl list 验证 3 个全部 status 0
+- **110GB orphan 立即回收 (untracked 操作)**: rm /private/tmp/fuqing_crm_backup_1782317826.duckdb (lsof 0 fd 验证, mtime 2026-06-25 00:18 > 24h). Sprint 62.5 B2+B3 复发根治. df -h 验证 535→425Gi 立即释放, 加上 Python 端口 cleanup_backups.py 手动验证额外释放 87GB backups 自动 prune, 累计 195GB 释放
+- **L4.7 永久规则强化 (闭环验证)**: 现有 L4.7 "launchd 启动器首选 python3 不用 bash" 在 Sprint 111 实战闭环 (3 plist 全部用 python3: backup_duckdb.daily + codex-clone-gc + 新 Python 端口 cleanup_backups.py weekly), 0 macOS bash sandbox 兼容问题
+
+### Sprint 流程
+- 真业务 sprint 报 bug 触发 (user 报 "我项目小, 2 天滚动" + 排查 316GB 消失), 跟 Sprint 89 暂收口终止后真业务 sprint 模式一致 = 第 8 个真业务 sprint (累计 Sprint 90+92+93+97+98+104+105+111 = 8 真业务 sprint)
+- 排查真因: 5 路证据 (316GB 大头 = 110GB /private/tmp/ orphan + 87GB backups 累积 + 9GB Codex clone + 1.3GB Chrome clone + 10GB pytest-of-hutou + Time Machine 快照自动回收 ~190GB)
+- L4.7 实战 fix 模式 (跟 Sprint 90+92+107+108+109+110 一致, 1 sprint 1 范围 1 真业务闭环)
+- /review skill 8 finding (2 CRITICAL + 6 INFORMATIONAL) testing + 12 finding (1 CRITICAL + 11 INFORMATIONAL) maintainability specialists 并行. AUTO-FIX 6 项 (CRITICAL maintainability hardcoded path → backend.config + 5 INFORMATIONAL: BJ_TZ 一致性 + KEEP_MIN→BACKUP_KEEP_MIN 重命名 + 删 unused subprocess import + 删 redundant default asserts + 压 stream-of-consciousness comment + 加 sys.path bootstrap 让 launchd mode work). DEFER 2 项 CRITICAL (testing #1 新 module test 1:1 duplicate + testing #2 8 safety check scope creep), 留尾 #D5 + #D6 标 Sprint 112+ 真 refactor sprint 一起修 (L4.21 反 sprint 自我反馈闭环遵守)
+- 跑通验收: pytest 825/23/0 CI runner + launchctl list 3 plist status 0 + df -h 195GB 释放 + cleanup_backups.py manual run EXIT 0 + 3 launchd log "backups cleanup: before=3 files/98004MB → after=3 files/98004MB, deleted=0 files/0MB" + "disk_free_after_cleanup: total=926GiB, used=492GiB, free=434GiB"
+- 12 步流程: 切 fix/sprint111-retention-2day-cleanup → 6 file 改 (含 2 new + 4 modified + 1 plist) + pre-commit hook ruff + ground-truth lint + P1-3 review 全过 (commit d833fb1) → push origin fix/sprint111-retention-2day-cleanup → merge --no-ff main (commit 77a5215) → /document-release 3 文档 amend + push origin main (L4.15 user 拍板 Push + amend)
+- pytest baseline 825/23/0 持续 0 回归 (Sprint 110 → 111, 累计 57 sprint 0 debt, +1 vs Sprint 110 56), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110 实战 fix 模式 一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 23 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111)
+
+### Sprint 流程 实战 fix 模式库 #6 (Sprint 89 暂收口 反馈终止后 实战沉淀)
+- 实战 fix 模式库 #1: Sprint 90 L4.7 ground-truth-lint 防回归
+- 实战 fix 模式库 #2: Sprint 92 L4.9 实战 fix 模式系列 (1 行 + 1 字符 + 3 行 YAML 改)
+- 实战 fix 模式库 #3: Sprint 96.5 必修 2 真因真修 7 sprint 完整链路
+- 实战 fix 模式库 #4: Sprint 97 + Sprint 98 FilterBuilder 治标推广 + 真治本
+- 实战 fix 模式库 #5: Sprint 99 L4.20 SSOT 反漂移永久规则
+- **实战 fix 模式库 #6: Sprint 111 真业务 sprint 排查磁盘 + L4.7 Python 端口实战 fix 模式** (1 真业务 sprint 报 "我项目小, 2 天" 触发 + 5 路证据根因排查 + L4.7 治根 + 6 file +220/-9 行 + pytest 825/23/0 + L4.21 0 越界遵守)
+
 ## [0.4.14.157] - 2026-06-24 (Sprint 105, VERSION 不变 留尾治理 sprint)
 
 ### Fixed

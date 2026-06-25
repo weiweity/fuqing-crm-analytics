@@ -221,11 +221,16 @@ class TestBackupDuckdbSprint625Retention:
         return path
 
     def test_prune_deletes_zst_older_than_retention(self, tmp_path, monkeypatch):
-        """Case 1: > BACKUP_RETENTION_DAYS 天的 zst 被删, 新保留."""
+        """Case 1: > BACKUP_RETENTION_DAYS 天的 zst 被删, 新保留.
+
+        Sprint 111: 显式 setattr KEEP_MIN=1 (隔离默认值 KEEP_MIN=2 变更),
+        这个 case 专注验证 age threshold, 不依赖 KEEP_MIN 默认值.
+        """
         from scripts.etl import backup_duckdb
 
         monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path)
         monkeypatch.setattr(backup_duckdb, "BACKUP_RETENTION_DAYS", 7)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_KEEP_MIN", 1)  # Sprint 111: 显式
 
         new = self._make_zst(tmp_path / "fuqing_crm_2026-06-22_0330.duckdb.zst", days_old=1)
         old1 = self._make_zst(tmp_path / "fuqing_crm_2026-06-14_0330.duckdb.zst", days_old=8)
@@ -268,11 +273,15 @@ class TestBackupDuckdbSprint625Retention:
 
         Sprint 25 测试用 cleanup_backups.sh find *.parquet + *.duckdb + *.duckdb.zst,
         Sprint 62.5 Python 版只 glob *.duckdb.zst + magic 校验, 更严格.
+
+        Sprint 111: 显式 setattr KEEP_MIN=1 (隔离默认值 KEEP_MIN=2 变更),
+        这个 case 专注验证 non-zstd skip, 不依赖 KEEP_MIN 默认值.
         """
         from scripts.etl import backup_duckdb
 
         monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path)
         monkeypatch.setattr(backup_duckdb, "BACKUP_RETENTION_DAYS", 7)
+        monkeypatch.setattr(backup_duckdb, "BACKUP_KEEP_MIN", 1)  # Sprint 111: 显式
 
         # 造非 zst (空文件, magic 不匹配)
         non_zst = tmp_path / "fuqing_crm_2026-06-10_0330.duckdb"

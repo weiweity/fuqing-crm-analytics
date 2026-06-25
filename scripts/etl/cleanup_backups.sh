@@ -40,7 +40,7 @@ trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
 BACKUP_DIR="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/backups"
 LOG_FILE="/tmp/fuqing-backup-cleanup.log"
-RETENTION_DAYS=7
+RETENTION_DAYS=2  # Sprint 111: 7 → 2 天滚动 (项目小, 跟 backup_duckdb.py 同步)
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # 1. 检查目录存在
