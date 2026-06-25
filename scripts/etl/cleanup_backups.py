@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Sprint 111: cleanup_backups.py — L4.7 Python 端口 of cleanup_backups.sh.
+Sprint 112: refactor 用 backup_duckdb._prune_with_safety (8 项 safety check 复用).
 
 L4.7 永久规则合规: launchd 首选 python3 不用 bash (/bin/bash macOS sandbox
 deny Desktop 路径, Sprint 111 诊断日志 "Operation not permitted" 确认).
@@ -8,6 +9,8 @@ Sprint 62.5 N3 plist Status=126 失效的 L4.7 治根修复.
 保留原 bash 脚本所有功能:
   - 清理 data/processed/backups/ 下 mtime > RETENTION_DAYS 天的
     .parquet / .duckdb / .duckdb.zst (Sprint 25 加 zst 模式)
+  - 8 项 safety check (Sprint 112 refactor 抽 shared _prune_with_safety):
+    mtime age + keep_min + size>0 + zstd magic (仅 .duckdb.zst) + lsof 0 fd + soft fail
   - 软失败: 单文件 unlink 失败只 log, 不阻塞
   - mkdir-based lock 防并发 (F18 修复, POSIX 兼容)
   - 输出 plain-text 到 /tmp/fuqing-backup-cleanup.log (launchd 仅看 exit code)
@@ -16,6 +19,10 @@ Sprint 111 改动 (跟 backup_duckdb.py 同步):
   - RETENTION_DAYS 7 → 2 (FQ_BACKUP_RETENTION_DAYS env override)
   - BACKUP_KEEP_MIN 1 → 2 (FQ_BACKUP_KEEP_MIN env override, 保险 1 份)
   - BJ_TZ 时区跟 backup_duckdb.py 一致 (跨 sprint launchd 跑批 03:30 BJ 同步)
+
+Sprint 112 改动:
+  - refactor: 8 项 safety check 抽到 backup_duckdb._prune_with_safety, cleanup_backups.py 调用
+  - 0 代码重复, 1 真业务 sprint 触发的 留尾治理 sprint (#D5 闭环)
 """
 import os
 import shutil
@@ -31,6 +38,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent  # noqa: E402
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.config import PROCESSED_DATA_DIR  # noqa: E402
+from scripts.etl import backup_duckdb  # noqa: E402  # Sprint 112 refactor: 调 shared _prune_with_safety
 
 BJ_TZ = timezone(timedelta(hours=8))  # 跟 backup_duckdb.py 一致
 BACKUP_DIR = PROCESSED_DATA_DIR / "backups"
@@ -62,24 +70,22 @@ def main() -> int:
             log(f"SKIP: {BACKUP_DIR} 不存在")
             return 0
 
-        # 收集 candidates (Sprint 111 BACKUP_KEEP_MIN 守护: 永远保留最新 KEEP_MIN 份)
+        # 收集 before stats
         before_files: list[Path] = []
         for pat in PATTERNS:
             before_files.extend(BACKUP_DIR.glob(pat))
-        sorted_files = sorted(before_files, key=lambda p: p.stat().st_mtime, reverse=True)
-        cutoff = datetime.now(BJ_TZ).timestamp() - RETENTION_DAYS * 86400
-        candidates = [p for p in sorted_files[BACKUP_KEEP_MIN:] if p.stat().st_mtime < cutoff]
-
         before_count = len(before_files)
         before_bytes = sum(p.stat().st_size for p in before_files if p.exists())
 
-        deleted_names: list[str] = []
-        for p in candidates:
-            try:
-                p.unlink()
-                deleted_names.append(p.name)
-            except OSError as e:
-                log(f"WARN: unlink failed: {p}: {e}")
+        # Sprint 112 refactor: 调 shared _prune_with_safety (8 项 safety check)
+        # 修 #D5 (Sprint 111 /review defer): cleanup_backups.py 现在有完整 8 safety check
+        deleted = backup_duckdb._prune_with_safety(
+            backup_dir=BACKUP_DIR,
+            glob_patterns=PATTERNS,
+            retention_days=RETENTION_DAYS,
+            keep_min=BACKUP_KEEP_MIN,
+            log_fn=log,
+        )
 
         # 重新统计 after
         after_files: list[Path] = []
@@ -93,10 +99,8 @@ def main() -> int:
         summary = (
             f"backups cleanup: before={before_count} files/{before_mb}MB → "
             f"after={after_count} files/{after_mb}MB, "
-            f"deleted={len(deleted_names)} files/{before_mb - after_mb}MB"
+            f"deleted={deleted} files/{before_mb - after_mb}MB"
         )
-        if deleted_names:
-            summary += f" | files: {' '.join(deleted_names)}"
         log(summary)
 
         disk_free = shutil.disk_usage(BACKUP_DIR)

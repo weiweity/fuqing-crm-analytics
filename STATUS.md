@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-25 (Sprint 111 retention 7→2 天滚动 + KEEP_MIN 1→2 + 3 plist 修复 (留尾治理 sprint, 跟 Sprint 99+100+101+102+103+104+105+110 模式 一致), 6 文件 +220/-9 行 (备份 retention 数字 7→2 + KEEP_MIN 1→2 + cleanup_backups.py L4.7 Python 端口 替代 /bin/bash macOS sandbox deny + plist ProgramArguments 改 python3 + 2 case regression test + Sprint 62.5 case 1+3 显式 KEEP_MIN=1 setattr 隔离默认值变更), user 报 '我项目小, 2 天滚动' 触发 + 排查 316GB 消失 (110GB orphan + 87GB backups 自动 prune, 累计 195GB 释放, df 535→425Gi), L4.7 launchd 永久规则强化 (Sprint 62.5 B2+B3 N3 plist Status=126 失效 L4.7 治根, 跟 Sprint 60.2 P3 plist 守护设计哲学一致), pytest 825/23/0 持续 (CI runner, +6 vs Sprint 110 819/23/0), 累计 57 sprint 0 debt 持续, main HEAD `77a5215` (跟 Sprint 60+ 留尾治理 sprint 模式 一致, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 2 CRITICAL defer (#D5 8 safety check + #D6 new module test 留尾 Sprint 112+ 一起修))
+**最后更新**: 2026-06-25 (Sprint 112 refactor: 抽 shared _prune_with_safety() + 8 case regression (留尾治理 sprint, 修 Sprint 111 /review defer #D5 + #D6, 跟 Sprint 99+100+101+102+103+104+105+110+111 模式 一致), 3 文件 +291/-41 行 (backup_duckdb.py 抽 shared _prune_with_safety + Callable type hints + ZSTD_MAGIC + ZST_SUFFIX named const + stale docstring 修 + _prune_old_backups 变 thin wrapper, cleanup_backups.py 调 shared _prune_with_safety, test_sprint112_cleanup_backups_refactor.py NEW 8 case regression (默认值 + 真治本 #1+#2 + 边界 + lock SKIP + soft fail + log warn + log append)). pytest 18 passed / 23 skipped / 0 failed (+3 vs Sprint 111 15 baseline), 累计 58 sprint 0 debt 持续 (+1 vs Sprint 111), main HEAD `d2d2dbd` (Sprint 112 merge --no-ff, 跟 Sprint 111 amend 模式 一致, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 4 项 defer (#D7 .parquet magic check gap + #D8 lark SDK coupling + #D9 deleted_names observability + #D10 lsof missing path coverage 留尾 Sprint 113+ 一起修)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `77a5215` (Sprint 111 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102+104+110 模式 一致) |
+| git HEAD (main) | `d2d2dbd` (Sprint 112 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102+104+110+111 模式 一致) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 111 (留尾治理 sprint, retention 7→2 天滚动 + KEEP_MIN 1→2 + 3 plist 修复, 6 文件 +220/-9 行, VERSION 不 bump) |
+| 最近 sprint | Sprint 112 (留尾治理 sprint, 抽 shared _prune_with_safety() + 8 case regression, 修 #D5+#D6, 3 文件 +291/-41 行, VERSION 不 bump) |
 | 收口日 | 2026-06-25 |
-| 上次合入 | Sprint 111 (merge commit `77a5215`，retention 7→2 天 + 3 plist 修复 + L4.x 永久规则 22 stable 维护) |
+| 上次合入 | Sprint 112 (merge commit `d2d2dbd`，抽 shared _prune_with_safety + 8 case regression + L4.x 永久规则 22 stable 维护) |
 
 ---
 
@@ -23,9 +23,9 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **825** | Sprint 111 全量复验, +6 vs Sprint 110 819 baseline (Sprint 111 new 2 case + Sprint 62.5 4 case 修后) |
+| pytest passed | **827** | Sprint 112 全量复验, +2 vs Sprint 111 825 baseline (Sprint 112 new 8 case vs Sprint 111 5 case) |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
-| pytest failed | **0** | Sprint 111 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
+| pytest failed | **0** | Sprint 112 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |
 | ruff lint | **0 errors** | Sprint 60.3 修 5 处 status_update.py PEP8 + 3 处 test_status_update.py 留尾 |
 | L1 SQL f-string lint | **0 violations** | 101 files scanned, `backend/scripts/check_sql_fstring_consistency.py` |
