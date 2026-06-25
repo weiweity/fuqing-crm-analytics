@@ -65,12 +65,12 @@ class TestSprint112CleanupBackups:
         Sprint 116 修 #D9: _prune_with_safety 返 Tuple[int, list[str]],
         deleted_count 通过 unpacking 拿.
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         zst_1d = self._make_zst(tmp_path / "fuqing_crm_a.duckdb.zst", days_old=1)
         zst_3d = self._make_zst(tmp_path / "fuqing_crm_b.duckdb.zst", days_old=3)
 
-        deleted, _deleted_names = _prune_lib._prune_with_safety(
+        deleted, _deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=1,
@@ -89,13 +89,13 @@ class TestSprint112CleanupBackups:
 
         Sprint 116 修 #D9: 返 Tuple[int, list[str]].
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         zsts = []
         for i, days in enumerate([10, 8, 6, 4, 2]):
             zsts.append(self._make_zst(tmp_path / f"fuqing_crm_{i}.duckdb.zst", days_old=days))
 
-        deleted, _deleted_names = _prune_lib._prune_with_safety(
+        deleted, _deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,
@@ -115,12 +115,12 @@ class TestSprint112CleanupBackups:
 
         Sprint 116 修 #D9: 返 Tuple[int, list[str]].
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         self._make_zst(tmp_path / "a.duckdb.zst", days_old=5)
         self._make_zst(tmp_path / "b.duckdb.zst", days_old=10)
 
-        deleted, _deleted_names = _prune_lib._prune_with_safety(
+        deleted, _deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,

@@ -25,9 +25,9 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Sprint 116 抽 _prune_lib 解耦 (修 #D8): backup_duckdb.py 从 _prune_lib import _prune_with_safety + BJ_TZ
-# _prune_with_safety + MAGIC_CHECKS + BJ_TZ 都在 _prune_lib.py, 不在 backup_duckdb.py 重复定义.
-from scripts.etl.common import _prune_lib  # noqa: E402
+# Sprint 117 rename _prune_lib → prune_lib (修 #D11 PEP 8 private 跨模块访问)
+# Sprint 116 解耦 (修 #D8) 持续: backup_duckdb.py 从 prune_lib import _prune_with_safety + BJ_TZ.
+from scripts.etl.common import prune_lib  # noqa: E402
 
 from backend.config import DUCKDB_PATH, PROCESSED_DATA_DIR  # noqa: E402
 
@@ -40,7 +40,7 @@ LOCK_DIR = Path("/tmp/fuqing-duckdb-backup.lock.d")
 # Sprint 10 B3: 用 Beijing 时间 (UTC+8) 命名, 跟用户日历日期一致.
 # 之前用 UTC 在 03:30 BJ 跑出来文件名是 6/7, 用户看像 6/7 没 6/8 backup.
 # 改 BJ 时间后, 6/8 03:30 BJ 跑出来文件名是 2026-06-08, 跟用户预期一致.
-BJ_TZ = _prune_lib.BJ_TZ  # Sprint 116 抽到 _prune_lib (3 文件去重)
+BJ_TZ = prune_lib.BJ_TZ  # Sprint 116 抽到 prune_lib (3 文件去重, Sprint 117 rename 去 _)
 TODAY = datetime.now(BJ_TZ).strftime("%Y-%m-%d")
 ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 
@@ -50,9 +50,9 @@ ALERT_EMAIL = "hutou@fuqing.local"  # launchd 失败 loud-fail 收件人
 BACKUP_RETENTION_DAYS = int(os.environ.get("FQ_BACKUP_RETENTION_DAYS", "2"))
 BACKUP_KEEP_MIN = 2  # Sprint 111: 1 → 2, 至少保留最新 2 份, 防单文件被误删
 
-# Sprint 116 抽到 scripts/etl/common/_prune_lib.py (修 #D8 解耦):
-# ZSTD_MAGIC, ZST_SUFFIX, BJ_TZ, MAGIC_CHECKS, _matches_magic, _prune_with_safety 全部移到 _prune_lib.
-# backup_duckdb.py 现在只是 thin wrapper (_prune_old_backups) 调 _prune_lib._prune_with_safety.
+# Sprint 116 抽到 scripts/etl/common/_prune_lib.py (修 #D8 解耦), Sprint 117 rename → prune_lib (修 #D11):
+# ZSTD_MAGIC, ZST_SUFFIX, BJ_TZ, MAGIC_CHECKS, _matches_magic, _prune_with_safety 全部移到 prune_lib.
+# backup_duckdb.py 现在只是 thin wrapper (_prune_old_backups) 调 prune_lib._prune_with_safety.
 
 
 def log(msg: str) -> None:
@@ -64,21 +64,22 @@ def log(msg: str) -> None:
 def _prune_old_backups() -> int:
     """Sprint 62.5 治根: 删 > BACKUP_RETENTION_DAYS 天的 .zst.
 
-    Sprint 116 修 #D8+#D9: thin wrapper 调 _prune_lib._prune_with_safety,
+    Sprint 116 修 #D8+#D9: thin wrapper 调 prune_lib._prune_with_safety,
     返 int (deleted count) 通过拆 Tuple[int, list[str]] 拿 deleted.
     4 个 sister test (Sprint 62.5) 持续 PASS (assert deleted == N int).
 
-    8 项 safety check (在 _prune_lib._prune_with_safety 实现, 这里是 wrapper):
+    8 项 safety check (在 prune_lib._prune_with_safety 实现, 这里是 wrapper):
       1. mtime age > retention (避免误删最新)
       2. 保留 BACKUP_KEEP_MIN 最新份 (防 cap=0 误删全部)
       3. 文件 > 0 字节 (防空文件假象)
-      4. per-extension magic check (Sprint 116 修 #D7: PAR1 / DUCK / ZSTD_MAGIC)
+      4. per-extension magic check (Sprint 116 修 #D7: PAR1 / DUCK / ZSTD_MAGIC;
+         Sprint 117 修 #D12+#D13: tuple 返值 + case-insensitive)
       5. lsof 0 fd (无活跃 fd, Sprint 116 修 #D10: FileNotFoundError 保守放行)
       6. caller-side invariant (本次刚生成的 mtime 极新不会超 retention 阈值)
       7. sorted by mtime desc (最新优先保留)
       8. soft fail (删失败 log 不 raise)
     """
-    deleted, _deleted_names = _prune_lib._prune_with_safety(  # noqa: deleted_names 丢弃 (wrapper 只返 count)
+    deleted, _deleted_names = prune_lib._prune_with_safety(  # noqa: deleted_names 丢弃 (wrapper 只返 count)
         backup_dir=BACKUP_DIR,
         glob_patterns=("fuqing_crm_*.duckdb.zst",),
         retention_days=BACKUP_RETENTION_DAYS,

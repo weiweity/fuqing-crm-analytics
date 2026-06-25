@@ -3,6 +3,8 @@
 Sprint 112: refactor 用 _prune_with_safety (8 项 safety check 复用).
 Sprint 116: refactor 抽 _prune_lib 解耦 (修 #D8) + per-extension magic check (修 #D7) +
             Tuple[int, list[str]] 返值 (修 #D9 deleted_names observability).
+Sprint 117: rename _prune_lib → prune_lib (修 #D11 PEP 8) + 4 项真治本
+            (#D12 _matches_magic 返 tuple + #D13 case-insensitive + #D14 显式 sort longest-first).
 
 L4.7 永久规则合规: launchd 首选 python3 不用 bash (/bin/bash macOS sandbox
 deny Desktop 路径, Sprint 111 诊断日志 "Operation not permitted" 确认).
@@ -11,7 +13,7 @@ Sprint 62.5 N3 plist Status=126 失效的 L4.7 治根修复.
 保留原 bash 脚本所有功能:
   - 清理 data/processed/backups/ 下 mtime > RETENTION_DAYS 天的
     .parquet / .duckdb / .duckdb.zst (Sprint 25 加 zst 模式)
-  - 8 项 safety check (Sprint 116 抽 shared _prune_lib):
+  - 8 项 safety check (Sprint 116 抽 shared prune_lib, Sprint 117 rename 去 _):
     mtime age + keep_min + size>0 + per-extension magic (PAR1/DUCK/ZSTD_MAGIC) + lsof 0 fd + soft fail
   - 软失败: 单文件 unlink 失败只 log, 不阻塞
   - mkdir-based lock 防并发 (F18 修复, POSIX 兼容)
@@ -32,6 +34,13 @@ Sprint 116 改动:
     改 `from scripts.etl.common import _prune_lib` (干净 import, 不触发 lark 副作用).
   - 修 #D9: 接收 _prune_lib._prune_with_safety 返 Tuple[int, list[str]],
     拼回 '| files: ...' observability 字段 (跟 Sprint 111 一致).
+
+Sprint 117 改动 (跟 Sprint 116 模式一致, 留尾治理 sprint 模式 stable):
+  - 修 #D11: rename _prune_lib → prune_lib (PEP 8 public, 跨模块访问合法)
+  - 修 #D12: _matches_magic 返 tuple[bool, str], log 完整 reason (offset + actual magic)
+  - 修 #D13: case-insensitive 匹配 (macOS APFS case-preserving vs Linux HFS+ case-insensitive)
+  - 修 #D14: 显式 sort longest-first (sorted(MAGIC_CHECKS, key=len, reverse=True)),
+    不依赖 dict iteration order
 """
 import os
 import shutil
@@ -47,9 +56,9 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent  # noqa: E402
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.config import PROCESSED_DATA_DIR  # noqa: E402
-from scripts.etl.common import _prune_lib  # noqa: E402  # Sprint 116 解耦 (修 #D8): 不再 import backup_duckdb
+from scripts.etl.common import prune_lib  # noqa: E402  # Sprint 117 rename _prune_lib → prune_lib (修 #D11)
 
-BJ_TZ = _prune_lib.BJ_TZ  # Sprint 116 修 BJ_TZ 去重 (3 文件 → 1 个 SSOT, 跟 ZSTD_MAGIC 抽法一致)
+BJ_TZ = prune_lib.BJ_TZ  # Sprint 116 抽 + Sprint 117 rename (3 文件 SSOT)
 BACKUP_DIR = PROCESSED_DATA_DIR / "backups"
 LOG_FILE = Path("/tmp/fuqing-backup-cleanup.log")
 LOCK_DIR = Path("/tmp/fuqing-backup-cleanup.lock.d")
@@ -87,10 +96,12 @@ def main() -> int:
         before_bytes = sum(p.stat().st_size for p in before_files if p.exists())
 
         # Sprint 116 refactor: 调 _prune_lib._prune_with_safety (8 项 safety check, 修 #D7-#D10)
+        # Sprint 117: rename → prune_lib._prune_with_safety (修 #D11)
         # 修 #D5+#D7+#D8+#D9+#D10 (Sprint 111/112 /review defer): cleanup_backups.py 现在有完整 8 safety check
         # 修 #D8: 不再 `from scripts.etl import backup_duckdb` (避免拉起 lark SDK)
         # 修 #D9: 接收 Tuple[int, list[str]] 返值, 拼回 '| files: ...' observability 字段
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        # 修 #D11-#D14: prune_lib._matches_magic 返 tuple (case-insensitive + 显式 sort + 完整 reason)
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=BACKUP_DIR,
             glob_patterns=PATTERNS,
             retention_days=RETENTION_DAYS,
