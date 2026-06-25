@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-25 (Sprint 123 R2 CI 跑 e2e (Sprint 34 候选 4): lint.yml 加 e2e job 替代 e2e.yml 独立 (1 file workflow 4 jobs 替代 2 file workflow 4 jobs, 留尾治理 sprint 触发 = Sprint 95-96.5 7 sprint 链实战 fix 模式 闭环后 e2e.yml 跑 4m29s success 5 次累计稳定 + Sprint 32.1 advisory OOM 18m+ 风险已闭环 + Sprint 33 候选 3 spec 稳定 + Sprint 50+ #S43-L2 spec-lint blocking 已稳定 + Sprint 60.3+ C+ UI smoke 闭环, 跟 Sprint 60.3+ C+ UI smoke + API 5xx 拦截 一致), 5 文件 +265/-173 行 (lint.yml +211/-0 加 e2e job 10 steps, e2e.yml -138 删, test_sprint123_lint_yml_e2e_integration.py NEW 4 case + 1 case 3.5, test_ci_e2e_env_config.py +37/-20 改读 lint.yml, test_ci_workflows_fq_db_mode.py +12/-5 改读 lint.yml, test_commit_msg_drift_threshold.py +1/-1 修 MagicMock unused, 必修 2 真因真修 2/3 实战 fix 模式 跟 Sprint 95-96.5 7 sprint 链 一致: 3 ruff F401/F541 + 2 test file FileNotFoundError 改读 lint.yml). pytest 841 passed / 23 skipped / 0 failed (+4 vs Sprint 122 baseline 837, Sprint 123 new 4 case), 累计 60 sprint 0 debt 持续 (+1 vs Sprint 122 59, 实战 fix 模式 1 commit 0 debt + 必修 2 真因真修 2 修 0 debt), main HEAD `f7fe6f8` (Sprint 123 amend 2 次 L4.14, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 0 finding, gh run watch 28181922398 **4/4 jobs 全绿 SUCCESS** (e2e + lint + test + ground-truth-lint 230s 完成))
+**最后更新**: 2026-06-25 (Sprint 126 /document-release 全局文件清理: 删 12 老 file (575KB: CHANGELOG_HISTORY 414KB + 4 ARCHITECTURE-Sprint5X 51KB + 7 HANDOFF 110KB) + CHANGELOG.md 头说明 + Sprint 126 entry, 跨 sprint 治理循环 stable 44 sprint 累计后老内容 已沉淀到 git history + close memory + STATUS + TECH-DEBT, 删除不损失信息 (git 仍 tracked, 12 file 仍可 checkout 老 commit 找回), 13 file 22 insertion 8065 deletion. 0 业务代码改动 + 0 越界 (L4.21 反 sprint 自我反馈闭环遵守 留尾治理 sprint 模式 stable 累计 33 sprint). pytest 841/23/0 baseline 0 回归 (留尾治理 sprint 模式 不改业务代码), main HEAD `2b6518c` (Sprint 126 merge --no-ff, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增). 实战 fix 模式库 #19)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `79795e2` (Sprint 120 merge) |
+| git HEAD (main) | `2b6518c` (Sprint 126 merge) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 120 (留尾治理 sprint, commit-msg drift hook 调优, 1 file +38/-10 行, VERSION 不 bump) |
+| 最近 sprint | Sprint 126 (留尾治理 sprint, /document-release 全局文件清理 575KB, 13 file 22 insertion 8065 deletion, VERSION 不 bump) |
 | 收口日 | 2026-06-25 |
-| 上次合入 | Sprint 120 (merge commit `79795e2`, commit-msg drift hook 调优 + L4.x 永久规则 22 stable 维护) |
+| 上次合入 | Sprint 126 (merge commit `2b6518c`, /document-release 全局文件清理 + L4.x 永久规则 22 stable 维护) |
 
 ---
 
