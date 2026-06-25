@@ -165,13 +165,22 @@ class TestOldFormatEntryWithoutColdStartFlagIsReloaded:
 
 
 class TestNormalProcessedFilesNotReloaded:
-    """case 2: 正常 entry (cold_start_marked=False + mtime 匹配) 不重载."""
+    """case 2: 正常 entry (cold_start_marked=False + mtime + hash 都匹配) 不重载.
 
-    def test_normal_processed_files_not_reloaded(self, tmp_path):
+    Sprint 109 L4.7 实战 fix 后 _file_changed 默认行为变化: mtime 不变也走
+    hash 比对 (修 cp -p / Finder 替换 xlsx 保持 mtime 不变但内容变了的 5% 场景).
+    本测试不变变量改为 "mtime 一致 + hash 一致 = 内容真没变", 同时覆盖新老逻辑:
+      - 老逻辑 (ETL_SKIP_MTIME_CHECK_HASH=1): mtime 一致 → 返 False
+      - 新逻辑 (默认): mtime 一致 + hash 一致 → 返 False
+    """
+
+    def test_normal_processed_files_not_reloaded(self, tmp_path, monkeypatch):
         """entry {mtime, hash, cold_start_marked=False, last_processed_at=...},
-        文件 mtime 与 entry mtime 相同 → _file_changed 应返回 False.
+        文件 mtime 与 entry mtime 相同 + hash 一致 → _file_changed 应返回 False.
 
         Sprint 24 技术债 #2: 直接调真函数 _file_changed (module-level).
+        Sprint 110 适配 Sprint 109 新逻辑: monkeypatch _get_file_hash 让它返
+        entry 的 hash 值, 模拟"内容也没变"的核心不变量 (跟 case 3 同模式).
         """
         from scripts.etl.ingest import _file_changed
 
@@ -183,10 +192,11 @@ class TestNormalProcessedFilesNotReloaded:
         # entry mtime 与文件 mtime 一致, cold_start 标志位 False,
         # last_processed_at 已记录 (Step 4.5 后的正常状态)
         current_mtime = xlsx_path.stat().st_mtime
+        entry_hash = "somehash"
         processed_files = {
             str(xlsx_path.relative_to(data_source)): {
                 "mtime": current_mtime,
-                "hash": "somehash",
+                "hash": entry_hash,
                 "cold_start_marked": False,
                 "last_processed_at": time.time() - 3600,  # 1 小时前处理过
             }
@@ -205,12 +215,19 @@ class TestNormalProcessedFilesNotReloaded:
                 "正常 entry mtime 应与文件 mtime 一致 (走短路返回 False)"
             )
 
-        # 直接调真 _file_changed — mtime 短路返 False
+        # Sprint 109 后: mtime 不变默认走 hash 比对. monkeypatch _get_file_hash
+        # 让它返 entry 的 hash (模拟"内容也没变"), 新逻辑下 mtime+hash 都一致
+        # → 返 False. 跟 case 3 (TestMtimeChangedTriggersHashCheck) 同模式.
+        monkeypatch.setattr(
+            "scripts.etl.ingest._get_file_hash", lambda _f: entry_hash
+        )
+
+        # 直接调真 _file_changed — mtime + hash 都一致返 False
         xlsx_stem_to_rel = {xlsx_path.stem: str(xlsx_path.relative_to(data_source))}
         result = _file_changed(xlsx_path, processed_files, data_source, xlsx_stem_to_rel)
         assert result is False, (
-            "正常 entry (mtime 一致 + cold_start=False) 必须被 _file_changed "
-            "判定为未变更, 走 ④ mtime 短路返 False. 实际: {result}"
+            "正常 entry (mtime 一致 + cold_start=False + hash 一致) 必须被 "
+            "_file_changed 判定为未变更 (新老逻辑都成立). 实际: {result}"
         )
 
 
@@ -481,6 +498,14 @@ class TestMarkAllFilesProcessedAddsColdStartFlag:
         monkeypatch.setattr(_config, "_get_processed_files_path", fake_processed_path)
         monkeypatch.setattr(pipeline, "_get_file_hash", fake_get_file_hash)
         monkeypatch.setattr(_config, "_get_file_hash", fake_get_file_hash)
+        # Sprint 110 适配 Sprint 109 新逻辑: _file_changed 内部从
+        # scripts.etl.ingest 模块读 _get_file_hash (走 import 时已绑定),
+        # 上面 patch pipeline + _config 不影响 ingest 模块内引用.
+        # 必须单独 patch ingest 模块, 否则 _file_changed 走真 hash 计算,
+        # 跟 tracker 写入的 fake hash 不等, mtime 一致时 hash 比对返 True.
+        monkeypatch.setattr(
+            "scripts.etl.ingest._get_file_hash", fake_get_file_hash
+        )
 
         # Step 3: 调 _mark_all_files_processed 写入 tracker
         pipeline._mark_all_files_processed()
