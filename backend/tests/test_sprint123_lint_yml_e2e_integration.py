@@ -10,7 +10,6 @@ Sprint 123 立项决策: lint.yml 加 e2e job 替代 .github/workflows/e2e.yml �
 
 Branch: fix/sprint123-r2-ci-e2e-lint-yml-integration
 """
-import os
 import sys
 from pathlib import Path
 
@@ -28,6 +27,26 @@ class TestSprint123LintYmlE2EIntegration:
         assert workflow_path.exists(), f"workflow {relative_path} 应存在, 实际不存在"
         with open(workflow_path) as f:
             return yaml.safe_load(f)
+
+    def test_e2e_job_step_names_complete(self):
+        """Case 3.5 (Sprint 123 必修 2 验证): e2e job step names 完整 (跟原 e2e.yml 1:1)."""
+        workflow = self._load_workflow(".github/workflows/lint.yml")
+        e2e_steps = workflow["jobs"]["e2e"]["steps"]
+        # Sprint 123 必修 2: 验证 10 step names 完整 (跟原 e2e.yml 一致)
+        expected_step_keywords = [
+            "Install Python deps",
+            "Install Node deps",
+            "Install Playwright browsers",
+            "Setup e2e DuckDB schema-only fixture",
+            "Build (Vite) + Start preview server",
+            "Run e2e with auto-recovery",
+            "Upload auto-recovery log on failure",
+        ]
+        all_step_names = " ".join(s.get("name", "") for s in e2e_steps)
+        for keyword in expected_step_keywords:
+            assert keyword in all_step_names, (
+                f"e2e step 应含 {keyword!r} (Sprint 123 必修 2 验证), 实际 step names: {all_step_names}"
+            )
 
     def test_lint_yml_has_4_jobs(self):
         """Case 1: lint.yml 4 jobs (lint + ground-truth-lint + test + e2e) 验证.
@@ -51,7 +70,7 @@ class TestSprint123LintYmlE2EIntegration:
         """
         e2e_yml = ROOT / ".github/workflows/e2e.yml"
         assert not e2e_yml.exists(), (
-            f".github/workflows/e2e.yml 应已删 (Sprint 123 集成到 lint.yml), 实际仍存在"
+            ".github/workflows/e2e.yml 应已删 (Sprint 123 集成到 lint.yml), 实际仍存在"
         )
 
     def test_e2e_job_10_steps_complete(self):

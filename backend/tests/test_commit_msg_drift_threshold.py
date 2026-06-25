@@ -21,7 +21,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
