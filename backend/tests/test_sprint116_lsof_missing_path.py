@@ -33,7 +33,7 @@ class TestSprint116LsofMissingPath:
         验证: CI Linux runner 没装 lsof, _prune_with_safety 走 FileNotFoundError catch
         → 'pass' 跳过 lsof check → 仍能删 candidate 文件 (5 safety check 实际生效).
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 1 份超 retention .duckdb.zst (10d > 2d cutoff)
         zst = self._make_zst(tmp_path / "a.duckdb.zst", days_old=10)
@@ -42,10 +42,10 @@ class TestSprint116LsofMissingPath:
         def mock_lsof_missing(*args, **kwargs):
             raise FileNotFoundError("lsof not installed (Sprint 116 test mock)")
 
-        # Patch _prune_lib 的 subprocess.run (lsof 调用)
-        monkeypatch.setattr(_prune_lib.subprocess, "run", mock_lsof_missing)
+        # Patch prune_lib 的 subprocess.run (lsof 调用)
+        monkeypatch.setattr(prune_lib.subprocess, "run", mock_lsof_missing)
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,
@@ -63,7 +63,7 @@ class TestSprint116LsofMissingPath:
 
         验证: 真 PAR1 magic 的 .parquet 文件不被 magic check skip.
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 1 份真 PAR1 magic 的 .parquet 文件
         parquet = tmp_path / "a.parquet"
@@ -71,7 +71,7 @@ class TestSprint116LsofMissingPath:
         old_time = time.time() - 10 * 86400
         os.utime(parquet, (old_time, old_time))
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.parquet",),
             retention_days=2,
@@ -88,7 +88,7 @@ class TestSprint116LsofMissingPath:
 
         验证: 误 glob 到 .txt 改名为 .parquet 但 magic 不匹配 → magic check skip, 不误删.
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 1 份 .parquet 后缀但 magic 不是 PAR1 (模拟误 glob 到非 parquet)
         fake = tmp_path / "a.parquet"
@@ -96,7 +96,7 @@ class TestSprint116LsofMissingPath:
         old_time = time.time() - 10 * 86400
         os.utime(fake, (old_time, old_time))
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.parquet",),
             retention_days=2,
@@ -114,7 +114,7 @@ class TestSprint116LsofMissingPath:
 
         验证: 真 DUCK magic (offset 8) 的 .duckdb 文件不被 magic check skip.
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 1 份 .duckdb 文件, magic 在 offset 8 = 'DUCK' (DuckDB v0.9+ standard)
         duckdb_file = tmp_path / "a.duckdb"
@@ -124,7 +124,7 @@ class TestSprint116LsofMissingPath:
         old_time = time.time() - 10 * 86400
         os.utime(duckdb_file, (old_time, old_time))
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb",),
             retention_days=2,
@@ -142,7 +142,7 @@ class TestSprint116LsofMissingPath:
         验证: 没在 MAGIC_CHECKS table 的后缀走 default (trust caller), 不做 magic check.
         (e.g. .txt 文件, 没有 magic check 要求, caller 负责 glob 准确).
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 1 份 .txt 文件 (不在 MAGIC_CHECKS)
         txt = tmp_path / "a.txt"
@@ -150,7 +150,7 @@ class TestSprint116LsofMissingPath:
         old_time = time.time() - 10 * 86400
         os.utime(txt, (old_time, old_time))
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.txt",),
             retention_days=2,
@@ -168,7 +168,7 @@ class TestSprint116LsofMissingPath:
         验证: _prune_with_safety 返 (deleted_count, deleted_names) tuple,
         callers 拼回 '| files: ...' observability 字段 (跟 Sprint 111 一致).
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 3 份超 retention .duckdb.zst (5d/7d/10d)
         # mtime 5d 前 是最近的 (最新), mtime 10d 前 是最老的.
@@ -177,7 +177,7 @@ class TestSprint116LsofMissingPath:
         self._make_zst(tmp_path / "b.duckdb.zst", days_old=7)
         self._make_zst(tmp_path / "c.duckdb.zst", days_old=10)
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,
@@ -201,21 +201,21 @@ class TestSprint116LsofMissingPath:
         防止后人加新 suffix 但忘了更新 SSOT 引起 silent failure.
         跟 L4.20 SSOT 反漂移永久规则 + Sprint 90 L4.7 ground-truth-lint 防回归 模式一致.
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
-        # 3 个 suffix 必须都在 (Sprint 116 抽 _prune_lib 时确定)
-        assert set(_prune_lib.MAGIC_CHECKS.keys()) == {".parquet", ".duckdb", ".duckdb.zst"}, (
-            f"MAGIC_CHECKS keys 应是 3 个 suffix, 实际 {list(_prune_lib.MAGIC_CHECKS.keys())}"
+        # 3 个 suffix 必须都在 (Sprint 116 抽 prune_lib 时确定, Sprint 117 rename 去 _)
+        assert set(prune_lib.MAGIC_CHECKS.keys()) == {".parquet", ".duckdb", ".duckdb.zst"}, (
+            f"MAGIC_CHECKS keys 应是 3 个 suffix, 实际 {list(prune_lib.MAGIC_CHECKS.keys())}"
         )
         # magic bytes 跟 offset 验证 (Sprint 116 真治本 #D7)
-        assert _prune_lib.MAGIC_CHECKS[".parquet"] == (b"PAR1", 0), (
-            f".parquet magic 应是 (b'PAR1', 0), 实际 {_prune_lib.MAGIC_CHECKS['.parquet']}"
+        assert prune_lib.MAGIC_CHECKS[".parquet"] == (b"PAR1", 0), (
+            f".parquet magic 应是 (b'PAR1', 0), 实际 {prune_lib.MAGIC_CHECKS['.parquet']}"
         )
-        assert _prune_lib.MAGIC_CHECKS[".duckdb"] == (b"DUCK", 8), (
-            f".duckdb magic 应是 (b'DUCK', 8), 实际 {_prune_lib.MAGIC_CHECKS['.duckdb']}"
+        assert prune_lib.MAGIC_CHECKS[".duckdb"] == (b"DUCK", 8), (
+            f".duckdb magic 应是 (b'DUCK', 8), 实际 {prune_lib.MAGIC_CHECKS['.duckdb']}"
         )
-        assert _prune_lib.MAGIC_CHECKS[".duckdb.zst"] == (_prune_lib.ZSTD_MAGIC, 0), (
-            f".duckdb.zst magic 应是 (ZSTD_MAGIC, 0), 实际 {_prune_lib.MAGIC_CHECKS['.duckdb.zst']}"
+        assert prune_lib.MAGIC_CHECKS[".duckdb.zst"] == (prune_lib.ZSTD_MAGIC, 0), (
+            f".duckdb.zst magic 应是 (ZSTD_MAGIC, 0), 实际 {prune_lib.MAGIC_CHECKS['.duckdb.zst']}"
         )
 
     def test_retention_zero_deletes_all_above_keep_min(self, tmp_path):
@@ -225,7 +225,7 @@ class TestSprint116LsofMissingPath:
         验证: retention_days=0 时, KEEP_MIN=1 守护最新 1 份,
         其他 > 0d 全部删 (Sprint 111 必修 4 闭环 cap=0 误删全部 风险).
         """
-        from scripts.etl.common import _prune_lib
+        from scripts.etl.common import prune_lib
 
         # 造 3 份超 retention=0 (mtime 全部 > 0d → 都超 0d retention)
         # a.duckdb.zst 1d (最新, KEEP_MIN 守护内)
@@ -235,7 +235,7 @@ class TestSprint116LsofMissingPath:
         self._make_zst(tmp_path / "b.duckdb.zst", days_old=10)
         self._make_zst(tmp_path / "c.duckdb.zst", days_old=100)
 
-        deleted, deleted_names = _prune_lib._prune_with_safety(
+        deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=0,  # 极端边界: 0 天 retention (跟 Sprint 111 cap=0 风险对应)
@@ -253,7 +253,7 @@ class TestSprint116LsofMissingPath:
     def test_main_summary_includes_deleted_files_observability(self, tmp_path, monkeypatch):
         """Case 9 (Sprint 116 修 #D9 真测): cleanup_backups.py main() 拼 '| files: ...' observability.
 
-        验证: cleanup_backups.py main() 调 _prune_lib._prune_with_safety 返 Tuple[int, list[str]]
+        验证: cleanup_backups.py main() 调 prune_lib._prune_with_safety 返 Tuple[int, list[str]]
         后, summary 拼回 '| files: {names}' observability 字段 (跟 Sprint 111 一致).
         风险: Sprint 116 改 main() summary 格式后, observability regression 静默 fail.
         """
@@ -271,7 +271,7 @@ class TestSprint116LsofMissingPath:
         zst_a = self._make_zst(tmp_path / "backups" / "a.duckdb.zst", days_old=10)
         zst_b = self._make_zst(tmp_path / "backups" / "b.duckdb.zst", days_old=10)
 
-        # 调 main() (会调 _prune_lib._prune_with_safety 返 Tuple[int, list[str]])
+        # 调 main() (会调 prune_lib._prune_with_safety 返 Tuple[int, list[str]])
         exit_code = cleanup_backups.main()
 
         # 验证: exit 0 + 文件删 + log 含 '| files: ...' observability 字段

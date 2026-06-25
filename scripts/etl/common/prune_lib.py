@@ -1,17 +1,19 @@
-"""Sprint 116 抽 shared _prune_lib: cleanup_backups.py ↔ backup_duckdb.py 解耦 (修 #D8).
+"""Sprint 117 真 refactor: rename _prune_lib → prune_lib (修 #D11) + 4 项真治本 (修 #D11-#D14).
 
-Sprint 112 抽 _prune_with_safety 后, cleanup_backups.py:`from scripts.etl import backup_duckdb`
-拉起整个 backup_duckdb 模块, 包括 `from scripts.etl.common.lark import _send_lark_alert` +
-lark SDK 加载 (即使 _prune_with_safety 路径不调 lark). 这是隐性 side effect
-跟 Sprint 62 P3 launchd sandbox 教训同根因.
+Sprint 116 抽 _prune_lib 解耦 cleanup_backups.py ↔ backup_duckdb.py (修 #D8).
+Sprint 116 /review maintainability 反馈 4 项 defer:
+- #D11: '_' 前缀违反 PEP 8 private 约定 (跨模块访问 private 符号)
+- #D12: _matches_magic 返 False 时 log 丢 offset + actual magic bytes
+- #D13: case-sensitive glob mismatch (macOS APFS case-preserving vs Linux HFS+ case-insensitive)
+- #D14: longest-wins 依赖 dict iteration order (implicit contract)
 
-Sprint 116 修 #D8: 抽 scripts/etl/common/_prune_lib.py, 让 cleanup_backups.py + backup_duckdb.py
-都从 _prune_lib import _prune_with_safety + constants. cleanup_backups.py 不再 import backup_duckdb,
-backup_duckdb.py 仍然 import lark (因为 _send_lark_alert for loud_fail).
+Sprint 117 修:
+- #D11: rename _prune_lib.py → prune_lib.py (PEP 8 public, 跟 scripts/etl/common/lark.py 命名一致)
+- #D12: _matches_magic 改返 tuple[bool, str] (reason), caller log 完整信息 (offset + actual magic)
+- #D13: case-insensitive 匹配 (Path(p).suffix.lower() 跟 MAGIC_CHECKS key 都 lowercase)
+- #D14: 显式 sort longest first (sorted(MAGIC_CHECKS, key=len, reverse=True)), 不依赖 insertion order
 
-Sprint 116 同时修:
-- #D7: 加 per-extension magic check table (PAR1 / DUCK / ZSTD_MAGIC, 修 Sprint 112 隐性 gap)
-- #D9: 返 Tuple[int, list[str]] (cleanup_backups.py 拼回 '| files: ...' 字段, 修 observability regression)
+(解耦 from #D8 持续生效: cleanup_backups.py 不 import backup_duckdb, 避免拉起 lark SDK 副作用)
 """
 import subprocess
 from collections.abc import Callable
@@ -31,6 +33,9 @@ ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 # - .parquet: PAR1 at offset 0 (Apache Parquet format spec)
 # - .duckdb: DUCK at offset 8 (DuckDB v0.9+ standard marker, header magic + application ID)
 # - .duckdb.zst: ZSTD_MAGIC at offset 0 (Sprint 62.5 治根 B1)
+#
+# Sprint 117 修 #D14: 显式 sort longest-first (sorted(..., key=len, reverse=True)),
+# 不依赖 Python 3.7+ dict insertion order. 后人加新 suffix 不会因 insertion 顺序引入 bug.
 MAGIC_CHECKS: dict[str, tuple[bytes, int]] = {
     ".parquet": (b"PAR1", 0),
     ".duckdb": (b"DUCK", 8),
@@ -38,33 +43,58 @@ MAGIC_CHECKS: dict[str, tuple[bytes, int]] = {
 }
 
 
-def _matches_magic(p: Path) -> bool:
-    """Sprint 116 修 #D7: per-extension magic check.
+def _suffix_order() -> list[str]:
+    """Sprint 117 修 #D14: 显式 longest-first 顺序, 不依赖 dict iteration order.
 
-    Returns True if file's magic header matches expected (or unknown suffix → trust caller).
-    Returns False if magic mismatches → caller should skip via log_fn.
+    后人加新 suffix 到 MAGIC_CHECKS 时, 不必担心 insertion 顺序问题:
+    - .duckdb.zst (10) 排第一 (最长)
+    - .duckdb (7) 排第二
+    - .parquet (8) 排第三
+    排序后顺序: [.duckdb.zst, .parquet, .duckdb] (按 len desc)
     """
-    # 找最长匹配后缀 (优先 .duckdb.zst, 然后 .duckdb, 然后 .parquet, 然后其他)
+    return sorted(MAGIC_CHECKS.keys(), key=len, reverse=True)
+
+
+def _matches_magic(p: Path) -> tuple[bool, str]:
+    """Sprint 117 修 #D12+#D13: per-extension magic check 返 tuple[bool, str].
+
+    Returns (True, "matched {suffix}" or "trust caller (unknown suffix)") on success.
+    Returns (False, reason) on mismatch — reason 包含 offset + actual magic 信息, 好诊断.
+
+    Sprint 117 修 #D13: case-insensitive 匹配 (macOS APFS case-preserving
+    vs Linux HFS+ default case-insensitive). 用 Path(p).suffix.lower() 跟
+    MAGIC_CHECKS key 都 lowercase 比较.
+
+    Sprint 117 修 #D14: 用 _suffix_order() 显式 sort longest first.
+    """
+    # Sprint 117 修 #D13: case-insensitive suffix 比较
+    p_suffix = Path(p).suffix.lower()
     matched_suffix = None
-    for suffix in MAGIC_CHECKS:
-        if str(p).endswith(suffix):
-            # 选最长匹配 (e.g. .duckdb.zst 优先 .duckdb)
-            if matched_suffix is None or len(suffix) > len(matched_suffix):
-                matched_suffix = suffix
+    for suffix in _suffix_order():  # Sprint 117 修 #D14: 显式 sort
+        # 比较时两边都 lowercase (MAGIC_CHECKS key 设计已经是 lowercase)
+        if p_suffix == suffix.lower():
+            matched_suffix = suffix
+            break  # longest-first 排序, 第一个匹配就是 longest
 
     if matched_suffix is None:
-        return True  # 未知后缀, trust caller
+        return True, f"trust caller (unknown suffix {p_suffix!r})"
 
     expected_magic, offset = MAGIC_CHECKS[matched_suffix]
     try:
         with open(p, "rb") as f:
             header = f.read(offset + 4)
         if len(header) < offset + 4:
-            return False  # 文件太小, 不可能是合法 magic
+            return False, f"file too small (read {len(header)} bytes, need {offset + 4})"
         actual_magic = header[offset:offset + 4]
-        return actual_magic == expected_magic
-    except OSError:
-        return False  # open failed → 保守 skip (跟 lsof FileNotFoundError 一致)
+        if actual_magic == expected_magic:
+            return True, f"magic OK ({matched_suffix}: {expected_magic!r}@{offset})"
+        # Sprint 117 修 #D12: log 完整信息 (expected vs actual, 都含 offset)
+        return False, (
+            f"magic mismatch for {matched_suffix}: "
+            f"expected {expected_magic!r}@{offset}, got {actual_magic!r}@{offset}"
+        )
+    except OSError as e:
+        return False, f"open failed: {e}"
 
 
 def _prune_with_safety(
@@ -75,12 +105,14 @@ def _prune_with_safety(
     log_fn: Callable[[str], None],
 ) -> tuple[int, list[str]]:
     """Sprint 116 抽 shared _prune_with_safety (跨模块复用, 修 #D7+#D8+#D9).
+    Sprint 117 修 #D12: 调 _matches_magic 拿 reason, log 完整信息.
 
     8 项 safety check:
       1. mtime age > retention (避免误删最新)
       2. 保留 keep_min 最新份 (防 cap=0 误删全部)
       3. 文件 > 0 字节 (防空文件假象)
-      4. per-extension magic check (#D7 修: PAR1 / DUCK / ZSTD_MAGIC 跟 suffix 映射, 防误删非对应格式)
+      4. per-extension magic check (#D7 修: PAR1 / DUCK / ZSTD_MAGIC 跟 suffix 映射, 防误删非对应格式;
+         Sprint 117 修 #D12+#D13: tuple 返值 + case-insensitive, 完整 log reason)
       5. lsof 0 fd (无活跃 fd, lsof 不可用时保守放行 #D10)
       6. caller-side invariant (本次刚生成的 mtime 极新不会超 retention 阈值)
       7. sorted by mtime desc (最新优先保留)
@@ -96,12 +128,6 @@ def _prune_with_safety(
     Returns:
         (deleted_count, deleted_names) tuple. Sprint 116 修 #D9 改返 Tuple[int, list[str]]
         (vs Sprint 112 返 int). callers 拼回 '| files: ...' observability 字段.
-
-    Sprint 116 改动:
-    - 修 #D7: 加 _matches_magic() per-extension magic check (PAR1 / DUCK / ZSTD_MAGIC)
-    - 修 #D8: 从 scripts/etl/common/_prune_lib.py export, cleanup_backups.py 不再 import backup_duckdb
-    - 修 #D9: 返 Tuple[int, list[str]] (跟 Sprint 111 main() '| files: ...' observability 字段对齐)
-    - 修 #D10: lsof FileNotFoundError 走保守放行 (Sprint 112 已实施, Sprint 116 加 test coverage)
     """
     try:
         all_files = []
@@ -130,9 +156,11 @@ def _prune_with_safety(
         if size <= 0:
             log_fn(f"prune: skip {p.name} (size={size})")
             continue
-        # 4: per-extension magic check (Sprint 116 修 #D7)
-        if not _matches_magic(p):
-            log_fn(f"prune: skip {p.name} (magic check failed)")
+        # 4: per-extension magic check (Sprint 116 修 #D7 + Sprint 117 修 #D12+#D13: tuple 返值)
+        ok, reason = _matches_magic(p)
+        if not ok:
+            # Sprint 117 修 #D12: log 完整 reason (offset + actual magic)
+            log_fn(f"prune: skip {p.name} ({reason})")
             continue
         # 5: lsof 0 fd (Sprint 116 修 #D10: FileNotFoundError 保守放行已实施, 加 test coverage)
         try:
