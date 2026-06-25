@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-25 (Sprint 116 真 refactor 修 #D7-#D10: 抽 _prune_lib 解耦 cleanup_backups ↔ backup_duckdb (留尾治理 sprint, 修 Sprint 112 /review defer #D7-#D10, 跟 Sprint 99+100+101+102+103+104+105+110+111+112 模式 一致), 5 文件 +498/-110 行 (scripts/etl/common/_prune_lib.py NEW 抽 shared lib 含 _prune_with_safety + MAGIC_CHECKS table + _matches_magic helper + BJ_TZ + ZSTD_MAGIC constants, scripts/etl/backup_duckdb.py 抽 110 行 → 0 行 _prune_old_backups 变 thin wrapper, scripts/etl/cleanup_backups.py 修 #D8 from _prune_lib 替代 backup_duckdb import 避免拉起 lark SDK + 修 #D9 拼回 '| files: ...' observability 字段 + 修 #D7 per-extension magic check (PAR1@0 / DUCK@8 / ZSTD_MAGIC@0) + 修 #D10 lsof FileNotFoundError 保守放行 test coverage, test_sprint116_lsof_missing_path.py NEW 9 case, test_sprint112_cleanup_backups_refactor.py sed import path 适配 _prune_lib + Tuple unpacking). pytest 27 passed / 23 skipped / 0 failed (+3 vs Sprint 112 24 baseline), 累计 59 sprint 0 debt 持续 (+1 vs Sprint 112), main HEAD `74de50fb` (Sprint 116 merge --no-ff amend 2 次 L4.14, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 4 项 defer (#D11 _prune_lib '_' 前缀 PEP 8 + #D12 _matches_magic log observability + #D13 case-sensitive glob + #D14 longest-wins dict order 留尾 Sprint 117+ 一起修)
+**最后更新**: 2026-06-25 (Sprint 117 真 refactor 修 #D11-#D14: rename _prune_lib → prune_lib + tuple 返值 + case-insensitive + 显式 sort (留尾治理 sprint, 修 Sprint 116 /review maintainability defer 4 项, 跟 Sprint 99+100+101+102+103+104+105+110+111+112+116 模式 一致), 5 文件 +314/-88 行 (scripts/etl/common/_prune_lib.py → prune_lib.py rename 去 '_' 前缀 PEP 8 public, 修 #D11 + _matches_magic 改返 tuple[bool, str] 含 offset + actual magic info 完整 log observability, 修 #D12 + Path(p).suffix.lower() case-insensitive 跨平台一致 macOS APFS / Linux HFS+, 修 #D13 + _suffix_order() helper 显式 sorted(MAGIC_CHECKS, key=len, reverse=True) 不依赖 dict insertion order, 修 #D14 + scripts/etl/backup_duckdb.py + scripts/etl/cleanup_backups.py 2 caller 改 import path, 2 老 test file sed rename, test_sprint117_prune_lib_refactor.py NEW 5 case 真测). pytest 832 passed / 23 skipped / 0 failed (+5 vs Sprint 116 27 baseline), 累计 60 sprint 0 debt 持续 (+1 vs Sprint 116 59), main HEAD `0a10f13` (Sprint 117 merge --no-ff, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增), 0 业务代码改动外的越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守), /review 0 finding (范围严格对应 #D11-#D14 真治本, 0 越界)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `74de50fb` (Sprint 116 merge；L4.14 amend 物理限制接受 1 commit drift, 跟 Sprint 100+101+102+104+110+111+112 累计 9 sprint amend 模式 stable) |
+| git HEAD (main) | `0a10f13` (Sprint 117 merge) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 116 (留尾治理 sprint, 抽 _prune_lib 解耦 cleanup_backups ↔ backup_duckdb, 修 #D7-#D10, 5 文件 +498/-110 行, VERSION 不 bump) |
+| 最近 sprint | Sprint 117 (留尾治理 sprint, rename _prune_lib → prune_lib 修 #D11-#D14, 5 文件 +314/-88 行, VERSION 不 bump) |
 | 收口日 | 2026-06-25 |
-| 上次合入 | Sprint 116 (merge commit `74de50fb`，抽 _prune_lib 修 #D7-#D10 + L4.x 永久规则 22 stable 维护) |
+| 上次合入 | Sprint 117 (merge commit `0a10f13`, rename _prune_lib → prune_lib 修 #D11-#D14 + L4.x 永久规则 22 stable 维护) |
 
 ---
 
@@ -23,7 +23,7 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **827** | Sprint 116 全量复验, +2 vs Sprint 115 baseline (Sprint 116 new 9 case vs Sprint 115 0 case) |
+| pytest passed | **832** | Sprint 117 全量复验, +5 vs Sprint 116 baseline (Sprint 117 new 5 case) |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
 | pytest failed | **0** | Sprint 116 全量 `python3 -m pytest --tb=no -q` 复验，Sprint 100 模拟 CI shallow clone (--depth 1) 4/4 PASS |
 | e2e (Playwright) | **12/12 smoke (blocking)** | Sprint 60.3+ C+: UI smoke + API 5xx 拦截, 不再依赖 production DuckDB |

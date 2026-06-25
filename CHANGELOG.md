@@ -4,6 +4,30 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `cat CHANGELOG_HISTORY.md` 或 `git log --oneline -- CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-25 (Sprint 117, VERSION 不变 留尾治理 sprint)
+
+### Changed
+- **rename `scripts/etl/common/_prune_lib.py` → `prune_lib.py` (修 #D11 PEP 8 public)**: Sprint 117 真 refactor 修 Sprint 116 /review maintainability defer 4 项第 1 项. '_' 前缀违反 PEP 8 private 约定 (跨模块访问, 跟 scripts/etl/common/lark.py 命名风格不一致). 跨模块 callers (cleanup_backups.py + backup_duckdb.py) 改 `from scripts.etl.common import prune_lib` (跨模块访问 public 合法). 老的 `from scripts.etl.common import _prune_lib` 现在 raise ImportError (Case 1 测出).
+- **`prune_lib._matches_magic` 返 `tuple[bool, str]` (修 #D12 完整 log observability)**: Sprint 116 改返 bool 时 log 丢 offset + actual magic bytes info, 跟 Sprint 60+ 留尾 #D7 修法初心 (debug 误 glob 错) 冲突. Sprint 117 改返 `(ok: bool, reason: str)`. reason 含 offset + actual magic (e.g. `"magic mismatch for .parquet: expected b'PAR1'@0, got b'XXXX'@0"`). caller `_prune_with_safety` log 完整 reason, 好诊断误 glob 错.
+- **`prune_lib._matches_magic` case-insensitive 匹配 (修 #D13 跨平台一致)**: Sprint 116 用 `str(p).endswith(suffix)` 大小写敏感, macOS APFS case-preserving 跟 Linux HFS+ default case-insensitive 行为不一致. Sprint 117 改用 `Path(p).suffix.lower() == suffix.lower()`. `.PARQUET` / `.Parquet` / `.PaRqUeT` 混合大小写都跟 .parquet PAR1 magic 匹配 (Case 3 验证 3 case PASS).
+- **`prune_lib._suffix_order()` 显式 longest-first sort (修 #D14 不依赖 dict iteration order)**: Sprint 116 依赖 Python 3.7+ dict insertion order 选 longest suffix (implicit contract, 后人加新 suffix 不注意顺序会引入 bug). Sprint 117 抽 `_suffix_order()` helper 显式 `sorted(MAGIC_CHECKS, key=len, reverse=True)` (Case 4 验证顺序: `.duckdb.zst` (10) → `.parquet` (8) → `.duckdb` (7)). 后人加新 suffix 到 MAGIC_CHECKS 任何位置, `_matches_magic` 仍 longest-first 选.
+
+### Added
+- **`backend/tests/test_sprint117_prune_lib_refactor.py` NEW 5 case regression**: 修 #D11-#D14 4 项真测. case 1 (`prune_lib` public module + 旧 `_prune_lib` ImportError) + case 2 (`_matches_magic` 返 tuple[bool, str] 含 expected/got/@offset) + case 3 (`.PARQUET`/`.DuckDB`/`.DUCKDB.zst` 大小写混用都通过 magic check) + case 4 (`_suffix_order` 显式 longest-first) + case 5 (`_prune_with_safety` Tuple 返值持续生效, callers 0 改动). pytest 832/23/0 PASS (+5 vs Sprint 116 27 baseline).
+
+### Sprint 流程
+- 留尾治理 sprint 模式触发 = 修 Sprint 116 /review defer 4 项 (#D11-#D14), 0 越界 + 0 永久规则追加 (L4.21 反 sprint 自我反馈闭环遵守)
+- L4.7 launchd 永久规则持续合规 (cleanup_backups.py 修 #D8 仍不拉起 lark SDK, rename 不改 lark 解耦本质)
+- /review skill 0 finding (范围 5 file +314/-88 行, 严格对应 #D11-#D14 真治本, 0 越界)
+- 跑通验收: pytest 832/23/0 (+5 vs Sprint 116 27 baseline) + ruff + ground-truth lint + P1-3 review (pre-commit hook) 全过
+- 12 步流程: 切 fix/sprint117-fix-d11-d14-prune-lib-refactor → rename + tuple + case-insensitive + sort + 5 case test → /review skill → 0 finding → commit (4954a52) → push origin branch → pre-push pytest 2/2 PASS "真验证回归" → merge --no-ff (0a10f13) → /document-release 3 文档 + push origin main (L4.15 user 拍板, "你决定" 隐含)
+- pytest baseline 832/23/0 持续 0 回归 (Sprint 116 → 117, 累计 60 sprint 0 debt, +1 vs Sprint 116 59), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 26 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117)
+- 实战 fix 模式库 #9 (Sprint 89 暂收口反馈终止后累计 10 真业务 sprint: Sprint 90+92+96.5+97+98+104+105+111+112+116+117)
+
+### Sprint 117 /review 0 finding
+- 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 #D11-#D14 4 项真治本, 0 越界.
+
 ## [0.4.14.157] - 2026-06-25 (Sprint 116, VERSION 不变 留尾治理 sprint)
 
 ### Changed
