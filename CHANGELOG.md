@@ -4,6 +4,51 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `git log --oneline -- CHANGELOG.md` 或 `git show <commit>:CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-26 (Phase 2.1, VERSION 不变 真业务 sprint - 删路由 frontend only)
+
+### Removed (frontend only, 0 backend 改动 - Phase 2.2-2.7 separate sprint, L4.8 严格分)
+- **删 /breakdown + /churn 路由 (前端 only)**: 8 files +0/-974 (pure delete, 0 insertion, 跟 Sprint 104 /visitor 教训 "3 文件 -25 行纯删除" 同模式, 这次 8 文件 -974 行跨 5 层面).
+  - 改 `frontend-vue3/src/router/index.ts` 删 /churn + /breakdown 2 个 route config (4 行 lazy import + 路由内容)
+  - 改 `frontend-vue3/src/components/Sidebar.vue` 删 2 个 menuOptions (一键拆解 + 流失分析)
+  - 删 6 整文件: 2 view (BreakdownView + ChurnView) + 2 api client (api/breakdown + api/churn) + 2 e2e spec (e2e/breakdown + e2e/churn)
+- **L4.22 实战 fix 模式二次触发**: vite preview 跑 dist/, source 改完 (Phase 2.1) dist rebuild 720ms + 0 残留 + kill 旧 vite preview (PID 68444) + nohup restart (PID 19052) + HTTP 200 6ms.
+
+### Sprint 流程
+- Phase 1 收口后用户拍板 "删除 /breakdown /churn 板块, 不再开发了, 就删除" — 触发 Phase 2 跨 sprint 删路由真业务 sprint.
+- 3-agent parallel 复核调用链 (frontend / backend / 跨切面, 用户明示 "拉 workflow") 找出 2 个第一轮漏点 (Sidebar menuOptions 菜单项 + e2e spec 文件) + 1 个 lint.yml paths filter 高风险 (e2e job 跑 `npx playwright test` 找不到 spec 会 FAIL, 已列入 Phase 2.6 后续 sprint).
+- **命名冲突核查关键发现**: `backend/services/category_service/churn.py` 跟 /churn 路由同名但不同 (B 类 category 模块内部 utility, 由 `backend/routers/category.py:37,254-266` 调 `get_category_churn` 验证, 保留不动). 跟 Sprint 104 /visitor 教训 "后端 /api/v1/visitor/* 评估后保留" 同根因 — 改 schema 必查 callers (Sprint 109 实战 fix 模式).
+- L4.8 实战 fix 模式严格分 sprint: Phase 2.1 frontend only, Phase 2.2-2.7 (后端 router + service + contract + tests + CI lint.yml) 是 separate sprint, 避免 1 大 commit 跨 30+ 文件 review 难.
+- 12 步流程: `git checkout -b chore/remove-frontend-breakdown-and-churn` → 删 6 整文件 + Edit 2 文件 (router + Sidebar) → vite build 702ms → pytest --co 880/0 errors → ground-truth-lint --staged 0 finding → /review skill (0 finding, gstack SKILL.md checklist 缺失用项目内 L4.7 替代) → commit 4740f64 → push origin → /qa skill (gstack browse binary 缺失, 替代) → merge --no-ff 06a1fc5 → push origin main → pull --ff-only 0 drift → L4.22 rebuild + kill + restart.
+- L4.8 留尾治理 (24h 内): `git branch -d fix/remove-three-view-overlays` + `git branch -d chore/remove-frontend-breakdown-and-churn` (本地删除, 远程删待 user 拍板 push 拍板点).
+- L4.11 Codex turn-diffs checkpoint refs cleanup: `git for-each-ref --format='delete %(refname)' refs/codex/turn-diffs/checkpoints/ | git update-ref --stdin` (0 ref, 项目可能没用 Codex 桌面端, 跟 Sprint 66 模式 stable).
+- v0.4.14.157 不变 (前端 sprint, 留尾治理 sprint 模式, 跟 Sprint 89 暂收口 + Sprint 67+68+89+104 模式 stable).
+- L4.x 22 stable 0 新增 (L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加).
+- 累计 sprint 治理循环: 61 → 62 (Phase 2.1 = 1 sprint).
+- 累计 0 debt sprint: 61 → 62.
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 35 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120+121+122+123+124+125+126+Phase 1+Phase 2.1).
+
+### /review 0 finding
+- 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 8 files 974 lines pure delete, 0 越界. gstack /review SKILL.md checklist 缺失, 用项目内 L4.7 ground-truth-lint 0 finding 替代.
+
+## [0.4.14.157] - 2026-06-26 (Phase 1, VERSION 不变 真业务 sprint - 去遮罩)
+
+### Fixed (frontend only, 0 backend 改动)
+- **L4.22 实战 fix 模式根因**: vite preview 跑 `frontend-vue3/dist/` 不是 source, source 改完 dist 没 rebuild 用户看到的是旧 dist 代码 (遮罩文案 "待优化更新 / 该模块正在重构中, 敬请期待"). 用户报 bug 后 1 sprint 1 范围 1 真业务闭环.
+- **删 3 view 遮罩 div** (BreakdownView + ChurnView + GeoView): 3 files +3/-30 (9 行 div + 3 relative 孤儿 class 清理). L4 #3 准则 "只清理自己制造的混乱" 严格遵守.
+- 触发 L4.22 SOP 完整: `npm run build` 791ms rebuild + `find dist/assets -name "*.js" -exec grep -l "待优化更新/重构中/敬请期待"` 0 残留 + kill 旧 vite preview (PID 70095) + nohup restart (PID 68444) + HTTP 200 健康检查.
+
+### Sprint 流程
+- 用户报 bug "目前我项目有一键拆解、流失分析、地域分析三个有遮罩的板块, 先去掉遮罩" (Phase 1 触发).
+- 12 步流程: `git checkout -b fix/remove-three-view-overlays` (CLAUDE.md 强制: 禁止在 main 改代码) → Edit 3 view file (删 9 行 div + 3 relative class) → pre-commit hook 跑通 npm run build (791ms) → commit cad8df8 → push origin → merge --no-ff c640e5f → push origin main → pull --ff-only 0 drift → L4.22 rebuild + kill + restart.
+- v0.4.14.157 不变 (前端 sprint, 留尾治理 sprint 模式).
+- L4.x 22 stable 0 新增 (L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加).
+- 累计 sprint 治理循环: 60 → 61 (Phase 1 = 1 sprint).
+- 累计 0 debt sprint: 60 → 61.
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 34 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120+121+122+123+124+125+126+Phase 1).
+
+### /review 0 finding
+- 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 3 view 9 行 div 删除 + 3 relative class 清理, 0 越界.
+
 ## [0.4.14.157] - 2026-06-25 (Sprint 126, VERSION 不变 留尾治理 sprint)
 
 ### Removed
