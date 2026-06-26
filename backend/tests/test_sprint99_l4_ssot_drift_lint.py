@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "backend/scripts/check_ssot_drift.py"
-HANDOFF = ROOT / "docs/sprints/HANDOFF-TO-CODEX-Sprint99-Close-LongTail11-SSOT-Drift.md"
+STATUS = ROOT / "STATUS.md"
 FIX_COMMIT = "287efb8"
 
 
@@ -17,15 +17,14 @@ def test_sprint99_close_memory_references_real_fix_commit_sha() -> None:
     # Sprint 99 实施时本地能 PASS, CI fail (returncode 128 = "Not a valid object").
     # 治根 = 移除 git cat-file -e 验证 (CI fresh checkout 拿不到历史),
     # commit SHA 真存在验证 留给 check_ssot_drift.py 在 main merge 后跑 (有完整 git history).
-    # 保留字符串验证 `commit={FIX_COMMIT}` in HANDOFF, 符合 L4.20 永久规则本意
-    # (留尾 close memory 必引用前 sprint 真修 commit SHA, 结构化 record 强制).
-    text = HANDOFF.read_text(encoding="utf-8")
-    assert f"commit={FIX_COMMIT}" in text
+    # Sprint 127: HANDOFF 文件被 Sprint 126 删了, 信息已迁移到 STATUS.md 第 44 行.
+    text = STATUS.read_text(encoding="utf-8")
+    assert FIX_COMMIT in text
 
 
 def test_sprint99_close_memory_marks_longtail_11_closed() -> None:
-    text = HANDOFF.read_text(encoding="utf-8")
-    assert "留尾 #11 | ✅ 闭环" in text
+    text = STATUS.read_text(encoding="utf-8")
+    assert "留尾 #11 ✅ 闭环" in text
 
 
 def test_ssot_drift_lint_detects_unmarked_longtail(tmp_path: Path) -> None:
