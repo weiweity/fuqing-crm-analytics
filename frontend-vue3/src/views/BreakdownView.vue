@@ -202,16 +202,7 @@ function fmtPct(v?: number | null) { return v == null ? '—' : `${(v * 100).toF
 </script>
 
 <template>
-  <div class="relative">
-    <!-- 待优化更新遮罩 -->
-    <div class="absolute inset-0 z-50 flex items-center justify-center bg-slate-50/80 backdrop-blur-sm rounded-lg" style="min-height: 600px;">
-      <div class="text-center">
-        <div class="text-4xl mb-2">🔧</div>
-        <div class="text-lg font-semibold text-slate-600">待优化更新</div>
-        <div class="text-sm text-slate-400 mt-1">该模块正在重构中，敬请期待</div>
-      </div>
-    </div>
-
+  <div>
     <PageHeader title="一键拆解" subtitle="基于历史数据与目标GSV，自动拆解新老客贡献" />
 
     <!-- 配置表单 -->

@@ -245,16 +245,7 @@ function formatCurrency(value: number) {
 </script>
 
 <template>
-  <div class="space-y-5 relative">
-    <!-- 待优化更新遮罩 -->
-    <div class="absolute inset-0 z-50 flex items-center justify-center bg-slate-50/80 backdrop-blur-sm rounded-lg" style="min-height: 600px;">
-      <div class="text-center">
-        <div class="text-4xl mb-2">🔧</div>
-        <div class="text-lg font-semibold text-slate-600">待优化更新</div>
-        <div class="text-sm text-slate-400 mt-1">该模块正在重构中，敬请期待</div>
-      </div>
-    </div>
-
+  <div class="space-y-5">
     <PageHeader title="地域分析" subtitle="省份分布与地域-人群交叉洞察" />
 
     <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
