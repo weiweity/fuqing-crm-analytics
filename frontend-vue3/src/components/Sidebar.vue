@@ -10,8 +10,6 @@ const menuOptions = [
   { label: '品类看板', key: '/category' },
   { label: '市场对焦', key: '/market-focus' },
   { label: '派样看板', key: '/sampling' },
-  { label: '一键拆解', key: '/breakdown' },
-  { label: '流失分析', key: '/churn' },
   { label: '地域分析', key: '/geo' },
 ]
 

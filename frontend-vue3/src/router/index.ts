@@ -30,11 +30,6 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '老客分析', requiresAuth: true },
   },
   {
-    path: '/churn',
-    component: () => import('@/views/ChurnView.vue'),
-    meta: { title: '流失分析', requiresAuth: true },
-  },
-  {
     path: '/geo',
     component: () => import('@/views/GeoView.vue'),
     meta: { title: '地域分析', requiresAuth: true },
@@ -48,11 +43,6 @@ const routes: RouteRecordRaw[] = [
     path: '/sampling',
     component: () => import('@/views/SamplingView.vue'),
     meta: { title: '派样看板', requiresAuth: true },
-  },
-  {
-    path: '/breakdown',
-    component: () => import('@/views/BreakdownView.vue'),
-    meta: { title: '一键拆解', requiresAuth: true },
   },
 ]
 
