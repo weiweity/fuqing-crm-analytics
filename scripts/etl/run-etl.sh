@@ -99,6 +99,20 @@ trap cleanup_ticker EXIT INT TERM HUP PIPE QUIT   # Sprint 105 /review 必修: �
 #    跑完 ETL 后重新 launchctl bootstrap 加载, RunAtLoad=true 会自动启动 uvicorn.
 #    之前用 SIGTERM + sleep 2, launchd 会在 ThrottleInterval=5s 后重启新 uvicorn,
 #    新进程在 FastAPI startup 打开 DuckDB 锁, 跟 ETL 抢锁 (Sprint 105).
+#    Sprint 128 fix #S105-2: cross-user check, 如果 uvicorn 由其他用户启动, 跳过 bootout
+_UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
+if [ -n "$_UVICORN_PID" ]; then
+    _UVICORN_UID=$(ps -o uid= -p "$_UVICORN_PID" 2>/dev/null | tr -d ' ')
+    if [ -n "$_UVICORN_UID" ] && [ "$_UVICORN_UID" != "$UID" ]; then
+        echo "  ⚠️  uvicorn (PID $_UVICORN_PID) 由 UID $_UVICORN_UID 启动 (当前 UID $UID), 跳过 bootout, 直接 SIGTERM"
+        kill "$_UVICORN_PID" 2>/dev/null
+        sleep 3
+        if lsof -ti :8000 >/dev/null 2>&1; then
+            kill -9 "$(lsof -ti :8000 2>/dev/null | head -1)" 2>/dev/null
+            sleep 1
+        fi
+    fi
+fi
 if launchctl list 2>/dev/null | grep -q "com.fuqing.uvicorn"; then
     echo "  🔄 临时卸载 com.fuqing.uvicorn plist (防 launchd KeepAlive 重启)..."
     if launchctl bootout "gui/$UID/com.fuqing.uvicorn" 2>/dev/null; then
@@ -111,16 +125,32 @@ if launchctl list 2>/dev/null | grep -q "com.fuqing.uvicorn"; then
         done
         echo "  ✅ plist 已卸载, 8000 端口已释放 (wait ${_wait}s), launchd 不再自动重启 uvicorn"
     else
-        echo "  ⚠️  launchctl bootout 失败, fallback 到 SIGTERM 杀 uvicorn (旧 Sprint 93 行为, 有 race condition 风险)"
-        UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
-        if [ -n "$UVICORN_PID" ]; then
-            kill "$UVICORN_PID" 2>/dev/null
-            sleep 8
-            if lsof -ti :8000 >/dev/null 2>&1; then
-                UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
-                kill -9 "$UVICORN_PID" 2>/dev/null
-                sleep 2
+        # Sprint 128 fix #S105-1: SIGTERM fallback 重试 3 次, 避免 launchd KeepAlive 重启导致死循环
+        echo "  ⚠️  launchctl bootout 失败, fallback 到 SIGTERM 杀 uvicorn (重试 3 次, 避免 KeepAlive 死循环)"
+        _sigterm_retry=0
+        while [ $_sigterm_retry -lt 3 ]; do
+            UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
+            if [ -z "$UVICORN_PID" ]; then
+                echo "  ✅ 8000 端口已释放 (SIGTERM retry $_sigterm_retry)"
+                break
             fi
+            kill "$UVICORN_PID" 2>/dev/null
+            sleep 3
+            if ! lsof -ti :8000 >/dev/null 2>&1; then
+                echo "  ✅ uvicorn 已退出 (SIGTERM PID $UVICORN_PID)"
+                break
+            fi
+            # SIGTERM 无效, 用 SIGKILL
+            UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
+            kill -9 "$UVICORN_PID" 2>/dev/null
+            sleep 2
+            _sigterm_retry=$(( _sigterm_retry + 1 ))
+        done
+        # 最终检查
+        if lsof -ti :8000 >/dev/null 2>&1; then
+            echo "  ❌ SIGTERM fallback 3 次重试后 8000 端口仍被占用, 手动 kill 后重试:"
+            echo "     lsof -ti :8000 | xargs kill -9"
+            exit 1
         fi
     fi
 else
