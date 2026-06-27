@@ -486,46 +486,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/churn/distribution": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Churn Distribution Api
-         * @description 各象限流失风险分布
-         */
-        get: operations["get_churn_distribution_api_api_v1_churn_distribution_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/churn/risk": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Churn Risk Users Api
-         * @description 高流失风险用户列表
-         */
-        get: operations["get_churn_risk_users_api_api_v1_churn_risk_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/asset/summary": {
         parameters: {
             query?: never;
@@ -1130,33 +1090,6 @@ export interface paths {
         get: operations["get_rfm_cache_keys_api_v1_rfm_cache_keys_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/breakdown/one-click": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Get One Click Breakdown Api
-         * @description 一键拆解 v2 — GSV only
-         *
-         *     支持两种模式：
-         *     - forward（顺拆）：从现状数据预估，计算目标gap
-         *     - reverse（倒拆）：从目标反推各R区间/渠道所需人数/UV
-         *
-         *     老客拆解：按R区间（6档）× F段（F>1/F=1）逐层预估
-         *     新客拆解：按渠道漏斗逐渠道预估
-         */
-        post: operations["get_one_click_breakdown_api_api_v1_breakdown_one_click_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1875,273 +1808,73 @@ export interface components {
             logs?: components["schemas"]["AuditLogItem"][];
         };
         /**
-         * BreakdownGapSuggestion
-         * @description 补gap建议
+         * CategoryChurnItem
+         * @description 品类流失预警-散点/条形/表格通用字段
          */
-        BreakdownGapSuggestion: {
+        CategoryChurnItem: {
+            /** Category Name */
+            category_name: string;
+            /** Current Users */
+            current_users: number;
             /**
-             * Dimension
-             * @description 维度：老客/新客/总店
-             */
-            dimension: string;
-            /**
-             * Gap Amount
-             * @description gap金额（顺拆）
-             */
-            gap_amount?: number | null;
-            /**
-             * Gap Users
-             * @description gap人数（倒拆）
-             */
-            gap_users?: number | null;
-            /**
-             * Uv Gap
-             * @description UV缺口（倒拆新客）
-             */
-            uv_gap?: number | null;
-            /**
-             * Suggestions
-             * @description 建议列表
-             */
-            suggestions?: string[];
-            /**
-             * Priority
-             * @description 优先级 P0/P1/P2
-             * @default P1
-             */
-            priority: string;
-        };
-        /**
-         * BreakdownLogic
-         * @description 拆解逻辑说明（前端展示公式和知识引用）
-         */
-        BreakdownLogic: {
-            /**
-             * Old Customer Formula
-             * @description 老客拆解公式
-             */
-            old_customer_formula: string;
-            /**
-             * Old Customer Source
-             * @description 老客拆解知识来源
-             */
-            old_customer_source: string;
-            /**
-             * New Customer Formula
-             * @description 新客拆解公式
-             */
-            new_customer_formula: string;
-            /**
-             * New Customer Source
-             * @description 新客拆解知识来源
-             */
-            new_customer_source: string;
-        };
-        /**
-         * BreakdownMeta
-         * @description 拆解元数据
-         */
-        BreakdownMeta: {
-            /**
-             * Activity Type
-             * @description 活动类型
-             */
-            activity_type: string;
-            /**
-             * Repurchase Adjustment
-             * @description 回购率调整系数
-             */
-            repurchase_adjustment: number;
-            /**
-             * Metric Type
-             * @description 指标类型（固定GSV）
-             * @default GSV
-             */
-            metric_type: string;
-        };
-        /**
-         * BreakdownNewCustomer
-         * @description 新客拆解结果 v2
-         */
-        BreakdownNewCustomer: {
-            /**
-             * New Users Total
-             * @description 新客总人数（顺拆有值）
-             */
-            new_users_total?: number | null;
-            /**
-             * New Gmv Target
-             * @description 新客目标GSV
-             */
-            new_gmv_target: number;
-            /**
-             * New Gmv Estimate
-             * @description 新客预估GSV（顺拆有值）
-             */
-            new_gmv_estimate?: number | null;
-            /**
-             * New Gmv Gap
-             * @description 新客gap（顺拆有值）
-             */
-            new_gmv_gap?: number | null;
-            /**
-             * Channel Breakdown
-             * @description 新客渠道拆解明细
-             */
-            channel_breakdown?: unknown[];
-            /**
-             * Uv Reference
-             * @description 参考UV
+             * Previous Users
              * @default 0
              */
-            uv_reference: number;
+            previous_users: number;
             /**
-             * Member Join Rate
-             * @description 参考入会率 0-1 decimal
+             * Mom Change Rate
+             * @description 环比变化率 0-1 decimal, 可负
+             */
+            mom_change_rate: number;
+            /**
+             * Inter Churn
              * @default 0
              */
-            member_join_rate: number;
+            inter_churn: number;
             /**
-             * Needed Uv
-             * @description 所需UV（倒拆）
+             * Silent Churn
+             * @default 0
              */
-            needed_uv?: number | null;
+            silent_churn: number;
             /**
-             * Uv Gap
-             * @description UV缺口（倒拆）
+             * Top Churn Dest1
+             * @default
              */
-            uv_gap?: number | null;
-        };
-        /**
-         * BreakdownOldCustomer
-         * @description 老客拆解结果 v2
-         */
-        BreakdownOldCustomer: {
+            top_churn_dest1: string;
             /**
-             * Old Users Total
-             * @description 老客总人数
+             * Top Churn Dest1 Ratio
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
              */
-            old_users_total: number;
+            top_churn_dest1_ratio: number;
             /**
-             * Old Gmv Target
-             * @description 老客目标GSV
+             * Top Churn Dest2
+             * @default
              */
-            old_gmv_target: number;
+            top_churn_dest2: string;
             /**
-             * Old Gmv Estimate
-             * @description 老客预估GSV（顺拆有值，倒拆为None）
+             * Top Churn Dest2 Ratio
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
              */
-            old_gmv_estimate?: number | null;
+            top_churn_dest2_ratio: number;
             /**
-             * Old Gmv Gap
-             * @description 老客gap（顺拆有值，倒拆为None）
+             * 挽回建议
+             * @default
              */
-            old_gmv_gap?: number | null;
-            /**
-             * R Interval Breakdown
-             * @description R区间×F段拆解明细
-             */
-            r_interval_breakdown?: unknown[];
-        };
-        /**
-         * BreakdownRequest
-         * @description 一键拆解请求 v2
-         */
-        BreakdownRequest: {
-            /**
-             * Target Gmv
-             * @description 全店GSV目标（元）
-             */
-            target_gmv: number;
-            /**
-             * Activity Start
-             * @description 活动开始日期 YYYY-MM-DD
-             */
-            activity_start: string;
-            /**
-             * Activity End
-             * @description 活动结束日期 YYYY-MM-DD
-             */
-            activity_end: string;
-            /**
-             * Last Year Start
-             * @description 去年同期开始 YYYY-MM-DD（不传则自动推算）
-             */
-            last_year_start?: string | null;
-            /**
-             * Last Year End
-             * @description 去年同期结束 YYYY-MM-DD（不传则自动推算）
-             */
-            last_year_end?: string | null;
-            /**
-             * Old Customer Ratio Target
-             * @description 老客占比目标（默认60%）
-             * @default 0.6
-             */
-            old_customer_ratio_target: number | null;
-            /**
-             * Breakdown Mode
-             * @description 拆解模式：forward(顺拆) 或 reverse(倒拆)
-             * @default forward
-             */
-            breakdown_mode: string;
-        };
-        /**
-         * BreakdownResponse
-         * @description 一键拆解响应 v2
-         */
-        BreakdownResponse: {
-            /**
-             * Mode
-             * @description 拆解模式：forward 或 reverse
-             */
-            mode: string;
-            /**
-             * Mode Label
-             * @description 拆解模式中文标签
-             */
-            mode_label: string;
-            /**
-             * Target Gmv
-             * @description 目标GSV
-             */
-            target_gmv: number;
-            /**
-             * Total Estimate
-             * @description 总预估GSV（顺拆有值，倒拆为None）
-             */
-            total_estimate?: number | null;
-            /**
-             * Total Gap
-             * @description 总gap（顺拆有值，倒拆为None）
-             */
-            total_gap?: number | null;
-            /**
-             * Gap Ratio
-             * @description gap占比（顺拆有值）0-1 decimal
-             */
-            gap_ratio?: number | null;
-            old_customer: components["schemas"]["BreakdownOldCustomer"];
-            new_customer: components["schemas"]["BreakdownNewCustomer"];
-            /** Suggestions */
-            suggestions: components["schemas"]["BreakdownGapSuggestion"][];
-            activity_period: components["schemas"]["DateRangeResponse"];
-            reference_period: components["schemas"]["DateRangeResponse"];
-            meta: components["schemas"]["BreakdownMeta"];
-            /** @description 拆解逻辑说明 */
-            breakdown_logic: components["schemas"]["BreakdownLogic"];
+            "\u633D\u56DE\u5EFA\u8BAE": string;
         };
         /**
          * CategoryChurnResponse
-         * @description 流失预警 Tab 响应
+         * @description 品类流失预警 Tab 响应
          */
         CategoryChurnResponse: {
             /** Scatter Data */
-            scatter_data: components["schemas"]["ChurnScatterPoint"][];
+            scatter_data: components["schemas"]["CategoryChurnItem"][];
             /** Bar Data */
-            bar_data: components["schemas"]["ChurnBarData"][];
+            bar_data: components["schemas"]["CategoryChurnItem"][];
             /** Table */
-            table: components["schemas"]["ChurnTableRow"][];
+            table: components["schemas"]["CategoryChurnItem"][];
             /** Operation Suggestions */
             operation_suggestions: string[];
             /** Data Quality Note */
@@ -2731,146 +2464,6 @@ export interface components {
             exclude_channels?: string[] | null;
             /** Scores */
             scores?: components["schemas"]["ChannelHealthScoreItem"][];
-        };
-        /**
-         * ChurnBarData
-         * @description 流失预警-条形数据
-         */
-        ChurnBarData: {
-            /** Category Name */
-            category_name: string;
-            /** Current Users */
-            current_users: number;
-            /** Previous Users */
-            previous_users: number;
-            /**
-             * Mom Change Rate
-             * @description 环比变化率 0-1 decimal, 可负
-             */
-            mom_change_rate: number;
-        };
-        /** ChurnDistributionResponse */
-        ChurnDistributionResponse: {
-            /** Date */
-            date: string;
-            /** Churn Mode */
-            churn_mode: string;
-            /** Total Users */
-            total_users: number;
-            /** High Risk */
-            high_risk: number;
-            /** Medium Risk */
-            medium_risk: number;
-            /** Low Risk */
-            low_risk: number;
-            /**
-             * High Risk Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            high_risk_rate: number;
-            /** By Segment */
-            by_segment: {
-                [key: string]: components["schemas"]["ChurnSegmentItem"];
-            };
-        };
-        /**
-         * ChurnScatterPoint
-         * @description 流失预警-散点数据
-         */
-        ChurnScatterPoint: {
-            /** Category Name */
-            category_name: string;
-            /** Current Users */
-            current_users: number;
-            /**
-             * Mom Change Rate
-             * @description 环比变化率 0-1 decimal, 可负
-             */
-            mom_change_rate: number;
-            /** Churn Users */
-            churn_users: number;
-            /** Inter Churn */
-            inter_churn: number;
-            /** Silent Churn */
-            silent_churn: number;
-        };
-        /** ChurnSegmentItem */
-        ChurnSegmentItem: {
-            /** Name */
-            name: string;
-            /** High */
-            high: number;
-            /** Medium */
-            medium: number;
-            /** Low */
-            low: number;
-        };
-        /**
-         * ChurnTableRow
-         * @description 流失预警-表格行
-         */
-        ChurnTableRow: {
-            /** Category Name */
-            category_name: string;
-            /** Current Users */
-            current_users: number;
-            /** Previous Users */
-            previous_users: number;
-            /**
-             * Mom Change Rate
-             * @description 环比变化率 0-1 decimal, 可负
-             */
-            mom_change_rate: number;
-            /** Inter Churn */
-            inter_churn: number;
-            /** Silent Churn */
-            silent_churn: number;
-            /** Top Churn Dest1 */
-            top_churn_dest1: string;
-            /**
-             * Top Churn Dest1 Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            top_churn_dest1_ratio: number;
-            /** Top Churn Dest2 */
-            top_churn_dest2: string;
-            /**
-             * Top Churn Dest2 Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            top_churn_dest2_ratio: number;
-            /** 挽回建议 */
-            "\u633D\u56DE\u5EFA\u8BAE": string;
-        };
-        /** ChurnUserItem */
-        ChurnUserItem: {
-            /** User Id */
-            user_id: string;
-            /** Segment Id */
-            segment_id: number;
-            /** Segment Name */
-            segment_name: string;
-            /** Risk Score */
-            risk_score: number;
-            /** Risk Level */
-            risk_level: string;
-            /** Last Order Days */
-            last_order_days: number;
-            /** Frequency */
-            frequency: number;
-            /** Monetary */
-            monetary: number;
-        };
-        /** ChurnUsersResponse */
-        ChurnUsersResponse: {
-            /** Date */
-            date: string;
-            /** Mode */
-            mode: string;
-            /** Total Matched */
-            total_matched: number;
-            /** Users */
-            users: components["schemas"]["ChurnUserItem"][];
         };
         /**
          * CohortRetentionResponse
@@ -3817,6 +3410,52 @@ export interface components {
          */
         PathDepth: "1" | "2";
         /**
+         * PeriodDistribution
+         * @description 派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d)
+         */
+        PeriodDistribution: {
+            /**
+             * Bucket 1 3D
+             * @default 0
+             */
+            bucket_1_3d: number;
+            /**
+             * Bucket 4 7D
+             * @default 0
+             */
+            bucket_4_7d: number;
+            /**
+             * Bucket 8 30D
+             * @default 0
+             */
+            bucket_8_30d: number;
+            /**
+             * Bucket 31 60D
+             * @default 0
+             */
+            bucket_31_60d: number;
+            /**
+             * Full Bucket 1 3D
+             * @default 0
+             */
+            full_bucket_1_3d: number;
+            /**
+             * Full Bucket 4 7D
+             * @default 0
+             */
+            full_bucket_4_7d: number;
+            /**
+             * Full Bucket 8 30D
+             * @default 0
+             */
+            full_bucket_8_30d: number;
+            /**
+             * Full Bucket 31 60D
+             * @default 0
+             */
+            full_bucket_31_60d: number;
+        };
+        /**
          * ProductAssetItem
          * @description 单品资产-单个产品
          */
@@ -4135,6 +3774,24 @@ export interface components {
             aus_lift?: number | null;
             /** Repurchase Lift */
             repurchase_lift?: number | null;
+        };
+        /**
+         * QualityFlag
+         * @description DQM 守卫警告 (Sprint 139 引入)
+         */
+        QualityFlag: {
+            /** Code */
+            code: string;
+            /** Severity */
+            severity: string;
+            /** Message */
+            message: string;
+            /** Posize Ratio */
+            posize_ratio?: number | null;
+            /** Total Posize Gsv 30D */
+            total_posize_gsv_30d?: number | null;
+            /** Total Gsv 30D */
+            total_gsv_30d?: number | null;
         };
         /**
          * RFMAnalysisResponse
@@ -5152,6 +4809,42 @@ export interface components {
              * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
              */
             same_category_rate: number;
+            /**
+             * Full Repurchase Users
+             * @default 0
+             */
+            full_repurchase_users: number;
+            /**
+             * Full Repurchase Rate
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            full_repurchase_rate: number;
+            /**
+             * Full Repurchase Gsv
+             * @default 0
+             */
+            full_repurchase_gsv: number;
+            /**
+             * Full Repurchase Aus
+             * @default 0
+             */
+            full_repurchase_aus: number;
+            /**
+             * Nonfull Repurchase Users
+             * @default 0
+             */
+            nonfull_repurchase_users: number;
+            /**
+             * Nonfull Repurchase Gsv
+             * @default 0
+             */
+            nonfull_repurchase_gsv: number;
+            /**
+             * Nonfull Repurchase Aus
+             * @default 0
+             */
+            nonfull_repurchase_aus: number;
         };
         /**
          * SamplingChannelSummary
@@ -5195,6 +4888,57 @@ export interface components {
             repurchase_aus_30d: number;
             /** Repurchase Aus 60D */
             repurchase_aus_60d: number;
+            /**
+             * Full Repurchase Users 30D
+             * @default 0
+             */
+            full_repurchase_users_30d: number;
+            /**
+             * Full Repurchase Gsv 30D
+             * @default 0
+             */
+            full_repurchase_gsv_30d: number;
+            /**
+             * Full Repurchase Aus 30D
+             * @default 0
+             */
+            full_repurchase_aus_30d: number;
+            /**
+             * Full Repurchase Users 60D
+             * @default 0
+             */
+            full_repurchase_users_60d: number;
+            /**
+             * Full Repurchase Gsv 60D
+             * @default 0
+             */
+            full_repurchase_gsv_60d: number;
+            /**
+             * Full Repurchase Aus 60D
+             * @default 0
+             */
+            full_repurchase_aus_60d: number;
+            /**
+             * Full Repurchase Rate 30D
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            full_repurchase_rate_30d: number;
+            /**
+             * Nonfull Repurchase Users 30D
+             * @default 0
+             */
+            nonfull_repurchase_users_30d: number;
+            /**
+             * Nonfull Repurchase Gsv 30D
+             * @default 0
+             */
+            nonfull_repurchase_gsv_30d: number;
+            /**
+             * Nonfull Repurchase Aus 30D
+             * @default 0
+             */
+            nonfull_repurchase_aus_30d: number;
         };
         /**
          * SamplingLockAnalysisResponse
@@ -5314,6 +5058,9 @@ export interface components {
             /** Category Breakdown */
             category_breakdown: components["schemas"]["SamplingCategoryRow"][];
             time_range: components["schemas"]["SamplingROITimeRange"];
+            period_distribution?: components["schemas"]["PeriodDistribution"];
+            /** Quality Flags */
+            quality_flags?: components["schemas"]["QualityFlag"][];
         };
         /**
          * SamplingROITimeRange
@@ -6827,90 +6574,6 @@ export interface operations {
             };
         };
     };
-    get_churn_distribution_api_api_v1_churn_distribution_get: {
-        parameters: {
-            query: {
-                /** @description 分析日期 YYYY-MM-DD */
-                date: string;
-                /** @description 象限ID筛选 */
-                segment_id?: number | null;
-                /** @description dynamic 或 fixed */
-                churn_mode?: string;
-                /** @description 固定阈值天数 */
-                fixed_threshold?: number;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChurnDistributionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_churn_risk_users_api_api_v1_churn_risk_get: {
-        parameters: {
-            query: {
-                /** @description 分析日期 YYYY-MM-DD */
-                date: string;
-                /** @description high/medium/low */
-                risk_level?: string | null;
-                /** @description 象限ID筛选 */
-                segment_id?: number | null;
-                /** @description dynamic 或 fixed */
-                churn_mode?: string;
-                /** @description 固定阈值天数 */
-                fixed_threshold?: number;
-                /** @description 返回条数上限 */
-                limit?: number;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChurnUsersResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_asset_summary_api_api_v1_asset_summary_get: {
         parameters: {
             query?: {
@@ -7994,39 +7657,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_one_click_breakdown_api_api_v1_breakdown_one_click_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BreakdownRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BreakdownResponse"];
                 };
             };
             /** @description Validation Error */

@@ -21,6 +21,17 @@ class SamplingChannelSummary(BaseModel):
     repurchase_aus_7d: float
     repurchase_aus_30d: float
     repurchase_aus_60d: float
+    # Sprint 139: 正装/非正装 split (spu_type='正装')
+    full_repurchase_users_30d: int = 0
+    full_repurchase_gsv_30d: float = 0.0
+    full_repurchase_aus_30d: float = 0.0
+    full_repurchase_users_60d: int = 0
+    full_repurchase_gsv_60d: float = 0.0
+    full_repurchase_aus_60d: float = 0.0
+    full_repurchase_rate_30d: "RatioField" = 0.0
+    nonfull_repurchase_users_30d: int = 0
+    nonfull_repurchase_gsv_30d: float = 0.0
+    nonfull_repurchase_aus_30d: float = 0.0
 
 
 class SamplingCategoryRow(BaseModel):
@@ -35,6 +46,14 @@ class SamplingCategoryRow(BaseModel):
     repurchase_aus: float
     same_category_repurchase: int
     same_category_rate: "RatioField"
+    # Sprint 139: 正装/非正装 split
+    full_repurchase_users: int = 0
+    full_repurchase_rate: "RatioField" = 0.0
+    full_repurchase_gsv: float = 0.0
+    full_repurchase_aus: float = 0.0
+    nonfull_repurchase_users: int = 0
+    nonfull_repurchase_gsv: float = 0.0
+    nonfull_repurchase_aus: float = 0.0
 
 
 class SamplingROITimeRange(BaseModel):
@@ -44,11 +63,35 @@ class SamplingROITimeRange(BaseModel):
     window_days: int
 
 
+class PeriodDistribution(BaseModel):
+    """派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d)"""
+    bucket_1_3d: int = 0
+    bucket_4_7d: int = 0
+    bucket_8_30d: int = 0
+    bucket_31_60d: int = 0
+    full_bucket_1_3d: int = 0
+    full_bucket_4_7d: int = 0
+    full_bucket_8_30d: int = 0
+    full_bucket_31_60d: int = 0
+
+
+class QualityFlag(BaseModel):
+    """DQM 守卫警告 (Sprint 139 引入)"""
+    code: str
+    severity: str
+    message: str
+    posize_ratio: Optional["RatioField"] = None
+    total_posize_gsv_30d: Optional[float] = None
+    total_gsv_30d: Optional[float] = None
+
+
 class SamplingROIResponse(BaseModel):
     """派样ROI分析响应"""
     summary: Dict[str, List[SamplingChannelSummary]]
     category_breakdown: List[SamplingCategoryRow]
     time_range: SamplingROITimeRange
+    period_distribution: PeriodDistribution = Field(default_factory=PeriodDistribution)
+    quality_flags: List[QualityFlag] = Field(default_factory=list)
 
 
 class SamplingLockCampaignInfo(BaseModel):
@@ -175,4 +218,3 @@ class RollingComparisonResponse(BaseModel):
     year_b: RollingYearMetrics
     yoy: RollingYOY
     timeline: RollingTimeline
-

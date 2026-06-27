@@ -98,6 +98,7 @@ def get_sampling_roi(
                 SELECT su.user_id, su.channel, su.first_sample_time,
                        o.pay_time as repurchase_time,
                        o.actual_amount,
+                       COALESCE(o.spu_type, '未知') as spu_type,
                        DATEDIFF('day', su.first_sample_time, o.pay_time) as days_between
                 FROM sample_users su
                 JOIN orders o ON su.user_id = o.user_id
@@ -115,7 +116,13 @@ def get_sampling_roi(
                 COUNT(DISTINCT CASE WHEN r.days_between <= 60 THEN r.user_id END) as repurchase_users_60d,
                 SUM(CASE WHEN r.days_between <= 7 THEN r.actual_amount ELSE 0 END) as repurchase_gsv_7d,
                 SUM(CASE WHEN r.days_between <= 30 THEN r.actual_amount ELSE 0 END) as repurchase_gsv_30d,
-                SUM(CASE WHEN r.days_between <= 60 THEN r.actual_amount ELSE 0 END) as repurchase_gsv_60d
+                SUM(CASE WHEN r.days_between <= 60 THEN r.actual_amount ELSE 0 END) as repurchase_gsv_60d,
+                COUNT(DISTINCT CASE WHEN r.days_between <= 30 AND r.spu_type = '正装' THEN r.user_id END) as full_repurchase_users_30d,
+                SUM(CASE WHEN r.days_between <= 30 AND r.spu_type = '正装' THEN r.actual_amount ELSE 0 END) as full_repurchase_gsv_30d,
+                COUNT(DISTINCT CASE WHEN r.days_between <= 30 AND r.spu_type != '正装' THEN r.user_id END) as nonfull_repurchase_users_30d,
+                SUM(CASE WHEN r.days_between <= 30 AND r.spu_type != '正装' THEN r.actual_amount ELSE 0 END) as nonfull_repurchase_gsv_30d,
+                COUNT(DISTINCT CASE WHEN r.days_between <= 60 AND r.spu_type = '正装' THEN r.user_id END) as full_repurchase_users_60d,
+                SUM(CASE WHEN r.days_between <= 60 AND r.spu_type = '正装' THEN r.actual_amount ELSE 0 END) as full_repurchase_gsv_60d
             FROM (SELECT DISTINCT user_id, channel FROM sample_users) su
             LEFT JOIN repurchase r ON su.user_id = r.user_id AND su.channel = r.channel
             GROUP BY su.channel
@@ -132,6 +139,12 @@ def get_sampling_roi(
             gsv_7d = float(row[5] or 0)
             gsv_30d = float(row[6] or 0)
             gsv_60d = float(row[7] or 0)
+            full_users_30d = int(row[8] or 0)
+            full_gsv_30d = float(row[9] or 0)
+            nonfull_users_30d = int(row[10] or 0)
+            nonfull_gsv_30d = float(row[11] or 0)
+            full_users_60d = int(row[12] or 0)
+            full_gsv_60d = float(row[13] or 0)
 
             channels_result.append({
                 'channel': DB_TO_UI.get(ch, ch),
@@ -148,6 +161,16 @@ def get_sampling_roi(
                 'repurchase_aus_7d': round(safe_ratio(gsv_7d, repurchase_7d), 2),
                 'repurchase_aus_30d': round(safe_ratio(gsv_30d, repurchase_30d), 2),
                 'repurchase_aus_60d': round(safe_ratio(gsv_60d, repurchase_60d), 2),
+                'full_repurchase_users_30d': full_users_30d,
+                'full_repurchase_gsv_30d': round(full_gsv_30d, 2),
+                'full_repurchase_aus_30d': round(safe_ratio(full_gsv_30d, full_users_30d), 2),
+                'nonfull_repurchase_users_30d': nonfull_users_30d,
+                'nonfull_repurchase_gsv_30d': round(nonfull_gsv_30d, 2),
+                'nonfull_repurchase_aus_30d': round(safe_ratio(nonfull_gsv_30d, nonfull_users_30d), 2),
+                'full_repurchase_users_60d': full_users_60d,
+                'full_repurchase_gsv_60d': round(full_gsv_60d, 2),
+                'full_repurchase_aus_60d': round(safe_ratio(full_gsv_60d, full_users_60d), 2),
+                'full_repurchase_rate_30d': round(safe_ratio(full_users_30d, sample_users), 4),
             })
 
         # ── 品类明细（按用户选定的 window_days 钻取）──
@@ -160,6 +183,7 @@ def get_sampling_roi(
                 SELECT su.user_id, su.channel, su.first_sample_time,
                        su.sample_category,
                        o.actual_amount,
+                       COALESCE(o.spu_type, '未知') as spu_type,
                        COALESCE(o.{cat_field}, '未知') as repurchase_cat_detail,
                        DATEDIFF('day', su.first_sample_time, o.pay_time) as days_between,
                        CASE WHEN COALESCE(o.spu_category, '未知') = su.sample_category
@@ -178,7 +202,11 @@ def get_sampling_roi(
                 COUNT(DISTINCT su.user_id) as sample_users,
                 COUNT(DISTINCT r.user_id) as repurchase_users,
                 COALESCE(SUM(r.actual_amount), 0) as repurchase_gsv,
-                SUM(r.is_same_category) as same_cat_users
+                SUM(r.is_same_category) as same_cat_users,
+                COUNT(DISTINCT CASE WHEN r.spu_type = '正装' THEN r.user_id END) as full_repurchase_users,
+                COALESCE(SUM(CASE WHEN r.spu_type = '正装' THEN r.actual_amount ELSE 0 END), 0) as full_repurchase_gsv,
+                COUNT(DISTINCT CASE WHEN r.spu_type != '正装' THEN r.user_id END) as nonfull_repurchase_users,
+                COALESCE(SUM(CASE WHEN r.spu_type != '正装' THEN r.actual_amount ELSE 0 END), 0) as nonfull_repurchase_gsv
             FROM (SELECT DISTINCT user_id, channel, sample_category FROM sample_users) su
             LEFT JOIN repurchase r ON su.user_id = r.user_id AND su.channel = r.channel
             GROUP BY su.channel, su.sample_category
@@ -196,6 +224,10 @@ def get_sampling_roi(
             ru = int(row[3] or 0)
             gsv = float(row[4] or 0)
             same = int(row[5] or 0)
+            full_users = int(row[6] or 0)
+            full_gsv = float(row[7] or 0)
+            nonfull_users = int(row[8] or 0)
+            nonfull_gsv = float(row[9] or 0)
 
             category_result.append({
                 'channel': DB_TO_UI.get(ch, ch),
@@ -207,7 +239,71 @@ def get_sampling_roi(
                 'repurchase_aus': round(safe_ratio(gsv, ru), 2),
                 'same_category_repurchase': same,
                 'same_category_rate': round(safe_ratio(same, su), 4),
+                'full_repurchase_users': full_users,
+                'full_repurchase_rate': round(safe_ratio(full_users, su), 4),
+                'full_repurchase_gsv': round(full_gsv, 2),
+                'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
+                'nonfull_repurchase_users': nonfull_users,
+                'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
+                'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
             })
+
+        # Sprint 139: 回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d)
+        period_sql = f"""
+            WITH sample_users AS ({sample_users_sql}),
+            repurchase AS (
+                SELECT su.user_id, su.channel, su.first_sample_time,
+                       o.pay_time as repurchase_time,
+                       o.actual_amount,
+                       COALESCE(o.spu_type, '未知') as spu_type,
+                       DATEDIFF('day', su.first_sample_time, o.pay_time) as days_between
+                FROM sample_users su
+                JOIN orders o ON su.user_id = o.user_id
+                WHERE o.pay_time > su.first_sample_time
+                  AND DATEDIFF('day', su.first_sample_time, o.pay_time) <= 60
+                  AND o.is_refund = FALSE
+                  AND o.order_status != '交易关闭'
+                  AND o.channel != '购物金'
+            )
+            SELECT
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 1 AND 3 THEN user_id END) as bucket_1_3d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 4 AND 7 THEN user_id END) as bucket_4_7d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 8 AND 30 THEN user_id END) as bucket_8_30d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 THEN user_id END) as bucket_31_60d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 1 AND 3 AND spu_type = '正装' THEN user_id END) as full_bucket_1_3d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 4 AND 7 AND spu_type = '正装' THEN user_id END) as full_bucket_4_7d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 8 AND 30 AND spu_type = '正装' THEN user_id END) as full_bucket_8_30d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 AND spu_type = '正装' THEN user_id END) as full_bucket_31_60d
+            FROM repurchase
+        """
+        period_row = conn.execute(period_sql, sample_params).fetchone()
+        period_distribution = {
+            'bucket_1_3d': int(period_row[0] or 0),
+            'bucket_4_7d': int(period_row[1] or 0),
+            'bucket_8_30d': int(period_row[2] or 0),
+            'bucket_31_60d': int(period_row[3] or 0),
+            'full_bucket_1_3d': int(period_row[4] or 0),
+            'full_bucket_4_7d': int(period_row[5] or 0),
+            'full_bucket_8_30d': int(period_row[6] or 0),
+            'full_bucket_31_60d': int(period_row[7] or 0),
+        }
+
+        # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
+        total_posize_gsv = sum(c.get('full_repurchase_gsv_30d', 0) for c in channels_result)
+        total_gsv_30d = sum(c.get('repurchase_gsv_30d', 0) for c in channels_result)
+        posize_ratio = safe_ratio(total_posize_gsv, total_gsv_30d)
+        quality_flags = []
+        if total_gsv_30d > 0 and posize_ratio < 0.30:
+            quality_flags.append({
+                'code': 'POSIZE_RATIO_LOW',
+                'severity': 'warning',
+                'message': f'派样人群 30 天正装 GSV 占比仅 {posize_ratio:.1%} (< 30%), 可能是业务表现差或数据缺失',
+                'posize_ratio': round(posize_ratio, 4),
+                'total_posize_gsv_30d': round(total_posize_gsv, 2),
+                'total_gsv_30d': round(total_gsv_30d, 2),
+            })
+        if quality_flags:
+            _logger.warning("[Sprint 139 DQM] %s", quality_flags[0]['message'])
 
         return {
             'summary': {'channels': channels_result},
@@ -217,6 +313,8 @@ def get_sampling_roi(
                 'end': end_date,
                 'window_days': window_days,
             },
+            'period_distribution': period_distribution,
+            'quality_flags': quality_flags,
         }
     finally:
         pass

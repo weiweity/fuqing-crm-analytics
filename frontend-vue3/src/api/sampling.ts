@@ -17,6 +17,16 @@ export interface SamplingChannelSummary {
   repurchase_aus_7d: number
   repurchase_aus_30d: number
   repurchase_aus_60d: number
+  full_repurchase_users_30d: number
+  full_repurchase_gsv_30d: number
+  full_repurchase_aus_30d: number
+  full_repurchase_users_60d: number
+  full_repurchase_gsv_60d: number
+  full_repurchase_aus_60d: number
+  full_repurchase_rate_30d: number
+  nonfull_repurchase_users_30d: number
+  nonfull_repurchase_gsv_30d: number
+  nonfull_repurchase_aus_30d: number
 }
 
 // ── 品类明细 ──
@@ -31,6 +41,13 @@ export interface SamplingCategoryRow {
   repurchase_aus: number
   same_category_repurchase: number
   same_category_rate: number
+  full_repurchase_users: number
+  full_repurchase_rate: number
+  full_repurchase_gsv: number
+  full_repurchase_aus: number
+  nonfull_repurchase_users: number
+  nonfull_repurchase_gsv: number
+  nonfull_repurchase_aus: number
 }
 
 // ── 时间范围 ──
@@ -41,6 +58,28 @@ export interface SamplingROITimeRange {
   window_days: number
 }
 
+// ── 回购周期分布 / DQM ──
+
+export interface PeriodDistribution {
+  bucket_1_3d: number
+  bucket_4_7d: number
+  bucket_8_30d: number
+  bucket_31_60d: number
+  full_bucket_1_3d: number
+  full_bucket_4_7d: number
+  full_bucket_8_30d: number
+  full_bucket_31_60d: number
+}
+
+export interface QualityFlag {
+  code: string
+  severity: string
+  message: string
+  posize_ratio?: number | null
+  total_posize_gsv_30d?: number | null
+  total_gsv_30d?: number | null
+}
+
 // ── ROI 响应 ──
 
 export interface SamplingROIResponse {
@@ -49,6 +88,8 @@ export interface SamplingROIResponse {
   }
   category_breakdown: SamplingCategoryRow[]
   time_range: SamplingROITimeRange
+  period_distribution: PeriodDistribution
+  quality_flags: QualityFlag[]
 }
 
 // ── 锁权活动信息 ──
