@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, toValue, ref, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NGrid, NGi, NButton } from 'naive-ui'
+import { NGrid, NGi, NButton, NTabs, NTabPane } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import {
@@ -34,6 +34,9 @@ const filterStore = useFilterStore()
 
 const trendChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 const visitorTrendChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
+
+// Sprint 137: 3 tabs 拆分 (数据总览 / 渠道概览 / 30指标对比)
+const activeTab = ref('overview')
 
 import { CHANNEL_ORDER, LOW_PRICE_CHANNELS } from '@/constants/channels'
 
@@ -1808,284 +1811,294 @@ const channelMemberXlsxColumns = computed(() => {
 
     <RatioConventionBanner />
 
-    <!-- KPI Cards 第一行：人群 GSV -->
-    <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="全店GSV"
-          :value="kpiData ? formatKPI(kpiData.gsv, 'currency') : '—'"
-          :change="kpiChange('gsv_yoy', 'gsv_mom')"
-          :loading="kpiLoading"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="老客GSV"
-          :value="kpiData ? formatKPI(kpiData.old_gsv, 'currency') : '—'"
-          :change="kpiChange('old_gsv_yoy', 'old_gsv_mom')"
-          :loading="kpiLoading"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="新客GSV"
-          :value="kpiData ? formatKPI(kpiData.new_gsv, 'currency') : '—'"
-          :change="kpiChange('new_gsv_yoy', 'new_gsv_mom')"
-          :loading="kpiLoading"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="会员GSV"
-          :value="kpiData ? formatKPI(kpiData.member_gsv, 'currency') : '—'"
-          :change="kpiChange('member_gsv_yoy', 'member_gsv_mom')"
-          :loading="kpiLoading"
-        />
-      </n-gi>
-    </n-grid>
-
-    <!-- KPI Cards 第二行：人群占比 + 会员溢价 -->
-    <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="老客占比"
-          :value="fmtRatio(kpiData?.old_gsv_ratio)"
-          :change="kpiChange('old_gsv_ratio_yoy', 'old_gsv_ratio_mom')"
-          :loading="kpiLoading"
-          unit="pp"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="新客占比"
-          :value="fmtRatio(kpiData?.new_gsv_ratio)"
-          :change="kpiChange('new_gsv_ratio_yoy', 'new_gsv_ratio_mom')"
-          :loading="kpiLoading"
-          unit="pp"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="会员GSV占比"
-          :value="fmtRatio(kpiData?.member_gsv_ratio)"
-          :change="kpiChange('member_gsv_ratio_yoy', 'member_gsv_ratio_mom')"
-          :loading="kpiLoading"
-          unit="pp"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="会员溢价"
-          :value="kpiData ? Number(kpiData.member_premium).toFixed(2) : '—'"
-          :change="kpiChange('member_premium_yoy', 'member_premium_mom')"
-          :loading="kpiLoading"
-          unit="%"
-        />
-      </n-gi>
-    </n-grid>
-
-    <!-- KPI Cards 第三行：访客入会率 -->
-    <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="访客数"
-          :value="visitorSummary ? Number(visitorSummary.visitors).toLocaleString() : '—'"
-          :change="visitorChange('visitors_yoy', 'visitors_mom')"
-          :loading="visitorLoading"
-          unit="%"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="新增会员数"
-          :value="visitorSummary ? Number(visitorSummary.new_members).toLocaleString() : '—'"
-          :change="visitorChange('new_members_yoy', 'new_members_mom')"
-          :loading="visitorLoading"
-          unit="%"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          title="会员入会率"
-          :value="visitorSummary ? `${visitorSummary.member_join_rate.toFixed(2)}%` : '—'"
-          :change="visitorChange('member_join_rate_yoy', 'member_join_rate_mom')"
-          :loading="visitorLoading"
-          unit="pp"
-        />
-      </n-gi>
-      <n-gi :span="1" class="h-full">
-        <MetricCard
-          :title="`${compareLabelShort}入会率`"
-          :value="visitorSummary ? `${visitorSummary.ly_member_join_rate.toFixed(2)}%` : '—'"
-          :loading="visitorLoading"
-        />
-      </n-gi>
-    </n-grid>
-
-    <!-- Trend Chart -->
-    <div class="bi-card p-4">
-      <div class="flex items-center justify-between mb-0.5">
-        <div>
-          <h3 class="text-sm font-semibold text-slate-800">日趋势</h3>
-          <p class="text-[11px] text-slate-500">全店GSV 与会员占比 — 含{{ compareLabelShort }}对比</p>
-        </div>
-        <ExportToolbar
-          :filename="`人群看板_日趋势_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-          :chart-ref="trendChartRef"
-        />
-      </div>
-      <ErrorState v-if="trendError" :message="(trendError as Error).message" @retry="trendRefetch()" />
-      <LoadingState v-else-if="trendLoading" />
-      <EmptyState v-else-if="!trendData?.length" />
-      <EChartsWrapper v-else ref="trendChartRef" :option="trendChartOption" height="280px" />
-    </div>
-
-    <!-- Visitor Join Rate Trend Chart -->
-    <div class="bi-card p-4">
-      <div class="flex items-center justify-between mb-0.5">
-        <div>
-          <h3 class="text-sm font-semibold text-slate-800">入会趋势</h3>
-          <p class="text-[11px] text-slate-500">访客数、新增会员数与入会率 — 含{{ compareLabelShort }}入会率对比</p>
-        </div>
-        <ExportToolbar
-          :filename="`人群看板_入会趋势_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-          :chart-ref="visitorTrendChartRef"
-        />
-      </div>
-      <ErrorState v-if="visitorTrendError" :message="(visitorTrendError as Error).message" @retry="visitorTrendRefetch()" />
-      <LoadingState v-else-if="visitorTrendLoading" />
-      <EmptyState v-else-if="!visitorTrendData?.data?.length" description="暂无访客数据" />
-      <EChartsWrapper v-else ref="visitorTrendChartRef" :option="visitorTrendChartOption" height="280px" />
-    </div>
-
-    <!-- Channel Overview -->
-    <div class="flex flex-col gap-5">
-      <!-- 全店 -->
-      <div class="bi-card p-4">
-        <div class="flex items-center justify-between mb-0.5">
-          <div>
-            <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 全店</h3>
-            <p class="text-[11px] text-slate-500">
-              {{ showDetailChannelAll ? '全量指标：GSV / 人数 / AUS / 新老客 GSV 两年同比与占比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <ExportToolbar
-              :filename="`人群看板_渠道全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-              :columns="channelXlsxColumns"
-              :data="displayChannelAll"
-              sheet-name="渠道全店"
+    <!-- Sprint 137: 3 tabs 拆分 (数据总览 / 渠道概览 / 30指标对比) -->
+    <n-tabs v-model:value="activeTab" type="line" animated>
+      <!-- Tab 1: 数据总览 — 原有的 3 KPI rows + 日趋势 + 入会趋势 -->
+      <n-tab-pane name="overview" tab="数据总览">
+        <!-- KPI Cards 第一行：人群 GSV -->
+        <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true">
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="全店GSV"
+              :value="kpiData ? formatKPI(kpiData.gsv, 'currency') : '—'"
+              :change="kpiChange('gsv_yoy', 'gsv_mom')"
+              :loading="kpiLoading"
             />
-            <button
-              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
-              @click="showDetailChannelAll = !showDetailChannelAll"
-            >
-              {{ showDetailChannelAll ? '← 收起详情' : '显示详情 →' }}
-            </button>
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="老客GSV"
+              :value="kpiData ? formatKPI(kpiData.old_gsv, 'currency') : '—'"
+              :change="kpiChange('old_gsv_yoy', 'old_gsv_mom')"
+              :loading="kpiLoading"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="新客GSV"
+              :value="kpiData ? formatKPI(kpiData.new_gsv, 'currency') : '—'"
+              :change="kpiChange('new_gsv_yoy', 'new_gsv_mom')"
+              :loading="kpiLoading"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="会员GSV"
+              :value="kpiData ? formatKPI(kpiData.member_gsv, 'currency') : '—'"
+              :change="kpiChange('member_gsv_yoy', 'member_gsv_mom')"
+              :loading="kpiLoading"
+            />
+          </n-gi>
+        </n-grid>
+
+        <!-- KPI Cards 第二行：人群占比 + 会员溢价 -->
+        <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true" class="mt-3">
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="老客占比"
+              :value="fmtRatio(kpiData?.old_gsv_ratio)"
+              :change="kpiChange('old_gsv_ratio_yoy', 'old_gsv_ratio_mom')"
+              :loading="kpiLoading"
+              unit="pp"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="新客占比"
+              :value="fmtRatio(kpiData?.new_gsv_ratio)"
+              :change="kpiChange('new_gsv_ratio_yoy', 'new_gsv_ratio_mom')"
+              :loading="kpiLoading"
+              unit="pp"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="会员GSV占比"
+              :value="fmtRatio(kpiData?.member_gsv_ratio)"
+              :change="kpiChange('member_gsv_ratio_yoy', 'member_gsv_ratio_mom')"
+              :loading="kpiLoading"
+              unit="pp"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="会员溢价"
+              :value="kpiData ? Number(kpiData.member_premium).toFixed(2) : '—'"
+              :change="kpiChange('member_premium_yoy', 'member_premium_mom')"
+              :loading="kpiLoading"
+              unit="%"
+            />
+          </n-gi>
+        </n-grid>
+
+        <!-- KPI Cards 第三行：访客入会率 -->
+        <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true" class="mt-3">
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="访客数"
+              :value="visitorSummary ? Number(visitorSummary.visitors).toLocaleString() : '—'"
+              :change="visitorChange('visitors_yoy', 'visitors_mom')"
+              :loading="visitorLoading"
+              unit="%"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="新增会员数"
+              :value="visitorSummary ? Number(visitorSummary.new_members).toLocaleString() : '—'"
+              :change="visitorChange('new_members_yoy', 'new_members_mom')"
+              :loading="visitorLoading"
+              unit="%"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              title="会员入会率"
+              :value="visitorSummary ? `${visitorSummary.member_join_rate.toFixed(2)}%` : '—'"
+              :change="visitorChange('member_join_rate_yoy', 'member_join_rate_mom')"
+              :loading="visitorLoading"
+              unit="pp"
+            />
+          </n-gi>
+          <n-gi :span="1" class="h-full">
+            <MetricCard
+              :title="`${compareLabelShort}入会率`"
+              :value="visitorSummary ? `${visitorSummary.ly_member_join_rate.toFixed(2)}%` : '—'"
+              :loading="visitorLoading"
+            />
+          </n-gi>
+        </n-grid>
+
+        <!-- Trend Chart -->
+        <div class="bi-card p-4 mt-3">
+          <div class="flex items-center justify-between mb-0.5">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-800">日趋势</h3>
+              <p class="text-[11px] text-slate-500">全店GSV 与会员占比 — 含{{ compareLabelShort }}对比</p>
+            </div>
+            <ExportToolbar
+              :filename="`人群看板_日趋势_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+              :chart-ref="trendChartRef"
+            />
+          </div>
+          <ErrorState v-if="trendError" :message="(trendError as Error).message" @retry="trendRefetch()" />
+          <LoadingState v-else-if="trendLoading" />
+          <EmptyState v-else-if="!trendData?.length" />
+          <EChartsWrapper v-else ref="trendChartRef" :option="trendChartOption" height="280px" />
+        </div>
+
+        <!-- Visitor Join Rate Trend Chart -->
+        <div class="bi-card p-4 mt-3">
+          <div class="flex items-center justify-between mb-0.5">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-800">入会趋势</h3>
+              <p class="text-[11px] text-slate-500">访客数、新增会员数与入会率 — 含{{ compareLabelShort }}入会率对比</p>
+            </div>
+            <ExportToolbar
+              :filename="`人群看板_入会趋势_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+              :chart-ref="visitorTrendChartRef"
+            />
+          </div>
+          <ErrorState v-if="visitorTrendError" :message="(visitorTrendError as Error).message" @retry="visitorTrendRefetch()" />
+          <LoadingState v-else-if="visitorTrendLoading" />
+          <EmptyState v-else-if="!visitorTrendData?.data?.length" description="暂无访客数据" />
+          <EChartsWrapper v-else ref="visitorTrendChartRef" :option="visitorTrendChartOption" height="280px" />
+        </div>
+      </n-tab-pane>
+
+      <!-- Tab 2: 渠道概览 — 渠道概览-全店 + 渠道概览-会员 -->
+      <n-tab-pane name="channel" tab="渠道概览">
+        <div class="flex flex-col gap-5">
+          <!-- 全店 -->
+          <div class="bi-card p-4">
+            <div class="flex items-center justify-between mb-0.5">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 全店</h3>
+                <p class="text-[11px] text-slate-500">
+                  {{ showDetailChannelAll ? '全量指标：GSV / 人数 / AUS / 新老客 GSV 两年同比与占比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <ExportToolbar
+                  :filename="`人群看板_渠道全店_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+                  :columns="channelXlsxColumns"
+                  :data="displayChannelAll"
+                  sheet-name="渠道全店"
+                />
+                <button
+                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                  @click="showDetailChannelAll = !showDetailChannelAll"
+                >
+                  {{ showDetailChannelAll ? '← 收起详情' : '显示详情 →' }}
+                </button>
+              </div>
+            </div>
+            <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
+            <LoadingState v-else-if="summaryLoading" />
+            <EmptyState v-else-if="!sortedChannelAll.length" description="暂无数据" />
+            <template v-else>
+              <DataTablePro
+                v-if="!showDetailChannelAll"
+                :columns="computedCompactChannelColumns"
+                :data="displayChannelAll"
+                :pagination="false"
+                striped
+                :row-class-name="channelRowClassName"
+                @update:sorter="handleChannelSort"
+              />
+              <DataTablePro
+                v-else
+                :columns="computedChannelColumns"
+                :data="displayChannelAll"
+                :pagination="false"
+                :max-height="400"
+                :scroll-x="2500"
+                striped
+                :row-class-name="channelRowClassName"
+                @update:sorter="handleChannelSort"
+              />
+            </template>
+          </div>
+
+          <!-- 会员 -->
+          <div class="bi-card p-4">
+            <div class="flex items-center justify-between mb-0.5">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 会员</h3>
+                <p class="text-[11px] text-slate-500">
+                  {{ showDetailChannelMember ? '全量指标：会员 GSV / 人数 / AUS / 会员新老客 GSV 两年同比与占比' : '核心指标：会员GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <ExportToolbar
+                  :filename="`人群看板_渠道会员_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+                  :columns="channelMemberXlsxColumns"
+                  :data="displayChannelMember"
+                  sheet-name="渠道会员"
+                />
+                <button
+                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                  @click="showDetailChannelMember = !showDetailChannelMember"
+                >
+                  {{ showDetailChannelMember ? '← 收起详情' : '显示详情 →' }}
+                </button>
+              </div>
+            </div>
+            <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
+            <LoadingState v-else-if="summaryLoading" />
+            <EmptyState v-else-if="!sortedChannelMember.length" description="暂无数据" />
+            <template v-else>
+              <DataTablePro
+                v-if="!showDetailChannelMember"
+                :columns="computedCompactMemberChannelColumns"
+                :data="displayChannelMember"
+                :pagination="false"
+                striped
+                :row-class-name="channelRowClassName"
+                @update:sorter="handleChannelSort"
+              />
+              <DataTablePro
+                v-else
+                :columns="computedChannelMemberColumns"
+                :data="displayChannelMember"
+                :pagination="false"
+                :max-height="400"
+                :scroll-x="2500"
+                striped
+                :row-class-name="channelRowClassName"
+                @update:sorter="handleChannelSort"
+              />
+            </template>
           </div>
         </div>
-        <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
-        <LoadingState v-else-if="summaryLoading" />
-        <EmptyState v-else-if="!sortedChannelAll.length" description="暂无数据" />
-        <template v-else>
-          <DataTablePro
-            v-if="!showDetailChannelAll"
-            :columns="computedCompactChannelColumns"
-            :data="displayChannelAll"
-            :pagination="false"
-            striped
-            :row-class-name="channelRowClassName"
-            @update:sorter="handleChannelSort"
-          />
+      </n-tab-pane>
+
+      <!-- Tab 3: 30指标对比 — 单独的 30指标对比 -->
+      <n-tab-pane name="metrics" tab="30指标对比">
+        <div class="bi-card p-4">
+          <div class="flex items-center justify-between mb-0.5">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-800">30指标对比</h3>
+              <p class="text-[11px] text-slate-500">全店 / 新老客 / 会员 / 会员新老客 — {{ filterStore.compareMode === 'auto_yoy' ? '3年同比' : filterStore.compareMode === 'auto_mom' ? '环比对比' : '自定义对比' }}</p>
+            </div>
+            <NButton size="tiny" @click="handleExportIndicators">📊 导出Excel</NButton>
+          </div>
+          <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
+          <LoadingState v-else-if="summaryLoading" />
+          <EmptyState v-else-if="!summaryData?.indicators?.length" description="暂无数据" />
           <DataTablePro
             v-else
-            :columns="computedChannelColumns"
-            :data="displayChannelAll"
+            :columns="indicatorColumns"
+            :data="summaryData?.indicators ?? []"
             :pagination="false"
-            :max-height="400"
-            :scroll-x="2500"
-            striped
-            :row-class-name="channelRowClassName"
-            @update:sorter="handleChannelSort"
+            :scroll-x="600"
+            :max-height="520"
           />
-        </template>
-      </div>
-
-      <!-- 会员 -->
-      <div class="bi-card p-4">
-        <div class="flex items-center justify-between mb-0.5">
-          <div>
-            <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 会员</h3>
-            <p class="text-[11px] text-slate-500">
-              {{ showDetailChannelMember ? '全量指标：会员 GSV / 人数 / AUS / 会员新老客 GSV 两年同比与占比' : '核心指标：会员GSV 及新老客占比（点击"显示详情"展开全部列）' }}
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <ExportToolbar
-              :filename="`人群看板_渠道会员_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
-              :columns="channelMemberXlsxColumns"
-              :data="displayChannelMember"
-              sheet-name="渠道会员"
-            />
-            <button
-              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
-              @click="showDetailChannelMember = !showDetailChannelMember"
-            >
-              {{ showDetailChannelMember ? '← 收起详情' : '显示详情 →' }}
-            </button>
-          </div>
         </div>
-        <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
-        <LoadingState v-else-if="summaryLoading" />
-        <EmptyState v-else-if="!sortedChannelMember.length" description="暂无数据" />
-        <template v-else>
-          <DataTablePro
-            v-if="!showDetailChannelMember"
-            :columns="computedCompactMemberChannelColumns"
-            :data="displayChannelMember"
-            :pagination="false"
-            striped
-            :row-class-name="channelRowClassName"
-            @update:sorter="handleChannelSort"
-          />
-          <DataTablePro
-            v-else
-            :columns="computedChannelMemberColumns"
-            :data="displayChannelMember"
-            :pagination="false"
-            :max-height="400"
-            :scroll-x="2500"
-            striped
-            :row-class-name="channelRowClassName"
-            @update:sorter="handleChannelSort"
-          />
-        </template>
-      </div>
-    </div>
+      </n-tab-pane>
+    </n-tabs>
 
-    <!-- 30 Indicators -->
-    <div class="bi-card p-4">
-      <div class="flex items-center justify-between mb-0.5">
-        <div>
-          <h3 class="text-sm font-semibold text-slate-800">30指标对比</h3>
-          <p class="text-[11px] text-slate-500">全店 / 新老客 / 会员 / 会员新老客 — {{ filterStore.compareMode === 'auto_yoy' ? '3年同比' : filterStore.compareMode === 'auto_mom' ? '环比对比' : '自定义对比' }}</p>
-        </div>
-        <NButton size="tiny" @click="handleExportIndicators">📊 导出Excel</NButton>
-      </div>
-      <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
-      <LoadingState v-else-if="summaryLoading" />
-      <EmptyState v-else-if="!summaryData?.indicators?.length" description="暂无数据" />
-      <DataTablePro
-        v-else
-        :columns="indicatorColumns"
-        :data="summaryData?.indicators ?? []"
-        :pagination="false"
-        :scroll-x="600"
-        :max-height="520"
-      />
-    </div>
-
-    <!-- 指标口径说明 -->
+    <!-- 指标口径说明 (3 tab 共享的 footer note, 放外面不受 tab 切换影响) -->
     <div class="text-xs text-slate-400 mt-3 px-1">
       <p>有效订单：剔除购物金及退款订单 | 新客：周期内首次购买 | 老客：周期开始前已有购买记录</p>
     </div>
