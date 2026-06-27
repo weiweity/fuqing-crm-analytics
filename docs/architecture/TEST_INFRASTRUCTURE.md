@@ -2,8 +2,8 @@
 
 > pytest fixture 模式 + race flake 治本 (Sprint 53) + 真连 test skipif 模式 + ground-truth-lint 钩子 + L4.3/L4.4/L4.6 永久规则汇总。
 
-**最后更新**: 2026-06-21
-**总测试数**: 749 passed / 1 skipped (Sprint 54 收口, e2e 12/12, L2 spec-lint 5/5, L1 SQL f-string 0 violations)
+**最后更新**: 2026-06-27
+**总测试数**: 730 passed / 23 skipped (Sprint 134 force-push 前本地验, 跟 Sprint 129 baseline 一致; Sprint 130-133 4 sprint 撤回 (删 backend 测试套) 完全 revert 后 baseline; Sprint 135 修 /document-release 6 处 doc drift 持续 0 回归)
 
 ---
 
