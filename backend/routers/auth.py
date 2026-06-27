@@ -11,10 +11,13 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import secrets
 import time
+import os
 import logging
 import bcrypt
 
-# Sprint 131 P0-2 写死运营配置: 不再 load_dotenv, 配置写死到代码常量
+# 确保 .env 已加载（auth.py 可能在其他模块之前被导入）
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter(prefix="/api/v1/auth", tags=["认证"])
 
@@ -33,25 +36,43 @@ LOCK_DURATION = 15 * 60        # 锁定时长（秒）
 RATE_LIMIT_WINDOW = 5 * 60     # 计数窗口（秒）
 
 # ─────────────────────────────────────────────────────────────
-# 密码配置 (Sprint 131 P0-2 写死运营配置)
-# 写死账号密码, 不再读 FQ_CRM_PASSWORDS 环境变量。
-# 运营人员使用固定账号登录, 不需要环境变量配置。
+# 密码配置
+#
+# 1. 如果设置了 FQ_CRM_PASSWORDS 环境变量：使用指定的账号密码
+#    格式: FQ_CRM_PASSWORDS=admin:密码1,fqsw:密码2
+# 2. 如果未设置：自动随机生成强密码，打印到控制台
+#    用户看到后可以复制到环境变量中固定下来
 # ─────────────────────────────────────────────────────────────
-_FQ_CRM_PASSWORDS = "admin:admin123,fqsw:fqsw123"
-
-
 def _load_credentials() -> dict[str, str]:
-    """加载账号密码, 返回 {username: bcrypt_hash}。Sprint 131 P0-2 写死 _FQ_CRM_PASSWORDS。"""
-    raw_creds: dict[str, str] = {}
-    for pair in _FQ_CRM_PASSWORDS.split(","):
-        pair = pair.strip()
-        if ":" in pair:
-            user, pwd = pair.split(":", 1)
-            raw_creds[user.strip()] = pwd.strip()
-    if not raw_creds:
-        raise RuntimeError(
-            "_FQ_CRM_PASSWORDS 格式错误, 请检查 'admin:密码1,fqsw:密码2' 格式。"
-        )
+    """加载账号密码，返回 {username: bcrypt_hash}。未配置时随机生成。"""
+    env = os.environ.get("FQ_CRM_PASSWORDS", "")
+
+    if env and env.strip():
+        raw_creds: dict[str, str] = {}
+        for pair in env.split(","):
+            pair = pair.strip()
+            if ":" in pair:
+                user, pwd = pair.split(":", 1)
+                raw_creds[user.strip()] = pwd.strip()
+        if not raw_creds:
+            raise RuntimeError(
+                "FQ_CRM_PASSWORDS 已设置但未解析到有效凭据，请检查格式。"
+            )
+    else:
+        # 未配置：自动生成随机强密码
+        raw_creds = {
+            "admin": secrets.token_urlsafe(12),
+            "fqsw": secrets.token_urlsafe(12),
+        }
+        print("\n" + "=" * 60)
+        print("  ⚠️  FQ_CRM_PASSWORDS 未配置，已自动生成随机密码：")
+        print()
+        print(f"  账号: admin    密码: {raw_creds['admin']}")
+        print(f"  账号: fqsw     密码: {raw_creds['fqsw']}")
+        print()
+        print("  如需固定密码，请在 .env 文件中添加：")
+        print(f"  FQ_CRM_PASSWORDS=admin:{raw_creds['admin']},fqsw:{raw_creds['fqsw']}")
+        print("=" * 60 + "\n")
 
     # 启动时一次性哈希（如果已经是 bcrypt 格式则跳过）
     hashed: dict[str, str] = {}
