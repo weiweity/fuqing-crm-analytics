@@ -1,3 +1,31 @@
+## [0.4.14.157] - 2026-06-27 (Sprint 137, VERSION 不变 真 refactor sprint - 人群看板 AudienceView 拆 3 tabs (数据总览 / 渠道概览 / 30指标对比))
+
+### Refactored (frontend 拆分到 tabs, 1 file / +277 / -264, 0 业务代码改动)
+- **frontend-vue3/src/views/AudienceView.vue**: +NTabs/NTabPane import + `activeTab` ref + 3 `n-tab-pane` wrapper
+  - **Tab 1 '数据总览'** (name="overview"): 原有的 3 KPI rows (人群 GSV / 占比+溢价 / 访客入会率) + 日趋势 + 入会趋势
+  - **Tab 2 '渠道概览'** (name="channel"): 渠道概览-全店 + 渠道概览-会员
+  - **Tab 3 '30指标对比'** (name="metrics"): 单独的 30指标对比
+  - '指标口径说明' footer note 放 n-tabs 外面 (跨 tab 共享全局说明, 不受 tab 切换影响)
+  - `class='mt-3'` 加在 KPI row 2/3 + 2 trend chart 保持 tab 内间距
+- 0 业务代码改动: `kpiData` / `summaryData` / `visitorSummary` 等 `useQuery` 不变
+- 0 API endpoint 改动, 0 子组件 props 改动 (MetricCard / DataTablePro / EChartsWrapper 等)
+- 0 死引用 (Sprint 65 check): 旧 '渠道概览-全店' / '渠道概览-会员' 标题保留在 Tab 2 内部
+
+### Sprint 流程
+- git checkout -b fix/sprint137-audience-tabs → 1 file modified +277/-264
+- L4.22 frontend sprint 收口必 rebuild dist 733ms + 0 errors + AudienceView-*.js chunk 3 tab strings 1:1 验证 (n(l(S),{name:`overview`,tab:`数据总览`},...)) + kill 旧 vite preview + restart 跑新 dist HTTP 200
+- /qa source-based 8/8 PASS (1 file diff + 3 n-tab-pane 包裹 + chunk 3 tab strings + HTTP 200 + /visitor 0 残留 + 老 Sidebar 没影响 + 0 业务代码改动 + 跨 sprint 0 越界)
+- 0 业务代码 + 0 API + 0 子组件 props 改动, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增
+- 累计 Sprint 60+ 60 sprint 0 debt 持续 + pytest 730/23/0 baseline
+
+### 关联文件
+- frontend-vue3/src/views/AudienceView.vue (1 file +277/-264)
+- frontend-vue3/dist/assets/AudienceView-*.js (vite code splitting chunk, 含 3 tab 字符串)
+- main HEAD: 34e6f64 (跟 origin/main 0 drift)
+- 跟 Sprint 65 (4 files +10/-10) + Sprint 104 (3 files -25) + Sprint 135 (5+1 files +651/-616) + Sprint 136 (1 file +2/-2) 模式 stable (留尾治理 + 真 refactor + 真业务 sprint 链 0 越界遵守)
+
+---
+
 ## [0.4.14.157] - 2026-06-27 (Sprint 136, VERSION 不变 真业务 sprint - sidebar rebrand 'Sample' → '天猫' (2 lines, 0 业务代码改动))
 
 ### Fixed (frontend 品牌文案微调, 1 file / +2 / -2, 0 业务代码改动)
