@@ -1,3 +1,25 @@
+## [0.4.14.157] - 2026-06-27 (Sprint 139, VERSION 不变 真业务 sprint - 派样人群正装转化漏斗)
+
+### Changed
+- **backend/services/sampling_service.py**: `get_sampling_roi` 加 `spu_type='正装'` 拆分，返回正装/非正装 30d 人数、GSV、AUS、正装 60d 指标、回购周期分布，以及 DQM `quality_flags` warning。
+- **backend/contracts/sampling.py**: `SamplingChannelSummary`、`SamplingCategoryRow`、`SamplingROIResponse` 同步新增正装拆分、周期分布和 DQM 字段。
+- **frontend-vue3/src/api/sampling.ts** + `types.generated.ts` / `types.ts`: 同步 Sampling ROI TypeScript interface 和 OpenAPI 生成类型。
+- **frontend-vue3/src/views/SamplingView.vue**: Tab 1 增加 4 个顶部 KPI、DQM 警告条、渠道卡片正装/非正装 split、品类表正装列和回购周期分布柱图。
+
+### Added
+- **backend/tests/test_sampling_sprint139.py**: 新增 5 case 回归，覆盖正装字段、GSV split、周期分布和 DQM flag 结构。
+- **backend/scripts/check_sampling_spu_type.py**: 新增 Sprint 139 ground-truth-lint 检查，验证 `sampling_service.py` 正装拆分 6 处关键证据。
+- **frontend-vue3/e2e/sampling.spec.ts**: mock Sprint 139 新字段并断言 4 KPI、正装 split、品类列和周期分布渲染。
+
+### Verification
+- Codex Stage 2 待跑: pytest 5 case、ground-truth-lint、e2e 真值断言、pre-commit 全绿。
+- VERSION: 0.4.14.157 不 bump；L4.x 22 stable 0 新增。
+
+### NOT in scope
+- 成本/毛利/CAC/LTV、holdout、cohort retention、RFM 分层、行业基线、AB test、ETL `sample_received_at`、0.01 锁权和滚动同期对比。
+
+---
+
 ## [0.4.14.157] - 2026-06-27 (Sprint 138, VERSION 不变 留尾治理 sprint - /document-release 累计 7 处 doc drift 全闭环 (6 files / +11 / -11, 0 业务代码改动))
 
 ### Fixed (跨文档一致性 100% PASS, 6 files / +11 / -11, 1:1 swap, 0 业务代码改动)
@@ -966,4 +988,3 @@ ce4deea merge: Sprint 60.1.1 — Pydantic 422 治本 + 修 Sprint 60 漏修 dist
 1. **3 worktree Codex 协作 + Claude 接管 fallback (Sprint 43+ 实战)**: wt-01 (#6 STATUS 自动化) Claude 主跑 (脚本体量适中), wt-02 (#5 CHANGELOG 归档) Codex 跑, wt-03 (#8 audit SOP) Codex 跑. 跟 Sprint 52 三 worktree 模式一致, 0 冲突.
 2. **战略收缩 (Codex review #23)**: #8 audit 措辞 SOP 起步想写 10+ 反例正例, Codex review 反馈 "5 规则 + 5 反例正例已经覆盖, 多写边际效用低", 改成精炼版. 实战教训: doc-only sprint 要约束文档边界, 不追求大全.
 3. **脚本化归档 vs 手动滚动 (Sprint 56 教训)**: #5 CHANGELOG 按行数归档用 `archive_changelog.py` 脚本化阈值 (≤ 900 行), 避免 Sprint 56 手动滚动 1734→1286 行的不可重复性. 跟 Sprint 58 #2 commit-msg blocking 算法优化同模式 (治标 → 治本).
-

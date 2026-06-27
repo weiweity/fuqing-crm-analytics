@@ -14,7 +14,70 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
       const url = route.request().url()
       let body = '{}'
       if (url.includes('/roi')) {
-        body = JSON.stringify({ summary: { channels: [] }, category_breakdown: [], time_range: { start: '', end: '', window_days: 30 } })
+        body = JSON.stringify({
+          summary: {
+            channels: [
+              {
+                channel: 'U先派样',
+                sample_users: 1000,
+                repurchase_users_7d: 120,
+                repurchase_users_30d: 300,
+                repurchase_users_60d: 360,
+                repurchase_rate_7d: 0.12,
+                repurchase_rate_30d: 0.3,
+                repurchase_rate_60d: 0.36,
+                repurchase_gsv_7d: 26000,
+                repurchase_gsv_30d: 80000,
+                repurchase_gsv_60d: 98000,
+                repurchase_aus_7d: 216,
+                repurchase_aus_30d: 267,
+                repurchase_aus_60d: 272,
+                full_repurchase_users_30d: 120,
+                full_repurchase_gsv_30d: 50000,
+                full_repurchase_aus_30d: 416,
+                full_repurchase_rate_30d: 0.12,
+                full_repurchase_users_60d: 160,
+                full_repurchase_gsv_60d: 68000,
+                full_repurchase_aus_60d: 425,
+                nonfull_repurchase_users_30d: 180,
+                nonfull_repurchase_gsv_30d: 30000,
+                nonfull_repurchase_aus_30d: 166,
+              },
+            ],
+          },
+          category_breakdown: [
+            {
+              channel: 'U先派样',
+              category: '次抛精华',
+              sample_users: 500,
+              repurchase_users: 100,
+              repurchase_rate: 0.2,
+              repurchase_gsv: 42000,
+              repurchase_aus: 420,
+              same_category_repurchase: 60,
+              same_category_rate: 0.12,
+              full_repurchase_users: 40,
+              full_repurchase_rate: 0.08,
+              full_repurchase_gsv: 20000,
+              full_repurchase_aus: 500,
+              nonfull_repurchase_users: 60,
+              nonfull_repurchase_gsv: 22000,
+              nonfull_repurchase_aus: 367,
+            },
+          ],
+          time_range: { start: '2026-05-01', end: '2026-05-31', window_days: 30 },
+          period_distribution: {
+            bucket_1_3d: 30,
+            bucket_4_7d: 60,
+            bucket_8_30d: 150,
+            bucket_31_60d: 60,
+            full_bucket_1_3d: 10,
+            full_bucket_4_7d: 20,
+            full_bucket_8_30d: 60,
+            full_bucket_31_60d: 30,
+          },
+          quality_flags: [],
+        })
       } else if (url.includes('/lock-analysis')) {
         body = JSON.stringify({
           campaign_info: { year: 2026, campaign_name: '' },
@@ -41,18 +104,23 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     // 关键断言 2: PageHeader subtitle 可见
     await expect(page.getByText('U先/百补派样ROI').first()).toBeVisible()
 
-    // 关键断言 3: 渠道对比卡片 (数据为空时接受)
-    await expect(page.getByText('U先派样').first()).toBeVisible({ timeout: 5000 }).catch(() => {
-      // CI 无 production DuckDB 时可能不渲染, 接受
-    })
-    await expect(page.getByText('百补').first()).toBeVisible({ timeout: 5000 }).catch(() => {
-      // CI 无 production DuckDB 时可能不渲染, 接受
-    })
+    // Sprint 139: 4 KPI 卡 + 正装拆分真值断言
+    await expect(page.getByText('派样人数').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('任意回购人数').first()).toBeVisible()
+    await expect(page.getByText('正装回购人数').first()).toBeVisible()
+    await expect(page.getByText('正装转化率').first()).toBeVisible()
 
-    // 关键断言 4: 品类明细表 (数据 fetch 后才渲染, 接受 EmptyState)
-    await expect(page.getByText('品类明细').first()).toBeVisible({ timeout: 5000 }).catch(() => {
-      // CI 无 production DuckDB 时可能显示 EmptyState, 接受
-    })
+    // 关键断言 3: 渠道对比卡片 + 正装/非正装 split
+    await expect(page.getByText('U先派样').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/正装回购 \(spu_type='正装'\)/).first()).toBeVisible()
+    await expect(page.getByText('非正装回购').first()).toBeVisible()
+
+    // 关键断言 4: 品类明细表新增正装列
+    await expect(page.getByText('品类回购明细').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('正装回购率').first()).toBeVisible()
+
+    // 关键断言 5: 周期分布图
+    await expect(page.getByText('回购周期分布').first()).toBeVisible({ timeout: 5000 })
 
     // 无 console error 与 API 5xx (a9b1d91 当时 Vite 编译错会污染 console)
     expect(consoleErrors).toHaveLength(0)

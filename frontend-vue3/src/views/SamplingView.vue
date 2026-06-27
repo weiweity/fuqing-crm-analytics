@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
@@ -66,6 +66,63 @@ function numVal(ch: SamplingChannelSummary, field: keyof SamplingChannelSummary)
   return Number(ch[field] ?? 0)
 }
 
+function safeRatio(numerator: number, denominator: number): number {
+  if (!denominator || denominator === 0) return 0
+  return numerator / denominator
+}
+
+// Sprint 139: 顶部正装转化 KPI 汇总
+const totalSampleUsers = computed(() => {
+  if (!roiData.value) return 0
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.sample_users ?? 0), 0)
+})
+
+const totalRepurchaseUsers30d = computed(() => {
+  if (!roiData.value) return 0
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.repurchase_users_30d ?? 0), 0)
+})
+
+const totalRepurchaseRate30d = computed(() => {
+  return safeRatio(totalRepurchaseUsers30d.value, totalSampleUsers.value)
+})
+
+const totalFullRepurchaseUsers30d = computed(() => {
+  if (!roiData.value) return 0
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_users_30d ?? 0), 0)
+})
+
+const totalFullRepurchaseRate30d = computed(() => {
+  return safeRatio(totalFullRepurchaseUsers30d.value, totalSampleUsers.value)
+})
+
+const totalFullRepurchaseGsv30d = computed(() => {
+  if (!roiData.value) return 0
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_gsv_30d ?? 0), 0)
+})
+
+const totalFullRepurchaseAus30d = computed(() => {
+  return safeRatio(totalFullRepurchaseGsv30d.value, totalFullRepurchaseUsers30d.value)
+})
+
+const periodBuckets = computed(() => {
+  if (!roiData.value?.period_distribution) return []
+  const pd = roiData.value.period_distribution
+  const all = [
+    { label: '1-3天', total: pd.bucket_1_3d, full: pd.full_bucket_1_3d },
+    { label: '4-7天', total: pd.bucket_4_7d, full: pd.full_bucket_4_7d },
+    { label: '8-30天', total: pd.bucket_8_30d, full: pd.full_bucket_8_30d },
+    { label: '31-60天', total: pd.bucket_31_60d, full: pd.full_bucket_31_60d },
+  ]
+  const maxTotal = Math.max(...all.map(b => b.total), 1)
+  return all.map(b => ({
+    label: b.label,
+    count: b.total.toLocaleString(),
+    fullCount: b.full.toLocaleString(),
+    height: Math.max(4, (b.total / maxTotal) * 160),
+    fullHeight: Math.max(4, (b.full / maxTotal) * 160),
+  }))
+})
+
 // 品类明细表格列
 const categoryCols: DataTableColumns<SamplingCategoryRow> = [
   { title: '渠道', key: 'channel', width: 100, fixed: 'left', align: 'center' },
@@ -75,6 +132,10 @@ const categoryCols: DataTableColumns<SamplingCategoryRow> = [
   { title: '回购率', key: 'repurchase_rate', width: 90, align: 'center', render: r => `${((r.repurchase_rate ?? 0) * 100).toFixed(1)}%` },
   { title: '回购GSV', key: 'repurchase_gsv', width: 120, align: 'right', render: r => `¥${((r.repurchase_gsv ?? 0) / 1e4).toFixed(1)}万` },
   { title: 'AUS', key: 'repurchase_aus', width: 90, align: 'right', render: r => `¥${(r.repurchase_aus ?? 0).toFixed(0)}` },
+  { title: '正装回购人数', key: 'full_repurchase_users', width: 110, align: 'right', render: r => (r.full_repurchase_users ?? 0).toLocaleString() },
+  { title: '正装回购率', key: 'full_repurchase_rate', width: 100, align: 'center', render: r => `${((r.full_repurchase_rate ?? 0) * 100).toFixed(1)}%` },
+  { title: '正装回购GSV', key: 'full_repurchase_gsv', width: 120, align: 'right', render: r => `¥${((r.full_repurchase_gsv ?? 0) / 1e4).toFixed(1)}万` },
+  { title: '正装AUS', key: 'full_repurchase_aus', width: 90, align: 'right', render: r => `¥${(r.full_repurchase_aus ?? 0).toFixed(0)}` },
   { title: '同品类回购', key: 'same_category_repurchase', width: 100, align: 'right', render: r => (r.same_category_repurchase ?? 0).toLocaleString() },
   { title: '同品类回购率', key: 'same_category_rate', width: 110, align: 'center', render: r => `${((r.same_category_rate ?? 0) * 100).toFixed(1)}%` },
 ]
@@ -316,6 +377,61 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
         <error-state v-else-if="roiError" :message="getErrorMessage(roiError)" />
 
         <template v-else-if="roiData">
+          <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
+            <n-gi>
+              <n-card :bordered="false" segmented>
+                <div class="text-sm text-slate-500">派样人数</div>
+                <div class="text-2xl font-bold text-slate-700 mt-2">
+                  {{ totalSampleUsers.toLocaleString() }}
+                </div>
+                <div class="text-xs text-slate-400 mt-1">U先派样 + 百补派样</div>
+              </n-card>
+            </n-gi>
+            <n-gi>
+              <n-card :bordered="false" segmented>
+                <div class="text-sm text-slate-500">任意回购人数 (30d)</div>
+                <div class="text-2xl font-bold text-slate-700 mt-2">
+                  {{ totalRepurchaseUsers30d.toLocaleString() }}
+                </div>
+                <div class="text-xs text-slate-400 mt-1">回购率 {{ fmtPct(totalRepurchaseRate30d) }}</div>
+              </n-card>
+            </n-gi>
+            <n-gi>
+              <n-card :bordered="false" segmented>
+                <div class="text-sm text-slate-500">正装回购人数 (30d)</div>
+                <div class="text-2xl font-bold text-rose-600 mt-2">
+                  {{ totalFullRepurchaseUsers30d.toLocaleString() }}
+                </div>
+                <div class="text-xs text-slate-400 mt-1">
+                  正装转化率 {{ fmtPct(totalFullRepurchaseRate30d) }}
+                </div>
+              </n-card>
+            </n-gi>
+            <n-gi>
+              <n-card :bordered="false" segmented>
+                <div class="text-sm text-slate-500">正装 GSV (30d)</div>
+                <div class="text-2xl font-bold text-emerald-600 mt-2">
+                  ¥{{ (totalFullRepurchaseGsv30d / 1e4).toFixed(1) }}万
+                </div>
+                <div class="text-xs text-slate-400 mt-1">
+                  AUS ¥{{ totalFullRepurchaseAus30d.toFixed(0) }}
+                </div>
+              </n-card>
+            </n-gi>
+          </n-grid>
+
+          <n-alert
+            v-if="roiData.quality_flags?.length"
+            type="warning"
+            :show-icon="true"
+            class="mb-4"
+          >
+            <template #header>数据质量警告 ({{ roiData.quality_flags.length }})</template>
+            <div v-for="flag in roiData.quality_flags" :key="flag.code" class="text-sm">
+              {{ flag.message }}
+            </div>
+          </n-alert>
+
           <!-- 渠道对比卡片 -->
           <n-grid :cols="2" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen">
             <n-gi v-for="ch in roiData.summary.channels" :key="ch.channel">
@@ -369,6 +485,31 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
                   <span>30天回购: <b class="text-slate-700">{{ (ch.repurchase_users_30d ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate_30d ?? 0) * 100).toFixed(1) }}%)</span>
                   <span>60天回购: <b class="text-slate-700">{{ (ch.repurchase_users_60d ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate_60d ?? 0) * 100).toFixed(1) }}%)</span>
                 </div>
+
+                <n-divider />
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-xs font-semibold text-rose-600 mb-1">正装回购 (spu_type='正装')</div>
+                    <div class="text-sm text-slate-600">
+                      人数: <b class="text-slate-800">{{ (ch.full_repurchase_users_30d ?? 0).toLocaleString() }}</b>
+                      ({{ fmtPct(ch.full_repurchase_rate_30d ?? 0) }})
+                    </div>
+                    <div class="text-sm text-slate-600">
+                      GSV: <b class="text-emerald-700">¥{{ ((ch.full_repurchase_gsv_30d ?? 0) / 1e4).toFixed(1) }}万</b>
+                      · AUS ¥{{ (ch.full_repurchase_aus_30d ?? 0).toFixed(0) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-semibold text-slate-500 mb-1">非正装回购 (小样/赠品等)</div>
+                    <div class="text-sm text-slate-600">
+                      人数: <b class="text-slate-800">{{ (ch.nonfull_repurchase_users_30d ?? 0).toLocaleString() }}</b>
+                    </div>
+                    <div class="text-sm text-slate-600">
+                      GSV: <b class="text-slate-700">¥{{ ((ch.nonfull_repurchase_gsv_30d ?? 0) / 1e4).toFixed(1) }}万</b>
+                      · AUS ¥{{ (ch.nonfull_repurchase_aus_30d ?? 0).toFixed(0) }}
+                    </div>
+                  </div>
+                </div>
               </n-card>
             </n-gi>
           </n-grid>
@@ -383,10 +524,47 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
               :data="roiData.category_breakdown"
               :bordered="false"
               :single-line="false"
-              :scroll-x="1100"
+              :scroll-x="1500"
               size="small"
               striped
             />
+          </n-card>
+
+          <n-card v-if="roiData.period_distribution" :bordered="false" segmented class="mt-4">
+            <template #header>
+              <span class="text-sm font-semibold text-slate-700">回购周期分布</span>
+            </template>
+            <div class="grid grid-cols-4 gap-4 items-end" style="min-height: 200px">
+              <div v-for="bucket in periodBuckets" :key="bucket.label" class="text-center">
+                <div class="text-xs text-slate-500 mb-1">{{ bucket.label }}</div>
+                <div class="mx-auto flex items-end justify-center gap-1" style="height: 164px">
+                  <div
+                    class="rounded-t transition-all"
+                    :style="{
+                      backgroundColor: '#6366f1',
+                      width: '24px',
+                      height: bucket.height + 'px',
+                      minHeight: '4px',
+                    }"
+                  ></div>
+                  <div
+                    class="rounded-t transition-all"
+                    :style="{
+                      backgroundColor: '#e11d48',
+                      width: '24px',
+                      height: bucket.fullHeight + 'px',
+                      minHeight: '4px',
+                    }"
+                  ></div>
+                </div>
+                <div class="text-sm font-bold mt-1">{{ bucket.count }}</div>
+                <div class="text-xs text-slate-400">正装 {{ bucket.fullCount }}</div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-400 mt-3 flex gap-6">
+              <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded" style="background: #6366f1"></span>任意回购</span>
+              <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded" style="background: #e11d48"></span>正装回购</span>
+            </div>
           </n-card>
         </template>
       </n-tab-pane>
