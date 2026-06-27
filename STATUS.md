@@ -24,52 +24,8 @@
 | 维度 | 数 | 备注 |
 |---|---|---|
 | pytest passed | **730** | Sprint 134 force-push 前本地验 (730 passed / 23 skipped / 0 failed, 跟 Sprint 129 baseline 一致, 4 sprint 完全 revert) |
-
----
-
-## 版本
-
-| 项 | 值 |
-|---|---|
-| VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `792626c` (Sprint 129 收口 docs, L4.14 amend drift 1 commit 接受 ef58482 → b1803ca) |
-| 当前分支 | `main` |
-| 最近 sprint | Sprint 129 (修 CI e2e 4 sprint 爆红, 删 geo.spec.ts + 加回 lint.yml paths filter, 1+1 files) |
-| 收口日 | 2026-06-27 |
-| 上次合入 | Sprint 129 (commit `b1803ca` merge + `792626c` 收口 docs, lint.yml paths filter 修复 + 实战 fix 模式库 #22 + #23) |
-
----
-
-## 测试状态
-
-| 维度 | 数 | 备注 |
-|---|---|---|
-| pytest passed | **730** | Sprint 129 pre-merge 全量复验 (730 passed / 23 skipped / 0 failed, 跟 Sprint 60.3+ slow 排除规则一致, baseline Sprint 117 832 -102 slow) |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
 
----
-
-## 版本
-
-| 项 | 值 |
-|---|---|
-| VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `f53ac08` (Sprint 128 fix) |
-| 当前分支 | `main` |
-| 最近 sprint | Sprint 128 (修 #S105-1+#S105-2 P2 闭环, SIGTERM fallback 重试 3 次 + cross-user check, 1 file +38/-8 行, VERSION 不 bump) |
-| 收口日 | 2026-06-26 |
-| 上次合入 | Sprint 128 (commit `f53ac08`, run-etl.sh SIGTERM fallback + cross-user check) |
-
----
-
-## 测试状态
-
-| 维度 | 数 | 备注 |
-|---|---|---|
-| pytest passed | **795** | Sprint 128 pre-push 全量复验 (795 passed / 23 skipped / 0 failed) |
-| pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
-
----
 ---
 
 ## 技术债
