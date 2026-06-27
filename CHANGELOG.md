@@ -1,3 +1,26 @@
+## [0.4.14.157] - 2026-06-27 (Sprint 136, VERSION 不变 真业务 sprint - sidebar rebrand 'Sample' → '天猫' (2 lines, 0 业务代码改动))
+
+### Fixed (frontend 品牌文案微调, 1 file / +2 / -2, 0 业务代码改动)
+- **frontend-vue3/src/components/Sidebar.vue line 26**: `<h1 class="sidebar-logo-title">Sample CRM</h1>` → `<h1 class="sidebar-logo-title">天猫CRM项目</h1>` (项目品牌从 Sample → 天猫, user 拍板)
+- **frontend-vue3/src/components/Sidebar.vue line 49**: `<p>© 2026 Sample数据团队</p>` → `<p>© 2026 天猫运营团队</p>` (数据团队 → 运营团队, 品牌方团队名调整)
+- **不动 line 24 "芙" 图标**: L4.7 精准修改, user 没提, 保留芙清项目原 icon 字
+- **不动 page title "芙清 CRM - 数据分析平台"**: <title> 标签不在 sidebar 范围, user 没提
+
+### Sprint 流程
+- git checkout -b fix/sprint136-sidebar-rebrand → 1 file modified +2/-2
+- L4.22 frontend sprint 收口必 rebuild dist (638ms) + 0 Sample 残留 + 2 处新文案 1:1 替换 + 1 处芙图标保留 + kill 旧 vite preview + restart 跑新 dist
+- /qa source-based 8/8 PASS (Sidebar.vue 改后 + dist 0 残留 + 2 处新文案 + 1 处芙图标 + vite preview HTTP 200 + /visitor 0 残留 + 其他 view 0 残留 + 0 越界)
+- 0 业务代码 + 0 SQL + 0 API 改动, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增
+- 累计 Sprint 60+ 60 sprint 0 debt 持续 + pytest 730/23/0 baseline
+
+### 关联文件
+- frontend-vue3/src/components/Sidebar.vue (1 file +2/-2)
+- frontend-vue3/dist/ (L4.22 build 后 0 Sample 残留, 0 /visitor 残留, 跟 Sprint 104 + Sprint 134 一致)
+- main HEAD: 35890a9 (跟 origin/main 0 drift)
+- 跟 Sprint 65 /document-release 模式 + Sprint 104 /visitor 删除 + Sprint 134 暂收口 模式 stable (留尾治理 sprint 链 0 越界遵守)
+
+---
+
 ## [0.4.14.157] - 2026-06-27 (Sprint 135, VERSION 不变 留尾治理 sprint - /document-release 诊断 6 处 doc drift 全闭环)
 
 ### Fixed (跨文档一致性 100% PASS, 6 files / +651 / -616, 实质有效 +99 / -60 排除 CHANGELOG.md -553 + CHANGELOG_HISTORY.md +555 mirror)
