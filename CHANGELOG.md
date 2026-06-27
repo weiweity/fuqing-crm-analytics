@@ -1,3 +1,36 @@
+## [0.4.14.157] - 2026-06-27 (Sprint 129, VERSION 不变 真业务 sprint - 修 CI e2e 4 sprint 爆红)
+
+### Fixed (lint.yml paths filter loop hole + frontend e2e spec, 1+1 files, 实战 fix 模式库 #22 + #23)
+- **删 frontend-vue3/e2e/geo.spec.ts (37 行纯删除)**: Sprint 33.2 候选 3 e2e 验证 /geo 路由断言遮罩文案 "待优化更新" / "该模块正在重构中" (Phase 1 cad8df8 已删), spec 漏改导致 Sprint 120/Phase 1/2.1/2.2 4 sprint merge 后 CI e2e 连续 4 次 fail (gh run 28247309107 + 28248206735 + 28278178300, 1 failed e2e / 3 passed lint+test+ground-truth-lint). 修法 = 整 file 删 (跟 Phase 2.1 删 breakdown/churn spec 一致), /geo 路由仍激活, 其他 8 e2e spec 仍覆盖 11/11 view routes 80%.
+- **加回 .github/workflows/lint.yml paths filter `frontend-vue3/e2e/**`**: Phase 2.1 (4740f64) 删 2 e2e spec 时同步删 paths filter → Sprint 129 删 geo.spec.ts 不触发 CI (跟 Sprint 82/83 CLAUDE.md paths filter 同根因 L4.16 实战 fix 模式库 #23). 修路径跟修 spec 一起, 1+1 files 闭合完整 loop.
+
+### Sprint 流程
+- git checkout -b fix/ci-e2e-red-sprint129 → git rm frontend-vue3/e2e/geo.spec.ts (1 file -37)
+- pytest backend/tests/ -m "not slow" 730/23/0 PASS (跟 Sprint 60.3+ slow 排除规则一致)
+- ruff check backend/ All checks passed (无 backend 改动)
+- /review PASS, PR Quality 10/10, 0 finding (DIFF_LINES=37 < 50 跳过 specialists)
+- git commit 3ade314 → git push origin fix/ci-e2e-red-sprint129 (pre-push pytest 2 skipped "真验证回归" 跟 Sprint 113+ stable)
+- /qa: pre-merge pytest 730/23/0 + ruff clean (CI e2e job 是真测试)
+- git checkout main + git merge fix/ci-e2e-red-sprint129 --no-ff (ef58482)
+- git push origin main (808cbbf..ef58482) — **CI 不触发** (paths filter 不含 e2e/**), 实战 fix 模式库 #23 发现
+- 修 lint.yml paths filter + amend (ef58482 → b1803ca, L4.14 amend drift 1 commit 接受, 跟 Sprint 74 + Phase 1+2.1+2.2 amend + force-push 模式 stable)
+- git push origin main --force-with-lease (b1803ca)
+- **CI 28278827057 4/4 jobs 全绿 SUCCESS** (lint 42s + test 2m52s + ground-truth-lint 6s + **e2e 4m42s** 跟 Sprint 95-96.5 baseline 一致)
+- git pull origin main --ff-only "Already up to date" (跟 Sprint 74+ stable 模式)
+- uvicorn 不需 restart (无 backend/frontend runtime 改动, 仅 e2e spec + lint.yml paths filter)
+
+### 实战 fix 模式库 (Sprint 129 沉淀 2 项, 累计 23)
+- **#22**: Phase 1 删 3 view 遮罩时, e2e spec 必须同步删 (Sprint 33.2 候选 3 设计: e2e 验证 11/11 view routes, view 改 UI 时 e2e spec 必须同步改). 跟 Sprint 32.3 (空 .vue) + Sprint 104 /visitor (前端 sprint rebuild dist) + L4.22 同根因.
+- **#23**: Phase X 删 e2e spec 时, paths filter 必须保留 e2e/** (Phase 2.1 漏掉 → Sprint 129 删 geo.spec.ts 不触发 CI). 跟 Sprint 82/83 (CLAUDE.md paths filter) 同根因 L4.16 实战 fix 模式库.
+
+### 关联文件
+- frontend-vue3/e2e/geo.spec.ts (deleted, 37 lines)
+- .github/workflows/lint.yml (paths filter 加 `frontend-vue3/e2e/**` + 注释 line 9)
+- gh run 28278827057 (4/4 jobs verify CI PASS)
+- commit b1803ca (amend 跟 ef58482 merge + lint.yml paths fix, L4.14 接受 1 commit drift)
+
+---
+
 # CHANGELOG.md — Sprint 24+ P3 (v0.4.14.97+) 近期 entry 详细
 
 > **早期 entry 归档**: v0.3.6 - v0.4.14.107 (Sprint 1 - Sprint 30 收口) 老 entry 已迁出 (Sprint 35 文档清理 3167 行 + Sprint 55.5 滚动 11 entry). **Sprint 126 /document-release 删 CHANGELOG_HISTORY.md** (414KB, 4506 行), 跨 sprint 治理循环 stable 后老 changelog 归档已沉淀到 git history + close memory + STATUS + TECH-DEBT, 仍可查 `git log --oneline -- CHANGELOG.md` 或 checkout 老 commit.
