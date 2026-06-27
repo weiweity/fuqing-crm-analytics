@@ -1,3 +1,33 @@
+## [0.4.14.157] - 2026-06-27 (Sprint 138, VERSION 不变 留尾治理 sprint - /document-release 累计 7 处 doc drift 全闭环 (6 files / +11 / -11, 0 业务代码改动))
+
+### Fixed (跨文档一致性 100% PASS, 6 files / +11 / -11, 1:1 swap, 0 业务代码改动)
+- **README.md line 1 + line 9**: `# Sample CRM 客户分析系统` → `# 天猫CRM 客户分析系统` + `Sample电商运营团队` → `天猫电商运营团队` (跟 Sprint 136 sidebar 品牌文案一致)
+- **CLAUDE.md line 1**: `# Sample CRM — AI 执行手册` → `# 天猫CRM — AI 执行手册` (跟 Sprint 136 品牌文案一致)
+- **STATUS.md head + table**: Sprint 134 → Sprint 137 (main HEAD 4fff7a2 + 累计 60→62 sprint 0 debt 持续, 跟 Sprint 137 merge 同步)
+- **docs/TECH-DEBT.md head**: Sprint 135 → Sprint 138 (Sprint 138 留尾治理 sprint 修 7 处 drift, 累计 60→62→63 sprint 0 debt stable)
+- **docs/history/SPRINT_INDEX.md head**: 加 Sprint 105-138 1 行指针 (跟 MEMORY.md 1 行指针模式 stable, L4.13 MEMORY.md size 0 越界)
+- **docs/architecture/DATA_PIPELINE.md head**: 2026-06-24 → 2026-06-27 (Sprint 138 持续 baseline 730/23/0)
+
+### Sprint 流程
+- /document-release 累计 2 次 (Sprint 135 + 138) 全闭环
+- git checkout -b fix/sprint138-doc-drift-cleanup → 6 files / +11 / -11 (1:1 swap, net 0)
+- /qa source-based 8/8 PASS (1:1 swap + 0 业务代码 + L4.7 100% + VERSION 不变 + L4.x 0 新增 + pytest baseline + 累计 63 sprint 0 debt + 跨 sprint 0 越界)
+- 0 业务代码 + 0 SQL + 0 API 改动, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增
+- 跟 Sprint 65 + 135 模式 stable 累计 2 次 /document-release 真治本
+
+### 关联文件
+- README.md (1 file +2/-2)
+- CLAUDE.md (1 file +1/-1)
+- STATUS.md (1 file +4/-4)
+- docs/TECH-DEBT.md (1 file +1/-1)
+- docs/history/SPRINT_INDEX.md (1 file +2/-2)
+- docs/architecture/DATA_PIPELINE.md (1 file +1/-1)
+- 6 files +11/-11 (1:1 swap, net 0, L4.7 100% 精准修改)
+- main HEAD: 6146867 (跟 origin/main 0 drift)
+- 跟 Sprint 65 + 135 + 116+117+136+137 + Sprint 116+117+136+137 真 refactor 模式 stable
+
+---
+
 ## [0.4.14.157] - 2026-06-27 (Sprint 137, VERSION 不变 真 refactor sprint - 人群看板 AudienceView 拆 3 tabs (数据总览 / 渠道概览 / 30指标对比))
 
 ### Refactored (frontend 拆分到 tabs, 1 file / +277 / -264, 0 业务代码改动)
