@@ -361,13 +361,11 @@ from backend.routers import (
     health_router,
     metrics_router,
     flow_router,
-    churn_router,
     asset_router,
     geo_router,
     category_router,
     audience_router,
     rfm_router,
-    breakdown_router,
     sampling_router,
     market_focus_router,
     visitor_router,
@@ -379,13 +377,11 @@ app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(metrics_router)
 app.include_router(flow_router)
-app.include_router(churn_router)
 app.include_router(asset_router)
 app.include_router(geo_router)
 app.include_router(category_router)
 app.include_router(audience_router)
 app.include_router(rfm_router)
-app.include_router(breakdown_router)
 app.include_router(sampling_router)
 app.include_router(market_focus_router)
 app.include_router(visitor_router)

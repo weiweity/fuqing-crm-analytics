@@ -7,7 +7,7 @@ Covers:
 - GET /api/v1/audience/table: audience table
 - GET /api/v1/geo/distribution: geographic distribution
 - GET /api/v1/category/distribution: category distribution
-- GET /api/v1/churn/distribution: churn distribution
+- GET /api/v1/flow/matrix: RFM flow matrix
 - GET /api/v1/flow/matrix: RFM flow matrix
 - GET /api/v1/customer-health/*: customer health endpoints
 

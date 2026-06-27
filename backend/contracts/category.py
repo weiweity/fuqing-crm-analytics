@@ -1,6 +1,6 @@
 """Sample CRM - Pydantic 契约模型"""
 from __future__ import annotations
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Annotated
 from pydantic import BaseModel, Field
 from .common import WoolPartyBreakdown, DualAxisLineData
 from .types import RatioField, PercentageField, PpField  # Sprint 14 A.3
@@ -187,3 +187,70 @@ class MarketBasketResponse(BaseModel):
     yoy_period_label: Optional[str] = None  # 去年同期标签
     items: List[MarketBasketYoYItem]
     data_quality_note: str
+
+
+# ─────────────────────────────────────────────────────────────
+# 品类流失预警 (B 类 — 跟 /churn 路由无关, 配套 category_service.churn)
+# Sprint 130 Phase 2.2 实战 fix 模式: 原在 contracts/churn.py, 跟 A 类 schema 共用 file
+# 误删整 file 导致 routers/category.py:21,23 + services/category_service/churn.py:163,361
+# ImportError. 跟 Sprint 109 实战 fix 模式 cross-reference 教训同根因, 2 B 类 schema 移这里
+# ─────────────────────────────────────────────────────────────
+
+class CategoryChurnItem(BaseModel):
+    """品类流失预警-散点/条形/表格通用字段"""
+    category_name: str
+    current_users: int
+    previous_users: int = 0
+    mom_change_rate: float = Field(..., description="环比变化率 0-1 decimal, 可负")
+    inter_churn: int = 0         # 品类间流失
+    silent_churn: int = 0        # 沉默流失
+    top_churn_dest1: str = ""
+    top_churn_dest1_ratio: "RatioField" = 0.0
+    top_churn_dest2: str = ""
+    top_churn_dest2_ratio: "RatioField" = 0.0
+    挽回建议: str = ""
+
+
+class CategoryChurnResponse(BaseModel):
+    """品类流失预警 Tab 响应"""
+    scatter_data: List[CategoryChurnItem]
+    bar_data: List[CategoryChurnItem]
+    table: List[CategoryChurnItem]
+    operation_suggestions: List[str]
+    data_quality_note: str
+
+
+class CategoryDailyTrendResponse(BaseModel):
+    """品类每日趋势响应"""
+    category_id: str
+    category_name: str
+    granularity: str = "daily"
+    dates: List[str]
+    gmv: List[float]
+    user_count: List[int]
+    aus: List[float]
+    # Sprint 17 B2 全量 audit: List[RatioField] 必须用 Annotated 才能触发 element-wise 约束
+    # Sprint 18 #141: 字段名 _ratio 已被 linter 强制要求 RatioField 0-1 范围, 0-1 decimal
+    new_customer_ratio: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 新客占比")]]
+
+
+class UserDetail(BaseModel):
+    """用户详情"""
+    user_id: str
+    nickname: str
+    order_count: int
+    total_gmv: float
+    first_order_date: str
+    last_order_date: str
+    segment_id: int
+    segment_name: str
+    is_member: bool
+    is_wool_party: bool
+
+
+class CategoryUserListResponse(BaseModel):
+    """品类用户列表响应"""
+    category_id: str
+    category_name: str
+    total_users: int
+    users: List[UserDetail]

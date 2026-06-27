@@ -159,7 +159,6 @@ fuqing-crm-analytics/
 │   │   ├── health/             # 老客健康分析（rfm_analysis/overview/repurchase/...）
 │   │   ├── metrics/            # 指标服务
 │   │   ├── rfm/                # RFM 区间流转（r_flow/f_flow/m_flow/segment_orders）
-│   │   ├── breakdown_service/  # 一键拆解（forward/reverse/suggestions/main）
 │   │   └── dmp_asset_service/  # DMP 资产（store/product/other）
 │   ├── routers/                # API 路由（16 个模块）
 │   ├── db/                     # 数据库连接

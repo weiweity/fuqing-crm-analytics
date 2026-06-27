@@ -10,7 +10,6 @@ FILTER_BUILDER_SERVICES = [
     "backend/services/flow_service.py",
     "backend/services/asset_service.py",
     "backend/services/metrics/overview.py",
-    "backend/services/churn_service.py",
     "backend/services/geo_service.py",
 ]
 
