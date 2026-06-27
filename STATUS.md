@@ -2,7 +2,29 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-26 (Sprint 128 修 #S105-1+#S105-2 P2 闭环 + Sprint 127 修 Sprint 126 回归: test_sprint99 改检查 STATUS.md + run-etl.sh SIGTERM fallback 重试 3 次 + cross-user check, 2 file +44/-15 行, pytest 795/23/0 持续, 累计 62 sprint 0 debt, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增)
+**最后更新**: 2026-06-27 (Sprint 129 修 CI e2e 4 sprint 爆红真业务 sprint — 删 frontend-vue3/e2e/geo.spec.ts + 加回 lint.yml paths filter `frontend-vue3/e2e/**`, 1+1 files, 实战 fix 模式库 #22 + #23, pytest 730/23/0 PASS, gh run 28278827057 4/4 jobs 全绿 SUCCESS 4m42s 闭环, 累计 60 sprint 0 debt, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增, Sprint 34 候选 4 ✅ 闭环)
+
+---
+
+## 版本
+
+| 项 | 值 |
+|---|---|
+| VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
+| git HEAD (main) | `792626c` (Sprint 129 收口 docs, L4.14 amend drift 1 commit 接受 ef58482 → b1803ca) |
+| 当前分支 | `main` |
+| 最近 sprint | Sprint 129 (修 CI e2e 4 sprint 爆红, 删 geo.spec.ts + 加回 lint.yml paths filter, 1+1 files) |
+| 收口日 | 2026-06-27 |
+| 上次合入 | Sprint 129 (commit `b1803ca` merge + `792626c` 收口 docs, lint.yml paths filter 修复 + 实战 fix 模式库 #22 + #23) |
+
+---
+
+## 测试状态
+
+| 维度 | 数 | 备注 |
+|---|---|---|
+| pytest passed | **730** | Sprint 129 pre-merge 全量复验 (730 passed / 23 skipped / 0 failed, 跟 Sprint 60.3+ slow 排除规则一致, baseline Sprint 117 832 -102 slow) |
+| pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
 
 ---
 
