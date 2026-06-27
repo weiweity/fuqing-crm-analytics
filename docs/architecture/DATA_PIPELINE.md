@@ -2,7 +2,7 @@
 
 > ETL 4 阶段 (W1→W2→W3→W4) 数据流图 + 关键 metrics + 50M scale 触发条件 + Sprint 52 实战。
 
-**最后更新**: 2026-06-24
+**最后更新**: 2026-06-27 (Sprint 138 /document-release 累计 doc drift 修; Sprint 134 4 sprint 撤回 (Sprint 130-133) 后 baseline 730/23/0 持续 1 sprint, 跟 Sprint 129 一致, 跟 Sprint 137 1 sprint 后持续)
 **Sprint 收口验证**: Sprint 28+ 端到端跑批 (10.75M 订单, 12.5h 总计 ~32min); Sprint 103 必修 1 拆解 ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) 跟 STATUS.md line 81 同步
 
 ---
