@@ -7,6 +7,7 @@ name: CI
 # Sprint 85 (2026-06-23): Node 20 → Node 24 升级 (L4.17 永久规则沉淀, Sprint 84 CI annotations 实战). ruff-action@v3 → v3.6.1 锁 stable (Sprint 63 P2 教训: v4 pre-release GH Actions git ref 解析失败, L4.9 永久规则 gh api tags 验证) + setup-node@v5 强制 Node 24 (覆盖 ruff-action 内部 Node 20)
 # Sprint 87 (2026-06-23): ruff-action 替代 (L4.17 SOP 修复彻底, Sprint 86 annotation 警告仍存在真因修复). 移除 astral-sh/ruff-action@v3.6.1 (内部 Node 20 检测**无法通过** setup-node 覆盖) + 移除 setup-node@v5 (Sprint 85 修但没覆盖 action 内部 Node) + 改用 setup-python@v6 + pip install ruff==0.4.10 (L4.9 永久规则 锁 ruff version, Sprint 92 必修 2 真因修) + ruff check backend/ 自定义 step (避免 ruff-action 内部 Node 20, L4.17 SOP 修复彻底 annotation 警告 0 触发). 失去 ruff-action cache 优化但 backend/ 改动频率低, 缓存影响小.
 # Sprint 123 (2026-06-25): R2 CI 跑 e2e (Sprint 34 候选 4) 触发 — lint.yml 加 e2e job 替代 .github/workflows/e2e.yml 独立 (1 file workflow 4 jobs 替代 2 file workflow 4 jobs). Sprint 95-96.5 7 sprint 链实战 fix 模式 闭环后 e2e.yml 跑 4m29s success 5 次累计, 风险已消除. Sprint 32.1 advisory "lint.yml 0 e2e" 当时 OOM 18m+ 风险已闭环. 跟 Sprint 60.3+ C+ UI smoke + API 5xx 拦截 一致. 实战 fix 模式库 #15.
+# Sprint 129 (2026-06-27): 加回 frontend-vue3/e2e/** 触发 (Phase 2.1 (4740f64) 删 2 e2e spec 时同步删 paths filter → Sprint 129 删 geo.spec.ts 不触发 CI → 4 sprint 爆红修复无 CI 验证). 跟 Sprint 82/83 (CLAUDE.md paths filter) 同根因 L4.16 实战 fix 模式库 #23, 修路径跟修 spec 一起.
 on:
   pull_request:
   push:
@@ -15,6 +16,7 @@ on:
       - 'backend/**'
       - 'scripts/**'
       - 'frontend-vue3/src/**'
+      - 'frontend-vue3/e2e/**'
       - 'frontend-vue3/playwright.config.ts'
       - 'requirements.txt'
       - 'requirements-lock.txt'
