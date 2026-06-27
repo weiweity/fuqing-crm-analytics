@@ -21,6 +21,7 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 - ✅ 核心看板：指标概览 / 老客健康分析 / 市场对焦 / 品类 / 人群
 - ✅ ETL 增量更新正常（截至 2026-06-22：orders 10,747,441 / users 4,762,870 / 补 6/16 + 6/17 数据 +1.68M 行 / 6/22 baseline 入仓）
 - ✅ 后端代码审计完成，大文件拆分完成
+- ✅ CI/CD 防线：pre-commit (ruff + pytest) + pre-push (pytest) + GitHub Actions + ground-truth-lint (Sprint 17 #121)
 - ✅ 测试 819 passed / 23 skipped (本地 macOS Sprint 101 复验) + Vite build 0 错误 + e2e 12/12 PASS + SQL f-string lint 0 violations + L3 FilterBuilder 14/14 service 100% 闭环 + L4.20 close-memory SSOT 漂移 lint 2 records PASS + L4.21 反 sprint 自我反馈闭环永久规则 (v0.4.14.157, Sprint 101 收口; Sprint 60+ 留尾 4 项闭环 + D1 50m-scale 按 30M 触发推后 + Sprint 100 L4.20 test 1 shallow clone 反噬治根, 累计 **51 sprint 0 debt 持续**, L4.x 永久规则 **21 条 stable**)
 - ✅ 痛点 1 闭环：Sprint 22 #26 跑批 3 次平均 18.0 min (< 35 min 目标, CV 9.4%)
 - ✅ DuckDB race 治根：Sprint 22 #30 验证 1.5.4 上游已修, 30 workers × 100 writes 0 race
@@ -66,6 +67,14 @@ Sample CRM 客户分析系统是为Sample电商运营团队打造的内部数据
 ---
 
 ## 快速开始
+
+### 一次性激活 githooks
+
+```bash
+bash scripts/setup-hooks.sh   # 激活 pre-commit / pre-push (一次性, session 保持)
+```
+
+> **根因 (B1 P1-3 review, 2026-06-06)**: `core.hooksPath` 默认指向空目录, `.githooks/pre-commit` 在大多数开发者机器上是死代码。演示代码检查 (gstack review / autopilot) 会跳过 hooks, 必须手动激活。
 
 ### 启动服务
 
@@ -267,6 +276,10 @@ PYTHONPATH="$(pwd)" pytest backend/tests/ -v
 - `test_w3w4_pipeline_smoke.py` - W3/W4 pipeline CI smoke test (P1-1 sprint 3, 8 用例, 端到端跑 run_full_etl)
 - `test_w4_t7_integration.py` - W4 T-7 真跑验证 (痛点 3 闭环, 4 用例)
 - `test_check_review_ground_truth.py` - P1-3 ground-truth lint (28 用例, 含 6 B2 idx/lineno + 7 H1 hex color + 8 B2 NOOP committed mode + 3 M1 fallback + 4 集成 e2e)
+
+### CI/CD
+
+PR 和 main push 自动运行 ruff lint + pytest。本地 pre-commit/pre-push hooks 在 commit/push 前拦截。
 
 ### E2E 测试
 

@@ -1,0 +1,181 @@
+name: CI
+
+# 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI (6/12 一次性 docs push 就用掉 50+ min)
+# Free plan 2,000 min/月 私仓额度用完后 CI 立即 fail, 此过滤可省 ~80% 用量
+# Sprint 41 (2026-06-19): 加 frontend-vue3/e2e/** + playwright.config.ts 触发 e2e job
+# Sprint 83 (2026-06-23): 加 CLAUDE.md + docs/maintenance/** + docs/operating/** + docs/business/** + memory/** 触发 CI (L4.16 永久规则沉淀, Sprint 82 真因发现: 之前 paths 不含 CLAUDE.md → Sprint 77 push L4.15 永久规则 0 CI run 跑, 跨 sprint 4 sprint 滞后异常 stable 模式真因 = workflow paths 限制)
+# Sprint 85 (2026-06-23): Node 20 → Node 24 升级 (L4.17 永久规则沉淀, Sprint 84 CI annotations 实战). ruff-action@v3 → v3.6.1 锁 stable (Sprint 63 P2 教训: v4 pre-release GH Actions git ref 解析失败, L4.9 永久规则 gh api tags 验证) + setup-node@v5 强制 Node 24 (覆盖 ruff-action 内部 Node 20)
+# Sprint 87 (2026-06-23): ruff-action 替代 (L4.17 SOP 修复彻底, Sprint 86 annotation 警告仍存在真因修复). 移除 astral-sh/ruff-action@v3.6.1 (内部 Node 20 检测**无法通过** setup-node 覆盖) + 移除 setup-node@v5 (Sprint 85 修但没覆盖 action 内部 Node) + 改用 setup-python@v6 + pip install ruff==0.4.10 (L4.9 永久规则 锁 ruff version, Sprint 92 必修 2 真因修) + ruff check backend/ 自定义 step (避免 ruff-action 内部 Node 20, L4.17 SOP 修复彻底 annotation 警告 0 触发). 失去 ruff-action cache 优化但 backend/ 改动频率低, 缓存影响小.
+# Sprint 123 (2026-06-25): R2 CI 跑 e2e (Sprint 34 候选 4) 触发 — lint.yml 加 e2e job 替代 .github/workflows/e2e.yml 独立 (1 file workflow 4 jobs 替代 2 file workflow 4 jobs). Sprint 95-96.5 7 sprint 链实战 fix 模式 闭环后 e2e.yml 跑 4m29s success 5 次累计, 风险已消除. Sprint 32.1 advisory "lint.yml 0 e2e" 当时 OOM 18m+ 风险已闭环. 跟 Sprint 60.3+ C+ UI smoke + API 5xx 拦截 一致. 实战 fix 模式库 #15.
+# Sprint 129 (2026-06-27): 加回 frontend-vue3/e2e/** 触发 (Phase 2.1 (4740f64) 删 2 e2e spec 时同步删 paths filter → Sprint 129 删 geo.spec.ts 不触发 CI → 4 sprint 爆红修复无 CI 验证). 跟 Sprint 82/83 (CLAUDE.md paths filter) 同根因 L4.16 实战 fix 模式库 #23, 修路径跟修 spec 一起.
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'scripts/**'
+      - 'frontend-vue3/src/**'
+      - 'frontend-vue3/e2e/**'
+      - 'frontend-vue3/playwright.config.ts'
+      - 'requirements.txt'
+      - 'requirements-lock.txt'
+      - 'pyproject.toml'
+      - '.githooks/**'
+      - '.github/workflows/**'
+      - 'CLAUDE.md'
+      - 'docs/maintenance/**'
+      - 'docs/operating/**'
+      - 'docs/business/**'
+      - '~/.claude/projects/**/memory/**'
+      - 'docs/validation-reports/**'
+      - 'docs/飞书版架构文档/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: 'pip'  # Sprint 87 - pip cache 替代 ruff-action cache
+          cache-dependency-path: requirements-lock.txt
+      - name: Install ruff (Sprint 92 L4.9 永久规则锁 version 0.4.10, Sprint 88 锁 0.6.9 不在 tags list 必修 2 真修)
+        run: pip install ruff==0.4.10
+      - name: Run ruff check (Sprint 87 自定义 step 跑 ruff, 避免 ruff-action 内部 Node 20 deprecation)
+        run: ruff check backend/
+
+  ground-truth-lint:
+    runs-on: ubuntu-latest
+    # P1-3 B2 (2026-06-06): 镜像本地 pre-commit 钩子, 防止 agent 走 PR 漏判 ground-truth 错误
+    # 教训 D-4 (2026-06-06): 飞书架构 7 份刷出现 4 个未附 git log 实证的 ground-truth 声明
+    # P1-3 二轮 B2 修 (2026-06-07): 改用 --committed 模式, 跑 git show HEAD:<path>
+    # 拉已 commit 文件内容 (旧 staged 模式对已 commit 文件永远 no-op)
+    # 非阻塞起步 (|| echo warning), 观察 false positive 率后再考虑改 blocking
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # 需全历史给 ground-truth lint 跑 git log --all
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Ground truth lint (B2 P1-3 + 二轮 B2 committed 模式)
+        run: |
+          python3 .githooks/check_review_ground_truth.py --committed --files \
+            "docs/validation-reports/*.md" \
+            "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (non-blocking for now)"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: 'pip'
+      - run: pip install -r requirements-lock.txt
+      # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
+      # 排除 pytest.mark.slow，避免 job hang。
+      - run: PYTHONPATH=. pytest backend/tests/ -x -q -m "not slow"
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Sprint 123: 从 .github/workflows/e2e.yml 集成到 lint.yml (1 file workflow 4 jobs 替代 2 file workflow 4 jobs).
+    # Sprint 95-96.5 7 sprint 链实战 fix 模式 + Sprint 32.1 advisory 闭环后 e2e.yml 跑 4m29s success 5 次累计稳定.
+    # Sprint 60.3+ C+ UI smoke + API 5xx 拦截 已闭环, e2e 业务验证非必需但补强.
+    env:
+      DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
+      HEALTH_API_KEY: ci-fake-health-api-key
+      FQ_CRM_PASSWORDS: admin:123456
+      ETL_MIN_DISK_GB: '0'
+      # Sprint 63: CI 空 schema DB 不抛 fail-fast, 走 WARN only
+      # Sprint 61 P2 fail-fast 默认 production raise, e2e schema-only fixture 没 orders 数据
+      # → 必须 FQ_DB_MODE=schema_test 走 warn 路径 (跟 CI runner 设计一致)
+      FQ_DB_MODE: schema_test
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-vue3/package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Python deps
+        run: |
+          pip install duckdb certifi
+          pip install -r requirements-lock.txt
+
+      - name: Install Node deps
+        run: |
+          cd frontend-vue3
+          npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: |
+          cd frontend-vue3
+          npx playwright install --with-deps chromium
+
+      - name: Setup e2e DuckDB schema-only fixture (Sprint 60.3+ C+)
+        run: |
+          python3 - <<'PY'
+          import duckdb
+
+          conn = duckdb.connect('/tmp/e2e_duckdb.duckdb')
+          with open('scripts/ci/e2e_schema.sql') as f:
+              conn.execute(f.read())
+          conn.execute('SELECT 1').fetchone()
+          conn.close()
+          PY
+
+      - name: Build (Vite) + Start preview server + Start uvicorn backend
+        run: |
+          cd frontend-vue3
+          npm run build
+          npx vite preview --port 5173 --host 0.0.0.0 &
+          PREVIEW_PID=$!
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q 200; then
+              echo "✅ Preview server ready"
+              break
+            fi
+            sleep 1
+          done
+          cd ..
+          set -e
+          python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
+          UVICORN_PID=$!
+          UVICORN_READY=false
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health 2>/dev/null | grep -q 200; then
+              echo "✅ Uvicorn backend ready (PID $UVICORN_PID)"
+              UVICORN_READY=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$UVICORN_READY" != "true" ]; then
+            echo "❌ Uvicorn backend failed to start in 60s"
+            exit 1
+          fi
+          set +e
+
+      - name: Run e2e with auto-recovery (Sprint 58 #4 wrapper)
+        working-directory: frontend-vue3
+        run: |
+          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
+          chmod +x ../scripts/ci/auto_recover_ci.sh
+          bash ../scripts/ci/auto_recover_ci.sh npx playwright test --reporter=list
+
+      - name: Upload auto-recovery log on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: ci-auto-recovery-log
+          path: /tmp/auto_recover_ci.log
+

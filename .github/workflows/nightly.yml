@@ -1,0 +1,50 @@
+name: Nightly Health Check
+
+# B3 P1: 每天定时跑全量 pytest + 单独跑一遍 import 完整性 (FOLLOWUPS.md §B3)
+# 收益: 周末/夜间回归早 1 天发现, 不会再 30+ run 红了才看到
+# 验收: workflow_dispatch 手动触发, 故意改坏, 等晚上 9 点 (UTC 13:00 = 北京 21:00), 看 GitHub mail
+
+on:
+  schedule:
+    # 2026-06-13 减量: 改成周一到周五 (省 28% 跑批)
+    # Free plan 2,000 min/月私仓额度优化
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:  # 允许手动触发 (测试 + 应急验证)
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # P1-3 B2: 需全历史给 ground-truth lint 跑 git log --all
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies (lock 锁版本, v0.4.7.7 B4)
+        run: pip install -r requirements-lock.txt
+
+      - name: B2 import completeness check (根因预防复检)
+        # B2 是本地 pre-commit 防线, nightly 再跑一遍防止 B2 钩子被 --no-verify 绕过
+        run: python3 .githooks/check_imports.py
+
+      - name: P1-3 ground truth lint (B2 nightly 扫已合 main 历史)
+        # 扫已合 main 的 docs/ review 文件, 防止 D-4 类错误混入历史
+        # P1-3 二轮 B2 修 (2026-06-07): 改用 --committed 模式 (git show HEAD:<path>),
+        # 旧 staged 模式对已 commit 文件永远 no-op
+        run: |
+          python3 .githooks/check_review_ground_truth.py --committed --files \
+            "docs/validation-reports/*.md" \
+            "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (nightly)"
+
+      - name: Run ruff
+        run: ruff check .
+
+      - name: Run full pytest
+        run: PYTHONPATH=. pytest backend/tests/ -q
