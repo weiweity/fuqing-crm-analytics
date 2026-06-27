@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.15
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+  - repo: local
+    hooks:
+      - id: contract-ground-truth-lint
+        name: Contract Pydantic Field metadata lint (Sprint 17 #121, Sprint 18 #142)
+        entry: python -m backend.contracts._lint
+        language: system
+        pass_filenames: false
+        files: 'backend/contracts/.*\.py$'
+        stages: [pre-commit]
+      - id: spec-lint
+        # Sprint 50.1: 默认走 L2 AST parser (tree-sitter-typescript), L1 fallback 保底
+        # Sprint 42 #S42-1 起源 / Sprint 43 #S43-1 改 blocking / Sprint 50+ #S43-L2 AST 升级
+        # 关联 docs/operating/ci-defense-playbook.md §预防层 + CLAUDE.md L5.2
+        name: e2e spec 写法 lint L2 (Sprint 50.1, L1 fallback)
+        entry: bash frontend-vue3/e2e/lint/spec-lint-l2.sh
+        language: system
+        pass_filenames: false
+        files: 'frontend-vue3/e2e/.*\.spec\.ts$'
+        stages: [pre-commit]
