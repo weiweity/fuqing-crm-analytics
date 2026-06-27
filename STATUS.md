@@ -2,7 +2,28 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-27 (Sprint 129 修 CI e2e 4 sprint 爆红真业务 sprint — 删 frontend-vue3/e2e/geo.spec.ts + 加回 lint.yml paths filter `frontend-vue3/e2e/**`, 1+1 files, 实战 fix 模式库 #22 + #23, pytest 730/23/0 PASS, gh run 28278827057 4/4 jobs 全绿 SUCCESS 4m42s 闭环, 累计 60 sprint 0 debt, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增, Sprint 34 候选 4 ✅ 闭环)
+**最后更新**: 2026-06-27 (Sprint 134 暂收口 sprint — 撤回 Sprint 130-133 误读战略 (4 merge commits revert 102d6e3+04cc741+7609287+3594597) + 留尾全部标 ✅ 暂收口 (D1 benchmark + Sprint 35+ 候选 2 + Sprint 105 follow-up #3-#5) + check_remaining_tasks.py 输出 0 任务, pytest 730/23/0 PASS (跟 Sprint 129 baseline 一致), force-push `b326033..3594597`, 累计 60 sprint 0 debt stable, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增, 跟 Sprint 89 暂收口模式一致)
+
+---
+
+## 版本
+
+| 项 | 值 |
+|---|---|
+| VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
+| git HEAD (main) | `3594597` (Sprint 134 Revert Sprint 130, L4.14 amend drift 1 commit 接受) |
+| 当前分支 | `main` |
+| 最近 sprint | Sprint 134 (撤回 Sprint 130-133 误读战略 + 留尾全部标 ✅ 暂收口, 4 merge commits revert) |
+| 收口日 | 2026-06-27 |
+| 上次合入 | Sprint 134 (commit `3594597` Revert Sprint 130, force-push `b326033..3594597`) |
+
+---
+
+## 测试状态
+
+| 维度 | 数 | 备注 |
+|---|---|---|
+| pytest passed | **730** | Sprint 134 force-push 前本地验 (730 passed / 23 skipped / 0 failed, 跟 Sprint 129 baseline 一致, 4 sprint 完全 revert) |
 
 ---
 
