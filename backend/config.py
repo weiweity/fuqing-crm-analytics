@@ -52,7 +52,6 @@ VISITOR_DATA_SOURCE = Path(os.environ.get(
     str(_DEFAULT_CRM_BASE / "店铺流量数据库")
 ))
 
-# 访客数 xlsx 文件（breakdown_service 一键拆解用）
 VISITOR_XLSX_FILE = Path(os.environ.get(
     "VISITOR_XLSX_FILE",
     str(VISITOR_DATA_SOURCE / "24-26年访客数情况0427.xlsx")
