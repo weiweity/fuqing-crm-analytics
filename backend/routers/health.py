@@ -47,14 +47,9 @@ from backend.services.health import channel_scores as channel_scores_service
 
 router = APIRouter(prefix="/api/v1/customer-health", tags=["customer-health"])
 
-# P0 fix: API Key 禁止默认值，必须在环境变量中设置
-import os as _os
-_HEALTH_API_KEY = _os.environ.get("HEALTH_API_KEY")
-if not _HEALTH_API_KEY:
-    raise RuntimeError(
-        "HEALTH_API_KEY 环境变量未设置。请在 .env 或启动命令中配置一个强随机值。\n"
-        "示例：export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
-    )
+# Sprint 131 P0-2 写死运营配置
+# 写死 HEALTH_API_KEY, 不再依赖环境变量配置
+_HEALTH_API_KEY = "local-dev-health-api-key"
 
 
 def _get_client_ip(request: Request) -> str:
