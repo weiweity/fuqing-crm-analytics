@@ -4,6 +4,33 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `git log --oneline -- CHANGELOG.md` 或 `git show <commit>:CHANGELOG.md`.
 
+## [0.4.14.157] - 2026-06-27 (Phase 2.2, VERSION 不变 真业务 sprint - 删路由 backend 完整链路)
+
+### Removed (backend 完整链路 23 files -3709 lines, A 类全删 B 类 5 schema 移配套, 跨切面 cross-reference 误判治根)
+- **删 /breakdown + /churn 路由 (backend 完整链路)**: 23 files +223/-3709 (净删 3486 行, 跟 Phase 2.1 8 files -974 模式同, 跨 4 子系统 治根).
+  - **后端 router (4 files)**: 删 `routers/breakdown.py` + `routers/churn.py` + 改 `routers/__init__.py` (删 `__all__` + import) + 改 `main.py` (删 2 行 `app.include_router`)
+  - **后端 service (6 files)**: 删 `services/churn_service.py` (622 行) + `services/breakdown_service/__init__.py` + `main.py` (86) + `forward.py` (184) + `reverse.py` (215) + `_shared.py` (344)
+  - **后端 contract (2 files)**: 删 `contracts/breakdown.py` (139) + `contracts/churn.py` (125)
+  - **后端 tests (4 files)**: 删 `test_churn_service_filter_builder.py` (180) + `test_contracts_b2_audit.py` (701) + 改 `test_sprint97_channel_alias_coverage.py` (7→6 services 列表) + 改 `test_api_integration.py` (docstring)
+  - **CI/CD (1 file)**: 改 `.github/workflows/lint.yml` (paths filter 删 `frontend-vue3/e2e/**`, 跟 Phase 2.1 删 2 e2e spec 同步, 防 e2e job 跑空 spec, 跟 L4.9 + L4.16 实战 fix 模式一致)
+  - **文档 (1 file)**: 改 `README.md` (删 `breakdown_service/` 目录树)
+  - **依赖 (1 file)**: 改 `requirements.txt` (加 `pyyaml>=6.0.0` 显式声明跟 lock 同步, L4.9 实战 fix 模式: B2 import check Sprint 18 #142)
+- **B 类 5 schema 移配套 (跨切面 cross-reference 误判治根, 实战 fix 模式库 #21)**: 原 `contracts/churn.py` 跟 A 类 schema (ChurnSegmentItem 等) 共用 file, 删整 file 触发 `routers/category.py:21,23` + `services/category_service/churn.py:163,361` ImportError (B 类 schema 引用). 5 B 类 schema (`CategoryChurnItem` + `CategoryChurnResponse` + `CategoryDailyTrendResponse` + `UserDetail` + `CategoryUserListResponse`) 移到 `contracts/category.py` 配套, 跟 `category_service/churn.py` B 类文件名命名一致. **跟 Sprint 104 /visitor 教训 + Sprint 109 cross-reference 实战 fix 模式 + 3-agent parallel workflow 复核同根因** (3 视角 agent 第一轮漏判 B/A 共用 file, 第二轮复核发现 5 schema 引用 + 1 lint.yml 高风险).
+- **配置清理 (1 file)**: 改 `backend/config.py` (删 1 行 `breakdown_service 一键拆解用` 注释).
+
+### Sprint 流程
+- Phase 2.1 收口后用户拍板 A "立即开 Phase 2.2 后端 sprint" — 触发 L4.8 严格分 separate sprint (Phase 2.1 frontend only, Phase 2.2 backend 完整链路, 避免 1 大 commit 跨 30+ 文件 review 难).
+- 12 步流程: `git checkout -b chore/remove-backend-breakdown-and-churn` → 跑 baseline (pytest 880/0 errors + contracts/_lint OK + ground-truth-lint 0 finding) → Phase 2.2.1 router cleanup (4 files) + Phase 2.2.2 contract cleanup (2 files + 1 import) + Phase 2.2.3 service cleanup (6 files) + Phase 2.2.4 tests cleanup (4 files) + Phase 2.2.5 CI/CD + 文档 (3 files, lint.yml paths filter + README + requirements.txt pyyaml) → 跑验证 (pytest --co 880→815 + contracts/_lint OK + uvicorn import 67 routes + ground-truth-lint 0 finding) → ruff check (F821 Undefined name `Annotated` 修复: contracts/category.py 头部 import 加 `Annotated`) → B2 import check (pyyaml missing 修复: requirements.txt 显式声明) → commit-msg drift (chore(backend) 不在 Sprint 120 whitelist 改用 `fix(backend)` + 详细 msg MIN_MSG_LINES_THRESHOLD 2 通过) → commit `9214d9c` → push origin → merge --no-ff `5b78c3d` → push origin main → pull --ff-only 0 drift → kill 旧 uvicorn (PID 63821) + restart (PID 65133) + health check HTTP 200 + app.routes 验证 (`/api/v1/breakdown/one-click` 404, `/api/v1/category/churn` B 类保留).
+- v0.4.14.157 不变 (留尾治理 sprint 模式, 跟 Phase 1+2.1 stable, 累计 3 真业务 sprint 0 debt).
+- L4.x 22 stable 0 新增 (L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加).
+- 累计 sprint 治理循环: 62 → 63 (Phase 2.2 = 1 sprint).
+- 累计 0 debt sprint: 62 → 63.
+- 跨 sprint 留尾治理 sprint 模式 stable 累计 36 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120+121+122+123+124+125+126+Phase 1+Phase 2.1+Phase 2.2).
+- 实战 fix 模式库 #21 (跨切面 cross-reference 误判治根 + B 类 5 schema 移配套 + B2 import check Sprint 18 #142 false positive 修复 + ruff F821 Annotated import 治根 + commit-msg drift hook 实战).
+
+### /review 0 finding
+- 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 23 files backend 完整链路删除, 0 越界. gstack /review SKILL.md checklist 缺失, 用项目内 L4.7 ground-truth-lint 0 finding 替代.
+
 ## [0.4.14.157] - 2026-06-26 (Phase 2.1, VERSION 不变 真业务 sprint - 删路由 frontend only)
 
 ### Removed (frontend only, 0 backend 改动 - Phase 2.2-2.7 separate sprint, L4.8 严格分)
