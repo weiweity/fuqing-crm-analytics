@@ -2,7 +2,7 @@
 
 > ETL 4 阶段 (W1→W2→W3→W4) 数据流图 + 关键 metrics + 50M scale 触发条件 + Sprint 52 实战。
 
-**最后更新**: 2026-06-28 (Sprint 139 真业务 sprint + Sprint 140 真 refactor sprint 累计 2 sprint 跨 sprint 留尾治理 + /document-release 累计 3 次真治本 (Sprint 65 + 135 + 138 + 139+140) 修 7 处 doc drift; pytest 738/23/0 baseline 持续 (Sprint 139 735 + 140 +3 case), 跟 Sprint 138 1 sprint 后持续, 跟 Sprint 130-133 4 sprint 撤回后 baseline 730 持续 7 sprint)
+**最后更新**: 2026-06-28 (Sprint 146-148 设计治理 sprint 链 (P0+P1+P2+P3 4 sprint 治本) + Sprint 149 head: /document-release 累计 5 次真治本 (跟 Sprint 65/135/138/141.5/145 模式 stable). 累计 68→72 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed (Sprint 146-148 frontend-only 不退化) + main HEAD `5cb39a9` + VERSION 0.4.14.157 不 bump 累计 41 sprint + 跟 Sprint 144 + 145 /document-release 模式 stable 累计 5 次真治本)
 **Sprint 收口验证**: Sprint 28+ 端到端跑批 (10.75M 订单, 12.5h 总计 ~32min); Sprint 103 必修 1 拆解 ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) 跟 STATUS.md line 81 同步
 
 ---

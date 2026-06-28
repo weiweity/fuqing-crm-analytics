@@ -2,7 +2,7 @@
 
 > Sprint 1-104 详细索引 (本表) + Sprint 105-143 1 行指针 (`MEMORY.md` 索引) 减少冷启动 token。
 > 
-> **最后更新**: 2026-06-28 (Sprint 144 顶部筛选解耦 + TTL 派样聚合 + YOY/MOM + 5 section 标题化 + 回购周期分布 4 桶 API 15 files / +2925/-1144 + 13 case + Sprint 145 head: 3 处 code smell cleanup 2 files / +22/-79 + /document-release 跨文档同步, 累计 67→68 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed + main HEAD `ed8ee30` + VERSION 0.4.14.157 不 bump 累计 37 sprint + 跟 Sprint 141 + 141.5 Phase 1 + 142 + 143 /document-release 模式 stable 累计 4 次真治本)
+> **最后更新**: 2026-06-28 (Sprint 146-148 设计治理 sprint 链 (P0+P1+P2+P3 4 sprint 治本, 5 files / +194/-78) + Sprint 149 head: /document-release 累计 5 次真治本 (跟 Sprint 65/135/138/141.5/145 模式 stable), 累计 68→72 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed + main HEAD `5cb39a9` + VERSION 0.4.14.157 不 bump 累计 41 sprint + 跟 Sprint 144 + 145 /document-release 模式 stable 累计 5 次真治本)
 
 ## 索引规则
 
