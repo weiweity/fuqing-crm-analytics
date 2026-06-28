@@ -118,6 +118,14 @@ const ttlSummary = computed<SamplingChannelSummary | null>(() => {
     ?? null
 })
 
+// Sprint 147 P2.2: 渠道对比卡加辅助 icon (色盲友好, 颜色不再是唯一标识符)
+function channelIcon(channel: string): string {
+  if (channel === 'TTL派样') return '🎯'
+  if (channel === 'U先派样') return '👤'
+  if (channel === '百补派样') return '🛒'
+  return '·'
+}
+
 function channelColorClass(channel: string): string {
   if (channel === 'TTL派样') return 'text-purple-600'
   if (channel === 'U先派样') return 'text-rose-600'
@@ -463,7 +471,7 @@ onUnmounted(() => {
             <span class="text-sm">{{ levelLoadingText }}</span>
           </n-alert>
 
-          <h2 class="text-base font-semibold text-slate-800 mb-3">📊 总览</h2>
+          <h2 id="sampling-section-overview" class="text-base font-semibold text-slate-800 mb-3">📊 总览</h2>
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
             <n-gi>
               <n-card :bordered="false" segmented>
@@ -521,7 +529,7 @@ onUnmounted(() => {
 
           <div v-if="summaryByLevelEntries.length" class="mb-6">
             <div class="flex items-center justify-between mb-3">
-              <h2 class="text-base font-semibold text-slate-800">📈 {{ levelLabel }}汇总</h2>
+              <h2 id="sampling-section-summary" class="text-base font-semibold text-slate-800">📈 {{ levelLabel }}汇总</h2>
               <span class="text-xs text-slate-400">{{ windowDays }}天窗口</span>
             </div>
             <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
@@ -562,13 +570,14 @@ onUnmounted(() => {
           </div>
 
           <!-- 渠道对比卡片 -->
-          <h2 class="text-base font-semibold text-slate-800 mb-3">🏷️ 各板块情况</h2>
+          <h2 id="sampling-section-channels" class="text-base font-semibold text-slate-800 mb-3">🏷️ 各板块情况</h2>
           <n-grid :cols="3" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen" item-responsive>
             <n-gi v-for="ch in roiData.summary.channels" :key="ch.channel" span="1 m:1 l:1">
               <n-card :bordered="false" segmented class="h-full">
                 <template #header>
                   <div class="flex items-baseline gap-2">
-                    <span class="text-base font-bold" :class="channelColorClass(ch.channel)">
+                    <span class="text-base font-bold" :class="channelColorClass(ch.channel)" :aria-label="ch.channel">
+                      <span aria-hidden="true" class="mr-1">{{ channelIcon(ch.channel) }}</span>
                       {{ ch.channel }}
                     </span>
                     <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">
@@ -691,7 +700,7 @@ onUnmounted(() => {
           </n-grid>
 
           <!-- 品类明细表格 -->
-          <h2 class="text-base font-semibold text-slate-800 mb-3">📋 派样明细</h2>
+          <h2 id="sampling-section-detail" class="text-base font-semibold text-slate-800 mb-3">📋 派样明细</h2>
           <n-card :bordered="false" segmented>
             <template #header>
               <span class="text-sm font-semibold text-slate-700">按 {{ levelLabel }} 明细</span>
@@ -708,10 +717,11 @@ onUnmounted(() => {
           </n-card>
 
           <div v-if="repurchaseDistribution" class="mt-6">
-            <h2 class="text-base font-semibold text-slate-800 mb-3">⏱️ 回购周期分布</h2>
+            <h2 id="sampling-section-buckets" class="text-base font-semibold text-slate-800 mb-3">⏱️ 回购周期分布</h2>
             <n-card :bordered="false" segmented>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-end" style="min-height: 220px">
-                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="text-center" :aria-label="`${bucket.bucket} 回购 ${bucket.users} 人, 贡献 ${formatCurrency(bucket.gsv, 'wan')}`">
+              <!-- Sprint 147 P2.1: 视觉柱状图 (decorative), 屏幕阅读器读下面的 sr-only table -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-end" style="min-height: 220px" aria-hidden="true">
+                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="text-center">
                   <div class="text-xs text-slate-500 mb-2">{{ bucket.bucket }}</div>
                   <div class="mx-auto flex items-end justify-center" style="height: 148px">
                     <div
@@ -729,6 +739,26 @@ onUnmounted(() => {
                   <div class="text-xs tabular-nums text-slate-400">AUS {{ formatCurrency(bucket.aus, 'yuan', 0) }}</div>
                 </div>
               </div>
+              <!-- Sprint 147 P2.1: screen reader 友好的真 table (视觉隐藏) -->
+              <table class="sr-only">
+                <caption>回购周期分布</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">回购周期</th>
+                    <th scope="col">人数</th>
+                    <th scope="col">贡献 GSV</th>
+                    <th scope="col">客单价 (AUS)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="bucket in repurchaseBuckets" :key="bucket.bucket">
+                    <th scope="row">{{ bucket.bucket }}</th>
+                    <td>{{ formatNumber(bucket.users) }} 人</td>
+                    <td>{{ formatCurrency(bucket.gsv, 'wan') }}</td>
+                    <td>{{ formatCurrency(bucket.aus, 'yuan', 0) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </n-card>
           </div>
         </template>
