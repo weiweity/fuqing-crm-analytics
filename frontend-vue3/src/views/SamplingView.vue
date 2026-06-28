@@ -5,13 +5,15 @@ import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
 import MetricCard from '@/components/MetricCard.vue'
-import YOYBadge from '@/components/YOYBadge.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison, fetchSamplingRepurchaseDistribution } from '@/api/sampling'
 import type { SamplingCategoryRow, SamplingChannelSummary, SamplingLevelSummary } from '@/api/sampling'
 import { useFilterStore } from '@/stores/filterStore'
+import { useFormat } from '@/composables/useFormat'
+
+const { formatNumber, formatPercent, formatCurrency, formatDelta } = useFormat()
 
 const activeTab = ref('roi')
 const cohortStartMonth = ref('2025-01')
@@ -55,7 +57,7 @@ const roiParams = computed(() => {
   }
 })
 
-const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: roiError } = useQuery({
+const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: roiError, refetch: refetchRoi } = useQuery({
   queryKey: computed(() => ['sampling-roi', roiParams.value]),
   queryFn: () => fetchSamplingROI(roiParams.value),
   enabled: computed(() => activeTab.value === 'roi'),
@@ -105,6 +107,11 @@ function safeRatio(numerator: number, denominator: number): number {
   return numerator / denominator
 }
 
+// Sprint 146 P1: 401 会话过期 → 跳 login 页 (CLAUDE.md §AI 执行检查点 认证)
+function handleLoginRedirect() {
+  window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+}
+
 const ttlSummary = computed<SamplingChannelSummary | null>(() => {
   return roiData.value?.summary.channels.find(c => c.channel === 'TTL派样')
     ?? roiData.value?.summary.channels[0]
@@ -121,10 +128,6 @@ function channelColorClass(channel: string): string {
 function compareValue(channel: SamplingChannelSummary, baseKey: string, kind: 'pct' | 'pp'): number | null | undefined {
   const modeKey = filterStore.compareMode === 'auto_yoy' ? 'yoy' : 'mom'
   return channel[`${baseKey}_${modeKey}_${kind}` as keyof SamplingChannelSummary] as number | null | undefined
-}
-
-function compareUnit(kind: 'pct' | 'pp'): '%' | 'pp' {
-  return kind === 'pp' ? 'pp' : '%'
 }
 
 const levelLoadingText = computed(() => {
@@ -442,7 +445,13 @@ onUnmounted(() => {
         </div>
 
         <loading-state v-if="roiLoading && !roiData" />
-        <error-state v-else-if="roiError" :message="getErrorMessage(roiError)" />
+        <error-state
+          v-else-if="roiError"
+          :message="getErrorMessage(roiError)"
+          :status="(roiError as any)?.response?.status ?? 0"
+          @retry="refetchRoi"
+          @login="handleLoginRedirect"
+        />
 
         <template v-else-if="roiData">
           <n-alert
@@ -459,37 +468,37 @@ onUnmounted(() => {
             <n-gi>
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">派样人数</div>
-                <div class="text-2xl font-bold text-slate-700 mt-2">
-                  {{ totalSampleUsers.toLocaleString() }}
+                <div class="text-3xl font-bold tabular-nums text-slate-800 mt-2">
+                  {{ formatNumber(totalSampleUsers) }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">U先派样 + 百补派样</div>
+                <div class="text-xs text-slate-400 mt-1">TTL (U先 ∪ 百补, 去重)</div>
               </n-card>
             </n-gi>
             <n-gi>
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">{{ windowDays }}天回购人数</div>
-                <div class="text-2xl font-bold text-slate-700 mt-2">
-                  {{ totalRepurchaseUsers.toLocaleString() }}
+                <div class="text-3xl font-bold tabular-nums text-slate-800 mt-2">
+                  {{ formatNumber(totalRepurchaseUsers) }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">回购率 {{ fmtPct(totalRepurchaseRate) }}</div>
+                <div class="text-xs text-slate-400 mt-1">回购率 {{ formatPercent(totalRepurchaseRate) }}</div>
               </n-card>
             </n-gi>
             <n-gi>
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">{{ windowDays }}天正装回购人数</div>
-                <div class="text-2xl font-bold text-rose-600 mt-2">
-                  {{ totalFullRepurchaseUsers.toLocaleString() }}
+                <div class="text-3xl font-bold tabular-nums text-rose-600 mt-2">
+                  {{ formatNumber(totalFullRepurchaseUsers) }}
                 </div>
                 <div class="text-xs text-slate-400 mt-1">
-                  正装转化率 {{ fmtPct(totalFullRepurchaseRate) }}
+                  正装转化率 {{ formatPercent(totalFullRepurchaseRate) }}
                 </div>
               </n-card>
             </n-gi>
             <n-gi>
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">{{ windowDays }}天正装 GSV</div>
-                <div class="text-2xl font-bold text-emerald-600 mt-2">
-                  ¥{{ (totalFullRepurchaseGsv / 1e4).toFixed(1) }}万
+                <div class="text-3xl font-bold tabular-nums text-emerald-600 mt-2">
+                  {{ formatCurrency(totalFullRepurchaseGsv, 'wan') }}
                 </div>
                 <div class="text-xs text-slate-400 mt-1">
                   AUS ¥{{ totalFullRepurchaseAus.toFixed(0) }}
@@ -575,13 +584,15 @@ onUnmounted(() => {
                   <n-gi>
                     <n-statistic label="回购人数">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-slate-700 font-bold">{{ (ch.repurchase_users ?? 0).toLocaleString() }}</span>
-                          <YOYBadge
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-3xl font-bold tabular-nums text-slate-800">{{ formatNumber(ch.repurchase_users) }}</span>
+                          <span
                             v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
-                            :value="compareValue(ch, 'repurchase_users', 'pct')"
-                            :unit="compareUnit('pct')"
-                          />
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%')}`"
+                          >
+                            {{ formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%') }}
+                          </span>
                         </div>
                       </template>
                     </n-statistic>
@@ -589,15 +600,17 @@ onUnmounted(() => {
                   <n-gi>
                     <n-statistic label="回购率">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-indigo-600 font-bold">
-                            {{ ((ch.repurchase_rate ?? 0) * 100).toFixed(1) }}%
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-3xl font-bold tabular-nums text-indigo-600">
+                            {{ formatPercent(ch.repurchase_rate) }}
                           </span>
-                          <YOYBadge
+                          <span
                             v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
-                            :value="compareValue(ch, 'repurchase_rate', 'pp')"
-                            :unit="compareUnit('pp')"
-                          />
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp')}`"
+                          >
+                            {{ formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp') }}
+                          </span>
                         </div>
                       </template>
                     </n-statistic>
@@ -605,15 +618,17 @@ onUnmounted(() => {
                   <n-gi>
                     <n-statistic label="贡献GSV">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-emerald-600 font-bold">
-                            ¥{{ ((ch.repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-3xl font-bold tabular-nums text-emerald-600">
+                            {{ formatCurrency(ch.repurchase_gsv, 'wan') }}
                           </span>
-                          <YOYBadge
+                          <span
                             v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
-                            :value="compareValue(ch, 'repurchase_gsv', 'pct')"
-                            :unit="compareUnit('pct')"
-                          />
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%')}`"
+                          >
+                            {{ formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%') }}
+                          </span>
                         </div>
                       </template>
                     </n-statistic>
@@ -621,15 +636,18 @@ onUnmounted(() => {
                   <n-gi>
                     <n-statistic label="AUS">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-sky-600 font-bold">
-                            ¥{{ (ch.repurchase_aus ?? 0).toFixed(0) }}
+                        <div class="flex items-baseline gap-1.5">
+                          <!-- Sprint 146: AUS 降级为次要指标 (text-slate-500 而非 sky-600) -->
+                          <span class="text-2xl font-semibold tabular-nums text-slate-500">
+                            {{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}
                           </span>
-                          <YOYBadge
+                          <span
                             v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
-                            :value="compareValue(ch, 'repurchase_aus', 'pct')"
-                            :unit="compareUnit('pct')"
-                          />
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%')}`"
+                          >
+                            {{ formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%') }}
+                          </span>
                         </div>
                       </template>
                     </n-statistic>
@@ -639,9 +657,9 @@ onUnmounted(() => {
                 <!-- 当前窗口概览 -->
                 <n-divider />
                 <div class="flex items-center gap-6 text-sm text-slate-500">
-                  <span>{{ windowDays }}天回购: <b class="text-slate-700">{{ (ch.repurchase_users ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate ?? 0) * 100).toFixed(1) }}%)</span>
-                  <span>贡献GSV: <b class="text-slate-700">¥{{ ((ch.repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万</b></span>
-                  <span>AUS: <b class="text-slate-700">¥{{ (ch.repurchase_aus ?? 0).toFixed(0) }}</b></span>
+                  <span>{{ windowDays }}天回购: <b class="text-slate-700">{{ formatNumber(ch.repurchase_users) }}</b> 人 ({{ formatPercent(ch.repurchase_rate) }})</span>
+                  <span>贡献GSV: <b class="text-slate-700">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</b></span>
+                  <span>AUS: <b class="text-slate-700">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</b></span>
                 </div>
 
                 <n-divider />
@@ -649,22 +667,22 @@ onUnmounted(() => {
                   <div>
                     <div class="text-xs font-semibold text-rose-600 mb-1">{{ windowDays }}天正装回购</div>
                     <div class="text-sm text-slate-600">
-                      人数: <b class="text-slate-800">{{ (ch.full_repurchase_users ?? 0).toLocaleString() }}</b>
-                      ({{ fmtPct(ch.full_repurchase_rate ?? 0) }})
+                      人数: <b class="text-slate-800">{{ formatNumber(ch.full_repurchase_users) }}</b>
+                      ({{ formatPercent(ch.full_repurchase_rate) }})
                     </div>
                     <div class="text-sm text-slate-600">
-                      GSV: <b class="text-emerald-700">¥{{ ((ch.full_repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万</b>
-                      · AUS ¥{{ (ch.full_repurchase_aus ?? 0).toFixed(0) }}
+                      GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b>
+                      · AUS {{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}
                     </div>
                   </div>
                   <div>
                     <div class="text-xs font-semibold text-slate-500 mb-1">非正装回购 (小样/赠品等)</div>
                     <div class="text-sm text-slate-600">
-                      人数: <b class="text-slate-800">{{ (ch.nonfull_repurchase_users ?? 0).toLocaleString() }}</b>
+                      人数: <b class="text-slate-800">{{ formatNumber(ch.nonfull_repurchase_users) }}</b>
                     </div>
                     <div class="text-sm text-slate-600">
-                      GSV: <b class="text-slate-700">¥{{ ((ch.nonfull_repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万</b>
-                      · AUS ¥{{ (ch.nonfull_repurchase_aus ?? 0).toFixed(0) }}
+                      GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b>
+                      · AUS {{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}
                     </div>
                   </div>
                 </div>
@@ -692,8 +710,8 @@ onUnmounted(() => {
           <div v-if="repurchaseDistribution" class="mt-6">
             <h2 class="text-base font-semibold text-slate-800 mb-3">⏱️ 回购周期分布</h2>
             <n-card :bordered="false" segmented>
-              <div class="grid grid-cols-4 gap-4 items-end" style="min-height: 220px">
-                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="text-center">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-end" style="min-height: 220px">
+                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="text-center" :aria-label="`${bucket.bucket} 回购 ${bucket.users} 人, 贡献 ${formatCurrency(bucket.gsv, 'wan')}`">
                   <div class="text-xs text-slate-500 mb-2">{{ bucket.bucket }}</div>
                   <div class="mx-auto flex items-end justify-center" style="height: 148px">
                     <div
@@ -706,9 +724,9 @@ onUnmounted(() => {
                       }"
                     ></div>
                   </div>
-                  <div class="text-sm font-bold text-slate-800 mt-2">{{ bucket.users.toLocaleString() }} 人</div>
-                  <div class="text-xs text-slate-500">GSV ¥{{ (bucket.gsv / 1e4).toFixed(1) }}万</div>
-                  <div class="text-xs text-slate-400">AUS ¥{{ bucket.aus.toFixed(0) }}</div>
+                  <div class="text-sm font-bold tabular-nums text-slate-800 mt-2">{{ formatNumber(bucket.users) }} 人</div>
+                  <div class="text-xs tabular-nums text-slate-500">GSV {{ formatCurrency(bucket.gsv, 'wan') }}</div>
+                  <div class="text-xs tabular-nums text-slate-400">AUS {{ formatCurrency(bucket.aus, 'yuan', 0) }}</div>
                 </div>
               </div>
             </n-card>
