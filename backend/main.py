@@ -367,6 +367,8 @@ from backend.routers import (
     audience_router,
     rfm_router,
     sampling_router,
+    lifetime_value_router,
+    cohort_retention_router,
     market_focus_router,
     visitor_router,
     export_router,
@@ -383,6 +385,8 @@ app.include_router(category_router)
 app.include_router(audience_router)
 app.include_router(rfm_router)
 app.include_router(sampling_router)
+app.include_router(lifetime_value_router)
+app.include_router(cohort_retention_router)
 app.include_router(market_focus_router)
 app.include_router(visitor_router)
 app.include_router(export_router)

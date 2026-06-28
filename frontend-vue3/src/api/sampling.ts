@@ -254,3 +254,47 @@ export function fetchRollingComparison(params: {
 }): Promise<RollingComparisonResponse> {
   return client.get('/v1/sampling/rolling-comparison', { params })
 }
+
+// ── Sprint 143: LTV + cohort retention ──
+
+export interface LifetimeValueSummary {
+  cohort_date: string
+  user_count: number
+  ltv_90d_avg: number
+  ltv_180d_avg: number
+  ltv_365d_avg: number
+  ltv_90d_median: number
+  ltv_180d_median: number
+  ltv_365d_median: number
+  ltv_90d_yoy_pct: number
+  ltv_180d_yoy_pct: number
+  ltv_365d_yoy_pct: number
+}
+
+export interface SamplingCohortRetentionRow {
+  cohort_month: string
+  cohort_size: number
+  retention: Record<number, number>
+}
+
+export interface SamplingCohortRetentionResponse {
+  rows: SamplingCohortRetentionRow[]
+  start_month: string
+  end_month: string
+  channel: string
+}
+
+export function fetchLifetimeValue(params: {
+  cohort_date: string
+  channel?: string
+}): Promise<LifetimeValueSummary> {
+  return client.get('/v1/lifetime-value/cohort', { params })
+}
+
+export function fetchCohortRetention(params: {
+  start_month: string
+  end_month: string
+  channel?: string
+}): Promise<SamplingCohortRetentionResponse> {
+  return client.get('/v1/cohort-retention/matrix', { params })
+}
