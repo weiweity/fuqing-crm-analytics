@@ -28,6 +28,7 @@ import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
+import { useRouteHashTab } from '@/composables/useRouteHashTab'
 import { getCompareLabels } from '@/utils/date'
 
 const filterStore = useFilterStore()
@@ -37,6 +38,7 @@ const visitorTrendChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(nul
 
 // Sprint 137: 3 tabs 拆分 (数据总览 / 渠道概览 / 30指标对比)
 const activeTab = ref('overview')
+useRouteHashTab(activeTab, ['overview', 'channel', 'metrics'])
 
 import { CHANNEL_ORDER, LOW_PRICE_CHANNELS } from '@/constants/channels'
 
