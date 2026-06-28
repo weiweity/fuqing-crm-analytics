@@ -21,6 +21,25 @@ class SamplingChannelSummary(BaseModel):
     nonfull_repurchase_users: int = 0
     nonfull_repurchase_gsv: float = 0.0
     nonfull_repurchase_aus: float = 0.0
+    # Sprint 144: ROI 卡片同比/环比，percentage 已 *100，pp 为百分点差。
+    repurchase_users_yoy_pct: Optional["PercentageField"] = None
+    repurchase_gsv_yoy_pct: Optional["PercentageField"] = None
+    repurchase_rate_yoy_pp: Optional["PpField"] = None
+    full_repurchase_users_yoy_pct: Optional["PercentageField"] = None
+    full_repurchase_gsv_yoy_pct: Optional["PercentageField"] = None
+    full_repurchase_rate_yoy_pp: Optional["PpField"] = None
+    repurchase_aus_yoy_pct: Optional["PercentageField"] = None
+    full_repurchase_aus_yoy_pct: Optional["PercentageField"] = None
+    nonfull_repurchase_gsv_yoy_pct: Optional["PercentageField"] = None
+    repurchase_users_mom_pct: Optional["PercentageField"] = None
+    repurchase_gsv_mom_pct: Optional["PercentageField"] = None
+    repurchase_rate_mom_pp: Optional["PpField"] = None
+    full_repurchase_users_mom_pct: Optional["PercentageField"] = None
+    full_repurchase_gsv_mom_pct: Optional["PercentageField"] = None
+    full_repurchase_rate_mom_pp: Optional["PpField"] = None
+    repurchase_aus_mom_pct: Optional["PercentageField"] = None
+    full_repurchase_aus_mom_pct: Optional["PercentageField"] = None
+    nonfull_repurchase_gsv_mom_pct: Optional["PercentageField"] = None
 
 
 class SamplingLevelSummary(BaseModel):
@@ -84,6 +103,20 @@ class PeriodDistribution(BaseModel):
     full_bucket_8_30d: int = 0
     full_bucket_31_60d: int = 0
     full_bucket_61_90d: int = 0
+
+
+class SamplingRepurchaseBucket(BaseModel):
+    """Sprint 144 回购周期分布桶."""
+    bucket: str
+    users: int = 0
+    gsv: float = 0.0
+    aus: float = 0.0
+
+
+class SamplingRepurchaseDistribution(BaseModel):
+    """Sprint 144 回购周期分布响应."""
+    buckets: List[SamplingRepurchaseBucket] = Field(default_factory=list)
+    window_days: int = 90
 
 
 class QualityFlag(BaseModel):

@@ -1,23 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert, NSlider } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert, NSlider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
 import MetricCard from '@/components/MetricCard.vue'
+import YOYBadge from '@/components/YOYBadge.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
-import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
-import type { SamplingCategoryRow, SamplingLevelSummary } from '@/api/sampling'
+import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison, fetchSamplingRepurchaseDistribution } from '@/api/sampling'
+import type { SamplingCategoryRow, SamplingChannelSummary, SamplingLevelSummary } from '@/api/sampling'
+import { useFilterStore } from '@/stores/filterStore'
 
 const activeTab = ref('roi')
 const cohortStartMonth = ref('2025-01')
 const cohortEndMonth = ref('2026-06')
 const cohortChannel = ref('全店')
+const filterStore = useFilterStore()
 
 // ── Tab 1: 派样正装转化 ──
-const roiDateRange = ref<[number, number] | null>(null)
 const windowDays = ref(30)
 const categoryLevel = ref('spu_category')
 
@@ -41,31 +43,39 @@ const levelOptions = [
   { label: '功效属性', value: 'spu_cosmetic' },
 ]
 
-function fmtDate(ts: number): string {
-  const d = new Date(ts)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-// 默认日期：本月
-const now = new Date()
-const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1)
-const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-roiDateRange.value = [defaultStart.getTime(), defaultEnd.getTime()]
-
 const roiParams = computed(() => {
-  const [s, e] = roiDateRange.value ?? [defaultStart.getTime(), defaultEnd.getTime()]
   return {
-    start_date: fmtDate(s),
-    end_date: fmtDate(e),
+    start_date: filterStore.dateRange[0],
+    end_date: filterStore.dateRange[1],
     window_days: windowDaysDebounced.value,
     level: categoryLevel.value,
+    channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+    compare_date_range: filterStore.compareParams,
+    exclude_low_price: filterStore.excludeLowPrice,
   }
 })
 
 const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: roiError } = useQuery({
   queryKey: computed(() => ['sampling-roi', roiParams.value]),
   queryFn: () => fetchSamplingROI(roiParams.value),
-  enabled: computed(() => activeTab.value === 'roi' && !!roiDateRange.value),
+  enabled: computed(() => activeTab.value === 'roi'),
+  placeholderData: previousData => previousData,
+})
+
+const { data: repurchaseDistribution } = useQuery({
+  queryKey: computed(() => ['sampling-repurchase-distribution', {
+    start_date: roiParams.value.start_date,
+    end_date: roiParams.value.end_date,
+    window_days: 90,
+    channel: roiParams.value.channel,
+  }]),
+  queryFn: () => fetchSamplingRepurchaseDistribution({
+    start_date: roiParams.value.start_date,
+    end_date: roiParams.value.end_date,
+    window_days: 90,
+    channel: roiParams.value.channel,
+  }),
+  enabled: computed(() => activeTab.value === 'roi'),
   placeholderData: previousData => previousData,
 })
 
@@ -95,6 +105,28 @@ function safeRatio(numerator: number, denominator: number): number {
   return numerator / denominator
 }
 
+const ttlSummary = computed<SamplingChannelSummary | null>(() => {
+  return roiData.value?.summary.channels.find(c => c.channel === 'TTL派样')
+    ?? roiData.value?.summary.channels[0]
+    ?? null
+})
+
+function channelColorClass(channel: string): string {
+  if (channel === 'TTL派样') return 'text-purple-600'
+  if (channel === 'U先派样') return 'text-rose-600'
+  if (channel === '百补派样') return 'text-orange-500'
+  return 'text-slate-600'
+}
+
+function compareValue(channel: SamplingChannelSummary, baseKey: string, kind: 'pct' | 'pp'): number | null | undefined {
+  const modeKey = filterStore.compareMode === 'auto_yoy' ? 'yoy' : 'mom'
+  return channel[`${baseKey}_${modeKey}_${kind}` as keyof SamplingChannelSummary] as number | null | undefined
+}
+
+function compareUnit(kind: 'pct' | 'pp'): '%' | 'pp' {
+  return kind === 'pp' ? 'pp' : '%'
+}
+
 const levelLoadingText = computed(() => {
   void alertTick.value
   if (!roiFetching.value || !roiData.value || levelLoadingStartedAt.value === 0) return null
@@ -105,13 +137,11 @@ const levelLoadingText = computed(() => {
 
 // Sprint 140: 顶部 KPI 跟随自由窗口
 const totalSampleUsers = computed(() => {
-  if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.sample_users ?? 0), 0)
+  return ttlSummary.value?.sample_users ?? 0
 })
 
 const totalRepurchaseUsers = computed(() => {
-  if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.repurchase_users ?? 0), 0)
+  return ttlSummary.value?.repurchase_users ?? 0
 })
 
 const totalRepurchaseRate = computed(() => {
@@ -119,8 +149,7 @@ const totalRepurchaseRate = computed(() => {
 })
 
 const totalFullRepurchaseUsers = computed(() => {
-  if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_users ?? 0), 0)
+  return ttlSummary.value?.full_repurchase_users ?? 0
 })
 
 const totalFullRepurchaseRate = computed(() => {
@@ -128,8 +157,7 @@ const totalFullRepurchaseRate = computed(() => {
 })
 
 const totalFullRepurchaseGsv = computed(() => {
-  if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_gsv ?? 0), 0)
+  return ttlSummary.value?.full_repurchase_gsv ?? 0
 })
 
 const totalFullRepurchaseAus = computed(() => {
@@ -145,23 +173,12 @@ const summaryByLevelEntries = computed<[string, SamplingLevelSummary[]][]>(() =>
   return Object.entries(grouped).slice(0, 6) as [string, SamplingLevelSummary[]][]
 })
 
-const periodBuckets = computed(() => {
-  if (!roiData.value?.period_distribution) return []
-  const pd = roiData.value.period_distribution
-  const all = [
-    { label: '1-3天', total: pd.bucket_1_3d, full: pd.full_bucket_1_3d },
-    { label: '4-7天', total: pd.bucket_4_7d, full: pd.full_bucket_4_7d },
-    { label: '8-30天', total: pd.bucket_8_30d, full: pd.full_bucket_8_30d },
-    { label: '31-60天', total: pd.bucket_31_60d, full: pd.full_bucket_31_60d },
-    { label: '61-90天', total: pd.bucket_61_90d, full: pd.full_bucket_61_90d },
-  ]
-  const maxTotal = Math.max(...all.map(b => b.total), 1)
-  return all.map(b => ({
-    label: b.label,
-    count: b.total.toLocaleString(),
-    fullCount: b.full.toLocaleString(),
-    height: Math.max(4, (b.total / maxTotal) * 160),
-    fullHeight: Math.max(4, (b.full / maxTotal) * 160),
+const repurchaseBuckets = computed(() => {
+  const buckets = repurchaseDistribution.value?.buckets ?? []
+  const maxUsers = Math.max(...buckets.map(b => b.users), 1)
+  return buckets.map(b => ({
+    ...b,
+    height: Math.max(6, (b.users / maxUsers) * 140),
   }))
 })
 
@@ -405,13 +422,6 @@ onUnmounted(() => {
       <!-- Tab 1: 派样正装转化分析 -->
       <n-tab-pane name="roi" tab="派样正装转化分析">
         <div class="flex items-center gap-3 mb-4 flex-wrap">
-          <n-date-picker
-            v-model:value="roiDateRange"
-            type="daterange"
-            clearable
-            style="width: 280px"
-            size="small"
-          />
           <div class="flex items-center gap-3" style="width: 300px">
             <n-slider
               v-model:value="windowDays"
@@ -444,6 +454,7 @@ onUnmounted(() => {
             <span class="text-sm">{{ levelLoadingText }}</span>
           </n-alert>
 
+          <h2 class="text-base font-semibold text-slate-800 mb-3">📊 总览</h2>
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
             <n-gi>
               <n-card :bordered="false" segmented>
@@ -501,7 +512,7 @@ onUnmounted(() => {
 
           <div v-if="summaryByLevelEntries.length" class="mb-6">
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-semibold text-slate-700">{{ levelLabel }}汇总</span>
+              <h2 class="text-base font-semibold text-slate-800">📈 {{ levelLabel }}汇总</h2>
               <span class="text-xs text-slate-400">{{ windowDays }}天窗口</span>
             </div>
             <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
@@ -542,13 +553,19 @@ onUnmounted(() => {
           </div>
 
           <!-- 渠道对比卡片 -->
-          <n-grid :cols="2" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen">
-            <n-gi v-for="ch in roiData.summary.channels" :key="ch.channel">
-              <n-card :bordered="false" segmented>
+          <h2 class="text-base font-semibold text-slate-800 mb-3">🏷️ 各板块情况</h2>
+          <n-grid :cols="3" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen" item-responsive>
+            <n-gi v-for="ch in roiData.summary.channels" :key="ch.channel" span="1 m:1 l:1">
+              <n-card :bordered="false" segmented class="h-full">
                 <template #header>
-                  <span class="text-base font-bold" :class="ch.channel === 'U先派样' ? 'text-rose-600' : 'text-orange-500'">
-                    {{ ch.channel }}
-                  </span>
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-base font-bold" :class="channelColorClass(ch.channel)">
+                      {{ ch.channel }}
+                    </span>
+                    <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">
+                      (全渠道汇总)
+                    </span>
+                  </div>
                 </template>
 
                 <n-grid :cols="5" :x-gap="12">
@@ -556,32 +573,64 @@ onUnmounted(() => {
                     <n-statistic label="派样人数" :value="ch.sample_users" />
                   </n-gi>
                   <n-gi>
-                    <n-statistic label="回购人数" :value="ch.repurchase_users ?? 0" />
+                    <n-statistic label="回购人数">
+                      <template #default>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-slate-700 font-bold">{{ (ch.repurchase_users ?? 0).toLocaleString() }}</span>
+                          <YOYBadge
+                            v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
+                            :value="compareValue(ch, 'repurchase_users', 'pct')"
+                            :unit="compareUnit('pct')"
+                          />
+                        </div>
+                      </template>
+                    </n-statistic>
                   </n-gi>
                   <n-gi>
                     <n-statistic label="回购率">
                       <template #default>
-                        <span class="text-indigo-600 font-bold">
-                          {{ ((ch.repurchase_rate ?? 0) * 100).toFixed(1) }}%
-                        </span>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-indigo-600 font-bold">
+                            {{ ((ch.repurchase_rate ?? 0) * 100).toFixed(1) }}%
+                          </span>
+                          <YOYBadge
+                            v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
+                            :value="compareValue(ch, 'repurchase_rate', 'pp')"
+                            :unit="compareUnit('pp')"
+                          />
+                        </div>
                       </template>
                     </n-statistic>
                   </n-gi>
                   <n-gi>
                     <n-statistic label="贡献GSV">
                       <template #default>
-                        <span class="text-emerald-600 font-bold">
-                          ¥{{ ((ch.repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万
-                        </span>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-emerald-600 font-bold">
+                            ¥{{ ((ch.repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万
+                          </span>
+                          <YOYBadge
+                            v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
+                            :value="compareValue(ch, 'repurchase_gsv', 'pct')"
+                            :unit="compareUnit('pct')"
+                          />
+                        </div>
                       </template>
                     </n-statistic>
                   </n-gi>
                   <n-gi>
                     <n-statistic label="AUS">
                       <template #default>
-                        <span class="text-sky-600 font-bold">
-                          ¥{{ (ch.repurchase_aus ?? 0).toFixed(0) }}
-                        </span>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-sky-600 font-bold">
+                            ¥{{ (ch.repurchase_aus ?? 0).toFixed(0) }}
+                          </span>
+                          <YOYBadge
+                            v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
+                            :value="compareValue(ch, 'repurchase_aus', 'pct')"
+                            :unit="compareUnit('pct')"
+                          />
+                        </div>
                       </template>
                     </n-statistic>
                   </n-gi>
@@ -624,9 +673,10 @@ onUnmounted(() => {
           </n-grid>
 
           <!-- 品类明细表格 -->
+          <h2 class="text-base font-semibold text-slate-800 mb-3">📋 派样明细</h2>
           <n-card :bordered="false" segmented>
             <template #header>
-              <span class="text-sm font-semibold text-slate-700">品类回购明细</span>
+              <span class="text-sm font-semibold text-slate-700">按 {{ levelLabel }} 明细</span>
             </template>
             <n-data-table
               :columns="categoryCols"
@@ -639,42 +689,30 @@ onUnmounted(() => {
             />
           </n-card>
 
-          <n-card v-if="roiData.period_distribution" :bordered="false" segmented class="mt-4">
-            <template #header>
-              <span class="text-sm font-semibold text-slate-700">回购周期分布</span>
-            </template>
-            <div class="grid grid-cols-5 gap-3 items-end" style="min-height: 200px">
-              <div v-for="bucket in periodBuckets" :key="bucket.label" class="text-center">
-                <div class="text-xs text-slate-500 mb-1">{{ bucket.label }}</div>
-                <div class="mx-auto flex items-end justify-center gap-1" style="height: 164px">
-                  <div
-                    class="rounded-t transition-all"
-                    :style="{
-                      backgroundColor: '#6366f1',
-                      width: '24px',
-                      height: bucket.height + 'px',
-                      minHeight: '4px',
-                    }"
-                  ></div>
-                  <div
-                    class="rounded-t transition-all"
-                    :style="{
-                      backgroundColor: '#e11d48',
-                      width: '24px',
-                      height: bucket.fullHeight + 'px',
-                      minHeight: '4px',
-                    }"
-                  ></div>
+          <div v-if="repurchaseDistribution" class="mt-6">
+            <h2 class="text-base font-semibold text-slate-800 mb-3">⏱️ 回购周期分布</h2>
+            <n-card :bordered="false" segmented>
+              <div class="grid grid-cols-4 gap-4 items-end" style="min-height: 220px">
+                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="text-center">
+                  <div class="text-xs text-slate-500 mb-2">{{ bucket.bucket }}</div>
+                  <div class="mx-auto flex items-end justify-center" style="height: 148px">
+                    <div
+                      class="rounded-t transition-all"
+                      :style="{
+                        backgroundColor: '#6366f1',
+                        width: '32px',
+                        height: bucket.height + 'px',
+                        minHeight: '6px',
+                      }"
+                    ></div>
+                  </div>
+                  <div class="text-sm font-bold text-slate-800 mt-2">{{ bucket.users.toLocaleString() }} 人</div>
+                  <div class="text-xs text-slate-500">GSV ¥{{ (bucket.gsv / 1e4).toFixed(1) }}万</div>
+                  <div class="text-xs text-slate-400">AUS ¥{{ bucket.aus.toFixed(0) }}</div>
                 </div>
-                <div class="text-sm font-bold mt-1">{{ bucket.count }}</div>
-                <div class="text-xs text-slate-400">正装 {{ bucket.fullCount }}</div>
               </div>
-            </div>
-            <div class="text-xs text-slate-400 mt-3 flex gap-6">
-              <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded" style="background: #6366f1"></span>任意回购</span>
-              <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded" style="background: #e11d48"></span>正装回购</span>
-            </div>
-          </n-card>
+            </n-card>
+          </div>
         </template>
       </n-tab-pane>
 

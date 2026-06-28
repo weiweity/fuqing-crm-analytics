@@ -18,6 +18,24 @@ export interface SamplingChannelSummary {
   nonfull_repurchase_users: number
   nonfull_repurchase_gsv: number
   nonfull_repurchase_aus: number
+  repurchase_users_yoy_pct?: number | null
+  repurchase_gsv_yoy_pct?: number | null
+  repurchase_rate_yoy_pp?: number | null
+  full_repurchase_users_yoy_pct?: number | null
+  full_repurchase_gsv_yoy_pct?: number | null
+  full_repurchase_rate_yoy_pp?: number | null
+  repurchase_aus_yoy_pct?: number | null
+  full_repurchase_aus_yoy_pct?: number | null
+  nonfull_repurchase_gsv_yoy_pct?: number | null
+  repurchase_users_mom_pct?: number | null
+  repurchase_gsv_mom_pct?: number | null
+  repurchase_rate_mom_pp?: number | null
+  full_repurchase_users_mom_pct?: number | null
+  full_repurchase_gsv_mom_pct?: number | null
+  full_repurchase_rate_mom_pp?: number | null
+  repurchase_aus_mom_pct?: number | null
+  full_repurchase_aus_mom_pct?: number | null
+  nonfull_repurchase_gsv_mom_pct?: number | null
 }
 
 // ── level 二级聚合 ──
@@ -91,6 +109,18 @@ export interface QualityFlag {
   posize_ratio?: number | null
   total_posize_gsv?: number | null
   total_gsv?: number | null
+}
+
+export interface SamplingRepurchaseBucket {
+  bucket: string
+  users: number
+  gsv: number
+  aus: number
+}
+
+export interface SamplingRepurchaseDistribution {
+  buckets: SamplingRepurchaseBucket[]
+  window_days: number
 }
 
 // ── ROI 响应 ──
@@ -171,8 +201,19 @@ export function fetchSamplingROI(params: {
   window_days?: number
   level?: string
   channel?: string
+  compare_date_range?: [string, string] | null
+  exclude_low_price?: boolean
 }): Promise<SamplingROIResponse> {
   return client.get('/v1/sampling/roi', { params })
+}
+
+export function fetchSamplingRepurchaseDistribution(params: {
+  start_date: string
+  end_date: string
+  window_days?: number
+  channel?: string
+}): Promise<SamplingRepurchaseDistribution> {
+  return client.get('/v1/sampling/repurchase-distribution', { params })
 }
 
 export function fetchSamplingLockAnalysis(params: {
