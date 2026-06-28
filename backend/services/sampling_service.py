@@ -8,8 +8,9 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from backend.db.connection import get_connection
+from backend.contracts.sampling import SamplingLevelSummary
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
 from backend.semantic.channels import DB_TO_UI, GIFT_SAMPLE_DB, SHELF_DB
 from backend.semantic.filters import expand_channels
@@ -27,6 +28,8 @@ _SPU_LEVELS = {
     'spu_category': 'spu_category',
     'spu_tier': 'spu_tier',
     'spu_product_class': 'spu_product_class',
+    'spu_product_subclass': 'spu_product_subclass',
+    'spu_cosmetic': 'spu_cosmetic',
 }
 # 允许的列名集合（用于SQL拼接前校验）
 _ALLOWED_SPU_COLUMNS = frozenset(_SPU_LEVELS.values())
@@ -84,7 +87,8 @@ def get_sampling_roi(
             SELECT o.user_id, o.channel,
                    MIN(o.pay_time) as first_sample_time,
                    MIN(COALESCE(s.sample_received_at, o.pay_time)) as first_sample_received_at,
-                   (ARRAY_AGG(COALESCE(o.spu_category, '未知') ORDER BY o.pay_time ASC))[1] as sample_category
+                   (ARRAY_AGG(COALESCE(o.spu_category, '未知') ORDER BY o.pay_time ASC))[1] as sample_category,
+                   (ARRAY_AGG(COALESCE(o.{cat_field}, '未知') ORDER BY o.pay_time ASC))[1] as sample_level_value
             FROM orders o
             LEFT JOIN orders s ON s.order_id = o.sub_order_id
                 AND s.channel = '{GIFT_SAMPLE_DB}'
@@ -180,7 +184,7 @@ def get_sampling_roi(
             )
             SELECT
                 su.channel,
-                su.sample_category,
+                su.sample_level_value,
                 COUNT(DISTINCT su.user_id) as sample_users,
                 COUNT(DISTINCT r.user_id) as repurchase_users,
                 COALESCE(SUM(r.actual_amount), 0) as repurchase_gsv,
@@ -189,9 +193,9 @@ def get_sampling_roi(
                 COALESCE(SUM(CASE WHEN r.spu_type = '正装' THEN r.actual_amount ELSE 0 END), 0) as full_repurchase_gsv,
                 COUNT(DISTINCT CASE WHEN r.spu_type != '正装' THEN r.user_id END) as nonfull_repurchase_users,
                 COALESCE(SUM(CASE WHEN r.spu_type != '正装' THEN r.actual_amount ELSE 0 END), 0) as nonfull_repurchase_gsv
-            FROM (SELECT DISTINCT user_id, channel, sample_category FROM sample_users) su
+            FROM (SELECT DISTINCT user_id, channel, sample_category, sample_level_value FROM sample_users) su
             LEFT JOIN repurchase r ON su.user_id = r.user_id AND su.channel = r.channel
-            GROUP BY su.channel, su.sample_category
+            GROUP BY su.channel, su.sample_level_value
             HAVING COUNT(DISTINCT su.user_id) > 0
             ORDER BY su.channel, repurchase_gsv DESC
         """
@@ -301,9 +305,35 @@ def get_sampling_roi(
             },
             'period_distribution': period_distribution,
             'quality_flags': quality_flags,
+            'summary_by_level': _group_by_level(category_result, level),
         }
     finally:
         pass
+
+
+def _group_by_level(cat_rows: List[Dict[str, Any]], level: str) -> Dict[str, List[SamplingLevelSummary]]:
+    """把既有 category_result 按当前 level 值分组，避免新增 SQL 查询."""
+    grouped: Dict[str, List[SamplingLevelSummary]] = {}
+    for row in cat_rows:
+        level_value = row.get('category') or '未知'
+        grouped.setdefault(level_value, []).append(SamplingLevelSummary(
+            channel=row['channel'],
+            level=level,
+            level_value=level_value,
+            sample_users=row['sample_users'],
+            repurchase_users=row['repurchase_users'],
+            repurchase_rate=row['repurchase_rate'],
+            repurchase_gsv=row['repurchase_gsv'],
+            repurchase_aus=row['repurchase_aus'],
+            full_repurchase_users=row['full_repurchase_users'],
+            full_repurchase_rate=row['full_repurchase_rate'],
+            full_repurchase_gsv=row['full_repurchase_gsv'],
+            full_repurchase_aus=row['full_repurchase_aus'],
+            nonfull_repurchase_users=row['nonfull_repurchase_users'],
+            nonfull_repurchase_gsv=row['nonfull_repurchase_gsv'],
+            nonfull_repurchase_aus=row['nonfull_repurchase_aus'],
+        ))
+    return grouped
 
 
 def get_sampling_lock_analysis(
@@ -375,8 +405,8 @@ def get_sampling_lock_analysis(
 
 
 def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
-    """计算单个大促周期的锁权指标"""
-    year, name, conv_start, conv_end, lock_start, lock_end = campaign_row
+    """计算单个大促周期的锁权指标（Sprint 142 单 SQL 合并）."""
+    _year, _name, conv_start, conv_end, lock_start, lock_end = campaign_row
 
     if not lock_start or not lock_end:
         return _empty_lock_data()
@@ -386,77 +416,67 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
     conv_start_str = str(conv_start)
     conv_end_str = str(conv_end)
 
-    # ── 锁权人数 ──
-    # 浮点精确比较：actual_amount 是 DECIMAL(12,2)，使用 ROUND 精确匹配 0.01
-    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end)
-    locked = conn.execute("""
-        SELECT COUNT(*) as orders, COUNT(DISTINCT user_id) as users
-        FROM orders o
-        WHERE o.channel = ?
-          AND ROUND(o.actual_amount, 2) = 0.01
-          AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
-    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str]).fetchone()
-    locked_users = int(locked[1] or 0)
-
-    # ── 全店访客数 ──
-    # SQL中?出现顺序: 2(conv_start, conv_end)
-    uv = conn.execute("""
-        SELECT COALESCE(SUM(visitors), 0)
-        FROM daily_visitors
-        WHERE date >= ?::DATE AND date <= ?::DATE
-    """, [conv_start_str, conv_end_str]).fetchone()
-    total_uv = int(uv[0] or 0)
-
-    # ── 转化人数：锁权用户中，在转化期间有有效订单的去重用户 ──
-    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end) + 2(conv_start, conv_end)
-    converted = conn.execute("""
+    sql = """
         WITH locked_users AS (
             SELECT DISTINCT user_id
             FROM orders o
             WHERE o.channel = ?
               AND ROUND(o.actual_amount, 2) = 0.01
               AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
-        )
-        SELECT COUNT(DISTINCT o.user_id) as converted_users,
-               COALESCE(SUM(o.actual_amount), 0) as lock_gsv
-        FROM orders o
-        JOIN locked_users lu ON o.user_id = lu.user_id
-        WHERE o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
-          AND o.is_refund = FALSE
-          AND o.order_status != '交易关闭'
-          AND o.channel != '购物金'
-    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str, conv_start_str, conv_end_str]).fetchone()
-    converted_users = int(converted[0] or 0)
-    lock_gsv = float(converted[1] or 0)
-
-    # ── 新客判定 ──
-    # lock_start_str 在本SQL中出现3次（均为同一个值的重复引用）：
-    #   第1-2个: locked_users CTE 的时间范围
-    #   第3-5个: first_pay_date 的新客判定阈值
-    # SQL中?出现顺序: 3(GIFT_SAMPLE_DB, lock_start, lock_end) + 3(lock_start x3) + 2(conv_start, conv_end)
-    new_data = conn.execute("""
-        WITH locked_users AS (
-            SELECT DISTINCT user_id
+        ),
+        locked_with_first AS (
+            SELECT lu.user_id, ufp.first_pay_date
+            FROM locked_users lu
+            LEFT JOIN user_first_purchase ufp ON lu.user_id = ufp.user_id
+        ),
+        converted_by_user AS (
+            SELECT o.user_id, SUM(o.actual_amount) AS lock_gsv
             FROM orders o
-            WHERE o.channel = ?
-              AND ROUND(o.actual_amount, 2) = 0.01
-              AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
+            JOIN locked_users lu ON o.user_id = lu.user_id
+            WHERE o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
+              AND o.is_refund = FALSE
+              AND o.order_status != '交易关闭'
+              AND o.channel != '购物金'
+            GROUP BY o.user_id
+        ),
+        uv AS (
+            SELECT COALESCE(SUM(visitors), 0) AS total_uv
+            FROM daily_visitors
+            WHERE date >= ?::DATE AND date <= ?::DATE
         )
         SELECT
-            COUNT(DISTINCT lu.user_id) as total_locked,
-            COUNT(DISTINCT CASE WHEN ufp.first_pay_date >= ?::DATE THEN lu.user_id END) as new_locked,
-            COUNT(DISTINCT CASE WHEN ufp.first_pay_date >= ?::DATE AND o.order_id IS NOT NULL THEN lu.user_id END) as new_converted,
-            COALESCE(SUM(CASE WHEN ufp.first_pay_date >= ?::DATE THEN o.actual_amount ELSE 0 END), 0) as new_gsv
-        FROM locked_users lu
-        LEFT JOIN user_first_purchase ufp ON lu.user_id = ufp.user_id
-        LEFT JOIN orders o ON lu.user_id = o.user_id
-            AND o.pay_time >= ?::DATE AND o.pay_time <= ?::DATE + INTERVAL '1' DAY
-            AND o.is_refund = FALSE AND o.order_status != '交易关闭' AND o.channel != '购物金'
-    """, [GIFT_SAMPLE_DB, lock_start_str, lock_end_str, lock_start_str, lock_start_str, lock_start_str, conv_start_str, conv_end_str]).fetchone()
+            COUNT(*) AS locked_users,
+            (SELECT total_uv FROM uv) AS total_uv,
+            COUNT(c.user_id) AS converted_users,
+            COALESCE(SUM(c.lock_gsv), 0) AS lock_gsv,
+            COUNT(CASE WHEN lwf.first_pay_date >= ?::DATE THEN 1 END) AS new_locked,
+            COUNT(CASE WHEN lwf.first_pay_date >= ?::DATE AND c.user_id IS NOT NULL THEN 1 END) AS new_converted,
+            COALESCE(SUM(CASE WHEN lwf.first_pay_date >= ?::DATE THEN c.lock_gsv ELSE 0 END), 0) AS new_gsv
+        FROM locked_with_first lwf
+        LEFT JOIN converted_by_user c ON lwf.user_id = c.user_id
+    """
+    params = [
+        GIFT_SAMPLE_DB,
+        lock_start_str,
+        lock_end_str,
+        conv_start_str,
+        conv_end_str,
+        conv_start_str,
+        conv_end_str,
+        lock_start_str,
+        lock_start_str,
+        lock_start_str,
+    ]
+    _assert_sql_param_count(sql, params, "_compute_lock_metrics")
+    row = conn.execute(sql, params).fetchone()
 
-    new_locked = int(new_data[1] or 0)
-    new_converted = int(new_data[2] or 0)
-    new_gsv = float(new_data[3] or 0)
+    locked_users = int(row[0] or 0)
+    total_uv = int(row[1] or 0)
+    converted_users = int(row[2] or 0)
+    lock_gsv = float(row[3] or 0)
+    new_locked = int(row[4] or 0)
+    new_converted = int(row[5] or 0)
+    new_gsv = float(row[6] or 0)
 
     lock_rate = safe_ratio(locked_users, total_uv)
     conversion_rate = safe_ratio(converted_users, locked_users)
@@ -480,6 +500,13 @@ def _compute_lock_metrics(conn, campaign_row) -> Dict[str, Any]:
         'new_lock_gsv': round(new_gsv, 2),
         'new_lock_aus': round(new_lock_aus, 2),
     }
+
+
+def _assert_sql_param_count(sql: str, params: List[Any], context: str) -> None:
+    """L4.7 防御：SQL 占位符数量必须与 params 数量一致."""
+    assert sql.count("?") == len(params), (
+        f"{context} params mismatch: SQL has {sql.count('?')} ? but {len(params)} params"
+    )
 
 
 def _empty_lock_data() -> Dict[str, Any]:

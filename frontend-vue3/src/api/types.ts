@@ -1011,6 +1011,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rfm/extended": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Rfm Extended Api
+         * @description Sprint 142: RFM 扩展分群（生命周期 / 价值层 / 潜力层）.
+         */
+        post: operations["get_rfm_extended_api_api_v1_rfm_extended_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rfm/version": {
         parameters: {
             query?: never;
@@ -3110,6 +3130,12 @@ export interface components {
              */
             yoy_repurchase_rate: number;
         };
+        /**
+         * LifecycleStage
+         * @description 用户生命周期阶段.
+         * @enum {string}
+         */
+        LifecycleStage: "新客" | "活跃客" | "沉睡客" | "流失客";
         /** LoginRequest */
         LoginRequest: {
             /** Username */
@@ -3465,6 +3491,12 @@ export interface components {
              */
             full_bucket_61_90d: number;
         };
+        /**
+         * PotentialTier
+         * @description 用户潜力层.
+         * @enum {string}
+         */
+        PotentialTier: "高潜力" | "中潜力" | "低潜力";
         /**
          * ProductAssetItem
          * @description 单品资产-单个产品
@@ -4172,6 +4204,30 @@ export interface components {
              */
             segments?: components["schemas"]["SegmentDefinitionItem"][];
         };
+        /**
+         * RFMExtendedRequest
+         * @description RFM 扩展分群请求.
+         */
+        RFMExtendedRequest: {
+            /**
+             * User Ids
+             * @description 用户 ID 列表
+             */
+            user_ids: string[];
+            /**
+             * As Of Date
+             * @description 分析日期 YYYY-MM-DD
+             */
+            as_of_date?: string | null;
+        };
+        /**
+         * RFMExtendedResponse
+         * @description RFM 扩展分群响应.
+         */
+        RFMExtendedResponse: {
+            /** Segments */
+            segments?: components["schemas"]["RFMSegmentExtended"][];
+        };
         /** RFMFRFlowResponse */
         RFMFRFlowResponse: {
             /**
@@ -4516,6 +4572,28 @@ export interface components {
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio Ppt */
             yoy_repurchase_gsv_ratio_ppt?: number | null;
+        };
+        /**
+         * RFMSegmentExtended
+         * @description RFM 扩展分群（保留 8 quadrant, 增量追加 3 个新维度）.
+         */
+        RFMSegmentExtended: {
+            /**
+             * User Id
+             * @description 用户 ID
+             */
+            user_id: string;
+            /**
+             * Rfm Quadrant
+             * @description 8 quadrant 经典分割
+             */
+            rfm_quadrant: string;
+            /** @description 生命周期阶段 */
+            lifecycle_stage: components["schemas"]["LifecycleStage"];
+            /** @description 价值层 */
+            value_tier: components["schemas"]["ValueTier"];
+            /** @description 潜力层 */
+            potential_tier: components["schemas"]["PotentialTier"];
         };
         /**
          * RFMThresholds
@@ -4950,6 +5028,92 @@ export interface components {
             nonfull_repurchase_aus: number;
         };
         /**
+         * SamplingLevelSummary
+         * @description 派样 level 二级聚合（channel × level_value）.
+         */
+        SamplingLevelSummary: {
+            /**
+             * Channel
+             * @description 渠道
+             */
+            channel: string;
+            /**
+             * Level
+             * @description 聚合维度字段
+             */
+            level: string;
+            /**
+             * Level Value
+             * @description level 聚合维度值
+             */
+            level_value: string;
+            /**
+             * Sample Users
+             * @description 派样人数
+             */
+            sample_users: number;
+            /**
+             * Repurchase Users
+             * @description 回购人数
+             * @default 0
+             */
+            repurchase_users: number;
+            /**
+             * Repurchase Rate
+             * @description 回购率
+             * @default 0
+             */
+            repurchase_rate: number;
+            /**
+             * Repurchase Gsv
+             * @description 回购 GSV
+             * @default 0
+             */
+            repurchase_gsv: number;
+            /**
+             * Repurchase Aus
+             * @description 客单价
+             * @default 0
+             */
+            repurchase_aus: number;
+            /**
+             * Full Repurchase Users
+             * @default 0
+             */
+            full_repurchase_users: number;
+            /**
+             * Full Repurchase Gsv
+             * @default 0
+             */
+            full_repurchase_gsv: number;
+            /**
+             * Full Repurchase Aus
+             * @default 0
+             */
+            full_repurchase_aus: number;
+            /**
+             * Full Repurchase Rate
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            full_repurchase_rate: number;
+            /**
+             * Nonfull Repurchase Users
+             * @default 0
+             */
+            nonfull_repurchase_users: number;
+            /**
+             * Nonfull Repurchase Gsv
+             * @default 0
+             */
+            nonfull_repurchase_gsv: number;
+            /**
+             * Nonfull Repurchase Aus
+             * @default 0
+             */
+            nonfull_repurchase_aus: number;
+        };
+        /**
          * SamplingLockAnalysisResponse
          * @description 0.01锁权分析响应
          */
@@ -5070,6 +5234,13 @@ export interface components {
             period_distribution?: components["schemas"]["PeriodDistribution"];
             /** Quality Flags */
             quality_flags?: components["schemas"]["QualityFlag"][];
+            /**
+             * Summary By Level
+             * @description level 二级聚合 {level_value: [SamplingLevelSummary]}
+             */
+            summary_by_level?: {
+                [key: string]: components["schemas"]["SamplingLevelSummary"][];
+            };
         };
         /**
          * SamplingROITimeRange
@@ -5565,6 +5736,12 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /**
+         * ValueTier
+         * @description 用户价值层.
+         * @enum {string}
+         */
+        ValueTier: "高价值" | "中价值" | "低价值";
         /**
          * ValueTierDefinition
          * @description 价值分层定义（动态计算）
@@ -7574,6 +7751,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SegmentOrdersResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rfm_extended_api_api_v1_rfm_extended_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RFMExtendedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RFMExtendedResponse"];
                 };
             };
             /** @description Validation Error */
