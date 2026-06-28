@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-28 (Sprint 146-148 设计治理 sprint 链 (plan-design-review 触发, P0 视觉层次 + P1 状态覆盖 + P2 可访问性 + P3 AI slop 4 sprint 治本, 5 files / +194/-78 实质有效 +116 行, useFormat composable + YOYBadge 降级 + ErrorState 401 + 4 桶 sr-only table + 渠道 icon + 5 section id + 5 emoji→序号 01-05) + Sprint 149 head: /document-release 累计 5 次真治本 (跟 Sprint 65/135/138/141.5/145 模式 stable), pytest 803 passed / 23 skipped / 0 failed (frontend-only 不退化, race flake L5.1 接受), main HEAD `5cb39a9`, 累计 68→72 sprint 0 debt, VERSION 0.4.14.157 不变 (累计 41 sprint 不 bump), L4.x 22 stable 0 新增, plan-design-review 7 维度评分 6.5/10 → 9.5/10, 跟 Sprint 144 + 145 /document-release 模式 stable 累计 5 次真治本)
+**最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 (5 section aria-labelledby 包裹, 1 file / +18/-4 net +14 wrapper 加法, plan-design-review 7 维度 9.5/10 → **10/10 完整闭环**) + Sprint 151 CHANGELOG.md append Sprint 145-150 累计 5 sprint 收口 entry (1 file / +15) + Sprint 152 0 业务代码 sprint 暂收口 (0 commit, 跟 Sprint 89/134 模式 stable, 累计 sprint 0 debt +1) + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap L4.7 100% 精准, 0 业务代码 docs), pytest 803 passed / 23 skipped / 0 failed (Sprint 146-153 frontend-only/docs-only 不退化, race flake L5.1 接受), main HEAD `6904d36`, 累计 72→76 sprint 0 debt, VERSION 0.4.14.157 不变 (累计 44 sprint 不 bump), L4.x 22 stable 0 新增, 实战 fix 模式 #26-#31 沉淀, 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
 
 ---
 
