@@ -1,3 +1,14 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 156 派样正装转化分析 tab 宽度跟品类看板拉齐 (1600px), VERSION 不变)
+
+### Fixed
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 156): 删 scoped `.sampling-view` 的 `max-width: 1200px` + `margin: 0 auto`，保留 `padding: 0 24px` (8 的倍数)。根因: SamplingView scoped style 覆盖了 `DefaultLayout` 全局 `max-w-[1600px] mx-auto` 容器，导致派样正装转化分析 tab 异常 1200px 跟品类看板 (1600px) 不齐。其他 view (CategoryView / AudienceView) 都继承 1600px。L4.7 100% 精准 1 行删 (+3/-3 含注释说明 Sprint 156 治根, 防止后人重新加 max-width)。
+
+### Verification
+- `npm run build` PASS (~725ms)
+- vite preview restart PID 11143 HTTP 200
+- main HEAD `8ece461` + origin/main 0 drift
+- L4.8 cleanup feature/sprint156-sampling-width 分支
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 154+155 派样正装转化分析 tab UI/UX 调整 + user 反馈 4 调整 amend, VERSION 不变)
 
 ### Added
