@@ -1126,10 +1126,10 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Sprint 154 ① 全局 8pt 网格 + 呼吸感 + 标题层级 + 行宽 */
+/* Sprint 154 ① 全局 8pt 网格 + 呼吸感 + 标题层级 + 行宽
+   Sprint 156: 删 max-width: 1200px — 让 .sampling-view 继承 DefaultLayout 全局 max-w-[1600px] 容器,
+   跟 CategoryView / AudienceView 等其他 view 拉齐宽度 */
 .sampling-view {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 0 24px;  /* 8 的倍数 (3 × 8) */
 }
 
