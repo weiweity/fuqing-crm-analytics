@@ -41,4 +41,16 @@ export default defineConfig({
       'Expires': '0',
     },
   },
+  // Sprint 142+143 (2026-06-28): vite preview 不读 server.proxy, 需显式配置 preview.proxy
+  // 否则 frontend fetch('/api/v1/...') 直接被 vite preview 当 static file 404 (跟 5173 proxy 修复一致)
+  preview: {
+    port: 5173,
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })
