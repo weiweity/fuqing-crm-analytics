@@ -1,3 +1,18 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 145-150 留尾治理 + 设计治理 sprint 链, VERSION 不变)
+
+### Added
+- **frontend-vue3/src/composables/useFormat.ts** (Sprint 146): 新增 `useFormat` composable 统一 `formatNumber` / `formatPercent` / `formatCurrency` / `formatDelta` 4 个 formatter, 替换散落 `toFixed` / `toLocaleString` / `除以 1e4` 不一致模式。
+
+### Changed
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 146): 移除 YOYBadge pill 形 rgba bg+fg → 内联灰色文字箭头 (text-xs text-slate-400 tabular-nums + aria-label)。主数字 text-2xl → text-3xl font-bold tabular-nums。AUS 降级 (text-2xl text-slate-500)。5 section h2 加 id `sampling-section-{overview,summary,channels,detail,buckets}` + `<section aria-labelledby>` 包裹 (Sprint 147/150)。5 emoji → 5 序号 01-05 (Sprint 148)。5 section 视觉 div → sr-only 真 table 化 (Sprint 147)。Channel 对比卡加 emoji icon 辅助色盲用户 (Sprint 147)。
+- **frontend-vue3/src/components/ErrorState.vue** (Sprint 146): 加 `status` prop 401 区分 (🔒 + "会话已过期" + "重新登录" 按钮 emit 'login')。SamplingView 检测 401 → `handleLoginRedirect` 跳 `/login?redirect=pathname`。
+
+### Verification
+- **plan-design-review** (Sprint 146 触发, Sprint 147/148/150 治本): 7 维度 6.5/10 → 10/10 完整闭环。Sprint 145+146+147+148+149+150 累计 5 files / +216/-82 (实质有效 +134 行), frontend-only, 0 业务代码, 74 sprint 0 debt 持续, VERSION 0.4.14.157 不 bump (累计 43 sprint), L4.x 22 stable 0 新增, pytest 803/23/0 不退化, /document-release 累计 6 次真治本 (Sprint 65/135/138/141.5/145/149), 实战 fix 模式 #26-#31 (Sprint 146-150)。
+- **0 业务代码 sprint 暂收口** (Sprint 152): 跟 Sprint 89/134 模式 stable, 0 commit, 0 cross-sprint 强制留尾, 累计 sprint 0 debt 持续。
+
+---
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 144, VERSION 不变 - Sampling 顶筛解耦 + TTL 聚合 + 回购周期分布)
 
 ### Added
