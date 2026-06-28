@@ -1,3 +1,33 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 158 派样正装转化 3 层级导航重构 (Codex 实施 + Claude 收口), VERSION 不变)
+
+### Added
+- **frontend-vue3/src/config/navigations.ts** (新, 76 行): 6 板块导航配置 (人群看板/老客分析/品类看板/市场对焦/派样正装转化/地域分析) + 每板块 tab 列表, 单一 source of truth, 跟 Sprint 144+145+155+157 stable.
+- **frontend-vue3/src/components/NavBar.vue** (新, 391 行): 3 层级 NavBar — ① 深蓝 gradient header (linear-gradient #1e3a8a → #2563eb 参考生意参谋) + 圆形 "天" 文字 logo + "天猫CRM" + "数据分析平台" ② 6 板块 tabs + hover 弹窗 (150ms 防抖, popover 自实现不用 n-popover 因为 fixed 定位复杂) + onBeforeUnmount 清理 timer ③ AppFilterBar 集成到下方.
+- **frontend-vue3/src/composables/useRouteHashTab.ts** (新, 37 行): 路由 hash tab sync composable, 6 view 全接入 (双向 watch 监听 route.hash 跟 activeTab 同步, 无副作用 navigation).
+
+### Changed
+- **frontend-vue3/src/layouts/DefaultLayout.vue** (改 +22/-5): 删 Sidebar 引用 + 加 NavBar 引用 + AppFilterBar 容器改 1600px 居中.
+- **5 view 接 useRouteHashTab** (Audience/Category/CustomerHealth/Geo/MarketFocus): 各自 +2~7 行, 路由 hash 跟 activeTab ref 同步, 浏览器前进后退 / 书签 hash 跟 active tab 状态一致.
+- **frontend-vue3/src/views/SamplingView.vue** (改 +874/-24, 派样 01/02/03 微调): ① 01 总览 4 卡片新增 YOY/MOM badge (样式对齐人群看板) ② 02 回购周期分布新增滚动去年对比 (复用 `fetchSamplingRepurchaseDistribution` 接口查去年同期窗口 + 双柱展示 + 人数 YOY + GSV YOY + AUS 双值) ③ 03 各板块情况重排 YOY/MOM 修复遮挡 + TTL派样 始终展开不再折叠.
+- **frontend-vue3/index.html** (改 1 行): 删 favicon.png 链接 (跟 .gitattributes `*.png filter=lfs` 冲突推送失败, 改用纯 svg 资产), 保留 favicon.svg.
+- **backend/tests/test_roi_rename_sprint143.py** (改 1 行): Stage 3 review AUTO-FIX — 改读 `config/navigations.ts` 替代 `components/Sidebar.vue` (Sprint 158 删 Sidebar 后 test 找不到文件), 验证渠道名 "派样正装转化" 在 nav config 出现.
+
+### Removed
+- **frontend-vue3/src/components/Sidebar.vue** (删, 130 行): 老 6 板块侧边栏, 整合到 NavBar 第 2 层级 tabs.
+- **frontend-vue3/public/favicon.png** (删, 1.1KB): 走 .gitattributes `*.png filter=lfs` 推送失败, 改用 favicon.svg 替代.
+- **frontend-vue3/public/svg/logo2.png** (删, 3KB): 走 LFS filter 推送失败, 改用 NavBar 文字 logo 占位符 (圆形 "天" + rgba 半透明白背景).
+
+### Verification
+- `npm run build` PASS (~733ms, vue-tsc + vite 全过)
+- pre-commit hook 全过 (vite build + L1 SQL f-string consistency lint 0 violations + ruff F841 PASS)
+- `python -m backend.contracts._lint` OK (后端 0 改动)
+- pytest baseline **741 passed / 66 skipped / 0 failed** (uvicorn kill 后跑, L4.4 race flake 接受; 真连 test 跳过 production DuckDB 不可用)
+- Stage 3 review 0 critical / 0 informational / 1 AUTO-FIX (test 改读 navigations.ts)
+- L4.22 rebuild dist + kill vite (PID 60166) + restart HTTP 200
+- uvicorn restart PID 60219 HTTP 401 (admin auth 保护, 跟 Sprint 144+ 一样正常)
+- main HEAD `4a7c1dc` + origin/main 0 drift (push `0dada5d..4a7c1dc` 成功)
+- L4.8 cleanup feature/sprint158-navbar-refactor 分支 (本地 + 远程)
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 157 03 各板块情况微调 - TTL 取消折叠 + 数字不换行, VERSION 不变)
 
 ### Fixed
