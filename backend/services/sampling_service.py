@@ -342,7 +342,8 @@ def get_sampling_roi(
                 cmp_end,
                 window_days,
             )
-            compare_prefix = 'mom' if compare_date_range else 'yoy'
+            # compare_date_range 真值 → MOM/custom 模式 (auto_yoy 已在上方 else 分支处理)
+            compare_prefix = 'mom'
             for row in channels_result:
                 _add_compare_metrics(
                     row,
@@ -447,50 +448,6 @@ def get_sampling_roi(
                 'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
             })
 
-        # Sprint 139/140/141: 回购周期分布跟随 window_days, 覆盖 1-90d
-        period_sql = f"""
-            WITH sample_users AS ({sample_users_sql}),
-            repurchase AS (
-                SELECT su.user_id, su.channel, su.first_sample_time,
-                       o.pay_time as repurchase_time,
-                       o.actual_amount,
-                       COALESCE(o.spu_type, '未知') as spu_type,
-                       DATEDIFF('day', su.first_sample_received_at, o.pay_time) as days_between
-                FROM sample_users su
-                JOIN orders o ON su.user_id = o.user_id
-                WHERE o.pay_time > su.first_sample_received_at
-                  AND DATEDIFF('day', su.first_sample_received_at, o.pay_time) <= ?
-                  AND o.is_refund = FALSE
-                  AND o.order_status != '交易关闭'
-                  AND o.channel != '购物金'
-            )
-            SELECT
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 1 AND 3 THEN user_id END) as bucket_1_3d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 4 AND 7 THEN user_id END) as bucket_4_7d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 8 AND 30 THEN user_id END) as bucket_8_30d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 THEN user_id END) as bucket_31_60d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 61 AND 90 THEN user_id END) as bucket_61_90d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 1 AND 3 AND spu_type = '正装' THEN user_id END) as full_bucket_1_3d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 4 AND 7 AND spu_type = '正装' THEN user_id END) as full_bucket_4_7d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 8 AND 30 AND spu_type = '正装' THEN user_id END) as full_bucket_8_30d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 AND spu_type = '正装' THEN user_id END) as full_bucket_31_60d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 61 AND 90 AND spu_type = '正装' THEN user_id END) as full_bucket_61_90d
-            FROM repurchase
-        """
-        period_row = conn.execute(period_sql, sample_params + [max_window_days]).fetchone()
-        period_distribution = {
-            'bucket_1_3d': int(period_row[0] or 0),
-            'bucket_4_7d': int(period_row[1] or 0),
-            'bucket_8_30d': int(period_row[2] or 0),
-            'bucket_31_60d': int(period_row[3] or 0),
-            'bucket_61_90d': int(period_row[4] or 0),
-            'full_bucket_1_3d': int(period_row[5] or 0),
-            'full_bucket_4_7d': int(period_row[6] or 0),
-            'full_bucket_8_30d': int(period_row[7] or 0),
-            'full_bucket_31_60d': int(period_row[8] or 0),
-            'full_bucket_61_90d': int(period_row[9] or 0),
-        }
-
         # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
         total_posize_gsv = sum(c.get('full_repurchase_gsv', 0) for c in channels_result)
         total_gsv = sum(c.get('repurchase_gsv', 0) for c in channels_result)
@@ -516,7 +473,6 @@ def get_sampling_roi(
                 'end': end_date,
                 'window_days': window_days,
             },
-            'period_distribution': period_distribution,
             'quality_flags': quality_flags,
             'summary_by_level': _group_by_level(category_result, level),
         }
