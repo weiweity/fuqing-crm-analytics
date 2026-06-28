@@ -20,6 +20,26 @@ export interface SamplingChannelSummary {
   nonfull_repurchase_aus: number
 }
 
+// ── level 二级聚合 ──
+
+export interface SamplingLevelSummary {
+  channel: string
+  level: string
+  level_value: string
+  sample_users: number
+  repurchase_users: number
+  repurchase_rate: number
+  repurchase_gsv: number
+  repurchase_aus: number
+  full_repurchase_users: number
+  full_repurchase_rate: number
+  full_repurchase_gsv: number
+  full_repurchase_aus: number
+  nonfull_repurchase_users: number
+  nonfull_repurchase_gsv: number
+  nonfull_repurchase_aus: number
+}
+
 // ── 品类明细 ──
 
 export interface SamplingCategoryRow {
@@ -83,6 +103,7 @@ export interface SamplingROIResponse {
   time_range: SamplingROITimeRange
   period_distribution: PeriodDistribution
   quality_flags: QualityFlag[]
+  summary_by_level: Record<string, SamplingLevelSummary[]>
 }
 
 // ── 锁权活动信息 ──

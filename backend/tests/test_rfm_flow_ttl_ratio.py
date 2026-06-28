@@ -301,7 +301,7 @@ class TestSprint602OldCustomerGsvTtl:
     业务合理双计 (跟 Sprint 60.1.1 wool_party 强截断模式一致).
     """
 
-    def test_rfm_analysis_old_customer_ttl_100_percent(self, monkeypatch_connection):
+    def test_rfm_analysis_old_customer_ttl_100_percent(self, monkeypatch, monkeypatch_connection):
         """Sprint 60.2 治本: RFM 8 象限 endpoint 端到端验证 TTL 行 ratio = 100%.
 
         跟用户截图 (2026-06-01 ~ 2026-06-20, 全店, 排除低价) 一致:
@@ -311,6 +311,16 @@ class TestSprint602OldCustomerGsvTtl:
         """
         from backend.services.health.rfm_analysis import analysis
 
+        def _new_test_conn():
+            conn = monkeypatch_connection.cursor()
+            conn.execute("PRAGMA search_path='main,prod'")
+            return conn
+
+        monkeypatch.setattr(
+            analysis,
+            "_new_duckdb_conn",
+            _new_test_conn,
+        )
         result = analysis.get_rfm_analysis(
             year=2026,
             metric_type="GSV",

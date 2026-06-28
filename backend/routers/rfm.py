@@ -15,13 +15,17 @@ from backend.contracts.schemas import (
     RFMFRFlowResponse,
     RFMMFlowResponse,
     SegmentOrdersResponse,
+    RFMExtendedRequest,
+    RFMExtendedResponse,
 )
+from backend.db.connection import get_connection
 from backend.services.rfm.loader import get_rfm_manifest_info  # W2 v0.4.8
 from backend.services.rfm import (
     get_rfm_r_flow,
     get_rfm_f_flow,
     get_rfm_m_flow,
     get_segment_orders,
+    get_user_rfm_extended,
 )
 from backend.services.rfm.cache import RfmQueryCache  # W5 v0.4.13
 from backend.services import check_future_date
@@ -158,6 +162,17 @@ def get_segment_orders_api(
         "channel": channel, "exclude_channels": exclude_channels,
     }
     return _cached_rfm_call("segment-orders", params, get_segment_orders, **params)
+
+
+@router.post("/extended", response_model=RFMExtendedResponse)
+def get_rfm_extended_api(request: RFMExtendedRequest):
+    """Sprint 142: RFM 扩展分群（生命周期 / 价值层 / 潜力层）."""
+    segments = get_user_rfm_extended(
+        get_connection(),
+        user_ids=request.user_ids,
+        as_of_date=request.as_of_date,
+    )
+    return RFMExtendedResponse(segments=list(segments.values()))
 
 
 # W2 v0.4.8: manifest version endpoint (设计 doc v1.1 §6 完成标志第 4 条)

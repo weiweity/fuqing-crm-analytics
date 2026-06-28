@@ -8,9 +8,10 @@ from .asset import AssetSummaryResponse, AssetTrendResponse, ProductClassRepurch
 from .geo import GeoDistributionItem, GeoDistributionResponse, GeoSegmentMatrixResponse, GeoTrendResponse
 from .category import CategoryDistributionItem, CategoryDistributionResponse, CategoryOverviewItem, CategoryOverviewResponse, CategorySegmentMatrixResponse, CategoryUserProfileResponse, CategoryRepurchaseFlowRow, CategoryRepurchaseFlowResponse, ValueTierTableRow, CategoryValueTierResponse, MarketBasketItem, MarketBasketYoYItem, MarketBasketResponse, CategoryChurnItem, CategoryChurnResponse, CategoryDailyTrendResponse, UserDetail, CategoryUserListResponse
 from .rfm import RFMRFlowRow, RFMRFlowResponse, RFMFRFlowRow, RFMFRFlowResponse, RFMMFlowRow, RFMMFlowResponse, RFMAnalysisRow, RFMAnalysisResponse, RFMThresholds, SegmentDefinitionItem, RFMConfigResponse, SegmentOrderRow, SegmentOrdersResponse, DecliningCategoryItem, ImprovingCategoryItem, RFMCategoryDrilldownRow, TopDriverItem, RFMCategoryDrilldownSummary, RFMCategoryDrilldownResponse
+from .rfm_segments import LifecycleStage, ValueTier, PotentialTier, RFMSegmentExtended, RFMExtendedRequest, RFMExtendedResponse
 from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, RepurchaseCycleOverview, CohortRetentionResponse, ValueTierDefinition, FrequencyTierDefinition, CustomerSegmentItem, ValueTierResponse, TierFlowRow, TierFlowResponse, PromotionPeriod, PromotionVsDailyMetrics, PromotionCalendarResponse, ChannelHealthScoreItem, HealthTargetsResponse, ChannelHealthScoresResponse, ConfigHistoryItem, ConfigHistoryResponse, ConfigRestoreResponse, AuditLogItem, AuditLogResponse, ExportPPTRequest, ExportPPTResponse, TemplatesResponse, NewCustomerConversionFunnel, NewCustomerChannelQuality, NewCustomerConversionResponse
 from .visitor import VisitorSummaryResponse, VisitorDailyTrendItem, VisitorDailyTrendResponse
-from .sampling import SamplingChannelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingROIResponse, SamplingLockCampaignInfo, SamplingLockYearData, SamplingLockYOY, SamplingLockAnalysisResponse, RollingYearMetrics, RollingYOY, RollingTimeline, RollingComparisonResponse
+from .sampling import SamplingChannelSummary, SamplingLevelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingROIResponse, SamplingLockCampaignInfo, SamplingLockYearData, SamplingLockYOY, SamplingLockAnalysisResponse, RollingYearMetrics, RollingYOY, RollingTimeline, RollingComparisonResponse
 
 __all__ = [
     "DateRangeResponse", "YearComparisonRow", "DualAxisLineData",
@@ -34,6 +35,8 @@ __all__ = [
     "RFMMFlowRow", "RFMMFlowResponse", "RFMAnalysisRow", "RFMAnalysisResponse",
     "RFMThresholds", "SegmentDefinitionItem", "RFMConfigResponse",
     "SegmentOrderRow", "SegmentOrdersResponse",
+    "LifecycleStage", "ValueTier", "PotentialTier", "RFMSegmentExtended",
+    "RFMExtendedRequest", "RFMExtendedResponse",
     "DecliningCategoryItem", "ImprovingCategoryItem",
     "RFMCategoryDrilldownRow", "TopDriverItem", "RFMCategoryDrilldownSummary", "RFMCategoryDrilldownResponse",
     "HealthAlertItem", "HealthOverviewMetrics",
@@ -47,7 +50,7 @@ __all__ = [
     "ExportPPTRequest", "ExportPPTResponse", "TemplatesResponse",
     "NewCustomerConversionFunnel", "NewCustomerChannelQuality", "NewCustomerConversionResponse",
     "VisitorSummaryResponse", "VisitorDailyTrendItem", "VisitorDailyTrendResponse",
-    "SamplingChannelSummary", "SamplingCategoryRow", "SamplingROITimeRange", "SamplingROIResponse",
+    "SamplingChannelSummary", "SamplingLevelSummary", "SamplingCategoryRow", "SamplingROITimeRange", "SamplingROIResponse",
     "SamplingLockCampaignInfo", "SamplingLockYearData", "SamplingLockYOY", "SamplingLockAnalysisResponse",
     "RollingYearMetrics", "RollingYOY", "RollingTimeline", "RollingComparisonResponse",
 ]

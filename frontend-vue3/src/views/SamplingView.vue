@@ -8,7 +8,7 @@ import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
-import type { SamplingCategoryRow } from '@/api/sampling'
+import type { SamplingCategoryRow, SamplingLevelSummary } from '@/api/sampling'
 
 const activeTab = ref('roi')
 
@@ -33,6 +33,8 @@ const levelOptions = [
   { label: '品类销售', value: 'spu_category' },
   { label: '商品梯队', value: 'spu_tier' },
   { label: '单品归类', value: 'spu_product_class' },
+  { label: '产品细分', value: 'spu_product_subclass' },
+  { label: '功效属性', value: 'spu_cosmetic' },
 ]
 
 function fmtDate(ts: number): string {
@@ -128,6 +130,15 @@ const totalFullRepurchaseGsv = computed(() => {
 
 const totalFullRepurchaseAus = computed(() => {
   return safeRatio(totalFullRepurchaseGsv.value, totalFullRepurchaseUsers.value)
+})
+
+const levelLabel = computed(() => {
+  return levelOptions.find(o => o.value === categoryLevel.value)?.label ?? categoryLevel.value
+})
+
+const summaryByLevelEntries = computed<[string, SamplingLevelSummary[]][]>(() => {
+  const grouped = roiData.value?.summary_by_level ?? {}
+  return Object.entries(grouped).slice(0, 6) as [string, SamplingLevelSummary[]][]
 })
 
 const periodBuckets = computed(() => {
@@ -483,6 +494,48 @@ onUnmounted(() => {
               {{ flag.message }}
             </div>
           </n-alert>
+
+          <div v-if="summaryByLevelEntries.length" class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-semibold text-slate-700">{{ levelLabel }}汇总</span>
+              <span class="text-xs text-slate-400">{{ windowDays }}天窗口</span>
+            </div>
+            <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
+              <n-gi v-for="[levelValue, summaries] in summaryByLevelEntries" :key="levelValue">
+                <n-card :bordered="false" segmented size="small">
+                  <template #header>
+                    <span class="text-sm font-semibold text-slate-700">{{ levelValue }}</span>
+                  </template>
+                  <div class="space-y-3">
+                    <div
+                      v-for="item in summaries"
+                      :key="`${levelValue}-${item.channel}`"
+                      class="rounded border border-slate-100 bg-slate-50 px-3 py-2"
+                    >
+                      <div class="flex items-center justify-between text-xs mb-2">
+                        <span class="font-semibold text-slate-600">{{ item.channel }}</span>
+                        <span class="text-indigo-600 font-bold">{{ fmtPct(item.repurchase_rate) }}</span>
+                      </div>
+                      <div class="grid grid-cols-3 gap-2 text-xs text-slate-500">
+                        <div>
+                          <div>派样</div>
+                          <b class="text-slate-700">{{ item.sample_users.toLocaleString() }}</b>
+                        </div>
+                        <div>
+                          <div>回购</div>
+                          <b class="text-slate-700">{{ item.repurchase_users.toLocaleString() }}</b>
+                        </div>
+                        <div>
+                          <div>GSV</div>
+                          <b class="text-emerald-700">¥{{ (item.repurchase_gsv / 1e4).toFixed(1) }}万</b>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </n-card>
+              </n-gi>
+            </n-grid>
+          </div>
 
           <!-- 渠道对比卡片 -->
           <n-grid :cols="2" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen">

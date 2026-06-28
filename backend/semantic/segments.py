@@ -25,6 +25,67 @@ RFM_THRESHOLDS = {
     "m": [100, 300, 500, 1000],
 }
 
+LIFECYCLE_THRESHOLDS = {
+    "new_max_days": 30,
+    "active_max_days": 30,
+    "dormant_max_days": 180,
+}
+
+VALUE_THRESHOLDS = {
+    "high_gsv": 5000,
+    "high_frequency": 10,
+    "medium_gsv": 1000,
+}
+
+POTENTIAL_THRESHOLDS = {
+    "active_recent_days": 30,
+    "gsv_growth_threshold": 0.0,
+}
+
+
+def lifecycle_case_sql(reference_date_sql: str = "CURRENT_DATE") -> str:
+    """生成 lifecycle_stage CASE WHEN SQL 片段."""
+    return f"""
+        CASE
+            WHEN DATEDIFF('day', first_active, {reference_date_sql}) < {LIFECYCLE_THRESHOLDS['new_max_days']}
+                THEN '新客'
+            WHEN DATEDIFF('day', last_active, {reference_date_sql}) < {LIFECYCLE_THRESHOLDS['active_max_days']}
+                AND DATEDIFF('day', first_active, {reference_date_sql}) >= {LIFECYCLE_THRESHOLDS['new_max_days']}
+                THEN '活跃客'
+            WHEN DATEDIFF('day', last_active, {reference_date_sql}) BETWEEN {LIFECYCLE_THRESHOLDS['active_max_days']} AND {LIFECYCLE_THRESHOLDS['dormant_max_days']}
+                THEN '沉睡客'
+            ELSE '流失客'
+        END
+    """
+
+
+def value_tier_case_sql() -> str:
+    """生成 value_tier CASE WHEN SQL 片段."""
+    return f"""
+        CASE
+            WHEN COALESCE(gsv_sum, 0) >= {VALUE_THRESHOLDS['high_gsv']}
+                OR COALESCE(order_count, 0) >= {VALUE_THRESHOLDS['high_frequency']}
+                THEN '高价值'
+            WHEN COALESCE(gsv_sum, 0) >= {VALUE_THRESHOLDS['medium_gsv']}
+                THEN '中价值'
+            ELSE '低价值'
+        END
+    """
+
+
+def potential_tier_case_sql(reference_date_sql: str = "CURRENT_DATE") -> str:
+    """生成 potential_tier CASE WHEN SQL 片段."""
+    return f"""
+        CASE
+            WHEN DATEDIFF('day', last_active, {reference_date_sql}) < {POTENTIAL_THRESHOLDS['active_recent_days']}
+                AND COALESCE(gsv_growth, 0) > {POTENTIAL_THRESHOLDS['gsv_growth_threshold']}
+                THEN '高潜力'
+            WHEN DATEDIFF('day', last_active, {reference_date_sql}) < {POTENTIAL_THRESHOLDS['active_recent_days']}
+                THEN '中潜力'
+            ELSE '低潜力'
+        END
+    """
+
 
 # ============================================================
 # R/F/M 区间排序（flow 看板、拆解服务统一使用）

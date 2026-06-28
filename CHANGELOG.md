@@ -1,3 +1,25 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 142, VERSION 不变 - RFM 扩展 + level 联动二级聚合 + 锁权指标单 SQL 重构)
+
+### Added
+- **backend/contracts/rfm_segments.py** + `backend/services/rfm/extended.py`: 新增 RFM 扩展分群，保留 8 quadrant，并增量返回生命周期、价值层、潜力层 3 个维度。
+- **backend/contracts/sampling.py** + `backend/services/sampling_service.py`: 新增 `SamplingLevelSummary` 与 `summary_by_level`，复用既有 category rows 做 level 二级聚合，0 新 SQL 查询。
+- **backend/tests/test_rfm_extended_sprint142.py / test_sampling_level_aggregation_sprint142.py / test_lock_metrics_sprint142.py**: 新增 Sprint 142 回归，覆盖 RFM 3 维度、5 个 level、锁权指标等价和参数数量断言。
+
+### Changed
+- **backend/services/sampling_service.py**: `_compute_lock_metrics` 从 Sprint 141 的 4 次 `conn.execute` 合并为单 SQL，并加 `sql.count("?") == len(params)` 断言；真实生产库 micro-benchmark 当前为 1.513x，未达到 handoff 设定的 2x 门槛，需 Stage 3 go/no-go。
+- **frontend-vue3/src/views/SamplingView.vue** + API types: ROI tab 新增 level 联动 summary 卡，支持 `spu_category / spu_tier / spu_product_class / spu_product_subclass / spu_cosmetic` 5 个 level。
+
+### Fixed
+- **backend/tests/test_rfm_flow_ttl_ratio.py**: 旧 RFM TTL 测试按注释补齐 `_new_duckdb_conn` monkeypatch，避免 isolated DuckDB 已 attach production 后再次打开同一生产文件导致 `Unique file handle conflict`。
+- **.githooks/check_imports.py**: Python < 3.10 fallback 改为动态枚举 stdlib，修复 pre-commit B2 在系统 Python 下把 `argparse / tempfile / concurrent` 等标准库误判为缺失依赖。
+
+### Verification
+- Codex Stage 2: Sprint 142 专项 `12 passed`; backend 全量 `837 passed / 9 skipped`; Sprint 139/140/141/141.5 ground-truth-lint PASS x4; contracts lint PASS; `npm run build` PASS。
+- `_compute_lock_metrics` benchmark: legacy 0.078323s, new 0.051770s, speedup 1.513x, results_equal=true, passed=false (target 2.0x).
+- VERSION: 0.4.14.157 不 bump；不做 Sprint 143 范围。
+
+---
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 141.5 Phase 1, VERSION 不变 - ETL sample_received_at 字段新增)
 
 ### Added

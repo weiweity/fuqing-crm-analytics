@@ -16,6 +16,8 @@ B2 P0 根因预防: pre-commit import 完整性检查 (v0.4.7.5)
 """
 import ast
 import sys
+import sysconfig
+import pkgutil
 import pathlib
 import re
 
@@ -24,13 +26,26 @@ try:
     STDLIB = {m.lower() for m in sys.stdlib_module_names}
 except AttributeError:
     # Fallback for Python < 3.10 (项目实际不用, 兜底)
+    stdlib_paths = {
+        sysconfig.get_paths().get("stdlib"),
+        sysconfig.get_paths().get("platstdlib"),
+        sysconfig.get_config_var("DESTSHARED"),
+    }
     STDLIB = {
-        'os', 'sys', 're', 'json', 'pathlib', 'typing', 'collections',
+        name.lower()
+        for path in stdlib_paths
+        if path
+        for _finder, name, _ispkg in pkgutil.iter_modules([path])
+    }
+    STDLIB.update({m.lower() for m in sys.builtin_module_names})
+    STDLIB.update({
+        '__future__', 'os', 'sys', 're', 'json', 'pathlib', 'typing', 'collections',
         'datetime', 'time', 'logging', 'subprocess', 'threading', 'functools',
         'itertools', 'contextlib', 'ast', 'unittest', 'pytest', 'asyncio',
         'abc', 'enum', 'dataclasses', 'inspect', 'importlib', 'warnings',
         'traceback', 'copy', 'io', 'csv', 'hashlib', 'http', 'urllib', 'uuid',
-    }
+        'math', 'resource',
+    })
 
 # 已知 import 名字 vs pip 名字不同的别名 (项目实际遇到的 + 常见)
 PIP_ALIASES = {

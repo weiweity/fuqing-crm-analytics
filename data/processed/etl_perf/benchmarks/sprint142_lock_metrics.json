@@ -1,0 +1,62 @@
+{
+  "sprint": 142,
+  "metric": "_compute_lock_metrics",
+  "benchmark_scope": "production DuckDB read_only, legacy Sprint 141 four execute calls vs Sprint 142 single execute call",
+  "campaign_row": [
+    "2026",
+    "618节日",
+    "2026-05-06",
+    "2026-06-21",
+    "2026-04-06",
+    "2026-05-04"
+  ],
+  "iterations": 10,
+  "legacy_avg_seconds": 0.078323,
+  "new_avg_seconds": 0.05177,
+  "speedup": 1.513,
+  "legacy_times_seconds": [
+    0.075411,
+    0.080603,
+    0.077183,
+    0.077835,
+    0.078175,
+    0.080149,
+    0.078939,
+    0.076957,
+    0.078263,
+    0.079712
+  ],
+  "new_times_seconds": [
+    0.051421,
+    0.052226,
+    0.053433,
+    0.051282,
+    0.051087,
+    0.051669,
+    0.051502,
+    0.052413,
+    0.051333,
+    0.051332
+  ],
+  "legacy_result": {
+    "total_uv": 6307042,
+    "locked_users": 754,
+    "converted_users": 296,
+    "lock_gsv": 261280.68,
+    "new_locked_users": 377,
+    "new_converted_users": 105,
+    "new_lock_gsv": 40227.58
+  },
+  "new_result": {
+    "total_uv": 6307042,
+    "locked_users": 754,
+    "converted_users": 296,
+    "lock_gsv": 261280.68,
+    "new_locked_users": 377,
+    "new_converted_users": 105,
+    "new_lock_gsv": 40227.58
+  },
+  "results_equal": true,
+  "target_speedup": 2.0,
+  "passed": false
+}

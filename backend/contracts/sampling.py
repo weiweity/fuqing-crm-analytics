@@ -23,6 +23,26 @@ class SamplingChannelSummary(BaseModel):
     nonfull_repurchase_aus: float = 0.0
 
 
+class SamplingLevelSummary(BaseModel):
+    """派样 level 二级聚合（channel × level_value）."""
+
+    channel: str = Field(..., description="渠道")
+    level: str = Field(..., description="聚合维度字段")
+    level_value: str = Field(..., description="level 聚合维度值")
+    sample_users: int = Field(..., description="派样人数")
+    repurchase_users: int = Field(default=0, description="回购人数")
+    repurchase_rate: "RatioField" = Field(default=0.0, description="回购率")
+    repurchase_gsv: float = Field(default=0.0, description="回购 GSV")
+    repurchase_aus: float = Field(default=0.0, description="客单价")
+    full_repurchase_users: int = 0
+    full_repurchase_gsv: float = 0.0
+    full_repurchase_aus: float = 0.0
+    full_repurchase_rate: "RatioField" = 0.0
+    nonfull_repurchase_users: int = 0
+    nonfull_repurchase_gsv: float = 0.0
+    nonfull_repurchase_aus: float = 0.0
+
+
 class SamplingCategoryRow(BaseModel):
     """派样品类明细"""
     channel: str
@@ -92,6 +112,10 @@ class SamplingROIResponse(BaseModel):
     time_range: SamplingROITimeRange
     period_distribution: PeriodDistribution = Field(default_factory=PeriodDistribution)
     quality_flags: List[QualityFlag] = Field(default_factory=list)
+    summary_by_level: Dict[str, List[SamplingLevelSummary]] = Field(
+        default_factory=dict,
+        description="level 二级聚合 {level_value: [SamplingLevelSummary]}",
+    )
 
 
 class SamplingLockCampaignInfo(BaseModel):
