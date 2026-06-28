@@ -1,3 +1,14 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 157 03 各板块情况微调 - TTL 取消折叠 + 数字不换行, VERSION 不变)
+
+### Fixed
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 157 ①): 03 板块 TTL 派样默认取消折叠 (`isTtlExpanded = ref(false)`)。之前 Sprint 155 默认展开 3 卡视觉权重过重 (TTL 全宽 + 30天正装/非正装 detail 占屏多), 现在 TTL 折叠 (只显示 5 列 metrics), click header 展开 detail。
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 157 ②): 5 列 metrics 数字不换行。根因: n-grid `:cols="5"` 在 510px card 宽度里挤, "1,633" + "-19.2%" wrap 成多行 ('1,6'/'33' + '%' 换行)。治法: n-gi 加 `min-w-0` 让 column 缩, container 加 `whitespace-nowrap` 强制数字 + YOY/MOM 一行, 主数字 `text-2xl` → `text-xl` (24px → 20px) 节省宽度, YOY/MOM `text-xs` → `text-[10px]` (12px → 10px), 主数字 + YOY/MOM 都加 `flex-shrink-0` 防止 flex 缩。
+
+### Verification
+- `npm run build` PASS (~765ms)
+- main HEAD `d75686b` + origin/main 0 drift (push `00c49dd..d75686b` 成功)
+- L4.8 cleanup feature/sprint157-sampling-microfix 分支
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 156 派样正装转化分析 tab 宽度跟品类看板拉齐 (1600px), VERSION 不变)
 
 ### Fixed
