@@ -1,3 +1,18 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 141.5 Phase 1, VERSION 不变 - ETL sample_received_at 字段新增)
+
+### Added
+- **scripts/etl/load.py**: `orders` schema 加 `sample_received_at TIMESTAMP` (允许 NULL); temp-table swap 的 `orders_new` 同步; 既有生产表通过 idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 兼容升级。
+- **scripts/etl/ingest.py**: 增量读取路径对 `sample_received_at` 做 `pd.to_datetime(errors='coerce')` 透传守卫, 老 CSV/Excel 无列时继续写 NULL。
+- **backend/services/sampling_service.py**: `sample_users_sql` 新增 `COALESCE(s.sample_received_at, o.pay_time) as first_sample_received_at`, Phase 1 全 NULL 时回退 pay_time；周期分布用该字段计算 `days_between`。
+- **scripts/etl/load.py**: 新增 `idx_orders_sample_received` 索引, 为 Phase 2 收货时间回填后的查询做准备。
+- **backend/tests/test_etl_sample_received_at.py**: 新增 2 case, 覆盖 schema 列存在和 service 回退 smoke test。
+
+### Verification
+- Codex Stage 2 待跑: pytest 2 case + 全量 backend pytest + Sprint 139/140/141 ground-truth-lint + production DuckDB schema/data 验证 + pre-commit 全绿。
+- VERSION: 0.4.14.157 不 bump；Phase 1 不做 ETL 真跑批回填, 业务数据仍预期全 NULL。
+
+---
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 141, VERSION 不变 留尾治理 sprint - period_distribution 61-90d 静默丢失治本 + 平台 bug 修)
 
 ### Fixed

@@ -81,13 +81,16 @@ def get_sampling_roi(
         # sample_users_sql: N(channels) + 2(start_date, end_date)
         ch_placeholders = ','.join(['?'] * len(db_channels))
         sample_users_sql = f"""
-            SELECT user_id, channel,
+            SELECT o.user_id, o.channel,
                    MIN(o.pay_time) as first_sample_time,
+                   MIN(COALESCE(s.sample_received_at, o.pay_time)) as first_sample_received_at,
                    (ARRAY_AGG(COALESCE(o.spu_category, '未知') ORDER BY o.pay_time ASC))[1] as sample_category
             FROM orders o
+            LEFT JOIN orders s ON s.order_id = o.sub_order_id
+                AND s.channel = '{GIFT_SAMPLE_DB}'
             WHERE o.channel IN ({ch_placeholders})
               AND o.pay_time >= ?::TIMESTAMP AND o.pay_time <= ?::TIMESTAMP + INTERVAL '1' DAY
-            GROUP BY user_id, channel
+            GROUP BY o.user_id, o.channel
         """
         sample_params = db_channels + [start_date, end_date]
 
@@ -235,11 +238,11 @@ def get_sampling_roi(
                        o.pay_time as repurchase_time,
                        o.actual_amount,
                        COALESCE(o.spu_type, '未知') as spu_type,
-                       DATEDIFF('day', su.first_sample_time, o.pay_time) as days_between
+                       DATEDIFF('day', su.first_sample_received_at, o.pay_time) as days_between
                 FROM sample_users su
                 JOIN orders o ON su.user_id = o.user_id
-                WHERE o.pay_time > su.first_sample_time
-                  AND DATEDIFF('day', su.first_sample_time, o.pay_time) <= ?
+                WHERE o.pay_time > su.first_sample_received_at
+                  AND DATEDIFF('day', su.first_sample_received_at, o.pay_time) <= ?
                   AND o.is_refund = FALSE
                   AND o.order_status != '交易关闭'
                   AND o.channel != '购物金'
