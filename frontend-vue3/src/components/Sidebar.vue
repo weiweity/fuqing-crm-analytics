@@ -9,7 +9,7 @@ const menuOptions = [
   { label: '老客分析', key: '/customer-health' },
   { label: '品类看板', key: '/category' },
   { label: '市场对焦', key: '/market-focus' },
-  { label: '派样看板', key: '/sampling' },
+  { label: '派样正装转化', key: '/sampling' },
   { label: '地域分析', key: '/geo' },
 ]
 

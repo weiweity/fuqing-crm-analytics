@@ -1,3 +1,27 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 143, VERSION 不变 真业务 + 新建 - LTV / Cohort 留存矩阵 / ROI 改名)
+
+### Added
+- **backend/semantic/lifetime_value.py** + **backend/services/lifetime_value_service.py**: 新增 90/180/365 天 LTV 计算、批量查询和 W4 24h cache。
+- **backend/contracts/lifetime_value.py** + **backend/routers/lifetime_value.py**: 新增 `/api/v1/lifetime-value/cohort`，返回 cohort LTV 平均值、中位数和 YoY。
+- **backend/semantic/cohort_retention.py** + **backend/services/cohort_retention_service.py**: 新增按月 cohort 的 0-12 月留存矩阵计算和 W4 24h cache。
+- **backend/contracts/cohort_retention.py** + **backend/routers/cohort_retention.py**: 新增 `/api/v1/cohort-retention/matrix`；OpenAPI 使用 `SamplingCohortRetentionResponse` 避免和老客健康 `CohortRetentionResponse` 冲突。
+- **frontend-vue3/src/components/cohort/CohortRetentionMatrix.vue**: 新增 cohort 留存矩阵热力表；`SamplingView.vue` 新增 Cohort 留存矩阵 tab。
+- **backend/tests/test_lifetime_value_sprint143.py**、**test_cohort_retention_sprint143.py**、**test_roi_rename_sprint143.py**: 新增 10 case 覆盖 LTV、cohort、W4 cache 和 ROI 改名。
+
+### Changed
+- **frontend-vue3/src/views/SamplingView.vue**: ROI 前端文案改为“派样正装转化分析”，保留 `/v1/sampling/roi` API 和 `fetchSamplingROI`。
+- **frontend-vue3/src/components/Sidebar.vue**: `派样看板` 改为 `派样正装转化`。
+- **frontend-vue3/src/router/index.ts**: `/sampling` route name 改为 `SamplingConversion`。
+- **frontend-vue3/src/api/sampling.ts** + `types.generated.ts` / `types.ts`: 同步新增 LTV 和 cohort retention API 类型。
+- **frontend-vue3/e2e/sampling.spec.ts**: 新增“正装转化分析”文案断言，并 mock auth/sampling/cohort API 保持 smoke test 环境无关。
+
+### Verification
+- Codex Stage 2: Sprint 143 新增 10 case PASS；Sprint 139/140/141/141.5 ground-truth-lint PASS ×4；`npm run build` PASS；`npx playwright test e2e/sampling.spec.ts` PASS；`.githooks/pre-commit` PASS。
+- 全量 `pytest backend/tests/ -q` 已跑到 834 passed / 9 skipped / 1 failed；失败为既有 `backend/tests/test_rfm_flow_ttl_ratio.py::TestSprint602OldCustomerGsvTtl::test_rfm_analysis_old_customer_ttl_100_percent` 在 `isolated_duckdb` 已 attach production DB 后又新开同一 DuckDB 文件导致 `Unique file handle conflict`，未改动 RFM 范围。
+- VERSION: 0.4.14.157 不 bump；不改 backend `/v1/sampling/roi`；不动 Sprint 142 level 联动 UI 区域。
+
+---
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 141.5 Phase 1, VERSION 不变 - ETL sample_received_at 字段新增)
 
 ### Added

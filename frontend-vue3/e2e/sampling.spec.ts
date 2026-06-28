@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/auth.fixture'
+import { test, expect } from '@playwright/test'
 
 /**
  * Sprint 33.2 候选 3: /sampling 路由 smoke 验证 — Sprint 32.3 a9b1d91 教训核心
@@ -8,9 +8,42 @@ import { test, expect } from './fixtures/auth.fixture'
 test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
   test.setTimeout(45000)
 
-  test('访问 /sampling, PageHeader + ROI 文案渲染, 无控制台/API error (回归 a9b1d91)', async ({ authenticatedPage: page, consoleErrors }) => {
+  test('访问 /sampling, PageHeader + 正装转化文案渲染, 无控制台/API error (回归 a9b1d91)', async ({ page }) => {
+    const consoleErrors: string[] = []
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
     let roiRequestCount = 0
+
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        const text = msg.text()
+        if (
+          text.includes('wasm streaming compile failed') ||
+          text.includes('falling back to ArrayBuffer instantiation')
+        ) {
+          return
+        }
+        consoleErrors.push(text)
+      }
+    })
+
+    page.on('response', (response) => {
+      if (response.url().includes('/api/') && response.status() >= 500) {
+        consoleErrors.push(`API ${response.status()}: ${response.url()}`)
+      }
+    })
+
+    await page.addInitScript(() => {
+      sessionStorage.setItem('fq_crm_auth_token', 'e2e-token')
+      sessionStorage.setItem('fq_crm_auth_user', 'admin')
+    })
+
+    await page.route('/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ username: 'admin' }),
+      })
+    })
 
     // Sprint 60.3+ C+: CI 用 schema-only DB，sampling API 在空数据下会超时/500；mock 成合法空响应
     await page.route('/api/v1/sampling/**', async (route) => {
@@ -94,13 +127,30 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body })
     })
 
+    await page.route('/api/v1/cohort-retention/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          rows: [
+            { cohort_month: '2025-01', cohort_size: 100, retention: { 0: 1, 1: 0.42 } },
+          ],
+          start_month: '2025-01',
+          end_month: '2026-06',
+          channel: '全店',
+        }),
+      })
+    })
+
     await page.goto('/sampling')
 
     // 关键断言 1: PageHeader 标题可见 (a9b1d91 误清空后这块会空白)
     await expect(page.getByText('派样看板').first()).toBeVisible({ timeout: 30000 })
 
     // 关键断言 2: PageHeader subtitle 可见
-    await expect(page.getByText('U先/百补派样ROI').first()).toBeVisible()
+    await expect(page.getByText('U先/百补派样正装转化分析').first()).toBeVisible()
+    await expect(page.getByText('正装转化分析').first()).toBeVisible()
+    await expect(page.getByText('派样正装转化分析', { exact: true })).toBeVisible()
 
     // Sprint 139/140: 4 KPI 卡 + 自由窗口 + 正装拆分真值断言
     await expect(page.getByText('派样人数').first()).toBeVisible({ timeout: 5000 })

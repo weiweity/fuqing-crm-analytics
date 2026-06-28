@@ -1170,6 +1170,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lifetime-value/cohort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Lifetime Value Cohort
+         * @description Sprint 143: cohort LTV 90/180/365 天汇总.
+         */
+        get: operations["get_lifetime_value_cohort_api_v1_lifetime_value_cohort_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cohort-retention/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cohort Retention
+         * @description Sprint 143: cohort retention matrix.
+         */
+        get: operations["get_cohort_retention_api_v1_cohort_retention_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/market-focus/store-assets": {
         parameters: {
             query?: never;
@@ -3110,6 +3150,76 @@ export interface components {
              */
             yoy_repurchase_rate: number;
         };
+        /**
+         * LifetimeValueSummary
+         * @description 用户生命周期价值 (LTV) 90/180/365 天汇总.
+         */
+        LifetimeValueSummary: {
+            /**
+             * Cohort Date
+             * @description 派样 cohort 日期 YYYY-MM-DD
+             */
+            cohort_date: string;
+            /**
+             * User Count
+             * @description cohort 用户数
+             */
+            user_count: number;
+            /**
+             * Ltv 90D Avg
+             * @description 90 天累计 GSV 平均值
+             * @default 0
+             */
+            ltv_90d_avg: number;
+            /**
+             * Ltv 180D Avg
+             * @description 180 天累计 GSV 平均值
+             * @default 0
+             */
+            ltv_180d_avg: number;
+            /**
+             * Ltv 365D Avg
+             * @description 365 天累计 GSV 平均值
+             * @default 0
+             */
+            ltv_365d_avg: number;
+            /**
+             * Ltv 90D Median
+             * @description 90 天累计 GSV 中位数
+             * @default 0
+             */
+            ltv_90d_median: number;
+            /**
+             * Ltv 180D Median
+             * @description 180 天累计 GSV 中位数
+             * @default 0
+             */
+            ltv_180d_median: number;
+            /**
+             * Ltv 365D Median
+             * @description 365 天累计 GSV 中位数
+             * @default 0
+             */
+            ltv_365d_median: number;
+            /**
+             * Ltv 90D Yoy Pct
+             * @description 90 天 LTV YoY percentage
+             * @default 0
+             */
+            ltv_90d_yoy_pct: number;
+            /**
+             * Ltv 180D Yoy Pct
+             * @description 180 天 LTV YoY percentage
+             * @default 0
+             */
+            ltv_180d_yoy_pct: number;
+            /**
+             * Ltv 365D Yoy Pct
+             * @description 365 天 LTV YoY percentage
+             * @default 0
+             */
+            ltv_365d_yoy_pct: number;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Username */
@@ -4948,6 +5058,52 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
+        };
+        /**
+         * SamplingCohortRetentionResponse
+         * @description cohort retention matrix response.
+         */
+        SamplingCohortRetentionResponse: {
+            /** Rows */
+            rows?: components["schemas"]["SamplingCohortRetentionRow"][];
+            /**
+             * Start Month
+             * @description 起始 cohort 月份 YYYY-MM
+             */
+            start_month: string;
+            /**
+             * End Month
+             * @description 结束 cohort 月份 YYYY-MM
+             */
+            end_month: string;
+            /**
+             * Channel
+             * @description 渠道
+             */
+            channel: string;
+        };
+        /**
+         * SamplingCohortRetentionRow
+         * @description cohort retention 矩阵单行.
+         */
+        SamplingCohortRetentionRow: {
+            /**
+             * Cohort Month
+             * @description cohort 月份 YYYY-MM
+             */
+            cohort_month: string;
+            /**
+             * Cohort Size
+             * @description cohort 用户数
+             */
+            cohort_size: number;
+            /**
+             * Retention
+             * @description {月偏移: 留存率 0-1 decimal}，0 = cohort 月，12 = cohort + 12 月
+             */
+            retention?: {
+                [key: string]: number;
+            };
         };
         /**
          * SamplingLockAnalysisResponse
@@ -7784,6 +7940,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RollingComparisonResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lifetime_value_cohort_api_v1_lifetime_value_cohort_get: {
+        parameters: {
+            query: {
+                /** @description 派样 cohort 日期 YYYY-MM-DD */
+                cohort_date: string;
+                /** @description 渠道，默认全店 */
+                channel?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifetimeValueSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cohort_retention_api_v1_cohort_retention_matrix_get: {
+        parameters: {
+            query: {
+                /** @description cohort 起始月份 YYYY-MM */
+                start_month: string;
+                /** @description cohort 结束月份 YYYY-MM */
+                end_month: string;
+                /** @description 渠道，默认全店 */
+                channel?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplingCohortRetentionResponse"];
                 };
             };
             /** @description Validation Error */

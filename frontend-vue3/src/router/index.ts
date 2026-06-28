@@ -41,6 +41,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/sampling',
+    name: 'SamplingConversion',
     component: () => import('@/views/SamplingView.vue'),
     meta: { title: '派样看板', requiresAuth: true },
   },

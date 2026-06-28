@@ -7,12 +7,16 @@ import PageHeader from '@/components/PageHeader.vue'
 import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
+import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
 import type { SamplingCategoryRow } from '@/api/sampling'
 
 const activeTab = ref('roi')
+const cohortStartMonth = ref('2025-01')
+const cohortEndMonth = ref('2026-06')
+const cohortChannel = ref('全店')
 
-// ── Tab 1: 派样ROI ──
+// ── Tab 1: 派样正装转化 ──
 const roiDateRange = ref<[number, number] | null>(null)
 const windowDays = ref(30)
 const categoryLevel = ref('spu_category')
@@ -384,11 +388,11 @@ onUnmounted(() => {
 
 <template>
   <div class="sampling-view">
-    <PageHeader title="派样看板" subtitle="U先/百补派样ROI / 0.01锁权转化分析" />
+    <PageHeader title="派样看板" subtitle="U先/百补派样正装转化分析 / 0.01锁权转化分析" />
 
     <n-tabs v-model:value="activeTab" type="line" animated>
-      <!-- Tab 1: 派样ROI分析 -->
-      <n-tab-pane name="roi" tab="派样ROI分析">
+      <!-- Tab 1: 派样正装转化分析 -->
+      <n-tab-pane name="roi" tab="派样正装转化分析">
         <div class="flex items-center gap-3 mb-4 flex-wrap">
           <n-date-picker
             v-model:value="roiDateRange"
@@ -752,7 +756,16 @@ onUnmounted(() => {
         </template>
       </n-tab-pane>
 
-      <!-- Tab 3: 0.01派样滚动同期对比 -->
+      <!-- Tab 3: Cohort 留存矩阵 -->
+      <n-tab-pane name="cohort" tab="Cohort 留存矩阵">
+        <CohortRetentionMatrix
+          :start-month="cohortStartMonth"
+          :end-month="cohortEndMonth"
+          :channel="cohortChannel"
+        />
+      </n-tab-pane>
+
+      <!-- Tab 4: 0.01派样滚动同期对比 -->
       <n-tab-pane name="rolling" tab="滚动同期对比">
         <!-- 参数配置区 -->
         <n-card :bordered="false" segmented class="mb-4">

@@ -16,6 +16,8 @@ __all__ = [
     "audience_router",
     "rfm_router",
     "sampling_router",
+    "lifetime_value_router",
+    "cohort_retention_router",
     "market_focus_router",
     "visitor_router",
     "export_router",
@@ -32,6 +34,8 @@ from backend.routers.category import router as category_router
 from backend.routers.audience import router as audience_router
 from backend.routers.rfm import router as rfm_router
 from backend.routers.sampling import router as sampling_router
+from backend.routers.lifetime_value import router as lifetime_value_router
+from backend.routers.cohort_retention import router as cohort_retention_router
 from backend.routers.market_focus import router as market_focus_router
 from backend.routers.visitor import router as visitor_router
 from backend.routers.export import router as export_router
