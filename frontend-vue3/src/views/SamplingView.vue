@@ -471,6 +471,7 @@ onUnmounted(() => {
             <span class="text-sm">{{ levelLoadingText }}</span>
           </n-alert>
 
+          <section :aria-labelledby="'sampling-section-overview'">
           <h2 id="sampling-section-overview" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">01</span>总览</h2>
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
             <n-gi>
@@ -514,6 +515,7 @@ onUnmounted(() => {
               </n-card>
             </n-gi>
           </n-grid>
+          </section>
 
           <n-alert
             v-if="roiData.quality_flags?.length"
@@ -527,7 +529,11 @@ onUnmounted(() => {
             </div>
           </n-alert>
 
-          <div v-if="summaryByLevelEntries.length" class="mb-6">
+          <section
+            v-if="summaryByLevelEntries.length"
+            :aria-labelledby="'sampling-section-summary'"
+            class="mb-6"
+          >
             <div class="flex items-center justify-between mb-3">
               <h2 id="sampling-section-summary" class="text-base font-semibold text-slate-800"><span class="text-slate-400 font-normal mr-2">02</span>{{ levelLabel }}汇总</h2>
               <span class="text-xs text-slate-400">{{ windowDays }}天窗口</span>
@@ -567,9 +573,10 @@ onUnmounted(() => {
                 </n-card>
               </n-gi>
             </n-grid>
-          </div>
+          </section>
 
           <!-- 渠道对比卡片 -->
+          <section :aria-labelledby="'sampling-section-channels'" class="mb-6">
           <h2 id="sampling-section-channels" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">03</span>各板块情况</h2>
           <n-grid :cols="3" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen" item-responsive>
             <n-gi v-for="ch in roiData.summary.channels" :key="ch.channel" span="1 m:1 l:1">
@@ -698,8 +705,10 @@ onUnmounted(() => {
               </n-card>
             </n-gi>
           </n-grid>
+          </section>
 
           <!-- 品类明细表格 -->
+          <section :aria-labelledby="'sampling-section-detail'" class="mb-6">
           <h2 id="sampling-section-detail" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">04</span>派样明细</h2>
           <n-card :bordered="false" segmented>
             <template #header>
@@ -715,8 +724,13 @@ onUnmounted(() => {
               striped
             />
           </n-card>
+          </section>
 
-          <div v-if="repurchaseDistribution" class="mt-6">
+          <section
+            v-if="repurchaseDistribution"
+            :aria-labelledby="'sampling-section-buckets'"
+            class="mt-6"
+          >
             <h2 id="sampling-section-buckets" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">05</span>回购周期分布</h2>
             <n-card :bordered="false" segmented>
               <!-- Sprint 147 P2.1: 视觉柱状图 (decorative), 屏幕阅读器读下面的 sr-only table -->
@@ -760,7 +774,7 @@ onUnmounted(() => {
                 </tbody>
               </table>
             </n-card>
-          </div>
+          </section>
         </template>
       </n-tab-pane>
 
