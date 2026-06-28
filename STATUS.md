@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-28 (Sprint 139 真业务 sprint — 派样人群正装转化漏斗 (get_sampling_roi 加 spu_type='正装' 拆分 + 回购周期分布 5 桶 + DQM warnings) + Sprint 140 真 refactor sprint — 派样 ROI 自由窗口 1-90 天 <n-slider> + level 联动视觉强化 (levelLoadingText + placeholderData) + contract 瘦身 (SamplingChannelSummary 12 字段 → 4 字段统一窗口) + 2 个 ground-truth-lint 钩子 (check_sampling_spu_type + check_window_unification) + Sprint 141 留尾 #D1-#D4 (period_distribution 61-90d 静默丢失 high + QualityFlag docstring + slider debounce + alert minimum display time 3 medium), pytest 738/23/0 baseline 持续, main HEAD `78f9347`, 累计 63→65 sprint 0 debt, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增, 跟 Sprint 137+138 留尾治理 + Sprint 136+137+138+139+140 真业务 sprint 模式 stable, 跨 sprint 留尾 0 项, 跟 Sprint 65+135+138 /document-release 模式 stable)
+**最后更新**: 2026-06-28 (Sprint 141.5 Phase 1 ETL sample_received_at 字段 schema 准备 6 files / +925/-7 + Sprint 142 RFM 扩展 + level 联动 summary 卡二级聚合 + _compute_lock_metrics 性能重构 (micro-benchmark 1.513x, Q5 阈值降级 ≥1.5x, 实质收益 26ms/call -33%) + Sprint 143 LTV + cohort retention matrix + 改名 ROI→正装转化分析 (Q10 推荐 A 仅前端文案 0 breaking change) + Sprint 142+143 并行开发 0 冲突区约定严格执行 + race flake L5.1 接受 (跨 sprint Sprint 36-5 + 38 + 105 + 141.5 实战 fix 模式 stable) + vite preview proxy 修复 (Sprint 142+143 实施后 vite preview 不读 server.proxy 导致 5173/api 404, 加 preview.proxy 修复), pytest 762 passed / 23 skipped / 0 failed (Sprint 141.5 +2 + Sprint 142 +12 + Sprint 143 +10 case), main HEAD `52f41cf`, 累计 65→67 sprint 0 debt, VERSION 0.4.14.157 不变 (累计 34 sprint 不 bump, 跟 Sprint 134 user 拍板"全部代码都收尾 + 不再提醒优化"模式 stable), L4.x 22 stable 0 新增, Q2 + Sprint 144+ + 145+ 暂收口 (user 2026-06-28 拍板), 跟 Sprint 141 + 141.5 Phase 1 + 142 + 143 /document-release 模式 stable)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `78f9347` (Sprint 140 merge, 跟 origin/main 0 drift) |
+| git HEAD (main) | `52f41cf` (Sprint 143 收口 + vite preview proxy 修复, 跟 origin/main 0 drift) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 140 (派样 ROI 自由窗口 1-90 天 + level 联动视觉强化 + contract 瘦身 + 2 ground-truth-lint 钩子, 跟 Sprint 137+138+139 真业务 sprint + 留尾治理模式 stable, 跨 sprint 留尾 #D1-#D4 Sprint 141 必修) |
+| 最近 sprint | Sprint 143 (LTV + cohort retention matrix + 改名 ROI→正装转化分析, 跟 Sprint 141.5 + 142 并行开发 0 冲突区, Q10 推荐 A 仅前端文案) |
 | 收口日 | 2026-06-28 |
-| 上次合入 | Sprint 140 (commit `78f9347` merge, push origin main f19c134..78f9347, 4 feature branch + 1 远程 cleanup 跟 L4.8 永久规则 stable) |
+| 上次合入 | Sprint 143 + vite preview fix (commit `5bd1754` + `52f41cf`, push origin main 3910b3d..52f41cf 跨 6 commits, 0 网络失败) |
 
 ---
 
@@ -23,8 +23,8 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **738** | Sprint 140 收口验 (738 passed / 23 skipped / 0 failed, 跟 Sprint 139 baseline 735 +3 case: Sprint 140 parametrize 5 window_days 算 1 case + window_30 invariant + level linkage) |
-| pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
+| pytest passed | **762** | Sprint 141.5 + 142 + 143 收口验 (762 passed / 23 skipped / 0 failed, 跟 Sprint 140 baseline 738 +24 case: Sprint 141.5 Phase 1 +2 case (sample_received_at schema + service 回退) + Sprint 142 +12 case (RFM 3 维度 + 5 level parametrize + lock metrics 3) + Sprint 143 +10 case (LTV 3 + cohort 4 + ROI rename 2 + W4 cache 1)) |
+| pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict, Codex 主动修 monkeypatch fixture 治 race flake, 跟 Sprint 141.5 race flake L5.1 接受模式 stable) |
 
 ---
 
@@ -135,3 +135,26 @@ uvicorn backend.app:app --reload
 - **L4.x 永久规则 22 stable 0 新增** (跟 Sprint 93+97+98+99+100+101+102+103+104 实战 fix 模式一致)
 - **5 项 follow-up Sprint 106+**: SIGTERM fallback 死循环 + cross-user launchctl + DuckDB PID 白名单 + HEALTH_API_KEY 不一致 + 6 MEDIUM 留尾
 - **跨 sprint 留尾治理 sprint 模式 stable 累计 22 sprint**
+
+## Sprint 141.5 Phase 1 + 142 + 143 + vite preview fix 收口 (2026-06-28)
+
+- **VERSION**: 0.4.14.157 (不变, 累计 34 sprint 不 bump, 跟 Sprint 134 user 拍板 "全部代码都收尾 + 不再提醒优化" 模式 stable)
+- **真业务触发**: user 拍板"开始收尾 5 sprint 留尾", Sprint 141 收口后开启 4 sprint 并行开发链
+- **范围**: 4 sprint 累计 49 files / +5807/-110 (Sprint 141.5 +6/+925 + Sprint 142 +21/+2190 + Sprint 143 +22/+1556 + vite preview fix +1/+12)
+- **3 sprint 收口** (user 拍板合并):
+  - **Sprint 141.5 Phase 1 (1 周纯 ETL)**: ETL `sample_received_at` 字段 schema 准备 (COALESCE 回退 pay_time, Phase 1 全 NULL, 等业务侧补数据源). Q1 已验: source data = CSV 不是 xlsx, 30 字段 COLUMN_MAPPING 无 receive_time, GIFT_SAMPLE_DB = "赠品&0.01渠道" (channels.py:133). commit `82eb4cc` + merge `505ae63`.
+  - **Sprint 142 (真 refactor + 1 真业务)**: RFM 扩展 (lifecycle_stage + value_tier + potential_tier 3 新维度, 不替换 8 quadrant) + level 联动 summary 卡二级聚合 (`SamplingLevelSummary` + `summary_by_level`) + `_compute_lock_metrics` 单 SQL 合并 4 次查询 (micro-benchmark 1.513x, Q5 阈值降级 ≥1.5x 接受, 实质收益 26ms/call -33%). 2 个 Codex 主动越界修复保留 (`test_rfm_flow_ttl_ratio.py` race flake + `.githooks/check_imports.py` Python < 3.10 compat). commit `8a4f357` + merge `a8711ee`.
+  - **Sprint 143 (1 真业务 + 2 全新建)**: LTV 90/180/365d (新 service + W4 cache) + cohort retention matrix (新 service + CohortRetentionMatrix.vue 热力图) + 改名 ROI → 正装转化分析 (Q10 推荐 A 仅前端文案, API 字段 `sampling_roi` 保留 0 breaking change). commit `6244aab` + merge `5bd1754`.
+  - **vite preview proxy 修复 (Sprint 142+143 收口后)**: `frontend-vue3/vite.config.ts` 加 `preview.proxy` (vite preview 不读 `server.proxy`, frontend `/api/*` 直接被 vite preview 当 static file 404). commit `52f41cf`.
+- **4 个 open question 决策**:
+  - Q1 已验: source data = CSV 无 receive_time (Sprint 141.5 Phase 1 拆 Phase 1/Phase 2)
+  - Q2 暂收口: 业务侧补 ETL 数据源方式 (user 拍板"不需要", 跟 Sprint 144+/145+ 一同暂收口)
+  - Q5 降级: micro-benchmark ≥2x → ≥1.5x (user 拍板"接受 1.513x")
+  - Q10 拍板: 改名 ROI 范围 (user 拍板"仅前端文案, API 保留")
+- **并行开发约定严格执行** (0 冲突区): Sprint 142 改 SamplingView.vue L400-460 + Sprint 143 改 L387 subtitle + 新增 Tab 3 <CohortRetentionMatrix>; Sprint 142 先合 → Sprint 143 后合 (跟 handoff Section 6 约定一致)
+- **race flake L5.1 接受** (跨 sprint Sprint 36-5 + 38 + 105 + 141.5 + 142 实战 fix 模式 stable): test_rfm_flow_ttl_ratio Unique file handle conflict (uvicorn PID 占 DuckDB file lock), Sprint 142 Codex 主动修 monkeypatch fixture, 治本 ROI 低 (DuckDB file lock exclusive), Sprint 134 模式 advisory 接受
+- **L4.x 永久规则 22 stable 0 新增** (跟 Sprint 65+135+138 模式 stable, 留尾治理 + 真 refactor + 真业务 sprint 0 永久规则追加)
+- **网络 push 沙箱限制**: Sprint 141.5 Phase 1 第一次 push 2 次超时 (Empty reply from server / Recv failure), 但 Sprint 142+143 push 全部 1 次成功 (沙箱网络间歇性)
+- **pytest 762/23/0** (worktree 793/41/0 race flake 接受; baseline 740 → 762 +24 case: Sprint 141.5 +2 + Sprint 142 +12 + Sprint 143 +10)
+- **累计 67 sprint 0 debt** (Sprint 60-66 + 67+68+69 + 89-105+110+111+112+113+114+116+117+118 + 134-138 + 141 + 141.5 Phase 1 + 142 + 143, 跨 sprint 留尾治理 sprint 模式 stable)
+- **Sprint 144+/145+ 暂收口** (跟 Sprint 89/134 模式 stable, user 2026-06-28 拍板"不需要做, 没意义", 等真业务触发再开)

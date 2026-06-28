@@ -39,7 +39,7 @@ backend/services/
 3. 全仓 `grep -rn old_name --include="*.py" --include="*.md"` 验证 0 残留
 4. 1 commit per logical change, commit message 用 `refactor: rename old_name → new_name (原因)`
 
-## 4. 14 个现有 service
+## 4. 16 个现有 service
 
 | Service | 入口 | 业务领域 |
 |---------|------|----------|
@@ -48,15 +48,19 @@ backend/services/
 | `category_service` | `category_service/__init__.py` | 品类分析 (churn/distribution/basket/...) |
 | `health` | `health/__init__.py` | 健康度指标 |
 | `metrics` | `metrics/__init__.py` | 核心 metrics 计算 |
-| `rfm` | `rfm/__init__.py` | RFM 分层 |
+| `rfm` | `rfm/__init__.py` | RFM 分层 (含 Sprint 142 `rfm/extended.py` 子模块: lifecycle_stage + value_tier + potential_tier 3 新维度, 跟 8 quadrant 共存不替换) |
+| `cohort_retention_service.py` | (单文件, Sprint 143 NEW) | Cohort 留存矩阵 (按月 cohort + 0-12 月留存, GET `/api/v1/cohort-retention/matrix`) |
+| `lifetime_value_service.py` | (单文件, Sprint 143 NEW) | 用户生命周期价值 LTV 90/180/365d 累计 GSV (W4 cache 24h TTL, GET `/api/v1/lifetime-value/cohort`) |
 | `churn_service.py` | (单文件) | 流失率 |
 | `flow_service.py` | (单文件) | 流向分析 |
 | `geo_service.py` | (单文件) | 地域分析 |
-| `sampling_service.py` | (单文件) | 抽样 |
+| `sampling_service.py` | (单文件) | 抽样 (含 Sprint 140 自由窗口 + Sprint 141 周期桶 + Sprint 142 level 联动 summary 卡 + Sprint 142 _compute_lock_metrics 单 SQL 重构) |
 | `asset_service.py` | (单文件, DMP 资产) | DMP 资产 (跟 asset_focus_service 是不同概念) |
 | `export_service.py` | (单文件) | 导出 |
 | `report_service.py` | (单文件) | 报告 |
 | `visitor_service.py` | (单文件) | 访客分析 (数据接入 `/audience` 末尾访客段 `AudienceView.vue:1887-1958`, 无独立路由, Sprint 104 删 `/visitor` 路由别名, 后端 100% 保留) |
+
+> **Sprint 142 + 143 增量加 2 个 service** (lifetime_value + cohort_retention) + 1 个 rfm 子模块 (extended.py), 总数从 14 → 16. 跟既有模式 stable: 业务边界清晰 + W4 cache 复用 `backend/services/rfm/cache.py`.
 
 ## §5 asset_* 服务概念边界 (Sprint 55.5 rename + Sprint 57 沉淀)
 

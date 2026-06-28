@@ -126,4 +126,66 @@
 
 ---
 
-**L4.8 永久规则 (跟 Sprint 50.5 L4.5 + L4.6 永久规则一致)**: 任何业务定义变更 (R / F / M / 8 象限 / ratio 模式 / 强截断 0-1) 必先更新本文档, 跟 Pydantic 契约 + SQL 口径 + 前端 filter 同步, 避免 Sprint 60+ 累计 4 sprint 治本跨 sprint 留尾循环.
+## 8. Sprint 142 RFM 扩展维度 (lifecycle_stage + value_tier + potential_tier)
+
+> **Sprint 142 (2026-06-28) 新增 3 个分群维度**: 跟 8 quadrant 共存 (不替换), 增量加 lifecycle / value / potential 3 维度, 跟 8 quadrant 同步返回供前端按需展示. 业务口径定义必须跟 Pydantic 契约 (B2 RatioField / PercentageField / LifecycleStage / ValueTier / PotentialTier enum) 同步, 跟 L4.8 永久规则一致.
+
+### 8.1 生命周期 (LifecycleStage, 4 桶)
+
+| 桶 | 业务定义 | SQL 阈值 | 备注 |
+|---|---|---|---|
+| **新客** | 首次活跃 < 30 天 | `DATEDIFF('day', first_active, CURRENT_DATE) < 30` | 跟 RFM "新客" 一致 (Sprint 60+), 不要双计 |
+| **活跃客** | 最近活跃 < 30 天 + 历史 > 30 天 | `last_active < 30天 AND first_active >= 30天` | 排除新客 |
+| **沉睡客** | 30-180 天无活跃 | `30 <= last_active <= 180` | 唤醒营销目标 |
+| **流失客** | > 180 天无活跃 | `last_active > 180天` | 流失判定 |
+
+### 8.2 价值层 (ValueTier, 3 桶)
+
+| 桶 | 业务定义 | SQL 阈值 | 备注 |
+|---|---|---|---|
+| **高价值** | GSV ≥ 5000 OR 频次 ≥ 10 | `gsv_sum >= 5000 OR order_count >= 10` | VIP 营销分层 |
+| **中价值** | GSV 1000-5000 | `1000 <= gsv_sum < 5000` | — |
+| **低价值** | GSV < 1000 | `gsv_sum < 1000` | — |
+
+### 8.3 潜力层 (PotentialTier, 3 桶)
+
+| 桶 | 业务定义 | SQL 阈值 | 备注 |
+|---|---|---|---|
+| **高潜力** | 近 30 天活跃 + GSV 斜率 > 0 | `last_active < 30天 AND gsv_growth > 0` | 派样定向目标 |
+| **中潜力** | 近 30 天活跃 + GSV 斜率 = 0 | `last_active < 30天 AND gsv_growth = 0` | 维护 |
+| **低潜力** | 不满足上述 (含沉睡/流失 + GSV 斜率 < 0) | else | — |
+
+### 8.4 跟 8 quadrant 关系
+
+- **8 quadrant 保留**: Sprint 60.2 闭环治本 (老客 GSV TTL 100%), 业务侧不能用 3 维度替代 8 quadrant
+- **3 维度增量加**: `RFMSegmentExtended` 同时返回 `rfm_quadrant` (8 quadrant) + `lifecycle_stage` + `value_tier` + `potential_tier`
+- **前端按需展示**: `AudienceView.vue` / 后续页面可选维度过滤, 不强制
+
+### 8.5 实战 fix 沉淀
+
+- **L4.5 FilterBuilder + ? 参数化**: `get_user_rfm_extended()` 用 `placeholders = ','.join(['?'] * len(user_ids))` + `?` 参数化, 禁止 f-string 内嵌 user_id (SQL 注入风险)
+- **L4.7 SQL ? 数量 == params 数量**: `compute_ltv_for_user` + `compute_cohort_retention` 加 `assert sql.count('?') == len(params)` 防 params 顺序错位 (Sprint 60 实战 fix 模式)
+- **L4.19 channel alias**: 新 SQL 含 `channel IN/NOT IN/=` 必须有 `o.` 表别名 (防 Sprint 60.1 Binder 500 bug 跨 service 复发)
+
+### 8.6 关联契约 (Sprint 142)
+
+- **Contract**: `backend/contracts/rfm_segments.py` (NEW)
+  - `LifecycleStage` enum: 新客 / 活跃客 / 沉睡客 / 流失客
+  - `ValueTier` enum: 高价值 / 中价值 / 低价值
+  - `PotentialTier` enum: 高潜力 / 中潜力 / 低潜力
+  - `RFMSegmentExtended` BaseModel: user_id + rfm_quadrant + 3 维度
+  - `RFMExtendedRequest` + `RFMExtendedResponse`
+- **Semantic**: `backend/semantic/segments.py` 加 `LIFECYCLE_THRESHOLDS` + `VALUE_THRESHOLDS` + `POTENTIAL_THRESHOLDS` + `lifecycle_case_sql()` + `value_tier_case_sql()` + `potential_tier_case_sql()` 3 个 SQL 生成函数
+- **Service**: `backend/services/rfm/extended.py` (NEW, 跟既有 `r_flow.py / f_flow.py / m_flow.py` 同目录模式 stable) `get_user_rfm_extended()` 计算 user_id 列表的 8 quadrant + 3 新维度
+- **Router**: `backend/routers/rfm.py` POST `/api/v1/rfm/extended` endpoint
+- **测试**: `backend/tests/test_rfm_extended_sprint142.py` (NEW, 3 case)
+
+### 8.7 业务测试 + 验证
+
+- **pytest 3 case PASS** (Sprint 142 收口验, baseline 740 → 752 +12 case)
+- **闭包:** Sprint 142 handoff `docs/sprints/HANDOFF-TO-CODEX-Sprint142-RFM-Level-Lock-Perf.md` Section 1 Task 1
+- **Close memory**: `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint142_close.md`
+
+---
+
+**L4.8 永久规则 (跟 Sprint 50.5 L4.5 + L4.6 永久规则一致)**: 任何业务定义变更 (R / F / M / 8 象限 / ratio 模式 / 强截断 0-1 / lifecycle / value / potential 维度) 必先更新本文档, 跟 Pydantic 契约 + SQL 口径 + 前端 filter 同步, 避免 Sprint 60+ 累计 4 sprint 治本跨 sprint 留尾循环. Sprint 142 增量加 3 维度跟 8 quadrant 共存, 治根 = 单点 SSOT (本文档) + 多 sink (Pydantic + SQL + 前端).
