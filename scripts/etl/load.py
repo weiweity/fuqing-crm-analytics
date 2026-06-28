@@ -50,6 +50,7 @@ def init_database():
             order_time TIMESTAMP,
             pay_time TIMESTAMP,
             ship_time TIMESTAMP,
+            sample_received_at TIMESTAMP,
             order_type VARCHAR,
             order_status VARCHAR,
             product_id VARCHAR,
@@ -124,7 +125,7 @@ def write_to_duckdb(df):
     # 数据库表的所有列（按顺序）
     table_columns = [
         'order_id', 'sub_order_id', 'user_id', 'user_nickname',
-        'order_time', 'pay_time', 'ship_time', 'order_type', 'order_status',
+        'order_time', 'pay_time', 'ship_time', 'sample_received_at', 'order_type', 'order_status',
         'product_id', 'merchant_code', 'product_title', 'sku_id', 'sku_code',
         'sku_name', 'quantity', 'amount', 'refund_status', 'refund_amount',
         'actual_amount', 'province', 'city', 'influencer_name', 'influencer_id',
@@ -198,6 +199,9 @@ def ensure_database_schema():
         conn.close()
         return False  # 新建表，全量导入
 
+    # Sprint 141.5 Phase 1: 兼容已存在的生产 orders 表, 只补 schema, 不写业务数据.
+    conn.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS sample_received_at TIMESTAMP")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_sample_received ON orders(channel, sample_received_at)")
     conn.close()
     return True  # 表已存在，增量模式
 
@@ -213,6 +217,7 @@ def _create_orders_table(conn):
             order_time TIMESTAMP,
             pay_time TIMESTAMP,
             ship_time TIMESTAMP,
+            sample_received_at TIMESTAMP,
             order_type VARCHAR,
             order_status VARCHAR,
             product_id VARCHAR,
@@ -263,6 +268,7 @@ def _create_indexes(conn):
     # 人群看板复合索引（渠道×付款时间 + 渠道×会员）
     conn.execute("CREATE INDEX idx_orders_channel_pay_time ON orders(channel, pay_time)")
     conn.execute("CREATE INDEX idx_orders_channel_member ON orders(channel, is_member)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_sample_received ON orders(channel, sample_received_at)")
 
 
 def _create_orders_table_custom(conn, table_name="orders"):
@@ -276,6 +282,7 @@ def _create_orders_table_custom(conn, table_name="orders"):
             order_time TIMESTAMP,
             pay_time TIMESTAMP,
             ship_time TIMESTAMP,
+            sample_received_at TIMESTAMP,
             order_type VARCHAR,
             order_status VARCHAR,
             product_id VARCHAR,
@@ -325,6 +332,7 @@ def _create_indexes_custom(conn, table_name="orders"):
     conn.execute(f"CREATE UNIQUE INDEX idx_{table_name}_order_unique ON {table_name}(order_id, sub_order_id)")
     conn.execute(f"CREATE INDEX idx_{table_name}_channel_pay ON {table_name}(channel, pay_time)")
     conn.execute(f"CREATE INDEX idx_{table_name}_channel_member ON {table_name}(channel, is_member)")
+    conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_sample_received ON {table_name}(channel, sample_received_at)")
 
 
 def _create_metrics_tables(conn):
@@ -436,7 +444,7 @@ def _upsert_to_duckdb_body(df_new, df_refresh, mode, window_days,
 
     table_columns = [
         'order_id', 'sub_order_id', 'user_id', 'user_nickname',
-        'order_time', 'pay_time', 'ship_time', 'order_type', 'order_status',
+        'order_time', 'pay_time', 'ship_time', 'sample_received_at', 'order_type', 'order_status',
         'product_id', 'merchant_code', 'product_title', 'sku_id', 'sku_code',
         'sku_name', 'quantity', 'amount', 'refund_status', 'refund_amount',
         'actual_amount', 'province', 'city', 'influencer_name', 'influencer_id',

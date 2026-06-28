@@ -208,6 +208,8 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                             df['order_time'] = pd.to_datetime(df['order_time'], errors='coerce')
                             df['year'] = df['order_time'].dt.year
                             df['month'] = df['order_time'].dt.month
+                        if 'sample_received_at' in df.columns:
+                            df['sample_received_at'] = pd.to_datetime(df['sample_received_at'], errors='coerce')
                         pq_data.append(df)
                         print(f"    {f.name}: {len(df):,} 行 [parquet]")
                     except Exception as e:
@@ -289,6 +291,8 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
                 df['order_time'] = pd.to_datetime(df['order_time'], errors='coerce')
                 df['year'] = df['order_time'].dt.year
                 df['month'] = df['order_time'].dt.month
+            if 'sample_received_at' in df.columns:
+                df['sample_received_at'] = pd.to_datetime(df['sample_received_at'], errors='coerce')
 
             # 写入 Parquet 缓存（下次 ETL 跳过 xlsx 解析）
             _save_parquet_cache(df, f, data_type)
