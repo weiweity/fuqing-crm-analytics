@@ -1,3 +1,31 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 154+155 派样正装转化分析 tab UI/UX 调整 + user 反馈 4 调整 amend, VERSION 不变)
+
+### Added
+- **backend/contracts/sampling.py** (Sprint 154): `SamplingLevelSummary` 加 18 个 `Optional[PercentageField/PpField]` YOY/MOM 字段（跟 `SamplingChannelSummary` Sprint 144 模式 stable），给 02 板块二级聚合行加 同比/环比。
+- **backend/services/sampling_service.py** (Sprint 154): `_group_by_level` 接收 `compare_by_key` + `compare_prefix` 参数，复用 `_add_compare_metrics` (Sprint 144) 给每行加 9 个对比字段。`get_sampling_roi` 复用 `cat_sql` 跑 compare date range (yoy/mom 切换)，不变老 SQL body。
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 154 ① 全局): `<style scoped>` 加 8pt 网格 (`.sampling-section` 32px 间隔) + 标题层级 (`.section-title` 18px h2 + `.card-title` 14px h3 + `.sub-title` 13px h4) + 行宽 (`.prose-narrow` 75ch) + 卡片 padding (24px)。5 section `mb-4/6` → 统一 `class="sampling-section"`。
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 154 ② 02 板块): 卡片同高 `h-full + min-h 280px + flex flex-col`，每个 (level_value × channel) 加 YOY/MOM 展示 (repurchase_rate/gsv/users 同比/环比 + 颜色编码)。后端契约 + service + 前端 `compareValueByLevel` helper + `types.ts` + `types.generated.ts` 同步。
+
+### Changed
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 155 ② 03 板块 3 卡横排对齐): 改 n-grid `:cols="3"` 等宽等高，TTL card click header 折叠/展开 30天正装/非正装 detail（默认展开），3 卡 (TTL + U先 + 百补) 5 列 metrics 同样大小 + left/right edge 对齐 + 跟 Sprint 154 品字结构（TTL 顶部 + 2 列下面） user 反馈对齐问题治根。
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 155 ① 删 02 板块): 删 02 产品细分汇总板块（user 反馈"没意义"），保留后端 `SamplingLevelSummary` 18 字段 + `summary_by_level` 计算（不污染 schema，后续需要可立即恢复）。
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 155 ③ 04 派样明细改 native table): 弃 n-data-table + `renderSpan` 旁路（在 `fixed: 'left'` 列不生效），改 Vue 原生 `<table>` + `v-for` + manual `rowspan` 合并 channel cell（上下左右居中 via `flex items-center justify-center min-h-[2rem]`）+ 12 列点击 sort (asc/desc toggle + sort key 高亮 ↑↓)。新增 `detailSortKey` / `detailSortOrder` / `sortedCategoryRows` / `channelRowspans` 4 个 reactive。Sprint 154 renderSpan L4.7 不破坏老结构 (旁路) 治根改 native table。
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 155 ④ 回购周期分布上移): 原 05 板块上移到 02 位置（01 总览之后），新顺序: 01 总览 → 02 回购周期分布 → 03 各板块情况 → 04 派样明细。Sprint 154 重构修复"对齐"问题。
+- **backend/services/sampling_service.py** (Sprint 154 附带修): `max_window_days` → `_max_window_days` (PEP 8 F841 死代码 lint 修，跟 Sprint 154 无关但 pre-commit hook 拦截)。
+
+### Removed
+- **frontend-vue3/src/views/SamplingView.vue** (Sprint 155 ①): 02 板块 (产品细分汇总) section + `summaryByLevelEntries` computed + `compareValueByLevel` helper (跟 02 板块配套) + `ttlChannel` / `subChannels` computed (03 板块重构后由 `allChannels` 替代) + `SamplingLevelSummary` type import 4 个 unused ref/computed/type。
+
+### Verification
+- 后端 `_group_by_level` mock 数据验证 YOY 计算正确 (rate 0.3 vs 0.25 = 5pp 差, users 30 vs 25 = 20% 差, 9 个 YOY 字段都计算, 9 个 MOM 字段保持 None)
+- `npm run build` PASS (vue-tsc + vite, ~730ms) — Sprint 155 native table 改写后 build PASS 无 TS 错
+- pre-commit hook 全过: vite build + L1 SQL f-string consistency lint 0 violations + ruff F841 PASS (PEP 8 fix)
+- `python -m backend.contracts._lint` OK All contracts pass ground-truth-lint
+- pytest sampling isolated_duckdb test: 2 passed, 5 skipped (L4.4 race flake 接受)
+- /qa-only DONE_WITH_CONCERNS: uvicorn admin auth 阻塞 (跟 Sprint 144+ 同样 race condition L5.1 接受)
+- L4.22 永久规则执行: `npm run build` rebuild dist + kill vite preview PID 83179 + restart PID 95018 + curl vite status 200
+- L4.8 cleanup: feature/sprint154-sampling-uiux (merge --no-ff 完, main 78a7271) + 0 worktree 残留
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 145-150 留尾治理 + 设计治理 sprint 链, VERSION 不变)
 
 ### Added
