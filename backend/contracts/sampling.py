@@ -62,6 +62,25 @@ class SamplingLevelSummary(BaseModel):
     nonfull_repurchase_users: int = 0
     nonfull_repurchase_gsv: float = 0.0
     nonfull_repurchase_aus: float = 0.0
+    # Sprint 154: 02 板块新增 YOY/MOM 字段 (跟 SamplingChannelSummary Sprint 144 模式 stable)
+    repurchase_users_yoy_pct: Optional[PercentageField] = None
+    repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    repurchase_rate_yoy_pp: Optional[PpField] = None
+    full_repurchase_users_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_rate_yoy_pp: Optional[PpField] = None
+    repurchase_aus_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_aus_yoy_pct: Optional[PercentageField] = None
+    nonfull_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    repurchase_users_mom_pct: Optional[PercentageField] = None
+    repurchase_gsv_mom_pct: Optional[PercentageField] = None
+    repurchase_rate_mom_pp: Optional[PpField] = None
+    full_repurchase_users_mom_pct: Optional[PercentageField] = None
+    full_repurchase_gsv_mom_pct: Optional[PercentageField] = None
+    full_repurchase_rate_mom_pp: Optional[PpField] = None
+    repurchase_aus_mom_pct: Optional[PercentageField] = None
+    full_repurchase_aus_mom_pct: Optional[PercentageField] = None
+    nonfull_repurchase_gsv_mom_pct: Optional[PercentageField] = None
 
 
 class SamplingCategoryRow(BaseModel):

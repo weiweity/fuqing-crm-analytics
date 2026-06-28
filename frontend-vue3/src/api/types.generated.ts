@@ -5324,6 +5324,26 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
+            /** Sprint 154: 02 板块新增 YOY 字段 (跟 SamplingChannelSummary Sprint 144 模式 stable) */
+            repurchase_users_yoy_pct?: number | null;
+            repurchase_gsv_yoy_pct?: number | null;
+            repurchase_rate_yoy_pp?: number | null;
+            full_repurchase_users_yoy_pct?: number | null;
+            full_repurchase_gsv_yoy_pct?: number | null;
+            full_repurchase_rate_yoy_pp?: number | null;
+            repurchase_aus_yoy_pct?: number | null;
+            full_repurchase_aus_yoy_pct?: number | null;
+            nonfull_repurchase_gsv_yoy_pct?: number | null;
+            /** Sprint 154: 02 板块新增 MOM 字段 */
+            repurchase_users_mom_pct?: number | null;
+            repurchase_gsv_mom_pct?: number | null;
+            repurchase_rate_mom_pp?: number | null;
+            full_repurchase_users_mom_pct?: number | null;
+            full_repurchase_gsv_mom_pct?: number | null;
+            full_repurchase_rate_mom_pp?: number | null;
+            repurchase_aus_mom_pct?: number | null;
+            full_repurchase_aus_mom_pct?: number | null;
+            nonfull_repurchase_gsv_mom_pct?: number | null;
         };
         /**
          * SamplingLockAnalysisResponse

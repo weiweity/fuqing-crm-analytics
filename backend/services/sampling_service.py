@@ -255,7 +255,7 @@ def get_sampling_roi(
         raise ValueError(f"Invalid SPU column: {cat_field}")
 
     window_days = max(1, min(int(window_days), 90))
-    max_window_days = window_days
+    _max_window_days = window_days  # noqa: F841 (保留作 docstring 引用, Sprint 154 之前已有)
 
     # 确定查询渠道（规则3：渠道参数展开）
     if channel:
@@ -448,6 +448,39 @@ def get_sampling_roi(
                 'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
             })
 
+        # Sprint 154: 02 板块新增 YOY/MOM - 复用同 cat_sql 但跑 compare date range
+        # compare_date_range 真值 → MOM/custom; else → YOY (auto_yoy 已在 channels_result 分支处理)
+        if compare_date_range:
+            cmp_start, cmp_end = compare_date_range
+            compare_prefix = 'mom'
+        else:
+            cmp_start, cmp_end = _shift_date_range_year(start_date, end_date)
+            compare_prefix = 'yoy'
+        compare_cat_sql = cat_sql
+        compare_cat_params = list(db_channels) + [cmp_start, cmp_end, window_days]
+        compare_cat_rows = conn.execute(compare_cat_sql, compare_cat_params).fetchall()
+        compare_cat_by_key: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        for row in compare_cat_rows:
+            ch_db = row[0]
+            cat = row[1]
+            su_c = int(row[2] or 0)
+            ru_c = int(row[3] or 0)
+            gsv_c = float(row[4] or 0)
+            full_users_c = int(row[6] or 0)
+            full_gsv_c = float(row[7] or 0)
+            nonfull_gsv_c = float(row[9] or 0)
+            compare_cat_by_key[(DB_TO_UI.get(ch_db, ch_db), cat)] = {
+                'repurchase_users': ru_c,
+                'repurchase_rate': round(safe_ratio(ru_c, su_c), 4),
+                'repurchase_gsv': round(gsv_c, 2),
+                'repurchase_aus': round(safe_ratio(gsv_c, ru_c), 2),
+                'full_repurchase_users': full_users_c,
+                'full_repurchase_rate': round(safe_ratio(full_users_c, su_c), 4),
+                'full_repurchase_gsv': round(full_gsv_c, 2),
+                'full_repurchase_aus': round(safe_ratio(full_gsv_c, full_users_c), 2),
+                'nonfull_repurchase_gsv': round(nonfull_gsv_c, 2),
+            }
+
         # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
         total_posize_gsv = sum(c.get('full_repurchase_gsv', 0) for c in channels_result)
         total_gsv = sum(c.get('repurchase_gsv', 0) for c in channels_result)
@@ -474,18 +507,33 @@ def get_sampling_roi(
                 'window_days': window_days,
             },
             'quality_flags': quality_flags,
-            'summary_by_level': _group_by_level(category_result, level),
+            'summary_by_level': _group_by_level(
+                category_result,
+                level,
+                compare_by_key=compare_cat_by_key,
+                compare_prefix=compare_prefix,
+            ),
         }
     finally:
         pass
 
 
-def _group_by_level(cat_rows: List[Dict[str, Any]], level: str) -> Dict[str, List[SamplingLevelSummary]]:
-    """把既有 category_result 按当前 level 值分组，避免新增 SQL 查询."""
+def _group_by_level(
+    cat_rows: List[Dict[str, Any]],
+    level: str,
+    compare_by_key: Optional[Dict[Tuple[str, str], Dict[str, Any]]] = None,
+    compare_prefix: str = 'yoy',
+) -> Dict[str, List[SamplingLevelSummary]]:
+    """把既有 category_result 按当前 level 值分组，避免新增 SQL 查询.
+
+    Sprint 154: 可选传 compare_by_key (按 (channel_ui, level_value) 索引) + compare_prefix
+    ('yoy' | 'mom') 给每行加 9 个对比字段 (repurchase_users/gsv/rate 等).
+    """
     grouped: Dict[str, List[SamplingLevelSummary]] = {}
     for row in cat_rows:
         level_value = row.get('category') or '未知'
-        grouped.setdefault(level_value, []).append(SamplingLevelSummary(
+        # base kwargs (跟 SamplingLevelSummary schema 字段对齐)
+        base_kwargs: Dict[str, Any] = dict(
             channel=row['channel'],
             level=level,
             level_value=level_value,
@@ -501,7 +549,18 @@ def _group_by_level(cat_rows: List[Dict[str, Any]], level: str) -> Dict[str, Lis
             nonfull_repurchase_users=row['nonfull_repurchase_users'],
             nonfull_repurchase_gsv=row['nonfull_repurchase_gsv'],
             nonfull_repurchase_aus=row['nonfull_repurchase_aus'],
-        ))
+        )
+        # Sprint 154: YOY/MOM 合并 (跟 _add_compare_metrics 同模式, 但走副本避免污染 cat_rows)
+        if compare_by_key is not None:
+            cmp_dict = compare_by_key.get((row['channel'], level_value))
+            if cmp_dict is not None:
+                tmp = dict(base_kwargs)
+                _add_compare_metrics(tmp, cmp_dict, compare_prefix)
+                # 提取 yoy/mom 后缀字段到 base_kwargs
+                for k, v in tmp.items():
+                    if k.endswith(f'_{compare_prefix}_pct') or k.endswith(f'_{compare_prefix}_pp'):
+                        base_kwargs[k] = v
+        grouped.setdefault(level_value, []).append(SamplingLevelSummary(**base_kwargs))
     return grouped
 
 
