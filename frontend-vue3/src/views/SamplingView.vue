@@ -119,7 +119,8 @@ const ttlSummary = computed<SamplingChannelSummary | null>(() => {
 })
 
 // Sprint 155 ② 03 板块 3 卡横排对齐 — TTL 在前, U先 + 百补 紧随
-const isTtlExpanded = ref(true)
+// Sprint 157 ① TTL 默认折叠 (user 反馈, 默认展开时 3 卡视觉权重过重)
+const isTtlExpanded = ref(false)
 const allChannels = computed<SamplingChannelSummary[]>(() => {
   const all = roiData.value?.summary.channels ?? []
   const ttl = all.find(c => c.channel === 'TTL派样')
@@ -528,7 +529,7 @@ onUnmounted(() => {
           <section :aria-labelledby="'sampling-section-overview'" class="sampling-section">
           <h2 id="sampling-section-overview" class="section-title"><span class="section-num">01</span>总览</h2>
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
-            <n-gi>
+            <n-gi class="min-w-0">
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">派样人数</div>
                 <div class="text-3xl font-bold tabular-nums text-slate-800 mt-2">
@@ -537,7 +538,7 @@ onUnmounted(() => {
                 <div class="text-xs text-slate-400 mt-1">TTL (U先 ∪ 百补, 去重)</div>
               </n-card>
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">{{ windowDays }}天回购人数</div>
                 <div class="text-3xl font-bold tabular-nums text-slate-800 mt-2">
@@ -546,7 +547,7 @@ onUnmounted(() => {
                 <div class="text-xs text-slate-400 mt-1">回购率 {{ formatPercent(totalRepurchaseRate) }}</div>
               </n-card>
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">{{ windowDays }}天正装回购人数</div>
                 <div class="text-3xl font-bold tabular-nums text-rose-600 mt-2">
@@ -557,7 +558,7 @@ onUnmounted(() => {
                 </div>
               </n-card>
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <n-card :bordered="false" segmented>
                 <div class="text-sm text-slate-500">{{ windowDays }}天正装 GSV</div>
                 <div class="text-3xl font-bold tabular-nums text-emerald-600 mt-2">
@@ -608,7 +609,7 @@ onUnmounted(() => {
                   </div>
                   <div class="text-sm font-bold tabular-nums text-slate-800 mt-2">{{ formatNumber(bucket.users) }} 人</div>
                   <div class="text-xs tabular-nums text-slate-500">GSV {{ formatCurrency(bucket.gsv, 'wan') }}</div>
-                  <div class="text-xs tabular-nums text-slate-400">AUS {{ formatCurrency(bucket.aus, 'yuan', 0) }}</div>
+                  <div class="text-[10px] tabular-nums text-slate-400 flex-shrink-0">AUS {{ formatCurrency(bucket.aus, 'yuan', 0) }}</div>
                 </div>
               </div>
               <!-- Sprint 147 P2.1: screen reader 友好的真 table (视觉隐藏) -->
@@ -634,7 +635,8 @@ onUnmounted(() => {
             </n-card>
           </section>
 
-          <!-- 渠道对比卡片 — Sprint 155 ② 改 3 卡横排对齐 (n-grid :cols="3"), TTL 默认展开, click header 折叠 -->
+          <!-- 渠道对比卡片 — Sprint 155 ② 改 3 卡横排对齐 (n-grid :cols="3"), TTL click header 折叠/展开
+               Sprint 157 ① TTL 默认折叠 (ref=false); ② 5 列 metrics 数字 + YOY/MOM 一行不换行 -->
           <section :aria-labelledby="'sampling-section-channels'" class="sampling-section">
           <h2 id="sampling-section-channels" class="section-title"><span class="section-num">03</span>各板块情况</h2>
           <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
@@ -666,59 +668,59 @@ onUnmounted(() => {
                 </template>
 
                 <n-grid :cols="5" :x-gap="8">
-                  <n-gi>
+                  <n-gi class="min-w-0">
                     <n-statistic label="派样人数" :value="ch.sample_users" />
                   </n-gi>
-                  <n-gi>
+                  <n-gi class="min-w-0">
                     <n-statistic label="回购人数">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-2xl font-bold tabular-nums text-slate-800">{{ formatNumber(ch.repurchase_users) }}</span>
+                        <div class="flex items-baseline gap-1 whitespace-nowrap">
+                          <span class="text-xl font-bold tabular-nums text-slate-800 flex-shrink-0">{{ formatNumber(ch.repurchase_users) }}</span>
                           <span
                             v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
-                            class="text-xs tabular-nums text-slate-400"
+                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
                             :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%')}`"
                           >{{ formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%') }}</span>
                         </div>
                       </template>
                     </n-statistic>
                   </n-gi>
-                  <n-gi>
+                  <n-gi class="min-w-0">
                     <n-statistic label="回购率">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-2xl font-bold tabular-nums text-indigo-600">{{ formatPercent(ch.repurchase_rate) }}</span>
+                        <div class="flex items-baseline gap-1 whitespace-nowrap">
+                          <span class="text-xl font-bold tabular-nums text-indigo-600 flex-shrink-0">{{ formatPercent(ch.repurchase_rate) }}</span>
                           <span
                             v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
-                            class="text-xs tabular-nums text-slate-400"
+                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
                             :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp')}`"
                           >{{ formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp') }}</span>
                         </div>
                       </template>
                     </n-statistic>
                   </n-gi>
-                  <n-gi>
+                  <n-gi class="min-w-0">
                     <n-statistic label="贡献GSV">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-2xl font-bold tabular-nums text-emerald-600">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</span>
+                        <div class="flex items-baseline gap-1 whitespace-nowrap">
+                          <span class="text-xl font-bold tabular-nums text-emerald-600 flex-shrink-0">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</span>
                           <span
                             v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
-                            class="text-xs tabular-nums text-slate-400"
+                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
                             :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%')}`"
                           >{{ formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%') }}</span>
                         </div>
                       </template>
                     </n-statistic>
                   </n-gi>
-                  <n-gi>
+                  <n-gi class="min-w-0">
                     <n-statistic label="AUS">
                       <template #default>
-                        <div class="flex items-baseline gap-1">
-                          <span class="text-lg font-semibold tabular-nums text-slate-500">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</span>
+                        <div class="flex items-baseline gap-1 whitespace-nowrap">
+                          <span class="text-lg font-semibold tabular-nums text-slate-500 flex-shrink-0">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</span>
                           <span
                             v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
-                            class="text-xs tabular-nums text-slate-400"
+                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
                             :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%')}`"
                           >{{ formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%') }}</span>
                         </div>
@@ -850,16 +852,16 @@ onUnmounted(() => {
 
           <!-- 漏斗指标卡片 -->
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen">
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card title="全店UV" :value="(lockData.current_year.total_uv ?? 0).toLocaleString()" />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card title="锁权人数" :value="(lockData.current_year.locked_users ?? 0).toLocaleString()" :subtitle="`锁权率 ${fmtPct(lockData.current_year.lock_rate, 2)}`" />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card title="转化人数" :value="(lockData.current_year.converted_users ?? 0).toLocaleString()" :subtitle="`转化率 ${fmtPct(lockData.current_year.conversion_rate)}`" />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card title="锁权GSV" :value="fmtGsv(lockData.current_year.lock_gsv ?? 0)" :subtitle="`AUS ¥${(lockData.current_year.lock_aus ?? 0).toFixed(0)}`" />
             </n-gi>
           </n-grid>
@@ -914,28 +916,28 @@ onUnmounted(() => {
 
           <!-- 新客拆分 -->
           <n-grid :cols="4" :x-gap="16" :y-gap="16" responsive="screen">
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="新客锁权人数"
                 :value="(lockData.current_year.new_locked_users ?? 0).toLocaleString()"
                 :subtitle="`占比 ${fmtPct(lockData.current_year.new_locked_ratio)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="新客转化人数"
                 :value="(lockData.current_year.new_converted_users ?? 0).toLocaleString()"
                 :subtitle="`转化率 ${fmtPct(lockData.current_year.new_conversion_rate)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="新客锁权GSV"
                 :value="fmtGsv(lockData.current_year.new_lock_gsv ?? 0)"
                 :subtitle="`AUS ¥${(lockData.current_year.new_lock_aus ?? 0).toFixed(0)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="老客锁权人数"
                 :value="oldLockedUsers.toLocaleString()"
@@ -964,7 +966,7 @@ onUnmounted(() => {
           </template>
           <n-grid :cols="2" :x-gap="24" :y-gap="12">
             <!-- 2026年 -->
-            <n-gi>
+            <n-gi class="min-w-0">
               <div class="text-xs font-bold text-indigo-600 mb-2">2026年（当年）</div>
               <div class="flex flex-col gap-2">
                 <div class="flex items-center gap-2">
@@ -980,7 +982,7 @@ onUnmounted(() => {
               </div>
             </n-gi>
             <!-- 2025年 -->
-            <n-gi>
+            <n-gi class="min-w-0">
               <div class="text-xs font-bold text-emerald-600 mb-2">2025年（对比年）</div>
               <div class="flex flex-col gap-2">
                 <div class="flex items-center gap-2">
@@ -1023,14 +1025,14 @@ onUnmounted(() => {
         <template v-else-if="rollingData">
           <!-- 核心指标卡片 -->
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen">
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="全店UV"
                 :value="rollingData.year_a.total_uv.toLocaleString()"
                 :subtitle="`YoY ${fmtYoy(rollingData.yoy.total_uv, false)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="锁权人数"
                 :value="rollingData.year_a.locked_users.toLocaleString()"
@@ -1090,28 +1092,28 @@ onUnmounted(() => {
 
           <!-- 新客/老客拆分（转化期时展示） -->
           <n-grid v-if="rollingData.year_a.phase === 'conversion'" :cols="4" :x-gap="16" :y-gap="16" responsive="screen">
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="新客转化人数"
                 :value="rollingData.year_a.new_converted_users.toLocaleString()"
                 :subtitle="`转化率 ${fmtPct(rollingData.year_a.new_conversion_rate)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="新客转化GSV"
                 :value="fmtGsv(rollingData.year_a.new_conv_gsv)"
                 :subtitle="`AUS ¥${rollingData.year_a.new_conv_aus.toFixed(0)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="老客转化人数"
                 :value="rollingData.year_a.old_converted_users.toLocaleString()"
                 :subtitle="`转化率 ${fmtPct(rollingData.year_a.old_conversion_rate)}`"
               />
             </n-gi>
-            <n-gi>
+            <n-gi class="min-w-0">
               <metric-card
                 title="2025加赠转化"
                 :value="rollingData.year_b.converted_users.toLocaleString()"
