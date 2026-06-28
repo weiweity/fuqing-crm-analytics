@@ -67,10 +67,12 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
             bucket_4_7d: 60,
             bucket_8_30d: 150,
             bucket_31_60d: 60,
+            bucket_61_90d: 40,
             full_bucket_1_3d: 10,
             full_bucket_4_7d: 20,
             full_bucket_8_30d: 60,
             full_bucket_31_60d: 30,
+            full_bucket_61_90d: 15,
           },
           quality_flags: [],
         })
@@ -118,6 +120,7 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
 
     // 关键断言 5: 周期分布图
     await expect(page.getByText('回购周期分布').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('61-90天').first()).toBeVisible({ timeout: 5000 })
 
     // Sprint 140: level 切换触发重算视觉提示
     await page.locator('.n-select').filter({ hasText: '品类销售' }).locator('.n-base-selection').click()

@@ -3411,7 +3411,7 @@ export interface components {
         PathDepth: "1" | "2";
         /**
          * PeriodDistribution
-         * @description 派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d)
+         * @description 派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d / 61-90d)
          */
         PeriodDistribution: {
             /**
@@ -3435,6 +3435,11 @@ export interface components {
              */
             bucket_31_60d: number;
             /**
+             * Bucket 61 90D
+             * @default 0
+             */
+            bucket_61_90d: number;
+            /**
              * Full Bucket 1 3D
              * @default 0
              */
@@ -3454,6 +3459,11 @@ export interface components {
              * @default 0
              */
             full_bucket_31_60d: number;
+            /**
+             * Full Bucket 61 90D
+             * @default 0
+             */
+            full_bucket_61_90d: number;
         };
         /**
          * ProductAssetItem
@@ -3777,20 +3787,46 @@ export interface components {
         };
         /**
          * QualityFlag
-         * @description DQM 守卫警告 (Sprint 139 引入)
+         * @description DQM 守卫警告 (Sprint 139 引入, Sprint 141 补字段语义)
+         *
+         *     字段语义 (Sprint 140 起 window_days 可变 1-90):
+         *     - code: 警告代码 (e.g. POSIZE_RATIO_LOW)
+         *     - severity: 'warning' | 'error', 当前 Sprint 139 实现仅 warning
+         *     - message: 人读 warning 描述, 已含当前 window_days 上下文
+         *     - posize_ratio: 当前 window_days 内正装 GSV / 任意 GSV (0-1)
+         *     - total_posize_gsv: 当前 window_days 内正装 GSV 总和
+         *     - total_gsv: 当前 window_days 内任意回购 GSV 总和
          */
         QualityFlag: {
-            /** Code */
+            /**
+             * Code
+             * @description 警告代码 (e.g. POSIZE_RATIO_LOW)
+             */
             code: string;
-            /** Severity */
+            /**
+             * Severity
+             * @description 'warning' | 'error'
+             */
             severity: string;
-            /** Message */
+            /**
+             * Message
+             * @description 人读 warning 描述, 已含当前 window_days 上下文
+             */
             message: string;
-            /** Posize Ratio */
+            /**
+             * Posize Ratio
+             * @description 当前 window_days 内正装 GSV / 任意 GSV
+             */
             posize_ratio?: number | null;
-            /** Total Posize Gsv */
+            /**
+             * Total Posize Gsv
+             * @description 当前 window_days 内正装 GSV 总和
+             */
             total_posize_gsv?: number | null;
-            /** Total Gsv */
+            /**
+             * Total Gsv
+             * @description 当前 window_days 内任意回购 GSV 总和
+             */
             total_gsv?: number | null;
         };
         /**

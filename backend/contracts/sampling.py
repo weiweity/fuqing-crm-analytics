@@ -53,25 +53,36 @@ class SamplingROITimeRange(BaseModel):
 
 
 class PeriodDistribution(BaseModel):
-    """派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d)"""
+    """派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d / 61-90d)"""
     bucket_1_3d: int = 0
     bucket_4_7d: int = 0
     bucket_8_30d: int = 0
     bucket_31_60d: int = 0
+    bucket_61_90d: int = 0
     full_bucket_1_3d: int = 0
     full_bucket_4_7d: int = 0
     full_bucket_8_30d: int = 0
     full_bucket_31_60d: int = 0
+    full_bucket_61_90d: int = 0
 
 
 class QualityFlag(BaseModel):
-    """DQM 守卫警告 (Sprint 139 引入)"""
-    code: str
-    severity: str
-    message: str
-    posize_ratio: Optional["RatioField"] = None
-    total_posize_gsv: Optional[float] = None
-    total_gsv: Optional[float] = None
+    """DQM 守卫警告 (Sprint 139 引入, Sprint 141 补字段语义)
+
+    字段语义 (Sprint 140 起 window_days 可变 1-90):
+    - code: 警告代码 (e.g. POSIZE_RATIO_LOW)
+    - severity: 'warning' | 'error', 当前 Sprint 139 实现仅 warning
+    - message: 人读 warning 描述, 已含当前 window_days 上下文
+    - posize_ratio: 当前 window_days 内正装 GSV / 任意 GSV (0-1)
+    - total_posize_gsv: 当前 window_days 内正装 GSV 总和
+    - total_gsv: 当前 window_days 内任意回购 GSV 总和
+    """
+    code: str = Field(..., description="警告代码 (e.g. POSIZE_RATIO_LOW)")
+    severity: str = Field(..., description="'warning' | 'error'")
+    message: str = Field(..., description="人读 warning 描述, 已含当前 window_days 上下文")
+    posize_ratio: Optional["RatioField"] = Field(default=None, description="当前 window_days 内正装 GSV / 任意 GSV")
+    total_posize_gsv: Optional[float] = Field(default=None, description="当前 window_days 内正装 GSV 总和")
+    total_gsv: Optional[float] = Field(default=None, description="当前 window_days 内任意回购 GSV 总和")
 
 
 class SamplingROIResponse(BaseModel):

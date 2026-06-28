@@ -1,3 +1,21 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 141, VERSION 不变 留尾治理 sprint - period_distribution 61-90d 静默丢失治本 + 平台 bug 修)
+
+### Fixed
+- **backend/services/sampling_service.py**: `period_sql` 增加 `bucket_61_90d / full_bucket_61_90d`, 修复 `window_days=90` 时 61-90 天回购周期静默丢失。
+- **backend/contracts/sampling.py**: `PeriodDistribution` 同步新增 2 个 61-90 天字段；`QualityFlag` 6 个对外字段补 Pydantic `Field(description=...)`, 明确字段语义跟随当前 `window_days`。
+- **frontend-vue3/src/views/SamplingView.vue**: 周期分布柱图扩为 5 桶；`<n-slider>` 增加 250ms debounce；level 重算提示增加 300ms 显示门槛和卸载清理。
+- **scripts/sync-agents.sh**: 修复 `CLAUDE.md -> AGENTS.md` 全局替换导致历史 commit SHA 描述失真的平台 bug, 改为复制后仅精准替换标题行和自动化配置描述。
+
+### Added
+- **backend/tests/test_sampling_sprint141.py**: 新增 2 个逻辑 case, 覆盖 3 个 `window_days` 参数展开和 `QualityFlag` 字段描述。
+- **backend/scripts/check_period_distribution_61_90d.py**: 新增 Sprint 141 ground-truth-lint, 锁定 61-90 天桶、5 桶 UI 和 `sync-agents.sh` 精准替换。
+
+### Verification
+- Codex Stage 2 待跑: pytest 4 case、Sprint 139/140/141 ground-truth-lint、sync-agents.sh 修后验证、e2e 5 桶断言、pre-commit 全绿。
+- VERSION: 0.4.14.157 不 bump；L4.x 22 stable 0 新增。
+
+---
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 140, VERSION 不变 真业务 sprint - 派样 ROI 自由窗口 + level 联动视觉强化)
 
 ### Changed

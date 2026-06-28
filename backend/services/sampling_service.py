@@ -227,7 +227,7 @@ def get_sampling_roi(
                 'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
             })
 
-        # Sprint 139/140: 回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d), 跟随 window_days
+        # Sprint 139/140/141: 回购周期分布跟随 window_days, 覆盖 1-90d
         period_sql = f"""
             WITH sample_users AS ({sample_users_sql}),
             repurchase AS (
@@ -249,10 +249,12 @@ def get_sampling_roi(
                 COUNT(DISTINCT CASE WHEN days_between BETWEEN 4 AND 7 THEN user_id END) as bucket_4_7d,
                 COUNT(DISTINCT CASE WHEN days_between BETWEEN 8 AND 30 THEN user_id END) as bucket_8_30d,
                 COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 THEN user_id END) as bucket_31_60d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 61 AND 90 THEN user_id END) as bucket_61_90d,
                 COUNT(DISTINCT CASE WHEN days_between BETWEEN 1 AND 3 AND spu_type = '正装' THEN user_id END) as full_bucket_1_3d,
                 COUNT(DISTINCT CASE WHEN days_between BETWEEN 4 AND 7 AND spu_type = '正装' THEN user_id END) as full_bucket_4_7d,
                 COUNT(DISTINCT CASE WHEN days_between BETWEEN 8 AND 30 AND spu_type = '正装' THEN user_id END) as full_bucket_8_30d,
-                COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 AND spu_type = '正装' THEN user_id END) as full_bucket_31_60d
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 31 AND 60 AND spu_type = '正装' THEN user_id END) as full_bucket_31_60d,
+                COUNT(DISTINCT CASE WHEN days_between BETWEEN 61 AND 90 AND spu_type = '正装' THEN user_id END) as full_bucket_61_90d
             FROM repurchase
         """
         period_row = conn.execute(period_sql, sample_params + [max_window_days]).fetchone()
@@ -261,10 +263,12 @@ def get_sampling_roi(
             'bucket_4_7d': int(period_row[1] or 0),
             'bucket_8_30d': int(period_row[2] or 0),
             'bucket_31_60d': int(period_row[3] or 0),
-            'full_bucket_1_3d': int(period_row[4] or 0),
-            'full_bucket_4_7d': int(period_row[5] or 0),
-            'full_bucket_8_30d': int(period_row[6] or 0),
-            'full_bucket_31_60d': int(period_row[7] or 0),
+            'bucket_61_90d': int(period_row[4] or 0),
+            'full_bucket_1_3d': int(period_row[5] or 0),
+            'full_bucket_4_7d': int(period_row[6] or 0),
+            'full_bucket_8_30d': int(period_row[7] or 0),
+            'full_bucket_31_60d': int(period_row[8] or 0),
+            'full_bucket_61_90d': int(period_row[9] or 0),
         }
 
         # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
