@@ -6,6 +6,7 @@ import ProductCustomerTab from './market-focus/ProductCustomerTab.vue'
 import StoreAssetsTab from './market-focus/StoreAssetsTab.vue'
 import ProductAssetsTab from './market-focus/ProductAssetsTab.vue'
 import OtherProductAssetsTab from './market-focus/OtherProductAssetsTab.vue'
+import { useRouteHashTab } from '@/composables/useRouteHashTab'
 
 const activeTab = ref('product-customer')
 
@@ -62,6 +63,8 @@ const tabList = [
   { name: 'product-assets', label: '单品资产' },
   { name: 'other-product-assets', label: '单品资产-其他' },
 ]
+
+useRouteHashTab(activeTab, tabList.map(tab => tab.name))
 </script>
 
 <template>

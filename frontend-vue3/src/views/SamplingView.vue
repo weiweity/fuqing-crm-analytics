@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert, NSlider } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NDivider, NAlert, NSlider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
 import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
+import YOYGuard from '@/components/YOYGuard.vue'
 import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison, fetchSamplingRepurchaseDistribution } from '@/api/sampling'
-import type { SamplingCategoryRow, SamplingChannelSummary } from '@/api/sampling'
+import type { SamplingCategoryRow, SamplingChannelSummary, SamplingRepurchaseBucket } from '@/api/sampling'
 import { useFilterStore } from '@/stores/filterStore'
 import { useFormat } from '@/composables/useFormat'
+import { useRouteHashTab } from '@/composables/useRouteHashTab'
+import { computeCompareRange } from '@/utils/date'
 
-const { formatNumber, formatPercent, formatCurrency, formatDelta } = useFormat()
+const { formatNumber, formatPercent, formatCurrency } = useFormat()
 
 const activeTab = ref('roi')
+useRouteHashTab(activeTab, ['roi', 'lock', 'cohort', 'rolling'])
 const cohortStartMonth = ref('2025-01')
 const cohortEndMonth = ref('2026-06')
 const cohortChannel = ref('全店')
@@ -81,6 +85,30 @@ const { data: repurchaseDistribution } = useQuery({
   placeholderData: previousData => previousData,
 })
 
+const repurchaseCompareRange = computed(() => {
+  return computeCompareRange(filterStore.dateRange, 'auto_yoy') ?? filterStore.computedCompareDateRange
+})
+
+const repurchaseCurrentYearLabel = computed(() => filterStore.dateRange[0].slice(0, 4))
+const repurchaseCompareYearLabel = computed(() => repurchaseCompareRange.value[0].slice(0, 4))
+
+const { data: repurchaseCompareDistribution } = useQuery({
+  queryKey: computed(() => ['sampling-repurchase-distribution-rolling-yoy', {
+    start_date: repurchaseCompareRange.value[0],
+    end_date: repurchaseCompareRange.value[1],
+    window_days: 90,
+    channel: roiParams.value.channel,
+  }]),
+  queryFn: () => fetchSamplingRepurchaseDistribution({
+    start_date: repurchaseCompareRange.value[0],
+    end_date: repurchaseCompareRange.value[1],
+    window_days: 90,
+    channel: roiParams.value.channel,
+  }),
+  enabled: computed(() => activeTab.value === 'roi'),
+  placeholderData: previousData => previousData,
+})
+
 const levelLoadingStartedAt = ref<number>(0)
 const alertTick = ref(0)
 let alertTickInterval: ReturnType<typeof setInterval> | null = null
@@ -119,8 +147,6 @@ const ttlSummary = computed<SamplingChannelSummary | null>(() => {
 })
 
 // Sprint 155 ② 03 板块 3 卡横排对齐 — TTL 在前, U先 + 百补 紧随
-// Sprint 157 ① TTL 默认折叠 (user 反馈, 默认展开时 3 卡视觉权重过重)
-const isTtlExpanded = ref(false)
 const allChannels = computed<SamplingChannelSummary[]>(() => {
   const all = roiData.value?.summary.channels ?? []
   const ttl = all.find(c => c.channel === 'TTL派样')
@@ -147,6 +173,19 @@ function compareValue(channel: SamplingChannelSummary, baseKey: string, kind: 'p
   const modeKey = filterStore.compareMode === 'auto_yoy' ? 'yoy' : 'mom'
   return channel[`${baseKey}_${modeKey}_${kind}` as keyof SamplingChannelSummary] as number | null | undefined
 }
+
+function totalCompareValue(baseKey: string, kind: 'pct' | 'pp'): number | null | undefined {
+  return ttlSummary.value ? compareValue(ttlSummary.value, baseKey, kind) : null
+}
+
+function deltaToneClass(value: number | null | undefined): string {
+  if (value == null) return 'sampling-delta-badge--empty'
+  if (value > 0) return 'sampling-delta-badge--up'
+  if (value < 0) return 'sampling-delta-badge--down'
+  return 'sampling-delta-badge--flat'
+}
+
+const compareModeLabel = computed(() => filterStore.compareMode === 'auto_mom' ? '环比' : '同比')
 
 const levelLoadingText = computed(() => {
   void alertTick.value
@@ -190,13 +229,44 @@ const levelLabel = computed(() => {
 })
 
 
+function emptyRepurchaseBucket(bucket: string): SamplingRepurchaseBucket {
+  return { bucket, users: 0, gsv: 0, aus: 0 }
+}
+
+function pctDelta(current: number | null | undefined, compare: number | null | undefined): number | null {
+  const cur = Number(current ?? 0)
+  const comp = Number(compare ?? 0)
+  if (!Number.isFinite(cur) || !Number.isFinite(comp) || Math.abs(comp) < 1e-6) return null
+  return Number((((cur - comp) / comp) * 100).toFixed(2))
+}
+
 const repurchaseBuckets = computed(() => {
-  const buckets = repurchaseDistribution.value?.buckets ?? []
-  const maxUsers = Math.max(...buckets.map(b => b.users), 1)
-  return buckets.map(b => ({
-    ...b,
-    height: Math.max(6, (b.users / maxUsers) * 140),
-  }))
+  const currentBuckets = repurchaseDistribution.value?.buckets ?? []
+  const compareBuckets = repurchaseCompareDistribution.value?.buckets ?? []
+  const compareByBucket = new Map(compareBuckets.map(bucket => [bucket.bucket, bucket]))
+  const bucketNames = Array.from(new Set([
+    ...currentBuckets.map(bucket => bucket.bucket),
+    ...compareBuckets.map(bucket => bucket.bucket),
+  ]))
+  const maxUsers = Math.max(
+    ...currentBuckets.map(bucket => bucket.users),
+    ...compareBuckets.map(bucket => bucket.users),
+    1,
+  )
+
+  return bucketNames.map((bucketName) => {
+    const current = currentBuckets.find(bucket => bucket.bucket === bucketName) ?? emptyRepurchaseBucket(bucketName)
+    const compare = compareByBucket.get(bucketName) ?? emptyRepurchaseBucket(bucketName)
+    return {
+      bucket: bucketName,
+      current,
+      compare,
+      currentHeight: Math.max(6, (current.users / maxUsers) * 140),
+      compareHeight: Math.max(6, (compare.users / maxUsers) * 140),
+      usersDeltaPct: pctDelta(current.users, compare.users),
+      gsvDeltaPct: pctDelta(current.gsv, compare.gsv),
+    }
+  })
 })
 
 // 品类明细表格 — Sprint 155 ③ 改 native table + manual rowspan 合并渠道 + 自定义 sort
@@ -530,44 +600,103 @@ onUnmounted(() => {
           <h2 id="sampling-section-overview" class="section-title"><span class="section-num">01</span>总览</h2>
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
             <n-gi class="min-w-0">
-              <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">派样人数</div>
-                <div class="text-3xl font-bold tabular-nums text-slate-800 mt-2">
+              <div class="sampling-overview-card">
+                <div class="sampling-overview-head">
+                  <span class="sampling-overview-label">派样人数</span>
+                  <span class="sampling-delta-empty">暂无{{ compareModeLabel }}</span>
+                </div>
+                <div class="sampling-overview-value text-slate-800">
                   {{ formatNumber(totalSampleUsers) }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">TTL (U先 ∪ 百补, 去重)</div>
-              </n-card>
+                <div class="sampling-overview-subrow">TTL (U先 ∪ 百补, 去重)</div>
+              </div>
             </n-gi>
             <n-gi class="min-w-0">
-              <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">{{ windowDays }}天回购人数</div>
-                <div class="text-3xl font-bold tabular-nums text-slate-800 mt-2">
+              <div class="sampling-overview-card">
+                <div class="sampling-overview-head">
+                  <span class="sampling-overview-label">{{ windowDays }}天回购人数</span>
+                  <span
+                    v-if="totalCompareValue('repurchase_users', 'pct') != null"
+                    class="sampling-delta-badge"
+                    :class="deltaToneClass(totalCompareValue('repurchase_users', 'pct'))"
+                  >
+                    {{ (totalCompareValue('repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (totalCompareValue('repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('repurchase_users', 'pct')" unit="%" />
+                  </span>
+                </div>
+                <div class="sampling-overview-value text-slate-800">
                   {{ formatNumber(totalRepurchaseUsers) }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">回购率 {{ formatPercent(totalRepurchaseRate) }}</div>
-              </n-card>
+                <div class="sampling-overview-subrow">
+                  <span>回购率 {{ formatPercent(totalRepurchaseRate) }}</span>
+                  <span
+                    v-if="totalCompareValue('repurchase_rate', 'pp') != null"
+                    class="sampling-delta-badge sampling-delta-badge--mini"
+                    :class="deltaToneClass(totalCompareValue('repurchase_rate', 'pp'))"
+                  >
+                    {{ (totalCompareValue('repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (totalCompareValue('repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('repurchase_rate', 'pp')" unit="pp" />
+                  </span>
+                </div>
+              </div>
             </n-gi>
             <n-gi class="min-w-0">
-              <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">{{ windowDays }}天正装回购人数</div>
-                <div class="text-3xl font-bold tabular-nums text-rose-600 mt-2">
+              <div class="sampling-overview-card">
+                <div class="sampling-overview-head">
+                  <span class="sampling-overview-label">{{ windowDays }}天正装回购人数</span>
+                  <span
+                    v-if="totalCompareValue('full_repurchase_users', 'pct') != null"
+                    class="sampling-delta-badge"
+                    :class="deltaToneClass(totalCompareValue('full_repurchase_users', 'pct'))"
+                  >
+                    {{ (totalCompareValue('full_repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (totalCompareValue('full_repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('full_repurchase_users', 'pct')" unit="%" />
+                  </span>
+                </div>
+                <div class="sampling-overview-value text-rose-600">
                   {{ formatNumber(totalFullRepurchaseUsers) }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">
-                  正装转化率 {{ formatPercent(totalFullRepurchaseRate) }}
+                <div class="sampling-overview-subrow">
+                  <span>正装转化率 {{ formatPercent(totalFullRepurchaseRate) }}</span>
+                  <span
+                    v-if="totalCompareValue('full_repurchase_rate', 'pp') != null"
+                    class="sampling-delta-badge sampling-delta-badge--mini"
+                    :class="deltaToneClass(totalCompareValue('full_repurchase_rate', 'pp'))"
+                  >
+                    {{ (totalCompareValue('full_repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (totalCompareValue('full_repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('full_repurchase_rate', 'pp')" unit="pp" />
+                  </span>
                 </div>
-              </n-card>
+              </div>
             </n-gi>
             <n-gi class="min-w-0">
-              <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">{{ windowDays }}天正装 GSV</div>
-                <div class="text-3xl font-bold tabular-nums text-emerald-600 mt-2">
+              <div class="sampling-overview-card">
+                <div class="sampling-overview-head">
+                  <span class="sampling-overview-label">{{ windowDays }}天正装 GSV</span>
+                  <span
+                    v-if="totalCompareValue('full_repurchase_gsv', 'pct') != null"
+                    class="sampling-delta-badge"
+                    :class="deltaToneClass(totalCompareValue('full_repurchase_gsv', 'pct'))"
+                  >
+                    {{ (totalCompareValue('full_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (totalCompareValue('full_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('full_repurchase_gsv', 'pct')" unit="%" />
+                  </span>
+                </div>
+                <div class="sampling-overview-value text-emerald-600">
                   {{ formatCurrency(totalFullRepurchaseGsv, 'wan') }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">
-                  AUS ¥{{ totalFullRepurchaseAus.toFixed(0) }}
+                <div class="sampling-overview-subrow">
+                  <span>AUS ¥{{ totalFullRepurchaseAus.toFixed(0) }}</span>
+                  <span
+                    v-if="totalCompareValue('full_repurchase_aus', 'pct') != null"
+                    class="sampling-delta-badge sampling-delta-badge--mini"
+                    :class="deltaToneClass(totalCompareValue('full_repurchase_aus', 'pct'))"
+                  >
+                    {{ (totalCompareValue('full_repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (totalCompareValue('full_repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('full_repurchase_aus', 'pct')" unit="%" />
+                  </span>
                 </div>
-              </n-card>
+              </div>
             </n-gi>
           </n-grid>
           </section>
@@ -591,62 +720,121 @@ onUnmounted(() => {
             class="sampling-section"
           >
             <h2 id="sampling-section-buckets" class="section-title"><span class="section-num">02</span>回购周期分布</h2>
-            <n-card :bordered="false" segmented>
-              <!-- Sprint 147 P2.1: 视觉柱状图 (decorative), 屏幕阅读器读下面的 sr-only table -->
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-end" style="min-height: 220px" aria-hidden="true">
-                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="text-center">
-                  <div class="text-xs text-slate-500 mb-2">{{ bucket.bucket }}</div>
-                  <div class="mx-auto flex items-end justify-center" style="height: 148px">
-                    <div
-                      class="rounded-t transition-all"
-                      :style="{
-                        backgroundColor: '#6366f1',
-                        width: '32px',
-                        height: bucket.height + 'px',
-                        minHeight: '6px',
-                      }"
-                    ></div>
+            <n-card :bordered="false" segmented class="repurchase-comparison-card">
+              <template #header>
+                <div class="repurchase-comparison-head">
+                  <div class="min-w-0">
+                    <span class="text-sm font-semibold text-slate-700">滚动去年对比</span>
+                    <div class="repurchase-comparison-range">
+                      {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }}
+                      <span>vs</span>
+                      {{ repurchaseCompareRange[0] }} ~ {{ repurchaseCompareRange[1] }}
+                    </div>
                   </div>
-                  <div class="text-sm font-bold tabular-nums text-slate-800 mt-2">{{ formatNumber(bucket.users) }} 人</div>
-                  <div class="text-xs tabular-nums text-slate-500">GSV {{ formatCurrency(bucket.gsv, 'wan') }}</div>
-                  <div class="text-[10px] tabular-nums text-slate-400 flex-shrink-0">AUS {{ formatCurrency(bucket.aus, 'yuan', 0) }}</div>
+                  <div class="repurchase-comparison-legend" aria-hidden="true">
+                    <span><i class="repurchase-legend-dot repurchase-legend-dot--current"></i>{{ repurchaseCurrentYearLabel }}</span>
+                    <span><i class="repurchase-legend-dot repurchase-legend-dot--compare"></i>{{ repurchaseCompareYearLabel }}（滚动去年）</span>
+                  </div>
+                </div>
+              </template>
+              <!-- Sprint 158: 当前窗口 + 滚动去年同窗双柱对比, 屏幕阅读器读下面的 sr-only table -->
+              <div class="repurchase-bucket-grid" aria-hidden="true">
+                <div v-for="bucket in repurchaseBuckets" :key="bucket.bucket" class="repurchase-bucket-card">
+                  <div class="repurchase-bucket-name">{{ bucket.bucket }}</div>
+                  <div class="repurchase-bucket-bars">
+                    <div class="repurchase-bucket-bar-pair">
+                      <div
+                        class="repurchase-bucket-bar repurchase-bucket-bar--current"
+                        :style="{ height: `${bucket.currentHeight}px` }"
+                      ></div>
+                      <span>{{ repurchaseCurrentYearLabel }}</span>
+                    </div>
+                    <div class="repurchase-bucket-bar-pair">
+                      <div
+                        class="repurchase-bucket-bar repurchase-bucket-bar--compare"
+                        :style="{ height: `${bucket.compareHeight}px` }"
+                      ></div>
+                      <span>{{ repurchaseCompareYearLabel }}</span>
+                    </div>
+                  </div>
+                  <div class="repurchase-bucket-stats">
+                    <div class="repurchase-bucket-row">
+                      <span>{{ repurchaseCurrentYearLabel }} 人数</span>
+                      <b>{{ formatNumber(bucket.current.users) }}</b>
+                    </div>
+                    <div class="repurchase-bucket-row repurchase-bucket-row--muted">
+                      <span>{{ repurchaseCompareYearLabel }} 人数 {{ formatNumber(bucket.compare.users) }}</span>
+                      <span
+                        v-if="bucket.usersDeltaPct != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(bucket.usersDeltaPct)"
+                      >
+                        {{ bucket.usersDeltaPct > 0 ? '↑' : bucket.usersDeltaPct < 0 ? '↓' : '' }}
+                        <YOYGuard :value="bucket.usersDeltaPct" unit="%" />
+                      </span>
+                    </div>
+                    <div class="repurchase-bucket-row">
+                      <span>GSV</span>
+                      <b>{{ formatCurrency(bucket.current.gsv, 'wan') }}</b>
+                    </div>
+                    <div class="repurchase-bucket-row repurchase-bucket-row--muted">
+                      <span>去年 {{ formatCurrency(bucket.compare.gsv, 'wan') }}</span>
+                      <span
+                        v-if="bucket.gsvDeltaPct != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(bucket.gsvDeltaPct)"
+                      >
+                        {{ bucket.gsvDeltaPct > 0 ? '↑' : bucket.gsvDeltaPct < 0 ? '↓' : '' }}
+                        <YOYGuard :value="bucket.gsvDeltaPct" unit="%" />
+                      </span>
+                    </div>
+                    <div class="repurchase-bucket-row repurchase-bucket-row--muted">
+                      <span>AUS</span>
+                      <span>{{ formatCurrency(bucket.current.aus, 'yuan', 0) }} / {{ formatCurrency(bucket.compare.aus, 'yuan', 0) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <!-- Sprint 147 P2.1: screen reader 友好的真 table (视觉隐藏) -->
               <table class="sr-only">
-                <caption>回购周期分布</caption>
+                <caption>回购周期分布滚动去年对比</caption>
                 <thead>
                   <tr>
                     <th scope="col">回购周期</th>
-                    <th scope="col">人数</th>
-                    <th scope="col">贡献 GSV</th>
-                    <th scope="col">客单价 (AUS)</th>
+                    <th scope="col">{{ repurchaseCurrentYearLabel }} 人数</th>
+                    <th scope="col">{{ repurchaseCompareYearLabel }} 人数</th>
+                    <th scope="col">人数同比</th>
+                    <th scope="col">{{ repurchaseCurrentYearLabel }} 贡献 GSV</th>
+                    <th scope="col">{{ repurchaseCompareYearLabel }} 贡献 GSV</th>
+                    <th scope="col">GSV 同比</th>
+                    <th scope="col">{{ repurchaseCurrentYearLabel }} 客单价 (AUS)</th>
+                    <th scope="col">{{ repurchaseCompareYearLabel }} 客单价 (AUS)</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="bucket in repurchaseBuckets" :key="bucket.bucket">
                     <th scope="row">{{ bucket.bucket }}</th>
-                    <td>{{ formatNumber(bucket.users) }} 人</td>
-                    <td>{{ formatCurrency(bucket.gsv, 'wan') }}</td>
-                    <td>{{ formatCurrency(bucket.aus, 'yuan', 0) }}</td>
+                    <td>{{ formatNumber(bucket.current.users) }} 人</td>
+                    <td>{{ formatNumber(bucket.compare.users) }} 人</td>
+                    <td>{{ bucket.usersDeltaPct == null ? '无去年基数' : `${bucket.usersDeltaPct}%` }}</td>
+                    <td>{{ formatCurrency(bucket.current.gsv, 'wan') }}</td>
+                    <td>{{ formatCurrency(bucket.compare.gsv, 'wan') }}</td>
+                    <td>{{ bucket.gsvDeltaPct == null ? '无去年基数' : `${bucket.gsvDeltaPct}%` }}</td>
+                    <td>{{ formatCurrency(bucket.current.aus, 'yuan', 0) }}</td>
+                    <td>{{ formatCurrency(bucket.compare.aus, 'yuan', 0) }}</td>
                   </tr>
                 </tbody>
               </table>
             </n-card>
           </section>
 
-          <!-- 渠道对比卡片 — Sprint 155 ② 改 3 卡横排对齐 (n-grid :cols="3"), TTL click header 折叠/展开
-               Sprint 157 ① TTL 默认折叠 (ref=false); ② 5 列 metrics 数字 + YOY/MOM 一行不换行 -->
+          <!-- 渠道对比卡片 — 5 个核心指标两行展示，YOY/MOM badge 下沉避免遮挡 -->
           <section :aria-labelledby="'sampling-section-channels'" class="sampling-section">
           <h2 id="sampling-section-channels" class="section-title"><span class="section-num">03</span>各板块情况</h2>
           <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
-            <!-- 3 卡横排 (TTL + U先 + 百补) 等宽对齐, TTL card click header 折叠/展开 30天正装/非正装 detail -->
+            <!-- 3 卡横排 (TTL + U先 + 百补) 等宽对齐，TTL 始终展开 -->
             <n-gi v-for="ch in allChannels" :key="ch.channel" span="1 m:1 l:1">
-              <n-card
-                :bordered="false" segmented class="h-full"
-                :class="ch.channel === 'TTL派样' ? 'cursor-pointer' : ''"
-                @click="ch.channel === 'TTL派样' && (isTtlExpanded = !isTtlExpanded)"
-              >
+              <n-card :bordered="false" segmented class="h-full sampling-channel-card">
                 <template #header>
                   <div class="flex items-center justify-between w-full">
                     <div class="flex items-baseline gap-2">
@@ -654,108 +842,149 @@ onUnmounted(() => {
                         <span aria-hidden="true" class="mr-1">{{ channelIcon(ch.channel) }}</span>
                         {{ ch.channel }}
                       </span>
-                      <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">
-                        ({{ isTtlExpanded ? '点击折叠' : '点击展开' }})
+                      <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">U先 ∪ 百补</span>
+                    </div>
+                  </div>
+                </template>
+
+                <div class="sampling-channel-metrics">
+                  <div class="sampling-channel-metric">
+                    <div class="sampling-channel-label">派样人数</div>
+                    <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.sample_users) }}</div>
+                    <div class="sampling-channel-delta sampling-channel-delta--empty">暂无{{ compareModeLabel }}</div>
+                  </div>
+                  <div class="sampling-channel-metric">
+                    <div class="sampling-channel-label">回购人数</div>
+                    <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.repurchase_users) }}</div>
+                    <div class="sampling-channel-delta">
+                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                      <span
+                        v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'repurchase_users', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'repurchase_users', 'pct')" unit="%" />
                       </span>
                     </div>
-                    <span
-                      v-if="ch.channel === 'TTL派样'"
-                      class="text-slate-400 text-sm transition-transform"
-                      :class="isTtlExpanded ? 'rotate-180' : ''"
-                      aria-hidden="true"
-                    >▼</span>
                   </div>
-                </template>
-
-                <n-grid :cols="5" :x-gap="8">
-                  <n-gi class="min-w-0">
-                    <n-statistic label="派样人数" :value="ch.sample_users" />
-                  </n-gi>
-                  <n-gi class="min-w-0">
-                    <n-statistic label="回购人数">
-                      <template #default>
-                        <div class="flex items-baseline gap-1 whitespace-nowrap">
-                          <span class="text-xl font-bold tabular-nums text-slate-800 flex-shrink-0">{{ formatNumber(ch.repurchase_users) }}</span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
-                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%')}`"
-                          >{{ formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%') }}</span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                  <n-gi class="min-w-0">
-                    <n-statistic label="回购率">
-                      <template #default>
-                        <div class="flex items-baseline gap-1 whitespace-nowrap">
-                          <span class="text-xl font-bold tabular-nums text-indigo-600 flex-shrink-0">{{ formatPercent(ch.repurchase_rate) }}</span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
-                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp')}`"
-                          >{{ formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp') }}</span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                  <n-gi class="min-w-0">
-                    <n-statistic label="贡献GSV">
-                      <template #default>
-                        <div class="flex items-baseline gap-1 whitespace-nowrap">
-                          <span class="text-xl font-bold tabular-nums text-emerald-600 flex-shrink-0">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
-                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%')}`"
-                          >{{ formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%') }}</span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                  <n-gi class="min-w-0">
-                    <n-statistic label="AUS">
-                      <template #default>
-                        <div class="flex items-baseline gap-1 whitespace-nowrap">
-                          <span class="text-lg font-semibold tabular-nums text-slate-500 flex-shrink-0">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
-                            class="text-[10px] tabular-nums text-slate-400 flex-shrink-0"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%')}`"
-                          >{{ formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%') }}</span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                </n-grid>
-
-                <!-- 30天正装/非正装 detail: TTL card 折叠时不显示, U先/百补 总是显示 -->
-                <template v-if="ch.channel !== 'TTL派样' || isTtlExpanded">
-                  <n-divider />
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <div class="text-xs font-semibold text-rose-600 mb-1">{{ windowDays }}天正装回购</div>
-                      <div class="text-xs text-slate-600">
-                        人数: <b class="text-slate-800">{{ formatNumber(ch.full_repurchase_users) }}</b>
-                        ({{ formatPercent(ch.full_repurchase_rate) }})
-                      </div>
-                      <div class="text-xs text-slate-600">
-                        GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b>
-                        · AUS {{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}
-                      </div>
-                    </div>
-                    <div>
-                      <div class="text-xs font-semibold text-slate-500 mb-1">非正装回购</div>
-                      <div class="text-xs text-slate-600">
-                        人数: <b class="text-slate-800">{{ formatNumber(ch.nonfull_repurchase_users) }}</b>
-                      </div>
-                      <div class="text-xs text-slate-600">
-                        GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b>
-                        · AUS {{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}
-                      </div>
+                  <div class="sampling-channel-metric">
+                    <div class="sampling-channel-label">回购率</div>
+                    <div class="sampling-channel-value text-indigo-600">{{ formatPercent(ch.repurchase_rate) }}</div>
+                    <div class="sampling-channel-delta">
+                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                      <span
+                        v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'repurchase_rate', 'pp'))"
+                      >
+                        {{ (compareValue(ch, 'repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'repurchase_rate', 'pp')" unit="pp" />
+                      </span>
                     </div>
                   </div>
-                </template>
+                  <div class="sampling-channel-metric">
+                    <div class="sampling-channel-label">贡献GSV</div>
+                    <div class="sampling-channel-value text-emerald-600">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</div>
+                    <div class="sampling-channel-delta">
+                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                      <span
+                        v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'repurchase_gsv', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'repurchase_gsv', 'pct')" unit="%" />
+                      </span>
+                    </div>
+                  </div>
+                  <div class="sampling-channel-metric">
+                    <div class="sampling-channel-label">AUS</div>
+                    <div class="sampling-channel-value sampling-channel-value--small text-slate-600">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</div>
+                    <div class="sampling-channel-delta">
+                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                      <span
+                        v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'repurchase_aus', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'repurchase_aus', 'pct')" unit="%" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <n-divider />
+                <div class="sampling-channel-detail-grid">
+                  <div class="sampling-channel-detail">
+                    <div class="sampling-channel-detail-title text-rose-600">{{ windowDays }}天正装回购</div>
+                    <div class="sampling-channel-detail-line">
+                      <span>人数: <b>{{ formatNumber(ch.full_repurchase_users) }}</b></span>
+                      <span
+                        v-if="compareValue(ch, 'full_repurchase_users', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_users', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'full_repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'full_repurchase_users', 'pct')" unit="%" />
+                      </span>
+                    </div>
+                    <div class="sampling-channel-detail-line">
+                      <span>转化率: <b>{{ formatPercent(ch.full_repurchase_rate) }}</b></span>
+                      <span
+                        v-if="compareValue(ch, 'full_repurchase_rate', 'pp') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_rate', 'pp'))"
+                      >
+                        {{ (compareValue(ch, 'full_repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'full_repurchase_rate', 'pp')" unit="pp" />
+                      </span>
+                    </div>
+                    <div class="sampling-channel-detail-line">
+                      <span>GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b></span>
+                      <span
+                        v-if="compareValue(ch, 'full_repurchase_gsv', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_gsv', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'full_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'full_repurchase_gsv', 'pct')" unit="%" />
+                      </span>
+                    </div>
+                    <div class="sampling-channel-detail-line">
+                      <span>AUS <b>{{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}</b></span>
+                      <span
+                        v-if="compareValue(ch, 'full_repurchase_aus', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_aus', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'full_repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'full_repurchase_aus', 'pct')" unit="%" />
+                      </span>
+                    </div>
+                  </div>
+                  <div class="sampling-channel-detail">
+                    <div class="sampling-channel-detail-title text-slate-500">非正装回购</div>
+                    <div class="sampling-channel-detail-line">
+                      <span>人数: <b>{{ formatNumber(ch.nonfull_repurchase_users) }}</b></span>
+                    </div>
+                    <div class="sampling-channel-detail-line">
+                      <span>GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b></span>
+                      <span
+                        v-if="compareValue(ch, 'nonfull_repurchase_gsv', 'pct') != null"
+                        class="sampling-delta-badge sampling-delta-badge--mini"
+                        :class="deltaToneClass(compareValue(ch, 'nonfull_repurchase_gsv', 'pct'))"
+                      >
+                        {{ (compareValue(ch, 'nonfull_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'nonfull_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                        <YOYGuard :value="compareValue(ch, 'nonfull_repurchase_gsv', 'pct')" unit="%" />
+                      </span>
+                    </div>
+                    <div class="sampling-channel-detail-line">
+                      <span>AUS <b>{{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}</b></span>
+                    </div>
+                  </div>
+                </div>
               </n-card>
             </n-gi>
           </n-grid>
@@ -1183,5 +1412,352 @@ onUnmounted(() => {
 
 .sampling-view :deep(.sampling-section + .sampling-section) {
   margin-top: 0;
+}
+
+.sampling-overview-card {
+  height: 100%;
+  padding: 16px;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.sampling-overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 24px;
+}
+
+.sampling-overview-label {
+  color: rgb(100 116 139);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sampling-overview-value {
+  margin-top: 8px;
+  font-size: 1.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.sampling-overview-subrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: rgb(148 163 184);
+  font-size: 0.75rem;
+}
+
+.repurchase-comparison-card :deep(.n-card-header) {
+  padding-bottom: 12px;
+}
+
+.repurchase-comparison-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.repurchase-comparison-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: rgb(100 116 139);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.repurchase-comparison-range span {
+  color: rgb(148 163 184);
+  font-weight: 600;
+}
+
+.repurchase-comparison-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: rgb(71 85 105);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.repurchase-comparison-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.repurchase-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.repurchase-legend-dot--current {
+  background: #6366f1;
+}
+
+.repurchase-legend-dot--compare {
+  background: #94a3b8;
+}
+
+.repurchase-bucket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.repurchase-bucket-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.repurchase-bucket-name {
+  color: rgb(51 65 85);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.repurchase-bucket-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  height: 156px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-bottom: 1px solid rgb(226 232 240);
+}
+
+.repurchase-bucket-bar-pair {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 44px;
+  height: 148px;
+  gap: 6px;
+}
+
+.repurchase-bucket-bar-pair span {
+  color: rgb(100 116 139);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.repurchase-bucket-bar {
+  width: 28px;
+  min-height: 6px;
+  border-radius: 6px 6px 0 0;
+  transition: height 200ms ease;
+}
+
+.repurchase-bucket-bar--current {
+  background: linear-gradient(180deg, #6366f1 0%, #2563eb 100%);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+}
+
+.repurchase-bucket-bar--compare {
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+  box-shadow: 0 8px 16px rgba(100, 116, 139, 0.12);
+}
+
+.repurchase-bucket-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.repurchase-bucket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 19px;
+  color: rgb(100 116 139);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.repurchase-bucket-row b {
+  color: rgb(30 41 59);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.repurchase-bucket-row--muted {
+  color: rgb(148 163 184);
+  font-size: 0.6875rem;
+}
+
+.sampling-delta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.sampling-delta-badge--mini {
+  padding: 1px 5px;
+  font-size: 10px;
+}
+
+.sampling-delta-badge--up {
+  background-color: rgba(21, 190, 83, 0.08);
+  color: #108c3d;
+}
+
+.sampling-delta-badge--down {
+  background-color: rgba(234, 34, 97, 0.08);
+  color: #c41d4e;
+}
+
+.sampling-delta-badge--flat {
+  background-color: rgb(241 245 249);
+  color: rgb(100 116 139);
+}
+
+.sampling-delta-badge--empty {
+  background-color: rgb(248 250 252);
+  color: rgb(148 163 184);
+}
+
+.sampling-delta-empty,
+.sampling-channel-delta--empty {
+  color: rgb(148 163 184);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sampling-delta-label {
+  color: rgb(148 163 184);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sampling-channel-card :deep(.n-card-header) {
+  padding-bottom: 12px;
+}
+
+.sampling-channel-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sampling-channel-metric {
+  min-width: 0;
+}
+
+.sampling-channel-label {
+  color: rgb(148 163 184);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.sampling-channel-value {
+  min-height: 28px;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sampling-channel-value--small {
+  font-size: 1.0625rem;
+}
+
+.sampling-channel-delta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  margin-top: 5px;
+}
+
+.sampling-channel-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sampling-channel-detail {
+  min-width: 0;
+}
+
+.sampling-channel-detail-title {
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sampling-channel-detail-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 21px;
+  color: rgb(71 85 105);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sampling-channel-detail-line b {
+  color: rgb(30 41 59);
+  font-weight: 700;
+}
+
+@media (max-width: 1280px) {
+  .sampling-channel-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .repurchase-comparison-head {
+    flex-direction: column;
+  }
+
+  .repurchase-comparison-legend {
+    justify-content: flex-start;
+  }
+
+  .sampling-channel-metrics,
+  .sampling-channel-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

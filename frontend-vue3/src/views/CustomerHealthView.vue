@@ -9,6 +9,7 @@ import ValueTierTab from './health/ValueTierTab.vue'
 import FIntervalTab from './health/FIntervalTab.vue'
 import MIntervalTab from './health/MIntervalTab.vue'
 import HealthConfigPanel from './health/HealthConfigPanel.vue'
+import { useRouteHashTab } from '@/composables/useRouteHashTab'
 
 const activeTab = ref('overview')
 const showConfig = ref(false)
@@ -28,6 +29,8 @@ const tabList: { name: string; label: string; disabled?: boolean }[] = [
   { name: 'm-interval', label: 'M区间分析' },
   { name: 'repurchase', label: '复购周期' },
 ]
+
+useRouteHashTab(activeTab, tabList.map(tab => tab.name))
 </script>
 
 <template>

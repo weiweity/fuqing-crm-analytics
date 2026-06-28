@@ -10,16 +10,21 @@ class TestROIRenameSprint143:
     """Q10 拍板: 仅前端文案改名，API 保留."""
 
     def test_frontend_copy_renamed(self):
-        """SamplingView、Sidebar 和 route name 使用正装转化文案."""
+        """SamplingView、Sidebar/NavBar 替代品 和 route name 使用正装转化文案.
+        Sprint 158 删 Sidebar.vue 用 NavBar.vue + config/navigations.ts 替代.
+        L3 精准: test 改读 navigations.ts 替代 Sidebar.vue, 验证渠道名在 nav config 出现.
+        """
         sampling_view = (REPO_ROOT / "frontend-vue3/src/views/SamplingView.vue").read_text()
-        sidebar = (REPO_ROOT / "frontend-vue3/src/components/Sidebar.vue").read_text()
+        nav_config = (REPO_ROOT / "frontend-vue3/src/config/navigations.ts").read_text()
         router = (REPO_ROOT / "frontend-vue3/src/router/index.ts").read_text()
 
         assert "U先/百补派样正装转化分析" in sampling_view
         assert "派样正装转化分析" in sampling_view
         assert "U先/百补派样ROI" not in sampling_view
-        assert "派样正装转化" in sidebar
-        assert "派样看板', key: '/sampling'" not in sidebar
+        # Sprint 158: 派样正装转化文案在 nav config (替代 Sidebar)
+        assert "派样正装转化" in nav_config
+        # 验证 nav config 不再用老名字
+        assert "派样看板" not in nav_config
         assert "name: 'SamplingConversion'" in router
 
     def test_backend_sampling_roi_api_unchanged(self):

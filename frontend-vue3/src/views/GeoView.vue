@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toValue, h } from 'vue'
+import { computed, toValue, h, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -18,8 +18,11 @@ import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
+import { useRouteHashTab } from '@/composables/useRouteHashTab'
 
 const filterStore = useFilterStore()
+const activeTab = ref('distribution')
+useRouteHashTab(activeTab, ['distribution', 'matrix', 'trend'])
 
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 
@@ -280,7 +283,7 @@ function formatCurrency(value: number) {
     </n-grid>
 
     <div class="bi-card p-4">
-      <n-tabs type="line" animated>
+      <n-tabs v-model:value="activeTab" type="line" animated>
         <n-tab-pane name="distribution" tab="省份分布">
           <div class="space-y-5 mt-3">
             <ErrorState

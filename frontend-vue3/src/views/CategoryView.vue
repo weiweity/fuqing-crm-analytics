@@ -26,8 +26,11 @@ import MarketBasketTab from './category-tabs/MarketBasketTab.vue'
 import ChurnWarningTab from './category-tabs/ChurnWarningTab.vue'
 import CategoryRepurchaseTab from './category-tabs/CategoryRepurchaseTab.vue'
 import ProductClassRepurchaseTab from './category-tabs/ProductClassRepurchaseTab.vue'
+import { useRouteHashTab } from '@/composables/useRouteHashTab'
 
 const filterStore = useFilterStore()
+const activeTab = ref('overview')
+useRouteHashTab(activeTab, ['overview', 'association', 'product-repurchase', 'repurchase', 'flow', 'wool', 'risk'])
 
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 
@@ -520,7 +523,7 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
 
     <!-- 6-Tab 主体 -->
     <div class="p-4" style="background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-      <n-tabs type="line" animated class="mb-1">
+      <n-tabs v-model:value="activeTab" type="line" animated class="mb-1">
         <!-- ═══ Tab 1: 现状概览 ═══ -->
         <n-tab-pane name="overview" tab="现状概览">
           <p class="text-[11px] text-slate-400 mb-3 pt-1">
