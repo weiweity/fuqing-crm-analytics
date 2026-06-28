@@ -2,7 +2,7 @@
 
 > Sprint 1-104 详细索引 (本表) + Sprint 105-143 1 行指针 (`MEMORY.md` 索引) 减少冷启动 token。
 > 
-> **最后更新**: 2026-06-28 (Sprint 141 + 141.5 Phase 1 + 142 + 143 跨 sprint 留尾治理 + 收尾 4 sprint (跟 Sprint 138 + 141 模式 stable) + Sprint 141.5 Phase 1 ETL sample_received_at schema 准备 6 files / +925/-7 + Sprint 142 RFM 扩展 + level 联动 + _compute_lock_metrics 性能重构 (micro-benchmark 1.513x, Q5 阈值降级 ≥1.5x) + Sprint 143 LTV + cohort retention + 改名 ROI→正装转化分析 (Q10 推荐 A 仅前端文案 0 breaking change) + vite preview proxy 修复 (5173/api 404, vite preview 不读 server.proxy) + race flake L5.1 接受 (跨 sprint Sprint 36-5 + 38 + 105 + 141.5 实战 fix 模式 stable) + 累计 67 sprint 0 debt 持续 + VERSION 0.4.14.157 不 bump 累计 34 sprint)
+> **最后更新**: 2026-06-28 (Sprint 144 顶部筛选解耦 + TTL 派样聚合 + YOY/MOM + 5 section 标题化 + 回购周期分布 4 桶 API 15 files / +2925/-1144 + 13 case + Sprint 145 head: 3 处 code smell cleanup 2 files / +22/-79 + /document-release 跨文档同步, 累计 67→68 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed + main HEAD `ed8ee30` + VERSION 0.4.14.157 不 bump 累计 37 sprint + 跟 Sprint 141 + 141.5 Phase 1 + 142 + 143 /document-release 模式 stable 累计 4 次真治本)
 
 ## 索引规则
 

@@ -22,24 +22,26 @@ class SamplingChannelSummary(BaseModel):
     nonfull_repurchase_gsv: float = 0.0
     nonfull_repurchase_aus: float = 0.0
     # Sprint 144: ROI 卡片同比/环比，percentage 已 *100，pp 为百分点差。
-    repurchase_users_yoy_pct: Optional["PercentageField"] = None
-    repurchase_gsv_yoy_pct: Optional["PercentageField"] = None
-    repurchase_rate_yoy_pp: Optional["PpField"] = None
-    full_repurchase_users_yoy_pct: Optional["PercentageField"] = None
-    full_repurchase_gsv_yoy_pct: Optional["PercentageField"] = None
-    full_repurchase_rate_yoy_pp: Optional["PpField"] = None
-    repurchase_aus_yoy_pct: Optional["PercentageField"] = None
-    full_repurchase_aus_yoy_pct: Optional["PercentageField"] = None
-    nonfull_repurchase_gsv_yoy_pct: Optional["PercentageField"] = None
-    repurchase_users_mom_pct: Optional["PercentageField"] = None
-    repurchase_gsv_mom_pct: Optional["PercentageField"] = None
-    repurchase_rate_mom_pp: Optional["PpField"] = None
-    full_repurchase_users_mom_pct: Optional["PercentageField"] = None
-    full_repurchase_gsv_mom_pct: Optional["PercentageField"] = None
-    full_repurchase_rate_mom_pp: Optional["PpField"] = None
-    repurchase_aus_mom_pct: Optional["PercentageField"] = None
-    full_repurchase_aus_mom_pct: Optional["PercentageField"] = None
-    nonfull_repurchase_gsv_mom_pct: Optional["PercentageField"] = None
+    # 注: PercentageField/PpField 顶部已直接 import, 不需要 string forward reference
+    # (CLAUDE.md §B1+B2 + Sprint 18 #142 保留 RatioField string ref 是 Pydantic v2 兼容性考虑)
+    repurchase_users_yoy_pct: Optional[PercentageField] = None
+    repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    repurchase_rate_yoy_pp: Optional[PpField] = None
+    full_repurchase_users_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_rate_yoy_pp: Optional[PpField] = None
+    repurchase_aus_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_aus_yoy_pct: Optional[PercentageField] = None
+    nonfull_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    repurchase_users_mom_pct: Optional[PercentageField] = None
+    repurchase_gsv_mom_pct: Optional[PercentageField] = None
+    repurchase_rate_mom_pp: Optional[PpField] = None
+    full_repurchase_users_mom_pct: Optional[PercentageField] = None
+    full_repurchase_gsv_mom_pct: Optional[PercentageField] = None
+    full_repurchase_rate_mom_pp: Optional[PpField] = None
+    repurchase_aus_mom_pct: Optional[PercentageField] = None
+    full_repurchase_aus_mom_pct: Optional[PercentageField] = None
+    nonfull_repurchase_gsv_mom_pct: Optional[PercentageField] = None
 
 
 class SamplingLevelSummary(BaseModel):
@@ -91,20 +93,6 @@ class SamplingROITimeRange(BaseModel):
     window_days: int
 
 
-class PeriodDistribution(BaseModel):
-    """派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d / 61-90d)"""
-    bucket_1_3d: int = 0
-    bucket_4_7d: int = 0
-    bucket_8_30d: int = 0
-    bucket_31_60d: int = 0
-    bucket_61_90d: int = 0
-    full_bucket_1_3d: int = 0
-    full_bucket_4_7d: int = 0
-    full_bucket_8_30d: int = 0
-    full_bucket_31_60d: int = 0
-    full_bucket_61_90d: int = 0
-
-
 class SamplingRepurchaseBucket(BaseModel):
     """Sprint 144 回购周期分布桶."""
     bucket: str
@@ -143,7 +131,6 @@ class SamplingROIResponse(BaseModel):
     summary: Dict[str, List[SamplingChannelSummary]]
     category_breakdown: List[SamplingCategoryRow]
     time_range: SamplingROITimeRange
-    period_distribution: PeriodDistribution = Field(default_factory=PeriodDistribution)
     quality_flags: List[QualityFlag] = Field(default_factory=list)
     summary_by_level: Dict[str, List[SamplingLevelSummary]] = Field(
         default_factory=dict,
