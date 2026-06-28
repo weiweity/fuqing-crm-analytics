@@ -5,28 +5,19 @@ import client from './index'
 export interface SamplingChannelSummary {
   channel: string
   sample_users: number
-  repurchase_users_7d: number
-  repurchase_users_30d: number
-  repurchase_users_60d: number
-  repurchase_rate_7d: number
-  repurchase_rate_30d: number
-  repurchase_rate_60d: number
-  repurchase_gsv_7d: number
-  repurchase_gsv_30d: number
-  repurchase_gsv_60d: number
-  repurchase_aus_7d: number
-  repurchase_aus_30d: number
-  repurchase_aus_60d: number
-  full_repurchase_users_30d: number
-  full_repurchase_gsv_30d: number
-  full_repurchase_aus_30d: number
-  full_repurchase_users_60d: number
-  full_repurchase_gsv_60d: number
-  full_repurchase_aus_60d: number
-  full_repurchase_rate_30d: number
-  nonfull_repurchase_users_30d: number
-  nonfull_repurchase_gsv_30d: number
-  nonfull_repurchase_aus_30d: number
+  // Sprint 140: 统一窗口字段（任意 window_days）
+  repurchase_users: number
+  repurchase_rate: number
+  repurchase_gsv: number
+  repurchase_aus: number
+  // Sprint 139 保留: 正装/非正装 split
+  full_repurchase_users: number
+  full_repurchase_rate: number
+  full_repurchase_gsv: number
+  full_repurchase_aus: number
+  nonfull_repurchase_users: number
+  nonfull_repurchase_gsv: number
+  nonfull_repurchase_aus: number
 }
 
 // ── 品类明细 ──
@@ -76,8 +67,8 @@ export interface QualityFlag {
   severity: string
   message: string
   posize_ratio?: number | null
-  total_posize_gsv_30d?: number | null
-  total_gsv_30d?: number | null
+  total_posize_gsv?: number | null
+  total_gsv?: number | null
 }
 
 // ── ROI 响应 ──

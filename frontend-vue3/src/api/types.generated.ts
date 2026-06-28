@@ -1108,7 +1108,7 @@ export interface paths {
          * @description 派样 ROI 分析
          *
          *     返回 U先派样 / 百补派样 在指定时间窗口内的：
-         *     - 渠道汇总：派样人数、7/30/60天回购人数、回购率、贡献GSV、AUS
+         *     - 渠道汇总：派样人数、所选窗口回购人数、回购率、贡献GSV、AUS
          *     - 品类明细：每个渠道×品类的回购情况（含同品类回购）
          */
         get: operations["get_sampling_roi_api_api_v1_sampling_roi_get"];
@@ -3788,10 +3788,10 @@ export interface components {
             message: string;
             /** Posize Ratio */
             posize_ratio?: number | null;
-            /** Total Posize Gsv 30D */
-            total_posize_gsv_30d?: number | null;
-            /** Total Gsv 30D */
-            total_gsv_30d?: number | null;
+            /** Total Posize Gsv */
+            total_posize_gsv?: number | null;
+            /** Total Gsv */
+            total_gsv?: number | null;
         };
         /**
          * RFMAnalysisResponse
@@ -4855,90 +4855,63 @@ export interface components {
             channel: string;
             /** Sample Users */
             sample_users: number;
-            /** Repurchase Users 7D */
-            repurchase_users_7d: number;
-            /** Repurchase Users 30D */
-            repurchase_users_30d: number;
-            /** Repurchase Users 60D */
-            repurchase_users_60d: number;
             /**
-             * Repurchase Rate 7D
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            repurchase_rate_7d: number;
-            /**
-             * Repurchase Rate 30D
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            repurchase_rate_30d: number;
-            /**
-             * Repurchase Rate 60D
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            repurchase_rate_60d: number;
-            /** Repurchase Gsv 7D */
-            repurchase_gsv_7d: number;
-            /** Repurchase Gsv 30D */
-            repurchase_gsv_30d: number;
-            /** Repurchase Gsv 60D */
-            repurchase_gsv_60d: number;
-            /** Repurchase Aus 7D */
-            repurchase_aus_7d: number;
-            /** Repurchase Aus 30D */
-            repurchase_aus_30d: number;
-            /** Repurchase Aus 60D */
-            repurchase_aus_60d: number;
-            /**
-             * Full Repurchase Users 30D
+             * Repurchase Users
              * @default 0
              */
-            full_repurchase_users_30d: number;
+            repurchase_users: number;
             /**
-             * Full Repurchase Gsv 30D
-             * @default 0
-             */
-            full_repurchase_gsv_30d: number;
-            /**
-             * Full Repurchase Aus 30D
-             * @default 0
-             */
-            full_repurchase_aus_30d: number;
-            /**
-             * Full Repurchase Users 60D
-             * @default 0
-             */
-            full_repurchase_users_60d: number;
-            /**
-             * Full Repurchase Gsv 60D
-             * @default 0
-             */
-            full_repurchase_gsv_60d: number;
-            /**
-             * Full Repurchase Aus 60D
-             * @default 0
-             */
-            full_repurchase_aus_60d: number;
-            /**
-             * Full Repurchase Rate 30D
+             * Repurchase Rate
              * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
              * @default 0
              */
-            full_repurchase_rate_30d: number;
+            repurchase_rate: number;
             /**
-             * Nonfull Repurchase Users 30D
+             * Repurchase Gsv
              * @default 0
              */
-            nonfull_repurchase_users_30d: number;
+            repurchase_gsv: number;
             /**
-             * Nonfull Repurchase Gsv 30D
+             * Repurchase Aus
              * @default 0
              */
-            nonfull_repurchase_gsv_30d: number;
+            repurchase_aus: number;
             /**
-             * Nonfull Repurchase Aus 30D
+             * Full Repurchase Users
              * @default 0
              */
-            nonfull_repurchase_aus_30d: number;
+            full_repurchase_users: number;
+            /**
+             * Full Repurchase Gsv
+             * @default 0
+             */
+            full_repurchase_gsv: number;
+            /**
+             * Full Repurchase Aus
+             * @default 0
+             */
+            full_repurchase_aus: number;
+            /**
+             * Full Repurchase Rate
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            full_repurchase_rate: number;
+            /**
+             * Nonfull Repurchase Users
+             * @default 0
+             */
+            nonfull_repurchase_users: number;
+            /**
+             * Nonfull Repurchase Gsv
+             * @default 0
+             */
+            nonfull_repurchase_gsv: number;
+            /**
+             * Nonfull Repurchase Aus
+             * @default 0
+             */
+            nonfull_repurchase_aus: number;
         };
         /**
          * SamplingLockAnalysisResponse
@@ -7677,7 +7650,7 @@ export interface operations {
                 start_date?: string;
                 /** @description 派样结束日期 */
                 end_date?: string;
-                /** @description 回购窗口天数：7/30/60 */
+                /** @description 回购窗口天数：1-90 */
                 window_days?: number;
                 /** @description 品类维度：spu_category/spu_tier/spu_product_class */
                 level?: string;

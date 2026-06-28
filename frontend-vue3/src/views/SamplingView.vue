@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert, NSlider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
@@ -8,7 +8,7 @@ import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
-import type { SamplingChannelSummary, SamplingCategoryRow } from '@/api/sampling'
+import type { SamplingCategoryRow } from '@/api/sampling'
 
 const activeTab = ref('roi')
 
@@ -17,11 +17,7 @@ const roiDateRange = ref<[number, number] | null>(null)
 const windowDays = ref(30)
 const categoryLevel = ref('spu_category')
 
-const windowOptions = [
-  { label: '7天回购', value: 7 },
-  { label: '30天回购', value: 30 },
-  { label: '60天回购', value: 60 },
-]
+const sliderMarks = { 7: '7d', 14: '14d', 30: '30d', 60: '60d', 90: '90d' } as Record<number, string>
 
 const levelOptions = [
   { label: '品类销售', value: 'spu_category' },
@@ -50,58 +46,55 @@ const roiParams = computed(() => {
   }
 })
 
-const { data: roiData, isLoading: roiLoading, error: roiError } = useQuery({
+const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: roiError } = useQuery({
   queryKey: computed(() => ['sampling-roi', roiParams.value]),
   queryFn: () => fetchSamplingROI(roiParams.value),
   enabled: computed(() => activeTab.value === 'roi' && !!roiDateRange.value),
+  placeholderData: previousData => previousData,
 })
-
-const windowField = computed(() => `repurchase_users_${windowDays.value}d` as keyof SamplingChannelSummary)
-const gsvField = computed(() => `repurchase_gsv_${windowDays.value}d` as keyof SamplingChannelSummary)
-const rateField = computed(() => `repurchase_rate_${windowDays.value}d` as keyof SamplingChannelSummary)
-const ausField = computed(() => `repurchase_aus_${windowDays.value}d` as keyof SamplingChannelSummary)
-
-// 安全取值：Vue 模板中不能用 TS 类型断言，用 Number() 转换
-function numVal(ch: SamplingChannelSummary, field: keyof SamplingChannelSummary): number {
-  return Number(ch[field] ?? 0)
-}
 
 function safeRatio(numerator: number, denominator: number): number {
   if (!denominator || denominator === 0) return 0
   return numerator / denominator
 }
 
-// Sprint 139: 顶部正装转化 KPI 汇总
+const levelLoadingText = computed(() => {
+  if (!roiFetching.value || !roiData.value) return null
+  const levelLabel = levelOptions.find(o => o.value === categoryLevel.value)?.label ?? categoryLevel.value
+  return `正在按 ${levelLabel} 重算...`
+})
+
+// Sprint 140: 顶部 KPI 跟随自由窗口
 const totalSampleUsers = computed(() => {
   if (!roiData.value) return 0
   return roiData.value.summary.channels.reduce((s, c) => s + (c.sample_users ?? 0), 0)
 })
 
-const totalRepurchaseUsers30d = computed(() => {
+const totalRepurchaseUsers = computed(() => {
   if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.repurchase_users_30d ?? 0), 0)
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.repurchase_users ?? 0), 0)
 })
 
-const totalRepurchaseRate30d = computed(() => {
-  return safeRatio(totalRepurchaseUsers30d.value, totalSampleUsers.value)
+const totalRepurchaseRate = computed(() => {
+  return safeRatio(totalRepurchaseUsers.value, totalSampleUsers.value)
 })
 
-const totalFullRepurchaseUsers30d = computed(() => {
+const totalFullRepurchaseUsers = computed(() => {
   if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_users_30d ?? 0), 0)
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_users ?? 0), 0)
 })
 
-const totalFullRepurchaseRate30d = computed(() => {
-  return safeRatio(totalFullRepurchaseUsers30d.value, totalSampleUsers.value)
+const totalFullRepurchaseRate = computed(() => {
+  return safeRatio(totalFullRepurchaseUsers.value, totalSampleUsers.value)
 })
 
-const totalFullRepurchaseGsv30d = computed(() => {
+const totalFullRepurchaseGsv = computed(() => {
   if (!roiData.value) return 0
-  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_gsv_30d ?? 0), 0)
+  return roiData.value.summary.channels.reduce((s, c) => s + (c.full_repurchase_gsv ?? 0), 0)
 })
 
-const totalFullRepurchaseAus30d = computed(() => {
-  return safeRatio(totalFullRepurchaseGsv30d.value, totalFullRepurchaseUsers30d.value)
+const totalFullRepurchaseAus = computed(() => {
+  return safeRatio(totalFullRepurchaseGsv.value, totalFullRepurchaseUsers.value)
 })
 
 const periodBuckets = computed(() => {
@@ -359,12 +352,17 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
             style="width: 280px"
             size="small"
           />
-          <n-select
-            v-model:value="windowDays"
-            :options="windowOptions"
-            style="width: 120px"
-            size="small"
-          />
+          <div class="flex items-center gap-3" style="width: 300px">
+            <n-slider
+              v-model:value="windowDays"
+              :min="1"
+              :max="90"
+              :step="1"
+              :marks="sliderMarks"
+              style="width: 240px"
+            />
+            <span class="text-sm text-slate-600 whitespace-nowrap">{{ windowDays }}天回购</span>
+          </div>
           <n-select
             v-model:value="categoryLevel"
             :options="levelOptions"
@@ -373,10 +371,19 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
           />
         </div>
 
-        <loading-state v-if="roiLoading" />
+        <loading-state v-if="roiLoading && !roiData" />
         <error-state v-else-if="roiError" :message="getErrorMessage(roiError)" />
 
         <template v-else-if="roiData">
+          <n-alert
+            v-if="levelLoadingText"
+            type="info"
+            :show-icon="false"
+            class="mb-4"
+          >
+            <span class="text-sm">{{ levelLoadingText }}</span>
+          </n-alert>
+
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
             <n-gi>
               <n-card :bordered="false" segmented>
@@ -389,32 +396,32 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
             </n-gi>
             <n-gi>
               <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">任意回购人数 (30d)</div>
+                <div class="text-sm text-slate-500">{{ windowDays }}天回购人数</div>
                 <div class="text-2xl font-bold text-slate-700 mt-2">
-                  {{ totalRepurchaseUsers30d.toLocaleString() }}
+                  {{ totalRepurchaseUsers.toLocaleString() }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">回购率 {{ fmtPct(totalRepurchaseRate30d) }}</div>
+                <div class="text-xs text-slate-400 mt-1">回购率 {{ fmtPct(totalRepurchaseRate) }}</div>
               </n-card>
             </n-gi>
             <n-gi>
               <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">正装回购人数 (30d)</div>
+                <div class="text-sm text-slate-500">{{ windowDays }}天正装回购人数</div>
                 <div class="text-2xl font-bold text-rose-600 mt-2">
-                  {{ totalFullRepurchaseUsers30d.toLocaleString() }}
+                  {{ totalFullRepurchaseUsers.toLocaleString() }}
                 </div>
                 <div class="text-xs text-slate-400 mt-1">
-                  正装转化率 {{ fmtPct(totalFullRepurchaseRate30d) }}
+                  正装转化率 {{ fmtPct(totalFullRepurchaseRate) }}
                 </div>
               </n-card>
             </n-gi>
             <n-gi>
               <n-card :bordered="false" segmented>
-                <div class="text-sm text-slate-500">正装 GSV (30d)</div>
+                <div class="text-sm text-slate-500">{{ windowDays }}天正装 GSV</div>
                 <div class="text-2xl font-bold text-emerald-600 mt-2">
-                  ¥{{ (totalFullRepurchaseGsv30d / 1e4).toFixed(1) }}万
+                  ¥{{ (totalFullRepurchaseGsv / 1e4).toFixed(1) }}万
                 </div>
                 <div class="text-xs text-slate-400 mt-1">
-                  AUS ¥{{ totalFullRepurchaseAus30d.toFixed(0) }}
+                  AUS ¥{{ totalFullRepurchaseAus.toFixed(0) }}
                 </div>
               </n-card>
             </n-gi>
@@ -447,13 +454,13 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
                     <n-statistic label="派样人数" :value="ch.sample_users" />
                   </n-gi>
                   <n-gi>
-                    <n-statistic label="回购人数" :value="numVal(ch, windowField)" />
+                    <n-statistic label="回购人数" :value="ch.repurchase_users ?? 0" />
                   </n-gi>
                   <n-gi>
                     <n-statistic label="回购率">
                       <template #default>
                         <span class="text-indigo-600 font-bold">
-                          {{ (numVal(ch, rateField) * 100).toFixed(1) }}%
+                          {{ ((ch.repurchase_rate ?? 0) * 100).toFixed(1) }}%
                         </span>
                       </template>
                     </n-statistic>
@@ -462,7 +469,7 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
                     <n-statistic label="贡献GSV">
                       <template #default>
                         <span class="text-emerald-600 font-bold">
-                          ¥{{ (numVal(ch, gsvField) / 1e4).toFixed(1) }}万
+                          ¥{{ ((ch.repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万
                         </span>
                       </template>
                     </n-statistic>
@@ -471,42 +478,42 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
                     <n-statistic label="AUS">
                       <template #default>
                         <span class="text-sky-600 font-bold">
-                          ¥{{ numVal(ch, ausField).toFixed(0) }}
+                          ¥{{ (ch.repurchase_aus ?? 0).toFixed(0) }}
                         </span>
                       </template>
                     </n-statistic>
                   </n-gi>
                 </n-grid>
 
-                <!-- 三窗口对比 -->
+                <!-- 当前窗口概览 -->
                 <n-divider />
                 <div class="flex items-center gap-6 text-sm text-slate-500">
-                  <span>7天回购: <b class="text-slate-700">{{ (ch.repurchase_users_7d ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate_7d ?? 0) * 100).toFixed(1) }}%)</span>
-                  <span>30天回购: <b class="text-slate-700">{{ (ch.repurchase_users_30d ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate_30d ?? 0) * 100).toFixed(1) }}%)</span>
-                  <span>60天回购: <b class="text-slate-700">{{ (ch.repurchase_users_60d ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate_60d ?? 0) * 100).toFixed(1) }}%)</span>
+                  <span>{{ windowDays }}天回购: <b class="text-slate-700">{{ (ch.repurchase_users ?? 0).toLocaleString() }}</b> 人 ({{ ((ch.repurchase_rate ?? 0) * 100).toFixed(1) }}%)</span>
+                  <span>贡献GSV: <b class="text-slate-700">¥{{ ((ch.repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万</b></span>
+                  <span>AUS: <b class="text-slate-700">¥{{ (ch.repurchase_aus ?? 0).toFixed(0) }}</b></span>
                 </div>
 
                 <n-divider />
                 <div class="grid grid-cols-2 gap-4">
                   <div>
-                    <div class="text-xs font-semibold text-rose-600 mb-1">正装回购 (spu_type='正装')</div>
+                    <div class="text-xs font-semibold text-rose-600 mb-1">{{ windowDays }}天正装回购</div>
                     <div class="text-sm text-slate-600">
-                      人数: <b class="text-slate-800">{{ (ch.full_repurchase_users_30d ?? 0).toLocaleString() }}</b>
-                      ({{ fmtPct(ch.full_repurchase_rate_30d ?? 0) }})
+                      人数: <b class="text-slate-800">{{ (ch.full_repurchase_users ?? 0).toLocaleString() }}</b>
+                      ({{ fmtPct(ch.full_repurchase_rate ?? 0) }})
                     </div>
                     <div class="text-sm text-slate-600">
-                      GSV: <b class="text-emerald-700">¥{{ ((ch.full_repurchase_gsv_30d ?? 0) / 1e4).toFixed(1) }}万</b>
-                      · AUS ¥{{ (ch.full_repurchase_aus_30d ?? 0).toFixed(0) }}
+                      GSV: <b class="text-emerald-700">¥{{ ((ch.full_repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万</b>
+                      · AUS ¥{{ (ch.full_repurchase_aus ?? 0).toFixed(0) }}
                     </div>
                   </div>
                   <div>
                     <div class="text-xs font-semibold text-slate-500 mb-1">非正装回购 (小样/赠品等)</div>
                     <div class="text-sm text-slate-600">
-                      人数: <b class="text-slate-800">{{ (ch.nonfull_repurchase_users_30d ?? 0).toLocaleString() }}</b>
+                      人数: <b class="text-slate-800">{{ (ch.nonfull_repurchase_users ?? 0).toLocaleString() }}</b>
                     </div>
                     <div class="text-sm text-slate-600">
-                      GSV: <b class="text-slate-700">¥{{ ((ch.nonfull_repurchase_gsv_30d ?? 0) / 1e4).toFixed(1) }}万</b>
-                      · AUS ¥{{ (ch.nonfull_repurchase_aus_30d ?? 0).toFixed(0) }}
+                      GSV: <b class="text-slate-700">¥{{ ((ch.nonfull_repurchase_gsv ?? 0) / 1e4).toFixed(1) }}万</b>
+                      · AUS ¥{{ (ch.nonfull_repurchase_aus ?? 0).toFixed(0) }}
                     </div>
                   </div>
                 </div>

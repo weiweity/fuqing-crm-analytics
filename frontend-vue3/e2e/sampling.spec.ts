@@ -6,42 +6,38 @@ import { test, expect } from './fixtures/auth.fixture'
  * 去掉 /api/v1/sampling/roi 业务断言，只验证路由/关键文案/无报错。
  */
 test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
-  test.setTimeout(30000)
+  test.setTimeout(45000)
 
   test('访问 /sampling, PageHeader + ROI 文案渲染, 无控制台/API error (回归 a9b1d91)', async ({ authenticatedPage: page, consoleErrors }) => {
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+    let roiRequestCount = 0
+
     // Sprint 60.3+ C+: CI 用 schema-only DB，sampling API 在空数据下会超时/500；mock 成合法空响应
     await page.route('/api/v1/sampling/**', async (route) => {
       const url = route.request().url()
       let body = '{}'
       if (url.includes('/roi')) {
+        roiRequestCount += 1
+        if (roiRequestCount > 1) {
+          await delay(2500)
+        }
         body = JSON.stringify({
           summary: {
             channels: [
               {
                 channel: 'U先派样',
                 sample_users: 1000,
-                repurchase_users_7d: 120,
-                repurchase_users_30d: 300,
-                repurchase_users_60d: 360,
-                repurchase_rate_7d: 0.12,
-                repurchase_rate_30d: 0.3,
-                repurchase_rate_60d: 0.36,
-                repurchase_gsv_7d: 26000,
-                repurchase_gsv_30d: 80000,
-                repurchase_gsv_60d: 98000,
-                repurchase_aus_7d: 216,
-                repurchase_aus_30d: 267,
-                repurchase_aus_60d: 272,
-                full_repurchase_users_30d: 120,
-                full_repurchase_gsv_30d: 50000,
-                full_repurchase_aus_30d: 416,
-                full_repurchase_rate_30d: 0.12,
-                full_repurchase_users_60d: 160,
-                full_repurchase_gsv_60d: 68000,
-                full_repurchase_aus_60d: 425,
-                nonfull_repurchase_users_30d: 180,
-                nonfull_repurchase_gsv_30d: 30000,
-                nonfull_repurchase_aus_30d: 166,
+                repurchase_users: 300,
+                repurchase_rate: 0.3,
+                repurchase_gsv: 80000,
+                repurchase_aus: 267,
+                full_repurchase_users: 120,
+                full_repurchase_rate: 0.12,
+                full_repurchase_gsv: 50000,
+                full_repurchase_aus: 416,
+                nonfull_repurchase_users: 180,
+                nonfull_repurchase_gsv: 30000,
+                nonfull_repurchase_aus: 166,
               },
             ],
           },
@@ -104,15 +100,16 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     // 关键断言 2: PageHeader subtitle 可见
     await expect(page.getByText('U先/百补派样ROI').first()).toBeVisible()
 
-    // Sprint 139: 4 KPI 卡 + 正装拆分真值断言
+    // Sprint 139/140: 4 KPI 卡 + 自由窗口 + 正装拆分真值断言
     await expect(page.getByText('派样人数').first()).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('任意回购人数').first()).toBeVisible()
-    await expect(page.getByText('正装回购人数').first()).toBeVisible()
+    await expect(page.getByText('30天回购').first()).toBeVisible()
+    await expect(page.getByText('30天回购人数').first()).toBeVisible()
+    await expect(page.getByText('30天正装回购人数').first()).toBeVisible()
     await expect(page.getByText('正装转化率').first()).toBeVisible()
 
     // 关键断言 3: 渠道对比卡片 + 正装/非正装 split
     await expect(page.getByText('U先派样').first()).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(/正装回购 \(spu_type='正装'\)/).first()).toBeVisible()
+    await expect(page.getByText('30天正装回购').first()).toBeVisible()
     await expect(page.getByText('非正装回购').first()).toBeVisible()
 
     // 关键断言 4: 品类明细表新增正装列
@@ -121,6 +118,12 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
 
     // 关键断言 5: 周期分布图
     await expect(page.getByText('回购周期分布').first()).toBeVisible({ timeout: 5000 })
+
+    // Sprint 140: level 切换触发重算视觉提示
+    await page.locator('.n-select').filter({ hasText: '品类销售' }).locator('.n-base-selection').click()
+    await page.locator('.n-base-select-option').filter({ hasText: '商品梯队' }).click()
+    await expect(page.getByText('正在按 商品梯队 重算...')).toBeVisible({ timeout: 2000 })
+    await expect(page.getByText('正在按 商品梯队 重算...')).toBeHidden({ timeout: 5000 })
 
     // 无 console error 与 API 5xx (a9b1d91 当时 Vite 编译错会污染 console)
     expect(consoleErrors).toHaveLength(0)

@@ -16,7 +16,7 @@ class TestSamplingROIPosizeConversion:
     """Task 1: 正装/非正装拆分."""
 
     def test_summary_contains_posize_fields_and_gsv_partition(self, monkeypatch_connection):
-        """正装 GSV + 非正装 GSV 应覆盖 30d 任意回购 GSV."""
+        """正装 GSV + 非正装 GSV 应覆盖所选窗口任意回购 GSV."""
         result = get_sampling_roi(
             start_date="2026-05-01",
             end_date="2026-05-31",
@@ -27,21 +27,18 @@ class TestSamplingROIPosizeConversion:
         assert result["summary"]["channels"]
         for ch in result["summary"]["channels"]:
             for key in (
-                "full_repurchase_users_30d",
-                "full_repurchase_gsv_30d",
-                "full_repurchase_aus_30d",
-                "nonfull_repurchase_users_30d",
-                "nonfull_repurchase_gsv_30d",
-                "nonfull_repurchase_aus_30d",
-                "full_repurchase_users_60d",
-                "full_repurchase_gsv_60d",
-                "full_repurchase_aus_60d",
-                "full_repurchase_rate_30d",
+                "full_repurchase_users",
+                "full_repurchase_gsv",
+                "full_repurchase_aus",
+                "nonfull_repurchase_users",
+                "nonfull_repurchase_gsv",
+                "nonfull_repurchase_aus",
+                "full_repurchase_rate",
             ):
                 assert key in ch
 
-            split_gsv = ch["full_repurchase_gsv_30d"] + ch["nonfull_repurchase_gsv_30d"]
-            assert abs(split_gsv - ch["repurchase_gsv_30d"]) <= 0.05
+            split_gsv = ch["full_repurchase_gsv"] + ch["nonfull_repurchase_gsv"]
+            assert abs(split_gsv - ch["repurchase_gsv"]) <= 0.05
 
     def test_category_rows_contain_posize_fields(self, monkeypatch_connection):
         """品类明细行包含正装回购人/GSV/AUS 字段."""

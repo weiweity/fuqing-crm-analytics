@@ -1,3 +1,26 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 140, VERSION 不变 真业务 sprint - 派样 ROI 自由窗口 + level 联动视觉强化)
+
+### Changed
+- **backend/contracts/sampling.py**: `SamplingChannelSummary` 从 7/30/60 天固定字段瘦身为统一窗口字段 `repurchase_users / repurchase_rate / repurchase_gsv / repurchase_aus`，正装/非正装 split 同步去 `_30d` 后缀。
+- **backend/services/sampling_service.py**: `summary_sql` 改为 `window_days` 参数化单窗口计算，`repurchase` CTE 与周期分布同步跟随 1-90 天窗口，DQM 文案和 GSV 汇总也跟随当前窗口。
+- **backend/routers/sampling.py**: `/api/v1/sampling/roi` 的 `window_days` 明确限制为 1-90 天，OpenAPI 文案从固定 7/30/60 改为自由窗口。
+- **frontend-vue3/src/views/SamplingView.vue**: 固定 3 档 `<n-select>` 改为 1-90 天 `<n-slider>`；删除硬拼 `repurchase_*_${windowDays}d` 的 computed；KPI、渠道卡片和正装 split 全部读取统一字段；新增 level 切换重算提示。
+- **frontend-vue3/src/api/sampling.ts**: 手写 TS interface 同步统一窗口字段与 DQM 字段名。
+
+### Added
+- **backend/tests/test_sampling_sprint140.py**: 新增 3 个逻辑 case，覆盖 5 个 `window_days` 参数、30 天 GSV split invariant、level 切换聚合。
+- **backend/scripts/check_window_unification.py**: 新增 Sprint 140 ground-truth-lint，检查 19 个旧窗口字段名在 contract/API/view 中 0 残留。
+- **frontend-vue3/e2e/sampling.spec.ts**: mock 字段名同步为统一窗口字段，新增 slider 文案与 level 重算提示断言。
+
+### Verification
+- Codex Stage 2 待跑: pytest 3 case + 5 window_days、Sprint 139/140 ground-truth-lint、e2e 真值断言、pre-commit 全绿。
+- VERSION: 0.4.14.157 不 bump；L4.x 22 stable 0 新增。
+
+### NOT in scope
+- 0.01 锁权、滚动同期对比、level 联动 summary 二级聚合、成本/毛利/CAC/LTV、holdout、cohort retention、ETL `sample_received_at`。
+
+---
+
 ## [0.4.14.157] - 2026-06-27 (Sprint 139, VERSION 不变 真业务 sprint - 派样人群正装转化漏斗)
 
 ### Changed

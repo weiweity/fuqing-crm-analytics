@@ -28,7 +28,7 @@ def get_sampling_roi_api(
     response: Response,
     start_date: str = Query(default=_default_start_date(), description="派样起始日期"),
     end_date: str = Query(default=_default_end_date(), description="派样结束日期"),
-    window_days: int = Query(default=30, description="回购窗口天数：7/30/60"),
+    window_days: int = Query(default=30, ge=1, le=90, description="回购窗口天数：1-90"),
     level: str = Query(default="spu_category", description="品类维度：spu_category/spu_tier/spu_product_class"),
     channel: Optional[str] = Query(default=None, description="筛选特定派样渠道"),
 ):
@@ -36,7 +36,7 @@ def get_sampling_roi_api(
     派样 ROI 分析
 
     返回 U先派样 / 百补派样 在指定时间窗口内的：
-    - 渠道汇总：派样人数、7/30/60天回购人数、回购率、贡献GSV、AUS
+    - 渠道汇总：派样人数、所选窗口回购人数、回购率、贡献GSV、AUS
     - 品类明细：每个渠道×品类的回购情况（含同品类回购）
     """
     if warning := check_future_date(start_date) or check_future_date(end_date):
