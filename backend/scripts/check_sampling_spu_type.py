@@ -13,7 +13,7 @@ def check_posize_split_present() -> list[str]:
     checks = [
         (
             "summary_sql has full split",
-            r"COUNT\(DISTINCT CASE WHEN r\.days_between <= 30 AND r\.spu_type = '正装'",
+            r"COUNT\(DISTINCT CASE WHEN r\.days_between <= \? AND r\.spu_type = '正装'",
         ),
         (
             "cat_sql has full split",

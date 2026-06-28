@@ -8,30 +8,19 @@ class SamplingChannelSummary(BaseModel):
     """派样渠道汇总"""
     channel: str
     sample_users: int
-    repurchase_users_7d: int
-    repurchase_users_30d: int
-    repurchase_users_60d: int
-    # Sprint 17 B2 全量 audit: 0-1 decimal ratio 字段补 RatioField 标注
-    repurchase_rate_7d: "RatioField"
-    repurchase_rate_30d: "RatioField"
-    repurchase_rate_60d: "RatioField"
-    repurchase_gsv_7d: float
-    repurchase_gsv_30d: float
-    repurchase_gsv_60d: float
-    repurchase_aus_7d: float
-    repurchase_aus_30d: float
-    repurchase_aus_60d: float
-    # Sprint 139: 正装/非正装 split (spu_type='正装')
-    full_repurchase_users_30d: int = 0
-    full_repurchase_gsv_30d: float = 0.0
-    full_repurchase_aus_30d: float = 0.0
-    full_repurchase_users_60d: int = 0
-    full_repurchase_gsv_60d: float = 0.0
-    full_repurchase_aus_60d: float = 0.0
-    full_repurchase_rate_30d: "RatioField" = 0.0
-    nonfull_repurchase_users_30d: int = 0
-    nonfull_repurchase_gsv_30d: float = 0.0
-    nonfull_repurchase_aus_30d: float = 0.0
+    # Sprint 140: 统一窗口字段（任意 window_days 由 service 参数化计算）
+    repurchase_users: int = 0
+    repurchase_rate: "RatioField" = 0.0
+    repurchase_gsv: float = 0.0
+    repurchase_aus: float = 0.0
+    # Sprint 139 保留: 正装/非正装 split
+    full_repurchase_users: int = 0
+    full_repurchase_gsv: float = 0.0
+    full_repurchase_aus: float = 0.0
+    full_repurchase_rate: "RatioField" = 0.0
+    nonfull_repurchase_users: int = 0
+    nonfull_repurchase_gsv: float = 0.0
+    nonfull_repurchase_aus: float = 0.0
 
 
 class SamplingCategoryRow(BaseModel):
@@ -81,8 +70,8 @@ class QualityFlag(BaseModel):
     severity: str
     message: str
     posize_ratio: Optional["RatioField"] = None
-    total_posize_gsv_30d: Optional[float] = None
-    total_gsv_30d: Optional[float] = None
+    total_posize_gsv: Optional[float] = None
+    total_gsv: Optional[float] = None
 
 
 class SamplingROIResponse(BaseModel):
