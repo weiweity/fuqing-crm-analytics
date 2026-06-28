@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { NTabs, NTabPane, NSelect, NDatePicker, NCard, NDataTable, NGrid, NGi, NStatistic, NDivider, NAlert, NSlider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
@@ -18,6 +18,16 @@ const windowDays = ref(30)
 const categoryLevel = ref('spu_category')
 
 const sliderMarks = { 7: '7d', 14: '14d', 30: '30d', 60: '60d', 90: '90d' } as Record<number, string>
+const windowDaysDebounced = ref(windowDays.value)
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(windowDays, (newVal) => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    windowDaysDebounced.value = newVal
+    debounceTimer = null
+  }, 250)
+})
 
 const levelOptions = [
   { label: '品类销售', value: 'spu_category' },
@@ -41,7 +51,7 @@ const roiParams = computed(() => {
   return {
     start_date: fmtDate(s),
     end_date: fmtDate(e),
-    window_days: windowDays.value,
+    window_days: windowDaysDebounced.value,
     level: categoryLevel.value,
   }
 })
@@ -53,13 +63,36 @@ const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: ro
   placeholderData: previousData => previousData,
 })
 
+const levelLoadingStartedAt = ref<number>(0)
+const alertTick = ref(0)
+let alertTickInterval: ReturnType<typeof setInterval> | null = null
+
+watch(roiFetching, (isFetching) => {
+  if (isFetching) {
+    levelLoadingStartedAt.value = Date.now()
+    alertTick.value = Date.now()
+    if (alertTickInterval) clearInterval(alertTickInterval)
+    alertTickInterval = setInterval(() => {
+      alertTick.value = Date.now()
+    }, 100)
+    return
+  }
+  if (alertTickInterval) {
+    clearInterval(alertTickInterval)
+    alertTickInterval = null
+  }
+  levelLoadingStartedAt.value = 0
+})
+
 function safeRatio(numerator: number, denominator: number): number {
   if (!denominator || denominator === 0) return 0
   return numerator / denominator
 }
 
 const levelLoadingText = computed(() => {
-  if (!roiFetching.value || !roiData.value) return null
+  void alertTick.value
+  if (!roiFetching.value || !roiData.value || levelLoadingStartedAt.value === 0) return null
+  if (Date.now() - levelLoadingStartedAt.value < 300) return null
   const levelLabel = levelOptions.find(o => o.value === categoryLevel.value)?.label ?? categoryLevel.value
   return `正在按 ${levelLabel} 重算...`
 })
@@ -105,6 +138,7 @@ const periodBuckets = computed(() => {
     { label: '4-7天', total: pd.bucket_4_7d, full: pd.full_bucket_4_7d },
     { label: '8-30天', total: pd.bucket_8_30d, full: pd.full_bucket_8_30d },
     { label: '31-60天', total: pd.bucket_31_60d, full: pd.full_bucket_31_60d },
+    { label: '61-90天', total: pd.bucket_61_90d, full: pd.full_bucket_61_90d },
   ]
   const maxTotal = Math.max(...all.map(b => b.total), 1)
   return all.map(b => ({
@@ -335,6 +369,17 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
   { title: '2025年(对齐)', key: 'yearB', width: 130, align: 'right' },
   { title: 'YoY', key: 'yoy', width: 100, align: 'center' },
 ]
+
+onUnmounted(() => {
+  if (alertTickInterval) {
+    clearInterval(alertTickInterval)
+    alertTickInterval = null
+  }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+})
 </script>
 
 <template>
@@ -541,7 +586,7 @@ const rollingCols: DataTableColumns<RollingMetricRow> = [
             <template #header>
               <span class="text-sm font-semibold text-slate-700">回购周期分布</span>
             </template>
-            <div class="grid grid-cols-4 gap-4 items-end" style="min-height: 200px">
+            <div class="grid grid-cols-5 gap-3 items-end" style="min-height: 200px">
               <div v-for="bucket in periodBuckets" :key="bucket.label" class="text-center">
                 <div class="text-xs text-slate-500 mb-1">{{ bucket.label }}</div>
                 <div class="mx-auto flex items-end justify-center gap-1" style="height: 164px">

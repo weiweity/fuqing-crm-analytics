@@ -56,10 +56,12 @@ export interface PeriodDistribution {
   bucket_4_7d: number
   bucket_8_30d: number
   bucket_31_60d: number
+  bucket_61_90d: number
   full_bucket_1_3d: number
   full_bucket_4_7d: number
   full_bucket_8_30d: number
   full_bucket_31_60d: number
+  full_bucket_61_90d: number
 }
 
 export interface QualityFlag {
