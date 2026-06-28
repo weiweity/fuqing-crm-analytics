@@ -1,4 +1,4 @@
-# Sample CRM 前端
+# 天猫CRM 前端
 
 Vue 3 + Vite + TypeScript + Tailwind CSS + naive-ui 构建的 CRM 数据分析前端。
 

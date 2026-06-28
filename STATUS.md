@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-27 (Sprint 137 真 refactor sprint — 人群看板 AudienceView 拆 3 tabs (数据总览 / 渠道概览 / 30指标对比) + Sprint 135-136 累计 /document-release 跨 sprint drift 修 7 处 (README/CLAUDE.md Sample→天猫 + STATUS/TECH-DEBT head Sprint 137 + SPRINT_INDEX Sprint 105-137 1 行指针 + DATA_PIPELINE head 2026-06-27), pytest 730/23/0 baseline 持续, main HEAD `4fff7a2`, 累计 60→62 sprint 0 debt 持续, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增, 跟 Sprint 65 + 135 + Sprint 116+117+136+137 真 refactor 模式 stable)
+**最后更新**: 2026-06-28 (Sprint 139 真业务 sprint — 派样人群正装转化漏斗 (get_sampling_roi 加 spu_type='正装' 拆分 + 回购周期分布 5 桶 + DQM warnings) + Sprint 140 真 refactor sprint — 派样 ROI 自由窗口 1-90 天 <n-slider> + level 联动视觉强化 (levelLoadingText + placeholderData) + contract 瘦身 (SamplingChannelSummary 12 字段 → 4 字段统一窗口) + 2 个 ground-truth-lint 钩子 (check_sampling_spu_type + check_window_unification) + Sprint 141 留尾 #D1-#D4 (period_distribution 61-90d 静默丢失 high + QualityFlag docstring + slider debounce + alert minimum display time 3 medium), pytest 738/23/0 baseline 持续, main HEAD `78f9347`, 累计 63→65 sprint 0 debt, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增, 跟 Sprint 137+138 留尾治理 + Sprint 136+137+138+139+140 真业务 sprint 模式 stable, 跨 sprint 留尾 0 项, 跟 Sprint 65+135+138 /document-release 模式 stable)
 
 ---
 
@@ -11,11 +11,11 @@
 | 项 | 值 |
 |---|---|
 | VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `4fff7a2` (Sprint 137 merge, 跟 origin/main 0 drift) |
+| git HEAD (main) | `78f9347` (Sprint 140 merge, 跟 origin/main 0 drift) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 137 (人群看板 AudienceView 拆 3 tabs + /document-release 7 处 drift 全闭环, 跟 Sprint 65 + 135 模式 stable) |
-| 收口日 | 2026-06-27 |
-| 上次合入 | Sprint 137 (commit `4fff7a2` docs(changelog), push origin main 34e6f64..4fff7a2) |
+| 最近 sprint | Sprint 140 (派样 ROI 自由窗口 1-90 天 + level 联动视觉强化 + contract 瘦身 + 2 ground-truth-lint 钩子, 跟 Sprint 137+138+139 真业务 sprint + 留尾治理模式 stable, 跨 sprint 留尾 #D1-#D4 Sprint 141 必修) |
+| 收口日 | 2026-06-28 |
+| 上次合入 | Sprint 140 (commit `78f9347` merge, push origin main f19c134..78f9347, 4 feature branch + 1 远程 cleanup 跟 L4.8 永久规则 stable) |
 
 ---
 
@@ -23,7 +23,7 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **730** | Sprint 134 force-push 前本地验 (730 passed / 23 skipped / 0 failed, 跟 Sprint 129 baseline 一致, 4 sprint 完全 revert) |
+| pytest passed | **738** | Sprint 140 收口验 (738 passed / 23 skipped / 0 failed, 跟 Sprint 139 baseline 735 +3 case: Sprint 140 parametrize 5 window_days 算 1 case + window_30 invariant + level linkage) |
 | pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 |
 
 ---

@@ -1,8 +1,8 @@
 # Sprint 历史索引
 
-> Sprint 1-104 详细索引 (本表) + Sprint 105-138 1 行指针 (`MEMORY.md` 索引) 减少冷启动 token。
+> Sprint 1-104 详细索引 (本表) + Sprint 105-140 1 行指针 (`MEMORY.md` 索引) 减少冷启动 token。
 > 
-> **最后更新**: 2026-06-27 (Sprint 138 留尾治理 sprint — /document-release 累计 7 处 doc drift 全闭环, 加 Sprint 105-137 1 行指针 (跟 MEMORY.md 1 行指针模式 stable, L4.13 MEMORY.md size 0 越界) + Sprint 138 自身 entry, 跟 Sprint 65 + 135 /document-release 模式 stable)
+> **最后更新**: 2026-06-28 (Sprint 139 真业务 sprint + Sprint 140 真 refactor sprint 跨 sprint 留尾治理 + /document-release 累计 3 次真治本 (跟 Sprint 65 + 135 + 138 模式 stable) 修 7 处 doc drift (跟 Sprint 139+140 /document-release 真治本 head + table 同步) + Sprint 139+140 自身 entry, 跟 Sprint 138 /document-release 模式 stable, 加 Sprint 105-140 1 行指针)
 
 ## 索引规则
 
