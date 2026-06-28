@@ -1,507 +1,37 @@
 {
   "version": "1.0",
-  "git_sha": "b5268a0f43734f997df6e27c05465692f6df4c8e",
+  "git_sha": "f19c134f90e81a5f1f2a1c06afea913c76c39869",
   "baseline_date": "2026_06_03",
   "runs": [
     {
       "run_id": "1/3",
       "host": "mac",
-      "started_at": "2026-06-25T00:45:44.777117",
-      "ended_at": "2026-06-25T01:28:45.337287",
-      "real_elapsed_sec": 2580.5602,
-      "step_wall_time_sum": 3585.3158,
-      "wall_time_sec": 3585.3158,
-      "cpu_time_sec": 4466.5073,
-      "rss_peak_mb": 5750.84,
+      "started_at": "2026-06-28T08:30:01.108772",
+      "ended_at": "2026-06-28T08:30:01.108772",
+      "real_elapsed_sec": 0.0,
+      "step_wall_time_sum": 0.0039,
+      "wall_time_sec": 0.0039,
+      "cpu_time_sec": 0.0039,
+      "rss_peak_mb": 118.94,
       "duckdb_alloc_mb": 8192,
       "spill_to_disk_mb": 0,
-      "step_count": 34,
+      "step_count": 1,
       "per_step": [
-        {
-          "name": "pl_step1_load_ref_data",
-          "step_name": "pl_step1_load_ref_data",
-          "timestamp": "2026-06-25T00:45:44.777117",
-          "wall_sec": 0.1929,
-          "cpu_sec": 0.1864,
-          "rss_peak_mb": 657.19,
-          "wall_time": 0.1929,
-          "cpu_time": 0.1864,
-          "memory_peak_kb": 672960,
-          "memory_peak_mb": 657.19
-        },
-        {
-          "name": "load_filter_rolling_window",
-          "step_name": "load_filter_rolling_window",
-          "timestamp": "2026-06-25T01:11:18.539343",
-          "wall_sec": 14.2175,
-          "cpu_sec": 4.1999,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 14.2175,
-          "cpu_time": 4.1999,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "input_rows": 10793725,
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step2_5_filter_rolling_window",
-          "step_name": "pl_step2_5_filter_rolling_window",
-          "timestamp": "2026-06-25T01:11:18.682869",
-          "wall_sec": 14.3612,
-          "cpu_sec": 4.2657,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 14.3612,
-          "cpu_time": 4.2657,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "transform_p4_keyword_loop",
-          "step_name": "transform_p4_keyword_loop",
-          "timestamp": "2026-06-25T01:11:18.882510",
-          "wall_sec": 0.0205,
-          "cpu_sec": 0.0202,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 0.0205,
-          "cpu_time": 0.0202,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "kw_count": 40
-          }
-        },
-        {
-          "name": "transform_match_channel",
-          "step_name": "transform_match_channel",
-          "timestamp": "2026-06-25T01:11:23.287302",
-          "wall_sec": 4.4333,
-          "cpu_sec": 4.2644,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 4.4333,
-          "cpu_time": 4.2644,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "rows": 7,
-            "kw_rules": 40,
-            "id_rules": 0
-          }
-        },
-        {
-          "name": "transform_clean_data",
-          "step_name": "transform_clean_data",
-          "timestamp": "2026-06-25T01:11:23.296615",
-          "wall_sec": 4.6134,
-          "cpu_sec": 4.3755,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 4.6134,
-          "cpu_time": 4.3755,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "rows": 7
-          }
-        },
-        {
-          "name": "pl_step3_clean_data_new",
-          "step_name": "pl_step3_clean_data_new",
-          "timestamp": "2026-06-25T01:11:23.296640",
-          "wall_sec": 4.6134,
-          "cpu_sec": 4.3756,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 4.6134,
-          "cpu_time": 4.3756,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "rows": 7
-          }
-        },
-        {
-          "name": "transform_p4_keyword_loop",
-          "step_name": "transform_p4_keyword_loop",
-          "timestamp": "2026-06-25T01:11:24.542523",
-          "wall_sec": 0.4846,
-          "cpu_sec": 0.4844,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 0.4846,
-          "cpu_time": 0.4844,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "kw_count": 40
-          }
-        },
-        {
-          "name": "transform_match_channel",
-          "step_name": "transform_match_channel",
-          "timestamp": "2026-06-25T01:11:28.778482",
-          "wall_sec": 5.1951,
-          "cpu_sec": 4.9907,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 5.1951,
-          "cpu_time": 4.9907,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "rows": 255427,
-            "kw_rules": 40,
-            "id_rules": 0
-          }
-        },
-        {
-          "name": "transform_clean_data",
-          "step_name": "transform_clean_data",
-          "timestamp": "2026-06-25T01:11:28.852394",
-          "wall_sec": 5.5558,
-          "cpu_sec": 5.3377,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 5.5558,
-          "cpu_time": 5.3377,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "rows": 255427
-          }
-        },
-        {
-          "name": "pl_step3_clean_data_refresh",
-          "step_name": "pl_step3_clean_data_refresh",
-          "timestamp": "2026-06-25T01:11:28.852422",
-          "wall_sec": 5.5558,
-          "cpu_sec": 5.3377,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 5.5558,
-          "cpu_time": 5.3377,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "rows": 255427
-          }
-        },
-        {
-          "name": "load_upsert_to_duckdb",
-          "step_name": "load_upsert_to_duckdb",
-          "timestamp": "2026-06-25T01:11:39.649798",
-          "wall_sec": 10.797,
-          "cpu_sec": 16.1232,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 10.797,
-          "cpu_time": 16.1232,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "mode": "incremental",
-            "new_rows": 7,
-            "refresh_rows": 255427
-          }
-        },
-        {
-          "name": "pl_step4_upsert_to_duckdb",
-          "step_name": "pl_step4_upsert_to_duckdb",
-          "timestamp": "2026-06-25T01:11:39.649863",
-          "wall_sec": 10.7975,
-          "cpu_sec": 16.1234,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 10.7975,
-          "cpu_time": 16.1234,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69,
-          "extra": {
-            "new_rows": 7,
-            "refresh_rows": 255427
-          }
-        },
-        {
-          "name": "pl_step4_7_replay_is_member_incremental",
-          "step_name": "pl_step4_7_replay_is_member_incremental",
-          "timestamp": "2026-06-25T01:18:28.449733",
-          "wall_sec": 408.8602,
-          "cpu_sec": 476.1275,
-          "rss_peak_mb": 4333.69,
-          "wall_time": 408.8602,
-          "cpu_time": 476.1275,
-          "memory_peak_kb": 4437696,
-          "memory_peak_mb": 4333.69
-        },
-        {
-          "name": "pl_step6_user_first_purchase",
-          "step_name": "pl_step6_user_first_purchase",
-          "timestamp": "2026-06-25T01:18:34.051548",
-          "wall_sec": 5.6016,
-          "cpu_sec": 27.6831,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 5.6016,
-          "cpu_time": 27.6831,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "run_mode": "incremental",
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step6_5_user_recency",
-          "step_name": "pl_step6_5_user_recency",
-          "timestamp": "2026-06-25T01:18:40.766255",
-          "wall_sec": 6.7147,
-          "cpu_sec": 29.1664,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 6.7147,
-          "cpu_time": 29.1664,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "run_mode": "incremental",
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step6_7_update_metrics_after_ufp",
-          "step_name": "pl_step6_7_update_metrics_after_ufp",
-          "timestamp": "2026-06-25T01:18:42.603569",
-          "wall_sec": 1.8373,
-          "cpu_sec": 10.161,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 1.8373,
-          "cpu_time": 10.161,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_step8a_category_flow",
-          "step_name": "pl_step8a_category_flow",
-          "timestamp": "2026-06-25T01:19:06.180877",
-          "wall_sec": 23.5411,
-          "cpu_sec": 139.2312,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 23.5411,
-          "cpu_time": 139.2312,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5
-        },
-        {
-          "name": "pl_step8b_category_churn",
-          "step_name": "pl_step8b_category_churn",
-          "timestamp": "2026-06-25T01:19:06.255914",
-          "wall_sec": 0.075,
-          "cpu_sec": 0.2984,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.075,
-          "cpu_time": 0.2984,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5
-        },
-        {
-          "name": "pl_step8_5_dq_assertions",
-          "step_name": "pl_step8_5_dq_assertions",
-          "timestamp": "2026-06-25T01:19:06.307043",
-          "wall_sec": 0.0498,
-          "cpu_sec": 0.2964,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.0498,
-          "cpu_time": 0.2964,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "date": "2026-06-25"
-          }
-        },
         {
           "name": "step1_run_full_etl",
           "step_name": "step1_run_full_etl",
-          "timestamp": "2026-06-25T01:19:13.650871",
-          "wall_sec": 2009.2066,
-          "cpu_sec": 2256.8964,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 2009.2066,
-          "cpu_time": 2256.8964,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
+          "timestamp": "2026-06-28T08:30:01.108772",
+          "wall_sec": 0.0039,
+          "cpu_sec": 0.0039,
+          "rss_peak_mb": 118.94,
+          "wall_time": 0.0039,
+          "cpu_time": 0.0039,
+          "memory_peak_kb": 121792,
+          "memory_peak_mb": 118.94,
           "extra": {
             "mode": "inc",
             "window_days": 30
           }
-        },
-        {
-          "name": "pl_taoke_full_correct",
-          "step_name": "pl_taoke_full_correct",
-          "timestamp": "2026-06-25T01:24:32.495588",
-          "wall_sec": 318.6806,
-          "cpu_sec": 372.3859,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 318.6806,
-          "cpu_time": 372.3859,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5
-        },
-        {
-          "name": "step2_update_taoke_channel",
-          "step_name": "step2_update_taoke_channel",
-          "timestamp": "2026-06-25T01:24:32.495676",
-          "wall_sec": 318.6807,
-          "cpu_sec": 372.386,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 318.6807,
-          "cpu_time": 372.386,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5
-        },
-        {
-          "name": "etl_status_override_refresh",
-          "step_name": "etl_status_override_refresh",
-          "timestamp": "2026-06-25T01:24:32.618676",
-          "wall_sec": 0.0088,
-          "cpu_sec": 0.0133,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.0088,
-          "cpu_time": 0.0133,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "step3_refresh_status_override",
-          "step_name": "step3_refresh_status_override",
-          "timestamp": "2026-06-25T01:24:32.618685",
-          "wall_sec": 0.0088,
-          "cpu_sec": 0.0133,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.0088,
-          "cpu_time": 0.0133,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "step4_sync_override_to_orders",
-          "step_name": "step4_sync_override_to_orders",
-          "timestamp": "2026-06-25T01:24:32.878598",
-          "wall_sec": 0.1916,
-          "cpu_sec": 1.0112,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.1916,
-          "cpu_time": 1.0112,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5,
-          "extra": {
-            "window_days": 30
-          }
-        },
-        {
-          "name": "pl_refresh_visitor_data",
-          "step_name": "pl_refresh_visitor_data",
-          "timestamp": "2026-06-25T01:24:33.112165",
-          "wall_sec": 0.1534,
-          "cpu_sec": 0.1409,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.1534,
-          "cpu_time": 0.1409,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5
-        },
-        {
-          "name": "step5_refresh_visitor_data",
-          "step_name": "step5_refresh_visitor_data",
-          "timestamp": "2026-06-25T01:24:33.112173",
-          "wall_sec": 0.1534,
-          "cpu_sec": 0.141,
-          "rss_peak_mb": 4615.5,
-          "wall_time": 0.1534,
-          "cpu_time": 0.141,
-          "memory_peak_kb": 4726272,
-          "memory_peak_mb": 4615.5
-        },
-        {
-          "name": "step6_precompute_rfm_cache",
-          "step_name": "step6_precompute_rfm_cache",
-          "timestamp": "2026-06-25T01:26:05.900059",
-          "wall_sec": 92.7016,
-          "cpu_sec": 389.3311,
-          "rss_peak_mb": 5720.3,
-          "wall_time": 92.7016,
-          "cpu_time": 389.3311,
-          "memory_peak_kb": 5857584,
-          "memory_peak_mb": 5720.3
-        },
-        {
-          "name": "step7a_create_user_rfm_table",
-          "step_name": "step7a_create_user_rfm_table",
-          "timestamp": "2026-06-25T01:26:06.183344",
-          "wall_sec": 0.001,
-          "cpu_sec": 0.0012,
-          "rss_peak_mb": 5720.3,
-          "wall_time": 0.001,
-          "cpu_time": 0.0012,
-          "memory_peak_kb": 5857584,
-          "memory_peak_mb": 5720.3
-        },
-        {
-          "name": "preload_rfm",
-          "step_name": "preload_rfm",
-          "timestamp": "2026-06-25T01:28:45.177623",
-          "wall_sec": 158.9957,
-          "cpu_sec": 160.5622,
-          "rss_peak_mb": 5750.84,
-          "wall_time": 158.9957,
-          "cpu_time": 160.5622,
-          "memory_peak_kb": 5888864,
-          "memory_peak_mb": 5750.84,
-          "extra": {
-            "hot_dates": 9,
-            "lookbacks": 3,
-            "metrics": 2,
-            "channels": 10,
-            "total_tasks": 0
-          }
-        },
-        {
-          "name": "step7b_run_auto_preload",
-          "step_name": "step7b_run_auto_preload",
-          "timestamp": "2026-06-25T01:28:45.177719",
-          "wall_sec": 158.9957,
-          "cpu_sec": 160.5622,
-          "rss_peak_mb": 5750.84,
-          "wall_time": 158.9957,
-          "cpu_time": 160.5622,
-          "memory_peak_kb": 5888864,
-          "memory_peak_mb": 5750.84
-        },
-        {
-          "name": "pl_refresh_campaign_schedule",
-          "step_name": "pl_refresh_campaign_schedule",
-          "timestamp": "2026-06-25T01:28:45.337275",
-          "wall_sec": 0.0099,
-          "cpu_sec": 0.0068,
-          "rss_peak_mb": 5750.84,
-          "wall_time": 0.0099,
-          "cpu_time": 0.0068,
-          "memory_peak_kb": 5888864,
-          "memory_peak_mb": 5750.84
-        },
-        {
-          "name": "step7_5_refresh_campaign_schedule",
-          "step_name": "step7_5_refresh_campaign_schedule",
-          "timestamp": "2026-06-25T01:28:45.337287",
-          "wall_sec": 0.01,
-          "cpu_sec": 0.0069,
-          "rss_peak_mb": 5750.84,
-          "wall_time": 0.01,
-          "cpu_time": 0.0069,
-          "memory_peak_kb": 5888864,
-          "memory_peak_mb": 5750.84
         }
       ]
     },
@@ -7233,334 +6763,107 @@
           }
         }
       ]
+    },
+    {
+      "run_id": "27/27",
+      "host": "mac",
+      "started_at": "2026-06-28T08:30:01.108772",
+      "ended_at": "2026-06-28T08:30:09.346765",
+      "real_elapsed_sec": 8.238,
+      "step_wall_time_sum": 14.4753,
+      "wall_time_sec": 14.4753,
+      "cpu_time_sec": 2.2274,
+      "rss_peak_mb": 365.64,
+      "duckdb_alloc_mb": 8192,
+      "spill_to_disk_mb": 0,
+      "step_count": 4,
+      "per_step": [
+        {
+          "name": "step1_run_full_etl",
+          "step_name": "step1_run_full_etl",
+          "timestamp": "2026-06-28T08:30:01.108772",
+          "wall_sec": 0.0039,
+          "cpu_sec": 0.0039,
+          "rss_peak_mb": 118.94,
+          "wall_time": 0.0039,
+          "cpu_time": 0.0039,
+          "memory_peak_kb": 121792,
+          "memory_peak_mb": 118.94,
+          "extra": {
+            "mode": "inc",
+            "window_days": 30
+          }
+        },
+        {
+          "name": "pl_taoke_full_correct",
+          "step_name": "pl_taoke_full_correct",
+          "timestamp": "2026-06-28T08:30:04.313505",
+          "wall_sec": 3.1115,
+          "cpu_sec": 0.7151,
+          "rss_peak_mb": 365.56,
+          "wall_time": 3.1115,
+          "cpu_time": 0.7151,
+          "memory_peak_kb": 374336,
+          "memory_peak_mb": 365.56
+        },
+        {
+          "name": "step2_update_taoke_channel",
+          "step_name": "step2_update_taoke_channel",
+          "timestamp": "2026-06-28T08:30:04.313673",
+          "wall_sec": 3.1118,
+          "cpu_sec": 0.7154,
+          "rss_peak_mb": 365.56,
+          "wall_time": 3.1118,
+          "cpu_time": 0.7154,
+          "memory_peak_kb": 374336,
+          "memory_peak_mb": 365.56
+        },
+        {
+          "name": "etl_total",
+          "step_name": "etl_total",
+          "timestamp": "2026-06-28T08:30:09.346765",
+          "wall_sec": 8.248,
+          "cpu_sec": 0.793,
+          "rss_peak_mb": 365.64,
+          "wall_time": 8.248,
+          "cpu_time": 0.793,
+          "memory_peak_kb": 374416,
+          "memory_peak_mb": 365.64,
+          "extra": {
+            "run_id": null
+          }
+        }
+      ]
     }
   ],
   "meta": {
     "baseline_date": "2026_06_03",
     "host": "mac",
-    "run_id": "26/26",
+    "run_id": "27/27",
     "python_version": "3.14.4",
     "platform": "macOS-26.5-arm64-arm-64bit-Mach-O",
-    "started_at": "2026-06-25T00:45:44.777117",
-    "ended_at": "2026-06-25T01:28:45.754743",
-    "real_elapsed_sec": 2580.9776,
-    "step_wall_time_sum": 6166.688,
-    "total_wall_time": 6166.688,
-    "total_cpu_time": 7649.6364,
-    "peak_memory_kb": 5888864,
-    "peak_memory_mb": 5750.84,
-    "step_count": 35
+    "started_at": "2026-06-28T08:30:01.108772",
+    "ended_at": "2026-06-28T08:30:09.346765",
+    "real_elapsed_sec": 8.238,
+    "step_wall_time_sum": 14.4753,
+    "total_wall_time": 14.4753,
+    "total_cpu_time": 2.2274,
+    "peak_memory_kb": 374416,
+    "peak_memory_mb": 365.64,
+    "step_count": 4
   },
   "steps": [
     {
-      "name": "pl_step1_load_ref_data",
-      "step_name": "pl_step1_load_ref_data",
-      "timestamp": "2026-06-25T00:45:44.777117",
-      "wall_sec": 0.1929,
-      "cpu_sec": 0.1864,
-      "rss_peak_mb": 657.19,
-      "wall_time": 0.1929,
-      "cpu_time": 0.1864,
-      "memory_peak_kb": 672960,
-      "memory_peak_mb": 657.19
-    },
-    {
-      "name": "load_filter_rolling_window",
-      "step_name": "load_filter_rolling_window",
-      "timestamp": "2026-06-25T01:11:18.539343",
-      "wall_sec": 14.2175,
-      "cpu_sec": 4.1999,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 14.2175,
-      "cpu_time": 4.1999,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "input_rows": 10793725,
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step2_5_filter_rolling_window",
-      "step_name": "pl_step2_5_filter_rolling_window",
-      "timestamp": "2026-06-25T01:11:18.682869",
-      "wall_sec": 14.3612,
-      "cpu_sec": 4.2657,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 14.3612,
-      "cpu_time": 4.2657,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "transform_p4_keyword_loop",
-      "step_name": "transform_p4_keyword_loop",
-      "timestamp": "2026-06-25T01:11:18.882510",
-      "wall_sec": 0.0205,
-      "cpu_sec": 0.0202,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 0.0205,
-      "cpu_time": 0.0202,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "kw_count": 40
-      }
-    },
-    {
-      "name": "transform_match_channel",
-      "step_name": "transform_match_channel",
-      "timestamp": "2026-06-25T01:11:23.287302",
-      "wall_sec": 4.4333,
-      "cpu_sec": 4.2644,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 4.4333,
-      "cpu_time": 4.2644,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "rows": 7,
-        "kw_rules": 40,
-        "id_rules": 0
-      }
-    },
-    {
-      "name": "transform_clean_data",
-      "step_name": "transform_clean_data",
-      "timestamp": "2026-06-25T01:11:23.296615",
-      "wall_sec": 4.6134,
-      "cpu_sec": 4.3755,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 4.6134,
-      "cpu_time": 4.3755,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "rows": 7
-      }
-    },
-    {
-      "name": "pl_step3_clean_data_new",
-      "step_name": "pl_step3_clean_data_new",
-      "timestamp": "2026-06-25T01:11:23.296640",
-      "wall_sec": 4.6134,
-      "cpu_sec": 4.3756,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 4.6134,
-      "cpu_time": 4.3756,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "rows": 7
-      }
-    },
-    {
-      "name": "transform_p4_keyword_loop",
-      "step_name": "transform_p4_keyword_loop",
-      "timestamp": "2026-06-25T01:11:24.542523",
-      "wall_sec": 0.4846,
-      "cpu_sec": 0.4844,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 0.4846,
-      "cpu_time": 0.4844,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "kw_count": 40
-      }
-    },
-    {
-      "name": "transform_match_channel",
-      "step_name": "transform_match_channel",
-      "timestamp": "2026-06-25T01:11:28.778482",
-      "wall_sec": 5.1951,
-      "cpu_sec": 4.9907,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 5.1951,
-      "cpu_time": 4.9907,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "rows": 255427,
-        "kw_rules": 40,
-        "id_rules": 0
-      }
-    },
-    {
-      "name": "transform_clean_data",
-      "step_name": "transform_clean_data",
-      "timestamp": "2026-06-25T01:11:28.852394",
-      "wall_sec": 5.5558,
-      "cpu_sec": 5.3377,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 5.5558,
-      "cpu_time": 5.3377,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "rows": 255427
-      }
-    },
-    {
-      "name": "pl_step3_clean_data_refresh",
-      "step_name": "pl_step3_clean_data_refresh",
-      "timestamp": "2026-06-25T01:11:28.852422",
-      "wall_sec": 5.5558,
-      "cpu_sec": 5.3377,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 5.5558,
-      "cpu_time": 5.3377,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "rows": 255427
-      }
-    },
-    {
-      "name": "load_upsert_to_duckdb",
-      "step_name": "load_upsert_to_duckdb",
-      "timestamp": "2026-06-25T01:11:39.649798",
-      "wall_sec": 10.797,
-      "cpu_sec": 16.1232,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 10.797,
-      "cpu_time": 16.1232,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "mode": "incremental",
-        "new_rows": 7,
-        "refresh_rows": 255427
-      }
-    },
-    {
-      "name": "pl_step4_upsert_to_duckdb",
-      "step_name": "pl_step4_upsert_to_duckdb",
-      "timestamp": "2026-06-25T01:11:39.649863",
-      "wall_sec": 10.7975,
-      "cpu_sec": 16.1234,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 10.7975,
-      "cpu_time": 16.1234,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69,
-      "extra": {
-        "new_rows": 7,
-        "refresh_rows": 255427
-      }
-    },
-    {
-      "name": "pl_step4_7_replay_is_member_incremental",
-      "step_name": "pl_step4_7_replay_is_member_incremental",
-      "timestamp": "2026-06-25T01:18:28.449733",
-      "wall_sec": 408.8602,
-      "cpu_sec": 476.1275,
-      "rss_peak_mb": 4333.69,
-      "wall_time": 408.8602,
-      "cpu_time": 476.1275,
-      "memory_peak_kb": 4437696,
-      "memory_peak_mb": 4333.69
-    },
-    {
-      "name": "pl_step6_user_first_purchase",
-      "step_name": "pl_step6_user_first_purchase",
-      "timestamp": "2026-06-25T01:18:34.051548",
-      "wall_sec": 5.6016,
-      "cpu_sec": 27.6831,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 5.6016,
-      "cpu_time": 27.6831,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "run_mode": "incremental",
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step6_5_user_recency",
-      "step_name": "pl_step6_5_user_recency",
-      "timestamp": "2026-06-25T01:18:40.766255",
-      "wall_sec": 6.7147,
-      "cpu_sec": 29.1664,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 6.7147,
-      "cpu_time": 29.1664,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "run_mode": "incremental",
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step6_7_update_metrics_after_ufp",
-      "step_name": "pl_step6_7_update_metrics_after_ufp",
-      "timestamp": "2026-06-25T01:18:42.603569",
-      "wall_sec": 1.8373,
-      "cpu_sec": 10.161,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 1.8373,
-      "cpu_time": 10.161,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_step8a_category_flow",
-      "step_name": "pl_step8a_category_flow",
-      "timestamp": "2026-06-25T01:19:06.180877",
-      "wall_sec": 23.5411,
-      "cpu_sec": 139.2312,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 23.5411,
-      "cpu_time": 139.2312,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5
-    },
-    {
-      "name": "pl_step8b_category_churn",
-      "step_name": "pl_step8b_category_churn",
-      "timestamp": "2026-06-25T01:19:06.255914",
-      "wall_sec": 0.075,
-      "cpu_sec": 0.2984,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.075,
-      "cpu_time": 0.2984,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5
-    },
-    {
-      "name": "pl_step8_5_dq_assertions",
-      "step_name": "pl_step8_5_dq_assertions",
-      "timestamp": "2026-06-25T01:19:06.307043",
-      "wall_sec": 0.0498,
-      "cpu_sec": 0.2964,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.0498,
-      "cpu_time": 0.2964,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "date": "2026-06-25"
-      }
-    },
-    {
       "name": "step1_run_full_etl",
       "step_name": "step1_run_full_etl",
-      "timestamp": "2026-06-25T01:19:13.650871",
-      "wall_sec": 2009.2066,
-      "cpu_sec": 2256.8964,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 2009.2066,
-      "cpu_time": 2256.8964,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
+      "timestamp": "2026-06-28T08:30:01.108772",
+      "wall_sec": 0.0039,
+      "cpu_sec": 0.0039,
+      "rss_peak_mb": 118.94,
+      "wall_time": 0.0039,
+      "cpu_time": 0.0039,
+      "memory_peak_kb": 121792,
+      "memory_peak_mb": 118.94,
       "extra": {
         "mode": "inc",
         "window_days": 30
@@ -7569,186 +6872,38 @@
     {
       "name": "pl_taoke_full_correct",
       "step_name": "pl_taoke_full_correct",
-      "timestamp": "2026-06-25T01:24:32.495588",
-      "wall_sec": 318.6806,
-      "cpu_sec": 372.3859,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 318.6806,
-      "cpu_time": 372.3859,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5
+      "timestamp": "2026-06-28T08:30:04.313505",
+      "wall_sec": 3.1115,
+      "cpu_sec": 0.7151,
+      "rss_peak_mb": 365.56,
+      "wall_time": 3.1115,
+      "cpu_time": 0.7151,
+      "memory_peak_kb": 374336,
+      "memory_peak_mb": 365.56
     },
     {
       "name": "step2_update_taoke_channel",
       "step_name": "step2_update_taoke_channel",
-      "timestamp": "2026-06-25T01:24:32.495676",
-      "wall_sec": 318.6807,
-      "cpu_sec": 372.386,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 318.6807,
-      "cpu_time": 372.386,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5
-    },
-    {
-      "name": "etl_status_override_refresh",
-      "step_name": "etl_status_override_refresh",
-      "timestamp": "2026-06-25T01:24:32.618676",
-      "wall_sec": 0.0088,
-      "cpu_sec": 0.0133,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.0088,
-      "cpu_time": 0.0133,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "step3_refresh_status_override",
-      "step_name": "step3_refresh_status_override",
-      "timestamp": "2026-06-25T01:24:32.618685",
-      "wall_sec": 0.0088,
-      "cpu_sec": 0.0133,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.0088,
-      "cpu_time": 0.0133,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "step4_sync_override_to_orders",
-      "step_name": "step4_sync_override_to_orders",
-      "timestamp": "2026-06-25T01:24:32.878598",
-      "wall_sec": 0.1916,
-      "cpu_sec": 1.0112,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.1916,
-      "cpu_time": 1.0112,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5,
-      "extra": {
-        "window_days": 30
-      }
-    },
-    {
-      "name": "pl_refresh_visitor_data",
-      "step_name": "pl_refresh_visitor_data",
-      "timestamp": "2026-06-25T01:24:33.112165",
-      "wall_sec": 0.1534,
-      "cpu_sec": 0.1409,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.1534,
-      "cpu_time": 0.1409,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5
-    },
-    {
-      "name": "step5_refresh_visitor_data",
-      "step_name": "step5_refresh_visitor_data",
-      "timestamp": "2026-06-25T01:24:33.112173",
-      "wall_sec": 0.1534,
-      "cpu_sec": 0.141,
-      "rss_peak_mb": 4615.5,
-      "wall_time": 0.1534,
-      "cpu_time": 0.141,
-      "memory_peak_kb": 4726272,
-      "memory_peak_mb": 4615.5
-    },
-    {
-      "name": "step6_precompute_rfm_cache",
-      "step_name": "step6_precompute_rfm_cache",
-      "timestamp": "2026-06-25T01:26:05.900059",
-      "wall_sec": 92.7016,
-      "cpu_sec": 389.3311,
-      "rss_peak_mb": 5720.3,
-      "wall_time": 92.7016,
-      "cpu_time": 389.3311,
-      "memory_peak_kb": 5857584,
-      "memory_peak_mb": 5720.3
-    },
-    {
-      "name": "step7a_create_user_rfm_table",
-      "step_name": "step7a_create_user_rfm_table",
-      "timestamp": "2026-06-25T01:26:06.183344",
-      "wall_sec": 0.001,
-      "cpu_sec": 0.0012,
-      "rss_peak_mb": 5720.3,
-      "wall_time": 0.001,
-      "cpu_time": 0.0012,
-      "memory_peak_kb": 5857584,
-      "memory_peak_mb": 5720.3
-    },
-    {
-      "name": "preload_rfm",
-      "step_name": "preload_rfm",
-      "timestamp": "2026-06-25T01:28:45.177623",
-      "wall_sec": 158.9957,
-      "cpu_sec": 160.5622,
-      "rss_peak_mb": 5750.84,
-      "wall_time": 158.9957,
-      "cpu_time": 160.5622,
-      "memory_peak_kb": 5888864,
-      "memory_peak_mb": 5750.84,
-      "extra": {
-        "hot_dates": 9,
-        "lookbacks": 3,
-        "metrics": 2,
-        "channels": 10,
-        "total_tasks": 0
-      }
-    },
-    {
-      "name": "step7b_run_auto_preload",
-      "step_name": "step7b_run_auto_preload",
-      "timestamp": "2026-06-25T01:28:45.177719",
-      "wall_sec": 158.9957,
-      "cpu_sec": 160.5622,
-      "rss_peak_mb": 5750.84,
-      "wall_time": 158.9957,
-      "cpu_time": 160.5622,
-      "memory_peak_kb": 5888864,
-      "memory_peak_mb": 5750.84
-    },
-    {
-      "name": "pl_refresh_campaign_schedule",
-      "step_name": "pl_refresh_campaign_schedule",
-      "timestamp": "2026-06-25T01:28:45.337275",
-      "wall_sec": 0.0099,
-      "cpu_sec": 0.0068,
-      "rss_peak_mb": 5750.84,
-      "wall_time": 0.0099,
-      "cpu_time": 0.0068,
-      "memory_peak_kb": 5888864,
-      "memory_peak_mb": 5750.84
-    },
-    {
-      "name": "step7_5_refresh_campaign_schedule",
-      "step_name": "step7_5_refresh_campaign_schedule",
-      "timestamp": "2026-06-25T01:28:45.337287",
-      "wall_sec": 0.01,
-      "cpu_sec": 0.0069,
-      "rss_peak_mb": 5750.84,
-      "wall_time": 0.01,
-      "cpu_time": 0.0069,
-      "memory_peak_kb": 5888864,
-      "memory_peak_mb": 5750.84
+      "timestamp": "2026-06-28T08:30:04.313673",
+      "wall_sec": 3.1118,
+      "cpu_sec": 0.7154,
+      "rss_peak_mb": 365.56,
+      "wall_time": 3.1118,
+      "cpu_time": 0.7154,
+      "memory_peak_kb": 374336,
+      "memory_peak_mb": 365.56
     },
     {
       "name": "etl_total",
       "step_name": "etl_total",
-      "timestamp": "2026-06-25T01:28:45.754743",
-      "wall_sec": 2581.3721,
-      "cpu_sec": 3183.1291,
-      "rss_peak_mb": 5750.84,
-      "wall_time": 2581.3721,
-      "cpu_time": 3183.1291,
-      "memory_peak_kb": 5888864,
-      "memory_peak_mb": 5750.84,
+      "timestamp": "2026-06-28T08:30:09.346765",
+      "wall_sec": 8.248,
+      "cpu_sec": 0.793,
+      "rss_peak_mb": 365.64,
+      "wall_time": 8.248,
+      "cpu_time": 0.793,
+      "memory_peak_kb": 374416,
+      "memory_peak_mb": 365.64,
       "extra": {
         "run_id": null
       }
@@ -7760,36 +6915,20 @@
       "measurements": {}
     },
     "cross_day": {
-      "status": "pass",
-      "measurements": {
-        "checked": true,
-        "before_max_pay_time": "2026-06-23 23:59:10",
-        "after_max_pay_time": "2026-06-23 23:59:45",
-        "before_count": 10791757,
-        "after_count": 10793725,
-        "net_change": 1968
-      }
+      "status": "skipped",
+      "measurements": {}
     },
     "api_health": {
-      "status": "pass",
-      "measurements": {
-        "checked": true,
-        "error_count": 0,
-        "errors": []
-      }
+      "status": "skipped",
+      "measurements": {}
     },
     "business_smooth": {
       "status": "skipped",
       "measurements": {}
     },
     "dedup": {
-      "status": "pass",
-      "measurements": {
-        "checked": true,
-        "before_count": 10791757,
-        "after_count": 10793725,
-        "net_change": 1968
-      }
+      "status": "skipped",
+      "measurements": {}
     },
     "wall_time_stdev": {
       "status": "skipped",
@@ -7797,11 +6936,16 @@
     },
     "_summary": {
       "total": 6,
-      "pass": 3,
+      "pass": 0,
       "fail": 0,
-      "skipped": 3,
+      "skipped": 6,
       "overall": "pass"
     }
   },
-  "errors": []
+  "errors": [
+    "pl_taoke_full_correct: IOException: IO Error: Could not set lock on file \"/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb\": Conflicting lock is held in /Users/hutou/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python (PID 36558) by user hutou. See also https://duckdb.org/docs/stable/connect/concurrency",
+    "step2_update_taoke_channel: IOException: IO Error: Could not set lock on file \"/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb\": Conflicting lock is held in /Users/hutou/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python (PID 36558) by user hutou. See also https://duckdb.org/docs/stable/connect/concurrency",
+    "step2_update_taoke_channel: IOException: IO Error: Could not set lock on file \"/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb\": Conflicting lock is held in /Users/hutou/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python (PID 36558) by user hutou. See also https://duckdb.org/docs/stable/connect/concurrency",
+    "etl_total: IOException: IO Error: Could not set lock on file \"/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb\": Conflicting lock is held in /Users/hutou/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python (PID 36558) by user hutou. See also https://duckdb.org/docs/stable/connect/concurrency"
+  ]
 }

@@ -8,7 +8,7 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from backend.db.connection import get_connection
 from backend.contracts.sampling import SamplingLevelSummary
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
@@ -19,6 +19,7 @@ _logger = logging.getLogger(__name__)
 
 # 派样渠道（DB名）
 SAMPLING_CHANNELS = ['U先派样', '百补派样']
+TTL_SAMPLING_CHANNEL = 'TTL派样'
 
 # 0.01派样与货架渠道引用语义层常量（channels.py为唯一数据源）
 # GIFT_SAMPLE_DB = "赠品&0.01渠道" | SHELF_DB = "货架"
@@ -35,12 +36,197 @@ _SPU_LEVELS = {
 _ALLOWED_SPU_COLUMNS = frozenset(_SPU_LEVELS.values())
 
 
+def _shift_date_range_year(start_date: str, end_date: str) -> Tuple[str, str]:
+    """默认同比窗口：当前日期范围整体回退一年。"""
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    try:
+        yoy_start = start.replace(year=start.year - 1)
+    except ValueError:
+        yoy_start = start.replace(year=start.year - 1, day=28)
+    try:
+        yoy_end = end.replace(year=end.year - 1)
+    except ValueError:
+        yoy_end = end.replace(year=end.year - 1, day=28)
+    return yoy_start.strftime("%Y-%m-%d"), yoy_end.strftime("%Y-%m-%d")
+
+
+def _empty_channel_metrics(channel: str) -> Dict[str, Any]:
+    """空指标模板，用于没有派样数据的窗口。"""
+    return {
+        'channel': channel,
+        'sample_users': 0,
+        'repurchase_users': 0,
+        'repurchase_rate': 0.0,
+        'repurchase_gsv': 0.0,
+        'repurchase_aus': 0.0,
+        'full_repurchase_users': 0,
+        'full_repurchase_rate': 0.0,
+        'full_repurchase_gsv': 0.0,
+        'full_repurchase_aus': 0.0,
+        'nonfull_repurchase_users': 0,
+        'nonfull_repurchase_gsv': 0.0,
+        'nonfull_repurchase_aus': 0.0,
+    }
+
+
+def _build_channel_metrics(channel: str, row: Tuple[Any, ...]) -> Dict[str, Any]:
+    sample_users = int(row[1] or 0)
+    repurchase_users = int(row[2] or 0)
+    repurchase_gsv = float(row[3] or 0)
+    full_users = int(row[4] or 0)
+    full_gsv = float(row[5] or 0)
+    nonfull_users = int(row[6] or 0)
+    nonfull_gsv = float(row[7] or 0)
+
+    return {
+        'channel': channel,
+        'sample_users': sample_users,
+        'repurchase_users': repurchase_users,
+        'repurchase_rate': round(safe_ratio(repurchase_users, sample_users), 4),
+        'repurchase_gsv': round(repurchase_gsv, 2),
+        'repurchase_aus': round(safe_ratio(repurchase_gsv, repurchase_users), 2),
+        'full_repurchase_users': full_users,
+        'full_repurchase_rate': round(safe_ratio(full_users, sample_users), 4),
+        'full_repurchase_gsv': round(full_gsv, 2),
+        'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
+        'nonfull_repurchase_users': nonfull_users,
+        'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
+        'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
+    }
+
+
+def _add_compare_metrics(
+    current: Dict[str, Any],
+    compare: Optional[Dict[str, Any]],
+    prefix: str,
+) -> None:
+    """给当前渠道行追加 yoy_* 或 mom_* 字段。"""
+    if compare is None:
+        return
+
+    current[f'repurchase_users_{prefix}_pct'] = yoy_absolute(
+        current.get('repurchase_users'),
+        compare.get('repurchase_users'),
+    )
+    current[f'repurchase_gsv_{prefix}_pct'] = yoy_absolute(
+        current.get('repurchase_gsv'),
+        compare.get('repurchase_gsv'),
+    )
+    current[f'repurchase_rate_{prefix}_pp'] = yoy_ratio(
+        current.get('repurchase_rate'),
+        compare.get('repurchase_rate'),
+    )
+    current[f'full_repurchase_users_{prefix}_pct'] = yoy_absolute(
+        current.get('full_repurchase_users'),
+        compare.get('full_repurchase_users'),
+    )
+    current[f'full_repurchase_gsv_{prefix}_pct'] = yoy_absolute(
+        current.get('full_repurchase_gsv'),
+        compare.get('full_repurchase_gsv'),
+    )
+    current[f'full_repurchase_rate_{prefix}_pp'] = yoy_ratio(
+        current.get('full_repurchase_rate'),
+        compare.get('full_repurchase_rate'),
+    )
+    current[f'repurchase_aus_{prefix}_pct'] = yoy_absolute(
+        current.get('repurchase_aus'),
+        compare.get('repurchase_aus'),
+    )
+    current[f'full_repurchase_aus_{prefix}_pct'] = yoy_absolute(
+        current.get('full_repurchase_aus'),
+        compare.get('full_repurchase_aus'),
+    )
+    current[f'nonfull_repurchase_gsv_{prefix}_pct'] = yoy_absolute(
+        current.get('nonfull_repurchase_gsv'),
+        compare.get('nonfull_repurchase_gsv'),
+    )
+
+
+def _compute_ttl_metrics(
+    start_date: str,
+    end_date: str,
+    window_days: int = 30,
+) -> Dict[str, Any]:
+    """
+    TTL 派样 = U先派样 ∪ 百补派样，人数按 user_id 去重。
+
+    TTL 不是新的 channel 值；GSV/AUS 保持交易汇总口径，不按用户去重。
+    """
+    conn = get_connection()
+    ttl_sql = """
+        WITH sample_users AS (
+            SELECT o.user_id, MIN(o.pay_time) as first_sample_time
+            FROM orders o
+            WHERE o.channel IN (?, ?)
+              AND o.pay_time >= ?::TIMESTAMP
+              AND o.pay_time <= ?::TIMESTAMP + INTERVAL '1' DAY
+            GROUP BY o.user_id
+        ),
+        repurchase AS (
+            SELECT su.user_id,
+                   su.first_sample_time,
+                   o.actual_amount,
+                   COALESCE(o.spu_type, '未知') as spu_type,
+                   DATEDIFF('day', su.first_sample_time, o.pay_time) as days_between
+            FROM sample_users su
+            JOIN orders o ON su.user_id = o.user_id
+            WHERE o.pay_time > su.first_sample_time
+              AND DATEDIFF('day', su.first_sample_time, o.pay_time) <= ?
+              AND o.is_refund = FALSE
+              AND o.order_status != '交易关闭'
+              AND o.channel != '购物金'
+        )
+        SELECT
+            ? as channel,
+            COUNT(DISTINCT su.user_id) as sample_users,
+            COUNT(DISTINCT CASE WHEN r.days_between <= ? THEN r.user_id END) as repurchase_users,
+            SUM(CASE WHEN r.days_between <= ? THEN r.actual_amount ELSE 0 END) as repurchase_gsv,
+            COUNT(DISTINCT CASE WHEN r.days_between <= ? AND r.spu_type = '正装' THEN r.user_id END) as full_repurchase_users,
+            SUM(CASE WHEN r.days_between <= ? AND r.spu_type = '正装' THEN r.actual_amount ELSE 0 END) as full_repurchase_gsv,
+            COUNT(DISTINCT CASE WHEN r.days_between <= ? AND r.spu_type != '正装' THEN r.user_id END) as nonfull_repurchase_users,
+            SUM(CASE WHEN r.days_between <= ? AND r.spu_type != '正装' THEN r.actual_amount ELSE 0 END) as nonfull_repurchase_gsv
+        FROM sample_users su
+        LEFT JOIN repurchase r ON su.user_id = r.user_id
+    """
+    params = (
+        SAMPLING_CHANNELS
+        + [start_date, end_date, window_days, TTL_SAMPLING_CHANNEL]
+        + [window_days] * 6
+    )
+    row = conn.execute(ttl_sql, params).fetchone()
+    if not row:
+        return _empty_channel_metrics(TTL_SAMPLING_CHANNEL)
+    return _build_channel_metrics(TTL_SAMPLING_CHANNEL, row)
+
+
+def _compute_single_channel_metrics(
+    conn,
+    summary_sql: str,
+    db_channels: List[str],
+    start_date: str,
+    end_date: str,
+    window_days: int,
+) -> List[Dict[str, Any]]:
+    summary_params = db_channels + [start_date, end_date, window_days] + [window_days] * 6
+    summary_rows = conn.execute(summary_sql, summary_params).fetchall()
+
+    result = []
+    for row in summary_rows:
+        ch = row[0]
+        result.append(_build_channel_metrics(DB_TO_UI.get(ch, ch), row))
+    order = {channel: idx for idx, channel in enumerate(SAMPLING_CHANNELS)}
+    result.sort(key=lambda item: order.get(item['channel'], len(order)))
+    return result
+
+
 def get_sampling_roi(
     start_date: str,
     end_date: str,
     window_days: int = 30,
     level: str = 'spu_category',
     channel: Optional[str] = None,
+    compare_date_range: Optional[Tuple[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     派样 ROI 分析
@@ -129,35 +315,62 @@ def get_sampling_roi(
             LEFT JOIN repurchase r ON su.user_id = r.user_id AND su.channel = r.channel
             GROUP BY su.channel
         """
-        summary_params = sample_params + [max_window_days] + [window_days] * 6
-        summary_rows = conn.execute(summary_sql, summary_params).fetchall()
+        single_channel_result = _compute_single_channel_metrics(
+            conn,
+            summary_sql,
+            db_channels,
+            start_date,
+            end_date,
+            window_days,
+        )
+        ttl_row = _compute_ttl_metrics(start_date, end_date, window_days)
+        channels_result = [ttl_row] + single_channel_result
 
-        channels_result = []
-        for row in summary_rows:
-            ch = row[0]
-            sample_users = int(row[1] or 0)
-            repurchase_users = int(row[2] or 0)
-            repurchase_gsv = float(row[3] or 0)
-            full_users = int(row[4] or 0)
-            full_gsv = float(row[5] or 0)
-            nonfull_users = int(row[6] or 0)
-            nonfull_gsv = float(row[7] or 0)
-
-            channels_result.append({
-                'channel': DB_TO_UI.get(ch, ch),
-                'sample_users': sample_users,
-                'repurchase_users': repurchase_users,
-                'repurchase_rate': round(safe_ratio(repurchase_users, sample_users), 4),
-                'repurchase_gsv': round(repurchase_gsv, 2),
-                'repurchase_aus': round(safe_ratio(repurchase_gsv, repurchase_users), 2),
-                'full_repurchase_users': full_users,
-                'full_repurchase_rate': round(safe_ratio(full_users, sample_users), 4),
-                'full_repurchase_gsv': round(full_gsv, 2),
-                'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
-                'nonfull_repurchase_users': nonfull_users,
-                'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
-                'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
-            })
+        if compare_date_range:
+            cmp_start, cmp_end = compare_date_range
+            compare_single = _compute_single_channel_metrics(
+                conn,
+                summary_sql,
+                db_channels,
+                cmp_start,
+                cmp_end,
+                window_days,
+            )
+            compare_by_channel = {row['channel']: row for row in compare_single}
+            compare_by_channel[TTL_SAMPLING_CHANNEL] = _compute_ttl_metrics(
+                cmp_start,
+                cmp_end,
+                window_days,
+            )
+            compare_prefix = 'mom' if compare_date_range else 'yoy'
+            for row in channels_result:
+                _add_compare_metrics(
+                    row,
+                    compare_by_channel.get(row['channel']),
+                    compare_prefix,
+                )
+        else:
+            yoy_start, yoy_end = _shift_date_range_year(start_date, end_date)
+            compare_single = _compute_single_channel_metrics(
+                conn,
+                summary_sql,
+                db_channels,
+                yoy_start,
+                yoy_end,
+                window_days,
+            )
+            compare_by_channel = {row['channel']: row for row in compare_single}
+            compare_by_channel[TTL_SAMPLING_CHANNEL] = _compute_ttl_metrics(
+                yoy_start,
+                yoy_end,
+                window_days,
+            )
+            for row in channels_result:
+                _add_compare_metrics(
+                    row,
+                    compare_by_channel.get(row['channel']),
+                    'yoy',
+                )
 
         # ── 品类明细（按用户选定的 window_days 钻取）──
         # cat_field 已通过 _ALLOWED_SPU_COLUMNS 校验，安全用于SQL拼接
@@ -334,6 +547,91 @@ def _group_by_level(cat_rows: List[Dict[str, Any]], level: str) -> Dict[str, Lis
             nonfull_repurchase_aus=row['nonfull_repurchase_aus'],
         ))
     return grouped
+
+
+def get_sampling_repurchase_buckets(
+    start_date: str,
+    end_date: str,
+    window_days: int = 90,
+    channel: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    回购周期分布：0-7d / 8-30d / 31-60d / 61-90d。
+
+    channel 为空或 TTL派样 时按 U先∪百补聚合；单渠道时仍走 channel 展开和参数化。
+    """
+    window_days = max(1, min(int(window_days), 90))
+    conn = get_connection()
+
+    if channel is None or channel == TTL_SAMPLING_CHANNEL:
+        sample_users_sql = """
+            SELECT o.user_id, MIN(o.pay_time) as first_sample_time
+            FROM orders o
+            WHERE o.channel IN (?, ?)
+              AND o.pay_time >= ?::TIMESTAMP
+              AND o.pay_time <= ?::TIMESTAMP + INTERVAL '1' DAY
+            GROUP BY o.user_id
+        """
+        sample_params = SAMPLING_CHANNELS + [start_date, end_date]
+    else:
+        db_channels = expand_channels([channel])
+        ch_placeholders = ','.join(['?'] * len(db_channels))
+        sample_users_sql = f"""
+            SELECT o.user_id, MIN(o.pay_time) as first_sample_time
+            FROM orders o
+            WHERE o.channel IN ({ch_placeholders})
+              AND o.pay_time >= ?::TIMESTAMP
+              AND o.pay_time <= ?::TIMESTAMP + INTERVAL '1' DAY
+            GROUP BY o.user_id
+        """
+        sample_params = db_channels + [start_date, end_date]
+
+    bucket_sql = f"""
+        WITH sample_users AS ({sample_users_sql}),
+        repurchase AS (
+            SELECT su.user_id,
+                   o.actual_amount,
+                   DATEDIFF('day', su.first_sample_time, o.pay_time) as days_between
+            FROM sample_users su
+            JOIN orders o ON su.user_id = o.user_id
+            WHERE o.pay_time > su.first_sample_time
+              AND DATEDIFF('day', su.first_sample_time, o.pay_time) <= ?
+              AND o.is_refund = FALSE
+              AND o.order_status != '交易关闭'
+              AND o.channel != '购物金'
+        )
+        SELECT
+            CASE
+                WHEN days_between <= 7 THEN '0-7d'
+                WHEN days_between <= 30 THEN '8-30d'
+                WHEN days_between <= 60 THEN '31-60d'
+                ELSE '61-90d'
+            END as bucket,
+            COUNT(DISTINCT user_id) as users,
+            SUM(actual_amount) as gsv
+        FROM repurchase
+        GROUP BY bucket
+    """
+    rows = conn.execute(bucket_sql, sample_params + [window_days]).fetchall()
+    bucket_map = {
+        row[0]: (int(row[1] or 0), float(row[2] or 0))
+        for row in rows
+    }
+
+    buckets = []
+    for bucket in ['0-7d', '8-30d', '31-60d', '61-90d']:
+        users, gsv = bucket_map.get(bucket, (0, 0.0))
+        buckets.append({
+            'bucket': bucket,
+            'users': users,
+            'gsv': round(gsv, 2),
+            'aus': round(safe_ratio(gsv, users), 2),
+        })
+
+    return {
+        'buckets': buckets,
+        'window_days': window_days,
+    }
 
 
 def get_sampling_lock_analysis(

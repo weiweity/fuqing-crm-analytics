@@ -1,3 +1,20 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 144, VERSION 不变 - Sampling 顶筛解耦 + TTL 聚合 + 回购周期分布)
+
+### Added
+- **backend/services/sampling_service.py** + **backend/contracts/sampling.py**: 新增 TTL 派样聚合行 (`U先派样 ∪ 百补派样`，`user_id` 去重)，并为 ROI 渠道卡增加 YOY/MOM 强类型对比字段。
+- **backend/routers/sampling.py**: 新增 `/api/v1/sampling/repurchase-distribution`，返回 0-7d / 8-30d / 31-60d / 61-90d 4 桶回购周期分布。
+- **backend/tests/test_sampling_ttl_aggregation.py / test_sampling_roi_yoy.py / test_sampling_repurchase_distribution.py**: 新增 13 case，覆盖 TTL 去重、同比环比字段和 4 桶分布。
+
+### Changed
+- **frontend-vue3/src/views/SamplingView.vue**: Sampling ROI 顶部筛选改读全局 `filterStore`，删除本地 `roiDateRange` 时间选择器；渠道卡改为 TTL / U先 / 百补三列，增加 YOYBadge 与 5 个 section 标题。
+- **frontend-vue3/src/api/sampling.ts** + `types.generated.ts` / `types.ts`: 同步 `compare_date_range`、`exclude_low_price` 与回购周期分布 API 类型。
+
+### Verification
+- Codex Stage 2 待跑: TTL 生产库去重回归、contracts lint、全量 backend pytest、frontend build、vite preview restart。
+- VERSION: 0.4.14.157 不 bump；不改 `SAMPLING_CHANNELS`，不碰 ETL / `sample_received_at`。
+
+---
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 142, VERSION 不变 - RFM 扩展 + level 联动二级聚合 + 锁权指标单 SQL 重构)
 
 ### Added

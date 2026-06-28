@@ -1011,6 +1011,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rfm/extended": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Rfm Extended Api
+         * @description Sprint 142: RFM 扩展分群（生命周期 / 价值层 / 潜力层）.
+         */
+        post: operations["get_rfm_extended_api_api_v1_rfm_extended_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rfm/version": {
         parameters: {
             query?: never;
@@ -1112,6 +1132,26 @@ export interface paths {
          *     - 品类明细：每个渠道×品类的回购情况（含同品类回购）
          */
         get: operations["get_sampling_roi_api_api_v1_sampling_roi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sampling/repurchase-distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sampling Repurchase Distribution Api
+         * @description 回购周期分布：TTL 或单渠道的 4 桶聚合。
+         */
+        get: operations["get_sampling_repurchase_distribution_api_api_v1_sampling_repurchase_distribution_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3151,6 +3191,12 @@ export interface components {
             yoy_repurchase_rate: number;
         };
         /**
+         * LifecycleStage
+         * @description 用户生命周期阶段.
+         * @enum {string}
+         */
+        LifecycleStage: "新客" | "活跃客" | "沉睡客" | "流失客";
+        /**
          * LifetimeValueSummary
          * @description 用户生命周期价值 (LTV) 90/180/365 天汇总.
          */
@@ -3575,6 +3621,12 @@ export interface components {
              */
             full_bucket_61_90d: number;
         };
+        /**
+         * PotentialTier
+         * @description 用户潜力层.
+         * @enum {string}
+         */
+        PotentialTier: "高潜力" | "中潜力" | "低潜力";
         /**
          * ProductAssetItem
          * @description 单品资产-单个产品
@@ -4282,6 +4334,30 @@ export interface components {
              */
             segments?: components["schemas"]["SegmentDefinitionItem"][];
         };
+        /**
+         * RFMExtendedRequest
+         * @description RFM 扩展分群请求.
+         */
+        RFMExtendedRequest: {
+            /**
+             * User Ids
+             * @description 用户 ID 列表
+             */
+            user_ids: string[];
+            /**
+             * As Of Date
+             * @description 分析日期 YYYY-MM-DD
+             */
+            as_of_date?: string | null;
+        };
+        /**
+         * RFMExtendedResponse
+         * @description RFM 扩展分群响应.
+         */
+        RFMExtendedResponse: {
+            /** Segments */
+            segments?: components["schemas"]["RFMSegmentExtended"][];
+        };
         /** RFMFRFlowResponse */
         RFMFRFlowResponse: {
             /**
@@ -4626,6 +4702,28 @@ export interface components {
             yoy_repurchase_gsv?: number | null;
             /** Yoy Repurchase Gsv Ratio Ppt */
             yoy_repurchase_gsv_ratio_ppt?: number | null;
+        };
+        /**
+         * RFMSegmentExtended
+         * @description RFM 扩展分群（保留 8 quadrant, 增量追加 3 个新维度）.
+         */
+        RFMSegmentExtended: {
+            /**
+             * User Id
+             * @description 用户 ID
+             */
+            user_id: string;
+            /**
+             * Rfm Quadrant
+             * @description 8 quadrant 经典分割
+             */
+            rfm_quadrant: string;
+            /** @description 生命周期阶段 */
+            lifecycle_stage: components["schemas"]["LifecycleStage"];
+            /** @description 价值层 */
+            value_tier: components["schemas"]["ValueTier"];
+            /** @description 潜力层 */
+            potential_tier: components["schemas"]["PotentialTier"];
         };
         /**
          * RFMThresholds
@@ -5058,6 +5156,42 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
+            /** Repurchase Users Yoy Pct */
+            repurchase_users_yoy_pct?: number | null;
+            /** Repurchase Gsv Yoy Pct */
+            repurchase_gsv_yoy_pct?: number | null;
+            /** Repurchase Rate Yoy Pp */
+            repurchase_rate_yoy_pp?: number | null;
+            /** Full Repurchase Users Yoy Pct */
+            full_repurchase_users_yoy_pct?: number | null;
+            /** Full Repurchase Gsv Yoy Pct */
+            full_repurchase_gsv_yoy_pct?: number | null;
+            /** Full Repurchase Rate Yoy Pp */
+            full_repurchase_rate_yoy_pp?: number | null;
+            /** Repurchase Aus Yoy Pct */
+            repurchase_aus_yoy_pct?: number | null;
+            /** Full Repurchase Aus Yoy Pct */
+            full_repurchase_aus_yoy_pct?: number | null;
+            /** Nonfull Repurchase Gsv Yoy Pct */
+            nonfull_repurchase_gsv_yoy_pct?: number | null;
+            /** Repurchase Users Mom Pct */
+            repurchase_users_mom_pct?: number | null;
+            /** Repurchase Gsv Mom Pct */
+            repurchase_gsv_mom_pct?: number | null;
+            /** Repurchase Rate Mom Pp */
+            repurchase_rate_mom_pp?: number | null;
+            /** Full Repurchase Users Mom Pct */
+            full_repurchase_users_mom_pct?: number | null;
+            /** Full Repurchase Gsv Mom Pct */
+            full_repurchase_gsv_mom_pct?: number | null;
+            /** Full Repurchase Rate Mom Pp */
+            full_repurchase_rate_mom_pp?: number | null;
+            /** Repurchase Aus Mom Pct */
+            repurchase_aus_mom_pct?: number | null;
+            /** Full Repurchase Aus Mom Pct */
+            full_repurchase_aus_mom_pct?: number | null;
+            /** Nonfull Repurchase Gsv Mom Pct */
+            nonfull_repurchase_gsv_mom_pct?: number | null;
         };
         /**
          * SamplingCohortRetentionResponse
@@ -5104,6 +5238,92 @@ export interface components {
             retention?: {
                 [key: string]: number;
             };
+        };
+        /**
+         * SamplingLevelSummary
+         * @description 派样 level 二级聚合（channel × level_value）.
+         */
+        SamplingLevelSummary: {
+            /**
+             * Channel
+             * @description 渠道
+             */
+            channel: string;
+            /**
+             * Level
+             * @description 聚合维度字段
+             */
+            level: string;
+            /**
+             * Level Value
+             * @description level 聚合维度值
+             */
+            level_value: string;
+            /**
+             * Sample Users
+             * @description 派样人数
+             */
+            sample_users: number;
+            /**
+             * Repurchase Users
+             * @description 回购人数
+             * @default 0
+             */
+            repurchase_users: number;
+            /**
+             * Repurchase Rate
+             * @description 回购率
+             * @default 0
+             */
+            repurchase_rate: number;
+            /**
+             * Repurchase Gsv
+             * @description 回购 GSV
+             * @default 0
+             */
+            repurchase_gsv: number;
+            /**
+             * Repurchase Aus
+             * @description 客单价
+             * @default 0
+             */
+            repurchase_aus: number;
+            /**
+             * Full Repurchase Users
+             * @default 0
+             */
+            full_repurchase_users: number;
+            /**
+             * Full Repurchase Gsv
+             * @default 0
+             */
+            full_repurchase_gsv: number;
+            /**
+             * Full Repurchase Aus
+             * @default 0
+             */
+            full_repurchase_aus: number;
+            /**
+             * Full Repurchase Rate
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            full_repurchase_rate: number;
+            /**
+             * Nonfull Repurchase Users
+             * @default 0
+             */
+            nonfull_repurchase_users: number;
+            /**
+             * Nonfull Repurchase Gsv
+             * @default 0
+             */
+            nonfull_repurchase_gsv: number;
+            /**
+             * Nonfull Repurchase Aus
+             * @default 0
+             */
+            nonfull_repurchase_aus: number;
         };
         /**
          * SamplingLockAnalysisResponse
@@ -5226,6 +5446,13 @@ export interface components {
             period_distribution?: components["schemas"]["PeriodDistribution"];
             /** Quality Flags */
             quality_flags?: components["schemas"]["QualityFlag"][];
+            /**
+             * Summary By Level
+             * @description level 二级聚合 {level_value: [SamplingLevelSummary]}
+             */
+            summary_by_level?: {
+                [key: string]: components["schemas"]["SamplingLevelSummary"][];
+            };
         };
         /**
          * SamplingROITimeRange
@@ -5237,6 +5464,42 @@ export interface components {
             /** End */
             end: string;
             /** Window Days */
+            window_days: number;
+        };
+        /**
+         * SamplingRepurchaseBucket
+         * @description Sprint 144 回购周期分布桶.
+         */
+        SamplingRepurchaseBucket: {
+            /** Bucket */
+            bucket: string;
+            /**
+             * Users
+             * @default 0
+             */
+            users: number;
+            /**
+             * Gsv
+             * @default 0
+             */
+            gsv: number;
+            /**
+             * Aus
+             * @default 0
+             */
+            aus: number;
+        };
+        /**
+         * SamplingRepurchaseDistribution
+         * @description Sprint 144 回购周期分布响应.
+         */
+        SamplingRepurchaseDistribution: {
+            /** Buckets */
+            buckets?: components["schemas"]["SamplingRepurchaseBucket"][];
+            /**
+             * Window Days
+             * @default 90
+             */
             window_days: number;
         };
         /**
@@ -5721,6 +5984,12 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /**
+         * ValueTier
+         * @description 用户价值层.
+         * @enum {string}
+         */
+        ValueTier: "高价值" | "中价值" | "低价值";
         /**
          * ValueTierDefinition
          * @description 价值分层定义（动态计算）
@@ -7743,6 +8012,39 @@ export interface operations {
             };
         };
     };
+    get_rfm_extended_api_api_v1_rfm_extended_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RFMExtendedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RFMExtendedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_rfm_manifest_version_api_v1_rfm_version_get: {
         parameters: {
             query?: never;
@@ -7848,6 +8150,10 @@ export interface operations {
                 level?: string;
                 /** @description 筛选特定派样渠道 */
                 channel?: string | null;
+                /** @description 对比日期范围 [start, end] */
+                compare_date_range?: string[] | null;
+                /** @description 是否剔除低价渠道（Sampling 本期接收参数） */
+                exclude_low_price?: boolean;
             };
             header?: never;
             path?: never;
@@ -7862,6 +8168,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SamplingROIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sampling_repurchase_distribution_api_api_v1_sampling_repurchase_distribution_get: {
+        parameters: {
+            query?: {
+                /** @description 派样起始日期 */
+                start_date?: string;
+                /** @description 派样结束日期 */
+                end_date?: string;
+                /** @description 回购窗口天数：1-90 */
+                window_days?: number;
+                /** @description 筛选特定派样渠道；空值为 TTL 派样 */
+                channel?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplingRepurchaseDistribution"];
                 };
             };
             /** @description Validation Error */
