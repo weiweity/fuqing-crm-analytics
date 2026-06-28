@@ -2,7 +2,7 @@
 
 > Sprint 1-104 详细索引 (本表) + Sprint 105-143 1 行指针 (`MEMORY.md` 索引) 减少冷启动 token。
 > 
-> **最后更新**: 2026-06-28 (Sprint 146-148 设计治理 sprint 链 (P0+P1+P2+P3 4 sprint 治本, 5 files / +194/-78) + Sprint 149 head: /document-release 累计 5 次真治本 (跟 Sprint 65/135/138/141.5/145 模式 stable), 累计 68→72 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed + main HEAD `5cb39a9` + VERSION 0.4.14.157 不 bump 累计 41 sprint + 跟 Sprint 144 + 145 /document-release 模式 stable 累计 5 次真治本)
+> **最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 (5 section aria-labelledby, plan-design-review 9.5/10 → 10/10 完整闭环) + Sprint 151 CHANGELOG.md append Sprint 145-150 entry (1 file / +15) + Sprint 152 0 业务代码 sprint 暂收口 (0 commit, 跟 Sprint 89/134 模式 stable) + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap). 累计 72→76 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed + main HEAD `6904d36` + VERSION 0.4.14.157 不 bump 累计 44 sprint + 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
 
 ## 索引规则
 
