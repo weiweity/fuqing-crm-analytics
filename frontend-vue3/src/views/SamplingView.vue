@@ -9,7 +9,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison, fetchSamplingRepurchaseDistribution } from '@/api/sampling'
-import type { SamplingCategoryRow, SamplingChannelSummary, SamplingLevelSummary } from '@/api/sampling'
+import type { SamplingCategoryRow, SamplingChannelSummary } from '@/api/sampling'
 import { useFilterStore } from '@/stores/filterStore'
 import { useFormat } from '@/composables/useFormat'
 
@@ -118,6 +118,15 @@ const ttlSummary = computed<SamplingChannelSummary | null>(() => {
     ?? null
 })
 
+// Sprint 155 ② 03 板块 3 卡横排对齐 — TTL 在前, U先 + 百补 紧随
+const isTtlExpanded = ref(true)
+const allChannels = computed<SamplingChannelSummary[]>(() => {
+  const all = roiData.value?.summary.channels ?? []
+  const ttl = all.find(c => c.channel === 'TTL派样')
+  const subs = all.filter(c => c.channel !== 'TTL派样')
+  return ttl ? [ttl, ...subs] : all
+})
+
 // Sprint 147 P2.2: 渠道对比卡加辅助 icon (色盲友好, 颜色不再是唯一标识符)
 function channelIcon(channel: string): string {
   if (channel === 'TTL派样') return '🎯'
@@ -179,10 +188,6 @@ const levelLabel = computed(() => {
   return levelOptions.find(o => o.value === categoryLevel.value)?.label ?? categoryLevel.value
 })
 
-const summaryByLevelEntries = computed<[string, SamplingLevelSummary[]][]>(() => {
-  const grouped = roiData.value?.summary_by_level ?? {}
-  return Object.entries(grouped).slice(0, 6) as [string, SamplingLevelSummary[]][]
-})
 
 const repurchaseBuckets = computed(() => {
   const buckets = repurchaseDistribution.value?.buckets ?? []
@@ -193,22 +198,71 @@ const repurchaseBuckets = computed(() => {
   }))
 })
 
-// 品类明细表格列
-const categoryCols: DataTableColumns<SamplingCategoryRow> = [
-  { title: '渠道', key: 'channel', width: 100, fixed: 'left', align: 'center' },
-  { title: '品类', key: 'category', width: 130, fixed: 'left' },
-  { title: '派样人数', key: 'sample_users', width: 100, align: 'right', render: r => (r.sample_users ?? 0).toLocaleString() },
-  { title: '回购人数', key: 'repurchase_users', width: 100, align: 'right', render: r => (r.repurchase_users ?? 0).toLocaleString() },
-  { title: '回购率', key: 'repurchase_rate', width: 90, align: 'center', render: r => `${((r.repurchase_rate ?? 0) * 100).toFixed(1)}%` },
-  { title: '回购GSV', key: 'repurchase_gsv', width: 120, align: 'right', render: r => `¥${((r.repurchase_gsv ?? 0) / 1e4).toFixed(1)}万` },
-  { title: 'AUS', key: 'repurchase_aus', width: 90, align: 'right', render: r => `¥${(r.repurchase_aus ?? 0).toFixed(0)}` },
-  { title: '正装回购人数', key: 'full_repurchase_users', width: 110, align: 'right', render: r => (r.full_repurchase_users ?? 0).toLocaleString() },
-  { title: '正装回购率', key: 'full_repurchase_rate', width: 100, align: 'center', render: r => `${((r.full_repurchase_rate ?? 0) * 100).toFixed(1)}%` },
-  { title: '正装回购GSV', key: 'full_repurchase_gsv', width: 120, align: 'right', render: r => `¥${((r.full_repurchase_gsv ?? 0) / 1e4).toFixed(1)}万` },
-  { title: '正装AUS', key: 'full_repurchase_aus', width: 90, align: 'right', render: r => `¥${(r.full_repurchase_aus ?? 0).toFixed(0)}` },
-  { title: '同品类回购', key: 'same_category_repurchase', width: 100, align: 'right', render: r => (r.same_category_repurchase ?? 0).toLocaleString() },
-  { title: '同品类回购率', key: 'same_category_rate', width: 110, align: 'center', render: r => `${((r.same_category_rate ?? 0) * 100).toFixed(1)}%` },
+// 品类明细表格 — Sprint 155 ③ 改 native table + manual rowspan 合并渠道 + 自定义 sort
+type CategoryCol = { key: keyof SamplingCategoryRow; title: string; align: 'left' | 'right' | 'center'; format: (r: SamplingCategoryRow) => string; isString?: boolean }
+const categoryColumns: CategoryCol[] = [
+  { key: 'category', title: '品类', align: 'left', format: r => r.category ?? '—', isString: true },
+  { key: 'sample_users', title: '派样人数', align: 'right', format: r => (r.sample_users ?? 0).toLocaleString() },
+  { key: 'repurchase_users', title: '回购人数', align: 'right', format: r => (r.repurchase_users ?? 0).toLocaleString() },
+  { key: 'repurchase_rate', title: '回购率', align: 'center', format: r => `${((r.repurchase_rate ?? 0) * 100).toFixed(1)}%` },
+  { key: 'repurchase_gsv', title: '回购GSV', align: 'right', format: r => `¥${((r.repurchase_gsv ?? 0) / 1e4).toFixed(1)}万` },
+  { key: 'repurchase_aus', title: 'AUS', align: 'right', format: r => `¥${(r.repurchase_aus ?? 0).toFixed(0)}` },
+  { key: 'full_repurchase_users', title: '正装回购人数', align: 'right', format: r => (r.full_repurchase_users ?? 0).toLocaleString() },
+  { key: 'full_repurchase_rate', title: '正装回购率', align: 'center', format: r => `${((r.full_repurchase_rate ?? 0) * 100).toFixed(1)}%` },
+  { key: 'full_repurchase_gsv', title: '正装回购GSV', align: 'right', format: r => `¥${((r.full_repurchase_gsv ?? 0) / 1e4).toFixed(1)}万` },
+  { key: 'full_repurchase_aus', title: '正装AUS', align: 'right', format: r => `¥${(r.full_repurchase_aus ?? 0).toFixed(0)}` },
+  { key: 'same_category_repurchase', title: '同品类回购', align: 'right', format: r => (r.same_category_repurchase ?? 0).toLocaleString() },
+  { key: 'same_category_rate', title: '同品类回购率', align: 'center', format: r => `${((r.same_category_rate ?? 0) * 100).toFixed(1)}%` },
 ]
+
+// 排序状态: 默认按 channel (维持原顺序) + 品类 (升序)
+const detailSortKey = ref<keyof SamplingCategoryRow>('category')
+const detailSortOrder = ref<'asc' | 'desc'>('asc')
+
+function toggleSort(key: keyof SamplingCategoryRow) {
+  if (detailSortKey.value === key) {
+    detailSortOrder.value = detailSortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    detailSortKey.value = key
+    detailSortOrder.value = 'asc'
+  }
+}
+
+// 排序后行 (按 channel 维持原顺序, 同 channel 内按 sortKey 排序)
+const sortedCategoryRows = computed<SamplingCategoryRow[]>(() => {
+  const data = roiData.value?.category_breakdown ?? []
+  const key = detailSortKey.value
+  const order = detailSortOrder.value
+  const col = categoryColumns.find(c => c.key === key)
+  const sign = order === 'asc' ? 1 : -1
+  return [...data].sort((a, b) => {
+    // 1. 先按 channel 分组 (维持原顺序: TTL派样 → U先派样 → 百补派样)
+    const channelOrder: Record<string, number> = { 'TTL派样': 0, 'U先派样': 1, '百补派样': 2 }
+    const ca = channelOrder[a.channel ?? ''] ?? 99
+    const cb = channelOrder[b.channel ?? ''] ?? 99
+    if (ca !== cb) return ca - cb
+    // 2. 同 channel 内按 sortKey 排序
+    if (col?.isString) {
+      return sign * ((a[key] as string ?? '').localeCompare((b[key] as string ?? '')))
+    }
+    return sign * (((a[key] as number) ?? 0) - ((b[key] as number) ?? 0))
+  })
+})
+
+// channel rowspan map: { rowIdx → rowspan } 用于合并 channel 列
+const channelRowspans = computed<Map<number, number>>(() => {
+  const map = new Map<number, number>()
+  const data = sortedCategoryRows.value
+  let i = 0
+  while (i < data.length) {
+    const ch = data[i].channel
+    let j = i
+    while (j < data.length && data[j].channel === ch) j++
+    map.set(i, j - i)  // 起始行 i, 跨 j-i 行
+    i = j
+  }
+  return map
+})
 
 // ── Tab 2: 0.01锁权分析 ──
 const campaignName = ref('summer_sale')
@@ -471,8 +525,8 @@ onUnmounted(() => {
             <span class="text-sm">{{ levelLoadingText }}</span>
           </n-alert>
 
-          <section :aria-labelledby="'sampling-section-overview'">
-          <h2 id="sampling-section-overview" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">01</span>总览</h2>
+          <section :aria-labelledby="'sampling-section-overview'" class="sampling-section">
+          <h2 id="sampling-section-overview" class="section-title"><span class="section-num">01</span>总览</h2>
           <n-grid :cols="4" :x-gap="16" :y-gap="16" class="mb-4" responsive="screen">
             <n-gi>
               <n-card :bordered="false" segmented>
@@ -529,209 +583,13 @@ onUnmounted(() => {
             </div>
           </n-alert>
 
-          <section
-            v-if="summaryByLevelEntries.length"
-            :aria-labelledby="'sampling-section-summary'"
-            class="mb-6"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <h2 id="sampling-section-summary" class="text-base font-semibold text-slate-800"><span class="text-slate-400 font-normal mr-2">02</span>{{ levelLabel }}汇总</h2>
-              <span class="text-xs text-slate-400">{{ windowDays }}天窗口</span>
-            </div>
-            <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
-              <n-gi v-for="[levelValue, summaries] in summaryByLevelEntries" :key="levelValue">
-                <n-card :bordered="false" segmented size="small">
-                  <template #header>
-                    <span class="text-sm font-semibold text-slate-700">{{ levelValue }}</span>
-                  </template>
-                  <div class="space-y-3">
-                    <div
-                      v-for="item in summaries"
-                      :key="`${levelValue}-${item.channel}`"
-                      class="rounded border border-slate-100 bg-slate-50 px-3 py-2"
-                    >
-                      <div class="flex items-center justify-between text-xs mb-2">
-                        <span class="font-semibold text-slate-600">{{ item.channel }}</span>
-                        <span class="text-indigo-600 font-bold">{{ fmtPct(item.repurchase_rate) }}</span>
-                      </div>
-                      <div class="grid grid-cols-3 gap-2 text-xs text-slate-500">
-                        <div>
-                          <div>派样</div>
-                          <b class="text-slate-700">{{ item.sample_users.toLocaleString() }}</b>
-                        </div>
-                        <div>
-                          <div>回购</div>
-                          <b class="text-slate-700">{{ item.repurchase_users.toLocaleString() }}</b>
-                        </div>
-                        <div>
-                          <div>GSV</div>
-                          <b class="text-emerald-700">¥{{ (item.repurchase_gsv / 1e4).toFixed(1) }}万</b>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </n-card>
-              </n-gi>
-            </n-grid>
-          </section>
-
-          <!-- 渠道对比卡片 -->
-          <section :aria-labelledby="'sampling-section-channels'" class="mb-6">
-          <h2 id="sampling-section-channels" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">03</span>各板块情况</h2>
-          <n-grid :cols="3" :x-gap="16" :y-gap="16" class="mb-6" responsive="screen" item-responsive>
-            <n-gi v-for="ch in roiData.summary.channels" :key="ch.channel" span="1 m:1 l:1">
-              <n-card :bordered="false" segmented class="h-full">
-                <template #header>
-                  <div class="flex items-baseline gap-2">
-                    <span class="text-base font-bold" :class="channelColorClass(ch.channel)" :aria-label="ch.channel">
-                      <span aria-hidden="true" class="mr-1">{{ channelIcon(ch.channel) }}</span>
-                      {{ ch.channel }}
-                    </span>
-                    <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">
-                      (全渠道汇总)
-                    </span>
-                  </div>
-                </template>
-
-                <n-grid :cols="5" :x-gap="12">
-                  <n-gi>
-                    <n-statistic label="派样人数" :value="ch.sample_users" />
-                  </n-gi>
-                  <n-gi>
-                    <n-statistic label="回购人数">
-                      <template #default>
-                        <div class="flex items-baseline gap-1.5">
-                          <span class="text-3xl font-bold tabular-nums text-slate-800">{{ formatNumber(ch.repurchase_users) }}</span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
-                            class="text-xs tabular-nums text-slate-400"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%')}`"
-                          >
-                            {{ formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%') }}
-                          </span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                  <n-gi>
-                    <n-statistic label="回购率">
-                      <template #default>
-                        <div class="flex items-baseline gap-1.5">
-                          <span class="text-3xl font-bold tabular-nums text-indigo-600">
-                            {{ formatPercent(ch.repurchase_rate) }}
-                          </span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
-                            class="text-xs tabular-nums text-slate-400"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp')}`"
-                          >
-                            {{ formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp') }}
-                          </span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                  <n-gi>
-                    <n-statistic label="贡献GSV">
-                      <template #default>
-                        <div class="flex items-baseline gap-1.5">
-                          <span class="text-3xl font-bold tabular-nums text-emerald-600">
-                            {{ formatCurrency(ch.repurchase_gsv, 'wan') }}
-                          </span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
-                            class="text-xs tabular-nums text-slate-400"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%')}`"
-                          >
-                            {{ formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%') }}
-                          </span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                  <n-gi>
-                    <n-statistic label="AUS">
-                      <template #default>
-                        <div class="flex items-baseline gap-1.5">
-                          <!-- Sprint 146: AUS 降级为次要指标 (text-slate-500 而非 sky-600) -->
-                          <span class="text-2xl font-semibold tabular-nums text-slate-500">
-                            {{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}
-                          </span>
-                          <span
-                            v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
-                            class="text-xs tabular-nums text-slate-400"
-                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%')}`"
-                          >
-                            {{ formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%') }}
-                          </span>
-                        </div>
-                      </template>
-                    </n-statistic>
-                  </n-gi>
-                </n-grid>
-
-                <!-- 当前窗口概览 -->
-                <n-divider />
-                <div class="flex items-center gap-6 text-sm text-slate-500">
-                  <span>{{ windowDays }}天回购: <b class="text-slate-700">{{ formatNumber(ch.repurchase_users) }}</b> 人 ({{ formatPercent(ch.repurchase_rate) }})</span>
-                  <span>贡献GSV: <b class="text-slate-700">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</b></span>
-                  <span>AUS: <b class="text-slate-700">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</b></span>
-                </div>
-
-                <n-divider />
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <div class="text-xs font-semibold text-rose-600 mb-1">{{ windowDays }}天正装回购</div>
-                    <div class="text-sm text-slate-600">
-                      人数: <b class="text-slate-800">{{ formatNumber(ch.full_repurchase_users) }}</b>
-                      ({{ formatPercent(ch.full_repurchase_rate) }})
-                    </div>
-                    <div class="text-sm text-slate-600">
-                      GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b>
-                      · AUS {{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}
-                    </div>
-                  </div>
-                  <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">非正装回购 (小样/赠品等)</div>
-                    <div class="text-sm text-slate-600">
-                      人数: <b class="text-slate-800">{{ formatNumber(ch.nonfull_repurchase_users) }}</b>
-                    </div>
-                    <div class="text-sm text-slate-600">
-                      GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b>
-                      · AUS {{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}
-                    </div>
-                  </div>
-                </div>
-              </n-card>
-            </n-gi>
-          </n-grid>
-          </section>
-
-          <!-- 品类明细表格 -->
-          <section :aria-labelledby="'sampling-section-detail'" class="mb-6">
-          <h2 id="sampling-section-detail" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">04</span>派样明细</h2>
-          <n-card :bordered="false" segmented>
-            <template #header>
-              <span class="text-sm font-semibold text-slate-700">按 {{ levelLabel }} 明细</span>
-            </template>
-            <n-data-table
-              :columns="categoryCols"
-              :data="roiData.category_breakdown"
-              :bordered="false"
-              :single-line="false"
-              :scroll-x="1500"
-              size="small"
-              striped
-            />
-          </n-card>
-          </section>
-
+          <!-- 02 板块 (回购周期分布) — Sprint 155 ④ 上移到 01 总览之后 (原 05 位置) -->
           <section
             v-if="repurchaseDistribution"
             :aria-labelledby="'sampling-section-buckets'"
-            class="mt-6"
+            class="sampling-section"
           >
-            <h2 id="sampling-section-buckets" class="text-base font-semibold text-slate-800 mb-3"><span class="text-slate-400 font-normal mr-2">05</span>回购周期分布</h2>
+            <h2 id="sampling-section-buckets" class="section-title"><span class="section-num">02</span>回购周期分布</h2>
             <n-card :bordered="false" segmented>
               <!-- Sprint 147 P2.1: 视觉柱状图 (decorative), 屏幕阅读器读下面的 sr-only table -->
               <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-end" style="min-height: 220px" aria-hidden="true">
@@ -774,6 +632,185 @@ onUnmounted(() => {
                 </tbody>
               </table>
             </n-card>
+          </section>
+
+          <!-- 渠道对比卡片 — Sprint 155 ② 改 3 卡横排对齐 (n-grid :cols="3"), TTL 默认展开, click header 折叠 -->
+          <section :aria-labelledby="'sampling-section-channels'" class="sampling-section">
+          <h2 id="sampling-section-channels" class="section-title"><span class="section-num">03</span>各板块情况</h2>
+          <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
+            <!-- 3 卡横排 (TTL + U先 + 百补) 等宽对齐, TTL card click header 折叠/展开 30天正装/非正装 detail -->
+            <n-gi v-for="ch in allChannels" :key="ch.channel" span="1 m:1 l:1">
+              <n-card
+                :bordered="false" segmented class="h-full"
+                :class="ch.channel === 'TTL派样' ? 'cursor-pointer' : ''"
+                @click="ch.channel === 'TTL派样' && (isTtlExpanded = !isTtlExpanded)"
+              >
+                <template #header>
+                  <div class="flex items-center justify-between w-full">
+                    <div class="flex items-baseline gap-2">
+                      <span class="text-base font-bold" :class="channelColorClass(ch.channel)" :aria-label="ch.channel">
+                        <span aria-hidden="true" class="mr-1">{{ channelIcon(ch.channel) }}</span>
+                        {{ ch.channel }}
+                      </span>
+                      <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">
+                        ({{ isTtlExpanded ? '点击折叠' : '点击展开' }})
+                      </span>
+                    </div>
+                    <span
+                      v-if="ch.channel === 'TTL派样'"
+                      class="text-slate-400 text-sm transition-transform"
+                      :class="isTtlExpanded ? 'rotate-180' : ''"
+                      aria-hidden="true"
+                    >▼</span>
+                  </div>
+                </template>
+
+                <n-grid :cols="5" :x-gap="8">
+                  <n-gi>
+                    <n-statistic label="派样人数" :value="ch.sample_users" />
+                  </n-gi>
+                  <n-gi>
+                    <n-statistic label="回购人数">
+                      <template #default>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-2xl font-bold tabular-nums text-slate-800">{{ formatNumber(ch.repurchase_users) }}</span>
+                          <span
+                            v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%')}`"
+                          >{{ formatDelta(compareValue(ch, 'repurchase_users', 'pct'), '%') }}</span>
+                        </div>
+                      </template>
+                    </n-statistic>
+                  </n-gi>
+                  <n-gi>
+                    <n-statistic label="回购率">
+                      <template #default>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-2xl font-bold tabular-nums text-indigo-600">{{ formatPercent(ch.repurchase_rate) }}</span>
+                          <span
+                            v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp')}`"
+                          >{{ formatDelta(compareValue(ch, 'repurchase_rate', 'pp'), 'pp') }}</span>
+                        </div>
+                      </template>
+                    </n-statistic>
+                  </n-gi>
+                  <n-gi>
+                    <n-statistic label="贡献GSV">
+                      <template #default>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-2xl font-bold tabular-nums text-emerald-600">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</span>
+                          <span
+                            v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%')}`"
+                          >{{ formatDelta(compareValue(ch, 'repurchase_gsv', 'pct'), '%') }}</span>
+                        </div>
+                      </template>
+                    </n-statistic>
+                  </n-gi>
+                  <n-gi>
+                    <n-statistic label="AUS">
+                      <template #default>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-lg font-semibold tabular-nums text-slate-500">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</span>
+                          <span
+                            v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
+                            class="text-xs tabular-nums text-slate-400"
+                            :aria-label="`同比 ${formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%')}`"
+                          >{{ formatDelta(compareValue(ch, 'repurchase_aus', 'pct'), '%') }}</span>
+                        </div>
+                      </template>
+                    </n-statistic>
+                  </n-gi>
+                </n-grid>
+
+                <!-- 30天正装/非正装 detail: TTL card 折叠时不显示, U先/百补 总是显示 -->
+                <template v-if="ch.channel !== 'TTL派样' || isTtlExpanded">
+                  <n-divider />
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <div class="text-xs font-semibold text-rose-600 mb-1">{{ windowDays }}天正装回购</div>
+                      <div class="text-xs text-slate-600">
+                        人数: <b class="text-slate-800">{{ formatNumber(ch.full_repurchase_users) }}</b>
+                        ({{ formatPercent(ch.full_repurchase_rate) }})
+                      </div>
+                      <div class="text-xs text-slate-600">
+                        GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b>
+                        · AUS {{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}
+                      </div>
+                    </div>
+                    <div>
+                      <div class="text-xs font-semibold text-slate-500 mb-1">非正装回购</div>
+                      <div class="text-xs text-slate-600">
+                        人数: <b class="text-slate-800">{{ formatNumber(ch.nonfull_repurchase_users) }}</b>
+                      </div>
+                      <div class="text-xs text-slate-600">
+                        GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b>
+                        · AUS {{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </n-card>
+            </n-gi>
+          </n-grid>
+          </section>
+
+          <!-- 品类明细表格 — Sprint 155 ③ native table + 渠道列手动 rowspan 合并 + 其他列点击 sort -->
+          <section :aria-labelledby="'sampling-section-detail'" class="sampling-section">
+          <h2 id="sampling-section-detail" class="section-title"><span class="section-num">04</span>派样明细</h2>
+          <n-card :bordered="false" segmented>
+            <template #header>
+              <span class="card-title">按 {{ levelLabel }} 明细</span>
+            </template>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-200">
+                    <th class="px-3 py-2 text-left font-semibold text-slate-700 w-[100px]">渠道</th>
+                    <th
+                      v-for="col in categoryColumns"
+                      :key="col.key"
+                      class="px-3 py-2 font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                      :class="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'"
+                      @click="toggleSort(col.key)"
+                    >
+                      {{ col.title }}
+                      <span v-if="detailSortKey === col.key" class="text-indigo-500 ml-1">
+                        {{ detailSortOrder === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, rowIdx) in sortedCategoryRows"
+                    :key="`${row.channel}-${row.category}-${rowIdx}`"
+                    class="border-b border-slate-100 hover:bg-slate-50"
+                  >
+                    <td
+                      v-if="channelRowspans.get(rowIdx) != null"
+                      :rowspan="channelRowspans.get(rowIdx)"
+                      class="px-3 py-2 font-semibold text-slate-700 align-middle text-center border-r border-slate-200"
+                    >
+                      <div class="flex items-center justify-center min-h-[2rem]">{{ row.channel }}</div>
+                    </td>
+                    <td
+                      v-for="col in categoryColumns"
+                      :key="col.key"
+                      class="px-3 py-2 tabular-nums"
+                      :class="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'"
+                    >
+                      {{ col.format(row) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </n-card>
           </section>
         </template>
       </n-tab-pane>
@@ -1089,7 +1126,60 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* Sprint 154 ① 全局 8pt 网格 + 呼吸感 + 标题层级 + 行宽 */
 .sampling-view {
   max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;  /* 8 的倍数 (3 × 8) */
+}
+
+/* 文本行宽控制 — 75ch 是黄金阅读宽度 */
+.sampling-view :deep(.prose-narrow) {
+  max-width: 75ch;
+}
+
+/* 卡片内边距统一 24px (8 × 3) */
+.sampling-view :deep(.n-card) {
+  padding: 8px 0;  /* 卡片自身内 padding 由 n-card 默认控制, 加上 :deep section 调整 */
+}
+
+/* 标题层级 — H1 (PageHeader) → H2 (section) → H3 (card) → H4 (sub) */
+.sampling-view :deep(h2.section-title) {
+  font-size: 1.125rem;  /* 18px */
+  font-weight: 600;
+  color: rgb(30 41 59);  /* slate-800 */
+  margin-bottom: 16px;  /* 8 × 2 */
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.sampling-view :deep(h2.section-title .section-num) {
+  color: rgb(148 163 184);  /* slate-400 */
+  font-weight: 400;
+  margin-right: 12px;  /* 8 + 4 */
+  font-variant-numeric: tabular-nums;
+}
+
+.sampling-view :deep(h3.card-title) {
+  font-size: 0.875rem;  /* 14px */
+  font-weight: 600;
+  color: rgb(51 65 85);  /* slate-700 */
+  line-height: 1.5;
+}
+
+.sampling-view :deep(h4.sub-title) {
+  font-size: 0.8125rem;  /* 13px */
+  font-weight: 500;
+  color: rgb(71 85 105);  /* slate-600 */
+  line-height: 1.4;
+}
+
+/* Section 间隔 — 8 的倍数 */
+.sampling-view :deep(.sampling-section) {
+  margin-bottom: 32px;  /* 8 × 4 */
+}
+
+.sampling-view :deep(.sampling-section + .sampling-section) {
+  margin-top: 0;
 }
 </style>
