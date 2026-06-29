@@ -15,7 +15,7 @@ import sys
 import json
 import argparse
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional
 
 # 添加项目根目录到 Python 路径
@@ -501,6 +501,9 @@ def run_full_precomputation():
             for end_date in end_dates:
                 # 计算start_date（往前推window_days，但不超过数据起始）
                 end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                # Sprint 162: 跳过未来日期 (2026-07+ 现在没数据, 跑 100% KeyError 'category', 浪费 ~5min)
+                if end_dt.date() > date.today():
+                    continue
                 start_dt = end_dt - timedelta(days=window_days)
                 start_date = start_dt.strftime("%Y-%m-%d")
 
