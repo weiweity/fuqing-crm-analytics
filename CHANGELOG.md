@@ -1,3 +1,31 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 164 飞书完整解耦 — 8 files / -300+ 行 净删 (user 飞书后续不搞, 解耦后删除, 跨 sprint ETL 治本 batch 3/4), VERSION 不变)
+
+### Refactored
+- **飞书完整解耦 (user 拍板 "飞书后续不用再搞了, 解耦后删除")**:
+  - **删 4 files** (-300+ 行 净删):
+    - `scripts/etl/notify.py` (95 行, ETL 跑完飞书通知主模块)
+    - `scripts/etl/common/lark.py` (94 行, 飞书 lark-cli 通道包装)
+    - `backend/tests/test_w6_etl_notify.py` (162 行, W6 通知测试)
+    - `backend/tests/test_w6_pipeline_integration.py` (115 行, W6 pipeline 集成测试)
+  - **改 7 files**:
+    - `scripts/etl/cli.py`: 删 `from scripts.etl.notify import notify_etl_complete` + 定义 no-op (8 处调用方零改动)
+    - `scripts/etl/pipeline.py`: 删 2 处 `from scripts.etl.notify import notify_etl_complete` + 改 no-op 保留 print log
+    - `scripts/etl/assertions.py`: `_send_lark_alert_mockable` 改 no-op (保留签名避免调用方改动)
+    - `scripts/etl/dq_monitor.py`: `send_lark_alert` 改 no-op (保留 --alert 调用方)
+    - `scripts/etl/backup_duckdb.py`: 删 `from scripts.etl.common.lark import _send_lark_alert` + `loud_fail` 删 lark 主通道, 走 osascript + mail (Sprint 25 fallback 替代, 本地通知不依赖飞书)
+    - `backend/tests/test_wo1_smoke.py`: 删 `test_notify_import` + `test_cli_notify_import_wired` (Sprint 164 飞书解耦后失效)
+    - `backend/tests/test_backup_duckdb.py`: Case 2 + Case 2b 合并 (删 lark 主通道 + fallback 链, 改 osascript + mail 直接调用断言)
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **723 passed / 66 skipped / 0 failed** (跟 Sprint 163 baseline 741 减 18 case = 飞书 4 删 + wo1 2 删 + backup_duckdb 1 减, pytest 不退化)
+- pre-push hook pytest **723/66/0 PASS** (真连 test 跑了真验证回归)
+- 0 critical / 0 informative / 0 AUTO-FIX (L3 精准 11 files 1 turn 改, 1:1 swap 模式 stable)
+- 11 files (4 D + 7 M) / -300+ 行 净删
+- main HEAD `b83180b` + origin/main 0 drift (push `0851033..b83180b` 成功)
+- L4.8 cleanup feature/sprint164-lark-full-decoupling 分支 (本地 + 远程)
+- 累计 87→88 sprint 0 debt 持续
+- 跟 Sprint 165 (W3 DQ 2 failed 排查) 一同跨 sprint ETL 治本 batch 4/4 拍板, 1 turn 收口
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 163 tracker weekly backup — 防 plist 异常 kill 丢 tracker 冷启动 25min 浪费 (跨 sprint ETL 治本 batch 2/4), VERSION 不变)
 
 ### Fixed
