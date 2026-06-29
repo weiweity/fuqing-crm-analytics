@@ -189,3 +189,48 @@
 ---
 
 **L4.8 永久规则 (跟 Sprint 50.5 L4.5 + L4.6 永久规则一致)**: 任何业务定义变更 (R / F / M / 8 象限 / ratio 模式 / 强截断 0-1 / lifecycle / value / potential 维度) 必先更新本文档, 跟 Pydantic 契约 + SQL 口径 + 前端 filter 同步, 避免 Sprint 60+ 累计 4 sprint 治本跨 sprint 留尾循环. Sprint 142 增量加 3 维度跟 8 quadrant 共存, 治根 = 单点 SSOT (本文档) + 多 sink (Pydantic + SQL + 前端).
+
+---
+
+## 9. Sprint 170 supersede 更新
+
+### 业务决策 (user 拍板, 2026-06-29)
+
+- **品类回购分析**(`/category/repurchase-flow` + `/category/repurchase-flow-by-rfm`) 业务口径:
+  - **原**: RFM 8 象限 (3 维度 R×F×M 组合, r_score + f_score + m_score >=4 vs <4)
+  - **新**: **R 桶 (6 档 Recency + 1 TTL 汇总)** — 用单一 Recency 维度, 更直观反映复购周期
+- **supersede** Sprint 142 advisory "8 quadrant 保留: 业务侧不能用 3 维度替代 8 quadrant" — Sprint 142 时代的业务决策被 Sprint 170 更新覆盖
+- **不动**: `/health/rfm/*` 路由 + `services/health/rfm_analysis/*` + `/rfm/r-flow` 等 **健康页 RFM 业务** 仍用 RFM 8 象限 (独立功能, 跟品类回购解耦)
+- **不改**: `docs/sprints/HANDOFF-TO-CODEX-Sprint142-RFM-Level-Lock-Perf.md` (历史快照保留, 跟代码改动无关)
+
+### 受影响范围 (Sprint 170 改造清单, 9 文件)
+
+| 层 | 文件 | 改动 |
+|---|---|---|
+| Semantic (公共 SSOT) | `backend/semantic/segments.py` | 复用 `R_SEGMENT_ORDER` + `R_INTERVALS` (Sprint 60+ 已沉淀, 无需新增) |
+| Service SQL | `services/category_service/repurchase/standard.py` + `rfm.py` | 删 `rfm_scored` + `rfm_segmented` + `member_segmented` CTE, 改 `r_bucketed` + `member_bucketed` (按 `recency_days` 分 6 桶) |
+| Service dict | `services/category_service/repurchase/api.py` | dict key `rfm_segment` → `r_bucket`, 循环常量 `_RFM_SEGMENT_ORDER` → `R_SEGMENT_ORDER` |
+| Service shared | `services/category_service/_shared.py` | 删 `_RFM_SEGMENT_ORDER` (历史 8 象限, 由 `R_SEGMENT_ORDER` 替代) |
+| Contract | `backend/contracts/category.py` | `CategoryRepurchaseFlowRow.rfm_segment` → `r_bucket` |
+| Router doc | `backend/routers/category.py` | 两个 router 函数 docstring "RFM 8 象限" → "R 桶" |
+| Frontend API | `frontend-vue3/src/api/category.ts` | 接口 `CategoryRepurchaseFlowRow.rfm_segment` → `r_bucket` |
+| Frontend OpenAPI 同步 | `frontend-vue3/src/api/types.ts` | 手动同步 + 注脚 (待 `npm run gen:types` 重生成) |
+| Frontend UI | `views/category-tabs/CategoryRepurchaseTab.vue` | column key `rfm_segment` → `r_bucket`, 列头 "RFM 象限" → "回购周期", `segmentMeta` 8 象限 → 6 R 桶 + TTL, 模板 docstring 6 处清理 |
+
+### TTL 行处理
+
+- 名称保留 `"已购客TTL"` (跟 `R_SEGMENT_ORDER` 末项一致, 直接复用公共 SSOT)
+- 语义: 全部已购客汇总行 (业务口径不变), 仍是 1 行
+- 值: 4 个指标 (hist_users / repurchase_users / repurchase_gsv 累计 + 派生 repurchase_rate / repurchase_gsv_ratio)
+
+### 实战 fix 模式沉淀 (跟 Sprint 50-160 stable 模式)
+
+1. **公共 SSOT 复用优于新造常量**: 改 R 桶时不新造 `_R_INTERVAL_ORDER`, 复用 `R_SEGMENT_ORDER` (Sprint 60+ 沉淀) — 避免 SPRINT 142 重复定义
+2. **field rename 优于改值**: `rfm_segment` → `r_bucket` 全链路改, 不留名实不符隐患 (L4.x 永久规则: SSOT 业务字段名实一致)
+3. **OpenAPI 自动生成文件手工同步 + 注脚**: types.ts 手工改 + 注脚 "待 `npm run gen:types` 重生成", CI 跑 lint 不报错 (类型契约通过 Python Pydantic 层校验, types.ts 是 TS 端类型提示)
+4. **跨 sprint advisory supersede**: Sprint 142 advisory "8 quadrant 保留" 被 Sprint 170 业务决策覆盖, close memory 标注 supersede 关系, 而不是删历史 advisory (跟 Sprint 89 暂收口 0 治理 SOP 一致, 保留历史 + 标 superseded)
+
+### Close
+
+- **L4.23 永久规则适配**: 业务口径变更 9 文件交叉改, 跟 Sprint 161 e2e spec drift 治根模式 consistent (UI + contract + SQL + service 4 层同步)
+- **后续**: Sprint 170 close memory 标注 Sprint 142 advisory 已 superseded, 累计 sprint 治理 +1

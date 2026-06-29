@@ -147,7 +147,8 @@ def get_category_repurchase_flow_api(
     """
     品类回购分析
 
-    返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+    返回同品回购+跨品类回购的 R 桶明细（6 档 Recency + TTL 汇总，含3年同比）。
+    Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶（更直观反映复购周期）。
     """
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
@@ -168,11 +169,12 @@ def get_category_repurchase_flow_by_rfm_api(
     exclude_channels: Optional[List[str]] = Query(default=None),
 ):
     """
-    历史老客回购分析（RFM 8象限分群，不限品类）
+    历史老客回购分析（R 桶分群，不限品类）
 
-    返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+    返回同品回购+跨品类回购的 R 桶明细（6 档 Recency + TTL 汇总，含3年同比）。
     与 repurchase-flow 的区别：hist_customers 包含所有历史老客（不限品类），
-    按 RFM 象限分群后观察各象限在分析期内对目标品类的回购表现。
+    按 R 桶分群后观察各桶在分析期内对目标品类的回购表现。
+    Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶。
     """
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning

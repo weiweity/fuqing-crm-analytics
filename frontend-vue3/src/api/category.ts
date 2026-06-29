@@ -372,10 +372,12 @@ export function fetchCategoryChurn(params: {
 
 // ============================================================
 // CategoryRepurchaseTab (品类回购分析)
+// Sprint 170: 业务口径由 RFM 8 象限改为 R 桶 (6 档 Recency + TTL)
+// field r_bucket 替代 rfm_segment, 跟后端 contracts/category.py 同步
 // ============================================================
 
 export interface CategoryRepurchaseFlowRow {
-  rfm_segment: string
+  r_bucket: string
   hist_users_current: number
   repurchase_users_current: number
   repurchase_rate_current: number

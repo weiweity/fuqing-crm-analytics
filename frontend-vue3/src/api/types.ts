@@ -2230,11 +2230,11 @@ export interface components {
         };
         /**
          * CategoryRepurchaseFlowRow
-         * @description 品类回购分析单行数据（RFM 8象限分群）
+         * @description 品类回购分析单行数据（R 桶分群，6 档 Recency + 1 TTL 汇总）Sprint 170
          */
         CategoryRepurchaseFlowRow: {
-            /** Rfm Segment */
-            rfm_segment: string;
+            /** R Bucket */
+            r_bucket: string;
             /**
              * Hist Users Current
              * @default 0

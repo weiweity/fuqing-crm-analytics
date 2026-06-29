@@ -37,17 +37,9 @@ _ASSOC_CACHE_MAX_SIZE = 100
 _assoc_cache: OrderedDict[str, Any] = OrderedDict()
 _assoc_cache_lock = __import__('threading').Lock()
 
-# L3212: RFM 象限顺序（必须与 SQL rfm_segmented CTE 中的命名完全一致）
-_RFM_SEGMENT_ORDER = [
-    "重要价值客户",
-    "重要保持客户",
-    "重要发展客户",
-    "重要挽留客户",
-    "一般价值客户",
-    "一般保持客户",
-    "一般发展客户",
-    "一般挽留客户",
-]
+# Sprint 170: 业务口径变更 — 品类回购分析由 RFM 8 象限改为 R 桶 (6 档 Recency + 1 TTL 汇总)
+# 删除原 _RFM_SEGMENT_ORDER (8 象限), 改复公共 SSOT backend.semantic.segments.R_SEGMENT_ORDER
+# 调用方更新 from backend.semantic.segments import R_SEGMENT_ORDER (Sprint 60+ 沉淀的公共 SSOT)
 
 # L3172-3208: 复购日期范围解析
 def _resolve_repurchase_date_ranges(

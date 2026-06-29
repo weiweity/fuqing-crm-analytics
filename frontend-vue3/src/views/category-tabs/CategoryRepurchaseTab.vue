@@ -85,18 +85,18 @@ function formatAdaptivePercent(value: number): string {
   return `${pct.toExponential(2)}%`
 }
 
-// ── RFM象限分段元数据 ──
+// ── R 桶分段元数据 ──
+// Sprint 170: 业务口径由 RFM 8 象限改为 R 桶 (6 档 Recency + TTL)
+// 名称与 semantic.segments.R_SEGMENT_ORDER 公共 SSOT 完全一致
 const segmentMeta = computed<Record<string, { label: string; range: string }>>(() => {
   return {
-    '重要价值客户': { label: '重要价值客户', range: 'R高·F高·M高' },
-    '重要保持客户': { label: '重要保持客户', range: 'R低·F高·M高' },
-    '重要发展客户': { label: '重要发展客户', range: 'R高·F低·M高' },
-    '重要挽留客户': { label: '重要挽留客户', range: 'R低·F低·M高' },
-    '一般价值客户': { label: '一般价值客户', range: 'R高·F高·M低' },
-    '一般保持客户': { label: '一般保持客户', range: 'R低·F高·M低' },
-    '一般发展客户': { label: '一般发展客户', range: 'R高·F低·M低' },
-    '一般挽留客户': { label: '一般挽留客户', range: 'R低·F低·M低' },
-    '已购客TTL': { label: '已购客TTL', range: '全部' },
+    '近1个月已购客':         { label: '近1个月已购客',         range: '0-30天' },
+    '近2-3个月已购客':       { label: '近2-3个月已购客',       range: '31-90天' },
+    '近4-6月已购客':         { label: '近4-6月已购客',         range: '91-180天' },
+    '近7-12个月已购客':      { label: '近7-12个月已购客',      range: '181-365天' },
+    '近13个月-近24个月已购客': { label: '近13个月-近24个月已购客', range: '366-730天' },
+    '2年外已购客':           { label: '2年外已购客',           range: '731天+' },
+    '已购客TTL':             { label: '已购客TTL',             range: '全部' },
   }
 })
 
@@ -104,8 +104,8 @@ const segmentMeta = computed<Record<string, { label: string; range: string }>>((
 const repurchaseChartOption = computed(() => {
   if (!data.value) return {}
   const d = data.value as CategoryRepurchaseFlowResponse
-  const rows = d.same_category_rows.filter((r) => r.rfm_segment !== '已购客TTL')
-  const segments = rows.map((r) => r.rfm_segment)
+  const rows = d.same_category_rows.filter((r) => r.r_bucket !== '已购客TTL')
+  const segments = rows.map((r) => r.r_bucket)
 
   return {
     tooltip: {
@@ -190,13 +190,13 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
   return [
     {
-      title: 'RFM 象限',
-      key: 'rfm_segment',
+      title: '回购周期',
+      key: 'r_bucket',
       width: 160,
       fixed: 'left',
       align: 'center',
       render: (row: CategoryRepurchaseFlowRow) => {
-        const meta = segmentMeta.value[row.rfm_segment] || { label: row.rfm_segment, range: '' }
+        const meta = segmentMeta.value[row.r_bucket] || { label: row.r_bucket, range: '' }
         return h('div', { class: 'flex flex-col items-center justify-center leading-tight py-0.5' }, [
           h('div', { class: 'text-[13px] font-medium text-slate-800' }, meta.label),
           h('div', { class: 'text-[11px] text-slate-400 mt-0.5' }, meta.range),
@@ -285,7 +285,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
             买了某品类的老客，多久回来？回来买了同品还是其他品类？——识别品类复购周期和承接关系
           </template>
           <template v-else>
-            所有历史老客（不限品类）按RFM象限分群，看各象限在分析期内对目标品类的回购表现——识别高价值象限的品类渗透机会
+            所有历史老客（不限品类）按 R 桶分群，看各桶在分析期内对目标品类的回购表现——识别高复购桶的品类渗透机会
           </template>
         </p>
       </div>
@@ -336,7 +336,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
             各R区间老客对{{ data.target_category }}的复购率变化
           </template>
           <template v-else>
-            各RFM象限老客对{{ data.target_category }}的复购率变化（历史老客不限品类）
+            各 R 桶老客对{{ data.target_category }}的复购率变化（历史老客不限品类）
           </template>
         </p>
         <EmptyState
@@ -361,7 +361,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
             买了{{ data.target_category }}的老客，在分析期回来买同一品类的回购表现（3年同比）
           </template>
           <template v-else>
-            所有历史老客按RFM象限分群，在分析期回来买{{ data.target_category }}的回购表现（3年同比）
+            所有历史老客按 R 桶分群，在分析期回来买{{ data.target_category }}的回购表现（3年同比）
           </template>
         </p>
         <DataTablePro
@@ -387,7 +387,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
             买了{{ data.target_category }}的老客，在分析期回来买了其他品类的跨品类回购表现（3年同比）
           </template>
           <template v-else>
-            所有历史老客按RFM象限分群，在分析期回来买了其他品类的跨品类回购表现（3年同比）
+            所有历史老客按 R 桶分群，在分析期回来买了其他品类的跨品类回购表现（3年同比）
           </template>
         </p>
         <DataTablePro
@@ -413,7 +413,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
             买了{{ data.target_category }}的会员老客，同品回购表现（3年同比）
           </template>
           <template v-else>
-            所有历史会员老客按RFM象限分群，同品回购表现（3年同比）
+            所有历史会员老客按 R 桶分群，同品回购表现（3年同比）
           </template>
         </p>
         <DataTablePro
@@ -439,7 +439,7 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
             买了{{ data.target_category }}的会员老客，跨品类回购表现（3年同比）
           </template>
           <template v-else>
-            所有历史会员老客按RFM象限分群，跨品类回购表现（3年同比）
+            所有历史会员老客按 R 桶分群，跨品类回购表现（3年同比）
           </template>
         </p>
         <DataTablePro
