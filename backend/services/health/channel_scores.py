@@ -11,7 +11,7 @@ from backend.db.connection import get_connection
 from backend.semantic.channels import ACTIVE_UI_CHANNELS, UI_TO_DB
 from backend.services.health.overview import (
     _build_filter,
-    _compute_repurchase_rate,
+    compute_repurchase_rate,
     _compute_product_repurchase_rate,
     _compute_old_customer_metrics,
     _compute_health_score,
@@ -70,7 +70,7 @@ def get_channel_health_scores(
 
             # 当期指标
             where_sql, params = _build_filter(exclude_channels, start_date, end_date, db_channel)
-            repurchase_rate, period_repurchase_users, _ = _compute_repurchase_rate(conn, where_sql, params)
+            repurchase_rate, period_repurchase_users, _ = compute_repurchase_rate(conn, where_sql, params)
             product_rate = _compute_product_repurchase_rate(conn, where_sql, params)
             old_metrics = _compute_old_customer_metrics(conn, where_sql, params, start_date)
 
@@ -101,7 +101,7 @@ def get_channel_health_scores(
 
         # 全店（不指定渠道）
         where_sql, params = _build_filter(exclude_channels, start_date, end_date, None)
-        repurchase_rate, period_repurchase_users, _ = _compute_repurchase_rate(conn, where_sql, params)
+        repurchase_rate, period_repurchase_users, _ = compute_repurchase_rate(conn, where_sql, params)
         product_rate = _compute_product_repurchase_rate(conn, where_sql, params)
         old_metrics = _compute_old_customer_metrics(conn, where_sql, params, start_date)
         all_targets = _compute_dynamic_targets(conn, analysis_date, period_days, exclude_channels, None)

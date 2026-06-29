@@ -98,11 +98,27 @@ class RepurchaseCycleOverview(BaseModel):
     period_start: str = Field(..., description="开始日期")
     period_end: str = Field(..., description="结束日期")
 
-    # 全店分布
+    # 全店分布（当期）
     all_store_median_days: int = Field(..., description="中位复购天数")
     all_store_p25_days: int = Field(..., description="P25")
     all_store_p75_days: int = Field(..., description="P75")
     all_store_avg_days: float = Field(..., description="平均复购天数")
+    # Sprint 169: 新增全店复购率（跟 HealthOverviewMetrics 范本对齐, B2 RatioField 0-1 decimal）
+    all_store_repurchase_rate: "RatioField" = Field(..., description="全店复购率 0-1 decimal")
+
+    # Sprint 169: 去年同期原始值（用于前端展示 "vs 去年" 文本）
+    ly_all_store_median_days: Optional[int] = Field(None, description="去年同期中位复购天数")
+    ly_all_store_p25_days: Optional[int] = Field(None, description="去年同期P25")
+    ly_all_store_p75_days: Optional[int] = Field(None, description="去年同期P75")
+    ly_all_store_avg_days: Optional[float] = Field(None, description="去年同期平均复购天数")
+    ly_all_store_repurchase_rate: Optional["RatioField"] = Field(None, description="去年同期全店复购率 0-1 decimal")
+    # Sprint 169: 同比 (语义层 yoy_repurchase_rate, 复购率用 PpField pp 差)
+    yoy_all_store_repurchase_rate: Optional["PpField"] = Field(None, description="全店复购率同比 (pp 差)")
+    # Sprint 169: 天数 YOY 用 raw diff (cur - ly), 业务直觉"间隔缩/拉长"更直观, 不走 pp/percentage
+    median_days_yoy: Optional[int] = Field(None, description="中位天数同比 (raw diff)")
+    p25_days_yoy: Optional[int] = Field(None, description="P25天数同比 (raw diff)")
+    p75_days_yoy: Optional[int] = Field(None, description="P75天数同比 (raw diff)")
+    avg_days_yoy: Optional[float] = Field(None, description="平均天数同比 (raw diff)")
 
     # 分桶分布
     bucket_distribution: List[RepurchaseBucket] = Field(default_factory=list)

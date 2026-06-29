@@ -721,6 +721,50 @@ export interface RepurchaseCycleOverview {
    * 平均复购天数
    */
   all_store_avg_days: number;
+  /**
+   * 全店复购率 0-1 decimal
+   */
+  all_store_repurchase_rate: number;
+  /**
+   * 去年同期中位复购天数
+   */
+  ly_all_store_median_days?: number | null;
+  /**
+   * 去年同期P25
+   */
+  ly_all_store_p25_days?: number | null;
+  /**
+   * 去年同期P75
+   */
+  ly_all_store_p75_days?: number | null;
+  /**
+   * 去年同期平均复购天数
+   */
+  ly_all_store_avg_days?: number | null;
+  /**
+   * 去年同期全店复购率 0-1 decimal
+   */
+  ly_all_store_repurchase_rate?: number | null;
+  /**
+   * 全店复购率同比 (pp 差)
+   */
+  yoy_all_store_repurchase_rate?: number | null;
+  /**
+   * 中位天数同比 (raw diff)
+   */
+  median_days_yoy?: number | null;
+  /**
+   * P25天数同比 (raw diff)
+   */
+  p25_days_yoy?: number | null;
+  /**
+   * P75天数同比 (raw diff)
+   */
+  p75_days_yoy?: number | null;
+  /**
+   * 平均天数同比 (raw diff)
+   */
+  avg_days_yoy?: number | null;
   bucket_distribution?: RepurchaseBucket[];
   by_product_class?: ProductClassRepurchase[];
   /**
