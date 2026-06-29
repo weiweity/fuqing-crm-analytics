@@ -1,3 +1,23 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 165 W3 DQ 2 failed advisory doc 沉淀 (跨 sprint ETL 治本 batch 4/4, 0 业务代码改动), VERSION 不变)
+
+### Docs
+- **docs/operating/w3-dq-advisory.md** (新文件, 1 file / +117 lines): W3 DQ 2 failed 真因 advisory 沉淀
+  - **assert_total_not_drop** 真因 (推测): 阈值 0.3×prev_30d_avg 太严, 周末/周一波动 30% 是合理 (跟 Sprint 89/134/152 advisory 模式 stable)
+  - **assert_540_completeness** 真因 (推测): 写死 54 (3 lookbacks × 2 metrics × 9 channels) 跟 Sprint 144+ 改派样后实际 channel 数漂移, 实际 GROUP BY 维度数 vs 写死阈值不匹配
+  - **alert_sent=False** 跟 Sprint 164 飞书解耦一致 (no-op, 不是新 bug)
+  - Sprint 166+ 可选修: 阈值放宽到 0.5 或 weekday-aware / 改动态 channels 从 user_rfm GROUP BY 取实际 / 加 ratio 容差 10%
+  - 实战 fix 模式 #41 (W3 DQ 断言阈值写死真因排查模式 + advisory only 暂收口模式)
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **723 passed / 66 skipped / 0 failed** (跟 Sprint 164 baseline 1:1 一致)
+- pre-push hook pytest **723/66/0 PASS** (advisory doc 改 0 业务代码)
+- 0 critical / 0 informative / 0 AUTO-FIX (0 业务代码改动, L4.7 100% 精准 0 turn 改)
+- 1 file / +117 lines (新 file, 0 modification)
+- main HEAD `f2d0888` + origin/main 0 drift (push `9b818ed..f2d0888` 成功)
+- L4.8 cleanup feature/sprint165-w3-dq-advisory-doc 分支 (本地 + 远程)
+- 累计 88→89 sprint 0 debt 持续 (advisory 不算 debt)
+- 跟 Sprint 162+163+164 跨 sprint ETL 治本 batch 1-3/4 一同 1 turn 收口, 累计 4/4 拍板 + 拍板完
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 164 飞书完整解耦 — 8 files / -300+ 行 净删 (user 飞书后续不搞, 解耦后删除, 跨 sprint ETL 治本 batch 3/4), VERSION 不变)
 
 ### Refactored
