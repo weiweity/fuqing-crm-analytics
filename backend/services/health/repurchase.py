@@ -13,7 +13,8 @@ from typing import Dict, Any, Optional, List
 
 from backend.db.connection import get_connection
 from backend.semantic.filters import FilterBuilder, MetricType
-from backend.semantic.calculations import safe_ratio
+from backend.semantic.calculations import safe_ratio, yoy_repurchase_rate
+from backend.services.health.overview import compute_repurchase_rate
 
 
 def _shift_date_year(date_str: str, years: int) -> str:
@@ -255,6 +256,106 @@ BUCKETS = [
 ]
 
 
+def _compute_days_stats(conn, where_sql: str, params: list) -> Dict[str, Any]:
+    """全店复购间隔分位数 + 平均 (Sprint 169: 抽 helper 复用 cur/ly 期间, 跟分桶解耦)
+
+    Returns:
+        {"median_days": int, "p25_days": int, "p75_days": int, "avg_days": float}
+    """
+    row = conn.execute(f"""
+        WITH user_orders AS (
+            SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
+            FROM orders o
+            WHERE {where_sql}
+        ),
+        gaps AS (
+            SELECT DATEDIFF('day', prev_pay_date, pay_date) as gap_days
+            FROM (
+                SELECT user_id, pay_date,
+                    LAG(pay_date) OVER (PARTITION BY user_id ORDER BY pay_date) as prev_pay_date
+                FROM user_orders
+            )
+            WHERE prev_pay_date IS NOT NULL
+              AND DATEDIFF('day', prev_pay_date, pay_date) > 0
+        )
+        SELECT
+            quantile_cont(gap_days, 0.5) as median_days,
+            quantile_cont(gap_days, 0.25) as p25,
+            quantile_cont(gap_days, 0.75) as p75,
+            AVG(gap_days) as avg_days
+        FROM gaps
+    """, params).fetchone()
+
+    return {
+        "median_days": int(row[0]) if row[0] else 0,
+        "p25_days": int(row[1]) if row[1] else 0,
+        "p75_days": int(row[2]) if row[2] else 0,
+        "avg_days": round(float(row[3]), 1) if row[3] else 0.0,
+    }
+
+
+def _build_period_filter(start_date: str, end_date: str,
+                         channel: Optional[str],
+                         exclude_channels: Optional[List[str]]) -> tuple[str, list]:
+    """Sprint 169: 抽 helper 复用 FilterBuilder (cur/ly 期间对比, 跟 _fetch_bucket_distribution 对齐)"""
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.with_time_range(start_date, end_date)
+    if channel:
+        fb.with_channels([channel])
+    if exclude_channels:
+        fb.with_exclude_channels(exclude_channels)
+    return fb.build()
+
+
+def _fetch_bucket_distribution(conn, s_date: str, e_date: str,
+                               channel: Optional[str] = None,
+                               exclude_channels: Optional[List[str]] = None) -> tuple[int, Dict[str, int]]:
+    """Sprint 169: 提到模块级 (原 nested closure), 复用 cur/ly/p2 期间分桶查询"""
+    where_sql, params = _build_period_filter(s_date, e_date, channel, exclude_channels)
+    r = conn.execute(f"""
+        WITH user_orders AS (
+            SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
+            FROM orders o
+            WHERE {where_sql}
+        ),
+        gaps AS (
+            SELECT DATEDIFF('day', prev_pay_date, pay_date) as gap_days
+            FROM (
+                SELECT user_id, pay_date,
+                    LAG(pay_date) OVER (PARTITION BY user_id ORDER BY pay_date) as prev_pay_date
+                FROM user_orders
+            )
+            WHERE prev_pay_date IS NOT NULL
+              AND DATEDIFF('day', prev_pay_date, pay_date) > 0
+        )
+        SELECT
+            COUNT(*) as total_gaps,
+            COUNT(CASE WHEN gap_days <= 7 THEN 1 END) as b_0_7,
+            COUNT(CASE WHEN gap_days > 7 AND gap_days <= 14 THEN 1 END) as b_8_14,
+            COUNT(CASE WHEN gap_days > 14 AND gap_days <= 30 THEN 1 END) as b_15_30,
+            COUNT(CASE WHEN gap_days > 30 AND gap_days <= 60 THEN 1 END) as b_31_60,
+            COUNT(CASE WHEN gap_days > 60 AND gap_days <= 90 THEN 1 END) as b_61_90,
+            COUNT(CASE WHEN gap_days > 90 AND gap_days <= 180 THEN 1 END) as b_91_180,
+            COUNT(CASE WHEN gap_days > 180 AND gap_days <= 365 THEN 1 END) as b_181_365,
+            COUNT(CASE WHEN gap_days > 365 THEN 1 END) as b_366_plus
+        FROM gaps
+    """, params).fetchone()
+
+    tg = int(r[0]) if r[0] else 0
+    bc = {
+        "0-7天": int(r[1] or 0),
+        "8-14天": int(r[2] or 0),
+        "15-30天": int(r[3] or 0),
+        "31-60天": int(r[4] or 0),
+        "61-90天": int(r[5] or 0),
+        "91-180天": int(r[6] or 0),
+        "181-365天": int(r[7] or 0),
+        "365天以上": int(r[8] or 0),
+    }
+    return tg, bc
+
+
 def get_repurchase_cycle(start_date: str, end_date: str,
                          exclude_channels: Optional[List[str]] = None,
                          channel: Optional[str] = None,
@@ -279,130 +380,38 @@ def get_repurchase_cycle(start_date: str, end_date: str,
             fb.with_exclude_channels(exclude_channels)
         where_sql, params = fb.build()
 
-        # ── 1. 全店复购间隔统计（分位数 + 分桶 合并为单次查询） ──
+        # ── 1. 全店复购分位数 + 复购率 (Sprint 169: 拆 days/buckets/rate 3 查询) ──
         # 按天去重：当天多单合并为一天，与分品类口径保持一致
-        row = conn.execute(f"""
-            WITH user_orders AS (
-                SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
-                FROM orders o
-                WHERE {where_sql}
-            ),
-            gaps AS (
-                SELECT DATEDIFF('day', prev_pay_date, pay_date) as gap_days
-                FROM (
-                    SELECT user_id, pay_date,
-                        LAG(pay_date) OVER (PARTITION BY user_id ORDER BY pay_date) as prev_pay_date
-                    FROM user_orders
-                )
-                WHERE prev_pay_date IS NOT NULL
-                  AND DATEDIFF('day', prev_pay_date, pay_date) > 0
-            )
-            SELECT
-                COUNT(*) as total_gaps,
-                quantile_cont(gap_days, 0.5) as median_days,
-                quantile_cont(gap_days, 0.25) as p25,
-                quantile_cont(gap_days, 0.75) as p75,
-                AVG(gap_days) as avg_days,
-                COUNT(CASE WHEN gap_days <= 7 THEN 1 END) as b_0_7,
-                COUNT(CASE WHEN gap_days > 7 AND gap_days <= 14 THEN 1 END) as b_8_14,
-                COUNT(CASE WHEN gap_days > 14 AND gap_days <= 30 THEN 1 END) as b_15_30,
-                COUNT(CASE WHEN gap_days > 30 AND gap_days <= 60 THEN 1 END) as b_31_60,
-                COUNT(CASE WHEN gap_days > 60 AND gap_days <= 90 THEN 1 END) as b_61_90,
-                COUNT(CASE WHEN gap_days > 90 AND gap_days <= 180 THEN 1 END) as b_91_180,
-                COUNT(CASE WHEN gap_days > 180 AND gap_days <= 365 THEN 1 END) as b_181_365,
-                COUNT(CASE WHEN gap_days > 365 THEN 1 END) as b_366_plus
-            FROM gaps
-        """, params).fetchone()
+        cur_days = _compute_days_stats(conn, where_sql, params)
+        cur_rate, _, _ = compute_repurchase_rate(conn, where_sql, params)
 
-        total_gaps = int(row[0]) if row[0] else 0
-        median_days = int(row[1]) if row[1] else 0
-        p25 = int(row[2]) if row[2] else 0
-        p75 = int(row[3]) if row[3] else 0
-        avg_days = round(float(row[4]), 1) if row[4] else 0.0
-
-        # ── 2. 分桶分布（当前周期 + 对比期 + 前年同期） ──
-        bucket_distribution = []
-        bucket_counts = {
-            "0-7天": int(row[5] or 0),
-            "8-14天": int(row[6] or 0),
-            "15-30天": int(row[7] or 0),
-            "31-60天": int(row[8] or 0),
-            "61-90天": int(row[9] or 0),
-            "91-180天": int(row[10] or 0),
-            "181-365天": int(row[11] or 0),
-            "365天以上": int(row[12] or 0),
-        }
-
-        def _fetch_bucket_distribution(s_date: str, e_date: str) -> tuple[int, Dict[str, int]]:
-            """获取指定日期范围的复购间隔分桶分布"""
-            fb_inner = FilterBuilder()
-            fb_inner.with_metric_type(MetricType.GSV)
-            fb_inner.with_time_range(s_date, e_date)
-            if channel:
-                fb_inner.with_channels([channel])
-            if exclude_channels:
-                fb_inner.with_exclude_channels(exclude_channels)
-            where_sql_inner, params_inner = fb_inner.build()
-
-            r = conn.execute(f"""
-                WITH user_orders AS (
-                    SELECT DISTINCT user_id, CAST(pay_time AS DATE) as pay_date
-                    FROM orders o
-                    WHERE {where_sql_inner}
-                ),
-                gaps AS (
-                    SELECT DATEDIFF('day', prev_pay_date, pay_date) as gap_days
-                    FROM (
-                        SELECT user_id, pay_date,
-                            LAG(pay_date) OVER (PARTITION BY user_id ORDER BY pay_date) as prev_pay_date
-                        FROM user_orders
-                    )
-                    WHERE prev_pay_date IS NOT NULL
-                      AND DATEDIFF('day', prev_pay_date, pay_date) > 0
-                )
-                SELECT
-                    COUNT(*) as total_gaps,
-                    COUNT(CASE WHEN gap_days <= 7 THEN 1 END) as b_0_7,
-                    COUNT(CASE WHEN gap_days > 7 AND gap_days <= 14 THEN 1 END) as b_8_14,
-                    COUNT(CASE WHEN gap_days > 14 AND gap_days <= 30 THEN 1 END) as b_15_30,
-                    COUNT(CASE WHEN gap_days > 30 AND gap_days <= 60 THEN 1 END) as b_31_60,
-                    COUNT(CASE WHEN gap_days > 60 AND gap_days <= 90 THEN 1 END) as b_61_90,
-                    COUNT(CASE WHEN gap_days > 90 AND gap_days <= 180 THEN 1 END) as b_91_180,
-                    COUNT(CASE WHEN gap_days > 180 AND gap_days <= 365 THEN 1 END) as b_181_365,
-                    COUNT(CASE WHEN gap_days > 365 THEN 1 END) as b_366_plus
-                FROM gaps
-            """, params_inner).fetchone()
-
-            tg = int(r[0]) if r[0] else 0
-            bc = {
-                "0-7天": int(r[1] or 0),
-                "8-14天": int(r[2] or 0),
-                "15-30天": int(r[3] or 0),
-                "31-60天": int(r[4] or 0),
-                "61-90天": int(r[5] or 0),
-                "91-180天": int(r[6] or 0),
-                "181-365天": int(r[7] or 0),
-                "365天以上": int(r[8] or 0),
-            }
-            return tg, bc
-
-        # 对比期：优先使用自定义对比日期（环比 / 自定义），否则默认去年同期
+        # ── 2. 分桶分布（当前周期 + 对比期 + 前年同期，复用 _fetch_bucket_distribution） ──
+        # 对比期优先自定义, 否则自动 Y-1
         if compare_start_date and compare_end_date:
             ly_start = compare_start_date
             ly_end = compare_end_date
         else:
             ly_start = _shift_date_year(start_date, -1)
             ly_end = _shift_date_year(end_date, -1)
-        ly_total_gaps, ly_bucket_counts = _fetch_bucket_distribution(ly_start, ly_end)
-
         # 前年同期
         p2_start = _shift_date_year(start_date, -2)
         p2_end = _shift_date_year(end_date, -2)
-        p2_total_gaps, p2_bucket_counts = _fetch_bucket_distribution(p2_start, p2_end)
 
+        cur_total_gaps, cur_bucket_counts = _fetch_bucket_distribution(conn, start_date, end_date, channel, exclude_channels)
+        ly_total_gaps, ly_bucket_counts = _fetch_bucket_distribution(conn, ly_start, ly_end, channel, exclude_channels)
+        p2_total_gaps, p2_bucket_counts = _fetch_bucket_distribution(conn, p2_start, p2_end, channel, exclude_channels)
+
+        # Sprint 169: 去年同期全店分位数 + 复购率 (跟 cur 同口径, 用于 YOY 计算)
+        where_sql_ly, params_ly = _build_period_filter(ly_start, ly_end, channel, exclude_channels)
+        ly_days = _compute_days_stats(conn, where_sql_ly, params_ly)
+        ly_rate, _, _ = compute_repurchase_rate(conn, where_sql_ly, params_ly)
+
+        # Sprint 169: _fetch_bucket_distribution 已提到模块级, 复用 cur/ly/p2
+
+        bucket_distribution = []
         for start, end, label in BUCKETS:
-            count = bucket_counts.get(label, 0)
-            ratio = safe_ratio(count, total_gaps, 0.0)
+            count = cur_bucket_counts.get(label, 0)
+            ratio = safe_ratio(count, cur_total_gaps, 0.0)
             ly_count = ly_bucket_counts.get(label, 0)
             ly_ratio = safe_ratio(ly_count, ly_total_gaps, 0.0)
             p2_count = p2_bucket_counts.get(label, 0)
@@ -425,15 +434,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         cur_products = _compute_product_repurchase(conn, where_sql, params)
         cur_cross = _compute_cross_category_return(conn, where_sql, params)
 
-        # 对比期
-        fb_ly = FilterBuilder()
-        fb_ly.with_metric_type(MetricType.GSV)
-        fb_ly.with_time_range(ly_start, ly_end)
-        if channel:
-            fb_ly.with_channels([channel])
-        if exclude_channels:
-            fb_ly.with_exclude_channels(exclude_channels)
-        where_sql_ly, params_ly = fb_ly.build()
+        # 对比期 (where_sql_ly / params_ly 已在 Sprint 169 提前计算, 复用)
         ly_products = _compute_product_repurchase(conn, where_sql_ly, params_ly)
         ly_cross = _compute_cross_category_return(conn, where_sql_ly, params_ly)
 
@@ -464,10 +465,23 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         return {
             "period_start": start_date,
             "period_end": end_date,
-            "all_store_median_days": median_days,
-            "all_store_p25_days": p25,
-            "all_store_p75_days": p75,
-            "all_store_avg_days": avg_days,
+            "all_store_median_days": cur_days["median_days"],
+            "all_store_p25_days": cur_days["p25_days"],
+            "all_store_p75_days": cur_days["p75_days"],
+            "all_store_avg_days": cur_days["avg_days"],
+            # Sprint 169 新增: 全店复购率 + 5 项 YOY
+            "all_store_repurchase_rate": round(cur_rate, 4),
+            "ly_all_store_median_days": ly_days["median_days"] if ly_total_gaps > 0 else None,
+            "ly_all_store_p25_days": ly_days["p25_days"] if ly_total_gaps > 0 else None,
+            "ly_all_store_p75_days": ly_days["p75_days"] if ly_total_gaps > 0 else None,
+            "ly_all_store_avg_days": ly_days["avg_days"] if ly_total_gaps > 0 else None,
+            "ly_all_store_repurchase_rate": round(ly_rate, 4) if ly_total_gaps > 0 else None,
+            "yoy_all_store_repurchase_rate": yoy_repurchase_rate(cur_rate, ly_rate) if ly_total_gaps > 0 else None,
+            # Sprint 169: 天数 YOY 用 raw diff (cur - ly), 业务直觉 "间隔缩/拉长"
+            "median_days_yoy": cur_days["median_days"] - ly_days["median_days"] if ly_total_gaps > 0 else None,
+            "p25_days_yoy": cur_days["p25_days"] - ly_days["p25_days"] if ly_total_gaps > 0 else None,
+            "p75_days_yoy": cur_days["p75_days"] - ly_days["p75_days"] if ly_total_gaps > 0 else None,
+            "avg_days_yoy": round(cur_days["avg_days"] - ly_days["avg_days"], 1) if ly_total_gaps > 0 else None,
             "bucket_distribution": bucket_distribution,
             "by_product_class": by_product_class,
             "by_product_class_return": by_product_class_return,

@@ -155,7 +155,7 @@ def _build_filter(
     return fb.build()
 
 
-def _compute_repurchase_rate(conn, where_sql: str, params: list) -> tuple[float, int, int]:
+def compute_repurchase_rate(conn, where_sql: str, params: list) -> tuple[float, int, int]:
     """计算全店复购率: 2+订单人数 / 总购买人数
 
     Returns:
@@ -316,7 +316,7 @@ def _compute_yoy_metrics(conn, analysis_date: str, period_days: int,
 
     where_sql, params = _build_filter(exclude_channels, prev_start, prev_end, channel)
 
-    prev_repurchase_rate, prev_repurchase_users, _ = _compute_repurchase_rate(conn, where_sql, params)
+    prev_repurchase_rate, prev_repurchase_users, _ = compute_repurchase_rate(conn, where_sql, params)
     prev_product_rate = _compute_product_repurchase_rate(conn, where_sql, params)
     prev_old_metrics = _compute_old_customer_metrics(conn, where_sql, params, prev_start)
 
@@ -363,7 +363,7 @@ def _compute_mom_metrics(conn, analysis_date: str, period_days: int,
 
     where_sql, params = _build_filter(exclude_channels, mom_start, mom_end, channel)
 
-    mom_repurchase_rate, mom_repurchase_users, _ = _compute_repurchase_rate(conn, where_sql, params)
+    mom_repurchase_rate, mom_repurchase_users, _ = compute_repurchase_rate(conn, where_sql, params)
     mom_product_rate = _compute_product_repurchase_rate(conn, where_sql, params)
     mom_old_metrics = _compute_old_customer_metrics(conn, where_sql, params, mom_start)
 
@@ -543,7 +543,7 @@ def get_overview(
         where_sql, params = _build_filter(exclude_channels, start_date, end_date, channel)
 
         # 2. 计算核心指标
-        all_store_repurchase_rate, period_repurchase_users, _ = _compute_repurchase_rate(conn, where_sql, params)
+        all_store_repurchase_rate, period_repurchase_users, _ = compute_repurchase_rate(conn, where_sql, params)
         same_product_repurchase_rate = _compute_product_repurchase_rate(conn, where_sql, params)
         old_metrics = _compute_old_customer_metrics(conn, where_sql, params, start_date)
 
@@ -696,7 +696,7 @@ def _compute_dynamic_targets(
 
     where_sql, params = _build_filter(exclude_channels, prev_start, prev_end, channel)
 
-    prev_repurchase_rate, prev_repurchase_users, _ = _compute_repurchase_rate(conn, where_sql, params)
+    prev_repurchase_rate, prev_repurchase_users, _ = compute_repurchase_rate(conn, where_sql, params)
     prev_product_rate = _compute_product_repurchase_rate(conn, where_sql, params)
     prev_old_metrics = _compute_old_customer_metrics(conn, where_sql, params, prev_start)
 

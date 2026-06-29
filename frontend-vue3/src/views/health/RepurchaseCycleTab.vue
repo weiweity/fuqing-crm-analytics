@@ -8,6 +8,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
+import YOYBadge from '@/components/YOYBadge.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import type { XlsxColumn } from '@/utils/exportXlsx'
@@ -281,34 +282,75 @@ const cohortChartOption = computed(() => {
     <ErrorState v-else-if="error" :message="error.message" @retry="refetch" />
 
     <template v-else-if="data">
-      <!-- 顶部统计 -->
-      <NGrid :cols="4" :x-gap="16" class="mb-4">
+      <!-- 顶部统计 (Sprint 169: 5 列 grid, 加复购率卡 + 5 卡片 YOY) -->
+      <NGrid :cols="5" :x-gap="12" responsive="screen" class="mb-4">
         <NGi>
-          <div class="bi-card bi-card-hover px-4 py-3 text-center">
+          <div class="bi-card bi-card-hover px-3 py-3 text-center">
             <p class="text-xs text-slate-500">中位复购天数</p>
             <p class="text-2xl font-bold text-slate-900">{{ data.all_store_median_days }}天</p>
             <p class="text-[10px] text-slate-400 mt-1">50%的复购间隔 ≤ 该天数</p>
+            <!-- Sprint 169: 天数 YOY (raw diff, 业务直觉"间隔缩/拉长") -->
+            <p
+              v-if="data.median_days_yoy != null"
+              class="text-[10px] mt-0.5 font-medium"
+              :class="data.median_days_yoy < 0 ? 'text-emerald-600' : data.median_days_yoy > 0 ? 'text-rose-600' : 'text-slate-400'"
+            >
+              vs {{ data.ly_all_store_median_days ?? '?' }}天 ({{ data.median_days_yoy > 0 ? '+' : '' }}{{ data.median_days_yoy }}天)
+            </p>
           </div>
         </NGi>
         <NGi>
-          <div class="bi-card bi-card-hover px-4 py-3 text-center">
+          <div class="bi-card bi-card-hover px-3 py-3 text-center">
             <p class="text-xs text-slate-500">P25复购天数</p>
             <p class="text-2xl font-bold text-slate-900">{{ data.all_store_p25_days }}天</p>
             <p class="text-[10px] text-slate-400 mt-1">25%的复购间隔 ≤ 该天数</p>
+            <p
+              v-if="data.p25_days_yoy != null"
+              class="text-[10px] mt-0.5 font-medium"
+              :class="data.p25_days_yoy < 0 ? 'text-emerald-600' : data.p25_days_yoy > 0 ? 'text-rose-600' : 'text-slate-400'"
+            >
+              vs {{ data.ly_all_store_p25_days ?? '?' }}天 ({{ data.p25_days_yoy > 0 ? '+' : '' }}{{ data.p25_days_yoy }}天)
+            </p>
           </div>
         </NGi>
         <NGi>
-          <div class="bi-card bi-card-hover px-4 py-3 text-center">
+          <div class="bi-card bi-card-hover px-3 py-3 text-center">
             <p class="text-xs text-slate-500">P75复购天数</p>
             <p class="text-2xl font-bold text-slate-900">{{ data.all_store_p75_days }}天</p>
             <p class="text-[10px] text-slate-400 mt-1">75%的复购间隔 ≤ 该天数</p>
+            <p
+              v-if="data.p75_days_yoy != null"
+              class="text-[10px] mt-0.5 font-medium"
+              :class="data.p75_days_yoy < 0 ? 'text-emerald-600' : data.p75_days_yoy > 0 ? 'text-rose-600' : 'text-slate-400'"
+            >
+              vs {{ data.ly_all_store_p75_days ?? '?' }}天 ({{ data.p75_days_yoy > 0 ? '+' : '' }}{{ data.p75_days_yoy }}天)
+            </p>
           </div>
         </NGi>
         <NGi>
-          <div class="bi-card bi-card-hover px-4 py-3 text-center">
+          <div class="bi-card bi-card-hover px-3 py-3 text-center">
             <p class="text-xs text-slate-500">平均复购天数</p>
             <p class="text-2xl font-bold text-slate-900">{{ data.all_store_avg_days }}天</p>
             <p class="text-[10px] text-slate-400 mt-1">复购周期内平均复购间隔</p>
+            <p
+              v-if="data.avg_days_yoy != null"
+              class="text-[10px] mt-0.5 font-medium"
+              :class="data.avg_days_yoy < 0 ? 'text-emerald-600' : data.avg_days_yoy > 0 ? 'text-rose-600' : 'text-slate-400'"
+            >
+              vs {{ data.ly_all_store_avg_days ?? '?' }}天 ({{ data.avg_days_yoy > 0 ? '+' : '' }}{{ data.avg_days_yoy }}天)
+            </p>
+          </div>
+        </NGi>
+        <NGi>
+          <!-- Sprint 169: 新增复购率卡片 (next to 平均复购天数) -->
+          <div class="bi-card bi-card-hover px-3 py-3 text-center">
+            <p class="text-xs text-slate-500">复购率</p>
+            <p class="text-2xl font-bold text-slate-900">{{ (data.all_store_repurchase_rate * 100).toFixed(1) }}%</p>
+            <p class="text-[10px] text-slate-400 mt-1">2+订单人数 / 总购买人数</p>
+            <div v-if="data.yoy_all_store_repurchase_rate != null" class="mt-0.5 flex justify-center">
+              <span class="text-[10px] text-slate-500 mr-1">vs</span>
+              <YOYBadge :value="data.yoy_all_store_repurchase_rate" unit="pp" />
+            </div>
           </div>
         </NGi>
       </NGrid>
