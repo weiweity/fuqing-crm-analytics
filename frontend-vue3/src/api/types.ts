@@ -701,7 +701,8 @@ export interface paths {
          * Get Category Repurchase Flow Api
          * @description 品类回购分析
          *
-         *     返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+         *     返回同品回购+跨品类回购的 R 桶明细（6 档 Recency + TTL 汇总，含3年同比）。
+         *     Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶（更直观反映复购周期）。
          */
         get: operations["get_category_repurchase_flow_api_api_v1_category_repurchase_flow_get"];
         put?: never;
@@ -721,11 +722,12 @@ export interface paths {
         };
         /**
          * Get Category Repurchase Flow By Rfm Api
-         * @description 历史老客回购分析（RFM 8象限分群，不限品类）
+         * @description 历史老客回购分析（R 桶分群，不限品类）
          *
-         *     返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+         *     返回同品回购+跨品类回购的 R 桶明细（6 档 Recency + TTL 汇总，含3年同比）。
          *     与 repurchase-flow 的区别：hist_customers 包含所有历史老客（不限品类），
-         *     按 RFM 象限分群后观察各象限在分析期内对目标品类的回购表现。
+         *     按 R 桶分群后观察各桶在分析期内对目标品类的回购表现。
+         *     Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶。
          */
         get: operations["get_category_repurchase_flow_by_rfm_api_api_v1_category_repurchase_flow_by_rfm_get"];
         put?: never;
@@ -2255,11 +2257,11 @@ export interface components {
         };
         /**
          * CategoryRepurchaseFlowRow
-         * @description 品类回购分析单行数据（RFM 8象限分群）
+         * @description 品类回购分析单行数据（R 桶分群，6 档 Recency + 1 TTL 汇总）
          */
         CategoryRepurchaseFlowRow: {
-            /** Rfm Segment */
-            rfm_segment: string;
+            /** R Bucket */
+            r_bucket: string;
             /**
              * Hist Users Current
              * @default 0
@@ -5567,7 +5569,7 @@ export interface components {
          *
          *     - bucket: 桶标签 (0-7d / 8-30d / 31-60d / 61-90d)
          *     - year_label: 年份标签 (cur/ly/prev2 对应 "2026年"/"2025年"/"2024年")
-         *     - users: 该桶该年的去重 user_id 数
+         *     - rate: 该桶该年的"回购周期分布率" = 派样后回购正装人数 / 总派样人数 (0-1 decimal)
          *     - year_range: 该年实际期间 (起, 止), 跟 SamplingROIResponse.time_range 一致
          */
         SamplingRepurchaseTrackingBucket: {
@@ -5576,10 +5578,11 @@ export interface components {
             /** Year Label */
             year_label: string;
             /**
-             * Users
+             * Rate
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
              * @default 0
              */
-            users: number;
+            rate: number;
             /** Year Range Start */
             year_range_start: string;
             /** Year Range End */

@@ -221,7 +221,7 @@ export function fetchSamplingRepurchaseDistribution(params: {
 export interface SamplingRepurchaseTrackingBucket {
   bucket: string
   year_label: string
-  users: number
+  rate: number
   year_range_start: string
   year_range_end: string
 }
