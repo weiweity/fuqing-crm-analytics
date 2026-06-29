@@ -1,3 +1,33 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 168 L4.23 e2e spec drift detection script 自动化 (防 Sprint 161 治本 18 sprint 滞后 stable 模式再复发, VERSION 不变))
+
+### Added
+- **`scripts/ci/check_e2e_spec_drift.py`** (新文件, 249 行): e2e spec ↔ UI 文字一致性 ground-truth-lint
+  - 扫 7 view↔spec pairs (sampling / category / category-detail / customer-health / audience-daily-trend / market-focus / login)
+  - 抽 `frontend-vue3/src/views/*.vue` 的 h1/h2/h3 标题 + section-title + 中文 visible 文字节点
+  - 抽 `frontend-vue3/e2e/*.spec.ts` 的 `getByText('X')` / `getByRole(..., { name: 'X' })` 断言
+  - 输出两类 drift: stale (UI 删了 spec 还断言, Sprint 161 line 168 模式) + missing (UI 新增未断言, advisory)
+  - advisory mode: 永远 exit 0 + 打印 warning, 留给 review skill 当 ground-truth 参考 (跟 L4.5 advisory 模式一致)
+- **`backend/tests/test_check_e2e_spec_drift.py`** (新文件, 118 行, 5 case regression)
+  - Case 1: 真实状态 (Sprint 161 治本后) → 0 stale drift
+  - Case 2: stale drift 检测逻辑单元测试
+  - Case 3: 删 spec 断言不删 view → 0 stale (允许)
+  - Case 4: 删 view 不删 spec → 1 stale (Sprint 161 line 168 真因模式)
+  - Case 5: advisory mode 永远 exit 0
+
+### L4.23 永久规则配套
+- 任何 e2e spec 文案断言必跟当前 UI 实际渲染一致
+- Sprint 161 治根真因: `sampling.spec.ts:168` 找 `品类回购明细`, 但 Sprint 155 改 04 h2 是 `<span>04</span>派样明细`, getByText 找 `派样明细` 文字节点而非整段. 跨 sprint 18+ 没人查 spec.
+- L4.7 ground-truth-lint hook 模式 stable (跟 `backend/scripts/check_sql_fstring_consistency.py` Sprint 34.1 / `check_channel_alias.py` Sprint 60.1 一致)
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **728 passed / 66 skipped / 0 failed** (跟 Sprint 165 baseline 723 + 5 new case = 728, race flake L4.4 接受, 0 failed)
+- pre-push hook pytest **728/66/0 PASS** (新 file 0 modification 0 critical)
+- 0 critical / 0 informative / 0 AUTO-FIX (L4.7 100% 精准 1 turn 改)
+- 2 files / +369 lines (新 file, 0 modification)
+- main HEAD `7c12f3c` + origin/main 0 drift (push `b42e732..7c12f3c` 成功)
+- L4.8 cleanup fix/sprint168-l4-23-e2e-spec-drift-auto 分支 (本地 + 远程, PR merge 后 24h 内)
+- 累计 89→90 sprint 0 debt 持续, VERSION 0.4.14.20 累计 55 sprint 不 bump, L4.x 22 stable 0 新增
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 165 W3 DQ 2 failed advisory doc 沉淀 (跨 sprint ETL 治本 batch 4/4, 0 业务代码改动), VERSION 不变)
 
 ### Docs
