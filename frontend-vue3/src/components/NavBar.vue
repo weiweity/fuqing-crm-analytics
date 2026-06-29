@@ -3,6 +3,10 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NAV_ITEMS, type NavItem, type NavTab } from '@/config/navigations'
 
+// Sprint 159: base64 inline png, avoid committing PNG assets through LFS.
+const logoPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAGQAAAA0CAYAAAB8bJ2jAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAylpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDkuMS1jMDAxIDc5LjE0NjI4OTk3NzcsIDIwMjMvMDYvMjUtMjM6NTc6MTQgICAgICAgICI+IDxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+IDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PSIiIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjlCQ0JFODEyODVFODExRjBBMkZGQzY2NjBDNTUzQTY3IiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjlCQ0JFODExODVFODExRjBBMkZGQzY2NjBDNTUzQTY3IiB4bXA6Q3JlYXRvclRvb2w9IkFkb2JlIFBob3Rvc2hvcCAyNS45IChNYWNpbnRvc2gpIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6RjNFRTg5NDIzNUZFMTFFRjkxNjA5NUNGOEREM0I0QzAiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6RjNFRTg5NDMzNUZFMTFFRjkxNjA5NUNGOEREM0I0QzAiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7s/UHNAAAIZUlEQVR4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'
+const logoDataUri = `data:image/png;base64,${logoPngBase64}`
+
 const route = useRoute()
 const router = useRouter()
 
@@ -84,10 +88,10 @@ onBeforeUnmount(() => {
     <header class="navbar-header">
       <div class="navbar-header-row">
         <div class="navbar-brand">
-          <div class="navbar-logo-placeholder">天</div>
+          <img class="navbar-logo" :src="logoDataUri" alt="天猫CRM" />
           <div class="min-w-0">
-            <h1 class="text-base font-semibold leading-tight text-white">天猫CRM</h1>
-            <p class="mt-0.5 text-[11px] font-medium leading-tight text-white/70">数据分析平台</p>
+            <h1 class="text-lg font-semibold leading-tight text-white">天猫CRM</h1>
+            <p class="mt-0.5 text-xs font-medium leading-tight text-white/70">数据分析平台</p>
           </div>
         </div>
 
@@ -163,32 +167,23 @@ onBeforeUnmount(() => {
 .navbar-header-row {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 28px;
   min-height: 64px;
   padding: 0 20px;
 }
 
 .navbar-brand {
   display: flex;
-  min-width: 180px;
+  min-width: 214px;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* Sprint 158: logo 改文字占位符 (避免 png 走 LFS filter 推送失败) */
-.navbar-logo-placeholder {
-  width: 38px;
-  height: 38px;
+.navbar-logo {
+  width: 68px;
+  height: 36px;
   flex-shrink: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 15px;
-  color: #fff;
+  object-fit: contain;
 }
 
 .navbar-main {
@@ -208,11 +203,11 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   min-height: 48px;
-  padding: 0 14px;
+  padding: 0 15px;
   border-bottom: 2px solid transparent;
   border-radius: 6px 6px 0 0;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
@@ -234,7 +229,7 @@ onBeforeUnmount(() => {
 
 .navbar-tab-chevron {
   color: rgba(255, 255, 255, 0.55);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
 }
 
@@ -266,13 +261,13 @@ onBeforeUnmount(() => {
   width: 100%;
   align-items: center;
   justify-content: space-between;
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 13px;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
   background: #f8fafc;
   color: #0f172a;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   text-align: left;
   box-shadow: 4px 4px 10px rgba(148, 163, 184, 0.28), -4px -4px 10px rgba(255, 255, 255, 0.9);
