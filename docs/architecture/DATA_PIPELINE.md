@@ -2,7 +2,7 @@
 
 > ETL 4 阶段 (W1→W2→W3→W4) 数据流图 + 关键 metrics + 50M scale 触发条件 + Sprint 52 实战。
 
-**最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 + Sprint 151 CHANGELOG.md append Sprint 145-150 entry + Sprint 152 0 业务代码 sprint 暂收口 + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap). 累计 72→76 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed (frontend-only/docs-only 不退化) + main HEAD `6904d36` + VERSION 0.4.14.157 不 bump 累计 44 sprint + 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
+**最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 + Sprint 151 CHANGELOG.md append Sprint 145-150 entry + Sprint 152 0 业务代码 sprint 暂收口 + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap). 累计 72→76 sprint 0 debt 持续 + pytest 803 passed / 23 skipped / 0 failed (frontend-only/docs-only 不退化) + main HEAD `6904d36` + VERSION 0.4.14.20 不 bump 累计 44 sprint + 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
 **Sprint 收口验证**: Sprint 28+ 端到端跑批 (10.75M 订单, 12.5h 总计 ~32min); Sprint 103 必修 1 拆解 ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) 跟 STATUS.md line 81 同步
 
 ---

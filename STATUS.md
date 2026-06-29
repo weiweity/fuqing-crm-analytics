@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 (5 section aria-labelledby 包裹, 1 file / +18/-4 net +14 wrapper 加法, plan-design-review 7 维度 9.5/10 → **10/10 完整闭环**) + Sprint 151 CHANGELOG.md append Sprint 145-150 累计 5 sprint 收口 entry (1 file / +15) + Sprint 152 0 业务代码 sprint 暂收口 (0 commit, 跟 Sprint 89/134 模式 stable, 累计 sprint 0 debt +1) + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap L4.7 100% 精准, 0 业务代码 docs), pytest 803 passed / 23 skipped / 0 failed (Sprint 146-153 frontend-only/docs-only 不退化, race flake L5.1 接受), main HEAD `6904d36`, 累计 72→76 sprint 0 debt, VERSION 0.4.14.157 不变 (累计 44 sprint 不 bump), L4.x 22 stable 0 新增, 实战 fix 模式 #26-#31 沉淀, 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
+**最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 (5 section aria-labelledby 包裹, 1 file / +18/-4 net +14 wrapper 加法, plan-design-review 7 维度 9.5/10 → **10/10 完整闭环**) + Sprint 151 CHANGELOG.md append Sprint 145-150 累计 5 sprint 收口 entry (1 file / +15) + Sprint 152 0 业务代码 sprint 暂收口 (0 commit, 跟 Sprint 89/134 模式 stable, 累计 sprint 0 debt +1) + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap L4.7 100% 精准, 0 业务代码 docs), pytest 803 passed / 23 skipped / 0 failed (Sprint 146-153 frontend-only/docs-only 不退化, race flake L5.1 接受), main HEAD `6904d36`, 累计 72→76 sprint 0 debt, VERSION 0.4.14.20 不变 (累计 44 sprint 不 bump), L4.x 22 stable 0 新增, 实战 fix 模式 #26-#31 沉淀, 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.157` (Sprint 98 FilterBuilder table_alias 真治本) |
+| VERSION | `0.4.14.20` (Sprint 98 FilterBuilder table_alias 真治本) |
 | git HEAD (main) | `52f41cf` (Sprint 143 收口 + vite preview proxy 修复, 跟 origin/main 0 drift) |
 | 当前分支 | `main` |
 | 最近 sprint | Sprint 143 (LTV + cohort retention matrix + 改名 ROI→正装转化分析, 跟 Sprint 141.5 + 142 并行开发 0 冲突区, Q10 推荐 A 仅前端文案) |
@@ -125,7 +125,7 @@ uvicorn backend.app:app --reload
 
 ## Sprint 105 收口 (2026-06-24)
 
-- **VERSION**: 0.4.14.157 (不变, 跟 Sprint 99+100+101+102+103+104 留尾治理 sprint 模式一致)
+- **VERSION**: 0.4.14.20 (不变, 跟 Sprint 99+100+101+102+103+104 留尾治理 sprint 模式一致)
 - **真业务 sprint 触发**: user 报 "增量ETL报 DuckDB 锁冲突" 触发
 - **根因**: macOS launchd plist `com.fuqing.uvicorn` KeepAlive={SuccessfulExit:false} 5s 重启 race condition
 - **修法**: scripts/etl/run-etl.sh launchctl bootout + bootstrap 治本, 1 file +79/-37 (净 +42), 0 抽象 0 helper
@@ -138,7 +138,7 @@ uvicorn backend.app:app --reload
 
 ## Sprint 141.5 Phase 1 + 142 + 143 + vite preview fix 收口 (2026-06-28)
 
-- **VERSION**: 0.4.14.157 (不变, 累计 34 sprint 不 bump, 跟 Sprint 134 user 拍板 "全部代码都收尾 + 不再提醒优化" 模式 stable)
+- **VERSION**: 0.4.14.20 (不变, 累计 34 sprint 不 bump, 跟 Sprint 134 user 拍板 "全部代码都收尾 + 不再提醒优化" 模式 stable)
 - **真业务触发**: user 拍板"开始收尾 5 sprint 留尾", Sprint 141 收口后开启 4 sprint 并行开发链
 - **范围**: 4 sprint 累计 49 files / +5807/-110 (Sprint 141.5 +6/+925 + Sprint 142 +21/+2190 + Sprint 143 +22/+1556 + vite preview fix +1/+12)
 - **3 sprint 收口** (user 拍板合并):
