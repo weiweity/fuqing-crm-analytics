@@ -164,13 +164,12 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     await expect(page.getByText('30天正装回购').first()).toBeVisible()
     await expect(page.getByText('非正装回购').first()).toBeVisible()
 
-    // 关键断言 4: 品类明细表新增正装列
-    await expect(page.getByText('品类回购明细').first()).toBeVisible({ timeout: 5000 })
+    // 关键断言 4: 派样明细表 (Sprint 155 改 04 派样明细, 04 section h2 = <span>04</span>派样明细, getByText 找 "派样明细" 文字节点) + 正装列
+    await expect(page.getByText('派样明细').first()).toBeVisible({ timeout: 5000 })
     await expect(page.getByText('正装回购率').first()).toBeVisible()
 
-    // 关键断言 5: 周期分布图
+    // 关键断言 5: 02 回购周期分布 section 标题 (Sprint 159 删 4 桶柱状图改 5 卡片, "61-90天" 文案已不存在)
     await expect(page.getByText('回购周期分布').first()).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('61-90天').first()).toBeVisible({ timeout: 5000 })
 
     // Sprint 140: level 切换触发重算视觉提示
     await page.locator('.n-select').filter({ hasText: '品类销售' }).locator('.n-base-selection').click()
