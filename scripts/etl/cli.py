@@ -309,7 +309,11 @@ from scripts.etl.pipeline import (
     refresh_visitor_data, refresh_campaign_schedule,
 )
 from scripts.etl._timer import PerfTimer, gate_set, gate_record_error, save_baseline as _save_baseline
-from scripts.etl.notify import notify_etl_complete
+
+# Sprint 164: 飞书完整解耦 — notify_etl_complete 改 no-op (Sprint 164 之前 import from scripts.etl.notify)
+def notify_etl_complete(stats: dict, status: str = "success") -> tuple:
+    """Sprint 164 no-op: 飞书通知已解耦删除, 保留签名避免 8 处调用方改动."""
+    return (False, "Sprint 164 飞书解耦, no-op")
 
 
 def _save_partial(run_id: str = "1/3") -> None:
