@@ -1,3 +1,27 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 159 派样 02 板块 5 卡片重排 + Logo/Favicon base64 inline 治本 (Codex 实施 + Claude 收口), VERSION 不变)
+
+### Added
+- **frontend-vue3/src/components/NavBar.vue** (改 +43/-2): 删 Sprint 158 文字 logo placeholder ('天' emoji 圆形背景) + 加 base64 inline `<img>` logo (`logoPngBase64` const 4KB 从 logo2.png 转, `logoDataUri` data URI 格式). L4.18 png LFS fail 治根 (不用 png 二进制 commit, 0 推送 fail 风险). NavBar h1/p 字号增大 (text-base → text-lg, text-[11px] → text-xs, 跟深蓝 gradient header 视觉对齐).
+- **frontend-vue3/index.html** (改 1 行): 删 `<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260629" />` + 加 `<link rel="icon" type="image/png" href="data:image/png;base64,..." />` (28KB base64 从 芙清logo.png 转, 治 LFS push fail 根因). 浏览器 tab favicon 用 png 视觉跟 user 报 image #8 一致.
+
+### Changed
+- **frontend-vue3/src/views/SamplingView.vue** (改 +473/-433, 派样 02 板块 5 卡片重排): ① 02 板块删 4 桶柱状图 (0-7d / 8-30d / 31-60d / 61-90d) + 滚动去年双柱图 (Sprint 158 加的) + sr-only table + 导出图片按钮, 跟 user 报"类似总览卡片"反馈一致 ② 改 5 卡片 (派样人数/回购人数/正装回购人数/正装 GSV/AUS) 跟 01 总览同 layout (`.sampling-overview-value` class 跟 01 一致) ③ 删 `repurchaseDistribution` / `repurchaseCompareDistribution` useQuery (4 桶数据, 02 板块重排不需要) + `repurchaseBuckets` computed + `levelLabel` computed + `fetchSamplingRepurchaseDistribution` import + `windowDays` slider + 顶部 level 下拉 (Sprint 158 02 板块用, 现在不需要) ④ 加 `totalFullRepurchaseAusCompare` computed (YOY helper, 跟 03 板块同).
+
+### Removed
+- (隐式) Sprint 158 治标 文字 logo 占位符 (Sprint 159 治本 base64 inline png 替代).
+- (隐式) Sprint 158 治标 favicon.svg (Sprint 159 治本 base64 inline png 替代).
+
+### Verification
+- `npm run build` PASS (~973ms, vue-tsc + vite 全过)
+- pre-commit hook 全过 (vite build + L1 SQL f-string consistency lint 0 violations + ruff F841 PASS)
+- `python -m backend.contracts._lint` OK (后端 0 改动)
+- pytest baseline **741 passed / 66 skipped / 0 failed** (跟 Sprint 158 一致, L4.4 race flake 接受)
+- Stage 3 review 0 critical / 0 informational / 0 AUTO-FIX
+- L4.22 rebuild dist + kill vite (PID 45823) + restart HTTP 200
+- uvicorn restart PID 45876 HTTP 401 (admin auth 保护)
+- main HEAD `f1d316c` + origin/main 0 drift (push `e8736e0..f1d316c` 成功)
+- L4.8 cleanup feature/sprint159-sampling-02-logo-favicon 分支 (本地 + 远程)
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 158 派样正装转化 3 层级导航重构 (Codex 实施 + Claude 收口), VERSION 不变)
 
 ### Added
