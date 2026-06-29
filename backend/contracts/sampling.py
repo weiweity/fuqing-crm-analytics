@@ -131,12 +131,12 @@ class SamplingRepurchaseTrackingBucket(BaseModel):
 
     - bucket: 桶标签 (0-7d / 8-30d / 31-60d / 61-90d)
     - year_label: 年份标签 (cur/ly/prev2 对应 "2026年"/"2025年"/"2024年")
-    - users: 该桶该年的去重 user_id 数
+    - rate: 该桶该年的"回购周期分布率" = 派样后回购正装人数 / 总派样人数 (0-1 decimal)
     - year_range: 该年实际期间 (起, 止), 跟 SamplingROIResponse.time_range 一致
     """
     bucket: str
     year_label: str
-    users: int = 0
+    rate: RatioField = 0.0
     year_range_start: str
     year_range_end: str
 

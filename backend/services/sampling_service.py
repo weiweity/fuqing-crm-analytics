@@ -572,11 +572,13 @@ def get_sampling_repurchase_buckets(
     end_date: str,
     window_days: int = 90,
     channel: Optional[str] = None,
+    only_full: bool = False,
 ) -> Dict[str, Any]:
     """
     回购周期分布：0-7d / 8-30d / 31-60d / 61-90d。
 
     channel 为空或 TTL派样 时按 U先∪百补聚合；单渠道时仍走 channel 展开和参数化。
+    only_full=True 时只统计 spu_type='正装' 的回购, 用于 02 板块"回购周期分布率"。
     """
     window_days = max(1, min(int(window_days), 90))
     conn = get_connection()
@@ -604,8 +606,11 @@ def get_sampling_repurchase_buckets(
         """
         sample_params = db_channels + [start_date, end_date]
 
+    full_filter = "AND o.spu_type = '正装'" if only_full else ""
+
     bucket_sql = f"""
         WITH sample_users AS ({sample_users_sql}),
+        sample_count AS (SELECT COUNT(DISTINCT user_id) as cnt FROM sample_users),
         repurchase AS (
             SELECT su.user_id,
                    o.actual_amount,
@@ -617,6 +622,7 @@ def get_sampling_repurchase_buckets(
               AND o.is_refund = FALSE
               AND o.order_status != '交易关闭'
               AND o.channel != '购物金'
+              {full_filter}
         )
         SELECT
             CASE
@@ -626,7 +632,8 @@ def get_sampling_repurchase_buckets(
                 ELSE '61-90d'
             END as bucket,
             COUNT(DISTINCT user_id) as users,
-            SUM(actual_amount) as gsv
+            SUM(actual_amount) as gsv,
+            (SELECT cnt FROM sample_count) as sample_users_count
         FROM repurchase
         GROUP BY bucket
     """
@@ -635,6 +642,7 @@ def get_sampling_repurchase_buckets(
         row[0]: (int(row[1] or 0), float(row[2] or 0))
         for row in rows
     }
+    sample_users_count = int(rows[0][3]) if rows else 0
 
     buckets = []
     for bucket in ['0-7d', '8-30d', '31-60d', '61-90d']:
@@ -649,6 +657,7 @@ def get_sampling_repurchase_buckets(
     return {
         'buckets': buckets,
         'window_days': window_days,
+        'sample_users_count': sample_users_count,
     }
 
 
@@ -703,8 +712,10 @@ def get_sampling_repurchase_tracking(
                 end_date=yr_end,
                 window_days=window_days,
                 channel=channel,
+                only_full=True,
             )
             bucket_map = {b['bucket']: b['users'] for b in result['buckets']}
+            sample_users_count = int(result.get('sample_users_count') or 0)
         except (duckdb.Error, ValueError, KeyError) as e:
             # 早期年份订单表可能尚未覆盖, 回落 0 + 记 warning (adversarial review P1:
             # 静默吞 Exception 会让真 SQL bug 看起来像 0 数据, 不可观测)
@@ -713,12 +724,15 @@ def get_sampling_repurchase_tracking(
                 year_label, yr_start, yr_end, e,
             )
             bucket_map = {}
+            sample_users_count = 0
 
         for bucket_name in ['0-7d', '8-30d', '31-60d', '61-90d']:
+            users = int(bucket_map.get(bucket_name, 0))
+            rate = round(safe_ratio(users, sample_users_count), 4)
             flat_buckets.append({
                 'bucket': bucket_name,
                 'year_label': year_label,
-                'users': int(bucket_map.get(bucket_name, 0)),
+                'rate': rate,
                 'year_range_start': yr_start,
                 'year_range_end': yr_end,
             })
