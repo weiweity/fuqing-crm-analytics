@@ -297,11 +297,15 @@ def _compute_days_stats(conn, where_sql: str, params: list) -> Dict[str, Any]:
 def _build_period_filter(start_date: str, end_date: str,
                          channel: Optional[str],
                          exclude_channels: Optional[List[str]]) -> tuple[str, list]:
-    """Sprint 169: 抽 helper 复用 FilterBuilder (cur/ly 期间对比, 跟 _fetch_bucket_distribution 对齐)"""
+    """Sprint 169: 抽 helper 复用 FilterBuilder (cur/ly 期间对比, 跟 _fetch_bucket_distribution 对齐)
+
+    Sprint 169 hotfix: 加 channel != "全店" 守卫, 跟 overview.py:151 sentinel pattern 1:1 对齐.
+    "全店" 是 sentinel = 不过滤 channel (全店聚合), 不是字面 channel name (orders.channel 没有 "全店").
+    """
     fb = FilterBuilder()
     fb.with_metric_type(MetricType.GSV)
     fb.with_time_range(start_date, end_date)
-    if channel:
+    if channel and channel != "全店":
         fb.with_channels([channel])
     if exclude_channels:
         fb.with_exclude_channels(exclude_channels)
@@ -374,7 +378,7 @@ def get_repurchase_cycle(start_date: str, end_date: str,
         fb = FilterBuilder()
         fb.with_metric_type(MetricType.GSV)
         fb.with_time_range(start_date, end_date)
-        if channel:
+        if channel and channel != "全店":
             fb.with_channels([channel])
         if exclude_channels:
             fb.with_exclude_channels(exclude_channels)
