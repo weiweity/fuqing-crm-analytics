@@ -69,13 +69,13 @@ const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: ro
 })
 
 // ── Sprint 169 02 板块"回购周期分布" 3 年对比柱状图 ──
-// 02 板块"回购周期分布" 3 年对比 — 期间完全跟顶部导航栏 + 02 内部滑块联动
+// 02 板块"回购周期分布" 3 年对比 — 只跟顶部主导航当前日期联动
 // 跟 top filterStore.dateRange 1:1 一致 (cur 期间 = top 选择区, ly/prev2 = -1y/-2y)
-// 跟 02 windowDaysDebounced 联动 (7-90 天滑块直接控制 backend window_days)
+// 不跟 01/02 的 7-90 天滑块联动：固定 90 天回购窗口，保证 3 年同期间口径一致
 const trackingParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
-  window_days: windowDaysDebounced.value,
+  window_days: 90,
   channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
 }))
 const { data: trackingData, isLoading: trackingLoading, error: trackingError, refetch: refetchTracking } = useQuery({
@@ -723,7 +723,7 @@ onUnmounted(() => {
                 <div>
                   <h3 class="text-sm font-semibold text-slate-800">回购周期分布 — 3 年对比</h3>
                   <p class="text-[11px] text-slate-500">
-                    跟顶部当前日期 + 02 滑块联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (4 桶聚合, 仅作跨年趋势对比)
+                    只跟顶部当前日期联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (固定 90 天回购窗口, 4 桶聚合, 仅作跨年趋势对比)
                   </p>
                 </div>
                 <div class="n-button-group" role="group">
