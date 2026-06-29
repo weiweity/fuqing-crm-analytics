@@ -608,9 +608,17 @@ def get_sampling_repurchase_buckets(
 
     full_filter = "AND o.spu_type = '正装'" if only_full else ""
 
+    # 先单独算 sample_users_count: 即使 0 回购也要返回正确分母
+    sample_count_sql = f"""
+        WITH sample_users AS ({sample_users_sql})
+        SELECT COUNT(DISTINCT user_id) as cnt FROM sample_users
+    """
+    sample_users_count = int(
+        conn.execute(sample_count_sql, sample_params).fetchone()[0] or 0
+    )
+
     bucket_sql = f"""
         WITH sample_users AS ({sample_users_sql}),
-        sample_count AS (SELECT COUNT(DISTINCT user_id) as cnt FROM sample_users),
         repurchase AS (
             SELECT su.user_id,
                    o.actual_amount,
@@ -632,8 +640,7 @@ def get_sampling_repurchase_buckets(
                 ELSE '61-90d'
             END as bucket,
             COUNT(DISTINCT user_id) as users,
-            SUM(actual_amount) as gsv,
-            (SELECT cnt FROM sample_count) as sample_users_count
+            SUM(actual_amount) as gsv
         FROM repurchase
         GROUP BY bucket
     """
@@ -642,7 +649,6 @@ def get_sampling_repurchase_buckets(
         row[0]: (int(row[1] or 0), float(row[2] or 0))
         for row in rows
     }
-    sample_users_count = int(rows[0][3]) if rows else 0
 
     buckets = []
     for bucket in ['0-7d', '8-30d', '31-60d', '61-90d']:
