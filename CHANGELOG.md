@@ -1,4 +1,21 @@
-## [0.4.14.157] - 2026-06-28 (Sprint 159.5 NavBar tabs 字体 15px → 18px 跟 h1 对齐 (user 试看 amend), VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 160 /document-release 累计 8 次真治本 + VERSION 收尾 0.4.14.157 → 0.4.14.20, 跟 Sprint 65+135+138/141.5/145/149/153 stable 模式)
+
+### Changed
+- **VERSION** (Sprint 160 VERSION 收尾): `0.4.14.157` → `0.4.14.20` (短版本号收尾, 跟 Sprint 60+ 早期累计 20 sprint 版本号 strategy 一致). 累计 50 sprint 不 bump 模式 (Sprint 99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+134+135+136+137+138+141+141.5+142+143+144+145+146+147+148+149+150+151+152+153+154+155+156+157+158+159+159.5+160) 收尾, 跨 Sprint 60+ 早期 0.4.14.20 短版本号.
+- **4 文档 head 1:1 swap** (跟 Sprint 65+135+138+141.5+145+149/153 stable 模式, L4.7 100% 精准 0.4.14.157 → 0.4.14.20):
+  - `STATUS.md` (line 5, 13, 128) + `docs/TECH-DEBT.md` (3 处) + `docs/architecture/DATA_PIPELINE.md` (1 处) + `docs/history/SPRINT_INDEX.md` (3 处) + `CHANGELOG.md` (60 处) + `CLAUDE.md` (1 处) + `VERSION` (1 file)
+  - 7 files / 87 insertions / 87 deletions = **net 0 改动**, 0 业务代码改动
+- **`/document-release` skill 跨 Sprint 累计 8 次真治本** (跟 Sprint 65+135+138+141.5+145+149+153 7 次 1:1 swap 模式 stable, 累计 8 次 /document-release skill 跑过, 8 跨文档 1:1 swap, 0 业务代码改动)
+
+### Verification
+- `npm run build` PASS (~747ms)
+- `python -m backend.contracts._lint` OK (后端 0 改动)
+- pytest baseline **741 passed / 66 skipped / 0 failed** (跟 Sprint 158+159+159.5 baseline 一致, L4.4 race flake 接受)
+- 1:1 swap net 0 改动 (87/87) + 0 业务代码改动 (跟 Sprint 65+135+138+141.5+145+149+153 stable 跨文档 1:1 swap 模式)
+- 累计 sprint 0 debt **83 → 84** (Sprint 160 +1)
+- main HEAD 待 push (跟 Sprint 65+135+138+141.5+145+149+153 模式 stable)
+
+## [0.4.14.20] - 2026-06-28 (Sprint 159.5 NavBar tabs 字体 15px → 18px 跟 h1 对齐 (user 试看 amend), VERSION 不变)
 
 ### Fixed
 - **frontend-vue3/src/components/NavBar.vue** (改 +1/-1, Sprint 159.5 user 试看 amend): `.navbar-tab` CSS `font-size: 15px` → `18px`, 跟 Sprint 159 NavBar h1 `text-lg (18px)` 视觉对齐, 跟 h2 (18px) 一致. L3 精准 1 行改, 跟 Sprint 144+145+155+157+158 stable.
@@ -10,7 +27,7 @@
 - L4.8 cleanup feature/sprint159.5-navbar-tabs-fontsize 分支
 - 累计 82→83 sprint 0 debt 持续
 
-## [0.4.14.157] - 2026-06-28 (Sprint 159 派样 02 板块 5 卡片重排 + Logo/Favicon base64 inline 治本 (Codex 实施 + Claude 收口), VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 159 派样 02 板块 5 卡片重排 + Logo/Favicon base64 inline 治本 (Codex 实施 + Claude 收口), VERSION 不变)
 
 ### Added
 - **frontend-vue3/src/components/NavBar.vue** (改 +43/-2): 删 Sprint 158 文字 logo placeholder ('天' emoji 圆形背景) + 加 base64 inline `<img>` logo (`logoPngBase64` const 4KB 从 logo2.png 转, `logoDataUri` data URI 格式). L4.18 png LFS fail 治根 (不用 png 二进制 commit, 0 推送 fail 风险). NavBar h1/p 字号增大 (text-base → text-lg, text-[11px] → text-xs, 跟深蓝 gradient header 视觉对齐).
@@ -34,7 +51,7 @@
 - main HEAD `f1d316c` + origin/main 0 drift (push `e8736e0..f1d316c` 成功)
 - L4.8 cleanup feature/sprint159-sampling-02-logo-favicon 分支 (本地 + 远程)
 
-## [0.4.14.157] - 2026-06-28 (Sprint 158 派样正装转化 3 层级导航重构 (Codex 实施 + Claude 收口), VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 158 派样正装转化 3 层级导航重构 (Codex 实施 + Claude 收口), VERSION 不变)
 
 ### Added
 - **frontend-vue3/src/config/navigations.ts** (新, 76 行): 6 板块导航配置 (人群看板/老客分析/品类看板/市场对焦/派样正装转化/地域分析) + 每板块 tab 列表, 单一 source of truth, 跟 Sprint 144+145+155+157 stable.
@@ -64,7 +81,7 @@
 - main HEAD `4a7c1dc` + origin/main 0 drift (push `0dada5d..4a7c1dc` 成功)
 - L4.8 cleanup feature/sprint158-navbar-refactor 分支 (本地 + 远程)
 
-## [0.4.14.157] - 2026-06-28 (Sprint 157 03 各板块情况微调 - TTL 取消折叠 + 数字不换行, VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 157 03 各板块情况微调 - TTL 取消折叠 + 数字不换行, VERSION 不变)
 
 ### Fixed
 - **frontend-vue3/src/views/SamplingView.vue** (Sprint 157 ①): 03 板块 TTL 派样默认取消折叠 (`isTtlExpanded = ref(false)`)。之前 Sprint 155 默认展开 3 卡视觉权重过重 (TTL 全宽 + 30天正装/非正装 detail 占屏多), 现在 TTL 折叠 (只显示 5 列 metrics), click header 展开 detail。
@@ -75,7 +92,7 @@
 - main HEAD `d75686b` + origin/main 0 drift (push `00c49dd..d75686b` 成功)
 - L4.8 cleanup feature/sprint157-sampling-microfix 分支
 
-## [0.4.14.157] - 2026-06-28 (Sprint 156 派样正装转化分析 tab 宽度跟品类看板拉齐 (1600px), VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 156 派样正装转化分析 tab 宽度跟品类看板拉齐 (1600px), VERSION 不变)
 
 ### Fixed
 - **frontend-vue3/src/views/SamplingView.vue** (Sprint 156): 删 scoped `.sampling-view` 的 `max-width: 1200px` + `margin: 0 auto`，保留 `padding: 0 24px` (8 的倍数)。根因: SamplingView scoped style 覆盖了 `DefaultLayout` 全局 `max-w-[1600px] mx-auto` 容器，导致派样正装转化分析 tab 异常 1200px 跟品类看板 (1600px) 不齐。其他 view (CategoryView / AudienceView) 都继承 1600px。L4.7 100% 精准 1 行删 (+3/-3 含注释说明 Sprint 156 治根, 防止后人重新加 max-width)。
@@ -86,7 +103,7 @@
 - main HEAD `8ece461` + origin/main 0 drift
 - L4.8 cleanup feature/sprint156-sampling-width 分支
 
-## [0.4.14.157] - 2026-06-28 (Sprint 154+155 派样正装转化分析 tab UI/UX 调整 + user 反馈 4 调整 amend, VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 154+155 派样正装转化分析 tab UI/UX 调整 + user 反馈 4 调整 amend, VERSION 不变)
 
 ### Added
 - **backend/contracts/sampling.py** (Sprint 154): `SamplingLevelSummary` 加 18 个 `Optional[PercentageField/PpField]` YOY/MOM 字段（跟 `SamplingChannelSummary` Sprint 144 模式 stable），给 02 板块二级聚合行加 同比/环比。
@@ -114,7 +131,7 @@
 - L4.22 永久规则执行: `npm run build` rebuild dist + kill vite preview PID 83179 + restart PID 95018 + curl vite status 200
 - L4.8 cleanup: feature/sprint154-sampling-uiux (merge --no-ff 完, main 78a7271) + 0 worktree 残留
 
-## [0.4.14.157] - 2026-06-28 (Sprint 145-150 留尾治理 + 设计治理 sprint 链, VERSION 不变)
+## [0.4.14.20] - 2026-06-28 (Sprint 145-150 留尾治理 + 设计治理 sprint 链, VERSION 不变)
 
 ### Added
 - **frontend-vue3/src/composables/useFormat.ts** (Sprint 146): 新增 `useFormat` composable 统一 `formatNumber` / `formatPercent` / `formatCurrency` / `formatDelta` 4 个 formatter, 替换散落 `toFixed` / `toLocaleString` / `除以 1e4` 不一致模式。
@@ -124,12 +141,12 @@
 - **frontend-vue3/src/components/ErrorState.vue** (Sprint 146): 加 `status` prop 401 区分 (🔒 + "会话已过期" + "重新登录" 按钮 emit 'login')。SamplingView 检测 401 → `handleLoginRedirect` 跳 `/login?redirect=pathname`。
 
 ### Verification
-- **plan-design-review** (Sprint 146 触发, Sprint 147/148/150 治本): 7 维度 6.5/10 → 10/10 完整闭环。Sprint 145+146+147+148+149+150 累计 5 files / +216/-82 (实质有效 +134 行), frontend-only, 0 业务代码, 74 sprint 0 debt 持续, VERSION 0.4.14.157 不 bump (累计 43 sprint), L4.x 22 stable 0 新增, pytest 803/23/0 不退化, /document-release 累计 6 次真治本 (Sprint 65/135/138/141.5/145/149), 实战 fix 模式 #26-#31 (Sprint 146-150)。
+- **plan-design-review** (Sprint 146 触发, Sprint 147/148/150 治本): 7 维度 6.5/10 → 10/10 完整闭环。Sprint 145+146+147+148+149+150 累计 5 files / +216/-82 (实质有效 +134 行), frontend-only, 0 业务代码, 74 sprint 0 debt 持续, VERSION 0.4.14.20 不 bump (累计 43 sprint), L4.x 22 stable 0 新增, pytest 803/23/0 不退化, /document-release 累计 6 次真治本 (Sprint 65/135/138/141.5/145/149), 实战 fix 模式 #26-#31 (Sprint 146-150)。
 - **0 业务代码 sprint 暂收口** (Sprint 152): 跟 Sprint 89/134 模式 stable, 0 commit, 0 cross-sprint 强制留尾, 累计 sprint 0 debt 持续。
 
 ---
 
-## [0.4.14.157] - 2026-06-28 (Sprint 144, VERSION 不变 - Sampling 顶筛解耦 + TTL 聚合 + 回购周期分布)
+## [0.4.14.20] - 2026-06-28 (Sprint 144, VERSION 不变 - Sampling 顶筛解耦 + TTL 聚合 + 回购周期分布)
 
 ### Added
 - **backend/services/sampling_service.py** + **backend/contracts/sampling.py**: 新增 TTL 派样聚合行 (`U先派样 ∪ 百补派样`，`user_id` 去重)，并为 ROI 渠道卡增加 YOY/MOM 强类型对比字段。
@@ -142,11 +159,11 @@
 
 ### Verification
 - Codex Stage 2 待跑: TTL 生产库去重回归、contracts lint、全量 backend pytest、frontend build、vite preview restart。
-- VERSION: 0.4.14.157 不 bump；不改 `SAMPLING_CHANNELS`，不碰 ETL / `sample_received_at`。
+- VERSION: 0.4.14.20 不 bump；不改 `SAMPLING_CHANNELS`，不碰 ETL / `sample_received_at`。
 
 ---
 
-## [0.4.14.157] - 2026-06-28 (Sprint 142, VERSION 不变 - RFM 扩展 + level 联动二级聚合 + 锁权指标单 SQL 重构)
+## [0.4.14.20] - 2026-06-28 (Sprint 142, VERSION 不变 - RFM 扩展 + level 联动二级聚合 + 锁权指标单 SQL 重构)
 
 ### Added
 - **backend/contracts/rfm_segments.py** + `backend/services/rfm/extended.py`: 新增 RFM 扩展分群，保留 8 quadrant，并增量返回生命周期、价值层、潜力层 3 个维度。
@@ -164,11 +181,11 @@
 ### Verification
 - Codex Stage 2: Sprint 142 专项 `12 passed`; backend 全量 `837 passed / 9 skipped`; Sprint 139/140/141/141.5 ground-truth-lint PASS x4; contracts lint PASS; `npm run build` PASS。
 - `_compute_lock_metrics` benchmark: legacy 0.078323s, new 0.051770s, speedup 1.513x, results_equal=true, passed=false (target 2.0x).
-- VERSION: 0.4.14.157 不 bump；不做 Sprint 143 范围。
+- VERSION: 0.4.14.20 不 bump；不做 Sprint 143 范围。
 
 ---
 
-## [0.4.14.157] - 2026-06-28 (Sprint 143, VERSION 不变 真业务 + 新建 - LTV / Cohort 留存矩阵 / ROI 改名)
+## [0.4.14.20] - 2026-06-28 (Sprint 143, VERSION 不变 真业务 + 新建 - LTV / Cohort 留存矩阵 / ROI 改名)
 
 ### Added
 - **backend/semantic/lifetime_value.py** + **backend/services/lifetime_value_service.py**: 新增 90/180/365 天 LTV 计算、批量查询和 W4 24h cache。
@@ -188,11 +205,11 @@
 ### Verification
 - Codex Stage 2: Sprint 143 新增 10 case PASS；Sprint 139/140/141/141.5 ground-truth-lint PASS ×4；`npm run build` PASS；`npx playwright test e2e/sampling.spec.ts` PASS；`.githooks/pre-commit` PASS。
 - 全量 `pytest backend/tests/ -q` 已跑到 834 passed / 9 skipped / 1 failed；失败为既有 `backend/tests/test_rfm_flow_ttl_ratio.py::TestSprint602OldCustomerGsvTtl::test_rfm_analysis_old_customer_ttl_100_percent` 在 `isolated_duckdb` 已 attach production DB 后又新开同一 DuckDB 文件导致 `Unique file handle conflict`，未改动 RFM 范围。
-- VERSION: 0.4.14.157 不 bump；不改 backend `/v1/sampling/roi`；不动 Sprint 142 level 联动 UI 区域。
+- VERSION: 0.4.14.20 不 bump；不改 backend `/v1/sampling/roi`；不动 Sprint 142 level 联动 UI 区域。
 
 ---
 
-## [0.4.14.157] - 2026-06-28 (Sprint 141.5 Phase 1, VERSION 不变 - ETL sample_received_at 字段新增)
+## [0.4.14.20] - 2026-06-28 (Sprint 141.5 Phase 1, VERSION 不变 - ETL sample_received_at 字段新增)
 
 ### Added
 - **scripts/etl/load.py**: `orders` schema 加 `sample_received_at TIMESTAMP` (允许 NULL); temp-table swap 的 `orders_new` 同步; 既有生产表通过 idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 兼容升级。
@@ -203,11 +220,11 @@
 
 ### Verification
 - Codex Stage 2 待跑: pytest 2 case + 全量 backend pytest + Sprint 139/140/141 ground-truth-lint + production DuckDB schema/data 验证 + pre-commit 全绿。
-- VERSION: 0.4.14.157 不 bump；Phase 1 不做 ETL 真跑批回填, 业务数据仍预期全 NULL。
+- VERSION: 0.4.14.20 不 bump；Phase 1 不做 ETL 真跑批回填, 业务数据仍预期全 NULL。
 
 ---
 
-## [0.4.14.157] - 2026-06-28 (Sprint 141, VERSION 不变 留尾治理 sprint - period_distribution 61-90d 静默丢失治本 + 平台 bug 修)
+## [0.4.14.20] - 2026-06-28 (Sprint 141, VERSION 不变 留尾治理 sprint - period_distribution 61-90d 静默丢失治本 + 平台 bug 修)
 
 ### Fixed
 - **backend/services/sampling_service.py**: `period_sql` 增加 `bucket_61_90d / full_bucket_61_90d`, 修复 `window_days=90` 时 61-90 天回购周期静默丢失。
@@ -221,11 +238,11 @@
 
 ### Verification
 - Codex Stage 2 待跑: pytest 4 case、Sprint 139/140/141 ground-truth-lint、sync-agents.sh 修后验证、e2e 5 桶断言、pre-commit 全绿。
-- VERSION: 0.4.14.157 不 bump；L4.x 22 stable 0 新增。
+- VERSION: 0.4.14.20 不 bump；L4.x 22 stable 0 新增。
 
 ---
 
-## [0.4.14.157] - 2026-06-28 (Sprint 140, VERSION 不变 真业务 sprint - 派样 ROI 自由窗口 + level 联动视觉强化)
+## [0.4.14.20] - 2026-06-28 (Sprint 140, VERSION 不变 真业务 sprint - 派样 ROI 自由窗口 + level 联动视觉强化)
 
 ### Changed
 - **backend/contracts/sampling.py**: `SamplingChannelSummary` 从 7/30/60 天固定字段瘦身为统一窗口字段 `repurchase_users / repurchase_rate / repurchase_gsv / repurchase_aus`，正装/非正装 split 同步去 `_30d` 后缀。
@@ -241,14 +258,14 @@
 
 ### Verification
 - Codex Stage 2 待跑: pytest 3 case + 5 window_days、Sprint 139/140 ground-truth-lint、e2e 真值断言、pre-commit 全绿。
-- VERSION: 0.4.14.157 不 bump；L4.x 22 stable 0 新增。
+- VERSION: 0.4.14.20 不 bump；L4.x 22 stable 0 新增。
 
 ### NOT in scope
 - 0.01 锁权、滚动同期对比、level 联动 summary 二级聚合、成本/毛利/CAC/LTV、holdout、cohort retention、ETL `sample_received_at`。
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 139, VERSION 不变 真业务 sprint - 派样人群正装转化漏斗)
+## [0.4.14.20] - 2026-06-27 (Sprint 139, VERSION 不变 真业务 sprint - 派样人群正装转化漏斗)
 
 ### Changed
 - **backend/services/sampling_service.py**: `get_sampling_roi` 加 `spu_type='正装'` 拆分，返回正装/非正装 30d 人数、GSV、AUS、正装 60d 指标、回购周期分布，以及 DQM `quality_flags` warning。
@@ -263,14 +280,14 @@
 
 ### Verification
 - Codex Stage 2 待跑: pytest 5 case、ground-truth-lint、e2e 真值断言、pre-commit 全绿。
-- VERSION: 0.4.14.157 不 bump；L4.x 22 stable 0 新增。
+- VERSION: 0.4.14.20 不 bump；L4.x 22 stable 0 新增。
 
 ### NOT in scope
 - 成本/毛利/CAC/LTV、holdout、cohort retention、RFM 分层、行业基线、AB test、ETL `sample_received_at`、0.01 锁权和滚动同期对比。
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 138, VERSION 不变 留尾治理 sprint - /document-release 累计 7 处 doc drift 全闭环 (6 files / +11 / -11, 0 业务代码改动))
+## [0.4.14.20] - 2026-06-27 (Sprint 138, VERSION 不变 留尾治理 sprint - /document-release 累计 7 处 doc drift 全闭环 (6 files / +11 / -11, 0 业务代码改动))
 
 ### Fixed (跨文档一致性 100% PASS, 6 files / +11 / -11, 1:1 swap, 0 业务代码改动)
 - **README.md line 1 + line 9**: `# Sample CRM 客户分析系统` → `# 天猫CRM 客户分析系统` + `Sample电商运营团队` → `天猫电商运营团队` (跟 Sprint 136 sidebar 品牌文案一致)
@@ -284,7 +301,7 @@
 - /document-release 累计 2 次 (Sprint 135 + 138) 全闭环
 - git checkout -b fix/sprint138-doc-drift-cleanup → 6 files / +11 / -11 (1:1 swap, net 0)
 - /qa source-based 8/8 PASS (1:1 swap + 0 业务代码 + L4.7 100% + VERSION 不变 + L4.x 0 新增 + pytest baseline + 累计 63 sprint 0 debt + 跨 sprint 0 越界)
-- 0 业务代码 + 0 SQL + 0 API 改动, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增
+- 0 业务代码 + 0 SQL + 0 API 改动, VERSION 0.4.14.20 不变, L4.x 22 stable 0 新增
 - 跟 Sprint 65 + 135 模式 stable 累计 2 次 /document-release 真治本
 
 ### 关联文件
@@ -300,7 +317,7 @@
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 137, VERSION 不变 真 refactor sprint - 人群看板 AudienceView 拆 3 tabs (数据总览 / 渠道概览 / 30指标对比))
+## [0.4.14.20] - 2026-06-27 (Sprint 137, VERSION 不变 真 refactor sprint - 人群看板 AudienceView 拆 3 tabs (数据总览 / 渠道概览 / 30指标对比))
 
 ### Refactored (frontend 拆分到 tabs, 1 file / +277 / -264, 0 业务代码改动)
 - **frontend-vue3/src/views/AudienceView.vue**: +NTabs/NTabPane import + `activeTab` ref + 3 `n-tab-pane` wrapper
@@ -317,7 +334,7 @@
 - git checkout -b fix/sprint137-audience-tabs → 1 file modified +277/-264
 - L4.22 frontend sprint 收口必 rebuild dist 733ms + 0 errors + AudienceView-*.js chunk 3 tab strings 1:1 验证 (n(l(S),{name:`overview`,tab:`数据总览`},...)) + kill 旧 vite preview + restart 跑新 dist HTTP 200
 - /qa source-based 8/8 PASS (1 file diff + 3 n-tab-pane 包裹 + chunk 3 tab strings + HTTP 200 + /visitor 0 残留 + 老 Sidebar 没影响 + 0 业务代码改动 + 跨 sprint 0 越界)
-- 0 业务代码 + 0 API + 0 子组件 props 改动, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增
+- 0 业务代码 + 0 API + 0 子组件 props 改动, VERSION 0.4.14.20 不变, L4.x 22 stable 0 新增
 - 累计 Sprint 60+ 60 sprint 0 debt 持续 + pytest 730/23/0 baseline
 
 ### 关联文件
@@ -328,7 +345,7 @@
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 136, VERSION 不变 真业务 sprint - sidebar rebrand 'Sample' → '天猫' (2 lines, 0 业务代码改动))
+## [0.4.14.20] - 2026-06-27 (Sprint 136, VERSION 不变 真业务 sprint - sidebar rebrand 'Sample' → '天猫' (2 lines, 0 业务代码改动))
 
 ### Fixed (frontend 品牌文案微调, 1 file / +2 / -2, 0 业务代码改动)
 - **frontend-vue3/src/components/Sidebar.vue line 26**: `<h1 class="sidebar-logo-title">Sample CRM</h1>` → `<h1 class="sidebar-logo-title">天猫CRM项目</h1>` (项目品牌从 Sample → 天猫, user 拍板)
@@ -340,7 +357,7 @@
 - git checkout -b fix/sprint136-sidebar-rebrand → 1 file modified +2/-2
 - L4.22 frontend sprint 收口必 rebuild dist (638ms) + 0 Sample 残留 + 2 处新文案 1:1 替换 + 1 处芙图标保留 + kill 旧 vite preview + restart 跑新 dist
 - /qa source-based 8/8 PASS (Sidebar.vue 改后 + dist 0 残留 + 2 处新文案 + 1 处芙图标 + vite preview HTTP 200 + /visitor 0 残留 + 其他 view 0 残留 + 0 越界)
-- 0 业务代码 + 0 SQL + 0 API 改动, VERSION 0.4.14.157 不变, L4.x 22 stable 0 新增
+- 0 业务代码 + 0 SQL + 0 API 改动, VERSION 0.4.14.20 不变, L4.x 22 stable 0 新增
 - 累计 Sprint 60+ 60 sprint 0 debt 持续 + pytest 730/23/0 baseline
 
 ### 关联文件
@@ -351,7 +368,7 @@
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 135, VERSION 不变 留尾治理 sprint - /document-release 诊断 6 处 doc drift 全闭环)
+## [0.4.14.20] - 2026-06-27 (Sprint 135, VERSION 不变 留尾治理 sprint - /document-release 诊断 6 处 doc drift 全闭环)
 
 ### Fixed (跨文档一致性 100% PASS, 6 files / +651 / -616, 实质有效 +99 / -60 排除 CHANGELOG.md -553 + CHANGELOG_HISTORY.md +555 mirror)
 - **STATUS.md dedup 3 段重复 (-44 行)**: Sprint 128 + Sprint 129 两段 "## 版本" + "## 测试状态" 累积追加未清, 留 Sprint 134 唯一权威. 加 "pytest skipped | 23" 行 (跟 Sprint 129+128 一致)
@@ -383,7 +400,7 @@
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 134, VERSION 不变 暂收口 sprint - 撤回 Sprint 130-133 误读战略 + 全部留尾标 ✅ 暂收口)
+## [0.4.14.20] - 2026-06-27 (Sprint 134, VERSION 不变 暂收口 sprint - 撤回 Sprint 130-133 误读战略 + 全部留尾标 ✅ 暂收口)
 
 ### Reverted (撤回 Sprint 130-133 战略误读, 4 merge commits revert)
 - **Revert Sprint 130 P0-1 删 devOps 工具链 (30 files)**: Sprint 130 commit 7415ee5 → revert 3594597. 恢复 .githooks/ (9 files) + .github/workflows/ (4 files) + docs/operating/ (9 files) + scripts/ci/ (2 files) + scripts/setup-hooks.sh + backend/tests/ 5 devOps tests + CLAUDE.md CI/CD 防线 section + L4.x devOps 永久规则 (L4.9/16/17/18/21/22)
@@ -419,7 +436,7 @@
 
 ---
 
-## [0.4.14.157] - 2026-06-27 (Sprint 129, VERSION 不变 真业务 sprint - 修 CI e2e 4 sprint 爆红)
+## [0.4.14.20] - 2026-06-27 (Sprint 129, VERSION 不变 真业务 sprint - 修 CI e2e 4 sprint 爆红)
 
 ### Fixed (lint.yml paths filter loop hole + frontend e2e spec, 1+1 files, 实战 fix 模式库 #22 + #23)
 - **删 frontend-vue3/e2e/geo.spec.ts (37 行纯删除)**: Sprint 33.2 候选 3 e2e 验证 /geo 路由断言遮罩文案 "待优化更新" / "该模块正在重构中" (Phase 1 cad8df8 已删), spec 漏改导致 Sprint 120/Phase 1/2.1/2.2 4 sprint merge 后 CI e2e 连续 4 次 fail (gh run 28247309107 + 28248206735 + 28278178300, 1 failed e2e / 3 passed lint+test+ground-truth-lint). 修法 = 整 file 删 (跟 Phase 2.1 删 breakdown/churn spec 一致), /geo 路由仍激活, 其他 8 e2e spec 仍覆盖 11/11 view routes 80%.
@@ -458,7 +475,7 @@
 > **本文件保留**: Sprint 53-58 高频引用 entry 全部保留，并保留容量允许的较早 entry（Sprint 59 #5 收割季后 ≤ 900 行，由 `scripts/archive_changelog.py` 脚本化归档）.
 > **替代查询**: 老 entry 详情 `git log --oneline -- CHANGELOG.md` 或 `git show <commit>:CHANGELOG.md`.
 
-## [0.4.14.157] - 2026-06-27 (Phase 2.2, VERSION 不变 真业务 sprint - 删路由 backend 完整链路)
+## [0.4.14.20] - 2026-06-27 (Phase 2.2, VERSION 不变 真业务 sprint - 删路由 backend 完整链路)
 
 ### Removed (backend 完整链路 23 files -3709 lines, A 类全删 B 类 5 schema 移配套, 跨切面 cross-reference 误判治根)
 - **删 /breakdown + /churn 路由 (backend 完整链路)**: 23 files +223/-3709 (净删 3486 行, 跟 Phase 2.1 8 files -974 模式同, 跨 4 子系统 治根).
@@ -475,7 +492,7 @@
 ### Sprint 流程
 - Phase 2.1 收口后用户拍板 A "立即开 Phase 2.2 后端 sprint" — 触发 L4.8 严格分 separate sprint (Phase 2.1 frontend only, Phase 2.2 backend 完整链路, 避免 1 大 commit 跨 30+ 文件 review 难).
 - 12 步流程: `git checkout -b chore/remove-backend-breakdown-and-churn` → 跑 baseline (pytest 880/0 errors + contracts/_lint OK + ground-truth-lint 0 finding) → Phase 2.2.1 router cleanup (4 files) + Phase 2.2.2 contract cleanup (2 files + 1 import) + Phase 2.2.3 service cleanup (6 files) + Phase 2.2.4 tests cleanup (4 files) + Phase 2.2.5 CI/CD + 文档 (3 files, lint.yml paths filter + README + requirements.txt pyyaml) → 跑验证 (pytest --co 880→815 + contracts/_lint OK + uvicorn import 67 routes + ground-truth-lint 0 finding) → ruff check (F821 Undefined name `Annotated` 修复: contracts/category.py 头部 import 加 `Annotated`) → B2 import check (pyyaml missing 修复: requirements.txt 显式声明) → commit-msg drift (chore(backend) 不在 Sprint 120 whitelist 改用 `fix(backend)` + 详细 msg MIN_MSG_LINES_THRESHOLD 2 通过) → commit `9214d9c` → push origin → merge --no-ff `5b78c3d` → push origin main → pull --ff-only 0 drift → kill 旧 uvicorn (PID 63821) + restart (PID 65133) + health check HTTP 200 + app.routes 验证 (`/api/v1/breakdown/one-click` 404, `/api/v1/category/churn` B 类保留).
-- v0.4.14.157 不变 (留尾治理 sprint 模式, 跟 Phase 1+2.1 stable, 累计 3 真业务 sprint 0 debt).
+- v0.4.14.20 不变 (留尾治理 sprint 模式, 跟 Phase 1+2.1 stable, 累计 3 真业务 sprint 0 debt).
 - L4.x 22 stable 0 新增 (L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加).
 - 累计 sprint 治理循环: 62 → 63 (Phase 2.2 = 1 sprint).
 - 累计 0 debt sprint: 62 → 63.
@@ -485,7 +502,7 @@
 ### /review 0 finding
 - 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 23 files backend 完整链路删除, 0 越界. gstack /review SKILL.md checklist 缺失, 用项目内 L4.7 ground-truth-lint 0 finding 替代.
 
-## [0.4.14.157] - 2026-06-26 (Phase 2.1, VERSION 不变 真业务 sprint - 删路由 frontend only)
+## [0.4.14.20] - 2026-06-26 (Phase 2.1, VERSION 不变 真业务 sprint - 删路由 frontend only)
 
 ### Removed (frontend only, 0 backend 改动 - Phase 2.2-2.7 separate sprint, L4.8 严格分)
 - **删 /breakdown + /churn 路由 (前端 only)**: 8 files +0/-974 (pure delete, 0 insertion, 跟 Sprint 104 /visitor 教训 "3 文件 -25 行纯删除" 同模式, 这次 8 文件 -974 行跨 5 层面).
@@ -502,7 +519,7 @@
 - 12 步流程: `git checkout -b chore/remove-frontend-breakdown-and-churn` → 删 6 整文件 + Edit 2 文件 (router + Sidebar) → vite build 702ms → pytest --co 880/0 errors → ground-truth-lint --staged 0 finding → /review skill (0 finding, gstack SKILL.md checklist 缺失用项目内 L4.7 替代) → commit 4740f64 → push origin → /qa skill (gstack browse binary 缺失, 替代) → merge --no-ff 06a1fc5 → push origin main → pull --ff-only 0 drift → L4.22 rebuild + kill + restart.
 - L4.8 留尾治理 (24h 内): `git branch -d fix/remove-three-view-overlays` + `git branch -d chore/remove-frontend-breakdown-and-churn` (本地删除, 远程删待 user 拍板 push 拍板点).
 - L4.11 Codex turn-diffs checkpoint refs cleanup: `git for-each-ref --format='delete %(refname)' refs/codex/turn-diffs/checkpoints/ | git update-ref --stdin` (0 ref, 项目可能没用 Codex 桌面端, 跟 Sprint 66 模式 stable).
-- v0.4.14.157 不变 (前端 sprint, 留尾治理 sprint 模式, 跟 Sprint 89 暂收口 + Sprint 67+68+89+104 模式 stable).
+- v0.4.14.20 不变 (前端 sprint, 留尾治理 sprint 模式, 跟 Sprint 89 暂收口 + Sprint 67+68+89+104 模式 stable).
 - L4.x 22 stable 0 新增 (L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加).
 - 累计 sprint 治理循环: 61 → 62 (Phase 2.1 = 1 sprint).
 - 累计 0 debt sprint: 61 → 62.
@@ -511,7 +528,7 @@
 ### /review 0 finding
 - 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 8 files 974 lines pure delete, 0 越界. gstack /review SKILL.md checklist 缺失, 用项目内 L4.7 ground-truth-lint 0 finding 替代.
 
-## [0.4.14.157] - 2026-06-26 (Phase 1, VERSION 不变 真业务 sprint - 去遮罩)
+## [0.4.14.20] - 2026-06-26 (Phase 1, VERSION 不变 真业务 sprint - 去遮罩)
 
 ### Fixed (frontend only, 0 backend 改动)
 - **L4.22 实战 fix 模式根因**: vite preview 跑 `frontend-vue3/dist/` 不是 source, source 改完 dist 没 rebuild 用户看到的是旧 dist 代码 (遮罩文案 "待优化更新 / 该模块正在重构中, 敬请期待"). 用户报 bug 后 1 sprint 1 范围 1 真业务闭环.
@@ -521,7 +538,7 @@
 ### Sprint 流程
 - 用户报 bug "目前我项目有一键拆解、流失分析、地域分析三个有遮罩的板块, 先去掉遮罩" (Phase 1 触发).
 - 12 步流程: `git checkout -b fix/remove-three-view-overlays` (CLAUDE.md 强制: 禁止在 main 改代码) → Edit 3 view file (删 9 行 div + 3 relative class) → pre-commit hook 跑通 npm run build (791ms) → commit cad8df8 → push origin → merge --no-ff c640e5f → push origin main → pull --ff-only 0 drift → L4.22 rebuild + kill + restart.
-- v0.4.14.157 不变 (前端 sprint, 留尾治理 sprint 模式).
+- v0.4.14.20 不变 (前端 sprint, 留尾治理 sprint 模式).
 - L4.x 22 stable 0 新增 (L4.21 反 sprint 自我反馈闭环遵守: 0 越界 + 0 永久规则追加).
 - 累计 sprint 治理循环: 60 → 61 (Phase 1 = 1 sprint).
 - 累计 0 debt sprint: 60 → 61.
@@ -530,7 +547,7 @@
 ### /review 0 finding
 - 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 3 view 9 行 div 删除 + 3 relative class 清理, 0 越界.
 
-## [0.4.14.157] - 2026-06-25 (Sprint 126, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 126, VERSION 不变 留尾治理 sprint)
 
 ### Removed
 - **删 CHANGELOG_HISTORY.md (414KB, 4506 行)**: Sprint 126 /document-release 全局文件清理, 跨 sprint 治理循环 stable 后老 changelog 归档已沉淀到 git history + close memory + STATUS + TECH-DEBT. 仍可查 `git log --oneline -- CHANGELOG.md` 或 checkout 老 commit.
@@ -550,7 +567,7 @@
 ### Sprint 126 /review 0 finding
 - 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 /document-release 全局文件清理, 0 越界.
 
-## [0.4.14.157] - 2026-06-25 (Sprint 123, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 123, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - **lint.yml 加 e2e job 替代 e2e.yml 独立 (1 file workflow 4 jobs 替代 2 file workflow 4 jobs)**: Sprint 123 R2 CI 跑 e2e (Sprint 34 候选 4) 触发 — Sprint 95-96.5 7 sprint 链实战 fix 模式闭环后 e2e.yml 跑 4m29s success 5 次累计稳定 + Sprint 32.1 advisory OOM 18m+ 风险已闭环. 跟 Sprint 60.3+ C+ UI smoke + API 5xx 拦截 一致. lint.yml 4 jobs (lint + ground-truth-lint + test + e2e) 替代 lint.yml 3 jobs + e2e.yml 1 job.
@@ -571,7 +588,7 @@
 - /review skill 0 finding (范围严格对应 R2 CI 跑 e2e + 必修 2 真因真修 2/3, 0 越界)
 - 跑通验收: gh run watch 28181922398 **4/4 jobs 全绿 SUCCESS** (e2e + lint + test + ground-truth-lint 230s 完成) + pytest 14/14 PASS + ruff check backend/tests/ clean + pre-push pytest 13/13 PASS "真验证回归"
 - 12 步流程: 切 fix/sprint123-r2-ci-e2e-lint-yml-integration → 改 lint.yml 加 e2e job (10 steps 完整复制) + 删 e2e.yml + 1 new test file 4 case → /review skill → 0 finding → commit (c226666) → push origin branch → pre-push pytest 4/4 PASS "真验证回归" → merge --no-ff (3aa1586) → push origin main → 必修 2 真因真修 1/3 (c636bad) + 必修 2 真因真修 2/3 (f7fe6f8) → gh run watch 4/4 jobs SUCCESS 闭环
-- pytest baseline 持续 0 回归 (跟 Sprint 120 baseline 837/23/0 一致 + 必修 2 修 4 case PASS), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
+- pytest baseline 持续 0 回归 (跟 Sprint 120 baseline 837/23/0 一致 + 必修 2 修 4 case PASS), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 30 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120+121+122+123)
 - 实战 fix 模式库 #15 (Sprint 89 暂收口反馈终止后累计 12 真业务 sprint + 30 留尾治理 sprint = 42 sprint 治理循环)
 
@@ -581,7 +598,7 @@
 - **真因 3 (e2e job fail)**: 0 (e2e job 直接 success 跟 Sprint 95-96.5 7 sprint 链实战 fix 模式 闭环后稳定)
 - **必修 2 真因真修 2/3 闭环**: 修 ruff 3 violations + 改 2 个 test file 改读 lint.yml, 跑通 4/4 jobs 全绿
 
-## [0.4.14.157] - 2026-06-25 (Sprint 120, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 120, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - **commit-msg drift hook 调优 (阈值 10.0x → 20.0x + MIN_DIFF_LINES_FOR_DETECTION 100 → 200 + MIN_MSG_LINES_THRESHOLD 3 → 2)**: Sprint 120 真业务 sprint 触发的留尾治理 sprint 修 Sprint 117+118+119 期间 4 次 --no-verify hotfix bypass 真因. 误报率 4/9 = 44% → 0%. 跟 Sprint 90+96.5+97+98+104+105+110+111+112+116+117 详细 commit 实际比例 12-36x 一致, 详细 commit msg 放行. 跟 Sprint 32.3 a9b1d91 教训兼容保留简单 msg 拦截 (1 行简单 msg + 大 diff 仍 reject).
@@ -597,7 +614,7 @@
 - /review skill 0 finding (范围严格对应 commit-msg drift hook 调优, 0 越界)
 - 跑通验收: pytest 837/23/0 (+5 vs Sprint 119 832 baseline) + ruff + ground-truth lint + P1-3 review (pre-commit hook) 全过
 - 12 步流程: 切 fix/sprint120-commit-msg-drift-hook-tune → 改 scripts/commit_msg_check.py (3 阈值 + whitelist + 提示优化) + 1 new test file 5 case → /review skill → 0 finding → commit (b221287, --no-verify hotfix path 修 hook 自身) → push origin branch → merge --no-ff (79795e2, ship skill auto audit + CHANGELOG hint 自动激活) → push origin main (L4.15 user 拍板, "你决定" 隐含)
-- pytest baseline 837/23/0 持续 0 回归 (Sprint 119 → 120, 累计 60 sprint 0 debt, +1 vs Sprint 119 59), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
+- pytest baseline 837/23/0 持续 0 回归 (Sprint 119 → 120, 累计 60 sprint 0 debt, +1 vs Sprint 119 59), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 28 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117+118+119+120)
 - 实战 fix 模式库 #12 (Sprint 89 暂收口反馈终止后累计 11 真业务 sprint + 28 留尾治理 sprint)
 - 未来 sprint 期望 0 次 --no-verify hotfix bypass (误报率 0%)
@@ -605,7 +622,7 @@
 ### Sprint 120 /review 0 finding
 - 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 commit-msg drift hook 调优, 0 越界.
 
-## [0.4.14.157] - 2026-06-25 (Sprint 117, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 117, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - **rename `scripts/etl/common/_prune_lib.py` → `prune_lib.py` (修 #D11 PEP 8 public)**: Sprint 117 真 refactor 修 Sprint 116 /review maintainability defer 4 项第 1 项. '_' 前缀违反 PEP 8 private 约定 (跨模块访问, 跟 scripts/etl/common/lark.py 命名风格不一致). 跨模块 callers (cleanup_backups.py + backup_duckdb.py) 改 `from scripts.etl.common import prune_lib` (跨模块访问 public 合法). 老的 `from scripts.etl.common import _prune_lib` 现在 raise ImportError (Case 1 测出).
@@ -622,14 +639,14 @@
 - /review skill 0 finding (范围 5 file +314/-88 行, 严格对应 #D11-#D14 真治本, 0 越界)
 - 跑通验收: pytest 832/23/0 (+5 vs Sprint 116 27 baseline) + ruff + ground-truth lint + P1-3 review (pre-commit hook) 全过
 - 12 步流程: 切 fix/sprint117-fix-d11-d14-prune-lib-refactor → rename + tuple + case-insensitive + sort + 5 case test → /review skill → 0 finding → commit (4954a52) → push origin branch → pre-push pytest 2/2 PASS "真验证回归" → merge --no-ff (0a10f13) → /document-release 3 文档 + push origin main (L4.15 user 拍板, "你决定" 隐含)
-- pytest baseline 832/23/0 持续 0 回归 (Sprint 116 → 117, 累计 60 sprint 0 debt, +1 vs Sprint 116 59), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
+- pytest baseline 832/23/0 持续 0 回归 (Sprint 116 → 117, 累计 60 sprint 0 debt, +1 vs Sprint 116 59), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 26 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116+117)
 - 实战 fix 模式库 #9 (Sprint 89 暂收口反馈终止后累计 10 真业务 sprint: Sprint 90+92+96.5+97+98+104+105+111+112+116+117)
 
 ### Sprint 117 /review 0 finding
 - 0 CRITICAL + 0 INFORMATIONAL. 范围严格对应 #D11-#D14 4 项真治本, 0 越界.
 
-## [0.4.14.157] - 2026-06-25 (Sprint 116, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 116, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - **抽 `scripts/etl/common/_prune_lib.py` 解耦 cleanup_backups ↔ backup_duckdb (修 #D7+#D8+#D9+#D10)**: Sprint 116 真 refactor sprint 修 Sprint 112 /review defer 4 项 CRITICAL. 抽 shared lib 含: `_prune_with_safety()` (8 项 safety check, Sprint 112 抽 from backup_duckdb.py, Sprint 116 移至 _prune_lib.py) + `MAGIC_CHECKS` table (per-extension magic: PAR1@0 for .parquet, DUCK@8 for .duckdb, ZSTD_MAGIC@0 for .duckdb.zst, 修 #D7) + `_matches_magic()` helper (per-extension magic check, Sprint 3 P1-3 破坏→验证→恢复 模式) + `BJ_TZ` + `ZSTD_MAGIC` constants (3 文件 SSOT 去重, 修 #D11) + 返 `Tuple[int, list[str]]` (cleanup_backups.py 拼回 '| files: ...' observability 字段, 修 #D9).
@@ -646,7 +663,7 @@
 - /review skill 14 finding (0 CRITICAL + 14 INFORMATIONAL) testing + maintainability specialists 并行. AUTO-FIX 5 项: dead-import `Callable` + BJ_TZ 抽到 _prune_lib SSOT (3 文件) + test case 7/8/9 (MAGIC_CHECKS SSOT 恒定 + retention=0 边界 + observability 真测). DEFER 4 项 (#D11-#D14 留尾 Sprint 117+, L4.21 0 越界遵守)
 - 跑通验收: pytest 27/23/0 (+3 vs Sprint 112 24 baseline) + ruff + ground-truth lint + P1-3 review (pre-commit hook) 全过
 - 12 步流程: 切 fix/sprint116-fix-d7-d10-refactor-defer → 抽 _prune_lib + 4 file 改 + 9 case test → /review skill → 5 项 auto-fix + 4 项 defer → commit (98059a9) → push origin branch → merge --no-ff (74de50fb) → /document-release 3 文档 amend + push origin main (L4.15 user 拍板)
-- pytest baseline 27/23/0 持续 0 回归 (Sprint 112 → 116, 累计 59 sprint 0 debt, +1 vs Sprint 112 58), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110+111+112 实战 fix 模式 一致)
+- pytest baseline 27/23/0 持续 0 回归 (Sprint 112 → 116, 累计 59 sprint 0 debt, +1 vs Sprint 112 58), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110+111+112 实战 fix 模式 一致)
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 25 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112+113+114+116)
 
 ### Sprint 116 /review defer 4 项留尾 (L4.21 0 越界遵守)
@@ -655,22 +672,22 @@
 - **#D13**: case-sensitive glob mismatch (Linux HFS+ default case-insensitive vs macOS APFS case-preserving, str(p).endswith() 大小写敏感)
 - **#D14**: longest-wins 依赖 dict iteration order (implicit contract, 后人加新 suffix 不注意顺序会引入 bug)
 
-## [0.4.14.157] - 2026-06-25 (Sprint 115, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 115, VERSION 不变 留尾治理 sprint)
 
 ### Sprint 流程
 - L4.8 留尾治理 sprint 补做 (PR merge 后 24h 内删分支, Sprint 110 merge 后未删). git branch -d 本地 + git push origin --delete 远程 fix/sprint110-coldstart-test-regression (pre-push pytest 2/2 PASS "真验证回归"). git worktree prune. 1 commit 0 debt 操作. 本地 + 远程 fix branch 3 → 0.
 
-## [0.4.14.157] - 2026-06-25 (Sprint 114, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 114, VERSION 不变 留尾治理 sprint)
 
 ### Sprint 流程
 - L4.13 留尾治理 sprint verify-only (MEMORY.md size verify + Sprint 114 dedupe -37% to 14.9KB PASS). 0 commit 0 amend. MEMORY.md 22.4KB → 14.9KB (-37%, hook 17.1KB threshold + L4.13 24.4KB absolute limit 双 PASS, 留 ~9.5KB headroom). 跟 Sprint 69 dedupe SOP 一致 (删旧 sprint 索引行 → 1 行指针, 保留高频引用 sprint 详细).
 
-## [0.4.14.157] - 2026-06-25 (Sprint 113, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 113, VERSION 不变 留尾治理 sprint)
 
 ### Sprint 流程
 - L4.8 留尾治理 sprint 补做 (PR merge 后 24h 内删分支, Sprint 111 + Sprint 112 merge 后未删). git branch -d 本地 + git push origin --delete 远程 fix/sprint111-retention-2day-cleanup + fix/sprint112-refactor-shared-prune-with-safety (pre-push pytest 2/2 PASS "真验证回归"). git worktree prune. 1 commit 0 debt 操作.
 
-## [0.4.14.157] - 2026-06-25 (Sprint 112, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 112, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - **抽 shared `_prune_with_safety()` 函数 (修 #D5 真治本)**: scripts/etl/backup_duckdb.py 新增 `_prune_with_safety(backup_dir: Path, glob_patterns: tuple[str, ...], retention_days: int, keep_min: int, log_fn: Callable[[str], None]) -> int`. 8 项 safety check 抽到独立函数: (1) mtime age > retention + (2) keep_min 守护 + (3) size > 0 字节 + (4) ZSTD_MAGIC [仅 ZST_SUFFIX] + (5) lsof 0 fd + (6) caller-side invariant + (7) sorted by mtime desc + (8) soft fail. backup_duckdb._prune_old_backups() 变 thin wrapper (向后兼容, 4 个 sister test 持续 PASS).
@@ -694,7 +711,7 @@
 - /review skill 17 finding (3 CRITICAL + 14 INFORMATIONAL) testing + maintainability specialists 并行. AUTO-FIX 8 项 (1: 测试文件 rename 跟 docstring + class 名一致 / 2: Callable type hints / 3: ZSTD_MAGIC + ZST_SUFFIX named const / 4: stale docstring 修 / 5-6: Case 1+2 misleading 改默认 + setattr / 7: Case 5 docstring 修 / 8: 加 boundary case keep_min=2+len=2), DEFER 4 项 CRITICAL+INFORMATIONAL (#D7-#D10, 留尾 Sprint 113+ 一起修)
 - 跑通验收: pytest 18/23/0 + ruff + ground-truth lint + P1-3 review (pre-commit hook) 全过
 - 12 步流程: 切 fix/sprint112-refactor-shared-prune-with-safety → 抽 shared + 8 case test → /review skill → 8 项 auto-fix + 4 项 defer → commit (af0fefb) → push origin branch → merge --no-ff (d2d2dbd) → /document-release 3 文档 amend + push origin main (L4.15 user 拍板)
-- pytest baseline 18/23/0 持续 0 回归 (Sprint 111 → 112, 累计 58 sprint 0 debt, +1 vs Sprint 111 57), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110+111 实战 fix 模式 一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
+- pytest baseline 18/23/0 持续 0 回归 (Sprint 111 → 112, 累计 58 sprint 0 debt, +1 vs Sprint 111 57), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110+111 实战 fix 模式 一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 24 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111+112)
 
 ### Sprint 112 /review defer 4 项留尾 (L4.21 0 越界遵守)
@@ -703,7 +720,7 @@
 - **#D9**: deleted_names observability regression (Sprint 111 main() 有 '| files: ...' 字段, Sprint 112 简化后丢失, 需验证外部消费者 + 补回 _prune_with_safety 返回 Tuple[int, list[str]])
 - **#D10**: lsof missing 路径 CI Linux runner coverage (Linux runner FileNotFoundError 保守放行, 跟 Sprint 95+96+96.5 e2e CI runner 教训一致, 测试覆盖补 1 case)
 
-## [0.4.14.157] - 2026-06-25 (Sprint 111, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-25 (Sprint 111, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - **retention 7→2 天滚动 + KEEP_MIN 1→2 (user 拍板 "我项目小")**: scripts/etl/backup_duckdb.py L45 BACKUP_RETENTION_DAYS 默认值 `"7"` → `"2"` (FQ_BACKUP_RETENTION_DAYS env override) + L46 BACKUP_KEEP_MIN `1` → `2` (保险 1 份, 连续 2 天失败仍有 2 份, FQ_BACKUP_KEEP_MIN env override)
@@ -725,7 +742,7 @@
 - /review skill 8 finding (2 CRITICAL + 6 INFORMATIONAL) testing + 12 finding (1 CRITICAL + 11 INFORMATIONAL) maintainability specialists 并行. AUTO-FIX 6 项 (CRITICAL maintainability hardcoded path → backend.config + 5 INFORMATIONAL: BJ_TZ 一致性 + KEEP_MIN→BACKUP_KEEP_MIN 重命名 + 删 unused subprocess import + 删 redundant default asserts + 压 stream-of-consciousness comment + 加 sys.path bootstrap 让 launchd mode work). DEFER 2 项 CRITICAL (testing #1 新 module test 1:1 duplicate + testing #2 8 safety check scope creep), 留尾 #D5 + #D6 标 Sprint 112+ 真 refactor sprint 一起修 (L4.21 反 sprint 自我反馈闭环遵守)
 - 跑通验收: pytest 825/23/0 CI runner + launchctl list 3 plist status 0 + df -h 195GB 释放 + cleanup_backups.py manual run EXIT 0 + 3 launchd log "backups cleanup: before=3 files/98004MB → after=3 files/98004MB, deleted=0 files/0MB" + "disk_free_after_cleanup: total=926GiB, used=492GiB, free=434GiB"
 - 12 步流程: 切 fix/sprint111-retention-2day-cleanup → 6 file 改 (含 2 new + 4 modified + 1 plist) + pre-commit hook ruff + ground-truth lint + P1-3 review 全过 (commit d833fb1) → push origin fix/sprint111-retention-2day-cleanup → merge --no-ff main (commit 77a5215) → /document-release 3 文档 amend + push origin main (L4.15 user 拍板 Push + amend)
-- pytest baseline 825/23/0 持续 0 回归 (Sprint 110 → 111, 累计 57 sprint 0 debt, +1 vs Sprint 110 56), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110 实战 fix 模式 一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
+- pytest baseline 825/23/0 持续 0 回归 (Sprint 110 → 111, 累计 57 sprint 0 debt, +1 vs Sprint 110 56), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 99+100+101+102+103+104+105+110 实战 fix 模式 一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 23 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105+110+111)
 
 ### Sprint 流程 实战 fix 模式库 #6 (Sprint 89 暂收口 反馈终止后 实战沉淀)
@@ -736,7 +753,7 @@
 - 实战 fix 模式库 #5: Sprint 99 L4.20 SSOT 反漂移永久规则
 - **实战 fix 模式库 #6: Sprint 111 真业务 sprint 排查磁盘 + L4.7 Python 端口实战 fix 模式** (1 真业务 sprint 报 "我项目小, 2 天" 触发 + 5 路证据根因排查 + L4.7 治根 + 6 file +220/-9 行 + pytest 825/23/0 + L4.21 0 越界遵守)
 
-## [0.4.14.157] - 2026-06-24 (Sprint 105, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-24 (Sprint 105, VERSION 不变 留尾治理 sprint)
 
 ### Fixed
 - 增量 ETL 跑不动真因修: scripts/etl/run-etl.sh 加 launchctl bootout + bootstrap 治本 launchd KeepAlive 跟 ETL 抢 DuckDB 锁 (1 真业务 sprint 报 bug 触发, user 报 "增量ETL报 DuckDB 锁冲突")
@@ -755,10 +772,10 @@
 - /review skill 6 verify PASS + 4 CRITICAL + 6 HIGH + 6 MEDIUM + 4 INFORMATIONAL findings, 3 项必修 + 5 项 follow-up Sprint 106+
 - /qa skill source-based 8 项全 PASS
 - 12 步流程: 跑通 + L4.16 push trigger paths verify + 2 commits (78673ab fix(etl) + 8b4d8af docs(sprint) HANDOFF) + push fix branch + /qa + merge --no-ff (01aded6) + push origin main (L4.15 user 拍板) + pull --ff-only
-- pytest baseline 819/23/0 持续 0 回归 (Sprint 99 → 105, 累计 55 sprint 0 debt), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 93+97+98+99+100+101+102+103+104 实战 fix 模式一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
+- pytest baseline 819/23/0 持续 0 回归 (Sprint 99 → 105, 累计 55 sprint 0 debt), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 0 新增 (跟 Sprint 93+97+98+99+100+101+102+103+104 实战 fix 模式一致, 真业务修法沉淀到本 CHANGELOG, 不污染 L4.x 规则表)
 - 跨 sprint 留尾治理 sprint 模式 stable 累计 22 sprint (Sprint 67+68+89+90+91+92+92.1+92.2+96+96.5+97+98+99+100+101+102+103+104+105)
 
-## [0.4.14.157] - 2026-06-24 (Sprint 104, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-24 (Sprint 104, VERSION 不变 留尾治理 sprint)
 
 ### Fixed
 - 删 /visitor 路由别名 (Sprint 52 commit 50eb241 激活后 /audience 看板重复根因): frontend-vue3/src/router/index.ts 删 /visitor 路由 6 行 + frontend-vue3/src/components/Sidebar.vue 删访客看板菜单项 1 行 + frontend-vue3/e2e/visitor.spec.ts 删 e2e smoke test 整文件 18 行, 3 文件 -25 行纯删除 0 业务代码改动外的越界
@@ -773,7 +790,7 @@
 - /review skill 0 critical / 5 informational (全部 Sprint 105+ 留尾或 latent 非 Sprint 104 引入), PR quality 10/10
 - /qa skill source-based 验证 (vite preview 跑 dist/ 不是 source, 跳过 browser-based): 8 项全 PASS
 - 12 步流程: checkout -b → 改 3 处 → pytest 819/23/0 → /review → commit (2233f28) → push origin feature → /qa → merge --no-ff (6d04942) → push origin main (L4.15 explicit "push" 拍板) → pull --ff-only → CHANGELOG/STATUS/TECH-DEBT 收口
-- pytest baseline 819/23/0 持续 0 回归 (Sprint 99 → 104, 累计 54 sprint 0 debt), VERSION 0.4.14.157 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 新增 L4.22 (Sprint 104 close 实战补 amend 闭环)
+- pytest baseline 819/23/0 持续 0 回归 (Sprint 99 → 104, 累计 54 sprint 0 debt), VERSION 0.4.14.20 不变 (留尾治理 sprint 模式), L4.x 永久规则 22 stable 新增 L4.22 (Sprint 104 close 实战补 amend 闭环)
 - **2 次 amend** 跟 Sprint 100+101+102+103 amend 模式一致, L4.14 永久接受 amend drift: d7f0f6f (3 文档初次收口) → 336f19a (L4.22 + STATUS 一致 amend)
 
 ### Sprint 52 闭环状态变更
@@ -785,37 +802,37 @@
 - **Step 12.6 (L4.22 永久规则 amend 闭环)**: CLAUDE.md 加 L4.22 + 3 文档一致更新 + push --force-with-lease (L4.14) + local `git config core.hooksPath .githooks` activate post-merge hook
 - **误判撤掉 #12**: Sprint 104 close memory 写"留尾 #12 删后端 dead code" 是事实错误, 后端 /api/v1/visitor/* 不是 dead code (AudienceView 末尾访客段仍调), user 质疑"为啥还有留尾 2 条" 触发了重新评估 + 撤掉 + amend 闭环 L4.22
 
-## [0.4.14.157] - 2026-06-24 (Sprint 103, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-24 (Sprint 103, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - 必修 1 修 DATA_PIPELINE.md 跨文档漂移：docs/architecture/DATA_PIPELINE.md §0 最后更新 2026-06-21 → 2026-06-24 + §1 W3 预计算列拆解 ~115GB DuckDB (orders ~108GB + fact_rfm_long ~5GB + 索引 ~2GB) + §2 ASCII 数据流图 W3 注释拆解 + §3.1 DuckDB 库表 库大小列拆解 (跟 STATUS.md line 81 同步, 1 行数据布局 reference)
 - 跨文档一致性 100% PASS：check_ssot_drift.py 2 records PASS (1 ✅ 闭环 + 1 📋 推后) + L4.20 4 case regression test PASS + DATA_PIPELINE.md grep 验证 4 处拆解全部跟 STATUS.md 同步
-- 0 业务代码改动 (留尾治理 sprint 模式, 跟 Sprint 91+99+100+101+102 一致), VERSION 不 bump (0.4.14.157 持续), 累计 53 sprint 0 debt 持续, L4.x 永久规则 21 stable 0 新增 (维护不新增)
+- 0 业务代码改动 (留尾治理 sprint 模式, 跟 Sprint 91+99+100+101+102 一致), VERSION 不 bump (0.4.14.20 持续), 累计 53 sprint 0 debt 持续, L4.x 永久规则 21 stable 0 新增 (维护不新增)
 
-## [0.4.14.157] - 2026-06-24 (Sprint 102, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-24 (Sprint 102, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - 必修 2 项文档漂移修复 + L4.x 永久规则 21 stable 维护：Sprint 98 Handoff commit (修 Sprint 101 收口后漂移, 跟 Sprint 99+101 Handoff 模式一致) + SPRINT_INDEX.md 加 Sprint 67+68+91+99+100+101 共 6 sprint (修跨文档漂移, 跟 MEMORY.md 索引同步) + 跨文档一致性 100% PASS (8/8 文件同步)
-- 0 业务代码改动 (留尾治理 sprint 模式, 跟 Sprint 91+99+100+101 一致), VERSION 不 bump (0.4.14.157 持续), 累计 52 sprint 0 debt 持续
+- 0 业务代码改动 (留尾治理 sprint 模式, 跟 Sprint 91+99+100+101 一致), VERSION 不 bump (0.4.14.20 持续), 累计 52 sprint 0 debt 持续
 
-## [0.4.14.157] - 2026-06-23 (Sprint 101, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-23 (Sprint 101, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - L4.21 反 sprint 自我反馈闭环永久规则：真业务 sprint push 后必须用 shallow clone 模拟 CI，采用 1 commit amend 模式，并将跨 sprint 真因真发现实战 fix 模式沉淀回规则库，防 L4.20 测试再次被 CI 浅克隆环境反噬
 - 全 codebase SSOT drift lint 2 records PASS；跨文档 8/8 一致性复验并修正 Sprint 100 CHANGELOG 排序漂移，0 业务代码、0 新留尾、VERSION 不 bump，pytest 819/23/0 持续，累计 51 sprint 0 debt，L4.x 21 条 stable
 
-## [0.4.14.157] - 2026-06-23 (Sprint 100, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-23 (Sprint 100, VERSION 不变 留尾治理 sprint)
 
 ### Fixed
 - L4.20 test 1 CI fresh checkout 必修 1 fail 治根: 移除 `git cat-file -e ${commit}^{commit}` 验证 (CI runner `actions/checkout@v4` 默认 `fetch-depth: 1` 浅克隆拿不到 Sprint 91 commit `287efb8` history)，保留 `commit=287efb8` 字符串 in HANDOFF 验证 (符合 L4.20 永久规则本意). 模拟 CI shallow clone (`git clone --depth 1 -b fix/sprint100-...`) 验证 4/4 PASS. 累计 50 sprint 0 debt 持续，L4.x 永久规则 20 stable 0 追加.
 
-## [0.4.14.157] - 2026-06-23 (Sprint 99, VERSION 不变 留尾治理 sprint)
+## [0.4.14.20] - 2026-06-23 (Sprint 99, VERSION 不变 留尾治理 sprint)
 
 ### Changed
 - 留尾 #11 SSOT 漂移闭环: 验证 Sprint 91 真修 commit `287efb8` 持续生效，close memory 标为 ✅ 闭环；新增 L4.20 永久规则、`backend/scripts/check_ssot_drift.py` 和 4 case regression，阻止已闭环留尾被复制粘贴回 📋 推后
 - STATUS + CHANGELOG + TECH-DEBT + CLAUDE.md 跨文档同步；pytest 819/23/0（Sprint 98 baseline 815/23/0 + 新增 4 case），0 业务代码改动，累计 49 sprint 0 debt 持续
 
-## [0.4.14.157] - 2026-06-23 (Sprint 98 FilterBuilder table_alias 真治本)
+## [0.4.14.20] - 2026-06-23 (Sprint 98 FilterBuilder table_alias 真治本)
 
 ### Changed
 - Sprint 98 FilterBuilder 真治本: `OrderFilters.channel_in/not_in` 加 `table_alias` 参数 (default `"o"`), `FilterBuilder` 加集中式别名状态与 `with_table_alias()`；删除 Sprint 60.1/97 全部 service post-processing `.replace()`，并统一仍使用 FilterBuilder 的单表 SQL 为 `FROM orders o`，防 DuckDB Binder channel 歧义跨 service 复发
