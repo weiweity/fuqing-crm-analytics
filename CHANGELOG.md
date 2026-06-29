@@ -1,3 +1,15 @@
+## [0.4.14.157] - 2026-06-28 (Sprint 159.5 NavBar tabs 字体 15px → 18px 跟 h1 对齐 (user 试看 amend), VERSION 不变)
+
+### Fixed
+- **frontend-vue3/src/components/NavBar.vue** (改 +1/-1, Sprint 159.5 user 试看 amend): `.navbar-tab` CSS `font-size: 15px` → `18px`, 跟 Sprint 159 NavBar h1 `text-lg (18px)` 视觉对齐, 跟 h2 (18px) 一致. L3 精准 1 行改, 跟 Sprint 144+145+155+157+158 stable.
+
+### Verification
+- `npm run build` PASS (~789ms)
+- vite preview restart PID 59286 HTTP 200
+- main HEAD `399eac2` + origin/main 0 drift (push `451f8f7..399eac2` 成功)
+- L4.8 cleanup feature/sprint159.5-navbar-tabs-fontsize 分支
+- 累计 82→83 sprint 0 debt 持续
+
 ## [0.4.14.157] - 2026-06-28 (Sprint 159 派样 02 板块 5 卡片重排 + Logo/Favicon base64 inline 治本 (Codex 实施 + Claude 收口), VERSION 不变)
 
 ### Added
