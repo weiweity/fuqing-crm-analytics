@@ -11,7 +11,7 @@ from .rfm import RFMRFlowRow, RFMRFlowResponse, RFMFRFlowRow, RFMFRFlowResponse,
 from .rfm_segments import LifecycleStage, ValueTier, PotentialTier, RFMSegmentExtended, RFMExtendedRequest, RFMExtendedResponse
 from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, RepurchaseCycleOverview, CohortRetentionResponse, ValueTierDefinition, FrequencyTierDefinition, CustomerSegmentItem, ValueTierResponse, TierFlowRow, TierFlowResponse, PromotionPeriod, PromotionVsDailyMetrics, PromotionCalendarResponse, ChannelHealthScoreItem, HealthTargetsResponse, ChannelHealthScoresResponse, ConfigHistoryItem, ConfigHistoryResponse, ConfigRestoreResponse, AuditLogItem, AuditLogResponse, ExportPPTRequest, ExportPPTResponse, TemplatesResponse, NewCustomerConversionFunnel, NewCustomerChannelQuality, NewCustomerConversionResponse
 from .visitor import VisitorSummaryResponse, VisitorDailyTrendItem, VisitorDailyTrendResponse
-from .sampling import SamplingChannelSummary, SamplingLevelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingRepurchaseBucket, SamplingRepurchaseDistribution, SamplingROIResponse, SamplingLockCampaignInfo, SamplingLockYearData, SamplingLockYOY, SamplingLockAnalysisResponse, RollingYearMetrics, RollingYOY, RollingTimeline, RollingComparisonResponse
+from .sampling import SamplingChannelSummary, SamplingLevelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingRepurchaseBucket, SamplingRepurchaseDistribution, SamplingRepurchaseTrackingBucket, SamplingRepurchaseTrackingResponse, SamplingROIResponse, SamplingLockCampaignInfo, SamplingLockYearData, SamplingLockYOY, SamplingLockAnalysisResponse, RollingYearMetrics, RollingYOY, RollingTimeline, RollingComparisonResponse
 
 __all__ = [
     "DateRangeResponse", "YearComparisonRow", "DualAxisLineData",
@@ -51,7 +51,7 @@ __all__ = [
     "NewCustomerConversionFunnel", "NewCustomerChannelQuality", "NewCustomerConversionResponse",
     "VisitorSummaryResponse", "VisitorDailyTrendItem", "VisitorDailyTrendResponse",
     "SamplingChannelSummary", "SamplingLevelSummary", "SamplingCategoryRow", "SamplingROITimeRange",
-    "SamplingRepurchaseBucket", "SamplingRepurchaseDistribution", "SamplingROIResponse",
+    "SamplingRepurchaseBucket", "SamplingRepurchaseDistribution", "SamplingRepurchaseTrackingBucket", "SamplingRepurchaseTrackingResponse", "SamplingROIResponse",
     "SamplingLockCampaignInfo", "SamplingLockYearData", "SamplingLockYOY", "SamplingLockAnalysisResponse",
     "RollingYearMetrics", "RollingYOY", "RollingTimeline", "RollingComparisonResponse",
 ]
