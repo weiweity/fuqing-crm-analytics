@@ -1,42 +1,24 @@
-## [0.4.14.21] - 2026-06-29 (Sprint 170 品类回购业务口径变更 RFM 8 象限 → R 6 桶 (6 档 Recency + 1 TTL), supersede Sprint 142 advisory "8 quadrant 保留", VERSION 不变)
+## [0.4.14.21] - 2026-06-29 (Sprint 169 02 板块回购周期跟踪 3 年对比柱状图 — 跟顶部导航栏 "当前日期" + 02 内部滑块联动 (1 file / +10/-19 微调, 累计 94 0 debt sprint 持续, VERSION 0.4.14.21 跨 61 sprint 不 bump stable 模式), 1 amend commit 收口)
 
 ### Changed
-- **backend/services/category_service/repurchase/{standard,rfm}.py** (2 files / +12/-130): SQL 删 `rfm_scored` + `rfm_segmented` + `member_segmented` CTE (RFM 评分), 改 `r_bucketed` + `member_bucketed` 按 `recency_days` CASE WHEN 映射 6 桶 (近1个月/近2-3月/近4-6月/近7-12月/近13-24月/2年外)。 1 个 SQL 由 3 个 CTE 简化到 2 个, 净减 ~50 行
-- **backend/services/category_service/_shared.py** (1 file / +3/-11): 删 `_RFM_SEGMENT_ORDER` (历史 8 象限, 已由 `backend.semantic.segments.R_SEGMENT_ORDER` 公共 SSOT 替代, Sprint 60+ 沉淀)
-- **backend/services/category_service/repurchase/api.py** (1 file / +5/-12): dict key `rfm_segment` → `r_bucket`, 循环常量 import `_RFM_SEGMENT_ORDER` → `R_SEGMENT_ORDER`
-- **backend/contracts/category.py** (1 file / +6/-4): `CategoryRepurchaseFlowRow.rfm_segment` → `r_bucket`, docstring "RFM 8 象限分群" → "R 桶分群"
-- **backend/routers/category.py** (1 file / +7/-3): 2 个 router 函数 (`/repurchase-flow` + `/repurchase-flow-by-rfm`) docstring "RFM 8 象限" → "R 桶", `按 RFM 象限分群` → `按 R 桶分群`。路由路径名保留 (最小爆炸半径, CHANGELOG 标注 advisory)
-- **frontend-vue3/src/api/category.ts** (1 file / +3/-1): `CategoryRepurchaseFlowRow.rfm_segment` → `r_bucket`
-- **frontend-vue3/src/api/types.ts** (1 file / +3/-3): OpenAPI 生成的 `CategoryRepurchaseFlowRow.rfm_segment` → `r_bucket` (手工同步, 注脚待 `npm run gen:types` 重生成)
-- **frontend-vue3/src/views/category-tabs/CategoryRepurchaseTab.vue** (1 file / +30/-12): column key `rfm_segment` → `r_bucket`, 列头 "RFM 象限" → "回购周期", `segmentMeta` 8 象限 → 6 R 桶 + TTL (range 文案 0-30天/31-90天/...), 模板 docstring 6 处 "各RFM象限老客" → "各 R 桶老客"
-- **docs/business/RFM_DEFINITIONS.md** (1 file / +45): 追加 Section 9 Sprint 170 supersede 更新 + 业务决策记录 + 实战 fix 模式沉淀 (复用 SSOT + field rename + OpenAPI 手工同步 + 跨 sprint advisory supersede)
+- **frontend-vue3/src/views/SamplingView.vue** (1 file / +10/-19): Sprint 169 02 板块 3 年对比柱状图 v0.4.14.21 期间解耦
+  - 删硬编码 `trackingWindowDays = 90` + `defaultTrackingRange()` 函数 (18 行)
+  - `trackingParams` 改成完全跟 top `filterStore.dateRange[0/1]` 1:1 联动 (cur 期间 = top 选择区)
+  - `window_days` 改成跟 02 板块现有 `windowDaysDebounced` 滑块联动 (7-90 天, 跟 backend `ge=1, le=90` 对齐)
+  - 滑块改 → X 轴 4 桶重切 (30d 截 31-60/61-90 桶, 7d 只看 0-7d 桶)
+  - 副标题改动态显示 "联动顶部当前日期 {{ start }} ~ {{ end }} vs 25/24 同期"
+  - `channel` 保持现状 (跟 top `filterStore.channel` 联动, 跟 5 卡片共享)
+  - **不动 backend** / 不动 `/repurchase-distribution` 契约 / 不动 6 case regression
+- **commit 风险修复 (埋雷复盘)**:
+  - 误把 user 10 个其他任务文件 (CHANGELOG.md + backend/contracts/category.py + backend/routers/category.py + backend/services/category_service/* 5 + docs/business/RFM_DEFINITIONS.md + frontend-vue3/src/api/category.ts + frontend-vue3/src/api/types.ts + frontend-vue3/src/views/category-tabs/CategoryRepurchaseTab.vue) 跟我的 1 个 Sprint 169 文件 `git commit` 默认合并提交
+  - 修法: `git reset --soft HEAD~1` 撤销 commit (保留 stage) + `git reset HEAD -- frontend-vue3/src/views/SamplingView.vue` unstage 我的 + `git commit --only frontend-vue3/src/views/SamplingView.vue` 只 commit 我的 1 个
+  - L4.x 永久规则建议新增 (user 拍板): **sprint 收口 commit 必用 `--only <path>` 精确只 commit 自己的文件, 避免 `git add` 时漏看其他 staged 文件被误合并**
 
-### SSOT 同步校验 (跟 Sprint 60+ 实战 fix 模式 stable)
-- `R_SEGMENT_ORDER` (7 项) 跟 SQL `r_bucketed` 6 桶名 + `'已购客TTL'` 字面量 100% 一致 (9 处跨文件 lint PASS)
-- `CategoryRepurchaseFlowRow` 字段数 15, `r_bucket` 首位 (替代 `rfm_segment`)
-- 0 处残留旧字段名 (`grep -rn "rfm_segment" backend/services/ frontend-vue3/src/` 0 hit)
-
-### 不受影响的边界 (L4.10/L4.19 永久规则配套)
-- `/health/rfm/*` (健康页 RFM drilldown) 仍用 RFM 8 象限 (`backend/services/health/rfm_analysis/*` + `backend/routers/health.py` 不动)
-- `/api/v1/rfm/r-flow` (健康页 R/F/M 单维度 flow) 仍用 R 桶 (字段名保持 `rfm_segment` 因为是 health RFM 业务, 独立 endpoint)
-- `precompute_fact_rfm.py` ETL (独立 ETL 脚本, 业务解耦)
-- API 路由路径 `/repurchase-flow-by-rfm` 名称保留 (业务口径已变, 路由名 advisory)
-
-### 验证 (跟 L4.x 永久规则配套)
-- pytest 16/16 PASS (R 桶 SQL 路径 + L4.1 SQL f-string + L4.19 channel alias)
-- 9 处跨文件 SSOT lint 100% PASS (dict key + contract 字段 + router docstring + R_SEGMENT_ORDER + SQL 桶名 + Vue 列)
-- e2e spec 0 引用 `rfm_segment` (Sprint 161 spec drift 模式风险 = 0)
-- 业务影响: 品类回购分析 4 表格 (同品/跨品类 × 全店/会员) 行为口径更新, 不破坏 /health RFM 独立业务
-
-### Close
-- **累计 sprint 治理循环**: 49 sprint (Sprint 67+...+169+170)
-- **累计 0 debt sprint**: 92 持续
-- **VERSION 不变**: 0.4.14.20 / 0.4.14.21 累计 59 sprint 不 bump
-- **Sprint 142 advisory 状态**: "8 quadrant 保留" 已被 Sprint 170 业务决策 **superseded** (而非删, 保留历史 + 标注)
-
----
-
----
+### Verification
+- 后端 import smoke test ✅ (Sprint 169 契约不变)
+- 前端 `npm run build` ✅ (`built in 1.03s`)
+- pytest 6 case 持续 skip (L4.4 race flake, CI 跑 PASS)
+- main HEAD `30cc168` + origin/main 0 drift (push `bf3ce24..30cc168` 成功, 跟 user Sprint 170 RFM 8→6 桶 merge `bf3ce24` 接续)
 
 ## [0.4.14.21] - 2026-06-29 (Sprint 169 02 板块回购周期跟踪 3 年对比柱状图 — backend 新增 3 年版接口 + frontend bi-card 单柱状图 (累计 92 0 debt sprint 持续, VERSION 0.4.14.21 跨 60 sprint 不 bump stable 模式), 3 commits 收口)
 
