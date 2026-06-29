@@ -54,10 +54,7 @@ def test_stale_drift_detected_via_subprocess() -> None:
     test_rejects_channel_without_alias 模式一致). 这里只验证函数单元逻辑:
     _extract_view_text 跟 _extract_spec_assertions 对比能产出 stale 集合.
     """
-    # 直接 import 函数测试 (避免 subprocess 跑全量 7 pairs)
-    sys.path.insert(0, str(ROOT / "scripts/ci"))
-    from check_e2e_spec_drift import _extract_view_text, _extract_spec_assertions  # type: ignore[import-not-found]
-
+    # Case 1 模拟 set 差集逻辑 (实际函数走 subprocess 跑全量, 这里只验证 set 逻辑)
     # 模拟: view 有 ['A', 'B', 'C'], spec 断言 ['A', 'B', 'D']
     # expected: stale = {'D'} (spec 断言但 view 没有)
     view_texts = {"A", "B", "C"}
@@ -78,9 +75,7 @@ def test_spec_remove_assertion_is_ok() -> None:
 
     反向验证: spec_texts ⊆ view_texts → 0 stale.
     """
-    sys.path.insert(0, str(ROOT / "scripts/ci"))
-    from check_e2e_spec_drift import _extract_view_text, _extract_spec_assertions  # type: ignore[import-not-found]
-
+    # Case 3 模拟 set 包含逻辑 (view 含 spec)
     view_texts = {"A", "B", "C", "D"}
     spec_texts = {"A", "B"}  # spec 删了 'C', 'D' 断言
 
@@ -95,9 +90,7 @@ def test_view_remove_without_spec_stale() -> None:
     但 spec 还断言 '品类回购明细'. 跨 sprint 18+ 没人同步, 直到 Sprint 161.
     本 case 模拟这个模式.
     """
-    sys.path.insert(0, str(ROOT / "scripts/ci"))
-    from check_e2e_spec_drift import _extract_view_text, _extract_spec_assertions  # type: ignore[import-not-found]
-
+    # Case 4 模拟 Sprint 161 真实漂移模式
     view_texts = {"派样明细", "正装回购率"}  # UI 已改
     spec_texts = {"派样明细", "品类回购明细", "正装回购率"}  # spec 还断言老文案
 
