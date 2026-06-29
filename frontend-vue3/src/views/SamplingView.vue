@@ -69,24 +69,15 @@ const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: ro
 })
 
 // ── Sprint 169 02 板块"回购周期分布" 3 年对比柱状图 ──
-// 默认 90 天窗口（最近 90 天到今天），与 user 拍板 "26 年同期 / 25 年同期 / 24 年同期 90 天窗口" 对齐
-const trackingWindowDays = 90
-function defaultTrackingRange(): [string, string] {
-  const end = new Date()
-  const start = new Date()
-  start.setDate(end.getDate() - trackingWindowDays + 1)
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  return [fmt(start), fmt(end)]
-}
-const trackingParams = computed(() => {
-  const [s, e] = defaultTrackingRange()
-  return {
-    start_date: s,
-    end_date: e,
-    window_days: trackingWindowDays,
-    channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
-  }
-})
+// 02 板块"回购周期分布" 3 年对比 — 期间完全跟顶部导航栏 + 02 内部滑块联动
+// 跟 top filterStore.dateRange 1:1 一致 (cur 期间 = top 选择区, ly/prev2 = -1y/-2y)
+// 跟 02 windowDaysDebounced 联动 (7-90 天滑块直接控制 backend window_days)
+const trackingParams = computed(() => ({
+  start_date: filterStore.dateRange[0],
+  end_date: filterStore.dateRange[1],
+  window_days: windowDaysDebounced.value,
+  channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
+}))
 const { data: trackingData, isLoading: trackingLoading, error: trackingError, refetch: refetchTracking } = useQuery({
   queryKey: computed(() => ['sampling-repurchase-tracking', trackingParams.value]),
   queryFn: () => fetchSamplingRepurchaseTracking(trackingParams.value),
@@ -745,7 +736,7 @@ onUnmounted(() => {
                 <div>
                   <h3 class="text-sm font-semibold text-slate-800">回购周期分布 — 3 年对比</h3>
                   <p class="text-[11px] text-slate-500">
-                    最近 90 天窗口 vs 25 年同期 / 24 年同期 (4 桶聚合, 仅作跨年趋势对比)
+                    跟顶部当前日期 + 02 滑块联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (4 桶聚合, 仅作跨年趋势对比)
                   </p>
                 </div>
                 <div class="n-button-group" role="group">
