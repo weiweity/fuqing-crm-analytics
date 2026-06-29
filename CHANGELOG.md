@@ -1,3 +1,24 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 161 sampling spec drift 治根 — 2 处断言同步 UI (L4.23 永久规则沉淀, 跨 Sprint 144-160 18 sprint 滞后 stable 模式 治根), VERSION 不变)
+
+### Fixed
+- **frontend-vue3/e2e/sampling.spec.ts** (1 file / +3/-4, L3 精准 L4.7 100% 精准): 2 处断言同步当前 UI 实际渲染文案
+  - **line 168**: `品类回购明细` → `派样明细` (Sprint 155 改 04 派样明细, h2 实际是 `<span class="section-num">04</span>派样明细` 拆 2 文字节点, getByText 找 `派样明细` 文字节点而非 `04派样明细` 整段)
+  - **line 173**: 删 `61-90天` 4 桶分布断言 (Sprint 159 删 4 桶柱状图改 5 卡片, "61-90天" 文案已不存在, 02 板块现在是 派样人数/回购人数/正装回购人数/正装 GSV/AUS 5 卡片 跟 01 总览同 layout)
+  - 2 处 comment 同步更新 (关键断言 4 派样明细表 + 关键断言 5 02 板块 h2)
+- **L4.23 永久规则沉淀** (跟 L4.7 100% 精准 + L4.16 paths trigger SOP 互补): 任何 e2e spec 文案断言 (e.g. `getByText('X')` / `getByRole('button', { name: 'X' })`) 必跟当前 UI 实际渲染一致, 改 UI section 标题/加 KPI 卡/删表格后必查 `frontend-vue3/e2e/*.spec.ts` 同步, 防止跨 sprint 18 sprint 滞后 stable 模式复发. 跟 L4.16 paths 漏 spec 同根因 (Sprint 77 push 改 spec 漏触发 CI + Sprint 129 push 删 spec 漏触发 CI), 跨 sprint 19 sprint 滞后 stable 模式.
+
+### Verification
+- `npm run build` N/A (0 frontend 业务代码改动, spec 改不动 dist)
+- `python -m backend.contracts._lint` OK (后端 0 改动)
+- pytest baseline **741 passed / 66 skipped / 0 failed** (跟 Sprint 160 baseline 1:1 一致, L4.4 race flake 接受)
+- pre-push hook pytest **741/66/0 PASS** (真连 test 跑了真验证回归, push 第 6 次沙箱 timeout retry 接受, L4.15 永久规则)
+- 累计 CI e2e job FAILURE 14+ run 状态: Sprint 161 merge 后期望 **0 failed** (9/9 pass, e2e baseline 1/9 failed → 9/9 passed)
+- 0 critical / 0 informational / 0 AUTO-FIX (L3 精准 1 file 1 turn 改)
+- 1 file / +3/-4, L4.7 100% 精准
+- main HEAD `9868948` + origin/main 0 drift (push `72a6cdd..9868948` 成功)
+- L4.8 cleanup feature/sprint161-sampling-spec-drift 分支
+- 累计 84→85 sprint 0 debt 持续
+
 ## [0.4.14.20] - 2026-06-28 (Sprint 160 /document-release 累计 8 次真治本 + VERSION 收尾 0.4.14.157 → 0.4.14.20, 跟 Sprint 65+135+138/141.5/145/149/153 stable 模式)
 
 ### Changed
