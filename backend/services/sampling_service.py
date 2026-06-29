@@ -16,6 +16,8 @@ from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
 from backend.semantic.channels import DB_TO_UI, GIFT_SAMPLE_DB, SHELF_DB
 from backend.semantic.filters import expand_channels
 
+logger = logging.getLogger(__name__)
+
 _logger = logging.getLogger(__name__)
 
 # 派样渠道（DB名）
