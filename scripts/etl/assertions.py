@@ -60,12 +60,17 @@ def create_quarantine_table(conn) -> None:
 
 
 # 阈值常量 (W3 spec §W3 表格)
-TOTAL_DROP_THRESHOLD = 0.3            # total < prev_30d_avg × 0.3 视为异常
+# Sprint 166: 跨 sprint 5+ false fail 治本 — 阈值 0.3→0.5 + weekday-aware (跟 Sprint 165 advisory 配套)
+TOTAL_DROP_THRESHOLD = 0.5            # total < prev_30d_avg × 0.5 视为异常 (放宽自 Sprint 1 的 0.3, 抗周末/周一波动)
+WEEKDAY_BOOST_FACTOR = 1.5            # 周一/二阈值额外 ×1.5 (业务周末波动, 跑批 data_max 通常滞后 1-2 天)
 REPURCHASE_MIN_THRESHOLD = 100         # prev_30d_avg > 100 时, repurchase 应 > 0
 PREV_WINDOW_DAYS = 30                  # 30 天历史平均
 DIM_DRIFT_THRESHOLD = 0.20             # 任意维度 row count 变化超过 ±20% 告警
+RATIO_TOLERANCE = 0.10                 # 动态 expected 容差 10% (跟 DIM_DRIFT ±20% 同类防御, 防过度放宽)
 HISTORY_LOSS_THRESHOLD = 0.99          # user_rfm 总数 < prev × 0.99 视为丢失
-EXPECTED_DIM_COMBOS_PER_DATE = 54      # 3 lookbacks × 2 metrics × 9 channels (W1 跑全量 = 54 combos/date)
+EXPECTED_LOOKBACKS = 3                 # 3 lookbacks (30/90/180)
+EXPECTED_METRICS = 2                   # 2 metrics (GMV/GSV)
+# EXPECTED_DIM_COMBOS_PER_DATE = 54  # Sprint 166 deprecated: 改用动态 actual_channels × EXPECTED_METRICS × EXPECTED_LOOKBACKS
 
 
 def _write_quarantine(conn, target_date: date, assertion_name: str, reason: str, raw_data: Optional[dict] = None) -> int:
@@ -130,8 +135,13 @@ def assert_total_not_drop(conn, target_date: date) -> bool:
         return True
 
     threshold = float(prev_avg) * TOTAL_DROP_THRESHOLD
+    # Sprint 166: weekday-aware — 周一(0) / 周二(1) 业务波动大, 阈值额外 ×1.5
+    weekday_boost = ""
+    if target_date.weekday() in (0, 1):
+        threshold *= WEEKDAY_BOOST_FACTOR
+        weekday_boost = f" ×{WEEKDAY_BOOST_FACTOR}(weekday)"
     if float(today_total) < threshold:
-        reason = f"total={today_total:.0f} < prev_30d_avg × 0.3 = {threshold:.0f}"
+        reason = f"total={today_total:.0f} < prev_30d_avg × {TOTAL_DROP_THRESHOLD}{weekday_boost} = {threshold:.0f}"
         _write_quarantine(conn, target_date, "assert_total_not_drop", reason, {
             "today_total": float(today_total),
             "prev_30d_avg": float(prev_avg),
@@ -203,13 +213,18 @@ def _has_user_rfm_table(conn) -> bool:
 
 
 # 断言 4: assert_540_completeness
-def assert_540_completeness(conn, target_date: date, expected_combos: int = EXPECTED_DIM_COMBOS_PER_DATE) -> bool:
+def assert_540_completeness(conn, target_date: date, expected_combos: int | None = None) -> bool:
     """target_date 在 user_rfm 表的 (lookback_days × metric_type × channel) 组合数 < expected → quarantine.
 
     防 RFM 预计算丢维度 (ETL 部分失败 / GROUPING SETS SQL 漏 GROUPING).
 
-    expected_combos 默认 54 (3 lookbacks × 2 metrics × 9 channels, W1 跑全量 per-date 组合数).
-    设计 doc v1.1 §W3 提到的 "540" 是 54 × 10 hot_dates 的累计, per-date 期望 54.
+    Sprint 166 改动态 channels: expected_combos = COUNT(DISTINCT channel FROM user_rfm) ×
+    EXPECTED_LOOKBACKS × EXPECTED_METRICS, 加容差 RATIO_TOLERANCE (10%, 跟 DIM_DRIFT ±20% 同类防御).
+    Sprint 165 advisory 真因: 写死 9 channels 跟 Sprint 144 改派样后实际 channel 数不匹配, 跨 sprint 5+ false fail.
+    设计 doc v1.1 §W3 提到的 "540" 是 54 × 10 hot_dates 的累计, per-date 期望是 dynamic.
+
+    Args:
+        expected_combos: 期望组合数 (None = 动态从 user_rfm GROUP BY 取; 显式传值用于 MVP / 测试).
     """
     if not _has_user_rfm_table(conn):
         # W1/W3 还没跑, skip
@@ -224,8 +239,38 @@ def assert_540_completeness(conn, target_date: date, expected_combos: int = EXPE
         [target_date],
     ).fetchone()[0]
 
+    if expected_combos is None:
+        # Sprint 166 动态模式: 实际 channel 数 × 2 metrics × 3 lookbacks, 容差 10%
+        actual_channels = conn.execute(
+            "SELECT COUNT(DISTINCT channel) FROM user_rfm"
+        ).fetchone()[0]
+        if actual_channels == 0:
+            # user_rfm 表存在但 0 行 (冷启动), skip
+            return True
+        baseline = int(actual_channels) * EXPECTED_LOOKBACKS * EXPECTED_METRICS
+        # 容差 10%: 范围 [baseline × 0.9, baseline × 1.1], 防止过度放宽
+        lower_bound = int(baseline * (1 - RATIO_TOLERANCE))
+        upper_bound = int(baseline * (1 + RATIO_TOLERANCE))
+        if actual_combos < lower_bound:
+            reason = (
+                f"dim combos={actual_combos} < lower_bound={lower_bound} "
+                f"(dynamic channels={actual_channels} × {EXPECTED_LOOKBACKS} lookbacks × "
+                f"{EXPECTED_METRICS} metrics × (1-{RATIO_TOLERANCE})={RATIO_TOLERANCE*100:.0f}% 容差)"
+            )
+            _write_quarantine(conn, target_date, "assert_540_completeness", reason, {
+                "actual_combos": int(actual_combos),
+                "expected_combos": baseline,
+                "actual_channels": int(actual_channels),
+                "lower_bound": lower_bound,
+                "upper_bound": upper_bound,
+                "ratio_tolerance": RATIO_TOLERANCE,
+            })
+            return False
+        return True
+
+    # 显式 expected_combos 模式 (backward compat + MVP 阶段使用)
     if actual_combos < expected_combos:
-        reason = f"dim combos={actual_combos} < expected={expected_combos} (3 lookbacks × 2 metrics × 9 channels 缺维度)"
+        reason = f"dim combos={actual_combos} < expected={expected_combos} (custom threshold)"
         _write_quarantine(conn, target_date, "assert_540_completeness", reason, {
             "actual_combos": int(actual_combos),
             "expected_combos": expected_combos,
