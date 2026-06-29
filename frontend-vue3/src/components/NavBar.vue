@@ -207,7 +207,8 @@ onBeforeUnmount(() => {
   border-bottom: 2px solid transparent;
   border-radius: 6px 6px 0 0;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 15px;
+  /* Sprint 159.5: 15px → 18px 跟 Sprint 159 NavBar h1 text-lg (18px) 字号对齐, user 试看 amend */
+  font-size: 18px;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
