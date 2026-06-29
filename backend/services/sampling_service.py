@@ -9,6 +9,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Tuple
+import duckdb
 from backend.db.connection import get_connection
 from backend.contracts.sampling import SamplingLevelSummary
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
@@ -645,6 +646,89 @@ def get_sampling_repurchase_buckets(
 
     return {
         'buckets': buckets,
+        'window_days': window_days,
+    }
+
+
+def _shift_year(date_str: str, years: int) -> str:
+    """YYYY-MM-DD 平移指定年数; 处理闰年 2/29 → 2/28.
+
+    复用 health/repurchase.py:_shift_date_year 的闰年处理逻辑, 但本函数仅 YYYY-MM-DD.
+    """
+    d = datetime.strptime(date_str, "%Y-%m-%d")
+    try:
+        d = d.replace(year=d.year + years)
+    except ValueError:
+        d = d.replace(year=d.year + years, day=28)
+    return d.strftime("%Y-%m-%d")
+
+
+def get_sampling_repurchase_tracking(
+    start_date: str,
+    end_date: str,
+    window_days: int = 90,
+    channel: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Sprint 169 回购周期跟踪 (3 年对比).
+
+    对当前期间 / 上一年同期 / 前年同期 各自跑一次 get_sampling_repurchase_buckets,
+    拼出 3 年 × 4 桶 的扁平 bucket 列表, 供前端 ECharts grouped bar 渲染.
+
+    期间算法:
+      - cur  = [start_date, end_date]
+      - ly   = [_shift_year(start_date, -1), _shift_year(end_date, -1)]
+      - prev2 = [_shift_year(start_date, -2), _shift_year(end_date, -2)]
+
+    注意 (L4.20 SSOT): 3 年桶人数不可加总 (cur 是 2026 已派样老客, prev2 是 2024 派样老客,
+    业务上不是同一群人), 仅用作同桶跨年趋势对比 (Sprint 169 02 板块柱状图).
+    """
+    window_days = max(1, min(int(window_days), 90))
+    # 动态推算当前年份 (治根: 硬编码 2026/2025/2024 在 2027+ 会全错 1 年, adversarial review P0)
+    current_year = datetime.strptime(end_date, "%Y-%m-%d").year
+    year_ranges = [
+        (f"{current_year}年", start_date, end_date),
+        (f"{current_year - 1}年", _shift_year(start_date, -1), _shift_year(end_date, -1)),
+        (f"{current_year - 2}年", _shift_year(start_date, -2), _shift_year(end_date, -2)),
+    ]
+
+    flat_buckets: List[Dict[str, Any]] = []
+    year_labels: List[str] = []
+    for year_label, yr_start, yr_end in year_ranges:
+        year_labels.append(year_label)
+        try:
+            result = get_sampling_repurchase_buckets(
+                start_date=yr_start,
+                end_date=yr_end,
+                window_days=window_days,
+                channel=channel,
+            )
+            bucket_map = {b['bucket']: b['users'] for b in result['buckets']}
+        except (duckdb.Error, ValueError, KeyError) as e:
+            # 早期年份订单表可能尚未覆盖, 回落 0 + 记 warning (adversarial review P1:
+            # 静默吞 Exception 会让真 SQL bug 看起来像 0 数据, 不可观测)
+            logger.warning(
+                "repurchase_tracking year=%s period=%s~%s failed: %s",
+                year_label, yr_start, yr_end, e,
+            )
+            bucket_map = {}
+
+        for bucket_name in ['0-7d', '8-30d', '31-60d', '61-90d']:
+            flat_buckets.append({
+                'bucket': bucket_name,
+                'year_label': year_label,
+                'users': int(bucket_map.get(bucket_name, 0)),
+                'year_range_start': yr_start,
+                'year_range_end': yr_end,
+            })
+
+    return {
+        'buckets': flat_buckets,
+        'year_labels': year_labels,
+        'time_range': {
+            'start': start_date,
+            'end': end_date,
+            'window_days': window_days,
+        },
         'window_days': window_days,
     }
 

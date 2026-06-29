@@ -11,12 +11,14 @@ from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import (
     SamplingROIResponse,
     SamplingRepurchaseDistribution,
+    SamplingRepurchaseTrackingResponse,
     SamplingLockAnalysisResponse,
     RollingComparisonResponse,
 )
 from backend.services.sampling_service import (
     get_sampling_roi,
     get_sampling_repurchase_buckets,
+    get_sampling_repurchase_tracking,
     get_sampling_lock_analysis,
     get_rolling_comparison,
 )
@@ -63,6 +65,26 @@ def get_sampling_repurchase_distribution_api(
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
     return get_sampling_repurchase_buckets(start_date, end_date, window_days, channel)
+
+
+@router.get("/repurchase-tracking", response_model=SamplingRepurchaseTrackingResponse)
+def get_sampling_repurchase_tracking_api(
+    response: Response,
+    start_date: str = Query(default=_default_start_date(), description="派样起始日期"),
+    end_date: str = Query(default=_default_end_date(), description="派样结束日期"),
+    window_days: int = Query(default=90, ge=1, le=90, description="回购窗口天数：1-90"),
+    channel: Optional[str] = Query(default=None, description="筛选特定派样渠道；空值为 TTL 派样"),
+):
+    """Sprint 169 回购周期跟踪 (3 年对比柱状图).
+
+    对当前期间 + 上一年 + 前年 各跑一次 get_sampling_repurchase_buckets, 拼出 3 年 × 4 桶
+    扁平列表, 供前端 ECharts grouped bar 渲染.
+
+    注意: 早期年份订单表未覆盖时静默回落 0 (L4.20 SSOT 一致性).
+    """
+    if warning := check_future_date(start_date) or check_future_date(end_date):
+        response.headers["X-Data-Warning"] = warning
+    return get_sampling_repurchase_tracking(start_date, end_date, window_days, channel)
 
 
 @router.get("/lock-analysis", response_model=SamplingLockAnalysisResponse)

@@ -216,6 +216,32 @@ export function fetchSamplingRepurchaseDistribution(params: {
   return client.get('/v1/sampling/repurchase-distribution', { params })
 }
 
+// ── 回购周期跟踪 (3 年对比, Sprint 169) ──
+
+export interface SamplingRepurchaseTrackingBucket {
+  bucket: string
+  year_label: string
+  users: number
+  year_range_start: string
+  year_range_end: string
+}
+
+export interface SamplingRepurchaseTrackingResponse {
+  buckets: SamplingRepurchaseTrackingBucket[]
+  year_labels: string[]
+  time_range: SamplingROITimeRange
+  window_days: number
+}
+
+export function fetchSamplingRepurchaseTracking(params: {
+  start_date: string
+  end_date: string
+  window_days?: number
+  channel?: string
+}): Promise<SamplingRepurchaseTrackingResponse> {
+  return client.get('/v1/sampling/repurchase-tracking', { params })
+}
+
 export function fetchSamplingLockAnalysis(params: {
   campaign_name: string
   year: number
