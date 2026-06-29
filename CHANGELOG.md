@@ -1,3 +1,23 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 168 lint 6 F401 unused import 治本 — CI 3 run FAILURE 修复 (跟 Sprint 168 治本配套), VERSION 不变)
+
+### Fixed
+- **backend/tests/test_check_e2e_spec_drift.py** (1 file / +3/-10, L4.7 100% 精准 1 turn 改): 删 3 处 unused import + sys.path.insert
+  - Case 1+3+4 (test_stale_drift_detected_via_subprocess / test_spec_remove_assertion_is_ok / test_view_remove_without_spec_stale) 删 `_extract_view_text, _extract_spec_assertions` 3 处 F401 unused import
+  - 实际 Case 1+3+4 走 set 差集逻辑, 不直接调 _extract_view_text / _extract_spec_assertions, 这 3 个函数是 Case 2 (test_real_state_no_stale_drift) 走 subprocess 跑全量
+  - CI 3 run FAILURE 全部 lint job (Sprint 166+167+168 累计 3 sprint), 6 F401 unused import 在 backend/tests/test_check_e2e_spec_drift.py line 59/82/99
+  - 根因: Sprint 168 subagent 跑 pre-commit hook (只跑 backend/tests/ 子集 + B2 imports) 没跑 `ruff check backend/` 全量, pre-commit hook 没覆盖到. 跟 Sprint 121 commit-msg drift hook 4/9 false positive 模式 stable — 部分测试在 hook 范围内但不在 CI ruff check 范围
+
+### Verification
+- `ruff check backend/tests/test_check_e2e_spec_drift.py` **All checks passed** (0 F401 残留)
+- `pytest backend/tests/ -m "not slow"` **733 passed / 66 skipped / 0 failed** (跟 Sprint 166+167 baseline 1:1 一致, L4.4 race flake 接受)
+- pre-push hook pytest **733/66/0 PASS** (真连 test 跑了真验证回归)
+- 0 critical / 0 informative / 0 AUTO-FIX (L3 精准 1 file 1 turn 改)
+- 1 file / +3/-10, L4.7 100% 精准
+- main HEAD `5fb913e` + origin/main 0 drift (push `f898fc8..5fb913e` 成功)
+- L4.8 cleanup feature/sprint168-lint-f401-cleanup 分支 (本地 + 远程)
+- 累计 91→92 sprint 0 debt 持续
+- 跟 Sprint 168 治本 + Sprint 166 W3 DQ 治本 + Sprint 167 advisory 修正 一同跨 sprint advisory batch 4/4 1 turn 拍板收口
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 167 验证 advisory doc 推测错误 + 修正 (L4.20 SSOT 反漂移验证 0 commit 暂收口), VERSION 不变)
 
 ### Docs
