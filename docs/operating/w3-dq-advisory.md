@@ -1,9 +1,9 @@
 # W3 DQ 2 failed 真因 advisory (Sprint 165 沉淀)
 
 > **Sprint**: Sprint 165 (advisory only, 0 业务代码改动, 跟 Sprint 89/134/152 暂收口模式 stable)
-> **状态**: 2 failed 不阻塞 ETL (已 quarantine, alert_sent=False)
+> **状态**: 2 failed 不阻塞 ETL (已 quarantine, alert_sent=False) + Sprint 166 已治本 (阈值 0.3→0.5 + 动态 channels + 容差 10%)
 > **Sprint 模式**: 真业务 + e2e 治根 + ETL 治根 batch 4/4 advisory
-> **优先级**: ⚪ advisory, 0 业务代码改动, 不修
+> **优先级**: ⚪ advisory, 0 业务代码改动, Sprint 166 治本后 0 expected failure
 
 ---
 
