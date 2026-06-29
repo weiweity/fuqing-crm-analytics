@@ -59,13 +59,8 @@ def _safe_etl_notify_on_failure(func):
             return func(*args, **kwargs)
         except Exception as e:
             try:
-                from scripts.etl.notify import notify_etl_complete
-                notify_etl_complete(
-                    {"orders_count": "?", "user_rfm_count": "?",
-                     "wall_min": 0, "gates_overall": f"failed: {type(e).__name__}"},
-                    status="failed",
-                )
-                print(f"  [W6 通知] step 1-7 异常 status=failed: {type(e).__name__}: {str(e)[:200]}")
+                # Sprint 164: 飞书完整解耦, notify_etl_complete 改 no-op
+                print(f"  [W6 通知] step 1-7 异常 status=failed (飞书解耦, no-op): {type(e).__name__}: {str(e)[:200]}")
             except Exception as notify_e:
                 print(f"  [W6 通知] 通知失败: {type(notify_e).__name__}: {str(notify_e)[:100]}")
             raise  # 保持原异常抛出
@@ -750,33 +745,10 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
         print("  [W4 fact_rfm_long] 跳过 (--skip-w4)")
 
     # W6: ETL 跑完 lark-cli 通知（复用 6 道门禁通道，graceful degrade）
-    # 失败时也推（避免静默成功假象）。通知失败不能阻塞 ETL 已完成的事实。
+    # Sprint 164: 飞书完整解耦, 通知逻辑改 no-op (保留 print log, 跟 Sprint 25 loud_fail fallback 模式一致)
     try:
-        from scripts.etl.notify import notify_etl_complete
-        # 收集 stats（部分字段缺失时 '?' 占位，不抛 KeyError）
         _etl_wall_min = round((_time.perf_counter() - _etl_wall_start) / 60, 1)
-        _orders_count = "?"
-        _user_rfm_count = "?"
-        try:
-            _conn = duckdb.connect(str(DUCKDB_PATH), config={"memory_limit": DUCKDB_MEMORY_LIMIT})
-            try:
-                _orders_count = _conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-                _user_rfm_count = _conn.execute("SELECT COUNT(*) FROM user_rfm").fetchone()[0]
-            finally:
-                _conn.close()
-        except Exception as _e:
-            print(f"  [W6 stats] 收集行数失败: {type(_e).__name__}: {str(_e)[:100]}")
-        _stats = {
-            "orders_count": _orders_count,
-            "user_rfm_count": _user_rfm_count,
-            "wall_min": _etl_wall_min,
-            "mode": mode,
-            "run_mode": run_mode,
-            "gates_overall": "pass" if step8_ok else "failed",
-            "w4_fact_rfm": w4_stats,  # W4 full v0.4.12 预计算结果
-        }
-        _sent, _reason = notify_etl_complete(_stats, status="success" if step8_ok else "failed")
-        print(f"  [W6 通知] sent={_sent} reason={_reason}")
+        print(f"  [W6 通知] (Sprint 164 飞书解耦, no-op) step8_ok={step8_ok} wall_min={_etl_wall_min} mode={mode} run_mode={run_mode}")
     except Exception as e:
         # 通知失败不能阻塞 ETL 已完成的事实
         print(f"  [W6 通知] 异常跳过: {type(e).__name__}: {str(e)[:200]}")

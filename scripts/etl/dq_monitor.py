@@ -68,14 +68,11 @@ def save_snapshot(snapshot: dict) -> None:
         raise
 
 
+# Sprint 164: 飞书完整解耦, send_lark_alert 改 no-op (保留签名, --alert 路径走 print)
 def send_lark_alert(content: str) -> tuple:
-    """调 lark-cli 发送告警（复用 scraper 6 道门禁通道）"""
-    try:
-        # B1 治根 (Sprint 16.5+1): 改走 ETL 自己的 lark 通道
-        from scripts.etl.common.lark import _send_lark_alert
-        return _send_lark_alert(content)
-    except (ImportError, OSError) as e:
-        return (False, f"lark unavailable: {type(e).__name__}: {str(e)[:80]}")
+    """Sprint 164 no-op: 飞书解耦, 保留签名避免 --alert 调用方改动."""
+    print(f"  [Sprint 164 飞书解耦] would alert: {content[:120]}")
+    return (False, "Sprint 164 飞书解耦, no-op")
 
 
 def run_checks(conn) -> dict:

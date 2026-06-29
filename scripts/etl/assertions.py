@@ -25,21 +25,11 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
-# W3 复用 scraper/core/sanity_check.py:_send_lark_alert (跨子项目, scraper/CLAUDE.md 允许)
-# 生产路径直接调 scraper (真发 lark-cli), 测试时 unittest.mock.patch 绕过
-def _send_lark_alert_mockable(content: str, open_id: Optional[str] = None) -> tuple[bool, str]:
-    """W3 包装: 生产路径调 scraper/_send_lark_alert (真发 lark-cli), 测试时可 mock.
 
-    Returns:
-        (sent, reason) 同 scraper/_send_lark_alert 签名
-    """
-    try:
-        # B1 治根 (Sprint 16.5+1): 改走 ETL 自己的 lark 通道
-        from scripts.etl.common.lark import _send_lark_alert
-        return _send_lark_alert(content, open_id=open_id)
-    except (ImportError, OSError) as e:
-        # scraper 不可用 / lark-cli 不可用 — 不阻断 ETL (走 quarantine 路径, alert 是 best-effort)
-        return (False, f"lark unavailable: {type(e).__name__}: {str(e)[:80]}")
+# Sprint 164: 飞书完整解耦, _send_lark_alert_mockable 改 no-op (保留签名, send_alert=False 路径走 print)
+def _send_lark_alert_mockable(content: str, open_id = None) -> tuple:
+    """Sprint 164 no-op: 飞书解耦, 保留签名避免调用方改动."""
+    return (False, "Sprint 164 飞书解耦, no-op")
 
 
 # ─────────────────────────────────────────────────────────────
