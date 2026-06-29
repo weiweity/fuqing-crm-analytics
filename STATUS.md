@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-28 (Sprint 150 P2 a11y wrapper 闭环最后 0.5 分 (5 section aria-labelledby 包裹, 1 file / +18/-4 net +14 wrapper 加法, plan-design-review 7 维度 9.5/10 → **10/10 完整闭环**) + Sprint 151 CHANGELOG.md append Sprint 145-150 累计 5 sprint 收口 entry (1 file / +15) + Sprint 152 0 业务代码 sprint 暂收口 (0 commit, 跟 Sprint 89/134 模式 stable, 累计 sprint 0 debt +1) + Sprint 153 head: /document-release 累计 7 次真治本 (跟 Sprint 65/135/138/141.5/145/149 模式 stable, 4 文档 head 1:1 swap L4.7 100% 精准, 0 业务代码 docs), pytest 803 passed / 23 skipped / 0 failed (Sprint 146-153 frontend-only/docs-only 不退化, race flake L5.1 接受), main HEAD `6904d36`, 累计 72→76 sprint 0 debt, VERSION 0.4.14.20 不变 (累计 44 sprint 不 bump), L4.x 22 stable 0 新增, 实战 fix 模式 #26-#31 沉淀, 跟 Sprint 144 + 145 + 149 /document-release 模式 stable 累计 7 次真治本)
+**最后更新**: 2026-06-29 (Sprint 161 e2e spec drift 治本 1 file / +3/-4 (跨 Sprint 144-160 累计 17 sprint 改派样 UI 没同步 spec 治根, L4.23 永久规则沉淀) + Sprint 162 precompute skip future dates 1 file / +4/-1 (跨 sprint ETL 治本 batch 1/4, 22 未来日期 KeyError 跳过 ~5min 节省) + Sprint 163 tracker weekly backup 1 file / +11/-0 (跨 sprint ETL 治本 batch 2/4, 防 plist 异常 kill 丢 tracker 冷启动 25min 浪费) + Sprint 164 飞书完整解耦 8 files / -300+ 行 净删 (跨 sprint ETL 治本 batch 3/4, user 飞书后续不搞, 解耦后删除, 跟 Sprint 25+116 模式 stable) + Sprint 165 W3 DQ 2 failed advisory doc 沉淀 0 业务代码 (跨 sprint ETL 治本 batch 4/4) + Sprint 166 W3 DQ 断言治本 1 file / +52/-7 + 1 file / +216 lines 5 case regression (跨 sprint advisory batch 1/3, 阈值 0.3→0.5 + 动态 channels + 容差 10%) + Sprint 167 0 commit 暂收口 + 1 line 修正 (跨 sprint advisory batch 2/3, L4.20 SSOT 反漂移验证 DATA_PIPELINE.md 0 处 4 桶 ASCII 残留, advisory doc 修正) + Sprint 168 L4.23 e2e spec drift detection script 自动化 2 files / +369 lines (跨 sprint advisory batch 3/3, 防 Sprint 161 治本 18 sprint 滞后 stable 模式再复发) + Sprint 168 lint fix 1 file / +3/-10 (CI 6 F401 unused import 紧急收尾, 跟 Sprint 168 治本配套) + Historical CI audit 1 line audit marker 06:45:00Z (Sprint 144-160 累计 6+ 历史 run failure 全部治本 user 拍板 "都修好了 删除历史信息", 跟 L4.20 SSOT 反漂移 + Sprint 165 advisory 模式 stable), pytest 733 passed / 66 skipped / 0 failed (跟 Sprint 160 baseline 741 减 18 case: 飞书 4 删 + wo1 2 删 + backup_duckdb 1 减, Sprint 166+168 5 case 5 case 新增 = 净 0; L4.4 race flake 接受), main HEAD `ee7db74a8` + origin/main 0 drift (push `25c6eb9..63c3b4d..ee7db74a8` 成功), 累计 76→92 sprint 0 debt (+16, 跟 Sprint 154+155+156+157+158+159+159.5+160+161+162+163+164+165+166+167+168+168 lint fix+Historical audit 累计 16 sprint 1 turn 拍板收口), VERSION 0.4.14.20 → **0.4.14.21** (跨 59 sprint 不 bump stable 模式), L4.x 23 stable, 实战 fix 模式 #32-#46 累计 15 模式沉淀, 跟 Sprint 65+135+138+141.5+145+149+153+160 /document-release 模式 stable 累计 8 次真治本)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.20` (Sprint 98 FilterBuilder table_alias 真治本) |
-| git HEAD (main) | `52f41cf` (Sprint 143 收口 + vite preview proxy 修复, 跟 origin/main 0 drift) |
+| VERSION | `0.4.14.21` (Sprint 161-168 跨 sprint 治理 batch 4/4 + Historical CI audit 收口, /document-release 累计 9 次真治本) |
+| git HEAD (main) | `ee7db74a8` (Sprint 168 lint fix CI verify + 1 line doc sync, 跟 origin/main 0 drift) |
 | 当前分支 | `main` |
-| 最近 sprint | Sprint 143 (LTV + cohort retention matrix + 改名 ROI→正装转化分析, 跟 Sprint 141.5 + 142 并行开发 0 冲突区, Q10 推荐 A 仅前端文案) |
-| 收口日 | 2026-06-28 |
-| 上次合入 | Sprint 143 + vite preview fix (commit `5bd1754` + `52f41cf`, push origin main 3910b3d..52f41cf 跨 6 commits, 0 网络失败) |
+| 最近 sprint | Sprint 168 lint fix (CI 6 F401 unused import 紧急收尾, 跟 Sprint 168 治本配套) + Historical CI audit (Sprint 144-160 累计 6+ 历史 run failure 全部治本 user 拍板) |
+| 收口日 | 2026-06-29 |
+| 上次合入 | Sprint 168 lint fix + CI verify (commit `3d31d1b` + `5fb913e` + `25c6eb9` + `ee7db74a8`, push origin main 25c6eb9..5fb913e..25c6eb9..ee7db74a8 跨 4 commits, 0 网络失败) |
 
 ---
 
@@ -23,8 +23,8 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **762** | Sprint 141.5 + 142 + 143 收口验 (762 passed / 23 skipped / 0 failed, 跟 Sprint 140 baseline 738 +24 case: Sprint 141.5 Phase 1 +2 case (sample_received_at schema + service 回退) + Sprint 142 +12 case (RFM 3 维度 + 5 level parametrize + lock metrics 3) + Sprint 143 +10 case (LTV 3 + cohort 4 + ROI rename 2 + W4 cache 1)) |
-| pytest skipped | **23** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict, Codex 主动修 monkeypatch fixture 治 race flake, 跟 Sprint 141.5 race flake L5.1 接受模式 stable) |
+| pytest passed | **733** | Sprint 161-168 跨 sprint 治理 batch 4/4 + Historical CI audit 收口验 (733 passed / 66 skipped / 0 failed, 跟 Sprint 160 baseline 741 减 18 case: 飞书 4 删 + wo1 2 删 + backup_duckdb 1 减; Sprint 166+168 5 case 5 case 新增 = 净 0; race flake L4.4 接受) |
+| pytest skipped | **66** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict, Codex 主动修 monkeypatch fixture 治 race flake, 跟 Sprint 141.5 race flake L5.1 接受模式 stable) |
 
 ---
 
