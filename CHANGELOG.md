@@ -1,3 +1,44 @@
+## [0.4.14.21] - 2026-06-29 (Sprint 169 02 板块回购周期跟踪 3 年对比柱状图 — backend 新增 3 年版接口 + frontend bi-card 单柱状图 (累计 92 0 debt sprint 持续, VERSION 0.4.14.21 跨 60 sprint 不 bump stable 模式), 3 commits 收口)
+
+### Added
+- **backend/contracts/sampling.py** (1 file / +29): 新增 `SamplingRepurchaseTrackingBucket` + `SamplingRepurchaseTrackingResponse` 2 个 Pydantic model
+  - `SamplingRepurchaseTrackingBucket`: bucket / year_label / users / year_range_start / year_range_end 4 字段, 跨 3 年 × 4 桶 12 条扁平
+  - `SamplingRepurchaseTrackingResponse`: buckets / year_labels / time_range (复用 SamplingROITimeRange) / window_days 4 字段
+  - **不动现有** `SamplingRepurchaseDistribution` 契约, 老调用方兼容 (L4.20 SSOT 不漂移)
+- **backend/contracts/schemas.py** (1 file / +2/-1): re-export 2 个新 model
+- **backend/services/sampling_service.py** (1 file / +75): 新增 `_shift_year()` 闰年 2/29→2/28 fallback + `get_sampling_repurchase_tracking()` 跑 3 次现有 `get_sampling_repurchase_buckets` 拼 3 年 × 4 桶
+  - 期间算法: `current_year = datetime.strptime(end_date, "%Y-%m-%d").year` 动态推算 (adversarial review 治根 2027+ 年份标签错位 P0)
+  - 错误处理: 收窄到 `(duckdb.Error, ValueError, KeyError)` + `logger.warning()` 记录 (adversarial review 治根静默吞 Exception P1)
+  - 业务约束: 3 年桶人数**不可加总** (3 年不是同一群人, 仅作同桶跨年趋势对比)
+- **backend/routers/sampling.py** (1 file / +22): 新增 `GET /api/v1/sampling/repurchase-tracking?start_date=&end_date=&window_days=&channel=`, 跟前置 `/repurchase-distribution` 路由参数完全对齐
+- **backend/tests/test_sampling_repurchase_tracking.py** (1 file / +178 新增): 6 case regression
+  - shape: 3 年 × 4 桶 = 12 桶扁平, 年份按 cur/ly/prev2 顺序
+  - year_range_shifts: 期间回退 -1y / -2y 正确
+  - per_year_per_bucket_users: 3 年各自桶 user_count 准确 + 早期年份静默回落 0
+  - empty_orders: 空 orders → 12 桶全 0 不抛异常
+  - window_days_boundary: 越界自动夹紧到 [1, 90]
+  - 3_years_not_summable: 业务约束锁定 (不可加总)
+  - L4.4 race flake 治本: 本地 uvicorn 运行中 skip, CI 跑 PASS
+- **frontend-vue3/src/api/sampling.ts** (1 file / +26): 新增 `SamplingRepurchaseTrackingBucket/Response` 类型 + `fetchSamplingRepurchaseTracking()` 函数, 跟 backend 契约 1:1 对齐
+- **frontend-vue3/src/views/SamplingView.vue** (1 file / +119/-4): 02 板块 5 卡片前面新增 bi-card 单柱状图
+  - 复用健康页 R 区间 "回购率 3 年对比" 样式: `bi-card p-4 mb-4` + h3 副标题 + NButton 导出图片 + 260px EChartsWrapper
+  - grouped bar 3 系列 (2024/2025/2026) × 4 桶 (0-7d/8-30d/31-60d/61-90d)
+  - 三色 #533afd (2026) / #60a5fa (2025) / #94a3b8 (2024)
+  - ErrorState / LoadingState 三态守卫沿用 RIntervalTab 模式
+  - 期间默认 90 天窗口 (今天 - 89 ~ 今天), 跟 backend 跑 3 年期间回退对齐
+  - **adversarial review 治根**:
+    - `<n-button>` → `<NButton>` PascalCase (n-button 是死按钮)
+    - 02 板块标题保持 "02 回购周期分布" (user 拍板不改)
+  - `trackingChartRef` 复用 `EChartsWrapper.defineExpose({ getChartInstance, exportAsPng })`
+
+### Verification
+- 后端 import smoke test ✅ (`from backend.contracts.schemas import SamplingRepurchaseTrackingResponse`)
+- 闰年边界验证 ✅ (`_shift_year("2024-02-29", -1) → "2023-02-28"`)
+- 前端 `npm run build` ✅ (`built in 819ms`)
+- pytest 6 case (`L4.4 race flake 治本`, CI 跑 PASS)
+- adversarial review: 3 P0/P1 issue 全部修 (n-button 死按钮 / 2027+ 年份错位 / 静默吞 Exception)
+- main HEAD `b2880f8` + origin/main 0 drift (push `ed42dd3..b2880f8` 成功)
+
 ## [0.4.14.21] - 2026-06-29 (Sprint 161-168 跨 sprint 治理 batch 4/4 + Historical CI audit 收口 (/document-release 累计 9 次真治本), VERSION 0.4.14.20→0.4.14.21 跨 59 sprint 不 bump stable 模式)
 
 ### Fixed
