@@ -58,6 +58,17 @@ BEFORE_COUNT=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckd
 }
 BEFORE_BYTES=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckdb" -o -name "*.duckdb.zst" \) -exec stat -f "%z" {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
 
+# Sprint 163: tracker 每周日 backup (防 plist 异常 kill 丢 tracker → 下次冷启动 25min 浪费)
+# processed_files_shop/member.json 是 xlsx 增量 tracker source of truth
+# weekly 备份保留 2 周 (跟 RETENTION_DAYS 同步), 跟 DuckDB 备份独立.
+TRACKER_DIR="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed"
+TRACKER_BACKUP_DIR="$BACKUP_DIR/tracker_$(date -u +%Y%m%d)"
+if mkdir -p "$TRACKER_BACKUP_DIR" 2>/dev/null; then
+    cp -f "$TRACKER_DIR"/processed_files_*.json "$TRACKER_BACKUP_DIR/" 2>/dev/null && \
+        echo "[$TIMESTAMP] tracker backup: $TRACKER_BACKUP_DIR" | tee -a "$LOG_FILE" || \
+        echo "[$TIMESTAMP] WARN: tracker backup failed (processed_files_*.json 不存在?)" | tee -a "$LOG_FILE"
+fi
+
 # 3. 清理 7 天前的文件（软失败：rm 失败只 log 不 exit）
 DELETED_NAMES=()
 while IFS= read -r f; do
