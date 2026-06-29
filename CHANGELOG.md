@@ -1,3 +1,23 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 162 precompute skip future dates — 22 组合跳过 ~5min 节省 (跨 sprint ETL 治本 batch 1/4), VERSION 不变)
+
+### Fixed
+- **scripts/etl/precompute_category_flow.py** (1 file / +4/-1, L3 精准 L4.7 100% 精准): `run_full_precomputation()` 主循环 (line 501) 加未来日期 skip
+  - import: `from datetime import date, datetime, timedelta` (line 18, 加 `date`)
+  - 主循环 line 501-503: `if end_dt.date() > date.today(): continue` 跳过未来月份 (2026-07~12 等)
+  - 跟 Sprint 161 e2e spec 漂移治根后, 跑批日志显示 22 个未来日期 KeyError 'category' 错误, 100% 失败但 retry 浪费 ~5min
+  - 跳过 22 组合后下次跑批预计节省 5min (跟 Sprint 22 #26 跑批 18min baseline 接近)
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **741 passed / 66 skipped / 0 failed** (跟 Sprint 161 baseline 1:1 一致, L4.4 race flake 接受)
+- pre-push hook pytest **741/66/0 PASS** (真连 test 跑了真验证回归, push 第 3 次沙箱 timeout retry 接受, L4.15 永久规则)
+- L4.22 vite preview rebuild N/A (ETL 后端改, 不需 rebuild)
+- 0 critical / 0 informative / 0 AUTO-FIX (L3 精准 1 file 1 turn 改)
+- 1 file / +4/-1, L4.7 100% 精准
+- main HEAD `dff763c` + origin/main 0 drift (push `b3e8048..dff763c` 成功)
+- L4.8 cleanup feature/sprint162-skip-future-dates-precompute 分支 (本地 + 远程)
+- 累计 85→86 sprint 0 debt 持续
+- 跟 Sprint 163 (tracker weekly backup) + Sprint 164 (飞书完整解耦 8 files) + Sprint 165 (W3 DQ 2 failed 排查) 一同跨 sprint ETL 治本 batch 4/4 拍板, 1 turn 收口
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 161 sampling spec drift 治根 — 2 处断言同步 UI (L4.23 永久规则沉淀, 跨 Sprint 144-160 18 sprint 滞后 stable 模式 治根), VERSION 不变)
 
 ### Fixed
