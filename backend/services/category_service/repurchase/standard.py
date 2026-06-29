@@ -3,11 +3,8 @@ import duckdb
 from typing import Dict, Optional, List
 
 from backend.semantic.filters import FilterBuilder, MetricType
-from backend.semantic.segments import RFM_THRESHOLDS
-
-from .._shared import (
-    _RFM_SEGMENT_ORDER,
-)
+# Sprint 170: 业务口径由 RFM 8 象限改为 R 桶 (6 档 Recency + TTL)
+from backend.semantic.segments import R_SEGMENT_ORDER
 
 
 def _build_repurchase_period_filter(
@@ -59,10 +56,9 @@ def _run_category_repurchase_period(
 
     refund_where = "AND is_refund = FALSE" if metric_type == "GSV" else ""
 
-    # RFM 阈值（引用语义层，禁止硬编码）
-    _rt = RFM_THRESHOLDS["r"]   # [30, 90, 180, 365]
-    _ft = RFM_THRESHOLDS["f"]   # [1, 2, 3, 4]
-    _mt = RFM_THRESHOLDS["m"]   # [100, 300, 500, 1000]
+    # Sprint 170: 业务口径由 RFM 8 象限改为 R 桶 (6 档 Recency + TTL).
+    # 阈值定义在 backend.semantic.segments.R_INTERVALS (L4 永久规则: 禁止硬编码).
+    # R 桶 CASE WHEN 直接按 recency_days 分桶, 不再需要 R/F/M 评分.
 
     # 品类字段安全值（白名单校验已由 level 参数约束）
     safe_category = category.replace("'", "''")
@@ -97,37 +93,23 @@ def _run_category_repurchase_period(
           AND {valid_where_clause}
         GROUP BY user_id
     ),
-    rfm_scored AS (
+    -- Sprint 170: RFM 8 象限 → R 桶 (6 档 Recency + TTL)
+    -- 名称与 semantic.segments.R_SEGMENT_ORDER 公共 SSOT 完全一致
+    r_bucketed AS (
         SELECT
             user_id, is_member,
             CASE
-                WHEN recency_days < {_rt[0]} THEN 5
-                WHEN recency_days < {_rt[1]} THEN 4
-                WHEN recency_days < {_rt[2]} THEN 3
-                WHEN recency_days < {_rt[3]} THEN 2
-                ELSE 1
-            END AS r_score,
-            CASE WHEN order_count >= {_ft[3] + 1} THEN 5 WHEN order_count >= {_ft[2] + 1} THEN 4 WHEN order_count = {_ft[2]} THEN 3 WHEN order_count = {_ft[1]} THEN 2 ELSE 1 END AS f_score,
-            CASE WHEN gsv >= {_mt[3]} THEN 5 WHEN gsv >= {_mt[2]} THEN 4 WHEN gsv >= {_mt[1]} THEN 3 WHEN gsv >= {_mt[0]} THEN 2 ELSE 1 END AS m_score
+                WHEN recency_days <= 30 THEN '近1个月已购客'
+                WHEN recency_days <= 90 THEN '近2-3个月已购客'
+                WHEN recency_days <= 180 THEN '近4-6月已购客'
+                WHEN recency_days <= 365 THEN '近7-12个月已购客'
+                WHEN recency_days <= 730 THEN '近13个月-近24个月已购客'
+                ELSE '2年外已购客'
+            END AS r_bucket
         FROM hist_customers
     ),
-    rfm_segmented AS (
-        SELECT
-            user_id, is_member,
-            CASE
-                WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
-                WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
-                WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
-                WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
-                WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
-                WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
-                WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
-                ELSE '一般挽留客户'
-            END AS rfm_segment
-        FROM rfm_scored
-    ),
-    member_segmented AS (
-        SELECT user_id, rfm_segment FROM rfm_segmented WHERE is_member = TRUE
+    member_bucketed AS (
+        SELECT user_id, r_bucket FROM r_bucketed WHERE is_member = TRUE
     ),
     -- 同品回购：分析期内购买同一品类的用户
     same_repurchase AS (
@@ -175,81 +157,81 @@ def _run_category_repurchase_period(
     ),
     -- 全店 同品
     stats_all_same AS (
-        SELECT r.rfm_segment,
+        SELECT r.r_bucket,
                COUNT(DISTINCT r.user_id) AS hist_users,
                COUNT(DISTINCT sr.user_id) AS repurchase_users,
                COALESCE(SUM(sra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM rfm_segmented r
+        FROM r_bucketed r
         LEFT JOIN same_repurchase sr ON r.user_id = sr.user_id
         LEFT JOIN same_repurchase_amounts sra ON r.user_id = sra.user_id
-        GROUP BY r.rfm_segment
+        GROUP BY r.r_bucket
     ),
     ttl_all_same AS (
-        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+        SELECT '已购客TTL' AS r_bucket, SUM(hist_users) AS hist_users,
                SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
         FROM stats_all_same
     ),
     -- 全店 跨品类
     stats_all_cross AS (
-        SELECT r.rfm_segment,
+        SELECT r.r_bucket,
                COUNT(DISTINCT r.user_id) AS hist_users,
                COUNT(DISTINCT cr.user_id) AS repurchase_users,
                COALESCE(SUM(cra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM rfm_segmented r
+        FROM r_bucketed r
         LEFT JOIN cross_repurchase cr ON r.user_id = cr.user_id
         LEFT JOIN cross_repurchase_amounts cra ON r.user_id = cra.user_id
-        GROUP BY r.rfm_segment
+        GROUP BY r.r_bucket
     ),
     ttl_all_cross AS (
-        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+        SELECT '已购客TTL' AS r_bucket, SUM(hist_users) AS hist_users,
                SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
         FROM stats_all_cross
     ),
     -- 会员 同品
     stats_member_same AS (
-        SELECT r.rfm_segment,
+        SELECT r.r_bucket,
                COUNT(DISTINCT r.user_id) AS hist_users,
                COUNT(DISTINCT sr.user_id) AS repurchase_users,
                COALESCE(SUM(sra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM member_segmented r
+        FROM member_bucketed r
         LEFT JOIN same_repurchase sr ON r.user_id = sr.user_id
         LEFT JOIN same_repurchase_amounts sra ON r.user_id = sra.user_id
-        GROUP BY r.rfm_segment
+        GROUP BY r.r_bucket
     ),
     ttl_member_same AS (
-        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+        SELECT '已购客TTL' AS r_bucket, SUM(hist_users) AS hist_users,
                SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
         FROM stats_member_same
     ),
     -- 会员 跨品类
     stats_member_cross AS (
-        SELECT r.rfm_segment,
+        SELECT r.r_bucket,
                COUNT(DISTINCT r.user_id) AS hist_users,
                COUNT(DISTINCT cr.user_id) AS repurchase_users,
                COALESCE(SUM(cra.repurchase_gsv), 0) AS repurchase_gsv
-        FROM member_segmented r
+        FROM member_bucketed r
         LEFT JOIN cross_repurchase cr ON r.user_id = cr.user_id
         LEFT JOIN cross_repurchase_amounts cra ON r.user_id = cra.user_id
-        GROUP BY r.rfm_segment
+        GROUP BY r.r_bucket
     ),
     ttl_member_cross AS (
-        SELECT '已购客TTL' AS rfm_segment, SUM(hist_users) AS hist_users,
+        SELECT '已购客TTL' AS r_bucket, SUM(hist_users) AS hist_users,
                SUM(repurchase_users) AS repurchase_users, SUM(repurchase_gsv) AS repurchase_gsv
         FROM stats_member_cross
     )
-    SELECT 'all_same' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+    SELECT 'all_same' AS mode, r_bucket, hist_users, repurchase_users, repurchase_gsv FROM (
         SELECT * FROM stats_all_same UNION ALL SELECT * FROM ttl_all_same
     )
     UNION ALL
-    SELECT 'all_cross' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+    SELECT 'all_cross' AS mode, r_bucket, hist_users, repurchase_users, repurchase_gsv FROM (
         SELECT * FROM stats_all_cross UNION ALL SELECT * FROM ttl_all_cross
     )
     UNION ALL
-    SELECT 'member_same' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+    SELECT 'member_same' AS mode, r_bucket, hist_users, repurchase_users, repurchase_gsv FROM (
         SELECT * FROM stats_member_same UNION ALL SELECT * FROM ttl_member_same
     )
     UNION ALL
-    SELECT 'member_cross' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+    SELECT 'member_cross' AS mode, r_bucket, hist_users, repurchase_users, repurchase_gsv FROM (
         SELECT * FROM stats_member_cross UNION ALL SELECT * FROM ttl_member_cross
     )
     """
@@ -321,7 +303,7 @@ def _run_category_repurchase_period(
 
     # 补全缺失的 segment
     for mode in results:
-        for seg in _RFM_SEGMENT_ORDER:
+        for seg in R_SEGMENT_ORDER:
             if seg not in results[mode]:
                 results[mode][seg] = {
                     "hist_users": 0, "repurchase_users": 0,

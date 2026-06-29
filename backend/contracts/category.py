@@ -90,12 +90,16 @@ class CategoryUserProfileResponse(BaseModel):
 
 
 # ============================================================
-# 品类看板 - 品类回购分析（同品/跨品类 RFM 8象限回购）
+# 品类看板 - 品类回购分析（同品/跨品类 R 桶回购）
 # ============================================================
+# Sprint 170: 业务口径由 RFM 8 象限改为 R 6 桶（近1个月/2-3月/4-6月/7-12月/13-24月/2年外）
+# + 1 TTL 汇总（"已购客TTL"），复用 semantic.segments.R_SEGMENT_ORDER 公共 SSOT (Sprint 60+ 沉淀)
+# field r_bucket 替代 rfm_segment（L4.x 永久规则：SSOT 业务字段名实一致）
+
 
 class CategoryRepurchaseFlowRow(BaseModel):
-    """品类回购分析单行数据（RFM 8象限分群）"""
-    rfm_segment: str
+    """品类回购分析单行数据（R 桶分群，6 档 Recency + 1 TTL 汇总）"""
+    r_bucket: str
 
     hist_users_current: int = 0
     repurchase_users_current: int = 0

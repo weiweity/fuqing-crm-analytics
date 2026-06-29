@@ -3,10 +3,11 @@ from typing import Dict, Any, Optional, List
 
 from backend.db.connection import get_connection
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
+# Sprint 170: 业务口径由 RFM 8 象限改为 R 桶 (6 档 Recency + TTL)
+from backend.semantic.segments import R_SEGMENT_ORDER
 
 from .._shared import (
     SPU_LEVELS,
-    _RFM_SEGMENT_ORDER,
     _resolve_repurchase_date_ranges,
 )
 from .standard import _run_category_repurchase_period
@@ -24,7 +25,8 @@ def get_category_repurchase_flow(
 ) -> Dict[str, Any]:
     """
     品类回购分析主接口
-    同品回购 + 跨品类回购，RFM 8象限分群，3年同比
+    同品回购 + 跨品类回购，按 R 桶分群 (6 档 Recency + TTL)，3年同比
+    Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶（更直观反映复购周期）。
     """
     if level not in SPU_LEVELS:
         raise ValueError(f"Invalid level: {level}")
@@ -55,12 +57,12 @@ def get_category_repurchase_flow(
 
     def _build_rows(cur_data, comp_data, prev2_data):
         rows = []
-        for seg in _RFM_SEGMENT_ORDER:
+        for seg in R_SEGMENT_ORDER:
             c = cur_data.get(seg, {})
             p = comp_data.get(seg, {})
             p2 = prev2_data.get(seg, {})
             rows.append({
-                "rfm_segment": seg,
+                "r_bucket": seg,
                 "hist_users_current": c.get("hist_users", 0),
                 "repurchase_users_current": c.get("repurchase_users", 0),
                 "repurchase_rate_current": round(c.get("repurchase_rate", 0.0), 4),
@@ -99,8 +101,9 @@ def get_category_repurchase_flow_by_rfm(
     exclude_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    历史老客回购分析主接口（RFM 8象限分群，不限品类）
+    历史老客回购分析主接口（按 R 桶分群，不限品类）
     同品回购 + 跨品类回购，3年同比
+    Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶。
     """
     if level not in SPU_LEVELS:
         raise ValueError(f"Invalid level: {level}")
@@ -131,12 +134,12 @@ def get_category_repurchase_flow_by_rfm(
 
     def _build_rows(cur_data, comp_data, prev2_data):
         rows = []
-        for seg in _RFM_SEGMENT_ORDER:
+        for seg in R_SEGMENT_ORDER:
             c = cur_data.get(seg, {})
             p = comp_data.get(seg, {})
             p2 = prev2_data.get(seg, {})
             rows.append({
-                "rfm_segment": seg,
+                "r_bucket": seg,
                 "hist_users_current": c.get("hist_users", 0),
                 "repurchase_users_current": c.get("repurchase_users", 0),
                 "repurchase_rate_current": round(c.get("repurchase_rate", 0.0), 4),
