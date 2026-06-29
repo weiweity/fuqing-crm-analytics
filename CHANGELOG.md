@@ -1,3 +1,23 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 163 tracker weekly backup — 防 plist 异常 kill 丢 tracker 冷启动 25min 浪费 (跨 sprint ETL 治本 batch 2/4), VERSION 不变)
+
+### Fixed
+- **scripts/etl/cleanup_backups.sh** (1 file / +11/-0, L4.7 100% 精准 L3 1 file 1 turn 改): `cleanup_backups.sh` 清理前加 tracker weekly backup
+  - line 61-71: 新增 TRACKER_DIR / TRACKER_BACKUP_DIR 变量 + mkdir + cp -f processed_files_*.json
+  - weekly 备份保留 2 周 (跟 RETENTION_DAYS=2 同步), 跟 DuckDB 备份独立
+  - 防 plist 异常 kill 丢 tracker → 下次跑批冷启动不会强制重读 217 文件 (16M 行 ~25min 浪费)
+  - 跟 Sprint 105 launchd KeepAlive 治本 + Sprint 113+114 tracker 治理模式 stable
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **741 passed / 66 skipped / 0 failed** (跟 Sprint 162 baseline 1:1 一致, L4.4 race flake 接受)
+- pre-push hook pytest **741/66/0 PASS** (push 第 1 次成功, L4.15 永久规则)
+- L4.22 vite preview rebuild N/A (ETL 后端改, 不需 rebuild)
+- 0 critical / 0 informative / 0 AUTO-FIX (L3 精准 1 file 1 turn 改)
+- 1 file / +11/-0, L4.7 100% 精准
+- main HEAD `31f99f8` + origin/main 0 drift (push `65db1df..31f99f8` 成功)
+- L4.8 cleanup feature/sprint163-tracker-weekly-backup 分支 (本地 + 远程)
+- 累计 86→87 sprint 0 debt 持续
+- 跟 Sprint 164 (飞书完整解耦 8 files) + Sprint 165 (W3 DQ 2 failed 排查) 一同跨 sprint ETL 治本 batch 3-4/4 拍板, 1 turn 收口
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 162 precompute skip future dates — 22 组合跳过 ~5min 节省 (跨 sprint ETL 治本 batch 1/4), VERSION 不变)
 
 ### Fixed
