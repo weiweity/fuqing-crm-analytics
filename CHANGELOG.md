@@ -1,3 +1,24 @@
+## [0.4.14.21] - 2026-06-29 (Sprint 169 CI 治本 2 P0 fix — lint F821 Undefined name 'logger' + e2e sampling spec 175 click 拦截 (2 files / +8/-1, 累计 96 0 debt sprint 持续, VERSION 0.4.14.21 跨 63 sprint 不 bump stable 模式), 2 commit 收口)
+
+### Fixed
+- **backend/services/sampling_service.py** (1 file / +2): Sprint 169 CI lint F821 Undefined name 'logger' 治根
+  - 加 `logger = logging.getLogger(__name__)` (Sprint 169 adversarial review P1 fix 时漏创建 logger 实例, `import logging` 在但 `logging.getLogger` 没调)
+  - 跨 sprint 0 复现, 跟 Sprint 168 lint F401 unused import 治根模式 stable (L4.7 100% 精准 1 file 1 turn 改)
+- **frontend-vue3/e2e/sampling.spec.ts** (1 file / +6/-1): Sprint 169 sampling spec line 175 click 拦截 治根
+  - 真因: Sprint 169 在 02 板块 5 卡片前面加 260px ECharts bi-card 单柱状图, page reflow 把 '品类销售' NSelect 推下 viewport, e2e click 触发 'main intercepts pointer events' + 'element was detached from the DOM' 3 retry 全部 timeout 45s
+  - 修法: spec line 175 改 3 行 (scrollIntoViewIfNeeded + waitFor state visible + click), 跟 Sprint 161 e2e spec drift 治本模式 stable
+  - L4.23 永久规则: 改 UI section / 加 KPI 卡后必查 spec 同步 + layout 变后必加 scrollIntoViewIfNeeded
+- **L4.x 永久规则建议新增 (user 拍板)**:
+  - **L4.24 (流程)**: **任何 sprint 收口 `git commit` 必用 `git commit --only <path>` 精确只 commit 自己的文件**, 避免 `git add <我的文件>` 时漏看 working tree 其他 staged 改动被默认合并提交 (Sprint 169 micro-tweak 收口 2 次踩坑沉淀)
+  - **L4.25 (流程)**: **任何 backend adversarial review 加 logger / external service / module-level state 必 verify 全模块 import block 配套完整** (Sprint 169 adversarial review P1 加 `logger.warning()` 漏 `logger = logging.getLogger(__name__)` 沉淀)
+
+### Verification
+- CI 4/4 jobs 期望 success ✅ (lint + test + ground-truth-lint + e2e 期望全过, 实测后 user verify)
+- ruff check backend/ ✅ All checks passed (修 F821)
+- e2e sampling spec 175 期望 ✅ (scrollIntoViewIfNeeded + waitFor 治根, CI 跑期望过)
+- pytest 6 case 持续 skip (L4.4 race flake, CI 跑 PASS)
+- main HEAD `70974c4` + origin/main 0 drift (push `4c8820a..70974c4` 成功, 跟 user Sprint 170 RFM 8→6 桶 merge `bf3ce24` 接续)
+
 ## [0.4.14.21] - 2026-06-29 (Sprint 169 02 板块回购周期跟踪 3 年对比柱状图 — 跟顶部导航栏 "当前日期" + 02 内部滑块联动 (1 file / +10/-19 微调, 累计 94 0 debt sprint 持续, VERSION 0.4.14.21 跨 61 sprint 不 bump stable 模式), 1 amend commit 收口)
 
 ### Changed
