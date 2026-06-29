@@ -1,3 +1,22 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 167 验证 advisory doc 推测错误 + 修正 (L4.20 SSOT 反漂移验证 0 commit 暂收口), VERSION 不变)
+
+### Docs
+- **docs/operating/w3-dq-advisory.md** (1 file / +1/-1, L4.7 100% 精准 1 turn 改): Sprint 165 advisory 推测错误, 修正 line 116
+  - 原推测: "Sprint 166+ 可选 修复 DATA_PIPELINE.md ASCII diagram 派样 02 板块 4 桶柱状图 drift"
+  - Sprint 167 验证: `git log -- docs/architecture/DATA_PIPELINE.md` + `grep "0-7d|8-30d|31-60d|61-90d" docs/architecture/DATA_PIPELINE.md` + `git show --stat Sprint 158/159` 全部 0 hit, 推测无 git history 实证
+  - 修正: line 116 改 `~~strikethrough~~` + Sprint 167 验证说明 (DATA_PIPELINE.md 全文 0 处 4 桶 ASCII 残留, 0 处派样 02 标记, 0 commit 暂收口跟 Sprint 89/134/152 模式 stable)
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **733 passed / 66 skipped / 0 failed** (跟 Sprint 166 baseline 1:1 一致, L4.4 race flake 接受)
+- pre-push hook pytest **733/66/0 PASS**
+- P1-3 ground-truth lint **扫了 1 个 review 文件, 无未附实证的 ground-truth 声明** (L4.20 SSOT 反漂移永久规则验证)
+- 0 critical / 0 informative / 0 AUTO-FIX (L3 精准 1 file 1 turn 改)
+- 1 file / +1/-1, L4.7 100% 精准
+- main HEAD `5306d7d` + origin/main 0 drift (push `8c179ec..5306d7d` 成功)
+- L4.8 cleanup feature/sprint167-advisory-doc-correction 分支 (本地 + 远程)
+- 累计 91→91 sprint 0 debt 持续 (0 commit 暂收口不算 debt)
+- 跟 Sprint 168 (L4.23 自动化) + Sprint 166 (W3 DQ 治本) 一同跨 sprint advisory batch 3 sprint 1 turn 拍板收口
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 166 W3 DQ 2 failed 断言治本 (5 sprint false fail 治本, 跟 Sprint 165 advisory 配套, VERSION 不变))
 
 ### Fixed
