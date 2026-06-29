@@ -1,3 +1,18 @@
+## [0.4.14.21] - 2026-06-29 (Sprint 169 02 板块回购周期分布调整 — 只保留 3 年对比柱状图，移除 5 卡片 (user 反馈之前做反了) (1 file / +105/-131, 累计 99 0 debt sprint 持续, VERSION 0.4.14.21 跨 65 sprint 不 bump stable 模式), 1 commit 收口)
+
+### Changed
+- **frontend-vue3/src/views/SamplingView.vue** (1 file / +105/-131): 02 板块"回购周期分布"只保留 3 年对比柱状图，移除 5 卡片
+  - 恢复 `EChartsWrapper` + `fetchSamplingRepurchaseTracking` + `trackingParams/trackingChartOption`
+  - 柱状图联动：顶部 `filterStore.dateRange` + 02 内部 `windowDaysDebounced` 滑块 (7-90 天)
+  - 移除 5 卡片重复展示（跟 01 总览重复），避免 02 板块冗余
+  - 清理因移除 5 卡片产生的 dead code：`compareBaseFromPct`、`totalFullRepurchaseAusCompare`、`comparePeriodLabel`
+
+### Verification
+- `vue-tsc -b` 0 errors → `npm run build` ✅ 745ms
+- main HEAD `5c29223` + origin/main 0 drift (push `131861c..5c29223` 成功)
+- L4.22 前端 sprint 收口：rebuild dist + kill 旧 vite preview + restart ✅
+- L4.8 PR merge 后 24h 内删除本地 + 远程分支 ✅
+
 ## [0.4.14.21] - 2026-06-29 (Sprint 169 复购周期板块新增复购率卡片 + 5 卡片 YOY 显示 — 老客分析-复购周期 `/customer-health?#repurchase` 加全店复购率卡片 (next to 平均复购天数) + 5 卡片都加 YOY (复购率 PpField pp 差走 semantic.yoy_repurchase_rate + 4 天数 raw diff 业务直觉色) (6 files / +256/-140, 累计 97 0 debt sprint 持续, VERSION 0.4.14.21 跨 64 sprint 不 bump stable 模式), 1 commit 收口)
 
 ### Changed
