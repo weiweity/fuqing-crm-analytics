@@ -113,5 +113,5 @@ User 报 ETL 48min 异常 → 1 turn 拍板 4 advisory ETL 治根 batch (Sprint 
 
 - **Sprint 166+ 可选**: 修 assert_total_not_drop 阈值 (放宽到 0.5 或 weekday-aware) + assert_540_completeness 改动态 channels (从 user_rfm GROUP BY 取实际 channels) + 加 ratio 容差 10%. 跨 sprint 5+ 漂移 false fail 治根.
 - 留尾治理 sprint 链 (P0/P1/P2 优先级, 跟 Sprint 67+68 模式)
-- **Sprint 166+ 可选**: 修复 `docs/architecture/DATA_PIPELINE.md` ASCII diagram 派样 02 板块 4 桶柱状图 drift (Sprint 159 删 4 桶, diagram 需更新) — advisory only (跟 Sprint 65+135+138+141.5+145+149+153+160 stable 跨 sprint 9 次真治本)
+- ~~**Sprint 166+ 可选**: 修复 `docs/architecture/DATA_PIPELINE.md` ASCII diagram 派样 02 板块 4 桶柱状图 drift (Sprint 159 删 4 桶, diagram 需更新) — advisory only (跟 Sprint 65+135+138+141.5+145+149+153+160 stable 跨 sprint 9 次真治本)~~ — **Sprint 167 验证: DATA_PIPELINE.md 全文 0 处 4 桶 ASCII 残留, 0 处派样 02 标记. Sprint 165 advisory line 116 推测错误 (no git log 实证), 0 commit 暂收口. 跟 Sprint 89/134/152 模式 stable.**
 - **Sprint 166+ 可选**: L4.23 实施检查 (e2e spec drift detection script 自动化, 跟前 sprint 改 UI 后必查 spec 同步, 防止下次跨 sprint 漂移) — 跟 L4.7 ground-truth-lint hook 模式 stable
