@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NDivider, NAlert, NSlider, NButton } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NDivider, NAlert, NSlider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
@@ -8,9 +8,8 @@ import MetricCard from '@/components/MetricCard.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import YOYGuard from '@/components/YOYGuard.vue'
-import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
-import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison, fetchSamplingRepurchaseTracking } from '@/api/sampling'
+import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison } from '@/api/sampling'
 import type { SamplingCategoryRow, SamplingChannelSummary } from '@/api/sampling'
 import { useFilterStore } from '@/stores/filterStore'
 import { useFormat } from '@/composables/useFormat'
@@ -68,86 +67,7 @@ const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: ro
   placeholderData: previousData => previousData,
 })
 
-// ── Sprint 169 02 板块"回购周期分布" 3 年对比柱状图 ──
-// 02 板块"回购周期分布" 3 年对比 — 期间完全跟顶部导航栏 + 02 内部滑块联动
-// 跟 top filterStore.dateRange 1:1 一致 (cur 期间 = top 选择区, ly/prev2 = -1y/-2y)
-// 跟 02 windowDaysDebounced 联动 (7-90 天滑块直接控制 backend window_days)
-const trackingParams = computed(() => ({
-  start_date: filterStore.dateRange[0],
-  end_date: filterStore.dateRange[1],
-  window_days: windowDaysDebounced.value,
-  channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
-}))
-const { data: trackingData, isLoading: trackingLoading, error: trackingError, refetch: refetchTracking } = useQuery({
-  queryKey: computed(() => ['sampling-repurchase-tracking', trackingParams.value]),
-  queryFn: () => fetchSamplingRepurchaseTracking(trackingParams.value),
-  enabled: computed(() => activeTab.value === 'roi'),
-  placeholderData: previousData => previousData,
-})
-
-// 3 系列配色（参考健康页 R 区间"回购率 3 年对比"）: 2026 紫 / 2025 蓝 / 2024 灰
-const TRACKING_COLORS = ['#533afd', '#60a5fa', '#94a3b8'] as const
-const TRACKING_BUCKETS = ['0-7d', '8-30d', '31-60d', '61-90d'] as const
-const trackingChartOption = computed(() => {
-  const data = trackingData.value
-  if (!data) return {}
-  const yearLabels = data.year_labels ?? ['2026年', '2025年', '2024年']
-  // 按 year_label 索引化桶数据，方便快速查找
-  const byYearBucket = new Map<string, number>()
-  for (const b of data.buckets) byYearBucket.set(`${b.year_label}|${b.bucket}`, b.users)
-  return {
-    color: [...TRACKING_COLORS],
-    grid: { left: 50, right: 24, top: 36, bottom: 36, containLabel: true },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (params: any[]) => {
-        const bucket = params[0]?.axisValueLabel ?? ''
-        const lines = [`<div class="font-semibold mb-1">回购间隔 ${bucket}</div>`]
-        for (const p of params) {
-          const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px"></span>`
-          lines.push(`<div style="display:flex;align-items:center;gap:6px;font-size:12px">${dot}<span style="color:#64748b">${p.seriesName}:</span><span style="font-weight:500;color:#0f172a">${(p.value ?? 0).toLocaleString()} 人</span></div>`)
-        }
-        return lines.join('')
-      },
-    },
-    legend: {
-      data: yearLabels,
-      top: 6,
-      right: 8,
-      icon: 'circle',
-      itemWidth: 8,
-      itemHeight: 8,
-      textStyle: { color: '#475569', fontSize: 12 },
-    },
-    xAxis: {
-      type: 'category',
-      data: [...TRACKING_BUCKETS],
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: '#475569', fontSize: 12 },
-    },
-    yAxis: {
-      type: 'value',
-      name: '人数',
-      nameTextStyle: { color: '#94a3b8', fontSize: 11 },
-      axisLine: { show: false },
-      axisLabel: { color: '#475569', fontSize: 11, formatter: (v: number) => v.toLocaleString() },
-      splitLine: { lineStyle: { color: '#f1f5f9' } },
-    },
-    series: yearLabels.map((yearLabel, idx) => ({
-      name: yearLabel,
-      type: 'bar',
-      barWidth: '20%',
-      itemStyle: { color: TRACKING_COLORS[idx] ?? TRACKING_COLORS[0]!, borderRadius: [4, 4, 0, 0] },
-      data: TRACKING_BUCKETS.map((bucket) => byYearBucket.get(`${yearLabel}|${bucket}`) ?? 0),
-    })),
-  }
-})
-// 导出图片 (复用 EChartsWrapper 暴露的 getDataURL 模式, 此处用 SVG 离屏渲染)
-const trackingChartRef = ref<{ getChartInstance: () => any; exportAsPng: (name: string) => void } | null>(null)
-function exportTrackingPng() {
-  trackingChartRef.value?.exportAsPng(`回购周期分布_3年对比_${trackingParams.value.start_date}_${trackingParams.value.end_date}`)
-}
+// ── Sprint 169 02 板块"回购周期分布" 3 年对比柱状图 (Sprint 169 micro-tweak 撤掉, bi-card 占 02 板块冗余, 恢复 Sprint 159 5 卡片架构) ──
 
 const levelLoadingStartedAt = ref<number>(0)
 const alertTick = ref(0)
@@ -730,30 +650,6 @@ onUnmounted(() => {
             class="sampling-section"
           >
             <h2 id="sampling-section-buckets" class="section-title"><span class="section-num">02</span>回购周期分布</h2>
-            <!-- Sprint 169 02 板块 3 年对比柱状图 (单柱状图, 复用健康页"回购率 3 年对比" bi-card 样式) -->
-            <div class="bi-card p-4 mb-4">
-              <div class="flex items-center justify-between mb-0.5">
-                <div>
-                  <h3 class="text-sm font-semibold text-slate-800">回购周期分布 — 3 年对比</h3>
-                  <p class="text-[11px] text-slate-500">
-                    跟顶部当前日期 + 02 滑块联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (4 桶聚合, 仅作跨年趋势对比)
-                  </p>
-                </div>
-                <div class="n-button-group" role="group">
-                  <NButton size="tiny" :bordered="false" @click="exportTrackingPng">
-                    🖼️ 导出图片
-                  </NButton>
-                </div>
-              </div>
-              <ErrorState v-if="trackingError" :message="(trackingError as Error).message" @retry="refetchTracking()" />
-              <LoadingState v-else-if="trackingLoading && !trackingData" />
-              <EChartsWrapper
-                v-else
-                ref="trackingChartRef"
-                :option="trackingChartOption"
-                height="260px"
-              />
-            </div>
             <n-grid cols="1 s:2 m:3 l:5" :x-gap="16" :y-gap="16" responsive="screen">
               <n-gi class="min-w-0">
                 <div class="sampling-overview-card">
