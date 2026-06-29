@@ -1,3 +1,33 @@
+## [0.4.14.20] - 2026-06-29 (Sprint 166 W3 DQ 2 failed 断言治本 (5 sprint false fail 治本, 跟 Sprint 165 advisory 配套, VERSION 不变))
+
+### Fixed
+- **`scripts/etl/assertions.py`** (修改, +52/-7 lines): W3 DQ 2 failed 断言治本 (Sprint 165 advisory 配套真修)
+  - **`assert_total_not_drop`** 阈值 `TOTAL_DROP_THRESHOLD = 0.3 → 0.5` (基础放宽, 抗周末/周一波动)
+  - 新增 `WEEKDAY_BOOST_FACTOR = 1.5`: 周一/二 阈值额外 ×1.5 (业务周末波动, 跑批 data_max 通常滞后 1-2 天)
+  - **`assert_540_completeness`** 改动态 channels: `expected_combos = COUNT(DISTINCT channel FROM user_rfm) × 2 metrics × 3 lookbacks`, 加容差 `RATIO_TOLERANCE = 0.10` (跟 DIM_DRIFT ±20% 同类防御, 防过度放宽)
+  - `EXPECTED_DIM_COMBOS_PER_DATE = 54` 改 deprecated 注释保留 (backward compat MVP 显式传值)
+  - 新增 `EXPECTED_LOOKBACKS = 3` / `EXPECTED_METRICS = 2` 常量
+  - `assert_540_completeness` 签名 `expected_combos: int = 54` → `expected_combos: int | None = None`, None 时走动态模式 (production 默认路径)
+  - 显式传值模式 (MVP / 测试) 仍按原逻辑, backward compat 100% (Sprint 165 baseline 723+5=728)
+
+### Added
+- **`backend/tests/test_assertions_thresholds.py`** (新文件, +216 lines, 5 case regression)
+  - Case 1: weekday-aware 阈值不报警 (周一 1000×0.5×1.5=750, 400 仍 fail, 800 pass, 非周一 450 < 500 fail 跨 sprint false fail 治本证据)
+  - Case 2: dynamic channels 容差内 8 channel × 2 × 3 = 48, 容差 10% [43, 53] pass
+  - Case 3: dynamic channels 故意低于容差 → quarantine (1 channel × 2 × 2 = 4 < 5 lower_bound, "lower_bound" + "dynamic channels=1" 验证)
+  - Case 4: backward compat 显式传 expected_combos 仍按原逻辑
+  - Case 5: 阈值常量值正确 (TOTAL_DROP_THRESHOLD=0.5, WEEKDAY_BOOST_FACTOR=1.5, RATIO_TOLERANCE=0.10, EXPECTED_LOOKBACKS=3, EXPECTED_METRICS=2, 防后续 sprint 误改)
+
+### Verification
+- `pytest backend/tests/ -m "not slow"` **733 passed / 66 skipped / 0 failed** (跟 Sprint 168 baseline 728 + 5 new case = 733, race flake L4.4 接受, 0 failed)
+- pre-push hook pytest **733/66/0 PASS** (5 case 全 PASS, 0 业务回归)
+- 0 critical / 0 informative / 0 AUTO-FIX (L4.7 100% 精准 1 turn 改, 跟 Sprint 156+157+160+161+162+163+164+165+168 stable)
+- 2 files / +268 / -7 (1 file 改 + 1 file 改, L3 精准)
+- main HEAD `c9752fd` + origin/main 0 drift (push `5dcd2fa..c9752fd` 成功)
+- L4.8 cleanup fix/sprint166-w3-dq-assertions-thresholds 分支 (本地 + 远程)
+- 累计 90→91 sprint 0 debt 持续, VERSION 0.4.14.20 累计 56 sprint 不 bump, L4.x 22 stable 0 新增
+- 跟 Sprint 165 advisory 沉淀配套, 实战 fix 模式 #41 (W3 DQ 断言阈值写死真因排查模式) 真修闭环 ✅
+
 ## [0.4.14.20] - 2026-06-29 (Sprint 168 L4.23 e2e spec drift detection script 自动化 (防 Sprint 161 治本 18 sprint 滞后 stable 模式再复发, VERSION 不变))
 
 ### Added
