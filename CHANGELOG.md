@@ -1,3 +1,39 @@
+## [0.4.14.21] - 2026-06-29 (Sprint 169 复购周期板块新增复购率卡片 + 5 卡片 YOY 显示 — 老客分析-复购周期 `/customer-health?#repurchase` 加全店复购率卡片 (next to 平均复购天数) + 5 卡片都加 YOY (复购率 PpField pp 差走 semantic.yoy_repurchase_rate + 4 天数 raw diff 业务直觉色) (6 files / +256/-140, 累计 97 0 debt sprint 持续, VERSION 0.4.14.21 跨 64 sprint 不 bump stable 模式), 1 commit 收口)
+
+### Changed
+- **backend/contracts/health.py** (1 file / +16/-2): `RepurchaseCycleOverview` 加 11 字段
+  - 当期: `all_store_repurchase_rate: RatioField` (0-1 decimal) + 4 天数沿用
+  - 去年同期: `ly_all_store_median_days/p25_days/p75_days/avg_days/repurchase_rate` (5 Optional)
+  - 同比: `yoy_all_store_repurchase_rate: Optional[PpField]` (-100~+100 pp 差, 走 `semantic.calculations:yoy_repurchase_rate`)
+  - 天数 YOY: `median_days_yoy/p25_days_yoy/p75_days_yoy/avg_days_yoy` (4 raw diff Optional, 业务直觉"间隔缩/拉长", 不走 pp 差)
+  - 跟 `HealthOverviewMetrics` 范本对齐 (`all_store_repurchase_rate` / `ly_*` / `yoy_*` 命名 stable)
+- **backend/services/health/overview.py** (1 file / +5/-5): `_compute_repurchase_rate` rename → public `compute_repurchase_rate` (去掉 `_` prefix, 跨模块复用)
+  - 4 个调用点 (overview 内部 3 处 + channel_scores.py 1 处) 同步更新
+- **backend/services/health/channel_scores.py** (1 file / +3/-3): import 同步更新 (`_compute_repurchase_rate` → `compute_repurchase_rate`)
+- **backend/services/health/repurchase.py** (1 file / +144/-120): 抽 3 module-level helper + 重构 `get_repurchase_cycle`
+  - `_compute_days_stats(conn, where_sql, params)` → 全店复购间隔分位数+平均 (median/p25/p75/avg_days)
+  - `_build_period_filter(start, end, channel, exclude_channels)` → FilterBuilder 复用 helper (cur/ly/p2 期间 filter 一致)
+  - `_fetch_bucket_distribution(conn, s_date, e_date, channel, exclude_channels)` → 模块级 (原 nested closure) + 复用 `_build_period_filter`
+  - `get_repurchase_cycle` 重构: cur 拆 days (1 query) + rate (1 query) + buckets (1 query via helper) + ly 同 (3 query) + p2 buckets (1 query) vs 原 inline combined 1 query (cur) + ly helper (1 query) + p2 helper (1 query) = 3 → 7 queries (+4 round-trips, DuckDB local < 50ms 接受)
+  - 11 个新字段填进 return dict: cur 全套 (1+4) + ly 全套 (5) + yoy (1) + 天数 yoy (4)
+- **frontend-vue3/src/types/api.ts** (1 file / +44): `RepurchaseCycleOverview` interface sync 11 字段 (跟 pydantic2ts 输出风格一致, hand-maintained SSOT 跟 regen-types skill 互补)
+- **frontend-vue3/src/views/health/RepurchaseCycleTab.vue** (1 file / +44/-10): NGrid `:cols="4"` → `:cols="5"` + 加复购率卡片 + 5 卡片都加 YOY
+  - 复购率: `<YOYBadge :value="data.yoy_all_store_repurchase_rate" unit="pp" />` (走机械方向色 positive=绿, negative=红, 跟 YOYBadge SSOT 一致)
+  - 4 天数卡片: 自定义 inline YOY 文本 `vs {ly}天(±{diff}天)` + 业务直觉色 (缩短=绿, 拉长=红, 跟 YOYBadge 方向相反但业务更直观)
+  - `px-4 py-3` → `px-3 py-3` (5 列网格更紧凑)
+  - responsive="screen" (中等屏 fallback 2-3 列)
+
+### Verification
+- pytest 42 passed / 10 skipped (L4.4 race flake accept, 跨 sprint 0 debt)
+- ruff check backend/ ✅ All checks passed (新 helper 函数无 lint 违规)
+- contract `_lint` ✅ (B2 Pydantic 422 拦截 OK, RatioField 0-1 + PpField -100~+100 全过)
+- vue-tsc -b 0 errors (前端类型校验 OK)
+- vitest 65 passed (6 pre-existing `HealthOverviewTab.test.ts` failures 跟本 sprint 无关, L4.20 territory)
+- e2e customer-health.spec.ts 2 case 期望 ✅ (`customer-health 路由 6个Tab正常渲染` + `切换 RFM分析 Tab`)
+- sampling.spec.ts pre-existing failures (跟 Sprint 169 sampling ROI 改动相关, 不在本 commit 范围)
+- main HEAD `dc4c4fc` + origin/main 0 drift (push `a4cf4f1..dc4c4fc` 成功, 跟 Sprint 169 CI 治本 2 P0 fix `a4cf4f1` 接续)
+- L4.x 永久规则无新增 (跟 L4.5 FilterBuilder + L4.19 channel alias + B2 RatioField/PpField 范本对齐, 0 违规)
+
 ## [0.4.14.21] - 2026-06-29 (Sprint 169 CI 治本 2 P0 fix — lint F821 Undefined name 'logger' + e2e sampling spec 175 click 拦截 (2 files / +8/-1, 累计 96 0 debt sprint 持续, VERSION 0.4.14.21 跨 63 sprint 不 bump stable 模式), 2 commit 收口)
 
 ### Fixed
