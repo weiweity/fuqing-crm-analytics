@@ -16,6 +16,7 @@ CLAUDE.md 合规:
 - ③ 不破坏 ETL 单例连接 (assertions.py 只读 DuckDB, 不 conn.close() 给 caller)
 """
 import json
+import math
 import sys
 from datetime import date
 from pathlib import Path
@@ -248,8 +249,9 @@ def assert_540_completeness(conn, target_date: date, expected_combos: int | None
             # user_rfm 表存在但 0 行 (冷启动), skip
             return True
         baseline = int(actual_channels) * EXPECTED_LOOKBACKS * EXPECTED_METRICS
-        # 容差 10%: 范围 [baseline × 0.9, baseline × 1.1], 防止过度放宽
-        lower_bound = int(baseline * (1 - RATIO_TOLERANCE))
+        # 容差 10%: 范围 [baseline × 0.9, baseline × 1.1], 防止过度放宽。
+        # 用 math.ceil 处理下界，避免 int() 截断导致 48 < 48.6 被当成通过。
+        lower_bound = math.ceil(baseline * (1 - RATIO_TOLERANCE))
         upper_bound = int(baseline * (1 + RATIO_TOLERANCE))
         if actual_combos < lower_bound:
             reason = (
