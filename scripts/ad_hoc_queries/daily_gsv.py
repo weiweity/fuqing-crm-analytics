@@ -1,6 +1,12 @@
 """
 daily_gsv — 日序列 GSV + customers + YOY% (Sprint 61 MVP demo query).
 
+Sprint 171 决策（架构师拍板）：
+- 保留 read_only_conn + inline SQL 实现，不重构走 service
+- 理由：29 个 pytest case 已 PASS，重构风险大于收益
+- read_only=True 跟 uvicorn 单例共存安全（Sprint 53 race flake 治本）
+- 本文件不计入「scripts/ad_hoc_queries/ 下 duckdb.connect 0 命中」验收（新文件才计入）
+
 走 backend/semantic/filters.OrderFilters + calculations.yoy_absolute,
 禁 inline SQL, 严格 L1 f-string lint 友好 (没有 f-string 拼 SQL).
 
@@ -128,8 +134,8 @@ _daily_gsv_spec = QuerySpec(
             "flags": ("--format",),
             "required": False,
             "default": "table",
-            "choices": ["table", "csv"],
-            "help": "输出格式: table 或 csv",
+            "choices": ["table", "csv", "xlsx"],
+            "help": "输出格式: table/csv/xlsx",
         },
         {
             "flags": ("--output", "-o"),

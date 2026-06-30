@@ -1,6 +1,12 @@
 """
 yoy_battle — baseline vs current 双窗口 YOY 战斗 (Sprint 61+ 第二个 query).
 
+Sprint 171 决策（架构师拍板）：
+- 保留 read_only_conn + inline SQL 实现，不重构走 service
+- 理由：29 个 pytest case 已 PASS，重构风险大于收益
+- read_only=True 跟 uvicorn 单例共存安全（Sprint 53 race flake 治本）
+- 本文件不计入「scripts/ad_hoc_queries/ 下 duckdb.connect 0 命中」验收（新文件才计入）
+
 语义: 给定 baseline + current 两个日期窗口, 输出每个 metric
        (gsv / orders / customers / aov) 的绝对值 + 差异 + 百分比.
 
@@ -194,8 +200,8 @@ _yoy_battle_spec = QuerySpec(
             "flags": ("--format",),
             "required": False,
             "default": "table",
-            "choices": ["table", "csv"],
-            "help": "输出格式: table 或 csv",
+            "choices": ["table", "csv", "xlsx"],
+            "help": "输出格式: table/csv/xlsx",
         },
         {
             "flags": ("--output", "-o"),

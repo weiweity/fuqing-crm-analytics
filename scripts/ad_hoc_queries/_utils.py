@@ -1,6 +1,12 @@
 """
 ad_hoc_queries._utils — 共享 utility 模块 (read_only DuckDB + semantic import + CSV/stdout).
 
+Sprint 171 决策（架构师拍板）：
+- 保留 read_only_conn + tmp_write_conn 等旧 MVP 工具，不重构走 service
+- 理由：旧 daily-gsv / yoy-battle / channel-slice 29 个 pytest case 已稳定
+- read_only=True 跟 uvicorn 单例共存安全（Sprint 53 race flake 治本）
+- 本文件不计入「新文件 duckdb.connect 0 命中」验收，新增 query 文件仍禁 DuckDB/inline SQL
+
 Sprint 61 MVP 范围:
 - read_only DuckDB 连接 (跟 uvicorn 共存, 跟 Sprint 53 race flake 治本同模式)
 - semantic 层导入 (filters / calculations)
@@ -19,6 +25,7 @@ import os
 import re
 import sys
 from contextlib import contextmanager
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -205,6 +212,37 @@ def _check_take_root_containment(path: Path) -> None:
         ) from exc
 
 
+def parse_exclude_channels(raw: str | None) -> list[str] | None:
+    """解析逗号分隔 exclude_channels，空值返回 None。"""
+    if not raw:
+        return None
+    values = [part.strip() for part in raw.split(",") if part.strip()]
+    return values or None
+
+
+def validate_date_window(start: str, end: str, max_days: int = 366) -> None:
+    """校验 YYYY-MM-DD 日期范围，防反向窗口和超大窗口。"""
+    start_d = datetime.strptime(start, "%Y-%m-%d").date()
+    end_d = datetime.strptime(end, "%Y-%m-%d").date()
+    if end_d < start_d:
+        raise ValueError(f"end ({end}) < start ({start})")
+    if (end_d - start_d).days > max_days:
+        raise ValueError(f"time window {(end_d - start_d).days}d > {max_days}d")
+
+
+def clamp_yoy(value: Any) -> Any:
+    """YOY 异常强截断：|v| > 1e6 视为脏数据。"""
+    if value is None:
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    if abs(v) > 1e6:
+        return None
+    return v
+
+
 def write_csv(rows: Iterable[Sequence[Any]], headers: Sequence[str], output_path: str | None = None) -> str:
     """
     写 CSV. 不传 output_path → 返 stdout 文本. 传了 → 写文件并返路径.
@@ -258,6 +296,7 @@ def build_take_path(
     base_year: int,
     date_range: str,
     file_name: str | None = None,
+    extension: str = "csv",
 ) -> Path:
     """
     按 Sprint 61+ 双层目录规则生成取数路径.
@@ -297,16 +336,17 @@ def build_take_path(
     year_layer = f"{base_year}年"
     date_layer = f"{today.year}年{today.month}月{today.day}日"
     context_layer = f"{base_year}年-{today.year}年{today.month}月{today.day}日-{safe_tag}"
+    ext = extension.lstrip(".") or "csv"
     if file_name:
         # Codex P1: sanitize 用户自定义文件名
         file_name_final = _sanitize_path_component(file_name)
-        # 强制 .csv 后缀
-        if not file_name_final.endswith(".csv"):
-            file_name_final += ".csv"
+        # 强制目标后缀
+        if not file_name_final.endswith(f".{ext}"):
+            file_name_final += f".{ext}"
     else:
         # 自动文件名, sanitize file_name part
         safe_date_range = _sanitize_path_component(date_range, max_length=50)
-        file_name_final = f"{safe_tag}-{safe_date_range}.csv"
+        file_name_final = f"{safe_tag}-{safe_date_range}.{ext}"
     return TAKE_ROOT / year_layer / date_layer / context_layer / file_name_final
 
 
@@ -315,6 +355,7 @@ def resolve_output_path(
     business_tag: str,
     base_year: int,
     date_range: str,
+    extension: str = "csv",
 ) -> str | None:
     """
     解析最终输出路径. 优先级:
@@ -332,4 +373,4 @@ def resolve_output_path(
     """
     if user_output:
         return user_output
-    return str(build_take_path(business_tag, base_year, date_range))
+    return str(build_take_path(business_tag, base_year, date_range, extension=extension))
