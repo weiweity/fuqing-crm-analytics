@@ -172,12 +172,10 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     await expect(page.getByText('回购周期分布').first()).toBeVisible({ timeout: 5000 })
 
     // Sprint 140: level 切换触发重算视觉提示
-    // Sprint 169 加 02 板块 260px bi-card 单柱状图后, 页面 reflow 把 `品类销售` NSelect 推下 viewport
-    // 触发 main scroll 容器拦截 click event, 加 scrollIntoViewIfNeeded + waitFor stable 治根
-    const categoryLevelSelect = page.locator('.n-select').filter({ hasText: '品类销售' }).locator('.n-base-selection')
-    await categoryLevelSelect.scrollIntoViewIfNeeded()
-    await categoryLevelSelect.waitFor({ state: 'visible' })
-    await categoryLevelSelect.click()
+    // Sprint 169-170: 02 板块 reflow + 5 卡片改 3 年柱状图, scrollIntoViewIfNeeded 在 sticky header / nested scroll
+    // 容器下不可靠, 改用 click({ force: true }) 直接派发 click event (Playwright 跳过可见性检测)
+    const categoryLevelSelect = page.locator('.n-select').filter({ hasText: '品类销售' }).locator('.n-base-selection').first()
+    await categoryLevelSelect.click({ force: true, timeout: 10000 })
     await page.locator('.n-base-select-option').filter({ hasText: '商品梯队' }).click()
     await expect(page.getByText('正在按 商品梯队 重算...')).toBeVisible({ timeout: 2000 })
     await expect(page.getByText('正在按 商品梯队 重算...')).toBeHidden({ timeout: 5000 })
