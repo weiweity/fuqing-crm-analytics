@@ -93,8 +93,9 @@ const trackingChartOption = computed(() => {
   if (!data) return {}
   const yearLabels = data.year_labels ?? ['2026年', '2025年', '2024年']
   // 按 year_label 索引化桶数据，方便快速查找
+  // (schema_test 模式下 backend 不返回 buckets, null guard 防 TypeError: e.buckets is not iterable)
   const byYearBucket = new Map<string, number>()
-  for (const b of data.buckets) byYearBucket.set(`${b.year_label}|${b.bucket}`, b.rate)
+  for (const b of (data.buckets ?? [])) byYearBucket.set(`${b.year_label}|${b.bucket}`, b.rate)
   return {
     color: [...TRACKING_COLORS],
     grid: { left: 50, right: 24, top: 36, bottom: 36, containLabel: true },
