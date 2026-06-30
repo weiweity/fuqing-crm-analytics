@@ -103,6 +103,16 @@ class SamplingCategoryRow(BaseModel):
     nonfull_repurchase_users: int = 0
     nonfull_repurchase_gsv: float = 0.0
     nonfull_repurchase_aus: float = 0.0
+    # Sprint 175 Q5: YOY/MOM 同比字段 (跨 sprint 复用 _add_compare_metrics 模式)
+    repurchase_users_yoy_pct: Optional[float] = None
+    repurchase_gsv_yoy_pct: Optional[float] = None
+    repurchase_rate_yoy_pp: Optional[float] = None
+    full_repurchase_users_yoy_pct: Optional[float] = None
+    full_repurchase_gsv_yoy_pct: Optional[float] = None
+    full_repurchase_rate_yoy_pp: Optional[float] = None
+    repurchase_aus_yoy_pct: Optional[float] = None
+    full_repurchase_aus_yoy_pct: Optional[float] = None
+    nonfull_repurchase_gsv_yoy_pct: Optional[float] = None
 
 
 class SamplingROITimeRange(BaseModel):

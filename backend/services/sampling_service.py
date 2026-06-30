@@ -432,7 +432,7 @@ def get_sampling_roi(
             nonfull_users = int(row[8] or 0)
             nonfull_gsv = float(row[9] or 0)
 
-            category_result.append({
+            row = {
                 'channel': DB_TO_UI.get(ch, ch),
                 'category': cat,
                 'sample_users': su,
@@ -449,7 +449,12 @@ def get_sampling_roi(
                 'nonfull_repurchase_users': nonfull_users,
                 'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
                 'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
-            })
+            }
+            # Sprint 175 Q5: 加 yoy_* 字段 (复用 _add_compare_metrics 模式)
+            compare = compare_cat_by_key.get((DB_TO_UI.get(ch, ch), cat))
+            if compare:
+                _add_compare_metrics(row, compare, compare_prefix)
+            category_result.append(row)
 
         # Sprint 154: 02 板块新增 YOY/MOM - 复用同 cat_sql 但跑 compare date range
         # compare_date_range 真值 → MOM/custom; else → YOY (auto_yoy 已在 channels_result 分支处理)

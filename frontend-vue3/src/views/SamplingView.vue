@@ -303,6 +303,16 @@ const categoryColumnsXlsx: XlsxColumn[] = [
   { header: '正装AUS', key: 'full_repurchase_aus', width: 12, numFmt: '¥#,##0' },
   { header: '同品类回购', key: 'same_category_repurchase', width: 12, numFmt: '#,##0' },
   { header: '同品类回购率', key: 'same_category_rate', width: 12, numFmt: '0.0%' },
+  // Sprint 175 Q5: YOY 列 (跨 sprint 复用 _add_compare_metrics 模式)
+  { header: '回购人数YoY', key: 'repurchase_users_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '回购GSV YoY', key: 'repurchase_gsv_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '回购率 YoY(pp)', key: 'repurchase_rate_yoy_pp', width: 12, numFmt: '+0.0;-0.0;0.0' },
+  { header: '正装回购人数YoY', key: 'full_repurchase_users_yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '正装回购GSV YoY', key: 'full_repurchase_gsv_yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '正装回购率 YoY(pp)', key: 'full_repurchase_rate_yoy_pp', width: 14, numFmt: '+0.0;-0.0;0.0' },
+  { header: 'AUS YoY', key: 'repurchase_aus_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '正装AUS YoY', key: 'full_repurchase_aus_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '非正装回购GSV YoY', key: 'nonfull_repurchase_gsv_yoy_pct', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
 ]
 
 // 排序状态: 默认按 channel (维持原顺序) + 品类 (升序)
