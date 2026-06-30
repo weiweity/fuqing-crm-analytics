@@ -320,12 +320,6 @@ def w3w4_smoke_env(temp_duckdb_path, mock_parquet_dirs, monkeypatch):
         lambda: None,
     )
 
-    # 短路 W6 通知 (避免 lark-cli 真发)
-    monkeypatch.setattr(
-        "scripts.etl.notify.notify_etl_complete",
-        lambda stats, status="success": (True, "smoke_mocked"),
-    )
-
     # 短路 _send_lark_alert (W3 内部真发会被拦)
     monkeypatch.setattr(
         "scripts.etl.assertions._send_lark_alert_mockable",
