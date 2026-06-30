@@ -12,6 +12,8 @@ import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import CohortRetentionMatrix from '@/components/cohort/CohortRetentionMatrix.vue'
 import { fetchSamplingROI, fetchSamplingLockAnalysis, fetchRollingComparison, fetchSamplingRepurchaseTracking } from '@/api/sampling'
 import type { SamplingCategoryRow, SamplingChannelSummary } from '@/api/sampling'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { useFilterStore } from '@/stores/filterStore'
 import { useFormat } from '@/composables/useFormat'
 import { useRouteHashTab } from '@/composables/useRouteHashTab'
@@ -286,6 +288,23 @@ const categoryColumns: CategoryCol[] = [
   { key: 'same_category_rate', title: '同品类回购率', align: 'center', format: r => `${((r.same_category_rate ?? 0) * 100).toFixed(1)}%` },
 ]
 
+// ── Sprint 175 Q4 XLSX 导出 (04 派样明细) ──
+const categoryColumnsXlsx: XlsxColumn[] = [
+  { header: '渠道', key: 'channel', width: 12 },
+  { header: '品类', key: 'category', width: 16 },
+  { header: '派样人数', key: 'sample_users', width: 12, numFmt: '#,##0' },
+  { header: '回购人数', key: 'repurchase_users', width: 12, numFmt: '#,##0' },
+  { header: '回购率', key: 'repurchase_rate', width: 12, numFmt: '0.0%' },
+  { header: '回购GSV', key: 'repurchase_gsv', width: 14, numFmt: '¥#,##0' },
+  { header: 'AUS', key: 'repurchase_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '正装回购人数', key: 'full_repurchase_users', width: 14, numFmt: '#,##0' },
+  { header: '正装回购率', key: 'full_repurchase_rate', width: 12, numFmt: '0.0%' },
+  { header: '正装回购GSV', key: 'full_repurchase_gsv', width: 14, numFmt: '¥#,##0' },
+  { header: '正装AUS', key: 'full_repurchase_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '同品类回购', key: 'same_category_repurchase', width: 12, numFmt: '#,##0' },
+  { header: '同品类回购率', key: 'same_category_rate', width: 12, numFmt: '0.0%' },
+]
+
 // 排序状态: 默认按 channel (维持原顺序) + 品类 (升序)
 const detailSortKey = ref<keyof SamplingCategoryRow>('category')
 const detailSortOrder = ref<'asc' | 'desc'>('asc')
@@ -548,6 +567,21 @@ onUnmounted(() => {
     debounceTimer = null
   }
 })
+
+// ── Sprint 175 Q4 XLSX 导出 (lock + rolling tab) ──
+const lockColumnsXlsx: XlsxColumn[] = [
+  { header: '指标', key: 'metric', width: 14 },
+  { header: `${campaignYear.value}年`, key: 'current', width: 14 },
+  { header: `${campaignYear.value - 1}年`, key: 'lastYear', width: 14 },
+  { header: 'YoY', key: 'yoy', width: 12 },
+]
+
+const rollingColumnsXlsx: XlsxColumn[] = [
+  { header: '指标', key: 'metric', width: 14 },
+  { header: '2026年', key: 'yearA', width: 14 },
+  { header: '2025年(对齐)', key: 'yearB', width: 14 },
+  { header: 'YoY', key: 'yoy', width: 12 },
+]
 </script>
 
 <template>
@@ -911,7 +945,15 @@ onUnmounted(() => {
           <h2 id="sampling-section-detail" class="section-title"><span class="section-num">04</span>派样明细</h2>
           <n-card :bordered="false" segmented>
             <template #header>
-              <span class="card-title">按 {{ levelLabel }} 明细</span>
+              <div class="flex items-center gap-3">
+                <span class="card-title">按 {{ levelLabel }} 明细</span>
+                <ExportToolbar
+                  :filename="`派样明细_${levelLabel}`"
+                  :columns="categoryColumnsXlsx"
+                  :data="sortedCategoryRows as any[]"
+                  sheet-name="派样明细"
+                />
+              </div>
             </template>
             <div class="overflow-x-auto">
               <table class="w-full text-sm border-collapse">
@@ -1044,9 +1086,15 @@ onUnmounted(() => {
           <!-- YoY对比表 -->
           <n-card :bordered="false" segmented class="mb-6">
             <template #header>
-              <span class="text-sm font-semibold text-slate-700">
-                同期对比: {{ campaignYear }} vs {{ campaignYear - 1 }}
-              </span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm font-semibold text-slate-700">同期对比: {{ campaignYear }} vs {{ campaignYear - 1 }}</span>
+                <ExportToolbar
+                  :filename="`派样_lock分析_${campaignYear}vs${campaignYear-1}`"
+                  :columns="lockColumnsXlsx"
+                  :data="lockMetricRows as any[]"
+                  sheet-name="LockYoY对比"
+                />
+              </div>
             </template>
             <n-data-table
               :columns="lockCols"
@@ -1217,12 +1265,15 @@ onUnmounted(() => {
           <!-- YoY 对比表 -->
           <n-card :bordered="false" segmented class="mb-6">
             <template #header>
-              <span class="text-sm font-semibold text-slate-700">
-                同期对比: 2026 vs 2025（自动对齐）
-                <span class="ml-2 text-xs font-normal" :class="rollingData.year_a.phase === 'conversion' ? 'text-purple-500' : 'text-amber-500'">
-                  {{ rollingData.year_a.phase === 'conversion' ? '▸ 转化期' : '▸ 派样期' }}
-                </span>
-              </span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm font-semibold text-slate-700">同期对比: 2026 vs 2025（自动对齐）<span class="ml-2 text-xs font-normal" :class="rollingData.year_a.phase === 'conversion' ? 'text-purple-500' : 'text-amber-500'">{{ rollingData.year_a.phase === 'conversion' ? '▸ 转化期' : '▸ 派样期' }}</span></span>
+                <ExportToolbar
+                  :filename="`派样_rolling对比_2026vs2025`"
+                  :columns="rollingColumnsXlsx"
+                  :data="rollingMetricRows as any[]"
+                  sheet-name="Rolling同期对比"
+                />
+              </div>
             </template>
             <n-data-table
               :columns="rollingCols"
