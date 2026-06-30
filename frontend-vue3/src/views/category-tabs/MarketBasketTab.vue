@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, h, ref, toValue, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NTooltip, NSelect, NInputNumber, NButton } from 'naive-ui'
+import { NTooltip, NSelect, NInputNumber } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchMarketBasket } from '@/api/category'
 import { exportSheetToXlsx } from '@/utils/exportXlsx'
+import BaseStyleButton from '@/components/BaseStyleButton.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -517,13 +518,13 @@ const METRIC_TIPS = {
               style="width: 90px"
               placeholder="0"
             />
-            <NButton size="tiny" @click="handleExport">📊 导出Excel</NButton>
-            <button
-              class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+            <BaseStyleButton mode="neutral" @click="handleExport">导出Excel</BaseStyleButton>
+            <BaseStyleButton
+              :mode="showDetail ? 'collapse' : 'expand'"
               @click="showDetail = !showDetail"
             >
-              {{ showDetail ? '← 收起详情' : '显示详情 →' }}
-            </button>
+              {{ showDetail ? '收起详情' : '显示详情' }}
+            </BaseStyleButton>
           </div>
         </div>
 

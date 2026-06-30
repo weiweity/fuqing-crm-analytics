@@ -2,6 +2,7 @@
 import { computed, toValue, h, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
+import BaseStyleButton from '@/components/BaseStyleButton.vue'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import {
@@ -613,12 +614,12 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
             <div class="bi-card p-4">
               <div class="flex items-center justify-between mb-0.5">
                 <h3 class="text-sm font-semibold text-slate-800">单品概览 — 全店</h3>
-                <button
-                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                <BaseStyleButton
+                  :mode="showDetailAll ? 'collapse' : 'expand'"
                   @click="showDetailAll = !showDetailAll"
                 >
-                  {{ showDetailAll ? '← 收起详情' : '显示详情 →' }}
-                </button>
+                  {{ showDetailAll ? '收起详情' : '显示详情' }}
+                </BaseStyleButton>
               </div>
               <p class="text-[11px] text-slate-500 mb-3">
                 {{ showDetailAll ? '全量指标：GSV / 人数 / AUS / 占比 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
@@ -653,12 +654,12 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
             <div class="bi-card p-4">
               <div class="flex items-center justify-between mb-0.5">
                 <h3 class="text-sm font-semibold text-slate-800">单品概览 — 会员</h3>
-                <button
-                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                <BaseStyleButton
+                  :mode="showDetailMember ? 'collapse' : 'expand'"
                   @click="showDetailMember = !showDetailMember"
                 >
-                  {{ showDetailMember ? '← 收起详情' : '显示详情 →' }}
-                </button>
+                  {{ showDetailMember ? '收起详情' : '显示详情' }}
+                </BaseStyleButton>
               </div>
               <p class="text-[11px] text-slate-500 mb-3">
                 {{ showDetailMember ? '全量指标：GSV / 会员占比 / 人数 / AUS 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
