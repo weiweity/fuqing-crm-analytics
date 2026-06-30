@@ -155,10 +155,27 @@ export function getPeriodDateRange(type: PeriodType): [string, string] | null {
       const day = today.getDay() || 7 // 周日=7
       const start = new Date(today)
       start.setDate(today.getDate() - day + 1) // 周一
+      // Sprint 173 真业务 fix: 周一打开 WTD 时 (start=today > yesterday=昨天) → 上周完整周
+      // 根因: 每周一打开 App, 本周还没数据 (周日是昨天周一还没数据)
+      if (start > yesterday) {
+        const lastWeekStart = new Date(start)
+        lastWeekStart.setDate(start.getDate() - 7)
+        const lastWeekEnd = new Date(start)
+        lastWeekEnd.setDate(start.getDate() - 1)
+        return [fmt(lastWeekStart), fmt(lastWeekEnd)]
+      }
       return [fmt(start), fmt(yesterday)]
     }
     case 'MTD': {
       const start = new Date(year, month, 1)
+      // Sprint 173 真业务 fix: 月初 1 号打开 MTD 时 (start=本月1 > yesterday=上月最后一天) → 上月完整月
+      // 根因: 每月 1 号打开 App, 本月还没数据 (昨天=上月最后一天)
+      // Q1=C 用户拍板: 周期完整才切 (本月无数据 → fallback 上月完整月)
+      if (start > yesterday) {
+        const lastMonthStart = new Date(year, month - 1, 1)
+        const lastMonthEnd = new Date(year, month, 0) // 月末 = 下月 0 号 = 上月最后一天
+        return [fmt(lastMonthStart), fmt(lastMonthEnd)]
+      }
       return [fmt(start), fmt(yesterday)]
     }
     case 'YTD': {
