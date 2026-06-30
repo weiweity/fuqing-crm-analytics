@@ -50,3 +50,12 @@ python3 -m pytest backend/tests/test_check_remaining_tasks.py -v
 - 12 sprint 0 debt: Sprint 56+60+60.1+60.1.1+60.2+61+62+62.5+63+64+65+66 (Sprint 66 收口日 2026-06-22)
 - + Sprint 67+68 留尾治理 (1 commit 0 debt, 2026-06-23)
 - = **14 sprint 0 debt 累计**
+
+## Sprint 169-171 收口沉淀（2026-06-30）
+
+- **Sprint 169 02 板块回购周期分布率最终收口**: `memories/project_fuqing_crm_analytics_sprint169_close.md`
+- **Sprint 170 RFM 8 象限 → R 6 桶业务口径变更**: 跨 11 service 同步 `backend/semantic/segments.py:R_SEGMENT_ORDER` 公共 SSOT
+- **Sprint 171 ad-hoc-query v2.0 升级** + **CI 治本**: `memories/project_fuqing_crm_analytics_document_release_v0_4_14_22.md` + `memories/project_fuqing_crm_analytics_cleanup_2026_06_30.md` + `memories/project_fuqing_crm_analytics_sprint169_third_agent_handoff_resolved.md`
+- **新 `/ad-hoc-query` skill v2.0**: `~/.claude/skills/ad-hoc-query/SKILL.md`（391 行，9 子命令规格）
+- **WorkBuddy skill 同步**: `~/.workbuddy/skills/ad-hoc-query/SKILL.md`（16468 bytes）
+- **实战 fix 模式 #46-52 沉淀**: 公共 SSOT 复用 / 字段全链路 rename / Codex 协作 handoff 模式 / 改 README 引用顺序 / Codex UI sidebar dangling commit 教训 / CI 红 ≠ selector 问题

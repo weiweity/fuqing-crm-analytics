@@ -58,7 +58,7 @@ fuqing-crm-analytics/docs/
 | 改 contract ratio 字段 | `development/ratio-convention.md` |
 | 排查 CI 失败 | `operating/ci-defense-playbook.md` + `operating/ci-e2e-history.md` |
 | 启动 uvicorn 后端 | `operating/launchd-uvicorn.md` (Sprint 62 P3 launchd 守护, kill 自动重启) |
-| 即席查询 GSV / YOY / 渠道 | `/ad-hoc-query` skill (Sprint 62 3 子命令 daily-gsv / yoy-battle / channel-slice) |
+| 即席查询 GSV / YOY / 渠道 / 两年对比 / 新老客 / R 区间复购 / Excel 多 sheet / 自然语言 ask 路由 | `/ad-hoc-query` skill (**Sprint 171 v2.0** 9 子命令 two-year-overview / new-old-customer / rfm-repurchase / top-n / export-excel / dq-report / ask, 三端兼容 Claude Code + CodeBuddy CLI + WorkBuddy, 跟 backend service 复用口径, 直接 import 不直连 DuckDB) |
 | 看历史 sprint | `history/SPRINT_INDEX.md` (高密度索引) |
 | 状态总览 (版本/测试/debt) | `STATUS.md` (项目根, 单一 source of truth) |
 | data/ 目录布局 | `data/data-layout.md` (cache/exports/parquet/processed/raw) |
