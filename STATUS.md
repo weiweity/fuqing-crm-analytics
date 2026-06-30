@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口: 7 个新子命令 two-year-overview / new-old-customer / rfm-repurchase / top-n / export-excel / dq-report / ask + 旧 3 MVP 保留 + XLSX 视觉 SSOT + 18 case pytest + 防串台硬规则 + R 6 桶真实 SSOT + codegraph 教训沉淀, pytest **813 passed / 72 skipped / 0 failed** (Sprint 169/170 baseline 795 + Sprint 171 新增 18 case), main HEAD `fbac406` + origin/main 0 drift 待 push, 累计 99→100 sprint 0 debt (+1: Sprint 171 闭环), VERSION 0.4.14.22 不变 (Sprint 171 是 CLI 工具, 不影响 VERSION), 配合 WorkBuddy AI 问数使用 (Codex 协作 handoff 走 AGENTS.md 自动注入))
+**最后更新**: 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口 + Sprint 171 CI 治本 3 commit + /document-release 沉淀 + 3 处 doc drift 治理. pytest **813 passed / 72 skipped / 0 failed** (Sprint 169/170 baseline 795 + Sprint 171 新增 18 case), main HEAD `bbb7131` + origin/main 0 drift (已 push), 累计 100 sprint 0 debt (Sprint 171 闭环 +1, 跨 Sprint 60+ 0 debt stable), VERSION 0.4.14.22 不变 (Sprint 171 是 CLI 工具 + CI 治本, 不改 contract), L4.x 23 stable + 2 候选 (codegraph 实证 + 防串台字段前缀分离, Sprint 172 评估), 实战 fix 模式 #46-#53 累计 8 模式沉淀 (含「跨 sprint doc drift 4 head 对齐 SOP」). 当前状态: CI 4/4 jobs 全绿 + wt-main-active 跟 main 同步 + codegraph 已同步 + .ship-audit.log 完整)
 
 ---
 

@@ -42,6 +42,9 @@ fuqing-crm-analytics/docs/
 ├── history/                           [历史归档]
 │   └── SPRINT_INDEX.md               (Sprint 1-66 索引, 27+ memory file 入口)
 │
+├── maintenance/                       [新开发者维护指南]
+│   └── BOOTSTRAP.md                  (Sprint 68 收口, 新开发者 clone 后必读 + L4.12 留尾 SSOT 治理)
+│
 └── sprints/                           [Sprint handoff 临时 / 归档]
     └── archive/                      (已收口 sprint 的 Codex handoff 归档)
 ```

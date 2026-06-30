@@ -234,3 +234,37 @@
 
 - **L4.23 永久规则适配**: 业务口径变更 9 文件交叉改, 跟 Sprint 161 e2e spec drift 治根模式 consistent (UI + contract + SQL + service 4 层同步)
 - **后续**: Sprint 170 close memory 标注 Sprint 142 advisory 已 superseded, 累计 sprint 治理 +1
+
+---
+
+## SSOT 引用指南（2026-06-30 Sprint 171 加）
+
+### R 6 桶公共 SSOT
+
+- **`backend/semantic/segments.py:R_SEGMENT_ORDER`** — 7 项公共 SSOT（含 1 项 TTL 汇总），跨 11 service 复用
+- **`backend/semantic/segments.py:R_INTERVALS`** — 6 桶天数边界（`(name, start_day, end_day)`），跟 R_SEGMENT_ORDER 1:1 对应
+- **天数边界**（Sprint 170 拍板）：
+  - `近1个月已购客`: 0-30 天
+  - `近2-3个月已购客`: 31-90 天
+  - `近4-6月已购客`: 91-180 天
+  - `近7-12个月已购客`: 181-365 天
+  - `近13个月-近24个月已购客`: 366-730 天
+  - `2年外已购客`: 731+ 天
+  - `已购客TTL`: 汇总（不算桶）
+
+### 跨文档引用本 SSOT
+
+- `scripts/ad_hoc_queries/rfm_repurchase.py` — ad-hoc-query `rfm-repurchase` 子命令
+- `scripts/ad_hoc_queries/dq_report.py` — 引用做 dq 校验
+- `scripts/ad_hoc_queries/export_excel.py` — Sheet 04 / Sheet 08 装配
+- `docs/development/services.md` — R_SEGMENT_ORDER 跨 service 复用说明
+- `docs/maintenance/BOOTSTRAP.md` — Sprint 170 沉淀指针
+- `~/.claude/skills/ad-hoc-query/SKILL.md` — Skill v2.0 spec 引用 R_SEGMENT_ORDER
+- `CHANGELOG.md` — Sprint 170 R 8→R 6 桶业务口径变更 entry
+
+### 修改 SSOT 的 SOP（L4.x 永久规则配套）
+
+1. **改前**：跑 `codegraph_search "R_SEGMENT_ORDER"` 找到所有调用方
+2. **改中**：同步改 segments.py + 11 service 引用 + ad-hoc-query 子命令 + skill SKILL.md + 4 doc head
+3. **改后**：跑 pytest 813/72/0 + 跑 ad-hoc-query `rfm-repurchase` smoke test + 跑 dq-report 校验
+4. **归档**：在 RFM_DEFINITIONS.md "SSOT 引用指南" 段更新引用列表

@@ -27,7 +27,21 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.22（main @ fbac406 Sprint 161-170 跨 sprint 治理收口 + Sprint 169 复购周期分布率最终化 + Sprint 170 RFM 8→R 6 桶 + 2026-06-30 项目清理 + Sprint 171 ad-hoc-query v2.0 升级（两年对比分析模式 9 子命令 + AI 问数 + Excel 多 sheet + 防串台硬规则 + codegraph 教训）收口, pytest baseline 813/72/0（795 + 18 Sprint 171 case）, 累计 100 sprint 0 debt, L4.x 23 stable + 2 候选 (codegraph 实证 + 防串台字段前缀), VERSION 累计 66 sprint 不 bump 后 bump 持续） |
+| 4 | **版本状态** | v0.4.14.22（main @ bbb7131 Sprint 161-171 跨 sprint 治理收口 + Sprint 169 复购周期分布率最终化 + Sprint 170 RFM 8→R 6 桶 + Sprint 171 ad-hoc-query v2.0 升级（9 子命令 + AI 问数 + Excel 多 sheet + 防串台硬规则 + codegraph 教训）+ Sprint 171 CI 治本 3 commit + 3 处 doc drift 治理收口, pytest baseline 813/72/0（795 + 18 Sprint 171 case）, 累计 100 sprint 0 debt, L4.x 23 stable + **2 候选 (codegraph 实证 + 防串台字段前缀分离, Sprint 172 评估)**, VERSION 累计 66 sprint 不 bump 后 bump 持续） |
+
+**L4.24 候选: codegraph 实证 SOP**（Sprint 171 真业务触发，跨 sprint v1 R 6 桶脑补错误治根）
+1. **触发**：任何业务规格/文档/spec 涉及业务口径（RFM / R 区间 / 字段名 / 阈值 / 桶边界）
+2. **强制实证**：写前必跑 `mcp__codegraph__codegraph_search "<关键字段>"` + `git grep` 验证实际代码
+3. **禁止脑补**：禁止凭 memory / sprint close memory 推断业务口径。SSOT 永远在代码里
+4. **反例**（Sprint 171 v1 R 6 桶边界）：架构师凭 MEMORY.md 写 `R1=0-7 / R2=8-30 / ...` 实际 `R_INTERVALS` 是 `0-30 / 31-90 / 91-180 / 181-365 / 366-730 / 731+`，v1 SPEC 跟代码不符 → Codex STOP → 浪费 1 turn
+5. **配套**：跟 L4.20 SSOT 反漂移永久规则配套
+
+**L4.25 候选: 防串台字段前缀分离 SOP**（Sprint 171 真业务触发，新老客 vs R 区间 vs 渠道多维度交叉输出）
+1. **触发**：多维度交叉业务输出 XLSX/CSV/JSON 给业务组（同一份文件含新老客 + R 区间 + 渠道）
+2. **强制分离**：每个 sheet / dimension 用专属字段前缀（`new_*/old_*/member_*/all_*` + `r_seg_*` + `channel_*`），禁裸 `gsv`/`users`/`aus` 字段名
+3. **Service 独立调用**：每个 sheet 调独立 service 函数，不复用中间 dict（防数据污染）
+4. **校验**：grep `_gsv\b` 在 export_excel.py 里 0 命中裸字段
+5. **配套**：跟 L4.5 FilterBuilder + L4.19 channel alias 永久规则配套 |
 | 5 | **认证** | `.env` 中 `FQ_CRM_PASSWORDS` 配置密码，未配置时自动生成 |
 | 6 | **API 文档** | `/docs`、`/redoc` 不需要认证 |
 
