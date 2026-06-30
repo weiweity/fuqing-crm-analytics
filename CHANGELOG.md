@@ -1,3 +1,26 @@
+## [0.4.14.21] - 2026-06-30 (Sprint 169 02 板块回购周期分布率最终收口 — 人数→分布率 + worktree uvicorn 脚本 + 2 个预存在 test fix (9 files / +136/-59, 累计 99 0 debt sprint 持续, VERSION 0.4.14.21 跨 66 sprint 不 bump stable 模式), merge commit 收口)
+
+### Changed
+- **backend/services/sampling_service.py + backend/contracts/sampling.py + frontend-vue3/src/views/SamplingView.vue + frontend-vue3/src/api/sampling.ts + frontend-vue3/src/api/types.ts + backend/tests/test_sampling_repurchase_tracking.py**: 02 板块"回购周期分布"从人数改为"回购周期分布率" = 派样回购正装人数 / 派样人数
+  - `get_sampling_repurchase_tracking` 返回 `rate: RatioField` (0-1 decimal) 替代 `users`
+  - 新增 `only_full` 参数，`spu_type = '正装'` 过滤正装回购
+  - 单独查询 `sample_users_count` 保证 0 回购时仍返回正确分母
+  - 前端柱状图 Y 轴/提示/tooltip 全部显示百分比
+  - 3 年对比只跟顶部主导航日期联动，固定 90 天回购窗口，取消 02 内部 7-90 天滑块联动
+
+### Added
+- **scripts/dev/start-uvicorn-from-worktree.sh**: 统一 worktree 启动脚本，自动同步主仓库 `.env` 并从 worktree 目录启动 uvicorn，避免 Python cwd 优先级导致加载旧代码
+
+### Fixed
+- **scripts/etl/assertions.py**: `assert_540_completeness` 下界用 `math.ceil`，避免 `int()` 截断导致缺失 channel 漏报
+- **backend/tests/test_w3w4_pipeline_smoke.py**: 移除 Sprint 164 飞书解耦后失效的 `scripts.etl.notify` monkeypatch
+
+### Verification
+- pytest 795 passed / 72 skipped / 0 failed
+- contract `_lint` ✅
+- ruff check backend/ ✅
+- main HEAD `7b35c53` + origin/main 0 drift (push `6a52f0d..7b35c53` 成功)
+
 ## [0.4.14.21] - 2026-06-29 (Sprint 169 02 板块回购周期分布调整 — 只保留 3 年对比柱状图，移除 5 卡片 (user 反馈之前做反了) (1 file / +105/-131, 累计 99 0 debt sprint 持续, VERSION 0.4.14.21 跨 65 sprint 不 bump stable 模式), 1 commit 收口)
 
 ### Changed
