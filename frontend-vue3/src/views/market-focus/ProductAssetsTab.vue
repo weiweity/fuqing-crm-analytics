@@ -6,6 +6,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import LineChart from '@/components/LineChart.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 
 const props = defineProps<{ weeks: number }>()
 
@@ -149,6 +151,23 @@ function rowBg(isChange: boolean, isYoy: boolean, idx: number): string {
   if (isYoy) return 'bg-amber-50/50'
   return idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'
 }
+
+// ── Sprint 175 Q3 XLSX 导出 ──
+const productAssetsXlsxColumns = computed<XlsxColumn[]>(() => {
+  const cols: XlsxColumn[] = [{ header: '时间', key: 'week_label', width: 16 }]
+  const products = weeklyData.value?.products ?? []
+  for (const product of products) {
+    for (const col of productSubColumns) {
+      cols.push({
+        header: `${product.name}-${col.label}`,
+        key: `${product.name}_${col.key}`,
+        width: 14,
+        numFmt: '#,##0',
+      })
+    }
+  }
+  return cols
+})
 </script>
 
 <template>
@@ -172,6 +191,14 @@ function rowBg(isChange: boolean, isYoy: boolean, idx: number): string {
         />
       </div>
 
+      <div class="flex items-center justify-end mb-2">
+        <ExportToolbar
+          :filename="`单品资产_周维度_${props.weeks}周`"
+          :columns="productAssetsXlsxColumns"
+          :data="wideTable as any[]"
+          sheet-name="单品资产周维度"
+        />
+      </div>
       <div class="overflow-x-auto rounded-lg border border-slate-200">
         <table class="w-full text-sm">
         <thead>
