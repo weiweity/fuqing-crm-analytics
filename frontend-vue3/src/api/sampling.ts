@@ -77,6 +77,16 @@ export interface SamplingCategoryRow {
   nonfull_repurchase_users: number
   nonfull_repurchase_gsv: number
   nonfull_repurchase_aus: number
+  // Sprint 175 Q5: YOY/MOM 同比字段 (backend service 已 fetch, frontend 暴露)
+  repurchase_users_yoy_pct?: number | null
+  repurchase_gsv_yoy_pct?: number | null
+  repurchase_rate_yoy_pp?: number | null
+  full_repurchase_users_yoy_pct?: number | null
+  full_repurchase_gsv_yoy_pct?: number | null
+  full_repurchase_rate_yoy_pp?: number | null
+  repurchase_aus_yoy_pct?: number | null
+  full_repurchase_aus_yoy_pct?: number | null
+  nonfull_repurchase_gsv_yoy_pct?: number | null
 }
 
 // ── 时间范围 ──

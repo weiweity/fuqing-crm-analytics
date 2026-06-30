@@ -419,71 +419,7 @@ def get_sampling_roi(
         cat_params = sample_params + [window_days]
         cat_rows = conn.execute(cat_sql, cat_params).fetchall()
 
-        category_result = []
-        for row in cat_rows:
-            ch = row[0]
-            cat = row[1]
-            su = int(row[2] or 0)
-            ru = int(row[3] or 0)
-            gsv = float(row[4] or 0)
-            same = int(row[5] or 0)
-            full_users = int(row[6] or 0)
-            full_gsv = float(row[7] or 0)
-            nonfull_users = int(row[8] or 0)
-            nonfull_gsv = float(row[9] or 0)
-
-            category_result.append({
-                'channel': DB_TO_UI.get(ch, ch),
-                'category': cat,
-                'sample_users': su,
-                'repurchase_users': ru,
-                'repurchase_rate': round(safe_ratio(ru, su), 4),
-                'repurchase_gsv': round(gsv, 2),
-                'repurchase_aus': round(safe_ratio(gsv, ru), 2),
-                'same_category_repurchase': same,
-                'same_category_rate': round(safe_ratio(same, su), 4),
-                'full_repurchase_users': full_users,
-                'full_repurchase_rate': round(safe_ratio(full_users, su), 4),
-                'full_repurchase_gsv': round(full_gsv, 2),
-                'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
-                'nonfull_repurchase_users': nonfull_users,
-                'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
-                'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
-            })
-
-        # Sprint 154: 02 板块新增 YOY/MOM - 复用同 cat_sql 但跑 compare date range
-        # compare_date_range 真值 → MOM/custom; else → YOY (auto_yoy 已在 channels_result 分支处理)
-        if compare_date_range:
-            cmp_start, cmp_end = compare_date_range
-            compare_prefix = 'mom'
-        else:
-            cmp_start, cmp_end = _shift_date_range_year(start_date, end_date)
-            compare_prefix = 'yoy'
-        compare_cat_sql = cat_sql
-        compare_cat_params = list(db_channels) + [cmp_start, cmp_end, window_days]
-        compare_cat_rows = conn.execute(compare_cat_sql, compare_cat_params).fetchall()
-        compare_cat_by_key: Dict[Tuple[str, str], Dict[str, Any]] = {}
-        for row in compare_cat_rows:
-            ch_db = row[0]
-            cat = row[1]
-            su_c = int(row[2] or 0)
-            ru_c = int(row[3] or 0)
-            gsv_c = float(row[4] or 0)
-            full_users_c = int(row[6] or 0)
-            full_gsv_c = float(row[7] or 0)
-            nonfull_gsv_c = float(row[9] or 0)
-            compare_cat_by_key[(DB_TO_UI.get(ch_db, ch_db), cat)] = {
-                'repurchase_users': ru_c,
-                'repurchase_rate': round(safe_ratio(ru_c, su_c), 4),
-                'repurchase_gsv': round(gsv_c, 2),
-                'repurchase_aus': round(safe_ratio(gsv_c, ru_c), 2),
-                'full_repurchase_users': full_users_c,
-                'full_repurchase_rate': round(safe_ratio(full_users_c, su_c), 4),
-                'full_repurchase_gsv': round(full_gsv_c, 2),
-                'full_repurchase_aus': round(safe_ratio(full_gsv_c, full_users_c), 2),
-                'nonfull_repurchase_gsv': round(nonfull_gsv_c, 2),
-            }
-
+        # Sprint 175 Q5 bugfix: compare_cat_by_key 必须在主循环前初始化
         # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
         total_posize_gsv = sum(c.get('full_repurchase_gsv', 0) for c in channels_result)
         total_gsv = sum(c.get('repurchase_gsv', 0) for c in channels_result)
