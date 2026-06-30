@@ -17,6 +17,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import { useRouteHashTab } from '@/composables/useRouteHashTab'
 
@@ -245,6 +247,21 @@ const matrixTableData = computed(() => {
 function formatCurrency(value: number) {
   return `¥${(value / 10000).toFixed(1)}万`
 }
+
+// ── Sprint 174 XLSX 导出 (Q3) ──
+const geoDistributionXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '省份', key: 'name', width: 12 },
+  { header: 'GMV', key: 'gmv', width: 14, numFmt: '¥#,##0' },
+  { header: '用户数', key: 'user_count', width: 12, numFmt: '#,##0' },
+  { header: 'GMV占比', key: 'gmv_ratio', width: 12, numFmt: '0.0%' },
+])
+const geoMatrixXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '省份', key: 'name', width: 12 },
+  { header: 'GMV', key: 'gmv', width: 14, numFmt: '¥#,##0' },
+  { header: '用户数', key: 'user_count', width: 12, numFmt: '#,##0' },
+  { header: '矩阵象限', key: 'quadrant', width: 12 },
+])
+const exportFilenamePrefix = computed(() => `地域分析_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`)
 </script>
 
 <template>
@@ -286,6 +303,14 @@ function formatCurrency(value: number) {
       <n-tabs v-model:value="activeTab" type="line" animated>
         <n-tab-pane name="distribution" tab="省份分布">
           <div class="space-y-5 mt-3">
+            <div class="flex items-center justify-end">
+              <ExportToolbar
+                :filename="`${exportFilenamePrefix}_省份分布`"
+                :columns="geoDistributionXlsxColumns"
+                :data="(distributionData?.distribution ?? []) as any[]"
+                sheet-name="省份分布"
+              />
+            </div>
             <ErrorState
               v-if="distributionError"
               :message="(distributionError as Error).message"
@@ -306,6 +331,14 @@ function formatCurrency(value: number) {
 
         <n-tab-pane name="matrix" tab="地域-象限矩阵">
           <div class="mt-3">
+            <div class="flex items-center justify-end">
+              <ExportToolbar
+                :filename="`${exportFilenamePrefix}_矩阵`"
+                :columns="geoMatrixXlsxColumns"
+                :data="(matrixTableData ?? []) as any[]"
+                sheet-name="矩阵"
+              />
+            </div>
             <ErrorState
               v-if="matrixError"
               :message="(matrixError as Error).message"

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, toValue, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NGrid, NGi, NDataTable, NTag, NButton } from 'naive-ui'
-import { exportToCsv } from '@/utils/export'
+import { NGrid, NGi, NDataTable, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchNewCustomerConversion } from '@/api/health'
 import LoadingState from '@/components/LoadingState.vue'
@@ -53,24 +54,6 @@ const funnelOption = computed(() => {
   }
 })
 
-function exportChannels() {
-  if (!data.value?.channel_quality) return
-  const rows = data.value.channel_quality.map((r: any) => [
-    r.channel,
-    r.first_purchase_users,
-    `¥${r.first_purchase_aus}`,
-    `${(r.day30_repurchase_rate * 100).toFixed(1)}%`,
-    `${(r.day90_repurchase_rate * 100).toFixed(1)}%`,
-    r.quality_score,
-    r.quality_grade,
-  ])
-  exportToCsv(
-    `新客转化_${filterStore.dateRange[1]}`,
-    ['渠道', '首购人数', '首购客单价', '30日复购率', '90日复购率', '质量分', '评级'],
-    rows,
-  )
-}
-
 const channelColumns: DataTableColumns<any> = [
   { title: '渠道', key: 'channel' },
   { title: '首购人数', key: 'first_purchase_users', align: 'right' },
@@ -91,6 +74,17 @@ const channelColumns: DataTableColumns<any> = [
     },
   },
 ]
+
+// ── Sprint 174 XLSX 导出 (Q3, 替换旧 exportToCsv) ──
+const newCustomerXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '渠道', key: 'channel', width: 14 },
+  { header: '首购人数', key: 'first_purchase_users', width: 14, numFmt: '#,##0' },
+  { header: '首购客单价', key: 'first_purchase_aus', width: 14, numFmt: '¥#,##0' },
+  { header: '30日复购率', key: 'day30_repurchase_rate', width: 14, numFmt: '0.0%' },
+  { header: '90日复购率', key: 'day90_repurchase_rate', width: 14, numFmt: '0.0%' },
+  { header: '质量分', key: 'quality_score', width: 12, numFmt: '0.0' },
+  { header: '评级', key: 'quality_grade', width: 10 },
+])
 </script>
 
 <template>
@@ -110,7 +104,12 @@ const channelColumns: DataTableColumns<any> = [
           <div class="bi-card p-4">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-semibold text-slate-700">分渠道新客质量</h3>
-              <NButton size="tiny" @click="exportChannels">导出CSV</NButton>
+              <ExportToolbar
+                :filename="`新客转化_${filterStore.dateRange[1]}`"
+                :columns="newCustomerXlsxColumns"
+                :data="(data?.channel_quality ?? []) as any[]"
+                sheet-name="新客转化"
+              />
             </div>
             <NDataTable
               :columns="channelColumns"

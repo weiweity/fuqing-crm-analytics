@@ -53,6 +53,14 @@
       </div>
 
       <div class="table-wrap">
+        <div class="flex items-center justify-end mb-2">
+          <ExportToolbar
+            :filename="`RFM品类明细_${rfmSegment ?? 'all'}_${yearLabel}`"
+            :columns="drilldownXlsxColumns"
+            :data="(displayRows ?? []) as any[]"
+            sheet-name="RFM品类明细"
+          />
+        </div>
         <div class="table-scroll-wrap">
           <DataTablePro :columns="tableColumns" :data="displayRows" :pagination="false" :scroll-x="780" />
         </div>
@@ -87,6 +95,8 @@ import YOYGuard from '@/components/YOYGuard.vue'
 // 用于空白区域点击：获取 ECharts 实例进行坐标转换
 const chartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { fetchRFMCategoryDrilldown, type RFMCategoryDrilldownResponse } from '@/api/health'
 import { useFilterStore } from '@/stores/filterStore'
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
@@ -301,6 +311,15 @@ watch(
     if (newSegment) load()
   },
 )
+
+// ── Sprint 174 XLSX 导出 (Q3) ──
+const drilldownXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '品类', key: 'category_name', width: 14 },
+  { header: '历史人数', key: 'hist_users_current', width: 14, numFmt: '#,##0' },
+  { header: '复购人数', key: 'repurchase_users_current', width: 14, numFmt: '#,##0' },
+  { header: '同品类复购率', key: 'repurchase_rate_current', width: 14, numFmt: '0.0%' },
+  { header: '复购人数 YOY', key: 'yoy_repurchase_users', width: 14, numFmt: '+#,##0;-#,##0;0' },
+])
 </script>
 
 <style scoped>

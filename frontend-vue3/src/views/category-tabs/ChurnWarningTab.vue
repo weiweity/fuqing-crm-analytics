@@ -10,6 +10,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 
 const props = defineProps<{
   dataQualityNote?: string
@@ -294,6 +296,15 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
 
 const tableData = computed(() => data.value?.table ?? [])
 const suggestionRows = computed(() => data.value?.operation_suggestions ?? [])
+
+// ── Sprint 174 XLSX 导出 (Q3) ──
+const churnTableXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '品类', key: 'category_name', width: 14 },
+  { header: '本期用户', key: 'current_users', width: 12, numFmt: '#,##0' },
+  { header: '上期用户', key: 'previous_users', width: 12, numFmt: '#,##0' },
+  { header: '流失人数', key: 'churn_users', width: 12, numFmt: '#,##0' },
+  { header: 'MoM变化', key: 'mom_change_rate', width: 12, numFmt: '0.0%' },
+])
 </script>
 
 <template>
@@ -329,7 +340,15 @@ const suggestionRows = computed(() => data.value?.operation_suggestions ?? [])
 
       <!-- 下方表格 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">流失明细表</h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">流失明细表</h3>
+          <ExportToolbar
+            :filename="`流失预警_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+            :columns="churnTableXlsxColumns"
+            :data="tableData as any[]"
+            sheet-name="流失明细"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-1">
           品类间流失=上期买A本期买B(B≠A)；沉默流失=上期买A本期无订单；跨品类迁移≠流失
         </p>

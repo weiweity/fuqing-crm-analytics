@@ -10,6 +10,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { CHART_COLORS } from '@/composables/useChartTheme'
 
 const props = defineProps<{
@@ -514,6 +516,21 @@ const ASSOC_COLS: DataTableColumns<any> = [
   },
 ]
 
+// ── Sprint 174 XLSX 导出 (Q3, 2 张表) ──
+const assocXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '品类', key: 'category_name', width: 16 },
+  { header: '关联人数', key: 'user_count', width: 14, numFmt: '#,##0' },
+  { header: '订单数', key: 'order_count', width: 14, numFmt: '#,##0' },
+  { header: '关联GMV', key: 'gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '占目标用户比例', key: 'ratio', width: 14, numFmt: '0.0%' },
+  { header: '用户平均天数间隔', key: 'avg_days_gap', width: 14, numFmt: '0.0' },
+])
+const matrixXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '品类A', key: 'src_category', width: 14 },
+  { header: '品类B', key: 'dst_category', width: 14 },
+  { header: '流转用户数', key: 'transfer_users', width: 14, numFmt: '#,##0' },
+  { header: '流转占比', key: 'transfer_ratio', width: 14, numFmt: '0.0%' },
+])
 </script>
 
 <template>
@@ -597,7 +614,15 @@ const ASSOC_COLS: DataTableColumns<any> = [
           </p>
 
           <div class="border-t border-slate-100 pt-4">
-            <h4 class="text-xs font-semibold text-slate-700 mb-2">买「{{ data.target_category }}」之前还买了什么</h4>
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-semibold text-slate-700">买「{{ data.target_category }}」之前还买了什么</h4>
+              <ExportToolbar
+                :filename="`品类流转_关联品类_前购_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+                :columns="assocXlsxColumns"
+                :data="(data.pre_purchase ?? []) as any[]"
+                sheet-name="前购品类"
+              />
+            </div>
             <DataTablePro
               :columns="ASSOC_COLS"
               :data="data.pre_purchase ?? []"
@@ -605,7 +630,15 @@ const ASSOC_COLS: DataTableColumns<any> = [
               :scroll-x="800"
               class="mb-4"
             />
-            <h4 class="text-xs font-semibold text-slate-700 mb-2">买「{{ data.target_category }}」之后还买了什么</h4>
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-semibold text-slate-700">买「{{ data.target_category }}」之后还买了什么</h4>
+              <ExportToolbar
+                :filename="`品类流转_关联品类_后购_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+                :columns="assocXlsxColumns"
+                :data="(data.post_purchase ?? []) as any[]"
+                sheet-name="后购品类"
+              />
+            </div>
             <DataTablePro
               :columns="ASSOC_COLS"
               :data="data.post_purchase ?? []"
@@ -651,6 +684,12 @@ const ASSOC_COLS: DataTableColumns<any> = [
                 数值
               </button>
             </div>
+            <ExportToolbar
+              :filename="`品类流转_品类矩阵_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+              :columns="matrixXlsxColumns"
+              :data="(matrixTableData ?? []) as any[]"
+              sheet-name="品类流转矩阵"
+            />
           </div>
           <DataTablePro
             :columns="matrixColumns"
