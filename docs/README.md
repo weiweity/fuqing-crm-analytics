@@ -39,8 +39,11 @@ fuqing-crm-analytics/docs/
 │   ├── LESSONS_LEARNED.md            (Sprint 57 沉淀 9 项实战 fix pattern: DUCKDB_PATH / subagent / race flake / spec-lint / Codex / 12 步流程 / 破坏→验证→恢复 / commit msg↔diff / empty vs stub)
 │   └── AUDIT-WORDING.md              (Sprint 59 #8 audit 措辞 SOP, 5 规则 + 5 反例正例)
 │
-└── history/                           [历史归档]
-    └── SPRINT_INDEX.md               (Sprint 1-66 索引, 27+ memory file 入口)
+├── history/                           [历史归档]
+│   └── SPRINT_INDEX.md               (Sprint 1-66 索引, 27+ memory file 入口)
+│
+└── sprints/                           [Sprint handoff 临时 / 归档]
+    └── archive/                      (已收口 sprint 的 Codex handoff 归档)
 ```
 
 ## 何时用哪个
@@ -70,7 +73,7 @@ fuqing-crm-analytics/docs/
 2. `TECH-DEBT.md` 更新 (新债 / 已修数)
 3. `STATUS.md` 更新 (版本 + pytest + debt + e2e 状态行)
 4. `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{N}.md` 写收口记忆
-5. `HANDOFF-*.md` 用完即删 (一次性)
+5. `HANDOFF-*.md` / `CODEX-PROMPT-*.md` 归档到 `docs/sprints/archive/` (Sprint 收口后)
 
 **跨 sprint 留尾意识** (L4.5 + L5.1 应用):
 - 改 docs 之前先 `git log --oneline -- <doc_path>` 看历史

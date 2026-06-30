@@ -1,3 +1,20 @@
+## [0.4.14.22] - 2026-06-30 (/document-release Sprint 169-170 跨 sprint 收口 + 多 agent 清理文档同步 — VERSION 0.4.14.21→0.4.14.22, CLAUDE.md/STATUS.md/docs/TECH-DEBT.md 4 文档 head 1:1 swap, docs/sprints/ handoff 全部归档 archive/, 累计 99 0 debt sprint 持续, /document-release 累计 10 次真治本)
+
+### Changed
+- **VERSION**: 0.4.14.21 → 0.4.14.22 (跨 66 sprint 不 bump 后 bump)
+- **CLAUDE.md**: 版本状态行更新为 main `8d545bd` + Sprint 169-170 + 2026-06-30 cleanup, pytest 795/72/0, 累计 99 sprint 0 debt
+- **STATUS.md**: 最后更新 + 版本 + git HEAD + pytest + 0 debt 累计数同步
+- **docs/TECH-DEBT.md**: 最后更新 + 当前债数 0 条 + VERSION bump 同步
+
+### Archived
+- **docs/sprints/archive/**: 全部 10 个历史 handoff/CODEX-PROMPT 文档归档（HANDOFF-TO-CODEX-Sprint139~159 + CODEX-PROMPT-Sprint144）, 减少 docs/sprints/ 根目录噪音
+
+### Verification
+- ruff check backend/ ✅
+- contract `_lint` ✅
+- 文档 4 文件 head 1:1 swap 一致
+- main HEAD `8d545bd` + origin/main 0 drift
+
 ## [0.4.14.21] - 2026-06-30 (Sprint 169 02 板块回购周期分布率最终收口 — 人数→分布率 + worktree uvicorn 脚本 + 2 个预存在 test fix (9 files / +136/-59, 累计 99 0 debt sprint 持续, VERSION 0.4.14.21 跨 66 sprint 不 bump stable 模式), merge commit 收口)
 
 ### Changed
