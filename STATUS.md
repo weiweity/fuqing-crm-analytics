@@ -33,7 +33,7 @@
 | 项 | 数 | 详情 |
 |---|---|---|
 | 当前债数 | **0** | 全部闭环, 详见 `docs/TECH-DEBT.md` |
-| 已修复 (历史) | **30 条** | 债 #1-#7 + Sprint 26-58 累计 + Sprint 61 P2 治本 (uvicorn 接错空/过期 DB) |
+| 已修复 (历史) | **50+ 条** | 债 #1-#7 + Sprint 26-66 累计 + Sprint 128 #S105-1/2 + Sprint 161-168 lint/spec/W3 DQ/e2e 治本 + Sprint 169 复购周期 endpoint fix + Sprint 171 ad-hoc-query v2.0 闭环 (无新增债), 详见 `docs/TECH-DEBT.md` "已修复"section |
 | Sprint 62.5 留尾 | **0 项** | 全部闭环 (B1+B2+B3+B4 + D4 ruff 留尾) |
 | Sprint 62.5 闭环 | **9 commit 0 debt** | B1 backup retention (4 case) + B2 giant file bypass cap (2 case) + B3 ad-hoc-query tmp_write_conn (3 case) + B4 Codex clone GC (4 case). pytest 795/21/0 baseline 维持 |
 | Sprint 62.5 实战 fix 沉淀 | **3 项 pattern** | (a) 100GB byte cap 反过来保护 109GB orphan → giant standalone 治理 (b) Sprint 25 backup retention 设计意图未实施 → 4 zst 169GB 累积 (c) Codex code_sign_clone 无 GC → 40 份 53GB 累积. 全部治根 + 永久测试覆盖 |
