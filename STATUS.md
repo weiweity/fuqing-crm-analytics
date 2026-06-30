@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-29 (Sprint 161 e2e spec drift 治本 1 file / +3/-4 (跨 Sprint 144-160 累计 17 sprint 改派样 UI 没同步 spec 治根, L4.23 永久规则沉淀) + Sprint 162 precompute skip future dates 1 file / +4/-1 (跨 sprint ETL 治本 batch 1/4, 22 未来日期 KeyError 跳过 ~5min 节省) + Sprint 163 tracker weekly backup 1 file / +11/-0 (跨 sprint ETL 治本 batch 2/4, 防 plist 异常 kill 丢 tracker 冷启动 25min 浪费) + Sprint 164 飞书完整解耦 8 files / -300+ 行 净删 (跨 sprint ETL 治本 batch 3/4, user 飞书后续不搞, 解耦后删除, 跟 Sprint 25+116 模式 stable) + Sprint 165 W3 DQ 2 failed advisory doc 沉淀 0 业务代码 (跨 sprint ETL 治本 batch 4/4) + Sprint 166 W3 DQ 断言治本 1 file / +52/-7 + 1 file / +216 lines 5 case regression (跨 sprint advisory batch 1/3, 阈值 0.3→0.5 + 动态 channels + 容差 10%) + Sprint 167 0 commit 暂收口 + 1 line 修正 (跨 sprint advisory batch 2/3, L4.20 SSOT 反漂移验证 DATA_PIPELINE.md 0 处 4 桶 ASCII 残留, advisory doc 修正) + Sprint 168 L4.23 e2e spec drift detection script 自动化 2 files / +369 lines (跨 sprint advisory batch 3/3, 防 Sprint 161 治本 18 sprint 滞后 stable 模式再复发) + Sprint 168 lint fix 1 file / +3/-10 (CI 6 F401 unused import 紧急收尾, 跟 Sprint 168 治本配套) + Historical CI audit 1 line audit marker 06:45:00Z (Sprint 144-160 累计 6+ 历史 run failure 全部治本 user 拍板 "都修好了 删除历史信息", 跟 L4.20 SSOT 反漂移 + Sprint 165 advisory 模式 stable), pytest 733 passed / 66 skipped / 0 failed (跟 Sprint 160 baseline 741 减 18 case: 飞书 4 删 + wo1 2 删 + backup_duckdb 1 减, Sprint 166+168 5 case 5 case 新增 = 净 0; L4.4 race flake 接受), main HEAD `ee7db74a8` + origin/main 0 drift (push `25c6eb9..63c3b4d..ee7db74a8` 成功), 累计 76→92 sprint 0 debt (+16, 跟 Sprint 154+155+156+157+158+159+159.5+160+161+162+163+164+165+166+167+168+168 lint fix+Historical audit 累计 16 sprint 1 turn 拍板收口), VERSION 0.4.14.20 → **0.4.14.21** (跨 59 sprint 不 bump stable 模式), L4.x 23 stable, 实战 fix 模式 #32-#46 累计 15 模式沉淀, 跟 Sprint 65+135+138+141.5+145+149+153+160 /document-release 模式 stable 累计 8 次真治本)
+**最后更新**: 2026-06-30 (Sprint 169 02 板块回购周期分布率最终收口 + worktree uvicorn 启动脚本 + W3 DQ/test fix + Sprint 170 RFM 8 象限 → R 6 桶业务口径变更 + 2026-06-30 多 agent 并行后项目统一清理 (旧 worktree/分支/stash/codex refs 清除), pytest 795 passed / 72 skipped / 0 failed (Sprint 166 baseline 733 + Sprint 169 test fix 62 case 净增 = 795; L4.4 race flake 接受), main HEAD `8d545bd` + origin/main 0 drift, 累计 92→99 sprint 0 debt (+7: Sprint 169 3 subline 全闭环 + Sprint 170 + 2026-06-30 cleanup), VERSION 0.4.14.21 → **0.4.14.22** (跨 66 sprint 不 bump 后 bump, /document-release 累计 10 次真治本))
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.21` (Sprint 161-168 跨 sprint 治理 batch 4/4 + Historical CI audit 收口, /document-release 累计 9 次真治本) |
-| git HEAD (main) | `ee7db74a8` (Sprint 168 lint fix CI verify + 1 line doc sync, 跟 origin/main 0 drift) |
-| 当前分支 | `main` |
-| 最近 sprint | Sprint 168 lint fix (CI 6 F401 unused import 紧急收尾, 跟 Sprint 168 治本配套) + Historical CI audit (Sprint 144-160 累计 6+ 历史 run failure 全部治本 user 拍板) |
-| 收口日 | 2026-06-29 |
-| 上次合入 | Sprint 168 lint fix + CI verify (commit `3d31d1b` + `5fb913e` + `25c6eb9` + `ee7db74a8`, push origin main 25c6eb9..5fb913e..25c6eb9..ee7db74a8 跨 4 commits, 0 网络失败) |
+| VERSION | `0.4.14.22` (Sprint 169-170 跨 sprint 治理收口 + 2026-06-30 项目清理, /document-release 累计 10 次真治本) |
+| git HEAD (main) | `8d545bd` (Sprint 169 复购周期分布率最终收口 + worktree uvicorn 脚本 + Sprint 170 RFM 8→R 6 桶, 跟 origin/main 0 drift) |
+| 当前分支 | `docs/document-release-2026-06-30` |
+| 最近 sprint | Sprint 169 最终收口 (02 板块回购周期分布率 + worktree uvicorn 脚本 + test fix) + Sprint 170 RFM 8 象限 → R 6 桶 + 2026-06-30 项目清理 |
+| 收口日 | 2026-06-30 |
+| 上次合入 | Sprint 169 最终收口 + Sprint 170 RFM 8→R 6 桶 (commit `8d545bd`, push origin main `582f82d..8d545bd` 成功) |
 
 ---
 
@@ -23,8 +23,8 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **733** | Sprint 161-168 跨 sprint 治理 batch 4/4 + Historical CI audit 收口验 (733 passed / 66 skipped / 0 failed, 跟 Sprint 160 baseline 741 减 18 case: 飞书 4 删 + wo1 2 删 + backup_duckdb 1 减; Sprint 166+168 5 case 5 case 新增 = 净 0; race flake L4.4 接受) |
-| pytest skipped | **66** | production DuckDB 不可用 / 被本地 uvicorn 占用的既有门禁 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict, Codex 主动修 monkeypatch fixture 治 race flake, 跟 Sprint 141.5 race flake L5.1 接受模式 stable) |
+| pytest passed | **795** | Sprint 169 最终收口 + Sprint 170 RFM 8→R 6 桶 + 2026-06-30 cleanup 验证 (795 passed / 72 skipped / 0 failed, 跟 Sprint 166 baseline 733 比 +62 case: Sprint 169 test fix + sampling regression 新增; L4.4 race flake 接受) |
+| pytest skipped | **72** | production DuckDB 不可用 / 被本地 uvicorn 占用 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict, 跟 Sprint 141.5 race flake L5.1 接受模式 stable) + Sprint 169 sampling tracking 6 case 生产 DuckDB 不可用 skip |
 
 ---
 
