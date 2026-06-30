@@ -6,7 +6,7 @@
 - 期间回退 -1y / -2y 正确
 - window_days 边界 (1 / 30 / 90)
 - 早期年份无数据时静默回落 0 (不抛异常)
-- 跨年桶人数不可加总 (业务文档约束)
+- 跨年桶分布率不可加总 (业务文档约束)
 """
 
 import pytest
@@ -112,43 +112,43 @@ def test_tracking_year_range_shifts_correctly(tracking_orders):
     assert by_year["2024年"]["year_range_end"] == "2024-06-29"
 
 
-def test_tracking_per_year_per_bucket_users(tracking_orders):
-    """3 年各自桶 user_count 准确."""
+def test_tracking_per_year_per_bucket_rate(tracking_orders):
+    """3 年各自桶分布率 = 正装回购人数 / 派样人数."""
     result = get_sampling_repurchase_tracking("2026-04-01", "2026-06-29", window_days=90)
 
-    def get_users(year: str, bucket: str) -> int:
+    def get_rate(year: str, bucket: str) -> float:
         for b in result["buckets"]:
             if b["year_label"] == year and b["bucket"] == bucket:
-                return b["users"]
+                return b["rate"]
         raise AssertionError(f"missing year={year} bucket={bucket}")
 
-    # 2026 年: 4 桶各 1 人 (U先 + 百补聚合)
-    assert get_users("2026年", "0-7d") == 1
-    assert get_users("2026年", "8-30d") == 1
-    assert get_users("2026年", "31-60d") == 1
-    assert get_users("2026年", "61-90d") == 1
+    # 2026 年: 4 人派样, 4 桶各 1 人正装回购 → 0.25
+    assert get_rate("2026年", "0-7d") == pytest.approx(0.25)
+    assert get_rate("2026年", "8-30d") == pytest.approx(0.25)
+    assert get_rate("2026年", "31-60d") == pytest.approx(0.25)
+    assert get_rate("2026年", "61-90d") == pytest.approx(0.25)
 
-    # 2025 年: 4 桶各 1 人
-    assert get_users("2025年", "0-7d") == 1
-    assert get_users("2025年", "8-30d") == 1
-    assert get_users("2025年", "31-60d") == 1
-    assert get_users("2025年", "61-90d") == 1
+    # 2025 年: 4 人派样, 4 桶各 1 人正装回购 → 0.25
+    assert get_rate("2025年", "0-7d") == pytest.approx(0.25)
+    assert get_rate("2025年", "8-30d") == pytest.approx(0.25)
+    assert get_rate("2025年", "31-60d") == pytest.approx(0.25)
+    assert get_rate("2025年", "61-90d") == pytest.approx(0.25)
 
-    # 2024 年: 仅 0-7d / 8-30d 各 1 人, 31-60d / 61-90d 静默回落 0
-    assert get_users("2024年", "0-7d") == 1
-    assert get_users("2024年", "8-30d") == 1
-    assert get_users("2024年", "31-60d") == 0
-    assert get_users("2024年", "61-90d") == 0
+    # 2024 年: 2 人派样, 仅 0-7d / 8-30d 各 1 人正装回购 → 0.5; 31-60d / 61-90d 静默回落 0
+    assert get_rate("2024年", "0-7d") == pytest.approx(0.5)
+    assert get_rate("2024年", "8-30d") == pytest.approx(0.5)
+    assert get_rate("2024年", "31-60d") == pytest.approx(0.0)
+    assert get_rate("2024年", "61-90d") == pytest.approx(0.0)
 
 
 def test_tracking_empty_orders_returns_zeros(monkeypatch_connection):
-    """空 orders 表 → 12 桶全 0, 不抛异常."""
+    """空 orders 表 → 12 桶分布率全 0, 不抛异常."""
     _reset_orders(monkeypatch_connection, [])
 
     result = get_sampling_repurchase_tracking("2026-04-01", "2026-06-29", window_days=90)
 
     assert len(result["buckets"]) == 12
-    assert all(b["users"] == 0 for b in result["buckets"])
+    assert all(b["rate"] == 0.0 for b in result["buckets"])
 
 
 def test_tracking_window_days_boundary(monkeypatch_connection):
@@ -165,14 +165,14 @@ def test_tracking_window_days_boundary(monkeypatch_connection):
 
 
 def test_tracking_3_years_not_summable(tracking_orders):
-    """3 年桶人数不可加总 (业务文档约束, 3 年不是同一群人).
+    """3 年桶分布率不可加总 (业务文档约束, 3 年不是同一群人).
 
-    同一总桶 (2026 0-7d) 不应 == sum(2026 + 2025 + 2024 的 0-7d).
+    同一总桶 (2026 0-7d) 不应 == sum(2026 + 2025 + 2024 的 0-7d 分布率).
     """
     result = get_sampling_repurchase_tracking("2026-04-01", "2026-06-29", window_days=90)
 
-    bucket_0_7d = [b["users"] for b in result["buckets"] if b["bucket"] == "0-7d"]
-    # 2026 = 1, 2025 = 1, 2024 = 1, 总和 = 3
-    assert sum(bucket_0_7d) == 3
+    bucket_0_7d = [b["rate"] for b in result["buckets"] if b["bucket"] == "0-7d"]
+    # 2026 = 0.25, 2025 = 0.25, 2024 = 0.5, 总和 = 1.0
+    assert sum(bucket_0_7d) == pytest.approx(1.0)
     # 但业务上是不同人群, 不该把 3 年当 1 个加总值用, 测试仅锁定当前实现
-    assert bucket_0_7d == [1, 1, 1]
+    assert bucket_0_7d == [pytest.approx(0.25), pytest.approx(0.25), pytest.approx(0.5)]

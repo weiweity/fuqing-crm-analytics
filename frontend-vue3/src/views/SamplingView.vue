@@ -69,13 +69,13 @@ const { data: roiData, isLoading: roiLoading, isFetching: roiFetching, error: ro
 })
 
 // ── Sprint 169 02 板块"回购周期分布" 3 年对比柱状图 ──
-// 02 板块"回购周期分布" 3 年对比 — 期间完全跟顶部导航栏 + 02 内部滑块联动
+// 02 板块"回购周期分布" 3 年对比 — 只跟顶部主导航当前日期联动
 // 跟 top filterStore.dateRange 1:1 一致 (cur 期间 = top 选择区, ly/prev2 = -1y/-2y)
-// 跟 02 windowDaysDebounced 联动 (7-90 天滑块直接控制 backend window_days)
+// 不跟 01/02 的 7-90 天滑块联动：固定 90 天回购窗口，保证 3 年同期间口径一致
 const trackingParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
-  window_days: windowDaysDebounced.value,
+  window_days: 90,
   channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
 }))
 const { data: trackingData, isLoading: trackingLoading, error: trackingError, refetch: refetchTracking } = useQuery({
@@ -94,7 +94,7 @@ const trackingChartOption = computed(() => {
   const yearLabels = data.year_labels ?? ['2026年', '2025年', '2024年']
   // 按 year_label 索引化桶数据，方便快速查找
   const byYearBucket = new Map<string, number>()
-  for (const b of data.buckets) byYearBucket.set(`${b.year_label}|${b.bucket}`, b.users)
+  for (const b of data.buckets) byYearBucket.set(`${b.year_label}|${b.bucket}`, b.rate)
   return {
     color: [...TRACKING_COLORS],
     grid: { left: 50, right: 24, top: 36, bottom: 36, containLabel: true },
@@ -106,7 +106,7 @@ const trackingChartOption = computed(() => {
         const lines = [`<div class="font-semibold mb-1">回购间隔 ${bucket}</div>`]
         for (const p of params) {
           const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px"></span>`
-          lines.push(`<div style="display:flex;align-items:center;gap:6px;font-size:12px">${dot}<span style="color:#64748b">${p.seriesName}:</span><span style="font-weight:500;color:#0f172a">${(p.value ?? 0).toLocaleString()} 人</span></div>`)
+          lines.push(`<div style="display:flex;align-items:center;gap:6px;font-size:12px">${dot}<span style="color:#64748b">${p.seriesName}:</span><span style="font-weight:500;color:#0f172a">${((p.value ?? 0) * 100).toFixed(2)}%</span></div>`)
         }
         return lines.join('')
       },
@@ -128,10 +128,10 @@ const trackingChartOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      name: '人数',
+      name: '分布率',
       nameTextStyle: { color: '#94a3b8', fontSize: 11 },
       axisLine: { show: false },
-      axisLabel: { color: '#475569', fontSize: 11, formatter: (v: number) => v.toLocaleString() },
+      axisLabel: { color: '#475569', fontSize: 11, formatter: (v: number) => `${(v * 100).toFixed(1)}%` },
       splitLine: { lineStyle: { color: '#f1f5f9' } },
     },
     series: yearLabels.map((yearLabel, idx) => ({
@@ -721,9 +721,9 @@ onUnmounted(() => {
             <div class="bi-card p-4 mb-4">
               <div class="flex items-center justify-between mb-0.5">
                 <div>
-                  <h3 class="text-sm font-semibold text-slate-800">回购周期分布 — 3 年对比</h3>
+                  <h3 class="text-sm font-semibold text-slate-800">回购周期分布率 — 3 年对比</h3>
                   <p class="text-[11px] text-slate-500">
-                    跟顶部当前日期 + 02 滑块联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (4 桶聚合, 仅作跨年趋势对比)
+                    只跟顶部当前日期联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (固定 90 天回购窗口, 4 桶分布率 = 派样回购正装人数 / 派样人数)
                   </p>
                 </div>
                 <div class="n-button-group" role="group">
