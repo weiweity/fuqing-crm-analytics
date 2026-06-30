@@ -122,3 +122,29 @@ other = get_other_product_assets(store_id="store_001", period="2026-06")
 
 - `docs/architecture/AI_SAFETY_NET.md` — FilterBuilder pattern
 - `CLAUDE.md` §"AI 写代码 typo 防御规范" L4.5
+
+## Sprint 171 ad-hoc-query 取数 CLI
+
+`scripts/ad_hoc_query.py` 是给业务组用的即席查询 CLI，**直接 import backend services**（方案 A）而非直连 DuckDB，零写库风险。
+
+- **入口**：`scripts/ad_hoc_query.py`（argparse + dispatch + auto-path）
+- **9 子命令**（Sprint 171 v2.0）：
+  - 3 个 Sprint 60-62 MVP：`daily-gsv` / `yoy-battle` / `channel-slice`（保留 `read_only_conn`，加 Sprint 171 docstring）
+  - 6 个 Sprint 171 新：`two-year-overview` / `new-old-customer` / `rfm-repurchase` / `top-n` / `export-excel` / `dq-report`
+  - 1 个 AI 问数路由：`ask`（不调 LLM，关键词字典）
+- **复用 service**：`calculate_audience_summary` / `get_audience_table` / `get_rfm_r_flow` / `get_category_distribution` / `PeriodBuilder`
+- **视觉 SSOT**：`scripts/ad_hoc_query_excel_styles.py`（深蓝 `#1F4E79` 表头 + A 股红绿 `#D32F2F` / `#2E7D32` + 0 公式）
+- **防串台硬规则**：字段前缀 `new_*/old_*/r_seg_*/channel_*` 分离 + 每 sheet 独立 service 不复用中间 dict
+- **R 6 桶真实 SSOT**：复用 `backend.semantic.segments.R_SEGMENT_ORDER`，不写 R1-R6 编号
+- **AI 问数自然语言路由**（WorkBuddy 友好）：`ask --text "最近7天各渠道GSV"` 关键词映射到子命令
+- **配套 skill 文档**：`~/.claude/skills/ad-hoc-query/SKILL.md`（391 行）+ `~/.workbuddy/skills/ad-hoc-query/SKILL.md`（16468 bytes，三端兼容 Claude Code + CodeBuddy CLI + WorkBuddy）
+
+**为什么不直连 DuckDB**（Sprint 53 race flake 治本模式）：
+1. 口径 100% 复用 backend service，零漂移风险
+2. 跟 uvicorn 单例 DuckDB 连接不冲突
+3. service 端 SQL aggregation，`GROUP BY` 后 fetch，不取明细
+4. 时间窗口 ≤ 366 天强制 + YOY 范围 `|v| > 1e6 → None` 强截断
+
+**L4.x 候选规则**（Sprint 172 评估）：
+- **codegraph 实证**：写业务规格前必 `codegraph_search` + `git grep`，不脑补业务口径
+- **防串台字段前缀分离**：多维度交叉业务输出字段必须带 sheet/dimension 专属前缀
