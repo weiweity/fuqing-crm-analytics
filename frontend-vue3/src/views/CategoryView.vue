@@ -20,6 +20,8 @@ import EmptyState from '@/components/EmptyState.vue'
 import YOYGuard from '@/components/YOYGuard.vue'
 import RatioConventionBanner from '@/components/RatioConventionBanner.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { CHART_COLORS } from '@/composables/useChartTheme'
 import ValueTierTab from './category-tabs/ValueTierTab.vue'
 import CategoryFlowTab from './category-tabs/CategoryFlowTab.vue'
@@ -514,6 +516,84 @@ const memberColumns: DataTableColumns<CategoryOverviewItem> = [
 const allTtl = computed<CategoryOverviewItem | null>(() => overviewData.value?.all_ttl || null)
 const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value?.member_ttl || null)
 
+// ── Sprint 174 ad-hoc 14 sheet 导出 (Q3) ──
+// 5 张 DataTablePro 各对应一套 XlsxColumn + ExportToolbar.
+// 注意: 子表 (gsv/users/aus) 跨多列 (去年/差值/YOY) → flatten 成 Excel 多列.
+const categoryDistributionXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '品类名称', key: 'name', width: 18 },
+  { header: 'GSV (元)', key: 'gmv', width: 14, numFmt: '¥#,##0' },
+  { header: '用户数', key: 'user_count', width: 12, numFmt: '#,##0' },
+  { header: '会员占比', key: 'member_ratio', width: 12, numFmt: '0.0%' },
+  { header: '渗透率', key: 'penetration_rate', width: 12, numFmt: '0.0%' },
+])
+
+const allCompactXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '产品分类', key: 'name', width: 14 },
+  { header: '全店-GSV (元)', key: 'gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '全店-GSV YOY%', key: 'gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-用户数', key: 'users', width: 12, numFmt: '#,##0' },
+  { header: '全店-用户数 YOY%', key: 'users_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-AUS', key: 'aus', width: 12, numFmt: '¥#,##0' },
+  { header: '全店-AUS YOY%', key: 'aus_yoy', width: 12, numFmt: '0.00' },
+  { header: '会员-GSV (元)', key: 'member_gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '会员-GSV YOY%', key: 'member_gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '会员-AUS', key: 'member_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '会员-AUS YOY%', key: 'member_aus_yoy', width: 12, numFmt: '0.00' },
+  { header: '会员渗透率', key: 'member_penetration', width: 12, numFmt: '0.0%' },
+])
+
+const memberCompactXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '产品分类', key: 'name', width: 14 },
+  { header: '会员-GSV (元)', key: 'member_gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '会员-GSV YOY%', key: 'member_gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '会员-用户数', key: 'member_users', width: 12, numFmt: '#,##0' },
+  { header: '会员-用户数 YOY%', key: 'member_users_yoy', width: 12, numFmt: '0.00' },
+  { header: '会员-AUS', key: 'member_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '会员-AUS YOY%', key: 'member_aus_yoy', width: 12, numFmt: '0.00' },
+  { header: '会员渗透率', key: 'member_penetration', width: 12, numFmt: '0.0%' },
+])
+
+// 详细 (all_columns) 复用 same 模式, 内容行更多 (Sprint 174 先统一导出 compact 版, 详细版后续 sprint)
+const exportFilenamePrefix = computed(() => `品类分析_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`)
+
+// flatten compactXlsxColumns 到行: 从 CategoryOverviewItem 提取
+function flattenOverviewRow(row: Record<string, any>, includeMember: boolean): Record<string, any> {
+  const base: Record<string, any> = {
+    name: row.name,
+    gsv: row.gsv,
+    gsv_yoy: row.gsv_yoy,
+    users: row.users,
+    users_yoy: row.users_yoy,
+    aus: row.aus,
+    aus_yoy: row.aus_yoy,
+  }
+  if (includeMember) {
+    base.member_gsv = row.member_gsv
+    base.member_gsv_yoy = row.member_gsv_yoy
+    base.member_users = row.member_users
+    base.member_users_yoy = row.member_users_yoy
+    base.member_aus = row.member_aus
+    base.member_aus_yoy = row.member_aus_yoy
+    base.member_penetration = row.member_penetration
+  }
+  return base
+}
+const allCompactXlsxData = computed(() =>
+  (overviewData.value?.all_rows ?? []).map((r: any) => flattenOverviewRow(r, true))
+)
+const memberCompactXlsxData = computed(() =>
+  (overviewData.value?.member_rows ?? []).map((r: any) => flattenOverviewRow(r, true))
+)
+const distributionXlsxData = computed(() =>
+  sortedDistribution.value.map((r: any) => ({
+    name: r.name,
+    gmv: r.gmv,
+    user_count: r.user_count,
+    member_ratio: r.member_ratio,
+    penetration_rate: r.penetration_rate,
+  }))
+)
+
 </script>
 
 <template>
@@ -590,7 +670,15 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
                     <EChartsWrapper :option="pieChartOption" height="320px" />
                   </div>
                   <div class="w-full lg:w-1/2">
-                    <h3 class="text-sm font-semibold text-slate-800 mb-0.5">品类明细</h3>
+                    <div class="flex items-center justify-between mb-0.5">
+                      <h3 class="text-sm font-semibold text-slate-800">品类明细</h3>
+                      <ExportToolbar
+                        :filename="`${exportFilenamePrefix}_品类明细`"
+                        :columns="categoryDistributionXlsxColumns"
+                        :data="distributionXlsxData"
+                        sheet-name="品类明细"
+                      />
+                    </div>
                     <p class="text-[11px] text-slate-500 mb-3">各品类GSV与用户规模（按GSV降序）</p>
                     <DataTablePro
                       :columns="[
@@ -614,12 +702,20 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
             <div class="bi-card p-4">
               <div class="flex items-center justify-between mb-0.5">
                 <h3 class="text-sm font-semibold text-slate-800">单品概览 — 全店</h3>
-                <BaseStyleButton
-                  :mode="showDetailAll ? 'collapse' : 'expand'"
-                  @click="showDetailAll = !showDetailAll"
-                >
-                  {{ showDetailAll ? '收起详情' : '显示详情' }}
-                </BaseStyleButton>
+                <div class="flex items-center gap-2">
+                  <BaseStyleButton
+                    :mode="showDetailAll ? 'collapse' : 'expand'"
+                    @click="showDetailAll = !showDetailAll"
+                  >
+                    {{ showDetailAll ? '收起详情' : '显示详情' }}
+                  </BaseStyleButton>
+                  <ExportToolbar
+                    :filename="`${exportFilenamePrefix}_单品概览全店`"
+                    :columns="allCompactXlsxColumns"
+                    :data="allCompactXlsxData"
+                    sheet-name="单品概览全店"
+                  />
+                </div>
               </div>
               <p class="text-[11px] text-slate-500 mb-3">
                 {{ showDetailAll ? '全量指标：GSV / 人数 / AUS / 占比 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
@@ -654,12 +750,20 @@ const memberTtl = computed<CategoryOverviewItem | null>(() => overviewData.value
             <div class="bi-card p-4">
               <div class="flex items-center justify-between mb-0.5">
                 <h3 class="text-sm font-semibold text-slate-800">单品概览 — 会员</h3>
-                <BaseStyleButton
-                  :mode="showDetailMember ? 'collapse' : 'expand'"
-                  @click="showDetailMember = !showDetailMember"
-                >
-                  {{ showDetailMember ? '收起详情' : '显示详情' }}
-                </BaseStyleButton>
+                <div class="flex items-center gap-2">
+                  <BaseStyleButton
+                    :mode="showDetailMember ? 'collapse' : 'expand'"
+                    @click="showDetailMember = !showDetailMember"
+                  >
+                    {{ showDetailMember ? '收起详情' : '显示详情' }}
+                  </BaseStyleButton>
+                  <ExportToolbar
+                    :filename="`${exportFilenamePrefix}_单品概览会员`"
+                    :columns="memberCompactXlsxColumns"
+                    :data="memberCompactXlsxData"
+                    sheet-name="单品概览会员"
+                  />
+                </div>
               </div>
               <p class="text-[11px] text-slate-500 mb-3">
                 {{ showDetailMember ? '全量指标：GSV / 会员占比 / 人数 / AUS 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}

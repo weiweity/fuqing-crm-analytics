@@ -3,6 +3,8 @@ import { computed, h, toValue } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NButton } from 'naive-ui'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchCategoryDailyTrend, fetchCategoryUserList } from '@/api/category'
@@ -321,6 +323,32 @@ const userColumns = computed<DataTableColumns<any>>(() => [
   },
 ])
 
+// ─── Sprint 174 XLSX 导出 (Q3) ────────────────────────────────
+const userListXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '用户ID', key: 'user_id', width: 14 },
+  { header: '昵称', key: 'nickname', width: 16 },
+  { header: '订单数', key: 'order_count', width: 10, numFmt: '#,##0' },
+  { header: '累计GMV', key: 'total_gmv', width: 14, numFmt: '¥#,##0' },
+  { header: '首购日期', key: 'first_order_date', width: 12 },
+  { header: '最近购买', key: 'last_order_date', width: 12 },
+  { header: '象限', key: 'segment_name', width: 10 },
+  { header: '会员', key: 'is_member_text', width: 8 },
+  { header: '羊毛党', key: 'is_wool_party_text', width: 8 },
+])
+const userListXlsxData = computed(() =>
+  (userListData.value?.users ?? []).map((u: any) => ({
+    user_id: u.user_id,
+    nickname: u.nickname || '',
+    order_count: u.order_count,
+    total_gmv: u.total_gmv,
+    first_order_date: u.first_order_date || '',
+    last_order_date: u.last_order_date || '',
+    segment_name: u.segment_name || '',
+    is_member_text: u.is_member ? '是' : '否',
+    is_wool_party_text: u.is_wool_party ? '是' : '否',
+  }))
+)
+
 // ─── CSV导出 ───────────────────────────────────────────────────
 function exportCSV() {
   const users = userListData.value?.users ?? []
@@ -436,6 +464,12 @@ function exportCSV() {
         <NButton size="tiny" @click="exportCSV" :disabled="!userListData?.users?.length">
           导出CSV
         </NButton>
+        <ExportToolbar
+          :filename="`${categoryId}_用户明细_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+          :columns="userListXlsxColumns"
+          :data="userListXlsxData"
+          sheet-name="用户明细"
+        />
       </div>
       <ErrorState v-if="userListError" :message="(userListError as Error).message" @retry="userListRefetch()" />
       <LoadingState v-else-if="userListLoading" />

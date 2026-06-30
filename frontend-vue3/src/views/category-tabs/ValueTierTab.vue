@@ -10,6 +10,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 
 const WINDOW_LABELS: Record<string, string> = {
   default: '当前周期',
@@ -241,6 +243,40 @@ const windowTableData = computed(() => {
   if (!data.value?.wool_party_by_window) return []
   return data.value.wool_party_by_window[activeWindow.value] ?? []
 })
+
+// ── Sprint 174 XLSX 导出 (Q3, 2 张表共用 columns) ──
+const valueTierXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '品类', key: 'category_name', width: 14 },
+  { header: '总人数', key: 'total_users', width: 12, numFmt: '#,##0' },
+  { header: '高价值人数', key: 'high_value_users', width: 14, numFmt: '#,##0' },
+  { header: '高价值占比', key: 'high_value_ratio', width: 14, numFmt: '0.0%' },
+  { header: '羊毛党-T1', key: 'wool_type1_count', width: 14, numFmt: '#,##0' },
+  { header: '羊毛党-T1率', key: 'wool_type1_ratio', width: 14, numFmt: '0.0%' },
+  { header: '羊毛党-T2', key: 'wool_type2_count', width: 14, numFmt: '#,##0' },
+  { header: '羊毛党-T2率', key: 'wool_type2_ratio', width: 14, numFmt: '0.0%' },
+  { header: '会员占比', key: 'member_ratio', width: 12, numFmt: '0.0%' },
+  { header: '平均AUS', key: 'avg_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '价值评分', key: 'value_score', width: 12, numFmt: '0.0' },
+  { header: '等级', key: 'value_grade', width: 8 },
+])
+function flattenValueTierRow(row: any): any {
+  return {
+    category_name: row.category_name,
+    total_users: row.total_users,
+    high_value_users: row.high_value_users,
+    high_value_ratio: row.high_value_ratio,
+    wool_type1_count: row.wool_party?.type1_count,
+    wool_type1_ratio: row.wool_party?.type1_ratio,
+    wool_type2_count: row.wool_party?.type2_count,
+    wool_type2_ratio: row.wool_party?.type2_ratio,
+    member_ratio: row.member_ratio,
+    avg_aus: row.avg_aus,
+    value_score: row.value_score,
+    value_grade: row.value_grade,
+  }
+}
+const valueTierXlsxData = computed(() => tableData.value.map(flattenValueTierRow))
+const windowValueTierXlsxData = computed(() => windowTableData.value.map(flattenValueTierRow))
 </script>
 
 <template>
@@ -269,7 +305,15 @@ const windowTableData = computed(() => {
 
       <!-- 价值评分表 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">价值评分表</h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">价值评分表</h3>
+          <ExportToolbar
+            :filename="`价值评分表_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+            :columns="valueTierXlsxColumns"
+            :data="valueTierXlsxData as any[]"
+            sheet-name="价值评分"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-1">
           各品类用户质量综合评估：高价值占比越高越好，羊毛党占比越低越好
         </p>
@@ -307,13 +351,21 @@ const windowTableData = computed(() => {
             <p class="text-[11px] text-slate-500">切换时间窗口查看羊毛党变化趋势</p>
             <p class="text-[11px] text-slate-400 mt-0.5">30天vs90天vs全部历史——如果近30天羊毛党占比明显高于长期均值，说明近期低价渠道引入了过多低质量用户</p>
           </div>
-          <n-tabs
-            v-model:value="activeWindow"
-            type="segment"
-            size="small"
-            :options="windowOptions"
-            style="width: 280px"
-          />
+          <div class="flex items-center gap-2">
+            <n-tabs
+              v-model:value="activeWindow"
+              type="segment"
+              size="small"
+              :options="windowOptions"
+              style="width: 280px"
+            />
+            <ExportToolbar
+              :filename="`羊毛党多窗口_${activeWindow}_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+              :columns="valueTierXlsxColumns"
+              :data="windowValueTierXlsxData as any[]"
+              sheet-name="羊毛党多窗口"
+            />
+          </div>
         </div>
         <DataTablePro
           :columns="tableColumns"

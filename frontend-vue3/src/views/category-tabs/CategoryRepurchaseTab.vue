@@ -15,6 +15,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import YOYGuard from '@/components/YOYGuard.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
@@ -273,6 +275,29 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
     },
   ]
 })
+
+// ── Sprint 174 XLSX 导出 (Q3, 4 个 sub-table 共用 columns) ──
+const repurchaseFlowXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '回购周期', key: 'r_bucket', width: 14 },
+  { header: '本期历史人数', key: 'hist_users_current', width: 14, numFmt: '#,##0' },
+  { header: '本期回购人数', key: 'repurchase_users_current', width: 14, numFmt: '#,##0' },
+  { header: '本期回购率', key: 'repurchase_rate_current', width: 12, numFmt: '0.0%' },
+  { header: '本期回购GSV', key: 'repurchase_gsv_current', width: 16, numFmt: '¥#,##0' },
+  { header: '本期回购GSV占比', key: 'repurchase_gsv_ratio_current', width: 16, numFmt: '0.0%' },
+  { header: 'YOY同比人数', key: 'yoy_repurchase_users', width: 14, numFmt: '+#,##0;-#,##0;0' },
+  { header: 'YOY同比回购率', key: 'yoy_repurchase_rate', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: 'YOY同比回购GSV', key: 'yoy_repurchase_gsv', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
+])
+function rowsFor(tab: 'same' | 'cross' | 'member_same' | 'member_cross'): any[] {
+  if (!data.value) return []
+  switch (tab) {
+    case 'same': return data.value.same_category_rows ?? []
+    case 'cross': return data.value.cross_category_rows ?? []
+    case 'member_same': return data.value.member_same_category_rows ?? []
+    case 'member_cross': return data.value.member_cross_category_rows ?? []
+  }
+}
+const exportFilenamePrefix = computed(() => `回购分析_${data.value?.target_category ?? ''}_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`)
 </script>
 
 <template>
@@ -348,14 +373,22 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
       <!-- 同品回购明细 — 全店 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          <template v-if="activeMode === 'category'">
-            同品回购明细 — {{ data.target_category }}
-          </template>
-          <template v-else>
-            同品回购明细 — {{ data.target_category }}（历史老客不限品类）
-          </template>
-        </h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">
+            <template v-if="activeMode === 'category'">
+              同品回购明细 — {{ data.target_category }}
+            </template>
+            <template v-else>
+              同品回购明细 — {{ data.target_category }}（历史老客不限品类）
+            </template>
+          </h3>
+          <ExportToolbar
+            :filename="`${exportFilenamePrefix}_同品全店`"
+            :columns="repurchaseFlowXlsxColumns"
+            :data="(rowsFor('same') as any[])"
+            sheet-name="同品全店"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-3">
           <template v-if="activeMode === 'category'">
             买了{{ data.target_category }}的老客，在分析期回来买同一品类的回购表现（3年同比）
@@ -374,14 +407,22 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
       <!-- 跨品类回购明细 — 全店 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          <template v-if="activeMode === 'category'">
-            跨品类回购明细 — {{ data.target_category }}
-          </template>
-          <template v-else>
-            跨品类回购明细 — {{ data.target_category }}（历史老客不限品类）
-          </template>
-        </h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">
+            <template v-if="activeMode === 'category'">
+              跨品类回购明细 — {{ data.target_category }}
+            </template>
+            <template v-else>
+              跨品类回购明细 — {{ data.target_category }}（历史老客不限品类）
+            </template>
+          </h3>
+          <ExportToolbar
+            :filename="`${exportFilenamePrefix}_跨品全店`"
+            :columns="repurchaseFlowXlsxColumns"
+            :data="(rowsFor('cross') as any[])"
+            sheet-name="跨品全店"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-3">
           <template v-if="activeMode === 'category'">
             买了{{ data.target_category }}的老客，在分析期回来买了其他品类的跨品类回购表现（3年同比）
@@ -400,14 +441,22 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
       <!-- 会员 同品回购 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          <template v-if="activeMode === 'category'">
-            同品回购明细 — {{ data.target_category }} — 会员
-          </template>
-          <template v-else>
-            同品回购明细 — {{ data.target_category }} — 会员（历史老客不限品类）
-          </template>
-        </h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">
+            <template v-if="activeMode === 'category'">
+              同品回购明细 — {{ data.target_category }} — 会员
+            </template>
+            <template v-else>
+              同品回购明细 — {{ data.target_category }} — 会员（历史老客不限品类）
+            </template>
+          </h3>
+          <ExportToolbar
+            :filename="`${exportFilenamePrefix}_同品会员`"
+            :columns="repurchaseFlowXlsxColumns"
+            :data="(rowsFor('member_same') as any[])"
+            sheet-name="同品会员"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-3">
           <template v-if="activeMode === 'category'">
             买了{{ data.target_category }}的会员老客，同品回购表现（3年同比）
@@ -426,14 +475,22 @@ const flowColumns = computed<DataTableColumns<CategoryRepurchaseFlowRow>>(() => 
 
       <!-- 会员 跨品类回购 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">
-          <template v-if="activeMode === 'category'">
-            跨品类回购明细 — {{ data.target_category }} — 会员
-          </template>
-          <template v-else>
-            跨品类回购明细 — {{ data.target_category }} — 会员（历史老客不限品类）
-          </template>
-        </h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">
+            <template v-if="activeMode === 'category'">
+              跨品类回购明细 — {{ data.target_category }} — 会员
+            </template>
+            <template v-else>
+              跨品类回购明细 — {{ data.target_category }} — 会员（历史老客不限品类）
+            </template>
+          </h3>
+          <ExportToolbar
+            :filename="`${exportFilenamePrefix}_跨品会员`"
+            :columns="repurchaseFlowXlsxColumns"
+            :data="(rowsFor('member_cross') as any[])"
+            sheet-name="跨品会员"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-3">
           <template v-if="activeMode === 'category'">
             买了{{ data.target_category }}的会员老客，跨品类回购表现（3年同比）

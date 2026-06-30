@@ -9,6 +9,8 @@ import { useFilterStore } from '@/stores/filterStore'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import LineChart from '@/components/LineChart.vue'
 
 const props = defineProps<{ weeks: number; channel?: string }>()
@@ -696,6 +698,14 @@ function rowClassName(row: TableRow): string {
   if (row.isYoyRow) return 'bg-amber-50/50'
   return ''
 }
+
+// ── Sprint 174 XLSX 导出 (Q3) ──
+const productCustomerXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '产品', key: 'product', width: 14 },
+  { header: '时间', key: 'weekLabel', width: 14 },
+  { header: 'GSV', key: 'gsv', width: 14, numFmt: '¥#,##0' },
+  { header: 'GSV YOY', key: 'gsv_yoy', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+])
 </script>
 
 <template>
@@ -740,6 +750,14 @@ function rowClassName(row: TableRow): string {
         </div>
       </div>
 
+      <div class="flex items-center justify-end mb-2">
+        <ExportToolbar
+          :filename="`产品_客群_滚动对比`"
+          :columns="productCustomerXlsxColumns"
+          :data="(tableData ?? []) as any[]"
+          sheet-name="产品客群"
+        />
+      </div>
       <div class="overflow-x-auto rounded-lg border border-slate-200">
         <NDataTable
           :columns="columns"

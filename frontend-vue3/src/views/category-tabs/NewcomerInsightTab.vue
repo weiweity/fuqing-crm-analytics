@@ -10,6 +10,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
+import ExportToolbar from '@/components/ExportToolbar.vue'
+import type { XlsxColumn } from '@/utils/exportXlsx'
 import { CHART_COLORS } from '@/composables/useChartTheme'
 
 const props = defineProps<{
@@ -233,6 +235,15 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
 const tableData = computed(() => data.value?.table ?? [])
 
 const suggestionRows = computed(() => data.value?.operation_suggestions ?? [])
+
+// ── Sprint 174 XLSX 导出 (Q3) ──
+const newcomerXlsxColumns = computed<XlsxColumn[]>(() => [
+  { header: '首购品类', key: 'category_name', width: 14 },
+  { header: '新客人数', key: 'new_user_count', width: 12, numFmt: '#,##0' },
+  { header: '新客GMV', key: 'new_gmv', width: 14, numFmt: '¥#,##0' },
+  { header: '品类内复购率', key: 'intra_repurchase_rate', width: 14, numFmt: '0.0%' },
+  { header: '跨品类复购率', key: 'cross_repurchase_rate', width: 14, numFmt: '0.0%' },
+])
 </script>
 
 <template>
@@ -267,7 +278,15 @@ const suggestionRows = computed(() => data.value?.operation_suggestions ?? [])
 
       <!-- 下行: 明细表 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">首购品类明细表</h3>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="text-sm font-semibold text-slate-800">首购品类明细表</h3>
+          <ExportToolbar
+            :filename="`新人洞察_首购品类_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`"
+            :columns="newcomerXlsxColumns"
+            :data="tableData as any[]"
+            sheet-name="首购品类明细"
+          />
+        </div>
         <p class="text-[11px] text-slate-500 mb-3">
           品类内复购率=30天内再次购买同一品类的用户占比；跨品类复购率=30天内购买其他品类的用户占比
         </p>
