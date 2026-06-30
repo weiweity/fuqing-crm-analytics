@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, toValue, ref, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NGrid, NGi, NButton, NTabs, NTabPane } from 'naive-ui'
+import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
+import BaseStyleButton from '@/components/BaseStyleButton.vue'
 import {
   fetchDailyTrend,
   fetchKPIMetrics,
@@ -1987,12 +1988,12 @@ const channelMemberXlsxColumns = computed(() => {
                   :data="displayChannelAll"
                   sheet-name="渠道全店"
                 />
-                <button
-                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                <BaseStyleButton
+                  :mode="showDetailChannelAll ? 'collapse' : 'expand'"
                   @click="showDetailChannelAll = !showDetailChannelAll"
                 >
-                  {{ showDetailChannelAll ? '← 收起详情' : '显示详情 →' }}
-                </button>
+                  {{ showDetailChannelAll ? '收起详情' : '显示详情' }}
+                </BaseStyleButton>
               </div>
             </div>
             <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
@@ -2038,12 +2039,12 @@ const channelMemberXlsxColumns = computed(() => {
                   :data="displayChannelMember"
                   sheet-name="渠道会员"
                 />
-                <button
-                  class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 rounded-lg cursor-pointer select-none transition-colors"
+                <BaseStyleButton
+                  :mode="showDetailChannelMember ? 'collapse' : 'expand'"
                   @click="showDetailChannelMember = !showDetailChannelMember"
                 >
-                  {{ showDetailChannelMember ? '← 收起详情' : '显示详情 →' }}
-                </button>
+                  {{ showDetailChannelMember ? '收起详情' : '显示详情' }}
+                </BaseStyleButton>
               </div>
             </div>
             <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
@@ -2083,7 +2084,7 @@ const channelMemberXlsxColumns = computed(() => {
               <h3 class="text-sm font-semibold text-slate-800">30指标对比</h3>
               <p class="text-[11px] text-slate-500">全店 / 新老客 / 会员 / 会员新老客 — {{ filterStore.compareMode === 'auto_yoy' ? '3年同比' : filterStore.compareMode === 'auto_mom' ? '环比对比' : '自定义对比' }}</p>
             </div>
-            <NButton size="tiny" @click="handleExportIndicators">📊 导出Excel</NButton>
+            <BaseStyleButton mode="neutral" @click="handleExportIndicators">导出Excel</BaseStyleButton>
           </div>
           <ErrorState v-if="summaryError" :message="(summaryError as Error).message" @retry="summaryRefetch()" />
           <LoadingState v-else-if="summaryLoading" />

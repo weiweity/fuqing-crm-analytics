@@ -9,6 +9,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import YOYGuard from '@/components/YOYGuard.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
+import BaseStyleButton from '@/components/BaseStyleButton.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 
@@ -579,12 +580,12 @@ const currentSheetName = computed(() =>
         </div>
 
         <div class="flex justify-end mb-2">
-          <button
-            class="px-3 py-1 text-xs font-medium text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-700 rounded cursor-pointer select-none transition-colors"
+          <BaseStyleButton
+            :mode="isExpanded ? 'collapse' : 'expand'"
             @click="isExpanded = !isExpanded"
           >
-            {{ isExpanded ? '收起详情 ←' : '展开详情 →' }}
-          </button>
+            {{ isExpanded ? '收起详情' : '展开详情' }}
+          </BaseStyleButton>
         </div>
         <NDataTable
           :columns="productColumns"

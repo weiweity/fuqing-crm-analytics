@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { NButton, NButtonGroup } from 'naive-ui'
 import { exportSheetToXlsx, type XlsxColumn } from '@/utils/exportXlsx'
+import BaseStyleButton from './BaseStyleButton.vue'
 
 const props = defineProps<{
   /** 导出文件名前缀 */
@@ -36,12 +36,30 @@ function handleExportImage() {
 </script>
 
 <template>
-  <NButtonGroup size="tiny">
-    <NButton v-if="columns && data" @click="handleExportExcel">
-      📊 导出Excel
-    </NButton>
-    <NButton v-if="chartRef" @click="handleExportImage">
-      🖼️ 导出图片
-    </NButton>
-  </NButtonGroup>
+  <div class="export-toolbar">
+    <BaseStyleButton
+      v-if="columns && data"
+      mode="neutral"
+      custom-class="export-toolbar__btn"
+      @click="handleExportExcel"
+    >
+      导出Excel
+    </BaseStyleButton>
+    <BaseStyleButton
+      v-if="chartRef"
+      mode="neutral"
+      custom-class="export-toolbar__btn"
+      @click="handleExportImage"
+    >
+      导出图片
+    </BaseStyleButton>
+  </div>
 </template>
+
+<style scoped>
+.export-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+</style>
