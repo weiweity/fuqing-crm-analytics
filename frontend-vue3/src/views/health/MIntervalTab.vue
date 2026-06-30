@@ -18,8 +18,6 @@ import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import type { XlsxColumn } from '@/utils/exportXlsx'
-import { downloadSegmentOrdersCSV } from '@/api/flow'
-import { NButton, NSelect, NModal, NSpace, useMessage } from 'naive-ui'
 
 const filterStore = useFilterStore()
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
@@ -246,43 +244,7 @@ const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
   ]
 })
 
-// ── 导出订单明细 ──
-const message = useMessage()
-const showExportModal = ref(false)
-const exportSegment = ref<string | null>(null)
-const exportLoading = ref(false)
-const M_SEGMENTS = ['0-100元', '100-300元', '300-500元', '500-1000元', '1000元以上']
-const mSegmentOptions = M_SEGMENTS.map(s => ({ label: s, value: s }))
-
-function openExportDialog() {
-  exportSegment.value = null
-  showExportModal.value = true
-}
-
-async function handleExportOrders() {
-  if (!exportSegment.value) {
-    message.warning('请选择要导出的区间')
-    return
-  }
-  exportLoading.value = true
-  try {
-    await downloadSegmentOrdersCSV({
-      dimension: 'm',
-      segment: exportSegment.value,
-      start_date: filterStore.dateRange[0],
-      end_date: filterStore.dateRange[1],
-      metric_type: 'GSV',
-      channel: filterStore.channel === '全店' ? undefined : filterStore.channel,
-      exclude_channels: filterStore.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined,
-    })
-    message.success('导出成功')
-    showExportModal.value = false
-  } catch (e: unknown) {
-    message.error((e as Error).message || '导出失败')
-  } finally {
-    exportLoading.value = false
-  }
-}
+// ── 导出订单明细 ── Sprint 175 Q2: 整块删除 (用户拍板功能不需要)
 </script>
 
 <template>
@@ -319,9 +281,6 @@ async function handleExportOrders() {
             :data="mFlowData?.rows ?? []"
             sheet-name="M区间全店"
           />
-          <NButton size="tiny" quaternary type="primary" @click="openExportDialog">
-            导出订单明细
-          </NButton>
         </div>
       </div>
       <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
@@ -385,20 +344,6 @@ async function handleExportOrders() {
         />
       </div>
     </template>
-
-    <!-- 导出订单明细弹窗 -->
-    <NModal v-model:show="showExportModal" preset="card" title="导出订单明细" style="width: 420px; max-width: 95vw;">
-      <div class="mb-3">
-        <p class="text-xs text-slate-500 mb-2">选择要导出订单明细的 M 区间：</p>
-        <NSelect v-model:value="exportSegment" :options="mSegmentOptions" placeholder="请选择M区间" />
-      </div>
-      <NSpace justify="end">
-        <NButton size="small" @click="showExportModal = false">取消</NButton>
-        <NButton size="small" type="primary" :loading="exportLoading" :disabled="!exportSegment" @click="handleExportOrders">
-          导出 CSV
-        </NButton>
-      </NSpace>
-    </NModal>
   </div>
 </template>
 

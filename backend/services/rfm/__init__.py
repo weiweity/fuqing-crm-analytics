@@ -10,7 +10,6 @@ from backend.services.rfm._flow_engine import run_flow_period, get_rfm_flow
 from backend.services.rfm.r_flow import _run_r_flow_period, get_rfm_r_flow
 from backend.services.rfm.f_flow import _run_f_flow_period, get_rfm_f_flow
 from backend.services.rfm.m_flow import _run_m_flow_period, get_rfm_m_flow
-from backend.services.rfm.segment_orders import get_segment_orders
 from backend.services.rfm.extended import get_user_rfm_extended
 from backend.services.rfm.cache import RfmQueryCache  # W5 v0.4.13
 
@@ -21,7 +20,6 @@ __all__ = [
     "_run_r_flow_period", "get_rfm_r_flow",
     "_run_f_flow_period", "get_rfm_f_flow",
     "_run_m_flow_period", "get_rfm_m_flow",
-    "get_segment_orders",
     "get_user_rfm_extended",
     "RfmQueryCache",
 ]

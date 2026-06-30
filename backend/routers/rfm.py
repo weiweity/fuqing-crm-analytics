@@ -24,7 +24,6 @@ from backend.services.rfm import (
     get_rfm_r_flow,
     get_rfm_f_flow,
     get_rfm_m_flow,
-    get_segment_orders,
     get_user_rfm_extended,
 )
 from backend.services.rfm.cache import RfmQueryCache  # W5 v0.4.13
@@ -133,35 +132,6 @@ def get_rfm_m_flow_api(
         "compare_start_date": compare_start_date, "compare_end_date": compare_end_date,
     }
     return _cached_rfm_call("m-flow", params, get_rfm_m_flow, **params)
-
-
-@router.get("/segment-orders", response_model=SegmentOrdersResponse)
-def get_segment_orders_api(
-    response: Response,
-    dimension: str = Query(..., description="维度：r / f / m"),
-    segment: str = Query(..., description="区间名称（如 近1个月已购客）"),
-    start_date: str = Query(..., description="开始日期 YYYY-MM-DD"),
-    end_date: str = Query(..., description="结束日期 YYYY-MM-DD"),
-    metric_type: str = Query(default="GSV", description="GMV 或 GSV"),
-    mode: str = Query(default="all", description="all / member / same_channel / member_same_channel"),
-    channel: Optional[str] = Query(default=None, description="渠道筛选"),
-    exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
-):
-    """
-    RFM 区间订单明细导出
-
-    根据维度和区间，返回该区间内所有用户的订单号明细，用于二次营销。
-    """
-    if warning := check_future_date(start_date) or check_future_date(end_date):
-        response.headers["X-Data-Warning"] = warning
-    # W5 v0.4.13: cache hit/miss
-    params = {
-        "dimension": dimension, "segment": segment,
-        "start_date": start_date, "end_date": end_date,
-        "metric_type": metric_type, "mode": mode,
-        "channel": channel, "exclude_channels": exclude_channels,
-    }
-    return _cached_rfm_call("segment-orders", params, get_segment_orders, **params)
 
 
 @router.post("/extended", response_model=RFMExtendedResponse)
