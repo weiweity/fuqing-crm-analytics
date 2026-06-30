@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-30 (Sprint 169 02 板块回购周期分布率最终收口 + worktree uvicorn 启动脚本 + W3 DQ/test fix + Sprint 170 RFM 8 象限 → R 6 桶业务口径变更 + 2026-06-30 多 agent 并行后项目统一清理 (旧 worktree/分支/stash/codex refs 清除), pytest 795 passed / 72 skipped / 0 failed (Sprint 166 baseline 733 + Sprint 169 test fix 62 case 净增 = 795; L4.4 race flake 接受), main HEAD `8d545bd` + origin/main 0 drift, 累计 92→99 sprint 0 debt (+7: Sprint 169 3 subline 全闭环 + Sprint 170 + 2026-06-30 cleanup), VERSION 0.4.14.21 → **0.4.14.22** (跨 66 sprint 不 bump 后 bump, /document-release 累计 10 次真治本))
+**最后更新**: 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口: 7 个新子命令 two-year-overview / new-old-customer / rfm-repurchase / top-n / export-excel / dq-report / ask + 旧 3 MVP 保留 + XLSX 视觉 SSOT + 18 case pytest + 防串台硬规则 + R 6 桶真实 SSOT + codegraph 教训沉淀, pytest **813 passed / 72 skipped / 0 failed** (Sprint 169/170 baseline 795 + Sprint 171 新增 18 case), main HEAD `fbac406` + origin/main 0 drift 待 push, 累计 99→100 sprint 0 debt (+1: Sprint 171 闭环), VERSION 0.4.14.22 不变 (Sprint 171 是 CLI 工具, 不影响 VERSION), 配合 WorkBuddy AI 问数使用 (Codex 协作 handoff 走 AGENTS.md 自动注入))
 
 ---
 

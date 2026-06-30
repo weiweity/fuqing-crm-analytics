@@ -1,3 +1,43 @@
+## [0.4.14.22] - 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口 — 9 子命令 + AI 问数 + Excel 多 sheet + 防串台硬规则 + R 6 桶真实 SSOT + codegraph 教训沉淀)
+
+### Added
+- **scripts/ad_hoc_queries/two_year_overview.py** (153 lines): 两年 30 指标对比 (走 `calculate_audience_summary`)
+- **scripts/ad_hoc_queries/new_old_customer.py** (154 lines): 新老客拆分对比 (走 `get_audience_table`, 字段前缀 `new_*/old_*/member_*/all_*`)
+- **scripts/ad_hoc_queries/rfm_repurchase.py** (119 lines): R 区间 6 桶复购周期分布 (走 `get_rfm_r_flow`, 复用 `backend.semantic.segments.R_SEGMENT_ORDER` SSOT)
+- **scripts/ad_hoc_queries/top_n.py** (145 lines): TOP N 品类/产品层级两年对比 (走 `get_category_distribution`)
+- **scripts/ad_hoc_queries/export_excel.py** (163 lines): 11 sheet 整份报告 (Sheet 顺序 00_说明~10_同品复购与回购店铺, 每 sheet 独立 service 调用防串台)
+- **scripts/ad_hoc_queries/dq_report.py** (196 lines): 数据质量 5/15 项规则报告 (完整性 / YOY 范围 / 单位 / 子项之和 / 交叉验证)
+- **scripts/ad_hoc_queries/ask.py** (128 lines): 自然语言关键词路由 (不调 LLM, 9 个 query 关键词字典 + 简单正则)
+- **scripts/ad_hoc_query_excel_styles.py** (164 lines): XLSX 视觉 SSOT (深蓝 `#1F4E79` 表头 + A 股红绿正负 `#D32F2F` / `#2E7D32` + 0 公式)
+- **backend/tests/test_ad_hoc_query_sprint171.py** (360 lines, 18 case): mock backend service 测试, 避免 uvicorn DuckDB lock 冲突
+
+### Changed
+- **scripts/ad_hoc_query.py**: 扩展 xlsx / list-endpoints / ask 通道, 修复 user-output 区分逻辑 (加 `user_provided_output` 标记)
+- **scripts/ad_hoc_queries/registry.py**: 注册 10 个 QuerySpec (含 ask 路由)
+- **scripts/ad_hoc_queries/_utils.py**: 加回 `from datetime import`, 顶部加 Sprint 171 docstring (跟其他 3 个旧 MVP 一样)
+- **scripts/ad_hoc_queries/{daily_gsv,yoy_battle,channel_slice}.py**: 顶部加 Sprint 171 docstring 说明 (保留 `read_only_conn`, 不重构走 service, 跟 Sprint 53 race flake 治本模式 stable)
+- **~/.claude/skills/ad-hoc-query/SKILL.md**: 升级到 v2.0 (工作记忆模式 + 9 子命令规格 + 视觉规范 + 防串台硬规则)
+
+### Architecture Decisions
+- **接入方式 A**: 直接 `import backend.services.*`, 禁 inline SQL / 直连 DuckDB (新文件硬约束)
+- **旧 MVP 保留**: `daily_gsv.py` / `yoy_battle.py` / `channel_slice.py` / `_utils.py` 保留 `read_only_conn`, 加 Sprint 171 docstring (不重构避免破坏 29 个 pytest case)
+- **防串台硬规则**: 字段前缀严格分离 (`new_*/old_*/r_seg_*/channel_*`), 每个 sheet 调独立 service, 不复用中间 dict
+- **R 6 桶真实 SSOT**: 直接复用 `backend.semantic.segments.R_SEGMENT_ORDER`, 不写 R1-R6 编号
+- **codegraph 教训沉淀**: 架构师写业务规格前必 `codegraph_search` + `git grep` 实证, 不脑补业务口径 (本 sprint v1 R 6 桶脑补错误治根)
+
+### L4.x 永久规则候选 (Sprint 172 评估)
+- **codegraph 实证**: 写业务口径相关 SPEC 前必 codegraph_search + git grep 验证, 不脑补 (跟 L4.20 SSOT 反漂移配套)
+- **防串台字段前缀分离**: 多维度交叉业务 (新老客 vs R 区间 vs 渠道) 输出 XLSX/CSV/JSON 时, 字段必须带 sheet/dimension 专属前缀, 禁裸字段名
+
+### Verification
+- pytest **813 passed / 72 skipped / 0 failed** (baseline 795 + Sprint 171 新增 18 case, 0 退化)
+- ruff check backend/ ✅
+- 10 query 全部注册 (`ad_hoc_query.py list-endpoints` 列出)
+- 11 sheet 顺序匹配用户偏好
+- 防串台 docstring + 字段前缀分离
+- 旧 4 个文件顶部 Sprint 171 docstring 完整
+- Codex 协作 handoff 模式 stable: 架构师写 HANDOFF+prompt, Codex 实施, Claude Stage 3 review + Stage 4 commit/push
+
 ## [0.4.14.22] - 2026-06-30 (/document-release Sprint 169-170 跨 sprint 收口 + 多 agent 清理文档同步 — VERSION 0.4.14.21→0.4.14.22, CLAUDE.md/STATUS.md/docs/TECH-DEBT.md 4 文档 head 1:1 swap, docs/sprints/ handoff 全部归档 archive/, 累计 99 0 debt sprint 持续, /document-release 累计 10 次真治本)
 
 ### Changed
