@@ -25,6 +25,7 @@ class QuerySpec:
     headers: List[str]  # stdout / csv 输出列
     run: Callable[..., List[List[Any]]]  # 返 rows (list of list, 跟 headers 对齐)
     output_columns: Optional[List[str]] = None  # 备用, 跟 headers 重复时省略
+    xlsx_writer: Optional[Callable[..., str]] = None  # 自定义 xlsx 写入器
     # Sprint 61+ 取数目录规则 (user 拍板)
     business_tag: str = ""  # 业务标签, e.g. "新老客数据" / "RFM分布" / "渠道切片"
     base_year_arg: str = "start"  # 用哪个 arg 的年份作为基期年份 (默认取 start 年)
@@ -53,6 +54,37 @@ def _load_builtins() -> None:
     from scripts.ad_hoc_queries import daily_gsv  # noqa: F401
     from scripts.ad_hoc_queries import yoy_battle  # noqa: F401
     from scripts.ad_hoc_queries import channel_slice  # noqa: F401
+    from scripts.ad_hoc_queries import two_year_overview  # noqa: F401
+    from scripts.ad_hoc_queries import new_old_customer  # noqa: F401
+    from scripts.ad_hoc_queries import rfm_repurchase  # noqa: F401
+    from scripts.ad_hoc_queries import top_n  # noqa: F401
+    from scripts.ad_hoc_queries import dq_report  # noqa: F401
+    from scripts.ad_hoc_queries import export_excel  # noqa: F401
+    from scripts.ad_hoc_queries import ask  # noqa: F401
+
+
+def _run_list_endpoints() -> List[List[Any]]:
+    """返回已注册 query 清单，供 CLI list-endpoints 使用。"""
+    rows: List[List[Any]] = []
+    for name, spec in sorted(QUERIES.items()):
+        if name == "list-endpoints":
+            continue
+        formats = sorted({
+            arg.get("default", "")
+            for arg in spec.args
+            if "--format" in arg.get("flags", ())
+        })
+        rows.append([name, spec.business_tag or "-", ",".join(f for f in formats if f), spec.description])
+    return rows
 
 
 _load_builtins()
+
+register(QuerySpec(
+    name="list-endpoints",
+    description="列出 ad-hoc-query 已注册子命令",
+    args=[],
+    headers=["command", "business_tag", "default_format", "description"],
+    run=lambda **kw: _run_list_endpoints(),
+    business_tag="",
+))

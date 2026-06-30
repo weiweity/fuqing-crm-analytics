@@ -68,6 +68,11 @@ def _build_parser() -> argparse.ArgumentParser:
                 kwargs["default"] = arg["default"]
             if "choices" in arg:
                 kwargs["choices"] = arg["choices"]
+            if "type" in arg:
+                kwargs["type"] = arg["type"]
+            if "action" in arg:
+                kwargs["action"] = arg["action"]
+                kwargs.pop("required", None)
             p.add_argument(*flags, **kwargs)
     return parser
 
@@ -92,6 +97,12 @@ def main(argv: list[str] | None = None) -> int:
     fmt = kwargs.pop("format", "table")
     output = kwargs.pop("output", None)
     try:
+        if fmt == "xlsx" and spec.xlsx_writer:
+            output = _resolve_structured_output(spec, kwargs, output, "xlsx")
+            path = spec.xlsx_writer(output_path=output, **kwargs)
+            print(f"[OK] XLSX written to {path}", file=sys.stderr)
+            log_audit(cmd, "ok", etl_running=etl_running, fmt=fmt, rows="xlsx")
+            return 0
         rows = spec.run(**kwargs)
     except (ValueError, KeyError) as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
@@ -104,25 +115,14 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     # 3) Sprint 61+ 自动按双层目录规则生成路径 (user 拍板)
-    if fmt == "csv" and not output and spec.business_tag:
-        base_year_arg = kwargs.get(spec.base_year_arg, "")
-        date_range = (
-            f"{base_year_arg}至{kwargs.get('end', '')}"
-            if base_year_arg and kwargs.get("end")
-            else base_year_arg
-        )
-        try:
-            base_year = int(base_year_arg.split("-")[0]) if base_year_arg else 0
-        except (ValueError, IndexError):
-            base_year = 0
-        if base_year:
-            output = resolve_output_path(
-                user_output=None,
-                business_tag=spec.business_tag,
-                base_year=base_year,
-                date_range=date_range,
-            )
-            print(f"[INFO] auto-path: {output}", file=sys.stderr)
+    # 必须在 _resolve_structured_output 之前记录 user 是否显式给了 --output,
+    # 因为 resolution 后 user 给的路径可能被 normalize 成绝对路径, 没法跟 args.output 比较。
+    user_provided_output = bool(output) and fmt in ("csv", "xlsx")
+    if fmt in ("csv", "xlsx"):
+        output = _resolve_structured_output(spec, kwargs, output, fmt)
+    if fmt in ("csv", "xlsx") and output and Path(output).parent:
+        output_kind = "user-output" if user_provided_output else "auto-path"
+        print(f"[INFO] {output_kind}: {output}", file=sys.stderr)
     elif fmt == "csv" and output:
         # user --output 显式路径, 不走 auto-path log (避免误报)
         print(f"[INFO] user-output: {output}", file=sys.stderr)
@@ -134,6 +134,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[OK] CSV written to {path}", file=sys.stderr)
         else:
             sys.stdout.write(path)
+    elif fmt == "xlsx":
+        from scripts.ad_hoc_query_excel_styles import write_table_workbook
+        path = write_table_workbook(
+            headers=spec.headers,
+            rows=rows,
+            output_path=output,
+            sheet_name=spec.business_tag or spec.name,
+            title=spec.description,
+        )
+        print(f"[OK] XLSX written to {path}", file=sys.stderr)
     else:  # table (default)
         out = format_stdout_table(rows, spec.headers)
         sys.stdout.write(out)
@@ -144,6 +154,33 @@ def main(argv: list[str] | None = None) -> int:
         cmd, "ok", etl_running=etl_running, fmt=fmt, rows=len(rows),
     )
     return 0
+
+
+def _resolve_structured_output(spec, kwargs: dict, output: str | None, fmt: str) -> str | None:
+    """为 CSV/XLSX 解析 auto-path，保留显式 --output 优先级。"""
+    if output:
+        return output
+    if not spec.business_tag:
+        return None
+    base_year_arg = kwargs.get(spec.base_year_arg, "")
+    date_range = (
+        f"{base_year_arg}至{kwargs.get('end', '')}"
+        if base_year_arg and kwargs.get("end")
+        else base_year_arg
+    )
+    try:
+        base_year = int(str(base_year_arg).split("-")[0]) if base_year_arg else 0
+    except (ValueError, IndexError):
+        base_year = 0
+    if not base_year:
+        return output
+    return resolve_output_path(
+        user_output=None,
+        business_tag=spec.business_tag,
+        base_year=base_year,
+        date_range=date_range,
+        extension=fmt,
+    )
 
 
 if __name__ == "__main__":
