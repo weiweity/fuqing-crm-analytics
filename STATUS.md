@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-07-01 (Sprint 180 + 180.1 + 181 + 181.1 + L4.34 永久规则 + /document-release v0.4.14.24. pytest **790 passed / 73 skipped / 0 failed** (修复 chdir 污染源 + 跨平台 path 治本 后稳态, -23 vs Sprint 179 baseline 813 是因治本 11 fail 重新稳态), main HEAD `774e6a7` + origin/main 0 drift (已 push SSH), 累计 **111 sprint 0 debt** (Sprint 180-181 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +4 sprint), VERSION `0.4.14.23` → `0.4.14.24` (Sprint 180-181 CI 爆红 4 真因治本 + 3 永久规则沉淀 + CI 4/4 jobs 全绿 + git remote HTTPS→SSH 切换), L4.x **25 → 28 stable** (新增 L4.32 subprocess cwd lock + L4.33 monkeypatch.chdir or try/finally + L4.34 Path(__file__).resolve 跨平台), 11 hook 闭环 (7 Claude Code + 4 git hooks, 持续 stable), 实战 fix 模式 #62-#64 累计 3 模式沉淀 (#62 subprocess cwd lock + #63 真因排查 4 步定位法 + #64 chdir 污染源高 ROI 治本). 当前状态: CI 4/4 jobs 全绿 (CI #28506504770) + git remote SSH 切换 (push 0 timeout) + tests/test_claude_hooks.py 28 case 防 hook 回归 + .claude/settings.json PreToolUse hook 跨平台治本 (Sprint 180 raw string `\$` + Sprint 181 chdir 污染源 2 真因). sprint close memory 沉淀 (新增 181/181.1 共 1 个, + Sprint 178 沉淀 3 件 = 4 个新文件). /document-release 累计 12 次真治本)
+**最后更新**: 2026-07-01 (Sprint 182 — WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + sys.path bootstrap 真治本 (QA 真跑抓到 ModuleNotFoundError) + L4.35 SSOT 永久规则 + /document-release v0.4.14.25. pytest baseline 19/19 + 50 sibling ad-hoc-query = **69/69 PASSED**, main HEAD `c832007` + origin/main 0 drift (已 push SSH), 累计 111→**112 sprint 0 debt** (Sprint 182 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +5 sprint), VERSION `0.4.14.24` → `0.4.14.25` (Sprint 182 WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + sys.path bootstrap 真治本 + L4.35 SSOT 永久规则 + 累计 13 次 /document-release 真治本), L4.x 28→**29 stable** (新增 L4.35 SKILL.md symlink SSOT), 11 hook 闭环 (7 Claude Code + 4 git hooks, 持续 stable), 实战 fix 模式 #65-#67 累计 3 模式沉淀 (#65 跨端 skill SSOT + #66 AI 接口契约 test pattern + #67 pytest sys.path 掩盖反模式锁回归). 当前状态: mcp_servers/fuqing_adhoc/server.py stdio JSON-RPC + 3 重 DoS 防御 + L4.32/L4.34 合规 + stdout/stderr 4KB 截断 + ~/.workbuddy/.mcp.json stdio entry + ~/.workbuddy/skills/ad-hoc-query/SKILL.md 软链 SSOT + scripts/session_start_check.py _verify_skill_symlinks fail-open 自动修. sprint close memory 沉淀 (新增 Sprint 182 close memory 1 个). /document-release 累计 13 次真治本)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.24` (Sprint 180-181 CI 爆红 4 真因治本 + /document-release 累计 12 次真治本) |
+| VERSION | `0.4.14.25` (Sprint 182 WorkBuddy ad-hoc-query MCP server + /document-release 累计 13 次真治本) |
 | git HEAD (main) | `774e6a7` (Sprint 181.1 Path(__file__) 跨平台治本 + L4.34 永久规则, 跟 origin/main 0 drift) |
 | 当前分支 | `main` (Sprint 181 收口 + L4.34 沉淀后) |
 | 最近 sprint | Sprint 180 inline python 2 真因治本 + Sprint 180.1 shlex 替代 tmp file + Sprint 181 chdir 污染源治本 (3 真因) + Sprint 181.1 硬编码 macOS 路径治本 (1 真因) + L4.32/33/34 永久规则沉淀 |

@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.24（main @ 774e6a7 Sprint 180 + 180.1 + 181 + 181.1 + L4.34 永久规则 — CI 爆红 4 真因治本 (Sprint 178 inline python raw string `\$` SyntaxError + deep path regex + chdir 污染源 + 硬编码 macOS 路径) + 3 永久规则沉淀 (L4.32 subprocess cwd lock + L4.33 monkeypatch.chdir + L4.34 Path(__file__).resolve) + git remote HTTPS→SSH 切换 + /document-release 累计 12 次真治本, pytest baseline 790/73/0 (-23 vs Sprint 179 是因治本 11 fail 重新稳态, 28 case 跨平台 baseline), 累计 111 sprint 0 debt (Sprint 180-181 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +4 sprint), L4.x **28 stable** (新增 L4.32/33/34, 跨 sprint 180-181 沉淀 fix_pattern #62-#64 累计 3 模式), 11 hook 闭环 (7 Claude Code + 4 git hooks) |
+| 4 | **版本状态** | v0.4.14.25（main @ c832007 Sprint 182 — WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + sys.path bootstrap 真治本 (QA 真跑抓到的 ModuleNotFoundError 修复 + 锁回归) + L4.35 SSOT 永久规则 + 3 重 DoS 防御 (Content-Length 1MB / header 8KB / header 32 行) + --output 路径 sanitize 防 LLM prompt injection + stdout/stderr 4KB 截断防 traceback 泄漏 + /document-release v0.4.14.25, pytest baseline 19/19 + 50 sibling ad-hoc-query = 69/69 stable, 累计 112 sprint 0 debt (Sprint 182 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +5 sprint), L4.x **29 stable** (新增 L4.35 SKILL.md symlink SSOT), 11 hook 闭环 (7 Claude Code + 4 git hooks), git remote SSH 推送 0 timeout, fix_pattern #65-#67 沉淀 3 模式 (跨端 skill SSOT + AI 接口契约 test pattern + pytest sys.path 掩盖反模式锁回归) |
 
 **L4.24 候选: codegraph 实证 SOP**（Sprint 171 真业务触发，跨 sprint v1 R 6 桶脑补错误治根）
 1. **触发**：任何业务规格/文档/spec 涉及业务口径（RFM / R 区间 / 字段名 / 阈值 / 桶边界）

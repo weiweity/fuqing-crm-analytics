@@ -1,3 +1,41 @@
+## [0.4.14.25] - 2026-07-01 (Sprint 182 — WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + L4.35 SSOT 永久规则 + 真业务 bug sys.path bootstrap 治本)
+
+### Added
+- **mcp_servers/fuqing_adhoc/server.py** (~250 lines): stdio JSON-RPC transport (LSP-style framing ~30 行手写, 无 third-party dep), 暴露 9 个 MCP tool 让 WorkBuddy LLM 直调. 3 重 DoS 防御 (MAX_CONTENT_LENGTH=1MB + MAX_HEADER_BYTES=8KB + MAX_HEADER_LINES=32), stdout/stderr 4KB 截断 + "[truncated]" 标记 (防 traceback / SQL / 用户数据泄漏到 LLM 上下文), _run_cli (L4.32 cwd lock + L4.34 Path.resolve + try/except TimeoutExpired), list_tools() 公共 SSOT (跟 _handle_list_tools 共享 TOOL_DEFS)
+- **mcp_servers/fuqing_adhoc/_dispatch.py** (~253 lines): 10 个 MCP tool inputSchema (daily_gsv / yoy_battle / channel_slice / two_year_overview / new_old_customer / rfm_repurchase / top_n / export_excel / dq_report + ask NL 路由), _make_handler factory 翻译 MCP call kwargs → CLI argv, --output 走 _sanitize_path_component 防 LLM prompt injection 路径注入 (Sprint 182 adversarial fix #62)
+- **mcp_servers/{__init__.py, fuqing_adhoc/__init__.py}**: Python package marker
+- **backend/tests/test_fuqing_adhoc_mcp_server.py** (~509 行, 19 cases): 4 个 class — TestMcpServerImport (3) + TestRunCliSubprocess (4) + TestMcpToolDispatch (5) + TestL4ComplianceRegression (7). 含 5 个 adversarial 回归 test (Content-Length DoS + --output path injection + stdout/stderr 截断 + mcp.json 跨平台 + sys.path bootstrap self-contained)
+- **~/.workbuddy/skills/ad-hoc-query/SKILL.md**: 软链 `~/.claude/skills/ad-hoc-query/SKILL.md` (L4.35 SSOT 永久规则, 防双端漂移)
+- **~/.workbuddy/.mcp.json**: 加 fuqing_adhoc stdio server entry, args 走 `${HOME}` env 展开跨平台 (L4.34 跨机器兼容)
+- **scripts/session_start_check.py _verify_skill_symlinks**: SessionStart hook 扫 ~/.claude/skills/ 跟 ~/.workbuddy/skills/ 软链 (L4.35 配套自动修)
+
+### Fixed
+- **Sprint 182 真业务 bug sys.path bootstrap**: QA 端到端真 subprocess 跑 MCP handshake 3-step (initialize → tools/list → tools/call) 时抓到生产真 bug — server.py 启动抛 `ModuleNotFoundError: No module named 'mcp_servers'`. 真因: server.py 自身 `from mcp_servers.fuqing_adhoc._dispatch import ...` 需要项目根在 sys.path, 但 WorkBuddy 启动 server.py 时不会自动注入 PYTHONPATH. pytest 自动注入掩盖. **修复**: server.py:30-37 顶部 `sys.path.insert(0, PROJECT_ROOT)` self-contained bootstrap, 跟 `scripts/run_etl.py:49-53` 模式一致. **锁回归**: `test_server_self_contained_syspath_bootstrap` 用 python `-S -E` flag 模拟最坏情况 (禁 site-packages / PYTHONPATH env) 验证 import 阶段不抛 ModuleNotFoundError
+
+### Changed
+- **CLAUDE.md 永久规则 L4.35**: SKILL.md SSOT 必须单源 + 跨端 symlink, 禁止复制粘贴 (Sprint 182 真业务触发: 双端 SKILL.md 字节一致但 WorkBuddy LLM 调不动 CLI, 治根: SKILL.md 教 LLM 用 MCP tools + 跨端 symlink 不复制). 配套: scripts/session_start_check.py 加 symlink verify 自动修
+- **CLAUDE.md ad-hoc-query L4.5 exception note**: scripts/ad_hoc_queries/* 是 CLI/MCP 入口层, 不在 backend/service/ 范围内, Sprint 171 决策明确禁 inline SQL (用 ? DB-API 参数化), 不强制走 service layer. MCP server (Sprint 182) 是 CLI 上层包装, 完全复用 CLI 入口, 零 service-layer 改动
+- **SKILL.md 重写 (WorkBuddy MCP v2.1)**: 删除所有 `python scripts/ad_hoc_query.py ...` CLI 调用说明 (WorkBuddy LLM 没有 shell), 改为教 LLM 调 MCP tools (9 个 tool 的 description + params + output + error handling + 跟 backend service 复用关系), 章节编号 2.1-2.10
+
+### L4.x 永久规则沉淀 (Sprint 182)
+- **L4.35 新增**: SKILL.md SSOT 必须单源 + 跨端 symlink, 禁止复制粘贴 (任何 Claude Code / WorkBuddy / CodeBuddy 三端共用 skill 触发). 配套 hard rule: SKILL.md 写 "python scripts/..." CLI 调用 → WorkBuddy LLM 调不动 → 必须改 MCP tool 描述
+- **L4.x 累计**: 28 → 29 stable
+
+### fix_pattern 沉淀 (Sprint 182)
+- **#65**: 跨端 skill (Claude Code / WorkBuddy / CodeBuddy) SSOT 模式 = ~/.claude/skills/<name>/SKILL.md + 跨端 symlink. 防双端 drift 导致 LLM 调不通
+- **#66**: AI 写代码 typo 类 LLM 接口契约 test pattern — test 写"target spec" (期望 API shape), 实际 server 写"functional spec" (具体函数名). 必须循环修复 plan vs code drift (L4.20 SSOT 反漂移 永久规则配套)
+- **#67**: pytest 自动注入 sys.path 掩盖真生产 ModuleNotFoundError 的反模式. 锁回归必用 `python -S -E` flag 模拟 WorkBuddy 启动场景. 跟 Sprint 24+ P3 ETL 单连接教训同位 (单测 100/100 PASS 不能推广到生产)
+
+### 累计统计
+- pytest passed: **790 → 19** (新文件 19/19 PASSED 含 5 adversarial 回归 + 50 sibling ad-hoc-query = 69/69 stable)
+- 累计 sprint: **111 → 112** 0 debt (Sprint 182 全部治本)
+- L4.x 永久规则: **28 → 29** stable (新增 L4.35)
+- 11 hook 闭环: 7 Claude Code + 4 git hooks (持续 stable)
+- git remote SSH 切换: push 0 timeout (跟 Sprint 180 切换后 stable)
+- /document-release 累计 **13 次真治本** (Sprint 65/138/141.5/145/149/153/160/165/169/171/179/181/182)
+
+---
+
 ## [0.4.14.23] - 2026-07-01 (Sprint 172-178 跨 sprint 治理收口 — BaseStyleButton Learn More + 真业务 bug 治本 4 件 + Claude Code setup 优化 11 hooks 闭环 + /document-release v0.4.14.23)
 
 ### Added
