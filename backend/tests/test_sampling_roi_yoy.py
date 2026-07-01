@@ -117,3 +117,39 @@ def test_roi_yoy_ttl_included(yoy_orders):
 
     assert channels[0]["channel"] == "TTL派样"
     assert all("repurchase_gsv_yoy_pct" in channel for channel in channels)
+
+
+def test_roi_category_breakdown_no_unbound_local_error(yoy_orders):
+    """Sprint 176 真因回归: a6447de bugfix 误删主循环+compare_cat_by_key 构造块 70 行
+    导致 /api/v1/sampling/roi 报 500 UnboundLocalError. 验证 category_breakdown 构造不抛
+    异常, 且每行带 9 个 yoy_* 字段 (Sprint 175 Q5 设计意图).
+
+    配套 contract B2 回归见 test_sampling_roi_sprint176_regression.py (不依赖 DuckDB)."""
+    result = get_sampling_roi("2026-06-01", "2026-06-30", window_days=30)
+
+    # 主断言: category_breakdown 必须存在且非空 (u1-u5 在 2026-06-01~30 有派样)
+    assert "category_breakdown" in result
+    assert isinstance(result["category_breakdown"], list)
+    assert len(result["category_breakdown"]) > 0, (
+        "Sprint 176: category_breakdown 为空 → category_result 未构造, 回归 UnboundLocalError"
+    )
+
+    # 第二断言: summary_by_level 走的是 _group_by_level (line 460), 必须正常返回
+    assert "summary_by_level" in result
+    assert isinstance(result["summary_by_level"], dict)
+
+    # 第三断言: 每行带 9 个 yoy 字段 (Sprint 175 Q5 设计)
+    required_yoy_fields = {
+        "repurchase_users_yoy_pct",
+        "repurchase_gsv_yoy_pct",
+        "repurchase_rate_yoy_pp",
+        "full_repurchase_users_yoy_pct",
+        "full_repurchase_gsv_yoy_pct",
+        "full_repurchase_rate_yoy_pp",
+        "repurchase_aus_yoy_pct",
+        "full_repurchase_aus_yoy_pct",
+        "nonfull_repurchase_gsv_yoy_pct",
+    }
+    for row in result["category_breakdown"]:
+        missing = required_yoy_fields - set(row.keys())
+        assert not missing, f"Sprint 176: 行 {row.get('category')} 缺少 yoy 字段: {missing}"

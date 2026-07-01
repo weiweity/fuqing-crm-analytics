@@ -375,6 +375,7 @@ def get_sampling_roi(
                     compare_by_channel.get(row['channel']),
                     'yoy',
                 )
+            compare_prefix = 'yoy'
 
         # ── 品类明细（按用户选定的 window_days 钻取）──
         # cat_field 已通过 _ALLOWED_SPU_COLUMNS 校验，安全用于SQL拼接
@@ -419,7 +420,82 @@ def get_sampling_roi(
         cat_params = sample_params + [window_days]
         cat_rows = conn.execute(cat_sql, cat_params).fetchall()
 
-        # Sprint 175 Q5 bugfix: compare_cat_by_key 必须在主循环前初始化
+        # Sprint 176 真因修复: a6447de bugfix 误删主循环 + compare_cat_by_key 构造块 70 行,
+        # 导致 line 442/452 引用未定义变量抛 UnboundLocalError.
+        # 修复模式 (两轮构造, 跟 Sprint 175 fix_pattern #56 同根因 / L4.20 SSOT 反漂移配套):
+        #   1) 第一轮: 主循环构造 category_result (row 不带 yoy 字段)
+        #   2) 跑 compare_cat_sql + 构造 compare_cat_by_key (compare_prefix 已在 channel summary 块确定)
+        #   3) 第二轮: 反向 merge yoy_* / mom_* 字段到 category_result 每行 (避免循环依赖)
+        category_result = []
+        for row in cat_rows:
+            ch = row[0]
+            cat = row[1]
+            su = int(row[2] or 0)
+            ru = int(row[3] or 0)
+            gsv = float(row[4] or 0)
+            same = int(row[5] or 0)
+            full_users = int(row[6] or 0)
+            full_gsv = float(row[7] or 0)
+            nonfull_users = int(row[8] or 0)
+            nonfull_gsv = float(row[9] or 0)
+
+            category_result.append({
+                'channel': DB_TO_UI.get(ch, ch),
+                'category': cat,
+                'sample_users': su,
+                'repurchase_users': ru,
+                'repurchase_rate': round(safe_ratio(ru, su), 4),
+                'repurchase_gsv': round(gsv, 2),
+                'repurchase_aus': round(safe_ratio(gsv, ru), 2),
+                'same_category_repurchase': same,
+                'same_category_rate': round(safe_ratio(same, su), 4),
+                'full_repurchase_users': full_users,
+                'full_repurchase_rate': round(safe_ratio(full_users, su), 4),
+                'full_repurchase_gsv': round(full_gsv, 2),
+                'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
+                'nonfull_repurchase_users': nonfull_users,
+                'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
+                'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
+            })
+
+        # 跟 channels_result 同模式 (line 332-377): 用 compare_date_range 区分 mom / yoy
+        if compare_date_range:
+            cmp_start, cmp_end = compare_date_range
+            compare_cat_prefix = 'mom'
+        else:
+            cmp_start, cmp_end = _shift_date_range_year(start_date, end_date)
+            compare_cat_prefix = 'yoy'
+        compare_cat_sql = cat_sql
+        compare_cat_params = list(db_channels) + [cmp_start, cmp_end, window_days]
+        compare_cat_rows = conn.execute(compare_cat_sql, compare_cat_params).fetchall()
+        compare_cat_by_key: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        for row in compare_cat_rows:
+            ch_db = row[0]
+            cat = row[1]
+            su_c = int(row[2] or 0)
+            ru_c = int(row[3] or 0)
+            gsv_c = float(row[4] or 0)
+            full_users_c = int(row[6] or 0)
+            full_gsv_c = float(row[7] or 0)
+            nonfull_gsv_c = float(row[9] or 0)
+            compare_cat_by_key[(DB_TO_UI.get(ch_db, ch_db), cat)] = {
+                'repurchase_users': ru_c,
+                'repurchase_rate': round(safe_ratio(ru_c, su_c), 4),
+                'repurchase_gsv': round(gsv_c, 2),
+                'repurchase_aus': round(safe_ratio(gsv_c, ru_c), 2),
+                'full_repurchase_users': full_users_c,
+                'full_repurchase_rate': round(safe_ratio(full_users_c, su_c), 4),
+                'full_repurchase_gsv': round(full_gsv_c, 2),
+                'full_repurchase_aus': round(safe_ratio(full_gsv_c, full_users_c), 2),
+                'nonfull_repurchase_gsv': round(nonfull_gsv_c, 2),
+            }
+
+        # 第二轮: 反向 merge yoy_* / mom_* 字段到 category_result (Sprint 175 Q5 设计)
+        for row in category_result:
+            compare = compare_cat_by_key.get((row['channel'], row['category']))
+            if compare:
+                _add_compare_metrics(row, compare, compare_cat_prefix)
+
         # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
         total_posize_gsv = sum(c.get('full_repurchase_gsv', 0) for c in channels_result)
         total_gsv = sum(c.get('repurchase_gsv', 0) for c in channels_result)
