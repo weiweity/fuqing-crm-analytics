@@ -1,3 +1,23 @@
+## [0.4.14.27] - 2026-07-01 (Sprint 185 — CI 跨 3 sprint 复发 100% 治根 + L4.39 macOS-only test skipif + L4.40 post-merge 自动 branch_cleanup + fix_pattern #71)
+
+### Fixed
+- **CI 跨 3 sprint 复发 100% 治根** (Sprint 185 真业务触发: GH Actions CI #28529340265 + #28525655029 + #28525438510 全部 failure, 跨 Sprint 182/183/184 累计 3 sprint 复发). 真因: `test_ad_hoc_query_sprint183.py::TestSprint183L4Regression` 3 case 期望 `~/.claude/skills/ad-hoc-query/SKILL.md` macOS 本地路径, Linux CI runner 永远 100% FAIL. 治根: 加 `@pytest.mark.skipif(sys.platform != "darwin")` class-level 守卫 + 拆 `TestSprint183L4CrossPlatform` 跨平台 class (CLAUDE.md 路径 project-relative, macOS / Linux 都跑)
+- **post-merge hook 自动 branch_cleanup** (Sprint 184 self-zombie 5 分钟卡点治根). 真因: Sprint 184 merge 后, feature/sprint184-duckdb-lock-model-doc 立刻变 zombie, pre-push hook 跑 pytest branch_cleanup test fail 阻 push. 治根: `.githooks/post-merge` 加 1 段自动跑 `scripts/branch_cleanup.py` (失败不阻 merge, post-merge 必须 0 exit)
+
+### Changed
+- **L4.39 永久规则 stable (Sprint 185, 流程)**: macOS-only test 必须 `@pytest.mark.skipif(sys.platform != "darwin")`. 任何 test 访问 `Path.home() / ".claude" / ".workbuddy" / "~/Library"` 等 macOS-only 路径必须 skipif, 或拆 class 跨平台路径. 跟 L4.10 平台守卫永久规则同位
+- **L4.40 永久规则 stable (Sprint 185, 流程)**: `.githooks/post-merge` 必须自动跑 `scripts/branch_cleanup.py`, 失败不阻 merge. 跟 L4.31 + 12 步流程第 8 步配套
+
+### For contributors
+- pytest baseline **893 / 73 skip 持续** (本地 macOS, L4.39 macOS-only 3 case skipif + L4.40 CI Linux 期望 4/4 jobs 全绿)
+- ruff 0 errors
+- 累计 sprint 0 debt: **114 → 115** (Sprint 185 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +8 sprint)
+- L4.x stable: **32 → 34** (新增 L4.39 + L4.40)
+- fix_pattern 累计: **+1 = #71** (post-merge zombie 漏删 → pre-push hook pytest fail 5 分钟卡点)
+- /document-release 累计: **15 → 16 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 / 185 模式 stable)
+- 11 hook 闭环 (+ post-merge 自动 branch_cleanup 配套 L4.31), git remote SSH 推送 0 timeout
+- main HEAD `00fbdfe + Sprint 185 squash` (待 commit) + origin/main 待 push
+
 ## [0.4.14.26] - 2026-07-01 (Sprint 184 — DuckDB flock 模型文档化 + L4.37/38 架构永久规则 + 12 CLI 锁回归 + branch cleanup 8 zombie 真删 + fix_pattern #70)
 
 ### Added

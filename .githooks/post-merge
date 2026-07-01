@@ -57,3 +57,30 @@ else
     echo "✅ Sprint 30.2 CHANGELOG hint: $RANGE 已含 CHANGELOG 引用"
     [ -n "$MSG_HITS" ] && echo "$MSG_HITS" | head -3 | sed 's/^/   /'
 fi
+
+# --- Sprint 185: 自动 branch_cleanup (L4.31 permanent rule 闭环) ---
+# 真因: 12 步流程第 8 步 (merge --no-ff 后) 不会自动删 zombie, 下次 push 时
+# pre-push hook 跑 pytest branch_cleanup test 会发现 1+ zombie 待删 → fail → 阻 push.
+# 治根: post-merge 自动跑 scripts/branch_cleanup.py, 已 merge main 的 zombie 立刻清掉.
+# 失败不影响 merge (post-merge 必须 0 exit, 不阻 CI runner).
+echo ""
+echo "--- Sprint 185: 自动 branch_cleanup (L4.31 闭环) ---"
+if [ -f "scripts/branch_cleanup.py" ]; then
+    # 跨平台 Python 路径: 优先用 homebrew Python 3.14 (L4.7 launchd 首选),
+    # 回退 python3 / python.
+    if command -v /Users/hutou/homebrew/bin/python3 >/dev/null 2>&1; then
+        BRANCH_CLEANUP_PY=/Users/hutou/homebrew/bin/python3
+    elif command -v python3 >/dev/null 2>&1; then
+        BRANCH_CLEANUP_PY=python3
+    else
+        BRANCH_CLEANUP_PY=python
+    fi
+    # 跑 branch_cleanup, 失败不阻 merge (post-merge 不能 fail)
+    if PYTHONPATH="$(pwd)" "$BRANCH_CLEANUP_PY" scripts/branch_cleanup.py 2>&1; then
+        echo "✅ branch_cleanup 完成"
+    else
+        echo "⚠️  branch_cleanup 失败 (不阻 merge, 下次 sprint 收口 manual 跑)"
+    fi
+else
+    echo "⚠️  scripts/branch_cleanup.py 不存在, 跳过 (Sprint 178+ 仓库都该有)"
+fi

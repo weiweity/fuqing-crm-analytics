@@ -8,7 +8,10 @@ L4.36 锁回归, 防 WorkBuddy self-review 暴露的 4 个根因复发:
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+import pytest
 
 
 SKILL_MD_PATH = Path.home() / ".claude/skills/ad-hoc-query/SKILL.md"
@@ -16,6 +19,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CLAUDE_MD_PATH = PROJECT_ROOT / "CLAUDE.md"
 
 
+# Sprint 185 治本 (Sprint 182 / 183 / 184 跨 3 sprint CI 复发真因):
+# ~/.claude/skills/* 是 macOS 本地 skill 路径, Linux CI runner (GitHub Actions
+# ubuntu-latest) 永远是 /home/runner/.claude/skills, SKILL.md 不存在. 这些
+# 测试是 macOS 端 L4.36 锁回归, Linux runner 应 skip 而非 fail.
+# 跟 L4.10 平台守卫永久规则同位.
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="macOS-only: ~/.claude/skills/ 路径在 Linux CI runner 不存在 (Sprint 182/183/184 跨 3 sprint CI 复发)",
+)
 class TestSprint183L4Regression:
     """L4.36 锁回归: SKILL.md v2.2 + CLAUDE.md L4.36."""
 
@@ -66,8 +78,13 @@ class TestSprint183L4Regression:
             "SKILL.md v2.2 必须含锁冲突 graceful fallback 教法"
         )
 
+
+# Sprint 185 治根: test_claude_md_l4_36_added 跨平台 (CLAUDE.md 路径 project-relative),
+# 单独 class 不受 macOS-only skipif 守卫, Linux CI runner 也跑. 配套 L4.10/L4.39 永久规则.
+class TestSprint183L4CrossPlatform:
+    """L4.36 锁回归, 跨平台 (CLAUDE.md 在主仓, 不依赖 macOS 本地路径)."""
+
     def test_claude_md_l4_36_added(self):
-        """CLAUDE.md L4.36 永久规则必须存在且在 L4.35 后 (L4.x 编号段, 忽略版本状态栏)."""
         assert CLAUDE_MD_PATH.exists(), f"CLAUDE.md 不存在: {CLAUDE_MD_PATH}"
         content = CLAUDE_MD_PATH.read_text(encoding="utf-8")
         assert "L4.36" in content, "CLAUDE.md 必须含 L4.36 永久规则"
