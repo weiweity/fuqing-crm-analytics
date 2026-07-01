@@ -104,15 +104,17 @@ class SamplingCategoryRow(BaseModel):
     nonfull_repurchase_gsv: float = 0.0
     nonfull_repurchase_aus: float = 0.0
     # Sprint 175 Q5: YOY/MOM 同比字段 (跨 sprint 复用 _add_compare_metrics 模式)
-    repurchase_users_yoy_pct: Optional[float] = None
-    repurchase_gsv_yoy_pct: Optional[float] = None
-    repurchase_rate_yoy_pp: Optional[float] = None
-    full_repurchase_users_yoy_pct: Optional[float] = None
-    full_repurchase_gsv_yoy_pct: Optional[float] = None
-    full_repurchase_rate_yoy_pp: Optional[float] = None
-    repurchase_aus_yoy_pct: Optional[float] = None
-    full_repurchase_aus_yoy_pct: Optional[float] = None
-    nonfull_repurchase_gsv_yoy_pct: Optional[float] = None
+    # Sprint 176 强类型补标: 跟 sibling SamplingChannelSummary (L27-35) 对齐 B1+B2 契约
+    # _pct 后缀 → PercentageField (0-1B, 含 YOY 异常值), _pp 后缀 → PpField (-100~+100 pp)
+    repurchase_users_yoy_pct: Optional[PercentageField] = None
+    repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    repurchase_rate_yoy_pp: Optional[PpField] = None
+    full_repurchase_users_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_rate_yoy_pp: Optional[PpField] = None
+    repurchase_aus_yoy_pct: Optional[PercentageField] = None
+    full_repurchase_aus_yoy_pct: Optional[PercentageField] = None
+    nonfull_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
 
 
 class SamplingROITimeRange(BaseModel):
