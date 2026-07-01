@@ -25,6 +25,14 @@ _SERVER_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = _SERVER_DIR.parent.parent
 _SCRIPT_PATH = (PROJECT_ROOT / "scripts" / "ad_hoc_query.py").resolve()
 
+# Sprint 182 Phase 5 QA fix: self-contained sys.path bootstrap.
+# 原因: WorkBuddy 启动 server.py 时不会自动注入 PYTHONPATH, server 自身
+# `from mcp_servers.fuqing_adhoc._dispatch import ...` 需要项目根在 sys.path.
+# pytest 自动注入掩盖了这个 bug (实际生产 WorkBuddy 会 ModuleNotFoundError).
+# 修复: 把 PROJECT_ROOT 加进 sys.path, 跟 scripts/run_etl.py:49-53 模式一致.
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 # L4.32: 显式 CWD lock, 不依赖父进程 CWD (subprocess 必须 cwd=主目录)
 _CWD = str(PROJECT_ROOT)
 _PYTHONPATH = os.environ.get("PYTHONPATH", _CWD)

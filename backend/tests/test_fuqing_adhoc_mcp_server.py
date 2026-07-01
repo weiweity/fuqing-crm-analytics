@@ -585,6 +585,41 @@ class TestL4ComplianceRegression:
         assert len(result["stderr"]) <= server_mod.MAX_STDERR_BYTES + 50
         assert "[truncated]" in result["stderr"]
 
+    def test_server_self_contained_syspath_bootstrap(self):
+        """Sprint 182 Phase 5 QA fix: server.py MUST 自身 bootstrap sys.path.
+
+        目的: 锁回归防 WorkBuddy 启动 server.py 时 ModuleNotFoundError.
+        pytest 自动注入 sys.path 掩盖这个 bug (Sprint 182 QA 真跑抓到的).
+        production WorkBuddy 启动 MCP server 时不注入 PYTHONPATH, server.py 自身
+        的 `from mcp_servers.fuqing_adhoc._dispatch import ...` 需要 PROJECT_ROOT
+        在 sys.path. 修复: server.py 顶部 `sys.path.insert(0, PROJECT_ROOT)`.
+        锁回归: 不依赖外部 pytest conftest.py / sys.path 注入.
+        """
+        import subprocess
+        import sys as _sys
+
+        # 用 -S flag 跟 -E flag 禁 site-packages / PYTHONPATH env 注入,
+        # 模拟 WorkBuddy 启动 server.py 的最坏情况
+        proc = subprocess.run(
+            [_sys.executable, "-S", "-E", "mcp_servers/fuqing_adhoc/server.py"],
+            input=b"",
+            capture_output=True,
+            timeout=5,
+            cwd=str(PROJECT_ROOT),
+        )
+        # 即使 stdin 是空 (server 立刻 EOF), import 阶段已跑过,
+        # 没有 ModuleNotFoundError 就是 PASS. EOF 退出码非 0 是预期的.
+        stderr_text = proc.stderr.decode("utf-8", errors="replace")
+        assert "ModuleNotFoundError" not in stderr_text, (
+            f"server.py sys.path bootstrap 失败: {stderr_text[:500]!r}; "
+            f"WorkBuddy 启动时 import mcp_servers.fuqing_adhoc._dispatch 会爆"
+        )
+        assert "No module named 'mcp_servers'" not in stderr_text, (
+            f"L4.x 永久规则: server.py 必须在 PYTHONPATH 未注入时也能 import "
+            f"自身 package. 真因: pytest conftest 自动注入掩盖. "
+            f"stderr: {stderr_text[:500]!r}"
+        )
+
     def test_workbuddy_mcp_json_no_hardcoded_path(self):
         """~/.workbuddy/.mcp.json MUST NOT contain hardcoded '/Users/hutou' path.
 
