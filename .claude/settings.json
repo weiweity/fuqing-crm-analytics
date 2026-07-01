@@ -1,5 +1,5 @@
 {
-  "_comment": "Sprint 22.5+ P0 hooks + Sprint 67 UserPromptSubmit hook (留尾 SSOT 治理) + Sprint 177 PostToolUse Bash hook (branch cleanup 自动化) + Sprint 178 SessionStart/Stop/PreToolUse Bash hooks (session 边界保护 + 危险命令拦截). 8 hooks. 详细: docs/AUTOMATION.md",
+  "_comment": "Sprint 22.5+ P0 hooks + Sprint 67 UserPromptSubmit hook (留尾 SSOT 治理) + Sprint 177 PostToolUse Bash hook (branch cleanup 自动化) + Sprint 178 SessionStart/Stop/PreToolUse Bash hooks (session 边界保护 + 危险命令拦截). 8 hooks. 详细: docs/AUTOMATION.md. Sprint 180 P0 配套 tests/test_claude_hooks.py 8 case 锁回归; 2 inline python regex bug (deep path + 裸 / 结尾) 留 Sprint 181 单独 sprint 治根 (跟 Sprint 179.1 跨 sprint 治本模式 stable).",
   "hooks": {
     "PreToolUse": [
       {
