@@ -1,3 +1,22 @@
+## [0.4.14.29] - 2026-07-02 (Sprint 187 — CI #500 / #499 / #497 累计 3 sprint CI 复发 root 因 100% 治根 + L4.41 subprocess PYTHONPATH 绝对路径永久规则)
+
+### Fixed
+- **CI test job fail 3 sprint 复发 root 因治本** (Sprint 182 L4.32 macOS 假设被 Linux runner 反噬). 真因: `mcp_servers/fuqing_adhoc/server.py:38` Sprint 182 用 `os.environ.get("PYTHONPATH", _CWD)` 想 inherit 父进程. macOS 本地 `PYTHONPATH=/Users/...` 绝对路径, **Linux GitHub Actions runner** 用 `actions/setup-python@v6` 默认 `PYTHONPATH=.` literal → 注入 env → 子 Python 找不到 backend.services → `test_subprocess_inherits_pythonpath` 100% fail 跨 Sprint 182/183/184/185/186 累计 5 sprint 隐式 fail (Sprint 185 L4.39 macOS-only skipif 没盖这个 case). 治根: `_PYTHONPATH = _CWD` 强制 `str(PROJECT_ROOT)` 绝对路径, 不 inherit
+
+### Changed
+- **L4.41 永久规则 stable (Sprint 187, 架构)**: subprocess 注入 env[PYTHONPATH] 必须用 `str(PROJECT_ROOT)` 绝对路径, **不** inherit 父进程. 跟 L4.32 subprocess cwd lock + L4.34 Path.resolve + L4.10 平台守卫 同位 (Sprint 60+ 持续沉淀). 4 case regression `backend/tests/test_fuqing_adhoc_mcp_server.py::TestRunCliSubprocess`
+
+### For contributors
+- pytest baseline **893 / 73 skip 持续** (本地 macOS 全过 + Linux 模拟 `PYTHONPATH=.` 也全过)
+- ruff 0 errors
+- 累计 sprint 0 debt: **116 → 117** (Sprint 187 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +10 sprint)
+- L4.x stable: **34 → 35** (新增 L4.41)
+- fix_pattern 累计: **+1 = #72** (Sprint 182 L4.32 macOS 假设被 Linux GitHub Actions runner 反噬: PYTHONPATH=. literal, 真实教训)
+- /document-release 累计: **17 → 18 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 / 185 / 186 / 187 模式 stable)
+- 11 hook 闭环 (跟 Sprint 185 一致), git remote SSH 推送 0 timeout
+- MEMORY.md 18.9KB ≤ 24.4KB headroom (L4.13 verify OK)
+- main HEAD 待 commit (Sprint 187) + origin/main 待 push
+
 ## [0.4.14.28] - 2026-07-01 (Sprint 186 — 文档全盘收纳整理 sprint)
 
 ### Changed

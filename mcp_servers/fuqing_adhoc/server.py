@@ -35,7 +35,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 # L4.32: 显式 CWD lock, 不依赖父进程 CWD (subprocess 必须 cwd=主目录)
 _CWD = str(PROJECT_ROOT)
-_PYTHONPATH = os.environ.get("PYTHONPATH", _CWD)
+# Sprint 187 治根 (Sprint 182 L4.32 macOS 假设被 Linux CI 反噬):
+# macOS 本地 PYTHONPATH 已是绝对路径, 但 Linux CI runner 用 actions/setup-python
+# 默认 PYTHONPATH=., 注入到 env 后 subprocess 找不到 backend.services
+# (test_subprocess_inherits_pythonpath fail). 修法: 强制用 str(PROJECT_ROOT)
+# 绝对路径, 不依赖父进程 (跟 L4.10 + L4.32 + L4.41 配套).
+_PYTHONPATH = _CWD
 
 from mcp_servers.fuqing_adhoc._dispatch import HANDLERS, TOOL_DEFS  # noqa: E402
 
