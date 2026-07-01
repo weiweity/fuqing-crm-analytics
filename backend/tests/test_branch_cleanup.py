@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 import subprocess
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent  # backend/tests → backend → repo root
