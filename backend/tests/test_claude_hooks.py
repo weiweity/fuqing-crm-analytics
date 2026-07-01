@@ -804,10 +804,7 @@ class TestClaudeHooksRegression:
           2. 跑 ruff F401, 期望 rc != 0 且 stdout 含 F401
           3. (用 try/finally 保证恢复, 不污染仓库)
         """
-        target_file = (
-            "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/"
-            "backend/tests/test_claude_hooks.py"
-        )
+        target_file = str(Path(__file__).resolve())  # Sprint 181: cross-platform via __file__, not hardcoded macOS path
         original = None
         try:
             with open(target_file, "r", encoding="utf-8") as f:
