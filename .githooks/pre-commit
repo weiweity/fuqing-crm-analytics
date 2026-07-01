@@ -1,4 +1,5 @@
 #!/bin/bash
+# Sprint 30.2 soft WARN (跨 sprint 30.2+ CHANGELOG 跟随从 hard block → soft WARN, 跟 Sprint 27 教训配套)
 # Sprint 178+: hooksPath 保护 (防止 pytest 修改 core.hooksPath 指向 tmp dir)
 # Sprint 176+ 真业务 fix: pytest tmp 污染 hooksPath 导致 .githooks 全部失效
 EXPECTED_HOOKS_PATH="$(git rev-parse --show-toplevel)/.githooks"
