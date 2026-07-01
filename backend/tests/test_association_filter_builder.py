@@ -42,10 +42,10 @@ class TestAssociationFilterBuilder:
         assert "赠品&0.01渠道" in params
         assert "赠品&0.01" not in sql
 
-    def test_end_to_end_get_category_flow_no_target(self):
+    def test_end_to_end_get_category_flow_no_target(self, monkeypatch):
         """端到端: 不带 target_category, 只跑 flow matrix 部分."""
         with tempfile.TemporaryDirectory() as tmp:
-            os.chdir(tmp)
+            monkeypatch.chdir(tmp)  # Sprint 181: pytest auto-restores CWD on exit
             os.makedirs("backend/cache/category_flow", exist_ok=True)
 
             real_conn = duckdb.connect(":memory:")
@@ -81,10 +81,10 @@ class TestAssociationFilterBuilder:
             assert result["matrix"]["sources"]
             assert result["matrix"]["targets"]
 
-    def test_end_to_end_get_category_flow_with_target(self):
+    def test_end_to_end_get_category_flow_with_target(self, monkeypatch):
         """端到端: 带 target_category, 触发时序关联分析 (走 temporal.py)."""
         with tempfile.TemporaryDirectory() as tmp:
-            os.chdir(tmp)
+            monkeypatch.chdir(tmp)  # Sprint 181: pytest auto-restores CWD on exit
             os.makedirs("backend/cache/category_flow", exist_ok=True)
 
             real_conn = duckdb.connect(":memory:")

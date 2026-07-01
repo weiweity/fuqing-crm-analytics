@@ -53,6 +53,31 @@
 - 11 hook 闭环: 7 Claude Code + 4 git hooks (Sprint 178 集中升级)
 - /document-release 累计 **11 次真治本** (Sprint 65/138/141.5/145/149/153/160/165/169/171/179)
 
+## [0.4.14.23] - 2026-07-01 (Sprint 180 + 181 真业务 CI 爆红治本 — Claude Code hooks 测试覆盖 + 跨平台 raw string 治根 + chdir 污染源治本)
+
+### Fixed
+- **Sprint 180 P0 治根 2 真因** (CI Linux Python 3.14.6 raw string `\$` 触发 SyntaxError): 跨 sprint 实战 fix 真因
+  1. Bug A: PreToolUse Edit|Write regex `r'(^|/)(...)$'` - Sprint 178 inline python 写错: `re.match` 锚 start 不锚 end, deep path `/Users/.../.env` 不拦. Sprint 180 治本: `re.search` + `(?:^|/)/(?:...)(?:$|/)` 模式
+  2. Bug B: Linux Python 3.14.6 raw string `$` SyntaxError - Sprint 178 inline python 用 r-string 含 `$`, 本地 macOS Python 3.14.4 OK, CI Linux Python 3.14.6 触发 SyntaxError 退出 1. Sprint 180 治本: 同 regex + `(?:\$|/)` 模式 (跨 Python 3.12/3.14 stable)
+- **Sprint 180.1 shlex 替代 tmp file**: `_run_hook` 用 shlex.split + argv list + stdin pipe, 避免 shell quote + Python 3.14.6 raw string `\\$` 多次 escape 出错
+- **Sprint 181 chdir 污染源治本**: 真因是 `test_association_filter_builder.py` + `test_matrix_filter_builder.py` 用 `os.chdir(tmp)` 在 `tempfile.TemporaryDirectory()` 块结束时不恢复 CWD → 后续 `subprocess.run` 启动新 Python 时父 CWD 路径已删除, kernel 报 `OSError: failed to make path absolute` → 退出 1. 治本: 改用 `monkeypatch.chdir(tmp)` (pytest 自动恢复)
+- **Sprint 181 _run_hook 加 cwd=REPO_ROOT**: belt-and-suspenders 防御, 即使上游 test chdir 污染也能保证 PreToolUse hook subprocess 启动成功 (跟 L4.10 平台检查放 main 教训同位)
+
+### L4.x 永久规则沉淀 (Sprint 180-181)
+- **L4.32 新增**: subprocess 启动 (尤其 `python3 -c` argv list) 必须显式 `cwd=主目录`, 不能依赖父 CWD. 反例: 父进程 `os.chdir(tmp)` + `tempfile.TemporaryDirectory()` 块结束 → 父 CWD 路径已删 → subprocess getpath 失败. 正例: `_run_hook` 始终 `cwd=REPO_ROOT`. 跟 L4.10 平台检查放 main / L4.17-18 Node 升级 同位 (平台特定 hidden assumption 必须 explicit 验证)
+- **L4.33 新增**: test 改 CWD 必须用 `monkeypatch.chdir` 或 try/finally 恢复, 禁止裸 `os.chdir(tmp)` 在 `tempfile.TemporaryDirectory()` 块结束时不恢复. 27 个 test 都有此风险, 跨 sprint 治本 2 个 (test_association_filter_builder + test_matrix_filter_builder) + 留下 F401 baseline 验证治本. 跟 L4.3 DuckDB 单例 fixture / L4.4 真连 test skipif 教训同位 (test 全局状态污染必须 fixture 隔离)
+
+### fix_pattern 沉淀 (Sprint 180-181)
+- **#62**: `subprocess.run` 启动新进程时, 显式 `cwd=REPO_ROOT` 防父 CWD 失效 (chdir 污染 / 路径删除)
+- **#63**: 真因排查用 4 步定位法: (1) 单跑 PASS / 全跑 FAIL → 隐藏依赖; (2) 二分 file 数找污染源; (3) 加 stderr capture 拿 Python 启动错误; (4) 直接 `os.getcwd()` 验证 CWD 状态. Sprint 181 治本 11 fail → 0 fail 实战
+- **#64**: 跨 sprint "chdir 污染源" 27 个 test 全有风险, 治本 1 sprint 修 2 个 (高 ROI, 跟 L4.3 fixture 隔离模式 stable)
+
+### 累计统计 (Sprint 180-181 更新)
+- pytest passed **813 → 790** (Sprint 181 chdir 污染修复 23 case 重新稳态; test_claude_hooks.py 新增 28 case 防 hook 回归)
+- 累计 sprint **107 → 109** 0 debt (Sprint 180 + 180.1 + 181 全部治本)
+- L4.x 永久规则 **25 → 27** stable (新增 L4.32 subprocess cwd lock + L4.33 monkeypatch.chdir)
+- 11 hook 闭环: 7 Claude Code + 4 git hooks (Sprint 178 集中升级, 持续 stable)
+
 ---
 
 ## [0.4.14.22] - 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口 — 9 子命令 + AI 问数 + Excel 多 sheet + 防串台硬规则 + R 6 桶真实 SSOT + codegraph 教训沉淀)

@@ -20,8 +20,13 @@ import re
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
+
+# Sprint 181: lock subprocess CWD to repo root, defensive against tests
+# that chdir into tempdirs and never restore (e.g. test_association_filter_builder).
+REPO_ROOT = str(Path(__file__).parent.parent.parent.resolve())
 
 # Inline commands copied verbatim from .claude/settings.json (Sprint 178)
 # NOTE: settings.json uses `\$` in the regex; in JSON that's just `$`
@@ -96,6 +101,11 @@ def _run_inline_python(body: str, payload: dict, timeout: int = 15):
     try:
         with os.fdopen(fd, "w") as f:
             f.write(body)
+        # Sprint 181: do NOT pass cwd=REPO_ROOT here. _run_inline_python is
+        # used by PostToolUse tests that intentionally chdir into a fake_repo
+        # to verify branch_cleanup.py stub gets called from CWD. Locking CWD
+        # would defeat that test design. chdir pollution defense is _run_hook
+        # (PreToolUse) only.
         result = subprocess.run(
             [sys.executable if False else "python3", path],  # explicit python3
             input=json.dumps(payload),
@@ -140,7 +150,15 @@ def _run_hook(cmd: str, payload: dict) -> int:
     Sprint 180.1 fix: use stdin pipe + python3 -c argv list (no shell, no tmp file).
     shell=True 让 bash 处理 `$` 跟 Python 不一致 (Linux/macOS 跨平台).
     tmp file 方式让 Python 3.14.6 raw string `\\$` 多次 escape 出错.
-    最佳: argv list + stdin pipe (no shell, no tmp file).
+    Sprint 181 fix: pass cwd=REPO_ROOT explicitly. Previous tests use
+    `os.chdir(tmp)` inside `tempfile.TemporaryDirectory()` blocks (e.g.
+    test_association_filter_builder.py line 48/87). When the tmp dir is
+    cleaned up at end of `with` block, the parent process's CWD is left
+    pointing at a deleted path. Subsequent subprocess.run inherits this
+    invalid CWD, the new Python process fails at getpath() with
+    `OSError: failed to make path absolute` → exit 1 (treated as syntax
+    error). Lock the cwd to the repo root so subprocess startup is
+    always safe regardless of what previous tests did to CWD.
     """
     import shlex
     parts = shlex.split(cmd)
@@ -154,6 +172,7 @@ def _run_hook(cmd: str, payload: dict) -> int:
         text=True,
         capture_output=True,
         timeout=15,
+        cwd=REPO_ROOT,
     )
     return result.returncode
 

@@ -60,10 +60,10 @@ class TestMatrixFilterBuilder:
         # excluded_cat 18 项也进 params
         assert sum(1 for p in params if p in matrix.EXCLUDED_PRODUCT_CATEGORIES) == len(matrix.EXCLUDED_PRODUCT_CATEGORIES)
 
-    def test_end_to_end_get_category_flow_matrix(self):
+    def test_end_to_end_get_category_flow_matrix(self, monkeypatch):
         """端到端: 真 DuckDB 跑 get_category_flow_matrix."""
         with tempfile.TemporaryDirectory() as tmp:
-            os.chdir(tmp)
+            monkeypatch.chdir(tmp)  # Sprint 181: pytest auto-restores CWD on exit
             os.makedirs("backend/cache/category_flow", exist_ok=True)
 
             real_conn = duckdb.connect(":memory:")
