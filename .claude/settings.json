@@ -1,5 +1,5 @@
 {
-  "_comment": "Sprint 22.5+ P0 hooks + Sprint 67 UserPromptSubmit hook (留尾 SSOT 治理) + Sprint 177 PostToolUse Bash hook (branch cleanup 自动化). 5 hooks. 详细: docs/AUTOMATION.md",
+  "_comment": "Sprint 22.5+ P0 hooks + Sprint 67 UserPromptSubmit hook (留尾 SSOT 治理) + Sprint 177 PostToolUse Bash hook (branch cleanup 自动化) + Sprint 178 SessionStart/Stop/PreToolUse Bash hooks (session 边界保护 + 危险命令拦截). 8 hooks. 详细: docs/AUTOMATION.md",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,6 +8,15 @@
           {
             "type": "command",
             "command": "python3 -c \"import sys, json, re; d=json.loads(sys.stdin.read() or '{}'); p=d.get('tool_input',{}).get('file_path',''); bad = re.match(r'(^|/)(\\.env|\\.env\\.local|\\.env\\..*\\.local|data/processed/.*\\.duckdb)$', p); sys.exit(2 if bad else 0)\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, re\nd = json.loads(sys.stdin.read() or '{}')\ncmd = d.get('tool_input', {}).get('command', '')\n# Sprint 178: 拦截危险命令 (force push / rm -rf / mkfs / fork bomb)\nforbidden = [\n    r'\\bgit\\s+push\\s+.*--force\\b',\n    r'\\bgit\\s+push\\s+.*-f\\b(?!or)',\n    r'\\brm\\s+-rf?\\s+/\\b',\n    r'\\bmkfs\\b',\n    r':\\(\\)\\s*\\{\\s*:\\|:\\s*&\\s*\\};:',\n    r'\\bdd\\s+if=/dev/(zero|random|urandom)\\s+of=/dev/(sda|nvme|disk)\\b',\n    r'\\bchmod\\s+-R\\s+777\\s+/\\b',\n]\nfor pat in forbidden:\n    if re.search(pat, cmd):\n        print(f'[Sprint 178 PreToolUse Bash] 危险命令拦截: {pat}')\n        print(f'   command: {cmd[:200]}')\n        sys.exit(2)\n\""
           }
         ]
       }
@@ -27,7 +36,29 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"\nimport sys, json, re, subprocess\nd = json.loads(sys.stdin.read() or '{}')\ncmd = d.get('tool_input', {}).get('command', '')\n# Sprint 177 PostToolUse Bash hook: git push origin main 后自动扫已 merge 分支 + 删\nif re.search(r'git\\s+push\\s+origin\\s+main', cmd):\n    try:\n        result = subprocess.run(\n            ['python3', 'scripts/branch_cleanup.py'],\n            capture_output=True, text=True, timeout=90\n        )\n        # silent skip on failure (跟 L4.8 hook retry 模式 stable)\n        if result.returncode == 0:\n            print('[Sprint 177 L4.8 hook] branch_cleanup 完成:')\n            print(result.stdout[-1500:])\n        else:\n            print(f'[Sprint 177 L4.8 hook] branch_cleanup silent skip (rc={result.returncode})')\n    except subprocess.TimeoutExpired:\n        print('[Sprint 177 L4.8 hook] branch_cleanup timeout (90s) silent skip')\n    except Exception as e:\n        print(f'[Sprint 177 L4.8 hook] branch_cleanup error: {e}')\n\""
+            "command": "python3 -c \"\nimport sys, json, re, subprocess\nd = json.loads(sys.stdin.read() or '{}')\ncmd = d.get('tool_input', {}).get('command', '')\n# Sprint 177 PostToolUse Bash hook: git push origin main 后自动扫已 merge 分支 + 删\nif re.search(r'git\\s+push\\s+origin\\s+main', cmd):\n    try:\n        result = subprocess.run(\n            ['python3', 'scripts/branch_cleanup.py'],\n            capture_output=True, text=True, timeout=90\n        )\n        if result.returncode == 0:\n            print('[Sprint 177 L4.8 hook] branch_cleanup 完成:')\n            print(result.stdout[-1500:])\n        else:\n            print(f'[Sprint 177 L4.8 hook] branch_cleanup silent skip (rc={result.returncode})')\n    except subprocess.TimeoutExpired:\n        print('[Sprint 177 L4.8 hook] branch_cleanup timeout (90s) silent skip')\n    except Exception as e:\n        print(f'[Sprint 177 L4.8 hook] branch_cleanup error: {e}')\n\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/session_start_check.py || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/session_close_check.py || true"
           }
         ]
       }
