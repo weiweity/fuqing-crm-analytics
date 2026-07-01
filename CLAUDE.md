@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.23（main @ 2d70d8c Sprint 172 BaseStyleButton Learn More + Sprint 173 MTD/WTD 月初边界 fallback + Sprint 174 exportXlsx SSOT 12 view + Sprint 175 4 真业务 Q 治本 + Sprint 176 /api/v1/sampling/roi 500 UnboundLocalError 真因修 + Sprint 176.1 CI 爆红治本 (3 真因) + Sprint 176.1+ hot reload 死循环 + Sprint 177 派样正装转化 UI/逻辑统一化 (4 tab) + Sprint 177+ L4.8 自动化 branch cleanup hook + Sprint 178 Claude Code setup 优化 (3 件: git hooks 激活 + SessionStart/Stop/PreToolUse Bash hooks + sprint 169/170/171 close memory 沉淀), pytest baseline 813/72/0, 累计 107 sprint 0 debt (Sprint 172-178 全部治本), L4.x **25 stable + 2 候选** (L4.x #31 branch cleanup hook 强制自动化新增, Sprint 179+ 评估), 11 hook 闭环 (7 Claude Code + 4 git hooks) |
+| 4 | **版本状态** | v0.4.14.24（main @ 774e6a7 Sprint 180 + 180.1 + 181 + 181.1 + L4.34 永久规则 — CI 爆红 4 真因治本 (Sprint 178 inline python raw string `\$` SyntaxError + deep path regex + chdir 污染源 + 硬编码 macOS 路径) + 3 永久规则沉淀 (L4.32 subprocess cwd lock + L4.33 monkeypatch.chdir + L4.34 Path(__file__).resolve) + git remote HTTPS→SSH 切换 + /document-release 累计 12 次真治本, pytest baseline 790/73/0 (-23 vs Sprint 179 是因治本 11 fail 重新稳态, 28 case 跨平台 baseline), 累计 111 sprint 0 debt (Sprint 180-181 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +4 sprint), L4.x **28 stable** (新增 L4.32/33/34, 跨 sprint 180-181 沉淀 fix_pattern #62-#64 累计 3 模式), 11 hook 闭环 (7 Claude Code + 4 git hooks) |
 
 **L4.24 候选: codegraph 实证 SOP**（Sprint 171 真业务触发，跨 sprint v1 R 6 桶脑补错误治根）
 1. **触发**：任何业务规格/文档/spec 涉及业务口径（RFM / R 区间 / 字段名 / 阈值 / 桶边界）
