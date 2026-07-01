@@ -220,6 +220,52 @@ def test_dq_report_ok(client, auth_headers) -> None:
     assert isinstance(body["rows"], list)
 
 
+def test_daily_gsv_multi_period_ok(client, auth_headers) -> None:
+    """Sprint 190 加: 多周期 × 8 维度 endpoint.
+
+    真业务: 运营问"小样/会员/新老客 按天 × 多周期".
+    注意: 这个 test 在 Sprint 188 已 SKIPPED (生产 DuckDB 不可用), 跟其他 11 case 一起 skip.
+    Sprint 190 加 endpoint,test 仍 skip 因为跑 DuckDB 写锁 → 跟 Sprint 188 B1 同模式.
+    """
+    response = client.post(
+        "/api/v1/ad-hoc/daily-gsv-multi-period",
+        headers=auth_headers,
+        json={
+            "periods": ["2026-01-01", "2026-06-30", "2025-01-01", "2025-06-30"],
+            "metrics": ["sample_gmv", "member_gmv", "new_users", "old_users"],
+        },
+    )
+    assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text}"
+    body = response.json()
+    assert body["command"] == "daily-gsv-multi-period"
+    assert isinstance(body["rows"], list)
+
+
+def test_daily_gsv_multi_period_odd_periods_returns_422(client, auth_headers) -> None:
+    """Sprint 190: periods 奇数长度 → 422 (跟 _dispatcher 同样校验)."""
+    response = client.post(
+        "/api/v1/ad-hoc/daily-gsv-multi-period",
+        headers=auth_headers,
+        json={
+            "periods": ["2026-01-01", "2026-06-30", "2025-01-01"],  # 奇数 3 个
+        },
+    )
+    assert response.status_code == 422, f"expected 422 (odd length), got {response.status_code}"
+    assert "偶数" in response.text or "成对" in response.text
+
+
+def test_daily_gsv_multi_period_bad_date_returns_422(client, auth_headers) -> None:
+    """Sprint 190: period date 格式错 → 422."""
+    response = client.post(
+        "/api/v1/ad-hoc/daily-gsv-multi-period",
+        headers=auth_headers,
+        json={
+            "periods": ["2026-01-01", "不是日期", "2025-01-01", "2025-06-30"],
+        },
+    )
+    assert response.status_code == 422, f"expected 422 (bad date), got {response.status_code}"
+
+
 def test_dq_report_invalid_date_returns_422(client, auth_headers) -> None:
     """start_date > end_date → 422 校验错返 (跟 _validate_date_range 配套)."""
     response = client.post(

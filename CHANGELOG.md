@@ -1,3 +1,29 @@
+## [0.4.14.32] - 2026-07-02 (Sprint 190 — 运营真业务触发 × 2 bugfix + 1 endpoint + L4.43 永久规则)
+
+### Fixed
+- **argparse adapter L4.43 bugfix** (Sprint 190 真业务触发: 运营问"按天 × 8 维度 × 多周期 → csv", WorkBuddy 调 `daily-gsv-multi-period` 报错 "unrecognized arguments"). 真因: scripts/ad_hoc_query.py:62-76 adapter 吞了 `nargs` kwargs, Sprint 183 daily-gsv-multi-period 用 `nargs="+"` 模式未透传给 argparse → CLI 多值传挂. 治根: Sprint 190 升级 adapter 加 `if "nargs" in arg: kwargs["nargs"] = arg["nargs"]` (line 71-72), 实跑 `--periods 2026-01-01 2026-06-30 2025-01-01 2025-06-30` OK
+- **WorkBuddy 误判"daily-gsv-multi-period 工具缺位"治根** (跟 Sprint 183 v2.2 真业务). 真因: SKILL.md frontmatter description + §1.5 速查表都太抽象, WorkBuddy LLM 不知道"小样/会员/新老客 + 按天 + 多周期"映射到 daily-gsv-multi-period. 治根: SKILL.md 加 §1.5.1 关键词同义词库 + §1.5.2 工具缺位自检 (4 件必查 + 95% 情况都有现成 tool), description 升级加运营关键词
+
+### Added
+- **POST /api/v1/ad-hoc/daily-gsv-multi-period endpoint** (Sprint 190 加, 跟 Sprint 188 B1 同模式): Pydantic `DailyGsvMultiPeriodRequest` (periods: List[str], metrics: List[str]), 复用 `scripts.ad_hoc_queries.daily_gsv_multi_period.run_daily_gsv_multi_period`. uvicorn launchctl kickstart -k 后 10 endpoint 实加载
+- **3 pytest case 加 backend/tests/test_ad_hoc_query_api.py**: `test_daily_gsv_multi_period_ok` + `_odd_periods_returns_422` + `_bad_date_returns_422`. 全部 SKIPPED (跟 Sprint 188 B1 同模式: 生产 DuckDB 不可用)
+
+### Changed
+- **L4.43 永久规则 stable (Sprint 190, 架构)**: argparse adapter 必须透传 spec.nargs / choices / type / action 6 kwargs. 跟 L4.5 FilterBuilder + L4.25 防串台字段前缀同位 (scripts/ad_hoc_queries/* CLI 层)
+- **fix_pattern #74 沉淀 (Sprint 190)**: argparse adapter 透传缺陷. 配套 fix_pattern #68/69/70/71/72/73 实战 fix pattern 库
+- **SKILL.md §1 表格升级**: 加 "触发关键词" 列, 区分"用途"+"关键词"双维度 (WorkBuddy LLM 多触发路径)
+
+### For contributors
+- pytest baseline **844 / 85 skip / 0 failed** 持续 (本地 macOS)
+- ruff 0 errors
+- 累计 sprint 0 debt: **118 持续** (Sprint 190 跨 Sprint 60+ 0 debt stable 模式 +12 sprint)
+- L4.x stable: **36 → 37** (新增 L4.43)
+- fix_pattern 累计: **+1 = #74** (argparse adapter 透传缺陷)
+- /document-release 累计: **20 → 21 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 / 185 / 186 / 187 / 188 / 189 / 190 模式 stable)
+- 11 hook 闭环 (跟 Sprint 189 一致)
+- MEMORY.md ~18.7KB ≤ 24.4KB headroom (L4.13 verify OK)
+- main HEAD `f8e9235 + Sprint 190 + 1 squash` (待 commit + push)
+
 ## [0.4.14.31] - 2026-07-02 (Sprint 189 — L4.35 skill symlink 治理修 100→0 false positive)
 
 ### Fixed

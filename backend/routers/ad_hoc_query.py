@@ -127,6 +127,37 @@ class ExportExcelRequest(_DateWindowMixin):
     year: int = Field(default=2026, description="基准年份")
 
 
+class DailyGsvMultiPeriodRequest(BaseModel):
+    """daily-gsv-multi-period: 多周期 × 8 维度 daily rows.
+
+    Sprint 190 加: 运营高频需求"按天 × 8 维度 × 多周期对比" — 必用 daily-gsv-multi-period.
+
+    8 metric enum (跟 scripts.ad_hoc_queries.daily_gsv_multi_period._METRIC_SQL 对齐):
+      - sample_gmv / sample_gsv (小样 GMV/GSV, 渠道 U先派样 + 百补派样)
+      - member_gmv / member_gsv (会员 GMV/GSV, is_member=TRUE)
+      - new_users / new_gsv (新客人数 / 新客 GSV, cutoff = 查询起始日 - 1 天)
+      - old_users / old_gsv (老客人数 / 老客 GSV)
+
+    periods 必须是 start/end 成对 [YYYY-MM-DD, YYYY-MM-DD, ...], 偶数长度.
+
+    L4.5 / L4.19: 无 inline SQL, 复用 service. L4.25 防串台字段前缀 (跟 Sprint 171 v2.0 一致).
+    """
+
+    periods: List[str] = Field(
+        ...,
+        min_length=2,
+        max_length=20,
+        description="多周期列表, start/end 成对. 偶数长度. 例 ['2026-01-01','2026-06-30','2025-01-01','2025-06-30']",
+    )
+    metrics: List[str] = Field(
+        default_factory=lambda: [
+            "sample_gmv", "sample_gsv", "member_gmv", "member_gsv",
+            "new_users", "new_gsv", "old_users", "old_gsv",
+        ],
+        description="8 metric (默认全 8). 传空列表用默认.",
+    )
+
+
 # ─────────────────────────────────────────────────────────────
 # Response helpers (rows 序列化 + headers from QuerySpec)
 # ─────────────────────────────────────────────────────────────
@@ -197,6 +228,48 @@ def post_daily_gsv(req: DailyGsvRequest) -> AdHocQueryResponse:
     except (ValueError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return _serialize("daily-gsv", headers, rows, warning)
+
+
+@router.post(
+    "/daily-gsv-multi-period",
+    response_model=AdHocQueryResponse,
+    summary="多周期 × 8 维度 daily rows (Sprint 190 加, 运营高频需求)",
+)
+def post_daily_gsv_multi_period(req: DailyGsvMultiPeriodRequest) -> AdHocQueryResponse:
+    """多周期 × 8 维度 daily rows. Sprint 190 加 (跟 Sprint 188 B1 endpoint pattern stable).
+
+    周期列表 start/end 成对. 输出列: [period_label, date, sample_gmv, sample_gsv,
+    member_gmv, member_gsv, new_users, new_gsv, old_users, old_gsv].
+    """
+    if len(req.periods) % 2 != 0:
+        raise HTTPException(
+            status_code=422,
+            detail=f"periods 必须是 start/end 成对 (偶数长度), 当前 {len(req.periods)}",
+        )
+    # 校验每个 period date
+    for d in req.periods:
+        try:
+            date.fromisoformat(d)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"date 格式错: {d}: {exc}")
+    periods_tuple = list(zip(req.periods[::2], req.periods[1::2]))
+    from scripts.ad_hoc_queries.daily_gsv_multi_period import (  # noqa: WPS433
+        run_daily_gsv_multi_period,
+    )
+    headers = ["period", "date"] + (req.metrics or [
+        "sample_gmv", "sample_gsv", "member_gmv", "member_gsv",
+        "new_users", "new_gsv", "old_users", "old_gsv",
+    ])
+    # 周期日期全部 future 警告
+    warning = _future_date_warn(*req.periods)
+    try:
+        rows = run_daily_gsv_multi_period(
+            periods=periods_tuple,
+            metrics=req.metrics or None,
+        )
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return _serialize("daily-gsv-multi-period", headers, rows, warning)
 
 
 @router.post("/yoy-battle", response_model=AdHocQueryResponse, summary="baseline vs current 双窗口 YOY 战斗")

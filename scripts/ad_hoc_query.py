@@ -70,6 +70,10 @@ def _build_parser() -> argparse.ArgumentParser:
                 kwargs["choices"] = arg["choices"]
             if "type" in arg:
                 kwargs["type"] = arg["type"]
+            # Sprint 190 fix: nargs 必须透传 (Sprint 183 daily-gsv-multi-period
+            # 用 nargs="+", 之前没透传导致 "unrecognized arguments")
+            if "nargs" in arg:
+                kwargs["nargs"] = arg["nargs"]
             if "action" in arg:
                 kwargs["action"] = arg["action"]
                 kwargs.pop("required", None)
