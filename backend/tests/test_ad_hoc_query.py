@@ -365,12 +365,16 @@ class TestTakePathRules:
 
         Sprint 91 L4.7 防回归: 生成日期层 (今天) 改动态 date.today(), 避免 hardcode 日期
         跨日 fail (Sprint 90 close memory 留尾 #11).
+        Sprint 176.1: 跟 build_take_path 实现 line 337 对齐 (today.month/day 直接拼,
+        无前导 0), 用 f-string 替代 %-m (POSIX only, macOS Python 不支持).
         """
         path = build_take_path("新老客数据", 2025, "2025-12-01至2026-01-31")
         # 第 1 层必须是 2025年 (start 年份)
         assert "2025年" in str(path)
-        # Sprint 91 L4.7: 动态日期防 hardcode 漂移 (留尾 #11). 用 %-m 避免 0 填充 (POSIX).
-        assert date.today().strftime("%Y年%-m月%d日") in str(path)  # 生成日期层 (今天)
+        # Sprint 91 L4.7: 动态日期防 hardcode 漂移. 跨平台 f-string (跟 _utils.py:337 一致).
+        today = date.today()
+        expected = f"{today.year}年{today.month}月{today.day}日"
+        assert expected in str(path)  # 生成日期层 (今天)
 
     def test_check_take_root_containment_blocks_escape(self):
         """/tmp/evil.csv 应该 raise, 不在 TAKE_ROOT 内."""

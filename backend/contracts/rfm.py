@@ -190,24 +190,6 @@ class RFMConfigResponse(BaseModel):
     thresholds: RFMThresholds = Field(..., description="R/F/M 评分阈值")
     segments: List[SegmentDefinitionItem] = Field(default_factory=list, description="8象限定义列表")
 
-class SegmentOrderRow(BaseModel):
-    """区间订单明细单行"""
-    order_id: str
-    user_id: str
-    pay_time: str
-    actual_amount: float
-    channel: str
-    spu_product_class: Optional[str] = None
-
-
-class SegmentOrdersResponse(BaseModel):
-    """区间订单明细响应"""
-    dimension: str
-    segment: str
-    mode: str
-    total_orders: int
-    rows: List[SegmentOrderRow]
-
 
 # ============================================================
 # RFM 品类下钻 (RFM Category Drilldown)

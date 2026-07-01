@@ -701,7 +701,8 @@ export interface paths {
          * Get Category Repurchase Flow Api
          * @description 品类回购分析
          *
-         *     返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+         *     返回同品回购+跨品类回购的 R 桶明细（6 档 Recency + TTL 汇总，含3年同比）。
+         *     Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶（更直观反映复购周期）。
          */
         get: operations["get_category_repurchase_flow_api_api_v1_category_repurchase_flow_get"];
         put?: never;
@@ -721,11 +722,12 @@ export interface paths {
         };
         /**
          * Get Category Repurchase Flow By Rfm Api
-         * @description 历史老客回购分析（RFM 8象限分群，不限品类）
+         * @description 历史老客回购分析（R 桶分群，不限品类）
          *
-         *     返回同品回购+跨品类回购的RFM 8象限明细（含3年同比）。
+         *     返回同品回购+跨品类回购的 R 桶明细（6 档 Recency + TTL 汇总，含3年同比）。
          *     与 repurchase-flow 的区别：hist_customers 包含所有历史老客（不限品类），
-         *     按 RFM 象限分群后观察各象限在分析期内对目标品类的回购表现。
+         *     按 R 桶分群后观察各桶在分析期内对目标品类的回购表现。
+         *     Sprint 170 业务口径变更：原 RFM 8 象限 → R 桶。
          */
         get: operations["get_category_repurchase_flow_by_rfm_api_api_v1_category_repurchase_flow_by_rfm_get"];
         put?: never;
@@ -989,28 +991,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/rfm/segment-orders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Segment Orders Api
-         * @description RFM 区间订单明细导出
-         *
-         *     根据维度和区间，返回该区间内所有用户的订单号明细，用于二次营销。
-         */
-        get: operations["get_segment_orders_api_api_v1_rfm_segment_orders_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/rfm/extended": {
         parameters: {
             query?: never;
@@ -1152,6 +1132,31 @@ export interface paths {
          * @description 回购周期分布：TTL 或单渠道的 4 桶聚合。
          */
         get: operations["get_sampling_repurchase_distribution_api_api_v1_sampling_repurchase_distribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sampling/repurchase-tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sampling Repurchase Tracking Api
+         * @description Sprint 169 回购周期跟踪 (3 年对比柱状图).
+         *
+         *     对当前期间 + 上一年 + 前年 各跑一次 get_sampling_repurchase_buckets, 拼出 3 年 × 4 桶
+         *     扁平列表, 供前端 ECharts grouped bar 渲染.
+         *
+         *     注意: 早期年份订单表未覆盖时静默回落 0 (L4.20 SSOT 一致性).
+         */
+        get: operations["get_sampling_repurchase_tracking_api_api_v1_sampling_repurchase_tracking_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2230,11 +2235,11 @@ export interface components {
         };
         /**
          * CategoryRepurchaseFlowRow
-         * @description 品类回购分析单行数据（RFM 8象限分群）
+         * @description 品类回购分析单行数据（R 桶分群，6 档 Recency + 1 TTL 汇总）
          */
         CategoryRepurchaseFlowRow: {
-            /** Rfm Segment */
-            rfm_segment: string;
+            /** R Bucket */
+            r_bucket: string;
             /**
              * Hist Users Current
              * @default 0
@@ -3566,62 +3571,6 @@ export interface components {
          */
         PathDepth: "1" | "2";
         /**
-         * PeriodDistribution
-         * @description 派样回购周期分布 (1-3d / 4-7d / 8-30d / 31-60d / 61-90d)
-         */
-        PeriodDistribution: {
-            /**
-             * Bucket 1 3D
-             * @default 0
-             */
-            bucket_1_3d: number;
-            /**
-             * Bucket 4 7D
-             * @default 0
-             */
-            bucket_4_7d: number;
-            /**
-             * Bucket 8 30D
-             * @default 0
-             */
-            bucket_8_30d: number;
-            /**
-             * Bucket 31 60D
-             * @default 0
-             */
-            bucket_31_60d: number;
-            /**
-             * Bucket 61 90D
-             * @default 0
-             */
-            bucket_61_90d: number;
-            /**
-             * Full Bucket 1 3D
-             * @default 0
-             */
-            full_bucket_1_3d: number;
-            /**
-             * Full Bucket 4 7D
-             * @default 0
-             */
-            full_bucket_4_7d: number;
-            /**
-             * Full Bucket 8 30D
-             * @default 0
-             */
-            full_bucket_8_30d: number;
-            /**
-             * Full Bucket 31 60D
-             * @default 0
-             */
-            full_bucket_31_60d: number;
-            /**
-             * Full Bucket 61 90D
-             * @default 0
-             */
-            full_bucket_61_90d: number;
-        };
-        /**
          * PotentialTier
          * @description 用户潜力层.
          * @enum {string}
@@ -4849,6 +4798,61 @@ export interface components {
              * @description 平均复购天数
              */
             all_store_avg_days: number;
+            /**
+             * All Store Repurchase Rate
+             * @description 全店复购率 0-1 decimal
+             */
+            all_store_repurchase_rate: number;
+            /**
+             * Ly All Store Median Days
+             * @description 去年同期中位复购天数
+             */
+            ly_all_store_median_days?: number | null;
+            /**
+             * Ly All Store P25 Days
+             * @description 去年同期P25
+             */
+            ly_all_store_p25_days?: number | null;
+            /**
+             * Ly All Store P75 Days
+             * @description 去年同期P75
+             */
+            ly_all_store_p75_days?: number | null;
+            /**
+             * Ly All Store Avg Days
+             * @description 去年同期平均复购天数
+             */
+            ly_all_store_avg_days?: number | null;
+            /**
+             * Ly All Store Repurchase Rate
+             * @description 去年同期全店复购率 0-1 decimal
+             */
+            ly_all_store_repurchase_rate?: number | null;
+            /**
+             * Yoy All Store Repurchase Rate
+             * @description 全店复购率同比 (pp 差)
+             */
+            yoy_all_store_repurchase_rate?: number | null;
+            /**
+             * Median Days Yoy
+             * @description 中位天数同比 (raw diff)
+             */
+            median_days_yoy?: number | null;
+            /**
+             * P25 Days Yoy
+             * @description P25天数同比 (raw diff)
+             */
+            p25_days_yoy?: number | null;
+            /**
+             * P75 Days Yoy
+             * @description P75天数同比 (raw diff)
+             */
+            p75_days_yoy?: number | null;
+            /**
+             * Avg Days Yoy
+             * @description 平均天数同比 (raw diff)
+             */
+            avg_days_yoy?: number | null;
             /** Bucket Distribution */
             bucket_distribution?: components["schemas"]["RepurchaseBucket"][];
             /** By Product Class */
@@ -5089,6 +5093,24 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
+            /** Repurchase Users Yoy Pct */
+            repurchase_users_yoy_pct?: number | null;
+            /** Repurchase Gsv Yoy Pct */
+            repurchase_gsv_yoy_pct?: number | null;
+            /** Repurchase Rate Yoy Pp */
+            repurchase_rate_yoy_pp?: number | null;
+            /** Full Repurchase Users Yoy Pct */
+            full_repurchase_users_yoy_pct?: number | null;
+            /** Full Repurchase Gsv Yoy Pct */
+            full_repurchase_gsv_yoy_pct?: number | null;
+            /** Full Repurchase Rate Yoy Pp */
+            full_repurchase_rate_yoy_pp?: number | null;
+            /** Repurchase Aus Yoy Pct */
+            repurchase_aus_yoy_pct?: number | null;
+            /** Full Repurchase Aus Yoy Pct */
+            full_repurchase_aus_yoy_pct?: number | null;
+            /** Nonfull Repurchase Gsv Yoy Pct */
+            nonfull_repurchase_gsv_yoy_pct?: number | null;
         };
         /**
          * SamplingChannelSummary
@@ -5324,25 +5346,41 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
-            /** Sprint 154: 02 板块新增 YOY 字段 (跟 SamplingChannelSummary Sprint 144 模式 stable) */
+            /** Repurchase Users Yoy Pct */
             repurchase_users_yoy_pct?: number | null;
+            /** Repurchase Gsv Yoy Pct */
             repurchase_gsv_yoy_pct?: number | null;
+            /** Repurchase Rate Yoy Pp */
             repurchase_rate_yoy_pp?: number | null;
+            /** Full Repurchase Users Yoy Pct */
             full_repurchase_users_yoy_pct?: number | null;
+            /** Full Repurchase Gsv Yoy Pct */
             full_repurchase_gsv_yoy_pct?: number | null;
+            /** Full Repurchase Rate Yoy Pp */
             full_repurchase_rate_yoy_pp?: number | null;
+            /** Repurchase Aus Yoy Pct */
             repurchase_aus_yoy_pct?: number | null;
+            /** Full Repurchase Aus Yoy Pct */
             full_repurchase_aus_yoy_pct?: number | null;
+            /** Nonfull Repurchase Gsv Yoy Pct */
             nonfull_repurchase_gsv_yoy_pct?: number | null;
-            /** Sprint 154: 02 板块新增 MOM 字段 */
+            /** Repurchase Users Mom Pct */
             repurchase_users_mom_pct?: number | null;
+            /** Repurchase Gsv Mom Pct */
             repurchase_gsv_mom_pct?: number | null;
+            /** Repurchase Rate Mom Pp */
             repurchase_rate_mom_pp?: number | null;
+            /** Full Repurchase Users Mom Pct */
             full_repurchase_users_mom_pct?: number | null;
+            /** Full Repurchase Gsv Mom Pct */
             full_repurchase_gsv_mom_pct?: number | null;
+            /** Full Repurchase Rate Mom Pp */
             full_repurchase_rate_mom_pp?: number | null;
+            /** Repurchase Aus Mom Pct */
             repurchase_aus_mom_pct?: number | null;
+            /** Full Repurchase Aus Mom Pct */
             full_repurchase_aus_mom_pct?: number | null;
+            /** Nonfull Repurchase Gsv Mom Pct */
             nonfull_repurchase_gsv_mom_pct?: number | null;
         };
         /**
@@ -5463,7 +5501,6 @@ export interface components {
             /** Category Breakdown */
             category_breakdown: components["schemas"]["SamplingCategoryRow"][];
             time_range: components["schemas"]["SamplingROITimeRange"];
-            period_distribution?: components["schemas"]["PeriodDistribution"];
             /** Quality Flags */
             quality_flags?: components["schemas"]["QualityFlag"][];
             /**
@@ -5516,6 +5553,52 @@ export interface components {
         SamplingRepurchaseDistribution: {
             /** Buckets */
             buckets?: components["schemas"]["SamplingRepurchaseBucket"][];
+            /**
+             * Window Days
+             * @default 90
+             */
+            window_days: number;
+        };
+        /**
+         * SamplingRepurchaseTrackingBucket
+         * @description Sprint 169 回购周期跟踪单桶 (3 年对比).
+         *
+         *     - bucket: 桶标签 (0-7d / 8-30d / 31-60d / 61-90d)
+         *     - year_label: 年份标签 (cur/ly/prev2 对应 "2026年"/"2025年"/"2024年")
+         *     - rate: 该桶该年的"回购周期分布率" = 派样后回购正装人数 / 总派样人数 (0-1 decimal)
+         *     - year_range: 该年实际期间 (起, 止), 跟 SamplingROIResponse.time_range 一致
+         */
+        SamplingRepurchaseTrackingBucket: {
+            /** Bucket */
+            bucket: string;
+            /** Year Label */
+            year_label: string;
+            /**
+             * Rate
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            rate: number;
+            /** Year Range Start */
+            year_range_start: string;
+            /** Year Range End */
+            year_range_end: string;
+        };
+        /**
+         * SamplingRepurchaseTrackingResponse
+         * @description Sprint 169 回购周期跟踪响应.
+         *
+         *     - buckets: 所有年份所有桶的扁平列表
+         *     - year_labels: 按年份顺序 (cur→ly→prev2), 跟健康页一致
+         *     - time_range: 当前年份的窗口范围 (Sprint 144 同)
+         *     - window_days: 回购窗口天数
+         */
+        SamplingRepurchaseTrackingResponse: {
+            /** Buckets */
+            buckets?: components["schemas"]["SamplingRepurchaseTrackingBucket"][];
+            /** Year Labels */
+            year_labels?: string[];
+            time_range: components["schemas"]["SamplingROITimeRange"];
             /**
              * Window Days
              * @default 90
@@ -5604,40 +5687,6 @@ export interface components {
              * @description 优先级 1-8
              */
             priority: number;
-        };
-        /**
-         * SegmentOrderRow
-         * @description 区间订单明细单行
-         */
-        SegmentOrderRow: {
-            /** Order Id */
-            order_id: string;
-            /** User Id */
-            user_id: string;
-            /** Pay Time */
-            pay_time: string;
-            /** Actual Amount */
-            actual_amount: number;
-            /** Channel */
-            channel: string;
-            /** Spu Product Class */
-            spu_product_class?: string | null;
-        };
-        /**
-         * SegmentOrdersResponse
-         * @description 区间订单明细响应
-         */
-        SegmentOrdersResponse: {
-            /** Dimension */
-            dimension: string;
-            /** Segment */
-            segment: string;
-            /** Mode */
-            mode: string;
-            /** Total Orders */
-            total_orders: number;
-            /** Rows */
-            rows: components["schemas"]["SegmentOrderRow"][];
         };
         /**
          * StoreAssetResponse
@@ -7986,52 +8035,6 @@ export interface operations {
             };
         };
     };
-    get_segment_orders_api_api_v1_rfm_segment_orders_get: {
-        parameters: {
-            query: {
-                /** @description 维度：r / f / m */
-                dimension: string;
-                /** @description 区间名称（如 近1个月已购客） */
-                segment: string;
-                /** @description 开始日期 YYYY-MM-DD */
-                start_date: string;
-                /** @description 结束日期 YYYY-MM-DD */
-                end_date: string;
-                /** @description GMV 或 GSV */
-                metric_type?: string;
-                /** @description all / member / same_channel / member_same_channel */
-                mode?: string;
-                /** @description 渠道筛选 */
-                channel?: string | null;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SegmentOrdersResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_rfm_extended_api_api_v1_rfm_extended_post: {
         parameters: {
             query?: never;
@@ -8226,6 +8229,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SamplingRepurchaseDistribution"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sampling_repurchase_tracking_api_api_v1_sampling_repurchase_tracking_get: {
+        parameters: {
+            query?: {
+                /** @description 派样起始日期 */
+                start_date?: string;
+                /** @description 派样结束日期 */
+                end_date?: string;
+                /** @description 回购窗口天数：1-90 */
+                window_days?: number;
+                /** @description 筛选特定派样渠道；空值为 TTL 派样 */
+                channel?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplingRepurchaseTrackingResponse"];
                 };
             };
             /** @description Validation Error */
