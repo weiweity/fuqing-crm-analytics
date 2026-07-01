@@ -142,7 +142,8 @@ def _run_hook(cmd: str, payload: dict) -> int:
     macOS / Linux 跨平台行为不同 — Linux CI 报 exit 1, macOS 报 exit 2/0.
     tmp file + argv list 让 python 直接解析 regex, 跨平台一致.
     """
-    import tempfile, os
+    import tempfile
+    import os
     body = cmd.replace("python3 -c ", "", 1).strip().strip('"').strip("'").replace('\\"', '"').replace("\\n", "\n")
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         tmp = f.name
