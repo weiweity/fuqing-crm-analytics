@@ -991,28 +991,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/rfm/segment-orders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Segment Orders Api
-         * @description RFM 区间订单明细导出
-         *
-         *     根据维度和区间，返回该区间内所有用户的订单号明细，用于二次营销。
-         */
-        get: operations["get_segment_orders_api_api_v1_rfm_segment_orders_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/rfm/extended": {
         parameters: {
             query?: never;
@@ -5115,6 +5093,24 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
+            /** Repurchase Users Yoy Pct */
+            repurchase_users_yoy_pct?: number | null;
+            /** Repurchase Gsv Yoy Pct */
+            repurchase_gsv_yoy_pct?: number | null;
+            /** Repurchase Rate Yoy Pp */
+            repurchase_rate_yoy_pp?: number | null;
+            /** Full Repurchase Users Yoy Pct */
+            full_repurchase_users_yoy_pct?: number | null;
+            /** Full Repurchase Gsv Yoy Pct */
+            full_repurchase_gsv_yoy_pct?: number | null;
+            /** Full Repurchase Rate Yoy Pp */
+            full_repurchase_rate_yoy_pp?: number | null;
+            /** Repurchase Aus Yoy Pct */
+            repurchase_aus_yoy_pct?: number | null;
+            /** Full Repurchase Aus Yoy Pct */
+            full_repurchase_aus_yoy_pct?: number | null;
+            /** Nonfull Repurchase Gsv Yoy Pct */
+            nonfull_repurchase_gsv_yoy_pct?: number | null;
         };
         /**
          * SamplingChannelSummary
@@ -5691,40 +5687,6 @@ export interface components {
              * @description 优先级 1-8
              */
             priority: number;
-        };
-        /**
-         * SegmentOrderRow
-         * @description 区间订单明细单行
-         */
-        SegmentOrderRow: {
-            /** Order Id */
-            order_id: string;
-            /** User Id */
-            user_id: string;
-            /** Pay Time */
-            pay_time: string;
-            /** Actual Amount */
-            actual_amount: number;
-            /** Channel */
-            channel: string;
-            /** Spu Product Class */
-            spu_product_class?: string | null;
-        };
-        /**
-         * SegmentOrdersResponse
-         * @description 区间订单明细响应
-         */
-        SegmentOrdersResponse: {
-            /** Dimension */
-            dimension: string;
-            /** Segment */
-            segment: string;
-            /** Mode */
-            mode: string;
-            /** Total Orders */
-            total_orders: number;
-            /** Rows */
-            rows: components["schemas"]["SegmentOrderRow"][];
         };
         /**
          * StoreAssetResponse
@@ -8060,52 +8022,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RFMMFlowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_segment_orders_api_api_v1_rfm_segment_orders_get: {
-        parameters: {
-            query: {
-                /** @description 维度：r / f / m */
-                dimension: string;
-                /** @description 区间名称（如 近1个月已购客） */
-                segment: string;
-                /** @description 开始日期 YYYY-MM-DD */
-                start_date: string;
-                /** @description 结束日期 YYYY-MM-DD */
-                end_date: string;
-                /** @description GMV 或 GSV */
-                metric_type?: string;
-                /** @description all / member / same_channel / member_same_channel */
-                mode?: string;
-                /** @description 渠道筛选 */
-                channel?: string | null;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SegmentOrdersResponse"];
                 };
             };
             /** @description Validation Error */
