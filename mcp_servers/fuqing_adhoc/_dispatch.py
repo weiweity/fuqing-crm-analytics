@@ -221,6 +221,43 @@ TOOL_DEFS: list[dict[str, Any]] = [
         },
         "arg_map": {"text": "--text", "format": "--format"},
     },
+    {
+        "name": "daily-gsv-multi-period",
+        "command": "daily-gsv-multi-period",
+        "description": "多周期 × 8 维度 (sample/member × GMV/GSV + new/old × users/GSV) 一次跑, 输出 8 列宽表 daily rows. 替代 WorkBuddy 临时 adhoc_daily_segments.py (Sprint 183 真业务触发).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "periods": {
+                    "type": "array",
+                    "items": {"type": "string", "description": "YYYY-MM-DD"},
+                    "description": "多周期列表, 格式 ['2026-05-06', '2026-06-21', '2025-05-06', '2025-06-21', ...] (start/end 成对)"
+                },
+                "metrics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "sample_gmv", "sample_gsv",
+                            "member_gmv", "member_gsv",
+                            "new_users", "new_gsv",
+                            "old_users", "old_gsv",
+                        ]
+                    },
+                    "description": "8 个 metric 名 (默认全 8 个), 见 inputSchema enum"
+                },
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["periods"],
+        },
+        "arg_map": {
+            "periods": "--periods",
+            "metrics": "--metrics",
+            "format": "--format",
+            "output": "--output",
+        },
+    },
 ]
 
 

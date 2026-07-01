@@ -61,6 +61,7 @@ def _load_builtins() -> None:
     from scripts.ad_hoc_queries import dq_report  # noqa: F401
     from scripts.ad_hoc_queries import export_excel  # noqa: F401
     from scripts.ad_hoc_queries import ask  # noqa: F401
+    from scripts.ad_hoc_queries import daily_gsv_multi_period  # noqa: F401  # Sprint 183
 
 
 def _run_list_endpoints() -> List[List[Any]]:

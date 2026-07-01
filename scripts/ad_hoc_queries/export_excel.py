@@ -17,7 +17,6 @@ from backend.services.metrics.audience_summary import calculate_audience_summary
 from scripts.ad_hoc_query_excel_styles import save_workbook, write_rows_to_sheet
 from scripts.ad_hoc_queries._utils import clamp_yoy, parse_exclude_channels, validate_date_window
 from scripts.ad_hoc_queries.dq_report import DQ_HEADERS, run_dq_report
-from scripts.ad_hoc_queries.new_old_customer import NEW_OLD_HEADERS, run_new_old_customer
 from scripts.ad_hoc_queries.rfm_repurchase import RFM_HEADERS, run_rfm_repurchase
 from scripts.ad_hoc_queries.top_n import TOP_N_HEADERS, run_top_n
 from scripts.ad_hoc_queries.two_year_overview import TWO_YEAR_HEADERS, run_two_year_overview

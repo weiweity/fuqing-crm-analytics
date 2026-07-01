@@ -2,7 +2,7 @@
 test_fuqing_adhoc_mcp_server.py — Sprint 182 WorkBuddy MCP server tests.
 
 Covers the MCP server wrapper around scripts/ad_hoc_query.py:
-  - 9 MCP tools (8 query + 1 ask), exposed via list_tools()
+  - 9 MCP tools (8 query + 1 ask), exposed via list_tools()  # legacy comment, Sprint 183 实际 11
   - subprocess dispatch to scripts/ad_hoc_query.py (cwd lock + Path.resolve)
   - end-to-end tool dispatch (CLI subprocess returns stdout/stderr/returncode)
   - L4.32 / L4.33 / L4.34 永久规则 regression (subprocess cwd + chdir pollution
@@ -33,8 +33,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PROJECT_ROOT = REPO_ROOT
 MCP_SERVER_DIR = PROJECT_ROOT / "mcp_servers" / "fuqing_adhoc"
 
-# 9 个 query tool + 1 个 ask tool (跟 _dispatch.py TOOL_DEFS SSOT 一致,
+# 10 个 query tool + 1 个 ask tool (跟 _dispatch.py TOOL_DEFS SSOT 一致,
 # MCP tool name 用 underscore 形式, 跟 CLI command hyphen 形式区分).
+# Sprint 183 加了 daily_gsv_multi_period 第 11 个 tool.
 EXPECTED_TOOLS: List[str] = [
     "daily_gsv",
     "yoy_battle",
@@ -45,11 +46,12 @@ EXPECTED_TOOLS: List[str] = [
     "top_n",
     "export_excel",
     "dq_report",
-    "ask",  # 第 10 个: 自然语言路由
+    "daily-gsv-multi-period",  # Sprint 183 新增 (hyphen 风格跟 CLI 一致)
+    "ask",  # 第 11 个: 自然语言路由
 ]
 
 # Sprint 182 D3: _TOOL_DEFS 一次声明, _make_handler factory 翻译 MCP call → CLI argv
-EXPECTED_TOOL_COUNT = 10
+EXPECTED_TOOL_COUNT = 11
 
 
 # ─────────────────────────────────────────────────────────────
@@ -94,7 +96,7 @@ def _run_cli(argv: List[str], timeout: int = 30) -> Dict[str, Any]:
 # ─────────────────────────────────────────────────────────────
 class TestMcpServerImport:
     """Verify mcp_servers.fuqing_adhoc.server module imports cleanly and exposes
-    the 9-tool registry contract documented in Sprint 182 plan D3/D4.
+    the 11-tool registry contract (10 query + 1 ask, Sprint 183 加 daily_gsv_multi_period).
 
     Each test asserts on the planned interface (list_tools / tool schemas) so
     that any future drift (missing tool, schema typo, wrong shape) is caught
@@ -121,10 +123,10 @@ class TestMcpServerImport:
         )
         assert callable(server_mod.serve), "期望 serve 是 callable"
 
-    def test_list_tools_returns_9_tools(self):
-        """list_tools() MUST return exactly 9 tools (8 query + 1 ask).
+    def test_list_tools_returns_11_tools(self):
+        """list_tools() MUST return exactly 11 tools (10 query + 1 ask).
 
-        目的: 锁 Sprint 182 计划 D4 列出的 9 tool 数量. 任何后续添加新 tool
+        目的: 锁 Sprint 182 + Sprint 183 计划 D4 列出的 11 tool 数量. 任何后续添加新 tool
         必须显式更新 EXPECTED_TOOLS, 防 plan drift 跟实际 server 不一致.
         """
         server_mod = _import_server()
