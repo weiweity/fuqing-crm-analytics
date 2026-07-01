@@ -137,31 +137,25 @@ if re.search(r'git\\s+push\\s+origin\\s+main', cmd):
 def _run_hook(cmd: str, payload: dict) -> int:
     """Run an inline python hook with JSON piped to stdin, return exit code.
 
-    Sprint 180 fix: tmp file + argv list (NOT shell=True).
-    shell=True + bash escape 让 inline `$` 在 Linux /bin/sh 被解析,
-    macOS / Linux 跨平台行为不同 — Linux CI 报 exit 1, macOS 报 exit 2/0.
-    tmp file + argv list 让 python 直接解析 regex, 跨平台一致.
+    Sprint 180.1 fix: use stdin pipe + python3 -c argv list (no shell, no tmp file).
+    shell=True 让 bash 处理 `$` 跟 Python 不一致 (Linux/macOS 跨平台).
+    tmp file 方式让 Python 3.14.6 raw string `\\$` 多次 escape 出错.
+    最佳: argv list + stdin pipe (no shell, no tmp file).
     """
-    import tempfile
-    import os
-    body = cmd.replace("python3 -c ", "", 1).strip().strip('"').strip("'").replace('\\"', '"').replace("\\n", "\n")
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        tmp = f.name
-        f.write(body)
-    try:
-        result = subprocess.run(
-            [sys.executable, tmp],
-            input=json.dumps(payload),
-            text=True,
-            capture_output=True,
-            timeout=15,
-        )
-        return result.returncode
-    finally:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
+    import shlex
+    parts = shlex.split(cmd)
+    if len(parts) >= 3 and parts[0] == "python3" and parts[1] == "-c":
+        body = " ".join(parts[2:])
+    else:
+        body = cmd
+    result = subprocess.run(
+        [sys.executable, "-c", body],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=15,
+    )
+    return result.returncode
 
 
 class TestPreToolUseHooks:
