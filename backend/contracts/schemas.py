@@ -7,7 +7,7 @@ from .flow import FlowMatrixResponse, FlowMatrixCell, FlowMatrix, AssociationIte
 from .asset import AssetSummaryResponse, AssetTrendResponse, ProductClassRepurchase, StoreAssetWeek, StoreAssetResponse, ProductAssetWeek, ProductAssetItem, ProductAssetResponse
 from .geo import GeoDistributionItem, GeoDistributionResponse, GeoSegmentMatrixResponse, GeoTrendResponse
 from .category import CategoryDistributionItem, CategoryDistributionResponse, CategoryOverviewItem, CategoryOverviewResponse, CategorySegmentMatrixResponse, CategoryUserProfileResponse, CategoryRepurchaseFlowRow, CategoryRepurchaseFlowResponse, ValueTierTableRow, CategoryValueTierResponse, MarketBasketItem, MarketBasketYoYItem, MarketBasketResponse, CategoryChurnItem, CategoryChurnResponse, CategoryDailyTrendResponse, UserDetail, CategoryUserListResponse
-from .rfm import RFMRFlowRow, RFMRFlowResponse, RFMFRFlowRow, RFMFRFlowResponse, RFMMFlowRow, RFMMFlowResponse, RFMAnalysisRow, RFMAnalysisResponse, RFMThresholds, SegmentDefinitionItem, RFMConfigResponse, SegmentOrderRow, SegmentOrdersResponse, DecliningCategoryItem, ImprovingCategoryItem, RFMCategoryDrilldownRow, TopDriverItem, RFMCategoryDrilldownSummary, RFMCategoryDrilldownResponse
+from .rfm import RFMRFlowRow, RFMRFlowResponse, RFMFRFlowRow, RFMFRFlowResponse, RFMMFlowRow, RFMMFlowResponse, RFMAnalysisRow, RFMAnalysisResponse, RFMThresholds, SegmentDefinitionItem, RFMConfigResponse, DecliningCategoryItem, ImprovingCategoryItem, RFMCategoryDrilldownRow, TopDriverItem, RFMCategoryDrilldownSummary, RFMCategoryDrilldownResponse
 from .rfm_segments import LifecycleStage, ValueTier, PotentialTier, RFMSegmentExtended, RFMExtendedRequest, RFMExtendedResponse
 from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, RepurchaseCycleOverview, CohortRetentionResponse, ValueTierDefinition, FrequencyTierDefinition, CustomerSegmentItem, ValueTierResponse, TierFlowRow, TierFlowResponse, PromotionPeriod, PromotionVsDailyMetrics, PromotionCalendarResponse, ChannelHealthScoreItem, HealthTargetsResponse, ChannelHealthScoresResponse, ConfigHistoryItem, ConfigHistoryResponse, ConfigRestoreResponse, AuditLogItem, AuditLogResponse, ExportPPTRequest, ExportPPTResponse, TemplatesResponse, NewCustomerConversionFunnel, NewCustomerChannelQuality, NewCustomerConversionResponse
 from .visitor import VisitorSummaryResponse, VisitorDailyTrendItem, VisitorDailyTrendResponse
@@ -34,7 +34,6 @@ __all__ = [
     "RFMRFlowRow", "RFMRFlowResponse", "RFMFRFlowRow", "RFMFRFlowResponse",
     "RFMMFlowRow", "RFMMFlowResponse", "RFMAnalysisRow", "RFMAnalysisResponse",
     "RFMThresholds", "SegmentDefinitionItem", "RFMConfigResponse",
-    "SegmentOrderRow", "SegmentOrdersResponse",
     "LifecycleStage", "ValueTier", "PotentialTier", "RFMSegmentExtended",
     "RFMExtendedRequest", "RFMExtendedResponse",
     "DecliningCategoryItem", "ImprovingCategoryItem",

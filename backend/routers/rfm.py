@@ -14,7 +14,6 @@ from backend.contracts.schemas import (
     RFMRFlowResponse,
     RFMFRFlowResponse,
     RFMMFlowResponse,
-    SegmentOrdersResponse,
     RFMExtendedRequest,
     RFMExtendedResponse,
 )
