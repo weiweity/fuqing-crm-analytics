@@ -31,7 +31,7 @@ EDIT_WRITE_BLOCK_ENV_CMD = (
     "\"import sys, json, re; "
     "d=json.loads(sys.stdin.read() or '{}'); "
     "p=d.get('tool_input',{}).get('file_path',''); "
-    "bad = re.match(r'(^|/)(.env|.env.local|.env..*.local|data/processed/.*.duckdb)$', p); "
+    "bad = re.search(r'(?:^|/)(?:\\.env|\\.env\\.local|\\.env\\.[^/]+\\.local|data/processed/.*\\.duckdb)(?:$|/)', p); "
     "sys.exit(2 if bad else 0)\""
 )
 

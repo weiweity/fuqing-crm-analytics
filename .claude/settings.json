@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import sys, json, re; d=json.loads(sys.stdin.read() or '{}'); p=d.get('tool_input',{}).get('file_path',''); bad = re.match(r'(^|/)(\\.env|\\.env\\.local|\\.env\\..*\\.local|data/processed/.*\\.duckdb)$', p); sys.exit(2 if bad else 0)\""
+            "command": "python3 -c \"import sys, json, re; d=json.loads(sys.stdin.read() or '{}'); p=d.get('tool_input',{}).get('file_path',''); bad = re.search(r'(?:^|/)(?:\\.env|\\.env\\.local|\\.env\\.[^/]+\\.local|data/processed/.*\\.duckdb)(?:\\$|/)', p); sys.exit(2 if bad else 0)\""
           }
         ]
       },
