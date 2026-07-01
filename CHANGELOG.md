@@ -1,3 +1,25 @@
+## [0.4.14.28] - 2026-07-01 (Sprint 186 — 文档全盘收纳整理 sprint)
+
+### Changed
+- **README.md 重写精简 (345→165 行)** SSOT 引用: 删除 v0.4.14.157 / pytest 819 / L4.x 21 / 痛点 1 闭环 / repo 公开日期 / Sprint 25-101 历史记录块过期数据 (跟 Sprint 61+101 README 漂移治理闭环模式 stable). 引用块统一指向 STATUS.md / CLAUDE.md / docs/README.md 作为 SSOT, 大幅减少后续跨 sprint 漂移治理债
+- **AGENTS.md sync-agents.sh 同步 (468→501 行)** 跟当前 CLAUDE.md 100% sync. Codex app 自动注入的 AGENTS.md 跟 CLAUDE.md 内容一致 (scripts/sync-agents.sh Sprint 182 L4.35 永久规则配套)
+- **CHANGELOG_HISTORY.md header 注脚** (555 行) 加沉淀归档说明: 新 entry 都进 CHANGELOG.md (近 30 滚动), 历史在本文件长期保留. 跨 sprint 维护规则明示
+- **docs/sprints/archive/README.md 新规注脚** 加 Sprint 186+ 新 HANDOFF 治理: 默认物理 rm (干货已沉淀到 close memory), 仅特殊需要时走 archive (跟 Sprint 184 .gitignore `HANDOFF-TO-CODEX-*.md` 配套)
+
+### Removed
+- **HANDOFF-TO-CODEX-Sprint183.md (23K) + HANDOFF-TO-CODEX-Sprint184.md (19K)** 物理 rm: 干货已沉淀到 `~/.claude/projects/-Users-hutou/project_fuqing_crm_analytics_sprint{183,184}_close.md` + .gitignore `HANDOFF-TO-CODEX-*.md` 排除. 累计 42K 长期无价值清理
+
+### For contributors
+- pytest baseline **893 / 73 skip 持续** (本地 macOS, Sprint 185 L4.39 macOS-only 3 case skipif 持续)
+- ruff 0 errors
+- 累计 sprint 0 debt: **115 → 116** (Sprint 186 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +9 sprint)
+- L4.x stable: **34 稳定** (L4.32/33/34/35/36/37/38/39/40 全部 stable 0 追加)
+- fix_pattern 累计: **71 stable** (Sprint 185 post-merge zombie fix_pattern #71 0 追加)
+- /document-release 累计: **16 → 17 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 / 185 / 186 模式 stable)
+- 11 hook 闭环 (跟 Sprint 185 一致), git remote SSH 推送 0 timeout
+- MEMORY.md 18.2KB ≤ 24.4KB headroom (L4.13 verify OK)
+- main HEAD 待 commit (Sprint 186 squash) + origin/main 待 push
+
 ## [0.4.14.27] - 2026-07-01 (Sprint 185 — CI 跨 3 sprint 复发 100% 治根 + L4.39 macOS-only test skipif + L4.40 post-merge 自动 branch_cleanup + fix_pattern #71)
 
 ### Fixed

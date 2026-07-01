@@ -1,3 +1,18 @@
+# CHANGELOG_HISTORY.md — 历史 changelog 沉淀归档
+
+> **本文件定位**：沉淀归档（**不更新**）。
+> **新 entry 都进 [`CHANGELOG.md`](./CHANGELOG.md)（近 30 entry 滚动）**。
+> 历史详细 entry 长期保留在本文件，按需查阅。
+>
+> **迁移规则**（Sprint 186 拍板）：
+> - 任何 sprint 收口 → 主 entry 进 `CHANGELOG.md`（头部，跟版本号绑定）
+> - 主 entry 进 `CHANGELOG.md` ~5+ sprint 后，自动 archive 到本文件（按需手工维护）
+> - 本文件**不主动编辑**，仅当 `CHANGELOG.md` 滚动清理时 append 老 entry 即可
+> - Sprint 69/141 etc. 都有 L4.20 close memory SSOT 持久化版本号 + 详细 entry
+> - 跨 sprint 真因真发现模式 (Sprint 183+184+185 实战)：任何 sprint 收口先看本文件确认历史模式 stable
+
+---
+
 ## Sprint 58 — 工具链实战 fix 闭环 (#4 CI e2e 持久化 + #1 OOM 治本 + #2 commit-msg blocking hook) (2026-06-21, v0.4.14.142, main HEAD `17b5361`)
 
 > Sprint 57 收口后留尾 7 项 → Sprint 58 闭环 3 项 (高 ROI 工具链实战 fix 主题, 跟 Sprint 53 race flake 治本同等级, 必须治本 + 持久化 + blocking 三件套一次闭环避免再 push 到 Sprint 60+): ① #4 CI e2e 实战 fix 持久化 (Sprint 41 12 follow-up + Sprint 55 4 follow-up + auto_recover_ci.sh 持久化脚本 + e2e.yml auto-recovery 步骤, 闭环 Sprint 32.1 留尾 7 sprint CI 实战 fix 复发 #14); ② #1 e2e OOM 治本 (DuckDB ATTACH read_only + workers 1 + timeout 60s, 闭环跨 sprint 5+ 复发 #14); ③ #2 commit-msg blocking hook (WARN → blocking 升级 + 算法优化误报率 17/20 → 0/14, 闭环 Sprint 32.3+35 教训)。剩余 4 项 (Sprint 59 收割季 3 项 + #3 50m scale 调研 1 项推后) 详见 SPRINT_INDEX.md。
