@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-07-01 (Sprint 182 — WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + sys.path bootstrap 真治本 (QA 真跑抓到 ModuleNotFoundError) + L4.35 SSOT 永久规则 + /document-release v0.4.14.25. pytest baseline 19/19 + 50 sibling ad-hoc-query = **69/69 PASSED**, main HEAD `c832007` + origin/main 0 drift (已 push SSH), 累计 111→**112 sprint 0 debt** (Sprint 182 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +5 sprint), VERSION `0.4.14.24` → `0.4.14.25` (Sprint 182 WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + sys.path bootstrap 真治本 + L4.35 SSOT 永久规则 + 累计 13 次 /document-release 真治本), L4.x 28→**29 stable** (新增 L4.35 SKILL.md symlink SSOT), 11 hook 闭环 (7 Claude Code + 4 git hooks, 持续 stable), 实战 fix 模式 #65-#67 累计 3 模式沉淀 (#65 跨端 skill SSOT + #66 AI 接口契约 test pattern + #67 pytest sys.path 掩盖反模式锁回归). 当前状态: mcp_servers/fuqing_adhoc/server.py stdio JSON-RPC + 3 重 DoS 防御 + L4.32/L4.34 合规 + stdout/stderr 4KB 截断 + ~/.workbuddy/.mcp.json stdio entry + ~/.workbuddy/skills/ad-hoc-query/SKILL.md 软链 SSOT + scripts/session_start_check.py _verify_skill_symlinks fail-open 自动修. sprint close memory 沉淀 (新增 Sprint 182 close memory 1 个). /document-release 累计 13 次真治本)
+**最后更新**: 2026-07-01 (Sprint 183 — WorkBuddy /ad-hoc-query 优化 + SKILL.md v2.2 (顶部 "执行路径强制" + "需求-工具映射速查表" + "锁冲突 graceful fallback" 3 段) + L4.36 禁停 uvicorn 永久规则 + daily-gsv-multi-period 第 11 个 MCP tool 新子命令 (多周期 × 8 维度) + QA 抓到的 3 个真 bug 治本 (双 registry 注册丢失 / query name hyphen 化 / 4 unused imports) + 删 2 个临时脚本 (adhoc_daily_segments + adhoc_transpose) + 5 个端到端锁回归 test. pytest baseline **78** (含 Sprint 183 +9 cases + 5 端到端锁回归), ruff 0 errors, main HEAD `3023a07` + origin/main 0 drift (已 push SSH), 累计 112→**113 sprint 0 debt** (Sprint 183 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +6 sprint), VERSION `0.4.14.25` → `0.4.14.26` (Sprint 183 WorkBuddy /ad-hoc-query 优化 + SKILL.md v2.2 + L4.36 禁停 uvicorn + daily-gsv-multi-period 新子命令 + 5 端到端锁回归 + 累计 14 次 /document-release 真治本), L4.x 29→**30 stable** (新增 L4.36 ad-hoc-query 禁停 uvicorn), 11 hook 闭环 (7 Claude Code + 4 git hooks, 持续 stable), 实战 fix 模式 #68-#69 累计 2 模式沉淀 (#68 pytest collection 自动 import 掩盖 registry 没加载的 bug + #69 argparse subcommand name 严格匹配不自动转 _ → -). 当前状态: SKILL.md v2.2 3 段 (0/1.5/1.6) 教 WorkBuddy LLM 走 MCP server + L4.36 永久规则禁止停 uvicorn + daily-gsv-multi-period 第 11 个 MCP tool 双 registry (CLI QUERIES + MCP TOOL_DEFS) 注册稳定 + scripts/_archive/adhoc_product_new_old.py 归档. sprint close memory 沉淀 (新增 Sprint 183 close memory 1 个). /document-release 累计 14 次真治本
 
 ---
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.25` (Sprint 182 WorkBuddy ad-hoc-query MCP server + /document-release 累计 13 次真治本) |
+| VERSION | `0.4.14.26` (Sprint 183 WorkBuddy /ad-hoc-query 优化 + SKILL.md v2.2 + L4.36 禁停 uvicorn + /document-release 累计 14 次真治本) |
 | git HEAD (main) | `774e6a7` (Sprint 181.1 Path(__file__) 跨平台治本 + L4.34 永久规则, 跟 origin/main 0 drift) |
 | 当前分支 | `main` (Sprint 181 收口 + L4.34 沉淀后) |
 | 最近 sprint | Sprint 180 inline python 2 真因治本 + Sprint 180.1 shlex 替代 tmp file + Sprint 181 chdir 污染源治本 (3 真因) + Sprint 181.1 硬编码 macOS 路径治本 (1 真因) + L4.32/33/34 永久规则沉淀 |

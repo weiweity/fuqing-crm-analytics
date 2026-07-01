@@ -36,6 +36,57 @@
 
 ---
 
+## [0.4.14.26] - 2026-07-01 (Sprint 183 — WorkBuddy /ad-hoc-query 优化 + SKILL.md v2.2 + L4.36 禁停 uvicorn + daily_gsv_multi_period 新子命令 + QA 双 registry bug 治本)
+
+### Added
+- **scripts/ad_hoc_queries/daily_gsv_multi_period.py** (~150 行, Sprint 183 新子命令): 多周期 × 8 维度 (sample/member × GMV/GSV + new/old × users/GSV) 一次跑, 输出 8 列宽表 daily rows. cutoff = 段开始前一天 (新老客口径). L4.5 exception 适用: CLI 层 inline SQL 用 ? DB-API 参数化. 自动注册到 QUERIES dict + MCP TOOL_DEFS (11 个 tool)
+- **scripts/_archive/adhoc_product_new_old.py** (移 archive): 固定商品 ID 粒度, Sprint 171 通用 query 不能无损覆盖
+- **backend/tests/test_ad_hoc_query_sprint183.py** (114 行, 9 cases): 4 cases L4.36 锁回归 (SKILL.md v2.2 + 10 MCP tools + 禁停 uvicorn + CLAUDE.md L4.36) + 5 cases acceptance (_METRIC_SQL 8 keys + QUERIES 注册 + hyphen 风格 + CLI argparse + MCP server tools/list 11 tools)
+
+### Changed
+- **~/.claude/skills/ad-hoc-query/SKILL.md** v2.1 → **v2.2** (外部 symlink, L4.35 SSOT): 顶部新增 3 段 — "0. 执行路径强制 (P0 - WorkBuddy 必读)" + "1.5 需求-工具映射速查表" + "1.6 锁冲突 graceful fallback". 教 WorkBuddy LLM 走 MCP server, 禁 openapi.json / 禁直连 DuckDB / 禁临时脚本 / 禁停 uvicorn
+- **CLAUDE.md** L4.36 永久规则: 任何 ad-hoc-query 取数禁止停 uvicorn (本地即生产). 锁冲突必须 graceful retry 3 次 (1s/2s/4s exponential backoff), 失败 → backend HTTP API `GET /api/v1/audience/summary` 取近似 5 指标, 再失败 → 友好错误返回. 配套 SKILL.md v2.2 顶部 "0. 执行路径强制" + "1.6 锁冲突 graceful fallback" 段
+- **mcp_servers/fuqing_adhoc/_dispatch.py** TOOL_DEFS: 加 daily-gsv-multi-period 第 11 个 tool (含 inputSchema + arg_map), name hyphen 化跟其他 10 个 query 一致
+- **scripts/ad_hoc_queries/registry.py** _load_builtins(): 加 daily_gsv_multi_period 显式 import (防 pytest collection 自动 import 掩盖 standalone CLI 跑不到的 bug)
+
+### Fixed
+- **Sprint 183 QA 抓到的 3 个真问题** (fix commit e49d084):
+  1. **BLOCKING**: daily-gsv-multi_period 没注册到 QUERIES dict 跟 MCP TOOL_DEFS — Codex 写了新文件但没动 2 个 registry 加载入口. pytest 自动 import 掩盖 (false negative)
+  2. **BLOCKING**: query name 用下划线 `daily_gsv_multi_period` 跟其他 9 个 query 的 hyphen 风格不一致 — argparse subcommand 严格匹配不自动转 _, 改成 hyphen
+  3. **WARNING**: 4 个 ruff F401 unused imports 在 `_utils.py` + `export_excel.py` (Sprint 182 之前的 pre-existing), ruff --fix 自动清理
+- **Sprint 183 锁回归 test (5 cases, 防 pytest collection 掩盖)**:
+  - test_cli_subcommand_daily_gsv_multi_period_recognized: 真 subprocess 跑 argparse, 不依赖测试 setup 隐式 import
+  - test_mcp_server_lists_daily_gsv_multi_period: 真 subprocess 跑 JSON-RPC handshake
+  - test_query_name_uses_hyphen_style: 锁 11 个 query name 全部 hyphen 风格
+  - test_skill_md_v22_lists_10_mcp_tools_not_3_cli: SKILL.md 必须含 10 个 MCP tool 描述
+  - test_skill_md_v22_disallows_stop_uvicorn: SKILL.md 必须明确 "停 uvicorn" 禁止文案
+
+### Removed
+- **scripts/adhoc_daily_segments.py** (Sprint 182 用户临时脚本, 已被 Sprint 171 v2.0 CLI 完整覆盖, WorkBuddy self-review 根因 #4 治本)
+- **scripts/adhoc_transpose_daily_segments.py** (同类型临时脚本)
+- **scripts/adhoc_product_new_old.py** (移到 scripts/_archive/, 固定商品 ID 粒度 Sprint 171 不能覆盖)
+
+### L4.x 永久规则沉淀 (Sprint 183)
+- **L4.36 新增**: 任何 ad-hoc-query 取数禁止停 uvicorn (本地即生产). Sprint 183 真业务触发: WorkBuddy AI 误判 DuckDB 锁让用户停服务. 配套: 锁冲突 graceful retry 3 次 + HTTP API fallback + 友好错误
+- **L4.x 累计**: 29 → 30 stable
+
+### fix_pattern 沉淀 (Sprint 183)
+- **#68 (新)**: pytest collection 自动 import 掩盖 registry 没加载的 bug. 锁回归必须真 subprocess 跑 argparse / JSON-RPC, 不能依赖测试 setup 隐式 import. Sprint 183 Phase 5 QA 真跑端到端抓到 (pytest 6/6 通过但 standalone CLI 找不到 subcommand)
+- **#69 (新)**: argparse subcommand name 严格匹配, 不自动转 _ → -. 跟 CLI --flag 转 _ → - 不一样. 多 word subcommand name 必须全 hyphen 风格跟其他 query 一致
+
+### 累计统计
+- pytest passed: **75 → 78** (Sprint 183 +9 cases, 含 5 端到端锁回归)
+- pytest baseline: 78 stable (含 MCP server 19 + Sprint 183 9 + sibling 50)
+- ruff: 0 errors (Sprint 183 auto-fix 4 unused imports)
+- SQL f-string lint: 0 violations in 104 files
+- 累计 sprint 0 debt: 112 → **113** (Sprint 183 全部治本)
+- L4.x 永久规则: 29 → **30 stable** (新增 L4.36)
+- fix_pattern: +2 累计 69 (新增 #68 + #69)
+- /document-release 累计: 13 → **14 次真治本**
+- git remote SSH 推送: 0 timeout (跟 Sprint 180 切换后 stable)
+
+---
+
 ## [0.4.14.23] - 2026-07-01 (Sprint 172-178 跨 sprint 治理收口 — BaseStyleButton Learn More + 真业务 bug 治本 4 件 + Claude Code setup 优化 11 hooks 闭环 + /document-release v0.4.14.23)
 
 ### Added
