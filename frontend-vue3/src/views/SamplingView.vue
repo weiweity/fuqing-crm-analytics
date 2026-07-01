@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NDivider, NAlert, NSlider, NButton } from 'naive-ui'
+import { NTabs, NTabPane, NSelect, NCard, NDataTable, NGrid, NGi, NDivider, NAlert, NSlider } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import PageHeader from '@/components/PageHeader.vue'
@@ -146,11 +146,40 @@ const trackingChartOption = computed(() => {
     })),
   }
 })
-// 导出图片 (复用 EChartsWrapper 暴露的 getDataURL 模式, 此处用 SVG 离屏渲染)
+// Sprint 177 P1-5: 02 板块 XLSX 列定义 (拍平 4 桶 × 3 年 = 12 行)
+const trackingColumnsXlsx = computed<XlsxColumn[]>(() => {
+  const yearLabels = trackingData.value?.year_labels ?? ['2026年', '2025年', '2024年']
+  const cols: XlsxColumn[] = [
+    { header: '回购间隔', key: 'bucket', width: 12 },
+  ]
+  for (const yl of yearLabels) {
+    cols.push({ header: yl, key: `${yl}_rate`, width: 12, numFmt: '0.00%' })
+  }
+  return cols
+})
+
+// Sprint 177 P1-5: 02 板块 XLSX 数据 (按桶 × 年份 拍平)
+const trackingDataXlsx = computed(() => {
+  const d = trackingData.value
+  if (!d) return []
+  const buckets = d.buckets ?? []
+  const yearLabels = d.year_labels ?? []
+  const byKey = new Map<string, number>()
+  for (const b of buckets) byKey.set(`${b.year_label}|${b.bucket}`, b.rate)
+  const bucketSet = new Set<string>()
+  for (const b of buckets) bucketSet.add(b.bucket)
+  const sortedBuckets = [...bucketSet].sort()
+  return sortedBuckets.map(bucket => {
+    const row: Record<string, any> = { bucket }
+    for (const yl of yearLabels) {
+      row[`${yl}_rate`] = byKey.get(`${yl}|${bucket}`) ?? 0
+    }
+    return row
+  })
+})
+
+// Sprint 177 P0-2: 删 exportTrackingPng, 改用 ExportToolbar 统一入口
 const trackingChartRef = ref<{ getChartInstance: () => any; exportAsPng: (name: string) => void } | null>(null)
-function exportTrackingPng() {
-  trackingChartRef.value?.exportAsPng(`回购周期分布_3年对比_${trackingParams.value.start_date}_${trackingParams.value.end_date}`)
-}
 
 const levelLoadingStartedAt = ref<number>(0)
 const alertTick = ref(0)
@@ -197,11 +226,11 @@ const allChannels = computed<SamplingChannelSummary[]>(() => {
   return ttl ? [ttl, ...subs] : all
 })
 
-// Sprint 147 P2.2: 渠道对比卡加辅助 icon (色盲友好, 颜色不再是唯一标识符)
+// Sprint 177 P0-3: 渠道对比卡去掉 emoji (Sprint 172 拍板), 改用文字首字符标 + 颜色块做色盲友好
 function channelIcon(channel: string): string {
-  if (channel === 'TTL派样') return '🎯'
-  if (channel === 'U先派样') return '👤'
-  if (channel === '百补派样') return '🛒'
+  if (channel === 'TTL派样') return 'T'
+  if (channel === 'U先派样') return 'U'
+  if (channel === '百补派样') return '百'
   return '·'
 }
 
@@ -288,28 +317,28 @@ const categoryColumns: CategoryCol[] = [
   { key: 'same_category_rate', title: '同品类回购率', align: 'center', format: r => `${((r.same_category_rate ?? 0) * 100).toFixed(1)}%` },
 ]
 
-// ── Sprint 175 Q4 XLSX 导出 (04 派样明细) ──
+// ── Sprint 175 Q4 XLSX 导出 (04 派样明细) — Sprint 177 P0-4 精度统一 (pp/pct 全部 2 位) ──
 const categoryColumnsXlsx: XlsxColumn[] = [
   { header: '渠道', key: 'channel', width: 12 },
   { header: '品类', key: 'category', width: 16 },
   { header: '派样人数', key: 'sample_users', width: 12, numFmt: '#,##0' },
   { header: '回购人数', key: 'repurchase_users', width: 12, numFmt: '#,##0' },
-  { header: '回购率', key: 'repurchase_rate', width: 12, numFmt: '0.0%' },
+  { header: '回购率', key: 'repurchase_rate', width: 12, numFmt: '0.00%' },
   { header: '回购GSV', key: 'repurchase_gsv', width: 14, numFmt: '¥#,##0' },
   { header: 'AUS', key: 'repurchase_aus', width: 12, numFmt: '¥#,##0' },
   { header: '正装回购人数', key: 'full_repurchase_users', width: 14, numFmt: '#,##0' },
-  { header: '正装回购率', key: 'full_repurchase_rate', width: 12, numFmt: '0.0%' },
+  { header: '正装回购率', key: 'full_repurchase_rate', width: 12, numFmt: '0.00%' },
   { header: '正装回购GSV', key: 'full_repurchase_gsv', width: 14, numFmt: '¥#,##0' },
   { header: '正装AUS', key: 'full_repurchase_aus', width: 12, numFmt: '¥#,##0' },
   { header: '同品类回购', key: 'same_category_repurchase', width: 12, numFmt: '#,##0' },
-  { header: '同品类回购率', key: 'same_category_rate', width: 12, numFmt: '0.0%' },
-  // Sprint 175 Q5: YOY 列 (跨 sprint 复用 _add_compare_metrics 模式)
+  { header: '同品类回购率', key: 'same_category_rate', width: 12, numFmt: '0.00%' },
+  // Sprint 175 Q5: YOY 列 (跨 sprint 复用 _add_compare_metrics 模式) — Sprint 177 P0-4 全部 2 位
   { header: '回购人数YoY', key: 'repurchase_users_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
   { header: '回购GSV YoY', key: 'repurchase_gsv_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '回购率 YoY(pp)', key: 'repurchase_rate_yoy_pp', width: 12, numFmt: '+0.0;-0.0;0.0' },
+  { header: '回购率 YoY(pp)', key: 'repurchase_rate_yoy_pp', width: 12, numFmt: '+0.00;-0.00;0.00' },
   { header: '正装回购人数YoY', key: 'full_repurchase_users_yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
   { header: '正装回购GSV YoY', key: 'full_repurchase_gsv_yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '正装回购率 YoY(pp)', key: 'full_repurchase_rate_yoy_pp', width: 14, numFmt: '+0.0;-0.0;0.0' },
+  { header: '正装回购率 YoY(pp)', key: 'full_repurchase_rate_yoy_pp', width: 14, numFmt: '+0.00;-0.00;0.00' },
   { header: 'AUS YoY', key: 'repurchase_aus_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
   { header: '正装AUS YoY', key: 'full_repurchase_aus_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
   { header: '非正装回购GSV YoY', key: 'nonfull_repurchase_gsv_yoy_pct', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
@@ -771,11 +800,14 @@ const rollingColumnsXlsx: XlsxColumn[] = [
                     只跟顶部当前日期联动: {{ filterStore.dateRange[0] }} ~ {{ filterStore.dateRange[1] }} vs 25/24 同期 (固定 90 天回购窗口, 4 桶分布率 = 派样回购正装人数 / 派样人数)
                   </p>
                 </div>
-                <div class="n-button-group" role="group">
-                  <NButton size="tiny" :bordered="false" @click="exportTrackingPng">
-                    🖼️ 导出图片
-                  </NButton>
-                </div>
+                <!-- Sprint 177: 02 板块统一 ExportToolbar (P0-1+P0-2+P1-5), 跟 04 派样明细 + Lock + Rolling 3 view 一致 -->
+                <ExportToolbar
+                  filename="回购周期分布_3年对比"
+                  sheet-name="回购周期分布"
+                  :columns="trackingColumnsXlsx"
+                  :data="trackingDataXlsx"
+                  :chart-ref="trackingChartRef"
+                />
               </div>
               <ErrorState v-if="trackingError" :message="(trackingError as Error).message" @retry="refetchTracking()" />
               <LoadingState v-else-if="trackingLoading && !trackingData" />
