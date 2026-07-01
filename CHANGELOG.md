@@ -1,3 +1,29 @@
+## [0.4.14.26] - 2026-07-01 (Sprint 184 — DuckDB flock 模型文档化 + L4.37/38 架构永久规则 + 12 CLI 锁回归 + branch cleanup 8 zombie 真删 + fix_pattern #70)
+
+### Added
+- **scripts/duckdb_lock_model_verification.py** (150 lines, new): DuckDB 锁模型行为文档化验证 3 case — (1) 单进程 read_only after read_write close ✅ PASS, (2) 同进程 read_only + read_write 同时活动 → ConnectionException ✅ KNOWN, (3) 跨进程 read_only 在父 read_write 持写锁期间 → IO Error ✅ KNOWN. 全部行为符合 DuckDB flock 预期, L4.38 永久规则文案可以用
+- **TestDuckdbLockModelVerification::test_duckdb_lock_model_documented**: pytest 锁回归 1 case, 跑 duckdb_lock_model_verification.py 验证 stdout 含 ✅ 和 KNOWN 标记
+
+### Changed
+- **L4.37 永久规则 stable (Sprint 184)**: 新文件 import 必须显式列在 `_load_builtins` 或 `__init__` 加 12 CLI 真 subprocess 锁回归 (Sprint 183 fix_pattern #68 沉淀). 实战验证: pytest 13 cases (12 CLI + 1 lock model)
+- **L4.38 永久规则 stable (Sprint 184, 架构级)**: DuckDB 不支持 PostgreSQL 式 MVCC 多进程并发. 锁模型是 OS-level flock 而非事务隔离. 后果: 同一 DuckDB 文件 1 个进程只能有 1 个 active conn (写或读). 架构选项: ① 走 backend HTTP API (推荐, Sprint 183 落地) ② uvicorn 持写锁时禁止任何子进程直连 DuckDB (L4.36 配套). 禁路径: 不要试 ConnectionPool / 不要试跨进程并发 reader / 不要碰 DuckDB 写事务时长
+
+### Fixed
+- **branch cleanup 8 zombie 真删**: 4 本地 (feature/sprint182-workbuddy-adhoc / feature/sprint183-adhoc-query-v22 / feature/sprint184-connection-pool / feature/sprint184-cross-process-isolation) + 4 远程 (feature/sprint179-document-release-v0.4.14.23 / feature/sprint180-test-claude-hooks / feature/sprint182-workbuddy-adhoc / feature/sprint183-adhoc-query-v22). Sprint 178 L4.31 永久规则闭环, 合并前 0 待删
+- **.gitignore 加 HANDOFF-TO-CODEX-*.md 排除规则**: Sprint 184 实战发现 Stage 1 临时输出会污染主仓 git log, 长期无价值. 排除模式 #3 + Sprint 184 共训沉淀
+- **test_claude_md_l4_36_added 位置断言加固**: 改用 markdown 表格行首 regex (`^[ ]*\| \*\*L4\.(\d+)`), 防止版本状态栏里的 L4.36 文本匹配. Sprint 184 加 L4.37/38 后触发假阳性, 修后 PASS
+- **Sprint 183 4 根因沉淀段加第 5 条**: ❌ 直连 DuckDB 跨进程并发 — 错把 DuckDB 当 PostgreSQL 试图多进程读; 实测 flock 模型阻止; 走 L4.38 backend HTTP API 才对
+
+### For contributors
+- pytest baseline **78 → 893** (含 Sprint 184 +13 case: 12 CLI parametrize + 1 lock model verification). 73 skip 是 Sprint 39/181 L4.4 真连 test skipif 按设计
+- ruff 0 errors
+- 累计 sprint 0 debt: **113 → 114** (Sprint 184 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +7 sprint)
+- L4.x stable: **30 → 32** (新增 L4.37 + L4.38)
+- fix_pattern 累计: **+1 = #70** (跨进程并发假设基于 PostgreSQL MVCC 不适用 DuckDB flock; 必先验实际 lock 行为再设计方案)
+- /document-release 累计: **14 → 15 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 模式 stable)
+- 11 hook 闭环 (7 Claude Code + 4 git hooks), git remote SSH 推送 0 timeout
+- main HEAD `c62318c` + origin/main 0 drift
+
 ## [0.4.14.25] - 2026-07-01 (Sprint 182 — WorkBuddy ad-hoc-query MCP server + SKILL 跨端 symlink + L4.35 SSOT 永久规则 + 真业务 bug sys.path bootstrap 治本)
 
 ### Added
