@@ -22,6 +22,7 @@ __all__ = [
     "visitor_router",
     "export_router",
     "report_router",
+    "ad_hoc_query_router",
 ]
 
 from backend.routers.auth import router as auth_router
@@ -40,3 +41,4 @@ from backend.routers.market_focus import router as market_focus_router
 from backend.routers.visitor import router as visitor_router
 from backend.routers.export import router as export_router
 from backend.routers.report import router as report_router
+from backend.routers.ad_hoc_query import router as ad_hoc_query_router  # Sprint 188
