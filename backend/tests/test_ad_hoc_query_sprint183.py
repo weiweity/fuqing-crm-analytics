@@ -101,10 +101,116 @@ class TestDailyGsvMultiPeriod:
         )
 
     def test_registry_registers_daily_gsv_multi_period(self):
-        """daily_gsv_multi_period 必须注册到 QUERIES dict."""
-        from scripts.ad_hoc_queries import daily_gsv_multi_period  # noqa: F401
-        from scripts.ad_hoc_queries.registry import QUERIES
+        """daily-gsv-multi-period 必须注册到 QUERIES dict.
 
-        assert "daily_gsv_multi_period" in QUERIES, (
-            "QUERIES dict 缺 daily_gsv_multi_period 注册"
+        Sprint 183 Phase 4 QA fix (confidence 9/10): pytest collection 会触发 import
+        新模块, 让 test 通过但生产环境 standalone CLI 跑不到. 修复:
+        registry.py _load_builtins() 显式 import 新模块 + name 跟其他 query
+        统一用 hyphen 风格 (跟 daily-gsv / yoy-battle 一致).
+        """
+        # 不主动 import, 模拟真实场景: 只通过 _load_builtins() 自动加载
+        from scripts.ad_hoc_queries.registry import QUERIES, _load_builtins
+        _load_builtins()  # 显式重跑 (防 import order 飘移)
+        assert "daily-gsv-multi-period" in QUERIES, (
+            "QUERIES dict 缺 daily-gsv-multi-period 注册. "
+            "根因: registry.py _load_builtins() 没显式 import 新模块. "
+            "Sprint 183 QA 抓到: pytest 自动 import 测试目录的 daily_gsv_multi_period "
+            "让 test 通过, 但 standalone CLI 跑不到 (argparse 找不到 subcommand)."
         )
+
+    def test_query_name_uses_hyphen_style(self):
+        """Sprint 183 Phase 4 QA fix (confidence 9/10): query name 必须 hyphen 风格.
+
+        锁回归: argparse subcommand 严格匹配 name (不自动转 _ → -).
+        Codex 第一次用 underscore (daily_gsv_multi_period) 导致 CLI 调用失败.
+        修后改成 hyphen (daily-gsv-multi-period) 跟其他 9 个 query 一致.
+        """
+        from scripts.ad_hoc_queries.registry import QUERIES
+        for name, spec in QUERIES.items():
+            assert "_" not in name, (
+                f"query name {name!r} 含下划线, argparse 调用匹配会失败. "
+                f"必须用 hyphen 风格 (e.g. daily-gsv-multi-period). "
+                f"参考: daily-gsv / yoy-battle / channel-slice 等 10 个 query."
+            )
+
+    def test_cli_subcommand_daily_gsv_multi_period_recognized(self):
+        """Sprint 183 Phase 4 QA fix (confidence 9/10): argparse 必须能识别 daily-gsv-multi-period.
+
+        端到端锁回归: 模拟用户 CLI 调用, 验证 argparse subcommand 列表包含新 tool.
+        pytest collection 自动 import 掩盖了这个问题 (registry 已 load), 必须真跑
+        argparse 入口, 不依赖任何测试 setup 的隐式 import.
+        """
+        # 关键: 不 import 任何 daily_gsv_multi_period 模块, 模拟 production CLI
+        import subprocess
+        import sys as _sys
+
+        result = subprocess.run(
+            [_sys.executable, "scripts/ad_hoc_query.py", "daily-gsv-multi-period", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            cwd=str(PROJECT_ROOT),
+            env={**__import__("os").environ, "PYTHONPATH": str(PROJECT_ROOT)},
+        )
+        # 期望: argparse 找到 subcommand, 走 help 路径, rc=0
+        # 实际 bug 行为: rc=2 + "invalid choice: 'daily-gsv-multi-period'"
+        assert result.returncode == 0, (
+            f"CLI 找不到 daily-gsv-multi-period subcommand. "
+            f"rc={result.returncode}, stderr={result.stderr[:500]!r}. "
+            f"根因: registry.py _load_builtins() 没显式 import daily_gsv_multi_period. "
+            f"Sprint 183 Phase 4 QA fix 已修."
+        )
+        assert "--periods" in result.stdout, (
+            f"daily-gsv-multi-period --help 期望含 --periods 参数, "
+            f"got stdout={result.stdout[:500]!r}"
+        )
+
+    def test_mcp_server_lists_daily_gsv_multi_period(self):
+        """Sprint 183 Phase 4 QA fix (confidence 9/10): MCP server tools/list 必须含 daily_gsv_multi_period.
+
+        端到端锁回归: 真 subprocess 启动 MCP server, 走 JSON-RPC handshake, 验证
+        tools/list 返 11 个 tool (含新 tool). pytest 不启动 server, 所以这个 case 必
+        须真跑.
+        """
+        import subprocess
+        import json
+        import sys as _sys
+
+        proc = subprocess.Popen(
+            [_sys.executable, "mcp_servers/fuqing_adhoc/server.py"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            cwd=str(PROJECT_ROOT),
+        )
+        try:
+            def send(msg):
+                body = json.dumps(msg).encode("utf-8")
+                header = f"Content-Length: {len(body)}\r\n\r\n".encode("utf-8")
+                proc.stdin.write(header + body)
+                proc.stdin.flush()
+
+            def recv():
+                line = proc.stdout.readline()
+                if not line:
+                    return None
+                cl = int(line.split(b":")[1].strip())
+                proc.stdout.readline()
+                return json.loads(proc.stdout.read(cl).decode("utf-8"))
+
+            send({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
+            recv()
+            send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+            r = recv()
+            tools = [t["name"] for t in r["result"]["tools"]]
+            assert "daily-gsv-multi-period" in tools, (
+                f"MCP server tools/list 缺 daily-gsv-multi-period. "
+                f"实际: {tools}. "
+                f"根因: mcp_servers/fuqing_adhoc/_dispatch.py TOOL_DEFS 没加新 tool entry. "
+                f"Sprint 183 Phase 4 QA fix 已修."
+            )
+            assert len(tools) == 11, (
+                f"期望 11 个 tool (10 Sprint 182 + 1 Sprint 183), got {len(tools)}: {tools}"
+            )
+        finally:
+            proc.stdin.close()
+            proc.wait(timeout=5)

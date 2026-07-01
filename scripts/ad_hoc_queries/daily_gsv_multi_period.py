@@ -157,7 +157,7 @@ def _parse_period_pairs(raw_periods: list[str]) -> list[tuple[str, str]]:
 
 
 _daily_gsv_multi_period_spec = QuerySpec(
-    name="daily_gsv_multi_period",
+    name="daily-gsv-multi-period",
     description=(
         "多周期 x 8 维度 daily rows: sample/member x GMV/GSV + "
         "new/old x users/GSV"
