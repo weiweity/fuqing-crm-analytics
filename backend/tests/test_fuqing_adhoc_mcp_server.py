@@ -647,3 +647,79 @@ class TestL4ComplianceRegression:
                     f"绝对路径 {arg!r}; 换机器 / home dir 改名会启动失败. "
                     f"必改 ${'{'}HOME{'}'}/ 跨平台 env 展开."
                 )
+
+
+class TestCliSubprocessLockRegression:
+    """Sprint 184 fix_pattern #68: CLI subcommands must work in real subprocesses.
+
+    pytest collection can import query modules and hide registry mistakes. These
+    tests run argparse end to end, matching how MCP/WorkBuddy launches the CLI.
+    """
+
+    def _run_cli_help(self, cmd: str) -> tuple[int, str, str]:
+        """Run scripts/ad_hoc_query.py <cmd> --help and return rc/stdout/stderr."""
+        result = subprocess.run(
+            [sys.executable, "scripts/ad_hoc_query.py", cmd, "--help"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            cwd=str(PROJECT_ROOT),
+            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+        )
+        return result.returncode, result.stdout, result.stderr
+
+    @pytest.mark.parametrize(
+        "cmd",
+        [
+            "ask",
+            "channel-slice",
+            "daily-gsv",
+            "daily-gsv-multi-period",
+            "dq-report",
+            "export-excel",
+            "list-endpoints",
+            "new-old-customer",
+            "rfm-repurchase",
+            "top-n",
+            "two-year-overview",
+            "yoy-battle",
+        ],
+    )
+    def test_cli_subcommand_help_recognized(self, cmd: str):
+        """All CLI subcommands must be visible to standalone argparse."""
+        rc, stdout, stderr = self._run_cli_help(cmd)
+        assert rc == 0, (
+            f"CLI {cmd!r} 跑 --help 失败. rc={rc}, stderr={stderr[:500]!r}. "
+            f"根因: registry.py _load_builtins() 没显式 import 对应 query 模块. "
+            f"Sprint 183 fix_pattern #68 教训沉淀."
+        )
+        assert "usage:" in stdout or "options:" in stdout, (
+            f"CLI {cmd!r} --help 期望含 usage/options, got stdout={stdout[:300]!r}"
+        )
+
+class TestDuckdbLockModelVerification:
+    """Sprint 184: DuckDB flock model behavior verification.
+
+    v3 does not assert impossible concurrent readers. It asserts the known lock
+    behavior is documented and stable.
+    """
+
+    def test_duckdb_lock_model_documented(self):
+        """Run duckdb_lock_model_verification.py and expect documented behavior."""
+        script = PROJECT_ROOT / "scripts" / "duckdb_lock_model_verification.py"
+        result = subprocess.run(
+            [sys.executable, str(script)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(PROJECT_ROOT),
+            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+        )
+        assert result.returncode == 0, (
+            f"DuckDB lock model verification failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert "✅" in result.stdout, "期望 stdout 含 ✅ PASS / 全部 PASS"
+        assert "KNOWN" in result.stdout or "P1 KNOW" in result.stdout, (
+            "期望至少 1 个 KNOWN 行为被验证"
+        )

@@ -87,6 +87,9 @@ designs/
 .agents/
 .codex/
 AGENTS.md
+# Sprint 184 实战发现: HANDOFF-TO-CODEX-Sprint{N}.md 是 Stage 1 临时输出,
+# 单 sprint 收口后无价值, 长期污染 git log. 排除模式: HANDOFF-TO-CODEX-*.md
+HANDOFF-TO-CODEX-*.md
 
 # Sprint 22.5+ claude-automation-recommender 落地 (跟 data/processed/etl_perf/ precedent 一致):
 # .claude/ 例外化让 settings.json (3 hooks) + skills/ (regen-types, ship-pr) 入仓, 团队共享.
