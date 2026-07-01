@@ -82,8 +82,44 @@ def main() -> int:
     else:
         print("  ✅ 无未提交改动")
 
+    # 5. workbuddy skills → ~/.claude/skills 对称软链 (L4.35)
+    _verify_skill_symlinks()
+
     print("=== SessionStart 完成 ===\n")
     return 0
+
+
+def _verify_skill_symlinks() -> None:
+    """验证 ~/.workbuddy/skills/<name>/SKILL.md 是软链 → ~/.claude/skills/<name>/SKILL.md (L4.35).
+
+    fail-open: 任何不符合仅 print warning, 不 raise (跟 Sprint 67 F2a UserPromptSubmit hook 同模式).
+    跟 L4.13 (MEMORY.md size) + L4.20 (SSOT 反漂移) 永久规则配套, 防止 SSOT 漂移复发.
+    """
+    wb_root = Path.home() / ".workbuddy" / "skills"
+    claude_root = Path.home() / ".claude" / "skills"
+    if not wb_root.is_dir() or not claude_root.is_dir():
+        return  # 缺一个目录就跳过, 不阻塞 session
+    ok = 0
+    miss = 0
+    for name in sorted(os.listdir(str(wb_root))):
+        if name.startswith(".") or name.endswith(".zip") or name.endswith(".json"):
+            continue
+        wb_skill_md = wb_root / name / "SKILL.md"
+        if not wb_skill_md.exists() and not os.path.islink(str(wb_skill_md)):
+            continue  # 该 skill 没 SKILL.md, 跳过 (e.g. _meta, subdir)
+        if not os.path.islink(str(wb_skill_md)):
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md 不是软链 (期望指向 ~/.claude/skills/{name}/SKILL.md)")
+            miss += 1
+            continue
+        target = os.readlink(str(wb_skill_md))
+        expected = claude_root / name / "SKILL.md"
+        if target != str(expected):
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md → {target} (期望 {expected})")
+            miss += 1
+            continue
+        ok += 1
+    if ok or miss:
+        print(f"  ℹ️  L4.35 skill symlink: {ok} OK / {miss} drift")
 
 
 if __name__ == "__main__":
