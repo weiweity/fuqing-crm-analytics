@@ -1,3 +1,28 @@
+## [0.4.14.30] - 2026-07-02 (Sprint 188 — 全部 backlog 处理 sprint)
+
+### Added
+- **HTTP API 9 endpoint (Sprint 188 B1)** `backend/routers/ad_hoc_query.py` (+373 lines): Sprint 60+ R1 立项触发, 把 `scripts/ad_hoc_query.py` CLI 9 子命令升级成 FastAPI POST endpoint. 9 个 Pydantic BaseModel request, 跟 L4.5 FilterBuilder + L4.19 channel alias + L4.36 禁停 uvicorn + L4.38 DuckDB flock + Sprint 53 DuckDB fixture + L4.4 真连 DuckDB skipif 全部永久规则配套. 11 test case 覆盖 happy path + 422 校验错 + 401 auth
+- **WorkBuddy GUI 真端到端 (Sprint 188 B2)** `scripts/e2e_workbuddy_test.py` (+233 lines) + `backend/tests/test_workbuddy_e2e.py` (+298 lines): Sprint 182 立项, R2 留尾. 真发 JSON-RPC 跑 MCP server stdio, 7 test 覆盖 framing + tools/list + 11 tool schema + daily-gsv-multi-period 真 dispatch + Codex CLI 装没装 skipif. 7/7 PASS
+- **跨 sprint 隐式 fail 检测脚手架 (Sprint 188 B4)** `scripts/ci_cross_sprint_drift.py` (+220 lines) + `backend/tests/test_ci_cross_sprint_drift.py` (+136 lines): 防 Sprint 187 test_subprocess_inherits_pythonpath 潜伏 5 sprint 类. worktree 隔离 + git log 取最近 10 commit + pytest 重跑 + advisory 永远 exit 0. 实战验证 Sprint 187 L4.41 治本彻底 (10/10 commit 0 drift). 6 test case 覆盖
+- **L4.42 永久规则 stable (Sprint 188, 流程)**: 任何 Sprint 立项信息必须 git log / grep 实证, 禁止凭印象 (Sprint 188 B3 反漂移实战教训)
+
+### Fixed
+- **Sprint 184/187 close memory "25 处 os.chdir 风险" SSOT 漂移治本 (Sprint 188 B3)** Codex 严格 git 实证发现: 实际 backend/tests/ 0 处真实风险, Sprint 181+183 已治本. 立项信息凭印象不凭 git log 是 L4.20 SSOT 反漂移永久规则的实战失败案例. B3 0 commit 撤销立项, 跟 Sprint 89/167 模式 stable
+
+### Changed
+- **fix_pattern #73 沉淀 (Sprint 188)**: close memory SSOT 漂移 → 立项信息必须 git log / grep 实证. 跟 fix_pattern #68 (Sprint 183 pytest collection 自动 import) + #69 (Sprint 183 argparse subcommand name) + #70 (Sprint 184 跨进程并发 PostgreSQL vs DuckDB) + #71 (Sprint 185 post-merge zombie) + #72 (Sprint 187 subprocess PYTHONPATH inherit macOS 反噬) 配套
+
+### For contributors
+- pytest baseline **844 passed / 85 skipped / 0 failed** (本地 macOS 跟 Linux CI 模拟 `PYTHONPATH=.` 都过)
+- ruff 0 errors
+- 累计 sprint 0 debt: **117 → 118** (Sprint 188 全部治本, 跨 Sprint 60+ 0 debt stable 模式 +11 sprint)
+- L4.x stable: **35 → 36** (新增 L4.42)
+- fix_pattern 累计: **+1 = #73** (立项信息实证化)
+- /document-release 累计: **18 → 19 次真治本** (Sprint 179/181/182/183/184/185/186/187/188 模式 stable)
+- 11 hook 闭环 (跟 Sprint 187 一致), git remote SSH 推送 0 timeout
+- MEMORY.md 19.3KB ≤ 24.4KB headroom (L4.13 verify OK)
+- main HEAD `9b7b7f9 + Sprint 188 squash` (待 commit + push)
+
 ## [0.4.14.29] - 2026-07-02 (Sprint 187 — CI #500 / #499 / #497 累计 3 sprint CI 复发 root 因 100% 治根 + L4.41 subprocess PYTHONPATH 绝对路径永久规则)
 
 ### Fixed

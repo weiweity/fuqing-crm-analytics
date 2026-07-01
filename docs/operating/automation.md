@@ -73,3 +73,68 @@ claude mcp add context7 -- npx -y @upstash/context7-mcp
 | 🟡 P2-2 | Subagent duckdb-optimizer | 1h | ⏸ Sprint 23+ |
 | 🟢 P3-1 | Skill duckdb-stress | 1h | ⏸ Sprint 23+ |
 | 🟢 P3-2 | Subagent contract-auditor | 1h | ⏸ Sprint 23+ |
+
+---
+
+## WorkBuddy MCP E2E (Sprint 188+)
+
+> WorkBuddy 通过 `~/.workbuddy/.mcp.json` 注册 `fuqing_adhoc` stdio MCP server
+> 调 11 个 ad-hoc-query tool。Sprint 182 落 server 后, Sprint 188 起补 **真端到端
+> 验证** 替代纯 mock 测试。
+
+### 工作流
+
+| # | 文件 | 说明 |
+|---|---|---|
+| 1 | `mcp_servers/fuqing_adhoc/server.py` | 手写 stdio JSON-RPC framings, ~30 行 (无 third-party mcp SDK) |
+| 2 | `mcp_servers/fuqing_adhoc/_dispatch.py` | 11 tool TOOL_DEFS SSOT (10 query + 1 ask; Sprint 183 加 daily-gsv-multi-period) |
+| 3 | `~/.workbuddy/.mcp.json` | WorkBuddy 注册 `fuqing_adhoc` 用 `${HOME}` env 展开 (L4.34 跨平台) |
+| 4 | `~/.workbuddy/skills/ad-hoc-query/SKILL.md` (symlink → `~/.claude/skills/ad-hoc-query/SKILL.md`) | L4.35 跨端 SKILL SSOT |
+
+### 真端到端验证 (Sprint 188 Phase 1 B2)
+
+**目的**: Sprint 182 起的 `backend/tests/test_fuqing_adhoc_mcp_server.py` 部分 case 用
+`mock.patch` 替代 subprocess, **看不到真实 stdio 通讯** (L4.32 cwd lock / L4.41
+PYTHONPATH 锁回归虽然在 Sprint 187 治根, 但 mock 路径不真打 server, 跨 sprint 容易
+漂移)。Sprint 188 起补 **真发 JSON-RPC** 测试:
+
+```bash
+# 1. 手跑 e2e 脚本验证 stdio 通讯 (mock backend 替代)
+PYTHONPATH="$(pwd)" python3 scripts/e2e_workbuddy_test.py
+
+# 期望输出:
+#   - tools/list 返 11 tools (含 daily-gsv-multi-period)
+#   - tools/call daily-gsv-multi-period 走通 dispatch (DuckDB 锁冲突时 graceful error)
+#   - exit 0 + "Sprint 188 e2e: 全部 PASS"
+
+# 2. 跑 pytest 锁回归 (7 case)
+PYTHONPATH="$(pwd)" pytest backend/tests/test_workbuddy_e2e.py -v
+# 期望: 7 passed
+
+# 3. (可选) 跑 Codex CLI 真接入, 验证 Codex 也走 MCP
+codex ...  # Sprint 188+ 用 Codex 端到端 case
+```
+
+**关键 L4 永久规则配套**:
+- **L4.32** subprocess cwd lock (server.py:cwd=PROJECT_ROOT)
+- **L4.34** Path.resolve() 跨平台 (禁硬编码 `/Users/hutou`)
+- **L4.35** SKILL.md symlink SSOT (跨端不复制粘贴)
+- **L4.38** DuckDB 跨进程架构 (uvicorn 写锁 + CLI/MCP 读锁 分进程)
+- **L4.41** env[PYTHONPATH]=str(PROJECT_ROOT) 强制绝对路径 (Sprint 187 真因)
+
+**已知 blocker**:
+- DuckDB 锁冲突 (Sprint 53 race flake 沉底) → MCP server graceful error 返
+  `isError=true` + stderr 含 `IO Error: Could not set lock`, pytest 接受
+  `isError=true` 当作协议层正确路径
+- WorkBuddy LLM 走 MCP tool (无 shell) → Sprint 183 SKILL.md v2.2 "执行路径强制"段
+  强制走 MCP, 禁临时 `scripts/adhoc_*.py` (违反 L4.5 复用)
+
+### pytest 标记约定
+
+| 标记 | 例子 | 触发条件 |
+|---|---|---|
+| `@pytest.mark.e2e` | (建议加给 `test_workbuddy_e2e.py`) | 慢测 / 真启 subprocess / CI runner 可跳过 |
+| `@pytest.mark.skipif(not shutil.which("codex"))` | `test_codex_cli_present_acknowledged` | Codex CLI 未装时跳过 |
+
+**实际触发文件**: `backend/tests/test_workbuddy_e2e.py` (Sprint 188 落,
+替代 Sprint 182 mock 部分路径)。

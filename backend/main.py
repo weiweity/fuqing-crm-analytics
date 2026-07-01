@@ -373,6 +373,7 @@ from backend.routers import (
     visitor_router,
     export_router,
     report_router,
+    ad_hoc_query_router,  # Sprint 188: 即席查询 HTTP API 入口
 )
 
 app.include_router(auth_router)
@@ -391,6 +392,7 @@ app.include_router(market_focus_router)
 app.include_router(visitor_router)
 app.include_router(export_router)
 app.include_router(report_router)
+app.include_router(ad_hoc_query_router)  # Sprint 188
 
 
 if __name__ == "__main__":

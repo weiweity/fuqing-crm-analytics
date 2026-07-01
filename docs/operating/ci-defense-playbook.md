@@ -186,6 +186,81 @@ Q4: 治标会反复出现吗?
 
 ---
 
+## 5. 跨 sprint 隐式 fail 检测 (Sprint 188 B4)
+
+**真因**: Sprint 182→187 累计 5 sprint 隐式 fail (`test_subprocess_inherits_pythonpath`
+在 macOS 本地 100% PASS, Linux GitHub Actions runner 100% FAIL). Sprint 187 L4.41
+永久规则治根, 但**治根后没人验证"最近 N commit 该 test 都 PASS"** — 如果 Sprint
+189+ 改 `_run_cli` 又退回 `os.environ.get("PYTHONPATH")` inherit 模式, Sprint 187
+治本白做.
+
+**预防**: `scripts/ci_cross_sprint_drift.py` 跨 sprint drift 自动检测脚手架.
+
+### 用法
+
+```bash
+# 跑最近 10 commit (default)
+python3 scripts/ci_cross_sprint_drift.py
+
+# 自定义范围
+python3 scripts/ci_cross_sprint_drift.py --n-commits 30
+python3 scripts/ci_cross_sprint_drift.py --test-path "backend/tests/test_X.py::test_y"
+```
+
+### 工作原理
+
+1. `git log --pretty=format:%H %s main -10` 取最近 10 commit SHA + message
+2. 对每个 commit `git worktree add /tmp/fq-drift-wt-<sha> <sha>` (detached HEAD)
+3. 在 worktree 里 `PYTHONPATH=<wt> python3 -m pytest <test_path> -v` 跑目标 test
+4. 收集 (sha, rc, duration, tail) → 汇总 PASS/FAIL
+5. `git worktree remove --force` 清理, 父仓 git status 0 漂移
+6. advisory mode: 永远 exit 0, FAIL > 0 时打 WARNING + 报 SHA + commit message
+
+### 关键设计 (跟 L4.32/L4.41 同位)
+
+| 维度 | 实现 |
+|---|---|
+| 不破坏 main HEAD | `git worktree add --detach` + `remove --force` 隔离 |
+| 不依赖父进程 env | worktree 内 `PYTHONPATH=<wt>` 强制绝对路径 (跟 L4.41 一致) |
+| advisory 不阻塞 review | exit 0 永远, FAIL 详情打到 stdout (跟 check_e2e_spec_drift.py 模式) |
+| subprocess timeout | TIMEOUT_SECONDS=60, 单 commit 卡死不连累后续 |
+
+### 实战 (Sprint 188 立项验证)
+
+```text
+10/10 commits PASS (0 drift)
+9b7b7f9 Sprint 187 L4.41 治本
+4be74bc Sprint 186 docs
+ffc80ef3 Sprint 185 L4.39/40
+00fbdfec Sprint 184 docs
+c62318c0 Sprint 184 merge
+8ccb884d Sprint 184 L4.38
+99afbfa7 Sprint 183 docs
+3023a07 Sprint 183 merge
+e49d0845 Sprint 183 QA fix
+85c9e0d Sprint 183 SKILL.md v2.2
+```
+
+**结论**: Sprint 187 L4.41 永久规则彻底治本, 跨 Sprint 182-187 累计 5 sprint 隐式
+fail 风险已闭环. Sprint 188+ 改 `_run_cli` / `server.py` 任何跟 PYTHONPATH 相关的
+代码, 重跑此脚本验证 0 drift.
+
+### Sprint 188+ 扩展方向 (真业务触发时启用)
+
+- `--n-commits 30`: 跨 sprint 更深 (e.g. Sprint 150-180)
+- `--test-path <path>`: 不只 `test_subprocess_inherits_pythonpath`, 跑其他真连 test
+- 集成到 `.github/workflows/lint.yml` 加 `cross-sprint-drift` job (非 blocking)
+
+### 关联
+
+- `scripts/ci_cross_sprint_drift.py` — 主脚本 (~190 行)
+- `backend/tests/test_ci_cross_sprint_drift.py` — 6 case regression
+- `CLAUDE.md` L4.41 (PYTHONPATH 永久规则) — 本脚手架要守护的核心规则
+- Sprint 187 close memory `project_fuqing_crm_analytics_sprint187_close.md` — 真因
+- Sprint 168 e2e spec drift (`scripts/ci/check_e2e_spec_drift.py`) — 模式 stable
+
+---
+
 ## 流程纪律(自检 checklist)
 
 下次 CI 红了,先走这 5 步:
