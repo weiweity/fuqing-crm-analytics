@@ -67,14 +67,24 @@ class TestSprint183L4Regression:
         )
 
     def test_claude_md_l4_36_added(self):
-        """CLAUDE.md L4.36 永久规则必须存在且在 L4.35 后."""
+        """CLAUDE.md L4.36 永久规则必须存在且在 L4.35 后 (L4.x 编号段, 忽略版本状态栏)."""
         assert CLAUDE_MD_PATH.exists(), f"CLAUDE.md 不存在: {CLAUDE_MD_PATH}"
         content = CLAUDE_MD_PATH.read_text(encoding="utf-8")
         assert "L4.36" in content, "CLAUDE.md 必须含 L4.36 永久规则"
-        l4_35_pos = content.find("L4.35")
-        l4_36_pos = content.find("L4.36")
-        assert l4_35_pos > 0, "CLAUDE.md 缺 L4.35"
-        assert l4_36_pos > l4_35_pos, "L4.36 必须紧跟 L4.35 之后"
+
+        # 提取 L4.x 永久规则段: markdown 表格行 " | **L4.xx ..." (允许 0+ 前导空格)
+        import re
+        rule_pattern = re.compile(r"^[ ]*\| \*\*L4\.(\d+)", re.MULTILINE)
+        rule_positions = [
+            (int(m.group(1)), m.start())
+            for m in rule_pattern.finditer(content)
+        ]
+        assert rule_positions, "CLAUDE.md 缺 L4.x 永久规则段"
+        rule_dict = dict(rule_positions)
+        assert 35 in rule_dict and 36 in rule_dict, "需有 L4.35 / L4.36 规则段"
+        assert rule_dict[36] > rule_dict[35], (
+            f"L4.36 永久规则段必须出现在 L4.35 之后 (实际位置 {rule_dict})"
+        )
 
 
 class TestDailyGsvMultiPeriod:
