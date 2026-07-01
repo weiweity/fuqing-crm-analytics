@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口 + Sprint 171 CI 治本 3 commit + /document-release 沉淀 + 3 处 doc drift 治理. pytest **813 passed / 72 skipped / 0 failed** (Sprint 169/170 baseline 795 + Sprint 171 新增 18 case), main HEAD `bbb7131` + origin/main 0 drift (已 push), 累计 100 sprint 0 debt (Sprint 171 闭环 +1, 跨 Sprint 60+ 0 debt stable), VERSION 0.4.14.22 不变 (Sprint 171 是 CLI 工具 + CI 治本, 不改 contract), L4.x 23 stable + 2 候选 (codegraph 实证 + 防串台字段前缀分离, Sprint 172 评估), 实战 fix 模式 #46-#53 累计 8 模式沉淀 (含「跨 sprint doc drift 4 head 对齐 SOP」). 当前状态: CI 4/4 jobs 全绿 + wt-main-active 跟 main 同步 + codegraph 已同步 + .ship-audit.log 完整)
+**最后更新**: 2026-07-01 (Sprint 172 BaseStyleButton Learn More + Sprint 173 MTD/WTD 月初边界 fallback + Sprint 174 exportXlsx SSOT 12 view + Sprint 175 4 真业务 Q 治本 + Sprint 176 /api/v1/sampling/roi 500 UnboundLocalError 真因修 + Sprint 176.1 CI 爆红治本 3 真因 + Sprint 176.1+ hot reload 死循环 + Sprint 177 派样正装转化 UI/逻辑统一化 4 tab + Sprint 177+ L4.8 自动化 branch cleanup hook + Sprint 178 Claude Code setup 优化 3 件 + Sprint 179 /document-release 跨 sprint 文档收口 v0.4.14.23. pytest **813 passed / 72 skipped / 0 failed** 不退化, main HEAD `2d70d8c` + origin/main 0 drift (已 push), 累计 **107 sprint 0 debt** (Sprint 172-179 全部治本), VERSION `0.4.14.23` (Sprint 172-178 跨 sprint 治理收口, 累计 67 sprint 不 bump 后 bump 持续), L4.x **25 stable + 2 候选** (新增 L4.x #31 branch cleanup hook 强制自动化, 跟 L4.8 永久规则配套), 11 hook 闭环 (7 Claude Code + 4 git hooks, Sprint 178 集中升级), 实战 fix 模式 #55-#61 累计 7 模式沉淀 (含 fix_pattern #60 UI 改造 workflow 6 路 audit + fix_pattern #61 branch cleanup hook). 当前状态: CI 4/4 jobs 全绿 + git hooks 激活 (.githooks/ pytest 污染保护) + SessionStart/Stop hooks 自动检查 + sprint close memory 沉淀 (172/173/174/175/176/176.1/177/177+/178 共 8 个新文件, + Sprint 169/170/171 补 3 个跨 sprint 业务口径). /document-release 累计 11 次真治本)
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.22` (Sprint 169-170 跨 sprint 治理收口 + 2026-06-30 项目清理, /document-release 累计 10 次真治本) |
-| git HEAD (main) | `8d545bd` (Sprint 169 复购周期分布率最终收口 + worktree uvicorn 脚本 + Sprint 170 RFM 8→R 6 桶, 跟 origin/main 0 drift) |
-| 当前分支 | `docs/document-release-2026-06-30` |
-| 最近 sprint | Sprint 169 最终收口 (02 板块回购周期分布率 + worktree uvicorn 脚本 + test fix) + Sprint 170 RFM 8 象限 → R 6 桶 + 2026-06-30 项目清理 |
-| 收口日 | 2026-06-30 |
-| 上次合入 | Sprint 169 最终收口 + Sprint 170 RFM 8→R 6 桶 (commit `8d545bd`, push origin main `582f82d..8d545bd` 成功) |
+| VERSION | `0.4.14.23` (Sprint 172-178 跨 sprint 治理收口 + /document-release 累计 11 次真治本) |
+| git HEAD (main) | `2d70d8c` (Sprint 178 Claude Code setup 优化 3 件, 跟 origin/main 0 drift) |
+| 当前分支 | `feature/sprint179-document-release-v0.4.14.23` |
+| 最近 sprint | Sprint 172 BaseStyleButton Learn More + Sprint 173 MTD/WTD 月初边界 fallback + Sprint 174 exportXlsx SSOT 12 view + Sprint 175 4 真业务 Q 治本 + Sprint 176/176.1 真业务 bug + Sprint 176.1+ hot reload + Sprint 177 派样 UI + Sprint 177+ L4.8 hook + Sprint 178 Claude Code setup |
+| 收口日 | 2026-07-01 |
+| 上次合入 | Sprint 178 Claude Code setup 优化 (commit `2d70d8c`, push origin main `f859814..2d70d8c` 成功, +L4.8 hook + SessionStart/Stop/PreToolUse Bash hooks) |
 
 ---
 
@@ -23,8 +23,9 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **795** | Sprint 169 最终收口 + Sprint 170 RFM 8→R 6 桶 + 2026-06-30 cleanup 验证 (795 passed / 72 skipped / 0 failed, 跟 Sprint 166 baseline 733 比 +62 case: Sprint 169 test fix + sampling regression 新增; L4.4 race flake 接受) |
-| pytest skipped | **72** | production DuckDB 不可用 / 被本地 uvicorn 占用 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict, 跟 Sprint 141.5 race flake L5.1 接受模式 stable) + Sprint 169 sampling tracking 6 case 生产 DuckDB 不可用 skip |
+| pytest passed | **813** | Sprint 172-178 不退化 (跟 Sprint 171 baseline 813 passed / 72 skipped / 0 failed 持平, Sprint 173 + 8 case date.test.ts + Sprint 175 + 22 case categoryColumnsXlsx + Sprint 176 + 3 case sprint176 regression + Sprint 177+ + 8 case branch_cleanup = 累计新增 41 case 平衡回归). L4.4 race flake 接受 (跟 Sprint 142 + Sprint 141.5 stable) |
+| pytest skipped | **72** | production DuckDB 不可用 / 被本地 uvicorn 占用 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict) + Sprint 169 sampling tracking 6 case 生产 DuckDB 不可用 skip |
+| vitest passed | **80** | Sprint 174 exportXlsx SSOT 8 case + HealthOverviewTab baseline 6 fail (L4.4 接受 pre-existing flake) |
 
 ---
 

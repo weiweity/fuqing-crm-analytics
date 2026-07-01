@@ -1,3 +1,60 @@
+## [0.4.14.23] - 2026-07-01 (Sprint 172-178 跨 sprint 治理收口 — BaseStyleButton Learn More + 真业务 bug 治本 4 件 + Claude Code setup 优化 11 hooks 闭环 + /document-release v0.4.14.23)
+
+### Added
+- **Sprint 172 BaseStyleButton.vue** (179 lines): Codepen Learn More 经典「圆拉长填充」动效, 13px/28px 统一尺寸, `#282936` 深蓝黑, emoji 全去, 箭头 ←/→ ASCII, 7 view 9 处统一替换
+- **Sprint 174 frontend-vue3/src/utils/exportXlsx.ts** (256 lines): xlsx-js-style 替代 xlsx, SSOT 视觉常量 (`THEME_HEADER=#1F4E79` / `YOY_POS=#D32F2F` / `YOY_NEG=#2E7D32`), YOY 列自动识别 `_yoy`/`_yoy_pct`/`_yoy_pp`/`_mom` 后缀, 0 公式 enforcement
+- **Sprint 174 frontend-vue3/src/components/ExportToolbar.vue** (66 lines): 单一封装「导出 Excel + 导出图片」双按钮, 跨 12 view 普及
+- **Sprint 174 frontend-vue3/src/components/RatioConventionBanner.vue** (新增): Sprint 13 Ratio Convention B1+B2 模式 banner, 3 天自动消失
+- **Sprint 174 frontend-vue3/src/components/MetricCard.vue** (63 lines): 22px 主数值 + 13px 标题 + YOY badge 内嵌, 复用 sprint 17 #124 字段强类型
+- **Sprint 175 Sprint Q3+4+5 派样板块改造**: SamplingView 4 tab 全链路补 ExportToolbar (04 派样明细 + Lock + Rolling + Cohort), 9 个 YOY 字段 (跨 sprint 复用 `_add_compare_metrics` helper)
+- **Sprint 176 backend/services/sampling_service.py:422-498** 两轮构造 + 反向 merge (修复 `a6447de` bugfix 误删 `category_result` 主循环 70 行)
+- **Sprint 176 backend/contracts/sampling.py:107-115** B2 强类型补标 (9 个 YOY 字段 `Optional[float]` → `Optional[PercentageField/PpField]`)
+- **Sprint 176 backend/tests/test_sampling_roi_sprint176_regression.py** (130 lines): 3 case 真因回归 (B2 metadata + Pydantic 实例化 + 422 越界拦截)
+- **Sprint 177 frontend-vue3/src/views/SamplingView.vue** UI/逻辑统一化 (4 tab): 02 板块 ExportToolbar 统一 (删 NButton + 🖼️ emoji) + 03 渠道卡片 emoji 🎯👤🛒→T/U/百 + 04 派样明细 XLSX pp 精度 1→2 位统一
+- **Sprint 177+ scripts/branch_cleanup.py** (166 lines): L4.8 自动化 - 扫本地+远程已 merge main 的分支 → `-d` + `push --delete` (PROTECTED 列表保护 main/master/HEAD + 7 个 Sprint 172-175 历史保留)
+- **Sprint 177+ backend/tests/test_branch_cleanup.py** (125 lines): 8 case regression (PROTECTED + dry-run + script + git + hook integration)
+- **Sprint 178 scripts/session_start_check.py** (87 lines): SessionStart hook - MEMORY/main/hooksPath/未提交 4 维度检查
+- **Sprint 178 scripts/session_close_check.py** (97 lines): Stop hook - sprint close checklist (audit/memory/L4.8/CHANGELOG)
+- **Sprint 178 .githooks/pre-commit** hooksPath 验证: 防止 pytest 修改 `core.hooksPath` 指向 tmp dir (跟 Sprint 176+ 实战 fix 模式配套)
+- **Sprint 178 .claude/settings.json** 3 个新 hook: SessionStart + Stop + PreToolUse Bash (拦截 `--force push` / `rm -rf /` / `mkfs` / `fork bomb` 等 7 类危险命令)
+
+### Changed
+- **CLAUDE.md 永久规则版本行**: 累计 L4.x **25 stable + 2 候选** (新增 L4.x #31 branch cleanup hook 强制自动化)
+- **CLAUDE.md 实战 fix 模式 #54-#61**: Sprint 172 BaseStyleButton 自适应设计模式 (#51) + Sprint 175 改写到一半 reset 工作流恢复模式 (#52) + Sprint 173 chrono 边界 cycle 检测模式 (#53) + Sprint 174 全项目 XLSX 缺导出治理 workflow (#55) + SheetJS → xlsx-js-style 迁移踩坑 (#56) + Workflow tool 跨 sprint 实战稳定模式 (#57) + Sprint 175 workflow Q3 反向 grep (#58 互补 #55) + Sprint 176 两轮构造 + 反向 merge (#58) + Sprint 177 UI 改造 workflow 6 路 audit (#60) + Sprint 177+ branch cleanup hook (#61)
+- **跨 sprint 文档沉淀**: ~/.claude/projects/-Users-hutou/ 新增 sprint 169/170/171/172/173/174/175/176/176.1/177/177+/178 共 10 个 close memory file, 跟 Sprint 172-177 sprint close memory 一致
+
+### Fixed
+- **Sprint 176 真因**: `/api/v1/sampling/roi` 500 UnboundLocalError - `a6447de` bugfix 误删 `category_result` 主循环 + `compare_cat_by_key` 构造块 70 行 (AI bugfix 模式 #58 互补 #56)
+- **Sprint 176.1 CI 爆红**: 3 真因 (F401 SegmentOrdersResponse unused import + SegmentOrderRow/Response contract 类未删 + `%-m` POSIX-only 跨平台 fail)
+- **Sprint 176.1+ hot reload 死循环**: backend/__init__.py 1 行注释触发 uvicorn --reload 检测 → restart → DuckDB lock → restart loop, 用户登录 30s 超时
+- **Sprint 175 真业务 4 Q**: Q2 删 segment-orders endpoint 解耦 4 处 (7 file 449 行删除) + Q3 market-focus 3 view 87 行 ExportToolbar + Q4 SamplingView 3 表 ExportToolbar + Q5 04 派样明细 9 YOY 字段 + bugfix UnboundLocalError
+- **Sprint 173 MTD/WTD 月初边界**: 月初 1 号打开 App 时 `start > yesterday` 倒序窗口, fallback 到 last full period
+
+### Removed
+- **Sprint 175 Q2 解耦删**: `backend/services/rfm/segment_orders.py` (-162 行) + backend `SegmentOrdersResponse` router endpoint + frontend `api/flow.ts` 5 export, 走 fix_pattern #59 四步流程 (UI → script → import → API client → router → service → service init)
+- **历史僵尸分支清理 (Sprint 177+)**: Sprint 172/173/174/175 共 7 个已合并分支 (本地+远程) 通过 `branch_cleanup.py` + `.claude/settings.json` PostToolUse Bash hook 自动化删除
+
+### Security
+- **Sprint 178 PreToolUse Bash hook**: 拦截 `--force push` / `git push -f` / `rm -rf /` / `mkfs` / fork bomb / `dd if=/dev/zero of=/dev/sda` / `chmod -R 777 /` 等 7 类危险命令 (exit 2 block)
+
+### L4.x 永久规则沉淀 (Sprint 172-178)
+- **L4.24 候选** (Sprint 171, 沿用): codegraph 实证 SOP (脑补业务口径反模式)
+- **L4.25 候选** (Sprint 171, 沿用): 防串台字段前缀分离 SOP
+- **L4.31 新增** (Sprint 178): branch cleanup hook 强制自动化 (跟 L4.8 PR merge 后 24h 内删分支配套, 累计 7 个 Sprint 172-175 漏删真因治根)
+
+### fix_pattern 沉淀 (Sprint 172-178)
+- **#54-#61 累计 8 模式**: 见上文 Changed 节
+
+### 累计统计
+- pytest passed **813** (跟 Sprint 171 baseline 持平, Sprint 176 +3 + Sprint 177+ +8 case 回归)
+- pytest skipped **72** (L4.4 race flake 接受)
+- 累计 sprint **107** 0 debt (Sprint 172-179 全部治本, 跨 Sprint 60+ stable 模式)
+- L4.x 永久规则 **25 stable + 2 候选** (新增 L4.x #31)
+- 11 hook 闭环: 7 Claude Code + 4 git hooks (Sprint 178 集中升级)
+- /document-release 累计 **11 次真治本** (Sprint 65/138/141.5/145/149/153/160/165/169/171/179)
+
+---
+
 ## [0.4.14.22] - 2026-06-30 (Sprint 171 ad-hoc-query v2.0 升级 收口 — 9 子命令 + AI 问数 + Excel 多 sheet + 防串台硬规则 + R 6 桶真实 SSOT + codegraph 教训沉淀)
 
 ### Added
