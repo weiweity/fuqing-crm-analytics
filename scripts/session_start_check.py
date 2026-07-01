@@ -38,7 +38,7 @@ def main() -> int:
         marker = "🚨" if size > limit else ("⚠️" if size > 17_100 else "✅")
         print(f"  {marker} MEMORY.md: {size} bytes ({pct:.1f}% of 24.4KB L4.13 limit)")
         if size > limit:
-            print(f"     → 跑 Sprint 178 dedupe SOP: 删旧 sprint 指针")
+            print("     → 跑 Sprint 178 dedupe SOP: 删旧 sprint 指针")
     else:
         print("  ⚠️  MEMORY.md not found")
 
@@ -67,7 +67,7 @@ def main() -> int:
         print(f"  ✅ core.hooksPath = {hooks_path}")
     elif "/pytest-of-" in hooks_path or hooks_path.endswith("/.git/hooks"):
         print(f"  🚨 core.hooksPath 被污染: {hooks_path}")
-        print(f"     → 自动恢复: git config core.hooksPath .githooks")
+        print("     → 自动恢复: git config core.hooksPath .githooks")
         run(["git", "config", "--unset", "core.hooksPath"])
         run(["git", "config", "core.hooksPath", ".githooks"])
     else:
@@ -94,6 +94,10 @@ def _verify_skill_symlinks() -> None:
 
     fail-open: 任何不符合仅 print warning, 不 raise (跟 Sprint 67 F2a UserPromptSubmit hook 同模式).
     跟 L4.13 (MEMORY.md size) + L4.20 (SSOT 反漂移) 永久规则配套, 防止 SSOT 漂移复发.
+
+    Sprint 189 升级: 只对双端都有的 skill 校验, 跳过 workbuddy-only / claude-only.
+    之前 106 个 false positive 报 drift, 因为 Claude Code 端没对应 SKILL.md.
+    WorkBuddy 生态独占 skill (brainstorming/pdf/xlsx/amazon 等) 不需要软链同步.
     """
     wb_root = Path.home() / ".workbuddy" / "skills"
     claude_root = Path.home() / ".claude" / "skills"
@@ -101,25 +105,30 @@ def _verify_skill_symlinks() -> None:
         return  # 缺一个目录就跳过, 不阻塞 session
     ok = 0
     miss = 0
+    skipped_only_one_side = 0
     for name in sorted(os.listdir(str(wb_root))):
         if name.startswith(".") or name.endswith(".zip") or name.endswith(".json"):
             continue
         wb_skill_md = wb_root / name / "SKILL.md"
+        claude_skill_md = claude_root / name / "SKILL.md"
+        # Sprint 189 fix: 跳过双端之一缺 SKILL.md 的 skill (workbuddy-only / claude-only)
         if not wb_skill_md.exists() and not os.path.islink(str(wb_skill_md)):
-            continue  # 该 skill 没 SKILL.md, 跳过 (e.g. _meta, subdir)
+            continue  # workbuddy 没 SKILL.md, 不是被治理对象
+        if not claude_skill_md.exists() and not os.path.islink(str(claude_skill_md)):
+            skipped_only_one_side += 1
+            continue  # claude 端没对应 SKILL.md, 不是双端 SSOT, 跳过 (workbuddy 生态独占)
         if not os.path.islink(str(wb_skill_md)):
-            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md 不是软链 (期望指向 ~/.claude/skills/{name}/SKILL.md)")
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md 不是软链 (期望指向 {claude_skill_md})")
             miss += 1
             continue
         target = os.readlink(str(wb_skill_md))
-        expected = claude_root / name / "SKILL.md"
-        if target != str(expected):
-            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md → {target} (期望 {expected})")
+        if target != str(claude_skill_md):
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md → {target} (期望 {claude_skill_md})")
             miss += 1
             continue
         ok += 1
     if ok or miss:
-        print(f"  ℹ️  L4.35 skill symlink: {ok} OK / {miss} drift")
+        print(f"  ℹ️  L4.35 skill symlink: {ok} OK / {miss} drift (skip {skipped_only_one_side} workbuddy-only / claude-only)")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,22 @@
+## [0.4.14.31] - 2026-07-02 (Sprint 189 — L4.35 skill symlink 治理修 100→0 false positive)
+
+### Fixed
+- **session_start_check.py L4.35 symlink verify 假阳性治本** (Sprint 189 真业务触发: 用户问"workbuddy里的技能一起更新了吧", 跑 session_start_check 报告 100+ skill SSOT drift warning). 真因: WorkBuddy 端 107 skill / Claude Code 端 81 skill, 仅 1 双端共有 (ad-hoc-query). 其他 106 是 WorkBuddy 生态独占 (brainstorming/pdf/xlsx/amazon 等), 跟 L4.35 SSOT 无关. 之前 _verify_skill_symlinks 无脑 verify 导致 100 false positive drift warning. 治根: Sprint 189 升级 _verify_skill_symlinks, 加跳过逻辑 (`if not claude_skill_md.exists() and not os.path.islink(...): skipped_only_one_side += 1; continue`), 仅双端都有 SKILL.md 才校验
+
+### Changed
+- **scripts/session_start_check.py:_verify_skill_symlinks docstring 升级** (line 92-101) 说明 Sprint 189 fix + workbuddy-only 跳过逻辑 + 跟 L4.35 永久规则关系
+
+### For contributors
+- pytest baseline **844 / 85 skip / 0 failed** 持续 (本地 macOS 全过)
+- ruff 0 errors
+- 累计 sprint 0 debt: **118 持续** (Sprint 189 纯治理, 0 业务代码改动, 跟 Sprint 89 / 167 模式 stable)
+- L4.x stable: **36 稳定** (L4.35 永久规则升级 0 追加)
+- fix_pattern 累计: **#73 stable** 0 追加
+- /document-release 累计: **19 → 20 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 / 185 / 186 / 187 / 188 / 189 模式 stable)
+- 11 hook 闭环 (跟 Sprint 188 一致), git remote SSH 推送 0 timeout
+- MEMORY.md 18.7KB ≤ 24.4KB headroom (L4.13 verify OK)
+- main HEAD `64ab54a + Sprint 189 + 1 squash`
+
 ## [0.4.14.30] - 2026-07-02 (Sprint 188 — 全部 backlog 处理 sprint)
 
 ### Added
