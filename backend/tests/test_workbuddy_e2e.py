@@ -40,43 +40,34 @@ EXPECTED_TOOL_NAMES = {
 
 
 # ─────────────────────────────────────────────────────────────
-# Mini LSP-style JSON-RPC helpers (mirror server.py _write_message / _read_message)
+# Mini JSON-RPC helpers (Sprint 191 fix: newline-delimited JSON, 不用 LSP)
 # ─────────────────────────────────────────────────────────────
 
 def _frame(payload: dict) -> bytes:
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    return f"Content-Length: {len(body)}\r\n\r\n".encode("utf-8") + body
+    """Sprint 191 fix: newline-delimited JSON, 不用 LSP Content-Length framing.
+
+    配套 mcp_servers/fuqing_adhoc/server.py:_write_message (Sprint 191 LSP→newline JSON).
+    """
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8") + b"\n"
+    return body
 
 
 def _read_one(buf: bytearray, proc: subprocess.Popen) -> dict | None:
-    """从 proc.stdout 读 1 条 LSP-style 消息. EOF 返 None."""
-    while b"\r\n\r\n" not in buf:
+    """Sprint 191 fix: 从 proc.stdout 读 1 条 newline JSON 消息. EOF 返 None.
+
+    配套 mcp_servers/fuqing_adhoc/server.py:_read_message.
+    """
+    while b"\n" not in buf:
         ch = proc.stdout.read(1)
         if not ch:
             return None
         buf.extend(ch)
-    head, _, rest = buf.partition(b"\r\n\r\n")
-    content_length = 0
-    for line in head.split(b"\r\n"):
-        k, _, v = line.partition(b":")
-        if k.strip().lower() == b"content-length":
-            try:
-                content_length = int(v.strip())
-            except ValueError:
-                content_length = 0
-            break
-    if content_length <= 0:
-        return None
-    while len(rest) < content_length:
-        chunk = proc.stdout.read(content_length - len(rest))
-        if not chunk:
-            return None
-        rest.extend(chunk)
-    body = bytes(rest[:content_length])
+    line, _, rest = buf.partition(b"\n")
     buf.clear()
+    buf.extend(rest)
     try:
-        return json.loads(body.decode("utf-8"))
-    except json.JSONDecodeError:
+        return json.loads(line.decode("utf-8").strip())
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return None
 
 

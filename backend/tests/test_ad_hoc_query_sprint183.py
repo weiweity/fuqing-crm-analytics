@@ -211,18 +211,18 @@ class TestDailyGsvMultiPeriod:
         )
         try:
             def send(msg):
-                body = json.dumps(msg).encode("utf-8")
-                header = f"Content-Length: {len(body)}\r\n\r\n".encode("utf-8")
-                proc.stdin.write(header + body)
+                # Sprint 191 fix: 改用 newline JSON (MCP stdio 标准), 不用 LSP Content-Length.
+                # 跟 mcp_servers/fuqing_adhoc/server.py:_write_message 配套.
+                body = json.dumps(msg).encode("utf-8") + b"\n"
+                proc.stdin.write(body)
                 proc.stdin.flush()
 
             def recv():
+                # Sprint 191 fix: 改用 readline() 读 newline JSON, 不用 LSP multi-line 解析.
                 line = proc.stdout.readline()
                 if not line:
                     return None
-                cl = int(line.split(b":")[1].strip())
-                proc.stdout.readline()
-                return json.loads(proc.stdout.read(cl).decode("utf-8"))
+                return json.loads(line.decode("utf-8").strip())
 
             send({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
             recv()

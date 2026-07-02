@@ -34,42 +34,30 @@ SERVER_PATH = PROJECT_ROOT / "mcp_servers" / "fuqing_adhoc" / "server.py"
 
 
 def _frame_message(payload: dict) -> bytes:
-    """LSP-style framing: Content-Length: N\r\n\r\n<JSON body>."""
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    header = f"Content-Length: {len(body)}\r\n\r\n".encode("utf-8")
-    return header + body
+    """Sprint 191 fix: newline-delimited JSON, 不用 LSP Content-Length framing.
+
+    配套 mcp_servers/fuqing_adhoc/server.py:_write_message (Sprint 191 LSP→newline JSON).
+    """
+    return json.dumps(payload, ensure_ascii=False).encode("utf-8") + b"\n"
 
 
 def _read_message(proc: subprocess.Popen, buf: bytearray) -> dict | None:
-    """从 stdout buf 读 1 条 LSP-style 消息. EOF 返 None."""
-    while b"\r\n\r\n" not in buf:
+    """Sprint 191 fix: 从 stdout buf 读 1 条 newline JSON 消息. EOF 返 None.
+
+    配套 mcp_servers/fuqing_adhoc/server.py:_read_message.
+    """
+    while b"\n" not in buf:
         chunk = proc.stdout.read(1) if proc.stdout else b""
         if not chunk:
             return None
         buf.extend(chunk)
-    header_blob, _, rest = buf.partition(b"\r\n\r\n")
-    content_length = 0
-    for line in header_blob.split(b"\r\n"):
-        key, _, val = line.partition(b":")
-        if key.strip().lower() == b"content-length":
-            try:
-                content_length = int(val.strip())
-            except ValueError:
-                content_length = 0
-            break
-    if content_length <= 0:
-        return None
-    while len(rest) < content_length:
-        chunk = proc.stdout.read(content_length - len(rest))
-        if not chunk:
-            return None
-        rest.extend(chunk)
-    body = bytes(rest[:content_length])
+    line, _, rest = buf.partition(b"\n")
     # 简化: 单线程 e2e, 下一条消息前清空 buf
     buf.clear()
+    buf.extend(rest)
     try:
-        return json.loads(body.decode("utf-8"))
-    except json.JSONDecodeError:
+        return json.loads(line.decode("utf-8").strip())
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return None
 
 
