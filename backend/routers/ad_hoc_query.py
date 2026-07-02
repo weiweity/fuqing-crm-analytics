@@ -18,8 +18,11 @@ backend.routers.ad_hoc_query — 即席查询 HTTP API 入口 (Sprint 188)
 CLI / MCP server 仍存在 (scripts/ad_hoc_query.py + mcp_servers/fuqing_adhoc/server.py).
 本 router 是平行入口, 不替换 CLI, 让 HTTP API 可被前端 / WorkBuddy / 任意 HTTP client 调用.
 
-9 endpoint:
+12 endpoint:
 - POST /api/v1/ad-hoc/daily-gsv
+- POST /api/v1/ad-hoc/daily-gsv-multi-period
+- POST /api/v1/ad-hoc/fixed-product-list-compare
+- POST /api/v1/ad-hoc/ai-sandbox-execute
 - POST /api/v1/ad-hoc/yoy-battle
 - POST /api/v1/ad-hoc/channel-slice
 - POST /api/v1/ad-hoc/two-year-overview
@@ -164,6 +167,14 @@ class FixedProductListCompareRequest(_DateWindowMixin):
     product_ids: Optional[List[str]] = Field(default=None, description="产品 ID 列表; 不传则用归档固定清单")
     mom_start_date: Optional[str] = Field(default=None, description="环比期起始日期 YYYY-MM-DD")
     mom_end_date: Optional[str] = Field(default=None, description="环比期结束日期 YYYY-MM-DD")
+
+
+class AiSandboxExecuteRequest(BaseModel):
+    """ai-sandbox-execute: AI 命中不到固定 tool 时走 backend sandbox service."""
+
+    sql: str = Field(..., description="单条 SELECT/WITH 只读 SQL")
+    sandbox_type: str = Field(default="aggregate", description="aggregate|timeseries|rfm|ltv")
+    audit_id: Optional[str] = Field(default=None, description="审计 ID")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -317,6 +328,31 @@ def post_fixed_product_list_compare(req: FixedProductListCompareRequest) -> AdHo
         _make_header(req.start_date, req.end_date, mom_start, mom_end),
         rows,
         warning,
+    )
+
+
+@router.post(
+    "/ai-sandbox-execute",
+    response_model=AdHocQueryResponse,
+    summary="AI sandbox backend service + audit log (Sprint 198)",
+)
+def post_ai_sandbox_execute(req: AiSandboxExecuteRequest) -> AdHocQueryResponse:
+    """Execute read-only AI sandbox SQL inside the backend process."""
+    from backend.services.ai_sandbox import ai_sandbox_execute  # noqa: WPS433
+
+    try:
+        result = ai_sandbox_execute(
+            sql=req.sql,
+            sandbox_type=req.sandbox_type,
+            audit_id=req.audit_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return _serialize(
+        "ai-sandbox-execute",
+        result["headers"],
+        result["rows"],
+        None,
     )
 
 

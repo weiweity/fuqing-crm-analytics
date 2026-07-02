@@ -196,7 +196,7 @@ class TestDailyGsvMultiPeriod:
         """Sprint 183 Phase 4 QA fix (confidence 9/10): MCP server tools/list 必须含 daily_gsv_multi_period.
 
         端到端锁回归: 真 subprocess 启动 MCP server, 走 JSON-RPC handshake, 验证
-        tools/list 返 12 个 tool (含 Sprint 196 新 tool). pytest 不启动 server, 所以这个 case 必
+        tools/list 返 14 个 tool (含 Sprint 196/197/198 新 tool). pytest 不启动 server, 所以这个 case 必
         须真跑.
         """
         import subprocess
@@ -238,8 +238,14 @@ class TestDailyGsvMultiPeriod:
             assert "fixed_product_list_compare" in tools, (
                 f"MCP server tools/list 缺 fixed_product_list_compare. 实际: {tools}"
             )
-            assert len(tools) == 12, (
-                f"期望 12 个 tool (10 Sprint 182 + 1 Sprint 183 + 1 Sprint 196), got {len(tools)}: {tools}"
+            assert "fixed_product_list_compare_http" in tools, (
+                f"MCP server tools/list 缺 fixed_product_list_compare_http. 实际: {tools}"
+            )
+            assert "ai_sandbox_execute" in tools, (
+                f"MCP server tools/list 缺 ai_sandbox_execute. 实际: {tools}"
+            )
+            assert len(tools) == 14, (
+                f"期望 14 个 tool (10 Sprint 182 + 1 Sprint 183 + Sprint 196/197/198), got {len(tools)}: {tools}"
             )
         finally:
             proc.stdin.close()

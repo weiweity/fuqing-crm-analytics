@@ -63,6 +63,8 @@ def _load_builtins() -> None:
     from scripts.ad_hoc_queries import ask  # noqa: F401
     from scripts.ad_hoc_queries import daily_gsv_multi_period  # noqa: F401  # Sprint 183
     from scripts.ad_hoc_queries import fixed_product_list_compare  # noqa: F401  # Sprint 196
+    from scripts.ad_hoc_queries import fixed_product_list_compare_http  # noqa: F401  # Sprint 197
+    from scripts.ad_hoc_queries import ai_sandbox_execute  # noqa: F401  # Sprint 198
 
 
 def _run_list_endpoints() -> List[List[Any]]:
