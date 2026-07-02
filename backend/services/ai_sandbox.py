@@ -7,11 +7,13 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+import os
 from pathlib import Path
 import re
 from typing import Any
 
 from backend.db.connection import get_connection
+from backend.services.query_worker_client import execute_via_query_worker
 from backend.semantic.filters import OrderFilters
 
 AUDIT_LOG_PATH = Path("/tmp/fuqing_adhoc_audit.log")
@@ -75,12 +77,27 @@ def _write_audit(sql: str, sandbox_type: str, audit_id: str | None, row_count: i
         pass
 
 
+def _execute_in_process(sql: str) -> tuple[list[str], list[list[Any]]]:
+    """Legacy in-process executor used only by synthetic tests."""
+
+    conn = get_connection()
+    cursor = conn.execute(sql)
+    rows = [[_jsonable(cell) for cell in row] for row in cursor.fetchall()]
+    headers = [desc[0] for desc in cursor.description] if cursor.description else []
+    return headers, rows
+
+
+def _worker_disabled_for_test() -> bool:
+    return os.environ.get("FQ_AI_SANDBOX_WORKER_DISABLED", "").lower() in {"1", "true", "yes"}
+
+
 def ai_sandbox_execute(
     sql: str,
     sandbox_type: str = "aggregate",
     audit_id: str | None = None,
+    duckdb_path: str | None = None,
 ) -> dict[str, Any]:
-    """Execute a read-only sandbox query through the backend shared connection."""
+    """Execute a read-only sandbox query through an isolated worker process."""
     if sandbox_type not in ALLOWED_SANDBOX_TYPES:
         raise ValueError(f"未知 sandbox_type: {sandbox_type}; 可选 {sorted(ALLOWED_SANDBOX_TYPES)}")
     if not _validate_sql_security(sql):
@@ -90,10 +107,20 @@ def ai_sandbox_execute(
         _write_audit(sql, sandbox_type, audit_id, 0, "blocked")
         raise ValueError("orders 查询必须包含 OrderFilters.valid_order() 三条件, 防止 SSOT 漂移")
 
-    conn = get_connection()
-    cursor = conn.execute(sql)
-    rows = [[_jsonable(cell) for cell in row] for row in cursor.fetchall()]
-    headers = [desc[0] for desc in cursor.description] if cursor.description else []
+    if _worker_disabled_for_test():
+        headers, rows = _execute_in_process(sql)
+    else:
+        result = execute_via_query_worker(
+            sql=sql,
+            duckdb_path=duckdb_path,
+            memory_limit=os.environ.get("FQ_AI_SANDBOX_MEMORY_LIMIT", "4GB"),
+            timeout=int(os.environ.get("FQ_AI_SANDBOX_TIMEOUT", "30")),
+        )
+        if not result.get("success"):
+            _write_audit(sql, sandbox_type, audit_id, int(result.get("row_count", 0) or 0), "blocked")
+            raise ValueError(str(result.get("error", "query worker failed")))
+        headers = list(result.get("headers") or result.get("columns") or [])
+        rows = list(result.get("rows") or [])
     _write_audit(sql, sandbox_type, audit_id, len(rows), "ok")
     return {
         "headers": headers,

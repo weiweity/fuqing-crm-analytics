@@ -1,14 +1,13 @@
 """
-数据库连接管理 — 全局单例 + threading.Lock 双重检查锁定
+数据库连接管理 — 请求级 read-only 路由 + 兼容旧全局写单例
 
 生命周期规则：
-- 连接在首次 get_connection() 时创建，进程生命周期内复用
-- 禁止调用 conn.close() — 单例连接由 close_connection() 在应用关闭时统一释放
-- 所有 service 函数通过 get_connection() 获取连接，不要自行创建
-- DuckDB 连接不是线程安全的：execute / fetch 必须串行化，包装器已自动处理
+- HTTP 看板请求由 QueryRouterMiddleware 绑定 read-only 请求连接
+- 非 HTTP / 维护脚本保留历史 write-capable 单例
+- 禁止调用 conn.close() — 连接由 close_connection() / middleware 统一释放
+- DuckDB 同一个连接不是线程安全的：execute / fetch 必须串行化，包装器已自动处理
 """
 import logging
-import os
 import threading
 import duckdb
 from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT
@@ -28,7 +27,7 @@ class ThreadSafeCursor:
     会覆盖结果集，导致读到错误数据。因此必须在构造时（锁内）预取全部结果。
     """
 
-    def __init__(self, cursor, lock: threading.Lock):
+    def __init__(self, cursor, lock: threading.RLock):
         self._cursor = cursor
         # 在锁内一次性把结果从底层 cursor 读到内存
         with lock:
@@ -68,21 +67,22 @@ class ThreadSafeCursor:
 class ThreadSafeConnection:
     """线程安全连接包装器：execute 自动获取全局查询锁并预取结果"""
 
-    def __init__(self, conn: duckdb.DuckDBPyConnection):
+    def __init__(self, conn: duckdb.DuckDBPyConnection, lock: threading.RLock | None = None):
         self._conn = conn
+        self._lock = lock or _query_lock
 
     def execute(self, *args, **kwargs):
-        with _query_lock:
+        with self._lock:
             cursor = self._conn.execute(*args, **kwargs)
-            return ThreadSafeCursor(cursor, _query_lock)
+            return ThreadSafeCursor(cursor, self._lock)
 
     def cursor(self):
-        with _query_lock:
+        with self._lock:
             c = self._conn.cursor()
-            return ThreadSafeCursor(c, _query_lock)
+            return ThreadSafeCursor(c, self._lock)
 
     def close(self):
-        with _query_lock:
+        with self._lock:
             return self._conn.close()
 
     def __getattr__(self, name):
@@ -101,18 +101,24 @@ def get_duckdb_config(**overrides) -> dict:
 
 
 def get_connection() -> ThreadSafeConnection:
-    """获取全局共享的 DuckDB 连接（线程安全单例）"""
+    """获取 DuckDB 连接。
+
+    HTTP read 请求优先使用 middleware 绑定的 read-only 连接；其他场景保留
+    历史 write-capable 单例，避免 ETL / 维护脚本被本次改造破坏。
+    """
+    from backend.services import dual_conn
+
+    request_conn = dual_conn.get_request_connection()
+    if request_conn is not None:
+        return ThreadSafeConnection(request_conn.conn, request_conn.lock)
+
     global _conn
     if _conn is not None:
         return ThreadSafeConnection(_conn)
     with _lock:
         if _conn is not None:
             return ThreadSafeConnection(_conn)
-        cfg = get_duckdb_config()
-        db_password = os.environ.get("DUCKDB_PASSWORD")
-        if db_password:
-            cfg["password"] = db_password
-        _conn = duckdb.connect(str(DUCKDB_PATH), config=cfg)
+        _conn = dual_conn.get_write_connection()
         logger.info("DuckDB 单例连接已创建: %s (memory_limit=%s)", DUCKDB_PATH, DUCKDB_MEMORY_LIMIT)
         return ThreadSafeConnection(_conn)
 
@@ -128,3 +134,8 @@ def close_connection() -> None:
             except Exception as e:
                 logger.debug("关闭 DuckDB 连接时出错: %s", e)
             _conn = None
+    try:
+        from backend.services.dual_conn import close_all_connections
+        close_all_connections()
+    except Exception as e:  # noqa: BLE001
+        logger.debug("关闭 dual DuckDB 连接池时出错: %s", e)

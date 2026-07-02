@@ -408,6 +408,7 @@ def tmp_duckdb_with_synthetic_orders(synthetic_duckdb_factory):
 def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders):
     """Patch service and ad-hoc read-only paths to use the synthetic DuckDB."""
     from contextlib import contextmanager
+    import os
 
     from backend.db import connection
     from scripts.ad_hoc_queries import _utils as adhoc_utils
@@ -430,6 +431,8 @@ def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders):
     original_conn = connection._conn
     original_get_connection = connection.get_connection
     original_read_only_conn = adhoc_utils.read_only_conn
+    original_worker_disabled = os.environ.get("FQ_AI_SANDBOX_WORKER_DISABLED")
+    os.environ["FQ_AI_SANDBOX_WORKER_DISABLED"] = "1"
 
     def _fake_get_connection():
         return FakeThreadSafeConnection(tmp_duckdb_with_synthetic_orders)
@@ -464,6 +467,10 @@ def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders):
         connection.get_connection = original_get_connection
         connection._conn = original_conn
         adhoc_utils.read_only_conn = original_read_only_conn
+        if original_worker_disabled is None:
+            os.environ.pop("FQ_AI_SANDBOX_WORKER_DISABLED", None)
+        else:
+            os.environ["FQ_AI_SANDBOX_WORKER_DISABLED"] = original_worker_disabled
 
 
 @pytest.fixture
