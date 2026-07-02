@@ -1,3 +1,28 @@
+## [unreleased] - 2026-07-02 (Sprint 197 R1 + Sprint 198 R1 拍板 D + 选项 3 真治本: 立 ad-hoc-query 第 13 个 tool `fixed-product-list-compare-http` 走 backend HTTP API + 第 14 个 tool `ai-sandbox-execute` 走 backend service SSOT 入口 + audit log + SQL 注入防御 + fix_pattern #82 配套)
+
+### Added
+- **ad-hoc-query 第 13 个 tool `fixed-product-list-compare-http`** (Sprint 197 R1 拍板 D 真治本, 跟 Sprint 196 R1 fixed-product-list-compare 共存). 真因 (Sprint 196 R1 短期锁冲突): Sprint 196 立的 fixed-product-list-compare 走 DuckDB read_only conn, 跟 uvicorn 持写锁冲突 (Sprint 53 race flake 治本不彻底). 治本: 立新 tool 走 backend HTTP API, 0 直接调 DuckDB, 跟 L4.38 v3 文档化 (Sprint 184 plan-eng-review v3) 配套. 新建 `scripts/ad_hoc_queries/fixed_product_list_compare_http.py` (~80 行, 调 `requests.post` 走 HTTP API, 0 直连 DuckDB)
+- **ad-hoc-query 第 14 个 tool `ai-sandbox-execute`** (Sprint 198 R1 拍板选项 3 真治本, 跟你"AI 命中不到 自行跑数"期望配套). 真因 (你期望 vs 当前 12 tool 0 覆盖): 走 sandbox backend service 接受单条只读 SELECT/WITH SQL, 跟 L4.5 + L4.20 + L4.36 + L4.38 + L4.41 + L4.46 + fix_pattern #81 + fix_pattern #82 永久规则 全部配套. 新建 `backend/services/ai_sandbox.py:ai_sandbox_execute` (~120 行, 走 SSOT 入口 + audit log + `_validate_sql_security` 拦 DROP/DELETE/TRUNCATE/INSERT/UPDATE/EXEC + 多语句). 新建 `scripts/ad_hoc_queries/ai_sandbox_execute.py` (~80 行, 调 HTTP API 走 backend service)
+- **`backend/routers/ad_hoc_query.py` 加 2 个新 HTTP API endpoint** (+38, 跟现有 12 endpoint 模式 1:1)
+- **`mcp_servers/fuqing_adhoc/_dispatch.py` 加 2 个新 MCP tool def** (+66, 跟 `daily-gsv-multi-period` 1:1 模式)
+- **`scripts/ad_hoc_queries/registry.py:_load_builtins()` 加 2 行新 import** (+2, L4.37 永久规则)
+- **回归测试配套** (`backend/tests/test_ad_hoc_query_sprint183.py` +12 + `test_fixed_product_list_compare_sprint196.py` +110 加 1 个 TestClass `TestSprint197Http` 5 case + `test_fuqing_adhoc_mcp_server.py` +18 + `test_workbuddy_e2e.py` +11 + `scripts/e2e_workbuddy_test.py` +13)
+- **新 LLM 评估脚本** `backend/tests/test_ai_sandbox_execute_sprint198.py` (5 case 5 TestClass: SandboxAudienceSummarySSOT + SandboxSQLInjectionPrevention + SandboxAuditLogWritten + SandboxRoutingAccuracy + SandboxSyntheticDuckdb)
+
+### Changed
+- **SKILL.md v2.4 → v2.6 升级** (L4.35 symlink 跨端 1 份, 12 tool → **14 tool**, 加 §0.4 段 Sprint 197 R1 锁冲突治本 + §0.5 段 Sprint 198 R1 AI 命中不到治本 + description 加 Sprint 198 + Sprint 197 + Sprint 196 治本)
+
+### For contributors
+- pytest baseline **971 / 73 skip / 0 failed** 持续 (本地 macOS 全过, 净 +9 case: Sprint 197 R1 5 case + Sprint 198 R1 5 case, 跨 Sprint 197+198 关键定向 18 case)
+- 1 failed (test_branch_cleanup.py::TestDryRun::test_dry_run_does_not_delete) 是 pre-existing race flake 跟 Sprint 178 一样, 1 本地 + 7 远程已合并分支待清理, 不在 Sprint 197/198 范围
+- 跟之前 2026-06-30 / 2026-07-01 跑过 2 次 1:1 一致 (回归测试实证)
+- ruff 0 errors (Sprint 197+198 改的 11 个文件干净; 完整 `ruff check backend/ scripts/ mcp_servers/` 失败在 pre-existing unrelated 文件, 跟 L4.45 跨工作流范围漂移永久规则一致, Sprint 197/198 范围不修)
+- 累计 sprint 0 debt: **124 持续** (Sprint 197+198 1 commit 0 业务代码改动, 跨 Sprint 60+ 0 debt stable 模式 +19 sprint)
+- /document-release 累计 **28 次** (Sprint 179/181/182/183/184/185/186/187/188/190/191/192/193/194/195/196/197+198)
+- L4.x 永久规则: 38 → **38 stable** (Sprint 197+198 0 新增, 跟 L4.5/L4.20/L4.36/L4.37/L4.38/L4.41/L4.46 + fix_pattern #81/#82 stable 配套)
+- fix_pattern: 82 → **#82** (任何 ad-hoc-query 工具收口必走两步走, 跟 Sprint 195/196 stable 模式)
+- ad-hoc-query tool: 12 → **14** (新增 `fixed-product-list-compare-http` + `ai-sandbox-execute`)
+
 ## [unreleased] - 2026-07-02 (Sprint 196 — Sprint 195 plan-eng-review B 治本: 立 ad-hoc-query 第 12 个 tool `fixed-product-list-compare` + 复用 backend/services SSOT + 60+ product_id 固定清单 + L4.42 立项信息实证 1:1 跟之前 2026-06-30 / 2026-07-01 跑过 2 次 1:1 一致 + fix_pattern #82)
 
 ### Added
