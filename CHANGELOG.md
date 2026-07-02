@@ -1,3 +1,27 @@
+## [unreleased] - 2026-07-02 (Sprint 194 — Sprint 188 B1 剩余 12 case 改 synthetic_client fixture 治本完成 + WorkBuddy 话术模板 mock 预读反馈 + fix_pattern #80)
+
+### Fixed
+- **Sprint 188 B1 剩余 12 case 改 synthetic_client fixture 治本完成** (Sprint 193 R1 + Sprint 194 R1 续, Sprint 192 留尾 REMAIN-5 治本). 真因: Sprint 188 B1 (12 case SKIPPED) + Sprint 190 加 3 case = 15 case 全 SKIPPED 跨 6 sprint 持续 (Sprint 188 → 194). 治根: 走 `tmp_duckdb_with_synthetic_orders` fixture (Sprint 193 加, Sprint 194 加 `user_rfm` schema 支撑 top-n/export-excel), 9 case 改 `synthetic_client`/`synthetic_auth_headers` (跟 Sprint 193 改 3 case 同模式) + 3 case 修误标 skipif (走 `client` 但仍 `@prod_duckdb_required` 误标, 改 `synthetic_client` 跳过生产 skipif). Sprint 194 跨 sprint 真因排查治根完成
+
+### Changed
+- **fix_pattern #80 沉淀 (Sprint 194, 流程)**: 任何 mock 预读必须在文档头明确标 "mock 预读, 待真人复核", 跟 L4.42 立项信息实证配套. 真业务触发: Sprint 194 R2 任务 B 在 Codex 环境无法联系业务组同事, mock 预读 ≠ 真人反馈. 治根: docs/user-prompt-template-ad-hoc-query-feedback-sprint194.md 头部明确标 "mock 预读", Stage 3 / 用户预读必补一次真人复核
+- **L4.5 FilterBuilder 配套** (synthetic fixture 走 service 复用, 0 inline SQL 业务代码)
+- **L4.20 SSOT 反漂移** (业务口径不变, 只改 test fixture)
+- **L4.36 禁停 uvicorn** (TestClient 不依赖 uvicorn 守护进程)
+- **L4.39 macOS-only skipif 配套** (不新增 macOS-only test)
+- **L4.41 PYTHONPATH 配套** (TestClient 不启动子进程)
+- **L4.46 user prompt 强提示** (跟 Sprint 193 话术模板配套, Sprint 194 模板预读反馈)
+
+### For contributors
+- pytest baseline **858 / 73 skip / 0 failed** 持续 (本地 macOS 全过)
+- test_ad_hoc_query_api.py 15/15 0 skipped (Sprint 188 B1 12 case + Sprint 193 改 3 case 全部真跑)
+- 12 new test cases 真跑 PASS (Sprint 188 B1 全部治本, 跨 6 sprint 累计 12 case 治本)
+- ruff 0 errors
+- 累计 sprint 0 debt: **120 持续** (Sprint 194 2 commit 0 业务代码改动, 跟 Sprint 89/167/190/191/192/193 模式 stable)
+- /document-release 累计 **25 次** (Sprint 179/181/182/183/184/185/186/187/188/190/191/192/193/194)
+- L4.x 永久规则: 38 → **38 stable** (Sprint 194 0 新增, 跨 sprint 沉淀 L4.5/L4.20/L4.36/L4.39/L4.41/L4.46 stable)
+- fix_pattern: 79 → **#80** (mock 预读必须文档头明确标待真人复核)
+
 ## [unreleased] - 2026-07-02 (Sprint 193 — WorkBuddy 用户 prompt 话术模板 + Sprint 53 fixture 模式补真连 DuckDB 治本 R1+R2 + L4.46 永久规则 + fix_pattern #77/#78/#79)
 
 ### Added

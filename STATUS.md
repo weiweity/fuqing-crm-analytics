@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-07-02 (Sprint 193 — WorkBuddy 用户 prompt 话术模板 + Sprint 53 fixture 模式补真连 DuckDB 治本 R1+R2 + L4.46 永久规则 + fix_pattern #77/#78/#79). 累计 119 sprint 0 debt 持续 (Sprint 193 1 commit, 跨 Sprint 60+ 0 debt stable 模式 +13 sprint), VERSION 不 bump (跟 Sprint 89/167/190/191/192 0 业务代码改动 模式 stable), L4.x 37→**38 stable** (新增 L4.46 user prompt 模板强提示跳过 LLM 决策层), fix_pattern #77 (用户话术模板强提示 > SKILL 决策树) + #78 (production 100GB DuckDB 依赖用 synthetic fixture 治本) + #79 (测试账号不能用 setdefault 依赖 .env) 沉淀, /document-release 累计 24 次. 8 files / +480/-12 across. pytest baseline 844/88/0 → 847/85/0 (净 +3 真跑, -3 SKIPPED, Sprint 188 B1 12 case 治根一部分, Sprint 194 立项剩余 9 case).
+**最后更新**: 2026-07-02 (Sprint 194 — Sprint 188 B1 剩余 12 case 改 synthetic_client fixture 治本完成 + WorkBuddy 话术模板 mock 预读反馈 + fix_pattern #80). 累计 120 sprint 0 debt 持续 (Sprint 194 2 commit, 跨 Sprint 60+ 0 debt stable 模式 +14 sprint), VERSION 不 bump (跟 Sprint 89/167/190/191/192/193 0 业务代码改动 模式 stable, 累计 15 次 /document-release bump 持续), L4.x 38→**38 stable** (Sprint 194 0 新增永久规则, 跟 L4.5/L4.20/L4.36/L4.39/L4.41/L4.46 stable 模式配套), fix_pattern #80 (mock 预读必须文档头明确标"待真人复核", 跟 L4.42 立项信息实证配套) 沉淀, /document-release 累计 25 次. 4 files / +155/-48 across (2 commit). pytest baseline 847/85/0 → **858/73/0** (净 +12 真跑, -12 SKIPPED, Sprint 188 B1 12 case 全部治本, 跨 6 sprint 治本完成).
 
 ---
 
