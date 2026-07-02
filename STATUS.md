@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-07-02 (Sprint 191 — MCP stdio 协议 LSP → newline JSON 重写 + L4.44 永久规则). WorkBuddy 子 agent 反馈包触发真因: `mcp_servers/fuqing_adhoc/server.py` Sprint 182 L4.32/34 沉淀时用 LSP-style Content-Length framing, **不是** MCP stdio 标准. WorkBuddy 拉 server 报 `MCP error -32001: Request timed out` 120s. 治根: Sprint 191 重写 `_write_message` (`json.dumps(...) + b"\n"; flush()`) + `_read_message` (`sys.stdin.buffer.readline() + json.loads`), 保留 `MAX_CONTENT_LENGTH = 1MB` 防 DoS + JSON 容错. L4.44 永久规则: MCP stdio 协议必须 newline-delimited JSON, 禁照搬 LSP. 配套 `~/.workbuddy/skills/mcp-stdio-protocol-debugging/SKILL.md` + `references/diagnose_mcp.py` 一键对比测试. 诊断铁律: 用 server 期望的格式测 server = 假阳性陷阱, 永远用客户端实际发送的协议格式测. 32 pytest 零回归. 删违规 `scripts/adhoc_daily_segments_2026h1.py` (L4.5 禁临时脚本). 累计 118 sprint 0 debt 持续 (Sprint 191 纯协议 fix, 0 业务代码改动, 跨 Sprint 60+ 0 debt stable 模式 +12 sprint), L4.x 35→**36 stable** (新增 L4.44), fix_pattern #75 沉淀 (MCP stdio 协议混淆), /document-release 累计 22 次.
+**最后更新**: 2026-07-02 (Sprint 192 — Nightly Health Check B6 留尾治本 + L4.45 永久规则). 真因: `.github/workflows/nightly.yml:47` `ruff check .` 跟 lint job `ruff check backend/` 范围漂移, Sprint 178-191 累积报 12 false-positive fail (scripts/_archive/adhoc_product_new_old.py 等 macOS dev 跑过但 CI runner 不跑文件). 治根: 1 行 yaml 改动 `ruff check .` → `ruff check backend/` 跟 lint job 100% 对齐, 0 报错. 累计 118 sprint 0 debt 持续 (Sprint 192 0 业务代码改动, 跨 Sprint 60+ 0 debt stable 模式 +12 sprint), L4.x 36→**37 stable** (新增 L4.45 nightly ruff 范围对齐 lint job), fix_pattern #76 沉淀 (跨 workflow 范围漂移), /document-release 累计 23 次.
 
 ---
 

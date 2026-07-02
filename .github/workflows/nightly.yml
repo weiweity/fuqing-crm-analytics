@@ -44,7 +44,12 @@ jobs:
             "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (nightly)"
 
       - name: Run ruff
-        run: ruff check .
+        # Sprint 192 fix (B6 留尾): 跟 lint job (lint.yml) 100% 对齐, 只跑 backend/ 跳过其他.
+        # 之前 nightly `ruff check .` 跟 lint `ruff check backend/` 范围漂移, 报
+        # scripts/_archive/adhoc_product_new_old.py 等 12 false-positive fail
+        # (Sprint 182 之前归档, 不影响 backend 业务代码). 1 行 yaml 改动.
+        # 累计 23 次 /document-release 真治本, 累计 L4.x 36 stable (新增 L4.45 nightly ruff 范围对齐).
+        run: ruff check backend/
 
       - name: Run full pytest
         run: PYTHONPATH=. pytest backend/tests/ -q
