@@ -5,12 +5,11 @@ Sprint 182 Phase 2.A — L4.32/L4.34 永久规则应用:
 - L4.32: subprocess.run 显式 cwd=PROJECT_ROOT, 不依赖父进程 CWD
 - L4.5:  透传到现有 CLI (ad_hoc_query.py), 本文件零 inline SQL
 
-stdin/stdout 走 LSP-style JSON-RPC framing:
-  Content-Length: <N>\r\n
-  \r\n
-  <JSON body of length N>
+stdin/stdout 走 MCP stdio newline-delimited JSON-RPC framing (每行一个 JSON, \\n 结尾):
+  <JSON body>\\n
 
-不支持 Server 类 (无 third-party dep), 手写 framing ~30 行.
+Sprint 191 (2026-07-02): 从 LSP-style Content-Length framing 改为 MCP 标准
+newline-delimited JSON. 原实现协议错误导致 WorkBuddy 连接 120s 超时.
 """
 from __future__ import annotations
 
@@ -107,72 +106,49 @@ def list_tools() -> list[dict[str, object]]:
     ]
 
 
-# ---- JSON-RPC framing (LSP-style, ~30 行) -------------------------------
+# ---- JSON-RPC framing (MCP stdio: newline-delimited JSON) ---------------
+#
+# Sprint 191 根因修复 (2026-07-02):
+#   原实现用 LSP-style framing (Content-Length: N\r\n\r\n + body),
+#   但 MCP stdio 标准协议是 newline-delimited JSON (每行一个 JSON, \n 结尾).
+#   协议不匹配导致 server 在 _read_message() 永久阻塞, WorkBuddy 120s 超时.
+#   修复: 改用 MCP 标准 newline-delimited JSON framing.
+#
+# 参考: https://modelcontextprotocol.io/specification (stdio transport)
+# 验证: /tmp/mcp_protocol_test.py 对比测试 (LSP framing 通过, newline JSON 卡死 → 修复后两者都通过)
 
 # Sprint 182 Phase 4 adversarial fix (confidence 9/10): 上限防 DoS
-# Content-Length 巨型攻击 + header 无限行内存 DoS. 单 MCP client 发
-# Content-Length: 999999999999 会让 sys.stdin.buffer.read() 永久阻塞.
-MAX_CONTENT_LENGTH = 1_048_576  # 1 MB - 大于 1 tool call 实际 payload (~10KB)
-MAX_HEADER_BYTES = 8192  # 8 KB - Content-Type/Length 等常规 header 远小于此
-MAX_HEADER_LINES = 32  # LSP 规范 header 行数 < 10, 32 留 3x headroom
+MAX_CONTENT_LENGTH = 1_048_576  # 1 MB - 单条消息上限
 
 
 def _write_message(payload: dict[str, object]) -> None:
+    """MCP stdio: 一行 JSON + \\n."""
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     if len(body) > MAX_CONTENT_LENGTH:
-        # Sprint 182 Phase 4: outbound 也要限, 防撑爆 WorkBuddy 上下文 token
+        # Sprint 182 Phase 4: outbound 限大小, 防撑爆 WorkBuddy 上下文 token
         body = body[:MAX_CONTENT_LENGTH]
-    header = f"Content-Length: {len(body)}\r\n\r\n".encode("utf-8")
-    sys.stdout.buffer.write(header)
     sys.stdout.buffer.write(body)
+    sys.stdout.buffer.write(b"\n")
     sys.stdout.buffer.flush()
 
 
 def _read_message() -> dict[str, object] | None:
-    """读 1 条 LSP-style JSON-RPC 消息. EOF 返 None.
+    """MCP stdio: 读一行 JSON. EOF 返 None.
 
-    Sprint 182 Phase 4 adversarial fix: 3 重防御防恶意 MCP client:
-    1. MAX_HEADER_BYTES 限单行 size (防 readline() 阻塞等换行)
-    2. MAX_HEADER_LINES 限总行数 (防 header_lines.append 无限累积)
-    3. MAX_CONTENT_LENGTH 限 body size (防 read() 阻塞等满)
-    任何上限触发 → 返 None 让 serve() 主循环 graceful EOF.
+    Sprint 182 Phase 4 adversarial fix 保留: 单行 size 上限防 DoS
+    (防 readline() 读巨型行撑爆内存).
     """
-    # 读 header: Content-Length
-    header_bytes = 0
-    header_lines: list[bytes] = []
-    while True:
-        line = sys.stdin.buffer.readline()
-        if not line:
-            return None  # EOF
-        header_bytes += len(line)
-        if header_bytes > MAX_HEADER_BYTES:
-            return None  # 单行 size 超限 (防 readline 阻塞)
-        if len(header_lines) >= MAX_HEADER_LINES:
-            return None  # 总行数超限 (防累积 OOM)
-        line = line.rstrip(b"\r\n")
-        if line == b"":
-            break  # header 结束
-        header_lines.append(line)
-    # 解析 Content-Length
-    content_length = 0
-    for h in header_lines:
-        key, _, value = h.partition(b":")
-        if key.strip().lower() == b"content-length":
-            try:
-                content_length = int(value.strip())
-            except ValueError:
-                content_length = 0
-            break
-    if content_length <= 0:
-        return None
-    if content_length > MAX_CONTENT_LENGTH:
-        return None  # body size 超限 (防 read() 阻塞等满)
-    body = sys.stdin.buffer.read(content_length)
-    if len(body) < content_length:
-        return None
+    line = sys.stdin.buffer.readline()
+    if not line:
+        return None  # EOF
+    if len(line) > MAX_CONTENT_LENGTH:
+        return None  # 单行 size 超限 (防 OOM)
+    line = line.strip()
+    if not line:
+        return None  # 空行, 跳过 (不该返 None 但 MCP client 不会发空行)
     try:
-        return json.loads(body.decode("utf-8"))
-    except json.JSONDecodeError:
+        return json.loads(line.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return None
 
 

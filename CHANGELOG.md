@@ -1,3 +1,25 @@
+## [0.4.14.33] - 2026-07-02 (Sprint 191 — MCP stdio 协议 LSP → newline JSON 重写 + L4.44 永久规则)
+
+### Fixed
+- **MCP stdio 协议 bugfix 治本** (Sprint 191 真业务触发: WorkBuddy 拉 fuqing_adhoc MCP server 报 `MCP error -32001: Request timed out` 120s 卡死). 真因: `mcp_servers/fuqing_adhoc/server.py` Sprint 182 L4.32 L4.34 沉淀时用 LSP-style framing (`Content-Length: N\r\n\r\n` + body), **不是** MCP stdio 标准. MCP stdio 协议 = newline-delimited JSON (`read: line = sys.stdin.buffer.readline(); json.loads(line)` + `write: json.dumps(...).encode() + b"\n"; flush()`). LSP 实现的 server 在 `_read_message()` 读 JSON 行不认为是 header 结束 (不等于空行), 继续 readline 永久阻塞. 治根: Sprint 191 重写 `_write_message` (newline JSON) + `_read_message` (readline), 保留 `MAX_CONTENT_LENGTH = 1MB` (防 DoS) + `try/except (json.JSONDecodeError, UnicodeDecodeError)` 容错
+
+### Changed
+- **L4.44 永久规则 stable (Sprint 191, 平台)**: MCP stdio 协议必须 newline-delimited JSON, 禁照搬 LSP Content-Length framing. 配套 `~/.workbuddy/skills/mcp-stdio-protocol-debugging/SKILL.md` + `references/diagnose_mcp.py` 一键对比测试. 跟 L4.7 / L4.9 / L4.10 / L4.17-18 / L4.32 / L4.34 / L4.41 同位 (都是平台特定 hidden assumption 必须 explicit 验证)
+- **fix_pattern #75 沉淀 (Sprint 191)**: MCP stdio 协议混淆 (LSP framing 当 MCP). 配套 fix_pattern #68-74 实战 fix pattern 库
+- **删除违规 scripts/adhoc_daily_segments_2026h1.py** (L4.5 永久规则 "❌ 写 scripts/adhoc_*.py 临时脚本" 配套)
+
+### For contributors
+- pytest baseline **844 / 85 skip / 0 failed** 持续 (本地 macOS 全过)
+- 32 case `backend/tests/test_fuqing_adhoc_mcp_server.py` 零回归 (含 `test_content_length_upper_bound_prevents_dos` 1MB 限制保留)
+- ruff 0 errors
+- 累计 sprint 0 debt: **118 持续** (Sprint 191 纯协议 fix, 0 业务代码改动, 跟 Sprint 89 / 167 模式 stable)
+- L4.x stable: **35 → 36** (新增 L4.44)
+- fix_pattern 累计: **+1 = #75** (MCP stdio 协议混淆)
+- /document-release 累计: **21 → 22 次真治本** (Sprint 179 / 181 / 182 / 183 / 184 / 185 / 186 / 187 / 188 / 190 / 191 模式 stable)
+- 11 hook 闭环 (跟 Sprint 190 一致)
+- MEMORY.md ~19.4KB ≤ 24.4KB headroom (L4.13 verify OK)
+- main HEAD `afa7459 + Sprint 191 + 1 squash` (待 commit + push)
+
 ## [0.4.14.32] - 2026-07-02 (Sprint 190 — 运营真业务触发 × 2 bugfix + 1 endpoint + L4.43 永久规则)
 
 ### Fixed
