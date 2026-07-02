@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.35（main @ 30736ce + Sprint 194 — Sprint 188 B1 剩余 12 case 改 synthetic_client fixture 治本完成 + WorkBuddy 话术模板 mock 预读反馈 + fix_pattern #80: 4 files / +155/-48 across 2 commit, 0 业务代码改动 (跟 Sprint 89/167/190/191/192/193 模式 stable, 累计 15 次 /document-release bump 持续), L4.x 38→**38 stable** (Sprint 194 0 新增, 跨 sprint 沉淀 L4.5/L4.20/L4.36/L4.39/L4.41/L4.46 stable), fix_pattern #80 (mock 预读必须文档头明确标"待真人复核", 跟 L4.42 立项信息实证配套) 沉淀. 累计 120 sprint 0 debt 持续 (跨 Sprint 60+ 0 debt stable 模式 +14 sprint), /document-release 累计 25 次. pytest baseline 847/85/0 → **858/73/0** (净 +12 真跑, -12 SKIPPED, Sprint 188 B1 12 case 全部治本, 跨 6 sprint 治本完成). |
+| 4 | **版本状态** | v0.4.14.35（main @ bd73b9f + Sprint 195 — 收敛方案 1 件事: AI 问数准确率 ≥95% + LLM 评估脚本 25 case + ask 路由表 daily-gsv-multi-period 5 关键词补全 + fix_pattern #81: 2 files / +200/-1 across 2 commit, 0 业务代码改动 (跟 Sprint 89/167/190/191/192/193/194 模式 stable, 累计 16 次 /document-release bump 持续), L4.x 38→**38 stable** (Sprint 195 0 新增, 跟 L4.5/L4.20/L4.36/L4.41/L4.46 stable 配套), fix_pattern #81 (LLM 评估脚本命中率 SOP — 任何 AI 问数新 tool 上线前必先跑 test_llm_eval 验命中率 ≥95%) 沉淀. 累计 121 sprint 0 debt 持续 (跨 Sprint 60+ 0 debt stable 模式 +15 sprint), /document-release 累计 26 次. pytest baseline 858/73/0 → **957/73/0** (净 +99 case 真跑, Sprint 195 25 case + 之前 sprint 累计). 收敛前 11 项留尾 删 10 项, 只立 1 件事 (Sprint 195 收敛方案 R1 拍板). |
 
 **L4.24 候选: codegraph 实证 SOP**（Sprint 171 真业务触发，跨 sprint v1 R 6 桶脑补错误治根）
 1. **触发**：任何业务规格/文档/spec 涉及业务口径（RFM / R 区间 / 字段名 / 阈值 / 桶边界）

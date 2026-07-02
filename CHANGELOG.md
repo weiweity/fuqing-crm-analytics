@@ -1,3 +1,23 @@
+## [unreleased] - 2026-07-02 (Sprint 195 — 收敛方案 1 件事: AI 问数准确率 ≥95% + LLM 评估脚本 25 case + ask 路由表 daily-gsv-multi-period 5 关键词补全 + fix_pattern #81)
+
+### Added
+- **ask 路由表补 daily-gsv-multi-period 5 关键词** (Sprint 195 R1 收敛方案 任务 1, Sprint 192 留尾 REMAIN-4 治本, 跟 Sprint 183/190 跨 2 sprint 复发根因之一). 真因: `scripts/ad_hoc_queries/ask.py:_route_table` 缺 `daily-gsv-multi-period` 条目, 实测 `ask("小样 + 会员 + 多周期对比")` 命中 0 关键词 → fallback 误判 → LLM 报"工具缺位" → Sprint 183/190 跨 2 sprint 复发. 治根: 补 1 个新条目 (5 关键词 `("小样", "派样", "多周期", "8 维度", "周期对比")` + lambda param_builder 抽 periods + metrics 默认 None)
+- **LLM 评估脚本 25 case 5 TestClass** (Sprint 195 R1 收敛方案 任务 2). 新建 `backend/tests/test_llm_eval_sprint195.py` (176 行, 5 TestClass = HighFrequencyScenarios 5 + Sprint183190TriggeredCases 5 + AskRouterRegression 5 + EdgeCases 5 + RoutingAccuracy 5). 实测 25 case 全 PASS (0.46s), TestClass 5 命中率 5/5 = **100.0%** (Sprint 195 R1 期望 ≥95%, 实测 100%)
+
+### Changed
+- **fix_pattern #81 沉淀 (Sprint 195, 流程)**: LLM 评估脚本命中率 SOP — 任何 AI 问数新 tool 上线前, 必先跑 `test_llm_eval_<sprint>.py` 验命中率 ≥95% 才允许 commit. 跟 L4.46 / Sprint 183/190 跨 sprint 复发教训配套
+- **收敛方案** (跟之前 11 项留尾比 删 10 项): 删 指标平台化 / DQ 30 项 / data_lineage / 自助看板 / 大促压测 / 数据回滚 / 等. 留 1 件事 = AI 问数准确率. 用户拍板"看板已有不需要拖拽 (AI 时代)" + "duckdb 不做功能新增"
+
+### For contributors
+- pytest baseline **957 / 73 skip / 0 failed** 持续 (本地 macOS 全过)
+- 25 new test cases PASS (Sprint 195 收敛方案 R1)
+- TestClass 5 命中率 5/5 = 100.0% (期望 ≥95%, 实测 100%)
+- ruff 0 errors (Sprint 195 改的 2 个文件干净; 完整 `ruff check backend/ scripts/` 失败在 pre-existing unrelated 文件, 跟 L4.45 跨工作流范围漂移永久规则一致, Sprint 195 范围不修)
+- 累计 sprint 0 debt: **121 持续** (Sprint 195 2 commit 0 业务代码改动, 跟 Sprint 89/167/190/191/192/193/194 模式 stable)
+- /document-release 累计 **26 次** (Sprint 179/181/182/183/184/185/186/187/188/190/191/192/193/194/195)
+- L4.x 永久规则: 38 → **38 stable** (Sprint 195 0 新增, 跟 L4.5/L4.20/L4.36/L4.41/L4.46 stable 配套)
+- fix_pattern: 80 → **#81** (LLM 评估脚本命中率 SOP)
+
 ## [unreleased] - 2026-07-02 (Sprint 194 — Sprint 188 B1 剩余 12 case 改 synthetic_client fixture 治本完成 + WorkBuddy 话术模板 mock 预读反馈 + fix_pattern #80)
 
 ### Fixed
