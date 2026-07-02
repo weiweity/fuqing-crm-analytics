@@ -1,9 +1,11 @@
 """
 Pytest fixtures for backend service tests.
 """
+import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import duckdb
@@ -579,29 +581,112 @@ def isolate_tmp_tracker(tmp_path):
 
 @pytest.fixture(autouse=True)
 def reset_rate_limit_buckets():
-    """Sprint 201 R1: per-test reset rate limit bucket + 强制 RATE_LIMIT_PER_MINUTE=60.
+    """Sprint 201 R1: per-test reset rate limit bucket (不强制 RATE_LIMIT_PER_MINUTE).
 
-    防止 test_rate_limit_sprint200.py 用 5 req/min 把 _rate_limit_buckets 写满,
-    污染后续 test 的 synthetic_client (走相同 user_id) 触发 429.
+    Sprint 201 R1+ R2 v3 (L4.50 candidate followup): 不强制覆盖 RATE_LIMIT_PER_MINUTE=60, 避免
+    覆盖 test_rate_limit_sprint200.py module-scope 设的 5 (跟之前 sprint stable 1:1).
+    只清 _rate_limit_buckets 字典, env 留给 test 自己管 (test_rate_limit_sprint200.py:17
+    设 5, 其他 test 不设就走 production default 60).
     """
     import backend.main as _main
-    # 强制 production 默认 60, 防止其他 test 用 5 把 bucket 写满
-    import os
-    original_rpm = os.environ.get("RATE_LIMIT_PER_MINUTE")
-    os.environ["RATE_LIMIT_PER_MINUTE"] = "60"
 
-    # Reset module-level _rate_limit_buckets (跟 _RATE_LIMIT_PER_MINUTE 同步 reload)
+    # Reset module-level _rate_limit_buckets 字典 (不强制覆盖 env)
     if hasattr(_main, "_rate_limit_buckets"):
         _main._rate_limit_buckets.clear()
-    if hasattr(_main, "_RATE_LIMIT_PER_MINUTE"):
-        _main._RATE_LIMIT_PER_MINUTE = 60
 
     try:
         yield
     finally:
         if hasattr(_main, "_rate_limit_buckets"):
             _main._rate_limit_buckets.clear()
-        if original_rpm is None:
-            os.environ.pop("RATE_LIMIT_PER_MINUTE", None)
-        else:
-            os.environ["RATE_LIMIT_PER_MINUTE"] = original_rpm
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 201 R1+ R2 (L4.50 candidate): pytest-of-hutou 老 session + tracker 副本清理 (autouse)
+#
+# 真因: pytest 跑 test_layer6_skips_tracked_files + test_w4_t7_integration 等真连 prod DuckDB,
+# 创建 fuqing_tracked.duckdb 副本 (~2GB, 跟生产 db 一样大). test 失败时 fixture teardown 不清
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 201 R1+ R2 (L4.50 candidate): pytest-of-hutou 老 session + tracker 副本清理 (autouse)
+#
+# 真因: pytest 跑 test_layer6_skips_tracked_files + test_w4_t7_integration 等真连 prod DuckDB,
+# 创建 fuqing_tracked.duckdb 副本 (~2GB, 跟生产 db 一样大). test 失败时 fixture teardown 不清
+# tmp_path, 跨 sprint 累积 11+ 个老 session 目录 (20G+), 导致磁盘 99% 满 (Sprint 201 R1 v2.1 紧急排查).
+#
+# 修法: session-scope autouse fixture 在每次 pytest 启动时清理 24h+ 老 pytest-of-hutou session 目录
+# (保留当前 pytest-current). 跟 sprint 178 L4.31 race flake 跨 sprint stable 模式 1:1, 杜绝后续累积.
+# 深层治本 (Sprint 201 R1+ R2 8 天): macOS launchd hourly cleanup plist + pytest fixture teardown 强制删 fuqing_tracked.duckdb.
+# ─────────────────────────────────────────────────────────────
+
+_PYTEST_ROOT = Path("/private/var/folders/tz/wswl3q3117v437rw68yd90gh0000gn/T/pytest-of-hutou")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_old_pytest_sessions():
+    """Sprint 201 R1+ R2 L4.50 candidate: 清理 24h+ 老 pytest session 目录, 保留 current.
+
+    跨 sprint stable race flake 模式 1:1: 之前 sprint 178 L4.31 治 race flake, 这次治 pytest session
+    磁盘累积. autouse session-scope 确保每次 pytest 启动时自动清, 不需要业务方手动跑.
+    """
+    if not _PYTEST_ROOT.exists():
+        return
+    now = time.time()
+    cleaned_count = 0
+    cleaned_bytes = 0
+    for d in _PYTEST_ROOT.iterdir():
+        if not d.is_dir() or d.name == "pytest-current":
+            continue
+        # 24h+ 老 session 自动清
+        try:
+            mtime = d.stat().st_mtime
+        except OSError:
+            continue
+        if (now - mtime) > 86400:  # 24h
+            try:
+                # 算 dir 大小 (粗估)
+                size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+                # 用 shutil.rmtree 安全删 (Sprint 178 hook 拦 rm -rf /, 但这里是相对路径安全)
+                import shutil
+                shutil.rmtree(d, ignore_errors=True)
+                cleaned_count += 1
+                cleaned_bytes += size
+            except Exception:
+                pass
+    if cleaned_count:
+        print(f"[L4.50 cleanup_old_pytest_sessions] Cleaned {cleaned_count} old session(s), "
+              f"~{cleaned_bytes // (1024**2)} MB freed")
+    yield
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 201 R1+ R2 (L4.50 candidate): pytest_configure hook — 加载时立即清老 session
+# (不依赖 autouse fixture 时序, 跟 test module-scope setdefault 1:1 stable)
+# ─────────────────────────────────────────────────────────────
+
+def pytest_configure(config):
+    """Sprint 201 R1+ R2 L4.50: 加载时清 24h+ 老 pytest session, 跟 test module-scope RATE_LIMIT_PER_MINUTE 1:1."""
+    if not _PYTEST_ROOT.exists():
+        return
+    now = time.time()
+    cleaned_count = 0
+    cleaned_bytes = 0
+    for d in _PYTEST_ROOT.iterdir():
+        if not d.is_dir() or d.name == "pytest-current":
+            continue
+        try:
+            mtime = d.stat().st_mtime
+        except OSError:
+            continue
+        if (now - mtime) > 86400:  # 24h
+            try:
+                size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+                shutil.rmtree(d, ignore_errors=True)
+                cleaned_count += 1
+                cleaned_bytes += size
+            except Exception:
+                pass
+    if cleaned_count:
+        print(f"[L4.50 pytest_configure] Cleaned {cleaned_count} old session(s), "
+              f"~{cleaned_bytes // (1024**2)} MB freed")

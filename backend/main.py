@@ -233,8 +233,13 @@ async def add_security_headers(request: Request, call_next):
 # 真因: 业务组持续取数 → uvicorn 一直处于下线状态 (Sprint 184 L4.38 DuckDB flock 锁死)
 # 治本: 每用户每分钟 60 req 限流, 超限返 429 + Retry-After 头. 跟 L4.36 graceful retry 3 次配套.
 # 配套: Codex consult 6 补强 (AST allowlist + DuckDB 安全配置 + query worker) 后续 sprint 实施.
+# Sprint 201 R1+ R2 (L4.50 candidate): 改成 per-request 读 env, 允许 conftest.py 跨 sprint stable
+# 跨 test 改 RATE_LIMIT_PER_MINUTE (跟 test_rate_limit_sprint200.py module-scope setdefault 1:1).
 # ─────────────────────────────────────────────────────────────
-_RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
+import os as _rl_os  # 别名避免跟外层 os 冲突
+_RATE_LIMIT_DEFAULT = 60  # production default
+# module-scope 读 1 次 (跟之前 sprint stable 1:1), 但 middleware 内 per-request 重读
+_RATE_LIMIT_PER_MINUTE = int(_rl_os.environ.get("RATE_LIMIT_PER_MINUTE", str(_RATE_LIMIT_DEFAULT)))
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_limit_buckets: dict[str, list[float]] = {}  # {user_id: [timestamp, ...]}
 
@@ -263,23 +268,25 @@ async def rate_limit_middleware(request: Request, call_next):
 
     # 滑动窗口 rate limit
     now = time.time()
+    # Sprint 201 R1+ R2 (L4.50 candidate): per-request 重读 env, 跟 test_rate_limit_sprint200.py setdefault 1:1
+    rate_limit_per_minute = int(_rl_os.environ.get("RATE_LIMIT_PER_MINUTE", str(_RATE_LIMIT_DEFAULT)))
     bucket = _rate_limit_buckets.setdefault(user_id, [])
     # 清除窗口外的请求
     bucket[:] = [t for t in bucket if now - t < _RATE_LIMIT_WINDOW]
 
-    if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
+    if len(bucket) >= rate_limit_per_minute:
         # L4.36 友好错误: 返 429 + Retry-After 头
         response = JSONResponse(
             status_code=429,
             content={
-                "detail": f"Rate limit exceeded ({_RATE_LIMIT_PER_MINUTE} req/min). "
+                "detail": f"Rate limit exceeded ({rate_limit_per_minute} req/min). "
                           "Retry in 60s. (L4.36 graceful retry, Sprint 200 R1 v2.1)",
                 "retry_after_seconds": _RATE_LIMIT_WINDOW,
                 "user_id": user_id,
             },
         )
         response.headers["Retry-After"] = str(_RATE_LIMIT_WINDOW)
-        response.headers["X-RateLimit-Limit"] = str(_RATE_LIMIT_PER_MINUTE)
+        response.headers["X-RateLimit-Limit"] = str(rate_limit_per_minute)
         response.headers["X-RateLimit-Remaining"] = "0"
         _access_logger.warning(
             "Rate limit triggered",
@@ -288,15 +295,15 @@ async def rate_limit_middleware(request: Request, call_next):
                 "path": path,
                 "method": request.method,
                 "current_count": len(bucket),
-                "limit": _RATE_LIMIT_PER_MINUTE,
+                "limit": rate_limit_per_minute,
             },
         )
         return response
 
     bucket.append(now)
     response = await call_next(request)
-    response.headers["X-RateLimit-Limit"] = str(_RATE_LIMIT_PER_MINUTE)
-    response.headers["X-RateLimit-Remaining"] = str(_RATE_LIMIT_PER_MINUTE - len(bucket))
+    response.headers["X-RateLimit-Limit"] = str(rate_limit_per_minute)
+    response.headers["X-RateLimit-Remaining"] = str(rate_limit_per_minute - len(bucket))
     return response
 
 
