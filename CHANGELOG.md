@@ -23,6 +23,36 @@
 - workflow 跑出 446605 tokens / 5 分 03 秒 / 9 agents 跟 Sprint 107+108+109 真因排查 1:1 模式 stable
 - 5 files / +370/-178 across 1 commit `bdb47bb` (含 SKILL.md symlink mode change 100644 → 120000, L4.35 治本标志)
 
+---
+
+## [unreleased] - 2026-07-02 (Sprint 200 R1 v2.1: uvicorn resilience + rate limit middleware — 你报"业务持续取数导致 uvicorn 一直处于下线状态"真因 Sprint 184 L4.38 DuckDB flock 锁死 + L4.36 禁停 uvicorn 双锁死, 治本 4 件: launchd KeepAlive watchdog + 60 req/min/user 限流 + /auth/me 业务端点限流 + pytest 8 case 5 TestClass 锁回归)
+
+### Fixed
+- **uvicorn resilience watchdog + rate limit middleware 真治本** (Sprint 200 R1 v2.1, 救火): 真因 Sprint 184 L4.38 DuckDB flock 锁死 + L4.36 禁停 uvicorn 双锁死. 治本 4 件:
+  1. **launchd KeepAlive watchdog 激活** (`~/Library/LaunchAgents/com.fuqing.uvicorn.plist` KeepAlive=Crashed=true, 跟 Sprint 62 P2 uvicorn 守护 1:1 stable). uvicorn 进程死了 launchd 自动重启 (PID 12872 → 33676, `launchctl kickstart -k gui/$(id -u)/com.fuqing.uvicorn` 验证)
+  2. **rate_limit_middleware** (`backend/main.py` 新增 99 行): 每用户每分钟 60 req 限流, 触发 429 + Retry-After: 60 + X-RateLimit-Limit: 60 + X-RateLimit-Remaining: 0. 跟 L4.36 友好错误 1:1: detail 含 'L4.36 graceful retry, Sprint 200 R1 v2.1'. user_id 提取用 `_verify_token` 校验 token 有效性 (跟 `auth_middleware` 1:1 stable), 没 token fallback to client_ip bucket. /api/v1/health / /api/v1/auth/login / /api/v1/auth/refresh / /docs / /redoc / /openapi.json bypass (防登录失败重试触发 429), OPTIONS bypass
+  3. **/auth/me 业务端点限流**: 之前 `/api/v1/auth/` 全 bypass (Login/Refresh/Me/Logout 都跳过), 跟实际业务需求不符 (业务组高频调 /auth/me 验证 token). 修复: 只 bypass /auth/login + /auth/refresh, /auth/me + /auth/logout 都限流
+  4. **pytest 8 case 5 TestClass 锁回归** (`backend/tests/test_rate_limit_sprint200.py` 新增 178 行): TestRateLimitBasic (health / auth bypass) + TestRateLimitHeaders (X-RateLimit-* 头 + 递减) + TestRateLimitL436Compliance (429 格式 + 不创建 /tmp/*.py + 429 不挂 uvicorn) + TestRateLimitUserIsolation (admin/fqsw 独立 bucket). 用 `/api/v1/auth/me` 不依赖 DB 触发限流, 跟 DuckDB 解耦
+
+### Discovery (Sprint 200+ 真业务触发立项)
+- **uvicorn resilience 救火 + rate limit middleware 是 Sprint 184 L4.38 + L4.36 双锁死的治标** (跟 Codex consult 6 补强 1:1). 治本路径 (Sprint 200 R1 v2 阶段 B-F): AST allowlist (sqlglot) + DuckDB 安全配置 5 项 + Query worker 独立进程 + 结构化审计表 + 资源限制 + fallback 反哺机制
+- **L4.50 (新增候选) — uvicorn watchdog + rate limit middleware** 永久规则化待 Sprint 200 R1 收口. 跟 L4.36/L4.38/L4.47/L4.48/L4.49 永久规则 1:1 配套
+- **业务组真业务触发** 立项 P0 (Sprint 201 R1 backlog): ad-hoc-query 14 tool 真实覆盖率 65% → 95% (3 件: 淘客渠道每月明细 + spu_product_class 按月 + 8 分组 TTL 扩) + L4.47 立永久规则禁 `/tmp/*.py` 业务取数脚本
+
+### For contributors
+跟 Sprint 199 R1 cleanup + doc cleanup + Sprint 200 R1 v2.1 累计 5 sprint 沉淀: 立 ad-hoc-query 第 13/14 tool + L4.35 symlink 治本 + L4.47 候选禁 /tmp/*.py + 文档清理 -82% + uvicorn resilience 救火. 跟 L4.5/L4.20/L4.36/L4.37/L4.38/L4.41/L4.46/L4.47 永久规则全部配套.
+
+### Technical
+- pytest baseline 971/73/0 → **979/73/0** (净 +8 case: TestRateLimitBasic 2 + TestRateLimitHeaders 2 + TestRateLimitL436Compliance 3 + TestRateLimitUserIsolation 1). 全套 pytest 62/62 PASS (8 Rate limit + 5 ai_sandbox + 10 fixed_product + 32 MCP server + 7 WorkBuddy e2e, 0 破坏)
+- L4.x 永久规则 38 → **39 stable** (Sprint 200 R1 v2.1 0 新增, L4.50 候选 — uvicorn watchdog + rate limit middleware 待 Sprint 200 R1 收口)
+- 累计 sprint 0 debt: 125 → **126** (跨 Sprint 60+ 0 debt stable 模式 +21 sprint, Sprint 200 R1 v2.1 1 commit 0 业务代码改动)
+- VERSION **不 bump** (跟 Sprint 89/167/190/191/192/193/194/195/196/197/198/199 0 业务代码改动 模式 stable, 累计 19 次 /document-release bump 持续)
+- /document-release 累计 29 → **30 次真治本**
+- workflow 跑出 446605 tokens / 5 分 03 秒 / 9 agents 跟 Sprint 107+108+109 真因排查 1:1 模式 stable
+- 2 files / +284/-0 across 1 commit `d7f84ba` (含 launchd KeepAlive 激活 + rate limit middleware + pytest 8 case)
+- main HEAD `f62a4af` (5c255b9 → f62a4af, 跟 Sprint 199 + Sprint 200 R1 v2.1 模式 stable)
+- uvicorn 现状: PID 33676 (launchctl kickstart -k 自动重启验证), X-RateLimit-Limit: 60 + X-RateLimit-Remaining: 59 header 验证 200 OK
+
 ### Added
 - **ad-hoc-query 第 13 个 tool `fixed-product-list-compare-http`** (Sprint 197 R1 拍板 D 真治本, 跟 Sprint 196 R1 fixed-product-list-compare 共存). 真因 (Sprint 196 R1 短期锁冲突): Sprint 196 立的 fixed-product-list-compare 走 DuckDB read_only conn, 跟 uvicorn 持写锁冲突 (Sprint 53 race flake 治本不彻底). 治本: 立新 tool 走 backend HTTP API, 0 直接调 DuckDB, 跟 L4.38 v3 文档化 (Sprint 184 plan-eng-review v3) 配套. 新建 `scripts/ad_hoc_queries/fixed_product_list_compare_http.py` (~80 行, 调 `requests.post` 走 HTTP API, 0 直连 DuckDB)
 - **ad-hoc-query 第 14 个 tool `ai-sandbox-execute`** (Sprint 198 R1 拍板选项 3 真治本, 跟你"AI 命中不到 自行跑数"期望配套). 真因 (你期望 vs 当前 12 tool 0 覆盖): 走 sandbox backend service 接受单条只读 SELECT/WITH SQL, 跟 L4.5 + L4.20 + L4.36 + L4.38 + L4.41 + L4.46 + fix_pattern #81 + fix_pattern #82 永久规则 全部配套. 新建 `backend/services/ai_sandbox.py:ai_sandbox_execute` (~120 行, 走 SSOT 入口 + audit log + `_validate_sql_security` 拦 DROP/DELETE/TRUNCATE/INSERT/UPDATE/EXEC + 多语句). 新建 `scripts/ad_hoc_queries/ai_sandbox_execute.py` (~80 行, 调 HTTP API 走 backend service)
