@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 import time
 import logging
 
@@ -215,6 +216,104 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
+
+
+# ─────────────────────────────────────────────────────────────
+# Rate Limit 中间件 (Sprint 200 R1 v2.1, 跟 L4.36 友好错误 1:1)
+#
+# 真因: 业务组持续取数 → uvicorn 一直处于下线状态 (Sprint 184 L4.38 DuckDB flock 锁死)
+# 治本: 每用户每分钟 60 req 限流, 超限返 429 + Retry-After 头. 跟 L4.36 graceful retry 3 次配套.
+# 配套: Codex consult 6 补强 (AST allowlist + DuckDB 安全配置 + query worker) 后续 sprint 实施.
+# ─────────────────────────────────────────────────────────────
+_RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
+_RATE_LIMIT_WINDOW = 60  # seconds
+_rate_limit_buckets: dict[str, list[float]] = {}  # {user_id: [timestamp, ...]}
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # 只 bypass 登录接口 (防止登录失败重试触发 429), 其他 auth/me / auth/refresh / auth/logout 都要限流
+    path = request.url.path
+    if (
+        path == "/api/v1/health"
+        or path == "/api/v1/auth/login"
+        or path == "/api/v1/auth/refresh"
+        or path.startswith("/docs")
+        or path.startswith("/redoc")
+        or path == "/openapi.json"
+    ):
+        return await call_next(request)
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    # 提取 user_id (从 Authorization bearer token 推, 简化为 client_ip fallback)
+    user_id = _extract_user_id_from_request(request)
+    if user_id is None:
+        user_id = f"ip:{request.client.host if request.client else 'unknown'}"
+
+    # 滑动窗口 rate limit
+    now = time.time()
+    bucket = _rate_limit_buckets.setdefault(user_id, [])
+    # 清除窗口外的请求
+    bucket[:] = [t for t in bucket if now - t < _RATE_LIMIT_WINDOW]
+
+    if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
+        # L4.36 友好错误: 返 429 + Retry-After 头
+        response = JSONResponse(
+            status_code=429,
+            content={
+                "detail": f"Rate limit exceeded ({_RATE_LIMIT_PER_MINUTE} req/min). "
+                          "Retry in 60s. (L4.36 graceful retry, Sprint 200 R1 v2.1)",
+                "retry_after_seconds": _RATE_LIMIT_WINDOW,
+                "user_id": user_id,
+            },
+        )
+        response.headers["Retry-After"] = str(_RATE_LIMIT_WINDOW)
+        response.headers["X-RateLimit-Limit"] = str(_RATE_LIMIT_PER_MINUTE)
+        response.headers["X-RateLimit-Remaining"] = "0"
+        _access_logger.warning(
+            "Rate limit triggered",
+            extra={
+                "user_id": user_id,
+                "path": path,
+                "method": request.method,
+                "current_count": len(bucket),
+                "limit": _RATE_LIMIT_PER_MINUTE,
+            },
+        )
+        return response
+
+    bucket.append(now)
+    response = await call_next(request)
+    response.headers["X-RateLimit-Limit"] = str(_RATE_LIMIT_PER_MINUTE)
+    response.headers["X-RateLimit-Remaining"] = str(_RATE_LIMIT_PER_MINUTE - len(bucket))
+    return response
+
+
+def _extract_user_id_from_request(request: Request) -> Optional[str]:
+    """
+    从 Authorization Bearer token 提取 user_id (跟 auth_middleware._verify_token 1:1 stable).
+    Bearer admin:123456 → "admin"
+    Bearer fqsw:fqsw888 → "fqsw"
+    失败返 None (rate limit fallback to client_ip)
+
+    跟 auth_middleware 1:1: 用 _verify_token 校验 token 有效性, 有效再解析 user_id.
+    """
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[7:]
+    # 延迟导入避免循环依赖 (跟 auth_middleware 1:1)
+    from backend.routers.auth import _verify_token
+    user_info = _verify_token(token)
+    if user_info is None:
+        return None
+    # user_info 是 dict {"username": ..., "role": ...} 或 str (跟 Sprint 195 R1 兼容)
+    if isinstance(user_info, dict):
+        return user_info.get("username", "unknown")
+    if isinstance(user_info, tuple):
+        return user_info[0] if user_info else "unknown"
+    return str(user_info)
 
 # ─────────────────────────────────────────────────────────────
 # 结构化访问日志中间件
