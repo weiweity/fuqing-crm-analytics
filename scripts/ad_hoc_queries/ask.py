@@ -74,6 +74,19 @@ def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str],
         ),
         ("daily-gsv", ("日 GSV", "每日", "趋势"), default_dates),
         (
+            "daily-gsv-multi-period",
+            ("小样", "派样", "多周期", "8 维度", "周期对比"),
+            lambda text, start, end: {
+                "periods": [
+                    start,
+                    end,
+                    f"{int(start[:4]) - 1}{start[4:]}",
+                    f"{int(end[:4]) - 1}{end[4:]}",
+                ],
+                "metrics": None,
+            },
+        ),
+        (
             "yoy-battle",
             ("同比", "YOY", "战斗"),
             lambda text, start, end: {
@@ -89,7 +102,17 @@ def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str],
 
 def route_ask(text: str) -> tuple[str | None, dict[str, Any]]:
     start, end = _window_from_text(text)
-    for command, keywords, param_builder in _route_table():
+    table = _route_table()
+    multi_period_route = next(
+        (route for route in table if route[0] == "daily-gsv-multi-period"),
+        None,
+    )
+    if multi_period_route:
+        command, keywords, param_builder = multi_period_route
+        if any(keyword.lower() in text.lower() for keyword in keywords):
+            return command, param_builder(text, start, end)
+
+    for command, keywords, param_builder in table:
         if any(keyword.lower() in text.lower() for keyword in keywords):
             return command, param_builder(text, start, end)
     return None, {}
