@@ -194,6 +194,196 @@ def monkeypatch_connection(isolated_duckdb):
         connection._conn = original_conn
 
 
+class SyntheticDuckDBHandle:
+    """Small wrapper that carries the tmp path while behaving like a DuckDB connection."""
+
+    def __init__(self, path: Path, conn):
+        self.path = path
+        self._conn = conn
+
+    def execute(self, *args, **kwargs):
+        return self._conn.execute(*args, **kwargs)
+
+    def cursor(self):
+        return self._conn.cursor()
+
+    def close(self):
+        return self._conn.close()
+
+    def cleanup(self) -> None:
+        self.close()
+        self.path.unlink(missing_ok=True)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def _create_tmp_duckdb_with_synthetic_orders() -> SyntheticDuckDBHandle:
+    """Create a tmp DuckDB with enough CRM schema to exercise ad-hoc API paths."""
+    tmp = tempfile.NamedTemporaryFile(suffix=".duckdb", delete=False)
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    tmp_path.unlink()
+
+    conn = duckdb.connect(str(tmp_path), config={"memory_limit": "1GB"})
+    conn.execute("""
+        CREATE TABLE orders (
+            order_id VARCHAR PRIMARY KEY,
+            user_id VARCHAR NOT NULL,
+            pay_time TIMESTAMP NOT NULL,
+            actual_amount DOUBLE NOT NULL,
+            channel VARCHAR NOT NULL,
+            is_member BOOLEAN DEFAULT FALSE,
+            is_goujinjin BOOLEAN DEFAULT FALSE,
+            is_refund BOOLEAN DEFAULT FALSE,
+            order_status VARCHAR NOT NULL,
+            spu_tier VARCHAR DEFAULT '护肤',
+            spu_product_class VARCHAR DEFAULT '面霜',
+            spu_product_subclass VARCHAR DEFAULT '修护面霜',
+            spu_category VARCHAR DEFAULT '护肤'
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE user_first_purchase (
+            user_id VARCHAR PRIMARY KEY,
+            first_pay_date DATE NOT NULL
+        )
+    """)
+
+    rows = [
+        ("h2024_old", "u2024_old", "2024-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("h2024_member", "u2024_member", "2024-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
+        ("o2024_old", "u2024_old", "2024-06-15 10:00:00", 70.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2024_member", "u2024_member", "2024-06-15 11:00:00", 140.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
+        ("o2024_sample", "u2024_sample", "2024-06-15 12:00:00", 35.0, "U先派样", False, False, False, "已付款", "试用", "小样", "体验装", "试用"),
+        ("h2025_old", "u2025_old", "2025-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("h2025_member", "u2025_member", "2025-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
+        ("o2025_old", "u2025_old", "2025-06-15 10:00:00", 80.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2025_member", "u2025_member", "2025-06-15 11:00:00", 160.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
+        ("o2025_sample", "u2025_sample", "2025-06-15 12:00:00", 40.0, "U先派样", False, False, False, "已付款", "试用", "小样", "体验装", "试用"),
+        ("h2026_old", "u2026_old", "2026-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("h2026_member", "u2026_member", "2026-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
+        ("o2026_old", "u2026_old", "2026-06-15 10:00:00", 100.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2026_member", "u2026_member", "2026-06-15 11:00:00", 200.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
+        ("o2026_sample", "u2026_sample", "2026-06-15 12:00:00", 50.0, "U先派样", False, False, False, "已付款", "试用", "小样", "体验装", "试用"),
+        ("o2026_refund", "u2026_refund", "2026-06-15 13:00:00", 300.0, "货架", False, False, True, "已退款", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2026_goujinjin", "u2026_gjj", "2026-06-15 14:00:00", 150.0, "赠品&0.01", False, True, False, "已付款", "赠品", "赠品", "赠品", "赠品"),
+    ]
+    conn.executemany("""
+        INSERT INTO orders (
+            order_id, user_id, pay_time, actual_amount, channel,
+            is_member, is_goujinjin, is_refund, order_status,
+            spu_tier, spu_product_class, spu_product_subclass, spu_category
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, rows)
+
+    first_purchase_rows = [
+        ("u2024_old", "2024-05-10"),
+        ("u2024_member", "2024-05-12"),
+        ("u2024_sample", "2024-06-15"),
+        ("u2025_old", "2025-05-10"),
+        ("u2025_member", "2025-05-12"),
+        ("u2025_sample", "2025-06-15"),
+        ("u2026_old", "2026-05-10"),
+        ("u2026_member", "2026-05-12"),
+        ("u2026_sample", "2026-06-15"),
+        ("u2026_refund", "2026-06-15"),
+        ("u2026_gjj", "2026-06-15"),
+    ]
+    conn.executemany(
+        "INSERT INTO user_first_purchase VALUES (?, ?::DATE)",
+        first_purchase_rows,
+    )
+    return SyntheticDuckDBHandle(tmp_path, conn)
+
+
+@pytest.fixture
+def synthetic_duckdb_factory():
+    """Factory for tests that need to assert tmp DB lifecycle explicitly."""
+    handles: list[SyntheticDuckDBHandle] = []
+
+    def _factory() -> SyntheticDuckDBHandle:
+        handle = _create_tmp_duckdb_with_synthetic_orders()
+        handles.append(handle)
+        return handle
+
+    try:
+        yield _factory
+    finally:
+        for handle in handles:
+            if handle.path.exists():
+                handle.cleanup()
+
+
+@pytest.fixture
+def tmp_duckdb_with_synthetic_orders(synthetic_duckdb_factory):
+    """CI-safe DuckDB fixture: tmp DB + minimal synthetic orders schema/data."""
+    yield synthetic_duckdb_factory()
+
+
+@pytest.fixture
+def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders):
+    """Patch service and ad-hoc read-only paths to use the synthetic DuckDB."""
+    from contextlib import contextmanager
+
+    from backend.db import connection
+    from scripts.ad_hoc_queries import _utils as adhoc_utils
+
+    class FakeThreadSafeConnection:
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, query, parameters=None):
+            if parameters is not None:
+                return self._conn.execute(query, parameters)
+            return self._conn.execute(query)
+
+        def close(self):
+            pass
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    original_conn = connection._conn
+    original_get_connection = connection.get_connection
+    original_read_only_conn = adhoc_utils.read_only_conn
+
+    def _fake_get_connection():
+        return FakeThreadSafeConnection(tmp_duckdb_with_synthetic_orders)
+
+    @contextmanager
+    def _fake_read_only_conn(db_path=None, memory_limit=None):
+        del db_path, memory_limit
+        yield tmp_duckdb_with_synthetic_orders
+
+    for module in tuple(sys.modules.values()):
+        if module is None:
+            continue
+        if getattr(module, "get_connection", None) is original_get_connection:
+            module.get_connection = _fake_get_connection
+        if getattr(module, "read_only_conn", None) is original_read_only_conn:
+            module.read_only_conn = _fake_read_only_conn
+
+    connection._conn = None
+    connection.get_connection = _fake_get_connection
+    adhoc_utils.read_only_conn = _fake_read_only_conn
+
+    try:
+        yield tmp_duckdb_with_synthetic_orders
+    finally:
+        for module in tuple(sys.modules.values()):
+            if module is None:
+                continue
+            if getattr(module, "get_connection", None) is _fake_get_connection:
+                module.get_connection = original_get_connection
+            if getattr(module, "read_only_conn", None) is _fake_read_only_conn:
+                module.read_only_conn = original_read_only_conn
+        connection.get_connection = original_get_connection
+        connection._conn = original_conn
+        adhoc_utils.read_only_conn = original_read_only_conn
+
+
 @pytest.fixture
 def skip_if_duckdb_locked():
     """test fixture: 如果生产 DuckDB 被任何进程占 (含本 pytest 进程), pytest.skip 整 test.
