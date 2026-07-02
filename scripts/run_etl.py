@@ -84,5 +84,35 @@ if __name__ == '__main__':
             pass
         # 关闭 etl_total 计时（含失败时的 wall_time）
         _total_timer.__exit__(None, None, None)
+
+        # Sprint 201 R2 L2.5: ETL 末尾跑存储治理 (跟 L4.50/51 配套)
+        # - user_rfm 30 天保留 (W4 540 组合预计算, 看板只读 latest)
+        # - cache 表 TTL GC (W5 24h TTL 设计)
+        # - VACUUM 释放 free_blocks (Sprint 201 R1+ 治本)
+        # - 跳过: snapshot 机制 (Sprint 201 R2 已根除, L4.53 永久规则)
+        try:
+            _db_path = PROJECT_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
+            import duckdb as _ddb
+            _c2 = _ddb.connect(str(_db_path))
+            try:
+                # user_rfm 30 天保留
+                _c2.execute(
+                    "DELETE FROM user_rfm "
+                    "WHERE analysis_date < (SELECT MAX(analysis_date) FROM user_rfm) - INTERVAL 30 DAY"
+                )
+                # cache 表 TTL GC
+                _c2.execute("DELETE FROM rfm_query_cache WHERE expire_at < NOW()")
+                _c2.execute(
+                    "DELETE FROM category_churn_cache "
+                    "WHERE created_at < NOW() - INTERVAL 30 DAY"
+                )
+                # VACUUM 释放 free_blocks
+                _c2.execute("CHECKPOINT")
+            finally:
+                _c2.close()
+        except Exception as _exc:
+            # 治理失败不阻塞 ETL 主流程 (Sprint 1 W2 痛点 2 闭环配套)
+            print(f"[sprint201-l2] storage governance skipped: {_exc}", file=sys.stderr)
+
         # 落盘
         save_baseline(run_id=run_id)
