@@ -27,7 +27,7 @@
 | 1 | **本地即生产** | merge 后必须 `git pull origin main --ff-only` + 重启 uvicorn |
 | 2 | **层边界不可跨越** | 语义层定义口径 → 服务层处理逻辑 → 契约层定义 Schema；禁止互相渗透 |
 | 3 | **Schema 变动三同步** | Service 改字段 → `contracts/schemas.py` → 前端 `types.ts` |
-| 4 | **版本状态** | v0.4.14.35（main @ 77a1c63 + Sprint 192 — Nightly Health Check B6 留尾治本: `.github/workflows/nightly.yml:47` `ruff check .` 跟 lint job `ruff check backend/` 范围漂移, 报 12 false-positive fail (Sprint 178-191 累积 scripts/_archive/adhoc_product_new_old.py 等 macOS dev 跑过但 CI 不跑文件). 真因: lint job 跟 nightly 跑范围不同步. 治根: 1 行 yaml 改动 `ruff check .` → `ruff check backend/` 跟 lint job 100% 对齐, 0 报错. 累计 118 sprint 0 debt 持续 (Sprint 192 0 业务代码改动, 跨 Sprint 60+ 0 debt stable 模式 +12 sprint), L4.x 36→**37 stable** (新增 L4.45 nightly ruff 范围对齐 lint job), fix_pattern #76 沉淀 (跨 workflow 范围漂移, 跟 fix_pattern #69/70/72/75 同位), /document-release 累计 23 次. |
+| 4 | **版本状态** | v0.4.14.35（main @ 640ece7 + Sprint 193 — WorkBuddy 用户 prompt 话术模板 + Sprint 53 fixture 模式补真连 DuckDB 治本 R1+R2 + L4.46 永久规则 + fix_pattern #77/#78/#79: 8 files / +480/-12 across, 0 业务代码改动 (跟 Sprint 89/167/190/191/192 1 commit 模式 stable, 累计 14 次 /document-release bump 持续), L4.x 37→**38 stable** (新增 L4.46 user prompt 模板强提示跳过 LLM 决策层, 跟 L4.5/L4.36/L4.37 配套), fix_pattern #77 (用户话术模板强提示 > SKILL 决策树) + #78 (production 100GB DuckDB 依赖用 synthetic fixture 治本) + #79 (测试账号不能用 setdefault 依赖 .env) 沉淀. 累计 119 sprint 0 debt 持续 (跨 Sprint 60+ 0 debt stable 模式 +13 sprint), /document-release 累计 24 次. pytest baseline 844/88/0 → **847/85/0** (净 +3 真跑, -3 SKIPPED, Sprint 188 B1 12 case 治根一部分, Sprint 194 立项剩余 9 case). |
 
 **L4.24 候选: codegraph 实证 SOP**（Sprint 171 真业务触发，跨 sprint v1 R 6 桶脑补错误治根）
 1. **触发**：任何业务规格/文档/spec 涉及业务口径（RFM / R 区间 / 字段名 / 阈值 / 桶边界）

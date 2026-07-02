@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-07-02 (Sprint 192 — Nightly Health Check B6 留尾治本 + L4.45 永久规则). 真因: `.github/workflows/nightly.yml:47` `ruff check .` 跟 lint job `ruff check backend/` 范围漂移, Sprint 178-191 累积报 12 false-positive fail (scripts/_archive/adhoc_product_new_old.py 等 macOS dev 跑过但 CI runner 不跑文件). 治根: 1 行 yaml 改动 `ruff check .` → `ruff check backend/` 跟 lint job 100% 对齐, 0 报错. 累计 118 sprint 0 debt 持续 (Sprint 192 0 业务代码改动, 跨 Sprint 60+ 0 debt stable 模式 +12 sprint), L4.x 36→**37 stable** (新增 L4.45 nightly ruff 范围对齐 lint job), fix_pattern #76 沉淀 (跨 workflow 范围漂移), /document-release 累计 23 次.
+**最后更新**: 2026-07-02 (Sprint 193 — WorkBuddy 用户 prompt 话术模板 + Sprint 53 fixture 模式补真连 DuckDB 治本 R1+R2 + L4.46 永久规则 + fix_pattern #77/#78/#79). 累计 119 sprint 0 debt 持续 (Sprint 193 1 commit, 跨 Sprint 60+ 0 debt stable 模式 +13 sprint), VERSION 不 bump (跟 Sprint 89/167/190/191/192 0 业务代码改动 模式 stable), L4.x 37→**38 stable** (新增 L4.46 user prompt 模板强提示跳过 LLM 决策层), fix_pattern #77 (用户话术模板强提示 > SKILL 决策树) + #78 (production 100GB DuckDB 依赖用 synthetic fixture 治本) + #79 (测试账号不能用 setdefault 依赖 .env) 沉淀, /document-release 累计 24 次. 8 files / +480/-12 across. pytest baseline 844/88/0 → 847/85/0 (净 +3 真跑, -3 SKIPPED, Sprint 188 B1 12 case 治根一部分, Sprint 194 立项剩余 9 case).
 
 ---
 

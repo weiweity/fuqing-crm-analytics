@@ -1,3 +1,25 @@
+## [unreleased] - 2026-07-02 (Sprint 193 — WorkBuddy 用户 prompt 话术模板 + Sprint 53 fixture 模式补真连 DuckDB 治本 R1+R2 + L4.46 永久规则 + fix_pattern #77/#78/#79)
+
+### Added
+- **WorkBuddy 用户 prompt 话术模板沉淀 (Sprint 193 R1, Sprint 192 REMAIN-4 治本)**: `docs/user-prompt-template-ad-hoc-query.md` (47 行, 4 部分: 强提示 / 5 模板 / 关键词必查表 / 报缺位自检 4 步). 真因: Sprint 183 + Sprint 190 连续 2 sprint WorkBuddy 报"工具缺位"误判 (LLM 决策层被 SKILL.md 决策树误导, 看到 daily_gsv 在速查表第一行就误以为是唯一日工具). 治根: 不能只靠 SKILL.md 加决策树, 必须 user prompt 模板强提示 "必用 daily-gsv-multi-period tool" 跳过 LLM 决策层
+- **Sprint 53 fixture 模式补真连 DuckDB 治本 (Sprint 193 R2, Sprint 192 REMAIN-5 治本 1/2)**: `backend/tests/conftest.py` 加 `SyntheticDuckDBHandle` + `_create_tmp_duckdb_with_synthetic_orders` factory (CREATE TABLE orders + user_first_purchase 最小 schema + 15 行 synthetic data) + `monkeypatch_synthetic_ad_hoc_connection` fixture. `backend/tests/test_ad_hoc_query_api.py` 改: 旧 12 case 仍 `prod_duckdb_required` skipif, **Sprint 190 daily-gsv-multi-period 3 case 改走 `synthetic_client` 真跑 PASS** (3 SKIPPED → 3 PASS, Sprint 188 B1 12 case 治根一部分). Sprint 194 立项剩余 9 case
+- **11 new test cases**: `test_user_prompt_template_sprint193.py` (2 case) + `test_tmp_duckdb_fixture_sprint193.py` (4 case) + `test_ad_hoc_query_sprint193_synthetic.py` (5 case). pytest baseline 844/88/0 → **847/85/0** (净 +3 真跑, -3 SKIPPED)
+- **归档外部残留 scripts/adhoc_order_set_30_indicators.py** → `scripts/_archive/adhoc_order_set_30_indicators.py` (Sprint 183 L4.5 配套, 临时取数脚本禁写)
+
+### Changed
+- **L4.46 永久规则 stable (Sprint 193, 流程)**: user prompt 模板强提示跳过 LLM 决策层. 跟 L4.5 / L4.36 / L4.37 配套 (Sprint 183 L4.36 禁停 uvicorn + Sprint 183 L4.37 新文件 import 必须显式加载). 当 SKILL.md 决策树 + 速查表不够时 (LLM 决策层误判工具缺位), 必须 user prompt 模板加 "必用 X tool" 显式强提示. 配套 `docs/user-prompt-template-ad-hoc-query.md` 4 部分 + 5 模板 + 关键词必查表 + 自检 4 步
+- **fix_pattern #77 沉淀 (Sprint 193, LLM 行为治理)**: 用户话术模板强提示 > SKILL.md 决策树. 配套 fix_pattern #68-76 实战 fix pattern 库
+- **fix_pattern #78 沉淀 (Sprint 193, pytest fixture 模式)**: production 100GB DuckDB 依赖用 synthetic fixture 治本, 让 CI 真跑. 跟 Sprint 53 fixture 模式 (per-worker 隔离) 配套, 但用 synthetic data 替代 production 100GB ATTACH
+- **fix_pattern #79 沉淀 (Sprint 193, test 隔离)**: 测试账号不能用 `setdefault` 依赖 `.env`, TestClient 前要强制测试 env 并 reload auth credentials. (adversarial review 标 INVESTIGATE, 跟 test_api_integration.py:27 现有 setitem 模式同步, 非 Sprint 193 引入新风险)
+
+### For contributors
+- pytest baseline **847 / 85 skip / 0 failed** 持续 (本地 macOS 全过)
+- 11 new case PASS, 0 退化
+- ruff 0 errors
+- 累计 sprint 0 debt: **119 持续** (Sprint 193 1 commit 0 业务代码改动, 跟 Sprint 89/167/190/191/192 模式 stable)
+- /document-release 累计 **24 次** (Sprint 179/181/182/183/184/185/186/187/188/190/191/192/193)
+- L4.x 永久规则: 37 → **38 stable** (新增 L4.46)
+
 ## [0.4.14.33] - 2026-07-02 (Sprint 191 — MCP stdio 协议 LSP → newline JSON 重写 + L4.44 永久规则)
 
 ### Fixed
