@@ -679,7 +679,7 @@ def pytest_configure(config):
             mtime = d.stat().st_mtime
         except OSError:
             continue
-        if (now - mtime) > 86400:  # 24h
+        if (now - mtime) > 21600:  # 6h (Sprint 201 R1+ R2 v4: 缩短 24h → 6h, 因为 test 写 2GB tracker 太大)
             try:
                 size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
                 shutil.rmtree(d, ignore_errors=True)
@@ -687,6 +687,22 @@ def pytest_configure(config):
                 cleaned_bytes += size
             except Exception:
                 pass
+
+    # Sprint 201 R1+ R2 v4: 删 1GB+ fuqing_tracked.duckdb 残留 (test_layer6_skips_tracked_files 写 2GB tracker 副本)
+    # 即便 session < 6h, 残留的 2GB tracker 也得清, 避免单次 pytest 跑 2GB 累积
+    for d in _PYTEST_ROOT.iterdir():
+        if not d.is_dir():
+            continue
+        for f in d.rglob("fuqing_tracked.duckdb"):
+            try:
+                fsize = f.stat().st_size
+                if fsize > 1024**3:  # 1GB+
+                    f.unlink()
+                    cleaned_count += 1
+                    cleaned_bytes += fsize
+            except OSError:
+                pass
+
     if cleaned_count:
-        print(f"[L4.50 pytest_configure] Cleaned {cleaned_count} old session(s), "
+        print(f"[L4.50 pytest_configure] Cleaned {cleaned_count} old session(s) / 1GB+ tracker(s), "
               f"~{cleaned_bytes // (1024**2)} MB freed")
