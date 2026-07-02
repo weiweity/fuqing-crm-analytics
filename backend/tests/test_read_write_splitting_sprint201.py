@@ -198,6 +198,12 @@ class TestConcurrentReadOnlyAccess:
 
 
 class TestSnapshotAndMetrics:
+    # Sprint 201 R2 L2 (L4.53 永久规则): snapshot 机制已根除, 整类 skip
+    # 跟 Sprint 178 L4.31 + Sprint 184 L4.38 + Sprint 200 R1 L4.50 跨 sprint stable 1:1
+    # Read-Write Splitting 已够 (L4.51 配套)
+    @pytest.mark.skip(
+        reason="L4.53: snapshot 机制 Sprint 201 R2 已根除 (Read-Write Splitting 已够, ATTACH read_only 替代)"
+    )
     def test_snapshot_creation_is_atomic_and_cleans_old_files(self, tmp_path):
         from scripts.dump_duckdb_snapshot import cleanup_old_snapshots, create_snapshot
 

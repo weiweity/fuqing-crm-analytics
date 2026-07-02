@@ -1,3 +1,22 @@
+## [unreleased] - 2026-07-03 (Sprint 201 R2 L2: DuckDB snapshot 根除 + 存储治本 — 删 dump_duckdb_snapshot.py + 5 分钟 launchd plist + 30 天 retention 累积 4×120GB=480GB 撑爆 1TB 磁盘. 改 ATTACH read_only 替代 snapshot + user_rfm 30 天保留 + cache GC + CHECKPOINT 回收 free_blocks. 7 files / +239/-107, 989 passed / 7 skipped / 0 failed, L4.53 永久规则化 (snapshot 机制 = P2 杀, 跟 L4.51 Read-Write Splitting 配套). 242GB→120GB 立即释放 + ETL 末尾自动治理长期治本)
+
+### Removed
+- **`scripts/dump_duckdb_snapshot.py`** (71 行删除): Sprint 201 R1 我加的 snapshot 脚本, `shutil.copy2` 真副本 120GB, 5 分钟 launchd 拍一张, 30 天累积 480GB 撑爆 1TB 磁盘. L4.53 永久规则化: snapshot 机制 = P2 杀 (Read-Write Splitting L4.51 已够, ATTACH read_only 替代)
+- **`scripts/launchd/com.fuqing.snapshot.300s.plist`** (36 行删除): 5 分钟 launchd 拍快照 plist, 根除后 reboot 也不会复活
+- **`data/processed/snapshots/`**: 3 个 120GB 副本全删, 目录清空 (业务组 query worker 走 ATTACH read_only, 不依赖 snapshot)
+
+### Fixed
+- **user_rfm 30 天保留** (Sprint 1 W4 540 组合预计算配套): DELETE 53,376,996 行 13 个旧 analysis_date 快照 (2026-05-30 之前), 看板只读 latest, 30 天前历史报表可 ETL 重算
+- **DROP 2 张空表** (monthly_metrics + user_rfm_clean): 0 行 0 bytes 占 metadata
+- **GC rfm_query_cache 59 expired entries** (W5 24h TTL 设计配套): 0 active 状态, 从未清理过
+
+### Added
+- **`scripts/check_db_size.py`** (102 行新建): 项目目录 > 200GB / snapshot > 0.5GB / 孤儿 DuckDB > 1GB 触发 macOS 弹窗告警
+- **`scripts/launchd/com.fuqing.db-size-alert.daily.plist`** (32 行新建): 每天 04:00 跑 check_db_size.py (跟 duckdb-backup.daily 03:30 错开)
+- **`backend/tests/test_sprint201_l2_storage.py`** (69 行新建): 5 case 锁回归 (dump script 删 + plist 删 + snapshots 空 + run_etl 有治理 + check_db_size 能跑)
+- **`scripts/run_etl.py` 末尾治理** (L2.5): user_rfm 30 天保留 + rfm_query_cache TTL GC + category_churn_cache 30 天 GC + CHECKPOINT, 长期治本
+- **L4.53 永久规则**: DuckDB snapshot 机制 = P2 杀, 任何备份走 ATTACH read_only / VACUUM INTO, 禁止 shutil.copy2 + 频繁 launchd. 配套跨 sprint 模式 (L4.50 + L4.51 + L4.52)
+
 ## [unreleased] - 2026-07-02 (Sprint 201 R1: Read-Write Splitting 治本并发 — 看板 read-only 请求连接池 + AI sandbox 独立 query worker + snapshot + Prometheus-compatible metrics)
 
 ### Fixed
