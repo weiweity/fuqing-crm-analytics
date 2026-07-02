@@ -158,6 +158,14 @@ class DailyGsvMultiPeriodRequest(BaseModel):
     )
 
 
+class FixedProductListCompareRequest(_DateWindowMixin):
+    """fixed-product-list-compare: 固定产品清单新老客两年对比."""
+
+    product_ids: Optional[List[str]] = Field(default=None, description="产品 ID 列表; 不传则用归档固定清单")
+    mom_start_date: Optional[str] = Field(default=None, description="环比期起始日期 YYYY-MM-DD")
+    mom_end_date: Optional[str] = Field(default=None, description="环比期结束日期 YYYY-MM-DD")
+
+
 # ─────────────────────────────────────────────────────────────
 # Response helpers (rows 序列化 + headers from QuerySpec)
 # ─────────────────────────────────────────────────────────────
@@ -270,6 +278,46 @@ def post_daily_gsv_multi_period(req: DailyGsvMultiPeriodRequest) -> AdHocQueryRe
     except (ValueError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return _serialize("daily-gsv-multi-period", headers, rows, warning)
+
+
+@router.post(
+    "/fixed-product-list-compare",
+    response_model=AdHocQueryResponse,
+    summary="固定产品清单新老客两年对比 (Sprint 196)",
+)
+def post_fixed_product_list_compare(req: FixedProductListCompareRequest) -> AdHocQueryResponse:
+    """按固定 product_id 清单输出单品 + TTL 新老客两年对比."""
+    _validate_date_range(req.start_date, req.end_date)
+    if bool(req.mom_start_date) != bool(req.mom_end_date):
+        raise HTTPException(status_code=422, detail="mom_start_date/mom_end_date 必须成对传入")
+    from scripts.ad_hoc_queries.fixed_product_list_compare import (  # noqa: WPS433
+        _default_mom_window,
+        _make_header,
+        run_fixed_product_list_compare,
+    )
+    mom_start, mom_end = (
+        (req.mom_start_date, req.mom_end_date)
+        if req.mom_start_date and req.mom_end_date
+        else _default_mom_window(req.start_date, req.end_date)
+    )
+    _validate_date_range(mom_start, mom_end)
+    warning = _future_date_warn(req.start_date, req.end_date, mom_start, mom_end)
+    try:
+        rows = run_fixed_product_list_compare(
+            start_date=req.start_date,
+            end_date=req.end_date,
+            product_ids=req.product_ids,
+            mom_start_date=mom_start,
+            mom_end_date=mom_end,
+        )
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return _serialize(
+        "fixed-product-list-compare",
+        _make_header(req.start_date, req.end_date, mom_start, mom_end),
+        rows,
+        warning,
+    )
 
 
 @router.post("/yoy-battle", response_model=AdHocQueryResponse, summary="baseline vs current 双窗口 YOY 战斗")

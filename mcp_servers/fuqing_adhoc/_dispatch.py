@@ -258,6 +258,37 @@ TOOL_DEFS: list[dict[str, Any]] = [
             "output": "--output",
         },
     },
+    {
+        "name": "fixed_product_list_compare",
+        "command": "fixed-product-list-compare",
+        "description": "固定 product_id 清单 + 新老客 + 两年对比 + TTL/单品层级 (Sprint 196)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "起始日期 YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "结束日期 YYYY-MM-DD"},
+                "product_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "产品 ID 列表; 不传则用归档固定清单",
+                },
+                "mom_start_date": {"type": "string", "description": "环比期起始日期 YYYY-MM-DD"},
+                "mom_end_date": {"type": "string", "description": "环比期结束日期 YYYY-MM-DD"},
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["start_date", "end_date"],
+        },
+        "arg_map": {
+            "start_date": "--start-date",
+            "end_date": "--end-date",
+            "product_ids": "--product-ids",
+            "mom_start_date": "--mom-start-date",
+            "mom_end_date": "--mom-end-date",
+            "format": "--format",
+            "output": "--output",
+        },
+    },
 ]
 
 

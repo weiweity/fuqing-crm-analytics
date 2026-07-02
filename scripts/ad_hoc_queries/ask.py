@@ -38,6 +38,16 @@ def _period_from_text(text: str) -> str | None:
     return None
 
 
+def _fixed_product_dates(text: str, start: str, end: str) -> tuple[str, str]:
+    year = _year_from_text(text, int(end[:4]))
+    upper = text.upper()
+    if "H1" in upper or "上半年" in text:
+        return f"{year}-01-01", f"{year}-06-30"
+    if "H2" in upper or "下半年" in text:
+        return f"{year}-07-01", f"{year}-12-31"
+    return start, end
+
+
 def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str], dict[str, Any]]]]:
     def default_dates(text: str, start: str, end: str) -> dict[str, Any]:
         del text
@@ -67,6 +77,14 @@ def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str],
             lambda text, start, end: {"date": end, "channel": "all", "compare": "yoy"},
         ),
         ("rfm-repurchase", ("复购周期", "R 区间", "RFM"), default_dates),
+        (
+            "fixed-product-list-compare",
+            ("固定清单", "固定产品", "产品清单", "商品清单", "单品对比"),
+            lambda text, start, end: {
+                "start_date": _fixed_product_dates(text, start, end)[0],
+                "end_date": _fixed_product_dates(text, start, end)[1],
+            },
+        ),
         (
             "top-n",
             ("TOP20", "品类", "单品", "SPU"),
@@ -103,14 +121,13 @@ def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str],
 def route_ask(text: str) -> tuple[str | None, dict[str, Any]]:
     start, end = _window_from_text(text)
     table = _route_table()
-    multi_period_route = next(
-        (route for route in table if route[0] == "daily-gsv-multi-period"),
-        None,
-    )
-    if multi_period_route:
-        command, keywords, param_builder = multi_period_route
-        if any(keyword.lower() in text.lower() for keyword in keywords):
-            return command, param_builder(text, start, end)
+    priority_commands = ("daily-gsv-multi-period", "fixed-product-list-compare")
+    for priority_command in priority_commands:
+        priority_route = next((route for route in table if route[0] == priority_command), None)
+        if priority_route:
+            command, keywords, param_builder = priority_route
+            if any(keyword.lower() in text.lower() for keyword in keywords):
+                return command, param_builder(text, start, end)
 
     for command, keywords, param_builder in table:
         if any(keyword.lower() in text.lower() for keyword in keywords):

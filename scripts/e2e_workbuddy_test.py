@@ -3,7 +3,7 @@
 Sprint 188 立项 (Phase 1 B2): 用 subprocess 启动 mcp_servers/fuqing_adhoc/server.py
 stdio, 模拟 Codex CLI 发 JSON-RPC 1 次:
 
-1. tools/list call → 期望 11 tools (Sprint 183 加 daily-gsv-multi-period 后)
+1. tools/list call → 期望 12 tools (Sprint 196 加 fixed_product_list_compare 后)
 2. tools/call name=daily-gsv-multi-period with args={"periods": ["2026-06-21",
    "2026-06-21"]} → 期望返 JSON 含 sample_gsv / member_gsv 列
 
@@ -149,7 +149,7 @@ def main() -> int:
     verbose = "--verbose" in sys.argv
     rc, _exit, tools_resp, call_resp = run_e2e(verbose=verbose)
 
-    # --- 验证 1: tools/list 返 11 tools ---
+    # --- 验证 1: tools/list 返 12 tools ---
     print("=" * 60)
     print("Sprint 188 e2e: WorkBuddy MCP server 真端到端验证")
     print("=" * 60)
@@ -168,17 +168,17 @@ def main() -> int:
     expected = {
         "daily_gsv", "yoy_battle", "channel_slice", "two_year_overview",
         "new_old_customer", "rfm_repurchase", "top_n", "export_excel",
-        "dq_report", "daily-gsv-multi-period", "ask",
+        "dq_report", "daily-gsv-multi-period", "fixed_product_list_compare", "ask",
     }
     got = {t.get("name") for t in tools}
     missing = expected - got
     if missing:
         print(f"FAIL: tools/list missing {missing}")
         return 1
-    if len(tools) != 11:
-        print(f"FAIL: 期望 11 tools, got {len(tools)}")
+    if len(tools) != 12:
+        print(f"FAIL: 期望 12 tools, got {len(tools)}")
         return 1
-    print("PASS: tools/list 返 11 tools (含 daily-gsv-multi-period Sprint 183 新增)")
+    print("PASS: tools/list 返 12 tools (含 fixed_product_list_compare Sprint 196 新增)")
     print()
 
     # --- 验证 2: tools/call daily-gsv-multi-period ---
@@ -208,7 +208,7 @@ def main() -> int:
             print("PASS: tool call 返数据, 期望列出现")
         else:
             print(f"NOTE: tool call 返数据但未识别列, text 前 300: {text[:300]!r}")
-        print("PASS: tool call 成功 (Sprint 183 第 11 个 tool 端到端 OK)")
+        print("PASS: tool call 成功 (Sprint 183 daily-gsv-multi-period 端到端 OK)")
 
     print()
     print("=" * 60)

@@ -237,6 +237,7 @@ def _create_tmp_duckdb_with_synthetic_orders() -> SyntheticDuckDBHandle:
             is_goujinjin BOOLEAN DEFAULT FALSE,
             is_refund BOOLEAN DEFAULT FALSE,
             order_status VARCHAR NOT NULL,
+            product_id VARCHAR DEFAULT '',
             spu_tier VARCHAR DEFAULT '护肤',
             spu_product_class VARCHAR DEFAULT '面霜',
             spu_product_subclass VARCHAR DEFAULT '修护面霜',
@@ -275,31 +276,31 @@ def _create_tmp_duckdb_with_synthetic_orders() -> SyntheticDuckDBHandle:
     """)
 
     rows = [
-        ("h2024_old", "u2024_old", "2024-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("h2024_member", "u2024_member", "2024-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
-        ("o2024_old", "u2024_old", "2024-06-15 10:00:00", 70.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("o2024_member", "u2024_member", "2024-06-15 11:00:00", 140.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
-        ("o2024_sample", "u2024_sample", "2024-06-15 12:00:00", 35.0, "U先派样", False, False, False, "已付款", "试用", "小样", "体验装", "试用"),
-        ("h2025_old", "u2025_old", "2025-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("h2025_member", "u2025_member", "2025-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
-        ("o2025_old", "u2025_old", "2025-06-15 10:00:00", 80.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("o2025_member", "u2025_member", "2025-06-15 11:00:00", 160.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
-        ("o2025_sample", "u2025_sample", "2025-06-15 12:00:00", 40.0, "U先派样", False, False, False, "已付款", "试用", "小样", "体验装", "试用"),
-        ("h2026_old", "u2026_old", "2026-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("h2026_member", "u2026_member", "2026-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
-        ("o2026_old", "u2026_old", "2026-06-15 10:00:00", 100.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("o2026_member", "u2026_member", "2026-06-15 11:00:00", 200.0, "货架", True, False, False, "已付款", "护肤", "精华", "修护精华", "护肤"),
-        ("o2026_sample", "u2026_sample", "2026-06-15 12:00:00", 50.0, "U先派样", False, False, False, "已付款", "试用", "小样", "体验装", "试用"),
-        ("o2026_refund", "u2026_refund", "2026-06-15 13:00:00", 300.0, "货架", False, False, True, "已退款", "护肤", "面霜", "修护面霜", "护肤"),
-        ("o2026_goujinjin", "u2026_gjj", "2026-06-15 14:00:00", 150.0, "赠品&0.01", False, True, False, "已付款", "赠品", "赠品", "赠品", "赠品"),
+        ("h2024_old", "u2024_old", "2024-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("h2024_member", "u2024_member", "2024-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "597655781410", "护肤", "精华", "修护精华", "护肤"),
+        ("o2024_old", "u2024_old", "2024-06-15 10:00:00", 70.0, "货架", False, False, False, "已付款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2024_member", "u2024_member", "2024-06-15 11:00:00", 140.0, "货架", True, False, False, "已付款", "597655781410", "护肤", "精华", "修护精华", "护肤"),
+        ("o2024_sample", "u2024_sample", "2024-06-15 12:00:00", 35.0, "U先派样", False, False, False, "已付款", "621639424901", "试用", "小样", "体验装", "试用"),
+        ("h2025_old", "u2025_old", "2025-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("h2025_member", "u2025_member", "2025-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "597655781410", "护肤", "精华", "修护精华", "护肤"),
+        ("o2025_old", "u2025_old", "2025-06-15 10:00:00", 80.0, "货架", False, False, False, "已付款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2025_member", "u2025_member", "2025-06-15 11:00:00", 160.0, "货架", True, False, False, "已付款", "597655781410", "护肤", "精华", "修护精华", "护肤"),
+        ("o2025_sample", "u2025_sample", "2025-06-15 12:00:00", 40.0, "U先派样", False, False, False, "已付款", "621639424901", "试用", "小样", "体验装", "试用"),
+        ("h2026_old", "u2026_old", "2026-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("h2026_member", "u2026_member", "2026-05-12 09:00:00", 30.0, "货架", True, False, False, "已付款", "597655781410", "护肤", "精华", "修护精华", "护肤"),
+        ("o2026_old", "u2026_old", "2026-06-15 10:00:00", 100.0, "货架", False, False, False, "已付款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2026_member", "u2026_member", "2026-06-15 11:00:00", 200.0, "货架", True, False, False, "已付款", "597655781410", "护肤", "精华", "修护精华", "护肤"),
+        ("o2026_sample", "u2026_sample", "2026-06-15 12:00:00", 50.0, "U先派样", False, False, False, "已付款", "621639424901", "试用", "小样", "体验装", "试用"),
+        ("o2026_refund", "u2026_refund", "2026-06-15 13:00:00", 300.0, "货架", False, False, True, "已退款", "803474428381", "护肤", "面霜", "修护面霜", "护肤"),
+        ("o2026_goujinjin", "u2026_gjj", "2026-06-15 14:00:00", 150.0, "赠品&0.01", False, True, False, "已付款", "803474428381", "赠品", "赠品", "赠品", "赠品"),
     ]
     conn.executemany("""
         INSERT INTO orders (
             order_id, user_id, pay_time, actual_amount, channel,
             is_member, is_goujinjin, is_refund, order_status,
-            spu_tier, spu_product_class, spu_product_subclass, spu_category
+            product_id, spu_tier, spu_product_class, spu_product_subclass, spu_category
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, rows)
 
     first_purchase_rows = [

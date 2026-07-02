@@ -30,12 +30,12 @@ PROJECT_ROOT = REPO_ROOT
 SERVER_SCRIPT = PROJECT_ROOT / "mcp_servers" / "fuqing_adhoc" / "server.py"
 E2E_SCRIPT = PROJECT_ROOT / "scripts" / "e2e_workbuddy_test.py"
 
-# 11 tools: 跟 _dispatch.py TOOL_DEFS SSOT (Sprint 182 + Sprint 183)
-EXPECTED_TOOL_COUNT = 11
+# 12 tools: 跟 _dispatch.py TOOL_DEFS SSOT (Sprint 182 + Sprint 183 + Sprint 196)
+EXPECTED_TOOL_COUNT = 12
 EXPECTED_TOOL_NAMES = {
     "daily_gsv", "yoy_battle", "channel_slice", "two_year_overview",
     "new_old_customer", "rfm_repurchase", "top_n", "export_excel",
-    "dq_report", "daily-gsv-multi-period", "ask",
+    "dq_report", "daily-gsv-multi-period", "fixed_product_list_compare", "ask",
 }
 
 
@@ -137,8 +137,8 @@ class TestStdJsonRpcFraming:
             f"期望 serverInfo.name=fuqing_adhoc, got {server_info.get('name')!r}"
         )
 
-    def test_tools_list_returns_11_tools(self, server_proc):
-        """tools/list MUST return 11 tools (10 query + 1 ask, Sprint 183 加 daily-gsv-multi-period)."""
+    def test_tools_list_returns_12_tools(self, server_proc):
+        """tools/list MUST return 12 tools (11 query + 1 ask, Sprint 196 加 fixed product)."""
         _send(server_proc, {
             "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
         })
@@ -196,11 +196,11 @@ class TestStdJsonRpcFraming:
 
 
 # ─────────────────────────────────────────────────────────────
-# Class 2: TestDailyGsvMultiPeriodE2E (Sprint 183 第 11 个 tool 真端到端)
+# Class 2: TestDailyGsvMultiPeriodE2E (Sprint 183 daily-gsv-multi-period 真端到端)
 # ─────────────────────────────────────────────────────────────
 
 class TestDailyGsvMultiPeriodE2E:
-    """验证 Sprint 183 daily-gsv-multi-period 第 11 个 tool 走完整个
+    """验证 Sprint 183 daily-gsv-multi-period tool 走完整个
     server.py → _dispatch.py → scripts/ad_hoc_queries/daily_gsv_multi_period.py
     → DuckDB read_only conn 路径.
 
