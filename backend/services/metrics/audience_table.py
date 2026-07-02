@@ -248,19 +248,19 @@ def get_audience_table(
             prev2_member_users, prev2_member_gsv, prev2_member_aus, \
             prev2_member_old_users, prev2_member_old_gsv = pr
 
-        new_users = max(0, gsv_users - old_users)
-        new_gsv = max(0, gsv - old_gsv)
+        new_users = max(0, (gsv_users or 0) - (old_users or 0))
+        new_gsv = max(0, (gsv or 0) - (old_gsv or 0))
         new_aus = new_gsv / new_users if new_users > 0 else 0.0
-        old_gsv_ratio = old_gsv / gsv if gsv > 0 else 0.0
-        old_users_ratio = old_users / gsv_users if gsv_users > 0 else 0.0
+        old_gsv_ratio = (old_gsv or 0) / gsv if gsv else 0.0
+        old_users_ratio = (old_users or 0) / gsv_users if gsv_users else 0.0
         new_gsv_ratio = 1 - old_gsv_ratio
         new_users_ratio = 1 - old_users_ratio
-        member_gsv_ratio = member_gsv / gsv if gsv > 0 else 0.0
-        member_users_ratio = member_users / gsv_users if gsv_users > 0 else 0.0
+        member_gsv_ratio = (member_gsv or 0) / gsv if gsv else 0.0
+        member_users_ratio = (member_users or 0) / gsv_users if gsv_users else 0.0
         member_old_gsv_ratio = safe_ratio(member_old_gsv, member_gsv)
         member_old_users_ratio = safe_ratio(member_old_users, member_users)
-        member_new_gsv = max(0, member_gsv - member_old_gsv)
-        member_new_users = max(0, member_users - member_old_users)
+        member_new_gsv = max(0, (member_gsv or 0) - (member_old_gsv or 0))
+        member_new_users = max(0, (member_users or 0) - (member_old_users or 0))
         member_new_aus = member_new_gsv / member_new_users if member_new_users > 0 else 0.0
         member_new_gsv_ratio = safe_ratio(member_new_gsv, member_gsv)
         member_new_users_ratio = safe_ratio(member_new_users, member_users)

@@ -125,6 +125,9 @@ def safe_ratio(numerator: float, denominator: float, default: float = 0.0) -> fl
     Returns:
         numerator / denominator 或 default
     """
+    # 防御 NoneType (Sprint 201 R1 v2.1 followup: pre-existing NoneType 阻塞 CI -x, 跟 dual_conn 0 关联)
+    if numerator is None or denominator is None:
+        return default
     return numerator / denominator if denominator != 0 else default
 
 
