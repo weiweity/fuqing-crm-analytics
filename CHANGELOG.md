@@ -1,3 +1,22 @@
+## [unreleased] - 2026-07-02 (Sprint 201 R1: Read-Write Splitting 治本并发 — 看板 read-only 请求连接池 + AI sandbox 独立 query worker + snapshot + Prometheus-compatible metrics)
+
+### Fixed
+- **Read-Write Splitting 治本并发**: `backend/db/connection.py` 保留旧 `get_connection()` API, 但 HTTP 看板读请求由 `backend/middleware/query_router.py` 绑定请求级 read-only DuckDB 连接并在响应结束归还连接池; 非 HTTP / ETL / 维护脚本保留历史 write-capable 单例兼容. `main.py` 启动期 W5 cache hook 后主动释放临时写锁, 避免 uvicorn 长期占 DuckDB write lock.
+- **AI sandbox 改走独立 query worker**: `backend/services/ai_sandbox.py` 生产默认通过 `backend/services/query_worker_client.py` 调 `scripts/query_worker.py` 子进程执行 read-only SQL, worker 内二次校验 SELECT/WITH/EXPLAIN allowlist、危险 SQL blacklist、orders valid_order 三条件, SQL 通过 stdin 传递避免进程列表暴露和 argv 长度限制. Synthetic 测试通过 `FQ_AI_SANDBOX_WORKER_DISABLED=1` 保留进程内路径.
+- **W5/RFM cache read-only 降级**: `backend/services/rfm/cache.py` 在 read-only request context 中跳过 DDL/INSERT/DELETE/cache invalidation, cache miss 或 cache 表不存在时返回 None/空统计, 避免读接口因 best-effort cache 写入触发 500.
+
+### Added
+- **Snapshot 机制**: 新增 `scripts/dump_duckdb_snapshot.py`, 通过 copy-to-temp + `os.replace()` atomic rename 生成 DuckDB snapshot, 并清理 30 天前旧 snapshot; 新增 `scripts/launchd/com.fuqing.snapshot.300s.plist` 每 300 秒调度.
+- **Prometheus-compatible observability**: 新增 `backend/services/query_metrics.py` 零依赖输出 `fq_query_total` + `fq_query_duration_seconds` histogram 文本指标, `main.py` 暴露 `/metrics` 且跳过认证/限流/DB 连接.
+- **Sprint 201 回归测试**: 新增 `backend/tests/test_read_write_splitting_sprint201.py` 14 case, 覆盖 read-only 连接、请求上下文路由、worker SQL guard、AI sandbox worker、并发 N read_only、W5 cache read-only 降级、snapshot atomic rename、metrics render/endpoint、无 `/tmp/*.py`.
+
+### Technical
+- Focused verification: `pytest backend/tests/test_read_write_splitting_sprint201.py backend/tests/test_rate_limit_sprint200.py backend/tests/test_ai_sandbox_execute_sprint198.py backend/tests/test_w5_cache.py backend/tests/test_cache_invalidation.py -q` → **64 passed**.
+- Compatibility verification: Sprint 201 + Sprint 200 + Sprint 198 targeted regression → **25 passed**; ruff scoped check → **All checks passed**.
+- VERSION **不 bump** (跟 Sprint 89/167/190/191/192/193/194/195/196/197/198/199/200 0 业务代码改动模式 stable).
+
+---
+
 ## [unreleased] - 2026-07-02 (Sprint 199 R1 cleanup 收口: workflow 9 agents 5 phase 排查真业务测试暴露的 14 tool 真实命中率 ~40-65% + L4.35 critical violation 真治本 (`.claude/skills/ad-hoc-query/SKILL.md` symlink 9889 → 36405 bytes, 3 端字节一致) + 4 uncommitted 改动合规收口 + 立 Sprint 199+ 3 P0 立项 (淘客渠道每月明细 / spu_product_class 按月 / 8 分组 TTL 扩))
 
 ### Fixed
