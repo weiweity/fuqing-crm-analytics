@@ -249,6 +249,30 @@ def _create_tmp_duckdb_with_synthetic_orders() -> SyntheticDuckDBHandle:
             first_pay_date DATE NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE user_rfm (
+            user_id VARCHAR,
+            user_nickname VARCHAR,
+            analysis_date DATE,
+            metric_type VARCHAR,
+            lookback_days INTEGER,
+            channel VARCHAR DEFAULT '全店',
+            recency_days INTEGER,
+            frequency INTEGER,
+            monetary DECIMAL(12, 2),
+            r_score INTEGER,
+            f_score INTEGER,
+            m_score INTEGER,
+            rfm_tier VARCHAR,
+            rfm_tier_en VARCHAR,
+            segment_id INTEGER,
+            first_order_date DATE,
+            last_order_date DATE,
+            is_member BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, analysis_date, metric_type, lookback_days, channel)
+        )
+    """)
 
     rows = [
         ("h2024_old", "u2024_old", "2024-05-10 09:00:00", 20.0, "货架", False, False, False, "已付款", "护肤", "面霜", "修护面霜", "护肤"),
@@ -294,6 +318,63 @@ def _create_tmp_duckdb_with_synthetic_orders() -> SyntheticDuckDBHandle:
     conn.executemany(
         "INSERT INTO user_first_purchase VALUES (?, ?::DATE)",
         first_purchase_rows,
+    )
+
+    rfm_users = [
+        ("u2024_old", "2024 老客", 2, "2024-05-10", "2024-06-15", False, 90.0),
+        ("u2024_member", "2024 会员", 1, "2024-05-12", "2024-06-15", True, 170.0),
+        ("u2024_sample", "2024 小样", 7, "2024-06-15", "2024-06-15", False, 35.0),
+        ("u2025_old", "2025 老客", 2, "2025-05-10", "2025-06-15", False, 100.0),
+        ("u2025_member", "2025 会员", 1, "2025-05-12", "2025-06-15", True, 190.0),
+        ("u2025_sample", "2025 小样", 7, "2025-06-15", "2025-06-15", False, 40.0),
+        ("u2026_old", "2026 老客", 2, "2026-05-10", "2026-06-15", False, 120.0),
+        ("u2026_member", "2026 会员", 1, "2026-05-12", "2026-06-15", True, 230.0),
+        ("u2026_sample", "2026 小样", 7, "2026-06-15", "2026-06-15", False, 50.0),
+    ]
+    rfm_rows = [
+        (
+            user_id,
+            nickname,
+            analysis_date,
+            metric_type,
+            90,
+            "全店",
+            6,
+            2,
+            monetary,
+            5,
+            2,
+            2,
+            "普通客户",
+            "Regular",
+            segment_id,
+            first_order_date,
+            last_order_date,
+            is_member,
+        )
+        for analysis_date in ("2024-06-21", "2025-06-21", "2026-06-21")
+        for metric_type in ("GMV", "GSV")
+        for (
+            user_id,
+            nickname,
+            segment_id,
+            first_order_date,
+            last_order_date,
+            is_member,
+            monetary,
+        ) in rfm_users
+    ]
+    conn.executemany(
+        """
+        INSERT INTO user_rfm (
+            user_id, user_nickname, analysis_date, metric_type, lookback_days,
+            channel, recency_days, frequency, monetary, r_score, f_score,
+            m_score, rfm_tier, rfm_tier_en, segment_id, first_order_date,
+            last_order_date, is_member
+        )
+        VALUES (?, ?, ?::DATE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::DATE, ?::DATE, ?)
+        """,
+        rfm_rows,
     )
     return SyntheticDuckDBHandle(tmp_path, conn)
 
