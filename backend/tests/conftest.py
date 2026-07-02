@@ -559,3 +559,49 @@ def isolate_tmp_tracker(tmp_path):
                 os.unlink(test_db + suffix)
             except OSError:
                 pass
+
+
+# ─────────────────────────────────────────────────────────────
+# Sprint 201 R1 CI 爆红修复: rate limit bucket per-test reset (autouse)
+#
+# 背景: Sprint 200 R1 v2.1 加 rate_limit_middleware (每用户每分钟 N req) + Sprint 201 R1
+# 加 dual_conn + query_router. backend/main.py 模块级 _rate_limit_buckets 字典在
+# pytest 进程内跨 test 共享, 导致:
+#   - test_rate_limit_sprint200.py 把 RATE_LIMIT_PER_MINUTE=5 设到 module scope
+#   - 跑 5 次 admin token 触发 429, 写入 _rate_limit_buckets["admin"]
+#   - 后续 test 调 synthetic_client (user=testuser) 走相同 rate_limit_middleware
+#   - 如果 synthetic fixture 跟 admin 走同一 user_id (实测: 跟 token 解析逻辑), 命中 429
+#   - 触发 429 → ad_hoc_query_api test 失败
+#
+# 修法: autouse fixture 在每个 test 前 reset _rate_limit_buckets + _RATE_LIMIT_PER_MINUTE
+# 统一为 60 (跟 production 默认), 不让 test_rate_limit_sprint200.py 的 5 污染其他 test.
+# ─────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def reset_rate_limit_buckets():
+    """Sprint 201 R1: per-test reset rate limit bucket + 强制 RATE_LIMIT_PER_MINUTE=60.
+
+    防止 test_rate_limit_sprint200.py 用 5 req/min 把 _rate_limit_buckets 写满,
+    污染后续 test 的 synthetic_client (走相同 user_id) 触发 429.
+    """
+    import backend.main as _main
+    # 强制 production 默认 60, 防止其他 test 用 5 把 bucket 写满
+    import os
+    original_rpm = os.environ.get("RATE_LIMIT_PER_MINUTE")
+    os.environ["RATE_LIMIT_PER_MINUTE"] = "60"
+
+    # Reset module-level _rate_limit_buckets (跟 _RATE_LIMIT_PER_MINUTE 同步 reload)
+    if hasattr(_main, "_rate_limit_buckets"):
+        _main._rate_limit_buckets.clear()
+    if hasattr(_main, "_RATE_LIMIT_PER_MINUTE"):
+        _main._RATE_LIMIT_PER_MINUTE = 60
+
+    try:
+        yield
+    finally:
+        if hasattr(_main, "_rate_limit_buckets"):
+            _main._rate_limit_buckets.clear()
+        if original_rpm is None:
+            os.environ.pop("RATE_LIMIT_PER_MINUTE", None)
+        else:
+            os.environ["RATE_LIMIT_PER_MINUTE"] = original_rpm
