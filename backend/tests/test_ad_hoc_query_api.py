@@ -44,8 +44,9 @@ def client(monkeypatch_connection):
 
 
 @pytest.fixture
-def synthetic_client(monkeypatch_synthetic_ad_hoc_connection):
+def synthetic_client(monkeypatch_synthetic_ad_hoc_connection, monkeypatch, tmp_path):
     """Sprint 193: 让 Sprint 190 daily-gsv-multi-period 3 case 不依赖 production DuckDB."""
+    monkeypatch.setenv("FQ_TAKE_ROOT", str(tmp_path / "take_root"))
     from backend.routers import auth
 
     auth.VALID_CREDENTIALS = auth._load_credentials()
@@ -93,12 +94,11 @@ def synthetic_auth_headers(synthetic_auth_token):
 # ─────────────────────────────────────────────────────────────
 
 
-@prod_duckdb_required
-def test_daily_gsv_ok(client, auth_headers) -> None:
+def test_daily_gsv_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/daily-gsv — 起始+结束日期有效时返 ≥200."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/daily-gsv",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"start_date": "2026-06-01", "end_date": "2026-06-21"},
     )
     assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text}"
@@ -109,13 +109,14 @@ def test_daily_gsv_ok(client, auth_headers) -> None:
     assert body["row_count"] == len(body["rows"])
 
 
-@prod_duckdb_required
-def test_yoy_battle_ok(client, auth_headers) -> None:
+def test_yoy_battle_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/yoy-battle — baseline + current 双窗口."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/yoy-battle",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={
+            "start_date": "2026-06-01",
+            "end_date": "2026-06-21",
             "baseline_start": "2025-06-01",
             "baseline_end": "2025-06-21",
             "current_start": "2026-06-01",
@@ -130,12 +131,11 @@ def test_yoy_battle_ok(client, auth_headers) -> None:
     assert isinstance(body["rows"], list)
 
 
-@prod_duckdb_required
-def test_channel_slice_ok(client, auth_headers) -> None:
+def test_channel_slice_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/channel-slice — 单日 channel 切片."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/channel-slice",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"date": "2026-06-21", "channel": "all", "compare": "yoy"},
     )
     assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text}"
@@ -145,12 +145,11 @@ def test_channel_slice_ok(client, auth_headers) -> None:
     assert isinstance(body["rows"], list)
 
 
-@prod_duckdb_required
-def test_two_year_overview_ok(client, auth_headers) -> None:
+def test_two_year_overview_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/two-year-overview — 两年新老客 30 指标对比."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/two-year-overview",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"year": 2026, "start": "2026-06-01", "end": "2026-06-21"},
     )
     assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text}"
@@ -160,12 +159,11 @@ def test_two_year_overview_ok(client, auth_headers) -> None:
     assert "metric_key" in body["headers"]
 
 
-@prod_duckdb_required
-def test_new_old_customer_ok(client, auth_headers) -> None:
+def test_new_old_customer_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/new-old-customer — 新老客拆分, 字段前缀隔离."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/new-old-customer",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={
             "start_date": "2026-06-01",
             "end_date": "2026-06-21",
@@ -181,12 +179,11 @@ def test_new_old_customer_ok(client, auth_headers) -> None:
         f"new_old 必须有字段前缀隔离, got headers={body['headers']}"
 
 
-@prod_duckdb_required
-def test_rfm_repurchase_ok(client, auth_headers) -> None:
+def test_rfm_repurchase_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/rfm-repurchase — R 区间复购周期分布."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/rfm-repurchase",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={
             "start_date": "2026-06-01",
             "end_date": "2026-06-21",
@@ -202,12 +199,11 @@ def test_rfm_repurchase_ok(client, auth_headers) -> None:
     assert "r_seg_" in headers_str, f"rfm 必须有 r_seg_ 前缀, got headers={body['headers']}"
 
 
-@prod_duckdb_required
-def test_top_n_ok(client, auth_headers) -> None:
+def test_top_n_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/top-n — TOP N 品类/产品层级."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/top-n",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={
             "start_date": "2026-06-01",
             "end_date": "2026-06-21",
@@ -221,12 +217,11 @@ def test_top_n_ok(client, auth_headers) -> None:
     assert isinstance(body["rows"], list)
 
 
-@prod_duckdb_required
-def test_export_excel_ok(client, auth_headers) -> None:
+def test_export_excel_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/export-excel — 返 StreamingResponse 二进制流."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/export-excel",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"start_date": "2026-06-01", "end_date": "2026-06-21", "year": 2026},
     )
     # StreamingResponse 200 + content-type: vnd.openxmlformats
@@ -243,12 +238,11 @@ def test_export_excel_ok(client, auth_headers) -> None:
 # ─────────────────────────────────────────────────────────────
 
 
-@prod_duckdb_required
-def test_dq_report_ok(client, auth_headers) -> None:
+def test_dq_report_ok(synthetic_client, synthetic_auth_headers) -> None:
     """POST /api/v1/ad-hoc/dq-report — 5 项规则报告 ≥200."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/dq-report",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"start_date": "2026-06-01", "end_date": "2026-06-21", "full": False},
     )
     assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text}"
@@ -303,12 +297,11 @@ def test_daily_gsv_multi_period_bad_date_returns_422(synthetic_client, synthetic
     assert response.status_code == 422, f"expected 422 (bad date), got {response.status_code}"
 
 
-@prod_duckdb_required
-def test_dq_report_invalid_date_returns_422(client, auth_headers) -> None:
+def test_dq_report_invalid_date_returns_422(synthetic_client, synthetic_auth_headers) -> None:
     """start_date > end_date → 422 校验错返 (跟 _validate_date_range 配套)."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/dq-report",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"start_date": "2026-06-30", "end_date": "2026-06-01"},  # start > end
     )
     assert response.status_code == 422, f"expected 422 invalid date, got {response.status_code}"
@@ -316,12 +309,11 @@ def test_dq_report_invalid_date_returns_422(client, auth_headers) -> None:
     assert "detail" in response.json()
 
 
-@prod_duckdb_required
-def test_dq_report_bad_date_format_returns_422(client, auth_headers) -> None:
+def test_dq_report_bad_date_format_returns_422(synthetic_client, synthetic_auth_headers) -> None:
     """日期格式错 → 422 (跟 date.fromisoformat 配套)."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/dq-report",
-        headers=auth_headers,
+        headers=synthetic_auth_headers,
         json={"start_date": "not-a-date", "end_date": "2026-06-21"},
     )
     assert response.status_code == 422
@@ -332,10 +324,9 @@ def test_dq_report_bad_date_format_returns_422(client, auth_headers) -> None:
 # ─────────────────────────────────────────────────────────────
 
 
-@prod_duckdb_required
-def test_daily_gsv_requires_auth(client) -> None:
+def test_daily_gsv_requires_auth(synthetic_client) -> None:
     """未带 Bearer token → 401 (跟 main.py auth_middleware 配套)."""
-    response = client.post(
+    response = synthetic_client.post(
         "/api/v1/ad-hoc/daily-gsv",
         json={"start_date": "2026-06-01", "end_date": "2026-06-21"},
     )
