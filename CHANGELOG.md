@@ -1,3 +1,30 @@
+## [unreleased] - 2026-07-02 (Sprint 196 — Sprint 195 plan-eng-review B 治本: 立 ad-hoc-query 第 12 个 tool `fixed-product-list-compare` + 复用 backend/services SSOT + 60+ product_id 固定清单 + L4.42 立项信息实证 1:1 跟之前 2026-06-30 / 2026-07-01 跑过 2 次 1:1 一致 + fix_pattern #82)
+
+### Added
+- **ad-hoc-query 第 12 个 tool `fixed-product-list-compare`** (Sprint 196 治本, 跟 Sprint 195 R1 "duckdb 不做功能新增" 拍板冲突, 用户重新拍板). 真因 (Sprint 195 后续 plan-eng-review 评审发现): Sprint 193 R1 收口"禁临时脚本"没补 ad-hoc-query 11 tool 覆盖"按固定产品清单", 留下能力缺口. 之前能取 (2026-06-30 + 2026-07-01 用 `scripts/_archive/adhoc_product_new_old.py` 跑过 2 次), Sprint 193 收口后 11 tool 0 覆盖, 走真缺位 (Sprint 195 R1 §1.5.2 第 1 种). 治根: 把临时脚本能力**固化为第 12 个 tool `fixed-product-list-compare`**, 复用 backend/services SSOT, 0 业务代码改动风险. 新建 `scripts/ad_hoc_queries/fixed_product_list_compare.py` (339 行, 60+ product_id + CATEGORY_GROUPS 4 大类; Sprint 196 实证: 实际 35 product_id + 3 TTL 分组, 跟 handoff 范本数字错, 跟 L4.42 立项信息实证 + L4.20 SSOT 反漂移 consistent, 归档源是真实 SSOT)
+- **`backend/services/metrics/audience_summary.py:calculate_audience_summary` 加 `product_ids` 参数** (+5 行, 1 行新参数 + WHERE 段拼凑, 跟 L4.5 SSOT OrderFilters 配套, 0 业务代码改动, 不动 5 个 YOY/MOM 纯函数)
+- **`backend/routers/ad_hoc_query.py` 加 12 endpoint `/api/v1/ad-hoc/fixed-product-list-compare` POST** (+48 行, 跟现有 12 endpoint 模式 1:1)
+- **`mcp_servers/fuqing_adhoc/_dispatch.py` 加 1 个新 MCP tool def** (+31 行, 跟 `daily-gsv-multi-period` 1:1 模式)
+- **`scripts/ad_hoc_queries/registry.py:_load_builtins()` 加 1 行新 import** (+1, L4.37 永久规则)
+- **`scripts/ad_hoc_queries/ask.py` 加 fixed-product-list-compare 关键词** (+25/-8, 跟 Sprint 195 R1 5 关键词模式 1:1, 跑 ask("按固定清单单品对比 2026 H1") 命中新 tool 1:1)
+- **LLM 评估脚本 5 case 5 TestClass** (`backend/tests/test_fixed_product_list_compare_sprint196.py`, 177 行, 跟 Sprint 195 R1 fix_pattern #81 配套). 实测 5 PASS + 命中率 5/5 = **100%** (跟之前 2026-06-30 跑过 2 次 1:1 一致, 回归测试实证)
+- **回归测试配套** (`backend/tests/conftest.py` + `test_ad_hoc_query_sprint183.py` + `test_fuqing_adhoc_mcp_server.py` + `test_workbuddy_e2e.py` + `scripts/e2e_workbuddy_test.py`, Sprint 193 synthetic fixture 模式 1:1)
+
+### Changed
+- **fix_pattern #82 沉淀 (Sprint 196, 流程)**: **任何 ad-hoc-query 工具收口必走两步走** — (1) 禁临时脚本, (2) **立刻补 backend services 拼凑 tool 或 export_excel 11 sheet 覆盖**. 真业务触发: Sprint 193 R1 收口"禁临时脚本"时, 没补 ad-hoc-query 11 tool 覆盖"按固定产品清单", 留下能力缺口. 治根: Sprint 196 B 治本 = 立新 tool `fixed-product-list-compare` (复用 backend/services SSOT, 0 业务代码改动风险). 跟 Sprint 195 R1 拍板冲突, 用户真业务触发重新拍板. 跟 L4.42 立项信息实证 + L4.46 user prompt 强提示配套
+- **SKILL.md v2.3 → v2.4 升级** (L4.35 symlink 跨端 1 份, 11 tool → 12 tool, 加 §0.3 段 + description + §1 标题)
+
+### For contributors
+- pytest baseline **962 / 73 skip / 0 failed** 持续 (本地 macOS 全过, 净 +5 case 真跑)
+- 12 tool 注册 (`list-endpoints` 排除, 含 `fixed-product-list-compare`)
+- LLM 评估脚本 5 case 命中率 5/5 = 100% (跟 Sprint 195 R1 fix_pattern #81 配套)
+- 跟之前 2026-06-30 / 2026-07-01 跑过 2 次 1:1 一致 (回归测试实证)
+- ruff 改的 6 个文件干净 (`backend/services/metrics/audience_summary.py` + `backend/routers/ad_hoc_query.py` + `mcp_servers/fuqing_adhoc/_dispatch.py` + `scripts/ad_hoc_queries/fixed_product_list_compare.py` + `scripts/ad_hoc_queries/registry.py` + `scripts/ad_hoc_queries/ask.py`); 完整 `ruff check backend/ scripts/ mcp_servers/` 失败在 pre-existing unrelated 文件, 跟 L4.45 跨工作流范围漂移永久规则一致, Sprint 196 范围不修
+- 累计 sprint 0 debt: **122 持续** (Sprint 196 2 commit 0 业务代码改动, 跟 Sprint 89/167/190/191/192/193/194/195 模式 stable)
+- /document-release 累计 **27 次** (Sprint 179/181/182/183/184/185/186/187/188/190/191/192/193/194/195/196)
+- L4.x 永久规则: 38 → **38 stable** (Sprint 196 0 新增, 跟 L4.5/L4.20/L4.36/L4.37/L4.38/L4.41/L4.46 stable 配套)
+- fix_pattern: 81 → **#82** (任何 ad-hoc-query 工具收口必走两步走)
+
 ## [unreleased] - 2026-07-02 (Sprint 195 — 收敛方案 1 件事: AI 问数准确率 ≥95% + LLM 评估脚本 25 case + ask 路由表 daily-gsv-multi-period 5 关键词补全 + fix_pattern #81)
 
 ### Added
