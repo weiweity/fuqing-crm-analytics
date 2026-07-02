@@ -289,6 +289,68 @@ TOOL_DEFS: list[dict[str, Any]] = [
             "output": "--output",
         },
     },
+    {
+        "name": "fixed_product_list_compare_http",
+        "command": "fixed-product-list-compare-http",
+        "description": "固定 product_id 清单新老客对比 (HTTP API, Sprint 197, 0 DuckDB 子进程锁冲突)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "起始日期 YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "结束日期 YYYY-MM-DD"},
+                "product_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "产品 ID 列表; 不传则用归档固定清单",
+                },
+                "mom_start_date": {"type": "string", "description": "环比期起始日期 YYYY-MM-DD"},
+                "mom_end_date": {"type": "string", "description": "环比期结束日期 YYYY-MM-DD"},
+                "auth_token": {"type": "string", "description": "Bearer token; 默认读 FQ_CRM_AUTH_TOKEN"},
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["start_date", "end_date"],
+        },
+        "arg_map": {
+            "start_date": "--start-date",
+            "end_date": "--end-date",
+            "product_ids": "--product-ids",
+            "mom_start_date": "--mom-start-date",
+            "mom_end_date": "--mom-end-date",
+            "auth_token": "--auth-token",
+            "format": "--format",
+            "output": "--output",
+        },
+    },
+    {
+        "name": "ai_sandbox_execute",
+        "command": "ai-sandbox-execute",
+        "description": "AI 命中不到固定 tool 时走 backend sandbox service + audit log (Sprint 198)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "sql": {"type": "string", "description": "单条 SELECT/WITH 只读 SQL"},
+                "sandbox_type": {
+                    "type": "string",
+                    "enum": ["aggregate", "timeseries", "rfm", "ltv"],
+                    "default": "aggregate",
+                },
+                "audit_id": {"type": "string", "description": "审计 ID"},
+                "auth_token": {"type": "string", "description": "Bearer token; 默认读 FQ_CRM_AUTH_TOKEN"},
+                "format": {"type": "string", "enum": ["table", "csv"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["sql"],
+        },
+        "arg_map": {
+            "sql": "--sql",
+            "sandbox_type": "--sandbox-type",
+            "audit_id": "--audit-id",
+            "auth_token": "--auth-token",
+            "format": "--format",
+            "output": "--output",
+        },
+    },
 ]
 
 
@@ -313,6 +375,10 @@ def _make_handler(tool_def: dict[str, Any]) -> Callable[[dict[str, Any]], list[s
                 continue
             flag = arg_map.get(k)
             if flag is None:
+                continue
+            if isinstance(v, list):
+                argv.append(flag)
+                argv.extend(str(item) for item in v)
                 continue
             value_str = str(v)
             # Sprint 182 Phase 4: --output / --file 等路径类参数必须 sanitize

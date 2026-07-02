@@ -175,3 +175,113 @@ class TestSprint196Synthetic:
         assert body["row_count"] == 6
         assert len(body["headers"]) == 33
         assert body["rows"][0][0] == "妆品销售TTL"
+
+
+class _FakeHttpResponse:
+    def __init__(self, payload: dict[str, Any]):
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, Any]:
+        return self._payload
+
+
+class TestSprint197Http:
+    """Sprint 197 R1: fixed-product-list-compare-http 走 HTTP API, 不直连 DuckDB."""
+
+    def test_http_wrapper_posts_to_backend_api(self, monkeypatch) -> None:
+        from scripts.ad_hoc_queries import fixed_product_list_compare_http as mod
+
+        calls: list[dict[str, Any]] = []
+
+        def fake_post(url, json, headers, timeout):
+            calls.append({"url": url, "json": json, "headers": headers, "timeout": timeout})
+            return _FakeHttpResponse({"rows": [["妆品销售TTL", "TTL", "妆品销售TTL"]]})
+
+        monkeypatch.setattr(mod.requests, "post", fake_post)
+        rows = mod.run_fixed_product_list_compare_http(
+            start_date="2026-06-15",
+            end_date="2026-06-15",
+            product_ids=SYNTHETIC_IDS,
+            auth_token="token-197",
+            base_url="http://testserver",
+        )
+
+        assert rows == [["妆品销售TTL", "TTL", "妆品销售TTL"]]
+        assert calls[0]["url"] == "http://testserver/api/v1/ad-hoc/fixed-product-list-compare"
+        assert calls[0]["json"]["product_ids"] == SYNTHETIC_IDS
+        assert calls[0]["headers"] == {"Authorization": "Bearer token-197"}
+        assert calls[0]["timeout"] == 300
+
+    def test_http_skips_read_only_conn_l4_38(self, monkeypatch) -> None:
+        from scripts.ad_hoc_queries import _utils as adhoc_utils
+        from scripts.ad_hoc_queries import fixed_product_list_compare_http as mod
+
+        def fail_read_only_conn(*args, **kwargs):
+            raise AssertionError("fixed-product-list-compare-http 不应调用 read_only_conn")
+
+        monkeypatch.setattr(adhoc_utils, "read_only_conn", fail_read_only_conn)
+        monkeypatch.setattr(
+            mod.requests,
+            "post",
+            lambda *args, **kwargs: _FakeHttpResponse({"rows": [["ok"]]}),
+        )
+
+        assert mod.run_fixed_product_list_compare_http("2026-06-15", "2026-06-15") == [["ok"]]
+
+    def test_http_registry_and_cli_help_13th_tool(self) -> None:
+        from scripts.ad_hoc_queries.registry import QUERIES
+
+        assert "fixed-product-list-compare-http" in QUERIES
+        spec = QUERIES["fixed-product-list-compare-http"]
+        assert "HTTP API" in spec.description
+
+        help_result = subprocess.run(
+            [sys.executable, "scripts/ad_hoc_query.py", "fixed-product-list-compare-http", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            cwd=str(PROJECT_ROOT),
+            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+        )
+        assert help_result.returncode == 0, help_result.stderr[:500]
+        assert "--auth-token" in help_result.stdout
+
+    def test_http_mcp_tool_registered(self) -> None:
+        from mcp_servers.fuqing_adhoc._dispatch import TOOL_DEFS
+
+        tool = next(t for t in TOOL_DEFS if t["name"] == "fixed_product_list_compare_http")
+        assert tool["command"] == "fixed-product-list-compare-http"
+        assert tool["arg_map"]["product_ids"] == "--product-ids"
+
+    def test_http_endpoint_matches_existing_sprint196_rows_on_synthetic_data(
+        self,
+        synthetic_client,
+        synthetic_auth_headers,
+        monkeypatch_synthetic_ad_hoc_connection,
+    ) -> None:
+        from scripts.ad_hoc_queries.fixed_product_list_compare import run_fixed_product_list_compare
+
+        expected_rows = run_fixed_product_list_compare(
+            start_date="2026-06-15",
+            end_date="2026-06-15",
+            product_ids=SYNTHETIC_IDS,
+            mom_start_date="2025-06-15",
+            mom_end_date="2025-06-15",
+        )
+        response = synthetic_client.post(
+            "/api/v1/ad-hoc/fixed-product-list-compare",
+            headers=synthetic_auth_headers,
+            json={
+                "start_date": "2026-06-15",
+                "end_date": "2026-06-15",
+                "product_ids": SYNTHETIC_IDS,
+                "mom_start_date": "2025-06-15",
+                "mom_end_date": "2025-06-15",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        assert response.json()["rows"] == expected_rows
