@@ -64,6 +64,17 @@ W5KV_STATE_FILENAME = "w5kv_manifest_state.json"
 W5KV_STATE_ENV = "FQ_W5KV_STATE_PATH"
 
 
+def _read_only_request_active() -> bool:
+    """Return True inside Sprint 201 read-only request routing."""
+
+    try:
+        from backend.services.dual_conn import get_query_type
+
+        return get_query_type() == "read"
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _default_state_path() -> Path:
     """默认状态文件路径: data/cache/w5kv_manifest_state.json.
 
@@ -174,6 +185,8 @@ class RfmQueryCache:
     # ── 表管理 ──
     def ensure_table(self) -> None:
         """幂等建表 (W5 完成标志第 1 条). 首次调用建表, 后续 no-op."""
+        if _read_only_request_active():
+            return
         if self._initialized:
             return
         with self._init_lock:
@@ -201,18 +214,24 @@ class RfmQueryCache:
 
         流程: ensure_table → manifest 变化检测 → SELECT (锁内预取)
         """
-        self.ensure_table()
+        if not _read_only_request_active():
+            self.ensure_table()
         # 每次读都检查 manifest (廉价, < 1ms)
         conn = get_connection()
-        self._tracker.check_and_invalidate(conn)
+        if not _read_only_request_active():
+            self._tracker.check_and_invalidate(conn)
 
         key = _hash_key(endpoint, params)
         # ThreadSafeCursor.execute() 已在锁内预取, fetchone() 安全
-        rows = conn.execute(
-            f"SELECT value FROM {CACHE_TABLE} "
-            f"WHERE key = ? AND expire_at > now()",
-            [key],
-        ).fetchall()
+        try:
+            rows = conn.execute(
+                f"SELECT value FROM {CACHE_TABLE} "
+                f"WHERE key = ? AND expire_at > now()",
+                [key],
+            ).fetchall()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("W5 cache read miss/fallback: %s", e)
+            return None
         if not rows:
             return None
         try:
@@ -223,6 +242,9 @@ class RfmQueryCache:
 
     def set(self, endpoint: str, params: dict, value: Any) -> None:
         """写 cache (INSERT OR REPLACE)."""
+        if _read_only_request_active():
+            logger.debug("W5 cache set skipped in read-only request")
+            return
         self.ensure_table()
         conn = get_connection()
         key = _hash_key(endpoint, params)
@@ -247,6 +269,9 @@ class RfmQueryCache:
 
         DuckDB DELETE 返回单行 (count, ), 不是删除的行. 需 rows[0][0] 取数.
         """
+        if _read_only_request_active():
+            logger.debug("W5 cache invalidate skipped in read-only request")
+            return 0
         self.ensure_table()
         conn = get_connection()
         rows = conn.execute(f"DELETE FROM {CACHE_TABLE}").fetchall()
@@ -259,6 +284,9 @@ class RfmQueryCache:
 
         DuckDB DELETE 返回单行 (count, ), 不是删除的行. 需 rows[0][0] 取数.
         """
+        if _read_only_request_active():
+            logger.debug("W5 cache cleanup skipped in read-only request")
+            return 0
         self.ensure_table()
         conn = get_connection()
         rows = conn.execute(
@@ -270,21 +298,26 @@ class RfmQueryCache:
 
     def list_keys(self, endpoint: Optional[str] = None, limit: int = 100) -> list[dict]:
         """调试用: 列出 cache 键 (可选 endpoint 过滤)."""
-        self.ensure_table()
+        if not _read_only_request_active():
+            self.ensure_table()
         conn = get_connection()
-        if endpoint:
-            rows = conn.execute(
-                f"SELECT key, endpoint, expire_at, created_at "
-                f"FROM {CACHE_TABLE} WHERE endpoint = ? "
-                f"ORDER BY created_at DESC LIMIT ?",
-                [endpoint, limit],
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                f"SELECT key, endpoint, expire_at, created_at "
-                f"FROM {CACHE_TABLE} ORDER BY created_at DESC LIMIT ?",
-                [limit],
-            ).fetchall()
+        try:
+            if endpoint:
+                rows = conn.execute(
+                    f"SELECT key, endpoint, expire_at, created_at "
+                    f"FROM {CACHE_TABLE} WHERE endpoint = ? "
+                    f"ORDER BY created_at DESC LIMIT ?",
+                    [endpoint, limit],
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    f"SELECT key, endpoint, expire_at, created_at "
+                    f"FROM {CACHE_TABLE} ORDER BY created_at DESC LIMIT ?",
+                    [limit],
+                ).fetchall()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("W5 cache list_keys fallback: %s", e)
+            return []
         return [
             {"key": r[0], "endpoint": r[1], "expire_at": str(r[2]), "created_at": str(r[3])}
             for r in rows
@@ -292,13 +325,18 @@ class RfmQueryCache:
 
     def stats(self) -> dict:
         """调试用: cache 统计."""
-        self.ensure_table()
+        if not _read_only_request_active():
+            self.ensure_table()
         conn = get_connection()
-        row = conn.execute(
-            f"SELECT COUNT(*), "
-            f"SUM(CASE WHEN expire_at > now() THEN 1 ELSE 0 END) "
-            f"FROM {CACHE_TABLE}"
-        ).fetchone()
+        try:
+            row = conn.execute(
+                f"SELECT COUNT(*), "
+                f"SUM(CASE WHEN expire_at > now() THEN 1 ELSE 0 END) "
+                f"FROM {CACHE_TABLE}"
+            ).fetchone()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("W5 cache stats fallback: %s", e)
+            return {"total": 0, "valid": 0, "expired": 0}
         total = int(row[0]) if row and row[0] is not None else 0
         valid = int(row[1]) if row and row[1] is not None else 0
         return {"total": total, "valid": valid, "expired": total - valid}

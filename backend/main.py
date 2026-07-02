@@ -13,7 +13,7 @@ Sample CRM 客户分析系统 - FastAPI 后端
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -22,6 +22,8 @@ import time
 import logging
 
 from backend.services.exceptions import ServiceError, ValidationError, NotFoundError
+from backend.middleware.query_router import QueryRouterMiddleware
+from backend.services.query_metrics import render_prometheus
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +174,12 @@ async def lifespan(application: FastAPI):
         check_manifest_version_and_invalidate()
     except Exception as e:  # noqa: BLE001
         logger.warning("W5 startup hook 启动失败 (不阻塞服务): %s", e)
+    try:
+        from backend.db.connection import close_connection
+        close_connection()
+        logger.info("Sprint 201 R1: startup DuckDB write lock released before serving read traffic")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Sprint 201 R1: startup DuckDB 连接释放失败 (不阻塞服务): %s", e)
     yield
     # 关闭时停止内存监控并释放全局 DuckDB 连接
     from backend.db.memory_monitor import stop_memory_watchdog
@@ -203,6 +211,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
+app.add_middleware(QueryRouterMiddleware)
 
 # ─────────────────────────────────────────────────────────────
 # 安全响应头中间件
@@ -236,6 +245,7 @@ async def rate_limit_middleware(request: Request, call_next):
     path = request.url.path
     if (
         path == "/api/v1/health"
+        or path == "/metrics"
         or path == "/api/v1/auth/login"
         or path == "/api/v1/auth/refresh"
         or path.startswith("/docs")
@@ -348,6 +358,7 @@ async def auth_middleware(request: Request, call_next):
     if (
         path.startswith("/api/v1/auth/")
         or path == "/api/v1/health"
+        or path == "/metrics"
         or path.startswith("/docs")
         or path.startswith("/redoc")
         or path == "/openapi.json"
@@ -450,6 +461,12 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
     }
+
+
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics():
+    """Prometheus-compatible query metrics."""
+    return Response(render_prometheus(), media_type="text/plain; version=0.0.4")
 
 
 # ─────────────────────────────────────────────────────────────
