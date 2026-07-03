@@ -65,6 +65,7 @@ def get_audience_summary_api(
     exclude_channels: Optional[List[str]] = Query(default=None, description="排除的渠道列表"),
     compare_start_date: Optional[str] = Query(default=None, description="对比期开始日期（可选，覆盖自动Y-1推算）"),
     compare_end_date: Optional[str] = Query(default=None, description="对比期结束日期（可选，覆盖自动Y-1推算）"),
+    order_ids: Optional[List[str]] = Query(default=None, description="订单号列表，仅统计匹配订单"),
 ):
     """
     人群看板汇总接口
@@ -97,4 +98,5 @@ def get_audience_summary_api(
         exclude_channels=exclude_channels,
         compare_start_date=compare_start_date,
         compare_end_date=compare_end_date,
+        order_ids=order_ids,
     )

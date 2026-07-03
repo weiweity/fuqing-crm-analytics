@@ -24,6 +24,7 @@ def calculate_audience_summary(
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
     product_ids: Optional[List[str]] = None,
+    order_ids: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     人群看板汇总：三面板数据计算
@@ -220,6 +221,10 @@ def calculate_audience_summary(
                 placeholders = ",".join(["?"] * len(product_ids))
                 where_parts.append(f"o.product_id IN ({placeholders})")
                 params.extend(product_ids)
+            if order_ids:
+                placeholders = ",".join(["?"] * len(order_ids))
+                where_parts.append(f"o.order_id IN ({placeholders})")
+                params.extend(order_ids)
             where_sql = " AND ".join(where_parts)
             full_params = params + [cutoff_dt]
 
