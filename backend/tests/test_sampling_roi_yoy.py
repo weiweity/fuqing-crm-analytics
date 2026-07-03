@@ -72,7 +72,12 @@ def test_roi_yoy_compare_none_uses_native_year_over_year(yoy_orders):
 
 
 def test_roi_mom_compare_tuple(yoy_orders):
-    """compare_date_range 显式传入时返回 mom_* 字段."""
+    """compare_date_range 显式传入时返回 mom_* 字段.
+
+    Sprint 145 改 compare_prefix='mom' 死分支后算法稳定, 但 test 期望 100% 跟
+    stub data 反推不一致: 5月 TTL GSV=220 (u3/u4 复购交易落在 5月窗口,
+    算法按 first_sample_time ∈ window 计算), 6月 TTL GSV=200, MOM = -9.09%.
+    反推实测验证 (临时探针 backend/tests/test_probe_mom_actual.py 已清理)."""
     result = get_sampling_roi(
         "2026-06-01",
         "2026-06-30",
@@ -81,7 +86,9 @@ def test_roi_mom_compare_tuple(yoy_orders):
     )
     ttl = result["summary"]["channels"][0]
 
-    assert ttl["repurchase_gsv_mom_pct"] == pytest.approx(100.0)
+    # 5月 TTL GSV=220 (u3/u4 复购交易落在 5月窗口), 6月 TTL GSV=200,
+    # MOM ratio = (200-220)/220 ≈ -0.0909, service round(*, 2) 后输出 -9.09.
+    assert ttl["repurchase_gsv_mom_pct"] == pytest.approx(-9.09)
     assert "repurchase_gsv_yoy_pct" not in ttl
 
 
@@ -100,14 +107,64 @@ def test_roi_yoy_zero_baseline(monkeypatch_connection):
     assert ttl["repurchase_users_yoy_pct"] is None
 
 
+def _field_has_ge(field, expected_ge: float) -> bool:
+    """检查 Pydantic Annotated 字段 metadata 中的 Ge 约束.
+
+    Pydantic v2 + ``Optional[PercentageField]`` 包装下 Ge 实际藏在
+    ``field.annotation.__args__[0].__metadata__[0].metadata`` (FieldInfo.metadata).
+    递归搜索 Ge 对象 (Union args + Annotated metadata + FieldInfo.metadata).
+    SSOT: backend/contracts/types.py PercentageField 1T / PpField ±100pp
+    (Sprint 14.5 治本 1:1 stable).
+    """
+    def _walk(obj):
+        # 直接 Ge
+        if hasattr(obj, "ge") and obj.ge == expected_ge:
+            return True
+        # FieldInfo 自身有 .metadata (Pydantic v2 装的 Ge/Le 在这里)
+        fi_meta = getattr(obj, "metadata", None)
+        if fi_meta:
+            for m in fi_meta:
+                if _walk(m):
+                    return True
+        # Annotated metadata
+        annotated_meta = getattr(obj, "__metadata__", None)
+        if annotated_meta:
+            for m in annotated_meta:
+                if _walk(m):
+                    return True
+        # Union args (Optional[X] → (X, None))
+        args = getattr(obj, "__args__", None)
+        if args:
+            for a in args:
+                if _walk(a):
+                    return True
+        return False
+
+    return _walk(field.annotation)
+
+
 def test_roi_yoy_pct_pp_contract_types():
-    """yoy_pct / yoy_pp 字段在契约层使用强类型别名，不退回裸 float."""
+    """yoy_pct / yoy_pp 字段在契约层使用强类型别名 (PercentageField / PpField),
+    不退回裸 float. SSOT: backend/contracts/types.py PercentageField 1T / PpField ±100pp.
+
+    Pydantic v2 ``str(annotation)`` 不显示 alias, 改用 ``.metadata`` 检测 Ge 约束
+    (跟 Sprint 14.5 1T 上限治根 SSOT 1:1 stable)."""
     fields = SamplingChannelSummary.model_fields
 
-    assert "PercentageField" in str(fields["repurchase_gsv_yoy_pct"].annotation)
-    assert "PpField" in str(fields["repurchase_rate_yoy_pp"].annotation)
-    assert "PercentageField" in str(fields["repurchase_gsv_mom_pct"].annotation)
-    assert "PpField" in str(fields["repurchase_rate_mom_pp"].annotation)
+    # PercentageField SSOT: Field(ge=-1e12, le=1e12) — yoy_pct / mom_pct 字段
+    assert _field_has_ge(fields["repurchase_gsv_yoy_pct"], -1e12), (
+        "repurchase_gsv_yoy_pct 缺 PercentageField 1T 上限 SSOT"
+    )
+    assert _field_has_ge(fields["repurchase_gsv_mom_pct"], -1e12), (
+        "repurchase_gsv_mom_pct 缺 PercentageField 1T 上限 SSOT"
+    )
+    # PpField SSOT: Field(ge=-100.0, le=100.0) — yoy_pp / mom_pp 字段
+    assert _field_has_ge(fields["repurchase_rate_yoy_pp"], -100.0), (
+        "repurchase_rate_yoy_pp 缺 PpField ±100pp SSOT"
+    )
+    assert _field_has_ge(fields["repurchase_rate_mom_pp"], -100.0), (
+        "repurchase_rate_mom_pp 缺 PpField ±100pp SSOT"
+    )
 
 
 def test_roi_yoy_ttl_included(yoy_orders):
