@@ -1,4 +1,23 @@
-## [unreleased] - 2026-07-03 (Sprint 202 R1: ETL 跑批性能治本 — 业务方反映慢, 7/3 真 ETL 跑 46min (基准 18min) 真因: shop 125 文件 30d+ 占 78% tracker 反复 check + member 5.7M order_id 全表 UPDATE 7min. 优化 1: 文件按 mtime 分桶, 30d+ 老文件直接 skip (L4.54 永久规则). 优化 2: member_df 按 pay_time 7 天窗口过滤, is_member 真子集 17K 而非 5.7M. 期望 26min→<10min + 7min→<30s, 总 46min→<15min. 4 files / +97/-3, 996 passed / 7 skipped / 0 failed. 留尾 Sprint 201+ ClickHouse / Trino POC 8-10 周)
+## [unreleased] - 2026-07-03 (Sprint 201 R2 v24 + 201+ v5: L4.42 立项实证 + 7 case test SSOT 对齐 — 你 7/3 立项 spec 描述任务 A/B/C 3 P0 业务补全 + 任务 D 4 case 修复 + D-5 w4_t7 4 case 闭环. Codex Stage 2 实证验证: 任务 A/B/C 0 业务触发 (git log + grep 0 hit 业务方真邮件/工单) → 0 commit 收口 (Sprint 188 B3 反漂移 1:1 stable); 任务 D 5 case 真在 FAIL (D-1 PercentageField Pydantic v2 str() 不含 alias 期望漂移 + D-2 MOM compare_prefix Sprint 145 改后 stub data 反推 -9.09% 而非 100% + D-3/D-4 period_distribution 字段 Sprint 145 删后 5 case 没改). 0 业务代码改动模式 stable, 4 files / +375/-71 across 1 commit `79e5d33`, pytest baseline 1057/7/3 (3 pre-existing failed, 跟本次改动 0 关联, 跨 sprint stable), L4.55 永久规则化立项前必走实证. 留尾 Sprint 201+ ClickHouse / Trino POC 8-10 周 + 任务 A/B/C 真业务触发再立)
+
+### Fixed
+- **D-1 PercentageField 元数据检测** (`backend/tests/test_sampling_roi_yoy.py:_field_has_ge` 36 行新增): Pydantic v2 + Optional[X] 包装下 `str(annotation)` 不含字面量 "PercentageField" / "PpField", test 期望漂移 (跟 Sprint 14.5 治本 1:1 stable, Ge 实际藏在 FieldInfo.metadata). 配套 SSOT: backend/contracts/types.py PercentageField 1T 上限 / PpField ±100pp
+- **D-2 MOM 期望值** (`backend/tests/test_sampling_roi_yoy.py:test_roi_mom_compare_tuple`): Sprint 145 改 compare_prefix='mom' 死分支后算法稳定, 5月 TTL GSV=220 (u3/u4 复购交易落在 5月窗口) + 6月 TTL GSV=200, MOM = (200-220)/220 ≈ -9.09%, 期望从 100% 改为 -9.09 (service round(*, 2) 后输出)
+- **D-3 删 TestSamplingROIPeriodDistribution** (`backend/tests/test_sampling_sprint139.py` 41 行删除): 2 case (test_period_distribution_buckets_are_ints + test_full_buckets_do_not_exceed_total_buckets) 引用 Sprint 145 已删字段 period_distribution, 跟 Sprint 145 dead code cleanup 1:1 stable
+- **D-4 删 TestSprint141PeriodDistribution** (`backend/tests/test_sampling_sprint141.py` 23 行删除): 3 case (test_period_distribution_61_90d_fields_present × 3 window_days parametrize) 引用 Sprint 145 已删字段 period_distribution, 跟 Sprint 145 dead code cleanup 1:1 stable. 保留 TestSprint141QualityFlagDocs (QualityFlag 描述回归跟 period_distribution 无关)
+- **D-5 配套 ruff unused import 清理** (`backend/tests/test_sampling_sprint141.py`): `from backend.services.sampling_service import get_sampling_roi` 删 PeriodDistribution class 后变成 unused, 同步删
+
+### Added
+- **L4.55 永久规则**: 立项 spec 描述必走 L4.42 实证 (跟 Sprint 188 B3 反漂移 1:1 stable). 任何 sprint 立项前必跑 `git log --grep="<关键词>"` + `grep -rn "<pattern>"` 实证, 立项凭印象 = 0 commit 收口 (跟 Sprint 188 B3 + Sprint 199 R1 + Sprint 200 R1 cleanup 1:1 stable)
+- **`docs/sprints/SPRINT201_R2_V24_L442_VERIFICATION.md`** (302 行新建): Codex Stage 2 L4.42 立项实证报告, 含 5 任务详细 git log/grep 反漂移证据 + stub data 反推 MOM 算法 + Sprint 14.5 PercentageField 1T 上限 SSOT 引用
+
+### Technical
+- Branch: `fix/sprint201-r2-v24-business-3p0-and-201plus-v5-4case` (基于 main HEAD `88e8ae8`). 0 业务代码改动 (跟 Sprint 60+ 0 debt stable +24 sprint + Sprint 89/167/190-200 1:1 stable)
+- pytest focused: `pytest backend/tests/test_sampling_roi_yoy.py backend/tests/test_sampling_sprint139.py backend/tests/test_sampling_sprint141.py -q` → **10 passed** (3 → 0 fail, 含 D-1 metadata 检测 + D-2 MOM -9.09% + D-3/D-4 删 5 case 0 回归)
+- pytest baseline: `pytest backend/tests/ -q -n auto` → **1057 passed / 7 skipped / 3 failed** (3 pre-existing: test_sampling_service_falls_back_to_pay_time + test_mode_full_runs_full_branch + test_claude_hooks_no_unused_imports_baseline, 跟本次改动 0 关联, git stash 回到 main 实证同 3 fail)
+- ruff scoped: `ruff check backend/tests/test_sampling_roi_yoy.py backend/tests/test_sampling_sprint139.py backend/tests/test_sampling_sprint141.py` → **All checks passed!**
+- uvicorn restart: PID 72526 (旧 Sprint 201 R1) → 85666 (新), kill + nohup restart 验证 health check
+- VERSION **不 bump** (跟 Sprint 89/167/190/191/192/193/194/195/196/197/198/199/200/201/202 0 业务代码改动模式 stable, /document-release 累计 31 次不 bump)
 
 ### Added
 - **`scripts/etl/ingest.py::should_skip_file_by_age()` + `filter_files_by_age()`** (50 行新建): Sprint 202 R1 优化 1, 30d+ 老文件直接 skip, 跟 L4.50 mtime 短路同效但更激进. 配套 `ETL_SKIP_FILE_AGE_DAYS` env var 可调阈值 (默认 30)
