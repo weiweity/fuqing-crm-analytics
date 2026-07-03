@@ -8,6 +8,7 @@ from fastapi import APIRouter, Query, Response
 from typing import Optional, List
 
 from backend.contracts.schemas import AudienceTableResponse, AudienceSummaryResponse
+from backend.contracts.audience import AudienceSummaryRequest
 from backend.services.metrics_service import get_audience_table, calculate_audience_summary
 from backend.services import PeriodBuilder, check_future_date
 from datetime import date
