@@ -222,9 +222,15 @@ def calculate_audience_summary(
                 where_parts.append(f"o.product_id IN ({placeholders})")
                 params.extend(product_ids)
             if order_ids:
-                placeholders = ",".join(["?"] * len(order_ids))
-                where_parts.append(f"o.order_id IN ({placeholders})")
-                params.extend(order_ids)
+                # DuckDB IN-list with >10k items is huge; use temp table for scalability
+                if len(order_ids) > 5000:
+                    conn.execute("CREATE OR REPLACE TEMP TABLE _adhoc_order_ids (order_id VARCHAR)")
+                    conn.execute("INSERT INTO _adhoc_order_ids SELECT UNNEST(?)", [order_ids])
+                    where_parts.append("o.order_id IN (SELECT order_id FROM _adhoc_order_ids)")
+                else:
+                    placeholders = ",".join(["?"] * len(order_ids))
+                    where_parts.append(f"o.order_id IN ({placeholders})")
+                    params.extend(order_ids)
             where_sql = " AND ".join(where_parts)
             full_params = params + [cutoff_dt]
 

@@ -262,6 +262,14 @@ class AudiencePeriodMetrics(BaseModel):
 class AudienceSummaryRequest(BaseModel):
     year: int = Field(default=2026, description="对比基准年，如2026")
     metric_type: str = Field(default="GSV", description="GMV 或 GSV")
+    start_date: Optional[str] = Field(default=None, description="开始日期 YYYY-MM-DD")
+    end_date: Optional[str] = Field(default=None, description="结束日期 YYYY-MM-DD")
+    period: Optional[str] = Field(default=None, description="WTD / MTD / YTD / Q1-Q4")
+    channel: Optional[str] = Field(default=None, description="渠道筛选")
+    exclude_channels: Optional[List[str]] = Field(default=None, description="排除的渠道列表")
+    compare_start_date: Optional[str] = Field(default=None, description="对比期开始日期")
+    compare_end_date: Optional[str] = Field(default=None, description="对比期结束日期")
+    order_ids: Optional[List[str]] = Field(default=None, description="订单号列表，仅统计匹配订单")
 
 
 class AudienceSummaryResponse(BaseModel):

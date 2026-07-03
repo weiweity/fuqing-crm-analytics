@@ -75,6 +75,25 @@ def get_audience_summary_api(
     - Panel B：渠道概览-全店（各渠道 GSV，3年同比 + 占比）
     - Panel C：渠道概览-会员（各渠道会员 GSV，3年同比 + 占比）
     """
+    return _calculate_summary(
+        response, year, metric_type, period, start_date, end_date,
+        channel, exclude_channels, compare_start_date, compare_end_date, order_ids,
+    )
+
+
+def _calculate_summary(
+    response: Response,
+    year: int,
+    metric_type: str,
+    period: Optional[str],
+    start_date: Optional[str],
+    end_date: Optional[str],
+    channel: Optional[str],
+    exclude_channels: Optional[List[str]],
+    compare_start_date: Optional[str],
+    compare_end_date: Optional[str],
+    order_ids: Optional[List[str]],
+):
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
 
@@ -99,4 +118,25 @@ def get_audience_summary_api(
         compare_start_date=compare_start_date,
         compare_end_date=compare_end_date,
         order_ids=order_ids,
+    )
+
+
+@router.post("/summary", response_model=AudienceSummaryResponse)
+def post_audience_summary_api(
+    response: Response,
+    body: AudienceSummaryRequest,
+):
+    """人群看板汇总接口（POST 版，支持大量订单号列表）"""
+    return _calculate_summary(
+        response,
+        body.year,
+        body.metric_type,
+        body.period,
+        body.start_date,
+        body.end_date,
+        body.channel,
+        body.exclude_channels,
+        body.compare_start_date,
+        body.compare_end_date,
+        body.order_ids,
     )
