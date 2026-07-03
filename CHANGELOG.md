@@ -1,3 +1,13 @@
+## [unreleased] - 2026-07-03 (Sprint 202 R1: ETL 跑批性能治本 — 业务方反映慢, 7/3 真 ETL 跑 46min (基准 18min) 真因: shop 125 文件 30d+ 占 78% tracker 反复 check + member 5.7M order_id 全表 UPDATE 7min. 优化 1: 文件按 mtime 分桶, 30d+ 老文件直接 skip (L4.54 永久规则). 优化 2: member_df 按 pay_time 7 天窗口过滤, is_member 真子集 17K 而非 5.7M. 期望 26min→<10min + 7min→<30s, 总 46min→<15min. 4 files / +97/-3, 996 passed / 7 skipped / 0 failed. 留尾 Sprint 201+ ClickHouse / Trino POC 8-10 周)
+
+### Added
+- **`scripts/etl/ingest.py::should_skip_file_by_age()` + `filter_files_by_age()`** (50 行新建): Sprint 202 R1 优化 1, 30d+ 老文件直接 skip, 跟 L4.50 mtime 短路同效但更激进. 配套 `ETL_SKIP_FILE_AGE_DAYS` env var 可调阈值 (默认 30)
+- **`scripts/etl/pipeline.py` 冷启动段** (8 行新增): 调用 `filter_files_by_age` 过滤 shop + member 0-30d/30d+ 老文件, 30d+ 直接 skip 不进 tracker. 实证: shop 125 文件 30d+ 78% (98 个) + member 100 文件同模式
+- **`scripts/etl/pipeline.py` member_df 加载段** (10 行新增): Sprint 202 R1 优化 2, member_df 按 pay_time 过滤 7 天窗口. 实证: 4,662,022 老客 (99.6%) 早就是 is_member=TRUE, 走 7 天窗口只 17,163 单
+- **`backend/tests/test_sprint202_r1_etl_perf.py`** (108 行新建): 7 case 锁回归 (优化 1: 5 case 测 should_skip_file_by_age + filter_files_by_age + env var override; 优化 2: 2 case 验证 orders 表 7 天窗口 + 优化空间)
+- **L4.54 永久规则**: ETL 文件分桶 (30d+ 直接 skip) + member_df pay_time 7 天窗口过滤, 跨 sprint 60+ 0 debt 1:1 stable 模式 (跟 L4.50 / L4.51 / L4.53 配套)
+- **留尾** (0 commit, docs/TECH-DEBT.md 登记): Sprint 201+ ClickHouse / Trino POC (8-10 周, 1-2 人月, 替代 DuckDB 单文件 117GB, 治本业务方反映慢)
+
 ## [unreleased] - 2026-07-03 (Sprint 201 R2 L2: DuckDB snapshot 根除 + 存储治本 — 删 dump_duckdb_snapshot.py + 5 分钟 launchd plist + 30 天 retention 累积 4×120GB=480GB 撑爆 1TB 磁盘. 改 ATTACH read_only 替代 snapshot + user_rfm 30 天保留 + cache GC + CHECKPOINT 回收 free_blocks. 7 files / +239/-107, 989 passed / 7 skipped / 0 failed, L4.53 永久规则化 (snapshot 机制 = P2 杀, 跟 L4.51 Read-Write Splitting 配套). 242GB→120GB 立即释放 + ETL 末尾自动治理长期治本)
 
 ### Removed

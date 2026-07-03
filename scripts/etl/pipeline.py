@@ -171,6 +171,13 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                 # 不应把全部历史文件标为已处理，否则新增文件会被跳过。
                 if not processed_path.exists() and data_source.exists():
                     xlsx_files = list(data_source.rglob("*.xlsx"))
+                    # Sprint 202 R1 优化 1: 30d+ 老文件直接 skip (L4.54 永久规则)
+                    # 实证: shop 125 文件 30d+ 占 78%, member 100 文件同模式
+                    # 跟 mtime 短路同效但更激进, 省 100-200s
+                    from scripts.etl.ingest import filter_files_by_age
+                    xlsx_files, skipped_old = filter_files_by_age(xlsx_files)
+                    if skipped_old:
+                        print(f"  [Sprint 202 R1 优化 1] {data_type}: 跳过 {len(skipped_old)} 个 30d+ 老文件 (L4.54 永久规则)")
                     total_files = len(xlsx_files)
                     if total_files > 0:
                         # Sprint 28+ 治根 (2026-06-17): mtime 阈值过滤, 避免误把
@@ -221,6 +228,21 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
     if run_mode == 'incremental':
         shop_df = load_data_files(SHOP_DATA_SOURCE, data_type='shop', run_mode=run_mode)
         member_df = load_data_files(MEMBER_DATA_SOURCE, data_type='member', run_mode=run_mode)
+        # Sprint 202 R1 优化 2: member_df 按 pay_time 过滤 7 天窗口
+        # 实证: 100 个 member 文件累积 5.7M order_id, 99.6% (4,644,859) 早就是 is_member=TRUE
+        # 走全表 UPDATE 7 min, 走 7 天窗口 → 只 17,163 单, 7 min → <30s
+        # 跟 L4.5 FilterBuilder 1:1 stable: 业务上 is_member 标 TRUE 只对"最近 7 天有订单的新会员"有意义
+        # 老客 (is_member 早 TRUE) 不需要重复标
+        if not member_df.empty and 'pay_time' in member_df.columns:
+            from datetime import datetime as _dt
+            from datetime import timedelta as _td
+            cutoff_ts = (_dt.now() - _td(days=7)).timestamp() * 1000  # ms
+            member_df_before = len(member_df)
+            # pay_time 可能是 datetime / str / int, 统一转 Timestamp
+            import pandas as pd
+            member_df['_pay_time_ts'] = pd.to_datetime(member_df['pay_time'], errors='coerce').astype('int64') // 10**6
+            member_df = member_df[member_df['_pay_time_ts'] >= cutoff_ts].drop(columns=['_pay_time_ts'])
+            print(f"  [Sprint 202 R1 优化 2] member_df 按 pay_time 7 天窗口过滤: {member_df_before:,} → {len(member_df):,} 行 (-{member_df_before - len(member_df):,})")
         if shop_df.empty:
             print("错误: 没有加载到任何店铺数据!")
             return
