@@ -625,11 +625,15 @@ _PYTEST_ROOT = Path("/private/var/folders/tz/wswl3q3117v437rw68yd90gh0000gn/T/py
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_old_pytest_sessions():
-    """Sprint 201 R1+ R2 L4.50 candidate: 清理 24h+ 老 pytest session 目录, 保留 current.
+    """Sprint 201 R1+ R2 L4.50: 清理 24h+ 老 pytest session 目录, 保留 current.
 
     跨 sprint stable race flake 模式 1:1: 之前 sprint 178 L4.31 治 race flake, 这次治 pytest session
     磁盘累积. autouse session-scope 确保每次 pytest 启动时自动清, 不需要业务方手动跑.
+
+    Sprint 201 R2 CI fix v23: 早 return 之前先 yield, 修复 CI #529+ ValueError 'did not yield a value'.
+    pytest 把这个 fixture 当 generator 调用, 任何 return 路径必须在 yield 之前 yield 1 次.
     """
+    yield  # 必须先 yield, 即使后面要早 return
     if not _PYTEST_ROOT.exists():
         return
     now = time.time()
@@ -657,7 +661,6 @@ def cleanup_old_pytest_sessions():
     if cleaned_count:
         print(f"[L4.50 cleanup_old_pytest_sessions] Cleaned {cleaned_count} old session(s), "
               f"~{cleaned_bytes // (1024**2)} MB freed")
-    yield
 
 
 # ─────────────────────────────────────────────────────────────
