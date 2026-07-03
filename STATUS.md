@@ -2,7 +2,7 @@
 
 > **单一 source of truth**. README.md / CLAUDE.md 状态行均链接到这里。Sprint 收口后必更新。
 
-**最后更新**: 2026-07-03 (Sprint 201+: **L4.42 立项实证 0 commit 收口 + ClickHouse POC 立项决策备忘录 + L4.56 永久规则化** — 跟 Sprint 201 R2 v24 + Sprint 202 R1 + Sprint 201 R2 L2 + Sprint 201 R2 v23 + Sprint 201 R1 累计 6 sprint 沉淀 0 业务代码改动. main HEAD `eab214b` (1098e40 → 88e8ae8 → 7201e84 → 1967ad8 → 79e5d33 → e9d059e → 1f2a306 → df29bad → f018d95 → `eab214b`). pytest baseline 993/73/0 → Sprint 202 R1 996/7/0 → Sprint 201 R2 v24 1057/7/3 → Sprint 201+ 1057/7/3 (0 变化). /document-release 累计 33 次真治本. L4.56 永久规则化 POC / 长期治本专项立项必写立项决策备忘录 + 留尾登记 + 启动条件)
+**最后更新**: 2026-07-03 (Sprint 202+: **L4.42 立项实证 + 4 维度 0 commit 收口 + L4.57 永久规则化 + 4 维度留尾续期** — 跟 Sprint 201+ v5 + Sprint 201 R2 v24 + Sprint 202 R1 + Sprint 201 R2 L2 + Sprint 201 R2 v23 + Sprint 201 R1 + Sprint 201+ 累计 7 sprint 沉淀 0 业务代码改动. main HEAD `f3e2c24` (1098e40 → 88e8ae8 → 7201e84 → 1967ad8 → 79e5d33 → e9d059e → 1f2a306 → df29bad → f018d95 → eab214b → 0f37529 → `f3e2c24`). pytest baseline 993/73/0 → Sprint 202 R1 996/7/0 → Sprint 201 R2 v24 1057/7/3 → Sprint 201+ 1057/7/3 → Sprint 202+ 1074 tests collected 0 变化. /document-release 累计 33 次真治本. L4.57 永久规则化跨 sprint 留尾 4 维度 0 commit 续期 SOP. 累计 130 sprint 0 debt 持续 (跨 Sprint 60+ 0 debt stable 模式 +27 sprint). 跟 Sprint 188 B3 + Sprint 199 R1 + Sprint 201 R2 v24 + Sprint 201+ v5 1:1 stable 跨 +27 sprint)
 
 **关键文档** (跟 Sprint 201+ 1:1 stable, 跟 main HEAD `eab214b` 同步):
 - `docs/sprints/SPRINT201_PLUS_L442_VERIFICATION.md` — 4 任务 L4.42 立项实证报告 (跟 Sprint 201 R2 v24 + Sprint 188 B3 1:1 stable)
