@@ -92,6 +92,7 @@ class TwoYearOverviewRequest(BaseModel):
     end: Optional[str] = Field(default=None, description="结束日期 YYYY-MM-DD")
     channel: Optional[str] = Field(default=None, description="渠道筛选")
     exclude_channels: Optional[str] = Field(default=None, description="排除渠道, 逗号分隔")
+    order_ids: Optional[List[str]] = Field(default=None, description="订单号列表，仅统计匹配订单")
 
 
 class NewOldCustomerRequest(_DateWindowMixin):
@@ -411,6 +412,7 @@ def post_two_year_overview(req: TwoYearOverviewRequest) -> AdHocQueryResponse:
             end=req.end,
             channel=req.channel,
             exclude_channels=req.exclude_channels,
+            order_ids=req.order_ids,
         )
     except (ValueError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))

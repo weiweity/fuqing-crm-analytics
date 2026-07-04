@@ -38,6 +38,15 @@ def _period_from_text(text: str) -> str | None:
     return None
 
 
+def _order_ids_from_text(text: str) -> list[str] | None:
+    markers = ("order_id", "order ids", "order_ids", "订单号", "订单ID", "订单id", "订单清单", "matched order set")
+    if not any(marker.lower() in text.lower() for marker in markers):
+        return None
+    tokens = re.findall(r"\b(?:ORDER|OID|TID)[-_]?[A-Za-z0-9]+\b", text, flags=re.IGNORECASE)
+    cleaned = [token for token in tokens if token.lower() not in {"order_id", "order_ids"}]
+    return cleaned or None
+
+
 def _fixed_product_dates(text: str, start: str, end: str) -> tuple[str, str]:
     year = _year_from_text(text, int(end[:4]))
     upper = text.upper()
@@ -53,6 +62,18 @@ def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str],
         del text
         return {"start": start, "end": end}
 
+    def two_year_params(text: str, start: str, end: str) -> dict[str, Any]:
+        params = {
+            "year": _year_from_text(text, int(end[:4])),
+            "period": _period_from_text(text),
+            "start": start,
+            "end": end,
+        }
+        order_ids = _order_ids_from_text(text)
+        if order_ids:
+            params["order_ids"] = order_ids
+        return params
+
     return [
         ("export-excel", ("导出", "Excel", "报告", "整份"), default_dates),
         ("dq-report", ("排查", "校验", "数据质量"), lambda text, start, end: {"start": start, "end": end, "full": True}),
@@ -63,13 +84,8 @@ def _route_table() -> list[tuple[str, tuple[str, ...], Callable[[str, str, str],
         ),
         (
             "two-year-overview",
-            ("两年对比", "30指标", "老客", "新客", "会员"),
-            lambda text, start, end: {
-                "year": _year_from_text(text, int(end[:4])),
-                "period": _period_from_text(text),
-                "start": start,
-                "end": end,
-            },
+            ("两年对比", "30指标", "30 指标", "order_id", "订单号清单", "matched order set", "老客", "新客", "会员"),
+            two_year_params,
         ),
         (
             "channel-slice",

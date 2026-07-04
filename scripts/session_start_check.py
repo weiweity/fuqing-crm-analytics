@@ -117,13 +117,29 @@ def _verify_skill_symlinks() -> None:
         if not claude_skill_md.exists() and not os.path.islink(str(claude_skill_md)):
             skipped_only_one_side += 1
             continue  # claude 端没对应 SKILL.md, 不是双端 SSOT, 跳过 (workbuddy 生态独占)
-        if not os.path.islink(str(wb_skill_md)):
-            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md 不是软链 (期望指向 {claude_skill_md})")
+        try:
+            link_mode = os.lstat(str(wb_skill_md)).st_mode & 0o170000
+        except OSError as exc:
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md lstat 失败: {exc}")
             miss += 1
             continue
-        target = os.readlink(str(wb_skill_md))
-        if target != str(claude_skill_md):
-            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md → {target} (期望 {claude_skill_md})")
+        if link_mode != 0o120000:
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md mode {oct(link_mode)} 不是 0o120000 软链")
+            miss += 1
+            continue
+        wb_real = os.path.realpath(str(wb_skill_md))
+        claude_real = os.path.realpath(str(claude_skill_md))
+        if wb_real != claude_real:
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md realpath={wb_real} (期望 {claude_real})")
+            miss += 1
+            continue
+        try:
+            if wb_skill_md.read_bytes() != claude_skill_md.read_bytes():
+                print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md 字节内容不一致")
+                miss += 1
+                continue
+        except OSError as exc:
+            print(f"  ⚠️  L4.35 skill SSOT drift: {name}/SKILL.md 字节校验失败: {exc}")
             miss += 1
             continue
         ok += 1

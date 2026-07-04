@@ -19,8 +19,10 @@ from scripts.ad_hoc_queries._utils import clamp_yoy, parse_exclude_channels, val
 from scripts.ad_hoc_queries.dq_report import DQ_HEADERS, run_dq_report
 from scripts.ad_hoc_queries.rfm_repurchase import RFM_HEADERS, run_rfm_repurchase
 from scripts.ad_hoc_queries.top_n import TOP_N_HEADERS, run_top_n
-from scripts.ad_hoc_queries.two_year_overview import TWO_YEAR_HEADERS, run_two_year_overview
 from scripts.ad_hoc_queries.registry import QuerySpec, register
+# two_year_overview 改为 lazy import (write_export_excel 函数内):
+# 避免循环 import (export_excel → two_year_overview → registry → _load_builtins → export_excel, 触发 ImportError TWO_YEAR_HEADERS partially initialized).
+# Sprint 202+ Sprint 202 Data Query v2.7 暴露 pre-existing 循环 import (Sprint 183 v2.0 抽象沉淀), 1 行 lazy import 真治本.
 
 SHEET_ORDER = [
     "00_说明",
@@ -104,6 +106,10 @@ def write_export_excel(
     year: int = 2026,
     output_path: str | None = None,
 ) -> str:
+    # Lazy import (Sprint 202+ 治本 pre-existing 循环 import):
+    # 之前 module-level import 触发 _load_builtins 链 → two_year_overview 还没初始化
+    from scripts.ad_hoc_queries.two_year_overview import TWO_YEAR_HEADERS, run_two_year_overview
+
     validate_date_window(start, end)
     workbook = Workbook()
     workbook.remove(workbook.active)

@@ -1,7 +1,7 @@
 """Sprint 201+ R8 ad-hoc-query hitrate monitor 锁回归 (L4.59 永久规则化)
 
 - 验证 scripts/adhoc_query_hitrate_monitor.py 跑出 ADHOC_HITRATE_MONITOR + tools=14
-- 验证 EXPECTED_TOOL_COUNT 跟 Sprint 198 治本一致 (14)
+- 验证 EXPECTED_TOOL_COUNT 跟 Sprint 198 治本一致 (14) + hitrate threshold 95%
 - 验证 fail-open 原则 (异常 exit 0 不阻 commit)
 
 L4.61 跨 CI runner 适配 (跟 L4.39 macOS-only test skipif 永久规则 1:1 stable):
@@ -55,7 +55,7 @@ def test_adhoc_query_hitrate_monitor_log_grep() -> None:
     assert mod.EXPECTED_TOOL_COUNT == 14, (
         f"Sprint 198 ai-sandbox-execute 是第 14 tool, expected 14, got {mod.EXPECTED_TOOL_COUNT}"
     )
-    assert mod.HITRATE_THRESHOLD == 0.70
+    assert mod.HITRATE_THRESHOLD == 0.95
     # L4.35 symlink 治本: SKILL_PATH_CLAUDE 期望在 ~/.claude/skills/ 下
     assert str(mod.SKILL_PATH_CLAUDE).endswith("ad-hoc-query/SKILL.md")
     assert str(mod.SKILL_PATH_WORKBUDDY).endswith("ad-hoc-query/SKILL.md")
