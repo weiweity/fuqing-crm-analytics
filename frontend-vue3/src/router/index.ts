@@ -45,6 +45,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SamplingView.vue'),
     meta: { title: '派样看板', requiresAuth: true },
   },
+  {
+    path: '/ops',
+    component: () => import('@/views/OpsView.vue'),
+    meta: { title: '系统运维看板', requiresAuth: true },
+  },
 ]
 
 const router = createRouter({
