@@ -11,7 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path("/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics")
+REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台 (test 在 backend/tests/ 下, parents[2] 是 repo root)
 SCRIPT = REPO_ROOT / "scripts" / "memory_size_monitor.py"
 
 
