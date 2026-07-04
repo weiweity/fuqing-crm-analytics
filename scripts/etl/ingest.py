@@ -172,6 +172,16 @@ def load_data_files(data_source, data_type='shop', run_mode='full'):
     # (lru_cache 用 data_source str 作 key).
     _xlsx_stem_to_rel = _build_xlsx_stem_to_rel(str(data_source))
 
+    # Sprint 202+ R4 修法 (跟 L4.42 实证 wall_min=63min 0 实质效果 1:1 stable):
+    # L4.54 优化 1 从 pipeline.py:177 撤回 (嵌套在 if not processed_path.exists() 块内,
+    # 增量路径 tracker 永远存在 → 0 hit), 移到 ingest.py 增量模式 line 跟 _file_changed 同级,
+    # 让增量模式也走文件分桶. 期望 wall_min: 63min → <15min (跟 R1 实证期望 1:1 stable).
+    if run_mode == 'incremental':
+        _all_data_files = list(data_source.rglob("*.xlsx"))
+        _all_data_files, _skipped_old = filter_files_by_age(_all_data_files)
+        if _skipped_old:
+            print(f"  [Sprint 202+ R4 L4.54 优化 1 真治本] {data_type}: 跳过 {len(_skipped_old)} 个 30d+ 老文件 (走 ingest 增量路径, 跟 _file_changed 同级)")
+
     if pq_files:
         should_read_parquet = True
         # 增量模式：只加载新增或修改过的 Parquet 文件（hash 校验）

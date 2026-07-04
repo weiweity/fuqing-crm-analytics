@@ -171,13 +171,6 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
                 # 不应把全部历史文件标为已处理，否则新增文件会被跳过。
                 if not processed_path.exists() and data_source.exists():
                     xlsx_files = list(data_source.rglob("*.xlsx"))
-                    # Sprint 202 R1 优化 1: 30d+ 老文件直接 skip (L4.54 永久规则)
-                    # 实证: shop 125 文件 30d+ 占 78%, member 100 文件同模式
-                    # 跟 mtime 短路同效但更激进, 省 100-200s
-                    from scripts.etl.ingest import filter_files_by_age
-                    xlsx_files, skipped_old = filter_files_by_age(xlsx_files)
-                    if skipped_old:
-                        print(f"  [Sprint 202 R1 优化 1] {data_type}: 跳过 {len(skipped_old)} 个 30d+ 老文件 (L4.54 永久规则)")
                     total_files = len(xlsx_files)
                     if total_files > 0:
                         # Sprint 28+ 治根 (2026-06-17): mtime 阈值过滤, 避免误把
@@ -270,7 +263,11 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
             finally:
                 conn.close()
         else:
-            member_order_ids = set(member_df['order_id'].dropna())
+            # Sprint 202+ R4 修法 (跟 L4.42 实证 wall_min=63min 0 实质效果 1:1 stable):
+            # R1 实证 5,703,316 单 is_member 仍标 (跟没过滤一样) 真因: line 273 走
+            # member_df['order_id'] (17K) 而非 member_df[member_df['is_member']]['order_id']
+            # (老客 4.66M 早 is_member=TRUE, 7 天窗口只过滤新会员 17K). 修法: 走 is_member 过滤.
+            member_order_ids = set(member_df[member_df['is_member']]['order_id'].dropna())
 
         # Sprint 15 B2 治根: mark 增量同步 (增量模式)
         # 之前增量 ETL 跑批时, member_order_ids 进了 orders 表的 is_member 字段,
