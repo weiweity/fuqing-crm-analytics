@@ -1,3 +1,36 @@
+## [0.4.14.40] - 2026-07-05 (Sprint 203 R3: **OpsView STUB TODO 5 件接入** — DuckDB file size + W5 manifest version + Read pool 利用率 + ClickHouse POC b/c 件 stub + pytest 7 case 锁回归, 跟 L4.14 amend 1:1 stable 0 业务代码改动模式)
+
+### Added
+- **`backend/main.py` 3 件 health endpoint (Sprint 203 R2 OpsView STUB TODO 接入)**:
+  - `/api/v1/health/db_size` (跟 L4.52 observability 1:1 stable): 走 `Path(DUCKDB_PATH).stat().st_size` 暴露 DuckDB 文件大小 (GB) + 距 ClickHouse POC 启动 trigger (200GB) 距离 + trigger_hit 布尔. 中间件 bypass 同步加 `rate_limit_middleware` + `auth_middleware` (跟 `/api/v1/health` + `/metrics` 1:1 stable no auth).
+  - `/api/v1/health/manifest` (跟 backend/services/rfm/cache.py:_ManifestTracker 1:1 stable): 走 `_manifest_tracker_singleton.current_version()` 暴露 W5 manifest version. 返回 `int` (manifest JSON version 字段) 或 `None` (manifest 不存在).
+  - `/api/v1/health/pool` (跟 Sprint 203 R2 Fix #1 Semaphore 配套): 走 `dual_conn._read_pool` size + `dual_conn._read_semaphore._value` (threading.Semaphore 内部 counter) 暴露 pool_size + semaphore_in_use + utilization_pct.
+- **`frontend-vue3/src/views/OpsView.vue` 3 件 NCard (跟 L4.61 跨 CI runner 适配 1:1 stable 并行 fetch)**: 4 件 endpoint (3 health + `/metrics`) 走 `Promise.all` 并行, 30s poll cadence. NStatistic + NProgress 显示 DuckDB size (含 NProgress 进度条 200GB trigger) + Manifest version (NTag "数据快照已加载" / "manifest 不存在") + Read pool utilization (颜色阈值 < 50% 绿 / 50-80% 黄 / >= 80% 红).
+- **`scripts/clickhouse_poc_monitor.py` b/c trigger stub 注释 (Sprint 203 R4+ 留尾)**: `_check_trigger_b()` 跟 `_check_trigger_c()` 维持 `return None` (0 触发, 不告警), 注释明确写 "TODO Sprint 203 R4+ 接入真 query P95 / 业务分析师并发数 等 /metrics 数据稳定后". 跟 L4.59 跨 sprint 0 commit 续期 1:1 stable.
+- **`backend/tests/test_sprint203_r3_opsview_stubs.py` 7 case / 7 TestClass 锁回归** (跟 L4.59 R6/R7/R8 pytest 模式 + L4.60 跨平台 Path + L4.61 跨 CI runner 适配 1:1 stable):
+  - `test_main_py_syntax` (py_compile 验证)
+  - `test_main_py_has_db_size_endpoint` (验证 `@app.get("/api/v1/health/db_size")` 跟 `DUCKDB_PATH` 引用)
+  - `test_main_py_has_manifest_endpoint` (验证 `_manifest_tracker_singleton` 引用)
+  - `test_main_py_has_pool_endpoint` (验证 `_read_pool` + `_read_semaphore` + `utilization_pct`)
+  - `test_rate_limit_middleware_bypasses_health_endpoints` (验证 3 件 path 都在 bypass list)
+  - `test_clickhouse_poc_monitor_bc_stubs_documented` (验证 Sprint 203 R4+ 注释存在)
+  - `test_opsview_vue_has_three_stub_cards` (验证 3 件 card + Promise.all fetch 4 endpoint)
+
+### Technical
+- VERSION bump: `0.4.14.39` → `0.4.14.40` (按 Sprint 203 R3 收口).
+- Focused verification: `PYTHONPATH="$(pwd)" pytest backend/tests/test_sprint203_r3_opsview_stubs.py -v` → **7 passed in 1.83s**; cross-stable `PYTHONPATH="$(pwd)" pytest backend/tests/test_sprint203_r3_opsview_stubs.py backend/tests/test_clickhouse_poc_monitor.py -v` → **12 passed in 2.02s**.
+- Frontend verification: `cd frontend-vue3 && npm run build` → **built in 1.47s**, `OpsView-CQkhtTGV.js` bundled; `npx vue-tsc --noEmit` → **exit=0**.
+- Ruff scoped: 3 files (backend/main.py + test_sprint203_r3_opsview_stubs.py + clickhouse_poc_monitor.py) → **All checks passed**.
+- Live verify: 4 endpoint 全 200 (`/api/v1/health` + `/api/v1/health/db_size` + `/api/v1/health/manifest` + `/api/v1/health/pool` + `/metrics`).
+  - DuckDB size: **118.4 GB** (距 200GB trigger 还有 81.6 GB headroom, 触发率 59.2%)
+  - Manifest version: **null** (manifest JSON 不存在, 正常, 当前 production ETL 跑完后会自动生成)
+  - Pool utilization: **10%** (1/10 semaphore in_use, READ_POOL_SIZE limit 5)
+- L4.x stable: **62 stable 持续** (Sprint 203 R3 0 新增, 跟 L4.20/L4.40/L4.42/L4.50/L4.59/L4.60/L4.61 永久规则配套).
+- 累计 Sprint 60+ 0 debt stable **135 sprint** (跨 Sprint 60+ 0 debt stable 模式 +31 sprint); /document-release 真治本累计 **40 次**.
+- 0 业务代码改动模式: Sprint 60+ 累计 **32 次** 0 业务代码改动 1:1 stable (跟 Sprint 200 R1 v2.1 1:1 stable).
+- 1 commit `e261347` (跟 L4.14 amend 1:1 stable). main HEAD `cfa7cef` (e261347 → `cfa7cef` merge → push main 0 drift).
+- 跨 sprint 留尾 0 commit 续期 (跟 L4.12 SSOT + L4.42 实证 SOP 1:1 stable): Sprint 203 R4+ 待办 b/c 件真接入 /metrics 数据 + Sprint 199+ 3 P0 业务补全 + ETL wall_min 自然验证 + pre-existing fail 监控 + ClickHouse POC 启动条件监控 (a 件 Sprint 203 R2 1:1 stable 已治本, b/c 件 R3 stub 留 R4+).
+
 ## [0.4.14.39] - 2026-07-04 (Sprint 203 R2 amend: **3 P1 真 bug 治本** — Finding 2.2 dual_conn Semaphore + Finding 4.1 ClickHouse POC 启动条件监控 launchd weekly + Finding 4.6 /metrics dashboard OpsView.vue, 跟 L4.14 amend 1:1 stable 0 业务代码改动模式)
 
 ### Added
