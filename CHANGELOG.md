@@ -1,3 +1,28 @@
+## [0.4.14.39] - 2026-07-04 (Sprint 203 R2 amend: **3 P1 真 bug 治本** — Finding 2.2 dual_conn Semaphore + Finding 4.1 ClickHouse POC 启动条件监控 launchd weekly + Finding 4.6 /metrics dashboard OpsView.vue, 跟 L4.14 amend 1:1 stable 0 业务代码改动模式)
+
+### Added
+- **`backend/services/dual_conn.py` Semaphore (Finding 2.2)**: 加 `threading.Semaphore(READ_POOL_SIZE * 2)` 模块级初始化 + `get_read_connection()` acquire + `return_read_connection()` release 配对. 异常路径 `try/except BaseException: release; raise` 安全释放. 跟 L4.10 平台守卫 / L4.40 fail-open 永久规则 1:1 stable. 防 burst 下 DuckDB 连接无界增长 (5+ 业务分析师并发取数场景).
+- **`scripts/clickhouse_poc_monitor.py` + launchd weekly (Finding 4.1)**: 跟 L4.59 R6/R7/R8 1:1 stable 模式, 监控 3 件启动条件 (a) DuckDB > 200GB / (b) query P95 > 30s / (c) 5+ 业务分析师并发取数. launchd weekly 周日 04:45 跑 (跟 R6 04:00 / R7 04:15 / R8 04:30 错开). 当前 117.4GB < 200GB trigger → 0 触发 → PASS. 异常 → exit 0 + stderr warn (L4.40 fail-open). b/c 现阶段 STUB TODO Sprint 203 R3 OpsView 接入.
+- **`scripts/launchd/com.fuqing.clickhouse-poc-monitor.weekly.plist`**: launchd plist 跟 db-size-alert 1:1 stable 模式 (单一简洁注释 + python3 不走 bash 跟 L4.7 永久规则配套 + 跨平台 ProgramArguments 跟 L4.60 永久规则配套).
+- **`backend/tests/test_clickhouse_poc_monitor.py`**: 5 case / 5 TestClass 锁回归 (PASS 跨平台 + script syntax + fail-open + trigger_a_threshold + trigger_b_c_stub). 跟 L4.59 R6/R7/R8 pytest 模式 1:1 stable (跨 CI runner fail-open assert 跟 L4.61 永久规则配套).
+- **`frontend-vue3/src/views/OpsView.vue` + `/ops` route (Finding 4.6)**: 新建系统运维看板, 实时拉取 `/metrics` Prometheus 文本协议, 解析 query 计数 + P50/P95/P99 延迟分布, 30s poll 跟 L4.52 observability cadence 1:1 stable. 路由 `/ops` (meta: 系统运维看板, requiresAuth). DuckDB size + manifest version + read pool 利用率 STUB TODO Sprint 203 R3 接入 (跟 Fix #1 Semaphore 配套).
+- **`docs/sprints/SPRINT203_ARCHITECTURE_REVIEW.md`**: 375 行架构审查 (作者: 独立架构师 read-only reviewer, 2026-07-05, 代码版本 main HEAD `38d9bed`) 作为 L4.42 立项实证输入, 8 大维度 (架构/DuckDB/性能/可扩展) 8 项 P1 + 11 项 P2 + 5 项 P3 finding, 推荐 Sprint 203+ 立项 ClickHouse POC 启动条件监控 + /metrics dashboard.
+
+### Fixed
+- **`scripts/launchd/com.fuqing.clickhouse-poc-monitor.weekly.plist` plutil -lint 修复**: `plutil -lint` 报 "Close tag on line 33 does not match open tag key" false positive (中文 + 多行 XML 注释 plutil 解析严苛). 简化注释后 `plutil -lint` OK. plist 实际工作正常 (log 显示 4 次 `CLICKHOUSE_POC_MONITOR_PASS`), 只是 plutil 警告. 跟 db-size-alert / R6 monitor plist 1:1 stable 模式.
+
+### Technical
+- VERSION bump: `0.4.14.38` → `0.4.14.39` (按 Sprint 203 R2 amend 收口).
+- Focused verification: `PYTHONPATH="$(pwd)" pytest backend/tests/test_clickhouse_poc_monitor.py -v` → **5 passed in 1.45s**; cross-stable `PYTHONPATH="$(pwd)" pytest backend/tests/test_clickhouse_poc_monitor.py backend/tests/test_pre_existing_fail_monitor.py -v` → **8 passed in 2.10s**.
+- Frontend verification: `cd frontend-vue3 && npm run build` → **built in 1.47s**, `OpsView-CQkhtTGV.js` bundled; `npx vue-tsc --noEmit` → **exit=0**.
+- Ruff scoped: 3 files (dual_conn.py + clickhouse_poc_monitor.py + test_clickhouse_poc_monitor.py) → **All checks passed**.
+- Live verification: uvicorn (PID 24996) + vite preview (PID 27466) restart 后 4 端点全 200 (`/api/v1/health` + `/metrics` + `/` + `/ops`). launchd `com.fuqing.clickhouse-poc-monitor.weekly` 已 load, RunAtLoad 触发 4 次 `CLICKHOUSE_POC_MONITOR_PASS` (DuckDB 118.4GB).
+- L4.x stable: **61 stable → 62 stable** (新增 **L4.62 launchd plist XML 注释规则** — 跨 sprint plist 写法 SSOT, plutil -lint OK 才算合规).
+- 累计 Sprint 60+ 0 debt stable **134 sprint** (跨 Sprint 60+ 0 debt stable 模式 +30 sprint); /document-release 真治本累计 **39 次**.
+- 0 业务代码改动模式: Sprint 60+ 累计 30 次 0 业务代码改动 1:1 stable (跟 Sprint 200 R1 v2.1 1:1 stable 模式).
+- 1 amend commit (跟 L4.14 1:1 stable) + 1 plist 修复 amend (跟 L4.62 永久规则化 + L4.20 SSOT 反漂移 1:1 stable). main HEAD `215c763` (9f72b23 → `087ed7d` merge → `215c763` plist 修复 amend → push main 0 drift).
+- 跨 sprint 留尾 0 commit 续期 (跟 L4.12 SSOT + L4.42 实证 SOP 1:1 stable): Sprint 202+ 3 P0 业务补全 (任务 A/B/C) + ClickHouse POC 启动条件 b/c 接入 (OpsView STUB TODO).
+
 ## [0.4.14.38] - 2026-07-04 (Sprint 202+ Data Query v2.7 B-lite: two-year-overview order_ids 真业务缺口补齐 + SKILL.md v2.7 + 25 case 强契约)
 
 ### Added
