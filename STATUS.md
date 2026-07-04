@@ -26,12 +26,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.26` (Sprint 183 WorkBuddy /ad-hoc-query 优化 + SKILL.md v2.2 + L4.36 禁停 uvicorn + /document-release 累计 14 次真治本) |
-| git HEAD (main) | `774e6a7` (Sprint 181.1 Path(__file__) 跨平台治本 + L4.34 永久规则, 跟 origin/main 0 drift) |
-| 当前分支 | `main` (Sprint 181 收口 + L4.34 沉淀后) |
-| 最近 sprint | Sprint 180 inline python 2 真因治本 + Sprint 180.1 shlex 替代 tmp file + Sprint 181 chdir 污染源治本 (3 真因) + Sprint 181.1 硬编码 macOS 路径治本 (1 真因) + L4.32/33/34 永久规则沉淀 |
-| 收口日 | 2026-07-01 |
-| 上次合入 | Sprint 181.1 + L4.34 (commit `774e6a7`, push origin main `77b0a91..774e6a7` 成功, +L4.34 永久规则 + .ship-audit.log append 1 line) |
+| VERSION | `0.4.14.38` (Sprint 202+ Data Query v2.7 B-lite: two-year-overview order_ids 端到端 + SKILL.md v2.7 极小补丁 + Tests 25 case 5 TestClass 强契约 + HITRATE 70→95 + L4.35 symlink verify upgrade + pre-existing 500 错误 1 行 lazy import 真治本 + /document-release 累计 38 次真治本) |
+| git HEAD (main) | `2dcb06d` (Sprint 202+ Data Query v2.7 + /document-release 收口合并, 跟 origin/main 0 drift) |
+| 当前分支 | `main` (Sprint 202+ Data Query v2.7 收口后) |
+| 最近 sprint | Sprint 202+ Data Query v2.7 B-lite 方案 (跟 Sprint 195/196 R1 1:1 stable 升级模式 + 4 voices 共识 + Codex 交叉审核 + 真业务 H1 file 3685 单 e2e 闭环 ¥505,996.29 1:1 跟 user 报) + Sprint 202+ CI fix R6+R7+R8+R9 跨平台 Path(__file__).resolve() + Sprint 202+ CI fix #2 R6/R8 monitor 跨 CI Linux runner 适配 |
+| 收口日 | 2026-07-04 |
+| 上次合入 | Sprint 202+ Data Query v2.7 + /document-release 收口 (commit `2dcb06d`, push origin main `4bc4cb5..2dcb06d` 成功, +Sprint 202+ B-lite 14 files +600/-24 + docs commit 3790ca9 1 file / +1/-1, 累计 /document-release 38 次真治本) |
 
 ---
 
@@ -39,7 +39,7 @@
 
 | 维度 | 数 | 备注 |
 |---|---|---|
-| pytest passed | **813** | Sprint 172-178 不退化 (跟 Sprint 171 baseline 813 passed / 72 skipped / 0 failed 持平, Sprint 173 + 8 case date.test.ts + Sprint 175 + 22 case categoryColumnsXlsx + Sprint 176 + 3 case sprint176 regression + Sprint 177+ + 8 case branch_cleanup = 累计新增 41 case 平衡回归). L4.4 race flake 接受 (跟 Sprint 142 + Sprint 141.5 stable) |
+| pytest passed | **1109** | Sprint 202+ 净 +25 case (跟 Sprint 195 R1 1:1 stable 强契约 25 case / 5 TestClass 锁回归). baseline: Sprint 171 813 → Sprint 202+ 1109 (累计 +296 case, 跨 sprint 60+ 132 sprint 0 debt stable 模式 1:1). L4.4 race flake 接受 (跟 Sprint 142 + Sprint 141.5 stable) |
 | pytest skipped | **72** | production DuckDB 不可用 / 被本地 uvicorn 占用 (含 Sprint 142 race flake L5.1 接受: test_rfm_flow_ttl_ratio Unique file handle conflict) + Sprint 169 sampling tracking 6 case 生产 DuckDB 不可用 skip |
 | vitest passed | **80** | Sprint 174 exportXlsx SSOT 8 case + HealthOverviewTab baseline 6 fail (L4.4 接受 pre-existing flake) |
 
