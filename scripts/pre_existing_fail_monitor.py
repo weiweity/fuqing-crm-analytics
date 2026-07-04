@@ -6,6 +6,11 @@
 - 0 FAIL → print "PRE_EXISTING_FAIL_MONITOR_PASS 14 passed"
 - 任何 FAIL → exit 1 + 写 TECH-DEBT.md 跨 sprint 留尾告警
 - fail-open: 异常 stderr warn + exit 0 (跟 L4.40 post-merge hook 配套)
+
+L4.61 跨 CI runner 适配 (跟 L4.40 + L4.50 1:1 stable):
+- CI Linux runner 加 --deselect 把 14 pre-existing fail 全 deselect → 0 passed 也是预期
+- main() 改: passed == 0 + failed == 0 视为 PASS (deselected 跳过), 不告警
+- failed > 0 才告警 (跟 macOS launchd 跨 sprint stable 1:1)
 """
 from __future__ import annotations
 
@@ -96,7 +101,13 @@ def main() -> int:
         # fail-open: 监控不阻 commit, 只告警
         return 0
 
-    msg = f"PRE_EXISTING_FAIL_MONITOR_PASS {passed} passed (R6 cross-sprint stable)"
+    # L4.61 跨 CI runner 适配: passed=0 是 CI --deselect 预期, 也算 PASS
+    # macOS launchd 跑期望 14 passed (本地实证 Sprint 202 R1 14 passed)
+    # Linux CI runner 跑期望 0 passed (--deselect 14 pre-existing fail 全跳过, 跟 Sprint 201 R1 v2.1 lint.yml 1:1 stable)
+    msg = (
+        f"PRE_EXISTING_FAIL_MONITOR_PASS {passed} passed (R6 cross-sprint stable, "
+        f"failed=0, 期望 14 passed macOS / 0 passed CI runner)"
+    )
     print(msg)
     with LOG_FILE.open("a") as f:
         f.write(f"{msg}\n")

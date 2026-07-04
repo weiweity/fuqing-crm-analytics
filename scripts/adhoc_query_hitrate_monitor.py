@@ -6,6 +6,11 @@
 - 检查 tool 数量 + SKILL.md symlink 治本 (L4.35)
 - FAIL (tool 数量 < 14 或 SKILL.md symlink 失效) → 告警
 - fail-open: 异常 stderr warn + exit 0 (跟 L4.40 post-merge hook 配套)
+
+L4.61 跨平台守卫 (跟 L4.10 + L4.39 1:1 stable):
+- main() 入口加 sys.platform != "darwin" 检查
+- Linux CI runner 直接 exit 0 PASS (跳过 symlink check, ~/.workbuddy/ 是 macOS-only 路径)
+- macOS launchd 走完整 symlink check
 """
 from __future__ import annotations
 
@@ -56,6 +61,19 @@ def append_tech_debt(msg: str) -> None:
 
 
 def main() -> int:
+    # L4.61 跨平台守卫 (跟 L4.10 + L4.39 1:1 stable): Linux CI runner 跳过 macOS-only symlink check
+    if sys.platform != "darwin":
+        msg = (
+            f"[ADHOC_HITRATE_MONITOR] {datetime.now(timezone.utc).isoformat()}\n"
+            f"  platform: {sys.platform} (skip macOS-only symlink check, 跟 L4.39 1:1 stable)\n"
+            f"  tools: 跑 count_tools() (跨平台) - {count_tools()} tools\n"
+            f"  ACTION: Linux runner 跳过 symlink check, 等周日 macOS launchd 跑"
+        )
+        print(msg)
+        with LOG_FILE.open("a") as f:
+            f.write(f"{msg}\n\n")
+        return 0
+
     try:
         tool_count = count_tools()
         skill_size = (
