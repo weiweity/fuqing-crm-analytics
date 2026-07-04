@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.adhoc-hitrate-monitor.weekly</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/adhoc_query_hitrate_monitor.py</string>
+    </array>
+
+    <!-- Sprint 201+ R8: 每周日 04:30 跑 1 次 (跟 R6+R7 错开, L4.35 symlink + L4.55 14 tool 监控) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-adhoc-hitrate.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-adhoc-hitrate.err</string>
+</dict>
+</plist>
