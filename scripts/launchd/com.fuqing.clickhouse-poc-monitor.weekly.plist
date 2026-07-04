@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.clickhouse-poc-monitor.weekly</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/clickhouse_poc_monitor.py</string>
+    </array>
+
+    <!-- Sprint 203 R2 Finding 4.1: 每周日 04:45 跑 1 次 (跟 R6 04:00 / R7 04:15 / R8 04:30 错开) -->
+    <!-- L4.7 launchd 首选 python3 (不是 bash, macOS 14+ sandbox deny bash read Desktop) -->
+    <!-- L4.60 跨平台 ProgramArguments 跨端配置, CI runner pytest 跑这个 plist 启动的脚本 100% 跨平台 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-clickhouse-poc-monitor.log</string>
+
+    <key>StandardErrorPath</string>
+    <string>/tmp/fuqing-clickhouse-poc-monitor.err</string>
+</dict>
+</plist>

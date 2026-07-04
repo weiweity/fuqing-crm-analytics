@@ -28,6 +28,9 @@ _read_pool: list[duckdb.DuckDBPyConnection] = []
 _read_lock = threading.Lock()
 _write_lock = threading.Lock()
 _WRITE_CONN: duckdb.DuckDBPyConnection | None = None
+# Sprint 203 R2 Finding 2.2: Semaphore cap (2× pool size) prevents unbounded DuckDB connection
+# growth under burst load. Over-cap requests block until a connection is returned.
+_read_semaphore: threading.Semaphore = threading.Semaphore(READ_POOL_SIZE * 2)
 
 
 @dataclass
@@ -102,32 +105,41 @@ def _is_healthy(conn: duckdb.DuckDBPyConnection) -> bool:
 def get_read_connection() -> duckdb.DuckDBPyConnection:
     """Borrow a read-only DuckDB connection for dashboard queries."""
 
-    with _read_lock:
-        while _read_pool:
-            conn = _read_pool.pop()
-            if _is_healthy(conn):
-                return conn
+    # Sprint 203 R2 Finding 2.2: Semaphore blocks over-cap requests; release in return_read_connection.
+    _read_semaphore.acquire()
+    try:
+        with _read_lock:
+            while _read_pool:
+                conn = _read_pool.pop()
+                if _is_healthy(conn):
+                    return conn
 
-    conn = duckdb.connect(
-        str(DUCKDB_PATH),
-        config=_db_config(READ_MEMORY_LIMIT),
-        read_only=True,
-    )
-    logger.debug("DuckDB read-only connection borrowed: %s", DUCKDB_PATH)
-    return conn
+        conn = duckdb.connect(
+            str(DUCKDB_PATH),
+            config=_db_config(READ_MEMORY_LIMIT),
+            read_only=True,
+        )
+        logger.debug("DuckDB read-only connection borrowed: %s", DUCKDB_PATH)
+        return conn
+    except BaseException:
+        _read_semaphore.release()
+        raise
 
 
 def return_read_connection(conn: duckdb.DuckDBPyConnection) -> None:
     """Return a read-only connection to the pool, closing extras."""
 
-    with _read_lock:
-        if len(_read_pool) < READ_POOL_SIZE and _is_healthy(conn):
-            _read_pool.append(conn)
-            return
     try:
-        conn.close()
-    except Exception:  # noqa: BLE001
-        pass
+        with _read_lock:
+            if len(_read_pool) < READ_POOL_SIZE and _is_healthy(conn):
+                _read_pool.append(conn)
+                return
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    finally:
+        _read_semaphore.release()
 
 
 @contextmanager
