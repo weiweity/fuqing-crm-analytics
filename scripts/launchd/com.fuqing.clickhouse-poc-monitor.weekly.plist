@@ -11,9 +11,6 @@
         <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/clickhouse_poc_monitor.py</string>
     </array>
 
-    <!-- Sprint 203 R2 Finding 4.1: 每周日 04:45 跑 1 次 (跟 R6 04:00 / R7 04:15 / R8 04:30 错开) -->
-    <!-- L4.7 launchd 首选 python3 (不是 bash, macOS 14+ sandbox deny bash read Desktop) -->
-    <!-- L4.60 跨平台 ProgramArguments 跨端配置, CI runner pytest 跑这个 plist 启动的脚本 100% 跨平台 -->
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key>
@@ -30,7 +27,7 @@
     <key>StandardOutPath</key>
     <string>/tmp/fuqing-clickhouse-poc-monitor.log</string>
 
-    <key>StandardErrorPath</string>
+    <key>StandardErrorPath</key>
     <string>/tmp/fuqing-clickhouse-poc-monitor.err</string>
 </dict>
 </plist>
