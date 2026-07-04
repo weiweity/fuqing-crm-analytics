@@ -47,7 +47,7 @@ def _bypass_pydantic_validate():
 
 def _fake_summary(*, year, metric_type, start_date, end_date, channel=None,
                   exclude_channels=None, compare_start_date=None, compare_end_date=None,
-                  period=None):
+                  period=None, order_ids=None):
     return {
         "year_label": str(year),
         "comp_year_label": str(year - 1),

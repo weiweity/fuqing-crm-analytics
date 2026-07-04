@@ -84,6 +84,11 @@ TOOL_DEFS: list[dict[str, Any]] = [
                 "end": {"type": "string"},
                 "channel": {"type": "string"},
                 "exclude_channels": {"type": "string"},
+                "order_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "订单号列表，仅统计匹配订单; 5000+ 自动走 DuckDB temp table",
+                },
                 "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
                 "output": {"type": "string"},
             },
@@ -91,6 +96,7 @@ TOOL_DEFS: list[dict[str, Any]] = [
         "arg_map": {
             "year": "--year", "period": "--period", "start": "--start", "end": "--end",
             "channel": "--channel", "exclude_channels": "--exclude-channels",
+            "order_ids": "--order-ids",
             "format": "--format", "output": "--output",
         },
     },

@@ -1,3 +1,21 @@
+## [0.4.14.38] - 2026-07-04 (Sprint 202+ Data Query v2.7 B-lite: two-year-overview order_ids 真业务缺口补齐 + SKILL.md v2.7 + 25 case 强契约)
+
+### Added
+- **`two-year-overview` order_ids 透传**: HTTP `TwoYearOverviewRequest`、CLI `--order-ids`、MCP `two_year_overview.order_ids`、`ask` 关键词路由全部支持订单号清单; service 端复用既有 `calculate_audience_summary(order_ids=...)` 5000+ DuckDB temp table 路径.
+- **`backend/tests/test_skill_v2_7_eval.py`**: 新增 25 case / 5 TestClass, 覆盖 OrderIdsTwoYearOverview、BackcastFormulaUnit、HitRateThreshold95、L4_35SymlinkVerify、SkillV27LLMEval.
+- **SKILL.md v2.7**: `~/.claude/skills/ad-hoc-query/SKILL.md` 增加 "30 指标 + order_ids/订单号清单 → two_year_overview" 决策树、速查表、同义词库和 §2.4 参数说明.
+
+### Fixed
+- **R8 hitrate threshold**: `scripts/adhoc_query_hitrate_monitor.py` 从 70% 提升到 95%, 对齐 Sprint 199 R1 真实命中率门槛.
+- **L4.35 symlink verify**: `scripts/session_start_check.py` 增加 `os.path.realpath`、`os.lstat` mode 120000、字节一致性校验; 支持相对软链, 防 WorkBuddy/Claude skill SSOT 漂移.
+
+### Technical
+- VERSION bump: `0.4.14.35` → `0.4.14.38` (按 Sprint 202+ v2.7 handoff 目标收口).
+- Focused verification: `PYTHONPATH="$(pwd)" pytest backend/tests/test_skill_v2_7_eval.py -v` → **25 passed**.
+- Backend baseline: `PYTHONPATH="$(pwd)" pytest backend/tests/ -q --deselect ...` → **1095 passed / 7 skipped / 3 deselected / 4 failed**; 4 failed 均为 W4 T-7 真连旧失败 (`precompute_fact_rfm.py` 未加别名 `is_goujinjin`), 跟本次 order_ids/SKILL 改动无交集.
+- Scoped ruff: touched files → **All checks passed**; `git diff --check` clean; `python3 scripts/session_start_check.py` → **L4.35 skill symlink: 1 OK / 0 drift**.
+- L4.x stable: **61 stable 持续**; 累计 Sprint 60+ 0 debt stable **133 sprint**; /document-release 真治本累计 **38 次**.
+
 ## [unreleased] - 2026-07-04 (Sprint 202+ CI fix #2: **R6/R8 monitor logic 适配 CI Linux runner 真治本** — 你报 CI #28705583691 (efc4f24) test job 2 fail 真因 = R6 monitor "14 passed" 期望但 CI 加 `--deselect` 把 14 pre-existing fail 全 deselect 后输出 "0 passed" + R8 monitor SKILL.md symlink check 期望 macOS `~/.workbuddy/` 但 Linux CI runner 无该路径. 修法: 4 文件改动 + L4.61 永久规则化跨 sprint 监控 main() 入口平台守卫 + pytest case 跨 CI runner fail-open assert. 0 业务代码改动模式 stable (跟 Sprint 60+ 累计 25 次 0 业务代码改动 1:1 stable). 累计 Sprint 201 R1 → Sprint 201 L2 → Sprint 201 R2 v23 → Sprint 201+ → Sprint 201 R2 L2 → Sprint 201 R2 v24 → Sprint 202 R1 → Sprint R1+R2 → Sprint 201+ R6+R7+R8+R9 → Sprint 202+ CI fix → Sprint 202+ CI fix #2 11 sprint 沉淀, L4.x 60 → **61 stable** (新增 **L4.61 跨 sprint 监控脚本 main() 入口平台守卫 + pytest case 跨 CI runner fail-open assert**). 累计 132 sprint 0 debt 持续 (跨 Sprint 60+ 0 debt stable 模式 +29 sprint). pytest baseline 1084 collected 0 变化. ruff scoped 0 error + git diff --check clean. fix_pattern #91 (新增) — 跨 sprint 监控脚本跨 CI runner 适配. 当前 main HEAD `efc4f24` (Sprint 202+ CI fix #2 收口前 → Codex Stage 4 commit 后 TBD))
 
 ### Fixed

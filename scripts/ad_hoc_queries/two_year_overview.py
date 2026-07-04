@@ -64,6 +64,7 @@ def _build_summary(
     end: str | None = None,
     channel: str | None = None,
     exclude_channels: str | None = None,
+    order_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     if not period:
         if not start or not end:
@@ -77,6 +78,7 @@ def _build_summary(
         channel=channel,
         period=period,
         exclude_channels=parse_exclude_channels(exclude_channels),
+        order_ids=order_ids,
     )
     AudienceSummaryResponse.model_validate(result)
     return result
@@ -89,8 +91,17 @@ def run_two_year_overview(
     end: str | None = None,
     channel: str | None = None,
     exclude_channels: str | None = None,
+    order_ids: list[str] | None = None,
 ) -> List[List[Any]]:
-    result = _build_summary(year, period, start, end, channel, exclude_channels)
+    result = _build_summary(
+        year=year,
+        period=period,
+        start=start,
+        end=end,
+        channel=channel,
+        exclude_channels=exclude_channels,
+        order_ids=order_ids,
+    )
     current_label = result.get("year_label", str(year))
     comp_label = result.get("comp_year_label", str(year - 1))
     rows: List[List[Any]] = []
@@ -136,6 +147,7 @@ register(QuerySpec(
         {"flags": ("--end",), "required": False, "default": None, "help": "结束日期 YYYY-MM-DD"},
         {"flags": ("--channel",), "required": False, "default": None, "help": "渠道筛选"},
         {"flags": ("--exclude-channels",), "required": False, "default": None, "help": "排除渠道, 逗号分隔"},
+        {"flags": ("--order-ids",), "required": False, "default": None, "nargs": "+", "help": "订单号列表"},
         {
             "flags": ("--format",),
             "required": False,

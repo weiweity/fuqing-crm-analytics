@@ -25,7 +25,7 @@ TOOL_DIR = REPO_ROOT / "scripts" / "ad_hoc_queries"
 LOG_FILE = Path("/tmp/fuqing-adhoc-hitrate.log")
 TECH_DEBT = REPO_ROOT / "docs" / "TECH-DEBT.md"
 EXPECTED_TOOL_COUNT = 14  # Sprint 198 治本 (ai-sandbox-execute 第 14 tool)
-HITRATE_THRESHOLD = 0.70  # 70% (跟 Sprint 197+198 R1 实证 1:1 stable)
+HITRATE_THRESHOLD = 0.95  # 95% (跟 Sprint 199 R1 实证 1:1 stable)
 
 
 def count_tools() -> int:
