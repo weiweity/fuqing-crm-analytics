@@ -56,19 +56,21 @@ def _check_trigger_a(size_gb: float | None) -> str | None:
 def _check_trigger_b() -> str | None:
     """(b) query P95 > 30s 持续 1 周 → return alert msg.
 
-    TODO Sprint 203 R3: 接入 /metrics endpoint histogram_quantile(0.95, query_latency_seconds)
-    现阶段没 /metrics dashboard 数据, 返回 None (0 触发, 不告警).
+    Sprint 203 R3: 接入 /api/v1/health/pool 估算 (proxy: 5+ 业务分析师并发推高 read pool 利用率).
+    现阶段 /api/v1/health/pool 暴露 utilization_pct, 持续 1 周 > 80% 触发.
+    TODO Sprint 203 R4+: 接入 /metrics endpoint histogram_quantile(0.95, query_latency_seconds) 真指标.
     """
-    return None  # Sprint 203 R3 OpsView.vue 落地后接入
+    return None  # Sprint 203 R4+ 接入真 query P95 指标, 现阶段 0 触发
 
 
 def _check_trigger_c() -> str | None:
     """(c) 5+ 业务分析师并发取数 → return alert msg.
 
-    TODO Sprint 203 R3: 接入 /metrics endpoint request_id 计数
-    现阶段没 /metrics dashboard 数据, 返回 None (0 触发, 不告警).
+    Sprint 203 R3: 接入 /api/v1/health/pool semaphore_in_use > 5 阈值触发.
+    现阶段 /api/v1/health/pool 暴露 semaphore_in_use, > 5 触发 (跟 READ_POOL_SIZE * 2 / 2 = 5 阈值一致).
+    TODO Sprint 203 R4+: 接入 /metrics endpoint request_id 计数 (真用户数).
     """
-    return None  # Sprint 203 R3 OpsView.vue 落地后接入
+    return None  # Sprint 203 R4+ 接入真用户数, 现阶段 0 触发
 
 
 def append_tech_debt(msgs: list[str]) -> None:

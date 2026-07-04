@@ -24,6 +24,7 @@ import logging
 from backend.services.exceptions import ServiceError, ValidationError, NotFoundError
 from backend.middleware.query_router import QueryRouterMiddleware
 from backend.services.query_metrics import render_prometheus
+from backend.config import DUCKDB_PATH  # Sprint 203 R3: db_size endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -251,6 +252,10 @@ async def rate_limit_middleware(request: Request, call_next):
     if (
         path == "/api/v1/health"
         or path == "/metrics"
+        # Sprint 203 R3: OpsView STUB 接入 (跟 /metrics 1:1 stable, no auth required)
+        or path == "/api/v1/health/db_size"
+        or path == "/api/v1/health/manifest"
+        or path == "/api/v1/health/pool"
         or path == "/api/v1/auth/login"
         or path == "/api/v1/auth/refresh"
         or path.startswith("/docs")
@@ -366,6 +371,10 @@ async def auth_middleware(request: Request, call_next):
         path.startswith("/api/v1/auth/")
         or path == "/api/v1/health"
         or path == "/metrics"
+        # Sprint 203 R3: OpsView STUB 接入 (跟 /api/v1/health + /metrics 1:1 stable, no auth)
+        or path == "/api/v1/health/db_size"
+        or path == "/api/v1/health/manifest"
+        or path == "/api/v1/health/pool"
         or path.startswith("/docs")
         or path.startswith("/redoc")
         or path == "/openapi.json"
@@ -468,6 +477,78 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
     }
+
+
+# Sprint 203 R3 OpsView STUB TODO 接入: 3 件 0 业务代码改动 health 端点
+# 跟 /api/v1/health 1:1 stable 模式 (no auth required, 跟 /metrics 1:1 stable)
+@app.get("/api/v1/health/db_size")
+def health_db_size():
+    """DuckDB 文件大小 (GB) + 距离 ClickHouse POC 启动 trigger (200GB) 的距离.
+
+    Sprint 203 R3: 跟 clickhouse-poc-monitor.py 1:1 stable 同一 trigger 阈值.
+    """
+    try:
+        size_bytes = Path(DUCKDB_PATH).stat().st_size
+        size_gb = round(size_bytes / (1024 ** 3), 2)
+        trigger_gb = 200
+        return {
+            "status": "ok",
+            "size_gb": size_gb,
+            "trigger_gb": trigger_gb,
+            "remaining_gb": round(trigger_gb - size_gb, 2),
+            "trigger_hit": size_gb > trigger_gb,
+            "path": str(DUCKDB_PATH),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except FileNotFoundError:
+        return {"status": "missing", "size_gb": 0.0, "trigger_gb": 200, "remaining_gb": 200, "trigger_hit": False, "path": str(DUCKDB_PATH), "timestamp": datetime.now().isoformat()}
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": str(exc), "path": str(DUCKDB_PATH), "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/v1/health/manifest")
+def health_manifest():
+    """W5 manifest version (跟 backend/services/rfm/cache.py:_ManifestTracker 1:1 stable).
+
+    返回当前 DuckDB 数据的 manifest version (int). manifest 不存在返回 None.
+    """
+    try:
+        from backend.services.rfm.cache import _manifest_tracker_singleton
+        version = _manifest_tracker_singleton.current_version()
+        return {
+            "status": "ok",
+            "version": version,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": str(exc), "version": None, "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/v1/health/pool")
+def health_pool():
+    """Read pool 利用率 (跟 dual_conn.py Semaphore + pool 1:1 stable).
+
+    Sprint 203 R2 Fix #1 加的 Semaphore (READ_POOL_SIZE * 2) 暴露利用率,
+    让运维看板 OpsView 显示 "5/10 利用中" 这种实时数据.
+    """
+    try:
+        from backend.services import dual_conn
+        pool_size = len(dual_conn._read_pool)
+        semaphore_max = dual_conn.READ_POOL_SIZE * 2
+        # threading.Semaphore._value 是内部 counter (acquire 减, release 加)
+        semaphore_available = dual_conn._read_semaphore._value
+        semaphore_in_use = semaphore_max - semaphore_available
+        return {
+            "status": "ok",
+            "pool_size": pool_size,
+            "semaphore_max": semaphore_max,
+            "semaphore_in_use": semaphore_in_use,
+            "utilization_pct": round(100 * semaphore_in_use / semaphore_max, 1) if semaphore_max > 0 else 0.0,
+            "read_pool_size_limit": dual_conn.READ_POOL_SIZE,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": str(exc), "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/metrics", include_in_schema=False)
