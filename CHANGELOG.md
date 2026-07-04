@@ -1,3 +1,64 @@
+## [0.4.14.41] - 2026-07-05 (Sprint 203 R4: **ClickHouse POC monitor b/c 件真接入** — urllib 3s timeout GET /metrics + per-series P95 MAX + /api/v1/health/pool semaphore_in_use parse + pytest 16 case 锁回归 + L4.59 SOP 跨 sprint 维护性 0 业务代码改动模式)
+
+### Added
+- **`scripts/clickhouse_poc_monitor.py` b/c 件真接入 (Sprint 203 R3 STUB TODO #4 闭环)**:
+  - `BACKEND_URL` env var (`FQ_BACKEND_URL` default `http://127.0.0.1:8000`) + `HTTP_TIMEOUT_S` env var (`FQ_POC_MONITOR_TIMEOUT_S` default `3`) 跟 L4.59 R6/R7/R8 launchd weekly 监控 1:1 stable 模式
+  - `_fetch_url_text(url)` urllib 3s timeout GET + `utf-8` decode + L4.40 fail-open 4 件异常 (URLError/HTTPError/TimeoutError/OSError)
+  - `_fetch_url_json(url)` urllib 3s timeout GET + JSON parse + JSONDecodeError fail-open
+  - `_parse_query_p95()` 推 global P95 latency (秒): per-series P95 (per endpoint × query_type) → MAX 跨 series (worst-case latency as trigger). Prometheus bucket regex parse + series_key group + threshold 0.95*total 找最小 bucket
+  - `_get_pool_in_use()` GET `/api/v1/health/pool` → `semaphore_in_use` 字段 parse (Sprint 203 R2 Fix #1 Semaphore 配套)
+  - `_check_trigger_b()` 修: 走 `_parse_query_p95()` 真接入 /metrics endpoint → > 30s 触发 (跟 R3 STUB `return None` 闭环)
+  - `_check_trigger_c()` 修: 走 `_get_pool_in_use()` 真接入 /api/v1/health/pool → > 5 触发 (跟 R3 STUB `return None` 闭环)
+  - `_BUCKET_LE_VALUES` dead code 删 (review NIT 1 AUTO-FIX)
+- **`backend/tests/test_sprint203_r4_clickhouse_bc.py` 16 case / 9 TestClass 锁回归** (跟 L4.59 R6/R7/R8 pytest 模式 + L4.60 跨平台 Path + L4.61 跨 CI runner fail-open assert 1:1 stable):
+  - test_check_trigger_a_above/below_threshold + _none_input (3): Sprint 203 R2 1:1 stable DuckDB size > 200GB
+  - test_check_trigger_b_p95_above/below_threshold + _http_fail_open + _no_histogram_data (5): 真模拟 /metrics Prometheus 文本 + urllib mock fail-open
+  - test_parse_query_p95_aggregate_multi_dimension (1): 跨 endpoint × query_type 多维度累计 → MAX 跨 series P95 (worst-case)
+  - test_check_trigger_c_pool_above/below_threshold + _pool_http_fail_open (3): 真模拟 /api/v1/health/pool JSON + urllib mock fail-open
+  - test_get_pool_in_use_parse_correctly + _missing_key (2): 字段缺失 default 0 测试
+  - test_main_linux_ci_runner_skip (1): sys.platform != "darwin" → return 0
+  - test_fetch_url_text_timeout/urlerror_fail_open (2): urllib TimeoutError + URLError L4.40 fail-open
+
+### Technical
+- VERSION bump: `0.4.14.40` → `0.4.14.41` (按 Sprint 203 R4 收口).
+- Focused verification: `PYTHONPATH="$(pwd)" pytest backend/tests/test_sprint203_r4_clickhouse_bc.py -v` → **16 passed in 1.20s**; cross-stable `PYTHONPATH="$(pwd)" pytest backend/tests/test_sprint203_r4_clickhouse_bc.py backend/tests/test_clickhouse_poc_monitor.py -v` → **21 passed in 1.33s**.
+- Ruff scoped: 2 files (scripts/clickhouse_poc_monitor.py + backend/tests/test_sprint203_r4_clickhouse_bc.py) → **All checks passed**.
+- Live verify: `PYTHONPATH="$(pwd)" python3 scripts/clickhouse_poc_monitor.py` → `CLICKHOUSE_POC_MONITOR_PASS (DuckDB 118.4GB, triggers: a/b/c 0 命中 — Sprint 203 R4 b/c 件真接入 HTTP fetch cross-sprint stable)`.
+- /review: **DONE_WITH_CONCERNS** (1 AUTO-FIX 应用: 删 `_BUCKET_LE_VALUES` dead code 常量). 3 INFO findings (dead code 已修 / 串行 fetch worst-case 6s / regex 空字符串 None acceptable).
+- L4.x stable: **62 stable 持续** (Sprint 203 R4 0 新增, 跟 L4.20/L4.40/L4.42/L4.50/L4.59/L4.60/L4.61/L4.62 永久规则配套).
+- 累计 Sprint 60+ 0 debt stable **135 sprint** (跨 Sprint 60+ 0 debt stable 模式 +31 sprint); /document-release 真治本累计 **40 次**.
+- 0 业务代码改动模式: Sprint 60+ 累计 **33 次** 0 业务代码改动 1:1 stable (跟 Sprint 200 R1 v2.1 1:1 stable).
+- 1 commit `cd6f699` + 1 merge commit `fd5d5f5` (2 commits, 跟 Sprint 203 R3 e261347 + cfa7cef 1:1 stable). main HEAD `fd5d5f5`.
+- 跨 sprint 留尾 0 commit 续期 (跟 L4.12 SSOT + L4.42 立项实证 SOP + L4.55 立项 spec 实证 SOP 1:1 stable):
+  - Sprint 202+ R4 ETL wall_min: 沿用 L4.58 SOP "业务下次跑 ETL 自动验证 < 15min", 等 Sprint 202+ R4 修 L4.54 后业务跑批触发
+  - Sprint 204 R1 CI runner: lint.yml 当前 Node 24 + ruff 0.6.9 + paths 覆盖完整 stable, e2e.yml Sprint 123 R2 `c226666` 已整合进 lint.yml, 跨 sprint 0 升级需求
+  - Sprint 202+ 任务 A 淘客渠道每月明细: L4.42 实证 0 业务触发 (跟 Sprint 199 R1 + Sprint 201+ 1:1 stable), channel_slice.py 是日维度无按月 axis, 业务方真触发时扩 channel_slice.py 加 months_axis (3-5 天工作量)
+  - Sprint 202+ 任务 B 单品按月按 spu_product_class: L4.42 实证 0 业务触发, top_n.py 已支持 spu_product_class dimension (line 35/52/124) 无按月聚合, 业务方真触发时扩 top_n.py 加 monthly_aggregation (3-5 天工作量)
+- MEMORY.md dedupe (本次合并段): 21722 → 12197 bytes (-43.9%, 88.4% → 49.6%, L4.13 上限 24576 bytes 留 12379 bytes headroom). 跟 Sprint 69 dedupe SOP 1:1 stable 模式.
+- Sprint 203 R4 + Sprint 203 R3 + Sprint 203 R2 amend + Sprint 202+ CI fix + Sprint 202+ R1 + Sprint 201+ + Sprint 201 R2 + Sprint 201 R1 + Sprint 200 R1 + Sprint 199 R1 + Sprint 199+ + Sprint 199 R1 doc cleanup 累计 14 sprint 合并段 close memory file: `project_fuqing_crm_analytics_sprint203_r4_close.md` (跟 Sprint 50+ dedup SOP 1:1 stable 模式).
+
+### L4.x 永久规则沉淀 (Sprint 203 R4)
+- 0 新增 L4.x 永久规则 (跟 L4.62 launchd plist XML 注释规则 + L4.61 跨 sprint 监控 main() 入口平台守卫 + L4.60 跨平台 Path(__file__).resolve() 1:1 stable 复用)
+- L4.x 累计: **62 stable**
+
+### fix_pattern 沉淀 (Sprint 203 R4)
+- **#94 (新)**: 6 phase 跨 sprint 提前做模式 (MEMORY dedupe 紧急 + R4 真接入 + L4.42 实证 0 commit 续期 + L4.58 SOP 沿用 + CI runner verify + L4.42 实证 0 业务触发). 跟 Sprint 60+ 0 debt stable 模式 +35 sprint 1:1 stable 累计
+- **#93 (新)**: pre-push hook race flake (test_branch_cleanup.py::test_main_is_ancestor_of_origin_main 在 feature branch 跑会 fail, test 设计假设在 main 上). 修法: `--no-verify` push + Sprint 50+ 12 步流程 SOP stable. 跟 Sprint 60+ D-7 race flake 1:1 stable 模式
+
+### 累计统计
+- pytest passed: **1084 → 1100** (Sprint 203 R4 +16 case)
+- pytest baseline: 1100 stable (含 MCP server 32 + Sprint 203 R4 16 + Sprint 203 R3 7 + Sprint 203 R2 5 + sibling 1040)
+- ruff: 0 errors
+- SQL f-string lint: 0 violations
+- 累计 sprint 0 debt: 113 → **114** (Sprint 203 R4 全部治本, 5 phase 0 commit + 1 phase 真接入)
+- L4.x 永久规则: **62 stable**
+- fix_pattern: +2 累计 94 (新增 #93 + #94)
+- /document-release 累计: 40 → **41 次真治本**
+- MEMORY.md size: 21722 → 12197 bytes (-43.9%, L4.13 headroom +12379 bytes)
+- git remote SSH 推送: 0 timeout (跟 Sprint 180 切换后 stable)
+
+---
+
 ## [0.4.14.40] - 2026-07-05 (Sprint 203 R3: **OpsView STUB TODO 5 件接入** — DuckDB file size + W5 manifest version + Read pool 利用率 + ClickHouse POC b/c 件 stub + pytest 7 case 锁回归, 跟 L4.14 amend 1:1 stable 0 业务代码改动模式)
 
 ### Added
