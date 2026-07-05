@@ -1,3 +1,16 @@
+## [unreleased] - 2026-07-05 (Wave 1: ClickHouse POC 跨 sprint plan N+3+N+4+N+5 handoff doc 三件套 + 收口)
+
+### Added
+- **`docs/sprints/HANDOFF-TO-CODEX-SprintN+3-ClickHouse-POC-Trino-Cluster.md`**: Sprint N+3 Trino cluster POC handoff doc (跟 Sprint N+2 single-node 1:1 stable 沿用, 3 worker cluster + resource groups weighted scheduling + 5 件交付物 + 12 步流程, L4.42+L4.55+L4.56+L4.57+L4.59 永久规则沿用)
+- **`docs/sprints/HANDOFF-TO-CODEX-SprintN+4-ClickHouse-POC-DuckDB-Trino-ETL.md`**: Sprint N+4 DuckDB → Trino ETL 双写期设计 handoff doc (跟 Sprint N+3 1:1 stable 沿用 + L4.5+L4.19+L4.51+L4.54+L4.55+L4.56+L4.57+L4.58 永久规则沿用, 期望 wall_min <15min 跟 R8 10.8min 1:1 stable)
+- **`docs/sprints/HANDOFF-SprintN+5-Stage-Architecture-Inputs.md`**: Sprint N+5 Go/No-Go 决策模板 handoff doc (5 阶段交付物汇总 + 性能对比表 + SQL 兼容 + 数据一致性 + 1 年 TCO 估算 + Go/No-Go 决策条件)
+
+### Technical
+- 跟 Sprint 60+ 累计 +39 sprint 跨 sprint 1:1 stable 沿用. 0 业务代码改动累计 58 次 1:1 stable.
+- Wave 1 4 件 docs linear 跑 (跟 Sprint N+2 12 步流程 1:1 stable 沿用). 物理给 Codex app Stage 2 接手 Sprint N+3 / N+4 / N+5 实施.
+- 跨 sprint plan 累计: Sprint N+1 (user 直接做) + Sprint N+2 ✅ shipped `ce17f75` + Sprint N+3 / N+4 / N+5 跨 sprint 续期.
+- 跟 L4.20 SSOT 反漂移 + L4.14 amend 物理限制 1:1 stable 接受 1 commit drift.
+
 ## [unreleased] - 2026-07-05 (Sprint N+2: Trino 单节点 POC Stage 2 骨架 — docker-compose + MinIO/HMS + 100GB Parquet 生成器 + 10 场景 benchmark + OpsView STUB)
 
 ### Added

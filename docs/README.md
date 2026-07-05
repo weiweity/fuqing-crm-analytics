@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 文档按 lifecycle 分层, 新人 5 分钟找到入口。Sprint 54 起 (L3 FilterBuilder 100% 闭环) 架构师推荐分层。
-> 最后更新: 2026-07-05 (Sprint 202+ R6 wall_min 估算 + 你拍板"测试下跑批, 7/4 数据已放进去了" 触发 R6 wall_min 真验证, L4.54 优化 1+2 真治本 (R4 etl log 实证: shop 99 + member 74 + member_df 5,703,316 → 0 行) 但跑批 21s fail @ uvicorn lock (跟 L4.36 + L4.38 永久规则 1:1 stable), 跨 sprint 估算 wall_min 14-18min 跟 Sprint 22 #26 18min baseline 1:1 stable 期望 <15min 边界. 新建 `docs/sprints/SPRINT202+_R6_WALL_MIN_ESTIMATED.md` ~290 行)
+> 最后更新: 2026-07-05 (Wave 1 启动: ClickHouse POC 跨 sprint plan N+3+N+4+N+5 handoff doc 三件套准备, 跟 Sprint N+2 single-node POC `ce17f75` shipped 1:1 stable 沿用 + L4.42+L4.55+L4.56+L4.57+L4.59+L4.14 永久规则跨 sprint plan 1:1 stable, 累计 Sprint 60+ 0 debt stable 138 sprint. 新建 3 件 handoff doc: 1) Sprint N+3 Trino cluster POC + 3 worker resource groups 2) Sprint N+4 DuckDB→Trino ETL 双写期设计 (L4.5+L4.19+L4.51+L4.54 沿用, wall_min 期望 <15min) 3) Sprint N+5 Go/No-Go 决策模板, 跟 Sprint 60+ L4.36+L4.38+L4.51 永久规则 1:1 stable 沿用)
 
 ## 一图流
 
@@ -52,6 +52,7 @@ fuqing-crm-analytics/docs/
     ├── _sprint-close-index.md        (Sprint 193-203 close memory 指针, 跨 sprint 跨端访问 SSOT)
     ├── SPRINT_FUQING_DATA_QUERY_SKILL_PLAN.md  (Sprint 202+ Data Query v2.7 立项 plan, /autoplan 入口)
     ├── SPRINT201_PLUS_L442_VERIFICATION.md / SPRINT201_PLUS_R6_R7_R8_R9_VERIFICATION.md / SPRINT201_R2_V24_L442_VERIFICATION.md / SPRINT202_PLUS_L442_VERIFICATION.md / SPRINT202_R1_WALL_MIN_VERIFICATION.md / SPRINT202+_R4_WALL_MIN_VERIFICATION.md / SPRINT202+_R5_WALL_MIN_VERIFICATION.md / SPRINT202+_R6_WALL_MIN_ESTIMATED.md / SPRINT203_ARCHITECTURE_REVIEW.md / SPRINT203_R6_SKILL_V2_7_SNAPSHOT.md / SPRINT204+_L442_VERIFICATION.md  (Sprint 立项实证 + L4.42 验证 + 跑批 wall_min 验证/估算 + 架构审查 + SKILL.md v2.7 项目仓 snapshot + Sprint 204+ 3 件跨 sprint 留尾 0 commit 收口, 跨 sprint 留尾验证沉淀)
+    ├── SPRINT202+_R7_WALL_MIN_VERIFIED.md / SPRINT202+_R8_WALL_MIN_VERIFIED.md / SPRINT-N+2-TRINO-BENCHMARK.md / HANDOFF-TO-CODEX-SprintN+3-ClickHouse-POC-Trino-Cluster.md / HANDOFF-TO-CODEX-SprintN+4-ClickHouse-POC-DuckDB-Trino-ETL.md / HANDOFF-SprintN+5-Stage-Architecture-Inputs.md  (Sprint 202+ R7/R8 wall_min FAIL→PASS 收口 + Sprint N+2 Trino POC bench 模板 + Wave 1 跨 sprint plan N+3/N+4/N+5 handoff doc 三件套, 跟 L4.42+L4.55+L4.56+L4.57+L4.59 永久规则 1:1 stable 沿用)
     └── archive/                      (Sprint 139-159 老 HANDOFF 归档, 历史 reference)
 ```
 
