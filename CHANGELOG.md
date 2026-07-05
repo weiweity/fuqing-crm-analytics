@@ -1,3 +1,17 @@
+## [unreleased] - 2026-07-05 (Sprint N+2: Trino 单节点 POC Stage 2 骨架 — docker-compose + MinIO/HMS + 100GB Parquet 生成器 + 10 场景 benchmark + OpsView STUB)
+
+### Added
+- **`docker-compose.trino.yml` + `trino-coordinator/` + `trino-worker/`**: Trino coordinator + 1 worker + MinIO + Hive Metastore 单节点 POC 部署。宿主机端口使用 `18080/19000/19001/19083`, 避开 uvicorn `8000` 和现有前端端口。
+- **`scripts/trino_poc/`**: 新增 orders schema SSOT、Parquet 数据生成器、Trino REST client、Hive 外部表注册脚本、10 场景 benchmark。默认小样本可 smoke，`--target-gb 100` 支持 Sprint N+2 100GB POC 数据集。
+- **`docs/operations/trino-single-node-poc.md`**: Trino POC 启动、生成数据、注册表、跑 benchmark、清理流程。
+- **`docs/architecture/trino-sql-compatibility.md`**: DuckDB → Trino SQL 兼容性报告；明确 `SELECT * EXCLUDE` 需显式枚举列，R 桶边界复用 SSOT。
+- **`docs/sprints/SPRINT-N+2-TRINO-BENCHMARK.md`**: benchmark 报告模板；真实 P50/P95/P99 由脚本实测后覆盖，不手填假数据。
+- **`frontend-vue3/src/views/OpsView.vue`**: 新增 "Trino POC 状态" Stage 2 STUB 卡，展示 10 场景 Trino/DuckDB P95 和 SQL 兼容状态占位。
+- **`backend/tests/test_sprint_n2_trino_poc.py`**: 6 case 锁住 compose 服务/端口、orders schema、10 场景清单、channel alias、R 桶边界、OpsView STUB。
+
+### Technical
+- 本轮不改 `backend/services/*` SQL 口径、不改 contracts、不新增 API 字段、不提交/推送，交给 Claude Stage 3 review + Stage 4 commit/push。
+
 ## [0.4.14.43] - 2026-07-05 (Sprint 203 R6: **SKILL.md v2.6 → v2.7 升级** — 14 → 18 tool 速查表 + §0.6 月维度业务兜底段 + §0.7 多维度交叉按月业务兜底段, 跟 Sprint 203 R5 14 → 18 tool 累计 1:1 stable, 跟 L4.35 symlink 1:1 stable 永久规则配套)
 
 ### Changed

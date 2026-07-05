@@ -1,0 +1,91 @@
+# Fuqing CRM Trino single-node POC.
+# Start with: docker compose -f docker-compose.trino.yml up -d
+
+name: fuqing-trino-poc
+
+services:
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "${FQ_TRINO_MINIO_PORT:-19000}:9000"
+      - "${FQ_TRINO_MINIO_CONSOLE_PORT:-19001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${FQ_TRINO_S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${FQ_TRINO_S3_SECRET_KEY:-minioadmin}
+    volumes:
+      - trino-minio-data:/data
+
+  hive-metastore-db:
+    image: ${HIVE_METASTORE_DB_IMAGE:-postgres:16-alpine}
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+    volumes:
+      - trino-hive-metastore-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  hive-metastore:
+    image: ${HIVE_IMAGE:-apache/hive:4.0.1}
+    depends_on:
+      hive-metastore-db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      SERVICE_OPTS: >-
+        -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://hive-metastore-db:5432/metastore
+        -Djavax.jdo.option.ConnectionUserName=hive
+        -Djavax.jdo.option.ConnectionPassword=hive
+        -Dhive.metastore.warehouse.dir=s3a://fuqing-crm-poc/warehouse
+        -Dfs.s3a.endpoint=http://minio:9000
+        -Dfs.s3a.access.key=${FQ_TRINO_S3_ACCESS_KEY:-minioadmin}
+        -Dfs.s3a.secret.key=${FQ_TRINO_S3_SECRET_KEY:-minioadmin}
+        -Dfs.s3a.path.style.access=true
+        -Dfs.s3a.connection.ssl.enabled=false
+    ports:
+      - "${FQ_TRINO_HMS_PORT:-19083}:9083"
+
+  trino-coordinator:
+    image: ${TRINO_IMAGE:-trinodb/trino:latest}
+    depends_on:
+      hive-metastore:
+        condition: service_started
+      minio:
+        condition: service_started
+    ports:
+      - "${FQ_TRINO_COORDINATOR_PORT:-18080}:8080"
+    environment:
+      AWS_ACCESS_KEY_ID: ${FQ_TRINO_S3_ACCESS_KEY:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${FQ_TRINO_S3_SECRET_KEY:-minioadmin}
+      AWS_REGION: ${FQ_TRINO_S3_REGION:-us-east-1}
+    volumes:
+      - ./trino-coordinator:/etc/trino:ro
+      - trino-coordinator-data:/var/trino/data
+
+  trino-worker:
+    image: ${TRINO_IMAGE:-trinodb/trino:latest}
+    depends_on:
+      trino-coordinator:
+        condition: service_started
+    environment:
+      AWS_ACCESS_KEY_ID: ${FQ_TRINO_S3_ACCESS_KEY:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${FQ_TRINO_S3_SECRET_KEY:-minioadmin}
+      AWS_REGION: ${FQ_TRINO_S3_REGION:-us-east-1}
+    volumes:
+      - ./trino-worker:/etc/trino:ro
+      - trino-worker-data:/var/trino/data
+
+volumes:
+  trino-minio-data:
+  trino-hive-metastore-db:
+  trino-coordinator-data:
+  trino-worker-data:
