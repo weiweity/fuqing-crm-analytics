@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sprint 203 R2 Finding 4.1 + R4 b/c 件真接入: ClickHouse POC 启动条件监控 (L4.58 + L4.59 永久规则化)
+"""Sprint 203 R2 Finding 4.1 + R4+ b/c 件真接入: ClickHouse POC 启动条件监控 (L4.58 + L4.59 永久规则化)
 
 - 每周日 04:45 launchd 触发 (跟 R6 04:00 / R7 04:15 / R8 04:30 错开)
 - 监控 a/b/c 3 件启动条件:
@@ -9,6 +9,8 @@
 - 0 触发 → print CLICKHOUSE_POC_MONITOR_PASS
 - 任意触发 → exit 0 (fail-open) + write TECH-DEBT.md 跨 sprint 留尾告警
 - 异常 → exit 0 (跟 L4.40 post-merge hook 1:1 stable)
+
+Sprint 203 R4+ 注: Sprint 203 R4 已真接入 b/c 件 (Phase 1 闭环), Sprint 203 R5+ 持续演进 (Phase 2 跨 sprint 维护性, 跟 L4.59 1:1 stable).
 
 L4.61 跨 CI runner 适配:
 - Linux CI runner 跑: 没 production DuckDB + 没 macOS path → 视作 0 触发 → PASS

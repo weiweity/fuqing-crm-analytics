@@ -244,8 +244,8 @@ class TestDailyGsvMultiPeriod:
             assert "ai_sandbox_execute" in tools, (
                 f"MCP server tools/list 缺 ai_sandbox_execute. 实际: {tools}"
             )
-            assert len(tools) == 14, (
-                f"期望 14 个 tool (10 Sprint 182 + 1 Sprint 183 + Sprint 196/197/198), got {len(tools)}: {tools}"
+            assert len(tools) == 18, (
+                f"期望 18 个 tool (Sprint 198 14 + Sprint 203 R5 4 件新 tool), got {len(tools)}: {tools}"
             )
         finally:
             proc.stdin.close()

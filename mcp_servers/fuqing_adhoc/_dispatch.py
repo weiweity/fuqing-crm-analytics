@@ -1,7 +1,7 @@
-"""_dispatch — 9 MCP tool inputSchema + arg_map + handler factory.
+"""_dispatch — 18 MCP tool inputSchema + arg_map + handler factory (Sprint 203 R5 14 → 18 tool).
 
 L4.19/4.20/4.21 不适用 (本文件是 MCP 层, 不引 SQL, 不重 service).
-8 query tool + 1 ask router = 9 tools (跟 Sprint 182 D2 决策一致).
+17 query tool + 1 ask router = 18 tools (Sprint 198 14 → Sprint 203 R5 18 tool, 跟 L4.37 registry 显式 import 1:1 stable).
 每个 tool: name + description + inputSchema (JSON Schema) + arg_map (MCP param → CLI --flag).
 """
 from __future__ import annotations
@@ -357,6 +357,74 @@ TOOL_DEFS: list[dict[str, Any]] = [
             "output": "--output",
         },
     },
+    # === Sprint 203 R5: 4 件新 tool (channel-monthly / member-monthly / refund-monthly / cross-dimension-monthly, 14 → 18 tool) ===
+    {
+        "name": "channel_monthly",
+        "command": "channel-monthly",
+        "description": "按 channel 切片月维度 (Sprint 199 R1 留尾任务 A 实证, Sprint 203 R5 实施)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start": {"type": "string", "description": "起始月份 YYYY-MM"},
+                "end": {"type": "string", "description": "结束月份 YYYY-MM (含)"},
+                "channel": {"type": "string", "default": "all", "description": "渠道过滤 (all/online/offline/具体渠道名)"},
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["start", "end"],
+        },
+        "arg_map": {"start": "--start", "end": "--end", "channel": "--channel", "format": "--format", "output": "--output"},
+    },
+    {
+        "name": "member_monthly",
+        "command": "member-monthly",
+        "description": "按 is_member 切片月维度 (Sprint 203 R5 业务空白点补全)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start": {"type": "string", "description": "起始月份 YYYY-MM"},
+                "end": {"type": "string", "description": "结束月份 YYYY-MM (含)"},
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["start", "end"],
+        },
+        "arg_map": {"start": "--start", "end": "--end", "format": "--format", "output": "--output"},
+    },
+    {
+        "name": "refund_monthly",
+        "command": "refund-monthly",
+        "description": "按 is_refund 切片月维度 (Sprint 203 R5 退款监控必备)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start": {"type": "string", "description": "起始月份 YYYY-MM"},
+                "end": {"type": "string", "description": "结束月份 YYYY-MM (含)"},
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["start", "end"],
+        },
+        "arg_map": {"start": "--start", "end": "--end", "format": "--format", "output": "--output"},
+    },
+    {
+        "name": "cross_dimension_monthly",
+        "command": "cross-dimension-monthly",
+        "description": "通用多维度交叉按月 (channel × is_member / spu × channel / is_goujinjin × channel, 6 维白名单)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start": {"type": "string", "description": "起始月份 YYYY-MM"},
+                "end": {"type": "string", "description": "结束月份 YYYY-MM (含)"},
+                "dim1": {"type": "string", "enum": ["channel", "is_member", "is_goujinjin", "spu_category", "spu_tier", "spu_product_class"], "description": "维度 1 (6 维白名单)"},
+                "dim2": {"type": "string", "enum": ["channel", "is_member", "is_goujinjin", "spu_category", "spu_tier", "spu_product_class"], "description": "维度 2 (6 维白名单)"},
+                "format": {"type": "string", "enum": ["table", "csv", "xlsx"], "default": "table"},
+                "output": {"type": "string", "description": "输出文件路径"},
+            },
+            "required": ["start", "end", "dim1", "dim2"],
+        },
+        "arg_map": {"start": "--start", "end": "--end", "dim1": "--dim1", "dim2": "--dim2", "format": "--format", "output": "--output"},
+    },
 ]
 
 
@@ -404,7 +472,7 @@ def _make_handler(tool_def: dict[str, Any]) -> Callable[[dict[str, Any]], list[s
     return handler
 
 
-# 10 个 tool → 10 个 handler, server.py 启动期一次性建好
+# 18 个 tool → 18 个 handler, server.py 启动期一次性建好 (Sprint 203 R5 14 → 18 tool)
 HANDLERS: dict[str, Callable[[dict[str, Any]], list[str]]] = {
     td["name"]: _make_handler(td) for td in TOOL_DEFS
 }

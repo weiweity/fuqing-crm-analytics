@@ -170,16 +170,17 @@ def main() -> int:
         "new_old_customer", "rfm_repurchase", "top_n", "export_excel",
         "dq_report", "daily-gsv-multi-period", "fixed_product_list_compare",
         "fixed_product_list_compare_http", "ai_sandbox_execute", "ask",
+        "channel_monthly", "member_monthly", "refund_monthly", "cross_dimension_monthly",  # Sprint 203 R5 新增
     }
     got = {t.get("name") for t in tools}
     missing = expected - got
     if missing:
         print(f"FAIL: tools/list missing {missing}")
         return 1
-    if len(tools) != 14:
-        print(f"FAIL: 期望 14 tools, got {len(tools)}")
+    if len(tools) != 18:
+        print(f"FAIL: 期望 18 tools, got {len(tools)}")
         return 1
-    print("PASS: tools/list 返 14 tools (含 Sprint 197/198 新增)")
+    print("PASS: tools/list 返 18 tools (Sprint 198 14 + Sprint 203 R5 4 件新 tool)")
     print()
 
     # --- 验证 2: tools/call daily-gsv-multi-period ---

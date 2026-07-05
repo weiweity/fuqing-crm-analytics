@@ -30,13 +30,14 @@ PROJECT_ROOT = REPO_ROOT
 SERVER_SCRIPT = PROJECT_ROOT / "mcp_servers" / "fuqing_adhoc" / "server.py"
 E2E_SCRIPT = PROJECT_ROOT / "scripts" / "e2e_workbuddy_test.py"
 
-# 14 tools: 跟 _dispatch.py TOOL_DEFS SSOT (Sprint 182 + Sprint 183 + Sprint 196/197/198)
-EXPECTED_TOOL_COUNT = 14
+# 18 tools: 跟 _dispatch.py TOOL_DEFS SSOT (Sprint 182 + Sprint 183 + Sprint 196/197/198 + Sprint 203 R5 4 件新 tool)
+EXPECTED_TOOL_COUNT = 18
 EXPECTED_TOOL_NAMES = {
     "daily_gsv", "yoy_battle", "channel_slice", "two_year_overview",
     "new_old_customer", "rfm_repurchase", "top_n", "export_excel",
     "dq_report", "daily-gsv-multi-period", "fixed_product_list_compare",
     "fixed_product_list_compare_http", "ai_sandbox_execute", "ask",
+    "channel_monthly", "member_monthly", "refund_monthly", "cross_dimension_monthly",  # Sprint 203 R5 新增
 }
 
 
@@ -139,7 +140,7 @@ class TestStdJsonRpcFraming:
         )
 
     def test_tools_list_returns_14_tools(self, server_proc):
-        """tools/list MUST return 14 tools (13 query + 1 ask, Sprint 198 加 sandbox)."""
+        """tools/list MUST return 18 tools (Sprint 198 14 + Sprint 203 R5 4 件新 tool, 跟 Sprint 203 R5 L4.37 registry 1:1 stable)."""
         _send(server_proc, {
             "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
         })

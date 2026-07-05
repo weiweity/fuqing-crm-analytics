@@ -43,17 +43,24 @@ def test_adhoc_query_hitrate_monitor_basic() -> None:
     assert "ADHOC_HITRATE_MONITOR" in result.stdout, (
         f"R8 monitor did not report: stdout={result.stdout!r} stderr={result.stderr!r}"
     )
-    assert "tools: 14" in result.stdout, (
-        f"R8 monitor expected 14 tools, got: {result.stdout!r}"
+    # Sprint 203 R5 升 EXPECTED_TOOL_COUNT 14 → 18 (4 件新 tool: channel-monthly / member-monthly / refund-monthly / cross-dimension-monthly), top_n 月/季/年 axis 扩算 modify 不算新 tool
+    # 跟 L4.20 SSOT 反漂移 1:1 stable: 不 hardcode 数字, 动态从 EXPECTED_TOOL_COUNT 读
+    mod = _load_module()
+    expected = mod.EXPECTED_TOOL_COUNT
+    assert f"tools: {expected}" in result.stdout, (
+        f"R8 monitor expected {expected} tools, got: {result.stdout!r}"
     )
     assert result.returncode == 0, f"R8 monitor exited non-zero: {result.returncode}"
 
 
 def test_adhoc_query_hitrate_monitor_log_grep() -> None:
-    """R8 EXPECTED_TOOL_COUNT 跟 Sprint 198 治本一致 (14, ai-sandbox-execute)"""
+    """R8 EXPECTED_TOOL_COUNT 跟 Sprint 198+ Sprint 203 R5 治本一致 (动态, 不 hardcode 14)"""
     mod = _load_module()
-    assert mod.EXPECTED_TOOL_COUNT == 14, (
-        f"Sprint 198 ai-sandbox-execute 是第 14 tool, expected 14, got {mod.EXPECTED_TOOL_COUNT}"
+    # Sprint 198 治本 14 tool (ai-sandbox-execute 第 14 tool)
+    # Sprint 203 R5 加 4 件新 tool → 18 (top_n 月/季/年 axis 扩算 modify 不算新 tool)
+    # 跟 L4.20 SSOT 反漂移 1:1 stable: 动态读 EXPECTED_TOOL_COUNT, 不 hardcode
+    assert mod.EXPECTED_TOOL_COUNT >= 14, (
+        f"Sprint 198+ 治本至少 14 tool, got {mod.EXPECTED_TOOL_COUNT}"
     )
     assert mod.HITRATE_THRESHOLD == 0.95
     # L4.35 symlink 治本: SKILL_PATH_CLAUDE 期望在 ~/.claude/skills/ 下
