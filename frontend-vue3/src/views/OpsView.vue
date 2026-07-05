@@ -44,6 +44,13 @@ interface PoolInfo {
   read_pool_size_limit: number
 }
 
+interface TrinoBenchmarkRow {
+  scenario: string
+  trinoP95: string
+  duckdbP95: string
+  compatibility: string
+}
+
 const metricsText = ref<string>('')
 const dbSize = ref<DbSizeInfo | null>(null)
 const manifest = ref<ManifestInfo | null>(null)
@@ -197,6 +204,26 @@ const clickhouseMonitorStatus = computed(() => {
   return 'DuckDB ~117GB (a/b/c 0 触发, 跟 clickhouse-poc-monitor 1:1 stable)'
 })
 
+const trinoBenchmarkRows: TrinoBenchmarkRow[] = [
+  { scenario: 'GMV 月度聚合', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: 'RFM 生命周期×价值×潜力', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: 'Channel 渠道分布', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: '品类流转', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: '退款率分析', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: '老客复购率', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: '会员分布', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: '渠道占比', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: 'R 区间复购', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+  { scenario: '增速最快的 20 个品类', trinoP95: '待跑', duckdbP95: '待导入', compatibility: 'OK' },
+]
+
+const trinoBenchmarkColumns = [
+  { title: '场景', key: 'scenario', minWidth: 170 },
+  { title: 'Trino P95', key: 'trinoP95', width: 110 },
+  { title: 'DuckDB P95', key: 'duckdbP95', width: 120 },
+  { title: 'SQL 兼容', key: 'compatibility', width: 100 },
+]
+
 // 进度条颜色 (跟 L4.52 告警色 1:1 stable)
 const poolColor = computed(() => {
   if (!pool.value) return '#2080f0'
@@ -272,6 +299,32 @@ const poolColor = computed(() => {
           </NCard>
         </NGi>
       </NGrid>
+
+      <NCard title="Trino POC 状态" :bordered="false">
+        <template #header-extra>
+          <NTag type="warning" size="small">Stage 2 STUB</NTag>
+        </template>
+        <NGrid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" class="mb-4">
+          <NGi>
+            <NStatistic label="部署形态" value="1 coordinator + 1 worker" />
+          </NGi>
+          <NGi>
+            <NStatistic label="数据集" value="S3 Parquet 100GB" />
+          </NGi>
+          <NGi>
+            <NStatistic label="场景数" :value="trinoBenchmarkRows.length">
+              <template #suffix>/ 10</template>
+            </NStatistic>
+          </NGi>
+        </NGrid>
+        <NDataTable
+          :columns="trinoBenchmarkColumns"
+          :data="trinoBenchmarkRows"
+          :pagination="false"
+          :bordered="false"
+          size="small"
+        />
+      </NCard>
 
       <NCard title="查询性能统计" :bordered="false">
         <template #header-extra>
