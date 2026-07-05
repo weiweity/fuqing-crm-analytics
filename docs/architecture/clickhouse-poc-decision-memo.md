@@ -2,11 +2,11 @@
 
 > **作者**: Codex app (Stage 2 实施者, gpt-5.5 high reasoning sandbox=worktree)
 > **架构师**: Claude Code (Stage 1)
-> **日期**: 2026-07-03
-> **状态**: 📋 **暂不启动**, 留尾登记 (跟 Sprint 188 B3 + Sprint 201 R2 v24 1:1 stable 模式)
-> **CLAUDE.md 版本**: v0.4.14.35 (main @ `df29bad`)
+> **日期**: 2026-07-03 (初始) + 2026-07-05 (你拍板启动 amend §5.1)
+> **状态**: 🚀 **Sprint N+1 启动** (你 7/5 拍板启动, override §5.1 "暂不启动" 决策, 跟 L4.56 POC 留尾 SOP 1:1 stable 接受 user explicit 拍板优先)
+> **CLAUDE.md 版本**: v0.4.14.35 (main @ `df29bad`) → v0.4.14.43 (main @ `e602a41`)
 > **配套**: L4.56 永久规则化 (POC 留尾 SOP) + `docs/TECH-DEBT.md` line 12 #S201+-ClickHouse-POC
-> **关联**: Sprint 200 R1 Codex consult 6 补强 + Sprint 184 v3 L4.38 DuckDB flock 模型 + Sprint 202 R1 ETL 性能治本 (L4.54 文件分桶 46min→<15min)
+> **关联**: Sprint 200 R1 Codex consult 6 补强 + Sprint 184 v3 L4.38 DuckDB flock 模型 + Sprint 202 R1 ETL 性能治本 (L4.54 文件分桶 46min→<15min, R8 wall_min=10.8min PASS)
 
 ---
 
@@ -205,24 +205,87 @@
 
 ## 5. 决策建议 (Recommendation)
 
-### 5.1 Sprint 201+ 决策: 📋 **暂不启动** (跟 Sprint 201 R2 v24 留尾 1:1 stable)
+### 5.1 Sprint 201+ 决策: 🚀 **你 7/5 拍板启动** (override §5.1 初始 "暂不启动")
 
-**理由**:
-1. Sprint 202 R1 治标 < 15min 已满足短期业务
-2. ClickHouse / Trino POC 是 8-10 周 1-2 人月长期治本专项, 不在 Sprint 201+ 1 sprint 闭环
-3. 启动条件未触发 (DuckDB 117GB < 200GB / 查询 P95 < 5s / 业务分析师 1 人)
+**你拍板理由 (2026-07-05)**:
+1. Sprint 202 R8 wall_min **10.8min PASS** (跟 R6 估算 1:1 stable, 比 Sprint 22 #26 baseline 18min 更优 -7.2min), 短期业务满足 ✅
+2. ClickHouse / Trino POC 是 8-10 周 1-2 人月长期治本专项, 不在 1 sprint 闭环, 跨 5 sprint 1:1 stable
+3. 你拍板 "开始立项" explicit override §5.1 初始 "暂不启动" 决策 (跟 L4.56 POC 留尾 SOP 1:1 stable 接受 user 拍板优先)
+
+**启动条件 (跟 §1.3 1:1 stable)** 累计 0 触发:
+- (a) DuckDB 单文件 > 200GB ❌ 0 触发 (实测 128GB 跨 Sprint 203 R2/R3/R4 实证)
+- (b) 查询延迟 > 30s 持续 1 周 ❌ 0 触发 (R8 wall_min 10.8min 比 18min baseline 更优)
+- (c) 5+ 业务分析师并发取数 ❌ 0 触发 (当前 1 个分析师)
+
+**5 阶段拆分 (跟 §3 1:1 stable) 立 Sprint N+1 to N+5**:
+- **Sprint N+1** = 阶段 1 W1-2 需求文档 + 性能基线 (5 工作日, 1 人)
+- **Sprint N+2** = 阶段 2 W3-4 Trino 单节点 POC (10 工作日, 1 人)
+- **Sprint N+3** = 阶段 3 W5-6 Trino cluster POC (10 工作日, 1-2 人)
+- **Sprint N+4** = 阶段 4 W7-8 数据迁移 ETL 设计 (10 工作日, 1-2 人)
+- **Sprint N+5** = 阶段 5 W9-10 Go/No-Go 决策 (10 工作日, 1 人)
 
 **配套**:
-- L4.56 永久规则化 (POC 留尾 SOP)
-- docs/TECH-DEBT.md line 12 #S201+-ClickHouse-POC 留尾登记
-- 启动条件 (跟 §1.3 1:1 stable) 触发再立 Sprint 203+ ClickHouse POC sprint
+- L4.56 永久规则化 (POC 留尾 SOP) — 你 7/5 拍板 override "0 commit 续期", 改为 "立 Sprint N+1 启动"
+- docs/TECH-DEBT.md line 12 #S201+-ClickHouse-POC 留尾登记 更新: ⏸ 0 commit 续期 → 🚀 Sprint N+1 启动
+- 启动条件监控 (跟 §1.3 1:1 stable) 继续 launchd weekly 04:45 自动监控 (`scripts/launchd/com.fuqing.clickhouse-poc-monitor.weekly.plist`)
 
-### 5.2 启动 Sprint 203+ ClickHouse POC 决策
+### 5.2 启动 Sprint 203+ ClickHouse POC 决策 (跟 §5.1 你 7/5 拍板启动 1:1 stable 沿用)
 
-**触发条件** (任一满足):
+**触发条件** (任一满足 → 你拍板启动):
 - (a) DuckDB 单文件 > 200GB
 - (b) 业务方反映查询延迟 > 30s 持续 1 周
 - (c) 新增 5+ 业务分析师需要并发取数
+
+**你 7/5 拍板 explicit 启动 = override §1.3 启动条件 0 触发** (跟 L4.56 POC 留尾 SOP 1:1 stable 接受 user 拍板优先)
+
+---
+
+## 6. Sprint N+1 = ClickHouse POC 阶段 1 启动 (W1-2, 5 工作日, 1 人)
+
+### 6.1 Sprint N+1 = 阶段 1 需求文档 + 性能基线
+
+| 维度 | 内容 |
+|---|---|
+| **目标** | 锁定 POC 范围 + 性能基线数据 (跟 §3 1:1 stable) |
+| **W1** | 业务方访谈 10 个真实查询场景, 输出需求文档 PDF |
+| **W2** | DuckDB 128GB 当前查询性能基线 Excel (实测 P50/P95/P99) |
+| **交付物** | 需求文档 PDF + DuckDB 128GB 性能基线 Excel + Trino 选型推荐报告 |
+| **风险** | 业务方需求访谈需 1-2 周沟通, 可能拖延 |
+| **估时** | 5 工作日 (1 人) |
+
+### 6.2 Sprint N+1 to N+5 跨 sprint 治理 (跟 L4.42 + L4.56 永久规则 1:1 stable 沿用)
+
+| Sprint | 阶段 | 工作量 | 跨 sprint 续期触发 (跟 L4.57 永久规则沿用) |
+|---|---|---|---|
+| **Sprint N+1** | 阶段 1: 需求文档 + 性能基线 | 5 工作日 / 1 人 | 业务方访谈完成 + DuckDB 性能基线测完 → Sprint N+2 启动 |
+| **Sprint N+2** | 阶段 2: Trino 单节点 POC | 10 工作日 / 1 人 | 100GB benchmark 跑完 + SQL 兼容性报告完成 → Sprint N+3 启动 |
+| **Sprint N+3** | 阶段 3: Trino cluster POC | 10 工作日 / 1-2 人 | 3 worker cluster 跑通 + 资源组调优 → Sprint N+4 启动 |
+| **Sprint N+4** | 阶段 4: 数据迁移 ETL 设计 | 10 工作日 / 1-2 人 | 双写期方案 + 看板/取数 UX 透明迁移设计 → Sprint N+5 启动 |
+| **Sprint N+5** | 阶段 5: Go/No-Go 决策 | 10 工作日 / 1 人 | 业务方 + 架构师 + DBA 三方拍板 → POC 完成 / 终止 / 推后 |
+
+### 6.3 Sprint N+1 启动 checklist (跟 Sprint 60+ 12 步流程 1:1 stable 沿用)
+
+| Step | 动作 |
+|---|---|
+| 1 | ✅ git checkout -b feature/sprint-n+1-clickhouse-poc-stage-1 (主分支保护) |
+| 2 | 立 Sprint N+1 plan + 跟 user 拍板阶段 1 W1-2 范围 |
+| 3 | 业务方访谈 10 个查询场景 (跟 §3 阶段 1 W1 1:1 stable) |
+| 4 | DuckDB 128GB 性能基线测 (跟 §3 阶段 1 W2 1:1 stable) |
+| 5 | 需求文档 PDF + DuckDB 性能基线 Excel + Trino 选型推荐报告 落 commit |
+| 6 | pytest 全绿 + ruff All checks passed |
+| 7 | /review skill |
+| 8 | git commit --no-verify + push |
+| 9 | /qa skill |
+| 10 | git merge feature/... --no-ff 到 main |
+| 11 | git pull origin main --ff-only |
+| 12 | 留 SESSION 闭环 + audit log |
+
+### 6.4 累计 Sprint 60+ 0 debt stable 沿用 (跟 Sprint 201 R2 v24 + Sprint 199 R1 + Sprint 188 B3 1:1 stable 跨 +39 sprint)
+
+- L4.42 立项实证 SOP 1:1 stable 沿用 5/5 步骤
+- L4.55 立项 spec 实证 SOP 1:1 stable 沿用 (跟 §1-§5 文档 1:1 stable 验证)
+- L4.56 POC 留尾 SOP 1:1 stable 沿用 (override §5.1 初始 "暂不启动" → §5.1 你 7/5 拍板 "启动")
+- L4.57 跨 sprint 留尾 4 维度永久规则 1:1 stable 沿用 (跨 sprint 续期 5 sprint 累计 1:1 stable)
 
 **触发后**:
 - 立 Sprint 203+ ClickHouse POC sprint (8-10 周, 1-2 人月)
