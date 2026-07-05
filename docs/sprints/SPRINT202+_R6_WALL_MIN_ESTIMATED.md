@@ -78,21 +78,22 @@ R4 etl log 显示 **L4.54 优化 1+2 设计 BUG 100% 真治本**, 但跑批 21s 
 
 ## 3. 续期登记 (跟 L4.58 跑批 wall_min 验证 SOP 永久沿用 1:1 stable)
 
-### 3.1 跨 sprint 续期触发 (A1 wall_min 真验证)
+### 3.1 跨 sprint 续期触发 (A1 wall_min 真验证) — 凌晨自动跑批路径已 user 拍板删除
 
 | 触发条件 | 期望结果 | 收口动作 |
 |---|---|---|
-| (a) 凌晨 uvicorn 不持业务负载自动窗口 | 跑 batch ETL (无需 kill uvicorn) + wall_min 自动记录 | wall_min <15min → 写 `SPRINT202+_R7_WALL_MIN_VERIFIED.md` ✅ 闭环 (跟 L4.58 SOP 1:1 stable) |
-| (b) 业务下次跑 ETL (uvicorn 持锁窗口外, 深夜无业务负载) | 跟 (a) 1:1 stable | 跟 (a) 1:1 stable |
+| (a) ~~凌晨 uvicorn 不持业务负载自动窗口跑 ETL~~ | ❌ **已 user 7/5 拍板删除** (跟 L4.36 + L4.38 永久规则 1:1 stable, 跑批不能提前介入, 凌晨自动跑计划不实施) | 不写动作 |
+| (b) 业务下次跑 ETL (uvicorn 持锁窗口外, 深夜无业务负载 OR L4.51 1:1 stable 实施后 read_only 跟 write 不冲突) | 跑 batch ETL + wall_min 自动记录 | wall_min <15min → 写 `SPRINT202+_R7_WALL_MIN_VERIFIED.md` ✅ 闭环 (跟 L4.58 SOP 1:1 stable) |
 | (c) L4.51 Read-Write Splitting 1:1 stable 实施后 read_only path 跟 uvicorn write lock 不冲突 (但 ETL 走 write mode, 必冲突) | **不期待此路径** (跟 R4 1:1 stable 验证 ETL write 必冲突) | 不可触发, 不写动作 |
 
-### 3.2 续期登记状态 (跟 L4.42 立项实证 SOP 沿用 1:1 stable)
+### 3.2 续期登记状态 (跟 L4.42 立项实证 SOP 沿用 1:1 stable + user 7/5 删除凌晨 plan)
 
-- **当前**: A1 wall_min 真验证 ⏸ 跨 sprint 续期, L4.58 SOP 沿用
+- **当前**: A1 wall_min 真验证 ⏸ 跨 sprint 续期, L4.58 SOP 沿用, **凌晨自动跑批计划已 user 7/5 拍板删除**
 - **实证 R4 etl log 现状**: 7/4 21:26 跑 21s fail @ lock (跟 L4.36 + L4.38 永久规则 1:1 stable 跨 sprint 累计 race flake)
-- **续期等真业务触发**: 凌晨 uvicorn 自然窗口 OR 业务下次跑 ETL 触发 (跟 L4.58 SOP 沿用 1:1 stable)
+- **续期等真业务触发**: **只** 等业务下次跑 ETL (uvicorn 持锁窗口外, 深夜无业务负载 OR L4.51 1:1 stable 实施) (跟 L4.58 SOP 沿用 1:1 stable)
 - **如 wall_min 验证 <15min PASS**: Sprint 202+ R7 收口, 累计 0 debt stable 模式 (跟 Sprint 22 #26 18min baseline 1:1 stable)
 - **如 wall_min 验证 ≥15min FAIL**: 重新立项 Sprint N+1 R8 排查新根因 (跟 L4.54 优化 1+2 设计 BUG 1:1 stable 排查模式 + pipeline.py member_df / ingest.py 增量路径 跨 sprint cross-stable 复核)
+- **user 拍板 (7/5)**: 跑批不能提前介入 (反 L4.36 永久规则) + 凌晨自动跑批 plan 删除, A1 wall_min 真验证仅走 path (b) 业务下次跑 ETL 1:1 stable
 
 ---
 
