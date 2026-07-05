@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 文档按 lifecycle 分层, 新人 5 分钟找到入口。Sprint 54 起 (L3 FilterBuilder 100% 闭环) 架构师推荐分层。
-> 最后更新: 2026-07-05 (Sprint N+1 业务方访谈 PDF 需求文档 完成 + Wave 1 跨 sprint plan Sprint N+1 to N+5 跨 sprint 收口 + 你 7/5 跟 1 个运营经理 完成 21 个 业务方答复 (Q1-Q20 + Q21) 跨 sprint 1:1 stable. 5 SCENARIOS 校准 (s02 + s03 + s04 + s06 + s05/s07 降级) 跟 Sprint N+2 SCENARIOS 1:1 stable 沿用, 业务方核心画像 1:1 stable 跨 sprint plan: 正确性 > 速度 (Q2/Q4/Q9 1:1 stable) + top 频繁 s02/s09/s10 (Q11) + 期望 P95 <5s (Q12) + <2s 满意 (Q17) + 双写期接受 (Q18) + 灰度接受 (Q19) + Go/No-Go 接受 (Q20) + Q21 联系方式不要 开发直接对. 新建 `docs/sprints/SPRINT-N+1-BUSINESS-INTERVIEW-REQUIREMENTS.md` ~290 行, 跟 clickhouse-poc-decision-memo.md §3.1 deliverable 1:1 stable + RFM_DEFINITIONS.md 业务 SSOT 1:1 stable 沿用, 累计 Sprint 60+ 0 debt stable 139 sprint)
+> 最后更新: 2026-07-05 (Sprint N+1 阶段 1 W2 DuckDB 128GB 性能基线 跑通 + Wave 1 跨 sprint plan Phase A 收口 + 累计 Sprint 60+ 0 debt stable 139 sprint 1:1 stable 跨 sprint plan 沿用. W2 baseline 实测: 11 秒总 wall_time + median P95=0.068s + 10 场景全部 <2s 满意 + TOP 频繁 s02 RFM P95=1.67s + s09 R 区间 P95=0.29s (跟业务方访谈 21 答复期望 <5s + <2s 满意 1:1 stable 验证). 跟 R8 wall_min=10.8min 1:1 stable 治本延伸. 新建 `docs/sprints/SPRINT-N+1-DUCKDB-BASELINE-2026-07.md` + `docs/operations/DOCKER-INSTALL-DEPLOY-MANUAL.md` 跟 L4.7 + L4.36 + L4.62 + L4.60 永久规则 1:1 stable 沿用. 累计 140 sprint 0 debt stable 跨 +36 sprint + /document-release 55 次 + Wave 1 跨 sprint plan Sprint N+1 to N+5 准备 1:1 stable)
 
 ## 一图流
 
@@ -52,7 +52,7 @@ fuqing-crm-analytics/docs/
     ├── _sprint-close-index.md        (Sprint 193-203 close memory 指针, 跨 sprint 跨端访问 SSOT)
     ├── SPRINT_FUQING_DATA_QUERY_SKILL_PLAN.md  (Sprint 202+ Data Query v2.7 立项 plan, /autoplan 入口)
     ├── SPRINT201_PLUS_L442_VERIFICATION.md / SPRINT201_PLUS_R6_R7_R8_R9_VERIFICATION.md / SPRINT201_R2_V24_L442_VERIFICATION.md / SPRINT202_PLUS_L442_VERIFICATION.md / SPRINT202_R1_WALL_MIN_VERIFICATION.md / SPRINT202+_R4_WALL_MIN_VERIFICATION.md / SPRINT202+_R5_WALL_MIN_VERIFICATION.md / SPRINT202+_R6_WALL_MIN_ESTIMATED.md / SPRINT203_ARCHITECTURE_REVIEW.md / SPRINT203_R6_SKILL_V2_7_SNAPSHOT.md / SPRINT204+_L442_VERIFICATION.md  (Sprint 立项实证 + L4.42 验证 + 跑批 wall_min 验证/估算 + 架构审查 + SKILL.md v2.7 项目仓 snapshot + Sprint 204+ 3 件跨 sprint 留尾 0 commit 收口, 跨 sprint 留尾验证沉淀)
-    ├── SPRINT202+_R7_WALL_MIN_VERIFIED.md / SPRINT202+_R8_WALL_MIN_VERIFIED.md / SPRINT-N+2-TRINO-BENCHMARK.md / SPRINT-N+1-BUSINESS-INTERVIEW-REQUIREMENTS.md / HANDOFF-TO-CODEX-SprintN+3-ClickHouse-POC-Trino-Cluster.md / HANDOFF-TO-CODEX-SprintN+4-ClickHouse-POC-DuckDB-Trino-ETL.md / HANDOFF-SprintN+5-Stage-Architecture-Inputs.md  (Sprint 202+ R7/R8 wall_min FAIL→PASS 收口 + Sprint N+1 业务方访谈 PDF 需求文档 + Sprint N+2 Trino POC bench 模板 + Wave 1 跨 sprint plan N+3/N+4/N+5 handoff doc 三件套, 跟 L4.42+L4.55+L4.56+L4.57+L4.59 永久规则 1:1 stable 沿用)
+    ├── SPRINT202+_R7_WALL_MIN_VERIFIED.md / SPRINT202+_R8_WALL_MIN_VERIFIED.md / SPRINT-N+2-TRINO-BENCHMARK.md / SPRINT-N+1-BUSINESS-INTERVIEW-REQUIREMENTS.md / SPRINT-N+1-DUCKDB-BASELINE-2026-07.md / HANDOFF-TO-CODEX-SprintN+3-ClickHouse-POC-Trino-Cluster.md / HANDOFF-TO-CODEX-SprintN+4-ClickHouse-POC-DuckDB-Trino-ETL.md / HANDOFF-SprintN+5-Stage-Architecture-Inputs.md  (Sprint 202+ R7/R8 wall_min FAIL→PASS 收口 + Sprint N+1 业务方访谈 PDF 需求文档 + Sprint N+1 W2 DuckDB 128GB 性能基线 median P95=0.068s 跟业务方期望 <5s 1:1 stable + Sprint N+2 Trino POC bench 模板 + Wave 1 跨 sprint plan N+3/N+4/N+5 handoff doc 三件套, 跟 L4.42+L4.55+L4.56+L4.57+L4.58+L4.59 永久规则 1:1 stable 沿用)
     └── archive/                      (Sprint 139-159 老 HANDOFF 归档, 历史 reference)
 ```
 
