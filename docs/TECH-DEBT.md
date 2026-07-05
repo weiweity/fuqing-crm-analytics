@@ -469,3 +469,19 @@ Sprint 25+ 跟债 #195 一起排期。
 | #S41-12 Sprint 41 e2e CI 0→1 实战失败 + advisory | P3 | ✅ 已修复 (v0.4.14.132) | Sprint 41.1-41.11 12 次 follow-up 仍 fail (GH runner 14GB disk + headless Linux + 没 DuckDB 跟本地差异). Sprint 41.12 改 e2e non-blocking (跟 ground-truth-lint 一致), 本地 11/11 spec pass, CI advisory. Sprint 50+ 重新启用 blocking (GH runner 升级 / 加 seed DuckDB / 换 CI provider). 详见 `docs/operating/ci-e2e-history.md` |
 | #S42-1 Sprint 42 spec-lint 预防层 + CI 实战 fix 框架沉淀 | P3 | ✅ 已修复 (v0.4.14.132) | Sprint 41 e2e CI 12 follow-up 实战失败改 advisory 后, 实战教训沉淀: 3 层防御 (预防/检测/响应) + Q1-Q4 决策树 + 5 步响应流程. 4 产出物 (docs/operating/ci-defense-playbook.md + spec-lint.sh + regression test + CLAUDE.md L5.1+L5.2). spec-lint 起步 advisory 跟 ground-truth-lint 一致, 1-2 sprint 观察 false positive 率后改 blocking. 防 Sprint 50+ 重新激活 e2e CI blocking 时复发同类问题 |
 | #S43-1 + #S43-2 Sprint 43 spec-lint 改 blocking + 修 7 真违反 | P3 | ✅ 已修复 (v0.4.14.133) | Sprint 42 #S42-1 spec-lint 起步 advisory 1-2 sprint 观察 false positive 率后改 blocking (跟 ground-truth-lint Sprint 17 #121 → Sprint 18 #142 模式同源). Sprint 43 #S43-2 修 7 个真违反: 7 spec 删 10 个冗余 waitForTimeout(N) 调用 + 简化注释引用 (后面 expect visible 30s 自己 wait, waitForTimeout 是冗余的). 注释里也引用 waitForTimeout(N) 触发 spec-lint — Sprint 43 教训: 注释里描述历史删改也要避免数字参数语法. 1h 闭环, 治本后 0 复发 |
+
+## R8 Ad-hoc Query Hitrate Alert (Sprint 201+)
+
+- tool_count=18 != 14 (期望 14, 跟 SKILL.md v2.6 1:1)
+
+## R8 Ad-hoc Query Hitrate Alert (Sprint 201+)
+
+- tool_count=18 != 14 (期望 14, 跟 SKILL.md v2.6 1:1)
+
+## R8 Ad-hoc Query Hitrate Alert (Sprint 201+)
+
+- tool_count=18 != 19 (期望 19, 跟 SKILL.md v2.7 1:1)
+
+## R8 Ad-hoc Query Hitrate Alert (Sprint 201+)
+
+- tool_count=18 != 19 (期望 19, 跟 SKILL.md v2.7 1:1)

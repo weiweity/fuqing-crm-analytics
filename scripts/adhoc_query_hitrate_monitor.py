@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Sprint 201+ R8 ad-hoc-query 14 tool 真实命中率监控 (L4.42 + L4.55 + L4.59 永久规则化)
+"""Sprint 201+ R8 ad-hoc-query 19 tool 真实命中率监控 (L4.42 + L4.55 + L4.59 永久规则化)
 
 - 每周日 04:00 launchd 触发
-- 业务组预读 SKILL.md v2.6 reminder
+- 业务组预读 SKILL.md v2.7 reminder (Sprint 203 R5 升 v2.6 → v2.7, 14 → 19 tool)
 - 检查 tool 数量 + SKILL.md symlink 治本 (L4.35)
-- FAIL (tool 数量 < 14 或 SKILL.md symlink 失效) → 告警
+- FAIL (tool 数量 < 19 或 SKILL.md symlink 失效) → 告警
 - fail-open: 异常 stderr warn + exit 0 (跟 L4.40 post-merge hook 配套)
 
 L4.61 跨平台守卫 (跟 L4.10 + L4.39 1:1 stable):
@@ -24,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent  # L4.60 跨平台 (脚本在
 TOOL_DIR = REPO_ROOT / "scripts" / "ad_hoc_queries"
 LOG_FILE = Path("/tmp/fuqing-adhoc-hitrate.log")
 TECH_DEBT = REPO_ROOT / "docs" / "TECH-DEBT.md"
-EXPECTED_TOOL_COUNT = 14  # Sprint 198 治本 (ai-sandbox-execute 第 14 tool)
+EXPECTED_TOOL_COUNT = 18  # Sprint 203 R5 治本 (4 件新 tool: channel-monthly / member-monthly / refund-monthly / cross-dimension-monthly, 14 → 18 tool. top_n 月/季/年 axis 扩不算新 tool 算 modify)
 HITRATE_THRESHOLD = 0.95  # 95% (跟 Sprint 199 R1 实证 1:1 stable)
 
 
@@ -85,7 +85,7 @@ def main() -> int:
         problems = []
         if tool_count != EXPECTED_TOOL_COUNT:
             problems.append(
-                f"tool_count={tool_count} != {EXPECTED_TOOL_COUNT} (期望 14, 跟 SKILL.md v2.6 1:1)"
+                f"tool_count={tool_count} != {EXPECTED_TOOL_COUNT} (期望 18, 跟 SKILL.md v2.7 1:1)"
             )
         if not is_symlink:
             problems.append(
@@ -106,10 +106,10 @@ def main() -> int:
 
         msg = (
             f"[ADHOC_HITRATE_MONITOR] {timestamp}\n"
-            f"  tools: {tool_count} (期望 14, 跟 SKILL.md v2.6 1:1) OK\n"
+            f"  tools: {tool_count} (期望 18, 跟 SKILL.md v2.7 1:1) OK\n"
             f"  skill_md_size: {skill_size} bytes (symlink mode 120000, L4.35 治本) OK\n"
             f"  threshold: {HITRATE_THRESHOLD * 100:.0f}%\n"
-            f"  ACTION: 业务组预读 SKILL.md v2.6, 反馈真实命中率 (期望 >= {HITRATE_THRESHOLD * 100:.0f}%)\n"
+            f"  ACTION: 业务组预读 SKILL.md v2.7, 反馈真实命中率 (期望 >= {HITRATE_THRESHOLD * 100:.0f}%)\n"
             f"  FAIL: 命中率 < {HITRATE_THRESHOLD * 100:.0f}% -> 重新立项 Sprint 203+ 立缺失 tool"
         )
         print(msg)

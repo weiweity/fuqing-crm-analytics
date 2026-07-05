@@ -33,9 +33,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PROJECT_ROOT = REPO_ROOT
 MCP_SERVER_DIR = PROJECT_ROOT / "mcp_servers" / "fuqing_adhoc"
 
-# 13 个 query tool + 1 个 ask tool (跟 _dispatch.py TOOL_DEFS SSOT 一致,
+# 17 个 query tool + 1 个 ask tool (跟 _dispatch.py TOOL_DEFS SSOT 一致,
 # MCP tool name 用 underscore 形式, 跟 CLI command hyphen 形式区分).
-# Sprint 196 加 fixed_product_list_compare; Sprint 197/198 加 HTTP/sandbox tools.
+# Sprint 196 加 fixed_product_list_compare; Sprint 197/198 加 HTTP/sandbox tools;
+# Sprint 203 R5 加 4 件新 tool: channel_monthly / member_monthly / refund_monthly / cross_dimension_monthly.
 EXPECTED_TOOLS: List[str] = [
     "daily_gsv",
     "yoy_battle",
@@ -51,10 +52,15 @@ EXPECTED_TOOLS: List[str] = [
     "fixed_product_list_compare_http",  # Sprint 197 新增
     "ai_sandbox_execute",  # Sprint 198 新增
     "ask",  # 自然语言路由
+    "channel_monthly",  # Sprint 203 R5 新增 (Sprint 199 R1 留尾任务 A 实证)
+    "member_monthly",  # Sprint 203 R5 新增 (is_member 按月)
+    "refund_monthly",  # Sprint 203 R5 新增 (is_refund 按月)
+    "cross_dimension_monthly",  # Sprint 203 R5 新增 (6 维白名单交叉)
 ]
 
 # Sprint 182 D3: _TOOL_DEFS 一次声明, _make_handler factory 翻译 MCP call → CLI argv
-EXPECTED_TOOL_COUNT = 14
+# Sprint 203 R5 治本: 14 → 18 tool (4 件新 tool: channel-monthly / member-monthly / refund-monthly / cross-dimension-monthly, top_n 月/季/年 axis 扩算 modify 不算新 tool)
+EXPECTED_TOOL_COUNT = 18
 
 
 # ─────────────────────────────────────────────────────────────

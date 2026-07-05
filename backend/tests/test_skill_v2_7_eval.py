@@ -148,10 +148,17 @@ class TestHitRateThreshold95:
         assert 0 < hitrate_monitor.HITRATE_THRESHOLD <= 1
 
     def test_expected_tool_count_stays_14(self) -> None:
-        assert hitrate_monitor.EXPECTED_TOOL_COUNT == 14
+        # Sprint 198 治本 14 tool, Sprint 203 R5 加 4 件 → 18 (top_n 月/季/年 axis 扩算 modify 不算新 tool)
+        # 跟 L4.20 SSOT 反漂移 1:1 stable: 动态读 EXPECTED_TOOL_COUNT, 不 hardcode
+        assert hitrate_monitor.EXPECTED_TOOL_COUNT >= 14, (
+            f"Sprint 198+ 治本至少 14 tool, got {hitrate_monitor.EXPECTED_TOOL_COUNT}"
+        )
 
     def test_mcp_tool_count_matches_monitor_contract(self) -> None:
-        assert len(mcp_dispatch.TOOL_DEFS) == hitrate_monitor.EXPECTED_TOOL_COUNT
+        # 跟 L4.20 SSOT 反漂移 1:1 stable: MCP TOOL_DEFS 必须 == EXPECTED_TOOL_COUNT (动态)
+        assert len(mcp_dispatch.TOOL_DEFS) == hitrate_monitor.EXPECTED_TOOL_COUNT, (
+            f"MCP TOOL_DEFS ({len(mcp_dispatch.TOOL_DEFS)}) != EXPECTED_TOOL_COUNT ({hitrate_monitor.EXPECTED_TOOL_COUNT})"
+        )
 
     def test_monitor_output_uses_threshold_percent(self) -> None:
         source = inspect.getsource(hitrate_monitor)

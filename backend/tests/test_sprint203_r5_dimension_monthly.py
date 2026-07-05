@@ -50,8 +50,6 @@ def test_channel_monthly_spec_args():
 
 def test_top_n_axis_monthly_quarterly_yearly_added():
     """Sprint 203 R5: top_n 扩 axis 参数 (跟 Sprint 190 daily-gsv-multi-period 1:1 stable)."""
-    import top_n
-    spec = None
     from scripts.ad_hoc_queries.registry import QUERIES
     spec = QUERIES.get("top-n")
     assert spec is not None
@@ -70,7 +68,6 @@ def test_top_n_axis_monthly_quarterly_yearly_added():
 def test_top_n_resolve_axis_daily():
     """Sprint 203 R5: _resolve_axis_dates axis=daily 走 start/end."""
     import top_n
-    from datetime import date
     s, e = top_n._resolve_axis_dates("daily", "2026-06-01", "2026-06-15", None, None, None)
     assert s == "2026-06-01"
     assert e == "2026-06-15"
@@ -136,12 +133,13 @@ def test_cross_dimension_monthly_import_ok():
 
 def test_cross_dimension_whitelist_enforced():
     """Sprint 203 R5: dim1/dim2 必须 in 白名单 (L4.5 FilterBuilder 1:1 stable 防护 SQL 注入)."""
+    import pytest
     import cross_dimension_monthly
-    with __import__("pytest").raises(ValueError, match="not in whitelist"):
+    with pytest.raises(ValueError, match="not in whitelist"):
         cross_dimension_monthly.run_cross_dimension_monthly(
             start="2026-01", end="2026-06", dim1="evil_column", dim2="channel"
         )
-    with __import__("pytest").raises(ValueError, match="not in whitelist"):
+    with pytest.raises(ValueError, match="not in whitelist"):
         cross_dimension_monthly.run_cross_dimension_monthly(
             start="2026-01", end="2026-06", dim1="channel", dim2="user_input"
         )
