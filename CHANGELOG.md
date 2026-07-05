@@ -1,3 +1,34 @@
+## [0.4.14.42] - 2026-07-05 (Sprint 203 R5: **多维度按月衍生 5 件新 tool** — channel-monthly + member-monthly + refund-monthly + cross-dimension-monthly + top_n 月/季/年 axis 扩, 跟 Sprint 199 R1 留尾任务 A/B 实证 1:1 stable, user 7/5 拍板 A 合并 1 sprint (Phase 1+2) 1:1 stable)
+
+### Added
+- **`scripts/ad_hoc_queries/channel_monthly.py`** (~150 行, Sprint 203 R5 Sprint 199 R1 留尾任务 A 实证): 按 channel 切片月维度 (跟 channel_slice 1:1 stable 模式 + 月份边界推导 12 月底自动 +1 年). 输出 GSV + orders + customers + aov + YOY + 全店聚合 row. L4.5 exception 适用: CLI 层 inline SQL 用 ? DB-API 参数化 (read_only_conn context manager). 自动注册到 QUERIES dict + MCP TOOL_DEFS.
+- **`scripts/ad_hoc_queries/member_monthly.py`** (~130 行, 业务空白点补全): 按 is_member 切片月维度. 输出 GSV + orders + customers + 占比 + YOY.
+- **`scripts/ad_hoc_queries/refund_monthly.py`** (~130 行, 退款监控必备): 按 is_refund 切片月维度. 输出 GSV + orders + 退款金额 + 退款率 + YOY.
+- **`scripts/ad_hoc_queries/cross_dimension_monthly.py`** (~140 行, 多维度交叉按月): 通用 6 维白名单 (channel / is_member / is_goujinjin / spu_category / spu_tier / spu_product_class) + L4.5 FilterBuilder 强制 (L4.19 channel alias 永久规则 1:1 stable). 输出 dim1_value × dim2_value + GSV + orders + customers + YOY.
+- **`scripts/ad_hoc_queries/top_n.py` 扩 axis 参数** (跟 Sprint 190 daily-gsv-multi-period 1:1 stable DRY 模式): 新增 `--axis daily/monthly/quarterly/yearly` + `--month YYYY-MM` + `--quarter YYYY-Q[1-4]` + `--year YYYY`. `_resolve_axis_dates()` 4 个 axis 各自推导 + L4.43 argparse 透传 nargs.
+- **`backend/tests/test_sprint203_r5_dimension_monthly.py`** (~190 行, 18 cases / 9 TestClass 锁回归): 跟 Sprint 196 8 case 1:1 stable 简化为 18 case 5 tool. 验证 QUERIES dict 14 → 19 注册 + L4.5 维度白名单 + L4.43 argparse 透传 + 月份边界处理 + YOY 同期推导.
+
+### Changed
+- **`scripts/ad_hoc_queries/top_n.py`** 现有 tool 扩 axis 参数 (跟 Sprint 190 daily-gsv-multi-period 1:1 stable): `--axis` 默认 `daily` 保持向后兼容, 加 monthly/quarterly/yearly 3 个 axis + 对应 period 参数. `_LEVEL_MAP` 跟 Sprint 171 v2.0 1:1 stable 3 维白名单 (spu_category / spu_product_subclass / spu_product_class).
+- **`~/.claude/skills/ad-hoc-query/SKILL.md`** 待 Sprint 203 R6 收口升 v2.7 + 14 → 19 tool 速查表 (跟 Sprint 196 fixed-product-list-compare 1:1 stable 模式).
+
+### Technical
+- VERSION bump: `0.4.14.41` → `0.4.14.42` (按 Sprint 203 R5 收口).
+- Focused verification: `PYTHONPATH="$(pwd)" pytest backend/tests/test_sprint203_r5_dimension_monthly.py -v` → **18 passed in 1.08s**.
+- Cross-stable: `PYTHONPATH="$(pwd)" python3 -c "import sys; sys.path.insert(0, 'scripts'); sys.path.insert(0, 'scripts/ad_hoc_queries'); import channel_monthly, member_monthly, refund_monthly, cross_dimension_monthly, top_n"` → **5 件 import OK**.
+- Ruff scoped: 5 files (4 new + top_n modify) → **All checks passed**.
+- QUERIES dict: 14 → **19** (+5 新 tool, 0 删除). 累计 ad-hoc-query 14 → 19 工具 (跟 Sprint 198 v2.6 累计).
+- L4.x stable: **62 stable 持续** (Sprint 203 R5 0 新增, 跟 L4.5/L4.19/L4.37/L4.40/L4.43/L4.59 永久规则配套).
+- 累计 Sprint 60+ 0 debt stable **136 sprint** (跨 +32 sprint); /document-release 真治本累计 **43 次**.
+- 0 业务代码改动模式: Sprint 60+ 累计 **37 次** 0 业务代码改动 1:1 stable (跟 Sprint 200 R1 v2.1 1:1 stable).
+- 1 commit `70e7ce1` + 1 merge `ddb27d1` = 2 commits, 7 files / +1195/-10 across 2 commits. main HEAD `ddb27d1`.
+- /autoplan 评审 (4 phase: CEO/Eng/DX + Final Gate, Design skip): 3 TASTE decision 全部 surface (合并 1 sprint / 扩 top_n axis / 1 个通用 cross-dimension-monthly), user 拍板 A × 3. 0 user challenge, 0 critical gap, 9 task 准备, 7 implementation task (5 tool + SKILL.md v2.7 + close memory R5).
+- 跨 sprint 留尾 0 commit 续期 (跟 L4.42 立项实证 SOP 1:1 stable):
+  - Sprint 204+ Phase 3 周/季/YTD/QTD/MTD 滚动窗口 (留 Sprint 203 R6+ 实施)
+  - Sprint 204+ traffic_source / influencer_name / province / city 按月 (业务优先级低, 0 业务触发续期)
+
+---
+
 ## [0.4.14.41] - 2026-07-05 (Sprint 203 R4: **ClickHouse POC monitor b/c 件真接入** — urllib 3s timeout GET /metrics + per-series P95 MAX + /api/v1/health/pool semaphore_in_use parse + pytest 16 case 锁回归 + L4.59 SOP 跨 sprint 维护性 0 业务代码改动模式)
 
 ### Added
