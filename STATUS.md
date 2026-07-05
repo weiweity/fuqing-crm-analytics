@@ -28,12 +28,12 @@
 
 | 项 | 值 |
 |---|---|
-| VERSION | `0.4.14.38` (Sprint 202+ Data Query v2.7 B-lite: two-year-overview order_ids 端到端 + SKILL.md v2.7 极小补丁 + Tests 25 case 5 TestClass 强契约 + HITRATE 70→95 + L4.35 symlink verify upgrade + pre-existing 500 错误 1 行 lazy import 真治本 + /document-release 累计 38 次真治本) |
-| git HEAD (main) | `2dcb06d` (Sprint 202+ Data Query v2.7 + /document-release 收口合并, 跟 origin/main 0 drift) |
-| 当前分支 | `main` (Sprint 202+ Data Query v2.7 收口后) |
-| 最近 sprint | Sprint 202+ Data Query v2.7 B-lite 方案 (跟 Sprint 195/196 R1 1:1 stable 升级模式 + 4 voices 共识 + Codex 交叉审核 + 真业务 H1 file 3685 单 e2e 闭环 ¥505,996.29 1:1 跟 user 报) + Sprint 202+ CI fix R6+R7+R8+R9 跨平台 Path(__file__).resolve() + Sprint 202+ CI fix #2 R6/R8 monitor 跨 CI Linux runner 适配 |
-| 收口日 | 2026-07-04 |
-| 上次合入 | Sprint 202+ Data Query v2.7 + /document-release 收口 (commit `2dcb06d`, push origin main `4bc4cb5..2dcb06d` 成功, +Sprint 202+ B-lite 14 files +600/-24 + docs commit 3790ca9 1 file / +1/-1, 累计 /document-release 38 次真治本) |
+| VERSION | `0.4.14.43` (Sprint 203 R6 SKILL.md v2.6 → v2.7 升级 — 14 → 18 tool 速查表 + §0.6 月维度业务兜底段 + §0.7 多维度交叉按月业务兜底段, 跟 Sprint 203 R5 14 → 18 tool 累计 1:1 stable, 跟 L4.35 symlink 1:1 stable 永久规则配套. 累计 /document-release 45 次真治本 (跟 Sprint 203 R6 1:1 stable)) |
+| git HEAD (main) | `d7c597b` (Sprint 202+ R5+ 续期登记 R4 跑批 wall_min < 15min 真验证, main HEAD 跟 origin/main 0 drift) |
+| 当前分支 | `main` (Sprint 202+ R5+ 续期登记 + Sprint 204+ Phase 3 top_n 8 axis + Sprint 203 R6 SKILL.md v2.7 + CI fix 收口后) |
+| 最近 sprint | Sprint 203 R6 SKILL.md v2.7 (跟 L4.35 symlink 1:1 stable 永久规则配套) + Sprint 204+ Phase 3 top_n 周/季/YTD/QTD/MTD 滚动窗口 axis (跟 Sprint 203 R5 daily/monthly/quarterly/yearly axis 1:1 stable 续期) + Sprint 202+ R5+ 续期登记 R4 跑批 wall_min (跟 L4.58 SOP 沿用 1:1 stable) + Sprint 203 R5 多维度按月衍生 5 件新 tool (channel_monthly / member_monthly / refund_monthly / cross_dimension_monthly + top_n 月/季/年 axis 扩) + Sprint 203 R4 ClickHouse POC monitor b/c 件真接入 (跟 R3 STUB TODO #4 闭环) + Sprint 203 R3 OpsView STUB TODO 5 件接入 + Sprint 203 R2 3 P1 真 bug 治本 + Sprint 203 R2 amend ClickHouse POC plist 注释简化 + Sprint 202+ CI fix #2 R6/R8 monitor logic 适配 CI Linux runner |
+| 收口日 | 2026-07-05 |
+| 上次合入 | Sprint 202+ R5+ 续期登记 (commit `d7c597b`, push origin main 0 drift, 累计 /document-release 46 次真治本 +1 Sprint 204+ L4.42 实证) |
 
 ---
 
