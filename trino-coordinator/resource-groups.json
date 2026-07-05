@@ -1,0 +1,52 @@
+{
+  "rootGroups": [
+    {
+      "name": "global",
+      "softMemoryLimit": "70%",
+      "hardMemoryLimit": "80%",
+      "maxQueued": 30,
+      "maxRunning": 20,
+      "schedulingPolicy": "weighted",
+      "subGroups": [
+        {
+          "name": "analyst_pool",
+          "weight": 6,
+          "softMemoryLimit": "30%",
+          "softConcurrencyLimit": 5,
+          "hardConcurrencyLimit": 7,
+          "maxQueued": 10
+        },
+        {
+          "name": "dashboard_pool",
+          "weight": 8,
+          "softMemoryLimit": "40%",
+          "softConcurrencyLimit": 4,
+          "hardConcurrencyLimit": 6,
+          "maxQueued": 8
+        },
+        {
+          "name": "etl_pool",
+          "weight": 2,
+          "softMemoryLimit": "15%",
+          "softConcurrencyLimit": 2,
+          "hardConcurrencyLimit": 3,
+          "maxQueued": 5
+        }
+      ]
+    }
+  ],
+  "selectors": [
+    {
+      "user": "analyst*",
+      "group": "analyst_pool"
+    },
+    {
+      "user": "dashboard*",
+      "group": "dashboard_pool"
+    },
+    {
+      "user": "etl*",
+      "group": "etl_pool"
+    }
+  ]
+}
