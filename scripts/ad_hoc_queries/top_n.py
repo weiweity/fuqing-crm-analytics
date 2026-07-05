@@ -1,8 +1,14 @@
-"""top-n — TOP N 品类/产品层级两年对比。
+"""top-n — TOP N 品类/产品层级两年对比 (daily/weekly/monthly/quarterly/yearly axis)
 
 Sprint 171:
 - 只走 backend service（category_distribution），不写 SQL
 - 输出字段使用 top_* 前缀，避免跟新老客/RFM字段串台
+
+Sprint 203 R5:
+- 扩 axis 参数 (daily/weekly/monthly/quarterly/yearly) 跟 Sprint 190 daily-gsv-multi-period 1:1 stable
+- monthly axis: --month YYYY-MM (单一月份, 自动推导 [YYYY-MM-01, YYYY-MM+1-01))
+- quarterly axis: --quarter YYYY-Q[1-4]
+- yearly axis: --year YYYY
 """
 from __future__ import annotations
 
@@ -48,24 +54,69 @@ def _aus(amount: Any, count: Any) -> float:
     return round(float(amount or 0) / user_count, 2) if user_count else 0.0
 
 
+def _resolve_axis_dates(axis: str, start: str | None, end: str | None, month: str | None, quarter: str | None, year: str | None) -> tuple[str, str]:
+    """Resolve axis + period args to (start_date, end_date) for category_distribution.
+
+    Sprint 203 R5 跟 Sprint 190 daily-gsv-multi-period 1:1 stable: 多种 axis 走单一 service.
+    """
+    if axis == "daily":
+        if not start or not end:
+            raise ValueError("axis=daily 必须传 --start 和 --end (YYYY-MM-DD)")
+        validate_date_window(start, end)
+        return start, end
+    elif axis == "monthly":
+        if not month:
+            raise ValueError("axis=monthly 必须传 --month (YYYY-MM)")
+        y, m = map(int, month.split("-"))
+        start_day = date(y, m, 1).isoformat()
+        # end exclusive = next month 1st
+        if m == 12:
+            end_day = date(y + 1, 1, 1).isoformat()
+        else:
+            end_day = date(y, m + 1, 1).isoformat()
+        return start_day, end_day
+    elif axis == "quarterly":
+        if not quarter:
+            raise ValueError("axis=quarterly 必须传 --quarter (YYYY-Q[1-4])")
+        y, q = quarter.split("-Q")
+        y, q = int(y), int(q)
+        start_month = (q - 1) * 3 + 1
+        start_day = date(y, start_month, 1).isoformat()
+        end_month = start_month + 3
+        if end_month > 12:
+            end_day = date(y + 1, end_month - 12, 1).isoformat()
+        else:
+            end_day = date(y, end_month, 1).isoformat()
+        return start_day, end_day
+    elif axis == "yearly":
+        if not year:
+            raise ValueError("axis=yearly 必须传 --year (YYYY)")
+        return f"{year}-01-01", f"{int(year) + 1}-01-01"
+    else:
+        raise ValueError(f"axis 必须 in [daily, monthly, quarterly, yearly], got '{axis}'")
+
+
 def run_top_n(
     dimension: str = "spu_category",
     start: str | None = None,
     end: str | None = None,
+    axis: str = "daily",
+    month: str | None = None,
+    quarter: str | None = None,
+    year: str | None = None,
     exclude_channels: str | None = None,
     limit: int = 20,
 ) -> List[List[Any]]:
-    if not start or not end:
-        raise ValueError("top-n 必须传 --start 和 --end")
-    validate_date_window(start, end)
-    end_day = datetime.strptime(end, "%Y-%m-%d").date()
-    start_day = datetime.strptime(start, "%Y-%m-%d").date()
+    # Sprint 203 R5: 解析 axis → (start, end) for category_distribution
+    start_resolved, end_resolved = _resolve_axis_dates(axis, start, end, month, quarter, year)
+    end_day = datetime.strptime(end_resolved, "%Y-%m-%d").date()
+    start_day = datetime.strptime(start_resolved, "%Y-%m-%d").date()
     lookback_days = max((end_day - start_day).days, 0)
     comp_end_day = _shift_year(end_day, -1)
     level = _LEVEL_MAP[dimension]
     exclude_list = parse_exclude_channels(exclude_channels)
     current_result = get_category_distribution(
-        date=end,
+        date=end_resolved,
         lookback_days=lookback_days,
         level=level,
         exclude_channels=exclude_list,
@@ -115,7 +166,7 @@ def write_top_n_xlsx(output_path: str | None = None, **kwargs: Any) -> str:
 
 register(QuerySpec(
     name="top-n",
-    description="TOP N 品类/产品层级两年对比",
+    description="TOP N 品类/产品层级两年对比 (daily/monthly/quarterly/yearly axis)",
     args=[
         {
             "flags": ("--dimension",),
@@ -124,8 +175,18 @@ register(QuerySpec(
             "choices": ["spu_category", "spu_product_subclass", "spu_product_class"],
             "help": "TOP 维度",
         },
-        {"flags": ("--start",), "required": True, "help": "起始日期 YYYY-MM-DD"},
-        {"flags": ("--end",), "required": True, "help": "结束日期 YYYY-MM-DD"},
+        {
+            "flags": ("--axis",),
+            "required": False,
+            "default": "daily",
+            "choices": ["daily", "monthly", "quarterly", "yearly"],
+            "help": "时间轴维度 (Sprint 203 R5 扩 monthly/quarterly/yearly axis)",
+        },
+        {"flags": ("--start",), "required": False, "help": "起始日期 YYYY-MM-DD (axis=daily)"},
+        {"flags": ("--end",), "required": False, "help": "结束日期 YYYY-MM-DD (axis=daily)"},
+        {"flags": ("--month",), "required": False, "help": "月份 YYYY-MM (axis=monthly)"},
+        {"flags": ("--quarter",), "required": False, "help": "季度 YYYY-Q[1-4] (axis=quarterly)"},
+        {"flags": ("--year",), "required": False, "help": "年份 YYYY (axis=yearly)"},
         {"flags": ("--exclude-channels",), "required": False, "default": None, "help": "排除渠道, 逗号分隔"},
         {"flags": ("--limit",), "required": False, "default": 20, "type": int, "help": "返回行数"},
         {
