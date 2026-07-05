@@ -1,3 +1,32 @@
+## [0.4.14.43] - 2026-07-05 (Sprint 203 R6: **SKILL.md v2.6 → v2.7 升级** — 14 → 18 tool 速查表 + §0.6 月维度业务兜底段 + §0.7 多维度交叉按月业务兜底段, 跟 Sprint 203 R5 14 → 18 tool 累计 1:1 stable, 跟 L4.35 symlink 1:1 stable 永久规则配套)
+
+### Changed
+- **`~/.claude/skills/ad-hoc-query/SKILL.md` v2.6 → v2.7** (跟 L4.35 symlink 1:1 stable 永久规则配套, 项目仓 `docs/sprints/SPRINT203_R6_SKILL_V2_7_SNAPSHOT.md` snapshot):
+  - description 升级: 14 → 18 tool 描述 + Sprint 203 R5 4 件新 tool + 5 段触发关键词 (月报/季报/年报/退款/按渠道/渠道占比/会员占比)
+  - §1 18 个 MCP tools 一览 (跟 Sprint 60+ 1:1 stable): Sprint 198 14 tool + Sprint 203 R5 4 件新 tool (channel-monthly / member-monthly / refund-monthly / cross-dimension-monthly) + top_n axis 扩 daily/monthly/quarterly/yearly
+  - §1.5 速查表升级: 14 → 18 行 (+ 4 件新 tool 行 + top_n axis 行, 跟 Sprint 196 1:1 stable)
+  - §0.6 月维度业务兜底段 (新增, Sprint 203 R5 月报核心): 月/季/年 axis 优先级匹配 + 4 件新 tool 使用规则 + 禁止路径 (daily_gsv 30 次按月汇总 / 报工具缺位 / two_year_overview 凑数 / ai_sandbox 写临时 SQL)
+  - §0.7 多维度交叉按月业务兜底段 (新增, Sprint 203 R5 衍生交叉场景): 6 维白名单 (channel/is_member/is_goujinjin/spu_category/spu_tier/spu_product_class) + 4 件新 tool 任意组合 + L4.5 FilterBuilder 1:1 stable 防护 SQL 注入
+- **`docs/sprints/SPRINT203_R6_SKILL_V2_7_SNAPSHOT.md`** (新建, 602 行, 跟 Sprint 199 R1 cleanup 1:1 stable 模式): SKILL.md v2.7 项目仓 snapshot (跨 sprint 留尾任务 A/B 实施闭环)
+
+### Technical
+- VERSION bump: `0.4.14.42` → `0.4.14.43` (按 Sprint 203 R6 收口).
+- pytest verify (跟 Sprint 60+ 1:1 stable): `PYTHONPATH="$(pwd)" pytest backend/tests/test_sprint203_r5_dimension_monthly.py backend/tests/test_adhoc_query_hitrate_monitor.py backend/tests/test_skill_v2_7_eval.py backend/tests/test_workbuddy_e2e.py backend/tests/test_fuqing_adhoc_mcp_server.py -q` → **85 passed in 9.75s**.
+- L4.59 R8 monitor verify: `python3 scripts/adhoc_query_hitrate_monitor.py` → `tools: 18 (期望 18, 跟 SKILL.md v2.7 1:1) OK`.
+- L4.35 symlink verify: `~/.workbuddy/skills/ad-hoc-query/SKILL.md → ~/.claude/skills/ad-hoc-query/SKILL.md` 跨 3 端 (Claude Code + WorkBuddy + CodeBuddy) 1:1 stable.
+- SKILL.md size 537 → **602 lines** (+65, 4 件新 tool 速查表 + 2 段业务兜底).
+- L4.x stable: **62 stable 持续** (Sprint 203 R6 0 新增, 跟 L4.5/L4.19/L4.35/L4.37/L4.40/L4.43/L4.59 永久规则配套).
+- 累计 Sprint 60+ 0 debt stable **137 sprint** (跨 +33 sprint); /document-release 真治本累计 **44 次** (+1 Sprint 203 R6 收口).
+- 0 业务代码改动模式: Sprint 60+ 累计 **40 次** 0 业务代码改动 1:1 stable (跟 Sprint 200 R1 v2.1 1:1 stable).
+- 1 commit `5da90ff` (跟 Sprint 60+ 1:1 stable 单 commit 模式: SKILL.md 是 user home 文件, 1 commit 项目仓 snapshot + 4 docs 改动 + 0 业务代码 = 1 commit). main HEAD `xxx` (待 merge).
+- 跨 sprint 留尾 0 commit 续期 (跟 L4.42 立项实证 SOP 1:1 stable):
+  - Sprint 204+ Phase 3: top_n 周/季/YTD/QTD/MTD 滚动窗口 (跟 Sprint 203 R5 月/季/年 axis 1:1 stable 续期)
+  - Sprint 204+: traffic_source / influencer_name / province / city 按月 (业务优先级低, 0 业务触发续期)
+  - Sprint 202+ R4: ETL wall_min (等 L4.54 优化 1+2 设计 BUG 修完)
+  - Sprint 201+: ClickHouse POC (启动条件 a/b/c 0 触发, 等真业务触发再立)
+
+---
+
 ## [0.4.14.42] - 2026-07-05 (Sprint 203 R5: **多维度按月衍生 5 件新 tool** — channel-monthly + member-monthly + refund-monthly + cross-dimension-monthly + top_n 月/季/年 axis 扩, 跟 Sprint 199 R1 留尾任务 A/B 实证 1:1 stable, user 7/5 拍板 A 合并 1 sprint (Phase 1+2) 1:1 stable)
 
 ### Added
