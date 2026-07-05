@@ -12,7 +12,7 @@ Sprint 203 R5:
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, List
 
 from backend.semantic.calculations import yoy_absolute
@@ -92,8 +92,26 @@ def _resolve_axis_dates(axis: str, start: str | None, end: str | None, month: st
         if not year:
             raise ValueError("axis=yearly 必须传 --year (YYYY)")
         return f"{year}-01-01", f"{int(year) + 1}-01-01"
+    elif axis in ("wtd", "mtd", "qtd", "ytd"):
+        # Sprint 204+ Phase 3: rolling window (从 today 自动推导 start, end=today+1)
+        # WTD: 本周一 → today
+        # MTD: 本月 1 号 → today
+        # QTD: 本季度 1 号 → today
+        # YTD: 本年 1 月 1 号 → today
+        today = date.today()
+        if axis == "wtd":
+            # 本周一 (weekday 0=Mon)
+            start_day = today - timedelta(days=today.weekday())
+        elif axis == "mtd":
+            start_day = today.replace(day=1)
+        elif axis == "qtd":
+            q = (today.month - 1) // 3
+            start_day = today.replace(month=q * 3 + 1, day=1)
+        else:  # ytd
+            start_day = today.replace(month=1, day=1)
+        return start_day.isoformat(), (today + timedelta(days=1)).isoformat()
     else:
-        raise ValueError(f"axis 必须 in [daily, monthly, quarterly, yearly], got '{axis}'")
+        raise ValueError(f"axis 必须 in [daily, monthly, quarterly, yearly, wtd, mtd, qtd, ytd], got '{axis}'")
 
 
 def run_top_n(
@@ -179,8 +197,8 @@ register(QuerySpec(
             "flags": ("--axis",),
             "required": False,
             "default": "daily",
-            "choices": ["daily", "monthly", "quarterly", "yearly"],
-            "help": "时间轴维度 (Sprint 203 R5 扩 monthly/quarterly/yearly axis)",
+            "choices": ["daily", "monthly", "quarterly", "yearly", "wtd", "mtd", "qtd", "ytd"],
+            "help": "时间轴维度 (Sprint 203 R5 扩 monthly/quarterly/yearly axis + Sprint 204+ Phase 3 扩 wtd/mtd/qtd/ytd 滚动窗口)",
         },
         {"flags": ("--start",), "required": False, "help": "起始日期 YYYY-MM-DD (axis=daily)"},
         {"flags": ("--end",), "required": False, "help": "结束日期 YYYY-MM-DD (axis=daily)"},

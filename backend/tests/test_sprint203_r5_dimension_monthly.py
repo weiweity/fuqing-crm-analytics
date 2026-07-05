@@ -102,6 +102,39 @@ def test_top_n_resolve_axis_quarterly_yearly():
     assert e == "2027-01-01"
 
 
+def test_top_n_resolve_axis_rolling_windows():
+    """Sprint 204+ Phase 3: WTD/MTD/QTD/YTD 滚动窗口 (跟 top_n 1:1 stable DRY 模式)."""
+    import top_n
+    from datetime import date, timedelta
+    today = date.today()
+    # WTD: 本周一 → today
+    s, e = top_n._resolve_axis_dates("wtd", None, None, None, None, None)
+    expected_wtd_start = today - timedelta(days=today.weekday())
+    assert s == expected_wtd_start.isoformat()
+    assert e == (today + timedelta(days=1)).isoformat()
+    # MTD: 本月 1 号 → today
+    s, e = top_n._resolve_axis_dates("mtd", None, None, None, None, None)
+    assert s == today.replace(day=1).isoformat()
+    assert e == (today + timedelta(days=1)).isoformat()
+    # QTD: 本季度 1 号 → today
+    s, e = top_n._resolve_axis_dates("qtd", None, None, None, None, None)
+    q = (today.month - 1) // 3
+    assert s == today.replace(month=q * 3 + 1, day=1).isoformat()
+    assert e == (today + timedelta(days=1)).isoformat()
+    # YTD: 本年 1 月 1 号 → today
+    s, e = top_n._resolve_axis_dates("ytd", None, None, None, None, None)
+    assert s == today.replace(month=1, day=1).isoformat()
+    assert e == (today + timedelta(days=1)).isoformat()
+
+
+def test_top_n_axis_choices_8_total():
+    """Sprint 204+ Phase 3: --axis choices 含 8 个 axis (跟 L4.43 argparse 透传 1:1 stable)."""
+    from scripts.ad_hoc_queries.registry import QUERIES
+    spec = QUERIES.get("top-n")
+    axis_arg = next(a for a in spec.args if a.get("flags") == ("--axis",))
+    assert set(axis_arg["choices"]) == {"daily", "monthly", "quarterly", "yearly", "wtd", "mtd", "qtd", "ytd"}
+
+
 # === Phase 2 后 3 件 import + spec 验证 ===
 
 def test_member_monthly_import_ok():
