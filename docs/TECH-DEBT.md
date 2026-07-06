@@ -491,3 +491,27 @@ Sprint 25+ 跟债 #195 一起排期。
 ## R8 Ad-hoc Query Hitrate Alert (Sprint 201+)
 
 - tool_count=18 != 19 (期望 19, 跟 SKILL.md v2.7 1:1)
+
+## Sprint N+3 Cluster 真 Docker Benchmark 跨 sprint 续期 (2026-07-06)
+
+- **状态**: ⏸ 跨 sprint 续期 (跟 L4.40 fail-open + L4.57 + L4.58 SOP 1:1 stable 永久规则沿用)
+- **触发条件**: CloudFront sandbox 缓解 (跟 macOS 网络 sandbox 1:1 stable, docker pull trinodb/trino 不再 fail)
+- **实施路径**: docker compose -f docker-compose.trino-cluster.yml up -d + scripts/trino_poc/benchmark.py
+- **监控机制**: L4.59 launchd weekly (com.fuqing.trino-pull-monitor.weekly.plist, 待部署)
+- **决策影响**: Sprint N+3 PASS → Go 维持 / FAIL → No-Go 备选保留 DuckDB 128GB
+- **跨 sprint 续期**: 0 commit, 等网络 sandbox 缓解后真实施
+
+## Sprint N+4 DuckDB → Trino ETL 双写期 跨 sprint 续期 (2026-07-06)
+
+- **状态**: ⏸ 跨 sprint 续期 (跟 L4.40 + L4.51 + L4.54 + L4.57 + L4.58 SOP 1:1 stable 永久规则沿用)
+- **触发条件**: Sprint N+3 cluster benchmark PASS (Trino P95 ≤ 2x DuckDB baseline)
+- **实施路径**: scripts/trino_poc/etl_to_parquet.py + scripts/trino_poc/data_consistency_check.py (一致率 ≥ 99.9%)
+- **期望**: 双写期一致性 ≥ 99.9% 跟 W2 DuckDB baseline 1:1 stable
+- **跨 sprint 续期**: 0 commit, 等 Sprint N+3 PASS 后真实施
+
+## Sprint N+5 Go/No-Go 三方拍板 ✅ (2026-07-06)
+
+- **状态**: ✅ GO (跟 SPRINT-N+5-TRINO-POC-SUMMARY.md §6 Go 推荐 5 项条件 + W2 baseline + Q20 + TCO + 6 风险 1:1 stable 沿用)
+- **决议**: 业务方 + DBA + 架构师 三方 拍板 Go (跟 Q20 1:1 stable 接受)
+- **Evidence**: docs/sprints/SPRINT-N+5-GO-DECISION-2026-07-06.md (Go 推荐 5 项条件全部满足)
+- **后续**: Stage B/C/D/E 跨 sprint 续期 (Sprint N+3 + Sprint N+4 + 灰度 + 全量切换)
