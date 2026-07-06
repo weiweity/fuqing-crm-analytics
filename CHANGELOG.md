@@ -1,3 +1,22 @@
+## [unreleased] - 2026-07-06 (Sprint N+5: Go/No-Go 拍板反转 — **GO → NO-GO** (跟 system locked down + handoff advisory 1:1 stable 沿用, 跟离职 + 写死 + DuckDB 跑得好 1:1 stable 沿用))
+
+### Reverted
+- **Sprint N+5 Go 拍板反转 → No-Go (system locked down + handoff advisory)**: 跟 3 件新约束 1:1 stable 沿用, 反转理由 (跟 4 大 cognitive pattern 1:1 stable 验证 No-Go 是 强推荐):
+  1. **在职时间 < 8-10 周 1-2 人月 实施时间** → 实施不完 = 烂摊子
+  2. **系统写死 (system locked down)** → 不接受新功能, 跟 Go 迁移 哲学完全反
+  3. **DuckDB 128GB 跑得好** → W2 baseline median P95=0.068s 73x headroom, 没有紧迫性
+  - **新增 2 件致命风险** (跟原 6 风险累计 = 8 风险, 远超可控阈值): 烂摊子风险 + 跟写死哲学冲突
+  - **Boring by default + Reversibility preference + Essential vs accidental complexity + Two-week smell test** 4 大 cognitive pattern 1:1 stable 验证
+
+### Added
+- **`docs/sprints/SPRINT-N+5-NO-GO-DECISION-2026-07-06.md`**: Sprint N+5 Go → No-Go 反转决策 doc (跟 system locked down + handoff advisory 1:1 stable 沿用, 反转自 SPRINT-N+5-GO-DECISION-2026-07-06.md).
+
+### Technical
+- 跨 sprint 留尾 4 维度 → Handoff advisory (接手人决定, 跟 L4.57 + L4.58 SOP 1:1 stable 永久规则沿用): ① Sprint N+3 cluster benchmark → advisory ② Sprint N+4 ETL 双写期 → advisory ③ ClickHouse POC 启动条件监控维持 (launchd weekly, L4.58 1:1 stable) ④ Stage D 灰度 + Stage E 全量切换 → advisory.
+- 接手人 0 改动继承 (跟 system locked down 1:1 stable 沿用): DuckDB 128GB working + backend/services/ + scripts/etl/ + frontend-vue3/ + launchd plist + Wave 1 5/5 docs + TECH-DEBT.md 留尾登记.
+- L4.x 永久规则沿用合规 (跟 Sprint 60+ 累计 +50 sprint 1:1 stable): L4.40 fail-open ✅ / L4.42 立项实证 ✅ / L4.55 立项 spec 实证 ✅ / L4.56 POC 留尾 ✅ / L4.57 跨 sprint 留尾 ✅ / L4.58 跑批 wall_min ✅ / L4.59 跨 sprint 维护性 ✅ / L4.20 SSOT 反漂移 ✅ / L4.36 禁停 uvicorn ✅.
+- 累计 0 业务代码改动 Sprint 60+ 60+ 次 1:1 stable. main HEAD 链路: `b40c2a3` (Go VERSION bump) → `40dd855` (Go TECH-DEBT) → `fd8e826` (No-Go 反转 doc) → `0458aa1` (merge No-Go).
+
 ## [unreleased] - 2026-07-06 (Sprint N+5: Go/No-Go 拍板 — **GO** ✅, 跟 Wave 1 evidence + W2 DuckDB baseline + 业务方 Q20 + TCO 36 万/年 ≤ 50 万/年 + 6 风险评估 1:1 stable 沿用)
 
 ### Added

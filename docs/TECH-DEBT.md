@@ -515,3 +515,12 @@ Sprint 25+ 跟债 #195 一起排期。
 - **决议**: 业务方 + DBA + 架构师 三方 拍板 Go (跟 Q20 1:1 stable 接受)
 - **Evidence**: docs/sprints/SPRINT-N+5-GO-DECISION-2026-07-06.md (Go 推荐 5 项条件全部满足)
 - **后续**: Stage B/C/D/E 跨 sprint 续期 (Sprint N+3 + Sprint N+4 + 灰度 + 全量切换)
+
+## Sprint N+5 Go 反转 → No-Go ✅ (2026-07-06)
+
+- **状态**: 🔴 NO-GO (跟 system locked down + handoff advisory 1:1 stable 沿用)
+- **反转真因**: 3 件新约束 (在职时间 < 8-10 周实施时间 / 系统写死 / DuckDB 跑得好 W2 P95=0.068s 73x headroom) + 新增 2 件致命风险 (烂摊子 + 跟写死哲学冲突)
+- **4 大 cognitive pattern 验证**: Boring by default + Reversibility preference + Essential vs accidental complexity + Two-week smell test
+- **接手人路径**: 0 改动继承 working system + 读 SPRINT-N+5-GO-DECISION-2026-07-06.md + TRINO-POC-SUMMARY 决定是否启动迁移
+- **Evidence**: docs/sprints/SPRINT-N+5-NO-GO-DECISION-2026-07-06.md (174 行, 反转决策 doc)
+- **状态保持**: 跨 sprint 留尾 4 维度 → Handoff advisory (接手人决定, 跟 L4.57 + L4.58 SOP 1:1 stable)
