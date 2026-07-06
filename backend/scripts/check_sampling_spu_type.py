@@ -24,8 +24,8 @@ def check_posize_split_present() -> list[str]:
             r"days_between BETWEEN 1 AND 3 AND spu_type = '正装'",
         ),
         (
-            "return has period_distribution",
-            r"'period_distribution': period_distribution",
+            "return has category_breakdown",
+            r"'category_breakdown': category_breakdown",
         ),
         (
             "return has quality_flags",

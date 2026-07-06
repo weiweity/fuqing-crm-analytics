@@ -36,5 +36,6 @@ class TestSampleReceivedAtPhase1:
             level="spu_category",
         )
 
-        assert "period_distribution" in result
-        assert "bucket_1_3d" in result["period_distribution"]
+        # Sprint 145: get_sampling_roi 返回从 period_distribution 改成 category_breakdown (前端 Sprint 144 已切换, 后端 Sprint 145 删 period_sql + period_distribution 字段)
+        assert "category_breakdown" in result
+        assert isinstance(result["category_breakdown"], list)
