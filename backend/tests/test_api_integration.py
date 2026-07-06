@@ -150,16 +150,7 @@ class TestAudienceAPI:
         assert response.status_code == 200
 
 
-@pytest.mark.skipif(not DB_EXISTS, reason="Database not found")
-class TestGeoAPI:
-    """Test geographic distribution API."""
-
-    def test_geo_distribution(self, client, api_key):
-        response = client.get(
-            "/api/v1/geo/distribution",
-            headers=_auth_headers(api_key),
-        )
-        assert response.status_code == 200
+# Sprint 203 R9: TestGeoAPI 删 (geo router 解耦, geo_service 保留供 report/export 用)
 
 
 @pytest.mark.skipif(not DB_EXISTS, reason="Database not found")

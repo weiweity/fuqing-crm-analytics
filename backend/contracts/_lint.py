@@ -67,9 +67,7 @@ _LIST_RATIO_FIELDS = frozenset({
 _NON_RATIO_BUSINESS_OVER_ONE = frozenset({
     # common.py: WoolPartyBreakdown.type1/2_ratio — type1/2 人数 / 品类总人数, 跨品类累加可超 1
     "type1_ratio", "type2_ratio",
-    # sampling.py: SamplingLockYOY/SamplingSamplingLockAnalysis new_locked_ratio —
-    # (cur_ratio - ly_ratio) * 100, 实际值可超 1 (e.g. cur=0.55, ly=0.1 → 0.45 → 45)
-    "new_locked_ratio",
+    # Sprint 203 R9: sampling.py SamplingLockYOY.new_locked_ratio 删除, 白名单同步
 })
 
 

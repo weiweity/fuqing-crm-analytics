@@ -32,10 +32,8 @@ class QueryRouterMiddleware:
         "/api/v1/audience/",
         "/api/v1/assets/",
         "/api/v1/category/",
-        "/api/v1/cohort-retention/",
         "/api/v1/export/",
         "/api/v1/flow/",
-        "/api/v1/geo/",
         "/api/v1/health/",
         "/api/v1/lifetime-value/",
         "/api/v1/market-focus/",
@@ -44,6 +42,7 @@ class QueryRouterMiddleware:
         "/api/v1/rfm/",
         "/api/v1/sampling/",
         "/api/v1/visitor/",
+        # Sprint 203 R9: /api/v1/geo/ + /api/v1/cohort-retention/ prefix 删除 (前端解耦)
     )
     WORKER_ENDPOINTS = {
         "/api/v1/ad-hoc/ai-sandbox-execute",

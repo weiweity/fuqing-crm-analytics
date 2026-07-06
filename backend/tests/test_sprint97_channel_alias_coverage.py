@@ -10,7 +10,7 @@ FILTER_BUILDER_SERVICES = [
     "backend/services/flow_service.py",
     "backend/services/asset_service.py",
     "backend/services/metrics/overview.py",
-    "backend/services/geo_service.py",
+    # Sprint 203 R9: geo_service.py 摘 (router 删除, service 仍被 report/export 调用)
 ]
 
 MANUAL_SERVICES = [
