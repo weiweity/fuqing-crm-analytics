@@ -30,11 +30,6 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '老客分析', requiresAuth: true },
   },
   {
-    path: '/geo',
-    component: () => import('@/views/GeoView.vue'),
-    meta: { title: '地域分析', requiresAuth: true },
-  },
-  {
     path: '/market-focus',
     component: () => import('@/views/MarketFocusView.vue'),
     meta: { title: '市场对焦', requiresAuth: true },

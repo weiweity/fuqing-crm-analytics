@@ -59,18 +59,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: '派样正装转化',
     tabs: [
       { key: '#roi', label: '派样正装转化分析' },
-      { key: '#lock', label: '0.01派样分析' },
-      { key: '#cohort', label: 'Cohort 留存矩阵' },
-      { key: '#rolling', label: '滚动同期对比' },
-    ],
-  },
-  {
-    key: '/geo',
-    label: '地域分析',
-    tabs: [
-      { key: '#distribution', label: '省份分布' },
-      { key: '#matrix', label: '地域-象限矩阵' },
-      { key: '#trend', label: '地域趋势' },
     ],
   },
 ]

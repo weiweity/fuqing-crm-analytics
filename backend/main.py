@@ -566,13 +566,11 @@ from backend.routers import (
     metrics_router,
     flow_router,
     asset_router,
-    geo_router,
     category_router,
     audience_router,
     rfm_router,
     sampling_router,
     lifetime_value_router,
-    cohort_retention_router,
     market_focus_router,
     visitor_router,
     export_router,
@@ -585,13 +583,12 @@ app.include_router(health_router)
 app.include_router(metrics_router)
 app.include_router(flow_router)
 app.include_router(asset_router)
-app.include_router(geo_router)
+# Sprint 203 R9: geo_router/cohort_retention_router 删除 (前端 4 板块解耦, geo_service 保留供 report/export 用)
 app.include_router(category_router)
 app.include_router(audience_router)
 app.include_router(rfm_router)
 app.include_router(sampling_router)
 app.include_router(lifetime_value_router)
-app.include_router(cohort_retention_router)
 app.include_router(market_focus_router)
 app.include_router(visitor_router)
 app.include_router(export_router)

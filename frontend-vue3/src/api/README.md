@@ -50,7 +50,6 @@ import type {
   TrendData,            // 趋势数据
   VisitorSummary,       // 访客入会率 (Sprint 104 删 /visitor 路由后, 仍被 /audience 末尾访客段 AudienceView.vue:1887-1958 调用, 后端 /api/v1/visitor/* 100% 保留)
   VisitorDailyTrend,    // 访客日趋势 (同上)
-  GeoDistributionResponse, // 地域分布
   CategorySegment,       // 品类分段
   ChurnDistribution,    // 流失分布
   RfmSegment,           // RFM 象限
@@ -67,7 +66,6 @@ import type {
 | **churn** | `churn.ts` | 流失分析 API |
 | **export** | `export.ts` | 数据导出 API |
 | **flow** | `flow.ts` | 人群流转 API |
-| **geo** | `geo.ts` | 地域分析 API |
 | **health** | `health.ts` | 老客健康 API |
 | **marketFocus** | `marketFocus.ts` | 市场对焦 API |
 | **rfm** | `rfm.ts` | RFM 分析 API |
@@ -81,7 +79,6 @@ import type {
 | `AudienceTableResponse` | 人群看板表格 |
 | `AudienceRow` | 人群看板单行 |
 | `TrendData` | 趋势折线图数据 |
-| `GeoDistributionResponse` | 地域分布 |
 | `CategoryDistributionResponse` | 品类分布 |
 | `ChurnDistribution` | 流失分析 |
 | `RfmSegment` | RFM 象限 |
