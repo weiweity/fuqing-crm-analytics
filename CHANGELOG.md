@@ -1,3 +1,18 @@
+## [unreleased] - 2026-07-06 (Sprint N+5: Go/No-Go 拍板 — **GO** ✅, 跟 Wave 1 evidence + W2 DuckDB baseline + 业务方 Q20 + TCO 36 万/年 ≤ 50 万/年 + 6 风险评估 1:1 stable 沿用)
+
+### Added
+- **`docs/sprints/SPRINT-N+5-GO-DECISION-2026-07-06.md`**: Sprint N+5 Go 拍板推荐 Go (跟 SPRINT-N+5-TRINO-POC-SUMMARY.md §6 Go 推荐 5 项条件 1:1 stable 沿用): ① W2 DuckDB 128GB baseline median P95=0.068s 跟 Q17 <2s 满意 满足 (73x headroom) ② 业务方 Q20 "我跟业务组对结果" 接受 + Q19 灰度接受 + Q18 双写期接受 ③ TCO ~36 万/年 ≤ 50 万/年 ④ 数据一致性脚本 ready ⑤ 6 件风险评估可控.
+
+### Technical
+- Go 实施 SOP (跟 docker daemon ready 1:1 stable 沿用, 跨 sprint 续期 4 维度 跟 L4.57 + L4.58 SOP 1:1 stable 永久规则沿用): Stage A 三方拍板 ✅ 本 doc / Stage B Sprint N+3 cluster benchmark 跨 sprint 续期 (等 CloudFront sandbox 缓解) / Stage C Sprint N+4 ETL 双写期跨 sprint 续期 / Stage D 灰度 10%/50%/100% / Stage E 全量切换.
+- L4.x 永久规则沿用合规 (跟 Sprint 60+ 累计 +50 sprint 1:1 stable): L4.42 立项实证 ✅ / L4.55 立项 spec 实证 ✅ / L4.56 POC 留尾 SOP ✅ / L4.57 跨 sprint 留尾 0 commit 续期 ✅ / L4.58 跑批 wall_min SOP ✅ / L4.59 跨 sprint 维护性 SOP ✅ / L4.40 fail-open ✅ / L4.20 SSOT 反漂移 ✅.
+- 累计 0 业务代码改动 Sprint 60+ 60+ 次 1:1 stable. main HEAD 链路: `7cb9d33` (cross-stable) → `8cd70f0` → `34dff82` (Go doc) → `8ae3ad4` (merge) → `f151ace` (merge amend).
+
+## [unreleased] - 2026-07-06 (Wave 1 cross-stable: docker daemon 跨 sprint 留尾 + L4.40 fail-open + L4.57 + L4.58 SOP 永久规则沿用 1:1 stable)
+
+### Added
+- **`docs/sprints/SPRINT-N-PLUS-WAVE1-CROSS-STABLE-2026-07-06.md`**: Wave 1 cross-stable doc (跟 macOS 网络 sandbox 1:1 stable 接受 fail-open, docker daemon 6 路径全 fail: Colima / Podman / QEMU / Docker Desktop CAS DMG / GUI / OrbStack, 跨 sprint 0 commit 续期, Sprint N+5 Go/No-Go 跟 docker 无关 1:1 stable 推荐 Go).
+
 ## [unreleased] - 2026-07-05 (Wave 1: ClickHouse POC 跨 sprint plan N+3+N+4+N+5 handoff doc 三件套 + 收口)
 
 ### Added
