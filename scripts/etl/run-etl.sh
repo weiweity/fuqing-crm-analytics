@@ -90,7 +90,13 @@ cleanup_ticker() {
     pkill -f "run_etl.py.*$MODE" 2>/dev/null || true
     if [ -n "${FQ_UVICORN_BOOTED_OUT:-}" ] && [ -z "${FQ_UVICORN_BOOTED_BACK_IN:-}" ]; then
         # Sprint 93.3 L4.7 实战 fix 模式: silent recovery 替代报 'plist 已 bootout' (Claude Code 工具 2m 超时 SIGTERM 误判 + Claude Code 工具把 echo 当 stdout 错)
+        # Sprint 202+ R7: cleanup_ticker bootstrap-back 后 verify plist 真起来 (launchctl list | grep) 防 race (L4.63)
         launchctl bootstrap "gui/$UID" "$HOME/Library/LaunchAgents/com.fuqing.uvicorn.plist" 2>/dev/null || true
+        for _bwait in 1 2 3 4 5; do
+            if launchctl list 2>/dev/null | grep -q "com.fuqing.uvicorn"; then break; fi
+            sleep 1
+        done
+        echo "  ✅ cleanup_ticker: plist bootstrap-back OK (wait ${_bwait}s)"
     fi
 }
 trap cleanup_ticker EXIT INT TERM HUP PIPE QUIT   # Sprint 105 /review 必修: 加 HUP/PIPE/QUIT 5 信号 (SIGHUP/SIGPIPE/SIGQUIT 在某些 bash 不触发 EXIT trap, iTerm2 / VSCode terminal / ssh 断连常见)
@@ -117,38 +123,54 @@ if launchctl list 2>/dev/null | grep -q "com.fuqing.uvicorn"; then
     echo "  🔄 临时卸载 com.fuqing.uvicorn plist (防 launchd KeepAlive 重启)..."
     if launchctl bootout "gui/$UID/com.fuqing.uvicorn" 2>/dev/null; then
         export FQ_UVICORN_BOOTED_OUT=1
-        # 等 uvicorn 真正退出 (launchd bootout 异步 SIGTERM, 进程清理是 async, graceful shutdown 1-2s)
-        # Sprint 105 /review 必修: bootout-poll wait 防 8 分 30 秒后 ETL step 4 仍被 uvicorn 持锁冲突
-        for _wait in 1 2 3 4 5 6 7 8 9 10; do
-            if ! lsof -ti :8000 >/dev/null 2>&1; then break; fi
-            sleep 1
+        # Sprint 202+ R7: uvicorn 真正退出需 4 件 signal 同时 release (L4.63)
+        # ① lsof port 8000 为空 ② pgrep 'uvicorn_launchd.py' 无 ③ lsof <DuckDB file> 为空 ④ .duckdb.wal 不存在
+        # 单纯 port release 不够: ThrottleInterval=5s + DuckDB WAL flush async + fd close 异步, uvicorn 重启期间 ATTACH read_only 异 config 跟 ETL read_write main 撞锁
+        _duckdb_file="${DUCKDB_PATH:-$PROJECT_ROOT/data/processed/fuqing_crm.duckdb}"
+        _wait=0; _wait_max=30
+        while [ $_wait -lt $_wait_max ]; do
+            _port_held=$(lsof -ti :8000 2>/dev/null | head -1)
+            _proc_held=$(pgrep -f 'uvicorn_launchd.py' 2>/dev/null | head -1)
+            _db_held=$(lsof -ti "$_duckdb_file" 2>/dev/null | head -1)
+            _wal_held=""
+            [ -f "${_duckdb_file}.wal" ] && _wal_held="yes"
+            if [ -z "$_port_held" ] && [ -z "$_proc_held" ] && [ -z "$_db_held" ] && [ -z "$_wal_held" ]; then break; fi
+            sleep 1; _wait=$((_wait + 1))
         done
-        echo "  ✅ plist 已卸载, 8000 端口已释放 (wait ${_wait}s), launchd 不再自动重启 uvicorn"
+        if [ $_wait -ge $_wait_max ]; then
+            echo "  ❌ FATAL R7: uvicorn 未能在 ${_wait_max}s 内彻底退出 (port=${_port_held:-free} proc=${_proc_held:-none} db_lock=${_db_held:-free} wal=${_wal_held:-none}), 拒绝跑 ETL 防 DuckDB 异 config (L4.51 ATTACH read_only → ETL read_write main)"
+            exit 1
+        fi
+        echo "  ✅ plist 已卸载, uvicorn 已死 (wait ${_wait}s, port/proc/db_lock/wal 全 release)"
     else
-        # Sprint 128 fix #S105-1: SIGTERM fallback 重试 3 次, 避免 launchd KeepAlive 重启导致死循环
-        echo "  ⚠️  launchctl bootout 失败, fallback 到 SIGTERM 杀 uvicorn (重试 3 次, 避免 KeepAlive 死循环)"
+        # Sprint 202+ R7: SIGTERM fallback 同样必须 verify 4 件 signal 同时 release (L4.63)
+        echo "  ⚠️  launchctl bootout 失败, fallback 到 SIGTERM 杀 uvicorn (重试 5 次 × 3s, 4-signal verify, 防 KeepAlive 死循环 + DuckDB 异 config)"
+        _duckdb_file="${DUCKDB_PATH:-$PROJECT_ROOT/data/processed/fuqing_crm.duckdb}"
         _sigterm_retry=0
-        while [ $_sigterm_retry -lt 3 ]; do
+        while [ $_sigterm_retry -lt 5 ]; do
             UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
-            if [ -z "$UVICORN_PID" ]; then
-                echo "  ✅ 8000 端口已释放 (SIGTERM retry $_sigterm_retry)"
+            UVICORN_PROC=$(pgrep -f 'uvicorn_launchd.py' 2>/dev/null | head -1)
+            DB_LOCK=$(lsof -ti "$_duckdb_file" 2>/dev/null | head -1)
+            WAL_HELD=""; [ -f "${_duckdb_file}.wal" ] && WAL_HELD="yes"
+            if [ -z "$UVICORN_PID" ] && [ -z "$UVICORN_PROC" ] && [ -z "$DB_LOCK" ] && [ -z "$WAL_HELD" ]; then
+                echo "  ✅ uvicorn 全释放 (port/proc/db_lock/wal, SIGTERM retry $_sigterm_retry)"
                 break
             fi
-            kill "$UVICORN_PID" 2>/dev/null
+            [ -n "$UVICORN_PID" ] && kill "$UVICORN_PID" 2>/dev/null
             sleep 3
-            if ! lsof -ti :8000 >/dev/null 2>&1; then
+            if ! lsof -ti :8000 >/dev/null 2>&1 && [ -z "$(pgrep -f 'uvicorn_launchd.py' 2>/dev/null)" ]; then
                 echo "  ✅ uvicorn 已退出 (SIGTERM PID $UVICORN_PID)"
                 break
             fi
             # SIGTERM 无效, 用 SIGKILL
             UVICORN_PID=$(lsof -ti :8000 2>/dev/null | head -1)
-            kill -9 "$UVICORN_PID" 2>/dev/null
+            [ -n "$UVICORN_PID" ] && kill -9 "$UVICORN_PID" 2>/dev/null
             sleep 2
             _sigterm_retry=$(( _sigterm_retry + 1 ))
         done
-        # 最终检查
-        if lsof -ti :8000 >/dev/null 2>&1; then
-            echo "  ❌ SIGTERM fallback 3 次重试后 8000 端口仍被占用, 手动 kill 后重试:"
+        # 最终检查 (4-signal verify)
+        if lsof -ti :8000 >/dev/null 2>&1 || pgrep -f 'uvicorn_launchd.py' >/dev/null 2>&1 || lsof -ti "$_duckdb_file" >/dev/null 2>&1 || [ -f "${_duckdb_file}.wal" ]; then
+            echo "  ❌ SIGTERM fallback 5 次重试后 4-signal 仍被占用, 手动 kill 后重试:"
             echo "     lsof -ti :8000 | xargs kill -9"
             exit 1
         fi

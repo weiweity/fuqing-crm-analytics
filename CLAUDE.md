@@ -515,3 +515,10 @@ Key routing rules:
 ## 历史 Sprint 记录
 
 Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude/projects/-Users-hutou/memory/` sprint close files.
+### L4.63 — Sprint 202+ R7 uvicorn 持锁 + DuckDB 异 config detector 永久规则化
+- **run-etl.sh 顶部 uvicorn bootout 后 wait 不允许纯时间常量** (sleep N ❌), 必须等 4 件 signal 同时 release: ① lsof port 8000 空 ② pgrep uvicorn_launchd.py 无 ③ lsof <DuckDB file> 空 ④ .duckdb.wal 不存在. max wait 30s, 超时 exit 1 不跑 ETL.
+- **ETL step 0 (cli.py main() 入口) 必须 fail-fast DuckDB 持锁 detector**: lsof <DuckDB file> + .duckdb.wal file existence; 任一非空则 sys.exit(1) + 输出排查指引. 不允许 step 7 才暴露, 必须 step 0 1 分钟内 block.
+- **L4.51 invariant 不退化**: uvicorn 正常运行时仍是 ATTACH read_only, run-etl.sh bootout 仅为了让 uvicorn 不在 ETL 期间持 DuckDB, 绝不退化为 read_write. 任何 R7+ 改动不允许 "为了 unlock 简化 bootout 而改 uvicorn access_mode".
+- **跨 CI runner 0 业务代码改动**: 所有 launchctl / lsof 显式 macOS-only, sh 用 `case "$(uname)" in Darwin) ... *) skip;; esac` 守卫; pytest 用 `@pytest.mark.skipif(sys.platform != 'darwin')`. 跟 L4.60 + L4.61 1:1 stable.
+- **wall_min 业务验证**: 跟 L4.58 SOP 沿用, R7 真跑 wall_min < 15min → 立 Sprint 202+ R7 Final Verification doc 收口; ≥ 15min → 重新立项 R8.
+- **pytest DuckDB 永久 fixture**: 一律 tmp_path, 不允许 fixture 指向生产 /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/fuqing.duckdb.
