@@ -232,7 +232,8 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
             cutoff_ts = (_dt.now() - _td(days=7)).timestamp() * 1000  # ms
             member_df_before = len(member_df)
             # pay_time 可能是 datetime / str / int, 统一转 Timestamp
-            import pandas as pd
+            # 注: 不要在这里 import pandas (Sprint 202+ R9 实证), 会触发 Python 函数作用域 UnboundLocalError
+            # 整个 run_full_etl 函数的 pd 都会被 Python 当 local, 后面 line 314 全量模式 pd.DataFrame() 会崩
             member_df['_pay_time_ts'] = pd.to_datetime(member_df['pay_time'], errors='coerce').astype('int64') // 10**6
             member_df = member_df[member_df['_pay_time_ts'] >= cutoff_ts].drop(columns=['_pay_time_ts'])
             print(f"  [Sprint 202 R1 优化 2] member_df 按 pay_time 7 天窗口过滤: {member_df_before:,} → {len(member_df):,} 行 (-{member_df_before - len(member_df):,})")

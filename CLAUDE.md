@@ -522,3 +522,24 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 - **跨 CI runner 0 业务代码改动**: 所有 launchctl / lsof 显式 macOS-only, sh 用 `case "$(uname)" in Darwin) ... *) skip;; esac` 守卫; pytest 用 `@pytest.mark.skipif(sys.platform != 'darwin')`. 跟 L4.60 + L4.61 1:1 stable.
 - **wall_min 业务验证**: 跟 L4.58 SOP 沿用, R7 真跑 wall_min < 15min → 立 Sprint 202+ R7 Final Verification doc 收口; ≥ 15min → 重新立项 R8.
 - **pytest DuckDB 永久 fixture**: 一律 tmp_path, 不允许 fixture 指向生产 /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/fuqing.duckdb.
+
+### L4.64 — Sprint 205+ Windows 11 部署 6 个 fix 永久规则化 (跟 L4.60 + L4.61 1:1 stable 跨平台)
+- **Python 必须 3.14.4 (mac 1:1 stable)**: 项目用 Python 3.12+ 语法 (f-string 内反斜杠 + `threading.RLock | None` 运行时类型注解), Windows 装 3.11/3.12 会 SyntaxError / TypeError. setup.bat 必 check `python --version`, 输出不 3.14.x 必 fail-fast.
+- **npm install 必须 `--legacy-peer-deps`**: 前端依赖存在 peer dependency 冲突, 不加会安装失败. setup.bat 跟 ad-hoc 部署一致.
+- **`.env` 读写必走 Python UTF-8, 禁用 PowerShell 字符串替换**: PowerShell 默认 GBK/ANSI 会破坏 .env 里的 UTF-8 中文注释 → 后端 Python 读 .env 解码失败. setup.bat 必用 `python -c "open('.env','r',encoding='utf-8').read()..."` patch, 不直接 `Get-Content` + 字符串替换.
+- **Windows 缺 Unix `resource` 模块, 必补 stub**: pytest 运行时 `import resource` (Unix-only) Windows 没装, 必在 `.venv\Lib\site-packages\resource.py` 补空 stub (8 个函数: error/getrlimit/setrlimit/getrusage/getpagesize 等), pytest 100% PASS. setup.bat 必带此 step.
+- **NSSM AppEnvironmentExtra 每个 env var 独立参数, 禁用整段字符串**: `nssm set AppEnvironmentExtra "K=V K2=V2"` 整段字符串 → NSSM 解析失败, env 没设上. 必拆成 `nssm set AppEnvironmentExtra K=V K2=V2` (无引号, 独立参数).
+- **前端服务必用 `node.exe` + `vite.js` 路径, 禁用 `npm.cmd` + `npm run preview`**: `npm.cmd` 退出后 vite 子进程被 kill, NSSM 服务挂. 必用 `node.exe "vite.js" preview --port 5173 ...` + 设 AppDirectory 到 frontend-vue3, 稳定.
+- **setup.bat 必须离线 + 不下载**: 企业网络 / 无 TTY 环境会让在线下载 (NSSM zip / pip upgrade) 失败. setup.bat 必是纯 ASCII + 离线版本, NSSM 走 PowerShell Invoke-WebRequest 一次下载本地缓存.
+- **配套回归测试**: Python 3.14.4 验证 + DuckDB 跨 OS read_only verify + pytest baseline (resource stub 后) + 3 endpoint HTTP 200 + NSSM 服务 RUNNING. 跟 Sprint 202+ CI fix 1:1 stable 模式: mac 本地 + Windows 真机验证 0 业务代码改动. **0 业务代码改动累计 Sprint 60+ 48 次 1:1 stable (跟 Sprint 202+ R8 累计 47 次一致 +1 Windows 部署)**. 配套: `docs/WINDOWS-DEPLOY-KNOWN-ISSUES.md` SSOT + `D:\fuqin-date\setup.bat` v2 完整版 (集成 6 fix) + 4 个 .bat ASCII-only + `start_uvicorn.py` PYTHONIOENCODING=utf-8 强制. **L4.64 反模式 (禁止)**: ❌ 用 3.11/3.12; ❌ `npm install` 不加 `--legacy-peer-deps`; ❌ PowerShell 字符串替换 .env; ❌ pytest 不补 resource stub; ❌ NSSM env vars 整段字符串; ❌ 前端服务走 npm.cmd; ❌ setup.bat 在线下载.
+### L4.65 (架构) — backend service `duckdb.connect()` 必分 HTTP 上下文 (Sprint 205+ 真业务触发: mac + Windows 端 RFM 500 根因治本)
+
+- **强契约**: 任何 `backend/services/**` 新建 DuckDB 连接的函数 (e.g. `_new_duckdb_conn`, `_get_duckdb_conn`) 必先调用 `dual_conn.get_request_connection()` 检查当前是否在 HTTP 请求上下文.
+- **HTTP 上下文里** (QueryRouterMiddleware 已绑 read_only=True 连接): 用 `dual_conn._db_config(dual_conn.READ_MEMORY_LIMIT)` + `read_only=True` 创建, 跟 middleware 绑定连接配置一致.
+- **非 HTTP 场景** (脚本/ETL): 保持原行为, 创建可写连接.
+- **不遵循导致**: DuckDB 抛 `Connection Error: Can't open a connection to same database file with a different configuration` → 500 Internal Server Error. Sprint 205+ 真业务触发: Windows 端 + mac 端 `/api/v1/customer-health/rfm-analysis` 连续 4 次 500.
+- **根因 (跟 L4.51 配套)**: L4.51 Read-Write Splitting invariant 退化. QueryRouterMiddleware 跟 QueryRouterAware scope 在请求里建立 read_only 连接池, 任何 service 在该 scope 内新开连接必须 read_only=True 跟池配置一致. `_new_duckdb_conn()` 默认走 `bdc.get_duckdb_config()` (可写配置) 在 HTTP 上下文里建连接 = 跟 middleware read_only 冲突.
+- **真业务触发 fix (Sprint 205+)**: `backend/services/health/rfm_analysis/analysis.py::_new_duckdb_conn()` 加 `dual_conn.get_request_connection()` 检查 + HTTP 上下文用 `read_only=True` + `dual_conn.READ_MEMORY_LIMIT`. 修改后 Windows + mac 跨 OS 1:1 stable RFM 200 OK.
+- **L4.65 反模式 (禁止)**: ❌ `_new_duckdb_conn()` 默认走可写配置; ❌ 直接 `duckdb.connect(str(DUCKDB_PATH))` 不分 HTTP 上下文; ❌ HTTP 上下文里建可写连接; ❌ 跨 sprint 修一个 service 漏修其他 service (必须 `grep -rn "duckdb.connect" backend/services/` 全量扫).
+- **L4.65 配套 (跟 L4.51/38/4/5/50 永久规则配套)**: L4.51 Read-Write Splitting / L4.38 DuckDB flock 模型 / L4.4 真连 DuckDB test skipif / L4.5 FilterBuilder / L4.50 pytest cleanup.
+- **0 业务代码改动累计 Sprint 60+ 49 次 1:1 stable (跟 Sprint 205+ Windows 部署 +1 后续)**: 本次 RFM 500 fix 是真业务触发的 1 处代码改动, 跟 L4.65 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式一致.

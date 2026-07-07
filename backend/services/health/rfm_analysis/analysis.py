@@ -29,8 +29,19 @@ def _new_duckdb_conn() -> duckdb.DuckDBPyConnection:
     每次调用返回一个全新的原生连接，不经过 ThreadSafeConnection 包装，
     避免全局查询锁导致并行退化为串行。
 
-    测试时通过 monkeypatch 此函数注入 mock 连接。
+    L4.65 永久规则化（Sprint 205+ 真业务触发: Windows 端 RFM 500 错误根因）:
+    - 若当前在 HTTP 请求上下文里(QueryRouterMiddleware 已绑 read_only 连接),
+      必须用 read_only=True + READ_MEMORY_LIMIT 创建, 跟 middleware 保持配置一致
+    - 否则 DuckDB 抛 "Can't open a connection to same database file with a different configuration"
+    - 非 HTTP 场景(脚本/ETL)保持原行为, 创建可写连接
     """
+    from backend.services import dual_conn
+
+    request_conn = dual_conn.get_request_connection()
+    if request_conn is not None:
+        cfg = dual_conn._db_config(dual_conn.READ_MEMORY_LIMIT)
+        return duckdb.connect(str(DUCKDB_PATH), config=cfg, read_only=True)
+
     cfg = bdc.get_duckdb_config()
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:
