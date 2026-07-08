@@ -165,9 +165,15 @@ def get_write_connection() -> duckdb.DuckDBPyConnection:
     with _write_lock:
         if _WRITE_CONN is not None and _is_healthy(_WRITE_CONN):
             return _WRITE_CONN
+        # Sprint 205+ PC2 RFM 500 真根因 (L4.66 永久规则化):
+        # 写 conn 强制跟读 conn 用同一份 memory_limit + 显式 read_only=False
+        # (让 DuckDB 1.5+ strict mode config dict 各项完全一致, 修复 RFM 雪崩)
+        # 注: write 场景的 memory_limit 走 read 场景配置, 这是 DuckDB
+        #     1.5+ strict mode 同一文件只能一种 config 的硬约束, 无解
         _WRITE_CONN = duckdb.connect(
             str(DUCKDB_PATH),
-            config=_db_config(WRITE_MEMORY_LIMIT),
+            config=_db_config(READ_MEMORY_LIMIT),
+            read_only=False,
         )
         logger.info("DuckDB write-capable singleton opened: %s", DUCKDB_PATH)
         return _WRITE_CONN

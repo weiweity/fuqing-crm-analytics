@@ -340,7 +340,14 @@ def _write_db_cache(
         finally:
             _wc.close()
     except Exception as e:
-        logger.warning(f"RFM DuckDB 缓存写入失败（不影响返回）: {e}")
+        # Sprint 205+ PC2 RFM 雪崩 治标 (L4.66 配套):
+        # HTTP 路径下绝不能 swallow, 否则双 conn config 不一致时每次都重算全查询
+        # → 雪崩 CPU/内存 + 用户看到 30s 超时 (实际 200 但 swallow 了)
+        from backend.services.dual_conn import get_request_connection
+        if get_request_connection() is not None:
+            logger.error(f"[HTTP 路径] RFM DuckDB 缓存写入失败 (必须 raise): {e}")
+            raise
+        logger.warning(f"RFM DuckDB 缓存写入失败 (非 HTTP, 可容忍): {e}")
 
 
 def precompute_rfm_cache() -> int:
