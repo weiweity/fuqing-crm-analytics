@@ -187,4 +187,41 @@ curl http://localhost:5173/
 
 ---
 
-**最后更新:2026-07-07  |  Sprint 205+ Windows deploy 实战沉淀**
+## L4.70 PC2 端 .env 1 行 fix (Sprint 205+ 真业务触发)
+
+### 问题
+- L4.69 (commit f8fc8bc) 治本 RFM 雪崩时, `dual_conn.py READ_POOL_SIZE` 从默认 5 hardcoded 改 2
+- 副作用: dashboard 页面 (人群看板 / 指标看板 YoY) 5 个并行接口被池化阻塞, 总时长 30s+ (前端 axios timeout 30s)
+- 7/8 用户报"全部 30s timeout"
+
+### 治本 (PC2 端 1 行 .env 修复, 0 业务代码改动)
+
+```ini
+# C:\fuqin-date\fuqing-crm-analytics\.env 加:
+FQ_READ_POOL_SIZE=5
+```
+
+恢复 7/7 默认值。**RFM 路径走 `_run_rfm_period_serial` 自己 new conn, 不通过此 pool, L4.69 治本完好**。
+
+### PC2 端 9 接口验证 (跟 L4.69 验证同模式)
+
+- 5 个简单接口 (visitor/summary / metrics/overview / audience/summary / customer-health/config / rfm/r-flow) 全 < 1.1s
+- 5 个 YoY 接口 (人群看板场景, 5 并行) 全 < 1.1s
+- 后端启动 147MB (L4.65.1 治本), ANALYZE 后稳态 1612MB, watchdog v2 1.8GB 兜底
+
+### Mac 端 .env 配套 (本机)
+
+- Mac 端不显式设 `FQ_READ_POOL_SIZE`, 默认 5 (跟 PC2 端 .env 显式 5 配套)
+- 配套永久规则: 见 L4.69 永久规则化 (CLAUDE.md line "L4.69 (架构)") + Sprint 205+ L4.69 close memory
+- 7/17 运营接管后: 跨 sprint 留尾 (跟 L4.57 + L4.58 + L4.59 1:1 stable), 7/16 离职前必把 .env 文档化
+
+### L4.71 RFM 业务治本 (7/16 后接手立项, 跟 L4.56 POC 留尾 1:1 stable)
+
+- 列存覆盖索引 (L4.70 D 方案 PC2 验证失败已回退)
+- ETL 预计算物化视图
+- 改用 `user_rfm` 1.5GB 预计算表
+- ClickHouse POC (L4.56 启动条件: DuckDB > 200GB / P95 > 30s 持续 1 周 / 5+ 业务分析师并发取数)
+
+---
+
+**最后更新:2026-07-08  |  Sprint 205+ Windows deploy + L4.70 PC2 .env 实战沉淀**

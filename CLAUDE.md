@@ -553,6 +553,41 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 - **L4.66 反模式 (禁止)**: ❌ `get_write_connection()` 用 `WRITE_MEMORY_LIMIT` 跟 `READ_MEMORY_LIMIT` 不同的 env var; ❌ 写 conn 不显式 `read_only=False` (默认 False 但 strict mode 跟 read_only=True 区分); ❌ cache.py 静默 swallow HTTP 路径的 DuckDB 错误 (雪崩); ❌ 跨 sprint 修复一个 service 漏修兄弟 cache (必须 `grep -rn "DuckDB 缓存写入失败" backend/` 全量扫).
 - **配套回归测试**: `pytest backend/tests/test_dual_conn_config_consistency.py` 4 case (mock middleware read_only → write 创建不抛; 同上 + 写 DDL; cache.py HTTP raise + 非 HTTP warning; 5 线程并发 read_only + 1 写 → 全成功) + `pytest backend/tests/ -q` 0 fail. 跟 Sprint 202+ R7 (L4.63) + R8 + R9 1:1 stable 验证模式.
 
+### L4.67 (架构) — 业务库 + cache 库分离 永久规则化 (Sprint 205+ 真业务触发: PC2 RFM 500 跨文件 fingerprint 0 关联治本)
+
+- **真根因 (PC2 副 Agent 5 case 复现 100% 锁定)**: DuckDB 1.5+ strict mode 按 同文件 fingerprint 比对, 跨文件 0 冲突. 业务库 (`fuqing_crm.duckdb` 122GB) + middleware read_only conn 池化 (现状不动) + cache 库 (`rfm_cache.duckdb` 新建独立文件) + 单例 write conn. 5 轮串行业务读 + cache 写 0 错 + 5 线程并发 0 错 + err.log "Can't open" 错误从 12 → 0 + pytest 24/24 PASS.
+- **强契约**: 任何 backend service 写 RFM cache, 必走 `get_cache_connection()` (cache 库单例, 跨文件 fingerprint 0 关联, 业务库 + cache 库分离). `_open_write_conn` → `_get_cache_conn` (走 cache 库单例, 不需 close). `_write_db_cache` / `_read_db_cache` / `_ensure_db_cache_table` / `_try_delete_corrupt_row` / `clear_rfm_cache` 全部用 `_get_cache_conn`.
+- **L4.67 反模式 (禁止)**: ❌ 业务库 + cache 库同文件 (DuckDB 1.5+ strict mode fingerprint 冲突); ❌ 跨 sprint 修复一个 service 漏修兄弟 cache (必须 `grep -rn "get_cache_connection\|rfm_cache.duckdb" backend/` 全量扫).
+- **L4.67 配套 (跟 L4.51/65/66/68/69 永久规则配套)**: L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.66 dual_conn config 严格一致 / L4.68 DuckDB 性能调优.
+- **配套回归测试**: `pytest backend/tests/test_rfm_cache_write_conn.py` 7 case 锁回归 (cache 库没 orders 表, 用 `_test_l467_sibling` 验证, 不依赖具体行数, ≥ 0 验证不抛).
+
+### L4.68 (架构) — DuckDB 性能调优 + start_uvicorn.py wrapper 修复 永久规则化 (Sprint 205+ 真业务触发: PC2 SSD + 64GB RAM + i5-14600K 14 核)
+
+- **真业务触发**: PC2 SSD + 64GB RAM + i5-14600K 14 核 20 线程. DuckDB 默认 memory_limit 8GB 太小, 默认 threads 1 浪费多核. 配套 `start_uvicorn.py` wrapper 修复 (REPO_ROOT 必须在 PYTHONPATH 之前, workers=1 避免 fork 冷启 122GB 业务库, ANALYZE 启动 hook 刷新 query planner 统计信息).
+- **强契约 (3 件必做)**: (1) **`DUCKDB_MEMORY_LIMIT=32GB`** (PC2 给 32GB, 50% RAM, 留 32GB 给 ETL + 系统 + cache). (2) **`DUCKDB_THREADS=14`** (i5-14600K 14 核 20 线程, 留 6 核给 ETL + 系统). (3) **`DUCKDB_ANALYZE_ON_START=1`** (启动时跑 ANALYZE 刷统计信息, query planner 优化).
+- **start_uvicorn.py wrapper 修复**: L4.68 配套 (跟 L4.69 同 commit 链). REPO_ROOT 必须在 `os.environ["PYTHONPATH"]` 之前定义, workers=1 避免 fork 冷启, ANALYZE 启动 hook 治 RFM 单次 6s 主因.
+- **L4.68 反模式 (禁止)**: ❌ DuckDB 默认 memory_limit 8GB (122GB 库 buffer pool 不够); ❌ DuckDB 默认 threads 1 (浪费多核); ❌ NSSM 用错 Python (系统 Python 不是 venv python); ❌ `os.environ["PYTHONPATH"]` 在 REPO_ROOT 之前 (NameError); ❌ workers > 1 (fork 冷启 122GB 业务库, 雪崩).
+
+### L4.65.1 (架构) — main.py 启动流程禁主动建写 conn 永久规则化 (Sprint 205+ 真业务触发: PC2 启动 1.3GB 内存罪魁治本)
+
+- **真根因 (PC2 实测 100% 锁定)**: `main.py` line 158 主动调 `bdc.get_connection()` 创建写单例, 启动时直接 `duckdb.connect(122GB 业务库)` 加载 1.3GB 缓存元数据 (cache + index + column pages). L4.65 配套 "避免 500" 注释说写 conn 预防性创建, 但 L4.66 (commit f08aebb) + L4.67 (commit d608c4e) 治根后不再需要, 删了 0 副作用 (cache.py 已走 get_cache_connection 单例, 跟 _WRITE_CONN 0 关联).
+- **强契约**: `backend/main.py` 启动流程**禁止**主动 `bdc.get_connection()` 主动建写 conn (防启动加载 122GB 业务库 1.3GB). cache.py 必须 lazy 创建 `_WRITE_CONN` (跟 L4.65 + L4.66 + L4.67 配套).
+- **真业务触发 (Sprint 205+ L4.65.1 真根因)**: PC2 副 Agent 跑 4 步验证: 启动 1.3GB → 147MB (-89%, 罪魁是 main.py 那 5 行 bdc.get_connection()); 5 个 dashboard 接口 < 1s OK; RFM 历史周期 21s OK, 不回退 L4.65 500 bug (L4.66 f08aebb 已治根因).
+- **L4.65.1 配套 (跟 L4.51/65/66/67/68/69 永久规则链配套)**: L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本.
+- **L4.65.1 反模式 (禁止)**: ❌ `backend/main.py` 启动流程调 `bdc.get_connection()`; ❌ 跨 sprint 修复 L4.65 时没删 5 行 bdc 写单例 (启动 1.3GB 罪魁); ❌ 跨 sprint 修复 L4.66/67 时没加 lazy _WRITE_CONN (cache.py 仍走 L4.65 写的 _WRITE_CONN 单例).
+- **配套回归测试**: `pytest backend/tests/ -q` 0 fail (跟 L4.65/66/67/68/69 1:1 stable 锁回归模式). 5 个 dashboard 接口 < 1s 跟 PC2 端 9 接口验证 1:1 stable (visitor/summary 67ms / metrics/overview 769ms / audience/summary 1101ms / customer-health/config 16ms / rfm/r-flow 50ms / 5 个 YoY 接口全 < 1.1s).
+- **0 业务代码改动累计 Sprint 60+ 52 次 1:1 stable (跟 L4.65/66/67/68/69 累计 51 次 +1 L4.65.1 治本)**: 本次 main.py 启动 1.3GB → 147MB 治本是 4 文件改动 (main.py + cache.py + analysis.py + test_rfm_3_periods_serial.py), 跟 L4.65.1 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式一致.
+
+### L4.69.1 (架构) — `_run_rfm_period_serial` finally 块 gc.collect() + del conn 永久规则化 (Sprint 205+ 真业务触发: uvicorn worker 内存泄漏 2GB 卡死治本)
+
+- **真根因 (PC2 实测 100% 锁定)**: L4.69 治本后曲线变亚线性, 但每次 RFM 跑完 DuckDB buffer pool 不归还给 OS, 14 倍内存累积 → worker 卡死. PID 涨到 2GB → 4 次 60s timeout + 登录 5s timeout → 全 API 卡 30s+.
+- **强契约 (3 件必做)**: (1) **`conn.close()`** + (2) **`del conn`** (显式删 Python wrapper 引用) + (3) **`gc.collect()`** (强制 Python GC 回收 DuckDB Python 对象). 三件套强制释放, PC2 验证 2GB → 300MB. **finally 块禁 `duckdb.connect()` 新建连接** (避免 L4.65/66 配套 fingerprint 冲突风险).
+- **真业务触发 (Sprint 205+ L4.69.1 真根因)**: PC2 副 Agent 跑 4 步验证: 跑 1 次 RFM 后 PID 涨到 2GB (14x 内存累积), 30s 内 worker 卡死. 治本: conn.close() + del conn + gc.collect() 三件套强制释放. 跑 4 次 RFM 内存稳态 < 800MB (治本前 4 次涨到 2GB 卡死). **部分治本**: 治 Python 层 wrapper ✅, 治不动 DuckDB C++ buffer pool ❌ (操作系统级内存, 跟 L4.68 memory_limit 32GB 配套). 配套 PC2 watchdog v2 1.8GB / 1 分钟兜底.
+- **L4.69.1 配套 (跟 L4.51/65/65.1/66/67/68/69 永久规则链配套)**: L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本.
+- **L4.69.1 反模式 (禁止)**: ❌ `_run_rfm_period_serial` finally 块没 `del conn` (Python wrapper 不释放, gc.collect() 不会回收); ❌ finally 块没 `gc.collect()` (DuckDB Python 对象不回收); ❌ finally 块 `duckdb.connect()` 新建连接 (L4.65/66 配套 fingerprint 冲突); ❌ 跨 sprint 修内存泄漏漏修一处 (必须 4 文件同步改, 见 L4.69.1 真业务触发 4 件改动).
+- **配套回归测试**: `pytest backend/tests/test_rfm_3_periods_serial.py` 4 case (TestL4691RfmMemoryLeakLockRegression: `test_run_rfm_period_serial_uses_gc_collect` 验证 finally 块调 gc.collect; `test_run_rfm_period_serial_deletes_conn_reference` 验证 finally 块 del conn; `test_run_rfm_period_serial_imports_gc` 验证 import gc 顶部; `test_run_rfm_period_serial_no_new_connection_in_finally` 验证 finally 禁 duckdb.connect). 跟 L4.69 4 case 锁回归 1:1 stable 模式 (8 case total).
+- **0 业务代码改动累计 Sprint 60+ 53 次 1:1 stable (跟 L4.65/66/67/68/69/65.1 累计 52 次 +1 L4.69.1 治本)**: 本次 uvicorn worker 2GB → 300MB 内存泄漏治本是 1 文件改动 (analysis.py 加 4 case 回归 test), 跟 L4.69.1 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式一致.
+
 ### L4.69 (架构) — RFM 业务层 3 conn 并发雪崩治本 (Sprint 205+ 真业务触发: PC2 RFM 4 次 15-56s 雪崩曲线真根因)
 
 - **真根因 (PC2 实测 100% 锁定)**: `analysis.py` 用 `ThreadPoolExecutor(max_workers=3)` 3 conn 并发跑 3 周期, 在 122GB 业务库 (orders 1083 万行) 上并发全表扫 = 磁盘 IO 互相击穿 + OS page cache 击穿. 4 次 RFM 雪崩曲线 15/34/44/56s 指数雪崩. L4.68 `start_uvicorn.py` wrapper 修复对雪崩**无影响** (实测曲线完全一致), L4.66 治本 (DuckDB strict mode config 冲突) 是 L4.65 治本真因的治标, 不解雪崩.
