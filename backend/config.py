@@ -135,7 +135,11 @@ DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(_DEFAULT_DUCKDB)))
 
 # DuckDB 内存限制（默认 8GB，避免占用过多系统内存）
 # DuckDB 默认使用 80% 系统 RAM，在 16GB 机器上约 12.7GB，容易导致 OOM
-DUCKDB_MEMORY_LIMIT = os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB")
+# Sprint 205+ DuckDB 性能调优: 默认 32GB (适配 64GB RAM 机器, PC2 SSD 端)
+# 旧默认 8GB 是 16GB RAM 时代的产物, 64GB RAM 机器给 32GB 让 DuckDB 全 in-memory
+DUCKDB_MEMORY_LIMIT = os.environ.get("DUCKDB_MEMORY_LIMIT", "32GB")
+# threads 默认 14 (i5-14600K 14 核 20 线程, 留 6 核给 ETL + 系统)
+DUCKDB_THREADS = int(os.environ.get("DUCKDB_THREADS", "14"))
 
 # Sprint 205+ L4.67: RFM cache 库独立文件 (跟业务库 fingerprint 0 关联)
 _DEFAULT_CACHE_DUCKDB = _DEFAULT_DUCKDB.parent / "cache" / "rfm_cache.duckdb"

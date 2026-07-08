@@ -160,11 +160,13 @@ class TestOpenWriteConnRealConnectionNoError:
             conn_cache = _get_cache_conn()
             try:
                 # L4.67: cache 库没 orders 表, 用 _test_l467_sibling 验证
+                # 每次测试前 TRUNCATE 避免行累积
                 conn_cache.execute("CREATE TABLE IF NOT EXISTS _test_l467_sibling (a INT)")
+                conn_cache.execute("DELETE FROM _test_l467_sibling")
                 conn_cache.execute("INSERT INTO _test_l467_sibling VALUES (42)")
                 count = conn_cache.execute("SELECT COUNT(*) FROM _test_l467_sibling").fetchone()[0]
                 assert count == 1, (
-                    f"L4.67: cache 库应该能 INSERT, 实际 {count} 行. "
+                    f"L4.67: cache 库应该能 INSERT 1 行, 实际 {count} 行. "
                     f"如果 0, 说明 _get_cache_conn 抛 'different configuration' 失败."
                 )
             finally:

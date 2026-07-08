@@ -26,6 +26,28 @@ if ENV_FILE.exists():
 # 2. PYTHONPATH
 os.environ["PYTHONPATH"] = str(REPO_ROOT)
 
+# Sprint 205+ DuckDB 性能调优 (PC2 SSD + 64GB RAM + i5-14600K 14 核)
+# memory_limit 默认 8GB, PC2 给 32GB (50% RAM)
+# threads 默认 1, PC2 给 14 (i5-14600K 14 核 20 线程, 留 6 核给 ETL)
+# ANALYZE_ON_START 启动时跑 ANALYZE 刷统计信息 (query planner 优化)
+duckdb_memory = os.environ.get("DUCKDB_MEMORY_LIMIT", "32GB")
+duckdb_threads = os.environ.get("DUCKDB_THREADS", "14")
+print(f"[DUCKDB 调优] memory_limit={duckdb_memory}, threads={duckdb_threads}, analyze_on_start={os.environ.get('DUCKDB_ANALYZE_ON_START', '0')}")
+
+# Sprint 205+ DuckDB ANALYZE 启动 hook (L4.68 永久规则化)
+# ANALYZE 刷新 query planner 统计信息, 避免 table scan 慢
+if os.environ.get("DUCKDB_ANALYZE_ON_START", "0") == "1":
+    try:
+        import duckdb
+        from backend.config import DUCKDB_PATH
+        _analyze_con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+        _analyze_con.execute("ANALYZE")
+        _tables = _analyze_con.execute("SELECT count(*) FROM duckdb_tables").fetchone()[0]
+        print(f"[DUCKDB ANALYZE] 已分析 {_tables} 张表, query planner 优化完成")
+        _analyze_con.close()
+    except Exception as _e:
+        print(f"[DUCKDB ANALYZE] 失败 (非致命, 不阻断启动): {_e}")
+
 # 3. 启动 uvicorn
 import uvicorn  # noqa: E402
 
