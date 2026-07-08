@@ -114,6 +114,10 @@ def _read_db_cache(
     防止 ETL 续传后 max_pay_time 不变但行数变化导致缓存陈旧。
     """
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
+    # L4.72.1 治本: SELECT 移出 except 块, 正常路径也跑 SELECT
+    # Phase 1 第 2 个 Explore agent 100% 锁定: 旧代码 SELECT 在 except 块里,
+    # 正常路径 try 块成功时**无 SELECT**, 直接 return None → 永远 cache miss
+    # 治本后: 正常路径 + 异常路径 都跑 SELECT
     try:
         # 表结构初始化（DDL 需要写连接,L4.67: cache 库单例, 不需 close）
         _wc = _get_cache_conn()
@@ -122,6 +126,8 @@ def _read_db_cache(
         # 写连接失败（如锁冲突）不阻塞读路径,继续尝试 SELECT
         logger.debug(f"RFM 缓存表初始化失败（读路径继续）: {_e}")
 
+    # L4.72.1 治本: SELECT 移出 except 块, 正常路径也跑 (原 bug 在 except 块里)
+    try:
         # 读用调用方 conn（read_only 可读）
         row = conn.execute(
             f"SELECT result_json, mtime_at_write, orders_count_at_write, computed_at "

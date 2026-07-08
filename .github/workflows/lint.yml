@@ -41,8 +41,8 @@ jobs:
           python-version: "3.14"
           cache: 'pip'  # Sprint 87 - pip cache 替代 ruff-action cache
           cache-dependency-path: requirements-lock.txt
-      - name: Install ruff (Sprint 92 L4.9 永久规则锁 version 0.4.10, Sprint 88 锁 0.6.9 不在 tags list 必修 2 真修)
-        run: pip install ruff==0.4.10
+      - name: Install ruff (跟 L4.41 1:1 stable 永久规则链配套: 跟 requirements-lock.txt ruff==0.15.14 1:1 stable 配套, 跟 Sprint 60.3+ 锁版本 1:1 stable 配套, 跟 Sprint 92 L4.9 必修 2 真修 1:1 stable 配套)
+        run: pip install -r requirements-lock.txt
       - name: Run ruff check (Sprint 87 自定义 step 跑 ruff, 避免 ruff-action 内部 Node 20 deprecation)
         run: ruff check backend/
 

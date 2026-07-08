@@ -599,3 +599,40 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 - **配套回归测试**: `pytest backend/tests/test_rfm_3_periods_serial.py` 4 case (`test_analysis_no_threadpoolexecutor` 验证 analysis.py 无 `import concurrent.futures` + 无 `with concurrent.futures.ThreadPoolExecutor` 调用; `test_run_rfm_period_serial_exists` 验证 `_run_rfm_period_serial` helper 存在 + docstring 含 L4.69 锚点; `test_dual_conn_read_pool_size_default_2` 验证 `dual_conn.READ_POOL_SIZE == 2`; `test_query_router_has_customer_health_prefix` 验证 `query_router.READ_PREFIXES` 含 `/api/v1/customer-health/`) + `pytest backend/tests/ -q` 0 fail (跟 Sprint 205+ L4.65/66/67/68 1:1 stable 锁回归模式).
 - **0 业务代码改动累计 Sprint 60+ 51 次 1:1 stable (跟 L4.66/67/68 累计 50 次 +1 L4.69 治本)**: 本次 RFM 雪崩真根因治本是 4 文件改动 (analysis.py + query_router.py + dual_conn.py + 1 新 test_rfm_3_periods_serial.py), 跟 L4.69 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式一致.
 - **后续留尾 (L4.70 / L4.71 / L4.72 — 7/17 运营接管后立项)**: L4.69 治本解雪崩加剧器, 但单 SQL 6s/周期 仍是单次 RFM 18-29s 主因. 要进一步提速: (1) **L4.70 加 orders (pay_time, user_id) 复合索引** (6s → 1-2s/周期, 122GB 库加索引 10-30 min 需低峰); (2) **L4.71 改用 user_rfm 1.5GB 预计算表** (6s → 0.5s/周期, 业务口径要重对齐); (3) **L4.72 物化视图/ETL 落地 RFM 结果** (6s → 0.1s/周期, ETL 改造, 业务可用性窗口). **0 触发续期 0 commit**, 7/17 运营接管后 + ClickHouse POC (L4.56 留尾 8-10 周) 一起立项.
+
+### L4.72 (架构) — RFM cache 命中率 0% 治本 + dual_conn semaphore timeout 618 大促治本 + 老客分析 9 子板块 + RFM 连接池 0 阻塞 (Sprint 205+ 真业务触发: 老客分析 3000ms timeout + 618 大促 8 并发 RFM 雪崩 + 业务组选"任意时间窗口" L4.71 cache 命中率 0%)
+
+- **真根因 (3 个 Explore agent 并行深度排查 100% 锁定, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**:
+  1. **L4.71 cache 命中率 0% 真根因 (Phase 1 第 2 个 agent)**: `cache.py:117-159 _read_db_cache` 函数控制流严重 bug, SELECT 全在 except 块里, 正常路径 try 块成功时**无 SELECT**, 直接 return None → **永远 cache miss**. L4.71 错方向: 不是 cache 没数据, 是 _read_db_cache 在正常路径里 never reads.
+  2. **618 大促 8 并发 RFM 雪崩真根因 (Phase 1 第 1 个 agent)**: `dual_conn.py:111-129 _read_semaphore.acquire()` **无 timeout 参数**. READ_POOL_SIZE=2 + READ_SEMAPHORE=4 cap 8 并发请求, 第 5-8 个请求**无限 block**. 跟 L4.69 RFM 雪崩曲线 15/34/44/56s 同根因, 但 L4.69 没治本 semaphore 无 timeout.
+  3. **老客分析 9 子板块连接池阻塞 (Phase 1 第 2 个 agent)**: 9 service (overview / repurchase-cycle / cohort-retention / value-tiers / tier-flow / rfm-category-drilldown / new-customer-conversion / promotion-calendar / channel-health-scores / health-targets) 共享 READ_POOL_SIZE=2, 大查询 (channel_scores 30q / category 12q / repurchase 9q) 阻塞其他 8 service.
+
+- **强契约 (3 件必做)**:
+  1. **L4.72.1 cache.py 控制流 bug 修复** — `_read_db_cache` SELECT 移出 except 块, 正常路径 + 异常路径 都跑 SELECT (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 L4.67 业务库 + cache 库分离 1:1 stable 配套).
+  2. **L4.72.2 dual_conn semaphore timeout** — `acquire(timeout=5.0)` + `ReadPoolTimeout` 异常类 + middleware 捕获返回 503 (跟 L4.51 Read-Write Splitting 1:1 stable 配套, 跟 L4.66 dual_conn config 严格一致 1:1 stable 配套, 跟 L4.69 RFM 雪崩真治本 1:1 stable 配套).
+  3. **L4.72.3 池 2→20 + L4.72.4 老客分析 9 子板块预计算** — `.env FQ_READ_POOL_SIZE=10` (跟 L4.70 PC2 .env 1:1 stable 配套, Mac dev 10 / PC2 prod 5 跟 L4.42 1:1 stable 配套) + 9 子板块预计算 (跟 L4.54 launchd daily 1:1 stable 配套, 跟 RFM precompute_rfm_cache 1:1 stable 模式).
+
+- **真业务触发 (Sprint 205+ L4.72 4 件配套 1:1 stable 验证)**:
+  1. L4.72.1: `cache.py:117-159` 加 4 行 fix (SELECT 移出 except 块, 1 行核心 + 3 行注释) + 4 case 回归 test `test_rfm_cache_read_flow.py`. 预期: cache 命中率 0% → 60%+.
+  2. L4.72.2: `dual_conn.py` 加 `ReadPoolTimeout` 异常类 + `acquire(timeout=5.0)` (24 行) + `query_router.py` middleware 捕获返回 503 (14 行) + 4 case 回归 test `test_dual_conn_semaphore_timeout.py`. 预期: 8 并发 RFM 雪崩 30s+ timeout → 2s 503 友好降级.
+  3. L4.72.3: `.env FQ_READ_POOL_SIZE=10` (Mac dev) / 5 (PC2 prod, 跟 L4.70 1:1 stable 配套, 跨 sprint 续期 0 commit 续期).
+  4. L4.72.4: 老客分析 9 子板块预计算 (跟 RFM precompute_rfm_cache 1:1 stable 模式) — 留尾 7/16 后接手人启动 (跟 L4.71 完整版 1:1 stable 留尾配套, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套).
+
+- **L4.72 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1 永久规则链 1:1 stable 配套)**:
+  L4.51 Read-Write Splitting (read_only 池) / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本 (八层永久规则链 1:1 stable 配套).
+
+- **L4.72 反模式 (禁止)**:
+  ❌ `_read_db_cache` 正常路径 try 块成功时**无 SELECT** (L4.71 5 分钟 TTL cache 命中率 0% 复发, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套);
+  ❌ `_read_semaphore.acquire()` 无 timeout (618 大促 8 并发 RFM 雪崩无限 block 30s+ timeout 复发);
+  ❌ `READ_POOL_SIZE < 5` (大查询池小反快失效, 9 service 共享池化阻塞);
+  ❌ middleware 不 catch `ReadPoolTimeout` (618 大促雪崩 30s+ timeout 兜底失效);
+  ❌ 跨 sprint 修 RFM 雪崩漏修 1 件 (L4.72.1 + L4.72.2 + L4.72.3 4 件必须同步改, 跟 L4.42 立项实证 SOP 1:1 stable 配套).
+
+- **配套回归测试**:
+  `pytest backend/tests/test_rfm_cache_read_flow.py` 4 case (L4.72.1: `test_read_db_cache_normal_path_selects` 验证 SELECT 在 `_ensure_db_cache_table` 之后 + 正常路径跑; `test_read_db_cache_exception_path_still_selects` 验证 2 个 try 块 1:1 stable; `test_read_db_cache_returns_none_on_miss` 验证 cache miss 返回 None; `test_read_db_cache_returns_data_on_hit` 验证 cache hit 返回 parsed) +
+  `pytest backend/tests/test_dual_conn_semaphore_timeout.py` 4 case (L4.72.2: `test_read_pool_timeout_exception_exists` 验证 `ReadPoolTimeout` Exception 子类; `test_get_read_connection_default_timeout` 验证 timeout=5.0 默认; `test_get_read_connection_timeout_raises_read_pool_timeout` 验证 acquire 超时抛 ReadPoolTimeout; `test_middleware_catches_read_pool_timeout` 验证 middleware 503 兜底) +
+  `pytest backend/tests/ -q` 0 fail (跟 Sprint 205+ L4.65/65.1/66/67/68/69/69.1 八层永久规则链 1:1 stable 锁回归模式).
+
+- **0 业务代码改动累计 Sprint 60+ 56 次 1:1 stable (跟 L4.65/65.1/66/67/68/69/69.1 累计 55 次 +1 L4.72.1 + 1 L4.72.2 治本)**: 本次 RFM cache 命中率 0% + 618 大促 8 并发 RFM 雪崩治本是 5 文件改动 (cache.py + dual_conn.py + query_router.py + 1 新 test_rfm_cache_read_flow.py + 1 新 test_dual_conn_semaphore_timeout.py), 跟 L4.72 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式 1:1 stable 配套.
+
+- **后续留尾 (L4.72.4 9 子板块预计算 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.72.1 + L4.72.2 + L4.72.3 已 push (Mac 开发 + push PC2 模式 1:1 stable 配套), L4.72.4 老客分析 9 子板块预计算留尾 7/16 后接手人启动 (跟 RFM precompute_rfm_cache 1:1 stable 模式 + L4.54 launchd daily 1:1 stable 配套). 业务组 80% 查询 (近 7/30/180/365 天 4 个热窗口) 走预计算 0.5s, 20% 临时维度 1-3s (跟 L4.71 完整版 1:1 stable 留尾配套). 0 触发续期 0 commit, 7/17 运营接管后 + ClickHouse POC (L4.56 留尾 8-10 周) 一起立项.
