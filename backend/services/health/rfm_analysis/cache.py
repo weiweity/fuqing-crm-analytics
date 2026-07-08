@@ -71,20 +71,42 @@ def _open_write_conn() -> duckdb.DuckDBPyConnection:
     db_password 仍保留 (Sprint 24 P3 同期, 加 password 字段时跟其他 sibling 比对
     通过 DUCKDB_PASSWORD env var 一致性保证; 实际生产不设 password).
     """
-    from backend.services import dual_conn
-    from backend.db import connection as bdc
+    from backend.services.dual_conn import get_request_connection
+    from backend.services.dual_conn import _db_config, READ_MEMORY_LIMIT
+    from backend.config import DUCKDB_PATH
+    import duckdb
 
-    request_conn = dual_conn.get_request_connection()
+    request_conn = get_request_connection()
     if request_conn is not None:
-        # HTTP 上下文: middleware 持有 read_only, 必须用 bdc 写单例
-        return dual_conn.get_write_connection()
+        # L4.66 治本: mirror middleware read_only conn 的 duckdb_settings
+        # (12 项关键 fingerprint), 避免 DuckDB 1.5+ strict mode 雪崩
+        cfg = _db_config(READ_MEMORY_LIMIT).copy()
+        try:
+            settings_rows = request_conn.execute(
+                "SELECT name, value FROM duckdb_settings() "
+                "WHERE name IN ("
+                "'memory_limit','threads','TimeZone','search_path',"
+                "'default_order','default_null_order','enable_progress_bar',"
+                "'enable_object_cache','wal_autocheckpoint','max_memory',"
+                "'temp_directory','preserve_insertion_order'"
+                ")"
+            ).fetchall()
+            for name, value in settings_rows:
+                cfg[name] = str(value)
+        except Exception:
+            pass
+        return duckdb.connect(str(DUCKDB_PATH), config=cfg, read_only=False)
 
     # 非 HTTP 场景: 脚本/ETL 直接 duckdb.connect (READ_WRITE, 跟 cli.py._c0 一致)
     cfg = bdc.get_duckdb_config()
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:
         cfg["password"] = db_password
-    return duckdb.connect(str(DUCKDB_PATH), config=cfg)
+    return duckdb.connect(
+        str(DUCKDB_PATH),
+        config=_db_config(READ_MEMORY_LIMIT),
+        read_only=False,
+    )
 
 
 def _ensure_db_cache_table(write_conn: duckdb.DuckDBPyConnection) -> None:
