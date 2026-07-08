@@ -88,3 +88,67 @@ class TestRFM3PeriodsSerialLockRegression:
             "L4.69 治本: query_router.READ_PREFIXES 必含 /api/v1/customer-health/ "
             "(显式 read_only, RFM 走 read_only pool 配套 pool=2)."
         )
+
+
+class TestL4691RfmMemoryLeakLockRegression:
+    """L4.69.1 永久规则化: _run_rfm_period_serial 必须显式 gc.collect() + del conn
+    防 uvicorn worker 内存泄漏 (PC2 实测 4 次 RFM 后 PID 2GB 卡死 → 登录 + 全 API 30s+ timeout).
+
+    Sprint 205+ 真业务触发: L4.69 治本后曲线变亚线性, 但每次 RFM 跑完 DuckDB buffer pool
+    不归还给 OS, 14 倍内存累积 → worker 卡死. L4.69.1 治本: conn.close() + del conn + gc.collect()
+    三件套强制释放, PC2 验证 2GB → 300MB.
+
+    配套 L4.65/66/67/68/69 永久规则链, 跨 sprint 防 Sprint 210+ 误改回 (没 gc.collect → 内存泄漏复发).
+    """
+
+    def test_run_rfm_period_serial_uses_gc_collect(self):
+        """L4.69.1 治本核心: _run_rfm_period_serial finally 块必须调 gc.collect().
+
+        如果未来 refactor 误删 gc.collect, uvicorn worker 内存泄漏 2GB 卡死复发.
+        """
+        from backend.services.health.rfm_analysis.analysis import _run_rfm_period_serial
+        src = inspect.getsource(_run_rfm_period_serial)
+        assert "gc.collect()" in src, (
+            "⚠️ L4.69.1 治本: _run_rfm_period_serial finally 块必须调 gc.collect() "
+            "(PC2 实测 4 次 RFM 后 PID 2GB 卡死, conn.close() 不够, 必须显式 Python GC)."
+        )
+
+    def test_run_rfm_period_serial_deletes_conn_reference(self):
+        """L4.69.1 治本: _run_rfm_period_serial finally 块必须显式 `del conn` 删引用.
+
+        conn.close() 不删 Python wrapper 引用, gc.collect() 不会回收.
+        """
+        from backend.services.health.rfm_analysis.analysis import _run_rfm_period_serial
+        src = inspect.getsource(_run_rfm_period_serial)
+        assert "del conn" in src, (
+            "⚠️ L4.69.1 治本: _run_rfm_period_serial finally 块必须显式 `del conn` "
+            "(conn.close() 不释放 Python wrapper, gc.collect() 不会回收 DuckDB 对象)."
+        )
+
+    def test_run_rfm_period_serial_imports_gc(self):
+        """L4.69.1 治本: analysis.py 顶部必须 import gc.
+
+        如果未来 refactor 误删 `import gc`, NameError 阻断 RFM service.
+        """
+        from backend.services.health.rfm_analysis import analysis
+        src = inspect.getsource(analysis)
+        assert "import gc" in src, (
+            "⚠️ L4.69.1 治本: analysis.py 顶部必须 `import gc` "
+            "(gc.collect() 在 _run_rfm_period_serial finally 块调)."
+        )
+
+    def test_run_rfm_period_serial_no_new_connection_in_finally(self):
+        """L4.69.1 反模式: finally 块禁止 `duckdb.connect()` 新建连接.
+
+        新建连接会触发 L4.65 (HTTP 上下文 read_only) + L4.66 (config 严格一致) 配套检查,
+        跨进程 fingerprint 冲突可能复发. 治本只用 conn.close() + del conn + gc.collect() 三件套.
+        """
+        from backend.services.health.rfm_analysis.analysis import _run_rfm_period_serial
+        src = inspect.getsource(_run_rfm_period_serial)
+        # finally 块不能有 duckdb.connect() 调用 (避免 L4.65/66 配套风险)
+        # 用 finally 段 (最后 30 行) 范围检查
+        finally_section = src.split("finally:")[-1] if "finally:" in src else src
+        assert "duckdb.connect" not in finally_section, (
+            "⚠️ L4.69.1 反模式: _run_rfm_period_serial finally 块禁止 `duckdb.connect()` "
+            "(L4.65 HTTP 上下文 read_only + L4.66 config 严格一致 配套, 新建连接会触发 fingerprint 冲突)."
+        )
