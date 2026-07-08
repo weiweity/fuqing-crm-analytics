@@ -18,15 +18,12 @@ QW2 Phase 2: uvicorn 单例 read_only, 缓存写操作需独立写连接
   改为必传 write_conn,_read_db_cache 保留 conn 供 SELECT）
 """
 
-import os
 import duckdb
 import json
 import logging
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 
-from backend.config import DUCKDB_PATH
-from backend.db import connection as bdc
 from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows
 
