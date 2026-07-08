@@ -7,7 +7,6 @@
 
 import os
 import logging
-import concurrent.futures
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 
@@ -47,6 +46,39 @@ def _new_duckdb_conn() -> duckdb.DuckDBPyConnection:
     if db_password:
         cfg["password"] = db_password
     return duckdb.connect(str(DUCKDB_PATH), config=cfg)
+
+
+def _run_rfm_period_serial(
+    start_dt, end_dt, cutoff_dt, channel, metric_type, exclude_channels,
+) -> tuple:
+    """L4.69 RFM 雪崩真治本: 单 conn 顺序跑 1 个周期 (替代 ThreadPoolExecutor 并行).
+
+    治本前 (3 conn 并发): ThreadPoolExecutor(max_workers=3) 3 conn 在 122GB 业务库
+    上并发全表扫 = 磁盘 IO 互相击穿 + OS page cache 击穿, PC2 实测 4 次 RFM
+    雪崩曲线 15/34/44/56s 指数雪崩.
+
+    治本后 (单 conn 顺序): 1 conn 跑 1 周期, 调 _new_duckdb_conn() (HTTP 上下文里
+    read_only=True + 跟 middleware 配置一致, L4.65 配套), 跑完 close 释放.
+    单 conn 顺序跑 3 周期, OS page cache 复用, 实测 < 5s 稳态.
+
+    配套:
+    - dual_conn.py READ_POOL_SIZE 5→2 (L4.69)
+    - query_router.py 显式 prefix "/api/v1/customer-health/" (L4.69)
+    - 5 行回归 test test_rfm_3_periods_serial.py 锁回归 (L4.69)
+
+    见 L4.69 永久规则 (CLAUDE.md line "L4.69 (架构)") + Sprint 205+ L4.69 close memory.
+    """
+    conn = _new_duckdb_conn()
+    try:
+        return _run_rfm_period(
+            conn, start_dt, end_dt, cutoff_dt,
+            channel, metric_type, exclude_channels,
+        )
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 
@@ -108,37 +140,24 @@ def get_rfm_analysis(
                 logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
                 return cached
 
-        # ── 并行执行 3 个周期的 RFM 查询（每个线程使用独立连接） ──
-        conn_cur = _new_duckdb_conn()
-        conn_comp = _new_duckdb_conn()
-        conn_prev2 = _new_duckdb_conn()
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-                future_cur = executor.submit(
-                    _run_rfm_period, conn_cur,
-                    cur_start_dt, cur_end_dt, cutoff,
-                    channel, metric_type, exclude_channels,
-                )
-                future_comp = executor.submit(
-                    _run_rfm_period, conn_comp,
-                    comp_start_dt, comp_end_dt, comp_cutoff,
-                    channel, metric_type, exclude_channels,
-                )
-                future_prev2 = executor.submit(
-                    _run_rfm_period, conn_prev2,
-                    prev2_start_dt, prev2_end_dt, prev2_cutoff,
-                    channel, metric_type, exclude_channels,
-                )
-
-                cur_all, cur_same, cur_member_all, cur_member_same = future_cur.result()
-                comp_all, comp_same, comp_member_all, comp_member_same = future_comp.result()
-                prev2_all, prev2_same, prev2_member_all, prev2_member_same = future_prev2.result()
-        finally:
-            for _conn in (conn_cur, conn_comp, conn_prev2):
-                try:
-                    _conn.close()
-                except Exception:
-                    pass
+        # ── L4.69 RFM 雪崩真治本: 单 conn 顺序跑 3 周期 (替代 ThreadPoolExecutor 并行) ──
+        # Sprint 205+ PC2 实测: 3 conn 在 122GB 业务库上并发全表扫 = 磁盘 IO 互相击穿 +
+        # OS page cache 击穿, 4 次 RFM 雪崩曲线 15/34/44/56s 指数雪崩.
+        # 治本: 1 conn 顺序跑 3 周期, OS page cache 复用, 实测 < 5s 稳态.
+        # 配套: dual_conn.py READ_POOL_SIZE 5→2 (L4.69), query_router.py 显式 prefix (L4.69).
+        # 见 L4.69 永久规则 (CLAUDE.md line "L4.69 (架构)") + Sprint 205+ L4.69 close memory.
+        cur_all, cur_same, cur_member_all, cur_member_same = _run_rfm_period_serial(
+            cur_start_dt, cur_end_dt, cutoff,
+            channel, metric_type, exclude_channels,
+        )
+        comp_all, comp_same, comp_member_all, comp_member_same = _run_rfm_period_serial(
+            comp_start_dt, comp_end_dt, comp_cutoff,
+            channel, metric_type, exclude_channels,
+        )
+        prev2_all, prev2_same, prev2_member_all, prev2_member_same = _run_rfm_period_serial(
+            prev2_start_dt, prev2_end_dt, prev2_cutoff,
+            channel, metric_type, exclude_channels,
+        )
 
         rows = _build_rows(cur_all, comp_all, prev2_all)
         same_channel_rows = _build_rows(cur_same, comp_same, prev2_same)

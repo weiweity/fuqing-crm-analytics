@@ -20,7 +20,7 @@ from backend.config import DUCKDB_MEMORY_LIMIT, DUCKDB_PATH
 
 logger = logging.getLogger(__name__)
 
-READ_POOL_SIZE = int(os.environ.get("FQ_READ_POOL_SIZE", "5"))
+READ_POOL_SIZE = int(os.environ.get("FQ_READ_POOL_SIZE", "2"))  # L4.69: 5→2 (大查询池小反快)
 READ_MEMORY_LIMIT = os.environ.get("FQ_READ_MEMORY_LIMIT", DUCKDB_MEMORY_LIMIT)
 WRITE_MEMORY_LIMIT = os.environ.get("FQ_WRITE_MEMORY_LIMIT", DUCKDB_MEMORY_LIMIT)
 
