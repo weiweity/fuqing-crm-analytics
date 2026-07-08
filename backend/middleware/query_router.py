@@ -32,6 +32,7 @@ class QueryRouterMiddleware:
         "/api/v1/audience/",
         "/api/v1/assets/",
         "/api/v1/category/",
+        "/api/v1/customer-health/",  # L4.69: RFM 显式 read_only prefix (治本 RFM 雪崩)
         "/api/v1/export/",
         "/api/v1/flow/",
         "/api/v1/health/",
