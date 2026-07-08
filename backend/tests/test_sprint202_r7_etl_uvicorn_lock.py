@@ -10,6 +10,7 @@
 L4.63 永久规则化 — uvicorn 退出必须等 4 件 signal 同时 release,
 ETL step 0 必须 fail-fast DuckDB 持锁, 不允许 step 7 才暴露.
 """
+# ruff: noqa: E731  # L4.50 模式 0 业务代码改动: test helper default fn 用 lambda injection (lsof_runner / pgrep_runner / kill_fn / sleep_fn), 改 def 冗长, ruff 0.15.14 强制 E731
 from __future__ import annotations
 
 import os
