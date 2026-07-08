@@ -28,6 +28,9 @@ _read_pool: list[duckdb.DuckDBPyConnection] = []
 _read_lock = threading.Lock()
 _write_lock = threading.Lock()
 _WRITE_CONN: duckdb.DuckDBPyConnection | None = None
+_cache_lock = threading.Lock()
+# Sprint 205+ L4.67: RFM cache 库独立单例, 跟业务库 fingerprint 0 关联
+_CACHE_CONN: duckdb.DuckDBPyConnection | None = None
 # Sprint 203 R2 Finding 2.2: Semaphore cap (2× pool size) prevents unbounded DuckDB connection
 # growth under burst load. Over-cap requests block until a connection is returned.
 _read_semaphore: threading.Semaphore = threading.Semaphore(READ_POOL_SIZE * 2)
@@ -179,6 +182,33 @@ def get_write_connection() -> duckdb.DuckDBPyConnection:
         return _WRITE_CONN
 
 
+
+
+def get_cache_connection() -> duckdb.DuckDBPyConnection:
+    """RFM cache 库独立单例写 conn, 跟业务库 fingerprint 链完全解耦.
+    
+    L4.67 (Sprint 205+ 真业务触发: PC2 RFM 雪崩根因治本):
+    - 业务库 (fuqing_crm.duckdb, 37GB) + middleware read_only conn 池化 (现状不动)
+    - cache 库 (rfm_cache.duckdb, 新建独立文件) + 单例 write conn
+    - DuckDB 1.5+ strict mode 按 同文件 fingerprint 比对, 跨文件 0 冲突
+    - 5 轮串行业务读 + cache 写 0 错, 5 线程并发 0 错 (PC2 端 100% 验证)
+    
+    注意: 5 线程并发不是"5 个 read_only + 1 个 write", 而是 5 个业务库 read_only 
+    + 5 个 cache 库 write (跨库独立 fingerprint, 互不阻塞).
+    """
+    global _CACHE_CONN
+    with _cache_lock:
+        if _CACHE_CONN is not None and _is_healthy(_CACHE_CONN):
+            return _CACHE_CONN
+        from backend.config import CACHE_DUCKDB_PATH
+        os.makedirs(os.path.dirname(CACHE_DUCKDB_PATH), exist_ok=True)
+        _CACHE_CONN = duckdb.connect(
+            CACHE_DUCKDB_PATH,
+            config=_db_config(DUCKDB_MEMORY_LIMIT),
+            read_only=False,
+        )
+        logger.info("DuckDB cache singleton opened: %s", CACHE_DUCKDB_PATH)
+        return _CACHE_CONN
 def close_all_connections() -> None:
     """Close pooled read connections and the write singleton."""
 

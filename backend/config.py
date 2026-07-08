@@ -137,6 +137,10 @@ DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(_DEFAULT_DUCKDB)))
 # DuckDB 默认使用 80% 系统 RAM，在 16GB 机器上约 12.7GB，容易导致 OOM
 DUCKDB_MEMORY_LIMIT = os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB")
 
+# Sprint 205+ L4.67: RFM cache 库独立文件 (跟业务库 fingerprint 0 关联)
+_DEFAULT_CACHE_DUCKDB = _DEFAULT_DUCKDB.parent / "cache" / "rfm_cache.duckdb"
+CACHE_DUCKDB_PATH = Path(os.environ.get("CACHE_DUCKDB_PATH", str(_DEFAULT_CACHE_DUCKDB)))
+
 # 数据库模式 (Sprint 61 P2 治本): 控制 lifespan 启动校验严格度
 # - "production" (默认): 缺 orders 表 / 0 行 / max(pay_time) < today-30d → raise RuntimeError 拒绝启动
 # - "schema_test" (CI e2e / schema_test): 跳过数据量检查, 只 WARN log

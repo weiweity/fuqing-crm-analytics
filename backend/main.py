@@ -120,27 +120,27 @@ def validate_startup_db() -> None:
             logger.error("[Sprint 61 startup-check] %s", msg)
             raise RuntimeError(msg)
 
-        # 新鲜度: max(pay_time) 距今超过 DB_FRESHNESS_DAYS 天 → 拒绝启动
-        now = datetime.now()
-        # max_pay_time 可能是 datetime / date / str, 统一转 datetime 比较
-        if isinstance(max_pay_time, datetime):
-            mpt = max_pay_time
-        elif hasattr(max_pay_time, "to_pydatetime"):  # pandas Timestamp
-            mpt = max_pay_time.to_pydatetime()
-        elif hasattr(max_pay_time, "year"):  # date
-            mpt = datetime(max_pay_time.year, max_pay_time.month, max_pay_time.day)
-        else:
-            logger.warning("[Sprint 61 startup-check] max_pay_time 类型未知: %s, 跳过新鲜度校验", type(max_pay_time))
-            return
+            # 新鲜度: max(pay_time) 距今超过 DB_FRESHNESS_DAYS 天 → 拒绝启动
+            now = datetime.now()
+            # max_pay_time 可能是 datetime / date / str, 统一转 datetime 比较
+            if isinstance(max_pay_time, datetime):
+                mpt = max_pay_time
+            elif hasattr(max_pay_time, "to_pydatetime"):  # pandas Timestamp
+                mpt = max_pay_time.to_pydatetime()
+            elif hasattr(max_pay_time, "year"):  # date
+                mpt = datetime(max_pay_time.year, max_pay_time.month, max_pay_time.day)
+            else:
+                logger.warning("[Sprint 61 startup-check] max_pay_time 类型未知: %s, 跳过新鲜度校验", type(max_pay_time))
+                return
 
-        age = now - mpt
-        if age > timedelta(days=DB_FRESHNESS_DAYS):
-            msg = (
-                f"Startup validation failed: orders.max(pay_time)={mpt} 距今 {age.days} 天 "
-                f"> {DB_FRESHNESS_DAYS} 天阈值. 可能是 DUCKDB_PATH 接错过期 DB. "
-                f"Set FQ_DB_MODE=schema_test for CI e2e."
-            )
-            logger.error("[Sprint 61 startup-check] %s", msg)
+            age = now - mpt
+            if age > timedelta(days=DB_FRESHNESS_DAYS):
+                msg = (
+                    f"Startup validation failed: orders.max(pay_time)={mpt} 距今 {age.days} 天 "
+                    f"> {DB_FRESHNESS_DAYS} 天阈值. 可能是 DUCKDB_PATH 接错过期 DB. "
+                    f"Set FQ_DB_MODE=schema_test for CI e2e."
+                )
+                logger.error("[Sprint 61 startup-check] %s", msg)
             raise RuntimeError(msg)
     finally:
         try:

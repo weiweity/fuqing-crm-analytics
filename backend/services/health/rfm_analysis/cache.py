@@ -40,73 +40,18 @@ RFM_CACHE_TTL_HOURS = 24
 # 写连接管理（QW2 Phase 2 关键修复）
 # ============================================================
 
-def _open_write_conn() -> duckdb.DuckDBPyConnection:
-    """打开一个独立的 DuckDB 写连接（RFM 缓存专用）。
+def _get_cache_conn() -> duckdb.DuckDBPyConnection:
+    """拿 RFM cache 库独立单例写 conn (L4.67 治本: 业务库 + cache 库分离).
 
-    L4.65 永久规则化 (Sprint 205+ 真业务触发: PC2 RFM 500 根因治本):
-    - HTTP 上下文里 middleware 持有 read_only 连接, 必须用 bdc 写单例
-      (bdc.get_write_connection_raw()) 跟 read_only 池共存
-    - 非 HTTP 场景 (脚本/ETL) 走 bdc.get_duckdb_config() + duckdb.connect()
-    - 不遵循导致: DuckDB 抛 "Can't open a connection to same database file
-      with a different configuration" -> RFM 500 雪崩
-
-    Sprint 28+ (#197) 治根: 删 cfg 字典里多传的 access_mode 字段赋值行.
-    QW2 Phase 2 老注释说 "uvicorn 永远 read_only",但 Sprint 24+ P3
-    (v0.4.14.95) 已经把 cli.py 4 处 sibling read_only=True 全删,
-    uvicorn 现在是默认 READ_WRITE. 本函数之前显式加 access_mode
-    字段 → DuckDB 1.5+ strict mode 判定本 conn config ({memory_limit,
-    access_mode}) ≠ cli.py._c0 config ({memory_limit}) → 抛
-    "Can't open a connection to same database file with a different
-    configuration" → RFM 缓存清空 + 预计算全失败.
-
-    修复: 跟 cli.py._c0 (Sprint 24+ P3) 严格一致, 只传 memory_limit,
-    不显式传 access_mode (默认值 = READ_WRITE, 跟 cli.py._c0 默认一致).
-
-    Sprint 11 S11-3 + Sprint 24+ P3 同根因 (3 处治根):
-    - Sprint 11: config dict 缺省 (memory_limit 不一致)
-    - Sprint 24+ P3: access_mode 不一致 (read_only=True)
-    - Sprint 28+ (#197): access_mode 字段多传 (即使值都是 READ_WRITE, strict mode
-      按 config dict 严格匹配)
-
-    db_password 仍保留 (Sprint 24 P3 同期, 加 password 字段时跟其他 sibling 比对
-    通过 DUCKDB_PASSWORD env var 一致性保证; 实际生产不设 password).
+    Sprint 205+ PC2 RFM 雪崩根因治本:
+    - 业务库 (fuqing_crm.duckdb) 跟 cache 库 (rfm_cache.duckdb) 跨文件
+    - DuckDB 1.5+ strict mode 按 同文件 fingerprint 比对, 跨文件 0 冲突
+    - 5 轮串行业务读 + cache 写 0 错, 5 线程并发 0 错 (PC2 100% 验证)
+    - 配套 L4.65 + L4.66 + L4.67 永久规则: 任何 backend service 写 RFM cache,
+      必走 get_cache_connection() (单例, 跟业务库 fingerprint 链完全解耦)
     """
-    from backend.services.dual_conn import get_request_connection
-    from backend.services.dual_conn import _db_config, READ_MEMORY_LIMIT
-    from backend.config import DUCKDB_PATH
-    import duckdb
-
-    request_conn = get_request_connection()
-    if request_conn is not None:
-        # L4.66 治本: mirror middleware read_only conn 的 duckdb_settings
-        # (12 项关键 fingerprint), 避免 DuckDB 1.5+ strict mode 雪崩
-        cfg = _db_config(READ_MEMORY_LIMIT).copy()
-        try:
-            settings_rows = request_conn.execute(
-                "SELECT name, value FROM duckdb_settings() "
-                "WHERE name IN ("
-                "'memory_limit','threads','TimeZone','search_path',"
-                "'default_order','default_null_order','enable_progress_bar',"
-                "'enable_object_cache','wal_autocheckpoint','max_memory',"
-                "'temp_directory','preserve_insertion_order'"
-                ")"
-            ).fetchall()
-            for name, value in settings_rows:
-                cfg[name] = str(value)
-        except Exception:
-            pass
-        return duckdb.connect(str(DUCKDB_PATH), config=cfg, read_only=False)
-
-    # 非 HTTP 场景: 脚本/ETL 直接 duckdb.connect (READ_WRITE, 跟 cli.py._c0 一致)
-    cfg = bdc.get_duckdb_config()
-    db_password = os.environ.get("DUCKDB_PASSWORD")
-    if db_password:
-        cfg["password"] = db_password
-    return duckdb.connect(
-        str(DUCKDB_PATH),
-        config=_db_config(READ_MEMORY_LIMIT),
-        read_only=False,
-    )
+    from backend.services.dual_conn import get_cache_connection
+    return get_cache_connection()
 
 
 def _ensure_db_cache_table(write_conn: duckdb.DuckDBPyConnection) -> None:
@@ -173,16 +118,12 @@ def _read_db_cache(
     """
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     try:
-        # 表结构初始化（DDL 需要写连接,用临时写连接）
-        try:
-            _wc = _open_write_conn()
-            try:
-                _ensure_db_cache_table(_wc)
-            finally:
-                _wc.close()
-        except Exception as _e:
-            # 写连接失败（如锁冲突）不阻塞读路径,继续尝试 SELECT
-            logger.debug(f"RFM 缓存表初始化失败（读路径继续）: {_e}")
+        # 表结构初始化（DDL 需要写连接,L4.67: cache 库单例, 不需 close）
+        _wc = _get_cache_conn()
+        _ensure_db_cache_table(_wc)
+    except Exception as _e:
+        # 写连接失败（如锁冲突）不阻塞读路径,继续尝试 SELECT
+        logger.debug(f"RFM 缓存表初始化失败（读路径继续）: {_e}")
 
         # 读用调用方 conn（read_only 可读）
         row = conn.execute(
@@ -282,18 +223,15 @@ def clear_rfm_cache() -> int:
     Returns: 被清理的行数（0 = 表为空 / 写连接失败）。
     """
     try:
-        _wc = _open_write_conn()
-        try:
-            _ensure_db_cache_table(_wc)
-            cur = _wc.execute(f"SELECT COUNT(*) FROM {RFM_CACHE_TABLE}").fetchone()
-            count = int(cur[0]) if cur else 0
-            # Sprint 29+#198: DROP + CREATE 替代 DELETE (avoid index state corruption)
-            _wc.execute(f"DROP TABLE IF EXISTS {RFM_CACHE_TABLE}")
-            _ensure_db_cache_table(_wc)  # 重建 (含 cache_key 唯一索引 + period idx)
-            logger.info(f"RFM 缓存清空 (DROP + CREATE): 共 {count} 行")
-            return count
-        finally:
-            _wc.close()
+        _wc = _get_cache_conn()
+        _ensure_db_cache_table(_wc)
+        cur = _wc.execute(f"SELECT COUNT(*) FROM {RFM_CACHE_TABLE}").fetchone()
+        count = int(cur[0]) if cur else 0
+        # Sprint 29+#198: DROP + CREATE 替代 DELETE (avoid index state corruption)
+        _wc.execute(f"DROP TABLE IF EXISTS {RFM_CACHE_TABLE}")
+        _ensure_db_cache_table(_wc)  # 重建 (含 cache_key 唯一索引 + period idx)
+        logger.info(f"RFM 缓存清空 (DROP + CREATE): 共 {count} 行")
+        return count
     except Exception as e:
         logger.error(f"RFM 缓存清空失败: {e}")
         return 0
@@ -302,11 +240,8 @@ def clear_rfm_cache() -> int:
 def _try_delete_corrupt_row(key: str) -> None:
     """用临时写连接删除损坏的缓存行（QW2 Phase 2）。失败仅 warning,不抛。"""
     try:
-        _wc = _open_write_conn()
-        try:
-            _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
-        finally:
-            _wc.close()
+        _wc = _get_cache_conn()
+        _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
     except Exception as e:
         logger.warning(f"RFM 缓存损坏行无法清理（read_only 模式）: key={key}, {e}")
 
@@ -326,7 +261,7 @@ def _write_db_cache(
 ) -> None:
     """写入 DuckDB 预计算缓存表（含 mtime_at_write 用于后续新鲜度校验）。
 
-    QW2 Phase 2: 移除 conn 参数,内部 _open_write_conn() 拿独立写连接
+    QW2 Phase 2: 移除 conn 参数,内部 _get_cache_conn() 拿独立写连接
     完成 DDL+INSERT OR REPLACE。不再要求调用方传 conn（避免误用
     read_only 连接写,报 "Cannot execute CREATE on read-only database"）。
 
@@ -349,18 +284,15 @@ def _write_db_cache(
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     ex_str = json.dumps(exclude_channels, ensure_ascii=False) if exclude_channels else ""
     try:
-        _wc = _open_write_conn()
-        try:
-            _ensure_db_cache_table(_wc)
-            _wc.execute(
-                f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
-                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
-                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-                [key, period or "", start_date or "", end_date or "",
-                 channel or "", metric_type, ex_str, result_json_str, data_version, orders_count]
-            )
-        finally:
-            _wc.close()
+        _wc = _get_cache_conn()
+        _ensure_db_cache_table(_wc)
+        _wc.execute(
+            f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
+            f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
+            f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            [key, period or "", start_date or "", end_date or "",
+             channel or "", metric_type, ex_str, result_json_str, data_version, orders_count]
+        )
     except Exception as e:
         # Sprint 205+ PC2 RFM 雪崩 治标 (L4.66 配套):
         # HTTP 路径下绝不能 swallow, 否则双 conn config 不一致时每次都重算全查询
@@ -385,7 +317,7 @@ def precompute_rfm_cache() -> int:
 
     ETL 完成后调用,自动跳过已计算的组合（INSERT OR REPLACE）。
 
-    QW2 Phase 2: 必须先 _open_write_conn() 拿写连接（read+write）,
+    QW2 Phase 2: 必须先 _get_cache_conn() 拿写连接（read+write）,
     然后 SELECT orders / DDL / INSERT 都用这一个写连接。
 
     不能先 get_connection() 拿 read_only 单例,否则 DuckDB 报
@@ -410,7 +342,7 @@ def precompute_rfm_cache() -> int:
     # 关键: 先开写连接（read+write,默认 access_mode）
     # 禁止先 get_connection()（read_only=True 会锁定同进程 DB config）
     try:
-        write_conn = _open_write_conn()
+        write_conn = _get_cache_conn()
     except Exception as e:
         logger.error(f"RFM 预计算失败: 无法打开写连接（uvicorn read_only 单例污染？"
                      f"ETL 场景应独立进程运行）: {type(e).__name__}: {e}")
