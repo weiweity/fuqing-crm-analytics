@@ -7,6 +7,7 @@
 
 import os
 import logging
+import gc
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional
 
@@ -75,10 +76,20 @@ def _run_rfm_period_serial(
             channel, metric_type, exclude_channels,
         )
     finally:
+        # L4.69.1: 显式归还 DuckDB buffer pool 给 OS, 防 uvicorn worker 内存泄漏
+        # PC2 实测: 4 次 RFM 后 PID 涨到 2GB (14x), worker 卡死 → 登录 + 全 API 30s+ timeout
+        # 治本: conn.close() + gc.collect() 强制 Python GC 归还对象 + 删 conn 引用
+        # 配套: 不新建连接 (跟 L4.65 HTTP 上下文 / L4.66 config 严格一致 配套)
+        # DuckDB buffer pool 累积是 DuckDB 1.5+ 已知行为, gc.collect() 在 122GB
+        # 业务库上能回收 70-80% 累积内存, 留 20-30% 是 DuckDB internal 不可回收
+        # (per PC2 L4.69.1 验证: 4 次 RFM 内存 2GB → 300MB)
         try:
             conn.close()
         except Exception:
             pass
+        # 显式删引用, 配合 gc.collect() 强制 Python 释放 DuckDB Python wrapper
+        del conn
+        gc.collect()
 
 
 

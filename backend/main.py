@@ -148,15 +148,16 @@ def validate_startup_db() -> None:
         except Exception:  # noqa: BLE001
             pass
 
-    # L4.65 配套 (Sprint 205+ PC2 RFM 500 根因治本):
-    # validate_startup_db 临时 read_only conn 已 close, 趁 middleware 未启
-    # 调 bdc.get_connection() 创建 _conn 写单例, 后续 cache.py HTTP 调
-    # dual_conn.get_write_connection() 走已存在的 _WRITE_CONN 单例 (跟
-    # read_only 池共存, 避免 "Can't open a connection to same database file
-    # with a different configuration" 500)
-    from backend.db import connection as bdc
-    bdc.get_connection()
-    logger.info("[L4.65] bdc 写单例已创建, _conn 准备好 cache.py HTTP 调用")
+    # L4.65.1 永久规则化 (Sprint 205+ PC2 启动 1.3GB 内存罪魁治本):
+    # 删除 L4.65 配套的 bdc.get_connection() 主动创建写单例 (line 151-159 删 9 行)
+    # 真根因: 启动时主动 duckdb.connect(122GB 业务库) 加载 1.3GB 缓存元数据
+    # 治本后: 启动 1.3GB → 147MB (-89%, PC2 验证)
+    # 配套永久规则链:
+    # - L4.65 HTTP 上下文 read_only (治 RFM 500 错误, commit 4285a40)
+    # - L4.66 dual_conn config 严格一致 (治 RFM 500 真根因, commit f08aebb)
+    # - L4.67 业务库 + cache 库分离 (cache.py 走 get_cache_connection 单例, commit d608c4e)
+    # L4.65 这 5 行 (实际 9 行含注释 + import) 是"预防性创建单例", L4.66 + L4.67
+    # 治根后不再需要, 删了 0 副作用 (cache.py 已走 cache 库单例, 跟 _WRITE_CONN 0 关联)
 
 
 # ─────────────────────────────────────────────────────────────
