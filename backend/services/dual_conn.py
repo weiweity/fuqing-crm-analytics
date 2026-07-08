@@ -105,11 +105,27 @@ def _is_healthy(conn: duckdb.DuckDBPyConnection) -> bool:
         return False
 
 
-def get_read_connection() -> duckdb.DuckDBPyConnection:
-    """Borrow a read-only DuckDB connection for dashboard queries."""
+class ReadPoolTimeout(Exception):
+    """L4.72.2 治本: 618 大促 8 并发雪崩无限 block, 抛出此异常由 middleware 转 503."""
+    pass
 
-    # Sprint 203 R2 Finding 2.2: Semaphore blocks over-cap requests; release in return_read_connection.
-    _read_semaphore.acquire()
+
+def get_read_connection(timeout: float = 5.0) -> duckdb.DuckDBPyConnection:
+    """Borrow a read-only DuckDB connection for dashboard queries.
+
+    L4.72.2 治本: 618 大促 8 并发雪崩无限 block, 加 timeout=5.0 友好降级.
+    跟 L4.69 RFM 雪崩真治本 (ThreadPoolExecutor 串行) 1:1 stable 配套, 跟 L4.51
+    Read-Write Splitting (read_only 池) 1:1 stable 永久规则链配套.
+    """
+    # L4.72.2 治本: acquire 加 timeout=5.0, 618 大促 8 并发雪崩无限 block → 友好 503
+    acquired = _read_semaphore.acquire(timeout=timeout)
+    if not acquired:
+        # 8 并发雪崩, 第 5-8 个请求等 5s 拿不到 conn, 抛出 ReadPoolTimeout
+        # 由 backend/middleware/query_router.py 捕获转 503
+        raise ReadPoolTimeout(
+            f"DuckDB read pool full for {timeout}s (8 concurrent RFM requests). "
+            f"618 大促 8 并发雪崩兜底: 建议前端重试或扩容 pool size."
+        )
     try:
         with _read_lock:
             while _read_pool:

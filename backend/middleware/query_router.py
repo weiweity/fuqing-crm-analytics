@@ -1,12 +1,15 @@
 """Query routing middleware for Sprint 201 R1 read/write splitting."""
 from __future__ import annotations
 
+import logging
 import time
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from backend.services.dual_conn import read_request_context, reset_query_type, set_query_type
 from backend.services.query_metrics import record_query
+
+logger = logging.getLogger(__name__)
 
 
 class QueryRouterMiddleware:
@@ -86,6 +89,8 @@ class QueryRouterMiddleware:
         scope["query_type"] = query_type
         start = time.perf_counter()
 
+        # L4.72.2 治本: 捕获 dual_conn.ReadPoolTimeout 618 大促 8 并发雪崩, 返回 503
+        from backend.services.dual_conn import ReadPoolTimeout  # L4.72.2 新增异常类
         try:
             if query_type == "read":
                 with read_request_context(query_type):
@@ -96,6 +101,15 @@ class QueryRouterMiddleware:
                     await self.app(scope, receive, send)
                 finally:
                     reset_query_type(token)
+        except ReadPoolTimeout as e:
+            # L4.72.2 治本: 618 大促 8 并发雪崩友好降级, 返回 503 而非 30s timeout
+            logger.warning(f"L4.72.2 ReadPoolTimeout (618 大促 8 并发雪崩兜底): {e}")
+            from starlette.responses import JSONResponse
+            response = JSONResponse(
+                status_code=503,
+                content={"detail": f"DuckDB read pool full, 请重试. {str(e)}"},
+            )
+            await response(scope, receive, send)
         finally:
             if path != "/metrics":
                 record_query(path, query_type, time.perf_counter() - start)
