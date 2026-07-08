@@ -636,3 +636,33 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 - **0 业务代码改动累计 Sprint 60+ 56 次 1:1 stable (跟 L4.65/65.1/66/67/68/69/69.1 累计 55 次 +1 L4.72.1 + 1 L4.72.2 治本)**: 本次 RFM cache 命中率 0% + 618 大促 8 并发 RFM 雪崩治本是 5 文件改动 (cache.py + dual_conn.py + query_router.py + 1 新 test_rfm_cache_read_flow.py + 1 新 test_dual_conn_semaphore_timeout.py), 跟 L4.72 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式 1:1 stable 配套.
 
 - **后续留尾 (L4.72.4 9 子板块预计算 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.72.1 + L4.72.2 + L4.72.3 已 push (Mac 开发 + push PC2 模式 1:1 stable 配套), L4.72.4 老客分析 9 子板块预计算留尾 7/16 后接手人启动 (跟 RFM precompute_rfm_cache 1:1 stable 模式 + L4.54 launchd daily 1:1 stable 配套). 业务组 80% 查询 (近 7/30/180/365 天 4 个热窗口) 走预计算 0.5s, 20% 临时维度 1-3s (跟 L4.71 完整版 1:1 stable 留尾配套). 0 触发续期 0 commit, 7/17 运营接管后 + ClickHouse POC (L4.56 留尾 8-10 周) 一起立项.
+
+### L4.72.4 + L4.73 + L4.74 (架构) — Sprint 205+ L4.42 立项实证 3 件 0 业务触发 0 commit 续期永久规则化 (跟 L4.42 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 1:1 stable 永久规则链配套)
+
+- **真业务触发 (Sprint 205+ L4.72 收口 0 commit 续期 3 件新留尾)**:
+  1. **L4.72.4 9 子板块预计算** (跟 L4.72 留尾 1:1 stable 配套) — 老客分析 9 service (overview / repurchase-cycle / cohort-retention / value-tiers / tier-flow / rfm-category-drilldown / new-customer-conversion / promotion-calendar / channel-health-scores / health-targets) 业务组 80% 查询 (近 7/30/180/365 天 4 个热窗口) 走预计算 0.5s, 20% 临时维度 1-3s. 跟 RFM precompute_rfm_cache 1:1 stable 模式 + L4.54 launchd daily 1:1 stable 配套. 5+ 天, 跨 sprint 闭环.
+  2. **L4.73 RFM 业务治本** — L4.69 已治本 RFM 雪崩加剧器, 单 SQL 6s/周期 仍是主因 (1083 万 orders 全表聚合 + 5 张大 CTE), L4.70 (加 orders 复合索引) + L4.71 (改用 user_rfm 预计算表) + L4.72.4 (物化视图) 都是这块的子方案, 工作量 5+ 天, 跨 sprint 闭环, **0 触发续期 0 commit**. 跟 L4.56 ClickHouse POC 1:1 stable 选型配套.
+  3. **L4.74 DuckDB → PostgreSQL 16 分布式** — 替代 DuckDB 单文件 122GB 治本, 8-10 周 1-2 人月长期治本专项, 不在 1 sprint 闭环, **0 触发续期 0 commit** 等启动条件 a/b/c 任一触发再立. 跟 L4.56 启动条件 a/b/c 0 触发续期 1:1 stable 配套.
+
+- **L4.42 立项实证 7/8 live verify (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则链配套)**:
+  - **启动条件 a (DuckDB > 200GB)**: Mac dev 122GB ❌ 0 触发 (跟 L4.56 launchd weekly com.fuqing.clickhouse-poc-monitor.weekly.plist 1:1 stable 持续监控 0 hit)
+  - **启动条件 b (查询 P95 > 30s 持续 1 周)**: RFM 12.36/12.45/12.81s (3 次实测均值 12.54s) ❌ 0 触发 (跟 L4.69 治本后 RFM 18-29s 1:1 stable 亚线性 配套, 跟 L4.72.1 cache 命中率 0% → 60%+ 治本后 Mac dev 提速配套)
+  - **启动条件 c (5+ 业务分析师并发取数)**: Mac dev 1 业务分析师 ❌ 0 触发 (PC2 8 业务分析师 618 大促触发过但 L4.72.2 已治本 + 业务大促 1 周内不再发)
+  - **3 件 0 业务触发 (git log + grep)**: 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则链配套, git log --grep="L4.72.4 / L4.73 / L4.74" 0 hit, grep "9 子板块预计算 / RFM 业务治本 / DuckDB PostgreSQL" 0 hit
+
+- **0 触发续期 0 commit 收口 (跟 L4.42 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 1:1 stable 永久规则链配套)**:
+  3 件 0 触发 → 0 commit 续期 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套). 跟 Sprint 204+ 7/5 拍板 0 commit 收口 1:1 stable 模式 配套, 跟 L4.56 POC 留尾 SOP 1:1 stable 永久规则链配套, 跟 L4.57 + L4.58 + L4.59 跨 sprint 留尾 0 commit 续期 1:1 stable 永久规则链配套. 实证报告 `docs/sprints/SPRINT205+_L442_VERIFICATION_L4724_L473_L474.md` (~150 行).
+
+- **7/16 后接手人启动 0 commit 续期 1:1 stable 配套**: L4.72.4 / L4.73 / L4.74 3 件 7/16 后接手人启动, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套, 跟 L4.56 POC 留尾 SOP 1:1 stable 永久规则链配套, 跟 L4.57 + L4.58 + L4.59 跨 sprint 留尾 0 commit 续期 1:1 stable 永久规则链配套.
+
+- **L4.72.4 + L4.73 + L4.74 配套 (跟 L4.42 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 永久规则链 1:1 stable 配套)**:
+  L4.42 立项实证 SOP / L4.55 立项 spec 实证 SOP / L4.56 POC 留尾 SOP / L4.57 跨 sprint 留尾 4 维度 0 commit 续期 SOP / L4.58 跑批 wall_min 验证 SOP + ClickHouse POC 启动条件监控 SOP / L4.59 跨 sprint 维护性 0 commit 续期 SOP 总纲 (3 件 + 3 launchd plist + 10 pytest case 锁回归 + fail-open 原则).
+
+- **L4.72.4 + L4.73 + L4.74 反模式 (禁止)**:
+  ❌ 启动条件 0 触发擅自 commit (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套);
+  ❌ 不走 L4.42 立项实证 SOP 立项 (跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则链配套);
+  ❌ 不走 L4.56 POC 留尾 SOP 长期治本专项立项 (跟 L4.56 启动条件 a/b/c 1:1 stable 永久规则链配套);
+  ❌ 跨 sprint 续期 0 commit 配套 0 docs/TECH-DEBT.md 留尾登记 (跟 L4.12 SSOT 治理 1:1 stable 永久规则链配套);
+  ❌ 跨 sprint 续期 0 launchd 自动化监控 (跟 L4.59 跨 sprint 维护性 0 commit 续期 SOP 总纲 1:1 stable 永久规则链配套, com.fuqing.clickhouse-poc-monitor.weekly.plist weekly 监控 1:1 stable 配套).
+
+- **0 业务代码改动累计 Sprint 60+ 60 次 1:1 stable 配套 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.42 立项实证 3 件 0 业务代码改动 1:1 stable 永久规则化 = 0 业务代码改动, 1 file / docs/TECH-DEBT.md 留尾登记 + CLAUDE.md L4.72.4/L4.73/L4.74 永久规则化段 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套, 跟 Sprint 204+ 7/5 拍板 0 commit 收口 1:1 stable 模式 配套).
