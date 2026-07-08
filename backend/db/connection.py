@@ -10,7 +10,7 @@
 import logging
 import threading
 import duckdb
-from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT
+from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT, DUCKDB_THREADS
 
 logger = logging.getLogger(__name__)
 
