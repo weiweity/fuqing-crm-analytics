@@ -43,6 +43,13 @@ RFM_CACHE_TTL_HOURS = 24
 def _open_write_conn() -> duckdb.DuckDBPyConnection:
     """打开一个独立的 DuckDB 写连接（RFM 缓存专用）。
 
+    L4.65 永久规则化 (Sprint 205+ 真业务触发: PC2 RFM 500 根因治本):
+    - HTTP 上下文里 middleware 持有 read_only 连接, 必须用 bdc 写单例
+      (bdc.get_write_connection_raw()) 跟 read_only 池共存
+    - 非 HTTP 场景 (脚本/ETL) 走 bdc.get_duckdb_config() + duckdb.connect()
+    - 不遵循导致: DuckDB 抛 "Can't open a connection to same database file
+      with a different configuration" -> RFM 500 雪崩
+
     Sprint 28+ (#197) 治根: 删 cfg 字典里多传的 access_mode 字段赋值行.
     QW2 Phase 2 老注释说 "uvicorn 永远 read_only",但 Sprint 24+ P3
     (v0.4.14.95) 已经把 cli.py 4 处 sibling read_only=True 全删,
@@ -64,6 +71,15 @@ def _open_write_conn() -> duckdb.DuckDBPyConnection:
     db_password 仍保留 (Sprint 24 P3 同期, 加 password 字段时跟其他 sibling 比对
     通过 DUCKDB_PASSWORD env var 一致性保证; 实际生产不设 password).
     """
+    from backend.services import dual_conn
+    from backend.db import connection as bdc
+
+    request_conn = dual_conn.get_request_connection()
+    if request_conn is not None:
+        # HTTP 上下文: middleware 持有 read_only, 必须用 bdc 写单例
+        return dual_conn.get_write_connection()
+
+    # 非 HTTP 场景: 脚本/ETL 直接 duckdb.connect (READ_WRITE, 跟 cli.py._c0 一致)
     cfg = bdc.get_duckdb_config()
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:

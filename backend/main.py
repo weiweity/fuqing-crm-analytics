@@ -148,6 +148,16 @@ def validate_startup_db() -> None:
         except Exception:  # noqa: BLE001
             pass
 
+    # L4.65 配套 (Sprint 205+ PC2 RFM 500 根因治本):
+    # validate_startup_db 临时 read_only conn 已 close, 趁 middleware 未启
+    # 调 bdc.get_connection() 创建 _conn 写单例, 后续 cache.py HTTP 调
+    # dual_conn.get_write_connection() 走已存在的 _WRITE_CONN 单例 (跟
+    # read_only 池共存, 避免 "Can't open a connection to same database file
+    # with a different configuration" 500)
+    from backend.db import connection as bdc
+    bdc.get_connection()
+    logger.info("[L4.65] bdc 写单例已创建, _conn 准备好 cache.py HTTP 调用")
+
 
 # ─────────────────────────────────────────────────────────────
 # 应用生命周期
