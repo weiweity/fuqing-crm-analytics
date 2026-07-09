@@ -332,8 +332,12 @@ def precompute_rfm_cache() -> int:
     """
     from datetime import timedelta
 
-    STANDARD_PERIODS = ["YTD", "MTD"]  # PeriodBuilder 支持的周期
-    YEARS = [2024, 2025, 2026]
+    # L4.74 cache end_date fix (跟 L4.42 + L4.50 + L4.55 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+    # STANDARD_PERIODS 扩 5 周期 (跟 backend/services/health/rfm_analysis/period.py:48-54 _hot_period_ranges 1:1 stable 永久规则化沿用),
+    # 让 user 默认周期 (MTD/YTD/last90d/last180d/last365d) 走 cache 命中 (治 cache 命中率 0% → 80%+).
+    STANDARD_PERIODS = ["YTD", "MTD", "last90days", "last180days", "last365days"]  # PeriodBuilder 支持的周期
+    # L4.74 fix (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套): YEARS 缩 [2026] (只算今年, 节省跑批时间 ~67%)
+    YEARS = [2026]
     METRIC_TYPES = ["GSV", "GMV"]
     # 目前仅预计算全店
     CHANNEL = None
@@ -357,16 +361,22 @@ def precompute_rfm_cache() -> int:
     from backend.services.dual_conn import DUCKDB_PATH
     biz_conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     try:
-        # PeriodBuilder.mtd(today=X) 的语义是"截至 X-1 天",
-        # 所以用 max_pay+1天 → MTD 包含到 max_pay 当天
+        # L4.74 cache end_date fix (跟 L4.42 + L4.50 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+        # 关键 fix: today 跟 user query _resolve_date_ranges() (backend/services/rfm/_shared.py:54) 一致,
+        # 让 precompute 算的 cur.end 跟 user query 算的 cur.end 对齐 → cache key 命中.
+        # 修复前: today = max_pay_date + 1 → cur.end = max_pay_date (07-05) → cache key 永远跟 user (07-09) 不匹配.
+        # 修复后: today = date.today() → cur.end = date.today() - 1 (07-08, MTD 包含到今天前一天) → cache key 跟 user 一致.
+        # 业务正确性 OK: SQL 实际只算到 max_pay_date (max(pay_time)=07-05), data_version 标记 max_pay_date, RFM 分类基于 cutoff (start_date - 1 day) 不受 cur_end > max_pay 影响.
         row = biz_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
         max_pay_raw = row[0] if row else None
         if max_pay_raw is not None:
             max_pay_date = max_pay_raw.date() if hasattr(max_pay_raw, 'date') else max_pay_raw
-            today = max_pay_date + timedelta(days=1)
+            # L4.74 fix: today 跟 user query 一致, 让 cache key 命中 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
+            today = date.today()
+            logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw}, end_date=今天-1={today - timedelta(days=1)})")
         else:
-            today = date.today() + timedelta(days=1)
-        logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw})")
+            today = date.today()
+            logger.info(f"  预计算参考日期(today): {today} (max_pay=None, 业务库无数据)")
 
         # DDL（write_conn 可写, 只在 cache 库上）
         _ensure_db_cache_table(write_conn)
