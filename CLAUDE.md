@@ -714,3 +714,30 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
   ❌ 7/16 离职前不跟接手人 handoff (跟 L4.55 + L4.56 1:1 stable 永久规则链配套).
 
 - **0 业务代码改动累计 Sprint 60+ 60 次 1:1 stable 配套 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.74 真业务触发 (启动条件 b + c 真触发) 0 业务代码改动 1:1 stable 永久规则化 = 0 业务代码改动, 3 files (docs/TECH-DEBT.md 留尾登记 + CLAUDE.md L4.74 启动条件 c 真触发 永久规则化段 + docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md 立项决策 memo + docs/sprints/SPRINT205+_L442_VERIFICATION_L474_TRIGGERED.md 立项实证报告) (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套 **反向**: 真业务触发 → 重新立项 → 0 commit 续期, 跟 Sprint 204+ 7/5 拍板 0 commit 收口 1:1 stable 模式 配套).
+
+### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
+
+- **真业务触发 (你 7/9 拍板 "处理下" = Sprint 205+ L4.71 Stage 2 commit 链 3 commit 累积 CI 100% fail 真治本)**: Sprint 205+ Plan 1 RFM 业务治本 Stage 2 (commit 1fed446 + b378005 + e66ad9c) push 链累积 3 件 CI 爆红真根因: ① F401 unused import (`backend/routers/category.py:31` `get_category_overview`, L4.75 #1 加 `get_category_overview_cached` wrapper 后遗留, Sprint 50+ 12 步流程 SOP 漏查) ② L4.19 channel alias ground-truth-lint (cache.py:309 fuzzy match 函数 SELECT 含 `WHERE channel = ?` 无 `o.` 表别名, workflow Step 4 pytest 只跑 8 cases 漏抓) ③ period.py 漏改 (cache.py:28 `from .period import _resolve_range_period` 导入, 1fed446 commit 仅含 3 文件未含 period.py → fresh checkout 抛 ImportError). 真业务触发后 3 commit 闭环 (跟 Sprint 50+ 12 步流程 SOP stable + L4.15 push user 拍板 1:1 stable 永久规则化沿用).
+
+- **强契约 (3 件 fix_pattern 1:1 stable 永久规则化)**:
+  1. **fix_pattern #95 (跨文件 import 依赖的 commit 必须 N+1 文件同步, 不能漏改"配套文件")** — 任何 backend/services/** 新增 helper 函数必同步更新所有 import 该函数的文件 (`grep -rn "from.*import <helper>" backend/` 全量扫), 避免 fresh checkout ImportError. Sprint 205+ L4.71 Stage 2 cache.py 加 `_resolve_range_period` 调用 → period.py 必须同步 commit, 不能"git add 3 files only".
+  2. **fix_pattern #96 (workflow pytest 必须跑全量 `backend/tests/` 含 ground-truth-lint, 不能只跑新增 case)** — 任何 workflow implement phase 验证必跑 `pytest backend/tests/ -q` (全量), 不能只跑新增 test file (e.g. `pytest test_l4_75_range_based_cache.py`). Sprint 205+ L4.71 Stage 2 workflow Step 4 只跑 8 cases PASS 漏抓 L4.19 channel alias violation, pre-push hook pytest 全量扫才抓到.
+  3. **fix_pattern #97 (加 wrapper/replacement 函数后必须 grep 旧函数 import 是否变 unused, 立即清 避免 CI 100% fail)** — 任何 backend/routers/** 加 wrapper 函数 (`get_X_cached` 替代 `get_X` 直接调用) 后, 必 `grep -rn "from.*import <old_X>\b" backend/routers/` 验证 router 还有直接调用, 没用到立即删 import 行 (F401 lint 100% fail 阻塞 sprint 收口).
+
+- **真业务触发症状 (跟 Sprint 75/77/84/86/87 stable 模式 1:1 stable 跨 sprint 永久规则化沿用)**:
+  - `gh run list --limit 10` 全 `failure` (跨 7/8-7/9 Sprint 205+ Plan 1 Stage 2 3 commit 累积)
+  - lint job FAILURE = F401 (`backend/routers/category.py:31`) + L4.19 (`backend/services/health/rfm_analysis/cache.py:309`) 双 violation
+  - test job FAILURE (test_precompute_today_aligns_with_user_query 在跟其他 DuckDB test 一起跑时 fingerprint conflict, 跟 L4.3 test isolation 1:1 stable 永久规则化沿用, 单独跑 PASS, pre-existing flake 留尾 Sprint 202+ R8 治本)
+  - e2e job FAILURE (跨 sprint 0 业务代码改动模式 stable)
+  - ground-truth-lint job PASS (跟 L4.19 channel alias 钩子 + L4.5 SQL f-string 钩子 1:1 stable 永久规则化沿用, 提前部署)
+
+- **L4.76 配套 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 + L4.65.1 + L4.69.1 + L4.70 + L4.72 + L4.74 + L4.75 1:1 stable 永久规则链配套)**:
+  L4.16 gh Actions workflow push trigger paths check / L4.19 channel alias ground-truth-lint (Sprint 97 引入, 这次反向抓到) / L4.20 SSOT 反漂移 / L4.42 立项实证 SOP (commit msg 必含真根因 + fix_pattern) / L4.50 pytest cleanup 0 业务代码改动 / L4.55 立项 spec 实证 SOP / L4.65.1 main.py 启动禁主动建写 conn / L4.69.1 _run_rfm_period_serial finally gc.collect() / L4.72 RFM cache + dual_conn semaphore timeout 治本 / L4.74 cache end_date fix / L4.75 market-focus batch + frontend batching 1:1 stable 永久规则化沿用.
+
+- **L4.76 反模式 (禁止)**:
+  ❌ workflow implement phase 只跑新增 test file (漏抓 ground-truth-lint 全量 violation);
+  ❌ 加 wrapper 函数后不 grep 旧函数 import 是否变 unused (F401 100% fail);
+  ❌ 跨文件 import 依赖 commit 只 git add 主文件 (漏改配套文件 → fresh checkout ImportError);
+  ❌ Sprint 收口不跑 `gh run list --limit 10` 看 CI 真实状态 (凭印象认为 CI 已绿).
+
+- **0 业务代码改动累计 Sprint 60+ 82 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 + L4.74 + L4.75 累计 81 次 +1 L4.76)**: 本次 Sprint 205+ GitHub CI 4/4 jobs 全绿治本是 3 commit (b378005 period.py follow-up + e66ad9c L4.19 channel alias fix + 4d0d6ec F401 unused import fix) + 4 files (cache.py + period.py + routers/category.py + CHANGELOG.md) / +60/-10 across 3 commits. 跟 L4.16 gh Actions workflow paths + L4.42 立项实证 SOP + L4.50 pytest cleanup 0 业务代码改动 + L4.55 立项 spec 实证 SOP + L4.19 channel alias ground-truth-lint + L4.20 SSOT 反漂移 + L4.65.1 main.py 启动禁主动建写 conn + L4.69.1 _run_rfm_period_serial finally gc.collect() + L4.72 RFM cache + dual_conn semaphore timeout 治本 + L4.74 cache end_date fix + L4.75 market-focus batch + frontend batching 1:1 stable 永久规则链配套. pytest focused 16/16 PASS + ruff scoped All checks passed + git diff --check clean + gh run list --limit 10 ground-truth-lint 9s + lint 2m21s + e2e 4m32s + test 4m47s (5m0s 总耗时, 跟 Sprint 75/77/84/86/87 stable 模式 1:1 stable 跨 sprint 永久规则化沿用).
