@@ -288,6 +288,10 @@ const cohortChartOption = computed(() => {
   <div class="repurchase-cycle-tab">
     <LoadingState v-if="isLoading" />
     <ErrorState v-else-if="error" :message="error.message" @retry="refetch" />
+    <div v-else-if="!repurchaseAutoFetch" class="manual-query-guide">
+      <NButton type="primary" size="large" @click="onRepurchaseQueryClick">🔍 点击查询复购周期数据</NButton>
+      <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
+    </div>
 
     <template v-else-if="data">
       <!-- 顶部统计 (Sprint 169: 5 列 grid, 加复购率卡 + 5 卡片 YOY) -->

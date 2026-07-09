@@ -309,6 +309,10 @@ const rFlowXlsxColumns = computed<XlsxColumn[]>(() => {
       </div>
       <ErrorState v-if="rFlowError" :message="(rFlowError as Error).message" @retry="rFlowRefetch()" />
       <LoadingState v-else-if="rFlowLoading" />
+      <div v-else-if="!rFlowAutoFetch" class="manual-query-guide">
+        <NButton type="primary" size="large" @click="onRFlowQueryClick">🔍 点击查询 R 区间数据</NButton>
+        <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
+      </div>
       <EmptyState v-else-if="!rFlowData?.rows?.length" description="当前条件下无数据" />
       <EChartsWrapper v-else ref="rChartRef" :option="repurchaseRateChartOption" height="260px" />
     </div>

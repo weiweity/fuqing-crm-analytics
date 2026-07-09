@@ -271,6 +271,10 @@ const fFlowXlsxColumns = computed<XlsxColumn[]>(() => {
       </div>
       <ErrorState v-if="fFlowError" :message="(fFlowError as Error).message" @retry="fFlowRefetch()" />
       <LoadingState v-else-if="fFlowLoading" />
+      <div v-else-if="!fFlowAutoFetch" class="manual-query-guide">
+        <NButton type="primary" size="large" @click="onFFlowQueryClick">🔍 点击查询 F 区间数据</NButton>
+        <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
+      </div>
       <EmptyState v-else-if="!fFlowData?.rows?.length" description="当前条件下无数据" />
       <EChartsWrapper v-else ref="fChartRef" :option="repurchaseRateChartOption" height="260px" />
     </div>
