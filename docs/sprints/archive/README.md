@@ -27,6 +27,21 @@
 | `HANDOFF-TO-CODEX-Sprint144-Sampling-Refactor.md` | Sprint 144 | Sampling Refactor handoff |
 | `HANDOFF-TO-CODEX-Sprint158-Sample-Navbar-Refactor.md` | Sprint 158 | Sample Navbar Refactor handoff |
 | `HANDOFF-TO-CODEX-Sprint159-Sampling-02-Logo-Favicon.md` | Sprint 159 | Sampling 02 Logo Favicon handoff |
+| `HANDOFF-TO-CODEX-SprintN+1-ClickHouse-POC.md` | Sprint N+1 | ClickHouse POC 单节点 handoff (跟 L4.56 ClickHouse POC 留尾 SOP 1:1 stable 永久规则化沿用, Sprint N+5 No-Go 反转后归档) |
+| `HANDOFF-TO-CODEX-SprintN+3-ClickHouse-POC-Trino-Cluster.md` | Sprint N+3 | ClickHouse POC Trino Cluster handoff (跟 L4.55 + L4.56 1:1 stable 永久规则化沿用, Sprint N+5 No-Go 反转后归档) |
+| `HANDOFF-TO-CODEX-SprintN+4-ClickHouse-POC-DuckDB-Trino-ETL.md` | Sprint N+4 | ClickHouse POC DuckDB → Trino ETL handoff (跟 L4.54 + L4.55 + L4.56 1:1 stable 永久规则化沿用, Sprint N+5 No-Go 反转后归档) |
+| `HANDOFF-SprintN+5-Stage-Architecture-Inputs.md` | Sprint N+5 | Sprint N+5 Go/No-Go 决策模板 (跟 L4.56 立项决策备忘录 SOP 1:1 stable 永久规则化沿用, No-Go 反转后归档) |
+| `SPRINT_FUQING_DATA_QUERY_SKILL_PLAN.md` | Sprint 199+ | ad-hoc-query skill plan (跟 Sprint 199 收口 1:1 stable 永久规则化沿用) |
+| `SPRINT205+_L442_VERIFICATION_L4724_L473_L474.md` | Sprint 205+ | L4.42 立项实证 3 件 0 commit 续期 (跟 L4.42 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 1:1 stable 永久规则化沿用) |
+| `SPRINT205+_L442_VERIFICATION_L474_TRIGGERED.md` | Sprint 205+ | L4.74 启动条件 b+c 真触发重新立项 (跟 L4.42 立项实证 SOP "真业务触发" 1:1 stable 永久规则化沿用) |
+| `SPRINT202+_R6_WALL_MIN_FINAL_VERIFICATION.md` | Sprint 202+ R6 | R6 wall_min 验证最终 (跟 L4.58 跑批 wall_min 验证 SOP 1:1 stable 永久规则化沿用) |
+| `SPRINT202+_R7_DUCKDB_WAL_EPERM.md` | Sprint 202+ R7 | R7 DuckDB WAL EPERM 治本 (跟 L4.63 uvicorn 持锁 + DuckDB 异 config detector 1:1 stable 永久规则化沿用) |
+| `SPRINT-N+5-NO-GO-DECISION-2026-07-06.md` | Sprint N+5 | No-Go 反转决策 (跟 system locked down + handoff advisory 1:1 stable 永久规则化沿用) |
+| `SPRINT-N+5-GO-DECISION-2026-07-06.md` | Sprint N+5 | Go 拍板 (已反转 No-Go, 跟 L4.42 立项实证 SOP "凭印象 0 commit 收口" 反例 1:1 stable 永久规则化沿用) |
+| `SPRINT-N-PLUS-WAVE1-CROSS-STABLE-2026-07-06.md` | Sprint N+ | Wave 1 跨 sprint plan (跟 L4.40 fail-open + L4.57 + L4.58 SOP 1:1 stable 永久规则化沿用) |
+| `SPRINT-N+5-TRINO-POC-SUMMARY.md` | Sprint N+5 | Trino POC summary (跟 L4.56 立项决策备忘录 SOP 1:1 stable 永久规则化沿用, No-Go 反转后归档) |
+| `SPRINT-N+1-DUCKDB-BASELINE-2026-07.md` | Sprint N+1 | W2 DuckDB 128GB baseline (跟 L4.68 DuckDB 性能调优 1:1 stable 永久规则化沿用) |
+| `SPRINT-N+1-BUSINESS-INTERVIEW-REQUIREMENTS.md` | Sprint N+1 | 业务方访谈 PDF 需求文档 (跟 Wave 1 跨 sprint plan 1:1 stable 永久规则化沿用) |
 
 ## 维护规则
 
