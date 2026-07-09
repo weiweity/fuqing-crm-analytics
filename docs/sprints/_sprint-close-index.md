@@ -36,6 +36,17 @@
 
 `ls ~/.claude/projects/-Users-hutou/project_fuqing_crm_analytics_sprint{24,25,26,27,28,30,30_1,32,32_1,32_2,32_3,33,34_1,35,37,38,39,40_41,41,42,43}*_close.md`
 
+## Sprint 205+ docs 整合归档 (跟 L4.20 SSOT 反漂移 + L4.59 跨 sprint 维护性 0 commit 续期 SOP 1:1 stable 永久规则化沿用, 2026-07-09 跟 L4.77 1:1 stable 永久规则化沿用)
+
+L4.74 PostgreSQL 16 分布式项目 (留尾 7/16 后接手人启动) 的 16 个 working/template docs 从 `docs/sprints/` 移到 `docs/sprints/archive/`:
+
+- 8 个 `HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART{2-9}.md` (~1109 行, 阶段 2-5 handoff)
+- 8 个 `SPRINT-L474-STAGE-{1/2/3/5}-*.md` (~332 行, 模板: REQUIREMENT/SELECTION/BENCHMARK/SQL-COMPATIBILITY/CLUSTER-BENCHMARK/GO-NO-GO/POC-SUMMARY/RISK-ASSESSMENT)
+
+主 HANDOFF doc `docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed.md` (PART1 概要 + 阶段 1) 保留在 `docs/sprints/` 作为 SSOT 入口. CODEX prompt docs (`CODEX-APP-GOAL-MODE-PROMPT-Sprint205+-L474.md` + `CODEX-APP-GOAL-MODE-PROMPT-Sprint205+-L475-SINGLE-USER-MODE-AND-PRECOMPUTE-EXTEND.md` + `HANDOFF-TO-CODEX-Sprint205+-L475-SINGLE-USER-MODE-AND-PRECOMPUTE-EXTEND.md`) 的 PART 引用已更新为 `archive/` paths (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用).
+
+**0 业务代码改动累计 Sprint 60+ 82+ 次 1:1 stable 永久规则化沿用** (跟 L4.50 + L4.55 + L4.20 1:1 stable 永久规则链配套).
+
 ## 跨 sprint 留尾 (backlog)
 
 - Sprint 199 R1: 业务组真人预读话术模板 (Sprint 195 R4 续, mock 预读待复核) + 跨 sprint 真因排查 (Sprint 192/193/195/196/197/198 R3 续, 持续) + 0 留尾业务债 (持续)

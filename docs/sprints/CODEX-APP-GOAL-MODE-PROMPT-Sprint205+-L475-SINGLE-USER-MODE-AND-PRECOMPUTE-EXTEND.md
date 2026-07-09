@@ -325,7 +325,7 @@ git commit --no-verify -m "fix(L4.72.6): rfm_dashboard_full 扩展 N 渠道 × N
 
 参考 docs (跟 L4.74 5 阶段 POC handoff 已写完 1:1 stable 沿用):
 - `docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md` (~280 行)
-- `docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART9.md` (~600 行)
+- `docs/sprints/archive/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART9.md` (~600 行)
 - `docker-compose-postgresql16-single-node.yml` (跟 L4.51 + L4.60 + L4.61 1:1 stable 跨平台 永久规则链配套)
 
 ```bash

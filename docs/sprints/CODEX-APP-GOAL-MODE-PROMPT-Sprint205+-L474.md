@@ -5,7 +5,7 @@
 > **用户**: hutou (PM 魏炜)
 > **CLAUDE.md 版本**: v0.4.14.43+ (L4.72 永久规则化收口 + L4.74 启动条件 b + c 真触发 永久规则化)
 > **配套永久规则链**: L4.42 + L4.55 + L4.56 + L4.65.1 + L4.69.1 + L4.74 1:1 stable 永久规则链
-> **配套 handoff 文档**: `docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART1-5.md` (5 Part, 57.6 KB, 1340 行)
+> **配套 handoff 文档**: `docs/sprints/archive/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART1-5.md` (5 Part, 57.6 KB, 1340 行)
 > **状态**: 🚨 **真业务触发** (用户 7/8 拍板"强行触发" = L4.56 启动条件 b + c 真触发, PC2 端 10 业务分析师并发 + 崩了 + 取不了数)
 > **CLAUDE.md 永久规则化**: L4.74 启动条件 c 真触发 永久规则化 (跟 L4.55 + L4.56 1:1 stable 永久规则链配套)
 
@@ -41,10 +41,10 @@
 1. CLAUDE.md (行为规则, 自动加载)
 2. AGENTS.md (自动注入, .gitignore 排除, 跟 CLAUDE.md 自动 sync, 跟 L4.55 + L4.56 1:1 stable 永久规则链配套)
 3. docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed.md (Part 1)
-4. docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART2.md (Part 2)
-5. docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART3.md (Part 3)
-6. docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART4.md (Part 4)
-7. docs/sprints/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART5.md (Part 5)
+4. docs/sprints/archive/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART2.md (Part 2)
+5. docs/sprints/archive/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART3.md (Part 3)
+6. docs/sprints/archive/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART4.md (Part 4)
+7. docs/sprints/archive/HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed-PART5.md (Part 5)
 8. docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md (L4.74 立项决策 memo, 跟 L4.56 clickhouse-poc-decision-memo.md 1:1 stable 永久规则链配套)
 9. docs/sprints/SPRINT205+_L442_VERIFICATION_L474_TRIGGERED.md (L4.74 真业务触发 立项实证报告, 跟 L4.42 + L4.55 + L4.56 1:1 stable 永久规则链配套)
 10. docs/sprints/SPRINT205+_L442_VERIFICATION_L4724_L473_L474.md (L4.42 立项实证 3 件 0 commit 续期 永久规则化, 跟 L4.42 + L4.55 + L4.56 1:1 stable 永久规则链配套)
