@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, toValue, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NGrid, NGi } from 'naive-ui'
+import { NGrid, NGi, NButton } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchRepurchaseCycle, fetchCohortRetention } from '@/api/health'
 import LoadingState from '@/components/LoadingState.vue'
