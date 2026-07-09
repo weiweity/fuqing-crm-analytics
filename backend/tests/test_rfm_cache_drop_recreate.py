@@ -31,6 +31,27 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 
+def _reset_cache_singleton() -> None:
+    from backend.services import dual_conn
+
+    conn = getattr(dual_conn, "_CACHE_CONN", None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+    dual_conn._CACHE_CONN = None
+
+
+def _patch_cache_db(tmp_path, monkeypatch) -> Path:
+    duckdb_path = tmp_path / "test_cache.duckdb"
+    duckdb.connect(str(duckdb_path)).close()
+    _reset_cache_singleton()
+    monkeypatch.setattr("backend.config.CACHE_DUCKDB_PATH", str(duckdb_path))
+    monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+    return duckdb_path
+
+
 # ─────────────────────────────────────────────────────────────
 # 核心不变量 ①: DROP+CREATE 模式清空 + 重建
 # ─────────────────────────────────────────────────────────────
@@ -44,22 +65,16 @@ class TestClearRfmCacheDropRecreate:
         Sprint 29+#198 治根核心: DROP 不走 index, 永远成功.
         """
         from backend.services.health.rfm_analysis.cache import (
-            _open_write_conn,
+            _get_cache_conn,
             _ensure_db_cache_table,
             clear_rfm_cache,
             RFM_CACHE_TABLE,
         )
 
-        duckdb_path = tmp_path / "test.duckdb"
-        duckdb.connect(str(duckdb_path)).close()
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+        duckdb_path = _patch_cache_db(tmp_path, monkeypatch)
 
         # Step 1: 建表 + 写 5 行 (只填 cache_key + result_json, 其他列 default)
-        conn = _open_write_conn()
+        conn = _get_cache_conn()
         try:
             _ensure_db_cache_table(conn)
             for i in range(5):
@@ -88,6 +103,7 @@ class TestClearRfmCacheDropRecreate:
         )
 
         # Step 4: 验证表存在但 0 行 (DROP+CREATE 重建空表)
+        _reset_cache_singleton()
         conn = duckdb.connect(str(duckdb_path), read_only=True)
         try:
             count = conn.execute(
@@ -107,22 +123,16 @@ class TestClearRfmCacheDropRecreate:
         否则 _write_db_cache 后续 INSERT 会缺列报错.
         """
         from backend.services.health.rfm_analysis.cache import (
-            _open_write_conn,
+            _get_cache_conn,
             _ensure_db_cache_table,
             clear_rfm_cache,
             RFM_CACHE_TABLE,
         )
 
-        duckdb_path = tmp_path / "test.duckdb"
-        duckdb.connect(str(duckdb_path)).close()
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+        duckdb_path = _patch_cache_db(tmp_path, monkeypatch)
 
         # 先建表 + 写一行
-        conn = _open_write_conn()
+        conn = _get_cache_conn()
         try:
             _ensure_db_cache_table(conn)
             conn.execute(
@@ -136,6 +146,7 @@ class TestClearRfmCacheDropRecreate:
         clear_rfm_cache()
 
         # 验证 schema 完整 (查 columns + index)
+        _reset_cache_singleton()
         conn = duckdb.connect(str(duckdb_path), read_only=True)
         try:
             # columns 检查
@@ -170,24 +181,18 @@ class TestClearRfmCacheIdempotent:
     def test_multiple_clears_idempotent(self, tmp_path, monkeypatch):
         """连续 clear 3 次, 每次都返 0 (空表) 或 N (清 N 行), 不应抛异常."""
         from backend.services.health.rfm_analysis.cache import (
-            _open_write_conn,
+            _get_cache_conn,
             clear_rfm_cache,
             RFM_CACHE_TABLE,
         )
 
-        duckdb_path = tmp_path / "test.duckdb"
-        duckdb.connect(str(duckdb_path)).close()
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+        _patch_cache_db(tmp_path, monkeypatch)
 
         # 第一次 clear (表存在但空, 应返 0)
         clear_rfm_cache()
 
         # 写 3 行 + 第二次 clear (返 3)
-        conn = _open_write_conn()
+        conn = _get_cache_conn()
         try:
             for i in range(3):
                 conn.execute(
@@ -217,20 +222,14 @@ class TestClearRfmCacheIndexStateCorruption:
     def test_clear_succeeds_after_index_corruption(self, tmp_path, monkeypatch):
         """手工 corrupt index → 原 DELETE 会 fail → DROP+CREATE 应成功."""
         from backend.services.health.rfm_analysis.cache import (
-            _open_write_conn,
+            _get_cache_conn,
             _ensure_db_cache_table,
             clear_rfm_cache,
             RFM_CACHE_TABLE,
         )
 
-        duckdb_path = tmp_path / "test.duckdb"
-        duckdb.connect(str(duckdb_path)).close()
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
-        conn = _open_write_conn()
+        duckdb_path = _patch_cache_db(tmp_path, monkeypatch)
+        conn = _get_cache_conn()
         try:
             _ensure_db_cache_table(conn)
             for i in range(3):
@@ -250,6 +249,7 @@ class TestClearRfmCacheIndexStateCorruption:
         )
 
         # 验证表确实清了
+        _reset_cache_singleton()
         conn = duckdb.connect(str(duckdb_path), read_only=True)
         try:
             count = conn.execute(

@@ -52,9 +52,48 @@ pytestmark = [
 ]
 
 
+def _quote_ident(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+
+def _qualified_orders(database_name: str, schema_name: str) -> str:
+    return (
+        f"{_quote_ident(database_name)}."
+        f"{_quote_ident(schema_name)}."
+        f"{_quote_ident('orders')}"
+    )
+
+
 @pytest.fixture(scope="module")
 def prod_conn(isolated_duckdb):
     """使用隔离连接，并把 W4 写操作限定到 temp DB。"""
+    # monkeypatch_connection 复用 session 级 isolated_duckdb，其他单测可能在
+    # temp/main schema 建过轻量 orders 表 / view；这里必须读只读 attach 的 prod.orders。
+    local_order_views = isolated_duckdb.execute(
+        """
+        SELECT database_name, schema_name
+        FROM duckdb_views()
+        WHERE database_name != 'prod'
+          AND view_name = 'orders'
+        """,
+    ).fetchall()
+    local_order_tables = isolated_duckdb.execute(
+        """
+        SELECT database_name, schema_name
+        FROM duckdb_tables()
+        WHERE database_name != 'prod'
+          AND table_name = 'orders'
+        """,
+    ).fetchall()
+    for database_name, schema_name in local_order_views:
+        isolated_duckdb.execute(
+            f"DROP VIEW IF EXISTS {_qualified_orders(database_name, schema_name)}"
+        )
+    for database_name, schema_name in local_order_tables:
+        isolated_duckdb.execute(
+            f"DROP TABLE IF EXISTS {_qualified_orders(database_name, schema_name)}"
+        )
+
     # search_path 只会让新表默认建在 main；如果 prod 已有同名表，直接 INSERT
     # 仍会解析到只读 prod。因此显式创建本地 shadow table。
     local_schema_sql = FACT_RFM_SCHEMA_SQL.replace(
