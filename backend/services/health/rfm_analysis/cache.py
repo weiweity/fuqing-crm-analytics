@@ -25,12 +25,19 @@ from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 
 from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
-from .period import _run_rfm_period, _build_rows
+from .period import _run_rfm_period, _build_rows, _resolve_range_period
 
 logger = logging.getLogger(__name__)
 
 # 缓存 TTL（小时）— 超过此时间的缓存视为陈旧，强制重算
 RFM_CACHE_TTL_HOURS = 24
+
+# Stage 2 (L4.75 RFM cache 治本): 8 RANGE 周期 (跟 L4.42 + L4.50 + L4.71 + L4.74 + L4.75 1:1 stable 永久规则链配套).
+# 跟 frontend MarketFocusView.vue 4 tab ProductCustomerTab/StoreAssetsTab/ProductAssetsTab/
+# OtherProductAssetsTab weeks=[4,8,12] NSelect 1:1 stable 永久规则化沿用.
+# rolling_30d / rolling_90d / weekly_4w 等价覆盖 user 自定义 30/90/28 天需求.
+RANGE_PERIODS = ["rolling_7d", "rolling_14d", "rolling_30d", "rolling_60d", "rolling_90d",
+                 "weekly_4w", "weekly_8w", "weekly_12w"]  # 8 periods (Stage 2 RANGE)
 
 
 # ============================================================
@@ -143,6 +150,18 @@ def _read_db_cache(
             [key]
         ).fetchone()
         if not row:
+            # Stage 2 (L4.75): fuzzy match ±1 day tolerance fallback (跟 L4.42 + L4.50 +
+            # L4.72.1 + L4.74 + L4.75 1:1 stable 永久规则链配套).
+            # 场景: RANGE 周期 precompute today=date.today() (e.g. 2026-07-09) 算 cur=(today-6, today-1) =
+            # (2026-07-03, 2026-07-08), user query 24h 后 today=2026-07-10 → cur=(2026-07-04, 2026-07-09)
+            # → exact cache key miss → fuzzy match ±1 day 兜底命中 (跟 L4.50 0 业务代码改动 1:1 stable).
+            fuzzy = _fuzzy_match_db_cache(start_date, end_date, channel, metric_type, period, conn, tolerance_days=1)
+            if fuzzy is not None:
+                logger.info(
+                    f"RFM cache fuzzy hit: target=({start_date}, {end_date}) "
+                    f"ch={channel or '全店'} mt={metric_type} per={period or 'None'}"
+                )
+                return fuzzy
             return None
         # 防御性校验：result_json 必须是有效 JSON dict
         try:
@@ -257,6 +276,55 @@ def _try_delete_corrupt_row(key: str) -> None:
         logger.warning(f"RFM 缓存损坏行无法清理（read_only 模式）: key={key}, {e}")
 
 
+# Stage 2 (L4.75): fuzzy match ±1 day tolerance fallback (跟 L4.42 + L4.50 + L4.72.1 + L4.74 + L4.75 1:1 stable 永久规则链配套).
+# 跟 user 述 "近 4 周 → cache 命中 0.14s" 1:1 stable 永久规则链配套.
+# 边界 ±1 day 严守 (跟 L4.50 1:1 stable 经验值 PC2 端 today 漂移 ≤ 1d). ±2 day 不开 (误命中率上升).
+def _fuzzy_match_db_cache(
+    start_date: Optional[str],
+    end_date: Optional[str],
+    channel: Optional[str],
+    metric_type: str,
+    period: Optional[str],
+    conn: duckdb.DuckDBPyConnection,
+    tolerance_days: int = 1,
+) -> Optional[Dict[str, Any]]:
+    """Stage 2 L4.75: ±N day fuzzy match for RANGE 周期 (跟 _read_db_cache SELECT 移出 except 块 1:1 stable 永久规则化沿用).
+
+    Returns parsed result_json dict on hit (跟 L4.74 stale 修复 1:1 stable permanent rules 永久规则化沿用,
+    freshness 仍走 is_stale() 三重判定由调用方负责). Returns None on miss / parse fail.
+    """
+    if not start_date or not end_date:
+        return None
+    try:
+        sd = date.fromisoformat(start_date)
+        ed = date.fromisoformat(end_date)
+        sd_lo = (sd - timedelta(days=tolerance_days)).isoformat()
+        sd_hi = (sd + timedelta(days=tolerance_days)).isoformat()
+        ed_lo = (ed - timedelta(days=tolerance_days)).isoformat()
+        ed_hi = (ed + timedelta(days=tolerance_days)).isoformat()
+    except ValueError:
+        return None
+    try:
+        row = conn.execute(
+            f"SELECT cache_key, result_json, mtime_at_write, orders_count_at_write, computed_at "
+            f"FROM {RFM_CACHE_TABLE} "
+            f"WHERE channel = ? AND metric_type = ? "
+            f"AND (period IS NULL OR period = ? OR period = '') "
+            f"AND start_date BETWEEN ? AND ? "
+            f"AND end_date BETWEEN ? AND ? "
+            f"ORDER BY computed_at DESC LIMIT 1",
+            [channel or "", metric_type, period or "", sd_lo, sd_hi, ed_lo, ed_hi]
+        ).fetchone()
+    except Exception:
+        return None
+    if not row:
+        return None
+    try:
+        return json.loads(row[1])
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None
+
+
 def _write_db_cache(
     period: Optional[str],
     start_date: Optional[str],
@@ -358,9 +426,11 @@ def precompute_rfm_cache() -> int:
     COMPARE_MODES = ["default", "Q-1", "Q-2", "Q-3"]
     EXCLUDE = None
 
+    stage1_total = len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES) * len(CHANNELS) * len(COMPARE_MODES)
+    stage2_total = len(RANGE_PERIODS) * len(YEARS) * len(METRIC_TYPES) * len(CHANNELS) * len(COMPARE_MODES)
     logger.info(
-        f"RFM 预计算开始: {len(STANDARD_PERIODS)} 周期 × {len(YEARS)} 年 × {len(METRIC_TYPES)} 指标 × {len(CHANNELS)} 渠道 × {len(COMPARE_MODES)} 同比 = "
-        f"{len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES) * len(CHANNELS) * len(COMPARE_MODES)} 个组合"
+        f"RFM 预计算开始 (Stage 1 L4.71+L4.74): {len(STANDARD_PERIODS)} 周期 × {len(YEARS)} 年 × {len(METRIC_TYPES)} 指标 × {len(CHANNELS)} 渠道 × {len(COMPARE_MODES)} 同比 = {stage1_total} 个组合; "
+        f"(Stage 2 L4.75) 加 RANGE × {len(RANGE_PERIODS)} 周期 = 总 {stage1_total + stage2_total} 个组合 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)"
     )
 
     # 关键: 先开写连接（read+write,默认 access_mode）
@@ -504,6 +574,107 @@ def precompute_rfm_cache() -> int:
                             computed += 1
                             logger.info(f"  RFM 预计算: {period} {year} {metric_type} channel={channel or '全店'} compare={compare_mode} → {key}")
 
+        # ============================================================
+        # Stage 2 (L4.75 RFM cache 治本): 8 RANGE_PERIODS 预计算 (跟 L4.42 + L4.50 + L4.71 + L4.74 + L4.75 1:1 stable 永久规则链配套).
+        # 复用 Stage 1 _run_rfm_period + _build_rows + ON CONFLICT UPSERT 1:1 stable, 仅替换 ranges 来源:
+        #   STANDARD: pb_func = getattr(PeriodBuilder, period.lower()) → year-shifted comp/prev2
+        #   RANGE:    _resolve_range_period(range_period, today) → day-shifted comp/prev2 (近 7/14/30/60/90 天 / 4/8/12 周)
+        # ============================================================
+        for metric_type in METRIC_TYPES:                      # [GSV, GMV]
+            for range_period in RANGE_PERIODS:                  # 8 (Stage 2 L4.75 新增)
+                for year in YEARS:                              # [2026]
+                    for channel in CHANNELS:                    # [None, 淘客, 直播, 货架]
+                        for compare_mode in COMPARE_MODES:      # [default, Q-1, Q-2, Q-3]
+                            try:
+                                ranges = _resolve_range_period(range_period, today=today)
+                                cur = ranges["current"]
+                                comp_default = ranges["comparison"]
+                                prev2 = ranges["prev2"]
+                            except (AttributeError, KeyError, ValueError):
+                                # _resolve_range_period raises ValueError on unknown range_name
+                                continue
+
+                            # L4.71 compare_mode 分支 1:1 stable 永久规则化沿用:
+                            # default 用 comp_default (rolling_Nd 前 N 天, weekly_Nw 前 4/8/12 周)
+                            # Q-1/Q-2/Q-3 仍用 day-offset (cur.start - 90/180/270) 跨 stage 一致
+                            if compare_mode == "default":
+                                comp_start = f"{comp_default.start} 00:00:00"
+                                comp_end = f"{comp_default.end} 23:59:59"
+                                comp_cutoff = comp_default.cutoff
+                            else:
+                                q_days = {"Q-1": 90, "Q-2": 180, "Q-3": 270}[compare_mode]
+                                q_start = (date.fromisoformat(str(cur.start)) - timedelta(days=q_days)).isoformat()
+                                comp_start = f"{q_start} 00:00:00"
+                                comp_end = f"{cur.start} 00:00:00"
+                                comp_cutoff = (date.fromisoformat(str(cur.start)) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+                            cur_start = f"{cur.start} 00:00:00"
+                            cur_end = f"{cur.end} 23:59:59"
+                            cur_cutoff = cur.cutoff
+                            prev2_start = f"{prev2.start} 00:00:00"
+                            prev2_end = f"{prev2.end} 23:59:59"
+                            prev2_cutoff = prev2.cutoff
+
+                            # 复用 _run_rfm_period (跟 L4.67 biz_conn read_only + L4.65 + L4.69 1:1 stable 永久规则链配套).
+                            c_all, c_same, c_memb_all, c_memb_same = _run_rfm_period(
+                                biz_conn, cur_start, cur_end, cur_cutoff, channel, metric_type, EXCLUDE
+                            )
+                            p_all, p_same, p_memb_all, p_memb_same = _run_rfm_period(
+                                biz_conn, comp_start, comp_end, comp_cutoff, channel, metric_type, EXCLUDE
+                            )
+                            p2_all, p2_same, p2_memb_all, p2_memb_same = _run_rfm_period(
+                                biz_conn, prev2_start, prev2_end, prev2_cutoff, channel, metric_type, EXCLUDE
+                            )
+
+                            rows = _build_rows(c_all, p_all, p2_all)
+                            same_rows = _build_rows(c_same, p_same, p2_same)
+                            memb_rows = _build_rows(c_memb_all, p_memb_all, p2_memb_all)
+                            memb_same_rows = _build_rows(c_memb_same, p_memb_same, p2_memb_same)
+
+                            result = {
+                                "year_label": str(year),
+                                "comp_year_label": str(year - 1),
+                                "prev2_year_label": str(year - 2),
+                                "metric_type": metric_type,
+                                "rows": rows,
+                                "same_channel_rows": same_rows,
+                                "member_rows": memb_rows,
+                                "member_same_channel_rows": memb_same_rows,
+                            }
+
+                            # _cache_key 用 date-based key (跟 L4.71 + _shared.py:60-63 1:1 stable 永久规则链配套):
+                            # date-based key 让 range_period 维度自然区分 (cur.start/cur.end 不同)
+                            key = _cache_key(
+                                None, cur.start, cur.end, channel, metric_type, EXCLUDE, data_version,
+                                comp_start.split(" ")[0] if compare_mode != "default" else None,
+                                comp_end.split(" ")[0] if compare_mode != "default" else None,
+                            )
+                            ex_str = ""
+                            # ON CONFLICT (cache_key) DO UPDATE SET UPSERT (跟 L4.74 amend v2 1:1 stable 永久规则链配套):
+                            write_conn.execute(
+                                f"INSERT INTO {RFM_CACHE_TABLE} "
+                                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
+                                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+                                f"ON CONFLICT (cache_key) DO UPDATE SET "
+                                f"period = excluded.period, "
+                                f"start_date = excluded.start_date, "
+                                f"end_date = excluded.end_date, "
+                                f"channel = excluded.channel, "
+                                f"metric_type = excluded.metric_type, "
+                                f"ex_channels = excluded.ex_channels, "
+                                f"result_json = excluded.result_json, "
+                                f"mtime_at_write = excluded.mtime_at_write, "
+                                f"orders_count_at_write = excluded.orders_count_at_write, "
+                                f"computed_at = excluded.computed_at",
+                                [key, range_period.upper(), cur.start, cur.end, channel or "", metric_type, ex_str,
+                                 json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
+                            )
+                            computed += 1
+                            logger.info(
+                                f"  RFM 预计算 [Stage 2 RANGE]: {range_period} {year} {metric_type} "
+                                f"channel={channel or '全店'} compare={compare_mode} → {key}"
+                            )
+
     finally:
         try:
             write_conn.close()
@@ -515,5 +686,6 @@ def precompute_rfm_cache() -> int:
         except Exception:
             pass
 
-    logger.info(f"RFM 预计算完成: {computed} / {len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES) * len(CHANNELS) * len(COMPARE_MODES)} 个组合")
+    logger.info(f"RFM 预计算完成 (Stage 1 + Stage 2 L4.75): {computed} / {stage1_total + stage2_total} 个组合 "
+                f"(Stage 1 = {stage1_total}, Stage 2 RANGE = {stage2_total})")
     return computed
