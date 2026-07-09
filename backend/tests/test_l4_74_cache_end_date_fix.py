@@ -8,10 +8,16 @@ L4.42 立项实证 SOP "git log + grep 实证" 4 个不匹配点 100% 锁定:
 4. cache key 算法 (含 end_date + compare)
 
 修复: precompute 改 today=date.today() 跟 user query _resolve_date_ranges() (backend/services/rfm/_shared.py:54) 一致.
-
-业务正确性: SQL 实际只算到 max_pay_date (max(pay_time)=07-05), data_version 标记 max_pay_date,
-RFM 分类基于 cutoff (start_date - 1 day) 不受 cur_end > max_pay 影响.
 """
+import pytest
+
+# CI runner 缺 production DuckDB (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用, 跟 L4.39 macOS-only skipif 1:1 stable 永久规则化沿用)
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE
+
+pytestmark = pytest.mark.skipif(
+    not _PROD_DUCKDB_AVAILABLE,
+    reason="CI runner 缺 production DuckDB (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)",
+)
 
 import inspect
 from unittest.mock import patch

@@ -1,4 +1,5 @@
 """L4.75.3 通知对方 endpoints 回归 test (跟 L4.42 + L4.50 + L4.4 + L4.75 1:1 stable 永久规则链配套)."""
+import os
 import time
 
 import pytest
@@ -6,6 +7,18 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 from backend.middleware.single_user_mode import ACTIVE_USERS
+# CI runner 缺 production DuckDB + FQ_CRM_PASSWORDS (跟 L4.4 真连 DuckDB test skipif + L4.5 配置 1:1 stable 永久规则化沿用)
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE
+
+
+# CI runner 缺 FQ_CRM_PASSWORDS 环境变量 (跟 L4.5 配置 1:1 stable 永久规则化沿用)
+_FQ_CRM_PASSWORDS_AVAILABLE = bool(os.environ.get("FQ_CRM_PASSWORDS"))
+
+# CI runner 缺 production DuckDB (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)
+pytestmark = pytest.mark.skipif(
+    not _PROD_DUCKDB_AVAILABLE or not _FQ_CRM_PASSWORDS_AVAILABLE,
+    reason="CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)",
+)
 
 
 @pytest.fixture(autouse=True)
