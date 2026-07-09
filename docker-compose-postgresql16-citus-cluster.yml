@@ -1,63 +1,117 @@
+x-citus-env: &citus-env
+  POSTGRES_DB: ${POSTGRES_DB:-fuqing_crm}
+  POSTGRES_USER: ${POSTGRES_USER:-fuqing}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fuqing_dev_password}
+  PGDATA: /var/lib/postgresql/data/pgdata
+
+x-citus-healthcheck: &citus-healthcheck
+  test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 20s
+
 services:
   citus-coordinator:
-    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    image: ${CITUS_IMAGE:-citusdata/citus:14.1-pg16}
     container_name: fuqing-citus-coordinator
     environment:
-      POSTGRES_DB: fuqing_crm
-      POSTGRES_USER: fuqing
-      POSTGRES_PASSWORD: fuqing_dev_password
-      PGDATA: /var/lib/postgresql/data/pgdata
+      <<: *citus-env
+      FQ_CITUS_WORKERS: citus-worker-1,citus-worker-2,citus-worker-3
     ports:
-      - "5434:5432"
+      - "${CITUS_COORDINATOR_PORT:-5434}:5432"
     volumes:
-      - citus_coordinator_data:/var/lib/postgresql/data
-      - ./scripts/postgresql16_udf:/docker-entrypoint-initdb.d:ro
+      - citus_pg16_coordinator_data:/var/lib/postgresql/data
+      - ./scripts/postgresql16_citus_init/001_wait_and_register_workers.sh:/docker-entrypoint-initdb.d/001_wait_and_register_workers.sh:ro
+      - ./scripts/postgresql16_citus_init/010_resource_governance.sql:/docker-entrypoint-initdb.d/010_resource_governance.sql:ro
+      - ./scripts/postgresql16_udf/r_interval_udf.sql:/docker-entrypoint-initdb.d/020_r_interval_udf.sql:ro
+      - ./scripts/postgresql16_udf/rfm_udf.sql:/docker-entrypoint-initdb.d/030_rfm_udf.sql:ro
       - ./data/processed/postgresql16_parquet:/var/lib/fuqing/parquet:ro
     depends_on:
-      - citus-worker-1
-      - citus-worker-2
-      - citus-worker-3
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fuqing -d fuqing_crm"]
-      interval: 10s
-      timeout: 5s
-      retries: 8
+      citus-worker-1:
+        condition: service_healthy
+      citus-worker-2:
+        condition: service_healthy
+      citus-worker-3:
+        condition: service_healthy
+    healthcheck: *citus-healthcheck
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=citus
+      - -c
+      - max_connections=${CITUS_COORDINATOR_MAX_CONNECTIONS:-120}
+      - -c
+      - statement_timeout=${CITUS_STATEMENT_TIMEOUT_MS:-30000}
+      - -c
+      - idle_in_transaction_session_timeout=60000
+      - -c
+      - work_mem=${CITUS_COORDINATOR_WORK_MEM:-64MB}
+      - -c
+      - temp_file_limit=${CITUS_TEMP_FILE_LIMIT:-8GB}
 
   citus-worker-1:
-    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    image: ${CITUS_IMAGE:-citusdata/citus:14.1-pg16}
     container_name: fuqing-citus-worker-1
-    environment:
-      POSTGRES_DB: fuqing_crm
-      POSTGRES_USER: fuqing
-      POSTGRES_PASSWORD: fuqing_dev_password
-      PGDATA: /var/lib/postgresql/data/pgdata
+    environment: *citus-env
     volumes:
-      - citus_worker_1_data:/var/lib/postgresql/data
+      - citus_pg16_worker_1_data:/var/lib/postgresql/data
+    healthcheck: *citus-healthcheck
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=citus
+      - -c
+      - max_connections=${CITUS_WORKER_MAX_CONNECTIONS:-80}
+      - -c
+      - statement_timeout=${CITUS_STATEMENT_TIMEOUT_MS:-30000}
+      - -c
+      - work_mem=${CITUS_WORKER_WORK_MEM:-64MB}
+      - -c
+      - temp_file_limit=${CITUS_TEMP_FILE_LIMIT:-8GB}
 
   citus-worker-2:
-    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    image: ${CITUS_IMAGE:-citusdata/citus:14.1-pg16}
     container_name: fuqing-citus-worker-2
-    environment:
-      POSTGRES_DB: fuqing_crm
-      POSTGRES_USER: fuqing
-      POSTGRES_PASSWORD: fuqing_dev_password
-      PGDATA: /var/lib/postgresql/data/pgdata
+    environment: *citus-env
     volumes:
-      - citus_worker_2_data:/var/lib/postgresql/data
+      - citus_pg16_worker_2_data:/var/lib/postgresql/data
+    healthcheck: *citus-healthcheck
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=citus
+      - -c
+      - max_connections=${CITUS_WORKER_MAX_CONNECTIONS:-80}
+      - -c
+      - statement_timeout=${CITUS_STATEMENT_TIMEOUT_MS:-30000}
+      - -c
+      - work_mem=${CITUS_WORKER_WORK_MEM:-64MB}
+      - -c
+      - temp_file_limit=${CITUS_TEMP_FILE_LIMIT:-8GB}
 
   citus-worker-3:
-    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    image: ${CITUS_IMAGE:-citusdata/citus:14.1-pg16}
     container_name: fuqing-citus-worker-3
-    environment:
-      POSTGRES_DB: fuqing_crm
-      POSTGRES_USER: fuqing
-      POSTGRES_PASSWORD: fuqing_dev_password
-      PGDATA: /var/lib/postgresql/data/pgdata
+    environment: *citus-env
     volumes:
-      - citus_worker_3_data:/var/lib/postgresql/data
+      - citus_pg16_worker_3_data:/var/lib/postgresql/data
+    healthcheck: *citus-healthcheck
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=citus
+      - -c
+      - max_connections=${CITUS_WORKER_MAX_CONNECTIONS:-80}
+      - -c
+      - statement_timeout=${CITUS_STATEMENT_TIMEOUT_MS:-30000}
+      - -c
+      - work_mem=${CITUS_WORKER_WORK_MEM:-64MB}
+      - -c
+      - temp_file_limit=${CITUS_TEMP_FILE_LIMIT:-8GB}
 
 volumes:
-  citus_coordinator_data:
-  citus_worker_1_data:
-  citus_worker_2_data:
-  citus_worker_3_data:
+  citus_pg16_coordinator_data:
+  citus_pg16_worker_1_data:
+  citus_pg16_worker_2_data:
+  citus_pg16_worker_3_data:

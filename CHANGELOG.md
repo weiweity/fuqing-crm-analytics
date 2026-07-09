@@ -1,13 +1,16 @@
-## [unreleased] - 2026-07-09 (Sprint 205+ L4.74 PostgreSQL 16 分布式 Stage 2 骨架)
+## [unreleased] - 2026-07-09 (Sprint 205+ L4.74 PostgreSQL 16 分布式 Stage 2-5 POC 骨架)
 
 ### Added
 - **L4.72.4 老客 9 子板块热窗口预计算**: 新增 `scripts/precompute_old_customer_9_sub_modules.py` + daily launchd plist + 4 case 回归，按 7/30/180/365 天窗口调用现有 `backend.services.health.*` service 并写 JSON manifest，不复制 orders SQL。
 - **L4.70 / L4.71 短期性能治理脚本**: 新增 orders `(pay_time, user_id)` 复合索引 SQL/one-shot runner，以及 `user_rfm_precompute` 预计算表构建脚本 + daily launchd plist。
 - **L4.74 PostgreSQL 16 POC 骨架**: 新增 PostgreSQL 16 单节点 compose、Citus 3 worker compose、DuckDB → Parquet ETL、PostgreSQL RFM/R 区间 UDF、双写 UX/策略文档、Citus runbook 和 Stage 1/2/3/5 报告模板。
+- **L4.74 Stage 3 Citus POC 补强**: Citus compose 补 coordinator + 3 worker healthcheck、worker 注册 init 脚本、`crm_admin.distribute_if_exists` helper、role-level resource governance 和 10 并发 benchmark 记录模板。
+- **L4.74 Stage 4 双写补强**: DuckDB → Parquet ETL 新增 snapshot manifest、staging 后原子发布、source/exported row count 校验和 dry-run manifest；新增 `validate_dual_write_consistency.py` 锁 DuckDB/PostgreSQL 双写一致性 dry-run、RFM/R 区间分桶对账与 tolerance 逻辑。
+- **L4.74 Stage 5 决策补强**: 补齐 POC summary、Conditional Go / No-Go 决策、风险成本估算；当前结论是不直接切生产，进入双写 POC 准备并等待 PC2/集群实跑证据。
 
 ### Technical
 - `.env` 已实证 `FQ_READ_POOL_SIZE=10`，本轮不重复改配置。
-- 新增 L4.74 聚焦测试 7 文件，覆盖预计算、索引、user_rfm、Parquet ETL、UDF、compose/docs 和老客 6 表 guardrail。
+- 新增 L4.74 聚焦测试 7 文件，覆盖预计算、索引、user_rfm、Parquet ETL、UDF、compose/docs 和老客 6 表 guardrail；Stage 3-5 本轮补到 23 个聚焦回归，覆盖 manifest、真实小 DuckDB Parquet export、双写 validator、UDF NULL/边界、Citus init/governance 和 Go/No-Go 文档契约。
 
 ## [unreleased] - 2026-07-06 (Sprint N+5: Go/No-Go 拍板反转 — **GO → NO-GO** (跟 system locked down + handoff advisory 1:1 stable 沿用, 跟离职 + 写死 + DuckDB 跑得好 1:1 stable 沿用))
 

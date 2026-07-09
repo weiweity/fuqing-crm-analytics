@@ -8,6 +8,8 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
     SELECT CASE
+        WHEN last_pay_date IS NULL OR as_of_date IS NULL THEN NULL
+        WHEN as_of_date < last_pay_date THEN '近1个月已购客'
         WHEN as_of_date - last_pay_date BETWEEN 0 AND 30 THEN '近1个月已购客'
         WHEN as_of_date - last_pay_date BETWEEN 31 AND 90 THEN '近2-3个月已购客'
         WHEN as_of_date - last_pay_date BETWEEN 91 AND 180 THEN '近4-6月已购客'

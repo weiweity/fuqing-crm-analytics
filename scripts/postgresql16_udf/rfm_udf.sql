@@ -1,4 +1,5 @@
 -- L4.74 PostgreSQL 16 RFM semantic UDFs.
+-- Segment labels are verified against backend/semantic/segments.py:SEGMENTS.
 CREATE SCHEMA IF NOT EXISTS crm_semantic;
 
 CREATE OR REPLACE FUNCTION crm_semantic.rfm_r_score(last_pay_date date, as_of_date date)
@@ -7,6 +8,8 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
     SELECT CASE
+        WHEN last_pay_date IS NULL OR as_of_date IS NULL THEN NULL
+        WHEN as_of_date < last_pay_date THEN 5
         WHEN as_of_date - last_pay_date < 30 THEN 5
         WHEN as_of_date - last_pay_date < 90 THEN 4
         WHEN as_of_date - last_pay_date < 180 THEN 3
@@ -21,6 +24,7 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
     SELECT CASE
+        WHEN order_count IS NULL THEN NULL
         WHEN order_count >= 5 THEN 5
         WHEN order_count >= 4 THEN 4
         WHEN order_count = 3 THEN 3
@@ -35,6 +39,7 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
     SELECT CASE
+        WHEN gsv IS NULL THEN NULL
         WHEN gsv >= 1000 THEN 5
         WHEN gsv >= 500 THEN 4
         WHEN gsv >= 300 THEN 3
@@ -49,6 +54,7 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
     SELECT CASE
+        WHEN r_score IS NULL OR f_score IS NULL OR m_score IS NULL THEN '其他用户'
         WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
         WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
         WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
@@ -56,6 +62,7 @@ AS $$
         WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
         WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
         WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
-        ELSE '一般挽留客户'
+        WHEN r_score < 4 AND f_score < 4 AND m_score < 4 THEN '一般挽留客户'
+        ELSE '其他用户'
     END;
 $$;
