@@ -14,6 +14,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 DEFAULT_DUCKDB_PATH = REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
 TABLE_NAME = "user_rfm_precompute"
+DEFAULT_LOOKBACK_DAYS = 3650
 
 
 def _parse_date(value: str) -> date:
@@ -137,12 +138,28 @@ FROM scored;
 
 
 def build_params(as_of_date: str, lookback_days: int) -> list[object]:
-    end = _parse_date(as_of_date)
-    start = end - timedelta(days=lookback_days - 1)
+    reference = _parse_date(as_of_date)
+    start = reference - timedelta(days=lookback_days)
+    end = reference - timedelta(days=1)
     start_dt = f"{start.isoformat()} 00:00:00"
     end_dt = f"{end.isoformat()} 23:59:59.999999"
     cutoff_values = [as_of_date] * 9
     return [start_dt, end_dt, *cutoff_values, as_of_date, lookback_days]
+
+
+def default_as_of_dates(today: date | None = None) -> list[str]:
+    """Return the MTD current/YoY/prev2 history reference dates.
+
+    RFM analysis classifies users from behavior before each period start. A
+    daily no-arg run should therefore warm the three period starts that the
+    default RFM request uses, not only today's date.
+    """
+    today = today or date.today()
+    return [
+        date(today.year, today.month, 1).isoformat(),
+        date(today.year - 1, today.month, 1).isoformat(),
+        date(today.year - 2, today.month, 1).isoformat(),
+    ]
 
 
 def rebuild_table(duckdb_path: Path, as_of_date: str, lookback_days: int, dry_run: bool = False) -> int:
@@ -182,8 +199,12 @@ def rebuild_table(duckdb_path: Path, as_of_date: str, lookback_days: int, dry_ru
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--duckdb-path", type=Path, default=Path(os.environ.get("DUCKDB_PATH", DEFAULT_DUCKDB_PATH)))
-    parser.add_argument("--as-of-date", default=os.environ.get("FQ_USER_RFM_AS_OF_DATE", date.today().isoformat()))
-    parser.add_argument("--lookback-days", type=int, default=int(os.environ.get("FQ_USER_RFM_LOOKBACK_DAYS", "365")))
+    parser.add_argument("--as-of-date", default=os.environ.get("FQ_USER_RFM_AS_OF_DATE"))
+    parser.add_argument(
+        "--lookback-days",
+        type=int,
+        default=int(os.environ.get("FQ_USER_RFM_LOOKBACK_DAYS", str(DEFAULT_LOOKBACK_DAYS))),
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -191,7 +212,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        return rebuild_table(args.duckdb_path, args.as_of_date, args.lookback_days, args.dry_run)
+        as_of_dates = [args.as_of_date] if args.as_of_date else default_as_of_dates()
+        for as_of_date in as_of_dates:
+            rc = rebuild_table(args.duckdb_path, as_of_date, args.lookback_days, args.dry_run)
+            if rc != 0:
+                return rc
+        return 0
     except Exception as exc:
         print(f"[L4.71_USER_RFM] {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1

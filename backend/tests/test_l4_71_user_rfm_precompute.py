@@ -4,6 +4,7 @@ from __future__ import annotations
 import plistlib
 import inspect
 import sys
+from datetime import date
 from pathlib import Path
 
 
@@ -20,6 +21,27 @@ def test_user_rfm_insert_sql_parameter_count_matches_builder() -> None:
 
     assert sql.count("?") == len(params)
     assert len(params) == 13
+
+
+def test_user_rfm_build_params_excludes_as_of_day_from_history() -> None:
+    params = user_rfm.build_params("2026-07-01", 3)
+
+    assert params[0] == "2026-06-28 00:00:00"
+    assert params[1] == "2026-06-30 23:59:59.999999"
+    assert params[2:11] == ["2026-07-01"] * 9
+    assert params[-2:] == ["2026-07-01", 3]
+
+
+def test_user_rfm_default_lookback_covers_two_year_outer_bucket() -> None:
+    assert user_rfm.DEFAULT_LOOKBACK_DAYS >= 731
+
+
+def test_user_rfm_default_as_of_dates_cover_mtd_yoy_prev2_starts() -> None:
+    assert user_rfm.default_as_of_dates(date(2026, 7, 9)) == [
+        "2026-07-01",
+        "2025-07-01",
+        "2024-07-01",
+    ]
 
 
 def test_user_rfm_sql_uses_verified_r_intervals() -> None:
@@ -40,6 +62,38 @@ def test_user_rfm_schema_is_incremental_not_drop_replace() -> None:
     assert "DROP TABLE" not in (create_sql + insert_sql).upper()
     rebuild_src = inspect.getsource(user_rfm.rebuild_table)
     assert "DELETE FROM {TABLE_NAME} WHERE as_of_date" in rebuild_src
+
+
+def test_user_rfm_main_builds_default_three_partitions(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[str, int]] = []
+
+    def fake_rebuild(duckdb_path: Path, as_of_date: str, lookback_days: int, dry_run: bool = False) -> int:
+        calls.append((as_of_date, lookback_days))
+        return 0
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls) -> "FixedDate":
+            return cls(2026, 7, 9)
+
+    monkeypatch.setattr(user_rfm, "date", FixedDate)
+    monkeypatch.setattr(user_rfm, "rebuild_table", fake_rebuild)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "build_user_rfm_precompute_table.py",
+            "--duckdb-path",
+            str(tmp_path / "missing.duckdb"),
+        ],
+    )
+
+    assert user_rfm.main() == 0
+    assert calls == [
+        ("2026-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2025-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2024-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+    ]
 
 
 def test_user_rfm_precompute_plist_uses_python3_not_bash() -> None:
