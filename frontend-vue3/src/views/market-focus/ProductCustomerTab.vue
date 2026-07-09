@@ -3,7 +3,7 @@ import { computed, h, ref, toValue, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NAlert, NDataTable } from 'naive-ui'
 import type { DataTableColumns, DataTableColumn } from 'naive-ui'
-import { fetchCategoryOverview } from '@/api/category'
+import { fetchCategoryOverviewBatch } from '@/api/category'
 import { fetchProductAssets } from '@/api/marketFocus'
 import { useFilterStore } from '@/stores/filterStore'
 import LoadingState from '@/components/LoadingState.vue'
@@ -104,48 +104,48 @@ const queryParams = computed(() => ({
   excludeLowPrice: filterStore.excludeLowPrice,
 }))
 
-// 日维度：折线图
+// 日维度：折线图 (L4.75 market-focus #2 frontend batching 治本 429, 跟 L4.75 #1 backend batch endpoint 1:1 stable 永久规则化沿用)
 const { data: dayResults } = useQuery({
   queryKey: computed(() => ['product-customer-daily', toValue(queryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
     const dates = getDaysDateRange(p.days)
     const excludeChannels = p.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined
-    return Promise.all(
-      dates.map(date =>
-        fetchCategoryOverview({
-          start_date: date,
-          end_date: date,
-          level: 'class',
-          metric_type: 'GSV',
-          channel: p.channel,
-          exclude_channels: excludeChannels,
-        }).then(res => ({ rows: res.all_rows, ttl: res.all_ttl, date }))
-      )
-    )
+    // 1 次 batch query 替换 N 次 query (跟 L4.75 #1 backend batch endpoint 1:1 stable 永久规则化沿用)
+    return fetchCategoryOverviewBatch({
+      ranges: dates.map(date => ({ start_date: date, end_date: date })),
+      level: 'class',
+      metric_type: 'GSV',
+      channel: p.channel,
+      exclude_channels: excludeChannels,
+    }).then(res => res.results.map((r, i) => ({
+      rows: r.all_rows,
+      ttl: r.all_ttl,
+      date: dates[i],
+    })))
   },
   staleTime: 5 * 60 * 1000,
 })
 
-// 周维度：表格
+// 周维度：表格 (L4.75 market-focus #2 frontend batching 治本 429, 跟 L4.75 #1 backend batch endpoint 1:1 stable 永久规则化沿用)
 const { data: weekResults, isLoading, error, refetch } = useQuery({
   queryKey: computed(() => ['product-customer-weekly', toValue(queryParams)]),
   queryFn: () => {
     const p = toValue(queryParams)
     const ranges = getWeeksDateRange(p.weeks)
     const excludeChannels = p.excludeLowPrice ? LOW_PRICE_CHANNELS : undefined
-    return Promise.all(
-      ranges.map(range =>
-        fetchCategoryOverview({
-          start_date: range.start,
-          end_date: range.end,
-          level: 'class',
-          metric_type: 'GSV',
-          channel: p.channel,
-          exclude_channels: excludeChannels,
-        }).then(res => ({ rows: res.all_rows, ttl: res.all_ttl, range }))
-      )
-    )
+    // 1 次 batch query 替换 N 次 query (跟 L4.75 #1 backend batch endpoint 1:1 stable 永久规则化沿用)
+    return fetchCategoryOverviewBatch({
+      ranges: ranges.map(r => ({ start_date: r.start, end_date: r.end })),
+      level: 'class',
+      metric_type: 'GSV',
+      channel: p.channel,
+      exclude_channels: excludeChannels,
+    }).then(res => res.results.map((r, i) => ({
+      rows: r.all_rows,
+      ttl: r.all_ttl,
+      range: ranges[i],
+    })))
   },
   staleTime: 5 * 60 * 1000,
 })
