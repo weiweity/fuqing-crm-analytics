@@ -306,13 +306,13 @@ def _fuzzy_match_db_cache(
         return None
     try:
         row = conn.execute(
-            f"SELECT cache_key, result_json, mtime_at_write, orders_count_at_write, computed_at "
-            f"FROM {RFM_CACHE_TABLE} "
-            f"WHERE channel = ? AND metric_type = ? "
-            f"AND (period IS NULL OR period = ? OR period = '') "
-            f"AND start_date BETWEEN ? AND ? "
-            f"AND end_date BETWEEN ? AND ? "
-            f"ORDER BY computed_at DESC LIMIT 1",
+            f"SELECT o.cache_key, o.result_json, o.mtime_at_write, o.orders_count_at_write, o.computed_at "
+            f"FROM {RFM_CACHE_TABLE} o "
+            f"WHERE o.channel = ? AND o.metric_type = ? "
+            f"AND (o.period IS NULL OR o.period = ? OR o.period = '') "
+            f"AND o.start_date BETWEEN ? AND ? "
+            f"AND o.end_date BETWEEN ? AND ? "
+            f"ORDER BY o.computed_at DESC LIMIT 1",
             [channel or "", metric_type, period or "", sd_lo, sd_hi, ed_lo, ed_hi]
         ).fetchone()
     except Exception:
