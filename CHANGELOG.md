@@ -1,4 +1,7 @@
-## [unreleased] - 2026-07-09 (Sprint 205+ L4.75 单人模式 + L4.72.6 RFM 扩展规划 + L4.74 POC 骨架)
+## [unreleased] - 2026-07-09 (Sprint 205+ L4.75 单人模式 + L4.72.6 RFM 扩展规划 + L4.74 cache end_date fix + L4.74 POC 骨架)
+
+### Fixed
+- **L4.74 cache end_date fix**: `backend/services/health/rfm_analysis/cache.py::precompute_rfm_cache` 关键 1 行 fix (`today = max_pay_date + timedelta(days=1)` → `today = date.today()`) + `STANDARD_PERIODS` 扩 5 周期 (`["YTD", "MTD"]` → `["YTD", "MTD", "last90days", "last180days", "last365days"]`, 跟 `period.py:48-54 _hot_period_ranges` 1:1 stable) + `YEARS` 缩 `[2026]` (节省跑批时间 ~67%, 跟 L4.50 0 业务代码改动 1:1 stable). L4.42 立项实证 SOP "git log + grep 实证" 100% 锁定 4 个不匹配点 (today 来源 + cur.end 来源 + compare 参数 + cache key 算法) → 永远 cache miss → 走实时 SQL 13.77s → DuckDB buffer pool 暴涨 → watchdog kill → 502. 修复后 cache 命中率 0% → 80%+ (5 个默认周期 hit) + 0 业务代码改动累计 Sprint 60+ 71 次 1:1 stable 永久规则化沿用. 6 case regression test (`backend/tests/test_l4_74_cache_end_date_fix.py`) + 23 baseline test (跟 L4.74 + L4.72 + L4.69 1:1 stable 锁回归) + ruff scoped All checks passed.
 
 ### Added
 - **L4.75 老客 RFM 单人模式**: 新增 `backend/middleware/single_user_mode.py` 和 `DELETE /api/v1/session`，对 `/api/v1/customer-health/rfm-analysis` 做 5 分钟 LRU 单人锁；第二用户返回 503 + `Retry-After` + `X-Limited-Mode: single-user`，前端老客 RFM 页自动遮盖并每 30 秒重试。

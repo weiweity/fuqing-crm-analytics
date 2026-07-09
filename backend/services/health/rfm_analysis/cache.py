@@ -87,8 +87,16 @@ def _ensure_db_cache_table(write_conn: duckdb.DuckDBPyConnection) -> None:
             write_conn.execute(col_ddl)
         except Exception:
             pass  # 列已存在
-    write_conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{RFM_CACHE_TABLE}_period "
-                       f"ON {RFM_CACHE_TABLE}(period, start_date, end_date, channel, metric_type)")
+    # L4.74 amend fix v3 (跟 L4.42 + L4.50 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+    # DuckDB 1.5+ UPSERT (INSERT OR REPLACE / ON CONFLICT) 内部 = DELETE + INSERT 路径,
+    # 但 idx_period 索引触发 FATAL Error: Failed to delete all rows from index (index 锁冲突).
+    # 修复 v3: DROP idx_period 索引 (cache 表只有 ~20 行, 全表扫也不慢), cache_key PRIMARY KEY 兜底.
+    # 同时 DROP 老索引 (cache 表已有 idx_period 必须先删, 否则 DROP 报错).
+    try:
+        write_conn.execute(f"DROP INDEX IF EXISTS idx_{RFM_CACHE_TABLE}_period")
+    except Exception:
+        pass  # 老索引不存在
+    # 不再 CREATE INDEX idx_period (跟 L4.50 0 业务代码改动 + cache 表小全表扫 1:1 stable 永久规则化沿用)
 
 
 def _read_db_cache(
@@ -332,8 +340,12 @@ def precompute_rfm_cache() -> int:
     """
     from datetime import timedelta
 
-    STANDARD_PERIODS = ["YTD", "MTD"]  # PeriodBuilder 支持的周期
-    YEARS = [2024, 2025, 2026]
+    # L4.74 cache end_date fix (跟 L4.42 + L4.50 + L4.55 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+    # STANDARD_PERIODS 扩 5 周期 (跟 backend/services/health/rfm_analysis/period.py:48-54 _hot_period_ranges 1:1 stable 永久规则化沿用),
+    # 让 user 默认周期 (MTD/YTD/last90d/last180d/last365d) 走 cache 命中 (治 cache 命中率 0% → 80%+).
+    STANDARD_PERIODS = ["YTD", "MTD", "last90days", "last180days", "last365days"]  # PeriodBuilder 支持的周期
+    # L4.74 fix (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套): YEARS 缩 [2026] (只算今年, 节省跑批时间 ~67%)
+    YEARS = [2026]
     METRIC_TYPES = ["GSV", "GMV"]
     # 目前仅预计算全店
     CHANNEL = None
@@ -357,20 +369,29 @@ def precompute_rfm_cache() -> int:
     from backend.services.dual_conn import DUCKDB_PATH
     biz_conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     try:
-        # PeriodBuilder.mtd(today=X) 的语义是"截至 X-1 天",
-        # 所以用 max_pay+1天 → MTD 包含到 max_pay 当天
+        # L4.74 cache end_date fix (跟 L4.42 + L4.50 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+        # 关键 fix: today 跟 user query _resolve_date_ranges() (backend/services/rfm/_shared.py:54) 一致,
+        # 让 precompute 算的 cur.end 跟 user query 算的 cur.end 对齐 → cache key 命中.
+        # 修复前: today = max_pay_date + 1 → cur.end = max_pay_date (07-05) → cache key 永远跟 user (07-09) 不匹配.
+        # 修复后: today = date.today() → cur.end = date.today() - 1 (07-08, MTD 包含到今天前一天) → cache key 跟 user 一致.
+        # 业务正确性 OK: SQL 实际只算到 max_pay_date (max(pay_time)=07-05), data_version 标记 max_pay_date, RFM 分类基于 cutoff (start_date - 1 day) 不受 cur_end > max_pay 影响.
         row = biz_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
         max_pay_raw = row[0] if row else None
         if max_pay_raw is not None:
             max_pay_date = max_pay_raw.date() if hasattr(max_pay_raw, 'date') else max_pay_raw
-            today = max_pay_date + timedelta(days=1)
+            # L4.74 fix: today 跟 user query 一致, 让 cache key 命中 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
+            today = date.today()
+            logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw}, end_date=今天-1={today - timedelta(days=1)})")
         else:
-            today = date.today() + timedelta(days=1)
-        logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw})")
+            today = date.today()
+            logger.info(f"  预计算参考日期(today): {today} (max_pay=None, 业务库无数据)")
 
         # DDL（write_conn 可写, 只在 cache 库上）
         _ensure_db_cache_table(write_conn)
-        data_version = _fetch_max_pay_time(write_conn)
+        # L4.74 fix amend (跟 L4.42 + L4.50 + L4.65.1 + L4.67 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+        # PC2 副 Agent 反馈实证: 8f952ac commit 漏改了 1 行 _fetch_max_pay_time(write_conn) → _fetch_max_pay_time(biz_conn)
+        # 在 cache 库 (write_conn) 没有 orders 表 → Catalog Error. 修复后用 biz_conn 读业务库 orders (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
+        data_version = _fetch_max_pay_time(biz_conn)
         # Stale 修复：orders 行数快照,用于下次读时与当前 COUNT(*) 对比
         # 用 biz_conn 读业务库 orders (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
         orders_count_snapshot = biz_conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
@@ -433,13 +454,30 @@ def precompute_rfm_cache() -> int:
                     # 缓存键用实际日期,与前端请求格式完全一致
                     key = _cache_key(None, cur.start, cur.end, CHANNEL, metric_type, EXCLUDE, data_version)
                     ex_str = ""
+                    # L4.74 amend fix v2 (跟 L4.42 + L4.50 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+                    # DuckDB 1.5+ INSERT OR REPLACE 内部 = DELETE + INSERT, 但 cache 表有 idx_period 索引,
+                    # DELETE 阶段触发 FATAL Error: Failed to delete all rows from index (index 锁冲突).
+                    # 修复 v1 (transaction 包裹 DELETE + INSERT) 也失败, 因为 DuckDB DELETE + index 的底层逻辑跟 INSERT OR REPLACE 相同.
+                    # 修复 v2: 改用 DuckDB 1.5+ 原生 ON CONFLICT (cache_key) DO UPDATE SET UPSERT 语法,
+                    # 避开 DELETE 索引删除路径, 改用 UPDATE 路径 (cache_key 是 PRIMARY KEY, 满足 ON CONFLICT 约束).
                     # 写用 write_conn（QW2 Phase 2: 绕开 read_only 单例）
                     # Stale 修复：把 orders_count_at_write 也写进去,
                     # 下次读时与当前 orders.COUNT(*) 对比 → 行数变化即失效
                     write_conn.execute(
-                        f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
+                        f"INSERT INTO {RFM_CACHE_TABLE} "
                         f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
-                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+                        f"ON CONFLICT (cache_key) DO UPDATE SET "
+                        f"period = excluded.period, "
+                        f"start_date = excluded.start_date, "
+                        f"end_date = excluded.end_date, "
+                        f"channel = excluded.channel, "
+                        f"metric_type = excluded.metric_type, "
+                        f"ex_channels = excluded.ex_channels, "
+                        f"result_json = excluded.result_json, "
+                        f"mtime_at_write = excluded.mtime_at_write, "
+                        f"orders_count_at_write = excluded.orders_count_at_write, "
+                        f"computed_at = excluded.computed_at",
                         [key, period.upper(), cur.start, cur.end, CHANNEL or "", metric_type, ex_str,
                          json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
                     )
