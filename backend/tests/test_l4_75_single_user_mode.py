@@ -6,7 +6,6 @@ Sprint 205+ L4.75.1: lock key 从 username 升级为 ip:xxx.
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from collections.abc import Awaitable
 

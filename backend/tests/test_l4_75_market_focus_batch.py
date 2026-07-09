@@ -59,7 +59,6 @@ class TestL475MarketFocusBatch:
         """验证 L4.75 fix #2: cache 24h TTL (跟 L4.74 cache precompute 1:1 stable 永久规则化沿用)."""
         from backend.services.category_service.overview import (
             _CACHE_TTL_SECONDS,
-            _overview_cache,
             _overview_cache_key,
         )
 
@@ -85,8 +84,6 @@ class TestL475MarketFocusBatch:
     def test_batch_endpoint_post_method(self):
         """验证 L4.75 fix #1: batch endpoint 走 POST 方法 (跟 L4.74 + L4.36 1:1 stable 永久规则化沿用)."""
         from backend.routers.category import (
-            CategoryOverviewBatchRequest,
-            CategoryOverviewBatchRange,
             router,
         )
 

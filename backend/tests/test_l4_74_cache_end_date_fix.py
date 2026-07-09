@@ -14,7 +14,6 @@ RFM 分类基于 cutoff (start_date - 1 day) 不受 cur_end > max_pay 影响.
 """
 
 import inspect
-from datetime import date, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -86,8 +85,7 @@ class TestL474CacheEndDateFix:
         # 模拟 user query: 跑 MTD 默认周期
         # _resolve_date_ranges() 用 today = date.today() 算 cur.end
         ranges = _resolve_date_ranges("MTD")
-        cur_start, cur_end, _ = ranges["current"]
-        user_end_date = cur_end.split(" ")[0]
+        _, cur_end, _ = ranges["current"]
 
         # L4.74 fix: precompute 用 today = date.today() 算 cur.end (跟 user 一致)
         # mock _run_rfm_period 避免真跑 SQL
