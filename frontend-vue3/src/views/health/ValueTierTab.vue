@@ -128,9 +128,17 @@ async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisRespons
   }
 }
 
+// L4.75.2: 默认不自动 fetch (跟 user "进入后, 专门有个按钮, 可以点击查询" 1:1 stable 永久规则链配套)
+const rfmAutoFetch = ref(false)
+function onRFMQueryClick() {
+  rfmAutoFetch.value = true
+  rfmRefetch()
+}
+
 const { data: rfmData, isLoading: rfmLoading, error: rfmError, refetch: rfmRefetch } = useQuery({
   queryKey: rfmQueryKey,
   queryFn: fetchRFMAnalysisWithSingleUserGuard,
+  enabled: rfmAutoFetch,  // L4.75.2: 默认 false, 点按钮 才 fetch
   staleTime: 60_000,
   retry: false,
 })
@@ -487,6 +495,10 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
       <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
+      <div v-else-if="!rfmAutoFetch" class="rfm-query-guide">
+        <NButton type="primary" size="large" @click="onRFMQueryClick">🔍 点击查询 RFM 数据</NButton>
+        <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询, 避免自动加载占用算力。</p>
+      </div>
       <EChartsWrapper v-else ref="rfmChartRef" :option="repurchaseRateChartOption" height="300px" @chart-click="onRFMChartClick" />
     </div>
 

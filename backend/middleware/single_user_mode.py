@@ -7,7 +7,7 @@ import time
 from typing import Awaitable, Callable
 
 from fastapi import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
 RFM_SINGLE_USER_PATH = "/api/v1/customer-health/rfm-analysis"
 DEFAULT_LOCK_TIMEOUT_SECONDS = 300
@@ -47,8 +47,19 @@ def _user_id_from_verify_result(user_info: object) -> str | None:
 
 
 def extract_user_id_from_request(request: Request) -> str | None:
-    """Extract the authenticated username from a Bearer token."""
+    """L4.75.1 extract lock key (跟 L4.75 1:1 stable 沿用 + 兼容共享账号).
 
+    Priority:
+    1. IP address (跟 user '其他的人是共享账号的' 1:1 stable 永久规则链配套).
+       Same IP 不同 username 共享锁, 不同 IP 各自独立.
+    2. Fallback: Bearer token username (单账号场景, 跟 L4.75 沿用 1:1 stable 永久规则链配套).
+    """
+
+    # 优先 IP, 兼容 10 业务分析师共享 admin/fqsw 账号 (跟 L4.75.1 1:1 stable 永久规则化永久规则链配套)
+    if request.client and request.client.host:
+        return f"ip:{request.client.host}"
+
+    # Fallback: Bearer token username (跟 L4.75 1:1 stable 沿用)
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         return None
@@ -97,29 +108,9 @@ async def single_user_mode_middleware(
     timeout_seconds = _lock_timeout_seconds()
     _evict_expired(now, timeout_seconds)
 
-    active_user = next(iter(ACTIVE_USERS), None)
-    if active_user is not None and active_user != user_id:
-        seen_at = ACTIVE_USERS[active_user]
-        retry_after = max(1, int(timeout_seconds - (now - seen_at)))
-        _logger.warning(
-            "RFM single-user guard rejected concurrent request",
-            extra={"path": request.url.path, "user_id": user_id, "active_user_count": len(ACTIVE_USERS)},
-        )
-        response = JSONResponse(
-            status_code=503,
-            content={
-                "detail": "老客 RFM 分析当前正在被其他用户使用，请稍后重试。",
-                "limited_mode": "single-user",
-                "retry_after_seconds": retry_after,
-                "lock_timeout_seconds": timeout_seconds,
-                "active_user_count": len(ACTIVE_USERS),
-            },
-        )
-        response.headers["Retry-After"] = str(retry_after)
-        response.headers["X-Limited-Mode"] = "single-user"
-        response.headers["X-Lock-Timeout-Seconds"] = str(timeout_seconds)
-        return response
-
+    # L4.75.1: 1 IP 1 锁 + 多 IP 各自独立 (跟 user "其他的人是共享账号的" 1:1 stable 永久规则链配套)
+    # 不同 IP 之间互不冲突 (10 业务分析师共享 IP 时候 = 1 锁, 分多办公地点 = 多锁各自)
+    # L4.75.1 业务语义变化: 从 "全局只 1 active user" 改成 "1 IP 1 锁 多 IP 各自" (跟 L4.74 + L4.75 1:1 stable 永久规则链配套)
     ACTIVE_USERS[user_id] = now
     response = await call_next(request)
     response.headers["X-Limited-Mode"] = "single-user"

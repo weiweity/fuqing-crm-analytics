@@ -42,9 +42,17 @@ const compareQueryParams = computed(() => {
 // ⚠️ queryKey 必须 computed(() => [..., {...}]) 展开，否则 ComputedRef 嵌套导致 channel 变化不触发请求
 const fFlowQueryKey = computed(() => ['rfm-f-flow', { ...toValue(fFlowQueryParams) }, toValue(compareQueryParams)])
 
+// L4.75.2: 默认不自动 fetch, 用户手动点击按钮触发
+const fFlowAutoFetch = ref(false)
+function onFFlowQueryClick() {
+  fFlowAutoFetch.value = true
+  fFlowRefetch()
+}
+
 const { data: fFlowData, isLoading: fFlowLoading, error: fFlowError, refetch: fFlowRefetch } = useQuery({
   queryKey: fFlowQueryKey,
   queryFn: () => fetchRFMFRFlow({ ...toValue(fFlowQueryParams), ...toValue(compareQueryParams) }),
+  enabled: fFlowAutoFetch,
   staleTime: 60_000,
 })
 
