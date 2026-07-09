@@ -352,10 +352,14 @@ def precompute_rfm_cache() -> int:
         return 0
 
     computed = 0
+    # L4.74 fix (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套): 业务表 (orders) 在业务库, cache 库没.
+    # 必须用独立 biz_conn 读业务表, write_conn 写 cache 表. PC2 100% 验证 Catalog Error 修复.
+    from backend.services.dual_conn import DUCKDB_PATH
+    biz_conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
     try:
         # PeriodBuilder.mtd(today=X) 的语义是"截至 X-1 天",
         # 所以用 max_pay+1天 → MTD 包含到 max_pay 当天
-        row = write_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
+        row = biz_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
         max_pay_raw = row[0] if row else None
         if max_pay_raw is not None:
             max_pay_date = max_pay_raw.date() if hasattr(max_pay_raw, 'date') else max_pay_raw
@@ -364,11 +368,12 @@ def precompute_rfm_cache() -> int:
             today = date.today() + timedelta(days=1)
         logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw})")
 
-        # DDL（write_conn 可写）
+        # DDL（write_conn 可写, 只在 cache 库上）
         _ensure_db_cache_table(write_conn)
         data_version = _fetch_max_pay_time(write_conn)
         # Stale 修复：orders 行数快照,用于下次读时与当前 COUNT(*) 对比
-        orders_count_snapshot = write_conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+        # 用 biz_conn 读业务库 orders (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
+        orders_count_snapshot = biz_conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
         logger.info(f"  orders_count_snapshot = {orders_count_snapshot}")
 
         for metric_type in METRIC_TYPES:
@@ -396,15 +401,15 @@ def precompute_rfm_cache() -> int:
                     prev2_end = f"{prev2.end} 23:59:59"
                     prev2_cutoff = prev2.cutoff
 
-                    # 执行 3 个周期（读 orders 用 write_conn,write_conn 既可读也可写）
+                    # L4.74 fix: 业务表 (orders) 在业务库, _run_rfm_period 用 biz_conn (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
                     c_all, c_same, c_memb_all, c_memb_same = _run_rfm_period(
-                        write_conn, cur_start, cur_end, cur_cutoff, CHANNEL, metric_type, EXCLUDE
+                        biz_conn, cur_start, cur_end, cur_cutoff, CHANNEL, metric_type, EXCLUDE
                     )
                     p_all, p_same, p_memb_all, p_memb_same = _run_rfm_period(
-                        write_conn, comp_start, comp_end, comp_cutoff, CHANNEL, metric_type, EXCLUDE
+                        biz_conn, comp_start, comp_end, comp_cutoff, CHANNEL, metric_type, EXCLUDE
                     )
                     p2_all, p2_same, p2_memb_all, p2_memb_same = _run_rfm_period(
-                        write_conn, prev2_start, prev2_end, prev2_cutoff, CHANNEL, metric_type, EXCLUDE
+                        biz_conn, prev2_start, prev2_end, prev2_cutoff, CHANNEL, metric_type, EXCLUDE
                     )
 
                     rows = _build_rows(c_all, p_all, p2_all)
@@ -444,6 +449,11 @@ def precompute_rfm_cache() -> int:
     finally:
         try:
             write_conn.close()
+        except Exception:
+            pass
+        # L4.74 fix: 关闭 biz_conn 业务库 conn (避免 connection leak, 跟 L4.69.1 1:1 stable 永久规则链配套)
+        try:
+            biz_conn.close()
         except Exception:
             pass
 
