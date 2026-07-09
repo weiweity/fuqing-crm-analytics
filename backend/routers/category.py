@@ -28,7 +28,6 @@ from backend.contracts.schemas import (
 )
 from backend.services.category_service import (
     get_category_distribution,
-    get_category_overview,
     get_category_overview_cached,
     get_category_overview_batch,
     get_category_segment_matrix,
