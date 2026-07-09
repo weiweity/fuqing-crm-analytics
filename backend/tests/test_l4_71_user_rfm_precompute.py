@@ -36,11 +36,23 @@ def test_user_rfm_default_lookback_covers_two_year_outer_bucket() -> None:
     assert user_rfm.DEFAULT_LOOKBACK_DAYS >= 731
 
 
-def test_user_rfm_default_as_of_dates_cover_mtd_yoy_prev2_starts() -> None:
+def test_user_rfm_default_as_of_dates_cover_hot_period_starts() -> None:
     assert user_rfm.default_as_of_dates(date(2026, 7, 9)) == [
-        "2026-07-01",
-        "2025-07-01",
+        "2023-07-09",
+        "2024-01-01",
+        "2024-01-10",
+        "2024-04-10",
         "2024-07-01",
+        "2024-07-09",
+        "2025-01-01",
+        "2025-01-10",
+        "2025-04-10",
+        "2025-07-01",
+        "2025-07-09",
+        "2026-01-01",
+        "2026-01-10",
+        "2026-04-10",
+        "2026-07-01",
     ]
 
 
@@ -64,7 +76,7 @@ def test_user_rfm_schema_is_incremental_not_drop_replace() -> None:
     assert "DELETE FROM {TABLE_NAME} WHERE as_of_date" in rebuild_src
 
 
-def test_user_rfm_main_builds_default_three_partitions(monkeypatch, tmp_path: Path) -> None:
+def test_user_rfm_main_builds_default_hot_period_partitions(monkeypatch, tmp_path: Path) -> None:
     calls: list[tuple[str, int]] = []
 
     def fake_rebuild(duckdb_path: Path, as_of_date: str, lookback_days: int, dry_run: bool = False) -> int:
@@ -90,9 +102,21 @@ def test_user_rfm_main_builds_default_three_partitions(monkeypatch, tmp_path: Pa
 
     assert user_rfm.main() == 0
     assert calls == [
-        ("2026-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
-        ("2025-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2023-07-09", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2024-01-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2024-01-10", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2024-04-10", user_rfm.DEFAULT_LOOKBACK_DAYS),
         ("2024-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2024-07-09", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2025-01-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2025-01-10", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2025-04-10", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2025-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2025-07-09", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2026-01-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2026-01-10", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2026-04-10", user_rfm.DEFAULT_LOOKBACK_DAYS),
+        ("2026-07-01", user_rfm.DEFAULT_LOOKBACK_DAYS),
     ]
 
 

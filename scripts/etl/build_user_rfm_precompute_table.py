@@ -148,18 +148,31 @@ def build_params(as_of_date: str, lookback_days: int) -> list[object]:
 
 
 def default_as_of_dates(today: date | None = None) -> list[str]:
-    """Return the MTD current/YoY/prev2 history reference dates.
+    """Return as_of dates covering the 5 hot period_types RFM dashboard uses.
 
     RFM analysis classifies users from behavior before each period start. A
-    daily no-arg run should therefore warm the three period starts that the
-    default RFM request uses, not only today's date.
+    daily no-arg run should therefore warm the period starts that the RFM
+    request uses, not only today's month start. The 5 hot period_types are:
+    MTD (current month start), YTD (Jan 1), last180days (yesterday-179),
+    last365days (yesterday-364), and last90days (yesterday-89). Each as_of
+    gets a current + YoY-1 + YoY-2 triple so the 3-period YoY comparison
+    in the dashboard also matches fast path.
     """
     today = today or date.today()
-    return [
-        date(today.year, today.month, 1).isoformat(),
-        date(today.year - 1, today.month, 1).isoformat(),
-        date(today.year - 2, today.month, 1).isoformat(),
-    ]
+    yesterday = today - timedelta(days=1)
+    mtd_curr = date(today.year, today.month, 1)
+    ytd_curr = date(today.year, 1, 1)
+    last_180 = yesterday - timedelta(days=179)
+    last_365 = yesterday - timedelta(days=364)
+    last_90 = yesterday - timedelta(days=89)
+    base_dates = [mtd_curr, ytd_curr, last_180, last_365, last_90]
+    out: list[str] = []
+    for base in base_dates:
+        out.append(base.isoformat())
+        out.append(date(base.year - 1, base.month, base.day).isoformat())
+        out.append(date(base.year - 2, base.month, base.day).isoformat())
+    # 去重 + 排序 (同一年同月同日去重, 保留唯一)
+    return sorted(set(out))
 
 
 def rebuild_table(duckdb_path: Path, as_of_date: str, lookback_days: int, dry_run: bool = False) -> int:

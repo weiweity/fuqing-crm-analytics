@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toValue, h, ref, onMounted } from 'vue'
+import { computed, toValue, h, ref, onMounted, onUnmounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import type { DataTableColumns } from 'naive-ui'
 import { NAlert, NButton } from 'naive-ui'
@@ -7,8 +7,11 @@ import { useFilterStore } from '@/stores/filterStore'
 import {
   fetchRFMAnalysis,
   fetchRFMConfig,
+  isSingleUserModeError,
+  releaseSessionLock,
   type RFMAnalysisRow,
   type RFMAnalysisResponse,
+  type SingleUserModeError,
   type SegmentDefinitionItem,
 } from '@/api/health'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
@@ -28,6 +31,9 @@ const showLogicExplain = ref(false)
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
 const rfmChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 const selectedSegment = ref<string | null>(null)
+const singleUserBlocked = ref(false)
+const singleUserMessage = ref('')
+let singleUserPingTimer: number | null = null
 
 const drilldownQueryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
@@ -67,6 +73,11 @@ onMounted(() => {
   ;(window as any).__rFMDrilldownClick = onRFMChartClick
 })
 
+onUnmounted(() => {
+  stopSingleUserPing()
+  void releaseSessionLock().catch(() => {})
+})
+
 const rfmQueryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
   end_date: filterStore.dateRange[1],
@@ -85,10 +96,43 @@ const compareQueryParams = computed(() => {
 
 const rfmQueryKey = computed(() => ['rfm-analysis', { ...toValue(rfmQueryParams) }, toValue(compareQueryParams)])
 
+function startSingleUserPing() {
+  if (singleUserPingTimer) return
+  singleUserPingTimer = window.setInterval(() => {
+    void rfmRefetch()
+  }, 30_000)
+}
+
+function stopSingleUserPing() {
+  if (!singleUserPingTimer) return
+  window.clearInterval(singleUserPingTimer)
+  singleUserPingTimer = null
+}
+
+async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisResponse | null> {
+  try {
+    const data = await fetchRFMAnalysis({ ...toValue(rfmQueryParams), ...toValue(compareQueryParams) })
+    singleUserBlocked.value = false
+    singleUserMessage.value = ''
+    stopSingleUserPing()
+    return data
+  } catch (error) {
+    if (isSingleUserModeError(error)) {
+      const err = error as SingleUserModeError
+      singleUserBlocked.value = true
+      singleUserMessage.value = `${err.message} 系统会每 30 秒自动重试。`
+      startSingleUserPing()
+      return null
+    }
+    throw error
+  }
+}
+
 const { data: rfmData, isLoading: rfmLoading, error: rfmError, refetch: rfmRefetch } = useQuery({
   queryKey: rfmQueryKey,
-  queryFn: () => fetchRFMAnalysis({ ...toValue(rfmQueryParams), ...toValue(compareQueryParams) }),
+  queryFn: fetchRFMAnalysisWithSingleUserGuard,
   staleTime: 60_000,
+  retry: false,
 })
 
 // ── RFM 阈值配置（前后端同步唯一数据源） ──
@@ -315,6 +359,16 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
 
 <template>
   <div class="rfm-analysis-tab">
+    <div v-if="singleUserBlocked" class="single-user-mask" role="status" aria-live="polite">
+      <div class="single-user-mask-panel">
+        <div>
+          <h3>当前板块被占用</h3>
+          <p>{{ singleUserMessage }}</p>
+        </div>
+        <NButton size="small" type="primary" ghost @click="rfmRefetch()">重试</NButton>
+      </div>
+    </div>
+
     <!-- 人群分层 & 评分逻辑说明 -->
     <NAlert type="info" :show-icon="false" class="logic-explainer mb-4">
       <template #header>
@@ -430,7 +484,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
           :chart-ref="rfmChartRef"
         />
       </div>
-      <ErrorState v-if="rfmError" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
+      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
       <EChartsWrapper v-else ref="rfmChartRef" :option="repurchaseRateChartOption" height="300px" @chart-click="onRFMChartClick" />
@@ -460,7 +514,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
           sheet-name="RFM全店"
         />
       </div>
-      <ErrorState v-if="rfmError" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
+      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
       <DataTablePro
@@ -486,7 +540,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
           sheet-name="RFM会员"
         />
       </div>
-      <ErrorState v-if="rfmError" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
+      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.member_rows?.length" description="当前条件下无数据" />
       <DataTablePro
@@ -527,9 +581,51 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
 <style scoped>
 .rfm-analysis-tab {
   padding-top: 8px;
+  position: relative;
 }
 .rfm-highlight-row {
   background-color: #eff6ff !important;
   transition: background-color 0.15s ease;
+}
+.single-user-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(248, 250, 252, 0.82);
+  backdrop-filter: blur(5px);
+}
+.single-user-mask-panel {
+  width: min(420px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 44px rgba(15, 23, 42, 0.14);
+}
+.single-user-mask-panel h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #0f172a;
+}
+.single-user-mask-panel p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+}
+@media (max-width: 640px) {
+  .single-user-mask-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 </style>

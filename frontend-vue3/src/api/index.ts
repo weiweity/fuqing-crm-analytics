@@ -94,7 +94,15 @@ client.interceptors.response.use(
       return Promise.reject(new Error(msg))
     }
     const message = error.response?.data?.detail || error.message || '请求失败'
-    return Promise.reject(new Error(message))
+    const wrapped = new Error(message) as Error & {
+      status?: number
+      headers?: Record<string, string>
+      data?: unknown
+    }
+    wrapped.status = error.response?.status
+    wrapped.headers = error.response?.headers
+    wrapped.data = error.response?.data
+    return Promise.reject(wrapped)
   }
 )
 

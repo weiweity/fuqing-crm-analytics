@@ -1,6 +1,9 @@
-## [unreleased] - 2026-07-09 (Sprint 205+ L4.74 PostgreSQL 16 分布式 Stage 2-5 POC 骨架)
+## [unreleased] - 2026-07-09 (Sprint 205+ L4.75 单人模式 + L4.72.6 RFM 扩展规划 + L4.74 POC 骨架)
 
 ### Added
+- **L4.75 老客 RFM 单人模式**: 新增 `backend/middleware/single_user_mode.py` 和 `DELETE /api/v1/session`，对 `/api/v1/customer-health/rfm-analysis` 做 5 分钟 LRU 单人锁；第二用户返回 503 + `Retry-After` + `X-Limited-Mode: single-user`，前端老客 RFM 页自动遮盖并每 30 秒重试。
+- **L4.72.6 rfm_dashboard_full 扩展 target planner**: `build_rfm_dashboard_full_table.py` 新增真实渠道 SSOT 组合规划与 typed target companion，覆盖 5 period × 3 周期 × 全店/真实渠道 × exclude label；不改现有 `rfm_dashboard_full` 表结构，避免 channel/exclude 维度覆盖污染。
+- **L4.72.5 RFM 完整预计算表**: 新增 `scripts/etl/build_rfm_dashboard_full_table.py`、daily launchd plist 和 6 case 回归，用 L4.71 `user_rfm_precompute` 生成 5 period_type × 3 周期 × 4 mode × 9 segment 的 `rfm_dashboard_full` 最终结果表。
 - **L4.72.4 老客 9 子板块热窗口预计算**: 新增 `scripts/precompute_old_customer_9_sub_modules.py` + daily launchd plist + 4 case 回归，按 7/30/180/365 天窗口调用现有 `backend.services.health.*` service 并写 JSON manifest，不复制 orders SQL。
 - **L4.70 / L4.71 短期性能治理脚本**: 新增 orders `(pay_time, user_id)` 复合索引 SQL/one-shot runner，以及 `user_rfm_precompute` 预计算表构建脚本 + daily launchd plist。
 - **L4.74 PostgreSQL 16 POC 骨架**: 新增 PostgreSQL 16 单节点 compose、Citus 3 worker compose、DuckDB → Parquet ETL、PostgreSQL RFM/R 区间 UDF、双写 UX/策略文档、Citus runbook 和 Stage 1/2/3/5 报告模板。
@@ -9,6 +12,9 @@
 - **L4.74 Stage 5 决策补强**: 补齐 POC summary、Conditional Go / No-Go 决策、风险成本估算；当前结论是不直接切生产，进入双写 POC 准备并等待 PC2/集群实跑证据。
 
 ### Technical
+- **L4.75 前端友好降级**: axios 错误包装保留 status/header/data 元数据；`ValueTierTab.vue` 识别 single-user 503 后不再展示普通错误卡，改为遮盖层 + 手动重试 + unmount 自动释放锁。
+- **L4.75/L4.72.6/L4.74 聚焦验证**: 新增 10 case 覆盖单人锁、503 headers、过期释放、target planner 真实渠道口径和 typed end_date；联合现有 L4.74 compose/UDF 骨架测试，本轮聚焦验证 19 passed。
+- **L4.72.5 RFM 0-SQL fast path**: `rfm_analysis/period.py` 在 GSV + 全店 + 无排除渠道时优先读取 `rfm_dashboard_full`，缺表/缺分区/日期不匹配自动回退 L4.71 precomputed/live SQL；查询键包含 `end_date` 并允许命中数据滞后一日的最新可用预计算。
 - **L4.71 RFM 5s fast path 接入**: `rfm_analysis/period.py` 在 GSV + 全店 + 无排除渠道且 `user_rfm_precompute` 分区覆盖 3650 天历史时读取预计算历史分群，缺表/缺分区/渠道或排除条件自动回退 live SQL；`build_user_rfm_precompute_table.py` daily 默认预热 MTD current/YoY/prev2 三个 as_of 分区。
 - `.env` 已实证 `FQ_READ_POOL_SIZE=10`，本轮不重复改配置。
 - 新增 L4.74 聚焦测试 7 文件，覆盖预计算、索引、user_rfm、Parquet ETL、UDF、compose/docs 和老客 6 表 guardrail；Stage 3-5 本轮补到 23 个聚焦回归，覆盖 manifest、真实小 DuckDB Parquet export、双写 validator、UDF NULL/边界、Citus init/governance 和 Go/No-Go 文档契约。
