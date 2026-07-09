@@ -5,10 +5,12 @@
 逻辑同R区间分析，仅将 r_segment 替换为 rfm_segment（8象限+TTL）。
 """
 
-import duckdb
 import logging
+import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+
+import duckdb
 
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
@@ -17,6 +19,127 @@ from ._shared import _VALID_BASE, RFM_SEGMENT_ORDER
 logger = logging.getLogger(__name__)
 
 
+USER_RFM_PRECOMPUTE_TABLE = "user_rfm_precompute"
+DEFAULT_RFM_PRECOMPUTE_LOOKBACK_DAYS = 3650
+
+
+def _precompute_min_lookback_days() -> int:
+    try:
+        return int(os.environ.get(
+            "FQ_RFM_PRECOMPUTE_MIN_LOOKBACK_DAYS",
+            str(DEFAULT_RFM_PRECOMPUTE_LOOKBACK_DAYS),
+        ))
+    except ValueError:
+        return DEFAULT_RFM_PRECOMPUTE_LOOKBACK_DAYS
+
+
+def _date_part(value: str) -> str:
+    return value.split(" ", 1)[0]
+
+
+def _supports_user_rfm_precompute(
+    channel: Optional[str],
+    metric_type: str,
+    exclude_channels: Optional[List[str]],
+) -> bool:
+    """Return whether the current request can use user_rfm_precompute safely.
+
+    The L4.71 table is an all-store GSV historical segmentation snapshot. Channel
+    or exclude-channel requests need channel-specific historical F/M/R stats, so
+    they must keep using the live SQL path until a channel-aware precompute table
+    exists.
+    """
+    if metric_type.upper() != "GSV":
+        return False
+    if channel and channel != "全店":
+        return False
+    return not exclude_channels
+
+
+def _rows_to_rfm_results(
+    rows: list[tuple],
+) -> tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]:
+    all_result: Dict[str, Dict[str, float]] = {}
+    same_result: Dict[str, Dict[str, float]] = {}
+    member_all_result: Dict[str, Dict[str, float]] = {}
+    member_same_result: Dict[str, Dict[str, float]] = {}
+    total_gsv_all = 0.0
+    total_gsv_same = 0.0
+    total_gsv_member_all = 0.0
+    total_gsv_member_same = 0.0
+
+    for r in rows:
+        mode, segment, hist_users, repurchase_users, repurchase_gsv = r
+        entry = {
+            "hist_users": int(hist_users or 0),
+            "repurchase_users": int(repurchase_users or 0),
+            "repurchase_rate": (
+                round(float(repurchase_users or 0) / float(hist_users or 1), 4)
+                if hist_users else 0.0
+            ),
+            "repurchase_gsv": float(repurchase_gsv or 0),
+            "repurchase_gsv_ratio": 0.0,
+        }
+        if mode == "all":
+            # Sprint 60.2 治本: total_gsv_all 累加排除 TTL 行 (TTL = 8 象限老客 GSV 之和,
+            # 跟 8 象限 sum 重合, 累加会双计). 修后 8 象限 ratio 分母 = 8 象限 sum = 老客 GSV,
+            # 8 象限 ratio 之和 = 100%, TTL ratio = 1.0 (自己除以自己, 用户新定义).
+            if segment != "已购客TTL":
+                total_gsv_all += float(repurchase_gsv or 0)
+            all_result[segment] = entry
+        elif mode == "same":
+            if segment != "已购客TTL":
+                total_gsv_same += float(repurchase_gsv or 0)
+            same_result[segment] = entry
+        elif mode == "member_all":
+            if segment != "已购客TTL":
+                total_gsv_member_all += float(repurchase_gsv or 0)
+            member_all_result[segment] = entry
+        elif mode == "member_same":
+            if segment != "已购客TTL":
+                total_gsv_member_same += float(repurchase_gsv or 0)
+            member_same_result[segment] = entry
+
+    # repurchase_gsv_ratio
+    # Sprint 60.2 治本: TTL 行 ratio 强制 1.0 (老客 GSV / 老客 GSV, 自己除以自己)
+    # 8 象限 ratio 跟 TTL ratio 各自独立 (分桶 vs 合计, 业务合理双计, 9 行 sum = 200%)
+    for seg in all_result:
+        gsv = all_result[seg]["repurchase_gsv"]
+        if seg == "已购客TTL":
+            all_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_all, 4) if total_gsv_all > 0 else 0.0
+    for seg in same_result:
+        gsv = same_result[seg]["repurchase_gsv"]
+        if seg == "已购客TTL":
+            same_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_same, 4) if total_gsv_same > 0 else 0.0
+    for seg in member_all_result:
+        gsv = member_all_result[seg]["repurchase_gsv"]
+        if seg == "已购客TTL":
+            member_all_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            member_all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_all, 4) if total_gsv_member_all > 0 else 0.0
+    for seg in member_same_result:
+        gsv = member_same_result[seg]["repurchase_gsv"]
+        if seg == "已购客TTL":
+            member_same_result[seg]["repurchase_gsv_ratio"] = 1.0
+        else:
+            member_same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_same, 4) if total_gsv_member_same > 0 else 0.0
+
+    # 补零
+    for seg in RFM_SEGMENT_ORDER:
+        if seg not in all_result:
+            all_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
+        if seg not in same_result:
+            same_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
+        if seg not in member_all_result:
+            member_all_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
+        if seg not in member_same_result:
+            member_same_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
+
+    return all_result, same_result, member_all_result, member_same_result
 
 
 def _run_rfm_period(
@@ -28,10 +151,17 @@ def _run_rfm_period(
     metric_type: str = "GSV",
     exclude_channels: Optional[List[str]] = None,
 ) -> tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]:
-    # ── 修复：直接使用全量 live SQL 计算，确保数据一致性 ──
-    # 问题：user_rfm 表使用 lookback_days=90 分群，但 RFM 分析需要截至 cutoff_dt 的所有用户
-    # 这导致从 user_rfm 读取的历史人数远小于 live 计算的人数（10倍差异）
-    # 解决方案：禁用预计算缓存，直接使用 live SQL 计算
+    # L4.71 fast path: only use the new all-store GSV precompute table when the
+    # partition exactly matches this period start and has enough history to cover
+    # the 731+ bucket. The old user_rfm table remains disabled because its
+    # lookback_days=90 partition caused 10x hist_user drift.
+    precomputed = _run_rfm_period_precomputed(
+        conn, start_dt, end_dt, cutoff_dt,
+        channel, metric_type, exclude_channels,
+    )
+    if precomputed is not None:
+        return precomputed
+
     return _run_rfm_period_live(
         conn, start_dt, end_dt, cutoff_dt,
         channel, metric_type, exclude_channels,
@@ -39,6 +169,124 @@ def _run_rfm_period(
 
 
 # ── 辅助函数：轻量计算 repurchase 指标（复用预计算的 hist_users） ──
+
+def _run_rfm_period_precomputed(
+    conn: duckdb.DuckDBPyConnection,
+    start_dt: str,
+    end_dt: str,
+    cutoff_dt: str,
+    channel: Optional[str],
+    metric_type: str,
+    exclude_channels: Optional[List[str]],
+) -> Optional[tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]]:
+    if not _supports_user_rfm_precompute(channel, metric_type, exclude_channels):
+        return None
+
+    as_of_date = _date_part(start_dt)
+    min_lookback_days = _precompute_min_lookback_days()
+    try:
+        partition = conn.execute(
+            f"""
+            SELECT lookback_days, COUNT(*) AS users
+            FROM {USER_RFM_PRECOMPUTE_TABLE}
+            WHERE as_of_date = ?::DATE
+              AND lookback_days >= ?::INTEGER
+            GROUP BY lookback_days
+            ORDER BY lookback_days DESC
+            LIMIT 1
+            """,
+            [as_of_date, min_lookback_days],
+        ).fetchone()
+    except Exception as exc:
+        logger.debug("L4.71 user_rfm_precompute miss for %s: %s", as_of_date, exc)
+        return None
+
+    if not partition or int(partition[1] or 0) == 0:
+        return None
+    lookback_days = int(partition[0])
+
+    sql = f"""
+    WITH
+    hist AS (
+        SELECT user_id, rfm_segment, is_member
+        FROM {USER_RFM_PRECOMPUTE_TABLE}
+        WHERE as_of_date = ?::DATE
+          AND lookback_days = ?::INTEGER
+    ),
+    base_orders AS (
+        SELECT user_id, actual_amount
+        FROM orders o
+        WHERE pay_time >= ?::TIMESTAMP
+          AND pay_time <= ?::TIMESTAMP
+          AND {_VALID_BASE}
+          AND is_refund = FALSE
+          AND user_id IS NOT NULL
+    ),
+    repurchase_users AS (
+        SELECT DISTINCT user_id FROM base_orders
+    ),
+    repurchase_amounts AS (
+        SELECT bo.user_id, SUM(bo.actual_amount) AS repurchase_gsv
+        FROM base_orders bo
+        INNER JOIN repurchase_users rp ON bo.user_id = rp.user_id
+        GROUP BY bo.user_id
+    ),
+    segment_stats_all AS (
+        SELECT h.rfm_segment,
+               COUNT(DISTINCT h.user_id) AS hist_users,
+               COUNT(DISTINCT rp.user_id) AS repurchase_users,
+               COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM hist h
+        LEFT JOIN repurchase_users rp ON h.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON h.user_id = ra.user_id
+        GROUP BY h.rfm_segment
+    ),
+    member_stats_all AS (
+        SELECT h.rfm_segment,
+               COUNT(DISTINCT h.user_id) AS hist_users,
+               COUNT(DISTINCT rp.user_id) AS repurchase_users,
+               COALESCE(SUM(ra.repurchase_gsv), 0) AS repurchase_gsv
+        FROM hist h
+        LEFT JOIN repurchase_users rp ON h.user_id = rp.user_id
+        LEFT JOIN repurchase_amounts ra ON h.user_id = ra.user_id
+        WHERE h.is_member = TRUE
+        GROUP BY h.rfm_segment
+    ),
+    ttl_stats_all AS (
+        SELECT '已购客TTL' AS rfm_segment,
+               (SELECT COUNT(*) FROM hist) AS hist_users,
+               (SELECT COUNT(DISTINCT bo.user_id) FROM base_orders bo INNER JOIN hist h ON bo.user_id = h.user_id) AS repurchase_users,
+               (SELECT COALESCE(SUM(bo.actual_amount), 0) FROM base_orders bo INNER JOIN hist h ON bo.user_id = h.user_id) AS repurchase_gsv
+    ),
+    member_ttl_stats_all AS (
+        SELECT '已购客TTL' AS rfm_segment,
+               (SELECT COUNT(*) FROM hist WHERE is_member = TRUE) AS hist_users,
+               (SELECT COUNT(DISTINCT bo.user_id) FROM base_orders bo INNER JOIN hist h ON bo.user_id = h.user_id AND h.is_member = TRUE) AS repurchase_users,
+               (SELECT COALESCE(SUM(bo.actual_amount), 0) FROM base_orders bo INNER JOIN hist h ON bo.user_id = h.user_id AND h.is_member = TRUE) AS repurchase_gsv
+    )
+    SELECT 'all' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM segment_stats_all UNION ALL SELECT * FROM ttl_stats_all
+    )
+    UNION ALL
+    SELECT 'same' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM segment_stats_all UNION ALL SELECT * FROM ttl_stats_all
+    )
+    UNION ALL
+    SELECT 'member_all' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM member_stats_all UNION ALL SELECT * FROM member_ttl_stats_all
+    )
+    UNION ALL
+    SELECT 'member_same' AS mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv FROM (
+        SELECT * FROM member_stats_all UNION ALL SELECT * FROM member_ttl_stats_all
+    )
+    """
+
+    try:
+        rows = conn.execute(sql, [as_of_date, lookback_days, start_dt, end_dt]).fetchall()
+    except Exception as exc:
+        logger.debug("L4.71 user_rfm_precompute fallback for %s: %s", as_of_date, exc)
+        return None
+    return _rows_to_rfm_results(rows)
 
 def _run_rfm_period_live(
     conn: duckdb.DuckDBPyConnection,
@@ -344,87 +592,7 @@ def _run_rfm_period_live(
     """
 
     rows = conn.execute(sql, params).fetchall()
-    all_result: Dict[str, Dict[str, float]] = {}
-    same_result: Dict[str, Dict[str, float]] = {}
-    member_all_result: Dict[str, Dict[str, float]] = {}
-    member_same_result: Dict[str, Dict[str, float]] = {}
-    total_gsv_all = 0.0
-    total_gsv_same = 0.0
-    total_gsv_member_all = 0.0
-    total_gsv_member_same = 0.0
-
-    for r in rows:
-        mode, segment, hist_users, repurchase_users, repurchase_gsv = r
-        entry = {
-            "hist_users": int(hist_users or 0),
-            "repurchase_users": int(repurchase_users or 0),
-            "repurchase_rate": (
-                round(float(repurchase_users or 0) / float(hist_users or 1), 4)
-                if hist_users else 0.0
-            ),
-            "repurchase_gsv": float(repurchase_gsv or 0),
-            "repurchase_gsv_ratio": 0.0,
-        }
-        if mode == "all":
-            # Sprint 60.2 治本: total_gsv_all 累加排除 TTL 行 (TTL = 8 象限老客 GSV 之和,
-            # 跟 8 象限 sum 重合, 累加会双计). 修后 8 象限 ratio 分母 = 8 象限 sum = 老客 GSV,
-            # 8 象限 ratio 之和 = 100%, TTL ratio = 1.0 (自己除以自己, 用户新定义).
-            if segment != "已购客TTL":
-                total_gsv_all += float(repurchase_gsv or 0)
-            all_result[segment] = entry
-        elif mode == "same":
-            if segment != "已购客TTL":
-                total_gsv_same += float(repurchase_gsv or 0)
-            same_result[segment] = entry
-        elif mode == "member_all":
-            if segment != "已购客TTL":
-                total_gsv_member_all += float(repurchase_gsv or 0)
-            member_all_result[segment] = entry
-        elif mode == "member_same":
-            if segment != "已购客TTL":
-                total_gsv_member_same += float(repurchase_gsv or 0)
-            member_same_result[segment] = entry
-
-    # repurchase_gsv_ratio
-    # Sprint 60.2 治本: TTL 行 ratio 强制 1.0 (老客 GSV / 老客 GSV, 自己除以自己)
-    # 8 象限 ratio 跟 TTL ratio 各自独立 (分桶 vs 合计, 业务合理双计, 9 行 sum = 200%)
-    for seg in all_result:
-        gsv = all_result[seg]["repurchase_gsv"]
-        if seg == "已购客TTL":
-            all_result[seg]["repurchase_gsv_ratio"] = 1.0
-        else:
-            all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_all, 4) if total_gsv_all > 0 else 0.0
-    for seg in same_result:
-        gsv = same_result[seg]["repurchase_gsv"]
-        if seg == "已购客TTL":
-            same_result[seg]["repurchase_gsv_ratio"] = 1.0
-        else:
-            same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_same, 4) if total_gsv_same > 0 else 0.0
-    for seg in member_all_result:
-        gsv = member_all_result[seg]["repurchase_gsv"]
-        if seg == "已购客TTL":
-            member_all_result[seg]["repurchase_gsv_ratio"] = 1.0
-        else:
-            member_all_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_all, 4) if total_gsv_member_all > 0 else 0.0
-    for seg in member_same_result:
-        gsv = member_same_result[seg]["repurchase_gsv"]
-        if seg == "已购客TTL":
-            member_same_result[seg]["repurchase_gsv_ratio"] = 1.0
-        else:
-            member_same_result[seg]["repurchase_gsv_ratio"] = round(gsv / total_gsv_member_same, 4) if total_gsv_member_same > 0 else 0.0
-
-    # 补零
-    for seg in RFM_SEGMENT_ORDER:
-        if seg not in all_result:
-            all_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
-        if seg not in same_result:
-            same_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
-        if seg not in member_all_result:
-            member_all_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
-        if seg not in member_same_result:
-            member_same_result[seg] = {"hist_users": 0, "repurchase_users": 0, "repurchase_rate": 0.0, "repurchase_gsv": 0.0, "repurchase_gsv_ratio": 0.0}
-
-    return all_result, same_result, member_all_result, member_same_result
+    return _rows_to_rfm_results(rows)
 
 
 def _run_and_build(

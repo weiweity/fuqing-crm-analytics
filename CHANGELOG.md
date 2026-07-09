@@ -9,6 +9,7 @@
 - **L4.74 Stage 5 决策补强**: 补齐 POC summary、Conditional Go / No-Go 决策、风险成本估算；当前结论是不直接切生产，进入双写 POC 准备并等待 PC2/集群实跑证据。
 
 ### Technical
+- **L4.71 RFM 5s fast path 接入**: `rfm_analysis/period.py` 在 GSV + 全店 + 无排除渠道且 `user_rfm_precompute` 分区覆盖 3650 天历史时读取预计算历史分群，缺表/缺分区/渠道或排除条件自动回退 live SQL；`build_user_rfm_precompute_table.py` daily 默认预热 MTD current/YoY/prev2 三个 as_of 分区。
 - `.env` 已实证 `FQ_READ_POOL_SIZE=10`，本轮不重复改配置。
 - 新增 L4.74 聚焦测试 7 文件，覆盖预计算、索引、user_rfm、Parquet ETL、UDF、compose/docs 和老客 6 表 guardrail；Stage 3-5 本轮补到 23 个聚焦回归，覆盖 manifest、真实小 DuckDB Parquet export、双写 validator、UDF NULL/边界、Citus init/governance 和 Go/No-Go 文档契约。
 

@@ -5,6 +5,7 @@ import json
 import plistlib
 import sys
 import types
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -41,8 +42,13 @@ def test_precompute_runner_calls_existing_service_and_writes_json(tmp_path: Path
     def build(**kwargs):
         return {"ok": True, "params": kwargs}
 
+    @contextmanager
+    def fake_read_request_context(_query_type: str = "read"):
+        yield
+
     module.build = build
     monkeypatch.setitem(sys.modules, "fake_old_customer_service", module)
+    monkeypatch.setattr(precompute, "read_request_context", fake_read_request_context)
 
     job = precompute.PrecomputeJob(
         slug="fake",
@@ -58,6 +64,42 @@ def test_precompute_runner_calls_existing_service_and_writes_json(tmp_path: Path
     assert result["status"] == "ok"
     assert payload["meta"]["callable"] == "fake_old_customer_service:build"
     assert payload["data"]["ok"] is True
+
+
+def test_precompute_runner_uses_read_request_context(tmp_path: Path, monkeypatch) -> None:
+    events: list[tuple[str, str]] = []
+    module = types.ModuleType("fake_old_customer_read_context_service")
+
+    def build(**kwargs):
+        events.append(("service", kwargs["analysis_date"]))
+        return {"ok": True}
+
+    @contextmanager
+    def fake_read_request_context(query_type: str = "read"):
+        events.append(("enter", query_type))
+        yield
+        events.append(("exit", query_type))
+
+    module.build = build
+    monkeypatch.setitem(sys.modules, "fake_old_customer_read_context_service", module)
+    monkeypatch.setattr(precompute, "read_request_context", fake_read_request_context)
+
+    job = precompute.PrecomputeJob(
+        slug="fake",
+        callable_path="fake_old_customer_read_context_service:build",
+        params={"analysis_date": "2026-07-09"},
+        window_days=7,
+        end_date="2026-07-09",
+    )
+
+    result = precompute.run_job(job, tmp_path)
+
+    assert result["status"] == "ok"
+    assert events == [
+        ("enter", "old_customer_precompute"),
+        ("service", "2026-07-09"),
+        ("exit", "old_customer_precompute"),
+    ]
 
 
 def test_precompute_script_does_not_copy_orders_sql() -> None:

@@ -23,6 +23,8 @@ from typing import Any, Callable
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from backend.services.dual_conn import read_request_context  # noqa: E402
+
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "cache" / "old_customer_precompute"
 HOT_WINDOWS = (7, 30, 180, 365)
 DEFAULT_RFM_SEGMENT = os.environ.get("FQ_OLD_CUSTOMER_PRECOMPUTE_RFM_SEGMENT", "重要价值客户")
@@ -137,7 +139,8 @@ def run_job(job: PrecomputeJob, output_dir: Path, dry_run: bool = False) -> dict
         }
 
     func = _load_callable(job.callable_path)
-    result = func(**job.params)
+    with read_request_context("old_customer_precompute"):
+        result = func(**job.params)
     payload = {
         "meta": {
             "slug": job.slug,
