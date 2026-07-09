@@ -6,6 +6,7 @@
 
 from fastapi import APIRouter, Query, Response
 from typing import Optional, List
+from pydantic import BaseModel
 
 from backend.config import _default_start_date, _default_end_date
 from backend.contracts.schemas import (
@@ -28,6 +29,8 @@ from backend.contracts.schemas import (
 from backend.services.category_service import (
     get_category_distribution,
     get_category_overview,
+    get_category_overview_cached,
+    get_category_overview_batch,
     get_category_segment_matrix,
     get_category_user_profile,
     get_category_value_tier,
@@ -44,6 +47,21 @@ from backend.services.category_service import (
 from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/category", tags=["品类分析"])
+
+
+# L4.75 market-focus 性能治本 (跟 L4.74 cache end_date fix + L4.36 graceful retry 1:1 stable 永久规则化沿用):
+# 批量品类概览 batch endpoint (1 次 HTTP 调用替换 N 次 N 次, 避免 96 次触发 429)
+class CategoryOverviewBatchRange(BaseModel):
+    start_date: str
+    end_date: str
+
+
+class CategoryOverviewBatchRequest(BaseModel):
+    ranges: List[CategoryOverviewBatchRange]
+    level: str = "class"
+    metric_type: str = "GSV"
+    channel: Optional[str] = None
+    exclude_channels: Optional[List[str]] = None
 
 
 @router.get("/distribution", response_model=CategoryDistributionResponse)
@@ -83,10 +101,29 @@ def get_category_overview_api(
     """
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
-    return get_category_overview(
+    return get_category_overview_cached(
         start_date, end_date, level, metric_type, channel, exclude_channels,
         compare_start_date, compare_end_date
     )
+
+
+# L4.75 market-focus 性能治本 batch endpoint (跟 L4.74 cache end_date fix + L4.36 graceful retry 1:1 stable 永久规则化沿用):
+# 1 次 HTTP 调用替换 N 次 (市场对焦核心单品新老客切 weeks=12 触发 daily 84 + weekly 12 = 96 次, 触发 429)
+@router.post("/overview/batch")
+def get_category_overview_batch_api(body: CategoryOverviewBatchRequest):
+    """批量品类概览 (跟 L4.74 cache end_date fix + L4.36 graceful retry 1:1 stable 永久规则化沿用)
+
+    性能治本: 1 次 HTTP 调用返回 N 个时间段结果 (跟 L4.74 batch endpoint 1:1 stable 永久规则化沿用, 跟 L4.72.5 rfm_dashboard_full fast path 1:1 stable 永久规则化沿用)
+    """
+    return {
+        "results": get_category_overview_batch(
+            ranges=[r.model_dump() for r in body.ranges],
+            level=body.level,
+            metric_type=body.metric_type,
+            channel=body.channel,
+            exclude_channels=body.exclude_channels,
+        )
+    }
 
 
 @router.get("/segment", response_model=CategorySegmentMatrixResponse)

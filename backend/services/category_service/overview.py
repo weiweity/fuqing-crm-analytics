@@ -4,12 +4,84 @@ Sample CRM 客户分析系统 - 品类分析服务
 Week 4 品类分布、品类象限矩阵、品类用户画像
 """
 import duckdb
+import time
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List, Tuple
 
 from backend.db.connection import get_connection
 from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
+
+# L4.75 market-focus 性能治本 (跟 L4.74 cache end_date fix + L4.71 RFM 业务治本 1:1 stable 永久规则化沿用):
+# 内存 cache 24h TTL 避免 96 次 HTTP 调用触发 429 Too Many Requests (跟 L4.36 graceful retry + L4.74 1:1 stable 永久规则化沿用)
+# Sprint 205+ L4.75 PC2 10 业务分析师 0 雪崩 1:1 stable permanent rule 链配套
+_CACHE_TTL_SECONDS = 86400  # 24h TTL (跟 L4.74 cache precompute 1:1 stable 永久规则化沿用)
+_overview_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}  # {cache_key: (mtime, result)}
+
+
+def _overview_cache_key(
+    start_date: str, end_date: str, level: str, metric_type: str,
+    channel: Optional[str], exclude_channels: Optional[List[str]],
+    compare_start_date: Optional[str], compare_end_date: Optional[str],
+) -> str:
+    """算 cache key (跟 L4.74 cache end_date fix 1:1 stable 永久规则化沿用, 跟 L4.71 RFM 业务治本 1:1 stable 永久规则化沿用)"""
+    return f"{start_date}_{end_date}_{level}_{metric_type}_{channel}_{','.join(sorted(exclude_channels or []))}_{compare_start_date}_{compare_end_date}"
+
+
+def get_category_overview_cached(
+    start_date: str, end_date: str,
+    level: str = "class",
+    metric_type: str = "GSV",
+    channel: Optional[str] = None,
+    exclude_channels: Optional[List[str]] = None,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
+) -> Dict[str, Any]:
+    """get_category_overview wrapper + 内存 cache 24h TTL (跟 L4.74 cache end_date fix 1:1 stable 永久规则化沿用)
+
+    性能治本: 第二次同 cache_key 查询 < 100ms (避免 96 次 HTTP 调用触发 429, 跟 L4.36 graceful retry 1:1 stable 永久规则化沿用)
+    """
+    cache_key = _overview_cache_key(
+        start_date, end_date, level, metric_type,
+        channel, exclude_channels, compare_start_date, compare_end_date,
+    )
+    cached = _overview_cache.get(cache_key)
+    if cached is not None:
+        mtime, result = cached
+        if time.time() - mtime < _CACHE_TTL_SECONDS:
+            return result  # cache 命中, 返回 cached result
+
+    # cache miss 跑实时 SQL
+    result = get_category_overview(
+        start_date, end_date, level, metric_type, channel, exclude_channels,
+        compare_start_date, compare_end_date,
+    )
+    _overview_cache[cache_key] = (time.time(), result)
+    return result
+
+
+def get_category_overview_batch(
+    ranges: List[Dict[str, str]],
+    level: str = "class",
+    metric_type: str = "GSV",
+    channel: Optional[str] = None,
+    exclude_channels: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    """批量调用 get_category_overview (跟 L4.74 cache end_date fix 1:1 stable 永久规则化沿用, 跟 L4.36 graceful retry 1:1 stable 永久规则化沿用)
+
+    性能治本: 1 次 HTTP 调用替换 96 次 N 次 (市场对焦核心单品新老客切 weeks=12 触发 daily 84 + weekly 12 = 96 次, 触发 429)
+    """
+    return [
+        get_category_overview_cached(
+            start_date=r["start_date"],
+            end_date=r["end_date"],
+            level=level,
+            metric_type=metric_type,
+            channel=channel,
+            exclude_channels=exclude_channels,
+        )
+        for r in ranges
+    ]
 
 
 SPU_LEVELS = {
