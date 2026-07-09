@@ -47,6 +47,13 @@ const compareQueryParams = computed(() => {
   return { compare_start_date: comp[0], compare_end_date: comp[1] }
 })
 
+// L4.75.2: 默认不自动 fetch, 用户手动点击按钮触发
+const repurchaseAutoFetch = ref(false)
+function onRepurchaseQueryClick() {
+  repurchaseAutoFetch.value = true
+  refetch()
+}
+
 const { data, isLoading, error, refetch } = useQuery({
   queryKey: computed(() => ['repurchase-cycle', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
   queryFn: () => {
@@ -60,6 +67,7 @@ const { data, isLoading, error, refetch } = useQuery({
       ...c,
     })
   },
+  enabled: repurchaseAutoFetch,
   staleTime: 60_000,
 })
 
