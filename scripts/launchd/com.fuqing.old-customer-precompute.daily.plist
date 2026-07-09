@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fuqing.old-customer-precompute.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hutou/homebrew/bin/python3</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/precompute_old_customer_9_sub_modules.py</string>
+        <string>--output-dir</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/cache/old_customer_precompute</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>40</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/fuqing-old-customer-precompute.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/fuqing-old-customer-precompute.err</string>
+</dict>
+</plist>

@@ -11,7 +11,6 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from backend.config import (  # noqa: E402
-    DUCKDB_MEMORY_LIMIT,
     get_duckdb_memory_limit,
 )
 from scripts.etl import precompute_fact_rfm  # noqa: E402  W4 占位
@@ -87,20 +86,19 @@ class TestW7MemoryLimitOverride:
 
         FIX-S8: 原测试 assert `env_val in ('8GB', '16GB', '4GB')` 是 vacuous —
         接受任意 3 值, 即使实现改成 return '32GB' 也通过, 名为 '向后兼容默认 8GB'
-        实际未断言任何 W7 行为。修: 显式 monkeypatch DUCKDB_MEMORY_LIMIT='8GB'
-        验常量 = 8GB。
+        实际未断言任何 W7 行为。修: 在受控 env 下 reload backend.config,
+        验常量默认值语义 = 8GB。
         """
+        import importlib
+
+        monkeypatch.delenv("DUCKDB_MEMORY_LIMIT_OVERRIDE", raising=False)
         monkeypatch.setenv("DUCKDB_MEMORY_LIMIT", "8GB")
-        # DUCKDB_MEMORY_LIMIT 是 module-level 常量, import 时已固定, monkeypatch env 不影响
-        # 但常量本身 = os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB") 在 import 时读
-        # 若测试环境 import 时 DUCKDB_MEMORY_LIMIT 未设, 常量 = "8GB"
-        # 若测试环境 import 时 DUCKDB_MEMORY_LIMIT 设为其他值, 常量 = 该值
-        # 接受这两种情况 (向后兼容 + 测试环境差异)
-        import os
-        env_at_import = os.environ.get("DUCKDB_MEMORY_LIMIT", "8GB")
-        assert DUCKDB_MEMORY_LIMIT in (env_at_import, "8GB"), (
-            f"DUCKDB_MEMORY_LIMIT={DUCKDB_MEMORY_LIMIT!r} 不匹配 import 时 env={env_at_import!r}"
-        )
+
+        import backend.config as _bc
+        importlib.reload(_bc)
+
+        assert _bc.DUCKDB_MEMORY_LIMIT == "8GB"
+        assert _bc.get_duckdb_memory_limit() == "8GB"
 
 
 class TestW7SetupAsyncMemory:

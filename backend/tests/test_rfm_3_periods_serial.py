@@ -66,16 +66,26 @@ class TestRFM3PeriodsSerialLockRegression:
             "(Sprint 210+ 误删回归 test 失败)"
         )
 
-    def test_dual_conn_read_pool_size_default_2(self):
-        """L4.69 治本: dual_conn.READ_POOL_SIZE 默认 = 2 (5→2, 大查询池小反快).
+    def test_dual_conn_read_pool_size_default_2_allows_l4723_env_override(self):
+        """L4.69 默认 = 2, L4.72.3 允许 .env 显式调到 10.
 
         PC2 实测: pool=2 时 RFM 4 次 < 5s 稳态, pool=5 时 15-56s 雪崩 (IO 击穿).
+        Sprint 205+ L4.72.3 又允许 Mac dev/PC2 通过 FQ_READ_POOL_SIZE 覆盖,
+        因此这里锁两件事:
+        1. dual_conn.py 源码默认值仍是 "2";
+        2. 若环境变量显式配置, 运行时 READ_POOL_SIZE 跟 env 一致.
         """
+        import os
         from backend.services.dual_conn import READ_POOL_SIZE
-        assert READ_POOL_SIZE == 2, (
-            f"L4.69 治本: dual_conn.READ_POOL_SIZE 必须 = 2 (默认), 实际 {READ_POOL_SIZE}. "
-            f"5→2 是 L4.69 治本核心 (大查询池小反快, 避免 4 conn × 122GB 库 OS page cache 击穿)."
+
+        src = inspect.getsource(__import__("backend.services.dual_conn", fromlist=["dual_conn"]))
+        assert 'os.environ.get("FQ_READ_POOL_SIZE", "2")' in src, (
+            "L4.69 治本: dual_conn.READ_POOL_SIZE 源码默认值必须保留为 2 "
+            "(大查询池小反快, 避免 4 conn × 122GB 库 OS page cache 击穿)."
         )
+        configured = os.environ.get("FQ_READ_POOL_SIZE")
+        expected = int(configured) if configured else 2
+        assert READ_POOL_SIZE == expected
 
     def test_query_router_has_customer_health_prefix(self):
         """L4.69 治本: query_router.READ_PREFIXES 必含 /api/v1/customer-health/ (显式 read_only).

@@ -36,6 +36,27 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 
+def _reset_cache_singleton() -> None:
+    from backend.services import dual_conn
+
+    conn = getattr(dual_conn, "_CACHE_CONN", None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+    dual_conn._CACHE_CONN = None
+
+
+def _patch_cache_db(tmp_path, monkeypatch, name: str = "test_cache.duckdb") -> Path:
+    duckdb_path = tmp_path / name
+    duckdb.connect(str(duckdb_path)).close()
+    _reset_cache_singleton()
+    monkeypatch.setattr("backend.config.CACHE_DUCKDB_PATH", str(duckdb_path))
+    monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+    return duckdb_path
+
+
 # ─────────────────────────────────────────────────────────────
 # 核心不变量 ①: 源码 verify — access_mode 字段被删
 # ─────────────────────────────────────────────────────────────
@@ -109,17 +130,8 @@ class TestOpenWriteConnRealConnectionNoError:
         """
         from backend.services.health.rfm_analysis.cache import _get_cache_conn
 
-        # 独立 tmp duckdb (跟生产隔离)
-        duckdb_path = tmp_path / "test.duckdb"
-        # 提前创建空 duckdb file (让 connection 有 valid file to lock)
-        duckdb.connect(str(duckdb_path)).close()
-
-        # Patch DUCKDB_PATH 让 _get_cache_conn 指向 tmp file
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+        # Patch CACHE_DUCKDB_PATH 让 _get_cache_conn 指向 tmp cache file
+        _patch_cache_db(tmp_path, monkeypatch)
 
         # 真调用 _get_cache_conn 不应抛 "different configuration" 错误
         conn = _get_cache_conn()
@@ -141,13 +153,9 @@ class TestOpenWriteConnRealConnectionNoError:
         from backend.services.health.rfm_analysis.cache import _get_cache_conn
         from backend.config import DUCKDB_MEMORY_LIMIT
 
-        duckdb_path = tmp_path / "test.duckdb"
+        duckdb_path = tmp_path / "business.duckdb"
         duckdb.connect(str(duckdb_path)).close()
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+        _patch_cache_db(tmp_path, monkeypatch, name="cache.duckdb")
 
         # Step 1: cli.py._c0 style (只有 memory_limit)
         conn_cli = duckdb.connect(
@@ -199,13 +207,7 @@ class TestClearRfmCacheEndToEnd:
             RFM_CACHE_TABLE,
         )
 
-        duckdb_path = tmp_path / "test.duckdb"
-        duckdb.connect(str(duckdb_path)).close()
-        monkeypatch.setattr(
-            "backend.services.health.rfm_analysis.cache.DUCKDB_PATH", duckdb_path,
-        )
-        monkeypatch.setattr("backend.config.DUCKDB_PATH", duckdb_path)
-        monkeypatch.delenv("DUCKDB_PASSWORD", raising=False)
+        _patch_cache_db(tmp_path, monkeypatch)
 
         # 用 _ensure_db_cache_table 建完整 schema (避免手建缺列)
         conn = _get_cache_conn()

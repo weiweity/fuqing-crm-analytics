@@ -1,0 +1,63 @@
+services:
+  citus-coordinator:
+    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    container_name: fuqing-citus-coordinator
+    environment:
+      POSTGRES_DB: fuqing_crm
+      POSTGRES_USER: fuqing
+      POSTGRES_PASSWORD: fuqing_dev_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5434:5432"
+    volumes:
+      - citus_coordinator_data:/var/lib/postgresql/data
+      - ./scripts/postgresql16_udf:/docker-entrypoint-initdb.d:ro
+      - ./data/processed/postgresql16_parquet:/var/lib/fuqing/parquet:ro
+    depends_on:
+      - citus-worker-1
+      - citus-worker-2
+      - citus-worker-3
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fuqing -d fuqing_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  citus-worker-1:
+    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    container_name: fuqing-citus-worker-1
+    environment:
+      POSTGRES_DB: fuqing_crm
+      POSTGRES_USER: fuqing
+      POSTGRES_PASSWORD: fuqing_dev_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - citus_worker_1_data:/var/lib/postgresql/data
+
+  citus-worker-2:
+    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    container_name: fuqing-citus-worker-2
+    environment:
+      POSTGRES_DB: fuqing_crm
+      POSTGRES_USER: fuqing
+      POSTGRES_PASSWORD: fuqing_dev_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - citus_worker_2_data:/var/lib/postgresql/data
+
+  citus-worker-3:
+    image: ${CITUS_IMAGE:-citusdata/citus:12.1}
+    container_name: fuqing-citus-worker-3
+    environment:
+      POSTGRES_DB: fuqing_crm
+      POSTGRES_USER: fuqing
+      POSTGRES_PASSWORD: fuqing_dev_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - citus_worker_3_data:/var/lib/postgresql/data
+
+volumes:
+  citus_coordinator_data:
+  citus_worker_1_data:
+  citus_worker_2_data:
+  citus_worker_3_data:
