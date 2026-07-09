@@ -109,6 +109,27 @@ export function fetchCategoryOverview(params: {
   return client.get('/v1/category/overview', { params })
 }
 
+// L4.75 market-focus 性能治本 #2 (跟 L4.75 #1 backend batch endpoint 1:1 stable 永久规则化沿用):
+// 1 次 POST /v1/category/overview/batch 替换 N 次 GET /v1/category/overview
+// 96 次 query (近 12 周 daily 84 + weekly 12) → 1 次 batch query
+// 避免 96 次 HTTP 调用触发 rate_limit_per_minute=60 → 429 Too Many Requests
+export interface CategoryOverviewBatchRange {
+  start_date: string
+  end_date: string
+}
+export interface CategoryOverviewBatchRequest {
+  ranges: CategoryOverviewBatchRange[]
+  level?: string
+  metric_type?: string
+  channel?: string
+  exclude_channels?: string[]
+}
+export function fetchCategoryOverviewBatch(
+  body: CategoryOverviewBatchRequest,
+): Promise<{ results: CategoryOverviewResponse[] }> {
+  return client.post('/v1/category/overview/batch', body)
+}
+
 export function fetchCategorySegmentMatrix(params: Omit<CategoryDistributionParams, 'segment_id'> & { top_n?: number; exclude_channels?: string[] }): Promise<CategorySegmentMatrixResponse> {
   return client.get('/v1/category/segment', { params })
 }
