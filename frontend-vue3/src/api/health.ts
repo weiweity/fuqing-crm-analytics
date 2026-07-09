@@ -172,8 +172,58 @@ export interface RFMAnalysisParams {
   compare_end_date?: string
 }
 
+export type SingleUserModeError = Error & {
+  status: 503
+  retryAfterSeconds: number
+  lockTimeoutSeconds: number
+}
+
+function headerValue(headers: Record<string, string> | undefined, key: string): string | undefined {
+  if (!headers) return undefined
+  return headers[key] ?? headers[key.toLowerCase()] ?? headers[key.toUpperCase()]
+}
+
+export function isSingleUserModeError(error: unknown): error is SingleUserModeError {
+  const err = error as Partial<SingleUserModeError> & {
+    status?: number
+    headers?: Record<string, string>
+    data?: { limited_mode?: string; retry_after_seconds?: number; lock_timeout_seconds?: number }
+  }
+  return (
+    err?.status === 503 &&
+    (
+      typeof err.retryAfterSeconds === 'number' ||
+      headerValue(err.headers, 'X-Limited-Mode') === 'single-user' ||
+      err.data?.limited_mode === 'single-user'
+    )
+  )
+}
+
+function toSingleUserModeError(error: unknown): SingleUserModeError {
+  const err = error as Error & {
+    headers?: Record<string, string>
+    data?: { retry_after_seconds?: number; lock_timeout_seconds?: number }
+  }
+  const retryAfter = Number(headerValue(err.headers, 'Retry-After') ?? err.data?.retry_after_seconds ?? 300)
+  const lockTimeout = Number(headerValue(err.headers, 'X-Lock-Timeout-Seconds') ?? err.data?.lock_timeout_seconds ?? 300)
+  const wrapped = new Error(err.message || '老客 RFM 分析当前正在被其他用户使用，请稍后重试。') as SingleUserModeError
+  wrapped.status = 503
+  wrapped.retryAfterSeconds = Number.isFinite(retryAfter) ? retryAfter : 300
+  wrapped.lockTimeoutSeconds = Number.isFinite(lockTimeout) ? lockTimeout : 300
+  return wrapped
+}
+
 export function fetchRFMAnalysis(params: RFMAnalysisParams): Promise<RFMAnalysisResponse> {
-  return client.get('/v1/customer-health/rfm-analysis', { params })
+  return (client.get('/v1/customer-health/rfm-analysis', { params }) as Promise<RFMAnalysisResponse>).catch((error) => {
+    if (isSingleUserModeError(error)) {
+      throw toSingleUserModeError(error)
+    }
+    throw error
+  })
+}
+
+export function releaseSessionLock(): Promise<{ released: boolean; user_id: string }> {
+  return client.delete('/v1/session') as Promise<{ released: boolean; user_id: string }>
 }
 
 export interface NewCustomerConversionParams {

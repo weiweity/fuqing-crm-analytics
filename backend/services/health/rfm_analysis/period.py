@@ -7,18 +7,20 @@
 
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional
 
 import duckdb
 
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
+from backend.semantic.time import PeriodBuilder
 from ._shared import _VALID_BASE, RFM_SEGMENT_ORDER
 
 logger = logging.getLogger(__name__)
 
 
+RFM_DASHBOARD_FULL_TABLE = "rfm_dashboard_full"
 USER_RFM_PRECOMPUTE_TABLE = "user_rfm_precompute"
 DEFAULT_RFM_PRECOMPUTE_LOOKBACK_DAYS = 3650
 
@@ -35,6 +37,56 @@ def _precompute_min_lookback_days() -> int:
 
 def _date_part(value: str) -> str:
     return value.split(" ", 1)[0]
+
+
+def _last90days_ranges(today: date) -> dict:
+    yesterday = today - timedelta(days=1)
+    start = yesterday - timedelta(days=89)
+    return PeriodBuilder.free(start.isoformat(), yesterday.isoformat())
+
+
+def _hot_period_ranges(today: date) -> list[tuple[str, dict]]:
+    return [
+        ("MTD", PeriodBuilder.mtd(today=today)),
+        ("YTD", PeriodBuilder.ytd(today=today)),
+        ("last90days", _last90days_ranges(today)),
+        ("last180days", PeriodBuilder.last180days(today=today)),
+        ("last365days", PeriodBuilder.last365days(today=today)),
+    ]
+
+
+def _resolve_period_type(start_dt: str, end_dt: Optional[str] = None, today: Optional[date] = None) -> str:
+    """Map hot RFM dashboard date ranges to the frontend period_type."""
+    start_date = _date_part(start_dt)
+    end_date = _date_part(end_dt) if end_dt else None
+    reference_days: list[date] = []
+    if today is not None:
+        reference_days.append(today)
+    else:
+        reference_days.append(date.today())
+        if end_date:
+            try:
+                reference_days.append(date.fromisoformat(end_date) + timedelta(days=1))
+            except ValueError:
+                pass
+
+    seen: set[date] = set()
+    for ref_today in reference_days:
+        if ref_today in seen:
+            continue
+        seen.add(ref_today)
+        start_only_match = ""
+        for period_type, ranges in _hot_period_ranges(ref_today):
+            for period_range in ranges.values():
+                if period_range.start != start_date:
+                    continue
+                if end_date and period_range.end == end_date:
+                    return period_type
+                if not start_only_match:
+                    start_only_match = period_type
+        if start_only_match:
+            return start_only_match
+    return ""
 
 
 def _supports_user_rfm_precompute(
@@ -151,6 +203,13 @@ def _run_rfm_period(
     metric_type: str = "GSV",
     exclude_channels: Optional[List[str]] = None,
 ) -> tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]:
+    dashboard_full = _run_rfm_period_dashboard_full(
+        conn, start_dt, end_dt,
+        channel, metric_type, exclude_channels,
+    )
+    if dashboard_full is not None:
+        return dashboard_full
+
     # L4.71 fast path: only use the new all-store GSV precompute table when the
     # partition exactly matches this period start and has enough history to cover
     # the 731+ bucket. The old user_rfm table remains disabled because its
@@ -169,6 +228,54 @@ def _run_rfm_period(
 
 
 # ── 辅助函数：轻量计算 repurchase 指标（复用预计算的 hist_users） ──
+
+def _run_rfm_period_dashboard_full(
+    conn: duckdb.DuckDBPyConnection,
+    start_dt: str,
+    end_dt: str,
+    channel: Optional[str],
+    metric_type: str,
+    exclude_channels: Optional[List[str]],
+) -> Optional[tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]]:
+    """L4.72.5 0-SQL fast path: read final RFM dashboard aggregates."""
+    if not _supports_user_rfm_precompute(channel, metric_type, exclude_channels):
+        return None
+
+    period_type = _resolve_period_type(start_dt, end_dt)
+    if not period_type:
+        return None
+
+    as_of_date = _date_part(start_dt)
+    end_date = _date_part(end_dt)
+    min_lookback_days = _precompute_min_lookback_days()
+    sql = f"""
+    WITH matched AS (
+        SELECT mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv,
+               end_date, lookback_days
+        FROM {RFM_DASHBOARD_FULL_TABLE}
+        WHERE period_type = ?::VARCHAR
+          AND as_of_date = ?::DATE
+          AND end_date <= ?::DATE
+          AND lookback_days >= ?::INTEGER
+    ),
+    chosen AS (
+        SELECT MAX(end_date) AS end_date, MAX(lookback_days) AS lookback_days
+        FROM matched
+    )
+    SELECT mode, rfm_segment, hist_users, repurchase_users, repurchase_gsv
+    FROM matched m, chosen c
+    WHERE m.end_date = c.end_date
+      AND m.lookback_days = c.lookback_days
+    """
+    try:
+        rows = conn.execute(sql, [period_type, as_of_date, end_date, min_lookback_days]).fetchall()
+    except Exception as exc:
+        logger.debug("L4.72.5 rfm_dashboard_full miss for %s/%s: %s", period_type, as_of_date, exc)
+        return None
+    if not rows:
+        return None
+    return _rows_to_rfm_results(rows)
+
 
 def _run_rfm_period_precomputed(
     conn: duckdb.DuckDBPyConnection,
