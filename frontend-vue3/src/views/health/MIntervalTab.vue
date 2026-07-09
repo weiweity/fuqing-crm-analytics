@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, toValue, h, ref } from 'vue'
+import { computed, toValue, h, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NButton } from 'naive-ui'
+// L4.75.4: NButton 改 ManualQueryButton
+import ManualQueryButton from '@/components/ManualQueryButton.vue'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import {
@@ -45,6 +46,7 @@ const mFlowQueryKey = computed(() => ['rfm-m-flow', { ...toValue(mFlowQueryParam
 
 // L4.75.2: 默认不自动 fetch, 用户手动点击按钮触发
 const mFlowAutoFetch = ref(false)
+watch([mFlowQueryKey, compareQueryParams], () => { mFlowAutoFetch.value = false }, { deep: true })
 function onMFlowQueryClick() {
   mFlowAutoFetch.value = true
   mFlowRefetch()
@@ -273,7 +275,7 @@ const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
       <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
       <LoadingState v-else-if="mFlowLoading" />
       <div v-else-if="!mFlowAutoFetch" class="manual-query-guide">
-        <NButton type="primary" size="large" @click="onMFlowQueryClick">🔍 点击查询 M 区间数据</NButton>
+        <ManualQueryButton @click="onMFlowQueryClick">查询 M 区间数据</ManualQueryButton>
         <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
       </div>
       <EmptyState v-else-if="!mFlowData?.rows?.length" description="当前条件下无数据" />

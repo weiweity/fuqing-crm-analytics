@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, toValue, h, ref, onMounted, onUnmounted } from 'vue'
+import { computed, toValue, h, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import type { DataTableColumns } from 'naive-ui'
 import { NAlert, NButton } from 'naive-ui'
+import ManualQueryButton from '@/components/ManualQueryButton.vue'
 import { useFilterStore } from '@/stores/filterStore'
 import {
   fetchRFMAnalysis,
@@ -130,6 +131,7 @@ async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisRespons
 
 // L4.75.2: 默认不自动 fetch (跟 user "进入后, 专门有个按钮, 可以点击查询" 1:1 stable 永久规则链配套)
 const rfmAutoFetch = ref(false)
+watch([rfmQueryKey, compareQueryParams], () => { rfmAutoFetch.value = false }, { deep: true })
 function onRFMQueryClick() {
   rfmAutoFetch.value = true
   rfmRefetch()
@@ -494,11 +496,11 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
       </div>
       <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
       <LoadingState v-else-if="rfmLoading" />
-      <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
-      <div v-else-if="!rfmAutoFetch" class="rfm-query-guide">
-        <NButton type="primary" size="large" @click="onRFMQueryClick">🔍 点击查询 RFM 数据</NButton>
+      <div v-else-if="!rfmAutoFetch" class="manual-query-guide">
+        <ManualQueryButton @click="onRFMQueryClick">查询 RFM 数据</ManualQueryButton>
         <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询, 避免自动加载占用算力。</p>
       </div>
+      <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
       <EChartsWrapper v-else ref="rfmChartRef" :option="repurchaseRateChartOption" height="300px" @chart-click="onRFMChartClick" />
     </div>
 

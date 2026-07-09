@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, toValue, ref } from 'vue'
+import { computed, toValue, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NGrid, NGi, NButton } from 'naive-ui'
+import { NGrid, NGi } from 'naive-ui'
+import ManualQueryButton from '@/components/ManualQueryButton.vue'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchRepurchaseCycle, fetchCohortRetention } from '@/api/health'
 import LoadingState from '@/components/LoadingState.vue'
@@ -49,6 +50,7 @@ const compareQueryParams = computed(() => {
 
 // L4.75.2: 默认不自动 fetch, 用户手动点击按钮触发
 const repurchaseAutoFetch = ref(false)
+watch([queryParams, compareQueryParams], () => { repurchaseAutoFetch.value = false }, { deep: true })
 function onRepurchaseQueryClick() {
   repurchaseAutoFetch.value = true
   refetch()
@@ -289,7 +291,7 @@ const cohortChartOption = computed(() => {
     <LoadingState v-if="isLoading" />
     <ErrorState v-else-if="error" :message="error.message" @retry="refetch" />
     <div v-else-if="!repurchaseAutoFetch" class="manual-query-guide">
-      <NButton type="primary" size="large" @click="onRepurchaseQueryClick">🔍 点击查询复购周期数据</NButton>
+      <ManualQueryButton @click="onRepurchaseQueryClick">查询复购周期数据</ManualQueryButton>
       <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
     </div>
 
