@@ -317,16 +317,18 @@ def _write_db_cache(
 
 def precompute_rfm_cache() -> int:
     """
-    Plan P1: 预计算所有常用周期组合的 RFM 结果,存入 DuckDB 表。
+    L4.71 RFM 业务治本 Stage 1 扩展版 (跟 L4.42 + L4.50 + L4.55 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+    预计算所有常用周期组合的 RFM 结果,存入 DuckDB 表。
 
-    预计算范围：
-      - 标准周期：YTD / MTD
-      - 年份：2024 / 2025 / 2026
-      - 渠道：全店
-      - 指标：GSV / GMV
-    共 2 周期 × 3 年 × 2 指标 = 12 个组合。
+    预计算范围:
+      - 标准周期: 5 周期 (YTD / MTD / last90d / last180d / last365d) (跟 L4.74 cache end_date fix 1:1 stable 永久规则化沿用)
+      - 年份: 1 年 (2026) (跟 L4.74 YEARS 缩 [2026] 1:1 stable 永久规则化沿用, 节省跑批时间 ~67%)
+      - 渠道: 4 渠道 (全店/淘客/直播/货架) (L4.71 Stage 1 加 channel 维度 1:1 stable 永久规则化沿用)
+      - 同比: 4 模式 (default Y-1 / Q-1 1 季度前 / Q-2 2 季度前 / Q-3 3 季度前) (L4.71 Stage 1 加 compare 维度 1:1 stable 永久规则化沿用)
+      - 指标: 2 (GSV / GMV)
+    共 5 周期 × 1 年 × 4 渠道 × 4 同比 × 2 指标 = 160 个组合 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则化沿用, 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用)。
 
-    ETL 完成后调用,自动跳过已计算的组合（INSERT OR REPLACE）。
+    ETL 完成后调用,自动跳过已计算的组合（ON CONFLICT DO UPDATE）。
 
     QW2 Phase 2: 必须先 _get_cache_conn() 拿写连接（read+write）,
     然后 SELECT orders / DDL / INSERT 都用这一个写连接。
@@ -347,12 +349,19 @@ def precompute_rfm_cache() -> int:
     # L4.74 fix (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套): YEARS 缩 [2026] (只算今年, 节省跑批时间 ~67%)
     YEARS = [2026]
     METRIC_TYPES = ["GSV", "GMV"]
-    # 目前仅预计算全店
-    CHANNEL = None
+    # L4.71 RFM 业务治本 Stage 1 (跟 L4.42 + L4.50 + L4.55 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+    # precompute 扩 2 维度 (CHANNELS + COMPARE_MODES), 让 user 自定义 channel + compare_* 也能 cache 命中.
+    # 治本 ② user 自定义 channel (淘客/直播/货架) + 自定义 compare_start_date/end_date 慢 (跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用)
+    CHANNELS = [None, "淘客", "直播", "货架"]  # 4 渠道 (None=全店, 跟 frontend MarketFocusView.vue channelOptions 1:1 stable 永久规则化沿用)
+    # 4 同比模式: default (Y-1) + Q-1 (1 季度前) + Q-2 (2 季度前) + Q-3 (3 季度前)
+    # 业务方常用环比 1Q/2Q/3Q (跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用)
+    COMPARE_MODES = ["default", "Q-1", "Q-2", "Q-3"]
     EXCLUDE = None
 
-    logger.info(f"RFM 预计算开始: {len(STANDARD_PERIODS)} 周期 × {len(YEARS)} 年 × {len(METRIC_TYPES)} 指标 = "
-                f"{len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES)} 个组合")
+    logger.info(
+        f"RFM 预计算开始: {len(STANDARD_PERIODS)} 周期 × {len(YEARS)} 年 × {len(METRIC_TYPES)} 指标 × {len(CHANNELS)} 渠道 × {len(COMPARE_MODES)} 同比 = "
+        f"{len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES) * len(CHANNELS) * len(COMPARE_MODES)} 个组合"
+    )
 
     # 关键: 先开写连接（read+write,默认 access_mode）
     # 禁止先 get_connection()（read_only=True 会锁定同进程 DB config）
@@ -372,14 +381,10 @@ def precompute_rfm_cache() -> int:
         # L4.74 cache end_date fix (跟 L4.42 + L4.50 + L4.74 + L4.75 1:1 stable 永久规则链配套):
         # 关键 fix: today 跟 user query _resolve_date_ranges() (backend/services/rfm/_shared.py:54) 一致,
         # 让 precompute 算的 cur.end 跟 user query 算的 cur.end 对齐 → cache key 命中.
-        # 修复前: today = max_pay_date + 1 → cur.end = max_pay_date (07-05) → cache key 永远跟 user (07-09) 不匹配.
         # 修复后: today = date.today() → cur.end = date.today() - 1 (07-08, MTD 包含到今天前一天) → cache key 跟 user 一致.
-        # 业务正确性 OK: SQL 实际只算到 max_pay_date (max(pay_time)=07-05), data_version 标记 max_pay_date, RFM 分类基于 cutoff (start_date - 1 day) 不受 cur_end > max_pay 影响.
         row = biz_conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()
         max_pay_raw = row[0] if row else None
         if max_pay_raw is not None:
-            max_pay_date = max_pay_raw.date() if hasattr(max_pay_raw, 'date') else max_pay_raw
-            # L4.74 fix: today 跟 user query 一致, 让 cache key 命中 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
             today = date.today()
             logger.info(f"  预计算参考日期(today): {today} (max_pay={max_pay_raw}, end_date=今天-1={today - timedelta(days=1)})")
         else:
@@ -400,89 +405,104 @@ def precompute_rfm_cache() -> int:
         for metric_type in METRIC_TYPES:
             for period in STANDARD_PERIODS:
                 for year in YEARS:
-                    try:
-                        pb_func = getattr(
-                            __import__("backend.semantic.time", fromlist=["PeriodBuilder"]).PeriodBuilder,
-                            period.lower()
-                        )
-                        ranges = pb_func(today=today)
-                        cur = ranges["current"]
-                        comp = ranges["comparison"]
-                        prev2 = ranges["prev2"]
-                    except (AttributeError, KeyError):
-                        continue
+                    for channel in CHANNELS:  # L4.71 RFM 业务治本 Stage 1 加 channel 维度 (跟 L4.42 + L4.55 1:1 stable 永久规则化沿用)
+                        for compare_mode in COMPARE_MODES:  # L4.71 RFM 业务治本 Stage 1 加 compare 维度 (跟 L4.55 1:1 stable 永久规则化沿用)
+                            try:
+                                pb_func = getattr(
+                                    __import__("backend.semantic.time", fromlist=["PeriodBuilder"]).PeriodBuilder,
+                                    period.lower()
+                                )
+                                ranges = pb_func(today=today)
+                                cur = ranges["current"]
+                                comp_default = ranges["comparison"]
+                                prev2 = ranges["prev2"]
+                            except (AttributeError, KeyError):
+                                continue
 
-                    cur_start = f"{cur.start} 00:00:00"
-                    cur_end = f"{cur.end} 23:59:59"
-                    cur_cutoff = cur.cutoff
-                    comp_start = f"{comp.start} 00:00:00"
-                    comp_end = f"{comp.end} 23:59:59"
-                    comp_cutoff = comp.cutoff
-                    prev2_start = f"{prev2.start} 00:00:00"
-                    prev2_end = f"{prev2.end} 23:59:59"
-                    prev2_cutoff = prev2.cutoff
+                            # L4.71 RFM 业务治本 Stage 1: 根据 compare_mode 选 comp 范围 (跟 L4.55 1:1 stable 永久规则化沿用)
+                            # default = Y-1 同比 / Q-1/Q-2/Q-3 = 1/2/3 季度前环比
+                            if compare_mode == "default":
+                                comp_start = f"{comp_default.start} 00:00:00"
+                                comp_end = f"{comp_default.end} 23:59:59"
+                                comp_cutoff = comp_default.cutoff
+                            else:
+                                # Q-1/Q-2/Q-3: cur.start - 90/180/270 days, 同长度到 cur.start
+                                q_days = {"Q-1": 90, "Q-2": 180, "Q-3": 270}[compare_mode]
+                                q_start = (date.fromisoformat(str(cur.start)) - timedelta(days=q_days)).isoformat()
+                                comp_start = f"{q_start} 00:00:00"
+                                comp_end = f"{cur.start} 00:00:00"
+                                comp_cutoff = (date.fromisoformat(str(cur.start)) - timedelta(days=1)).strftime("%Y-%m-%d")
 
-                    # L4.74 fix: 业务表 (orders) 在业务库, _run_rfm_period 用 biz_conn (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
-                    c_all, c_same, c_memb_all, c_memb_same = _run_rfm_period(
-                        biz_conn, cur_start, cur_end, cur_cutoff, CHANNEL, metric_type, EXCLUDE
-                    )
-                    p_all, p_same, p_memb_all, p_memb_same = _run_rfm_period(
-                        biz_conn, comp_start, comp_end, comp_cutoff, CHANNEL, metric_type, EXCLUDE
-                    )
-                    p2_all, p2_same, p2_memb_all, p2_memb_same = _run_rfm_period(
-                        biz_conn, prev2_start, prev2_end, prev2_cutoff, CHANNEL, metric_type, EXCLUDE
-                    )
+                            cur_start = f"{cur.start} 00:00:00"
+                            cur_end = f"{cur.end} 23:59:59"
+                            cur_cutoff = cur.cutoff
+                            prev2_start = f"{prev2.start} 00:00:00"
+                            prev2_end = f"{prev2.end} 23:59:59"
+                            prev2_cutoff = prev2.cutoff
 
-                    rows = _build_rows(c_all, p_all, p2_all)
-                    same_rows = _build_rows(c_same, p_same, p2_same)
-                    memb_rows = _build_rows(c_memb_all, p_memb_all, p2_memb_all)
-                    memb_same_rows = _build_rows(c_memb_same, p_memb_same, p2_memb_same)
+                            # L4.74 fix: 业务表 (orders) 在业务库, _run_rfm_period 用 biz_conn (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
+                            c_all, c_same, c_memb_all, c_memb_same = _run_rfm_period(
+                                biz_conn, cur_start, cur_end, cur_cutoff, channel, metric_type, EXCLUDE
+                            )
+                            p_all, p_same, p_memb_all, p_memb_same = _run_rfm_period(
+                                biz_conn, comp_start, comp_end, comp_cutoff, channel, metric_type, EXCLUDE
+                            )
+                            p2_all, p2_same, p2_memb_all, p2_memb_same = _run_rfm_period(
+                                biz_conn, prev2_start, prev2_end, prev2_cutoff, channel, metric_type, EXCLUDE
+                            )
 
-                    result = {
-                        "year_label": str(year),
-                        "comp_year_label": str(year - 1),
-                        "prev2_year_label": str(year - 2),
-                        "metric_type": metric_type,
-                        "rows": rows,
-                        "same_channel_rows": same_rows,
-                        "member_rows": memb_rows,
-                        "member_same_channel_rows": memb_same_rows,
-                    }
+                            rows = _build_rows(c_all, p_all, p2_all)
+                            same_rows = _build_rows(c_same, p_same, p2_same)
+                            memb_rows = _build_rows(c_memb_all, p_memb_all, p2_memb_all)
+                            memb_same_rows = _build_rows(c_memb_same, p_memb_same, p2_memb_same)
 
-                    # 注意：前端始终传 start_date/end_date,不用 period 参数
-                    # 缓存键必须基于实际日期范围,与前端请求完全一致
-                    # 缓存键用实际日期,与前端请求格式完全一致
-                    key = _cache_key(None, cur.start, cur.end, CHANNEL, metric_type, EXCLUDE, data_version)
-                    ex_str = ""
-                    # L4.74 amend fix v2 (跟 L4.42 + L4.50 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
-                    # DuckDB 1.5+ INSERT OR REPLACE 内部 = DELETE + INSERT, 但 cache 表有 idx_period 索引,
-                    # DELETE 阶段触发 FATAL Error: Failed to delete all rows from index (index 锁冲突).
-                    # 修复 v1 (transaction 包裹 DELETE + INSERT) 也失败, 因为 DuckDB DELETE + index 的底层逻辑跟 INSERT OR REPLACE 相同.
-                    # 修复 v2: 改用 DuckDB 1.5+ 原生 ON CONFLICT (cache_key) DO UPDATE SET UPSERT 语法,
-                    # 避开 DELETE 索引删除路径, 改用 UPDATE 路径 (cache_key 是 PRIMARY KEY, 满足 ON CONFLICT 约束).
-                    # 写用 write_conn（QW2 Phase 2: 绕开 read_only 单例）
-                    # Stale 修复：把 orders_count_at_write 也写进去,
-                    # 下次读时与当前 orders.COUNT(*) 对比 → 行数变化即失效
-                    write_conn.execute(
-                        f"INSERT INTO {RFM_CACHE_TABLE} "
-                        f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
-                        f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
-                        f"ON CONFLICT (cache_key) DO UPDATE SET "
-                        f"period = excluded.period, "
-                        f"start_date = excluded.start_date, "
-                        f"end_date = excluded.end_date, "
-                        f"channel = excluded.channel, "
-                        f"metric_type = excluded.metric_type, "
-                        f"ex_channels = excluded.ex_channels, "
-                        f"result_json = excluded.result_json, "
-                        f"mtime_at_write = excluded.mtime_at_write, "
-                        f"orders_count_at_write = excluded.orders_count_at_write, "
-                        f"computed_at = excluded.computed_at",
-                        [key, period.upper(), cur.start, cur.end, CHANNEL or "", metric_type, ex_str,
-                         json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
-                    )
-                    computed += 1
-                    logger.info(f"  RFM 预计算: {period} {year} {metric_type} → {key}")
+                            result = {
+                                "year_label": str(year),
+                                "comp_year_label": str(year - 1),
+                                "prev2_year_label": str(year - 2),
+                                "metric_type": metric_type,
+                                "rows": rows,
+                                "same_channel_rows": same_rows,
+                                "member_rows": memb_rows,
+                                "member_same_channel_rows": memb_same_rows,
+                            }
+
+                            # L4.71 RFM 业务治本 Stage 1: cache key 加 channel + compare_start_date/end_date 维度 (跟 L4.55 1:1 stable 永久规则化沿用)
+                            # 治本 user 自定义 channel + 自定义同比 慢
+                            key = _cache_key(
+                                None, cur.start, cur.end, channel, metric_type, EXCLUDE, data_version,
+                                comp_start.split(" ")[0] if compare_mode != "default" else None,
+                                comp_end.split(" ")[0] if compare_mode != "default" else None,
+                            )
+                            ex_str = ""
+                            # L4.74 amend fix v2 (跟 L4.42 + L4.50 + L4.65.1 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
+                            # DuckDB 1.5+ INSERT OR REPLACE 内部 = DELETE + INSERT, 但 cache 表有 idx_period 索引,
+                            # DELETE 阶段触发 FATAL Error: Failed to delete all rows from index (index 锁冲突).
+                            # 修复 v2: 改用 DuckDB 1.5+ 原生 ON CONFLICT (cache_key) DO UPDATE SET UPSERT 语法,
+                            # 避开 DELETE 索引删除路径, 改用 UPDATE 路径 (cache_key 是 PRIMARY KEY, 满足 ON CONFLICT 约束).
+                            # 写用 write_conn（QW2 Phase 2: 绕开 read_only 单例）
+                            # Stale 修复：把 orders_count_at_write 也写进去,
+                            # 下次读时与当前 orders.COUNT(*) 对比 → 行数变化即失效
+                            write_conn.execute(
+                                f"INSERT INTO {RFM_CACHE_TABLE} "
+                                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
+                                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+                                f"ON CONFLICT (cache_key) DO UPDATE SET "
+                                f"period = excluded.period, "
+                                f"start_date = excluded.start_date, "
+                                f"end_date = excluded.end_date, "
+                                f"channel = excluded.channel, "
+                                f"metric_type = excluded.metric_type, "
+                                f"ex_channels = excluded.ex_channels, "
+                                f"result_json = excluded.result_json, "
+                                f"mtime_at_write = excluded.mtime_at_write, "
+                                f"orders_count_at_write = excluded.orders_count_at_write, "
+                                f"computed_at = excluded.computed_at",
+                                [key, period.upper(), cur.start, cur.end, channel or "", metric_type, ex_str,
+                                 json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
+                            )
+                            computed += 1
+                            logger.info(f"  RFM 预计算: {period} {year} {metric_type} channel={channel or '全店'} compare={compare_mode} → {key}")
 
     finally:
         try:
@@ -495,5 +515,5 @@ def precompute_rfm_cache() -> int:
         except Exception:
             pass
 
-    logger.info(f"RFM 预计算完成: {computed} / {len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES)} 个组合")
+    logger.info(f"RFM 预计算完成: {computed} / {len(STANDARD_PERIODS) * len(YEARS) * len(METRIC_TYPES) * len(CHANNELS) * len(COMPARE_MODES)} 个组合")
     return computed
