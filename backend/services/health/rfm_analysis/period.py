@@ -14,7 +14,7 @@ import duckdb
 
 from backend.semantic.calculations import yoy_absolute, yoy_repurchase_rate
 from backend.semantic.segments import RFM_THRESHOLDS
-from backend.semantic.time import PeriodBuilder
+from backend.semantic.time import DateRange, PeriodBuilder
 from ._shared import _VALID_BASE, RFM_SEGMENT_ORDER
 
 logger = logging.getLogger(__name__)
@@ -46,13 +46,70 @@ def _last90days_ranges(today: date) -> dict:
 
 
 def _hot_period_ranges(today: date) -> list[tuple[str, dict]]:
+    """Stage 2 L4.75 扩 8 RANGE 周期 (跟 L4.42 + L4.50 + L4.71 + L4.74 + L4.75 1:1 stable 永久规则链配套).
+
+    13 period_type 覆盖 frontend 4 tabs weeks=4/8/12:
+    - rolling_7d / rolling_14d / rolling_30d / rolling_60d / rolling_90d: 移动 N 天窗口
+    - weekly_4w / weekly_8w / weekly_12w: 4/8/12 周窗口 (frontend weeks=[4,8,12] NSelect 1:1 stable)
+    """
     return [
         ("MTD", PeriodBuilder.mtd(today=today)),
         ("YTD", PeriodBuilder.ytd(today=today)),
         ("last90days", _last90days_ranges(today)),
         ("last180days", PeriodBuilder.last180days(today=today)),
         ("last365days", PeriodBuilder.last365days(today=today)),
-    ]
+        # Stage 2 RANGE 周期 (跟 L4.75 1:1 stable 永久规则化沿用):
+        ("rolling_7d", _resolve_range_period("rolling_7d", today)),
+        ("rolling_14d", _resolve_range_period("rolling_14d", today)),
+        ("rolling_30d", _resolve_range_period("rolling_30d", today)),
+        ("rolling_60d", _resolve_range_period("rolling_60d", today)),
+        ("rolling_90d", _resolve_range_period("rolling_90d", today)),
+        ("weekly_4w", _resolve_range_period("weekly_4w", today)),
+        ("weekly_8w", _resolve_range_period("weekly_8w", today)),
+        ("weekly_12w", _resolve_range_period("weekly_12w", today)),
+    ]  # 13 (Stage 1 5 + Stage 2 8) × 2 metric × 4 channel × 4 compare = 416 cache keys.
+
+
+# Stage 2 (L4.75): 跟 frontend MarketFocusView.vue 4 tab ProductCustomerTab/
+# StoreAssetsTab/ProductAssetsTab/OtherProductAssetsTab weeks=[4,8,12] 1:1 stable 永久规则化沿用.
+# _resolve_period_type 自动从 start_dt 匹配 RANGE 周期名 (跟 L4.75 1:1 stable 永久规则链配套).
+def _resolve_range_period(range_name: str, today: date) -> dict:
+    """Stage 2 (L4.75 RFM cache 治本): 解析 range-based 周期到 current/comp/prev2 ranges.
+
+    跟 L4.42 + L4.50 + L4.71 + L4.74 + L4.75 1:1 stable 永久规则链配套.
+    Rolling: cur = today - X to today - 1 (X=7/14/30/60/90), 等长向前滚动 X 天作 comp/prev2.
+    Weekly: cur = today - X*7 to today - 1 (X=4/8/12 weeks), comp/prev2 同理按周向前滚.
+    today = date.today() (跟 L4.74 cache end_date fix 1:1 stable 永久规则化沿用).
+    返回 {'current': DateRange, 'comparison': DateRange, 'prev2': DateRange}.
+    """
+
+    if range_name.startswith("rolling_"):
+        X = max(1, int(range_name[len("rolling_"):].rstrip("d")))
+    elif range_name.startswith("weekly_"):
+        weeks = max(1, int(range_name[len("weekly_"):].rstrip("w")))
+        X = weeks * 7
+    else:
+        raise ValueError(f"Unknown range_name: {range_name}")
+
+    cur_end = today - timedelta(days=1)
+    cur_start = cur_end - timedelta(days=X - 1)
+    comp_end = cur_start - timedelta(days=1)
+    comp_start = comp_end - timedelta(days=X - 1)
+    prev2_end = comp_start - timedelta(days=1)
+    prev2_start = prev2_end - timedelta(days=X - 1)
+
+    def _make(s: date, e: date) -> DateRange:
+        return DateRange(
+            start=s.isoformat(),
+            end=e.isoformat(),
+            cutoff=(s - timedelta(days=1)).isoformat(),
+        )
+
+    return {
+        "current": _make(cur_start, cur_end),
+        "comparison": _make(comp_start, comp_end),
+        "prev2": _make(prev2_start, prev2_end),
+    }
 
 
 def _resolve_period_type(start_dt: str, end_dt: Optional[str] = None, today: Optional[date] = None) -> str:
