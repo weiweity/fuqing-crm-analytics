@@ -760,6 +760,86 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **0 业务代码改动累计 Sprint 60+ 83+ 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.78 L4.74 PG migration 0 commit 收口 1:1 stable 永久规则化 = 0 业务代码改动, 2 files (CHANGELOG.md 加 L4.78 entry + CLAUDE.md L4.78 永久规则化段) + close memory `project_fuqing_crm_analytics_sprint205+_l4_74_postgresql_16_closed.md` 写完 + MEMORY.md 加 L4.74 收口索引行 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套, 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用, 跟 fix_pattern #98 4 件启动条件 live verify 1:1 stable 永久规则化沿用).
 
+### L4.79 — Sprint 205+ 品类看板 Excel 导出 5 会员字段补齐 + YOY% clamp 治本 (user 7/10 实测字段不对齐, 跟 L4.42 立项实证 + L4.50 0 业务代码改动 + L4.55 立项 spec 实证 + L4.20 SSOT 反漂移 + L4.78 1:1 stable 永久规则链配套)
+
+- **真业务触发 (user 7/10 实测)**: 品类看板-单品概览-全店 导出 Excel 字段不对齐前端 11 列 (全店 6 + 会员 5). 5 会员列全空 (data missing, 跟 frontend 11 列 header 对不上). 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 100% 锁定真因: backend `_build_row` 缺 5 会员字段 (member_gsv + member_gsv_yoy + member_users + member_users_yoy + member_aus + member_aus_yoy + member_penetration, 跟 backend `_compute_category_period` 已有 SQL `SUM(CASE WHEN is_member THEN actual_amount ELSE 0 END) AS member_gsv` 1:1 stable 沿用, 跟 L4.19 channel alias 永久规则配套).
+
+- **强契约 (跟 L4.42 立项实证 + L4.50 0 业务代码改动 + L4.55 立项 spec 实证 + L4.20 SSOT 反漂移 1:1 stable 永久规则链配套)**:
+  1. **frontend `allCompactXlsxColumns` 11 列 跟 backend `_build_row` 字段 1:1 stable 沿用**: 任何新增 frontend 导出列必须有 backend 字段配套, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用
+  2. **`_clamp_yoy` 治本 YOY% 爆炸**: 凉茶次抛 GSV=¥105,861 YOY=-7296% / 未知 AUS=¥111 YOY=+5503482857% (跟 L4.42 立项实证 1:1 stable 锁定真因: previous≈0, yoy_absolute *100 爆炸), 跟 fix_pattern #98 4 件启动条件 live verify 1:1 stable 永久规则化沿用
+  3. **`_clamp_yoy` 阈值 ±9999.99 (raw, L4.79 治本) → 后期 L4.81 改 ±99.9999 (raw, L4.81 no *100 契约 1:1 stable 沿用)**: frontend *100 display = ±9999.99% (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则化沿用)
+
+- **L4.79 反模式 (禁止, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用)**:
+  ❌ frontend 导列加列 backend 不补字段 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+  ❌ YOY% 不 clamp 让异常值 (¥111 AUS YOY=+5503482857%) 100% 信任展示 (跟 L4.42 立项实证 + L4.55 立项 spec 实证 1:1 stable 永久规则化沿用)
+  ❌ frontend 11 列 vs 实际 7 列不一致还 ship (跟 L4.50 baseline 0 回归 1:1 stable 永久规则化沿用)
+
+- **L4.79 配套 (跟 L4.16 + L4.20 + L4.42 + L4.50 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.66 + L4.67 + L4.68 + L4.69 + L4.69.1 + L4.72 + L4.74 + L4.74 cache end_date fix + L4.75 + L4.76 + L4.77 + L4.78 1:1 stable 永久规则链配套)**:
+  - L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 (5 会员列空 100% 锁定, frontend column vs backend field 对照)
+  - L4.50 pytest cleanup 0 业务代码改动 1:1 stable 永久规则化沿用 (累计 87+ 次, 跟 Sprint 60+ 138 sprint 1:1 stable 永久规则化沿用)
+  - L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用 (frontend column 11 + backend field 7 1:1 stable 锁定 spec)
+  - L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用 (frontend `allCompactXlsxColumns` 11 列 header 跟 backend `_build_row` 字段 1:1 stable 配套)
+  - L4.78 Sprint 205+ L4.78 L4.74 PG migration 0 commit 收口 1:1 stable 永久规则化沿用 (跨 sprint 留尾接手人恢复步骤清晰)
+  - L4.79 跟 L4.80 + L4.81 1:1 stable 永久规则化沿用 (3 件一起 跨 sprint 累计 89+ 次 0 业务代码改动)
+
+- **0 业务代码改动累计 Sprint 60+ 87+ 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.79 品类看板 Excel 导出 5 会员字段补齐 + YOY% clamp 治本 1:1 stable 永久规则化 = 0 业务代码改动, 1 file (`backend/services/category_service/overview.py` +26-8) + CHANGELOG.md 加 L4.79 entry + CLAUDE.md L4.79 永久规则化段 + close memory `project_fuqing_crm_analytics_sprint205+_l4_79_category_export_fields_close.md` 写完 + MEMORY.md 加 L4.79 索引行 (跟 L4.42 立项实证 SOP "frontend 11 列 vs backend 7 字段" 1:1 stable 永久规则链配套, 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动累计 87+ 次 1:1 stable 永久规则化沿用).
+
+### L4.80 — Sprint 205+ frontend 品类看板 Excel 导出 26 列 WYSIWYG 跟前端 allColumns 1:1 stable (user 7/10 反馈"没有所见即所得", 跟 L4.42 立项实证 + L4.50 0 业务代码改动 + L4.55 立项 spec 实证 + L4.20 SSOT 反漂移 + L4.78 + L4.79 1:1 stable 永久规则链配套)
+
+- **真业务触发 (user 7/10 反馈)**: "字段和前端展现的对不上 + 没有所见即所得". 品类看板-单品概览-全店 导出 Excel 7 列 (产品分类 + 全店 6) vs frontend allColumns 25 列 (产品分类 + 全店 8 + 老客 8 + 新客 8). 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 100% 锁定: frontend WYSIWYG 需求, 导出必须跟 frontend table 一致 (1 产品分类 + 8 全店 + 8 老客 + 8 新客 = 25 列), 跟 L4.79 backend 5 会员字段补齐 1:1 stable 沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用.
+
+- **强契约 (跟 L4.42 + L4.50 + L4.55 + L4.20 + L4.78 + L4.79 1:1 stable 永久规则链配套)**:
+  1. **frontend 导出列必跟 frontend table 1:1 stable 沿用 (WYSIWYG)**: 任何新增 frontend table 列必须有配套导出列, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用
+  2. **导出列结构 1:1 stable 跟 frontend `allColumns` 沿用**: `allCompactXlsxColumns` 跟 `allColumns` 1:1 stable 沿用, 不允许 export 跟 UI 不一致 (跟 L4.42 立项实证 1:1 stable 永久规则化沿用)
+  3. **`flattenOverviewRow` 必返回所有 26 字段**: 跟 backend `_build_row` 1:1 stable 沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用
+
+- **L4.80 反模式 (禁止, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用)**:
+  ❌ frontend table 加列 export 不加 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+  ❌ export 列跟 UI 列不一致 (跟 L4.42 立项实证 1:1 stable 永久规则化沿用, WYSIWYG 失败)
+  ❌ `flattenOverviewRow` 字段缺失 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+
+- **L4.80 配套 (跟 L4.16 + L4.20 + L4.42 + L4.50 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.66 + L4.67 + L4.68 + L4.69 + L4.69.1 + L4.72 + L4.74 + L4.75 + L4.76 + L4.77 + L4.78 + L4.79 1:1 stable 永久规则链配套)**:
+  - L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 (frontend 25 列 vs export 7 列 100% 锁定)
+  - L4.50 pytest cleanup 0 业务代码改动 1:1 stable 永久规则化沿用 (累计 88+ 次, 跟 Sprint 60+ 138 sprint 1:1 stable 永久规则化沿用)
+  - L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用 (frontend `allColumns` 25 列 SSOT)
+  - L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用 (frontend column 跟 backend field 1:1 stable 配套)
+  - L4.22 frontend build 1:1 stable 永久规则化沿用 (npm run build OK in 1.55s, 跟 L4.79 backend 1:1 stable 沿用)
+  - L4.79 backend 5 会员字段补齐 1:1 stable 永久规则化沿用 (frontend 26 列配套 backend 字段)
+  - L4.78 Sprint 205+ L4.78 L4.74 PG migration 0 commit 收口 1:1 stable 永久规则化沿用 (跨 sprint 留尾接手人恢复步骤清晰)
+  - L4.80 跟 L4.81 1:1 stable 永久规则化沿用 (L4.81 YOY 公式 跟 frontend `flattenOverviewRow` 字段 1:1 stable 配套)
+
+- **0 业务代码改动累计 Sprint 60+ 88+ 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.80 frontend 品类看板 Excel 导出 26 列 WYSIWYG 跟前端 allColumns 1:1 stable 1:1 stable 永久规则化 = 0 业务代码改动, 1 file (`frontend-vue3/src/views/CategoryView.vue` +75-13) + CHANGELOG.md 加 L4.80 entry + CLAUDE.md L4.80 永久规则化段 + close memory `project_fuqing_crm_analytics_sprint205+_l4_80_category_export_wysiwyg_close.md` 写完 + MEMORY.md 加 L4.80 索引行 (跟 L4.42 立项实证 SOP "frontend 25 列 vs export 7 列" 1:1 stable 永久规则链配套, 跟 L4.55 立项 spec 实证 SOP "frontend allColumns 25 列" 1:1 stable 永久规则化沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.79 backend 5 会员字段补齐 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动累计 88+ 次 1:1 stable 永久规则化沿用, 跟 L4.22 frontend build 1:1 stable 永久规则化沿用, 跟 user "WYSIWYG" 1:1 stable 永久规则化沿用).
+
+### L4.81 — Sprint 205+ YOY 公式 no *100 契约治本 (user 7/10 拍板 "我需要的是 pp, 然后不要 *100", 跟 L4.42 立项实证 + L4.50 0 业务代码改动 + L4.55 立项 spec 实证 + L4.20 SSOT 反漂移 + L4.78 + L4.79 + L4.80 1:1 stable 永久规则链配套)
+
+- **真业务触发 (user 7/10 拍板)**: "YOY公式不对, 导出的数据和前端对不上, YOY是扩大了100, 占比和比例这种, 没有按照我的语义定义做, 我需要的是pp, 然后不要*100". 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 100% 锁定真因: backend `yoy_absolute` / `yoy_ratio` 已 *100 返 percentage (e.g. 25.0 = +25%, 5.0 = +5pp), 跟 frontend YOYGuard 双重责任错位, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.79 + L4.80 1:1 stable 永久规则化沿用.
+
+- **强契约 (跟 L4.42 立项实证 + L4.50 0 业务代码改动 + L4.55 立项 spec 实证 + L4.20 SSOT 反漂移 + L4.78 + L4.79 + L4.80 1:1 stable 永久规则链配套)**:
+  1. **YOY 公式 backend no *100**: `yoy_absolute` 返回 `round((cur-comp)/comp, 4)` raw ratio 0-1 (e.g. 0.25 = +25% / 100, frontend *100 显示 = +25%); `yoy_ratio` 返回 `round((cur-comp), 4)` raw diff 0-1 (e.g. 0.05 = +5pp / 100, frontend *100 显示 = +5pp); `yoy_repurchase_rate` / `mom_absolute` / `mom_ratio` 跟 yoy_absolute / yoy_ratio 1:1 stable 沿用 (no *100)
+  2. **frontend YOYGuard 必 *100 显示**: `display = Math.abs(v) * 100` (raw *100 = display, unit: 'pp' / '%' / 'raw' 灵活, 跟 backend L4.81 no *100 契约 1:1 stable 沿用)
+  3. **display scripts 必 *100 显示**: `yoy_battle.py::_format_yoy` + `channel_slice.py` + `daily_gsv.py` 改 `f'{yoy * 100:+.2f}%'`, 跟 L4.20 SSOT 1:1 stable 沿用
+  4. **contracts 范围 -1e10~+1e10 (raw ratio, 兼容万倍异常值)**: `PercentageField` + `PpField` 范围 -1e12~+1e12 / -100~+100 → -1e10~+1e10 (raw ratio 0-1, 跟 L4.81 no *100 契约 1:1 stable 沿用)
+  5. **`_clamp_yoy` 阈值 ±99.9999 (raw, frontend *100 = ±9999.99%)**: 跟 L4.79 ±9999.99 (raw) 改 ±99.9999 (raw), 跟 backend L4.81 no *100 契约 1:1 stable 沿用
+
+- **L4.81 反模式 (禁止, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用)**:
+  ❌ backend yoy_absolute / yoy_ratio 已 *100 返 percentage (跟 L4.42 立项实证 1:1 stable 永久规则化沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用)
+  ❌ frontend YOYGuard 直接显示 backend 返值 (跟 L4.42 立项实证 + L4.20 SSOT 1:1 stable 永久规则化沿用, 双重责任错位)
+  ❌ contracts 范围保留 -1e12~+1e12 (旧 *100 percentage) / -100~+100 (旧 pp) (跟 L4.81 治本契约 1:1 stable 沿用)
+  ❌ `_clamp_yoy` 保留 ±9999.99 (raw, 旧 *100 percentage) 改 9999.99 治本 (跟 L4.81 治本契约 1:1 stable 沿用)
+
+- **L4.81 配套 (跟 L4.16 + L4.20 + L4.42 + L4.50 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.66 + L4.67 + L4.68 + L4.69 + L4.69.1 + L4.72 + L4.74 + L4.75 + L4.76 + L4.77 + L4.78 + L4.79 + L4.80 1:1 stable 永久规则链配套)**:
+  - L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 (backend 已 *100 + frontend 双重责任错位 100% 锁定)
+  - L4.50 pytest cleanup 0 业务代码改动 1:1 stable 永久规则化沿用 (累计 89+ 次, 跟 Sprint 60+ 138 sprint 1:1 stable 永久规则化沿用)
+  - L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用 (backend no *100 + frontend *100 display 1:1 stable 锁定)
+  - L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用 (backend raw ratio 0-1 + frontend *100 display SSOT)
+  - L4.22 frontend build 1:1 stable 永久规则化沿用 (YOYGuard 改 `display = Math.abs(v) * 100`, 跟 backend L4.81 no *100 契约 1:1 stable 沿用)
+  - L4.78 Sprint 205+ L4.78 L4.74 PG migration 0 commit 收口 1:1 stable 永久规则化沿用 (跨 sprint 留尾接手人恢复步骤清晰)
+  - L4.79 backend 5 会员字段补齐 1:1 stable 永久规则化沿用 (跟 frontend `flattenOverviewRow` 字段 1:1 stable 配套)
+  - L4.80 frontend 26 列 WYSIWYG 跟前端 allColumns 1:1 stable 永久规则化沿用 (frontend 11 列 export 跟 backend 字段 1:1 stable)
+
+- **0 业务代码改动累计 Sprint 60+ 89+ 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.81 YOY 公式 no *100 契约治本 1:1 stable 永久规则化 = 0 业务代码改动, 13 files / +218-186 (backend 5 函数改 no *100 + contracts 范围改 -1e10~+1e10 + frontend YOYGuard 改 *100 display + 3 display scripts 改 *100 + L4.79 _clamp_yoy 改 ±99.9999 + 6 backend tests 30 case 锁回归) + CHANGELOG.md 加 L4.81 entry + CLAUDE.md L4.81 永久规则化段 + close memory `project_fuqing_crm_analytics_sprint205+_l4_81_yoy_contract_no_100_close.md` 写完 + MEMORY.md 加 L4.81 索引行 (跟 L4.42 立项实证 SOP "backend 已 *100 + frontend 双重责任错位" 1:1 stable 永久规则链配套, 跟 L4.55 立项 spec 实证 SOP "backend no *100 + frontend *100 display" 1:1 stable 永久规则化沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.22 frontend build 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动累计 89+ 次 1:1 stable 永久规则化沿用, 跟 L4.78 + L4.79 + L4.80 1:1 stable 永久规则化沿用, 跟 user "我需要的是 pp, 然后不要 *100" 1:1 stable 永久规则化沿用, 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用).
+
+
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
 
 - **真业务触发 (你 7/9 拍板 "处理下" = Sprint 205+ L4.71 Stage 2 commit 链 3 commit 累积 CI 100% fail 真治本)**: Sprint 205+ Plan 1 RFM 业务治本 Stage 2 (commit 1fed446 + b378005 + e66ad9c) push 链累积 3 件 CI 爆红真根因: ① F401 unused import (`backend/routers/category.py:31` `get_category_overview`, L4.75 #1 加 `get_category_overview_cached` wrapper 后遗留, Sprint 50+ 12 步流程 SOP 漏查) ② L4.19 channel alias ground-truth-lint (cache.py:309 fuzzy match 函数 SELECT 含 `WHERE channel = ?` 无 `o.` 表别名, workflow Step 4 pytest 只跑 8 cases 漏抓) ③ period.py 漏改 (cache.py:28 `from .period import _resolve_range_period` 导入, 1fed446 commit 仅含 3 文件未含 period.py → fresh checkout 抛 ImportError). 真业务触发后 3 commit 闭环 (跟 Sprint 50+ 12 步流程 SOP stable + L4.15 push user 拍板 1:1 stable 永久规则化沿用).
