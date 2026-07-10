@@ -17,7 +17,16 @@ fi
 echo "DUCKDB_PATH: $DUCKDB_PATH"
 echo "启动 uvicorn..."
 
+UVICORN_WORKER_COUNT="${UVICORN_WORKERS:-2}"
+if [ "${FQ_SINGLE_USER_V2:-0}" = "1" ]; then
+    if [ -n "${UVICORN_WORKERS:-}" ] && [ "$UVICORN_WORKERS" != "1" ]; then
+        echo "FATAL: FQ_SINGLE_USER_V2=1 时 UVICORN_WORKERS 必须为 1" >&2
+        exit 1
+    fi
+    UVICORN_WORKER_COUNT=1
+fi
+
 exec python -m uvicorn backend.main:app \
     --host 0.0.0.0 \
     --port 8001 \
-    --workers 2
+    --workers "$UVICORN_WORKER_COUNT"

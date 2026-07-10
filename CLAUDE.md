@@ -715,6 +715,20 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **0 业务代码改动累计 Sprint 60+ 60 次 1:1 stable 配套 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.74 真业务触发 (启动条件 b + c 真触发) 0 业务代码改动 1:1 stable 永久规则化 = 0 业务代码改动, 3 files (docs/TECH-DEBT.md 留尾登记 + CLAUDE.md L4.74 启动条件 c 真触发 永久规则化段 + docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md 立项决策 memo + docs/sprints/SPRINT205+_L442_VERIFICATION_L474_TRIGGERED.md 立项实证报告) (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套 **反向**: 真业务触发 → 重新立项 → 0 commit 续期, 跟 Sprint 204+ 7/5 拍板 0 commit 收口 1:1 stable 模式 配套).
 
+### L4.75 v2 — 共享账号 + LAN 单进程单人排队 (Sprint 205+, 2026-07-10)
+
+- **真业务触发**: PC2 老客 RFM 年度查询从第 1 次约 5s、第 2 次约 15s 到第 3 次卡死；5+ 业务分析师共享 `admin` 且各自 LAN IP，L4.75.1“每 IP 独立锁”仍允许多条重查询同时进入 DuckDB。v2 用 `FQ_SINGLE_USER_V2=1` 显式启用，默认 `0` 保留 v1 行为。
+- **强契约**:
+  1. **全进程最多 1 个 active IP**: 其余 LAN IP 进入 FIFO queue；排队响应必须包含 `position`、`queue_length`、`current_ip`、`estimated_wait_seconds`，让业务方知道找谁协调。
+  2. **状态查询不能抢锁**: `GET /api/v1/session/status` 只观察/触发过期清理；只有 RFM 查询请求可 acquire 或入队，禁止“打开页面即占用”。
+  3. **5 分钟 idle 以真实用户活动为准**: 前端每 30 秒检查一次，但只有窗口内发生 pointer/keyboard/scroll/touch 活动才 POST heartbeat；禁止无条件定时 heartbeat，否则离开工位后 lease 永不释放。active 和 queued 两类离线会话都清理，active 释放后提升首个仍存活的 queued IP。
+  4. **排队不伪装成功数据**: RFM queued 沿用现有 503 single-user 错误链，并加 `X-Limited-Mode: single-user-queued` 等 headers；禁止返回 200 queue body 给 typed RFM client，否则 axios 会把 queue JSON 当 `RFMAnalysisResponse`，导致图表空数据/运行时错误。
+  5. **LAN 白名单显式枚举**: 仅允许 RFC1918 (`10/8`、`172.16/12`、`192.168/16`)、loopback 和 IPv6 ULA；禁止直接用 `ipaddress.is_private`，该属性还会接受文档保留地址等非 LAN 范围。v2 开启时非 LAN RFM 请求必须 403，不能静默回落 v1。
+  6. **进程内状态并发保护**: `ACTIVE_SESSIONS` + `QUEUE` 的 acquire/status/heartbeat/release/evict/promote 必须在同一可重入锁下完成；部署契约为单 uvicorn worker，进程重启允许清空临时队列。
+  7. **session id 只能回显 UUID**: `X-Session-Id` 非 UUID 时服务端重新生成，禁止把任意 header 原样写回 response header。
+- **兼容与验证**: v1 `ACTIVE_USERS`、`release_user_lock()`、`active_user_count()` 公共行为不改；新增 28 个 v2 断言 + 既有 v1 11 case 联合回归，scoped ruff、frontend production build、`git diff --check` 必须全绿。0 业务 SQL/service/contracts 改动，范围仅 middleware/router/ValueTierTab + tests/docs。
+- **fix_pattern #99**: 共享账号 + LAN 的全局重查询排队，身份维度优先 socket `client_ip`；status 必须只读，heartbeat 必须活动驱动，queue 必须有离线淘汰。三者缺一都会分别造成“页面抢锁”“永不 idle”“僵尸队首”。
+
 ### L4.78 — Sprint 205+ L4.74 PostgreSQL 16 分布式 0 commit 收口 (user 7/10 拍板不升级, 跟 L4.42 "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用)
 
 - **真业务触发 (你 7/10 拍板 "算了, postgresql 这件事情结束吧, 不升级了, 我们解决掉当前剩余的任务就可以" = 7/16 离职 + 没接手人 + Mac/PC2 网络环境异常 = 治根闭环不可达, 0 commit 收口)**: Sprint 205+ L4.74 PostgreSQL 16 分布式 整体 0 commit 收口 + 跨 sprint 留尾给接手人 7/16+ 启动. 5 commits 留尾分支 (跟 L4.74 + L4.77 1:1 stable 永久规则化沿用): ① `3fa790f` V2 handoff 7 周 1 人月 3 子任务串行 ② `687ff81` 子任务 A 静态 PASS 7 files / +2962/-16 ③ `f79aadc` POC report 5 路径尝试全记录 ④ `78d93e9` pytest 1/5 PASS + 4/5 FAIL 实跑结果 ⑤ `672f856` Docker CloudFront EOF 根因调查 handoff.

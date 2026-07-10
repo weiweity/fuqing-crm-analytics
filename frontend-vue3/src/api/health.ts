@@ -226,6 +226,31 @@ export function releaseSessionLock(): Promise<{ released: boolean; user_id: stri
   return client.delete('/v1/session') as Promise<{ released: boolean; user_id: string }>
 }
 
+export type RFMSessionStatus = 'active' | 'queued' | 'none' | 'disabled'
+
+export interface RFMSessionStatusResponse {
+  status: RFMSessionStatus
+  ip?: string
+  session_id?: string
+  position?: number
+  queue_length?: number
+  current_ip?: string | null
+  estimated_wait_seconds?: number
+  last_heartbeat_seconds_ago?: number
+  lock_timeout_seconds: number
+  heartbeat_interval_seconds: number
+  query_in_flight?: boolean
+  v2_enabled?: boolean
+}
+
+export function fetchRFMSessionStatus(): Promise<RFMSessionStatusResponse> {
+  return client.get('/v1/session/status')
+}
+
+export function heartbeatRFMSession(): Promise<RFMSessionStatusResponse> {
+  return client.post('/v1/session/heartbeat')
+}
+
 export interface NewCustomerConversionParams {
   analysis_date: string
   lookback_months?: number

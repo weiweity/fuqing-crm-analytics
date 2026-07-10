@@ -30,8 +30,11 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // Keep the proxy hop on a uvicorn-trusted loopback address and append
+        // X-Forwarded-For so the backend can distinguish LAN clients.
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        xfwd: true,
       },
     },
     // 显式 no-store: 比 no-cache 更强, 强制每次从 server 拉新
@@ -48,8 +51,9 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        xfwd: true,
       },
     },
   },

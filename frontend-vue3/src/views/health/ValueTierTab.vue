@@ -2,14 +2,18 @@
 import { computed, toValue, h, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import type { DataTableColumns } from 'naive-ui'
-import { NAlert, NButton } from 'naive-ui'
+import { NAlert, NButton, NModal } from 'naive-ui'
 import ManualQueryButton from '@/components/ManualQueryButton.vue'
 import { useFilterStore } from '@/stores/filterStore'
 import {
+  fetchRFMSessionStatus,
   fetchRFMAnalysis,
   fetchRFMConfig,
+  heartbeatRFMSession,
   isSingleUserModeError,
   releaseSessionLock,
+  type RFMSessionStatus,
+  type RFMSessionStatusResponse,
   type RFMAnalysisRow,
   type RFMAnalysisResponse,
   type SingleUserModeError,
@@ -34,7 +38,30 @@ const rfmChartRef = ref<InstanceType<typeof EChartsWrapper> | null>(null)
 const selectedSegment = ref<string | null>(null)
 const singleUserBlocked = ref(false)
 const singleUserMessage = ref('')
-let singleUserPingTimer: number | null = null
+type SessionUiState = RFMSessionStatus | 'busy'
+const sessionStatus = ref<SessionUiState>('none')
+const queuePosition = ref<number | null>(null)
+const queueLength = ref<number | null>(null)
+const currentIp = ref('')
+const estimatedWaitSeconds = ref<number | null>(null)
+const heartbeatIntervalSeconds = ref(30)
+const lockTimeoutSeconds = ref(300)
+const idleTimeoutMinutes = computed(() => Math.max(1, Math.ceil(lockTimeoutSeconds.value / 60)))
+const queueMetadataReady = computed(() => (
+  queuePosition.value !== null && queuePosition.value > 0 &&
+  queueLength.value !== null && queueLength.value > 0 &&
+  estimatedWaitSeconds.value !== null
+))
+const estimatedWaitMinutes = computed(() => (
+  estimatedWaitSeconds.value === null ? null : Math.max(1, Math.ceil(estimatedWaitSeconds.value / 60))
+))
+let sessionMonitorTimer: number | null = null
+const sessionMonitorInFlight = ref(false)
+const sessionMonitorError = ref('')
+const sessionCancelInFlight = ref(false)
+let promotionRefetchInFlight = false
+let activitySinceHeartbeat = false
+const USER_ACTIVITY_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart'] as const
 
 const drilldownQueryParams = computed(() => ({
   start_date: filterStore.dateRange[0],
@@ -69,13 +96,23 @@ function onRFMChartClick(params: any) {
   selectedSegment.value = null
 }
 
+function markUserActivity() {
+  activitySinceHeartbeat = true
+}
+
 // 暴露到 window，供 tooltip onclick 调用
 onMounted(() => {
   ;(window as any).__rFMDrilldownClick = onRFMChartClick
+  USER_ACTIVITY_EVENTS.forEach((eventName) => {
+    window.addEventListener(eventName, markUserActivity, { passive: true })
+  })
 })
 
 onUnmounted(() => {
-  stopSingleUserPing()
+  stopSessionMonitor()
+  USER_ACTIVITY_EVENTS.forEach((eventName) => {
+    window.removeEventListener(eventName, markUserActivity)
+  })
   void releaseSessionLock().catch(() => {})
 })
 
@@ -97,17 +134,136 @@ const compareQueryParams = computed(() => {
 
 const rfmQueryKey = computed(() => ['rfm-analysis', { ...toValue(rfmQueryParams) }, toValue(compareQueryParams)])
 
-function startSingleUserPing() {
-  if (singleUserPingTimer) return
-  singleUserPingTimer = window.setInterval(() => {
-    void rfmRefetch()
-  }, 30_000)
+function startSessionMonitor() {
+  if (sessionMonitorTimer) return
+  sessionMonitorTimer = window.setInterval(() => {
+    void monitorSession()
+  }, heartbeatIntervalSeconds.value * 1_000)
 }
 
-function stopSingleUserPing() {
-  if (!singleUserPingTimer) return
-  window.clearInterval(singleUserPingTimer)
-  singleUserPingTimer = null
+function stopSessionMonitor() {
+  if (!sessionMonitorTimer) return
+  window.clearInterval(sessionMonitorTimer)
+  sessionMonitorTimer = null
+}
+
+async function refetchAfterPromotion() {
+  if (promotionRefetchInFlight) return
+  promotionRefetchInFlight = true
+  try {
+    await rfmRefetch()
+  } finally {
+    promotionRefetchInFlight = false
+  }
+}
+
+function applySessionStatus(data: RFMSessionStatusResponse) {
+  const previousStatus = sessionStatus.value
+  const nextHeartbeatInterval = Math.max(5, data.heartbeat_interval_seconds || 30)
+  if (nextHeartbeatInterval !== heartbeatIntervalSeconds.value && sessionMonitorTimer) {
+    stopSessionMonitor()
+  }
+  heartbeatIntervalSeconds.value = nextHeartbeatInterval
+  lockTimeoutSeconds.value = Math.max(1, data.lock_timeout_seconds || 300)
+  queuePosition.value = data.position && data.position > 0 ? data.position : null
+  queueLength.value = data.queue_length && data.queue_length > 0 ? data.queue_length : null
+  currentIp.value = data.current_ip ?? ''
+  estimatedWaitSeconds.value = typeof data.estimated_wait_seconds === 'number'
+    ? data.estimated_wait_seconds
+    : null
+  sessionMonitorError.value = ''
+
+  if (data.status === 'queued') {
+    sessionStatus.value = 'queued'
+    singleUserBlocked.value = true
+    singleUserMessage.value = currentIp.value
+      ? `当前 IP ${currentIp.value} 正在使用。请联系该同事协调，或等待其 ${idleTimeoutMinutes.value} 分钟无操作后自动释放。`
+      : 'RFM 查询正在排队，请等待当前使用者释放。'
+    startSessionMonitor()
+    return
+  }
+
+  if (data.status === 'active') {
+    if (data.query_in_flight) {
+      sessionStatus.value = 'busy'
+      singleUserBlocked.value = true
+      singleUserMessage.value = '同一局域网已有一条 RFM 查询正在执行，完成后会自动重试。'
+      startSessionMonitor()
+      return
+    }
+    sessionStatus.value = 'active'
+    singleUserBlocked.value = false
+    singleUserMessage.value = ''
+    startSessionMonitor()
+    if (previousStatus === 'queued' || previousStatus === 'busy') void refetchAfterPromotion()
+    return
+  }
+
+  sessionStatus.value = data.status
+  stopSessionMonitor()
+  if (data.status === 'disabled') {
+    singleUserBlocked.value = false
+    singleUserMessage.value = ''
+    return
+  }
+  if (previousStatus === 'active' || previousStatus === 'queued' || previousStatus === 'busy') {
+    singleUserBlocked.value = true
+    singleUserMessage.value = `会话已因 ${idleTimeoutMinutes.value} 分钟无操作自动释放，请重新点击查询。`
+    rfmAutoFetch.value = false
+  }
+}
+
+async function refreshSessionStatus() {
+  const data = await fetchRFMSessionStatus()
+  applySessionStatus(data)
+}
+
+async function monitorSession() {
+  // The in-flight query itself owns the lease; polling it would make this tab
+  // mistake its own work for a duplicate same-IP query.
+  if (rfmLoading.value) return
+  if (sessionMonitorInFlight.value) return
+  sessionMonitorInFlight.value = true
+  try {
+    if (activitySinceHeartbeat) {
+      const data = await heartbeatRFMSession()
+      activitySinceHeartbeat = false
+      applySessionStatus(data)
+    } else {
+      await refreshSessionStatus()
+    }
+  } catch {
+    // Heartbeat may race the 5-minute eviction. A status read resolves the
+    // authoritative state without refreshing or re-acquiring the lease.
+    try {
+      await refreshSessionStatus()
+    } catch {
+      // A transient control-plane error must not replace valid RFM data.
+      sessionMonitorError.value = '暂时无法刷新排队状态，将自动重试。'
+    }
+  } finally {
+    sessionMonitorInFlight.value = false
+  }
+}
+
+async function cancelQueuedSession() {
+  if (sessionCancelInFlight.value) return
+  sessionCancelInFlight.value = true
+  stopSessionMonitor()
+  try {
+    await releaseSessionLock()
+  } catch {
+    // Closing the local wait dialog is still safe if the lease already expired.
+  } finally {
+    sessionCancelInFlight.value = false
+    singleUserBlocked.value = false
+    singleUserMessage.value = ''
+    sessionStatus.value = 'none'
+    queuePosition.value = null
+    queueLength.value = null
+    estimatedWaitSeconds.value = null
+    rfmAutoFetch.value = false
+  }
 }
 
 async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisResponse | null> {
@@ -115,14 +271,20 @@ async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisRespons
     const data = await fetchRFMAnalysis({ ...toValue(rfmQueryParams), ...toValue(compareQueryParams) })
     singleUserBlocked.value = false
     singleUserMessage.value = ''
-    stopSingleUserPing()
+    sessionStatus.value = 'active'
+    activitySinceHeartbeat = false
+    startSessionMonitor()
+    void refreshSessionStatus().catch(() => {})
     return data
   } catch (error) {
     if (isSingleUserModeError(error)) {
       const err = error as SingleUserModeError
       singleUserBlocked.value = true
-      singleUserMessage.value = `${err.message} 系统会每 30 秒自动重试。`
-      startSingleUserPing()
+      singleUserMessage.value = err.message
+      sessionStatus.value = 'queued'
+      activitySinceHeartbeat = false
+      startSessionMonitor()
+      void refreshSessionStatus().catch(() => {})
       return null
     }
     throw error
@@ -135,6 +297,14 @@ watch([rfmQueryKey, compareQueryParams], () => { rfmAutoFetch.value = false }, {
 function onRFMQueryClick() {
   rfmAutoFetch.value = true
   rfmRefetch()
+}
+
+function retrySingleUserQuery() {
+  if (sessionStatus.value === 'queued' || sessionStatus.value === 'busy') {
+    void monitorSession()
+    return
+  }
+  onRFMQueryClick()
 }
 
 const { data: rfmData, isLoading: rfmLoading, error: rfmError, refetch: rfmRefetch } = useQuery({
@@ -369,15 +539,50 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
 
 <template>
   <div class="rfm-analysis-tab">
-    <div v-if="singleUserBlocked" class="single-user-mask" role="status" aria-live="polite">
-      <div class="single-user-mask-panel">
-        <div>
-          <h3>当前板块被占用</h3>
-          <p>{{ singleUserMessage }}</p>
+    <NModal
+      :show="singleUserBlocked"
+      preset="card"
+      :title="sessionStatus === 'queued' ? 'RFM 查询排队中' : sessionStatus === 'busy' ? 'RFM 查询执行中' : 'RFM 会话已释放'"
+      :closable="false"
+      :mask-closable="false"
+      :style="{ width: 'min(440px, calc(100vw - 32px))' }"
+      :aria-busy="sessionMonitorInFlight"
+    >
+      <div class="single-user-dialog-copy" aria-live="polite">
+        <p>{{ singleUserMessage }}</p>
+        <div v-if="sessionStatus === 'queued'" class="queue-details">
+          <template v-if="queueMetadataReady">
+            <span>排队位置 <strong>{{ queuePosition }} / {{ queueLength }}</strong></span>
+            <span>预计等待约 <strong>{{ estimatedWaitMinutes }} 分钟</strong></span>
+          </template>
+          <span v-else>正在获取排队信息…</span>
         </div>
-        <NButton size="small" type="primary" ghost @click="rfmRefetch()">重试</NButton>
+        <p v-if="sessionMonitorError" class="session-monitor-error" role="alert">
+          {{ sessionMonitorError }}
+        </p>
       </div>
-    </div>
+      <template #footer>
+        <div class="single-user-dialog-actions">
+          <NButton
+            size="medium"
+            :loading="sessionCancelInFlight"
+            :disabled="sessionMonitorInFlight"
+            @click="cancelQueuedSession"
+          >
+            {{ sessionStatus === 'queued' || sessionStatus === 'busy' ? '取消等待' : '关闭' }}
+          </NButton>
+          <NButton
+            size="medium"
+            type="primary"
+            :loading="sessionMonitorInFlight"
+            :disabled="sessionCancelInFlight"
+            @click="retrySingleUserQuery"
+          >
+            {{ sessionStatus === 'queued' || sessionStatus === 'busy' ? '刷新状态' : '重新查询' }}
+          </NButton>
+        </div>
+      </template>
+    </NModal>
 
     <!-- 人群分层 & 评分逻辑说明 -->
     <NAlert type="info" :show-icon="false" class="logic-explainer mb-4">
@@ -601,45 +806,30 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
   background-color: #eff6ff !important;
   transition: background-color 0.15s ease;
 }
-.single-user-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(248, 250, 252, 0.82);
-  backdrop-filter: blur(5px);
-}
-.single-user-mask-panel {
-  width: min(420px, 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px 20px;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 16px 44px rgba(15, 23, 42, 0.14);
-}
-.single-user-mask-panel h3 {
-  margin: 0 0 6px;
-  font-size: 15px;
-  font-weight: 650;
-  color: #0f172a;
-}
-.single-user-mask-panel p {
+.single-user-dialog-copy p {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   color: #475569;
 }
-@media (max-width: 640px) {
-  .single-user-mask-panel {
-    align-items: stretch;
-    flex-direction: column;
-  }
+.queue-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #64748b;
+}
+.queue-details strong {
+  color: #0f172a;
+}
+.session-monitor-error {
+  margin-top: 10px !important;
+  color: #b45309 !important;
+}
+.single-user-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>

@@ -4,7 +4,6 @@ Sprint 205+ Windows NSSM 启动 wrapper (跟 macOS uvicorn_launchd.py 同位).
 NSSM 直接调这个 Python 文件,不走 macOS launchd 模式.
 """
 import os
-import sys
 from pathlib import Path
 
 # Force UTF-8 for stdout/stderr on Windows (fix Chinese garbled output)
@@ -54,6 +53,10 @@ import uvicorn  # noqa: E402
 if __name__ == "__main__":
     port = int(os.environ.get("UVICORN_PORT", "8000"))
     workers = int(os.environ.get("UVICORN_WORKERS", "1"))
+    if os.environ.get("FQ_SINGLE_USER_V2", "0") == "1" and workers != 1:
+        raise SystemExit(
+            "FQ_SINGLE_USER_V2=1 使用进程内 FIFO 租约，UVICORN_WORKERS 必须为 1"
+        )
     uvicorn.run(
         "backend.main:app",
         host="0.0.0.0",

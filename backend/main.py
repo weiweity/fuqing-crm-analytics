@@ -375,6 +375,13 @@ async def log_requests(request: Request, call_next):
 # ─────────────────────────────────────────────────────────────
 # 全局认证中间件（除认证路由和健康检查外，所有 API 需 Bearer token）
 # ─────────────────────────────────────────────────────────────
+# Starlette 后注册的 HTTP middleware 位于外层。先注册资源锁，再注册
+# auth，确保未认证请求在触碰任何 L4.75 租约状态前就被拒绝。
+from backend.middleware.single_user_mode import single_user_mode_middleware as _single_user_mode_middleware
+
+app.middleware("http")(_single_user_mode_middleware)
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
@@ -405,11 +412,6 @@ async def auth_middleware(request: Request, call_next):
         return JSONResponse(status_code=401, content={"detail": "登录已过期，请重新登录"})
 
     return await call_next(request)
-
-
-from backend.middleware.single_user_mode import single_user_mode_middleware as _single_user_mode_middleware
-
-app.middleware("http")(_single_user_mode_middleware)
 
 
 # ─────────────────────────────────────────────────────────────
