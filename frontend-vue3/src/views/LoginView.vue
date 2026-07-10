@@ -57,9 +57,24 @@
           </div>
           <div class="error-message" v-show="passwordErr">{{ passwordErr }}</div>
 
-          <button type="submit" class="btn-primary" :disabled="authStore.isLoading">
+          <button type="submit" class="btn-primary" :disabled="authStore.isLoading || applyRequestSent">
             {{ authStore.isLoading ? '登录中...' : '登 录' }}
           </button>
+
+          <!-- L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) -->
+          <button
+            type="button"
+            class="btn-apply"
+            :disabled="authStore.isLoading || applyRequestSent"
+            @click="handleApply"
+          >
+            {{ applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请登录' }}
+          </button>
+
+          <!-- L4.85 申请+同意 模式: 申请状态消息 -->
+          <div v-if="applyMessage" class="apply-message" :class="applyMessageType">
+            {{ applyMessage }}
+          </div>
         </form>
       </div>
     </div>
@@ -83,6 +98,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { loginRequest } from '@/api/loginRequest'
 
 // Rive npm 包是 UMD 构建，Vite 的 commonjs 插件会自动转换，
 // 但为了保险仍做一层类型探测
@@ -111,6 +127,54 @@ const passwordShake = ref(false)
 const showSuccess = ref(false)
 const successMsg = ref('欢迎回来')
 const isPasswordVisible = ref(false)
+
+// === L4.85 申请+同意 模式: 申请状态 (跟后端 L4.85 1:1 stable 永久规则化沿用) ===
+const applyRequestSent = ref(false)
+const applyRequestExpiresAt = ref(0)  // 申请过期时间戳 (毫秒)
+const applyRemainingSeconds = ref(0)  // 申请剩余秒数
+const applyMessage = ref('')  // 申请状态消息
+const applyMessageType = ref<'info' | 'success' | 'error'>('info')
+let applyTimer: number | null = null
+
+// === L4.85 申请+同意 模式: 申请登录 (跟后端 L4.85 1:1 stable 永久规则化沿用) ===
+async function handleApply() {
+  const user = username.value.trim()
+  const pwd = password.value
+  if (!user || !pwd) {
+    applyMessage.value = '请先输入账号和密码'
+    applyMessageType.value = 'error'
+    return
+  }
+
+  applyMessage.value = '正在发送申请...'
+  applyMessageType.value = 'info'
+
+  try {
+    const res = await loginRequest(user, pwd)
+    applyRequestSent.value = true
+    applyRequestExpiresAt.value = Date.now() + 300 * 1000  // 5 分钟, 跟 L4.85 LOGIN_REQUEST_TIMEOUT_SECONDS 1:1 stable 配套
+    applyRemainingSeconds.value = 300
+    applyMessage.value = res.message || `账号 ${user} 正在被使用, 已发送申请给当前用户, 请等待响应`
+    applyMessageType.value = 'success'
+    // 启动倒计时
+    if (applyTimer) clearInterval(applyTimer)
+    applyTimer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.floor((applyRequestExpiresAt.value - Date.now()) / 1000))
+      applyRemainingSeconds.value = remaining
+      if (remaining <= 0) {
+        clearInterval(applyTimer!)
+        applyTimer = null
+        applyRequestSent.value = false
+        applyMessage.value = '申请已超时, 请重新登录或重新申请'
+        applyMessageType.value = 'error'
+      }
+    }, 1000)
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail || err?.message || '申请失败'
+    applyMessage.value = detail
+    applyMessageType.value = 'error'
+  }
+}
 
 // === Rive ===
 let riveInstance: any = null
@@ -322,6 +386,8 @@ onUnmounted(() => {
   if (riveInstance) {
     riveInstance.cleanup()
   }
+  // L4.85: 清理申请倒计时 timer
+  if (applyTimer) clearInterval(applyTimer)
 })
 </script>
 
@@ -494,6 +560,31 @@ onUnmounted(() => {
 }
 .btn-primary:hover { background-color: #2D2E33; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) */
+.btn-apply {
+  width: 100%; height: 48px;
+  background-color: #FFFFFF; color: #15161A;
+  border: 1px solid #15161A; border-radius: 999px;
+  font-size: 16px; font-weight: 500;
+  cursor: pointer; margin-top: 12px;
+  transition: background-color 0.2s, color 0.2s;
+  font-family: inherit;
+}
+.btn-apply:hover { background-color: #15161A; color: #FFFFFF; }
+.btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* L4.85 申请状态消息 */
+.apply-message {
+  font-size: 13px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+.apply-message.info { color: #1e40af; background-color: #dbeafe; }
+.apply-message.success { color: #16a34a; background-color: #dcfce7; }
+.apply-message.error { color: #8b0000; background-color: #fee2e2; }
 
 /* 错误消息 */
 .error-message {
