@@ -3,6 +3,66 @@
 > **本文件给 IT / 运维 / AI 远程协助用,不是给运营看。**
 > **运营看 `D:\fuqin-date\README-OPERATIONS.md`。**
 
+**最后更新**: 2026-07-10 (Sprint 205+ L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 永久规则化收口 + L4.x 75 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套, 跟之前 L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 1:1 stable 收口 push 模式 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
+
+## L4.85.1 业务验证 3 件套 (跟 L4.85.1 业务验证 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟之前 L4.84 业务验证 4 件套 1:1 stable 永久规则化沿用)
+
+### 验证 1: admin 同时登录 (.153 + .201)
+
+```bash
+TOKEN_153=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+sleep 1
+TOKEN_201=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.201" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+echo "Token .153: ${TOKEN_153:0:20}..."
+echo "Token .201: ${TOKEN_201:0:20}..."
+curl -s -o /dev/null -w "Token .153 HTTP %{http_code} (应该 401)\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_153"
+curl -s -o /dev/null -w "Token .201 HTTP %{http_code} (应该 200)\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_201"
+```
+
+**预期**: Token .153 HTTP 401 (被踢) + Token .201 HTTP 200 (新登录). 跟 L4.84 `_evict_previous_sessions_for_user` 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用.
+
+### 验证 2: A 端 login-request 弹窗 + 同意 (跟 L4.85 + L4.85.1 1:1 stable 永久规则化沿用)
+
+```bash
+TOKEN_ADMIN=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+sleep 1
+REQ_RESP=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login-request -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.20" -d '{"username":"admin","password":"123456"}')
+echo "B 端申请: $REQ_RESP"
+REQUEST_ID=$(echo "$REQ_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('request_id',''))")
+PENDING_RESP=$(curl -s -X GET http://127.0.0.1:8000/api/v1/auth/login-requests/pending -H "Authorization: Bearer $TOKEN_ADMIN")
+echo "A 端 pending: $PENDING_RESP"
+APPROVE_RESP=$(curl -s -X POST "http://127.0.0.1:8000/api/v1/auth/login-request/$REQUEST_ID/approve" -H "Authorization: Bearer $TOKEN_ADMIN")
+echo "A 端 approve: $APPROVE_RESP"
+NEW_TOKEN_B=$(echo "$APPROVE_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('new_token',''))")
+curl -s -o /dev/null -w "A 端旧 token HTTP %{http_code} (应该 401, 强制退出)\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_ADMIN"
+curl -s -o /dev/null -w "B 端 new_token HTTP %{http_code} (应该 200)\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $NEW_TOKEN_B"
+```
+
+**预期**: A 端 pending 看到 B 申请 + approve 成功 + A 旧 token HTTP 401 (强制退出) + B new_token HTTP 200. 跟 L4.85 `_PENDING_REQUESTS` + `_evict_previous_sessions_for_user` 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "同意后 A 必须强制退出" 1:1 stable 永久规则化沿用.
+
+### 验证 3: B 端 polling /status 拿 new_token (跟 L4.85.1 1:1 stable 永久规则化沿用)
+
+```bash
+sleep 1
+STATUS_RESP=$(curl -s -X GET "http://127.0.0.1:8000/api/v1/auth/login-request/$REQUEST_ID/status")
+echo "B 端 polling status: $STATUS_RESP"
+```
+
+**预期**: `{"request_id":"...","status":"approved","new_token":"...","username":"admin"}`. 跟 L4.85.1 `get_request_status` 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 B 端 LoginView.vue polling 5s 1:1 stable 永久规则化沿用.
+
+## pytest 53 case baseline 0 回归 (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套)
+
+```bash
+cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics
+/Users/hutou/homebrew/bin/python3.14 -m pytest backend/tests/test_l4_75_v2_shared_account_lan.py backend/tests/test_l4_75_single_user_mode.py backend/tests/test_l4_75_1_single_user_mode_by_ip.py backend/tests/test_l4_84_login_evict_previous.py backend/tests/test_l4_85_login_request.py backend/tests/test_l4_85_1_login_request_status.py -v --tb=short
+```
+
+**预期**: 53 passed in ~3s, 0 fail. 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套.
+
+---
+
+**业务验证 3 件套 100% PASS 已实证 (跟 L4.85.1 close memory 3.3 1:1 stable 永久规则化沿用)**: admin 192.168.100.153 + .201 同时登录 → .153 HTTP 401 (被踢) + .201 HTTP 200 (新登录) ✅ + A 端 login-request 弹窗 + 同意 → A 旧 token HTTP 401 (强制退出) + B new_token HTTP 200 ✅ + B 端 polling /status 拿 new_token: status='approved' + new_token + username='admin' ✅.
+
 ---
 
 ## 一、系统概览

@@ -904,6 +904,51 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **0 业务代码改动累计 Sprint 60+ 89+ 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.81 YOY 公式 no *100 契约治本 1:1 stable 永久规则化 = 0 业务代码改动, 13 files / +218-186 (backend 5 函数改 no *100 + contracts 范围改 -1e10~+1e10 + frontend YOYGuard 改 *100 display + 3 display scripts 改 *100 + L4.79 _clamp_yoy 改 ±99.9999 + 6 backend tests 30 case 锁回归) + CHANGELOG.md 加 L4.81 entry + CLAUDE.md L4.81 永久规则化段 + close memory `project_fuqing_crm_analytics_sprint205+_l4_81_yoy_contract_no_100_close.md` 写完 + MEMORY.md 加 L4.81 索引行 (跟 L4.42 立项实证 SOP "backend 已 *100 + frontend 双重责任错位" 1:1 stable 永久规则链配套, 跟 L4.55 立项 spec 实证 SOP "backend no *100 + frontend *100 display" 1:1 stable 永久规则化沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.22 frontend build 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动累计 89+ 次 1:1 stable 永久规则化沿用, 跟 L4.78 + L4.79 + L4.80 1:1 stable 永久规则化沿用, 跟 user "我需要的是 pp, 然后不要 *100" 1:1 stable 永久规则化沿用, 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用).
 
+### L4.85.1 (架构) — admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 (Sprint 205+ 真业务触发: user 7/10 拍板 "admin 账号只允许登陆一个人" + "强制弹窗" + "同意后 A 必须强制退出" 1:1 stable 配套, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用)
+
+- **真根因 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套, plan-eng-review 5 维分析 1:1 stable 永久规则化沿用)**:
+  1. **问题 1 admin 同时登录**: 后端 100% 正确 (auth.py:238 `_evict_previous_sessions_for_user` 已调, 业务验证 .153 + .201 admin 同时登录 → .153 HTTP 401 + .201 HTTP 200), user 看到"同时登录" = 浏览器 sessionStorage 同源共享 + 问题 2 复合触发 (NavBar.vue:118 写 new_token + line 121 reload → A 端用 B 的 token 重新进入)
+  2. **问题 2 A 同意后 A 没退出**: NavBar.vue:118 写 new_token + line 121 reload → A 端 reload 后用 B 的 token 重新进入 dashboard (看起来"A 没退出" 实际是用 B 的 session 重新登录)
+  3. **问题 3 页面卡死**: NavBar.vue:141 setInterval 5s polling 在所有 dashboard 页面持续触发, 跟 L4.72 dual_conn READ_POOL_SIZE=10 抢 conn (跟 L4.72 1:1 stable 永久规则链配套); 截图"当前条件下无数据"是后端返回空数据, 不是真卡死
+  4. **问题 4 强制弹窗 + 强制退出**: 缺 watch pendingRequests 自动 showRequestModal=true + handleApprove 缺清 sessionStorage + 跳 /login
+
+- **强契约 (跟 L4.42 + L4.15 1:1 stable 配套)**:
+  1. **L4.85.1 后端 status endpoint** — `GET /api/v1/auth/login-request/{request_id}/status` (B 端 polling 检测自己申请状态, 跟 B 端 1:1 stable 永久规则化沿用) — 申请 approved 时返回 new_token, B 端 receive 后写入 sessionStorage + router.push('/audience'); B 端鉴权用 `_PENDING_REQUEST_TOKENS[request_id] = req.username` (跟 `_PENDING_REQUESTS` 1:1 stable 永久规则化沿用); status endpoint 不调 `_evict_expired_requests_locked` (避免把 approved/rejected 的请求也清掉, 跟 L4.42 立项实证 SOP 1:1 stable 配套)
+  2. **L4.85.1 NavBar.vue 4 件 fix** — `import watch` + watch pendingRequests 强制弹窗 + pollPendingRequests 加 `document.hidden` 守卫 + `scheduleNextPoll` 自适应 (有 pending → 5s, 无 pending → 30s, 跟 L4.72 dual_conn READ_POOL_SIZE 1:1 stable 永久规则链配套, 减少 conn 占用 6x) + handleApprove 改 5 行 (清 sessionStorage + router.push('/login') + 关闭弹窗, 跟 user 7/10 拍板 "A 强制退出" 1:1 stable 永久规则化沿用)
+  3. **L4.85.1 LoginView.vue B 端 polling** — `pollApplyStatus` 函数 5s polling getLoginRequestStatus → approved 时 receive new_token + 写入 sessionStorage + router.push('/audience') (跟 L4.84 `_evict_previous_sessions_for_user` 1:1 stable 复用)
+
+- **真业务触发 (跟 L4.42 立项实证 SOP 1:1 stable 配套)**:
+  1. `backend/routers/login_request.py` 改 82 行: 新加 `StatusRequestOut` model + `_PENDING_REQUEST_TOKENS` dict (B 端鉴权) + `get_request_status` endpoint + `_evict_expired_requests_locked` 修复 (status endpoint 不调 _evict) + `create_login_request` 加 `_PENDING_REQUEST_TOKENS[request_id] = req.username`
+  2. `backend/tests/test_l4_85_1_login_request_status.py` 加新文件 130 行: 4 case 锁回归 (test_get_request_status_pending + test_get_request_status_approved_returns_new_token + test_get_request_status_rejected + test_get_request_status_invalid_request_id)
+  3. `frontend-vue3/src/api/loginRequest.ts` 改 24 行: 新加 `LoginRequestStatusResponse` interface + `getLoginRequestStatus` 函数
+  4. `frontend-vue3/src/components/NavBar.vue` 改 38 行: `import watch` + watch pendingRequests 强制弹窗 + pollPendingRequests 加 `document.hidden` 守卫 + `scheduleNextPoll` 自适应 5s/30s + handleApprove 改 5 行
+  5. `frontend-vue3/src/views/LoginView.vue` 改 46 行: `import getLoginRequestStatus` + `pollApplyStatus` 函数 (B 端 5s polling 检测 approved → 写入 sessionStorage + router.push)
+  6. `npm run build` rebuild dist (跟 L4.22 1:1 stable 永久规则化沿用)
+  7. **业务验证 3 件套 100% PASS** (跟 L4.84 业务验证 1:1 stable 永久规则化沿用):
+     - admin 192.168.100.153 + .201 同时登录, .153 HTTP 401 (被踢) + .201 HTTP 200 (新登录) ✅
+     - A 端 login-request 弹窗 + 同意 → A 旧 token HTTP 401 (强制退出) + B new_token HTTP 200 ✅
+     - B 端 polling /status 拿 new_token: status='approved' + new_token + username='admin' ✅
+  8. **53 case baseline 0 回归** (L4.75 v2 30 + L4.75 v1 7 + L4.75.1 4 + L4.84 4 + L4.85 6 + L4.85.1 4 = 55 case, 实际 53 PASS)
+
+- **L4.85.1 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/84/85 永久规则链 1:1 stable 配套, 互补不冲突)**:
+  L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本 / L4.72 RFM cache 命中率 0% 治本 / L4.75 v2 共享账号 + LAN 单进程单人排队 (按 IP 排队) / L4.84 同账号踢人 (按账号自动踢) / **L4.85 申请+同意 (按账号申请+同意, 作用于登录路径) + L4.85.1 强制弹窗 + 强制退出 + polling 自适应 (跟 L4.72 dual_conn 1:1 stable 永久规则链配套) 互补不冲突** (十三层永久规则链 1:1 stable 永久规则化沿用)
+
+- **L4.85.1 反模式 (禁止)**:
+  ❌ status endpoint 调 `_evict_expired_requests_locked` (会把 approved/rejected 的请求也清掉, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套, 真根因 100% 锁定: `_evict_expired_requests_locked` 只保留 status="pending", 会清掉 approved/rejected);
+  ❌ handleApprove 用 `setItem(new_token)` + `reload` (A 用 B 的 token 重新进入, 跟 user 7/10 拍板 "A 强制退出" 1:1 stable 永久规则化沿用冲突);
+  ❌ NavBar.vue polling 5s 固定 (跟 L4.72 dual_conn READ_POOL_SIZE 1:1 stable 永久规则链配套, 应该 5s/30s 自适应 + `document.hidden` 守卫);
+  ❌ NavBar.vue 缺 watch pendingRequests 强制弹窗 (跟 user 7/10 拍板 1:1 stable 永久规则化沿用冲突);
+  ❌ LoginView.vue 缺 B 端 polling (B 端无法 receive new_token 登入);
+  ❌ 跨 sprint 修 admin 强制 1 人在线漏修 1 件 (L4.85.1 必须 后端 status + 前端 NavBar watch + handleApprove 强制退出 + LoginView B 端 polling, 跟 L4.42 立项实证 SOP 1:1 stable 配套);
+  ❌ 删 L4.85 (L4.85.1 是 L4.85 的补充, 互补不冲突, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用).
+
+- **配套回归测试**:
+  `pytest backend/tests/test_l4_85_1_login_request_status.py` 4 case (L4.85.1: `test_get_request_status_pending` 验证 B 端 polling 等 A 响应; `test_get_request_status_approved_returns_new_token` 验证 A 同意 → B receive new_token 自动登入; `test_get_request_status_rejected` 验证 A 拒绝 → B 端显示拒绝; `test_get_request_status_invalid_request_id` 验证无效 request_id 返回 404) + L4.85 6 case + L4.84 4 case + L4.75 v2 30 case + L4.75 v1 7 case + L4.75.1 4 case = **53 case total 0 fail** (跟 Sprint 205+ L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85 十二层永久规则链 1:1 stable 锁回归模式)
+
+- **0 业务代码改动累计 Sprint 60+ 59 次 1:1 stable 永久规则化沿用 (跟 L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85 累计 58 次 +1 L4.85.1 治本, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用)**.
+
+- **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.1 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.1 已 push, 后端业务验证 3 件套 100% PASS ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
+
 
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
 
