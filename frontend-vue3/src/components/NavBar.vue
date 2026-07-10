@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NAV_ITEMS, type NavItem, type NavTab } from '@/config/navigations'
 import { useAuthStore, AUTH_TOKEN_KEY, AUTH_USER_KEY } from '@/stores/auth'
@@ -101,24 +101,42 @@ const showRequestModal = ref(false)
 let pollingTimer: number | null = null
 
 async function pollPendingRequests() {
-  if (!authStore.isAuthenticated) return
+  // L4.85.1 治本: document.hidden 守卫, 切到其他 tab 停止 polling 省电 + 释放 conn (跟 L4.72 dual_conn 1:1 stable 永久规则链配套)
+  if (!authStore.isAuthenticated || document.hidden) return
   try {
     const res = await getPendingLoginRequests()
     pendingRequests.value = res.pending || []
+    scheduleNextPoll()  // L4.85.1 治本: 自适应 polling (有 pending → 5s, 无 pending → 30s, 跟 L4.72 READ_POOL_SIZE 1:1 stable 配套)
   } catch {
     // 静默: 401/网络异常不影响主流程
     pendingRequests.value = []
+    scheduleNextPoll()
   }
 }
 
+function scheduleNextPoll() {
+  if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null }
+  // L4.85.1 治本: 有 pending 高响应 5s, 无 pending 低开销 30s (跟 L4.72 dual_conn 1:1 stable 永久规则链配套, 减少 conn 占用 6x)
+  const interval = pendingRequests.value.length > 0 ? 5000 : 30000
+  pollingTimer = window.setInterval(pollPendingRequests, interval)
+}
+
+// L4.85.1 治本: 强制弹窗 (跟 user 7/10 拍板 1:1 stable 永久规则链配套): pendingRequests 有数据时自动弹窗, A 不能隐藏
+watch(pendingRequests, (newVal) => {
+  if (newVal.length > 0 && !showRequestModal.value) {
+    showRequestModal.value = true
+  }
+})
+
 async function handleApprove(req: PendingLoginRequest) {
   try {
-    const res = await approveLoginRequest(req.request_id)
-    // A 登出, B 登录成功: 用 new_token 替换本地 token + username
-    sessionStorage.setItem(AUTH_TOKEN_KEY, res.new_token)
-    sessionStorage.setItem(AUTH_USER_KEY, res.username)
-    // 刷新页面让所有 store 重新初始化
-    window.location.reload()
+    // L4.85.1 治本: A 强制退出 (跟 user 7/10 拍板 1:1 stable 永久规则链配套): A 端清 sessionStorage + 跳 /login, 不 reload (reload 可能残余 state)
+    await approveLoginRequest(req.request_id)
+    pendingRequests.value = []
+    sessionStorage.removeItem(AUTH_TOKEN_KEY)
+    sessionStorage.removeItem(AUTH_USER_KEY)
+    router.push('/login')  // 强制跳 /login (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 永久规则链配套)
+    showRequestModal.value = false
   } catch (err: any) {
     alert(`同意失败: ${err?.response?.data?.detail || err?.message || '未知错误'}`)
   }
@@ -136,9 +154,9 @@ async function handleReject(req: PendingLoginRequest) {
 
 onMounted(() => {
   // L4.85 申请+同意 模式: 5s polling 拉 pending 申请 (跟 L4.85 后端 1:1 stable 永久规则化沿用)
+  // L4.85.1 治本: scheduleNextPoll 决定后续频率 (有 pending → 5s, 无 pending → 30s)
   if (authStore.isAuthenticated) {
-    pollPendingRequests()
-    pollingTimer = window.setInterval(pollPendingRequests, 5000)
+    pollPendingRequests()  // 首次立即拉, scheduleNextPoll 决定后续频率
   }
 })
 </script>

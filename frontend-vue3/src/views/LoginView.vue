@@ -98,7 +98,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { loginRequest } from '@/api/loginRequest'
+import { loginRequest, getLoginRequestStatus } from '@/api/loginRequest'
 
 // Rive npm 包是 UMD 构建，Vite 的 commonjs 插件会自动转换，
 // 但为了保险仍做一层类型探测
@@ -169,11 +169,55 @@ async function handleApply() {
         applyMessageType.value = 'error'
       }
     }, 1000)
+    // L4.85.1 治本: B 端 polling 5s 检测自己申请状态 (跟后端 /login-request/{id}/status 1:1 stable 永久规则化沿用)
+    // 跟 user 7/10 拍板 "admin 账号只允许 1 个人在线" 1:1 stable 配套
+    pollApplyStatus(res.request_id, user)
   } catch (err: any) {
     const detail = err?.response?.data?.detail || err?.message || '申请失败'
     applyMessage.value = detail
     applyMessageType.value = 'error'
   }
+}
+
+// === L4.85.1 治本: B 端 polling 5s 检测自己申请状态 (跟后端 /login-request/{id}/status 1:1 stable 永久规则化沿用) ===
+async function pollApplyStatus(requestId: string, username: string) {
+  const pollTimer = window.setInterval(async () => {
+    if (!applyRequestSent.value) {
+      window.clearInterval(pollTimer)
+      return
+    }
+    try {
+      const status = await getLoginRequestStatus(requestId)
+      if (status.status === 'approved' && status.new_token) {
+        // 申请已通过: 写入 sessionStorage + 跳 dashboard
+        window.clearInterval(pollTimer)
+        if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+        sessionStorage.setItem('fq_crm_auth_token', status.new_token)
+        sessionStorage.setItem('fq_crm_auth_user', status.username || username)
+        applyMessage.value = '申请已通过, 正在登录...'
+        applyMessageType.value = 'success'
+        applyRequestSent.value = false
+        setTimeout(() => {
+          const redirect = route.query.redirect as string
+          router.push(redirect || '/audience')
+        }, 800)
+      } else if (status.status === 'rejected') {
+        window.clearInterval(pollTimer)
+        if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+        applyRequestSent.value = false
+        applyMessage.value = '申请被拒绝, 请联系当前用户或稍后重试'
+        applyMessageType.value = 'error'
+      } else if (status.status === 'expired') {
+        window.clearInterval(pollTimer)
+        if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+        applyRequestSent.value = false
+        applyMessage.value = '申请已超时, 请重新登录或重新申请'
+        applyMessageType.value = 'error'
+      }
+    } catch (err) {
+      // 静默: 401/网络异常等下次 polling
+    }
+  }, 5000)
 }
 
 // === Rive ===

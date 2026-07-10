@@ -42,6 +42,13 @@ export interface RejectLoginRequestResponse {
   success: boolean
 }
 
+export interface LoginRequestStatusResponse {
+  request_id: string
+  status: 'pending' | 'approved' | 'rejected' | 'expired'
+  new_token?: string
+  username?: string
+}
+
 /**
  * L4.85 治本: B 申请登录 admin (admin 当前 active)
  *
@@ -100,5 +107,22 @@ export async function rejectLoginRequest(
   const res = await client.post<RejectLoginRequestResponse>(
     `/v1/auth/login-request/${requestId}/reject`
   ) as unknown as RejectLoginRequestResponse
+  return res
+}
+
+/**
+ * L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 NavBar.vue 强制弹窗 + 强制退出 1:1 stable 永久规则化沿用)
+ *
+ * 跟后端 GET /api/v1/auth/login-request/{request_id}/status 1:1 stable 配套.
+ * - status="pending" → B 端继续等待
+ * - status="approved" → 返回 new_token, B 端 receive 后写入 sessionStorage + router.push
+ * - status="rejected" / "expired" → B 端显示提示
+ */
+export async function getLoginRequestStatus(
+  requestId: string
+): Promise<LoginRequestStatusResponse> {
+  const res = await client.get<LoginRequestStatusResponse>(
+    `/v1/auth/login-request/${requestId}/status`
+  ) as unknown as LoginRequestStatusResponse
   return res
 }

@@ -94,6 +94,15 @@ class RejectRequestOut(BaseModel):
     success: bool
 
 
+class StatusRequestOut(BaseModel):
+    """L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 NavBar.vue 1:1 stable 配套)."""
+
+    request_id: str
+    status: str  # "pending" / "approved" / "rejected" / "expired"
+    new_token: str | None = None  # approved 时返回 (B 端 receive 后写入 sessionStorage)
+    username: str | None = None
+
+
 # ─────────────────────────────────────────────────────────────
 # 辅助函数 (跟 L4.75 v2 + L4.84 1:1 stable 配套)
 # ─────────────────────────────────────────────────────────────
@@ -186,6 +195,8 @@ def create_login_request(req: LoginRequestIn, request: Request):
             status="pending",
         )
         _PENDING_REQUESTS.setdefault(req.username, []).append(new_request)
+        # L4.85.1 治本: B 端鉴权用 _PENDING_REQUEST_TOKENS 记录 (跟 get_request_status 1:1 stable 永久规则化沿用)
+        _PENDING_REQUEST_TOKENS[request_id] = req.username
         return LoginRequestOut(
             request_id=request_id,
             status="pending",
@@ -273,6 +284,77 @@ def reject_login_request(request_id: str, request: Request):
 
         target.status = "rejected"
         return RejectRequestOut(success=True)
+
+
+# === L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 plan-eng-review 1:1 stable 永久规则化沿用) ===
+# B 端用 request_id + username 鉴权 (B 端没 token, 用 request 创建时的 username)
+# 简化方案: B 端发送申请时返回 request_id, B 端轮询此 endpoint
+# 实际安全: 加 _pending_request_tokens dict, B 端发送申请时返回 token, B 端轮询时验证
+# 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套: 复用 _PENDING_REQUESTS + request_id 作为 B 端鉴权
+_PENDING_REQUEST_TOKENS: dict[str, str] = {}  # key=request_id, value=requester_username (B 端鉴权用)
+
+
+@router.get("/login-request/{request_id}/status", response_model=StatusRequestOut)
+def get_request_status(request_id: str, request: Request):
+    """L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 NavBar.vue B 端自动跳 1:1 stable 永久规则化沿用).
+
+    流程 (跟 L4.42 立项实证 SOP 1:1 stable 配套, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用):
+    1. B 端发送申请 → 返回 request_id + _PENDING_REQUEST_TOKENS[request_id] = username
+    2. B 端 polling 此 endpoint, 用 _PENDING_REQUEST_TOKENS[request_id] 鉴权 (B 端 username 在创建时已记录)
+    3. 如果 status == "approved", 返回 new_token (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用, 后端 manage)
+    4. B 端 receive new_token → 写入 sessionStorage + router.push('/audience')
+    """
+    now = time.monotonic()
+
+    with _STATE_LOCK:
+        # L4.85.1 治本: status endpoint 不调 _evict_expired_requests_locked (status 只读, 避免把 approved/rejected 的请求也清掉)
+        # 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套
+
+        # 用 _PENDING_REQUEST_TOKENS[request_id] 找 B 端 username
+        requester_username = _PENDING_REQUEST_TOKENS.get(request_id)
+        if requester_username is None:
+            raise HTTPException(status_code=404, detail="申请不存在或已过期")
+
+        # 找 request
+        pending = _PENDING_REQUESTS.get(requester_username, [])
+        target = None
+        for r in pending:
+            if r.request_id == request_id:
+                target = r
+                break
+        if target is None:
+            raise HTTPException(status_code=404, detail="申请不存在或已处理")
+
+        if target.status == "approved":
+            # approved 时 generate new_token (跟 approve_login_request 1:1 stable 复用)
+            new_token = secrets.token_urlsafe(32)
+            ACTIVE_TOKENS[new_token] = (target.target_username, datetime.now())
+            # 清理 _PENDING_REQUEST_TOKENS (B 端 receive 后不需要)
+            _PENDING_REQUEST_TOKENS.pop(request_id, None)
+            return StatusRequestOut(
+                request_id=request_id,
+                status="approved",
+                new_token=new_token,
+                username=target.target_username,
+            )
+        elif target.status == "rejected":
+            _PENDING_REQUEST_TOKENS.pop(request_id, None)
+            return StatusRequestOut(
+                request_id=request_id,
+                status="rejected",
+            )
+        elif target.status == "expired":
+            _PENDING_REQUEST_TOKENS.pop(request_id, None)
+            return StatusRequestOut(
+                request_id=request_id,
+                status="expired",
+            )
+        else:
+            # pending
+            return StatusRequestOut(
+                request_id=request_id,
+                status="pending",
+            )
 
 
 # 测试用 reset (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 1:1 stable 永久规则化沿用)
