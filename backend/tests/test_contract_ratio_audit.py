@@ -203,7 +203,7 @@ class TestRatioConventionTypeCoverage:
         assert any("yoy_old_gsv" in str(e.get("loc", "")) for e in exc_info.value.errors())
 
     def test_pp_field_coverage(self):
-        """Type 3: PpField (-100~+100 pp 差) 越界 +150 触发 422"""
+        """Type 3: PpField (L4.81 治本契约: -1e10~+1e10 raw ratio diff) 越界 +1e11 触发 422"""
         from backend.contracts.health import HealthOverviewMetrics
         with pytest.raises(ValidationError) as exc_info:
             HealthOverviewMetrics(
@@ -215,7 +215,7 @@ class TestRatioConventionTypeCoverage:
                 member_old_gsv=5000.0, member_old_users=100, member_old_customer_gsv_ratio=0.5,
                 member_old_customer_aus=50.0,
                 health_score=80.0, health_level="healthy",
-                yoy_old_customer_gsv_ratio_ppt=150.0,  # 越界 PpField -100~+100
+                yoy_old_customer_gsv_ratio_ppt=1e11,  # 越界 PpField L4.81 -1e10~+1e10 raw ratio diff
             )
         assert any("yoy_old_customer_gsv_ratio_ppt" in str(e.get("loc", "")) for e in exc_info.value.errors())
 

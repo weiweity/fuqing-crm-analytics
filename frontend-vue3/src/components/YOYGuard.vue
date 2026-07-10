@@ -2,10 +2,10 @@
 /**
  * YOYGuard: 通用 YOY/同比 守卫 + 格式化组件 (Sprint 18 #124, Sprint 20 P1-2 吸 YOYBadge 风格)
  *
- * 设计 (Sprint 20 P1-2 整合):
+ * 设计 (Sprint 20 P1-2 整合, L4.81 治本契约更新):
  * - 核心: |v| > threshold → "数据异常" 守卫 (Sprint 16.5 #92 同款)
- * - 格式化: caller 已 *100 传值 (跟 YOYBadge / MetricCard 契约一致),
- *   组件只做 abs + toFixed, 不再内部 *100
+ * - 格式化 (L4.81 治本): caller 传 raw ratio (no *100, 0.25 = +25% / 100),
+ *   组件内部 *100 显示 (e.g. 0.25 → 25.00%, 0.05 → 5.00pp). 跟 backend L4.81 契约 1:1 stable 沿用
  * - 通用: 不耦合 UI 样式, 调用方负责包装颜色/箭头 (RFMSegmentDrilldown 表格用法)
  * - styled 模式 (Sprint 20 P1-2 新增): 跟原 YOYBadge 完全一致 — 箭头 (↑/↓) + 颜色 (绿/红),
  *   8 个表格组件 (AudienceView/CategoryView/CategoryRepurchaseTab/ProductClassRepurchaseTab/
@@ -13,9 +13,9 @@
  *   删 YOYBadge.vue wrapper
  *
  * Props:
- * - value: 数值 (caller 已 *100 后的 percentage 或 pp 数值)
- * - unit: '%' (百分比) | 'pp' (百分点差) | 'raw' (无后缀, 给自定义场景)
- * - threshold: 异常值阈值, 默认 1e6, 可由 `VITE_YOY_GUARD_THRESHOLD` env 覆盖
+ * - value: 数值 (L4.81 契约: raw ratio no *100, e.g. 0.25 = +25% / 100, 0.05 = +5pp / 100)
+ * - unit: '%' (百分比) | 'pp' (百分点差) | 'raw' (无后缀, 给自定义场景, 不 *100)
+ * - threshold: 异常值阈值, 默认 1e6 (raw ratio, = 1e8%), 可由 `VITE_YOY_GUARD_THRESHOLD` env 覆盖
  * - empty: null/undefined 时返回的字符串, 默认 '—'
  * - precision: 小数位数, 默认 2
  * - styled: false (默认, 无样式) | true (YOYBadge 同款箭头+颜色包装, 表格用法)
@@ -28,6 +28,11 @@
  *
  * 用法 3 (自定义 fallback):
  *   <YOYGuard :value="v" unit="pp" :precision="1" empty="-" />
+ *
+ * L4.81 治本真因 (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用):
+ * - 旧契约 (已废): caller 已 *100 传值, 组件不再 *100 → backend 责任过重
+ * - 新契约 (L4.81): caller 传 raw ratio (no *100), 组件 *100 显示 → frontend 责任, 灵活
+ * - 跟你 "我需要的是 pp, 然后不要 *100" 1:1 stable 永久规则化沿用
  */
 import { computed } from 'vue'
 
@@ -49,17 +54,18 @@ const props = withDefaults(
   },
 )
 
-// 守卫 + 格式化逻辑 (Sprint 18 #124 已实现, Sprint 20 P1-2 不变)
+// 守卫 + 格式化逻辑 (L4.81 治本: raw ratio 0-1 → *100 显示, 跟 backend L4.81 契约 1:1 stable 沿用)
 const formatted = computed(() => {
   const v = props.value
   if (v == null) return props.empty
-  // 异常值守卫: |v| > threshold (覆盖 Infinity + 万倍异常值)
+  // 异常值守卫: |v| > threshold (覆盖 Infinity + 万倍异常值, L4.81 threshold 1e6 = 1e8%)
   if (Math.abs(v) > props.threshold) return '数据异常'
   if (!Number.isFinite(v)) {
     // NaN 走 fallback
     return `0.${'0'.repeat(props.precision)}${props.unit === 'raw' ? '' : props.unit}`
   }
-  const display = Math.abs(v)
+  // L4.81 治本契约: raw ratio *100 显示 (raw=0.25 → display=25.00%), raw mode 不 *100
+  const display = props.unit === 'raw' ? Math.abs(v) : Math.abs(v) * 100
   return `${display.toFixed(props.precision)}${props.unit === 'raw' ? '' : props.unit}`
 })
 

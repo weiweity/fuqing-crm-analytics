@@ -118,7 +118,7 @@ def run_daily_gsv(start: str, end: str) -> List[List[Any]]:
                 str(d),
                 int(gsv) if gsv is not None else 0,
                 int(customers) if customers is not None else 0,
-                (f"{yoy:+.2f}%" if yoy is not None else "N/A"),
+                (f"{yoy * 100:+.2f}%" if yoy is not None else "N/A"),  # L4.81 治本契约: *100 显示
             ])
     return rows_out
 

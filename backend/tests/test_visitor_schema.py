@@ -59,40 +59,40 @@ def _has_constraint(field_info, expected_ge, expected_le) -> bool:
 
 
 def test_visitor_summary_member_join_rate_uses_percentage_field():
-    """member_join_rate 必须是 PercentageField (ge=-1B, le=1B), 不是裸 float (RatioField 0-1)."""
+    """member_join_rate 必须是 PercentageField (L4.81 治本契约: ge=-1e10 le=1e10 raw ratio 0-1), 不是裸 float (RatioField 0-1)."""
     f = VisitorSummaryResponse.model_fields["member_join_rate"]
-    assert _has_constraint(f, -1_000_000_000_000.0, 1_000_000_000_000.0), (
-        f"member_join_rate 必须是 PercentageField (ge=-1T le=1T), 实际 metadata={f.metadata}. "
+    assert _has_constraint(f, -1e10, 1e10), (
+        f"member_join_rate 必须是 PercentageField (ge=-1e10 le=1e10, L4.81 治本契约), 实际 metadata={f.metadata}. "
         f"修法: backend/contracts/visitor.py 字段类型必须是 PercentageField, 不能是 RatioField."
     )
 
 
 def test_visitor_summary_ly_member_join_rate_uses_percentage_field():
     f = VisitorSummaryResponse.model_fields["ly_member_join_rate"]
-    assert _has_constraint(f, -1_000_000_000_000.0, 1_000_000_000_000.0), (
-        f"ly_member_join_rate 必须是 PercentageField, 实际 metadata={f.metadata}"
+    assert _has_constraint(f, -1e10, 1e10), (
+        f"ly_member_join_rate 必须是 PercentageField (L4.81 治本契约: ge=-1e10 le=1e10), 实际 metadata={f.metadata}"
     )
 
 
 def test_visitor_summary_member_join_rate_yoy_uses_pp_field():
     f = VisitorSummaryResponse.model_fields["member_join_rate_yoy"]
-    assert _has_constraint(f, -100.0, 100.0), (
-        f"member_join_rate_yoy 必须是 PpField (ge=-100 le=100), 实际 metadata={f.metadata}. "
-        f"修法: d660352 已是 PpField, 验 schema 没退化."
+    assert _has_constraint(f, -1e10, 1e10), (
+        f"member_join_rate_yoy 必须是 PpField (L4.81 治本契约: ge=-1e10 le=1e10 raw ratio diff), 实际 metadata={f.metadata}. "
+        f"修法: backend/contracts/visitor.py 字段类型必须是 PpField (L4.81 治本契约)."
     )
 
 
 def test_visitor_summary_member_join_rate_mom_uses_pp_field():
     f = VisitorSummaryResponse.model_fields["member_join_rate_mom"]
-    assert _has_constraint(f, -100.0, 100.0), (
-        f"member_join_rate_mom 必须是 PpField, 实际 metadata={f.metadata}"
+    assert _has_constraint(f, -1e10, 1e10), (
+        f"member_join_rate_mom 必须是 PpField (L4.81 治本契约: ge=-1e10 le=1e10), 实际 metadata={f.metadata}"
     )
 
 
 def test_daily_trend_member_join_rate_uses_percentage_field():
     f = VisitorDailyTrendItem.model_fields["member_join_rate"]
-    assert _has_constraint(f, -1_000_000_000_000.0, 1_000_000_000_000.0), (
-        f"daily.member_join_rate 必须是 PercentageField, 实际 metadata={f.metadata}"
+    assert _has_constraint(f, -1e10, 1e10), (
+        f"daily.member_join_rate 必须是 PercentageField (L4.81 治本契约: ge=-1e10 le=1e10), 实际 metadata={f.metadata}"
     )
 
 

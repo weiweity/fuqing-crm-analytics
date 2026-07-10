@@ -397,20 +397,20 @@ def get_category_overview(
 
 
     def _clamp_yoy(v):
-        """L4.79 品类看板 YOY% 治本: 钳到 ±9999.99 (Excel 0.00 格式上限), 避免 previous≈0 时爆炸.
+        """L4.79 + L4.81 治本: 钳到 ±99.9999 raw ratio (frontend *100 = ±9999.99% display, Excel 0.00 格式上限), 避免 previous≈0 时爆炸.
 
         真业务触发 (user 7/10): 凉茶次抛 全店-GSV=¥105,861 YOY=-7296%, 未知 全店-AUS=¥111 YOY=+5503482857%.
-        真因: previous 接近 0 (新分类/小基数), yoy_absolute = (curr-prev)/prev*100 爆炸.
-        治标: 钳到 ±9999.99 (跟 Excel numFmt '0.00' 上限一致, 4 位整数 + 2 位小数).
-        治本 (留尾): 当 previous < 阈值 (¥10 / 10 人) 时, YOY% = None ("新分类" 占位).
-        配套: Pydantic PercentageField (le=1B) 不会 422, 前端 YOYBadge |v|>1e6 守卫 ("数据异常") 兜底.
+        真因: previous 接近 0 (新分类/小基数), yoy_absolute = (curr-prev)/prev 爆炸.
+        L4.81 治本契约: backend yoy_absolute 返回 raw ratio (no *100, e.g. 0.25 = +25% / 100), 钳到 ±99.9999 raw (frontend *100 = ±9999.99%).
+        治本 (留尾): 当 previous < 阈值 (¥10 / 10 人) 时, YOY = None ("新分类" 占位).
+        配套: Pydantic PercentageField (L4.81 ge=-1e10, le=1e10) 不会 422, 前端 YOYBadge |v|>1e6 raw (1e8%) 守卫 ("数据异常") 兜底.
         """
         if v is None:
             return None
-        if v > 9999.99:
-            return 9999.99
-        if v < -9999.99:
-            return -9999.99
+        if v > 99.9999:
+            return 99.9999
+        if v < -99.9999:
+            return -99.9999
         return v
 
     def _build_row(name: str, c: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:

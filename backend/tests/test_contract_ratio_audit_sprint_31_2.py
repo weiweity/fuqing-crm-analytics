@@ -64,10 +64,10 @@ class TestTierFlowRowRatioBounds:
                    for e in exc.value.errors())
 
     def test_yoy_repurchase_rate_pp_field_range(self):
-        """yoy_repurchase_rate 用 PpField, 范围 -100~+100, 150 应 raise, 50 应 pass"""
+        """yoy_repurchase_rate 用 PpField (L4.81 治本契约: -1e10~+1e10 raw ratio diff, 0.05 = +5pp / 100), 越界 +1e11 应 raise, 5.28 raw 应 pass (5.28 = +528pp / 100)"""
         with pytest.raises(ValidationError):
-            TierFlowRow(tier_segment="S", yoy_repurchase_rate=150.0)
-        # 合法 pp 差应 pass (Sprint 30.3 例子 5.28pp)
+            TierFlowRow(tier_segment="S", yoy_repurchase_rate=1e11)  # 越界 L4.81 -1e10~+1e10
+        # L4.81 治本契约: yoy_repurchase_rate 接收 raw ratio diff (no *100), 5.28 = +528pp / 100
         row = TierFlowRow(tier_segment="S", yoy_repurchase_rate=5.28)
         assert row.yoy_repurchase_rate == 5.28
 

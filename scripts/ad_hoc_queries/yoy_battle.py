@@ -105,13 +105,13 @@ def _compute_window(
 
 
 def _format_yoy(yoy: float | None) -> str:
-    """跟 daily_gsv 输出口径一致: +12.34% / N/A."""
+    """跟 daily_gsv 输出口径一致: +12.34% / N/A. L4.81 治本契约: backend yoy_absolute 返回 raw ratio (no *100), *100 显示."""
     if yoy is None:
         return "N/A"
     if abs(yoy) > 1e6:
         # Sprint 60+ 沉淀: 异常 YOY 强截断, 跟 daily_gsv 同模式
         return "N/A"
-    return f"{yoy:+.2f}%"
+    return f"{yoy * 100:+.2f}%"
 
 
 def run_yoy_battle(

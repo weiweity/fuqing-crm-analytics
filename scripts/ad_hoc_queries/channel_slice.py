@@ -197,13 +197,13 @@ def run_channel_slice(
             yoy = _yoy_absolute(cu["gsv"], ly["gsv"])
             if yoy is not None and abs(yoy) > 1e6:
                 yoy = None
-            yoy_str = f"{yoy:+.2f}%" if yoy is not None else "N/A"
+            yoy_str = f"{yoy * 100:+.2f}%" if yoy is not None else "N/A"  # L4.81 治本契约: *100 显示
         elif compare == "pop":
             pop = pop_map.get(ch, {"gsv": 0.0})
             yoy = _yoy_absolute(cu["gsv"], pop["gsv"])
             if yoy is not None and abs(yoy) > 1e6:
                 yoy = None
-            yoy_str = f"{yoy:+.2f}%" if yoy is not None else "N/A"
+            yoy_str = f"{yoy * 100:+.2f}%" if yoy is not None else "N/A"  # L4.81 治本契约: *100 显示
         else:
             yoy_str = "N/A"
         rows_out.append([
