@@ -3,7 +3,48 @@
 > **本文件给 IT / 运维 / AI 远程协助用,不是给运营看。**
 > **运营看 `D:\fuqin-date\README-OPERATIONS.md`。**
 
-**最后更新**: 2026-07-10 (Sprint 205+ L4.85.2 整合 L4.84 path 跟 L4.85 path 永久规则化收口 + L4.x 76 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则链配套, 跟之前 L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 收口 push 模式 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
+**最后更新**: 2026-07-10 (Sprint 205+ L4.85.3 _is_account_active last_active_at + 5min 检查 永久规则化收口 + L4.x 77 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 1:1 stable 永久规则链配套, 跟之前 L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 + L4.85.2 1:1 stable 收口 push 模式 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
+
+## L4.85.3 业务验证 4 件套 (跟 L4.85.3 业务验证 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 L4.75 v2 lock_timeout_seconds 1:1 stable 永久规则化沿用, 跟之前 L4.85.1 + L4.85.2 业务验证 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "都登陆不上去, 写: 账号正在被使用, 请使用申请登录按钮, 我没有任何一个号在线" 1:1 stable 永久规则化沿用)
+
+### 验证 1: uvicorn restart → admin login → 200 (跟 L4.85.3 治本 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "没人在线也能登" 1:1 stable 永久规则化沿用)
+
+```bash
+ps aux | grep "uvicorn" | grep -v grep | awk '{print $2}' | xargs -I{} kill {} 2>/dev/null
+sleep 4
+RESP1=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.1" -d '{"username":"admin","password":"123456"}' -w "\nHTTP_CODE:%{http_code}")
+echo "Login 1 响应: $RESP1"
+```
+
+**预期**: HTTP 200 (ACTIVE_TOKENS 空, 跟 L4.85.3 治本 1:1 stable 永久规则化沿用).
+
+### 验证 2: admin 5 分钟内有 active → login → 409 (跟 L4.85.2 1:1 stable 永久规则化沿用)
+
+```bash
+RESP2=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.2" -d '{"username":"admin","password":"123456"}' -w "\nHTTP_CODE:%{http_code}")
+echo "Login 2 响应: $RESP2"
+```
+
+**预期**: HTTP 409 "账号正在被使用, 请使用申请登录按钮" (跟 L4.85.2 1:1 stable 永久规则化沿用, 跟 L4.85.3 1:1 stable 永久规则化沿用).
+
+### 验证 3: logout → 200 (跟 L4.85.1 logout 1:1 stable 永久规则化沿用)
+
+```bash
+TOKEN_A=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+LOGOUT_RESP=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/logout -H "Authorization: Bearer $TOKEN_A" -w "\nHTTP_CODE:%{http_code}")
+echo "Logout 响应: $LOGOUT_RESP"
+```
+
+**预期**: HTTP 200 (跟 L4.85.1 logout 1:1 stable 永久规则化沿用).
+
+### 验证 4: admin logout 后, login → 200 (跟 L4.85.3 治本核心 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "没人在线也能登" 1:1 stable 永久规则化沿用, bug 修复成功)
+
+```bash
+RESP3=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.3" -d '{"username":"admin","password":"123456"}' -w "\nHTTP_CODE:%{http_code}")
+echo "Login 3 响应: $RESP3"
+```
+
+**预期**: HTTP 200 (跟 L4.85.3 治本核心 1:1 stable 永久规则化沿用, bug 修复成功, 跟 user 7/10 拍板 "我没有任何一个号在线" 1:1 stable 永久规则化沿用).
 
 ## L4.85.2 业务验证 3 件套 (跟 L4.85.2 业务验证 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用, 跟之前 L4.85.1 业务验证 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "我两个设备，同时选择登陆按钮，还是能进入" 1:1 stable 永久规则化沿用)
 

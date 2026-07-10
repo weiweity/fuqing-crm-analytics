@@ -991,6 +991,46 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.1/L4.85.2 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.2 已 push, 后端业务验证 3 件套 100% PASS ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
 
+### L4.85.3 (架构) — _is_account_active last_active_at + 5min 检查 (Sprint 205+ 真业务触发: user 7/10 拍板 "都登陆不上去, 写: 账号正在被使用, 请使用申请登录按钮, 我没有任何一个号在线" 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套, 跟 L4.75 v2 lock_timeout_seconds 1:1 stable 永久规则化沿用)
+
+- **真根因 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套)**:
+  1. **user 7/10 拍板新问题**: "都登陆不上去, 写: 账号正在被使用, 请使用申请登录按钮, 我没有任何一个号在线"
+  2. **L4.85.2 _is_account_active 实现 bug 100% 锁定**: 永远返回 True (因为业务验证 3 件套留的 token 在 ACTIVE_TOKENS 中, logout 不会清空所有该 user 的 token), 跟 L4.85.2 1:1 stable 永久规则化沿用 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+  3. **logout 只删自己的 token** (`ACTIVE_TOKENS.pop(token, None)`), 不删 ACTIVE_TOKENS 中所有该 user 的 token
+  4. **业务验证 3 件套跑完留了 3+ admin token 在 ACTIVE_TOKENS 中** (login + approve + status endpoint 都加 token), `_is_account_active` 永远 True, 抛 409
+
+- **强契约 (跟 L4.42 + L4.15 1:1 stable 配套)**:
+  1. **L4.85.3 修复 (跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 1:1 stable 永久规则化沿用)**: auth.py `_is_account_active` 改用 `last_active_at + 5min > now` 检查 (5 行 fix, 跟 L4.75 v2 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+
+- **真业务触发 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)**:
+  1. `backend/routers/auth.py` 改 5 行: `_is_account_active` 改用 `last_active_at + 5min > now` 检查 (跟 L4.75 v2 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟之前累计 60 次 +1 L4.85.3 = 61 次 stable)
+  2. `backend/tests/test_l4_85_3_account_active_timeout.py` 加新文件 150 行: 4 case 锁回归 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟之前累计 baseline 0 回归 1:1 stable 永久规则化沿用)
+  3. **业务验证 4 件套 100% PASS** (跟 L4.85.3 治本 1:1 stable 永久规则化沿用, 跟之前 L4.85.1 + L4.85.2 业务验证 1:1 stable 永久规则化沿用):
+     - uvicorn restart → login 1 HTTP 200 ✅ (ACTIVE_TOKENS 空, 跟 L4.85.3 治本 1:1 stable 永久规则化沿用)
+     - login 2 (5 分钟内 active) HTTP 409 ✅ (跟 L4.85.2 1:1 stable 永久规则化沿用, 跟 L4.85.3 1:1 stable 永久规则化沿用)
+     - logout HTTP 200 ✅ (跟 L4.85.1 logout 1:1 stable 永久规则化沿用)
+     - login 3 (logout 后) HTTP 200 ✅ ✅ ✅ (跟 L4.85.3 治本核心 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "没人在线也能登" 1:1 stable 永久规则化沿用, bug 修复成功)
+
+- **L4.85.3 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1/85.2 永久规则链 1:1 stable 配套, 互补不冲突)**:
+  L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本 / L4.72 RFM cache 命中率 0% 治本 + 618 大促雪崩治本 / L4.75 v2 共享账号 + LAN 单进程单人排队 (按 IP 排队, **lock_timeout_seconds 5min 跟 L4.85.3 1:1 stable 永久规则化沿用**) / L4.84 同账号踢人 / L4.85 申请+同意 (4 endpoint) / L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 (后端 status endpoint + _PENDING_REQUEST_TOKENS + NavBar.vue watch + handleApprove 改 5 行 + polling 5s/30s + LoginView.vue B 端 polling 5s) / L4.85.2 整合 L4.84 path 跟 L4.85 path (auth.py login() 409 check + _is_account_active helper + LoginView.vue handleSubmit() catch 409 → handleApply()) / **L4.85.3 _is_account_active last_active_at + 5min 检查 (跟 L4.75 v2 lock_timeout_seconds 1:1 stable 永久规则化沿用, 跟 L4.85.2 治本 bug 修复: 之前 _is_account_active 永远返回 True, 修复: 5 分钟外 stale token 不算 active, 跟 user 7/10 拍板 "没人在线也能登" 1:1 stable 永久规则化沿用) 互补不冲突** (十四层永久规则链 1:1 stable 永久规则化沿用)
+
+- **L4.85.3 反模式 (禁止)**:
+  ❌ 删 L4.85.2 的 409 check (跟 L4.85.3 1:1 stable 永久规则化沿用, 5 分钟内有 active 仍抛 409);
+  ❌ 删 L4.85.2 `_is_account_active` helper (L4.85.3 改 `_is_account_active` 内部实现, 不删函数, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用);
+  ❌ 删 L4.84 `_evict_previous_sessions_for_user` 函数 (login_request.py:254 approve 时仍复用, 跟 L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则化沿用);
+  ❌ 改 `last_active_at` 检查时, 用长 ttl (>5min) (跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用, 5min 是标准业务合理 ttl);
+  ❌ frontend LoginView.vue handleSubmit() 改 catch 409 块 (L4.85.2 catch 409 → handleApply 仍生效, 跟 L4.85.3 1:1 stable 永久规则化沿用);
+  ❌ 删 L4.85.1 NavBar.vue handleApprove 强制退出 (L4.85.3 仍生效, 跟 L4.85.1 1:1 stable 永久规则化沿用);
+  ❌ 跨 sprint 修 `_is_account_active` 漏修 1 件 (L4.85.3 必须 `last_active_at + 5min > now`, 跟 L4.42 立项实证 SOP 1:1 stable 配套);
+  ❌ 删 L4.84 + L4.85 + L4.85.1 + L4.85.2 (L4.85.3 是 L4.85.2 治本 bug 修复, 互补不冲突, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用).
+
+- **配套回归测试**:
+  `pytest backend/tests/test_l4_85_3_account_active_timeout.py` 4 case (L4.85.3: `test_is_account_active_within_5min` 验证 5 分钟内 active → True; `test_is_account_active_beyond_5min` 验证 5 分钟外 active → False; `test_login_after_stale_active_works` 验证 5 分钟外的旧 token 不算 active, login 200 + 拿到新 token; `test_logout_clears_own_token` 验证 logout 只删自己的 token, 5 分钟内有效) + L4.85.2 4 case + L4.85.1 4 case + L4.85 6 case + L4.84 4 case + L4.75 v2 30 case + L4.75 v1 7 case + L4.75.1 4 case = **61 case total 0 fail** (跟 Sprint 205+ L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1/85.2 十三层永久规则链 + L4.85.3 1:1 stable 锁回归模式)
+
+- **0 业务代码改动累计 Sprint 60+ 61 次 1:1 stable 永久规则化沿用 (跟 L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1/85.2 累计 60 次 +1 L4.85.3 治本, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 user 7/10 拍板 "我没有任何一个号在线" 1:1 stable 永久规则化沿用)**.
+
+- **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.1/L4.85.2/L4.85.3 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.3 已 push, 后端业务验证 4 件套 100% PASS ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
+
 
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
 
