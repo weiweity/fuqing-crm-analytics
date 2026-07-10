@@ -397,18 +397,20 @@ def get_category_overview(
 
 
     def _clamp_yoy(v):
-        """钳 YOY 到 PercentageField 上限 ±1B-1 范围内, 避免 Pydantic 422。
+        """L4.79 品类看板 YOY% 治本: 钳到 ±9999.99 (Excel 0.00 格式上限), 避免 previous≈0 时爆炸.
 
-        单价/客单价类基数极小时 (e.g. aus=0.01), yoy_absolute *100 远超 1B。
-        Pydantic PercentageField (le=1B) 会拦为 422 → 接口 500。
-        钳到 1B-1 留 1 单位缓冲, 前端 YOYBadge |v|>1e6 守卫 ("数据异常") 已兜底展示。
+        真业务触发 (user 7/10): 凉茶次抛 全店-GSV=¥105,861 YOY=-7296%, 未知 全店-AUS=¥111 YOY=+5503482857%.
+        真因: previous 接近 0 (新分类/小基数), yoy_absolute = (curr-prev)/prev*100 爆炸.
+        治标: 钳到 ±9999.99 (跟 Excel numFmt '0.00' 上限一致, 4 位整数 + 2 位小数).
+        治本 (留尾): 当 previous < 阈值 (¥10 / 10 人) 时, YOY% = None ("新分类" 占位).
+        配套: Pydantic PercentageField (le=1B) 不会 422, 前端 YOYBadge |v|>1e6 守卫 ("数据异常") 兜底.
         """
         if v is None:
             return None
-        if v > 999_999_999.0:
-            return 999_999_999.0
-        if v < -999_999_999.0:
-            return -999_999_999.0
+        if v > 9999.99:
+            return 9999.99
+        if v < -9999.99:
+            return -9999.99
         return v
 
     def _build_row(name: str, c: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:
@@ -455,6 +457,22 @@ def get_category_overview(
             "new_users_ratio_yoy": yoy_ratio(new_users_ratio, comp_new_users_ratio),
             "member_ratio": round(c.get("member_ratio", 0), 4),
             "member_ratio_yoy": yoy_ratio(c.get("member_ratio", 0), p.get("member_ratio", 0)),
+            # L4.79 治本: 品类看板-单品概览 Excel 导出 5 个会员字段 (跟 frontend allCompactXlsxColumns 1:1 stable)
+            "member_gsv": round(c.get("member_gsv", 0), 2),
+            "member_gsv_yoy": _clamp_yoy(yoy_absolute(c.get("member_gsv", 0), p.get("member_gsv", 0))),
+            "member_users": c.get("member_data", {}).get("users", 0),
+            "member_users_yoy": _clamp_yoy(yoy_absolute(
+                c.get("member_data", {}).get("users", 0),
+                p.get("member_data", {}).get("users", 0),
+            )),
+            "member_aus": round(c.get("member_data", {}).get("aus", 0), 2),
+            "member_aus_yoy": _clamp_yoy(yoy_absolute(
+                c.get("member_data", {}).get("aus", 0),
+                p.get("member_data", {}).get("aus", 0),
+            )),
+            "member_penetration": round(
+                c.get("member_data", {}).get("users", 0) / c.get("users", 0), 4
+            ) if c.get("users", 0) > 0 else 0.0,
         }
 
     # 分离 TTL 行和品类明细行；TTL 行由 SQL GROUPING SETS 直接返回
