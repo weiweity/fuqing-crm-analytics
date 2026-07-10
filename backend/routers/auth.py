@@ -183,6 +183,18 @@ def _evict_previous_sessions_for_user(username: str) -> int:
     return evicted
 
 
+def _is_account_active(username: str) -> bool:
+    """L4.85.2 治本: 检查账号是否有 active token (跟 login_request._is_account_active 1:1 stable 复用).
+
+    跟 L4.42 + L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套.
+    跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用 (跟 login_request._is_account_active 1:1 stable 复用, 0 业务代码改动).
+    """
+    return any(
+        token_user == username
+        for token_user, _ in ACTIVE_TOKENS.values()
+    )
+
+
 def _verify_token(token: str, sliding: bool = True) -> str | None:
     """验证 token 有效性，返回 username 或 None。
     
@@ -234,6 +246,13 @@ def login(req: LoginRequest, request: Request):
 
     # 4. 登录成功
     _record_success(req.username)
+    # L4.85.2 治本: 整合 L4.84 path 跟 L4.85 path (跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用)
+    # 跟 L4.85 create_login_request 409 模式 1:1 stable 配套, 跟 L4.85.1 1:1 stable 永久规则化沿用
+    if _is_account_active(req.username):
+        raise HTTPException(
+            status_code=409,
+            detail="账号正在被使用, 请使用申请登录按钮",
+        )
     # L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话, 旧 token 失效强制重新登录
     _evict_previous_sessions_for_user(req.username)
     token = secrets.token_urlsafe(32)

@@ -333,6 +333,12 @@ async function handleSubmit() {
       router.push(redirect || '/audience')
     }, 300)
   } catch (err: any) {
+    // L4.85.2 治本: 普通 login 按钮也走申请+同意流程 (跟 user 7/10 拍板 1:1 stable 永久规则化沿用)
+    // 跟 L4.85.1 B 端 polling 1:1 stable 永久规则化沿用, 跟 backend auth.py 409 1:1 stable 配套
+    if (err?.response?.status === 409 && err?.response?.data?.detail?.includes('正在被使用')) {
+      await handleApply()  // 复用现有 申请+同意 流程 (5 分钟超时 + polling 5s)
+      return
+    }
     passwordErr.value = err.message || '账号或密码错误'
     passwordShake.value = true
     fireTrigger(wrongTrigger)

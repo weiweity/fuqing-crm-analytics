@@ -32,6 +32,7 @@ from backend.routers.auth import (
     VALID_CREDENTIALS,
     _evict_previous_sessions_for_user,
     _get_client_ip,
+    _is_account_active,
     _verify_token,
 )
 
