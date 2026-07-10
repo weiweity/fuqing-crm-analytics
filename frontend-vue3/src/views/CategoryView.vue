@@ -527,45 +527,107 @@ const categoryDistributionXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '渗透率', key: 'penetration_rate', width: 12, numFmt: '0.0%' },
 ])
 
+// L4.79 + L4.80 WYSIWYG 25 列扩列 (跟 frontend allColumns 1:1 stable, 全店+老客+新客 groups + 会员占比 + 会员渗透率)
+// 1 + 9 (全店) + 8 (老客) + 8 (新客) = 26 列. 全店 group 多 1 列 会员占比 YOY, 跟 frontend allColumns (line 395-453) 1:1 stable 沿用
 const allCompactXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '产品分类', key: 'name', width: 14 },
+  // 全店 group (9 columns: GSV/YOY/会员占比/YOY/用户数/YOY/AUS/YOY)
   { header: '全店-GSV (元)', key: 'gsv', width: 16, numFmt: '¥#,##0' },
   { header: '全店-GSV YOY%', key: 'gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-会员占比', key: 'member_ratio', width: 12, numFmt: '0.0%' },
+  { header: '全店-会员占比 YOY%', key: 'member_ratio_yoy', width: 12, numFmt: '0.00' },
   { header: '全店-用户数', key: 'users', width: 12, numFmt: '#,##0' },
   { header: '全店-用户数 YOY%', key: 'users_yoy', width: 12, numFmt: '0.00' },
   { header: '全店-AUS', key: 'aus', width: 12, numFmt: '¥#,##0' },
   { header: '全店-AUS YOY%', key: 'aus_yoy', width: 12, numFmt: '0.00' },
-  { header: '会员-GSV (元)', key: 'member_gsv', width: 16, numFmt: '¥#,##0' },
-  { header: '会员-GSV YOY%', key: 'member_gsv_yoy', width: 12, numFmt: '0.00' },
-  { header: '会员-AUS', key: 'member_aus', width: 12, numFmt: '¥#,##0' },
-  { header: '会员-AUS YOY%', key: 'member_aus_yoy', width: 12, numFmt: '0.00' },
-  { header: '会员渗透率', key: 'member_penetration', width: 12, numFmt: '0.0%' },
+  { header: '全店-会员渗透率', key: 'member_penetration', width: 12, numFmt: '0.0%' },
+  // 老客 group (8 columns: GSV/YOY/占比/YOY/用户数/YOY/AUS/YOY)
+  { header: '老客-GSV (元)', key: 'old_gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '老客-GSV YOY%', key: 'old_gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '老客-占比', key: 'old_ratio', width: 12, numFmt: '0.0%' },
+  { header: '老客-占比 YOY%', key: 'old_ratio_yoy', width: 12, numFmt: '0.00' },
+  { header: '老客-用户数', key: 'old_users', width: 12, numFmt: '#,##0' },
+  { header: '老客-用户数 YOY%', key: 'old_users_yoy', width: 12, numFmt: '0.00' },
+  { header: '老客-AUS', key: 'old_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '老客-AUS YOY%', key: 'old_aus_yoy', width: 12, numFmt: '0.00' },
+  // 新客 group (8 columns: GSV/YOY/占比/YOY/用户数/YOY/AUS/YOY)
+  { header: '新客-GSV (元)', key: 'new_gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '新客-GSV YOY%', key: 'new_gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '新客-占比', key: 'new_ratio', width: 12, numFmt: '0.0%' },
+  { header: '新客-占比 YOY%', key: 'new_ratio_yoy', width: 12, numFmt: '0.00' },
+  { header: '新客-用户数', key: 'new_users', width: 12, numFmt: '#,##0' },
+  { header: '新客-用户数 YOY%', key: 'new_users_yoy', width: 12, numFmt: '0.00' },
+  { header: '新客-AUS', key: 'new_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '新客-AUS YOY%', key: 'new_aus_yoy', width: 12, numFmt: '0.00' },
 ])
 
+// 会员 view 同样 26 列 WYSIWYG (跟 frontend memberColumns 1:1 stable 沿用, 老客/新客 改用 member_data 子字典)
 const memberCompactXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '产品分类', key: 'name', width: 14 },
-  { header: '会员-GSV (元)', key: 'member_gsv', width: 16, numFmt: '¥#,##0' },
-  { header: '会员-GSV YOY%', key: 'member_gsv_yoy', width: 12, numFmt: '0.00' },
-  { header: '会员-用户数', key: 'member_users', width: 12, numFmt: '#,##0' },
-  { header: '会员-用户数 YOY%', key: 'member_users_yoy', width: 12, numFmt: '0.00' },
-  { header: '会员-AUS', key: 'member_aus', width: 12, numFmt: '¥#,##0' },
-  { header: '会员-AUS YOY%', key: 'member_aus_yoy', width: 12, numFmt: '0.00' },
-  { header: '会员渗透率', key: 'member_penetration', width: 12, numFmt: '0.0%' },
+  // 全店 group (9 columns, 会员口径)
+  { header: '全店-GSV (元)', key: 'gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '全店-GSV YOY%', key: 'gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-会员占比', key: 'member_ratio', width: 12, numFmt: '0.0%' },
+  { header: '全店-会员占比 YOY%', key: 'member_ratio_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-用户数', key: 'users', width: 12, numFmt: '#,##0' },
+  { header: '全店-用户数 YOY%', key: 'users_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-AUS', key: 'aus', width: 12, numFmt: '¥#,##0' },
+  { header: '全店-AUS YOY%', key: 'aus_yoy', width: 12, numFmt: '0.00' },
+  { header: '全店-会员渗透率', key: 'member_penetration', width: 12, numFmt: '0.0%' },
+  // 老客 group (8 columns, 会员口径)
+  { header: '老客-GSV (元)', key: 'old_gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '老客-GSV YOY%', key: 'old_gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '老客-占比', key: 'old_ratio', width: 12, numFmt: '0.0%' },
+  { header: '老客-占比 YOY%', key: 'old_ratio_yoy', width: 12, numFmt: '0.00' },
+  { header: '老客-用户数', key: 'old_users', width: 12, numFmt: '#,##0' },
+  { header: '老客-用户数 YOY%', key: 'old_users_yoy', width: 12, numFmt: '0.00' },
+  { header: '老客-AUS', key: 'old_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '老客-AUS YOY%', key: 'old_aus_yoy', width: 12, numFmt: '0.00' },
+  // 新客 group (8 columns, 会员口径)
+  { header: '新客-GSV (元)', key: 'new_gsv', width: 16, numFmt: '¥#,##0' },
+  { header: '新客-GSV YOY%', key: 'new_gsv_yoy', width: 12, numFmt: '0.00' },
+  { header: '新客-占比', key: 'new_ratio', width: 12, numFmt: '0.0%' },
+  { header: '新客-占比 YOY%', key: 'new_ratio_yoy', width: 12, numFmt: '0.00' },
+  { header: '新客-用户数', key: 'new_users', width: 12, numFmt: '#,##0' },
+  { header: '新客-用户数 YOY%', key: 'new_users_yoy', width: 12, numFmt: '0.00' },
+  { header: '新客-AUS', key: 'new_aus', width: 12, numFmt: '¥#,##0' },
+  { header: '新客-AUS YOY%', key: 'new_aus_yoy', width: 12, numFmt: '0.00' },
 ])
 
 // 详细 (all_columns) 复用 same 模式, 内容行更多 (Sprint 174 先统一导出 compact 版, 详细版后续 sprint)
 const exportFilenamePrefix = computed(() => `品类分析_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}`)
 
-// flatten compactXlsxColumns 到行: 从 CategoryOverviewItem 提取
+// L4.79 + L4.80 flatten compactXlsxColumns 26 列到行: 从 CategoryOverviewItem 提取 (全店 + 老客 + 新客 + 会员占比 + 会员渗透率)
 function flattenOverviewRow(row: Record<string, any>, includeMember: boolean): Record<string, any> {
   const base: Record<string, any> = {
     name: row.name,
+    // 全店 group
     gsv: row.gsv,
     gsv_yoy: row.gsv_yoy,
+    member_ratio: row.member_ratio,
+    member_ratio_yoy: row.member_ratio_yoy,
     users: row.users,
     users_yoy: row.users_yoy,
     aus: row.aus,
     aus_yoy: row.aus_yoy,
+    // 老客 group
+    old_gsv: row.old_gsv,
+    old_gsv_yoy: row.old_gsv_yoy,
+    old_ratio: row.old_ratio,
+    old_ratio_yoy: row.old_ratio_yoy,
+    old_users: row.old_users,
+    old_users_yoy: row.old_users_yoy,
+    old_aus: row.old_aus,
+    old_aus_yoy: row.old_aus_yoy,
+    // 新客 group
+    new_gsv: row.new_gsv,
+    new_gsv_yoy: row.new_gsv_yoy,
+    new_ratio: row.new_ratio,
+    new_ratio_yoy: row.new_ratio_yoy,
+    new_users: row.new_users,
+    new_users_yoy: row.new_users_yoy,
+    new_aus: row.new_aus,
+    new_aus_yoy: row.new_aus_yoy,
   }
   if (includeMember) {
     base.member_gsv = row.member_gsv
