@@ -715,6 +715,37 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **0 业务代码改动累计 Sprint 60+ 60 次 1:1 stable 配套 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.74 真业务触发 (启动条件 b + c 真触发) 0 业务代码改动 1:1 stable 永久规则化 = 0 业务代码改动, 3 files (docs/TECH-DEBT.md 留尾登记 + CLAUDE.md L4.74 启动条件 c 真触发 永久规则化段 + docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md 立项决策 memo + docs/sprints/SPRINT205+_L442_VERIFICATION_L474_TRIGGERED.md 立项实证报告) (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套 **反向**: 真业务触发 → 重新立项 → 0 commit 续期, 跟 Sprint 204+ 7/5 拍板 0 commit 收口 1:1 stable 模式 配套).
 
+### L4.78 — Sprint 205+ L4.74 PostgreSQL 16 分布式 0 commit 收口 (user 7/10 拍板不升级, 跟 L4.42 "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用)
+
+- **真业务触发 (你 7/10 拍板 "算了, postgresql 这件事情结束吧, 不升级了, 我们解决掉当前剩余的任务就可以" = 7/16 离职 + 没接手人 + Mac/PC2 网络环境异常 = 治根闭环不可达, 0 commit 收口)**: Sprint 205+ L4.74 PostgreSQL 16 分布式 整体 0 commit 收口 + 跨 sprint 留尾给接手人 7/16+ 启动. 5 commits 留尾分支 (跟 L4.74 + L4.77 1:1 stable 永久规则化沿用): ① `3fa790f` V2 handoff 7 周 1 人月 3 子任务串行 ② `687ff81` 子任务 A 静态 PASS 7 files / +2962/-16 ③ `f79aadc` POC report 5 路径尝试全记录 ④ `78d93e9` pytest 1/5 PASS + 4/5 FAIL 实跑结果 ⑤ `672f856` Docker CloudFront EOF 根因调查 handoff.
+
+- **L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 8+ 路径尝试全记录 (跟 fix_pattern #98 1:1 stable 永久规则化沿用)**: ① docker compose up (Codex 新加 infra/) ❌ CloudFront EOF ② docker compose up (老根 docker-compose.yml postgres:16) ❌ CloudFront EOF ③ docker pull citusdata/citus:14.1-pg16 ❌ CloudFront EOF ④ docker pull postgres:16 ❌ CloudFront EOF ⑤ docker pull postgres:16-alpine ❌ CloudFront EOF ⑥ brew install postgresql@16/18 ❌ Tier 1 + raw 卡 ⑦ pip install testing.postgresql/pglite-py ❌ ⑧ curl get.enterprisedb.com ❌ 403 Forbidden. 真根因 (跟 L4.42 实证 100% 锁定): Docker Desktop on Mac VM 内 daemon, `~/.docker/daemon.json` 改动不自动同步, pull 仍走 CloudFront.
+
+- **强契约 (跟 L4.42 "0 业务触发 0 commit 收口" + L4.55 + L4.56 + fix_pattern #98 1:1 stable 永久规则化沿用)**:
+  1. **没 deployer = 没治根闭环 = 0 commit 收口**: user 7/16 离职 + 没接手人, L4.74 PG migration PC2 部署没人做 (跟 L4.42 立项实证 SOP "0 业务触发" 1:1 stable 反向 = 启动条件 4 "留尾登记" 完备, 启动条件 1 "环境依赖" 0 触发)
+  2. **5 commits 留尾分支不 merge main**: `feature/l4-74-v2-handoff` + `fix/sprint205-l4-74-a-single-node-poc` 留作接手人 7/16+ 启动备查 (跟 L4.59 跨 sprint 维护性 0 commit 续期 SOP 1:1 stable 永久规则化沿用)
+  3. **fix_pattern #98 (任何 sprint 立项必 4 件启动条件 live verify) 1:1 stable 永久规则化沿用**: ① 环境依赖可访问 (docker pull / brew install / pip install / curl 不卡) ② 业务触发真条件 ③ 团队接手人 handoff ④ 留尾登记. Sprint 205+ L4.74 启动条件 1 (环境依赖) 0 触发 + 启动条件 3 (没接手人) 0 触发, 走 0 commit 收口 + 跨 sprint 留尾.
+
+- **L4.78 反模式 (禁止, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用)**:
+  ❌ 没接手人 sprint 立项 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 启动条件 3 0 触发)
+  ❌ 环境异常 sprint 立项 (跟 fix_pattern #98 启动条件 1 0 触发 1:1 stable 永久规则化沿用)
+  ❌ 8-10 周工作量 sprint 7 天内 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则化沿用, 时间窗口不匹配)
+  ❌ 0 commit 收口后还在投时间修 (跟 L4.42 "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用)
+  ❌ 跨 sprint 留尾不留接手人恢复步骤 (跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用)
+
+- **L4.78 配套 (跟 L4.16 + L4.20 + L4.42 + L4.50 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.66 + L4.67 + L4.68 + L4.69 + L4.69.1 + L4.72 + L4.72.1 + L4.72.2 + L4.72.3 + L4.74 + L4.74 cache end_date fix + L4.75 + L4.76 + L4.77 1:1 stable 永久规则链配套)**:
+  - L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 (8+ 路径尝试全记录 + 根因 100% 锁定)
+  - L4.50 pytest cleanup 0 业务代码改动 1:1 stable 永久规则化沿用 (累计 83+ 次, 跟 Sprint 60+ 138 sprint 1:1 stable 永久规则化沿用)
+  - L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用 (留尾接手人恢复步骤清晰)
+  - L4.56 POC 留尾 SOP 1:1 stable 永久规则化沿用 (跨 sprint 续期 0 commit 续期)
+  - L4.57 + L4.58 + L4.59 跨 sprint 留尾 0 commit 续期 1:1 stable 永久规则化沿用 (3 件强契约: L4.42 立项实证前置 + launchd 自动化监控 + fail-open 原则)
+  - L4.65.1 + L4.69.1 1:1 stable 收口 push 模式 1:1 stable 永久规则化沿用 (Mac 开发 + push PC2 模式 1:1 stable)
+  - L4.74 + L4.74 cache end_date fix + L4.77 1:1 stable 永久规则化沿用 (留尾 5 commits 分支备查)
+  - L4.76 CI 4/4 jobs 全绿 + fix_pattern #95/#96/#97 1:1 stable 永久规则化沿用
+  - fix_pattern #98 (任何 sprint 立项必 4 件启动条件 live verify) 1:1 stable 永久规则化沿用 (Sprint 205+ L4.78 新增, 启动条件 1 + 3 0 触发 → 0 commit 收口)
+
+- **0 业务代码改动累计 Sprint 60+ 83+ 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 1:1 stable 收口 push 模式 1:1 stable 配套)**: 本次 Sprint 205+ L4.78 L4.74 PG migration 0 commit 收口 1:1 stable 永久规则化 = 0 业务代码改动, 2 files (CHANGELOG.md 加 L4.78 entry + CLAUDE.md L4.78 永久规则化段) + close memory `project_fuqing_crm_analytics_sprint205+_l4_74_postgresql_16_closed.md` 写完 + MEMORY.md 加 L4.74 收口索引行 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则链配套, 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用, 跟 fix_pattern #98 4 件启动条件 live verify 1:1 stable 永久规则化沿用).
+
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
 
 - **真业务触发 (你 7/9 拍板 "处理下" = Sprint 205+ L4.71 Stage 2 commit 链 3 commit 累积 CI 100% fail 真治本)**: Sprint 205+ Plan 1 RFM 业务治本 Stage 2 (commit 1fed446 + b378005 + e66ad9c) push 链累积 3 件 CI 爆红真根因: ① F401 unused import (`backend/routers/category.py:31` `get_category_overview`, L4.75 #1 加 `get_category_overview_cached` wrapper 后遗留, Sprint 50+ 12 步流程 SOP 漏查) ② L4.19 channel alias ground-truth-lint (cache.py:309 fuzzy match 函数 SELECT 含 `WHERE channel = ?` 无 `o.` 表别名, workflow Step 4 pytest 只跑 8 cases 漏抓) ③ period.py 漏改 (cache.py:28 `from .period import _resolve_range_period` 导入, 1fed446 commit 仅含 3 文件未含 period.py → fresh checkout 抛 ImportError). 真业务触发后 3 commit 闭环 (跟 Sprint 50+ 12 步流程 SOP stable + L4.15 push user 拍板 1:1 stable 永久规则化沿用).
