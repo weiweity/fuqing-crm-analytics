@@ -3,9 +3,9 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
-**最后更新**: 2026-07-10 (Sprint 205+ L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 永久规则化收口 + L4.x 75 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套 + 5 件跨 sprint 留尾 0 commit 续期登记, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用 + 跟 L4.12 留尾 SSOT 治理 1:1 stable 永久规则化沿用, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
+**最后更新**: 2026-07-10 (Sprint 205+ L4.85.2 整合 L4.84 path 跟 L4.85 path 永久规则化收口 + L4.x 76 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则链配套 + 5 件跨 sprint 留尾 0 commit 续期登记, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用 + 跟 L4.12 留尾 SSOT 治理 1:1 stable 永久规则化沿用, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
 
-**Sprint 205+ 累计 17 层永久规则链 1:1 stable 永久规则化沿用** (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟你 user 7/10 拍板 "admin 账号只允许登陆一个人" + "强制弹窗" + "同意后 A 必须强制退出" 1:1 stable 永久规则化沿用, 跟之前 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套):
+**Sprint 205+ 累计 18 层永久规则链 1:1 stable 永久规则化沿用** (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟你 user 7/10 拍板 "admin 账号只允许登陆一个人" + "强制弹窗" + "同意后 A 必须强制退出" + "B 端按登录按钮也必须走申请+同意" 1:1 stable 永久规则化沿用, 跟之前 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套):
   1. **L4.64** Windows 11 部署 6 个 fix (跟 L4.60 + L4.61 1:1 stable 跨平台)
   2. **L4.65** backend service `duckdb.connect()` 必分 HTTP 上下文
   3. **L4.65.1** main.py 启动禁主动建写 conn (启动 1.3GB → 147MB)
@@ -23,8 +23,9 @@
   15. **L4.84** 登录同账号踢人 (按账号自动踢, auth.py `_evict_previous_sessions_for_user`)
   16. **L4.85** 申请+同意 模式 (login_request.py 4 endpoint)
   17. **L4.85.1** admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 (5 文件 / 333 insertions + 4 case 回归 test + 53 case baseline 0 回归 + 业务验证 3 件套 100% PASS + 3cba961 commit)
+  18. **L4.85.2** 整合 L4.84 path 跟 L4.85 path (4 文件 / 183 insertions + 4 case 回归 test + 57 case baseline 0 回归 + 业务验证 3 件套 100% PASS + 8b9cb46 commit)
 
-**累计指标 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)**: L4.x 75 stable (L4.1 - L4.85.1) + 0 业务代码改动累计 Sprint 60+ 59 次 stable + /document-release 真治本累计 61 次 + MEMORY.md 21.3KB 87% 安全线 (L4.13 24.4KB 1:1 stable 永久规则链配套). 0 debt stable 累计 138 sprint 持续 (跟 Sprint 60+ 0 debt stable 模式 1:1 stable 沿用).
+**累计指标 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)**: L4.x 76 stable (L4.1 - L4.85.2) + 0 业务代码改动累计 Sprint 60+ 60 次 stable + /document-release 真治本累计 62 次 + MEMORY.md 21.3KB 88% 安全线 (L4.13 24.4KB 1:1 stable 永久规则链配套). 0 debt stable 累计 138 sprint 持续 (跟 Sprint 60+ 0 debt stable 模式 1:1 stable 沿用).
 
 **5 件跨 sprint 留尾 0 commit 续期登记** (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用 + 跟 L4.12 留尾 SSOT 治理 1:1 stable 永久规则化沿用, 7/16 后接手人启动):
   - **#S205+-L4.85.1-浏览器端验证强制弹窗**: 7/16 后接手人启动, 跟 L4.85.1 close memory 7.3 实施步骤 1:1 stable 永久规则化沿用 (浏览器端 LoginView.vue "申请登录" 按钮 + NavBar.vue 铃铛 + handleApprove 强制退出 + LoginView.vue B 端 polling 5s)

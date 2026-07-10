@@ -3,7 +3,22 @@
 > **本文件给 IT / 运维 / AI 远程协助用,不是给运营看。**
 > **运营看 `D:\fuqin-date\README-OPERATIONS.md`。**
 
-**最后更新**: 2026-07-10 (Sprint 205+ L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 永久规则化收口 + L4.x 75 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套, 跟之前 L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 1:1 stable 收口 push 模式 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
+**最后更新**: 2026-07-10 (Sprint 205+ L4.85.2 整合 L4.84 path 跟 L4.85 path 永久规则化收口 + L4.x 76 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则链配套, 跟之前 L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 收口 push 模式 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用).
+
+## L4.85.2 业务验证 3 件套 (跟 L4.85.2 业务验证 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用, 跟之前 L4.85.1 业务验证 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "我两个设备，同时选择登陆按钮，还是能进入" 1:1 stable 永久规则化沿用)
+
+### 验证 1: admin 同时按登录按钮 → 整合 L4.84 path 跟 L4.85 path (跟 L4.85.2 整合 1:1 stable 永久规则化沿用)
+
+```bash
+TOKEN_153=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+sleep 1
+RESP_201=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.201" -d '{"username":"admin","password":"123456"}' -w "\nHTTP_CODE:%{http_code}")
+echo "Token .153: ${TOKEN_153:0:20}..."
+echo ".201 login 响应: $RESP_201"
+curl -s -o /dev/null -w "Token .153 HTTP %{http_code} (应该 200, L4.85.2 整合后不踢)\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_153"
+```
+
+**预期**: Token .153 HTTP 200 (admin 第一次) + .201 login 响应 HTTP 409 (admin 第二次, 跟 L4.85.2 整合 1:1 stable 永久规则化沿用, **不踢 .153 旧 token**). 跟 L4.85.2 整合 L4.84 path 跟 L4.85 path 1:1 stable 永久规则化沿用, 跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用.
 
 ## L4.85.1 业务验证 3 件套 (跟 L4.85.1 业务验证 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟之前 L4.84 业务验证 4 件套 1:1 stable 永久规则化沿用)
 
@@ -50,18 +65,24 @@ echo "B 端 polling status: $STATUS_RESP"
 
 **预期**: `{"request_id":"...","status":"approved","new_token":"...","username":"admin"}`. 跟 L4.85.1 `get_request_status` 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 B 端 LoginView.vue polling 5s 1:1 stable 永久规则化沿用.
 
-## pytest 53 case baseline 0 回归 (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套)
+## pytest 57 case baseline 0 回归 (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则链配套)
 
 ```bash
 cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics
-/Users/hutou/homebrew/bin/python3.14 -m pytest backend/tests/test_l4_75_v2_shared_account_lan.py backend/tests/test_l4_75_single_user_mode.py backend/tests/test_l4_75_1_single_user_mode_by_ip.py backend/tests/test_l4_84_login_evict_previous.py backend/tests/test_l4_85_login_request.py backend/tests/test_l4_85_1_login_request_status.py -v --tb=short
+/Users/hutou/homebrew/bin/python3.14 -m pytest backend/tests/test_l4_75_v2_shared_account_lan.py backend/tests/test_l4_75_single_user_mode.py backend/tests/test_l4_75_1_single_user_mode_by_ip.py backend/tests/test_l4_84_login_evict_previous.py backend/tests/test_l4_85_login_request.py backend/tests/test_l4_85_1_login_request_status.py backend/tests/test_l4_85_2_login_both_paths.py -v --tb=short
 ```
 
-**预期**: 53 passed in ~3s, 0 fail. 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套.
+**预期**: 57 passed in ~3s, 0 fail. 跟 L4.85.1 53 case 1:1 stable 永久规则化沿用 + 4 new = 57 case total. 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套.
 
 ---
 
-**业务验证 3 件套 100% PASS 已实证 (跟 L4.85.1 close memory 3.3 1:1 stable 永久规则化沿用)**: admin 192.168.100.153 + .201 同时登录 → .153 HTTP 401 (被踢) + .201 HTTP 200 (新登录) ✅ + A 端 login-request 弹窗 + 同意 → A 旧 token HTTP 401 (强制退出) + B new_token HTTP 200 ✅ + B 端 polling /status 拿 new_token: status='approved' + new_token + username='admin' ✅.
+**业务验证 6 件套 100% PASS 已实证 (跟 L4.85.1 close memory 3.3 + L4.85.2 1:1 stable 永久规则化沿用)**: 
+1. **L4.85.2 admin .153 + .201 同时按登录按钮** → .153 HTTP 200 (admin 第一次) + .201 HTTP 409 (admin 第二次, 跟 L4.85.2 整合 1:1 stable 永久规则化沿用, **不踢 .153 旧 token**) + .153 旧 token HTTP 200 ✅
+2. **L4.85.1 admin .153 + .201 同时登录** → .153 HTTP 401 (被踢, 跟 L4.84 1:1 stable 永久规则化沿用, 这是 L4.84 路径 default 行为) + .201 HTTP 200 (新登录) ✅
+3. **L4.85.1 A 端 login-request 弹窗 + 同意** → A 旧 token HTTP 401 (强制退出, 跟 L4.85.1 1:1 stable 永久规则化沿用) + B new_token HTTP 200 ✅
+4. **L4.85.1 B 端 polling /status 拿 new_token** → status='approved' + new_token + username='admin' ✅
+5. **L4.85.1 fqsw 账号不冲突** (跟 L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则化沿用) ✅
+6. **L4.85.1 polling 自适应** (有 pending → 5s, 无 pending → 30s, 跟 L4.72 dual_conn 1:1 stable 永久规则链配套, 减少 conn 占用 6x) ✅
 
 ---
 

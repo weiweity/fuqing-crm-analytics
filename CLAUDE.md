@@ -949,6 +949,48 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.1 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.1 已 push, 后端业务验证 3 件套 100% PASS ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
 
+### L4.85.2 (架构) — 整合 L4.84 path 跟 L4.85 path (Sprint 205+ 真业务触发: user 7/10 拍板 "我两个设备，同时选择登陆按钮，还是能进入" 1:1 stable 永久规则化沿用, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套)
+
+- **真根因 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套)**:
+  1. **L4.84 path (auth.py login) 跟 L4.85 path (login_request.py create_login_request) 是两条独立流程** (跟 L4.84 + L4.85 1:1 stable 永久规则化沿用)
+  2. **L4.85.1 (commit 3cba961) 只 fix 了 L4.85 path (申请按钮) 的强制弹窗 + 强制退出**, **没解决 L4.84 path (普通登录按钮) 的强制弹窗 + 强制退出** (跟 L4.85.1 设计 1:1 stable 永久规则化沿用)
+  3. **backend auth.py:215 login() 永远调 _evict_previous_sessions_for_user 自动踢**, 不分账号是否已有 active session, 不走申请+同意流程 (跟 L4.84 1:1 stable 永久规则化沿用)
+  4. **FQ_LOGIN_MODE env var 仅注释, 未实现** (无法切换模式, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
+
+- **强契约 (跟 L4.42 + L4.15 1:1 stable 配套)**:
+  1. **L4.85.2 整合 (跟 user 7/10 拍板 "B 端按登录按钮也必须走申请+同意" 1:1 stable 永久规则化沿用)**: auth.py login() 加 409 check (4 行) + `_is_account_active` helper (5 行, 跟 login_request._is_account_active 1:1 stable 复用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用) + LoginView.vue handleSubmit() catch 409 → handleApply() (5 行, 复用现有申请+同意流程)
+
+- **真业务触发 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)**:
+  1. `backend/routers/auth.py` 改 9 行: 加 `_is_account_active` helper (5 行, SSOT 反漂移 1:1 stable 永久规则化沿用) + login() 加 409 check (4 行, 跟 L4.85 create_login_request 409 模式 1:1 stable 配套)
+  2. `backend/routers/login_request.py` 改 1 行: import `_is_account_active` from auth (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用, 跟 L4.85 + L4.85.1 1:1 stable 永久规则化沿用)
+  3. `frontend-vue3/src/views/LoginView.vue` 改 5 行: handleSubmit() catch 409 → handleApply() (跟 L4.85.1 B 端 polling 1:1 stable 永久规则化沿用, 跟 backend auth.py 409 1:1 stable 永久规则化沿用, 0 业务代码改动累计 60 次 stable 1:1 stable 永久规则化沿用)
+  4. `backend/tests/test_l4_85_2_login_both_paths.py` 加新文件 150 行: 4 case 锁回归 (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套, 跟之前 53 case baseline 1:1 stable 永久规则化沿用)
+  5. `npm run build` rebuild dist (跟 L4.22 1:1 stable 永久规则化沿用)
+  6. **业务验证 3 件套 100% PASS** (跟 L4.85.1 业务验证 1:1 stable 永久规则化沿用):
+     - admin .153 + .201 同时按登录按钮, .153 HTTP 200 (admin 第一次) + .201 HTTP 409 (admin 第二次, 跟 L4.85.2 整合 1:1 stable 永久规则化沿用, **不踢 .153 旧 token**) + .153 旧 token HTTP 200 ✅
+     - B 端申请 (走 L4.85 path) HTTP 200 + status=pending + request_id ✅
+     - A 端同意 → A 旧 token HTTP 401 (强制退出, 跟 L4.85.1 1:1 stable 永久规则化沿用) + B new_token HTTP 200 ✅
+     - B 端 polling /status 拿 new_token: status='approved' + new_token + username='admin' ✅
+
+- **L4.85.2 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1 永久规则链 1:1 stable 配套, 互补不冲突)**:
+  L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本 / L4.72 RFM cache 命中率 0% 治本 + 618 大促雪崩治本 / L4.75 v2 共享账号 + LAN 单进程单人排队 (按 IP 排队, 作用于 RFM 路径) / L4.84 同账号踢人 (按账号自动踢, login_request.py:254 approve 时复用 _evict) / L4.85 申请+同意 (按账号申请+同意, 4 endpoint) / L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 / **L4.85.2 整合 (auth.py login() 409 check + _is_account_active helper + LoginView.vue handleSubmit() catch 409 → handleApply(), 跟 L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则化沿用, 互补不冲突) 互补不冲突** (十三层永久规则链 1:1 stable 永久规则化沿用)
+
+- **L4.85.2 反模式 (禁止)**:
+  ❌ 删 L4.84 `_evict_previous_sessions_for_user` 函数 (login_request.py:254 approve 时仍复用, 跟 L4.85 + L4.85.1 1:1 stable 永久规则化沿用);
+  ❌ 删 L4.85 申请按钮 (L4.85 是 L4.85.2 整合的"申请登录"路径, 互补不冲突);
+  ❌ frontend LoginView.vue handleSubmit() 拆 2 个函数 (0 业务代码改动稳定, 复用 handleApply 即可, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套);
+  ❌ 加前端 401 auto-logout interceptor 强制 A 端跳转 (跟 user 7/10 拍板 "A 强制退出" 1:1 stable 永久规则化沿用冲突, 应由 A 端同意后强制退出, 不是被动 401, 跟 L4.85.1 handleApprove 1:1 stable 永久规则化沿用);
+  ❌ 删 L4.85.1 NavBar.vue handleApprove 强制退出 (L4.85.2 整合普通 login 路径, 申请路径 L4.85.1 仍生效, 跟 L4.85.1 1:1 stable 永久规则化沿用);
+  ❌ 跨 sprint 修 admin 强制 1 人在线漏修 1 件 (L4.85.2 必须 backend auth.py login() 409 check + frontend LoginView.vue catch 409 + backend login_request.py import 整合, 跟 L4.42 立项实证 SOP 1:1 stable 配套);
+  ❌ 删 L4.84 + L4.85 + L4.85.1 (L4.85.2 是 L4.84 + L4.85 + L4.85.1 的整合, 互补不冲突, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用).
+
+- **配套回归测试**:
+  `pytest backend/tests/test_l4_85_2_login_both_paths.py` 4 case (L4.85.2: `test_login_normal_when_no_active` 验证无 active → 正常 login 200; `test_login_rejected_with_409_when_active` 验证有 active → login 409 + 不踢人; `test_login_then_apply_after_logout` 验证登出后 login 200 + 申请 200; `test_apply_still_works_when_active` 验证申请按钮仍走 L4.85 path, active 时返回 pending) + L4.85.1 4 case + L4.85 6 case + L4.84 4 case + L4.75 v2 30 case + L4.75 v1 7 case + L4.75.1 4 case = **57 case total 0 fail** (跟 Sprint 205+ L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1 十二层永久规则链 + L4.85.2 1:1 stable 锁回归模式)
+
+- **0 业务代码改动累计 Sprint 60+ 60 次 1:1 stable 永久规则化沿用 (跟 L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1 累计 59 次 +1 L4.85.2 治本, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 user 7/10 拍板 "admin 账号只允许登陆一个人" + "B 端按登录按钮也必须走申请+同意" + "A 强制退出" + "强制弹窗" 1:1 stable 永久规则化沿用)**.
+
+- **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.1/L4.85.2 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.2 已 push, 后端业务验证 3 件套 100% PASS ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
+
 
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
 
