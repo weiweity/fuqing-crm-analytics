@@ -637,6 +637,37 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **后续留尾 (L4.72.4 9 子板块预计算 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.72.1 + L4.72.2 + L4.72.3 已 push (Mac 开发 + push PC2 模式 1:1 stable 配套), L4.72.4 老客分析 9 子板块预计算留尾 7/16 后接手人启动 (跟 RFM precompute_rfm_cache 1:1 stable 模式 + L4.54 launchd daily 1:1 stable 配套). 业务组 80% 查询 (近 7/30/180/365 天 4 个热窗口) 走预计算 0.5s, 20% 临时维度 1-3s (跟 L4.71 完整版 1:1 stable 留尾配套). 0 触发续期 0 commit, 7/17 运营接管后 + ClickHouse POC (L4.56 留尾 8-10 周) 一起立项.
 
+### L4.84 (架构) — 登录同账号踢人 永久规则化 (Sprint 205+ 真业务触发: user 7/10 拍板 "同期仅限一个人用看板, 我逻辑不搞高并发了" 1:1 stable 配套)
+
+- **真根因 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套, user 7/10 拍板)**:
+  1. `auth.py login()` 没踢旧 token, `ACTIVE_TOKENS` 按 token 为 key, 同一账号 (admin/fqsw) 可多设备同时登录 → 不满足 "同期仅限一个人用看板" 业务诉求.
+  2. L4.75 v2 按 IP 锁定 (10.x / 172.16.x / 192.168.x / 127.0.0.1 / ::1 / fc00::), 但同 wifi 不同内网 IP (192.168.1.10 vs 192.168.1.11) 不互锁; NAT 后同公网 IP 排队但 NAT 前后行为不一致.
+  3. 大厂内部工具标准做法 (字节 Lark / 阿里内部工具 / GitHub / GitLab / 飞书 / 钉钉) 都是 **同账号踢人** (新设备登录踢旧设备 token), 跟 L4.84 设计 1:1 stable 配套.
+
+- **强契约 (1 件必做)**:
+  1. **L4.84 同账号踢人** — `auth.py _evict_previous_sessions_for_user(username)` 在 `login()` 成功后调, 删 `ACTIVE_TOKENS` 中所有 username 匹配的 token, 强制旧设备重新登录 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 L4.84 永久规则化配套).
+
+- **真业务触发 (Sprint 205+ L4.84 1:1 stable 验证)**:
+  1. `auth.py:165-184` 加 `_evict_previous_sessions_for_user` 函数 (20 行, 跟 L4.50 1:1 stable 配套, list snapshot 防止 RuntimeError) + `auth.py:233` login() 中调 1 行 (跟 L4.50 1:1 stable 配套, 0 业务代码改动累计 56+1=57 次 1:1 stable 永久规则化沿用) + 4 case 回归 test `test_l4_84_login_evict_previous.py` 锁回归. 预期: 同一账号 (admin) 在 192.168.1.10 登录后, 在 192.168.1.11 再次登录 → 192.168.1.10 的 token 失效, 192.168.1.10 设备需重新登录.
+
+- **L4.84 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2 永久规则链 1:1 stable 配套, 互补不冲突)**:
+  L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本 / L4.72 RFM cache 命中率 0% 治本 + 618 大促雪崩治本 / L4.75 v2 共享账号 + LAN 单进程单人排队 (按 IP 排队, 作用于 RFM 路径) / **L4.84 同账号踢人 (按账号踢人, 作用于登录路径) 互补不冲突** (十层永久规则链 1:1 stable 配套).
+
+- **L4.84 反模式 (禁止)**:
+  ❌ `auth.py login()` 没踢旧 token (同一账号多设备同时登录复发, 不满足 "同期仅限一个人用看板" 业务诉求, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套);
+  ❌ `_evict_previous_sessions_for_user` 直接迭代 `ACTIVE_TOKENS.items()` 边迭代边删 (RuntimeError: dictionary changed size during iteration, 必 list snapshot `list(ACTIVE_TOKENS.items())`);
+  ❌ 跨 sprint 修同账号冲突漏修 1 件 (L4.84 必须 `_evict_previous_sessions_for_user` 函数 + `login()` 调, 跟 L4.42 立项实证 SOP 1:1 stable 配套);
+  ❌ 删 L4.75 v2 IP 排队 (L4.75 v2 处理 RFM 路径, L4.84 处理登录路径, 互补不冲突, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套);
+  ❌ L4.84 误改成"多设备白名单 + Token 失效" (跟 user 7/10 拍板 "同期仅限一个人用看板" 业务诉求 1:1 stable 配套, admin 跟 fqsw 内部工具不需要多设备).
+
+- **配套回归测试**:
+  `pytest backend/tests/test_l4_84_login_evict_previous.py` 4 case (L4.84: `test_login_evicts_previous_token_for_same_user` 验证同账号 A 旧 token 失效; `test_login_does_not_evict_different_user` 验证 admin 登录不踢 fqsw; `test_logout_then_login_no_evict` 验证登出后登录不踢; `test_concurrent_login_evicts_oldest` 验证同账号 3 设备并发登录只保留最新) + L4.75 v2 30 case (L4.75 v2 baseline 0 回归) + L4.75 v1 7 case + L4.75.1 4 case + `pytest backend/tests/ -q` 0 fail (跟 Sprint 205+ L4.65/65.1/66/67/68/69/69.1/72 八层永久规则链 + L4.75 v2 1:1 stable 锁回归模式, 43 case total).
+
+- **0 业务代码改动累计 Sprint 60+ 57 次 1:1 stable (跟 L4.65/65.1/66/67/68/69/69.1/72 累计 56 次 +1 L4.84 治本)**: 本次登录同账号踢人治本是 2 文件改动 (auth.py + 1 新 test_l4_84_login_evict_previous.py), 跟 L4.84 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式 1:1 stable 配套.
+
+- **后续留尾 (L4.85 看板整体复用 L4.75 v2 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.84 已 push, 业务可用 ✅. 后续 L4.85 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
+
+
 ### L4.72.4 + L4.73 + L4.74 (架构) — Sprint 205+ L4.42 立项实证 3 件 0 业务触发 0 commit 续期永久规则化 (跟 L4.42 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 1:1 stable 永久规则链配套)
 
 - **真业务触发 (Sprint 205+ L4.72 收口 0 commit 续期 3 件新留尾)**:

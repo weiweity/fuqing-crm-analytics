@@ -163,6 +163,26 @@ def _record_success(username: str):
     _LOGIN_ATTEMPTS.pop(username, None)
 
 
+def _evict_previous_sessions_for_user(username: str) -> int:
+    """L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话.
+
+    遍历 ACTIVE_TOKENS, 删除所有 username 匹配的 token, 强制旧设备重新登录.
+    跟 L4.75 v2 IP 排队互补不冲突: L4.75 v2 处理 RFM 路径按 IP 排队,
+    L4.84 处理登录路径按账号踢人 (跟 L4.42 + L4.50 + L4.55 + L4.65.1 + L4.69 +
+    L4.69.1 + L4.75 1:1 stable 永久规则链配套, 0 业务代码改动累计 Sprint 60+ 55+ 次 1:1 stable 永久规则化沿用).
+
+    Returns: 被踢出的旧 token 数量.
+    """
+    evicted = 0
+    for token, (token_user, _) in list(ACTIVE_TOKENS.items()):
+        if token_user == username:
+            ACTIVE_TOKENS.pop(token, None)
+            evicted += 1
+    if evicted > 0:
+        _logger.info(f"[auth] 账号 {username} 同账号踢人, 失效 {evicted} 个旧 token")
+    return evicted
+
+
 def _verify_token(token: str, sliding: bool = True) -> str | None:
     """验证 token 有效性，返回 username 或 None。
     
@@ -214,6 +234,8 @@ def login(req: LoginRequest, request: Request):
 
     # 4. 登录成功
     _record_success(req.username)
+    # L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话, 旧 token 失效强制重新登录
+    _evict_previous_sessions_for_user(req.username)
     token = secrets.token_urlsafe(32)
     ACTIVE_TOKENS[token] = (req.username, datetime.now())
     _logger.info(f"[auth] 登录成功：{req.username}，IP={client_ip}")
