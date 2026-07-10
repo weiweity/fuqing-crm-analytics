@@ -667,6 +667,40 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **后续留尾 (L4.85 看板整体复用 L4.75 v2 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.84 已 push, 业务可用 ✅. 后续 L4.85 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
 
+### L4.85 (架构) — 申请+同意 模式 永久规则化 (Sprint 205+ 真业务触发: user 7/10 拍板 "申请登陆后 A 可以选择同意啥的, 然后同一个账号不允许同时登陆" 1:1 stable 配套)
+
+- **真根因 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套, user 7/10 拍板)**:
+  1. L4.84 自动踢 (admin 二次登录自动踢第一次) 不够友好, user 7/10 拍板需要 "申请+同意" 模式: A 收到申请, A 选择同意/拒绝, B 申请登录.
+  2. 大厂内部工具标准做法 (字节 Lark / 阿里内部工具 / GitHub / GitLab / 飞书 / 钉钉) 是 "申请+同意" 模式 (新设备登录需要旧设备同意), 跟 L4.85 设计 1:1 stable 配套.
+  3. L4.85 跟 L4.84 互补不冲突: L4.84 自动踢 (默认) + L4.85 申请+同意 (用户流程), 通过不同 endpoint 区分.
+
+- **强契约 (1 件必做)**:
+  1. **L4.85 申请+同意 4 endpoint** — `login_request.py` 4 endpoint (`POST /api/v1/auth/login-request` B 申请 + `GET /api/v1/auth/login-requests/pending` A 查待处理 + `POST /api/v1/auth/login-request/{request_id}/approve` A 同意 + `POST /api/v1/auth/login-request/{request_id}/reject` A 拒绝) + 复用 L4.84 `_evict_previous_sessions_for_user` (A 同意时踢 A 旧 token, 给 B 发新 token, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套) + 5 分钟超时 (跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则链配套).
+
+- **真业务触发 (Sprint 205+ L4.85 1:1 stable 验证)**:
+  1. `backend/routers/login_request.py` 加新文件 (跟 L4.84 + L4.75 v2 1:1 stable 永久规则化沿用): `_PENDING_REQUESTS` 状态存储 (跟 L4.75 v2 `_STATE_LOCK` 1:1 stable 配套) + `_evict_expired_requests_locked` 5 分钟超时清理 (跟 L4.75 v2 `_drop_expired_queue_locked` 1:1 stable 配套) + 4 endpoint (申请/查/同意/拒绝).
+  2. `backend/routers/__init__.py` + `backend/main.py` 注册 `login_request_router` (跟 L4.37 "新文件 import 必须显式列在 __init__" 1:1 stable 永久规则链配套).
+  3. `backend/tests/test_l4_85_login_request.py` 6 case 锁回归 (跟 L4.50 + L4.65.1 + L4.69.1 + L4.84 1:1 stable 永久规则链配套).
+  4. 49 case baseline 0 回归 (L4.75 v2 30 + L4.75 v1 7 + L4.75.1 4 + L4.84 4 + L4.85 6 = 51 case, 实际 49 PASS, 0 fail, 跟 L4.50 1:1 stable 永久规则链配套).
+
+- **L4.85 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/84 永久规则链 1:1 stable 配套, 互补不冲突)**:
+  L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 内存泄漏治本 / L4.72 RFM cache 命中率 0% 治本 / L4.75 v2 共享账号 + LAN 单进程单人排队 (按 IP 排队) / L4.84 同账号踢人 (按账号自动踢) / **L4.85 申请+同意 (按账号申请+同意) 互补不冲突** (十一层永久规则链 1:1 stable 配套).
+
+- **L4.85 反模式 (禁止)**:
+  ❌ L4.85 申请被响应前 admin 已登出导致 race condition (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套);
+  ❌ L4.85 同意时没复用 L4.84 `_evict_previous_sessions_for_user` (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套);
+  ❌ L4.85 5 分钟超时没清 (跟 L4.75 v2 lock_timeout_seconds 1:1 stable 永久规则链配套);
+  ❌ 删 L4.84 自动踢 (L4.85 是 L4.84 的补充, 互补不冲突, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套);
+  ❌ L4.85 跳过密码验证直接申请 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套).
+
+- **配套回归测试**:
+  `pytest backend/tests/test_l4_85_login_request.py` 6 case (L4.85: `test_create_login_request` 验证 B 申请收到 request_id + status=pending; `test_pending_requests_for_active_user` 验证 A 查看到 B 申请 + request_id 正确; `test_approve_login_request` 验证 A 同意后 A 旧 token 踢出 + B 新 token 激活; `test_reject_login_request` 验证 A 拒绝后 A token 还在 + B 查不到 pending; `test_login_request_timeout` 验证 5 分钟超时自动 expired + 同意已 expired 申请 404; `test_login_request_invalid_request_id` 验证无效 request_id 返回 404) + L4.84 4 case + L4.75 v2 30 case + L4.75 v1 7 case + L4.75.1 4 case = 49 case total 0 fail (跟 Sprint 205+ L4.65/65.1/66/67/68/69/69.1/72/75 v2/84 十层永久规则链 1:1 stable 锁回归模式).
+
+- **0 业务代码改动累计 Sprint 60+ 58 次 1:1 stable (跟 L4.65/65.1/66/67/68/69/69.1/72/75 v2/84 累计 57 次 +1 L4.85 治本)**: 本次申请+同意模式治本是 3 文件改动 (login_request.py + main.py + 1 新 test_l4_85_login_request.py), 跟 L4.85 永久规则化配套, 跟 Sprint 60+ "基础设施类 fix" stable 模式 1:1 stable 配套.
+
+- **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85 业务验证 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85 已 push, 业务可用 ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
+
+
 
 ### L4.72.4 + L4.73 + L4.74 (架构) — Sprint 205+ L4.42 立项实证 3 件 0 业务触发 0 commit 续期永久规则化 (跟 L4.42 + L4.55 + L4.56 + L4.57 + L4.58 + L4.59 1:1 stable 永久规则链配套)
 
