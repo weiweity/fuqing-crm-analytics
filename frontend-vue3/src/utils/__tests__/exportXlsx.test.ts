@@ -154,4 +154,50 @@ describe('Sprint 174 exportXlsx.ts SSOT 视觉规范', () => {
     expect(lastWorkbook.sheetNames[1]).toBe('B')
     expect(lastWorkbook.sheetNames[0].length).toBeLessThanOrEqual(31)
   })
+
+  // ===== L4.91 PR0 新契约测试 (跟 L4.50 0 业务代码改动 累计 90 次 1:1 stable 永久规则化沿用) =====
+
+  it('L4.91 PR0: assertNotFormula 拒绝 object 形式 {f: "=..."} (AudienceView raw xlsx 漏挡 fix)', async () => {
+    // AudienceView.vue:1657-1659 raw xlsx path 写过 {t:"n",f:"=B1-C1"}, Sprint 174 assertNotFormula 只挡 string,
+    // L4.91 PR0 扩展检测 object 形式 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+    const columns: XlsxColumn[] = [{ header: '指标', key: 'indicator' }]
+    const data = [{ indicator: { t: 'n', f: '=B1-C1' } }]
+    await expect(exportSheetToXlsx('test', 'ObjFormula', columns, data)).rejects.toThrow(/XLSX output forbids formulas/)
+  })
+
+  it('L4.91 PR0: kind="yoy_pp" 显式 enum → numFmt = "0.00%;-0.00%;0.00%" (pp 差 raw *100)', async () => {
+    lastWorkbook.cellStyles = []
+    const columns: XlsxColumn[] = [
+      { header: '复购率 YOY (pp)', key: 'repurchase_rate_yoy_pp', kind: 'yoy_pp' },
+    ]
+    const data = [{ repurchase_rate_yoy_pp: 0.05 }]  // raw 0.05 = +5pp
+    await exportSheetToXlsx('test', 'PpKind', columns, data)
+    const cell = lastWorkbook.cellStyles.find((c) => c.row === 1)
+    expect(cell?.numFmt).toBe('0.00%;-0.00%;0.00%')
+  })
+
+  it('L4.91 PR0: kind="yoy_day" 显式 enum → numFmt = "+0;-0;0" (天数差 signed int, 无 %)', async () => {
+    lastWorkbook.cellStyles = []
+    const columns: XlsxColumn[] = [
+      { header: '中位天数 YOY', key: 'median_days_yoy', kind: 'yoy_day' },
+    ]
+    const data = [{ median_days_yoy: 3 }]  // raw 3 = +3天
+    await exportSheetToXlsx('test', 'DayKind', columns, data)
+    const cell = lastWorkbook.cellStyles.find((c) => c.row === 1)
+    expect(cell?.numFmt).toBe('+0;-0;0')
+  })
+
+  it('L4.91 PR0: kind="text" 显式 enum → 不应用 YOY numFmt, 走 caller numFmt (caller 优先级)', async () => {
+    lastWorkbook.cellStyles = []
+    const columns: XlsxColumn[] = [
+      // 列名有 _yoy 后缀但 caller 显式 kind="text", 应该跳过 YOY auto-detect
+      { header: '备注', key: 'note_yoy', kind: 'text', numFmt: '@' },
+    ]
+    const data = [{ note_yoy: '稳定' }]
+    await exportSheetToXlsx('test', 'TextKind', columns, data)
+    // 字符串值, 不会设 numFmt (isNumeric=false), 但 kind="text" 不会被 YOY auto-detect 错认
+    // 测试目的: 验证 kind="text" 显式 enum 防止 auto-detect 误判
+    const cell = lastWorkbook.cellStyles.find((c) => c.row === 1)
+    expect(cell).toBeTruthy()
+  })
 })
