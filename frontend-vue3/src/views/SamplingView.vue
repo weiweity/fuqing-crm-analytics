@@ -452,7 +452,11 @@ onUnmounted(() => {
               <div class="sampling-overview-card">
                 <div class="sampling-overview-head">
                   <span class="sampling-overview-label">派样人数</span>
-                  <span class="sampling-delta-empty">暂无{{ compareModeLabel }}</span>
+                  <span v-if="totalCompareValue('sample_users', 'pct') != null" class="sampling-delta-badge" :class="deltaToneClass(totalCompareValue('sample_users', 'pct'))">
+                    {{ (totalCompareValue('sample_users', 'pct') ?? 0) > 0 ? '↑' : (totalCompareValue('sample_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                    <YOYGuard :value="totalCompareValue('sample_users', 'pct')" unit="%" />
+                  </span>
+                  <span v-else class="sampling-delta-empty">暂无{{ compareModeLabel }}</span>
                 </div>
                 <div class="sampling-overview-value text-slate-800">
                   {{ formatNumber(totalSampleUsers) }}
@@ -618,7 +622,13 @@ onUnmounted(() => {
                 <div class="sampling-channel-metric">
                   <div class="sampling-channel-label">派样人数</div>
                   <div class="sampling-channel-value text-slate-800">{{ formatNumber(ttlChannel.sample_users) }}</div>
-                  <div class="sampling-channel-delta sampling-channel-delta--empty">暂无{{ compareModeLabel }}</div>
+                  <div class="sampling-channel-delta">
+                    <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                    <span v-if="compareValue(ttlChannel, 'sample_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'sample_users', 'pct'))">
+                      {{ (compareValue(ttlChannel, 'sample_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'sample_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                      <YOYGuard :value="compareValue(ttlChannel, 'sample_users', 'pct')" unit="%" />
+                    </span>
+                  </div>
                 </div>
                 <div class="sampling-channel-metric">
                   <div class="sampling-channel-label">回购人数</div>
@@ -701,7 +711,13 @@ onUnmounted(() => {
                     <div class="sampling-channel-metric">
                       <div class="sampling-channel-label">派样人数</div>
                       <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.sample_users) }}</div>
-                      <div class="sampling-channel-delta sampling-channel-delta--empty">暂无{{ compareModeLabel }}</div>
+                      <div class="sampling-channel-delta">
+                        <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                        <span v-if="compareValue(ch, 'sample_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'sample_users', 'pct'))">
+                          {{ (compareValue(ch, 'sample_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'sample_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                          <YOYGuard :value="compareValue(ch, 'sample_users', 'pct')" unit="%" />
+                        </span>
+                      </div>
                     </div>
                     <div class="sampling-channel-metric">
                       <div class="sampling-channel-label">回购人数</div>

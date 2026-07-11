@@ -18,6 +18,9 @@ export interface SamplingChannelSummary {
   nonfull_repurchase_users: number
   nonfull_repurchase_gsv: number
   nonfull_repurchase_aus: number
+  // L4.91 design-review (2026-07-12): sample_users + nonfull_repurchase_users YOY/MOM 补齐
+  sample_users_yoy_pct?: number | null
+  sample_users_mom_pct?: number | null
   repurchase_users_yoy_pct?: number | null
   repurchase_gsv_yoy_pct?: number | null
   repurchase_rate_yoy_pp?: number | null
@@ -27,6 +30,7 @@ export interface SamplingChannelSummary {
   repurchase_aus_yoy_pct?: number | null
   full_repurchase_aus_yoy_pct?: number | null
   nonfull_repurchase_gsv_yoy_pct?: number | null
+  nonfull_repurchase_users_yoy_pct?: number | null
   repurchase_users_mom_pct?: number | null
   repurchase_gsv_mom_pct?: number | null
   repurchase_rate_mom_pp?: number | null
@@ -36,6 +40,7 @@ export interface SamplingChannelSummary {
   repurchase_aus_mom_pct?: number | null
   full_repurchase_aus_mom_pct?: number | null
   nonfull_repurchase_gsv_mom_pct?: number | null
+  nonfull_repurchase_users_mom_pct?: number | null
 }
 
 // ── level 二级聚合 ──
