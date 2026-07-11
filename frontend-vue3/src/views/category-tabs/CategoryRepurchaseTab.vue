@@ -284,9 +284,10 @@ const repurchaseFlowXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '本期回购率', key: 'repurchase_rate_current', width: 12, numFmt: '0.0%' },
   { header: '本期回购GSV', key: 'repurchase_gsv_current', width: 16, numFmt: '¥#,##0' },
   { header: '本期回购GSV占比', key: 'repurchase_gsv_ratio_current', width: 16, numFmt: '0.0%' },
-  { header: 'YOY同比人数', key: 'yoy_repurchase_users', width: 14, numFmt: '+#,##0;-#,##0;0' },
-  { header: 'YOY同比回购率', key: 'yoy_repurchase_rate', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: 'YOY同比回购GSV', key: 'yoy_repurchase_gsv', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
+  // L4.91 PR2 (2026-07-11) 治本: yoy_ 前缀列加显式 kind enum (auto-detect suffix pattern 不匹配 prefix)
+  { header: 'YOY同比人数', key: 'yoy_repurchase_users', kind: 'yoy_pct', width: 14, numFmt: '+#,##0;-#,##0;0' },
+  { header: 'YOY同比回购率', key: 'yoy_repurchase_rate', kind: 'yoy_pp', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: 'YOY同比回购GSV', key: 'yoy_repurchase_gsv', kind: 'yoy_pct', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
 ])
 function rowsFor(tab: 'same' | 'cross' | 'member_same' | 'member_cross'): any[] {
   if (!data.value) return []

@@ -318,7 +318,8 @@ const drilldownXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '历史人数', key: 'hist_users_current', width: 14, numFmt: '#,##0' },
   { header: '复购人数', key: 'repurchase_users_current', width: 14, numFmt: '#,##0' },
   { header: '同品类复购率', key: 'repurchase_rate_current', width: 14, numFmt: '0.0%' },
-  { header: '复购人数 YOY', key: 'yoy_repurchase_users', width: 14, numFmt: '+#,##0;-#,##0;0' },
+  // L4.91 PR2 (2026-07-11) 治本: yoy_ 前缀列加显式 kind enum
+  { header: '复购人数 YOY', key: 'yoy_repurchase_users', kind: 'yoy_pct', width: 14, numFmt: '+#,##0;-#,##0;0' },
 ])
 </script>
 
