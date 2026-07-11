@@ -73,6 +73,24 @@ if [ -x ".githooks/check_review_ground_truth.py" ]; then
     fi
 fi
 
+# L4.91 Excel 导出全量语义/契约层 ground-truth-lint (跟 L4.19 + L4.34.1 + L4.40 + L4.50 + L4.59 + L4.91 1:1 stable 永久规则化沿用)
+# 4 件 SSOT 反漂移规则: no-raw-xlsx-bypass / no-excel-formula-write / no-frontend-times-100 / yoy-kind-required
+# 仅锁新增代码 (L4.91 baseline 已合, 跟 Q12A 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)
+if [ -f "backend/scripts/check_l4_91_excel_export_ssot.py" ]; then
+    STAGED_VUE=$(echo "$STAGED" | grep -E '\.vue$|\.ts$' || true)
+    if [ -n "$STAGED_VUE" ]; then
+        if ! python3 backend/scripts/check_l4_91_excel_export_ssot.py 2>&1 | tail -10; then
+            echo "❌ L4.91 Excel 导出 SSOT lint 失败 (4 件规则, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)"
+            echo "   修复: (跟 L4.91 PR0 kind enum 1:1 stable 永久规则化沿用)"
+            echo "     - R1: 禁 raw 'xlsx' import, 用 exportSheetToXlsx SSOT"
+            echo "     - R2: 禁写 Excel 公式对象 {t:'n',f:'=...'}, 用 backend 预计算"
+            echo "     - R3: 禁 frontend *100, 用 backend raw value + Excel numFmt"
+            echo "     - R4: YOY 列必用 kind enum (yoy_pct/yoy_pp/yoy_day), 不用 raw numFmt"
+            exit 1
+        fi
+    fi
+fi
+
 # Sprint 14 P1-3 实战 fix 模式: pytest 20/8 cleanup (Sprint 6 P0-3 disk hygiene 6 层)
 python3 -c "
 import os
