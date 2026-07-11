@@ -93,6 +93,8 @@ onBeforeUnmount(() => {
     clearTimeout(pollingTimer)
     pollingTimer = null
   }
+  // L4.87 治本: 清理 visibilitychange 监听器
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 // === L4.85 申请+同意 模式: 申请通知 (跟后端 L4.85 1:1 stable 永久规则化沿用) ===
@@ -105,10 +107,8 @@ let pollingDisposed = false
 
 async function pollPendingRequests() {
   if (pollingDisposed || !authStore.isAuthenticated || pollingInFlight) return
-  if (document.hidden) {
-    scheduleNextPoll()
-    return
-  }
+  // L4.87 治本 (跟 /investigate Phase 1-5 1:1 stable 永久规则化沿用): 删 document.hidden 跳过 polling
+  // 逻辑, polling 继续跑. 因为 token 始终有效, polling 成本低 (GET 请求 100ms 内)
   pollingInFlight = true
   try {
     const res = await getPendingLoginRequests()
@@ -125,11 +125,21 @@ async function pollPendingRequests() {
 function scheduleNextPoll() {
   if (pollingTimer) { clearTimeout(pollingTimer); pollingTimer = null }
   if (pollingDisposed || !authStore.isAuthenticated) return
-  const interval = pendingRequests.value.length > 0 ? 5000 : 30000
+  // L4.87 治本: polling 间隔 30s → 10s (跟用户实际期望匹配, A 端最多等 10s 看到)
+  const interval = pendingRequests.value.length > 0 ? 5000 : 10000
   pollingTimer = window.setTimeout(() => {
     pollingTimer = null
     void pollPendingRequests()
   }, interval)
+}
+
+// L4.87 治本 (跟 /investigate Phase 1-5 1:1 stable 永久规则化沿用): visibilitychange 监听器
+// 当 tab 从 hidden → visible 时立即触发一次 polling, 不等 10s 间隔
+function handleVisibilityChange() {
+  if (pollingDisposed) return
+  if (!document.hidden && authStore.isAuthenticated) {
+    void pollPendingRequests()
+  }
 }
 
 // L4.85.1 治本: 强制弹窗 (跟 user 7/10 拍板 1:1 stable 永久规则链配套): pendingRequests 有数据时自动弹窗, A 不能隐藏
@@ -164,8 +174,11 @@ async function handleReject(req: PendingLoginRequest) {
 
 onMounted(() => {
   pollingDisposed = false
+  // L4.87 治本: 注册 visibilitychange 监听器 (tab 切回前台时立即触发 polling)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   // L4.85 申请+同意 模式: 5s polling 拉 pending 申请 (跟 L4.85 后端 1:1 stable 永久规则化沿用)
   // L4.85.1 治本: scheduleNextPoll 决定后续频率 (有 pending → 5s, 无 pending → 30s)
+  // L4.87 治本: 无 pending → 10s (跟用户实际期望匹配, A 端最多等 10s 看到)
   if (authStore.isAuthenticated) {
     pollPendingRequests()  // 首次立即拉, scheduleNextPoll 决定后续频率
   }
