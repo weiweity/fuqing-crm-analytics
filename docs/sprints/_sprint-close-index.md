@@ -51,6 +51,21 @@ L4.74 PostgreSQL 16 分布式项目 (留尾 7/16 后接手人启动) 的 16 个 
 
 - Sprint 199 R1: 业务组真人预读话术模板 (Sprint 195 R4 续, mock 预读待复核) + 跨 sprint 真因排查 (Sprint 192/193/195/196/197/198 R3 续, 持续) + 0 留尾业务债 (持续)
 
+## Sprint 205+ L4.85-L4.88 永久规则化 17 层链收口 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用, 跟之前 1:1 stable 永久规则链配套, 7/11 Codex app 完整收口 + 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用, 2026-07-11 跟 L4.88 1:1 stable 永久规则化沿用)
+
+| Sprint 205+ | 文件 | 关键节点 |
+|---|---|---|
+| L4.85 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_85_login_request_approve_close.md` | 申请+同意 模式 4 endpoint (申请/查/同意/拒绝) + 复用 L4.84 _evict_previous_sessions_for_user 1:1 stable + 5 分钟超时 |
+| L4.85.1 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_85_1_force_one_session_close.md` | admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling adaptive 5s/30s |
+| L4.85.2 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_85_2_login_both_paths_close.md` | 整合 L4.84 + L4.85 path (auth.py login() 409 check + _is_account_active helper + LoginView catch 409 → handleApply) |
+| L4.85.3 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_85_3_account_active_timeout_close.md` | _is_account_active last_active_at + 5min 检查 (跟 L4.75 v2 lock_timeout_seconds 1:1 stable 永久规则化沿用) |
+| L4.85.4-L4.85.9 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_85_4_auth_handoff_close.md` + L4.85.5/6/7/8/9 | Codex app 完整收口: L4.85.4 认证状态机 SSOT 漂移 + L4.85.5 重查询 AbortSignal + L4.85.6 35GB 死机根因 + L4.85.7 缓存永远 miss + L4.85.8 看门狗假退出 + L4.85.9 生产密码明文 (.env 读取 + fail-fast) |
+| L4.86 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_86_ci_burst_red_close.md` | CI 爆红 4/4 jobs 全绿治本 (.github/workflows/lint.yml test job FQ_CRM_PASSWORDS env) |
+| L4.87 | (无 close memory, /investigate Phase 1-5 治本) | 自动弹窗治本 (NavBar.vue polling 不被 document.hidden 跳过 + visibilitychange 立即触发 + 30s → 10s) |
+| L4.88 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_88_ci_pytest_race_close.md` | CI 爆红 pytest collection race condition 治本 (conftest.py autouse fixture 重置 env + reload VALID_CREDENTIALS) |
+
+**0 业务代码改动累计 Sprint 60+ 63 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用). 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+
 ## 维护规则 (Sprint 收口 12 步流程 §12)
 
 1. **git pull --ff-only origin main** (L4.7 配套)
