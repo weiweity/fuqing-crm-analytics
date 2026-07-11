@@ -311,24 +311,31 @@ def refresh_token(request: Request):
 
 
 @router.post("/logout", response_model=LogoutResponse)
-def logout(request: Request):
+def logout(request: Request, token: str | None = None):
     """退出登录，使当前 token + 同账号其他 stale token 失效 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用).
 
-    user 7/11 报"我因该都退出账号了，但是还是要申请登陆" 真根因: 之前 logout 只删当前 token,
-    多次登录/refresh 留下 stale token, _is_account_active 5min 检查误判 True → B 端 login 409 → 卡申请登录.
-    修复: 复用 _evict_previous_sessions_for_user 踢出同账号所有 stale token.
+    user 7/11 报"我因该都退出账号了，但是还是要申请登陆" + "Cmd+Q 退出浏览器后, 变成需要申请登录" 真根因:
+    - 之前 logout 只删当前 token, 多次登录/refresh 留下 stale token, _is_account_active 3min 检查误判 True → B 端 login 409
+    - Cmd+Q 退出浏览器 → frontend JS 全停 → backend ACTIVE_TOKENS 仍有 A token → B login 409
+    修复: 复用 _evict_previous_sessions_for_user 踢出同账号所有 stale token + 配套 sendBeacon (token via query).
 
-    跟 L4.84 + L4.85.3 + L4.85.4 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用,
-    跟 L4.50 0 业务代码改动 累计 92+ 次 1:1 stable 永久规则链配套, 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+    L4.85.6 方案 A: sendBeacon 不能设 Authorization header, 所以 logout endpoint 接受 token via query param.
+    配套: 方案 D background task evict idle token > 60s (frontend/services/auth_token_evictor.py).
+
+    跟 L4.84 + L4.85.3 + L4.85.4 + L4.85.6 1:1 stable 永久规则链配套, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用,
+    跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
     """
+    # L4.85.6 治本: 兼容 Authorization header (正常 logout) + token via query (sendBeacon beforeunload)
     auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        token = auth[7:]
+    bearer_token = auth[7:] if auth.startswith("Bearer ") else None
+    effective_token = bearer_token or token
+
+    if effective_token:
         with _AUTH_STATE_LOCK:
-            record = ACTIVE_TOKENS.pop(token, None)
+            record = ACTIVE_TOKENS.pop(effective_token, None)
         if record:
             username = record[0]
-            # L4.85.4 治本: 踢出该 user 所有 stale token, 避免 _is_account_active 5min 检查误判 True
+            # L4.85.4 治本: 踢出该 user 所有 stale token, 避免 _is_account_active 3min 检查误判 True
             evicted = _evict_previous_sessions_for_user(username)
-            _logger.info(f"[auth] 退出登录：{username}，踢出 {evicted} 个 stale token")
+            _logger.info(f"[auth] 退出登录：{username}，踢出 {evicted} 个 stale token (L4.85.6 sendBeacon 兼容)")
     return {"success": True}

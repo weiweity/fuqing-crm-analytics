@@ -73,6 +73,23 @@ async function bootstrap() {
     }
   }, 30 * 60 * 1000) // 30分钟
 
+  // L4.85.6 方案 A 治本: user 7/11 报 "Cmd+Q 退出浏览器后, 变成需要申请登录"
+  // 真根因: A Cmd+Q → frontend JS 全停 → backend ACTIVE_TOKENS 仍有 A token → B login 409
+  // 修复: beforeunload 钩子 + navigator.sendBeacon POST /api/v1/auth/logout?token=xxx
+  //       (sendBeacon 是异步非阻塞, 浏览器关掉也能发出去; 不能设 Authorization header, 所以 token via query param)
+  // 配套: 方案 D background task evict idle token > 60s 兜底 (backend/services/auth_token_evictor.py)
+  // 跟 L4.85.4 idle timer 1:1 stable 永久规则化沿用 (user 主动 idle / Cmd+Q / 网络断 全覆盖)
+  window.addEventListener('beforeunload', () => {
+    const token = sessionStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) return
+    // sendBeacon 是浏览器关掉前最后一刻还能发的请求, 跟 L4.85.4 logout API 1:1 stable 兼容
+    try {
+      navigator.sendBeacon(`/api/v1/auth/logout?token=${encodeURIComponent(token)}`)
+    } catch {
+      // sendBeacon 失败 (移动 Safari 不稳) → background task D 方案兜底
+    }
+  })
+
   // 等待初始路由解析完成（含导航守卫重定向）后再挂载，防止未登录时闪一下看板布局
   await router.isReady()
 
