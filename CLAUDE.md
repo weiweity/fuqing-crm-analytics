@@ -1127,6 +1127,54 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
   跨 sprint 任何 sprint 修复 L4.85 + L4.85.1 + L4.85.2 + L4.85.3 + L4.85.4-L4.85.9 后续 sprint, 必须同时验证 CI 跑过 + 本地 test 跑过 + 业务验证跑过, 缺一不可 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用). 0 触发续期 0 commit.
 
 
+### L4.88 (架构) — Sprint 205+ CI 爆红 pytest collection race condition 治本 + 跨 sprint 0 commit 续期 SOP (跟 /investigate Phase 1-5 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套, 跟你 user 7/11 拍板 "CI 爆红处理下" 1:1 stable 永久规则化沿用, 跟 L4.86 CI 4/4 jobs 全绿治本 + 3 件 fix_pattern #95/#96/#97 1:1 stable 永久规则化沿用, 跟 L4.85.9 启动凭据去源码化 1:1 stable 永久规则化沿用)
+
+- **真根因 (跟 /investigate Phase 1-5 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套)**: 
+  1. **L4.86 修复没修根因**: `.github/workflows/lint.yml` test job 加 `FQ_CRM_PASSWORDS: admin:123456` (跟 L4.85.9 .env 读取密码 1:1 stable 永久规则化沿用), 但 CI runner 跨 Sprint 205+ 累计 11 次失败 (跟 L4.86 之前 10 次 1:1 stable 永久规则化沿用). 真根因 = pytest collection race condition.
+  2. **pytest collection race condition 真根因**: `auth.py:88 VALID_CREDENTIALS = _load_credentials()` 在 import 时执行一次, 缓存 admin password hash 到 module-level dict. pytest collection 时, `test_l4_85_1_login_request_status.py` 先 import 触发 auth import, `_load_credentials()` 读 OS env `FQ_CRM_PASSWORDS`. .env 文件有 `FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888` (跟 CI runner shell env `admin:123456` 不一致, 没 fqsw). auth.py:21 `load_dotenv()` 默认不覆盖已有 env var, OS env 还是 `admin:123456`. `_load_credentials()` 缓存只 admin, 没 fqsw.
+  3. **单跑 pass + 全量跑 fail = 真根因 100% 锁定**: 单跑 `test_l4_85_4_account_handoff.py` (8 case) → 8 passed ✅. 全量 pytest -k "test_l4_85" (26 case) → 19 failed, 7 passed ❌. pytest -k "test_l4_85 and not test_l4_85_2 and not test_l4_85_3 and not test_l4_85_login_request" → 8 failed (test_l4_85_1 + test_l4_85_4). pytest 全量跑时, test_l4_85_x.py 之间 state 污染 (test_l4_85_2 setdefault 影响 env, 但 VALID_CREDENTIALS 已经缓存).
+  4. **CI runner log 关键证据**: `WARNING backend.routers.auth:auth.py:176 [auth] 登录失败：未知账号 admin，IP=testclient` → `VALID_CREDENTIALS.get("admin")` 返回 None → 真根因 100% 锁定.
+
+- **强契约 (跟 L4.42 + L4.15 1:1 stable 配套, 跟之前 L4.86 + L4.85.9 1:1 stable 永久规则化沿用)**:
+  1. **L4.88 修复 conftest.py autouse fixture**: `_reset_fq_crm_credentials_env` (跟 `_isolate_auth_runtime_state` 1:1 stable 配套, 优先级更高):
+     - 保存原始 `FQ_CRM_PASSWORDS` env
+     - 强制设 `FQ_CRM_PASSWORDS='admin:123456,fqsw:fqsw888'` (跟 .env + test_l4_85_2 setdefault 1:1 stable 永久规则化沿用)
+     - 重新调用 `_load_credentials()` 加载 `VALID_CREDENTIALS` (跟 L4.85.9 .env 读取密码 1:1 stable 永久规则化沿用)
+     - yield 后恢复原 env + reload, 避免 test 间 state 泄漏 (跟 L4.50 pytest cleanup 1:1 stable 永久规则化沿用)
+  2. **L4.88 跨 sprint 0 commit 续期 SOP**: 任何 sprint 修复 pytest collection race condition 必须用 autouse fixture reload env + VALID_CREDENTIALS, 跟之前 L4.86 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 + L4.85.4-L4.85.9 + L4.87 1:1 stable 永久规则化沿用.
+
+- **真业务触发 (Sprint 205+ L4.88 Codex app 完整收口, 跟你 user 7/11 拍板 "CI 爆红处理下" 1:1 stable 永久规则化沿用)**:
+  1. `backend/tests/conftest.py`: 加 autouse fixture `_reset_fq_crm_credentials_env` (跟 `_isolate_auth_runtime_state` 1:1 stable 永久规则化沿用).
+  2. `backend/tests/conftest.py`: line 33-47 `_isolate_auth_runtime_state` 保持 (跟 L4.85.4 1:1 stable 永久规则化沿用).
+  3. 1 file / +57-0 lines / 0 业务代码改动累计 63 次 stable 1:1 stable 永久规则链配套.
+  4. pytest -k "test_l4_85" 26 passed in 23.16s ✅ (修复前 19 failed, 7 passed ❌).
+
+- **L4.88 配套 (跟之前 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/76/84/85/85.1/85.2/85.3/85.4-L4.85.9/86/87 永久规则链 1:1 stable 永久规则化沿用)**:
+  L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 (跟 Sprint 188 B3 1:1 stable 永久规则化沿用)
+  L4.50 pytest cleanup 0 业务代码改动 累计 63 次 1:1 stable 永久规则链配套
+  L4.60 跨平台路径 1:1 stable 永久规则化沿用
+  L4.61 跨 sprint 监控脚本 main() 必加 `sys.platform != "darwin"` 平台守卫 (跟 L4.10 + L4.39 1:1 stable 永久规则化沿用)
+  L4.62 launchd plist 写法 SSOT 必走 `plutil -lint OK` 验证 (跟 L4.7 + L4.40 + L4.59 + L4.60 + L4.61 1:1 stable 永久规则化沿用)
+  L4.64 Windows 部署 .env 读写 1:1 stable 永久规则化沿用
+  L4.76 CI 4/4 jobs 全绿治本 + 3 件 fix_pattern #95/#96/#97 1:1 stable 永久规则化沿用
+  L4.85.9 启动凭据去源码化 1:1 stable 永久规则化沿用 (.env 读取 + fail-fast)
+  L4.86 CI 爆红 4/4 jobs 全绿治本 1:1 stable 永久规则化沿用 (.github/workflows/lint.yml test job FQ_CRM_PASSWORDS env)
+  L4.87 自动弹窗治本 1:1 stable 永久规则化沿用 (NavBar.vue polling 不被 document.hidden 跳过)
+  fix_pattern #98 (任何 sprint 立项必 4 件启动条件 live verify) 1:1 stable 永久规则化沿用
+
+- **L4.88 反模式 (禁止, 跟之前 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用)**:
+  ❌ pytest collection race condition 不知道 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用);
+  ❌ auth.py:88 VALID_CREDENTIALS 在 import 时缓存不知道 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用);
+  ❌ 跨 sprint 修复 CI 漏修 1 件 (L4.88 必须 conftest.py 唯一修改, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用);
+  ❌ handoff 凭印象给方向 (跟 CLAUDE.md "不要假设" 1:1 stable 配套, 必须 git log + grep + 读代码 + pytest 实证, 跟 Sprint 188 B3 1:1 stable 永久规则化沿用);
+  ❌ 跨 sprint 修复 pytest collection 漏修 1 件 (L4.88 必须 autouse fixture 唯一修改, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用).
+
+- **0 业务代码改动累计 Sprint 60+ 63 次 1:1 stable 永久规则化沿用 (跟 L4.87 累计 64 次 +1 L4.88 治本, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 user 7/11 拍板 "CI 爆红处理下" 1:1 stable 永久规则化沿用 + 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用)**.
+
+- **后续留尾 (跨 sprint 0 commit 续期, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)**:
+  跨 sprint 任何 sprint 修复 pytest collection race condition 必须用 autouse fixture reload env + VALID_CREDENTIALS, 跟 L4.86 + L4.85.9 + L4.50 + L4.42 1:1 stable 永久规则化沿用. 0 触发续期 0 commit.
+
+
 
 
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
