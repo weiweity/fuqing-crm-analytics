@@ -67,7 +67,7 @@ def _qualified_orders(database_name: str, schema_name: str) -> str:
 @pytest.fixture(scope="module")
 def prod_conn(isolated_duckdb):
     """使用隔离连接，并把 W4 写操作限定到 temp DB。"""
-    # monkeypatch_connection 复用 session 级 isolated_duckdb，其他单测可能在
+    # monkeypatch_connection 复用 module 级 isolated_duckdb，当前模块其他单测可能在
     # temp/main schema 建过轻量 orders 表 / view；这里必须读只读 attach 的 prod.orders。
     local_order_views = isolated_duckdb.execute(
         """

@@ -13,6 +13,7 @@ import secrets
 import time
 import os
 import logging
+import threading
 import bcrypt
 
 # 确保 .env 已加载（auth.py 可能在其他模块之前被导入）
@@ -92,6 +93,9 @@ ACTIVE_TOKENS: dict[str, tuple[str, datetime]] = {}
 
 # 登录限速记录（key=username, value=(失败次数, 首次失败时间戳, 锁定截止秒级时间戳)）
 _LOGIN_ATTEMPTS: dict[str, tuple[int, float, float]] = {}
+# FastAPI sync endpoints run in a worker pool.  Account lockout updates and the
+# single-session check/evict/mint sequence must be atomic across those workers.
+_AUTH_STATE_LOCK = threading.RLock()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -163,6 +167,22 @@ def _record_success(username: str):
     _LOGIN_ATTEMPTS.pop(username, None)
 
 
+def _authenticate_credentials(username: str, password: str, client_ip: str) -> None:
+    """Validate credentials through the shared account-level lockout path."""
+    with _AUTH_STATE_LOCK:
+        _check_rate_limit(username, client_ip)
+        stored_hash = VALID_CREDENTIALS.get(username)
+        if stored_hash is None:
+            _logger.warning(f"[auth] 登录失败：未知账号 {username}，IP={client_ip}")
+            _record_fail(username, client_ip)
+            raise HTTPException(status_code=401, detail="账号或密码错误")
+        if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
+            _logger.warning(f"[auth] 登录失败：密码错误 {username}，IP={client_ip}")
+            _record_fail(username, client_ip)
+            raise HTTPException(status_code=401, detail="账号或密码错误")
+        _record_success(username)
+
+
 def _evict_previous_sessions_for_user(username: str) -> int:
     """L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话.
 
@@ -174,10 +194,11 @@ def _evict_previous_sessions_for_user(username: str) -> int:
     Returns: 被踢出的旧 token 数量.
     """
     evicted = 0
-    for token, (token_user, _) in list(ACTIVE_TOKENS.items()):
-        if token_user == username:
-            ACTIVE_TOKENS.pop(token, None)
-            evicted += 1
+    with _AUTH_STATE_LOCK:
+        for token, (token_user, _) in list(ACTIVE_TOKENS.items()):
+            if token_user == username:
+                ACTIVE_TOKENS.pop(token, None)
+                evicted += 1
     if evicted > 0:
         _logger.info(f"[auth] 账号 {username} 同账号踢人, 失效 {evicted} 个旧 token")
     return evicted
@@ -194,9 +215,10 @@ def _is_account_active(username: str) -> bool:
     logout 不会清空所有该 user 的 token). 修复: 用 last_active_at + 5min > now 检查 (跟 L4.75 v2 1:1 stable 永久规则化沿用).
     """
     now = datetime.now()
-    for token_user, last_active in ACTIVE_TOKENS.values():
-        if token_user == username and (now - last_active) < timedelta(minutes=5):
-            return True
+    with _AUTH_STATE_LOCK:
+        for token_user, last_active in ACTIVE_TOKENS.values():
+            if token_user == username and (now - last_active) < timedelta(minutes=5):
+                return True
     return False
 
 
@@ -206,18 +228,19 @@ def _verify_token(token: str, sliding: bool = True) -> str | None:
     sliding=True 时刷新 last_active_at（滑动过期），用于普通 API 请求。
     sliding=False 时不刷新，用于 /auth/me 等只读检查。
     """
-    record = ACTIVE_TOKENS.get(token)
-    if not record:
-        return None
-    username, last_active_at = record
-    if datetime.now() - last_active_at > TOKEN_TTL:
-        # token 过期，自动清理
-        ACTIVE_TOKENS.pop(token, None)
-        return None
-    if sliding:
-        # 滑动续期：刷新最后活跃时间
-        ACTIVE_TOKENS[token] = (username, datetime.now())
-    return username
+    with _AUTH_STATE_LOCK:
+        record = ACTIVE_TOKENS.get(token)
+        if not record:
+            return None
+        username, last_active_at = record
+        if datetime.now() - last_active_at > TOKEN_TTL:
+            # token 过期，自动清理
+            ACTIVE_TOKENS.pop(token, None)
+            return None
+        if sliding:
+            # 滑动续期：刷新最后活跃时间
+            ACTIVE_TOKENS[token] = (username, datetime.now())
+        return username
 
 
 def _token_ttl_seconds() -> int:
@@ -232,36 +255,19 @@ def _token_ttl_seconds() -> int:
 def login(req: LoginRequest, request: Request):
     """账号密码登录，成功返回 token（含限速保护）"""
     client_ip = _get_client_ip(request)
-
-    # 1. 限速检查
-    _check_rate_limit(req.username, client_ip)
-
-    # 2. 验证用户名
-    if req.username not in VALID_CREDENTIALS:
-        _logger.warning(f"[auth] 登录失败：未知账号 {req.username}，IP={client_ip}")
-        _record_fail(req.username, client_ip)
-        raise HTTPException(status_code=401, detail="账号或密码错误")
-
-    # 3. bcrypt 校验密码
-    stored_hash = VALID_CREDENTIALS[req.username]
-    if not bcrypt.checkpw(req.password.encode(), stored_hash.encode()):
-        _logger.warning(f"[auth] 登录失败：密码错误 {req.username}，IP={client_ip}")
-        _record_fail(req.username, client_ip)
-        raise HTTPException(status_code=401, detail="账号或密码错误")
-
-    # 4. 登录成功
-    _record_success(req.username)
+    _authenticate_credentials(req.username, req.password, client_ip)
     # L4.85.2 治本: 整合 L4.84 path 跟 L4.85 path (跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用)
     # 跟 L4.85 create_login_request 409 模式 1:1 stable 配套, 跟 L4.85.1 1:1 stable 永久规则化沿用
-    if _is_account_active(req.username):
-        raise HTTPException(
-            status_code=409,
-            detail="账号正在被使用, 请使用申请登录按钮",
-        )
-    # L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话, 旧 token 失效强制重新登录
-    _evict_previous_sessions_for_user(req.username)
-    token = secrets.token_urlsafe(32)
-    ACTIVE_TOKENS[token] = (req.username, datetime.now())
+    with _AUTH_STATE_LOCK:
+        if _is_account_active(req.username):
+            raise HTTPException(
+                status_code=409,
+                detail="账号正在被使用, 请使用申请登录按钮",
+            )
+        # L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话, 旧 token 失效强制重新登录
+        _evict_previous_sessions_for_user(req.username)
+        token = secrets.token_urlsafe(32)
+        ACTIVE_TOKENS[token] = (req.username, datetime.now())
     _logger.info(f"[auth] 登录成功：{req.username}，IP={client_ip}")
 
     return {"token": token, "username": req.username}
@@ -308,7 +314,8 @@ def logout(request: Request):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         token = auth[7:]
-        record = ACTIVE_TOKENS.pop(token, None)
+        with _AUTH_STATE_LOCK:
+            record = ACTIVE_TOKENS.pop(token, None)
         if record:
             _logger.info(f"[auth] 退出登录：{record[0]}")
     return {"success": True}

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '@/stores/auth'
+import { AUTH_TOKEN_KEY } from '@/stores/auth'
 
 const client = axios.create({
   baseURL: '/api',
@@ -23,6 +23,27 @@ let _isRedirecting = false
 
 // 防止并发 refresh
 let _refreshPromise: Promise<boolean> | null = null
+
+export type ApiError = Error & {
+  status?: number
+  headers?: Record<string, string>
+  data?: unknown
+}
+
+export function isCredentialAuthRequest(url?: string): boolean {
+  const path = (url || '').split('?', 1)[0].replace(/\/+$/, '')
+  return path.endsWith('/v1/auth/login') || path.endsWith('/v1/auth/login-request')
+}
+
+function toApiError(error: any, fallbackMessage = '请求失败'): ApiError {
+  const wrapped = new Error(
+    error.response?.data?.detail || error.message || fallbackMessage,
+  ) as ApiError
+  wrapped.status = error.response?.status
+  wrapped.headers = error.response?.headers
+  wrapped.data = error.response?.data
+  return wrapped
+}
 
 async function _tryRefreshToken(): Promise<boolean> {
   if (_refreshPromise) return _refreshPromise
@@ -61,15 +82,16 @@ client.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     if (error.response?.status === 401) {
-      const isLoginRequest = error.config?.url?.includes('/auth/login')
-      const isRefreshRequest = error.config?.url?.includes('/auth/refresh')
+      const requestUrl = error.config?.url || ''
+      const isLoginRequest = isCredentialAuthRequest(requestUrl)
+      const isRefreshRequest = requestUrl.split('?', 1)[0].replace(/\/+$/, '').endsWith('/v1/auth/refresh')
       const msg = isLoginRequest
         ? (error.response?.data?.detail || '账号或密码错误')
         : '登录已过期，请重新登录'
 
       if (isLoginRequest || isRefreshRequest) {
         // 登录失败或 refresh 失败，直接拒绝
-        return Promise.reject(new Error(msg))
+        return Promise.reject(toApiError(error, msg))
       }
 
       // 非登录请求遇到 401，先尝试 refresh
@@ -85,24 +107,14 @@ client.interceptors.response.use(
 
       // refresh 失败或无法重试，触发过期流程
       if (_isRedirecting) {
-        return Promise.reject(new Error(msg))
+        return Promise.reject(toApiError(error, msg))
       }
       _isRedirecting = true
-      sessionStorage.removeItem(AUTH_TOKEN_KEY)
-      sessionStorage.removeItem(AUTH_USER_KEY)
+      // auth store 是认证状态唯一写入口；事件监听器会同步清理 Pinia + sessionStorage。
       window.dispatchEvent(new CustomEvent('auth:expired'))
-      return Promise.reject(new Error(msg))
+      return Promise.reject(toApiError(error, msg))
     }
-    const message = error.response?.data?.detail || error.message || '请求失败'
-    const wrapped = new Error(message) as Error & {
-      status?: number
-      headers?: Record<string, string>
-      data?: unknown
-    }
-    wrapped.status = error.response?.status
-    wrapped.headers = error.response?.headers
-    wrapped.data = error.response?.data
-    return Promise.reject(wrapped)
+    return Promise.reject(toApiError(error))
   }
 )
 

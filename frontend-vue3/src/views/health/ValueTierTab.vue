@@ -29,6 +29,7 @@ import YOYGuard from '@/components/YOYGuard.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { XlsxColumn } from '@/utils/exportXlsx'
+import { triggerManualQuery } from '@/composables/manualQuery'
 import type { EChartTooltipParam } from '@/types/echarts'
 
 const filterStore = useFilterStore()
@@ -148,10 +149,10 @@ function stopSessionMonitor() {
 }
 
 async function refetchAfterPromotion() {
-  if (promotionRefetchInFlight) return
+  if (promotionRefetchInFlight || rfmFetching.value) return
   promotionRefetchInFlight = true
   try {
-    await rfmRefetch()
+    await rfmRefetch({ cancelRefetch: false })
   } finally {
     promotionRefetchInFlight = false
   }
@@ -221,7 +222,7 @@ async function refreshSessionStatus() {
 async function monitorSession() {
   // The in-flight query itself owns the lease; polling it would make this tab
   // mistake its own work for a duplicate same-IP query.
-  if (rfmLoading.value) return
+  if (rfmFetching.value) return
   if (sessionMonitorInFlight.value) return
   sessionMonitorInFlight.value = true
   try {
@@ -266,9 +267,14 @@ async function cancelQueuedSession() {
   }
 }
 
-async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisResponse | null> {
+async function fetchRFMAnalysisWithSingleUserGuard(
+  signal?: AbortSignal,
+): Promise<RFMAnalysisResponse | null> {
   try {
-    const data = await fetchRFMAnalysis({ ...toValue(rfmQueryParams), ...toValue(compareQueryParams) })
+    const data = await fetchRFMAnalysis(
+      { ...toValue(rfmQueryParams), ...toValue(compareQueryParams) },
+      signal,
+    )
     singleUserBlocked.value = false
     singleUserMessage.value = ''
     sessionStatus.value = 'active'
@@ -295,8 +301,7 @@ async function fetchRFMAnalysisWithSingleUserGuard(): Promise<RFMAnalysisRespons
 const rfmAutoFetch = ref(false)
 watch([rfmQueryKey, compareQueryParams], () => { rfmAutoFetch.value = false }, { deep: true })
 function onRFMQueryClick() {
-  rfmAutoFetch.value = true
-  rfmRefetch()
+  triggerManualQuery(rfmAutoFetch, rfmFetching, rfmRefetch)
 }
 
 function retrySingleUserQuery() {
@@ -307,9 +312,15 @@ function retrySingleUserQuery() {
   onRFMQueryClick()
 }
 
-const { data: rfmData, isLoading: rfmLoading, error: rfmError, refetch: rfmRefetch } = useQuery({
+const {
+  data: rfmData,
+  isLoading: rfmLoading,
+  isFetching: rfmFetching,
+  error: rfmError,
+  refetch: rfmRefetch,
+} = useQuery({
   queryKey: rfmQueryKey,
-  queryFn: fetchRFMAnalysisWithSingleUserGuard,
+  queryFn: ({ signal }) => fetchRFMAnalysisWithSingleUserGuard(signal),
   enabled: rfmAutoFetch,  // L4.75.2: 默认 false, 点按钮 才 fetch
   staleTime: 60_000,
   retry: false,
@@ -699,10 +710,10 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
           :chart-ref="rfmChartRef"
         />
       </div>
-      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
+      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="onRFMQueryClick" />
       <LoadingState v-else-if="rfmLoading" />
       <div v-else-if="!rfmAutoFetch" class="manual-query-guide">
-        <ManualQueryButton @click="onRFMQueryClick">查询 RFM 数据</ManualQueryButton>
+        <ManualQueryButton :loading="rfmFetching" @click="onRFMQueryClick">查询 RFM 数据</ManualQueryButton>
         <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询, 避免自动加载占用算力。</p>
       </div>
       <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
@@ -733,7 +744,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
           sheet-name="RFM全店"
         />
       </div>
-      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
+      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="onRFMQueryClick" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.rows?.length" description="当前条件下无数据" />
       <DataTablePro
@@ -759,7 +770,7 @@ const rfmXlsxColumns = computed<XlsxColumn[]>(() => {
           sheet-name="RFM会员"
         />
       </div>
-      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="rfmRefetch()" />
+      <ErrorState v-if="rfmError && !singleUserBlocked" :message="(rfmError as Error).message" @retry="onRFMQueryClick" />
       <LoadingState v-else-if="rfmLoading" />
       <EmptyState v-else-if="!rfmData?.member_rows?.length" description="当前条件下无数据" />
       <DataTablePro

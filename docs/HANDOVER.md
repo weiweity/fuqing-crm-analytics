@@ -3,7 +3,7 @@
 > **本文档是 7/16 离职交接的唯一台账**. 任何接手人 (运营 / 新同事 / 接手团队) 必须先读本文档再开始工作.
 > 跟之前 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用 + 跟 L4.12 留尾 SSOT 治理 1:1 stable 永久规则化沿用 + 跟 L4.13 24.4KB MEMORY.md size 1:1 stable 永久规则链配套.
 
-**最后更新**: 2026-07-10 (Sprint 205+ L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 永久规则化收口 + L4.x 75 stable + 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套)
+**最后更新**: 2026-07-11 (Sprint 205+ L4.85.4 登录申请 claim 契约 + 16GB Mac 低内存运行档同步；create 返回 request_id + claim_token，A approve 不返回 B token，B 以 X-Login-Claim 查询并 POST claim 领取会话)
 
 ---
 
@@ -43,7 +43,8 @@
 | **L4.81** | YOY 公式 no *100 契约治本 | `34fadfb` | backend no *100 + frontend YOYGuard *100 display + contracts ±1e10 范围 + 6 backend tests 30 case 锁回归 |
 | **L4.84** | 登录同账号踢人 (按账号自动踢) | `a1527d4` | auth.py _evict_previous_sessions_for_user 20 行新函数 + login() 1 行调用 + 4 case 回归 test |
 | **L4.85** | 申请+同意 模式 (后端) | `c465da7` | login_request.py 4 endpoint (申请/查/同意/拒绝) + 复用 L4.84 _evict + 5 分钟超时 |
-| **L4.85.1** | admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 | `3cba961` | 后端 status endpoint + _PENDING_REQUEST_TOKENS + _evict 修复 + NavBar.vue watch + handleApprove 改 5 行 + polling 5s/30s + LoginView.vue B 端 polling 5s + 4 case 回归 test + 业务验证 3 件套 100% PASS |
+| **L4.85.1** | admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 | `3cba961` | 后端 status endpoint + 当前 `_PENDING_REQUEST_OWNERS` 索引 + _evict 修复 + NavBar.vue watch + polling 5s/30s + LoginView.vue B 端 polling |
+| **L4.85.4** | 登录申请 claim 契约 + 查询内存护栏 | 当前工作分支 | request_id 仅用于关联；B 独占 claim_token；A approve 无 bearer token；B 带 X-Login-Claim 查询 status 并 POST claim；404/410 视为终态；运行档 8GB / 4 threads / 2 read concurrency |
 
 **累计指标 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 L4.13 24.4KB MEMORY.md size 1:1 stable 永久规则链配套)**:
 - **L4.x 75 stable** (L4.1 - L4.85.1)
@@ -82,7 +83,7 @@
    - B 端 (新窗口) 登录 admin → 看到 "申请登录" 按钮 + 5 分钟倒计时
    - A 端 → 铃铛变金色 + 数字徽章 "1" + **强制弹窗** (不能隐藏) 显示 B 的 IP + "同意" / "拒绝" 按钮
    - A 点 "同意" → A 自动登出 + 跳 /login 页面
-   - B 端 → polling 5s 检测 approved → receive new_token → 自动跳 /audience
+   - B 端 → 带 `X-Login-Claim` polling 检测 approved → `POST /claim` 领取 token → 自动跳 /audience
 3. **演示 L4.85 申请+同意 模式** (跟 L4.85 1:1 stable 永久规则化沿用)
 4. **演示 L4.84 同账号踢人** (跟 L4.84 1:1 stable 永久规则化沿用)
 5. **演示 L4.75 v2 RFM 路径按 IP 排队** (跟 L4.75 v2 1:1 stable 永久规则化沿用)
@@ -97,7 +98,7 @@
 4. RFM 单次查询 (8-29s 正常范围)
 5. 5 dashboard 查询 (跟 L4.65.1 1:1 stable 永久规则化沿用)
 6. **L4.84 + L4.85 + L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出** (新加, 跟 L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则化沿用)
-7. 业务验证 3 件套 (admin 同时登录 + A 同意 + B 端 polling status) (跟 L4.85.1 业务验证 1:1 stable 永久规则化沿用)
+7. 业务验证 3 件套（第二次直登 409 + A 同意且不返回 token + B 带 claim 查询并领取；404/410 终止）
 8. 跨 sprint 留尾 5 件 (L4.72.4 + L4.74 + L4.81 + L4.85.1 浏览器端 + L4.86) (跟 L4.57 跨 sprint 留尾 4 维度 0 commit 续期 SOP 总纲 1:1 stable 永久规则链配套)
 9. 紧急联系 + GitHub 仓库地址 + close memory 索引
 
@@ -130,7 +131,7 @@
   - 浏览器端 LoginView.vue "申请登录" 按钮 + 5 分钟倒计时
   - NavBar.vue 铃铛 (5s polling) + 强制弹窗
   - handleApprove 强制退出 (清 sessionStorage + router.push('/login'))
-  - LoginView.vue B 端 polling 5s 检测 approved → receive new_token → 写入 sessionStorage + router.push('/audience')
+  - LoginView.vue B 端带 `X-Login-Claim` polling 检测 approved → `POST /claim` 领取 token → 写入 sessionStorage + router.push('/audience')；HTTP 404/410 立即停止 polling 并提示重新申请
 
 - [ ] **#S205+-L4.86 看板整体复用 L4.75 v2** (7/17 启动, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 L4.85.1 close memory 7.3 实施步骤 1:1 stable 配套):
   - 改 `single_user_mode.py` `_is_guarded_rfm_request` → `_is_guarded_dashboard_request`, 匹配所有 dashboard 路径
@@ -176,13 +177,14 @@
 | **docs/TECH-DEBT.md** | `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/docs/TECH-DEBT.md` (跟 L4.12 留尾 SSOT 治理 1:1 stable 永久规则化沿用) |
 | **业务数据** | `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb` (122GB, 1083 万 orders) |
 | **Cache 库** | `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/cache/rfm_cache.duckdb` |
-| **环境变量** | `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/.env` (FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888 + DUCKDB_MEMORY_LIMIT=16GB + FQ_READ_POOL_SIZE=20) |
+| **环境变量** | `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/.env`（本机 gitignored；口令只存本机，不写入文档/脚本） |
+| **当前 16GB Mac 运行档** | `DUCKDB_MEMORY_LIMIT=8GB`、`DUCKDB_THREADS=4`、`FQ_READ_POOL_SIZE=2`、`FQ_READ_CONCURRENCY_LIMIT=2`、`FQ_READ_MEMORY_LIMIT=3GB`、`FQ_SINGLE_USER_V2=1` |
 | **后端入口** | `backend/main.py` (FastAPI app) + `backend/routers/` (12 router) |
 | **前端入口** | `frontend-vue3/src/views/LoginView.vue` + `frontend-vue3/src/components/NavBar.vue` |
-| **L4.85.1 业务验证 endpoint** | `GET /api/v1/auth/login-request/{request_id}/status` (B 端 receive new_token 自动登入) |
-| **L4.85 endpoint** | `POST /api/v1/auth/login-request` (B 端申请登录) + `GET /api/v1/auth/login-requests/pending` (A 端查待处理) + `POST /api/v1/auth/login-request/{id}/approve` (A 同意) + `POST /api/v1/auth/login-request/{id}/reject` (A 拒绝) |
+| **L4.85.4 B 端 endpoint** | `POST /api/v1/auth/login-request` 返回 `request_id + claim_token`；`GET /api/v1/auth/login-request/{request_id}/status` 必带 `X-Login-Claim`，只读状态；approved 后 `POST /api/v1/auth/login-request/{request_id}/claim` 带同一 header 原子领取 token |
+| **L4.85 A 端 endpoint** | `GET /api/v1/auth/login-requests/pending` (A 端查待处理) + `POST /api/v1/auth/login-request/{id}/approve` (A 同意且响应不含 B token) + `POST /api/v1/auth/login-request/{id}/reject` (A 拒绝) |
 | **L4.84 治本** | `backend/routers/auth.py:166-183 _evict_previous_sessions_for_user` + `backend/routers/auth.py:238 login() 中调 _evict` |
-| **L4.85 治本** | `backend/routers/login_request.py` 4 endpoint + `_PENDING_REQUESTS` + `_PENDING_REQUEST_TOKENS` |
+| **L4.85.4 治本** | `backend/routers/login_request.py` 6 endpoint + `_PENDING_REQUESTS` + `_PENDING_REQUEST_OWNERS`；request_id 不是凭证，claim_token 只保存在 B 端 |
 | **L4.85.1 治本** | `frontend-vue3/src/components/NavBar.vue` watch pendingRequests 强制弹窗 + `frontend-vue3/src/components/NavBar.vue` handleApprove 强制退出 + `frontend-vue3/src/components/NavBar.vue` polling 5s/30s 自适应 + `frontend-vue3/src/views/LoginView.vue` B 端 polling 5s |
 
 ---
@@ -191,50 +193,68 @@
 
 按 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 L4.85.1 业务验证 1:1 stable 永久规则化沿用, **业务验证 3 件套速查** (跟 L4.85.1 close memory 3.3 1:1 stable 配套):
 
-### 6.1 验证 1: admin 同时登录 (.153 + .201)
+### 6.0 验证前安全准备
+
+生产口令只从当前终端的 `CRM_PASSWORD` 环境变量读取，不要把口令写进命令历史、文档或仓库。下面的函数通过 stdin 把 JSON 交给 curl，口令不会出现在 curl 的进程参数中：
 
 ```bash
-TOKEN_153=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+: "${CRM_PASSWORD:?请先在本机安全设置并 export CRM_PASSWORD}"
+crm_login_json() {
+  CRM_PASSWORD="$CRM_PASSWORD" python3 -c 'import json, os; print(json.dumps({"username": "admin", "password": os.environ["CRM_PASSWORD"]}))'
+}
+```
+
+### 6.1 验证 1: admin 第二次直接登录被引导到申请流程 (.153 + .201)
+
+```bash
+TOKEN_153=$(crm_login_json | curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" --data-binary @- | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
 sleep 1
-TOKEN_201=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.201" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
-curl -s -o /dev/null -w "Token .153 HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_153"  # 应该 401
-curl -s -o /dev/null -w "Token .201 HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_201"  # 应该 200
+RESP_201=$(crm_login_json | curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.201" --data-binary @- -w "\nHTTP_CODE:%{http_code}")
+echo ".201 login 响应: $RESP_201"  # 应该 409，请使用申请登录按钮
+curl -s -o /dev/null -w "Token .153 HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_153"  # 应该 200，A 保持在线等待审批
 ```
 
 ### 6.2 验证 2: A 端 login-request 弹窗 + 同意
 
 ```bash
-TOKEN_ADMIN=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" -d '{"username":"admin","password":"123456"}' | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+TOKEN_ADMIN=$(crm_login_json | curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.153" --data-binary @- | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
 sleep 1
-REQ_RESP=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login-request -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.20" -d '{"username":"admin","password":"123456"}')
+REQ_RESP=$(crm_login_json | curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login-request -H "Content-Type: application/json" -H "X-Forwarded-For: 192.168.100.20" --data-binary @-)
 REQUEST_ID=$(echo "$REQ_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('request_id',''))")
+CLAIM_TOKEN=$(echo "$REQ_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('claim_token',''))")
 PENDING_RESP=$(curl -s -X GET http://127.0.0.1:8000/api/v1/auth/login-requests/pending -H "Authorization: Bearer $TOKEN_ADMIN")
 APPROVE_RESP=$(curl -s -X POST "http://127.0.0.1:8000/api/v1/auth/login-request/$REQUEST_ID/approve" -H "Authorization: Bearer $TOKEN_ADMIN")
-NEW_TOKEN_B=$(echo "$APPROVE_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('new_token',''))")
+echo "A 端 approve（响应不应包含 B token）: $APPROVE_RESP"
 curl -s -o /dev/null -w "A 端旧 token HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_ADMIN"  # 应该 401 (强制退出)
-curl -s -o /dev/null -w "B 端 new_token HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $NEW_TOKEN_B"  # 应该 200
 ```
 
-### 6.3 验证 3: B 端 polling /status 拿 new_token
+**预期**: create 返回 `request_id + claim_token`；A 端 pending 看到 B 申请；approve 返回 `{"success":true,"username":"admin"}` 且绝不含 B 的 bearer token；A 旧 token HTTP 401。
+
+### 6.3 验证 3: B 端 polling /status 后 POST /claim 领取 token
 
 ```bash
 sleep 1
-STATUS_RESP=$(curl -s -X GET "http://127.0.0.1:8000/api/v1/auth/login-request/$REQUEST_ID/status")
-echo "$STATUS_RESP"  # 应该 {"request_id":"...","status":"approved","new_token":"...","username":"admin"}
+STATUS_RESP=$(curl -s -X GET "http://127.0.0.1:8000/api/v1/auth/login-request/$REQUEST_ID/status" -H "X-Login-Claim: $CLAIM_TOKEN")
+echo "$STATUS_RESP"  # 应该 {"request_id":"...","status":"approved","username":"admin"}
+CLAIM_RESP=$(curl -s -X POST "http://127.0.0.1:8000/api/v1/auth/login-request/$REQUEST_ID/claim" -H "X-Login-Claim: $CLAIM_TOKEN")
+TOKEN_B=$(echo "$CLAIM_RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+curl -s -o /dev/null -w "B 端领取 token HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN_B"  # 应该 200
 ```
+
+**终态处理**: status 返回 `rejected` / `expired`，或 status / claim 返回 HTTP 404（申请不存在/claim 不匹配/终态记录已清理）/ HTTP 410（申请或授权已失效）时，B 端必须停止 polling、清理本地 `request_id + claim_token` 并重新申请；禁止无限重试。只有 `pending` 才继续 polling。
 
 ---
 
-## 7. pytest 53 case baseline 0 回归 (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 + L4.84 + L4.85 + L4.85.1 1:1 stable 永久规则链配套)
+## 7. L4.85.4 登录链路 focused regression
 
 按 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套:
 
 ```bash
 cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics
-/Users/hutou/homebrew/bin/python3.14 -m pytest backend/tests/test_l4_75_v2_shared_account_lan.py backend/tests/test_l4_75_single_user_mode.py backend/tests/test_l4_75_1_single_user_mode_by_ip.py backend/tests/test_l4_84_login_evict_previous.py backend/tests/test_l4_85_login_request.py backend/tests/test_l4_85_1_login_request_status.py -v --tb=short
+/Users/hutou/homebrew/bin/python3.14 -m pytest backend/tests/test_l4_84_login_evict_previous.py backend/tests/test_l4_85_login_request.py backend/tests/test_l4_85_1_login_request_status.py backend/tests/test_l4_85_2_login_both_paths.py backend/tests/test_l4_85_3_account_active_timeout.py backend/tests/test_l4_85_4_account_handoff.py -v --tb=short
 ```
 
-**预期**: 53 passed in ~3s, 0 fail.
+**预期**: 全部通过，0 fail；不要依赖固定 case 数量。
 
 ---
 
@@ -245,7 +265,7 @@ cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics
 - **/document-release 真治本累计 61 次** (跟之前 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 配套)
 - **CLAUDE.md L4.65-L4.85.1 十五层永久规则链完整** (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
 - **MEMORY.md 21.3KB 87% 安全线** (L4.13 24.4KB 1:1 stable 永久规则链配套)
-- **53 case baseline 0 回归** (L4.75 v2 30 + L4.75 v1 7 + L4.75.1 4 + L4.84 4 + L4.85 6 + L4.85.1 4 = 55 case, 实际 53 PASS)
+- **登录链路 focused regression** 覆盖 L4.84-L4.85.4，要求 0 fail（case 数以当前测试收集结果为准）
 - **业务验证 3 件套 100% PASS** (跟 L4.85.1 业务验证 1:1 stable 永久规则化沿用)
 - **Sprint 60+ 累计 138 sprint 0 debt stable** (跟你之前 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
 

@@ -34,14 +34,10 @@ def reset_state():
     auth_module.ACTIVE_TOKENS.clear()
     auth_module._LOGIN_ATTEMPTS.clear()
     lr_module._reset_l4_85_state()
-    if hasattr(lr_module, "_PENDING_REQUEST_TOKENS"):
-        lr_module._PENDING_REQUEST_TOKENS.clear()
     yield
     auth_module.ACTIVE_TOKENS.clear()
     auth_module._LOGIN_ATTEMPTS.clear()
     lr_module._reset_l4_85_state()
-    if hasattr(lr_module, "_PENDING_REQUEST_TOKENS"):
-        lr_module._PENDING_REQUEST_TOKENS.clear()
 
 
 def _activate_admin():

@@ -1,12 +1,17 @@
 """Query routing middleware for Sprint 201 R1 read/write splitting."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from backend.services.dual_conn import read_request_context, reset_query_type, set_query_type
+from backend.services.dual_conn import (
+    async_read_request_context,
+    reset_query_type,
+    set_query_type,
+)
 from backend.services.query_metrics import record_query
 
 logger = logging.getLogger(__name__)
@@ -53,6 +58,7 @@ class QueryRouterMiddleware:
     }
     CONTROL_ENDPOINTS = {
         "/api/v1/health",
+        "/api/v1/health/pool",
         "/metrics",
         "/openapi.json",
     }
@@ -78,6 +84,24 @@ class QueryRouterMiddleware:
             return "read"
         return "default"
 
+    async def _run_read_app(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Do not return a pooled connection while a sync route still runs.
+
+        Starlette cannot stop a worker-thread DuckDB query when the outer ASGI
+        task is cancelled. Waiting for that worker prevents the same connection
+        from being returned to the pool and reused concurrently by a new request.
+        """
+
+        app_task = asyncio.create_task(self.app(scope, receive, send))
+        try:
+            await asyncio.shield(app_task)
+        except asyncio.CancelledError as cancelled:
+            try:
+                await app_task
+            except BaseException as exc:  # noqa: BLE001
+                logger.debug("Read app finished with error after client cancellation: %s", exc)
+            raise cancelled
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
@@ -93,8 +117,8 @@ class QueryRouterMiddleware:
         from backend.services.dual_conn import ReadPoolTimeout  # L4.72.2 新增异常类
         try:
             if query_type == "read":
-                with read_request_context(query_type):
-                    await self.app(scope, receive, send)
+                async with async_read_request_context(query_type):
+                    await self._run_read_app(scope, receive, send)
             else:
                 token = set_query_type(query_type)
                 try:

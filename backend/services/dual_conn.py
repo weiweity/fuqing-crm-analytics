@@ -6,21 +6,27 @@ small pool. Non-HTTP code keeps the historical write-capable singleton path in
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+import asyncio
+from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 import logging
 import os
 import threading
-from typing import Iterator
+from typing import AsyncIterator, Iterator
 
 import duckdb
 
-from backend.config import DUCKDB_MEMORY_LIMIT, DUCKDB_PATH
+from backend.config import DUCKDB_MEMORY_LIMIT, DUCKDB_PATH, DUCKDB_THREADS
 
 logger = logging.getLogger(__name__)
 
-READ_POOL_SIZE = int(os.environ.get("FQ_READ_POOL_SIZE", "2"))  # L4.69: 5→2 (大查询池小反快)
+READ_POOL_SIZE = max(1, int(os.environ.get("FQ_READ_POOL_SIZE", "2")))  # L4.69: 5→2
+READ_CONCURRENCY_LIMIT = max(
+    1,
+    int(os.environ.get("FQ_READ_CONCURRENCY_LIMIT", str(READ_POOL_SIZE))),
+)
+ACTIVE_READ_LIMIT = min(READ_POOL_SIZE, READ_CONCURRENCY_LIMIT)
 READ_MEMORY_LIMIT = os.environ.get("FQ_READ_MEMORY_LIMIT", DUCKDB_MEMORY_LIMIT)
 WRITE_MEMORY_LIMIT = os.environ.get("FQ_WRITE_MEMORY_LIMIT", DUCKDB_MEMORY_LIMIT)
 
@@ -31,9 +37,12 @@ _WRITE_CONN: duckdb.DuckDBPyConnection | None = None
 _cache_lock = threading.Lock()
 # Sprint 205+ L4.67: RFM cache 库独立单例, 跟业务库 fingerprint 0 关联
 _CACHE_CONN: duckdb.DuckDBPyConnection | None = None
-# Sprint 203 R2 Finding 2.2: Semaphore cap (2× pool size) prevents unbounded DuckDB connection
-# growth under burst load. Over-cap requests block until a connection is returned.
-_read_semaphore: threading.Semaphore = threading.Semaphore(READ_POOL_SIZE * 2)
+# L4.85.4: active query cap must not exceed the configured pool.  The previous
+# 2× multiplier admitted four heavy queries on a 16GB Mac and amplified memory
+# pressure under repeated requests. The active-query cap now matches the pool.
+_read_semaphore: threading.BoundedSemaphore = threading.BoundedSemaphore(
+    ACTIVE_READ_LIMIT
+)
 
 
 @dataclass
@@ -52,12 +61,29 @@ _request_conn_var: ContextVar[RequestConnection | None] = ContextVar(
 )
 
 
-def _db_config(memory_limit: str) -> dict[str, str]:
-    cfg = {"memory_limit": memory_limit}
+def _db_config() -> dict[str, str]:
+    """Return settings that must be supplied while opening the database."""
+    cfg: dict[str, str] = {}
     db_password = os.environ.get("DUCKDB_PASSWORD")
     if db_password:
         cfg["password"] = db_password
     return cfg
+
+
+def _apply_runtime_settings(
+    conn: duckdb.DuckDBPyConnection,
+    memory_limit: str,
+) -> duckdb.DuckDBPyConnection:
+    """Apply shared resource caps without changing DuckDB's file fingerprint.
+
+    Passing ``memory_limit`` or ``threads`` via ``connect(config=...)`` makes a
+    later plain connection to the same file fail with "different
+    configuration". Runtime settings are inherited by sibling connections and
+    keep legacy direct readers compatible with the bounded pool.
+    """
+    conn.execute("SET memory_limit = ?", [memory_limit])
+    conn.execute("SET threads = ?", [DUCKDB_THREADS])
+    return conn
 
 
 def set_query_type(query_type: str) -> Token[str]:
@@ -106,25 +132,22 @@ def _is_healthy(conn: duckdb.DuckDBPyConnection) -> bool:
 
 
 class ReadPoolTimeout(Exception):
-    """L4.72.2 治本: 618 大促 8 并发雪崩无限 block, 抛出此异常由 middleware 转 503."""
+    """Read concurrency stayed saturated until the bounded wait expired."""
     pass
 
 
 def get_read_connection(timeout: float = 5.0) -> duckdb.DuckDBPyConnection:
     """Borrow a read-only DuckDB connection for dashboard queries.
 
-    L4.72.2 治本: 618 大促 8 并发雪崩无限 block, 加 timeout=5.0 友好降级.
+    Pool saturation waits at most five seconds, then degrades to HTTP 503.
     跟 L4.69 RFM 雪崩真治本 (ThreadPoolExecutor 串行) 1:1 stable 配套, 跟 L4.51
     Read-Write Splitting (read_only 池) 1:1 stable 永久规则链配套.
     """
-    # L4.72.2 治本: acquire 加 timeout=5.0, 618 大促 8 并发雪崩无限 block → 友好 503
     acquired = _read_semaphore.acquire(timeout=timeout)
     if not acquired:
-        # 8 并发雪崩, 第 5-8 个请求等 5s 拿不到 conn, 抛出 ReadPoolTimeout
-        # 由 backend/middleware/query_router.py 捕获转 503
         raise ReadPoolTimeout(
-            f"DuckDB read pool full for {timeout}s (8 concurrent RFM requests). "
-            f"618 大促 8 并发雪崩兜底: 建议前端重试或扩容 pool size."
+            f"DuckDB read concurrency limit {ACTIVE_READ_LIMIT} stayed full "
+            f"for {timeout}s; retry after the active query finishes."
         )
     try:
         with _read_lock:
@@ -135,9 +158,10 @@ def get_read_connection(timeout: float = 5.0) -> duckdb.DuckDBPyConnection:
 
         conn = duckdb.connect(
             str(DUCKDB_PATH),
-            config=_db_config(READ_MEMORY_LIMIT),
+            config=_db_config(),
             read_only=True,
         )
+        _apply_runtime_settings(conn, READ_MEMORY_LIMIT)
         logger.debug("DuckDB read-only connection borrowed: %s", DUCKDB_PATH)
         return conn
     except BaseException:
@@ -177,6 +201,55 @@ def read_request_context(query_type: str = "read") -> Iterator[RequestConnection
         return_read_connection(conn)
 
 
+@asynccontextmanager
+async def async_read_request_context(
+    query_type: str = "read",
+) -> AsyncIterator[RequestConnection]:
+    """Borrow/return a read connection without blocking the ASGI event loop.
+
+    ``threading.Semaphore.acquire(timeout=5)`` and ``duckdb.connect`` are both
+    blocking calls. Running them directly inside async middleware freezes every
+    route (including auth and health) when the pool is saturated.
+    """
+
+    acquire_task = asyncio.create_task(asyncio.to_thread(get_read_connection))
+    try:
+        conn = await asyncio.shield(acquire_task)
+    except asyncio.CancelledError as cancelled:
+        # A cancelled waiter must not leak a connection acquired by the worker
+        # after the coroutine has gone away. Acquisition failures are cleanup
+        # details and must not replace the caller's cancellation.
+        conn = None
+        try:
+            conn = await acquire_task
+        except BaseException as exc:  # noqa: BLE001
+            logger.debug("DuckDB acquire finished with error after cancellation: %s", exc)
+        if conn is not None:
+            return_task = asyncio.create_task(asyncio.to_thread(return_read_connection, conn))
+            try:
+                await asyncio.shield(return_task)
+            except asyncio.CancelledError:
+                await return_task
+            except BaseException as exc:  # noqa: BLE001
+                logger.debug("DuckDB return failed during cancellation cleanup: %s", exc)
+        raise cancelled
+
+    ctx = RequestConnection(conn=conn, lock=threading.RLock(), query_type=query_type)
+    query_token = set_query_type(query_type)
+    conn_token = _set_request_connection(ctx)
+    try:
+        yield ctx
+    finally:
+        _reset_request_connection(conn_token)
+        reset_query_type(query_token)
+        return_task = asyncio.create_task(asyncio.to_thread(return_read_connection, conn))
+        try:
+            await asyncio.shield(return_task)
+        except asyncio.CancelledError:
+            await return_task
+            raise
+
+
 def get_write_connection() -> duckdb.DuckDBPyConnection:
     """Return the historical write-capable singleton for non-HTTP jobs."""
 
@@ -189,10 +262,13 @@ def get_write_connection() -> duckdb.DuckDBPyConnection:
         # (让 DuckDB 1.5+ strict mode config dict 各项完全一致, 修复 RFM 雪崩)
         # 注: write 场景的 memory_limit 走 read 场景配置, 这是 DuckDB
         #     1.5+ strict mode 同一文件只能一种 config 的硬约束, 无解
-        _WRITE_CONN = duckdb.connect(
-            str(DUCKDB_PATH),
-            config=_db_config(READ_MEMORY_LIMIT),
-            read_only=False,
+        _WRITE_CONN = _apply_runtime_settings(
+            duckdb.connect(
+                str(DUCKDB_PATH),
+                config=_db_config(),
+                read_only=False,
+            ),
+            READ_MEMORY_LIMIT,
         )
         logger.info("DuckDB write-capable singleton opened: %s", DUCKDB_PATH)
         return _WRITE_CONN
@@ -218,17 +294,22 @@ def get_cache_connection() -> duckdb.DuckDBPyConnection:
             return _CACHE_CONN
         from backend.config import CACHE_DUCKDB_PATH
         os.makedirs(os.path.dirname(CACHE_DUCKDB_PATH), exist_ok=True)
-        _CACHE_CONN = duckdb.connect(
-            CACHE_DUCKDB_PATH,
-            config=_db_config(DUCKDB_MEMORY_LIMIT),
-            read_only=False,
+        _CACHE_CONN = _apply_runtime_settings(
+            duckdb.connect(
+                CACHE_DUCKDB_PATH,
+                config=_db_config(),
+                read_only=False,
+            ),
+            DUCKDB_MEMORY_LIMIT,
         )
         logger.info("DuckDB cache singleton opened: %s", CACHE_DUCKDB_PATH)
         return _CACHE_CONN
-def close_all_connections() -> None:
-    """Close pooled read connections and the write singleton."""
 
-    global _WRITE_CONN
+
+def close_all_connections() -> None:
+    """Close pooled read connections plus both write singletons."""
+
+    global _CACHE_CONN, _WRITE_CONN
     with _write_lock:
         if _WRITE_CONN is not None:
             try:
@@ -244,3 +325,11 @@ def close_all_connections() -> None:
             except Exception as exc:  # noqa: BLE001
                 logger.debug("关闭 DuckDB read 连接时出错: %s", exc)
         _read_pool.clear()
+
+    with _cache_lock:
+        if _CACHE_CONN is not None:
+            try:
+                _CACHE_CONN.close()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("关闭 DuckDB cache 连接时出错: %s", exc)
+            _CACHE_CONN = None

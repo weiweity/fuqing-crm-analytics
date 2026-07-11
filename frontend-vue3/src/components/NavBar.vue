@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NAV_ITEMS, type NavItem, type NavTab } from '@/config/navigations'
-import { useAuthStore, AUTH_TOKEN_KEY, AUTH_USER_KEY } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import {
   approveLoginRequest,
   getPendingLoginRequests,
@@ -87,9 +87,10 @@ function isPopoverTabActive(item: NavItem, tab: NavTab) {
 onBeforeUnmount(() => {
   clearShowTimer()
   clearHideTimer()
+  pollingDisposed = true
   // L4.85 申请+同意 模式: 清理 polling
   if (pollingTimer) {
-    clearInterval(pollingTimer)
+    clearTimeout(pollingTimer)
     pollingTimer = null
   }
 })
@@ -99,26 +100,36 @@ const authStore = useAuthStore()
 const pendingRequests = ref<PendingLoginRequest[]>([])
 const showRequestModal = ref(false)
 let pollingTimer: number | null = null
+let pollingInFlight = false
+let pollingDisposed = false
 
 async function pollPendingRequests() {
-  // L4.85.1 治本: document.hidden 守卫, 切到其他 tab 停止 polling 省电 + 释放 conn (跟 L4.72 dual_conn 1:1 stable 永久规则链配套)
-  if (!authStore.isAuthenticated || document.hidden) return
+  if (pollingDisposed || !authStore.isAuthenticated || pollingInFlight) return
+  if (document.hidden) {
+    scheduleNextPoll()
+    return
+  }
+  pollingInFlight = true
   try {
     const res = await getPendingLoginRequests()
     pendingRequests.value = res.pending || []
-    scheduleNextPoll()  // L4.85.1 治本: 自适应 polling (有 pending → 5s, 无 pending → 30s, 跟 L4.72 READ_POOL_SIZE 1:1 stable 配套)
   } catch {
-    // 静默: 401/网络异常不影响主流程
+    // 401 会由全局拦截器清理认证；瞬时网络异常留给下一次单次轮询。
     pendingRequests.value = []
-    scheduleNextPoll()
+  } finally {
+    pollingInFlight = false
+    if (!pollingDisposed && authStore.isAuthenticated) scheduleNextPoll()
   }
 }
 
 function scheduleNextPoll() {
-  if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null }
-  // L4.85.1 治本: 有 pending 高响应 5s, 无 pending 低开销 30s (跟 L4.72 dual_conn 1:1 stable 永久规则链配套, 减少 conn 占用 6x)
+  if (pollingTimer) { clearTimeout(pollingTimer); pollingTimer = null }
+  if (pollingDisposed || !authStore.isAuthenticated) return
   const interval = pendingRequests.value.length > 0 ? 5000 : 30000
-  pollingTimer = window.setInterval(pollPendingRequests, interval)
+  pollingTimer = window.setTimeout(() => {
+    pollingTimer = null
+    void pollPendingRequests()
+  }, interval)
 }
 
 // L4.85.1 治本: 强制弹窗 (跟 user 7/10 拍板 1:1 stable 永久规则链配套): pendingRequests 有数据时自动弹窗, A 不能隐藏
@@ -130,15 +141,14 @@ watch(pendingRequests, (newVal) => {
 
 async function handleApprove(req: PendingLoginRequest) {
   try {
-    // L4.85.1 治本: A 强制退出 (跟 user 7/10 拍板 1:1 stable 永久规则链配套): A 端清 sessionStorage + 跳 /login, 不 reload (reload 可能残余 state)
+    // 后端批准后旧 token 已失效；本地必须同步清 Pinia + sessionStorage。
     await approveLoginRequest(req.request_id)
     pendingRequests.value = []
-    sessionStorage.removeItem(AUTH_TOKEN_KEY)
-    sessionStorage.removeItem(AUTH_USER_KEY)
-    router.push('/login')  // 强制跳 /login (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 永久规则链配套)
     showRequestModal.value = false
+    authStore.clearSession()
+    await router.replace('/login')
   } catch (err: any) {
-    alert(`同意失败: ${err?.response?.data?.detail || err?.message || '未知错误'}`)
+    alert(`同意失败: ${err?.data?.detail || err?.response?.data?.detail || err?.message || '未知错误'}`)
   }
 }
 
@@ -148,11 +158,12 @@ async function handleReject(req: PendingLoginRequest) {
     // 立即从列表移除
     pendingRequests.value = pendingRequests.value.filter((r) => r.request_id !== req.request_id)
   } catch (err: any) {
-    alert(`拒绝失败: ${err?.response?.data?.detail || err?.message || '未知错误'}`)
+    alert(`拒绝失败: ${err?.data?.detail || err?.response?.data?.detail || err?.message || '未知错误'}`)
   }
 }
 
 onMounted(() => {
+  pollingDisposed = false
   // L4.85 申请+同意 模式: 5s polling 拉 pending 申请 (跟 L4.85 后端 1:1 stable 永久规则化沿用)
   // L4.85.1 治本: scheduleNextPoll 决定后续频率 (有 pending → 5s, 无 pending → 30s)
   if (authStore.isAuthenticated) {

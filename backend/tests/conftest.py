@@ -30,6 +30,23 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.slow)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_auth_runtime_state():
+    """认证内存状态按 test 隔离，避免唯一会话规则造成跨用例污染。"""
+    from backend.routers import auth
+    from backend.routers import login_request
+
+    auth.ACTIVE_TOKENS.clear()
+    auth._LOGIN_ATTEMPTS.clear()
+    login_request._reset_l4_85_state()
+    try:
+        yield
+    finally:
+        auth.ACTIVE_TOKENS.clear()
+        auth._LOGIN_ATTEMPTS.clear()
+        login_request._reset_l4_85_state()
+
+
 # ─────────────────────────────────────────────────────────────
 # Sprint 22 #25: skip-if-DuckDB-locked fixture
 #
@@ -108,30 +125,29 @@ def _detect_prod_duckdb_available() -> bool:
 _PROD_DUCKDB_AVAILABLE = _detect_prod_duckdb_available()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def isolated_duckdb():
-    """为每个 pytest-xdist worker 提供隔离 DuckDB。
+    """为每个 test module 提供有界、可完整清理的隔离 DuckDB。
 
-    worker 只写自己的临时数据库，并以只读方式 ATTACH 生产库。search_path
-    让业务代码继续用无 schema 前缀的表名读取生产数据。
+    旧 session 级连接会让 1300+ 用例的 buffer/cache/temp state 一直累积，
+    本地全量回归曾把 16GB Mac 推入内存压力。module 级释放把累积边界限制
+    在单个测试文件；2GB 独立上限不继承生产 .env 的大内存档。
     """
     if not _PROD_DUCKDB_AVAILABLE:
         pytest.skip("production DuckDB 不可用")
 
-    from backend.config import DUCKDB_MEMORY_LIMIT, DUCKDB_PATH
+    from backend.config import DUCKDB_PATH
 
-    tmp = tempfile.NamedTemporaryFile(suffix=".duckdb", delete=False)
-    tmp_path = Path(tmp.name)
-    tmp.close()
-    # DuckDB 1.5+ 会拒绝已存在但为空的文件；保留安全生成的路径即可。
-    tmp_path.unlink()
+    tmp_dir = tempfile.TemporaryDirectory(prefix="fq-pytest-duckdb-")
+    tmp_path = Path(tmp_dir.name) / "isolated.duckdb"
     conn = None
 
     try:
         conn = duckdb.connect(
             str(tmp_path),
-            config={"memory_limit": DUCKDB_MEMORY_LIMIT},
+            config={"memory_limit": "2GB"},
         )
+        conn.execute("SET threads = 2")
         prod_path = str(DUCKDB_PATH).replace("'", "''")
         conn.execute(f"ATTACH '{prod_path}' AS prod (READ_ONLY)")
         conn.execute("PRAGMA search_path='main,prod'")
@@ -139,7 +155,7 @@ def isolated_duckdb():
     finally:
         if conn is not None:
             conn.close()
-        tmp_path.unlink(missing_ok=True)
+        tmp_dir.cleanup()
 
 
 @pytest.fixture

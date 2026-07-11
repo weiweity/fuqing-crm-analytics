@@ -18,16 +18,34 @@ import os
 import sys
 from datetime import datetime
 
+from dotenv import load_dotenv
+
 REPO_ROOT = "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 
 # 切到主仓根 (跟 plist WorkingDirectory 冗余, 防御 launchd 环境变量被 reset)
 os.chdir(REPO_ROOT)
 sys.path.insert(0, REPO_ROOT)
 
-# 环境变量 (跟 .env 同步, 2026-06-22 当前值)
-os.environ["HEALTH_API_KEY"] = "nqOgt6K35MVGM3LSP0TNe8cM1glwDKLYjEa7RkL7k8k"
-os.environ["FQ_CRM_PASSWORDS"] = "admin:123456,fqsw:fqsw888"
+# launchd 不继承交互 shell 环境；显式读取本地、gitignored 的 .env。
+load_dotenv(os.path.join(REPO_ROOT, ".env"), override=False)
+missing_secrets = [
+    key for key in ("HEALTH_API_KEY", "FQ_CRM_PASSWORDS")
+    if not os.environ.get(key)
+]
+if missing_secrets:
+    raise RuntimeError(f"Missing required launch credentials in .env: {', '.join(missing_secrets)}")
+
 os.environ["DUCKDB_MEMORY_LIMIT"] = "8GB"
+# 16GB Mac 运行档：限制单查询线程和读并发，避免 20×10 线程超卖拖死整机。
+os.environ["DUCKDB_THREADS"] = "4"
+os.environ["FQ_READ_POOL_SIZE"] = "2"
+os.environ["FQ_READ_CONCURRENCY_LIMIT"] = "2"
+# 重查询单独使用更保守的 buffer 档；低内存时允许 DuckDB spill，禁止挤爆系统。
+os.environ["FQ_READ_MEMORY_LIMIT"] = "3GB"
+os.environ["FQ_RSS_ALERT_GB"] = "6"
+os.environ["FQ_RSS_HARD_LIMIT_GB"] = "8"
+# 单 worker 生产进程启用同 IP 单 RFM in-flight 护栏。
+os.environ["FQ_SINGLE_USER_V2"] = "1"
 # 故意 unset DUCKDB_PATH: 让 backend/config.py 走默认 (相对主仓根)
 os.environ.pop("DUCKDB_PATH", None)
 
@@ -35,7 +53,7 @@ os.environ.pop("DUCKDB_PATH", None)
 os.environ["PATH"] = "/Users/hutou/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + os.environ.get("PATH", "")
 
 print(f"[{datetime.now().isoformat()}] uvicorn_launchd.py starting (repo={REPO_ROOT})", file=sys.stderr, flush=True)
-print(f"[{datetime.now().isoformat()}] env: HEALTH_API_KEY={os.environ['HEALTH_API_KEY'][:8]}... FQ_CRM_PASSWORDS={os.environ['FQ_CRM_PASSWORDS'][:10]}...", file=sys.stderr, flush=True)
+print(f"[{datetime.now().isoformat()}] credentials loaded from .env", file=sys.stderr, flush=True)
 
 # exec uvicorn (PID 1 of process group, launchd 监控 uvicorn 主进程)
 os.execvp(

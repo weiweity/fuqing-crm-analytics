@@ -13,6 +13,7 @@ import YOYBadge from '@/components/YOYBadge.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import type { XlsxColumn } from '@/utils/exportXlsx'
+import { triggerManualQuery } from '@/composables/manualQuery'
 
 interface BucketItem {
   bucket_label: string
@@ -52,13 +53,12 @@ const compareQueryParams = computed(() => {
 const repurchaseAutoFetch = ref(false)
 watch([queryParams, compareQueryParams], () => { repurchaseAutoFetch.value = false }, { deep: true })
 function onRepurchaseQueryClick() {
-  repurchaseAutoFetch.value = true
-  refetch()
+  triggerManualQuery(repurchaseAutoFetch, isFetching, refetch)
 }
 
-const { data, isLoading, error, refetch } = useQuery({
+const { data, isLoading, isFetching, error, refetch } = useQuery({
   queryKey: computed(() => ['repurchase-cycle', { ...toValue(queryParams) }, toValue(compareQueryParams)]),
-  queryFn: () => {
+  queryFn: ({ signal }) => {
     const p = toValue(queryParams)
     const c = toValue(compareQueryParams)
     return fetchRepurchaseCycle({
@@ -67,10 +67,11 @@ const { data, isLoading, error, refetch } = useQuery({
       channel: p.channel,
       exclude_channels: p.exclude_channels,
       ...c,
-    })
+    }, signal)
   },
   enabled: repurchaseAutoFetch,
   staleTime: 60_000,
+  retry: false,
 })
 
 // ── Cohort查询（默认最近12个月）─
@@ -90,14 +91,14 @@ const cohortParams = computed(() => {
 
 const { data: cohortData, isLoading: cohortLoading } = useQuery({
   queryKey: computed(() => ['cohort-retention', { ...cohortParams.value }]),
-  queryFn: () => {
+  queryFn: ({ signal }) => {
     const p = toValue(cohortParams)
     return fetchCohortRetention({
       start_month: p.start_month,
       end_month: p.end_month,
       channel: p.channel,
       exclude_channels: p.exclude_channels,
-    })
+    }, signal)
   },
   staleTime: 60_000,
 })
@@ -289,9 +290,9 @@ const cohortChartOption = computed(() => {
 <template>
   <div class="repurchase-cycle-tab">
     <LoadingState v-if="isLoading" />
-    <ErrorState v-else-if="error" :message="error.message" @retry="refetch" />
+    <ErrorState v-else-if="error" :message="error.message" @retry="onRepurchaseQueryClick" />
     <div v-else-if="!repurchaseAutoFetch" class="manual-query-guide">
-      <ManualQueryButton @click="onRepurchaseQueryClick">查询复购周期数据</ManualQueryButton>
+      <ManualQueryButton :loading="isFetching" @click="onRepurchaseQueryClick">查询复购周期数据</ManualQueryButton>
       <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
     </div>
 

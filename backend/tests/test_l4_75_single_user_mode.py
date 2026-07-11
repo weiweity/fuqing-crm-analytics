@@ -46,6 +46,7 @@ def _run(coro: Awaitable[Response]) -> Response:
 @pytest.fixture(autouse=True)
 def reset_single_user_mode(monkeypatch):
     mode.ACTIVE_USERS.clear()
+    monkeypatch.setenv("FQ_SINGLE_USER_V2", "0")
     monkeypatch.setenv("FQ_SINGLE_USER_LOCK_TIMEOUT_SECONDS", "300")
     monkeypatch.setattr(
         mode,

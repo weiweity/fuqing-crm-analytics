@@ -169,7 +169,7 @@ async def lifespan(application: FastAPI):
     validate_startup_db()
     # 启动时启动内存监控守护线程
     from backend.db.memory_monitor import start_memory_watchdog, check_memory
-    start_memory_watchdog(interval=60)
+    start_memory_watchdog(interval=5)
     check_memory(label="应用启动")
     # W5 v0.4.13: 初始化 RFM cache 表 + 同步 manifest version
     # (后续每次 cache.get() 内部 _ManifestTracker 还会做变化检测)
@@ -221,7 +221,7 @@ app.add_middleware(
     allow_origins=[o.strip() for o in _CORS_ORIGINS if o.strip()],
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-Login-Claim"],
 )
 app.add_middleware(QueryRouterMiddleware)
 
@@ -546,13 +546,13 @@ def health_manifest():
 def health_pool():
     """Read pool 利用率 (跟 dual_conn.py Semaphore + pool 1:1 stable).
 
-    Sprint 203 R2 Fix #1 加的 Semaphore (READ_POOL_SIZE * 2) 暴露利用率,
-    让运维看板 OpsView 显示 "5/10 利用中" 这种实时数据.
+    L4.85.4 将并发硬上限收紧到 READ_POOL_SIZE，防止 16GB Mac 上多条
+    重查询把总内存推到 30GB+；这里暴露真实 active-query 上限。
     """
     try:
         from backend.services import dual_conn
         pool_size = len(dual_conn._read_pool)
-        semaphore_max = dual_conn.READ_POOL_SIZE * 2
+        semaphore_max = dual_conn.ACTIVE_READ_LIMIT
         # threading.Semaphore._value 是内部 counter (acquire 减, release 加)
         semaphore_available = dual_conn._read_semaphore._value
         semaphore_in_use = semaphore_max - semaphore_available

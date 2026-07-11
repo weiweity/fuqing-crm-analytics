@@ -45,8 +45,9 @@ def _run(coro):
 
 
 @pytest.fixture(autouse=True)
-def _clear_active_users():
+def _clear_active_users(monkeypatch):
     """每个 test 前后清空 ACTIVE_USERS (跟 L4.75 single-user middleware 1:1 stable 永久规则链配套)."""
+    monkeypatch.setenv("FQ_SINGLE_USER_V2", "0")
     ACTIVE_USERS.clear()
     yield
     ACTIVE_USERS.clear()
