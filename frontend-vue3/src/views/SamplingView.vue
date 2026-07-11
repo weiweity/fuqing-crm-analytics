@@ -212,21 +212,13 @@ const ttlSummary = computed<SamplingChannelSummary | null>(() => {
     ?? null
 })
 
-// Sprint 155 ② 03 板块 3 卡横排对齐 — TTL 在前, U先 + 百补 紧随
-const allChannels = computed<SamplingChannelSummary[]>(() => {
-  const all = roiData.value?.summary.channels ?? []
-  const ttl = all.find(c => c.channel === 'TTL派样')
-  const subs = all.filter(c => c.channel !== 'TTL派样')
-  return ttl ? [ttl, ...subs] : all
-})
-
-// Sprint 177 P0-3: 渠道对比卡去掉 emoji (Sprint 172 拍板), 改用文字首字符标 + 颜色块做色盲友好
-function channelIcon(channel: string): string {
-  if (channel === 'TTL派样') return 'T'
-  if (channel === 'U先派样') return 'U'
-  if (channel === '百补派样') return '百'
-  return '·'
-}
+// L4.91 design-review (2026-07-12): 总-分 结构 — TTL派样 = U先+百补汇总 (总), U先/百补 = 分板块
+const ttlChannel = computed<SamplingChannelSummary | null>(() =>
+  roiData.value?.summary.channels.find(c => c.channel === 'TTL派样') ?? null
+)
+const subChannels = computed<SamplingChannelSummary[]>(() =>
+  (roiData.value?.summary.channels ?? []).filter(c => c.channel !== 'TTL派样')
+)
 
 function channelColorClass(channel: string): string {
   if (channel === 'TTL派样') return 'text-purple-600'
@@ -604,166 +596,178 @@ onUnmounted(() => {
             </div>
           </section>
 
-          <!-- 渠道对比卡片 — 5 个核心指标两行展示，YOY/MOM badge 下沉避免遮挡 -->
+          <!-- 渠道对比卡片 — 总-分 结构: TTL派样 (总览, U先+百补汇总) → U先派样 + 百补派样 (分板块) -->
           <section :aria-labelledby="'sampling-section-channels'" class="sampling-section">
           <h2 id="sampling-section-channels" class="section-title"><span class="section-num">03</span>各板块情况</h2>
-          <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
-            <!-- 3 卡横排 (TTL + U先 + 百补) 等宽对齐，TTL 始终展开 -->
-            <n-gi v-for="ch in allChannels" :key="ch.channel" span="1 m:1 l:1">
-              <n-card :bordered="false" segmented class="h-full sampling-channel-card">
-                <template #header>
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-baseline gap-2">
-                      <span class="text-base font-bold" :class="channelColorClass(ch.channel)" :aria-label="ch.channel">
-                        <span aria-hidden="true" class="mr-1">{{ channelIcon(ch.channel) }}</span>
-                        {{ ch.channel }}
-                      </span>
-                      <span v-if="ch.channel === 'TTL派样'" class="text-xs font-normal text-slate-400">U先 ∪ 百补</span>
-                    </div>
-                  </div>
-                </template>
 
-                <div class="sampling-channel-metrics">
-                  <div class="sampling-channel-metric">
-                    <div class="sampling-channel-label">派样人数</div>
-                    <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.sample_users) }}</div>
-                    <div class="sampling-channel-delta sampling-channel-delta--empty">暂无{{ compareModeLabel }}</div>
-                  </div>
-                  <div class="sampling-channel-metric">
-                    <div class="sampling-channel-label">回购人数</div>
-                    <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.repurchase_users) }}</div>
-                    <div class="sampling-channel-delta">
-                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
-                      <span
-                        v-if="compareValue(ch, 'repurchase_users', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'repurchase_users', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'repurchase_users', 'pct')" unit="%" />
-                      </span>
-                    </div>
-                  </div>
-                  <div class="sampling-channel-metric">
-                    <div class="sampling-channel-label">回购率</div>
-                    <div class="sampling-channel-value text-indigo-600">{{ formatPercent(ch.repurchase_rate) }}</div>
-                    <div class="sampling-channel-delta">
-                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
-                      <span
-                        v-if="compareValue(ch, 'repurchase_rate', 'pp') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'repurchase_rate', 'pp'))"
-                      >
-                        {{ (compareValue(ch, 'repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'repurchase_rate', 'pp')" unit="pp" />
-                      </span>
-                    </div>
-                  </div>
-                  <div class="sampling-channel-metric">
-                    <div class="sampling-channel-label">贡献GSV</div>
-                    <div class="sampling-channel-value text-emerald-600">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</div>
-                    <div class="sampling-channel-delta">
-                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
-                      <span
-                        v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'repurchase_gsv', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'repurchase_gsv', 'pct')" unit="%" />
-                      </span>
-                    </div>
-                  </div>
-                  <div class="sampling-channel-metric">
-                    <div class="sampling-channel-label">AUS</div>
-                    <div class="sampling-channel-value sampling-channel-value--small text-slate-600">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</div>
-                    <div class="sampling-channel-delta">
-                      <span class="sampling-delta-label">{{ compareModeLabel }}</span>
-                      <span
-                        v-if="compareValue(ch, 'repurchase_aus', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'repurchase_aus', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'repurchase_aus', 'pct')" unit="%" />
-                      </span>
-                    </div>
+          <!-- 总览: TTL派样 (全宽卡片, U先 + 百补 汇总) -->
+          <div v-if="ttlChannel" class="mb-4">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">总览</span>
+              <span class="text-[11px] text-slate-300">—</span>
+              <span class="text-xs text-slate-400">TTL派样 = U先派样 + 百补派样 汇总</span>
+            </div>
+            <n-card :bordered="false" segmented class="sampling-channel-card sampling-channel-card--total">
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <span class="text-base font-bold text-purple-600">TTL派样</span>
+                  <span class="text-xs text-slate-400">U先 + 百补 汇总</span>
+                </div>
+              </template>
+              <div class="sampling-channel-metrics">
+                <div class="sampling-channel-metric">
+                  <div class="sampling-channel-label">派样人数</div>
+                  <div class="sampling-channel-value text-slate-800">{{ formatNumber(ttlChannel.sample_users) }}</div>
+                  <div class="sampling-channel-delta sampling-channel-delta--empty">暂无{{ compareModeLabel }}</div>
+                </div>
+                <div class="sampling-channel-metric">
+                  <div class="sampling-channel-label">回购人数</div>
+                  <div class="sampling-channel-value text-slate-800">{{ formatNumber(ttlChannel.repurchase_users) }}</div>
+                  <div class="sampling-channel-delta">
+                    <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                    <span v-if="compareValue(ttlChannel, 'repurchase_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'repurchase_users', 'pct'))">
+                      {{ (compareValue(ttlChannel, 'repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                      <YOYGuard :value="compareValue(ttlChannel, 'repurchase_users', 'pct')" unit="%" />
+                    </span>
                   </div>
                 </div>
-
-                <n-divider />
-                <div class="sampling-channel-detail-grid">
-                  <div class="sampling-channel-detail">
-                    <div class="sampling-channel-detail-title text-rose-600">{{ windowDays }}天正装回购</div>
-                    <div class="sampling-channel-detail-line">
-                      <span>人数: <b>{{ formatNumber(ch.full_repurchase_users) }}</b></span>
-                      <span
-                        v-if="compareValue(ch, 'full_repurchase_users', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_users', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'full_repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'full_repurchase_users', 'pct')" unit="%" />
-                      </span>
-                    </div>
-                    <div class="sampling-channel-detail-line">
-                      <span>转化率: <b>{{ formatPercent(ch.full_repurchase_rate) }}</b></span>
-                      <span
-                        v-if="compareValue(ch, 'full_repurchase_rate', 'pp') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_rate', 'pp'))"
-                      >
-                        {{ (compareValue(ch, 'full_repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'full_repurchase_rate', 'pp')" unit="pp" />
-                      </span>
-                    </div>
-                    <div class="sampling-channel-detail-line">
-                      <span>GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b></span>
-                      <span
-                        v-if="compareValue(ch, 'full_repurchase_gsv', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_gsv', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'full_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'full_repurchase_gsv', 'pct')" unit="%" />
-                      </span>
-                    </div>
-                    <div class="sampling-channel-detail-line">
-                      <span>AUS <b>{{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}</b></span>
-                      <span
-                        v-if="compareValue(ch, 'full_repurchase_aus', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'full_repurchase_aus', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'full_repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'full_repurchase_aus', 'pct')" unit="%" />
-                      </span>
-                    </div>
-                  </div>
-                  <div class="sampling-channel-detail">
-                    <div class="sampling-channel-detail-title text-slate-500">非正装回购</div>
-                    <div class="sampling-channel-detail-line">
-                      <span>人数: <b>{{ formatNumber(ch.nonfull_repurchase_users) }}</b></span>
-                    </div>
-                    <div class="sampling-channel-detail-line">
-                      <span>GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b></span>
-                      <span
-                        v-if="compareValue(ch, 'nonfull_repurchase_gsv', 'pct') != null"
-                        class="sampling-delta-badge sampling-delta-badge--mini"
-                        :class="deltaToneClass(compareValue(ch, 'nonfull_repurchase_gsv', 'pct'))"
-                      >
-                        {{ (compareValue(ch, 'nonfull_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'nonfull_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
-                        <YOYGuard :value="compareValue(ch, 'nonfull_repurchase_gsv', 'pct')" unit="%" />
-                      </span>
-                    </div>
-                    <div class="sampling-channel-detail-line">
-                      <span>AUS <b>{{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}</b></span>
-                    </div>
+                <div class="sampling-channel-metric">
+                  <div class="sampling-channel-label">回购率</div>
+                  <div class="sampling-channel-value text-indigo-600">{{ formatPercent(ttlChannel.repurchase_rate) }}</div>
+                  <div class="sampling-channel-delta">
+                    <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                    <span v-if="compareValue(ttlChannel, 'repurchase_rate', 'pp') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'repurchase_rate', 'pp'))">
+                      {{ (compareValue(ttlChannel, 'repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
+                      <YOYGuard :value="compareValue(ttlChannel, 'repurchase_rate', 'pp')" unit="pp" />
+                    </span>
                   </div>
                 </div>
-              </n-card>
-            </n-gi>
-          </n-grid>
+                <div class="sampling-channel-metric">
+                  <div class="sampling-channel-label">贡献GSV</div>
+                  <div class="sampling-channel-value text-emerald-600">{{ formatCurrency(ttlChannel.repurchase_gsv, 'wan') }}</div>
+                  <div class="sampling-channel-delta">
+                    <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                    <span v-if="compareValue(ttlChannel, 'repurchase_gsv', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'repurchase_gsv', 'pct'))">
+                      {{ (compareValue(ttlChannel, 'repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                      <YOYGuard :value="compareValue(ttlChannel, 'repurchase_gsv', 'pct')" unit="%" />
+                    </span>
+                  </div>
+                </div>
+                <div class="sampling-channel-metric">
+                  <div class="sampling-channel-label">AUS</div>
+                  <div class="sampling-channel-value sampling-channel-value--small text-slate-600">{{ formatCurrency(ttlChannel.repurchase_aus, 'yuan', 0) }}</div>
+                  <div class="sampling-channel-delta">
+                    <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                    <span v-if="compareValue(ttlChannel, 'repurchase_aus', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'repurchase_aus', 'pct'))">
+                      {{ (compareValue(ttlChannel, 'repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                      <YOYGuard :value="compareValue(ttlChannel, 'repurchase_aus', 'pct')" unit="%" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <n-divider />
+              <div class="sampling-channel-detail-grid">
+                <div class="sampling-channel-detail">
+                  <div class="sampling-channel-detail-title text-rose-600">{{ windowDays }}天正装回购</div>
+                  <div class="sampling-channel-detail-line"><span>人数: <b>{{ formatNumber(ttlChannel.full_repurchase_users) }}</b></span><span v-if="compareValue(ttlChannel, 'full_repurchase_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'full_repurchase_users', 'pct'))">{{ (compareValue(ttlChannel, 'full_repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'full_repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ttlChannel, 'full_repurchase_users', 'pct')" unit="%" /></span></div>
+                  <div class="sampling-channel-detail-line"><span>转化率: <b>{{ formatPercent(ttlChannel.full_repurchase_rate) }}</b></span><span v-if="compareValue(ttlChannel, 'full_repurchase_rate', 'pp') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'full_repurchase_rate', 'pp'))">{{ (compareValue(ttlChannel, 'full_repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'full_repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ttlChannel, 'full_repurchase_rate', 'pp')" unit="pp" /></span></div>
+                  <div class="sampling-channel-detail-line"><span>GSV: <b class="text-emerald-700">{{ formatCurrency(ttlChannel.full_repurchase_gsv, 'wan') }}</b></span><span v-if="compareValue(ttlChannel, 'full_repurchase_gsv', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'full_repurchase_gsv', 'pct'))">{{ (compareValue(ttlChannel, 'full_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'full_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ttlChannel, 'full_repurchase_gsv', 'pct')" unit="%" /></span></div>
+                  <div class="sampling-channel-detail-line"><span>AUS <b>{{ formatCurrency(ttlChannel.full_repurchase_aus, 'yuan', 0) }}</b></span><span v-if="compareValue(ttlChannel, 'full_repurchase_aus', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'full_repurchase_aus', 'pct'))">{{ (compareValue(ttlChannel, 'full_repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'full_repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ttlChannel, 'full_repurchase_aus', 'pct')" unit="%" /></span></div>
+                </div>
+                <div class="sampling-channel-detail">
+                  <div class="sampling-channel-detail-title text-slate-500">非正装回购</div>
+                  <div class="sampling-channel-detail-line"><span>人数: <b>{{ formatNumber(ttlChannel.nonfull_repurchase_users) }}</b></span></div>
+                  <div class="sampling-channel-detail-line"><span>GSV: <b class="text-slate-700">{{ formatCurrency(ttlChannel.nonfull_repurchase_gsv, 'wan') }}</b></span><span v-if="compareValue(ttlChannel, 'nonfull_repurchase_gsv', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'nonfull_repurchase_gsv', 'pct'))">{{ (compareValue(ttlChannel, 'nonfull_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'nonfull_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ttlChannel, 'nonfull_repurchase_gsv', 'pct')" unit="%" /></span></div>
+                  <div class="sampling-channel-detail-line"><span>AUS <b>{{ formatCurrency(ttlChannel.nonfull_repurchase_aus, 'yuan', 0) }}</b></span></div>
+                </div>
+              </div>
+            </n-card>
+          </div>
+
+          <!-- 分板块: U先派样 + 百补派样 (2 列) -->
+          <div v-if="subChannels.length" class="mb-1">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">分板块</span>
+              <span class="text-[11px] text-slate-300">—</span>
+              <span class="text-xs text-slate-400">各渠道独立表现</span>
+            </div>
+            <n-grid :cols="2" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
+              <n-gi v-for="ch in subChannels" :key="ch.channel" span="1 m:1 l:1">
+                <n-card :bordered="false" segmented class="h-full sampling-channel-card">
+                  <template #header>
+                    <span class="text-base font-bold" :class="channelColorClass(ch.channel)">{{ ch.channel }}</span>
+                  </template>
+                  <div class="sampling-channel-metrics">
+                    <div class="sampling-channel-metric">
+                      <div class="sampling-channel-label">派样人数</div>
+                      <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.sample_users) }}</div>
+                      <div class="sampling-channel-delta sampling-channel-delta--empty">暂无{{ compareModeLabel }}</div>
+                    </div>
+                    <div class="sampling-channel-metric">
+                      <div class="sampling-channel-label">回购人数</div>
+                      <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.repurchase_users) }}</div>
+                      <div class="sampling-channel-delta">
+                        <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                        <span v-if="compareValue(ch, 'repurchase_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'repurchase_users', 'pct'))">
+                          {{ (compareValue(ch, 'repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                          <YOYGuard :value="compareValue(ch, 'repurchase_users', 'pct')" unit="%" />
+                        </span>
+                      </div>
+                    </div>
+                    <div class="sampling-channel-metric">
+                      <div class="sampling-channel-label">回购率</div>
+                      <div class="sampling-channel-value text-indigo-600">{{ formatPercent(ch.repurchase_rate) }}</div>
+                      <div class="sampling-channel-delta">
+                        <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                        <span v-if="compareValue(ch, 'repurchase_rate', 'pp') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'repurchase_rate', 'pp'))">
+                          {{ (compareValue(ch, 'repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}
+                          <YOYGuard :value="compareValue(ch, 'repurchase_rate', 'pp')" unit="pp" />
+                        </span>
+                      </div>
+                    </div>
+                    <div class="sampling-channel-metric">
+                      <div class="sampling-channel-label">贡献GSV</div>
+                      <div class="sampling-channel-value text-emerald-600">{{ formatCurrency(ch.repurchase_gsv, 'wan') }}</div>
+                      <div class="sampling-channel-delta">
+                        <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                        <span v-if="compareValue(ch, 'repurchase_gsv', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'repurchase_gsv', 'pct'))">
+                          {{ (compareValue(ch, 'repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                          <YOYGuard :value="compareValue(ch, 'repurchase_gsv', 'pct')" unit="%" />
+                        </span>
+                      </div>
+                    </div>
+                    <div class="sampling-channel-metric">
+                      <div class="sampling-channel-label">AUS</div>
+                      <div class="sampling-channel-value sampling-channel-value--small text-slate-600">{{ formatCurrency(ch.repurchase_aus, 'yuan', 0) }}</div>
+                      <div class="sampling-channel-delta">
+                        <span class="sampling-delta-label">{{ compareModeLabel }}</span>
+                        <span v-if="compareValue(ch, 'repurchase_aus', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'repurchase_aus', 'pct'))">
+                          {{ (compareValue(ch, 'repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}
+                          <YOYGuard :value="compareValue(ch, 'repurchase_aus', 'pct')" unit="%" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <n-divider />
+                  <div class="sampling-channel-detail-grid">
+                    <div class="sampling-channel-detail">
+                      <div class="sampling-channel-detail-title text-rose-600">{{ windowDays }}天正装回购</div>
+                      <div class="sampling-channel-detail-line"><span>人数: <b>{{ formatNumber(ch.full_repurchase_users) }}</b></span><span v-if="compareValue(ch, 'full_repurchase_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'full_repurchase_users', 'pct'))">{{ (compareValue(ch, 'full_repurchase_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_users', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ch, 'full_repurchase_users', 'pct')" unit="%" /></span></div>
+                      <div class="sampling-channel-detail-line"><span>转化率: <b>{{ formatPercent(ch.full_repurchase_rate) }}</b></span><span v-if="compareValue(ch, 'full_repurchase_rate', 'pp') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'full_repurchase_rate', 'pp'))">{{ (compareValue(ch, 'full_repurchase_rate', 'pp') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_rate', 'pp') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ch, 'full_repurchase_rate', 'pp')" unit="pp" /></span></div>
+                      <div class="sampling-channel-detail-line"><span>GSV: <b class="text-emerald-700">{{ formatCurrency(ch.full_repurchase_gsv, 'wan') }}</b></span><span v-if="compareValue(ch, 'full_repurchase_gsv', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'full_repurchase_gsv', 'pct'))">{{ (compareValue(ch, 'full_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ch, 'full_repurchase_gsv', 'pct')" unit="%" /></span></div>
+                      <div class="sampling-channel-detail-line"><span>AUS <b>{{ formatCurrency(ch.full_repurchase_aus, 'yuan', 0) }}</b></span><span v-if="compareValue(ch, 'full_repurchase_aus', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'full_repurchase_aus', 'pct'))">{{ (compareValue(ch, 'full_repurchase_aus', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'full_repurchase_aus', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ch, 'full_repurchase_aus', 'pct')" unit="%" /></span></div>
+                    </div>
+                    <div class="sampling-channel-detail">
+                      <div class="sampling-channel-detail-title text-slate-500">非正装回购</div>
+                      <div class="sampling-channel-detail-line"><span>人数: <b>{{ formatNumber(ch.nonfull_repurchase_users) }}</b></span></div>
+                      <div class="sampling-channel-detail-line"><span>GSV: <b class="text-slate-700">{{ formatCurrency(ch.nonfull_repurchase_gsv, 'wan') }}</b></span><span v-if="compareValue(ch, 'nonfull_repurchase_gsv', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'nonfull_repurchase_gsv', 'pct'))">{{ (compareValue(ch, 'nonfull_repurchase_gsv', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'nonfull_repurchase_gsv', 'pct') ?? 0) < 0 ? '↓' : '' }}<YOYGuard :value="compareValue(ch, 'nonfull_repurchase_gsv', 'pct')" unit="%" /></span></div>
+                      <div class="sampling-channel-detail-line"><span>AUS <b>{{ formatCurrency(ch.nonfull_repurchase_aus, 'yuan', 0) }}</b></span></div>
+                    </div>
+                  </div>
+                </n-card>
+              </n-gi>
+            </n-grid>
+          </div>
           </section>
 
           <!-- 品类明细表格 — Sprint 155 ③ native table + 渠道列手动 rowspan 合并 + 其他列点击 sort -->
