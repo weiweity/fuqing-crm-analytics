@@ -195,11 +195,11 @@ async function handleReject(req: PendingLoginRequest) {
   }
 }
 
-// === L4.85.4 空闲自动下线 (跟 user 7/11 拍板 "2 分钟还是 5 分钟会自动下线" 1:1 stable 永久规则化沿用) ===
-// 跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用, 跟 L4.85 + L4.85.1 + L4.85.3 1:1 stable 永久规则链配套.
-// 监听用户活动 (pointer/keyboard/scroll/touch), 5 分钟无操作触发 logout + redirect /login,
+// === L4.85.4 空闲自动下线 (跟 user 7/11 拍板 "5 分钟时间太长了，可以 3 分钟" 1:1 stable 永久规则化沿用) ===
+// 跟 L4.75 v2 lock_timeout_seconds 3min 1:1 stable 永久规则化沿用, 跟 L4.85 + L4.85.1 + L4.85.3 + L4.85.4 1:1 stable 永久规则链配套.
+// 监听用户活动 (pointer/keyboard/scroll/touch), 3 分钟无操作触发 logout + redirect /login,
 // 第二人能直接 login (不再卡 409 申请登录).
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000  // 5 分钟, 跟 L4.75 v2 lock_timeout_seconds 1:1 stable
+const IDLE_TIMEOUT_MS = 3 * 60 * 1000  // 3 分钟, 跟 L4.75 v2 lock_timeout_seconds 1:1 stable + auth.py _is_account_active 3min 1:1 stable
 let idleTimer: number | null = null
 let idleDisposed = false
 

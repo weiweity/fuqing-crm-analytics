@@ -205,19 +205,21 @@ def _evict_previous_sessions_for_user(username: str) -> int:
 
 
 def _is_account_active(username: str) -> bool:
-    """L4.85.3 治本: 检查账号是否在最近 5 分钟内有 active token (跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用).
+    """L4.85.3 + L4.85.4 治本: 检查账号是否在最近 3 分钟内有 active token.
+
+    user 7/11 拍板 "5 分钟时间太长了，可以 3 分钟", 全栈统一 3min timeout
+    (跟 L4.75 v2 lock_timeout_seconds 3min + login_request.LOGIN_REQUEST_TIMEOUT_SECONDS=180 + NavBar IDLE_TIMEOUT_MS=3min 1:1 stable 永久规则化沿用).
 
     跟 L4.42 + L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 L4.84 + L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则链配套.
     跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用 (跟 login_request._is_account_active 1:1 stable 复用, 0 业务代码改动).
-    跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用.
 
     Bug 修复 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用): 之前 _is_account_active 永远返回 True (因为业务验证 3 件套留的 token 在 ACTIVE_TOKENS 中,
-    logout 不会清空所有该 user 的 token). 修复: 用 last_active_at + 5min > now 检查 (跟 L4.75 v2 1:1 stable 永久规则化沿用).
+    logout 不会清空所有该 user 的 token). 修复: 用 last_active_at + 3min > now 检查 (跟 L4.75 v2 1:1 stable 永久规则化沿用).
     """
     now = datetime.now()
     with _AUTH_STATE_LOCK:
         for token_user, last_active in ACTIVE_TOKENS.values():
-            if token_user == username and (now - last_active) < timedelta(minutes=5):
+            if token_user == username and (now - last_active) < timedelta(minutes=3):
                 return True
     return False
 
