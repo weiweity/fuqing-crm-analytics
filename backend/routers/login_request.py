@@ -40,7 +40,8 @@ from backend.routers.auth import (
 router = APIRouter(prefix="/api/v1/auth", tags=["认证-L4.85"])
 
 # 跟 L4.75 v2 lock_timeout_seconds 1:1 stable 配套
-LOGIN_REQUEST_TIMEOUT_SECONDS = 300  # 5 分钟
+# user 7/11 拍板 "5 分钟时间太长了，可以 3 分钟", 5min → 3min 全栈统一
+LOGIN_REQUEST_TIMEOUT_SECONDS = 180  # 3 分钟 (跟 auth.py _is_account_active 3min + NavBar IDLE_TIMEOUT_MS 3min 1:1 stable)
 
 
 @dataclass
@@ -221,7 +222,7 @@ def create_login_request(req: LoginRequestIn, request: Request, response: Respon
             if existing.status == "pending" and existing.requester_ip == client_ip:
                 existing.claim_secret_digest = claim_digest
                 # 新 claim secret 等同一次新的申请凭据；同步刷新服务端 TTL，
-                # 与 B 端重新显示的 300 秒倒计时保持一致。
+                # 与 B 端重新显示的 180 秒倒计时保持一致 (跟 LOGIN_REQUEST_TIMEOUT_SECONDS=180 1:1 stable)。
                 existing.created_at = now
                 response.headers["Cache-Control"] = "no-store"
                 return LoginRequestOut(

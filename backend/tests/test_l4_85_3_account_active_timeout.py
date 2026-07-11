@@ -37,27 +37,33 @@ def reset_state():
     auth_module._LOGIN_ATTEMPTS.clear()
 
 
-def test_is_account_active_within_5min():
-    """核心 case 1: 5 分钟内 active → True (跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用)."""
-    # admin 4 分钟前 active
-    auth_module.ACTIVE_TOKENS["admin-token-1"] = ("admin", datetime.now() - timedelta(minutes=4))
+def test_is_account_active_within_3min():
+    """核心 case 1: 3 分钟内 active → True (跟 L4.75 v2 lock_timeout_seconds 3min 1:1 stable 永久规则化沿用).
+
+    user 7/11 拍板 "5 分钟时间太长了，可以 3 分钟", 全栈统一 3min.
+    """
+    # admin 2 分钟前 active (3min 阈值内)
+    auth_module.ACTIVE_TOKENS["admin-token-1"] = ("admin", datetime.now() - timedelta(minutes=2))
     assert auth_module._is_account_active("admin") is True
 
 
-def test_is_account_active_beyond_5min():
-    """核心 case 2: 5 分钟外 active → False (跟 user 7/10 拍板 "没人在线也能登" 1:1 stable 永久规则化沿用)."""
-    # admin 10 分钟前 active (业务验证 3 件套跑完, 5 分钟外)
+def test_is_account_active_beyond_3min():
+    """核心 case 2: 3 分钟外 active → False (跟 user 7/10 拍板 "没人在线也能登" 1:1 stable 永久规则化沿用).
+
+    user 7/11 拍板 "5 分钟时间太长了，可以 3 分钟", 全栈统一 3min.
+    """
+    # admin 10 分钟前 active (3 分钟外, 远超 3min 阈值)
     auth_module.ACTIVE_TOKENS["admin-stale-1"] = ("admin", datetime.now() - timedelta(minutes=10))
     assert auth_module._is_account_active("admin") is False
 
 
 def test_login_after_stale_active_works():
-    """核心 case 3: 5 分钟外的旧 token 不算 active, login 200 + 拿到新 token (跟 L4.85.3 治本 1:1 stable 永久规则化沿用)."""
+    """核心 case 3: 3 分钟外的旧 token 不算 active, login 200 + 拿到新 token (跟 L4.85.3 治本 1:1 stable 永久规则化沿用)."""
     from fastapi.testclient import TestClient
     from backend.main import app
     client = TestClient(app)
 
-    # admin 10 分钟前 active (stale)
+    # admin 10 分钟前 active (stale, 远超 3min 阈值)
     auth_module.ACTIVE_TOKENS["admin-stale-1"] = ("admin", datetime.now() - timedelta(minutes=10))
 
     # B 端 admin login → 应该 200 (stale token 不算 active, 跟 L4.85.3 治本 1:1 stable 永久规则化沿用)

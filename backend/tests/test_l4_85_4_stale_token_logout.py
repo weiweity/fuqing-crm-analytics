@@ -127,18 +127,19 @@ def test_polling_does_not_refresh_active_at():
     )
 
 
-def test_idle_5min_keeps_account_inactive():
-    """核心 case 4: 用户离开工位 5min, polling 不让 account 永远 active.
+def test_idle_3min_keeps_account_inactive():
+    """核心 case 4: 用户离开工位 3min, polling 不让 account 永远 active.
 
-    模拟场景: 用户 login → 离开工位 5 分钟 → polling 持续跑 → _is_account_active 应该 False
+    user 7/11 拍板 "5 分钟时间太长了，可以 3 分钟", 全栈统一 3min timeout.
+    模拟场景: 用户 login → 离开工位 3+ 分钟 → polling 持续跑 → _is_account_active 应该 False
     修复前: polling 滑动续期 → _is_account_active 永远 True → B 端 login 永远 409
-    修复后: polling sliding=False → last_active_at 不刷新 → 5 分钟外 _is_account_active False
+    修复后: polling sliding=False → last_active_at 不刷新 → 3 分钟外 _is_account_active False
     """
-    # 模拟: admin token, last_active_at 6 分钟前 (用户离开工位 6 分钟)
-    stale_time = datetime.now() - timedelta(minutes=6)
+    # 模拟: admin token, last_active_at 4 分钟前 (用户离开工位 4 分钟, 超过 3min 阈值)
+    stale_time = datetime.now() - timedelta(minutes=4)
     auth_module.ACTIVE_TOKENS["admin-stale-token"] = ("admin", stale_time)
 
-    # L4.85.3 + L4.85.4 治本: _is_account_active 应该 False (6 分钟外 stale)
+    # L4.85.3 + L4.85.4 治本: _is_account_active 应该 False (4 分钟外 stale, 超过 3min 阈值)
     assert auth_module._is_account_active("admin") is False
 
     # 模拟 polling 调用 (sliding=False): last_active_at 保持不变
@@ -154,8 +155,22 @@ def test_idle_5min_keeps_account_inactive():
     client = TestClient(app)
     resp = client.post("/api/v1/auth/login", json={"username": "admin", "password": "123456"})
     assert resp.status_code == 200, (
-        f"应该 200 (admin 离开工位 6min 无 polling 续期), 实际 {resp.status_code}: {resp.text}"
+        f"应该 200 (admin 离开工位 4min > 3min 阈值无 polling 续期), 实际 {resp.status_code}: {resp.text}"
     )
+
+
+def test_idle_2min_still_active():
+    """user 7/11 拍板 "3 分钟" 治本验证: 2 分钟内 _is_account_active 仍 True.
+
+    防 user 改 3min 后, 阈值边界检查漏改回归 2min 误判 False.
+    跟 L4.85.3 + L4.85.4 1:1 stable 永久规则链配套.
+    """
+    # admin token, last_active_at 2 分钟前 (3min 阈值内)
+    active_time = datetime.now() - timedelta(minutes=2)
+    auth_module.ACTIVE_TOKENS["admin-active-token"] = ("admin", active_time)
+
+    # 3min 阈值内, _is_account_active 应该 True
+    assert auth_module._is_account_active("admin") is True
 
 
 if __name__ == "__main__":

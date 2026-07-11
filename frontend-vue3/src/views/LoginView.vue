@@ -485,6 +485,15 @@ onUnmounted(() => {
   // L4.85: 清理申请倒计时 timer
   if (applyTimer) clearInterval(applyTimer)
   stopApplyStatusPolling()
+  // L4.85.4 治本: user 7/11 报 "退出网址后, 账号状态没退出, 显示 欢迎回来 + admin 残留"
+  // 原因: sessionStorage fq_crm_auth_user / fq_crm_auth_token 残留 → LoginView refilled 显示 "欢迎回来 admin"
+  // 修复: LoginView unmount 时清空 sessionStorage 残留 (不调 logout API 因为可能没 active token)
+  try {
+    sessionStorage.removeItem('fq_crm_auth_token')
+    sessionStorage.removeItem('fq_crm_auth_user')
+  } catch {
+    // sessionStorage 可能不可用 (SSR/隐私模式), 忽略
+  }
 })
 </script>
 
