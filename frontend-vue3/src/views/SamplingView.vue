@@ -622,12 +622,13 @@ onUnmounted(() => {
                 <div class="sampling-channel-metric">
                   <div class="sampling-channel-label">派样人数</div>
                   <div class="sampling-channel-value text-slate-800">{{ formatNumber(ttlChannel.sample_users) }}</div>
-                  <div class="sampling-channel-delta">
+                  <div class="sampling-channel-delta" :class="{ 'sampling-channel-delta--empty': compareValue(ttlChannel, 'sample_users', 'pct') == null }">
                     <span class="sampling-delta-label">{{ compareModeLabel }}</span>
                     <span v-if="compareValue(ttlChannel, 'sample_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ttlChannel, 'sample_users', 'pct'))">
                       {{ (compareValue(ttlChannel, 'sample_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ttlChannel, 'sample_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
                       <YOYGuard :value="compareValue(ttlChannel, 'sample_users', 'pct')" unit="%" />
                     </span>
+                    <span v-else class="sampling-delta-empty">—</span>
                   </div>
                 </div>
                 <div class="sampling-channel-metric">
@@ -711,12 +712,13 @@ onUnmounted(() => {
                     <div class="sampling-channel-metric">
                       <div class="sampling-channel-label">派样人数</div>
                       <div class="sampling-channel-value text-slate-800">{{ formatNumber(ch.sample_users) }}</div>
-                      <div class="sampling-channel-delta">
+                      <div class="sampling-channel-delta" :class="{ 'sampling-channel-delta--empty': compareValue(ch, 'sample_users', 'pct') == null }">
                         <span class="sampling-delta-label">{{ compareModeLabel }}</span>
                         <span v-if="compareValue(ch, 'sample_users', 'pct') != null" class="sampling-delta-badge sampling-delta-badge--mini" :class="deltaToneClass(compareValue(ch, 'sample_users', 'pct'))">
                           {{ (compareValue(ch, 'sample_users', 'pct') ?? 0) > 0 ? '↑' : (compareValue(ch, 'sample_users', 'pct') ?? 0) < 0 ? '↓' : '' }}
                           <YOYGuard :value="compareValue(ch, 'sample_users', 'pct')" unit="%" />
                         </span>
+                        <span v-else class="sampling-delta-empty">—</span>
                       </div>
                     </div>
                     <div class="sampling-channel-metric">
