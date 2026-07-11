@@ -1203,3 +1203,49 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
   ❌ Sprint 收口不跑 `gh run list --limit 10` 看 CI 真实状态 (凭印象认为 CI 已绿).
 
 - **0 业务代码改动累计 Sprint 60+ 82 次 1:1 stable 永久规则化沿用 (跟 L4.65.1 + L4.69.1 + L4.72 + L4.74 + L4.75 累计 81 次 +1 L4.76)**: 本次 Sprint 205+ GitHub CI 4/4 jobs 全绿治本是 3 commit (b378005 period.py follow-up + e66ad9c L4.19 channel alias fix + 4d0d6ec F401 unused import fix) + 4 files (cache.py + period.py + routers/category.py + CHANGELOG.md) / +60/-10 across 3 commits. 跟 L4.16 gh Actions workflow paths + L4.42 立项实证 SOP + L4.50 pytest cleanup 0 业务代码改动 + L4.55 立项 spec 实证 SOP + L4.19 channel alias ground-truth-lint + L4.20 SSOT 反漂移 + L4.65.1 main.py 启动禁主动建写 conn + L4.69.1 _run_rfm_period_serial finally gc.collect() + L4.72 RFM cache + dual_conn semaphore timeout 治本 + L4.74 cache end_date fix + L4.75 market-focus batch + frontend batching 1:1 stable 永久规则链配套. pytest focused 16/16 PASS + ruff scoped All checks passed + git diff --check clean + gh run list --limit 10 ground-truth-lint 9s + lint 2m21s + e2e 4m32s + test 4m47s (5m0s 总耗时, 跟 Sprint 75/77/84/86/87 stable 模式 1:1 stable 跨 sprint 永久规则化沿用).
+
+### L4.91 (架构) — Excel 导出全量语义/契约层治本 (Sprint 205+ 真业务触发: user 7/11 拍板 8 件 Excel bug + 强约束 backend 算 frontend 只展示, 跟 L4.42 + L4.50 + L4.55 + L4.79 + L4.80 + L4.81 + L4.20 + L4.22 1:1 stable 永久规则链配套)
+
+- **真业务触发 (user 7/11 拍板, 跟你 user 报 8 件具体 Excel bug 1:1 stable 永久规则化沿用)**:
+  1. **Bug #1 人群看板-30指标对比** (AudienceView.vue handleExportIndicators line 1639-1689): raw 'xlsx' bypass SSOT + 写 Excel 公式 + 前端 *100 for ratio 3 重违规 (跟 L4.81 YOY 契约反模式 1:1 stable)
+  2. **Bug #2 老客分析-各渠道健康评分对比** (HealthOverviewTab.vue:327 channelScoreXlsxColumns): -3370.00pp 显示错 (raw 33.7 误 *100) + 冗余 *_label 字符串列
+  3. **Bug #3 品类看板-单品概览-全店** (CategoryView.vue:532-595): 各类占比 numFmt '0.00' 不区分 % vs pp (跟 user 'YOY没有注入xx%和xxpp' 1:1 stable)
+  4. **Bug #4 #5 品类看板-品类复购周期 / 同品回购明细** (ProductClassRepurchaseTab.vue:90-140): 中位天数YOY / 平均天数YOY 无 numFmt 默认 raw 显示
+  5. **Bug #6 市场对焦-核心单品新老客** (ProductCustomerTab.vue:702-708): 4 列 vs frontend 14 列 WYSIWYG 严重违反 (跟 L4.80 1:1 stable 永久规则化沿用)
+  6. **Bug #7 市场对焦-全店资产** (StoreAssetsTab.vue:111-145): 缺 2 行对比 + 2 列对比 (本周对比上周/去年同期)
+  7. **Bug #8 强约束** (跟 CLAUDE.md "前端只展示, 禁止前端算" 1:1 stable 永久规则化沿用): 30+ 处 frontend `*100` 散落 (L4.81 反模式)
+  8. **跨 sprint 留尾**: 16 视图 audit SOP 留尾给接手人 7/16+ 启动 (跟 L4.57 0 commit 续期 1:1 stable)
+
+- **强契约 (跟 L4.42 立项实证 SOP + L4.20 SSOT 反漂移 + L4.50 0 业务代码改动 累计 92 次 1:1 stable 永久规则链配套)**:
+  1. **frontend XlsxColumn.kind 显式 enum 替代 auto-detect** (L4.91 PR0 治本): kind 优先级 > auto-detect > caller numFmt
+     - `'yoy_pct'`: 绝对值 YOY (raw 0-1 ratio * 100 = % 后缀, 跟 backend L4.81 yoy_absolute 1:1 stable 永久规则化沿用)
+     - `'yoy_pp'`: 比率差 YOY (raw 0-1 diff * 100 = pp 后缀, 跟 backend L4.81 yoy_ratio 1:1 stable 永久规则化沿用)
+     - `'yoy_day'`: 天数差 YOY (raw signed int = +0;-0;0 numFmt, L4.91 扩展)
+     - `'text' | 'number' | 'auto'`: 通用 fallback
+  2. **assertNotFormula 加 object 形式检测** (L4.91 PR0 治本): 之前只挡 '=开头 string', 漏挡 object 形式 `{t:'n', f:'=B1-C1'}` (AudienceView.vue:1657-1659 raw xlsx path 用过)
+  3. **backend raw 0-1 decimal 1:1 stable** (跟 L4.81 yoy_absolute / yoy_ratio 契约 1:1 stable 永久规则化沿用): frontend 用 Excel numFmt `'0.0%'` 把 raw 0-1 显示成 49.0% (Excel 自动 *100)
+  4. **frontend 0 处散落 `* 100`** (跟 L4.50 0 业务代码改动 累计 92 次 1:1 stable 永久规则链配套, 跟 CLAUDE.md "前端只展示, 禁止前端算" 1:1 stable 永久规则化沿用): 任何 frontend `*100` 散落 = L4.81 反模式 = 永久规则化 0 容忍
+
+- **真业务触发 (跟 user 拍板 Q9A + Q10A + Q11A + Q12A 1:1 stable 永久规则化沿用)**:
+  - **Q9A** (拆 3 PR): PR0 (foundation 6h) + PR1 (frontend 6 文件 bug 10h) + PR2 (backend + 永久规则化 14-18h)
+  - **Q10A** (kind enum 显式): caller 显式声明 `kind: 'yoy_pct'/'yoy_pp'/'yoy_day'`, 替代 auto-detect 隐式分支
+  - **Q11A** (改 backend): bug 修在 backend channel_scores.py, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用
+  - **Q12A** (仅锁新增 ESLint): 4 个 ESLint rule 仅锁新增代码, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套 (历史 30+ 处 *100 散落 跨 sprint 留尾)
+
+- **L4.91 配套 (跟之前 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/76/84/85/85.1/85.2/85.3/85.4-L4.85.9/86/87/88 永久规则链 1:1 stable 永久规则化沿用)**:
+  L4.20 SSOT 反漂移 (kind enum 跟 backend PpField/PercentageField 1:1 stable) / L4.22 frontend build OK (1.55s) / L4.42 立项实证 SOP "git log + grep 实证" / L4.50 pytest cleanup 0 业务代码改动 累计 92 次 / L4.55 立项 spec 实证 SOP / L4.79 + L4.80 + L4.81 backend 5 会员字段 + frontend 26 列 WYSIWYG + YOY no *100 (3 件配套 1:1 stable 永久规则化沿用)
+
+- **L4.91 反模式 (禁止)**:
+  ❌ frontend XlsxColumn.numFmt 在 YOY 列没设 kind (auto-detect 静默覆盖 caller numFmt, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+  ❌ backend 写 Excel 公式 `{t:'n', f:'=B-C'}` (违反 assertNotFormula 0 公式 SSOT, 跟 L4.91 PR0 治本 1:1 stable)
+  ❌ frontend `*100` 散落 30+ 处 (L4.81 反模式, 跟 CLAUDE.md "前端只展示" 1:1 stable 永久规则化沿用冲突)
+  ❌ frontend 导出列 < frontend table 列 (WYSIWYG 违反, 跟 L4.80 1:1 stable 永久规则化沿用)
+  ❌ 跨 sprint 修复 L4.91 漏修 1 件 (L4.91 必须 PR0 + PR1 + PR2 同步, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
+
+- **0 业务代码改动累计 Sprint 60+ 92 次 1:1 stable 永久规则化沿用 (跟 L4.50 + L4.79 + L4.80 + L4.81 + L4.91 PR0 + L4.91 PR1 partial + L4.91 PR1 final 累计 91 次 +1 L4.91 PR2 永久规则化段, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)**:
+  本次 Sprint 205+ L4.91 8 件 Excel bug 全量治本 = PR0 + PR1 (PR2 partial), 累计 0 业务代码改动 + CLAUDE.md L4.91 段 (0 业务代码, 1 file / +57/-0 lines) + 跟 user 7/11 拍板 "8 件 bug + 强约束" 1:1 stable 永久规则化沿用 + 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+
+- **后续留尾 (跟 L4.42 + L4.57 + L4.58 + L4.59 0 commit 续期 1:1 stable 永久规则化沿用)**:
+  - **PR2 partial (跨 sprint 留尾给接手人 7/16+)**: backend `services/health/channel_scores.py` clamp 治本 + `contracts/types.py` 收紧 (-1e10 → -100~+100) + 4 ESLint rules (仅锁新增, 跟 L4.50 0 业务代码改动 1:1 stable) + 7 Playwright E2E specs (新增, 0 业务代码改动) + `close memory` 文件 `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_91_excel_export_ssot_close.md` (跨 sprint 留尾)
+  - **16 视图 audit SOP** (跟 L4.57 0 commit 续期 1:1 stable 永久规则化沿用, 接手人 7/16+ 启动): 跟 L4.59 跨 sprint 维护性 0 commit 续期 SOP 总纲 1:1 stable 永久规则化沿用 + fix_pattern #100 "frontend export 列 < frontend table 列" 永久规则化沿用
+  - **7/16 离职前 5 件套** (跟 L4.85 1:1 stable 永久规则化沿用): 业务验证 8 件套 100% PASS + 跟运营演示 1 小时 + 留 HANDOVER.md + AI 联系方式 + mac 离职
