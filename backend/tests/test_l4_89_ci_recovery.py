@@ -20,7 +20,7 @@ Sprint 205+ L4.89 CI 爆红 pytest collection race condition 治本 regression t
 
 from __future__ import annotations
 
-import pytest
+import os
 
 
 def test_conftest_py_loads_testuser_credential(monkeypatch):
@@ -33,7 +33,6 @@ def test_conftest_py_loads_testuser_credential(monkeypatch):
     验证: 调用 _load_credentials() 后, VALID_CREDENTIALS 含 admin + fqsw + testuser 3 个凭据
     (跟 L4.85.9 .env 读取密码 + fail-fast 1:1 stable 永久规则化沿用).
     """
-    import os
     from backend.routers import auth as auth_module
 
     # Conftest.py autouse fixture 应该已经重置 env + reload VALID_CREDENTIALS
@@ -59,7 +58,6 @@ def test_test_ad_hoc_query_api_login_testuser_succeeds(monkeypatch):
 
     跟 test_ad_hoc_query_api.py:80 真实登录端点 1:1 stable 沿用, 跟 L4.85.9 .env 读取密码 + fail-fast 1:1 stable 永久规则化沿用.
     """
-    import os
 
     from fastapi.testclient import TestClient
 
@@ -89,7 +87,6 @@ def test_test_ai_sandbox_execute_login_testuser_succeeds(monkeypatch):
 
     跟 test_ai_sandbox_execute_sprint198.py:48 真实登录端点 1:1 stable 沿用, 跟 L4.85.9 .env 读取密码 + fail-fast 1:1 stable 永久规则化沿用.
     """
-    import os
 
     from fastapi.testclient import TestClient
 
@@ -116,7 +113,6 @@ def test_test_api_integration_login_testuser_succeeds(monkeypatch):
 
     跟 test_api_integration.py:78 真实登录端点 1:1 stable 沿用, 跟 L4.85.9 .env 读取密码 + fail-fast 1:1 stable 永久规则化沿用.
     """
-    import os
 
     from fastapi.testclient import TestClient
 
