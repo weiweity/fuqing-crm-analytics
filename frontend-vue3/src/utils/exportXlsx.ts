@@ -87,13 +87,19 @@ const BODY_YOY_NEG_STYLE = {
 
 /**
  * Sprint 174 SSOT: 列名后缀白名单 — 命中 = 当 YOY 列处理.
- * 跟 backend ad-hoc SKILL.md ratio convention 命名规范一致:
- * - *_yoy / *_YoY / *_YoYPct / *_YoYPp
+ * 跟 backend ad-hoc SKILL.md ratio convention 命名规范一致 (跟 L4.79 + L4.80 + L4.81 1:1 stable 永久规则链配套):
+ * - *_yoy / *_YoY / *_YoYPct / *_YoYPp  (百分比 YOY)
  * - *_mom / *_MoM
  * - *_ppt / *_Pp  (单位是 pp 不是 %)
+ *
+ * L4.91 扩展 (Q10A): 列 suffix 显式分支 — caller 用 `kind` 显式声明单位语义,
+ * 不再依赖 auto-detect 的 regex 隐式分支 (避免 `_YoYP?p?_?` 这种埋雷 regex).
  */
-const YOY_COLUMN_PATTERN = /_(yoy|mom)(?:pct|pp)?$|_YoYP?p?_?$/i
-const PP_COLUMN_PATTERN = /_(ppt|pp|YoYPp|MoMPp)$/i
+// L4.91: 显式分支命名约定 (跟 backend PpField/PercentageField 1:1 stable 永久规则化沿用)
+// 优先级: kind 显式 > caller numFmt > key/header suffix auto-detect
+const YOY_PCT_PATTERN = /_(yoy|mom)(?:pct)?$|_YoYPct$|_YoY$/i
+const YOY_PP_PATTERN = /_(ppt|pp)$|_yoy_pp$|_YoYPp$/i
+const YOY_DAY_PATTERN = /_(days_yoy|days_mom)$|_yoy_day$/i
 
 export interface XlsxColumn {
   /** 列标题（中文） */
@@ -105,11 +111,15 @@ export interface XlsxColumn {
   /** 数字格式，如 '#,##0' / '0.00%' / '¥#,##0' */
   numFmt?: string
   /**
-   * Sprint 174 SSOT 扩展: 列类型 hint (默认 'auto' 让 SSOT 自动推断)
-   * - 'yoy': 强制识别为 YOY 列 (按 numFmt 正负着色)
-   * - 'auto': 按列名后缀 (默认)
+   * L4.91 SSOT: 列类型 hint (Q10A 显式 enum, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
+   * - 'auto': 按列名后缀 (默认, 跟 Sprint 174 SSOT 兼容)
+   * - 'yoy_pct': YOY percentage (raw 0.25 → 25.00% 显示)
+   * - 'yoy_pp': YOY percentage-point diff (raw 0.05 → +5.00pp 显示)
+   * - 'yoy_day': YOY days diff (raw signed int → +3天 显示, 无 numFmt 百分号)
+   * - 'text': 文本列 (不应用 numFmt, 也不参与 YOY auto-detect)
+   * - 'number': 通用数字列
    */
-  kind?: 'auto' | 'yoy' | 'text' | 'number'
+  kind?: 'auto' | 'yoy_pct' | 'yoy_pp' | 'yoy_day' | 'text' | 'number'
 }
 
 export interface XlsxSheetConfig {
@@ -120,26 +130,46 @@ export interface XlsxSheetConfig {
 }
 
 /**
- * Sprint 174 SSOT: 拒绝写入以 "=" 开头的公式字符串.
- * 整份 XLSX 必须 0 公式 (用户拍板, 跨 sprint stable).
+ * Sprint 174 SSOT: 拒绝写入公式 (string + object 两种形式).
+ * 整份 XLSX 必须 0 公式 (user 7/10 拍板 "WYSIWYG 不要公式", 跨 sprint stable).
+ *
+ * L4.91 PR0 扩展 (Q15): 之前只挡 `=开头的 string`, 漏挡 SheetJS object 形式 `{ t: 'n', f: '=B1-C1' }`
+ * (AudienceView.vue:1657-1659 raw xlsx path 用过). 必须同时检测两种形式.
  */
 function assertNotFormula(value: unknown): void {
   if (typeof value === 'string' && value.startsWith('=')) {
-    throw new Error(`XLSX output forbids formulas, but received: ${value.slice(0, 50)}`)
+    throw new Error(`XLSX output forbids formulas, but received string: ${value.slice(0, 50)}`)
+  }
+  if (typeof value === 'object' && value !== null && 'f' in (value as Record<string, unknown>)) {
+    const formulaField = (value as Record<string, unknown>).f
+    if (typeof formulaField === 'string' && formulaField.startsWith('=')) {
+      throw new Error(`XLSX output forbids formulas, but received object.f: ${formulaField.slice(0, 50)}`)
+    }
   }
 }
 
 /**
- * Sprint 174 SSOT: 列是否识别为 YOY 列.
+ * L4.91 PR0 扩展 (Q10A): 显式 kind 优先级 > auto-detect.
+ * caller 显式声明 'yoy_pct' / 'yoy_pp' / 'yoy_day' / 'text' / 'number' 时, 直接返回.
+ * 否则 fallback 到 Sprint 174 后缀 auto-detect (向后兼容).
  */
-function isYoyColumn(col: XlsxColumn): boolean {
-  if (col.kind === 'yoy') return true
-  if (col.kind === 'text' || col.kind === 'number') return false
-  return YOY_COLUMN_PATTERN.test(col.key) || YOY_COLUMN_PATTERN.test(col.header)
+function getColumnKind(col: XlsxColumn): 'yoy_pct' | 'yoy_pp' | 'yoy_day' | 'text' | 'number' | 'auto' {
+  if (col.kind && col.kind !== 'auto') return col.kind
+  // auto-detect (Sprint 174 兼容, 跟之前 isYoyColumn + isPpColumn 1:1 stable 永久规则化沿用)
+  if (YOY_PP_PATTERN.test(col.key) || YOY_PP_PATTERN.test(col.header)) return 'yoy_pp'
+  if (YOY_DAY_PATTERN.test(col.key) || YOY_DAY_PATTERN.test(col.header)) return 'yoy_day'
+  if (YOY_PCT_PATTERN.test(col.key) || YOY_PCT_PATTERN.test(col.header)) return 'yoy_pct'
+  return 'text'
 }
 
-function isPpColumn(col: XlsxColumn): boolean {
-  return PP_COLUMN_PATTERN.test(col.key) || PP_COLUMN_PATTERN.test(col.header)
+/**
+ * L4.91 PR0 重构 (替代 Sprint 174 isYoyColumn + isPpColumn):
+ * 用 kind 显式 enum 替代两个独立函数, 跟 caller 显式声明 1:1 stable 永久规则化沿用.
+ * (isPpColumn 已合并到 getColumnKind → 'yoy_pp' 显式分支, 不再需要单独函数)
+ */
+function isYoyColumn(col: XlsxColumn): boolean {
+  const k = getColumnKind(col)
+  return k === 'yoy_pct' || k === 'yoy_pp' || k === 'yoy_day'
 }
 
 /**
@@ -204,22 +234,33 @@ export async function exportToXlsx(filename: string, sheets: XlsxSheetConfig[]):
     }
     ws['!cells'] = cells
 
-    // ── 数字格式 (numFmt) 单独设 (Sprint 174 SSOT 同时支持 YOY 字符串前缀) ──
+    // ── 数字格式 (numFmt) 单独设 (Sprint 174 SSOT + L4.91 PR0 caller 优先级) ──
+    // L4.91 PR0 修复 (Q10A + B16): caller 显式 `kind` 优先级 > auto-detect > caller `numFmt` fallback.
+    // 优先级链: kind 显式 enum > key/header suffix auto-detect > caller numFmt (向后兼容)
     for (let r = 1; r < aoa.length; r++) {
       for (let c = 0; c < columns.length; c++) {
         const col = columns[c]
         const cell = XLSX.utils.encode_cell({ r, c })
-        const isYoy = isYoyColumn(col)
-        const isPp = isPpColumn(col)
+        const kind = getColumnKind(col)
         const isNumeric = typeof aoa[r][c] === 'number'
 
-        if (isYoy && isNumeric) {
-          // SSOT: YOY 数值用 numFmt 把 "+/-X.XX" 格式化; 但因 already-set s.font.color 着色,
-          // 这里只设 number format, numFmt 让 Excel 显示 "0.00%;-0.00%"
-          const fmt = isPp ? '0.00%;-0.00%;0.00%' : '+0.00%;-0.00%;0.00%'
+        if (isNumeric && (kind === 'yoy_pct' || kind === 'yoy_pp' || kind === 'yoy_day')) {
+          // L4.91 PR0: caller 显式 kind 决定的 numFmt 优先级最高 (跟 backend L4.81 no *100 契约 1:1 stable 永久规则化沿用)
+          // yoy_pct: raw 0.25 → 25.00% 显示 (Excel *100, 不需要 caller numFmt)
+          // yoy_pp: raw 0.05 → +5.00pp 显示 (Excel *100, pp 后缀)
+          // yoy_day: raw 3 → +3天 显示 (无 %, raw integer 天数差)
+          let fmt: string
+          if (kind === 'yoy_pp') {
+            fmt = '0.00%;-0.00%;0.00%'  // pp 差 (跟 L4.81 后端契约 1:1 stable, raw *100)
+          } else if (kind === 'yoy_day') {
+            fmt = '+0;-0;0'  // 天数差 (signed integer, L4.91 扩展)
+          } else {
+            fmt = '+0.00%;-0.00%;0.00%'  // yoy_pct percentage (signed percentage)
+          }
           if (!ws[cell]) ws[cell] = {}
           ws[cell].z = fmt
         } else if (isNumeric && col.numFmt) {
+          // 非 YOY 数字列: caller numFmt 优先 (L4.91 PR0 caller 优先级)
           if (!ws[cell]) ws[cell] = {}
           ws[cell].z = col.numFmt
         }
