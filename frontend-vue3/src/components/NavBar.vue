@@ -95,6 +95,13 @@ onBeforeUnmount(() => {
   }
   // L4.87 治本: 清理 visibilitychange 监听器
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  // L4.85.4 治本: 清理 idle 自动下线监听器
+  idleDisposed = true
+  if (idleTimer !== null) {
+    clearTimeout(idleTimer)
+    idleTimer = null
+  }
+  unregisterIdleListeners()
 })
 
 // === L4.85 申请+同意 模式: 申请通知 (跟后端 L4.85 1:1 stable 永久规则化沿用) ===
@@ -149,6 +156,22 @@ watch(pendingRequests, (newVal) => {
   }
 })
 
+// L4.85.4 治本: 监听 isAuthenticated 变化 (handleApprove 触发 A 退出 / 5min idle 自动 logout), 清理 idle listener
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    idleDisposed = false
+    registerIdleListeners()
+    resetIdleTimer()
+  } else {
+    idleDisposed = true
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+    unregisterIdleListeners()
+  }
+})
+
 async function handleApprove(req: PendingLoginRequest) {
   try {
     // 后端批准后旧 token 已失效；本地必须同步清 Pinia + sessionStorage。
@@ -172,6 +195,46 @@ async function handleReject(req: PendingLoginRequest) {
   }
 }
 
+// === L4.85.4 空闲自动下线 (跟 user 7/11 拍板 "2 分钟还是 5 分钟会自动下线" 1:1 stable 永久规则化沿用) ===
+// 跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用, 跟 L4.85 + L4.85.1 + L4.85.3 1:1 stable 永久规则链配套.
+// 监听用户活动 (pointer/keyboard/scroll/touch), 5 分钟无操作触发 logout + redirect /login,
+// 第二人能直接 login (不再卡 409 申请登录).
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000  // 5 分钟, 跟 L4.75 v2 lock_timeout_seconds 1:1 stable
+let idleTimer: number | null = null
+let idleDisposed = false
+
+function resetIdleTimer() {
+  if (idleTimer !== null) clearTimeout(idleTimer)
+  idleTimer = window.setTimeout(() => {
+    handleIdleTimeout()
+  }, IDLE_TIMEOUT_MS)
+}
+
+async function handleIdleTimeout() {
+  if (idleDisposed || !authStore.isAuthenticated) return
+  console.info('[idle] 5 分钟无操作, 自动登出')
+  try {
+    await authStore.logout()
+  } finally {
+    idleDisposed = true
+    await router.replace('/login')
+  }
+}
+
+const IDLE_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart'] as const
+
+function registerIdleListeners() {
+  for (const ev of IDLE_EVENTS) {
+    document.addEventListener(ev, resetIdleTimer, { passive: true })
+  }
+}
+
+function unregisterIdleListeners() {
+  for (const ev of IDLE_EVENTS) {
+    document.removeEventListener(ev, resetIdleTimer)
+  }
+}
+
 onMounted(() => {
   pollingDisposed = false
   // L4.87 治本: 注册 visibilitychange 监听器 (tab 切回前台时立即触发 polling)
@@ -181,6 +244,12 @@ onMounted(() => {
   // L4.87 治本: 无 pending → 10s (跟用户实际期望匹配, A 端最多等 10s 看到)
   if (authStore.isAuthenticated) {
     pollPendingRequests()  // 首次立即拉, scheduleNextPoll 决定后续频率
+  }
+  // L4.85.4: 注册空闲自动下线监听器 (跟后端 logout 踢人 + polling sliding=False 1:1 stable 永久规则化沿用)
+  if (authStore.isAuthenticated) {
+    idleDisposed = false
+    registerIdleListeners()
+    resetIdleTimer()
   }
 })
 </script>
