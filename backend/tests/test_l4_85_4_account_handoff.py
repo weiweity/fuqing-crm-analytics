@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers import auth as auth_module
 from backend.routers import login_request as login_request_module
+from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE
 
 
 client = TestClient(app)
@@ -146,6 +147,7 @@ def test_same_ip_retry_rotates_claim_and_refreshes_authoritative_ttl():
     ).status_code == 200
 
 
+@pytest.mark.skipif(not _PROD_DUCKDB_AVAILABLE, reason="production DuckDB 不可用 (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)")
 def test_concurrent_direct_logins_mint_only_one_active_session(monkeypatch):
     """The single-session decision must stay atomic across FastAPI workers."""
     rendezvous = threading.Barrier(2)
