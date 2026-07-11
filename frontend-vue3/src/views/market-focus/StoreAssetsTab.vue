@@ -107,28 +107,48 @@ function rowBg(idx: number): string {
   return idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'
 }
 
-// ── Sprint 175 Q3 XLSX 导出 ──
+// ── Sprint 175 Q3 XLSX 导出 (L4.91 PR1 Bug #7 治本: 加 2 行对比 + 2 列对比) ──
 const storeAssetsXlsxColumns = computed<XlsxColumn[]>(() => {
-  const base: XlsxColumn[] = [{ header: '时间', key: 'week_label', width: 14 }]
-  for (const col of storeColumns) {
-    base.push({
+  const base: XlsxColumn[] = [
+    { header: '时间', key: 'week_label', kind: 'text', width: 14 },
+    ...storeColumns.map((col) => ({
       header: col.label,
       key: col.key,
+      kind: 'number' as const,
       width: 12,
       numFmt: '#,##0',
-    })
-  }
+    })),
+    // L4.91 PR1 Bug #7: 加 2 列对比 (本周对比上周 / 本周对比去年同期)
+    // 跟 frontend 表格 line 196-223 1:1 stable 永久规则化沿用, backend 返 total_change/total_yoy 1:1 stable
+    { header: '本周对比上周\n(资产总量)', key: 'total_change', kind: 'number', width: 16, numFmt: '+#,##0;-#,##0;0' },
+    { header: '本周对比去年同期\n(资产总量)', key: 'total_yoy', kind: 'number', width: 16, numFmt: '+#,##0;-#,##0;0' },
+  ]
   return base
 })
-const storeAssetsXlsxData = computed(() =>
-  visibleWeeks.value.map((w: any) => {
+const storeAssetsXlsxData = computed(() => {
+  const data: Record<string, any>[] = visibleWeeks.value.map((w: any) => {
     const row: Record<string, any> = { week_label: w.week_label }
     for (const col of storeColumns) {
       row[col.key] = w[col.key]
     }
     return row
-  }),
-)
+  })
+  // L4.91 PR1 Bug #7: 加 2 行对比 (本周对比上周 / 本周对比去年同期)
+  // 跟 frontend 表格 line 196-216 1:1 stable 永久规则化沿用
+  const latestWeek = visibleWeeks.value[visibleWeeks.value.length - 1] as any
+  if (latestWeek) {
+    const wowRow: Record<string, any> = { week_label: '本周对比上周' }
+    const yoyRow: Record<string, any> = { week_label: '本周对比去年同期' }
+    for (const col of storeColumns) {
+      wowRow[col.key] = null
+      yoyRow[col.key] = null
+    }
+    wowRow.total_change = latestWeek.total_change ?? null
+    yoyRow.total_yoy = latestWeek.total_yoy ?? null
+    data.push(wowRow, yoyRow)
+  }
+  return data
+})
 </script>
 
 <template>
