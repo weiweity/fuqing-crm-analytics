@@ -107,6 +107,11 @@ def _add_compare_metrics(
     if compare is None:
         return
 
+    # L4.91 design-review (2026-07-12): sample_users + nonfull_repurchase_users YOY/MOM 补齐
+    current[f'sample_users_{prefix}_pct'] = yoy_absolute(
+        current.get('sample_users'),
+        compare.get('sample_users'),
+    )
     current[f'repurchase_users_{prefix}_pct'] = yoy_absolute(
         current.get('repurchase_users'),
         compare.get('repurchase_users'),
@@ -142,6 +147,10 @@ def _add_compare_metrics(
     current[f'nonfull_repurchase_gsv_{prefix}_pct'] = yoy_absolute(
         current.get('nonfull_repurchase_gsv'),
         compare.get('nonfull_repurchase_gsv'),
+    )
+    current[f'nonfull_repurchase_users_{prefix}_pct'] = yoy_absolute(
+        current.get('nonfull_repurchase_users'),
+        compare.get('nonfull_repurchase_users'),
     )
 
 
