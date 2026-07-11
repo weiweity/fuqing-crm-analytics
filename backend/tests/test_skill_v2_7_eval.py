@@ -227,11 +227,11 @@ class TestL4_35SymlinkVerify:
         assert "L4.35 skill symlink" not in capsys.readouterr().out
 
 
-class TestSkillV27LLMEval:
-    """SKILL.md v2.7 guidance and ask routing must hit two-year-overview."""
+class TestSkillV28LLMEval:
+    """SKILL.md v2.8 guidance and ask routing must hit two-year-overview (跟 L4.x 78 stable + Sprint 205+ 17 件 L4.x 永久规则链 1:1 stable 永久规则化沿用)."""
 
-    def test_skill_title_bumped_to_v27(self) -> None:
-        assert "WorkBuddy MCP 版, v2.7" in _skill_text()
+    def test_skill_title_bumped_to_v28(self) -> None:
+        assert "WorkBuddy MCP 版, v2.8" in _skill_text()
 
     def test_skill_decision_tree_mentions_order_ids(self) -> None:
         text = _skill_text()
