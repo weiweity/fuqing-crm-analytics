@@ -153,6 +153,10 @@ function rowBg(isChange: boolean, isYoy: boolean, idx: number): string {
 }
 
 // ── Sprint 175 Q3 XLSX 导出 ──
+// L4.91.1 (2026-07-11) 治本 ProductAssetsTab 同模式 (跟 L4.91.1 formatValue 1:1 stable 永久规则化沿用)
+// 跟 user 拍板 "穷尽的调查, 排查下原因" 1:1 stable 永久规则化沿用, 跟 L4.42 + L4.50 + L4.55 + L4.91 1:1 stable 永久规则链配套
+// backend `total_change` / `total_yoy` 等是 raw 整数差 (例如 +500 / +2000 人), 不是 yoy ratio
+// 对比行用 signed numFmt `+#,##0;-#,##0;0` 显示带 +/- 符号, normal row 用 `#,##0` 显示绝对值
 const productAssetsXlsxColumns = computed<XlsxColumn[]>(() => {
   const cols: XlsxColumn[] = [{ header: '时间', key: 'week_label', width: 16 }]
   const products = weeklyData.value?.products ?? []
@@ -163,6 +167,13 @@ const productAssetsXlsxColumns = computed<XlsxColumn[]>(() => {
         key: `${product.name}_${col.key}`,
         width: 14,
         numFmt: '#,##0',
+        // L4.91.1 治本: 对比行 (isChangeRow/isYoyRow) 用 signed numFmt 显示带 +/- 符号
+        formatValue: (val, row) => {
+          if (row?.isChangeRow || row?.isYoyRow) {
+            return { val, numFmt: '+#,##0;-#,##0;0' }
+          }
+          return val
+        },
       })
     }
   }
