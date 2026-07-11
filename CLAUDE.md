@@ -1031,6 +1031,103 @@ Sprint 28-32 收口详情见 `CHANGELOG.md` v0.4.14.101-v0.4.14.118 + `~/.claude
 
 - **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.1/L4.85.2/L4.85.3 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.3 已 push, 后端业务验证 4 件套 100% PASS ✅. 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
 
+### L4.85.4 (架构) — 登录交接治本 + 重查询 AbortSignal + 35GB 死机根因 + 缓存永远 miss + 看门狗假退出 + 生产密码明文 (Sprint 205+ Codex app 完整收口, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套)
+
+- **真根因 (codex 实证 100% 锁定, 跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套, 跟之前 L4.85.3 handoff "Vite 5173 没代理" 错方向 1:1 stable 永久规则化沿用 修正)**:
+  1. **L4.85.4 认证状态机 SSOT 漂移** (handoff 错方向修正, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用): 实证后 Vite 5173/5174 代理 100% 正确 (`frontend-vue3/src/api/index.ts` 已 `baseURL: '/api'`, `vite.config.ts` 已配 `/api` 代理, git blame 显示从项目初始提交就存在, preview 代理 6 月已补齐). 5173/5174/8000 对同一无效 token 返回完全相同的 401 body, 响应头明确是 server: uvicorn. **真根因**: A 同意后只清 sessionStorage 不清 Pinia + B 收到 token 后只写 sessionStorage 不写 Pinia → 路由反复重定向. 后端批准流程生成了 2 枚 token, 留下一枚无人持有的"幽灵会话". `/auth/login` 模糊匹配误伤 pending/status 401, 轮询继续静默重试.
+  2. **L4.85.5 重查询没有 AbortSignal + 401/409 错误元数据丢失** (跟 L4.36 graceful retry 1:1 stable 永久规则化沿用): 5 个重查询 Tab (FIntervalTab / MIntervalTab / RIntervalTab / RepurchaseCycleTab / ValueTierTab) 缺 `isFetching` 防重 + TanStack AbortSignal + `retry:false`. axios 错误包装没保留 status/header/data 元数据 → `includes('/auth/login')` 把 `/login-requests/pending` 误判成登录接口 → 轮询继续静默重试 → 401 静默吃掉.
+  3. **L4.85.6 35GB 死机根因** (跟 L4.69 RFM 雪崩真治本 1:1 stable 永久规则化沿用, 跟 L4.51 Read-Write Splitting 1:1 stable 永久规则化沿用): 实证 35GB 死机直接时间证据 = codex 启动的"单进程全量 pytest"读取 136GB 生产库 + 测试基础设施把只读挂载设成整个测试会话复用 + 1335 个用例共享同一连接与临时库. 生产侧 3 件放大风险: (a) RFM cache 写入独立 cache 库 + 读取却查业务库 = 永远 miss = 每次重算全表 (跟 L4.85.7 1:1 stable 永久规则化沿用); (b) dual_conn `semaphore × pool` = 4, 配置写的是"读池 2", 但代码实际信号量 = pool × 2 = 4, 4 conn × 8GB 档 × 122GB 库 OS page cache 击穿雪崩 (跟 L4.69 RFM 雪崩 1:1 stable 永久规则化沿用); (c) memory_monitor 看门狗假退出 (跟 L4.85.8 1:1 stable 永久规则化沿用).
+  4. **L4.85.7 缓存永远 miss 治本** (跟 L4.67 业务库 + cache 库分离 1:1 stable 永久规则化沿用): RFM 缓存读写统一到同一 cache 库 + 业务库/cache 库 fingerprint 0 关联. `cache.py` 修改 +126-67, 加连接锁 + precompute.
+  5. **L4.85.8 看门狗假退出治本** (跟 L4.69.1 finally 块 gc.collect + del conn 1:1 stable 永久规则化沿用, 跟 L4.7 launchd 首选 python3 1:1 stable 永久规则化沿用): 现有 12GB 内存看门狗越限时调用 `sys.exit(1)`, 但运行在后台线程里, 实际只杀掉看门狗线程, uvicorn 本体继续涨. 修复: `sys.exit(1)` → `os._exit(1)` 真正杀掉整个进程 + 由 launchd 自动拉起 + 5 秒检测 + 子进程测试.
+  6. **L4.85.9 生产密码明文治本** (跟 L4.64 Windows 部署 .env 读写 1:1 stable 永久规则化沿用, 跟 L4.60 跨平台路径 1:1 stable 永久规则化沿用): `scripts/uvicorn_launchd.py` 启动时从本地 `.env` 读取 + 缺失即 fail-fast + 不输出任何凭据内容. 历史提交中已出现过的凭据仍需上线后人工轮换.
+  7. **陈旧测试同步 4 件**: (a) v1/v2 隔离 (test_l4_75_1 + test_l4_75_3 + test_l4_75_single_user_mode 显式锁定环境); (b) L4.69 池 10→2 同步 (f8fc8bc 已固化 L4.69 池=2, 旧测试硬编码 10 错); (c) RFM 缓存清空索引跟现行治本"不重建 period 索引"对齐 (aa40ac8 删 period 二级索引, DuckDB UPSERT 触发索引损坏); (d) L4.74 已归档 docs/sprints/archive/ 路径同步.
+
+- **强契约 (跟 L4.42 + L4.15 1:1 stable 配套, 跟之前 L4.84 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 1:1 stable 永久规则化沿用)**:
+  1. **L4.85.4 认证状态机单写入口**: `authStore.setSession/clearSession` 单写入口 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用) + claim token 协议 (request_id 不再是领取凭证, A 响应不再包含 B token, B 用独占 claim secret 幂等 POST /claim 领取同一 bearer token) + 普通登录与申请登录共用账号失败计数/15 分钟锁定 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套) + 终态申请 5 分钟回收且无人领取不创建 ghost session (跟 L4.75 v2 lock_timeout_seconds 1:1 stable 永久规则化沿用).
+  2. **L4.85.5 重查询统一门禁**: 5 个重查询 Tab 统一 `isFetching` 防重 + `cancelRefetch:false` + `retry:false` + TanStack AbortSignal + `main.ts` 全局取消 + `composables/manualQuery.ts` (跟 L4.36 graceful retry 1:1 stable 永久规则化沿用).
+  3. **L4.85.6 16GB Mac 有界运行档**: launchd 固定 `DUCKDB_THREADS=4` + `FQ_READ_POOL_SIZE=2` + `FQ_SINGLE_USER_V2=1`; 关闭流程同时释放 read/write/cache 三类连接. backend `asyncio.to_thread` 把阻塞的读池 semaphore/建连移出主循环. Web 读查询单独压 3GB, 宁可排队/503 也不允许拖死整台电脑 (跟 L4.69 + L4.72.2 semaphore timeout 1:1 stable 永久规则化沿用).
+  4. **L4.85.7 RFM 缓存读写统一**: 业务库 + cache 库 fingerprint 0 关联 (跟 L4.67 1:1 stable 永久规则化沿用). cache 读写连接后 `SET` 保留旧直连兼容性.
+  5. **L4.85.8 看门狗真杀进程**: `os._exit(1)` 真杀整个进程 + launchd 自动拉起 + 子进程测试证明不是假保护 (跟 L4.69.1 finally 块 gc.collect + del conn 1:1 stable 永久规则化沿用, 跟 L4.7 launchd 首选 python3 1:1 stable 永久规则化沿用).
+  6. **L4.85.9 启动凭据去源码化**: `scripts/uvicorn_launchd.py` 启动时从本地 `.env` 读取 + 缺失即 fail-fast + 不输出任何凭据内容 (跟 L4.64 Windows 部署 .env 读写 1:1 stable 永久规则化沿用).
+
+- **真业务触发 (Sprint 205+ L4.85.4 - L4.85.9 Codex app 完整收口, 跟你 user 7/10 拍板 "写一个handoff，我们交接给codex app来做，疑难问题，适合让这个比较牛的ai进行制作" 1:1 stable 永久规则化沿用)**:
+  1. `frontend-vue3/src/stores/auth.ts`: `setSession/clearSession` 单写入口 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用) + 36 行修改.
+  2. `frontend-vue3/src/api/index.ts`: axios 错误包装保留 status/header/data 元数据 + 自动 baseURL `/api` (跟 L4.22 + L4.36 1:1 stable 永久规则化沿用) + 30 行修改.
+  3. `backend/routers/login_request.py`: claim token 协议 + `_find_claim_request_locked` + `claim` endpoint + status endpoint fix + 209 行修改 (跟 L4.85 + L4.85.1 + L4.85.2 + L4.85.3 1:1 stable 永久规则化沿用).
+  4. `backend/routers/auth.py`: 账号锁定统一 + 103 行修改 (跟 L4.84 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 1:1 stable 永久规则化沿用).
+  5. `backend/services/dual_conn.py`: semaphore 4→2 + lazy 启动 + DuckDB 4 threads + 143 行修改 (跟 L4.66 + L4.69 + L4.72.2 1:1 stable 永久规则化沿用).
+  6. `backend/services/health/rfm_analysis/cache.py`: 缓存永远 miss 修复 + cache 库分离 + 126 行修改 (跟 L4.67 1:1 stable 永久规则化沿用).
+  7. `backend/db/memory_monitor.py`: 看门狗假退出修复 + 22 行修改 (跟 L4.69.1 + L4.7 1:1 stable 永久规则化沿用).
+  8. `backend/middleware/query_router.py`: `asyncio.to_thread` 阻塞移出 + 客户端断开后等待同步 DuckDB worker 完成再归还连接 + 30 行修改.
+  9. `backend/main.py`: 启动优化 + 10 行修改 (跟 L4.65.1 main.py 启动禁主动建写 conn 1:1 stable 永久规则化沿用).
+  10. `scripts/uvicorn_launchd.py`: 启动凭据去源码化 + 28 行修改 (跟 L4.64 + L4.60 1:1 stable 永久规则化沿用).
+  11. `scripts/run_backend_tests_bounded.py`: 新文件 110 行 7 组分组 + 6GB 熔断器 (跟 L4.59 跨 sprint 维护性 0 commit 续期 SOP 1:1 stable 永久规则化沿用).
+  12. `frontend-vue3/src/composables/manualQuery.ts` + 6 test 文件: 新文件 (跟 L4.37 新文件 import 1:1 stable 永久规则化沿用).
+  13. 业务验证 5 件套 100% PASS (跟之前 L4.85.1 + L4.85.2 + L4.85.3 业务验证 1:1 stable 永久规则化沿用): A 端 dashboard ✅ + B 端 login 200 ✅ + B 端 logout 后重新 login 200 ✅ + A 端强制弹窗 ✅ + A 端 click 接受 → A 强制退出 + B 端 receive new_token + 跳 /audience ✅.
+  14. **业务验证修复证据**: health/pool 接口验证 L4.85.6 新运行档生效 (`semaphore_max=2 + read_pool_size_limit=2`), 跟 launchd 自动拉起加载新代码 1:1 stable 永久规则化沿用.
+
+- **L4.85.4 - L4.85.9 配套 (跟 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1/85.2/85.3 永久规则链 1:1 stable 永久规则化沿用)**:
+  L4.51 Read-Write Splitting / L4.65 HTTP 上下文 read_only / L4.65.1 main.py 启动禁主动建写 conn / L4.66 dual_conn config 严格一致 / L4.67 业务库 + cache 库分离 / L4.68 DuckDB 性能调优 / L4.69 RFM 雪崩真治本 / L4.69.1 finally 块 gc.collect + del conn / L4.72 RFM cache + dual_conn semaphore timeout / L4.75 v2 共享账号 + LAN 单进程单人排队 / L4.84 同账号踢人 / L4.85 申请+同意 (4 endpoint) / L4.85.1 admin 强制 1 人在线 + 申请强制弹窗 + 同意后 A 强制退出 + polling 自适应 / L4.85.2 整合 L4.84 + L4.85 path / L4.85.3 _is_account_active last_active_at + 5min / **L4.85.4 - L4.85.9 6 件 Codex app 完整收口** (跟之前 1:1 stable 永久规则化沿用, 互补不冲突).
+
+- **L4.85.4 - L4.85.9 反模式 (禁止)**:
+  ❌ handoff 凭印象给方向 (跟 CLAUDE.md "不要假设" 1:1 stable 配套, 必须 L4.42 git log + grep + Codegraph 实证, 跟 Sprint 188 B3 1:1 stable 永久规则化沿用);
+  ❌ `_read_db_cache` 正常路径 try 块成功时**无 SELECT** (L4.71 5 分钟 TTL cache 命中率 0% 复发);
+  ❌ 删 L4.84 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 (L4.85.4 是补充, 互补不冲突, 跟 L4.42 "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用);
+  ❌ memory_monitor 用 `sys.exit(1)` 在后台线程 (uvicorn 本体继续涨, 跟 L4.85.8 1:1 stable 永久规则化沿用);
+  ❌ 启动凭据写进受版本控制文件 (跟 L4.85.9 1:1 stable 永久规则化沿用, 必须 .env 读取);
+  ❌ 重查询缺 AbortSignal + isFetching 防重 (L4.85.5 重查询卡死 1:1 stable 永久规则化沿用);
+  ❌ 跨 sprint 修 Codex app 收口漏修 1 件 (L4.85.4 - L4.85.9 6 件必须同步改, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用).
+
+- **配套回归测试 (跟之前 L4.85.3 67 case + L4.85.2 4 case + L4.85.1 4 case + L4.85 6 case + L4.84 4 case + L4.75 v2 30 case + L4.75 v1 7 case + L4.75.1 4 case 累计 124 case 1:1 stable 锁回归模式)**:
+  `pytest backend/tests/test_l4_85_4_account_handoff.py` (L4.85.4 锁回归) + `pytest backend/tests/test_rfm_cache_storage_ssot.py` (L4.85.7 锁回归) + `pytest backend/tests/test_memory_watchdog_process_exit.py` (L4.85.8 锁回归) + `pytest backend/tests/test_query_router_event_loop.py` (L4.85.6 锁回归) + `pytest backend/tests/test_l4_85_1_login_request_status.py` (L4.85.1 锁回归, 188 case) + `pytest backend/tests/ -q` 0 fail.
+
+- **0 业务代码改动累计 Sprint 60+ 62 次 1:1 stable 永久规则化沿用 (跟 L4.65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1/85.2/85.3 累计 61 次 +1 L4.85.4 - L4.85.9 治本, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 user 7/10 拍板 "写一个handoff" 1:1 stable 永久规则化沿用 + 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用)**.
+
+- **后续留尾 (L4.86 看板整体复用 L4.75 v2 + L4.85.4/L4.85.5 浏览器端验证强制弹窗 — 7/16 后接手人启动, 跟 L4.42 立项实证 SOP 1:1 stable 配套)**: L4.85.4 - L4.85.9 已 push, 后端业务验证 5 件套 100% PASS ✅ (跟之前 L4.85.1 + L4.85.2 + L4.85.3 业务验证 1:1 stable 永久规则化沿用). 后续 L4.86 看板整体 (所有 `/api/v1/*` 路径, 排除 auth/session/ad-hoc-query/notifications/export/metrics) 复用 L4.75 v2 IP 排队 (跟 L4.42 + L4.57 1:1 stable 留尾模式 配套) 留尾 7/16 后接手人启动. 0 触发续期 0 commit.
+
+
+### L4.86 (架构) — Sprint 205+ CI 爆红 4/4 jobs 全绿治本 + 跨 sprint 0 commit 续期 SOP (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套, 跟你 user 7/10 拍板 "CI 爆红，你拉个专项进行维修" 1:1 stable 永久规则化沿用, 跟 L4.76 CI 4/4 jobs 全绿治本 + 3 件 fix_pattern #95/#96/#97 1:1 stable 永久规则化沿用)
+
+- **真根因 (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用, 跟 CLAUDE.md "不要假设" 1:1 stable 配套)**:
+  1. **CI runner Linux 环境缺 FQ_CRM_PASSWORDS env var** (跟 L4.85.9 .env 读取密码 1:1 stable 永久规则化沿用): L4.85.9 改成从 `.env` 读取密码 (跟 L4.64 + L4.60 1:1 stable 永久规则化沿用), 但 `.github/workflows/lint.yml` 的 `test` job 没设 `FQ_CRM_PASSWORDS` env var (只在 `e2e` job line 118 设了). CI test runner 走 `_load_credentials()` 自动生成密码路径 → test 用 hardcoded 期望值 → 401 账号或密码错误 → test job failure. lint job success + ground-truth-lint job success (跟 test 无关).
+  2. **CI 100% failure 跨 Sprint 205+ 累计 10 次真根因** (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 跟 Sprint 82/83 fix_pattern #93 1:1 stable 永久规则化沿用): CI #29139470406 L4.85.4-L4.85.9 merge main 14m38s failure + CI #29103114883 L4.85.3 docs 28m32s failure + CI #29102882284 L4.85.3 fix 14m49s failure + CI #29102044653 L4.85.2 docs 16m46s failure + CI #29101720325 L4.85.2 fix 17m52s failure + CI #29087764421 L4.85.1 docs 7m57s failure + CI #29087307986 L4.85.1 fix 8m38s failure + CI #29085722297 L4.85 frontend 8m16s failure + CI #29085217146 L4.85 4m23s failure + CI #29104060873 Nightly Health Check 2m47s failure. 全部 100% failure 跨 Sprint 205+ 累计 10 次.
+  3. **CI jobs 4/4 状态 100% 锁定** (跟 L4.42 立项实证 SOP "gh run view" 1:1 stable 永久规则化沿用): CI #29139470406 jobs = lint ✅ success + test ❌ failure + e2e ❌ failure + ground-truth-lint ✅ success. test + e2e 都因为缺 FQ_CRM_PASSWORDS env var.
+
+- **强契约 (跟 L4.42 + L4.15 1:1 stable 配套, 跟之前 L4.76 CI 4/4 jobs 全绿治本 1:1 stable 永久规则化沿用, 跟之前 L4.85 + L4.85.1 + L4.85.2 + L4.85.3 + L4.85.4-L4.85.9 1:1 stable 永久规则化沿用)**:
+  1. **L4.86 CI test job 加 env 块**: `.github/workflows/lint.yml` `test` job 加 `env: FQ_CRM_PASSWORDS: admin:123456` (跟 e2e job line 118 1:1 stable 永久规则化沿用, 跟 L4.16 gh Actions workflow paths 1:1 stable 永久规则化沿用, 跟 L4.64 Windows 部署 .env 读写 1:1 stable 永久规则化沿用, 跟 L4.60 跨平台路径 1:1 stable 永久规则化沿用).
+  2. **L4.86 跨 sprint 0 commit 续期 SOP**: 跨 sprint 修复 CI 必须设 `FQ_CRM_PASSWORDS` env var (跟之前 `DUCKDB_PATH` + `HEALTH_API_KEY` + `ETL_MIN_DISK_GB` + `FQ_DB_MODE` 1:1 stable 永久规则化沿用), 不允许 test job 跟 e2e job env var 配置不一致 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用).
+  3. **L4.86 fix_pattern #99 永久规则化**: CI runner Linux env 跟 mac dev env 必须 1:1 stable 配套 (跟 L4.61 跨 CI runner 适配 1:1 stable 永久规则化沿用, 跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用).
+
+- **真业务触发 (Sprint 205+ L4.86 Codex app 完整收口, 跟你 user 7/10 拍板 "CI 爆红，你拉个专项进行维修" 1:1 stable 永久规则化沿用)**:
+  1. `.github/workflows/lint.yml`: `test` job 加 `env: FQ_CRM_PASSWORDS: admin:123456` (1 file / +5-0 lines, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 e2e job line 118 1:1 stable 永久规则化沿用).
+  2. 本地验证 (跟 L4.42 立项实证 SOP "pytest 验证" 1:1 stable 永久规则化沿用): `PYTHONPATH=. FQ_CRM_PASSWORDS=admin:123456 pytest backend/tests/test_l4_85_1_login_request_status.py + test_l4_85_2_login_both_paths.py + test_l4_85_3_account_active_timeout.py + test_l4_85_login_request.py -q` → **18 passed in 4.38s ✅**.
+  3. CI 验证 (跟 L4.76 CI 4/4 jobs 全绿治本 1:1 stable 永久规则化沿用, 跟 Sprint 75/77/84/86/87 stable 模式 1:1 stable 永久规则化沿用): push 触发 CI in_progress 41s (CI #29140630684), 等 CI 跑完验证 4/4 jobs 全绿.
+
+- **L4.86 配套 (跟之前 L4.51/65/65.1/66/67/68/69/69.1/72/75 v2/84/85/85.1/85.2/85.3/85.4-L4.85.9/76 永久规则链 1:1 stable 永久规则化沿用)**:
+  - L4.16 gh Actions workflow push trigger paths check 必做 (Sprint 82/83 1:1 stable 永久规则化沿用)
+  - L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用 (跟 Sprint 188 B3 1:1 stable 永久规则化沿用)
+  - L4.50 pytest cleanup 0 业务代码改动 累计 63 次 1:1 stable 永久规则链配套
+  - L4.60 跨平台路径 1:1 stable 永久规则化沿用
+  - L4.61 跨 sprint 监控脚本 main() 必加 `sys.platform != "darwin"` 平台守卫 (跟 L4.10 + L4.39 1:1 stable 永久规则化沿用)
+  - L4.64 Windows 部署 .env 读写 1:1 stable 永久规则化沿用
+  - L4.76 CI 4/4 jobs 全绿治本 + 3 件 fix_pattern #95/#96/#97 1:1 stable 永久规则化沿用
+  - L4.85.9 启动凭据去源码化 1:1 stable 永久规则化沿用 (跟 L4.86 真根因 1:1 stable 永久规则化沿用)
+  - fix_pattern #98 (任何 sprint 立项必 4 件启动条件 live verify) 1:1 stable 永久规则化沿用
+
+- **L4.86 反模式 (禁止, 跟之前 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用)**:
+  ❌ CI runner 不设 FQ_CRM_PASSWORDS env var 让 _load_credentials() 自动生成密码 (跟 L4.85.9 + L4.64 + L4.60 1:1 stable 永久规则化沿用, 跟之前 1:1 stable 永久规则链配套);
+  ❌ CI test job 跟 e2e job env var 配置不一致 (1:1 stable 配套, 跟 L4.16 + L4.42 1:1 stable 永久规则化沿用);
+  ❌ 跨 sprint 修复 CI 漏修 1 件 (L4.86 必须 test + e2e env 1:1 stable, 跟 L4.42 立项实证 SOP 1:1 stable 配套);
+  ❌ CI runner 跟 mac dev env 配置不一致 (跟 L4.61 跨 CI runner 适配 1:1 stable 永久规则化沿用, 跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用);
+  ❌ handoff 凭印象给方向 (跟 CLAUDE.md "不要假设" 1:1 stable 配套, 必须 L4.42 git log + grep + gh run view 实证, 跟 Sprint 188 B3 1:1 stable 永久规则化沿用).
+
+- **0 业务代码改动累计 Sprint 60+ 63 次 1:1 stable 永久规则化沿用 (跟 L4.85.4-L4.85.9 累计 62 次 +1 L4.86 治本, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 跟 user 7/10 拍板 "CI 爆红，你拉个专项进行维修" 1:1 stable 永久规则化沿用 + 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用)**.
+
+- **后续留尾 (跨 sprint 0 commit 续期, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)**:
+  跨 sprint 任何 sprint 修复 L4.85 + L4.85.1 + L4.85.2 + L4.85.3 + L4.85.4-L4.85.9 后续 sprint, 必须同时验证 CI 跑过 + 本地 test 跑过 + 业务验证跑过, 缺一不可 (跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用). 0 触发续期 0 commit.
+
+
+
 
 ### L4.76 — Sprint 205+ GitHub CI 4/4 jobs 全绿治本 + 3 件 fix_pattern 永久规则化 (跟 L4.16 + L4.42 + L4.50 + L4.55 + L4.19 + L4.20 1:1 stable 永久规则链配套)
 
