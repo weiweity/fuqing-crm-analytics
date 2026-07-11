@@ -327,15 +327,16 @@ const categoryColumnsXlsx: XlsxColumn[] = [
   { header: '同品类回购', key: 'same_category_repurchase', width: 12, numFmt: '#,##0' },
   { header: '同品类回购率', key: 'same_category_rate', width: 12, numFmt: '0.00%' },
   // Sprint 175 Q5: YOY 列 (跨 sprint 复用 _add_compare_metrics 模式) — Sprint 177 P0-4 全部 2 位
-  { header: '回购人数YoY', key: 'repurchase_users_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '回购GSV YoY', key: 'repurchase_gsv_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '回购率 YoY(pp)', key: 'repurchase_rate_yoy_pp', width: 12, numFmt: '+0.00;-0.00;0.00' },
-  { header: '正装回购人数YoY', key: 'full_repurchase_users_yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '正装回购GSV YoY', key: 'full_repurchase_gsv_yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '正装回购率 YoY(pp)', key: 'full_repurchase_rate_yoy_pp', width: 14, numFmt: '+0.00;-0.00;0.00' },
-  { header: 'AUS YoY', key: 'repurchase_aus_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '正装AUS YoY', key: 'full_repurchase_aus_yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
-  { header: '非正装回购GSV YoY', key: 'nonfull_repurchase_gsv_yoy_pct', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
+  // L4.91 PR2 (2026-07-11) 治本: 加显式 kind enum (auto-detect suffix pattern 能匹配但 SSOT 要求显式声明)
+  { header: '回购人数YoY', key: 'repurchase_users_yoy_pct', kind: 'yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '回购GSV YoY', key: 'repurchase_gsv_yoy_pct', kind: 'yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '回购率 YoY(pp)', key: 'repurchase_rate_yoy_pp', kind: 'yoy_pp', width: 12, numFmt: '+0.00;-0.00;0.00' },
+  { header: '正装回购人数YoY', key: 'full_repurchase_users_yoy_pct', kind: 'yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '正装回购GSV YoY', key: 'full_repurchase_gsv_yoy_pct', kind: 'yoy_pct', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '正装回购率 YoY(pp)', key: 'full_repurchase_rate_yoy_pp', kind: 'yoy_pp', width: 14, numFmt: '+0.00;-0.00;0.00' },
+  { header: 'AUS YoY', key: 'repurchase_aus_yoy_pct', kind: 'yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '正装AUS YoY', key: 'full_repurchase_aus_yoy_pct', kind: 'yoy_pct', width: 12, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '非正装回购GSV YoY', key: 'nonfull_repurchase_gsv_yoy_pct', kind: 'yoy_pct', width: 16, numFmt: '+0.00%;-0.00%;0.00%' },
 ]
 
 // 排序状态: 默认按 channel (维持原顺序) + 品类 (升序)

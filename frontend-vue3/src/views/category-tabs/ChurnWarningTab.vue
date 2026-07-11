@@ -303,7 +303,8 @@ const churnTableXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '本期用户', key: 'current_users', width: 12, numFmt: '#,##0' },
   { header: '上期用户', key: 'previous_users', width: 12, numFmt: '#,##0' },
   { header: '流失人数', key: 'churn_users', width: 12, numFmt: '#,##0' },
-  { header: 'MoM变化', key: 'mom_change_rate', width: 12, numFmt: '0.0%' },
+  // L4.91 PR2 (2026-07-11) 治本: mom_ 前缀列加显式 kind enum (auto-detect suffix pattern 不匹配 prefix)
+  { header: 'MoM变化', key: 'mom_change_rate', kind: 'yoy_pct', width: 12, numFmt: '0.0%' },
 ])
 </script>
 
