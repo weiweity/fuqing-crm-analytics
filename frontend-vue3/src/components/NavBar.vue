@@ -385,9 +385,10 @@ onMounted(() => {
 
 .navbar-brand {
   display: flex;
-  min-width: 214px;
+  min-width: 160px;
   align-items: center;
   gap: 14px;
+  flex-shrink: 0;
 }
 
 .navbar-logo {
@@ -412,14 +413,15 @@ onMounted(() => {
 .navbar-tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-height: 48px;
-  padding: 0 15px;
+  padding: 0 10px;
   border-bottom: 2px solid transparent;
   border-radius: 6px 6px 0 0;
   color: rgba(255, 255, 255, 0.78);
-  /* Sprint 159.5: 15px → 18px 跟 Sprint 159 NavBar h1 text-lg (18px) 字号对齐, user 试看 amend */
-  font-size: 18px;
+  /* Sprint 159.5: 15px → 18px 跟 Sprint 159 NavBar h1 text-lg (18px) 字号对齐
+     L4.91 design-review: 18px → 17px + padding 15→10px 让 5 tab 全部显示 (尤其是最长的"派样正装转化") */
+  font-size: 17px;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
