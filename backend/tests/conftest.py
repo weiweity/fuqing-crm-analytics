@@ -48,6 +48,63 @@ def _isolate_auth_runtime_state():
 
 
 # ─────────────────────────────────────────────────────────────
+# Sprint 205+ L4.88 (CI 爆红 pytest collection race condition 治本)
+#
+# 真根因 (跟 /investigate Phase 1-5 1:1 stable 永久规则化沿用, 跟 CLAUDE.md
+# "不要假设" 1:1 stable 配套):
+#   - auth.py:88 VALID_CREDENTIALS = _load_credentials() 在 import 时执行一次,
+#     缓存 admin password hash 到 module-level dict
+#   - pytest collection 时, test_l4_85_1_login_request_status.py 先 import 触发
+#     auth import, _load_credentials() 读 OS env FQ_CRM_PASSWORDS
+#   - .env 文件有 FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888
+#     CI runner shell 传 FQ_CRM_PASSWORDS: admin:123456 (没 fqsw, 跟 .env 不一致)
+#   - auth.py:21 load_dotenv() 默认不覆盖已有 env var, OS env 还是 admin:123456
+#   - 单跑 test_l4_85_x.py pass (auth 缓存 admin:123456)
+#   - pytest 全量跑 -k "test_l4_85" fail (某些 test 在 fixture 里修改 ACTIVE_TOKENS,
+#     但因为 _isolate_auth_runtime_state 在 test_l4_85_2 setdefault 后跑, 导致
+#     auth.VALID_CREDENTIALS 跟 setdefault 后的 env 不一致)
+#
+# 修法 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则化沿用, 跟 CLAUDE.md
+# "精准修改" 1:1 stable 配套):
+#   - autouse fixture 在 _isolate_auth_runtime_state 之前 reload VALID_CREDENTIALS
+#   - 跟 .env + CI runner shell env 1:1 stable (FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888)
+#   - yield 后恢复原 env + reload, 避免 test 间 state 泄漏
+# ─────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _reset_fq_crm_credentials_env():
+    """L4.88 治本: pytest collection race condition 修复 (跟 /investigate Phase 4 1:1 stable 永久规则化沿用).
+
+    跟 _isolate_auth_runtime_state 1:1 stable 配套, 但是优先级更高 (先 reload
+    VALID_CREDENTIALS, 再清 ACTIVE_TOKENS). 保证 pytest collection 时 setdefault
+    的 FQ_CRM_PASSWORDS 跟 auth.VALID_CREDENTIALS 缓存一致.
+    """
+    import os
+    from backend.routers import auth as auth_module
+
+    # 保存原始 env
+    original_env = os.environ.get("FQ_CRM_PASSWORDS")
+    # 跟 .env + test_l4_85_2 setdefault 1:1 stable, 保证 _load_credentials() 缓存
+    # admin:123456 + fqsw:fqsw888
+    os.environ["FQ_CRM_PASSWORDS"] = "admin:123456,fqsw:fqsw888"
+    # Reload VALID_CREDENTIALS (跟 L4.86 1:1 stable 永久规则化沿用)
+    auth_module.VALID_CREDENTIALS.clear()
+    auth_module.VALID_CREDENTIALS.update(auth_module._load_credentials())
+
+    try:
+        yield
+    finally:
+        # 恢复原 env + reload VALID_CREDENTIALS, 避免 test 间 state 泄漏
+        if original_env is None:
+            os.environ.pop("FQ_CRM_PASSWORDS", None)
+        else:
+            os.environ["FQ_CRM_PASSWORDS"] = original_env
+        auth_module.VALID_CREDENTIALS.clear()
+        auth_module.VALID_CREDENTIALS.update(auth_module._load_credentials())
+
+
+# ─────────────────────────────────────────────────────────────
 # Sprint 22 #25: skip-if-DuckDB-locked fixture
 #
 # 背景: scripts/etl/rfm_recompute_window.py 跟生产 uvicorn 共享 DuckDB 文件,
