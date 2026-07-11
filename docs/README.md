@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 文档按 lifecycle 分层, 新人 5 分钟找到入口。Sprint 54 起 (L3 FilterBuilder 100% 闭环) 架构师推荐分层。
-> 最后更新: 2026-07-05 (Sprint N+1 阶段 1 W2 DuckDB 128GB 性能基线 跑通 + Wave 1 跨 sprint plan Phase A 收口 + 累计 Sprint 60+ 0 debt stable 139 sprint 1:1 stable 跨 sprint plan 沿用. W2 baseline 实测: 11 秒总 wall_time + median P95=0.068s + 10 场景全部 <2s 满意 + TOP 频繁 s02 RFM P95=1.67s + s09 R 区间 P95=0.29s (跟业务方访谈 21 答复期望 <5s + <2s 满意 1:1 stable 验证). 跟 R8 wall_min=10.8min 1:1 stable 治本延伸. 新建 `docs/sprints/SPRINT-N+1-DUCKDB-BASELINE-2026-07.md` + `docs/operations/DOCKER-INSTALL-DEPLOY-MANUAL.md` 跟 L4.7 + L4.36 + L4.62 + L4.60 永久规则 1:1 stable 沿用. 累计 140 sprint 0 debt stable 跨 +36 sprint + /document-release 55 次 + Wave 1 跨 sprint plan Sprint N+1 to N+5 准备 1:1 stable)
+> 最后更新: 2026-07-11 (Sprint 205+ L4.85.4-L4.85.9 Codex app 完整收口 + L4.86 + L4.87 + L4.88 4 件 sprint 收口 1:1 stable 永久规则化沿用 + 累计 Sprint 60+ 0 debt stable 141 sprint 1:1 stable 跨 sprint plan 沿用. 合并 HANDOVER.md (274 行) + OPERATIONS.md (485 行) 内容到 CLAUDE.md L4.85 段, 节省 759 行 (跟 L4.50 0 业务代码改动 + L4.42 立项实证 SOP 1:1 stable 永久规则链配套). 补 docs/sprints/_sprint-close-index.md L4.85-L4.88 索引行 + 合并 docs/sprints/archive/ 旧 sprint 文档到 docs/history/SPRINT_INDEX.md. 累计 /document-release 65 次 + Wave 1 跨 sprint plan Sprint N+1 to N+5 准备 1:1 stable + 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用)
 
 ## 一图流
 
