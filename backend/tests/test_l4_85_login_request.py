@@ -67,6 +67,9 @@ def test_create_login_request():
     data = resp.json()
     assert data["status"] == "pending"
     assert "request_id" in data
+    assert len(data["claim_token"]) > 20
+    assert data["claim_token"] != data["request_id"]
+    assert resp.headers["cache-control"] == "no-store"
     assert "已发送申请" in data["message"]
 
 
@@ -115,7 +118,9 @@ def test_approve_login_request():
         json={"username": "admin", "password": "123456"},
         headers={"X-Forwarded-For": "192.168.1.20"},
     )
-    request_id = resp_create.json()["request_id"]
+    request_data = resp_create.json()
+    request_id = request_data["request_id"]
+    claim_token = request_data["claim_token"]
 
     # A 同意
     resp_approve = client.post(
@@ -126,14 +131,19 @@ def test_approve_login_request():
     data = resp_approve.json()
     assert data["success"] is True
     assert data["username"] == "admin"
-    assert "new_token" in data
-    assert len(data["new_token"]) > 20
+    assert "new_token" not in data
 
     # 验证: A 的旧 token 失效 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 配套)
     assert "admin-token-1" not in auth_module.ACTIVE_TOKENS, "A 旧 token 应该被踢"
 
-    # 验证: B 的新 token 有效
-    new_token = data["new_token"]
+    # B 用独占 claim secret 领取 token，A 响应拿不到 token。
+    assert auth_module.ACTIVE_TOKENS == {}
+    claimed = client.post(
+        f"/api/v1/auth/login-request/{request_id}/claim",
+        headers={"X-Login-Claim": claim_token},
+    )
+    assert claimed.status_code == 200
+    new_token = claimed.json()["token"]
     assert new_token in auth_module.ACTIVE_TOKENS
     assert auth_module.ACTIVE_TOKENS[new_token][0] == "admin"
 

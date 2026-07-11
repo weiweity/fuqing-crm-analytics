@@ -13,11 +13,13 @@
 """
 
 import logging
+import os
 import threading
 import time
 from typing import Dict, Any, Optional
 
 import duckdb
+import psutil
 
 from backend.config import DUCKDB_MEMORY_LIMIT
 
@@ -28,12 +30,11 @@ _ALERT_THRESHOLD_PCT = 0.85  # 85%
 # 告警阈值：系统进程 RSS 超过此值（字节）
 # Sprint 9 维修: 2GB 太低, ETL 跑批正常 RSS 3-4GB 触发误报甚至被 watchdog kill.
 # 调到 8GB 跟 DUCKDB_MEMORY_LIMIT=8GB 一致.
-_RSS_ALERT_BYTES = 8 * 1024 * 1024 * 1024  # 8GB
-# 硬限阈值：超过即 sys.exit(1)，防 OOM 把整个 Mac 拖崩
-# Sprint 10 preflight B1: 8GB 告警只是 logger.warning, 跑批继续. 加 12GB 硬限做
-# last-line-of-defense, 跑批如果 RSS > 12GB 立即 sys.exit(1) 让 launchd 检测到
-# 失败 exit code 并告警. 阈值定 12GB (8GB DuckDB + 4GB pandas/其他 Python 对象).
-_RSS_HARD_LIMIT_BYTES = 12 * 1024 * 1024 * 1024  # 12GB
+_GIB = 1024 * 1024 * 1024
+_RSS_ALERT_BYTES = int(float(os.environ.get("FQ_RSS_ALERT_GB", "8")) * _GIB)
+# 16GB Mac 的 last-line-of-defense。旧 watchdog 在线程里 sys.exit() 只会
+# 杀掉自己，uvicorn 仍可继续涨到 35GB；8GB 时必须终止整个进程交给 launchd 拉起。
+_RSS_HARD_LIMIT_BYTES = int(float(os.environ.get("FQ_RSS_HARD_LIMIT_GB", "12")) * _GIB)
 
 # 内存统计缓存（避免频繁查询 DuckDB）
 _stats_cache: Dict[str, Any] = {}
@@ -59,17 +60,16 @@ def _parse_memory_limit_bytes() -> int:
 
 
 def _get_process_rss_bytes() -> int:
-    """获取当前进程的 RSS（驻留内存）"""
+    """获取当前 RSS，而不是只增不减的 ru_maxrss 历史峰值。"""
     try:
-        import resource
-        # macOS: ru_maxrss 单位是字节；Linux: 单位是 KB
-        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        if rss < 1024 * 1024:
-            # 可能是 KB 单位（Linux）
-            return rss * 1024
-        return rss
+        return int(psutil.Process(os.getpid()).memory_info().rss)
     except Exception:
         return 0
+
+
+def _terminate_process_for_memory_pressure() -> None:
+    """Terminate the whole process from any thread; launchd will restart it."""
+    os._exit(1)
 
 
 def get_memory_stats(conn: Optional[duckdb.DuckDBPyConnection] = None) -> Dict[str, Any]:
@@ -151,12 +151,9 @@ def check_memory(label: str = "", conn: Optional[duckdb.DuckDBPyConnection] = No
     Returns:
         bool: True 表示正常，False 表示触发告警
 
-    Raises:
-        SystemExit: 如果 RSS 超过硬限 (_RSS_HARD_LIMIT_BYTES = 12GB),
-            立即 sys.exit(1). Sprint 10 preflight B1 加的 last-line-of-defense,
-            防 ETL 跑批 RSS 持续增长把 Mac 拖崩.
+    超过硬限时使用 ``os._exit(1)`` 结束整个进程。该函数可能由 watchdog
+    后台线程调用，``sys.exit``/``SystemExit`` 只会结束线程，不能保护主机。
     """
-    import sys
     rss_bytes = _get_process_rss_bytes()
     if rss_bytes > _RSS_HARD_LIMIT_BYTES:
         rss_mb = rss_bytes / (1024 * 1024)
@@ -167,8 +164,7 @@ def check_memory(label: str = "", conn: Optional[duckdb.DuckDBPyConnection] = No
             f"建议: 调小 _memory_limit, 或检查是否有内存泄漏."
         )
         logger.critical(msg)
-        # Sprint 10 preflight B1: launchd 检测 exit code != 0 会发告警邮件
-        sys.exit(1)
+        _terminate_process_for_memory_pressure()
 
     stats = get_memory_stats(conn)
     prefix = f"[内存监控] {label} " if label else "[内存监控] "
@@ -194,10 +190,10 @@ class MemoryWatchdog:
     定期检查进程内存使用，超阈值时记录告警。
     """
 
-    def __init__(self, interval: float = 60.0):
+    def __init__(self, interval: float = 5.0):
         """
         Args:
-            interval: 检查间隔（秒），默认 60 秒
+            interval: 检查间隔（秒），默认 5 秒
         """
         self._interval = interval
         self._stop_event = threading.Event()
@@ -232,7 +228,7 @@ class MemoryWatchdog:
 _watchdog: Optional[MemoryWatchdog] = None
 
 
-def start_memory_watchdog(interval: float = 60.0) -> MemoryWatchdog:
+def start_memory_watchdog(interval: float = 5.0) -> MemoryWatchdog:
     """启动全局内存监控守护线程（幂等）"""
     global _watchdog
     if _watchdog is None:

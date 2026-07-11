@@ -26,6 +26,15 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def configure_test_credentials(monkeypatch):
+    """收集其他模块后仍固定本模块账号，避免环境变量顺序影响登录。"""
+    monkeypatch.setenv("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
+    from backend.routers import auth
+
+    monkeypatch.setattr(auth, "VALID_CREDENTIALS", auth._load_credentials())
+
+
 def _login(client, username: str, password: str) -> str:
     """登录拿 token (跟 backend.routers.auth._verify_token 1:1 stable)."""
     r = client.post(
@@ -37,12 +46,12 @@ def _login(client, username: str, password: str) -> str:
     return ""
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def admin_token(client):
     return _login(client, "admin", "123456")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def fqsw_token(client):
     return _login(client, "fqsw", "fqsw888")
 
@@ -60,8 +69,8 @@ class TestRateLimitBasic:
         """/api/v1/auth/* 不限流 (登录接口不能用 429)."""
         for _ in range(10):
             r = client.post("/api/v1/auth/login", json={"username": "admin", "password": "123456"})
-            # 200/401/422/429 都接受 (账号锁定 429 是 backend 锁定, 不是 rate limit)
-            assert r.status_code in (200, 401, 422, 429)
+            # 409 是唯一会话规则拒绝同账号重复登录；429 是账号锁定，不是 API rate limit。
+            assert r.status_code in (200, 401, 409, 422, 429)
 
 
 class TestRateLimitHeaders:

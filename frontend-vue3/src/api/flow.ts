@@ -49,8 +49,8 @@ export interface RFMRFlowResponse {
   member_same_channel_rows: RFMRFlowRow[]
 }
 
-export function fetchRFMRFlow(params: RFMRFlowParams): Promise<RFMRFlowResponse> {
-  return client.get('/v1/rfm/r-flow', { params })
+export function fetchRFMRFlow(params: RFMRFlowParams, signal?: AbortSignal): Promise<RFMRFlowResponse> {
+  return client.get('/v1/rfm/r-flow', { params, signal })
 }
 
 // F 区间流转（与 R 结构完全一致，仅字段名不同）
@@ -62,8 +62,8 @@ export type RFMFRFlowResponse = Omit<RFMRFlowResponse, 'rows' | 'same_channel_ro
   member_same_channel_rows: RFMFRFlowRow[]
 }
 
-export function fetchRFMFRFlow(params: RFMRFlowParams): Promise<RFMFRFlowResponse> {
-  return client.get('/v1/rfm/f-flow', { params })
+export function fetchRFMFRFlow(params: RFMRFlowParams, signal?: AbortSignal): Promise<RFMFRFlowResponse> {
+  return client.get('/v1/rfm/f-flow', { params, signal })
 }
 
 // M 区间流转（与 R 结构完全一致，仅字段名不同）
@@ -75,8 +75,8 @@ export type RFMMFlowResponse = Omit<RFMRFlowResponse, 'rows' | 'same_channel_row
   member_same_channel_rows: RFMMFlowRow[]
 }
 
-export function fetchRFMMFlow(params: RFMRFlowParams): Promise<RFMMFlowResponse> {
-  return client.get('/v1/rfm/m-flow', { params })
+export function fetchRFMMFlow(params: RFMRFlowParams, signal?: AbortSignal): Promise<RFMMFlowResponse> {
+  return client.get('/v1/rfm/m-flow', { params, signal })
 }
 
 // Sprint 175 Q2: 接口整段删除 (用户拍板)

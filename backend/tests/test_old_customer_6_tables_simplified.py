@@ -3,19 +3,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 
 ROOT = Path(__file__).resolve().parents[2]
 HEALTH_DIR = ROOT / "backend/services/health"
-ENV_FILE = ROOT / ".env"
-
-
-# CI runner 缺 .env 文件 (跟 L4.5 配置 1:1 stable 永久规则化沿用, 跟 L4.39 macOS-only skipif 1:1 stable 永久规则化沿用)
-pytestmark = pytest.mark.skipif(
-    not ENV_FILE.exists(),
-    reason="CI runner 缺 .env 文件 (跟 L4.5 配置 1:1 stable 永久规则化沿用)",
-)
 
 
 def test_health_services_do_not_reintroduce_thread_pool_executor() -> None:
@@ -32,10 +22,10 @@ def test_customer_health_query_router_prefix_is_explicit() -> None:
     assert '"/api/v1/customer-health/"' in text
 
 
-def test_env_read_pool_size_is_l4723_ten() -> None:
-    text = (ROOT / ".env").read_text(encoding="utf-8")
+def test_launchd_runtime_profile_uses_bounded_read_pool() -> None:
+    text = (ROOT / "scripts/uvicorn_launchd.py").read_text(encoding="utf-8")
 
-    assert "FQ_READ_POOL_SIZE=10" in text
+    assert 'os.environ["FQ_READ_POOL_SIZE"] = "2"' in text
 
 
 def test_precompute_layer_uses_services_instead_of_new_sql() -> None:

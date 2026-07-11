@@ -20,6 +20,7 @@ import ExportToolbar from '@/components/ExportToolbar.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import type { XlsxColumn } from '@/utils/exportXlsx'
+import { triggerManualQuery } from '@/composables/manualQuery'
 
 const filterStore = useFilterStore()
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
@@ -48,15 +49,24 @@ const mFlowQueryKey = computed(() => ['rfm-m-flow', { ...toValue(mFlowQueryParam
 const mFlowAutoFetch = ref(false)
 watch([mFlowQueryKey, compareQueryParams], () => { mFlowAutoFetch.value = false }, { deep: true })
 function onMFlowQueryClick() {
-  mFlowAutoFetch.value = true
-  mFlowRefetch()
+  triggerManualQuery(mFlowAutoFetch, mFlowFetching, mFlowRefetch)
 }
 
-const { data: mFlowData, isLoading: mFlowLoading, error: mFlowError, refetch: mFlowRefetch } = useQuery({
+const {
+  data: mFlowData,
+  isLoading: mFlowLoading,
+  isFetching: mFlowFetching,
+  error: mFlowError,
+  refetch: mFlowRefetch,
+} = useQuery({
   queryKey: mFlowQueryKey,
-  queryFn: () => fetchRFMMFlow({ ...toValue(mFlowQueryParams), ...toValue(compareQueryParams) }),
+  queryFn: ({ signal }) => fetchRFMMFlow(
+    { ...toValue(mFlowQueryParams), ...toValue(compareQueryParams) },
+    signal,
+  ),
   enabled: mFlowAutoFetch,
   staleTime: 60_000,
+  retry: false,
 })
 
 // ── 回购率柱状图 ──
@@ -272,10 +282,10 @@ const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
           :chart-ref="mChartRef"
         />
       </div>
-      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
+      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="onMFlowQueryClick" />
       <LoadingState v-else-if="mFlowLoading" />
       <div v-else-if="!mFlowAutoFetch" class="manual-query-guide">
-        <ManualQueryButton @click="onMFlowQueryClick">查询 M 区间数据</ManualQueryButton>
+        <ManualQueryButton :loading="mFlowFetching" @click="onMFlowQueryClick">查询 M 区间数据</ManualQueryButton>
         <p class="hint">说明: 本次结果计算量较大, 请点击按钮手动触发查询。</p>
       </div>
       <EmptyState v-else-if="!mFlowData?.rows?.length" description="当前条件下无数据" />
@@ -298,7 +308,7 @@ const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
           />
         </div>
       </div>
-      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
+      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="onMFlowQueryClick" />
       <LoadingState v-else-if="mFlowLoading" />
       <EmptyState v-else-if="!mFlowData?.rows?.length" description="当前条件下无数据" />
       <DataTablePro
@@ -324,7 +334,7 @@ const mFlowXlsxColumns = computed<XlsxColumn[]>(() => {
           sheet-name="M区间会员"
         />
       </div>
-      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="mFlowRefetch()" />
+      <ErrorState v-if="mFlowError" :message="(mFlowError as Error).message" @retry="onMFlowQueryClick" />
       <LoadingState v-else-if="mFlowLoading" />
       <EmptyState v-else-if="!mFlowData?.member_rows?.length" description="当前条件下无数据" />
       <DataTablePro

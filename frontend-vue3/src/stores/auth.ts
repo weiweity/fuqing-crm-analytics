@@ -21,6 +21,20 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!token.value)
 
   // === Actions ===
+  function setSession(nextToken: string, nextUsername: string) {
+    token.value = nextToken
+    username.value = nextUsername
+    sessionStorage.setItem(AUTH_TOKEN_KEY, nextToken)
+    sessionStorage.setItem(AUTH_USER_KEY, nextUsername)
+  }
+
+  function clearSession() {
+    token.value = ''
+    username.value = ''
+    sessionStorage.removeItem(AUTH_TOKEN_KEY)
+    sessionStorage.removeItem(AUTH_USER_KEY)
+  }
+
   async function login(user: string, pwd: string) {
     isLoading.value = true
     try {
@@ -28,10 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
         username: user,
         password: pwd,
       }) as unknown as LoginResponse
-      token.value = res.token
-      username.value = res.username
-      sessionStorage.setItem(AUTH_TOKEN_KEY, res.token)
-      sessionStorage.setItem(AUTH_USER_KEY, res.username)
+      setSession(res.token, res.username)
     } finally {
       isLoading.value = false
     }
@@ -43,12 +54,19 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // 忽略注销接口异常（token 已过期时后端也可能返回 401）
     } finally {
-      token.value = ''
-      username.value = ''
-      sessionStorage.removeItem(AUTH_TOKEN_KEY)
-      sessionStorage.removeItem(AUTH_USER_KEY)
+      clearSession()
     }
   }
 
-  return { token, username, isAuthenticated, isLoading, isReady, login, logout }
+  return {
+    token,
+    username,
+    isAuthenticated,
+    isLoading,
+    isReady,
+    setSession,
+    clearSession,
+    login,
+    logout,
+  }
 })

@@ -21,6 +21,7 @@ QW2 Phase 2: uvicorn 单例 read_only, 缓存写操作需独立写连接
 import duckdb
 import json
 import logging
+import threading
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -28,6 +29,7 @@ from ._shared import _fetch_max_pay_time, _cache_key, RFM_CACHE_TABLE
 from .period import _run_rfm_period, _build_rows, _resolve_range_period
 
 logger = logging.getLogger(__name__)
+_CACHE_OPERATION_LOCK = threading.RLock()
 
 # 缓存 TTL（小时）— 超过此时间的缓存视为陈旧，强制重算
 RFM_CACHE_TTL_HOURS = 24
@@ -121,9 +123,9 @@ def _read_db_cache(
 ) -> Optional[Dict[str, Any]]:
     """从 DuckDB 预计算表读取缓存。
 
-    QW2 Phase 2: SELECT 仍用调用方 conn（read_only 可读）,
-    表结构初始化 + 损坏清理用临时写连接（_open_write_conn）。
-    conn 由调用方管理,本函数不负责关闭连接。
+    ``conn`` 仅为兼容旧调用签名保留；业务库不包含完整 cache SSOT。
+    表初始化、精确读取与 fuzzy 读取统一走独立 cache DB 单例，并由
+    ``_CACHE_OPERATION_LOCK`` 串行化 raw DuckDB connection 操作。
 
     Stale 检测：除 data_version 外,还比对 orders 行数快照,
     防止 ETL 续传后 max_pay_time 不变但行数变化导致缓存陈旧。
@@ -133,36 +135,38 @@ def _read_db_cache(
     # Phase 1 第 2 个 Explore agent 100% 锁定: 旧代码 SELECT 在 except 块里,
     # 正常路径 try 块成功时**无 SELECT**, 直接 return None → 永远 cache miss
     # 治本后: 正常路径 + 异常路径 都跑 SELECT
+    del conn  # cache storage 与业务查询连接严格分离
     try:
-        # 表结构初始化（DDL 需要写连接,L4.67: cache 库单例, 不需 close）
-        _wc = _get_cache_conn()
-        _ensure_db_cache_table(_wc)
-    except Exception as _e:
-        # 写连接失败（如锁冲突）不阻塞读路径,继续尝试 SELECT
-        logger.debug(f"RFM 缓存表初始化失败（读路径继续）: {_e}")
+        with _CACHE_OPERATION_LOCK:
+            cache_conn = _get_cache_conn()
+            try:
+                _ensure_db_cache_table(cache_conn)
+            except Exception as init_error:
+                logger.debug(f"RFM 缓存表初始化失败（读路径继续）: {init_error}")
 
-    # L4.72.1 治本: SELECT 移出 except 块, 正常路径也跑 (原 bug 在 except 块里)
-    try:
-        # 读用调用方 conn（read_only 可读）
-        row = conn.execute(
-            f"SELECT result_json, mtime_at_write, orders_count_at_write, computed_at "
-            f"FROM {RFM_CACHE_TABLE} WHERE cache_key = ?",
-            [key]
-        ).fetchone()
-        if not row:
-            # Stage 2 (L4.75): fuzzy match ±1 day tolerance fallback (跟 L4.42 + L4.50 +
-            # L4.72.1 + L4.74 + L4.75 1:1 stable 永久规则链配套).
-            # 场景: RANGE 周期 precompute today=date.today() (e.g. 2026-07-09) 算 cur=(today-6, today-1) =
-            # (2026-07-03, 2026-07-08), user query 24h 后 today=2026-07-10 → cur=(2026-07-04, 2026-07-09)
-            # → exact cache key miss → fuzzy match ±1 day 兜底命中 (跟 L4.50 0 业务代码改动 1:1 stable).
-            fuzzy = _fuzzy_match_db_cache(start_date, end_date, channel, metric_type, period, conn, tolerance_days=1)
-            if fuzzy is not None:
-                logger.info(
-                    f"RFM cache fuzzy hit: target=({start_date}, {end_date}) "
-                    f"ch={channel or '全店'} mt={metric_type} per={period or 'None'}"
+            row = cache_conn.execute(
+                f"SELECT result_json, mtime_at_write, orders_count_at_write, computed_at "
+                f"FROM {RFM_CACHE_TABLE} WHERE cache_key = ?",
+                [key]
+            ).fetchone()
+            if not row:
+                # Stage 2 (L4.75): fuzzy match ±1 day tolerance fallback.
+                fuzzy = _fuzzy_match_db_cache(
+                    start_date,
+                    end_date,
+                    channel,
+                    metric_type,
+                    period,
+                    cache_conn,
+                    tolerance_days=1,
                 )
-                return fuzzy
-            return None
+                if fuzzy is not None:
+                    logger.info(
+                        f"RFM cache fuzzy hit: target=({start_date}, {end_date}) "
+                        f"ch={channel or '全店'} mt={metric_type} per={period or 'None'}"
+                    )
+                    return fuzzy
+                return None
         # 防御性校验：result_json 必须是有效 JSON dict
         try:
             parsed = json.loads(row[0])
@@ -253,13 +257,14 @@ def clear_rfm_cache() -> int:
     Returns: 被清理的行数（0 = 表为空 / 写连接失败）。
     """
     try:
-        _wc = _get_cache_conn()
-        _ensure_db_cache_table(_wc)
-        cur = _wc.execute(f"SELECT COUNT(*) FROM {RFM_CACHE_TABLE}").fetchone()
-        count = int(cur[0]) if cur else 0
-        # Sprint 29+#198: DROP + CREATE 替代 DELETE (avoid index state corruption)
-        _wc.execute(f"DROP TABLE IF EXISTS {RFM_CACHE_TABLE}")
-        _ensure_db_cache_table(_wc)  # 重建 (含 cache_key 唯一索引 + period idx)
+        with _CACHE_OPERATION_LOCK:
+            _wc = _get_cache_conn()
+            _ensure_db_cache_table(_wc)
+            cur = _wc.execute(f"SELECT COUNT(*) FROM {RFM_CACHE_TABLE}").fetchone()
+            count = int(cur[0]) if cur else 0
+            # Sprint 29+#198: DROP + CREATE 替代 DELETE (avoid index state corruption)
+            _wc.execute(f"DROP TABLE IF EXISTS {RFM_CACHE_TABLE}")
+            _ensure_db_cache_table(_wc)  # 重建完整 schema；period 二级索引按 L4.74 治本保持禁用
         logger.info(f"RFM 缓存清空 (DROP + CREATE): 共 {count} 行")
         return count
     except Exception as e:
@@ -270,8 +275,9 @@ def clear_rfm_cache() -> int:
 def _try_delete_corrupt_row(key: str) -> None:
     """用临时写连接删除损坏的缓存行（QW2 Phase 2）。失败仅 warning,不抛。"""
     try:
-        _wc = _get_cache_conn()
-        _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
+        with _CACHE_OPERATION_LOCK:
+            _wc = _get_cache_conn()
+            _wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [key])
     except Exception as e:
         logger.warning(f"RFM 缓存损坏行无法清理（read_only 模式）: key={key}, {e}")
 
@@ -363,15 +369,16 @@ def _write_db_cache(
     key = _cache_key(period, start_date, end_date, channel, metric_type, exclude_channels, data_version, compare_start_date, compare_end_date)
     ex_str = json.dumps(exclude_channels, ensure_ascii=False) if exclude_channels else ""
     try:
-        _wc = _get_cache_conn()
-        _ensure_db_cache_table(_wc)
-        _wc.execute(
-            f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
-            f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
-            f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-            [key, period or "", start_date or "", end_date or "",
-             channel or "", metric_type, ex_str, result_json_str, data_version, orders_count]
-        )
+        with _CACHE_OPERATION_LOCK:
+            _wc = _get_cache_conn()
+            _ensure_db_cache_table(_wc)
+            _wc.execute(
+                f"INSERT OR REPLACE INTO {RFM_CACHE_TABLE} "
+                f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
+                f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                [key, period or "", start_date or "", end_date or "",
+                 channel or "", metric_type, ex_str, result_json_str, data_version, orders_count]
+            )
     except Exception as e:
         # Sprint 205+ PC2 RFM 雪崩 治标 (L4.66 配套):
         # HTTP 路径下绝不能 swallow, 否则双 conn config 不一致时每次都重算全查询
@@ -462,7 +469,8 @@ def precompute_rfm_cache() -> int:
             logger.info(f"  预计算参考日期(today): {today} (max_pay=None, 业务库无数据)")
 
         # DDL（write_conn 可写, 只在 cache 库上）
-        _ensure_db_cache_table(write_conn)
+        with _CACHE_OPERATION_LOCK:
+            _ensure_db_cache_table(write_conn)
         # L4.74 fix amend (跟 L4.42 + L4.50 + L4.65.1 + L4.67 + L4.69.1 + L4.74 + L4.75 1:1 stable 永久规则链配套):
         # PC2 副 Agent 反馈实证: 8f952ac commit 漏改了 1 行 _fetch_max_pay_time(write_conn) → _fetch_max_pay_time(biz_conn)
         # 在 cache 库 (write_conn) 没有 orders 表 → Catalog Error. 修复后用 biz_conn 读业务库 orders (跟 L4.67 cache 库分离 1:1 stable 永久规则链配套)
@@ -553,7 +561,8 @@ def precompute_rfm_cache() -> int:
                             # 写用 write_conn（QW2 Phase 2: 绕开 read_only 单例）
                             # Stale 修复：把 orders_count_at_write 也写进去,
                             # 下次读时与当前 orders.COUNT(*) 对比 → 行数变化即失效
-                            write_conn.execute(
+                            with _CACHE_OPERATION_LOCK:
+                                write_conn.execute(
                                 f"INSERT INTO {RFM_CACHE_TABLE} "
                                 f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
                                 f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
@@ -568,9 +577,9 @@ def precompute_rfm_cache() -> int:
                                 f"mtime_at_write = excluded.mtime_at_write, "
                                 f"orders_count_at_write = excluded.orders_count_at_write, "
                                 f"computed_at = excluded.computed_at",
-                                [key, period.upper(), cur.start, cur.end, channel or "", metric_type, ex_str,
-                                 json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
-                            )
+                                    [key, period.upper(), cur.start, cur.end, channel or "", metric_type, ex_str,
+                                     json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
+                                )
                             computed += 1
                             logger.info(f"  RFM 预计算: {period} {year} {metric_type} channel={channel or '全店'} compare={compare_mode} → {key}")
 
@@ -651,7 +660,8 @@ def precompute_rfm_cache() -> int:
                             )
                             ex_str = ""
                             # ON CONFLICT (cache_key) DO UPDATE SET UPSERT (跟 L4.74 amend v2 1:1 stable 永久规则链配套):
-                            write_conn.execute(
+                            with _CACHE_OPERATION_LOCK:
+                                write_conn.execute(
                                 f"INSERT INTO {RFM_CACHE_TABLE} "
                                 f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, result_json, mtime_at_write, orders_count_at_write, computed_at) "
                                 f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
@@ -666,9 +676,9 @@ def precompute_rfm_cache() -> int:
                                 f"mtime_at_write = excluded.mtime_at_write, "
                                 f"orders_count_at_write = excluded.orders_count_at_write, "
                                 f"computed_at = excluded.computed_at",
-                                [key, range_period.upper(), cur.start, cur.end, channel or "", metric_type, ex_str,
-                                 json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
-                            )
+                                    [key, range_period.upper(), cur.start, cur.end, channel or "", metric_type, ex_str,
+                                     json.dumps(result, ensure_ascii=False, default=str), data_version, orders_count_snapshot]
+                                )
                             computed += 1
                             logger.info(
                                 f"  RFM 预计算 [Stage 2 RANGE]: {range_period} {year} {metric_type} "

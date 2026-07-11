@@ -1,17 +1,36 @@
 <template>
-  <button class="learn-more" @click="$emit('click', $event)">
+  <button
+    type="button"
+    class="learn-more"
+    :disabled="disabled || loading"
+    :aria-busy="loading"
+    @click="handleClick"
+  >
     <span class="circle" aria-hidden="true">
       <span class="icon arrow"></span>
     </span>
     <span class="button-text">
-      <slot>🔍 点击查询</slot>
+      <span v-if="loading">查询中…</span>
+      <slot v-else>🔍 点击查询</slot>
     </span>
   </button>
 </template>
 
 <script setup lang="ts">
 /**L4.75.4 手动查询按钮 (统一 5 Tab 设计, 跟 user 1:1 stable 永久规则链配套).*/
-defineEmits<{ (e: 'click', event: MouseEvent): void }>()
+const props = withDefaults(defineProps<{
+  disabled?: boolean
+  loading?: boolean
+}>(), {
+  disabled: false,
+  loading: false,
+})
+const emit = defineEmits<{ (e: 'click', event: MouseEvent): void }>()
+
+function handleClick(event: MouseEvent) {
+  if (props.disabled || props.loading) return
+  emit('click', event)
+}
 </script>
 
 <style scoped>
@@ -102,5 +121,23 @@ button:hover .circle .icon.arrow {
 
 button:hover .button-text {
   color: #fff;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+button:disabled .circle {
+  width: 100%;
+}
+
+button:disabled .button-text {
+  color: #fff;
+}
+
+button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
 }
 </style>

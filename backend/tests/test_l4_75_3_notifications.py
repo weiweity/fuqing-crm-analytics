@@ -22,7 +22,8 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def _clear_active_users():
+def _clear_active_users(monkeypatch):
+    monkeypatch.setenv("FQ_SINGLE_USER_V2", "0")
     ACTIVE_USERS.clear()
     yield
     ACTIVE_USERS.clear()

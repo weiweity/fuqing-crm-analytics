@@ -16,20 +16,21 @@
 """
 from __future__ import annotations
 
+import hashlib
 import secrets
 import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
 
-import bcrypt
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 # 复用 auth.py 现有函数 (跟 L4.84 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)
 from backend.routers.auth import (
     ACTIVE_TOKENS,
-    VALID_CREDENTIALS,
+    _AUTH_STATE_LOCK,
+    _authenticate_credentials,
     _evict_previous_sessions_for_user,
     _get_client_ip,
     _is_account_active,
@@ -51,11 +52,16 @@ class LoginRequestInfo:
     target_username: str  # 申请登录的目标账号 (admin/fqsw)
     created_at: float
     status: str  # "pending" / "approved" / "rejected" / "expired"
+    claim_secret_digest: bytes
+    resolved_at: float | None = None
+    approved_token: str | None = None
 
 
 # L4.85 状态: key=target_username, value=list of pending requests
 # 跟 L4.75 v2 ACTIVE_SESSIONS + QUEUE 1:1 stable 配套
 _PENDING_REQUESTS: dict[str, list[LoginRequestInfo]] = {}
+# request_id 只用于关联；B 端必须另带 claim secret 才能查询或领取。
+_PENDING_REQUEST_OWNERS: dict[str, str] = {}
 _STATE_LOCK = threading.RLock()
 
 
@@ -69,6 +75,7 @@ class LoginRequestIn(BaseModel):
 
 class LoginRequestOut(BaseModel):
     request_id: str
+    claim_token: str
     status: str
     message: str
 
@@ -87,7 +94,6 @@ class PendingRequestsOut(BaseModel):
 
 class ApproveRequestOut(BaseModel):
     success: bool
-    new_token: str
     username: str
 
 
@@ -100,8 +106,12 @@ class StatusRequestOut(BaseModel):
 
     request_id: str
     status: str  # "pending" / "approved" / "rejected" / "expired"
-    new_token: str | None = None  # approved 时返回 (B 端 receive 后写入 sessionStorage)
     username: str | None = None
+
+
+class ClaimRequestOut(BaseModel):
+    token: str
+    username: str
 
 
 # ─────────────────────────────────────────────────────────────
@@ -119,34 +129,59 @@ def _get_current_username_from_token(request: Request) -> str:
     return username
 
 
+def _claim_secret_digest(claim_secret: str) -> bytes:
+    return hashlib.sha256(claim_secret.encode()).digest()
+
+
+def _claim_secret_from_request(request: Request) -> str:
+    claim_secret = request.headers.get("X-Login-Claim", "")
+    if not claim_secret or len(claim_secret) > 256:
+        raise HTTPException(status_code=404, detail="申请不存在或已过期")
+    return claim_secret
+
+
+def _find_claim_request_locked(request_id: str, request: Request) -> LoginRequestInfo:
+    owner = _PENDING_REQUEST_OWNERS.get(request_id)
+    if owner is None:
+        raise HTTPException(status_code=404, detail="申请不存在或已过期")
+    target = next(
+        (item for item in _PENDING_REQUESTS.get(owner, []) if item.request_id == request_id),
+        None,
+    )
+    if target is None:
+        raise HTTPException(status_code=404, detail="申请不存在或已过期")
+    supplied = _claim_secret_digest(_claim_secret_from_request(request))
+    if not secrets.compare_digest(supplied, target.claim_secret_digest):
+        raise HTTPException(status_code=404, detail="申请不存在或已过期")
+    return target
+
+
 def _evict_expired_requests_locked(now: float) -> None:
     """跟 L4.75 v2 _drop_expired_queue_locked 1:1 stable 配套, 清理超时申请."""
     for username in list(_PENDING_REQUESTS.keys()):
-        retained = []
+        retained: list[LoginRequestInfo] = []
         for r in _PENDING_REQUESTS.get(username, []):
             if r.status == "pending" and now - r.created_at >= LOGIN_REQUEST_TIMEOUT_SECONDS:
                 r.status = "expired"
-            if r.status == "pending":
-                retained.append(r)
+                r.resolved_at = now
+            terminal_expired = (
+                r.resolved_at is not None
+                and now - r.resolved_at >= LOGIN_REQUEST_TIMEOUT_SECONDS
+            )
+            if terminal_expired:
+                _PENDING_REQUEST_OWNERS.pop(r.request_id, None)
+                continue
+            retained.append(r)
         if retained:
             _PENDING_REQUESTS[username] = retained
         else:
             _PENDING_REQUESTS.pop(username, None)
 
-
-def _is_account_active(username: str) -> bool:
-    """跟 L4.84 1:1 stable 配套, 检查账号是否有 active token."""
-    return any(
-        token_user == username
-        for token_user, _ in ACTIVE_TOKENS.values()
-    )
-
-
 # ─────────────────────────────────────────────────────────────
-# 4 endpoint (跟 L4.84 + L4.75 v2 1:1 stable 永久规则化沿用)
+# 6 endpoints (create/pending/approve/reject/status/claim)
 # ─────────────────────────────────────────────────────────────
 @router.post("/login-request", response_model=LoginRequestOut)
-def create_login_request(req: LoginRequestIn, request: Request):
+def create_login_request(req: LoginRequestIn, request: Request, response: Response):
     """L4.85 治本: B 申请登录 admin (admin 当前 active).
 
     流程 (跟 L4.42 立项实证 SOP 1:1 stable 配套):
@@ -159,12 +194,8 @@ def create_login_request(req: LoginRequestIn, request: Request):
     client_ip = _get_client_ip(request)
     now = time.monotonic()
 
-    # 1. 验证密码 (跟 L4.84 1:1 stable 永久规则化沿用)
-    if req.username not in VALID_CREDENTIALS:
-        raise HTTPException(status_code=401, detail="账号或密码错误")
-    stored_hash = VALID_CREDENTIALS[req.username]
-    if not bcrypt.checkpw(req.password.encode(), stored_hash.encode()):
-        raise HTTPException(status_code=401, detail="账号或密码错误")
+    # 跟普通 login 共用账号级失败计数和 15 分钟锁定，禁止弱验证旁路。
+    _authenticate_credentials(req.username, req.password, client_ip)
 
     with _STATE_LOCK:
         _evict_expired_requests_locked(now)
@@ -177,11 +208,20 @@ def create_login_request(req: LoginRequestIn, request: Request):
                 detail="账号当前未激活, 请直接走 /api/v1/auth/login",
             )
 
-        # 3. 已经有 pending 申请? 复用 (跟 L4.75 v2 active session 1:1 stable 配套)
+        claim_secret = secrets.token_urlsafe(32)
+        claim_digest = _claim_secret_digest(claim_secret)
+
+        # 同一 IP 重试时轮换 claim secret 并复用申请，避免重复弹窗。
         for existing in _PENDING_REQUESTS.get(req.username, []):
-            if existing.status == "pending":
+            if existing.status == "pending" and existing.requester_ip == client_ip:
+                existing.claim_secret_digest = claim_digest
+                # 新 claim secret 等同一次新的申请凭据；同步刷新服务端 TTL，
+                # 与 B 端重新显示的 300 秒倒计时保持一致。
+                existing.created_at = now
+                response.headers["Cache-Control"] = "no-store"
                 return LoginRequestOut(
                     request_id=existing.request_id,
+                    claim_token=claim_secret,
                     status="pending",
                     message="已有待处理申请, 请等待当前用户响应",
                 )
@@ -194,12 +234,14 @@ def create_login_request(req: LoginRequestIn, request: Request):
             target_username=req.username,
             created_at=now,
             status="pending",
+            claim_secret_digest=claim_digest,
         )
         _PENDING_REQUESTS.setdefault(req.username, []).append(new_request)
-        # L4.85.1 治本: B 端鉴权用 _PENDING_REQUEST_TOKENS 记录 (跟 get_request_status 1:1 stable 永久规则化沿用)
-        _PENDING_REQUEST_TOKENS[request_id] = req.username
+        _PENDING_REQUEST_OWNERS[request_id] = req.username
+        response.headers["Cache-Control"] = "no-store"
         return LoginRequestOut(
             request_id=request_id,
+            claim_token=claim_secret,
             status="pending",
             message=f"账号 {req.username} 正在被使用, 已发送申请给当前用户",
         )
@@ -210,7 +252,6 @@ def get_pending_requests(request: Request):
     """A 查待处理申请 (A 必须是 active 用户, 跟 L4.84 1:1 stable 配套)."""
     current_username = _get_current_username_from_token(request)
     now = time.monotonic()
-
     with _STATE_LOCK:
         _evict_expired_requests_locked(now)
         pending = _PENDING_REQUESTS.get(current_username, [])
@@ -252,15 +293,11 @@ def approve_login_request(request_id: str, request: Request):
 
         # 2. 标记 approved + A 登出 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用)
         target.status = "approved"
+        target.resolved_at = now
         _evict_previous_sessions_for_user(current_username)
-
-        # 3. 给 B 发新 token (跟 L4.84 login() 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)
-        new_token = secrets.token_urlsafe(32)
-        ACTIVE_TOKENS[new_token] = (current_username, datetime.now())
 
         return ApproveRequestOut(
             success=True,
-            new_token=new_token,
             username=current_username,
         )
 
@@ -284,78 +321,53 @@ def reject_login_request(request_id: str, request: Request):
             raise HTTPException(status_code=404, detail="申请不存在或已处理")
 
         target.status = "rejected"
+        target.resolved_at = now
         return RejectRequestOut(success=True)
-
-
-# === L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 plan-eng-review 1:1 stable 永久规则化沿用) ===
-# B 端用 request_id + username 鉴权 (B 端没 token, 用 request 创建时的 username)
-# 简化方案: B 端发送申请时返回 request_id, B 端轮询此 endpoint
-# 实际安全: 加 _pending_request_tokens dict, B 端发送申请时返回 token, B 端轮询时验证
-# 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套: 复用 _PENDING_REQUESTS + request_id 作为 B 端鉴权
-_PENDING_REQUEST_TOKENS: dict[str, str] = {}  # key=request_id, value=requester_username (B 端鉴权用)
 
 
 @router.get("/login-request/{request_id}/status", response_model=StatusRequestOut)
 def get_request_status(request_id: str, request: Request):
-    """L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 NavBar.vue B 端自动跳 1:1 stable 永久规则化沿用).
-
-    流程 (跟 L4.42 立项实证 SOP 1:1 stable 配套, 跟 plan-eng-review 5 维分析 1:1 stable 永久规则化沿用):
-    1. B 端发送申请 → 返回 request_id + _PENDING_REQUEST_TOKENS[request_id] = username
-    2. B 端 polling 此 endpoint, 用 _PENDING_REQUEST_TOKENS[request_id] 鉴权 (B 端 username 在创建时已记录)
-    3. 如果 status == "approved", 返回 new_token (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用, 后端 manage)
-    4. B 端 receive new_token → 写入 sessionStorage + router.push('/audience')
-    """
+    """B 用独占 claim secret 幂等查询状态；GET 不创建或领取会话。"""
     now = time.monotonic()
-
     with _STATE_LOCK:
-        # L4.85.1 治本: status endpoint 不调 _evict_expired_requests_locked (status 只读, 避免把 approved/rejected 的请求也清掉)
-        # 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 配套
+        _evict_expired_requests_locked(now)
+        target = _find_claim_request_locked(request_id, request)
+        return StatusRequestOut(
+            request_id=request_id,
+            status=target.status,
+            username=target.target_username if target.status == "approved" else None,
+        )
 
-        # 用 _PENDING_REQUEST_TOKENS[request_id] 找 B 端 username
-        requester_username = _PENDING_REQUEST_TOKENS.get(request_id)
-        if requester_username is None:
-            raise HTTPException(status_code=404, detail="申请不存在或已过期")
 
-        # 找 request
-        pending = _PENDING_REQUESTS.get(requester_username, [])
-        target = None
-        for r in pending:
-            if r.request_id == request_id:
-                target = r
-                break
-        if target is None:
-            raise HTTPException(status_code=404, detail="申请不存在或已处理")
+@router.post("/login-request/{request_id}/claim", response_model=ClaimRequestOut)
+def claim_login_request(request_id: str, request: Request, response: Response):
+    """B 原子领取批准后的会话；相同 claim 可安全重试并拿到同一 token。"""
+    now = time.monotonic()
+    with _STATE_LOCK:
+        _evict_expired_requests_locked(now)
+        target = _find_claim_request_locked(request_id, request)
+        if target.status == "pending":
+            raise HTTPException(status_code=409, detail="申请仍在等待处理")
+        if target.status == "rejected":
+            raise HTTPException(status_code=409, detail="申请已被拒绝")
+        if target.status == "expired":
+            raise HTTPException(status_code=410, detail="申请已过期, 请重新申请")
 
-        if target.status == "approved":
-            # approved 时 generate new_token (跟 approve_login_request 1:1 stable 复用)
-            new_token = secrets.token_urlsafe(32)
-            ACTIVE_TOKENS[new_token] = (target.target_username, datetime.now())
-            # 清理 _PENDING_REQUEST_TOKENS (B 端 receive 后不需要)
-            _PENDING_REQUEST_TOKENS.pop(request_id, None)
-            return StatusRequestOut(
-                request_id=request_id,
-                status="approved",
-                new_token=new_token,
-                username=target.target_username,
-            )
-        elif target.status == "rejected":
-            _PENDING_REQUEST_TOKENS.pop(request_id, None)
-            return StatusRequestOut(
-                request_id=request_id,
-                status="rejected",
-            )
-        elif target.status == "expired":
-            _PENDING_REQUEST_TOKENS.pop(request_id, None)
-            return StatusRequestOut(
-                request_id=request_id,
-                status="expired",
-            )
-        else:
-            # pending
-            return StatusRequestOut(
-                request_id=request_id,
-                status="pending",
-            )
+        with _AUTH_STATE_LOCK:
+            if target.approved_token is not None:
+                if target.approved_token not in ACTIVE_TOKENS:
+                    raise HTTPException(status_code=410, detail="登录授权已失效, 请重新申请")
+                token = target.approved_token
+            else:
+                _evict_previous_sessions_for_user(target.target_username)
+                token = secrets.token_urlsafe(32)
+                target.approved_token = token
+                # 给首次领取后的丢包重试保留完整 claim TTL。
+                target.resolved_at = now
+                ACTIVE_TOKENS[token] = (target.target_username, datetime.now())
+
+        response.headers["Cache-Control"] = "no-store"
+        return ClaimRequestOut(token=token, username=target.target_username)
 
 
 # 测试用 reset (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 1:1 stable 永久规则化沿用)
@@ -363,3 +375,4 @@ def _reset_l4_85_state() -> None:
     """Clear L4.85 申请+同意 state for deterministic regression tests."""
     with _STATE_LOCK:
         _PENDING_REQUESTS.clear()
+        _PENDING_REQUEST_OWNERS.clear()

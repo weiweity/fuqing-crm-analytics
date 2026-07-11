@@ -57,7 +57,7 @@
           </div>
           <div class="error-message" v-show="passwordErr">{{ passwordErr }}</div>
 
-          <button type="submit" class="btn-primary" :disabled="authStore.isLoading || applyRequestSent">
+          <button type="submit" class="btn-primary" :disabled="authStore.isLoading || applySubmitting || applyRequestSent">
             {{ authStore.isLoading ? '登录中...' : '登 录' }}
           </button>
 
@@ -65,10 +65,10 @@
           <button
             type="button"
             class="btn-apply"
-            :disabled="authStore.isLoading || applyRequestSent"
+            :disabled="authStore.isLoading || applySubmitting || applyRequestSent"
             @click="handleApply"
           >
-            {{ applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请登录' }}
+            {{ applySubmitting ? '正在申请...' : applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请登录' }}
           </button>
 
           <!-- L4.85 申请+同意 模式: 申请状态消息 -->
@@ -98,7 +98,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { loginRequest, getLoginRequestStatus } from '@/api/loginRequest'
+import { claimLoginRequest, loginRequest, getLoginRequestStatus } from '@/api/loginRequest'
 
 // Rive npm 包是 UMD 构建，Vite 的 commonjs 插件会自动转换，
 // 但为了保险仍做一层类型探测
@@ -134,10 +134,35 @@ const applyRequestExpiresAt = ref(0)  // 申请过期时间戳 (毫秒)
 const applyRemainingSeconds = ref(0)  // 申请剩余秒数
 const applyMessage = ref('')  // 申请状态消息
 const applyMessageType = ref<'info' | 'success' | 'error'>('info')
+const applySubmitting = ref(false)
 let applyTimer: number | null = null
+let applyStatusTimer: number | null = null
+let applyStatusPollInFlight = false
+let applyPollingDisposed = false
+let applyRequestController: AbortController | null = null
+let applyStatusController: AbortController | null = null
+
+function stopApplyStatusPolling() {
+  if (applyStatusTimer !== null) {
+    window.clearTimeout(applyStatusTimer)
+    applyStatusTimer = null
+  }
+  applyStatusController?.abort()
+  applyStatusController = null
+}
+
+function scheduleApplyStatusPoll(requestId: string, user: string, claimToken: string) {
+  stopApplyStatusPolling()
+  if (applyPollingDisposed || !applyRequestSent.value) return
+  applyStatusTimer = window.setTimeout(() => {
+    applyStatusTimer = null
+    void pollApplyStatus(requestId, user, claimToken)
+  }, 5000)
+}
 
 // === L4.85 申请+同意 模式: 申请登录 (跟后端 L4.85 1:1 stable 永久规则化沿用) ===
 async function handleApply() {
+  if (applySubmitting.value || applyRequestSent.value || applyPollingDisposed) return
   const user = username.value.trim()
   const pwd = password.value
   if (!user || !pwd) {
@@ -148,9 +173,13 @@ async function handleApply() {
 
   applyMessage.value = '正在发送申请...'
   applyMessageType.value = 'info'
+  applySubmitting.value = true
+  const controller = new AbortController()
+  applyRequestController = controller
 
   try {
-    const res = await loginRequest(user, pwd)
+    const res = await loginRequest(user, pwd, controller.signal)
+    if (applyPollingDisposed) return
     applyRequestSent.value = true
     applyRequestExpiresAt.value = Date.now() + 300 * 1000  // 5 分钟, 跟 L4.85 LOGIN_REQUEST_TIMEOUT_SECONDS 1:1 stable 配套
     applyRemainingSeconds.value = 300
@@ -165,59 +194,70 @@ async function handleApply() {
         clearInterval(applyTimer!)
         applyTimer = null
         applyRequestSent.value = false
+        stopApplyStatusPolling()
         applyMessage.value = '申请已超时, 请重新登录或重新申请'
         applyMessageType.value = 'error'
       }
     }, 1000)
     // L4.85.1 治本: B 端 polling 5s 检测自己申请状态 (跟后端 /login-request/{id}/status 1:1 stable 永久规则化沿用)
     // 跟 user 7/10 拍板 "admin 账号只允许 1 个人在线" 1:1 stable 配套
-    pollApplyStatus(res.request_id, user)
+    scheduleApplyStatusPoll(res.request_id, user, res.claim_token)
   } catch (err: any) {
-    const detail = err?.response?.data?.detail || err?.message || '申请失败'
+    if (applyPollingDisposed) return
+    const detail = err?.data?.detail || err?.response?.data?.detail || err?.message || '申请失败'
     applyMessage.value = detail
     applyMessageType.value = 'error'
+  } finally {
+    if (applyRequestController === controller) applyRequestController = null
+    applySubmitting.value = false
   }
 }
 
 // === L4.85.1 治本: B 端 polling 5s 检测自己申请状态 (跟后端 /login-request/{id}/status 1:1 stable 永久规则化沿用) ===
-async function pollApplyStatus(requestId: string, username: string) {
-  const pollTimer = window.setInterval(async () => {
-    if (!applyRequestSent.value) {
-      window.clearInterval(pollTimer)
-      return
+async function pollApplyStatus(requestId: string, username: string, claimToken: string) {
+  if (applyPollingDisposed || !applyRequestSent.value || applyStatusPollInFlight) return
+  applyStatusPollInFlight = true
+  const controller = new AbortController()
+  applyStatusController = controller
+  try {
+    const status = await getLoginRequestStatus(requestId, claimToken, controller.signal)
+    if (applyPollingDisposed) return
+    if (status.status === 'approved') {
+      const claimed = await claimLoginRequest(requestId, claimToken, controller.signal)
+      if (applyPollingDisposed) return
+      if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+      authStore.setSession(claimed.token, claimed.username || status.username || username)
+      applyMessage.value = '申请已通过, 正在登录...'
+      applyMessageType.value = 'success'
+      applyRequestSent.value = false
+      const redirect = route.query.redirect as string
+      await router.replace(redirect || '/audience')
+    } else if (status.status === 'rejected') {
+      if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+      applyRequestSent.value = false
+      applyMessage.value = '申请被拒绝, 请联系当前用户或稍后重试'
+      applyMessageType.value = 'error'
+    } else if (status.status === 'expired') {
+      if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+      applyRequestSent.value = false
+      applyMessage.value = '申请已超时, 请重新登录或重新申请'
+      applyMessageType.value = 'error'
     }
-    try {
-      const status = await getLoginRequestStatus(requestId)
-      if (status.status === 'approved' && status.new_token) {
-        // 申请已通过: 写入 sessionStorage + 跳 dashboard
-        window.clearInterval(pollTimer)
-        if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
-        sessionStorage.setItem('fq_crm_auth_token', status.new_token)
-        sessionStorage.setItem('fq_crm_auth_user', status.username || username)
-        applyMessage.value = '申请已通过, 正在登录...'
-        applyMessageType.value = 'success'
-        applyRequestSent.value = false
-        setTimeout(() => {
-          const redirect = route.query.redirect as string
-          router.push(redirect || '/audience')
-        }, 800)
-      } else if (status.status === 'rejected') {
-        window.clearInterval(pollTimer)
-        if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
-        applyRequestSent.value = false
-        applyMessage.value = '申请被拒绝, 请联系当前用户或稍后重试'
-        applyMessageType.value = 'error'
-      } else if (status.status === 'expired') {
-        window.clearInterval(pollTimer)
-        if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
-        applyRequestSent.value = false
-        applyMessage.value = '申请已超时, 请重新登录或重新申请'
-        applyMessageType.value = 'error'
-      }
-    } catch (err) {
-      // 静默: 401/网络异常等下次 polling
+  } catch (err: any) {
+    if (applyPollingDisposed) return
+    if (err?.status === 404 || err?.status === 410) {
+      if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
+      applyRequestSent.value = false
+      applyMessage.value = '登录授权已失效, 请重新申请'
+      applyMessageType.value = 'error'
     }
-  }, 5000)
+  } finally {
+    if (applyStatusController === controller) applyStatusController = null
+    applyStatusPollInFlight = false
+    if (!applyPollingDisposed && applyRequestSent.value) {
+      scheduleApplyStatusPoll(requestId, username, claimToken)
+    }
+  }
 }
 
 // === Rive ===
@@ -335,11 +375,13 @@ async function handleSubmit() {
   } catch (err: any) {
     // L4.85.2 治本: 普通 login 按钮也走申请+同意流程 (跟 user 7/10 拍板 1:1 stable 永久规则化沿用)
     // 跟 L4.85.1 B 端 polling 1:1 stable 永久规则化沿用, 跟 backend auth.py 409 1:1 stable 配套
-    if (err?.response?.status === 409 && err?.response?.data?.detail?.includes('正在被使用')) {
+    const status = err?.status ?? err?.response?.status
+    const detail = err?.data?.detail ?? err?.response?.data?.detail ?? err?.message ?? ''
+    if (status === 409 && detail.includes('正在被使用')) {
       await handleApply()  // 复用现有 申请+同意 流程 (5 分钟超时 + polling 5s)
       return
     }
-    passwordErr.value = err.message || '账号或密码错误'
+    passwordErr.value = detail || '账号或密码错误'
     passwordShake.value = true
     fireTrigger(wrongTrigger)
   }
@@ -431,6 +473,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  applyPollingDisposed = true
+  applyRequestSent.value = false
+  applyRequestController?.abort()
+  applyRequestController = null
   window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('resize', onResize)
   if (riveInstance) {
@@ -438,6 +484,7 @@ onUnmounted(() => {
   }
   // L4.85: 清理申请倒计时 timer
   if (applyTimer) clearInterval(applyTimer)
+  stopApplyStatusPolling()
 })
 </script>
 

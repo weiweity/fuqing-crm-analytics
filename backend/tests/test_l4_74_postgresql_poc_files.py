@@ -51,14 +51,14 @@ def test_l474_docs_exist() -> None:
         "docs/operations/citus-cluster-runbook.md",
         "docs/architecture/dual-write-ux-design.md",
         "docs/architecture/dual-write-strategy.md",
-        "docs/sprints/SPRINT-L474-STAGE-1-REQUIREMENT-BASELINE.md",
-        "docs/sprints/SPRINT-L474-STAGE-1-SELECTION-REPORT.md",
-        "docs/sprints/SPRINT-L474-STAGE-2-BENCHMARK-REPORT.md",
-        "docs/sprints/SPRINT-L474-STAGE-2-SQL-COMPATIBILITY.md",
-        "docs/sprints/SPRINT-L474-STAGE-3-CLUSTER-BENCHMARK.md",
-        "docs/sprints/SPRINT-L474-STAGE-5-POC-SUMMARY.md",
-        "docs/sprints/SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md",
-        "docs/sprints/SPRINT-L474-STAGE-5-RISK-ASSESSMENT-COST-ESTIMATE.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-1-REQUIREMENT-BASELINE.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-1-SELECTION-REPORT.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-2-BENCHMARK-REPORT.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-2-SQL-COMPATIBILITY.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-3-CLUSTER-BENCHMARK.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-5-POC-SUMMARY.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md",
+        "docs/sprints/archive/SPRINT-L474-STAGE-5-RISK-ASSESSMENT-COST-ESTIMATE.md",
     ]
 
     for rel in required:
@@ -66,10 +66,10 @@ def test_l474_docs_exist() -> None:
 
 
 def test_l474_stage345_docs_lock_go_no_go_and_dual_write_contract() -> None:
-    cluster = (ROOT / "docs/sprints/SPRINT-L474-STAGE-3-CLUSTER-BENCHMARK.md").read_text(encoding="utf-8")
+    cluster = (ROOT / "docs/sprints/archive/SPRINT-L474-STAGE-3-CLUSTER-BENCHMARK.md").read_text(encoding="utf-8")
     strategy = (ROOT / "docs/architecture/dual-write-strategy.md").read_text(encoding="utf-8")
-    decision = (ROOT / "docs/sprints/SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md").read_text(encoding="utf-8")
-    cost = (ROOT / "docs/sprints/SPRINT-L474-STAGE-5-RISK-ASSESSMENT-COST-ESTIMATE.md").read_text(encoding="utf-8")
+    decision = (ROOT / "docs/sprints/archive/SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md").read_text(encoding="utf-8")
+    cost = (ROOT / "docs/sprints/archive/SPRINT-L474-STAGE-5-RISK-ASSESSMENT-COST-ESTIMATE.md").read_text(encoding="utf-8")
 
     assert "10 并发成功率" in cluster
     assert "duckdb_to_parquet_etl.py" in strategy

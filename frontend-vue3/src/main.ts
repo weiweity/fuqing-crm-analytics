@@ -47,7 +47,7 @@ async function bootstrap() {
   // 监听认证过期事件，统一清理状态并跳转
   window.addEventListener('auth:expired', () => {
     const authStore = useAuthStore()
-    authStore.logout()
+    authStore.clearSession()
     if (router.currentRoute.value.path !== '/login') {
       router.replace('/login')
     }

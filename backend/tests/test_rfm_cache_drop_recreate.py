@@ -117,7 +117,7 @@ class TestClearRfmCacheDropRecreate:
             conn.close()
 
     def test_drop_recreate_preserves_schema(self, tmp_path, monkeypatch):
-        """DROP+CREATE 后表结构完整: cache_key PRIMARY KEY + orders_count_at_write 列 + period idx.
+        """DROP+CREATE 后表结构完整，且不重建会损坏 UPSERT 的 period 二级索引。
 
         Sprint 29+#198: DROP 后必须 CREATE 完整 schema (含 cache_key UNIQUE + orders_count_at_write),
         否则 _write_db_cache 后续 INSERT 会缺列报错.
@@ -160,13 +160,13 @@ class TestClearRfmCacheDropRecreate:
                 f"缺 orders_count_at_write 列, 实际 {col_names}"
             )
 
-            # index 检查 (period idx 应该重建)
+            # L4.74: period 二级索引会损坏 DuckDB UPSERT，清空后也不得重建。
             idx = conn.execute(
                 "SELECT index_name FROM duckdb_indexes() WHERE table_name = ?",
                 [RFM_CACHE_TABLE],
             ).fetchall()
             idx_names = [i[0] for i in idx]
-            assert len(idx_names) >= 1, f"应该至少 1 个 index, 实际 {idx_names}"
+            assert idx_names == [], f"不应重建 period 二级索引, 实际 {idx_names}"
         finally:
             conn.close()
 

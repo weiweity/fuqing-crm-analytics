@@ -48,8 +48,11 @@ export interface RepurchaseCycleParams {
   compare_end_date?: string
 }
 
-export function fetchRepurchaseCycle(params: RepurchaseCycleParams): Promise<RepurchaseCycleOverview> {
-  return client.get('/v1/customer-health/repurchase-cycle', { params })
+export function fetchRepurchaseCycle(
+  params: RepurchaseCycleParams,
+  signal?: AbortSignal,
+): Promise<RepurchaseCycleOverview> {
+  return client.get('/v1/customer-health/repurchase-cycle', { params, signal })
 }
 
 export interface CohortRetentionParams {
@@ -59,8 +62,11 @@ export interface CohortRetentionParams {
   channel?: string
 }
 
-export function fetchCohortRetention(params: CohortRetentionParams): Promise<CohortRetentionResponse> {
-  return client.get('/v1/customer-health/cohort-retention', { params })
+export function fetchCohortRetention(
+  params: CohortRetentionParams,
+  signal?: AbortSignal,
+): Promise<CohortRetentionResponse> {
+  return client.get('/v1/customer-health/cohort-retention', { params, signal })
 }
 
 export interface ValueTiersParams {
@@ -213,8 +219,11 @@ function toSingleUserModeError(error: unknown): SingleUserModeError {
   return wrapped
 }
 
-export function fetchRFMAnalysis(params: RFMAnalysisParams): Promise<RFMAnalysisResponse> {
-  return (client.get('/v1/customer-health/rfm-analysis', { params }) as Promise<RFMAnalysisResponse>).catch((error) => {
+export function fetchRFMAnalysis(
+  params: RFMAnalysisParams,
+  signal?: AbortSignal,
+): Promise<RFMAnalysisResponse> {
+  return (client.get('/v1/customer-health/rfm-analysis', { params, signal }) as Promise<RFMAnalysisResponse>).catch((error) => {
     if (isSingleUserModeError(error)) {
       throw toSingleUserModeError(error)
     }
