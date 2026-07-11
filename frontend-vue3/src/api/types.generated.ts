@@ -5178,6 +5178,8 @@ export interface components {
              * @default 0
              */
             nonfull_repurchase_aus: number;
+            /** Sample Users Yoy Pct */
+            sample_users_yoy_pct?: number | null;
             /** Repurchase Users Yoy Pct */
             repurchase_users_yoy_pct?: number | null;
             /** Repurchase Gsv Yoy Pct */
@@ -5196,6 +5198,10 @@ export interface components {
             full_repurchase_aus_yoy_pct?: number | null;
             /** Nonfull Repurchase Gsv Yoy Pct */
             nonfull_repurchase_gsv_yoy_pct?: number | null;
+            /** Nonfull Repurchase Users Yoy Pct */
+            nonfull_repurchase_users_yoy_pct?: number | null;
+            /** Sample Users Mom Pct */
+            sample_users_mom_pct?: number | null;
             /** Repurchase Users Mom Pct */
             repurchase_users_mom_pct?: number | null;
             /** Repurchase Gsv Mom Pct */
@@ -5214,6 +5220,8 @@ export interface components {
             full_repurchase_aus_mom_pct?: number | null;
             /** Nonfull Repurchase Gsv Mom Pct */
             nonfull_repurchase_gsv_mom_pct?: number | null;
+            /** Nonfull Repurchase Users Mom Pct */
+            nonfull_repurchase_users_mom_pct?: number | null;
         };
         /**
          * SamplingCohortRetentionResponse

@@ -24,6 +24,8 @@ class SamplingChannelSummary(BaseModel):
     # Sprint 144: ROI 卡片同比/环比，percentage 已 *100，pp 为百分点差。
     # 注: PercentageField/PpField 顶部已直接 import, 不需要 string forward reference
     # (CLAUDE.md §B1+B2 + Sprint 18 #142 保留 RatioField string ref 是 Pydantic v2 兼容性考虑)
+    # Sprint 205: 跟 _add_compare_metrics() 输出对齐，避免 response_model 过滤新字段。
+    sample_users_yoy_pct: Optional[PercentageField] = None
     repurchase_users_yoy_pct: Optional[PercentageField] = None
     repurchase_gsv_yoy_pct: Optional[PercentageField] = None
     repurchase_rate_yoy_pp: Optional[PpField] = None
@@ -33,6 +35,8 @@ class SamplingChannelSummary(BaseModel):
     repurchase_aus_yoy_pct: Optional[PercentageField] = None
     full_repurchase_aus_yoy_pct: Optional[PercentageField] = None
     nonfull_repurchase_gsv_yoy_pct: Optional[PercentageField] = None
+    nonfull_repurchase_users_yoy_pct: Optional[PercentageField] = None
+    sample_users_mom_pct: Optional[PercentageField] = None
     repurchase_users_mom_pct: Optional[PercentageField] = None
     repurchase_gsv_mom_pct: Optional[PercentageField] = None
     repurchase_rate_mom_pp: Optional[PpField] = None
@@ -42,6 +46,7 @@ class SamplingChannelSummary(BaseModel):
     repurchase_aus_mom_pct: Optional[PercentageField] = None
     full_repurchase_aus_mom_pct: Optional[PercentageField] = None
     nonfull_repurchase_gsv_mom_pct: Optional[PercentageField] = None
+    nonfull_repurchase_users_mom_pct: Optional[PercentageField] = None
 
 
 class SamplingLevelSummary(BaseModel):

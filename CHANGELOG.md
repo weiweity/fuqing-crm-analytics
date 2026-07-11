@@ -1,6 +1,7 @@
 ## [unreleased] - 2026-07-11 (Sprint 205+ L4.91 Excel 导出全量语义/契约层治本 + L4.85.4 登录交接 + 重查询稳定性治本 + L4.81 YOY no *100 契约治本 + L4.80 frontend 26 列 WYSIWYG + L4.79 backend 5 会员字段补齐 + L4.75 v2 共享账号 LAN 排队 + L4.77 docs 整合 + L4.74 PG migration 0 commit 收口)
 
 ### Fixed
+- **Sprint 205 派样人数同比响应丢字段修复 (2026-07-12)**: `SamplingChannelSummary` 补齐 `sample_users_*` 与 `nonfull_repurchase_users_*` 的 YOY/MOM `PercentageField` 契约，并同步 OpenAPI TypeScript 类型。根因是 `/api/v1/sampling/roi` 的 FastAPI `response_model` 对未声明字段静默过滤，导致服务层已算出的同比值在 JSON 响应中缺失；新增无 DuckDB 依赖的嵌套响应契约回归测试锁定该边界。
 - **L4.91 PR2 8 view kind enum 补齐治本 (2026-07-11)**: 8 个 view (FIntervalTab + MIntervalTab + RIntervalTab + ValueTierTab-health + SamplingView + CategoryRepurchaseTab + RFMSegmentDrilldown + ChurnWarningTab) xlsxColumns 中 `yoy_`/`mom_` 前缀 YOY/MOM 列加显式 `kind` enum (34 列 total). 真根因: auto-detect suffix pattern 无法匹配 `yoy_hist_users` / `yoy_repurchase_users` / `mom_change_rate` 等 prefix-key 列. 治本: 加 `kind: 'yoy_pct'` (raw 0-1 ratio) / `kind: 'yoy_pp'` (raw 0-1 diff) 显式声明. 8 files / +43-0 / 0 业务代码改动累计 **97 次** 1:1 stable 永久规则化沿用. 跟 L4.91 + L4.91 PR0 + L4.91.1 + L4.91.2 1:1 stable 永久规则链配套. vitest 14/14 PASS + build OK 773ms + pytest 22/22 PASS.
 
 ### Added
