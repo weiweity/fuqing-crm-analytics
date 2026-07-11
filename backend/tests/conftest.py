@@ -86,8 +86,12 @@ def _reset_fq_crm_credentials_env():
     # 保存原始 env
     original_env = os.environ.get("FQ_CRM_PASSWORDS")
     # 跟 .env + test_l4_85_2 setdefault 1:1 stable, 保证 _load_credentials() 缓存
-    # admin:123456 + fqsw:fqsw888
-    os.environ["FQ_CRM_PASSWORDS"] = "admin:123456,fqsw:fqsw888"
+    # admin:123456 + fqsw:fqsw888 + testuser:testpass123 (跟 test_ad_hoc_query_api.py:26 +
+    # test_ai_sandbox_execute_sprint198.py:16 + test_api_integration.py:27 + test_ad_hoc_query_sprint193_synthetic.py:11
+    # 4 个 test file 自己重置 env 到 testuser:testpass123 1:1 stable 沿用, 跟 L4.89 CI pytest collection race condition
+    # 回归治本 1:1 stable 永久规则化沿用, 跟 L4.85.9 .env 读取密码 + fail-fast 1:1 stable 永久规则化沿用,
+    # 跟 L4.50 pytest cleanup 0 业务代码改动 累计 64 次 1:1 stable 永久规则链配套)
+    os.environ["FQ_CRM_PASSWORDS"] = "admin:123456,fqsw:fqsw888,testuser:testpass123"
     # Reload VALID_CREDENTIALS (跟 L4.86 1:1 stable 永久规则化沿用)
     auth_module.VALID_CREDENTIALS.clear()
     auth_module.VALID_CREDENTIALS.update(auth_module._load_credentials())
