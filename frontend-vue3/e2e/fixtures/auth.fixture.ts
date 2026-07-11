@@ -47,7 +47,9 @@ export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    await page.waitForSelector('text=人群看板', { timeout: 30000 })
+    // L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则化沿用 login flow 治本 (跟之前 1:1 stable 永久规则化沿用 e2e test 一致):
+    // 等 e2e/category.spec.ts:14 期望的 '品类看板' (登录后跳 /category) 而不是 '人群看板' (旧 dashboard)
+    await page.waitForSelector('text=品类看板', { timeout: 30000 })
 
     await use(page)
   },
