@@ -73,7 +73,7 @@ cd frontend-vue3 && npx playwright test                   # E2E
 |---|---|
 | **版本号 / pytest baseline / sprint 0 debt / L4.x 永久规则 / fix_pattern 累计** | [`STATUS.md`](./STATUS.md) |
 | **版本变更日志 / 累计 /document-release 次数** | [`CHANGELOG.md`](./CHANGELOG.md) |
-| **AI 行为规则 (L4.x 永久规则 32+ 条)** | [`CLAUDE.md`](./CLAUDE.md) |
+| **AI 行为规则 (L4.x 永久规则 88 stable + L4.91)** | [`CLAUDE.md`](./CLAUDE.md) |
 | **技术债台账 (P0/P1/P2 + 已修复累计)** | [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md) |
 
 ---
