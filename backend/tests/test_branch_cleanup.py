@@ -82,10 +82,22 @@ class TestScriptInvocation:
 
 
 class TestGitIntegration:
-    """git 集成测试 (需要 git 仓库 + main 分支)."""
+    """git 集成测试 (需要 git 仓库 + main 分支).
+
+    跟 L4.40 fail-open + L4.86 + L4.88 1:1 stable 永久规则化沿用:
+    test_main_is_ancestor_of_origin_main 只在 main branch 检查 ancestor 关系,
+    非 main branch skip (避免 feature branch 跑 pytest 100% FAIL).
+    """
+
+    def _current_branch_is_main(self) -> bool:
+        rc, out = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], timeout=10)
+        return rc == 0 and out.strip() == "main"
 
     def test_main_is_ancestor_of_origin_main(self):
-        """main HEAD 跟 origin/main 同步 (前置条件)."""
+        """main HEAD 跟 origin/main 同步 (前置条件). 仅 main branch 检查."""
+        if not self._current_branch_is_main():
+            import pytest
+            pytest.skip("仅 main branch 检查 ancestor 关系 (跟 L4.40 fail-open + L4.86 1:1 stable 永久规则化沿用)")
         rc, out = run(["git", "rev-parse", "--verify", "main"], timeout=10)
         assert rc == 0, "main 分支不存在"
         rc2, _ = run(["git", "merge-base", "--is-ancestor", "HEAD", "main"])

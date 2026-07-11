@@ -117,13 +117,18 @@ class ClaimRequestOut(BaseModel):
 # ─────────────────────────────────────────────────────────────
 # 辅助函数 (跟 L4.75 v2 + L4.84 1:1 stable 配套)
 # ─────────────────────────────────────────────────────────────
-def _get_current_username_from_token(request: Request) -> str:
-    """跟 L4.84 1:1 stable 配套, 从 Authorization header 提取 username."""
+def _get_current_username_from_token(request: Request, sliding: bool = True) -> str:
+    """跟 L4.84 1:1 stable 配套, 从 Authorization header 提取 username.
+
+    sliding=False 时不刷新 last_active_at (read-only check, 跟 L4.85.4 1:1 stable 永久规则化沿用).
+    polling / status 等 read-only endpoint 必传 sliding=False, 避免用户离开工位后 polling 持续续期
+    → _is_account_active 永远 True → B 端 login 409 卡申请登录.
+    """
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="未提供认证令牌")
     token = auth[7:]
-    username = _verify_token(token)
+    username = _verify_token(token, sliding=sliding)
     if username is None:
         raise HTTPException(status_code=401, detail="未登录或登录已过期")
     return username
@@ -249,8 +254,13 @@ def create_login_request(req: LoginRequestIn, request: Request, response: Respon
 
 @router.get("/login-requests/pending", response_model=PendingRequestsOut)
 def get_pending_requests(request: Request):
-    """A 查待处理申请 (A 必须是 active 用户, 跟 L4.84 1:1 stable 配套)."""
-    current_username = _get_current_username_from_token(request)
+    """A 查待处理申请 (A 必须是 active 用户, 跟 L4.84 1:1 stable 配套).
+
+    L4.85.4 治本: sliding=False, read-only check 不刷新 last_active_at.
+    修复 user 7/11 报"我离开工位 polling 仍跑" → _is_account_active 永远 True → B 端 login 409.
+    跟 L4.85.4 + L4.85.3 1:1 stable 永久规则化沿用.
+    """
+    current_username = _get_current_username_from_token(request, sliding=False)
     now = time.monotonic()
     with _STATE_LOCK:
         _evict_expired_requests_locked(now)
