@@ -324,13 +324,16 @@ function onAlertClick(alertType: string) {
   if (tab) emit('navigate-tab', tab)
 }
 
-// ── 渠道评分 Excel 导出列 ──
+// ── 渠道评分 Excel 导出列 (L4.91 PR1 Bug #2 治本: 跟 L4.81 契约 1:1 stable 永久规则化沿用) ──
+// L4.81 契约: backend 返 raw 0-1 ratio diff; 但 health_score 是 0-100 评分, diff 是 0-100 标度差值
+// (e.g. 66.3-100.0=-33.7 raw 0-100 标度, 非 0-1 ratio). 用 `kind: 'number'` + caller numFmt
+// '+0.00"pp";-0.00"pp";0.00"pp"' 显示 "-33.70pp" 而非 "-3370.00pp" (L4.91 PR0 kind enum 治本 numFmt 优先级)
+// 删除冗余 `health_score_yoy_label` 列 (与 health_score_yoy 重复, 易触发 *100 bug, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用)
 const channelScoreXlsxColumns: XlsxColumn[] = [
-  { header: '渠道', key: 'channel', width: 10 },
-  { header: '当期评分', key: 'health_score', width: 12, numFmt: '0.0' },
-  { header: '去年同期', key: 'ly_health_score', width: 12, numFmt: '0.0' },
-  { header: '同比变化', key: 'health_score_yoy', width: 12, numFmt: '0.00' },
-  { header: '同比变化 (pp)', key: 'health_score_yoy_label', width: 14 },
+  { header: '渠道', key: 'channel', kind: 'text', width: 10 },
+  { header: '当期评分', key: 'health_score', kind: 'number', width: 12, numFmt: '0.0' },
+  { header: '去年同期', key: 'ly_health_score', kind: 'number', width: 12, numFmt: '0.0' },
+  { header: '同比变化 (pp)', key: 'health_score_yoy', kind: 'number', width: 14, numFmt: '+0.00"pp";-0.00"pp";0.00"pp"' },
 ]
 </script>
 
