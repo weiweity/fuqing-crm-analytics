@@ -63,8 +63,22 @@ L4.74 PostgreSQL 16 分布式项目 (留尾 7/16 后接手人启动) 的 16 个 
 | L4.86 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_86_ci_burst_red_close.md` | CI 爆红 4/4 jobs 全绿治本 (.github/workflows/lint.yml test job FQ_CRM_PASSWORDS env) |
 | L4.87 | (无 close memory, /investigate Phase 1-5 治本) | 自动弹窗治本 (NavBar.vue polling 不被 document.hidden 跳过 + visibilitychange 立即触发 + 30s → 10s) |
 | L4.88 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_88_ci_pytest_race_close.md` | CI 爆红 pytest collection race condition 治本 (conftest.py autouse fixture 重置 env + reload VALID_CREDENTIALS) |
+| L4.91 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_91_excel_export_ssot_close.md` | Excel 导出全量 semantic/contractual 治本 (8 件 bug + 24 视图审计 + kind enum 显式 SSOT) |
+| L4.91.1 | (main HEAD `51dbde1` entry via CHANGELOG/STATUS) | market-focus#product-customer 对比行 Excel yoy 格式错治本 (formatValue per-row dispatch + ProductCustomerTab 14 列 WYSIWYG) |
+| L4.91.2 | (main HEAD `4f64f9c` entry via CHANGELOG/STATUS) | ProductAssetsTab + OtherProductAssetsTab formatValue + test_helpers reset endpoint + 8 view kind enum 补齐 (34 列 total, 技术债 #1-#4 全部闭环) |
 
-**0 业务代码改动累计 Sprint 60+ 63 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用). 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+**0 业务代码改动累计 Sprint 60+ 97 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用). 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+
+## Sprint 205+ docs 最终归档 (2026-07-12 7/16 离职前最终 doc cleanup)
+
+L4.91 完整收口后最终 doc cleanup:
+- **13 件已 ship handoff/investigation → archive/**: L4.85.7 bug1 handoff + L4.91.2 investigate + 4 Sprint205+ handoff + 2 verification index + 1 handoff prompt index + 1 architecture review + 1 dimension autoplan + 1 skill snapshot + 1 Trino benchmark
+- **8 件 Codex prompt 纯 prompt → 删除**: CODEX-APP-GOAL-MODE-PROMPT (4) + CODEX-PROMPT-Sprint144 + HANDOFF-TO-PC2 + PROMPT-TO-PC2 + PROMPT-TO-WORKBUDDY
+- **sprints/ 精简**: 12 文件 → 1 个索引文件 (_sprint-close-index.md)
+- **architecture/ 精简**: 8 文件 → 6 文件 (移出 2 件 handoff/investigate)
+- **archive 总计**: 75 件, 完整历史 reference
+
+**0 业务代码改动累计 Sprint 60+ 97 次 1:1 stable 永久规则化沿用** (跟 L4.50 + L4.55 + L4.20 1:1 stable 永久规则链配套).
 
 ## 维护规则 (Sprint 收口 12 步流程 §12)
 

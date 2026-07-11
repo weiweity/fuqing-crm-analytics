@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 文档按 lifecycle 分层, 新人 5 分钟找到入口。
-> **最后更新**: 2026-07-11 (Sprint 205+ L4.91 完整收口 + 7/16 离职前最后一次 doc cleanup: L4.91 plan + audit 2 件 → 1 个 SSOT + 5 件 L4.42 立项实证 → 1 个索引 + 6 件 wall_min 验证 → 1 个索引 + 10 件已 ship handoff/prompt → archive/ + 4 件 architecture working doc → archive/ + 3 件 operations working doc → archive/ + 1 件 RFM-high-concurrency-notice 重复 → 删除. 累计节省 22 文件, 跟 L4.42 + L4.50 + L4.55 + L4.78 1:1 stable 永久规则链配套.)
+> **最后更新**: 2026-07-12 (Sprint 205+ L4.91 PR2 全部技术债闭环 + 7/16 离职前最终 doc cleanup: 13 件已 ship handoff/investigation → archive/ + 8 件 Codex prompt 纯 prompt 删除 + sprints/ 精简为 1 个索引文件 + archive 共 75 件. 累计节省 20+ 文件, 跟 L4.42 + L4.50 + L4.55 + L4.91 + L4.91.1 + L4.91.2 1:1 stable 永久规则链配套.)
 
 ## 一图流
 
@@ -50,18 +50,7 @@ fuqing-crm-analytics/docs/
 │
 ├── sprints/                           [Sprint handoff 留尾 SSOT + 索引]
 │   ├── _sprint-close-index.md        (Sprint 193-205+ close memory 指针)
-│   ├── SPRINT201-204_L442_VERIFICATION_INDEX.md  (5 件 L4.42 立项实证索引, 1:1 stable 模式)
-│   ├── SPRINT202+_WALL_MIN_VERIFICATION_INDEX.md  (6 件 wall_min 验证 R1-R8 索引)
-│   ├── SPRINT205+_HANDOFF_PROMPT_INDEX.md        (留尾 4 件 + 已 ship 10 件 SSOT 索引)
-│   ├── SPRINT203_ARCHITECTURE_REVIEW.md          (Sprint 203 独立架构师 read-only 审查)
-│   ├── SPRINT203_R4_DIMENSION_AUTOPLAN.md        (Sprint 199+ 留尾 任务 A/B 多维度按月衍生)
-│   ├── SPRINT203_R6_SKILL_V2_7_SNAPSHOT.md       (SKILL.md v2.7 项目仓 snapshot)
-│   ├── SPRINT-N+2-TRINO-BENCHMARK.md            (Sprint N+2 Trino POC bench 模板, 0 commit 续期)
-│   ├── HANDOFF-TO-CODEX-Sprint205+-L474-5S-RFM-PERFORMANCE-FIX.md   (L4.72 + L4.74 RFM 性能 5 阶段留尾 SSOT)
-│   ├── HANDOFF-TO-CODEX-Sprint205+-L474-PostgreSQL16-Distributed.md  (L4.74 PG migration PART1 SSOT 入口, 跟 L4.78 1:1 stable)
-│   ├── HANDOFF-TO-CODEX-Sprint205+-L474-RFM-DASHBOARD-FULL-PRECOMPUTE.md  (L4.72.5 RFM 完整预计算 SSOT)
-│   ├── HANDOFF-TO-CODEX-Sprint205+-L475-V2-Shared-Account-LAN.md   (L4.75 v2 共享账号 + LAN 单进程单人排队 SSOT)
-│   └── archive/                      (Sprint 139-205+ 旧 HANDOFF/CODEX/verification + L4.74 working docs 留尾备查, 跨 sprint 历史 reference)
+│   └── archive/                      (75 件: Sprint 139-205+ 已 ship 全部 HANDOFF/CODEX/verification/handoff/investigate + L4.74 working docs + 8 件 Codex prompt 已删, 跨 sprint 历史 reference 留尾备查)
 │
 ├── DISASTER-RECOVERY.md               (DUCKDB 备份恢复 SOP)
 ├── TECH-DEBT.md                       (技术债台账, P0/P1/P2 分级, 每债含触发场景+修复方案+估时)
@@ -96,9 +85,10 @@ fuqing-crm-analytics/docs/
 | Windows 11 部署 (跟 L4.64 1:1 stable) | `WINDOWS-DEPLOY-KNOWN-ISSUES.md` (Python 3.14.4 + npm legacy + NSSM 等 6 fix) |
 | DUCKDB 备份恢复 | `DISASTER-RECOVERY.md` |
 | 跨 sprint 留尾 (4 维度) | `TECH-DEBT.md` (跟 L4.12 SSOT 治理 1:1 stable) |
-| Sprint 201-204 L4.42 立项实证 | `sprints/SPRINT201-204_L442_VERIFICATION_INDEX.md` (5 件索引, archive 存原件) |
-| Sprint 202+ wall_min 验证 R1-R8 | `sprints/SPRINT202+_WALL_MIN_VERIFICATION_INDEX.md` (6 件索引) |
-| Sprint 205+ Handoff/Prompt 留尾 | `sprints/SPRINT205+_HANDOFF_PROMPT_INDEX.md` (留尾 4 件 + 已 ship 10 件索引) |
+| Sprint 201-204 L4.42 立项实证 | `sprints/archive/SPRINT201-204_L442_VERIFICATION_INDEX.md` (5 件索引, archive 存原件) |
+| Sprint 202+ wall_min 验证 R1-R8 | `sprints/archive/SPRINT202+_WALL_MIN_VERIFICATION_INDEX.md` (6 件索引) |
+| Sprint 205+ Handoff/Prompt 留尾 | `sprints/archive/SPRINT205+_HANDOFF_PROMPT_INDEX.md` (留尾 4 件 + 已 ship 10 件索引) |
+| 全部 sprint handoff 历史 | `sprints/archive/` (75 件, 含 L4.91 handoff/investigate 全部归档) |
 
 ## 跨 sprint 维护规则
 
@@ -126,8 +116,9 @@ fuqing-crm-analytics/docs/
 - **L4.57 + L4.58 + L4.59** 跨 sprint 留尾 0 commit 续期 SOP 1:1 stable 永久规则化沿用
 - **L4.78 L4.74 PG migration 0 commit 收口** 1:1 stable 永久规则化沿用 (5 commits 留尾分支备查)
 - **L4.85.4 - L4.85.9 + L4.86 + L4.88** Codex app 完整收口 1:1 stable 永久规则化沿用
-- **L4.91 Excel 导出 SSOT** 1:1 stable 永久规则化沿用 (8 件 bug + 24 视图审计)
+- **L4.91 Excel 导出 SSOT** 1:1 stable 永久规则化沿用 (8 件 bug + 24 视图审计 + 技术债 #1-#4 全部闭环)
+- **L4.91.2 ProductAssetsTab + OtherProductAssetsTab formatValue + test_helpers** 1:1 stable 永久规则化沿用
 
 ---
 
-**本索引跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.78 + L4.85.4-L4.85.9 + L4.86 + L4.88 + L4.91 永久规则链 1:1 stable 永久规则化沿用, 7/16 离职前最后一次 doc cleanup, 接手人 7/16+ 启动必读.**
+**本索引跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.78 + L4.85.4-L4.85.9 + L4.86 + L4.88 + L4.91 + L4.91.1 + L4.91.2 永久规则链 1:1 stable 永久规则化沿用, 7/16 离职前最终 doc cleanup, 接手人 7/16+ 启动必读.**
