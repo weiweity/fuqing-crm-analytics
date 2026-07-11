@@ -120,6 +120,18 @@ export interface XlsxColumn {
    * - 'number': 通用数字列
    */
   kind?: 'auto' | 'yoy_pct' | 'yoy_pp' | 'yoy_day' | 'text' | 'number'
+  /**
+   * L4.91.1 (2026-07-11) 治本 market-focus#product-customer 对比行格式错:
+   * 跟 L4.91 PR0 kind enum 1:1 stable 永久规则化沿用, 0 业务代码改动 1:1 stable 永久规则链配套.
+   * 跟 user 限制 "其他前端不要调整逻辑" 1:1 stable: 这是 SSOT 扩展, 向后兼容 (可选字段, 缺省用 row[col.key]).
+   * per-row dispatch 函数 (跟 row-level isChangeRow/isYoyRow 1:1 stable 永久规则化沿用):
+   * - 入参: (val, row) — val 是 row[col.key], row 是完整数据行
+   * - 出参:
+   *   - 简单值: any — override cell value (per-row data dispatch)
+   *   - 对象 { val, numFmt? }: 同时 override value 和 numFmt (per-row format switch, 治本 ProductCustomerTab 对比行 yoy)
+   * 典型用法: 对比行 (isChangeRow/isYoyRow) 用 _yoy_pct / _yoy_pp 后缀字段, normal row 用原字段
+   */
+  formatValue?: (val: any, row?: Record<string, any>) => any | { val: any; numFmt?: string }
 }
 
 export interface XlsxSheetConfig {
@@ -185,15 +197,35 @@ export async function exportToXlsx(filename: string, sheets: XlsxSheetConfig[]):
     // 构建 AOA 数组
     const header = columns.map((c) => c.header)
     const aoa: unknown[][] = [header]
+    // L4.91.1 (2026-07-11): per-row numFmt override 独立数组 (跟 aoa 平行, 索引 0=header 1..N=row 1..N)
+    //   formatValue 返回 { val, numFmt } 时, 同时切换 cell value 和 numFmt
+    const numFmtOverrides: (Record<number, string | undefined> | null)[] = [null]
 
     for (const row of data) {
       const rowArr: unknown[] = []
-      for (const col of columns) {
-        const val = row[col.key]
+      const rowNumFmtOverrides: Record<number, string | undefined> = {}
+      for (let c = 0; c < columns.length; c++) {
+        const col = columns[c]
+        let val = row[col.key]
+        // L4.91.1 (2026-07-11) 治本 market-focus#product-customer 对比行格式错:
+        //   跟 L4.91 PR0 kind enum + L4.50 0 业务代码改动 + user 限制 "其他前端不要调整逻辑" 1:1 stable 永久规则化沿用
+        //   per-row dispatch: 对比行 (isChangeRow/isYoyRow) 用 _yoy_pct / _yoy_pp 后缀字段, normal row 用原字段
+        if (col.formatValue) {
+          const result = col.formatValue(val, row)
+          if (result && typeof result === 'object' && 'val' in result) {
+            val = result.val
+            rowNumFmtOverrides[c] = result.numFmt ?? col.numFmt
+          } else {
+            val = result
+          }
+        }
         assertNotFormula(val)
         rowArr.push(val != null ? val : '')
       }
       aoa.push(rowArr)
+      numFmtOverrides.push(
+        Object.keys(rowNumFmtOverrides).length > 0 ? rowNumFmtOverrides : null
+      )
     }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa)
@@ -261,8 +293,10 @@ export async function exportToXlsx(filename: string, sheets: XlsxSheetConfig[]):
           ws[cell].z = fmt
         } else if (isNumeric && col.numFmt) {
           // 非 YOY 数字列: caller numFmt 优先 (L4.91 PR0 caller 优先级)
+          // L4.91.1 (2026-07-11): per-row numFmt override (formatValue 返回 { val, numFmt })
+          const perRowFmt = numFmtOverrides[r]?.[c]
           if (!ws[cell]) ws[cell] = {}
-          ws[cell].z = col.numFmt
+          ws[cell].z = perRowFmt ?? col.numFmt
         }
       }
     }

@@ -173,6 +173,22 @@ interface TableRow {
   old_ratio_gsv: number
   new_ratio_users: number
   old_ratio_users: number
+  // L4.91.1 (2026-07-11) 治本 market-focus#product-customer 对比行 yoy ratio/pp 格式错:
+  //   对比行 (isChangeRow/isYoyRow) 用 _yoy_pct (绝对值 YOY, raw ratio 0-1) / _yoy_pp (占比 YOY, raw pp 差) 后缀字段
+  //   normal row 这些字段 = 0, 对比行这些字段 = 实际 YOY 值
+  gsv_yoy_pct?: number
+  new_gsv_yoy_pct?: number
+  old_gsv_yoy_pct?: number
+  users_yoy_pct?: number
+  new_users_yoy_pct?: number
+  old_users_yoy_pct?: number
+  aus_yoy_pct?: number
+  new_aus_yoy_pct?: number
+  old_aus_yoy_pct?: number
+  new_ratio_gsv_yoy_pp?: number
+  old_ratio_gsv_yoy_pp?: number
+  new_ratio_users_yoy_pp?: number
+  old_ratio_users_yoy_pp?: number
 }
 
 // 分组后的数据（表格用周维度）
@@ -258,6 +274,9 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
       if (rows.length >= 2) {
         const latest = rows[rows.length - 1]
         const prev = rows[rows.length - 2]
+        // L4.91.1 (2026-07-11) 治本 market-focus#product-customer 对比行格式错:
+        //   对比行 xlsxColumns 14 列保持原 key (跟 frontend WYSIWYG 1:1 stable), formatValue dispatch 用 _yoy_pct / _yoy_pp 后缀字段
+        //   normal row 用原 key (abs value), 对比行 (isChangeRow/isYoyRow) 用 _yoy_pct / _yoy_pp 字段
         const changeRow: TableRow = {
           id: `change-${name}`,
           product: name,
@@ -265,21 +284,24 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
           weekIdx: -1,
           isChangeRow: true,
           isYoyRow: false,
-          // 绝对值指标：百分比变化
-          gsv: prev.gsv > 0 ? (latest.gsv - prev.gsv) / prev.gsv : 0,
-          new_gsv: prev.new_gsv > 0 ? (latest.new_gsv - prev.new_gsv) / prev.new_gsv : 0,
-          old_gsv: prev.old_gsv > 0 ? (latest.old_gsv - prev.old_gsv) / prev.old_gsv : 0,
-          users: prev.users > 0 ? (latest.users - prev.users) / prev.users : 0,
-          new_users: prev.new_users > 0 ? (latest.new_users - prev.new_users) / prev.new_users : 0,
-          old_users: prev.old_users > 0 ? (latest.old_users - prev.old_users) / prev.old_users : 0,
-          aus: prev.aus > 0 ? (latest.aus - prev.aus) / prev.aus : 0,
-          new_aus: prev.new_aus > 0 ? (latest.new_aus - prev.new_aus) / prev.new_aus : 0,
-          old_aus: prev.old_aus > 0 ? (latest.old_aus - prev.old_aus) / prev.old_aus : 0,
-          // 占比指标：百分点差（pp）
-          new_ratio_gsv: latest.new_ratio_gsv - prev.new_ratio_gsv,
-          old_ratio_gsv: latest.old_ratio_gsv - prev.old_ratio_gsv,
-          new_ratio_users: latest.new_ratio_users - prev.new_ratio_users,
-          old_ratio_users: latest.old_ratio_users - prev.old_ratio_users,
+          // L4.91.1 (2026-07-11) 治本: 对比行原 14 字段填 0 占位 (formatValue dispatch 用 _yoy_pct / _yoy_pp 字段, 跟 frontend WYSIWYG 1:1 stable)
+          gsv: 0, new_gsv: 0, old_gsv: 0, users: 0, new_users: 0, old_users: 0, aus: 0, new_aus: 0, old_aus: 0,
+          new_ratio_gsv: 0, old_ratio_gsv: 0, new_ratio_users: 0, old_ratio_users: 0,
+          // 绝对值指标：百分比变化 (raw ratio, L4.81 backend YOY 契约 1:1 stable 永久规则化沿用)
+          gsv_yoy_pct: prev.gsv > 0 ? (latest.gsv - prev.gsv) / prev.gsv : 0,
+          new_gsv_yoy_pct: prev.new_gsv > 0 ? (latest.new_gsv - prev.new_gsv) / prev.new_gsv : 0,
+          old_gsv_yoy_pct: prev.old_gsv > 0 ? (latest.old_gsv - prev.old_gsv) / prev.old_gsv : 0,
+          users_yoy_pct: prev.users > 0 ? (latest.users - prev.users) / prev.users : 0,
+          new_users_yoy_pct: prev.new_users > 0 ? (latest.new_users - prev.new_users) / prev.new_users : 0,
+          old_users_yoy_pct: prev.old_users > 0 ? (latest.old_users - prev.old_users) / prev.old_users : 0,
+          aus_yoy_pct: prev.aus > 0 ? (latest.aus - prev.aus) / prev.aus : 0,
+          new_aus_yoy_pct: prev.new_aus > 0 ? (latest.new_aus - prev.new_aus) / prev.new_aus : 0,
+          old_aus_yoy_pct: prev.old_aus > 0 ? (latest.old_aus - prev.old_aus) / prev.old_aus : 0,
+          // 占比指标：百分点差 (raw pp, L4.81 backend YOY 契约 1:1 stable 永久规则化沿用)
+          new_ratio_gsv_yoy_pp: latest.new_ratio_gsv - prev.new_ratio_gsv,
+          old_ratio_gsv_yoy_pp: latest.old_ratio_gsv - prev.old_ratio_gsv,
+          new_ratio_users_yoy_pp: latest.new_ratio_users - prev.new_ratio_users,
+          old_ratio_users_yoy_pp: latest.old_ratio_users - prev.old_ratio_users,
         }
         rows.push(changeRow)
       }
@@ -290,6 +312,7 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
 
       if (name === '全店') {
         const ttl = lastResult.ttl
+        // L4.91.1 (2026-07-11) 治本: 对比行用 _yoy_pct / _yoy_pp 后缀字段 (跟 frontend table WYSIWYG 1:1 stable, 跟 L4.81 backend YOY 契约 1:1 stable 永久规则化沿用)
         const yoyRow: TableRow = {
           id: `yoy-${name}`,
           product: name,
@@ -297,19 +320,22 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
           weekIdx: -2,
           isChangeRow: false,
           isYoyRow: true,
-          gsv: ttl.gsv_yoy ?? 0,
-          new_gsv: ttl.new_gsv_yoy ?? 0,
-          old_gsv: ttl.old_gsv_yoy ?? 0,
-          users: ttl.users_yoy ?? 0,
-          new_users: ttl.new_users_yoy ?? 0,
-          old_users: ttl.old_users_yoy ?? 0,
-          aus: ttl.aus_yoy ?? 0,
-          new_aus: ttl.new_aus_yoy ?? 0,
-          old_aus: ttl.old_aus_yoy ?? 0,
-          new_ratio_gsv: ttl.new_ratio_yoy ?? 0,
-          old_ratio_gsv: ttl.old_ratio_yoy ?? 0,
-          new_ratio_users: ttl.new_users_ratio_yoy ?? 0,
-          old_ratio_users: ttl.old_users_ratio_yoy ?? 0,
+          // L4.91.1: 原 14 字段 0 占位 (formatValue dispatch 用 _yoy_pct / _yoy_pp)
+          gsv: 0, new_gsv: 0, old_gsv: 0, users: 0, new_users: 0, old_users: 0, aus: 0, new_aus: 0, old_aus: 0,
+          new_ratio_gsv: 0, old_ratio_gsv: 0, new_ratio_users: 0, old_ratio_users: 0,
+          gsv_yoy_pct: ttl.gsv_yoy ?? 0,
+          new_gsv_yoy_pct: ttl.new_gsv_yoy ?? 0,
+          old_gsv_yoy_pct: ttl.old_gsv_yoy ?? 0,
+          users_yoy_pct: ttl.users_yoy ?? 0,
+          new_users_yoy_pct: ttl.new_users_yoy ?? 0,
+          old_users_yoy_pct: ttl.old_users_yoy ?? 0,
+          aus_yoy_pct: ttl.aus_yoy ?? 0,
+          new_aus_yoy_pct: ttl.new_aus_yoy ?? 0,
+          old_aus_yoy_pct: ttl.old_aus_yoy ?? 0,
+          new_ratio_gsv_yoy_pp: ttl.new_ratio_yoy ?? 0,
+          old_ratio_gsv_yoy_pp: ttl.old_ratio_yoy ?? 0,
+          new_ratio_users_yoy_pp: ttl.new_users_ratio_yoy ?? 0,
+          old_ratio_users_yoy_pp: ttl.old_users_ratio_yoy ?? 0,
         }
         rows.push(yoyRow)
       } else {
@@ -368,20 +394,24 @@ const groupedData = computed((): { name: string; rows: TableRow[] }[] => {
               weekIdx: -2,
               isChangeRow: false,
               isYoyRow: true,
-              gsv: aggAbsYoy(curGsv, compGsv),
-              new_gsv: aggAbsYoy(curNewGsv, compNewGsv),
-              old_gsv: aggAbsYoy(curOldGsv, compOldGsv),
-              users: aggAbsYoy(curUsers, compUsers),
-              new_users: aggAbsYoy(curNewUsers, compNewUsers),
-              old_users: aggAbsYoy(curOldUsers, compOldUsers),
-              aus: aggAbsYoy(curAus, compAus),
-              new_aus: aggAbsYoy(curNewAus, compNewAus),
-              old_aus: aggAbsYoy(curOldAus, compOldAus),
-              // 占比 YOY 用百分点差
-              new_ratio_gsv: curRatioNewGsv - compRatioNewGsv,
-              old_ratio_gsv: curRatioOldGsv - compRatioOldGsv,
-              new_ratio_users: curRatioNewUsers - compRatioNewUsers,
-              old_ratio_users: curRatioOldUsers - compRatioOldUsers,
+              // L4.91.1 (2026-07-11) 治本: 原 14 字段 0 占位 (formatValue dispatch 用 _yoy_pct / _yoy_pp)
+              gsv: 0, new_gsv: 0, old_gsv: 0, users: 0, new_users: 0, old_users: 0, aus: 0, new_aus: 0, old_aus: 0,
+              new_ratio_gsv: 0, old_ratio_gsv: 0, new_ratio_users: 0, old_ratio_users: 0,
+              // L4.91.1 (2026-07-11) 治本: 对比行用 _yoy_pct / _yoy_pp 后缀字段 (跟 frontend WYSIWYG 1:1 stable, 跟 L4.81 backend YOY 契约 1:1 stable 永久规则化沿用)
+              gsv_yoy_pct: aggAbsYoy(curGsv, compGsv),
+              new_gsv_yoy_pct: aggAbsYoy(curNewGsv, compNewGsv),
+              old_gsv_yoy_pct: aggAbsYoy(curOldGsv, compOldGsv),
+              users_yoy_pct: aggAbsYoy(curUsers, compUsers),
+              new_users_yoy_pct: aggAbsYoy(curNewUsers, compNewUsers),
+              old_users_yoy_pct: aggAbsYoy(curOldUsers, compOldUsers),
+              aus_yoy_pct: aggAbsYoy(curAus, compAus),
+              new_aus_yoy_pct: aggAbsYoy(curNewAus, compNewAus),
+              old_aus_yoy_pct: aggAbsYoy(curOldAus, compOldAus),
+              // 占比 YOY 用百分点差 (raw pp)
+              new_ratio_gsv_yoy_pp: curRatioNewGsv - compRatioNewGsv,
+              old_ratio_gsv_yoy_pp: curRatioOldGsv - compRatioOldGsv,
+              new_ratio_users_yoy_pp: curRatioNewUsers - compRatioNewUsers,
+              old_ratio_users_yoy_pp: curRatioOldUsers - compRatioOldUsers,
             }
             rows.push(yoyRow)
           }
@@ -700,27 +730,137 @@ function rowClassName(row: TableRow): string {
 }
 
 // ── L4.91 PR1 Bug #6 WYSIWYG 治本: 4 列 → 14 列 (跟 frontend `columns` 1:1 stable, 跟 L4.80 1:1 stable 永久规则化沿用) ──
-// 1 (产品) + 1 (时间) + 12 数据列 (新客/老客 GSV + 总/新/老 客户数 + 总/新/老 客单价 + 新/老 GSV 占比 + 新/老 人数占比) = 14 列
+// 1 (产品) + 1 (时间) + 12 数据列 (新/老客 GSV + 总/新/老 客户数 + 总/新/老 客单价 + 新/老 GSV 占比 + 新/老 人数占比) = 14 列
+//
+// L4.91.1 (2026-07-11) 治本 market-focus#product-customer 对比行 yoy ratio/pp 格式错:
+//   跟 user 7/11 拍板 "穷尽的调查, 排查下原因" 1:1 stable 永久规则化沿用
+//   跟 L4.91 PR0 kind enum + L4.50 0 业务代码改动 1:1 stable 永久规则链配套
+//   跟 user 限制 "其他前端不要调整逻辑" 1:1 stable: exportXlsx SSOT 扩展 formatValue (向后兼容, 可选字段)
+//   per-row dispatch: normal row 用原字段 (abs value / 0-1 ratio), 对比行 (isChangeRow/isYoyRow) 用 _yoy_pct / _yoy_pp 后缀字段 + yoy numFmt
 const productCustomerXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '产品', key: 'product', kind: 'text', width: 14 },
   { header: '时间', key: 'weekLabel', kind: 'text', width: 14 },
-  // GSV 群组 (3 列: 总GSV + 新客GSV + 老客GSV)
-  { header: 'GSV', key: 'gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
-  { header: '新客GSV', key: 'new_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
-  { header: '老客GSV', key: 'old_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
-  // 客户数 群组 (3 列: 总客户数 + 新客数 + 老客数)
-  { header: '总客户数', key: 'users', kind: 'number', width: 14, numFmt: '#,##0' },
-  { header: '新客数', key: 'new_users', kind: 'number', width: 12, numFmt: '#,##0' },
-  { header: '老客数', key: 'old_users', kind: 'number', width: 12, numFmt: '#,##0' },
-  // 客单价 群组 (3 列: 总客单价 + 新客客单价 + 老客客单价)
-  { header: '总客单价', key: 'aus', kind: 'number', width: 14, numFmt: '¥#,##0' },
-  { header: '新客客单价', key: 'new_aus', kind: 'number', width: 14, numFmt: '¥#,##0' },
-  { header: '老客客单价', key: 'old_aus', kind: 'number', width: 14, numFmt: '¥#,##0' },
-  // 占比 群组 (4 列: 新/老 GSV 占比 + 新/老 人数占比, 0-1 ratio → Excel *100 = % 显示)
-  { header: '新客成交占比', key: 'new_ratio_gsv', kind: 'number', width: 14, numFmt: '0.0%' },
-  { header: '老客成交占比', key: 'old_ratio_gsv', kind: 'number', width: 14, numFmt: '0.0%' },
-  { header: '新客人数占比', key: 'new_ratio_users', kind: 'number', width: 14, numFmt: '0.0%' },
-  { header: '老客人数占比', key: 'old_ratio_users', kind: 'number', width: 14, numFmt: '0.0%' },
+  // GSV 群组 (3 列: 总GSV + 新客GSV + 老客GSV) - 对比行用 yoy_pct format
+  {
+    header: 'GSV', key: 'gsv', kind: 'number', width: 14, numFmt: '¥#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.gsv_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  {
+    header: '新客GSV', key: 'new_gsv', kind: 'number', width: 14, numFmt: '¥#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.new_gsv_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  {
+    header: '老客GSV', key: 'old_gsv', kind: 'number', width: 14, numFmt: '¥#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.old_gsv_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  // 客户数 群组 (3 列: 总客户数 + 新客数 + 老客数) - 对比行用 yoy_pct format
+  {
+    header: '总客户数', key: 'users', kind: 'number', width: 14, numFmt: '#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.users_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  {
+    header: '新客数', key: 'new_users', kind: 'number', width: 12, numFmt: '#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.new_users_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  {
+    header: '老客数', key: 'old_users', kind: 'number', width: 12, numFmt: '#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.old_users_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  // 客单价 群组 (3 列: 总客单价 + 新客客单价 + 老客客单价) - 对比行用 yoy_pct format
+  {
+    header: '总客单价', key: 'aus', kind: 'number', width: 14, numFmt: '¥#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.aus_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  {
+    header: '新客客单价', key: 'new_aus', kind: 'number', width: 14, numFmt: '¥#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.new_aus_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  {
+    header: '老客客单价', key: 'old_aus', kind: 'number', width: 14, numFmt: '¥#,##0',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.old_aus_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+      }
+      return val
+    },
+  },
+  // 占比 群组 (4 列: 新/老 GSV 占比 + 新/老 人数占比) - 对比行用 yoy_pp format
+  {
+    header: '新客成交占比', key: 'new_ratio_gsv', kind: 'number', width: 14, numFmt: '0.0%',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.new_ratio_gsv_yoy_pp ?? null, numFmt: '+0.00"pp";-0.00"pp";0.00"pp"' }
+      }
+      return val
+    },
+  },
+  {
+    header: '老客成交占比', key: 'old_ratio_gsv', kind: 'number', width: 14, numFmt: '0.0%',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.old_ratio_gsv_yoy_pp ?? null, numFmt: '+0.00"pp";-0.00"pp";0.00"pp"' }
+      }
+      return val
+    },
+  },
+  {
+    header: '新客人数占比', key: 'new_ratio_users', kind: 'number', width: 14, numFmt: '0.0%',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.new_ratio_users_yoy_pp ?? null, numFmt: '+0.00"pp";-0.00"pp";0.00"pp"' }
+      }
+      return val
+    },
+  },
+  {
+    header: '老客人数占比', key: 'old_ratio_users', kind: 'number', width: 14, numFmt: '0.0%',
+    formatValue: (val, row) => {
+      if (row?.isChangeRow || row?.isYoyRow) {
+        return { val: row.old_ratio_users_yoy_pp ?? null, numFmt: '+0.00"pp";-0.00"pp";0.00"pp"' }
+      }
+      return val
+    },
+  },
 ])
 </script>
 

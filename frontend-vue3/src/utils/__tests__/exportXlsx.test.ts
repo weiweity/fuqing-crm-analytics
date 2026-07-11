@@ -200,4 +200,75 @@ describe('Sprint 174 exportXlsx.ts SSOT 视觉规范', () => {
     const cell = lastWorkbook.cellStyles.find((c) => c.row === 1)
     expect(cell).toBeTruthy()
   })
+
+  // ===== L4.91.1 (2026-07-11) 治本 market-focus#product-customer 对比行格式错 =====
+  // 跟 L4.91 PR0 kind enum + L4.50 0 业务代码改动 + user 限制 "其他前端不要调整逻辑" 1:1 stable 永久规则化沿用
+  // SSOT 扩展: XlsxColumn.formatValue 函数 (向后兼容, 可选字段)
+  // per-row dispatch: 对比行 (isChangeRow/isYoyRow) 用 _yoy_pct / _yoy_pp 后缀字段, normal row 用原字段
+  it('L4.91.1: formatValue 简单值 → per-row override cell value', async () => {
+    lastWorkbook.cellStyles = []
+    const columns: XlsxColumn[] = [
+      {
+        header: '指标',
+        key: 'indicator',
+        kind: 'number',
+        numFmt: '¥#,##0',
+        formatValue: (val, row) => row?.isChangeRow ? -123 : val,
+      },
+    ]
+    const data = [
+      { indicator: 1000, isChangeRow: false },  // normal row: 显示 1000
+      { indicator: 0, isChangeRow: true },     // 对比行: formatValue 返回 -123
+    ]
+    await exportSheetToXlsx('test', 'FormatSimple', columns, data)
+    // 验证: 2 行都有 cellStyles
+    expect(lastWorkbook.cellStyles.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('L4.91.1: formatValue 返回 { val, numFmt } → per-row override value + numFmt (治本 ProductCustomerTab 对比行)', async () => {
+    lastWorkbook.cellStyles = []
+    const columns: XlsxColumn[] = [
+      {
+        header: 'GSV',
+        key: 'gsv',
+        kind: 'number',
+        numFmt: '¥#,##0',
+        formatValue: (val, row) => {
+          if (row?.isChangeRow || row?.isYoyRow) {
+            return { val: row.gsv_yoy_pct ?? null, numFmt: '+0.00%;-0.00%;0.00%' }
+          }
+          return val
+        },
+      },
+      {
+        header: '新客成交占比',
+        key: 'new_ratio_gsv',
+        kind: 'number',
+        numFmt: '0.0%',
+        formatValue: (val, row) => {
+          if (row?.isChangeRow || row?.isYoyRow) {
+            return { val: row.new_ratio_gsv_yoy_pp ?? null, numFmt: '+0.00"pp";-0.00"pp";0.00"pp"' }
+          }
+          return val
+        },
+      },
+    ]
+    const data = [
+      { gsv: 1113652.14, new_ratio_gsv: 0.4922, isChangeRow: false },  // normal row
+      { gsv: 0, new_ratio_gsv: 0, isChangeRow: true, gsv_yoy_pct: -0.6248, new_ratio_gsv_yoy_pp: -0.0094 },  // 对比行
+    ]
+    await exportSheetToXlsx('test', 'ProductCustomer', columns, data)
+
+    // normal row (row 1): GSV numFmt ¥#,##0, 占比 numFmt 0.0%
+    const normalGsvCell = lastWorkbook.cellStyles.find((c) => c.row === 1 && c.col === 0)
+    expect(normalGsvCell?.numFmt).toBe('¥#,##0')
+    const normalRatioCell = lastWorkbook.cellStyles.find((c) => c.row === 1 && c.col === 1)
+    expect(normalRatioCell?.numFmt).toBe('0.0%')
+
+    // 对比行 (row 2): GSV numFmt yoy_pct (+0.00%), 占比 numFmt yoy_pp (+0.00pp)
+    const changeGsvCell = lastWorkbook.cellStyles.find((c) => c.row === 2 && c.col === 0)
+    expect(changeGsvCell?.numFmt).toBe('+0.00%;-0.00%;0.00%')
+    const changeRatioCell = lastWorkbook.cellStyles.find((c) => c.row === 2 && c.col === 1)
+    expect(changeRatioCell?.numFmt).toBe('+0.00"pp";-0.00"pp";0.00"pp"')
+  })
 })
