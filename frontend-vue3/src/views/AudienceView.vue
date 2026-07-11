@@ -1638,51 +1638,68 @@ const visitorTrendChartOption = computed(() => {
 
 async function handleExportIndicators() {
   if (!summaryData.value?.indicators?.length) return
-  const XLSX = await import('xlsx')
   try {
+    // L4.91 PR1 迁移: raw xlsx (bypass SSOT, 写公式, 前端 *100) → 走 exportSheetToXlsx SSOT
+    // 跟 L4.81 YOY no *100 契约 + L4.20 SSOT 反漂移 + L4.50 0 业务代码改动 1:1 stable 永久规则化沿用
+    const { exportSheetToXlsx } = await import('@/utils/exportXlsx')
     const mode = filterStore.compareMode
-  const labels = getCompareLabels(mode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
-  const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
+    const labels = getCompareLabels(mode, summaryData.value?.year_label, summaryData.value?.comp_year_label)
+    const yr3 = summaryData.value?.prev2_year_label || String(new Date().getFullYear() - 2)
 
-  // 同比模式：3年+YOY；环比/自定义：2年+变化
-  const headers = mode === 'auto_yoy'
-    ? ['指标', `${labels.current}年`, `${labels.compare}年`, `${yr3}年`, labels.change]
-    : ['指标', labels.current, labels.compare, labels.change]
+    // 同比模式: 3 年+YOY (auto_yoy); 环比/自定义: 2 年+变化
+    const headers: Array<{ header: string; key: string; kind?: 'auto' | 'yoy_pct' | 'yoy_pp' | 'yoy_day' | 'text' | 'number'; numFmt?: string; width?: number }> = mode === 'auto_yoy'
+      ? [
+          { header: '指标', key: 'field', kind: 'text' },
+          { header: `${labels.current}年`, key: 'v_current', kind: 'number' },
+          { header: `${labels.compare}年`, key: 'v_compare', kind: 'number' },
+          { header: `${yr3}年`, key: 'v_prev2', kind: 'number' },
+          { header: labels.change, key: 'yoy' },
+        ]
+      : [
+          { header: '指标', key: 'field', kind: 'text' },
+          { header: labels.current, key: 'v_current', kind: 'number' },
+          { header: labels.compare, key: 'v_compare', kind: 'number' },
+          { header: labels.change, key: 'yoy' },
+        ]
 
-  const aoa: any[][] = [headers]
+    // L4.81 契约: backend 返 raw 0-1 decimal (ratio) 或 raw value (其他), 前端用 kind 显式 enum
+    // 决定显示格式 (跟 backend L4.81 yoy_absolute / yoy_ratio 1:1 stable 永久规则化沿用)
+    const data: Array<Record<string, unknown>> = summaryData.value.indicators.map((row) => {
+      const isRatio = row.kind === 'ratio'
+      // kind 显式 enum: yoy_pp (ratio 差) vs yoy_pct (绝对 YOY)
+      const yoyKind: 'yoy_pct' | 'yoy_pp' = isRatio ? 'yoy_pp' : 'yoy_pct'
+      const vCurrent = row.values_by_year?.[labels.current] ?? 0
+      const vCompare = row.values_by_year?.[labels.compare] ?? 0
+      const vPrev2 = row.values_by_year?.[yr3] ?? 0
+      // L4.81: yoy 公式 raw (no *100)
+      // ratio: yoy = cur - comp (raw diff, kind='yoy_pp' 显示 *100 pp 后缀)
+      // 非 ratio: yoy = (cur - comp) / comp (raw ratio, kind='yoy_pct' 显示 *100 %)
+      const yoy = isRatio
+        ? (vCurrent - vCompare)  // raw diff, frontend display +100 = pp
+        : (vCompare !== 0 ? (vCurrent - vCompare) / vCompare : 0)  // raw ratio, frontend display *100 = %
 
-  summaryData.value.indicators.forEach((row, idx) => {
-    const excelRow = idx + 2
-    const isRatio = row.kind === 'ratio'
-    const yoyCell = isRatio
-      ? { t: 'n', f: `=B${excelRow}-C${excelRow}` } as any
-      : { t: 'n', f: `=(B${excelRow}-C${excelRow})/C${excelRow}` } as any
+      const row_data: Record<string, unknown> = {
+        field: row.field,
+        v_current: vCurrent,  // raw 0-1 decimal (ratio) 或 raw value (其他), 不前端 *100
+        v_compare: vCompare,
+        yoy,
+      }
+      // headers 是 const XlsxColumn[] 类型 (出口 utils 1:1 stable), 但这里我们用更宽的 union
+      // 动态设置 yoy column kind
+      const yoyCol = headers[headers.length - 1]
+      if (yoyCol.key === 'yoy') {
+        yoyCol.kind = yoyKind
+      }
+      if (mode === 'auto_yoy') {
+        row_data.v_prev2 = vPrev2
+      }
+      return row_data
+    })
 
-    // Sprint 13 W6: ratio 是 0-1 decimal, Excel 导出 *100 转 percentage
-    const v2026 = isRatio ? (row.values_by_year?.['2026'] ?? 0) * 100 : (row.values_by_year?.['2026'] ?? 0)
-    const v2025 = isRatio ? (row.values_by_year?.['2025'] ?? 0) * 100 : (row.values_by_year?.['2025'] ?? 0)
-    const v2024 = isRatio ? (row.values_by_year?.['2024'] ?? 0) * 100 : (row.values_by_year?.['2024'] ?? 0)
-
-    if (mode === 'auto_yoy') {
-      aoa.push([row.field, v2026, v2025, v2024, yoyCell])
-    } else {
-      aoa.push([row.field, v2026, v2025, yoyCell])
-    }
-  })
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [
-    { wch: 18 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-  ]
-
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '30指标对比')
-  const fileName = `人群看板_30指标对比_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}.xlsx`
-  XLSX.writeFile(wb, fileName)
+    const fileName = `人群看板_30指标对比_${filterStore.dateRange[0]}_${filterStore.dateRange[1]}.xlsx`
+    // L4.91 PR0 kind enum: yoy column 在 headers[headers.length-1].kind 已设置 (yoy_pct 或 yoy_pp)
+    // SSOT 自动应用 numFmt: yoy_pct → +0.00%;-0.00%;0.00%; yoy_pp → 0.00%;-0.00%;0.00%
+    await exportSheetToXlsx(fileName.replace('.xlsx', ''), '30指标对比', headers as any, data)
   } catch (err) {
     console.error('30指标导出失败:', err)
   }
