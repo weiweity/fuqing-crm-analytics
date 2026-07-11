@@ -384,6 +384,11 @@ async function handleSubmit() {
     passwordErr.value = detail || '账号或密码错误'
     passwordShake.value = true
     fireTrigger(wrongTrigger)
+    // L4.85.7 治本 Bug #1 真问题: fail path 清 input 字段, 防止 user 之前 input 残留
+    // 跟 L4.85.5 plan-eng-review 缺陷 6 1:1 stable 永久规则化沿用 (fail path 不清 input 字段是真问题)
+    // 配套 L4.85.6 Bug #2 治本 (Cmd+Q sendBeacon) 1:1 stable
+    username.value = ''
+    password.value = ''
   }
 }
 
@@ -485,15 +490,10 @@ onUnmounted(() => {
   // L4.85: 清理申请倒计时 timer
   if (applyTimer) clearInterval(applyTimer)
   stopApplyStatusPolling()
-  // L4.85.4 治本: user 7/11 报 "退出网址后, 账号状态没退出, 显示 欢迎回来 + admin 残留"
-  // 原因: sessionStorage fq_crm_auth_user / fq_crm_auth_token 残留 → LoginView refilled 显示 "欢迎回来 admin"
-  // 修复: LoginView unmount 时清空 sessionStorage 残留 (不调 logout API 因为可能没 active token)
-  try {
-    sessionStorage.removeItem('fq_crm_auth_token')
-    sessionStorage.removeItem('fq_crm_auth_user')
-  } catch {
-    // sessionStorage 可能不可用 (SSR/隐私模式), 忽略
-  }
+  // L4.85.7 治本 Bug #1: 删 L4.85.5 onUnmounted sessionStorage.removeItem (时机错误, 引发 "登录后没跳转" + "Cmd+Q token 丢失")
+  // 跟 L4.42 + L4.50 + L4.85 + L4.85.4 + L4.85.6 1:1 stable 永久规则链配套
+  // token 失效清理由 main.ts:20/50/67 + auth.ts:34-35 (clearSession) + NavBar:181 (idle timer) 6 处统一管理
+  // 完整 handoff: docs/architecture/l4_85_7_bug1_handoff.md
 })
 </script>
 
