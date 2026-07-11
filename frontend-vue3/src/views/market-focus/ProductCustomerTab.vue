@@ -699,12 +699,28 @@ function rowClassName(row: TableRow): string {
   return ''
 }
 
-// ── Sprint 174 XLSX 导出 (Q3) ──
+// ── L4.91 PR1 Bug #6 WYSIWYG 治本: 4 列 → 14 列 (跟 frontend `columns` 1:1 stable, 跟 L4.80 1:1 stable 永久规则化沿用) ──
+// 1 (产品) + 1 (时间) + 12 数据列 (新客/老客 GSV + 总/新/老 客户数 + 总/新/老 客单价 + 新/老 GSV 占比 + 新/老 人数占比) = 14 列
 const productCustomerXlsxColumns = computed<XlsxColumn[]>(() => [
-  { header: '产品', key: 'product', width: 14 },
-  { header: '时间', key: 'weekLabel', width: 14 },
-  { header: 'GSV', key: 'gsv', width: 14, numFmt: '¥#,##0' },
-  { header: 'GSV YOY', key: 'gsv_yoy', width: 14, numFmt: '+0.00%;-0.00%;0.00%' },
+  { header: '产品', key: 'product', kind: 'text', width: 14 },
+  { header: '时间', key: 'weekLabel', kind: 'text', width: 14 },
+  // GSV 群组 (3 列: 总GSV + 新客GSV + 老客GSV)
+  { header: 'GSV', key: 'gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: '新客GSV', key: 'new_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: '老客GSV', key: 'old_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  // 客户数 群组 (3 列: 总客户数 + 新客数 + 老客数)
+  { header: '总客户数', key: 'users', kind: 'number', width: 14, numFmt: '#,##0' },
+  { header: '新客数', key: 'new_users', kind: 'number', width: 12, numFmt: '#,##0' },
+  { header: '老客数', key: 'old_users', kind: 'number', width: 12, numFmt: '#,##0' },
+  // 客单价 群组 (3 列: 总客单价 + 新客客单价 + 老客客单价)
+  { header: '总客单价', key: 'aus', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: '新客客单价', key: 'new_aus', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: '老客客单价', key: 'old_aus', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  // 占比 群组 (4 列: 新/老 GSV 占比 + 新/老 人数占比, 0-1 ratio → Excel *100 = % 显示)
+  { header: '新客成交占比', key: 'new_ratio_gsv', kind: 'number', width: 14, numFmt: '0.0%' },
+  { header: '老客成交占比', key: 'old_ratio_gsv', kind: 'number', width: 14, numFmt: '0.0%' },
+  { header: '新客人数占比', key: 'new_ratio_users', kind: 'number', width: 14, numFmt: '0.0%' },
+  { header: '老客人数占比', key: 'old_ratio_users', kind: 'number', width: 14, numFmt: '0.0%' },
 ])
 </script>
 

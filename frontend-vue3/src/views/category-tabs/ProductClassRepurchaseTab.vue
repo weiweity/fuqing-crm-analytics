@@ -88,55 +88,59 @@ function DaysChangeBadge(props: { value: number | null }) {
 
 // ── Excel 导出列定义（同品类） ──
 const productXlsxColumnsSame: XlsxColumn[] = [
-  { header: '品类', key: 'product_class', width: 12 },
-  { header: '购买人数', key: 'total_buyers', width: 10, numFmt: '#,##0' },
-  { header: '复购人数', key: 'repurchase_users', width: 10, numFmt: '#,##0' },
-  { header: '复购率', key: 'repurchase_rate', width: 10, numFmt: '0.0%' },
-  { header: '去年同期复购率', key: 'ly_repurchase_rate', width: 14, numFmt: '0.0%' },
-  { header: '复购率YOY', key: 'repurchase_rate_yoy', width: 12, numFmt: '0.00' },
-  { header: '复购率YOY (pp)', key: 'repurchase_rate_yoy_label', width: 14 },
-  { header: '中位天数', key: 'median_days', width: 10 },
-  { header: '去年同期中位天数', key: 'ly_median_days', width: 14 },
-  { header: '中位天数YOY', key: 'median_days_yoy', width: 12 },
-  { header: '平均天数', key: 'avg_days', width: 10 },
-  { header: '去年同期平均天数', key: 'ly_avg_days', width: 14 },
-  { header: '平均天数YOY', key: 'avg_days_yoy', width: 12 },
-  { header: 'P25', key: 'p25_days', width: 8 },
-  { header: 'P75', key: 'p75_days', width: 8 },
-  { header: '客单价（含首购）', key: 'avg_order_value', width: 14, numFmt: '¥#,##0' },
-  { header: 'GSV（含首购）', key: 'gsv', width: 14, numFmt: '¥#,##0' },
-  { header: '去年同期GSV', key: 'ly_gsv', width: 14, numFmt: '¥#,##0' },
-  { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.00' },
-  { header: 'GSV YOY (pp)', key: 'gsv_yoy_label', width: 12 },
-  { header: '复购客单价', key: 'repurchase_order_value', width: 12, numFmt: '¥#,##0' },
-  { header: '复购GSV', key: 'repurchase_gsv', width: 12, numFmt: '¥#,##0' },
+  { header: '品类', key: 'product_class', kind: 'text', width: 12 },
+  { header: '购买人数', key: 'total_buyers', kind: 'number', width: 10, numFmt: '#,##0' },
+  { header: '复购人数', key: 'repurchase_users', kind: 'number', width: 10, numFmt: '#,##0' },
+  { header: '复购率', key: 'repurchase_rate', kind: 'number', width: 10, numFmt: '0.0%' },
+  { header: '去年同期复购率', key: 'ly_repurchase_rate', kind: 'number', width: 14, numFmt: '0.0%' },
+  // L4.91 PR1 治本 Bug #4 #5: 复购率 YOY 用 kind='yoy_pp' (raw 0-1 diff * 100 = pp 后缀)
+  { header: '复购率YOY (pp)', key: 'repurchase_rate_yoy', kind: 'yoy_pp', width: 14 },
+  { header: '中位天数', key: 'median_days', kind: 'number', width: 10, numFmt: '0' },
+  { header: '去年同期中位天数', key: 'ly_median_days', kind: 'number', width: 14, numFmt: '0' },
+  // L4.91 PR1 治本 Bug #4: 中位天数YOY 用 kind='yoy_day' (raw signed int = 天数差, +0;-0;0 numFmt)
+  { header: '中位天数YOY', key: 'median_days_yoy', kind: 'yoy_day', width: 12 },
+  { header: '平均天数', key: 'avg_days', kind: 'number', width: 10, numFmt: '0' },
+  { header: '去年同期平均天数', key: 'ly_avg_days', kind: 'number', width: 14, numFmt: '0' },
+  // L4.91 PR1 治本 Bug #4: 平均天数YOY 用 kind='yoy_day'
+  { header: '平均天数YOY', key: 'avg_days_yoy', kind: 'yoy_day', width: 12 },
+  { header: 'P25', key: 'p25_days', kind: 'number', width: 8, numFmt: '0' },
+  { header: 'P75', key: 'p75_days', kind: 'number', width: 8, numFmt: '0' },
+  { header: '客单价（含首购）', key: 'avg_order_value', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: 'GSV（含首购）', key: 'gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: '去年同期GSV', key: 'ly_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  // L4.91 PR1 治本 Bug #4 #5: GSV YOY 跟 backend L4.81 yoy_absolute 1:1 stable (raw 0-1 ratio)
+  { header: 'GSV YOY%', key: 'gsv_yoy', kind: 'yoy_pct', width: 12 },
+  { header: '复购客单价', key: 'repurchase_order_value', kind: 'number', width: 12, numFmt: '¥#,##0' },
+  { header: '复购GSV', key: 'repurchase_gsv', kind: 'number', width: 12, numFmt: '¥#,##0' },
 ]
 
 
 // ── Excel 导出列定义（跨品类回购店铺） ──
 const productXlsxColumnsCross: XlsxColumn[] = [
-  { header: '品类', key: 'product_class', width: 12 },
-  { header: '购买人数', key: 'total_buyers', width: 10, numFmt: '#,##0' },
-  { header: '回购人数', key: 'repurchase_users', width: 10, numFmt: '#,##0' },
-  { header: '回购率', key: 'repurchase_rate', width: 10, numFmt: '0.0%' },
-  { header: '去年同期回购率', key: 'ly_repurchase_rate', width: 14, numFmt: '0.0%' },
-  { header: '回购率YOY', key: 'repurchase_rate_yoy', width: 12, numFmt: '0.00' },
-  { header: '回购率YOY (pp)', key: 'repurchase_rate_yoy_label', width: 14 },
-  { header: '中位天数', key: 'median_days', width: 10 },
-  { header: '去年同期中位天数', key: 'ly_median_days', width: 14 },
-  { header: '中位天数YOY', key: 'median_days_yoy', width: 12 },
-  { header: '平均天数', key: 'avg_days', width: 10 },
-  { header: '去年同期平均天数', key: 'ly_avg_days', width: 14 },
-  { header: '平均天数YOY', key: 'avg_days_yoy', width: 12 },
-  { header: 'P25', key: 'p25_days', width: 8 },
-  { header: 'P75', key: 'p75_days', width: 8 },
-  { header: '入口客单价（首购）', key: 'avg_order_value', width: 16, numFmt: '¥#,##0' },
-  { header: '入口GSV（首购）', key: 'gsv', width: 16, numFmt: '¥#,##0' },
-  { header: '去年同期GSV', key: 'ly_gsv', width: 14, numFmt: '¥#,##0' },
-  { header: 'GSV YOY', key: 'gsv_yoy', width: 10, numFmt: '0.00' },
-  { header: 'GSV YOY (pp)', key: 'gsv_yoy_label', width: 12 },
-  { header: '回流客单价', key: 'repurchase_order_value', width: 14, numFmt: '¥#,##0' },
-  { header: '回流GSV', key: 'repurchase_gsv', width: 14, numFmt: '¥#,##0' },
+  { header: '品类', key: 'product_class', kind: 'text', width: 12 },
+  { header: '购买人数', key: 'total_buyers', kind: 'number', width: 10, numFmt: '#,##0' },
+  { header: '回购人数', key: 'repurchase_users', kind: 'number', width: 10, numFmt: '#,##0' },
+  { header: '回购率', key: 'repurchase_rate', kind: 'number', width: 10, numFmt: '0.0%' },
+  { header: '去年同期回购率', key: 'ly_repurchase_rate', kind: 'number', width: 14, numFmt: '0.0%' },
+  // L4.91 PR1 治本 Bug #4 #5: 回购率 YOY 用 kind='yoy_pp' (raw 0-1 diff * 100 = pp 后缀)
+  { header: '回购率YOY (pp)', key: 'repurchase_rate_yoy', kind: 'yoy_pp', width: 14 },
+  { header: '中位天数', key: 'median_days', kind: 'number', width: 10, numFmt: '0' },
+  { header: '去年同期中位天数', key: 'ly_median_days', kind: 'number', width: 14, numFmt: '0' },
+  // L4.91 PR1 治本 Bug #4: 中位天数YOY 用 kind='yoy_day'
+  { header: '中位天数YOY', key: 'median_days_yoy', kind: 'yoy_day', width: 12 },
+  { header: '平均天数', key: 'avg_days', kind: 'number', width: 10, numFmt: '0' },
+  { header: '去年同期平均天数', key: 'ly_avg_days', kind: 'number', width: 14, numFmt: '0' },
+  // L4.91 PR1 治本 Bug #4: 平均天数YOY 用 kind='yoy_day'
+  { header: '平均天数YOY', key: 'avg_days_yoy', kind: 'yoy_day', width: 12 },
+  { header: 'P25', key: 'p25_days', kind: 'number', width: 8, numFmt: '0' },
+  { header: 'P75', key: 'p75_days', kind: 'number', width: 8, numFmt: '0' },
+  { header: '入口客单价（首购）', key: 'avg_order_value', kind: 'number', width: 16, numFmt: '¥#,##0' },
+  { header: '入口GSV（首购）', key: 'gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
+  { header: '去年同期GSV', key: 'ly_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  // L4.91 PR1 治本 Bug #4 #5: GSV YOY 跟 backend L4.81 yoy_absolute 1:1 stable (raw 0-1 ratio)
+  { header: 'GSV YOY%', key: 'gsv_yoy', kind: 'yoy_pct', width: 12 },
+  { header: '回流客单价', key: 'repurchase_order_value', kind: 'number', width: 14, numFmt: '¥#,##0' },
+  { header: '回流GSV', key: 'repurchase_gsv', kind: 'number', width: 14, numFmt: '¥#,##0' },
 ]
 
 const productXlsxColumns = computed<XlsxColumn[]>(() =>
