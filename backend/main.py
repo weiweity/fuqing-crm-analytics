@@ -192,10 +192,25 @@ async def lifespan(application: FastAPI):
         logger.info("Sprint 201 R1: startup DuckDB write lock released before serving read traffic")
     except Exception as e:  # noqa: BLE001
         logger.warning("Sprint 201 R1: startup DuckDB 连接释放失败 (不阻塞服务): %s", e)
+    # L4.85.6 方案 D: 启动 auth token evictor background task (跟 L4.72 RFM cache precompute 1:1 stable 模式)
+    # 治本 Bug #2: A Cmd+Q 退出浏览器 → backend ACTIVE_TOKENS 仍有 A token → B login 409
+    import asyncio
+    from backend.services.auth_token_evictor import evict_idle_tokens_periodically
+    auth_evictor_stop = asyncio.Event()
+    application.state.auth_evictor_stop = auth_evictor_stop
+    application.state.auth_evictor_task = asyncio.create_task(
+        evict_idle_tokens_periodically(auth_evictor_stop)
+    )
+    logger.info("L4.85.6 auth token evictor background task 已启动")
     yield
-    # 关闭时停止内存监控并释放全局 DuckDB 连接
+    # 关闭时停止内存监控 + background task + 释放全局 DuckDB 连接
     from backend.db.memory_monitor import stop_memory_watchdog
     from backend.db.connection import close_connection
+    auth_evictor_stop.set()
+    try:
+        await asyncio.wait_for(application.state.auth_evictor_task, timeout=5.0)
+    except asyncio.TimeoutError:
+        application.state.auth_evictor_task.cancel()
     stop_memory_watchdog()
     close_connection()
 
