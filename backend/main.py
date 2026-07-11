@@ -634,6 +634,12 @@ app.include_router(session_router)
 app.include_router(notifications_router)  # L4.75.3
 app.include_router(login_request_router)  # L4.85 申请+同意 模式
 
+# L4.91.2 治本 L4.85.6 Playwright e2e 测试环境隔离 (仅 FQ_CRM_TEST_MODE=1 开启)
+try:
+    from backend.routers.test_helpers import router as test_helpers_router
+    app.include_router(test_helpers_router)
+except Exception:
+    pass  # test_helpers router 非必要组件, 不影响生产服务
 
 if __name__ == "__main__":
     import uvicorn
