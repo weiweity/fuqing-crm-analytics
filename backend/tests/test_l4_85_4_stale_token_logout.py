@@ -108,7 +108,6 @@ def test_polling_does_not_refresh_active_at():
     修复前: polling 10s 滑动续期 → 用户离开工位 polling 仍跑 → _is_account_active 永远 True.
     修复后: polling sliding=False read-only check → last_active_at 不刷新 → 5 分钟外 inactive.
     """
-    from backend.routers.login_request import _get_current_username_from_token
     from backend.routers.auth import _verify_token
 
     # 准备: 1 个 token, last_active_at 4 分钟前

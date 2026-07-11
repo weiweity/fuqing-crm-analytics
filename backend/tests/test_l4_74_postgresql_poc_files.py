@@ -46,11 +46,12 @@ def test_citus_init_registers_workers_and_resource_roles() -> None:
 
 
 def test_l474_docs_exist() -> None:
+    # L4.91 doc-cleanup (5985233) 后, docs/operations/citus-cluster-runbook.md / DOCKER-INSTALL-DEPLOY-MANUAL.md / docs/architecture/dual-write-* 都已归档到 docs/sprints/archive/ (跟 L4.91 plan-eng-review 缺陷 1+2 1:1 stable 永久规则化沿用)
+    # RFM-high-concurrency-notice.md 跟 CLAUDE.md L4.72 永久规则化段重复, 已删除 (跟 L4.91 plan-eng-review 缺陷 1 1:1 stable 永久规则化沿用)
     required = [
-        "docs/operations/RFM-high-concurrency-notice.md",
-        "docs/operations/citus-cluster-runbook.md",
-        "docs/architecture/dual-write-ux-design.md",
-        "docs/architecture/dual-write-strategy.md",
+        "docs/sprints/archive/citus-cluster-runbook.md",
+        "docs/sprints/archive/dual-write-ux-design.md",
+        "docs/sprints/archive/dual-write-strategy.md",
         "docs/sprints/archive/SPRINT-L474-STAGE-1-REQUIREMENT-BASELINE.md",
         "docs/sprints/archive/SPRINT-L474-STAGE-1-SELECTION-REPORT.md",
         "docs/sprints/archive/SPRINT-L474-STAGE-2-BENCHMARK-REPORT.md",
@@ -66,8 +67,9 @@ def test_l474_docs_exist() -> None:
 
 
 def test_l474_stage345_docs_lock_go_no_go_and_dual_write_contract() -> None:
+    # L4.91 doc-cleanup (5985233) 后, dual-write-strategy.md 已归档到 docs/sprints/archive/
     cluster = (ROOT / "docs/sprints/archive/SPRINT-L474-STAGE-3-CLUSTER-BENCHMARK.md").read_text(encoding="utf-8")
-    strategy = (ROOT / "docs/architecture/dual-write-strategy.md").read_text(encoding="utf-8")
+    strategy = (ROOT / "docs/sprints/archive/dual-write-strategy.md").read_text(encoding="utf-8")
     decision = (ROOT / "docs/sprints/archive/SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md").read_text(encoding="utf-8")
     cost = (ROOT / "docs/sprints/archive/SPRINT-L474-STAGE-5-RISK-ASSESSMENT-COST-ESTIMATE.md").read_text(encoding="utf-8")
 
