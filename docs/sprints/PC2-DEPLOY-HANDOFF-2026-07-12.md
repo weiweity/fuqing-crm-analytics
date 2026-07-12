@@ -2,7 +2,7 @@
 
 > **部署日期**: 2026-07-13（明天）
 > **部署人**: 运营 / 接手人
-> **main HEAD**: `ef3f9d5`
+> **main HEAD**: `4f96ded`
 > **VERSION**: 0.4.14.50
 
 ## 1. 部署步骤
@@ -16,7 +16,7 @@ git pull origin main
 
 # Step 2: 验证代码版本
 git log --oneline -1
-# 应该输出: ef3f9d5 merge docs: CLAUDE.md L4.x 永久规则迁移
+# 应该输出: 4f96ded merge fix: 市场对焦 ProductCustomerTab 对比行 render 修复
 
 # Step 3: 重启后端
 nssm restart fuqing-uvicorn
@@ -52,6 +52,7 @@ nssm restart fuqing-frontend
 - 导航栏 tab 文字显示不全（尤其是"派样正装转化"）
 - 派样人数 sample_users + nonfull_repurchase_users 同比/环比缺失
 - Pydantic schema 缺少 YOY 字段导致 API 静默过滤
+- **市场对焦-核心单品新老客 对比行显示全 0%**: NDataTable 13 列 render 函数对"本周对比上周/本周对比去年同期"行用了原始字段（值为 0），改为 `_yoy_pct`/`_yoy_pp` 后缀字段
 
 ### 3.3 文档
 - CLAUDE.md L4.x 规则迁移到 `docs/rules/L4-permanent-rules.md`
@@ -61,7 +62,7 @@ nssm restart fuqing-frontend
 
 ```powershell
 cd D:\fuqin-date\fuqing-crm-analytics
-git checkout 9917940    # 回退到部署前的版本
+git checkout 517093e    # 回退到部署前的版本
 nssm restart fuqing-uvicorn
 cd frontend-vue3
 npm run build
@@ -82,4 +83,5 @@ nonfull_repurchase_users_yoy_pct / nonfull_repurchase_users_mom_pct。
 - frontend-vue3/src/api/sampling.ts (+5 行)
 - frontend-vue3/src/views/SamplingView.vue (+162/-158 行)
 - frontend-vue3/src/components/NavBar.vue (+12/-5 行)
+- frontend-vue3/src/views/market-focus/ProductCustomerTab.vue (+26/-13 行)
 ```
