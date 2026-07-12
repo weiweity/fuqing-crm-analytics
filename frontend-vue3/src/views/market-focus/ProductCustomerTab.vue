@@ -615,7 +615,7 @@ const columns: DataTableColumns<Row> = [
     width: 95,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.gsv) }, fmtYoy(row.gsv))
+      ? h('span', { class: changeClass(_cmpVal(row, 'gsv_yoy_pct')) }, fmtYoy(_cmpVal(row, 'gsv_yoy_pct') * 100))
       : fmtMoney(row.gsv),
   },
   {
@@ -624,7 +624,7 @@ const columns: DataTableColumns<Row> = [
     width: 95,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.new_gsv) }, fmtYoy(row.new_gsv))
+      ? h('span', { class: changeClass(_cmpVal(row, 'new_gsv_yoy_pct')) }, fmtYoy(_cmpVal(row, 'new_gsv_yoy_pct') * 100))
       : fmtMoney(row.new_gsv),
   },
   {
@@ -633,7 +633,7 @@ const columns: DataTableColumns<Row> = [
     width: 95,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.old_gsv) }, fmtYoy(row.old_gsv))
+      ? h('span', { class: changeClass(_cmpVal(row, 'old_gsv_yoy_pct')) }, fmtYoy(_cmpVal(row, 'old_gsv_yoy_pct') * 100))
       : fmtMoney(row.old_gsv),
   },
   {
@@ -642,7 +642,7 @@ const columns: DataTableColumns<Row> = [
     width: 85,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.users) }, fmtYoy(row.users))
+      ? h('span', { class: changeClass(_cmpVal(row, 'users_yoy_pct')) }, fmtYoy(_cmpVal(row, 'users_yoy_pct') * 100))
       : fmtInt(row.users),
   },
   {
@@ -651,7 +651,7 @@ const columns: DataTableColumns<Row> = [
     width: 75,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.new_users) }, fmtYoy(row.new_users))
+      ? h('span', { class: changeClass(_cmpVal(row, 'new_users_yoy_pct')) }, fmtYoy(_cmpVal(row, 'new_users_yoy_pct') * 100))
       : fmtInt(row.new_users),
   },
   {
@@ -660,7 +660,7 @@ const columns: DataTableColumns<Row> = [
     width: 75,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.old_users) }, fmtYoy(row.old_users))
+      ? h('span', { class: changeClass(_cmpVal(row, 'old_users_yoy_pct')) }, fmtYoy(_cmpVal(row, 'old_users_yoy_pct') * 100))
       : fmtInt(row.old_users),
   },
   {
@@ -669,7 +669,7 @@ const columns: DataTableColumns<Row> = [
     width: 85,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.aus) }, fmtYoy(row.aus))
+      ? h('span', { class: changeClass(_cmpVal(row, 'aus_yoy_pct')) }, fmtYoy(_cmpVal(row, 'aus_yoy_pct') * 100))
       : fmtAus(row.aus),
   },
   {
@@ -678,7 +678,7 @@ const columns: DataTableColumns<Row> = [
     width: 90,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.new_aus) }, fmtYoy(row.new_aus))
+      ? h('span', { class: changeClass(_cmpVal(row, 'new_aus_yoy_pct')) }, fmtYoy(_cmpVal(row, 'new_aus_yoy_pct') * 100))
       : fmtAus(row.new_aus),
   },
   {
@@ -687,7 +687,7 @@ const columns: DataTableColumns<Row> = [
     width: 90,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.old_aus) }, fmtYoy(row.old_aus))
+      ? h('span', { class: changeClass(_cmpVal(row, 'old_aus_yoy_pct')) }, fmtYoy(_cmpVal(row, 'old_aus_yoy_pct') * 100))
       : fmtAus(row.old_aus),
   },
   {
@@ -696,7 +696,7 @@ const columns: DataTableColumns<Row> = [
     width: 100,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.new_ratio_gsv) }, fmtPctChange(row.new_ratio_gsv))
+      ? h('span', { class: changeClass(_cmpVal(row, 'new_ratio_gsv_yoy_pp')) }, fmtPctChange(_cmpVal(row, 'new_ratio_gsv_yoy_pp') * 100))
       : fmtPct(row.new_ratio_gsv),
   },
   {
@@ -705,7 +705,7 @@ const columns: DataTableColumns<Row> = [
     width: 100,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.old_ratio_gsv) }, fmtPctChange(row.old_ratio_gsv))
+      ? h('span', { class: changeClass(_cmpVal(row, 'old_ratio_gsv_yoy_pp')) }, fmtPctChange(_cmpVal(row, 'old_ratio_gsv_yoy_pp') * 100))
       : fmtPct(row.old_ratio_gsv),
   },
   {
@@ -714,7 +714,7 @@ const columns: DataTableColumns<Row> = [
     width: 100,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.new_ratio_users) }, fmtPctChange(row.new_ratio_users))
+      ? h('span', { class: changeClass(_cmpVal(row, 'new_ratio_users_yoy_pp')) }, fmtPctChange(_cmpVal(row, 'new_ratio_users_yoy_pp') * 100))
       : fmtPct(row.new_ratio_users),
   },
   {
@@ -723,7 +723,7 @@ const columns: DataTableColumns<Row> = [
     width: 100,
     align: 'right',
     render: (row) => row.isChangeRow || row.isYoyRow
-      ? h('span', { class: changeClass(row.old_ratio_users) }, fmtPctChange(row.old_ratio_users))
+      ? h('span', { class: changeClass(_cmpVal(row, 'old_ratio_users_yoy_pp')) }, fmtPctChange(_cmpVal(row, 'old_ratio_users_yoy_pp') * 100))
       : fmtPct(row.old_ratio_users),
   },
 ]
