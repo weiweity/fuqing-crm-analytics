@@ -16,13 +16,10 @@ from backend.services.metrics.audience_summary import calculate_audience_summary
 
 from scripts.ad_hoc_query_excel_styles import save_workbook, write_rows_to_sheet
 from scripts.ad_hoc_queries._utils import clamp_yoy, parse_exclude_channels, validate_date_window
-from scripts.ad_hoc_queries.dq_report import DQ_HEADERS, run_dq_report
-from scripts.ad_hoc_queries.rfm_repurchase import RFM_HEADERS, run_rfm_repurchase
-from scripts.ad_hoc_queries.top_n import TOP_N_HEADERS, run_top_n
 from scripts.ad_hoc_queries.registry import QuerySpec, register
-# two_year_overview 改为 lazy import (write_export_excel 函数内):
-# 避免循环 import (export_excel → two_year_overview → registry → _load_builtins → export_excel, 触发 ImportError TWO_YEAR_HEADERS partially initialized).
-# Sprint 202+ Sprint 202 Data Query v2.7 暴露 pre-existing 循环 import (Sprint 183 v2.0 抽象沉淀), 1 行 lazy import 真治本.
+# 所有 sibling query 改为 lazy import (write_export_excel 函数内):
+# 避免循环 import (export_excel → query module → registry → _load_builtins → export_excel).
+# Sprint 202+ Data Query v2.7 暴露既有循环 import；四个 sibling query 均在调用期导入以治本。
 
 SHEET_ORDER = [
     "00_说明",
@@ -106,9 +103,11 @@ def write_export_excel(
     year: int = 2026,
     output_path: str | None = None,
 ) -> str:
-    # Lazy import (Sprint 202+ 治本 pre-existing 循环 import):
-    # 之前 module-level import 触发 _load_builtins 链 → two_year_overview 还没初始化
+    # Lazy import: registry 初始化会加载 export_excel；不能在模块导入期反向导入 query module。
+    from scripts.ad_hoc_queries.dq_report import DQ_HEADERS, run_dq_report
+    from scripts.ad_hoc_queries.rfm_repurchase import RFM_HEADERS, run_rfm_repurchase
     from scripts.ad_hoc_queries.two_year_overview import TWO_YEAR_HEADERS, run_two_year_overview
+    from scripts.ad_hoc_queries.top_n import TOP_N_HEADERS, run_top_n
 
     validate_date_window(start, end)
     workbook = Workbook()
