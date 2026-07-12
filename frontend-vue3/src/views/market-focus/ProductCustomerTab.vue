@@ -589,6 +589,12 @@ function changeClass(v: number): string {
 // ─────────────────────────────────────────────────────────────
 type Row = TableRow
 
+// L4.91 design-review (2026-07-12): 对比行渲染辅助 — 用 _yoy_pct / _yoy_pp 字段替代原始字段 (原始字段为 0)
+function _cmpVal(row: TableRow, yoyKey: string, ppKey?: string): number {
+  if (!row.isChangeRow && !row.isYoyRow) return 0
+  return (row as any)[yoyKey] ?? (ppKey ? (row as any)[ppKey] : 0) ?? 0
+}
+
 const columns: DataTableColumns<Row> = [
   {
     title: '产品',
