@@ -72,6 +72,11 @@ jobs:
     # L4.86 真根因: L4.85.9 改成从 .env 读取密码 (跟 L4.64 + L4.60 1:1 stable 永久规则化沿用), 但 CI runner Linux 环境没 .env → _load_credentials() 走自动生成密码路径 → test 用 hardcoded 期望值 → 401 账号或密码错误 → test job failure
     env:
       FQ_CRM_PASSWORDS: admin:123456
+      # Sprint 205+ v3 (跟 handoff-upload-admin-v3 §7.3 1:1 stable 永久规则化沿用):
+      # 跟 FQ_CRM_PASSWORDS 1:1 stable 配套 (跟 L4.86 治本 1:1 stable 永久规则化沿用)
+      # admin upload 后台 admin 角色白名单 (默认 "admin", 跟 .env 兜底一致)
+      # 跟 L4.88 conftest.py autouse fixture _reset_fq_crm_admins_env reload env 1:1 stable 永久规则化沿用
+      FQ_CRM_ADMINS: admin
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -120,6 +125,8 @@ jobs:
       DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
       HEALTH_API_KEY: ci-fake-health-api-key
       FQ_CRM_PASSWORDS: admin:123456
+      # Sprint 205+ v3: admin upload 配套 env var (跟 test job 1:1 stable)
+      FQ_CRM_ADMINS: admin
       ETL_MIN_DISK_GB: '0'
       # Sprint 63: CI 空 schema DB 不抛 fail-fast, 走 WARN only
       # Sprint 61 P2 fail-fast 默认 production raise, e2e schema-only fixture 没 orders 数据

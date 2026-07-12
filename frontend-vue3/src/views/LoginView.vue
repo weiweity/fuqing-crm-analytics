@@ -181,8 +181,12 @@ async function handleApply() {
     const res = await loginRequest(user, pwd, controller.signal)
     if (applyPollingDisposed) return
     applyRequestSent.value = true
-    applyRequestExpiresAt.value = Date.now() + 300 * 1000  // 5 分钟, 跟 L4.85 LOGIN_REQUEST_TIMEOUT_SECONDS 1:1 stable 配套
-    applyRemainingSeconds.value = 300
+    // Sprint 205+ v3 (跟 handoff-upload-admin-v3 1:1 stable 永久规则化沿用):
+    // 跟 backend/routers/login_request.py:44 LOGIN_REQUEST_TIMEOUT_SECONDS=180 1:1 stable
+    // 修复 frontend 倒计时 300s (5min) vs backend 180s (3min) desync pre-existing bug
+    // (跟 L4.85.5 5min→3min 全栈统一永久规则化沿用)
+    applyRequestExpiresAt.value = Date.now() + 180 * 1000  // 3 分钟, 跟 LOGIN_REQUEST_TIMEOUT_SECONDS=180 1:1 stable 配套
+    applyRemainingSeconds.value = 180
     applyMessage.value = res.message || `账号 ${user} 正在被使用, 已发送申请给当前用户, 请等待响应`
     applyMessageType.value = 'success'
     // 启动倒计时
