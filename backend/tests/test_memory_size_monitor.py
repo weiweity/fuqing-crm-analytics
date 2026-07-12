@@ -23,19 +23,19 @@ def _load_module():
     return mod
 
 
-def test_memory_size_monitor_basic() -> None:
-    """R7 跨 sprint stable 实证: 当前 MEMORY.md size 在限制内"""
-    result = subprocess.run(
-        [sys.executable, str(SCRIPT)],
-        env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin"},
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    assert "MEMORY_SIZE_MONITOR_OK" in result.stdout, (
-        f"R7 monitor did not report OK: stdout={result.stdout!r} stderr={result.stderr!r}"
-    )
-    assert result.returncode == 0, f"R7 monitor exited non-zero: {result.returncode}"
+def test_memory_size_monitor_basic(monkeypatch, tmp_path, capsys) -> None:
+    """R7 正常路径必须隔离宿主机 MEMORY.md，不能污染仓库 TECH-DEBT。"""
+    mod = _load_module()
+    fake_memory = tmp_path / "MEMORY.md"
+    fake_memory.write_bytes(b"within-limit")
+    fake_tech_debt = tmp_path / "TECH-DEBT.md"
+    monkeypatch.setattr(mod, "MEMORY_PATH", fake_memory)
+    monkeypatch.setattr(mod, "TECH_DEBT", fake_tech_debt)
+    monkeypatch.setattr(mod, "LOG_FILE", tmp_path / "memory-size.log")
+
+    assert mod.main() == 0
+    assert "MEMORY_SIZE_MONITOR_OK" in capsys.readouterr().out
+    assert not fake_tech_debt.exists()
 
 
 def test_memory_size_monitor_no_op() -> None:
