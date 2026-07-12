@@ -19,7 +19,7 @@ from scripts.ad_hoc_queries._utils import clamp_yoy, parse_exclude_channels, val
 from scripts.ad_hoc_queries.registry import QuerySpec, register
 # 所有 sibling query 改为 lazy import (write_export_excel 函数内):
 # 避免循环 import (export_excel → query module → registry → _load_builtins → export_excel).
-# Sprint 202+ Sprint 202 Data Query v2.7 暴露 pre-existing 循环 import (Sprint 183 v2.0 抽象沉淀), 1 行 lazy import 真治本.
+# Sprint 202+ Data Query v2.7 暴露既有循环 import；四个 sibling query 均在调用期导入以治本。
 
 SHEET_ORDER = [
     "00_说明",
