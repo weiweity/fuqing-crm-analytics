@@ -159,6 +159,15 @@ def _reset_fq_crm_admins_env():
     import os
     from backend.routers import auth as auth_module
 
+    def _admins_from_env(raw: str | None) -> frozenset:
+        """Helper: FQ_CRM_ADMINS env var → frozenset (跟 _reset_fq_crm_credentials_env
+        _load_credentials() 委托模式 1:1 stable; raw=None → frozenset() 空集,
+        跟 env unset 状态对称, 避免 teardown 时 fallback 'admin' 错位).
+        """
+        if not raw:
+            return frozenset()
+        return frozenset(u.strip() for u in raw.split(",") if u.strip())
+
     # 保存原始 env
     original_env = os.environ.get("FQ_CRM_ADMINS")
     # 跟 .env + CI runner shell env 1:1 stable 兜底 (跟 L4.86 + L4.88
@@ -167,26 +176,22 @@ def _reset_fq_crm_admins_env():
     # Reload _ADMIN_USERNAMES (only if module-level attribute exists after
     # handoff v3 实施; safe forward 防止 admin upload 还没实施前抛 AttributeError)
     if hasattr(auth_module, "_ADMIN_USERNAMES"):
-        auth_module._ADMIN_USERNAMES = frozenset(
-            u.strip()
-            for u in os.environ["FQ_CRM_ADMINS"].split(",")
-            if u.strip()
-        )
+        auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ["FQ_CRM_ADMINS"])
 
     try:
         yield
     finally:
         # 恢复原 env + reload _ADMIN_USERNAMES (避免 test 间 state 泄漏)
+        # 注意: env=None → pop + 重建 frozenset() 空集 (跟 unset 状态对称,
+        # 不用 'admin' fallback 否则 teardown 后 env unset + module set 还含 admin
+        # 跨 test 错位, 跟 _reset_fq_crm_credentials_env 用 _load_credentials() 委托
+        # reload 1:1 stable 永久规则化沿用).
         if original_env is None:
             os.environ.pop("FQ_CRM_ADMINS", None)
         else:
             os.environ["FQ_CRM_ADMINS"] = original_env
         if hasattr(auth_module, "_ADMIN_USERNAMES"):
-            auth_module._ADMIN_USERNAMES = frozenset(
-                u.strip()
-                for u in os.environ.get("FQ_CRM_ADMINS", "admin").split(",")
-                if u.strip()
-            )
+            auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ.get("FQ_CRM_ADMINS"))
 
 
 # ─────────────────────────────────────────────────────────────
