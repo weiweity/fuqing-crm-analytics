@@ -66,6 +66,7 @@ L4.74 PostgreSQL 16 分布式项目 (留尾 7/16 后接手人启动) 的 16 个 
 | L4.91 | `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint205+_l4_91_excel_export_ssot_close.md` | Excel 导出全量 semantic/contractual 治本 (8 件 bug + 24 视图审计 + kind enum 显式 SSOT) |
 | L4.91.1 | (main HEAD `51dbde1` entry via CHANGELOG/STATUS) | market-focus#product-customer 对比行 Excel yoy 格式错治本 (formatValue per-row dispatch + ProductCustomerTab 14 列 WYSIWYG) |
 | L4.91.2 | (main HEAD `4f64f9c` entry via CHANGELOG/STATUS) | ProductAssetsTab + OtherProductAssetsTab formatValue + test_helpers reset endpoint + 8 view kind enum 补齐 (34 列 total, 技术债 #1-#4 全部闭环) |
+| L4.91 design-review | (main HEAD `cef9a8d` entry) | 派样看板 sample_users + nonfull_repurchase_users 同比修复 (真因: Pydantic schema 漏字段 → FastAPI response_model 过滤) + 03 总-分布局重构 + 导航栏 tab 宽度优化. Codex + Claude 协作. |
 
 **0 业务代码改动累计 Sprint 60+ 97 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用). 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
 
