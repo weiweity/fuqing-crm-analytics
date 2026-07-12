@@ -197,8 +197,10 @@ async def lifespan(application: FastAPI):
     import asyncio
     from backend.services.auth_token_evictor import evict_idle_tokens_periodically
     auth_evictor_stop = asyncio.Event()
-    application.state.auth_evictor_stop = auth_evictor_stop
-    application.state.auth_evictor_task = asyncio.create_task(
+    # 每个 lifespan 实例必须只 await 自己所在 event loop 创建的 task。
+    # 并发 TestClient 会在同一个 FastAPI app 上启动多个 loop；写入 application.state
+    # 会让后启动的实例覆盖前一个 task，进而在关闭时跨 loop await 并报 RuntimeError。
+    auth_evictor_task = asyncio.create_task(
         evict_idle_tokens_periodically(auth_evictor_stop)
     )
     logger.info("L4.85.6 auth token evictor background task 已启动")
@@ -208,9 +210,9 @@ async def lifespan(application: FastAPI):
     from backend.db.connection import close_connection
     auth_evictor_stop.set()
     try:
-        await asyncio.wait_for(application.state.auth_evictor_task, timeout=5.0)
+        await asyncio.wait_for(auth_evictor_task, timeout=5.0)
     except asyncio.TimeoutError:
-        application.state.auth_evictor_task.cancel()
+        auth_evictor_task.cancel()
     stop_memory_watchdog()
     close_connection()
 
