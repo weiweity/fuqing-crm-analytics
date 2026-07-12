@@ -93,7 +93,7 @@ fuqing-crm-analytics/docs/
 ## 跨 sprint 维护规则
 
 **每个 Sprint 收口必做** (跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 永久规则化沿用):
-1. `CHANGELOG.md` 加 entry (近 30 entry 滚动, 老 entry 自动 archive 到 `CHANGELOG_HISTORY.md`)
+1. `CHANGELOG.md` 加 entry (近 30 entry 滚动, 老 entry 自动 archive 到 `docs/history/CHANGELOG_HISTORY.md`)
 2. `TECH-DEBT.md` 更新 (新债 / 已修数)
 3. `STATUS.md` 更新 (版本 + pytest + debt + e2e 状态行)
 4. `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{N}.md` 写收口记忆

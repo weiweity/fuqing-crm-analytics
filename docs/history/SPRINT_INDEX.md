@@ -8,7 +8,7 @@
 
 - **内存指针** (一文件一行): `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_sprint{N}_close.md`
 - **CHANGELOG** (近 30 entry): 项目根 `CHANGELOG.md`
-- **历史归档** (老 entry): `CHANGELOG_HISTORY.md`
+- **历史归档** (老 entry): `docs/history/CHANGELOG_HISTORY.md`
 
 ## Sprint 索引 (按版本号倒序)
 
@@ -63,7 +63,7 @@
 | **33** | ... | vite build hook + e2e view smoke | (见 CHANGELOG) |
 | **32.x** | ... | Playwright + Spec 修复 | (见 CHANGELOG) |
 | **28-31** | ... | 备份 + ETL + 50m scale | (见 CHANGELOG) |
-| **1-27** | ... | 早期奠基 | (见 CHANGELOG_HISTORY) |
+| **1-27** | ... | 早期奠基 | (见 docs/history/CHANGELOG_HISTORY) |
 
 ## 维护规则
 
@@ -78,4 +78,4 @@
 - `~/.claude/projects/-Users-hutou/memory/MEMORY.md` — 全局工作记忆索引
 - `~/.claude/projects/-Users-hutou/memory/project_fuqing_crm_analytics_*.md` — Sprint 收口记忆
 - `CHANGELOG.md` (近 30 entry 滚动)
-- `CHANGELOG_HISTORY.md` (历史归档)
+- `docs/history/CHANGELOG_HISTORY.md` (历史归档)

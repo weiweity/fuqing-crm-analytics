@@ -70,16 +70,18 @@ L4.74 PostgreSQL 16 分布式项目 (留尾 7/16 后接手人启动) 的 16 个 
 
 **0 业务代码改动累计 Sprint 60+ 97 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用). 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
 
-## Sprint 205+ docs 最终归档 (2026-07-12 7/16 离职前最终 doc cleanup)
+## Sprint 205+ docs 最终归档 (2026-07-12 7/16 离职前最终 doc cleanup, VERSION 0.4.14.51)
 
 L4.91 完整收口后最终 doc cleanup:
 - **13 件已 ship handoff/investigation → archive/**: L4.85.7 bug1 handoff + L4.91.2 investigate + 4 Sprint205+ handoff + 2 verification index + 1 handoff prompt index + 1 architecture review + 1 dimension autoplan + 1 skill snapshot + 1 Trino benchmark
 - **8 件 Codex prompt 纯 prompt → 删除**: CODEX-APP-GOAL-MODE-PROMPT (4) + CODEX-PROMPT-Sprint144 + HANDOFF-TO-PC2 + PROMPT-TO-PC2 + PROMPT-TO-WORKBUDDY
+- **POC 工件清理**: PostgreSQL 16 / Trino docker-compose、init 脚本、Trino coordinator/worker 配置、`scripts/trino_poc/`、`SamplingView.vue` STUB 及对应聚焦测试全部删除（知识已归入主 HANDOFF doc / close memory）
 - **sprints/ 精简**: 12 文件 → 1 个索引文件 (_sprint-close-index.md)
 - **architecture/ 精简**: 8 文件 → 6 文件 (移出 2 件 handoff/investigate)
 - **archive 总计**: 75 件, 完整历史 reference
+- **CHANGELOG 归档路径 SSOT**: `CHANGELOG_HISTORY.md` → `docs/history/CHANGELOG_HISTORY.md`，`scripts/archive_changelog.py` 同步更新
 
-**0 业务代码改动累计 Sprint 60+ 97 次 1:1 stable 永久规则化沿用** (跟 L4.50 + L4.55 + L4.20 1:1 stable 永久规则链配套).
+**0 业务代码改动累计 Sprint 60+ 98 次 1:1 stable 永久规则化沿用** (跟 L4.50 + L4.55 + L4.20 1:1 stable 永久规则链配套). VERSION `0.4.14.51`.
 
 ## 维护规则 (Sprint 收口 12 步流程 §12)
 
