@@ -10,6 +10,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).parent.parent.parent  # backend/tests → backend → repo root
 SCRIPT = REPO_ROOT / "scripts" / "branch_cleanup.py"
 
@@ -105,9 +107,22 @@ class TestGitIntegration:
         assert rc2 == 0, "当前 HEAD 不是 main"
 
     def test_remote_origin_accessible(self):
-        """origin 远程可访问."""
-        rc, out = run(["git", "ls-remote", "--heads", "origin"], timeout=10)
+        """origin 可访问；瞬时网络超时按 L4.40 fail-open 跳过。"""
+        try:
+            rc, out = run(["git", "ls-remote", "--heads", "origin"], timeout=10)
+        except subprocess.TimeoutExpired:
+            pytest.skip("origin remote probe timed out (L4.40 fail-open)")
         assert rc == 0, f"origin 远程不可访问: {out[:100]}"
+
+    def test_remote_origin_timeout_is_nonblocking(self, monkeypatch):
+        """网络瞬断不能让本地分支清理回归阻断收口。"""
+
+        def raise_timeout(*args, **kwargs):
+            raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+        monkeypatch.setattr(subprocess, "run", raise_timeout)
+        with pytest.raises(pytest.skip.Exception, match="timed out"):
+            self.test_remote_origin_accessible()
 
 
 class TestHookIntegration:
