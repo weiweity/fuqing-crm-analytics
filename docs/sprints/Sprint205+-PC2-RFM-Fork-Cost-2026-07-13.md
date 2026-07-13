@@ -187,24 +187,39 @@ A.5 (7/16 接手人, 现在不做)
 ```bash
 # === B.0 备份现状 + 暂存 wip commit ===
 cd C:\fuqin-date\fuqing-crm-analytics
-git status > C:\temp\pc2-pre-pull-status-2026-07-15.txt
-git log --oneline -5 > C:\temp\pc2-pre-pull-log-2026-07-15.txt
+git status > C:\temp\pc2-pre-pull-status-2026-07-13.txt
+git log --oneline -5 > C:\temp\pc2-pre-pull-log-2026-07-13.txt
 git add backend/services/health/rfm_analysis/cache.py scripts/start_uvicorn.py
-git commit -m "wip(PC2-temp-2026-07-15): 接 HANDOVER §9.2 描述前 patch (L4.15 违规待接手人 review)"
+git commit -m "wip(PC2-temp-2026-07-13): 接 HANDOVER §9.2 描述前 patch (L4.15 违规待接手人 review)"
 
 # === B.1 拉 Mac 端 main ===
+# 修正 (跟 SSOT 反漂移实战失败 #3 1:1 stable 永久规则化沿用): 之前 mac handoff 写 `git pull --ff-only` 是错的.
+# PC2 端有领先 1 wip commit (7c5b4d7 / afa2865 rebase 后), `--ff-only` 不能 fast-forward (PC2 领先).
+# 正确用 `git pull --rebase origin main`. 这一改是 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用
+# (跟之前 L4.20 SSOT 反漂移实战失败 #1 HANDOVER §9.4 + #2 跨端调试 1:1 stable 永久规则化沿用, 跨 sprint 累积实战案例 #3).
 git fetch origin
 git checkout main
-git pull --ff-only origin main
-# 期望: Fast-forward 到 c2aa69e 或更新 (看你拉的时间)
+git pull --rebase origin main
+# 期望: rebase 后无冲突 (PC2 端 cache.py / start_uvicorn.py 跟 a0b0799 / a2078de 改的文件不重叠; 实际 PC2 端跑过 11:25 GMT+8 验证 0 conflict).
+# rebase 后 HEAD hash 变 (af2865 → 实际新 hash), 跟拉取时间 + rebase 策略有关, 不必 specific SHA.
 
 # === B.2 看 wip 跟 a0b0799 的 diff ===
-git diff HEAD -- backend/services/health/rfm_analysis/cache.py scripts/start_uvicorn.py
-# 期望: 看 7c5b4d7 跟 a0b0799 哪个 fix 更正
+git diff HEAD~ HEAD -- backend/services/health/rfm_analysis/cache.py scripts/start_uvicorn.py
+# 期望: cache.py 0 行 diff (PC2 端 cache.py 已被 a0b0799 真治本覆盖, 100% 等于 Mac 端 main cache.py)
+# 期望: start_uvicorn.py ~75 行 diff (PC2 自家 wip L4.68/L4.69 wrapper + import sys + analyze_on_start 优化, 是 Windows 平台独有修复)
+# 跟 git grep "_CACHE_OPERATION_LOCK\|del conn\|get_cache_connection" backend/services/health/rfm_analysis/cache.py 实证 9 hit = a0b0799 真治本完整
 
-# === B.3 决策: cherry-pick 还是丢弃 ===
-# 路径 A (推荐): 7c5b4d7 的 patch 是 ad-hoc hack → 丢弃 (git checkout HEAD~ -- <files>)
-# 路径 B (subdecide): 7c5b4d7 的 patch 是真治本 → cherry-pick 到 feat branch → 走 12 步流程 → push main
+# === B.3 决策: cherry-pick / discard / 保留 wip ===
+# 修正 (跟 L4.42 + L4.15 1:1 stable 永久规则化沿用): 之前 mac handoff B.3 写路径 A (推荐) 是错的. 实际调研发现 PC2 端 wip start_uvicorn.py 是 L4.68/L4.69 wrapper (Windows 平台独有), 路径 A 丢 wrapper 会让 uvicorn 跑不起来 NameError: sys.
+# 真正可选路径:
+# 路径 A (不推荐, regression 风险): git checkout a2078de~ -- scripts/start_uvicorn.py 丢弃 wip → NameError + L4.68 修复丢失
+# 路径 B (sub-decide, 接手人 7/16+ 做): cherry-pick wip 到 feat 分支 → 12 步流程 → merge main. 周期 1-2 天
+# 路径 C (PC2 端 现状已预备, L4.50 0 业务代码改动 + L4.15 必拍板 1:1 stable 永久规则化沿用, 推荐):
+#   保留 wip commit 在 PC2 端 main (HEAD = afa2865 rebase 后新 hash). 不合到 Mac 主仓, 等接手人 7/16+ review 后决定:
+#   - 路径 C.1: 接 wip 内容永久化 (跑 12 步流程 cherry-pick)
+#   - 路径 C.2: discard wip (PC2 端再 git checkout 还原)
+#   - 路径 C.3: cleanup commit message (撤回 + 重 commit 不再误写 "cache.py + start_uvicorn.py")
+# 路径 D (cleanup commit message variant, 推荐): `git reset HEAD~ --soft` 撤回 wip 这次 commit → 重新 stage 只 start_uvicorn.py → 重 commit message 只写实际改的 (PC2 Windows 平台 L4.68 wrapper + import sys). 0 改动内容, 修 commit message.
 
 # === B.4 跑 precompute_fact_rfm.py (L4.71 Stage 2 1280 组合 precompute) ===
 # 这一步是 21 小时, 接手人按自己节奏
