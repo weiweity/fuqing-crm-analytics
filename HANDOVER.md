@@ -270,3 +270,47 @@ curl -X GET http://127.0.0.1:8000/api/v1/market-focus/store-assets | jq .
 ---
 
 **本文档跟 L4.85 + L4.55 + L4.57 + L4.91 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 沿用. 接手人 7/16+ 启动必读 + 业务验证 8 件套 100% PASS 才算 ship (跟 L4.85 + L4.91 PR1 final 业务验证 1:1 stable 永久规则化沿用).**
+
+---
+
+## 9. PC2 端 7/13 部署风险备忘 (跟 L4.15 push 必拍板 + L4.20 SSOT 反漂移 + L4.42 立项实证 SOP 1:1 stable 永久规则化沿用)
+
+> **创建日期**: 2026-07-13
+> **触发**: 准备 PC2 部署 `aa40ac8` (VERSION `0.4.14.44`) → `c2aa69e` (VERSION `0.4.14.51`) 时, 发现 PC2 上有 L4.15 违规未拍板的本地改动 (2 个 wip commit + 9 个 untracked 工具脚本)
+
+### 9.1 PC2 端实测起点校正 (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用)
+
+| 项 | 值 |
+|---|---|
+| 项目路径 | `C:\fuqin-date\fuqing-crm-analytics` (**不是 D 盘**, 7/12 doc 写 D 是错的) |
+| 起点 HEAD | `aa40ac8` (VERSION `0.4.14.44`, **不是 7/12 doc 写的 `4f96ded`**) |
+| 目标 HEAD | `c2aa69e` (VERSION `0.4.14.51`) |
+| 落后 commit | **126** 个 (含 L4.85.4-L4.85.9 / L4.86 / L4.87 / L4.88 / L4.89 / L4.84-L4.85.3 / L4.91 全套) |
+
+### 9.2 PC2 端 L4.15 违规 wip commit (接手人 7/16+ 必读)
+
+PC2 副 Agent 在未经 user 拍板的情况下直接改了 2 个文件 (Mac 主仓 `origin/main` **没有对应 commit**, 下面是 PC2 7/13 部署时实测发现的事实):
+
+| 文件 | 改动内容 | L4.15 违规性质 |
+|---|---|---|
+| `backend/services/health/rfm_analysis/cache.py` | `_read_db_cache` 用 `get_cache_connection` (L4.69 patch 候选) | 必拍板违规 |
+| `scripts/start_uvicorn.py` | L4.68 修复候选 | 必拍板违规 |
+
+**接手人 7/16+ 上岗 Day 1 必做 3 步** (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用):
+
+1. `cd "C:\fuqin-date\fuqing-crm-analytics" && git status` 看当前 PC2 端是否仍是 2 个 modified + 9 个 untracked
+2. `git log --oneline -10` 查 PC2 端本地有没有这 2 个文件的 wip commit, 拿到具体 SHA 后 `git show <SHA> --stat` review 实际改动内容, 判断是否为真治本 (不是 ad-hoc hack)
+3. **真治本** → 走 12 步流程: 拿 PC2 端 diff (`git diff aa40ac8 -- backend/`) 在 Mac 端 feat 分支应用 → review → qa → merge main → push main → pull (跟 L4.15 必拍板 1:1 stable 永久规则化沿用); **ad-hoc hack** → `git checkout backend/services/health/rfm_analysis/cache.py scripts/start_uvicorn.py` 在 PC2 端丢弃, Mac 主仓不动
+
+### 9.3 PC2 端 9 个 untracked 工具脚本
+
+PC2 上有 9 个 `scripts/probe_*.py` + `scripts/verify_*.py` + `scripts/restart_*.ps1` (PC2 副 Agent 部署工具), 已备份到 `C:\temp\pc2-tools-backup-2026-07-13\` 后从工作区删除 (不该 git tracked)。`.gitignore` 没补 pattern, 接手人 7/16+ 上岗决定是否补。
+
+### 9.4 7/12 PC2-DEPLOY-HANDOFF doc SSOT 漂移 (跟 L4.20 SSOT 反漂移 永久规则 1:1 stable 实战案例 #1)
+
+`docs/sprints/PC2-DEPLOY-HANDOFF-2026-07-12.md` 文档写:
+- 起点 HEAD = `4f96ded` (实际是 `aa40ac8`)
+- 项目路径 = `D:\fuqin-date\fuqing-crm-analytics` (实际是 `C:\fuqin-date\fuqing-crm-analytics`)
+- 累计 commit 数 = "4 个 doc" (实际是 126 个)
+
+接手人 7/16+ **不要**直接按 7/12 那份 doc 部署 — 必须以 7/13 实际 git log 起点 (`aa40ac8`) 为准 (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用)。7/12 doc 保留作为**历史 trail** (不动, 避免再 SSOT 漂移)。
