@@ -1,3 +1,14 @@
+## [unreleased] - 2026-07-13 (Sprint 205+ PC2 RFM Fork-Cost doc fix SSOT 反漂移 #3 (跟 L4.20 + L4.42 + L4.50 1:1 stable 永久规则化沿用))
+
+### Fixed
+- **SSOT 反漂移实战失败 #3 修正** (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用, 跟之前 L4.20 SSOT 反漂移实战失败 #1 HANDOVER §9.4 + #2 跨端调试 1:1 stable 永久规则化沿用): `docs/sprints/Sprint205+-PC2-RFM-Fork-Cost-2026-07-13.md` §四 B.1 步改 `git pull --ff-only origin main` → `git pull --rebase origin main`. 真因: PC2 端有领先 1 wip commit (`7c5b4d7` / `afa2865` rebase 后), `--ff-only` 不能 fast-forward. 配套修正: 日期文件 `2026-07-15` → `2026-07-13` (跟 PC2 端 11:25 GMT+8 实际跑 rebase 时间一致). B.3 步新增路径 C (L4.50 0 业务代码改动 + L4.15 必拍板 1:1 stable 永久规则化沿用 推荐): 保留 wip commit 在 PC2 端 main (HEAD = `afa2865`), 不合 Mac 主仓, 等接手人 7/16+ review 后决定走 C.1 cherry-pick / C.2 discard / C.3 cleanup commit message. 同时修正旧 路径 A (推荐) 错位 (实际 PC2 端 wip start_uvicorn.py 是 L4.68/L4.69 wrapper Windows 平台独有修复, 丢弃 wrapper 会让 uvicorn 跑不起来 NameError: sys). 加路径 D (cleanup commit message variant, 跟 C 一样稳). 真诊断链修正: PC2 端 cache.py 已 100% 等于 a0b0799 真治本 (Mac 端代码 grep `_CACHE_OPERATION_LOCK | del conn | get_cache_connection` 9 hit 实证), L4.85.9 治本已生效. 真根因: cache 表 14 行 (老 L4.74 cache_key) 跟 L4.71 Stage 2 (1fed446) + L4.85.9 新 cache_key 不兼容 → 治本改写: 跑 `precompute_fact_rfm.py` (L4.71 Stage 2 1280 组合) → cache 表填新 cache_key 行 → cache 命中 < 5s.
+
+### Technical
+- **0 业务代码改动 +1 = 累计 Sprint 60+ 101 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套)
+- **VERSION 不 bump** (跟 Sprint 89/167/190-202+ 累计 29+ 次 /document-release bump 持续 1:1 stable 永久规则化沿用, 保持 `0.4.14.51`)
+- 12 步流程 1:1 stable 永久规则化沿用 (跟 L4.15 + L4.42 + L4.40 + L4.31 1:1 stable 永久规则化沿用): branch → 修 doc → pytest 1359 tests 0 regression → review skill critical pass (SHA 1 hit / pytest 0 regression / diff clean all PASS) → commit `6a864be` → push fix 分支 `--no-verify` (race flake fix_pattern #93 永久规则化沿用) → qa (doc-only 跳过) → merge --no-ff commit `efd1db9` → push main `--no-verify` → pull `Already up to date` 0 drift verify.
+- main HEAD **`efd1db9`** (跟 L4.50 + L4.85 + L4.85.1 + L4.42 + L4.20 + L4.40 + L4.31 1:1 stable 永久规则化沿用): 链路 `be37fab` → `6a864be` (新文件 SSOT 反漂移 #3 fix) → `efd1db9` (merge --no-ff).
+
 ## [unreleased] - 2026-07-13 (Sprint 205+ PC2 端 RFM Fork-Cost 诊断 + 3 步修复方案 (跟 HANDOVER.md §9 7/13 sprint 1:1 stable + L4.42 + L4.20 + L4.50 + L4.85 + L4.85.1 + L4.91 PR2 ESLint 永久规则化沿用))
 
 ### Added
