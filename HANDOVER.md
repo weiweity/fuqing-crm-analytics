@@ -314,3 +314,64 @@ PC2 上有 9 个 `scripts/probe_*.py` + `scripts/verify_*.py` + `scripts/restart
 - 累计 commit 数 = "4 个 doc" (实际是 126 个)
 
 接手人 7/16+ **不要**直接按 7/12 那份 doc 部署 — 必须以 7/13 实际 git log 起点 (`aa40ac8`) 为准 (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用)。7/12 doc 保留作为**历史 trail** (不动, 避免再 SSOT 漂移)。
+
+---
+
+## 10. PC2 端 RFM Fork-Cost 诊断跟进 (跟 §9 L4.20 SSOT 反漂移实战案例 #1 1:1 stable 永久规则化沿用)
+
+> **触发**: 2026-07-13 user 实测发现 PC2 RFM 17s + 偶尔 502, Mac 顺畅。user 怀疑"是不是重装快", 经 L4.42 + L4.20 双线 git log 实证后确诊 **PC2 端 fork state**, 不需要重装
+> **完整诊断**: 见 `docs/sprints/Sprint205+-PC2-RFM-Fork-Cost-2026-07-13.md` (~340 行, 含 A 步 PowerShell + B 步 git 流程 + 5 维度实测报告 + 接手人 sprint + SSOT 反漂移 #2)
+> **本章节**: 接手人 7/16+ 必读 4 件精简
+
+### 10.1 真根因链 (跟 §9.1 1:1 stable 永久规则化沿用: 双线实证 → 联想式诊断)
+
+```
+PC2 端 HEAD = 7c5b4d7 (Mac 主仓不存在, PC2 副 Agent 自作主张 wip commit 没 push)
+  ↓ Mac 端 a0b0799 (L4.85.4-L4.85.9 6 件含 缓存永远 miss 治本) 没拉到
+  ↓ Mac 端 1fed446 (L4.71 Stage 2 cache_key 改写 1280 组合) 没拉到
+  ↓ Mac 端 aa40ac8 (L4.74 cache end_date fix) 没拉到
+  ↓ PC2 端 cache 表 14 行还是 7/9 跑过老 L4.74 12 组合 + L4.74 amend + 2 行
+  ↓ 新的 cache_key (L4.71 + L4.85.9 配套) 找不到 → 永远 cache miss
+  ↓ backend/services/health/rfm_analysis/cache.py:111 _read_db_cache() cache_conn.execute() 找不到表
+  ↓ 走 9 CTE live SQL → 17s
+  ↓ 内存涨到 1.5+GB → 触发 PC2 独有 PS 脚本 watchdog_memory.ps1 $memThresholdMB = 1800 (L4.70 v2 PC2 注释命名, 不在 L4.x 主编号)
+  ↓ NSSM stop/start 间隙 → 用户 502 Bad Gateway
+```
+
+### 10.2 PC2 端待 review 的 L4.15 违规 wip commit 列表 (跟 §9.2 1:1 stable 永久规则化沿用)
+
+| wip SHA | 改了什么 | 处置决策 |
+|---|---|---|
+| `7c5b4d7` (跨版本, PC2 端独有, 不是 1 个文件) | 至少改了 cache.py + start_uvicorn.py + 多个文件, 详情 `git show 7c5b4d7 --stat` (PC2 端) | **接手人 7/16+ Day 2 review**: cherry-pick 到 feat 分支还是丢弃 |
+
+> ⚠️ **关键**: `7c5b4d7` 不是单独 commit — 实际可能是 PC2 副 Agent 在 fork 上累计的多个 commit 的 tip。接手人 review 时用 `git log --oneline origin/main..HEAD` 看完整 fork diff 范围
+
+### 10.3 PC2 端独有的 1.8GB watchdog 实证 (跟 §9.2 L4.15 1:1 stable 永久规则化沿用)
+
+- **不在 backend codebase**: `scripts/watchdog_memory.ps1` PC2 端独有 (git log 0 命中, codebase 完全不存在)
+- **阈值位置**: PS 脚本第 11 行 `$memThresholdMB = 1800  # L4.70 v2: 1.8GB 触发重启`
+- **命名含义**: `L4.70 v2` 不是 git L4.x 永久规则编号, 是 PC2 脚本注释里的代号 (跟 L4.91 PR2 ESLint 1:1 stable 永久规则化沿用 — 跨 sprint 跨平台 PS 脚本不在 L4.x 主流程)
+- **跟 backend watchdog 两套并存**:
+  - backend Python `_RSS_HARD_LIMIT_BYTES = int(float(os.environ.get("FQ_RSS_HARD_LIMIT_GB", "12")) * _GIB)` — 12GB 硬限 `os._exit(1)`
+  - PC2 PS 脚本 watchdog_memory.ps1 — 1.8GB 阈值 NSSM stop/start
+- **当前先关 PS 脚本 watchdog** (跟 L4.15 必拍板 1:1 stable 永久规则化沿用; user 7/13 "开始吧 A+B+C" 已隐含拍板): PC2 端 `Disable-ScheduledTask -TaskName "fuqing-uvicorn-mem-watchdog"`. B 步治本后 `Enable-ScheduledTask` 复原
+
+### 10.4 接手人 7/16+ Day 1 必做 3 步 (跟 §7.2 1:1 stable 永久规则化沿用)
+
+1. **A 步 (5 min)**: PC2 端 `Disable-ScheduledTask -TaskName "fuqing-uvicorn-mem-watchdog"`. 治标, 502 消失. **0 业务代码改动**
+2. **B 步 (1-2 天, 可选 Day 1-2 做)**: PC2 端 `git fetch origin && git checkout main && git pull --ff-only origin main` + 处理 `7c5b4d7` 跟 a0b0799 conflict + 跑 `precompute_fact_rfm.py` 21 小时. 治本, RFM < 5s + 0 502
+3. **A.5 步 (B 步完成后)**: `Enable-ScheduledTask -TaskName "fuqing-uvicorn-mem-watchdog"` 启用 watchdog, NSSM 兜底完整
+
+### 10.5 SSOT 反漂移实战失败 #2 (跟 §9.4 #1 1:1 stable 永久规则化沿用)
+
+跟 §9.4 + Sprint 188 B3 + L4.91 PR2 ESLint 1:1 stable 永久规则化沿用:
+- Mac 端把 L4.70 v2 描述为 git commit (实际在 PS 脚本注释)
+- Mac 端把 PC2 HEAD `7c5b4d7` 当伪造 SHA 反驳 (实际存在 PC2 端)
+- PC2 端反过来反驳"Mac 端 git log 反漂移混淆了 67dd254" (实际 67dd254 是 Mac 端真)
+- 共同根因: 跨端调试缺双方各跑 git log 实证 + 抽象 sprint 命名不查 codebase
+
+> 接手人 7/16+ 补强: 写 CLAUDE.md L4.20 段加"§10 SSOT 反漂移实战失败 #2"沉淀
+
+---
+
+**本文档跟 L4.85 + L4.55 + L4.57 + L4.91 1:1 stable 永久规则化沿用, 跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 沿用. 接手人 7/16+ 启动必读 + 业务验证 8 件套 100% PASS 才算 ship (跟 L4.85 + L4.91 PR1 final 业务验证 1:1 stable 永久规则化沿用).**
