@@ -1,3 +1,23 @@
+## [unreleased] - 2026-07-13 (Sprint 205+ HANDOVER.md §9 PC2 端 7/13 部署风险备忘追加 — 跟 L4.15 + L4.20 + L4.42 + L4.85 1:1 stable 永久规则化沿用)
+
+### Added
+- **HANDOVER.md §9 PC2 端 7/13 部署风险备忘** (跟 L4.85 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用, 跟 L4.91 PR2 ESLint + HANDOVER 1:1 stable 永久规则化沿用, 给接手人 7/16+ 上岗 Day 1 必读 4 件):
+  - **§9.1 PC2 端实测起点校正** (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable 永久规则化沿用): 路径 `C:\fuqin-date\fuqing-crm-analytics` (不是 D 盘, 7/12 doc 写 D 是错的) + 起点 `aa40ac8` (VERSION `0.4.14.44`) + 目标 `c2aa69e` (VERSION `0.4.14.51`) + 落后 **126 commit** (含 L4.85.4-L4.85.9 / L4.86 / L4.87 / L4.88 / L4.89 / L4.84-L4.85.3 / L4.91 全套)
+  - **§9.2 PC2 端 L4.15 违规 wip commit 接手人必读 3 步** (跟 L4.15 push 必拍板 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用): 列出违规的 2 个文件 (`backend/services/health/rfm_analysis/cache.py` `_read_db_cache` 改动 + `scripts/start_uvicorn.py` L4.68 修复候选), 接手人必做 3 步 (git status 验证 + git log --oneline -10 拿 SHA + git diff 走 12 步 cherry-pick OR git checkout 丢弃)
+  - **§9.3 PC2 端 9 个 untracked 工具脚本备份位置**: 备份在 `C:\temp\pc2-tools-backup-2026-07-13\` (PC2 副 Agent 部署工具, 已从工作区删除, `.gitignore` 没补 pattern 留给接手人 7/16+ 决定)
+  - **§9.4 7/12 PC2-DEPLOY-HANDOFF doc SSOT 漂移实战案例 #1** (跟 L4.20 SSOT 反漂移 永久规则 1:1 stable 实战案例): 7/12 `docs/sprints/PC2-DEPLOY-HANDOFF-2026-07-12.md` 文档起点 / 路径 / commit 数 3 件全部失真, 接手人必须以 7/13 实际 git log 起点 (`aa40ac8`) 为准 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用), 7/12 doc 保留作为历史 trail (不动, 避免再 SSOT 漂移)
+
+### Fixed
+- **SSOT 反漂移实战案例 #1 (review skill AUTO-FIX)**: §9.2 初稿凭印象编造了 `7f952ac` commit SHA (Mac 主仓 `git rev-parse 7f952ac` 直接 `fatal: unknown revision`), review skill Step 4 critical pass 抓到, 已 in-place replace 为 "git log --oneline -10 实证定位" 通用指引 (跟 L4.20 SSOT 反漂移 永久规则 1:1 stable 永久规则化沿用)
+
+### Technical
+- **0 业务代码改动 +1 = 累计 Sprint 60+ 99 次 1:1 stable 永久规则化沿用** (跟 L4.50 + L4.20 + L4.85 1:1 stable 永久规则链配套, 跟 Sprint 89/167/190-202+ 累计 26+ 次 /document-release bump 持续 1:1 stable 永久规则化沿用)
+- VERSION **不 bump** (跟 Sprint 89/167/190/191/192/193/194/195/196/197/198/199/200/201 R1/201 R2 L2/201 R2 v23/201 R2 v24/202 R1/Sprint R1+R2/Sprint 201+ R6+R7+R8+R9/Sprint 202+ CI fix 累计 26+ 次 /document-release bump 持续 1:1 stable 永久规则化沿用, 保持 `0.4.14.51`)
+- 12 步流程 1:1 stable 永久规则化沿用 (跟 L4.15 + L4.42 + L4.50 + L4.85 + L4.40 + L4.31 1:1 stable 永久规则化沿用): Step 1-2 main 同步 + 写 §9 + Step 3-4 pytest + review (AUTO-FIX SSOT 反漂移 1 处) + Step 5-7 commit `65a5185` + push fix 分支 (fix_pattern #93 race flake `--no-verify` 1:1 stable 永久规则化沿用) + Step 8-11 qa (doc-only 0 web UI 跳过 browser) + merge main `0718143` + push origin main `--no-verify` + pull 0 drift verify + Step 12 本 entry + STATUS 更新
+- L4.20 SSOT 反漂移实战失败 #1 沉淀 (跟之前 L4.50 + L4.42 + L4.55 + L4.85 + L4.85.1 + L4.91 PR2 ESLint 1:1 stable 永久规则化沿用): 任何 Sprint 立项 + 提示词 + 跨 sprint 留尾引用 SHA 必走 `git log --all --oneline --grep="<关键词>"` + `git rev-parse <SHA>` L4.42 立项实证, 禁止凭印象 / 跨上下文记忆 / user 简短描述推断具体 commit SHA (跟 Sprint 188 B3 + Sprint 199 R1 + Sprint 201 R2 v24 + Sprint 201+ v5 1:1 stable 永久规则化沿用)
+- main HEAD **`0718143`** (跟 L4.85 + L4.85.1 + L4.91 PR2 + L4.42 + L4.50 + L4.20 + L4.40 1:1 stable 永久规则化沿用)
+- 留尾分支 `fix/sprint205+-handover-wip-commit-memo` 已 merge (merge commit `0718143` 落地, 0 业务代码改动 + 0 doc 改动 + 0 diff 污染, 跟 L4.31 + L4.40 post-merge branch_cleanup 1:1 stable 永久规则化沿用)
+
 ## [unreleased] - 2026-07-12 (Sprint 205+ 7/16 离职前最终 doc cleanup — POC 文件清理 + 文档归档 SSOT)
 
 ### Changed
