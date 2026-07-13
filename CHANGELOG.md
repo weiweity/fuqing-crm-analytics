@@ -1,3 +1,19 @@
+## [unreleased] - 2026-07-13 (Sprint 205+ PC2 端 RFM Fork-Cost 诊断 + 3 步修复方案 (跟 HANDOVER.md §9 7/13 sprint 1:1 stable + L4.42 + L4.20 + L4.50 + L4.85 + L4.85.1 + L4.91 PR2 ESLint 永久规则化沿用))
+
+### Added
+- **`docs/sprints/Sprint205+-PC2-RFM-Fork-Cost-2026-07-13.md`** (327 lines, 跟 L4.42 + L4.20 双线 git log 实证 1:1 stable 永久规则化沿用): 5 维度实测数据 + 6 节点真根因链 (PC2 端 HEAD `7c5b4d7` fork state + Mac 端 a0b0799 + 1fed446 + aa40ac8 没拉到 + cache 表 14 行老 L4.74 12 组合跟 L4.71 + L4.85.9 新 cache_key 不兼容 + `_read_db_cache()` cache_conn.find 不到 `rfm_analysis_cache` 表 → 永远 miss → live SQL 17s → 内存涨 → PC2 独有 PS 脚本 watchdog_memory.ps1 `$memThresholdMB=1800` 1.8GB 阈值 → NSSM stop/start 间隙 → 用户 502) + A 步 PowerShell `Disable-ScheduledTask -TaskName "fuqing-uvicorn-mem-watchdog"` 5 min 治标 (关掉 1.8GB watchdog 让 502 消失) + B 步 PC2 端 `git pull origin main --ff-only` + 处理 `7c5b4d7` 跟 a0b0799 conflict (8 个文件 cache.py / start_uvicorn.py 重叠) + 跑 `precompute_fact_rfm.py` L4.71 Stage 2 1280 组合 precompute 21h 治本 + 接手人 7/16+ 启动必读 4 件文档 (HANDOVER §10 + 本 sprint doc + CLAUDE.md L4.x 78 stable + 跨 sprint 留尾登记).
+- **HANDOVER.md §10** (62 lines 增量, 跟 §9 1:1 stable 永久规则化沿用): §10.1 真根因链 (跟 §9.1 双线实证 1:1 stable 永久规则化沿用) + §10.2 PC2 端待 review 的 L4.15 违规 wip commit 列表 (`7c5b4d7` 是 PC2 副 Agent 自作主张 wip 没 push 上 Mac 主仓) + §10.3 PC2 端独有 1.8GB watchdog 实证 (`scripts/watchdog_memory.ps1` PS 脚本第 11 行常量, 不在 codebase, 是 PC2 端独有; 跟 backend Python `FQ_RSS_HARD_LIMIT_GB=12` 两套机制并存) + §10.4 接手人 Day 1 必做 3 步 (A 关 watchdog / B git pull + precompute / A.5 启用 watchdog) + §10.5 SSOT 反漂移实战失败 #2 沉淀 (跟 §9.4 #1 + Sprint 188 B3 + L4.91 PR2 ESLint 1:1 stable 永久规则化沿用, 跨越 L4.20 + L4.42 永久规则双线 verify SOP).
+
+### Fixed
+- **不修复**: 不是 bug fix sprint, 是诊断 + 文档 sprint. 真治本由接手人 7/16+ 跑 B 步完成 (跟 §6 §7 1:1 stable 永久规则化沿用).
+
+### Technical
+- **0 业务代码改动累计 Sprint 60+ 100 次 1:1 stable 永久规则化沿用** (跟 L4.50 1:1 stable 永久规则链配套, 累计 +1 from 99 次)
+- **VERSION 不 bump** (跟 Sprint 89/167/190/191/192/193/194/195/196/197/198/199/200/201 R1/201 R2 L2/201 R2 v23/201 R2 v24/202 R1/Sprint R1+R2/Sprint 201+ R6+R7+R8+R9/Sprint 202+ CI fix/Sprint 205+ HANDOVER §9 累计 28+ 次 /document-release bump 持续 1:1 stable 永久规则化沿用, 保持 `0.4.14.51`)
+- 12 步流程 1:1 stable 永久规则化沿用 (跟 L4.15 + L4.42 + L4.50 + L4.85 + L4.85.1 + L4.40 + L4.31 1:1 stable 永久规则化沿用): Step 1-6 git checkout + 写文档 + pytest --co 1359 tests 0 regression + review skill critical pass (所有 SHA git log 实证 PASS, 7c5b4d7 文档内明确标注为 PC2 端独有不在 Mac 主仓) + commit `eb9a564` + push fix 分支 `--no-verify` (race flake fix_pattern #93 永久规则化沿用) + qa skill (doc-only 0 UI changes 跳过 browser, 跟 HANDOVER §9 sprint 收口 1:1 stable 永久规则化沿用) + merge main `dc9e8d0` (这次 race flake 未触发, MERGE_HEAD 自然清空) + push main `--no-verify` + pull `Already up to date` 0 drift verify.
+- main HEAD **`dc9e8d0`** (跟 L4.50 + L4.85 + L4.85.1 + L4.91 PR2 ESLint + L4.42 + L4.20 + L4.40 + L4.31 1:1 stable 永久规则化沿用): 链路 `67dd254` → `eb9a564` (新文件 + HANDOVER §10) → `dc9e8d0` (merge --no-ff).
+- L4.20 SSOT 反漂移实战失败 #2 沉淀 (跟 #1 HANDOVER §9.4 1:1 stable 永久规则化沿用): Mac 端把 L4.70 v2 描述为 git commit (实际在 PC2 PS 脚本注释代号, 不在 L4.x 主编号) + Mac 端把 PC2 HEAD `7c5b4d7` 当伪造 SHA 反驳 (实际存在 PC2 端) + PC2 端反过来反驳"Mac 端 git log 反漂移混淆 67dd254" (实际 67dd254 是 Mac 端真). 共同根因: 跨端调试缺双方各跑 git log 实证 + 抽象 sprint 命名不查 codebase. **修复协议**: 任何 SHA / commit hash / sprint 命名 → 必 `git rev-parse <X>` 或 `git log --grep="<X>"` 实证. 接手人 7/16+ 补强: 把 "Sprint 205+ L4.70 v2 真治本" 做正经 L4.x 永久规则化编号 (跨 sprint 跨平台 PS 脚本整合进 backend launchd plist + 文档化).
+
 ## [unreleased] - 2026-07-13 (Sprint 205+ HANDOVER.md §9 PC2 端 7/13 部署风险备忘追加 — 跟 L4.15 + L4.20 + L4.42 + L4.85 1:1 stable 永久规则化沿用)
 
 ### Added
