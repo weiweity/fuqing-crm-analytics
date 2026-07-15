@@ -922,21 +922,26 @@ def main():
         print("\n" + "-" * 40)
         print("Step 6: 预计算 RFM 8象限历史周期缓存")
         print("-" * 40)
-        from backend.services.health.rfm_analysis import precompute_rfm_cache, clear_rfm_cache
+        from backend.services.health.rfm_analysis import (
+            EXPECTED_LOGICAL_PRECOMPUTE_COMBINATIONS,
+            precompute_rfm_cache,
+        )
         if args.read_only:
             print("  [SKIP] step6_precompute_rfm_cache (read-only 模式)")
-            print("  [SKIP] rfm_analysis_cache clear_rfm_cache (read-only 模式)")
             print("  [INFO] RFM 缓存保持上一次成功状态, 接受缓存陈旧 (DuckDB 1.5.x 跨 connection race 100% 触发)")
         else:
             try:
-                # Stale 缓存修复: 预计算前先清空旧缓存（ETL 行数恢复后旧缓存 key 仍存在,
-                # 即便 mtime 没变,旧缓存也携带错误的 orders_count_at_write,需清掉再重算）
-                cleared = clear_rfm_cache()
-                if cleared:
-                    print(f"  清空旧缓存: {cleared} 行")
+                # 不再 clear-before-precompute：PC2 完整预热耗时可达数小时，进程异常或
+                # 外部 hard-kill 时必须保留上一完整代。active-generation marker 让 HTTP
+                # 在完整 gate 前继续读旧代；全部通过后才切代并回收 48h 前 inactive 旧行。
                 with PerfTimer("step6_precompute_rfm_cache"):
                     count = precompute_rfm_cache()
-                print(f"  预计算完成: {count} 个组合")
+                if count != EXPECTED_LOGICAL_PRECOMPUTE_COMBINATIONS:
+                    raise RuntimeError(
+                        "RFM 预计算逻辑覆盖不完整: "
+                        f"{count}/{EXPECTED_LOGICAL_PRECOMPUTE_COMBINATIONS}"
+                    )
+                print(f"  预计算完成: {count} 个逻辑组合")
             except Exception as _exc:
                 gate_record_error("step6_precompute_rfm_cache", _exc)
                 notify_etl_complete(

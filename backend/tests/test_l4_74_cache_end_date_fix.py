@@ -9,19 +9,11 @@ L4.42 立项实证 SOP "git log + grep 实证" 4 个不匹配点 100% 锁定:
 
 修复: precompute 改 today=date.today() 跟 user query _resolve_date_ranges() (backend/services/rfm/_shared.py:54) 一致.
 """
-import pytest
-
-# CI runner 缺 production DuckDB (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用, 跟 L4.39 macOS-only skipif 1:1 stable 永久规则化沿用)
-from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE
-
-pytestmark = pytest.mark.skipif(
-    not _PROD_DUCKDB_AVAILABLE,
-    reason="CI runner 缺 production DuckDB (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)",
-)
-
 import inspect
+from datetime import date
 from unittest.mock import patch
 
+import duckdb
 import pytest
 
 
@@ -54,18 +46,18 @@ class TestL474CacheEndDateFix:
             "跟 L4.42 立项实证 SOP 'today 来源不匹配' 1:1 stable 永久规则化沿用."
         )
 
-    def test_standard_periods_includes_5_periods(self):
-        """验证 L4.74 fix #2: STANDARD_PERIODS 扩 5 周期 (跟 period.py:48-54 _hot_period_ranges 1:1 stable 永久规则化沿用)."""
+    def test_standard_periods_include_original_and_frontend_fixed_periods(self):
+        """原 5 周期与新增前端固定周期都由可执行语义层 resolver 覆盖。"""
         from backend.services.health.rfm_analysis import cache as cache_module
 
-        source = inspect.getsource(cache_module.precompute_rfm_cache)
-        # 修复后: STANDARD_PERIODS = ["YTD", "MTD", "last90days", "last180days", "last365days"]
-        expected_periods = ["YTD", "MTD", "last90days", "last180days", "last365days"]
+        expected_periods = {
+            "yesterday", "WTD", "MTD", "YTD", "Q1", "Q2", "Q3", "Q4",
+            "last90days", "last180days", "last365days",
+        }
+        assert set(cache_module.STANDARD_PERIODS) == expected_periods
         for period in expected_periods:
-            assert f'"{period}"' in source, (
-                f"L4.74 fix: STANDARD_PERIODS 必须包含 {period} (跟 period.py:48-54 1:1 stable 永久规则化沿用), "
-                f"让 user 默认周期走 cache 命中."
-            )
+            resolver = getattr(cache_module.PeriodBuilder, period.lower())
+            assert resolver(today=date.today())["current"]
 
     def test_years_only_2026(self):
         """验证 L4.74 fix #3: YEARS 缩 [2026] (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套, 节省跑批时间 ~67%)."""
@@ -91,7 +83,9 @@ class TestL474CacheEndDateFix:
         # 模拟 user query: 跑 MTD 默认周期
         # _resolve_date_ranges() 用 today = date.today() 算 cur.end
         ranges = _resolve_date_ranges("MTD")
-        _, cur_end, _ = ranges["current"]
+        biz_conn = duckdb.connect(":memory:")
+        biz_conn.execute("CREATE TABLE orders(pay_time TIMESTAMP)")
+        biz_conn.execute("INSERT INTO orders VALUES ('2026-07-05 23:59:58')")
 
         # L4.74 fix: precompute 用 today = date.today() 算 cur.end (跟 user 一致)
         # mock _run_rfm_period 避免真跑 SQL
@@ -99,7 +93,9 @@ class TestL474CacheEndDateFix:
              patch.object(cache_module, "_build_rows") as mock_build, \
              patch.object(cache_module, "_ensure_db_cache_table"), \
              patch.object(cache_module, "_fetch_max_pay_time") as mock_fetch, \
-             patch("backend.services.health.rfm_analysis.cache._get_cache_conn") as mock_cache_conn:
+             patch("backend.services.health.rfm_analysis.cache._get_cache_conn") as mock_cache_conn, \
+             patch.object(cache_module.duckdb, "connect", return_value=biz_conn), \
+             patch.object(cache_module, "_prune_rfm_cache_after_success", return_value=0):
             mock_run.return_value = ({}, {}, {}, {})
             mock_build.return_value = []
             mock_fetch.return_value = "2026-07-05 23:59:58"
@@ -113,17 +109,12 @@ class TestL474CacheEndDateFix:
                             if "INSERT" in str(call)]
             assert len(insert_calls) > 0, "precompute 必须有 INSERT 调用"
 
-            # 验证 precompute 算的 MTD cur.end 跟 user 一致 (mock _run_rfm_period 调用的 cur_end 参数)
-            # 第一次 _run_rfm_period 调用的 cur_end 应该是 MTD 默认周期的 end_date
-            first_run_call = mock_run.call_args_list[0]
-            precompute_cur_end = first_run_call.args[2]  # biz_conn, cur_start, cur_end, ...
-
-            # 修复后: precompute cur_end = user_cur_end (都是 date.today() - 1)
-            assert precompute_cur_end == cur_end, (
-                f"L4.74 fix 端到端验证: precompute MTD cur_end ({precompute_cur_end}) "
-                f"必须跟 user query _resolve_date_ranges() cur_end ({cur_end}) 一致, "
-                f"跟 L4.42 立项实证 SOP 4 个不匹配点 100% 锁定 1:1 stable 永久规则化沿用."
-            )
+            # MTD 不保证是首个 materialized key；按真实 start/end 在调用集中查找。
+            cur_start, cur_end, _ = ranges["current"]
+            assert any(
+                call.args[1] == cur_start and call.args[2] == cur_end
+                for call in mock_run.call_args_list
+            ), "precompute 必须物化与 HTTP _resolve_date_ranges 完全一致的 MTD current 范围"
 
 
 class TestL474CacheEndDateDocumentation:

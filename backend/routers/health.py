@@ -243,15 +243,31 @@ def get_rfm_analysis(
     """
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
-    return rfm_analysis_service.get_rfm_analysis(
-        start_date=start_date,
-        end_date=end_date,
-        metric_type=metric_type,
-        exclude_channels=exclude_channels,
-        channel=channel,
-        compare_start_date=compare_start_date,
-        compare_end_date=compare_end_date,
-    )
+    try:
+        return rfm_analysis_service.get_rfm_analysis(
+            start_date=start_date,
+            end_date=end_date,
+            metric_type=metric_type,
+            exclude_channels=exclude_channels,
+            channel=channel,
+            compare_start_date=compare_start_date,
+            compare_end_date=compare_end_date,
+            allow_live_compute=False,
+        )
+    except rfm_analysis_service.RFMCacheMissError as exc:
+        logger.warning("RFM cache miss; reject expensive live fallback: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="所选 RFM 范围尚未预热，请稍后重试或联系管理员",
+            headers={"Retry-After": "60"},
+        ) from exc
+    except rfm_analysis_service.RFMCacheUnavailableError as exc:
+        logger.error("RFM cache unavailable; reject expensive live fallback: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="RFM 缓存暂不可用，请稍后重试",
+            headers={"Retry-After": "30"},
+        ) from exc
 
 
 @router.get("/rfm-category-drilldown", response_model=RFMCategoryDrilldownResponse)
@@ -392,6 +408,4 @@ def get_channel_health_scores(
     if warning := check_future_date(analysis_date):
         response.headers["X-Data-Warning"] = warning
     return channel_scores_service.get_channel_health_scores(analysis_date, period_days, exclude_channels)
-
-
 

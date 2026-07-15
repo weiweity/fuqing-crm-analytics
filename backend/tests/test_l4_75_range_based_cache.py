@@ -14,9 +14,10 @@ StoreAssetsTab / ProductAssetsTab / OtherProductAssetsTab weeks=[4,8,12] NSelect
 8 test cases 锁回归 (跟 L4.42 + L4.50 + L4.55 + L4.71 + L4.74 1:1 stable 永久规则链配套).
 """
 import inspect
+import json
 from datetime import date
 
-import pytest
+import duckdb
 
 # 1) test_range_periods_includes_8_ranges
 # 2) test_rolling_7d_dates
@@ -103,40 +104,40 @@ class TestL475RangeBasedCache:
             _ensure_db_cache_table,
             _fuzzy_match_db_cache,
         )
-        from backend.services.dual_conn import get_cache_connection
-
-        # 在 cache 库写一行模拟 precomputed cache
-        try:
-            wc = get_cache_connection()
-        except Exception:
-            pytest.skip("cache conn unavailable (跟 L4.4 真连 DuckDB skipif 1:1 stable)")
+        from backend.services.health.rfm_analysis._shared import _cache_key
+        # 在内存 cache 库写一行模拟 precomputed cache，禁止测试污染生产缓存。
+        wc = duckdb.connect(":memory:")
         try:
             _ensure_db_cache_table(wc)
             # 先清理可能残留的 prev-run 数据 (跟 L4.50 pytest cleanup 1:1 stable 永久规则化沿用)
-            wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", ["test_fuzzy_key"])
+            data_version = "2026-07-09 00:00:00"
+            cache_key = _cache_key(
+                None, "2026-07-02", "2026-07-08", None, "GSV", None, data_version
+            )
+            wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [cache_key])
             # 写一条 fake cached: start=2026-07-02, end=2026-07-08 (rolling_7d 2026-07-09 today-1)
             wc.execute(
                 f"INSERT INTO {RFM_CACHE_TABLE} "
                 f"(cache_key, period, start_date, end_date, channel, metric_type, ex_channels, "
                 f"result_json, mtime_at_write, orders_count_at_write, computed_at) "
                 f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-                ["test_fuzzy_key", "ROLLING_7D", "2026-07-02", "2026-07-08",
-                 "", "GSV", "", '{"hist_users": 1}', "2026-07-09 00:00:00", 0],
+                [cache_key, "ROLLING_7D", "2026-07-02", "2026-07-08",
+                 "", "GSV", "", '{"hist_users": 1}', data_version, 0],
             )
             # 用同一个 wc conn 跑 fuzzy (跟 L4.38 + L4.66 + L4.67 跨文件 fingerprint 1:1 stable 永久规则化沿用,
             # 避免另开 read_only 连接触发 DuckDB strict mode config 冲突)
             fuzzy = _fuzzy_match_db_cache(
                 start_date="2026-07-03", end_date="2026-07-09",
-                channel=None, metric_type="GSV", period="ROLLING_7D",
-                conn=wc, tolerance_days=1,
+                channel=None, metric_type="GSV", period=None,
+                conn=wc, tolerance_days=1, data_version=data_version,
             )
             assert fuzzy is not None, (
                 "L4.75 fuzzy match ±1 day 必须命中 cached (2026-07-02..2026-07-08) "
                 "for target (2026-07-03..2026-07-09)"
             )
-            assert fuzzy.get("hist_users") == 1
+            assert json.loads(fuzzy[1][0]).get("hist_users") == 1
             # 清理
-            wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", ["test_fuzzy_key"])
+            wc.execute(f"DELETE FROM {RFM_CACHE_TABLE} WHERE cache_key = ?", [cache_key])
         finally:
             try:
                 wc.close()
@@ -202,20 +203,22 @@ class TestL475RangeBasedCache:
             f"(跟 _hot_period_ranges Stage 2 1:1 stable 永久规则化沿用)"
         )
 
-    def test_1280_combinations(self):
-        """验证 L4.75 fix #8: 总组合数 = 416 = 5 STANDARD + 8 RANGE × 32 (2 metric × 4 channel × 4 compare).
+    def test_380_logical_combinations(self):
+        """验证总组合数 = 380 = 19 period × 2 metric × 5 channel × 2 compare。
 
-        注意: 5 STANDARD 跟 8 RANGE 是 alternative 周期命名 (同一份 date-based cache key),
-        multiplicative 写法 5 × 8 × 2 × 4 × 4 = 1280 不成立 (跟 L4.75 design 1:1 stable 永久规则化沿用).
+        STANDARD 跟 RANGE 是 alternative 周期命名；前端固定周期补齐后，物理
+        date-based key 仍会因日期别名碰撞而少于 logical coverage。
         """
         # 用 cache 模块顶层 RANGE_PERIODS + STANDARD_PERIODS 在 precompute_rfm_cache 内计算
         from backend.services.health.rfm_analysis import cache as cache_module
 
         assert len(cache_module.RANGE_PERIODS) == 8
-        # 1 STANDARD period × 1 year × 2 metric × 4 channel × 4 compare = 32 keys per period
-        # 总: (5 STANDARD + 8 RANGE) × 32 = 416
-        keys_per_period = 1 * 2 * 4 * 4
-        total_combinations = (5 + len(cache_module.RANGE_PERIODS)) * keys_per_period
-        assert total_combinations == 416, (
-            f"L4.75: 总组合数 = (5 STANDARD + 8 RANGE) × 32 = 416, 实测 {total_combinations}"
+        assert len(cache_module.STANDARD_PERIODS) == 11
+        assert cache_module.PRECOMPUTE_CHANNELS == [None, "货架", "达播", "直播", "淘客"]
+        keys_per_period = 2 * len(cache_module.PRECOMPUTE_CHANNELS) * 2
+        total_combinations = (
+            len(cache_module.STANDARD_PERIODS) + len(cache_module.RANGE_PERIODS)
+        ) * keys_per_period
+        assert total_combinations == 380, (
+            f"L4.75: 总组合数应为 380, 实测 {total_combinations}"
         )

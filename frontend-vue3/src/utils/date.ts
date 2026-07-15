@@ -180,6 +180,10 @@ export function getPeriodDateRange(type: PeriodType): [string, string] | null {
     }
     case 'YTD': {
       const start = new Date(year, 0, 1)
+      // 元旦尚无本年数据：回退上一完整年，避免 start > end 的反向区间。
+      if (start > yesterday) {
+        return [fmt(new Date(year - 1, 0, 1)), fmt(new Date(year - 1, 11, 31))]
+      }
       return [fmt(start), fmt(yesterday)]
     }
     case 'last180days': {
@@ -195,21 +199,25 @@ export function getPeriodDateRange(type: PeriodType): [string, string] | null {
     case 'Q1': {
       const start = new Date(year, 0, 1)
       const end = month <= 2 ? yesterday : new Date(year, 2, 31)
+      if (start > end) return [fmt(new Date(year - 1, 9, 1)), fmt(new Date(year - 1, 11, 31))]
       return [fmt(start), fmt(end)]
     }
     case 'Q2': {
       const start = new Date(year, 3, 1)
       const end = (month >= 3 && month <= 5) ? yesterday : new Date(year, 5, 30)
+      if (start > end) return [fmt(new Date(year, 0, 1)), fmt(new Date(year, 2, 31))]
       return [fmt(start), fmt(end)]
     }
     case 'Q3': {
       const start = new Date(year, 6, 1)
       const end = (month >= 6 && month <= 8) ? yesterday : new Date(year, 8, 30)
+      if (start > end) return [fmt(new Date(year, 3, 1)), fmt(new Date(year, 5, 30))]
       return [fmt(start), fmt(end)]
     }
     case 'Q4': {
       const start = new Date(year, 9, 1)
       const end = month >= 9 ? yesterday : new Date(year, 11, 31)
+      if (start > end) return [fmt(new Date(year, 6, 1)), fmt(new Date(year, 8, 30))]
       return [fmt(start), fmt(end)]
     }
     default:

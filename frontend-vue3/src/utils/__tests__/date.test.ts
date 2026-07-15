@@ -41,6 +41,21 @@ describe('Sprint 173 getPeriodDateRange 月初边界回归', () => {
     expect(getPeriodDateRange('MTD')).toEqual(['2025-12-01', '2025-12-31'])
   })
 
+  it('today=元旦 (2026-01-01) YTD 应 fallback 上一完整年', () => {
+    setToday('2026-01-01')
+    expect(getPeriodDateRange('YTD')).toEqual(['2025-01-01', '2025-12-31'])
+  })
+
+  it.each([
+    ['2026-01-01', 'Q1', ['2025-10-01', '2025-12-31']],
+    ['2026-04-01', 'Q2', ['2026-01-01', '2026-03-31']],
+    ['2026-07-01', 'Q3', ['2026-04-01', '2026-06-30']],
+    ['2026-10-01', 'Q4', ['2026-07-01', '2026-09-30']],
+  ] as const)('today=%s %s 应 fallback 上一完整季度', (today, period, expected) => {
+    setToday(today)
+    expect(getPeriodDateRange(period)).toEqual(expected)
+  })
+
   it('today=周一 (2026-06-15) WTD 应 fallback 上周完整周 [2026-06-08, 2026-06-14]', () => {
     // 2026-06-15 是周一, WTD start = today = 6-15, yesterday = 6-14, start > yesterday → fallback 上周完整周
     setToday('2026-06-15')

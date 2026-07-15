@@ -18,7 +18,12 @@ from backend.db import connection as bdc
 from backend.services.rfm import _resolve_date_ranges
 from ._shared import _fetch_max_pay_time
 from .period import _run_rfm_period, _build_rows
-from .cache import _read_db_cache, _write_db_cache
+from .cache import (
+    RFMCacheMissError,
+    RFMCacheUnavailableError,
+    _read_db_cache,
+    _write_db_cache,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,13 +113,15 @@ def get_rfm_analysis(
     exclude_channels: Optional[List[str]] = None,
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
+    allow_live_compute: bool = True,
 ) -> Dict[str, Any]:
     """
     RFM 8象限完整分析。
 
     缓存策略：
-    - 历史周期（end_date < 今天）：读缓存 / 写缓存（全量口径 live SQL）
-    - 当前周期（含今天）：始终 live SQL，不缓存
+    - HTTP 路由传 allow_live_compute=False：cache miss 立即 503，绝不在
+      uvicorn 内同步扫描 122GB 业务库。
+    - 非 HTTP 维护/测试调用可显式保留 live 计算，并仅缓存历史周期。
 
     缓存口径保证：所有缓存数据均来自 _run_rfm_period_live（全量口径），
     与 user_rfm 预计算表（lookback_days=90）完全独立，不会产生10倍差异。
@@ -130,6 +137,7 @@ def get_rfm_analysis(
     cur_end_date = datetime.strptime(cur_end_date_str, "%Y-%m-%d").date()
     today = date.today()
     is_historical = cur_end_date < today
+    should_read_cache = is_historical or not allow_live_compute
 
     # ── 全量 live SQL 计算（所有周期走同一口径，保证一致性） ──
     conn = bdc.get_connection()
@@ -137,15 +145,15 @@ def get_rfm_analysis(
         # 预先获取 data_version 与 orders 行数快照,避免后续每个函数都新建连接
         # Stale 修复: orders_count 是陈旧检测的第二维度（ETL 续传场景 max_pay_time
         # 不变但行数恢复,此时单靠 data_version 检测会漏,导致前端仍看到旧 TTL）
-        if is_historical:
+        if should_read_cache:
             data_version = _fetch_max_pay_time(conn)
             current_orders_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
         else:
             data_version = None
             current_orders_count = None
 
-        # ── 缓存读取（仅历史周期，复用同一 conn） ──
-        if is_historical:
+        # ── 缓存读取（HTTP cache-only 也覆盖当前/未来固定季度 key） ──
+        if should_read_cache:
             cached = _read_db_cache(
                 period, start_date, end_date, channel, metric_type,
                 exclude_channels, data_version, conn, compare_start_date, compare_end_date,
@@ -154,6 +162,16 @@ def get_rfm_analysis(
             if cached:
                 logger.info(f"RFM 缓存命中（历史周期 end={cur_end_date_str}），跳过计算")
                 return cached
+
+        # HTTP 路由必须显式传 False：普通 miss（Q1/custom/channel/exclude/过期或
+        # 尚未完成首次预热）也不能同步跑 3 段 122GB live SQL，否则 30s timeout
+        # 后会触发 PC2 1.8GB watchdog 重启、502，再因内存 token 丢失出现 401。
+        if not allow_live_compute:
+            raise RFMCacheMissError(
+                "RFM 请求组合尚未预热: "
+                f"{start_date}..{end_date}, metric={metric_type}, "
+                f"channel={channel or '全店'}"
+            )
 
         # ── L4.69 RFM 雪崩真治本: 单 conn 顺序跑 3 周期 (替代 ThreadPoolExecutor 并行) ──
         # Sprint 205+ PC2 实测: 3 conn 在 122GB 业务库上并发全表扫 = 磁盘 IO 互相击穿 +
@@ -199,6 +217,8 @@ def get_rfm_analysis(
                     orders_count=current_orders_count,
                 )
                 logger.info(f"RFM 缓存写入完成（历史周期 end={cur_end_date_str}）")
+            except RFMCacheUnavailableError:
+                raise
             except Exception as e:
                 logger.warning(f"RFM 缓存写入失败（不影响返回）: {e}")
     finally:

@@ -27,7 +27,11 @@ from .cache import (
     precompute_rfm_cache,
     is_stale,
     clear_rfm_cache,
+    RFMCacheMissError,
+    RFMCacheUnavailableError,
     RFM_CACHE_TTL_HOURS,
+    RFM_CACHE_RETENTION_HOURS,
+    EXPECTED_LOGICAL_PRECOMPUTE_COMBINATIONS,
 )
 
 __all__ = [
@@ -55,5 +59,9 @@ __all__ = [
     "precompute_rfm_cache",
     "is_stale",
     "clear_rfm_cache",
+    "RFMCacheMissError",
+    "RFMCacheUnavailableError",
     "RFM_CACHE_TTL_HOURS",
+    "RFM_CACHE_RETENTION_HOURS",
+    "EXPECTED_LOGICAL_PRECOMPUTE_COMBINATIONS",
 ]
