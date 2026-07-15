@@ -114,6 +114,87 @@ def _reset_fq_crm_credentials_env():
 
 
 # ─────────────────────────────────────────────────────────────
+# Sprint 205+ v3 (跟 handoff-upload-admin-v3 §7.3 1:1 stable):
+# pre-sprint B-1 admin upload 必经准备:
+# _reset_fq_crm_admins_env autouse fixture
+#
+# 背景 (跟 _reset_fq_crm_credentials_env 1:1 stable 真因):
+#   - handoff-upload-admin-v3 实施后 auth.py 会加 module-level
+#     `_ADMIN_USERNAMES = frozenset({...})`, 跟 VALID_CREDENTIALS 同样在
+#     import 时缓存
+#   - pytest collection 时如果 test 先 import auth, _ADMIN_USERNAMES 缓存
+#     当前 OS env FQ_CRM_ADMINS 值 (可能为空, set = frozenset())
+#   - conftest fixture 重置 env 后, _ADMIN_USERNAMES 不会自动更新
+#   - 跟 L4.88 VALID_CREDENTIALS race 同根因, 跟 L4.86 FQ_CRM_PASSWORDS
+#     .env vs CI runner shell env 不一致同模式
+#
+# 修法 (跟 _reset_fq_crm_credentials_env L4.50 0 业务代码改动 1:1 stable
+# 永久规则化沿用, 跟 L4.42 立项实证 1:1 stable):
+#   - autouse fixture 在每个 test 跑前 reload _ADMIN_USERNAMES (set 缓存,
+#     重建 frozenset 不依赖 .clear())
+#   - 跟 .env + CI runner shell env 1:1 stable (FQ_CRM_ADMINS=admin)
+#   - yield 后恢复原 env + reload _ADMIN_USERNAMES, 避免 test 间 state 泄漏
+#
+# 跟 handoff-upload-admin-v3 §7.3 1:1 stable 永久规则化沿用.
+# ─────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _reset_fq_crm_admins_env():
+    """Sprint 205+ v3 B-1: pytest collection race condition 防御 fixture
+    (跟 _reset_fq_crm_credentials_env 1:1 stable 模式, 跟 L4.88 治本
+    永久规则链配套, 跟 handoff-upload-admin-v3 §7.3 1:1 stable).
+
+    handoff-upload-admin-v3 实施前 (admin upload 还没写):
+    - auth.py 还没有 _ADMIN_USERNAMES module-level set 缓存
+    - 这个 fixture 用 hasattr + reload 安全 forward, 不会抛 AttributeError
+    - 仍 setdefault `FQ_CRM_ADMINS=admin`, 等实施后 module-level
+      _ADMIN_USERNAMES 自动接管
+
+    handoff-upload-admin-v3 实施后:
+    - auth.py 有 _ADMIN_USERNAMES module-level set
+    - 这个 fixture rebuild frozenset (跟 _reset_fq_crm_credentials_env
+      .clear() + .update() 1:1 stable 模式)
+    """
+    import os
+    from backend.routers import auth as auth_module
+
+    def _admins_from_env(raw: str | None) -> frozenset:
+        """Helper: FQ_CRM_ADMINS env var → frozenset (跟 _reset_fq_crm_credentials_env
+        _load_credentials() 委托模式 1:1 stable; raw=None → frozenset() 空集,
+        跟 env unset 状态对称, 避免 teardown 时 fallback 'admin' 错位).
+        """
+        if not raw:
+            return frozenset()
+        return frozenset(u.strip() for u in raw.split(",") if u.strip())
+
+    # 保存原始 env
+    original_env = os.environ.get("FQ_CRM_ADMINS")
+    # 跟 .env + CI runner shell env 1:1 stable 兜底 (跟 L4.86 + L4.88
+    # FQ_CRM_PASSWORDS 治本模式 1:1 stable 沿用)
+    os.environ["FQ_CRM_ADMINS"] = "admin"
+    # Reload _ADMIN_USERNAMES (only if module-level attribute exists after
+    # handoff v3 实施; safe forward 防止 admin upload 还没实施前抛 AttributeError)
+    if hasattr(auth_module, "_ADMIN_USERNAMES"):
+        auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ["FQ_CRM_ADMINS"])
+
+    try:
+        yield
+    finally:
+        # 恢复原 env + reload _ADMIN_USERNAMES (避免 test 间 state 泄漏)
+        # 注意: env=None → pop + 重建 frozenset() 空集 (跟 unset 状态对称,
+        # 不用 'admin' fallback 否则 teardown 后 env unset + module set 还含 admin
+        # 跨 test 错位, 跟 _reset_fq_crm_credentials_env 用 _load_credentials() 委托
+        # reload 1:1 stable 永久规则化沿用).
+        if original_env is None:
+            os.environ.pop("FQ_CRM_ADMINS", None)
+        else:
+            os.environ["FQ_CRM_ADMINS"] = original_env
+        if hasattr(auth_module, "_ADMIN_USERNAMES"):
+            auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ.get("FQ_CRM_ADMINS"))
+
+
+# ─────────────────────────────────────────────────────────────
 # Sprint 22 #25: skip-if-DuckDB-locked fixture
 #
 # 背景: scripts/etl/rfm_recompute_window.py 跟生产 uvicorn 共享 DuckDB 文件,
