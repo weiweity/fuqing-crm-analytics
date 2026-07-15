@@ -51,6 +51,8 @@ export interface LoginRequestStatusResponse {
 export interface ClaimLoginRequestResponse {
   token: string
   username: string
+  /** Sprint 205+ Admin Upload: 申请登录成功后告知 B 端 A 是否 admin (跟后端 ClaimRequestOut.is_admin 1:1 stable) */
+  is_admin: boolean
 }
 
 /**
