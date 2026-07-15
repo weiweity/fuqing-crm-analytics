@@ -109,10 +109,12 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     username: str
+    is_admin: bool = False
 
 
 class UserInfo(BaseModel):
     username: str
+    is_admin: bool = False
 
 
 class LogoutResponse(BaseModel):
@@ -250,6 +252,37 @@ def _token_ttl_seconds() -> int:
     return int(TOKEN_TTL.total_seconds())
 
 
+def is_admin_username(username: str | None) -> bool:
+    """Sprint 205+ Admin Upload: 唯一 admin 名单 SSOT (跟 L4.84 + L4.85 1:1 stable 永久规则化沿用).
+
+    行为 (P2-4 修法):
+    - username 为 None 或纯空白: False
+    - username 不 strip: `"admin"` 命中, `" admin "` 不命中 (大小写敏感)
+    - 每次调用动态读 FQ_CRM_ADMINS, 避免 import 缓存污染测试 env (跟 L4.88
+      VALID_CREDENTIALS race 1:1 stable 永久规则化沿用)
+    - 配置项 FQ_CRM_ADMINS 仍走 strip (允许 " admin , fqsw , " 这种格式),
+      已认证 username 走原始字符串精确匹配
+
+    配套 conftest fixture: backend/tests/conftest.py::_reset_fq_crm_admins_env
+    autouse 在 test 前后重建 admin 名单环境变量 (当前实现无 module-level cache,
+    每次调用动态读 FQ_CRM_ADMINS env var). 跟 FQ_CRM_ADMINS env var 1:1 stable
+    永久规则化沿用.
+
+    Returns: bool, True 表示 username 在 FQ_CRM_ADMINS 配置中 (精确匹配).
+    """
+    # P2-4: username 走原始值精确匹配, 仅 None/纯空白 走 False
+    if username is None:
+        return False
+    # username 是纯空白 → False
+    if not username.strip():
+        return False
+    raw = os.environ.get("FQ_CRM_ADMINS", "")
+    if not raw or not raw.strip():
+        return False
+    admins = frozenset(piece.strip() for piece in raw.split(",") if piece.strip())
+    return username in admins
+
+
 # ─────────────────────────────────────────────────────────────
 # 路由
 # ─────────────────────────────────────────────────────────────
@@ -272,7 +305,11 @@ def login(req: LoginRequest, request: Request):
         ACTIVE_TOKENS[token] = (req.username, datetime.now())
     _logger.info(f"[auth] 登录成功：{req.username}，IP={client_ip}")
 
-    return {"token": token, "username": req.username}
+    return {
+        "token": token,
+        "username": req.username,
+        "is_admin": is_admin_username(req.username),
+    }
 
 
 @router.get("/me", response_model=UserInfo)
@@ -287,7 +324,10 @@ def me(request: Request):
     if username is None:
         raise HTTPException(status_code=401, detail="未登录或登录已过期")
 
-    return {"username": username}
+    return {
+        "username": username,
+        "is_admin": is_admin_username(username),
+    }
 
 
 class RefreshResponse(BaseModel):

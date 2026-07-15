@@ -35,6 +35,7 @@ from backend.routers.auth import (
     _get_client_ip,
     _is_account_active,
     _verify_token,
+    is_admin_username,
 )
 
 router = APIRouter(prefix="/api/v1/auth", tags=["认证-L4.85"])
@@ -113,6 +114,7 @@ class StatusRequestOut(BaseModel):
 class ClaimRequestOut(BaseModel):
     token: str
     username: str
+    is_admin: bool = False
 
 
 # ─────────────────────────────────────────────────────────────
@@ -378,7 +380,11 @@ def claim_login_request(request_id: str, request: Request, response: Response):
                 ACTIVE_TOKENS[token] = (target.target_username, datetime.now())
 
         response.headers["Cache-Control"] = "no-store"
-        return ClaimRequestOut(token=token, username=target.target_username)
+        return ClaimRequestOut(
+            token=token,
+            username=target.target_username,
+            is_admin=is_admin_username(target.target_username),
+        )
 
 
 # 测试用 reset (跟 L4.50 + L4.65.1 + L4.69.1 + L4.72 + L4.75 v2 1:1 stable 永久规则化沿用)
