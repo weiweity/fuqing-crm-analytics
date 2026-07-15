@@ -425,8 +425,15 @@ async def auth_middleware(request: Request, call_next):
     token = auth[7:]
     # 延迟导入避免循环依赖
     from backend.routers.auth import _verify_token
-    if _verify_token(token) is None:
+    username = _verify_token(token)
+    if username is None:
         return JSONResponse(status_code=401, content={"detail": "登录已过期，请重新登录"})
+
+    # Sprint 205+ Admin Upload: 把已验证的 username 写到 request.state,
+    # 让下游 admin router / require_admin dependency 通过 getattr 安全读取,
+    # 避免每个 endpoint 重复解析 token (跟 L4.50 + L4.84 + L4.85 1:1 stable
+    # 永久规则链配套, 跟 /api/v1/auth/* 白名单 1:1 stable 永久规则化沿用).
+    request.state.username = username
 
     return await call_next(request)
 
@@ -614,6 +621,7 @@ from backend.routers import (
     session_router,
     notifications_router,  # L4.75.3 通知对方 endpoints
     login_request_router,  # L4.85 申请+同意 模式
+    admin_router,  # Sprint 205+ Admin Upload sprint 1 (v5 prompt)
 )
 
 app.include_router(auth_router)
@@ -635,6 +643,7 @@ app.include_router(ad_hoc_query_router)  # Sprint 188
 app.include_router(session_router)
 app.include_router(notifications_router)  # L4.75.3
 app.include_router(login_request_router)  # L4.85 申请+同意 模式
+app.include_router(admin_router)  # Sprint 205+ Admin Upload sprint 1
 
 # L4.91.2 治本 L4.85.6 Playwright e2e 测试环境隔离 (仅 FQ_CRM_TEST_MODE=1 开启)
 try:
