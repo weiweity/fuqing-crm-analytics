@@ -60,7 +60,7 @@ VISITOR_XLSX_FILE = Path(os.environ.get(
 # 活动节奏数据（大促时间表）
 CAMPAIGN_SCHEDULE_SOURCE = Path(os.environ.get(
     "CAMPAIGN_SCHEDULE_SOURCE",
-    str(_DEFAULT_CRM_BASE / "Sample全年平台活动节奏 - Sheet2.csv")
+    str(_DEFAULT_CRM_BASE / "芙清全年平台活动节奏 - Sheet2.csv")
 ))
 
 # 渠道判定规则表

@@ -114,78 +114,51 @@ def _reset_fq_crm_credentials_env():
 
 
 # ─────────────────────────────────────────────────────────────
-# Sprint 205+ v3 (跟 handoff-upload-admin-v3 §7.3 1:1 stable):
-# pre-sprint B-1 admin upload 必经准备:
+# Sprint 205+ Admin Upload 测试环境隔离:
 # _reset_fq_crm_admins_env autouse fixture
 #
-# 背景 (跟 _reset_fq_crm_credentials_env 1:1 stable 真因):
-#   - handoff-upload-admin-v3 实施后 auth.py 会加 module-level
-#     `_ADMIN_USERNAMES = frozenset({...})`, 跟 VALID_CREDENTIALS 同样在
-#     import 时缓存
-#   - pytest collection 时如果 test 先 import auth, _ADMIN_USERNAMES 缓存
-#     当前 OS env FQ_CRM_ADMINS 值 (可能为空, set = frozenset())
-#   - conftest fixture 重置 env 后, _ADMIN_USERNAMES 不会自动更新
-#   - 跟 L4.88 VALID_CREDENTIALS race 同根因, 跟 L4.86 FQ_CRM_PASSWORDS
-#     .env vs CI runner shell env 不一致同模式
+# 当前实现:
+#   - auth.is_admin_username() 每次调用动态读取 FQ_CRM_ADMINS;
+#   - auth.py 当前没有 module-level admin username cache;
+#   - fixture 在每个测试开始前设置 FQ_CRM_ADMINS=admin;
+#   - fixture 在测试结束后恢复原始环境变量, 避免跨测试 state leakage.
 #
-# 修法 (跟 _reset_fq_crm_credentials_env L4.50 0 业务代码改动 1:1 stable
-# 永久规则化沿用, 跟 L4.42 立项实证 1:1 stable):
-#   - autouse fixture 在每个 test 跑前 reload _ADMIN_USERNAMES (set 缓存,
-#     重建 frozenset 不依赖 .clear())
-#   - 跟 .env + CI runner shell env 1:1 stable (FQ_CRM_ADMINS=admin)
-#   - yield 后恢复原 env + reload _ADMIN_USERNAMES, 避免 test 间 state 泄漏
-#
-# 跟 handoff-upload-admin-v3 §7.3 1:1 stable 永久规则化沿用.
+# 兼容性防御:
+#   - hasattr(auth_module, "_ADMIN_USERNAMES") 分支不属于当前正式鉴权路径;
+#   - 该分支仅兼容可能存在 module-level cache 的旧版本或未来版本;
+#   - 只有属性真实存在时, fixture 才同步对应 frozenset.
 # ─────────────────────────────────────────────────────────────
 
 
 @pytest.fixture(autouse=True)
 def _reset_fq_crm_admins_env():
-    """Sprint 205+ v3 B-1: pytest collection race condition 防御 fixture
-    (跟 _reset_fq_crm_credentials_env 1:1 stable 模式, 跟 L4.88 治本
-    永久规则链配套, 跟 handoff-upload-admin-v3 §7.3 1:1 stable).
+    """隔离每个测试使用的 FQ_CRM_ADMINS 环境变量.
 
-    handoff-upload-admin-v3 实施前 (admin upload 还没写):
-    - auth.py 还没有 _ADMIN_USERNAMES module-level set 缓存
-    - 这个 fixture 用 hasattr + reload 安全 forward, 不会抛 AttributeError
-    - 仍 setdefault `FQ_CRM_ADMINS=admin`, 等实施后 module-level
-      _ADMIN_USERNAMES 自动接管
-
-    handoff-upload-admin-v3 实施后:
-    - auth.py 有 _ADMIN_USERNAMES module-level set
-    - 这个 fixture rebuild frozenset (跟 _reset_fq_crm_credentials_env
-      .clear() + .update() 1:1 stable 模式)
+    当前 auth.is_admin_username() 动态读取环境变量, 不使用 module-level
+    admin cache. hasattr(_ADMIN_USERNAMES) 分支仅用于兼容旧版本或未来可能
+    重新引入缓存的实现.
     """
     import os
     from backend.routers import auth as auth_module
 
     def _admins_from_env(raw: str | None) -> frozenset:
-        """Helper: FQ_CRM_ADMINS env var → frozenset (跟 _reset_fq_crm_credentials_env
-        _load_credentials() 委托模式 1:1 stable; raw=None → frozenset() 空集,
-        跟 env unset 状态对称, 避免 teardown 时 fallback 'admin' 错位).
-        """
+        """Helper: FQ_CRM_ADMINS env var → frozenset."""
         if not raw:
             return frozenset()
         return frozenset(u.strip() for u in raw.split(",") if u.strip())
 
     # 保存原始 env
     original_env = os.environ.get("FQ_CRM_ADMINS")
-    # 跟 .env + CI runner shell env 1:1 stable 兜底 (跟 L4.86 + L4.88
-    # FQ_CRM_PASSWORDS 治本模式 1:1 stable 沿用)
+    # 跟 .env + CI runner shell env 1:1 stable 兜底
     os.environ["FQ_CRM_ADMINS"] = "admin"
-    # Reload _ADMIN_USERNAMES (only if module-level attribute exists after
-    # handoff v3 实施; safe forward 防止 admin upload 还没实施前抛 AttributeError)
+    # 当前 auth 没有 _ADMIN_USERNAMES; 以下分支仅用于兼容可能存在该属性的版本.
     if hasattr(auth_module, "_ADMIN_USERNAMES"):
         auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ["FQ_CRM_ADMINS"])
 
     try:
         yield
     finally:
-        # 恢复原 env + reload _ADMIN_USERNAMES (避免 test 间 state 泄漏)
-        # 注意: env=None → pop + 重建 frozenset() 空集 (跟 unset 状态对称,
-        # 不用 'admin' fallback 否则 teardown 后 env unset + module set 还含 admin
-        # 跨 test 错位, 跟 _reset_fq_crm_credentials_env 用 _load_credentials() 委托
-        # reload 1:1 stable 永久规则化沿用).
+        # 恢复原始环境变量; 如果兼容属性存在, 同时将该属性同步到恢复后的环境值.
         if original_env is None:
             os.environ.pop("FQ_CRM_ADMINS", None)
         else:

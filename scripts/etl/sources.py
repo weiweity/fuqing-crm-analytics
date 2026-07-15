@@ -145,10 +145,18 @@ def load_spu_mapping():
 
 
 
-def load_channel_rules():
-    """加载渠道判定规则"""
+def load_channel_rules(channel_file=None):
+    """加载渠道判定规则.
+
+    参数:
+      channel_file: 可选 Path. None 时走全局 CHANNEL_RULES_SOURCE (跟 L4.91
+                    1:1 stable 永久规则化沿用 — 不破坏现有 ETL 调用).
+                    Sprint 205+ admin upload 调用时显式传 staged path,
+                    校验本次上传文件而非正式数据源.
+    """
     print("\n加载渠道判定规则...")
-    channel_file = CHANNEL_RULES_SOURCE
+    if channel_file is None:
+        channel_file = CHANNEL_RULES_SOURCE
     if not _check_source(channel_file, label="渠道判定规则"):
         return [], []
 

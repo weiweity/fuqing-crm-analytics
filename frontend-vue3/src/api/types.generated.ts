@@ -24,6 +24,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health/db_size": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Db Size
+         * @description DuckDB 文件大小 (GB) + 距离 ClickHouse POC 启动 trigger (200GB) 的距离.
+         *
+         *     Sprint 203 R3: 跟 clickhouse-poc-monitor.py 1:1 stable 同一 trigger 阈值.
+         */
+        get: operations["health_db_size_api_v1_health_db_size_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Manifest
+         * @description W5 manifest version (跟 backend/services/rfm/cache.py:_ManifestTracker 1:1 stable).
+         *
+         *     返回当前 DuckDB 数据的 manifest version (int). manifest 不存在返回 None.
+         */
+        get: operations["health_manifest_api_v1_health_manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health/pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Pool
+         * @description Read pool 利用率 (跟 dual_conn.py Semaphore + pool 1:1 stable).
+         *
+         *     L4.85.4 将并发硬上限收紧到 READ_POOL_SIZE，防止 16GB Mac 上多条
+         *     重查询把总内存推到 30GB+；这里暴露真实 active-query 上限。
+         */
+        get: operations["health_pool_api_v1_health_pool_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -95,7 +162,18 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description 退出登录，使当前 token 失效
+         * @description 退出登录，使当前 token + 同账号其他 stale token 失效 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用).
+         *
+         *     user 7/11 报"我因该都退出账号了，但是还是要申请登陆" + "Cmd+Q 退出浏览器后, 变成需要申请登录" 真根因:
+         *     - 之前 logout 只删当前 token, 多次登录/refresh 留下 stale token, _is_account_active 3min 检查误判 True → B 端 login 409
+         *     - Cmd+Q 退出浏览器 → frontend JS 全停 → backend ACTIVE_TOKENS 仍有 A token → B login 409
+         *     修复: 复用 _evict_previous_sessions_for_user 踢出同账号所有 stale token + 配套 sendBeacon (token via query).
+         *
+         *     L4.85.6 方案 A: sendBeacon 不能设 Authorization header, 所以 logout endpoint 接受 token via query param.
+         *     配套: 方案 D background task evict idle token > 60s (frontend/services/auth_token_evictor.py).
+         *
+         *     跟 L4.84 + L4.85.3 + L4.85.4 + L4.85.6 1:1 stable 永久规则链配套, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用,
+         *     跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -526,66 +604,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/geo/distribution": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Geo Distribution Api
-         * @description 地域分布：返回各省/市的用户数、GMV 及占比
-         */
-        get: operations["get_geo_distribution_api_api_v1_geo_distribution_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo/segment": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Geo Segment Api
-         * @description 地域-象限交叉矩阵：返回各象限Top省份分布
-         */
-        get: operations["get_geo_segment_api_api_v1_geo_segment_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo/trend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Geo Trend Api
-         * @description 地域趋势（多时间点）：返回各省份随时间的变化趋势
-         */
-        get: operations["get_geo_trend_api_api_v1_geo_trend_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/category/distribution": {
         parameters: {
             query?: never;
@@ -624,6 +642,28 @@ export interface paths {
         get: operations["get_category_overview_api_api_v1_category_overview_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category/overview/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Category Overview Batch Api
+         * @description 批量品类概览 (跟 L4.74 cache end_date fix + L4.36 graceful retry 1:1 stable 永久规则化沿用)
+         *
+         *     性能治本: 1 次 HTTP 调用返回 N 个时间段结果 (跟 L4.74 batch endpoint 1:1 stable 永久规则化沿用, 跟 L4.72.5 rfm_dashboard_full fast path 1:1 stable 永久规则化沿用)
+         */
+        post: operations["get_category_overview_batch_api_api_v1_category_overview_batch_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -924,7 +964,11 @@ export interface paths {
          */
         get: operations["get_audience_summary_api_api_v1_audience_summary_get"];
         put?: never;
-        post?: never;
+        /**
+         * Post Audience Summary Api
+         * @description 人群看板汇总接口（POST 版，支持大量订单号列表）
+         */
+        post: operations["post_audience_summary_api_api_v1_audience_summary_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1165,56 +1209,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/sampling/lock-analysis": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sampling Lock Analysis Api
-         * @description 0.01派样锁权分析
-         *
-         *     返回指定大促周期的：
-         *     - 锁权人数、锁权率（UV→锁权）
-         *     - 转化人数、转化率、贡献GSV、AUS
-         *     - 新客锁权人数、新客占比、新客转化率、新客GSV
-         *     - 同比对比（去年同大促）
-         */
-        get: operations["get_sampling_lock_analysis_api_api_v1_sampling_lock_analysis_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/sampling/rolling-comparison": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Rolling Comparison Api
-         * @description 0.01派样滚动同期对比
-         *
-         *     以 year_a 的参数为主，year_b 自动 T 对齐。
-         *     派样期内：UV、锁权人数、锁权率
-         *     转化期内：加赠转化人数（货架+累计≥100元）、转化率、转化GSV、转化AUS
-         */
-        get: operations["get_rolling_comparison_api_api_v1_sampling_rolling_comparison_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/lifetime-value/cohort": {
         parameters: {
             query?: never;
@@ -1227,26 +1221,6 @@ export interface paths {
          * @description Sprint 143: cohort LTV 90/180/365 天汇总.
          */
         get: operations["get_lifetime_value_cohort_api_v1_lifetime_value_cohort_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cohort-retention/matrix": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Cohort Retention
-         * @description Sprint 143: cohort retention matrix.
-         */
-        get: operations["get_cohort_retention_api_v1_cohort_retention_matrix_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1441,16 +1415,621 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ad-hoc/daily-gsv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 日序列 GSV + customers + YOY%
+         * @description 日维度 GSV + 客户数 + 同比百分比 (复用 scripts.ad_hoc_queries.daily_gsv.run_daily_gsv).
+         */
+        post: operations["post_daily_gsv_api_v1_ad_hoc_daily_gsv_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/daily-gsv-multi-period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 多周期 × 8 维度 daily rows (Sprint 190 加, 运营高频需求)
+         * @description 多周期 × 8 维度 daily rows. Sprint 190 加 (跟 Sprint 188 B1 endpoint pattern stable).
+         *
+         *     周期列表 start/end 成对. 输出列: [period_label, date, sample_gmv, sample_gsv,
+         *     member_gmv, member_gsv, new_users, new_gsv, old_users, old_gsv].
+         */
+        post: operations["post_daily_gsv_multi_period_api_v1_ad_hoc_daily_gsv_multi_period_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/fixed-product-list-compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 固定产品清单新老客两年对比 (Sprint 196)
+         * @description 按固定 product_id 清单输出单品 + TTL 新老客两年对比.
+         */
+        post: operations["post_fixed_product_list_compare_api_v1_ad_hoc_fixed_product_list_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/ai-sandbox-execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * AI sandbox backend service + audit log (Sprint 198)
+         * @description Execute read-only AI sandbox SQL inside the backend process.
+         */
+        post: operations["post_ai_sandbox_execute_api_v1_ad_hoc_ai_sandbox_execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/yoy-battle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * baseline vs current 双窗口 YOY 战斗
+         * @description 双窗口 YOY 战斗 (baseline_start/end → current_start/end).
+         */
+        post: operations["post_yoy_battle_api_v1_ad_hoc_yoy_battle_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/channel-slice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 按 channel 切片日维度
+         * @description 按 channel 切片日维度, 全店排第一 (L4.19 channel alias 配套).
+         */
+        post: operations["post_channel_slice_api_v1_ad_hoc_channel_slice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/two-year-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 两年新老客 30 指标对比
+         * @description 复用 scripts.ad_hoc_queries.two_year_overview (走 backend.services.metrics.audience_summary).
+         */
+        post: operations["post_two_year_overview_api_v1_ad_hoc_two_year_overview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/new-old-customer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 新老客拆分对比, 字段前缀隔离
+         * @description 字段前缀隔离 (new_*\/old_*\/member_*\/all_* + r_seg_* + channel_*), 跟 Sprint 171 L4.25 防串台字段配套.
+         */
+        post: operations["post_new_old_customer_api_v1_ad_hoc_new_old_customer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/rfm-repurchase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * R 区间复购周期分布
+         * @description R 区间复购周期分布, 复用 backend.services.rfm.get_rfm_r_flow.
+         */
+        post: operations["post_rfm_repurchase_api_v1_ad_hoc_rfm_repurchase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/top-n": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * TOP N 品类/产品层级两年对比
+         * @description TOP N 品类/产品层级两年对比.
+         */
+        post: operations["post_top_n_api_v1_ad_hoc_top_n_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/dq-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 数据质量 5/15 项规则报告
+         * @description 数据质量 5 (默认) / 15 (full=true) 项规则报告, 跟 backend.services.metrics.dq_report 配套.
+         */
+        post: operations["post_dq_report_api_v1_ad_hoc_dq_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ad-hoc/export-excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 导出 11 sheet Excel 整份报告 (返回 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet 二进制流)
+         * @description 导出 11 sheet Excel 整份报告 (返 StreamingResponse 二进制流, 跟 export-xlsx endpoint 一致).
+         */
+        post: operations["post_export_excel_api_v1_ad_hoc_export_excel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Session Status
+         * @description Observe the caller's v2 queue status without acquiring a lease.
+         */
+        get: operations["session_status_api_v1_session_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Session Heartbeat
+         * @description Refresh an active or queued lease after browser user activity.
+         */
+        post: operations["session_heartbeat_api_v1_session_heartbeat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Release Session
+         * @description Release the caller's single-user RFM lock.
+         */
+        delete: operations["release_session_api_v1_session_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notify User
+         * @description L4.75.3 B 同事 通知 A 同事 (跟 L4.4 SSE 实时推送 1:1 stable 永久规则链配套).
+         */
+        post: operations["notify_user_api_v1_notifications_notify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notifications
+         * @description L4.75.3 A 同事 查询未读通知 (跟 user 'B 同事进入后, 就显示重试、通知对方, 然后 A 同事可以收到信息' 1:1 stable 永久规则链配套).
+         */
+        get: operations["list_notifications_api_v1_notifications_list_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release Lock Self
+         * @description L4.75.3 A 同事 主动 release 锁 (跟 user '然后 A 同事可以收到信息, 然后可以主动退出账号' 1:1 stable 永久规则链配套).
+         */
+        post: operations["release_lock_self_api_v1_notifications_release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Login Request
+         * @description L4.85 治本: B 申请登录 admin (admin 当前 active).
+         *
+         *     流程 (跟 L4.42 立项实证 SOP 1:1 stable 配套):
+         *     1. 验证密码 (跟 L4.84 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)
+         *     2. 检查账号是否 active (有 token)
+         *     3. 如果不 active → 跟 L4.84 1:1 stable 配套, 返回 409 让 B 走 /login
+         *     4. 如果 active → 创建申请 (pending)
+         *     5. 已有 pending 申请 → 复用 (跟 L4.75 v2 active session 1:1 stable 配套)
+         */
+        post: operations["create_login_request_api_v1_auth_login_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login-requests/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pending Requests
+         * @description A 查待处理申请 (A 必须是 active 用户, 跟 L4.84 1:1 stable 配套).
+         *
+         *     L4.85.4 治本: sliding=False, read-only check 不刷新 last_active_at.
+         *     修复 user 7/11 报"我离开工位 polling 仍跑" → _is_account_active 永远 True → B 端 login 409.
+         *     跟 L4.85.4 + L4.85.3 1:1 stable 永久规则化沿用.
+         */
+        get: operations["get_pending_requests_api_v1_auth_login_requests_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login-request/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Login Request
+         * @description A 同意 B 的申请 → A 登出, B 登录 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用).
+         */
+        post: operations["approve_login_request_api_v1_auth_login_request__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login-request/{request_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Login Request
+         * @description A 拒绝 B 的申请 (跟 L4.84 1:1 stable 永久规则化沿用, A 不受影响).
+         */
+        post: operations["reject_login_request_api_v1_auth_login_request__request_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login-request/{request_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Request Status
+         * @description B 用独占 claim secret 幂等查询状态；GET 不创建或领取会话。
+         */
+        get: operations["get_request_status_api_v1_auth_login_request__request_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login-request/{request_id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Login Request
+         * @description B 原子领取批准后的会话；相同 claim 可安全重试并拿到同一 token。
+         */
+        post: operations["claim_login_request_api_v1_auth_login_request__request_id__claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/upload-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Upload Config */
+        get: operations["get_upload_config_api_v1_admin_upload_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Upload */
+        post: operations["post_upload_api_v1_admin_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Uploads */
+        get: operations["get_uploads_api_v1_admin_uploads_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AdHocQueryResponse
+         * @description 通用 JSON 响应: {headers, rows} 跟 CSV 输出列对齐.
+         */
+        AdHocQueryResponse: {
+            /**
+             * Command
+             * @description 子命令名
+             */
+            command: string;
+            /**
+             * Headers
+             * @description 列名 (跟 CSV headers 一致)
+             */
+            headers: string[];
+            /**
+             * Rows
+             * @description 数据行 (跟 headers 对齐)
+             */
+            rows: unknown[][];
+            /**
+             * Row Count
+             * @description 行数
+             */
+            row_count: number;
+            /**
+             * Warning
+             * @description 数据告警 (如未来日期)
+             */
+            warning?: string | null;
+        };
+        /**
+         * AiSandboxExecuteRequest
+         * @description ai-sandbox-execute: AI 命中不到固定 tool 时走 backend sandbox service.
+         */
+        AiSandboxExecuteRequest: {
+            /**
+             * Sql
+             * @description 单条 SELECT/WITH 只读 SQL
+             */
+            sql: string;
+            /**
+             * Sandbox Type
+             * @description aggregate|timeseries|rfm|ltv
+             * @default aggregate
+             */
+            sandbox_type: string;
+            /**
+             * Audit Id
+             * @description 审计 ID
+             */
+            audit_id?: string | null;
+        };
         /**
          * AnchorMode
          * @description 锚点模式：以目标品类的哪次购买为分析锚点
          * @enum {string}
          */
         AnchorMode: "first" | "last" | "every";
+        /** ApproveRequestOut */
+        ApproveRequestOut: {
+            /** Success */
+            success: boolean;
+            /** Username */
+            username: string;
+        };
         /** AssetSummaryResponse */
         AssetSummaryResponse: {
             /** Date */
@@ -1823,6 +2402,61 @@ export interface components {
             /** Yoy Member New Users Ratio Ppt */
             yoy_member_new_users_ratio_ppt?: number | null;
         };
+        /** AudienceSummaryRequest */
+        AudienceSummaryRequest: {
+            /**
+             * Year
+             * @description 对比基准年，如2026
+             * @default 2026
+             */
+            year: number;
+            /**
+             * Metric Type
+             * @description GMV 或 GSV
+             * @default GSV
+             */
+            metric_type: string;
+            /**
+             * Start Date
+             * @description 开始日期 YYYY-MM-DD
+             */
+            start_date?: string | null;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date?: string | null;
+            /**
+             * Period
+             * @description WTD / MTD / YTD / Q1-Q4
+             */
+            period?: string | null;
+            /**
+             * Channel
+             * @description 渠道筛选
+             */
+            channel?: string | null;
+            /**
+             * Exclude Channels
+             * @description 排除的渠道列表
+             */
+            exclude_channels?: string[] | null;
+            /**
+             * Compare Start Date
+             * @description 对比期开始日期
+             */
+            compare_start_date?: string | null;
+            /**
+             * Compare End Date
+             * @description 对比期结束日期
+             */
+            compare_end_date?: string | null;
+            /**
+             * Order Ids
+             * @description 订单号列表，仅统计匹配订单
+             */
+            order_ids?: string[] | null;
+        };
         /** AudienceSummaryResponse */
         AudienceSummaryResponse: {
             /**
@@ -1891,6 +2525,13 @@ export interface components {
         AuditLogResponse: {
             /** Logs */
             logs?: components["schemas"]["AuditLogItem"][];
+        };
+        /** Body_post_upload_api_v1_admin_upload_post */
+        Body_post_upload_api_v1_admin_upload_post: {
+            /** Business Type */
+            business_type: string;
+            /** File */
+            file: string;
         };
         /**
          * CategoryChurnItem
@@ -2010,7 +2651,7 @@ export interface components {
             member_gsv: number;
             /**
              * Pct
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
+             * @description L4.81 治本契约: 0-1 raw ratio (no *100, frontend caller 必 *100 显示 = percentage, e.g. 0.42 = 42%). 上限 ±1e10 兼容 yoy_absolute 万倍异常值, 4 位精度. 真实值 |v| > 100 建议前端 YOYBadge 守卫 ("数据异常"). 旧契约已 *100 字段请先 *0.01 转 raw
              */
             pct: number;
             /**
@@ -2103,6 +2744,32 @@ export interface components {
             pre_purchase?: components["schemas"]["AssociationItem"][] | null;
             pre_sankey?: components["schemas"]["SankeyGraphData"] | null;
             post_sankey?: components["schemas"]["SankeyGraphData"] | null;
+        };
+        /** CategoryOverviewBatchRange */
+        CategoryOverviewBatchRange: {
+            /** Start Date */
+            start_date: string;
+            /** End Date */
+            end_date: string;
+        };
+        /** CategoryOverviewBatchRequest */
+        CategoryOverviewBatchRequest: {
+            /** Ranges */
+            ranges: components["schemas"]["CategoryOverviewBatchRange"][];
+            /**
+             * Level
+             * @default class
+             */
+            level: string;
+            /**
+             * Metric Type
+             * @default GSV
+             */
+            metric_type: string;
+            /** Channel */
+            channel?: string | null;
+            /** Exclude Channels */
+            exclude_channels?: string[] | null;
         };
         /** CategoryOverviewItem */
         CategoryOverviewItem: {
@@ -2551,6 +3218,46 @@ export interface components {
             scores?: components["schemas"]["ChannelHealthScoreItem"][];
         };
         /**
+         * ChannelSliceRequest
+         * @description channel-slice: 按 channel 切片日维度.
+         */
+        ChannelSliceRequest: {
+            /**
+             * Date
+             * @description 目标日期 YYYY-MM-DD
+             */
+            date: string;
+            /**
+             * Channel
+             * @description 渠道筛选: all|online|offline|单渠道
+             * @default all
+             */
+            channel: string;
+            /**
+             * Store Id
+             * @description 店铺 ID 过滤 (可选)
+             */
+            store_id?: string | null;
+            /**
+             * Compare
+             * @description 对比口径: yoy|pop|none
+             * @default none
+             */
+            compare: string;
+        };
+        /** ClaimRequestOut */
+        ClaimRequestOut: {
+            /** Token */
+            token: string;
+            /** Username */
+            username: string;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
+        };
+        /**
          * CohortRetentionResponse
          * @description Cohort留存矩阵
          */
@@ -2681,6 +3388,50 @@ export interface components {
              */
             priority: number;
         };
+        /**
+         * DailyGsvMultiPeriodRequest
+         * @description daily-gsv-multi-period: 多周期 × 8 维度 daily rows.
+         *
+         *     Sprint 190 加: 运营高频需求"按天 × 8 维度 × 多周期对比" — 必用 daily-gsv-multi-period.
+         *
+         *     8 metric enum (跟 scripts.ad_hoc_queries.daily_gsv_multi_period._METRIC_SQL 对齐):
+         *       - sample_gmv / sample_gsv (小样 GMV/GSV, 渠道 U先派样 + 百补派样)
+         *       - member_gmv / member_gsv (会员 GMV/GSV, is_member=TRUE)
+         *       - new_users / new_gsv (新客人数 / 新客 GSV, cutoff = 查询起始日 - 1 天)
+         *       - old_users / old_gsv (老客人数 / 老客 GSV)
+         *
+         *     periods 必须是 start/end 成对 [YYYY-MM-DD, YYYY-MM-DD, ...], 偶数长度.
+         *
+         *     L4.5 / L4.19: 无 inline SQL, 复用 service. L4.25 防串台字段前缀 (跟 Sprint 171 v2.0 一致).
+         */
+        DailyGsvMultiPeriodRequest: {
+            /**
+             * Periods
+             * @description 多周期列表, start/end 成对. 偶数长度. 例 ['2026-01-01','2026-06-30','2025-01-01','2025-06-30']
+             */
+            periods: string[];
+            /**
+             * Metrics
+             * @description 8 metric (默认全 8). 传空列表用默认.
+             */
+            metrics?: string[];
+        };
+        /**
+         * DailyGsvRequest
+         * @description daily-gsv: 日序列 GSV + customers + YOY%.
+         */
+        DailyGsvRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+        };
         /** DateRangeResponse */
         DateRangeResponse: {
             /** Start */
@@ -2707,6 +3458,39 @@ export interface components {
             yoy_repurchase_rate: number;
         };
         /**
+         * DqReportRequest
+         * @description dq-report: 数据质量 5/15 项规则报告.
+         */
+        DqReportRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+            /**
+             * Full
+             * @description 输出完整 15 项 (默认仅 5 项)
+             * @default false
+             */
+            full: boolean;
+            /**
+             * Force
+             * @description 预留: ERROR 时继续
+             * @default false
+             */
+            force: boolean;
+            /**
+             * Exclude Channels
+             * @description 排除渠道, 逗号分隔
+             */
+            exclude_channels?: string | null;
+        };
+        /**
          * DualAxisLineData
          * @description 双轴折线图数据
          */
@@ -2717,6 +3501,33 @@ export interface components {
             wool_party_ratios: number[];
             /** High Value Ratios */
             high_value_ratios: number[];
+        };
+        /**
+         * ExportExcelRequest
+         * @description export-excel: 导出 11 sheet Excel 整份报告 (返二进制流).
+         */
+        ExportExcelRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+            /**
+             * Exclude Channels
+             * @description 排除渠道, 逗号分隔
+             */
+            exclude_channels?: string | null;
+            /**
+             * Year
+             * @description 基准年份
+             * @default 2026
+             */
+            year: number;
         };
         /** ExportPPTRequest */
         ExportPPTRequest: {
@@ -2762,6 +3573,37 @@ export interface components {
             download_url?: string | null;
             /** Error */
             error?: string | null;
+        };
+        /**
+         * FixedProductListCompareRequest
+         * @description fixed-product-list-compare: 固定产品清单新老客两年对比.
+         */
+        FixedProductListCompareRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+            /**
+             * Product Ids
+             * @description 产品 ID 列表; 不传则用归档固定清单
+             */
+            product_ids?: string[] | null;
+            /**
+             * Mom Start Date
+             * @description 环比期起始日期 YYYY-MM-DD
+             */
+            mom_start_date?: string | null;
+            /**
+             * Mom End Date
+             * @description 环比期结束日期 YYYY-MM-DD
+             */
+            mom_end_date?: string | null;
         };
         /**
          * FlowMatrix
@@ -2835,64 +3677,6 @@ export interface components {
              * @description 人数
              */
             user_count: number;
-        };
-        /** GeoDistributionItem */
-        GeoDistributionItem: {
-            /** Name */
-            name: string;
-            /** User Count */
-            user_count: number;
-            /** Gmv */
-            gmv: number;
-            /**
-             * User Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            user_ratio: number;
-            /**
-             * Gmv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            gmv_ratio: number;
-        };
-        /** GeoDistributionResponse */
-        GeoDistributionResponse: {
-            /** Date */
-            date: string;
-            /** Level */
-            level: string;
-            /** Total Users */
-            total_users: number;
-            /** Total Gmv */
-            total_gmv: number;
-            /** Distribution */
-            distribution: components["schemas"]["GeoDistributionItem"][];
-        };
-        /** GeoSegmentMatrixResponse */
-        GeoSegmentMatrixResponse: {
-            /** Date */
-            date: string;
-            /** Matrix */
-            matrix: {
-                [key: string]: {
-                    [key: string]: unknown;
-                }[];
-            };
-            /** Segments */
-            segments: {
-                [key: string]: unknown;
-            }[];
-        };
-        /** GeoTrendResponse */
-        GeoTrendResponse: {
-            /** Time Points */
-            time_points: string[];
-            /** Top Provinces */
-            top_provinces: string[];
-            /** Trends */
-            trends: {
-                [key: string]: unknown;
-            };
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -3278,12 +4062,35 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** LoginRequestIn */
+        LoginRequestIn: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
+        /** LoginRequestOut */
+        LoginRequestOut: {
+            /** Request Id */
+            request_id: string;
+            /** Claim Token */
+            claim_token: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
+        };
         /** LoginResponse */
         LoginResponse: {
             /** Token */
             token: string;
             /** Username */
             username: string;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
         };
         /** LogoutResponse */
         LogoutResponse: {
@@ -3500,6 +4307,65 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /**
+         * NewOldCustomerRequest
+         * @description new-old-customer: 新老客拆分对比, 字段前缀隔离.
+         */
+        NewOldCustomerRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+            /**
+             * Exclude Channels
+             * @description 排除渠道, 逗号分隔
+             */
+            exclude_channels?: string | null;
+            /**
+             * Dimension
+             * @description 维度: channel|category
+             * @default channel
+             */
+            dimension: string;
+        };
+        /** Notification */
+        Notification: {
+            /** Notification Id */
+            notification_id: string;
+            /** From User */
+            from_user: string;
+            /** Message */
+            message: string;
+            /** Timestamp */
+            timestamp: number;
+            /** Read */
+            read: boolean;
+        };
+        /** NotifyRequest */
+        NotifyRequest: {
+            /** Target Ip */
+            target_ip: string;
+            /**
+             * Message
+             * @default 请让一下, 我需要查询老客 RFM 数据
+             */
+            message: string;
+        };
+        /** NotifyResponse */
+        NotifyResponse: {
+            /** Delivered */
+            delivered: boolean;
+            /** Target Ip */
+            target_ip: string;
+            /** Notification Id */
+            notification_id: string;
+        };
         /** OverviewMetrics */
         OverviewMetrics: {
             /** Metric Type */
@@ -3570,6 +4436,24 @@ export interface components {
          * @enum {string}
          */
         PathDepth: "1" | "2";
+        /** PendingRequestItem */
+        PendingRequestItem: {
+            /** Request Id */
+            request_id: string;
+            /** Requester Ip */
+            requester_ip: string;
+            /** Created At */
+            created_at: number;
+            /** Status */
+            status: string;
+            /** Estimated Wait Seconds */
+            estimated_wait_seconds: number;
+        };
+        /** PendingRequestsOut */
+        PendingRequestsOut: {
+            /** Pending */
+            pending: components["schemas"]["PendingRequestItem"][];
+        };
         /**
          * PotentialTier
          * @description 用户潜力层.
@@ -4250,7 +5134,7 @@ export interface components {
             overall_repurchase_rate_comp: number;
             /**
              * Overall Repurchase Rate Yoy
-             * @description pp 差 -100~+100 (e.g. 5.28 = +5.28pp), 2 位精度
+             * @description L4.81 治本契约: -1 ~ +1 raw ratio diff (no *100, frontend caller 必 *100 显示 = pp, e.g. 0.05 = +5pp). 上限 ±1e10 兼容 yoy_ratio 万倍异常值, 4 位精度. 真实值 |v| > 100 建议前端 YOYBadge 守卫 ("数据异常"). 旧契约已 *100 字段请先 *0.01 转 raw
              * @default 0
              */
             overall_repurchase_rate_yoy: number;
@@ -4702,6 +5586,11 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** RejectRequestOut */
+        RejectRequestOut: {
+            /** Success */
+            success: boolean;
+        };
         /**
          * RepurchaseBucket
          * @description 复购间隔桶（含去年同期对比）
@@ -4879,154 +5768,36 @@ export interface components {
             prev2_year_label: string;
         };
         /**
-         * RollingComparisonResponse
-         * @description 0.01派样滚动同期对比响应
+         * RfmRepurchaseRequest
+         * @description rfm-repurchase: R 区间复购周期分布, 复用 get_rfm_r_flow.
          */
-        RollingComparisonResponse: {
-            year_a: components["schemas"]["RollingYearMetrics"];
-            year_b: components["schemas"]["RollingYearMetrics"];
-            yoy: components["schemas"]["RollingYOY"];
-            timeline: components["schemas"]["RollingTimeline"];
-        };
-        /**
-         * RollingTimeline
-         * @description 滚动时间线参数
-         */
-        RollingTimeline: {
-            /** Year A Sample Start */
-            year_a_sample_start: string;
-            /** Year A Sample End */
-            year_a_sample_end: string;
-            /** Year A Conv Start */
-            year_a_conv_start: string;
-            /** Year B Sample Start */
-            year_b_sample_start: string;
-            /** Year B Sample End */
-            year_b_sample_end: string;
-            /** Year B Conv Start */
-            year_b_conv_start: string;
-            /** Rolling End */
-            rolling_end: string;
+        RfmRepurchaseRequest: {
             /**
-             * Year B Equiv End
-             * @description year_b 自动对齐后的等价截止日
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
              */
-            year_b_equiv_end: string;
+            start_date: string;
             /**
-             * T
-             * @description 从 year_a 派样起始到滚动截止日的总天数
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
              */
-            T: number;
+            end_date: string;
             /**
-             * T Sample A
-             * @description year_a 派样期总天数
+             * Channel
+             * @description 渠道筛选
              */
-            T_sample_a: number;
+            channel?: string | null;
             /**
-             * T Sample B
-             * @description year_b 派样期总天数
+             * Exclude Channels
+             * @description 排除渠道, 逗号分隔
              */
-            T_sample_b: number;
+            exclude_channels?: string | null;
             /**
-             * T Conv
-             * @description 从 year_a 转化起始到滚动截止日的天数
+             * Year
+             * @description 基准年份
+             * @default 2026
              */
-            T_conv: number;
-        };
-        /**
-         * RollingYOY
-         * @description 滚动对比 YoY - yoy_ratio() 返 pp 差, yoy_absolute() 返 percentage
-         */
-        RollingYOY: {
-            /** Total Uv */
-            total_uv?: number | null;
-            /** Locked Users */
-            locked_users?: number | null;
-            /** Lock Rate */
-            lock_rate?: number | null;
-            /** New Locked Users */
-            new_locked_users?: number | null;
-            /** New Locked Ratio */
-            new_locked_ratio?: number | null;
-            /** Converted Users */
-            converted_users?: number | null;
-            /** Conversion Rate */
-            conversion_rate?: number | null;
-            /** Conv Gsv */
-            conv_gsv?: number | null;
-            /** Conv Aus */
-            conv_aus?: number | null;
-            /** New Converted Users */
-            new_converted_users?: number | null;
-            /** New Conversion Rate */
-            new_conversion_rate?: number | null;
-            /** New Conv Gsv */
-            new_conv_gsv?: number | null;
-            /** New Conv Aus */
-            new_conv_aus?: number | null;
-        };
-        /**
-         * RollingYearMetrics
-         * @description 单年的滚动指标
-         */
-        RollingYearMetrics: {
-            /**
-             * Phase
-             * @description 当前阶段：sample(派样期) 或 conversion(转化期)
-             */
-            phase: string;
-            /** Total Uv */
-            total_uv: number;
-            /** Locked Users */
-            locked_users: number;
-            /**
-             * Lock Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            lock_rate: number;
-            /** New Locked Users */
-            new_locked_users: number;
-            /**
-             * New Locked Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            new_locked_ratio: number;
-            /** Old Locked Users */
-            old_locked_users: number;
-            /**
-             * Old Locked Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            old_locked_ratio: number;
-            /** Converted Users */
-            converted_users: number;
-            /**
-             * Conversion Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            conversion_rate: number;
-            /** Conv Gsv */
-            conv_gsv: number;
-            /** Conv Aus */
-            conv_aus: number;
-            /** New Converted Users */
-            new_converted_users: number;
-            /**
-             * New Conversion Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            new_conversion_rate: number;
-            /** New Conv Gsv */
-            new_conv_gsv: number;
-            /** New Conv Aus */
-            new_conv_aus: number;
-            /** Old Converted Users */
-            old_converted_users: number;
-            /**
-             * Old Conversion Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            old_conversion_rate: number;
+            year: number;
         };
         /**
          * SamplingCategoryRow
@@ -5224,52 +5995,6 @@ export interface components {
             nonfull_repurchase_users_mom_pct?: number | null;
         };
         /**
-         * SamplingCohortRetentionResponse
-         * @description cohort retention matrix response.
-         */
-        SamplingCohortRetentionResponse: {
-            /** Rows */
-            rows?: components["schemas"]["SamplingCohortRetentionRow"][];
-            /**
-             * Start Month
-             * @description 起始 cohort 月份 YYYY-MM
-             */
-            start_month: string;
-            /**
-             * End Month
-             * @description 结束 cohort 月份 YYYY-MM
-             */
-            end_month: string;
-            /**
-             * Channel
-             * @description 渠道
-             */
-            channel: string;
-        };
-        /**
-         * SamplingCohortRetentionRow
-         * @description cohort retention 矩阵单行.
-         */
-        SamplingCohortRetentionRow: {
-            /**
-             * Cohort Month
-             * @description cohort 月份 YYYY-MM
-             */
-            cohort_month: string;
-            /**
-             * Cohort Size
-             * @description cohort 用户数
-             */
-            cohort_size: number;
-            /**
-             * Retention
-             * @description {月偏移: 留存率 0-1 decimal}，0 = cohort 月，12 = cohort + 12 月
-             */
-            retention?: {
-                [key: string]: number;
-            };
-        };
-        /**
          * SamplingLevelSummary
          * @description 派样 level 二级聚合（channel × level_value）.
          */
@@ -5390,112 +6115,6 @@ export interface components {
             full_repurchase_aus_mom_pct?: number | null;
             /** Nonfull Repurchase Gsv Mom Pct */
             nonfull_repurchase_gsv_mom_pct?: number | null;
-        };
-        /**
-         * SamplingLockAnalysisResponse
-         * @description 0.01锁权分析响应
-         */
-        SamplingLockAnalysisResponse: {
-            campaign_info: components["schemas"]["SamplingLockCampaignInfo"];
-            current_year: components["schemas"]["SamplingLockYearData"];
-            last_year: components["schemas"]["SamplingLockYearData"];
-            yoy: components["schemas"]["SamplingLockYOY"];
-        };
-        /**
-         * SamplingLockCampaignInfo
-         * @description 锁权活动信息
-         */
-        SamplingLockCampaignInfo: {
-            /** Year */
-            year: number;
-            /** Campaign Name */
-            campaign_name: string;
-            /** Conversion Start */
-            conversion_start?: string | null;
-            /** Conversion End */
-            conversion_end?: string | null;
-            /** Lock Start */
-            lock_start?: string | null;
-            /** Lock End */
-            lock_end?: string | null;
-            /** Error */
-            error?: string | null;
-        };
-        /**
-         * SamplingLockYOY
-         * @description 锁权分析同比数据 - yoy_ratio() 返 pp 差
-         */
-        SamplingLockYOY: {
-            /** Total Uv */
-            total_uv?: number | null;
-            /** Locked Users */
-            locked_users?: number | null;
-            /** Lock Rate */
-            lock_rate?: number | null;
-            /** Converted Users */
-            converted_users?: number | null;
-            /** Conversion Rate */
-            conversion_rate?: number | null;
-            /** Lock Gsv */
-            lock_gsv?: number | null;
-            /** Lock Aus */
-            lock_aus?: number | null;
-            /** New Locked Users */
-            new_locked_users?: number | null;
-            /** New Locked Ratio */
-            new_locked_ratio?: number | null;
-            /** New Converted Users */
-            new_converted_users?: number | null;
-            /** New Conversion Rate */
-            new_conversion_rate?: number | null;
-            /** New Lock Gsv */
-            new_lock_gsv?: number | null;
-            /** New Lock Aus */
-            new_lock_aus?: number | null;
-        };
-        /**
-         * SamplingLockYearData
-         * @description 锁权分析单年数据
-         */
-        SamplingLockYearData: {
-            /** Total Uv */
-            total_uv: number;
-            /** Locked Users */
-            locked_users: number;
-            /**
-             * Lock Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            lock_rate: number;
-            /** Converted Users */
-            converted_users: number;
-            /**
-             * Conversion Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            conversion_rate: number;
-            /** Lock Gsv */
-            lock_gsv: number;
-            /** Lock Aus */
-            lock_aus: number;
-            /** New Locked Users */
-            new_locked_users: number;
-            /**
-             * New Locked Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            new_locked_ratio: number;
-            /** New Converted Users */
-            new_converted_users: number;
-            /**
-             * New Conversion Rate
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            new_conversion_rate: number;
-            /** New Lock Gsv */
-            new_lock_gsv: number;
-            /** New Lock Aus */
-            new_lock_aus: number;
         };
         /**
          * SamplingROIResponse
@@ -5695,6 +6314,18 @@ export interface components {
              * @description 优先级 1-8
              */
             priority: number;
+        };
+        /**
+         * StatusRequestOut
+         * @description L4.85.1 治本: B 端 polling 检测自己申请状态 (跟 NavBar.vue 1:1 stable 配套).
+         */
+        StatusRequestOut: {
+            /** Request Id */
+            request_id: string;
+            /** Status */
+            status: string;
+            /** Username */
+            username?: string | null;
         };
         /**
          * StoreAssetResponse
@@ -5981,6 +6612,39 @@ export interface components {
              */
             hist_users_current: number;
         };
+        /**
+         * TopNRequest
+         * @description top-n: TOP N 品类/产品层级两年对比.
+         */
+        TopNRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+            /**
+             * Dimension
+             * @description TOP 维度: spu_category|spu_product_subclass|spu_product_class
+             * @default spu_category
+             */
+            dimension: string;
+            /**
+             * Exclude Channels
+             * @description 排除渠道, 逗号分隔
+             */
+            exclude_channels?: string | null;
+            /**
+             * Limit
+             * @description 返回行数
+             * @default 20
+             */
+            limit: number;
+        };
         /** TrendData */
         TrendData: {
             /** Metric Type */
@@ -6018,6 +6682,207 @@ export interface components {
             overall_member_ratio_ly: number;
         };
         /**
+         * TwoYearOverviewRequest
+         * @description two-year-overview: 两年新老客 30 指标对比 (AudienceSummaryResponse).
+         */
+        TwoYearOverviewRequest: {
+            /**
+             * Year
+             * @description 基准年份
+             * @default 2026
+             */
+            year: number;
+            /**
+             * Period
+             * @description WTD/MTD/YTD/Q1-Q4 (period 空时用 start/end)
+             */
+            period?: string | null;
+            /**
+             * Start
+             * @description 开始日期 YYYY-MM-DD
+             */
+            start?: string | null;
+            /**
+             * End
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end?: string | null;
+            /**
+             * Channel
+             * @description 渠道筛选
+             */
+            channel?: string | null;
+            /**
+             * Exclude Channels
+             * @description 排除渠道, 逗号分隔
+             */
+            exclude_channels?: string | null;
+            /**
+             * Order Ids
+             * @description 订单号列表，仅统计匹配订单
+             */
+            order_ids?: string[] | null;
+        };
+        /**
+         * UploadConfigResponse
+         * @description GET /upload-config 响应：恰好 10 种数据源 + 全局大小限制。
+         */
+        UploadConfigResponse: {
+            /** Sources */
+            sources: components["schemas"]["UploadSourcePublic"][];
+            /**
+             * Max Upload Bytes
+             * @description 服务端硬上限（当前 100MB）
+             */
+            max_upload_bytes: number;
+        };
+        /**
+         * UploadListResponse
+         * @description GET /uploads 响应。
+         */
+        UploadListResponse: {
+            /** Items */
+            items: components["schemas"]["UploadRecordOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /**
+         * UploadRecordOut
+         * @description 单条 upload 记录（registry entry 的对外视图）。
+         */
+        UploadRecordOut: {
+            /**
+             * Upload Id
+             * @description UUID4 hex
+             */
+            upload_id: string;
+            /** Business Type */
+            business_type: string;
+            /** Original Filename */
+            original_filename: string;
+            /**
+             * Extension
+             * @description 含点的扩展名，如 .csv
+             */
+            extension: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Sha256
+             * @description 64 字符 hex
+             */
+            sha256: string;
+            /** Uploaded By */
+            uploaded_by: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             * @description UTC ISO-8601
+             */
+            uploaded_at: string;
+            /**
+             * Status
+             * @default staged
+             * @constant
+             */
+            status: "staged";
+            validation: components["schemas"]["UploadValidationResult"];
+            /** Future Post Actions */
+            future_post_actions?: string[];
+        };
+        /**
+         * UploadResponse
+         * @description POST /upload 响应。
+         */
+        UploadResponse: {
+            upload: components["schemas"]["UploadRecordOut"];
+            /**
+             * Duplicate
+             * @description True 表示命中 idempotency key 复用已有记录（HTTP 200）；False 表示新 staged（HTTP 201）
+             * @default false
+             */
+            duplicate: boolean;
+        };
+        /**
+         * UploadSourcePublic
+         * @description 客户端可见的 single 数据源配置（GET /upload-config 元素）。
+         *
+         *     服务端 allowlist 的子集：禁暴露 target_path / staging_path / 项目绝对路径 / 用户 home。
+         */
+        UploadSourcePublic: {
+            /**
+             * Business Type
+             * @description 业务类型: shop/member/status-refresh/taoke/live/visitor/spu-mapping/taoke-product/channel-rules/campaign-schedule
+             */
+            business_type: string;
+            /**
+             * Display Name
+             * @description 运营可读的中文名
+             */
+            display_name: string;
+            /**
+             * Allowed Extensions
+             * @description 允许的扩展名（如 .csv / .xlsx / .zip）
+             */
+            allowed_extensions: string[];
+            /**
+             * Mode
+             * @description append 累积 / single 单文件替换
+             * @enum {string}
+             */
+            mode: "append" | "single";
+            /**
+             * Max Size Bytes
+             * @description 单文件最大字节数
+             */
+            max_size_bytes: number;
+            /**
+             * Future Post Actions
+             * @description Sprint 2+ 才会执行的后置动作（如 rescan-spu / refresh-campaign-schedule）
+             */
+            future_post_actions?: string[];
+            /**
+             * Replacement Warning
+             * @description UI 替换提示文案（仅 mode=single 才有值）
+             */
+            replacement_warning?: string | null;
+        };
+        /**
+         * UploadValidationResult
+         * @description preflight 校验结果（sprint 1 不阻断但记录）。
+         */
+        UploadValidationResult: {
+            /**
+             * Validator
+             * @description 校验器名称：csv-utf8/xlsx-pandas/zip-safe/business-<type>
+             */
+            validator: string;
+            /**
+             * Valid
+             * @description 校验通过与否
+             */
+            valid: boolean;
+            /**
+             * Detected Format
+             * @description 检测到的格式（编码/sheet/zip layout）
+             */
+            detected_format: string;
+            /**
+             * Row Sample Count
+             * @description 样本行数（CSV/XLSX）
+             */
+            row_sample_count?: number | null;
+            /**
+             * Warnings
+             * @description warning 列表（不阻断）
+             */
+            warnings?: string[];
+        };
+        /**
          * UserDetail
          * @description 用户详情
          */
@@ -6047,6 +6912,11 @@ export interface components {
         UserInfo: {
             /** Username */
             username: string;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -6179,7 +7049,7 @@ export interface components {
             new_members: number;
             /**
              * Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
+             * @description L4.81 治本契约: 0-1 raw ratio (no *100, frontend caller 必 *100 显示 = percentage, e.g. 0.42 = 42%). 上限 ±1e10 兼容 yoy_absolute 万倍异常值, 4 位精度. 真实值 |v| > 100 建议前端 YOYBadge 守卫 ("数据异常"). 旧契约已 *100 字段请先 *0.01 转 raw
              */
             member_join_rate: number;
             /** Ly Visitors */
@@ -6188,7 +7058,7 @@ export interface components {
             ly_new_members: number;
             /**
              * Ly Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
+             * @description L4.81 治本契约: 0-1 raw ratio (no *100, frontend caller 必 *100 显示 = percentage, e.g. 0.42 = 42%). 上限 ±1e10 兼容 yoy_absolute 万倍异常值, 4 位精度. 真实值 |v| > 100 建议前端 YOYBadge 守卫 ("数据异常"). 旧契约已 *100 字段请先 *0.01 转 raw
              */
             ly_member_join_rate: number;
         };
@@ -6221,7 +7091,7 @@ export interface components {
             new_members: number;
             /**
              * Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
+             * @description L4.81 治本契约: 0-1 raw ratio (no *100, frontend caller 必 *100 显示 = percentage, e.g. 0.42 = 42%). 上限 ±1e10 兼容 yoy_absolute 万倍异常值, 4 位精度. 真实值 |v| > 100 建议前端 YOYBadge 守卫 ("数据异常"). 旧契约已 *100 字段请先 *0.01 转 raw
              */
             member_join_rate: number;
             /** Ly Visitors */
@@ -6230,7 +7100,7 @@ export interface components {
             ly_new_members: number;
             /**
              * Ly Member Join Rate
-             * @description 0-100 percentage 或 yoy_absolute *100 后 ±1T 范围 (含负 YOY + 百万倍异常值), 2 位精度. 真实值 > 1e6 建议前端 YOYBadge 守卫. 2026-06-15 放宽 1B→1T 治根: 6/14 新品类 class 级别 aus_yoy 算出 3.35e9, Pydantic 1B 上限被撞 → 500
+             * @description L4.81 治本契约: 0-1 raw ratio (no *100, frontend caller 必 *100 显示 = percentage, e.g. 0.42 = 42%). 上限 ±1e10 兼容 yoy_absolute 万倍异常值, 4 位精度. 真实值 |v| > 100 建议前端 YOYBadge 守卫 ("数据异常"). 旧契约已 *100 字段请先 *0.01 转 raw
              */
             ly_member_join_rate: number;
             /** Visitors Yoy */
@@ -6290,6 +7160,48 @@ export interface components {
             /** Yoy */
             yoy?: number | null;
         };
+        /**
+         * YoyBattleRequest
+         * @description yoy-battle: baseline vs current 双窗口 YOY 战斗.
+         */
+        YoyBattleRequest: {
+            /**
+             * Start Date
+             * @description 起始日期 YYYY-MM-DD
+             */
+            start_date: string;
+            /**
+             * End Date
+             * @description 结束日期 YYYY-MM-DD
+             */
+            end_date: string;
+            /**
+             * Baseline Start
+             * @description 基期起始日期 YYYY-MM-DD
+             */
+            baseline_start: string;
+            /**
+             * Baseline End
+             * @description 基期结束日期 YYYY-MM-DD
+             */
+            baseline_end: string;
+            /**
+             * Current Start
+             * @description 当期起始日期 YYYY-MM-DD
+             */
+            current_start: string;
+            /**
+             * Current End
+             * @description 当期结束日期 YYYY-MM-DD
+             */
+            current_end: string;
+            /**
+             * Metric
+             * @description 输出指标: gsv|orders|customers|aov|all
+             * @default all
+             */
+            metric: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -6300,6 +7212,66 @@ export interface components {
 export type $defs = Record<string, never>;
 export interface operations {
     health_check_api_v1_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    health_db_size_api_v1_health_db_size_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    health_manifest_api_v1_health_manifest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    health_pool_api_v1_health_pool_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -6394,7 +7366,9 @@ export interface operations {
     };
     logout_api_v1_auth_logout_post: {
         parameters: {
-            query?: never;
+            query?: {
+                token?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6408,6 +7382,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LogoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7153,126 +8136,6 @@ export interface operations {
             };
         };
     };
-    get_geo_distribution_api_api_v1_geo_distribution_get: {
-        parameters: {
-            query?: {
-                /** @description 分析日期 YYYY-MM-DD */
-                date?: string;
-                /** @description 回溯天数 */
-                lookback_days?: number;
-                /** @description 省份/城市 */
-                level?: string;
-                /** @description 返回前 N 条 */
-                top_n?: number;
-                /** @description 象限ID筛选 */
-                segment_id?: number | null;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GeoDistributionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_geo_segment_api_api_v1_geo_segment_get: {
-        parameters: {
-            query?: {
-                /** @description 分析日期 YYYY-MM-DD */
-                date?: string;
-                /** @description 回溯天数 */
-                lookback_days?: number;
-                /** @description 每个象限返回前 N 个省份 */
-                top_n?: number;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GeoSegmentMatrixResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_geo_trend_api_api_v1_geo_trend_get: {
-        parameters: {
-            query: {
-                /** @description 开始日期 YYYY-MM-DD */
-                start_date: string;
-                /** @description 结束日期 YYYY-MM-DD */
-                end_date: string;
-                /** @description 回溯天数 */
-                lookback_days?: number;
-                /** @description 追踪前 N 个省份 */
-                top_n?: number;
-                /** @description 排除的渠道列表 */
-                exclude_channels?: string[] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GeoTrendResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_category_distribution_api_api_v1_category_distribution_get: {
         parameters: {
             query?: {
@@ -7348,6 +8211,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryOverviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_overview_batch_api_api_v1_category_overview_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryOverviewBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -7872,12 +8768,47 @@ export interface operations {
                 compare_start_date?: string | null;
                 /** @description 对比期结束日期（可选，覆盖自动Y-1推算） */
                 compare_end_date?: string | null;
+                /** @description 订单号列表，仅统计匹配订单 */
+                order_ids?: string[] | null;
             };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_audience_summary_api_api_v1_audience_summary_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudienceSummaryRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -8288,84 +9219,6 @@ export interface operations {
             };
         };
     };
-    get_sampling_lock_analysis_api_api_v1_sampling_lock_analysis_get: {
-        parameters: {
-            query?: {
-                /** @description 大促名称：summer_sale/double11/spring_festival */
-                campaign_name?: string;
-                /** @description 年份 */
-                year?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SamplingLockAnalysisResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_rolling_comparison_api_api_v1_sampling_rolling_comparison_get: {
-        parameters: {
-            query: {
-                /** @description year_a 派样起始 */
-                year_a_sample_start: string;
-                /** @description year_a 派样结束 */
-                year_a_sample_end: string;
-                /** @description year_a 转化起始 */
-                year_a_conv_start: string;
-                /** @description year_b 派样起始 */
-                year_b_sample_start: string;
-                /** @description year_b 派样结束 */
-                year_b_sample_end: string;
-                /** @description year_b 转化起始 */
-                year_b_conv_start: string;
-                /** @description 滚动截止日 */
-                rolling_end: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RollingComparisonResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_lifetime_value_cohort_api_v1_lifetime_value_cohort_get: {
         parameters: {
             query: {
@@ -8387,42 +9240,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LifetimeValueSummary"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cohort_retention_api_v1_cohort_retention_matrix_get: {
-        parameters: {
-            query: {
-                /** @description cohort 起始月份 YYYY-MM */
-                start_month: string;
-                /** @description cohort 结束月份 YYYY-MM */
-                end_month: string;
-                /** @description 渠道，默认全店 */
-                channel?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SamplingCohortRetentionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8690,6 +9507,858 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_daily_gsv_api_v1_ad_hoc_daily_gsv_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DailyGsvRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_daily_gsv_multi_period_api_v1_ad_hoc_daily_gsv_multi_period_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DailyGsvMultiPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_fixed_product_list_compare_api_v1_ad_hoc_fixed_product_list_compare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixedProductListCompareRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_ai_sandbox_execute_api_v1_ad_hoc_ai_sandbox_execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiSandboxExecuteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_yoy_battle_api_v1_ad_hoc_yoy_battle_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YoyBattleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_channel_slice_api_v1_ad_hoc_channel_slice_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelSliceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_two_year_overview_api_v1_ad_hoc_two_year_overview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoYearOverviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_new_old_customer_api_v1_ad_hoc_new_old_customer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOldCustomerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_rfm_repurchase_api_v1_ad_hoc_rfm_repurchase_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RfmRepurchaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_top_n_api_v1_ad_hoc_top_n_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopNRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_dq_report_api_v1_ad_hoc_dq_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DqReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdHocQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_export_excel_api_v1_ad_hoc_export_excel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportExcelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    session_status_api_v1_session_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    session_heartbeat_api_v1_session_heartbeat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    release_session_api_v1_session_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notify_user_api_v1_notifications_notify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotifyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_notifications_api_v1_notifications_list_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notification"][];
+                };
+            };
+        };
+    };
+    release_lock_self_api_v1_notifications_release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    create_login_request_api_v1_auth_login_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pending_requests_api_v1_auth_login_requests_pending_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingRequestsOut"];
+                };
+            };
+        };
+    };
+    approve_login_request_api_v1_auth_login_request__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApproveRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_login_request_api_v1_auth_login_request__request_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_request_status_api_v1_auth_login_request__request_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_login_request_api_v1_auth_login_request__request_id__claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_upload_config_api_v1_admin_upload_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadConfigResponse"];
+                };
+            };
+        };
+    };
+    post_upload_api_v1_admin_upload_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_post_upload_api_v1_admin_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Idempotency-Key 命中, 返老记录 (duplicate=true) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description 新建 staged 记录成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description 未知业务类型 / 文件名非法 / 空文件 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 非管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description business_type + sha256 重复 (DUPLICATE_UPLOAD) 或 Idempotency-Key 冲突 (IDEMPOTENCY_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description payload 超过 100MB (PAYLOAD_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 扩展名非法 或 业务内容校验失败 (VALIDATION_FAILED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description registry 损坏不可恢复 (REGISTRY_CORRUPT) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_uploads_api_v1_admin_uploads_get: {
+        parameters: {
+            query?: {
+                business_type?: string | null;
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadListResponse"];
                 };
             };
             /** @description Validation Error */
