@@ -1481,20 +1481,28 @@ def _refresh_campaign_schedule_impl():
 
     if not CAMPAIGN_SCHEDULE_SOURCE.exists():
         print(f"  文件不存在: {CAMPAIGN_SCHEDULE_SOURCE}")
-        return
+        raise FileNotFoundError(
+            f"campaign_schedule 数据源不存在: {CAMPAIGN_SCHEDULE_SOURCE}"
+        )
 
     try:
         df = pd.read_csv(CAMPAIGN_SCHEDULE_SOURCE)
-    except Exception as e:
-        print(f"  读取失败: {e}")
-        return
+    except Exception as exc:
+        print(f"  读取失败: {exc}")
+        raise RuntimeError(
+            f"campaign_schedule CSV 读取失败: {CAMPAIGN_SCHEDULE_SOURCE}: {exc}"
+        ) from exc
 
     # 列名标准化
     df.columns = [c.strip() for c in df.columns]
     required = ['year', '活动名称', '开始时间', '结束时间']
-    if not all(c in df.columns for c in required):
+    missing = [c for c in required if c not in df.columns]
+    if missing:
         print(f"  缺少必需列，实际列: {list(df.columns)}")
-        return
+        raise ValueError(
+            f"campaign_schedule 缺少必需列 {missing}, 实际列: {list(df.columns)}, "
+            f"源文件: {CAMPAIGN_SCHEDULE_SOURCE}"
+        )
 
     # 转换日期
     df['conversion_start'] = pd.to_datetime(df['开始时间'], errors='coerce').dt.date
