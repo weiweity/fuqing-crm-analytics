@@ -10,7 +10,7 @@ import logging
 from typing import Optional, Dict, List, Any
 from datetime import date, timedelta, datetime
 from calendar import monthrange
-from backend.semantic.time import PeriodBuilder
+from backend.semantic.time import PeriodBuilder, shift_year_clamped
 from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
 from backend.db import connection as bdc
 from backend.config import DATA_DIR
@@ -103,7 +103,7 @@ def _resolve_date_ranges(
             comp_year_label = str(comp_start_y)
         else:
             # 默认：去年同期
-            ly_date = date(cur_start_y - 1, cur_start_m, cur_start_d)
+            ly_date = shift_year_clamped(date(cur_start_y, cur_start_m, cur_start_d))
             ly_start_dt = f"{ly_date.year}-{ly_date.month:02d}-{ly_date.day:02d} 00:00:00"
             ly_end_year, ly_end_month = cur_end_y - 1, cur_end_m
             ly_end_day = min(cur_end_d, monthrange(ly_end_year, ly_end_month)[1])
@@ -114,7 +114,7 @@ def _resolve_date_ranges(
             comp_year_label = str(cur_start_y - 1)
 
         # prev2 始终为前年同期（固定基准）
-        y2_date = date(cur_start_y - 2, cur_start_m, cur_start_d)
+        y2_date = shift_year_clamped(date(cur_start_y, cur_start_m, cur_start_d), 2)
         y2_start_dt = f"{y2_date.year}-{y2_date.month:02d}-{y2_date.day:02d} 00:00:00"
         y2_end_year, y2_end_month = cur_end_y - 2, cur_end_m
         y2_end_day = min(cur_end_d, monthrange(y2_end_year, y2_end_month)[1])
@@ -133,37 +133,18 @@ def _resolve_date_ranges(
             "labels": (current_year_label, comp_year_label, prev2_year_label),
         }
 
-    # 默认 MTD
-    yesterday = today - timedelta(days=1)
-    cur_month = today.month
-    _, last_day_cur = monthrange(today.year, cur_month)
-    cur_start = f"{today.year}-{cur_month:02d}-01"
-    cur_end = f"{today.year}-{cur_month:02d}-{min(yesterday.day, last_day_cur):02d}"
-    cur_start_dt = f"{cur_start} 00:00:00"
-    cur_end_dt = f"{cur_end} 23:59:59"
-    cutoff = (datetime(today.year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-    comp_year = today.year - 1
-    _, last_day_comp = monthrange(comp_year, cur_month)
-    comp_start = f"{comp_year}-{cur_month:02d}-01"
-    comp_end = f"{comp_year}-{cur_month:02d}-{min(yesterday.day, last_day_comp):02d}"
-    ly_start_dt = f"{comp_start} 00:00:00"
-    ly_end_dt = f"{comp_end} 23:59:59"
-    ly_cutoff_str = (datetime(comp_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-    prev2_year = today.year - 2
-    _, last_day_prev2 = monthrange(prev2_year, cur_month)
-    prev2_start = f"{prev2_year}-{cur_month:02d}-01"
-    prev2_end = f"{prev2_year}-{cur_month:02d}-{min(yesterday.day, last_day_prev2):02d}"
-    y2_start_dt = f"{prev2_start} 00:00:00"
-    y2_end_dt = f"{prev2_end} 23:59:59"
-    y2_cutoff_str = (datetime(prev2_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+    # 默认 MTD 也复用语义层；月初时 current 是截至昨天的完整上月，避免
+    # 3 月 1 日生成“3 月 1 日到 3 月 29 日”的未来窗口。
+    mtd_ranges = PeriodBuilder.mtd(today=today)
+    current = mtd_ranges["current"]
+    comparison = mtd_ranges["comparison"]
+    prev2 = mtd_ranges["prev2"]
 
     return {
-        "current": (cur_start_dt, cur_end_dt, cutoff),
-        "comp": (ly_start_dt, ly_end_dt, ly_cutoff_str),
-        "prev2": (y2_start_dt, y2_end_dt, y2_cutoff_str),
-        "labels": (str(today.year), str(comp_year), str(prev2_year)),
+        "current": (current.start_dt, current.end_dt, current.cutoff),
+        "comp": (comparison.start_dt, comparison.end_dt, comparison.cutoff),
+        "prev2": (prev2.start_dt, prev2.end_dt, prev2.cutoff),
+        "labels": (current.start[:4], comparison.start[:4], prev2.start[:4]),
     }
 
 

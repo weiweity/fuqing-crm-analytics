@@ -5,9 +5,9 @@ Sample CRM - 时间范围构造器
 所有 Service 中的日期逻辑必须通过本模块生成，禁止自行计算。
 """
 
+from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from calendar import monthrange
 from typing import Dict, Optional
 
 
@@ -26,6 +26,13 @@ class DateRange:
     def end_dt(self) -> str:
         """带时间的结束字符串（23:59:59）"""
         return f"{self.end} 23:59:59"
+
+
+def shift_year_clamped(value: date, years: int = 1) -> date:
+    """按自然年平移日期；目标年没有该日时收敛到当月最后一天。"""
+    target_year = value.year - years
+    target_day = min(value.day, monthrange(target_year, value.month)[1])
+    return date(target_year, value.month, target_day)
 
 
 class PeriodBuilder:
@@ -91,13 +98,13 @@ class PeriodBuilder:
         """
         today = today or date.today()
         yesterday = today - timedelta(days=1)
-        cur_year, cur_month = today.year, today.month
-        _, last_day = monthrange(cur_year, cur_month)
-        end_day = min(yesterday.day, last_day)
+        cur_year, cur_month = yesterday.year, yesterday.month
+        end_day = yesterday.day
 
         def _make_range(year: int, month: int, day: int) -> DateRange:
             start = date(year, month, 1)
-            end = date(year, month, day)
+            safe_day = min(day, monthrange(year, month)[1])
+            end = date(year, month, safe_day)
             cutoff = start - timedelta(days=1)
             return DateRange(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), cutoff=cutoff.strftime("%Y-%m-%d"))
 
@@ -119,7 +126,11 @@ class PeriodBuilder:
 
         def _make_range(year: int) -> DateRange:
             start = date(year, 1, 1)
-            end = date(year, yesterday.month, yesterday.day)
+            end = date(
+                year,
+                yesterday.month,
+                min(yesterday.day, monthrange(year, yesterday.month)[1]),
+            )
             cutoff = date(year - 1, 12, 31)
             return DateRange(
                 start=start.strftime("%Y-%m-%d"),
@@ -132,6 +143,61 @@ class PeriodBuilder:
             "comparison": _make_range(cur_year - 1),
             "prev2": _make_range(cur_year - 2),
         }
+
+    @staticmethod
+    def yesterday(today: Optional[date] = None) -> Dict[str, DateRange]:
+        """构造昨日单日范围及其同比范围。"""
+        today = today or date.today()
+        value = today - timedelta(days=1)
+        return PeriodBuilder.free(value.isoformat(), value.isoformat())
+
+    @staticmethod
+    def quarter(quarter: int, today: Optional[date] = None) -> Dict[str, DateRange]:
+        """按前端 Q1-Q4 规则构造当年季度范围。
+
+        当前季度截止昨天；已结束/尚未开始的季度使用该季度自然末日，严格匹配
+        ``frontend-vue3/src/utils/date.ts::getPeriodDateRange`` 的 cache key。
+        """
+        if quarter not in (1, 2, 3, 4):
+            raise ValueError(f"quarter must be 1..4, got {quarter}")
+        today = today or date.today()
+        start_month = (quarter - 1) * 3 + 1
+        end_month = start_month + 2
+        start = date(today.year, start_month, 1)
+        if start_month <= today.month <= end_month:
+            end = today - timedelta(days=1)
+            if start > end:
+                # 季度首日尚无本季度完整数据，沿用 MTD/WTD 的“完整才切”规则。
+                previous_end = start - timedelta(days=1)
+                previous_start_month = previous_end.month - 2
+                start = date(previous_end.year, previous_start_month, 1)
+        else:
+            end = date(today.year, end_month, monthrange(today.year, end_month)[1])
+        return PeriodBuilder.free(start.isoformat(), end.isoformat())
+
+    @staticmethod
+    def q1(today: Optional[date] = None) -> Dict[str, DateRange]:
+        return PeriodBuilder.quarter(1, today)
+
+    @staticmethod
+    def q2(today: Optional[date] = None) -> Dict[str, DateRange]:
+        return PeriodBuilder.quarter(2, today)
+
+    @staticmethod
+    def q3(today: Optional[date] = None) -> Dict[str, DateRange]:
+        return PeriodBuilder.quarter(3, today)
+
+    @staticmethod
+    def q4(today: Optional[date] = None) -> Dict[str, DateRange]:
+        return PeriodBuilder.quarter(4, today)
+
+    @staticmethod
+    def last90days(today: Optional[date] = None) -> Dict[str, DateRange]:
+        """构造近90天三周期（当期 / 去年同期 / 前年同期）。"""
+        today = today or date.today()
+        yesterday = today - timedelta(days=1)
+        start = yesterday - timedelta(days=89)
+        return PeriodBuilder.free(start.strftime("%Y-%m-%d"), yesterday.strftime("%Y-%m-%d"))
 
     @staticmethod
     def last180days(today: Optional[date] = None) -> Dict[str, DateRange]:
@@ -158,8 +224,8 @@ class PeriodBuilder:
         end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
 
         def _shift_range(s: date, e: date, years: int) -> DateRange:
-            ns = date(s.year - years, s.month, s.day)
-            ne = date(e.year - years, e.month, e.day)
+            ns = shift_year_clamped(s, years)
+            ne = shift_year_clamped(e, years)
             cutoff = ns - timedelta(days=1)
             return DateRange(start=ns.strftime("%Y-%m-%d"), end=ne.strftime("%Y-%m-%d"), cutoff=cutoff.strftime("%Y-%m-%d"))
 
@@ -212,10 +278,12 @@ class PeriodBuilder:
         """
         start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
         end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+        previous_start = shift_year_clamped(start_dt)
+        previous_end = shift_year_clamped(end_dt)
         return DateRange(
-            start=date(start_dt.year - 1, start_dt.month, start_dt.day).strftime("%Y-%m-%d"),
-            end=date(end_dt.year - 1, end_dt.month, end_dt.day).strftime("%Y-%m-%d"),
-            cutoff=date(start_dt.year - 1, start_dt.month, start_dt.day - 1).strftime("%Y-%m-%d"),
+            start=previous_start.strftime("%Y-%m-%d"),
+            end=previous_end.strftime("%Y-%m-%d"),
+            cutoff=(previous_start - timedelta(days=1)).strftime("%Y-%m-%d"),
         )
 
     @staticmethod

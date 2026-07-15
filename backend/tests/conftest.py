@@ -1,6 +1,7 @@
 """
 Pytest fixtures for backend service tests.
 """
+import os
 import shutil
 import subprocess
 import sys
@@ -10,6 +11,10 @@ from pathlib import Path
 
 import duckdb
 import pytest
+
+# health router 在 import 时 fail-fast 校验。测试环境统一提供固定 key，避免单文件
+# 执行依赖其他测试模块 collection 阶段的 setdefault 顺序副作用。
+os.environ.setdefault("HEALTH_API_KEY", "pytest-health-api-key")
 
 # Add backend/ to path for imports
 backend_path = Path(__file__).parent.parent.parent

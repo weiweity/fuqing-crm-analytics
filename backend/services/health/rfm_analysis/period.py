@@ -40,21 +40,26 @@ def _date_part(value: str) -> str:
 
 
 def _last90days_ranges(today: date) -> dict:
-    yesterday = today - timedelta(days=1)
-    start = yesterday - timedelta(days=89)
-    return PeriodBuilder.free(start.isoformat(), yesterday.isoformat())
+    """兼容旧调用；90 天口径的 SSOT 在 ``PeriodBuilder``。"""
+    return PeriodBuilder.last90days(today=today)
 
 
 def _hot_period_ranges(today: date) -> list[tuple[str, dict]]:
     """Stage 2 L4.75 扩 8 RANGE 周期 (跟 L4.42 + L4.50 + L4.71 + L4.74 + L4.75 1:1 stable 永久规则链配套).
 
-    13 period_type 覆盖 frontend 4 tabs weeks=4/8/12:
+    19 period_type 覆盖全局筛选栏固定周期与 frontend 4 tabs weeks=4/8/12:
     - rolling_7d / rolling_14d / rolling_30d / rolling_60d / rolling_90d: 移动 N 天窗口
     - weekly_4w / weekly_8w / weekly_12w: 4/8/12 周窗口 (frontend weeks=[4,8,12] NSelect 1:1 stable)
     """
     return [
+        ("yesterday", PeriodBuilder.yesterday(today=today)),
+        ("WTD", PeriodBuilder.wtd(today=today)),
         ("MTD", PeriodBuilder.mtd(today=today)),
         ("YTD", PeriodBuilder.ytd(today=today)),
+        ("Q1", PeriodBuilder.q1(today=today)),
+        ("Q2", PeriodBuilder.q2(today=today)),
+        ("Q3", PeriodBuilder.q3(today=today)),
+        ("Q4", PeriodBuilder.q4(today=today)),
         ("last90days", _last90days_ranges(today)),
         ("last180days", PeriodBuilder.last180days(today=today)),
         ("last365days", PeriodBuilder.last365days(today=today)),
@@ -67,7 +72,7 @@ def _hot_period_ranges(today: date) -> list[tuple[str, dict]]:
         ("weekly_4w", _resolve_range_period("weekly_4w", today)),
         ("weekly_8w", _resolve_range_period("weekly_8w", today)),
         ("weekly_12w", _resolve_range_period("weekly_12w", today)),
-    ]  # 13 (Stage 1 5 + Stage 2 8) × 2 metric × 4 channel × 4 compare = 416 cache keys.
+    ]  # 19 period aliases；预计算维度/完整性 gate 由 cache.py 统一定义。
 
 
 # Stage 2 (L4.75): 跟 frontend MarketFocusView.vue 4 tab ProductCustomerTab/

@@ -1,3 +1,16 @@
+## [unreleased] - 2026-07-15 (Sprint 205+ PC2 RFM 30s timeout → 502 根因修复)
+
+### Fixed
+- **真实 HTTP fuzzy cache 命中**: `period=None` 的日期请求不再被预计算行的 `LAST180DAYS/LAST365DAYS` metadata 挡掉；按交接要求将容差从 ±1 扩为 ±2 天（覆盖漏跑一天时 cache `today-3` 对请求 `today-1`，±3 明确拒绝）。fuzzy 候选改用完整 date-based cache key 校验 `data_version/channel/metric/exclude_channels/compare dates`，并与 exact hit 共用 JSON、mtime、orders count、24h TTL 校验。仅允许同向/单边日期漂移，`auto_mom` 会按候选窗口重建紧邻等长比较期，阻断 custom/default、排除渠道与不同窗口串台。
+- **预计算口径与完整性**: `PeriodBuilder.last90days()` 补入语义层 SSOT，年份平移统一对闰日 clamp；新增昨日/WTD/Q1-Q4 resolver，补齐用户日志中的 Q1 与前端固定周期，核心渠道补 `达播`。Stage 1/2 的 current/comp/prev2 统一走真实 HTTP `_resolve_date_ranges` 口径；预热 compare 从前端无引用的 Q-1/Q-2/Q-3 改为真实 `default + auto_mom`，19 个 period alias × 2 metric × 5 channel × 2 compare 作为 380 个 logical coverage 验收，date-key 同义窗口在执行 SQL 前去重，物理行数不再被错误固定。
+- **缓存雪崩防线**: cache 初始化/读取/HTTP 写入失败改为可重试 503（`Retry-After: 30`）；更重要的是 router 显式传 `allow_live_compute=False`，普通 miss（未预热日期/渠道/剔除低价/custom compare/首次部署）也在 1 秒内返回 503（`Retry-After: 60`），禁止 uvicorn 回退执行三段 live RFM。非 HTTP 维护/测试调用才保留显式 live 能力；损坏/陈旧行用读取快照 compare-and-delete，避免并发刷新 TOCTOU 误删。
+- **完整代发布与长任务可用性**: ETL Step 6 不再先 DROP 工作缓存；每次预热生成独立 run generation，并将物理行按 generation 隔离保存，active marker 同时记录 generation/data-version/count。380/380 gate 前 HTTP 始终只读上一完整代，即使业务数据版本未变化、同一 cache key 被新半批计算，也不会污染已激活代；active 作为 last-known-good 持续服务到下一次用户批准的维护窗成功切代，避免无安全调度器时第 49 小时全站失效，只有 inactive 旧代按 48h 回收。异常中断既不切代也不 prune。
+
+### Verification
+- 新增 `test_sprint205_rfm_timeout_cache.py`，覆盖真实 service 命中不走 live、五类 HTTP miss live spy=0、router 503、compare/exclude 防串台、fuzzy freshness/损坏删除、固定/滚动周期与 `auto_mom` SSOT、380 logical vs physical key 去重、同 data-version 半批隔离、72h active last-known-good、成功切代/prune 与失败保旧。
+- 保留全局 Axios 30s、RFM `retry:false` 与 backend 8GB/12GB memory monitor；PC2 独有 1.8GB PowerShell watchdog 不在仓库内，本次不伪造阈值修改。
+- **部署阻塞（未伪装闭环）**: 现有 Windows `FuqingETLDaily` 会与常驻 uvicorn 的 DuckDB 跨进程锁冲突，且 L4.36 禁止自动停生产服务；本次不注册/不修改该任务。PC2 首次预热只能在用户批准的维护窗执行，长期需进程内 job、staging DB 原子切换或迁移并发数据库。
+
 ## [unreleased] - 2026-07-13 (Sprint 205+ PC2 RFM Fork-Cost doc fix SSOT 反漂移 #3 (跟 L4.20 + L4.42 + L4.50 1:1 stable 永久规则化沿用))
 
 ### Fixed
@@ -911,4 +924,3 @@
 - /document-release 累计 **13 次真治本** (Sprint 65/138/141.5/145/149/153/160/165/169/171/179/181/182)
 
 ---
-
