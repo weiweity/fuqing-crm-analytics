@@ -3,9 +3,13 @@ import { createPinia } from 'pinia'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from './App.vue'
 import router from './router'
-import { useAuthStore, AUTH_TOKEN_KEY, AUTH_USER_KEY } from '@/stores/auth'
+import { useAuthStore, AUTH_TOKEN_KEY, AUTH_USER_KEY, AUTH_IS_ADMIN_KEY } from '@/stores/auth'
 import './styles/tailwind.css'
 import './styles/globals.css'
+
+// === /auth/me bootstrap: Sprint 3A 身份状态 ===
+type BootstrapUserInfo = { username: string; is_admin: boolean }
+let bootstrapUser: BootstrapUserInfo | null = null
 
 // === 启动前校验 token 有效性（防止后端重启后旧 token 残留导致白屏）===
 async function bootstrap() {
@@ -19,7 +23,12 @@ async function bootstrap() {
         // token 已失效（后端重启或过期），立即跳转登录页，不再挂载应用
         sessionStorage.removeItem(AUTH_TOKEN_KEY)
         sessionStorage.removeItem(AUTH_USER_KEY)
+        sessionStorage.removeItem(AUTH_IS_ADMIN_KEY)
         router.replace('/login')
+      } else {
+        // 解析 JSON 并暂存 username + is_admin (在 createApp + use(pinia) 之后调用 setIdentity)
+        const data = (await res.json()) as BootstrapUserInfo
+        bootstrapUser = { username: data.username, is_admin: !!data.is_admin }
       }
     } catch {
       // 网络异常时不清除 token，避免离线误判
@@ -29,6 +38,14 @@ async function bootstrap() {
   const app = createApp(App)
 
   app.use(createPinia())
+
+  // 创建 app + pinia 后调用 authStore.setIdentity(username, is_admin)
+  if (bootstrapUser) {
+    const authStore = useAuthStore()
+    authStore.setIdentity(bootstrapUser.username, bootstrapUser.is_admin)
+    bootstrapUser = null  // 释放临时变量
+  }
+
   app.use(router)
   app.use(VueQueryPlugin, {
     queryClientConfig: {
@@ -63,9 +80,10 @@ async function bootstrap() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) {
-        // token 已过期，触发过期事件
+        // token 已过期，触发过期事件 (auth:expired 监听器走 authStore.clearSession() 清理三件套)
         sessionStorage.removeItem(AUTH_TOKEN_KEY)
         sessionStorage.removeItem(AUTH_USER_KEY)
+        sessionStorage.removeItem(AUTH_IS_ADMIN_KEY)
         window.dispatchEvent(new CustomEvent('auth:expired'))
       }
     } catch {

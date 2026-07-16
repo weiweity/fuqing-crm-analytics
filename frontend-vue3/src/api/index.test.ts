@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import axios, { CanceledError } from 'axios'
 import client, { isCredentialAuthRequest } from './index'
 import { AUTH_TOKEN_KEY } from '@/stores/auth'
 
@@ -71,5 +72,64 @@ describe('auth error routing', () => {
     } finally {
       window.removeEventListener('auth:expired', expired)
     }
+  })
+})
+
+// === Codex Stage 3 review [P2-1]: Axios CanceledError pass-through ===
+describe('axios CanceledError pass-through (per [P2-1])', () => {
+  const originalAdapter = client.defaults.adapter
+
+  afterEach(() => {
+    client.defaults.adapter = originalAdapter
+  })
+
+  it('rejected CanceledError is NOT wrapped, axios.isCancel(err) === true, no auth:expired', async () => {
+    // 替换 client.adapter: 所有请求 reject 一个 CanceledError (axios v1 signal.abort() 触发)
+    client.defaults.adapter = vi.fn(() =>
+      Promise.reject(new CanceledError('test canceled', undefined, undefined as any)),
+    )
+    const expired = vi.fn()
+    window.addEventListener('auth:expired', expired)
+
+    let caught: unknown
+    try {
+      await client.get('/v1/admin/upload-config')
+    } catch (err) {
+      caught = err
+    }
+
+    expect(caught).toBeDefined()
+    expect(axios.isCancel(caught)).toBe(true)
+    // 不能被 toApiError 包装 (包装后会变成普通 Error, name != 'CanceledError', code != 'ERR_CANCELED')
+    expect((caught as any).name).toBe('CanceledError')
+    expect((caught as any).code).toBe('ERR_CANCELED')
+
+    // 不能走 401 流程触发 auth:expired
+    expect(expired).not.toHaveBeenCalled()
+
+    window.removeEventListener('auth:expired', expired)
+  })
+
+  it('non-cancel error is still wrapped by toApiError (control test)', async () => {
+    // 控制组: 非 cancel error 应该被 toApiError 包装
+    // 证明 interceptor 只豁免 CanceledError, 不影响其他错误
+    client.defaults.adapter = vi.fn(() =>
+      Promise.reject({
+        config: { url: '/v1/admin/upload-config' },
+        message: 'Network Error',
+        response: undefined,
+      }),
+    )
+
+    let caught: unknown
+    try {
+      await client.get('/v1/admin/upload-config')
+    } catch (err) {
+      caught = err
+    }
+
+    expect(axios.isCancel(caught)).toBe(false)
+    // 被包装成 ApiError (status undefined 表示非 401 网络错误, 走 toApiError fallback)
+    expect((caught as any).message).toBe('Network Error')
   })
 })
