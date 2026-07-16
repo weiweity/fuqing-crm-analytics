@@ -21,7 +21,7 @@
 - **未删** 正式 visitor/status/taoke/live 文件
 - **未改** run-etl.sh / launchd plist (除新增 com.fuqing.uvicorn.plist 已在 Sprint 60.2 P3, 本 sprint 0 改动)
 - **未改** 现有导航
-- **未创建** AdminUploadView.vue / MaintenanceView.vue (留 Sprint 2 frontend)
+- **未创建** AdminUploadView.vue / MaintenanceView.vue (留 Sprint 3 frontend, 跟 Codex C-3 (P0) 原始方案 1:1 stable, 跟 HANDOFF-TO-CODEX-admin-upload-sprint-1.md §1.2 explicit 1:1 stable 永久规则化沿用)
 - **未改** auth store / LoginView
 - **未新增** DuckDB schema
 - **未改** ETL 解析逻辑 / 业务口径 (只加 fail-fast 防御)
