@@ -45,6 +45,16 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/OpsView.vue'),
     meta: { title: '系统运维看板', requiresAuth: true },
   },
+  {
+    path: '/admin/upload',
+    name: 'AdminUpload',
+    component: () => import('@/views/AdminUploadView.vue'),
+    meta: {
+      title: '数据上传',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
 ]
 
 const router = createRouter({
@@ -52,12 +62,14 @@ const router = createRouter({
   routes,
 })
 
-// 导航守卫：未登录 → 登录页；已登录访问登录页 → 看板首页
+// 导航守卫：未登录 → 登录页；non-admin 访问 admin 路由 → 看板首页；已登录访问登录页 → 看板首页
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } })
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    next('/audience')
   } else if (to.path === '/login' && authStore.isAuthenticated) {
     const redirect = to.query.redirect as string
     next(redirect || '/audience')

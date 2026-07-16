@@ -230,7 +230,11 @@ async function pollApplyStatus(requestId: string, username: string, claimToken: 
       const claimed = await claimLoginRequest(requestId, claimToken, controller.signal)
       if (applyPollingDisposed) return
       if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
-      authStore.setSession(claimed.token, claimed.username || status.username || username)
+      authStore.setSession(
+        claimed.token,
+        claimed.username || status.username || username,
+        claimed.is_admin,
+      )
       applyMessage.value = '申请已通过, 正在登录...'
       applyMessageType.value = 'success'
       applyRequestSent.value = false

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NAV_ITEMS, type NavItem, type NavTab } from '@/config/navigations'
+import { type NavItem, type NavTab } from '@/config/navigations'
+import { useNavItems } from '@/composables/useNavItems'
 import { useAuthStore } from '@/stores/auth'
 import {
   approveLoginRequest,
@@ -17,12 +18,14 @@ const logoDataUri = `data:image/png;base64,${logoPngBase64}`
 const route = useRoute()
 const router = useRouter()
 
+const navItems = useNavItems()
+
 const hoverKey = ref<string | null>(null)
 let showTimer: number | null = null
 let hideTimer: number | null = null
 
 const activeKey = computed(() => {
-  const activeItem = NAV_ITEMS.find((item) => {
+  const activeItem = navItems.value.find((item) => {
     if (item.key === route.path) return true
     return item.key === '/category' && route.path.startsWith('/category-detail')
   })
@@ -286,7 +289,7 @@ onMounted(() => {
 
           <div class="navbar-tabs">
             <div
-              v-for="item in NAV_ITEMS"
+              v-for="item in navItems"
               :key="item.key"
               class="relative"
               @mouseenter="openPopover(item.key)"

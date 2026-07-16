@@ -81,6 +81,12 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response.data,
   async (error) => {
+    // 取消异常原样返回 (per Codex Stage 3 review [P2-1]):
+    // axios.isCancel 检测 CanceledError (signal.abort() 触发),
+    // 不包装成普通 Error (否则会丢失 name/code/identity, 还会触发 auth:expired).
+    if (axios.isCancel(error)) {
+      return Promise.reject(error)
+    }
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || ''
       const isLoginRequest = isCredentialAuthRequest(requestUrl)
