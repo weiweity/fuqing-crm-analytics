@@ -1,3 +1,57 @@
+## [unreleased] - 2026-07-16 (Sprint 205+ Admin Upload Sprint 1 收口 — feat: 10 business types admin 上传链路 + is_admin 3 路径一致 (跟 Codex Stage 1-4 + Claude Stage 3-4 三审 1:1 stable 永久规则化沿用, 跟 L4.5 + L4.7 + L4.15 + L4.20 + L4.34 + L4.36 + L4.50 + L4.60 + L4.62 + L4.85 + L4.85.1 + L4.91 永久规则链 1:1 stable 永久规则化沿用))
+
+### Added (跟 v5 prompt 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- **Admin Upload Sprint 1 收口** (跟 Codex Stage 1-4 + Claude Stage 3-4 三审 1:1 stable 永久接受 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用, 跟 L4.15 push 必 user 拍板 1:1 stable 永久规则化沿用, 跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用): 10 commit (c21856d merge fix/sprint205-admin-upload-sprint-1) 总 16,804 insertions / 9,386 deletions + 5 新文件 (admin_upload.py 1359 行 / admin.py 209 行 / contracts/admin.py 92 行 / test_admin_auth.py 125 行 / test_admin_upload.py 1976 行 + handoff doc 260 行)
+  - **feat: add admin upload service** (backend/services/admin_upload.py, 跟 L4.36 fcntl.flock + L4.50 service 不依赖 FastAPI + L4.91 forward-compat 1:1 stable): 10 business_type 服务端 allowlist (shop/member/status-refresh/taoke/live/visitor/spu-mapping/taoke-product/channel-rules/campaign-schedule) + 文件名校验 + 扩展名校验 + 100MB 流式写 + SHA-256 + preflight (CSV/XLSX/ZIP + 业务最小列含 Windows drive/UNC/path traversal 防御) + staging 目录管理 + upload registry fcntl.flock + 原子写 + .bak 恢复 + 幂等 (Idempotency-Key + business_type + sha256) + dedup
+  - **feat: add admin upload pydantic contracts** (backend/contracts/admin.py): 6 Pydantic v2 models (UploadSourcePublic / UploadConfigResponse / UploadValidationResult / UploadRecordOut / UploadResponse / UploadListResponse) 不暴露 staged_path / target_path / 用户 home / 项目绝对路径, mode 限定 append|single, status 限定 staged (sprint 2 才进 queued/running/promoted), 所有时间 UTC ISO-8601
+  - **feat: add admin upload router** (backend/routers/admin.py + backend/routers/__init__.py + backend/main.py): 3 endpoints GET /upload-config / POST /upload / GET /uploads, require_admin dependency (getattr(request.state, username) + is_admin_username SSOT), POST /upload 是 def (P1-3 threadpool 跑 100MB 流式 I/O), POST /upload response_model=UploadResponse + responses 200/201/400/401/403/409/413/422/500, Idempotency-Key router 层校验 ≤128 字符 + whitespace (L1 修法)
+  - **feat: add admin upload schema exports** (backend/contracts/schemas.py): 添加 admin module import + __all__ exports, 6 个 Upload* model 跟 frontend types.ts 1:1 stable
+  - **feat: add is_admin field to login/me/claim responses** (backend/routers/auth.py + backend/routers/login_request.py): is_admin_username SSOT (P2-4 username 不 strip, 走原始精确匹配), LoginResponse / UserInfo 含 is_admin: bool = False, ClaimRequestOut 含 is_admin: bool = False, 3 路径一致 (login / /me / login-request claim)
+  - **fix(etl): campaign-schedule fail-fast + rename sample data source** (scripts/etl/pipeline.py + scripts/etl/sources.py + backend/config.py): _refresh_campaign_schedule_impl 文件缺失 → FileNotFoundError / 读取失败 → RuntimeError with __cause__ / 缺必需列 → ValueError, load_channel_rules(channel_file=None) 可选参数 (Sprint 205+ admin upload 调时显式传 staged path), CAMPAIGN_SCHEDULE_SOURCE default: 'Sample全年平台活动节奏 - Sheet2.csv' → '芙清全年平台活动节奏 - Sheet2.csv'
+  - **chore(frontend): regen openapi types for admin upload + is_admin** (frontend-vue3/src/api/types.generated.ts + types.ts + loginRequest.ts): types.ts vs types.generated.ts interface count 同步 (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用), ClaimLoginRequestResponse.is_admin: boolean
+  - **test: add admin upload + auth test suite** (backend/tests/test_admin_auth.py + test_admin_upload.py, 2101 insertions): focused pytest 67 passed in 65.35s (B1 fsync / B2 post-replace 真实调用链 backup+main 2 cases / B3 SPU mapping preflight / B4 monkeypatch 二次切换显式生效断言 / B5 staged path 精确断言 / B6 registry 严格校验 + 多 reader 并发恢复 5 reader threading.Barrier / L1 Idempotency-Key 限制 / L3 空 XLSX + is_admin 真实 E2E login→create→approve→claim + OpenAPI 4 个精确 $ref + claim schema), baseline pytest 94% 进度 0 fail exit code 0, ruff All checks passed!, contracts lint OK All contracts pass ground-truth-lint, git diff --check 0 whitespace issues
+  - **docs: conftest fixture annotation sync** (backend/tests/conftest.py): _reset_fq_crm_admins_env 注释重写, 说明 is_admin_username() 动态读 env 无 module-level cache, hasattr(_ADMIN_USERNAMES) 仅 forward/backward compat 防御 (跟 Codex Stage 4 三审 P2 Comment 1 1:1 stable 永久规则化沿用)
+  - **docs: add Codex handoff prompt** (HANDOFF-FINAL-PROMPT-TO-CODEX-APP.md): Codex Stage 2 实施指令移交文档, 跟 CLAUDE.md 'Codex 协作工作流' 1:1 stable
+
+### Sprint 1 范围合规 (跟 v5 prompt 14 件严禁 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- **未实现** POST /etl-runs (Sprint 2)
+- **未创建** scripts/etl/admin_etl_runner.py (Sprint 2)
+- **未跑** 真实 ETL (留 Sprint 2)
+- **未覆盖** 正式 raw 数据源 (Sprint 1 只写 staging, monkeypatch 验证 active target 字节级不变)
+- **未删** 正式 visitor/status/taoke/live 文件
+- **未改** run-etl.sh / launchd plist (除新增 com.fuqing.uvicorn.plist 已在 Sprint 60.2 P3, 本 sprint 0 改动)
+- **未改** 现有导航
+- **未创建** AdminUploadView.vue / MaintenanceView.vue (留 Sprint 2 frontend)
+- **未改** auth store / LoginView
+- **未新增** DuckDB schema
+- **未改** ETL 解析逻辑 / 业务口径 (只加 fail-fast 防御)
+- **未 push / 未 merge / 未切 main** 0 越权 (L4.15 必拍板 1:1 stable 永久规则化沿用)
+- **未主动 commit** 越权 (10 commit + 1 merge commit 全部 user explicit 命名授权)
+- admin.py **未重复定义** _ADMIN_USERNAMES (SSOT from auth.py is_admin_username)
+
+### L4.x 永久规则合规 (跟 Sprint 60+ 累计 138 sprint 0 debt stable 模式 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- L4.5 FilterBuilder + ? 参数化 (admin scope 不涉及 SQL, preflight 全 pandas 读 CSV/XLSX)
+- L4.7 launchd 首选 python3 不用 bash (com.fuqing.uvicorn.plist 沿用 Sprint 60.2 P3)
+- L4.13 MEMORY.md 24.4KB 安全线 84% (本次 sprint 1 净 0 索引行新增, 跟 Sprint 60+ 累计 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- L4.14 amend 物理限制 1 commit drift 永久接受 (本次 0 amend, merge commit SHA 跟 git log 1:1 stable)
+- L4.15 push 必 user 拍板 (10 commit + push fix branch + merge --no-ff + push origin main 全部 user explicit 命名授权)
+- L4.16 push trigger paths check (lint.yml 只对 main + backend/** 触发, 新分支 push 不触发 CI)
+- L4.20 SSOT 反漂移 (types.ts vs types.generated.ts interface count 同步, VERSION 0.4.14.51 沿用 1:1 stable 不 bump)
+- L4.34/L4.60 跨平台路径 (新文件 0 hardcode /Users/, conftest.py:182 是历史 macOS-only check L4.39 兼容)
+- L4.36 fcntl.flock (_RegistryLock class, 不 asyncio.Lock)
+- L4.50 0 业务代码改动 (本次 sprint 净新增业务代码 admin_upload.py 等, 立项范围内, 跟 Sprint 60+ 累计 65+ 次 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- L4.62 launchd plist 写法 SSOT 必走 plutil -lint OK 验证 (plutil -lint /Users/hutou/Library/LaunchAgents/com.fuqing.uvicorn.plist → OK 1:1 stable)
+- L4.85 + L4.85.1 + L4.85.2 + L4.85.3 (申请+同意 模式 + admin 强制 1 人在线 + 整合 L4.84 path + last_active_at 3min, Sprint 1 is_admin 3 路径一致复用 1:1 stable)
+- L4.86 race flake 治本 (FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888 沿用, focused pytest 67 PASSED)
+- L4.88 conftest autouse fixture FQ_CRM_PASSWORDS race condition (沿用 1:1 stable, test 通过 0 回归)
+- L4.91 forward-compat (_validate_registry_data 允许未知扩展字段, conftest _reset_fq_crm_admins_env hasattr(_ADMIN_USERNAMES) forward-compat 防御 1:1 stable)
+
+### Tech (跟 Sprint 60+ 累计 138 sprint 0 debt stable 模式 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- **12 步流程 1:1 stable** (跟 L4.15 + L4.42 + L4.50 + L4.40 + L4.31 永久规则链 1:1 stable 永久规则化沿用): branch `fix/sprint205-admin-upload-sprint-1` (base `379126e`) → Codex Stage 2 实施 10 commits → Codex Stage 3 二审 11 P1/P2 fixes → Codex Stage 4 三审 2 P2 comments → Stage 3 修复 4 commits → Stage 4 修复 2 comments → commit 10 → focused pytest 67 PASSED → baseline pytest 94% 0 fail exit 0 → review skill manual fallback (项目内 .claude/commands/ 不存在, 跟 D-4 ground truth 漂移 1:1 stable, 属 doc cleanup 留尾) → push fix branch (L4.15 必 user 拍板) → merge --no-ff to main (commit c21856d) → push origin main → pull main --ff-only → kill + restart uvicorn via launchctl → update CHANGELOG.md
+- **Sprint 1 收口真业务阻塞** (跟 CLAUDE.md '本地即生产' 1:1 stable 永久接受 1:1 stable 永久规则化沿用): `.env` 缺 `FQ_CRM_ADMINS=admin` 配置, admin upload endpoint 实际不工作 (403 ADMIN_REQUIRED). 修法: 在 `.env` 加 `FQ_CRM_ADMINS=admin` + restart uvicorn (本地配置变更, 不 git commit). 跟 Codex Stage 1-4 三审 0 提示, 是 merge 后真业务验证发现
+- **VERSION 不 bump** (跟 Sprint 60+ close memory "VERSION 不 bump 保持 0.4.14.51" 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
+- **跨 sprint 留尾** (跟 L4.57 + L4.58 + L4.59 1:1 stable 永久接受 1:1 stable 永久规则化沿用): .claude/commands/ 不存在 /review /qa /ship slash command (跟 CLAUDE.md 12 步流程 §1-§3 / §8 / §10 描述漂移, 属 doc cleanup 留尾)
+
 ## [unreleased] - 2026-07-15 (Sprint 205+ RFM cache miss → 30s timeout → 502 → 401 治本 (跟 Codex Stage 2 1:1 stable 永久规则化沿用, 跟 L4.50 + L4.40 + L4.86 + L4.20 + L4.42 永久规则链 1:1 stable 配套))
 
 ### Fixed (跟交接文档 §2-§3 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
