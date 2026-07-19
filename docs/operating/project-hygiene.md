@@ -56,14 +56,39 @@
 
 ---
 
-## 4. 2026-07-19 已做清理（本 hygiene sprint）
+## 4. 2026-07-19 已做清理
+
+### 上午 hygiene（#33 一带）
 
 1. `.gitignore`：`outputs/`、`logs/`、`scripts/_archive/`、`HANDOFF-TO-CLAUDE-*`、`HANDOFF-FINAL-*`、`analysis/`
-2. 删除根孤儿 `SamplingView.vue`（真文件在 frontend）
+2. 删除根孤儿 `SamplingView.vue`
 3. 已跟踪根 HANDOFF → `docs/sprints/archive/`
 4. 本文件 + `team-workflow-v1.md` 落地
 
-**未做（下一波）**：STATUS/TECH-DEBT 全文截断、CLAUDE L4 表继续下沉、scripts 根 monitor 归 `ops/`、e2e merge 策略 — 见 `team-workflow-v1.md`。
+### 下午 tech-debt + 文档整理（#35 + 本波）
+
+1. **STATUS.md** 截断短表；长编年 → `docs/history/STATUS-HISTORY.md`
+2. **TECH-DEBT.md** 短开放表；历史 → `docs/history/TECH-DEBT-HISTORY.md`
+3. **e2e** schema-only soft/skip（CI 不挡合）
+4. **`docs/sprints/`** 仅 `_sprint-close-index` + `README` + `archive/`
+5. 根 **8× `HANDOFF-TO-CODEX-*`** → `docs/sprints/archive/root-handoffs-2026-07-19/`
+6. 父工作区 **`fuqin-date/README.md`** 刷新扫描；`archive/README.md` 建入口
+
+### document-release（同日）
+
+1. **#CLAUDE-L4-sink ✅**：L4 全文 → `docs/rules/L4-permanent-rules.md`；CLAUDE 短索引  
+2. CHANGELOG 近窗 + HISTORY 滚动  
+3. archive 删 Admin Upload / L4.74 中间 stage；保留决策 memo + GO-NO-GO  
+4. `docs/history/README.md` + `sprints/archive/INDEX.md`
+
+**未做（真债，见 TECH-DEBT）**：
+
+| ID | 说明 |
+|---|---|
+| `#scripts-ops` | `scripts/` 根 monitor 归 `ops/`（须同步 launchd） |
+| `#e2e-preexisting` | 有生产数据时再严跑 |
+| `#C7-deselect` | C 类 7 条 CI deselect |
+| `#preflight-env` | 独立预发 |
 
 ---
 
