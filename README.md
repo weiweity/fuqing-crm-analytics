@@ -67,14 +67,17 @@ cd frontend-vue3 && npx playwright test                   # E2E
 
 ## 状态 SSOT
 
-> **单一 source of truth** — 以下数据以 STATUS.md 为准，每次 sprint 收口后必更新。
+> **短表入口** — 详细历史在 `docs/history/`，不要在 STATUS 堆编年。
 
 | 维度 | 入口 |
 |---|---|
-| **版本号 / pytest baseline / sprint 0 debt / L4.x 永久规则 / fix_pattern 累计** | [`STATUS.md`](./STATUS.md) |
-| **版本变更日志 / 累计 /document-release 次数** | [`CHANGELOG.md`](./CHANGELOG.md) |
-| **AI 行为规则 (L4.x 永久规则 88 stable + L4.91)** | [`CLAUDE.md`](./CLAUDE.md) |
-| **技术债台账 (P0/P1/P2 + 已修复累计)** | [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md) |
+| **当前能不能用 / 债指针 / 服务端口** | [`STATUS.md`](./STATUS.md)（短表） |
+| **开放技术债** | [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md) |
+| **文档总索引** | [`docs/README.md`](./docs/README.md) |
+| **版本变更** | [`CHANGELOG.md`](./CHANGELOG.md) · 老条目 `docs/history/CHANGELOG_HISTORY.md` |
+| **AI 行为规则** | [`CLAUDE.md`](./CLAUDE.md) · L4 细则 [`docs/rules/L4-permanent-rules.md`](./docs/rules/L4-permanent-rules.md) |
+| **协作 / 整洁** | [`docs/operating/team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
+| **父工作区地图** | [`../README.md`](../README.md)（`fuqin-date`，非 git monorepo） |
 
 ---
 

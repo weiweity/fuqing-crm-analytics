@@ -3,8 +3,8 @@
 > **唯一开放债台账（短表）**。长编年与历史叙事见  
 > [`docs/history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)（2026-07-19 从本文件迁出）。
 
-**最后更新**: 2026-07-19（tech-debt e2e+STATUS）  
-**main 基线**: 以 `git rev-parse origin/main` 为准（#30–#34 + 本 PR）
+**最后更新**: 2026-07-19（文档整理 + #35 已合）  
+**main 基线**: `origin/main`（#30–#35）
 
 ---
 
@@ -49,7 +49,8 @@
 | pre-push delete-skip + scoped | PR #32 |
 | hygiene + team-workflow v1 | PR #33 |
 | backlog TECH-DEBT/e2e gate | PR #34 |
-| STATUS 截断 + e2e soft/skip | 本 PR |
+| STATUS 截断 + e2e soft/skip | PR #35 |
+| 工作区文档整理（sprints 只留索引、handoff 归档） | `docs/workspace-organize-2026-07-19` |
 
 | L4.91 Excel 等历史债 | `docs/history/TECH-DEBT-HISTORY.md` |
 

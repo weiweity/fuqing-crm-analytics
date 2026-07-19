@@ -1,3 +1,12 @@
+## [unreleased] - 2026-07-19 (docs: 工作区扫描 + 文档整理)
+
+### Changed
+- **文档整洁**: `docs/sprints/` 仅保留索引 + `archive/`；已 ship handoff 迁 archive；根 `HANDOFF-TO-CODEX-*` 迁 `archive/root-handoffs-2026-07-19/`（仍 gitignore）
+- **索引刷新**: `docs/README.md`、根 `README.md` STATUS 入口、`project-hygiene` 下一波对齐 TECH-DEBT
+- **父工作区**（`fuqin-date/README.md`，非本仓）: 扫描地图 + 体量/端口/债指针；`archive/README.md`
+
+---
+
 ## [unreleased] - 2026-07-16 (Sprint 205+ Admin Upload Sprint 3A 收口 — frontend staging-only 实施 (跟 Codex Sprint 3A 审计结论 + Codex Stage 3 review [P1-1] [P1-2] [P2-1] [P2-2] 1:1 stable 永久规则化沿用, 跟 L4.15 + L4.20 + L4.22 + L4.42 + L4.50 + L4.60 + L4.85 + L4.85.1 永久规则链 1:1 stable 永久规则化沿用))
 
 ### Added (Sprint 3A staging-only frontend 跟 Codex 审计 prompt §二十一 1:1 stable 永久规则化沿用)
