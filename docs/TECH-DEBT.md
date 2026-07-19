@@ -12,7 +12,6 @@
 | ID | 级 | 说明 | **触发条件**（未触发 = 不立项） |
 |---|---|---|---|
 | **#C7-deselect** | P2 | CI 仍 deselect C 类 7 条 | 业务改 W4/RFM 预计算口径，**或**交付「CI 合成 fixture」 |
-| **#e2e-data** | P2 | e2e schema-only soft/skip | 预发/本地有可复现业务 DuckDB 严跑窗口 |
 | **#preflight-env** | P2 | 无独立预发 | 有预发机 **或** 抽样 DuckDB 方案获批 |
 | **#L4.74-PG** | — | PG/分布式 0 commit 收口 | 启动条件 a/b/c 任一真触发（见 architecture memo） |
 
@@ -29,12 +28,13 @@
 | **#CLAUDE-L4-sink** | L4 → `docs/rules/` |
 | **#scripts-ops** | monitors → `scripts/ops/` + launchd 路径同步 |
 | **#Admin-Upload-WITHDRAWN** | 产品面删除（router/service/view/e2e/test）；**不重开** |
+| **#e2e-data** | 2026-07-19 根治：`FQ_CRM_TEST_MODE` + `/_test/reset` 白名单 + `seed_e2e_duckdb.py` + e2e 挡 merge |
 
 ---
 
 ## 工作流契约
 
-- **可合并**: lint + test 必绿；e2e 不挡合（`docs/operating/team-workflow-v1.md`）
+- **可合并**: lint + test + e2e 必绿（2026-07-19 e2e 根治后；`docs/operating/team-workflow-v1.md`）
 - **整洁**: `docs/operating/project-hygiene.md`
 - **运维监控入口**: `scripts/ops/` + `scripts/launchd/`
 

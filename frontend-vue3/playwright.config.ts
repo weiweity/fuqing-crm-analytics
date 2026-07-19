@@ -15,7 +15,7 @@ export default defineConfig({
   expect: { timeout: 10000 },
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // Sprint 32.1: defend against v1208-class chromium SSL bugs (current v1217 bypassed,

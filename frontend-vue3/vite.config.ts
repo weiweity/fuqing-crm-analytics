@@ -32,7 +32,8 @@ export default defineConfig({
       '/api': {
         // Keep the proxy hop on a uvicorn-trusted loopback address and append
         // X-Forwarded-For so the backend can distinguish LAN clients.
-        target: 'http://127.0.0.1:8000',
+        // VITE_API_PROXY: local e2e 可指到隔离端口 (e.g. http://127.0.0.1:8010)
+        target: process.env.VITE_API_PROXY || 'http://127.0.0.1:8000',
         changeOrigin: true,
         xfwd: true,
       },
@@ -51,7 +52,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: process.env.VITE_API_PROXY || 'http://127.0.0.1:8000',
         changeOrigin: true,
         xfwd: true,
       },

@@ -402,6 +402,9 @@ app.middleware("http")(_single_user_mode_middleware)
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
+    # e2e 根治 (2026-07-19): FQ_CRM_TEST_MODE=1 时放行 /api/v1/_test/*，
+    # 否则 test_helpers.reset 被 401 挡住 → L4.85 ACTIVE_TOKENS 无法清空 → 二次 login 409 → e2e 全红。
+    _test_mode = os.environ.get("FQ_CRM_TEST_MODE") == "1"
     if (
         path.startswith("/api/v1/auth/")
         or path == "/api/v1/health"
@@ -413,6 +416,7 @@ async def auth_middleware(request: Request, call_next):
         or path.startswith("/docs")
         or path.startswith("/redoc")
         or path == "/openapi.json"
+        or (_test_mode and path.startswith("/api/v1/_test/"))
     ):
         return await call_next(request)
     if request.method == "OPTIONS":

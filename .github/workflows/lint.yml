@@ -105,10 +105,8 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    # 2026-07-19 team-workflow-v1: e2e 预存红不挡 merge（lint+test 必绿）.
-    # continue-on-error: 整次 CI 结论以 lint/test 为准；e2e 仍跑并上传日志便于修稳.
-    # 修稳后可去掉本行，再把 e2e 加回 required checks.
-    continue-on-error: true
+    # 2026-07-19 e2e 根治: FQ_CRM_TEST_MODE + seed DB + auth reset → e2e 必绿挡 merge。
+    # 不再 continue-on-error（旧债 #e2e-data 空库/L4.85 409 已治本）。
     # Sprint 123: 从 .github/workflows/e2e.yml 集成到 lint.yml (1 file workflow 4 jobs 替代 2 file workflow 4 jobs).
     # Sprint 95-96.5 7 sprint 链实战 fix 模式 + Sprint 32.1 advisory 闭环后 e2e.yml 跑 4m29s success 5 次累计稳定.
     # Sprint 60.3+ C+ UI smoke + API 5xx 拦截 已闭环, e2e 业务验证非必需但补强.
@@ -123,6 +121,9 @@ jobs:
       # Sprint 61 P2 fail-fast 默认 production raise, e2e schema-only fixture 没 orders 数据
       # → 必须 FQ_DB_MODE=schema_test 走 warn 路径 (跟 CI runner 设计一致)
       FQ_DB_MODE: schema_test
+      # e2e 根治: 放行 /api/v1/_test/reset + login 跳过 L4.85 409（仅 CI）
+      FQ_CRM_TEST_MODE: '1'
+      FQ_SINGLE_USER_V2: '0'
     steps:
       - uses: actions/checkout@v5
 
@@ -151,17 +152,9 @@ jobs:
           cd frontend-vue3
           npx playwright install --with-deps chromium
 
-      - name: Setup e2e DuckDB schema-only fixture (Sprint 60.3+ C+)
+      - name: Setup e2e DuckDB schema + seed (e2e root fix 2026-07-19)
         run: |
-          python3 - <<'PY'
-          import duckdb
-
-          conn = duckdb.connect('/tmp/e2e_duckdb.duckdb')
-          with open('scripts/ci/e2e_schema.sql') as f:
-              conn.execute(f.read())
-          conn.execute('SELECT 1').fetchone()
-          conn.close()
-          PY
+          python3 scripts/ci/seed_e2e_duckdb.py /tmp/e2e_duckdb.duckdb
 
       - name: Build (Vite) + Start preview server + Start uvicorn backend
         run: |
