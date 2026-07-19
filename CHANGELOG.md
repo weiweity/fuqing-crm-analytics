@@ -1,17 +1,16 @@
 # Changelog
 
-## [unreleased] - 2026-07-19 (document-release: 整洁 + 历史合并 + 债收口)
+## [unreleased] - 2026-07-19 (document-release + 二次清理)
 
 ### Changed
-- **#CLAUDE-L4-sink 闭环**: L4.1–L4.62 全文迁入 `docs/rules/L4-permanent-rules.md`；`CLAUDE.md` 仅硬门禁摘要（~78KB→~19KB）
-- **CHANGELOG 滚动**: 旧 unreleased 并入 `docs/history/CHANGELOG_HISTORY.md`；近窗保留
-- **archive 精简**: 删除 Admin Upload 撤回过程文 + L4.74/Trino 中间 stage；保留 GO-NO-GO + architecture memo
-- **索引**: `docs/history/README.md`、`docs/sprints/archive/INDEX.md`；TECH-DEBT 更新
-
-### Earlier same-day
-- 工作区扫描地图；`docs/sprints/` 仅索引 + archive；STATUS 短表（#35）
+- **#CLAUDE-L4-sink 闭环**: L4 全文 → `docs/rules/`；CLAUDE 硬门禁摘要
+- **CHANGELOG 滚动** → `docs/history/CHANGELOG_HISTORY.md`
+- **archive ~1.5MB→~48KB**: 过程 HANDOFF / 重复验证报告出树；仅留 GO-NO-GO + L442/wall_min 索引
+- **HANDOVER.md** 压成短表指针；STATUS-HISTORY 压缩并保留 Sprint 99 证据行
+- 磁盘：gitignore 的 HANDOFF-TO-CODEX 残留物理删除
 
 ---
+
 
 
 ## [unreleased] - 2026-07-16 (Sprint 205+ Admin Upload Sprint 3A 收口 — frontend staging-only 实施 (跟 Codex Sprint 3A 审计结论 + Codex Stage 3 review [P1-1] [P1-2] [P2-1] [P2-2] 1:1 stable 永久规则化沿用, 跟 L4.15 + L4.20 + L4.22 + L4.42 + L4.50 + L4.60 + L4.85 + L4.85.1 永久规则链 1:1 stable 永久规则化沿用))

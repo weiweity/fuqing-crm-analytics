@@ -2,8 +2,8 @@
 
 > **唯一开放债短表**。历史叙事：[`history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)
 
-**最后更新**: 2026-07-19 document-release  
-**main 基线**: `origin/main`（#30–#35 + 文档收口 PR）
+**最后更新**: 2026-07-19 清理续  
+**main 基线**: `origin/main`（#30–#35 + docs 分支）
 
 ---
 
@@ -32,7 +32,7 @@
 | A1 / A2 / B | ✅ 已恢复 CI |
 | C 7 条 | 📋 见 #C7 |
 
-原 handoff：`docs/sprints/archive/HANDOFF-SprintC-CI-deselect-2026-07-19.md`
+Sprint C 过程 handoff 已删出树；deselect SSOT 以 `scripts/ci/pytest_c_class_deselects.txt` 为准（git 历史可恢复旧 handoff）。
 
 ### 契约
 
@@ -48,7 +48,7 @@
 |---|---|
 | #30–#34 hooks/hygiene/TECH-DEBT/e2e gate | PR |
 | #35 STATUS + e2e soft | PR |
-| document-release：L4 sink + CHANGELOG 滚动 + archive 精简 | 本分支 |
+| document-release + archive 二次精简（handoff/过程文出树） | `docs/workspace-organize-2026-07-19` |
 
 ---
 

@@ -1,30 +1,31 @@
-# Sprint archive 索引
+# Sprint archive（精简后）
 
-> **最后更新**: 2026-07-19 document-release  
-> 本目录保留已 ship 的 handoff / 验证报告，供查证。**不作为日常阅读入口**。
+> **2026-07-19**：过程 handoff / 重复验证报告已 `git rm`（blob 仍在 git 历史）。  
+> 树内只保留**决策与索引**。
 
-## 保留策略
+## 当前文件
 
-| 类型 | 策略 |
+| 文件 | 用途 |
 |---|---|
-| 业务功能 handoff（RFM/Sampling/品类等） | 保留 |
-| L4.42 立项实证报告 | 保留（防脑补复发） |
-| wall_min / CI fix 验证 | 保留指针级 |
-| **Admin Upload 产品路径** | **已删除树内文件**（产品撤回）；git 历史可恢复 |
-| **L4.74 / Trino 中间 stage** | 删中间报告；保留 `SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md` + `docs/architecture/l4.74-*.md` + clickhouse memo |
-| 根目录迁入 HANDOFF | `root-handoffs-*/README.md`（正文多 gitignore） |
+| [`README.md`](README.md) | archive 目录说明 |
+| [`SPRINT201-204_L442_VERIFICATION_INDEX.md`](SPRINT201-204_L442_VERIFICATION_INDEX.md) | L4.42 立项实证索引 |
+| [`SPRINT202+_WALL_MIN_VERIFICATION_INDEX.md`](SPRINT202+_WALL_MIN_VERIFICATION_INDEX.md) | ETL wall_min 验证索引 |
+| [`SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md`](SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md) | L4.74 收口决策 |
+| [`SPRINT-N+5-GO-DECISION-2026-07-06.md`](SPRINT-N+5-GO-DECISION-2026-07-06.md) / [`NO-GO`](SPRINT-N+5-NO-GO-DECISION-2026-07-06.md) | ClickHouse 波次拍板 |
+| [`root-handoffs-2026-07-19/README.md`](root-handoffs-2026-07-19/README.md) | 根 HANDOFF 清理说明 |
 
-## 正式决策（优先于 archive 过程文）
+## 正式决策（优先）
 
-| 主题 | SSOT |
+| 主题 | 路径 |
 |---|---|
 | ClickHouse / Trino | `docs/architecture/clickhouse-poc-decision-memo.md` |
-| PostgreSQL 16 / L4.74 | `docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md` + `SPRINT-L474-STAGE-5-GO-NO-GO-DECISION.md` |
+| PostgreSQL / L4.74 | `docs/architecture/l4.74-duckdb-postgresql16-decision-memo.md` |
 | Excel 导出 | `docs/architecture/l4_91_excel_export_ssot.md` |
 | 开放债 | `docs/TECH-DEBT.md` |
 
-## 列目录
+## 恢复已删过程文
 
 ```bash
-ls docs/sprints/archive/*.md | wc -l
+git log --diff-filter=D --summary -- docs/sprints/archive/ | head
+git show <commit>:docs/sprints/archive/<file>.md
 ```
