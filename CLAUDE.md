@@ -233,7 +233,10 @@ Sprint 3 走完整 12 步流程（review → qa → merge → push → pull → 
 
 5. **单连接测试不能推广到生产** (D-7 Sprint 7 P2 教训): DuckDB file-backed 模式下, **同一 connection 的 in-memory state 与新 connection 的 file state 行为不一致**. 100/100 单连接单元测试可能完全误导, 真实生产 ETL 总是新连接 per call. Sprint 7 P2 DuckDB 升级测试 1-tx 路线单连接 100/100 通过, 新连接 1/1 失败 (ConstraintException). **任何 ETL 决策必须有"模拟生产"测试** (新连接 + commit/close 模式), 否则 100% 单元测试通过可能完全是误导. 详见 `CHANGELOG.md` v0.4.14.96 Sprint 24 P3 收口 (Sprint 7 P2 决策被 Sprint 24+ P3 改写).
 
-### AI 写代码 typo 防御规范 (Sprint 33 + Sprint 34.1 + Sprint 36.4)
+### AI 写代码 typo 防御规范
+
+> **L4 细则 SSOT**：`docs/rules/L4-permanent-rules.md`（L4.63+ 已迁入；下表 L4.1–L4.62 为摘要索引，新增规则只写 rules 文件 + 此处一行指针）。
+ (Sprint 33 + Sprint 34.1 + Sprint 36.4)
 
 | 层 | 防御 | 触发点 | Sprint | 文件 |
 |---|---|---|---|---|

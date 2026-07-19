@@ -1,18 +1,9 @@
 import { test as base, expect, Page } from '@playwright/test'
 
 /**
- * Sprint 51: 共享登录 fixture — 消除 9 个 spec 文件的登录 boilerplate 重复
- *
- * 提供:
- *   authenticatedPage — 已登录的 page (含 WASM console error 过滤)
- *   consoleErrors — 收集的 console error 数组 (可在 test body 中断言)
- *
- * 用法:
- *   import { test, expect } from './fixtures/auth.fixture'
- *   test('my test', async ({ authenticatedPage, consoleErrors }) => {
- *     await authenticatedPage.goto('/some-route')
- *     expect(consoleErrors).toHaveLength(0)
- *   })
+ * Sprint 51: 共享登录 fixture
+ * 2026-07-19 tech-debt: 登录默认跳 /audience（LoginView），勿死等「品类看板」正文。
+ * 成功条件 = 离开 /login + 侧栏/壳层出现任一业务菜单文案。
  */
 export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string[] }>({
   consoleErrors: async ({}, use) => {
@@ -20,7 +11,6 @@ export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string
   },
 
   authenticatedPage: async ({ page, consoleErrors }, use) => {
-    // WASM filter — 必须在 goto 之前注册 (Sprint 32.2)
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         const text = msg.text()
@@ -34,22 +24,27 @@ export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string
       }
     })
 
-    // Sprint 60.3 C+: 拦截 API 5xx，让 smoke e2e 仍保留后端健康检查能力
     page.on('response', (response) => {
       if (response.url().includes('/api/') && response.status() >= 500) {
         consoleErrors.push(`API ${response.status()}: ${response.url()}`)
       }
     })
 
-    // 登录
     await page.goto('/')
     await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
     await page.locator('input[type="text"]').first().fill('admin')
     await page.locator('input').nth(1).fill('123456')
     await page.click('button:has-text("登 录")')
-    // L4.85 + L4.85.1 + L4.85.2 1:1 stable 永久规则化沿用 login flow 治本 (跟之前 1:1 stable 永久规则化沿用 e2e test 一致):
-    // 等 e2e/category.spec.ts:14 期望的 '品类看板' (登录后跳 /category) 而不是 '人群看板' (旧 dashboard)
-    await page.waitForSelector('text=品类看板', { timeout: 30000 })
+
+    // 登录成功：离开 login（默认 redirect /audience）
+    await page.waitForURL((url) => !url.pathname.includes('/login'), {
+      timeout: 30000,
+    })
+
+    // 壳层菜单（NavBar）至少有一个业务入口
+    await expect(
+      page.getByText(/人群看板|品类看板|老客分析|访客看板/).first(),
+    ).toBeVisible({ timeout: 30000 })
 
     await use(page)
   },

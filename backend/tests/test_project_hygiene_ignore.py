@@ -29,3 +29,11 @@ def test_tech_debt_is_short_ledger_not_chronicle():
     # long chronicle moved out — keep open file small
     assert text.count("最后更新") <= 3
     assert (REPO / "docs/history/TECH-DEBT-HISTORY.md").is_file()
+
+
+def test_status_is_short_with_history_archive():
+    status = (REPO / "STATUS.md").read_text(encoding="utf-8")
+    assert "当前快照" in status
+    assert "STATUS-HISTORY.md" in status
+    assert len(status.splitlines()) < 40
+    assert (REPO / "docs/history/STATUS-HISTORY.md").is_file()

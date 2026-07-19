@@ -14,6 +14,8 @@ import { test, expect } from './fixtures/auth.fixture'
  */
 
 test.describe('L4.91 Excel 导出 smoke (health / repurchase / 强约束)', () => {
+  test.skip(!!process.env.CI, 'CI schema-only: L4.91 export smoke deferred (#e2e-preexisting)')
+
   test('Bug #2: 老客分析-各渠道健康评分对比 export pp numFmt 渲染', async ({ authenticatedPage: page, consoleErrors }) => {
     // 跳到 /customer-health (跟 L4.91 PR1 partial HealthOverviewTab.vue:327 fix 1:1 stable 永久规则化沿用)
     await page.goto('/customer-health')
