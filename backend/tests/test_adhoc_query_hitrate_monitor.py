@@ -1,6 +1,6 @@
 """Sprint 201+ R8 ad-hoc-query hitrate monitor 锁回归 (L4.59 永久规则化)
 
-- 验证 scripts/adhoc_query_hitrate_monitor.py 跑出 ADHOC_HITRATE_MONITOR + tools=14
+- 验证 scripts/ops/adhoc_query_hitrate_monitor.py 跑出 ADHOC_HITRATE_MONITOR + tools=14
 - 验证 EXPECTED_TOOL_COUNT 跟 Sprint 198 治本一致 (14) + hitrate threshold 95%
 - 验证 fail-open 原则 (异常 exit 0 不阻 commit)
 
@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台 (test 在 backend/tests/ 下, parents[2] 是 repo root)
-SCRIPT = REPO_ROOT / "scripts" / "adhoc_query_hitrate_monitor.py"
+SCRIPT = REPO_ROOT / "scripts" / "ops" / "adhoc_query_hitrate_monitor.py"
 
 
 def _load_module():

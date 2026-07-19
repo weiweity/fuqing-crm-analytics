@@ -57,7 +57,7 @@ class TestSprint201L2StorageGovernance:
 
     def test_db_size_alert_script_exists_and_runs(self):
         """check_db_size.py 必须存在 + 能跑 + 当前 rc=0."""
-        script = SCRIPTS_DIR / "check_db_size.py"
+        script = SCRIPTS_DIR / "ops" / "check_db_size.py"
         assert script.exists(), f"L2.6 违反: {script} 不存在"
         # 模拟 run
         import subprocess

@@ -14,7 +14,7 @@ from pathlib import Path
 MEMORY_PATH = Path.home() / ".claude/projects/-Users-hutou/memory/MEMORY.md"
 LIMIT_BYTES = 24576  # L4.13 永久规则 (Claude Code 平台硬限制)
 LOG_FILE = Path("/tmp/fuqing-memory-size.log")
-TECH_DEBT = Path(__file__).resolve().parents[1] / "docs/TECH-DEBT.md"  # L4.60 跨平台 (脚本在 scripts/ 下, parents[1] 是 repo root)
+TECH_DEBT = Path(__file__).resolve().parents[2] / "docs/TECH-DEBT.md"  # L4.60 跨平台 (脚本在 scripts/ 下, parents[1] 是 repo root
 
 
 def get_memory_size() -> int:

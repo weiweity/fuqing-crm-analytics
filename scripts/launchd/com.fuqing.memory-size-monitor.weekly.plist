@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/memory_size_monitor.py</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/ops/memory_size_monitor.py</string>
     </array>
 
     <!-- Sprint 201+ R7: 每周日 04:15 跑 1 次 (跟 R6 错开 15 分钟) -->

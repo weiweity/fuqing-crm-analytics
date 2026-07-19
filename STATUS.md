@@ -1,20 +1,21 @@
 # 项目状态 (Project Status)
 
-> **单一 source of truth（短表）**。长编年见 `docs/history/STATUS-HISTORY.md` / `CHANGELOG.md`。  
-> 整洁与协作规范：`docs/operating/project-hygiene.md` · `docs/operating/team-workflow-v1.md`
+> **短表 SSOT**。编年：[`docs/history/STATUS-HISTORY.md`](docs/history/STATUS-HISTORY.md) · 债：`docs/TECH-DEBT.md` · 文档：`docs/README.md`
 
-## 当前快照（2026-07-19）
+## 当前快照（2026-07-19 治理收口）
 
 | 项 | 值 |
 |---|---|
-| **VERSION** | `0.4.14.51`（以根目录 `VERSION` 为准） |
-| **main** | `origin/main`（#30–#35 + document-release：L4→rules、CHANGELOG 滚动、archive 精简） |
+| **VERSION** | 以根目录 `VERSION` 为准 |
+| **main** | 文档 release + Admin 撤回 + `scripts/ops` 监控分区 |
 | **分支** | 目标仅 `main`；feature 合完即删 |
-| **可合并 CI** | lint + test 必绿；e2e `continue-on-error`（`team-workflow-v1`） |
-| **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md)（**#CLAUDE-L4-sink 已闭环**；余 P2 见台账） |
-| **文档** | [`docs/README.md`](docs/README.md) · L4 全文 [`docs/rules/L4-permanent-rules.md`](docs/rules/L4-permanent-rules.md) · 工作区 `../README.md` |
-| **生产数据** | `data/processed/fuqing_crm.duckdb` 本地 ~131GB，**不进 git** |
-| **服务** | 前端 5173 / 后端 8000 以本机 `lsof` 为准 |
+| **可合并 CI** | **lint + test 必绿**；e2e `continue-on-error`（team-workflow-v1） |
+| **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md) — **无未规划开放债**（仅触发型延期） |
+| **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
+| **Admin Upload** | **已撤回**，无产品路由 |
+| **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git** |
+| **服务** | :5173 / :8000 以 `lsof` 为准 |
 
-> 历史编年：[`docs/history/STATUS-HISTORY.md`](docs/history/STATUS-HISTORY.md)
+## 阅读顺序
 
+1. 本文件 → 2. TECH-DEBT → 3. `docs/README.md` → 4. `CLAUDE.md`（硬门禁）→ 5. `docs/rules/L4-permanent-rules.md`（按需）

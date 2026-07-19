@@ -76,7 +76,7 @@ def test_rate_limit_middleware_bypasses_health_endpoints() -> None:
 
 def test_clickhouse_poc_monitor_bc_stubs_documented() -> None:
     """Sprint 203 R3 Stub #4: clickhouse_poc_monitor.py b/c trigger 注释 TODO Sprint 203 R4+"""
-    monitor_py = REPO_ROOT / "scripts" / "clickhouse_poc_monitor.py"
+    monitor_py = REPO_ROOT / "scripts" / "ops" / "clickhouse_poc_monitor.py"
     content = monitor_py.read_text(encoding="utf-8")
     # b 件: query P95 (Sprint 203 R4+ 真接入 /metrics histogram_quantile)
     assert "Sprint 203 R4+" in content, (

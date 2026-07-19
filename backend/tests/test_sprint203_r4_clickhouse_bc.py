@@ -16,7 +16,7 @@ from unittest.mock import patch  # noqa: F401
 REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
-import clickhouse_poc_monitor as cpm  # noqa: E402
+import scripts.ops.clickhouse_poc_monitor as cpm  # noqa: E402
 
 
 # === (a) DuckDB size trigger tests (跟 Sprint 203 R2 1:1 stable) ===

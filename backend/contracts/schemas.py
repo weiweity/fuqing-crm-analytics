@@ -12,15 +12,6 @@ from .rfm_segments import LifecycleStage, ValueTier, PotentialTier, RFMSegmentEx
 from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, RepurchaseCycleOverview, CohortRetentionResponse, ValueTierDefinition, FrequencyTierDefinition, CustomerSegmentItem, ValueTierResponse, TierFlowRow, TierFlowResponse, PromotionPeriod, PromotionVsDailyMetrics, PromotionCalendarResponse, ChannelHealthScoreItem, HealthTargetsResponse, ChannelHealthScoresResponse, ConfigHistoryItem, ConfigHistoryResponse, ConfigRestoreResponse, AuditLogItem, AuditLogResponse, ExportPPTRequest, ExportPPTResponse, TemplatesResponse, NewCustomerConversionFunnel, NewCustomerChannelQuality, NewCustomerConversionResponse
 from .visitor import VisitorSummaryResponse, VisitorDailyTrendItem, VisitorDailyTrendResponse
 from .sampling import SamplingChannelSummary, SamplingLevelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingRepurchaseBucket, SamplingRepurchaseDistribution, SamplingRepurchaseTrackingBucket, SamplingRepurchaseTrackingResponse, SamplingROIResponse
-# Sprint 205+ Admin Upload sprint 1: admin router contracts (v5 prompt)
-from .admin import (
-    UploadSourcePublic,
-    UploadConfigResponse,
-    UploadValidationResult,
-    UploadRecordOut,
-    UploadResponse,
-    UploadListResponse,
-)
 # Sprint 203 R9: cohort_retention contracts 删 (前端 sampling 03-tab 解耦, cohort-retention/matrix API 移除)
 
 __all__ = [
@@ -61,8 +52,5 @@ __all__ = [
     "VisitorSummaryResponse", "VisitorDailyTrendItem", "VisitorDailyTrendResponse",
     "SamplingChannelSummary", "SamplingLevelSummary", "SamplingCategoryRow", "SamplingROITimeRange",
     "SamplingRepurchaseBucket", "SamplingRepurchaseDistribution", "SamplingRepurchaseTrackingBucket", "SamplingRepurchaseTrackingResponse", "SamplingROIResponse",
-    # Sprint 205+ Admin Upload sprint 1
-    "UploadSourcePublic", "UploadConfigResponse", "UploadValidationResult",
-    "UploadRecordOut", "UploadResponse", "UploadListResponse",
     # Sprint 203 R9: SamplingLock*/Rolling*/CohortRetention 删
 ]  # noqa: E501

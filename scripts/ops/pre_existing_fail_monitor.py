@@ -19,7 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent  # L4.60 跨平台 (脚本在 scripts/ 下, parents[1] 是 repo root)
+REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60: scripts/ops/ → repo root
 TEST_FILES = [
     "backend/tests/test_sampling_roi_yoy.py",
     "backend/tests/test_sampling_sprint139.py",

@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/clickhouse_poc_monitor.py</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/ops/clickhouse_poc_monitor.py</string>
     </array>
 
     <key>StartCalendarInterval</key>

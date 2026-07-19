@@ -20,7 +20,7 @@ from pathlib import Path
 
 SKILL_PATH_CLAUDE = Path.home() / ".claude/skills/ad-hoc-query/SKILL.md"
 SKILL_PATH_WORKBUDDY = Path.home() / ".workbuddy/skills/ad-hoc-query/SKILL.md"
-REPO_ROOT = Path(__file__).resolve().parent.parent  # L4.60 跨平台 (脚本在 scripts/ 下, parents[1] 是 repo root)
+REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60: scripts/ops/ → repo root
 TOOL_DIR = REPO_ROOT / "scripts" / "ad_hoc_queries"
 LOG_FILE = Path("/tmp/fuqing-adhoc-hitrate.log")
 TECH_DEBT = REPO_ROOT / "docs" / "TECH-DEBT.md"

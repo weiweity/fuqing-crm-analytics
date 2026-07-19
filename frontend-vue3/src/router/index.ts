@@ -45,16 +45,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/OpsView.vue'),
     meta: { title: '系统运维看板', requiresAuth: true },
   },
-  {
-    path: '/admin/upload',
-    name: 'AdminUpload',
-    component: () => import('@/views/AdminUploadView.vue'),
-    meta: {
-      title: '数据上传',
-      requiresAuth: true,
-      requiresAdmin: true,
-    },
-  },
 ]
 
 const router = createRouter({
