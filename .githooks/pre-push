@@ -2,12 +2,17 @@
 # Pre-push hook: smart path + C-class deselect SSOT
 # Install: git config core.hooksPath .githooks
 #
-# Track A 2026-07-19:
+# Track A 2026-07-19 + finish 2026-07-19:
 #   - deselect SSOT: scripts/ci/pytest_c_class_deselects.txt (shared with lint/nightly)
 #   - smart path:
-#       skip  → docs/md/changelog/handoff only
-#       ruff  → scripts/hooks only → ruff check backend/
-#       full  → backend tests/services/routers/middleware/db/main + requirements
+#       skip    → docs/md/changelog/handoff / frontend-only / branch-delete-only
+#       ruff    → scripts/hooks only → ruff check backend/
+#       scoped  → only backend/tests/** → pytest those files
+#       full    → backend services/routers/middleware/db/main + requirements
+#
+# Escape hatches (L4.15 user-owned):
+#   FQ_PRE_PUSH_SKIP=1           force skip all checks
+#   FQ_PRE_PUSH_MODE=skip|ruff|scoped|full   force mode
 #
 # Slow tests (DuckDB integration) run in CI only.
 
@@ -18,13 +23,24 @@ ZERO="0000000000000000000000000000000000000000"
 CLASSIFIER="$REPO_ROOT/scripts/ci/pre_push_path_class.py"
 DESELECT_SH="$REPO_ROOT/scripts/ci/pytest_deselect_args.sh"
 
+# Explicit skip (documented escape hatch)
+if [ "${FQ_PRE_PUSH_SKIP:-0}" = "1" ]; then
+    echo "pre-push: FQ_PRE_PUSH_SKIP=1 → skip all checks"
+    exit 0
+fi
+
 # Collect changed files from stdin push refs (git pre-push protocol)
+# local_sha == 0 means branch delete on remote — must NOT fall through to full pytest
 CHANGED_FILES=""
+SAW_UPDATE=0
+SAW_DELETE=0
 while read -r local_ref local_sha remote_ref remote_sha; do
-    # branch delete → no tests
+    # branch delete → no tests for this ref
     if [ "$local_sha" = "$ZERO" ]; then
+        SAW_DELETE=1
         continue
     fi
+    SAW_UPDATE=1
     if [ "$remote_sha" = "$ZERO" ]; then
         # new branch: diff vs merge-base with main/origin/main
         base=""
@@ -38,7 +54,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
             CHANGED_FILES="${CHANGED_FILES}
 $(git diff --name-only "$base" "$local_sha" 2>/dev/null || true)"
         else
-            # fallback: all files in the tip commit tree vs empty → force full
+            # fallback: force full
             CHANGED_FILES="${CHANGED_FILES}
 backend/main.py"
         fi
@@ -48,8 +64,16 @@ $(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null || true)"
     fi
 done
 
-# If stdin empty (manual hook run), fall back to origin/main...HEAD or @{u}
-if [ -z "$(echo "$CHANGED_FILES" | tr -d '[:space:]')" ]; then
+# Pure branch delete (or tags delete): never run full suite
+# Bug fix 2026-07-19: empty CHANGED_FILES after delete-only used to fall back to
+# origin/main...HEAD → classifier empty→full → 10+ min pytest on `git push --delete`
+if [ "$SAW_UPDATE" -eq 0 ]; then
+    if [ "$SAW_DELETE" -eq 1 ]; then
+        echo "pre-push smart path mode: skip"
+        echo "✅ Branch delete only — skip pytest/ruff."
+        exit 0
+    fi
+    # stdin empty (manual hook run): fall back to origin/main...HEAD or @{u}
     if git rev-parse --verify origin/main >/dev/null 2>&1; then
         CHANGED_FILES="$(git diff --name-only origin/main...HEAD 2>/dev/null || true)"
     elif git rev-parse --verify @{u} >/dev/null 2>&1; then
@@ -59,14 +83,31 @@ if [ -z "$(echo "$CHANGED_FILES" | tr -d '[:space:]')" ]; then
     fi
 fi
 
-MODE="$(printf '%s\n' "$CHANGED_FILES" | python3 "$CLASSIFIER" --files-from - 2>/dev/null || echo full)"
+# Force mode override
+if [ -n "${FQ_PRE_PUSH_MODE:-}" ]; then
+    MODE="$FQ_PRE_PUSH_MODE"
+    echo "pre-push: FQ_PRE_PUSH_MODE=$MODE (forced)"
+else
+    MODE="$(printf '%s\n' "$CHANGED_FILES" | python3 "$CLASSIFIER" --files-from - 2>/dev/null || echo full)"
+    echo "pre-push smart path mode: $MODE"
+fi
 
-echo "pre-push smart path mode: $MODE"
+# Build --deselect args from SSOT (shared helper)
+_load_deselect_args() {
+    DESELECT_ARGS=()
+    if [ -x "$DESELECT_SH" ] || [ -f "$DESELECT_SH" ]; then
+        while IFS= read -r tok; do
+            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
+        done < <(bash "$DESELECT_SH")
+    else
+        echo "ERROR: missing $DESELECT_SH" >&2
+        exit 1
+    fi
+}
 
 case "$MODE" in
     skip)
-        echo "✅ Docs/md/changelog/handoff only (or frontend-only) — skip full pytest."
-        echo "   Changed sample:"
+        echo "✅ Docs/md/changelog/handoff only (or frontend-only / delete) — skip full pytest."
         printf '%s\n' "$CHANGED_FILES" | sed '/^$/d' | head -10 | sed 's/^/   - /'
         exit 0
         ;;
@@ -82,17 +123,38 @@ case "$MODE" in
             echo "❌ ruff failed. Fix before pushing."
             exit 1
         fi
-        echo "✅ ruff passed. Full pytest skipped (no backend tests/services/routers/db/main touched)."
+        echo "✅ ruff passed. Full pytest skipped (no backend services/routers/db/main touched)."
         exit 0
         ;;
+    scoped)
+        echo "Running scoped pytest (only changed backend/tests/* files)..."
+        TARGETS=()
+        while IFS= read -r t; do
+            [ -n "$t" ] && TARGETS+=("$t")
+        done < <(printf '%s\n' "$CHANGED_FILES" | python3 "$CLASSIFIER" --files-from - --list-scoped-targets)
+        if [ "${#TARGETS[@]}" -eq 0 ]; then
+            echo "⚠️  scoped mode but no .py test targets — falling back to full"
+            MODE=full
+        else
+            _load_deselect_args
+            echo "   targets: ${TARGETS[*]}"
+            PYTHONPATH="$REPO_ROOT" python3 -m pytest "${TARGETS[@]}" -x -q -n0 -m "not slow" \
+              "${DESELECT_ARGS[@]}"
+            if [ $? -ne 0 ]; then
+                echo ""
+                echo "❌ Scoped tests failed. Fix before pushing."
+                exit 1
+            fi
+            echo "✅ Scoped tests passed (C-class deselect SSOT applied when nodeids match)."
+            exit 0
+        fi
+        ;;
     full|*)
-        # fall through to full pytest
         ;;
 esac
 
 # --- full path: uvicorn race warn + pytest with deselect SSOT ---
 
-# Sprint 38 race flake 治标: 检测 uvicorn 是否占 DuckDB fd
 _UVICORN_PID=$(lsof -nP -iTCP:8000 -sTCP:LISTEN -t 2>/dev/null | head -1)
 if [ -n "$_UVICORN_PID" ]; then
     echo "⚠️  uvicorn PID $_UVICORN_PID 跑着, race flake 真连 test 会自动 skip (DuckDB 文件锁 exclusive)."
@@ -101,26 +163,16 @@ if [ -n "$_UVICORN_PID" ]; then
 fi
 
 echo "Running full pytest before push (serial -n0, C-class deselect SSOT)..."
-
-# Build --deselect args from SSOT (7 C-class nodeids)
-DESELECT_ARGS=()
-if [ -x "$DESELECT_SH" ] || [ -f "$DESELECT_SH" ]; then
-    while IFS= read -r tok; do
-        [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
-    done < <(bash "$DESELECT_SH")
-else
-    echo "ERROR: missing $DESELECT_SH" >&2
-    exit 1
-fi
+_load_deselect_args
 
 PYTHONPATH="$REPO_ROOT" python3 -m pytest backend/tests/ -x -q -n0 -m "not slow" \
-  "${DESELECT_ARGS[@]}" 2>/dev/null
+  "${DESELECT_ARGS[@]}"
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Tests failed. Fix them before pushing."
     echo "   Run: PYTHONPATH=. pytest backend/tests/ -x -q"
     echo "   Deselect SSOT: scripts/ci/pytest_c_class_deselects.txt"
-    echo "   Full suite (including slow): PYTHONPATH=. pytest backend/tests/ -x -q -n auto"
+    echo "   Escape: FQ_PRE_PUSH_SKIP=1 git push   (user-owned, L4.15)"
     exit 1
 fi
 

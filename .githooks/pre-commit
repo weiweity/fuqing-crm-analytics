@@ -1,7 +1,7 @@
 #!/bin/bash
-# Sprint 30.2 soft WARN (跨 sprint 30.2+ CHANGELOG 跟随从 hard block → soft WARN, 跟 Sprint 27 教训配套)
+# Sprint 30.2 soft WARN (CHANGELOG 跟随 hard block → soft WARN)
 # Sprint 178+: hooksPath 保护 (防止 pytest 修改 core.hooksPath 指向 tmp dir)
-# Sprint 176+ 真业务 fix: pytest tmp 污染 hooksPath 导致 .githooks 全部失效
+# Finish 2026-07-19: light path when no code staged
 EXPECTED_HOOKS_PATH="$(git rev-parse --show-toplevel)/.githooks"
 CURRENT_HOOKS_PATH="$(git config core.hooksPath)"
 if [ -z "$CURRENT_HOOKS_PATH" ]; then
@@ -15,11 +15,9 @@ elif [ "$CURRENT_HOOKS_PATH" != "$EXPECTED_HOOKS_PATH" ]; then
     git config core.hooksPath .githooks
 fi
 
-# Pre-commit hook: ruff lint + CHANGELOG 跟随 + 禁止 bare except
+# Pre-commit hook: CHANGELOG 跟随 + bare except + scoped heavy checks
 # Install: git config core.hooksPath .githooks
 
-# P2 散点: CHANGELOG.md 跟随 — 改 .py / docs/ 时建议同步改 CHANGELOG.md
-# Sprint 30.2 (v0.4.14.106): hard block → soft WARN.
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 STAGED_PY=$(echo "$STAGED" | grep -E '\.py$|docs/|\.md$' || true)
 STAGED_CHANGELOG=$(echo "$STAGED" | grep '^CHANGELOG\.md$' || true)
@@ -34,7 +32,14 @@ if [ -n "$STAGED_PY" ] && [ -z "$STAGED_CHANGELOG" ]; then
     fi
 fi
 
-# 禁止 bare except (Sprint 33 L4.x 实战 fix 模式)
+# Light path: docs/md/config only → skip heavy py/vue linters
+STAGED_CODE=$(echo "$STAGED" | grep -E '\.(py|vue|ts|tsx|js)$|^\.githooks/|^backend/|^scripts/|^frontend-vue3/' || true)
+if [ -z "$STAGED_CODE" ]; then
+    echo "✅ pre-commit light path (no code staged — docs/config only)"
+    exit 0
+fi
+
+# 禁止 bare except (Sprint 33 L4.x)
 STAGED_PY_FILES=$(echo "$STAGED" | grep '\.py$' || true)
 if [ -n "$STAGED_PY_FILES" ]; then
     if grep -nE '^\s*except\s*:\s*$' $STAGED_PY_FILES 2>/dev/null; then
@@ -53,17 +58,19 @@ if [ -n "$STAGED_CONTRACTS" ]; then
     fi
 fi
 
-# Sprint 88 B2 import check + Sprint 32 B5 test order lint + Sprint 21 review ground-truth lint
-if [ -x ".githooks/check_imports.py" ]; then
-    if ! python3 .githooks/check_imports.py 2>&1 | tail -3; then
-        echo "❌ check_imports.py 失败"
-        exit 1
+# import / test-order only when Python or githooks staged
+if [ -n "$STAGED_PY_FILES" ] || echo "$STAGED" | grep -q '^\.githooks/'; then
+    if [ -x ".githooks/check_imports.py" ]; then
+        if ! python3 .githooks/check_imports.py 2>&1 | tail -3; then
+            echo "❌ check_imports.py 失败"
+            exit 1
+        fi
     fi
-fi
-if [ -x ".githooks/check_test_order.py" ]; then
-    if ! python3 .githooks/check_test_order.py 2>&1 | tail -3; then
-        echo "❌ check_test_order.py 失败"
-        exit 1
+    if [ -x ".githooks/check_test_order.py" ]; then
+        if ! python3 .githooks/check_test_order.py 2>&1 | tail -3; then
+            echo "❌ check_test_order.py 失败"
+            exit 1
+        fi
     fi
 fi
 if [ -x ".githooks/check_review_ground_truth.py" ]; then
@@ -73,25 +80,18 @@ if [ -x ".githooks/check_review_ground_truth.py" ]; then
     fi
 fi
 
-# L4.91 Excel 导出全量语义/契约层 ground-truth-lint (跟 L4.19 + L4.34.1 + L4.40 + L4.50 + L4.59 + L4.91 1:1 stable 永久规则化沿用)
-# 4 件 SSOT 反漂移规则: no-raw-xlsx-bypass / no-excel-formula-write / no-frontend-times-100 / yoy-kind-required
-# 仅锁新增代码 (L4.91 baseline 已合, 跟 Q12A 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)
+# L4.91 Excel SSOT when vue/ts staged
 if [ -f "backend/scripts/check_l4_91_excel_export_ssot.py" ]; then
     STAGED_VUE=$(echo "$STAGED" | grep -E '\.vue$|\.ts$' || true)
     if [ -n "$STAGED_VUE" ]; then
         if ! python3 backend/scripts/check_l4_91_excel_export_ssot.py 2>&1 | tail -10; then
-            echo "❌ L4.91 Excel 导出 SSOT lint 失败 (4 件规则, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)"
-            echo "   修复: (跟 L4.91 PR0 kind enum 1:1 stable 永久规则化沿用)"
-            echo "     - R1: 禁 raw 'xlsx' import, 用 exportSheetToXlsx SSOT"
-            echo "     - R2: 禁写 Excel 公式对象 {t:'n',f:'=...'}, 用 backend 预计算"
-            echo "     - R3: 禁 frontend *100, 用 backend raw value + Excel numFmt"
-            echo "     - R4: YOY 列必用 kind enum (yoy_pct/yoy_pp/yoy_day), 不用 raw numFmt"
+            echo "❌ L4.91 Excel 导出 SSOT lint 失败"
             exit 1
         fi
     fi
 fi
 
-# Sprint 14 P1-3 实战 fix 模式: pytest 20/8 cleanup (Sprint 6 P0-3 disk hygiene 6 层)
+# warn on huge tmp duckdb orphans (fail-open)
 python3 -c "
 import os
 try:
@@ -104,10 +104,12 @@ try:
                     try:
                         if os.path.getsize(p) > 5 * 1024**3:
                             files.append(p)
-                    except: pass
+                    except Exception:
+                        pass
     if files:
         print(f'⚠️  发现 {len(files)} 个 >5GB duckdb 孤儿 (Sprint 6 P0-3)')
-except: pass
+except Exception:
+    pass
 " 2>&1 || true
 
 echo "✅ pre-commit 检查通过"

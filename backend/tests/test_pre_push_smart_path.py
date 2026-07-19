@@ -95,12 +95,32 @@ class TestPathClassify:
 
     def test_services_full(self, path_class):
         assert path_class.classify_paths(["backend/services/churn.py"]) == "full"
-        assert path_class.classify_paths(["backend/tests/test_foo.py"]) == "full"
         assert path_class.classify_paths(["backend/main.py"]) == "full"
         assert path_class.classify_paths(["requirements-lock.txt"]) == "full"
         assert path_class.classify_paths(["backend/routers/api.py"]) == "full"
         assert path_class.classify_paths(["backend/middleware/auth.py"]) == "full"
         assert path_class.classify_paths(["backend/db/database.py"]) == "full"
+
+    def test_tests_only_scoped(self, path_class):
+        assert path_class.classify_paths(["backend/tests/test_foo.py"]) == "scoped"
+        assert (
+            path_class.classify_paths(
+                ["backend/tests/test_a.py", "docs/TECH-DEBT.md"]
+            )
+            == "scoped"
+        )
+        assert (
+            path_class.classify_paths(
+                ["backend/tests/test_a.py", "backend/services/x.py"]
+            )
+            == "full"
+        )
+
+    def test_scoped_targets(self, path_class):
+        targets = path_class.scoped_pytest_targets(
+            ["backend/tests/test_a.py", "docs/a.md", "backend/tests/x.json"]
+        )
+        assert targets == ["backend/tests/test_a.py"]
 
     def test_scripts_only_ruff(self, path_class):
         assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "ruff"
@@ -187,3 +207,38 @@ class TestPrePushScript:
         assert "test_rfm_cache_drop_recreate" not in text
         assert "test_w2_manifest" not in text
         assert "pre_push_path_class.py" in text
+
+    def test_pre_push_skips_branch_delete_only(self):
+        """Regression: git push --delete must not fall through to full pytest."""
+        text = PRE_PUSH.read_text(encoding="utf-8")
+        assert "SAW_UPDATE" in text
+        assert "SAW_DELETE" in text
+        assert "Branch delete only" in text
+        assert "FQ_PRE_PUSH_SKIP" in text
+
+    def test_delete_only_simulation_exits_0_fast(self):
+        """Feed pre-push stdin with delete-only refs; must exit 0 without long pytest."""
+        import os
+
+        zero = "0" * 40
+        # local_sha=0 → remote branch delete protocol
+        stdin = (
+            f"refs/heads/dead {zero} "
+            f"refs/heads/dead abcdef0123456789abcdef0123456789abcdef01\n"
+        )
+        env = os.environ.copy()
+        env.pop("FQ_PRE_PUSH_SKIP", None)
+        env.pop("FQ_PRE_PUSH_MODE", None)
+        r = subprocess.run(
+            ["bash", str(PRE_PUSH)],
+            cwd=str(REPO_ROOT),
+            input=stdin,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
+        )
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert "delete" in r.stdout.lower() or "skip" in r.stdout.lower()
+        # must not start full suite
+        assert "Running full pytest" not in r.stdout

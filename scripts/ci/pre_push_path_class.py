@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""pre-push smart path classifier (Track A 2026-07-19).
+"""pre-push smart path classifier (Track A 2026-07-19 + finish 2026-07-19).
 
 Classify a list of changed file paths into one of:
 
-  skip  — docs / markdown / changelog / handoff only → skip full pytest
-  ruff  — scripts / hooks / tooling only (no business tests) → ruff check backend/
-  full  — backend tests/services/routers/middleware/db/main/requirements → full pytest
+  skip    — docs / markdown / changelog / handoff / frontend-only → skip pytest
+  ruff    — scripts / hooks / tooling only → ruff check backend/
+  scoped  — only backend/tests/** (and skip/ruff companions) → pytest those files
+  full    — backend services/routers/middleware/db/main/requirements → full pytest
 
-Default is full (safe). Pure functions — unit-testable without git.
+Default for empty path list is full (unknown range). Callers that mean
+"branch delete only" must short-circuit in the shell before classify.
+
+Env (read by pre-push, not this module):
+  FQ_PRE_PUSH_SKIP=1     force skip
+  FQ_PRE_PUSH_MODE=...   force skip|ruff|scoped|full
 """
 from __future__ import annotations
 
@@ -20,7 +26,6 @@ from pathlib import Path
 
 # Force full pytest if any path matches
 _FULL_PREFIXES = (
-    "backend/tests/",
     "backend/services/",
     "backend/routers/",
     "backend/middleware/",
@@ -38,6 +43,11 @@ _FULL_EXACT = frozenset(
     }
 )
 _FULL_NAME_RE = re.compile(r"^requirements.*\.txt$")
+
+# Tests-only → scoped (not full suite)
+_TEST_PREFIXES = (
+    "backend/tests/",
+)
 
 # Docs-only skip (all files must match)
 _SKIP_PREFIXES = (
@@ -75,6 +85,7 @@ def _norm(path: str) -> str:
 
 
 def is_full_path(path: str) -> bool:
+    """Business / config paths that require full pytest (not tests-only)."""
     p = _norm(path)
     if not p:
         return False
@@ -83,6 +94,13 @@ def is_full_path(path: str) -> bool:
     if _FULL_NAME_RE.match(p):
         return True
     return any(p.startswith(pref) for pref in _FULL_PREFIXES)
+
+
+def is_test_path(path: str) -> bool:
+    p = _norm(path)
+    if not p:
+        return False
+    return any(p.startswith(pref) for pref in _TEST_PREFIXES)
 
 
 def is_skip_path(path: str) -> bool:
@@ -99,7 +117,9 @@ def is_skip_path(path: str) -> bool:
     if _SKIP_MD_RE.search(p) and p.startswith("docs/"):
         return True
     # any .md under non-code trees already covered; root-level .md
-    if _SKIP_MD_RE.search(p) and not p.startswith("backend/") and not p.startswith("frontend"):
+    if _SKIP_MD_RE.search(p) and not p.startswith("backend/") and not p.startswith(
+        "frontend"
+    ):
         return True
     return False
 
@@ -111,15 +131,40 @@ def is_ruff_path(path: str) -> bool:
     return any(p.startswith(pref) for pref in _RUFF_PREFIXES)
 
 
+def scoped_pytest_targets(paths: list[str]) -> list[str]:
+    """Return unique backend/tests/*.py paths suitable for scoped pytest argv."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in paths:
+        p = _norm(raw)
+        if not is_test_path(p):
+            continue
+        # only .py test modules (skip __pycache__, snapshots, etc.)
+        if not p.endswith(".py"):
+            continue
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
 def classify_paths(paths: list[str]) -> str:
-    """Return 'skip' | 'ruff' | 'full' for a changed-file list."""
+    """Return 'skip' | 'ruff' | 'scoped' | 'full' for a changed-file list."""
     files = [_norm(p) for p in paths if _norm(p)]
     if not files:
-        # empty diff → safe default full (unknown push range)
+        # empty diff → safe default full (unknown push range).
+        # Branch-delete-only must be handled in pre-push before calling us.
         return "full"
     if all(is_skip_path(p) for p in files):
         return "skip"
     if any(is_full_path(p) for p in files):
+        return "full"
+    # only tests (+ skip/ruff companions) → scoped pytest on those test files
+    non_soft = [p for p in files if not is_skip_path(p) and not is_ruff_path(p)]
+    if non_soft and all(is_test_path(p) for p in non_soft):
+        if scoped_pytest_targets(files):
+            return "scoped"
+        # tests/ but no .py (e.g. only fixtures json) → still full for safety
         return "full"
     if all(is_skip_path(p) or is_ruff_path(p) for p in files):
         return "ruff"
@@ -162,6 +207,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print C-class deselect nodeids (one per line) and exit",
     )
+    parser.add_argument(
+        "--list-scoped-targets",
+        action="store_true",
+        help="Print scoped pytest file targets for given paths and exit",
+    )
     args = parser.parse_args(argv)
 
     if args.list_deselects:
@@ -174,7 +224,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.files_from == "-":
             paths.extend(sys.stdin.read().splitlines())
         else:
-            paths.extend(Path(args.files_from).read_text(encoding="utf-8").splitlines())
+            paths.extend(
+                Path(args.files_from).read_text(encoding="utf-8").splitlines()
+            )
+
+    if args.list_scoped_targets:
+        for t in scoped_pytest_targets(paths):
+            print(t)
+        return 0
 
     mode = classify_paths(paths)
     print(mode)
