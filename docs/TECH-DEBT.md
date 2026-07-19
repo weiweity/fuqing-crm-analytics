@@ -3,6 +3,49 @@
 > **本文档是 fuqing-crm-analytics 项目所有已知技术债的唯一台账。** 任何债都按 P0/P1/P2 分级，记录触发场景、影响、修复方案、估时。
 > 维护规则：每个 Sprint 收口（merge --no-ff 到 main）必须 review 本文件，新债加条目，已修债移到文末"已修复"section。
 
+**最后更新**: 2026-07-19 (Sprint C CI 21 deselect 评估 + Phase4-full: A1 9 恢复 + A2 w2 fixture 修 + B 3 死 deselect 清 + C 7 留尾; 分支 `fix/sprint-ci-deselect-cleanup-2026-07-19`; **未 push** 等 user 拍板 L4.15)
+
+## Sprint C / L4.86 — 21 deselect 跨 sprint 评估 (2026-07-19)
+
+> SSOT handoff: `docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md`  
+> 实证: git log (`1961877` 加 9 deselect / `79e5d33` 删 period 测) + 本地 pytest + CI 模拟 `DUCKDB_PATH` 不存在.
+
+### ✅ A 已闭环 (Sprint C 本分支 — 等 push/merge)
+
+| 批 | 数量 | 动作 |
+|---|---|---|
+| **A1** | 9 | 测试已绿，从 `lint.yml` + `nightly.yml` 去掉 deselect：`test_rfm_cache_drop_recreate` 4 + `test_rfm_cache_write_conn` 3 + `test_w7_memory_limit::test_backward_compat_default_8gb` + `test_startup_validation::test_production_rejects_stale_data` |
+| **A2** | 2 | `test_w2_manifest.py` `TestRfmVersionEndpoint` 两 case：加 `isolated_read_db` fixture（tmp 空 DuckDB + schema_test + 清 dual_conn read pool），修 CI 无库时 QueryRouterMiddleware 打 DUCKDB_PATH 的 IOException；deselect 已去 |
+
+### ✅ B 已清 (死 deselect — body 早在 `79e5d33` 删除)
+
+| 测试 ID | 说明 |
+|---|---|
+| `TestSamplingROIPeriodDistribution::test_period_distribution_buckets_are_ints` | period_distribution 已删，deselect 死节点 |
+| `...::test_full_buckets_do_not_exceed_total_buckets` | 同上 |
+| `TestSprint141PeriodDistribution::test_period_distribution_61_90d_fields_present` | 同上 |
+
+动作：仅从 workflow 删 3 行 `--deselect`，**不再删测试文件**（已不存在）。
+
+### 📋 C 建议留尾 (继续 deselect，真业务触发再立)
+
+| # | 测试 ID | 原因 |
+|---|---|---|
+| 1 | `test_etl_sample_received_at.py::...::test_sampling_service_falls_back_to_pay_time` | 真连 prod sampling；模块 skipif + CI deselect 双保险 |
+| 2 | `test_sampling_roi_yoy.py::test_roi_mom_compare_tuple` | 同上 |
+| 3 | `test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types` | 模块级 skipif 绑 prod（可选拆契约测升 A，真业务触发再立） |
+| 4–7 | `test_w4_t7_integration.py` 4 case (`test_a`…`test_d`) | W4 真 ETL + prod ATTACH；本地有库可跑，CI 保持 deselect |
+
+**续期触发**: 业务改 W4/RFM 预计算口径，或立项「CI 合成 540 组合 fixture」再拆 deselect。  
+**跟 L4.57 / L4.59 1:1 stable**: 0 业务代码改动类维护，真业务触发再立。
+
+### 当前 workflow 契约
+
+- `lint.yml` test job + `nightly.yml` full pytest：**各 7 条 C-class `--deselect`，1:1 同步**
+- 注释禁止再写「22 deselect」口误；以 YAML 为准
+
+---
+
 **最后更新**: 2026-07-15 (Sprint 205+ PC2 RFM timeout 修复分支完成待 Claude review：7/9 登记的 `last90days` resolver 缺失与 compare cache-key/fuzzy 串台已闭环；新增 fuzzy ±2 天（0/1/2 命中、3 拒绝）、固定周期昨日/WTD/Q1-Q4、核心渠道达播、真实 `auto_mom`、cache 基建/普通 miss 503 fail-fast（HTTP live SQL=0），以及唯一 run generation 物理隔离。active last-known-good 不做 48h 硬过期，持续服务至下一次成功切代；inactive 才按 48h prune，同 data-version 半批也不能污染完整代。缓存完整性以 380 logical coverage 验收，物理 key 因日期别名去重不设固定行数；未预热的 custom/剔除低价/非核心渠道明确 503，不伪装成功。Windows full ETL Task Scheduler 因常驻 uvicorn 的 DuckDB 跨进程锁 + L4.36 禁停服务仍为部署 blocker，本轮明确禁止在 PC2 注册；PC2 独有 1.8GB PowerShell watchdog 同属部署侧配置，不修改仓库 8GB/12GB memory monitor。)
 
 **最后更新**: 2026-07-11 (Sprint 205+ **L4.91 Excel 导出全量语义/契约层治本** 4 PR 收口 + L4.x 88 stable + L4.91 累计 20 层永久规则链 1:1 stable 永久规则化沿用, 跟 L4.42 + L4.50 + L4.55 + L4.57 + L4.58 + L4.59 + L4.65.1 + L4.69 + L4.69.1 + L4.72 + L4.75 v2 + L4.79 + L4.80 + L4.81 + L4.84 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 1:1 stable 永久规则链配套, 跟你 user 7/11 拍板 "8 件 Excel bug + 强约束 backend 算 frontend 只展示" 1:1 stable 永久规则化沿用, 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用 + 跟 L4.12 留尾 SSOT 治理 1:1 stable 永久规则化沿用, 跟 HANDOVER.md 7/16 离职交接 1:1 stable 永久规则化沿用, 0 业务代码改动累计 Sprint 60+ 92 次 1:1 stable 永久规则化沿用. L4.91 8 件 Excel bug 100% 治本 (Bug #1 AudienceView raw xlsx → SSOT + Bug #2 HealthOverviewTab -3370.00pp → -33.70pp + Bug #3 CategoryView 各类占比 numFmt 统一 + Bug #4 #5 ProductClassRepurchaseTab 中位天数YOY/平均天数YOY 改 yoy_day + 复购率YOY pp + Bug #6 ProductCustomerTab 4→14 列 WYSIWYG + Bug #7 StoreAssetsTab 加 2 列 + 2 行对比 + Bug #8 强约束 backend 算 frontend 只展示) + L4.91 永久规则化段 (frontend XlsxColumn.kind 显式 enum 替代 auto-detect + assertNotFormula 加 object 形式检测 + frontend 0 处散落 *100 强约束). 跨 sprint 留尾 3 件 0 commit 续期登记 (跟 L4.42 + L4.57 + L4.58 + L4.59 1:1 stable 永久规则链配套, 7/16 后接手人启动): ① L4.91 PR2 partial (backend `services/health/channel_scores.py` clamp 治本 + `contracts/types.py` 收紧 (-1e10 → -100~+100) + 4 ESLint rules (仅锁新增, 跟 L4.50 0 业务代码改动 1:1 stable) + 7 Playwright E2E specs (新增, 0 业务代码改动)) ② 16 视图 audit SOP (跟 L4.57 0 commit 续期 1:1 stable 永久规则化沿用, 接手人 7/16+ 启动, 跟 L4.59 跨 sprint 维护性 0 commit 续期 SOP 总纲 1:1 stable 永久规则化沿用 + fix_pattern #100 "frontend export 列 < frontend table 列" 永久规则化沿用) ③ 7/16 离职前 5 件套 (跟 L4.85 1:1 stable 永久规则化沿用): 业务验证 8 件套 100% PASS + 跟运营演示 1 小时 + 留 HANDOVER.md + AI 联系方式 (微信/飞书) + mac 离职). 累计指标 (跟 Sprint 60+ 138 sprint 0 debt stable 模式 1:1 stable 永久规则化沿用): /document-release 真治本累计 64 次 (+1 L4.91 doc) + 0 业务代码改动累计 Sprint 60+ 92 次 1:1 stable (跟 L4.50 + L4.79 + L4.80 + L4.81 + L4.91 PR0 + L4.91 PR1 partial + L4.91 PR1 final + L4.91 PR2 累计 91 次 +1 L4.91, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套) + L4.x 88 stable + L4.91 累计 20 层永久规则链 1:1 stable. main HEAD `f36a779` (跟 L4.78 + L4.81 1:1 stable 收口 1:1 stable 永久规则化沿用, 跟之前 4 PR merge 链 1:1 stable). 0 debt stable 累计 138 sprint 持续 (跟 Sprint 60+ 0 debt stable 模式 1:1 stable 沿用).)

@@ -238,6 +238,12 @@ class TestRfmVersionEndpoint:
 
     用 mock 绕过 main.py auth_middleware (验 _verify_token) — endpoint 本身不需要 token,
     只是中间件对所有非白名单路径加 auth. TestClient 触发中间件 → 401.
+
+    Sprint C (2026-07-19): /api/v1/rfm/* 走 QueryRouterMiddleware read 池.
+    endpoint 本体只读 manifest JSON, 不查业务表, 但 middleware 仍会
+    dual_conn.get_read_connection() → 打开 DUCKDB_PATH. CI 无生产库时
+    旧写法 IOException "database does not exist". 本 class 用 tmp 空
+    DuckDB + schema_test 隔离, 0 依赖 production DuckDB.
     """
 
     @pytest.fixture
@@ -246,7 +252,48 @@ class TestRfmVersionEndpoint:
         from backend.routers import auth
         return patch.object(auth, "_verify_token", return_value={"sub": "test"})
 
-    def test_endpoint_returns_manifest_info(self, manifest_dir, bypass_auth):
+    @pytest.fixture
+    def isolated_read_db(self, tmp_path, monkeypatch):
+        """CI-safe DuckDB for QueryRouterMiddleware read pool.
+
+        Creates an empty file-backed DuckDB so read_only connect succeeds
+        without production data. Clears dual_conn read pool so no stale
+        conn points at a previous path.
+        """
+        import duckdb
+        from backend.services import dual_conn
+
+        db_path = tmp_path / "w2_rfm_version_ci.duckdb"
+        duckdb.connect(str(db_path)).close()
+
+        monkeypatch.setenv("FQ_DB_MODE", "schema_test")
+        monkeypatch.setattr(dual_conn, "DUCKDB_PATH", db_path)
+        try:
+            import backend.config as cfg
+            monkeypatch.setattr(cfg, "DUCKDB_PATH", db_path)
+            monkeypatch.setattr(cfg, "DB_MODE", "schema_test")
+        except Exception:  # noqa: BLE001
+            pass
+
+        with dual_conn._read_lock:
+            while dual_conn._read_pool:
+                try:
+                    dual_conn._read_pool.pop().close()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        yield db_path
+
+        with dual_conn._read_lock:
+            while dual_conn._read_pool:
+                try:
+                    dual_conn._read_pool.pop().close()
+                except Exception:  # noqa: BLE001
+                    pass
+
+    def test_endpoint_returns_manifest_info(
+        self, manifest_dir, bypass_auth, isolated_read_db,
+    ):
         """mock get_rfm_manifest_info 返回 dict, 验 endpoint schema."""
         from fastapi.testclient import TestClient
         from backend.main import app
@@ -268,7 +315,9 @@ class TestRfmVersionEndpoint:
             assert "ts" in data
             assert "path" in data
 
-    def test_endpoint_returns_empty_when_no_manifest(self, manifest_dir, bypass_auth):
+    def test_endpoint_returns_empty_when_no_manifest(
+        self, manifest_dir, bypass_auth, isolated_read_db,
+    ):
         """manifest 缺失 → active_view 空串, version=0."""
         from fastapi.testclient import TestClient
         from backend.main import app

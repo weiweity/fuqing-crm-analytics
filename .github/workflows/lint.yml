@@ -86,35 +86,21 @@ jobs:
       - run: pip install -r requirements-lock.txt
       # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
       # 排除 pytest.mark.slow，避免 job hang。
-      # Sprint 201 R1 v2.1 followup v2: 排除 12 个 pre-existing fail (Pydantic 1B 上限撞 + W4 真连 prod DB + W2 manifest 需 prod db). 跨 sprint stable race flake 模式 1:1 (跟 Sprint 179.1 治本 + Sprint 178 L4.31 配套). sprint 200 R1 v2.1 治本后已 commit, sprint 200 R1+ R2 立项真治本.
-      # Sprint 205+ v2: 排除 9 个 L4.65.1/L4.67/L4.68 治本时 test 没同步更新 pre-existing fail (跟 Sprint 200 R1 v2.1 12 case 1:1 stable 永久规则链配套, 0 业务代码改动累计 56 次 1:1 stable):
-      #   1) test_rfm_cache_drop_recreate.py 4 case (L4.67 治本 cache.py _open_write_conn → _get_cache_conn 接口迁移 test 没同步)
-      #   2) test_rfm_cache_write_conn.py 3 case (L4.67 治本 cache.py DUCKDB_PATH → CACHE_DUCKDB_PATH test 没同步)
-      #   3) test_w7_memory_limit.py 1 case (L4.68 5d9af72 治本 DUCKDB_MEMORY_LIMIT 默认 8GB → 32GB test 期望值没同步)
-      #   4) test_startup_validation.py 1 case (L4.65.1 治本 main.py 启动禁 bdc.get_connection 副作用, startup fail-fast 行为没同步)
+      # Sprint C 2026-07-19 (fix/sprint-ci-deselect-cleanup-2026-07-19): 原 21 deselect 评估后只留 C 类 7 条:
+      #   A1 9 条 (rfm_cache_drop/write + w7 + startup) 已绿 → 恢复进 CI
+      #   A2 2 条 (w2 RFM version endpoint) 修 isolated_read_db fixture → 恢复进 CI
+      #   B 3 条 (period_distribution 死 nodeid, 79e5d33 已删 body) → 清 deselect
+      #   C 7 条 (sampling 3 + W4 4) 真连 prod / skipif 语义 → 继续 deselect (跟 L4.57/L4.59 留尾)
+      # SSOT: docs/TECH-DEBT.md Sprint C 段 + docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md
       - run: >-
           PYTHONPATH=. pytest backend/tests/ -q -m "not slow"
           --deselect backend/tests/test_etl_sample_received_at.py::TestSampleReceivedAtPhase1::test_sampling_service_falls_back_to_pay_time
           --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_mom_compare_tuple
           --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types
-          --deselect backend/tests/test_sampling_sprint139.py::TestSamplingROIPeriodDistribution::test_period_distribution_buckets_are_ints
-          --deselect backend/tests/test_sampling_sprint139.py::TestSamplingROIPeriodDistribution::test_full_buckets_do_not_exceed_total_buckets
-          --deselect backend/tests/test_sampling_sprint141.py::TestSprint141PeriodDistribution::test_period_distribution_61_90d_fields_present
           --deselect backend/tests/test_w4_t7_integration.py::TestW4T7ActualRun::test_a_w4_t7_actual_run
           --deselect backend/tests/test_w4_t7_integration.py::TestW4Idempotency::test_b_w4_idempotency
           --deselect backend/tests/test_w4_t7_integration.py::TestW4VersionIncrement::test_c_w4_version_increment
           --deselect backend/tests/test_w4_t7_integration.py::TestW4DataQuality::test_d_w4_data_quality
-          --deselect backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_manifest_info
-          --deselect backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_empty_when_no_manifest
-          --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheDropRecreate::test_drop_recreate_clears_all_rows
-          --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheDropRecreate::test_drop_recreate_preserves_schema
-          --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheIdempotent::test_multiple_clears_idempotent
-          --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheIndexStateCorruption::test_clear_succeeds_after_index_corruption
-          --deselect backend/tests/test_rfm_cache_write_conn.py::TestOpenWriteConnRealConnectionNoError::test_get_cache_conn_succeeds
-          --deselect backend/tests/test_rfm_cache_write_conn.py::TestOpenWriteConnRealConnectionNoError::test_sibling_connection_pattern_works
-          --deselect backend/tests/test_rfm_cache_write_conn.py::TestClearRfmCacheEndToEnd::test_clear_rfm_cache_no_longer_fails
-          --deselect backend/tests/test_w7_memory_limit.py::TestW7MemoryLimitOverride::test_backward_compat_default_8gb
-          --deselect backend/tests/test_startup_validation.py::test_production_rejects_stale_data
 
   e2e:
     runs-on: ubuntu-latest
