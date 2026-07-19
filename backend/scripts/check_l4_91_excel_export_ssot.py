@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -217,14 +217,14 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    print(f"🔍 L4.91 SSOT 反漂移 ground-truth-lint (4 件规则 1:1 stable 永久规则化沿用)")
+    print("🔍 L4.91 SSOT 反漂移 ground-truth-lint (4 件规则 1:1 stable 永久规则化沿用)")
     try:
         rel_views = args.views_root.relative_to(REPO_ROOT)
     except ValueError:
         rel_views = args.views_root  # temp dir for testing
     print(f"   扫描目录: {rel_views}")
     if args.only_new:
-        print(f"   模式: 仅检查新增代码 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)")
+        print("   模式: 仅检查新增代码 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)")
     print()
 
     violations = scan(args.views_root)
