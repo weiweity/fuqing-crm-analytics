@@ -14,7 +14,6 @@ from datetime import date
 from unittest.mock import patch
 
 import duckdb
-import pytest
 
 
 class TestL474CacheEndDateFix:
@@ -121,18 +120,19 @@ class TestL474CacheEndDateDocumentation:
     """L4.74 cache end_date fix 文档化验证 (跟 L4.42 + L4.50 + L4.13 + L4.20 1:1 stable 永久规则链配套)."""
 
     def test_changelog_mentions_l474_cache_end_date(self):
-        """验证 CHANGELOG.md 包含 L4.74 cache end_date fix entry (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则链配套)."""
+        """L4.74 文档在 CHANGELOG 近窗或 history（滚动后仍可检索）。"""
         from pathlib import Path
 
         repo_root = Path(__file__).resolve().parents[2]
-        changelog = repo_root / "CHANGELOG.md"
-
-        if not changelog.exists():
-            pytest.skip("CHANGELOG.md 不存在")
-
-        content = changelog.read_text(encoding="utf-8")
-        # 验证 CHANGELOG 包含 L4.74 cache end_date fix 关键词
+        parts = []
+        for rel in ("CHANGELOG.md", "docs/history/CHANGELOG_HISTORY.md"):
+            p = repo_root / rel
+            if p.exists():
+                parts.append(p.read_text(encoding="utf-8"))
+        content = "\n".join(parts)
+        assert content, "CHANGELOG.md / history 均不存在"
         assert "L4.74" in content and ("cache end_date" in content or "cache_end_date" in content), (
-            "L4.74 fix 文档化: CHANGELOG.md 必须包含 L4.74 cache end_date fix entry, "
+            "L4.74 fix 文档化: CHANGELOG 或 CHANGELOG_HISTORY 必须包含 L4.74 cache end_date fix entry, "
             "跟 L4.20 SSOT 反漂移 1:1 stable 永久规则链配套."
         )
+

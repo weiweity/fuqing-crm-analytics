@@ -85,23 +85,34 @@ class TestSprint183L4CrossPlatform:
     """L4.36 锁回归, 跨平台 (CLAUDE.md 在主仓, 不依赖 macOS 本地路径)."""
 
     def test_claude_md_l4_36_added(self):
-        assert CLAUDE_MD_PATH.exists(), f"CLAUDE.md 不存在: {CLAUDE_MD_PATH}"
-        content = CLAUDE_MD_PATH.read_text(encoding="utf-8")
-        assert "L4.36" in content, "CLAUDE.md 必须含 L4.36 永久规则"
-
-        # 提取 L4.x 永久规则段: markdown 表格行 " | **L4.xx ..." (允许 0+ 前导空格)
+        """L4.35/L4.36 SSOT: CLAUDE 短索引 + docs/rules 全文（document-release 2026-07-19）。"""
         import re
+        from pathlib import Path
+
+        assert CLAUDE_MD_PATH.exists(), f"CLAUDE.md 不存在: {CLAUDE_MD_PATH}"
+        claude = CLAUDE_MD_PATH.read_text(encoding="utf-8")
+        assert "L4.36" in claude, "CLAUDE.md 必须含 L4.36 永久规则（短索引或全文）"
+
+        rules_path = Path(__file__).resolve().parents[2] / "docs" / "rules" / "L4-permanent-rules.md"
+        assert rules_path.is_file(), f"L4 rules SSOT 不存在: {rules_path}"
+        rules = rules_path.read_text(encoding="utf-8")
+        content = claude + "\n" + rules
+
+        # 表格行 | **L4.N 或 | **L4.N–L4.M（短索引区间）
         rule_pattern = re.compile(r"^[ ]*\| \*\*L4\.(\d+)", re.MULTILINE)
         rule_positions = [
             (int(m.group(1)), m.start())
             for m in rule_pattern.finditer(content)
         ]
-        assert rule_positions, "CLAUDE.md 缺 L4.x 永久规则段"
+        assert rule_positions, "CLAUDE.md + L4-permanent-rules 缺 L4.x 表格行"
         rule_dict = dict(rule_positions)
-        assert 35 in rule_dict and 36 in rule_dict, "需有 L4.35 / L4.36 规则段"
+        assert 35 in rule_dict and 36 in rule_dict, (
+            f"需有 L4.35 / L4.36 规则段 (got keys={sorted(rule_dict)[:20]}...)"
+        )
         assert rule_dict[36] > rule_dict[35], (
             f"L4.36 永久规则段必须出现在 L4.35 之后 (实际位置 {rule_dict})"
         )
+
 
 
 class TestDailyGsvMultiPeriod:
