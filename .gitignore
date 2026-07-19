@@ -122,3 +122,15 @@ docs/reports/
 # scraper 自身是 symlink → /Users/hutou/Desktop/fuqin date/fuqing-scraper (不进 git, OS 跟踪)
 scraper.legacy/
 /scraper
+
+# ── Project hygiene 2026-07-19 ──
+# Runtime / agent outputs (never commit business exports or QR/auth artifacts)
+outputs/
+logs/
+# scripts double-archive (scripts/archive/ already ignored)
+scripts/_archive/
+# Handoff variants beyond HANDOFF-TO-CODEX-* (already ignored)
+HANDOFF-TO-CLAUDE-*.md
+HANDOFF-FINAL-*.md
+# Local analysis exports (data-layout may still document; default stay out of git)
+analysis/

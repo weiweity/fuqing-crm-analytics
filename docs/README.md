@@ -25,6 +25,8 @@ fuqing-crm-analytics/docs/
 │
 ├── operating/                         [操作手册 - 怎么用]
 │   ├── ship.md                       (12 步流程)
+│   ├── team-workflow-v1.md           (2026-07-19: 7 步协作 + 可合并定义 + 角色)
+│   ├── project-hygiene.md            (2026-07-19: 根目录/文档/数据整洁 SSOT)
 │   ├── linting.md                    (ground-truth-lint 规则)
 │   ├── pre-commit.md                 (hook 框架)
 │   ├── automation.md                 (Claude Code 自动化)
