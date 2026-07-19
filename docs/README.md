@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-07-19（工作区扫描 + STATUS/TECH-DEBT 短表 + sprints 只留索引）
+> **最后更新**: 2026-07-19 document-release（L4→rules、CHANGELOG 滚动、archive 精简、#CLAUDE-L4 闭环）
 
 ## 一图流
 
@@ -97,10 +97,10 @@ fuqing-crm-analytics/docs/
 | 动作 | 结果 |
 |---|---|
 | STATUS / TECH-DEBT 短表 | 编年在 `history/` |
-| sprints 顶层 | 仅 `_sprint-close-index` + README + archive |
-| 根 HANDOFF 8 份 | `archive/root-handoffs-2026-07-19/` |
-| PR #35 | e2e soft + SSOT lint 对齐 history |
-| 开放债 | C7 deselect · e2e 严跑 · CLAUDE L4 瘦身 · scripts-ops · preflight-env |
+| **CLAUDE L4 sink** | 全文 `rules/L4-permanent-rules.md`；CLAUDE ~19KB 硬门禁 |
+| CHANGELOG | 近窗保留；旧 entry → `history/CHANGELOG_HISTORY.md` |
+| sprints | 仅索引 + archive（Admin/L474 中间过程删） |
+| 开放债 | C7 · e2e 严跑 · scripts-ops · preflight-env（**文档债 0**） |
 
 ---
 

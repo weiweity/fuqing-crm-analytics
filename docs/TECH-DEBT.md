@@ -1,63 +1,59 @@
 # 技术债台账 (Technical Debt Ledger)
 
-> **唯一开放债台账（短表）**。长编年与历史叙事见  
-> [`docs/history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)（2026-07-19 从本文件迁出）。
+> **唯一开放债短表**。历史叙事：[`history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)
 
-**最后更新**: 2026-07-19（文档整理 + #35 已合）  
-**main 基线**: `origin/main`（#30–#35）
+**最后更新**: 2026-07-19 document-release  
+**main 基线**: `origin/main`（#30–#35 + 文档收口 PR）
 
 ---
 
 ## 开放债
 
-| ID | 级 | 说明 | 触发再立 / 处理 |
+| ID | 级 | 说明 | 触发 / 处理 |
 |---|---|---|---|
-| **#C7-deselect** | P2 | CI 仍 `--deselect` C 类 7 条（sampling 3 + W4 4）。SSOT：`scripts/ci/pytest_c_class_deselects.txt` | 业务改 W4/RFM 预计算口径，或立项「CI 合成 fixture」 |
-| **#e2e-preexisting** | P1→P2 | auth fixture 已修（登录等 /audience）；CI 对 L4.91 export / L4.85.6 多会话 `test.skip`；sampling/category 软断言。剩余：有生产数据时再打开严跑 | 本地/预发有 DuckDB 时去 skip 严跑 |
-| **#STATUS-HISTORY** | ✅ | 长编年 → `docs/history/STATUS-HISTORY.md`；`STATUS.md` 仅短表 | — |
-| **#CLAUDE-L4-sink** | P2 | CLAUDE.md 仍含 L4.1–62 巨型表；细则应只在 `docs/rules/` | 文档瘦身 sprint |
-| **#scripts-ops** | P2 | `scripts/` 根上 monitor/session 脚本可归 `ops/` | 须同步 launchd/hooks 路径，禁止盲 mv |
-| **#preflight-env** | P2 | 无独立预发环境；本地即生产限制多人并行 | 预发机 / 抽样库方案 |
-| **#Admin-Upload-WITHDRAWN** | — | Admin Upload 产品路径已收回；WIP 仅 stash/archive 备份 | **不默认重开** |
-| **#L4.74-PG** | — | PostgreSQL 16 分布式 0 commit 收口（环境/接手人条件 0 触发） | 启动条件 a/b/c 真触发再立 |
+| **#C7-deselect** | P2 | CI deselect C 类 7 条（sampling + W4）。SSOT：`scripts/ci/pytest_c_class_deselects.txt` | 业务改 W4/RFM 口径或「CI 合成 fixture」 |
+| **#e2e-preexisting** | P2 | schema-only CI soft/skip 已合；有生产数据后再严跑 | 预发/本地 DuckDB 严跑 |
+| **#scripts-ops** | P2 | `scripts/` 根 monitor 可归 `ops/` | 须同步 launchd/hooks，禁盲 mv |
+| **#preflight-env** | P2 | 无独立预发；本地即生产 | 预发机 / 抽样库 |
+| **#Admin-Upload-WITHDRAWN** | — | 产品路径收回 | **不默认重开** |
+| **#L4.74-PG** | — | 0 commit 收口；见 architecture memo + GO-NO-GO | 启动条件 a/b/c 真触发 |
 
-### Sprint C / L4.86 deselect（已合 main，C 类续期）
+### 已闭环（文档债）
+
+| ID | 结果 |
+|---|---|
+| **#STATUS-HISTORY** | STATUS 短表 + `history/STATUS-HISTORY.md` |
+| **#CLAUDE-L4-sink** | L4.1–62 全文下沉 `docs/rules/L4-permanent-rules.md`；CLAUDE 仅硬门禁摘要（document-release 2026-07-19） |
+
+### Sprint C deselect
 
 | 类 | 状态 |
 |---|---|
-| A1 9 条 | ✅ 恢复进 CI |
-| A2 w2 2 条 | ✅ `isolated_read_db` 已合 |
-| B 3 死 nodeid | ✅ 已清 deselect |
-| C 7 条 | 📋 继续 deselect（上表 #C7） |
+| A1 / A2 / B | ✅ 已恢复 CI |
+| C 7 条 | 📋 见 #C7 |
 
-详见原 handoff：`docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md`
+原 handoff：`docs/sprints/archive/HANDOFF-SprintC-CI-deselect-2026-07-19.md`
 
-### 当前 workflow 契约
+### 契约
 
-- deselect：**仅** `scripts/ci/pytest_c_class_deselects.txt` → pre-push / lint.yml / nightly
-- 可合并：**lint + test 必绿**；e2e 默认不挡（见 `docs/operating/team-workflow-v1.md`）
-- 整洁：`docs/operating/project-hygiene.md`
+- 可合并：**lint + test**；e2e 不挡（`operating/team-workflow-v1.md`）
+- 整洁：`operating/project-hygiene.md`
+- deselect SSOT：仅 `scripts/ci/pytest_c_class_deselects.txt`
 
 ---
 
-## 已收口（近期指针，详情见 HISTORY）
+## 已收口指针
 
 | 项 | 证据 |
 |---|---|
-| Sprint C deselect cleanup | PR #30 / main |
-| hooks SSOT + admin CI DuckDB | PR #31 |
-| pre-push delete-skip + scoped | PR #32 |
-| hygiene + team-workflow v1 | PR #33 |
-| backlog TECH-DEBT/e2e gate | PR #34 |
-| STATUS 截断 + e2e soft/skip | PR #35 |
-| 工作区文档整理（sprints 只留索引、handoff 归档） | `docs/workspace-organize-2026-07-19` |
-
-| L4.91 Excel 等历史债 | `docs/history/TECH-DEBT-HISTORY.md` |
+| #30–#34 hooks/hygiene/TECH-DEBT/e2e gate | PR |
+| #35 STATUS + e2e soft | PR |
+| document-release：L4 sink + CHANGELOG 滚动 + archive 精简 | 本分支 |
 
 ---
 
-## 维护规则
+## 维护
 
-1. Sprint 收口必 review 本文件：**新债加行，闭环移「已收口」**。  
-2. 禁止再在本文件顶部堆「最后更新」万字编年。  
-3. 长过程文 → `docs/sprints/archive/` 或 HISTORY，不进开放债表。
+1. 新债加行；闭环移历史或「已闭环」  
+2. 禁止顶部万字编年  
+3. 过程文 → `sprints/archive/`，不进开放表  

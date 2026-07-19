@@ -74,13 +74,19 @@
 5. 根 **8× `HANDOFF-TO-CODEX-*`** → `docs/sprints/archive/root-handoffs-2026-07-19/`
 6. 父工作区 **`fuqin-date/README.md`** 刷新扫描；`archive/README.md` 建入口
 
-**未做（下一波，见 TECH-DEBT）**：
+### document-release（同日）
+
+1. **#CLAUDE-L4-sink ✅**：L4 全文 → `docs/rules/L4-permanent-rules.md`；CLAUDE 短索引  
+2. CHANGELOG 近窗 + HISTORY 滚动  
+3. archive 删 Admin Upload / L4.74 中间 stage；保留决策 memo + GO-NO-GO  
+4. `docs/history/README.md` + `sprints/archive/INDEX.md`
+
+**未做（真债，见 TECH-DEBT）**：
 
 | ID | 说明 |
 |---|---|
-| `#CLAUDE-L4-sink` | CLAUDE.md 巨型 L4 表继续下沉 `docs/rules/` |
 | `#scripts-ops` | `scripts/` 根 monitor 归 `ops/`（须同步 launchd） |
-| `#e2e-preexisting` | 有生产数据时再打开严跑 |
+| `#e2e-preexisting` | 有生产数据时再严跑 |
 | `#C7-deselect` | C 类 7 条 CI deselect |
 | `#preflight-env` | 独立预发 |
 
