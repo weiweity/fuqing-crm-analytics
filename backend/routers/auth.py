@@ -293,8 +293,12 @@ def login(req: LoginRequest, request: Request):
     _authenticate_credentials(req.username, req.password, client_ip)
     # L4.85.2 治本: 整合 L4.84 path 跟 L4.85 path (跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用)
     # 跟 L4.85 create_login_request 409 模式 1:1 stable 配套, 跟 L4.85.1 1:1 stable 永久规则化沿用
+    # e2e 根治 (2026-07-19): FQ_CRM_TEST_MODE=1 时跳过 409，直接踢旧会话再发新 token。
+    # 真因: Playwright 每 case 新 context 但同 process 共享 ACTIVE_TOKENS → 第 2 个 case login 409
+    # → 停在「申请登录」→ 业务页 toBeVisible 全红。生产默认 0，行为不变。
+    _test_mode = os.environ.get("FQ_CRM_TEST_MODE") == "1"
     with _AUTH_STATE_LOCK:
-        if _is_account_active(req.username):
+        if _is_account_active(req.username) and not _test_mode:
             raise HTTPException(
                 status_code=409,
                 detail="账号正在被使用, 请使用申请登录按钮",

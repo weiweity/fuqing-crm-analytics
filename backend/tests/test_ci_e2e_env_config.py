@@ -50,16 +50,27 @@ def test_e2e_workflow_uses_60s_uvicorn_readiness_timeout():
 
 
 def test_e2e_workflow_uses_schema_only_duckdb_fixture():
-    """lint.yml e2e job 必须用 /tmp/e2e_duckdb.duckdb schema-only fixture (Sprint 60.3+ C+ + Sprint 123 集成).
+    """lint.yml e2e job 必须用 /tmp/e2e_duckdb.duckdb（schema+seed，非生产库）.
 
     防再发: Sprint 60.3 之前 CI 试图 ATTACH 117GB 生产库 → 50+MB OOM 5+ sprint 复发.
-    Sprint 123 集成后: e2e.yml 删, e2e job 移到 lint.yml. test 改读 lint.yml.
+    2026-07-19 根治: seed_e2e_duckdb.py 写最小业务 seed，仍禁止 production path.
     """
     lint_yml = (ROOT / ".github" / "workflows" / "lint.yml").read_text()
     assert "e2e_duckdb.duckdb" in lint_yml, (
-        "lint.yml e2e job 必须用 /tmp/e2e_duckdb.duckdb schema-only fixture (Sprint 60.3+ C+ 治根 + Sprint 123 集成)"
+        "lint.yml e2e job 必须用 /tmp/e2e_duckdb.duckdb fixture (Sprint 60.3+ C+ 治根 + Sprint 123 集成)"
+    )
+    assert "seed_e2e_duckdb.py" in lint_yml, (
+        "lint.yml e2e job 必须用 scripts/ci/seed_e2e_duckdb.py（e2e 根治 2026-07-19）"
     )
     # 验证没误用 production path
     assert "data/processed/fuqing_crm.duckdb" not in lint_yml, (
         "lint.yml e2e job 不应引用 117GB production DB (Sprint 58 #1 OOM 治根: ATTACH read_only)"
     )
+
+
+def test_e2e_workflow_sets_fq_crm_test_mode():
+    """lint.yml e2e job 必须 FQ_CRM_TEST_MODE=1（L4.85 会话隔离 + /_test/reset 白名单）."""
+    lint_yml = (ROOT / ".github" / "workflows" / "lint.yml").read_text()
+    assert any(
+        "FQ_CRM_TEST_MODE" in line and "1" in line for line in lint_yml.splitlines()
+    ), "lint.yml e2e job 必须设 FQ_CRM_TEST_MODE=1"

@@ -37,7 +37,7 @@ class TestSprint123LintYmlE2EIntegration:
             "Install Python deps",
             "Install Node deps",
             "Install Playwright browsers",
-            "Setup e2e DuckDB schema-only fixture",
+            "Setup e2e DuckDB schema + seed",
             "Build (Vite) + Start preview server",
             "Run e2e with auto-recovery",
             "Upload auto-recovery log on failure",
@@ -92,8 +92,8 @@ class TestSprint123LintYmlE2EIntegration:
         assert "Install Python deps" in step_names, f"Install Python deps 应在, 实际 {step_names}"
         assert "Install Node deps" in step_names, f"Install Node deps 应在, 实际 {step_names}"
         assert "Install Playwright browsers" in step_names, f"Install Playwright browsers 应在, 实际 {step_names}"
-        assert any("Setup e2e DuckDB schema-only fixture" in n for n in step_names), (
-            f"Setup e2e DuckDB schema-only fixture 应在, 实际 {step_names}"
+        assert any("Setup e2e DuckDB schema" in n for n in step_names), (
+            f"Setup e2e DuckDB schema(+seed) step 应在, 实际 {step_names}"
         )
         assert any("Build (Vite) + Start preview server" in n for n in step_names), (
             f"Build + preview server step 应在, 实际 {step_names}"

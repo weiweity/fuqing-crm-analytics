@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test'
 test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
   test.setTimeout(45000)
 
-  test('访问 /sampling, PageHeader + 正装转化文案渲染, 无控制台/API error (回归 a9b1d91)', async ({ page }) => {
+  test('访问 /sampling, PageHeader + 正装转化文案渲染, 无控制台/API error (回归 a9b1d91)', async ({ page, request }) => {
     const consoleErrors: string[] = []
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
     let roiRequestCount = 0
@@ -32,18 +32,14 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
       }
     })
 
-    await page.addInitScript(() => {
-      sessionStorage.setItem('fq_crm_auth_token', 'e2e-token')
-      sessionStorage.setItem('fq_crm_auth_user', 'admin')
-    })
-
-    await page.route('/api/v1/auth/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ username: 'admin' }),
-      })
-    })
+    // e2e 根治: 真登录（TEST_MODE 下不 409）；假 token 无法过 auth_middleware
+    await request.post('/api/v1/_test/reset').catch(() => null)
+    await page.goto('/')
+    await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
+    await page.locator('input[type="text"]').first().fill('admin')
+    await page.locator('input').nth(1).fill('123456')
+    await page.click('button:has-text("登 录")')
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 30000 })
 
     // Sprint 60.3+ C+: CI 用 schema-only DB，sampling API 在空数据下会超时/500；mock 成合法空响应
     await page.route('/api/v1/sampling/**', async (route) => {

@@ -1,3 +1,12 @@
+## [unreleased] - 2026-07-19 (e2e 根治: L4.85 会话 + seed DB)
+
+### Fixed
+- **CI e2e 永久红根治**: 真因是 L4.85 同账号二次 login 409 + `/_test/reset` 被 auth 中间件 401 挡住，不是「GitHub 扛不住」
+  - `FQ_CRM_TEST_MODE=1`: login 跳过 409 踢旧会话；middleware 放行 `/api/v1/_test/*`
+  - `scripts/ci/seed_e2e_duckdb.py`: schema + 最小业务 seed（~MB，非 131GB）
+  - auth fixture 每 case 调 reset；去掉 e2e `continue-on-error`
+  - #e2e-data 闭环；e2e 恢复挡 merge
+
 ## [unreleased] - 2026-07-19 (ops: LaunchAgents sync for scripts/ops)
 
 ### Fixed
