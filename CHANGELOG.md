@@ -1,3 +1,9 @@
+## [unreleased] - 2026-07-19 (ops: LaunchAgents sync for scripts/ops)
+
+### Fixed
+- **LaunchAgents 指向已删 scripts/*.py**: 新增 `scripts/ops/install_launchagents.sh`，本机 5 个 monitor/db-size plist 已 bootstrap 到 `scripts/ops/`
+- **L4-permanent-rules** 监控路径改 `scripts/ops/`
+
 # Changelog
 
 ## [unreleased] - 2026-07-19 (project governance: Admin Upload 撤回 + scripts/ops)
