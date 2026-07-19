@@ -63,14 +63,31 @@ def get_recent_commits(n: int = DEFAULT_N_COMMITS) -> list[tuple[str, str]]:
     """返最近 N commit 的 [(sha, message_short), ...] 列表 (newest first).
 
     用 `git log --pretty=format:'%H %s'` 拿 SHA + first line of commit message.
+
+    Ref fallback (CI shallow / feature-branch 友好, L4.21):
+    - 优先 main / origin/main / master / origin/master
+    - 都没有 (shallow clone 只 checkout 当前 PR 分支且无 main ref) → HEAD
+    - 任一 ref 成功且有输出即返回; 全失败才 []
     """
-    result = _run(
-        ["git", "log", "--pretty=format:%H %s", f"-{n}", "main"],
-        cwd=REPO_ROOT,
-        timeout=15,
-    )
-    if result.returncode != 0:
-        print(f"❌ git log failed: rc={result.returncode}, stderr={result.stderr[:300]}")
+    # 顺序: 本地 main → 远程 main → master 变体 → 当前 HEAD
+    ref_candidates = ("main", "origin/main", "master", "origin/master", "HEAD")
+    result = None
+    used_ref = None
+    for ref in ref_candidates:
+        result = _run(
+            ["git", "log", "--pretty=format:%H %s", f"-{n}", ref],
+            cwd=REPO_ROOT,
+            timeout=15,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            used_ref = ref
+            break
+    if used_ref is None:
+        stderr = (result.stderr[:300] if result is not None else "")
+        print(
+            f"❌ git log failed for all refs {ref_candidates}: "
+            f"rc={getattr(result, 'returncode', None)}, stderr={stderr}"
+        )
         return []
     commits: list[tuple[str, str]] = []
     for line in result.stdout.strip().splitlines():
