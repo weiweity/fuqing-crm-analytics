@@ -113,7 +113,6 @@ def test_repo_launchd_plists_only_reference_ops_monitors() -> None:
 @pytest.mark.skipif(__import__("sys").platform != "darwin", reason="LaunchAgents is macOS-only")
 def test_installed_launchagents_point_to_existing_ops_scripts() -> None:
     """Local-as-prod: installed agents must not point at deleted scripts/*.py paths."""
-    import os
     from pathlib import Path as P
 
     home = P.home() / "Library" / "LaunchAgents"
