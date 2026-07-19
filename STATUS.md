@@ -3,16 +3,17 @@
 > **单一 source of truth（短表）**。长编年见下文历史段 / `CHANGELOG.md`。  
 > 整洁与协作规范：`docs/operating/project-hygiene.md` · `docs/operating/team-workflow-v1.md`
 
-## 当前快照（2026-07-19）
+## 当前快照（2026-07-19 backlog workflow）
 
 | 项 | 值 |
 |---|---|
 | **VERSION** | `0.4.14.51`（以根目录 `VERSION` 文件为准） |
-| **main** | 以 `git rev-parse origin/main` 为准（近期：#30 deselect / #31 hooks SSOT / #32 pre-push finish） |
+| **main** | 以 `git rev-parse origin/main` 为准（#30–#33 + TECH-DEBT 短表 / e2e continue-on-error） |
 | **分支** | 目标仅 `main`；feature 合完即删 |
-| **可合并 CI** | lint + test 必绿；e2e 默认不挡（见 team-workflow-v1） |
-| **债** | `docs/TECH-DEBT.md` |
+| **可合并 CI** | lint + test 必绿；e2e `continue-on-error`（见 team-workflow-v1） |
+| **债** | `docs/TECH-DEBT.md`（短表）；历史 `docs/history/TECH-DEBT-HISTORY.md` |
 | **生产数据** | `data/` 本地、不进 git |
+| **服务** | 前端 5173 / 后端 8000 以本机 `lsof` 为准 |
 
 **最后更新（历史长文保留下方，新状态只改上表）**: 2026-07-15 (Sprint 205+ **RFM cache miss → 30s timeout → 502 → 401 治本** (跟 Codex Stage 2 1:1 stable 永久规则化沿用, 跟 L4.50 + L4.40 + L4.86 + L4.20 + L4.42 永久规则链 1:1 stable 永久规则化沿用)): 4 维治本 (跟交接文档 §3 1:1 stable 永久接受 1:1 stable 永久规则化沿用) ① HTTP 雪崩隔离 (`allow_live_compute=False` 写死 + 503 + Retry-After: 60/30, 跟 L4.36 不停 uvicorn 1:1 stable 永久规则化沿用) ② fuzzy 完整核对 (±2 天 0/1/2 命中 + data-version/channel/metric/exclude/compare 重建) ③ 预热 generation 原子切换 (19 period × 2 metric × 5 channel × 2 compare = 380 logical combinations, 跟交接文档 §3.3 1:1 stable 永久接受 1:1 stable 永久规则化沿用, 实证推翻旧 416 组合 hardcode 验收 1:1 stable 永久规则化沿用) ④ 时间口径修复 (last90days/昨日/WTD/Q1-Q4 resolver + 闰日跨年平移 + 元旦 YTD + 每季首日反向区间). 4 件禁止项未动: PC2 外部 1.8 GB PowerShell watchdog + 仓库 8/12 GB memory monitor + Axios timeout/重试 + `scripts/etl/scheduler/` 全套 (跟交接文档 §4 1:1 stable 永久接受 1:1 stable 永久规则化沿用). **3 commit (跟 L4.14 1:1 stable 永久接受 1:1 stable 永久规则化沿用)**: `898dc96` (RFM 治本 17 files / +2227/-301) + `a3f6548` (pre-push hook 跟 lint.yml deselect 列表 1:1 stable 漂移治本 0 业务代码改动, 跟 L4.50 + L4.40 + L4.86 1:1 stable 永久规则化沿用) + `b91f470` (Revert Codex 擅自 `a69a06d` "add sampling view" 越权 跟 L4.15 必 user 拍板 + L4.20 SSOT 反漂移 1:1 stable 永久规则化沿用). branch `fix/sprint205-rfm-timeout-502-2026-07-15` (base `af50345`, 4 commit ahead / 0 behind), worktree `/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics-codex-rfm-timeout`. 0 业务代码改动累计 Sprint 60+ **101+ 次** 1:1 stable 永久规则化沿用 (跟 L4.50 永久规则化沿用). **VERSION 不 bump** (跟 Sprint 89/167/190-202+ 累计 29+ 次 /document-release bump 持续 1:1 stable 永久规则化沿用, 保持 `0.4.14.51`). main HEAD **`af50345`** (跟 L4.15 push 必 user 拍板 1:1 stable 永久规则化沿用, 等 7/16 交接人拍板 push main). **0 drift 验证 ✅** (跟 1:1 stable 永久接受 1:1 stable 永久规则化沿用). 12 步流程 1:1 stable 永久规则化沿用 (跟 L4.15 + L4.42 + L4.50 + L4.40 + L4.31 1:1 stable 永久规则化沿用). **L4.x 永久规则化新加 2 件候选** (跟 Sprint 60+ 累计 1:1 stable 永久接受 1:1 stable 永久规则化沿用, 跟 L4.50 + L4.85 HANDOVER 1:1 stable 永久规则化沿用): **L4.91 test fixture forward-compat pattern** (跟交接文档 §3-§4 1:1 stable 永久规则化沿用, 跟 L4.50 + L4.88 conftest autouse fixture 1:1 stable 永久接受 1:1 stable 永久规则化沿用, 跟 L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用) + **L4.92 RFM cache miss 治本 4 维** (跟交接文档 §3 1:1 stable 永久规则化沿用, 跟 L4.67 + L4.69 + L4.71 + L4.36 + L4.40 永久规则链 1:1 stable 永久接受 1:1 stable 永久规则化沿用). 部署硬门槛: PC2 业务库 `MAX(pay_time)=2026-07-05 23:59:58` `COUNT(*)=10,829,767` 数据滞后, 必须用户批准停服维护窗口 + 人工 ETL (跟交接文档 §7 1:1 stable 永久接受 1:1 stable 永久规则化沿用, 严禁自动任务停启生产 uvicorn 跟 L4.36 1:1 stable 永久规则冲突). 7/16 离职前清单 5 件套 (跟 L4.85 1:1 stable 永久规则化沿用): HANDOVER.md §9 + 3 handoff 交付 Codex app + context-save 7/15 checkpoint + close memory + Final Codex app prompt 全部到位. 跨 sprint 留尾 4 维度 0 commit 续期 (跟 L4.57 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP 0 业务触发 0 commit 收口 1:1 stable 永久规则化沿用): 1 维度 ClickHouse POC 0 触发续期 (跟 L4.62 1:1 stable 永久接受 1:1 stable 永久规则化沿用) + 2 维度 Sprint 202 R1 跑批 wall_min 业务验证 0 触发续期 (跟 L4.58 1:1 stable 永久接受 1:1 stable 永久规则化沿用, 等 L4.54 修完业务跑批自动验证) + 3 维度 Sprint 199+ 3 P0 业务补全 0 触发续期 (跟 L4.42 + L4.55 立项 spec 实证 SOP 1:1 stable 永久规则化沿用) + 4 维度 4 case pre-existing fail 真治本 0 触发续期 (跟 L4.50 + L4.59 R6 1:1 stable 永久接受 1:1 stable 永久规则化沿用).
 

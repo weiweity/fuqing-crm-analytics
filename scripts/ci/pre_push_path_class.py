@@ -55,6 +55,22 @@ _SKIP_PREFIXES = (
     "memory/",
     "outputs/",
 )
+# Root / tooling config that must not force full pytest (hygiene push lesson)
+_SKIP_EXACT = frozenset(
+    {
+        ".gitignore",
+        ".gitattributes",
+        ".gitmessage",
+        ".mcp.json",
+        ".pre-commit-config.yaml",
+        ".dockerignore",
+        "VERSION",
+        "Dockerfile",
+        "docker-compose.yml",
+        "package.json",
+        "package-lock.json",
+    }
+)
 _SKIP_NAME_RE = re.compile(
     r"(^|/)("
     r"CHANGELOG.*|"
@@ -106,6 +122,8 @@ def is_test_path(path: str) -> bool:
 def is_skip_path(path: str) -> bool:
     p = _norm(path)
     if not p:
+        return True
+    if p in _SKIP_EXACT:
         return True
     if any(p.startswith(pref) for pref in _SKIP_PREFIXES):
         return True
