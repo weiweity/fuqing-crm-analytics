@@ -78,10 +78,15 @@ class TestPreCommitChangelogSoftWarn:
         这是 Sprint 30.2 核心改造点: 删 `exit 1`, 改 print "⚠".
         """
         src = PRE_COMMIT_HOOK.read_text(encoding="utf-8")
+        # Finish 2026-07-19 #32 light path: 旧锚点 "# P2 散点:" 已删；
+        # 锚定 STAGED_CHANGELOG + STRICT soft/hard 双分支（行为未变）。
         m = re.search(
-            r"# P2 散点:.*?STAGED_CHANGELOG.*?fi",
+            r"STAGED_CHANGELOG=\$\(.*?\)\s*\n"
+            r"if \[ -n \"\$STAGED_PY\" \] && \[ -z \"\$STAGED_CHANGELOG\" \]; then\s*"
+            r".*?"
+            r"^fi",
             src,
-            re.DOTALL,
+            re.DOTALL | re.MULTILINE,
         )
         assert m is not None, "pre-commit hook 找不到 CHANGELOG 校验整段"
         block = m.group(0)

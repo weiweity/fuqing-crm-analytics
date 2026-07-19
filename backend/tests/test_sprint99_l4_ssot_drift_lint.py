@@ -8,22 +8,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "backend/scripts/check_ssot_drift.py"
 STATUS = ROOT / "STATUS.md"
+# 2026-07-19 debt: STATUS.md 截断为短表；Sprint 99 闭环证据迁 history
+STATUS_HISTORY = ROOT / "docs" / "history" / "STATUS-HISTORY.md"
 FIX_COMMIT = "287efb8"
+
+
+def _ssot_text() -> str:
+    """STATUS 短表 + 历史编年合并，避免截断后假失败。"""
+    parts: list[str] = []
+    if STATUS.exists():
+        parts.append(STATUS.read_text(encoding="utf-8"))
+    if STATUS_HISTORY.exists():
+        parts.append(STATUS_HISTORY.read_text(encoding="utf-8"))
+    return "\n".join(parts)
 
 
 def test_sprint99_close_memory_references_real_fix_commit_sha() -> None:
     # Sprint 100 必修 1 fail 治根: CI runner `actions/checkout@v4` 默认 fetch-depth: 1 浅克隆,
     # 拿不到 Sprint 91 commit `287efb8` 的 git history (本地有 main merge 后有, CI 没).
-    # Sprint 99 实施时本地能 PASS, CI fail (returncode 128 = "Not a valid object").
-    # 治根 = 移除 git cat-file -e 验证 (CI fresh checkout 拿不到历史),
-    # commit SHA 真存在验证 留给 check_ssot_drift.py 在 main merge 后跑 (有完整 git history).
-    # Sprint 127: HANDOFF 文件被 Sprint 126 删了, 信息已迁移到 STATUS.md 第 44 行.
-    text = STATUS.read_text(encoding="utf-8")
+    # 治根 = 移除 git cat-file -e 验证 (CI fresh checkout 拿不到历史).
+    # Sprint 127: HANDOFF → STATUS；2026-07-19: STATUS 长编年 → STATUS-HISTORY.md
+    text = _ssot_text()
     assert FIX_COMMIT in text
+    assert STATUS_HISTORY.exists(), "STATUS-HISTORY.md 应存在 (STATUS 短表配套)"
 
 
 def test_sprint99_close_memory_marks_longtail_11_closed() -> None:
-    text = STATUS.read_text(encoding="utf-8")
+    text = _ssot_text()
     assert "留尾 #11 ✅ 闭环" in text
 
 

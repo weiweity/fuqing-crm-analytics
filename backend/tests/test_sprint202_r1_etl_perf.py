@@ -77,24 +77,25 @@ class TestSprint202R1MemberFilter:
     """L4.54 优化 2: member_df 7 天窗口过滤 3 case (跟 L4.5 FilterBuilder 1:1)."""
 
     def test_recent_orders_count_baseline(self):
-        """最近 7 天 orders < 30K, 实证 17K 是真子集 (跟之前 sprint 估算 1:1)."""
+        """相对 max(pay_time) 的最近 7 天 orders < 30K（不绑墙钟，防 ETL 滞后假失败）。"""
         import duckdb
         db_path = PROJECT_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
         if not db_path.exists():
             import pytest
             pytest.skip('生产 DuckDB 不存在')
         conn = duckdb.connect(str(db_path), read_only=True)
+        # 相对数据末尾日，不绑 CURRENT_TIMESTAMP：本地即生产库常滞后数天～数周
         n = conn.execute("""
             SELECT COUNT(DISTINCT order_id) FROM orders
-            WHERE pay_time >= CURRENT_TIMESTAMP - INTERVAL 7 DAY
+            WHERE pay_time >= (SELECT max(pay_time) FROM orders) - INTERVAL 7 DAY
         """).fetchone()[0]
         conn.close()
-        # 17,421 订单数 < 30K, 跟 Sprint 22 #26 baseline 1:1 stable
+        # ~17K 订单数 < 30K, 跟 Sprint 22 #26 baseline 1:1 stable
         assert n < 30_000
         assert n > 0
 
     def test_member_count_optimization_potential(self):
-        """理论优化空间: 4,662,022 - 17K = 4.6M 老客可跳过 (跟实证 1:1)."""
+        """理论优化空间: total - 近 7 日活跃用户 ≈ 4.6M 可跳过 (相对 max pay_time)."""
         import duckdb
         db_path = PROJECT_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
         if not db_path.exists():
@@ -102,7 +103,10 @@ class TestSprint202R1MemberFilter:
             pytest.skip('生产 DuckDB 不存在')
         conn = duckdb.connect(str(db_path), read_only=True)
         total = conn.execute("SELECT COUNT(*) FROM membership_mark").fetchone()[0]
-        recent_sql = 'SELECT COUNT(DISTINCT user_id) FROM orders WHERE pay_time >= CURRENT_TIMESTAMP - INTERVAL 7 DAY'
+        recent_sql = (
+            "SELECT COUNT(DISTINCT user_id) FROM orders "
+            "WHERE pay_time >= (SELECT max(pay_time) FROM orders) - INTERVAL 7 DAY"
+        )
         recent = conn.execute(recent_sql).fetchone()[0]
         conn.close()
         skip_potential = total - recent
