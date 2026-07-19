@@ -20,7 +20,6 @@ L4.42 立项实证 SOP "git log + grep 实证" 3 件真业务问题:
 import inspect
 import time
 
-import pytest
 
 
 class TestL475MarketFocusBatch:
@@ -176,18 +175,19 @@ class TestL475MarketFocusDocumentation:
     """L4.75 market-focus 性能治本 文档化验证 (跟 L4.13 + L4.20 SSOT 反漂移 1:1 stable 永久规则链配套)."""
 
     def test_changelog_mentions_l4_75_market_focus(self):
-        """验证 CHANGELOG.md 包含 L4.75 market-focus 性能治本 entry (跟 L4.20 SSOT 反漂移 1:1 stable 永久规则链配套)."""
+        """L4.75 文档在 CHANGELOG 近窗或 history（滚动后仍可检索）。"""
         from pathlib import Path
 
         repo_root = Path(__file__).resolve().parents[2]
-        changelog = repo_root / "CHANGELOG.md"
-
-        if not changelog.exists():
-            pytest.skip("CHANGELOG.md 不存在")
-
-        content = changelog.read_text(encoding="utf-8")
-        # 验证 CHANGELOG 包含 L4.75 market-focus 关键词
-        assert "L4.75" in content and "market-focus" in content.lower() or "market_focus" in content.lower(), (
-            "L4.75 fix 文档化: CHANGELOG.md 必须包含 L4.75 market-focus 性能治本 entry, "
+        parts = []
+        for rel in ("CHANGELOG.md", "docs/history/CHANGELOG_HISTORY.md"):
+            p = repo_root / rel
+            if p.exists():
+                parts.append(p.read_text(encoding="utf-8"))
+        content = "\n".join(parts)
+        assert content, "CHANGELOG.md / history 均不存在"
+        low = content.lower()
+        assert ("L4.75" in content and "market-focus" in low) or "market_focus" in low, (
+            "L4.75 fix 文档化: CHANGELOG 或 CHANGELOG_HISTORY 必须包含 L4.75 market-focus 性能治本 entry, "
             "跟 L4.20 SSOT 反漂移 1:1 stable 永久规则链配套."
         )
