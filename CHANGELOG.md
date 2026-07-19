@@ -1,5 +1,14 @@
 # Changelog
 
+## [unreleased] - 2026-07-19 (project governance: Admin Upload 撤回 + scripts/ops)
+
+### Removed
+- **Admin Upload 产品面**: router/service/view/e2e/api client/tests（产品路径已 WITHDRAWN）
+
+### Changed
+- **monitors → `scripts/ops/`** + launchd plist 路径同步；#scripts-ops 闭环
+- **TECH-DEBT / STATUS**: 无未规划开放债；仅 C7/e2e/preflight/L4.74 触发型延期
+
 ## [unreleased] - 2026-07-19 (document-release + 二次清理)
 
 ### Changed

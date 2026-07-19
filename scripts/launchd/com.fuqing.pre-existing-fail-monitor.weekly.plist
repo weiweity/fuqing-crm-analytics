@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/pre_existing_fail_monitor.py</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/ops/pre_existing_fail_monitor.py</string>
     </array>
 
     <!-- Sprint 201+ R6: 每周日 04:00 跑 1 次 (跨 sprint 0 debt stable 监控) -->

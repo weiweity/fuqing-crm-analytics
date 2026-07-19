@@ -621,7 +621,6 @@ from backend.routers import (
     session_router,
     notifications_router,  # L4.75.3 通知对方 endpoints
     login_request_router,  # L4.85 申请+同意 模式
-    admin_router,  # Sprint 205+ Admin Upload sprint 1 (v5 prompt)
 )
 
 app.include_router(auth_router)
@@ -643,7 +642,6 @@ app.include_router(ad_hoc_query_router)  # Sprint 188
 app.include_router(session_router)
 app.include_router(notifications_router)  # L4.75.3
 app.include_router(login_request_router)  # L4.85 申请+同意 模式
-app.include_router(admin_router)  # Sprint 205+ Admin Upload sprint 1
 
 # L4.91.2 治本 L4.85.6 Playwright e2e 测试环境隔离 (仅 FQ_CRM_TEST_MODE=1 开启)
 try:

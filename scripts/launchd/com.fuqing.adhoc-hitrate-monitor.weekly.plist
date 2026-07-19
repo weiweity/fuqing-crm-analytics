@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/adhoc_query_hitrate_monitor.py</string>
+        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/ops/adhoc_query_hitrate_monitor.py</string>
     </array>
 
     <!-- Sprint 201+ R8: 每周日 04:30 跑 1 次 (跟 R6+R7 错开, L4.35 symlink + L4.55 14 tool 监控) -->

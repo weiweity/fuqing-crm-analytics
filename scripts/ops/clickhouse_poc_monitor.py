@@ -16,7 +16,7 @@ L4.61 跨 CI runner 适配:
 - Linux CI runner 跑: 没 production DuckDB + 没 macOS path → 视作 0 触发 → PASS
 - main() 加 sys.platform != "darwin" 平台守卫
 
-L4.60 跨平台: REPO_ROOT = Path(__file__).resolve().parent.parent (脚本在 scripts/ 下)
+L4.60 跨平台: REPO_ROOT = Path(__file__).resolve().parents[2] (scripts/ops/ → repo root
 
 Sprint 203 R4 b/c 件真接入设计 (跟 L4.59 跨 sprint 维护性 SOP 1:1 stable):
 - b 件: urllib 3s timeout GET ${BACKEND_URL}/metrics → parse fq_query_duration_seconds_bucket → 推 P95 → > 30s 触发
@@ -33,7 +33,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent  # L4.60 跨平台
+REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60: scripts/ops/ → repo root
 DUCKDB_PATH = Path(os.environ.get("DUCKDB_PATH", str(REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb")))
 LOG_FILE = Path("/tmp/fuqing-clickhouse-poc-monitor.log")
 TECH_DEBT = REPO_ROOT / "docs" / "TECH-DEBT.md"

@@ -64,10 +64,6 @@ class QueryRouterMiddleware:
     }
     CONTROL_PREFIXES = (
         "/api/v1/auth/",
-        # Admin upload/registry 走文件侧状态, 不读业务 DuckDB.
-        # 若不排除, catch-all GET /api/v1/* → read 会在 CI (无 prod DuckDB)
-        # 强开 read_only 连接 → "database does not exist" 500.
-        "/api/v1/admin/",
         "/docs",
         "/redoc",
     )

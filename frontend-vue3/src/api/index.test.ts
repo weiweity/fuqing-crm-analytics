@@ -93,7 +93,7 @@ describe('axios CanceledError pass-through (per [P2-1])', () => {
 
     let caught: unknown
     try {
-      await client.get('/v1/admin/upload-config')
+      await client.get('/v1/auth/me')
     } catch (err) {
       caught = err
     }
@@ -115,7 +115,7 @@ describe('axios CanceledError pass-through (per [P2-1])', () => {
     // 证明 interceptor 只豁免 CanceledError, 不影响其他错误
     client.defaults.adapter = vi.fn(() =>
       Promise.reject({
-        config: { url: '/v1/admin/upload-config' },
+        config: { url: '/v1/auth/me' },
         message: 'Network Error',
         response: undefined,
       }),
@@ -123,7 +123,7 @@ describe('axios CanceledError pass-through (per [P2-1])', () => {
 
     let caught: unknown
     try {
-      await client.get('/v1/admin/upload-config')
+      await client.get('/v1/auth/me')
     } catch (err) {
       caught = err
     }

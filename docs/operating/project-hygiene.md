@@ -85,10 +85,8 @@
 
 | ID | 说明 |
 |---|---|
-| `#scripts-ops` | `scripts/` 根 monitor 归 `ops/`（须同步 launchd） |
-| `#e2e-preexisting` | 有生产数据时再严跑 |
-| `#C7-deselect` | C 类 7 条 CI deselect |
-| `#preflight-env` | 独立预发 |
+| `#scripts-ops` | ✅ monitors → `scripts/ops/`（2026-07-19） |
+| `#e2e-data` / `#C7` / `#preflight-env` | 仅触发型延期，见 TECH-DEBT |
 
 ---
 

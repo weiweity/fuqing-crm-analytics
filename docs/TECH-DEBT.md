@@ -1,59 +1,45 @@
 # 技术债台账 (Technical Debt Ledger)
 
-> **唯一开放债短表**。历史叙事：[`history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)
+> **唯一开放债短表**。历史：[`history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)
 
-**最后更新**: 2026-07-19 清理续  
-**main 基线**: `origin/main`（#30–#35 + docs 分支）
+**最后更新**: 2026-07-19 项目治理收口  
+**main 基线**: `git rev-parse origin/main`
 
 ---
 
-## 开放债
+## 开放债（仅「有触发才立」的延期项）
 
-| ID | 级 | 说明 | 触发 / 处理 |
+| ID | 级 | 说明 | **触发条件**（未触发 = 不立项） |
 |---|---|---|---|
-| **#C7-deselect** | P2 | CI deselect C 类 7 条（sampling + W4）。SSOT：`scripts/ci/pytest_c_class_deselects.txt` | 业务改 W4/RFM 口径或「CI 合成 fixture」 |
-| **#e2e-preexisting** | P2 | schema-only CI soft/skip 已合；有生产数据后再严跑 | 预发/本地 DuckDB 严跑 |
-| **#scripts-ops** | P2 | `scripts/` 根 monitor 可归 `ops/` | 须同步 launchd/hooks，禁盲 mv |
-| **#preflight-env** | P2 | 无独立预发；本地即生产 | 预发机 / 抽样库 |
-| **#Admin-Upload-WITHDRAWN** | — | 产品路径收回 | **不默认重开** |
-| **#L4.74-PG** | — | 0 commit 收口；见 architecture memo + GO-NO-GO | 启动条件 a/b/c 真触发 |
+| **#C7-deselect** | P2 | CI 仍 deselect C 类 7 条 | 业务改 W4/RFM 预计算口径，**或**交付「CI 合成 fixture」 |
+| **#e2e-data** | P2 | e2e schema-only soft/skip | 预发/本地有可复现业务 DuckDB 严跑窗口 |
+| **#preflight-env** | P2 | 无独立预发 | 有预发机 **或** 抽样 DuckDB 方案获批 |
+| **#L4.74-PG** | — | PG/分布式 0 commit 收口 | 启动条件 a/b/c 任一真触发（见 architecture memo） |
 
-### 已闭环（文档债）
+> 上表 **不是**「待办清单」；无触发条件命中时 **零未规划债**。  
+> SSOT deselect：`scripts/ci/pytest_c_class_deselects.txt`
+
+---
+
+## 本目标已闭环
 
 | ID | 结果 |
 |---|---|
-| **#STATUS-HISTORY** | STATUS 短表 + `history/STATUS-HISTORY.md` |
-| **#CLAUDE-L4-sink** | L4.1–62 全文下沉 `docs/rules/L4-permanent-rules.md`；CLAUDE 仅硬门禁摘要（document-release 2026-07-19） |
-
-### Sprint C deselect
-
-| 类 | 状态 |
-|---|---|
-| A1 / A2 / B | ✅ 已恢复 CI |
-| C 7 条 | 📋 见 #C7 |
-
-Sprint C 过程 handoff 已删出树；deselect SSOT 以 `scripts/ci/pytest_c_class_deselects.txt` 为准（git 历史可恢复旧 handoff）。
-
-### 契约
-
-- 可合并：**lint + test**；e2e 不挡（`operating/team-workflow-v1.md`）
-- 整洁：`operating/project-hygiene.md`
-- deselect SSOT：仅 `scripts/ci/pytest_c_class_deselects.txt`
+| **#STATUS-HISTORY** | STATUS 短表 + history |
+| **#CLAUDE-L4-sink** | L4 → `docs/rules/` |
+| **#scripts-ops** | monitors → `scripts/ops/` + launchd 路径同步 |
+| **#Admin-Upload-WITHDRAWN** | 产品面删除（router/service/view/e2e/test）；**不重开** |
 
 ---
 
-## 已收口指针
+## 工作流契约
 
-| 项 | 证据 |
-|---|---|
-| #30–#34 hooks/hygiene/TECH-DEBT/e2e gate | PR |
-| #35 STATUS + e2e soft | PR |
-| document-release + archive 二次精简（handoff/过程文出树） | `docs/workspace-organize-2026-07-19` |
-
----
+- **可合并**: lint + test 必绿；e2e 不挡合（`docs/operating/team-workflow-v1.md`）
+- **整洁**: `docs/operating/project-hygiene.md`
+- **运维监控入口**: `scripts/ops/` + `scripts/launchd/`
 
 ## 维护
 
-1. 新债加行；闭环移历史或「已闭环」  
-2. 禁止顶部万字编年  
-3. 过程文 → `sprints/archive/`，不进开放表  
+1. 新债必须有触发条件或立即排期；禁止「以后再清」空行  
+2. 长编年只进 `history/`  
+3. 撤回功能优先删代码，不留死路由  

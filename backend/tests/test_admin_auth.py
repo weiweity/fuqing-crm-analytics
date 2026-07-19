@@ -91,28 +91,30 @@ def test_me_response_includes_is_admin(client):
     assert data["is_admin"] is True
 
 
-def test_middleware_sets_request_state_username(client):
-    """auth_middleware 把 username 写到 request.state.
-    间接验证: GET /upload-config 需要 admin + 401/403 路径不同.
+def test_middleware_sets_request_state_username_via_auth_me(client):
+    """auth_middleware 把 username 写到 request.state（Admin Upload 已撤回，改走 /auth/me）。
     """
-    # 1. 无 token → 401 (不走 middleware 进 router)
-    resp = client.get("/api/v1/admin/upload-config")
+    # 1. 无 token → 401
+    resp = client.get("/api/v1/auth/me")
     assert resp.status_code == 401, f"无 token 应 401, 实得 {resp.status_code}"
-    # 2. fqsw token (非 admin) → 403 (middleware 写 username, require_admin 拒)
+    # 2. fqsw token → 200 + is_admin false（middleware 写 username）
     fqsw_payload = client.post("/api/v1/auth/login", json={"username": "fqsw", "password": "fqsw888"}).json()
     resp = client.get(
-        "/api/v1/admin/upload-config",
+        "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {fqsw_payload['token']}"},
     )
-    assert resp.status_code == 403, f"非 admin 应 403, 实得 {resp.status_code} {resp.text}"
-    assert resp.json()["detail"]["code"] == "ADMIN_REQUIRED"
-    # 3. admin token → 200 (中间件放行 + require_admin 通过)
+    assert resp.status_code == 200, f"已登录应 200, 实得 {resp.status_code} {resp.text}"
+    assert resp.json()["username"] == "fqsw"
+    assert resp.json()["is_admin"] is False
+    # 3. admin token → 200 + is_admin true
     admin_payload = client.post("/api/v1/auth/login", json={"username": "admin", "password": "123456"}).json()
     resp = client.get(
-        "/api/v1/admin/upload-config",
+        "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {admin_payload['token']}"},
     )
     assert resp.status_code == 200, f"admin 应 200, 实得 {resp.status_code} {resp.text}"
+    assert resp.json()["username"] == "admin"
+    assert resp.json()["is_admin"] is True
 
 
 def test_login_request_claim_response_includes_is_admin(client):

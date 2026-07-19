@@ -1,6 +1,6 @@
 """Sprint 203 R2 Finding 4.1: ClickHouse POC monitor 锁回归 (L4.58 + L4.59 + L4.61 永久规则化)
 
-- 验证 scripts/clickhouse_poc_monitor.py 跑出 CLICKHOUSE_POC_MONITOR_PASS
+- 验证 scripts/ops/clickhouse_poc_monitor.py 跑出 CLICKHOUSE_POC_MONITOR_PASS
 - 验证 fail-open 原则 (异常 exit 0 不阻 commit)
 - 验证 L4.61 跨 CI runner 适配 (Linux 视作 0 触发 → PASS)
 
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台 (test 在 backend/tests/ 下)
-SCRIPT = REPO_ROOT / "scripts" / "clickhouse_poc_monitor.py"
+SCRIPT = REPO_ROOT / "scripts" / "ops" / "clickhouse_poc_monitor.py"
 
 
 def _run_monitor() -> subprocess.CompletedProcess:

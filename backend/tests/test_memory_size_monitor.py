@@ -1,6 +1,6 @@
 """Sprint 201+ R7 MEMORY.md size monitor 锁回归 (L4.59 永久规则化)
 
-- 验证 scripts/memory_size_monitor.py 跑出 MEMORY_SIZE_MONITOR_OK
+- 验证 scripts/ops/memory_size_monitor.py 跑出 MEMORY_SIZE_MONITOR_OK
 - 验证 LIMIT_BYTES 跟 L4.13 永久规则一致 (24576)
 - 验证 fail-open 原则 (异常 exit 0 不阻 commit)
 """
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台 (test 在 backend/tests/ 下, parents[2] 是 repo root)
-SCRIPT = REPO_ROOT / "scripts" / "memory_size_monitor.py"
+SCRIPT = REPO_ROOT / "scripts" / "ops" / "memory_size_monitor.py"
 
 
 def _load_module():
