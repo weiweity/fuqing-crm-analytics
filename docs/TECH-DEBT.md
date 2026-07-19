@@ -7,7 +7,7 @@
 
 ## Sprint C / L4.86 — 21 deselect 跨 sprint 评估 (2026-07-19)
 
-> SSOT handoff: `docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md`  
+> SSOT handoff: `docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md`
 > 实证: git log (`1961877` 加 9 deselect / `79e5d33` 删 period 测) + 本地 pytest + CI 模拟 `DUCKDB_PATH` 不存在.
 
 ### ✅ A 已闭环 (Sprint C 本分支 — 等 push/merge)
@@ -36,7 +36,7 @@
 | 3 | `test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types` | 模块级 skipif 绑 prod（可选拆契约测升 A，真业务触发再立） |
 | 4–7 | `test_w4_t7_integration.py` 4 case (`test_a`…`test_d`) | W4 真 ETL + prod ATTACH；本地有库可跑，CI 保持 deselect |
 
-**续期触发**: 业务改 W4/RFM 预计算口径，或立项「CI 合成 540 组合 fixture」再拆 deselect。  
+**续期触发**: 业务改 W4/RFM 预计算口径，或立项「CI 合成 540 组合 fixture」再拆 deselect。
 **跟 L4.57 / L4.59 1:1 stable**: 0 业务代码改动类维护，真业务触发再立。
 
 ### 当前 workflow 契约

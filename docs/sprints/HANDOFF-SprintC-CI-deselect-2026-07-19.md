@@ -1,8 +1,8 @@
 # HANDOFF — Sprint C CI deselect cleanup (2026-07-19)
 
-> **角色**: Grok (Codex 实施者位) → Claude Code (架构师 / Stage 3 review + Stage 4 ship)  
-> **分支**: `fix/sprint-ci-deselect-cleanup-2026-07-19` (from `main @ fc18077`)  
-> **状态**: 本地实施完成，**未 push / 未 merge**（等 user 拍板 L4.15）  
+> **角色**: Grok (Codex 实施者位) → Claude Code (架构师 / Stage 3 review + Stage 4 ship)
+> **分支**: `fix/sprint-ci-deselect-cleanup-2026-07-19` (from `main @ fc18077`)
+> **状态**: 本地实施完成，**未 push / 未 merge**（等 user 拍板 L4.15）
 > **Verdict**: `PARTIAL_FIXED_PENDING_B_C` → A+B 已闭环；C 7 条留 deselect + TECH-DEBT 登记
 
 ---
@@ -56,9 +56,9 @@ test_w4_t7_integration.py::TestW4DataQuality::test_d_w4_data_quality
 
 ## 4. W2 真因（A2）
 
-- 注释说「需 prod db」过时。  
-- 真因：`/api/v1/rfm/*` → `QueryRouterMiddleware` read → `dual_conn.get_read_connection()` 打开 `DUCKDB_PATH`。  
-- endpoint 只读 manifest JSON，不查 orders。  
+- 注释说「需 prod db」过时。
+- 真因：`/api/v1/rfm/*` → `QueryRouterMiddleware` read → `dual_conn.get_read_connection()` 打开 `DUCKDB_PATH`。
+- endpoint 只读 manifest JSON，不查 orders。
 - 修法：tmp 空 DuckDB + `FQ_DB_MODE=schema_test` + patch `dual_conn.DUCKDB_PATH` + 清 `_read_pool`。
 
 ---
