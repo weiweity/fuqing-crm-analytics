@@ -43,6 +43,10 @@ jobs:
           cache-dependency-path: requirements-lock.txt
       - name: "Install ruff (L4.41 + L4.9 lock version 1:1 with requirements-lock.txt)"
         run: pip install -r requirements-lock.txt
+      - name: "Print python + ruff versions (Track A 2026-07-19)"
+        run: |
+          python --version
+          ruff --version
       - name: "Run ruff check (Sprint 87 custom step, avoid ruff-action internal Node 20)"
         run: ruff check backend/
 
@@ -86,21 +90,18 @@ jobs:
       - run: pip install -r requirements-lock.txt
       # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
       # 排除 pytest.mark.slow，避免 job hang。
-      # Sprint C 2026-07-19 (fix/sprint-ci-deselect-cleanup-2026-07-19): 原 21 deselect 评估后只留 C 类 7 条:
-      #   A1 9 条 (rfm_cache_drop/write + w7 + startup) 已绿 → 恢复进 CI
-      #   A2 2 条 (w2 RFM version endpoint) 修 isolated_read_db fixture → 恢复进 CI
-      #   B 3 条 (period_distribution 死 nodeid, 79e5d33 已删 body) → 清 deselect
-      #   C 7 条 (sampling 3 + W4 4) 真连 prod / skipif 语义 → 继续 deselect (跟 L4.57/L4.59 留尾)
-      # SSOT: docs/TECH-DEBT.md Sprint C 段 + docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md
-      - run: >-
-          PYTHONPATH=. pytest backend/tests/ -q -m "not slow"
-          --deselect backend/tests/test_etl_sample_received_at.py::TestSampleReceivedAtPhase1::test_sampling_service_falls_back_to_pay_time
-          --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_mom_compare_tuple
-          --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4T7ActualRun::test_a_w4_t7_actual_run
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4Idempotency::test_b_w4_idempotency
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4VersionIncrement::test_c_w4_version_increment
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4DataQuality::test_d_w4_data_quality
+      # Sprint C 2026-07-19: C-class 7 deselect only (A1/A2 restored, B dead nodeids cleared).
+      # Track A 2026-07-19: deselect SSOT = scripts/ci/pytest_c_class_deselects.txt
+      #   (shared by pre-push + lint.yml + nightly.yml — no more hardcoded drift)
+      - name: Run full pytest (C-class deselect SSOT)
+        run: |
+          set -euo pipefail
+          DESELECT_ARGS=()
+          while IFS= read -r tok; do
+            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
+          done < <(bash scripts/ci/pytest_deselect_args.sh)
+          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
+          PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"
 
   e2e:
     runs-on: ubuntu-latest

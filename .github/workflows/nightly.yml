@@ -63,16 +63,14 @@ jobs:
 
       # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
       # 排除 pytest.mark.slow，避免 job hang。
-      # Sprint C 2026-07-19: 跟 lint.yml test job 1:1 stable — 只留 C 类 7 deselect
-      # (sampling 3 + W4 4). A1 9 + A2 w2 2 已恢复; B 3 死 period_distribution 已清.
-      # SSOT: docs/TECH-DEBT.md Sprint C 段 + docs/sprints/HANDOFF-SprintC-CI-deselect-2026-07-19.md
-      - name: Run full pytest (with 7 C-class --deselect, 跟 lint.yml test job 1:1 stable)
-        run: >-
-          PYTHONPATH=. pytest backend/tests/ -q -m "not slow"
-          --deselect backend/tests/test_etl_sample_received_at.py::TestSampleReceivedAtPhase1::test_sampling_service_falls_back_to_pay_time
-          --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_mom_compare_tuple
-          --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4T7ActualRun::test_a_w4_t7_actual_run
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4Idempotency::test_b_w4_idempotency
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4VersionIncrement::test_c_w4_version_increment
-          --deselect backend/tests/test_w4_t7_integration.py::TestW4DataQuality::test_d_w4_data_quality
+      # Sprint C + Track A 2026-07-19: C-class deselect SSOT (scripts/ci/pytest_c_class_deselects.txt)
+      # shared with lint.yml + pre-push — 1:1 stable, no hardcoded drift.
+      - name: Run full pytest (C-class deselect SSOT, 跟 lint.yml 1:1)
+        run: |
+          set -euo pipefail
+          DESELECT_ARGS=()
+          while IFS= read -r tok; do
+            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
+          done < <(bash scripts/ci/pytest_deselect_args.sh)
+          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
+          PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"

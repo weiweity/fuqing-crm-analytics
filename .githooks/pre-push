@@ -1,14 +1,98 @@
 #!/bin/bash
-# Pre-push hook: run tests before pushing to remote
+# Pre-push hook: smart path + C-class deselect SSOT
 # Install: git config core.hooksPath .githooks
+#
+# Track A 2026-07-19:
+#   - deselect SSOT: scripts/ci/pytest_c_class_deselects.txt (shared with lint/nightly)
+#   - smart path:
+#       skip  → docs/md/changelog/handoff only
+#       ruff  → scripts/hooks only → ruff check backend/
+#       full  → backend tests/services/routers/middleware/db/main + requirements
+#
 # Slow tests (DuckDB integration) run in CI only.
 
-# Sprint 38 race flake 治标: 检测 uvicorn 是否占 DuckDB fd, 跑批前 warn user.
-# 真连 test (test_churn_user_list_fstring / test_w4_t7_integration) 会自己 skip
-# (test_churn_user_list_fstring.py:55,77 + test_w4_t7_integration.py:147,181,197,228
-#  + test_w4_full.py:319 等的 _IN_XDIST_PARALLEL / skip_if_duckdb_locked), 但 push
-# 时间应该让 user 知道 race flake 现状 (5 sprint 复发 Sprint 32.3/34.1/36-1/37/38).
-# 真治本留 Sprint 36.x+ (per-test tmp DuckDB ATTACH 模式, Sprint 38 调研 ROI 低).
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+ZERO="0000000000000000000000000000000000000000"
+CLASSIFIER="$REPO_ROOT/scripts/ci/pre_push_path_class.py"
+DESELECT_SH="$REPO_ROOT/scripts/ci/pytest_deselect_args.sh"
+
+# Collect changed files from stdin push refs (git pre-push protocol)
+CHANGED_FILES=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # branch delete → no tests
+    if [ "$local_sha" = "$ZERO" ]; then
+        continue
+    fi
+    if [ "$remote_sha" = "$ZERO" ]; then
+        # new branch: diff vs merge-base with main/origin/main
+        base=""
+        if git rev-parse --verify origin/main >/dev/null 2>&1; then
+            base="$(git merge-base origin/main "$local_sha" 2>/dev/null || true)"
+        fi
+        if [ -z "$base" ] && git rev-parse --verify main >/dev/null 2>&1; then
+            base="$(git merge-base main "$local_sha" 2>/dev/null || true)"
+        fi
+        if [ -n "$base" ]; then
+            CHANGED_FILES="${CHANGED_FILES}
+$(git diff --name-only "$base" "$local_sha" 2>/dev/null || true)"
+        else
+            # fallback: all files in the tip commit tree vs empty → force full
+            CHANGED_FILES="${CHANGED_FILES}
+backend/main.py"
+        fi
+    else
+        CHANGED_FILES="${CHANGED_FILES}
+$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null || true)"
+    fi
+done
+
+# If stdin empty (manual hook run), fall back to origin/main...HEAD or @{u}
+if [ -z "$(echo "$CHANGED_FILES" | tr -d '[:space:]')" ]; then
+    if git rev-parse --verify origin/main >/dev/null 2>&1; then
+        CHANGED_FILES="$(git diff --name-only origin/main...HEAD 2>/dev/null || true)"
+    elif git rev-parse --verify @{u} >/dev/null 2>&1; then
+        CHANGED_FILES="$(git diff --name-only @{u}...HEAD 2>/dev/null || true)"
+    else
+        CHANGED_FILES="backend/main.py"
+    fi
+fi
+
+MODE="$(printf '%s\n' "$CHANGED_FILES" | python3 "$CLASSIFIER" --files-from - 2>/dev/null || echo full)"
+
+echo "pre-push smart path mode: $MODE"
+
+case "$MODE" in
+    skip)
+        echo "✅ Docs/md/changelog/handoff only (or frontend-only) — skip full pytest."
+        echo "   Changed sample:"
+        printf '%s\n' "$CHANGED_FILES" | sed '/^$/d' | head -10 | sed 's/^/   - /'
+        exit 0
+        ;;
+    ruff)
+        echo "Running ruff check backend/ (scripts/hooks-only path, skip full pytest)..."
+        if command -v ruff >/dev/null 2>&1; then
+            ruff check backend/
+        else
+            python3 -m ruff check backend/
+        fi
+        if [ $? -ne 0 ]; then
+            echo ""
+            echo "❌ ruff failed. Fix before pushing."
+            exit 1
+        fi
+        echo "✅ ruff passed. Full pytest skipped (no backend tests/services/routers/db/main touched)."
+        exit 0
+        ;;
+    full|*)
+        # fall through to full pytest
+        ;;
+esac
+
+# --- full path: uvicorn race warn + pytest with deselect SSOT ---
+
+# Sprint 38 race flake 治标: 检测 uvicorn 是否占 DuckDB fd
 _UVICORN_PID=$(lsof -nP -iTCP:8000 -sTCP:LISTEN -t 2>/dev/null | head -1)
 if [ -n "$_UVICORN_PID" ]; then
     echo "⚠️  uvicorn PID $_UVICORN_PID 跑着, race flake 真连 test 会自动 skip (DuckDB 文件锁 exclusive)."
@@ -16,40 +100,29 @@ if [ -n "$_UVICORN_PID" ]; then
     echo "   真跑真连 test: kill $_UVICORN_PID 后重跑, 或用 pytest -n0 serial mode."
 fi
 
-echo "Running tests before push (parallel, excluding slow)..."
-# Sprint 108 必修 3 L4.7 实战 fix 模式: 改 -n auto (parallel) → -n0 (serial).
-# xdist parallel pytest 触发 dotenv main.py:358 FileNotFoundError (跟 Sprint 38 race flake 治标同模式).
-# 跟 Sprint 38 治标尾声 + 必修 1 load_dotenv FileNotFoundError 兜底 配套.
-PYTHONPATH="$(git rev-parse --show-toplevel)" python3 -m pytest backend/tests/ -x -q -n0 -m "not slow" \
-  --deselect backend/tests/test_etl_sample_received_at.py::TestSampleReceivedAtPhase1::test_sampling_service_falls_back_to_pay_time \
-  --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_mom_compare_tuple \
-  --deselect backend/tests/test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types \
-  --deselect backend/tests/test_sampling_sprint139.py::TestSamplingROIPeriodDistribution::test_period_distribution_buckets_are_ints \
-  --deselect backend/tests/test_sampling_sprint139.py::TestSamplingROIPeriodDistribution::test_full_buckets_do_not_exceed_total_buckets \
-  --deselect backend/tests/test_sampling_sprint141.py::TestSprint141PeriodDistribution::test_period_distribution_61_90d_fields_present \
-  --deselect backend/tests/test_w4_t7_integration.py::TestW4T7ActualRun::test_a_w4_t7_actual_run \
-  --deselect backend/tests/test_w4_t7_integration.py::TestW4Idempotency::test_b_w4_idempotency \
-  --deselect backend/tests/test_w4_t7_integration.py::TestW4VersionIncrement::test_c_w4_version_increment \
-  --deselect backend/tests/test_w4_t7_integration.py::TestW4DataQuality::test_d_w4_data_quality \
-  --deselect backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_manifest_info \
-  --deselect backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_empty_when_no_manifest \
-  --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheDropRecreate::test_drop_recreate_clears_all_rows \
-  --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheDropRecreate::test_drop_recreate_preserves_schema \
-  --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheIdempotent::test_multiple_clears_idempotent \
-  --deselect backend/tests/test_rfm_cache_drop_recreate.py::TestClearRfmCacheIndexStateCorruption::test_clear_succeeds_after_index_corruption \
-  --deselect backend/tests/test_rfm_cache_write_conn.py::TestOpenWriteConnRealConnectionNoError::test_get_cache_conn_succeeds \
-  --deselect backend/tests/test_rfm_cache_write_conn.py::TestOpenWriteConnRealConnectionNoError::test_sibling_connection_pattern_works \
-  --deselect backend/tests/test_rfm_cache_write_conn.py::TestClearRfmCacheEndToEnd::test_clear_rfm_cache_no_longer_fails \
-  --deselect backend/tests/test_w7_memory_limit.py::TestW7MemoryLimitOverride::test_backward_compat_default_8gb \
-  --deselect backend/tests/test_startup_validation.py::test_production_rejects_stale_data 2>/dev/null
+echo "Running full pytest before push (serial -n0, C-class deselect SSOT)..."
+
+# Build --deselect args from SSOT (7 C-class nodeids)
+DESELECT_ARGS=()
+if [ -x "$DESELECT_SH" ] || [ -f "$DESELECT_SH" ]; then
+    while IFS= read -r tok; do
+        [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
+    done < <(bash "$DESELECT_SH")
+else
+    echo "ERROR: missing $DESELECT_SH" >&2
+    exit 1
+fi
+
+PYTHONPATH="$REPO_ROOT" python3 -m pytest backend/tests/ -x -q -n0 -m "not slow" \
+  "${DESELECT_ARGS[@]}" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Tests failed. Fix them before pushing."
     echo "   Run: PYTHONPATH=. pytest backend/tests/ -x -q"
+    echo "   Deselect SSOT: scripts/ci/pytest_c_class_deselects.txt"
     echo "   Full suite (including slow): PYTHONPATH=. pytest backend/tests/ -x -q -n auto"
     exit 1
 fi
 
-echo "✅ Tests passed. (slow tests run in CI)"
-# Sprint 38 race flake 治标尾声: 提示 user 已 skip 的真连 test, 提醒真跑模式.
-echo "📋 真连 test (DuckDB): 跑 `kill \$_UVICORN_PID && pytest backend/tests/test_churn_user_list_fstring.py -v -n0` 真验证回归."
+echo "✅ Tests passed. (slow tests run in CI; C-class deselect from SSOT)"
+echo "📋 真连 test (DuckDB): 跑 kill \$_UVICORN_PID && pytest backend/tests/test_churn_user_list_fstring.py -v -n0 真验证回归."
