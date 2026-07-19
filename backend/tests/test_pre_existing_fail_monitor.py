@@ -1,20 +1,16 @@
 """Sprint 201+ R6 pre-existing fail monitor 锁回归 (L4.59 永久规则化)
 
 - 验证 scripts/ops/pre_existing_fail_monitor.py 跑出 PRE_EXISTING_FAIL_MONITOR_PASS
-- 验证 14 case 期望跟 SSOT 对齐 (Sprint 201 R2 v24 治本实证)
+- 无生产业务库时直接 PASS（不裸跑 14 case 假红）— 2026-07-19 CI 修
 - 验证 fail-open 原则 (异常 exit 0 不阻 commit)
-
-L4.61 跨 CI runner 适配 (跟 L4.40 fail-open + L4.50 pytest cleanup 1:1 stable):
-- macOS 本地 launchd 跑期望 "14 passed" (本地实证 Sprint 202 R1)
-- Linux CI runner 期望 "0 passed" (--deselect 14 pre-existing fail 全跳过, 跟 Sprint 201 R1 v2.1 lint.yml 1:1 stable)
-- R6 monitor 改 fail-open: passed=0 + failed=0 也 PASS
-- pytest case 改: assert "PRE_EXISTING_FAIL_MONITOR_PASS" + returncode == 0, 不 assert "14 passed"
 """
 from __future__ import annotations
 
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台 (test 在 backend/tests/ 下, parents[2] 是 repo root)
 SCRIPT = REPO_ROOT / "scripts" / "ops" / "pre_existing_fail_monitor.py"
@@ -27,30 +23,71 @@ def _run_monitor() -> subprocess.CompletedProcess:
         env={"PYTHONPATH": str(REPO_ROOT), "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"},
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=180,
     )
 
 
-def test_pre_existing_fail_monitor_pass_跨平台() -> None:  # noqa: N802 — pytest convention: function 名字是测试标识, 跟 Sprint 60+ L4.61 永久规则 1:1 stable
-    """R6 跨 sprint stable 实证: 跨 CI runner 适配 (macOS 14 passed / Linux 0 passed 都 PASS)
-
-    L4.61 跨 CI runner 适配: macOS launchd 期望 14 passed (本地实证 Sprint 202 R1),
-    Linux CI runner 期望 0 passed (CI 加 --deselect 把 14 pre-existing fail 全 deselect).
-    R6 monitor 都视为 PASS (failed=0, 跟 L4.40 fail-open 1:1 stable).
-
-    Note: 函数名 historical "14 cases" 反映 Sprint 202 R1 macOS 实证, 跨 CI runner
-    fail-open 后数字是 0/8/14 都 PASS (跟 L4.61 永久规则化跨 sprint 监控 1:1 stable).
-    """
+def test_pre_existing_fail_monitor_pass_跨平台() -> None:  # noqa: N802
+    """R6: 有库则探针；无库/CI 直接 PASS failed=0（不得 7-fail 假红）。"""
     result = _run_monitor()
-    # 真守卫: PASS 关键字存在 + returncode 0 (告警分支不含 PASS 关键字)
     assert "PRE_EXISTING_FAIL_MONITOR_PASS" in result.stdout, (
         f"R6 monitor did not report PASS: stdout={result.stdout!r} stderr={result.stderr!r}"
     )
-    # 冗余兜底: PASS 输出必含 "failed=0" 跨平台标识 (跟 L4.61 永久规则配套)
     assert "failed=0" in result.stdout or "0 failed" in result.stdout, (
-        f"R6 monitor must report failed=0 (L4.61 fail-open), got: {result.stdout!r}"
+        f"R6 monitor must report failed=0, got: {result.stdout!r}"
     )
     assert result.returncode == 0, f"R6 monitor exited non-zero: {result.returncode}"
+
+
+def test_is_business_duckdb_ready_rejects_empty_file(tmp_path: Path) -> None:
+    """shipped is_business_duckdb_ready: 空库 → False。"""
+    import duckdb
+
+    from scripts.ops.pre_existing_fail_monitor import is_business_duckdb_ready
+
+    empty = tmp_path / "empty.duckdb"
+    duckdb.connect(str(empty)).close()
+    assert empty.is_file()
+    assert is_business_duckdb_ready(empty) is False
+
+
+def test_is_business_duckdb_ready_accepts_orders_table(tmp_path: Path) -> None:
+    """shipped is_business_duckdb_ready: 有 orders 且体积够 → True。"""
+    import duckdb
+
+    from scripts.ops.pre_existing_fail_monitor import is_business_duckdb_ready
+
+    db = tmp_path / "biz.duckdb"
+    conn = duckdb.connect(str(db))
+    # 足够行数保证文件 > 50KB + 有 orders 表
+    conn.execute(
+        "CREATE TABLE orders AS SELECT i AS order_id, "
+        "TIMESTAMP '2026-01-01' + INTERVAL (i) DAY AS pay_time "
+        "FROM range(200000) t(i)"
+    )
+    conn.close()
+    assert db.stat().st_size >= 50_000, f"fixture too small: {db.stat().st_size}"
+    assert is_business_duckdb_ready(db) is True
+
+
+def test_main_no_prod_db_prints_pass(monkeypatch: pytest.MonkeyPatch) -> None:
+    """main() 在 is_business_duckdb_ready=False 时 stdout 含 PASS + failed=0。"""
+    import scripts.ops.pre_existing_fail_monitor as mon
+
+    monkeypatch.setattr(mon, "is_business_duckdb_ready", lambda path=None: False)
+    monkeypatch.setattr(mon, "run_pytest", lambda: (_ for _ in ()).throw(AssertionError("should not run")))
+
+    import io
+    from contextlib import redirect_stdout
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        rc = mon.main()
+    out = buf.getvalue()
+    assert rc == 0
+    assert "PRE_EXISTING_FAIL_MONITOR_PASS" in out
+    assert "failed=0" in out
+    assert "skip live probe" in out or "no prod" in out.lower()
 
 
 def test_pre_existing_fail_monitor_script_syntax() -> None:

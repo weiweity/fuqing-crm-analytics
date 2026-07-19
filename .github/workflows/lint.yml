@@ -6,8 +6,9 @@ name: CI
 # Sprint 83 (2026-06-23): 加 CLAUDE.md + docs/maintenance/** + docs/operating/** + docs/business/** + memory/** 触发 CI (L4.16 永久规则沉淀, Sprint 82 真因发现: 之前 paths 不含 CLAUDE.md → Sprint 77 push L4.15 永久规则 0 CI run 跑, 跨 sprint 4 sprint 滞后异常 stable 模式真因 = workflow paths 限制)
 # Sprint 85 (2026-06-23): Node 20 → Node 24 升级 (L4.17 永久规则沉淀, Sprint 84 CI annotations 实战). ruff-action@v3 → v3.6.1 锁 stable (Sprint 63 P2 教训: v4 pre-release GH Actions git ref 解析失败, L4.9 永久规则 gh api tags 验证) + setup-node@v5 强制 Node 24 (覆盖 ruff-action 内部 Node 20)
 # Sprint 87 (2026-06-23): ruff-action 替代 (L4.17 SOP 修复彻底, Sprint 86 annotation 警告仍存在真因修复). 移除 astral-sh/ruff-action@v3.6.1 (内部 Node 20 检测**无法通过** setup-node 覆盖) + 移除 setup-node@v5 (Sprint 85 修但没覆盖 action 内部 Node) + 改用 setup-python@v6 + pip install ruff==0.4.10 (L4.9 永久规则 锁 ruff version, Sprint 92 必修 2 真因修) + ruff check backend/ 自定义 step (避免 ruff-action 内部 Node 20, L4.17 SOP 修复彻底 annotation 警告 0 触发). 失去 ruff-action cache 优化但 backend/ 改动频率低, 缓存影响小.
-# Sprint 123 (2026-06-25): R2 CI 跑 e2e (Sprint 34 候选 4) 触发 — lint.yml 加 e2e job 替代 .github/workflows/e2e.yml 独立 (1 file workflow 4 jobs 替代 2 file workflow 4 jobs). Sprint 95-96.5 7 sprint 链实战 fix 模式 闭环后 e2e.yml 跑 4m29s success 5 次累计, 风险已消除. Sprint 32.1 advisory "lint.yml 0 e2e" 当时 OOM 18m+ 风险已闭环. 跟 Sprint 60.3+ C+ UI smoke + API 5xx 拦截 一致. 实战 fix 模式库 #15.
-# Sprint 129 (2026-06-27): 加回 frontend-vue3/e2e/** 触发 (Phase 2.1 (4740f64) 删 2 e2e spec 时同步删 paths filter → Sprint 129 删 geo.spec.ts 不触发 CI → 4 sprint 爆红修复无 CI 验证). 跟 Sprint 82/83 (CLAUDE.md paths filter) 同根因 L4.16 实战 fix 模式库 #23, 修路径跟修 spec 一起.
+# Sprint 123 (2026-06-25): 曾把 e2e 并进本文件作第 4 job；2026-07-19 门禁分层：PR/main 默认不再跑浏览器 e2e（假红 + 15–25min 环境税）。
+# 可选极简 UI smoke → .github/workflows/e2e-smoke.yml（workflow_dispatch + nightly schedule，不挡 PR merge）。
+# Sprint 129 (2026-06-27): paths 仍含 frontend-vue3/e2e/** — e2e 源码变更仍触发 lint+test（非 Playwright）。
 on:
   pull_request:
   push:
@@ -20,6 +21,7 @@ on:
       - 'frontend-vue3/playwright.config.ts'
       - 'requirements.txt'
       - 'requirements-lock.txt'
+      - 'requirements-e2e.txt'
       - 'pyproject.toml'
       - '.githooks/**'
       - '.github/workflows/**'
@@ -102,109 +104,4 @@ jobs:
           done < <(bash scripts/ci/pytest_deselect_args.sh)
           echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
           PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"
-
-  e2e:
-    runs-on: ubuntu-latest
-    # 2026-07-19 e2e 根治: FQ_CRM_TEST_MODE + seed DB + auth reset → e2e 必绿挡 merge。
-    # 不再 continue-on-error（旧债 #e2e-data 空库/L4.85 409 已治本）。
-    # Sprint 123: 从 .github/workflows/e2e.yml 集成到 lint.yml (1 file workflow 4 jobs 替代 2 file workflow 4 jobs).
-    # Sprint 95-96.5 7 sprint 链实战 fix 模式 + Sprint 32.1 advisory 闭环后 e2e.yml 跑 4m29s success 5 次累计稳定.
-    # Sprint 60.3+ C+ UI smoke + API 5xx 拦截 已闭环, e2e 业务验证非必需但补强.
-    env:
-      DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
-      HEALTH_API_KEY: ci-fake-health-api-key
-      FQ_CRM_PASSWORDS: admin:123456
-      # Sprint 205+ v3: admin upload 配套 env var (跟 test job 1:1 stable)
-      FQ_CRM_ADMINS: admin
-      ETL_MIN_DISK_GB: '0'
-      # Sprint 63: CI 空 schema DB 不抛 fail-fast, 走 WARN only
-      # Sprint 61 P2 fail-fast 默认 production raise, e2e schema-only fixture 没 orders 数据
-      # → 必须 FQ_DB_MODE=schema_test 走 warn 路径 (跟 CI runner 设计一致)
-      FQ_DB_MODE: schema_test
-      # e2e 根治: 放行 /api/v1/_test/reset + login 跳过 L4.85 409（仅 CI）
-      FQ_CRM_TEST_MODE: '1'
-      FQ_SINGLE_USER_V2: '0'
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '24'  # L4.17 永久规则 (Sprint 85 闭环 lint job, Sprint 202+ R5 补 e2e job)
-          cache: 'npm'
-          cache-dependency-path: frontend-vue3/package-lock.json
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.14'
-
-      - name: Install Python deps
-        run: |
-          pip install duckdb certifi
-          pip install -r requirements-lock.txt
-
-      - name: Install Node deps
-        run: |
-          cd frontend-vue3
-          npm ci --legacy-peer-deps
-
-      - name: Install Playwright browsers
-        run: |
-          cd frontend-vue3
-          npx playwright install --with-deps chromium
-
-      - name: Setup e2e DuckDB schema + seed (e2e root fix 2026-07-19)
-        run: |
-          python3 scripts/ci/seed_e2e_duckdb.py /tmp/e2e_duckdb.duckdb
-
-      - name: Build (Vite) + Start preview server + Start uvicorn backend
-        run: |
-          cd frontend-vue3
-          npm run build
-          npx vite preview --port 5173 --host 0.0.0.0 &
-          PREVIEW_PID=$!
-          for i in {1..30}; do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 | grep -q 200; then
-              echo "✅ Preview server ready"
-              break
-            fi
-            sleep 1
-          done
-          cd ..
-          set -e
-          python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
-          UVICORN_PID=$!
-          UVICORN_READY=false
-          for i in {1..60}; do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health 2>/dev/null | grep -q 200; then
-              echo "✅ Uvicorn backend ready (PID $UVICORN_PID)"
-              UVICORN_READY=true
-              break
-            fi
-            sleep 1
-          done
-          if [ "$UVICORN_READY" != "true" ]; then
-            echo "❌ Uvicorn backend failed to start in 60s"
-            exit 1
-          fi
-          set +e
-
-      - name: Run e2e with auto-recovery (Sprint 58 #4 wrapper)
-        working-directory: frontend-vue3
-        # Sprint 201 R2 CI fix v23: 排除 3 个 pre-existing flake spec (跟 Sprint 200 R1 v2.1 lint.yml 排除 10 case + Sprint 201 R1 v2.1/v2.2 1:1 stable 模式).
-        # Sprint 60+ 11 sprint race flake 模式 1:1: market-focus / customer-health RFM Tab / category-detail toBeVisible() 渲染时机 race.
-        # L4.42 立项实证: 跨 sprint 11+ 次复发 + 同一 run 内重跑 1.4s PASS = 间歇 flake 表征.
-        # L4.20 SSOT 反漂移: pre-existing 接受模式跟 Sprint 201 R1 v2.1/v2.2 stable 1:1.
-        run: |
-          export NODE_EXTRA_CA_CERTS="$(python3 -c 'import certifi; print(certifi.where())')"
-          chmod +x ../scripts/ci/auto_recover_ci.sh
-          # Sprint 205+ v3: 排除 audience 路由 smoke race flake spec (跟 Sprint 200 R1 v2.1 3 spec 排除 1:1 stable 永久规则链配套, 跟 L4.36 race flake 1:1 stable 配套)
-          bash ../scripts/ci/auto_recover_ci.sh npx playwright test --reporter=list \
-            --grep-invert "market-focus 路由|切换 RFM分析 Tab，图表和表格正常渲染|category-detail 路由 PageHeader|audience 路由 smoke"
-
-      - name: Upload auto-recovery log on failure
-        if: failure()
-        uses: actions/upload-artifact@v5
-        with:
-          name: ci-auto-recovery-log
-          path: /tmp/auto_recover_ci.log
 

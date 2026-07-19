@@ -9,7 +9,7 @@
 | **VERSION** | 以根目录 `VERSION` 为准 |
 | **main** | 文档 release + Admin 撤回 + `scripts/ops` 监控分区 |
 | **分支** | 目标仅 `main`；feature 合完即删 |
-| **可合并 CI** | **lint + test + e2e 必绿**（2026-07-19 e2e 根治；team-workflow-v1） |
+| **可合并 CI** | **lint + test 必绿**（e2e 非 PR 门禁；可选 `e2e-smoke.yml` manual/nightly） |
 | **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md) — **无未规划开放债**（仅触发型延期） |
 | **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
 | **Admin Upload** | **已撤回**，无产品路由 |
