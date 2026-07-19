@@ -2,15 +2,14 @@
 """Sprint 201+ R6 pre-existing fail 跨 sprint 监控 (L4.42 立项实证 + L4.59 永久规则化)
 
 - 每周日 04:00 launchd 触发
-- pytest 跑 4 case (3 sampling + 1 w4_t7)
-- 0 FAIL → print "PRE_EXISTING_FAIL_MONITOR_PASS 14 passed"
-- 任何 FAIL → exit 1 + 写 TECH-DEBT.md 跨 sprint 留尾告警
-- fail-open: 异常 stderr warn + exit 0 (跟 L4.40 post-merge hook 配套)
+- 有生产业务库时: pytest 跑 4 file（sampling + w4_t7）
+- 0 FAIL → print "PRE_EXISTING_FAIL_MONITOR_PASS …"
+- failed > 0 且有生产库 → 告警文案（脚本仍 fail-open exit 0）
+- 无生产业务库（CI / 空库 / 无 orders）→ 直接 PASS 0/0，不裸跑 14 case 假红
 
-L4.61 跨 CI runner 适配 (跟 L4.40 + L4.50 1:1 stable):
-- CI Linux runner 加 --deselect 把 14 pre-existing fail 全 deselect → 0 passed 也是预期
-- main() 改: passed == 0 + failed == 0 视为 PASS (deselected 跳过), 不告警
-- failed > 0 才告警 (跟 macOS launchd 跨 sprint stable 1:1)
+L4.61 + 2026-07-19 CI 修:
+- 仅 Path.exists() 不够：空 duckdb 可 connect 但无表 → 必须查 orders
+- 无库环境禁止子进程裸跑依赖真库的 case（否则 7 failed 外层 pytest 红）
 """
 from __future__ import annotations
 
@@ -20,6 +19,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60: scripts/ops/ → repo root
+DEFAULT_PROD_DB = REPO_ROOT / "data" / "processed" / "fuqing_crm.duckdb"
 TEST_FILES = [
     "backend/tests/test_sampling_roi_yoy.py",
     "backend/tests/test_sampling_sprint139.py",
@@ -31,6 +31,32 @@ TECH_DEBT = REPO_ROOT / "docs/TECH-DEBT.md"
 
 PASS_PATTERN = re.compile(r"(\d+)\s+passed")
 FAIL_PATTERN = re.compile(r"(\d+)\s+failed")
+
+# 空库 / 占位文件下限（duckdb 新建空文件约 12KB；业务库远大于此）
+_MIN_DB_BYTES = 50_000
+
+
+def is_business_duckdb_ready(db_path: Path | None = None) -> bool:
+    """生产业务库是否可用：文件存在、非空占位、可读且含 orders 表。
+
+    供 monitor 与 pytest 共用，避免「文件在但无表」误当生产库。
+    """
+    path = Path(db_path) if db_path is not None else DEFAULT_PROD_DB
+    try:
+        if not path.is_file():
+            return False
+        if path.stat().st_size < _MIN_DB_BYTES:
+            return False
+        import duckdb
+
+        conn = duckdb.connect(str(path), read_only=True)
+        try:
+            conn.execute("SELECT 1 FROM orders LIMIT 1").fetchone()
+            return True
+        finally:
+            conn.close()
+    except Exception:
+        return False
 
 
 def run_pytest() -> tuple[int, int, str]:
@@ -77,6 +103,20 @@ def append_tech_debt(msg: str) -> None:
 
 
 def main() -> int:
+    # CI / fresh clone：无业务库 → 不裸跑 14 case（会 7 failed 假红）
+    if not is_business_duckdb_ready():
+        msg = (
+            "PRE_EXISTING_FAIL_MONITOR_PASS 0 passed "
+            "(R6 no prod business DB / CI, failed=0, skip live probe)"
+        )
+        print(msg)
+        try:
+            with LOG_FILE.open("a") as f:
+                f.write(f"{msg}\n")
+        except Exception:
+            pass
+        return 0
+
     try:
         passed, failed, output = run_pytest()
     except Exception as e:
@@ -101,12 +141,10 @@ def main() -> int:
         # fail-open: 监控不阻 commit, 只告警
         return 0
 
-    # L4.61 跨 CI runner 适配: passed=0 是 CI --deselect 预期, 也算 PASS
-    # macOS launchd 跑期望 14 passed (本地实证 Sprint 202 R1 14 passed)
-    # Linux CI runner 跑期望 0 passed (--deselect 14 pre-existing fail 全跳过, 跟 Sprint 201 R1 v2.1 lint.yml 1:1 stable)
+    # 有生产库且 failed=0：PASS（passed 可为 14 或其它 skip 混合）
     msg = (
         f"PRE_EXISTING_FAIL_MONITOR_PASS {passed} passed (R6 cross-sprint stable, "
-        f"failed=0, 期望 14 passed macOS / 0 passed CI runner)"
+        f"failed=0, 期望 14 passed macOS / 0 passed CI no-db)"
     )
     print(msg)
     with LOG_FILE.open("a") as f:
