@@ -65,6 +65,12 @@ class TestE2eRootSourceGuards:
         assert "FQ_CRM_TEST_MODE" in src
         assert "not _test_mode" in src or "_test_mode" in src
 
+    def test_main_ts_skips_beacon_logout_when_e2e_flag(self) -> None:
+        """page.goto → beforeunload → sendBeacon logout 会弄死后续 e2e 导航。"""
+        main_ts = (ROOT / "frontend-vue3" / "src" / "main.ts").read_text(encoding="utf-8")
+        assert "fq_crm_e2e" in main_ts
+        assert "sendBeacon" in main_ts
+
 
 class TestE2eSeedScript:
     def test_seed_builds_nonempty_orders(self, tmp_path: Path) -> None:
@@ -94,13 +100,19 @@ class TestE2eSeedScript:
 
 
 class TestE2eAuthTestModeBehavior:
-    """FastAPI TestClient: TEST_MODE 下二次 login 不 409，reset 可无 token。"""
+    """FastAPI TestClient: TEST_MODE 下二次 login 不 409，reset 可无 token。
+
+    CI 无 production DuckDB：config.DUCKDB_PATH 在 import 时固化，只 setenv 无效。
+    必须 monkeypatch.setattr(backend.config, "DUCKDB_PATH" / "DB_MODE")。
+    """
 
     @pytest.fixture()
     def client(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-        # 用 seed db 隔离生产
         import subprocess
         import sys
+
+        import backend.config as cfg
+        import backend.routers.auth as auth_mod
 
         db = tmp_path / "e2e.duckdb"
         subprocess.run(
@@ -109,6 +121,7 @@ class TestE2eAuthTestModeBehavior:
             check=True,
             capture_output=True,
         )
+        # env（给运行时 os.environ.get 路径）
         monkeypatch.setenv("DUCKDB_PATH", str(db))
         monkeypatch.setenv("FQ_DB_MODE", "schema_test")
         monkeypatch.setenv("FQ_CRM_TEST_MODE", "1")
@@ -116,8 +129,9 @@ class TestE2eAuthTestModeBehavior:
         monkeypatch.setenv("FQ_CRM_ADMINS", "admin")
         monkeypatch.setenv("HEALTH_API_KEY", "ci-fake")
         monkeypatch.setenv("FQ_SINGLE_USER_V2", "0")
-
-        import backend.routers.auth as auth_mod
+        # 模块级常量（validate_startup_db 读的是这些）
+        monkeypatch.setattr(cfg, "DUCKDB_PATH", Path(db))
+        monkeypatch.setattr(cfg, "DB_MODE", "schema_test")
 
         auth_mod.ACTIVE_TOKENS.clear()
         from fastapi.testclient import TestClient

@@ -32,6 +32,10 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
       }
     })
 
+    // 禁止 page.goto 触发 beforeunload → sendBeacon logout（与 auth.fixture 一致）
+    await page.addInitScript(() => {
+      sessionStorage.setItem('fq_crm_e2e', '1')
+    })
     // e2e 根治: 真登录（TEST_MODE 下不 409）；假 token 无法过 auth_middleware
     await request.post('/api/v1/_test/reset').catch(() => null)
     await page.goto('/')

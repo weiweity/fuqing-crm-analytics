@@ -1,3 +1,9 @@
+## [unreleased] - 2026-07-19 (e2e follow-up: TestClient config + beforeunload)
+
+### Fixed
+- **CI test 2 ERROR**: `TestE2eAuthTestModeBehavior` 只 `setenv(DUCKDB_PATH)` 无效——`backend.config.DUCKDB_PATH` import 时固化；改为 `monkeypatch.setattr(cfg, "DUCKDB_PATH"/"DB_MODE")`
+- **CI e2e 业务页 toBeVisible 全红**: `page.goto` 触发 `beforeunload` → `sendBeacon` logout → 新页 `/auth/me` 401 → 停登录页。`sessionStorage.fq_crm_e2e=1` 时跳过 beacon（L4.85.6 单独测 Cmd+Q）
+
 ## [unreleased] - 2026-07-19 (e2e 根治: L4.85 会话 + seed DB)
 
 ### Fixed
