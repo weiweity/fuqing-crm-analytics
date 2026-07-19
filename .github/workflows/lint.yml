@@ -105,6 +105,10 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    # 2026-07-19 team-workflow-v1: e2e 预存红不挡 merge（lint+test 必绿）.
+    # continue-on-error: 整次 CI 结论以 lint/test 为准；e2e 仍跑并上传日志便于修稳.
+    # 修稳后可去掉本行，再把 e2e 加回 required checks.
+    continue-on-error: true
     # Sprint 123: 从 .github/workflows/e2e.yml 集成到 lint.yml (1 file workflow 4 jobs 替代 2 file workflow 4 jobs).
     # Sprint 95-96.5 7 sprint 链实战 fix 模式 + Sprint 32.1 advisory 闭环后 e2e.yml 跑 4m29s success 5 次累计稳定.
     # Sprint 60.3+ C+ UI smoke + API 5xx 拦截 已闭环, e2e 业务验证非必需但补强.

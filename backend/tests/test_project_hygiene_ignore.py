@@ -19,3 +19,13 @@ def test_no_root_orphan_sampling_view():
 def test_hygiene_docs_exist():
     assert (REPO / "docs/operating/project-hygiene.md").is_file()
     assert (REPO / "docs/operating/team-workflow-v1.md").is_file()
+
+
+def test_tech_debt_is_short_ledger_not_chronicle():
+    """Open TECH-DEBT.md must stay a short ledger; history is archived."""
+    text = (REPO / "docs/TECH-DEBT.md").read_text(encoding="utf-8")
+    assert "开放债" in text
+    assert "TECH-DEBT-HISTORY.md" in text
+    # long chronicle moved out — keep open file small
+    assert text.count("最后更新") <= 3
+    assert (REPO / "docs/history/TECH-DEBT-HISTORY.md").is_file()

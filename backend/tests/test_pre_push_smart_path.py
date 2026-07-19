@@ -92,6 +92,8 @@ class TestPathClassify:
         assert path_class.classify_paths(["docs/TECH-DEBT.md", "CHANGELOG.md"]) == "skip"
         assert path_class.classify_paths(["HANDOFF.md", "STATUS.md"]) == "skip"
         assert path_class.classify_paths(["CLAUDE.md", "README.md"]) == "skip"
+        assert path_class.classify_paths([".gitignore", "VERSION"]) == "skip"
+        assert path_class.classify_paths([".gitignore", "docs/a.md", "STATUS.md"]) == "skip"
 
     def test_services_full(self, path_class):
         assert path_class.classify_paths(["backend/services/churn.py"]) == "full"
