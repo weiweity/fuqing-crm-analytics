@@ -37,7 +37,7 @@ class TestSprint123LintYmlE2EIntegration:
             "Install Python deps",
             "Install Node deps",
             "Install Playwright browsers",
-            "Setup e2e DuckDB schema-only fixture",
+            "Setup e2e DuckDB schema + seed",
             "Build (Vite) + Start preview server",
             "Run e2e with auto-recovery",
             "Upload auto-recovery log on failure",
