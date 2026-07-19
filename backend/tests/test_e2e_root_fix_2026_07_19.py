@@ -7,11 +7,11 @@
 4. CI 未设 FQ_CRM_TEST_MODE=1
 5. schema-only 0 行 orders 导致部分 API 非预期
 
-治本:
+治本（能力保留；门禁分层 2026-07-19）:
 - FQ_CRM_TEST_MODE=1 → login 跳过 409 + 踢旧 token
 - auth_middleware 放行 /api/v1/_test/*
 - scripts/ci/seed_e2e_duckdb.py 最小业务 seed
-- lint.yml e2e 去 continue-on-error
+- 可选 smoke: e2e-smoke.yml（不挡 PR）；PR CI 不再跑浏览器 e2e
 """
 from __future__ import annotations
 
@@ -22,34 +22,28 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 LINT_YML = ROOT / ".github" / "workflows" / "lint.yml"
+SMOKE_YML = ROOT / ".github" / "workflows" / "e2e-smoke.yml"
 MAIN_PY = ROOT / "backend" / "main.py"
 AUTH_PY = ROOT / "backend" / "routers" / "auth.py"
 SEED_PY = ROOT / "scripts" / "ci" / "seed_e2e_duckdb.py"
 
 
 class TestE2eRootCiConfig:
-    def test_fq_crm_test_mode_enabled_in_e2e_job(self) -> None:
-        text = LINT_YML.read_text(encoding="utf-8")
+    def test_fq_crm_test_mode_enabled_in_smoke_workflow(self) -> None:
+        text = SMOKE_YML.read_text(encoding="utf-8")
         assert re.search(r"FQ_CRM_TEST_MODE:\s*['\"]?1['\"]?", text), (
-            "lint.yml e2e job 必须 FQ_CRM_TEST_MODE=1"
+            "e2e-smoke.yml 必须 FQ_CRM_TEST_MODE=1"
         )
 
-    def test_e2e_job_not_continue_on_error(self) -> None:
+    def test_pr_lint_yml_has_no_blocking_e2e_job(self) -> None:
         text = LINT_YML.read_text(encoding="utf-8")
-        # e2e job 段内不应再有 continue-on-error: true
-        m = re.search(r"^\s*e2e:\s*\n(?:.*\n){0,40}?", text, re.M)
-        assert m, "lint.yml 缺少 e2e job"
-        # 取 e2e job 到下一个 top-level job 或文件尾
-        start = text.index("  e2e:")
-        rest = text[start:]
-        # 下一个同级 job 以 "  name:" 或 EOF；简化：前 80 行
-        head = "\n".join(rest.splitlines()[:80])
-        assert "continue-on-error: true" not in head, (
-            "e2e 根治后禁止 continue-on-error: true（应挡 merge）"
+        assert re.search(r"^\s*e2e:\s*$", text, re.M) is None, (
+            "lint.yml 不得再含 blocking e2e job（门禁分层 2026-07-19）"
         )
+        assert "playwright test" not in text
 
-    def test_e2e_uses_seed_script(self) -> None:
-        text = LINT_YML.read_text(encoding="utf-8")
+    def test_e2e_smoke_uses_seed_script(self) -> None:
+        text = SMOKE_YML.read_text(encoding="utf-8")
         assert "seed_e2e_duckdb.py" in text
         assert SEED_PY.is_file()
 

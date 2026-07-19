@@ -1,3 +1,10 @@
+## [unreleased] - 2026-07-19 (e2e 门禁分层: PR 取消必跑 + 可选极简 smoke)
+
+### Changed
+- **可合并 = lint + test**：PR/main `lint.yml` 移除 blocking 浏览器 e2e job（环境税 + 长期假红）
+- **可选 UI smoke**: `.github/workflows/e2e-smoke.yml`（`workflow_dispatch` + 工作日 schedule）— `requirements-e2e.txt`（无 torch/OCR）+ 仅 `login.spec.ts` 壳层
+- **契约同步**: STATUS / team-workflow-v1 / TECH-DEBT — e2e **不**挡 merge；`#e2e-data` 改为夹具保留、PR 门禁撤回
+
 ## [unreleased] - 2026-07-19 (e2e follow-up: TestClient config + beforeunload)
 
 ### Fixed

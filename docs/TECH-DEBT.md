@@ -28,13 +28,14 @@
 | **#CLAUDE-L4-sink** | L4 → `docs/rules/` |
 | **#scripts-ops** | monitors → `scripts/ops/` + launchd 路径同步 |
 | **#Admin-Upload-WITHDRAWN** | 产品面删除（router/service/view/e2e/test）；**不重开** |
-| **#e2e-data** | 2026-07-19 根治：`FQ_CRM_TEST_MODE` + `/_test/reset` 白名单 + `seed_e2e_duckdb.py` + e2e 挡 merge |
+| **#e2e-data** | 夹具能力保留（`FQ_CRM_TEST_MODE` + seed）；**PR 门禁已撤回**（2026-07-19 分层：可选 `e2e-smoke.yml`） |
 
 ---
 
 ## 工作流契约
 
-- **可合并**: lint + test + e2e 必绿（2026-07-19 e2e 根治后；`docs/operating/team-workflow-v1.md`）
+- **可合并**: **lint + test 必绿**（e2e **不**挡 PR merge；`docs/operating/team-workflow-v1.md`）
+- **可选 UI smoke**: `.github/workflows/e2e-smoke.yml`（`workflow_dispatch` + 工作日 schedule；`requirements-e2e.txt` + login 壳层）
 - **整洁**: `docs/operating/project-hygiene.md`
 - **运维监控入口**: `scripts/ops/` + `scripts/launchd/`
 

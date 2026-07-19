@@ -34,7 +34,7 @@ python3 -m pytest backend/tests/test_check_remaining_tasks.py -v
 
 ## 4. CI 维修 (Sprint 60-66 累计)
 
-- CI 4/4 jobs (lint + ground-truth-lint + test + e2e) 全绿
+- CI 可合并: lint + ground-truth-lint + test 全绿（e2e 非 PR 门禁；可选 e2e-smoke）
 - 平台特定检查 (`sys.platform` / `os.name` / `platform.system()`) **必须** 放 `main()`/CLI 入口, 不能在 `_core()` 逻辑函数 (L4.10)
 - 任何 GitHub Action major 升级必先 `gh api tags` 验证 stable tag 真存在 (L4.9)
 - 跨 workflow env 同步必加 regression test (Sprint 66 P0 教训)
