@@ -80,7 +80,12 @@ def test_default_constants():
 
 
 def test_get_recent_commits_returns_at_least_one():
-    """get_recent_commits(1) MUST return at least 1 commit on main."""
+    """get_recent_commits(1) MUST return at least 1 commit (main 或 HEAD fallback).
+
+    CI shallow clone 可能没有 main ref (只 checkout 当前 PR 分支);
+    get_recent_commits 必须 fallback origin/main / HEAD, 不能硬依赖 main.
+    非 git 工作区才允许空列表 — 本仓库测试必有 ≥1 commit.
+    """
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("ci_cross_sprint_drift", str(SCRIPT_PATH))
@@ -89,7 +94,10 @@ def test_get_recent_commits_returns_at_least_one():
 
     commits = module.get_recent_commits(1)
     assert isinstance(commits, list), f"期望 get_recent_commits 返 list, got {type(commits)}"
-    assert len(commits) >= 1, f"期望至少 1 commit, got {len(commits)}"
+    assert len(commits) >= 1, (
+        f"期望至少 1 commit (main/origin/main/HEAD fallback), got {len(commits)}; "
+        f"CI shallow clone 无 main 时应走 HEAD"
+    )
     sha, message = commits[0]
     assert len(sha) == 40, f"SHA 应是 40 hex chars, got {sha!r}"
     assert all(c in "0123456789abcdef" for c in sha), f"SHA 不是 hex: {sha!r}"

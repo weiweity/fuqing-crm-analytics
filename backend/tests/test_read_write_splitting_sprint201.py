@@ -104,6 +104,10 @@ class TestDualConnectionRouting:
         assert router.classify("/api/v1/ad-hoc/ai-sandbox-execute", "POST") == "worker"
         assert router.classify("/api/v1/auth/login", "POST") == "default"
         assert router.classify("/api/v1/health", "GET") == "default"
+        # Admin upload/registry 不读业务 DuckDB (CI 无 prod 库不能被 catch-all GET→read)
+        assert router.classify("/api/v1/admin/upload-config", "GET") == "default"
+        assert router.classify("/api/v1/admin/uploads", "GET") == "default"
+        assert router.classify("/api/v1/admin/upload", "POST") == "default"
 
     def test_w5_cache_writes_degrade_in_readonly_request(self, monkeypatch, worker_duckdb_path):
         from backend.services import dual_conn

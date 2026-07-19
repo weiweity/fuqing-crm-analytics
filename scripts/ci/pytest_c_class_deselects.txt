@@ -1,0 +1,14 @@
+# C-class pytest --deselect SSOT (Sprint C 2026-07-19 + Track A 2026-07-19)
+# Single source for: .githooks/pre-push, .github/workflows/lint.yml, nightly.yml
+# Format: one pytest nodeid per non-comment line. Comments start with #.
+# Keep exactly 7 C-class entries (sampling 3 + W4 4). Do not re-add A1/A2/B.
+#
+# Class C: prod DuckDB / skipif semantics — keep deselect (L4.57 / L4.59 debt)
+
+backend/tests/test_etl_sample_received_at.py::TestSampleReceivedAtPhase1::test_sampling_service_falls_back_to_pay_time
+backend/tests/test_sampling_roi_yoy.py::test_roi_mom_compare_tuple
+backend/tests/test_sampling_roi_yoy.py::test_roi_yoy_pct_pp_contract_types
+backend/tests/test_w4_t7_integration.py::TestW4T7ActualRun::test_a_w4_t7_actual_run
+backend/tests/test_w4_t7_integration.py::TestW4Idempotency::test_b_w4_idempotency
+backend/tests/test_w4_t7_integration.py::TestW4VersionIncrement::test_c_w4_version_increment
+backend/tests/test_w4_t7_integration.py::TestW4DataQuality::test_d_w4_data_quality
