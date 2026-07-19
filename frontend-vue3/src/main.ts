@@ -98,6 +98,10 @@ async function bootstrap() {
   // 配套: 方案 D background task evict idle token > 60s 兜底 (backend/services/auth_token_evictor.py)
   // 跟 L4.85.4 idle timer 1:1 stable 永久规则化沿用 (user 主动 idle / Cmd+Q / 网络断 全覆盖)
   window.addEventListener('beforeunload', () => {
+    // Playwright page.goto 会触发 beforeunload；若此时 sendBeacon logout，
+    // 下一页 bootstrap /auth/me 401 → 清 token → 永远停在登录页（e2e 全红真因 2026-07-19）。
+    // L4.85.6 Cmd+Q 用例单独测 beacon，不设 fq_crm_e2e。
+    if (sessionStorage.getItem('fq_crm_e2e') === '1') return
     const token = sessionStorage.getItem(AUTH_TOKEN_KEY)
     if (!token) return
     // sendBeacon 是浏览器关掉前最后一刻还能发的请求, 跟 L4.85.4 logout API 1:1 stable 兼容

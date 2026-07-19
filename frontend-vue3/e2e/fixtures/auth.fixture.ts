@@ -14,6 +14,11 @@ export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string
   },
 
   authenticatedPage: async ({ page, consoleErrors, request }, use) => {
+    // 必须在任何导航前注入：page.goto 触发 beforeunload 时跳过 sendBeacon logout
+    await page.addInitScript(() => {
+      sessionStorage.setItem('fq_crm_e2e', '1')
+    })
+
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         const text = msg.text()
