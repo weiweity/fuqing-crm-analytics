@@ -145,10 +145,12 @@ Claude (Stage 4): git commit --no-verify + git push --no-verify
 
 | 层 | 位置 | 拦什么 |
 |---|---|---|
-| pre-commit | `.githooks/pre-commit` | ruff lint + pytest (20/8 cleanup) + ground-truth lint (P1-3 sprint 3) |
-| pre-push | `.githooks/pre-push` | pytest |
-| GitHub Actions | `.github/workflows/lint.yml` | ruff + pytest + ground-truth-lint (committed mode) |
-| GitHub Actions | `.github/workflows/nightly.yml` | ground-truth-lint (committed mode) |
+| pre-commit | `.githooks/pre-commit` | ruff + B2 import (`check_imports.py`) + pytest orphans + ground-truth 等 |
+| pre-push | `.githooks/pre-push` | smart path：skip / ruff / scoped / full pytest |
+| GitHub Actions | `.github/workflows/lint.yml` | **可合并门**：ruff + **B2 import** + pytest（deselect SSOT）+ ground-truth-lint |
+| GitHub Actions | `.github/workflows/nightly.yml` | 工作日定时：B2 import + ruff + pytest；job timeout **45min** |
+| GitHub Actions | `.github/workflows/weekly-report.yml` | 周一定时：同上 + junit artifact；timeout **45min** |
+| GitHub Actions | `.github/workflows/e2e-smoke.yml` | **不挡 merge**：可选 login 壳层 smoke |
 
 激活 hooks：`git config core.hooksPath .githooks`
 

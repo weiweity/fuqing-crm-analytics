@@ -30,7 +30,7 @@
 1. **CHANGELOG 跟随** — 改 `.py` / `docs/` 必须同步改 `CHANGELOG.md` (P2 散点).
 2. **bare except 拦截** — 扫 `except:` 防静默吞噬 (Sprint 4 P2 散点).
 3. **ruff check** — lint, `--quiet` 模式.
-4. **B2 import 完整性** — `.githooks/check_imports.py` 扫 3rd-party imports 跟 `requirements.txt` 对账 (Sprint 4 B2 根因预防).
+4. **B2 import 完整性** — `.githooks/check_imports.py` 扫 3rd-party imports 跟 `requirements.txt` 对账 (Sprint 4 B2 根因预防)。2026-07-21：识别 `scripts/ad_hoc_queries` 本地模块 + fastapi 传递依赖（如 `starlette`），避免 Nightly 假红；**PR CI 与 Nightly/Weekly 同跑**。
 5. **B5 test order lint** — `.githooks/check_test_order.py` 扫 N-index 断言 (Sprint 4 B5 教训, WARN 不阻断).
 6. **pytest cleanup orphans** — `pytest backend/tests/test_wo_cleanup_orphans.py -q` (Sprint v0.4.7).
 7. **P1-3 review ground-truth lint** — `.githooks/check_review_ground_truth.py` 拦 `未集成 / 不存在 / 占位` 触发词必须有 git log 实证 (Sprint 3 P1-3 教训).
