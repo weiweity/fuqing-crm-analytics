@@ -35,7 +35,8 @@ jobs:
         with:
           python-version: "3.14"
           cache: 'pip'
-          cache-dependency-path: requirements.txt
+          # 与 pip install 一致：cache key 用 lock，避免 requirements.txt 漂移导致 cache 失效/错配
+          cache-dependency-path: requirements-lock.txt
 
       - name: Install dependencies (lock 锁版本, v0.4.7.7 B4)
         run: pip install -r requirements-lock.txt

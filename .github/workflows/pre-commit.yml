@@ -15,6 +15,8 @@
 
 name: pre-commit
 
+# 2026-07-21: 默认不装 pre-commit framework；本 workflow 仅手工验证.
+# 主门禁以 lint.yml (ruff + check_imports + pytest) 为准，勿依赖本文件挡合并.
 on:
   workflow_dispatch:  # 手动触发, 避免空跑浪费 CI 分钟
   # 注释掉 push / pull_request 自动触发 (默认不装 framework):

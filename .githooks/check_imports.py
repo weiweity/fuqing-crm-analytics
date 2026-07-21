@@ -69,21 +69,63 @@ PIP_ALIASES = {
 # 项目本地包 (项目根下的目录, 不是 pip 包). 跳过后 import 不会被算 3rd-party.
 # 自动检测: 任何项目根下含 __init__.py 的顶级目录都算本地包.
 # Monorepo: 显式列举 implicit namespace package (无 __init__.py 但代码 from X.Y import Z).
+#
+# 2026-07-21: 另扫 scripts/ad_hoc_queries 等「被测试 sys.path 插入后按顶层 import」的 .py 模块
+# (channel_monthly / top_n …)，避免 Nightly 假红.
 def _detect_local_packages() -> set[str]:
     local: set[str] = set()
     skip_dirs = {
         'node_modules', '.venv', 'venv', '.git', '.codegraph',
         '.pytest_cache', '.ruff_cache', '.workbuddy', '.gstack',
         'docs', 'logs', 'frontend-vue3',  # 前端, 不被 Python import
+        'data', 'outputs', 'logs',
     }
-    for p in pathlib.Path('.').iterdir():
+    root = pathlib.Path('.')
+    for p in root.iterdir():
         if p.is_dir() and p.name not in skip_dirs and not p.name.startswith('.'):
             if (p / '__init__.py').exists():
                 local.add(p.name)
             elif any(p.rglob('*.py')):
                 # implicit namespace package: 有 .py 但无 __init__.py
                 local.add(p.name)
+
+    # 可被 `import <stem>` 的仓库内脚本模块 (tests 常把 scripts/ 或 ad_hoc_queries 塞进 sys.path)
+    for scripts_dir in (
+        root / 'scripts',
+        root / 'scripts' / 'ad_hoc_queries',
+        root / 'scripts' / 'etl',
+        root / 'scripts' / 'ops',
+        root / 'scripts' / 'ci',
+        root / 'mcp_servers',
+    ):
+        if not scripts_dir.is_dir():
+            continue
+        for py in scripts_dir.glob('*.py'):
+            if py.name.startswith('_') and py.name != '__init__.py':
+                # 允许 _utils 等仍算本地 (tests 极少顶层 import)
+                local.add(py.stem)
+            elif py.name != '__init__.py':
+                local.add(py.stem)
+        for sub in scripts_dir.iterdir():
+            if sub.is_dir() and not sub.name.startswith('.') and (
+                (sub / '__init__.py').exists() or any(sub.glob('*.py'))
+            ):
+                local.add(sub.name)
     return local
+
+
+# 直接 import 但由已声明包提供的传递依赖 (不必重复写进 requirements.txt)
+# starlette: fastapi 运行时依赖, middleware/tests 会直接 from starlette...
+TRANSITIVE_ALLOWED: set[str] = {
+    'starlette',
+    'anyio',
+    'sniffio',
+    'h11',
+    'httptools',
+    'websockets',
+    'watchfiles',
+    'multipart',  # python-multipart import name varies
+}
 
 LOCAL_PACKAGES = _detect_local_packages()
 
@@ -179,29 +221,39 @@ def find_files_using(import_name: str, root_dirs: list[str]) -> list[str]:
 
 
 def main() -> int:
-    imports = get_third_party_imports(['backend', 'scripts/etl'])
+    scan_roots = ['backend', 'scripts/etl']
+    imports = get_third_party_imports(scan_roots)
     reqs = get_requirements()
 
     # Normalize import names → pip names
     pip_imports = {normalize_to_pip(i) for i in imports}
 
-    # Missing = in code but not declared
-    missing = pip_imports - reqs
+    # Missing = in code but not declared (exclude known transitive deps of declared packages)
+    missing = pip_imports - reqs - {t.lower() for t in TRANSITIVE_ALLOWED}
 
     if missing:
         print("❌ B2: 检测到 3rd-party imports 在代码中但 requirements.txt 没声明:")
         print()
         for m in sorted(missing):
-            # find which file(s) actually use it
-            users = find_files_using(m, ['backend', 'scripts/etl'])
+            # find which file(s) actually use it (try import name + common reverse aliases)
+            users = find_files_using(m, scan_roots)
+            if not users:
+                # reverse alias: pillow → may appear as PIL in source
+                for imp_name, pip_name in PIP_ALIASES.items():
+                    if pip_name == m:
+                        users = find_files_using(imp_name, scan_roots)
+                        if users:
+                            break
             sample = ', '.join(users[:3]) + ('...' if len(users) > 3 else '')
-            print(f"  - {m}  (used in: {sample})")
+            print(f"  - {m}  (used in: {sample or 'n/a'})")
         print()
         print("修复: 在 requirements.txt 加缺失的包, 然后重跑 commit.")
         print("例外 (确认 deps 故意未声明): git commit --no-verify")
+        print(f"(debug) local_packages sample: {sorted(LOCAL_PACKAGES)[:12]}…")
         return 1
 
     print(f"✅ B2: {len(imports)} 个 3rd-party imports 全部声明在 requirements.txt")
+    print(f"   (local packages detected: {len(LOCAL_PACKAGES)}; transitive allow: {len(TRANSITIVE_ALLOWED)})")
     return 0
 
 
