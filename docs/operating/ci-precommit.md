@@ -103,9 +103,10 @@ pre-commit install
 |---|---|---|---|
 | 1. pre-commit | `.githooks/pre-commit` | ruff + bare except + B2 import + B5 test order + pytest orphans + P1-3 ground-truth + vue-tsc (9 hook) | 本机 commit (默认装) |
 | 2. pre-push | `.githooks/pre-push` | pytest | 本机 push |
-| 3. GitHub Actions lint | `.github/workflows/lint.yml` | ruff + pytest + ground-truth-lint (committed mode) | push / pull_request 自动 |
-| 4. GitHub Actions nightly | `.github/workflows/nightly.yml` | ground-truth-lint (committed mode) | 每日定时 |
-| **5. GitHub Actions pre-commit** (P2-3 新) | `.github/workflows/pre-commit.yml` | `.pre-commit-config.yaml` 4 hook (ruff + 2 local) | `workflow_dispatch` 手动 (装 framework 才有效) |
+| 3. GitHub Actions lint | `.github/workflows/lint.yml` | ruff + **B2 import** + pytest（deselect SSOT）+ ground-truth-lint | push / pull_request 自动（**可合并门**） |
+| 4. GitHub Actions nightly | `.github/workflows/nightly.yml` | B2 import + ruff + pytest；timeout **45min** | 工作日定时 |
+| 5. GitHub Actions weekly | `.github/workflows/weekly-report.yml` | 同上 + junit artifact；timeout **45min** | 周一定时 |
+| **6. GitHub Actions pre-commit** (P2-3) | `.github/workflows/pre-commit.yml` | `.pre-commit-config.yaml` 4 hook | `workflow_dispatch` 手动（**非**主门禁） |
 
 **激活 hooks (本机)**:
 ```bash

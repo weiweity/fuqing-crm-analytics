@@ -1,3 +1,13 @@
+## [unreleased] - 2026-07-21 (CI: check_imports 假红止血 + 定时 timeout)
+
+### Fixed
+- **Nightly/Weekly 假红**: `.githooks/check_imports.py` 将 `scripts/ad_hoc_queries` 本地模块（`channel_monthly` / `top_n` 等）与 fastapi 传递依赖（`starlette` 等）移出「缺包」误报；PR `lint.yml` test job **同步跑 B2 import**，与定时门禁对齐
+- **Nightly/Weekly job timeout**: 15/20min → **45min**（全量 pytest 实测 ~28min，过短 timeout 会在中途 `cancelled`）
+
+### Changed
+- Weekly：C-class deselect SSOT + `not slow` + `FQ_CRM_*` env + ruff 仅 `backend/`
+- Nightly：pip cache 改为 `requirements-lock.txt`
+
 ## [unreleased] - 2026-07-19 (CI test 假红: 空库/无库契约)
 
 ### Fixed

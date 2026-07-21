@@ -24,7 +24,7 @@ Sprint 3 P1-3 已经接了 ground-truth-lint 钩子 (在 `.githooks/pre-commit` 
 | pre-commit (local) | `.githooks/pre-commit` | ruff + pytest (20/8 cleanup) + ground-truth lint (P1-3 sprint 3) | **保留** (向后兼容) |
 | pre-commit (framework) | `.pre-commit-config.yaml` | ruff + ground-truth-lint (Sprint 18 #142) | **新增** contract-ground-truth-lint hook |
 | pre-push | `.githooks/pre-push` | pytest | 不动 |
-| GitHub Actions | `.github/workflows/lint.yml` | ruff + pytest + ground-truth-lint (committed mode) | 不动 |
+| GitHub Actions | `.github/workflows/lint.yml` | ruff + B2 import + pytest + ground-truth-lint（可合并门） | 2026-07-21 与 Nightly 对齐 B2 |
 | GitHub Actions | `.github/workflows/nightly.yml` | ground-truth-lint (committed mode) | 不动 |
 
 **关键**: 现有 `.githooks/pre-commit` 仍然有 ground-truth-lint 逻辑 (P1-3 sprint 3 时代).

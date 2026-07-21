@@ -1,6 +1,6 @@
 # 团队协作工作流 v1（Team Workflow）
 
-> **最后更新**: 2026-07-19  
+> **最后更新**: 2026-07-21  
 > 在「本地即生产 + AI 协作者」约束下，把 12 步仪式压成**可多人执行**的默认流程。  
 > 与 `docs/operating/ship.md`、`CLAUDE.md` 并存：**冲突时以本文件「可合并定义」+ 硬 STOP 为准**。
 
@@ -12,12 +12,13 @@
 |---|---|
 | **lint**（ruff） | ✅ 必须绿 |
 | **ground-truth-lint** | ✅ 必须绿（或明确 advisory） |
-| **test**（pytest + deselect SSOT） | ✅ 必须绿 |
+| **test**（pytest + deselect SSOT + **B2 import**） | ✅ 必须绿（`check_imports.py` 在 PR test job 内） |
 | **e2e / Playwright** | ❌ **不挡 merge**（2026-07-19 门禁分层：PR 默认不跑；可选 `e2e-smoke.yml` manual/nightly 壳层 smoke） |
+| **Nightly / Weekly** | ❌ 不挡 merge；须与 PR 同口径（B2 + deselect + timeout≥45min），避免定时假红 |
 | 改 contract | 必须三同步 + contracts lint |
 | 生产 DuckDB / `.env` | 禁止进 PR |
 
-CI required checks 应与上表一致：**lint + test**（+ ground-truth 策略）。**禁止**「文档写 e2e 必绿、实际长期红」双重标准；**禁止**无触发条件把全量业务 Playwright 加回 PR 必绿。
+CI required checks 应与上表一致：**lint + test**（+ ground-truth 策略）。**禁止**「文档写 e2e 必绿、实际长期红」双重标准；**禁止**无触发条件把全量业务 Playwright 加回 PR 必绿；**禁止** PR 不跑 B2、仅 Nightly 跑 B2（会制造「合并绿 / 定时红」）。
 
 ---
 
@@ -85,7 +86,8 @@ PM/Owner ── 拍板 merge / 发布窗口
 |---|---|
 | pre-commit | hooksPath + CHANGELOG 提示 + 有代码时重检查；docs-only light |
 | pre-push | skip / ruff / scoped tests / full（见 `.githooks/pre-push`） |
-| CI | lint + test 全量（+ deselect SSOT）；e2e 不在 PR 路径（见 `e2e-smoke.yml`） |
+| CI (PR/main) | lint + test（B2 import + deselect SSOT）；e2e 不在 PR 路径（见 `e2e-smoke.yml`） |
+| Nightly / Weekly | 同 PR 口径；job timeout 45min；Weekly 另出 junit artifact |
 | 生产 | pull；按需重启 |
 
 Escape（人拥有）：`FQ_PRE_PUSH_SKIP=1` — 须说明原因，禁止常态化。
