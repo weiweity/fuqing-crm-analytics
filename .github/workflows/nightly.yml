@@ -14,7 +14,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 2026-07-21: PR test 实测 ~28min；原 15min 会在 pytest ~46% 被 GHA 取消 (cancelled 假红)
+    timeout-minutes: 45
     # L4.86 治本: 跟 lint.yml e2e job (line 118) + lint.yml test job (line 67) 1:1 stable 加 FQ_CRM_PASSWORDS env var (跟 L4.85.9 .env 读取密码 1:1 stable 永久规则化沿用, 跟 L4.85 + L4.85.1 + L4.85.2 + L4.85.3 + L4.85.4-L4.85.9 1:1 stable 永久规则化沿用, 跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用, 跟 L4.42 立项实证 SOP "0 业务触发 0 commit 收口" 1:1 stable 永久规则化沿用)
     # L4.86 真根因: L4.85.9 改成从 .env 读取密码 (跟 L4.64 + L4.60 1:1 stable 永久规则化沿用), 但 CI runner Linux 环境没 .env → _load_credentials() 走自动生成密码路径 → test 用 hardcoded 期望值 → 401 账号或密码错误 → test job failure
     # 2026-07-19 治本延伸: nightly.yml 跟 lint.yml 有 L4.20 SSOT 反漂移实战失败案例 (跟 L4.86 修 lint 时漏了 nightly). 此 commit 同步 lint.yml test job env var + 22 deselect 到 nightly.yml test job (跟 L4.86 1:1 stable 永久规则化沿用).
