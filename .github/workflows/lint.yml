@@ -29,7 +29,7 @@ on:
       - 'docs/maintenance/**'
       - 'docs/operating/**'
       - 'docs/business/**'
-      - '~/.claude/projects/**/memory/**'
+      # 勿写仓库外 path (如 ~/.claude/...) — GHA paths 过滤无效
       - 'docs/validation-reports/**'
       - 'docs/飞书版架构文档/**'
 
@@ -90,6 +90,9 @@ jobs:
           python-version: "3.14"
           cache: 'pip'
       - run: pip install -r requirements-lock.txt
+      # 2026-07-21: 与 Nightly/Weekly 对齐 — PR 也跑 B2 import 完整性 (避免定时专属红、合并门却绿)
+      - name: B2 import completeness check
+        run: python3 .githooks/check_imports.py
       # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
       # 排除 pytest.mark.slow，避免 job hang。
       # Sprint C 2026-07-19: C-class 7 deselect only (A1/A2 restored, B dead nodeids cleared).

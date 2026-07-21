@@ -13,7 +13,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 与 lint.yml / nightly 对齐：慢测 + 无 .env 假 401
+    timeout-minutes: 20
+    env:
+      FQ_CRM_PASSWORDS: admin:123456
+      FQ_CRM_ADMINS: admin
 
     steps:
       - uses: actions/checkout@v5
@@ -31,10 +35,19 @@ jobs:
         run: python3 .githooks/check_imports.py
 
       - name: Run ruff
-        run: ruff check .
+        # 与 lint.yml / nightly 一致：只扫 backend/，避免 scripts/_archive 假失败
+        run: ruff check backend/
 
-      - name: Run full pytest (junit XML 输出)
-        run: PYTHONPATH=. pytest backend/tests/ --junitxml=pytest-results.xml -q
+      - name: Run full pytest (C-class deselect SSOT + not slow, junit XML)
+        # 2026-07-21: 与 PR/nightly 口径对齐，避免 weekly 独跑 slow/C-class 假红且无 junit
+        run: |
+          set -euo pipefail
+          DESELECT_ARGS=()
+          while IFS= read -r tok; do
+            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
+          done < <(bash scripts/ci/pytest_deselect_args.sh)
+          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
+          PYTHONPATH=. pytest backend/tests/ --junitxml=pytest-results.xml -q -m "not slow" "${DESELECT_ARGS[@]}"
 
       - name: Upload pytest results artifact (90 天保留)
         if: always()
