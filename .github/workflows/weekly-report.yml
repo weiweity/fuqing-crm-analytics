@@ -13,8 +13,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # 与 lint.yml / nightly 对齐：慢测 + 无 .env 假 401
-    timeout-minutes: 20
+    # 与 lint.yml / nightly 对齐；PR test 实测 ~28min，留足装依赖余量
+    timeout-minutes: 45
     env:
       FQ_CRM_PASSWORDS: admin:123456
       FQ_CRM_ADMINS: admin
