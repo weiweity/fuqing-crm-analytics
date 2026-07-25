@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_ADMIN_PASSWORD, E2E_ADMIN_USER } from './fixtures/credentials'
 
 /**
  * Sprint 33.2 候选 3: /login 路由 smoke 验证
@@ -32,9 +33,9 @@ test.describe('login 路由', () => {
     await expect(page.locator('input').nth(1)).toBeVisible()
     await expect(page.locator('button:has-text("登 录")')).toBeVisible()
 
-    // 提交登录
-    await page.locator('input[type="text"]').first().fill('admin')
-    await page.locator('input').nth(1).fill('123456')
+    // 提交登录（密码由 CI 注入 E2E_ADMIN_PASSWORD，本地默认见 credentials.ts）
+    await page.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await page.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await page.click('button:has-text("登 录")')
 
     // 断言跳转后导航栏出现 (登录成功标志)
