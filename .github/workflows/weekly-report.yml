@@ -10,6 +10,9 @@ on:
     - cron: '0 1 * * 1'
   workflow_dispatch:  # 允许手动触发 (测试 + 应急验证)
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,23 +23,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - name: Generate ephemeral test credentials (masked)
-        # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
-        run: |
-          set -euo pipefail
-          ADMIN_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          FQSW_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          TESTUSER_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          CREDS="admin:${ADMIN_PASS},fqsw:${FQSW_PASS},testuser:${TESTUSER_PASS}"
-          echo "::add-mask::${ADMIN_PASS}"
-          echo "::add-mask::${FQSW_PASS}"
-          echo "::add-mask::${TESTUSER_PASS}"
-          echo "::add-mask::${CREDS}"
-          {
-            echo "FQ_CRM_PASSWORDS=${CREDS}"
-            echo "E2E_ADMIN_USER=admin"
-            echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
-          } >> "$GITHUB_ENV"
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v6
         with:
@@ -89,3 +77,27 @@ jobs:
               echo "tests=N/A (pytest-results.xml not generated)"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Generate ephemeral test credentials (masked)
+        # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
+        run: |
+          set -euo pipefail
+          ADMIN_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          FQSW_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          TESTUSER_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          CREDS="admin:${ADMIN_PASS},fqsw:${FQSW_PASS},testuser:${TESTUSER_PASS}"
+          echo "::add-mask::${ADMIN_PASS}"
+          echo "::add-mask::${FQSW_PASS}"
+          echo "::add-mask::${TESTUSER_PASS}"
+          echo "::add-mask::${CREDS}"
+          {
+            echo "FQ_CRM_PASSWORDS=${CREDS}"
+            echo "E2E_ADMIN_USER=admin"
+            echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: 'pip'
+          cache-dependency-path: requirements-lock.txt
+

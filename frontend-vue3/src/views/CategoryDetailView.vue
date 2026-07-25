@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
+import { encodeHtml } from '@/utils/encodeHtml'
 import { computed, h, toValue } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'

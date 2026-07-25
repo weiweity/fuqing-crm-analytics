@@ -1,16 +1,20 @@
-# 芙清 CRM 客户分析系统 - Python 依赖
-# 安装命令: pip install -r requirements.txt
+# 芙清 CRM 客户分析系统 - Python 依赖（声明式 SSOT 下限）
+# 安装命令（推荐可复现）: pip install -r requirements-lock.txt
+# 宽松开发: pip install -r requirements.txt
+#
+# 2026-07-25 PR5: 生产路径不含 Torch/OCR/爬虫大包；ML 工具在独立 scraper 仓。
+# Starlette 经 fastapi 传递，显式下限对齐 CVE 修复（与 PR1 可重叠）。
 
 # 数据处理 (核心)
-duckdb>=0.10.0          # 本地分析型数据库
+duckdb>=0.10.0          # 本地分析型数据库（生产升级 1.5.5 见 docs/maintenance/duckdb-backup-upgrade-checklist.md，本文件不抬生产版本）
 pandas>=2.0.0           # 兼容性支持
 numpy>=1.24.0           # 数值计算
 
 # Web 框架
 fastapi>=0.110.0,<0.136.3  # 现代异步 Web 框架（<0.136.3 避免 MAL-2026-4750 供应链攻击）
+uvicorn>=0.27.0         # ASGI 服务器
 # starlette 经 fastapi 传递安装；下限对齐 lock 的 1.3.1 CVE 修复，不抬 fastapi 上界
 starlette>=1.3.1
-uvicorn>=0.27.0         # ASGI 服务器
 
 # 数据导出
 openpyxl>=3.1.0         # Excel 读写
@@ -21,7 +25,7 @@ python-pptx>=0.6.0      # PPT 生成
 # altair>=5.0.0         # 声明式可视化 - 已废弃
 
 # AI 能力
-openai>=1.0.0           # OpenAI API
+openai>=1.0.0           # OpenAI API（ad-hoc / 可选脚本；非核心 request 路径）
 
 # 工具
 python-dotenv>=1.0.0    # 环境变量管理
@@ -29,12 +33,17 @@ pydantic>=2.0.0         # 数据验证
 python-dateutil>=2.8.0  # 日期处理
 pyarrow>=15.0.0         # Arrow 格式支持
 bcrypt>=4.0.0           # 密码哈希（routers/auth.py token 认证）
-xxhash>=3.0.0           # 文件指纹（scripts/etl/config.py:198 lazy import, parquet cache 内容变更检测）
+xxhash>=3.0.0           # 文件指纹（scripts/etl/config.py lazy import, parquet cache）
 psutil>=5.9.0           # 内存监控（scripts/etl/benchmark_memory.py）
-packaging>=24.0         # 版本比较（backend/tests/test_duckdb_race_regression.py Version 解析）
-pyyaml>=6.0.0           # Pydantic v2 间接 import（lock PyYAML==6.0.2, B2 import check Sprint 18 #142）
+packaging>=24.0         # 版本比较（backend/tests Version 解析）
+pyyaml>=6.0.0           # Pydantic v2 间接 import（lock PyYAML, B2 import check）
+# 安全相关传递依赖下限（uvicorn/httpx/requests 树）
+click>=8.3.3
+idna>=3.15
+urllib3>=2.7.0
 
 # 开发工具
 pytest>=8.0.0           # 测试框架
 pytest-xdist>=3.5.0     # 并行测试 (pytest -n auto)
 black>=24.0.0           # 代码格式化
+ruff>=0.4.10            # lint（CI 与 requirements-lock 对齐）

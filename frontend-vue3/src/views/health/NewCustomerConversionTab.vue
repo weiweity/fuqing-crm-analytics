@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
+import { encodeHtml } from '@/utils/encodeHtml'
 import { computed, toValue, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NDataTable, NTag } from 'naive-ui'

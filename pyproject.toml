@@ -7,6 +7,8 @@ name = "fuqing-crm-analytics"
 version = "2.0.0"
 description = "芙清 CRM 客户分析系统"
 requires-python = ">=3.13"
+# 运行时依赖 SSOT 仍以 requirements.txt + requirements-lock.txt 为准（PR5）。
+# 全量迁移 dependencies → uv.lock 为后续工作，避免本 PR 大爆炸改动。
 
 [tool.uv]
 python-preference = "only-managed"

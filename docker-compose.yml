@@ -1,6 +1,11 @@
 # 芙清 CRM - Docker Compose
 # 用法: docker compose up -d
 # ETL:  docker compose exec backend python scripts/run_etl.py --update
+#
+# 端口策略（详见 docs/operating/docker-ports-and-images.md）:
+#   宿主本地 dev:  backend :8000  | frontend Vite :5173
+#   Compose 容器:  backend 内部 :8001 → 宿主 :8000
+#                  frontend nginx 内部 :8080 → 宿主 :5173（静态，非 vite preview）
 
 services:
   backend:
@@ -8,21 +13,31 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8000:8001"
     volumes:
-      - ./data:/app/data                          # DuckDB 数据持久化
-      - ${SHOP_DATA_SOURCE:-./data/sources/shop}:/data/sources/shop:ro     # 店铺数据（只读）
-      - ${MEMBER_DATA_SOURCE:-./data/sources/member}:/data/sources/member:ro  # 会员数据（只读）
+      - ./data:/app/data
+      - ${SHOP_DATA_SOURCE:-./data/sources/shop}:/data/sources/shop:ro
+      - ${MEMBER_DATA_SOURCE:-./data/sources/member}:/data/sources/member:ro
     env_file: .env
     environment:
       - PYTHONPATH=/app
       - DUCKDB_PATH=/app/data/processed/fuqing.duckdb
+      - UVICORN_WORKERS=1
+      - UVICORN_PORT=8001
     restart: unless-stopped
+    # slim 镜像无 curl：用 stdlib urllib 探 /api/v1/health
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=5)",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
 
   frontend:
     build:
@@ -31,5 +46,6 @@ services:
     ports:
       - "5173:8080"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped

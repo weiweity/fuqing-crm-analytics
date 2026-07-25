@@ -2,20 +2,22 @@
 
 > **短表 SSOT**。编年：[`docs/history/STATUS-HISTORY.md`](docs/history/STATUS-HISTORY.md) · 债：`docs/TECH-DEBT.md` · 文档：`docs/README.md`
 
-## 当前快照（2026-07-21 CI 假红闭环）
+## 当前快照（2026-07-25 PR5 供应链分支）
 
 | 项 | 值 |
 |---|---|
 | **VERSION** | 以根目录 `VERSION` 为准 |
-| **main** | CI 假红闭环：#39 check_imports 门禁对齐 + #40 Nightly/Weekly timeout 45min |
-| **分支** | 目标仅 `main`；feature 合完即删 |
-| **可合并 CI** | **lint + test 必绿**（test 含 B2 import；e2e 非 PR 门禁；可选 `e2e-smoke.yml`） |
-| **定时 CI** | Nightly / Weekly 与 PR 同口径；timeout 45min；已手动验证 success |
-| **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md) — **无未规划开放债**（仅触发型延期） |
+| **main** | CI 假红闭环：#39 check_imports + #40 timeout 45min |
+| **进行中分支** | `chore/security-supply-chain`（PR5：依赖/Docker/CI/治理文档；**未 push**） |
+| **可合并 CI** | **lint + test + contract-filterbuilder-lint**；frontend build 建议 required；audit/docker-smoke soft；e2e 非 PR 门禁 |
+| **定时 CI** | Nightly / Weekly 与 PR 同口径；timeout 45min |
+| **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md` |
+| **DuckDB 升级** | 仅 checklist：`docs/maintenance/duckdb-backup-upgrade-checklist.md`（**不**在 PR 执行） |
+| **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md) — 无未规划开放债；YOY unit 与 L4.81 契约漂移为触发型 |
 | **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
 | **Admin Upload** | **已撤回**，无产品路由 |
 | **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git** |
-| **服务** | :5173 / :8000 以 `lsof` 为准 |
+| **服务** | :5173 / :8000 以 `lsof` 为准；Compose 容器内 backend `:8001` |
 
 ## 阅读顺序
 

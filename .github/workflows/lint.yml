@@ -1,14 +1,10 @@
 name: CI
 
-# 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI (6/12 一次性 docs push 就用掉 50+ min)
-# Free plan 2,000 min/月 私仓额度用完后 CI 立即 fail, 此过滤可省 ~80% 用量
-# Sprint 41 (2026-06-19): 加 frontend-vue3/e2e/** + playwright.config.ts 触发 e2e job
-# Sprint 83 (2026-06-23): 加 CLAUDE.md + docs/maintenance/** + docs/operating/** + docs/business/** + memory/** 触发 CI (L4.16 永久规则沉淀, Sprint 82 真因发现: 之前 paths 不含 CLAUDE.md → Sprint 77 push L4.15 永久规则 0 CI run 跑, 跨 sprint 4 sprint 滞后异常 stable 模式真因 = workflow paths 限制)
-# Sprint 85 (2026-06-23): Node 20 → Node 24 升级 (L4.17 永久规则沉淀, Sprint 84 CI annotations 实战). ruff-action@v3 → v3.6.1 锁 stable (Sprint 63 P2 教训: v4 pre-release GH Actions git ref 解析失败, L4.9 永久规则 gh api tags 验证) + setup-node@v5 强制 Node 24 (覆盖 ruff-action 内部 Node 20)
-# Sprint 87 (2026-06-23): ruff-action 替代 (L4.17 SOP 修复彻底, Sprint 86 annotation 警告仍存在真因修复). 移除 astral-sh/ruff-action@v3.6.1 (内部 Node 20 检测**无法通过** setup-node 覆盖) + 移除 setup-node@v5 (Sprint 85 修但没覆盖 action 内部 Node) + 改用 setup-python@v6 + pip install ruff==0.4.10 (L4.9 永久规则 锁 ruff version, Sprint 92 必修 2 真因修) + ruff check backend/ 自定义 step (避免 ruff-action 内部 Node 20, L4.17 SOP 修复彻底 annotation 警告 0 触发). 失去 ruff-action cache 优化但 backend/ 改动频率低, 缓存影响小.
-# Sprint 123 (2026-06-25): 曾把 e2e 并进本文件作第 4 job；2026-07-19 门禁分层：PR/main 默认不再跑浏览器 e2e（假红 + 15–25min 环境税）。
-# 可选极简 UI smoke → .github/workflows/e2e-smoke.yml（workflow_dispatch + nightly schedule，不挡 PR merge）。
-# Sprint 129 (2026-06-27): paths 仍含 frontend-vue3/e2e/** — e2e 源码变更仍触发 lint+test（非 Playwright）。
+# 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI
+# Sprint 41/83/85/87/123/129: e2e 分层、Node 24、ruff 自定义 step 等历史见 CHANGELOG
+# 2026-07-25 PR5: permissions least-privilege、persist-credentials=false、
+#   frontend/contract/FilterBuilder/audit jobs；lock/Docker/compose 变更触发
+
 on:
   pull_request:
   push:
@@ -19,29 +15,45 @@ on:
       - 'frontend-vue3/src/**'
       - 'frontend-vue3/e2e/**'
       - 'frontend-vue3/playwright.config.ts'
+      - 'frontend-vue3/package.json'
+      - 'frontend-vue3/package-lock.json'
+      - 'frontend-vue3/Dockerfile'
+      - 'frontend-vue3/.npmrc'
+      - 'frontend-vue3/vite.config.ts'
+      - 'frontend-vue3/tsconfig*.json'
+      - 'frontend-vue3/vitest.config.ts'
       - 'requirements.txt'
       - 'requirements-lock.txt'
       - 'requirements-e2e.txt'
       - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.dockerignore'
       - '.githooks/**'
       - '.github/workflows/**'
       - 'CLAUDE.md'
       - 'docs/maintenance/**'
       - 'docs/operating/**'
       - 'docs/business/**'
-      # 勿写仓库外 path (如 ~/.claude/...) — GHA paths 过滤无效
       - 'docs/validation-reports/**'
       - 'docs/飞书版架构文档/**'
+
+# 最小权限：默认只读 contents；禁止 GITHUB_TOKEN 写仓库
+permissions:
+  contents: read
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-          cache: 'pip'  # Sprint 87 - pip cache 替代 ruff-action cache
+          cache: 'pip'
           cache-dependency-path: requirements-lock.txt
       - name: "Install ruff (L4.41 + L4.9 lock version 1:1 with requirements-lock.txt)"
         run: pip install -r requirements-lock.txt
@@ -54,15 +66,11 @@ jobs:
 
   ground-truth-lint:
     runs-on: ubuntu-latest
-    # P1-3 B2 (2026-06-06): 镜像本地 pre-commit 钩子, 防止 agent 走 PR 漏判 ground-truth 错误
-    # 教训 D-4 (2026-06-06): 飞书架构 7 份刷出现 4 个未附 git log 实证的 ground-truth 声明
-    # P1-3 二轮 B2 修 (2026-06-07): 改用 --committed 模式, 跑 git show HEAD:<path>
-    # 拉已 commit 文件内容 (旧 staged 模式对已 commit 文件永远 no-op)
-    # 非阻塞起步 (|| echo warning), 观察 false positive 率后再考虑改 blocking
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # 需全历史给 ground-truth lint 跑 git log --all
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -72,13 +80,112 @@ jobs:
             "docs/validation-reports/*.md" \
             "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (non-blocking for now)"
 
+  contract-filterbuilder-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: FilterBuilder usage lint (L4.5)
+        run: python3 backend/scripts/check_filter_builder_usage.py
+      - name: Channel alias lint (L4.19)
+        run: python3 backend/scripts/check_channel_alias.py
+
   test:
     runs-on: ubuntu-latest
     env:
-      # P0: FQ_CRM_PASSWORDS 由 job step 动态生成（禁止 workflow 固定密码）
       FQ_CRM_ADMINS: admin
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: 'pip'
+          cache-dependency-path: requirements-lock.txt
+      - run: pip install -r requirements-lock.txt
+      - name: B2 import completeness check
+        run: python3 .githooks/check_imports.py
+      - name: Run full pytest (C-class deselect SSOT)
+        run: |
+          set -euo pipefail
+          DESELECT_ARGS=()
+          while IFS= read -r tok; do
+            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
+          done < <(bash scripts/ci/pytest_deselect_args.sh)
+          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
+          PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-vue3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend-vue3/package-lock.json
+      - name: npm ci (official registry via .npmrc; no --legacy-peer-deps)
+        run: npm ci
+      - name: vue-tsc + vite build
+        run: npm run build
+      # 部分 YOY* unit 与 L4.81 raw-ratio 契约仍有历史漂移（*100 期望）；
+      # 不因预存红挡 merge。修复 unit 契约后去掉 continue-on-error。
+      - name: unit tests (advisory until YOY L4.81 test debt cleared)
+        continue-on-error: true
+        run: npm run test:unit
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    # 审计失败默认 warning，避免供应链误报挡 merge；确认稳定后可改 continue-on-error: false
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend-vue3/package-lock.json
+      - name: Install Python deps for pip-audit
+        run: |
+          pip install -r requirements-lock.txt
+          pip install pip-audit
+      - name: pip-audit (requirements-lock)
+        run: pip-audit -r requirements-lock.txt --progress-spinner off
+      - name: npm ci
+        working-directory: frontend-vue3
+        run: npm ci
+      - name: npm audit production only
+        working-directory: frontend-vue3
+        run: npm audit --omit=dev --audit-level=high
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    # 仅验证 Dockerfile 语法/构建入口；不拉 131GB 库、不升 DuckDB
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Backend Dockerfile build (no push)
+        run: |
+          docker build -t fuqing-crm-backend:ci -f Dockerfile .
       - name: Generate ephemeral test credentials (masked)
         # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
         run: |
@@ -102,20 +209,6 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements-lock.txt
       # 2026-07-21: 与 Nightly/Weekly 对齐 — PR 也跑 B2 import 完整性 (避免定时专属红、合并门却绿)
-      - name: B2 import completeness check
-        run: python3 .githooks/check_imports.py
-      # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
-      # 排除 pytest.mark.slow，避免 job hang。
-      # Sprint C 2026-07-19: C-class 7 deselect only (A1/A2 restored, B dead nodeids cleared).
-      # Track A 2026-07-19: deselect SSOT = scripts/ci/pytest_c_class_deselects.txt
-      #   (shared by pre-push + lint.yml + nightly.yml — no more hardcoded drift)
-      - name: Run full pytest (C-class deselect SSOT)
+      - name: Frontend Dockerfile build (no push)
         run: |
-          set -euo pipefail
-          DESELECT_ARGS=()
-          while IFS= read -r tok; do
-            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
-          done < <(bash scripts/ci/pytest_deselect_args.sh)
-          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
-          PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"
-
+          docker build -t fuqing-crm-frontend:ci -f frontend-vue3/Dockerfile frontend-vue3

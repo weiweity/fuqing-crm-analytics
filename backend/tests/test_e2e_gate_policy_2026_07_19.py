@@ -42,8 +42,17 @@ class TestPrCiNoBlockingE2e:
         wf = _load_yaml(LINT_YML)
         jobs = list(wf.get("jobs", {}).keys())
         assert "e2e" not in jobs, f"PR CI 不得含 blocking e2e job, 实际 jobs={jobs}"
-        assert "lint" in jobs and "test" in jobs and "ground-truth-lint" in jobs
-        assert len(jobs) == 3, f"PR CI 应为 3 jobs (lint/gt/test), 实际 {jobs}"
+        # 核心门禁：lint / ground-truth-lint / test（PR5+ 可增加 contract/frontend/audit/docker）
+        for required in ("lint", "test", "ground-truth-lint"):
+            assert required in jobs, f"PR CI 缺 job {required}, 实际 {jobs}"
+        allowed_extra = {
+            "contract-filterbuilder-lint",
+            "frontend",
+            "dependency-audit",
+            "docker-smoke",
+        }
+        unexpected = set(jobs) - {"lint", "test", "ground-truth-lint"} - allowed_extra
+        assert not unexpected, f"PR CI 出现未声明 job: {unexpected}"
 
     def test_lint_yml_text_has_no_playwright_step(self) -> None:
         text = LINT_YML.read_text(encoding="utf-8")
@@ -89,8 +98,10 @@ class TestOptionalE2eSmoke:
             dep_names.add(name.lower())
         for pkg in _FORBIDDEN_E2E_DEPS:
             assert pkg.lower() not in dep_names, f"requirements-e2e.txt 禁止声明 {pkg}"
+        # PR5 起 requirements-lock 已瘦身为生产/CI 最小集，禁止再要求 torch 等 ML 栈
         lock = REQ_LOCK.read_text(encoding="utf-8").lower()
-        assert "torch==" in lock  # 对照：全量 lock 仍重
+        for pkg in ("torch==", "paddleocr==", "scrapling=="):
+            assert pkg not in lock, f"requirements-lock 应已剔除 {pkg.rstrip('=')}"
 
     def test_smoke_runs_login_shell_only(self) -> None:
         text = SMOKE_YML.read_text(encoding="utf-8")

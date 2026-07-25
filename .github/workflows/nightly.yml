@@ -11,6 +11,9 @@ on:
     - cron: '0 13 * * 1-5'
   workflow_dispatch:  # 允许手动触发 (测试 + 应急验证)
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,6 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          persist-credentials: false
           fetch-depth: 0  # P1-3 B2: 需全历史给 ground-truth lint 跑 git log --all
 
       - name: Generate ephemeral test credentials (masked)
@@ -52,7 +56,6 @@ jobs:
           cache: 'pip'
           # 与 pip install 一致：cache key 用 lock，避免 requirements.txt 漂移导致 cache 失效/错配
           cache-dependency-path: requirements-lock.txt
-
       - name: Install dependencies (lock 锁版本, v0.4.7.7 B4)
         run: pip install -r requirements-lock.txt
 
