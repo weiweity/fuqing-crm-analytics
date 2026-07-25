@@ -60,6 +60,33 @@
 ### Tests
 - **backend**: 新增 `TestW4ChannelAliasL419`（SQL 含 `o.channel` + batch/serial 新连接 commit/close 等价 + T-1 日期锁 + 不污染外部路径）
 - **frontend**: vitest **130/130 passed**（原 38 failed → 0）
+## [unreleased] - 2026-07-25 (PR5: 供应链 / Docker / CI / GitHub 治理)
+
+### Security
+- **Starlette** `1.0.0` → `1.3.1`（`requirements.txt` 下限 + lock / e2e pin；与 PR1 可重叠）
+- **click** `8.3.3`、**idna** `3.15`、**urllib3** `2.7.0` 安全 pin
+- **前端 pin**: axios `1.18.1`、echarts `6.1.0`、vite `8.1.5`、postcss `8.5.23`
+- **registry**: `frontend-vue3/.npmrc` 固定 `registry.npmjs.org`；lock 自 mirror 迁回官方源
+- **lock 瘦身**: 从 `requirements-lock.txt` 移除 Torch/OCR/爬虫/视觉等 **无生产 import** 冗余（Pillow/pypdf/torch/paddle/scrapling 等）
+- **xlsx**: 删除未使用直接依赖 `xlsx`（保留 `xlsx-js-style`，不盲换）
+- **openapi-typescript peer**: `package.json` `overrides` 对齐 TS `~6`，CI `npm ci` 去掉 `--legacy-peer-deps`
+
+### Added
+- **CI jobs**: `contract-filterbuilder-lint`、`frontend`（build 硬门禁 / unit advisory）、`dependency-audit`（pip-audit + npm audit soft）、`docker-smoke`（soft）
+- **docs**: `docs/operating/supply-chain.md`、`docker-ports-and-images.md`、`github-governance-checklist.md`
+- **docs**: `docs/maintenance/duckdb-backup-upgrade-checklist.md`（**仅清单**，不执行生产备份/升级/复制 131GB）
+- **frontend-vue3/.dockerignore**；根 `.dockerignore` 强化（`.env*`、data、logs、导出）
+
+### Changed
+- **Docker**: 端口 `8000:8001`；healthcheck `GET /api/v1/health` 用 Python urllib（无 curl）；`UVICORN_WORKERS` 默认 **1** 并注释原因；基础镜像 minor pin（python 3.13.5 / node 22.17.0 / nginx-unprivileged 1.27）
+- **前端生产镜像**: 继续多阶段 Nginx 静态（**禁止**生产 vite preview）
+- **Workflows**: 全量 `permissions: contents: read` + `persist-credentials: false`；paths 含 lock/Dockerfile/compose/package-lock
+- **team-workflow-v1**: 可合并定义同步 PR5 jobs
+
+### Notes
+- **不**升级生产 DuckDB、**不**复制 131GB 库
+- **不** push/merge；GitHub branch protection 等需人工按 checklist 启用
+- actions pin SHA / actionlint / shellcheck 全量落地留后续（本 PR 优先 permissions + audit jobs）
 
 ## [unreleased] - 2026-07-21 (CI: check_imports 假红止血 + 定时 timeout)
 

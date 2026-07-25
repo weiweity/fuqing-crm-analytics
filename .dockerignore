@@ -1,39 +1,73 @@
-# Git
+# Git / VCS
 .git
 .gitignore
+.gitattributes
+.githooks
+.github
+
+# 密钥与本地环境（绝不进镜像）
+.env
+.env.*
+!.env.example
 
 # Python
 __pycache__
 *.pyc
 *.pyo
+*.pyd
 .venv
 venv
+.pytest_cache
+.ruff_cache
+*.egg-info
+.mypy_cache
 
 # Node
 node_modules
 frontend-vue3/node_modules
 frontend-vue3/dist
+frontend-vue3/coverage
+frontend-vue3/playwright-report
+frontend-vue3/test-results
 
-# Data (挂载卷，不进镜像)
+# Data / 大库 / 导出（挂载卷，不进镜像）
 data/
 芙清CRM数据库/
+outputs/
+logs/
+*.duckdb
+*.duckdb.wal
 
-# IDE
+# IDE / OS
 .vscode
 .idea
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# 临时文件
+# 临时与本地日志
 *.bak
 *.tmp
 *.log
+.ship-audit.log
 
-# 设计稿和截图
+# 设计稿 / 文档大目录（镜像不需要）
 designs/
 docs/业务知识/
 docs/618-breakdown/
+docs/history/
+docs/sprints/
+
+# 本地 agent / 工具缓存
+.claude
+.codex
+.codegraph
+.gstack
+.agents
+.workbuddy
+mcp_servers
+
+# 测试与 CI 产物
+backend/tests
+**/__pycache__

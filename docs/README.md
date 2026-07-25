@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-07-19 document-release（L4→rules、CHANGELOG 滚动、archive 精简、#CLAUDE-L4 闭环）
+> **最后更新**: 2026-07-25 PR5 供应链/Docker/CI 治理文档入口
 
 ## 一图流
 
@@ -29,6 +29,9 @@ fuqing-crm-analytics/docs/
 │
 ├── operating/                         怎么运维 / 协作
 │   ├── team-workflow-v1.md            可合并定义 · 角色
+│   ├── supply-chain.md                依赖 SSOT / audit（PR5）
+│   ├── docker-ports-and-images.md     端口 / healthcheck / 镜像 pin
+│   ├── github-governance-checklist.md 分支保护等人工清单
 │   ├── project-hygiene.md             根目录 / 文档整洁
 │   ├── ship.md · linting.md · hooks-* · launchd-uvicorn.md
 │   └── ci-*.md
@@ -47,7 +50,8 @@ fuqing-crm-analytics/docs/
 │   └── SPRINT_INDEX.md
 │
 ├── maintenance/
-│   └── BOOTSTRAP.md
+│   ├── BOOTSTRAP.md
+│   └── duckdb-backup-upgrade-checklist.md  备份/1.5.5 升级（仅清单）
 │
 └── sprints/                           仅进行中 + archive
     ├── README.md

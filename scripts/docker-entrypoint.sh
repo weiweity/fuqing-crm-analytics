@@ -14,10 +14,19 @@ if [ -z "$HEALTH_API_KEY" ]; then
     echo "已自动生成 HEALTH_API_KEY"
 fi
 
+# 容器内端口：默认 8001（与 nginx proxy_pass / compose 映射一致）
+# 本地非 Docker 仍可在 README 用 8000；勿混用。
+UVICORN_PORT="${UVICORN_PORT:-8001}"
+
 echo "DUCKDB_PATH: $DUCKDB_PATH"
+echo "UVICORN_PORT: $UVICORN_PORT"
 echo "启动 uvicorn..."
 
-UVICORN_WORKER_COUNT="${UVICORN_WORKERS:-2}"
+# 默认 1 worker：
+# - DuckDB 文件锁 / 连接池与多 worker 进程模型易冲突
+# - FQ_SINGLE_USER_V2=1 强制单 worker（会话一致性）
+# - 需要 >1 时显式 export UVICORN_WORKERS=N，并确认无单用户模式
+UVICORN_WORKER_COUNT="${UVICORN_WORKERS:-1}"
 if [ "${FQ_SINGLE_USER_V2:-0}" = "1" ]; then
     if [ -n "${UVICORN_WORKERS:-}" ] && [ "$UVICORN_WORKERS" != "1" ]; then
         echo "FATAL: FQ_SINGLE_USER_V2=1 时 UVICORN_WORKERS 必须为 1" >&2
@@ -26,7 +35,9 @@ if [ "${FQ_SINGLE_USER_V2:-0}" = "1" ]; then
     UVICORN_WORKER_COUNT=1
 fi
 
+echo "UVICORN_WORKERS: $UVICORN_WORKER_COUNT"
+
 exec python -m uvicorn backend.main:app \
     --host 0.0.0.0 \
-    --port 8001 \
+    --port "$UVICORN_PORT" \
     --workers "$UVICORN_WORKER_COUNT"

@@ -22,11 +22,16 @@ on:
   # 注释掉 push / pull_request 自动触发 (默认不装 framework):
   # on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: '3.14'

@@ -1,0 +1,16 @@
+# frontend-vue3 构建上下文：只保留构建所需
+node_modules
+dist
+coverage
+playwright-report
+test-results
+.vite
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+e2e
+*.md
+.npm
+.cache
