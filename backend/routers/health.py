@@ -5,14 +5,12 @@
 注意: /api/v1/health 已被系统健康检查占用
 """
 
-from fastapi import APIRouter, Query, Header, Request, HTTPException, Response
+from fastapi import APIRouter, Query, HTTPException, Response, Depends
 from typing import Optional, List
-import hmac
-import time
 import logging
-from collections import defaultdict
 
 from backend.services import check_future_date
+from backend.routers.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -47,58 +45,9 @@ from backend.services.health import channel_scores as channel_scores_service
 
 router = APIRouter(prefix="/api/v1/customer-health", tags=["customer-health"])
 
-# P0 fix: API Key 禁止默认值，必须在环境变量中设置
-import os as _os
-_HEALTH_API_KEY = _os.environ.get("HEALTH_API_KEY")
-if not _HEALTH_API_KEY:
-    raise RuntimeError(
-        "HEALTH_API_KEY 环境变量未设置。请在 .env 或启动命令中配置一个强随机值。\n"
-        "示例：export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
-    )
-
-
-def _get_client_ip(request: Request) -> str:
-    """从 Request 对象提取客户端 IP"""
-    if request.client:
-        return request.client.host
-    return "unknown"
-
-
-_RATE_LIMIT_WINDOW = 300  # 5 分钟（秒）
-_RATE_LIMIT_MAX = 10      # 每窗口最大请求数
-_rate_limit_store: dict[str, list[float]] = defaultdict(list)
-
-
-def _check_rate_limit(client_ip: str) -> None:
-    """滑动窗口速率限制：每 IP 每 5 分钟最多 10 次"""
-    now = time.time()
-    window_start = now - _RATE_LIMIT_WINDOW
-    # 清理过期时间戳，空列表则删除条目防止内存泄漏
-    active = [t for t in _rate_limit_store[client_ip] if t > window_start]
-    if active:
-        _rate_limit_store[client_ip] = active
-    else:
-        _rate_limit_store.pop(client_ip, None)
-    if len(_rate_limit_store.get(client_ip, [])) >= _RATE_LIMIT_MAX:
-        logger.warning(
-            "Rate limit exceeded for client %s",
-            client_ip,
-            extra={"client_ip": client_ip, "path": "config-endpoint"},
-        )
-        raise HTTPException(status_code=429, detail="Too Many Requests")
-    _rate_limit_store[client_ip].append(now)
-
-
-def _check_api_key(request: Request, x_api_key: str) -> None:
-    """校验 API Key，失败时记录访问日志并抛出 401"""
-    client_ip = _get_client_ip(request)
-    _check_rate_limit(client_ip)
-    if not x_api_key or not hmac.compare_digest(x_api_key, _HEALTH_API_KEY):
-        logger.warning(
-            "Unauthorized access attempt to customer-health API",
-            extra={"client_ip": client_ip, "path": str(request.url.path)},
-        )
-        raise HTTPException(status_code=401, detail="Unauthorized")
+# 管理端点（config/history、audit-log）改 Bearer + require_admin。
+# 不再把服务端 API key 编进浏览器 bundle；HEALTH_API_KEY 仍可在运维脚本中保留，
+# 但本 router 不再依赖 X-API-Key / VITE_HEALTH_API_KEY。
 
 
 @router.get("/overview", response_model=HealthOverviewMetrics)
@@ -375,24 +324,20 @@ def get_rfm_config():
 
 @router.get("/config/history", response_model=ConfigHistoryResponse)
 def get_config_history(
-    request: Request,
-    x_api_key: str = Header(..., alias="X-API-Key", description="API 密钥"),
     limit: int = Query(default=20, ge=1, le=100, description="返回最近N条记录"),
+    _admin: str = Depends(require_admin),
 ):
-    """获取配置变更历史（自动备份列表）— 需鉴权"""
-    _check_api_key(request, x_api_key)
+    """获取配置变更历史（自动备份列表）— 需管理员 Bearer 会话"""
     history = health_config.list_config_history(limit=limit)
     return ConfigHistoryResponse(history=history)
 
 
 @router.get("/config/audit-log", response_model=AuditLogResponse)
 def get_audit_log(
-    request: Request,
-    x_api_key: str = Header(..., alias="X-API-Key", description="API 密钥"),
     limit: int = Query(default=50, ge=1, le=1000, description="返回最近N条记录"),
+    _admin: str = Depends(require_admin),
 ):
-    """获取配置审计日志 — 需鉴权"""
-    _check_api_key(request, x_api_key)
+    """获取配置审计日志 — 需管理员 Bearer 会话"""
     logs = health_config.get_audit_log(limit=limit)
     return AuditLogResponse(logs=logs)
 

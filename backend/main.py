@@ -270,6 +270,23 @@ if _ALLOWED_HOSTS_RAW and _ALLOWED_HOSTS_RAW != "*":
 # ─────────────────────────────────────────────────────────────
 # 安全响应头中间件
 # ─────────────────────────────────────────────────────────────
+# CSP Report-Only：先观察再强制。内联脚本已清除（ECharts tooltip 无 onclick）。
+# object-src none; base-uri self; frame-ancestors none 为硬要求。
+# style-src 含 'unsafe-inline'（Naive UI / Vue 内联样式）；script-src 仅 'self'。
+_CSP_REPORT_ONLY = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'; "
+    "form-action 'self'"
+)
+
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -278,6 +295,8 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    # 先 Report-Only，避免强制 CSP 破坏现有图表/样式；观察期后再切 Content-Security-Policy
+    response.headers["Content-Security-Policy-Report-Only"] = _CSP_REPORT_ONLY
     return response
 
 
