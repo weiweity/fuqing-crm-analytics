@@ -394,7 +394,9 @@ def _reset_v2_state() -> None:
 
 
 def _is_guarded_rfm_request(request: Request) -> bool:
-    return request.method != "OPTIONS" and request.url.path == RFM_SINGLE_USER_PATH
+    # P0: 安全路径判断用 ASGI scope path，与 auth/rate_limit 中间件一致
+    path = request.scope.get("path") if isinstance(request.scope.get("path"), str) else ""
+    return request.method != "OPTIONS" and path == RFM_SINGLE_USER_PATH
 
 
 def _lan_denied_response() -> JSONResponse:
