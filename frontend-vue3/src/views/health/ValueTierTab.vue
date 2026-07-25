@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue, h, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import type { DataTableColumns } from 'naive-ui'
@@ -101,9 +102,8 @@ function markUserActivity() {
   activitySinceHeartbeat = true
 }
 
-// 暴露到 window，供 tooltip onclick 调用
+// 点击下钻走 ECharts @chart-click（onRFMChartClick），禁止 window 全局 + tooltip onclick
 onMounted(() => {
-  ;(window as any).__rFMDrilldownClick = onRFMChartClick
   USER_ACTIVITY_EVENTS.forEach((eventName) => {
     window.addEventListener(eventName, markUserActivity, { passive: true })
   })
@@ -436,16 +436,17 @@ const repurchaseRateChartOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: EChartTooltipParam[]) => {
-        const segName = params[0].name
+        const segName = encodeHtml(params[0].name)
         // 显式颜色序列，不依赖 p.color（baseTheme.color 会干扰）
+        // 下钻：点柱体触发 @chart-click（禁止 tooltip 内联 onclick / window 全局）
         const EXPLICIT_COLORS = [BRAND_PRIMARY, '#60a5fa', '#94a3b8']
-        let html = `<div style="cursor:pointer;color:#533afd;font-weight:600;margin-bottom:4px" onclick="window.__rFMDrilldownClick({componentType:'series',seriesType:'bar',name:'${segName}'})">${segName} — 点击查看品类拆解</div>`
+        let html = `<div style="color:#533afd;font-weight:600;margin-bottom:4px">${segName} — 点击柱体查看品类拆解</div>`
         params.forEach((p, idx) => {
-          const color = EXPLICIT_COLORS[idx] ?? p.color
+          const color = sanitizeCssColor(EXPLICIT_COLORS[idx] ?? p.color)
           const pct = (Number(p.value) * 100).toFixed(1)
           html += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
             <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
-            <span style="color:#64748b;font-size:12px">${p.seriesName}:</span>
+            <span style="color:#64748b;font-size:12px">${encodeHtml(p.seriesName)}:</span>
             <span style="color:#1e293b;font-size:12px;font-weight:500">${pct}%</span>
           </div>`
         })

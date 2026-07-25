@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -123,13 +124,14 @@ const option = computed(() => ({
     textStyle: { color: '#0f172a', fontSize: 12 },
     extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
     formatter: (params: TooltipParams[]) => {
-      let html = `<div style="font-weight:600;margin-bottom:6px;font-size:13px">${params[0].axisValue}</div>`
+      let html = `<div style="font-weight:600;margin-bottom:6px;font-size:13px">${encodeHtml(params[0].axisValue)}</div>`
       params.forEach((p) => {
-        const marker = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px"></span>`
+        const color = sanitizeCssColor(p.color)
+        const marker = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px"></span>`
         html += `<div style="display:flex;align-items:center;gap:4px;margin-top:3px">
           ${marker}
-          <span style="flex:1;color:#64748b;font-size:12px">${p.seriesName}</span>
-          <span style="font-weight:600;color:#0f172a;font-size:12px">${p.value}</span>
+          <span style="flex:1;color:#64748b;font-size:12px">${encodeHtml(p.seriesName)}</span>
+          <span style="font-weight:600;color:#0f172a;font-size:12px">${encodeHtml(p.value)}</span>
         </div>`
       })
       return html

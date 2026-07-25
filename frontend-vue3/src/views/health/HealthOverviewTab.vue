@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NAlert, NGrid, NGi, NEmpty, NButton } from 'naive-ui'
@@ -243,7 +244,7 @@ const radarOption = computed((): EChartsOption => {
     tooltip: {
       trigger: 'item',
       formatter: () => {
-        const rows = rawValues.map(r => `<div style="display:flex;justify-content:space-between;gap:16px"><span>${r.label}</span><span><b>${r.value}</b> <span style="color:#94a3b8">(目标 ${r.target})</span></span></div>`).join('')
+        const rows = rawValues.map(r => `<div style="display:flex;justify-content:space-between;gap:16px"><span>${encodeHtml(r.label)}</span><span><b>${encodeHtml(r.value)}</b> <span style="color:#94a3b8">(目标 ${encodeHtml(r.target)})</span></span></div>`).join('')
         return `<div style="font-size:12px;line-height:1.8">${rows}</div>`
       },
     },

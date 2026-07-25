@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, h, toValue } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
@@ -223,7 +224,7 @@ const rfmPieOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: { name: string; value: number; percent: number }) =>
-        `${params.name}<br/>用户: ${params.value.toLocaleString()}<br/>占比: ${params.percent}%`,
+        `${encodeHtml(params.name)}<br/>用户: ${params.value.toLocaleString()}<br/>占比: ${params.percent}%`,
     },
     legend: {
       orient: 'vertical',

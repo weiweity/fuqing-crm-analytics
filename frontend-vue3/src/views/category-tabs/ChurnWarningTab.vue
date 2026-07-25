@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, h, toValue } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NTooltip } from 'naive-ui'
@@ -66,7 +67,7 @@ const scatterOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any) => {
         const p = params.data
-        return `<b>${p.name}</b><br/>本期用户: ${p.current_users.toLocaleString()}<br/>MoM变化: ${(p.mom_change_rate * 100).toFixed(1)}%<br/>流失人数: ${p.churn_users.toLocaleString()}`
+        return `<b>${encodeHtml(p.name)}</b><br/>本期用户: ${p.current_users.toLocaleString()}<br/>MoM变化: ${(p.mom_change_rate * 100).toFixed(1)}%<br/>流失人数: ${p.churn_users.toLocaleString()}`
       },
     },
     grid: { left: 56, right: 24, top: 16, bottom: 40 },
@@ -121,7 +122,7 @@ const scatterOption = computed(() => {
             color: '#0f172a',
             fontWeight: 'bold',
             position: 'top',
-            formatter: (param: any) => param.data.name,
+            formatter: (param: any) => encodeHtml(param.data.name),
           },
         },
       },
@@ -152,7 +153,7 @@ const barOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any[]) => {
         const row = rows[params[0].dataIndex]
-        return `${row.category_name}<br/>本期: ${row.current_users.toLocaleString()}<br/>上期: ${row.previous_users.toLocaleString()}<br/>MoM: ${(row.mom_change_rate * 100).toFixed(1)}%`
+        return `${encodeHtml(row.category_name)}<br/>本期: ${row.current_users.toLocaleString()}<br/>上期: ${row.previous_users.toLocaleString()}<br/>MoM: ${(row.mom_change_rate * 100).toFixed(1)}%`
       },
     },
     grid: { left: 56, right: 24, top: 16, bottom: 64, containLabel: false },

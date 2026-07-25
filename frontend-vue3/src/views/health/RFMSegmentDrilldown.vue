@@ -86,7 +86,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, h, markRaw } from 'vue'
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
+import { ref, computed, watch, h, markRaw } from 'vue'
 import { NButton, NSpin } from 'naive-ui'
 import { Close } from '@vicons/ionicons5'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
@@ -211,8 +212,7 @@ function yoyClass(v: number | null | undefined): string {
   return v >= 0 ? 'success' : 'danger'
 }
 
-// Bug 1: 柱状图点击处理（暴露到 window 供 tooltip onclick 调用）
-// Issue 1: 柱状图点击（含空白区域）——空白处点击时用坐标换算最近柱体
+// 柱状图点击（含空白区域）——空白处点击时用坐标换算最近柱体；下钻走 @chart-click
 function onChartClick(params: any) {
   const rows = (displayRows.value as any[]).slice(0, 15)
   // params.name 为空时（点击空白区域），尝试用坐标换算最近柱体
@@ -248,12 +248,12 @@ const chartOption = computed((): EChartsOption => {
         const arr = Array.isArray(params) ? params : [params]
         const rows = arr.map((p: any) =>
           `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
-            <span style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
-            <span style="color:#64748b;font-size:12px">${p.seriesName}:</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:${sanitizeCssColor(p.color)};flex-shrink:0"></span>
+            <span style="color:#64748b;font-size:12px">${encodeHtml(p.seriesName)}:</span>
             <span style="color:#1e293b;font-size:12px;font-weight:500">${(Number(p.value) * 100).toFixed(1)}%</span>
           </div>`
         ).join('')
-        const catName = arr[0].name
+        const catName = encodeHtml(arr[0].name)
         return `<div style="background:#f5f5f5;padding:8px 12px;border-radius:4px;line-height:1.8">
           <div style="font-weight:600;margin-bottom:4px;color:#1e293b">${catName}</div>
           ${rows}
@@ -281,11 +281,6 @@ const chartOption = computed((): EChartsOption => {
       },
     ],
   }
-})
-
-// Issue 2: 将点击处理器暴露到 window，供 tooltip 区域 onclick 调用
-onMounted(() => {
-  ;(window as any).__rFMDrilldownClick = onChartClick
 })
 
 async function load() {

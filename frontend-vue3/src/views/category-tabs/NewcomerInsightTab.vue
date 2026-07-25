@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NTooltip } from 'naive-ui'
@@ -57,7 +58,7 @@ const barChartOption = computed(() => {
       formatter: (params: any[]) => {
         const item = params[0]
         const barItem = bars[item.dataIndex]
-        return `${item.name}<br/>新客人数: ${item.value.toLocaleString()}<br/>新客GMV: ¥${(barItem.new_gmv / 10000).toFixed(1)}万`
+        return `${encodeHtml(item.name)}<br/>新客人数: ${item.value.toLocaleString()}<br/>新客GMV: ¥${(barItem.new_gmv / 10000).toFixed(1)}万`
       },
     },
     grid: { left: 12, right: 24, top: 20, bottom: 8 },
@@ -142,9 +143,9 @@ const chordChartOption = computed(() => {
         if (params.dataType === 'edge') {
           const src = params.data.source.replace(/^首购:/, '')
           const tgt = params.data.target.replace(/^复购:/, '')
-          return `${src} → ${tgt}`
+          return `${encodeHtml(src)} → ${encodeHtml(tgt)}`
         }
-        return params.data?.displayName ?? params.name.replace(/^(首购|复购):/, '')
+        return encodeHtml(params.data?.displayName ?? params.name.replace(/^(首购|复购):/, ''))
       },
     },
     animationDurationUpdate: 1500,

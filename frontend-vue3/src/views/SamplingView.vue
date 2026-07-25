@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { NTabs, NTabPane, NSelect, NCard, NGrid, NGi, NDivider, NAlert, NSlider } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
@@ -99,11 +100,12 @@ const trackingChartOption = computed(() => {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       formatter: (params: any[]) => {
-        const bucket = params[0]?.axisValueLabel ?? ''
+        const bucket = encodeHtml(params[0]?.axisValueLabel ?? '')
         const lines = [`<div class="font-semibold mb-1">回购间隔 ${bucket}</div>`]
         for (const p of params) {
-          const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px"></span>`
-          lines.push(`<div style="display:flex;align-items:center;gap:6px;font-size:12px">${dot}<span style="color:#64748b">${p.seriesName}:</span><span style="font-weight:500;color:#0f172a">${((p.value ?? 0) * 100).toFixed(2)}%</span></div>`)
+          const color = sanitizeCssColor(p.color)
+          const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px"></span>`
+          lines.push(`<div style="display:flex;align-items:center;gap:6px;font-size:12px">${dot}<span style="color:#64748b">${encodeHtml(p.seriesName)}:</span><span style="font-weight:500;color:#0f172a">${((p.value ?? 0) * 100).toFixed(2)}%</span></div>`)
         }
         return lines.join('')
       },

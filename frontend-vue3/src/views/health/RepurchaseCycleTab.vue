@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi } from 'naive-ui'
@@ -122,11 +123,11 @@ const bucketChartOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: EChartTooltipParam[]) => {
-        let html = `<div class="font-semibold mb-1">${params[0].name}</div>`
+        let html = `<div class="font-semibold mb-1">${encodeHtml(params[0].name)}</div>`
         params.forEach((p) => {
           html += `<div class="flex items-center gap-2 text-xs">
-            <span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>
-            <span class="text-slate-500">${p.seriesName}:</span>
+            <span class="w-2 h-2 rounded-full" style="background:${sanitizeCssColor(p.color)}"></span>
+            <span class="text-slate-500">${encodeHtml(p.seriesName)}:</span>
             <span class="font-medium text-slate-800">${(Number(p.value) * 100).toFixed(1)}%</span>
           </div>`
         })
@@ -215,8 +216,8 @@ const cohortChartOption = computed(() => {
     tooltip: {
       position: 'top',
       formatter: (p: HeatmapParam) => {
-        const cohort = yData[p.data[1]] ?? ''
-        const period = xData[p.data[0]] ?? ''
+        const cohort = encodeHtml(yData[p.data[1]] ?? '')
+        const period = encodeHtml(xData[p.data[0]] ?? '')
         const curRate = p.data[2]
         const lyRate = lyMatrix[p.data[1]]?.[p.data[0]]
         let yoyStr = ''
