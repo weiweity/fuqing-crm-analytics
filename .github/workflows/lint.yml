@@ -138,10 +138,8 @@ jobs:
         run: npm ci
       - name: vue-tsc + vite build
         run: npm run build
-      # 部分 YOY* unit 与 L4.81 raw-ratio 契约仍有历史漂移（*100 期望）；
-      # 不因预存红挡 merge。修复 unit 契约后去掉 continue-on-error。
-      - name: unit tests (advisory until YOY L4.81 test debt cleared)
-        continue-on-error: true
+      # L4.81 unit 基线已在 #45 对齐 raw-ratio；unit 恢复硬门禁
+      - name: unit tests
         run: npm run test:unit
 
   dependency-audit:

@@ -10,16 +10,16 @@
 
 在 **Settings → Branches → Branch protection rules → `main`**：
 
-- [ ] **Require a pull request before merging**（禁止直推 main）
-- [ ] **Require status checks to pass**  
+- [x] **Require a pull request before merging**（禁止直推 main）
+- [x] **Require status checks to pass**  
   - 建议 required：`lint`、`test`、`contract-filterbuilder-lint`  
   - 可选（稳定后）：`frontend`、`dependency-audit`  
   - **不要**把 optional e2e-smoke 设为 required（门禁分层：不挡 PR merge）
 - [ ] **Require branches to be up to date before merging**（按团队节奏）
 - [ ] **Do not allow bypassing the above settings**（管理员也尽量不绕过）
 - [ ] **Restrict who can push**（仅维护者 / 空名单 + 只走 PR）
-- [ ] **Block force pushes**（Prohibit force pushes）
-- [ ] **Do not allow deletions**
+- [x] **Block force pushes**（Prohibit force pushes）
+- [x] **Do not allow deletions**
 
 ## 2. 规则集（Rulesets，若组织已迁移）
 
@@ -28,8 +28,8 @@
 
 ## 3. Actions 权限
 
-- [ ] **Settings → Actions → General → Workflow permissions** = **Read repository contents and packages permissions**
-- [ ] 取消 **Allow GitHub Actions to create and approve pull requests**（除非 Dependabot 明确需要）
+- [x] **Settings → Actions → General → Workflow permissions** = **Read repository contents and packages permissions**
+- [x] 取消 **Allow GitHub Actions to create and approve pull requests**（除非 Dependabot 明确需要）
 - [ ] Fork PR 的 secrets 策略：保持默认不向 fork 暴露 secrets
 
 代码侧已设：
@@ -43,15 +43,15 @@ persist-credentials: false
 
 ## 4. Dependabot
 
-- [ ] **Settings → Code security → Dependabot alerts** 开启
-- [ ] **Dependabot security updates** 开启
+- [x] **Settings → Code security → Dependabot alerts** 开启
+- [x] **Dependabot security updates** 开启
 - [ ] （可选）提交 `.github/dependabot.yml`：`pip` + `npm` + `github-actions` 周更  
   - 注意：DuckDB / 大 major 需人工 review，勿全自动 merge
 
 ## 5. Secret scanning & push protection
 
-- [ ] **Secret scanning** 开启
-- [ ] **Push protection** 开启（推送含密钥时拦截）
+- [x] **Secret scanning** 开启
+- [x] **Push protection** 开启（推送含密钥时拦截）
 - [ ] **Validity checks**（若 plan 支持）按需开启
 - [ ] 私有依赖/镜像 token 仅用 Actions secrets / org secrets，不进仓库
 
@@ -95,3 +95,9 @@ gh api repos/weiweity/fuqing-crm-analytics/vulnerability-alerts -i || true
 | Nightly / Weekly | schedule | 不挡 PR |
 
 详见 [supply-chain.md](./supply-chain.md)、[team-workflow-v1.md](./team-workflow-v1.md)。
+
+## 状态更新 (2026-07-26)
+
+已通过 API 启用：main branch protection（PR + required checks `lint`/`test`/`ground-truth-lint`、禁止强推/删除、enforce_admins）、secret scanning + push protection、Dependabot alerts/security updates、delete_branch_on_merge、Actions workflow permissions=read。
+
+代码侧：`.github/dependabot.yml` 周更（pip/npm/github-actions）。

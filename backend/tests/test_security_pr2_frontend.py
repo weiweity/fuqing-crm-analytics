@@ -45,7 +45,7 @@ def _login(client: TestClient, username: str, password: str) -> str:
     return resp.json()["token"]
 
 
-# ── logout: body 优先，query deprecated 兼容 ──
+# ── logout: body / bearer only；query token 拒绝 ──
 
 
 def test_logout_via_json_body_evicts_token(client):
@@ -67,24 +67,12 @@ def test_logout_via_bearer_header(client):
     assert token not in auth_module.ACTIVE_TOKENS
 
 
-def test_logout_query_token_still_works_but_deprecated(client):
-    """短期兼容：query token 仍可用，但不得作为首选。"""
+def test_logout_query_token_rejected(client):
+    """query token 已移除：必须 400，且 token 仍有效。"""
     token = _login(client, "admin", "123456")
     resp = client.post(f"/api/v1/auth/logout?token={token}")
-    assert resp.status_code == 200
-    assert token not in auth_module.ACTIVE_TOKENS
-
-
-def test_logout_body_preferred_over_query(client):
-    """body 优先于 query：body 中的 token 被踢，query 中的假 token 被忽略。"""
-    real = _login(client, "admin", "123456")
-    fake = "not-a-real-token-xxxxxxxx"
-    resp = client.post(
-        f"/api/v1/auth/logout?token={fake}",
-        json={"token": real},
-    )
-    assert resp.status_code == 200
-    assert real not in auth_module.ACTIVE_TOKENS
+    assert resp.status_code == 400
+    assert token in auth_module.ACTIVE_TOKENS
 
 
 # ── require_admin unit ──
@@ -184,19 +172,18 @@ def test_rfm_cache_invalidate_requires_admin(client):
     assert r.status_code not in (401, 403)
 
 
-# ── CSP Report-Only ──
+# ── CSP (enforced) ──
 
 
-def test_csp_report_only_header_present(client):
+def test_csp_enforced_header_present(client):
     r = client.get("/api/v1/health")
-    csp = r.headers.get("content-security-policy-report-only") or r.headers.get(
-        "Content-Security-Policy-Report-Only"
+    csp = r.headers.get("content-security-policy") or r.headers.get(
+        "Content-Security-Policy"
     )
-    assert csp, f"missing CSP-RO header: {dict(r.headers)}"
+    assert csp, f"missing CSP header: {dict(r.headers)}"
     assert "object-src 'none'" in csp
     assert "base-uri 'self'" in csp
     assert "frame-ancestors 'none'" in csp
-    assert not r.headers.get("content-security-policy")
 
 
 def test_frontend_has_no_vite_health_api_key_usage():
