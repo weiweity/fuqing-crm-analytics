@@ -42,8 +42,21 @@ from backend.config import DUCKDB_PATH, DUCKDB_MEMORY_LIMIT  # noqa: E402
 
 # ETL 跑批中标记文件
 ETL_RUNNING_FLAG = Path("/tmp/.etl_running.flag")
-# audit log (跟 /ship .ship-audit.log 同模式)
-AD_HOC_AUDIT_LOG = Path("/tmp/fuqing_adhoc_audit.log")
+
+
+def _default_audit_log_path() -> Path:
+    """PR3: 审计日志落私有 0700 目录, 禁止固定可预测 /tmp 路径."""
+    try:
+        from scripts.etl.common.private_tmp import get_private_tmp_dir
+
+        return get_private_tmp_dir(create=True) / "fuqing_adhoc_audit.log"
+    except Exception:
+        # 极端回退: 仍避免世界可读固定名冲突, 带 uid
+        return Path(f"/tmp/fuqing_adhoc_audit_{os.getuid()}.log")
+
+
+# audit log (可测试 monkeypatch AD_HOC_AUDIT_LOG)
+AD_HOC_AUDIT_LOG = _default_audit_log_path()
 
 
 def check_etl_running() -> bool:
@@ -132,14 +145,30 @@ def log_audit(command: str, status: str, **fields: Any) -> None:
     """
     追加 audit 记录 (跟 /ship .ship-audit.log 同模式).
     失败静默 (Sprint 60+ 沉淀: 审计失败不该影响主流程).
+    PR3: 路径私有 0700/文件 0600; 字段脱敏 (bearer/password/长 SQL 字面量).
     """
     try:
-        from datetime import datetime
+        from scripts.etl.common.private_tmp import redact_sensitive
+
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        extra = " ".join(f"{k}={v}" for k, v in fields.items())
-        line = f"{ts}\t{command}\t{status}\t{extra}\n"
-        with AD_HOC_AUDIT_LOG.open("a", encoding="utf-8") as f:
-            f.write(line)
+        extra_parts = []
+        for k, v in fields.items():
+            extra_parts.append(f"{k}={redact_sensitive(str(v), max_len=120)}")
+        extra = " ".join(extra_parts)
+        line = f"{ts}\t{redact_sensitive(command, max_len=80)}\t{status}\t{extra}\n"
+        path = AD_HOC_AUDIT_LOG
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # O_APPEND + 0600
+        flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+        fd = os.open(str(path), flags, 0o600)
+        try:
+            os.write(fd, line.encode("utf-8"))
+            try:
+                os.chmod(path, 0o600)
+            except OSError:
+                pass
+        finally:
+            os.close(fd)
     except OSError:
         pass
 

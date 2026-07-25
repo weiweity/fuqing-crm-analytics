@@ -19,6 +19,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
+import os
 import time
 import logging
 
@@ -28,6 +29,12 @@ from backend.services.query_metrics import render_prometheus
 from backend.config import DUCKDB_PATH  # Sprint 203 R3: db_size endpoint
 
 logger = logging.getLogger(__name__)
+
+# PR3: 启动路径 umask 077 — 新建文件默认仅属主可读写
+try:
+    os.umask(0o077)
+except Exception:  # noqa: BLE001
+    pass
 
 
 def _asgi_path(request: Request) -> str:
