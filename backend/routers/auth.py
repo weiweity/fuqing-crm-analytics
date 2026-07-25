@@ -7,8 +7,10 @@ Sample CRM - 认证路由
 """
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timedelta
+from collections import OrderedDict
+import re
 import secrets
 import time
 import os
@@ -31,10 +33,22 @@ TOKEN_TTL = timedelta(hours=8)
 
 # ─────────────────────────────────────────────────────────────
 # 登录限速配置
+# - 账号+IP 组合锁定：防止不同 IP 洪泛锁死真实账号
+# - per-IP 总限流：限制单 IP 对任意用户名的爆破
+# - 有界 OrderedDict + 周期清理：随机用户名洪泛时状态表容量受控
 # ─────────────────────────────────────────────────────────────
-MAX_FAIL_ATTEMPTS = 5          # 最大失败次数
-LOCK_DURATION = 15 * 60        # 锁定时长（秒）
+MAX_FAIL_ATTEMPTS = 5          # 账号+IP 组合最大失败次数
+LOCK_DURATION = 15 * 60        # 组合锁定时长（秒）
 RATE_LIMIT_WINDOW = 5 * 60     # 计数窗口（秒）
+MAX_IP_FAIL_ATTEMPTS = 30      # 单 IP 总失败次数（窗口内）
+IP_LOCK_DURATION = 15 * 60     # 单 IP 锁定时长（秒）
+LOGIN_STATE_MAX_ENTRIES = 4096 # 每张状态表最大条目（LRU 淘汰）
+LOGIN_STATE_CLEANUP_INTERVAL = 60.0  # 周期清理最小间隔（秒）
+BCRYPT_MAX_PASSWORD_BYTES = 72
+USERNAME_MAX_LEN = 64
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.@-]+$")
+# 未知账号也走 bcrypt，抹平时序；固定盐哈希，避免每次 gensalt 开销差异过大
+_DUMMY_BCRYPT_HASH: bytes = bcrypt.hashpw(b"__fq_crm_dummy__", bcrypt.gensalt(rounds=4))
 
 # ─────────────────────────────────────────────────────────────
 # 密码配置
@@ -91,8 +105,12 @@ VALID_CREDENTIALS: dict[str, str] = _load_credentials()
 # last_active_at 用于滑动过期：每次请求成功会刷新这个时间
 ACTIVE_TOKENS: dict[str, tuple[str, datetime]] = {}
 
-# 登录限速记录（key=username, value=(失败次数, 首次失败时间戳, 锁定截止秒级时间戳)）
-_LOGIN_ATTEMPTS: dict[str, tuple[int, float, float]] = {}
+# 登录限速：key = "username\\0ip"，value=(失败次数, 首次失败时间戳, 锁定截止)
+# 名称保留 _LOGIN_ATTEMPTS 以兼容 conftest / test_helpers 的 .clear()
+_LOGIN_ATTEMPTS: OrderedDict[str, tuple[int, float, float]] = OrderedDict()
+# per-IP 总限流（不按账号）
+_IP_LOGIN_ATTEMPTS: OrderedDict[str, tuple[int, float, float]] = OrderedDict()
+_last_login_state_cleanup: float = 0.0
 # FastAPI sync endpoints run in a worker pool.  Account lockout updates and the
 # single-session check/evict/mint sequence must be atomic across those workers.
 _AUTH_STATE_LOCK = threading.RLock()
@@ -102,8 +120,15 @@ _AUTH_STATE_LOCK = threading.RLock()
 # Pydantic 模型
 # ─────────────────────────────────────────────────────────────
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=USERNAME_MAX_LEN)
+    password: str = Field(..., min_length=1, max_length=1024)
+
+    @field_validator("username")
+    @classmethod
+    def _username_charset(cls, v: str) -> str:
+        if not USERNAME_PATTERN.fullmatch(v):
+            raise ValueError("username contains invalid characters")
+        return v
 
 
 class LoginResponse(BaseModel):
@@ -124,65 +149,237 @@ class LogoutResponse(BaseModel):
 # ─────────────────────────────────────────────────────────────
 # 辅助函数
 # ─────────────────────────────────────────────────────────────
+def _safe_log_username(username: str) -> str:
+    """截断、去换行，避免日志注入/超长用户名污染。"""
+    if not username:
+        return ""
+    cleaned = username.replace("\n", "").replace("\r", "").replace("\t", " ")
+    if len(cleaned) > USERNAME_MAX_LEN:
+        cleaned = cleaned[:USERNAME_MAX_LEN] + "…"
+    return cleaned
+
+
 def _get_client_ip(request: Request) -> str:
+    """提取客户端 IP。
+
+    默认只用 ASGI client host。不可信 X-Forwarded-For 不当作 client IP。
+    仅当 FQ_TRUST_PROXY=1（可信反代模式）时才读取 X-Forwarded-For 首跳。
+    """
+    if os.environ.get("FQ_TRUST_PROXY") == "1":
+        xff = request.headers.get("X-Forwarded-For") or request.headers.get(
+            "x-forwarded-for"
+        )
+        if xff:
+            first = xff.split(",")[0].strip()
+            first = first.replace("\n", "").replace("\r", "")[:64]
+            if first:
+                return first
     return request.client.host if request.client else "unknown"
 
 
-def _check_rate_limit(username: str, client_ip: str):
-    """检查登录限速，超限则抛出 429"""
-    now = time.time()
-    record = _LOGIN_ATTEMPTS.get(username)
+def _combo_key(username: str, client_ip: str) -> str:
+    return f"{username}\0{client_ip}"
 
-    if record:
-        fail_count, first_fail, lock_until = record
+
+def _lru_set(
+    store: OrderedDict[str, tuple[int, float, float]],
+    key: str,
+    value: tuple[int, float, float],
+    max_entries: int | None = None,
+) -> None:
+    # 运行时读 LOGIN_STATE_MAX_ENTRIES，便于测试 monkeypatch 与热调容量
+    limit = LOGIN_STATE_MAX_ENTRIES if max_entries is None else max_entries
+    if key in store:
+        store.move_to_end(key)
+    store[key] = value
+    while len(store) > limit:
+        store.popitem(last=False)
+
+
+def _cleanup_login_state_locked(now: float, force: bool = False) -> None:
+    """清理过期锁定/窗口记录，控制状态表膨胀。调用方须持有 _AUTH_STATE_LOCK。"""
+    global _last_login_state_cleanup
+    if not force and (now - _last_login_state_cleanup) < LOGIN_STATE_CLEANUP_INTERVAL:
+        return
+    _last_login_state_cleanup = now
+
+    def _purge(store: OrderedDict[str, tuple[int, float, float]]) -> None:
+        stale: list[str] = []
+        for key, (_fail_count, first_fail, lock_until) in store.items():
+            if now < lock_until:
+                continue
+            if now - first_fail > RATE_LIMIT_WINDOW and lock_until <= now:
+                stale.append(key)
+        for key in stale:
+            store.pop(key, None)
+
+    _purge(_LOGIN_ATTEMPTS)
+    _purge(_IP_LOGIN_ATTEMPTS)
+
+
+def _check_rate_limit(username: str, client_ip: str):
+    """检查登录限速（IP 总限流 + 账号+IP 组合），超限则抛出 429。"""
+    now = time.time()
+    _cleanup_login_state_locked(now)
+
+    ip_rec = _IP_LOGIN_ATTEMPTS.get(client_ip)
+    if ip_rec:
+        _fail_count, first_fail, lock_until = ip_rec
         if now < lock_until:
-            _logger.warning(f"[auth] 账号 {username} 被锁定，IP={client_ip}")
+            _logger.warning(
+                "login_rate_limited",
+                extra={
+                    "event": "login_rate_limited",
+                    "scope": "ip",
+                    "username": _safe_log_username(username),
+                    "client_ip": client_ip,
+                },
+            )
             raise HTTPException(
                 status_code=429,
-                detail=f"登录失败次数过多，请 {int(lock_until - now) // 60} 分钟后重试",
+                detail=(
+                    f"登录失败次数过多，请 "
+                    f"{max(1, int(lock_until - now) // 60)} 分钟后重试"
+                ),
             )
-        # 窗口过期，重置计数
         if now - first_fail > RATE_LIMIT_WINDOW:
-            _LOGIN_ATTEMPTS.pop(username, None)
-            record = None
+            _IP_LOGIN_ATTEMPTS.pop(client_ip, None)
+
+    key = _combo_key(username, client_ip)
+    record = _LOGIN_ATTEMPTS.get(key)
+    if record:
+        _fail_count, first_fail, lock_until = record
+        if now < lock_until:
+            _logger.warning(
+                "login_rate_limited",
+                extra={
+                    "event": "login_rate_limited",
+                    "scope": "combo",
+                    "username": _safe_log_username(username),
+                    "client_ip": client_ip,
+                },
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"登录失败次数过多，请 "
+                    f"{max(1, int(lock_until - now) // 60)} 分钟后重试"
+                ),
+            )
+        if now - first_fail > RATE_LIMIT_WINDOW:
+            _LOGIN_ATTEMPTS.pop(key, None)
 
 
 def _record_fail(username: str, client_ip: str):
-    """记录一次登录失败"""
+    """记录一次登录失败（账号+IP 组合 + per-IP）。"""
     now = time.time()
-    record = _LOGIN_ATTEMPTS.get(username)
+    key = _combo_key(username, client_ip)
+
+    record = _LOGIN_ATTEMPTS.get(key)
     if record:
         fail_count, first_fail, lock_until = record
+        if now - first_fail > RATE_LIMIT_WINDOW and now >= lock_until:
+            fail_count, first_fail, lock_until = 0, now, 0.0
         fail_count += 1
         if fail_count >= MAX_FAIL_ATTEMPTS:
             lock_until = now + LOCK_DURATION
             _logger.warning(
-                f"[auth] 账号 {username} 锁定 {LOCK_DURATION}s，IP={client_ip}"
+                "login_locked",
+                extra={
+                    "event": "login_locked",
+                    "scope": "combo",
+                    "username": _safe_log_username(username),
+                    "client_ip": client_ip,
+                    "lock_seconds": LOCK_DURATION,
+                },
             )
-        _LOGIN_ATTEMPTS[username] = (fail_count, first_fail, lock_until)
+        _lru_set(_LOGIN_ATTEMPTS, key, (fail_count, first_fail, lock_until))
     else:
-        _LOGIN_ATTEMPTS[username] = (1, now, 0.0)
+        _lru_set(_LOGIN_ATTEMPTS, key, (1, now, 0.0))
+
+    ip_rec = _IP_LOGIN_ATTEMPTS.get(client_ip)
+    if ip_rec:
+        ip_count, ip_first, ip_lock = ip_rec
+        if now - ip_first > RATE_LIMIT_WINDOW and now >= ip_lock:
+            ip_count, ip_first, ip_lock = 0, now, 0.0
+        ip_count += 1
+        if ip_count >= MAX_IP_FAIL_ATTEMPTS:
+            ip_lock = now + IP_LOCK_DURATION
+            _logger.warning(
+                "login_locked",
+                extra={
+                    "event": "login_locked",
+                    "scope": "ip",
+                    "username": _safe_log_username(username),
+                    "client_ip": client_ip,
+                    "lock_seconds": IP_LOCK_DURATION,
+                },
+            )
+        _lru_set(_IP_LOGIN_ATTEMPTS, client_ip, (ip_count, ip_first, ip_lock))
+    else:
+        _lru_set(_IP_LOGIN_ATTEMPTS, client_ip, (1, now, 0.0))
 
 
-def _record_success(username: str):
-    """登录成功后清除失败记录"""
-    _LOGIN_ATTEMPTS.pop(username, None)
+def _record_success(username: str, client_ip: str = ""):
+    """登录成功后清除该账号+IP 组合失败记录（不连坐其他 IP）。"""
+    if client_ip:
+        _LOGIN_ATTEMPTS.pop(_combo_key(username, client_ip), None)
+    else:
+        prefix = username + "\0"
+        for key in [k for k in _LOGIN_ATTEMPTS if k.startswith(prefix)]:
+            _LOGIN_ATTEMPTS.pop(key, None)
+
+
+def _password_to_bytes(password: str) -> bytes | None:
+    """UTF-8 编码密码；超过 bcrypt 72 字节返回 None（调用方统一当失败）。"""
+    try:
+        raw = password.encode("utf-8")
+    except UnicodeEncodeError:
+        return None
+    if len(raw) > BCRYPT_MAX_PASSWORD_BYTES:
+        return None
+    return raw
+
+
+def _checkpw_safe(password_bytes: bytes | None, stored_hash: str | None) -> bool:
+    """bcrypt.checkpw 包装：捕获 ValueError；未知账号用 dummy hash 抹平时序。"""
+    target = stored_hash.encode("utf-8") if stored_hash else _DUMMY_BCRYPT_HASH
+    try:
+        if password_bytes is None:
+            bcrypt.checkpw(b"x" * BCRYPT_MAX_PASSWORD_BYTES, target)
+            return False
+        return bool(bcrypt.checkpw(password_bytes, target))
+    except (ValueError, TypeError):
+        return False
 
 
 def _authenticate_credentials(username: str, password: str, client_ip: str) -> None:
-    """Validate credentials through the shared account-level lockout path."""
+    """共享登录校验：限流 + 凭据验证。已知/未知账号统一 401，不泄露存在性。"""
+    if (
+        not username
+        or len(username) > USERNAME_MAX_LEN
+        or not USERNAME_PATTERN.fullmatch(username)
+    ):
+        raise HTTPException(status_code=401, detail="账号或密码错误")
+
     with _AUTH_STATE_LOCK:
         _check_rate_limit(username, client_ip)
         stored_hash = VALID_CREDENTIALS.get(username)
-        if stored_hash is None:
-            _logger.warning(f"[auth] 登录失败：未知账号 {username}，IP={client_ip}")
+        password_bytes = _password_to_bytes(password)
+        ok = _checkpw_safe(password_bytes, stored_hash)
+        if not ok:
+            _logger.warning(
+                "login_failed",
+                extra={
+                    "event": "login_failed",
+                    "username": _safe_log_username(username),
+                    "client_ip": client_ip,
+                    "reason": "invalid_credentials",
+                },
+            )
             _record_fail(username, client_ip)
             raise HTTPException(status_code=401, detail="账号或密码错误")
-        if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
-            _logger.warning(f"[auth] 登录失败：密码错误 {username}，IP={client_ip}")
-            _record_fail(username, client_ip)
-            raise HTTPException(status_code=401, detail="账号或密码错误")
-        _record_success(username)
+        _record_success(username, client_ip)
 
 
 def _evict_previous_sessions_for_user(username: str) -> int:
