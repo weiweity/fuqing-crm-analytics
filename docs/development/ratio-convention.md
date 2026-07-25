@@ -22,20 +22,21 @@
 | `*_rate` | `PercentageField` (0-100) | 0-100 percentage |
 | `List[X]` (X 是约束类型) | `List[Annotated[X, Field(...)]]` | **禁止** `List["X"]` 前向引用 |
 
-## 3. 前端契约 (pass-through)
+## 3. 前端契约 (L4.81: backend raw + 组件集中 `*100`)
 
-- `YOYBadge` / `MetricCard` 的 `humanizeChange`: **caller 已 `*100` 传值, 组件只做 `abs + toFixed(2)`**
-- `fmtYoy` / `fmtYoY` / `fmtPctChange` 等自定义函数: caller 传已 `*100` 数值, 函数不乘
-- **不要在前端 `* 100`**
+- `YOYGuard` / `YOYBadge` / `MetricCard`: **caller 传 raw ratio (0-1, no `*100`)，组件内部 `*100` 显示**
+- `fmtYoy` / `fmtYoY` / `fmtPctChange` 等: 与 L4.81 对齐时传 raw，或明确标注 legacy
+- **禁止 views 散落 `* 100`** — 乘算只允许 YOYGuard / exportXlsx kind enum SSOT
 - `YOYBadge` `unit` 默认 `'%'`, ratio 类必须显式 `unit="pp"`
-- `|v|>1e6` 异常值守卫: `humanizeChange` 返 `'数据异常'` (Sprint 16.5 #92 + Sprint 17 #124 扩到 MetricCard)
-- None 透传显示 `—` (`humanizeChange` 已加 `v == null` 守卫)
+- `|v|>1e6` 异常值守卫在 **raw ratio** 上: 返 `'数据异常'` (Sprint 16.5 #92 + L4.81)
+- None 透传显示 `—`
 
-## 4. 反模式 (Sprint 13 P3 / Sprint 17 #121 ground-truth-lint)
+## 4. 反模式 (Sprint 13 P3 / Sprint 17 #121 + L4.81 ground-truth-lint)
 
 | ❌ 反模式 | ✅ 正例 |
 |-----------|---------|
-| 前端 `* 100` 散落 | caller 自乘, 组件不乘 |
+| views 散落 `* 100` | YOYGuard / exportXlsx SSOT 集中 `*100` |
+| 把生产代码改回 "caller 已 *100" 旧契约 | 更新测试/文档对齐 L4.81 raw |
 | `*_ratio_yoy` vs `*_yoy_ratio` 混用 | 统一 `*_yoy_ppt` / `*_yoy_pct` |
 | `series = [0.0] * len(dates)` hardcode | 数据驱动 |
 | pp 字段用 `'0.0"%"'` numFmt | pp 用 `'0.0"pp"'` 字面量后缀 |

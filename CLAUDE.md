@@ -362,25 +362,25 @@ Key routing rules:
 | `*_rate` | 0-100 percentage | **是** | `repurchase_rate` |
 | `*_yoy` / `*_mom` | 按上面 4 种后缀对应 | 视字段而定 | `gsv_yoy` (pct), `old_gsv_ratio_yoy` (ppt) |
 
-**核心契约**:
+**核心契约 (L4.81)**:
 
-- `yoy_ratio()` / `mom_ratio()` 返回 **pp 数值**（已 `*100`，e.g. 0.05 → 5.0）
-- `yoy_absolute()` / `mom_absolute()` 返回 **percentage**（已 `*100`，e.g. 0.25 → 25.0）
+- `yoy_ratio()` / `mom_ratio()` 返回 **raw ratio diff**（**no `*100`**，e.g. 0.05 = +5pp / 100，前端组件 `*100` 显示）
+- `yoy_absolute()` / `mom_absolute()` 返回 **raw ratio**（**no `*100`**，e.g. 0.25 = +25% / 100，前端组件 `*100` 显示）
 - `audience_summary._extract_metrics` ratio 字段不再 `*100` 存（避免 10000× bug）
 - `churn.py:336` `new_customer_ratio` 真正实现（禁止 hardcode 0 占位）
 
-### 前端契约（pass-through）
+### 前端契约（L4.81: backend raw + 组件集中 `*100`）
 
-- `YOYBadge` / `MetricCard` 的 `humanizeChange`: **caller 已 `*100` 传值，组件只做 `abs + toFixed(2)`**
-- **不要在前端 `* 100`** — Sprint 11/12 散落 `*100` 模式已 deprecate
-- `fmtYoy` / `fmtYoY` / `fmtPctChange` 等自定义函数: caller 传已 `*100` 数值，函数不乘
+- `YOYGuard` / `YOYBadge` / `MetricCard`: **caller 传 raw ratio (0-1, no `*100`)，组件内部 `*100` 显示**（`display = Math.abs(v) * 100`）
+- **禁止 views 散落 `* 100`** — 只允许 SSOT 组件（YOYGuard / exportXlsx kind enum）集中乘
+- `fmtYoy` / `fmtYoY` / `fmtPctChange` 等自定义函数: 与 L4.81 对齐时传 raw，或明确标注 legacy
 - YOYBadge `unit` 默认 `'%'`，ratio 类必须显式 `unit="pp"`
-- `|v|>1e6` 异常值守卫: `humanizeChange` 返 `'数据异常'` (Sprint 16.5 #92, Sprint 17 #124 扩到 MetricCard / RFMSegmentDrilldown)
-- None 透传显示 `—`（`humanizeChange` 已加 `v == null` 守卫）
+- `|v|>1e6` 异常值守卫在 **raw ratio** 上（≈ 1e8% display）: 返 `'数据异常'`
+- None 透传显示 `—`
 
-### 禁止（lint 强制, Sprint 17 #121 ground-truth-lint）
+### 禁止（lint 强制, Sprint 17 #121 + L4.81 + L4.91）
 
-1. **前端 0 处散落 `* 100`** — caller 自乘，组件不乘
+1. **前端 views 0 处散落 `* 100`** — 乘算只在 YOYGuard / exportXlsx SSOT，禁止 caller/view 自乘
 2. **命名冲突** — `*_ratio_yoy` vs `*_yoy_ratio` 强制统一为 `*_yoy_ppt` / `*_yoy_pct`
 3. **hardcode 0 占位** — 禁止 `series = [0.0] * len(dates)`（Sprint 13 P3 教训）
 4. **Excel numFmt 错配** — pp 字段用 `'0.0"pp"'` 字面量后缀，% 字段用 `'0.0"%"'`

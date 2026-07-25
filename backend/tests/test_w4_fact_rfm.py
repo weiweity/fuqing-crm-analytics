@@ -375,3 +375,121 @@ class TestW4BatchInsert:
             f"batch 加速比 {ratio:.2f}× < 3× 阈值: "
             f"batch={batch_elapsed*1000:.1f}ms, serial={serial_elapsed*1000:.1f}ms"
         )
+
+
+# ─────────────────────────────────────────────────────────────
+# PR4 / L4.19: batch SQL channel 别名 + 新连接 commit/close 回归
+# ─────────────────────────────────────────────────────────────
+
+from scripts.etl.precompute_fact_rfm import (  # noqa: E402
+    _compute_batch_sql,
+    _compute_combo_sql,
+    _valid_order_sql_with_alias,
+)
+
+
+class TestW4ChannelAliasL419:
+    """L4.19: channel 必 o. 表别名; batch/serial SQL 同源; 不污染生产表."""
+
+    def test_valid_order_sql_with_alias_prefixes_columns(self):
+        sql = _valid_order_sql_with_alias("o")
+        assert "o.is_goujinjin" in sql
+        assert "o.order_status" in sql
+        assert "o.is_refund" in sql
+        # 无 bare 列名
+        assert " is_goujinjin" not in f" {sql}"
+        assert "is_goujinjin" in sql  # 只以 o.is_goujinjin 形式存在
+
+    def test_batch_sql_uses_o_channel_alias(self):
+        """防 Binder Error: Referenced column "channel" not found (LATERAL 作用域)."""
+        sql = _compute_batch_sql(date(2026, 6, 5), version=1)
+        assert "FROM orders o" in sql
+        assert "o.channel = r.c" in sql
+        assert "o.spu_product_class = r.i" in sql
+        assert "DATE(o.pay_time) = r.d" in sql
+        # 禁止 bare channel 过滤 (L4.19)
+        assert "AND channel =" not in sql
+        assert "AND channel = r.c" not in sql
+
+    def test_combo_sql_uses_o_channel_alias(self):
+        sql = _compute_combo_sql(MVP_COMBO[0], date(2026, 6, 5))
+        assert "FROM orders o" in sql
+        assert "o.channel = ?" in sql
+        assert "AND channel = ?" not in sql
+
+    def test_batch_serial_equivalent_fresh_connection_commit_close(self, tmp_path):
+        """模拟生产: 新连接 → batch/serial → commit 语义 → close; 只写本地 fact 表.
+
+        不 ATTACH 生产库, 用 file-backed DuckDB 验证:
+        1. 新连接可执行 batch SQL (含 o.channel)
+        2. batch/serial 行数与字段等价
+        3. close 后重新打开数据仍在, 日期 = T-1
+        """
+        db_path = tmp_path / "w4_l419.duckdb"
+        target = date(2026, 6, 6)  # T-1 = 2026-06-05
+        combos = [{
+            "channel": "货架",
+            "item": "item_0",
+            "segment_id": 0,
+            "dimension_key": "channel=货架|item=item_0|segment=all",
+            "dimension_json": json.dumps(
+                {"channel": "货架", "item": "item_0", "segment_id": 0},
+                ensure_ascii=False,
+            ),
+        }]
+        # --- 建库 + 灌 orders ---
+        conn = duckdb.connect(str(db_path))
+        try:
+            conn.execute("""
+                CREATE TABLE orders (
+                    user_id INTEGER, order_id VARCHAR, actual_amount DECIMAL(18,2),
+                    pay_time TIMESTAMP, channel VARCHAR, spu_product_class VARCHAR,
+                    is_goujinjin BOOLEAN, is_refund BOOLEAN, order_status VARCHAR
+                )
+            """)
+            conn.execute("""
+                INSERT INTO orders VALUES
+                    (1, 'o1', 100.00, '2026-06-05 10:00:00', '货架', 'item_0', FALSE, FALSE, '已支付'),
+                    (2, 'o2', 200.00, '2026-06-05 11:00:00', '货架', 'item_0', FALSE, FALSE, '已支付'),
+                    (2, 'o3', 150.00, '2026-06-05 12:00:00', '货架', 'item_0', FALSE, FALSE, '已支付')
+            """)
+            create_fact_rfm_table(conn)
+            n_batch = incremental_load(conn, target, combos=combos)
+            batch_rows = conn.execute(
+                f"SELECT date, dimension_key, user_count, gmv, repurchase_count, segment_id, version "
+                f"FROM {FACT_RFM_TABLE} ORDER BY dimension_key"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        # --- 新连接 serial 路径 (模拟生产新连接 commit/close) ---
+        conn2 = duckdb.connect(str(db_path))
+        try:
+            conn2.execute(f"DELETE FROM {FACT_RFM_TABLE}")
+            os.environ["W4_USE_BATCH_INSERT"] = "0"
+            try:
+                n_serial = incremental_load(conn2, target, combos=combos)
+                serial_rows = conn2.execute(
+                    f"SELECT date, dimension_key, user_count, gmv, repurchase_count, segment_id, version "
+                    f"FROM {FACT_RFM_TABLE} ORDER BY dimension_key"
+                ).fetchall()
+            finally:
+                os.environ.pop("W4_USE_BATCH_INSERT", None)
+        finally:
+            conn2.close()
+
+        assert n_batch == n_serial == 1
+        assert batch_rows == serial_rows
+        # 日期锁: 必须是 T-1, 不是 target_date / today
+        assert batch_rows[0][0] == date(2026, 6, 5)
+        assert batch_rows[0][2] == 2  # user_count: user 1 + 2
+
+        # --- close 后 reopen 仍可读, 无写到任何外部路径 ---
+        conn3 = duckdb.connect(str(db_path), read_only=True)
+        try:
+            n = conn3.execute(f"SELECT COUNT(*) FROM {FACT_RFM_TABLE}").fetchone()[0]
+            assert n == 1
+            d = conn3.execute(f"SELECT date FROM {FACT_RFM_TABLE}").fetchone()[0]
+            assert d == date(2026, 6, 5)
+        finally:
+            conn3.close()

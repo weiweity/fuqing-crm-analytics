@@ -6,7 +6,8 @@
  * - 异常值守卫 (|v|>1e6 → "数据异常") + pass-through 格式化 (abs + toFixed(2)) 抽到 YOYGuard
  * - YOYBadge 变 thin wrapper, 只负责箭头 (↑/↓) + 颜色 (绿/红) 包装
  *
- * 跟 MetricCard.vue 同步契约: caller 已 *100 传 percentage/pp 数值.
+ * L4.81 契约: caller 传 raw ratio (0-1, no *100), YOYGuard 集中 *100 显示;
+ * YOYBadge 只负责箭头 (↑/↓) + 颜色 (绿/红) 包装.
  */
 import YOYGuard from './YOYGuard.vue'
 

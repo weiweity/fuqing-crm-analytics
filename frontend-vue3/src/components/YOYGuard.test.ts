@@ -1,4 +1,5 @@
-// YOYGuard 通用组件测试 (Sprint 18 #124)
+// YOYGuard 通用组件测试 (Sprint 18 #124, L4.81 契约更新)
+// L4.81 SSOT: backend 返回 raw ratio (0-1), 组件集中 *100 显示
 // 验证: 守卫 (|v|>1e6 → "数据异常") + 格式化 (4 unit 类型) + null/NaN/Infinity fallback
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
@@ -12,24 +13,24 @@ function getHtml(wrapper: ReturnType<typeof mount>): string {
   return wrapper.html()
 }
 
-describe('YOYGuard display', () => {
-  it('value=14 unit=% → "14.00%" (默认 precision 2, caller 已 *100)', () => {
-    const wrapper = mount(YOYGuard, { props: { value: 14 } })
+describe('YOYGuard display (L4.81 raw ratio → *100 display)', () => {
+  it('value=0.14 unit=% → "14.00%" (默认 precision 2, 组件 *100)', () => {
+    const wrapper = mount(YOYGuard, { props: { value: 0.14 } })
     expect(getText(wrapper)).toBe('14.00%')
   })
 
-  it('value=5.5 unit=pp → "5.50pp"', () => {
-    const wrapper = mount(YOYGuard, { props: { value: 5.5, unit: 'pp' } })
+  it('value=0.055 unit=pp → "5.50pp"', () => {
+    const wrapper = mount(YOYGuard, { props: { value: 0.055, unit: 'pp' } })
     expect(getText(wrapper)).toBe('5.50pp')
   })
 
-  it('value=2.5 unit=pp precision=1 → "2.5pp" (precision prop 控制小数位)', () => {
-    const wrapper = mount(YOYGuard, { props: { value: 2.5, unit: 'pp', precision: 1 } })
+  it('value=0.025 unit=pp precision=1 → "2.5pp" (precision prop 控制小数位)', () => {
+    const wrapper = mount(YOYGuard, { props: { value: 0.025, unit: 'pp', precision: 1 } })
     expect(getText(wrapper)).toBe('2.5pp')
   })
 
-  it('value=-7.5 unit=% → "7.50%" (abs 后显示, 符号交给 caller)', () => {
-    const wrapper = mount(YOYGuard, { props: { value: -7.5, unit: '%' } })
+  it('value=-0.075 unit=% → "7.50%" (abs 后显示, 符号交给 caller)', () => {
+    const wrapper = mount(YOYGuard, { props: { value: -0.075, unit: '%' } })
     expect(getText(wrapper)).toBe('7.50%')
   })
 
@@ -69,12 +70,12 @@ describe('YOYGuard display', () => {
     expect(getText(wrapper)).toBe('数据异常')
   })
 
-  it('value=1e6 → "1000000.00%" (边界值, |v|==1e6 不触发守卫)', () => {
+  it('value=1e6 → "100000000.00%" (边界值, |v|==1e6 不触发守卫; L4.81 *100 display)', () => {
     const wrapper = mount(YOYGuard, { props: { value: 1e6, unit: '%' } })
-    expect(getText(wrapper)).toBe('1000000.00%')
+    expect(getText(wrapper)).toBe('100000000.00%')
   })
 
-  it('value=100 unit=raw → "100.00" (raw unit 不加后缀)', () => {
+  it('value=100 unit=raw → "100.00" (raw unit 不加后缀, 不 *100)', () => {
     const wrapper = mount(YOYGuard, { props: { value: 100, unit: 'raw' } })
     expect(getText(wrapper)).toBe('100.00')
   })
@@ -84,9 +85,9 @@ describe('YOYGuard display', () => {
     expect(getText(wrapper)).toBe('0.00%')
   })
 
-  it('value=53.81 unit=pp precision=2 → "53.81pp" (Sprint 13 契约 caller 已 *100)', () => {
-    // 模拟 backend yoy_ratio() 返 0.5381 → caller *100 → 53.81
-    const wrapper = mount(YOYGuard, { props: { value: 53.81, unit: 'pp' } })
+  it('value=0.5381 unit=pp precision=2 → "53.81pp" (L4.81: backend yoy_ratio raw 0.5381)', () => {
+    // backend yoy_ratio() 返 0.5381 (raw) → 组件 *100 → 53.81pp
+    const wrapper = mount(YOYGuard, { props: { value: 0.5381, unit: 'pp' } })
     expect(getText(wrapper)).toBe('53.81pp')
   })
 })
@@ -94,30 +95,31 @@ describe('YOYGuard display', () => {
 
 // ============================================================
 // Sprint 20 P1-2: styled 模式 (替代 YOYBadge, 9 组件迁移)
+// L4.81: props 传 raw ratio
 // ============================================================
 
-describe('YOYGuard styled mode (替代 YOYBadge)', () => {
+describe('YOYGuard styled mode (替代 YOYBadge, L4.81 raw ratio)', () => {
   it('value=null styled=true → "—" (YOYBadge 同款 null 守卫)', () => {
     const wrapper = mount(YOYGuard, { props: { value: null, styled: true } })
     expect(getText(wrapper)).toBe('—')
   })
 
-  it('value=14 unit=% styled=true → "+14.00% ↑" (绿色, YOYBadge 同款)', () => {
-    const wrapper = mount(YOYGuard, { props: { value: 14, unit: '%', styled: true } })
+  it('value=0.14 unit=% styled=true → "+14.00% ↑" (绿色, YOYBadge 同款)', () => {
+    const wrapper = mount(YOYGuard, { props: { value: 0.14, unit: '%', styled: true } })
     expect(getText(wrapper)).toBe('+14.00% ↑')
     // 颜色: 绿 #108c3d
     expect(getHtml(wrapper)).toContain('rgb(16, 140, 61)')  // #108c3d 绿色, jsdom 渲染成 rgb 形式
   })
 
-  it('value=-7.5 unit=pp styled=true → "7.50pp ↓" (红色, abs 符号由 YOYGuard 处理)', () => {
-    const wrapper = mount(YOYGuard, { props: { value: -7.5, unit: 'pp', styled: true } })
+  it('value=-0.075 unit=pp styled=true → "7.50pp ↓" (红色, abs 符号由 YOYGuard 处理)', () => {
+    const wrapper = mount(YOYGuard, { props: { value: -0.075, unit: 'pp', styled: true } })
     expect(getText(wrapper)).toBe('7.50pp ↓')
     // 颜色: 红 #c41d4e
     expect(getHtml(wrapper)).toContain('rgb(196, 29, 78)')  // #c41d4e 红色, jsdom 渲染成 rgb 形式
   })
 
-  it('value=5.5 unit=pp precision=1 styled=true → "+5.5pp ↑" (precision 1 位小数)', () => {
-    const wrapper = mount(YOYGuard, { props: { value: 5.5, unit: 'pp', precision: 1, styled: true } })
+  it('value=0.055 unit=pp precision=1 styled=true → "+5.5pp ↑" (precision 1 位小数)', () => {
+    const wrapper = mount(YOYGuard, { props: { value: 0.055, unit: 'pp', precision: 1, styled: true } })
     expect(getText(wrapper)).toBe('+5.5pp ↑')
   })
 
@@ -138,8 +140,8 @@ describe('YOYGuard styled mode (替代 YOYBadge)', () => {
     expect(getText(wrapper)).toBe('数据异常')
   })
 
-  it('value=1e6 unit=% styled=true → "+1000000.00% ↑" (边界值 |v|==1e6 不触发守卫)', () => {
+  it('value=1e6 unit=% styled=true → "+100000000.00% ↑" (边界值 |v|==1e6 不触发守卫; L4.81 *100)', () => {
     const wrapper = mount(YOYGuard, { props: { value: 1e6, unit: '%', styled: true } })
-    expect(getText(wrapper)).toBe('+1000000.00% ↑')
+    expect(getText(wrapper)).toBe('+100000000.00% ↑')
   })
 })

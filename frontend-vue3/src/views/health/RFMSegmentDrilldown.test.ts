@@ -87,11 +87,12 @@ vi.mock('@vicons/ionicons5', () => {
 import RFMSegmentDrilldown from './RFMSegmentDrilldown.vue'
 
 function makeData(overrides: Record<string, any> = {}) {
+  // L4.81: yoy_repurchase_rate 是 raw ratio (0.025 = +2.5pp), 组件 *100 显示
   return {
     summary: {
       segment_user_count: 1000,
       overall_repurchase_rate: 0.2,
-      overall_repurchase_rate_yoy: 2.5,
+      overall_repurchase_rate_yoy: 0.025,
       top_drivers: [],
     },
     categories: [
@@ -100,7 +101,7 @@ function makeData(overrides: Record<string, any> = {}) {
         hist_users_current: 500,
         repurchase_users_current: 100,
         repurchase_rate_current: 0.2,
-        yoy_repurchase_rate: 2.5,
+        yoy_repurchase_rate: 0.025,
         repurchase_gsv_current: 50000,
       },
       {
@@ -108,7 +109,7 @@ function makeData(overrides: Record<string, any> = {}) {
         hist_users_current: 300,
         repurchase_users_current: 60,
         repurchase_rate_current: 0.2,
-        yoy_repurchase_rate: -3.1,
+        yoy_repurchase_rate: -0.031,
         repurchase_gsv_current: 30000,
       },
       {
@@ -127,8 +128,8 @@ function makeData(overrides: Record<string, any> = {}) {
   }
 }
 
-describe('RFMSegmentDrilldown YOYGuard 集成 (Sprint 18 #124)', () => {
-  it('正常 pp 值显示 "↑2.5pp" (YOYGuard abs+toFixed(1) 格式, 箭头+绿色由 v 正负决定)', async () => {
+describe('RFMSegmentDrilldown YOYGuard 集成 (L4.81 raw ratio)', () => {
+  it('正常 pp 值显示 "↑2.5pp" (raw 0.025 → *100, 箭头+绿色由 v 正负决定)', async () => {
     mockData.value = makeData()
     const wrapper = mount(RFMSegmentDrilldown, {
       props: { rfmSegment: 'R5', queryParams: { start_date: '2026-01-01', end_date: '2026-01-31' } },
@@ -140,7 +141,7 @@ describe('RFMSegmentDrilldown YOYGuard 集成 (Sprint 18 #124)', () => {
     expect(yoyCells[0].text()).toContain('2.5pp')
   })
 
-  it('负向 pp 值显示 "↓3.1pp" (YOYGuard abs+toFixed(1) 格式, 红色)', async () => {
+  it('负向 pp 值显示 "↓3.1pp" (raw -0.031 → *100, 红色)', async () => {
     mockData.value = makeData()
     const wrapper = mount(RFMSegmentDrilldown, {
       props: { rfmSegment: 'R5', queryParams: { start_date: '2026-01-01', end_date: '2026-01-31' } },
