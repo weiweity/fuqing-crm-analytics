@@ -77,6 +77,8 @@ vi.mock('@/components/ExportToolbar.vue', () => ({
 
 vi.mock('@/constants/channels', () => ({
   LOW_PRICE_CHANNELS: [],
+  // L4.81 / PR4: HealthOverviewTab import HEALTH_SCORE_CHANNELS 建排序表, mock 必须补齐
+  HEALTH_SCORE_CHANNELS: ['全店', '货架', '达播', '直播', '淘客'],
 }))
 
 // naive-ui 组件 mock: defineComponent 确保 props 正确透传，避免 jsdom setAttribute 报错

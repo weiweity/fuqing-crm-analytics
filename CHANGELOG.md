@@ -46,6 +46,20 @@
 
 ### Changed
 - Layer 6 相关测试对齐新安全模型（`test_lsof_protection.py` / `test_cleanup_subagent_tracker.py`）
+## [unreleased] - 2026-07-25 (PR4: 恢复测试基线 — W4 L4.19 channel 别名 + 前端 L4.81 raw ratio 测试)
+
+### Fixed
+- **W4 batch SQL L4.19 channel 别名**: `scripts/etl/precompute_fact_rfm.py` 的 `_compute_batch_sql` / `_compute_combo_sql` / `_merge_replace_serial` 统一 `FROM orders o` + `o.channel` / `o.pay_time` / `o.spu_product_class` + valid_order 字段前缀，防 LATERAL unnest(STRUCT) 作用域下 `Binder Error: Referenced column "channel" not found`
+- **前端 unit 38 fail (L4.81)**: 旧测试仍按 Sprint 13 "caller 已 *100" 传值；对齐生产契约 — backend raw ratio (0-1) + `YOYGuard` 集中 `*100`。更新 `YOYGuard` / `YOYBadge` / `MetricCard` / `RFMSegmentDrilldown` 测试输入为 raw ratio
+- **HealthOverviewTab mock**: `vi.mock('@/constants/channels')` 补齐 `HEALTH_SCORE_CHANNELS`（组件 import 后 mock 缺 export 导致 6 case 全挂）
+
+### Changed
+- **文档 SSOT 对齐 L4.81**: `CLAUDE.md` + `docs/development/ratio-convention.md` 前端契约从 "caller 已 *100 / 组件不乘" 改为 "backend raw + 组件集中 *100"；禁止把生产代码改回旧契约
+- **MetricCard / YOYBadge 注释**: 同步 L4.81 契约说明
+
+### Tests
+- **backend**: 新增 `TestW4ChannelAliasL419`（SQL 含 `o.channel` + batch/serial 新连接 commit/close 等价 + T-1 日期锁 + 不污染外部路径）
+- **frontend**: vitest **130/130 passed**（原 38 failed → 0）
 
 ## [unreleased] - 2026-07-21 (CI: check_imports 假红止血 + 定时 timeout)
 

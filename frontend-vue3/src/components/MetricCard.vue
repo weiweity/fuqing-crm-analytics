@@ -10,8 +10,9 @@ import YOYGuard from './YOYGuard.vue'
  * - NaN/Infinity fallback
  * - null/undefined → '—'
  *
- * 跟 YOYBadge 同步契约: caller 已 *100 传 percentage/pp 数值, 组件只做 abs + toFixed(2).
+ * L4.81 契约: caller 传 raw ratio (0-1, no *100), YOYGuard 集中 *100 显示.
  */
+
 
 withDefaults(defineProps<{
   title: string
