@@ -297,10 +297,10 @@ export function fetchHealthConfig(): Promise<HealthConfig> {
   return client.get('/v1/customer-health/config')
 }
 
-// 审计 API 鉴权用（从 Vite 环境变量读取）
-const _AUDIT_KEY = import.meta.env.VITE_HEALTH_API_KEY || ''
+// 配置历史 / 审计日志：走会话 Bearer（axios 拦截器注入）+ 后端 require_admin。
+// 禁止 VITE_HEALTH_API_KEY / 任何服务端密钥进浏览器 bundle。
 
-// ── 配置历史（只读） ──
+// ── 配置历史（只读，管理员） ──
 export interface ConfigHistoryItem {
   backup_id: string
   action: string
@@ -313,10 +313,10 @@ export interface ConfigHistoryResponse {
 }
 
 export function fetchConfigHistory(limit = 20): Promise<ConfigHistoryResponse> {
-  return client.get('/v1/customer-health/config/history', { params: { limit, x_api_key: _AUDIT_KEY } })
+  return client.get('/v1/customer-health/config/history', { params: { limit } })
 }
 
-// ── 审计日志 ──
+// ── 审计日志（管理员） ──
 export interface AuditLogItem {
   timestamp: string
   action: string
@@ -328,7 +328,7 @@ export interface AuditLogResponse {
 }
 
 export function fetchAuditLog(limit = 50): Promise<AuditLogResponse> {
-  return client.get('/v1/customer-health/config/audit-log', { params: { limit, x_api_key: _AUDIT_KEY } })
+  return client.get('/v1/customer-health/config/audit-log', { params: { limit } })
 }
 
 // ── 指标目标值查询 ──

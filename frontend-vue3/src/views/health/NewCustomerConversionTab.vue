@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NDataTable, NTag } from 'naive-ui'
@@ -38,7 +39,11 @@ const funnelOption = computed(() => {
   const f = data.value.overall_funnel
   return {
     title: { text: '新客转化漏斗', left: 'center', textStyle: { fontSize: 14 } },
-    tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: { name?: string; value?: number; percent?: number }) =>
+        `${encodeHtml(params.name)}: ${params.value ?? 0}人 (${params.percent ?? 0}%)`,
+    },
     series: [{
       type: 'funnel',
       left: '10%', top: 40, bottom: 20, width: '80%',

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, ref, toValue, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NTooltip, NSelect } from 'naive-ui'
@@ -278,9 +279,9 @@ const sankeyOption = computed(() => {
           if (params.dataType === 'edge') {
             const srcName = nodes[params.data.source]?.name ?? params.data.source
             const tgtName = nodes[params.data.target]?.name ?? params.data.target
-            return `${srcName} → ${tgtName}<br/>关联人数: ${params.data.value.toLocaleString()}`
+            return `${encodeHtml(srcName)} → ${encodeHtml(tgtName)}<br/>关联人数: ${params.data.value.toLocaleString()}`
           }
-          return params.name
+          return encodeHtml(params.name)
         },
       },
       grid: { left: 8, right: 8, top: 8, bottom: 8 },
@@ -373,9 +374,9 @@ const sankeyOption = computed(() => {
         if (params.dataType === 'edge') {
           const srcName = nodes[params.data.source]?.name ?? params.data.source
           const tgtName = nodes[params.data.target]?.name ?? params.data.target
-          return `${srcName} → ${tgtName}<br/>流转人数: ${params.data.value.toLocaleString()}`
+          return `${encodeHtml(srcName)} → ${encodeHtml(tgtName)}<br/>流转人数: ${params.data.value.toLocaleString()}`
         }
-        return params.name
+        return encodeHtml(params.name)
       },
     },
     grid: { left: 8, right: 8, top: 8, bottom: 8 },

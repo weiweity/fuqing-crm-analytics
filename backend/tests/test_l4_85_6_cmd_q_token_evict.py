@@ -87,11 +87,12 @@ def test_bug2_fix_beacon_a_cmdq_b_login_200():
     a_token = a_resp.json()["token"]
     auth_module.ACTIVE_TOKENS[a_token] = ("admin", datetime.now() - timedelta(seconds=50))
 
-    # 2. 模拟 beforeunload sendBeacon: 浏览器关掉前 sendBeacon POST /api/v1/auth/logout
-    #    sendBeacon 不能设 Authorization header, 所以 logout endpoint 需支持 token via query/body
-    #    治本方案: logout endpoint 接受 token via query param 或 body
-    #    模拟 sendBeacon: 调 logout API 携带 token
-    beacon_resp = client.post(f"/api/v1/auth/logout?token={a_token}")
+    # 2. 模拟 beforeunload sendBeacon: JSON body（禁止 query token 进 access log/URL）
+    #    sendBeacon 不能设 Authorization header → body.token
+    beacon_resp = client.post(
+        "/api/v1/auth/logout",
+        json={"token": a_token},
+    )
     assert beacon_resp.status_code == 200
 
     # 3. 验证: token 已删

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, h, toValue, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NTooltip, NTabs } from 'naive-ui'
@@ -61,7 +62,7 @@ const dualAxisOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any[]) => {
-        return params.map((p) => `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(1)}%`).join('<br/>')
+        return params.map((p) => `${p.marker} ${encodeHtml(p.seriesName)}: ${(p.value * 100).toFixed(1)}%`).join('<br/>')
       },
     },
     legend: {

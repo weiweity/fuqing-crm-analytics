@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue, h, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
@@ -157,7 +158,7 @@ const pieChartOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: { name: string; value: number; percent: number }) => {
-        return `${params.name}<br/>GSV: ¥${(params.value / 10000).toFixed(1)}万 (${params.percent}%)`
+        return `${encodeHtml(params.name)}<br/>GSV: ¥${(params.value / 10000).toFixed(1)}万 (${params.percent}%)`
       },
     },
     legend: {
@@ -182,7 +183,7 @@ const pieChartOption = computed(() => {
         label: {
           show: true,
           position: 'outside',
-          formatter: (params: any) => `${params.name}\n${params.percent}%`,
+          formatter: (params: any) => `${encodeHtml(params.name)}\n${params.percent}%`,
           fontSize: 10,
           color: '#64748b',
           lineHeight: 14,

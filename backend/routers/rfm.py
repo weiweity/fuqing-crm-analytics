@@ -7,7 +7,7 @@ W5 v0.4.13: 4 个端点 (r-flow / f-flow / m-flow / segment-orders) 加 DuckDB-K
 manifest 变化由 cache 内部 _ManifestTracker 检测, 自动整表失效.
 """
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query, Response, Depends
 from typing import Optional, List
 
 from backend.contracts.schemas import (
@@ -27,6 +27,7 @@ from backend.services.rfm import (
 )
 from backend.services.rfm.cache import RfmQueryCache  # W5 v0.4.13
 from backend.services import check_future_date
+from backend.routers.auth import require_admin
 
 router = APIRouter(prefix="/api/v1/rfm", tags=["RFM"])
 
@@ -157,21 +158,25 @@ def get_rfm_manifest_version():
     return get_rfm_manifest_info()
 
 
-# W5 v0.4.13: cache 调试端点 (设计与 §7.5 验收对齐)
+# W5 v0.4.13: cache 管理端点 — 需管理员（Bearer + require_admin）
 @router.get("/cache/stats")
-def get_rfm_cache_stats():
-    """W5 cache 状态: 总行数 / 有效行数 / 过期行数. 用于监控 + 验证 invalidate."""
+def get_rfm_cache_stats(_admin: str = Depends(require_admin)):
+    """W5 cache 状态: 总行数 / 有效行数 / 过期行数. 管理员监控用."""
     return _rfm_cache.stats()
 
 
 @router.post("/cache/invalidate")
-def post_rfm_cache_invalidate():
-    """W5 手动整表失效 (admin/测试用). 生产环境正常由 manifest 变化自动触发."""
+def post_rfm_cache_invalidate(_admin: str = Depends(require_admin)):
+    """W5 手动整表失效 (admin). 生产环境正常由 manifest 变化自动触发."""
     deleted = _rfm_cache.invalidate()
     return {"invalidated": deleted}
 
 
 @router.get("/cache/keys")
-def get_rfm_cache_keys(endpoint: Optional[str] = None, limit: int = 50):
-    """W5 调试: 列出 cache 键 (可按 endpoint 过滤). limit 上限 500."""
+def get_rfm_cache_keys(
+    endpoint: Optional[str] = None,
+    limit: int = 50,
+    _admin: str = Depends(require_admin),
+):
+    """W5 调试: 列出 cache 键 (可按 endpoint 过滤). limit 上限 500. 管理员."""
     return {"keys": _rfm_cache.list_keys(endpoint=endpoint, limit=min(limit, 500))}

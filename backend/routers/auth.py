@@ -6,7 +6,7 @@ Sample CRM - 认证路由
 安全基线: bcrypt 密码哈希 + token TTL(8h) + 登录限速 + 审计日志
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -556,24 +556,47 @@ def refresh_token(request: Request):
 
 
 @router.post("/logout", response_model=LogoutResponse)
-def logout(request: Request, token: str | None = None):
-    """退出登录，使当前 token + 同账号其他 stale token 失效 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用).
+async def logout(
+    request: Request,
+    token: str | None = Query(
+        default=None,
+        description="[DEPRECATED] 仅短期兼容旧客户端；优先 Authorization Bearer 或 JSON body.token",
+        deprecated=True,
+    ),
+):
+    """退出登录，使当前 token + 同账号其他 stale token 失效.
 
-    user 7/11 报"我因该都退出账号了，但是还是要申请登陆" + "Cmd+Q 退出浏览器后, 变成需要申请登录" 真根因:
-    - 之前 logout 只删当前 token, 多次登录/refresh 留下 stale token, _is_account_active 3min 检查误判 True → B 端 login 409
-    - Cmd+Q 退出浏览器 → frontend JS 全停 → backend ACTIVE_TOKENS 仍有 A token → B login 409
-    修复: 复用 _evict_previous_sessions_for_user 踢出同账号所有 stale token + 配套 sendBeacon (token via query).
+    Token 优先级（禁止写入 access log / URL 历史）:
+    1. Authorization: Bearer <token>
+    2. JSON body ``{"token": "..."}``（sendBeacon / fetch keepalive）
+    3. Query ``?token=`` — **deprecated**，仅短期兼容；命中时打 warning，后续版本删除
 
-    L4.85.6 方案 A: sendBeacon 不能设 Authorization header, 所以 logout endpoint 接受 token via query param.
-    配套: 方案 D background task evict idle token > 60s (frontend/services/auth_token_evictor.py).
-
-    跟 L4.84 + L4.85.3 + L4.85.4 + L4.85.6 1:1 stable 永久规则链配套, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用,
-    跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+    配套: 方案 D background task evict idle token > 60s (auth_token_evictor).
     """
-    # L4.85.6 治本: 兼容 Authorization header (正常 logout) + token via query (sendBeacon beforeunload)
+    import json as _json
+
     auth = request.headers.get("Authorization", "")
     bearer_token = auth[7:] if auth.startswith("Bearer ") else None
-    effective_token = bearer_token or token
+
+    body_token: str | None = None
+    try:
+        raw = await request.body()
+        if raw:
+            data = _json.loads(raw)
+            if isinstance(data, dict) and data.get("token"):
+                body_token = str(data["token"])
+    except Exception:
+        body_token = None
+
+    query_token = token
+    if query_token and not (bearer_token or body_token):
+        # 不记录 token 本身，只记来源
+        _logger.warning(
+            "[auth] logout via deprecated query token; prefer body or Authorization "
+            "(query support will be removed after short deprecation window)"
+        )
+
+    effective_token = bearer_token or body_token or query_token
 
     if effective_token:
         with _AUTH_STATE_LOCK:
@@ -582,5 +605,35 @@ def logout(request: Request, token: str | None = None):
             username = record[0]
             # L4.85.4 治本: 踢出该 user 所有 stale token, 避免 _is_account_active 3min 检查误判 True
             evicted = _evict_previous_sessions_for_user(username)
-            _logger.info(f"[auth] 退出登录：{username}，踢出 {evicted} 个 stale token (L4.85.6 sendBeacon 兼容)")
+            # 审计只记 username，永不写 token
+            _logger.info(
+                "[auth] 退出登录：%s，踢出 %s 个 stale token (body/bearer logout)",
+                username,
+                evicted,
+            )
     return {"success": True}
+
+
+def get_current_username(request: Request) -> str:
+    """从 request.state.username（auth_middleware 写入）读取已认证用户；缺失则 401。"""
+    username = getattr(request.state, "username", None)
+    if not username:
+        # 兜底：部分白名单路径未跑 middleware 注入时，尝试从 Bearer 解析
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            username = _verify_token(auth[7:], sliding=False)
+    if not username:
+        raise HTTPException(status_code=401, detail="未登录或登录已过期")
+    return username
+
+
+def require_admin(request: Request) -> str:
+    """FastAPI dependency：要求当前用户为管理员（FQ_CRM_ADMINS）。
+
+    保护 health history/audit、RFM cache invalidate 等管理接口。
+    返回 username，失败 401/403。
+    """
+    username = get_current_username(request)
+    if not is_admin_username(username):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+    return username

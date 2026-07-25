@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { encodeHtml, sanitizeCssColor } from '@/utils/encodeHtml'
 import { computed, toValue, ref, h } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NGrid, NGi, NTabs, NTabPane } from 'naive-ui'
@@ -1407,18 +1408,18 @@ const trendChartOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any) => {
         const arr = Array.isArray(params) ? params : [params]
-        let html = `<div style="font-weight:600;margin-bottom:4px">${arr[0].axisValue}</div>`
+        let html = `<div style="font-weight:600;margin-bottom:4px">${encodeHtml(arr[0].axisValue)}</div>`
         for (const p of arr) {
           const val = p.value
-          const isRatio = p.seriesName.includes('占比')
+          const isRatio = String(p.seriesName).includes('占比')
           // Sprint 27 治根: API ratio 返 0-1 decimal (TrendData.member_ratios 对齐 Ratio Convention,
           // 跟 Sprint 14.5 OverviewMetrics.member_ratio 治根路线一致); tooltip 格式化时 ×100 展示,
           // 这跟"前端只展示"边界一致 — ×100 是显示格式化 (0.5346 → 53.5%), 非业务计算
           const displayVal = isRatio ? `${(val * 100).toFixed(1)}%` : `¥${(val / 10000).toFixed(1)}万`
           html += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">`
-          html += `<span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span>`
-          html += `<span style="flex:1">${p.seriesName}</span>`
-          html += `<span style="font-weight:600">${displayVal}</span>`
+          html += `<span style="width:8px;height:8px;border-radius:50%;background:${sanitizeCssColor(p.color)}"></span>`
+          html += `<span style="flex:1">${encodeHtml(p.seriesName)}</span>`
+          html += `<span style="font-weight:600">${encodeHtml(displayVal)}</span>`
           html += `</div>`
         }
         return html
@@ -1538,14 +1539,14 @@ const visitorTrendChartOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any[]) => {
-        const date = params[0]?.axisValue
+        const date = encodeHtml(params[0]?.axisValue)
         let html = `<div style="font-weight:600;margin-bottom:6px">${date}</div>`
         params.forEach((p: any) => {
-          const val = p.seriesName.includes('入会率') ? `${p.value}%` : p.value.toLocaleString()
+          const val = String(p.seriesName).includes('入会率') ? `${p.value}%` : p.value.toLocaleString()
           html += `<div style="display:flex;align-items:center;gap:6px;margin:3px 0">
-            <span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span>
-            <span style="flex:1">${p.seriesName}</span>
-            <span style="font-weight:600">${val}</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:${sanitizeCssColor(p.color)}"></span>
+            <span style="flex:1">${encodeHtml(p.seriesName)}</span>
+            <span style="font-weight:600">${encodeHtml(val)}</span>
           </div>`
         })
         return html
