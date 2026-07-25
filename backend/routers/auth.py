@@ -47,8 +47,10 @@ LOGIN_STATE_CLEANUP_INTERVAL = 60.0  # 周期清理最小间隔（秒）
 BCRYPT_MAX_PASSWORD_BYTES = 72
 USERNAME_MAX_LEN = 64
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.@-]+$")
-# 未知账号也走 bcrypt，抹平时序；固定盐哈希，避免每次 gensalt 开销差异过大
-_DUMMY_BCRYPT_HASH: bytes = bcrypt.hashpw(b"__fq_crm_dummy__", bcrypt.gensalt(rounds=4))
+# 未知账号也走 bcrypt，抹平时序；固定盐哈希，避免每次 gensalt 开销差异过大。
+# cost 必须与真实密码 hash 一致（bcrypt.gensalt() 默认 rounds=12），
+# 禁止 rounds=4 等低 cost——否则未知账号 checkpw 明显更快，可被时序枚举。
+_DUMMY_BCRYPT_HASH: bytes = bcrypt.hashpw(b"__fq_crm_dummy__", bcrypt.gensalt())
 
 # ─────────────────────────────────────────────────────────────
 # 密码配置
@@ -504,7 +506,9 @@ def login(req: LoginRequest, request: Request):
         _evict_previous_sessions_for_user(req.username)
         token = secrets.token_urlsafe(32)
         ACTIVE_TOKENS[token] = (req.username, datetime.now())
-    _logger.info(f"[auth] 登录成功：{req.username}，IP={client_ip}")
+    _logger.info(
+        f"[auth] 登录成功：{_safe_log_username(req.username)}，IP={client_ip}"
+    )
 
     return {
         "token": token,
