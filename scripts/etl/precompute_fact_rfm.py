@@ -111,7 +111,7 @@ def create_fact_rfm_table(conn) -> None:
 # ─────────────────────────────────────────────────────────────
 
 # orders 表加复合索引: (pay_time, channel, spu_product_class).
-# _compute_combo_sql WHERE: DATE(pay_time) = ? AND channel = ? AND spu_product_class = ?
+# _compute_combo_sql WHERE: DATE(o.pay_time) = ? AND o.channel = ? AND o.spu_product_class = ? (L4.19)
 # 走 idx_orders_pay_channel_item 后, 单 combo 从 0.05s → < 0.001s, 总时间 393s → ~30s.
 # 幂等 CREATE INDEX IF NOT EXISTS — 已有同名索引跳过, 不会破坏现有数据.
 ORDERS_COMPOSITE_INDEX_SQL = """
@@ -256,17 +256,37 @@ def _next_version(conn, load_date: date) -> int:
     return int(row[0]) + 1
 
 
+def _valid_order_sql_with_alias(alias: str = "o") -> str:
+    """L4.19: OrderFilters.valid_order() 片段加表别名 (防 LATERAL/JOIN Binder Error).
+
+    真因路径 (Binder Error: Referenced column "channel" not found):
+    batch SQL 在 CROSS JOIN LATERAL + unnest(STRUCT) 作用域下, 无表别名的
+    ``channel = r.c`` 可能被 binder 解析到外层 STRUCT 作用域而找不到列.
+    统一 ``FROM orders o`` + ``o.channel`` / ``o.pay_time`` / ``o.spu_product_class``
+    + valid_order 字段前缀, 跟 L4.19 channel alias 永久规则 1:1.
+    """
+    from backend.semantic.filters import OrderFilters
+
+    valid_sql, _ = OrderFilters.valid_order()
+    if not alias:
+        return valid_sql
+    # 顺序无关: 三列互不包含
+    for col in ("is_goujinjin", "order_status", "is_refund"):
+        valid_sql = valid_sql.replace(col, f"{alias}.{col}")
+    return valid_sql
+
+
 def _compute_combo_sql(combo: dict, load_date: date) -> str:
     """生成单个 (channel, item, segment_id=0) 组合的 INSERT SQL.
 
     走 backend.semantic.filters.OrderFilters.valid_order() 校验口径 (CLAUDE.md 合规).
+    L4.19: orders 表别名 ``o.`` 限定 channel / pay_time / spu_product_class.
 
     Args:
         combo: enumerate_combos() 返回的 dict
         load_date: 数据日期 (T-1, 跟 fact_rfm_long.date 列匹配)
     """
-    from backend.semantic.filters import OrderFilters
-    valid_sql, _ = OrderFilters.valid_order()
+    valid_sql = _valid_order_sql_with_alias("o")
 
     return f"""
         INSERT INTO {FACT_RFM_TABLE}
@@ -282,13 +302,13 @@ def _compute_combo_sql(combo: dict, load_date: date) -> str:
             ? as version
         FROM (
             SELECT
-                user_id,
-                actual_amount,
-                COUNT(order_id) OVER (PARTITION BY user_id) as order_count
-            FROM orders
-            WHERE DATE(pay_time) = ?::DATE
-              AND channel = ?
-              AND spu_product_class = ?
+                o.user_id,
+                o.actual_amount,
+                COUNT(o.order_id) OVER (PARTITION BY o.user_id) as order_count
+            FROM orders o
+            WHERE DATE(o.pay_time) = ?::DATE
+              AND o.channel = ?
+              AND o.spu_product_class = ?
               AND {valid_sql}
         ) t
         ON CONFLICT (date, dimension_key, version) DO NOTHING
@@ -306,13 +326,13 @@ def _compute_batch_sql(load_date: date, version: int) -> str:
 
     LATERAL 子查询: 走 idx_orders_pay_channel_item 复合索引, 每 row 算聚合.
     ON CONFLICT (date, dimension_key, version) DO NOTHING 走 idx_fact_rfm_dkv 唯一索引.
+    L4.19: ``FROM orders o`` + ``o.channel = r.c`` — 禁止无别名 channel (LATERAL binder).
 
     Args:
         load_date: 数据日期 (T-1, 跟 fact_rfm_long.date 列匹配)
         version: 本次 batch 共用 version
     """
-    from backend.semantic.filters import OrderFilters
-    valid_sql, _ = OrderFilters.valid_order()
+    valid_sql = _valid_order_sql_with_alias("o")
 
     return f"""
         INSERT INTO {FACT_RFM_TABLE}
@@ -334,15 +354,15 @@ def _compute_batch_sql(load_date: date, version: int) -> str:
                 COUNT(DISTINCT CASE WHEN cnt >= 2 THEN user_id END) as repurchase_count
             FROM (
                 SELECT
-                    user_id,
-                    actual_amount,
-                    COUNT(order_id) OVER (PARTITION BY user_id) as cnt
-                FROM orders
-                WHERE DATE(pay_time) = r.d
-                  AND channel = r.c
-                  AND spu_product_class = r.i
+                    o.user_id,
+                    o.actual_amount,
+                    COUNT(o.order_id) OVER (PARTITION BY o.user_id) as cnt
+                FROM orders o
+                WHERE DATE(o.pay_time) = r.d
+                  AND o.channel = r.c
+                  AND o.spu_product_class = r.i
                   AND {valid_sql}
-            ) o
+            ) t
         ) agg
         ON CONFLICT (date, dimension_key, version) DO NOTHING
         RETURNING date
@@ -449,8 +469,8 @@ def _merge_replace_serial(conn, load_date: date, combos: list = None) -> int:
     new_version = _next_version(conn, load_date)
 
     # 2. 重新计算 load_date 当天数据, 走 540 组合 INSERT 新 version
-    from backend.semantic.filters import OrderFilters
-    valid_sql, _ = OrderFilters.valid_order()
+    # L4.19: 与 _compute_combo_sql / _compute_batch_sql 同口径 (o. 表别名)
+    valid_sql = _valid_order_sql_with_alias("o")
 
     total_inserted = 0
     for combo in _combos:
@@ -470,13 +490,13 @@ def _merge_replace_serial(conn, load_date: date, combos: list = None) -> int:
                 ? as version
             FROM (
                 SELECT
-                    user_id,
-                    actual_amount,
-                    COUNT(order_id) OVER (PARTITION BY user_id) as order_count
-                FROM orders
-                WHERE DATE(pay_time) = ?::DATE
-                  AND channel = ?
-                  AND spu_product_class = ?
+                    o.user_id,
+                    o.actual_amount,
+                    COUNT(o.order_id) OVER (PARTITION BY o.user_id) as order_count
+                FROM orders o
+                WHERE DATE(o.pay_time) = ?::DATE
+                  AND o.channel = ?
+                  AND o.spu_product_class = ?
                   AND {valid_sql}
             ) t
             ON CONFLICT (date, dimension_key, version) DO NOTHING
