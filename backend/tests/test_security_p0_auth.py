@@ -13,7 +13,6 @@
 """
 from __future__ import annotations
 
-import os
 from unittest.mock import patch
 
 import pytest
@@ -239,28 +238,24 @@ def test_different_ip_does_not_lock_real_account_for_legit_ip(client: TestClient
 def test_xff_not_trusted_by_default(client: TestClient, monkeypatch):
     monkeypatch.delenv("FQ_TRUST_PROXY", raising=False)
     # 即使带 XFF，默认仍用 testclient host；不会因伪造 XFF 绕过组合锁
-    with patch.object(
-        auth_module, "_get_client_ip", wraps=auth_module._get_client_ip
-    ) as spy:
-        # 直接测函数
-        from starlette.requests import Request
+    from starlette.requests import Request
 
-        scope = {
-            "type": "http",
-            "asgi": {"version": "3.0"},
-            "http_version": "1.1",
-            "method": "POST",
-            "scheme": "http",
-            "path": "/api/v1/auth/login",
-            "raw_path": b"/api/v1/auth/login",
-            "query_string": b"",
-            "headers": [(b"x-forwarded-for", b"1.2.3.4")],
-            "client": ("9.9.9.9", 12345),
-            "server": ("testserver", 80),
-        }
-        req = Request(scope)
-        ip = auth_module._get_client_ip(req)
-        assert ip == "9.9.9.9"
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/v1/auth/login",
+        "raw_path": b"/api/v1/auth/login",
+        "query_string": b"",
+        "headers": [(b"x-forwarded-for", b"1.2.3.4")],
+        "client": ("9.9.9.9", 12345),
+        "server": ("testserver", 80),
+    }
+    req = Request(scope)
+    ip = auth_module._get_client_ip(req)
+    assert ip == "9.9.9.9"
 
 
 def test_xff_trusted_when_proxy_mode(monkeypatch):
