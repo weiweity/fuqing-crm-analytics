@@ -32,7 +32,14 @@ class TestSprint123LintYmlE2EIntegration:
         assert "ground-truth-lint" in jobs
         assert "test" in jobs
         assert "e2e" not in jobs, f"PR CI 不得含 e2e job, 实际 {jobs}"
-        assert len(jobs) == 3, f"期望 3 jobs, 实际 {jobs}"
+        allowed_extra = {
+            "contract-filterbuilder-lint",
+            "frontend",
+            "dependency-audit",
+            "docker-smoke",
+        }
+        unexpected = set(jobs) - {"lint", "ground-truth-lint", "test"} - allowed_extra
+        assert not unexpected, f"未声明 job: {unexpected}"
 
     def test_e2e_yml_independent_deleted(self):
         """旧独立 e2e.yml 仍不存在（能力迁到 e2e-smoke.yml）。"""

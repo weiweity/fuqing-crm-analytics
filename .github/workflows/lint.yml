@@ -97,7 +97,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      FQ_CRM_PASSWORDS: admin:123456
       FQ_CRM_ADMINS: admin
     steps:
       - uses: actions/checkout@v5
@@ -187,6 +186,29 @@ jobs:
       - name: Backend Dockerfile build (no push)
         run: |
           docker build -t fuqing-crm-backend:ci -f Dockerfile .
+      - name: Generate ephemeral test credentials (masked)
+        # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
+        run: |
+          set -euo pipefail
+          ADMIN_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          FQSW_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          TESTUSER_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          CREDS="admin:${ADMIN_PASS},fqsw:${FQSW_PASS},testuser:${TESTUSER_PASS}"
+          echo "::add-mask::${ADMIN_PASS}"
+          echo "::add-mask::${FQSW_PASS}"
+          echo "::add-mask::${TESTUSER_PASS}"
+          echo "::add-mask::${CREDS}"
+          {
+            echo "FQ_CRM_PASSWORDS=${CREDS}"
+            echo "E2E_ADMIN_USER=admin"
+            echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
+          } >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: 'pip'
+      - run: pip install -r requirements-lock.txt
+      # 2026-07-21: 与 Nightly/Weekly 对齐 — PR 也跑 B2 import 完整性 (避免定时专属红、合并门却绿)
       - name: Frontend Dockerfile build (no push)
         run: |
           docker build -t fuqing-crm-frontend:ci -f frontend-vue3/Dockerfile frontend-vue3
