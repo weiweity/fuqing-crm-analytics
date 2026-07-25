@@ -14,6 +14,18 @@
 
 ### Tests
 - 新增 `backend/tests/test_security_p0_auth.py`（Host/401/bcrypt/洪泛容量/枚举一致性/XFF）
+## [unreleased] - 2026-07-25 (PR2: 前端 XSS / logout token / require_admin / CSP)
+
+### Security
+- **ECharts XSS**: 唯一公共 `encodeHtml`（优先 `echarts.format.encodeHTML`）+ `sanitizeCssColor`；所有 HTML tooltip formatter 对 API/轴/系列名转义；删除 `ValueTierTab`/`RFMSegmentDrilldown` 的 `window.__rFMDrilldownClick` 与 tooltip 内联 `onclick`
+- **ECharts**: `6.0.0` → `6.1.0`（升级 ≠ 自动修自定义 formatter）
+- **Logout token**: 删除 `?token=` 首选路径；`sendBeacon` JSON body / `fetch(..., keepalive)` + Bearer；query token 标 deprecated 短期兼容；审计日志不写 token
+- **Health API Key**: 移除前端 `VITE_HEALTH_API_KEY`；config history/audit 改 Bearer + `require_admin`；RFM cache stats/invalidate/keys 同样 `require_admin`
+- **CSP**: `Content-Security-Policy-Report-Only`（`object-src 'none'; base-uri 'self'; frame-ancestors 'none'`）；backend 安全头 + nginx 对齐；先 Report-Only 再视情况强制
+
+### Tests
+- `frontend-vue3/src/utils/__tests__/encodeHtml.test.ts`（恶意标签仅当文本）
+- `backend/tests/test_security_pr2_frontend.py`（logout body/query、require_admin、CSP-RO、无 VITE key / 无 query beacon）
 
 ## [unreleased] - 2026-07-21 (CI: check_imports 假红止血 + 定时 timeout)
 
@@ -80,8 +92,6 @@
 - 磁盘：gitignore 的 HANDOFF-TO-CODEX 残留物理删除
 
 ---
-
-
 
 ## [unreleased] - 2026-07-16 (Sprint 205+ Admin Upload Sprint 3A 收口 — frontend staging-only 实施 (跟 Codex Sprint 3A 审计结论 + Codex Stage 3 review [P1-1] [P1-2] [P2-1] [P2-2] 1:1 stable 永久规则化沿用, 跟 L4.15 + L4.20 + L4.22 + L4.42 + L4.50 + L4.60 + L4.85 + L4.85.1 永久规则链 1:1 stable 永久规则化沿用))
 
@@ -458,6 +468,5 @@
 - 11 hook 闭环 (跟 Sprint 185 一致), git remote SSH 推送 0 timeout
 - MEMORY.md 18.2KB ≤ 24.4KB headroom (L4.13 verify OK)
 - main HEAD 待 commit (Sprint 186 squash) + origin/main 待 push
-
 
 > 更早 entry 见 [`docs/history/CHANGELOG_HISTORY.md`](docs/history/CHANGELOG_HISTORY.md)。
