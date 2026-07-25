@@ -5,8 +5,8 @@ import { E2E_ADMIN_PASSWORD, E2E_ADMIN_USER } from './fixtures/credentials'
  * L4.85.6 e2e 验证: Cmd+Q 退出浏览器后 B 端立即能登录 (方案 D+A 治本)
  *
  * user 7/11 拍板 方案 D+A:
- * - 方案 A: frontend beforeunload + navigator.sendBeacon POST /api/v1/auth/logout?token=xxx
- *   (sendBeacon 是浏览器关掉前最后一刻还能发的请求, 跟 L4.85.4 logout API 1:1 stable 兼容)
+ * - 方案 A: frontend beforeunload + navigator.sendBeacon POST /api/v1/auth/logout
+ *   body JSON {token}（禁止 query token 进 access log / 浏览器历史）
  * - 方案 D: backend background task evict idle token > 60s (兜底 sendBeacon 失败场景)
  *
  * 真根因 (跟 L4.42 立项实证 SOP "git log + grep 实证" 1:1 stable):
@@ -68,7 +68,7 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
     await bContext1.close()
 
     // === 阶段 3: 模拟 A 端 Cmd+Q 退出浏览器 ===
-    // page.close() 触发 beforeunload → navigator.sendBeacon /api/v1/auth/logout?token=xxx
+    // page.close() 触发 beforeunload → navigator.sendBeacon /api/v1/auth/logout (JSON body)
     await aPage.close()
     await aContext.close()
 
@@ -119,7 +119,9 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
 
     // === 阶段 3: A 端关闭 (但模拟 sendBeacon 失败 → 方案 D 兜底) ===
     // 为了 e2e 不等 60s, 直接通过 API 调方案 A 触发踢人
-    const logoutResponse = await aPage.request.post(`/api/v1/auth/logout?token=${tokenFromSessionStorage}`)
+    const logoutResponse = await aPage.request.post('/api/v1/auth/logout', {
+      data: { token: tokenFromSessionStorage },
+    })
     expect(logoutResponse.ok()).toBe(true)
 
     await aPage.close()

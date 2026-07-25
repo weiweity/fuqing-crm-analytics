@@ -91,24 +91,39 @@ async function bootstrap() {
     }
   }, 30 * 60 * 1000) // 30分钟
 
-  // L4.85.6 方案 A 治本: user 7/11 报 "Cmd+Q 退出浏览器后, 变成需要申请登录"
-  // 真根因: A Cmd+Q → frontend JS 全停 → backend ACTIVE_TOKENS 仍有 A token → B login 409
-  // 修复: beforeunload 钩子 + navigator.sendBeacon POST /api/v1/auth/logout?token=xxx
-  //       (sendBeacon 是异步非阻塞, 浏览器关掉也能发出去; 不能设 Authorization header, 所以 token via query param)
-  // 配套: 方案 D background task evict idle token > 60s 兜底 (backend/services/auth_token_evictor.py)
-  // 跟 L4.85.4 idle timer 1:1 stable 永久规则化沿用 (user 主动 idle / Cmd+Q / 网络断 全覆盖)
+  // L4.85.6 方案 A: Cmd+Q / 关页前踢会话，避免 B 端 login 409
+  // 安全: token 禁止出现在 URL/query（access log / 浏览器历史泄露）。
+  // 优先 sendBeacon + JSON body；失败则 fetch keepalive + Authorization（仍不走 query）。
+  // 配套: 方案 D background task evict idle token > 60s (backend/services/auth_token_evictor.py)
   window.addEventListener('beforeunload', () => {
-    // Playwright page.goto 会触发 beforeunload；若此时 sendBeacon logout，
+    // Playwright page.goto 会触发 beforeunload；若此时 beacon logout，
     // 下一页 bootstrap /auth/me 401 → 清 token → 永远停在登录页（e2e 全红真因 2026-07-19）。
     // L4.85.6 Cmd+Q 用例单独测 beacon，不设 fq_crm_e2e。
     if (sessionStorage.getItem('fq_crm_e2e') === '1') return
     const token = sessionStorage.getItem(AUTH_TOKEN_KEY)
     if (!token) return
-    // sendBeacon 是浏览器关掉前最后一刻还能发的请求, 跟 L4.85.4 logout API 1:1 stable 兼容
+    const url = '/api/v1/auth/logout'
+    const body = JSON.stringify({ token })
     try {
-      navigator.sendBeacon(`/api/v1/auth/logout?token=${encodeURIComponent(token)}`)
+      // sendBeacon 不能设 Authorization header → token 放 JSON body（Content-Type: application/json）
+      const blob = new Blob([body], { type: 'application/json' })
+      const ok = navigator.sendBeacon(url, blob)
+      if (!ok) throw new Error('sendBeacon returned false')
     } catch {
-      // sendBeacon 失败 (移动 Safari 不稳) → background task D 方案兜底
+      // 兜底: fetch keepalive（可带 Bearer，仍禁止 query token）
+      try {
+        void fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body,
+          keepalive: true,
+        })
+      } catch {
+        // 网络/浏览器限制 → background task D 方案兜底
+      }
     }
   })
 
