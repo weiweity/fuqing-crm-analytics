@@ -1,4 +1,5 @@
 import { test as base, expect, Page } from '@playwright/test'
+import { E2E_ADMIN_PASSWORD, E2E_ADMIN_USER } from './credentials'
 
 /**
  * Sprint 51: 共享登录 fixture
@@ -43,8 +44,8 @@ export const test = base.extend<{ authenticatedPage: Page; consoleErrors: string
 
     await page.goto('/')
     await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
-    await page.locator('input[type="text"]').first().fill('admin')
-    await page.locator('input').nth(1).fill('123456')
+    await page.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await page.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await page.click('button:has-text("登 录")')
 
     // 登录成功：离开 login（默认 redirect /audience）

@@ -24,11 +24,13 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 # 复用 auth.py 现有函数 (跟 L4.84 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)
 from backend.routers.auth import (
     ACTIVE_TOKENS,
+    USERNAME_MAX_LEN,
+    USERNAME_PATTERN,
     _AUTH_STATE_LOCK,
     _authenticate_credentials,
     _evict_previous_sessions_for_user,
@@ -71,8 +73,15 @@ _STATE_LOCK = threading.RLock()
 # Pydantic 模型
 # ─────────────────────────────────────────────────────────────
 class LoginRequestIn(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=USERNAME_MAX_LEN)
+    password: str = Field(..., min_length=1, max_length=1024)
+
+    @field_validator("username")
+    @classmethod
+    def _username_charset(cls, v: str) -> str:
+        if not USERNAME_PATTERN.fullmatch(v):
+            raise ValueError("username contains invalid characters")
+        return v
 
 
 class LoginRequestOut(BaseModel):

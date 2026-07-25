@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_ADMIN_PASSWORD, E2E_ADMIN_USER } from './fixtures/credentials'
 
 /**
  * L4.85.6 e2e 验证: Cmd+Q 退出浏览器后 B 端立即能登录 (方案 D+A 治本)
@@ -46,8 +47,8 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
     const aPage = await aContext.newPage()
     await aPage.goto('/login')
     await expect(aPage.getByText('欢迎回来').first()).toBeVisible({ timeout: 30000 })
-    await aPage.locator('input[type="text"]').first().fill('admin')
-    await aPage.locator('input').nth(1).fill('123456')
+    await aPage.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await aPage.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await aPage.click('button:has-text("登 录")')
     // A 端跳转 dashboard
     await aPage.waitForSelector('text=人群看板', { timeout: 30000 })
@@ -58,8 +59,8 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
     const bContext1 = await browser.newContext()
     const bPage1 = await bContext1.newPage()
     await bPage1.goto('/login')
-    await bPage1.locator('input[type="text"]').first().fill('admin')
-    await bPage1.locator('input').nth(1).fill('123456')
+    await bPage1.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await bPage1.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await bPage1.click('button:has-text("登 录")')
     // L4.85 申请+同意: B 端看到 "已发送申请" (因为 A 端 active)
     // 跟 L4.85.6 真根因 1:1 stable 验证 - A active 时 B 端不能直接 login
@@ -78,8 +79,8 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
     const bContext2 = await browser.newContext()
     const bPage2 = await bContext2.newPage()
     await bPage2.goto('/login')
-    await bPage2.locator('input[type="text"]').first().fill('admin')
-    await bPage2.locator('input').nth(1).fill('123456')
+    await bPage2.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await bPage2.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await bPage2.click('button:has-text("登 录")')
     // L4.85.6 治本: B 端应直接 200, 跳转到 dashboard
     await bPage2.waitForSelector('text=人群看板', { timeout: 30000 })
@@ -96,8 +97,8 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
     const aContext = await browser.newContext()
     const aPage = await aContext.newPage()
     await aPage.goto('/login')
-    await aPage.locator('input[type="text"]').first().fill('admin')
-    await aPage.locator('input').nth(1).fill('123456')
+    await aPage.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await aPage.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await aPage.click('button:has-text("登 录")')
     await aPage.waitForSelector('text=人群看板', { timeout: 30000 })
 
@@ -128,8 +129,8 @@ test.describe('L4.85.6 Cmd+Q 后 B 端立即登录', () => {
     const bContext = await browser.newContext()
     const bPage = await bContext.newPage()
     await bPage.goto('/login')
-    await bPage.locator('input[type="text"]').first().fill('admin')
-    await bPage.locator('input').nth(1).fill('123456')
+    await bPage.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await bPage.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await bPage.click('button:has-text("登 录")')
     await bPage.waitForSelector('text=人群看板', { timeout: 30000 })
     await expect(bPage).toHaveURL(/\/audience/)

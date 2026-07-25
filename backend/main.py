@@ -14,6 +14,7 @@ Sample CRM 客户分析系统 - FastAPI 后端
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -27,6 +28,18 @@ from backend.services.query_metrics import render_prometheus
 from backend.config import DUCKDB_PATH  # Sprint 203 R3: db_size endpoint
 
 logger = logging.getLogger(__name__)
+
+
+def _asgi_path(request: Request) -> str:
+    """安全判断用 path：取 ASGI scope['path']，禁止用 request.url.path。
+
+    Starlette <1.0.1 存在 request.url.path 与路由 path 不一致时可被绕过的问题；
+    认证/限流白名单必须以 scope path 为准（Host 校验不能替代该修复）。
+    """
+    path = request.scope.get("path")
+    if isinstance(path, str):
+        return path
+    return ""
 
 
 def validate_startup_db() -> None:
@@ -242,6 +255,18 @@ app.add_middleware(
 )
 app.add_middleware(QueryRouterMiddleware)
 
+# 严格 Host 校验（与 Starlette 升级互补，不能替代 scope path 修复）
+# ALLOWED_HOSTS: 逗号分隔；默认本机 + TestClient("testserver")。
+# 设为 * 可关闭（仅应急/兼容，不推荐）。
+_ALLOWED_HOSTS_RAW = os.environ.get(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,testserver,[::1]",
+).strip()
+if _ALLOWED_HOSTS_RAW and _ALLOWED_HOSTS_RAW != "*":
+    _allowed_hosts = [h.strip() for h in _ALLOWED_HOSTS_RAW.split(",") if h.strip()]
+    if _allowed_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
+
 # ─────────────────────────────────────────────────────────────
 # 安全响应头中间件
 # ─────────────────────────────────────────────────────────────
@@ -276,7 +301,8 @@ _rate_limit_buckets: dict[str, list[float]] = {}  # {user_id: [timestamp, ...]}
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     # 只 bypass 登录接口 (防止登录失败重试触发 429), 其他 auth/me / auth/refresh / auth/logout 都要限流
-    path = request.url.path
+    # P0: 安全白名单必须用 ASGI scope path，禁止 request.url.path
+    path = _asgi_path(request)
     if (
         path == "/api/v1/health"
         or path == "/metrics"
@@ -376,11 +402,12 @@ async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     duration_ms = (time.time() - start_time) * 1000
+    # P0: 访问日志 path 与认证/限流同源 (scope path)，避免安全审计路径漂移
     _access_logger.info(
         "API request",
         extra={
             "method": request.method,
-            "path": request.url.path,
+            "path": _asgi_path(request),
             "status_code": response.status_code,
             "duration_ms": round(duration_ms, 2),
             "client_ip": request.client.host if request.client else "unknown",
@@ -401,7 +428,8 @@ app.middleware("http")(_single_user_mode_middleware)
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    path = request.url.path
+    # P0: 认证白名单必须用 ASGI scope path，禁止 request.url.path（防路径混淆绕过）
+    path = _asgi_path(request)
     # e2e 根治 (2026-07-19): FQ_CRM_TEST_MODE=1 时放行 /api/v1/_test/*，
     # 否则 test_helpers.reset 被 401 挡住 → L4.85 ACTIVE_TOKENS 无法清空 → 二次 login 409 → e2e 全红。
     _test_mode = os.environ.get("FQ_CRM_TEST_MODE") == "1"
@@ -504,7 +532,7 @@ async def not_found_error_handler(request: Request, exc: NotFoundError):
 async def general_error_handler(request: Request, exc: Exception):
     """未捕获的异常返回 500，避免堆栈信息暴露"""
     import traceback
-    print(f"[500 ERROR] {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
+    print(f"[500 ERROR] {request.method} {_asgi_path(request)}: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     resp = JSONResponse(
         status_code=500,

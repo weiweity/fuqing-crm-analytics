@@ -23,7 +23,7 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
-from backend.routers.auth import ACTIVE_TOKENS, _LOGIN_ATTEMPTS
+from backend.routers.auth import ACTIVE_TOKENS, _IP_LOGIN_ATTEMPTS, _LOGIN_ATTEMPTS
 
 _logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/api/v1/_test", tags=["测试辅助-L4.85.6"])
 
 @router.post("/reset", include_in_schema=False)
 def reset_test_state() -> dict:
-    """L4.85.6 + L4.91.2 治本: 重置 e2e test 状态 (清 ACTIVE_TOKENS + _LOGIN_ATTEMPTS).
+    """L4.85.6 + L4.91.2 治本: 重置 e2e test 状态 (清 ACTIVE_TOKENS + 登录限流状态).
 
     仅 FQ_CRM_TEST_MODE=1 开启 (跟 L4.42 立项实证 SOP 1:1 stable 永久规则化沿用, 安全护栏)
     默认 disabled, 避免 production 误调清掉所有用户登录态.
@@ -51,15 +51,22 @@ def reset_test_state() -> dict:
 
     active_count = len(ACTIVE_TOKENS)
     login_attempt_count = len(_LOGIN_ATTEMPTS)
+    ip_attempt_count = len(_IP_LOGIN_ATTEMPTS)
     ACTIVE_TOKENS.clear()
     _LOGIN_ATTEMPTS.clear()
+    _IP_LOGIN_ATTEMPTS.clear()
     _logger.info(
-        f"[test-reset] FQ_CRM_TEST_MODE=1 enabled, 清 ACTIVE_TOKENS ({active_count} tokens) + _LOGIN_ATTEMPTS ({login_attempt_count} entries)"
+        "[test-reset] FQ_CRM_TEST_MODE=1 enabled, 清 ACTIVE_TOKENS (%s tokens) "
+        "+ _LOGIN_ATTEMPTS (%s) + _IP_LOGIN_ATTEMPTS (%s)",
+        active_count,
+        login_attempt_count,
+        ip_attempt_count,
     )
     return {
         "success": True,
         "cleared": {
             "active_tokens": active_count,
             "login_attempts": login_attempt_count,
+            "ip_login_attempts": ip_attempt_count,
         },
     }

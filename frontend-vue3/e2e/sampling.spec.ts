@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_ADMIN_PASSWORD, E2E_ADMIN_USER } from './fixtures/credentials'
 
 /**
  * Sprint 33.2 候选 3: /sampling 路由 smoke 验证 — Sprint 32.3 a9b1d91 教训核心
@@ -40,8 +41,8 @@ test.describe('sampling 路由 (Sprint 32.3 治根重点)', () => {
     await request.post('/api/v1/_test/reset').catch(() => null)
     await page.goto('/')
     await page.waitForSelector('text=欢迎回来', { timeout: 30000 })
-    await page.locator('input[type="text"]').first().fill('admin')
-    await page.locator('input').nth(1).fill('123456')
+    await page.locator('input[type="text"]').first().fill(E2E_ADMIN_USER)
+    await page.locator('input').nth(1).fill(E2E_ADMIN_PASSWORD)
     await page.click('button:has-text("登 录")')
     await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 30000 })
 

@@ -42,29 +42,55 @@ class TestSprint123LintYmlE2EIntegration:
         )
 
     def test_optional_smoke_workflow_exists(self):
-        """e2e-smoke.yml 存在且可手动/定时触发。"""
+        """e2e-smoke.yml 存在且可手动/定时触发。
+
+        P0: FQ_CRM_PASSWORDS 由 step 动态生成并 ::add-mask::，
+        不得再以静态 job env 固定密码（含 admin:123456）。
+        """
         smoke = ROOT / ".github/workflows/e2e-smoke.yml"
         assert smoke.is_file()
         workflow = self._load_workflow(".github/workflows/e2e-smoke.yml")
         jobs = workflow["jobs"]
         assert "e2e-smoke" in jobs
-        env = jobs["e2e-smoke"].get("env", {})
+        job = jobs["e2e-smoke"]
+        env = job.get("env", {})
         for key in (
             "DUCKDB_PATH",
             "HEALTH_API_KEY",
-            "FQ_CRM_PASSWORDS",
             "ETL_MIN_DISK_GB",
             "FQ_DB_MODE",
             "FQ_CRM_TEST_MODE",
         ):
             assert key in env, f"smoke env 缺 {key}, 有 {list(env.keys())}"
         assert env["FQ_DB_MODE"] == "schema_test"
+        # 禁止静态固定密码
+        assert "FQ_CRM_PASSWORDS" not in env, (
+            "FQ_CRM_PASSWORDS 不得出现在 job 静态 env；应由 ephemeral step 写入 GITHUB_ENV"
+        )
+        env_blob = "\n".join(f"{k}={v}" for k, v in env.items())
+        assert "admin:123456" not in env_blob, "job env 不得含 admin:123456 字面量"
+
+        steps = job.get("steps", [])
+        all_names = " ".join(s.get("name", "") for s in steps if isinstance(s, dict))
+        assert "ephemeral" in all_names.lower(), (
+            "smoke steps 应含 Generate ephemeral test credentials"
+        )
+        runs = "\n".join(
+            (s.get("run") or "") for s in steps if isinstance(s, dict)
+        )
+        assert "::add-mask::" in runs, "ephemeral step 必须 ::add-mask:: 凭据"
+        assert "FQ_CRM_PASSWORDS=" in runs, "ephemeral step 必须写入 FQ_CRM_PASSWORDS="
+        assert "E2E_ADMIN_PASSWORD=" in runs, (
+            "ephemeral step 必须写入 E2E_ADMIN_PASSWORD="
+        )
+        assert "GITHUB_ENV" in runs, "凭据应写入 $GITHUB_ENV 供后续 step 使用"
 
     def test_smoke_step_names_shell_path(self):
         """smoke steps 含最小依赖安装 + login-only 跑法。"""
         workflow = self._load_workflow(".github/workflows/e2e-smoke.yml")
         steps = workflow["jobs"]["e2e-smoke"]["steps"]
         all_names = " ".join(s.get("name", "") for s in steps)
+        assert "Generate ephemeral test credentials" in all_names
         assert "Install Python deps" in all_names
         assert "Install Node deps" in all_names
         assert "Install Playwright browsers" in all_names

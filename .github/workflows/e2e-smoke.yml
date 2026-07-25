@@ -18,7 +18,6 @@ jobs:
     env:
       DUCKDB_PATH: /tmp/e2e_duckdb.duckdb
       HEALTH_API_KEY: ci-fake-health-api-key
-      FQ_CRM_PASSWORDS: admin:123456
       FQ_CRM_ADMINS: admin
       ETL_MIN_DISK_GB: '0'
       FQ_DB_MODE: schema_test
@@ -26,6 +25,23 @@ jobs:
       FQ_SINGLE_USER_V2: '0'
     steps:
       - uses: actions/checkout@v5
+      - name: Generate ephemeral test credentials (masked)
+        # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
+        run: |
+          set -euo pipefail
+          ADMIN_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          FQSW_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          TESTUSER_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+          CREDS="admin:${ADMIN_PASS},fqsw:${FQSW_PASS},testuser:${TESTUSER_PASS}"
+          echo "::add-mask::${ADMIN_PASS}"
+          echo "::add-mask::${FQSW_PASS}"
+          echo "::add-mask::${TESTUSER_PASS}"
+          echo "::add-mask::${CREDS}"
+          {
+            echo "FQ_CRM_PASSWORDS=${CREDS}"
+            echo "E2E_ADMIN_USER=admin"
+            echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v5
         with:
