@@ -1,3 +1,19 @@
+## [unreleased] - 2026-07-25 (PR1 P0: 认证与登录安全)
+
+### Security
+- **Starlette**: `1.0.0` → `1.3.1`（`requirements-lock.txt` / `requirements-e2e.txt`）；FastAPI 保持 `0.136.1`
+- **路径安全**: 认证 / 限流 / 访问日志白名单改用 ASGI `scope["path"]`，禁止 `request.url.path` 做安全判断；RFM 单用户守卫同步
+- **Host 校验**: 增加 `TrustedHostMiddleware`（`ALLOWED_HOSTS`，默认 localhost/127.0.0.1/testserver；`*` 可关）
+- **登录加固**:
+  - 用户名 max 64 + 字符白名单；密码按 UTF-8 字节处理 bcrypt 72 上限；捕获 bcrypt `ValueError`
+  - 已知/未知账号统一 401 文案与 body，日志不区分是否存在
+  - 账号+IP 组合锁定 + per-IP 总限流 + 有界 LRU/TTL 清理（防随机用户名洪泛；防跨 IP 锁死真实账号）
+  - 默认不信任 `X-Forwarded-For`；仅 `FQ_TRUST_PROXY=1` 读首跳
+- **CI 凭据**: `lint` / `nightly` / `weekly-report` / `e2e-smoke` 不再写死密码；每次 run 随机生成 + `::add-mask::`；E2E 经 `E2E_ADMIN_PASSWORD` 注入
+
+### Tests
+- 新增 `backend/tests/test_security_p0_auth.py`（Host/401/bcrypt/洪泛容量/枚举一致性/XFF）
+
 ## [unreleased] - 2026-07-21 (CI: check_imports 假红止血 + 定时 timeout)
 
 ### Fixed
