@@ -36,11 +36,13 @@
 - **export-excel 清理**: 读入内存后立即 unlink；去掉 `X-Xlsx-Path` 路径泄露
 - **启动 umask 077**: `backend/main.py` + `scripts/uvicorn_launchd.py`
 - **Windows 调度器**: 禁止 SYSTEM；强制专用低权账号 + 绝对 venv 路径 + 仓库 ACL 校验（`install_windows.ps1` / `etl_daily_taskscheduler.xml`）
+- **Windows 调度器 XML 替换治本 (M1)**: `install_windows.ps1` 替换 `REPLACE_WITH_FQ_ETL_SERVICE_USER`（兼容旧 SYSTEM）；`<Command>`/`WorkingDirectory` 正则写成绝对路径；安装前断言 + 安装后 Principal ≠ SYSTEM 核对
 
 ### Added
 - `scripts/etl/common/private_tmp.py` — 私有临时目录 / 安全落盘 / 脱敏
 - `backend/tests/test_cleanup_subagent_safety.py` — 越界/fail-closed/symlink/嵌套/dry-run 验收
 - `backend/tests/test_private_tmp_export_safety.py` — 导出路径与权限验收
+- `backend/tests/test_install_windows_scheduler_xml.py` — 调度器 XML 占位符替换静态验收
 
 ### Changed
 - Layer 6 相关测试对齐新安全模型（`test_lsof_protection.py` / `test_cleanup_subagent_tracker.py`）

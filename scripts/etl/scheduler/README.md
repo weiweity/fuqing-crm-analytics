@@ -48,8 +48,9 @@ $env:FQ_PROJECT_ROOT = "D:\fuqin-date\fuqing-crm-analytics"
 1. 拒绝 SYSTEM / 未设服务账号
 2. 校验 `.venv\Scripts\python.exe` 绝对路径存在
 3. 校验仓库 ACL：Users/Everyone 不得写
-4. 注册 `\Fuqing\FuqingETLDaily`，`RunLevel=LeastPrivilege`
-5. 验证
+4. 将 XML 中 `REPLACE_WITH_FQ_ETL_SERVICE_USER`（及旧 `SYSTEM`）写成服务账号；`<Command>` 写成绝对 venv python
+5. 注册 `\Fuqing\FuqingETLDaily`，`RunLevel=LeastPrivilege`
+6. 安装后核对 **Principal ≠ SYSTEM**（脚本读 `Principal.UserId`；也可在「任务计划程序」→ 任务 → 常规/安全选项 人工确认运行账户）
 
 ## 手动验证 (跨平台)
 
