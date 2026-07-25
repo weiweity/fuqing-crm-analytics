@@ -1,3 +1,17 @@
+## [unreleased] - 2026-07-26 (post-security hardening)
+
+### Security
+- **Logout**: 移除 `/auth/logout?token=` query 兼容；仅 Bearer / JSON body
+- **CSP**: Report-Only 切换为强制 `Content-Security-Policy`（backend + nginx）
+- **Bind**: `uvicorn_launchd.py` 默认 `FQ_BIND_HOST` / `127.0.0.1`（不再 0.0.0.0）
+- **Deps**: `python-multipart` 0.0.31、`setuptools` 83.0.0；Dependabot 周更配置
+
+### CI
+- frontend unit 恢复硬门禁（去掉 `continue-on-error`）
+
+### Ops
+- GitHub: main branch protection + secret scanning + push protection + Dependabot security updates + delete branch on merge
+
 ## [unreleased] - 2026-07-25 (PR1 P0: 认证与登录安全)
 
 ### Security

@@ -6,7 +6,7 @@ Sample CRM - 认证路由
 安全基线: bcrypt 密码哈希 + token TTL(8h) + 登录限速 + 审计日志
 """
 
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -556,24 +556,23 @@ def refresh_token(request: Request):
 
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout(
-    request: Request,
-    token: str | None = Query(
-        default=None,
-        description="[DEPRECATED] 仅短期兼容旧客户端；优先 Authorization Bearer 或 JSON body.token",
-        deprecated=True,
-    ),
-):
+async def logout(request: Request):
     """退出登录，使当前 token + 同账号其他 stale token 失效.
 
-    Token 优先级（禁止写入 access log / URL 历史）:
+    Token 来源（禁止 query / URL / access log）:
     1. Authorization: Bearer <token>
     2. JSON body ``{"token": "..."}``（sendBeacon / fetch keepalive）
-    3. Query ``?token=`` — **deprecated**，仅短期兼容；命中时打 warning，后续版本删除
 
     配套: 方案 D background task evict idle token > 60s (auth_token_evictor).
     """
     import json as _json
+
+    # 拒绝 query token，避免 bearer 进入 URL/历史/代理日志
+    if request.query_params.get("token"):
+        raise HTTPException(
+            status_code=400,
+            detail="logout query token 已移除；请使用 Authorization Bearer 或 JSON body.token",
+        )
 
     auth = request.headers.get("Authorization", "")
     bearer_token = auth[7:] if auth.startswith("Bearer ") else None
@@ -588,15 +587,7 @@ async def logout(
     except Exception:
         body_token = None
 
-    query_token = token
-    if query_token and not (bearer_token or body_token):
-        # 不记录 token 本身，只记来源
-        _logger.warning(
-            "[auth] logout via deprecated query token; prefer body or Authorization "
-            "(query support will be removed after short deprecation window)"
-        )
-
-    effective_token = bearer_token or body_token or query_token
+    effective_token = bearer_token or body_token
 
     if effective_token:
         with _AUTH_STATE_LOCK:

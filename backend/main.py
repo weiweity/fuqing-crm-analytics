@@ -302,8 +302,8 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    # 先 Report-Only，避免强制 CSP 破坏现有图表/样式；观察期后再切 Content-Security-Policy
-    response.headers["Content-Security-Policy-Report-Only"] = _CSP_REPORT_ONLY
+    # 强制 CSP（样式仍允许 'unsafe-inline' 以兼容 Naive UI / 图表内联 style）
+    response.headers["Content-Security-Policy"] = _CSP_REPORT_ONLY
     return response
 
 

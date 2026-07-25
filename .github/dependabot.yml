@@ -1,0 +1,27 @@
+# Weekly dependency PRs — review majors (DuckDB etc.) manually; no auto-merge.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "python"]
+    ignore:
+      - dependency-name: "duckdb"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  - package-ecosystem: "npm"
+    directory: "/frontend-vue3"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "javascript"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]

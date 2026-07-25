@@ -61,5 +61,5 @@ print(f"[{datetime.now().isoformat()}] credentials loaded from .env", file=sys.s
 # exec uvicorn (PID 1 of process group, launchd 监控 uvicorn 主进程)
 os.execvp(
     sys.executable,
-    [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"],
+    [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", os.environ.get("FQ_BIND_HOST", "127.0.0.1"), "--port", "8000"],
 )
