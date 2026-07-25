@@ -26,6 +26,26 @@
 ### Tests
 - `frontend-vue3/src/utils/__tests__/encodeHtml.test.ts`（恶意标签仅当文本）
 - `backend/tests/test_security_pr2_frontend.py`（logout body/query、require_admin、CSP-RO、无 VITE key / 无 query beacon）
+## [unreleased] - 2026-07-25 (PR3: 临时文件和运维数据安全)
+
+### Security
+- **cleanup_subagent 安全边界重写**: 禁止扫描删除全局 `/tmp` 任意文件；仅删 TrackerDB 登记过期文件或项目专属 0700 临时目录顶层文件；resolve 后必须在允许根内；跳过目录/symlink/非本 UID/硬链接异常；嵌套目录仅按 tracker 处理
+- **lsof fail-closed**: 缺失/超时/报错视为在用，跳过删除（`open_check.is_open_by_any_process`）
+- **默认 dry-run**: CLI 真删需显式 `--execute`；launchd plist 显式传 `--execute`
+- **导出/审计私有路径**: XLSX 默认落 0700 私有目录 + 随机文件名 + 0600；审计日志不再用固定 `/tmp/fuqing_adhoc_audit.log`；日志脱敏 bearer/password/长 SQL 字面量
+- **export-excel 清理**: 读入内存后立即 unlink；去掉 `X-Xlsx-Path` 路径泄露
+- **启动 umask 077**: `backend/main.py` + `scripts/uvicorn_launchd.py`
+- **Windows 调度器**: 禁止 SYSTEM；强制专用低权账号 + 绝对 venv 路径 + 仓库 ACL 校验（`install_windows.ps1` / `etl_daily_taskscheduler.xml`）
+- **Windows 调度器 XML 替换治本 (M1)**: `install_windows.ps1` 替换 `REPLACE_WITH_FQ_ETL_SERVICE_USER`（兼容旧 SYSTEM）；`<Command>`/`WorkingDirectory` 正则写成绝对路径；安装前断言 + 安装后 Principal ≠ SYSTEM 核对
+
+### Added
+- `scripts/etl/common/private_tmp.py` — 私有临时目录 / 安全落盘 / 脱敏
+- `backend/tests/test_cleanup_subagent_safety.py` — 越界/fail-closed/symlink/嵌套/dry-run 验收
+- `backend/tests/test_private_tmp_export_safety.py` — 导出路径与权限验收
+- `backend/tests/test_install_windows_scheduler_xml.py` — 调度器 XML 占位符替换静态验收
+
+### Changed
+- Layer 6 相关测试对齐新安全模型（`test_lsof_protection.py` / `test_cleanup_subagent_tracker.py`）
 
 ## [unreleased] - 2026-07-21 (CI: check_imports 假红止血 + 定时 timeout)
 

@@ -22,6 +22,9 @@ from dotenv import load_dotenv
 
 REPO_ROOT = "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 
+# PR3: 启动 umask 077 — 临时导出/日志默认 0600
+os.umask(0o077)
+
 # 切到主仓根 (跟 plist WorkingDirectory 冗余, 防御 launchd 环境变量被 reset)
 os.chdir(REPO_ROOT)
 sys.path.insert(0, REPO_ROOT)

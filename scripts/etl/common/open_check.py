@@ -1,15 +1,13 @@
-"""lsof 副检 — /tmp 孤儿清理的最后一道防线 (Sprint 26 F6 重构)
+"""lsof 副检 — /tmp 孤儿清理的最后一道防线 (PR3 fail-closed)
 
 设计:
-  - macOS / Linux /usr/sbin/lsof (项目不引 psutil 依赖,
-    跟 Layer 7 cleanup_orphan_pytest.py:lsof -t 同模式)
-  - 软失败: lsof 不可用 / 超时不阻塞 cleanup (返回 is_open=False,
-    false-negative = 误删风险仍在, false-positive = 多等下次, 选 false-positive)
+  - macOS / Linux lsof (项目不引 psutil 依赖)
+  - **fail-closed**: lsof 缺失 / 超时 / 报错 → 视为「可能在用」, 跳过删除
+    (false-positive = 多等下次; 禁止 false-negative 误删在用文件)
   - 超时 2s (lsof 默认 1s 太短, fork+exec 慢场景会假阴性)
-  - 失败模式统一: (False, reason) — 调用方按 (False, ...) 跳过删除 = 永远不删
+  - 返回 (is_open, reason): is_open=True → 调用方必须跳过删除
 
-复用: scripts/etl/cli.py:143 (Layer 1 atexit) + scripts/etl/cleanup_subagent.py:243 (Layer 6 hourly)
-参考: Sprint 25 backup_duckdb.py 复用 scripts/etl/common/lark.py 同模式
+复用: scripts/etl/cli.py (Layer 1 atexit) + scripts/etl/cleanup_subagent.py (Layer 6)
 """
 from __future__ import annotations
 
@@ -17,31 +15,24 @@ import shutil
 import subprocess
 from pathlib import Path
 
-# lsof 默认超时太短, fork+exec 慢场景会假阴性
 _LSOF_TIMEOUT_SEC = 2.0
 
 
 def is_open_by_any_process(path: str | Path) -> tuple[bool, str]:
-    """检查 path 当前是否被任何进程打开 (Sprint 26 F6 副检).
+    """检查 path 当前是否被任何进程打开.
 
     Args:
         path: 绝对路径 (相对路径 lsof 行为不确定, 调用方传绝对路径)
 
     Returns:
-        (is_open, reason) — is_open=True 表示有进程持有 fd,
-        调用方应跳过删除; is_open=False 表示可以删 (或 lsof 不可用 / 超时,
-        软失败保守放行). reason 给审计/调试用.
-
-    设计权衡:
-      - 不可用 / 超时 → (False, "..."), 不阻塞 cleanup (跟原 mtime 决策一致)
-      - "找不到" → (False, "..."), 跟"没人打开" 同语义 (lsof 对 missing file
-        通常 stdout 仅 header, 跟"没人打开"同效果, 验证过)
-      - lsof -t 模式见 Layer 7 cleanup_orphan_pytest.py (找占锁 PID 用)
+        (is_open, reason) — is_open=True 表示有进程持有 fd **或** lsof 不可用
+        (fail-closed), 调用方应跳过删除; is_open=False 表示确认无人打开, 可删.
     """
     p = str(path)
     lsof_bin = shutil.which("lsof")
     if not lsof_bin:
-        return (False, "lsof not found in PATH (保守放行)")
+        # PR3: fail-closed — 无法确认则不删
+        return (True, "lsof not found in PATH (fail-closed: skip delete)")
 
     try:
         result = subprocess.run(
@@ -52,15 +43,18 @@ def is_open_by_any_process(path: str | Path) -> tuple[bool, str]:
             check=False,
         )
     except subprocess.TimeoutExpired:
-        return (False, f"lsof timeout after {_LSOF_TIMEOUT_SEC}s (保守放行)")
+        return (True, f"lsof timeout after {_LSOF_TIMEOUT_SEC}s (fail-closed: skip delete)")
     except OSError as e:
-        return (False, f"lsof exec error: {e} (保守放行)")
+        return (True, f"lsof exec error: {e} (fail-closed: skip delete)")
 
-    # lsof 输出格式:
-    #   - 首行: "COMMAND  PID  USER  FD  TYPE  DEVICE  SIZE/OFF  NODE  NAME" (header)
-    #   - 后续行: 每个 fd 一行
-    #   - 空 stdout 或仅 header = 没人打开
-    #   - 非空 = 有进程打开
+    # 非 0 且非「无 fd」常见退出码: lsof 对 missing file 常返 1 + 空/仅 header
+    # 对权限错误等也 fail-closed
+    if result.returncode not in (0, 1):
+        return (
+            True,
+            f"lsof exit={result.returncode} (fail-closed: skip delete)",
+        )
+
     lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
     if len(lines) <= 1:
         return (False, "lsof empty (no process holds fd)")

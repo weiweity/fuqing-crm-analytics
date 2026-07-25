@@ -33,9 +33,15 @@ MODULE_LIST = ["cover", "metrics", "segments", "geo", "category", "actions"]
 
 
 def _ensure_export_dir() -> Path:
-    """确保导出目录存在"""
+    """确保导出目录存在 (PR3: 目录 0700, 避免世界可读导出)."""
+    import os
+
     export_dir = PROJECT_ROOT / "data" / "exports"
     export_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(export_dir, 0o700)
+    except OSError:
+        pass
     return export_dir
 
 
@@ -416,10 +422,16 @@ def generate_ppt_report(
                 "4. 调整品类结构"
             ]})
 
-    # 保存文件
+    # 保存文件 (PR3: 文件 0600)
+    import os
+
     export_dir = _ensure_export_dir()
     file_path = export_dir / file_name
     prs.save(str(file_path))
+    try:
+        os.chmod(file_path, 0o600)
+    except OSError:
+        pass
 
     return {
         "report_id": report_id,

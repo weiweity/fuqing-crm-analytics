@@ -1,26 +1,22 @@
 <?xml version="1.0" encoding="UTF-16"?>
 <!--
-FIX-M1: Windows Task Scheduler XML for 芙清 ETL daily run (PRD §4.2 9am 承诺)
+PR3: Windows Task Scheduler XML for 芙清 ETL daily run (安全版)
 
-安装 (PowerShell 管理员):
-  Register-ScheduledTask -TaskName "FuqingETLDaily" `
-    -Xml (Get-Content .\etl_daily_taskscheduler.xml -Raw) `
-    -TaskPath "\Fuqing" `
-    -User "SYSTEM" `
-    -Force
+硬约束:
+- 禁止 SYSTEM + 用户可写仓库
+- 使用专用低权账号 (LeastPrivilege)
+- Command 必须是绝对 .venv\Scripts\python.exe 路径 (由 install_windows.ps1 替换)
+- WorkingDirectory 为项目根绝对路径
+
+安装:
+  见 install_windows.ps1 (需 FQ_ETL_SERVICE_USER / FQ_ETL_SERVICE_PASSWORD / FQ_PROJECT_ROOT)
 
 卸载:
-  Unregister-ScheduledTask -TaskName "FuqingETLDaily" -Confirm:$false
-
-设计:
-- 每日 8:30 跑 (9 点 dashboard 留 30min buffer)
-- WorkingDirectory: 项目根 (替换实际路径)
-- exit code != 0 触发 TaskScheduler 发邮件 (管理员配置)
-- run_etl.py exit !=0 时 lark-cli 单独通知 oncall (W6 集成)
+  Unregister-ScheduledTask -TaskName "FuqingETLDaily" -TaskPath "\Fuqing\" -Confirm:$false
 -->
 <Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>芙清 CRM ETL 每日 8:30 增量跑批 (W6.5 调度)</Description>
+    <Description>芙清 CRM ETL 每日 8:30 增量跑批 (PR3 低权专用账号)</Description>
     <Author>fuqing-crm-analytics</Author>
     <URI>\Fuqing\ETLDaily</URI>
   </RegistrationInfo>
@@ -37,8 +33,10 @@ FIX-M1: Windows Task Scheduler XML for 芙清 ETL daily run (PRD §4.2 9am 承�
 
   <Principals>
     <Principal id="Author">
-      <UserId>SYSTEM</UserId>
-      <RunLevel>HighestAvailable</RunLevel>
+      <!-- install_windows.ps1 会替换为 FQ_ETL_SERVICE_USER; 模板占位禁止 SYSTEM -->
+      <UserId>REPLACE_WITH_FQ_ETL_SERVICE_USER</UserId>
+      <LogonType>Password</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
     </Principal>
   </Principals>
 
@@ -58,7 +56,8 @@ FIX-M1: Windows Task Scheduler XML for 芙清 ETL daily run (PRD §4.2 9am 承�
 
   <Actions>
     <Exec>
-      <Command>python</Command>
+      <!-- install_windows.ps1 替换为绝对 .venv\Scripts\python.exe -->
+      <Command>C:\Users\hutou\Desktop\fuqin date\fuqing-crm-analytics\.venv\Scripts\python.exe</Command>
       <Arguments>scripts\run_etl.py --update</Arguments>
       <WorkingDirectory>C:\Users\hutou\Desktop\fuqin date\fuqing-crm-analytics</WorkingDirectory>
     </Exec>

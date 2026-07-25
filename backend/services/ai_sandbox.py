@@ -16,7 +16,18 @@ from backend.db.connection import get_connection
 from backend.services.query_worker_client import execute_via_query_worker
 from backend.semantic.filters import OrderFilters
 
-AUDIT_LOG_PATH = Path("/tmp/fuqing_adhoc_audit.log")
+
+def _default_audit_log_path() -> Path:
+    """PR3: 审计日志落私有 0700 目录, 禁止固定 /tmp/fuqing_adhoc_audit.log."""
+    try:
+        from scripts.etl.common.private_tmp import get_private_tmp_dir
+
+        return get_private_tmp_dir(create=True) / "fuqing_adhoc_audit.log"
+    except Exception:
+        return Path(f"/tmp/fuqing_adhoc_audit_{os.getuid()}.log")
+
+
+AUDIT_LOG_PATH = _default_audit_log_path()
 ALLOWED_SANDBOX_TYPES = {"aggregate", "timeseries", "rfm", "ltv"}
 _FORBIDDEN_SQL = re.compile(
     r"\b(drop|delete|truncate|insert|update|exec|execute|alter|create|attach|detach|copy|pragma|call)\b",
@@ -63,16 +74,27 @@ def _jsonable(value: Any) -> Any:
 
 def _write_audit(sql: str, sandbox_type: str, audit_id: str | None, row_count: int, status: str) -> None:
     try:
+        from scripts.etl.common.private_tmp import redact_sensitive
+
         AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        safe_sql = " ".join(sql.split())[:300]
+        # PR3: 脱敏 — 不写 bearer/密码/完整敏感 SQL 参数字面量
+        safe_sql = redact_sensitive(" ".join(sql.split()), max_len=200)
         line = (
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\t"
             f"ai-sandbox-execute\t{status}\t"
             f"audit_id={audit_id or '-'} sandbox_type={sandbox_type} "
             f"rows={row_count} L4.5_SSOT=OrderFilters.valid_order sql={safe_sql}\n"
         )
-        with AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(line)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+        fd = os.open(str(AUDIT_LOG_PATH), flags, 0o600)
+        try:
+            os.write(fd, line.encode("utf-8"))
+            try:
+                os.chmod(AUDIT_LOG_PATH, 0o600)
+            except OSError:
+                pass
+        finally:
+            os.close(fd)
     except OSError:
         pass
 

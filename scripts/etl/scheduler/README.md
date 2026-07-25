@@ -31,19 +31,26 @@ bash scripts/etl/scheduler/install_macos.sh
 2. `launchctl load` 加载
 3. `launchctl list | grep fuqing` 验证
 
-## Windows 安装
+## Windows 安装 (PR3 安全版)
+
+**禁止** `SYSTEM` + 用户可写仓库。必须专用低权账号 + 绝对 venv 路径 + 严格 ACL。
 
 ```powershell
 # PowerShell 管理员
-cd "C:\Users\hutou\Desktop\fuqin date\sample-crm-analytics"
+cd "D:\fuqin-date\fuqing-crm-analytics"
+$env:FQ_ETL_SERVICE_USER = ".\fuqing-etl"          # 专用低权账号, 禁止 SYSTEM
+$env:FQ_ETL_SERVICE_PASSWORD = "<password>"
+$env:FQ_PROJECT_ROOT = "D:\fuqin-date\fuqing-crm-analytics"
 .\scripts\etl\scheduler\install_windows.ps1
 ```
 
 会做：
-1. 读取 XML
-2. 替换项目根路径
-3. `Register-ScheduledTask` 注册 `\Fuqing\FuqingETLDaily`
-4. 验证
+1. 拒绝 SYSTEM / 未设服务账号
+2. 校验 `.venv\Scripts\python.exe` 绝对路径存在
+3. 校验仓库 ACL：Users/Everyone 不得写
+4. 将 XML 中 `REPLACE_WITH_FQ_ETL_SERVICE_USER`（及旧 `SYSTEM`）写成服务账号；`<Command>` 写成绝对 venv python
+5. 注册 `\Fuqing\FuqingETLDaily`，`RunLevel=LeastPrivilege`
+6. 安装后核对 **Principal ≠ SYSTEM**（脚本读 `Principal.UserId`；也可在「任务计划程序」→ 任务 → 常规/安全选项 人工确认运行账户）
 
 ## 手动验证 (跨平台)
 

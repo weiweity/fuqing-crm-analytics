@@ -216,8 +216,8 @@ def _cleanup_fq_tmp_orphans() -> int:
             continue
         elif bytes_deleted + size_bytes > _FQ_TMP_MAX_DELETE_BYTES_PER_RUN:
             break
-        # Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跳过正在被打开的文件
-        # 软失败: lsof 不可用 / 超时 → (False, reason) 保守放行, 跟原 mtime 决策一致
+        # Sprint 26 F6 + PR3: 删前 lsof 副检. fail-closed:
+        # lsof 不可用/超时/报错 → is_open=True → 跳过删除 (防误删在用文件)
         is_open, reason = is_open_by_any_process(path)
         if is_open:
             _safe_log(f"  [tmp-cleanup] skip (lsof open): {path} — {reason}")

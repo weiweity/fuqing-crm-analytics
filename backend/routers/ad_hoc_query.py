@@ -502,12 +502,16 @@ def post_dq_report(req: DqReportRequest) -> AdHocQueryResponse:
 
 @router.post("/export-excel", summary="导出 11 sheet Excel 整份报告 (返回 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet 二进制流)")
 def post_export_excel(req: ExportExcelRequest) -> StreamingResponse:
-    """导出 11 sheet Excel 整份报告 (返 StreamingResponse 二进制流, 跟 export-xlsx endpoint 一致)."""
+    """导出 11 sheet Excel 整份报告 (返 StreamingResponse 二进制流).
+
+    PR3: 落盘到私有 0700 目录 (随机名); 读入内存后立即 unlink;
+    响应不回显服务器路径 (去掉 X-Xlsx-Path 泄露).
+    """
     _validate_date_range(req.start_date, req.end_date)
     from scripts.ad_hoc_queries.export_excel import write_export_excel  # noqa: WPS433
+    xlsx_path: str | None = None
     try:
-        # write_export_excel 返 xlsx 落盘 path, 我们 read binary → StreamingResponse
-        # 不传 output_path 走 save_workbook 内部默认路径 (双层目录规则)
+        # write_export_excel 返 xlsx 落盘 path → 读 binary → 清理 → StreamingResponse
         xlsx_path = write_export_excel(
             start=req.start_date,
             end=req.end_date,
@@ -519,14 +523,20 @@ def post_export_excel(req: ExportExcelRequest) -> StreamingResponse:
         raise HTTPException(status_code=422, detail=str(exc))
     xlsx_file = Path(xlsx_path)
     if not xlsx_file.exists():
-        raise HTTPException(status_code=500, detail=f"Excel 文件未生成: {xlsx_path}")
-    binary = xlsx_file.read_bytes()
+        raise HTTPException(status_code=500, detail="Excel 文件未生成")
+    try:
+        binary = xlsx_file.read_bytes()
+    finally:
+        # PR3: 响应完成后清理临时文件 (已读入内存, 立即 unlink)
+        try:
+            xlsx_file.unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning("export-excel temp cleanup failed: %s", e)
     return StreamingResponse(
         io.BytesIO(binary),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="ad-hoc-export-{req.start_date}_to_{req.end_date}.xlsx"',
-            "X-Xlsx-Path": xlsx_path,
             "X-Data-Warning": _future_date_warn(req.start_date, req.end_date) or "",
         },
     )

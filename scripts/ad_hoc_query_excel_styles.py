@@ -126,27 +126,44 @@ def write_rows_to_sheet(
 
 
 def reserve_output_path(output_path: str | None, default_name: str = "ad-hoc-query.xlsx") -> Path:
-    """用 O_EXCL 预留输出路径，避免同秒覆盖。"""
-    out = Path(output_path) if output_path else Path("/tmp") / default_name
-    out.parent.mkdir(parents=True, exist_ok=True)
-    if out.suffix.lower() != ".xlsx":
-        out = out.with_suffix(".xlsx")
-    while True:
-        candidate = out
-        if candidate.exists():
-            suffix = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            candidate = out.with_name(f"{out.stem}_{suffix}{out.suffix}")
-        try:
-            fd = os.open(str(candidate), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-            os.close(fd)
-            return candidate
-        except FileExistsError:
-            out = out.with_name(f"{out.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}{out.suffix}")
+    """用 O_EXCL 预留输出路径 (PR3: 默认私有 0700 目录 + 不可预测文件名 + 0600).
+
+    - 未指定 output_path 时绝不落固定 /tmp/<name>.xlsx
+    - 使用 scripts.etl.common.private_tmp.secure_open_path
+    """
+    if output_path:
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        if out.suffix.lower() != ".xlsx":
+            out = out.with_suffix(".xlsx")
+        while True:
+            candidate = out
+            if candidate.exists():
+                suffix = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                candidate = out.with_name(f"{out.stem}_{suffix}{out.suffix}")
+            try:
+                fd = os.open(str(candidate), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                os.close(fd)
+                return candidate
+            except FileExistsError:
+                out = out.with_name(
+                    f"{out.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}{out.suffix}"
+                )
+
+    # 默认: 项目专属 0700 目录 + 随机文件名 (不可预测)
+    from scripts.etl.common.private_tmp import secure_open_path
+
+    stem = Path(default_name).stem or "ad-hoc-query"
+    return secure_open_path(prefix=f"{stem}-", suffix=".xlsx")
 
 
 def save_workbook(workbook: Workbook, output_path: str | None, default_name: str = "ad-hoc-query.xlsx") -> str:
     path = reserve_output_path(output_path, default_name=default_name)
     workbook.save(path)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
     return str(path)
 
 

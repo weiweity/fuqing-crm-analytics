@@ -1,324 +1,389 @@
-"""Sprint 6 P0-3 (2026-06-07) — 第 6 层防护: subagent /tmp 孤儿清理
+"""PR3 — Layer 6 安全边界重写: 临时文件清理 (禁止扫全局 /tmp)
 
-历史教训 (Sprint 5 deep dive 2026-06-06):
-  Sprint 5 deep dive subagent 跑 5 真实验时, 复制 production 55GB × 8 次 = 440GB
-  在 /private/tmp/p0_3_dive/. 5 层防护全都没拦, 因为 5 层防护是 ETL 跑批路径
-  设计 (FQ_TMP_PREFIXES 白名单), subagent 走手动 Python shutil.copy2 不触发.
-  本文件不依赖 ETL 触发, 由 launchd hourly plist 主动跑, 兜底 subagent 路径
-  漏出来的非 fq_ 前缀巨型孤儿.
+历史教训 (Sprint 5 deep dive):
+  subagent 复制 production 55GB × 8 到 /private/tmp/p0_3_dive/。
+  旧 Layer 6 扫全局 /tmp 任意 1h+1GB 文件, 误删面过大。
 
-设计原则:
-  1. 扫 /private/tmp + /tmp 下所有 不在 FQ_TMP_PREFIXES 白名单的 1h+ 1GB+ 文件
-     (避开 macOS 系统服务, 只针对用户态巨型文件)
-  2. 排除项目根 /Users/hutou/Desktop/fuqin-date/ 路径 (业务文件, 不会误删)
-  3. 排除 FQ_TMP_PREFIXES 下文件 (留给 layer 1 atexit 处理)
-  4. 排除 sub-process 活进程写入的标志文件 (避开当前 subagent / IDE 调试中的
-     活文件; 1h+ 阈值是兜底, launchd hourly 跑意味着 1h 内会再扫一次)
-  5. symlink 跳过 (跟 layer 1 一致; getmtime 跟随 target 误报, 保守不删)
-  6. 单次 cap 5 文件 / 100GB (跟 layer 1 一致, 防御性)
-  7. 软失败 + 持久 log /tmp/fuqing-subagent-cleanup.log
+PR3 安全边界 (硬约束):
+  1. **禁止**扫描删除全局 /tmp 任意文件
+  2. **只能删**:
+       a) TrackerDB 已登记且过期的文件
+       b) 项目专属 0700 临时目录内 (顶层) 过期文件
+  3. 路径 resolve 后必须在允许根内 (private tmp 或 FQ 安全前缀)
+  4. 跳过: 目录 / symlink / 非当前 UID / 硬链接 (nlink!=1)
+  5. lsof 缺失/超时/报错 **fail-closed**: 跳过删除
+  6. **默认 dry-run**; 正式删除需显式 --execute
+  7. 保留文件数 / 总容量 cap
+  8. 嵌套目录不递归扫; 仅当路径在 TrackerDB 中才处理
 
 用法:
-  CLI 手动跑:
-    PYTHONPATH="$(pwd)" python3 scripts/etl/cleanup_subagent.py [--dry-run]
-  作为 module 调:
-    from scripts.etl.cleanup_subagent import cleanup_subagent_tmp
-    result = cleanup_subagent_tmp(dry_run=False)  # -> dict
-
-函数签名:
-  cleanup_subagent_tmp(dry_run=False) -> dict
-  返回 {deleted_count, freed_bytes, errors, candidates_scanned}
+  PYTHONPATH="$(pwd)" python3 scripts/etl/cleanup_subagent.py           # dry-run
+  PYTHONPATH="$(pwd)" python3 scripts/etl/cleanup_subagent.py --execute # 真删
 """
 from __future__ import annotations
 
+import argparse
+import json
 import os
 import sys
 import time
-import json
-import argparse
 from datetime import datetime, timezone
+from pathlib import Path
 
-# Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跟 Layer 1 cli.py 同模式
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from scripts.etl.common.open_check import is_open_by_any_process  # noqa: E402
-# Sprint 31.1: cross-reference tracker (track 过的 = Layer 1 24h 接管, Layer 6 跳过)
+from scripts.etl.common.private_tmp import (  # noqa: E402
+    get_private_tmp_dir,
+    is_under_allowed_root,
+)
 from scripts.etl.common.tmp_tracker import TrackerDB  # noqa: E402
 
 # ─────────────────────────────────────────────────────────────
 # 常量
 # ─────────────────────────────────────────────────────────────
-# Layer 1 的 FQ_TMP_PREFIXES 白名单 — 避免跟 layer 1 冲突
-_FQ_TMP_PREFIXES = (
-    "/private/tmp/_fq_ro",   # Layer 1 业务白名单
-    "/private/tmp/fuqing_",  # Layer 1 业务白名单
-)
-
-# 扫描根目录
-_SCAN_ROOTS = (
-    "/private/tmp",
-    "/tmp",
-)
-
-# 排除路径前缀 (项目根, 不会误删业务文件)
-_EXCLUDE_PATH_PREFIXES = (
-    "/Users/hutou/Desktop/fuqin-date",
-)
-
-# Layer 1 自身 log + marker + launchd 锁 — 不能让 layer 6 误删这些
-# (它们是 layer 1 自己的运维证据, 删了会让 layer 1 marker 状态混乱)
+# 历史保护 basenames (运维状态, 永不删) — 即便误登记到 tracker 也跳过
 _PROTECTED_BASENAMES = {
     "fuqing-tmp-cleanup.log",
     "fuqing-etl-marker.json",
     "fuqing-backup-cleanup.log",
     "fuqing-backup-cleanup.lock",
     "fuqing-duckdb-backup.log",
-    "fuqing-subagent-cleanup.log",  # 本文件自己的 log
+    "fuqing-subagent-cleanup.log",
     "fuqing-etl-health.json",
     "fuqing-crm-backend.log",
-    # Sprint 31.1 P2 finding: tracker DB + WAL sidecars — 当前 ~16KB 远小于
-    # 1GB 阈值 Layer 6 不会删, 但 defense-in-depth: 万一 bootstrap 写满
-    # (10万+ rows) 或 _MIN_SIZE_BYTES 改小, Layer 6 1h+ 1GB+ 扫描会误删
-    # tracker DB, 整个 cleanup 失明. 跟 layer 1 marker / log 同级 protection.
     "fuqing-tmp-tracker.db",
     "fuqing-tmp-tracker.db-wal",
     "fuqing-tmp-tracker.db-shm",
 }
 
-# 排除扩展名 (sub-process 调试临时脚本/源码, 不是巨型数据)
-_EXCLUDE_EXTENSIONS = (
-    ".py", ".sh", ".json", ".log", ".txt", ".md",
-    ".yml", ".yaml", ".toml", ".lock", ".pid",
-)
-
 # Cap
-_MAX_DELETE_PER_RUN = 5                    # 防御性: 单次最多删 5 个
-_MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB/次
-# Sprint 25 P1-3 review 撤回 per-file cap: byte cap 100GB 已是单文件误删防护,
-# per-file 20GB 跟实际常见孤儿尺寸 (50-103GB) 冲突, 反而卡住清理. 维持单层 byte cap.
-_MIN_AGE_HOURS = 1                         # 1h+ (比 layer 1 的 24h 严,
-                                            # 因为 hourly 跑, 1h 是安全缓冲)
-_MIN_SIZE_BYTES = 1 * 1024**3              # 1GB+ (只针对巨型文件,
-                                            # 小文件不影响磁盘)
-_LOG_PATH = "/tmp/fuqing-subagent-cleanup.log"
+_MAX_DELETE_PER_RUN = 5
+_MAX_DELETE_BYTES_PER_RUN = 100 * 1024**3  # 100GB
+_MIN_AGE_HOURS = 1.0
+_MIN_SIZE_BYTES = 1 * 1024**3  # 1GB (private 顶层未跟踪文件阈值; 测试可 monkeypatch)
+_TRACKER_MIN_AGE_HOURS = 1.0
+
+# 日志仍写 private tmp 优先; 回退 /tmp 文件名仅作 log sink 不扫删
+_LOG_BASENAME = "fuqing-subagent-cleanup.log"
+
+
+def _log_path() -> str:
+    try:
+        return str(get_private_tmp_dir(create=True) / _LOG_BASENAME)
+    except RuntimeError:
+        return f"/tmp/{_LOG_BASENAME}"
 
 
 def _log(msg: str) -> None:
-    """持久日志 — 写 /tmp/fuqing-subagent-cleanup.log, 失败不 raise (软失败)."""
+    """持久日志, 软失败."""
     try:
         ts = datetime.now(timezone.utc).isoformat()
-        with open(_LOG_PATH, "a") as f:
+        with open(_log_path(), "a") as f:
             f.write(f"[{ts}] {msg}\n")
     except OSError:
-        pass  # log 失败不阻塞 cleanup
+        pass
 
 
 def _is_protected(path: str) -> bool:
-    """检查路径是否在保护名单 (layer 1 自身状态文件 + 项目根)."""
-    base = os.path.basename(path)
-    if base in _PROTECTED_BASENAMES:
-        return True
-    # 排除项目根
-    for prefix in _EXCLUDE_PATH_PREFIXES:
-        if path.startswith(prefix):
-            return True
-    return False
+    return os.path.basename(path) in _PROTECTED_BASENAMES
 
 
-def _is_in_whitelist(path: str, tracker: TrackerDB | None = None) -> bool:
-    """Sprint 31.1: 跨层判断 — track 过的 = Layer 1 24h 接管, Layer 6 跳过.
+def _safe_lstat(path: str) -> os.stat_result | None:
+    try:
+        return os.lstat(path)
+    except OSError:
+        return None
 
-    Args:
-        path: candidate file path
-        tracker: TrackerDB 实例 (调用方传入, 避免每次构造). 可为 None
-                (默认) 表示 tracker 不可用, 此时降级到 _FQ_TMP_PREFIXES
-                静态白名单. 保留 default 兼容现有 test_lsof_protection.py
-                调用形式 (patch 后用旧 1-arg 形式 mock).
+
+def _passes_safety_gates(
+    path: str,
+    *,
+    private_tmp: Path | None,
+    require_tracked: bool,
+    tracker: TrackerDB | None,
+) -> tuple[bool, str]:
+    """统一安全门: 通过返回 (True, ""); 否则 (False, reason)."""
+    if _is_protected(path):
+        return False, "protected basename"
+
+    # symlink: lstat 不跟随; islink 跳过
+    if os.path.islink(path):
+        return False, "symlink"
+
+    st = _safe_lstat(path)
+    if st is None:
+        return False, "lstat failed"
+
+    if stat_is_dir(st):
+        return False, "directory"
+
+    if not stat_is_reg(st):
+        return False, "not regular file"
+
+    # 非当前 UID
+    try:
+        if st.st_uid != os.getuid():
+            return False, f"uid mismatch (file={st.st_uid} self={os.getuid()})"
+    except AttributeError:
+        pass  # Windows 等无 st_uid 时跳过此项
+
+    # 硬链接异常: nlink != 1
+    if getattr(st, "st_nlink", 1) != 1:
+        return False, f"hardlink anomaly nlink={st.st_nlink}"
+
+    # resolve 后必须在允许根
+    if not is_under_allowed_root(path, private_tmp=private_tmp):
+        return False, "outside allowed roots"
+
+    if require_tracked:
+        if tracker is None or not tracker.is_available() or not tracker.is_tracked(path):
+            return False, "not tracked (nested requires tracker)"
+
+    return True, ""
+
+
+def stat_is_dir(st: os.stat_result) -> bool:
+    import stat as statmod
+
+    return statmod.S_ISDIR(st.st_mode)
+
+
+def stat_is_reg(st: os.stat_result) -> bool:
+    import stat as statmod
+
+    return statmod.S_ISREG(st.st_mode)
+
+
+def _collect_candidates(
+    tracker: TrackerDB | None = None,
+    private_tmp: Path | None = None,
+    now: float | None = None,
+) -> list[tuple[str, int, float, str]]:
+    """收集可删候选.
 
     Returns:
-        True if path 应该留给 Layer 1 处理 (tracked 或在静态白名单).
+        list of (path, size_bytes, age_h, source)  source ∈ {tracker, private_top}
+        按 age 倒序.
     """
-    # 1. 优先: tracker 跟踪 = Layer 1 24h 周期会清理
+    candidates: list[tuple[str, int, float, str]] = []
+    seen: set[str] = set()
+    now = now if now is not None else time.time()
+
+    try:
+        priv = private_tmp if private_tmp is not None else get_private_tmp_dir(create=True)
+    except RuntimeError as e:
+        _log(f"  [sub-cleanup] private tmp unavailable: {e}")
+        priv = None
+
+    # ── A) TrackerDB 过期登记 ──
     if tracker is not None and tracker.is_available():
-        if tracker.is_tracked(path):
-            return True
-    # 2. 降级: 静态 FQ_TMP_PREFIXES 白名单 (tracker 不可用时)
-    for prefix in _FQ_TMP_PREFIXES:
-        if path.startswith(prefix):
-            return True
-    return False
+        for path, size_bytes, age_h in tracker.list_expired(age_hours=_TRACKER_MIN_AGE_HOURS):
+            ok, reason = _passes_safety_gates(
+                path,
+                private_tmp=priv,
+                require_tracked=False,  # 已从 tracker 来
+                tracker=tracker,
+            )
+            if not ok:
+                _log(f"  [sub-cleanup] skip tracker candidate {path}: {reason}")
+                continue
+            try:
+                real = str(Path(path).resolve())
+            except OSError:
+                real = path
+            if real in seen:
+                continue
+            seen.add(real)
+            # 再确认 size/age 以磁盘为准
+            st = _safe_lstat(path)
+            if st is None:
+                continue
+            size_bytes = st.st_size
+            age_h = (now - st.st_mtime) / 3600.0
+            if age_h < _TRACKER_MIN_AGE_HOURS:
+                continue
+            candidates.append((path, size_bytes, age_h, "tracker"))
 
-
-def _is_excluded_ext(path: str) -> bool:
-    """检查扩展名是否在排除名单 (代码/日志/锁文件, 不是巨型数据)."""
-    _, ext = os.path.splitext(path)
-    return ext.lower() in _EXCLUDE_EXTENSIONS
-
-
-def _collect_candidates(tracker: TrackerDB | None = None) -> list[tuple[str, int, float]]:
-    """收集扫描根目录下所有 1h+ 1GB+ 不在白名单/保护名单的候选文件.
-
-    Sprint 31.1: tracker 参数 — cross-reference Layer 1 ownership. tracker
-    跟踪的 path 留给 Layer 1 24h 周期处理 (避免 Layer 6 抢删).
-
-    Returns:
-        list of (path, size_bytes, age_h) tuples, 按 age 倒序 (最老优先).
-    """
-    candidates: list[tuple[str, int, float]] = []
-    seen_realpaths: set[str] = set()  # macOS /tmp -> /private/tmp symlink dedupe
-    now = time.time()
-
-    for root in _SCAN_ROOTS:
-        if not os.path.isdir(root):
-            continue
+    # ── B) 专属 private tmp 顶层文件 (不递归; 嵌套只走 tracker) ──
+    if priv is not None and priv.is_dir():
         try:
-            entries = os.listdir(root)
+            names = os.listdir(priv)
         except OSError as e:
-            _log(f"  [sub-cleanup] skip root {root}: {e}")
-            continue
-        for name in entries:
-            path = os.path.join(root, name)
-            # 跳过目录 (subagent 偶尔 mkdir 但 mkdir 不会吃盘)
+            _log(f"  [sub-cleanup] listdir private tmp failed: {e}")
+            names = []
+        for name in names:
+            path = str(priv / name)
+            # 嵌套目录: 不递归; 若 tracker 有登记, A 已覆盖
             if os.path.isdir(path) and not os.path.islink(path):
                 continue
-            # 跳过 symlink (保守 — 跟 layer 1 一致)
-            if os.path.islink(path) is True:
+            ok, reason = _passes_safety_gates(
+                path,
+                private_tmp=priv,
+                require_tracked=False,
+                tracker=tracker,
+            )
+            if not ok:
                 continue
-            # Sprint 31.1: 跨层判断 — tracker 跟踪的跳过 (Layer 1 接管)
-            if _is_in_whitelist(path, tracker):
+            st = _safe_lstat(path)
+            if st is None:
                 continue
-            # 跳过保护名单
-            if _is_protected(path):
-                continue
-            # 跳过非巨型扩展名
-            if _is_excluded_ext(path):
-                continue
-            # macOS /tmp -> /private/tmp symlink 去重 (避免同一文件扫两次)
-            try:
-                realpath = os.path.realpath(path)
-            except OSError:
-                realpath = path
-            if realpath in seen_realpaths:
-                continue
-            try:
-                mtime = os.path.getmtime(path)
-            except OSError:
-                continue
-            age_h = (now - mtime) / 3600
+            age_h = (now - st.st_mtime) / 3600.0
             if age_h < _MIN_AGE_HOURS:
                 continue
+            if st.st_size < _MIN_SIZE_BYTES:
+                continue
             try:
-                size_bytes = os.path.getsize(path)
+                real = str(Path(path).resolve())
             except OSError:
+                real = path
+            if real in seen:
                 continue
-            if size_bytes < _MIN_SIZE_BYTES:
-                continue
-            seen_realpaths.add(realpath)
-            candidates.append((path, size_bytes, age_h))
+            seen.add(real)
+            candidates.append((path, st.st_size, age_h, "private_top"))
 
-    # 按 age 倒序 (最老优先)
     candidates.sort(key=lambda x: -x[2])
     return candidates
 
 
-def cleanup_subagent_tmp(dry_run: bool = False) -> dict:
-    """Sprint 6 P0-3 第 6 层防护: 兜底 subagent 漏出来的非 fq_ 前缀 /tmp 巨型孤儿.
-
-    设计原则:
-      1. 扫 /private/tmp + /tmp 下所有 不在 FQ_TMP_PREFIXES 白名单的 1h+ 1GB+ 文件
-      2. 排除项目根路径 + layer 1 自身状态文件 + 代码/日志扩展名
-      3. symlink 跳过 (跟 layer 1 一致)
-      4. cap: 5 文件 / 100GB 单次 (跟 layer 1 一致, 防御性)
-      5. 软失败: 删除失败只 log, 不 raise
-      6. 持久 log 到 /tmp/fuqing-subagent-cleanup.log
-      7. dry_run=True 时只扫描不删 (供 --dry-run 模式 + 测试用)
+def cleanup_subagent_tmp(
+    dry_run: bool = True,
+    tracker: TrackerDB | None = None,
+    private_tmp: Path | None = None,
+) -> dict:
+    """安全清理临时文件. 默认 dry_run=True (不真删).
 
     Args:
-        dry_run: True = 只扫描不删, 仍然 log 但 result 标注 dry_run=True.
+        dry_run: True 只扫描不删; False 需调用方显式关闭 (CLI --execute)
+        tracker: 可注入 (测试); 默认 TrackerDB()
+        private_tmp: 可注入项目专属临时根 (测试)
 
     Returns:
-        dict {deleted_count, freed_bytes, errors, candidates_scanned, dry_run}
+        dict with deleted_count, freed_bytes, errors, candidates_scanned,
+        skipped_open_count, skipped_unsafe_count, dry_run
     """
-    result = {
+    result: dict = {
         "deleted_count": 0,
         "freed_bytes": 0,
         "errors": [],
         "candidates_scanned": 0,
-        "skipped_open_count": 0,  # Sprint 26 F6: lsof 副检跳过的文件数
-        "skipped_tracked_count": 0,  # Sprint 31.1: tracker 跟踪的 = Layer 1 接管
+        "skipped_open_count": 0,
+        "skipped_unsafe_count": 0,
         "dry_run": dry_run,
     }
 
-    # Sprint 31.1: 构造 tracker (cross-reference Layer 1 ownership).
-    # tracker 不可用时 _is_in_whitelist 降级到静态 _FQ_TMP_PREFIXES, 行为跟
-    # Phase 1 之前一致. 这里不 raise — 软失败.
-    tracker = TrackerDB()
+    if tracker is None:
+        tracker = TrackerDB()
 
-    candidates = _collect_candidates(tracker)
+    candidates = _collect_candidates(tracker=tracker, private_tmp=private_tmp)
     result["candidates_scanned"] = len(candidates)
 
     if not candidates:
-        _log(f"  [sub-cleanup] scanned {len(candidates)} candidate(s) in {list(_SCAN_ROOTS)}, nothing to clean"
-             f"{' [DRY-RUN]' if dry_run else ''}")
+        _log(
+            f"  [sub-cleanup] no candidates"
+            f"{' [DRY-RUN]' if dry_run else ''}"
+        )
         return result
 
-    # log 候选清单 (即使 dry_run 也打, 方便审计)
     _log(f"  [sub-cleanup] scanned {len(candidates)} candidate(s):")
-    for path, size_bytes, age_h in candidates[:_MAX_DELETE_PER_RUN]:
-        _log(f"    - {path} ({size_bytes / (1024**3):.1f}GB, {age_h:.0f}h old)")
+    for path, size_bytes, age_h, source in candidates[:_MAX_DELETE_PER_RUN]:
+        _log(
+            f"    - [{source}] {path} "
+            f"({size_bytes / (1024**3):.1f}GB, {age_h:.0f}h old)"
+        )
 
     if dry_run:
-        _log(f"  [sub-cleanup] DRY-RUN: would clean up to "
-             f"{_MAX_DELETE_PER_RUN} file(s) / {_MAX_DELETE_BYTES_PER_RUN / 1024**3:.0f}GB")
+        _log(
+            f"  [sub-cleanup] DRY-RUN: would clean up to "
+            f"{_MAX_DELETE_PER_RUN} file(s) / "
+            f"{_MAX_DELETE_BYTES_PER_RUN / 1024**3:.0f}GB "
+            f"(pass --execute to delete)"
+        )
         return result
 
     bytes_deleted = 0
-    for path, size_bytes, age_h in candidates:
+    for path, size_bytes, age_h, source in candidates:
         if result["deleted_count"] >= _MAX_DELETE_PER_RUN:
-            _log(f"  [sub-cleanup] cap hit: max {_MAX_DELETE_PER_RUN} files per run")
+            _log(f"  [sub-cleanup] cap hit: max {_MAX_DELETE_PER_RUN} files")
             break
         if bytes_deleted + size_bytes > _MAX_DELETE_BYTES_PER_RUN:
-            _log(f"  [sub-cleanup] cap hit: max {_MAX_DELETE_BYTES_PER_RUN / 1024**3:.0f}GB per run")
+            _log(
+                f"  [sub-cleanup] cap hit: max "
+                f"{_MAX_DELETE_BYTES_PER_RUN / 1024**3:.0f}GB"
+            )
             break
-        # Sprint 26 F6 (mtime→lsof 副检): 删前最后一道防线, 跳过正在被打开的文件
-        # 软失败: lsof 不可用 / 超时 → (False, reason) 保守放行, 不阻塞 cleanup
-        is_open, reason = is_open_by_any_process(path)
-        if is_open:
-            result["skipped_open_count"] = result.get("skipped_open_count", 0) + 1
-            _log(f"  [sub-cleanup] skip (lsof open): {path} — {reason}")
-            continue
+
+        # 删前再次 resolve + 边界检查 (TOCTOU 收窄)
         try:
-            os.remove(path)
+            resolved = str(Path(path).resolve())
+        except OSError as e:
+            result["skipped_unsafe_count"] += 1
+            _log(f"  [sub-cleanup] skip resolve fail {path}: {e}")
+            continue
+        if not is_under_allowed_root(resolved, private_tmp=private_tmp):
+            result["skipped_unsafe_count"] += 1
+            _log(f"  [sub-cleanup] skip outside root after resolve: {resolved}")
+            continue
+        if os.path.islink(path):
+            result["skipped_unsafe_count"] += 1
+            _log(f"  [sub-cleanup] skip symlink: {path}")
+            continue
+
+        # lsof fail-closed
+        is_open, reason = is_open_by_any_process(resolved)
+        if is_open:
+            result["skipped_open_count"] += 1
+            _log(f"  [sub-cleanup] skip (lsof/fail-closed): {path} — {reason}")
+            continue
+
+        try:
+            os.remove(resolved)
             result["deleted_count"] += 1
             result["freed_bytes"] += size_bytes
             bytes_deleted += size_bytes
-            _log(f"  [sub-cleanup] DELETED: {path} ({size_bytes / (1024**3):.1f}GB, {age_h:.0f}h old)")
+            if tracker is not None and tracker.is_available():
+                tracker.remove(resolved)
+            _log(
+                f"  [sub-cleanup] DELETED [{source}]: {resolved} "
+                f"({size_bytes / (1024**3):.1f}GB, {age_h:.0f}h old)"
+            )
         except OSError as e:
-            result["errors"].append(f"{path}: {e}")
-            _log(f"  [sub-cleanup] skip {path}: {e}")
+            result["errors"].append(f"{resolved}: {e}")
+            _log(f"  [sub-cleanup] skip {resolved}: {e}")
 
     _log(
         f"  [sub-cleanup] summary: deleted={result['deleted_count']} "
         f"freed={result['freed_bytes'] / 1024**3:.1f}GB "
+        f"skipped_open={result['skipped_open_count']} "
+        f"skipped_unsafe={result['skipped_unsafe_count']} "
         f"errors={len(result['errors'])}"
     )
     return result
 
 
 def main() -> int:
-    """CLI 入口 — 支持 --dry-run 模式 (供测试 + 运维验证用)."""
     parser = argparse.ArgumentParser(
-        description="Sprint 6 P0-3 subagent /tmp 孤儿清理 (第 6 层防护)"
+        description="PR3 Layer 6: 安全临时文件清理 (默认 dry-run)"
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="只扫描不删, 仍然 log candidates, 但 result 标注 dry_run=True",
+        default=False,
+        help="只扫描不删 (默认即 dry-run; 保留兼容 flag)",
+    )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="显式开启真删 (否则一律 dry-run)",
     )
     args = parser.parse_args()
-    result = cleanup_subagent_tmp(dry_run=args.dry_run)
+    # 只有 --execute 才真删; --dry-run 与默认都是 dry-run
+    dry_run = not args.execute
+    if args.dry_run:
+        dry_run = True
+    result = cleanup_subagent_tmp(dry_run=dry_run)
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0 if not result["errors"] else 1
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
