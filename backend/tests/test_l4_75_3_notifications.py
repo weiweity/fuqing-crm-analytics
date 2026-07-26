@@ -95,6 +95,6 @@ def test_l4_75_3_unit_get_set_notifications_for_lock_helper():
 def test_l4_75_3_health_check_still_works():
     """L4.75.3 sanity: 新 router 不破坏健康检查 (跟 L4.65.1 + L4.69.1 1:1 stable 永久规则链配套)."""
     client = TestClient(app)
-    resp = client.get("/api/v1/health/db_size")
-    # 允许 200 + 503 (路由存在即可)
-    assert resp.status_code in (200, 503)
+    resp = client.get("/api/v1/health")
+    assert resp.status_code == 200
+    assert client.get("/api/v1/health/db_size").status_code == 401

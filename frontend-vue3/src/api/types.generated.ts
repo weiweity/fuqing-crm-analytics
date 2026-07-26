@@ -162,18 +162,13 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description 退出登录，使当前 token + 同账号其他 stale token 失效 (跟 L4.84 _evict_previous_sessions_for_user 1:1 stable 复用).
+         * @description 退出登录，使当前 token + 同账号其他 stale token 失效.
          *
-         *     user 7/11 报"我因该都退出账号了，但是还是要申请登陆" + "Cmd+Q 退出浏览器后, 变成需要申请登录" 真根因:
-         *     - 之前 logout 只删当前 token, 多次登录/refresh 留下 stale token, _is_account_active 3min 检查误判 True → B 端 login 409
-         *     - Cmd+Q 退出浏览器 → frontend JS 全停 → backend ACTIVE_TOKENS 仍有 A token → B login 409
-         *     修复: 复用 _evict_previous_sessions_for_user 踢出同账号所有 stale token + 配套 sendBeacon (token via query).
+         *     Token 来源（禁止 query / URL / access log）:
+         *     1. Authorization: Bearer <token>
+         *     2. JSON body ``{"token": "..."}``（sendBeacon / fetch keepalive）
          *
-         *     L4.85.6 方案 A: sendBeacon 不能设 Authorization header, 所以 logout endpoint 接受 token via query param.
-         *     配套: 方案 D background task evict idle token > 60s (frontend/services/auth_token_evictor.py).
-         *
-         *     跟 L4.84 + L4.85.3 + L4.85.4 + L4.85.6 1:1 stable 永久规则链配套, 跟 L4.42 + L4.50 + L4.55 1:1 stable 永久规则化沿用,
-         *     跟你 7/16 离职 0.5-1 天闭环 1:1 stable 永久规则化沿用.
+         *     配套: 方案 D background task evict idle token > 60s (auth_token_evictor).
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -453,7 +448,7 @@ export interface paths {
         };
         /**
          * Get Config History
-         * @description 获取配置变更历史（自动备份列表）— 需鉴权
+         * @description 获取配置变更历史（自动备份列表）— 需管理员 Bearer 会话
          */
         get: operations["get_config_history_api_v1_customer_health_config_history_get"];
         put?: never;
@@ -473,7 +468,7 @@ export interface paths {
         };
         /**
          * Get Audit Log
-         * @description 获取配置审计日志 — 需鉴权
+         * @description 获取配置审计日志 — 需管理员 Bearer 会话
          */
         get: operations["get_audit_log_api_v1_customer_health_config_audit_log_get"];
         put?: never;
@@ -1089,7 +1084,7 @@ export interface paths {
         };
         /**
          * Get Rfm Cache Stats
-         * @description W5 cache 状态: 总行数 / 有效行数 / 过期行数. 用于监控 + 验证 invalidate.
+         * @description W5 cache 状态: 总行数 / 有效行数 / 过期行数. 管理员监控用.
          */
         get: operations["get_rfm_cache_stats_api_v1_rfm_cache_stats_get"];
         put?: never;
@@ -1111,7 +1106,7 @@ export interface paths {
         put?: never;
         /**
          * Post Rfm Cache Invalidate
-         * @description W5 手动整表失效 (admin/测试用). 生产环境正常由 manifest 变化自动触发.
+         * @description W5 手动整表失效 (admin). 生产环境正常由 manifest 变化自动触发.
          */
         post: operations["post_rfm_cache_invalidate_api_v1_rfm_cache_invalidate_post"];
         delete?: never;
@@ -1129,7 +1124,7 @@ export interface paths {
         };
         /**
          * Get Rfm Cache Keys
-         * @description W5 调试: 列出 cache 键 (可按 endpoint 过滤). limit 上限 500.
+         * @description W5 调试: 列出 cache 键 (可按 endpoint 过滤). limit 上限 500. 管理员.
          */
         get: operations["get_rfm_cache_keys_api_v1_rfm_cache_keys_get"];
         put?: never;
@@ -1649,7 +1644,10 @@ export interface paths {
         put?: never;
         /**
          * 导出 11 sheet Excel 整份报告 (返回 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet 二进制流)
-         * @description 导出 11 sheet Excel 整份报告 (返 StreamingResponse 二进制流, 跟 export-xlsx endpoint 一致).
+         * @description 导出 11 sheet Excel 整份报告 (返 StreamingResponse 二进制流).
+         *
+         *     PR3: 落盘到私有 0700 目录 (随机名); 读入内存后立即 unlink;
+         *     响应不回显服务器路径 (去掉 X-Xlsx-Path 泄露).
          */
         post: operations["post_export_excel_api_v1_ad_hoc_export_excel_post"];
         delete?: never;
@@ -1903,57 +1901,6 @@ export interface paths {
          * @description B 原子领取批准后的会话；相同 claim 可安全重试并拿到同一 token。
          */
         post: operations["claim_login_request_api_v1_auth_login_request__request_id__claim_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/upload-config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Upload Config */
-        get: operations["get_upload_config_api_v1_admin_upload_config_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Upload */
-        post: operations["post_upload_api_v1_admin_upload_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/uploads": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Uploads */
-        get: operations["get_uploads_api_v1_admin_uploads_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2525,13 +2472,6 @@ export interface components {
         AuditLogResponse: {
             /** Logs */
             logs?: components["schemas"]["AuditLogItem"][];
-        };
-        /** Body_post_upload_api_v1_admin_upload_post */
-        Body_post_upload_api_v1_admin_upload_post: {
-            /** Business Type */
-            business_type: string;
-            /** File */
-            file: string;
         };
         /**
          * CategoryChurnItem
@@ -4091,6 +4031,11 @@ export interface components {
              * @default false
              */
             is_admin: boolean;
+        };
+        /** LogoutRequest */
+        LogoutRequest: {
+            /** Token */
+            token: string;
         };
         /** LogoutResponse */
         LogoutResponse: {
@@ -6724,165 +6669,6 @@ export interface components {
             order_ids?: string[] | null;
         };
         /**
-         * UploadConfigResponse
-         * @description GET /upload-config 响应：恰好 10 种数据源 + 全局大小限制。
-         */
-        UploadConfigResponse: {
-            /** Sources */
-            sources: components["schemas"]["UploadSourcePublic"][];
-            /**
-             * Max Upload Bytes
-             * @description 服务端硬上限（当前 100MB）
-             */
-            max_upload_bytes: number;
-        };
-        /**
-         * UploadListResponse
-         * @description GET /uploads 响应。
-         */
-        UploadListResponse: {
-            /** Items */
-            items: components["schemas"]["UploadRecordOut"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
-        /**
-         * UploadRecordOut
-         * @description 单条 upload 记录（registry entry 的对外视图）。
-         */
-        UploadRecordOut: {
-            /**
-             * Upload Id
-             * @description UUID4 hex
-             */
-            upload_id: string;
-            /** Business Type */
-            business_type: string;
-            /** Original Filename */
-            original_filename: string;
-            /**
-             * Extension
-             * @description 含点的扩展名，如 .csv
-             */
-            extension: string;
-            /** Size Bytes */
-            size_bytes: number;
-            /**
-             * Sha256
-             * @description 64 字符 hex
-             */
-            sha256: string;
-            /** Uploaded By */
-            uploaded_by: string;
-            /**
-             * Uploaded At
-             * Format: date-time
-             * @description UTC ISO-8601
-             */
-            uploaded_at: string;
-            /**
-             * Status
-             * @default staged
-             * @constant
-             */
-            status: "staged";
-            validation: components["schemas"]["UploadValidationResult"];
-            /** Future Post Actions */
-            future_post_actions?: string[];
-        };
-        /**
-         * UploadResponse
-         * @description POST /upload 响应。
-         */
-        UploadResponse: {
-            upload: components["schemas"]["UploadRecordOut"];
-            /**
-             * Duplicate
-             * @description True 表示命中 idempotency key 复用已有记录（HTTP 200）；False 表示新 staged（HTTP 201）
-             * @default false
-             */
-            duplicate: boolean;
-        };
-        /**
-         * UploadSourcePublic
-         * @description 客户端可见的 single 数据源配置（GET /upload-config 元素）。
-         *
-         *     服务端 allowlist 的子集：禁暴露 target_path / staging_path / 项目绝对路径 / 用户 home。
-         */
-        UploadSourcePublic: {
-            /**
-             * Business Type
-             * @description 业务类型: shop/member/status-refresh/taoke/live/visitor/spu-mapping/taoke-product/channel-rules/campaign-schedule
-             */
-            business_type: string;
-            /**
-             * Display Name
-             * @description 运营可读的中文名
-             */
-            display_name: string;
-            /**
-             * Allowed Extensions
-             * @description 允许的扩展名（如 .csv / .xlsx / .zip）
-             */
-            allowed_extensions: string[];
-            /**
-             * Mode
-             * @description append 累积 / single 单文件替换
-             * @enum {string}
-             */
-            mode: "append" | "single";
-            /**
-             * Max Size Bytes
-             * @description 单文件最大字节数
-             */
-            max_size_bytes: number;
-            /**
-             * Future Post Actions
-             * @description Sprint 2+ 才会执行的后置动作（如 rescan-spu / refresh-campaign-schedule）
-             */
-            future_post_actions?: string[];
-            /**
-             * Replacement Warning
-             * @description UI 替换提示文案（仅 mode=single 才有值）
-             */
-            replacement_warning?: string | null;
-        };
-        /**
-         * UploadValidationResult
-         * @description preflight 校验结果（sprint 1 不阻断但记录）。
-         */
-        UploadValidationResult: {
-            /**
-             * Validator
-             * @description 校验器名称：csv-utf8/xlsx-pandas/zip-safe/business-<type>
-             */
-            validator: string;
-            /**
-             * Valid
-             * @description 校验通过与否
-             */
-            valid: boolean;
-            /**
-             * Detected Format
-             * @description 检测到的格式（编码/sheet/zip layout）
-             */
-            detected_format: string;
-            /**
-             * Row Sample Count
-             * @description 样本行数（CSV/XLSX）
-             */
-            row_sample_count?: number | null;
-            /**
-             * Warnings
-             * @description warning 列表（不阻断）
-             */
-            warnings?: string[];
-        };
-        /**
          * UserDetail
          * @description 用户详情
          */
@@ -7366,14 +7152,16 @@ export interface operations {
     };
     logout_api_v1_auth_logout_post: {
         parameters: {
-            query?: {
-                token?: string | null;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LogoutRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -7840,10 +7628,7 @@ export interface operations {
                 /** @description 返回最近N条记录 */
                 limit?: number;
             };
-            header: {
-                /** @description API 密钥 */
-                "X-API-Key": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -7875,10 +7660,7 @@ export interface operations {
                 /** @description 返回最近N条记录 */
                 limit?: number;
             };
-            header: {
-                /** @description API 密钥 */
-                "X-API-Key": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -10221,144 +10003,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClaimRequestOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_upload_config_api_v1_admin_upload_config_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadConfigResponse"];
-                };
-            };
-        };
-    };
-    post_upload_api_v1_admin_upload_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                "Idempotency-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_post_upload_api_v1_admin_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Idempotency-Key 命中, 返老记录 (duplicate=true) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadResponse"];
-                };
-            };
-            /** @description 新建 staged 记录成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadResponse"];
-                };
-            };
-            /** @description 未知业务类型 / 文件名非法 / 空文件 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 未登录 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 非管理员 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description business_type + sha256 重复 (DUPLICATE_UPLOAD) 或 Idempotency-Key 冲突 (IDEMPOTENCY_CONFLICT) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description payload 超过 100MB (PAYLOAD_TOO_LARGE) */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 扩展名非法 或 业务内容校验失败 (VALIDATION_FAILED) */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description registry 损坏不可恢复 (REGISTRY_CORRUPT) */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_uploads_api_v1_admin_uploads_get: {
-        parameters: {
-            query?: {
-                business_type?: string | null;
-                status?: string | null;
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadListResponse"];
                 };
             };
             /** @description Validation Error */

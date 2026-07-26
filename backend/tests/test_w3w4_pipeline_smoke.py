@@ -406,6 +406,90 @@ class TestSkipDqFlagEndToEnd:
         )
 
 
+class TestStep8ConnectionBoundary:
+    """Step 8 backend singleton 必须在 W3 direct connection 前释放。"""
+
+    @pytest.mark.parametrize("raise_after_open", [False, True])
+    def test_step8_singleton_closed_before_w3_direct_connection(
+        self,
+        w3w4_smoke_env,
+        raise_after_open,
+    ):
+        """模拟生产连接形态，覆盖 Step 8 正常与异常退出路径。"""
+        from backend.db import connection as backend_connection
+        from backend.services import dual_conn
+        from scripts.etl import assertions
+        from scripts.etl import pipeline
+        from scripts.etl import precompute_category_churn
+        from scripts.etl import precompute_category_flow
+
+        monkeypatch = w3w4_smoke_env["monkeypatch"]
+        db_path = Path(w3w4_smoke_env["duckdb_path"])
+        events = []
+
+        backend_connection.close_connection()
+        monkeypatch.setattr(dual_conn, "DUCKDB_PATH", db_path)
+        monkeypatch.setattr(
+            pipeline,
+            "filter_rolling_window",
+            lambda df, *a, **kw: (df.copy(), pd.DataFrame()),
+        )
+
+        def open_step8_singleton():
+            conn = backend_connection.get_connection()
+            assert conn.execute("SELECT 1").fetchone()[0] == 1
+            assert backend_connection._conn is not None
+            assert dual_conn._WRITE_CONN is not None
+            events.append("step8-singleton-open")
+            if raise_after_open:
+                raise RuntimeError("step8 regression sentinel")
+
+        monkeypatch.setattr(
+            precompute_category_flow,
+            "run_full_precomputation",
+            open_step8_singleton,
+        )
+        monkeypatch.setattr(
+            precompute_category_churn,
+            "run_full_precomputation",
+            lambda: events.append("step8-churn"),
+        )
+
+        def observe_w3_direct_connection(conn, target_date, send_alert):
+            assert target_date == date.today()
+            assert send_alert is True
+            assert conn.execute("SELECT 1").fetchone()[0] == 1
+            assert backend_connection._conn is None
+            assert dual_conn._WRITE_CONN is None
+            events.append("w3-direct-opened-after-close")
+            return {
+                "passed": 6,
+                "failed": 0,
+                "alert_sent": False,
+                "failed_names": [],
+            }
+
+        monkeypatch.setattr(assertions, "run_assertions", observe_w3_direct_connection)
+
+        try:
+            pipeline.run_full_etl(
+                mode="inc",
+                skip_dq=False,
+                skip_w4=True,
+                window_days=30,
+                force_continue=True,
+            )
+        finally:
+            backend_connection.close_connection()
+
+        assert events[0] == "step8-singleton-open"
+        assert events[-1] == "w3-direct-opened-after-close"
+        if raise_after_open:
+            assert "step8-churn" not in events
+        else:
+            assert "step8-churn" in events
+
+
 # ─────────────────────────────────────────────────────────────
 # 2) W4 幂等性: 跑 2 次 pipeline, fact_rfm_long 行数不变 (version 续号)
 # ─────────────────────────────────────────────────────────────

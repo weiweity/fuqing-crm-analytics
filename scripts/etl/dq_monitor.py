@@ -17,11 +17,11 @@
 
 CLAUDE.md 合规:
   ① 复用 scraper/core/sanity_check.py:_send_lark_alert (不新写 lark 客户端, 走 6 道门禁通道)
-  ② ETL 脚本连接例外条款: duckdb.connect + conn.close()
+  ② ETL 脚本连接例外条款: read_only DuckDB 直连 + conn.close()
+  ③ 禁止为规避锁复制生产 DuckDB；连接冲突应失败并建议维护窗口重试
 """
 import argparse
 import json
-import os
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
@@ -261,44 +261,37 @@ def main() -> int:
 
     log("DQ monitor 开始...")
 
-    # 复制数据库文件以避免写锁冲突（DuckDB 有写连接时 read_only 也会被阻塞）
-    # 参考 backup_duckdb.py 的 shutil.copy2 模式
-    # Sprint 31.1: 切到 fuqing_* 命名 + tracker register. 跟 Phase 1 mkstemp 不同:
-    #   - 路径确定 (fuqing_dq_monitor_<pid>_<ts>.duckdb) 而非 mkstemp 随机
-    #   - tracker.register 在 copy 前: copy 中途崩溃也能被 cleanup 24h 后发现
-    #   - tracker.remove 在 finally: 正常路径清理 tracker row
-    #   - 软失败: tracker 任何错误不阻塞 dq
-    from scripts.etl.common.tmp_tracker import TrackerDB
-    tracker = TrackerDB()
-    tmp_db = None
-    try:
-        # 改 mkstemp → 确定路径 (fuqing_* prefix, 这样 tracker 跟踪有意义)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        tmp_db = f"/tmp/fuqing_dq_monitor_{os.getpid()}_{ts}.duckdb"
-        log(f"复制数据库到 {tmp_db} 以避免锁冲突...")
-        shutil.copy2(str(DUCKDB_PATH), tmp_db)
-        # Sprint 31.1: register 早于 duckdb.connect — copy 中途崩溃也能被 24h cleanup
-        # 软失败 — register 失败不阻塞 dq
-        try:
-            tracker.register(tmp_db, size=os.path.getsize(tmp_db), pid=os.getpid())
-        except Exception:
-            pass
+    # DQ 只读查询必须直连原库。旧实现每次 shutil.copy2 整个生产 DuckDB 到
+    # /tmp，在百 GB 数据量下会造成磁盘放大，进程崩溃还会留下巨型孤儿文件。
+    # DuckDB 被写进程锁住时，宁可明确失败，也不能复制或删除生产库。
+    import duckdb
 
-        import duckdb
-        conn = duckdb.connect(tmp_db, read_only=True)
-        try:
-            result = run_checks(conn)
-        finally:
-            conn.close()
+    try:
+        conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    except Exception as exc:
+        advice = (
+            "数据库可能正被 ETL 或其他写进程锁定；请等待写入完成，"
+            "或在维护窗口停止写入后重试。DQ monitor 不会复制生产库来绕过锁。"
+        )
+        log(f"ERROR: DuckDB read_only 连接失败: {type(exc).__name__}: {exc}")
+        print(
+            json.dumps(
+                {
+                    "error": "database unavailable",
+                    "reason": "read_only connection failed",
+                    "exception": type(exc).__name__,
+                    "detail": str(exc)[:500],
+                    "advice": advice,
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 1
+
+    try:
+        result = run_checks(conn)
     finally:
-        # Sprint 31.1: 正常路径清理 (tracker + file), crash 路径由 Layer 1 24h cleanup 兜底
-        if tmp_db and os.path.exists(tmp_db):
-            os.unlink(tmp_db)
-        if tmp_db:
-            try:
-                tracker.remove(tmp_db)
-            except Exception:
-                pass
+        conn.close()
 
     # 保存快照供下次比对
     snapshot = {

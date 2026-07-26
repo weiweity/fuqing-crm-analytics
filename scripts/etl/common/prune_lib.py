@@ -4,13 +4,13 @@ Sprint 116 抽 _prune_lib 解耦 cleanup_backups.py ↔ backup_duckdb.py (修 #D
 Sprint 116 /review maintainability 反馈 4 项 defer:
 - #D11: '_' 前缀违反 PEP 8 private 约定 (跨模块访问 private 符号)
 - #D12: _matches_magic 返 False 时 log 丢 offset + actual magic bytes
-- #D13: case-sensitive glob mismatch (macOS APFS case-preserving vs Linux HFS+ case-insensitive)
+- #D13: case-sensitive suffix mismatch (macOS APFS case-preserving vs Linux HFS+ case-insensitive)
 - #D14: longest-wins 依赖 dict iteration order (implicit contract)
 
 Sprint 117 修:
 - #D11: rename _prune_lib.py → prune_lib.py (PEP 8 public, 跟 scripts/etl/common/lark.py 命名一致)
 - #D12: _matches_magic 改返 tuple[bool, str] (reason), caller log 完整信息 (offset + actual magic)
-- #D13: case-insensitive 匹配 (Path(p).suffix.lower() 跟 MAGIC_CHECKS key 都 lowercase)
+- #D13: case-insensitive 完整文件名后缀匹配
 - #D14: 显式 sort longest first (sorted(MAGIC_CHECKS, key=len, reverse=True)), 不依赖 insertion order
 
 (解耦 from #D8 持续生效: cleanup_backups.py 不 import backup_duckdb, 避免拉起 lark SDK 副作用)
@@ -62,22 +62,26 @@ def _matches_magic(p: Path) -> tuple[bool, str]:
     Returns (False, reason) on mismatch — reason 包含 offset + actual magic 信息, 好诊断.
 
     Sprint 117 修 #D13: case-insensitive 匹配 (macOS APFS case-preserving
-    vs Linux HFS+ default case-insensitive). 用 Path(p).suffix.lower() 跟
-    MAGIC_CHECKS key 都 lowercase 比较.
+    vs Linux HFS+ default case-insensitive).
 
     Sprint 117 修 #D14: 用 _suffix_order() 显式 sort longest first.
+
+    Security follow-up: 不能用 ``Path.suffix`` 匹配复合后缀；例如
+    ``backup.duckdb.zst`` 的 ``suffix`` 只有 ``.zst``，会把应校验 ZSTD
+    magic 的文件误当成未知类型。改为对完整文件名做 longest-first
+    ``endswith`` 匹配。
     """
-    # Sprint 117 修 #D13: case-insensitive suffix 比较
-    p_suffix = Path(p).suffix.lower()
+    # 完整文件名匹配才能识别 .duckdb.zst 等复合后缀。
+    lower_name = p.name.lower()
     matched_suffix = None
     for suffix in _suffix_order():  # Sprint 117 修 #D14: 显式 sort
-        # 比较时两边都 lowercase (MAGIC_CHECKS key 设计已经是 lowercase)
-        if p_suffix == suffix.lower():
+        if lower_name.endswith(suffix.lower()):
             matched_suffix = suffix
             break  # longest-first 排序, 第一个匹配就是 longest
 
     if matched_suffix is None:
-        return True, f"trust caller (unknown suffix {p_suffix!r})"
+        suffixes = "".join(p.suffixes).lower()
+        return True, f"trust caller (unknown suffix {suffixes!r})"
 
     expected_magic, offset = MAGIC_CHECKS[matched_suffix]
     try:
@@ -113,10 +117,10 @@ def _prune_with_safety(
       3. 文件 > 0 字节 (防空文件假象)
       4. per-extension magic check (#D7 修: PAR1 / DUCK / ZSTD_MAGIC 跟 suffix 映射, 防误删非对应格式;
          Sprint 117 修 #D12+#D13: tuple 返值 + case-insensitive, 完整 log reason)
-      5. lsof 0 fd (无活跃 fd, lsof 不可用时保守放行 #D10)
+      5. lsof 明确确认 0 fd；缺失、超时、权限拒绝或异常返回均 fail-closed
       6. caller-side invariant (本次刚生成的 mtime 极新不会超 retention 阈值)
       7. sorted by mtime desc (最新优先保留)
-      8. soft fail (删失败 log 不 raise, #D10 lsof FileNotFoundError 走保守放行)
+      8. soft fail (删失败 log 不 raise；lsof 无法确认安全时跳过)
 
     Args:
         backup_dir: 要清理的目录 (e.g. BACKUP_DIR)
@@ -162,17 +166,36 @@ def _prune_with_safety(
             # Sprint 117 修 #D12: log 完整 reason (offset + actual magic)
             log_fn(f"prune: skip {p.name} ({reason})")
             continue
-        # 5: lsof 0 fd (Sprint 116 修 #D10: FileNotFoundError 保守放行已实施, 加 test coverage)
+        # 5: 只有 lsof 明确返回「无打开 fd」才允许删除。任何探测异常都
+        # fail-closed，避免在缺工具、权限不足或超时时误删仍在使用的备份。
         try:
             out = subprocess.run(
                 ["lsof", "-t", str(p)],
                 capture_output=True, text=True, timeout=5,
             )
-            if out.stdout.strip():
-                log_fn(f"prune: skip {p.name} (lsof open: {out.stdout.strip()!r})")
-                continue
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass  # lsof 不可用 / 超时 → 保守放行
+        except subprocess.TimeoutExpired:
+            log_fn(f"prune: skip {p.name} (lsof timed out; fail-closed)")
+            continue
+        except OSError as e:
+            log_fn(f"prune: skip {p.name} (lsof unavailable: {e}; fail-closed)")
+            continue
+
+        lsof_stdout = out.stdout.strip()
+        lsof_stderr = out.stderr.strip()
+        if lsof_stdout:
+            log_fn(f"prune: skip {p.name} (lsof open: {lsof_stdout!r})")
+            continue
+        # lsof -t returns 1 with empty stderr when no process holds the file.
+        # Other return codes, stderr, or an inconsistent rc=0/empty response are
+        # inconclusive and therefore block deletion.
+        if out.returncode != 1 or lsof_stderr:
+            detail = (
+                f"returncode={out.returncode}, stderr={lsof_stderr!r}"
+                if lsof_stderr
+                else f"returncode={out.returncode}, empty output"
+            )
+            log_fn(f"prune: skip {p.name} (lsof inconclusive: {detail}; fail-closed)")
+            continue
         # 8: soft fail — 先算 age (unlink 前), 再 unlink, 再 log
         age_d = (datetime.now(BJ_TZ).timestamp() - p.stat().st_mtime) / 86400
         try:

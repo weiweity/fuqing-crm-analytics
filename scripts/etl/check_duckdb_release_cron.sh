@@ -1,4 +1,6 @@
 #!/bin/bash
+# LEGACY / DO NOT SCHEDULE: the 1.5.4 target has already passed.
+# Kept only for historical audit; use the manual 1.5.5 upgrade checklist instead.
 # Sprint 20+ P0 daily cron: 检查 DuckDB 1.5.4 stable release
 # 输出到 /tmp/fuqing-duckdb-release-check.log (launchd 接管 stdout)
 # 1.5.4 stable release 后写 /tmp/fuqing-duckdb-release-stable.flag 触发激活

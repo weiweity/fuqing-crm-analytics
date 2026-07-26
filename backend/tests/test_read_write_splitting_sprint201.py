@@ -239,7 +239,7 @@ class TestSnapshotAndMetrics:
         assert 'endpoint="/api/v1/audience/summary",query_type="read"' in text
         assert "fq_query_duration_seconds_bucket" in text
 
-    def test_metrics_endpoint_bypasses_auth_and_db(self):
+    def test_metrics_endpoint_requires_auth_before_touching_db(self):
         from fastapi.testclient import TestClient
 
         from backend.main import app
@@ -249,5 +249,5 @@ class TestSnapshotAndMetrics:
         record_query("/api/v1/audience/summary", "read", 0.12)
         response = TestClient(app).get("/metrics")
 
-        assert response.status_code == 200
-        assert "fq_query_total" in response.text
+        assert response.status_code == 401
+        assert "fq_query_total" not in response.text

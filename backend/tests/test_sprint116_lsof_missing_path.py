@@ -1,25 +1,25 @@
-"""Sprint 116 真 refactor sprint: lsof FileNotFoundError 路径 coverage (修 #D10).
+"""Sprint 116 prune 安全回归与 post-security fail-closed 加固.
 
 Sprint 112 抽 _prune_with_safety 后, lsof subprocess.run 在 CI Linux runner 上
-没装 lsof → FileNotFoundError → 走 'pass 保守放行' 跳过 lsof check.
-实际生产 macOS launchd 有 lsof, 但 CI 跑 5 safety check 而不是 8.
-
-Sprint 116 加 test 验证 _prune_with_safety 在 lsof 不可用时 (FileNotFoundError)
-仍能删 candidate 文件, 验证保守放行行为 + 跟 Sprint 95+96+96.5 e2e CI runner 教训一致.
+没装 lsof 时曾直接放行删除。安全复查改为 fail-closed：缺失、超时、
+权限拒绝或异常返回均保留 candidate，只有 lsof 明确确认 0 fd 才删除。
 
 Branch: fix/sprint116-fix-d7-d10-refactor-defer
 """
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 
 class TestSprint116LsofMissingPath:
-    """Sprint 116 修 #D10: lsof FileNotFoundError 路径 coverage."""
+    """lsof 探测失败必须 fail-closed，不删除候选文件."""
 
     def _make_zst(self, path: Path, days_old: int) -> Path:
         path.write_bytes(b"\x28\xb5\x2f\xfd" + b"\x00" * 100)
@@ -27,36 +27,101 @@ class TestSprint116LsofMissingPath:
         os.utime(path, (old_time, old_time))
         return path
 
-    def test_prune_proceeds_when_lsof_missing(self, tmp_path, monkeypatch):
-        """Case 1: lsof FileNotFoundError 保守放行 (修 #D10).
-
-        验证: CI Linux runner 没装 lsof, _prune_with_safety 走 FileNotFoundError catch
-        → 'pass' 跳过 lsof check → 仍能删 candidate 文件 (5 safety check 实际生效).
-        """
+    def test_prune_fail_closed_when_lsof_missing(self, tmp_path, monkeypatch):
+        """lsof FileNotFoundError 必须保留 candidate."""
         from scripts.etl.common import prune_lib
 
-        # 造 1 份超 retention .duckdb.zst (10d > 2d cutoff)
         zst = self._make_zst(tmp_path / "a.duckdb.zst", days_old=10)
+        logs: list[str] = []
 
-        # Mock subprocess.run raise FileNotFoundError (模拟 lsof 不可用)
         def mock_lsof_missing(*args, **kwargs):
             raise FileNotFoundError("lsof not installed (Sprint 116 test mock)")
 
-        # Patch prune_lib 的 subprocess.run (lsof 调用)
         monkeypatch.setattr(prune_lib.subprocess, "run", mock_lsof_missing)
 
         deleted, deleted_names = prune_lib._prune_with_safety(
             backup_dir=tmp_path,
             glob_patterns=("*.duckdb.zst",),
             retention_days=2,
-            keep_min=0,  # 全候选, 强制触发 lsof check
-            log_fn=lambda msg: None,
+            keep_min=0,
+            log_fn=logs.append,
         )
 
-        # 验证: lsof missing 时保守放行应删 candidate
-        assert deleted == 1, f"lsof missing 时保守放行应删 1 个 candidate, 实际 {deleted}"
-        assert deleted_names == ["a.duckdb.zst"], f"deleted_names 应是 ['a.duckdb.zst'], 实际 {deleted_names}"
-        assert not zst.exists(), "zst 应被删 (lsof missing 走保守放行)"
+        assert deleted == 0
+        assert deleted_names == []
+        assert zst.exists()
+        assert any("fail-closed" in message for message in logs)
+
+    @pytest.mark.parametrize(
+        ("failure", "expected_log"),
+        [
+            (
+                subprocess.TimeoutExpired(cmd=["lsof"], timeout=5),
+                "timed out",
+            ),
+            (PermissionError("operation not permitted"), "unavailable"),
+        ],
+    )
+    def test_prune_fail_closed_when_lsof_raises(
+        self, tmp_path, monkeypatch, failure, expected_log
+    ):
+        """lsof 超时或权限拒绝时必须保留 candidate."""
+        from scripts.etl.common import prune_lib
+
+        zst = self._make_zst(tmp_path / "a.duckdb.zst", days_old=10)
+        logs: list[str] = []
+
+        def mock_lsof_failure(*args, **kwargs):
+            raise failure
+
+        monkeypatch.setattr(prune_lib.subprocess, "run", mock_lsof_failure)
+
+        deleted, deleted_names = prune_lib._prune_with_safety(
+            backup_dir=tmp_path,
+            glob_patterns=("*.duckdb.zst",),
+            retention_days=2,
+            keep_min=0,
+            log_fn=logs.append,
+        )
+
+        assert deleted == 0
+        assert deleted_names == []
+        assert zst.exists()
+        assert any(expected_log in message and "fail-closed" in message for message in logs)
+
+    @pytest.mark.parametrize(
+        ("returncode", "stderr"),
+        [
+            (2, "lsof: permission denied"),
+            (1, "lsof: status error"),
+            (0, ""),
+        ],
+    )
+    def test_prune_fail_closed_on_inconclusive_lsof_result(
+        self, tmp_path, monkeypatch, returncode, stderr
+    ):
+        """只有 rc=1 且 stdout/stderr 为空才是明确的「无打开 fd」."""
+        from scripts.etl.common import prune_lib
+
+        zst = self._make_zst(tmp_path / "a.duckdb.zst", days_old=10)
+        logs: list[str] = []
+        result = subprocess.CompletedProcess(
+            args=["lsof"], returncode=returncode, stdout="", stderr=stderr
+        )
+        monkeypatch.setattr(prune_lib.subprocess, "run", lambda *args, **kwargs: result)
+
+        deleted, deleted_names = prune_lib._prune_with_safety(
+            backup_dir=tmp_path,
+            glob_patterns=("*.duckdb.zst",),
+            retention_days=2,
+            keep_min=0,
+            log_fn=logs.append,
+        )
+
+        assert deleted == 0
+        assert deleted_names == []
+        assert zst.exists()
+        assert any("lsof inconclusive" in message and "fail-closed" in message for message in logs)
 
     def test_prune_per_extension_magic_check_parquet(self, tmp_path):
         """Case 2: per-extension magic check (修 #D7) — .parquet 文件 PAR1 magic 通过.

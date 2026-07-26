@@ -662,24 +662,33 @@ def run_full_etl(mode='auto', window_days=30, force_continue=False,
     # Step 8: 品类看板 v2 预计算（品类流转 + 流失预警）
     # O5 优化: 增量模式无新数据时跳过
     _has_new_data = len(new_df) > 0 or len(refresh_df) > 0
-    if run_mode == 'incremental' and not _has_new_data:
-        print("\n品类看板 v2 预计算跳过（增量模式无新数据）")
-        step8_ok = True
-    else:
-        print("\n品类看板 v2 预计算...")
-        step8_ok = False
-        try:
-            from scripts.etl.precompute_category_flow import run_full_precomputation as run_flow_full
-            from scripts.etl.precompute_category_churn import run_full_precomputation as run_churn_full
-            # 全量预计算（覆盖写入幂等）
-            with PerfTimer("pl_step8a_category_flow"):
-                run_flow_full()
-            with PerfTimer("pl_step8b_category_churn"):
-                run_churn_full()
-            print("  预计算完成")
+    try:
+        if run_mode == 'incremental' and not _has_new_data:
+            print("\n品类看板 v2 预计算跳过（增量模式无新数据）")
             step8_ok = True
-        except Exception as e:
-            print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
+        else:
+            print("\n品类看板 v2 预计算...")
+            step8_ok = False
+            try:
+                from scripts.etl.precompute_category_flow import run_full_precomputation as run_flow_full
+                from scripts.etl.precompute_category_churn import run_full_precomputation as run_churn_full
+                # 全量预计算（覆盖写入幂等）
+                with PerfTimer("pl_step8a_category_flow"):
+                    run_flow_full()
+                with PerfTimer("pl_step8b_category_churn"):
+                    run_churn_full()
+                print("  预计算完成")
+                step8_ok = True
+            except Exception as e:
+                print(f"  ⚠️ 预计算跳过（可稍后手动运行）：{e}")
+    finally:
+        # Step 8 两个品类预计算走 backend.db.connection.get_connection()，
+        # 会留下 dual_conn write singleton。W3/W4/后续淘客步骤改走
+        # duckdb.connect(config=...)；DuckDB 1.5+ 同文件不同 fingerprint 会拒绝
+        # 新连接。因此无论 Step 8 成功、失败或因无新数据跳过，都必须先释放
+        # backend singleton，再允许后续 direct connection 打开。
+        from backend.db.connection import close_connection as _close_backend_connection
+        _close_backend_connection()
 
     # Step 8.5: W3 DQ assertions (6 断言) — 设计 doc v1.1 §W3 + §7.3
     # 失败入 rfm_quarantine, 不阻塞 ETL (SaaS 标准: 脏数据隔离不阻塞业务)

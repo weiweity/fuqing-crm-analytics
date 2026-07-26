@@ -6,6 +6,7 @@ PR3: lsof 副检 — fail-closed 单元 + Layer 6 集成
   - Layer 6 不再扫全局 /tmp; 仅 private tmp / tracker
 """
 import os
+import plistlib
 import sys
 import time
 from pathlib import Path
@@ -13,6 +14,15 @@ from unittest.mock import patch, MagicMock
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
+
+
+def test_daily_etl_launchd_path_includes_lsof_directory():
+    """launchd 的精简 PATH 必须显式包含 macOS lsof 所在目录。"""
+    plist_path = ROOT / "scripts/etl/scheduler/com.fuqing.etl.daily.plist"
+    config = plistlib.loads(plist_path.read_bytes())
+
+    launchd_path = config["EnvironmentVariables"]["PATH"].split(":")
+    assert "/usr/sbin" in launchd_path
 
 
 class TestIsOpenByAnyProcess:

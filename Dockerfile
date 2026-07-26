@@ -25,7 +25,7 @@ COPY --chown=appuser:appuser config/ config/
 
 # 环境变量
 ENV PYTHONPATH=/app
-ENV DUCKDB_PATH=/app/data/processed/fuqing.duckdb
+ENV DUCKDB_PATH=/app/data/processed/fuqing_crm.duckdb
 # 容器内监听端口（对外由 compose 映射 8000:8001）
 ENV UVICORN_PORT=8001
 # 默认单 worker：DuckDB 连接/写锁与进程模型不兼容多 worker 默认值

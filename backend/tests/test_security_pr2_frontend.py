@@ -75,6 +75,18 @@ def test_logout_query_token_rejected(client):
     assert token in auth_module.ACTIVE_TOKENS
 
 
+def test_logout_openapi_declares_json_body_and_no_query_token():
+    operation = app.openapi()["paths"]["/api/v1/auth/logout"]["post"]
+    query_names = {
+        parameter["name"]
+        for parameter in operation.get("parameters", [])
+        if parameter.get("in") == "query"
+    }
+    assert "token" not in query_names
+    body = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert "LogoutRequest" in str(body)
+
+
 # ── require_admin unit ──
 
 
@@ -170,6 +182,40 @@ def test_rfm_cache_invalidate_requires_admin(client):
     )
     # admin 通过鉴权后：可能 200（空 cache）或 5xx（无业务表）；鉴权层必须不是 401/403
     assert r.status_code not in (401, 403)
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "/metrics",
+        "/api/v1/health/metrics",
+        "/api/v1/health/db_size",
+        "/api/v1/health/manifest",
+        "/api/v1/health/pool",
+    ),
+)
+def test_ops_health_endpoints_require_admin(client, path):
+    assert client.get(path).status_code == 401
+
+    fqsw_token = _login(client, "fqsw", "fqsw888")
+    denied = client.get(
+        path,
+        headers={"Authorization": f"Bearer {fqsw_token}"},
+    )
+    assert denied.status_code == 403
+
+    admin_token = _login(client, "admin", "123456")
+    allowed = client.get(
+        path,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert allowed.status_code == 200
+    if path.endswith("/metrics"):
+        assert allowed.headers["content-type"].startswith("text/plain")
+        assert "fq_query_" in allowed.text
+    else:
+        assert "path" not in allowed.json()
+        assert "error" not in allowed.json()
 
 
 # ── CSP (enforced) ──

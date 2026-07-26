@@ -100,12 +100,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { claimLoginRequest, loginRequest, getLoginRequestStatus } from '@/api/loginRequest'
 
-// Rive npm 包是 UMD 构建，Vite 的 commonjs 插件会自动转换，
-// 但为了保险仍做一层类型探测
-import RiveModule from '@rive-app/canvas'
-const Rive: any = typeof RiveModule === 'function'
-  ? RiveModule
-  : (RiveModule as any)?.default || (RiveModule as any)?.Rive || Object.values(RiveModule as any).find((v: any) => typeof v === 'function')
+import { Rive, RuntimeLoader } from '@rive-app/canvas'
+
+// Rive 默认从 CDN 拉 WASM；强制改为同源资源，兼容 fallback 也不得出站。
+// 必须在创建首个 Rive 实例前设置，RuntimeLoader 是进程级单例。
+RuntimeLoader.setWasmUrl('/riv/rive.wasm')
+RuntimeLoader.setWasmFallbackUrl('/riv/rive_fallback.wasm')
 
 const router = useRouter()
 const route = useRoute()
@@ -448,6 +448,7 @@ onMounted(() => {
       stateMachines: 'State Machine 1',
       autoplay: true,
       autoBind: true,
+      enableRiveAssetCDN: false,
       onLoad: () => {
         const doResize = () => {
           syncCanvasSize()
@@ -472,7 +473,7 @@ onMounted(() => {
         }
         updateStatus()
       },
-      onError: () => {
+      onLoadError: () => {
         riveReady = false
       },
     })

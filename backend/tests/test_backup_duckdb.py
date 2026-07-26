@@ -60,90 +60,72 @@ class TestBackupDuckdbSprint25:
         assert "fuqing_crm_2026-06-08_0300.duckdb" in matched_names
         assert "fuqing_crm_2026-06-08_0300.duckdb.zst" in matched_names
 
-    def test_compressed_corruption_reports_local_alert(self, tmp_path, monkeypatch):
-        """Case 2: zstd 压缩失败时, loud_fail 走 osascript + mail 本地告警 (Sprint 164 飞书解耦后).
-
-        Sprint 25 修复前: loud_fail 只用 osascript display notification (本机弹窗, 远程看不到) +
-                mail 发到 hutou@fuqing.local (本地 mail 可能不工作, 静默失败)
-        Sprint 25 修复后: _send_lark_alert 走 lark-cli webhook 私聊 (主通道) +
-                osascript + mail 保留作 fallback.
-        Sprint 164 飞书解耦: 删 lark 主通道, loud_fail 直接走 osascript + mail (不依赖飞书).
-
-        治根 (2026-06-17): 加 osascript subprocess.run mock 防 test 副作用.
-        """
+    def test_legacy_copy_mode_is_hard_disabled(self, tmp_path, monkeypatch, capsys):
+        """默认入口必须在创建目录、复制、压缩或告警前返回 2。"""
         from scripts.etl import backup_duckdb
-        import subprocess
 
-        # 准备假 DUCKDB_PATH + BACKUP_DIR (mock 真实路径, 隔离测试)
         fake_duckdb = tmp_path / "fake_crm.duckdb"
         fake_duckdb.write_bytes(b"x" * 100)
         monkeypatch.setattr(backup_duckdb, "DUCKDB_PATH", fake_duckdb)
         monkeypatch.setattr(backup_duckdb, "BACKUP_DIR", tmp_path / "backups")
-
-        # mock osascript + mail subprocess.run 防 macOS 通知 spam
-        subprocess_calls: list[tuple] = []
-
-        def mock_subprocess_run(*args, **kwargs):
-            subprocess_calls.append((args, kwargs))
-            return subprocess.CompletedProcess(args=args[0] if args else [], returncode=0, stdout="", stderr="")
-
-        monkeypatch.setattr(backup_duckdb.subprocess, "run", mock_subprocess_run)
-
-        # mock shutil.copy2 raise (模拟 copy / zstd 上游失败, 触发 loud_fail)
-        def mock_copy2_fail(*args, **kwargs):
-            raise IOError("disk full (Sprint 164 test mock)")
-
-        monkeypatch.setattr(backup_duckdb.shutil, "copy2", mock_copy2_fail)
-
-        # 跑 main(), 期望 exit 1 + osascript + mail fallback 各被调 1 次
-        exit_code = backup_duckdb.main()
-        assert exit_code == 1, f"期望 exit 1, 实际 {exit_code}"
-        # Sprint 164: 飞书解耦后, osascript + mail 直接调用 (替代 lark 主通道 + fallback 链)
-        osascript_calls = [c for c in subprocess_calls if c[0] and c[0][0] and "osascript" in str(c[0][0])]
-        assert len(osascript_calls) == 1, (
-            f"期望 osascript 被调 1 次, 实际 {len(osascript_calls)} 次: {osascript_calls}"
+        monkeypatch.setattr(
+            backup_duckdb.subprocess,
+            "run",
+            lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("legacy guard 不得启动 subprocess")
+            ),
         )
-        mail_calls = [c for c in subprocess_calls if c[0] and c[0][0] and "/usr/bin/mail" in str(c[0][0])]
-        assert len(mail_calls) == 1, (
-            f"期望 mail fallback 被调 1 次, 实际 {len(mail_calls)} 次"
-        )
-        # 验 osascript 通知内容含 FAILED + 错误原因
-        osascript_cmd = str(osascript_calls[0])
-        assert "FAILED" in osascript_cmd
-        assert "disk full" in osascript_cmd
 
-    def test_timestamped_filename_includes_hhmm(self):
-        """Case 3: backup_duckdb.py main() 文件名带 _{HHMM} 后缀, 真滚动不覆盖.
+        assert backup_duckdb.main() == 2
+        assert not (tmp_path / "backups").exists()
+        assert "REFUSED" in capsys.readouterr().out
 
-        修复前: backup_path = f"fuqing_crm_{TODAY}.duckdb" 每天同名覆盖,
-                cleanup_backups.sh 7 天清理伪命题 (实际只有 1 份历史).
-        修复后: backup_path = f"fuqing_crm_{TODAY}_{hhmm}.duckdb" 真滚动,
-                7 天保留 7 份不同时间戳的备份.
-        """
+    def test_main_contains_no_legacy_copy_or_compression(self):
+        """入口实现不得恢复整库 copy2 / zstd 路径。"""
         from scripts.etl import backup_duckdb
 
-        # 用 inspect 读 main() 源码验证关键修改点
         source = inspect.getsource(backup_duckdb.main)
+        assert "shutil.copy2(" not in source
+        assert "subprocess.run(" not in source
+        assert "compressed_path =" not in source
+        assert "if not verify_only" in source
 
-        # 验证文件名模板含 _{HHMM} 时间戳 (Sprint 25 关键改动)
-        assert 'f"fuqing_crm_{TODAY}_' in source, \
-            "修复未生效: backup_duckdb.py 文件名缺 _{HHMM} 后缀"
-        assert "hhmm" in source, "修复未生效: 缺 hhmm 变量"
+    def test_verify_only_lock_conflict_is_not_false_green(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """未实际打开数据库时必须返回非零，不能把锁冲突报告成验证成功。"""
+        from scripts.etl import backup_duckdb
 
-        # 验证 strftime 调 %H%M 格式 (e.g. "0330", "1430")
-        assert 'strftime("%H%M")' in source, "修复未生效: 缺 HHMM 时间格式"
+        lock_dir = tmp_path / "backup.lock.d"
+        lock_dir.mkdir()
+        monkeypatch.setattr(backup_duckdb, "LOCK_DIR", lock_dir)
 
-        # 验证导入 datetime (用于 hhmm 计算)
-        from datetime import datetime
-        # 实际跑一次生成, 验证格式正确
-        BJ_TZ = backup_duckdb.BJ_TZ
-        sample_dt = datetime(2026, 6, 16, 3, 30, tzinfo=BJ_TZ)
-        sample_hhmm = sample_dt.strftime("%H%M")
-        assert sample_hhmm == "0330", f"HHMM 格式错: {sample_hhmm}"
+        assert backup_duckdb.main(verify_only=True) == 1
+        output = capsys.readouterr().out
+        assert "verify-only did not run" in output
+        assert lock_dir.exists()
 
-        # 注: 不做"反向验证修复前模式不存在"严格检查, 因为 compressed_path
-        # 用 backup_path.with_suffix(".duckdb.zst") 仍会展开 f"fuqing_crm_{TODAY}_{hhmm}.duckdb"
-        # 子串, 误报率高. 改"正向验证修复后模式存在" 即可.
+    def test_verify_only_rejects_empty_orders_table(
+        self, tmp_path, monkeypatch
+    ):
+        """文件可打开但没有业务数据时，生产 sanity check 必须返回非零。"""
+        import duckdb
+
+        from scripts.etl import backup_duckdb
+
+        empty_db = tmp_path / "empty.duckdb"
+        conn = duckdb.connect(str(empty_db))
+        conn.execute("CREATE TABLE orders (pay_time TIMESTAMP)")
+        conn.close()
+
+        failures: list[str] = []
+        monkeypatch.setattr(backup_duckdb, "DUCKDB_PATH", empty_db)
+        monkeypatch.setattr(backup_duckdb, "LOCK_DIR", tmp_path / "backup.lock.d")
+        monkeypatch.setattr(backup_duckdb, "loud_fail", failures.append)
+
+        assert backup_duckdb.main(verify_only=True) == 1
+        assert failures
+        assert "non-empty rows" in failures[0]
 
 
 class TestBackupDuckdbSprint625Retention:

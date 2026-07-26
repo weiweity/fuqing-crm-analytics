@@ -12,8 +12,8 @@
 
 - [x] **Require a pull request before merging**（禁止直推 main）
 - [x] **Require status checks to pass**  
-  - 建议 required：`lint`、`test`、`contract-filterbuilder-lint`  
-  - 可选（稳定后）：`frontend`、`dependency-audit`  
+  - required：`lint`、`test`、`ground-truth-lint`、`contract-filterbuilder-lint`
+  - required：`frontend`、`dependency-audit`、`docker-smoke`
   - **不要**把 optional e2e-smoke 设为 required（门禁分层：不挡 PR merge）
 - [ ] **Require branches to be up to date before merging**（按团队节奏）
 - [ ] **Do not allow bypassing the above settings**（管理员也尽量不绕过）
@@ -30,6 +30,8 @@
 
 - [x] **Settings → Actions → General → Workflow permissions** = **Read repository contents and packages permissions**
 - [x] 取消 **Allow GitHub Actions to create and approve pull requests**（除非 Dependabot 明确需要）
+- [x] 仅允许 GitHub-owned Actions
+- [x] 强制所有 Action 使用 40 位 commit SHA
 - [ ] Fork PR 的 secrets 策略：保持默认不向 fork 暴露 secrets
 
 代码侧已设：
@@ -45,7 +47,7 @@ persist-credentials: false
 
 - [x] **Settings → Code security → Dependabot alerts** 开启
 - [x] **Dependabot security updates** 开启
-- [ ] （可选）提交 `.github/dependabot.yml`：`pip` + `npm` + `github-actions` 周更  
+- [x] 已提交 `.github/dependabot.yml`：`pip` + `npm` + `github-actions` 周更
   - 注意：DuckDB / 大 major 需人工 review，勿全自动 merge
 
 ## 5. Secret scanning & push protection
@@ -88,9 +90,8 @@ gh api repos/weiweity/fuqing-crm-analytics/vulnerability-alerts -i || true
 
 | 门禁 | 触发 | 挡 merge？ |
 |------|------|------------|
-| `lint` / `test` / `contract-filterbuilder-lint` | PR + main | 应设为 required |
-| `frontend` | 同上 | 建议 required（稳定后） |
-| `dependency-audit` / `docker-smoke` | 同上 | 先 soft（continue-on-error） |
+| `lint` / `test` / `ground-truth-lint` / `contract-filterbuilder-lint` | PR + main | required |
+| `frontend` / `dependency-audit` / `docker-smoke` | 同上 | required |
 | `e2e-smoke` | schedule / dispatch | **不**挡 PR |
 | Nightly / Weekly | schedule | 不挡 PR |
 
@@ -98,6 +99,6 @@ gh api repos/weiweity/fuqing-crm-analytics/vulnerability-alerts -i || true
 
 ## 状态更新 (2026-07-26)
 
-已通过 API 启用：main branch protection（PR + required checks `lint`/`test`/`ground-truth-lint`、禁止强推/删除、enforce_admins）、secret scanning + push protection、Dependabot alerts/security updates、delete_branch_on_merge、Actions workflow permissions=read。
+已通过 API 启用：main branch protection（PR + 7 个 required checks、禁止强推/删除、enforce_admins）、secret scanning + push protection、Dependabot alerts/security updates、delete_branch_on_merge、Actions workflow permissions=read。
 
-代码侧：`.github/dependabot.yml` 周更（pip/npm/github-actions）。
+代码侧：`.github/dependabot.yml` 周更（pip/npm/github-actions）；Actions 仅 GitHub-owned 且强制完整 SHA。

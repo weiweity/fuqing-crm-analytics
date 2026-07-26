@@ -42,10 +42,10 @@ PR3 (ops-temp-safety): Mac launchd plist for 芙清临时文件安全清理 (Lay
     <integer>3600</integer>
 
     <key>StandardOutPath</key>
-    <string>/tmp/fuqing-subagent-cleanup.log</string>
+    <string>/Users/hutou/Library/Logs/fuqing-subagent-cleanup.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/fuqing-subagent-cleanup.log</string>
+    <string>/Users/hutou/Library/Logs/fuqing-subagent-cleanup.log</string>
 
     <key>RunAtLoad</key>
     <true/>

@@ -1,11 +1,14 @@
 """
 e2e smoke 环境配置契约 (Sprint 63 治根 → 2026-07-19 迁到 e2e-smoke.yml).
 
-PR 默认 lint.yml 不再含 e2e；schema_test / seed / TEST_MODE 锁在可选 smoke workflow。
+PR 默认 lint.yml 不跑浏览器 e2e；schema_test / TEST_MODE 锁在可选 smoke workflow。
+docker-smoke 可使用同一个微型 seed 脚本启动真实容器，但不得运行 Playwright。
 """
 from __future__ import annotations
 
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).parent.parent.parent
 SMOKE_YML = ROOT / ".github" / "workflows" / "e2e-smoke.yml"
@@ -43,7 +46,24 @@ def test_e2e_smoke_sets_fq_crm_test_mode():
 
 
 def test_pr_lint_yml_has_no_e2e_fixture_paths():
-    """回归: lint.yml 不得再挂 e2e seed / playwright 全量路径."""
+    """PR CI 不跑 Playwright；微型 seed 只能出现在 docker-smoke job."""
     text = LINT_YML.read_text(encoding="utf-8")
-    assert "seed_e2e_duckdb.py" not in text
     assert "playwright test" not in text
+    assert "npx playwright" not in text
+
+    workflow = yaml.safe_load(text)
+    jobs = workflow["jobs"]
+
+    def run_text(job_name: str) -> str:
+        return "\n".join(
+            str(step.get("run", ""))
+            for step in jobs[job_name].get("steps", [])
+            if isinstance(step, dict)
+        )
+
+    for job_name in ("lint", "test", "frontend"):
+        assert "seed_e2e_duckdb.py" not in run_text(job_name)
+
+    docker_smoke = run_text("docker-smoke")
+    assert "scripts/ci/seed_e2e_duckdb.py" in docker_smoke
+    assert "playwright" not in docker_smoke.lower()

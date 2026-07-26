@@ -85,7 +85,7 @@ sandbox-exec: sandbox_apply: Operation not permitted
 
 1. `unset DUCKDB_PATH`（避免继承 e2e_schema 这种空库 env，强制走 `backend/config.py` 默认绝对路径）
 2. 设 `HEALTH_API_KEY`（Sprint 53.5 修复 uvicorn 启动 RuntimeError）
-3. 设 `FQ_CRM_PASSWORDS=admin:123456`（默认 admin 密码）
+3. 设 `FQ_CRM_PASSWORDS=admin:<strong-random-password>`（真实值仅保存在部署主机）
 4. 设 `ETL_MIN_DISK_GB=0`（关闭 ETL 磁盘门槛，CI runner 也能跑）
 5. exec `python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000`
 

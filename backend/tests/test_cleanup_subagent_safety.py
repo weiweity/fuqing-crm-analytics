@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -263,6 +264,57 @@ class TestDefaultDryRun:
         assert result["candidates_scanned"] >= 1
         assert result["deleted_count"] == 0
         assert big.exists()
+
+
+class TestPrivateLogging:
+    def test_internal_log_is_forced_to_mode_0600(self, priv_tmp):
+        from scripts.etl import cleanup_subagent
+
+        log_path = priv_tmp / "fuqing-subagent-cleanup.log"
+        log_path.write_text("old\n", encoding="utf-8")
+        log_path.chmod(0o644)
+
+        cleanup_subagent._log("security mode check")
+
+        assert stat.S_IMODE(log_path.stat().st_mode) == 0o600
+
+    def test_private_dir_failure_does_not_fall_back_to_global_tmp(self):
+        from scripts.etl import cleanup_subagent
+
+        with patch.object(
+            cleanup_subagent,
+            "get_private_tmp_dir",
+            side_effect=RuntimeError("private dir unavailable"),
+        ):
+            with patch.object(cleanup_subagent.os, "open") as open_mock:
+                assert cleanup_subagent._log_path() is None
+                cleanup_subagent._log("must not escape private dir")
+
+        open_mock.assert_not_called()
+
+    def test_internal_log_does_not_follow_symlink(self, priv_tmp, tmp_path):
+        from scripts.etl import cleanup_subagent
+
+        target = tmp_path / "log-target.txt"
+        target.write_text("unchanged\n", encoding="utf-8")
+        log_path = priv_tmp / "fuqing-subagent-cleanup.log"
+        log_path.symlink_to(target)
+
+        cleanup_subagent._log("must not reach target")
+
+        assert log_path.is_symlink()
+        assert target.read_text(encoding="utf-8") == "unchanged\n"
+
+    def test_launchd_output_is_not_written_to_global_tmp(self):
+        plist = (
+            ROOT
+            / "scripts"
+            / "etl"
+            / "launchd"
+            / "com.fuqing.tmp-cleanup.hourly.plist"
+        ).read_text(encoding="utf-8")
+        assert "/tmp/fuqing-subagent-cleanup.log" not in plist
+        assert "/Users/hutou/Library/Logs/fuqing-subagent-cleanup.log" in plist
 
 
 class TestHardlinkAndUid:

@@ -1,18 +1,12 @@
-"""Sprint 31.1 — dq_monitor tracker integration 测试
+"""DQ monitor read-only 直连与报告/告警回归测试.
 
-Phase 2 行为:
-  - tmp_db 切到 fuqing_dq_monitor_<pid>_<ts>.duckdb 命名 (从 mkstemp 改)
-  - tracker.register 在 shutil.copy2 之后
-  - tracker.remove 在 finally 块 (无论 os.unlink 成功与否)
-  - 软失败: tracker 任何错误不阻塞 dq
-
-注: dq_monitor.main() 走 argparse 默认读 sys.argv, 测试需要 monkeypatch
-sys.argv 避免 pytest 的 -v 等参数撞到 dq 的 parser.
-
-注 2: dq_monitor 的 tmp_db 路径 hardcoded /tmp/fuqing_dq_monitor_* (生产 /tmp).
-测试不验证 tracker DB state (per-test 隔离 DB 跟 production /tmp 不交叉),
-只验证核心行为: 路径是 fuqing_* 命名 + 不 crash + finally 块执行.
+安全契约:
+  - 禁止复制生产 DuckDB 到 /tmp
+  - 只用 ``read_only=True`` 直连生产路径
+  - 连接失败明确返回维护窗口建议，不写快照/报告、不发业务 DQ 告警
+  - 查询成功或异常时都关闭连接
 """
+import json
 import sys
 from pathlib import Path
 
@@ -35,6 +29,9 @@ class _StubResult:
 class _StubConn:
     """模拟 duckdb connection — 不真连 DB."""
 
+    def __init__(self):
+        self.closed = False
+
     def execute(self, sql, params=None):
         if "COUNT(*)" in sql and "orders" in sql and "is_member" not in sql:
             return _StubResult([(100,)])
@@ -47,103 +44,164 @@ class _StubConn:
         return _StubResult([(0,)])
 
     def close(self):
-        pass
+        self.closed = True
 
 
-class TestDqMonitorTracker:
-    """dq_monitor 切到 fuqing_* 命名 + tracker 集成."""
+class TestDqMonitorReadOnlyConnection:
+    """DQ monitor 不产生临时整库副本，并正确处理连接生命周期."""
 
-    def test_dq_monitor_uses_fuqing_named_path(self, tmp_path, monkeypatch):
-        """Sprint 31.1: tmp_db 路径应是 fuqing_dq_monitor_<pid>_<ts>.duckdb 形式."""
+    def test_main_connects_prod_read_only_without_temp_copy(self, tmp_path, monkeypatch):
+        """成功路径只直连原库，禁止调用 copy2，并关闭连接."""
         from scripts.etl import dq_monitor
 
-        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake_prod.duckdb")
-        (tmp_path / "fake_prod.duckdb").write_bytes(b"x" * 100)
-        # dq_monitor.main() 走 argparse 默认读 sys.argv, pytest -v 会撞到 --alert/--report 之外的 args
+        prod_db = tmp_path / "fake_prod.duckdb"
+        prod_db.write_bytes(b"production-sentinel")
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", prod_db)
+        monkeypatch.setattr(dq_monitor, "SNAPSHOT_PATH", tmp_path / "dq_snapshot.json")
         monkeypatch.setattr(sys, "argv", ["dq_monitor"])
 
-        captured_paths = []
+        def forbid_copy(*args, **kwargs):
+            raise AssertionError("DQ monitor 禁止复制生产 DuckDB")
 
-        real_copy2 = dq_monitor.shutil.copy2
-        real_unlink = dq_monitor.os.unlink
+        monkeypatch.setattr(dq_monitor.shutil, "copy2", forbid_copy)
+        expected_result = {
+            "timestamp": "2026-07-26T12:00:00+08:00",
+            "checks": {
+                "orders_count": {"current": 100, "passed": True, "detail": "正常"},
+                "member_ratio": {"current": 0.5, "passed": True, "detail": "正常"},
+            },
+            "all_passed": True,
+        }
+        monkeypatch.setattr(dq_monitor, "run_checks", lambda conn: expected_result)
 
-        def fake_copy2(src, dst):
-            captured_paths.append(("copy2_dst", dst))
-            return real_copy2(src, dst)
-
-        def fake_unlink(path):
-            captured_paths.append(("unlink_src", path))
-            return real_unlink(path)
-
-        monkeypatch.setattr(dq_monitor.shutil, "copy2", fake_copy2)
-        monkeypatch.setattr(dq_monitor.os, "unlink", fake_unlink)
+        conn = _StubConn()
+        connect_calls = []
         import duckdb
-        monkeypatch.setattr(duckdb, "connect", lambda *a, **kw: _StubConn())
 
-        dq_monitor.main()
+        def fake_connect(path, **kwargs):
+            connect_calls.append((path, kwargs))
+            return conn
 
-        copy2_calls = [p for action, p in captured_paths if action == "copy2_dst"]
-        assert len(copy2_calls) == 1
-        assert "/fuqing_dq_monitor_" in copy2_calls[0], (
-            f"tmp_db 路径应是 fuqing_dq_monitor_*, 实际 {copy2_calls[0]}"
+        monkeypatch.setattr(duckdb, "connect", fake_connect)
+
+        assert dq_monitor.main() == 0
+        assert connect_calls == [(str(prod_db), {"read_only": True})]
+        assert conn.closed is True
+        assert prod_db.read_bytes() == b"production-sentinel"
+        assert not any(path.name.startswith("fuqing_dq_monitor_") for path in tmp_path.iterdir())
+
+    def test_connection_lock_fails_with_maintenance_advice(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """写锁冲突时返回结构化失败，不复制、不写报告/快照、不告警."""
+        from scripts.etl import dq_monitor
+
+        prod_db = tmp_path / "fake_prod.duckdb"
+        prod_db.write_bytes(b"production-sentinel")
+        report_dir = tmp_path / "processed"
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", prod_db)
+        monkeypatch.setattr(dq_monitor, "PROCESSED_DATA_DIR", report_dir)
+        monkeypatch.setattr(dq_monitor, "SNAPSHOT_PATH", report_dir / "dq_snapshot.json")
+        monkeypatch.setattr(sys, "argv", ["dq_monitor", "--report", "--alert"])
+
+        def forbid_copy(*args, **kwargs):
+            raise AssertionError("连接失败时也禁止复制生产 DuckDB")
+
+        monkeypatch.setattr(dq_monitor.shutil, "copy2", forbid_copy)
+        alert_calls = []
+        monkeypatch.setattr(
+            dq_monitor,
+            "send_lark_alert",
+            lambda content: alert_calls.append(content),
         )
-        assert copy2_calls[0].endswith(".duckdb")
-
-    def test_dq_monitor_does_not_crash_on_tracker_error(self, tmp_path, monkeypatch):
-        """tracker 不可用 → dq_monitor 仍能正常跑 (软失败不阻塞)."""
-        from scripts.etl import dq_monitor
-        from scripts.etl.common import tmp_tracker as tmp_tracker_mod
-
-        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake_prod.duckdb")
-        (tmp_path / "fake_prod.duckdb").write_bytes(b"x" * 100)
-        monkeypatch.setattr(sys, "argv", ["dq_monitor"])
-
-        # 强制 TrackerDB 不可用
-        class _BadTracker:
-            def __init__(self, *a, **kw):
-                pass
-            def is_available(self):
-                return False
-            def register(self, *a, **kw):
-                pass
-            def remove(self, *a, **kw):
-                pass
-
-        monkeypatch.setattr(tmp_tracker_mod, "TrackerDB", _BadTracker)
         import duckdb
-        monkeypatch.setattr(duckdb, "connect", lambda *a, **kw: _StubConn())
 
-        # 必须不 raise
-        dq_monitor.main()
+        def locked_connect(*args, **kwargs):
+            raise RuntimeError("Could not set lock on file: conflicting lock is held")
 
-    def test_dq_monitor_finally_runs_on_crash(self, tmp_path, monkeypatch):
-        """duckdb.connect 失败 → main() raise, 但 finally 块仍应执行 (os.unlink)."""
+        monkeypatch.setattr(duckdb, "connect", locked_connect)
+
+        assert dq_monitor.main() == 1
+        captured = capsys.readouterr()
+        payload = json.loads(captured.out)
+        assert payload["error"] == "database unavailable"
+        assert payload["reason"] == "read_only connection failed"
+        assert "维护窗口" in payload["advice"]
+        assert "不会复制生产库" in payload["advice"]
+        assert alert_calls == []
+        assert not (report_dir / "dq_report.json").exists()
+        assert not (report_dir / "dq_snapshot.json").exists()
+        assert prod_db.read_bytes() == b"production-sentinel"
+
+    def test_connection_closes_when_checks_raise(self, tmp_path, monkeypatch):
+        """查询阶段抛错也必须通过 finally 关闭 read-only 连接."""
         from scripts.etl import dq_monitor
 
-        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", tmp_path / "fake_prod.duckdb")
-        (tmp_path / "fake_prod.duckdb").write_bytes(b"x" * 100)
+        prod_db = tmp_path / "fake_prod.duckdb"
+        prod_db.write_bytes(b"production-sentinel")
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", prod_db)
         monkeypatch.setattr(sys, "argv", ["dq_monitor"])
 
-        unlink_called = []
-
-        real_unlink = dq_monitor.os.unlink
-        def fake_unlink(path):
-            unlink_called.append(path)
-            return real_unlink(path)
-
-        monkeypatch.setattr(dq_monitor.os, "unlink", fake_unlink)
+        conn = _StubConn()
         import duckdb
-        def failing_connect(*a, **kw):
-            raise RuntimeError("simulated crash after copy2")
-        monkeypatch.setattr(duckdb, "connect", failing_connect)
 
-        with pytest.raises(RuntimeError, match="simulated crash"):
+        monkeypatch.setattr(duckdb, "connect", lambda *args, **kwargs: conn)
+
+        def failing_checks(_conn):
+            raise RuntimeError("simulated query failure")
+
+        monkeypatch.setattr(dq_monitor, "run_checks", failing_checks)
+
+        with pytest.raises(RuntimeError, match="simulated query failure"):
             dq_monitor.main()
 
-        # finally 块应触发, os.unlink(tmp_db) 被调
-        assert any("/fuqing_dq_monitor_" in p for p in unlink_called), (
-            f"finally 块应调 unlink(fuqing_dq_monitor_*), 实际 unlinks={unlink_called}"
-        )
+        assert conn.closed is True
+        assert prod_db.read_bytes() == b"production-sentinel"
+
+    def test_report_and_alert_behavior_is_preserved(self, tmp_path, monkeypatch):
+        """成功连接后，失败检查仍写报告、保存快照并触发既有告警流程."""
+        from scripts.etl import dq_monitor
+
+        prod_db = tmp_path / "fake_prod.duckdb"
+        prod_db.write_bytes(b"production-sentinel")
+        report_dir = tmp_path / "processed"
+        monkeypatch.setattr(dq_monitor, "DUCKDB_PATH", prod_db)
+        monkeypatch.setattr(dq_monitor, "PROCESSED_DATA_DIR", report_dir)
+        monkeypatch.setattr(dq_monitor, "SNAPSHOT_PATH", report_dir / "dq_snapshot.json")
+        monkeypatch.setattr(sys, "argv", ["dq_monitor", "--report", "--alert"])
+
+        failed_result = {
+            "timestamp": "2026-07-26T12:00:00+08:00",
+            "checks": {
+                "orders_count": {"current": 100, "passed": True, "detail": "正常"},
+                "member_ratio": {"current": 0.5, "passed": True, "detail": "正常"},
+                "gsv_nonzero": {"current": 0, "passed": False, "detail": "今日 GSV 为 0"},
+            },
+            "all_passed": False,
+        }
+        monkeypatch.setattr(dq_monitor, "run_checks", lambda conn: failed_result)
+
+        conn = _StubConn()
+        import duckdb
+
+        monkeypatch.setattr(duckdb, "connect", lambda *args, **kwargs: conn)
+        alert_calls = []
+
+        def fake_alert(content):
+            alert_calls.append(content)
+            return True, "test"
+
+        monkeypatch.setattr(dq_monitor, "send_lark_alert", fake_alert)
+
+        assert dq_monitor.main() == 2
+        assert conn.closed is True
+        assert json.loads((report_dir / "dq_report.json").read_text()) == failed_result
+        snapshot = json.loads((report_dir / "dq_snapshot.json").read_text())
+        assert snapshot["orders_count"] == 100
+        assert snapshot["member_ratio"] == 0.5
+        assert len(alert_calls) == 1
+        assert "gsv_nonzero" in alert_calls[0]
+        assert "今日 GSV 为 0" in alert_calls[0]
 
 
 class TestDqMonitorDiskAndGrowth:

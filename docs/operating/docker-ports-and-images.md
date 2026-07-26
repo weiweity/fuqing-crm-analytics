@@ -6,13 +6,20 @@
 |------|------|------|------|
 | **本地 dev（非 Docker）** | `8000` | Vite `5173` | README 默认：`uvicorn --port 8000` |
 | **Compose 容器内** | uvicorn **`8001`** | nginx **`8080`** | `scripts/docker-entrypoint.sh` / `nginx.conf` |
-| **Compose 宿主映射** | `8000:8001` | `5173:8080` | 宿主仍用 8000/5173 访问 |
+| **Compose 宿主映射** | `127.0.0.1:8000:8001` | `127.0.0.1:5173:8080` | 默认仅本机可访问 |
 | **健康检查** | `GET /api/v1/health` @ `127.0.0.1:8001` | — | **不是** `/health`，**不是** curl |
 
 历史 bug（已修）：
 
 - compose 曾 `8000:8000` 但 entrypoint 听 `8001` → 映射错位
 - healthcheck 曾 `curl .../health`：slim 无 curl + 路径错误
+- 数据库路径曾写成 `fuqing.duckdb`，与真实 `fuqing_crm.duckdb` 漂移
+
+容器内数据库路径统一为：
+
+```text
+/app/data/processed/fuqing_crm.duckdb
+```
 
 ## 2. Workers 默认 1
 
@@ -83,6 +90,7 @@ FROM python:3.13.5-slim-bookworm@sha256:<digest>
 - 多阶段：`npm run build` → 拷贝 `dist` 到 **nginx-unprivileged**
 - **禁止**生产入口使用 `vite preview`（仅本地 `npm run preview` 可选）
 - API 反代：`nginx.conf` → `http://backend:8001`
+- nginx 将 `X-Forwarded-For` **覆盖**为直接客户端地址；backend 只信任 compose 网段/loopback，由 Uvicorn `--forwarded-allow-ips` 解析
 
 ## 7. 冒烟
 
@@ -93,4 +101,11 @@ curl -sS http://localhost:8000/api/v1/health
 # 前端静态: http://localhost:5173
 ```
 
-**禁止**：为冒烟复制 131GB 生产 DuckDB；使用空库或 seed 夹具即可。
+CI `docker-smoke` 必须：
+
+1. 用 `scripts/ci/seed_e2e_duckdb.py` 生成微型 DuckDB；
+2. 真正启动 backend/frontend 容器；
+3. 检查 backend health、前端 HTTP 与强制 CSP；
+4. 结束后清理本次 compose 资源。
+
+**禁止**：为冒烟复制或挂载生产 DuckDB。

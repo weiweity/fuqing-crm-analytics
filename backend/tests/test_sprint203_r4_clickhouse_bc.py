@@ -1,8 +1,9 @@
 """Sprint 203 R4 ClickHouse POC monitor b/c 件真接入锁回归 (L4.59 + L4.40 + L4.60 + L4.61 永久规则化)
 
-- 验证 _check_trigger_a/b/c 3 件启动条件阈值判断 (a 走 Path.stat, b 走 /metrics parse, c 走 /api/v1/health/pool)
+- 验证 _check_trigger_a/b/c 3 件启动条件阈值判断 (a 走 Path.stat, b/c 走 admin Bearer health endpoint)
 - 验证 urllib HTTP fetch + 3s timeout fail-open (跟 L4.40 post-merge hook 1:1 stable)
 - 验证 Prometheus bucket parse 推 P95 正确 (跨 endpoint/query_type 维度加总)
+- 验证管理员凭据缺失/401/403 明确 fail-closed，且日志不泄露密码/token
 - 验证 Linux CI runner skip (跟 L4.61 跨 sprint 监控 1:1 stable)
 
 L4.60 跨平台: REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +18,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]  # L4.60 跨平台
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import scripts.ops.clickhouse_poc_monitor as cpm  # noqa: E402
+
+AUTHORIZATION = "Bearer unit-test-token"
 
 
 # === (a) DuckDB size trigger tests (跟 Sprint 203 R2 1:1 stable) ===
@@ -58,7 +61,7 @@ def test_check_trigger_b_p95_above_threshold() -> None:
         'fq_query_duration_seconds_count{endpoint="/api/v1/test",query_type="type_a"} 100\n'
     )
     with patch.object(cpm, "_fetch_url_text", return_value=fake_metrics):
-        msg = cpm._check_trigger_b()
+        msg = cpm._check_trigger_b(AUTHORIZATION)
     assert msg is not None
     assert "(b)" in msg
     assert "P95" in msg
@@ -78,21 +81,21 @@ def test_check_trigger_b_p95_below_threshold() -> None:
         'fq_query_duration_seconds_count{endpoint="/api/v1/test",query_type="type_a"} 100\n'
     )
     with patch.object(cpm, "_fetch_url_text", return_value=fake_metrics):
-        msg = cpm._check_trigger_b()
+        msg = cpm._check_trigger_b(AUTHORIZATION)
     assert msg is None
 
 
 def test_check_trigger_b_http_fail_open() -> None:
     """R4: HTTP fetch fail → None (L4.40 fail-open)."""
     with patch.object(cpm, "_fetch_url_text", return_value=None):
-        msg = cpm._check_trigger_b()
+        msg = cpm._check_trigger_b(AUTHORIZATION)
     assert msg is None
 
 
 def test_check_trigger_b_no_histogram_data() -> None:
     """R4: /metrics 没 histogram → None."""
     with patch.object(cpm, "_fetch_url_text", return_value="# no metric data\n"):
-        msg = cpm._check_trigger_b()
+        msg = cpm._check_trigger_b(AUTHORIZATION)
     assert msg is None
 
 
@@ -115,12 +118,17 @@ def test_parse_query_p95_aggregate_multi_dimension() -> None:
         'fq_query_duration_seconds_bucket{endpoint="B",query_type="t2",le="30.0"} 50\n'
         'fq_query_duration_seconds_bucket{endpoint="B",query_type="t2",le="+Inf"} 50\n'
     )
-    with patch.object(cpm, "_fetch_url_text", return_value=fake_metrics):
-        p95 = cpm._parse_query_p95()
+    with patch.object(cpm, "_fetch_url_text", return_value=fake_metrics) as fetch:
+        p95 = cpm._parse_query_p95(AUTHORIZATION)
     # total = 100, 0.95*100 = 95
     # cumulative per le (跨 A+B 加总): 0.5=15, 1.0=30, 10.0=50, 30.0=90, 60.0=100
     # 找 cumulative >= 95 → 60.0
     assert p95 == 60.0
+    fetch.assert_called_once_with(
+        f"{cpm.BACKEND_URL}/api/v1/health/metrics",
+        authorization=AUTHORIZATION,
+        require_admin=True,
+    )
 
 
 # === (c) Pool semaphore trigger tests (Sprint 203 R4 真接入) ===
@@ -134,7 +142,7 @@ def test_check_trigger_c_pool_above_threshold() -> None:
         "utilization_pct": 70.0,
     }
     with patch.object(cpm, "_fetch_url_json", return_value=fake_pool):
-        msg = cpm._check_trigger_c()
+        msg = cpm._check_trigger_c(AUTHORIZATION)
     assert msg is not None
     assert "(c)" in msg
     assert "Read pool in use 7" in msg
@@ -149,31 +157,214 @@ def test_check_trigger_c_pool_below_threshold() -> None:
         "utilization_pct": 30.0,
     }
     with patch.object(cpm, "_fetch_url_json", return_value=fake_pool):
-        msg = cpm._check_trigger_c()
+        msg = cpm._check_trigger_c(AUTHORIZATION)
     assert msg is None
 
 
 def test_check_trigger_c_pool_http_fail_open() -> None:
     """R4: HTTP fetch fail → None (L4.40 fail-open)."""
     with patch.object(cpm, "_fetch_url_json", return_value=None):
-        msg = cpm._check_trigger_c()
+        msg = cpm._check_trigger_c(AUTHORIZATION)
     assert msg is None
 
 
 def test_get_pool_in_use_parse_correctly() -> None:
     """R4: _get_pool_in_use 正确 parse semaphore_in_use 字段."""
     fake_pool = {"status": "ok", "semaphore_in_use": 4}
-    with patch.object(cpm, "_fetch_url_json", return_value=fake_pool):
-        result = cpm._get_pool_in_use()
+    with patch.object(cpm, "_fetch_url_json", return_value=fake_pool) as fetch:
+        result = cpm._get_pool_in_use(AUTHORIZATION)
     assert result == 4
+    fetch.assert_called_once_with(
+        f"{cpm.BACKEND_URL}/api/v1/health/pool",
+        authorization=AUTHORIZATION,
+        require_admin=True,
+    )
 
 
 def test_get_pool_in_use_missing_key() -> None:
     """R4: response 缺 semaphore_in_use 字段 → 视作 0 (default)."""
     fake_pool = {"status": "ok"}
     with patch.object(cpm, "_fetch_url_json", return_value=fake_pool):
-        result = cpm._get_pool_in_use()
+        result = cpm._get_pool_in_use(AUTHORIZATION)
     assert result == 0
+
+
+# === 管理员鉴权回归 ===
+
+def test_select_dedicated_admin_credentials() -> None:
+    config = {
+        "FQ_CRM_ADMINS": "admin,monitor",
+        "FQ_CRM_PASSWORDS": "admin:shared-password,monitor:monitor-password",
+        "FQ_POC_MONITOR_ADMIN_USERNAME": "monitor",
+        "FQ_POC_MONITOR_DEDICATED_ACCOUNT": "monitor",
+    }
+    with patch.object(cpm, "_runtime_config", return_value=config):
+        assert cpm._select_monitor_admin_credentials() == (
+            "monitor",
+            "monitor-password",
+        )
+
+
+def test_select_admin_credentials_requires_explicit_dedicated_user(capsys) -> None:
+    config = {
+        "FQ_CRM_ADMINS": "admin",
+        "FQ_CRM_PASSWORDS": "admin:shared-password",
+    }
+    with patch.object(cpm, "_runtime_config", return_value=config):
+        assert cpm._select_monitor_admin_credentials() is None
+    assert "AUTH_CONFIG_ERROR" in capsys.readouterr().err
+
+
+def test_select_admin_credentials_requires_dedicated_confirmation(capsys) -> None:
+    config = {
+        "FQ_CRM_ADMINS": "admin",
+        "FQ_CRM_PASSWORDS": "admin:shared-password",
+        "FQ_POC_MONITOR_ADMIN_USERNAME": "admin",
+    }
+    with patch.object(cpm, "_runtime_config", return_value=config):
+        assert cpm._select_monitor_admin_credentials() is None
+    assert "FQ_POC_MONITOR_DEDICATED_ACCOUNT" in capsys.readouterr().err
+
+
+def test_dedicated_confirmation_is_bound_to_selected_username(capsys) -> None:
+    config = {
+        "FQ_CRM_ADMINS": "admin,monitor",
+        "FQ_CRM_PASSWORDS": "admin:shared-password,monitor:monitor-password",
+        "FQ_POC_MONITOR_ADMIN_USERNAME": "admin",
+        "FQ_POC_MONITOR_DEDICATED_ACCOUNT": "monitor",
+    }
+    with patch.object(cpm, "_runtime_config", return_value=config):
+        assert cpm._select_monitor_admin_credentials() is None
+    assert "same username" in capsys.readouterr().err
+
+
+def test_admin_login_uses_post_body_and_returns_bearer() -> None:
+    with (
+        patch.object(
+            cpm,
+            "_select_monitor_admin_credentials",
+            return_value=("monitor", "monitor-password"),
+        ),
+        patch.object(
+            cpm,
+            "_fetch_url_text",
+            return_value='{"token":"fresh-token","username":"monitor","is_admin":true}',
+        ) as fetch,
+    ):
+        authorization = cpm._get_monitor_authorization()
+
+    assert authorization == "Bearer fresh-token"
+    args, kwargs = fetch.call_args
+    assert args == (f"{cpm.BACKEND_URL}/api/v1/auth/login",)
+    assert kwargs["method"] == "POST"
+    assert b"monitor-password" in kwargs["body"]
+    assert "monitor-password" not in args[0]
+
+
+def test_admin_login_failure_does_not_log_secret(capsys) -> None:
+    secret = "do-not-log-this-password"
+    with (
+        patch.object(
+            cpm,
+            "_select_monitor_admin_credentials",
+            return_value=("monitor", secret),
+        ),
+        patch.object(cpm, "_fetch_url_text", return_value=None),
+    ):
+        assert cpm._get_monitor_authorization() is None
+    assert secret not in capsys.readouterr().err
+
+
+def test_logout_uses_bearer_without_invalid_empty_json_body() -> None:
+    with patch.object(cpm, "_fetch_url_text") as fetch:
+        cpm._logout_monitor_token(AUTHORIZATION)
+
+    fetch.assert_called_once_with(
+        f"{cpm.BACKEND_URL}/api/v1/auth/logout",
+        authorization=AUTHORIZATION,
+        method="POST",
+    )
+
+
+def test_admin_endpoint_rejection_fails_closed() -> None:
+    error = cpm.urllib.error.HTTPError(
+        url=f"{cpm.BACKEND_URL}/api/v1/health/metrics",
+        code=401,
+        msg="Unauthorized",
+        hdrs=None,
+        fp=None,
+    )
+    with patch("urllib.request.urlopen", side_effect=error):
+        try:
+            cpm._fetch_url_text(
+                f"{cpm.BACKEND_URL}/api/v1/health/metrics",
+                authorization=AUTHORIZATION,
+                require_admin=True,
+            )
+        except cpm.MonitorAuthError:
+            pass
+        else:
+            raise AssertionError("401 admin endpoint response must fail closed")
+
+
+def test_main_missing_admin_credentials_fails_closed(tmp_path, capsys) -> None:
+    with (
+        patch.object(cpm.sys, "platform", "darwin"),
+        patch.object(cpm, "LOG_FILE", tmp_path / "monitor.log"),
+        patch.object(cpm, "_duckdb_size_gb", return_value=100.0),
+        patch.object(cpm, "_get_monitor_authorization", return_value=None),
+    ):
+        result = cpm.main()
+
+    captured = capsys.readouterr()
+    assert result == 2
+    assert "AUTH_FAILURE" in captured.err
+    assert "CLICKHOUSE_POC_MONITOR_PASS" not in captured.out
+
+
+def test_main_records_size_trigger_before_auth_failure(
+    tmp_path, capsys
+) -> None:
+    with (
+        patch.object(cpm.sys, "platform", "darwin"),
+        patch.object(cpm, "LOG_FILE", tmp_path / "monitor.log"),
+        patch.object(cpm, "_duckdb_size_gb", return_value=201.0),
+        patch.object(cpm, "_get_monitor_authorization", return_value=None),
+        patch.object(cpm, "append_tech_debt") as append_debt,
+    ):
+        result = cpm.main()
+
+    captured = capsys.readouterr()
+    assert result == 2
+    assert "TRIGGER HIT" in captured.out
+    assert "(a)" in captured.out
+    assert "AUTH_FAILURE" in captured.err
+    append_debt.assert_called_once()
+
+
+def test_main_records_size_trigger_before_generic_exception(
+    tmp_path, capsys
+) -> None:
+    with (
+        patch.object(cpm.sys, "platform", "darwin"),
+        patch.object(cpm, "LOG_FILE", tmp_path / "monitor.log"),
+        patch.object(cpm, "_duckdb_size_gb", return_value=201.0),
+        patch.object(
+            cpm,
+            "_get_monitor_authorization",
+            side_effect=ValueError("sensitive malformed config"),
+        ),
+        patch.object(cpm, "append_tech_debt") as append_debt,
+    ):
+        result = cpm.main()
+
+    captured = capsys.readouterr()
+    assert result == 0
+    assert "TRIGGER HIT" in captured.out
+    assert "(a)" in captured.out
+    assert "EXCEPTION (fail-open): ValueError" in captured.err
+    assert "sensitive malformed config" not in captured.err
+    append_debt.assert_called_once()
 
 
 # === L4.61 跨 CI runner 适配 ===

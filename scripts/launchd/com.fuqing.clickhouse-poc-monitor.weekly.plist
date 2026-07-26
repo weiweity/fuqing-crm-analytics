@@ -25,9 +25,9 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/tmp/fuqing-clickhouse-poc-monitor.log</string>
+    <string>/Users/hutou/Library/Logs/fuqing-clickhouse-poc-monitor.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/fuqing-clickhouse-poc-monitor.err</string>
+    <string>/Users/hutou/Library/Logs/fuqing-clickhouse-poc-monitor.err</string>
 </dict>
 </plist>

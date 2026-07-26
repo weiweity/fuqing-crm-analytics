@@ -1,3 +1,44 @@
+## [unreleased] - 2026-07-26 (post-merge security residuals)
+
+### Fixed
+- **Docker smoke import**: `backend/db/connection.py` 增加 `from __future__ import annotations`，避免 `threading.RLock | None` 在 Python 3.13 容器启动时被运行时求值成 `TypeError`（`docker-smoke` 硬门禁回归）
+
+### Security
+- **PR metadata**: 清除公开 PR #48 正文中的现用口令；当前 PR/Issue/评论不再包含该值（历史泄漏仍必须靠轮换口令闭环）
+- **npm advisory**: `js-yaml` override 到 `4.3.0`，修复 OpenAPI 开发工具链的 merge-key CPU DoS 告警；生产依赖审计保持 0
+- **Actions supply chain**: checkout / setup-python / setup-node / cache / upload-artifact 全部固定到核验过的 40 位 commit SHA；GitHub 仓库仅允许 GitHub-owned Actions，并强制完整 SHA
+- **Credential hygiene**: 删除后端 rate-limit 文档中的生产同值 Bearer 示例
+- **Auth isolation**: bcrypt 校验移出 token 全局锁，登录慢哈希不再阻塞已登录请求；预哈希口令强制 bcrypt cost=12，防成本漂移形成时序侧信道
+- **Proxy trust**: 应用不再直接解析 `X-Forwarded-For`；仅由 Uvicorn `--forwarded-allow-ips` 信任显式代理网段，nginx 覆盖而非追加客户端 XFF
+- **Ops endpoints**: `/api/v1/health/db_size`、`/manifest`、`/pool` 改为管理员 Bearer；响应不再泄露绝对数据库路径或原始异常
+- **Ops metrics**: 新增管理员专用 `/api/v1/health/metrics`；OpsView 不再误从 Vite/nginx SPA fallback 读取 `/metrics`
+- **ClickHouse monitor auth**: 周监控显式确认独立管理员账号后登录，pool/metrics 均走 Bearer；缺凭据或 401/403 返回 2，临时 token 在采集后注销，且鉴权失败不再吞掉已成立的数据库体积告警
+- **Metrics exposure**: 兼容根路由 `/metrics` 与 `/api/v1/health/metrics` 统一要求 admin Bearer，不再保留匿名指标旁路
+- **Frontend CSP/Rive**: backend、nginx、Vite dev/preview 全部强制 CSP；Rive 主/回退 WASM 同源自托管并禁用资源 CDN
+- **Cleanup fail-closed**: `.duckdb.zst` 按完整复合后缀校验 ZSTD magic；`lsof` 缺失、超时、权限失败或结果不确定时一律跳过删除
+- **Private ops logs**: hourly cleanup 与 ClickHouse monitor 日志移到用户私有 `~/Library/Logs`；cleanup 写入拒绝 symlink/换文件竞态并强制 `0600`
+
+### CI
+- `ground-truth-lint` 移除 `|| warning` 旁路
+- `dependency-audit` / `docker-smoke` 移除 `continue-on-error`，与 frontend、contract lint 一并成为 required checks
+- E2E 随机凭据在启动 backend / browser 前生成并注入，删除重复 setup steps
+- Docker smoke 使用微型 seed DuckDB 真正启动 backend/frontend 并检查 health/CSP，不再只验证镜像能 build
+- 新增 workflow action SHA、硬门禁、Docker 路径/运行时与代理信任回归测试
+
+### Fixed
+- **ETL DuckDB fingerprint**: Step 8 无论成功、异常或跳过都先释放 backend/dual-conn singleton，再进入 W3/W4 direct connection，修复 daily ETL 配置指纹冲突
+- **DQ monitor disk safety**: 移除每次运行把生产 DuckDB 整库复制到 `/tmp` 的路径；改为 `read_only=True` 直连，写锁冲突时结构化失败并建议维护窗口重试
+- **Docker database path**: 容器统一使用 `/app/data/processed/fuqing_crm.duckdb`；宿主 backend 端口仅绑定 `127.0.0.1`
+- **Logout contract**: OpenAPI 与前端生成类型同步为 Bearer / JSON body，不再残留 query token
+- **Cleanup scheduler**: ETL launchd PATH 补 `/usr/sbin`，确保能调用 `lsof`
+
+### Operations
+- 当前生产进程仍运行合并前代码；口令轮换、正式备份/恢复演练、DuckDB 1.5.5 升级、venv 同步与服务重启均为独立人工窗口，本分支不自动执行
+- 旧 `shutil.copy2 + zstd` 每日备份模板和已达目标的 1.5.4 release checker 标记为 legacy，不得重新安装
+- `backup_duckdb.py` 默认执行现已硬拒绝并返回 2，只保留零拷贝 `--verify-only`，防误触发整库磁盘尖峰
+- `backup_duckdb.py --verify-only` 遇并发或陈旧锁时改为非零退出，禁止“数据库未校验却返回成功”的 false-green
+- `backup_duckdb.py --verify-only` 同步拒绝空 `orders` 或缺失最大业务日期的可读空库；legacy plist 增加 `Disabled=true` 并删除误导性安装说明
+
 ## [unreleased] - 2026-07-26 (post-security hardening)
 
 ### Security
@@ -22,7 +63,7 @@
   - 用户名 max 64 + 字符白名单；密码按 UTF-8 字节处理 bcrypt 72 上限；捕获 bcrypt `ValueError`
   - 已知/未知账号统一 401 文案与 body，日志不区分是否存在
   - 账号+IP 组合锁定 + per-IP 总限流 + 有界 LRU/TTL 清理（防随机用户名洪泛；防跨 IP 锁死真实账号）
-  - 默认不信任 `X-Forwarded-For`；仅 `FQ_TRUST_PROXY=1` 读首跳
+  - 默认不信任 `X-Forwarded-For`；后续残留修复已取消应用层解析，统一由 Uvicorn 显式代理 allowlist 处理
   - dummy bcrypt cost 与生产 `gensalt()` 默认 rounds=12 对齐（禁 rounds=4 时序旁路）；成功登录日志用户名走 `_safe_log_username`
 - **CI 凭据**: `lint` / `nightly` / `weekly-report` / `e2e-smoke` 不再写死密码；每次 run 随机生成 + `::add-mask::`；E2E 经 `E2E_ADMIN_PASSWORD` 注入
 

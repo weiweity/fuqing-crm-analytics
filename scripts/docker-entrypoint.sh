@@ -17,9 +17,11 @@ fi
 # 容器内端口：默认 8001（与 nginx proxy_pass / compose 映射一致）
 # 本地非 Docker 仍可在 README 用 8000；勿混用。
 UVICORN_PORT="${UVICORN_PORT:-8001}"
+FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1}"
 
 echo "DUCKDB_PATH: $DUCKDB_PATH"
 echo "UVICORN_PORT: $UVICORN_PORT"
+echo "FORWARDED_ALLOW_IPS: $FORWARDED_ALLOW_IPS"
 echo "启动 uvicorn..."
 
 # 默认 1 worker：
@@ -40,4 +42,5 @@ echo "UVICORN_WORKERS: $UVICORN_WORKER_COUNT"
 exec python -m uvicorn backend.main:app \
     --host 0.0.0.0 \
     --port "$UVICORN_PORT" \
+    --forwarded-allow-ips "$FORWARDED_ALLOW_IPS" \
     --workers "$UVICORN_WORKER_COUNT"

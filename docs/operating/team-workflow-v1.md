@@ -1,6 +1,6 @@
 # 团队协作工作流 v1（Team Workflow）
 
-> **最后更新**: 2026-07-25  
+> **最后更新**: 2026-07-26
 > 在「本地即生产 + AI 协作者」约束下，把 12 步仪式压成**可多人执行**的默认流程。  
 > 与 `docs/operating/ship.md`、`CLAUDE.md` 并存：**冲突时以本文件「可合并定义」+ 硬 STOP 为准**。
 
@@ -11,17 +11,17 @@
 | Check | 是否挡 merge |
 |---|---|
 | **lint**（ruff） | ✅ 必须绿 |
-| **ground-truth-lint** | ✅ 必须绿（或明确 advisory） |
+| **ground-truth-lint** | ✅ 必须绿 |
 | **contract-filterbuilder-lint**（FilterBuilder + channel alias） | ✅ 必须绿（PR5） |
 | **test**（pytest + deselect SSOT + **B2 import**） | ✅ 必须绿（`check_imports.py` 在 PR test job 内） |
-| **frontend**（npm ci + vue-tsc/build + unit） | ✅ 建议 required（PR5 新增 job） |
-| **dependency-audit** / **docker-smoke** | ⚠️ soft（`continue-on-error`，稳定后可升硬门禁） |
+| **frontend**（npm ci + vue-tsc/build + unit） | ✅ 必须绿 |
+| **dependency-audit** / **docker-smoke** | ✅ 必须绿；Docker 必须用微型 seed 库真启动并检查 health/CSP |
 | **e2e / Playwright** | ❌ **不挡 merge**（2026-07-19 门禁分层：PR 默认不跑；可选 `e2e-smoke.yml` manual/nightly 壳层 smoke） |
 | **Nightly / Weekly** | ❌ 不挡 merge；须与 PR 同口径（B2 + deselect + timeout≥45min），避免定时假红 |
 | 改 contract | 必须三同步 + contracts lint |
 | 生产 DuckDB / `.env` | 禁止进 PR |
 
-CI required checks 应与上表一致：**lint + test + contract-filterbuilder-lint**（+ frontend 稳定后）。**禁止**「文档写 e2e 必绿、实际长期红」双重标准；**禁止**无触发条件把全量业务 Playwright 加回 PR 必绿；**禁止** PR 不跑 B2、仅 Nightly 跑 B2（会制造「合并绿 / 定时红」）。
+CI required checks 应与上表一致：**lint + test + ground-truth-lint + contract-filterbuilder-lint + frontend + dependency-audit + docker-smoke**。**禁止**「文档写 e2e 必绿、实际长期红」双重标准；**禁止**无触发条件把全量业务 Playwright 加回 PR 必绿；**禁止** PR 不跑 B2、仅 Nightly 跑 B2（会制造「合并绿 / 定时红」）。
 
 供应链 / GitHub 人工设置见 [supply-chain.md](./supply-chain.md)、[github-governance-checklist.md](./github-governance-checklist.md)。
 
@@ -57,6 +57,7 @@ CI required checks 应与上表一致：**lint + test + contract-filterbuilder-l
 
 - [ ] 分支不基于过期 main（已 rebase/merge 最新）
 - [ ] 无 `data/`、`outputs/`、`.env`、大 xlsx
+- [ ] Docker smoke 只用 CI seed 数据，不挂载/复制生产 DuckDB
 - [ ] SQL 走 FilterBuilder / `?` 参数化（L4.5）
 - [ ] channel 条件有 `o.` 别名（L4.19）
 - [ ] 新增 deselect 只改 `scripts/ci/pytest_c_class_deselects.txt`
@@ -107,7 +108,7 @@ Escape（人拥有）：`FQ_PRE_PUSH_SKIP=1` — 须说明原因，禁止常态�
 | e2e 挡 merge | ❌ 已撤回；可选 `e2e-smoke.yml`（瘦依赖 + login 壳层）manual/nightly |
 | TECH-DEBT 短表 | ✅ 开放债表 + `docs/history/TECH-DEBT-HISTORY.md` |
 | pre-push .gitignore 等 skip | ✅ path classifier `_SKIP_EXACT` |
-| GitHub branch protection required checks | ⚠️ 仓库 **未开** branch protection（`gh api .../protection` → 404）。有 org 权限时设 required: **lint** + **test** only（**不要** require e2e） |
+| GitHub branch protection required checks | ✅ 已开 branch protection；7 个代码/审计/构建 job required，e2e 继续不挡 merge |
 | 预发环境 | 📋 未做 |
 | CLAUDE L4 表下沉 | 📋 未做 |
 | e2e 夹具能力 | ✅ `TEST_MODE` + seed 保留；全量业务 Playwright **非** PR 门禁 |

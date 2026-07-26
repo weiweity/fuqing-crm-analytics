@@ -2,7 +2,7 @@
 
 - 验证 backend/main.py 3 件新 health 端点 (/api/v1/health/db_size + /manifest + /pool) 注册正确
 - 验证响应字段结构 (status + DuckDB size_gb + manifest version + pool utilization)
-- 验证 L4.61 跨 CI runner 适配 (fail-open + 跟 /metrics 1:1 stable 不需要 auth)
+- 验证 Ops 数据只允许 admin Bearer，会话外不公开数据库路径/连接池信息
 - 验证 OpsView STUB TODO 接入后 0 业务代码改动模式 (跟 Sprint 200 R1 v2.1 1:1 stable)
 
 L4.60 跨平台: REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -66,12 +66,18 @@ def test_main_py_has_pool_endpoint() -> None:
     assert "utilization_pct" in content, "pool response 必须含 utilization_pct 字段"
 
 
-def test_rate_limit_middleware_bypasses_health_endpoints() -> None:
-    """Sprint 203 R3: rate_limit_middleware bypass 3 件新 health 端点 (跟 /metrics 1:1 stable)"""
+def test_ops_health_endpoints_are_not_auth_bypassed() -> None:
+    """运维详情必须离开 auth/rate-limit public allowlist，并显式 require_admin。"""
     content = MAIN_PY.read_text(encoding="utf-8")
-    assert "/api/v1/health/db_size" in content, "rate_limit_middleware bypass 必须含 db_size path"
-    assert "/api/v1/health/manifest" in content, "rate_limit_middleware bypass 必须含 manifest path"
-    assert "/api/v1/health/pool" in content, "rate_limit_middleware bypass 必须含 pool path"
+    auth_section = content[
+        content.index("async def auth_middleware"):
+        content.index("# 健康检查（保留在 main.py")
+    ]
+    for endpoint in ("metrics", "db_size", "manifest", "pool"):
+        assert f'or path == "/api/v1/health/{endpoint}"' not in auth_section
+    assert 'or path == "/metrics"' not in auth_section
+    assert content.count("require_admin(request)") >= 5
+    assert '"path": str(DUCKDB_PATH)' not in content
 
 
 def test_clickhouse_poc_monitor_bc_stubs_documented() -> None:
@@ -92,7 +98,10 @@ def test_opsview_vue_has_three_stub_cards() -> None:
     assert "W5 Manifest Version" in content, "OpsView 必须有 W5 Manifest Version card"
     assert "Read Pool 利用率" in content, "OpsView 必须有 Read Pool 利用率 card"
     # 4 件 endpoint 一起 fetch (跟 L4.61 跨 CI runner 1:1 stable)
-    assert "/api/v1/health/db_size" in content, "OpsView fetch 必须含 /api/v1/health/db_size"
-    assert "/api/v1/health/manifest" in content, "OpsView fetch 必须含 /api/v1/health/manifest"
-    assert "/api/v1/health/pool" in content, "OpsView fetch 必须含 /api/v1/health/pool"
+    assert "client.get<string>('/v1/health/metrics')" in content
+    assert "client.get<DbSizeInfo>('/v1/health/db_size')" in content
+    assert "client.get<ManifestInfo>('/v1/health/manifest')" in content
+    assert "client.get<PoolInfo>('/v1/health/pool')" in content
+    assert "fetch('/metrics'" not in content
     assert "Promise.all" in content, "OpsView 必须并行 fetch 4 件 endpoint"
+    assert "client.get<DbSizeInfo>" in content, "OpsView 必须通过 Bearer client 访问运维端点"
