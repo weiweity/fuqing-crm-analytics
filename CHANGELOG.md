@@ -1,5 +1,8 @@
 ## [unreleased] - 2026-07-26 (post-merge security residuals)
 
+### Fixed
+- **Docker smoke import**: `backend/db/connection.py` 增加 `from __future__ import annotations`，避免 `threading.RLock | None` 在 Python 3.13 容器启动时被运行时求值成 `TypeError`（`docker-smoke` 硬门禁回归）
+
 ### Security
 - **PR metadata**: 清除公开 PR #48 正文中的现用口令；当前 PR/Issue/评论不再包含该值（历史泄漏仍必须靠轮换口令闭环）
 - **npm advisory**: `js-yaml` override 到 `4.3.0`，修复 OpenAPI 开发工具链的 merge-key CPU DoS 告警；生产依赖审计保持 0

@@ -7,6 +7,8 @@
 - 禁止调用 conn.close() — 连接由 close_connection() / middleware 统一释放
 - DuckDB 同一个连接不是线程安全的：execute / fetch 必须串行化，包装器已自动处理
 """
+from __future__ import annotations
+
 import logging
 import threading
 import duckdb
