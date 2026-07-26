@@ -13,6 +13,8 @@
 """
 from __future__ import annotations
 
+import threading
+import time
 from unittest.mock import patch
 
 import pytest
@@ -258,7 +260,8 @@ def test_xff_not_trusted_by_default(client: TestClient, monkeypatch):
     assert ip == "9.9.9.9"
 
 
-def test_xff_trusted_when_proxy_mode(monkeypatch):
+def test_legacy_proxy_flag_cannot_reparse_untrusted_xff(monkeypatch):
+    """旧 FQ_TRUST_PROXY 开关不得绕过 Uvicorn 的可信代理边界。"""
     monkeypatch.setenv("FQ_TRUST_PROXY", "1")
     from starlette.requests import Request
 
@@ -276,7 +279,57 @@ def test_xff_trusted_when_proxy_mode(monkeypatch):
         "server": ("testserver", 80),
     }
     req = Request(scope)
-    assert auth_module._get_client_ip(req) == "1.2.3.4"
+    assert auth_module._get_client_ip(req) == "9.9.9.9"
+
+
+def test_bcrypt_does_not_block_existing_token_validation(monkeypatch):
+    """慢 bcrypt 只能占登录 worker，不能持有 token 会话锁。"""
+    started = threading.Event()
+    release = threading.Event()
+    errors: list[BaseException] = []
+    token = "existing-valid-token"
+    auth_module.ACTIVE_TOKENS[token] = ("admin", auth_module.datetime.now())
+
+    def _slow_check(_password_bytes, _stored_hash):
+        started.set()
+        assert release.wait(timeout=2)
+        return False
+
+    monkeypatch.setattr(auth_module, "_checkpw_safe", _slow_check)
+
+    def _attempt_login():
+        try:
+            auth_module._authenticate_credentials(
+                "unknown_concurrent_user",
+                "wrong-password",
+                "198.51.100.7",
+            )
+        except BaseException as exc:  # noqa: BLE001 - thread result assertion
+            errors.append(exc)
+
+    worker = threading.Thread(target=_attempt_login)
+    worker.start()
+    assert started.wait(timeout=1)
+
+    before = time.monotonic()
+    assert auth_module._verify_token(token, sliding=False) == "admin"
+    assert time.monotonic() - before < 0.2
+
+    release.set()
+    worker.join(timeout=2)
+    assert not worker.is_alive()
+    assert errors
+
+
+def test_prehashed_credentials_require_same_bcrypt_cost(monkeypatch):
+    low_cost = auth_module.bcrypt.hashpw(
+        b"placeholder-password",
+        auth_module.bcrypt.gensalt(rounds=4),
+    ).decode()
+    monkeypatch.setenv("FQ_CRM_PASSWORDS", f"admin:{low_cost}")
+
+    with pytest.raises(RuntimeError, match="bcrypt cost"):
+        auth_module._load_credentials()
 
 
 def test_login_request_shares_combo_lockout(client: TestClient):

@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => ({
   loginRequest: vi.fn(),
   push: vi.fn(),
   replace: vi.fn(),
+  riveConstructor: vi.fn(),
   setSession: vi.fn(),
+  setWasmFallbackUrl: vi.fn(),
+  setWasmUrl: vi.fn(),
 }))
 
 vi.mock('@/api/loginRequest', () => ({
@@ -43,12 +46,33 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('@rive-app/canvas', () => ({
-  default: class MockRive {
+  Rive: class MockRive {
+    constructor() {
+      mocks.riveConstructor()
+    }
     cleanup() {}
+  },
+  RuntimeLoader: {
+    setWasmFallbackUrl: mocks.setWasmFallbackUrl,
+    setWasmUrl: mocks.setWasmUrl,
   },
 }))
 
 import LoginView from './LoginView.vue'
+
+describe('LoginView Rive runtime hosting', () => {
+  it('configures same-origin WASM before constructing Rive', () => {
+    setActivePinia(createPinia())
+    const wrapper = mount(LoginView)
+
+    expect(mocks.setWasmUrl).toHaveBeenCalledWith('/riv/rive.wasm')
+    expect(mocks.setWasmFallbackUrl).toHaveBeenCalledWith('/riv/rive_fallback.wasm')
+    expect(mocks.setWasmUrl.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.riveConstructor.mock.invocationCallOrder[0])
+
+    wrapper.unmount()
+  })
+})
 
 
 describe('LoginView request polling lifecycle', () => {

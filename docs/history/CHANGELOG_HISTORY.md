@@ -2544,7 +2544,7 @@ ce4deea merge: Sprint 60.1.1 — Pydantic 422 治本 + 修 Sprint 60 漏修 dist
 - L4.50 0 业务代码改动 (本次 sprint 净新增业务代码 admin_upload.py 等, 立项范围内, 跟 Sprint 60+ 累计 65+ 次 1:1 stable 永久接受 1:1 stable 永久规则化沿用)
 - L4.62 launchd plist 写法 SSOT 必走 plutil -lint OK 验证 (plutil -lint /Users/hutou/Library/LaunchAgents/com.fuqing.uvicorn.plist → OK 1:1 stable)
 - L4.85 + L4.85.1 + L4.85.2 + L4.85.3 (申请+同意 模式 + admin 强制 1 人在线 + 整合 L4.84 path + last_active_at 3min, Sprint 1 is_admin 3 路径一致复用 1:1 stable)
-- L4.86 race flake 治本 (FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888 沿用, focused pytest 67 PASSED)
+- L4.86 race flake 治本（历史固定凭据示例已脱敏；focused pytest 67 PASSED）
 - L4.88 conftest autouse fixture FQ_CRM_PASSWORDS race condition (沿用 1:1 stable, test 通过 0 回归)
 - L4.91 forward-compat (_validate_registry_data 允许未知扩展字段, conftest _reset_fq_crm_admins_env hasattr(_ADMIN_USERNAMES) forward-compat 防御 1:1 stable)
 
@@ -2881,7 +2881,7 @@ ce4deea merge: Sprint 60.1.1 — Pydantic 422 治本 + 修 Sprint 60 漏修 dist
 - **`scripts/launchd/com.fuqing.db-size-alert.daily.plist`** (32 行新建): 每天 04:00 跑 check_db_size.py (跟 duckdb-backup.daily 03:30 错开)
 - **`backend/tests/test_sprint201_l2_storage.py`** (69 行新建): 5 case 锁回归 (dump script 删 + plist 删 + snapshots 空 + run_etl 有治理 + check_db_size 能跑)
 - **`scripts/run_etl.py` 末尾治理** (L2.5): user_rfm 30 天保留 + rfm_query_cache TTL GC + category_churn_cache 30 天 GC + CHECKPOINT, 长期治本
-- **L4.53 永久规则**: DuckDB snapshot 机制 = P2 杀, 任何备份走 ATTACH read_only / VACUUM INTO, 禁止 shutil.copy2 + 频繁 launchd. 配套跨 sprint 模式 (L4.50 + L4.51 + L4.52)
+- **L4.53 永久规则**: DuckDB snapshot 机制 = P2 杀, 任何备份走 ATTACH read_only + COPY FROM DATABASE 一致性副本, 禁止 shutil.copy2 + 频繁 launchd. （2026-07-26 更正：DuckDB 不支持旧文档误写的 VACUUM INTO。）配套跨 sprint 模式 (L4.50 + L4.51 + L4.52)
 
 ## [unreleased] - 2026-07-02 (Sprint 201 R1: Read-Write Splitting 治本并发 — 看板 read-only 请求连接池 + AI sandbox 独立 query worker + snapshot + Prometheus-compatible metrics)
 
@@ -3156,5 +3156,3 @@ ce4deea merge: Sprint 60.1.1 — Pydantic 422 治本 + 修 Sprint 60 漏修 dist
 - /document-release 累计 **13 次真治本** (Sprint 65/138/141.5/145/149/153/160/165/169/171/179/181/182)
 
 ---
-
-

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Sprint 203 R2 Finding 4.6 + R3 STUB 接入: /metrics + /health/* dashboard
+ * Sprint 203 R2 Finding 4.6 + R3 STUB 接入: admin /health/metrics + /health/* dashboard
  *
  * 显示 4 件 0 业务代码改动 关键指标:
- *  - /metrics: total queries by endpoint + query_type + P50/P95/P99 延迟 (Sprint 203 R2)
+ *  - /api/v1/health/metrics: total queries by endpoint + query_type + P50/P95/P99 延迟
  *  - /api/v1/health/db_size: DuckDB file size + 距离 200GB trigger 距离 (Sprint 203 R3)
  *  - /api/v1/health/manifest: W5 manifest version (Sprint 203 R3)
  *  - /api/v1/health/pool: read pool 利用率 (Sprint 203 R3 跟 Fix #1 Semaphore 配套)
@@ -11,6 +11,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { NCard, NDataTable, NSpace, NTag, NSpin, NAlert, NStatistic, NGrid, NGi, NProgress } from 'naive-ui'
 import PageHeader from '@/components/PageHeader.vue'
+import client from '@/api/index'
 
 interface EndpointStats {
   endpoint: string
@@ -27,7 +28,6 @@ interface DbSizeInfo {
   trigger_gb: number
   remaining_gb: number
   trigger_hit: boolean
-  path: string
 }
 
 interface ManifestInfo {
@@ -149,25 +149,16 @@ async function fetchMetrics() {
   error.value = null
   try {
     // 跟 L4.61 跨 CI runner 适配 1:1 stable: 4 件 endpoint 并行 fetch
-    const [_metricsRes, _dbSizeRes, _manifestRes, _poolRes] = await Promise.all([
-      fetch('/metrics', { credentials: 'include' }),
-      fetch('/api/v1/health/db_size', { credentials: 'include' }),
-      fetch('/api/v1/health/manifest', { credentials: 'include' }),
-      fetch('/api/v1/health/pool', { credentials: 'include' }),
+    const [_metricsText, _dbSizeRes, _manifestRes, _poolRes] = await Promise.all([
+      client.get<string>('/v1/health/metrics') as unknown as Promise<string>,
+      client.get<DbSizeInfo>('/v1/health/db_size') as unknown as Promise<DbSizeInfo>,
+      client.get<ManifestInfo>('/v1/health/manifest') as unknown as Promise<ManifestInfo>,
+      client.get<PoolInfo>('/v1/health/pool') as unknown as Promise<PoolInfo>,
     ])
-    if (!_metricsRes.ok) {
-      throw new Error(`HTTP ${_metricsRes.status}: ${_metricsRes.statusText}`)
-    }
-    metricsText.value = await _metricsRes.text()
-    if (_dbSizeRes.ok) {
-      dbSize.value = await _dbSizeRes.json()
-    }
-    if (_manifestRes.ok) {
-      manifest.value = await _manifestRes.json()
-    }
-    if (_poolRes.ok) {
-      pool.value = await _poolRes.json()
-    }
+    metricsText.value = _metricsText
+    dbSize.value = _dbSizeRes
+    manifest.value = _manifestRes
+    pool.value = _poolRes
     lastUpdated.value = new Date()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -235,11 +226,11 @@ const poolColor = computed(() => {
 
 <template>
   <div class="p-6">
-    <PageHeader title="系统运维看板" subtitle="/metrics 实时监控 + /health/* 系统状态 + ClickHouse POC 启动条件" />
+    <PageHeader title="系统运维看板" subtitle="管理员指标实时监控 + /health/* 系统状态 + ClickHouse POC 启动条件" />
 
     <NSpace vertical :size="16">
       <NAlert type="info" :show-icon="false">
-        Sprint 203 R2 + R3: 实时拉取 <code>/metrics</code> Prometheus 文本 + 3 件 <code>/api/v1/health/*</code> 系统状态端点 (db_size + manifest + pool).
+        Sprint 203 R2 + R3: 通过 Bearer 拉取 <code>/api/v1/health/metrics</code> Prometheus 文本 + 3 件 <code>/api/v1/health/*</code> 系统状态端点 (db_size + manifest + pool).
         ClickHouse POC 启动条件: {{ clickhouseMonitorStatus }}.
       </NAlert>
 
@@ -337,7 +328,7 @@ const poolColor = computed(() => {
           </NSpace>
         </template>
 
-        <NAlert v-if="error" type="error" :title="`/metrics 拉取失败: ${error}`" :show-icon="false" />
+        <NAlert v-if="error" type="error" :title="`管理员 metrics 拉取失败: ${error}`" :show-icon="false" />
 
         <NDataTable
           v-if="endpointStats.length > 0"
@@ -357,7 +348,7 @@ const poolColor = computed(() => {
           <li>✅ DuckDB file size 已接入 (Stub #1)</li>
           <li>✅ W5 manifest version 已接入 (Stub #2)</li>
           <li>✅ Read pool 利用率已接入 (Stub #3, 跟 Fix #1 Semaphore 配套)</li>
-          <li>📋 Sprint 203 R4+ 待办: 接入真 query P95 / 业务分析师并发数 (b/c 件) 等 /metrics 数据稳定后</li>
+          <li>📋 Sprint 203 R4+ 待办: 接入真 query P95 / 业务分析师并发数 (b/c 件) 等管理员 metrics 数据稳定后</li>
         </ul>
       </NCard>
     </NSpace>

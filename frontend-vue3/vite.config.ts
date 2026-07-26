@@ -2,6 +2,30 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
+const buildContentSecurityPolicy = (connectSources: string) => [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  `connect-src ${connectSources}`,
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join('; ')
+
+export const DEV_CONTENT_SECURITY_POLICY = buildContentSecurityPolicy("'self' ws: wss:")
+export const PREVIEW_CONTENT_SECURITY_POLICY = buildContentSecurityPolicy("'self'")
+
+const securityHeaders = (contentSecurityPolicy: string) => ({
+  'Content-Security-Policy': contentSecurityPolicy,
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+})
+
 // Sprint 11: 修用户报 Cmd+Shift+R 刷不了前端缓存.
 // vite 默认 Cache-Control: no-cache 允许 "先 revalidate 再用",
 // 但浏览器内存里的旧 module 仍可能 HMR 不更新.
@@ -40,6 +64,7 @@ export default defineConfig({
     },
     // 显式 no-store: 比 no-cache 更强, 强制每次从 server 拉新
     headers: {
+      ...securityHeaders(DEV_CONTENT_SECURITY_POLICY),
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
@@ -57,5 +82,6 @@ export default defineConfig({
         xfwd: true,
       },
     },
+    headers: securityHeaders(PREVIEW_CONTENT_SECURITY_POLICY),
   },
 })

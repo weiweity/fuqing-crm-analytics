@@ -29,7 +29,7 @@ pip freeze > /tmp/freeze.txt
 
 ML/OCR/爬虫工具在独立 scraper 仓维护，不进入本仓 CI 镜像。
 
-### 安全 pin（2026-07-25）
+### 安全 pin（2026-07-26）
 
 | 包 | pin / 下限 | 说明 |
 |----|------------|------|
@@ -39,7 +39,7 @@ ML/OCR/爬虫工具在独立 scraper 仓维护，不进入本仓 CI 镜像。
 | urllib3 | `>=2.7.0` | requests/httpx 树 |
 | fastapi | `<0.136.3` | 供应链事件上界 |
 
-**禁止本 PR 升级生产 DuckDB**；见 [duckdb-backup-upgrade-checklist.md](../maintenance/duckdb-backup-upgrade-checklist.md)。
+DuckDB 1.5.5 已是稳定版，但**禁止本分支升级生产 DuckDB**；必须先完成可恢复备份与恢复演练，见 [duckdb-backup-upgrade-checklist.md](../maintenance/duckdb-backup-upgrade-checklist.md)。
 
 ## 2. 前端依赖
 
@@ -49,6 +49,7 @@ ML/OCR/爬虫工具在独立 scraper 仓维护，不进入本仓 CI 镜像。
 | 安全 pin | axios `1.18.1`、echarts `6.1.0`、vite `8.1.5`、postcss `8.5.23` |
 | Excel | 仅 `xlsx-js-style`（**不**盲换；已删未使用直接依赖 `xlsx`） |
 | peer | `overrides` 让 `openapi-typescript` 接受仓库 TypeScript `~6`，减少 `--legacy-peer-deps` |
+| 开发链 advisory | `js-yaml` override `4.3.0`，修复 OpenAPI 工具链 merge-key CPU DoS |
 | 禁止 major | Pinia 4 / Tailwind 4 / TypeScript 7 **不**在本 PR 升级 |
 
 ```bash
@@ -59,9 +60,19 @@ npm audit --omit=dev   # CI dependency-audit job
 
 ## 3. CI 审计 job
 
-- `pip-audit -r requirements-lock.txt`（`continue-on-error: true` 起步）
+- `pip-audit==2.10.1 -r requirements-lock.txt`（CI 工具自身也固定版本）
 - `npm audit --omit=dev --audit-level=high`
-- 稳定后可将 `dependency-audit.continue-on-error` 改为 `false` 升为硬门禁
+- `dependency-audit` 与 `docker-smoke` 已完成观察期并升级为硬门禁
+- 所有 GitHub Actions 固定 40 位 commit SHA；仓库设置仅允许 GitHub-owned Actions
+
+### 2026-07-26 审计状态
+
+| 范围 | 结果 | 处置 |
+|---|---|---|
+| Python lock | `pip-audit`：0 已知漏洞 | required check 持续阻断 |
+| npm production | `npm audit --omit=dev`：0 | required check 持续阻断 |
+| npm 全依赖 | 仍有 dev/build/test 链 high advisories | 记入 `#SUPPLY-dev-audit`；不使用 `npm audit fix --force` 破坏工具链 |
+| 当前本机运行 venv | 尚未按本分支 lock 同步 | 合并后维护窗口执行 `pip check` + health/业务抽检；本分支不热改运行环境 |
 
 ## 4. 相关文档
 

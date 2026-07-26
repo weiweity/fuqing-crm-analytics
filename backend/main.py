@@ -277,10 +277,10 @@ if _ALLOWED_HOSTS_RAW and _ALLOWED_HOSTS_RAW != "*":
 # ─────────────────────────────────────────────────────────────
 # 安全响应头中间件
 # ─────────────────────────────────────────────────────────────
-# CSP Report-Only：先观察再强制。内联脚本已清除（ECharts tooltip 无 onclick）。
+# CSP 已强制。内联脚本已清除（ECharts tooltip 无 onclick）。
 # object-src none; base-uri self; frame-ancestors none 为硬要求。
 # style-src 含 'unsafe-inline'（Naive UI / Vue 内联样式）；script-src 仅 'self'。
-_CSP_REPORT_ONLY = (
+_CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
     "script-src 'self'; "
     "style-src 'self' 'unsafe-inline'; "
@@ -303,7 +303,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     # 强制 CSP（样式仍允许 'unsafe-inline' 以兼容 Naive UI / 图表内联 style）
-    response.headers["Content-Security-Policy"] = _CSP_REPORT_ONLY
+    response.headers["Content-Security-Policy"] = _CONTENT_SECURITY_POLICY
     return response
 
 
@@ -331,11 +331,6 @@ async def rate_limit_middleware(request: Request, call_next):
     path = _asgi_path(request)
     if (
         path == "/api/v1/health"
-        or path == "/metrics"
-        # Sprint 203 R3: OpsView STUB 接入 (跟 /metrics 1:1 stable, no auth required)
-        or path == "/api/v1/health/db_size"
-        or path == "/api/v1/health/manifest"
-        or path == "/api/v1/health/pool"
         or path == "/api/v1/auth/login"
         or path == "/api/v1/auth/refresh"
         or path.startswith("/docs")
@@ -395,8 +390,7 @@ async def rate_limit_middleware(request: Request, call_next):
 def _extract_user_id_from_request(request: Request) -> Optional[str]:
     """
     从 Authorization Bearer token 提取 user_id (跟 auth_middleware._verify_token 1:1 stable).
-    Bearer admin:123456 → "admin"
-    Bearer fqsw:fqsw888 → "fqsw"
+    有效随机 Bearer token → 对应已认证 username
     失败返 None (rate limit fallback to client_ip)
 
     跟 auth_middleware 1:1: 用 _verify_token 校验 token 有效性, 有效再解析 user_id.
@@ -462,11 +456,6 @@ async def auth_middleware(request: Request, call_next):
     if (
         path.startswith("/api/v1/auth/")
         or path == "/api/v1/health"
-        or path == "/metrics"
-        # Sprint 203 R3: OpsView STUB 接入 (跟 /api/v1/health + /metrics 1:1 stable, no auth)
-        or path == "/api/v1/health/db_size"
-        or path == "/api/v1/health/manifest"
-        or path == "/api/v1/health/pool"
         or path.startswith("/docs")
         or path.startswith("/redoc")
         or path == "/openapi.json"
@@ -580,13 +569,16 @@ def health_check():
 
 
 # Sprint 203 R3 OpsView STUB TODO 接入: 3 件 0 业务代码改动 health 端点
-# 跟 /api/v1/health 1:1 stable 模式 (no auth required, 跟 /metrics 1:1 stable)
+# 运维详情统一要求 admin Bearer；只有 /api/v1/health 保持匿名探活。
 @app.get("/api/v1/health/db_size")
-def health_db_size():
+def health_db_size(request: Request):
     """DuckDB 文件大小 (GB) + 距离 ClickHouse POC 启动 trigger (200GB) 的距离.
 
     Sprint 203 R3: 跟 clickhouse-poc-monitor.py 1:1 stable 同一 trigger 阈值.
     """
+    from backend.routers.auth import require_admin
+
+    require_admin(request)
     try:
         size_bytes = Path(DUCKDB_PATH).stat().st_size
         size_gb = round(size_bytes / (1024 ** 3), 2)
@@ -597,21 +589,23 @@ def health_db_size():
             "trigger_gb": trigger_gb,
             "remaining_gb": round(trigger_gb - size_gb, 2),
             "trigger_hit": size_gb > trigger_gb,
-            "path": str(DUCKDB_PATH),
             "timestamp": datetime.now().isoformat(),
         }
     except FileNotFoundError:
-        return {"status": "missing", "size_gb": 0.0, "trigger_gb": 200, "remaining_gb": 200, "trigger_hit": False, "path": str(DUCKDB_PATH), "timestamp": datetime.now().isoformat()}
-    except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": str(exc), "path": str(DUCKDB_PATH), "timestamp": datetime.now().isoformat()}
+        return {"status": "missing", "size_gb": 0.0, "trigger_gb": 200, "remaining_gb": 200, "trigger_hit": False, "timestamp": datetime.now().isoformat()}
+    except Exception:  # noqa: BLE001
+        return {"status": "error", "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/api/v1/health/manifest")
-def health_manifest():
+def health_manifest(request: Request):
     """W5 manifest version (跟 backend/services/rfm/cache.py:_ManifestTracker 1:1 stable).
 
     返回当前 DuckDB 数据的 manifest version (int). manifest 不存在返回 None.
     """
+    from backend.routers.auth import require_admin
+
+    require_admin(request)
     try:
         from backend.services.rfm.cache import _manifest_tracker_singleton
         version = _manifest_tracker_singleton.current_version()
@@ -620,17 +614,20 @@ def health_manifest():
             "version": version,
             "timestamp": datetime.now().isoformat(),
         }
-    except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": str(exc), "version": None, "timestamp": datetime.now().isoformat()}
+    except Exception:  # noqa: BLE001
+        return {"status": "error", "version": None, "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/api/v1/health/pool")
-def health_pool():
+def health_pool(request: Request):
     """Read pool 利用率 (跟 dual_conn.py Semaphore + pool 1:1 stable).
 
     L4.85.4 将并发硬上限收紧到 READ_POOL_SIZE，防止 16GB Mac 上多条
     重查询把总内存推到 30GB+；这里暴露真实 active-query 上限。
     """
+    from backend.routers.auth import require_admin
+
+    require_admin(request)
     try:
         from backend.services import dual_conn
         pool_size = len(dual_conn._read_pool)
@@ -647,13 +644,25 @@ def health_pool():
             "read_pool_size_limit": dual_conn.READ_POOL_SIZE,
             "timestamp": datetime.now().isoformat(),
         }
-    except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": str(exc), "timestamp": datetime.now().isoformat()}
+    except Exception:  # noqa: BLE001
+        return {"status": "error", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/v1/health/metrics", include_in_schema=False)
+def health_metrics(request: Request):
+    """管理员运维页读取 Prometheus 指标的同源、Bearer 保护入口。"""
+    from backend.routers.auth import require_admin
+
+    require_admin(request)
+    return Response(render_prometheus(), media_type="text/plain; version=0.0.4")
 
 
 @app.get("/metrics", include_in_schema=False)
-def prometheus_metrics():
-    """Prometheus-compatible query metrics."""
+def prometheus_metrics(request: Request):
+    """兼容 Prometheus 的管理员 Bearer 保护入口。"""
+    from backend.routers.auth import require_admin
+
+    require_admin(request)
     return Response(render_prometheus(), media_type="text/plain; version=0.0.4")
 
 

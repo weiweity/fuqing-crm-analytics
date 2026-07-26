@@ -47,6 +47,7 @@
     "vue-tsc": "^3.2.6"
   },
   "overrides": {
+    "js-yaml": "4.3.0",
     "openapi-typescript": {
       "typescript": "$typescript"
     }

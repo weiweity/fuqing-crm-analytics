@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8001"
+      - "127.0.0.1:8000:8001"
     volumes:
       - ./data:/app/data
       - ${SHOP_DATA_SOURCE:-./data/sources/shop}:/data/sources/shop:ro
@@ -21,7 +21,9 @@ services:
     env_file: .env
     environment:
       - PYTHONPATH=/app
-      - DUCKDB_PATH=/app/data/processed/fuqing.duckdb
+      - DUCKDB_PATH=/app/data/processed/fuqing_crm.duckdb
+      # 只信任 loopback + Docker bridge 私网；Uvicorn 从 XFF 右向左取首个不可信 hop。
+      - FORWARDED_ALLOW_IPS=127.0.0.1,172.16.0.0/12
       - UVICORN_WORKERS=1
       - UVICORN_PORT=8001
     restart: unless-stopped
@@ -44,7 +46,7 @@ services:
       context: ./frontend-vue3
       dockerfile: Dockerfile
     ports:
-      - "5173:8080"
+      - "127.0.0.1:5173:8080"
     depends_on:
       backend:
         condition: service_healthy

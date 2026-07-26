@@ -1,23 +1,16 @@
 #!/usr/bin/env python3
 """
-芙清 CRM - DuckDB 每日备份 (Sprint 4 P0-2, 2026-06-07)
+芙清 CRM - legacy DuckDB 备份入口（默认硬拒绝）。
 
-SOP:
-  1. umask 077 (客户数据 600 权限, 其他用户不可读)
-  2. shutil.copy2 主 DuckDB → backups/fuqing_crm_YYYY-MM-DD.duckdb
-  3. post-copy verify (duckdb connect 验证备份可打开, 防 APFS torn copy)
-  4. zstd 压缩 (55GB → 目标 < 15GB)
-  5. 失败清理: zstd 失败时删 uncompressed 中间产物 (防磁盘累积)
-  6. log 走 plist stdout/stderr 重定向 (避免双写)
-  7. 失败 loud-fail: 主动 sendmail + osascript 系统通知 (Sprint 10 B3)
-
-调度: launchd com.fuqing.duckdb-backup.daily 03:30 daily
-复用: cleanup_backups.sh 的 F18 POSIX lock 模式 + 已有 BACKUP_DIR
+2026-07-26 安全复核后，``shutil.copy2 + zstd`` 整库热拷贝已停用：
+它会制造数据库同体积的磁盘尖峰，且没有一致性/恢复演练契约。当前脚本只保留
+``--verify-only`` 零拷贝只读校验。正式备份必须按
+``docs/maintenance/duckdb-backup-upgrade-checklist.md`` 另行实施 DuckDB 原生
+``COPY FROM DATABASE`` 一致性副本。
 """
 import os
 import sys
 import subprocess
-import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -72,12 +65,13 @@ def _prune_old_backups() -> int:
       3. 文件 > 0 字节 (防空文件假象)
       4. per-extension magic check (Sprint 116 修 #D7: PAR1 / DUCK / ZSTD_MAGIC;
          Sprint 117 修 #D12+#D13: tuple 返值 + case-insensitive)
-      5. lsof 0 fd (无活跃 fd, Sprint 116 修 #D10: FileNotFoundError 保守放行)
+      5. lsof 明确确认 0 fd (缺失、超时、权限拒绝或异常返回均 fail-closed)
       6. caller-side invariant (本次刚生成的 mtime 极新不会超 retention 阈值)
       7. sorted by mtime desc (最新优先保留)
       8. soft fail (删失败 log 不 raise)
     """
-    deleted, _deleted_names = prune_lib._prune_with_safety(  # noqa: deleted_names 丢弃 (wrapper 只返 count)
+    # deleted_names 由 shared helper 写日志；这个兼容 wrapper 只公开 count。
+    deleted, _deleted_names = prune_lib._prune_with_safety(
         backup_dir=BACKUP_DIR,
         glob_patterns=("fuqing_crm_*.duckdb.zst",),
         retention_days=BACKUP_RETENTION_DAYS,
@@ -119,79 +113,46 @@ def main(verify_only: bool = False) -> int:
     # 客户数据保护: 文件 600 权限 (其他用户不可读)
     os.umask(0o077)
 
+    if not verify_only:
+        log(
+            "REFUSED: legacy shutil.copy2 + zstd backup is disabled; "
+            "use --verify-only or the approved native backup runbook"
+        )
+        return 2
+
     # F18 POSIX lock 防并发
     try:
         LOCK_DIR.mkdir(exist_ok=False)
     except FileExistsError:
-        log(f"SKIP: another instance holds {LOCK_DIR}")
-        return 0
+        log(
+            f"ERROR: verify-only did not run because lock exists: {LOCK_DIR}; "
+            "inspect the holder or stale lock before retrying"
+        )
+        return 1
 
-    backup_path = None
     try:
         if not DUCKDB_PATH.exists():
             log(f"ERROR: {DUCKDB_PATH} not found")
             return 1
 
-        # Sprint 29+#198 上游治根 (codex 推荐): --verify-only 模式跳过 shutil.copy2 +
-        # zstd 压缩, 走 in-process duckdb.connect(read_only=True) verify, 不物理复制
-        # 104GB+ DB. 之前 ETL 跑批验证 backup 111GB DB 到 /private/tmp/sprint28-verify/
-        # 导致 disk full (FQ_TMP_PREFIXES 白名单不覆盖), 走 --verify-only 避免这种用法.
-        if verify_only:
-            log(f"verify-only mode (跳过 shutil.copy2 + zstd): {DUCKDB_PATH.name}")
-            import duckdb  # noqa: PLC0415
-            conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
-            try:
-                # 跟 SOP post-copy verify 一致: 连接 + 简单 SELECT 验证
-                row = conn.execute(
-                    "SELECT COUNT(*), MAX(pay_time) FROM orders"
-                ).fetchone()
-                if row is None:
-                    raise AssertionError("verify SELECT returned no row")
-                log(
-                    f"DONE (verify-only): orders count={row[0]:,}, max_pay_time={row[1]} "
-                    f"(no file copied, 0 bytes disk usage)"
-                )
-            finally:
-                conn.close()
-            return 0
-
-        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-        # Sprint 25: 文件名加 _{HHMM} 时间戳, 真滚动保留 7 天历史 (修复 cleanup_backups.sh 7 天清理伪命题)
-        # 之前每天同名覆盖, 7 天滚动其实是 1 份文件
-        hhmm = datetime.now(BJ_TZ).strftime("%H%M")
-        backup_path = BACKUP_DIR / f"fuqing_crm_{TODAY}_{hhmm}.duckdb"
-        compressed_path = backup_path.with_suffix(".duckdb.zst")
-
-        # Step 1: os-level 复制 (不需 DuckDB lock)
-        log(f"shutil.copy2 {DUCKDB_PATH.name} → {backup_path.name}")
-        shutil.copy2(DUCKDB_PATH, backup_path)
-
-        # Step 2: post-copy verify (防 APFS torn copy, 1-2s)
-        log("post-copy verify (duckdb connect read_only)")
+        log(f"verify-only mode (no file copy): {DUCKDB_PATH.name}")
         import duckdb  # noqa: PLC0415
-        conn = duckdb.connect(str(backup_path), read_only=True)
-        conn.close()
-
-        # Step 3: zstd 压缩 (绝对路径避免 launchd PATH 不含 homebrew)
-        log(f"compressing → {compressed_path.name}")
-        subprocess.run(
-            ["/Users/hutou/homebrew/bin/zstd", "-q", "--rm", "-f",
-             str(backup_path), "-o", str(compressed_path)],
-            check=True,
-        )
-        # Sprint 10 B3: 加 size > 0 硬验证 (防 zstd 0 字节输出假成功)
-        compressed_bytes = compressed_path.stat().st_size
-        if compressed_bytes <= 0:
-            raise AssertionError(
-                f"compressed zst file size is {compressed_bytes} bytes (expected > 0)"
+        conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*), MAX(pay_time) FROM orders"
+            ).fetchone()
+            if row is None or row[0] <= 0 or row[1] is None:
+                raise AssertionError(
+                    "orders sanity check failed: expected non-empty rows and "
+                    "a non-null max pay_time"
+                )
+            log(
+                f"DONE (verify-only): orders count={row[0]:,}, "
+                f"max_pay_time={row[1]} (no file copied, 0 bytes disk usage)"
             )
-        compressed_mb = compressed_bytes / 1024 / 1024
-        log(f"DONE: {compressed_path} ({compressed_mb:.1f} MB, {compressed_bytes} bytes)")
-
-        # Sprint 62.5 治根: backup retention (7 天滚动)
-        pruned = _prune_old_backups()
-        if pruned:
-            log(f"prune: removed {pruned} old backup(s) (> {BACKUP_RETENTION_DAYS}d)")
+        finally:
+            conn.close()
         return 0
 
     except Exception as e:
@@ -203,26 +164,18 @@ def main(verify_only: bool = False) -> int:
             LOCK_DIR.rmdir()
         except OSError:
             pass
-        # zstd 失败时清理 uncompressed 中间产物 (防磁盘累积)
-        # 成功路径下 backup_path 已被 zstd --rm 删, unlink FileNotFoundError 被 try/except 吞掉
-        if backup_path is not None:
-            try:
-                backup_path.unlink()
-            except OSError:
-                pass
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
-        description="芙清 CRM DuckDB 每日备份 + Sprint 29+ verify-only 模式"
+        description="芙清 CRM legacy backup guard + zero-copy verify-only"
     )
     parser.add_argument(
         "--verify-only",
         action="store_true",
-        help="跳过 shutil.copy2 + zstd 压缩, 走 in-process duckdb.connect(read_only=True) verify. "
-             "0 字节磁盘占用. 适合 ETL 跑批前的 duckdb file sanity check "
-             "(替代 backup 104GB+ DB 到 /private/tmp/sprint28-verify/ 的反模式).",
+        help="走 duckdb.connect(read_only=True) 文件 sanity check；0 字节复制。"
+             "不带此参数会因 legacy backup 已停用而返回 2。",
     )
     args = parser.parse_args()
     sys.exit(main(verify_only=args.verify_only))

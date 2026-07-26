@@ -55,8 +55,31 @@ cd D:\fuqin-date
 
 ```powershell
 curl http://localhost:8000/api/v1/health
-curl http://localhost:8000/api/v1/health/db_size
 # 打开浏览器访问 http://localhost:5173
+```
+
+数据库大小、连接池与 Prometheus 指标属于管理员端点。先确认部署机已把独立
+`monitor` 账号同时加入 `FQ_CRM_ADMINS` 与 `FQ_CRM_PASSWORDS`，且设置
+`FQ_POC_MONITOR_ADMIN_USERNAME=monitor` 和
+`FQ_POC_MONITOR_DEDICATED_ACCOUNT=monitor`；禁止复用人工管理员账号。登录后把 Bearer
+header 通过 stdin 交给 curl（避免 token 出现在进程参数）：
+
+```powershell
+$securePassword = Read-Host "monitor password" -AsSecureString
+$monitorPassword = [System.Net.NetworkCredential]::new("", $securePassword).Password
+$loginBody = @{
+  username = $env:FQ_POC_MONITOR_ADMIN_USERNAME
+  password = $monitorPassword
+} | ConvertTo-Json
+$token = (Invoke-RestMethod -Method Post `
+  -Uri http://localhost:8000/api/v1/auth/login `
+  -ContentType application/json -Body $loginBody).token
+$curlAuth = "header = `"Authorization: Bearer $token`""
+
+$curlAuth | curl.exe --config - http://localhost:8000/api/v1/health/db_size
+$curlAuth | curl.exe --config - http://localhost:8000/api/v1/health/pool
+$curlAuth | curl.exe --config - http://localhost:8000/api/v1/health/metrics
+Remove-Variable token, curlAuth, loginBody, monitorPassword, securePassword
 ```
 
 ---
@@ -65,36 +88,84 @@ curl http://localhost:8000/api/v1/health/db_size
 
 **症状**:`setup.bat` 在"DuckDB 跨 OS 验证"一步 fail,或运行时报 CatalogException
 
-### 3.1 尝试修复
+### 3.1 先保全现场，再尝试原生重建
 
 ```powershell
 cd D:\fuqin-date\fuqing-crm-analytics
 .venv\Scripts\activate
-python -c "
-import duckdb
-# 1. 试 CHECKPOINT(同步 WAL)
-con = duckdb.connect('D:/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb')
-con.execute('CHECKPOINT')
-con.close()
-# 2. 试 VACUUM INTO 重整
-con = duckdb.connect('D:/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb')
-con.execute(\"VACUUM INTO 'D:/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm_v2.duckdb'\")
-con.close()
-print('重整成功')
-"
-# 验证 v2 文件 OK 后,替换:
+# 1. 停 API / ETL，确认没有进程持有 DB/WAL
+# 2. 不覆盖原文件；先改名保全现场
 move data\processed\fuqing_crm.duckdb data\processed\fuqing_crm.duckdb.broken
-move data\processed\fuqing_crm_v2.duckdb data\processed\fuqing_crm.duckdb
 ```
+
+DuckDB 不支持 SQLite 的 `VACUUM INTO`。如果 `.broken` 文件仍能只读打开，按
+[`maintenance/duckdb-backup-upgrade-checklist.md`](maintenance/duckdb-backup-upgrade-checklist.md)
+用 `ATTACH ... (READ_ONLY)` + `COPY FROM DATABASE` 创建一个**新文件**；若只读打开也失败，直接走下一节从已验证备份恢复。不要在损坏文件上继续写入或执行 `CHECKPOINT`。
 
 ### 3.2 从备份恢复
 
+只允许使用已经按
+[`maintenance/duckdb-backup-upgrade-checklist.md`](maintenance/duckdb-backup-upgrade-checklist.md)
+完成过恢复演练的备份。复制前必须停止 API、ETL、计划任务及 ad-hoc 写任务，并确认
+生产 DB/WAL 没有持锁进程。先复制到候选文件并只读验证，禁止直接覆盖生产文件。
+
 ```powershell
-# 如果有 NAS 备份
-# (假设 NAS 共享路径是 \\NAS-IP\fuqing-backup\)
-robocopy \\NAS-IP\fuqing-backup\2026-07-16\fuqing_crm.duckdb D:\fuqin-date\fuqing-crm-analytics\data\processed\fuqing_crm.duckdb /Z
-# 验证
-.venv\Scripts\python -c "import duckdb; con=duckdb.connect(r'D:/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb', read_only=True); print(con.execute('PRAGMA show_tables').fetchdf().head())"
+$ErrorActionPreference = "Stop"
+cd D:\fuqin-date\fuqing-crm-analytics
+net stop fuqing-uvicorn
+if ($LASTEXITCODE -ne 0) {
+  throw "failed to stop fuqing-uvicorn; restore aborted"
+}
+# 同时暂停本机实际使用的 ETL/备份计划任务；未确认停写不得继续
+
+$source = "\\NAS-IP\fuqing-backup\2026-07-16\fuqing_crm.duckdb"
+$db = "D:\fuqin-date\fuqing-crm-analytics\data\processed\fuqing_crm.duckdb"
+$candidate = "D:\fuqin-date\fuqing-crm-analytics\data\processed\fuqing_crm.restore-candidate.duckdb"
+$stamp = Get-Date -Format yyyyMMddHHmmss
+$quarantine = "$db.pre-restore-$stamp"
+$failedCandidate = "$db.failed-restore-$stamp"
+
+if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+  throw "verified backup not found: $source"
+}
+if (Test-Path -LiteralPath $candidate) {
+  throw "restore candidate already exists: $candidate"
+}
+Copy-Item -LiteralPath $source -Destination $candidate
+
+# 对候选文件做新进程只读验证；这里应再补项目登记的 SHA-256、关键表行数和业务日期抽检
+.venv\Scripts\python -c "import duckdb; p=r'D:/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.restore-candidate.duckdb'; con=duckdb.connect(p, read_only=True); row=con.execute('SELECT COUNT(*), MAX(pay_time) FROM orders').fetchone(); con.close(); assert row and row[0] > 0 and row[1] is not None, 'orders sanity check failed'; print(row)"
+if ($LASTEXITCODE -ne 0) {
+  throw "candidate validation failed; production DB was not changed"
+}
+
+# 验证成功后才切换；原生产文件留作取证，不删除
+$hadCurrent = Test-Path -LiteralPath $db -PathType Leaf
+if ($hadCurrent) {
+  Move-Item -LiteralPath $db -Destination $quarantine
+}
+try {
+  Move-Item -LiteralPath $candidate -Destination $db
+} catch {
+  if ($hadCurrent -and -not (Test-Path -LiteralPath $db)) {
+    Move-Item -LiteralPath $quarantine -Destination $db
+  }
+  throw
+}
+
+# 用新进程再次验证最终路径，成功后才恢复服务
+.venv\Scripts\python -c "import duckdb; p=r'D:/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb'; con=duckdb.connect(p, read_only=True); row=con.execute('SELECT COUNT(*), MAX(pay_time) FROM orders').fetchone(); con.close(); assert row and row[0] > 0 and row[1] is not None, 'orders sanity check failed'; print(row)"
+if ($LASTEXITCODE -ne 0) {
+  Move-Item -LiteralPath $db -Destination $failedCandidate
+  if ($hadCurrent) {
+    Move-Item -LiteralPath $quarantine -Destination $db
+  }
+  throw "final-path validation failed; service remains stopped"
+}
+net start fuqing-uvicorn
+if ($LASTEXITCODE -ne 0) {
+  throw "restored DB passed validation, but fuqing-uvicorn failed to start"
+}
 ```
 
 ---
@@ -169,28 +240,24 @@ D:\fuqin-date\run-etl.bat --update
 
 ### 5.2 硬回滚(从备份恢复)
 
-```powershell
-# 1. 找最近的备份(从 NAS 或本地)
-dir D:\fuqin-date\fuqing-crm-analytics\data\processed\backups 2>nul
-# 或者 NAS
-dir \\NAS-IP\fuqing-backup\2026-07-1* /b 2>nul
-# 2. 选一个最近的备份,恢复
-robocopy <备份目录>\fuqing_crm.duckdb D:\fuqin-date\fuqing-crm-analytics\data\processed\fuqing_crm.duckdb /Z
-# 3. 验证
-curl http://localhost:8000/api/v1/health/db_size
-```
+硬回滚必须完整执行 §3.2 的停写、候选文件复制、只读抽检、保全当前文件、
+切换和重启流程。不得因为“文件日期最新”就选择备份；只接受已经登记 SHA-256、
+关键表抽检结果并完成恢复演练的恢复点。若没有这种恢复点，停止硬回滚并升级为
+P1 数据恢复事件。
 
 ---
 
-## 六、备份方案(未来)
+## 六、备份方案（独立运维项目）
 
-**当前阶段不备份**(用户决定)。如果将来要加:
+仓库旧 `copy2 + zstd` launchd 模板不构成可恢复备份，禁止直接安装。先按
+[`maintenance/duckdb-backup-upgrade-checklist.md`](maintenance/duckdb-backup-upgrade-checklist.md)
+完成原生一致性副本和恢复演练，再配置 NAS/离线介质。
 
 ### 6.1 群晖 NAS 备份
 
 ```powershell
-# 写 backup-to-nas.bat
-# (参考 setup.bat 里的 DuckDB VACUUM INTO 段)
+# 写 backup-to-nas.bat：先生成并验证 DuckDB 原生一致性副本，
+# 再把已验证副本传输到 NAS；不要热拷贝正在使用的生产 DB。
 
 # 配 Windows Task Scheduler 每日 03:00
 $action = New-ScheduledTaskAction -Execute "D:\fuqin-date\backup-to-nas.bat"
@@ -211,8 +278,10 @@ Get-ChildItem \\NAS-IP\fuqing-backup\ | Where-Object { $_.PSIsContainer -and $_.
 
 如果系统有双硬盘(系统盘 C + 数据盘 D + 备份盘 E):
 ```powershell
-# 每周日 04:00 同步 D 盘到 E 盘
-robocopy D:\fuqin-date E:\fuqin-date-backup /MIR /Z /XA:H
+# 只复制已经完成原生一致性校验的备份目录，不同步正在使用的生产 DB 目录
+$verified = "D:\fuqin-verified-backups\2026-07-16"
+$offsite = "E:\fuqin-date-backup\2026-07-16"
+robocopy $verified $offsite /E /Z /COPY:DAT
 ```
 
 ---
@@ -230,15 +299,12 @@ D:\fuqin-date\ai-help.bat
 # - [9] Git status(无未提交修改)
 ```
 
-### 7.2 重要操作前备份
+### 7.2 高风险操作前恢复点
 
-每次 ETL 跑批前:
-```powershell
-# 复制 DuckDB 一次(快照)
-copy data\processed\fuqing_crm.duckdb data\processed\backups\fuqing_crm_%date:~0,10%.duckdb
-```
-
-(可加到 run-etl.bat 开头,自动跑)
+升级 DuckDB、修改表结构或执行不可逆数据修复前，必须先安排停写窗口，按
+[`maintenance/duckdb-backup-upgrade-checklist.md`](maintenance/duckdb-backup-upgrade-checklist.md)
+生成原生一致性副本并完成恢复抽检。禁止在 `run-etl.bat` 开头自动 `copy` 正在使用的
+生产 `.duckdb`；没有已验证恢复点时推迟高风险操作。
 
 ### 7.3 监控告警(可选)
 

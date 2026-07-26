@@ -1,13 +1,13 @@
 # ETL Launchd 调度配置
 
 > macOS launchd 定时任务配置文件
-> 最后更新：2026-06-07
+> 最后更新：2026-07-26
 
 ---
 
 ## 概述
 
-本目录包含芙清 CRM ETL 系统的 macOS launchd 定时任务配置文件。这些 plist 文件用于自动执行 ETL 跑批、数据备份和清理任务。
+本目录包含芙清 CRM ETL 系统的 macOS launchd 模板。ETL 与安全清理可按各自安装手册启用；旧 DuckDB `copy2 + zstd` 备份模板仅供历史追溯，**不得安装或手工触发**。
 
 ---
 
@@ -16,9 +16,9 @@
 | 文件 | 用途 | 调度时间 | 说明 |
 |------|------|----------|------|
 | `com.fuqing.etl.daily.plist` | ETL 每日跑批 | 每日 08:30 | 执行 `python3 scripts/run_etl.py --update` |
-| `com.fuqing.duckdb-backup.daily.plist` | DuckDB 每日备份 | 每日 03:30 | 55GB DuckDB 备份 + zstd 压缩 |
-| `com.fuqing.backup-cleanup.weekly.plist` | 备份清理 | 每周日 03:00 | 清理 7 天前的备份文件 |
-| `com.fuqing.tmp-cleanup.hourly.plist` | 临时文件清理 | 每小时 | 清理 /tmp 下的孤儿文件 |
+| `com.fuqing.duckdb-backup.daily.plist` | **LEGACY，不安装** | — | 历史 `copy2 + zstd` 已从脚本移除；该 label 不提供备份能力 |
+| `com.fuqing.backup-cleanup.weekly.plist` | 旧备份清理 | 每周日 03:00 | 只在明确存在旧备份时评估，不能替代备份 |
+| `com.fuqing.tmp-cleanup.hourly.plist` | 私有临时文件清理 | 每小时 | 仅处理 tracker 登记或项目私有根，删除判断 fail-closed |
 
 ---
 
@@ -27,9 +27,11 @@
 ### 一键安装（推荐）
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/sample-crm-analytics"
+cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
 bash scripts/etl/scheduler/install_macos.sh
 ```
+
+> 一键安装脚本不得包含 legacy DuckDB backup/release-check 模板；安装后逐项用 `launchctl list` 核对。
 
 ### 手动安装
 
@@ -68,10 +70,8 @@ done
 # 查看所有 fuqing 任务
 launchctl list | grep fuqing
 
-# 期望输出（4 个任务）:
-# - 126  com.fuqing.backup-cleanup.weekly
+# 期望至少核对这些已批准任务；不要以固定数量判断:
 # - 0    com.fuqing.tmp-cleanup.hourly
-# - 0    com.fuqing.duckdb-backup.daily
 # - 1    com.fuqing.etl.daily
 
 # 查看单个任务详情
@@ -85,8 +85,8 @@ launchctl list com.fuqing.etl.daily
 | 任务 | 日志路径 | 说明 |
 |------|----------|------|
 | ETL 跑批 | `/tmp/fuqing-etl-scheduler.log` | ETL 跑批输出 |
-| DuckDB 备份 | `/tmp/fuqing-backup-cleanup.log` | 备份和清理日志 |
-| 临时文件清理 | `/tmp/fuqing-subagent-cleanup.log` | subagent 清理日志 |
+| 旧备份清理 | `/tmp/fuqing-backup-cleanup.log` | 仅历史 cleanup 日志 |
+| 临时文件清理 | `~/Library/Logs/fuqing-subagent-cleanup.log` | 用户私有目录，日志 `0600` |
 
 ```bash
 # 查看 ETL 跑批日志
@@ -106,8 +106,7 @@ tail -f /tmp/fuqing-backup-cleanup.log
 # 手动触发 ETL 跑批
 launchctl start com.fuqing.etl.daily
 
-# 手动触发备份
-launchctl start com.fuqing.duckdb-backup.daily
+# 禁止手工触发旧 com.fuqing.duckdb-backup.daily
 ```
 
 ### 强制重新加载
@@ -141,11 +140,10 @@ plutil -lint ~/Library/LaunchAgents/com.fuqing.etl.daily.plist
 
 ### com.fuqing.duckdb-backup.daily.plist
 
-- **调度时间**: 每日 03:30（错开 ETL 跑批时间）
-- **执行命令**: `python3 scripts/etl/backup_duckdb.py`
-- **备份策略**: shutil.copy2 + zstd 压缩
-- **压缩比**: 55GB → 21GB（38.2%）
-- **保留策略**: 7 天（由 weekly cleanup 兜底）
+- **状态**: **LEGACY / DO NOT INSTALL**
+- **原因**: 历史 `shutil.copy2 + zstd` 会制造超大副本且无一致性/恢复演练保证；执行路径现已移除，脚本默认返回 2
+- **替代**: 在停写维护窗口按 `docs/maintenance/duckdb-backup-upgrade-checklist.md` 实施 DuckDB 原生一致性副本
+- **现有宿主实例**: 先只读核对；卸载/删除必须由 owner 在维护窗口批准
 
 ### com.fuqing.backup-cleanup.weekly.plist
 
@@ -158,8 +156,8 @@ plutil -lint ~/Library/LaunchAgents/com.fuqing.etl.daily.plist
 
 - **调度时间**: 每小时
 - **执行命令**: `python3 scripts/etl/cleanup_subagent.py`
-- **清理策略**: 删除 1h+ 1GB+ 的非白名单文件
-- **保护机制**: 排除项目根目录和白名单前缀
+- **清理策略**: 仅处理 tracker 登记过期文件或项目专属 `0700` 私有根顶层候选
+- **保护机制**: 路径/owner/symlink/hardlink/magic/lsof 多重校验；任何不确定均跳过
 
 ---
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Sprint 16 P0 激活监控 — DuckDB 1.5.4 stable release 检测.
+"""LEGACY: Sprint 16 P0 DuckDB 1.5.4 release detector.
+
+The 1.5.4 target has passed. Do not use this script to authorize an upgrade;
+follow docs/maintenance/duckdb-backup-upgrade-checklist.md instead.
 
 Usage:
     python3 scripts/check_duckdb_release.py

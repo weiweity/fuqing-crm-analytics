@@ -133,6 +133,22 @@ class TestSprint117PruneLibRefactor:
         assert ok3 is True, (
             f".DUCKDB.zst + ZSTD_MAGIC 应 case-insensitive 匹配, 实际 ok={ok3} reason={reason3!r}"
         )
+        assert ".duckdb.zst" in reason3 and "magic OK" in reason3, (
+            f"复合后缀必须命中 ZSTD magic 规则，不能走 unknown suffix 放行: {reason3!r}"
+        )
+
+    def test_matches_magic_rejects_invalid_composite_duckdb_zst(self, tmp_path):
+        """复合后缀 .duckdb.zst 必须检查 ZSTD magic，错误内容不能被放行."""
+        from scripts.etl.common import prune_lib
+
+        fake_zst = tmp_path / "backup.duckdb.zst"
+        fake_zst.write_bytes(b"XXXX" + b"\x00" * 100)
+
+        ok, reason = prune_lib._matches_magic(fake_zst)
+
+        assert ok is False
+        assert "magic mismatch for .duckdb.zst" in reason
+        assert "expected" in reason and "got" in reason
 
     def test_suffix_order_is_explicit_longest_first(self):
         """Case 4 (Sprint 117 修 #D14): 显式 sort longest-first, 不依赖 dict iteration order.

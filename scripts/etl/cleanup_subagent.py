@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 import sys
 import time
 from datetime import datetime, timezone
@@ -63,25 +64,126 @@ _MIN_AGE_HOURS = 1.0
 _MIN_SIZE_BYTES = 1 * 1024**3  # 1GB (private 顶层未跟踪文件阈值; 测试可 monkeypatch)
 _TRACKER_MIN_AGE_HOURS = 1.0
 
-# 日志仍写 private tmp 优先; 回退 /tmp 文件名仅作 log sink 不扫删
+# 日志只允许写入项目专属 private tmp；目录不可用时宁可不写。
 _LOG_BASENAME = "fuqing-subagent-cleanup.log"
 
 
-def _log_path() -> str:
+def _log_path() -> Path | None:
     try:
-        return str(get_private_tmp_dir(create=True) / _LOG_BASENAME)
-    except RuntimeError:
-        return f"/tmp/{_LOG_BASENAME}"
+        return get_private_tmp_dir(create=True) / _LOG_BASENAME
+    except (OSError, RuntimeError):
+        return None
+
+
+def _log_stat_is_safe(st: os.stat_result) -> bool:
+    """日志对象必须是当前用户独占的普通文件."""
+    if not stat.S_ISREG(st.st_mode):
+        return False
+    if getattr(st, "st_nlink", 1) != 1:
+        return False
+    getuid = getattr(os, "getuid", None)
+    st_uid = getattr(st, "st_uid", None)
+    return getuid is None or st_uid is None or st_uid == getuid()
+
+
+def _log_mode_is_private(st: os.stat_result) -> bool:
+    return stat.S_IMODE(st.st_mode) == 0o600
+
+
+def _same_log_file(before: os.stat_result, after: os.stat_result) -> bool:
+    """确认 lstat 与 open 后 fd 指向同一对象，覆盖无 O_NOFOLLOW 的平台."""
+    before_dev = getattr(before, "st_dev", None)
+    after_dev = getattr(after, "st_dev", None)
+    before_ino = getattr(before, "st_ino", None)
+    after_ino = getattr(after, "st_ino", None)
+    if None in (before_dev, after_dev, before_ino, after_ino):
+        return False
+    return before_dev == after_dev and before_ino == after_ino
+
+
+def _open_log_fd(log_path: Path) -> int | None:
+    """Fail-closed 打开日志，拒绝 symlink/换文件竞态/错误属主."""
+    try:
+        before = os.lstat(log_path)
+    except FileNotFoundError:
+        before = None
+    except OSError:
+        return None
+
+    if before is not None and not _log_stat_is_safe(before):
+        return None
+
+    flags = os.O_WRONLY | os.O_APPEND
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    if before is None:
+        # O_EXCL 既避免覆盖，也在没有 O_NOFOLLOW 时拒绝预置 symlink。
+        flags |= os.O_CREAT | os.O_EXCL
+
+    try:
+        fd = os.open(log_path, flags, 0o600)
+    except OSError:
+        return None
+
+    keep_open = False
+    try:
+        opened = os.fstat(fd)
+        if not _log_stat_is_safe(opened):
+            return None
+        if before is not None and not _same_log_file(before, opened):
+            return None
+
+        # 先确认 fd 身份，再通过 fd 收紧权限，避免 chmod 跟随换入的路径。
+        if (
+            before is None
+            or not _log_mode_is_private(before)
+            or not _log_mode_is_private(opened)
+        ):
+            fchmod = getattr(os, "fchmod", None)
+            if fchmod is None:
+                return None
+            fchmod(fd, 0o600)
+
+        verified = os.fstat(fd)
+        if not _log_stat_is_safe(verified) or not _log_mode_is_private(verified):
+            return None
+        if not _same_log_file(opened, verified):
+            return None
+        keep_open = True
+        return fd
+    except OSError:
+        return None
+    finally:
+        if not keep_open:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
 
 
 def _log(msg: str) -> None:
     """持久日志, 软失败."""
+    fd: int | None = None
     try:
         ts = datetime.now(timezone.utc).isoformat()
-        with open(_log_path(), "a") as f:
+        log_path = _log_path()
+        if log_path is None:
+            return
+        fd = _open_log_fd(log_path)
+        if fd is None:
+            return
+        stream = os.fdopen(fd, "a", encoding="utf-8")
+        fd = None  # stream 接管 fd
+        with stream as f:
             f.write(f"[{ts}] {msg}\n")
-    except OSError:
+    except (OSError, ValueError):
         pass
+    finally:
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
 
 
 def _is_protected(path: str) -> bool:

@@ -43,7 +43,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/ops',
     component: () => import('@/views/OpsView.vue'),
-    meta: { title: '系统运维看板', requiresAuth: true },
+    meta: { title: '系统运维看板', requiresAuth: true, requiresAdmin: true },
   },
 ]
 

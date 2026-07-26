@@ -18,8 +18,14 @@ SCRIPT = REPO_ROOT / "scripts" / "ops" / "clickhouse_poc_monitor.py"
 
 
 def _run_monitor() -> subprocess.CompletedProcess:
+    # 强制走 Linux/CI 平台守卫，避免单测读取本机 .env 或触碰生产 admin 会话。
+    runner = (
+        "import runpy, sys; "
+        "sys.platform = 'linux'; "
+        f"runpy.run_path({str(SCRIPT)!r}, run_name='__main__')"
+    )
     return subprocess.run(
-        [sys.executable, str(SCRIPT)],
+        [sys.executable, "-c", runner],
         cwd=str(REPO_ROOT),
         env={"PYTHONPATH": str(REPO_ROOT), "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"},
         capture_output=True,
@@ -80,11 +86,18 @@ def test_clickhouse_poc_monitor_trigger_a_threshold() -> None:
     assert "200GB" in alert
 
 
-def test_clickhouse_poc_monitor_trigger_b_c_stub() -> None:
-    """(b) query P95 + (c) concurrent user: TODO Sprint 203 R3 接入, 现阶段 stub 返回 None"""
+def test_clickhouse_poc_monitor_trigger_b_c_are_admin_authenticated() -> None:
+    """(b)/(c) 必须接收 Bearer，缺 header 不允许静默采集。"""
     spec = importlib.util.spec_from_file_location("clickhouse_poc_monitor", SCRIPT)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    assert mod._check_trigger_b() is None
-    assert mod._check_trigger_c() is None
+    try:
+        mod._fetch_url_text(
+            "http://127.0.0.1:8000/api/v1/health/metrics",
+            require_admin=True,
+        )
+    except mod.MonitorAuthError:
+        pass
+    else:
+        raise AssertionError("admin health fetch without Bearer must fail closed")

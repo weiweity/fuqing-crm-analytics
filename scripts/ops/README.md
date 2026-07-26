@@ -40,6 +40,18 @@ done
 python3 scripts/ops/clickhouse_poc_monitor.py
 ```
 
+`clickhouse_poc_monitor.py` 的 b/c 检查访问管理员端点，必须在部署机 `.env` 中：
+
+1. 将独立 `monitor` 用户同时加入 `FQ_CRM_ADMINS` 与 `FQ_CRM_PASSWORDS`
+2. 设置 `FQ_POC_MONITOR_ADMIN_USERNAME=monitor`
+3. 确认该账号不供任何人登录后，设置
+   `FQ_POC_MONITOR_DEDICATED_ACCOUNT=monitor`（值必须与第 2 步用户名相同）
+4. 若 `FQ_CRM_PASSWORDS` 保存的是 bcrypt hash，再从安全部署环境注入
+   `FQ_POC_MONITOR_ADMIN_PASSWORD` 明文；不得提交真实值
+
+监控不得复用人工管理员账号，否则登录的单会话策略会踢出人工会话。配置缺失、
+歧义或被管理员端点拒绝时脚本返回 2，不会把未执行的 b/c 检查误报成 PASS。
+
 ### 改路径后
 
 任何把 monitor 移出 `scripts/ops/` 的改动，**同一 commit** 必须：

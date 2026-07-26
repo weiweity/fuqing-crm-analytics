@@ -47,10 +47,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"
           cache: 'pip'
@@ -67,26 +67,26 @@ jobs:
   ground-truth-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"
       - name: Ground truth lint (B2 P1-3 + 二轮 B2 committed 模式)
         run: |
           python3 .githooks/check_review_ground_truth.py --committed --files \
             "docs/validation-reports/*.md" \
-            "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (non-blocking for now)"
+            "docs/飞书版架构文档/*.md"
 
   contract-filterbuilder-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"
       - name: FilterBuilder usage lint (L4.5)
@@ -99,10 +99,10 @@ jobs:
     env:
       FQ_CRM_ADMINS: admin
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"
           cache: 'pip'
@@ -126,10 +126,10 @@ jobs:
       run:
         working-directory: frontend-vue3
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "24"
           cache: npm
@@ -144,18 +144,16 @@ jobs:
 
   dependency-audit:
     runs-on: ubuntu-latest
-    # 审计失败默认 warning，避免供应链误报挡 merge；确认稳定后可改 continue-on-error: false
-    continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"
           cache: pip
           cache-dependency-path: requirements-lock.txt
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "24"
           cache: npm
@@ -163,7 +161,7 @@ jobs:
       - name: Install Python deps for pip-audit
         run: |
           pip install -r requirements-lock.txt
-          pip install pip-audit
+          pip install pip-audit==2.10.1
       - name: pip-audit (requirements-lock)
         run: pip-audit -r requirements-lock.txt --progress-spinner off
       - name: npm ci
@@ -175,10 +173,9 @@ jobs:
 
   docker-smoke:
     runs-on: ubuntu-latest
-    # 仅验证 Dockerfile 语法/构建入口；不拉 131GB 库、不升 DuckDB
-    continue-on-error: true
+    # 用 MB 级 seed DB 启动真实容器并探活；绝不复制生产 141GB DuckDB。
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
       - name: Backend Dockerfile build (no push)
@@ -201,12 +198,75 @@ jobs:
             echo "E2E_ADMIN_USER=admin"
             echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
           } >> "$GITHUB_ENV"
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"
           cache: 'pip'
       - run: pip install -r requirements-lock.txt
-      # 2026-07-21: 与 Nightly/Weekly 对齐 — PR 也跑 B2 import 完整性 (避免定时专属红、合并门却绿)
+      - name: Seed tiny DuckDB fixture
+        run: |
+          set -euo pipefail
+          DB_DIR="${RUNNER_TEMP}/fuqing-docker-smoke"
+          mkdir -p "$DB_DIR"
+          python3 scripts/ci/seed_e2e_duckdb.py "$DB_DIR/fuqing_crm.duckdb"
+          chmod 0777 "$DB_DIR"
+          chmod 0666 "$DB_DIR/fuqing_crm.duckdb"
       - name: Frontend Dockerfile build (no push)
         run: |
           docker build -t fuqing-crm-frontend:ci -f frontend-vue3/Dockerfile frontend-vue3
+      - name: Run backend and frontend container smoke
+        run: |
+          set -euo pipefail
+          DB_DIR="${RUNNER_TEMP}/fuqing-docker-smoke"
+          SMOKE_NETWORK="fuqing-crm-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker rm -f fuqing-crm-backend-ci fuqing-crm-frontend-ci >/dev/null 2>&1 || true
+          docker network rm "$SMOKE_NETWORK" >/dev/null 2>&1 || true
+          cleanup() {
+            docker rm -f fuqing-crm-backend-ci fuqing-crm-frontend-ci >/dev/null 2>&1 || true
+            docker network rm "$SMOKE_NETWORK" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker network create "$SMOKE_NETWORK"
+          docker run --detach \
+            --name fuqing-crm-backend-ci \
+            --network "$SMOKE_NETWORK" \
+            --network-alias backend \
+            --publish 127.0.0.1:18001:8001 \
+            --volume "$DB_DIR:/app/data/processed" \
+            --env DUCKDB_PATH=/app/data/processed/fuqing_crm.duckdb \
+            --env FQ_DB_MODE=schema_test \
+            --env FQ_CRM_PASSWORDS \
+            fuqing-crm-backend:ci
+          BACKEND_READY=false
+          for _ in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:18001/api/v1/health >/dev/null; then
+              BACKEND_READY=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$BACKEND_READY" != "true" ]; then
+            docker logs fuqing-crm-backend-ci
+            exit 1
+          fi
+          docker rm -f fuqing-crm-frontend-ci >/dev/null 2>&1 || true
+          docker run --detach \
+            --name fuqing-crm-frontend-ci \
+            --network "$SMOKE_NETWORK" \
+            --publish 127.0.0.1:18080:8080 \
+            fuqing-crm-frontend:ci
+          FRONTEND_READY=false
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18080/ >/dev/null; then
+              FRONTEND_READY=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$FRONTEND_READY" != "true" ]; then
+            docker logs fuqing-crm-frontend-ci
+            exit 1
+          fi
+          curl --fail --silent http://127.0.0.1:18080/api/v1/health >/dev/null
+          curl --fail --silent --head http://127.0.0.1:18080/ \
+            | grep -i '^Content-Security-Policy:'

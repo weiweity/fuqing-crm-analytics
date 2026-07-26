@@ -45,12 +45,17 @@ IP_LOCK_DURATION = 15 * 60     # 单 IP 锁定时长（秒）
 LOGIN_STATE_MAX_ENTRIES = 4096 # 每张状态表最大条目（LRU 淘汰）
 LOGIN_STATE_CLEANUP_INTERVAL = 60.0  # 周期清理最小间隔（秒）
 BCRYPT_MAX_PASSWORD_BYTES = 72
+BCRYPT_ROUNDS = 12
+BCRYPT_MAX_CONCURRENCY = 2
+BCRYPT_SLOT_WAIT_SECONDS = 1.0
 USERNAME_MAX_LEN = 64
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.@-]+$")
 # 未知账号也走 bcrypt，抹平时序；固定盐哈希，避免每次 gensalt 开销差异过大。
 # cost 必须与真实密码 hash 一致（bcrypt.gensalt() 默认 rounds=12），
 # 禁止 rounds=4 等低 cost——否则未知账号 checkpw 明显更快，可被时序枚举。
-_DUMMY_BCRYPT_HASH: bytes = bcrypt.hashpw(b"__fq_crm_dummy__", bcrypt.gensalt())
+_DUMMY_BCRYPT_HASH: bytes = bcrypt.hashpw(
+    b"__fq_crm_dummy__", bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+)
 
 # ─────────────────────────────────────────────────────────────
 # 密码配置
@@ -95,9 +100,22 @@ def _load_credentials() -> dict[str, str]:
     hashed: dict[str, str] = {}
     for user, pwd in raw_creds.items():
         if pwd.startswith(("$2b$", "$2a$", "$2y$")):
+            try:
+                configured_rounds = int(pwd.split("$", 3)[2])
+            except (IndexError, ValueError) as exc:
+                raise RuntimeError(
+                    f"FQ_CRM_PASSWORDS 中账号 {user!r} 的 bcrypt hash 格式无效。"
+                ) from exc
+            if configured_rounds != BCRYPT_ROUNDS:
+                raise RuntimeError(
+                    "FQ_CRM_PASSWORDS 中预哈希凭据的 bcrypt cost 必须为 "
+                    f"{BCRYPT_ROUNDS}，账号 {user!r} 当前为 {configured_rounds}。"
+                )
             hashed[user] = pwd
         else:
-            hashed[user] = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
+            hashed[user] = bcrypt.hashpw(
+                pwd.encode(), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+            ).decode()
     return hashed
 
 
@@ -113,9 +131,13 @@ _LOGIN_ATTEMPTS: OrderedDict[str, tuple[int, float, float]] = OrderedDict()
 # per-IP 总限流（不按账号）
 _IP_LOGIN_ATTEMPTS: OrderedDict[str, tuple[int, float, float]] = OrderedDict()
 _last_login_state_cleanup: float = 0.0
-# FastAPI sync endpoints run in a worker pool.  Account lockout updates and the
-# single-session check/evict/mint sequence must be atomic across those workers.
+# 登录失败状态与 token 会话状态分锁，bcrypt 不持有任一状态锁。
+_LOGIN_STATE_LOCK = threading.RLock()
+# FastAPI sync endpoints run in a worker pool. The single-session
+# check/evict/mint sequence must be atomic across those workers.
 _AUTH_STATE_LOCK = threading.RLock()
+# 限制昂贵 bcrypt 的并发量，避免失败登录耗尽 CPU；等待超时后 fail closed。
+_BCRYPT_SEMAPHORE = threading.BoundedSemaphore(BCRYPT_MAX_CONCURRENCY)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -148,6 +170,10 @@ class LogoutResponse(BaseModel):
     success: bool
 
 
+class LogoutRequest(BaseModel):
+    token: str = Field(..., min_length=1, max_length=256)
+
+
 # ─────────────────────────────────────────────────────────────
 # 辅助函数
 # ─────────────────────────────────────────────────────────────
@@ -164,18 +190,10 @@ def _safe_log_username(username: str) -> str:
 def _get_client_ip(request: Request) -> str:
     """提取客户端 IP。
 
-    默认只用 ASGI client host。不可信 X-Forwarded-For 不当作 client IP。
-    仅当 FQ_TRUST_PROXY=1（可信反代模式）时才读取 X-Forwarded-For 首跳。
+    只读取 ASGI ``request.client``。可信代理与 X-Forwarded-For 的解析必须由
+    Uvicorn ``FORWARDED_ALLOW_IPS`` 完成；这里不再二次解析原始 header，避免
+    误信客户端预置的 XFF 首项。
     """
-    if os.environ.get("FQ_TRUST_PROXY") == "1":
-        xff = request.headers.get("X-Forwarded-For") or request.headers.get(
-            "x-forwarded-for"
-        )
-        if xff:
-            first = xff.split(",")[0].strip()
-            first = first.replace("\n", "").replace("\r", "")[:64]
-            if first:
-                return first
     return request.client.host if request.client else "unknown"
 
 
@@ -364,11 +382,29 @@ def _authenticate_credentials(username: str, password: str, client_ip: str) -> N
     ):
         raise HTTPException(status_code=401, detail="账号或密码错误")
 
-    with _AUTH_STATE_LOCK:
+    with _LOGIN_STATE_LOCK:
         _check_rate_limit(username, client_ip)
-        stored_hash = VALID_CREDENTIALS.get(username)
-        password_bytes = _password_to_bytes(password)
+
+    stored_hash = VALID_CREDENTIALS.get(username)
+    password_bytes = _password_to_bytes(password)
+    if not _BCRYPT_SEMAPHORE.acquire(timeout=BCRYPT_SLOT_WAIT_SECONDS):
+        _logger.warning(
+            "login_bcrypt_saturated",
+            extra={
+                "event": "login_bcrypt_saturated",
+                "username": _safe_log_username(username),
+                "client_ip": client_ip,
+            },
+        )
+        raise HTTPException(status_code=429, detail="登录服务繁忙，请稍后重试")
+    try:
         ok = _checkpw_safe(password_bytes, stored_hash)
+    finally:
+        _BCRYPT_SEMAPHORE.release()
+
+    with _LOGIN_STATE_LOCK:
+        # bcrypt 期间其他失败请求可能刚好触发锁定，提交结果前必须再检查一次。
+        _check_rate_limit(username, client_ip)
         if not ok:
             _logger.warning(
                 "login_failed",
@@ -556,7 +592,7 @@ def refresh_token(request: Request):
 
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout(request: Request):
+def logout(request: Request, payload: LogoutRequest | None = None):
     """退出登录，使当前 token + 同账号其他 stale token 失效.
 
     Token 来源（禁止 query / URL / access log）:
@@ -565,8 +601,6 @@ async def logout(request: Request):
 
     配套: 方案 D background task evict idle token > 60s (auth_token_evictor).
     """
-    import json as _json
-
     # 拒绝 query token，避免 bearer 进入 URL/历史/代理日志
     if request.query_params.get("token"):
         raise HTTPException(
@@ -576,18 +610,7 @@ async def logout(request: Request):
 
     auth = request.headers.get("Authorization", "")
     bearer_token = auth[7:] if auth.startswith("Bearer ") else None
-
-    body_token: str | None = None
-    try:
-        raw = await request.body()
-        if raw:
-            data = _json.loads(raw)
-            if isinstance(data, dict) and data.get("token"):
-                body_token = str(data["token"])
-    except Exception:
-        body_token = None
-
-    effective_token = bearer_token or body_token
+    effective_token = bearer_token or (payload.token if payload else None)
 
     if effective_token:
         with _AUTH_STATE_LOCK:
