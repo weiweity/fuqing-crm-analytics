@@ -132,7 +132,7 @@ plutil -lint ~/Library/LaunchAgents/com.fuqing.etl.daily.plist
 
 - **调度时间**: 每日 08:30
 - **执行命令**: `python3 scripts/run_etl.py --update`
-- **工作目录**: `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/sample-crm-analytics`
+- **工作目录**: `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics`
 - **PYTHONPATH**: 显式设置为项目根目录
 - **日志**: stdout/stderr 重定向到 `/tmp/fuqing-etl-scheduler.log`
 - **超时**: 无硬超时（ETL 跑批时间不确定）

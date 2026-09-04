@@ -13,7 +13,7 @@ order_set_30_indicators.py — 按 Excel 订单号集合匹配订单，输出两
 - 落到 ~/Desktop/fuqin date/取数/2026年/2026年<月>月<日>日/...xlsx
 
 运行：
-  /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/.venv/bin/python \
+  /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/.venv/bin/python \
     scripts/adhoc_order_set_30_indicators.py
 """
 from __future__ import annotations
@@ -38,8 +38,8 @@ from scripts.ad_hoc_query_excel_styles import write_table_workbook
 
 
 # ── 文件路径 ─────────────────────────────────────────────────────────
-FILE_2026 = Path("/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/推广临时数据/新老客-26年618uds订单明细.xlsx")
-FILE_2025 = Path("/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/推广临时数据/新老客-25年618uds订单明细.xlsx")
+FILE_2026 = Path("/Users/hutou/Desktop/fuqin date/推广临时数据/新老客-26年618uds订单明细.xlsx")
+FILE_2025 = Path("/Users/hutou/Desktop/fuqin date/推广临时数据/新老客-25年618uds订单明细.xlsx")
 
 WINDOW_2026 = (date(2026, 5, 6), date(2026, 6, 21))
 WINDOW_2025 = (date(2025, 5, 6), date(2025, 6, 21))

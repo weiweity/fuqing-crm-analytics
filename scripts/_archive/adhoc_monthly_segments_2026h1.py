@@ -10,7 +10,7 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-sys.path.insert(0, "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics")
+sys.path.insert(0, "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics")
 from scripts.ad_hoc_queries._utils import build_take_path, read_only_conn
 
 _SAMPLE_CHANNELS = ["U先派样", "百补派样"]
