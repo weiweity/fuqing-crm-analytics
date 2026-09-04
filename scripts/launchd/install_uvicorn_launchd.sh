@@ -15,7 +15,7 @@
 
 set -e
 
-REPO_ROOT="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+REPO_ROOT="/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics"
 PLIST_SRC="$REPO_ROOT/scripts/launchd/com.fuqing.uvicorn.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/com.fuqing.uvicorn.plist"
 LAUNCH_AGENT_LABEL="com.fuqing.uvicorn"

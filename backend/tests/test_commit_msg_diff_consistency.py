@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +10,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECKER = REPO_ROOT / "scripts" / "git" / "check_commit_msg_diff_consistency.py"
 
 
+def _sanitized_git_env() -> dict[str, str]:
+    """Drop repository-local variables inherited from a parent Git hook."""
+    env = os.environ.copy()
+    result = subprocess.run(
+        ["git", "rev-parse", "--local-env-vars"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    for name in result.stdout.splitlines():
+        env.pop(name, None)
+    env.pop("GIT_CONFIG_PARAMETERS", None)
+    env.pop("GIT_CONFIG_COUNT", None)
+    return env
+
+
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
@@ -16,6 +34,7 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
         check=True,
         capture_output=True,
         text=True,
+        env=_sanitized_git_env(),
     )
 
 
@@ -44,7 +63,28 @@ def _run_checker(repo: Path, message: str) -> subprocess.CompletedProcess[str]:
         check=False,
         capture_output=True,
         text=True,
+        env=_sanitized_git_env(),
     )
+
+
+def test_foreign_repo_helpers_ignore_parent_git_dir(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    parent_git_dir = subprocess.run(
+        ["git", "rev-parse", "--absolute-git-dir"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    monkeypatch.setenv("GIT_DIR", parent_git_dir)
+
+    repo, _ = _make_repo(tmp_path)
+
+    result = _git(repo, "log", "-1", "--format=%s")
+    assert result.stdout.strip() == "feat: add sampling view"
+    assert not (REPO_ROOT / "SamplingView.vue").exists()
 
 
 def test_normal_message_passes_without_warning(tmp_path: Path) -> None:

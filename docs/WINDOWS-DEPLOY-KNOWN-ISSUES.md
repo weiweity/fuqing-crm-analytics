@@ -60,7 +60,7 @@ npm run build
 python -c "
 import re
 content = open('.env', 'r', encoding='utf-8').read()
-content = content.replace('/Users/hutou/Desktop/fuqin-date/', 'D:/fuqin-date/')
+content = content.replace('/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/', 'D:/fuqin-date/')
 open('.env', 'w', encoding='utf-8').write(content)
 "
 ```
@@ -141,7 +141,7 @@ REM 正确写法 ✅
 ### mac 端(打包)
 ```bash
 # 1. 验证 pytest baseline
-cd /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics
+cd /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics
 PYTHONPATH=$(pwd) pytest backend/tests/ -q --tb=line 2>&1 | tail -5
 
 # 2. mac 端开 SSH
@@ -160,7 +160,7 @@ mkdir D:\fuqin-date
 
 # 3. Git Bash 跑 rsync 同步
 cd /d/fuqin-date
-rsync -avhP --progress --exclude='.venv' --exclude='node_modules' --exclude='.pytest_cache' --exclude='.ruff_cache' --exclude='__pycache__' --exclude='.DS_Store' --exclude='.gstack' --exclude='.codegraph' --exclude='*.pyc' --exclude='frontend-vue3/dist' --exclude='.githooks/__pycache__' hutou@<MAC_IP>:/Users/hutou/Desktop/fuqin-date/ /d/fuqin-date/
+rsync -avhP --progress --exclude='.venv' --exclude='node_modules' --exclude='.pytest_cache' --exclude='.ruff_cache' --exclude='__pycache__' --exclude='.DS_Store' --exclude='.gstack' --exclude='.codegraph' --exclude='*.pyc' --exclude='frontend-vue3/dist' --exclude='.githooks/__pycache__' hutou@<MAC_IP>:/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/ /d/fuqin-date/
 
 # 4. 跑 setup.bat
 D:\fuqin-date\setup.bat

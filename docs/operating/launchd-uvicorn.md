@@ -78,7 +78,7 @@ sandbox-exec: sandbox_apply: Operation not permitted
 <key>RunAtLoad</key>
 <true/>              <!-- launchctl load 立即启动 -->
 <key>WorkingDirectory</key>
-<string>/Users/hutou/Desktop/fuqin date/fuqing-crm-analytics</string>
+<string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics</string>
 ```
 
 ### 启动器 (`scripts/uvicorn_launchd.py`) 职责

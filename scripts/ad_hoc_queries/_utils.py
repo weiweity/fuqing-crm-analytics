@@ -317,7 +317,7 @@ def write_csv(rows: Iterable[Sequence[Any]], headers: Sequence[str], output_path
 # 路径: ~/Desktop/fuqin date/取数/<年份>年/<年份>年<月>月<日>日/<基期年份>年-<生成日期>-<业务标签>/<file>.csv
 # 任何 ad-hoc query 都走这个规则, 跨 sprint 一致.
 # 测试隔离: FQ_TAKE_ROOT env 可覆盖, 默认绝对路径.
-TAKE_ROOT = Path(os.environ.get("FQ_TAKE_ROOT", "/Users/hutou/Desktop/fuqin date/取数"))
+TAKE_ROOT = Path(os.environ.get("FQ_TAKE_ROOT", "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/取数"))
 
 
 def build_take_path(
@@ -350,10 +350,10 @@ def build_take_path(
 
     Examples:
         >>> build_take_path("新老客数据", 2026, "2026-06-01至2026-06-21")
-        /Users/hutou/Desktop/fuqin date/取数/2026年/2026年6月22日/2026年-2026年6月22日-新老客数据/新老客数据-2026-06-01至2026-06-21.csv
+        /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/取数/2026年/2026年6月22日/2026年-2026年6月22日-新老客数据/新老客数据-2026-06-01至2026-06-21.csv
 
         >>> build_take_path("../../../tmp/evil", 2025, "2025-12-01至2025-12-31")
-        /Users/hutou/Desktop/fuqin date/取数/2025年/2026年6月22日/2025年-2026年6月22日-.._.._.._tmp_evil/.._.._.._tmp_evil-2025-12-01至2025-12-31.csv
+        /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/取数/2025年/2026年6月22日/2025年-2026年6月22日-.._.._.._tmp_evil/.._.._.._tmp_evil-2025-12-01至2025-12-31.csv
     """
     from datetime import datetime
     today = datetime.now()

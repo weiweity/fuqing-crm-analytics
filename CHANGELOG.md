@@ -1,3 +1,16 @@
+## [unreleased] - 2026-09-04 (workspace relocation finalization)
+
+### Operations
+- 统一更新 macOS 归档工作区、launchd、ETL 与取数脚本的绝对路径，不改业务口径或 DuckDB 内容。
+- 新增可配置端口的本地起停入口；停止前同时核验 PID、启动指纹、命令签名与独占监听端口，并在启动失败或中断时只清理本次创建的进程。
+
+### Tests
+- 新增起停脚本回归，覆盖伪造命令、端口不匹配、非法端口、正常停止与启动失败清理。
+- pre-push 运行 pytest 前清理父 Git hook 的仓库定位环境；临时仓库回归同步隔离 `GIT_DIR` 等变量，防止测试 commit 落入当前分支。
+
+### Security
+- 将 Vue 编译链路的传递依赖 `nanoid` 从 3.3.16 锁定到 3.3.18，清除生产依赖审计中的高危公告。
+
 ## [unreleased] - 2026-07-26 (post-merge security residuals)
 
 ### Fixed

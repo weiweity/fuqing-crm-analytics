@@ -22,7 +22,7 @@
 ## Mac 安装
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin date/sample-crm-analytics"
+cd "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics"
 bash scripts/etl/scheduler/install_macos.sh
 ```
 

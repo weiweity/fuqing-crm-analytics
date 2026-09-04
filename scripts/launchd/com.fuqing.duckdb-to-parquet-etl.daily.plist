@@ -8,9 +8,9 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/duckdb_to_parquet_etl.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/etl/duckdb_to_parquet_etl.py</string>
         <string>--output-dir</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/postgresql16_parquet</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/postgresql16_parquet</string>
     </array>
 
     <key>StartCalendarInterval</key>
