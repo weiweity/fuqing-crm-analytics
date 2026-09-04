@@ -1,7 +1,14 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-07-25 PR5 供应链/Docker/CI 治理文档入口
+> **最后更新**: 2026-09-04 AI 增长董事会 Mission 主链
+
+## 黑客松当前实现
+
+| 文档 | 用途 |
+|---|---|
+| [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界 |
+| [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
 
 ## 一图流
 
@@ -12,6 +19,10 @@ fuqing-crm-analytics/docs/
 ├── DISASTER-RECOVERY.md               DuckDB 备份恢复
 ├── WINDOWS-DEPLOY-KNOWN-ISSUES.md     Windows / L4.64
 ├── user-prompt-template-ad-hoc-query.md
+│
+├── hackathon/                         AI 增长董事会实现
+│   ├── README.md                     CEO 价值、主链与边界
+│   └── MISSION-API.md                 API、幂等与状态流
 │
 ├── architecture/                      为什么这样设计
 │   ├── AI_SAFETY_NET.md
@@ -74,6 +85,7 @@ fuqing-crm-analytics/docs/
 
 | 你想… | 看 |
 |---|---|
+| 演示 AI 增长董事会 / 调用 Mission API | `hackathon/README.md` + `hackathon/MISSION-API.md` |
 | 项目能不能用 / 债指针 | 根 `STATUS.md` + `TECH-DEBT.md` |
 | 团队怎么合 PR | `operating/team-workflow-v1.md` |
 | 根目录该不该堆文件 | `operating/project-hygiene.md` |

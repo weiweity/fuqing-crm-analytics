@@ -78,6 +78,7 @@ cd frontend-vue3 && npx playwright test                   # E2E
 | **AI 行为规则** | [`CLAUDE.md`](./CLAUDE.md) · L4 细则 [`docs/rules/L4-permanent-rules.md`](./docs/rules/L4-permanent-rules.md) |
 | **协作 / 整洁** | [`docs/operating/team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
 | **父工作区地图** | [`../README.md`](../README.md)（`fuqin-date`，非 git monorepo） |
+| **AI 增长董事会** | [`docs/hackathon/README.md`](./docs/hackathon/README.md) · [`MISSION-API.md`](./docs/hackathon/MISSION-API.md) |
 
 ---
 

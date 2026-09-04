@@ -308,7 +308,7 @@ onMounted(() => {
                 @click="closePopover"
               >
                 <span>{{ item.label }}</span>
-                <span aria-hidden="true" class="navbar-tab-chevron">▾</span>
+                <span v-if="item.tabs.length" aria-hidden="true" class="navbar-tab-chevron">▾</span>
               </router-link>
 
               <Transition name="navbar-popover">
