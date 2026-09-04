@@ -114,7 +114,8 @@ describe('GrowthBoardView', () => {
     const wrapper = mount(GrowthBoardView)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('AI 增长董事会')
+    expect(wrapper.text()).toContain('CEO GROWTH BOARD')
+    expect(wrapper.text()).toContain('客户运营全局营销')
     expect(wrapper.text()).toContain('把直播大盘变成可复购资产')
     expect(wrapper.text()).toContain('SYNTHETIC DATA')
     expect(wrapper.text()).toContain('规模入口')
