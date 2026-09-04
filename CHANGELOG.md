@@ -8,6 +8,9 @@
 - 新增起停脚本回归，覆盖伪造命令、端口不匹配、非法端口、正常停止与启动失败清理。
 - pre-push 运行 pytest 前清理父 Git hook 的仓库定位环境；临时仓库回归同步隔离 `GIT_DIR` 等变量，防止测试 commit 落入当前分支。
 
+### Security
+- 将 Vue 编译链路的传递依赖 `nanoid` 从 3.3.16 锁定到 3.3.18，清除生产依赖审计中的高危公告。
+
 ## [unreleased] - 2026-07-26 (post-merge security residuals)
 
 ### Fixed
