@@ -59,11 +59,12 @@ class TestE2eRootSourceGuards:
         assert "FQ_CRM_TEST_MODE" in src
         assert "not _test_mode" in src or "_test_mode" in src
 
-    def test_main_ts_skips_beacon_logout_when_e2e_flag(self) -> None:
-        """page.goto → beforeunload → sendBeacon logout 会弄死后续 e2e 导航。"""
+    def test_main_ts_never_logs_out_during_navigation_or_reload(self) -> None:
+        """page.goto / reload 不能触发 logout；关页幽灵 token 由后端定时回收。"""
         main_ts = (ROOT / "frontend-vue3" / "src" / "main.ts").read_text(encoding="utf-8")
-        assert "fq_crm_e2e" in main_ts
-        assert "sendBeacon" in main_ts
+        assert "beforeunload" not in main_ts
+        assert "sendBeacon" not in main_ts
+        assert "fq_crm_e2e" not in main_ts
 
 
 class TestE2eSeedScript:

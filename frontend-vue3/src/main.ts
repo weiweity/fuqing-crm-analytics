@@ -91,41 +91,9 @@ async function bootstrap() {
     }
   }, 30 * 60 * 1000) // 30分钟
 
-  // L4.85.6 方案 A: Cmd+Q / 关页前踢会话，避免 B 端 login 409
-  // 安全: token 禁止出现在 URL/query（access log / 浏览器历史泄露）。
-  // 优先 sendBeacon + JSON body；失败则 fetch keepalive + Authorization（仍不走 query）。
-  // 配套: 方案 D background task evict idle token > 60s (backend/services/auth_token_evictor.py)
-  window.addEventListener('beforeunload', () => {
-    // Playwright page.goto 会触发 beforeunload；若此时 beacon logout，
-    // 下一页 bootstrap /auth/me 401 → 清 token → 永远停在登录页（e2e 全红真因 2026-07-19）。
-    // L4.85.6 Cmd+Q 用例单独测 beacon，不设 fq_crm_e2e。
-    if (sessionStorage.getItem('fq_crm_e2e') === '1') return
-    const token = sessionStorage.getItem(AUTH_TOKEN_KEY)
-    if (!token) return
-    const url = '/api/v1/auth/logout'
-    const body = JSON.stringify({ token })
-    try {
-      // sendBeacon 不能设 Authorization header → token 放 JSON body（Content-Type: application/json）
-      const blob = new Blob([body], { type: 'application/json' })
-      const ok = navigator.sendBeacon(url, blob)
-      if (!ok) throw new Error('sendBeacon returned false')
-    } catch {
-      // 兜底: fetch keepalive（可带 Bearer，仍禁止 query token）
-      try {
-        void fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body,
-          keepalive: true,
-        })
-      } catch {
-        // 网络/浏览器限制 → background task D 方案兜底
-      }
-    }
-  })
+  // 浏览器无法可靠区分刷新、站内导航与真正关页，不能在 unload 生命周期
+  // 主动注销，否则刷新会销毁仍需复用的 session token。用户主动退出仍由
+  // authStore.logout() 完成；异常关页留下的 token 由后端空闲回收任务兜底。
 
   // 等待初始路由解析完成（含导航守卫重定向）后再挂载，防止未登录时闪一下看板布局
   await router.isReady()
