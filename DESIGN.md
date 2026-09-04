@@ -13,16 +13,18 @@
 
 ## 设计令牌
 
+运行时单一事实来源是 `frontend-vue3/src/theme.ts`。该文件同时导出 CSS Variables 和 Naive UI theme overrides；当前增长董事会、登录页与全局头部不得直接写品牌色、玻璃透明度或发光阴影字面量。
+
 | 角色 | 值 | 用法 |
 |---|---|---|
 | Deep Plum | `#09050D` | 沉浸式主背景 |
 | Brand Purple | `#805D9D` | 品牌主色、状态线、次级动作 |
 | Soft Lilac | `#D3C3E8` | 文字层级、玻璃边界 |
-| Signal Lime | `#F2FFDC` | 主行动、确认状态、关键数字 |
+| Signal Lime | `#F2FFDC` | 确认状态、决策信号、关键数字 |
 | Ink White | `#FEFCFF` | 标题与主数字 |
 | Danger | `#FF7D91` | 错误与风险 |
 
-玻璃层使用半透明深紫、细描边、背景模糊和顶部高光。荧光浅绿只用于 CEO 需要立刻注意的数字与主操作，不作为大面积背景。
+玻璃层使用半透明深紫、细描边、背景模糊和顶部高光。荧光浅绿只用于 CEO 需要立刻注意的数字与确认信号，不作为大面积背景；审批主操作使用帝王紫渐变。
 
 ## 字体
 
@@ -40,12 +42,13 @@
 
 ## 组件边界
 
-- `BrandMark`：品牌符号与产品名
-- `MissionHero`：今日经营命题、规模/质量冲突、AI 建议
-- `ImpactForecast`：收益假设与 90/10 实验规模
-- `ChannelPortfolio`：首付费渠道、二单率、跨渠道率与净价值
-- `BusinessQuery`：受控自由问数与可追溯回答
-- `MissionActionRail`：状态机、审批、草稿导出与演示重置
+- `NavBar` + `BrandMark`（对应设计需求的 `Header`）：魔术帽、标准字、副标题、主导航与登录申请。
+- `MissionHero` + `ImpactForecast`（对应 `HeroMetric`）：今日经营命题、规模/质量冲突、AI 建议、收益假设与 90/10 实验规模。
+- `ChannelPortfolio`（对应 `ChannelTable`）：首付费渠道、二单率、跨渠道率与净价值。
+- `BusinessQuery`（对应 `QuerySection`）：受控自由问数与可追溯回答。
+- `MissionActionRail`（对应 `ApprovalWorkflow`）：状态机、审批、草稿导出与演示重置。
+
+这是 Vue 3 项目，因此使用 `.vue` 单文件组件，而不是把 React 示例文件名机械复制为 `.tsx`。
 
 ## 禁止项
 
