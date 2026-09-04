@@ -7,6 +7,7 @@ import socket
 import stat
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,67 @@ def _free_port() -> int:
         return int(listener.getsockname()[1])
 
 
+def _write_fake_http_python(path: Path) -> None:
+    path.write_text(
+        """#!/bin/sh
+if [ "${1:-}" = "-c" ]; then
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "Python 3.14.0"
+  exit 0
+fi
+exec /usr/bin/env python3 -c '
+import http.server, sys
+args = sys.argv[1:]
+port = int(args[args.index("--port") + 1])
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = "{\\\"title\\\":\\\"Sample CRM 客户分析系统 API\\\"}".encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *_args):
+        pass
+http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+' "$@"
+""",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def _write_fake_vite(path: Path) -> None:
+    path.write_text(
+        """#!/bin/sh
+if [ "${1:-}" != "${EXPECTED_VITE_ROOT:-}" ]; then
+  echo "unexpected vite root: ${1:-missing}" >&2
+  exit 42
+fi
+exec /usr/bin/env python3 -c '
+import http.server, sys
+args = sys.argv[1:]
+port = int(args[args.index("--port") + 1])
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = "<title>芙清 CRM - 数据分析平台</title>".encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *_args):
+        pass
+http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+' "$@" "$0"
+""",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
 def test_stack_scripts_keep_executable_mode() -> None:
     for script in (START_SCRIPT, STOP_SCRIPT):
         assert script.stat().st_mode & stat.S_IXUSR, f"{script} must stay executable"
@@ -45,11 +107,77 @@ def test_start_script_has_owned_pid_and_configurable_port_guards() -> None:
     assert 'started_at' in content
     assert 'backend.main:app' in content
     assert 'node_modules/.bin/vite' in content
+    assert '"$VITE_BIN" "$CRM_ROOT/frontend-vue3"' in content
     assert '--strictPort' in content
     assert 'openapi.json' in content
     assert 'Sample CRM 客户分析系统 API' in content
     assert 'trap on_exit EXIT' in content
     assert 'pkill -f' not in content
+
+
+@pytest.mark.skipif(shutil.which("lsof") is None, reason="lsof is required")
+def test_start_script_serves_frontend_from_frontend_root(tmp_path: Path) -> None:
+    isolated_root = tmp_path / "checkout"
+    ops_dir = isolated_root / "scripts" / "ops"
+    ops_dir.mkdir(parents=True)
+    isolated_start = ops_dir / "start-stack.sh"
+    isolated_stop = ops_dir / "stop-stack.sh"
+    shutil.copy2(START_SCRIPT, isolated_start)
+    shutil.copy2(STOP_SCRIPT, isolated_stop)
+
+    fake_python = tmp_path / "fake-python"
+    _write_fake_http_python(fake_python)
+    fake_vite = isolated_root / "frontend-vue3" / "node_modules" / ".bin" / "vite"
+    fake_vite.parent.mkdir(parents=True)
+    _write_fake_vite(fake_vite)
+
+    state_dir = tmp_path / "state"
+    api_port = _free_port()
+    frontend_port = _free_port()
+    while frontend_port == api_port:
+        frontend_port = _free_port()
+    env = os.environ.copy()
+    env.update(
+        {
+            "FQ_PYTHON_BIN": str(fake_python),
+            "FQ_STACK_STATE_DIR": str(state_dir),
+            "FQ_API_PORT": str(api_port),
+            "FQ_FRONTEND_PORT": str(frontend_port),
+            "EXPECTED_VITE_ROOT": str(isolated_root / "frontend-vue3"),
+        }
+    )
+
+    try:
+        result = subprocess.run(
+            ["bash", str(isolated_start)],
+            cwd=isolated_root,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "stack ready" in result.stdout
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{frontend_port}/", timeout=5
+        ) as response:
+            body = response.read().decode("utf-8")
+        assert response.status == 200
+        assert "<title>芙清 CRM - 数据分析平台</title>" in body
+    finally:
+        stop = subprocess.run(
+            ["bash", str(isolated_stop)],
+            cwd=isolated_root,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    assert stop.returncode == 0, stop.stderr
+    assert not (state_dir / "api.pid").exists()
+    assert not (state_dir / "frontend.pid").exists()
 
 
 def test_stop_script_refuses_unowned_pid(tmp_path: Path) -> None:

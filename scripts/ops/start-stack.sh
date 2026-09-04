@@ -280,7 +280,8 @@ if [[ "$frontend_existing" -eq 1 ]]; then
 else
   [[ -z "$frontend_owner" ]] || fail "port $FRONTEND_PORT is owned by unrelated PID $frontend_owner"
   VITE_API_PROXY="${VITE_API_PROXY:-http://127.0.0.1:$API_PORT}" \
-    nohup "$VITE_BIN" --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort \
+    nohup "$VITE_BIN" "$CRM_ROOT/frontend-vue3" \
+      --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort \
       > "$FRONTEND_LOG" 2>&1 &
   frontend_pid=$!
   frontend_started=1
