@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/add_orders_pay_time_user_id_index.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/etl/add_orders_pay_time_user_id_index.py</string>
     </array>
 
     <key>RunAtLoad</key>

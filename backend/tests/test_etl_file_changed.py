@@ -12,7 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, '/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics')
+sys.path.insert(0, '/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics')
 
 from scripts.etl.ingest import _file_changed
 

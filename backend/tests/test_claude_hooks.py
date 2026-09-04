@@ -212,7 +212,7 @@ class TestPreToolUseHooks:
         """Sanity: regular .py file is allowed (exit 0)."""
         payload = {
             "tool_input": {
-                "file_path": "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/services/orders.py"
+                "file_path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/backend/services/orders.py"
             }
         }
         rc = _run_hook(EDIT_WRITE_BLOCK_ENV_CMD, payload)
@@ -356,7 +356,7 @@ class TestPostToolUseHooks:
 
         payload = {
             "tool_input": {
-                "file_path": "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/__init__.py"
+                "file_path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/backend/__init__.py"
             }
         }
         result = _run_inline_python(POST_TOOL_USE_EDIT_WRITE_BODY, payload)
@@ -392,7 +392,7 @@ class TestPostToolUseHooks:
 
         payload = {
             "tool_input": {
-                "file_path": "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/services/orders.py"
+                "file_path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/backend/services/orders.py"
             }
         }
         result = _run_inline_python(POST_TOOL_USE_EDIT_WRITE_BODY, payload)
@@ -416,7 +416,7 @@ class TestPostToolUseHooks:
 
         payload = {
             "tool_input": {
-                "file_path": "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/backend/contracts/schemas.py"
+                "file_path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/backend/contracts/schemas.py"
             }
         }
         result = _run_inline_python(POST_TOOL_USE_EDIT_WRITE_BODY, payload)

@@ -38,7 +38,7 @@ fi
 # trap 确保任何退出路径都释放锁
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
-BACKUP_DIR="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/backups"
+BACKUP_DIR="/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/backups"
 LOG_FILE="/tmp/fuqing-backup-cleanup.log"
 RETENTION_DAYS=2  # Sprint 111: 7 → 2 天滚动 (项目小, 跟 backup_duckdb.py 同步)
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -61,7 +61,7 @@ BEFORE_BYTES=$(find "$BACKUP_DIR" -type f \( -name "*.parquet" -o -name "*.duckd
 # Sprint 163: tracker 每周日 backup (防 plist 异常 kill 丢 tracker → 下次冷启动 25min 浪费)
 # processed_files_shop/member.json 是 xlsx 增量 tracker source of truth
 # weekly 备份保留 2 周 (跟 RETENTION_DAYS 同步), 跟 DuckDB 备份独立.
-TRACKER_DIR="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed"
+TRACKER_DIR="/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed"
 TRACKER_BACKUP_DIR="$BACKUP_DIR/tracker_$(date -u +%Y%m%d)"
 if mkdir -p "$TRACKER_BACKUP_DIR" 2>/dev/null; then
     cp -f "$TRACKER_DIR"/processed_files_*.json "$TRACKER_BACKUP_DIR/" 2>/dev/null && \

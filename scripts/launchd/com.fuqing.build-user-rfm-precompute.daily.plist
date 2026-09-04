@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/build_user_rfm_precompute_table.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/etl/build_user_rfm_precompute_table.py</string>
     </array>
 
     <key>StartCalendarInterval</key>

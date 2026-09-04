@@ -25,17 +25,17 @@ PR3 (ops-temp-safety): Mac launchd plist for 芙清临时文件安全清理 (Lay
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_subagent.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_subagent.py</string>
         <string>--execute</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>PYTHONPATH</key>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics</string>
     </dict>
 
     <key>StartInterval</key>

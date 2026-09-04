@@ -25,7 +25,7 @@
 ## 启动（开发机）
 
 ```bash
-cd "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+cd "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics"
 git checkout main && git pull origin main --ff-only
 # 后端 / 前端按 README.md；hooks: bash scripts/setup-hooks.sh
 ```

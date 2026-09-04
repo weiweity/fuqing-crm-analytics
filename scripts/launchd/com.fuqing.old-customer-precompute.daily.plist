@@ -8,9 +8,9 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/precompute_old_customer_9_sub_modules.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/precompute_old_customer_9_sub_modules.py</string>
         <string>--output-dir</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/cache/old_customer_precompute</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/cache/old_customer_precompute</string>
     </array>
 
     <key>StartCalendarInterval</key>

@@ -181,7 +181,7 @@ def _reset_fq_crm_admins_env():
 # ─────────────────────────────────────────────────────────────
 
 # 生产 DuckDB 路径 (跟 backend/db/connection.py 一致)
-_PROD_DUCKDB_PATH = Path("/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb")
+_PROD_DUCKDB_PATH = Path("/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb")
 
 
 def _duckdb_lock_holder_pid() -> int | None:

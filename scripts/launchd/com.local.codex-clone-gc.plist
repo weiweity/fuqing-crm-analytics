@@ -39,11 +39,11 @@ Sprint 62.5 B4: Codex code_sign_clone GC LaunchAgent (2026-06-22)
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/launchd/codex_clone_gc.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/launchd/codex_clone_gc.py</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics</string>
 
     <key>StartCalendarInterval</key>
     <dict>

@@ -6,7 +6,7 @@ import csv
 import sys
 from pathlib import Path
 
-IN_DIR = Path("/Users/hutou/Desktop/fuqin date/取数/2026年/2026年7月2日/2026年-2026年7月2日-H1日指标")
+IN_DIR = Path("/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/取数/2026年/2026年7月2日/2026年-2026年7月2日-H1日指标")
 OUT_DIR = IN_DIR
 
 PERIODS = [

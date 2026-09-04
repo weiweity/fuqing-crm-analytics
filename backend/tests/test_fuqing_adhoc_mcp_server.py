@@ -475,7 +475,7 @@ class TestL4ComplianceRegression:
         """mcp_servers/fuqing_adhoc/*.py MUST NOT contain hardcoded '/Users/hutou' paths.
 
         目的: L4.34 锁回归 — Sprint 181.1 真因: test_claude_hooks 硬编码
-        /Users/hutou/Desktop/fuqin-date/... macOS 路径, Linux CI runner
+        /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/... macOS 路径, Linux CI runner
         FileNotFoundError. MCP server 模块必须全用 Path(__file__).resolve()
         跨平台构造, 禁止硬编码 /Users/hutou 路径.
 

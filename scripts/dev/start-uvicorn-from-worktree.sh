@@ -8,18 +8,18 @@
 # 用法：
 #   scripts/dev/start-uvicorn-from-worktree.sh /path/to/worktree [port]
 # 示例：
-#   scripts/dev/start-uvicorn-from-worktree.sh /Users/hutou/Desktop/fuqin-date/wt-sprint170-r-bucket 8000
+#   scripts/dev/start-uvicorn-from-worktree.sh /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/wt-sprint170-r-bucket 8000
 
 set -euo pipefail
 
 WORKTREE_PATH="${1:-}"
 PORT="${2:-8000}"
-MAIN_REPO="/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+MAIN_REPO="/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics"
 PYTHON_BIN="/Users/hutou/homebrew/bin/python3"
 
 if [[ -z "$WORKTREE_PATH" ]]; then
     echo "Usage: $0 <worktree-path> [port]"
-    echo "Example: $0 /Users/hutou/Desktop/fuqin-date/wt-sprint170-r-bucket 8000"
+    echo "Example: $0 /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/wt-sprint170-r-bucket 8000"
     exit 1
 fi
 

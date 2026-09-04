@@ -29,11 +29,11 @@ Mac launchd plist for 芙清 backups/ 2-day retention cleanup (L4.7 + 项目小)
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_backups.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/etl/cleanup_backups.py</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics</string>
 
     <key>StartCalendarInterval</key>
     <dict>

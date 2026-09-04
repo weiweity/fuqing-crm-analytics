@@ -419,7 +419,7 @@ $ pytest
 
 **正例**:
 ```bash
-$ export DUCKDB_PATH=/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
+$ export DUCKDB_PATH=/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
 $ pytest
 # ✅ 749 passed / 1 skipped
 ```
@@ -469,7 +469,7 @@ $ pytest
 PYTHONPATH=. python3 -c "from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE; print(_PROD_DUCKDB_AVAILABLE)"
 
 # 2. 检查 uvicorn 是否在跑
-lsof -t /Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
+lsof -t /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
 
 # 3. 串行模式重跑
 pytest -n 0
@@ -482,7 +482,7 @@ pytest -n 0
 echo $DUCKDB_PATH
 
 # 2. 设置
-export DUCKDB_PATH=/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
+export DUCKDB_PATH=/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
 
 # 3. 重跑
 pytest
@@ -571,7 +571,7 @@ def test_my_real_query(monkeypatch_connection):
 
 ```bash
 # worktree 跑 pytest 前必须 export DUCKDB_PATH 指向主仓 production db
-export DUCKDB_PATH=/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
+export DUCKDB_PATH=/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb
 PYTHONPATH="$(pwd)" pytest backend/tests/ -x -q
 # 期望: 758 passed / 1 skipped
 ```

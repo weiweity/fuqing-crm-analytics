@@ -36,11 +36,11 @@ Sprint 60.2 P3 uvicorn 守护 (2026-06-22): Mac launchd plist for 芙清 CRM uvi
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hutou/homebrew/bin/python3</string>
-        <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics/scripts/uvicorn_launchd.py</string>
+        <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/scripts/uvicorn_launchd.py</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics</string>
+    <string>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics</string>
 
     <key>RunAtLoad</key>
     <true/>

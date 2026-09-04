@@ -20,7 +20,7 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 
-REPO_ROOT = "/Users/hutou/Desktop/fuqin-date/fuqing-crm-analytics"
+REPO_ROOT = "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics"
 
 # PR3: 启动 umask 077 — 临时导出/日志默认 0600
 os.umask(0o077)
