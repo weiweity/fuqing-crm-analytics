@@ -150,6 +150,10 @@ def test_same_ip_retry_rotates_claim_and_refreshes_authoritative_ttl():
 @pytest.mark.skipif(not _PROD_DUCKDB_AVAILABLE, reason="production DuckDB 不可用 (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)")
 def test_concurrent_direct_logins_mint_only_one_active_session(monkeypatch):
     """The single-session decision must stay atomic across FastAPI workers."""
+    from backend import config
+
+    # 该用例只验证登录锁，不应受归档业务库的数据新鲜度门禁影响。
+    monkeypatch.setattr(config, "DB_MODE", "schema_test")
     rendezvous = threading.Barrier(2)
 
     def synchronized_credentials(*_args):

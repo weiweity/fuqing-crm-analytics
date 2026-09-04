@@ -212,11 +212,12 @@ def _duckdb_lock_holder_pid() -> int | None:
 # ─────────────────────────────────────────────────────────────
 
 def _detect_prod_duckdb_available() -> bool:
-    """动态检测 production DuckDB 是否可访问: 文件存在 + duckdb.connect() 不抛异常.
+    """动态检测 production DuckDB 是否可用于数据集成测试.
 
     Sprint 39: 替代 hardcoded _PROD_DUCKDB_PATH (Sprint 22 #25 那个). 跨工作树/clone/CI
-    友好. 只 check 文件存在 + 可连接 (read_only=True 不抢 write lock), 不 check 表存在
-    (避免 sprint 期间 schema 变动引发 false negative).
+    友好. 除了文件存在和只读可连接，还要求核心事实表 ``orders`` 存在。
+    DuckDB 在连接不存在的相对路径时会创建一个空文件；只执行 ``SELECT 1``
+    会把这种空壳误判为生产库，随后所有数据用例才以 ``orders`` 不存在失败。
 
     Returns:
         True if production DuckDB 可访问 (本地开发 / 用户 clone + 自己跑 ETL 跑批后)
@@ -232,13 +233,21 @@ def _detect_prod_duckdb_available() -> bool:
     if not path.exists():
         return False
 
-    # 文件存在, 进一步 check 可连接 (read_only 不抢 write lock, 不会跟 uvicorn 冲突)
+    # 文件存在, 进一步 check 可连接和核心 schema（read_only 不抢 write lock）。
     try:
         import duckdb
         conn = duckdb.connect(str(path), read_only=True)
-        conn.execute("SELECT 1").fetchone()
-        conn.close()
-        return True
+        try:
+            has_orders = conn.execute(
+                """
+                SELECT count(*) > 0
+                FROM information_schema.tables
+                WHERE lower(table_name) = 'orders'
+                """
+            ).fetchone()[0]
+            return bool(has_orders)
+        finally:
+            conn.close()
     except Exception:
         return False
 

@@ -64,6 +64,14 @@ def _qualified_orders(database_name: str, schema_name: str) -> str:
     )
 
 
+def _target_after_latest_order(conn) -> date:
+    """让归档库集成测试锚定数据末日，而不是依赖机器当前日期。"""
+    latest = conn.execute("SELECT MAX(pay_time) FROM orders").fetchone()[0]
+    assert latest is not None, "orders 必须至少包含一笔有效日期数据"
+    latest_date = latest.date() if hasattr(latest, "date") else latest
+    return latest_date + timedelta(days=1)
+
+
 @pytest.fixture(scope="module")
 def prod_conn(isolated_duckdb):
     """使用隔离连接，并把 W4 写操作限定到 temp DB。"""
@@ -128,7 +136,7 @@ class TestW4T7ActualRun:
 
     def test_a_w4_t7_actual_run(self, prod_conn):
         """跑批, 验 540 组合 + 7 天 merge window."""
-        target = date.today()
+        target = _target_after_latest_order(prod_conn)
         inc, merge, dates = incremental_load_with_merge(prod_conn, target, t_minus_days=7)
 
         # 1. 验 incremental_inserted: 540 组合 (9 channel x 60 item x 1 segment)
@@ -162,7 +170,7 @@ class TestW4Idempotency:
 
     def test_b_w4_idempotency(self, prod_conn):
         """重跑, 验幂等性 (同一天 / 同一组合 / 同一 version 不重复插入)."""
-        target = date.today()
+        target = _target_after_latest_order(prod_conn)
         inc2, merge2, dates2 = incremental_load_with_merge(prod_conn, target, t_minus_days=7)
 
         # 重跑后: version 已 +1, 新 version 不冲突, 实际会插入新行
@@ -178,7 +186,7 @@ class TestW4VersionIncrement:
 
     def test_c_w4_version_increment(self, prod_conn):
         """version 续号验证: incremental + merge 一次后, max(version) 应增加."""
-        target = date.today()
+        target = _target_after_latest_order(prod_conn)
         load_date = target - timedelta(days=1)
 
         # 跑前: 查 T-1 的 max(version)
@@ -209,7 +217,7 @@ class TestW4DataQuality:
 
     def test_d_w4_data_quality(self, prod_conn):
         """数据质量检查: 抽 10 行, 关键字段非空 / 非负."""
-        target = date.today()
+        target = _target_after_latest_order(prod_conn)
         load_date = target - timedelta(days=1)
 
         # xdist 会把同一 module 的 test 分发到不同 worker。每个 worker 都有
