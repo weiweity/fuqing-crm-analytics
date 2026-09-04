@@ -8,6 +8,7 @@
 - [黑客松报名与作品文案](./SUBMISSION-COPY.md)
 - [AI 调用 Mission API 指南](./AI-TOOL-CALLING.md)
 - [Mission HTTP 契约](./MISSION-API.md)
+- [架构、质量证据与提交收口审计](./ARCHITECTURE-AND-RELEASE-AUDIT.md)
 - [黑客松收口与产品路线](./ROADMAP.md)
 - [CEO 价值与行业验证底稿](./research/report-source.md)
 
@@ -26,7 +27,7 @@ Mission GET /today
 
 ## 评委演示
 
-1. 使用部署环境提供的公网演示账号登录，进入 `/growth-board`。
+1. 使用演示账号登录，进入 `/growth-board`；当前先按本地演示流程验收，公网部署暂缓。
 2. 先讲“直播规模第一、货架质量第一”的经营冲突，再点三个建议问题之一验证证据链。
 3. 点击“审批并生成 DRAFT_EXPORT”，明确系统只生成 90/10 合成人群草稿，不自动发送短信。
 4. 下载 CSV，展示同一 `synthetic_user_id` 可跨渠道关联；刷新页面后下载入口仍会保留。

@@ -9,6 +9,7 @@
 |---|---|
 | [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界 |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
+| [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
 
 ## 一图流
 
@@ -22,7 +23,8 @@ fuqing-crm-analytics/docs/
 │
 ├── hackathon/                         AI 增长董事会实现
 │   ├── README.md                     CEO 价值、主链与边界
-│   └── MISSION-API.md                 API、幂等与状态流
+│   ├── MISSION-API.md                 API、幂等与状态流
+│   └── ARCHITECTURE-AND-RELEASE-AUDIT.md  架构审计与提交清单
 │
 ├── architecture/                      为什么这样设计
 │   ├── AI_SAFETY_NET.md

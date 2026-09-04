@@ -1,12 +1,12 @@
-# 天猫CRM 客户分析系统
+# 伸美 AI 增长董事会
 
-> 内部运营中台 · 数据驱动的客户洞察 · 每日 9 点自动推送
+> AI 黑客松作品 · 多渠道客户资产诊断 · 受控自由问数与人群决策
 
 ---
 
 ## 项目简介
 
-天猫CRM 客户分析系统是为天猫电商运营团队打造的内部数据中台，处理 **1030 万订单 / 410 万用户**（2020-2026）的数据规模，提供实时的客户洞察能力。
+本仓库源自多渠道 CRM 分析系统。黑客松主线把既有分析能力重构成 CEO 决策产品：从合成数据生成一个今日经营 Mission，允许受控自由问数，经人工审批后生成带 holdout 的合成人群草稿。真实业务数据库不进入公开演示链。
 
 ### 核心价值
 
@@ -19,34 +19,31 @@
 
 ## 快速开始
 
-### 1. 一次性激活 githooks
+### 1. 启动本地演示
 
 ```bash
-bash scripts/setup-hooks.sh   # 激活 pre-commit / pre-push (一次性, session 保持)
-```
-
-### 2. 启动服务
-
-```bash
-cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
-export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
-PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
-  --host 0.0.0.0 --port 8000 --reload --reload-dir backend \
-  >> /tmp/fuqing-crm-backend.log 2>&1 &
-cd frontend-vue3 && npm run dev
+./scripts/ops/start-stack.sh
 ```
 
 - 后端 API: http://localhost:8000
 - 前端界面: http://localhost:5173
 - API 文档（无需登录）: http://localhost:8000/docs
 
-### 3. ETL 增量更新
+演示结束后恢复冷存：
+
+```bash
+./scripts/ops/stop-stack.sh
+```
+
+Mission 的合成数据和环境配置见 [`docs/hackathon/README.md`](./docs/hackathon/README.md)。
+
+### 2. ETL 增量更新（仅既有私有分析环境）
 
 ```bash
 PYTHONPATH="$(pwd)" /Users/yourname/homebrew/bin/python3 scripts/run_etl.py --update
 ```
 
-### 4. 即席查询 CLI（`/ad-hoc-query` skill, Sprint 171 v2.0）
+### 3. 即席查询 CLI（`/ad-hoc-query` skill, Sprint 171 v2.0）
 
 ```bash
 # 9 个子命令: daily-gsv / yoy-battle / channel-slice /
@@ -56,7 +53,7 @@ PYTHONPATH="$(pwd)" python3 scripts/ad_hoc_query.py <cmd> [args]
 # 详: .claude/skills/ad-hoc-query/SKILL.md
 ```
 
-### 5. 测试
+### 4. 测试
 
 ```bash
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v              # 后端单测
@@ -77,7 +74,6 @@ cd frontend-vue3 && npx playwright test                   # E2E
 | **版本变更** | [`CHANGELOG.md`](./CHANGELOG.md) · 老条目 `docs/history/CHANGELOG_HISTORY.md` |
 | **AI 行为规则** | [`CLAUDE.md`](./CLAUDE.md) · L4 细则 [`docs/rules/L4-permanent-rules.md`](./docs/rules/L4-permanent-rules.md) |
 | **协作 / 整洁** | [`docs/operating/team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
-| **父工作区地图** | [`../README.md`](../README.md)（`fuqin-date`，非 git monorepo） |
 | **AI 增长董事会** | [`docs/hackathon/README.md`](./docs/hackathon/README.md) · [`MISSION-API.md`](./docs/hackathon/MISSION-API.md) |
 
 ---
