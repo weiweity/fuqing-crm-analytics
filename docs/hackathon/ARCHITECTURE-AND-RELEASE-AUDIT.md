@@ -102,7 +102,7 @@ Vue CEO 增长董事会（证据 → 追问 → 审批 → DRAFT_EXPORT）
 
 ### 本地分支
 
-分支 `codex/fix-local-demo-startup` 基于 `origin/main@89d3423`，本轮收口后共有 9 个本地提交，未 push、未建 PR、未部署。
+分支 `codex/fix-local-demo-startup` 基于 `origin/main@89d3423`，本轮收口后共有 10 个本地提交，未 push、未建 PR、未部署。
 
 | 检查 | 结果 | 说明 |
 |---|---|---|
@@ -113,8 +113,8 @@ Vue CEO 增长董事会（证据 → 追问 → 审批 → DRAFT_EXPORT）
 | 数据 API 集成测试 | 9 passed | 显式只读指向真实库后通过 |
 | 起停脚本测试 | 8 passed | 新品牌健康签名与端口所有权通过 |
 | 全仓 Ruff | 9 个旧错误 | 均位于 `origin/main` 既有脚本，本分支未新增 |
-| 全量后端首轮 | 1576 passed / 14 skipped / 6 failed | 六项集中在个人 Skill、归档库新鲜度与同一 W4 SQL 作用域 |
-| 六项失败域回归 | 27 passed / 4 skipped / 0 failed | 修复后合并复跑；未重复执行 32 分钟全套 |
+| 后端全量最终 | 1512 passed / 84 skipped / 0 failed | 当前 HEAD 真实执行 31m51s；运行中 API 占用归档库及可选宿主能力按契约跳过 |
+| 首轮失败域复核 | 27 passed / 4 skipped / 0 failed | 首轮六项失败在个人 Skill、空库识别与同一 W4 SQL 作用域，修复后已先合并复跑 |
 | 可见浏览器 QA | 通过 | 登录、首屏、受控问数、重置到审批前均实测 |
 
 ### GitHub 快照
