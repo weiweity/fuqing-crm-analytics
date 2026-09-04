@@ -6,6 +6,7 @@
 
 ### Tests
 - 新增起停脚本回归，覆盖伪造命令、端口不匹配、非法端口、正常停止与启动失败清理。
+- pre-push 运行 pytest 前清理父 Git hook 的仓库定位环境；临时仓库回归同步隔离 `GIT_DIR` 等变量，防止测试 commit 落入当前分支。
 
 ## [unreleased] - 2026-07-26 (post-merge security residuals)
 

@@ -105,6 +105,19 @@ _load_deselect_args() {
     fi
 }
 
+# Git exports GIT_DIR/GIT_WORK_TREE and related local-repository variables to
+# hooks.  Pytest contains regression tests that intentionally create a foreign
+# temporary repository; inherited variables would redirect those git commands
+# back into this checkout.  Run tests in a subshell with only Git's local repo
+# variables cleared (credentials and ordinary process environment stay intact).
+_run_pytest_isolated() (
+    while IFS= read -r git_var; do
+        [ -n "$git_var" ] && unset "$git_var"
+    done < <(git rev-parse --local-env-vars)
+    unset GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT
+    PYTHONPATH="$REPO_ROOT" python3 -m pytest "$@"
+)
+
 case "$MODE" in
     skip)
         echo "✅ Docs/md/changelog/handoff only (or frontend-only / delete) — skip full pytest."
@@ -138,7 +151,7 @@ case "$MODE" in
         else
             _load_deselect_args
             echo "   targets: ${TARGETS[*]}"
-            PYTHONPATH="$REPO_ROOT" python3 -m pytest "${TARGETS[@]}" -x -q -n0 -m "not slow" \
+            _run_pytest_isolated "${TARGETS[@]}" -x -q -n0 -m "not slow" \
               "${DESELECT_ARGS[@]}"
             if [ $? -ne 0 ]; then
                 echo ""
@@ -165,7 +178,7 @@ fi
 echo "Running full pytest before push (serial -n0, C-class deselect SSOT)..."
 _load_deselect_args
 
-PYTHONPATH="$REPO_ROOT" python3 -m pytest backend/tests/ -x -q -n0 -m "not slow" \
+_run_pytest_isolated backend/tests/ -x -q -n0 -m "not slow" \
   "${DESELECT_ARGS[@]}"
 if [ $? -ne 0 ]; then
     echo ""

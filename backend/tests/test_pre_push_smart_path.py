@@ -210,6 +210,12 @@ class TestPrePushScript:
         assert "test_w2_manifest" not in text
         assert "pre_push_path_class.py" in text
 
+    def test_pre_push_clears_parent_git_repository_environment(self):
+        text = PRE_PUSH.read_text(encoding="utf-8")
+        assert "_run_pytest_isolated" in text
+        assert "git rev-parse --local-env-vars" in text
+        assert text.count("_run_pytest_isolated ") >= 2
+
     def test_pre_push_skips_branch_delete_only(self):
         """Regression: git push --delete must not fall through to full pytest."""
         text = PRE_PUSH.read_text(encoding="utf-8")
