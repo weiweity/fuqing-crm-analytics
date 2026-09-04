@@ -21,6 +21,7 @@ Mission GET /today
 2. 先讲“直播规模第一、货架质量第一”的经营冲突，再点三个建议问题之一验证证据链。
 3. 点击“审批并生成 DRAFT_EXPORT”，明确系统只生成 90/10 合成人群草稿，不自动发送短信。
 4. 下载 CSV，展示同一 `synthetic_user_id` 可跨渠道关联；刷新页面后下载入口仍会保留。
+5. 本地需要重复演示时，由管理员点击“重置演示”；该按钮受独立环境开关控制，公网默认不出现。
 
 演示前需按 [`scripts/synthetic/README.md`](../../scripts/synthetic/README.md) 生成数据，并在部署环境显式配置 `.env.example` 中的四个 `FQ_MISSION_*` 变量。
 
@@ -28,6 +29,7 @@ Mission GET /today
 
 - 公网演示仅使用 `data_profile=synthetic` 且 `contains_real_data=false` 的数据集。
 - `FQ_MISSION_DEMO_ENABLED` 默认关闭；Mission 不会回退到真实 `DUCKDB_PATH`。
+- `FQ_MISSION_DEMO_RESET_ENABLED` 默认关闭；只在受控本地演示临时开启。
 - 问数只调用已测试的语义视图，不执行模型生成的任意 SQL。
 - 未审批不生成名单；草稿名单只包含合成用户 ID、Mission ID 和实验分组。
 - `DRAFT_EXPORT_READY` 不等于短信已发送，也不等于已对接 CRM。

@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({
@@ -7,11 +8,13 @@ const api = vi.hoisted(() => ({
   approveMission: vi.fn(),
   createDraftExport: vi.fn(),
   downloadDraftExport: vi.fn(),
+  resetMission: vi.fn(),
 }))
 
 vi.mock('@/features/mission/api', () => api)
 
 import GrowthBoardView from './GrowthBoardView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const baseMission = {
   mission_id: 'mission-20260831-aa9316f2',
@@ -53,6 +56,7 @@ const baseMission = {
   ],
   approval: null,
   latest_export: null,
+  demo_controls: { reset_enabled: false },
   data_provenance: {
     data_profile: 'synthetic' as const,
     contains_real_data: false as const,
@@ -66,6 +70,9 @@ const baseMission = {
 describe('GrowthBoardView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
+    setActivePinia(createPinia())
+    useAuthStore().setSession('test-token', 'JUDGE_DEMO', true)
     api.getTodayMission.mockResolvedValue(structuredClone(baseMission))
     api.diagnoseMission.mockResolvedValue({
       question: '哪个渠道粘性最强？',
@@ -95,6 +102,11 @@ describe('GrowthBoardView', () => {
       download_url: '/api/v1/missions/x/download',
       expires_at: null,
       data_provenance: baseMission.data_provenance,
+    })
+    api.resetMission.mockResolvedValue({
+      ...structuredClone(baseMission),
+      version: 4,
+      demo_controls: { reset_enabled: true },
     })
   })
 
@@ -214,5 +226,59 @@ describe('GrowthBoardView', () => {
     expect(api.createDraftExport.mock.calls[0]?.[2]).toBe(
       api.createDraftExport.mock.calls[1]?.[2],
     )
+  })
+
+  it('演示重置按钮受服务端开关和管理员身份双重控制', async () => {
+    api.getTodayMission.mockResolvedValue({
+      ...structuredClone(baseMission),
+      demo_controls: { reset_enabled: true },
+    })
+    useAuthStore().setIdentity('viewer', false)
+    const wrapper = mount(GrowthBoardView)
+    await flushPromises()
+
+    expect(wrapper.find('.reset-demo-button').exists()).toBe(false)
+  })
+
+  it('管理员可把演示恢复到审批前并清空页面临时结果', async () => {
+    const latestExport = {
+      mission_id: baseMission.mission_id,
+      mission_status: 'WAITING_MEASUREMENT' as const,
+      mission_version: 3,
+      export_id: 'draft-aa9316f2-2',
+      export_status: 'DRAFT_EXPORT_READY' as const,
+      row_count: 132,
+      experiment_count: 119,
+      holdout_count: 13,
+      sha256: 'sha256:export',
+      download_url: '/api/v1/missions/x/download',
+      expires_at: null,
+      data_provenance: baseMission.data_provenance,
+    }
+    api.getTodayMission.mockResolvedValue({
+      ...structuredClone(baseMission),
+      status: 'WAITING_MEASUREMENT',
+      version: 3,
+      latest_export: latestExport,
+      demo_controls: { reset_enabled: true },
+    })
+    const wrapper = mount(GrowthBoardView)
+    await flushPromises()
+    await wrapper.findAll('.prompt-chips button')[0].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('直播是规模入口，但货架是质量标杆。')
+    await wrapper.get('.reset-demo-button').trigger('click')
+    await flushPromises()
+
+    expect(api.resetMission).toHaveBeenCalledWith(
+      baseMission.mission_id,
+      3,
+      expect.stringContaining('reset-'),
+    )
+    expect(wrapper.text()).not.toContain('直播是规模入口，但货架是质量标杆。')
+    expect(wrapper.text()).not.toContain('下载合成人群草稿')
+    expect(wrapper.text()).toContain('审批并生成 DRAFT_EXPORT')
+    expect(wrapper.get('input[aria-label="自由问数问题"]').element).toHaveProperty('value', '')
   })
 })

@@ -10,7 +10,7 @@ from backend.contracts.schemas import (
     ExportResponse,
     MissionResponse,
 )
-from backend.routers.auth import get_current_username
+from backend.routers.auth import get_current_username, require_admin
 from backend.services.mission_service import MissionService, MissionServiceError
 
 
@@ -90,6 +90,19 @@ def create_audience_export(
     version = _required_header(if_match, "If-Match")
     key = _required_header(idempotency_key, "Idempotency-Key")
     return _call(lambda: _service().create_draft_export(mission_id, actor, version, key))
+
+
+@router.post("/{mission_id}/demo-reset", response_model=MissionResponse)
+def reset_demo_mission(
+    mission_id: str,
+    request: Request,
+    if_match: str | None = Header(default=None, alias="If-Match"),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
+    actor = require_admin(request)
+    version = _required_header(if_match, "If-Match")
+    key = _required_header(idempotency_key, "Idempotency-Key")
+    return _call(lambda: _service().reset_demo(mission_id, actor, version, key))
 
 
 @router.get("/{mission_id}/audience-exports/{export_id}/download")

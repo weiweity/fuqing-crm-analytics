@@ -66,6 +66,7 @@ export interface Mission {
   state_timeline: Array<{ state: string; reached: boolean }>
   approval: { approved_by: string; approved_at: string } | null
   latest_export: DraftExport | null
+  demo_controls: { reset_enabled: boolean }
   data_provenance: DataProvenance
 }
 
@@ -136,6 +137,23 @@ export async function createDraftExport(
       },
     },
   ) as unknown as DraftExport
+}
+
+export async function resetMission(
+  missionId: string,
+  version: number,
+  idempotencyKey: string,
+): Promise<Mission> {
+  return await client.post<Mission>(
+    `/v1/missions/${missionId}/demo-reset`,
+    undefined,
+    {
+      headers: {
+        'If-Match': String(version),
+        'Idempotency-Key': idempotencyKey,
+      },
+    },
+  ) as unknown as Mission
 }
 
 export async function downloadDraftExport(draft: DraftExport): Promise<void> {

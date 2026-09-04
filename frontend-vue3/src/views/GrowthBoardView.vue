@@ -6,10 +6,14 @@ import {
   diagnoseMission,
   downloadDraftExport,
   getTodayMission,
+  resetMission,
   type Diagnosis,
   type DraftExport,
   type Mission,
 } from '@/features/mission/api'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 
 const mission = ref<Mission | null>(null)
 const diagnosis = ref<Diagnosis | null>(null)
@@ -136,6 +140,28 @@ async function downloadExport() {
     await downloadDraftExport(draftExport.value)
   } catch (error: any) {
     errorMessage.value = error?.message || '草稿名单下载失败'
+  } finally {
+    acting.value = false
+  }
+}
+
+async function resetDemo() {
+  if (!mission.value || acting.value || !mission.value.demo_controls.reset_enabled || !authStore.isAdmin) return
+  acting.value = true
+  errorMessage.value = ''
+  try {
+    const resetMissionSnapshot = await resetMission(
+      mission.value.mission_id,
+      mission.value.version,
+      operationKey('reset', mission.value.mission_id),
+    )
+    mission.value = resetMissionSnapshot
+    diagnosis.value = null
+    draftExport.value = null
+    question.value = ''
+    operationKeys.clear()
+  } catch (error: any) {
+    errorMessage.value = error?.message || '演示重置失败'
   } finally {
     acting.value = false
   }
@@ -290,21 +316,32 @@ onMounted(loadMission)
           <small>{{ mission.decision.guardrail }}</small>
         </div>
 
-        <button
-          v-if="!draftExport && mission.status !== 'WAITING_MEASUREMENT'"
-          type="button"
-          class="approve-button"
-          :disabled="acting"
-          @click="approveAndPrepareExport"
-        >
-          <span>{{ acting ? '正在执行' : '审批并生成 DRAFT_EXPORT' }}</span>
-          <small>90% EXPERIMENT · 10% HOLDOUT</small>
-        </button>
-        <button v-else-if="draftExport" type="button" class="approve-button export-ready" :disabled="acting" @click="downloadExport">
-          <span>下载合成人群草稿</span>
-          <small>{{ draftExport.export_id }} · {{ draftExport.row_count }} ROWS</small>
-        </button>
-        <div v-else class="complete-state">已进入效果观测期</div>
+        <div class="action-controls">
+          <button
+            v-if="!draftExport && mission.status !== 'WAITING_MEASUREMENT'"
+            type="button"
+            class="approve-button"
+            :disabled="acting"
+            @click="approveAndPrepareExport"
+          >
+            <span>{{ acting ? '正在执行' : '审批并生成 DRAFT_EXPORT' }}</span>
+            <small>90% EXPERIMENT · 10% HOLDOUT</small>
+          </button>
+          <button v-else-if="draftExport" type="button" class="approve-button export-ready" :disabled="acting" @click="downloadExport">
+            <span>下载合成人群草稿</span>
+            <small>{{ draftExport.export_id }} · {{ draftExport.row_count }} ROWS</small>
+          </button>
+          <div v-else class="complete-state">已进入效果观测期</div>
+          <button
+            v-if="mission.demo_controls.reset_enabled && authStore.isAdmin"
+            type="button"
+            class="reset-demo-button"
+            :disabled="acting"
+            @click="resetDemo"
+          >
+            重置演示
+          </button>
+        </div>
       </article>
 
       <footer class="provenance-footer">
@@ -456,6 +493,10 @@ onMounted(loadMission)
 .approve-button span { font-size: 12px; font-weight: 750; }
 .approve-button small { font: 700 8px/1.2 ui-monospace, monospace; opacity: .62; }
 .approve-button.export-ready { border-color: #4ef1bc; background: linear-gradient(110deg, #4ef1bc, #74e8ff); }
+.action-controls { display: grid; gap: 7px; }
+.reset-demo-button { min-height: 32px; border: 1px solid rgba(135,231,255,.14); color: #7895a1; background: transparent; font-size: 10px; cursor: pointer; }
+.reset-demo-button:hover, .reset-demo-button:focus-visible { color: var(--cyan); border-color: rgba(86,228,255,.38); outline: 2px solid rgba(86,228,255,.35); outline-offset: 2px; }
+.reset-demo-button:disabled { opacity: .45; cursor: wait; }
 .complete-state { color: #75eec6; font-size: 12px; text-align: right; }
 .provenance-footer { display: flex; justify-content: space-between; gap: 20px; padding: 12px 2px 0; color: #405b67; font: 600 8px/1.4 ui-monospace, monospace; letter-spacing: .08em; }
 .inline-error { margin-bottom: 10px; padding: 8px 12px; border-left: 2px solid #ff6c75; color: #ff9ca3; background: rgba(255,66,78,.08); font-size: 11px; }

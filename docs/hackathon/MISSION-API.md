@@ -76,6 +76,21 @@ Authorization: Bearer <token>
 
 只能下载已在独立 SQLite 控制库登记的文件。浏览器端通过带 Bearer 的 API 请求获取 Blob，不把 token 放进 URL。
 
+## 6. 本地演示重置
+
+```http
+POST /api/v1/missions/{mission_id}/demo-reset
+Authorization: Bearer <admin-token>
+If-Match: 3
+Idempotency-Key: reset-<client-stable-key>
+```
+
+- 默认关闭；只有 `FQ_MISSION_DEMO_RESET_ENABLED=1` 且当前账号属于 `FQ_CRM_ADMINS` 时可用。
+- 重置后回到 `AWAITING_APPROVAL`，清除审批与最近导出状态，版本加一。
+- 旧合成 CSV 移入导出目录内的私有 `.reset-archive/`，不做不可恢复删除。
+- 不修改合成分析 DuckDB，更不会读取或写入真实 CRM DuckDB。
+- 公网部署保持该开关为 `0`。
+
 ## 状态流
 
 ```text
