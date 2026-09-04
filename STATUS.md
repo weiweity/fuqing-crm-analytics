@@ -2,13 +2,14 @@
 
 > **短表 SSOT**。编年：[`docs/history/STATUS-HISTORY.md`](docs/history/STATUS-HISTORY.md) · 债：`docs/TECH-DEBT.md` · 文档：`docs/README.md`
 
-## 当前快照（2026-07-26 合并后安全复核）
+## 当前快照（2026-09-05 黑客松本地收口）
 
 | 项 | 值 |
 |---|---|
 | **VERSION** | 以根目录 `VERSION` 为准 |
-| **main** | `9bedd40`：#42–#48 安全修复已合并 |
-| **进行中分支** | `fix/post-security-audit-residuals`（合并后残留复核，未 push） |
+| **main** | `89d3423`：PR #65、#66 已合并；当前 open PR 为 0 |
+| **进行中分支** | `codex/fix-local-demo-startup`：本文提交后 13 个本地提交，未 push、未建 PR、未部署 |
+| **黑客松主链** | `GET /today → CEO 增长董事会 → 受控自由问数 → 审批 → DRAFT_EXPORT`；只使用合成数据 |
 | **可合并 CI** | **lint + test + ground-truth-lint + contract-filterbuilder-lint + frontend + dependency-audit + docker-smoke** 全部 required；e2e 非 PR 门禁 |
 | **定时 CI** | Nightly / Weekly 与 PR 同口径；timeout 45min |
 | **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md` |
@@ -18,7 +19,9 @@
 | **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
 | **Admin Upload** | **已撤回**，无产品路由 |
 | **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git** |
-| **服务** | 127.0.0.1:5173 / 127.0.0.1:8000；当前进程尚未重启到本分支代码；Compose 容器内 backend `:8001` |
+| **服务** | 本地演示正由本分支监听 127.0.0.1:5173 / 127.0.0.1:8000；Compose 容器内 backend `:8001` |
+| **验证** | 前端 163 passed + build；后端 1512 passed / 84 skipped / 0 failed；可见浏览器主链通过 |
+| **未完成** | Figma 可编辑稿受 MCP transport error 阻塞；Push / PR / Merge 未授权；公网部署明确暂缓 |
 
 ## 人工运维门禁（本分支不自动执行）
 
