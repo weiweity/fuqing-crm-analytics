@@ -1,17 +1,30 @@
 <template>
   <div class="login-container">
-    <!-- 左侧 Rive 动画 -->
     <div class="illustration-section" ref="illustrationSectionRef">
       <canvas ref="riveCanvasRef"></canvas>
+      <div class="illustration-shade" />
+      <div class="illustration-copy">
+        <BrandMark />
+        <div>
+          <span>AUTONOMOUS COMMERCE PROTOTYPE</span>
+          <h1>把经营信号，变成一条<br>可审批的增长 Mission</h1>
+          <p>统一 user_id，拆解首付费渠道、生命周期与商品角色；AI 先诊断，CEO 再决定是否执行。</p>
+        </div>
+        <ol>
+          <li><i>01</i><span>发现机会<small>DATA DIAGNOSIS</small></span></li>
+          <li><i>02</i><span>自由问数<small>CONTROLLED AI</small></span></li>
+          <li><i>03</i><span>审批执行<small>DRAFT EXPORT</small></span></li>
+        </ol>
+      </div>
     </div>
 
-    <!-- 右侧表单 -->
     <div class="form-section">
       <div class="form-wrapper">
         <div class="header-group">
-          <img src="/svg/logo.svg" alt="Logo" class="logo-icon">
-          <h1 class="welcome-title">欢迎回来！</h1>
-          <p class="subtitle">请输入您的账号和密码</p>
+          <BrandMark class="mobile-brand" />
+          <span>LOCAL DEMO ACCESS</span>
+          <h2 class="welcome-title">进入增长董事会</h2>
+          <p class="subtitle">本地演示环境 · 合成数据 · 不含真实用户信息</p>
         </div>
 
         <form class="login-form" @submit.prevent="handleSubmit">
@@ -58,7 +71,7 @@
           <div class="error-message" v-show="passwordErr">{{ passwordErr }}</div>
 
           <button type="submit" class="btn-primary" :disabled="authStore.isLoading || applySubmitting || applyRequestSent">
-            {{ authStore.isLoading ? '登录中...' : '登 录' }}
+            {{ authStore.isLoading ? '正在验证…' : '进入控制室' }}
           </button>
 
           <!-- L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) -->
@@ -68,7 +81,7 @@
             :disabled="authStore.isLoading || applySubmitting || applyRequestSent"
             @click="handleApply"
           >
-            {{ applySubmitting ? '正在申请...' : applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请登录' }}
+            {{ applySubmitting ? '正在申请…' : applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请接管当前会话' }}
           </button>
 
           <!-- L4.85 申请+同意 模式: 申请状态消息 -->
@@ -97,6 +110,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import BrandMark from '@/components/BrandMark.vue'
 import { useAuthStore } from '@/stores/auth'
 import { claimLoginRequest, loginRequest, getLoginRequestStatus } from '@/api/loginRequest'
 
@@ -239,7 +253,7 @@ async function pollApplyStatus(requestId: string, username: string, claimToken: 
       applyMessageType.value = 'success'
       applyRequestSent.value = false
       const redirect = route.query.redirect as string
-      await router.replace(redirect || '/audience')
+      await router.replace(redirect || '/growth-board')
     } else if (status.status === 'rejected') {
       if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
       applyRequestSent.value = false
@@ -378,7 +392,7 @@ async function handleSubmit() {
     setTimeout(() => {
       showSuccess.value = false
       const redirect = route.query.redirect as string
-      router.push(redirect || '/audience')
+      router.push(redirect || '/growth-board')
     }, 300)
   } catch (err: any) {
     // L4.85.2 治本: 普通 login 按钮也走申请+同意流程 (跟 user 7/10 拍板 1:1 stable 永久规则化沿用)
@@ -514,13 +528,17 @@ onUnmounted(() => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
+  color: var(--sm-ink);
+  background: var(--sm-bg);
 }
 
 /* 左侧插画区 */
 .illustration-section {
   flex: 1 1 50%;
-  max-width: 60%;
-  background-color: #E7E3E6;
+  max-width: 62%;
+  background:
+    radial-gradient(circle at 66% 22%, rgba(128,93,157,.38), transparent 35%),
+    linear-gradient(145deg, #160b1e, #09050d 74%);
   position: relative;
   overflow: hidden;
 }
@@ -529,7 +547,51 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   display: block;
+  opacity: .34;
+  filter: saturate(.5) contrast(1.08);
 }
+
+.illustration-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(9,5,13,.08), rgba(9,5,13,.52)), linear-gradient(0deg, rgba(9,5,13,.82), transparent 60%);
+  pointer-events: none;
+}
+
+.illustration-copy {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(30px, 4vw, 62px);
+}
+
+.illustration-copy > div > span,
+.header-group > span {
+  color: var(--sm-lilac);
+  font: 650 9px/1 var(--sm-font-mono);
+  letter-spacing: .16em;
+}
+
+.illustration-copy h1 {
+  max-width: 760px;
+  margin: 18px 0 20px;
+  color: var(--sm-ink);
+  font-family: var(--sm-font-display);
+  font-size: clamp(38px, 5vw, 76px);
+  font-weight: 570;
+  letter-spacing: -.06em;
+  line-height: .98;
+}
+
+.illustration-copy > div > p { max-width: 630px; color: var(--sm-copy); font-size: 14px; line-height: 1.8; }
+.illustration-copy ol { display: flex; gap: 28px; list-style: none; }
+.illustration-copy li { display: flex; align-items: center; gap: 10px; color: var(--sm-copy-strong); font-size: 11px; }
+.illustration-copy li > i { color: var(--sm-signal); font: 650 9px/1 var(--sm-font-mono); }
+.illustration-copy li > span { display: grid; gap: 3px; }
+.illustration-copy li small { color: var(--sm-faint); font: 600 7px/1 var(--sm-font-mono); letter-spacing: .08em; }
 
 /* 角色庆祝动画 — 登录成功时触发 */
 .illustration-section.celebrating {
@@ -549,39 +611,43 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  background-color: #FFFFFF;
+  padding: 40px clamp(28px, 5vw, 78px);
+  background:
+    radial-gradient(circle at 80% 18%, rgba(128,93,157,.13), transparent 30%),
+    #0c0711;
 }
 
 .form-wrapper {
   width: 100%;
-  max-width: 360px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 .header-group {
-  text-align: center;
-  margin-bottom: 40px;
+  text-align: left;
+  margin-bottom: 38px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.logo-icon { width: 48px; height: auto; margin-bottom: 24px; }
+.mobile-brand { display: none; margin-bottom: 44px; }
 
 .welcome-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #15161A;
-  margin-bottom: 12px;
+  margin: 13px 0 10px;
+  color: var(--sm-ink);
+  font-family: var(--sm-font-display);
+  font-size: 34px;
+  font-weight: 580;
+  letter-spacing: -.04em;
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #666666;
-  font-weight: 500;
+  color: var(--sm-muted);
+  font-size: 12px;
+  font-weight: 450;
 }
 
 .login-form {
@@ -595,7 +661,7 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   height: 64px;
-  border-bottom: 1px solid #000000;
+  border-bottom: 1px solid var(--sm-line-strong);
   display: flex;
   align-items: flex-end;
 }
@@ -608,7 +674,7 @@ onUnmounted(() => {
   outline: none;
   font-size: 16px;
   font-weight: 500;
-  color: #000000;
+  color: var(--sm-ink);
   background: transparent;
   padding-right: 40px;
   position: relative;
@@ -619,8 +685,8 @@ onUnmounted(() => {
 .input-group input:-webkit-autofill:hover,
 .input-group input:-webkit-autofill:focus,
 .input-group input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: #000000 !important;
+  -webkit-box-shadow: 0 0 0 30px #0c0711 inset !important;
+  -webkit-text-fill-color: var(--sm-ink) !important;
 }
 
 .input-group input::placeholder { color: transparent; }
@@ -629,7 +695,7 @@ onUnmounted(() => {
   position: absolute;
   left: 0; bottom: 14px;
   font-size: 16px;
-  color: #000000;
+  color: var(--sm-muted);
   pointer-events: none;
   transition: all 0.2s ease-out;
   font-weight: 500;
@@ -640,12 +706,12 @@ onUnmounted(() => {
 .input-group input:not(:placeholder-shown) ~ .floating-label {
   bottom: 42px;
   font-size: 12px;
-  color: #666666;
+  color: var(--sm-lilac);
 }
 
 /* 错误状态 */
-.input-group.error-state { border-bottom-color: #8B0000; }
-.input-group.error-state .floating-label { color: #8B0000 !important; }
+.input-group.error-state { border-bottom-color: var(--sm-danger); }
+.input-group.error-state .floating-label { color: var(--sm-danger) !important; }
 .shake { animation: shake 0.4s ease-in-out; }
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -658,7 +724,7 @@ onUnmounted(() => {
   position: absolute;
   right: 0; bottom: 4px;
   background: none; border: none;
-  cursor: pointer; color: #000000;
+  cursor: pointer; color: var(--sm-lilac);
   display: flex; align-items: center; justify-content: center;
   padding: 8px; z-index: 2;
 }
@@ -666,27 +732,27 @@ onUnmounted(() => {
 
 .btn-primary {
   width: 100%; height: 48px;
-  background-color: #15161A; color: #FFFFFF;
-  border: none; border-radius: 999px;
+  background-color: var(--sm-signal); color: #201426;
+  border: 1px solid rgba(242,255,220,.72); border-radius: 12px;
   font-size: 16px; font-weight: 500;
   cursor: pointer; margin-top: 24px;
   transition: background-color 0.2s;
   font-family: inherit;
 }
-.btn-primary:hover { background-color: #2D2E33; }
+.btn-primary:hover { background-color: #ffffff; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) */
 .btn-apply {
   width: 100%; height: 48px;
-  background-color: #FFFFFF; color: #15161A;
-  border: 1px solid #15161A; border-radius: 999px;
+  background-color: rgba(255,255,255,.025); color: var(--sm-copy);
+  border: 1px solid var(--sm-line-strong); border-radius: 12px;
   font-size: 16px; font-weight: 500;
   cursor: pointer; margin-top: 12px;
   transition: background-color 0.2s, color 0.2s;
   font-family: inherit;
 }
-.btn-apply:hover { background-color: #15161A; color: #FFFFFF; }
+.btn-apply:hover { border-color: var(--sm-lilac); color: var(--sm-ink); background-color: rgba(128,93,157,.10); }
 .btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* L4.85 申请状态消息 */
@@ -697,15 +763,15 @@ onUnmounted(() => {
   border-radius: 8px;
   text-align: center;
 }
-.apply-message.info { color: #1e40af; background-color: #dbeafe; }
-.apply-message.success { color: #16a34a; background-color: #dcfce7; }
-.apply-message.error { color: #8b0000; background-color: #fee2e2; }
+.apply-message.info { color: var(--sm-lilac); background-color: rgba(128,93,157,.12); }
+.apply-message.success { color: var(--sm-signal); background-color: rgba(242,255,220,.06); }
+.apply-message.error { color: #ffb2bd; background-color: rgba(255,125,145,.08); }
 
 /* 错误消息 */
 .error-message {
   display: none;
   font-size: 12px;
-  color: #8B0000;
+  color: var(--sm-danger);
   margin-top: 4px;
   padding-left: 2px;
 }
@@ -716,7 +782,8 @@ onUnmounted(() => {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(5,2,8,.72);
+  backdrop-filter: blur(14px);
   z-index: 9999;
   align-items: center;
   justify-content: center;
@@ -724,8 +791,10 @@ onUnmounted(() => {
 .success-overlay.visible { display: flex; }
 
 .success-card {
-  background: #FFFFFF;
-  border-radius: 20px;
+  color: var(--sm-ink);
+  background: rgba(27,15,35,.96);
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 18px;
   padding: 48px 40px;
   text-align: center;
   max-width: 380px;
@@ -741,17 +810,18 @@ onUnmounted(() => {
 .success-card .check-icon {
   width: 64px; height: 64px;
   border-radius: 50%;
-  background: #ECFDF5;
+  background: var(--sm-signal);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 20px;
 }
-.success-card .check-icon svg { width: 32px; height: 32px; color: #16A34A; }
-.success-card h2 { font-size: 22px; font-weight: 700; color: #15161A; margin-bottom: 8px; }
-.success-card p { font-size: 14px; color: #666666; }
+.success-card .check-icon svg { width: 32px; height: 32px; color: #201426; }
+.success-card h2 { font-size: 22px; font-weight: 700; color: var(--sm-ink); margin-bottom: 8px; }
+.success-card p { font-size: 14px; color: var(--sm-muted); }
 
 /* 响应式 */
 @media (max-width: 900px) {
   .illustration-section { display: none; }
   .form-section { padding: 60px 20px; }
+  .mobile-brand { display: inline-flex; }
 }
 </style>

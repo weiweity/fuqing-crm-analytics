@@ -74,7 +74,7 @@ router.beforeEach((to, _from, next) => {
 })
 
 router.afterEach((to) => {
-  document.title = (to.meta.title as string) || 'SampleCRM'
+  document.title = `${(to.meta.title as string) || '经营分析'} · SHINE MAGE`
 })
 
 export default router

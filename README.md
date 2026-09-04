@@ -10,10 +10,12 @@
 
 ### 核心价值
 
-- ⏰ 每日 9 点自动推送运营洞察
-- 📊 口径唯一可信，改一处全局生效
-- 🔍 多维度分析：老客健康 / 市场对焦 / 品类 / 人群 / 地域
-- 📤 一键导出复盘数据
+- 每天只给 CEO 一条需要拍板的增长 Mission，不再要求老板自己翻报表找问题。
+- 用稳定 `user_id` 把货架、直播、淘客等订单串成同一客户生命周期，区分“流量入口”和“客户资产”。
+- 同时诊断渠道粘性、补货窗口和商品新客/老客角色，回答“钱该投到哪里”。
+- 自由问数只调用已登记的确定性工具，回答携带指标版本、证据与数据日期。
+- 人工审批后只生成带 10% holdout 的 `DRAFT_EXPORT`，不自动触达真实用户。
+- 公开演示使用代码生成的合成数据，保留内容哈希，真实业务库不进入演示链。
 
 ---
 
@@ -75,6 +77,7 @@ cd frontend-vue3 && npx playwright test                   # E2E
 | **AI 行为规则** | [`CLAUDE.md`](./CLAUDE.md) · L4 细则 [`docs/rules/L4-permanent-rules.md`](./docs/rules/L4-permanent-rules.md) |
 | **协作 / 整洁** | [`docs/operating/team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
 | **AI 增长董事会** | [`docs/hackathon/README.md`](./docs/hackathon/README.md) · [`MISSION-API.md`](./docs/hackathon/MISSION-API.md) |
+| **视觉与交互基线** | [`DESIGN.md`](./DESIGN.md) |
 
 ---
 

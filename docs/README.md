@@ -10,6 +10,7 @@
 | [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界 |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
 | [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
+| [`../DESIGN.md`](../DESIGN.md) | 伸美 VI、Liquid Glass 令牌与页面组件边界 |
 
 ## 一图流
 
@@ -77,6 +78,7 @@ fuqing-crm-analytics/docs/
 | 文件 | 职责 |
 |---|---|
 | `README.md` | 人读项目简介 |
+| `DESIGN.md` | 品牌、设计令牌、交互原则与组件边界 |
 | `STATUS.md` | **短状态表**（勿再堆编年） |
 | `VERSION` / `CHANGELOG.md` | 版本与近窗变更 |
 | `CLAUDE.md` | AI 硬规则 + 指针；L4 细则在 `docs/rules/` |

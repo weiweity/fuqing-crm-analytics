@@ -78,7 +78,7 @@ args = sys.argv[1:]
 port = int(args[args.index("--port") + 1])
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        body = "<title>芙清 CRM - 数据分析平台</title>".encode()
+        body = "<title>伸美 AI 增长董事会</title>".encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -164,7 +164,7 @@ def test_start_script_serves_frontend_from_frontend_root(tmp_path: Path) -> None
         ) as response:
             body = response.read().decode("utf-8")
         assert response.status == 200
-        assert "<title>芙清 CRM - 数据分析平台</title>" in body
+        assert "<title>伸美 AI 增长董事会</title>" in body
     finally:
         stop = subprocess.run(
             ["bash", str(isolated_stop)],

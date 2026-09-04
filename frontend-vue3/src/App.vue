@@ -14,22 +14,22 @@ const useDefaultLayout = computed(() => {
   return route.meta.requiresAuth === true
 })
 
-// BI Pro theme overrides for Naive UI
+// Shine Mage theme overrides for Naive UI
 const themeOverrides = {
   common: {
-    primaryColor: '#533afd',
-    primaryColorHover: '#4528d9',
-    primaryColorPressed: '#3312c4',
-    primaryColorSuppl: '#7c5df5',
+    primaryColor: '#805d9d',
+    primaryColorHover: '#9877b1',
+    primaryColorPressed: '#68457f',
+    primaryColorSuppl: '#d3c3e8',
     successColor: '#10b981',
     warningColor: '#f59e0b',
     errorColor: '#ef4444',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+    fontFamily: "'Alibaba PuHuiTi 3.0', 'Alibaba PuHuiTi', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
     fontFamilyMono: "'SF Mono', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace",
     fontWeight: '400',
     fontWeightStrong: '600',
-    borderRadius: '6px',
-    borderRadiusSmall: '4px',
+    borderRadius: '10px',
+    borderRadiusSmall: '8px',
   },
   Button: {
     borderRadiusMedium: '4px',

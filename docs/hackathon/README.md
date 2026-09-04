@@ -11,6 +11,7 @@
 - [架构、质量证据与提交收口审计](./ARCHITECTURE-AND-RELEASE-AUDIT.md)
 - [黑客松收口与产品路线](./ROADMAP.md)
 - [CEO 价值与行业验证底稿](./research/report-source.md)
+- [伸美视觉与交互基线](../../DESIGN.md)
 
 ## 演示主链
 
