@@ -206,8 +206,8 @@ onBeforeUnmount(() => {
 <template>
   <header class="navbar-shell">
     <div class="navbar-row">
-      <router-link to="/growth-board" class="navbar-brand" aria-label="伸美 AI 增长董事会首页">
-        <BrandMark compact />
+      <router-link to="/growth-board" class="navbar-brand" aria-label="伸美集团 CRM 增长分析平台首页">
+        <BrandMark />
       </router-link>
 
       <nav class="navbar-main" aria-label="主导航">
@@ -292,38 +292,38 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.navbar-shell { position: relative; z-index: 30; border-bottom: 1px solid var(--sm-line); color: var(--sm-ink); background: rgba(9,5,13,.9); backdrop-filter: blur(24px) saturate(130%); }
-.navbar-row { display: flex; width: min(1800px, 100%); min-height: 56px; align-items: center; gap: 22px; margin: 0 auto; padding: 0 22px; }
+.navbar-shell { position: relative; z-index: 30; border-bottom: 1px solid var(--sm-line); color: var(--sm-ink); background: var(--sm-nav); backdrop-filter: var(--sm-blur-nav); -webkit-backdrop-filter: var(--sm-blur-nav); }
+.navbar-row { display: flex; width: min(1800px, 100%); min-height: 64px; align-items: center; gap: 22px; margin: 0 auto; padding: 0 22px; }
 .navbar-brand { flex: 0 0 auto; color: inherit; text-decoration: none; }
 .navbar-main { min-width: 0; flex: 1; overflow: hidden; }
 .navbar-tabs { display: flex; min-width: max-content; align-items: center; gap: 3px; }
 .navbar-item { position: relative; }
-.navbar-tab { display: inline-flex; min-height: 55px; align-items: center; gap: 5px; padding: 0 10px; border-bottom: 1px solid transparent; color: var(--sm-muted); font-size: 12px; font-weight: 520; text-decoration: none; white-space: nowrap; transition: color .16s ease, background .16s ease; }
-.navbar-tab:hover, .navbar-tab:focus-visible { color: var(--sm-ink); background: rgba(255,255,255,.025); }
-.navbar-tab--active { border-bottom-color: var(--sm-signal); color: var(--sm-ink); }
+.navbar-tab { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 0 13px; border: 1px solid transparent; border-radius: var(--sm-radius-pill); color: var(--sm-muted); font-size: 12px; font-weight: 520; text-decoration: none; white-space: nowrap; transition: color var(--sm-motion-fast), border-color var(--sm-motion-fast), background var(--sm-motion-fast), box-shadow var(--sm-motion-fast); }
+.navbar-tab:hover, .navbar-tab:focus-visible { border-color: var(--sm-line); color: var(--sm-ink); background: var(--sm-white-faint); }
+.navbar-tab--active { border-color: var(--sm-line); color: var(--sm-signal); background: var(--sm-nav-active); box-shadow: var(--sm-shadow-nav-active); }
 .navbar-tab span { color: var(--sm-faint); font-size: 10px; }
-.navbar-popover { position: absolute; top: calc(100% + 8px); left: 0; display: grid; min-width: 214px; gap: 4px; padding: 8px; border: 1px solid var(--sm-line-strong); border-radius: 14px; background: rgba(24,14,31,.96); box-shadow: 0 20px 54px rgba(0,0,0,.42), inset 0 1px rgba(255,255,255,.06); backdrop-filter: blur(24px); }
+.navbar-popover { position: absolute; top: calc(100% + 8px); left: 0; display: grid; min-width: 214px; gap: 4px; padding: 8px; border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-control); background: var(--sm-glass-strong); box-shadow: var(--sm-shadow-panel); backdrop-filter: var(--sm-blur-nav); }
 .navbar-popover button { min-height: 37px; padding: 0 11px; border: 1px solid transparent; border-radius: 8px; color: var(--sm-copy); background: transparent; font-size: 11px; text-align: left; cursor: pointer; }
-.navbar-popover button:hover, .navbar-popover button:focus-visible, .navbar-popover button.active { border-color: var(--sm-line); color: var(--sm-ink); background: rgba(128,93,157,.12); }
-.notify-button { position: relative; display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border: 1px solid var(--sm-line); border-radius: 50%; color: var(--sm-muted); background: rgba(255,255,255,.025); cursor: pointer; }
+.navbar-popover button:hover, .navbar-popover button:focus-visible, .navbar-popover button.active { border-color: var(--sm-line); color: var(--sm-ink); background: var(--sm-purple-soft); }
+.notify-button { position: relative; display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border: 1px solid var(--sm-line); border-radius: 50%; color: var(--sm-muted); background: var(--sm-white-faint); cursor: pointer; }
 .notify-button svg { width: 17px; height: 17px; }
 .notify-button.pending { color: var(--sm-signal); }
-.notify-button > span { position: absolute; top: -3px; right: -3px; display: grid; min-width: 16px; height: 16px; place-items: center; border-radius: 8px; color: #201426; background: var(--sm-signal); font: 700 8px/1 var(--sm-font-mono); }
-.request-modal-overlay { position: fixed; z-index: 9999; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(5,2,8,.72); backdrop-filter: blur(16px); }
-.request-modal { width: min(500px, 100%); overflow: hidden; border: 1px solid var(--sm-line-strong); border-radius: 18px; color: var(--sm-ink); background: rgba(27,15,35,.96); box-shadow: 0 30px 90px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.06); }
+.notify-button > span { position: absolute; top: -3px; right: -3px; display: grid; min-width: 16px; height: 16px; place-items: center; border-radius: var(--sm-radius-soft); color: var(--sm-on-accent); background: var(--sm-signal); font: 700 8px/1 var(--sm-font-mono); }
+.request-modal-overlay { position: fixed; z-index: 9999; inset: 0; display: grid; place-items: center; padding: 20px; background: var(--sm-overlay); backdrop-filter: var(--sm-blur-overlay); }
+.request-modal { width: min(500px, 100%); overflow: hidden; border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-panel); color: var(--sm-ink); background: var(--sm-glass-strong); box-shadow: var(--sm-shadow-panel); }
 .request-modal > header { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid var(--sm-line); }
 .request-modal > header span { color: var(--sm-lilac); font: 650 8px/1 var(--sm-font-mono); letter-spacing: .13em; }
 .request-modal h2 { margin: 5px 0 0; font-size: 18px; }
 .request-modal > header button { width: 32px; height: 32px; border: 1px solid var(--sm-line); border-radius: 50%; color: var(--sm-muted); background: transparent; font-size: 20px; cursor: pointer; }
 .request-list { display: grid; max-height: 60vh; gap: 8px; overflow-y: auto; padding: 16px 22px 22px; }
 .request-empty { padding: 30px 0; color: var(--sm-faint); text-align: center; }
-.request-item { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px; border: 1px solid var(--sm-line); border-radius: 10px; background: rgba(255,255,255,.025); }
+.request-item { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px; border: 1px solid var(--sm-line); border-radius: var(--sm-radius-soft); background: var(--sm-white-faint); }
 .request-item > div:first-child { display: grid; gap: 4px; }
 .request-item strong { color: var(--sm-copy-strong); font-size: 12px; }
 .request-item small { color: var(--sm-faint); font-size: 9px; }
 .request-actions { display: flex; gap: 6px; }
 .request-actions button { min-height: 34px; padding: 0 12px; border: 1px solid var(--sm-line); border-radius: 8px; color: var(--sm-copy); background: transparent; cursor: pointer; }
-.request-actions button.approve { border-color: var(--sm-signal); color: #201426; background: var(--sm-signal); }
+.request-actions button.approve { border-color: var(--sm-signal); color: var(--sm-on-accent); background: var(--sm-signal); }
 .navbar-popover-enter-active, .navbar-popover-leave-active { transition: opacity .14s ease, transform .14s ease; }
 .navbar-popover-enter-from, .navbar-popover-leave-to { opacity: 0; transform: translateY(-4px); }
 

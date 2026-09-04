@@ -4,8 +4,11 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from './App.vue'
 import router from './router'
 import { useAuthStore, AUTH_TOKEN_KEY, AUTH_USER_KEY, AUTH_IS_ADMIN_KEY } from '@/stores/auth'
+import { applyShineMageTheme } from '@/theme'
 import './styles/tailwind.css'
 import './styles/globals.css'
+
+applyShineMageTheme()
 
 // === /auth/me bootstrap: Sprint 3A 身份状态 ===
 type BootstrapUserInfo = { username: string; is_admin: boolean }

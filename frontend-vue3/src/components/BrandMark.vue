@@ -9,7 +9,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <div class="brand-mark" :class="{ compact, inverse }" aria-label="SHINE MAGE 伸美 AI 增长董事会">
+  <div class="brand-mark" :class="{ compact, inverse }" aria-label="SHINE MAGE 伸美集团 CRM 增长分析平台">
     <span class="brand-symbol" aria-hidden="true">
       <svg viewBox="0 0 56 56" role="img">
         <path d="M17.2 35.4 27.8 12l11.4 23.4Z" />
@@ -20,7 +20,7 @@ withDefaults(defineProps<{
     </span>
     <span class="brand-copy">
       <strong>SHINE MAGE</strong>
-      <small v-if="!compact">伸美 AI 增长董事会</small>
+      <small v-if="!compact">伸美集团 · CRM 增长分析平台</small>
     </span>
   </div>
 </template>
@@ -30,24 +30,24 @@ withDefaults(defineProps<{
   display: inline-flex;
   align-items: center;
   gap: 11px;
-  color: #22172a;
+  color: var(--sm-on-accent);
 }
 
-.brand-mark.inverse { color: var(--sm-ink, #fefcff); }
+.brand-mark.inverse { color: var(--sm-ink); }
 .brand-symbol { display: grid; width: 40px; height: 40px; place-items: center; }
 .brand-symbol svg { width: 100%; height: 100%; overflow: visible; }
 .brand-symbol path { fill: currentColor; }
-.brand-symbol .spark { fill: var(--sm-signal, #f2ffdc); }
-.brand-symbol .spark-small { fill: var(--sm-lilac, #d3c3e8); }
+.brand-symbol .spark { fill: var(--sm-signal); }
+.brand-symbol .spark-small { fill: var(--sm-lilac); }
 .brand-copy { display: grid; gap: 2px; min-width: 0; }
 .brand-copy strong {
-  font-family: var(--sm-font-display, Outfit, sans-serif);
+  font-family: var(--sm-font-display);
   font-size: 15px;
   font-weight: 650;
   letter-spacing: .13em;
   line-height: 1;
 }
-.brand-copy small { color: var(--sm-muted, #a99cb3); font-size: 11px; line-height: 1.2; white-space: nowrap; }
+.brand-copy small { color: var(--sm-muted); font-size: 11px; line-height: 1.2; white-space: nowrap; }
 .compact { gap: 8px; }
 .compact .brand-symbol { width: 31px; height: 31px; }
 .compact .brand-copy strong { font-size: 12px; }

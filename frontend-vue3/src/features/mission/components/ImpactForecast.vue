@@ -19,7 +19,7 @@ function formatMoney(value: number) {
 <template>
   <aside class="glass-panel impact-panel">
     <div class="panel-meta">
-      <span>VALUE HYPOTHESIS</span>
+      <span>EXPECTED IMPACT</span>
       <span>90 / 10 TEST</span>
     </div>
 
@@ -31,7 +31,7 @@ function formatMoney(value: number) {
 
     <dl class="impact-grid">
       <div>
-        <dt>可激活客户</dt>
+        <dt>可激活人群</dt>
         <dd>{{ mission.target_audience.eligible_customers }}</dd>
       </div>
       <div>
@@ -39,7 +39,7 @@ function formatMoney(value: number) {
         <dd>+{{ mission.economics.expected_incremental_customers }}</dd>
       </div>
       <div>
-        <dt>转化提升假设</dt>
+        <dt>假设提升</dt>
         <dd>+{{ formatPercent(mission.economics.assumed_conversion_uplift) }}</dd>
       </div>
     </dl>
@@ -57,14 +57,14 @@ function formatMoney(value: number) {
 .panel-meta { display: flex; justify-content: space-between; gap: 12px; color: var(--sm-muted); font: 600 9px/1.2 var(--sm-font-mono); letter-spacing: .12em; }
 .impact-hero { display: grid; gap: 10px; margin: auto 0; padding: 42px 0 36px; }
 .impact-hero span { color: var(--sm-copy); font-size: 12px; }
-.impact-hero strong { color: var(--sm-signal); font-family: var(--sm-font-display); font-size: clamp(40px, 4vw, 62px); font-weight: 560; letter-spacing: -.055em; line-height: 1; text-shadow: 0 0 30px rgba(242, 255, 220, .12); }
+.impact-hero strong { color: var(--sm-ink); background: var(--sm-gradient-metric); background-clip: text; -webkit-background-clip: text; font-family: var(--sm-font-display); font-size: clamp(40px, 4vw, 62px); font-weight: 560; letter-spacing: -.055em; line-height: 1; text-shadow: var(--sm-shadow-signal); -webkit-text-fill-color: transparent; }
 .impact-hero small { color: var(--sm-faint); font-size: 10px; }
 .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; border-top: 1px solid var(--sm-line); }
 .impact-grid div { display: grid; gap: 8px; padding: 18px 10px 16px 0; }
 .impact-grid dt { color: var(--sm-muted); font-size: 10px; }
 .impact-grid dd { margin: 0; color: var(--sm-ink); font-family: var(--sm-font-display); font-size: 20px; font-weight: 600; }
-.experiment-line { display: flex; height: 26px; overflow: hidden; border: 1px solid var(--sm-line-strong); background: rgba(255,255,255,.025); }
-.experiment-line span:first-child { display: flex; align-items: center; padding-left: 9px; color: #201326; background: var(--sm-signal); font: 650 8px/1 var(--sm-font-mono); white-space: nowrap; }
+.experiment-line { display: flex; height: 26px; overflow: hidden; border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-pill); background: var(--sm-white-faint); }
+.experiment-line span:first-child { display: flex; align-items: center; padding-left: 9px; color: var(--sm-on-accent); background: var(--sm-signal); font: 650 8px/1 var(--sm-font-mono); white-space: nowrap; }
 .experiment-line span:last-child { background: var(--sm-purple); }
 .impact-panel > p { margin: 9px 0 0; color: var(--sm-faint); font-size: 9px; line-height: 1.5; }
 

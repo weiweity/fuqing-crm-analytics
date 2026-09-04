@@ -52,7 +52,7 @@ const stateLabels: Record<string, string> = {
         @click="$emit('approve')"
       >
         <span>{{ acting ? '正在执行' : '审批并生成 DRAFT_EXPORT' }}</span>
-        <small>90% EXPERIMENT · 10% HOLDOUT</small>
+        <small>(90% EXPERIMENT · 10% HOLDOUT)</small>
       </button>
       <button
         v-else-if="draftExport"
@@ -73,24 +73,25 @@ const stateLabels: Record<string, string> = {
 <style scoped>
 .action-panel { display: grid; grid-template-columns: minmax(520px, 1.35fr) minmax(240px, .75fr) minmax(270px, .65fr); align-items: center; gap: 24px; padding: 18px 22px; }
 .state-flow { display: flex; align-items: center; min-width: 0; }
-.state-step { display: grid; gap: 3px; color: rgba(211, 195, 232, .3); }
+.state-step { display: grid; gap: 3px; color: var(--sm-lilac-faint); }
 .state-step i { font: 650 8px/1 var(--sm-font-mono); }
 .state-step strong { font-size: 9px; font-weight: 650; white-space: nowrap; }
 .state-step small { font: 500 7px/1 var(--sm-font-mono); white-space: nowrap; }
 .state-step.reached { color: var(--sm-signal); }
 .state-flow > span { flex: 1; min-width: 13px; height: 1px; margin: 0 8px; background: var(--sm-line); }
-.state-flow > span.reached { background: linear-gradient(90deg, var(--sm-purple), var(--sm-signal)); box-shadow: 0 0 9px rgba(242,255,220,.18); }
+.state-flow > span.reached { background: var(--sm-gradient-secondary); box-shadow: var(--sm-shadow-signal); }
 .action-copy { display: grid; gap: 5px; }
 .action-copy > span { color: var(--sm-lilac); font: 650 8px/1 var(--sm-font-mono); letter-spacing: .12em; }
 .action-copy strong { color: var(--sm-copy-strong); font-size: 11px; line-height: 1.5; }
 .action-copy small { color: var(--sm-faint); font-size: 8px; }
 .action-controls { display: grid; gap: 7px; }
-.approve-button { display: grid; gap: 4px; min-height: 55px; padding: 12px 16px; border: 1px solid rgba(242,255,220,.68); color: #201426; background: var(--sm-signal); box-shadow: 0 13px 36px rgba(0,0,0,.16), inset 0 1px rgba(255,255,255,.66); text-align: left; cursor: pointer; }
+.approve-button { display: grid; gap: 4px; min-height: 55px; padding: 12px 16px; border: 1px solid var(--sm-white-top-line); border-radius: var(--sm-radius-control); color: var(--sm-ink); background: var(--sm-gradient-primary); box-shadow: var(--sm-shadow-button); text-align: left; cursor: pointer; transition: transform var(--sm-motion-standard), box-shadow var(--sm-motion-standard), border-color var(--sm-motion-standard); }
+.approve-button:hover:not(:disabled), .approve-button:focus-visible:not(:disabled) { border-color: var(--sm-line-accent); box-shadow: var(--sm-shadow-button-hover); transform: translateY(-2px); }
 .approve-button:disabled { opacity: .5; cursor: wait; }
 .approve-button span { font-size: 12px; font-weight: 750; }
 .approve-button small { font: 650 8px/1.2 var(--sm-font-mono); opacity: .58; }
-.approve-button.export-ready { background: var(--sm-lilac); border-color: var(--sm-lilac); }
-.reset-demo-button { min-height: 32px; border: 1px solid var(--sm-line); color: var(--sm-muted); background: rgba(255,255,255,.02); font-size: 9px; cursor: pointer; }
+.approve-button.export-ready { color: var(--sm-on-accent); background: var(--sm-lilac); border-color: var(--sm-lilac); }
+.reset-demo-button { min-height: 32px; border: 1px solid var(--sm-line); border-radius: var(--sm-radius-control); color: var(--sm-muted); background: var(--sm-white-faint); font-size: 9px; cursor: pointer; }
 .reset-demo-button:hover, .reset-demo-button:focus-visible { color: var(--sm-ink); border-color: var(--sm-line-strong); }
 .complete-state { color: var(--sm-signal); font-size: 11px; text-align: right; }
 

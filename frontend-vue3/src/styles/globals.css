@@ -1,31 +1,12 @@
 /* Shine Mage product design system */
 
-:root {
-  --sm-bg: #09050d;
-  --sm-purple: #805d9d;
-  --sm-lilac: #d3c3e8;
-  --sm-signal: #f2ffdc;
-  --sm-ink: #fefcff;
-  --sm-copy-strong: #ece5f0;
-  --sm-copy: #c4b8cb;
-  --sm-muted: #9a8ba4;
-  --sm-faint: #6f6078;
-  --sm-danger: #ff7d91;
-  --sm-line: rgba(211, 195, 232, .13);
-  --sm-line-strong: rgba(211, 195, 232, .24);
-  --sm-glass: linear-gradient(145deg, rgba(35, 21, 44, .78), rgba(17, 10, 23, .72));
-  --sm-font-display: 'Outfit', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-  --sm-font-body: 'Alibaba PuHuiTi 3.0', 'Alibaba PuHuiTi', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --sm-font-mono: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
-}
-
 .glass-panel {
   border: 1px solid var(--sm-line);
-  border-radius: 18px;
+  border-radius: var(--sm-radius-panel);
   background: var(--sm-glass);
-  box-shadow: inset 0 1px rgba(255,255,255,.055), 0 24px 70px rgba(0,0,0,.22);
-  backdrop-filter: blur(26px) saturate(125%);
-  -webkit-backdrop-filter: blur(26px) saturate(125%);
+  box-shadow: var(--sm-shadow-panel);
+  backdrop-filter: var(--sm-blur-panel);
+  -webkit-backdrop-filter: var(--sm-blur-panel);
 }
 
 *,
@@ -61,8 +42,8 @@ html {
 
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(128, 93, 157, .34);
-  border-radius: 4px;
+  box-shadow: var(--sm-shadow-focus);
+  border-radius: var(--sm-radius-soft);
 }
 
 /* Custom scrollbar */

@@ -536,9 +536,7 @@ onUnmounted(() => {
 .illustration-section {
   flex: 1 1 50%;
   max-width: 62%;
-  background:
-    radial-gradient(circle at 66% 22%, rgba(128,93,157,.38), transparent 35%),
-    linear-gradient(145deg, #160b1e, #09050d 74%);
+  background: var(--sm-gradient-login-hero);
   position: relative;
   overflow: hidden;
 }
@@ -554,7 +552,7 @@ onUnmounted(() => {
 .illustration-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(9,5,13,.08), rgba(9,5,13,.52)), linear-gradient(0deg, rgba(9,5,13,.82), transparent 60%);
+  background: var(--sm-gradient-login-shade);
   pointer-events: none;
 }
 
@@ -612,9 +610,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 40px clamp(28px, 5vw, 78px);
-  background:
-    radial-gradient(circle at 80% 18%, rgba(128,93,157,.13), transparent 30%),
-    #0c0711;
+  background: var(--sm-gradient-login-panel);
 }
 
 .form-wrapper {
@@ -685,7 +681,7 @@ onUnmounted(() => {
 .input-group input:-webkit-autofill:hover,
 .input-group input:-webkit-autofill:focus,
 .input-group input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #0c0711 inset !important;
+  -webkit-box-shadow: 0 0 0 30px var(--sm-bg-bottom) inset !important;
   -webkit-text-fill-color: var(--sm-ink) !important;
 }
 
@@ -732,27 +728,27 @@ onUnmounted(() => {
 
 .btn-primary {
   width: 100%; height: 48px;
-  background-color: var(--sm-signal); color: #201426;
-  border: 1px solid rgba(242,255,220,.72); border-radius: 12px;
+  background-color: var(--sm-signal); color: var(--sm-on-accent);
+  border: 1px solid var(--sm-line-accent-strong); border-radius: var(--sm-radius-control);
   font-size: 16px; font-weight: 500;
   cursor: pointer; margin-top: 24px;
   transition: background-color 0.2s;
   font-family: inherit;
 }
-.btn-primary:hover { background-color: #ffffff; }
+.btn-primary:hover { background-color: var(--sm-ink); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) */
 .btn-apply {
   width: 100%; height: 48px;
-  background-color: rgba(255,255,255,.025); color: var(--sm-copy);
-  border: 1px solid var(--sm-line-strong); border-radius: 12px;
+  background-color: var(--sm-white-faint); color: var(--sm-copy);
+  border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-control);
   font-size: 16px; font-weight: 500;
   cursor: pointer; margin-top: 12px;
   transition: background-color 0.2s, color 0.2s;
   font-family: inherit;
 }
-.btn-apply:hover { border-color: var(--sm-lilac); color: var(--sm-ink); background-color: rgba(128,93,157,.10); }
+.btn-apply:hover { border-color: var(--sm-lilac); color: var(--sm-ink); background-color: var(--sm-purple-soft); }
 .btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* L4.85 申请状态消息 */
@@ -760,12 +756,12 @@ onUnmounted(() => {
   font-size: 13px;
   margin-top: 12px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--sm-radius-soft);
   text-align: center;
 }
-.apply-message.info { color: var(--sm-lilac); background-color: rgba(128,93,157,.12); }
-.apply-message.success { color: var(--sm-signal); background-color: rgba(242,255,220,.06); }
-.apply-message.error { color: #ffb2bd; background-color: rgba(255,125,145,.08); }
+.apply-message.info { color: var(--sm-lilac); background-color: var(--sm-purple-soft); }
+.apply-message.success { color: var(--sm-signal); background-color: var(--sm-signal-soft); }
+.apply-message.error { color: var(--sm-danger); background-color: var(--sm-danger-soft); }
 
 /* 错误消息 */
 .error-message {
@@ -782,8 +778,8 @@ onUnmounted(() => {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(5,2,8,.72);
-  backdrop-filter: blur(14px);
+  background: var(--sm-overlay);
+  backdrop-filter: var(--sm-blur-overlay);
   z-index: 9999;
   align-items: center;
   justify-content: center;
@@ -792,14 +788,14 @@ onUnmounted(() => {
 
 .success-card {
   color: var(--sm-ink);
-  background: rgba(27,15,35,.96);
+  background: var(--sm-glass-strong);
   border: 1px solid var(--sm-line-strong);
-  border-radius: 18px;
+  border-radius: var(--sm-radius-panel);
   padding: 48px 40px;
   text-align: center;
   max-width: 380px;
   width: 90%;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.15);
+  box-shadow: var(--sm-shadow-panel);
   animation: popIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes popIn {
@@ -814,7 +810,7 @@ onUnmounted(() => {
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 20px;
 }
-.success-card .check-icon svg { width: 32px; height: 32px; color: #201426; }
+.success-card .check-icon svg { width: 32px; height: 32px; color: var(--sm-on-accent); }
 .success-card h2 { font-size: 22px; font-weight: 700; color: var(--sm-ink); margin-bottom: 8px; }
 .success-card p { font-size: 14px; color: var(--sm-muted); }
 

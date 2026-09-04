@@ -65,20 +65,20 @@ const emit = defineEmits<{
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .section-heading div > span { color: var(--sm-lilac); font: 650 9px/1 var(--sm-font-mono); letter-spacing: .14em; }
 h2 { margin: 8px 0 0; color: var(--sm-ink); font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
-.guardrail { padding: 7px 9px; border: 1px solid rgba(242, 255, 220, .16); color: var(--sm-signal); background: rgba(242, 255, 220, .04); font: 650 8px/1 var(--sm-font-mono); letter-spacing: .08em; }
-.ask-form { display: grid; grid-template-columns: 1fr auto; margin-top: 28px; border: 1px solid var(--sm-line-strong); background: rgba(5, 2, 8, .42); box-shadow: inset 0 1px rgba(255,255,255,.03); }
-.ask-form:focus-within { border-color: rgba(242, 255, 220, .32); box-shadow: 0 0 0 3px rgba(242, 255, 220, .04); }
+.guardrail { padding: 7px 9px; border: 1px solid var(--sm-signal-line); border-radius: var(--sm-radius-pill); color: var(--sm-signal); background: var(--sm-signal-soft); font: 650 8px/1 var(--sm-font-mono); letter-spacing: .08em; }
+.ask-form { display: grid; grid-template-columns: 1fr auto; margin-top: 28px; overflow: hidden; border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-control); background: var(--sm-glass-input); box-shadow: inset 0 1px var(--sm-white-faint); transition: border-color var(--sm-motion-fast), box-shadow var(--sm-motion-fast); }
+.ask-form:focus-within { border-color: var(--sm-purple); box-shadow: var(--sm-shadow-focus); }
 .ask-form label { display: grid; gap: 3px; padding: 10px 14px; }
 .ask-form label span { color: var(--sm-faint); font-size: 8px; letter-spacing: .08em; }
 .ask-form input { min-width: 0; padding: 0; border: 0; outline: 0; color: var(--sm-ink); background: transparent; font: 14px/1.5 var(--sm-font-body); }
-.ask-form input::placeholder { color: rgba(211, 195, 232, .38); }
-.ask-form button { display: flex; min-width: 116px; align-items: center; justify-content: space-between; gap: 13px; border: 0; padding: 0 15px; color: #201426; background: var(--sm-signal); font-size: 11px; font-weight: 700; cursor: pointer; }
+.ask-form input::placeholder { color: var(--sm-lilac-faint); }
+.ask-form button { display: flex; min-width: 116px; align-items: center; justify-content: space-between; gap: 13px; border: 0; padding: 0 15px; color: var(--sm-on-accent); background: var(--sm-signal); font-size: 11px; font-weight: 700; cursor: pointer; }
 .ask-form button:disabled { opacity: .35; cursor: not-allowed; }
 .ask-form button b { font-size: 16px; }
 .prompt-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.prompt-chips button { min-height: 34px; padding: 6px 9px; border: 1px solid var(--sm-line); color: var(--sm-muted); background: rgba(255,255,255,.018); font-size: 10px; cursor: pointer; }
-.prompt-chips button:hover, .prompt-chips button:focus-visible { color: var(--sm-ink); border-color: rgba(211, 195, 232, .32); }
-.answer-card, .answer-placeholder { min-height: 126px; margin-top: 16px; padding: 17px; border-top: 1px solid var(--sm-line); background: linear-gradient(135deg, rgba(128,93,157,.10), rgba(242,255,220,.025)); }
+.prompt-chips button { min-height: 34px; padding: 6px 11px; border: 1px solid var(--sm-line); border-radius: var(--sm-radius-pill); color: var(--sm-muted); background: var(--sm-gradient-chip); font-size: 10px; cursor: pointer; transition: color var(--sm-motion-fast), border-color var(--sm-motion-fast), transform var(--sm-motion-fast); }
+.prompt-chips button:hover, .prompt-chips button:focus-visible { border-color: var(--sm-line-strong); color: var(--sm-ink); transform: translateY(-1px); }
+.answer-card, .answer-placeholder { min-height: 126px; margin-top: 16px; padding: 17px; border-top: 1px solid var(--sm-line); background: var(--sm-gradient-answer); }
 .answer-meta { display: flex; justify-content: space-between; color: var(--sm-lilac); font: 650 8px/1 var(--sm-font-mono); letter-spacing: .11em; }
 .answer-card p { margin: 18px 0 10px; color: var(--sm-copy-strong); font-size: 14px; line-height: 1.7; }
 .answer-card small { color: var(--sm-faint); font-size: 9px; }

@@ -120,6 +120,12 @@ describe('GrowthBoardView', () => {
     expect(wrapper.text()).toContain('SYNTHETIC DATA')
     expect(wrapper.text()).toContain('规模入口')
     expect(wrapper.text()).toContain('质量标杆')
+    expect(wrapper.text()).toContain('EXPECTED IMPACT')
+    expect(wrapper.text()).toContain('可激活人群')
+    expect(wrapper.text()).toContain('假设提升')
+    expect(wrapper.get('.channel-row--leader').text()).toContain('货架')
+    expect(wrapper.get('.channel-row--leader').text()).toContain('粘性第一')
+    expect(wrapper.get('.approve-button').text()).toContain('(90% EXPERIMENT · 10% HOLDOUT)')
   })
 
   it('自由问数使用受控诊断接口', async () => {
