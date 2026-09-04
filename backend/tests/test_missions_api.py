@@ -401,3 +401,19 @@ def test_main_app_registers_documented_mission_routes() -> None:
         in paths
     )
     assert TestClient(app).get("/api/v1/missions/today").status_code == 401
+
+    operation_ids = {
+        operation["operationId"]
+        for path in paths.values()
+        for operation in path.values()
+        if isinstance(operation, dict) and "operationId" in operation
+    }
+    assert {
+        "mission_get_today",
+        "mission_diagnose",
+        "mission_get",
+        "mission_approve",
+        "mission_create_draft_export",
+        "mission_reset_demo",
+        "mission_download_draft_export",
+    }.issubset(operation_ids)

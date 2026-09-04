@@ -39,25 +39,45 @@ def _required_header(value: str | None, name: str) -> str:
     return value.strip()
 
 
-@router.get("/today", response_model=MissionResponse)
+@router.get(
+    "/today",
+    response_model=MissionResponse,
+    operation_id="mission_get_today",
+    summary="读取今日唯一 CEO Mission",
+)
 def get_today_mission(request: Request):
     get_current_username(request)
     return _call(lambda: _service().get_today())
 
 
-@router.post("/diagnose", response_model=DiagnoseResponse)
+@router.post(
+    "/diagnose",
+    response_model=DiagnoseResponse,
+    operation_id="mission_diagnose",
+    summary="使用受控语义层回答经营问题",
+)
 def diagnose_mission(request: Request, payload: DiagnoseRequest):
     get_current_username(request)
     return _call(lambda: _service().diagnose(payload.question))
 
 
-@router.get("/{mission_id}", response_model=MissionResponse)
+@router.get(
+    "/{mission_id}",
+    response_model=MissionResponse,
+    operation_id="mission_get",
+    summary="按 ID 读取 Mission",
+)
 def get_mission(mission_id: str, request: Request):
     get_current_username(request)
     return _call(lambda: _service().get_mission(mission_id))
 
 
-@router.post("/{mission_id}/approve", response_model=MissionResponse)
+@router.post(
+    "/{mission_id}/approve",
+    response_model=MissionResponse,
+    operation_id="mission_approve",
+    summary="审批 Mission",
+)
 def approve_mission(
     mission_id: str,
     payload: ApprovalRequest,
@@ -79,7 +99,12 @@ def approve_mission(
     )
 
 
-@router.post("/{mission_id}/audience-export", response_model=ExportResponse)
+@router.post(
+    "/{mission_id}/audience-export",
+    response_model=ExportResponse,
+    operation_id="mission_create_draft_export",
+    summary="生成 90/10 合成人群草稿",
+)
 def create_audience_export(
     mission_id: str,
     request: Request,
@@ -92,7 +117,12 @@ def create_audience_export(
     return _call(lambda: _service().create_draft_export(mission_id, actor, version, key))
 
 
-@router.post("/{mission_id}/demo-reset", response_model=MissionResponse)
+@router.post(
+    "/{mission_id}/demo-reset",
+    response_model=MissionResponse,
+    operation_id="mission_reset_demo",
+    summary="将本地演示恢复到审批前",
+)
 def reset_demo_mission(
     mission_id: str,
     request: Request,
@@ -105,7 +135,11 @@ def reset_demo_mission(
     return _call(lambda: _service().reset_demo(mission_id, actor, version, key))
 
 
-@router.get("/{mission_id}/audience-exports/{export_id}/download")
+@router.get(
+    "/{mission_id}/audience-exports/{export_id}/download",
+    operation_id="mission_download_draft_export",
+    summary="下载受保护的合成人群草稿",
+)
 def download_audience_export(mission_id: str, export_id: str, request: Request):
     get_current_username(request)
     path = _call(lambda: _service().resolve_export(mission_id, export_id))

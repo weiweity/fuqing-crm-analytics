@@ -2,6 +2,15 @@
 
 本目录记录黑客松公网演示主链，它不替代原有 CRM 分析文档。
 
+## 文档索引
+
+- [CEO 口语话术与演示脚本](./CEO-PITCH.md)
+- [黑客松报名与作品文案](./SUBMISSION-COPY.md)
+- [AI 调用 Mission API 指南](./AI-TOOL-CALLING.md)
+- [Mission HTTP 契约](./MISSION-API.md)
+- [黑客松收口与产品路线](./ROADMAP.md)
+- [CEO 价值与行业验证底稿](./research/report-source.md)
+
 ## 演示主链
 
 ```text
