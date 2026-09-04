@@ -11,6 +11,11 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   {
+    key: '/growth-board',
+    label: 'AI 增长董事会',
+    tabs: [],
+  },
+  {
     key: '/audience',
     label: '人群看板',
     tabs: [

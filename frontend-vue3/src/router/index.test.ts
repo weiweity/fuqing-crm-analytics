@@ -9,6 +9,7 @@ const stub = (name: string) =>
 
 vi.mock('@/views/AudienceView.vue', () => ({ default: stub('AudienceViewStub') }))
 vi.mock('@/views/LoginView.vue', () => ({ default: stub('LoginViewStub') }))
+vi.mock('@/views/GrowthBoardView.vue', () => ({ default: stub('GrowthBoardViewStub') }))
 
 import router from './index'
 import { useAuthStore } from '@/stores/auth'
@@ -37,6 +38,17 @@ describe('router auth guard (Admin Upload route removed)', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/audience')
+  })
+
+  it('authenticated root route opens the CEO growth board', async () => {
+    const authStore = useAuthStore()
+    authStore.setSession('token-user', 'fqsw', false)
+
+    await router.push('/').catch(() => {})
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/growth-board')
+    expect(router.currentRoute.value.meta.immersive).toBe(true)
   })
 
   it('/admin/upload is not a registered product route', async () => {

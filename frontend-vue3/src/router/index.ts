@@ -3,11 +3,16 @@ import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const routes: RouteRecordRaw[] = [
-  { path: '/', redirect: '/audience' },
+  { path: '/', redirect: '/growth-board' },
   {
     path: '/login',
     component: () => import('@/views/LoginView.vue'),
     meta: { title: '登录' },
+  },
+  {
+    path: '/growth-board',
+    component: () => import('@/views/GrowthBoardView.vue'),
+    meta: { title: 'AI 增长董事会', requiresAuth: true, immersive: true },
   },
   {
     path: '/audience',
@@ -59,10 +64,10 @@ router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    next('/audience')
+    next('/growth-board')
   } else if (to.path === '/login' && authStore.isAuthenticated) {
     const redirect = to.query.redirect as string
-    next(redirect || '/audience')
+    next(redirect || '/growth-board')
   } else {
     next()
   }
