@@ -34,4 +34,8 @@
 
 第 3 项将在第 1、2 项检查完成后独立推进：原生故障到卡片全链、多 key 原生卡片共存、监督器退出证据。
 
+第二轮 CI 已越过两处启动失败：B0 上游构建成功；普通后端进入测试后在严格 worker RSS 检查失败，独立 B0 环境的六个 SQL barrier 用例也失败。后者在本地禁用 NumPy 导入后已复现 DuckDB `create_function` 报依赖错误，B0 检查锁补入与当前工程一致的 NumPy 2.4.4；探针通过私有 proof pipe 返回设置失败类型，避免仅等待超时。
+
+Linux 峰值补丁采用当前进程映像的 `/proc/self/status` VmHWM，保留监督器采样与原资源上限。依据 [getrusage 手册](https://www.man7.org/linux/man-pages/man2/getrusage.2.html) 的 exec 保留行为和 [Linux proc 文档](https://www.kernel.org/doc/html/latest/filesystems/proc.html)；新增大父进程 fork/exec 与子进程释放后保留峰值回归，本地 worker/资源 59 项通过。Linux 实测由后续 CI 证明，不以 macOS 单测替代。
+
 历史 Excel 全仓审计仍有 32 项旧问题，未改变字段倍率。真实模型、业务 UAT、容量、数仓 ETL、公开交付及分支清理不属于本次通过结论。

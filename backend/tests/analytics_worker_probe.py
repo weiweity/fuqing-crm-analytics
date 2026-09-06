@@ -91,9 +91,15 @@ def main():
                 hold()
                 return value
 
-            con.create_function("b0_barrier", barrier, [duckdb.sqltypes.BIGINT], duckdb.sqltypes.BIGINT,
-                                side_effects=True)
-            assert con.execute("SELECT b0_barrier(1)").fetchone() == (1,)
+            try:
+                con.create_function("b0_barrier", barrier, [duckdb.sqltypes.BIGINT], duckdb.sqltypes.BIGINT,
+                                    side_effects=True)
+                assert con.execute("SELECT b0_barrier(1)").fetchone() == (1,)
+            except Exception as error:
+                # Private proof pipe: fail at setup instead of waiting for an
+                # SQL_ACTIVE event that can never arrive. No app error leak.
+                proof("PROBE_SETUP_FAILED", error_type=type(error).__name__)
+                raise
         elif probe["mode"] == "temp_exceed":
             # A bounded owned disposable, not an enlarged business database.
             with (Path(current["temp_dir"]) / "duckdb_temp_storage_PROBE-0.tmp").open("xb") as stream:
