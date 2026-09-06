@@ -7,7 +7,8 @@
 - G3a 离线确定性渠道后续购买计算：三表 synthetic snapshot 封板 + 固定参数化 SQL + 只读执行，字面对照 G2 N30/60/90 金标准。不接 HTTP/native/worker 调度；旧 B0 4MiB 与 25% 未改。审查修复：ASCII/`encode` 比较不受 nocase collation 漂移、manifest 与 catalog 自洽、有界 `LIMIT` 读取超量行。
 
 ### Fixed
-- 候选远端 B0 CI `34058300555` 中 context 并发测试把生产 100ms `BEGIN IMMEDIATE` 超时当成失败。测试改为只收集既有 503 `STATE_UNAVAILABLE` retryable=True，双方退出后用原 unit/resource 重放，并增加确定性 busy→原请求恢复回归。jobs 源码与 100ms timeout 未改；候选 CI 未复跑，不记 GREEN。
+- 候选远端 B0 CI `34058300555` 中 context 并发测试把生产 100ms `BEGIN IMMEDIATE` 超时当成失败。测试改为只收集既有 503 `STATE_UNAVAILABLE` retryable=True，双方退出后用原 unit/resource 重放，并增加确定性 busy→原请求恢复回归。jobs 源码与 100ms timeout 未改。
+- 候选远端 B0 CI `34059478378` 中 terminal race 同样把 100ms 锁等待 503 当成失败（context 修复后的新路径）。三个 Barrier 竞争测试改为收集既有 busy 并在双方退出后用原 key/IfMatch/observation 单次重放；另增 cancel-first/success-first 确定性 busy 终态回归。生产 timeout/jobs 源码未改；本轮远端 CI 未复跑，不记 GREEN。
 
 ### Changed
 - B0 增加明确 opt-in 的 native-state 测试入口：真实 SQL_ACTIVE 探针；未知版本/非法 facts 经正常 result 帧由生产 validator 拒绝。下一问须等 native turn 与 Send message。`runtime-SNWYss` 四问 PASS；第一次 `hkeo4K` 因 F3 失败保留。默认 kernel/HTTP 合同不变。G1 源码已提交 `857d2ce` / PR #70。
@@ -23,7 +24,7 @@
 - Agent 行为统一维护于 AGENTS.md，CLAUDE.md 仅兼容引用；同步 hooks、工作流文档和当前 T08 状态摘要。
 
 ### Known issues
-- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；源码已提交 `857d2ce` / PR #70，最终 pre-push 178 Python / 145 Node / 14 built。整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G3a 仅为离线计算，worker/HTTP/native 未跑。本地 prepush 全 backend 已 PASS；候选远端 CI `34058300555` 未复跑，不记 GREEN。无合并、部署或真实数据操作授权。
+- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；源码已提交 `857d2ce` / PR #70，最终 pre-push 178 Python / 145 Node / 14 built。整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G3a 仅为离线计算，worker/HTTP/native 未跑。本地 prepush 全 backend 已 PASS。context 修复后后端 CI `34059478393` PASS；B0 CI `34059478378` 仍 1 fail，本轮测试修复未复跑远端，不记 GREEN。无合并、部署或真实数据操作授权。
 
 ## [0.5.0.0] - 2026-09-04
 

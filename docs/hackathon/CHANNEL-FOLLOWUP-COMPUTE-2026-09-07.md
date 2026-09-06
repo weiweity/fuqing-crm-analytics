@@ -1,6 +1,6 @@
 # 渠道首次观察队列离线计算（G3a）
 
-日期：2026-09-07。修订时点：2026-09-07（G3a-ci-context-repair：远端 CI 并发测试契约；候选 CI 未复跑）。先前修订：2026-09-06T20:21:10Z（G3-F1–F4 修复）。任务分支 `codex/channel-followup-compute`，基于已提交 G2a `ae02f873cfdbfc5a53e3fe8e5ae137872f1203a1` / [PR #71](https://github.com/weiweity/fuqing-crm-analytics/pull/71)（CI PASS，`state.json.g2a` / `G2a-final-ci.json`）。状态：**OFFLINE_DETERMINISTIC_COMPUTE**。不是 HTTP 上线、不是 worker/权限/预算/物理退出总治理、不是完整 G3、不是原生接线、不是真实业务。G3a 源码 Git 由 Codex 按 PR 交付，不以「待提交」描述已落地的 G2。
+日期：2026-09-07。修订时点：2026-09-07（G3a-ci-races-repair：jobs Barrier 竞争测试契约；本轮远端 CI 未复跑）。先前修订：G3a-ci-context-repair；2026-09-06T20:21:10Z（G3-F1–F4 修复）。任务分支 `codex/channel-followup-compute`，基于已提交 G2a `ae02f873cfdbfc5a53e3fe8e5ae137872f1203a1` / [PR #71](https://github.com/weiweity/fuqing-crm-analytics/pull/71)（CI PASS，`state.json.g2a` / `G2a-final-ci.json`）。状态：**OFFLINE_DETERMINISTIC_COMPUTE**。不是 HTTP 上线、不是 worker/权限/预算/物理退出总治理、不是完整 G3、不是原生接线、不是真实业务。G3a 源码 Git 由 Codex 按 PR 交付，不以「待提交」描述已落地的 G2。
 
 本文件记录 G3a 离线确定性层。合同与手算金标准仍见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)；`expected.json` 保持 `hand_calculated` / `NOT_RUN`，生产代码不读取它。
 
@@ -60,7 +60,9 @@ as_of=`2026-09-01T00:00:00+08:00`。与 G2 `expected.json` 字面字段一致：
 | 初验 62 相关测试 | PASS（上表，历史数据保留） |
 | 本地 prepush 全 backend | PASS：1802 passed / 77 skip / 71 deselect；B0 240 Python / 145 Node / 14 compiled。原生未实现 |
 | 候选远端 B0 CI `34058300555` | 239 passed, 1 failed：`test_context_idempotency_survives_concurrent_callers_and_tool_id_cannot_change_kind`。两独立 RunStore 在 Barrier 后同时 `rebuild_context`，一方 `BEGIN IMMEDIATE` 等待生产 100ms 后返回既有 503 `STATE_UNAVAILABLE` retryable=True。不是 G3a 计算错误，也不能把该偶发当 CI 通过。原始 log：`.context/goal-8h/evidence/G3a-ci-failure.log`；小库实证：`.context/goal-8h/evidence/G3a-ci-lock-reproduction.json` |
-| G3a-ci-context-repair | 仅改 context 测试：收集上述契约，双方退出后用原 unit/resource 重放；另增确定性 busy→原请求恢复（未提交写入不可见、重放后计费一条）。生产 100ms timeout / jobs 源码 / profile 未改。本地目标测试见 `.context/goal-8h/evidence/G3a-ci-context-repair.log`。候选远端 CI **未复跑，不记 GREEN** |
+| G3a-ci-context-repair | 仅改 context 测试：收集上述契约，双方退出后用原 unit/resource 重放；另增确定性 busy→原请求恢复。生产 100ms timeout / jobs 源码 / profile 未改。本地目标测试见 `.context/goal-8h/evidence/G3a-ci-context-repair.log` |
+| context 修复后远端 | 后端 CI `34059478393` PASS。B0 CI `34059478378`：240 passed, 1 failed：`test_actual_terminal_race_has_one_winner_and_one_terminal_event`。completion 在 `BEGIN IMMEDIATE` 触发同样 503 `STATE_UNAVAILABLE`。原始 log：`.context/goal-8h/evidence/G3a-ci-repair-ci-failure.log`；小库实证：`.context/goal-8h/evidence/G3a-ci-terminal-lock-reproduction.json`。上一失败 `34058300555` 仍保留 |
+| G3a-ci-races-repair | 仅改 jobs 三个 Barrier 竞争测试（accept/claim/terminal）：收集既有 busy，双方退出后用原 key/IfMatch/observation 单次重放；终态以持久化 SUCCEEDED/CANCELLED 核验，旧 IfMatch 仍 409。另增 cancel-first/success-first 确定性 busy 回归。生产 timeout/jobs 源码未改。本地目标测试见 `.context/goal-8h/evidence/G3a-ci-races-repair.log`。本轮远端 CI **未复跑，不记 GREEN** |
 | 原生 | **NOT RUN** |
 
 G3-F1：`require_restricted_connection` 校验 `default_collation`；SQL `encode()`；Z/a 同刻首渠 A；u/U 分用户；nocase 已 lock 连接拒绝。G3-F2：manifest `as_of` 必须 canonical；counts/as_of 与同连接 snapshot 对齐；`extra.unregistered` 拒绝并 close/reopen。G3-F3：订单 `SELECT … LIMIT cap+1`，超量小文件先有界取回再 fail closed。
