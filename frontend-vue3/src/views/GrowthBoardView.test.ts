@@ -16,6 +16,16 @@ vi.mock('@/features/mission/api', () => api)
 import GrowthBoardView from './GrowthBoardView.vue'
 import { useAuthStore } from '@/stores/auth'
 
+function deferred() {
+  let resolve!: (value: unknown) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<unknown>((onResolve, onReject) => {
+    resolve = onResolve
+    reject = onReject
+  })
+  return { promise, resolve, reject }
+}
+
 const baseMission = {
   mission_id: 'mission-20260831-aa9316f2',
   status: 'AWAITING_APPROVAL' as const,
@@ -346,8 +356,8 @@ describe('GrowthBoardView', () => {
 
   it.each(['success', 'failure'])('重置后忽略旧问数的延迟 %s，且不结束新请求', async (outcome) => {
     api.getTodayMission.mockResolvedValue({ ...structuredClone(baseMission), demo_controls: { reset_enabled: true } })
-    const oldRequest = Promise.withResolvers<any>()
-    const newRequest = Promise.withResolvers<any>()
+    const oldRequest = deferred()
+    const newRequest = deferred()
     api.diagnoseMission.mockReturnValueOnce(oldRequest.promise).mockReturnValueOnce(newRequest.promise)
     const wrapper = mount(GrowthBoardView)
     await flushPromises()
@@ -372,8 +382,8 @@ describe('GrowthBoardView', () => {
 
   it.each(['success', 'failure'])('重置等待期间隔离旧问数的 %s，拒绝插入新问数', async (outcome) => {
     api.getTodayMission.mockResolvedValue({ ...structuredClone(baseMission), demo_controls: { reset_enabled: true } })
-    const oldRequest = Promise.withResolvers<any>()
-    const resetRequest = Promise.withResolvers<any>()
+    const oldRequest = deferred()
+    const resetRequest = deferred()
     api.diagnoseMission.mockReturnValueOnce(oldRequest.promise)
     api.resetMission.mockReturnValueOnce(resetRequest.promise)
     const wrapper = mount(GrowthBoardView)
