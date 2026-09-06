@@ -81,7 +81,7 @@ fuqing-crm-analytics/docs/
 | `DESIGN.md` | 品牌、设计令牌、交互原则与组件边界 |
 | `STATUS.md` | **短状态表**（勿再堆编年） |
 | `VERSION` / `CHANGELOG.md` | 版本与近窗变更 |
-| `CLAUDE.md` | AI 硬规则 + 指针；L4 细则在 `docs/rules/` |
+| `AGENTS.md` | 唯一 AI 行为正文；CLAUDE 仅导入，L4 是按需技术历史 |
 | `HANDOVER.md` | 交接（gitignore 敏感信息） |
 | 工作区父目录 | `../README.md`（`fuqin-date` 地图） |
 
@@ -91,7 +91,7 @@ fuqing-crm-analytics/docs/
 |---|---|
 | 演示 AI 增长董事会 / 调用 Mission API | `hackathon/README.md` + `hackathon/MISSION-API.md` |
 | 项目能不能用 / 债指针 | 根 `STATUS.md` + `TECH-DEBT.md` |
-| 团队怎么合 PR | `operating/team-workflow-v1.md` |
+| 团队怎么合 PR | 根 `AGENTS.md`；`operating/team-workflow-v1.md` 仅作历史参考 |
 | 根目录该不该堆文件 | `operating/project-hygiene.md` |
 | 加 service / 写 SQL | `development/services.md` + `architecture/AI_SAFETY_NET.md` |
 | 写测试 | `development/testing.md` |

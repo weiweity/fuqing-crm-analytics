@@ -1,5 +1,7 @@
 # AI 调用 Mission API 指南
 
+> **适用范围（2026-09-05）**：本文只描述已实现 Mission 子链。`mission_` 前缀限制和“先读 Mission”不代表新工作台的全部编排；未来分析工具遵循 [独立接口草案](./ANALYTICS-CONTRACTS-DRAFT.md)，在实现与权限验收前不可调用。营销审批、版本、幂等和 DRAFT_EXPORT 边界继续有效。
+
 本文面向后续 AI Agent、MCP 工具包装和自动化编排。机器可读契约以运行时 `/openapi.json` 为准，可视化接口文档位于 `/docs`。
 
 ## 安全边界
@@ -8,7 +10,8 @@
 - 不向模型开放 DuckDB 文件路径、数据库凭据或任意 SQL 执行器。
 - 所有业务响应必须包含 `data_provenance`；`contains_real_data` 必须为 `false`。
 - `approve`、`audience-export` 和本地 `demo-reset` 必须携带当前版本与稳定幂等键。
-- `demo-reset` 只允许管理员且由独立环境开关启用；公网保持关闭。
+- `demo-reset` 只允许管理员或经校验的本地免登录演示身份，且由独立环境开关启用；公网保持关闭。
+- 本地免登录仅对 synthetic Mission 有效，仍需人类确认审批/导出；访问模式见 [Mission API](./MISSION-API.md#0-本地访问能力)。
 - `DRAFT_EXPORT_READY` 只代表草稿可下载，不代表已发送短信或写入 CRM。
 
 ## OpenAPI operationId

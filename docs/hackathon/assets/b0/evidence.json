@@ -1,0 +1,142 @@
+{
+  "schema_version": "dsh-b0-evidence/v1",
+  "collected_at": "2026-09-05T09:39:12.444Z",
+  "verdict": "PARTIAL_NOT_INTEGRATION_READY",
+  "synthetic_only": true,
+  "paid_model_calls": 0,
+  "upstream_sha": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "raw_payloads_or_credentials_copied": false,
+  "sandbox": {
+    "passed": 18,
+    "total": 18
+  },
+  "native_dependencies": {
+    "passed": 4,
+    "total": 4
+  },
+  "gateway_first_run": {
+    "passed": 28,
+    "failed": 1
+  },
+  "gateway_fixed_retest": {
+    "passed": 29,
+    "failed": 0
+  },
+  "native": {
+    "primary": "PASS",
+    "cancellation": "PASS",
+    "server_error": "PASS",
+    "primary_turn_ends": [
+      {
+        "seq": 18,
+        "turn": 1,
+        "kind": "completed"
+      }
+    ],
+    "cancellation_turn_ends": [
+      {
+        "seq": 13,
+        "turn": 1,
+        "kind": "aborted",
+        "cancel_cause": "user"
+      }
+    ],
+    "error_turn_ends": [
+      {
+        "seq": 13,
+        "turn": 1,
+        "kind": "error",
+        "error_code": "SERVER",
+        "http_status": 500
+      }
+    ]
+  },
+  "browser_dispatch": {
+    "status": "PASS_SCOPED",
+    "request_key": "531ad162-7801-4727-a64a-e3f5d7f7643b",
+    "request_hash": "c37bfc2d2e8bd5339123d6a091abc2b9c94fe784220b8f68060167963bd1b4f3",
+    "run_id": "b0-run-3ca3cb10380c2184a21c07a1",
+    "original_ledger_state": "DSH_ACCEPTED",
+    "ledger_rows": 1,
+    "duplicate_status": 202,
+    "changed_request_status": 409,
+    "later_request_status": 403,
+    "limitations": [
+      "Later distinct prompt remains blocked because terminal run observation is not implemented.",
+      "Exact serialized request replay only; not semantic canonicalization, run cancellation, or crash recovery.",
+      "Native UI does not display the business run ID header."
+    ]
+  },
+  "rounds": [
+    {
+      "runtime": "runtime-xlXpXV",
+      "stopped_at": "2026-09-05T09:30:14.697Z",
+      "exit_code": 0,
+      "provider_requests": [
+        {
+          "attempt": 1,
+          "behavior": "tool_call_success",
+          "outcome": "completed",
+          "advertised_tools": [
+            "analytics_b0_query"
+          ]
+        },
+        {
+          "attempt": 2,
+          "behavior": "success",
+          "outcome": "completed",
+          "advertised_tools": [
+            "analytics_b0_query"
+          ]
+        },
+        {
+          "attempt": 3,
+          "behavior": "slow_success",
+          "outcome": "client_closed",
+          "advertised_tools": [
+            "analytics_b0_query"
+          ]
+        },
+        {
+          "attempt": 4,
+          "behavior": "server_error",
+          "outcome": "completed",
+          "advertised_tools": [
+            "analytics_b0_query"
+          ]
+        }
+      ]
+    },
+    {
+      "runtime": "runtime-281P9N",
+      "stopped_at": "2026-09-05T09:37:46.151Z",
+      "exit_code": 0,
+      "provider_requests": [
+        {
+          "attempt": 1,
+          "behavior": "tool_call_success",
+          "outcome": "completed",
+          "advertised_tools": [
+            "analytics_b0_query"
+          ]
+        },
+        {
+          "attempt": 2,
+          "behavior": "success",
+          "outcome": "completed",
+          "advertised_tools": [
+            "analytics_b0_query"
+          ]
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "No complete AnalysisRun, per-run cancellation, durable terminal observer, restart recovery or fencing.",
+    "No production identity service, semantic SQL goldens, real model evaluation, or full multi-user security audit.",
+    "Cockpit is one static synthetic fixture; localStorage persists a cosmetic title only.",
+    "Logo/favicon, all tool-card states, Skill/compaction, BI filter round trip and load limits remain incomplete.",
+    "Native UI still exposes denied developer controls; console is not clean.",
+    "Browser screenshots and test commands are documented separately; this collector does not rerun them."
+  ]
+}

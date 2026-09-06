@@ -1,0 +1,32 @@
+---
+title: 增长分析工作台 · 目标架构（尚未完整实现）
+---
+flowchart TD
+  REF["StaffDeck 员工／任务／成果参考<br/>仅设计参考，不部署运行时"]
+  UI["DSH 原生 React UI + 业务插件<br/>聊天 · 数字员工 · 私人驾驶舱"]
+  BI["现有 Vue 固定 BI<br/>合成条件适配待验收"]
+  API["FastAPI 唯一业务权威<br/>身份 · 合同 · run · 资产 · 审批"]
+  STATE[("SQLite 本地应用状态<br/>任务 · 配置 · 证据 · 快照")]
+  DSH["DSH 单一 Agent 运行时<br/>会话 · preset · 受控 Skills"]
+  MODEL["模型供应商适配<br/>当前小样仍为 stub"]
+  WORKER["受限确定性 worker<br/>预算 · 超时 · 并发 · 取消"]
+  DATA[("Synthetic DuckDB 只读<br/>manifest 校验")]
+  EXPORT["人类审批后 DRAFT_EXPORT<br/>仅合成名单，不发送营销"]
+  ARCHIVE["归档真实 DuckDB<br/>禁止接入本次演示"]
+  REF -.-> UI
+  UI -->|"提问先登记；读取／保存资产"| API
+  UI -.->|"受控同条件跳转"| BI
+  BI -->|"鉴权与条件验证"| API
+  API -->|"持久化后再派发"| DSH
+  DSH -->|"白名单类型化工具"| API
+  DSH --> MODEL
+  API --> STATE
+  API -->|"分析／显式刷新；已有资产不需模型"| WORKER
+  WORKER --> DATA
+  API -->|"版本／权限／审批校验"| EXPORT
+  classDef reference fill:#f4f4f5,stroke:#71717a,color:#27272a,stroke-dasharray:5 5
+  classDef business fill:#eef2ff,stroke:#6366f1,color:#1e1b4b
+  classDef blocked fill:#fff1f2,stroke:#e11d48,color:#881337
+  class REF reference
+  class API,STATE,WORKER business
+  class ARCHIVE blocked

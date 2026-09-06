@@ -1,0 +1,287 @@
+{
+  "date": "2026-09-05",
+  "fileKey": "MMLOikxeuI904BNPw7Ebi2",
+  "branch": "codex/shine-mage-figma-refinement",
+  "base": "de2d785",
+  "scope": "Local synthetic demo and editable Figma design; no commit, push, PR, deployment, real DB or outbound marketing",
+  "approvedFallbacks": {
+    "logo": "source PNG inverse",
+    "chinese": "Noto Sans SC"
+  },
+  "collections": [
+    {
+      "name": "Shine Mage / Primitives",
+      "id": "VariableCollectionId:12:2",
+      "modeId": "12:0"
+    },
+    {
+      "name": "Shine Mage / Tokens",
+      "id": "VariableCollectionId:12:3",
+      "modeId": "12:1"
+    }
+  ],
+  "styles": [
+    {
+      "name": "Shine Mage / Effect / panel",
+      "id": "S:73137bf7abdaf2e13b96c6f97c8044d222cb13a7,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / focus",
+      "id": "S:f19ffc5015778828ffbb10f8bd67a9b0b2708079,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / focusRest",
+      "id": "S:2b85adbff6f4046e8eeaf4606e5c736139ab4feb,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / button",
+      "id": "S:0aaef000285fecc03ef6a15b0b63d437d91a895b,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / buttonHover",
+      "id": "S:03dcb43db292aef800c049961f838b1e843d72d1,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / navActive",
+      "id": "S:7614b6c90447733bce201d63cf34341a2babf649,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / signal",
+      "id": "S:dc178588965707f51bb251eded9fe1316cf2a814,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Effect / metric",
+      "id": "S:7da31842b77030d26fe9c96ff5b368aba63b2f55,",
+      "type": "EFFECT"
+    },
+    {
+      "name": "Shine Mage / Gradient / background",
+      "id": "S:3d708821f07b07cc97dae81ecb60b83d5368f643,",
+      "type": "PAINT"
+    },
+    {
+      "name": "Shine Mage / Gradient / primary",
+      "id": "S:db108af5070e7ff70ccb711f1e38462980ecce22,",
+      "type": "PAINT"
+    },
+    {
+      "name": "Shine Mage / Gradient / secondary",
+      "id": "S:7369504631a2bf4b3fa52d29fc310916b6deed21,",
+      "type": "PAINT"
+    },
+    {
+      "name": "Shine Mage / Gradient / metric",
+      "id": "S:bce3c0deb3acf0b65c3526c09cc95c1d499f5a54,",
+      "type": "PAINT"
+    },
+    {
+      "name": "Shine Mage / Gradient / answer",
+      "id": "S:5747149224090b00812424ce1d762667908032c6,",
+      "type": "PAINT"
+    },
+    {
+      "name": "Shine Mage / Gradient / chip",
+      "id": "S:088244a3675c276a7325aedbda55c0a3e40d0f9d,",
+      "type": "PAINT"
+    },
+    {
+      "name": "Shine Mage / Type / Hero",
+      "id": "S:f35930d186ab196274cb1b4441b87fc349e1eb5f,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Section",
+      "id": "S:67dc2aad64a47820a433e33ff0adb43cd3dcf21d,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Body",
+      "id": "S:ce34e4d30fd10ddebffc8bf71898ab11e3540034,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / BodySmall",
+      "id": "S:dee864399e4112374bcdbf70762ac754ce6d9f5a,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / MetricHero",
+      "id": "S:1f44135f5603e9961a97cdedc21af2b50b79693c,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Metric",
+      "id": "S:1507acba711f40ac4ffe2f23956e7d0c23ef77ac,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Label7",
+      "id": "S:8b283d6fe07fa97a6bd68020e903bb8f7080ec3e,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Label8",
+      "id": "S:59a46e7b3ecb861e60d249ba611b4e6a1716fd7a,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Label9",
+      "id": "S:4ff8374419c0e7fd84c7784e1a361bbc334652a6,",
+      "type": "TEXT"
+    },
+    {
+      "name": "Shine Mage / Type / Label10",
+      "id": "S:962422e063d5a9007b24ed982c45ada9e54e4111,",
+      "type": "TEXT"
+    }
+  ],
+  "assetAudit": {
+    "variables": 334,
+    "brokenAliases": [],
+    "allScopes": [],
+    "missingWebSyntax": [],
+    "styles": {
+      "text": 10,
+      "paint": 6,
+      "effect": 8
+    },
+    "boards": [
+      {
+        "id": "43:2",
+        "parent": "19:5",
+        "name": "GrowthBoard"
+      },
+      {
+        "id": "50:2",
+        "parent": "19:5",
+        "name": "GrowthBoard / Desktop 1440"
+      }
+    ],
+    "capturePresent": false
+  },
+  "boards": [
+    {
+      "id": "43:2",
+      "w": 1800,
+      "h": 1257,
+      "nodes": 216,
+      "textCount": 111,
+      "instances": 17,
+      "missing": [],
+      "overflow": []
+    },
+    {
+      "id": "50:2",
+      "w": 1440,
+      "h": 1257,
+      "nodes": 216,
+      "textCount": 111,
+      "instances": 17,
+      "missing": [],
+      "overflow": []
+    }
+  ],
+  "components": {
+    "BrandMark": {
+      "pageId": "27:2",
+      "componentId": "32:7",
+      "documentationId": "56:204"
+    },
+    "NavItem": {
+      "pageId": "37:2",
+      "componentId": "37:9",
+      "documentationId": "56:394"
+    },
+    "PromptChip": {
+      "pageId": "37:10",
+      "componentId": "37:15",
+      "documentationId": "56:397"
+    },
+    "ActionButton": {
+      "pageId": "37:16",
+      "componentId": "37:23",
+      "documentationId": "56:400"
+    },
+    "NavBar": {
+      "pageId": "39:2",
+      "componentId": "39:5",
+      "documentationId": "56:403"
+    },
+    "MissionHero": {
+      "pageId": "39:3",
+      "componentId": "39:25",
+      "documentationId": "56:406"
+    },
+    "ImpactForecast": {
+      "pageId": "39:4",
+      "componentId": "39:54",
+      "documentationId": "56:409"
+    },
+    "ChannelPortfolio": {
+      "pageId": "41:2",
+      "componentId": "41:5",
+      "documentationId": "56:412"
+    },
+    "BusinessQuery": {
+      "pageId": "41:3",
+      "componentId": "41:66",
+      "documentationId": "56:415"
+    },
+    "MissionActionRail": {
+      "pageId": "41:4",
+      "componentId": "42:18",
+      "documentationId": "56:418"
+    }
+  },
+  "desktop1440": {
+    "MissionHero": {
+      "componentId": "58:204",
+      "instanceId": "65:206"
+    },
+    "ImpactForecast": {
+      "componentId": "60:204",
+      "instanceId": "65:238"
+    },
+    "ChannelPortfolio": {
+      "componentId": "60:227",
+      "instanceId": "65:261"
+    },
+    "MissionActionRail": {
+      "componentId": "60:279",
+      "instanceId": "65:313"
+    }
+  },
+  "validation": {
+    "unitTestFiles": 23,
+    "unitTestsPassed": 192,
+    "vueTsc": "pass",
+    "viteBuild": "pass",
+    "scriptAndTemplateInvariance": "9 business Vue files unchanged against de2d785; approved BrandMark asset replacement excluded",
+    "mobile": {
+      "cssViewport": 390,
+      "documentWidth": 390,
+      "panelWidths": [
+        342,
+        342,
+        342,
+        342,
+        342
+      ],
+      "navigationLinks": 6,
+      "tableScrollWidth": 720,
+      "tableClientWidth": 288,
+      "realDeviceE2E": false
+    }
+  },
+  "codeConnect": {
+    "published": false,
+    "reason": "未请求发布原生组件库或 Code Connect；代码对应关系见 FIGMA-SYNC.md"
+  }
+}
