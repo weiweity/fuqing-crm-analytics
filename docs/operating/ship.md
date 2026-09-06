@@ -1,5 +1,7 @@
 # /ship 接入 12 步流程
 
+> **历史记录，非当前执行指令（2026-09-06）**：统一按 [AGENTS.md](../../AGENTS.md) 的授权和验证检查点执行。下文 12 步、固定模型分工、合并后重启及审计实现保留历史背景，不要求普通本地任务完成发布，不授权用测试 merge/revert 操作真实分支。
+
 > Meta-Sprint 治理收口: 把 `/ship` skill 接入项目 12 步流程,留 audit trail。
 > 跟现有 pre-commit / pre-push hook 配合,补 "merge 后没记录" 的空缺。
 

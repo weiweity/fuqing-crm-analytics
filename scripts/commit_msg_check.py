@@ -156,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         print("   1. 改用 Sprint workflow commit type prefix (e.g. 'fix(etl): Sprint ## ...') → 自动放行", file=sys.stderr)
         print("   2. 写 ≥ 1 行详细 commit msg (含 #D## 编号 + 行数 + 测试数)", file=sys.stderr)
         print("   3. 拆分大 commit 为多个小 commit (diff < 200 行)", file=sys.stderr)
-        print("   4. 紧急 hotfix 用 git commit --no-verify (L4.15 user 拍板)", file=sys.stderr)
+        print("   4. 检查器误报先修复；例外按 AGENTS.md 处理，不默认绕过 hooks", file=sys.stderr)
         return 1
 
     return 0

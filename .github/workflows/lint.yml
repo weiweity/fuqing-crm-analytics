@@ -33,6 +33,9 @@ on:
       - '.githooks/**'
       - '.github/workflows/**'
       - 'CLAUDE.md'
+      - 'AGENTS.md'
+      - '.claude/settings.json'
+      - '.claude/skills/**'
       - 'docs/maintenance/**'
       - 'docs/operating/**'
       - 'docs/business/**'
@@ -50,6 +53,8 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+      - name: Validate single Agent rule source (read-only)
+        run: bash scripts/sync-agents.sh --check
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.14"

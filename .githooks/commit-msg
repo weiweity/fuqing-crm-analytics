@@ -21,7 +21,7 @@ if [ "$EXIT_CODE" -eq 1 ]; then
     echo ""
     echo "修复方法:"
     echo "1. 把 commit msg 写得更具体"
-    echo "2. 或在紧急 hotfix 时使用 git commit --no-verify"
+    echo "2. 如检查有误，先定位并修复检查器；例外处理遵循 AGENTS.md，不默认绕过 hooks"
     echo ""
     exit 1
 fi

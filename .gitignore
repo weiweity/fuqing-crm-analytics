@@ -81,12 +81,10 @@ designs/
 .claude/
 .codegraph/
 
-# Codex app 自动 init 文件 (不污染主仓, Codex 启动会重新 init)
-# Sprint 43.1 后跟 Codex app 协作, Codex 自动创建 AGENTS.md / .codex/ / .agents/
-# 主仓用 HANDOFF.md (Claude) + HANDOFF-TO-CODEX.md (Stage 1 输出) 代替
+# Agent 工具本地状态不入仓；根 AGENTS.md 是需版本控制的唯一行为正文。
 .agents/
 .codex/
-AGENTS.md
+!/AGENTS.md
 # Sprint 184 实战发现: HANDOFF-TO-CODEX-Sprint{N}.md 是 Stage 1 临时输出,
 # 单 sprint 收口后无价值, 长期污染 git log. 排除模式: HANDOFF-TO-CODEX-*.md
 HANDOFF-TO-CODEX-*.md

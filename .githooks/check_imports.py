@@ -248,7 +248,7 @@ def main() -> int:
             print(f"  - {m}  (used in: {sample or 'n/a'})")
         print()
         print("修复: 在 requirements.txt 加缺失的包, 然后重跑 commit.")
-        print("例外 (确认 deps 故意未声明): git commit --no-verify")
+        print("依赖声明确有例外时按 AGENTS.md 核对范围；不要默认绕过 hooks")
         print(f"(debug) local_packages sample: {sorted(LOCAL_PACKAGES)[:12]}…")
         return 1
 
