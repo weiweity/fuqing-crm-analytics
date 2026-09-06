@@ -6,7 +6,7 @@
 
 开发入口：[唯一 Agent 规则](../../AGENTS.md)；[2026-09-06 规则统一与项目盘查](./AGENT-RULES-AUDIT-2026-09-06.md)记录 Astra 工作方式适配、旧自动化停用及未删除候选，不改变 B0 业务验收结论。
 
-2026-09-06 的工作流治理及本次验证结果统一见 [治理实施记录](./WORKFLOW-GOVERNANCE-2026-09-06.md)；日常命令见 [验证入口](../operating/verification.md)。这是成果工作树的本地补丁，不改写下方 T08 历史成绩或 B0 PARTIAL。
+2026-09-06 的工作流治理见 [治理实施记录](./WORKFLOW-GOVERNANCE-2026-09-06.md)；后续提交、PR 与两处前端遗留修复见 [阶段 Git 与 QA](./PHASE-GIT-QA-2026-09-06.md)，日常命令见 [验证入口](../operating/verification.md)。下方 T08 保留历史成绩，整体 B0 PARTIAL。
 
 阶段 Git 检查与开放项见[草稿提交检查](./PHASE-DRAFT-REVIEW-2026-09-06.md)。该记录区分局部测试、推送检查和完整产品验收，不以 Draft PR 代替合并或部署许可。
 
