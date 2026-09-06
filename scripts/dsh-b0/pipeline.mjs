@@ -8,6 +8,7 @@ import { readFile, writeFile, mkdir, mkdtemp, cp, lstat, readdir } from 'node:fs
 import { createHash } from 'node:crypto';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { packageManagerEnv } from './package-manager-env.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const plugin = join(root, 'dsh-plugins/analytics-workbench');
@@ -19,7 +20,7 @@ assert.ok(['--prepare', '--check'].includes(mode) && pythonFlag === '--python' &
   'Usage: node scripts/dsh-b0/pipeline.mjs --prepare|--check --python /absolute/python3.14');
 const pin = JSON.parse(await readFile(join(plugin, 'toolchain.json'), 'utf8'));
 assert.equal(Number(process.versions.node.split('.')[0]), pin.node_major);
-const env = {
+let env = {
   ...Object.fromEntries(Object.entries(process.env).filter(([key]) => ['HOME', 'CI', 'SYSTEMROOT'].includes(key))),
   PATH: `${dirname(process.execPath)}:${dirname(python)}:/usr/bin:/bin`,
   PYTHONPATH: root, PYTHONNOUSERSITE: '1', PYTHON_DOTENV_DISABLED: '1',
@@ -53,6 +54,7 @@ if (mode === '--prepare') {
     run('git', ['-C', upstream, 'checkout', '--detach', pin.upstream_sha]);
   }
   await verifySource();
+  env = await packageManagerEnv(join(b0, 'tool-bin'), env, upstream);
   assert.equal(output('corepack', ['pnpm', '--version'], upstream), pin.pnpm);
   run('corepack', ['pnpm', 'install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org'], upstream);
   // Only native dependencies needed by this fixed profile. No repository hook
@@ -87,7 +89,8 @@ print('B0 exact Python closure verified')
   const sourceTests = (await readdir(join(plugin, 'test'))).filter(name => name.endsWith('.test.mjs') && !builtTests.includes(name));
   run(process.execPath, ['--test', ...sourceTests.map(name => join(plugin, 'test', name)),
     'scripts/dsh-b0/gateway-policy.test.mjs', 'scripts/dsh-b0/transport-safety.test.mjs', 'scripts/dsh-b0/mock-provider.test.mjs',
-    'scripts/dsh-b0/lifecycle-observer.test.mjs', 'scripts/dsh-b0/permission-fence.test.mjs', 'scripts/dsh-b0/ui-seams.test.mjs']);
+    'scripts/dsh-b0/lifecycle-observer.test.mjs', 'scripts/dsh-b0/permission-fence.test.mjs', 'scripts/dsh-b0/ui-seams.test.mjs',
+    'scripts/dsh-b0/package-manager-env.test.mjs']);
   run(process.execPath, [join(plugin, 'build.mjs'), upstream]);
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
 
