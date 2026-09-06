@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
-from threading import Barrier
+from threading import Barrier, Event, Thread
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,7 +12,8 @@ from backend.contracts.analytics import AnalyticsCancelRequest, AnalyticsRunRequ
 from backend.services.analytics.access import AnalyticsError
 from backend.services.analytics.jobs import RunStore
 from backend.tests.analytics_run_support import (
-    accept, actor, conversation, make_store, observation, profile, successful_step, synthetic_fixture,
+    accept, actor, conversation, make_store, observation, profile, sqlite_connection,
+    successful_step, synthetic_fixture,
 )
 from backend.tests.test_analytics_native_runtime import Receiver, native
 
@@ -39,6 +40,33 @@ def test_method_version_must_be_fixed_at_acceptance_not_inferred_after_a_crash(t
 def context(store, intent, *, unit="model:1:1", digest=DIGEST, principal=None, resource=None):
     return store.rebuild_context(principal or actor(), intent.run_id, intent.attempt_id,
                                  package_digest=digest, unit_id=unit, resource=resource)
+
+
+def _context_or_expected_busy(store, intent, *, unit, resource):
+    try:
+        return context(store, intent, unit=unit, resource=resource)
+    except AnalyticsError as error:
+        if error.status != 503 or error.code != "STATE_UNAVAILABLE" or error.retryable is not True:
+            raise
+        return error
+
+
+def _method_read_charges(store, run_id):
+    with sqlite_connection(store.path) as con:
+        return con.execute(
+            "SELECT count(*) FROM idempotency WHERE operation='runtime.method-read' AND target=?",
+            (run_id,),
+        ).fetchone()[0]
+
+
+def _assert_budget_seven_and_single_charge(store, intent, payloads):
+    for payload in payloads:
+        assert payload["remaining_budget"]["tool_steps"] == 7
+    assert _method_read_charges(store, intent.run_id) == 1
+    restored = RunStore(store.directory, profile())
+    replayed = context(restored, intent, unit="same", resource="SKILL.md")
+    assert replayed["remaining_budget"]["tool_steps"] == 7
+    assert _method_read_charges(restored, intent.run_id) == 1
 
 
 def test_context_has_server_conditions_no_approval_or_fabricated_result(tmp_path):
@@ -124,16 +152,86 @@ def test_context_idempotency_survives_concurrent_callers_and_tool_id_cannot_chan
 
     def read(instance):
         barrier.wait(timeout=2)
-        return context(instance, intent, unit="same", resource="SKILL.md")
+        return _context_or_expected_busy(instance, intent, unit="same", resource="SKILL.md")
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         a, b = pool.submit(read, store), pool.submit(read, peer)
-        assert a.result(timeout=3)["remaining_budget"]["tool_steps"] == b.result(timeout=3)["remaining_budget"]["tool_steps"] == 7
+        first, second = a.result(timeout=3), b.result(timeout=3)
+    payloads = []
+    for item in (first, second):
+        if isinstance(item, AnalyticsError):
+            assert item.status == 503 and item.code == "STATE_UNAVAILABLE" and item.retryable is True
+        else:
+            payloads.append(item)
+    # Both concurrent callers have exited; replay the original unit/resource one-by-one.
+    replays = [
+        context(store, intent, unit="same", resource="SKILL.md"),
+        context(peer, intent, unit="same", resource="SKILL.md"),
+    ]
+    _assert_budget_seven_and_single_charge(store, intent, [*payloads, *replays])
     with pytest.raises(AnalyticsError):
         store.reserve_step(actor(), intent.run_id, intent.attempt_id, "same")
     successful_step(store, intent, call_id="query")
     with pytest.raises(AnalyticsError):
         context(store, intent, unit="query", resource="SKILL.md")
+
+
+def test_context_busy_uncommitted_write_replays_original_unit_without_double_charge(tmp_path):
+    store, _, intent = running(tmp_path)
+    peer = RunStore(store.directory, profile())
+    written, release = Event(), Event()
+    outcomes, caught = {}, []
+
+    def hold_after_write(con, principal, operation, target, key, digest, response, status):
+        RunStore._remember(con, principal, operation, target, key, digest, response, status)
+        written.set()
+        assert release.wait(timeout=2), "busy peer did not finish while the first transaction was open"
+
+    def hold():
+        try:
+            outcomes["held"] = context(store, intent, unit="same", resource="SKILL.md")
+        except BaseException as error:
+            caught.append(error)
+
+    def contend():
+        try:
+            assert written.wait(timeout=2), "holder did not write before busy peer"
+            try:
+                context(peer, intent, unit="same", resource="SKILL.md")
+            except AnalyticsError as error:
+                if error.status != 503 or error.code != "STATE_UNAVAILABLE" or error.retryable is not True:
+                    raise
+                outcomes["busy"] = error
+            else:
+                raise AssertionError("second peer obtained the lock while the first transaction was open")
+            assert _method_read_charges(peer, intent.run_id) == 0
+        except BaseException as error:
+            caught.append(error)
+        finally:
+            release.set()
+
+    holder = Thread(target=hold)
+    contender = Thread(target=contend)
+    store._remember = hold_after_write
+    try:
+        holder.start()
+        contender.start()
+        holder.join(timeout=3)
+        contender.join(timeout=3)
+        assert not holder.is_alive() and not contender.is_alive()
+        if caught:
+            raise caught[0]
+        assert outcomes["busy"].status == 503 and outcomes["busy"].retryable is True
+        assert outcomes["held"]["remaining_budget"]["tool_steps"] == 7
+        replayed = context(store, intent, unit="same", resource="SKILL.md")
+        _assert_budget_seven_and_single_charge(store, intent, [outcomes["held"], replayed])
+    finally:
+        release.set()
+        store.__dict__.pop("_remember", None)
+        if holder.ident is not None:
+            holder.join(timeout=2)
+        if contender.ident is not None:
+            contender.join(timeout=2)
 
 
 def test_private_context_endpoint_requires_separate_runtime_capability_and_rechecks_revocation(tmp_path):
