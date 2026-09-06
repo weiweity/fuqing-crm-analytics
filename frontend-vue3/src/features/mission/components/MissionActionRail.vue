@@ -71,34 +71,34 @@ const stateLabels: Record<string, string> = {
 </template>
 
 <style scoped>
-.action-panel { display: grid; grid-template-columns: minmax(520px, 1.35fr) minmax(240px, .75fr) minmax(270px, .65fr); align-items: center; gap: 24px; padding: 18px 22px; }
+.action-panel { display: grid; grid-template-columns: minmax(var(--sm-dimension-px-520), 1.35fr) minmax(var(--sm-dimension-px-240), .75fr) minmax(var(--sm-dimension-px-270), .65fr); align-items: center; gap: var(--sm-dimension-px-24); padding: var(--sm-dimension-px-18) var(--sm-dimension-px-22); }
 .state-flow { display: flex; align-items: center; min-width: 0; }
-.state-step { display: grid; gap: 3px; color: var(--sm-lilac-faint); }
-.state-step i { font: 650 8px/1 var(--sm-font-mono); }
-.state-step strong { font-size: 9px; font-weight: 650; white-space: nowrap; }
-.state-step small { font: 500 7px/1 var(--sm-font-mono); white-space: nowrap; }
+.state-step { display: grid; gap: var(--sm-dimension-px-3); color: var(--sm-lilac-faint); }
+.state-step i { font: 650 var(--sm-dimension-px-8)/1 var(--sm-font-display); }
+.state-step strong { font-size: var(--sm-dimension-px-9); font-weight: 650; white-space: nowrap; }
+.state-step small { font: 500 var(--sm-dimension-px-7)/1 var(--sm-font-display); white-space: nowrap; }
 .state-step.reached { color: var(--sm-signal); }
-.state-flow > span { flex: 1; min-width: 13px; height: 1px; margin: 0 8px; background: var(--sm-line); }
+.state-flow > span { flex: 1; min-width: var(--sm-dimension-px-13); height: var(--sm-dimension-px-1); margin: 0 var(--sm-dimension-px-8); background: var(--sm-line); }
 .state-flow > span.reached { background: var(--sm-gradient-secondary); box-shadow: var(--sm-shadow-signal); }
-.action-copy { display: grid; gap: 5px; }
-.action-copy > span { color: var(--sm-lilac); font: 650 8px/1 var(--sm-font-mono); letter-spacing: .12em; }
-.action-copy strong { color: var(--sm-copy-strong); font-size: 11px; line-height: 1.5; }
-.action-copy small { color: var(--sm-faint); font-size: 8px; }
-.action-controls { display: grid; gap: 7px; }
-.approve-button { display: grid; gap: 4px; min-height: 55px; padding: 12px 16px; border: 1px solid var(--sm-white-top-line); border-radius: var(--sm-radius-control); color: var(--sm-ink); background: var(--sm-gradient-primary); box-shadow: var(--sm-shadow-button); text-align: left; cursor: pointer; transition: transform var(--sm-motion-standard), box-shadow var(--sm-motion-standard), border-color var(--sm-motion-standard); }
-.approve-button:hover:not(:disabled), .approve-button:focus-visible:not(:disabled) { border-color: var(--sm-line-accent); box-shadow: var(--sm-shadow-button-hover); transform: translateY(-2px); }
+.action-copy { display: grid; gap: var(--sm-dimension-px-5); }
+.action-copy > span { color: var(--sm-lilac); font: 650 var(--sm-dimension-px-8)/1 var(--sm-font-display); letter-spacing: var(--sm-dimension-em-0-12); }
+.action-copy strong { color: var(--sm-copy-strong); font-size: var(--sm-dimension-px-11); line-height: 1.5; }
+.action-copy small { color: var(--sm-faint); font-size: var(--sm-dimension-px-8); }
+.action-controls { display: grid; gap: var(--sm-dimension-px-7); }
+.approve-button { display: grid; gap: var(--sm-dimension-px-4); min-height: var(--sm-dimension-px-55); padding: var(--sm-dimension-px-12) var(--sm-dimension-px-16); border: var(--sm-dimension-px-1) solid var(--sm-white-top-line); border-radius: var(--sm-radius-control); color: var(--sm-ink); background: var(--sm-gradient-primary); box-shadow: var(--sm-shadow-button); text-align: left; cursor: pointer; transition: transform var(--sm-motion-standard), box-shadow var(--sm-motion-standard), border-color var(--sm-motion-standard); }
+.approve-button:hover:not(:disabled), .approve-button:focus-visible:not(:disabled) { border-color: var(--sm-line-accent); box-shadow: var(--sm-shadow-button-hover); transform: translateY(var(--sm-dimension-px-minus-2)); }
 .approve-button:disabled { opacity: .5; cursor: wait; }
-.approve-button span { font-size: 12px; font-weight: 750; }
-.approve-button small { font: 650 8px/1.2 var(--sm-font-mono); opacity: .58; }
+.approve-button span { font-size: var(--sm-dimension-px-12); font-weight: 750; }
+.approve-button small { font: 650 var(--sm-dimension-px-8)/1.2 var(--sm-font-display); opacity: .58; }
 .approve-button.export-ready { color: var(--sm-on-accent); background: var(--sm-lilac); border-color: var(--sm-lilac); }
-.reset-demo-button { min-height: 32px; border: 1px solid var(--sm-line); border-radius: var(--sm-radius-control); color: var(--sm-muted); background: var(--sm-white-faint); font-size: 9px; cursor: pointer; }
+.reset-demo-button { min-height: var(--sm-dimension-px-32); border: var(--sm-dimension-px-1) solid var(--sm-line); border-radius: var(--sm-radius-control); color: var(--sm-muted); background: var(--sm-white-faint); font-size: var(--sm-dimension-px-9); cursor: pointer; }
 .reset-demo-button:hover, .reset-demo-button:focus-visible { color: var(--sm-ink); border-color: var(--sm-line-strong); }
-.complete-state { color: var(--sm-signal); font-size: 11px; text-align: right; }
+.complete-state { color: var(--sm-signal); font-size: var(--sm-dimension-px-11); text-align: right; }
 
 @media (max-width: 1220px) {
   .action-panel { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
-  .state-flow { overflow-x: auto; padding-bottom: 8px; }
+  .state-flow { overflow-x: auto; padding-bottom: var(--sm-dimension-px-8); }
 }
 </style>

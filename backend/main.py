@@ -185,6 +185,14 @@ def validate_startup_db() -> None:
 # ─────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    if os.environ.get("FQ_LOCAL_DEMO_NO_LOGIN") == "1":
+        from backend.services.mission_service import MissionService
+        # Fail closed on missing/invalid synthetic data. No legacy DuckDB,
+        # cache warmup, auth sessions or production workers are needed here.
+        MissionService.from_environment()
+        logger.info("Local synthetic Mission demo ready; legacy CRM startup skipped")
+        yield
+        return
     # Sprint 61 P2 治本: 启动校验 (fail-fast, 阻断 DUCKDB_PATH 接错空/过期 DB)
     validate_startup_db()
     # 启动时启动内存监控守护线程
@@ -450,6 +458,10 @@ app.middleware("http")(_single_user_mode_middleware)
 async def auth_middleware(request: Request, call_next):
     # P0: 认证白名单必须用 ASGI scope path，禁止 request.url.path（防路径混淆绕过）
     path = _asgi_path(request)
+    from backend.services.local_demo_access import ACCESS_PATH, allows_local_demo
+    # No username/admin/token is injected: the exception is Mission-scoped.
+    if (path == ACCESS_PATH and request.method == "GET") or allows_local_demo(request):
+        return await call_next(request)
     # e2e 根治 (2026-07-19): FQ_CRM_TEST_MODE=1 时放行 /api/v1/_test/*，
     # 否则 test_helpers.reset 被 401 挡住 → L4.85 ACTIVE_TOKENS 无法清空 → 二次 login 409 → e2e 全红。
     _test_mode = os.environ.get("FQ_CRM_TEST_MODE") == "1"

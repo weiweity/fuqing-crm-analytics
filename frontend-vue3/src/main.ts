@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router'
 import { useAuthStore, AUTH_TOKEN_KEY, AUTH_USER_KEY, AUTH_IS_ADMIN_KEY } from '@/stores/auth'
 import { applyShineMageTheme } from '@/theme'
+import './styles/fonts.css'
 import './styles/tailwind.css'
 import './styles/globals.css'
 
@@ -27,7 +28,7 @@ async function bootstrap() {
         sessionStorage.removeItem(AUTH_TOKEN_KEY)
         sessionStorage.removeItem(AUTH_USER_KEY)
         sessionStorage.removeItem(AUTH_IS_ADMIN_KEY)
-        router.replace('/login')
+        // Initial route guard handles the redirect after Pinia is installed.
       } else {
         // 解析 JSON 并暂存 username + is_admin (在 createApp + use(pinia) 之后调用 setIdentity)
         const data = (await res.json()) as BootstrapUserInfo
@@ -41,6 +42,11 @@ async function bootstrap() {
   const app = createApp(App)
 
   app.use(createPinia())
+  await useAuthStore().loadDemoAccess()
+  if (useAuthStore().localDemoNoLogin) {
+    useAuthStore().clearSession()
+    bootstrapUser = null
+  }
 
   // 创建 app + pinia 后调用 authStore.setIdentity(username, is_admin)
   if (bootstrapUser) {

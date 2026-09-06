@@ -49,8 +49,8 @@ const useDefaultLayout = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100vw;
-  height: 100vh;
+  width: var(--sm-dimension-vw-100);
+  height: var(--sm-dimension-vh-100);
   background: var(--sm-bg);
 }
 

@@ -1,7 +1,7 @@
 /* Shine Mage product design system */
 
 .glass-panel {
-  border: 1px solid var(--sm-line);
+  border: var(--sm-dimension-px-1) solid var(--sm-line);
   border-radius: var(--sm-radius-panel);
   background: var(--sm-glass);
   box-shadow: var(--sm-shadow-panel);

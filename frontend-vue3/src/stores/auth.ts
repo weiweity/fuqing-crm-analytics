@@ -19,11 +19,26 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = ref(sessionStorage.getItem(AUTH_IS_ADMIN_KEY) === 'true')
   const isLoading = ref(false)
   const isReady = ref(false)
+  // Server-confirmed capability, deliberately neither a token nor admin identity.
+  const localDemoNoLogin = ref(false)
 
   // === Getters ===
   const isAuthenticated = computed(() => !!token.value)
 
   // === Actions ===
+  async function loadDemoAccess() {
+    localDemoNoLogin.value = false
+    try {
+      const response = await fetch('/api/v1/missions/access', { cache: 'no-store' })
+      if (!response.ok) return
+      const access = await response.json()
+      localDemoNoLogin.value = access.local_demo_no_login === true
+        && access.scope === 'synthetic_missions_only'
+    } catch {
+      // Fail closed; offline/configuration failures never grant access.
+    }
+  }
+
   function setIdentity(nextUsername: string, nextIsAdmin: boolean) {
     username.value = nextUsername
     isAdmin.value = nextIsAdmin
@@ -76,6 +91,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isLoading,
     isReady,
+    localDemoNoLogin,
+    loadDemoAccess,
     setIdentity,
     setSession,
     clearSession,

@@ -61,7 +61,11 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  if (authStore.localDemoNoLogin && (to.path === '/login' || to.meta.requiresAuth)) {
+    // Local demo exposes only synthetic Mission UI, never legacy CRM views.
+    if (to.path === '/growth-board') next()
+    else next('/growth-board')
+  } else if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next('/growth-board')

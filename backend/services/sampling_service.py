@@ -284,8 +284,8 @@ def get_sampling_roi(
             SELECT o.user_id, o.channel,
                    MIN(o.pay_time) as first_sample_time,
                    MIN(COALESCE(s.sample_received_at, o.pay_time)) as first_sample_received_at,
-                   (ARRAY_AGG(COALESCE(o.spu_category, '未知') ORDER BY o.pay_time ASC))[1] as sample_category,
-                   (ARRAY_AGG(COALESCE(o.{cat_field}, '未知') ORDER BY o.pay_time ASC))[1] as sample_level_value
+                   FIRST(COALESCE(o.spu_category, '未知') ORDER BY o.pay_time ASC) as sample_category,
+                   FIRST(COALESCE(o.{cat_field}, '未知') ORDER BY o.pay_time ASC) as sample_level_value
             FROM orders o
             LEFT JOIN orders s ON s.order_id = o.sub_order_id
                 AND s.channel = '{GIFT_SAMPLE_DB}'
@@ -773,4 +773,3 @@ def get_sampling_repurchase_tracking(
         },
         'window_days': window_days,
     }
-

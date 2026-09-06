@@ -18,6 +18,7 @@ from typing import AsyncIterator, Iterator
 import duckdb
 
 from backend.config import DUCKDB_MEMORY_LIMIT, DUCKDB_PATH, DUCKDB_THREADS
+from backend.resource_budget import default_cache_memory_limit
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,9 @@ READ_CONCURRENCY_LIMIT = max(
     int(os.environ.get("FQ_READ_CONCURRENCY_LIMIT", str(READ_POOL_SIZE))),
 )
 ACTIVE_READ_LIMIT = min(READ_POOL_SIZE, READ_CONCURRENCY_LIMIT)
-READ_MEMORY_LIMIT = os.environ.get("FQ_READ_MEMORY_LIMIT", DUCKDB_MEMORY_LIMIT)
-WRITE_MEMORY_LIMIT = os.environ.get("FQ_WRITE_MEMORY_LIMIT", DUCKDB_MEMORY_LIMIT)
+READ_MEMORY_LIMIT = os.environ.get("FQ_READ_MEMORY_LIMIT", "").strip() or DUCKDB_MEMORY_LIMIT
+WRITE_MEMORY_LIMIT = os.environ.get("FQ_WRITE_MEMORY_LIMIT", "").strip() or DUCKDB_MEMORY_LIMIT
+CACHE_MEMORY_LIMIT = os.environ.get("FQ_CACHE_MEMORY_LIMIT", "").strip() or default_cache_memory_limit()
 
 _read_pool: list[duckdb.DuckDBPyConnection] = []
 _read_lock = threading.Lock()
@@ -300,7 +302,7 @@ def get_cache_connection() -> duckdb.DuckDBPyConnection:
                 config=_db_config(),
                 read_only=False,
             ),
-            DUCKDB_MEMORY_LIMIT,
+            CACHE_MEMORY_LIMIT,
         )
         logger.info("DuckDB cache singleton opened: %s", CACHE_DUCKDB_PATH)
         return _CACHE_CONN

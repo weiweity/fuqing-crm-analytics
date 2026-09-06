@@ -4,10 +4,15 @@ export default {
   corePlugins: {
     preflight: false,
   },
-  content: [
-    './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}',
-  ],
+  // start-stack runs Vite from the repository root; scan relative to this
+  // config, not process.cwd(), so dev and production include the same classes.
+  content: {
+    relative: true,
+    files: [
+      './index.html',
+      './src/**/*.{vue,js,ts,jsx,tsx}',
+    ],
+  },
   theme: {
     extend: {
       colors: {
