@@ -128,26 +128,20 @@ class TestGitIntegration:
 class TestHookIntegration:
     """Claude Code PostToolUse hook 集成测试 (settings.json 验证)."""
 
-    def test_settings_has_branch_cleanup_hook(self):
-        """settings.json 包含 Sprint 177 branch cleanup PostToolUse Bash hook."""
+    def test_settings_does_not_automatically_clean_branches(self):
+        """分支删除需独立授权，不由工具完成或会话生命周期自动触发。"""
         import json
         settings_path = REPO_ROOT / ".claude" / "settings.json"
-        if not settings_path.exists():
-            return  # local 用户没装, 跳过
-        with open(settings_path) as f:
-            settings = json.load(f)
+        assert settings_path.is_file(), "仓库 hook 配置必须存在"
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
         hooks = settings.get("hooks", {})
-        post_tool_use = hooks.get("PostToolUse", [])
-        # 找 Bash matcher 的 hook
-        bash_hook_found = False
-        for hook in post_tool_use:
-            if hook.get("matcher") == "Bash":
-                for h in hook.get("hooks", []):
-                    cmd = h.get("command", "")
-                    if "branch_cleanup" in cmd:
-                        bash_hook_found = True
-                        break
-        assert bash_hook_found, "Sprint 177 branch_cleanup hook 未配置"
+        commands = [hook.get("command", "")
+                    for rules in hooks.values()
+                    for rule in rules
+                    for hook in rule.get("hooks", [])]
+        assert not any("branch_cleanup" in command for command in commands), (
+            "branch_cleanup 不得注册为自动 hook；显式清理脚本及保护回归仍保留"
+        )
 
 
 # 直接运行时打印 stats (跟 Sprint 174 Q4 类似, 手动跑可视)

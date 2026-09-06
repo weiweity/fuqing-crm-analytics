@@ -1,5 +1,5 @@
 # autoplan 实施检查表
-日期：2026-09-05。Status: C-T1_PARTIAL / OTHER_PACKAGES_NOT_STARTED。原11个工作包来自autoplan JSONL聚合（当时去重键为component+sorted(files)+title）；本轮工程复审将8组增量检查点人工映射回同一工作包，不宣称新增JSONL自动聚合仍恰为11行。工作包仍CEO2/Design2/Eng5/DX2。
+日期：2026-09-05；当前摘要更新：2026-09-06。Status: C-T1_PARTIAL / NO_FULL_PRODUCT_PACKAGE_COMPLETED。原11个工作包来自autoplan JSONL聚合（当时去重键为component+sorted(files)+title）；本轮工程复审将8组增量检查点人工映射回同一工作包，不宣称新增JSONL自动聚合仍恰为11行。工作包仍CEO2/Design2/Eng5/DX2。
 
 当前跨计划顺序见[总待办](./PLAN-CLOSEOUT-2026-09-05.md)。新增架构 A、数仓/ETL W、多人验证 V 与本表交叉映射；W2/W4 与 E-T1 共用数据口径，V1/V2 纳入 E-T5。保留本表原 11 包，不重复计工作量、不把旧估时当作新增范围的日历承诺。D1–D4 已确认并完成四节静态审核；没有勾选任何产品包完成。[worker/故障报告](./B0-WORKER-FAULT-VALIDATION-2026-09-06.md)包含真实只读小合成执行及本地故障测试；最新[监督器复查](./B0-SUPERVISOR-RECHECK-2026-09-06.md)取得七问单次 PASS，历史退出原因未解，B0 PARTIAL；未作独立模型复核。
 
