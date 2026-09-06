@@ -252,6 +252,19 @@ class ChannelFollowupFixture:
         root = private_directory(self.directory)
         return json.loads(bounded_bytes(root / MANIFEST_NAME, MAX_MANIFEST_BYTES))
 
+    def binding_descriptor(self) -> dict:
+        """Sealed identity only. Does not open DuckDB or copy snapshot rows."""
+        self.validate()
+        manifest = self.manifest()
+        return {
+            "snapshot_id": manifest["snapshot_id"],
+            "data_version": manifest["data_version"],
+            "data_digest": manifest["data_digest"],
+            "as_of": manifest["as_of"],
+            "timezone": manifest["timezone"],
+            "physical_sha256": manifest["database_sha256"],
+        }
+
 
 def create_channel_followup_fixture(directory, snapshot) -> ChannelFollowupFixture:
     """Create only in an explicit, empty private fixture directory; no overwrite."""

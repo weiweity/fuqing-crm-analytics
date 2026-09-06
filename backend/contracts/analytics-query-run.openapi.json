@@ -1,0 +1,1118 @@
+{
+  "components": {
+    "schemas": {
+      "AnalyticsQueryConversation": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "run_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            "title": "Run Ids",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "analytics-run-channel-followup/v1",
+            "default": "analytics-run-channel-followup/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "title",
+          "created_at"
+        ],
+        "title": "AnalyticsQueryConversation",
+        "type": "object"
+      },
+      "AnalyticsQueryConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "default": "渠道后续购买查询",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "AnalyticsQueryConversationRequest",
+        "type": "object"
+      },
+      "AnalyticsQueryEventPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/AnalyticsRunPhase"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalyticsRunStatus"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Step Id"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "phase",
+          "version"
+        ],
+        "title": "AnalyticsQueryEventPayload",
+        "type": "object"
+      },
+      "AnalyticsQueryRunAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "phase": {
+            "const": "ACCEPTED",
+            "default": "ACCEPTED",
+            "title": "Phase",
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-channel-followup/v1",
+            "default": "analytics-run-channel-followup/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "QUEUED",
+            "default": "QUEUED",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "location"
+        ],
+        "title": "AnalyticsQueryRunAccepted",
+        "type": "object"
+      },
+      "AnalyticsQueryRunEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AnalyticsQueryEventPayload"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "sequence": {
+            "minimum": 1,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "run.updated",
+              "run.started",
+              "tool.started",
+              "tool.completed",
+              "run.needs_input",
+              "run.completed",
+              "run.failed",
+              "run.cancelled"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "run_id",
+          "sequence",
+          "type",
+          "occurred_at",
+          "payload"
+        ],
+        "title": "AnalyticsQueryRunEvent",
+        "type": "object"
+      },
+      "AnalyticsQueryRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "condition_patch": {
+            "default": null,
+            "title": "Condition Patch",
+            "type": "null"
+          },
+          "parent_run_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parent Run Id"
+          },
+          "question": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-channel-followup/v1",
+            "default": "analytics-run-channel-followup/v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AnalyticsQueryRunRequest",
+        "type": "object"
+      },
+      "AnalyticsQueryRunSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_mode": {
+            "const": "DETERMINISTIC_TOOL",
+            "default": "DETERMINISTIC_TOOL",
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "conversation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/AnalyticsRunDiagnostics"
+          },
+          "evidence_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Digest"
+          },
+          "evidence_refs": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "last_sequence": {
+            "minimum": 0,
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "parent_run_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Run Id"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/AnalyticsRunPhase"
+          },
+          "primary_result_ref": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Result Ref"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelFollowupResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-channel-followup/v1",
+            "default": "analytics-run-channel-followup/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_kind": {
+            "const": "CHAT",
+            "default": "CHAT",
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalyticsRunStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "version",
+          "source_ref",
+          "conversation_id",
+          "parent_run_id",
+          "status",
+          "phase",
+          "created_at",
+          "updated_at",
+          "deadline",
+          "result",
+          "evidence_digest",
+          "primary_result_ref",
+          "evidence_refs",
+          "last_sequence",
+          "diagnostics"
+        ],
+        "title": "AnalyticsQueryRunSnapshot",
+        "type": "object"
+      },
+      "AnalyticsRunDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "dispatch_attempts": {
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Dispatch Attempts",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error Code"
+          },
+          "execution_active": {
+            "title": "Execution Active",
+            "type": "boolean"
+          },
+          "profile_hash": {
+            "title": "Profile Hash",
+            "type": "string"
+          },
+          "profile_version": {
+            "title": "Profile Version",
+            "type": "string"
+          },
+          "runtime_status": {
+            "enum": [
+              "PENDING",
+              "DISPATCHING",
+              "ACCEPTED",
+              "UNKNOWN",
+              "EXITED"
+            ],
+            "title": "Runtime Status",
+            "type": "string"
+          },
+          "tool_steps_used": {
+            "maximum": 8,
+            "minimum": 0,
+            "title": "Tool Steps Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "runtime_status",
+          "execution_active",
+          "tool_steps_used",
+          "dispatch_attempts",
+          "profile_version",
+          "profile_hash"
+        ],
+        "title": "AnalyticsRunDiagnostics",
+        "type": "object"
+      },
+      "AnalyticsRunPhase": {
+        "enum": [
+          "ACCEPTED",
+          "PLANNING",
+          "EXECUTING",
+          "FINALIZING"
+        ],
+        "title": "AnalyticsRunPhase",
+        "type": "string"
+      },
+      "AnalyticsRunStatus": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "NEEDS_INPUT",
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELLING",
+          "CANCELLED",
+          "UNKNOWN"
+        ],
+        "title": "AnalyticsRunStatus",
+        "type": "string"
+      },
+      "ChannelFollowupChannelRow": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_cross_channel_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Cross Channel Count",
+            "type": "integer"
+          },
+          "channel_cross_channel_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Cross Channel Ratio"
+          },
+          "channel_empty_reason": {
+            "anyOf": [
+              {
+                "const": "EMPTY_MATURE_COHORT",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Empty Reason"
+          },
+          "channel_id": {
+            "enum": [
+              "A",
+              "B"
+            ],
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "channel_immature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Immature Count",
+            "type": "integer"
+          },
+          "channel_mature_cohort_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Mature Cohort Count",
+            "type": "integer"
+          },
+          "channel_repeat_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Repeat Count",
+            "type": "integer"
+          },
+          "channel_repeat_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Repeat Ratio"
+          },
+          "channel_window_net_paid_minor": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Window Net Paid Minor"
+          }
+        },
+        "required": [
+          "channel_mature_cohort_count",
+          "channel_immature_count",
+          "channel_repeat_count",
+          "channel_cross_channel_count",
+          "channel_id"
+        ],
+        "title": "ChannelFollowupChannelRow",
+        "type": "object"
+      },
+      "ChannelFollowupCounts": {
+        "additionalProperties": false,
+        "description": "Count/ratio block; inherits BaseModel so contract lint sees *_ratio fields.",
+        "properties": {
+          "channel_cross_channel_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Cross Channel Count",
+            "type": "integer"
+          },
+          "channel_cross_channel_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Cross Channel Ratio"
+          },
+          "channel_empty_reason": {
+            "anyOf": [
+              {
+                "const": "EMPTY_MATURE_COHORT",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Empty Reason"
+          },
+          "channel_immature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Immature Count",
+            "type": "integer"
+          },
+          "channel_mature_cohort_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Mature Cohort Count",
+            "type": "integer"
+          },
+          "channel_repeat_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Channel Repeat Count",
+            "type": "integer"
+          },
+          "channel_repeat_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Repeat Ratio"
+          },
+          "channel_window_net_paid_minor": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Channel Window Net Paid Minor"
+          }
+        },
+        "required": [
+          "channel_mature_cohort_count",
+          "channel_immature_count",
+          "channel_repeat_count",
+          "channel_cross_channel_count"
+        ],
+        "title": "ChannelFollowupCounts",
+        "type": "object"
+      },
+      "ChannelFollowupFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_precision": {
+            "const": "integer_fen",
+            "default": "integer_fen",
+            "title": "Amount Precision",
+            "type": "string"
+          },
+          "amount_unit": {
+            "const": "minor",
+            "default": "minor",
+            "title": "Amount Unit",
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelFollowupChannelRow"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "currency": {
+            "const": "CNY",
+            "default": "CNY",
+            "title": "Currency",
+            "type": "string"
+          },
+          "display_name": {
+            "const": "首次观察到的渠道 / N日二单率",
+            "default": "首次观察到的渠道 / N日二单率",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ChannelFollowupCounts"
+          }
+        },
+        "required": [
+          "observation_days",
+          "channels",
+          "totals"
+        ],
+        "title": "ChannelFollowupFacts",
+        "type": "object"
+      },
+      "ChannelFollowupFixtureDescriptor": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "data_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Data Digest",
+            "type": "string"
+          },
+          "data_version": {
+            "const": "synthetic-channel-followup-data/v1",
+            "default": "synthetic-channel-followup-data/v1",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "physical_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Physical Sha256",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "const": "synthetic-channel-followup-v1",
+            "default": "synthetic-channel-followup-v1",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_digest",
+          "as_of",
+          "physical_sha256"
+        ],
+        "title": "ChannelFollowupFixtureDescriptor",
+        "type": "object"
+      },
+      "ChannelFollowupResolvedFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "channel_ids": {
+            "items": {
+              "enum": [
+                "A",
+                "B"
+              ],
+              "type": "string"
+            },
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "cohort_ref": {
+            "default": null,
+            "title": "Cohort Ref",
+            "type": "null"
+          },
+          "cohort_window_kind": {
+            "const": "FIXED",
+            "default": "FIXED",
+            "title": "Cohort Window Kind",
+            "type": "string"
+          },
+          "comparison": {
+            "default": null,
+            "title": "Comparison",
+            "type": "null"
+          },
+          "data_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Data Digest",
+            "type": "string"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-channel-followup-v1",
+            "default": "synthetic-channel-followup-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "data_version": {
+            "const": "synthetic-channel-followup-data/v1",
+            "default": "synthetic-channel-followup-data/v1",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "exclude_low_price": {
+            "const": false,
+            "default": false,
+            "title": "Exclude Low Price",
+            "type": "boolean"
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "hash_version": {
+            "const": "channel-followup-filter-hash/v1",
+            "default": "channel-followup-filter-hash/v1",
+            "title": "Hash Version",
+            "type": "string"
+          },
+          "metric_id": {
+            "const": "channel_first_observed_n_day_repeat",
+            "default": "channel_first_observed_n_day_repeat",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "channel-followup-metric/v1",
+            "default": "channel-followup-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "permission_scope": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Permission Scope",
+            "type": "string"
+          },
+          "product_ids": {
+            "const": [],
+            "default": [],
+            "description": "This subset rejects any product filter; only the empty array is valid.",
+            "items": false,
+            "maxItems": 0,
+            "minItems": 0,
+            "prefixItems": [],
+            "title": "Product Ids",
+            "type": "array"
+          },
+          "query_id": {
+            "const": "channel_first_observed_followup",
+            "default": "channel_first_observed_followup",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "channel-followup-query/v1",
+            "default": "channel-followup-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "resolved_cohort_end": {
+            "format": "date-time",
+            "title": "Resolved Cohort End",
+            "type": "string"
+          },
+          "resolved_cohort_start": {
+            "format": "date-time",
+            "title": "Resolved Cohort Start",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-channel-followup/v1",
+            "default": "analytics-channel-followup/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resolved_cohort_start",
+          "resolved_cohort_end",
+          "observation_days",
+          "as_of",
+          "channel_ids",
+          "permission_scope",
+          "data_digest",
+          "filter_hash"
+        ],
+        "title": "ChannelFollowupResolvedFilters",
+        "type": "object"
+      },
+      "ChannelFollowupResult": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_mode": {
+            "const": "DETERMINISTIC_TOOL",
+            "default": "DETERMINISTIC_TOOL",
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "contains_real_data": {
+            "const": false,
+            "default": false,
+            "title": "Contains Real Data",
+            "type": "boolean"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-channel-followup-v1",
+            "default": "synthetic-channel-followup-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "data_source": {
+            "const": "SYNTHETIC_SNAPSHOT",
+            "default": "SYNTHETIC_SNAPSHOT",
+            "title": "Data Source",
+            "type": "string"
+          },
+          "data_version": {
+            "const": "synthetic-channel-followup-data/v1",
+            "default": "synthetic-channel-followup-data/v1",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/ChannelFollowupFacts"
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "hash_version": {
+            "const": "channel-followup-filter-hash/v1",
+            "default": "channel-followup-filter-hash/v1",
+            "title": "Hash Version",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metric_id": {
+            "const": "channel_first_observed_n_day_repeat",
+            "default": "channel_first_observed_n_day_repeat",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "channel-followup-metric/v1",
+            "default": "channel-followup-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "query_id": {
+            "const": "channel_first_observed_followup",
+            "default": "channel_first_observed_followup",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "channel-followup-query/v1",
+            "default": "channel-followup-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "resolved_filters": {
+            "$ref": "#/components/schemas/ChannelFollowupResolvedFilters"
+          },
+          "schema_version": {
+            "const": "analytics-channel-followup/v1",
+            "default": "analytics-channel-followup/v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "resolved_filters",
+          "filter_hash",
+          "facts",
+          "limitations"
+        ],
+        "title": "ChannelFollowupResult",
+        "type": "object"
+      },
+      "ChannelFollowupRunBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "family": {
+            "const": "channel_followup",
+            "default": "channel_followup",
+            "title": "Family",
+            "type": "string"
+          },
+          "fixture": {
+            "$ref": "#/components/schemas/ChannelFollowupFixtureDescriptor"
+          },
+          "method_package_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Method Package Digest",
+            "type": "string"
+          },
+          "permission_scope": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Permission Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method_package_digest",
+          "fixture",
+          "permission_scope"
+        ],
+        "title": "ChannelFollowupRunBinding",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Offline schema for the synthetic channel-follow-up run store. paths is empty: this unit does not implement a callable HTTP API. ChannelFollowupResult keeps the G2 query-contract integer and timestamp conventions. Run identity, version, sequence, and shared diagnostics reuse the existing B0 field shapes and are not a second copy of those G2 wire rules.",
+    "title": "analytics-run-channel-followup/v1 store contract",
+    "version": "analytics-run-channel-followup/v1"
+  },
+  "openapi": "3.1.0",
+  "paths": {},
+  "x-b0-run-schema-untouched": "analytics-run-b0/v1",
+  "x-not-an-http-api": true,
+  "x-query-result-schema": "analytics-channel-followup/v1",
+  "x-query-run-schema": "analytics-run-channel-followup/v1",
+  "x-store-only": true,
+  "x-schema-sha256": "303b59d46e814d01650b3b46e8655dccb609f205679e4725ff7b48481f68350c"
+}

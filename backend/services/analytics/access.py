@@ -25,9 +25,11 @@ class AnalyticsPrincipal:
     data_scopes: frozenset[str]
 
 
-def require(principal: AnalyticsPrincipal, capability: str) -> None:
-    if capability not in principal.capabilities or "b0-fixture" not in principal.data_scopes:
-        raise AnalyticsError(403, "FORBIDDEN", "当前身份无权操作此 B0 合成任务。")
+def require(principal: AnalyticsPrincipal, capability: str, *, data_scope: str = "b0-fixture") -> None:
+    if capability not in principal.capabilities or data_scope not in principal.data_scopes:
+        if data_scope == "b0-fixture":
+            raise AnalyticsError(403, "FORBIDDEN", "当前身份无权操作此 B0 合成任务。")
+        raise AnalyticsError(403, "FORBIDDEN", "当前身份无权操作此查询任务。")
 
 
 class B0IdentityRegistry:
