@@ -6,7 +6,7 @@
 
 **当前 8 小时 Goal（已启动，不以本文重复计时）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)，真实授权见启动账本。本轮只做本地 synthetic G0–G5：T09/B0 剩余证据与收尾、数据合同/合成金标准、首条合成业务查询、原生展示接线。它承接历史 B0 PARTIAL，不是重开 T01–T09 验收，也不是 B1–B4 完整产品、真实库或付费模型。Git 模式 `PR_DELIVERY`：本轮允许任务分支、commit、push、小 PR；未授权 merge、部署、删分支。历史「未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」只描述当时 B0 当轮，不能当本 Goal 全局指令。
 
-历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）。T09 本 Goal 已提交 `bd6d8fe`，[PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69) base PR #68，CI runs 34049400372/34049400375 对该 SHA 成功；原生四问 `runtime-eDvn6c` PASS（P1 CI 不是 G1 CI）。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) **本范围原生补证 PASS**（`runtime-SNWYss` 四问；第一次 `hkeo4K` F3 失败保留）。独立 pipeline 178 Python / 143 源 Node / 14 built；F3 后 7 Node smoke PASS。G1 源码未提交，最终 full pipeline 待 Codex。历史三次 supervisor 退出仍开放。G0 文档单元当时未跑业务测试。原 Mission 演示 8000/5173 保持。
+历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）。T09 本 Goal 已提交 `bd6d8fe`，[PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69) base PR #68，CI runs 34049400372/34049400375 对该 SHA 成功；原生四问 `runtime-eDvn6c` PASS（P1 CI 不是 G1 CI）。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) **本范围原生补证 PASS**（`runtime-SNWYss` 四问；第一次 `hkeo4K` F3 失败保留）。源码已提交 `857d2ce`，[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70) base PR #69；独立 pipeline 178 Python / 143 源 Node / 14 built，最终 pre-push 178/145/14 built+clean/typechecks PASS。G1 CI 对 `857d2ce` PASS（runs 34052132760 / 34052132799）。G2a 渠道后续购买合同与手算金标准见 [CHANNEL-FOLLOWUP-CONTRACT](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)；SQL 未跑。历史三次 supervisor 退出仍开放。G0 文档单元当时未跑业务测试。原 Mission 演示 8000/5173 保持。
 
 ## 1. 已确定，不再重复讨论
 
@@ -40,13 +40,13 @@
 | 历史 autoplan / AI 工程复审 | 静态记录已留存，保留降级 | [实施计划](./UNIFIED-ANALYTICS-PLAN.md)；不得覆盖模型/视觉降级或当作新审核通过 |
 | 后续工程基线增量审核 | **D1–D4 已确认，四节静态审核完成** | [增量记录](./ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)；含独立 B0 资源配置及统一预算；未作独立模型复核，不覆盖历史降级 |
 | B0 任务内核/只读 worker 单元 | **T09 已提交并经 P1 CI** | [T09](./B0-NATIVE-FAULT-2026-09-07.md)：当时 167 Python / 138 源 Node / 14。本 Goal 提交 `bd6d8fe`，PR #69，CI 34049400372/34049400375 对该 SHA 成功；原生 `runtime-eDvn6c` PASS。G0 文档单元未运行这些检查。PR #67 已合并为 `ee66469`。P1 CI 不是 G1 CI |
-| DSH B0 承载小样 | **PARTIAL / G1 原生状态补证 PASS** | 方法/compaction 组件、当前权限、七问、BI 合同接缝、品牌及工具卡 8 状态组件 DOM 已验；T09 已补 worker 故障全链与卡片共存；G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS（`hkeo4K` F3 失败保留）；历史退出归因及完整业务仍开放；[逐门结论](./B0-LOCAL-CLOSEOUT-2026-09-06.md)与[T08](./B0-TOOL-CARD-DOM-2026-09-06.md) |
+| DSH B0 承载小样 | **PARTIAL / G1 已提交** | 方法/compaction 组件、当前权限、七问、BI 合同接缝、品牌及工具卡 8 状态组件 DOM 已验；T09 已补 worker 故障全链与卡片共存；G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS（`hkeo4K` F3 失败保留）；源码 `857d2ce` / PR #70；历史退出归因及完整业务仍开放；[逐门结论](./B0-LOCAL-CLOSEOUT-2026-09-06.md)与[T08](./B0-TOOL-CARD-DOM-2026-09-06.md) |
 | 本地资源与派样聚合优化 | 首轮局部实现/验证已有记录 | [性能报告](./ANALYTICS-PERFORMANCE-2026-09-05.md)；整数键仅合成实验，不等于千万行 RFM 或多人容量通过 |
 | ETL 诊断 | 源码排查与上一轮隔离复现已完成，重构未实施 | [ETL 证据](./ETL-DIAGNOSIS-2026-09-05.md)；没有真实全链耗时或引擎优劣基准 |
 | 新分析 API、完整问数/保存/驾驶舱/人群链 | 最小 B0 合同/原生接线已有局部证据，完整链待实施/验收 | [接口草案](./ANALYTICS-CONTRACTS-DRAFT.md)不等于所有接口可调用；临时 B0 app 已按授权启动验证并停止，完整业务功能和旧 Mission 仍分开 |
 | 架构图 | 已留存目标架构四件套 | [图源与维护说明](../../diagrams/README.md)；当前图是本地 B0 目标，不是多人部署或新版 ETL 已落地图 |
 
-初次收口只有文档和本地分支操作；后续按当时 B0 授权新增内核、worker、构建及自包含故障测试，并临时启动隔离 DSH/mock 验证后停止。各单元数量和失败证据分开留存，不能沿用历史测试数量充当最新证据，也不能把 T09 当时计数或本轮本地 pipeline 重跑记为远端 CI / 原生四问新通过。未启动旧 CRM、执行 ETL 或读取真实库。远端 Git：第 1、2 项已随 PR #67 推送并合并；P0 规划 PR #68 / `26960bb`；T09/P1 为 `bd6d8fe` PR #69（CI 对该 SHA 成功）。G1 实现尚未提交。G0 记录时点未启动 B0 服务。
+初次收口只有文档和本地分支操作；后续按当时 B0 授权新增内核、worker、构建及自包含故障测试，并临时启动隔离 DSH/mock 验证后停止。各单元数量和失败证据分开留存，不能沿用历史测试数量充当最新证据，也不能把 T09 当时计数或本轮本地 pipeline 重跑记为远端 CI / 原生四问新通过。未启动旧 CRM、执行 ETL 或读取真实库。远端 Git：第 1、2 项已随 PR #67 推送并合并；P0 规划 PR #68 / `26960bb`；T09/P1 为 `bd6d8fe` PR #69（CI 对该 SHA 成功）。G1 已提交 `857d2ce` / PR #70，CI 对该 SHA PASS（34052132760 / 34052132799）。G0 记录时点未启动 B0 服务。
 
 ## 4. 执行顺序：两条工程线，一个合同汇合点
 
@@ -89,7 +89,7 @@ W3 的目标是改数据流，不给旧脚本再叠一层缓存。当前已有 P
 | 工作包 | 当前状态 | 收口/完成要求 |
 |---|---|---|
 | C-T1 承载证明 | PARTIAL；本轮小样队列已执行 | 业务任务/取消/恢复、方法/压缩组件、BI 合同接缝、品牌与工具卡 8 状态组件 DOM 已有证据；T09 已补真实工具失败与卡片共存，保留其余原生状态和历史稳定性缺口；不冒充真实模型 |
-| E-T1 合同与金标准 | B0 任务合同子集已实现，完整包待实施 | 与 W2/W4 共用指标、粒度和版本；三查询族与人工答案一致 |
+| E-T1 合同与金标准 | B0 任务合同已有；G2a 渠道队列合同+手算金标准已落地，SQL 待 G3 | 与 W2/W4 共用指标、粒度和版本；后两族 DEFERRED；见 [G2a 合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md) |
 | E-T2 资产与任务 | B0 任务状态/预算子集已实现，完整包待实施 | 独立计算、队列/取消/幂等、运行归属、保存与快照；不同 run 不共享在途 worker |
 | D-T1 问数与画布 | B0 接缝已有，产品包待实施 | 连续追问、父 run/条件继承、真实阶段、澄清/失败、证据与响应式 |
 | D-T2 可组合驾驶舱 | 静态承载已有，产品包待实施 | 添加/复制/移除/布局、AI 局部配置、预览/保存/撤销/版本冲突；固定查看不依赖模型 |
@@ -125,7 +125,7 @@ Hermes 多运行时、自由组队/工作流、自进化、长期记忆自动写
 
 ## 10. Git 与文档交付规则
 
-- **当前**：工作树 `.worktrees/hackathon-mission-mvp`，G1 任务分支 `codex/b0-native-state-proof`，HEAD 仍为 P1 `bd6d8fe9f3444144f7ed7d8768c232459ea7e75d`（G1 dirty 未入 commit）。P0 PR #68 / `26960bb`；P1/T09 PR #69 / `bd6d8fe`，CI 34049400372/34049400375 对该 SHA 成功，原生 `runtime-eDvn6c` PASS。P1 CI 不是 G1 CI。`origin/main` 仍为 `ee66469`。[PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 已 MERGED。G1 源码待 Codex 提交/推送/PR。本轮 Goal `PR_DELIVERY`：允许任务分支、commit、push、小 PR；禁止自动 merge、部署、删分支。
+- **当前（2026-09-07 G2a 修订）**：工作树 `.worktrees/hackathon-mission-mvp`，任务分支 `codex/channel-followup-contracts`，基于 G1 `857d2cee7096027b87dc6ca1f2dfd0720fb1a7fd`。[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70) base [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。P0 PR #68 / `26960bb`；P1/T09 PR #69 / `bd6d8fe`，CI 34049400372/34049400375 对该 SHA 成功，原生 `runtime-eDvn6c` PASS。G1 最终 pre-push 178 Python / 145 Node / 14 built+clean/typechecks PASS；G1 CI 对 `857d2ce` PASS（34052132760 / 34052132799）。`origin/main` 仍为 `ee66469`。[PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 已 MERGED。G2a 实现待 Codex Git 交付。本轮 Goal `PR_DELIVERY`：允许任务分支、commit、push、小 PR；禁止自动 merge、部署、删分支。
 - **G0 修复记录时点（保留）**：当时分支 `codex/b0-t09-delivery`，HEAD `26960bb`；T09 16 个文件当时仍 dirty。该快照已被 P1 `bd6d8fe` / PR #69 取代，不得再当作当前「T09 未提交」。
 - **Goal 启动基线（保留）**：当时工作分支 `codex/b0-native-fault-validation`，HEAD `c5b156636326d026b096ca4d7f6ea6c26945c91d`；4 份规划材料当时 untracked。该快照已被 P0 `26960bb` 取代，不得再当作当前 HEAD。
 - **历史（2026-09-05/06 方案收口当时）**：已创建本地续接分支 `codex/architecture-warehouse-plan-closeout`，当时 HEAD 为 `de2d785f4e0c7abe7fcd8fbb39be7d8c5a0c9642`，沿用现有 worktree，保留历史未提交改动。2026-09-06 只读实查：远端 `main` 与本地 `origin/main` 同为 `89d342355b65e79418964780ec4e1b2f80b7ca02`，当时领先 13 / 落后 0；该分支当时无 upstream、远端同名分支或 PR。那次没有 fetch/merge/重置、提交或推送。该快照已被后续 PR #67 取代，不得再当作当前远端状态。
