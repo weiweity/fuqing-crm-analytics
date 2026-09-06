@@ -1,0 +1,44 @@
+name: DSH B0 isolated plugin and kernel
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    uses: ./.github/workflows/check-plan.yml
+
+  b0-contract-build:
+    needs: changes
+    if: needs.changes.outputs.b0 == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # Each action's pinned action.yml declares node24. This is distinct from
+      # the Node 24 runtime selected for our own build and verification below.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          clean: false
+          lfs: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        id: python
+        with:
+          python-version: '3.14'
+      - name: Create B0-only Python environment
+        env:
+          B0_PYTHON: ${{ steps.python.outputs.python-path }}
+        run: |
+          "$B0_PYTHON" -m venv .context/dsh-b0/python-env
+          .context/dsh-b0/python-env/bin/python -m pip install --disable-pip-version-check -r scripts/dsh-b0/requirements.lock
+      - name: Prepare exact public DSH and private build tools
+        run: node scripts/dsh-b0/pipeline.mjs --prepare --python "$GITHUB_WORKSPACE/.context/dsh-b0/python-env/bin/python"
+      - name: Same local and CI checks, including clean-directory rebuild
+        run: node scripts/dsh-b0/pipeline.mjs --check --python "$GITHUB_WORKSPACE/.context/dsh-b0/python-env/bin/python"

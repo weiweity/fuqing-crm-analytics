@@ -1,5 +1,8 @@
 # HOOKS-CHOICE — .githooks vs .pre-commit-config.yaml 拍板
 
+> 历史记录：本文保留当时流程与结论，不能用来安装第二套 hook 或推断当前检查。2026-09-06 起，当前命令、实际检查数量及授权边界以 [验证入口](verification.md) 和 [.githooks 清单](../../.githooks/README.md) 为准。
+
+
 > **Sprint 19 P2-1 拍板**：本仓库 git hook 框架 = **`.githooks` (默认)**, `.pre-commit-config.yaml` 留作选装 (不会默认启用).
 > 拍板日期: 2026-06-11. 拍板人: subagent C3 (Sprint 19 P2 批处理).
 

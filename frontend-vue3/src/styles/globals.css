@@ -1,4 +1,13 @@
-/* BI Pro Design System - Global Styles */
+/* Shine Mage product design system */
+
+.glass-panel {
+  border: var(--sm-dimension-px-1) solid var(--sm-line);
+  border-radius: var(--sm-radius-panel);
+  background: var(--sm-glass);
+  box-shadow: var(--sm-shadow-panel);
+  backdrop-filter: var(--sm-blur-panel);
+  -webkit-backdrop-filter: var(--sm-blur-panel);
+}
 
 *,
 *::before,
@@ -15,7 +24,7 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: var(--sm-font-body);
   background-color: #f1f5f9;
   color: #0f172a;
   line-height: 1.5;
@@ -33,8 +42,8 @@ html {
 
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
-  border-radius: 4px;
+  box-shadow: var(--sm-shadow-focus);
+  border-radius: var(--sm-radius-soft);
 }
 
 /* Custom scrollbar */

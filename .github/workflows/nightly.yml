@@ -1,6 +1,6 @@
 name: Nightly Health Check
 
-# B3 P1: 每天定时跑全量 pytest + 单独跑一遍 import 完整性 (FOLLOWUPS.md §B3)
+# B3 P1: 既有定时运行合成 not-slow pytest + 单独跑一遍 import 完整性 (FOLLOWUPS.md §B3)
 # 收益: 周末/夜间回归早 1 天发现, 不会再 30+ run 红了才看到
 # 验收: workflow_dispatch 手动触发, 故意改坏, 等晚上 9 点 (UTC 13:00 = 北京 21:00), 看 GitHub mail
 
@@ -32,23 +32,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 0  # P1-3 B2: 需全历史给 ground-truth lint 跑 git log --all
 
-      - name: Generate ephemeral test credentials (masked)
-        # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
-        run: |
-          set -euo pipefail
-          ADMIN_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          FQSW_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          TESTUSER_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          CREDS="admin:${ADMIN_PASS},fqsw:${FQSW_PASS},testuser:${TESTUSER_PASS}"
-          echo "::add-mask::${ADMIN_PASS}"
-          echo "::add-mask::${FQSW_PASS}"
-          echo "::add-mask::${TESTUSER_PASS}"
-          echo "::add-mask::${CREDS}"
-          {
-            echo "FQ_CRM_PASSWORDS=${CREDS}"
-            echo "E2E_ADMIN_USER=admin"
-            echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
-          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -84,12 +67,12 @@ jobs:
       # 排除 pytest.mark.slow，避免 job hang。
       # Sprint C + Track A 2026-07-19: C-class deselect SSOT (scripts/ci/pytest_c_class_deselects.txt)
       # shared with lint.yml + pre-push — 1:1 stable, no hardcoded drift.
-      - name: Run full pytest (C-class deselect SSOT, 跟 lint.yml 1:1)
-        run: |
-          set -euo pipefail
-          DESELECT_ARGS=()
-          while IFS= read -r tok; do
-            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
-          done < <(bash scripts/ci/pytest_deselect_args.sh)
-          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
-          PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"
+      - name: Run synthetic backend profile (shared bounded runner)
+        run: python3 scripts/run_backend_tests_bounded.py --report-dir .context/checks/backend-ci
+
+      - name: Upload bounded test evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: backend-check-evidence
+          path: .context/checks/backend-ci/

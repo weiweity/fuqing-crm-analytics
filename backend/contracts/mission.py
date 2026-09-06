@@ -51,6 +51,9 @@ class MissionResponse(BaseModel):
     state_timeline: list[dict[str, Any]]
     approval: dict[str, Any] | None = None
     latest_export: ExportResponse | None = None
+    demo_controls: dict[str, bool] = Field(
+        default_factory=lambda: {"reset_enabled": False}
+    )
     data_provenance: dict[str, Any]
 
 

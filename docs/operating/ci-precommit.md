@@ -1,5 +1,8 @@
 # CI-PRECOMMIT — pre-commit framework GitHub Actions 接入
 
+> 历史记录：本文保留当时流程与结论，不能用来安装第二套 hook 或推断当前检查。2026-09-06 起，当前命令、实际检查数量及授权边界以 [验证入口](verification.md) 和 [.githooks 清单](../../.githooks/README.md) 为准。
+
+
 > Sprint 19 P2-3 任务: 加 `.github/workflows/pre-commit.yml`, 走 `pre-commit/action` 跑 `.pre-commit-config.yaml`.
 > 落地日期: 2026-06-11. 拍板人: subagent C3.
 

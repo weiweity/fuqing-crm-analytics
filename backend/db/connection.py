@@ -94,11 +94,9 @@ class ThreadSafeConnection:
 def get_duckdb_config(**overrides) -> dict:
     """获取 DuckDB 连接配置（含 memory_limit + threads）.
 
-    Sprint 205+ DuckDB 性能调优 (PC2 SSD + 64GB RAM):
-    - memory_limit 默认 32GB (50% 64GB RAM, 留 32GB 给 ETL + 系统 + cache)
-    - threads 默认 14 (i5-14600K 14 核 20 线程, 留 6 核给 ETL)
-    - 所有 duckdb.connect() 调用应使用此函数获取 config, 确保内存限制 + 线程数统一生效
-    - 可通过 overrides 覆盖或追加配置项
+    使用 config.py 的统一启动预算，显式 overrides 优先。
+    HTTP 连接继续走 dual_conn 的 runtime SET，以保留连接兼容性；
+    不向同一数据库的现有连接引入不同 connect(config=...) fingerprint。
     """
     cfg = {"memory_limit": DUCKDB_MEMORY_LIMIT, "threads": str(DUCKDB_THREADS)}
     cfg.update(overrides)

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 const apiMocks = vi.hoisted(() => ({ post: vi.fn() }))
@@ -15,6 +15,36 @@ import {
 } from './auth'
 
 describe('auth store session SSOT', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('server-confirmed demo capability never creates credentials', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      local_demo_no_login: true, scope: 'synthetic_missions_only',
+    }) }))
+    const store = useAuthStore()
+    await store.loadDemoAccess()
+    expect(store.localDemoNoLogin).toBe(true)
+    expect(store.isAuthenticated).toBe(false)
+    expect(store.isAdmin).toBe(false)
+    expect(sessionStorage.getItem(AUTH_TOKEN_KEY)).toBeNull()
+  })
+
+  it.each([false, 'true', undefined])('fails closed for non-boolean capability %s', async (enabled) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      local_demo_no_login: enabled, scope: 'synthetic_missions_only',
+    }) }))
+    const store = useAuthStore()
+    await store.loadDemoAccess()
+    expect(store.localDemoNoLogin).toBe(false)
+  })
+
+  it('fails closed on network errors and never persists demo capability', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+    const store = useAuthStore()
+    store.localDemoNoLogin = true
+    await store.loadDemoAccess()
+    expect(store.localDemoNoLogin).toBe(false)
+  })
   beforeEach(() => {
     sessionStorage.clear()
     apiMocks.post.mockReset()

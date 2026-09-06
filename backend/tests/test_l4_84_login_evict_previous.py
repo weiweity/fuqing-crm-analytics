@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -19,7 +18,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # 测试用环境变量必须在导入 auth 之前设置
-os.environ.setdefault("FQ_CRM_PASSWORDS", "admin:test_admin_pwd,fqsw:test_fqsw_pwd")
 
 from backend.routers import auth as auth_module  # noqa: E402
 

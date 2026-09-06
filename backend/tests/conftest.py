@@ -2,19 +2,13 @@
 Pytest fixtures for backend service tests.
 """
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 import duckdb
 import pytest
-
-# health router 在 import 时 fail-fast 校验。测试环境统一提供固定 key，避免单文件
-# 执行依赖其他测试模块 collection 阶段的 setdefault 顺序副作用。
-os.environ.setdefault("HEALTH_API_KEY", "pytest-health-api-key")
 
 # Add backend/ to path for imports
 backend_path = Path(__file__).parent.parent.parent
@@ -35,249 +29,125 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.slow)
 
 
-@pytest.fixture(autouse=True)
-def _isolate_auth_runtime_state():
-    """认证内存状态按 test 隔离，避免唯一会话规则造成跨用例污染。"""
-    from backend.routers import auth
-    from backend.routers import login_request
+# Shared synthetic credentials are cached per Python process, never rehashed
+# for each unrelated test. The application still uses its real cost-12 bcrypt.
+from functools import lru_cache
+from types import MappingProxyType
 
-    auth.ACTIVE_TOKENS.clear()
-    auth._LOGIN_ATTEMPTS.clear()
-    auth._IP_LOGIN_ATTEMPTS.clear()
-    login_request._reset_l4_85_state()
-    try:
-        yield
-    finally:
-        auth.ACTIVE_TOKENS.clear()
-        auth._LOGIN_ATTEMPTS.clear()
-        auth._IP_LOGIN_ATTEMPTS.clear()
+_TEST_CREDENTIALS_ENV = "admin:123456,fqsw:fqsw888,testuser:testpass123"
+# Set a deterministic collection environment BEFORE any test imports the app.
+# This does not inspect user credentials or load a local .env file.
+os.environ["PYTHON_DOTENV_DISABLED"] = "1"
+os.environ["HEALTH_API_KEY"] = "pytest-health-api-key"
+os.environ["FQ_CRM_PASSWORDS"] = _TEST_CREDENTIALS_ENV
+os.environ["FQ_CRM_ADMINS"] = "admin"
+
+
+@lru_cache(maxsize=1)
+def _synthetic_password_hashes():
+    import bcrypt
+    from backend.routers.auth import BCRYPT_ROUNDS
+
+    return MappingProxyType({
+        user: bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode()
+        for user, password in (pair.split(":", 1) for pair in _TEST_CREDENTIALS_ENV.split(","))
+    })
+
+
+def _clear_loaded_auth_state():
+    # Do not import the app for pure Python, tooling or B0 tests. If a test
+    # imports it lazily, the teardown still clears that newly loaded module.
+    auth = sys.modules.get("backend.routers.auth")
+    if auth is not None:
+        for name in ("ACTIVE_TOKENS", "_LOGIN_ATTEMPTS", "_IP_LOGIN_ATTEMPTS"):
+            getattr(auth, name).clear()
+    login_request = sys.modules.get("backend.routers.login_request")
+    if login_request is not None:
         login_request._reset_l4_85_state()
 
 
-# ─────────────────────────────────────────────────────────────
-# Sprint 205+ L4.88 (CI 爆红 pytest collection race condition 治本)
-#
-# 真根因 (跟 /investigate Phase 1-5 1:1 stable 永久规则化沿用, 跟 CLAUDE.md
-# "不要假设" 1:1 stable 配套):
-#   - auth.py:88 VALID_CREDENTIALS = _load_credentials() 在 import 时执行一次,
-#     缓存 admin password hash 到 module-level dict
-#   - pytest collection 时, test_l4_85_1_login_request_status.py 先 import 触发
-#     auth import, _load_credentials() 读 OS env FQ_CRM_PASSWORDS
-#   - .env 文件有 FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888
-#     CI runner shell 传 FQ_CRM_PASSWORDS: admin:123456 (没 fqsw, 跟 .env 不一致)
-#   - auth.py:21 load_dotenv() 默认不覆盖已有 env var, OS env 还是 admin:123456
-#   - 单跑 test_l4_85_x.py pass (auth 缓存 admin:123456)
-#   - pytest 全量跑 -k "test_l4_85" fail (某些 test 在 fixture 里修改 ACTIVE_TOKENS,
-#     但因为 _isolate_auth_runtime_state 在 test_l4_85_2 setdefault 后跑, 导致
-#     auth.VALID_CREDENTIALS 跟 setdefault 后的 env 不一致)
-#
-# 修法 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则化沿用, 跟 CLAUDE.md
-# "精准修改" 1:1 stable 配套):
-#   - autouse fixture 在 _isolate_auth_runtime_state 之前 reload VALID_CREDENTIALS
-#   - 跟 .env + CI runner shell env 1:1 stable (FQ_CRM_PASSWORDS=admin:123456,fqsw:fqsw888)
-#   - yield 后恢复原 env + reload, 避免 test 间 state 泄漏
-# ─────────────────────────────────────────────────────────────
+@pytest.fixture(autouse=True)
+def _isolate_auth_runtime_state():
+    _clear_loaded_auth_state()
+    yield
+    _clear_loaded_auth_state()
 
 
 @pytest.fixture(autouse=True)
-def _reset_fq_crm_credentials_env():
-    """L4.88 治本: pytest collection race condition 修复 (跟 /investigate Phase 4 1:1 stable 永久规则化沿用).
-
-    跟 _isolate_auth_runtime_state 1:1 stable 配套, 但是优先级更高 (先 reload
-    VALID_CREDENTIALS, 再清 ACTIVE_TOKENS). 保证 pytest collection 时 setdefault
-    的 FQ_CRM_PASSWORDS 跟 auth.VALID_CREDENTIALS 缓存一致.
-    """
-    import os
-    from backend.routers import auth as auth_module
-
-    # 保存原始 env
-    original_env = os.environ.get("FQ_CRM_PASSWORDS")
-    # 跟 .env + test_l4_85_2 setdefault 1:1 stable, 保证 _load_credentials() 缓存
-    # admin:123456 + fqsw:fqsw888 + testuser:testpass123 (跟 test_ad_hoc_query_api.py:26 +
-    # test_ai_sandbox_execute_sprint198.py:16 + test_api_integration.py:27 + test_ad_hoc_query_sprint193_synthetic.py:11
-    # 4 个 test file 自己重置 env 到 testuser:testpass123 1:1 stable 沿用, 跟 L4.89 CI pytest collection race condition
-    # 回归治本 1:1 stable 永久规则化沿用, 跟 L4.85.9 .env 读取密码 + fail-fast 1:1 stable 永久规则化沿用,
-    # 跟 L4.50 pytest cleanup 0 业务代码改动 累计 64 次 1:1 stable 永久规则链配套)
-    os.environ["FQ_CRM_PASSWORDS"] = "admin:123456,fqsw:fqsw888,testuser:testpass123"
-    # Reload VALID_CREDENTIALS (跟 L4.86 1:1 stable 永久规则化沿用)
-    auth_module.VALID_CREDENTIALS.clear()
-    auth_module.VALID_CREDENTIALS.update(auth_module._load_credentials())
-
+def _reset_fq_crm_credentials_env(monkeypatch):
+    monkeypatch.setenv("FQ_CRM_PASSWORDS", _TEST_CREDENTIALS_ENV)
+    auth = sys.modules.get("backend.routers.auth")
+    original = dict(auth.VALID_CREDENTIALS) if auth is not None else None
+    if auth is not None:
+        auth.VALID_CREDENTIALS.clear()
+        auth.VALID_CREDENTIALS.update(_synthetic_password_hashes())
     try:
         yield
     finally:
-        # 恢复原 env + reload VALID_CREDENTIALS, 避免 test 间 state 泄漏
-        if original_env is None:
-            os.environ.pop("FQ_CRM_PASSWORDS", None)
-        else:
-            os.environ["FQ_CRM_PASSWORDS"] = original_env
-        auth_module.VALID_CREDENTIALS.clear()
-        auth_module.VALID_CREDENTIALS.update(auth_module._load_credentials())
-
-
-# ─────────────────────────────────────────────────────────────
-# Sprint 205+ Admin Upload 测试环境隔离:
-# _reset_fq_crm_admins_env autouse fixture
-#
-# 当前实现:
-#   - auth.is_admin_username() 每次调用动态读取 FQ_CRM_ADMINS;
-#   - auth.py 当前没有 module-level admin username cache;
-#   - fixture 在每个测试开始前设置 FQ_CRM_ADMINS=admin;
-#   - fixture 在测试结束后恢复原始环境变量, 避免跨测试 state leakage.
-#
-# 兼容性防御:
-#   - hasattr(auth_module, "_ADMIN_USERNAMES") 分支不属于当前正式鉴权路径;
-#   - 该分支仅兼容可能存在 module-level cache 的旧版本或未来版本;
-#   - 只有属性真实存在时, fixture 才同步对应 frozenset.
-# ─────────────────────────────────────────────────────────────
+        # Restore the state snapshot, never call the production password loader
+        # during teardown. Its configuration/hash behavior has dedicated tests.
+        if original is not None:
+            auth.VALID_CREDENTIALS.clear()
+            auth.VALID_CREDENTIALS.update(original)
 
 
 @pytest.fixture(autouse=True)
-def _reset_fq_crm_admins_env():
-    """隔离每个测试使用的 FQ_CRM_ADMINS 环境变量.
+def _reset_fq_crm_admins_env(monkeypatch):
+    monkeypatch.setenv("FQ_CRM_ADMINS", "admin")
 
-    当前 auth.is_admin_username() 动态读取环境变量, 不使用 module-level
-    admin cache. hasattr(_ADMIN_USERNAMES) 分支仅用于兼容旧版本或未来可能
-    重新引入缓存的实现.
-    """
-    import os
-    from backend.routers import auth as auth_module
 
-    def _admins_from_env(raw: str | None) -> frozenset:
-        """Helper: FQ_CRM_ADMINS env var → frozenset."""
-        if not raw:
-            return frozenset()
-        return frozenset(u.strip() for u in raw.split(",") if u.strip())
+# Compatibility with archived-data tests: availability now means an explicitly
+# selected profile, not an automatic probe of backend.config or the real DB.
+# Actual schema/lock checks happen only when the fixture is requested.
+_PROD_DUCKDB_AVAILABLE = bool(os.environ.get("FQ_TEST_ARCHIVE_DB"))
 
-    # 保存原始 env
-    original_env = os.environ.get("FQ_CRM_ADMINS")
-    # 跟 .env + CI runner shell env 1:1 stable 兜底
-    os.environ["FQ_CRM_ADMINS"] = "admin"
-    # 当前 auth 没有 _ADMIN_USERNAMES; 以下分支仅用于兼容可能存在该属性的版本.
-    if hasattr(auth_module, "_ADMIN_USERNAMES"):
-        auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ["FQ_CRM_ADMINS"])
 
+def _detect_prod_duckdb_available(path: Path | None = None) -> bool:
+    selected = str(path) if path is not None else os.environ.get("FQ_TEST_ARCHIVE_DB")
+    if not selected:
+        return False
+    path = Path(selected)
+    if not path.is_absolute() or not path.is_file():
+        return False
     try:
-        yield
-    finally:
-        # 恢复原始环境变量; 如果兼容属性存在, 同时将该属性同步到恢复后的环境值.
-        if original_env is None:
-            os.environ.pop("FQ_CRM_ADMINS", None)
-        else:
-            os.environ["FQ_CRM_ADMINS"] = original_env
-        if hasattr(auth_module, "_ADMIN_USERNAMES"):
-            auth_module._ADMIN_USERNAMES = _admins_from_env(os.environ.get("FQ_CRM_ADMINS"))
-
-
-# ─────────────────────────────────────────────────────────────
-# Sprint 22 #25: skip-if-DuckDB-locked fixture
-#
-# 背景: scripts/etl/rfm_recompute_window.py 跟生产 uvicorn 共享 DuckDB 文件,
-# 跨进程开 read-write 连接会失败 (_duckdb.IOException: Conflicting lock).
-# 之前 test_rfm_recompute_window_dry_run 在 uvicorn PID 18827 运行时假 fail.
-#
-# 修法: 用 lsof 探测 DuckDB 文件被哪个进程占 fd, 如果被占则 pytest.skip() 整 test.
-# 不仅是 uvicorn — 任何进程占 DuckDB 都 skip, 防假 fail.
-# ─────────────────────────────────────────────────────────────
-
-# 生产 DuckDB 路径 (跟 backend/db/connection.py 一致)
-_PROD_DUCKDB_PATH = Path("/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/data/processed/fuqing_crm.duckdb")
+        with duckdb.connect(str(path), read_only=True) as conn:
+            return bool(conn.execute(
+                "SELECT count(*) > 0 FROM information_schema.tables WHERE lower(table_name) = 'orders'"
+            ).fetchone()[0])
+    except duckdb.Error:
+        return False
 
 
 def _duckdb_lock_holder_pid() -> int | None:
-    """lsof 探测 DuckDB 文件被哪个 PID 占 fd (write lock). 返 PID 或 None (没进程占)."""
-    if not _PROD_DUCKDB_PATH.exists():
+    selected = os.environ.get("FQ_TEST_ARCHIVE_DB")
+    if not selected:
         return None
     try:
-        result = subprocess.run(
-            ["lsof", "-t", str(_PROD_DUCKDB_PATH)],
-            capture_output=True, text=True, timeout=5,
-        )
-        pids = [int(p) for p in result.stdout.strip().split() if p.strip().isdigit()]
-        return pids[0] if pids else None
-    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        result = subprocess.run(["lsof", "-t", selected], capture_output=True, text=True, timeout=5)
+        return next((int(p) for p in result.stdout.split() if p.isdigit()), None)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
-
-
-# ─────────────────────────────────────────────────────────────
-# Sprint 39 CI 爆红修复: 动态检测 production DuckDB 可用性
-#
-# 背景: Sprint 38 race flake 治标加 _IN_XDIST_PARALLEL skipif 只在 pytest-xdist
-# 模式生效. CI 跑 serial mode (-n 0) → _IN_XDIST_PARALLEL=False → skipif 不生效.
-# 然后 CI 上 production DuckDB 不存在 (103GB 不在 repo) → test 真连空 DuckDB
-# → CatalogException: Table 'orders' does not exist → CI fail.
-#
-# 修法: 加 _PROD_DUCKDB_AVAILABLE module-level 常量, 跨多个 test 用作 skipif
-# 条件. CI 没数据 → test skip, 本地有数据 → test 跑 (xdist 模式 race flake skip).
-# ─────────────────────────────────────────────────────────────
-
-def _detect_prod_duckdb_available() -> bool:
-    """动态检测 production DuckDB 是否可访问: 文件存在 + duckdb.connect() 不抛异常.
-
-    Sprint 39: 替代 hardcoded _PROD_DUCKDB_PATH (Sprint 22 #25 那个). 跨工作树/clone/CI
-    友好. 只 check 文件存在 + 可连接 (read_only=True 不抢 write lock), 不 check 表存在
-    (避免 sprint 期间 schema 变动引发 false negative).
-
-    Returns:
-        True if production DuckDB 可访问 (本地开发 / 用户 clone + 自己跑 ETL 跑批后)
-        False if 不可访问 (fresh checkout / CI runner / data/processed/ 不存在)
-    """
-    try:
-        from backend.config import DUCKDB_PATH
-        path = Path(str(DUCKDB_PATH))
-    except Exception:
-        # backend.config 不可 import (CI 早期失败) → 不可访问
-        return False
-
-    if not path.exists():
-        return False
-
-    # 文件存在, 进一步 check 可连接 (read_only 不抢 write lock, 不会跟 uvicorn 冲突)
-    try:
-        import duckdb
-        conn = duckdb.connect(str(path), read_only=True)
-        conn.execute("SELECT 1").fetchone()
-        conn.close()
-        return True
-    except Exception:
-        return False
-
-
-# Module-level 常量: 跨多个 test 共享 skipif 条件
-_PROD_DUCKDB_AVAILABLE = _detect_prod_duckdb_available()
 
 
 @pytest.fixture(scope="module")
 def isolated_duckdb():
-    """为每个 test module 提供有界、可完整清理的隔离 DuckDB。
-
-    旧 session 级连接会让 1300+ 用例的 buffer/cache/temp state 一直累积，
-    本地全量回归曾把 16GB Mac 推入内存压力。module 级释放把累积边界限制
-    在单个测试文件；2GB 独立上限不继承生产 .env 的大内存档。
-    """
-    if not _PROD_DUCKDB_AVAILABLE:
-        pytest.skip("production DuckDB 不可用")
-
-    from backend.config import DUCKDB_PATH
-
-    tmp_dir = tempfile.TemporaryDirectory(prefix="fq-pytest-duckdb-")
-    tmp_path = Path(tmp_dir.name) / "isolated.duckdb"
-    conn = None
-
-    try:
-        conn = duckdb.connect(
-            str(tmp_path),
-            config={"memory_limit": "2GB"},
-        )
-        conn.execute("SET threads = 2")
-        prod_path = str(DUCKDB_PATH).replace("'", "''")
-        conn.execute(f"ATTACH '{prod_path}' AS prod (READ_ONLY)")
-        conn.execute("PRAGMA search_path='main,prod'")
-        yield conn
-    finally:
-        if conn is not None:
+    """Explicit archive profile only; normal tests use synthetic fixtures."""
+    selected = os.environ.get("FQ_TEST_ARCHIVE_DB")
+    if not selected:
+        pytest.skip("archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB")
+    if not _detect_prod_duckdb_available(Path(selected)):
+        pytest.fail("Explicit archive fixture is unavailable or lacks orders; no fallback")
+    with tempfile.TemporaryDirectory(prefix="fq-pytest-duckdb-") as tmp_dir:
+        conn = duckdb.connect(str(Path(tmp_dir) / "isolated.duckdb"),
+                              config={"memory_limit": "2GB"})
+        try:
+            conn.execute("SET threads = 2")
+            quoted = selected.replace("'", "''")
+            conn.execute(f"ATTACH '{quoted}' AS prod (READ_ONLY)")
+            conn.execute("PRAGMA search_path='main,prod'")
+            yield conn
+        finally:
             conn.close()
-        tmp_dir.cleanup()
 
 
 @pytest.fixture
@@ -623,11 +493,13 @@ def skip_if_duckdb_locked():
 
     适用: 调 subprocess 跑 scripts/etl/*.py 而该脚本会 duckdb.connect(_PROD_DUCKDB_PATH).
     """
+    if not os.environ.get("FQ_TEST_ARCHIVE_DB"):
+        pytest.skip("archived-data fixture requires explicit authorization/profile")
     holder_pid = _duckdb_lock_holder_pid()
     if holder_pid is not None:
         pytest.skip(
             f"生产 DuckDB 被 PID {holder_pid} 占 fd, 跳过 (避免跨进程锁冲突). "
-            f"如需跑, 先 kill {holder_pid} 或用 --no-uvicorn 起测试环境."
+            "Preserve the owner process; do not stop services for a test."
         )
 
 
@@ -658,34 +530,21 @@ def rfm_thresholds():
     return RFM_THRESHOLDS
 
 
-# ─────────────────────────────────────────────────────────────
-# Sprint 31.1: tmp tracker DB per-test 隔离 fixture (autouse)
-#
-# 背景: scripts/etl/cli.py:_collect_fq_tmp_orphans 在 Sprint 31.1 后用
-# TrackerDB 作为 source of truth. TrackerDB 默认 db_path = /tmp/fuqing-tmp-tracker.db
-# (production 路径). 多个 test 共享同一 db 会造成 row 残留 (例如 test_lsof_layer1
-# skip 删除 → tracker row 残留 → 下个 test list_expired 拾起 → candidate 数量
-# 偏离 test 预期).
-#
-# 修法: autouse fixture 把 cli._FQ_TMP_TRACKER_PATH 临时指向 tmp_path/test-tracker.db,
-# test 结束清 WAL/SHM/journal 残留. 现有 17 个 test 不需改 (行为跟 Phase 1 之前一致).
-# 只影响 cli._FQ_TMP_TRACKER_PATH 单一变量, 不污染其它模块.
-# ─────────────────────────────────────────────────────────────
-
-@pytest.fixture(autouse=True)
-def isolate_tmp_tracker(tmp_path):
-    """Sprint 31.1: per-test 隔离 tmp tracker DB. autouse 确保每个 test 干净.
-
-    patch 两处:
-      - cli._FQ_TMP_TRACKER_PATH (Layer 1 读这个)
-      - tmp_tracker.TRACKER_DB_PATH (TrackerDB() 默认参数读这个)
-    """
+# Cleanup tests opt in explicitly; ordinary tests never import ETL/tracker.
+@pytest.fixture
+def isolate_tmp_tracker(tmp_path, monkeypatch):
+    """Redirect every tracker default and log to this test's owned directory."""
     from scripts.etl import cli
     from scripts.etl.common import tmp_tracker
     import os
     original_cli_path = cli._FQ_TMP_TRACKER_PATH
     original_tracker_default = tmp_tracker.TRACKER_DB_PATH
     test_db = str(tmp_path / "test-tracker.db")
+    # The constructor default is bound at definition time, not to the constant.
+    monkeypatch.setattr(tmp_tracker.TrackerDB.__init__, "__defaults__", (test_db,))
+    monkeypatch.setattr(tmp_tracker, "_LOG_PATH", str(tmp_path / "tracker.log"))
+    monkeypatch.setattr(cli, "_FQ_TMP_LOG_PATH", str(tmp_path / "cleanup.log"))
+    monkeypatch.setattr(cli, "_FQ_TMP_MARKER_PATH", str(tmp_path / "marker.json"))
     cli._FQ_TMP_TRACKER_PATH = test_db
     tmp_tracker.TRACKER_DB_PATH = test_db
     try:
@@ -701,32 +560,11 @@ def isolate_tmp_tracker(tmp_path):
                 pass
 
 
-# ─────────────────────────────────────────────────────────────
-# Sprint 201 R1 CI 爆红修复: rate limit bucket per-test reset (autouse)
-#
-# 背景: Sprint 200 R1 v2.1 加 rate_limit_middleware (每用户每分钟 N req) + Sprint 201 R1
-# 加 dual_conn + query_router. backend/main.py 模块级 _rate_limit_buckets 字典在
-# pytest 进程内跨 test 共享, 导致:
-#   - test_rate_limit_sprint200.py 把 RATE_LIMIT_PER_MINUTE=5 设到 module scope
-#   - 跑 5 次 admin token 触发 429, 写入 _rate_limit_buckets["admin"]
-#   - 后续 test 调 synthetic_client (user=testuser) 走相同 rate_limit_middleware
-#   - 如果 synthetic fixture 跟 admin 走同一 user_id (实测: 跟 token 解析逻辑), 命中 429
-#   - 触发 429 → ad_hoc_query_api test 失败
-#
-# 修法: autouse fixture 在每个 test 前 reset _rate_limit_buckets + _RATE_LIMIT_PER_MINUTE
-# 统一为 60 (跟 production 默认), 不让 test_rate_limit_sprint200.py 的 5 污染其他 test.
-# ─────────────────────────────────────────────────────────────
-
+# Isolate only loaded request buckets; the limit belongs to each test fixture.
 @pytest.fixture(autouse=True)
 def reset_rate_limit_buckets():
-    """Sprint 201 R1: per-test reset rate limit bucket (不强制 RATE_LIMIT_PER_MINUTE).
-
-    Sprint 201 R1+ R2 v3 (L4.50 candidate followup): 不强制覆盖 RATE_LIMIT_PER_MINUTE=60, 避免
-    覆盖 test_rate_limit_sprint200.py module-scope 设的 5 (跟之前 sprint stable 1:1).
-    只清 _rate_limit_buckets 字典, env 留给 test 自己管 (test_rate_limit_sprint200.py:17
-    设 5, 其他 test 不设就走 production default 60).
-    """
-    import backend.main as _main
+    """隔离每个用例的请求桶；阈值由用例夹具设置并恢复，不覆盖显式环境。"""
+    _main = sys.modules.get("backend.main")
 
     # Reset module-level _rate_limit_buckets 字典 (不强制覆盖 env)
     if hasattr(_main, "_rate_limit_buckets"):
@@ -735,115 +573,27 @@ def reset_rate_limit_buckets():
     try:
         yield
     finally:
-        if hasattr(_main, "_rate_limit_buckets"):
-            _main._rate_limit_buckets.clear()
+        loaded = sys.modules.get("backend.main")
+        if hasattr(loaded, "_rate_limit_buckets"):
+            loaded._rate_limit_buckets.clear()
 
-
-# ─────────────────────────────────────────────────────────────
-# Sprint 201 R1+ R2 (L4.50 candidate): pytest-of-hutou 老 session + tracker 副本清理 (autouse)
-#
-# 真因: pytest 跑 test_layer6_skips_tracked_files + test_w4_t7_integration 等真连 prod DuckDB,
-# 创建 fuqing_tracked.duckdb 副本 (~2GB, 跟生产 db 一样大). test 失败时 fixture teardown 不清
-
-
-# ─────────────────────────────────────────────────────────────
-# Sprint 201 R1+ R2 (L4.50 candidate): pytest-of-hutou 老 session + tracker 副本清理 (autouse)
-#
-# 真因: pytest 跑 test_layer6_skips_tracked_files + test_w4_t7_integration 等真连 prod DuckDB,
-# 创建 fuqing_tracked.duckdb 副本 (~2GB, 跟生产 db 一样大). test 失败时 fixture teardown 不清
-# tmp_path, 跨 sprint 累积 11+ 个老 session 目录 (20G+), 导致磁盘 99% 满 (Sprint 201 R1 v2.1 紧急排查).
-#
-# 修法: session-scope autouse fixture 在每次 pytest 启动时清理 24h+ 老 pytest-of-hutou session 目录
-# (保留当前 pytest-current). 跟 sprint 178 L4.31 race flake 跨 sprint stable 模式 1:1, 杜绝后续累积.
-# 深层治本 (Sprint 201 R1+ R2 8 天): macOS launchd hourly cleanup plist + pytest fixture teardown 强制删 fuqing_tracked.duckdb.
-# ─────────────────────────────────────────────────────────────
-
-_PYTEST_ROOT = Path("/private/var/folders/tz/wswl3q3117v437rw68yd90gh0000gn/T/pytest-of-hutou")
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_old_pytest_sessions():
-    """Sprint 201 R1+ R2 L4.50: 清理 24h+ 老 pytest session 目录, 保留 current.
-
-    跨 sprint stable race flake 模式 1:1: 之前 sprint 178 L4.31 治 race flake, 这次治 pytest session
-    磁盘累积. autouse session-scope 确保每次 pytest 启动时自动清, 不需要业务方手动跑.
-
-    Sprint 201 R2 CI fix v23: 早 return 之前先 yield, 修复 CI #529+ ValueError 'did not yield a value'.
-    pytest 把这个 fixture 当 generator 调用, 任何 return 路径必须在 yield 之前 yield 1 次.
-    """
-    yield  # 必须先 yield, 即使后面要早 return
-    if not _PYTEST_ROOT.exists():
-        return
-    now = time.time()
-    cleaned_count = 0
-    cleaned_bytes = 0
-    for d in _PYTEST_ROOT.iterdir():
-        if not d.is_dir() or d.name == "pytest-current":
-            continue
-        # 24h+ 老 session 自动清
-        try:
-            mtime = d.stat().st_mtime
-        except OSError:
-            continue
-        if (now - mtime) > 86400:  # 24h
-            try:
-                # 算 dir 大小 (粗估)
-                size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
-                # 用 shutil.rmtree 安全删 (Sprint 178 hook 拦 rm -rf /, 但这里是相对路径安全)
-                import shutil
-                shutil.rmtree(d, ignore_errors=True)
-                cleaned_count += 1
-                cleaned_bytes += size
-            except Exception:
-                pass
-    if cleaned_count:
-        print(f"[L4.50 cleanup_old_pytest_sessions] Cleaned {cleaned_count} old session(s), "
-              f"~{cleaned_bytes // (1024**2)} MB freed")
-
-
-# ─────────────────────────────────────────────────────────────
-# Sprint 201 R1+ R2 (L4.50 candidate): pytest_configure hook — 加载时立即清老 session
-# (不依赖 autouse fixture 时序, 跟 test module-scope setdefault 1:1 stable)
-# ─────────────────────────────────────────────────────────────
 
 def pytest_configure(config):
-    """Sprint 201 R1+ R2 L4.50: 加载时清 24h+ 老 pytest session, 跟 test module-scope RATE_LIMIT_PER_MINUTE 1:1."""
-    if not _PYTEST_ROOT.exists():
-        return
-    now = time.time()
-    cleaned_count = 0
-    cleaned_bytes = 0
-    for d in _PYTEST_ROOT.iterdir():
-        if not d.is_dir() or d.name == "pytest-current":
-            continue
-        try:
-            mtime = d.stat().st_mtime
-        except OSError:
-            continue
-        if (now - mtime) > 21600:  # 6h (Sprint 201 R1+ R2 v4: 缩短 24h → 6h, 因为 test 写 2GB tracker 太大)
-            try:
-                size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
-                shutil.rmtree(d, ignore_errors=True)
-                cleaned_count += 1
-                cleaned_bytes += size
-            except Exception:
-                pass
-
-    # Sprint 201 R1+ R2 v4: 删 1GB+ fuqing_tracked.duckdb 残留 (test_layer6_skips_tracked_files 写 2GB tracker 副本)
-    # 即便 session < 6h, 残留的 2GB tracker 也得清, 避免单次 pytest 跑 2GB 累积
-    for d in _PYTEST_ROOT.iterdir():
-        if not d.is_dir():
-            continue
-        for f in d.rglob("fuqing_tracked.duckdb"):
-            try:
-                fsize = f.stat().st_size
-                if fsize > 1024**3:  # 1GB+
-                    f.unlink()
-                    cleaned_count += 1
-                    cleaned_bytes += fsize
-            except OSError:
-                pass
-
-    if cleaned_count:
-        print(f"[L4.50 pytest_configure] Cleaned {cleaned_count} old session(s) / 1GB+ tracker(s), "
-              f"~{cleaned_bytes // (1024**2)} MB freed")
+    """Own one scratch directory; do not scan/delete any previous session."""
+    selected = os.environ.get("FQ_TEST_ARCHIVE_DB")
+    if selected and not Path(selected).is_absolute():
+        raise pytest.UsageError("FQ_TEST_ARCHIVE_DB must be an explicitly authorized absolute path")
+    scratch = tempfile.TemporaryDirectory(prefix="fq-tests-")
+    config.add_cleanup(scratch.cleanup)
+    root = Path(scratch.name)
+    # Safe defaults before collection; integration tests override only with
+    # their own tiny fixtures. No fallback to the checkout's archived DB.
+    os.environ["DUCKDB_PATH"] = selected or str(root / "not-configured.duckdb")
+    os.environ["FUQING_DB_PATH"] = os.environ["DUCKDB_PATH"]
+    os.environ["CACHE_DUCKDB_PATH"] = str(root / "cache.duckdb")
+    os.environ["PYTHON_DOTENV_DISABLED"] = "1"
+    for name in ("SHOP_DATA_SOURCE", "MEMBER_DATA_SOURCE", "SPU_MAPPING_SOURCE",
+                 "SHOP_STATUS_SOURCE", "VISITOR_DATA_SOURCE", "VISITOR_XLSX_FILE",
+                 "CAMPAIGN_SCHEDULE_SOURCE", "CHANNEL_RULES_SOURCE",
+                 "TAOKE_DATA_SOURCE", "TAOKE_PRODUCT_SOURCE", "LIVE_DATA_SOURCE", "DMP_DATA_DIR"):
+        os.environ[name] = str(root / "inputs" / name.lower())

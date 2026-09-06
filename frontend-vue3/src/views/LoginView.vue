@@ -1,17 +1,30 @@
 <template>
   <div class="login-container">
-    <!-- 左侧 Rive 动画 -->
     <div class="illustration-section" ref="illustrationSectionRef">
       <canvas ref="riveCanvasRef"></canvas>
+      <div class="illustration-shade" />
+      <div class="illustration-copy">
+        <BrandMark />
+        <div>
+          <span>AUTONOMOUS COMMERCE PROTOTYPE</span>
+          <h1>把经营信号，变成一条<br>可审批的增长 Mission</h1>
+          <p>统一 user_id，拆解首付费渠道、生命周期与商品角色；AI 先诊断，CEO 再决定是否执行。</p>
+        </div>
+        <ol>
+          <li><i>01</i><span>发现机会<small>DATA DIAGNOSIS</small></span></li>
+          <li><i>02</i><span>自由问数<small>CONTROLLED AI</small></span></li>
+          <li><i>03</i><span>审批执行<small>DRAFT EXPORT</small></span></li>
+        </ol>
+      </div>
     </div>
 
-    <!-- 右侧表单 -->
     <div class="form-section">
       <div class="form-wrapper">
         <div class="header-group">
-          <img src="/svg/logo.svg" alt="Logo" class="logo-icon">
-          <h1 class="welcome-title">欢迎回来！</h1>
-          <p class="subtitle">请输入您的账号和密码</p>
+          <BrandMark class="mobile-brand" />
+          <span>WORKSPACE ACCESS</span>
+          <h2 class="welcome-title">进入增长董事会</h2>
+          <p class="subtitle">增长董事会演示使用合成数据；CRM 数据访问以账号权限为准。</p>
         </div>
 
         <form class="login-form" @submit.prevent="handleSubmit">
@@ -58,7 +71,7 @@
           <div class="error-message" v-show="passwordErr">{{ passwordErr }}</div>
 
           <button type="submit" class="btn-primary" :disabled="authStore.isLoading || applySubmitting || applyRequestSent">
-            {{ authStore.isLoading ? '登录中...' : '登 录' }}
+            {{ authStore.isLoading ? '正在验证…' : '进入控制室' }}
           </button>
 
           <!-- L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) -->
@@ -68,7 +81,7 @@
             :disabled="authStore.isLoading || applySubmitting || applyRequestSent"
             @click="handleApply"
           >
-            {{ applySubmitting ? '正在申请...' : applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请登录' }}
+            {{ applySubmitting ? '正在申请…' : applyRequestSent ? `已发送申请 (${applyRemainingSeconds}s)` : '申请接管当前会话' }}
           </button>
 
           <!-- L4.85 申请+同意 模式: 申请状态消息 -->
@@ -97,6 +110,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import BrandMark from '@/components/BrandMark.vue'
 import { useAuthStore } from '@/stores/auth'
 import { claimLoginRequest, loginRequest, getLoginRequestStatus } from '@/api/loginRequest'
 
@@ -239,7 +253,7 @@ async function pollApplyStatus(requestId: string, username: string, claimToken: 
       applyMessageType.value = 'success'
       applyRequestSent.value = false
       const redirect = route.query.redirect as string
-      await router.replace(redirect || '/audience')
+      await router.replace(redirect || '/growth-board')
     } else if (status.status === 'rejected') {
       if (applyTimer) { clearInterval(applyTimer); applyTimer = null }
       applyRequestSent.value = false
@@ -378,7 +392,7 @@ async function handleSubmit() {
     setTimeout(() => {
       showSuccess.value = false
       const redirect = route.query.redirect as string
-      router.push(redirect || '/audience')
+      router.push(redirect || '/growth-board')
     }, 300)
   } catch (err: any) {
     // L4.85.2 治本: 普通 login 按钮也走申请+同意流程 (跟 user 7/10 拍板 1:1 stable 永久规则化沿用)
@@ -512,15 +526,17 @@ onUnmounted(() => {
 .login-container {
   display: flex;
   width: 100%;
-  height: 100vh;
+  height: var(--sm-dimension-vh-100);
   overflow: hidden;
+  color: var(--sm-ink);
+  background: var(--sm-bg);
 }
 
 /* 左侧插画区 */
 .illustration-section {
   flex: 1 1 50%;
-  max-width: 60%;
-  background-color: #E7E3E6;
+  max-width: 62%;
+  background: var(--sm-gradient-login-hero);
   position: relative;
   overflow: hidden;
 }
@@ -529,7 +545,51 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   display: block;
+  opacity: .34;
+  filter: saturate(.5) contrast(1.08);
 }
+
+.illustration-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--sm-gradient-login-shade);
+  pointer-events: none;
+}
+
+.illustration-copy {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(var(--sm-dimension-px-30), var(--sm-dimension-vw-4), var(--sm-dimension-px-62));
+}
+
+.illustration-copy > div > span,
+.header-group > span {
+  color: var(--sm-lilac);
+  font: 650 var(--sm-dimension-px-9)/1 var(--sm-font-display);
+  letter-spacing: var(--sm-dimension-em-0-16);
+}
+
+.illustration-copy h1 {
+  max-width: var(--sm-dimension-px-760);
+  margin: var(--sm-dimension-px-18) 0 var(--sm-dimension-px-20);
+  color: var(--sm-ink);
+  font-family: var(--sm-font-display);
+  font-size: clamp(var(--sm-dimension-px-38), var(--sm-dimension-vw-5), var(--sm-dimension-px-76));
+  font-weight: 570;
+  letter-spacing: var(--sm-dimension-em-minus-0-06);
+  line-height: .98;
+}
+
+.illustration-copy > div > p { max-width: var(--sm-dimension-px-630); color: var(--sm-copy); font-size: var(--sm-dimension-px-14); line-height: 1.8; }
+.illustration-copy ol { display: flex; gap: var(--sm-dimension-px-28); list-style: none; }
+.illustration-copy li { display: flex; align-items: center; gap: var(--sm-dimension-px-10); color: var(--sm-copy-strong); font-size: var(--sm-dimension-px-11); }
+.illustration-copy li > i { color: var(--sm-signal); font: 650 var(--sm-dimension-px-9)/1 var(--sm-font-display); }
+.illustration-copy li > span { display: grid; gap: var(--sm-dimension-px-3); }
+.illustration-copy li small { color: var(--sm-faint); font: 600 var(--sm-dimension-px-7)/1 var(--sm-font-display); letter-spacing: var(--sm-dimension-em-0-08); }
 
 /* 角色庆祝动画 — 登录成功时触发 */
 .illustration-section.celebrating {
@@ -549,68 +609,70 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  background-color: #FFFFFF;
+  padding: var(--sm-dimension-px-40) clamp(var(--sm-dimension-px-28), var(--sm-dimension-vw-5), var(--sm-dimension-px-78));
+  background: var(--sm-gradient-login-panel);
 }
 
 .form-wrapper {
   width: 100%;
-  max-width: 360px;
+  max-width: var(--sm-dimension-px-420);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 .header-group {
-  text-align: center;
-  margin-bottom: 40px;
+  text-align: left;
+  margin-bottom: var(--sm-dimension-px-38);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.logo-icon { width: 48px; height: auto; margin-bottom: 24px; }
+.mobile-brand { display: none; margin-bottom: var(--sm-dimension-px-44); }
 
 .welcome-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #15161A;
-  margin-bottom: 12px;
+  margin: var(--sm-dimension-px-13) 0 var(--sm-dimension-px-10);
+  color: var(--sm-ink);
+  font-family: var(--sm-font-display);
+  font-size: var(--sm-dimension-px-34);
+  font-weight: 580;
+  letter-spacing: var(--sm-dimension-em-minus-0-04);
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #666666;
-  font-weight: 500;
+  color: var(--sm-muted);
+  font-size: var(--sm-dimension-px-12);
+  font-weight: 450;
 }
 
 .login-form {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sm-dimension-px-12);
 }
 
 .input-group {
   position: relative;
   width: 100%;
-  height: 64px;
-  border-bottom: 1px solid #000000;
+  height: var(--sm-dimension-px-64);
+  border-bottom: var(--sm-dimension-px-1) solid var(--sm-line-strong);
   display: flex;
   align-items: flex-end;
 }
 
 .input-group input {
   width: 100%;
-  height: 40px;
-  padding-bottom: 8px;
+  height: var(--sm-dimension-px-40);
+  padding-bottom: var(--sm-dimension-px-8);
   border: none;
   outline: none;
-  font-size: 16px;
+  font-size: var(--sm-dimension-px-16);
   font-weight: 500;
-  color: #000000;
+  color: var(--sm-ink);
   background: transparent;
-  padding-right: 40px;
+  padding-right: var(--sm-dimension-px-40);
   position: relative;
   z-index: 1;
 }
@@ -619,17 +681,17 @@ onUnmounted(() => {
 .input-group input:-webkit-autofill:hover,
 .input-group input:-webkit-autofill:focus,
 .input-group input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: #000000 !important;
+  -webkit-box-shadow: 0 0 0 var(--sm-dimension-px-30) var(--sm-bg-bottom) inset !important;
+  -webkit-text-fill-color: var(--sm-ink) !important;
 }
 
 .input-group input::placeholder { color: transparent; }
 
 .floating-label {
   position: absolute;
-  left: 0; bottom: 14px;
-  font-size: 16px;
-  color: #000000;
+  left: 0; bottom: var(--sm-dimension-px-14);
+  font-size: var(--sm-dimension-px-16);
+  color: var(--sm-muted);
   pointer-events: none;
   transition: all 0.2s ease-out;
   font-weight: 500;
@@ -638,76 +700,76 @@ onUnmounted(() => {
 
 .input-group input:focus ~ .floating-label,
 .input-group input:not(:placeholder-shown) ~ .floating-label {
-  bottom: 42px;
-  font-size: 12px;
-  color: #666666;
+  bottom: var(--sm-dimension-px-42);
+  font-size: var(--sm-dimension-px-12);
+  color: var(--sm-lilac);
 }
 
 /* 错误状态 */
-.input-group.error-state { border-bottom-color: #8B0000; }
-.input-group.error-state .floating-label { color: #8B0000 !important; }
+.input-group.error-state { border-bottom-color: var(--sm-danger); }
+.input-group.error-state .floating-label { color: var(--sm-danger) !important; }
 .shake { animation: shake 0.4s ease-in-out; }
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  50% { transform: translateX(6px); }
-  75% { transform: translateX(-6px); }
+  25% { transform: translateX(var(--sm-dimension-px-minus-6)); }
+  50% { transform: translateX(var(--sm-dimension-px-6)); }
+  75% { transform: translateX(var(--sm-dimension-px-minus-6)); }
 }
 
 .toggle-password {
   position: absolute;
-  right: 0; bottom: 4px;
+  right: 0; bottom: var(--sm-dimension-px-4);
   background: none; border: none;
-  cursor: pointer; color: #000000;
+  cursor: pointer; color: var(--sm-lilac);
   display: flex; align-items: center; justify-content: center;
-  padding: 8px; z-index: 2;
+  padding: var(--sm-dimension-px-8); z-index: 2;
 }
-.eye-icon { width: 24px; height: 24px; pointer-events: none; }
+.eye-icon { width: var(--sm-dimension-px-24); height: var(--sm-dimension-px-24); pointer-events: none; }
 
 .btn-primary {
-  width: 100%; height: 48px;
-  background-color: #15161A; color: #FFFFFF;
-  border: none; border-radius: 999px;
-  font-size: 16px; font-weight: 500;
-  cursor: pointer; margin-top: 24px;
+  width: 100%; height: var(--sm-dimension-px-48);
+  background-color: var(--sm-signal); color: var(--sm-on-accent);
+  border: var(--sm-dimension-px-1) solid var(--sm-line-accent-strong); border-radius: var(--sm-radius-control);
+  font-size: var(--sm-dimension-px-16); font-weight: 500;
+  cursor: pointer; margin-top: var(--sm-dimension-px-24);
   transition: background-color 0.2s;
   font-family: inherit;
 }
-.btn-primary:hover { background-color: #2D2E33; }
+.btn-primary:hover { background-color: var(--sm-ink); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* L4.85 申请+同意 模式: 申请登录按钮 (跟后端 L4.85 1:1 stable 永久规则化沿用) */
 .btn-apply {
-  width: 100%; height: 48px;
-  background-color: #FFFFFF; color: #15161A;
-  border: 1px solid #15161A; border-radius: 999px;
-  font-size: 16px; font-weight: 500;
-  cursor: pointer; margin-top: 12px;
+  width: 100%; height: var(--sm-dimension-px-48);
+  background-color: var(--sm-white-faint); color: var(--sm-copy);
+  border: var(--sm-dimension-px-1) solid var(--sm-line-strong); border-radius: var(--sm-radius-control);
+  font-size: var(--sm-dimension-px-16); font-weight: 500;
+  cursor: pointer; margin-top: var(--sm-dimension-px-12);
   transition: background-color 0.2s, color 0.2s;
   font-family: inherit;
 }
-.btn-apply:hover { background-color: #15161A; color: #FFFFFF; }
+.btn-apply:hover { border-color: var(--sm-lilac); color: var(--sm-ink); background-color: var(--sm-purple-soft); }
 .btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* L4.85 申请状态消息 */
 .apply-message {
-  font-size: 13px;
-  margin-top: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  font-size: var(--sm-dimension-px-13);
+  margin-top: var(--sm-dimension-px-12);
+  padding: var(--sm-dimension-px-8) var(--sm-dimension-px-12);
+  border-radius: var(--sm-radius-soft);
   text-align: center;
 }
-.apply-message.info { color: #1e40af; background-color: #dbeafe; }
-.apply-message.success { color: #16a34a; background-color: #dcfce7; }
-.apply-message.error { color: #8b0000; background-color: #fee2e2; }
+.apply-message.info { color: var(--sm-lilac); background-color: var(--sm-purple-soft); }
+.apply-message.success { color: var(--sm-signal); background-color: var(--sm-signal-soft); }
+.apply-message.error { color: var(--sm-danger); background-color: var(--sm-danger-soft); }
 
 /* 错误消息 */
 .error-message {
   display: none;
-  font-size: 12px;
-  color: #8B0000;
-  margin-top: 4px;
-  padding-left: 2px;
+  font-size: var(--sm-dimension-px-12);
+  color: var(--sm-danger);
+  margin-top: var(--sm-dimension-px-4);
+  padding-left: var(--sm-dimension-px-2);
 }
 .error-message:not(:empty) { display: block; }
 
@@ -716,7 +778,8 @@ onUnmounted(() => {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.45);
+  background: var(--sm-overlay);
+  backdrop-filter: var(--sm-blur-overlay);
   z-index: 9999;
   align-items: center;
   justify-content: center;
@@ -724,34 +787,37 @@ onUnmounted(() => {
 .success-overlay.visible { display: flex; }
 
 .success-card {
-  background: #FFFFFF;
-  border-radius: 20px;
-  padding: 48px 40px;
+  color: var(--sm-ink);
+  background: var(--sm-glass-strong);
+  border: var(--sm-dimension-px-1) solid var(--sm-line-strong);
+  border-radius: var(--sm-radius-panel);
+  padding: var(--sm-dimension-px-48) var(--sm-dimension-px-40);
   text-align: center;
-  max-width: 380px;
+  max-width: var(--sm-dimension-px-380);
   width: 90%;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.15);
+  box-shadow: var(--sm-shadow-panel);
   animation: popIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes popIn {
-  0%   { transform: scale(0.5) translateY(40px); opacity: 0; }
+  0%   { transform: scale(0.5) translateY(var(--sm-dimension-px-40)); opacity: 0; }
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .success-card .check-icon {
-  width: 64px; height: 64px;
+  width: var(--sm-dimension-px-64); height: var(--sm-dimension-px-64);
   border-radius: 50%;
-  background: #ECFDF5;
+  background: var(--sm-signal);
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 20px;
+  margin: 0 auto var(--sm-dimension-px-20);
 }
-.success-card .check-icon svg { width: 32px; height: 32px; color: #16A34A; }
-.success-card h2 { font-size: 22px; font-weight: 700; color: #15161A; margin-bottom: 8px; }
-.success-card p { font-size: 14px; color: #666666; }
+.success-card .check-icon svg { width: var(--sm-dimension-px-32); height: var(--sm-dimension-px-32); color: var(--sm-on-accent); }
+.success-card h2 { font-size: var(--sm-dimension-px-22); font-weight: 700; color: var(--sm-ink); margin-bottom: var(--sm-dimension-px-8); }
+.success-card p { font-size: var(--sm-dimension-px-14); color: var(--sm-muted); }
 
 /* 响应式 */
 @media (max-width: 900px) {
   .illustration-section { display: none; }
-  .form-section { padding: 60px 20px; }
+  .form-section { padding: var(--sm-dimension-px-60) var(--sm-dimension-px-20); }
+  .mobile-brand { display: inline-flex; }
 }
 </style>

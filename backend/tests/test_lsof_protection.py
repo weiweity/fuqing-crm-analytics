@@ -238,3 +238,8 @@ class TestSprint31TrackerDbProtection:
             f = tmp_path / name
             f.write_bytes(b"x" * 100)
             assert cleanup_subagent._is_protected(str(f)) is True
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+import pytest
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

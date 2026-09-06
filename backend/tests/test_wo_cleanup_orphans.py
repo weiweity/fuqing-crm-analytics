@@ -532,3 +532,7 @@ class TestCleanupTmpFlag:
         )
         # 验证 2：输出包含删除计数
         assert "3" in captured.out, "应显示删除的文件数"
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

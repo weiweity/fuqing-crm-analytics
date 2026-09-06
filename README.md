@@ -1,52 +1,59 @@
-# 天猫CRM 客户分析系统
+# 伸美 AI 增长董事会
 
-> 内部运营中台 · 数据驱动的客户洞察 · 每日 9 点自动推送
+> AI 黑客松作品 · 多渠道客户资产诊断 · 受控自由问数与人群决策
+
+> **价值定稿（2026-09-05）**：已确认让老板拍板一个有边界的天猫内部跨渠道客户增长试点，主线是“渠道 × 首购商品 × 后续购买”。见 [CEO 价值与首版决策方案](./docs/hackathon/CEO-VALUE-PLAN.md)（用户已批准定稿，APPROVED）。统一分析工作台方向保留；用户已确认保留 DSH 原生 UI，详见 [DSH 交互设计](./docs/hackathon/DSH-UI-INTERACTION-SPEC.md)。原生 UI 的集成、运行时与模型仍待验证，公网部署继续暂缓。
+
+> **当前总待办（2026-09-06）**：[方案、架构、数仓与 ETL 收口清单](./docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md)统一管理任务顺序与证据，保留原 [11 工作包](./docs/hackathon/AUTOPLAN-IMPLEMENTATION-TASKS-2026-09-05.md)。商业/DSH/StaffDeck 方向及[工程基线 D1–D4](./docs/hackathon/ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)已确认，四节静态审核完成，历史模型/视觉降级保留。[首个 B0 任务内核代码单元](./docs/hackathon/B0-RUN-KERNEL-2026-09-06.md)已实现并通过局部测试；DSH 尚未接线，B0 仍 PARTIAL。约千万行、10 人使用/5 人问数仍是规划输入，不是已迁库或容量通过。完整 analytics 草案不等于可调用 API；没有启动服务、操作真实库或部署。
 
 ---
 
 ## 项目简介
 
-天猫CRM 客户分析系统是为天猫电商运营团队打造的内部数据中台，处理 **1030 万订单 / 410 万用户**（2020-2026）的数据规模，提供实时的客户洞察能力。
+本仓库源自多渠道 CRM 分析系统。目标是把既有分析能力组织成 CEO 决策产品：AI 准备机会、证据和行动草案，老板决定优先级、资源和继续/停止条件。第一版围绕可观察的首购与后续购买，不宣称完整生命周期或已验证增长。
 
-### 核心价值
+当前保留的 Mission 演示基线使用合成数据，支持受控问数与审批后的合成人群草稿；它不等于新版多轮工作台和驾驶舱已交付。真实业务数据库不进入公开演示链。
 
-- ⏰ 每日 9 点自动推送运营洞察
-- 📊 口径唯一可信，改一处全局生效
-- 🔍 多维度分析：老客健康 / 市场对焦 / 品类 / 人群 / 地域
-- 📤 一键导出复盘数据
+### 核心价值与边界
+
+- 看清不同渠道和首购商品的客户后续买了什么，形成可验证的经营机会，不只给渠道排名。
+- 老板拍板试点方向、负责人、资源上限和退出条件；人群核对与具体执行属于运营职责。
+- 目标工作台以可信追问、证据和分析复用支持决策，不把“每天唯一 Mission”作为新版强制入口。
+- 稳定 `user_id` 关联的是可观察订单旅程，不是因果获客归因；缺少成本与干预证据时不判断利润最优。
+- 现有审批后仅生成合成 `DRAFT_EXPORT`，演示 holdout 比例不是通用实验设计，不自动触达真实用户。
+- 公开演示使用代码生成的合成数据与 manifest；流程演示不证明真实业务收益。
 
 ---
 
 ## 快速开始
 
-### 1. 一次性激活 githooks
+以下是**既有演示/私有分析的历史入口**，不是新工作台的synthetic quickstart或本轮启动授权。新同事先读 [黑客松范围与状态](./docs/hackathon/README.md)；不要为了解新方案执行ETL、全量测试或直接继承私人数据库配置。新的合成起步指南在对应功能实现时交付。
+
+### 1. 启动本地演示
 
 ```bash
-bash scripts/setup-hooks.sh   # 激活 pre-commit / pre-push (一次性, session 保持)
-```
-
-### 2. 启动服务
-
-```bash
-cd "/Users/yourname/Desktop/fuqin date/fuqing-crm-analytics"
-export HEALTH_API_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
-PYTHONPATH="$(pwd)" nohup python3 -m uvicorn backend.main:app \
-  --host 0.0.0.0 --port 8000 --reload --reload-dir backend \
-  >> /tmp/fuqing-crm-backend.log 2>&1 &
-cd frontend-vue3 && npm run dev
+./scripts/ops/start-stack.sh
 ```
 
 - 后端 API: http://localhost:8000
 - 前端界面: http://localhost:5173
 - API 文档（无需登录）: http://localhost:8000/docs
 
-### 3. ETL 增量更新
+演示结束后恢复冷存：
+
+```bash
+./scripts/ops/stop-stack.sh
+```
+
+Mission 的合成数据和环境配置见 [`docs/hackathon/README.md`](./docs/hackathon/README.md)。
+
+### 2. ETL 增量更新（仅既有私有分析环境）
 
 ```bash
 PYTHONPATH="$(pwd)" /Users/yourname/homebrew/bin/python3 scripts/run_etl.py --update
 ```
 
-### 4. 即席查询 CLI（`/ad-hoc-query` skill, Sprint 171 v2.0）
+### 3. 即席查询 CLI（`/ad-hoc-query` skill, Sprint 171 v2.0）
 
 ```bash
 # 9 个子命令: daily-gsv / yoy-battle / channel-slice /
@@ -56,7 +63,7 @@ PYTHONPATH="$(pwd)" python3 scripts/ad_hoc_query.py <cmd> [args]
 # 详: .claude/skills/ad-hoc-query/SKILL.md
 ```
 
-### 5. 测试
+### 4. 测试
 
 ```bash
 PYTHONPATH="$(pwd)" pytest backend/tests/ -v              # 后端单测
@@ -75,10 +82,10 @@ cd frontend-vue3 && npx playwright test                   # E2E
 | **开放技术债** | [`docs/TECH-DEBT.md`](./docs/TECH-DEBT.md) |
 | **文档总索引** | [`docs/README.md`](./docs/README.md) |
 | **版本变更** | [`CHANGELOG.md`](./CHANGELOG.md) · 老条目 `docs/history/CHANGELOG_HISTORY.md` |
-| **AI 行为规则** | [`CLAUDE.md`](./CLAUDE.md) · L4 细则 [`docs/rules/L4-permanent-rules.md`](./docs/rules/L4-permanent-rules.md) |
+| **AI 行为规则** | [`AGENTS.md`](./AGENTS.md)（唯一正文；CLAUDE 仅导入）；旧 CRM L4 细则按主题查阅 |
 | **协作 / 整洁** | [`docs/operating/team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
-| **父工作区地图** | [`../README.md`](../README.md)（`fuqin-date`，非 git monorepo） |
 | **AI 增长董事会** | [`docs/hackathon/README.md`](./docs/hackathon/README.md) · [`MISSION-API.md`](./docs/hackathon/MISSION-API.md) |
+| **视觉与交互基线** | [`DESIGN.md`](./DESIGN.md) |
 
 ---
 
@@ -88,9 +95,9 @@ cd frontend-vue3 && npx playwright test                   # E2E
 
 | 文档 | 说明 |
 |---|---|
-| [`CLAUDE.md`](./CLAUDE.md) | **AI 行为规则 / Git 工作流 / 架构 / AI 检查点** |
-| [`docs/operating/ship.md`](./docs/operating/ship.md) | /ship skill 使用文档（12 步流程） |
-| [`docs/operating/automation.md`](./docs/operating/automation.md) | Claude Code 自动化配置 |
+| [`AGENTS.md`](./AGENTS.md) | **AI 行为规则 / 授权 / 架构 / 分级验证** |
+| [`docs/operating/ship.md`](./docs/operating/ship.md) | 历史交付记录；当前 Git 动作按 AGENTS.md |
+| [`docs/operating/automation.md`](./docs/operating/automation.md) | 当前本地 hooks/Skills 边界与历史自动化记录 |
 | [`docs/operating/ci-defense-playbook.md`](./docs/operating/ci-defense-playbook.md) | CI 失败排查决策树 |
 | [`docs/architecture/AI_SAFETY_NET.md`](./docs/architecture/AI_SAFETY_NET.md) | L1 lint + L2 AST + L3 FilterBuilder 3 层防线 |
 | [`docs/architecture/DATA_PIPELINE.md`](./docs/architecture/DATA_PIPELINE.md) | ETL 4 阶段: W1-W4 |
@@ -107,6 +114,8 @@ cd frontend-vue3 && npx playwright test                   # E2E
 ---
 
 ## 架构原则
+
+本节订单/退款规则属于既有私有CRM，不自动套用于新synthetic分析。新渠道路径的净支付有效单、同刻排序和N日成熟窗口采用 [版本化拟定合同](./docs/hackathon/ANALYTICS-CONTRACTS-DRAFT.md#7-v1-指标与合成金标准约定拟定)，须独立金标准验证，不能混用分母。
 
 1. **语义层唯一真实数据源**：口径只定义一次，禁止在 Service 中硬编码 SQL
 2. **双保险过滤**：`is_refund=FALSE` 且 `order_status!='交易关闭'`

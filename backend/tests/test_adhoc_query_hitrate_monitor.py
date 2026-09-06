@@ -30,7 +30,12 @@ def _load_module():
     return mod
 
 
-@pytest.mark.skipif(sys.platform != "darwin", reason="L4.39 macOS-only path (~/workbuddy/skills/), L4.61 platform guard")
+@pytest.mark.skipif(
+    sys.platform != "darwin"
+    or not (Path.home() / ".claude/skills/ad-hoc-query/SKILL.md").is_file()
+    or not (Path.home() / ".workbuddy/skills/ad-hoc-query/SKILL.md").is_file(),
+    reason="optional macOS host skills are unavailable",
+)
 def test_adhoc_query_hitrate_monitor_basic() -> None:
     """R8 跨 sprint stable 实证: 14 tool 全部上 main"""
     result = subprocess.run(

@@ -39,6 +39,8 @@ def mission_client(
     control_db = tmp_path / "control" / "missions.sqlite3"
     export_dir = tmp_path / "exports"
     monkeypatch.setenv("FQ_MISSION_DEMO_ENABLED", "1")
+    monkeypatch.setenv("FQ_MISSION_DEMO_RESET_ENABLED", "1")
+    monkeypatch.setenv("FQ_CRM_ADMINS", "JUDGE_DEMO")
     monkeypatch.setenv("FQ_SYNTHETIC_DB_PATH", str(synthetic_db))
     monkeypatch.setenv("FQ_MISSION_CONTROL_DB", str(control_db))
     monkeypatch.setenv("FQ_MISSION_EXPORT_DIR", str(export_dir))
@@ -71,6 +73,7 @@ def test_mission_chain_from_today_to_draft_export(
     assert today["target_audience"]["eligible_customers"] > 0
     assert today["data_provenance"]["data_profile"] == "synthetic"
     assert today["data_provenance"]["contains_real_data"] is False
+    assert today["demo_controls"] == {"reset_enabled": True}
 
     question = "哪个渠道粘性最强？"
     diagnose_response = client.post(
@@ -171,7 +174,71 @@ def test_mission_chain_from_today_to_draft_export(
     assert latest["version"] == 3
     assert latest["latest_export"] == draft_export
     assert control_db.is_file()
+
+    reset_headers = {"If-Match": "3", "Idempotency-Key": "reset-demo-001"}
+    reset_response = client.post(
+        f"/api/v1/missions/{mission_id}/demo-reset",
+        headers=reset_headers,
+    )
+    assert reset_response.status_code == 200
+    reset = reset_response.json()
+    assert reset["status"] == "AWAITING_APPROVAL"
+    assert reset["version"] == 4
+    assert reset["approval"] is None
+    assert reset["latest_export"] is None
+    assert not csv_path.exists()
+    archived_csv = export_dir / ".reset-archive" / mission_id / "v3" / csv_path.name
+    assert archived_csv.is_file()
+    assert archived_csv.read_bytes() == download_response.content
+
+    repeated_reset = client.post(
+        f"/api/v1/missions/{mission_id}/demo-reset",
+        headers=reset_headers,
+    )
+    assert repeated_reset.status_code == 200
+    assert repeated_reset.json() == reset
+
+    reused_approval_key = client.post(
+        f"/api/v1/missions/{mission_id}/approve",
+        headers={"If-Match": "4", "Idempotency-Key": "approve-demo-001"},
+        json={"decision": "APPROVE", "note": "同意生成合成名单"},
+    )
+    assert reused_approval_key.status_code == 200
+    assert reused_approval_key.json()["version"] == 5
     assert synthetic_db.stat().st_mtime_ns == source_mtime_ns
+
+
+def test_demo_reset_requires_admin_and_explicit_flag(
+    mission_client: tuple[TestClient, Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, _, _ = mission_client
+    mission = client.get("/api/v1/missions/today").json()
+    endpoint = f"/api/v1/missions/{mission['mission_id']}/demo-reset"
+    headers = {"If-Match": str(mission["version"]), "Idempotency-Key": "reset-guard"}
+
+    not_admin = client.post(endpoint, headers={**headers, "X-Test-Actor": "OTHER_JUDGE"})
+    assert not_admin.status_code == 403
+
+    monkeypatch.setenv("FQ_MISSION_DEMO_RESET_ENABLED", "0")
+    disabled = client.post(endpoint, headers=headers)
+    assert disabled.status_code == 404
+    assert "未启用" in disabled.json()["detail"]
+
+
+def test_demo_reset_rejects_stale_version_without_changing_state(
+    mission_client: tuple[TestClient, Path, Path],
+) -> None:
+    client, _, _ = mission_client
+    mission = client.get("/api/v1/missions/today").json()
+    response = client.post(
+        f"/api/v1/missions/{mission['mission_id']}/demo-reset",
+        headers={"If-Match": "99", "Idempotency-Key": "reset-stale"},
+    )
+    assert response.status_code == 409
+    current = client.get("/api/v1/missions/today").json()
+    assert current["status"] == "AWAITING_APPROVAL"
+    assert current["version"] == 1
 
 
 def test_mission_api_is_fail_closed_when_demo_is_disabled(
@@ -328,8 +395,25 @@ def test_main_app_registers_documented_mission_routes() -> None:
     assert "/api/v1/missions/diagnose" in paths
     assert "/api/v1/missions/{mission_id}/approve" in paths
     assert "/api/v1/missions/{mission_id}/audience-export" in paths
+    assert "/api/v1/missions/{mission_id}/demo-reset" in paths
     assert (
         "/api/v1/missions/{mission_id}/audience-exports/{export_id}/download"
         in paths
     )
     assert TestClient(app).get("/api/v1/missions/today").status_code == 401
+
+    operation_ids = {
+        operation["operationId"]
+        for path in paths.values()
+        for operation in path.values()
+        if isinstance(operation, dict) and "operationId" in operation
+    }
+    assert {
+        "mission_get_today",
+        "mission_diagnose",
+        "mission_get",
+        "mission_approve",
+        "mission_create_draft_export",
+        "mission_reset_demo",
+        "mission_download_draft_export",
+    }.issubset(operation_ids)

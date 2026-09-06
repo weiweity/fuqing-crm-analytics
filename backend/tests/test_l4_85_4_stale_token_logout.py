@@ -15,7 +15,6 @@ user 7/11 报: "我不知道啥情况，我因该都退出账号了，但是还�
 """
 from __future__ import annotations
 
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -27,7 +26,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # 测试用环境变量必须在导入 auth 之前设置 (跟 L4.42 + L4.84 + L4.85 + L4.85.1 + L4.85.2 + L4.85.3 1:1 stable 配套)
-os.environ.setdefault("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
 
 from backend.routers import auth as auth_module  # noqa: E402
 

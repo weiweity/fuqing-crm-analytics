@@ -6,6 +6,11 @@ import { NAV_ITEMS } from '@/config/navigations'
 import { useAuthStore } from '@/stores/auth'
 
 describe('useNavItems (Admin Upload withdrawn)', () => {
+  it('local demo only offers the synthetic growth board', () => {
+    setActivePinia(createPinia())
+    useAuthStore().localDemoNoLogin = true
+    expect(useNavItems().value.map((item) => item.key)).toEqual(['/growth-board'])
+  })
   beforeEach(() => {
     sessionStorage.clear()
     setActivePinia(createPinia())

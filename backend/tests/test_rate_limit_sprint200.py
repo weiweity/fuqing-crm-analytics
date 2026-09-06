@@ -10,11 +10,7 @@
 from __future__ import annotations
 
 import os
-import secrets
 
-os.environ.setdefault("HEALTH_API_KEY", secrets.token_urlsafe(32))
-os.environ.setdefault("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
-os.environ["RATE_LIMIT_PER_MINUTE"] = "5"  # 测试用更小阈值
 
 import pytest
 from fastapi.testclient import TestClient
@@ -28,11 +24,33 @@ def client():
 
 @pytest.fixture(autouse=True)
 def configure_test_credentials(monkeypatch):
-    """收集其他模块后仍固定本模块账号，避免环境变量顺序影响登录。"""
+    """只在本模块用例执行时配置账号和低阈值，退出后恢复调用方环境。"""
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "5")
     monkeypatch.setenv("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
     from backend.routers import auth
 
-    monkeypatch.setattr(auth, "VALID_CREDENTIALS", auth._load_credentials())
+    from backend.tests.conftest import _synthetic_password_hashes
+    cached = _synthetic_password_hashes()
+    monkeypatch.setattr(auth, "VALID_CREDENTIALS", {user: cached[user] for user in ("admin", "fqsw")})
+
+
+def test_module_collection_preserves_external_rate_limit(tmp_path):
+    """收集限流测试不能提前污染同进程其他模块的 HTTP 合同用例。"""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        [sys.executable, "-c", (
+            "import os; import backend.tests.test_rate_limit_sprint200; "
+            "assert os.environ['RATE_LIMIT_PER_MINUTE'] == '37'"
+        )],
+        cwd=tmp_path, capture_output=True, text=True, timeout=15,
+        env={**os.environ, "PYTHONPATH": str(root), "PYTHON_DOTENV_DISABLED": "1",
+             "RATE_LIMIT_PER_MINUTE": "37"},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def _login(client, username: str, password: str) -> str:

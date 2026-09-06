@@ -1,31 +1,18 @@
-# .githooks — 项目级 Git Hooks
+# 项目 Git hooks
 
-本目录存放项目级 git hooks,**不**依赖 `~/.git/hooks/`。所有开发者必须安装一次才能生效。
+当前检查矩阵、隔离配置与证据格式统一见 [验证入口](../docs/operating/verification.md)。行为授权以 [AGENTS.md](../AGENTS.md) 为准。
 
-## 安装
+| 入口 | 实际职责 | 失败与副作用 |
+|---|---|---|
+| `pre-commit` | 检查 hooksPath；CHANGELOG 提醒；按暂存路径执行 bare-except、contract、import、test-order、ground-truth、Excel SSOT 暂存内容检查 | 检查失败阻断，管道保留原始失败；CHANGELOG 默认提醒，显式 strict 才阻断；不启动 pytest/vue-tsc |
+| `commit-msg` | 调用 `scripts/commit_msg_check.py` 核验提交描述与差异 | 阻断型，保留检查器退出码 |
+| `pre-push` | 从 Git ref 协议计算累计差异，调用共用检查矩阵，成功后调用 Git LFS | 验证或 LFS 失败阻断；删除 ref 不跑验证；无结果缓存或自动绕过 |
+| `post-merge` | main/master 追加 `.ship-audit.log`，CHANGELOG 只提醒 | 标为 `MERGED into`，不代表发布；不删分支、不拉取、不重启 |
 
-```bash
-git config core.hooksPath .githooks
-```
+`core.hooksPath=.githooks` 时，默认 `.git/hooks/pre-push` 不会被调用，因此项目 `pre-push` 必须接回 LFS。LFS 接收原始 stdin ref 和 remote 参数，验证跳过也不跳过 LFS。
 
-`scripts/setup-hooks.sh` 也会做同样配置(同时提示当前状态)。
+只有需要激活且已获对应授权时才运行 `bash scripts/setup-hooks.sh`。它会修改仓库 Git 配置，不是诊断命令；本轮治理没有执行安装。相对 hooksPath 在每个工作树解析，各工作树的文件版本可能不同。
 
-## Hook 清单
+`.pre-commit-config.yaml` 是手工选用的 framework 配置（Ruff、contract、spec-lint 三项），不与项目 hooks 叠加安装，不是等价替代。历史对照见 [hooks-choice](../docs/operating/hooks-choice.md)。
 
-| Hook | 触发时机 | 主要职责 | 引入 Sprint |
-|------|----------|----------|------------|
-| `pre-commit` | `git commit` 前 | ruff lint + CHANGELOG 跟随校验 + 禁止 bare except + B2 import check + B5 test order lint + pytest cleanup orphans + P1-3 review ground-truth lint + Sprint 14 A.2 contracts 提醒 + Sprint 14 vue-tsc 真编译拦截 | Sprint 3 + Sprint 14 + Sprint 18 #142 |
-| `commit-msg` | commit message 写入后 | message 提到的文件若 staged diff 删除原内容 >80% 且未说明删除/重构，输出 WARN（不阻断） | Sprint 52 #5b |
-| `pre-push` | `git push` 前 | pytest 全套件 (backend/tests/) | Sprint 3 P1-3 |
-| **`post-merge`** | `git merge` 完成后 (含 fast-forward + --no-ff) | 写 `.ship-audit.log` (merge 时间 + commit SHA),补 audit trail | **Meta-Sprint /ship 接入** (Sprint 19) |
-
-## /ship audit trail 接入
-
-`post-merge` 配合 CLAUDE.md "AI 执行检查点" 的 "sprint 收口" 检查点使用:
-
-- 每次 `git merge --no-ff` 到 main, hook 自动追加一行到 `.ship-audit.log`
-- 格式: `[2026-06-11T12:34:56Z] SHIPPED to main: <commit SHA> <commit subject>`
-- 跨平台兼容 (macOS / Linux), 用 `date -u +"%Y-%m-%dT%H:%M:%SZ"`
-- 仅在 main / master 触发, feature branch 跳过避免 noise
-
-详细使用文档见 `docs/operating/ship.md`。
+分支维护脚本默认预览；应用须指定准确的本地分支且保持工作树干净，保护/当前/未合并/占用分支会拒绝，删除失败不退化为 `-D`。远端删除须另行检查和授权。普通 hook 不调用该脚本。

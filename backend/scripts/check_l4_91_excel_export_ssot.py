@@ -7,13 +7,15 @@
   3. no-frontend-times-100: frontend views 不允许对 YOY/ratio 字段 *100 (L4.81 反模式, 跟 CLAUDE.md "前端只展示, 禁止前端算" 1:1 stable 永久规则化沿用)
   4. yoy-kind-required: XlsxColumn 中 YOY 列必须显式 kind enum (yoy_pct / yoy_pp / yoy_day), 不允许 raw numFmt 隐性分支 (跟 L4.91 PR0 kind enum 1:1 stable 永久规则化沿用)
 
-per L4.50 + L4.42 + L4.57 + L4.91 1:1 stable 永久规则化沿用, 仅锁新增 (L4.91 PR1/PR2 已合 baseline 不检查, 跟 L4.34.1 + L4.40 + L4.59 1:1 stable 模式沿用).
+默认全目录审计；--staged 检查 Git 暂存区中变更的 view 文件全文，
+不读取未暂存修复，也不因未触及的历史文件阻断当前提交。
 """
 
 from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -190,15 +192,37 @@ def check_rule4_yoy_kind_required(path: Path, text: str) -> list[Violation]:
     return violations
 
 
+def check_text(path: Path, text: str) -> list[Violation]:
+    return [*check_rule1_no_raw_xlsx(path, text),
+            *check_rule2_no_excel_formula_object(path, text),
+            *check_rule3_no_frontend_times_100(path, text),
+            *check_rule4_yoy_kind_required(path, text)]
+
+
+def scan_staged(repo: Path) -> list[Violation]:
+    """Read full index blobs, including newly added and renamed view files."""
+    result = subprocess.run(['git', 'diff', '--cached', '--name-only', '-z',
+                             '--diff-filter=ACMR'], cwd=repo, check=True, capture_output=True)
+    violations = []
+    for raw in result.stdout.split(b'\0'):
+        if not raw:
+            continue
+        name = raw.decode('utf-8')
+        path = Path(name)
+        if not name.startswith('frontend-vue3/src/views/') or path.suffix not in {'.vue', '.ts'}:
+            continue
+        blob = subprocess.run(['git', 'show', f':{name}'], cwd=repo,
+                              check=True, capture_output=True, text=True)
+        violations.extend(check_text(repo / path, blob.stdout))
+    return violations
+
+
 def scan(root: Path) -> list[Violation]:
     """扫描目录下所有文件, 收集 L4.91 4 件规则 violations."""
     violations: list[Violation] = []
     for path in _iter_files(root):
         text = path.read_text(encoding="utf-8")
-        violations.extend(check_rule1_no_raw_xlsx(path, text))
-        violations.extend(check_rule2_no_excel_formula_object(path, text))
-        violations.extend(check_rule3_no_frontend_times_100(path, text))
-        violations.extend(check_rule4_yoy_kind_required(path, text))
+        violations.extend(check_text(path, text))
     return violations
 
 
@@ -211,9 +235,10 @@ def main() -> int:
         help=f"frontend views 目录 (默认: {DEFAULT_VIEWS_ROOT.relative_to(REPO_ROOT)})",
     )
     parser.add_argument(
-        "--only-new",
+        "--staged", "--only-new",
+        dest="staged",
         action="store_true",
-        help="仅检查新增代码 (跟 L4.91 PR0 baseline 1:1 stable 永久规则化沿用, 跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)",
+        help="检查暂存区变更 view 文件全文；--only-new 为兼容别名",
     )
     args = parser.parse_args()
 
@@ -223,11 +248,20 @@ def main() -> int:
     except ValueError:
         rel_views = args.views_root  # temp dir for testing
     print(f"   扫描目录: {rel_views}")
-    if args.only_new:
-        print("   模式: 仅检查新增代码 (跟 L4.50 0 业务代码改动 1:1 stable 永久规则链配套)")
+    if args.staged:
+        print("   模式: Git 暂存内容（变更文件全文）")
     print()
 
-    violations = scan(args.views_root)
+    try:
+        if args.staged:
+            repository = subprocess.run(['git', 'rev-parse', '--show-toplevel'],
+                                        check=True, capture_output=True, text=True)
+            violations = scan_staged(Path(repository.stdout.strip()))
+        else:
+            violations = scan(args.views_root)
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"无法读取检查输入：{error}", file=sys.stderr)
+        return 2
 
     if not violations:
         print("✅ 0 violations (跟 L4.91 + L4.50 + L4.42 1:1 stable 永久规则化沿用)")

@@ -245,12 +245,20 @@ def test_frontend_has_no_vite_health_api_key_usage():
     assert offenders == [], f"VITE_HEALTH_API_KEY still used: {offenders}"
 
 
-def test_frontend_logout_not_using_query_token():
-    """main.ts beforeunload 不得把 token 拼进 URL query。"""
+def test_frontend_preserves_session_during_navigation_and_reload():
+    """浏览器 unload 生命周期不得注销仍需在刷新后复用的 token。"""
     main_ts = (
         Path(__file__).resolve().parents[2] / "frontend-vue3" / "src" / "main.ts"
     ).read_text(encoding="utf-8")
     assert "logout?token=" not in main_ts
-    assert "sendBeacon" in main_ts
-    assert "application/json" in main_ts
-    assert "keepalive" in main_ts
+    assert "beforeunload" not in main_ts
+    assert "sendBeacon" not in main_ts
+
+    nav_bar = (
+        Path(__file__).resolve().parents[2]
+        / "frontend-vue3"
+        / "src"
+        / "components"
+        / "NavBar.vue"
+    ).read_text(encoding="utf-8")
+    assert "await authStore.logout()" in nav_bar

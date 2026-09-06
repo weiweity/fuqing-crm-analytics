@@ -1,8 +1,6 @@
 # 项目整洁度规范（Project Hygiene）
 
-> **最后更新**: 2026-07-19  
-> 团队双轨审计（docs + code）后的最小可执行 SSOT。  
-> 目标：工作区可读、误提交风险低、新人 5 分钟知道「什么在 git / 什么是本地生产」。
+> **适用性更新**: 2026-09-06。当前行为规则统一见 [AGENTS.md](../../AGENTS.md)，本文件说明文件用途并保留 2026-07-19 清理历史。归档默认冷存，候选清理不等于删除许可。
 
 ---
 
@@ -11,7 +9,7 @@
 | 保留 | 用途 |
 |---|---|
 | `README.md` | 人读入口 |
-| `CLAUDE.md` | AI 行为规则 SSOT（细则见 `docs/rules/`） |
+| `AGENTS.md` | 唯一 AI 行为正文；`CLAUDE.md` 仅一行导入 |
 | `VERSION` | 版本号唯一数字源 |
 | `CHANGELOG.md` | 近窗变更 |
 | `STATUS.md` | **短状态表**（勿再堆 sprint 编年；长文进 CHANGELOG / history） |
@@ -20,8 +18,8 @@
 
 | 不应长期堆在根 | 去向 |
 |---|---|
-| `HANDOFF-TO-CODEX-*.md` | 已 `.gitignore`；ship 后物理删或 `docs/sprints/archive/` |
-| `HANDOFF-TO-CLAUDE-*.md` / `HANDOFF-FINAL-*.md` | 同上 + ignore |
+| `HANDOFF-TO-CODEX-*.md` | 已 `.gitignore`；先核对是否仍在使用及有无独有证据，再按授权归档或清理 |
+| `HANDOFF-TO-CLAUDE-*.md` / `HANDOFF-FINAL-*.md` | 同上；不因 ship 自动删除 |
 | `outputs/` | 运行时产物，**禁止 commit** |
 | 根目录空/占位 `.vue` | 真源在 `frontend-vue3/src/views/` |
 
@@ -36,8 +34,8 @@
 | `docs/TECH-DEBT.md` | 还欠什么 | 已关闭 sprint 复述 |
 | `CHANGELOG.md` | 版本间可见变更 | 未合并 WIP 日记 |
 | `docs/sprints/*` | **未 ship** handoff | 已 ship 过程文（进 `archive/`） |
-| `docs/rules/L4-permanent-rules.md` | L4 细则全文 | — |
-| `CLAUDE.md` | 硬 STOP + 12 步 + 索引 | 无限加长 L4 全文 |
+| `docs/rules/L4-permanent-rules.md` | 旧 CRM 技术细则和历史依据 | 覆盖当前行为边界 |
+| `AGENTS.md` | 当前行为、授权与必要契约 | 模型专用重复正文、Sprint 编年 |
 
 ---
 
@@ -45,7 +43,7 @@
 
 | 路径 | git | 说明 |
 |---|---|---|
-| `data/**`、`*.duckdb` | ❌ | 本地即生产，永不 commit |
+| `data/**`、`*.duckdb` | ❌ | 真实库/运行数据不入仓；当前默认归档冷存 |
 | `.env` | ❌ | 密钥 |
 | `outputs/` | ❌ | 跑数/导出/二维码 |
 | `backend/services` 等 | ✅ | 业务代码 |

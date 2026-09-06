@@ -10,8 +10,8 @@ user 7/11 报 Bug #2: 'A 运营登录后退出 (Cmd+Q), B 运营 20 秒后再次
 
 治本 (跟 L4.42 + L4.50 + L4.55 + L4.85.x 1:1 stable 永久规则链配套):
 - background task 每 30s 扫 ACTIVE_TOKENS → evict last_active_at > IDLE_THRESHOLD_SECONDS (60s) 的 token
-- 配套方案 A (frontend beforeunload + sendBeacon): 95% Cmd+Q 场景立即治本
-- 本模块: 100% 网络断 / 进程死 / sendBeacon 失败场景兜底 (1-3min 延迟)
+- 浏览器不在 unload 生命周期登出，避免刷新和站内导航误销毁 token
+- 本模块统一处理关页、断网与进程退出后的幽灵会话，最多延迟 1-2min
 
 跟 L4.72 RFM cache precompute 1:1 stable 模式 (后台 task + 定期扫).
 跟 L4.50 0 业务代码改动 累计 95+ 次 1:1 stable 永久规则链配套.
@@ -28,8 +28,8 @@ _logger = logging.getLogger(__name__)
 
 # 跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用
 # 但治本 Bug #2: user 7/11 期望 A 关浏览器后 B 立即能 login
-# 设 60s (1 分钟) 比 _is_account_active 3min 更严格, 配套方案 A sendBeacon
-IDLE_THRESHOLD_SECONDS = 60  # 1 分钟, 跟方案 A 95% 治本配套
+# 设 60s (1 分钟) 比 _is_account_active 3min 更严格；浏览器关页后统一由后端回收
+IDLE_THRESHOLD_SECONDS = 60  # 1 分钟空闲阈值
 
 # 跟 L4.72 RFM cache precompute 1:1 stable 永久规则化沿用
 SCAN_INTERVAL_SECONDS = 30  # 每 30 秒扫一次

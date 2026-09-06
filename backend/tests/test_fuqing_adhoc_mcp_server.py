@@ -639,7 +639,7 @@ class TestL4ComplianceRegression:
         不能写死绝对路径.
         """
         import json
-        mcp_json_path = Path("/Users/hutou/.workbuddy/.mcp.json")
+        mcp_json_path = Path.home() / ".workbuddy/.mcp.json"
         if not mcp_json_path.exists():
             pytest.skip("~/.workbuddy/.mcp.json 不存在 (WorkBuddy 没装)")
         config = json.loads(mcp_json_path.read_text(encoding="utf-8"))

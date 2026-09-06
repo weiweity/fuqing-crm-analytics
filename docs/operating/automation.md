@@ -1,5 +1,9 @@
 # Claude Code Automation (Sprint 22.5+)
 
+> **当前入口（2026-09-06）**：行为规则只有 [AGENTS.md](../../AGENTS.md)。项目配置保留 PreToolUse 模式拦截和 PostToolUse 单文件 lint/契约提醒；已移除自动清理分支、SessionStart/Stop 全局检查及关键词触发扫描。模式拦截不是完整沙箱或动作授权，Claude hooks 也不等于 Codex hooks。
+>
+> `regen-types` 已区分 B0 离线契约和旧 CRM；`ship-pr` 只执行相应已授权 Git 动作。下文是变更前的历史实现与 MCP 记录，不再指示自动起服务、安装工具或走 12 步。最新盘查见 [规则统一报告](../hackathon/AGENT-RULES-AUDIT-2026-09-06.md)。
+
 > Sprint 22.5+ 用 `claude-automation-recommender` 扫 crm-analytics 项目后
 > 落地的 Claude Code 自动化配置. 详细推荐: 见 `CHANGELOG.md` v0.4.14.72 (Sprint 22.5+ ship 收口).
 

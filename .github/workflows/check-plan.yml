@@ -1,0 +1,55 @@
+name: Shared validation plan
+
+on:
+  workflow_call:
+    outputs:
+      backend:
+        value: ${{ jobs.changes.outputs.backend }}
+      frontend:
+        value: ${{ jobs.changes.outputs.frontend }}
+      tooling:
+        value: ${{ jobs.changes.outputs.tooling }}
+      checks:
+        value: ${{ jobs.changes.outputs.checks }}
+      deployment:
+        value: ${{ jobs.changes.outputs.deployment }}
+      dependencies:
+        value: ${{ jobs.changes.outputs.dependencies }}
+      plan:
+        value: ${{ jobs.changes.outputs.plan }}
+      b0:
+        value: ${{ jobs.changes.outputs.b0 }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      b0: ${{ steps.plan.outputs.b0 }}
+      backend: ${{ steps.plan.outputs.backend }}
+      frontend: ${{ steps.plan.outputs.frontend }}
+      tooling: ${{ steps.plan.outputs.tooling }}
+      checks: ${{ steps.plan.outputs.checks }}
+      deployment: ${{ steps.plan.outputs.deployment }}
+      dependencies: ${{ steps.plan.outputs.dependencies }}
+      plan: ${{ steps.plan.outputs.plan }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select checks with the local path matrix
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            echo backend/main.py > changed-files.txt
+          else
+            git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA" > changed-files.txt
+          fi
+          python3 scripts/ci/pre_push_path_class.py --files-from changed-files.txt --json --github-output

@@ -64,6 +64,9 @@ class QueryRouterMiddleware:
     }
     CONTROL_PREFIXES = (
         "/api/v1/auth/",
+        # Mission owns its synthetic reader and SQLite state; borrowing a
+        # legacy CRM connection here couples the demo to archived assets.
+        "/api/v1/missions/",
         "/docs",
         "/redoc",
     )

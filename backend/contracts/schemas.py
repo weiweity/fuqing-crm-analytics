@@ -13,6 +13,11 @@ from .health import HealthAlertItem, HealthOverviewMetrics, RepurchaseBucket, Re
 from .visitor import VisitorSummaryResponse, VisitorDailyTrendItem, VisitorDailyTrendResponse
 from .sampling import SamplingChannelSummary, SamplingLevelSummary, SamplingCategoryRow, SamplingROITimeRange, SamplingRepurchaseBucket, SamplingRepurchaseDistribution, SamplingRepurchaseTrackingBucket, SamplingRepurchaseTrackingResponse, SamplingROIResponse
 from .mission import ApprovalRequest, DiagnoseRequest, DiagnoseResponse, ExportResponse, MissionResponse
+from .analytics import (
+    AnalyticsB0Result, AnalyticsCancelRequest, AnalyticsConversation,
+    AnalyticsConversationRequest, AnalyticsErrorResponse, AnalyticsRunAccepted,
+    AnalyticsRunEvent, AnalyticsRunRequest, AnalyticsRunSnapshot,
+)
 # Sprint 203 R9: cohort_retention contracts 删 (前端 sampling 03-tab 解耦, cohort-retention/matrix API 移除)
 
 __all__ = [
@@ -54,5 +59,8 @@ __all__ = [
     "SamplingChannelSummary", "SamplingLevelSummary", "SamplingCategoryRow", "SamplingROITimeRange",
     "SamplingRepurchaseBucket", "SamplingRepurchaseDistribution", "SamplingRepurchaseTrackingBucket", "SamplingRepurchaseTrackingResponse", "SamplingROIResponse",
     "ApprovalRequest", "DiagnoseRequest", "DiagnoseResponse", "ExportResponse", "MissionResponse",
+    "AnalyticsB0Result", "AnalyticsCancelRequest", "AnalyticsConversation",
+    "AnalyticsConversationRequest", "AnalyticsErrorResponse", "AnalyticsRunAccepted",
+    "AnalyticsRunEvent", "AnalyticsRunRequest", "AnalyticsRunSnapshot",
     # Sprint 203 R9: SamplingLock*/Rolling*/CohortRetention 删
 ]  # noqa: E501

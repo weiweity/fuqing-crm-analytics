@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 芙清 CRM 本地栈一键启动。默认仅监听 loopback，端口可通过环境变量覆盖。
+# 伸美 AI 增长董事会本地栈一键启动。默认仅监听 loopback，端口可通过环境变量覆盖。
 set -euo pipefail
 
 CRM_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -185,7 +185,7 @@ frontend_healthy() {
   local body
   body="$(curl -fsS --max-time 2 "http://127.0.0.1:$FRONTEND_PORT/" 2>/dev/null)" \
     || return 1
-  [[ "$body" == *'<title>芙清 CRM - 数据分析平台</title>'* ]]
+  [[ "$body" == *'<title>伸美 AI 增长董事会</title>'* ]]
 }
 
 trap on_exit EXIT
@@ -280,7 +280,8 @@ if [[ "$frontend_existing" -eq 1 ]]; then
 else
   [[ -z "$frontend_owner" ]] || fail "port $FRONTEND_PORT is owned by unrelated PID $frontend_owner"
   VITE_API_PROXY="${VITE_API_PROXY:-http://127.0.0.1:$API_PORT}" \
-    nohup "$VITE_BIN" --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort \
+    nohup "$VITE_BIN" "$CRM_ROOT/frontend-vue3" \
+      --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort \
       > "$FRONTEND_LOG" 2>&1 &
   frontend_pid=$!
   frontend_started=1

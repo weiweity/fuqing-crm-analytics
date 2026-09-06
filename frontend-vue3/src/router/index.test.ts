@@ -40,6 +40,23 @@ describe('router auth guard (Admin Upload route removed)', () => {
     expect(router.currentRoute.value.path).toBe('/audience')
   })
 
+  it('local demo opens from /login with no token or admin privilege', async () => {
+    const auth = useAuthStore()
+    auth.localDemoNoLogin = true
+    await router.push('/login?redirect=/ops')
+    expect(router.currentRoute.value.path).toBe('/growth-board')
+    expect(auth.isAuthenticated).toBe(false)
+    expect(auth.isAdmin).toBe(false)
+  })
+
+  it('local demo does not expose real-data or admin views', async () => {
+    useAuthStore().localDemoNoLogin = true
+    for (const path of ['/audience', '/category', '/ops']) {
+      await router.push(path)
+      expect(router.currentRoute.value.path).toBe('/growth-board')
+    }
+  })
+
   it('authenticated root route opens the CEO growth board', async () => {
     const authStore = useAuthStore()
     authStore.setSession('token-user', 'fqsw', false)

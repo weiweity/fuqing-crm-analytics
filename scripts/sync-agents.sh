@@ -1,26 +1,17 @@
-#!/bin/bash
-# sync-agents.sh — 从 CLAUDE.md 生成 AGENTS.md（Codex 自动注入文件）
-# 用法: bash scripts/sync-agents.sh
-#
-# 规则: 改行为规则只改 CLAUDE.md，然后跑这个脚本同步到 AGENTS.md。
-# AGENTS.md 在 .gitignore 里，不进 git，仅供 Codex app 自动注入。
-#
-# Sprint 141 #P2: 不再全局替换 CLAUDE.md -> AGENTS.md，避免改坏历史
-# commit SHA 描述里的 "改 CLAUDE.md" 引用。
-
+#!/usr/bin/env bash
+# Compatibility command: validate the single source; never copy/overwrite it.
 set -euo pipefail
-
-cd "$(dirname "$0")/.."
-
-if [ ! -f CLAUDE.md ]; then
-  echo "❌ CLAUDE.md not found in project root"
-  exit 1
+if [ "$#" -gt 1 ] || { [ "$#" -eq 1 ] && [ "$1" != "--check" ]; }; then
+    echo "Usage: bash scripts/sync-agents.sh [--check]" >&2
+    exit 2
 fi
-
-cp CLAUDE.md AGENTS.md
-
-perl -i -pe 'if ($. == 1) { s/CLAUDE\.md/AGENTS.md/g }' AGENTS.md
-perl -i -pe 's/Claude Code 自动化配置/Codex 自动化配置/g' AGENTS.md
-
-echo "✅ AGENTS.md synced from CLAUDE.md ($(wc -l < AGENTS.md) lines, 精准替换 line 1 + 1 行)"
-echo "   (保留历史 commit SHA 描述里的 '改 CLAUDE.md' 引用)"
+RULE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ ! -s "$RULE_ROOT/AGENTS.md" ]; then
+    echo "AGENTS.md is missing or empty; restore the authoritative rules explicitly." >&2
+    exit 1
+fi
+if [ ! -f "$RULE_ROOT/CLAUDE.md" ] || ! cmp -s "$RULE_ROOT/CLAUDE.md" <(printf '%s\n' '@AGENTS.md'); then
+    echo "CLAUDE.md must contain only @AGENTS.md; review the diff before editing it." >&2
+    exit 1
+fi
+echo "PASS: AGENTS.md is authoritative; CLAUDE.md is an import-only entry. No files changed."

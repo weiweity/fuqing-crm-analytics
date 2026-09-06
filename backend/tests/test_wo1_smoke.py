@@ -38,3 +38,8 @@ class TestWO1Smoke:
         assert src.count('[WO-1 修复]') >= 3, (
             f"预期 ≥3 处 [WO-1 修复] 标记, 实际 {src.count('[WO-1 修复]')}"
         )
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+import pytest
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

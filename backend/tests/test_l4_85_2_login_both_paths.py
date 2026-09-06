@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -22,7 +21,6 @@ if str(PROJECT_ROOT) not in sys.path:
 # 测试用环境变量必须在导入 auth 之前设置
 # 注意: dotenv.load_dotenv() 在 import auth 时跑, 把 .env 的 FQ_CRM_PASSWORDS 加载了
 # setdefault 不生效, 必须用跟 .env 1:1 stable 配套的密码 (跟 L4.42 + L4.84 1:1 stable 配套)
-os.environ.setdefault("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
 
 from backend.routers import auth as auth_module  # noqa: E402
 from backend.routers import login_request as lr_module  # noqa: E402

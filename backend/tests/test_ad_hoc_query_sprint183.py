@@ -25,8 +25,8 @@ CLAUDE_MD_PATH = PROJECT_ROOT / "CLAUDE.md"
 # 测试是 macOS 端 L4.36 锁回归, Linux runner 应 skip 而非 fail.
 # 跟 L4.10 平台守卫永久规则同位.
 @pytest.mark.skipif(
-    sys.platform != "darwin",
-    reason="macOS-only: ~/.claude/skills/ 路径在 Linux CI runner 不存在 (Sprint 182/183/184 跨 3 sprint CI 复发)",
+    sys.platform != "darwin" or not SKILL_MD_PATH.is_file(),
+    reason="optional host skill is unavailable; repository contracts remain covered separately",
 )
 class TestSprint183L4Regression:
     """L4.36 锁回归: SKILL.md v2.2 + CLAUDE.md L4.36."""
@@ -82,21 +82,23 @@ class TestSprint183L4Regression:
 # Sprint 185 治根: test_claude_md_l4_36_added 跨平台 (CLAUDE.md 路径 project-relative),
 # 单独 class 不受 macOS-only skipif 守卫, Linux CI runner 也跑. 配套 L4.10/L4.39 永久规则.
 class TestSprint183L4CrossPlatform:
-    """L4.36 锁回归, 跨平台 (CLAUDE.md 在主仓, 不依赖 macOS 本地路径)."""
+    """跨平台验证兼容入口和历史 L4 技术细则，不恢复双份行为正文。"""
 
     def test_claude_md_l4_36_added(self):
-        """L4.35/L4.36 SSOT: CLAUDE 短索引 + docs/rules 全文（document-release 2026-07-19）。"""
+        """CLAUDE → AGENTS → L4 历史参考；保留 L4.35/L4.36 原文与顺序。"""
         import re
-        from pathlib import Path
 
         assert CLAUDE_MD_PATH.exists(), f"CLAUDE.md 不存在: {CLAUDE_MD_PATH}"
         claude = CLAUDE_MD_PATH.read_text(encoding="utf-8")
-        assert "L4.36" in claude, "CLAUDE.md 必须含 L4.36 永久规则（短索引或全文）"
+        assert claude.strip() == "@AGENTS.md", "CLAUDE.md 只维护 AGENTS 兼容引用"
+        agents_path = PROJECT_ROOT / "AGENTS.md"
+        assert agents_path.is_file(), "AGENTS.md 行为主源必须存在"
+        agents = agents_path.read_text(encoding="utf-8")
+        assert "docs/rules/L4-permanent-rules.md" in agents, "AGENTS 必须保留 L4 历史参考入口"
 
-        rules_path = Path(__file__).resolve().parents[2] / "docs" / "rules" / "L4-permanent-rules.md"
+        rules_path = PROJECT_ROOT / "docs" / "rules" / "L4-permanent-rules.md"
         assert rules_path.is_file(), f"L4 rules SSOT 不存在: {rules_path}"
-        rules = rules_path.read_text(encoding="utf-8")
-        content = claude + "\n" + rules
+        content = rules_path.read_text(encoding="utf-8")
 
         # 表格行 | **L4.N 或 | **L4.N–L4.M（短索引区间）
         rule_pattern = re.compile(r"^[ ]*\| \*\*L4\.(\d+)", re.MULTILINE)
@@ -104,7 +106,7 @@ class TestSprint183L4CrossPlatform:
             (int(m.group(1)), m.start())
             for m in rule_pattern.finditer(content)
         ]
-        assert rule_positions, "CLAUDE.md + L4-permanent-rules 缺 L4.x 表格行"
+        assert rule_positions, "L4-permanent-rules 缺历史 L4.x 表格行"
         rule_dict = dict(rule_positions)
         assert 35 in rule_dict and 36 in rule_dict, (
             f"需有 L4.35 / L4.36 规则段 (got keys={sorted(rule_dict)[:20]}...)"

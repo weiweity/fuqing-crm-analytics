@@ -1,48 +1,19 @@
 #!/usr/bin/env python3
-"""pre-push smart path classifier (Track A 2026-07-19 + finish 2026-07-19).
+"""Shared changed-path matrix for local validation and CI.
 
-Classify a list of changed file paths into one of:
-
-  skip    — docs / markdown / changelog / handoff / frontend-only → skip pytest
-  ruff    — scripts / hooks / tooling only → ruff check backend/
-  scoped  — only backend/tests/** (and skip/ruff companions) → pytest those files
-  full    — backend services/routers/middleware/db/main/requirements → full pytest
-
-Default for empty path list is full (unknown range). Callers that mean
-"branch delete only" must short-circuit in the shell before classify.
-
-Env (read by pre-push, not this module):
-  FQ_PRE_PUSH_SKIP=1     force skip
-  FQ_PRE_PUSH_MODE=...   force skip|ruff|scoped|full
+The backend, B0, Vue, tooling, dependency and deployment axes are independent.
+No files means an unknown range and conservatively selects backend + tooling.
 """
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import re
 import sys
 from pathlib import Path
 
 # --- path rules (POSIX-style relative paths from repo root) ---
-
-# Force full pytest if any path matches
-_FULL_PREFIXES = (
-    "backend/services/",
-    "backend/routers/",
-    "backend/middleware/",
-    "backend/db/",
-    "backend/contracts/",
-    "backend/semantic/",
-    "backend/auth/",
-)
-_FULL_EXACT = frozenset(
-    {
-        "backend/main.py",
-        "requirements.txt",
-        "requirements-lock.txt",
-        "pyproject.toml",
-    }
-)
-_FULL_NAME_RE = re.compile(r"^requirements.*\.txt$")
 
 # Tests-only → scoped (not full suite)
 _TEST_PREFIXES = (
@@ -84,32 +55,11 @@ _SKIP_NAME_RE = re.compile(
 )
 _SKIP_MD_RE = re.compile(r"\.md$", re.IGNORECASE)
 
-# Ruff / tooling path (no full pytest required if only these + skip)
-_RUFF_PREFIXES = (
-    "scripts/",
-    "backend/scripts/",
-    ".githooks/",
-    ".github/",
-)
-
-
 def _norm(path: str) -> str:
     p = path.strip().replace("\\", "/")
     while p.startswith("./"):
         p = p[2:]
     return p
-
-
-def is_full_path(path: str) -> bool:
-    """Business / config paths that require full pytest (not tests-only)."""
-    p = _norm(path)
-    if not p:
-        return False
-    if p in _FULL_EXACT:
-        return True
-    if _FULL_NAME_RE.match(p):
-        return True
-    return any(p.startswith(pref) for pref in _FULL_PREFIXES)
 
 
 def is_test_path(path: str) -> bool:
@@ -142,13 +92,6 @@ def is_skip_path(path: str) -> bool:
     return False
 
 
-def is_ruff_path(path: str) -> bool:
-    p = _norm(path)
-    if not p:
-        return False
-    return any(p.startswith(pref) for pref in _RUFF_PREFIXES)
-
-
 def scoped_pytest_targets(paths: list[str]) -> list[str]:
     """Return unique backend/tests/*.py paths suitable for scoped pytest argv."""
     out: list[str] = []
@@ -158,7 +101,7 @@ def scoped_pytest_targets(paths: list[str]) -> list[str]:
         if not is_test_path(p):
             continue
         # only .py test modules (skip __pycache__, snapshots, etc.)
-        if not p.endswith(".py"):
+        if not p.endswith(".py") or not Path(p).name.startswith("test_"):
             continue
         if p not in seen:
             seen.add(p)
@@ -166,33 +109,106 @@ def scoped_pytest_targets(paths: list[str]) -> list[str]:
     return out
 
 
-def classify_paths(paths: list[str]) -> str:
-    """Return 'skip' | 'ruff' | 'scoped' | 'full' for a changed-file list."""
-    files = [_norm(p) for p in paths if _norm(p)]
+B0_PREFIXES = ('dsh-plugins/analytics-workbench/', 'scripts/dsh-b0/',
+               'backend/services/analytics/', 'backend/tests/analytics_')
+B0_EXACT = {'backend/contracts/analytics.py', 'backend/semantic/analytics_b0.py',
+            '.github/workflows/dsh-b0.yml'}
+SHARED = {'backend/tests/conftest.py', 'pyproject.toml', 'requirements.txt',
+          'requirements-lock.txt', 'uv.lock', 'scripts/run_backend_tests_bounded.py'}
+TOOL_TESTS = [
+    'backend/tests/test_git_hook_boundaries.py',
+    'backend/tests/test_pre_push_smart_path.py',
+    'backend/tests/test_precommit_changelog.py',
+    'backend/tests/test_agent_rule_entrypoints.py',
+    'backend/tests/test_claude_hooks.py',
+    'backend/tests/test_branch_cleanup.py',
+    'backend/tests/test_check_runner.py',
+    'backend/tests/test_excel_lint_index.py',
+    'backend/tests/test_check_l4_91_excel_export_ssot.py',
+    'backend/tests/test_github_actions_hardening.py',
+    'backend/tests/test_ci_e2e_env_config.py',
+    'backend/tests/test_ci_lfs_checkout.py',
+]
+
+
+def is_b0_path(path: str) -> bool:
+    return (path in B0_EXACT or path.startswith(B0_PREFIXES)
+            or (path.startswith('backend/analytics') and path.endswith('.py'))
+            or path.startswith('backend/tests/test_analytics_'))
+
+
+def verification_plan(paths: list[str]) -> dict:
+    """Independent axes, so mixed changes never lose another module's checks.
+
+    Deleted files remain in the input plan. The runner checks existence only
+    when forming an executable target; missing test modules expand to full.
+    """
+    files = sorted({_norm(p) for p in paths if _norm(p)})
+    plan = {'backend': 'none', 'b0': False, 'frontend': False,
+            'tooling': False, 'deployment': False, 'dependencies': False,
+            'targets': [], 'files': files}
+    for p in files:
+        if p in SHARED:
+            plan['backend'] = 'full'
+            plan['tooling'] = True
+            if p not in {'backend/tests/conftest.py', 'scripts/run_backend_tests_bounded.py'}:
+                plan['dependencies'] = True
+                plan['b0'] = True
+        elif is_b0_path(p):
+            plan['b0'] = True
+            if p.startswith('.github/'):
+                plan['tooling'] = True
+        elif p.startswith('frontend-vue3/'):
+            plan['frontend'] = True
+            if p.endswith(('package.json', 'package-lock.json')):
+                plan['dependencies'] = True
+            if '/assets/brand/' in p or p in {'frontend-vue3/src/App.vue',
+                  'frontend-vue3/src/composables/useFilterSync.ts',
+                  'frontend-vue3/public/shine-mage-mark.svg'}:
+                plan['b0'] = True
+            if p.endswith('Dockerfile'):
+                plan['deployment'] = True
+        elif p.startswith(('.githooks/', 'scripts/ci/', '.github/', '.claude/')) or p in {
+                'AGENTS.md', 'CLAUDE.md', 'scripts/branch_cleanup.py', 'scripts/setup-hooks.sh',
+                'scripts/sync-agents.sh', '.pre-commit-config.yaml'}:
+            plan['tooling'] = True
+            if p.startswith('.github/workflows/'):
+                plan['backend'] = 'full'
+                plan['frontend'] = True
+                plan['deployment'] = True
+                plan['dependencies'] = True
+        elif is_test_path(p):
+            if Path(p).name.startswith('test_') and p.endswith('.py'):
+                plan['targets'].append(p)
+                if plan['backend'] == 'none':
+                    plan['backend'] = 'scoped'
+            else:
+                plan['backend'] = 'full'
+        elif p in {'Dockerfile', 'docker-compose.yml', '.dockerignore'}:
+            plan['deployment'] = True
+            plan['backend'] = 'full'
+        elif p.startswith(('docs/operating/', 'docs/maintenance/', 'docs/validation-reports/')):
+            plan['tooling'] = True
+        elif is_skip_path(p):
+            continue
+        else:
+            # Unmapped code, offline ETL and root configuration are conservative.
+            plan['backend'] = 'full'
     if not files:
-        # empty diff → safe default full (unknown push range).
-        # Branch-delete-only must be handled in pre-push before calling us.
-        return "full"
-    if all(is_skip_path(p) for p in files):
-        return "skip"
-    if any(is_full_path(p) for p in files):
-        return "full"
-    # only tests (+ skip/ruff companions) → scoped pytest on those test files
-    non_soft = [p for p in files if not is_skip_path(p) and not is_ruff_path(p)]
-    if non_soft and all(is_test_path(p) for p in non_soft):
-        if scoped_pytest_targets(files):
-            return "scoped"
-        # tests/ but no .py (e.g. only fixtures json) → still full for safety
-        return "full"
-    if all(is_skip_path(p) or is_ruff_path(p) for p in files):
-        return "ruff"
-    # e.g. frontend-only: pre-push only runs backend pytest → skip full suite
-    frontend_only = all(
-        p.startswith("frontend-vue3/") or is_skip_path(p) for p in files
-    )
-    if frontend_only:
-        return "skip"
-    return "full"
+        plan['backend'] = 'full'
+        plan['tooling'] = True
+    return plan
+
+
+def classify_paths(paths: list[str]) -> str:
+    plan = verification_plan(paths)
+    if plan['backend'] == 'full':
+        return 'full'
+    if plan['backend'] == 'scoped':
+        return 'scoped'
+    if plan['b0'] or plan['frontend']:
+        return 'matrix'
+    return 'tooling' if plan['tooling'] else 'skip'
 
 
 def load_deselect_nodeids(ssot: Path | None = None) -> list[str]:
@@ -230,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print scoped pytest file targets for given paths and exit",
     )
+    parser.add_argument("--json", action="store_true", help="emit the shared check matrix")
+    parser.add_argument("--github-output", action="store_true", help="write CI job flags to GITHUB_OUTPUT")
     args = parser.parse_args(argv)
 
     if args.list_deselects:
@@ -251,8 +269,15 @@ def main(argv: list[str] | None = None) -> int:
             print(t)
         return 0
 
-    mode = classify_paths(paths)
-    print(mode)
+    plan = verification_plan(paths)
+    if args.github_output:
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+            for axis in ('b0', 'frontend', 'tooling', 'deployment', 'dependencies'):
+                output.write(f'{axis}={str(plan[axis]).lower()}\n')
+            output.write(f'backend={str(plan["backend"] != "none").lower()}\n')
+            output.write(f'checks={str(plan["backend"] != "none" or plan["tooling"]).lower()}\n')
+            output.write(f'plan={json.dumps(plan)}\n')
+    print(json.dumps(plan) if args.json else classify_paths(paths))
     return 0
 
 

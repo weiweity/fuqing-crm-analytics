@@ -20,7 +20,6 @@ user 7/11 报 Bug #2: 'A 运营登录后退出 (Cmd+Q), B 运营 20 秒后再次
 """
 from __future__ import annotations
 
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -31,7 +30,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-os.environ.setdefault("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
 
 from backend.routers import auth as auth_module  # noqa: E402
 

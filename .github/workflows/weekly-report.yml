@@ -1,6 +1,6 @@
 name: Weekly Health Report
 
-# B6 P3: 每周定时跑全量 pytest, 写 artifact + step summary, 趋势可见 (FOLLOWUPS.md §B6)
+# B6 P3: 每周定时运行合成 not-slow pytest, 写 artifact + step summary, 趋势可见 (FOLLOWUPS.md §B6)
 # 收益: 回归早 1 周发现, artifact 90 天保留可下载
 # 验收: GitHub repo → Actions → Weekly Health Report → 任意一次 run → Artifacts → pytest-results 下载
 
@@ -42,62 +42,17 @@ jobs:
         # 与 lint.yml / nightly 一致：只扫 backend/，避免 scripts/_archive 假失败
         run: ruff check backend/
 
-      - name: Run full pytest (C-class deselect SSOT + not slow, junit XML)
-        # 2026-07-21: 与 PR/nightly 口径对齐，避免 weekly 独跑 slow/C-class 假红且无 junit
-        run: |
-          set -euo pipefail
-          DESELECT_ARGS=()
-          while IFS= read -r tok; do
-            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
-          done < <(bash scripts/ci/pytest_deselect_args.sh)
-          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
-          PYTHONPATH=. pytest backend/tests/ --junitxml=pytest-results.xml -q -m "not slow" "${DESELECT_ARGS[@]}"
+      - name: Run synthetic backend profile (shared bounded runner)
+        run: python3 scripts/run_backend_tests_bounded.py --report-dir .context/checks/backend-ci
 
       - name: Upload pytest results artifact (90 天保留)
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: pytest-results
-          path: pytest-results.xml
+          path: .context/checks/backend-ci/
           retention-days: 90
 
-      - name: Write summary to step
+      - name: Write actual suite totals
         if: always()
-        run: |
-          {
-            echo "## Weekly pytest report"
-            if [ -f pytest-results.xml ]; then
-              python3 -c "
-          import xml.etree.ElementTree as ET
-          tree = ET.parse('pytest-results.xml')
-          root = tree.getroot()
-          print(f'tests={root.get(\"tests\")} failures={root.get(\"failures\")} errors={root.get(\"errors\")} skipped={root.get(\"skipped\")} time={root.get(\"time\")}s')
-          "
-            else
-              echo "tests=N/A (pytest-results.xml not generated)"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Generate ephemeral test credentials (masked)
-        # P0: 禁止 workflow 固定密码；每次 run 随机生成并 ::add-mask::
-        run: |
-          set -euo pipefail
-          ADMIN_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          FQSW_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          TESTUSER_PASS=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-          CREDS="admin:${ADMIN_PASS},fqsw:${FQSW_PASS},testuser:${TESTUSER_PASS}"
-          echo "::add-mask::${ADMIN_PASS}"
-          echo "::add-mask::${FQSW_PASS}"
-          echo "::add-mask::${TESTUSER_PASS}"
-          echo "::add-mask::${CREDS}"
-          {
-            echo "FQ_CRM_PASSWORDS=${CREDS}"
-            echo "E2E_ADMIN_USER=admin"
-            echo "E2E_ADMIN_PASSWORD=${ADMIN_PASS}"
-          } >> "$GITHUB_ENV"
-
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.14"
-          cache: 'pip'
-          cache-dependency-path: requirements-lock.txt
-
+        run: python3 scripts/ci/summarize_checks.py .context/checks/backend-ci >> "$GITHUB_STEP_SUMMARY"

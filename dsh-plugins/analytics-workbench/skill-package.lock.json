@@ -1,0 +1,12 @@
+{
+  "schema_version": "analytics-b0-skill-package/v1",
+  "name": "growth-analysis-b0",
+  "version": "b0-v1",
+  "scope": "B0_SYNTHETIC_ONLY",
+  "description": "B0 固定合成经营分析：先确认支持范围，再读取受控证据；恢复时不信任旧摘要，不执行审批或营销。",
+  "files": {
+    "SKILL.md": "6c89127d9a656a15c016cbd5ccb6991e685a0a115b2d05e401e66557fd235d73",
+    "references/evidence-policy.md": "6c6223d625c6f5ab0b6899c5d5d1643dd4cd2ee11c24488193b7d8b911cde245",
+    "assets/result-example.json": "c63b183bf258fe438a8f9055f21588ae26c9ebdbe7bc25098510464cae21f767"
+  }
+}

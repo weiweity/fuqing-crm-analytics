@@ -2,7 +2,11 @@
 
 Base URL: `/api/v1/missions`
 
-所有接口继承现有 Bearer 认证。每个业务响应都带 `data_provenance`，用于标识合成数据版本、固定观察日、内容哈希和指标版本。OpenAPI 在启动后可通过 `/docs` 查看。
+默认继承现有 Bearer 认证。仅显式开启的 loopback 本地合成演示可免 token，配置和恢复方式见 [README](./README.md#本地免登录2026-09-05)。业务 JSON 响应带 `data_provenance`，用于标识合成数据版本、固定观察日、内容哈希和指标版本；下载返回 CSV。OpenAPI 在启动后可通过 `/docs` 查看。
+
+## 0. 本地访问能力
+
+`GET /api/v1/missions/access` 无需认证，返回 `{"local_demo_no_login": true|false, "scope": "synthetic_missions_only"}`，响应 `Cache-Control: no-store`。仅当本地双开关、请求来源检查和合成数据校验均通过时才返回 `true`；合成数据配置错误返回 `503`。不授予任何普通 CRM/API 或管理员权限。
 
 ## 1. 今日 Mission
 
@@ -47,7 +51,7 @@ Content-Type: application/json
 
 - `If-Match` 必须等于当前 Mission 版本，否则 `409`。
 - `Idempotency-Key` 相同且 body 相同时返回首次结果；同 key 换 body 时 `409`。
-- 审批人从已认证会话获取，客户端不能在 body 伪造。
+- 审批人从已认证会话获取；本地免登录模式固定为 `LOCAL_SYNTHETIC_DEMO`。客户端不能在 body 伪造。
 - 成功后状态为 `APPROVED`，版本加一。
 
 ## 4. 生成草稿人群
@@ -75,6 +79,21 @@ Authorization: Bearer <token>
 ```
 
 只能下载已在独立 SQLite 控制库登记的文件。浏览器端通过带 Bearer 的 API 请求获取 Blob，不把 token 放进 URL。
+
+## 6. 本地演示重置
+
+```http
+POST /api/v1/missions/{mission_id}/demo-reset
+Authorization: Bearer <admin-token>
+If-Match: 3
+Idempotency-Key: reset-<client-stable-key>
+```
+
+- 默认关闭；只有 `FQ_MISSION_DEMO_RESET_ENABLED=1`，且当前账号属于 `FQ_CRM_ADMINS` 或请求通过本地免登录演示校验时可用。
+- 重置后回到 `AWAITING_APPROVAL`，清除审批与最近导出状态，版本加一。
+- 旧合成 CSV 移入导出目录内的私有 `.reset-archive/`，不做不可恢复删除。
+- 不修改合成分析 DuckDB，更不会读取或写入真实 CRM DuckDB。
+- 公网部署保持该开关为 `0`。
 
 ## 状态流
 

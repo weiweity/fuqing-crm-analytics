@@ -179,6 +179,7 @@ class MissionService:
                 );
                 CREATE TABLE IF NOT EXISTS idempotency_records (
                     idempotency_key TEXT PRIMARY KEY,
+                    mission_id TEXT,
                     operation TEXT NOT NULL,
                     request_hash TEXT NOT NULL,
                     response_json TEXT NOT NULL,
@@ -208,6 +209,24 @@ class MissionService:
                 conn.execute(
                     "ALTER TABLE mission_exports ADD COLUMN holdout_count INTEGER NOT NULL DEFAULT 0"
                 )
+            idempotency_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(idempotency_records)")
+            }
+            if "mission_id" not in idempotency_columns:
+                conn.execute("ALTER TABLE idempotency_records ADD COLUMN mission_id TEXT")
+            legacy_records = conn.execute(
+                "SELECT idempotency_key, response_json FROM idempotency_records WHERE mission_id IS NULL"
+            ).fetchall()
+            for key, response_json in legacy_records:
+                try:
+                    legacy_mission_id = json.loads(str(response_json)).get("mission_id")
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    legacy_mission_id = None
+                if legacy_mission_id:
+                    conn.execute(
+                        "UPDATE idempotency_records SET mission_id=? WHERE idempotency_key=?",
+                        (str(legacy_mission_id), str(key)),
+                    )
             conn.execute(
                 """
                 INSERT OR IGNORE INTO mission_state
@@ -237,6 +256,10 @@ class MissionService:
                 "channel-customer-quality-v1",
             ],
         }
+
+    @staticmethod
+    def _demo_reset_enabled() -> bool:
+        return os.environ.get("FQ_MISSION_DEMO_RESET_ENABLED", "").strip() == "1"
 
     def _read_state(self, mission_id: str) -> sqlite3.Row:
         if mission_id != self.mission_id:
@@ -479,6 +502,7 @@ class MissionService:
                 if state["status"] == "WAITING_MEASUREMENT"
                 else None
             ),
+            "demo_controls": {"reset_enabled": self._demo_reset_enabled()},
             "data_provenance": self._provenance(),
         }
 
@@ -620,8 +644,12 @@ class MissionService:
             ).fetchone()
             response = self._build_snapshot(updated)
             conn.execute(
-                "INSERT INTO idempotency_records VALUES (?, 'approve', ?, ?, ?)",
-                (idempotency_key, request_hash, json.dumps(response, ensure_ascii=False), now),
+                """
+                INSERT INTO idempotency_records
+                    (idempotency_key, mission_id, operation, request_hash, response_json, created_at)
+                VALUES (?, ?, 'approve', ?, ?, ?)
+                """,
+                (idempotency_key, mission_id, request_hash, json.dumps(response, ensure_ascii=False), now),
             )
             conn.commit()
             return response
@@ -755,14 +783,142 @@ class MissionService:
                 "data_provenance": self._provenance(),
             }
             conn.execute(
-                "INSERT INTO idempotency_records VALUES (?, 'draft_export', ?, ?, ?)",
-                (idempotency_key, request_hash, json.dumps(response, ensure_ascii=False), now),
+                """
+                INSERT INTO idempotency_records
+                    (idempotency_key, mission_id, operation, request_hash, response_json, created_at)
+                VALUES (?, ?, 'draft_export', ?, ?, ?)
+                """,
+                (idempotency_key, mission_id, request_hash, json.dumps(response, ensure_ascii=False), now),
             )
             conn.commit()
             return response
         except MissionServiceError:
             conn.rollback()
             raise
+        finally:
+            conn.close()
+
+    def reset_demo(
+        self,
+        mission_id: str,
+        actor: str,
+        if_match: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        """Restore the synthetic Mission to its judge-demo starting state.
+
+        This path is independently gated from the Mission demo itself. Existing
+        synthetic exports are moved into a private recovery archive instead of
+        being deleted, and the read-only analysis DuckDB is never opened for write.
+        """
+        if not self._demo_reset_enabled():
+            raise MissionServiceError(404, "Mission 演示重置未启用")
+        if mission_id != self.mission_id:
+            raise MissionServiceError(404, "Mission 不存在")
+
+        expected_version = _parse_version(if_match)
+        request_hash = _canonical_hash({"mission_id": mission_id, "actor": actor})
+        now = _utc_now()
+        moved_exports: list[tuple[Path, Path]] = []
+        conn = sqlite3.connect(self.control_db)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            existing = conn.execute(
+                "SELECT * FROM idempotency_records WHERE idempotency_key = ?",
+                (idempotency_key,),
+            ).fetchone()
+            if existing:
+                if existing["operation"] != "demo_reset" or existing["request_hash"] != request_hash:
+                    raise MissionServiceError(409, "Idempotency-Key 已被其他请求使用")
+                conn.rollback()
+                return json.loads(existing["response_json"])
+
+            state = conn.execute(
+                "SELECT * FROM mission_state WHERE mission_id = ?",
+                (mission_id,),
+            ).fetchone()
+            if state is None:
+                raise MissionServiceError(404, "Mission 不存在")
+            if int(state["version"]) != expected_version:
+                raise MissionServiceError(409, f"Mission 版本已变更，当前为 {state['version']}")
+
+            export_rows = conn.execute(
+                "SELECT path FROM mission_exports WHERE mission_id = ? ORDER BY export_id",
+                (mission_id,),
+            ).fetchall()
+            export_paths: list[Path] = []
+            for row in export_rows:
+                export_path = Path(str(row["path"])).resolve()
+                if export_path.parent != self.export_dir:
+                    raise MissionServiceError(503, "DRAFT_EXPORT 路径越界，拒绝重置")
+                if export_path.exists() and not export_path.is_file():
+                    raise MissionServiceError(503, "DRAFT_EXPORT 不是普通文件，拒绝重置")
+                if export_path.is_file():
+                    export_paths.append(export_path)
+
+            if state["status"] == "AWAITING_APPROVAL" and not export_rows:
+                response = self._build_snapshot(state)
+                conn.execute(
+                    """
+                    INSERT INTO idempotency_records
+                        (idempotency_key, mission_id, operation, request_hash, response_json, created_at)
+                    VALUES (?, ?, 'demo_reset', ?, ?, ?)
+                    """,
+                    (idempotency_key, mission_id, request_hash, json.dumps(response, ensure_ascii=False), now),
+                )
+                conn.commit()
+                return response
+
+            archive_dir = self.export_dir / ".reset-archive" / mission_id / f"v{expected_version}"
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                os.chmod(self.export_dir / ".reset-archive", 0o700)
+                os.chmod(archive_dir.parent, 0o700)
+                os.chmod(archive_dir, 0o700)
+            except OSError:
+                pass
+            for export_path in export_paths:
+                archive_path = archive_dir / export_path.name
+                if archive_path.exists():
+                    raise MissionServiceError(409, "演示归档目标已存在，请核对后重试")
+                os.replace(export_path, archive_path)
+                moved_exports.append((export_path, archive_path))
+
+            conn.execute("DELETE FROM mission_exports WHERE mission_id = ?", (mission_id,))
+            conn.execute("DELETE FROM idempotency_records WHERE mission_id = ?", (mission_id,))
+            conn.execute(
+                """
+                UPDATE mission_state
+                SET status='AWAITING_APPROVAL', version=version+1,
+                    approved_by=NULL, approved_at=NULL, updated_at=?
+                WHERE mission_id=?
+                """,
+                (now, mission_id),
+            )
+            updated = conn.execute(
+                "SELECT * FROM mission_state WHERE mission_id = ?",
+                (mission_id,),
+            ).fetchone()
+            response = self._build_snapshot(updated)
+            conn.execute(
+                """
+                INSERT INTO idempotency_records
+                    (idempotency_key, mission_id, operation, request_hash, response_json, created_at)
+                VALUES (?, ?, 'demo_reset', ?, ?, ?)
+                """,
+                (idempotency_key, mission_id, request_hash, json.dumps(response, ensure_ascii=False), now),
+            )
+            conn.commit()
+            return response
+        except (MissionServiceError, OSError, sqlite3.Error) as exc:
+            conn.rollback()
+            for original_path, archive_path in reversed(moved_exports):
+                if archive_path.is_file() and not original_path.exists():
+                    os.replace(archive_path, original_path)
+            if isinstance(exc, MissionServiceError):
+                raise
+            raise MissionServiceError(503, "Mission 演示重置失败") from exc
         finally:
             conn.close()
 

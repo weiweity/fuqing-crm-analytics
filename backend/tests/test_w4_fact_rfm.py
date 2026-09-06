@@ -404,9 +404,9 @@ class TestW4ChannelAliasL419:
         """防 Binder Error: Referenced column "channel" not found (LATERAL 作用域)."""
         sql = _compute_batch_sql(date(2026, 6, 5), version=1)
         assert "FROM orders o" in sql
-        assert "o.channel = r.c" in sql
-        assert "o.spu_product_class = r.i" in sql
-        assert "DATE(o.pay_time) = r.d" in sql
+        assert "o.channel = sub.r.c" in sql
+        assert "o.spu_product_class = sub.r.i" in sql
+        assert "DATE(o.pay_time) = sub.r.d" in sql
         # 禁止 bare channel 过滤 (L4.19)
         assert "AND channel =" not in sql
         assert "AND channel = r.c" not in sql

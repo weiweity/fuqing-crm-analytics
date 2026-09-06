@@ -500,3 +500,7 @@ class TestSkipFlagBehavior:
             f"skip_w4=False 时 incremental_load_with_merge 应被调 1 次, "
             f"实际 {len(calls)} 次"
         )
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

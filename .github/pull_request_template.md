@@ -1,64 +1,24 @@
 # PR Checklist
 
-> 提交前请逐项打勾。**任何未完成的项必须说明原因**。
+行为与授权以根 [AGENTS.md](../AGENTS.md) 为准。本模板只核对本次 PR，不自动授权后续 Git、部署、重启或清理。
 
-## 必跑（CI 强制）
+## 变更与验证
 
-- [ ] `pytest backend/tests/ -x -q` 全绿（CI 自动跑）
-- [ ] `ruff check .` 无错误（CI 自动跑）
-- [ ] 已确认在 feature 分支（非 main）
+- [ ] 目标 base、分支和变更范围正确；未混入其他任务的修改。
+- [ ] 不含凭据、真实数据库、原始业务数据或私有运行目录。
+- [ ] 已完成对应动作需要的 review/QA，处理高风险问题；本地与 CI 结果绑定实际提交，不以旧测试数替代。
+- [ ] 按影响运行相关检查并保留 hooks；未执行项或失败有原因，不默认要求全量服务/数据库验证。
+- [ ] 如改契约/指标：语义、Schema/OpenAPI、调用方类型及展示/导出已核对；B0 与旧 CRM 的合同没有混用。
+- [ ] 如改规则：只维护 AGENTS.md 正文，`bash scripts/sync-agents.sh --check` 通过；相关 Skill/hook 无相反流程。
+- [ ] 如有用户可见变化/正式发布：对应状态、变更说明与真实验收一致；纯规则编辑不强制造版本更新。
 
-## 必跑（手工）
-
-- [ ] `/review` skill 已跑、已处理高/中风险点
-- [ ] 若涉及 schema/契约变更：`contracts/schemas.py` 和前端 `types.ts` 已同步
-- [ ] 若涉及 ETL 口径变更：`backend/semantic/` 已更新
-
-## Sprint 收口（merge 到 main 前必跑, 跟 12 步流程 §12 对齐）
-
-- [ ] **12 步流程全跑完**（`docs/operating/ship.md` 第 1-12 步）：branch / code / pytest / review / fix / commit / push / qa / merge / push main / pull / STATUS+CHANGELOG+VERSION
-- [ ] **跨文档一致性 check**（4 数字一致）：
-  ```
-  VERSION: $(cat VERSION)                  ← 实际写入
-  CHANGELOG 顶部 entry: [vX.Y.Z]            ← 跟 VERSION 一致
-  STATUS.md git HEAD (main): a1b2c3d        ← 跟 git rev-parse HEAD 一致
-  CLAUDE.md 行 4 main @: a1b2c3d           ← 跟 STATUS.md 一致
-  ```
-- [ ] **`/document-release` audit 已跑**（跨 sprint 范围, 不只改本 PR 的 docs）：
-  - `STATUS.md` / `CHANGELOG.md` / `docs/TECH-DEBT.md` / `docs/history/SPRINT_INDEX.md` 4 个文档 main HEAD 同步
-  - `docs/README.md` 索引完整（新增文档必须加索引）
-  - `README.md` 测试行 / ETL 日期 / CHANGELOG 版本引用 同步
-- [ ] **`/ship` audit trail 已追**（如果手动 merge 直 main, 必追 `.ship-audit.log` 4-5 行）
-- [ ] **`AGENTS.md` 跟 `CLAUDE.md` 同步**（CLAUDE.md 行 4 改完, 跑 `scripts/sync-agents.sh` 重生 AGENTS.md）
-
-## 强烈推荐
-
-- [ ] **已跑 `codegraph affected` 评估影响面**（在 PR 描述里贴结果）
-
-  ```bash
-  # 在项目根目录跑一次，把受影响的文件填到下面
-  codegraph affected $(git diff --name-only origin/main...HEAD) --quiet
-  ```
-
-  受影响测试文件：
-  ```
-  （粘贴 codegraph affected --quiet 输出）
-  ```
-
-  爆炸半径评估：
-  - [ ] 影响 ≤ 5 个文件
-  - [ ] 影响 6-20 个文件（**说明原因**）
-  - [ ] 影响 > 20 个文件（**必须**有充分理由 + reviewer 二次确认）
-
-- [ ] 已用 `codegraph_impact` 查过核心改动的影响面（若 PR > 100 行）
-
-## 描述
+## 说明
 
 ### 改了什么
-（一两句话讲清）
+描述本次变化及范围。
 
-### 怎么测的
-（关键 case 或截图）
+### 怎么验证
+列实际检查、关键用例及结果，区分静态、合成运行和真实业务验收。
 
-### 风险
-（可能炸的地方 + 缓解措施）
+### 风险与后续
+列剩余风险、回退条件和仍需授权的动作。

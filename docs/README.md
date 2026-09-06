@@ -9,6 +9,8 @@
 |---|---|
 | [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界 |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
+| [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
+| [`../DESIGN.md`](../DESIGN.md) | 伸美 VI、Liquid Glass 令牌与页面组件边界 |
 
 ## 一图流
 
@@ -22,7 +24,8 @@ fuqing-crm-analytics/docs/
 │
 ├── hackathon/                         AI 增长董事会实现
 │   ├── README.md                     CEO 价值、主链与边界
-│   └── MISSION-API.md                 API、幂等与状态流
+│   ├── MISSION-API.md                 API、幂等与状态流
+│   └── ARCHITECTURE-AND-RELEASE-AUDIT.md  架构审计与提交清单
 │
 ├── architecture/                      为什么这样设计
 │   ├── AI_SAFETY_NET.md
@@ -75,9 +78,10 @@ fuqing-crm-analytics/docs/
 | 文件 | 职责 |
 |---|---|
 | `README.md` | 人读项目简介 |
+| `DESIGN.md` | 品牌、设计令牌、交互原则与组件边界 |
 | `STATUS.md` | **短状态表**（勿再堆编年） |
 | `VERSION` / `CHANGELOG.md` | 版本与近窗变更 |
-| `CLAUDE.md` | AI 硬规则 + 指针；L4 细则在 `docs/rules/` |
+| `AGENTS.md` | 唯一 AI 行为正文；CLAUDE 仅导入，L4 是按需技术历史 |
 | `HANDOVER.md` | 交接（gitignore 敏感信息） |
 | 工作区父目录 | `../README.md`（`fuqin-date` 地图） |
 
@@ -87,7 +91,7 @@ fuqing-crm-analytics/docs/
 |---|---|
 | 演示 AI 增长董事会 / 调用 Mission API | `hackathon/README.md` + `hackathon/MISSION-API.md` |
 | 项目能不能用 / 债指针 | 根 `STATUS.md` + `TECH-DEBT.md` |
-| 团队怎么合 PR | `operating/team-workflow-v1.md` |
+| 团队怎么合 PR | 根 `AGENTS.md`；`operating/team-workflow-v1.md` 仅作历史参考 |
 | 根目录该不该堆文件 | `operating/project-hygiene.md` |
 | 加 service / 写 SQL | `development/services.md` + `architecture/AI_SAFETY_NET.md` |
 | 写测试 | `development/testing.md` |

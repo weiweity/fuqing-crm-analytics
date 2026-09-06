@@ -338,14 +338,14 @@ def _compute_batch_sql(load_date: date, version: int) -> str:
         INSERT INTO {FACT_RFM_TABLE}
             (date, dimension_key, dimension_json, user_count, gmv, repurchase_count, segment_id, version)
         SELECT
-            r.d,
-            r.k,
-            CAST(r.j AS JSON),
+            sub.r.d,
+            sub.r.k,
+            CAST(sub.r.j AS JSON),
             agg.user_count,
             agg.gmv,
             agg.repurchase_count,
-            r.s,
-            r.v
+            sub.r.s,
+            sub.r.v
         FROM (SELECT unnest(?::STRUCT(d DATE, c VARCHAR, i VARCHAR, k VARCHAR, j VARCHAR, s INTEGER, v INTEGER)[]) AS r) sub
         CROSS JOIN LATERAL (
             SELECT
@@ -358,9 +358,9 @@ def _compute_batch_sql(load_date: date, version: int) -> str:
                     o.actual_amount,
                     COUNT(o.order_id) OVER (PARTITION BY o.user_id) as cnt
                 FROM orders o
-                WHERE DATE(o.pay_time) = r.d
-                  AND o.channel = r.c
-                  AND o.spu_product_class = r.i
+                WHERE DATE(o.pay_time) = sub.r.d
+                  AND o.channel = sub.r.c
+                  AND o.spu_product_class = sub.r.i
                   AND {valid_sql}
             ) t
         ) agg
@@ -653,5 +653,4 @@ if __name__ == "__main__":
         inserted = run_mvp_async()
         print(f"W4 MVP 跑批完成: inserted={inserted} 行")
     sys.exit(0)
-
 
