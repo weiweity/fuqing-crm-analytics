@@ -69,7 +69,7 @@ const baseMission = {
 
 describe('GrowthBoardView', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     sessionStorage.clear()
     setActivePinia(createPinia())
     useAuthStore().setSession('test-token', 'JUDGE_DEMO', true)
@@ -342,6 +342,57 @@ describe('GrowthBoardView', () => {
     await flushPromises()
 
     expect(wrapper.find('.reset-demo-button').exists()).toBe(false)
+  })
+
+  it.each(['success', 'failure'])('重置后忽略旧问数的延迟 %s，且不结束新请求', async (outcome) => {
+    api.getTodayMission.mockResolvedValue({ ...structuredClone(baseMission), demo_controls: { reset_enabled: true } })
+    const oldRequest = Promise.withResolvers<any>()
+    const newRequest = Promise.withResolvers<any>()
+    api.diagnoseMission.mockReturnValueOnce(oldRequest.promise).mockReturnValueOnce(newRequest.promise)
+    const wrapper = mount(GrowthBoardView)
+    await flushPromises()
+    await wrapper.findAll('.prompt-chips button')[0].trigger('click')
+    await wrapper.get('.reset-demo-button').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.prompt-chips button')[1].trigger('click')
+    expect(api.diagnoseMission).toHaveBeenCalledTimes(2)
+
+    if (outcome === 'success') oldRequest.resolve({ answer: '重置前旧答案', limitations: [] })
+    else oldRequest.reject(new Error('重置前旧错误'))
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('重置前旧')
+    expect(wrapper.get('.ask-form button').text()).toContain('正在诊断')
+
+    newRequest.resolve({ answer: '重置后新答案', limitations: [] })
+    await flushPromises()
+    expect(wrapper.text()).toContain('重置后新答案')
+    expect(wrapper.get('.ask-form button').text()).toContain('生成诊断')
+    wrapper.unmount()
+  })
+
+  it.each(['success', 'failure'])('重置等待期间隔离旧问数的 %s，拒绝插入新问数', async (outcome) => {
+    api.getTodayMission.mockResolvedValue({ ...structuredClone(baseMission), demo_controls: { reset_enabled: true } })
+    const oldRequest = Promise.withResolvers<any>()
+    const resetRequest = Promise.withResolvers<any>()
+    api.diagnoseMission.mockReturnValueOnce(oldRequest.promise)
+    api.resetMission.mockReturnValueOnce(resetRequest.promise)
+    const wrapper = mount(GrowthBoardView)
+    await flushPromises()
+    await wrapper.findAll('.prompt-chips button')[0].trigger('click')
+    await wrapper.get('.reset-demo-button').trigger('click')
+    if (outcome === 'success') oldRequest.resolve({ answer: '重置前旧答案', limitations: [] })
+    else oldRequest.reject(new Error('重置前旧错误'))
+    await flushPromises()
+    await wrapper.findAll('.prompt-chips button')[1].trigger('click')
+    expect(api.diagnoseMission).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).not.toContain('重置前旧')
+    resetRequest.reject(new Error('重置失败可重试'))
+    await flushPromises()
+    expect(wrapper.text()).toContain('重置失败可重试')
+    await wrapper.findAll('.prompt-chips button')[1].trigger('click')
+    await flushPromises()
+    expect(api.diagnoseMission).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
   })
 
   it('管理员可把演示恢复到审批前并清空页面临时结果', async () => {

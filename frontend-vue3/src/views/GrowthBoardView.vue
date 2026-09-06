@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import BusinessQuery from '@/features/mission/components/BusinessQuery.vue'
 import ChannelPortfolio from '@/features/mission/components/ChannelPortfolio.vue'
 import ImpactForecast from '@/features/mission/components/ImpactForecast.vue'
@@ -29,6 +29,7 @@ const asking = ref(false)
 const acting = ref(false)
 const errorMessage = ref('')
 const operationKeys = new Map<string, string>()
+let queryGeneration = 0
 
 const promptChips = [
   '哪个渠道粘性最强？',
@@ -72,17 +73,19 @@ async function loadMission() {
 
 async function ask(nextQuestion?: string) {
   const submitted = (nextQuestion ?? question.value).trim()
-  if (!submitted || asking.value) return
+  if (!submitted || asking.value || acting.value) return
+  const generation = ++queryGeneration
   question.value = submitted
   diagnosis.value = null
   asking.value = true
   errorMessage.value = ''
   try {
-    diagnosis.value = await diagnoseMission(submitted)
+    const result = await diagnoseMission(submitted)
+    if (generation === queryGeneration) diagnosis.value = result
   } catch (error: any) {
-    errorMessage.value = error?.message || '问数失败'
+    if (generation === queryGeneration) errorMessage.value = error?.message || '问数失败'
   } finally {
-    asking.value = false
+    if (generation === queryGeneration) asking.value = false
   }
 }
 
@@ -131,6 +134,9 @@ async function downloadExport() {
 
 async function resetDemo() {
   if (!mission.value || acting.value || !canReset.value) return
+  // Invalidate before awaiting reset, including its failure path.
+  ++queryGeneration
+  asking.value = false
   acting.value = true
   errorMessage.value = ''
   try {
@@ -151,6 +157,7 @@ async function resetDemo() {
 }
 
 onMounted(loadMission)
+onBeforeUnmount(() => { ++queryGeneration })
 </script>
 
 <template>
