@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 const events = new Set(['start', 'heartbeat', 'mock-ready', 'kernel-start', 'kernel-exit',
   'host-start', 'host-close', 'host-ready', 'signal', 'stop-start', 'stop-complete',
-  'startup-error', 'fatal', 'exit']);
+  'startup-error', 'diagnostic-pipe-closed', 'fatal', 'exit']);
 const signals = new Set(['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGKILL', 'SIGHUP', 'SIGABRT']);
 const reasons = new Set(['SIGTERM', 'SIGINT', 'host-restart-failed', 'startup-failed', 'child-exit']);
 const codes = new Set(['EPIPE', 'ENOSPC', 'EIO', 'ENOENT', 'EACCES', 'ENOMEM',

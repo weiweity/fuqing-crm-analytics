@@ -23,8 +23,16 @@ export function namespaceToolCallLine(line, requestNumber) {
 }
 
 export async function startB0MockProvider(startOfficial, options) {
-  const official = await startOfficial({ ...options, host: '127.0.0.1', port: 0 });
-  assert.equal(new URL(official.baseURL).hostname, '127.0.0.1');
+  const { script, ...defaults } = options;
+  if (script) assert.ok(Array.isArray(script) && script.length > 0 && script.length <= 16);
+  const officials = [];
+  try {
+    for (const step of script ?? [{}]) {
+      const official = await startOfficial({ ...defaults, ...step, host: '127.0.0.1', port: 0 });
+      officials.push(official);
+      assert.equal(new URL(official.baseURL).hostname, '127.0.0.1');
+    }
+  } catch (error) { await Promise.all(officials.map(handle => handle.close())); throw error; }
   let requestNumber = 0;
   const inflight = new Set();
   const server = createServer((req, res) => {
@@ -36,6 +44,11 @@ export async function startB0MockProvider(startOfficial, options) {
         res.writeHead(404).end(); return;
       }
       const requestId = ++requestNumber;
+      const official = officials[script ? requestId - 1 : 0];
+      if (!official) {
+        res.writeHead(409, { 'content-type': 'application/json' }).end('{"error":"B0 fixture script exhausted"}');
+        return;
+      }
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
@@ -76,15 +89,15 @@ export async function startB0MockProvider(startOfficial, options) {
       server.once('error', reject);
       server.listen(options.port ?? 0, '127.0.0.1', () => { server.off('error', reject); resolve(); });
     });
-  } catch (error) { await official.close(); throw error; }
+  } catch (error) { await Promise.all(officials.map(handle => handle.close())); throw error; }
   return {
     baseURL: `http://127.0.0.1:${server.address().port}`,
-    get requests() { return official.requests; },
+    get requests() { return officials.flatMap(handle => handle.requests); },
     async close() {
       for (const abort of inflight) abort.abort();
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
-      await official.close();
+      await Promise.all(officials.map(handle => handle.close()));
     },
   };
 }

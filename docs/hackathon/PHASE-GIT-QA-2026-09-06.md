@@ -1,6 +1,6 @@
 # 阶段 Git 归档与合并前 QA
 
-日期：2026-09-06。范围：用户要求的第 1 项成果归档、第 2 项合并遗留处理。候选 commit `3c5a77ac0602c655a827fde3497a059716e40083`；[PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67)。整体 B0 仍为 PARTIAL。
+日期：2026-09-06（合并结果更新于 2026-09-07）。范围：用户要求的第 1 项成果归档、第 2 项合并遗留处理。[PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 已合并，最终候选 `c5b156636326d026b096ca4d7f6ea6c26945c91d`；下文早期候选/失败保留为审计过程。整体 B0 仍 PARTIAL。
 
 ## 成果与修复
 
@@ -41,3 +41,11 @@ Linux 峰值补丁采用当前进程映像的 `/proc/self/status` VmHWM，保留
 第三轮 Linux 已验证旧指标污染：[CI 34043450329](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34043450329) 中相同子进程的旧指标为 567083008 bytes，当前映像峰值约 71475200 bytes，原严格资源测试通过。新增回归的相邻峰值读数相差 20480 bytes，触发了不适用的逐字节单调断言；改为确认释放后仍保留 32 MiB 工作负载的峰值增量。[B0 34043450142](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34043450142) 同样只有此断言失败，原有 164 项通过，包括此前六项 UDF 故障测试。最终全绿结果仍以 PR 后续 checks 为准。
 
 历史 Excel 全仓审计仍有 32 项旧问题，未改变字段倍率。真实模型、业务 UAT、容量、数仓 ETL、公开交付及分支清理不属于本次通过结论。
+
+## 最终 Git 交付结果
+
+最终候选 `c5b1566` 的 [普通 CI 34043747216](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34043747216) 七个检查全部通过（后端 1725 PASS / 79 SKIP / 71 DESELECT）；[B0 CI 34043747203](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34043747203) 165 Python / 134 源 Node / 14 编译装配通过，干净构建一致。此前 Linux 失败已由本次远端结果替代，不删除失败记录。
+
+用户明确授权“合并 PR #67，不部署、不删分支”后，按精确候选 SHA 合并。GitHub 状态为 MERGED，合并时间 `2026-09-06T16:03:24Z`（北京时间 9 月 7 日 00:03），merge SHA `ee664690c64a2d1129bd3a53f086d3088b51b8ae`；已核对远端 main。未部署、删除分支、拉取本地 main 或覆盖其他工作树。
+
+第 3 项另在 `codex/b0-native-fault-validation` 本地执行，结果见 [T09](./B0-NATIVE-FAULT-2026-09-07.md)；其新增补丁未提交/推送，不属于上述 CI 或 merge SHA。

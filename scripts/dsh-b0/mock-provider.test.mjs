@@ -36,3 +36,23 @@ test('official mock wire uses distinct native IDs and observes actual client clo
     assert.equal(mock.requests[2].outcome, 'client_closed');
   } finally { await mock.close(); }
 });
+
+test('finite multi-tool script configures official producers and refuses exhaustion', async () => {
+  const mock = await startB0MockProvider(startMockLlmServer, { port: 0, apiKey: 'test-stub-only',
+    sequence: ['tool_call_success'], script: [
+      { toolName: 'analytics_b0_query', toolArguments: '{"query":"channel_repeat_rate"}' },
+      { toolName: 'skill', toolArguments: '{"name":"growth-analysis-b0"}' },
+    ] });
+  const request = () => fetch(`${mock.baseURL}/v1/chat/completions`, { method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer test-stub-only' }, body: '{}' });
+  try {
+    const first = await (await request()).text();
+    const second = await (await request()).text();
+    assert.ok(first.includes('analytics_b0_query') && first.includes('b0-request-1:mock-call-1'));
+    assert.ok(second.includes('"name":"skill"') && second.includes('b0-request-2:mock-call-1'));
+    const exhausted = await request();
+    assert.equal(exhausted.status, 409);
+    await exhausted.text();
+    assert.equal(mock.requests.length, 2);
+  } finally { await mock.close(); }
+});

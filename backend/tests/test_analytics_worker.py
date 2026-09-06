@@ -82,6 +82,30 @@ def test_fixture_pollution_is_rejected_without_default_path_or_execution(tmp_pat
     assert not (tmp_path / "never-open.duckdb").exists()
 
 
+@pytest.mark.parametrize("pollution", ["manifest", "missing-database"])
+def test_fixture_changed_after_startup_has_durable_worker_failure_and_releases_slot(tmp_path, pollution):
+    store, _, intent, step, fixture = setup_worker(tmp_path)
+    manager = WorkerManager(store, lambda _: actor(), fixture)
+    directory = Path(fixture.directory)
+    if pollution == "manifest":
+        with (directory / "manifest.json").open("a") as stream:
+            stream.write(" ")
+    else:
+        (directory / "fixture.duckdb").unlink()
+    with pytest.raises(AnalyticsError, match="TOOL_FAILED"):
+        manager.execute(actor(), intent, step)
+    fresh = RunStore(store.directory, profile())
+    records = fresh.worker_records(active_only=False)
+    assert len(records) == 1
+    assert records[0]["pid"] > 0 and records[0]["state"] == "EXITED"
+    assert records[0]["active_slot"] is None and records[0]["error_code"] == "TOOL_FAILED"
+    assert fresh.worker_records() == []
+    done = fresh.observe(actor(), observation(intent, "FAILED", error_code="MODEL_FAILED"))
+    assert done.status == "FAILED" and done.diagnostics.error_code == "TOOL_FAILED"
+    assert done.result is None and not done.diagnostics.execution_active
+    assert fresh.runtime_work(session_id=intent.session_id, request_id=intent.request_id)[0]["steps"] == {}
+
+
 def test_live_execution_lease_fences_native_terminal_and_step_commit(tmp_path):
     store, _, intent, step, fixture = setup_worker(tmp_path)
     execution_id = "exec_" + "a" * 32

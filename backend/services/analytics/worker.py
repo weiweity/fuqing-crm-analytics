@@ -114,7 +114,9 @@ class WorkerManager:
         return None
 
     def execute(self, principal, intent, step):
-        self.fixture.validate()
+        # The child validates before opening DuckDB and again before emitting a
+        # result. Execute-time validation belongs inside that leased protocol:
+        # a parent preflight exception would leave no durable failure/exit proof.
         execution_id = "exec_" + uuid4().hex
         fd, dev, ino, temporary = create_lease(self.store.directory, execution_id)
         binding = {"execution_id": execution_id, "run_id": intent.run_id,

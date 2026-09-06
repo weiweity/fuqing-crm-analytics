@@ -14,16 +14,20 @@ import { findReadyUrl, redactLaunchLog } from './transport-safety.mjs';
 import { runtimeCodeRoot } from './runtime-paths.mjs';
 import { startB0MockProvider } from './mock-provider.mjs';
 import { observeLifecycle } from './lifecycle-observer.mjs';
+import { createDiagnosticSink } from './diagnostic-sink.mjs';
 import { packSkills } from '../../dsh-plugins/analytics-workbench/pack-skills.mjs';
 import { packageDigest } from '../../dsh-plugins/analytics-workbench/src/skill-package.mjs';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const b0 = join(root, '.context/dsh-b0');
 const upstream = join(b0, 'upstream');
-const [pythonFlag, python, pluginFlag, pluginArg, ...extra] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const cardScenario = args.at(-1) === '--native-cards';
+if (cardScenario) args.pop();
+const [pythonFlag, python, pluginFlag, pluginArg, ...extra] = args;
 assert.ok(pythonFlag === '--python' && python && isAbsolute(python) && !extra.length
   && (pluginFlag === undefined || (pluginFlag === '--plugin' && pluginArg && isAbsolute(pluginArg))),
-'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin]');
+'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards]');
 assert.equal(process.platform, 'darwin', 'The native verification runner requires the macOS Seatbelt profile');
 assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Use Node 24');
 const plugin = await realpath(pluginArg ?? join(root, 'dsh-plugins/analytics-workbench'));
@@ -51,6 +55,8 @@ await Promise.all([4315, 4316, 4318, webPort, mockPort].map(assertFree));
 await mkdir(b0, { recursive: true, mode: 0o700 });
 const runtime = await mkdtemp(join(b0, 'runtime-'));
 const lifecycle = observeLifecycle(runtime);
+const diagnostics = createDiagnosticSink(process.stderr,
+  () => lifecycle.record('diagnostic-pipe-closed', { errorCode: 'EPIPE' }));
 const ownHome = join(runtime, 'harness');
 const workspace = join(runtime, 'synthetic-workspace');
 const presets = join(runtime, 'presets');
@@ -121,6 +127,15 @@ const environment = {
 };
 const { startMockLlmServer } = await import(pathToFileURL(join(upstream, 'packages/test-support/llm-mock-server/lib/index.js')).href);
 const mock = await startB0MockProvider(startMockLlmServer, { host: '127.0.0.1', port: mockPort, apiKey: 'b0-mock-only',
+  // Opt-in finite wire script: success, real worker fault (no next model step),
+  // native Skill card, recovered query. No tool or journal outcome is fabricated.
+  ...(cardScenario ? { script: [
+    { sequence: ['tool_call_success'] }, { sequence: ['success'] },
+    { sequence: ['tool_call_success'] },
+    { sequence: ['tool_call_success'], toolName: 'skill', toolArguments: JSON.stringify({ name: 'growth-analysis-b0' }) },
+    { sequence: ['tool_call_success'] }, { sequence: ['success'] },
+    { sequence: ['tool_call_success'] }, { sequence: ['success'] },
+  ] } : {}),
   sequence: ['tool_call_success', 'success', 'tool_call_success', 'success', 'slow_success', 'tool_call_success', 'success', 'server_error',
     'slow_success', 'tool_call_success', 'success'],
   toolName: 'analytics_b0_query', toolArguments: JSON.stringify({ query: 'channel_repeat_rate' }),
@@ -162,12 +177,13 @@ function startKernel() {
   lifecycle.record('kernel-start', { childPid: owned.pid, generation });
   owned.once('exit', (exitCode, signal) => lifecycle.record('kernel-exit', { childPid: owned.pid, generation, exitCode, signal }));
   kernel.stdin.end(JSON.stringify(kernelConfig) + '\n');
-  kernel.stderr.on('data', chunk => { process.stderr.write(String(chunk).replaceAll(runtimeToken, '[REDACTED]').replaceAll(gatewayToken, '[REDACTED]')); });
+  kernel.stderr.on('data', chunk => { diagnostics.write(String(chunk).replaceAll(runtimeToken, '[REDACTED]').replaceAll(gatewayToken, '[REDACTED]')); });
   kernelExit = new Promise(ok => { kernel.once('exit', ok); kernel.once('error', ok); });
 }
 async function writeCurrent() {
   await writeJson(currentPath, { runtime, supervisorPid: process.pid, childPid: child?.pid,
-    kernelPid: kernel?.pid, kernelGeneration, hostGeneration, hostReadyGeneration, webPort, mockPort, pinned, plugin });
+    kernelPid: kernel?.pid, kernelGeneration, hostGeneration, hostReadyGeneration, webPort, mockPort, pinned, plugin,
+    verificationScenario: cardScenario ? 'native-cards' : 'lifecycle' });
 }
 async function bootHost() {
   hostGeneration++;
