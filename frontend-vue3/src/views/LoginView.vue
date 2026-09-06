@@ -22,9 +22,9 @@
       <div class="form-wrapper">
         <div class="header-group">
           <BrandMark class="mobile-brand" />
-          <span>LOCAL DEMO ACCESS</span>
+          <span>WORKSPACE ACCESS</span>
           <h2 class="welcome-title">进入增长董事会</h2>
-          <p class="subtitle">本地演示环境 · 合成数据 · 不含真实用户信息</p>
+          <p class="subtitle">增长董事会演示使用合成数据；CRM 数据访问以账号权限为准。</p>
         </div>
 
         <form class="login-form" @submit.prevent="handleSubmit">
