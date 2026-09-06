@@ -722,19 +722,13 @@ def isolate_tmp_tracker(tmp_path):
 #   - 如果 synthetic fixture 跟 admin 走同一 user_id (实测: 跟 token 解析逻辑), 命中 429
 #   - 触发 429 → ad_hoc_query_api test 失败
 #
-# 修法: autouse fixture 在每个 test 前 reset _rate_limit_buckets + _RATE_LIMIT_PER_MINUTE
-# 统一为 60 (跟 production 默认), 不让 test_rate_limit_sprint200.py 的 5 污染其他 test.
+# 当前修法: 此处只隔离请求桶。低阈值由限流测试自己的 monkeypatch fixture
+# 设置与恢复，不能在模块收集时写全局环境，也不在此覆盖调用方的显式配置。
 # ─────────────────────────────────────────────────────────────
 
 @pytest.fixture(autouse=True)
 def reset_rate_limit_buckets():
-    """Sprint 201 R1: per-test reset rate limit bucket (不强制 RATE_LIMIT_PER_MINUTE).
-
-    Sprint 201 R1+ R2 v3 (L4.50 candidate followup): 不强制覆盖 RATE_LIMIT_PER_MINUTE=60, 避免
-    覆盖 test_rate_limit_sprint200.py module-scope 设的 5 (跟之前 sprint stable 1:1).
-    只清 _rate_limit_buckets 字典, env 留给 test 自己管 (test_rate_limit_sprint200.py:17
-    设 5, 其他 test 不设就走 production default 60).
-    """
+    """隔离每个用例的请求桶；阈值由用例夹具设置并恢复，不覆盖显式环境。"""
     import backend.main as _main
 
     # Reset module-level _rate_limit_buckets 字典 (不强制覆盖 env)
