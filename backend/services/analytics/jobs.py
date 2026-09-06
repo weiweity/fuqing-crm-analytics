@@ -182,6 +182,21 @@ class StepReservation:
 
 
 @dataclass(frozen=True)
+class QueryStepBinding:
+    """Trusted frozen query step identity. Callers cannot replace scope or fixture."""
+
+    run_id: str
+    attempt_id: str
+    step_id: str
+    family: str
+    request: ChannelFollowupQueryRequest
+    resolved_filters: dict
+    fixture: ChannelFollowupFixtureDescriptor
+    permission_scope: str
+    method_package_digest: str
+
+
+@dataclass(frozen=True)
 class ExecutionObservation:
     """Trusted adapter evidence, never deserialized from a model or public API.
 
@@ -527,22 +542,84 @@ class RunStore:
     def _decode_query_result(self, con, row, step, encoded: str, binding: ChannelFollowupRunBinding) -> ChannelFollowupResult:
         frozen = self._inspect_query_step(con, row, step, binding)
         try:
-            result = ChannelFollowupResult.model_validate_json(encoded)
+            payload = json.loads(encoded)
+            # Family-fixed codec: never select a result type from schema_version.
+            result = ChannelFollowupResult.model_validate(payload)
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询结果与冻结绑定不一致。") from None
         resolved = frozen["resolved_filters"]
+        request = frozen["request"]
+        dumped = result.resolved_filters.model_dump(mode="json")
         if (
             result.query_version != QUERY_VERSION
             or result.metric_version != METRIC_VERSION
             or result.data_version != DATA_VERSION
+            or result.data_snapshot_ref != binding.fixture.snapshot_id
             or result.filter_hash != resolved["filter_hash"]
-            or result.resolved_filters.filter_hash != resolved["filter_hash"]
+            or dumped != resolved
+            or result.facts.observation_days != request["observation_days"]
             or result.resolved_filters.permission_scope != frozen["permission_scope"]
             or result.resolved_filters.data_digest != frozen["data_digest"]
+            or result.resolved_filters.data_digest != binding.fixture.data_digest
             or canonical_rfc3339(result.as_of) != canonical_rfc3339(parse_query_datetime(resolved["as_of"]))
         ):
             raise AnalyticsError(409, "BINDING_MISMATCH", "查询结果与冻结步骤绑定不一致。")
         return result
+
+    def query_fixture_descriptor(self) -> ChannelFollowupFixtureDescriptor | None:
+        """Unique frozen fixture identity for this query store. No budget charge."""
+        if self.family != QUERY_RUN_FAMILY:
+            raise ValueError("query fixture identity is only defined for channel_followup stores")
+        with self._connection(readonly=True) as con:
+            con.execute("BEGIN")
+            self._assert_query_integrity(con)
+            row = con.execute("SELECT * FROM runs ORDER BY rowid LIMIT 1").fetchone()
+            if row is None:
+                return None
+            return self._inspect_query_run(con, row).fixture
+
+    def query_step_binding(self, principal: AnalyticsPrincipal, run_id: str, attempt_id: str,
+                           step_id: str) -> QueryStepBinding:
+        """Fresh authorized read of the frozen step. Callers cannot rebind scope."""
+        self._require(principal, "run:create")
+        if self.family != QUERY_RUN_FAMILY:
+            raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
+        with self._connection(readonly=True) as con:
+            con.execute("BEGIN")
+            row = self._run(con, principal, run_id)
+            binding = self._authorize_run(con, principal, row, "run:create")
+            if row["attempt_id"] != attempt_id:
+                raise _conflict()
+            step = con.execute(
+                "SELECT * FROM steps WHERE run_id=? AND attempt_id=? AND step_id=?",
+                (run_id, attempt_id, step_id),
+            ).fetchone()
+            if step is None:
+                raise _conflict()
+            frozen = self._inspect_query_step(con, row, step, binding)
+            return QueryStepBinding(
+                run_id=run_id, attempt_id=attempt_id, step_id=step_id, family=QUERY_RUN_FAMILY,
+                request=ChannelFollowupQueryRequest.model_validate(frozen["request"]),
+                resolved_filters=frozen["resolved_filters"], fixture=binding.fixture,
+                permission_scope=binding.permission_scope,
+                method_package_digest=binding.method_package_digest,
+            )
+
+    def _encode_query_result(self, result) -> str:
+        try:
+            payload = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
+            parsed = ChannelFollowupResult.model_validate(payload)
+        except Exception:
+            raise AnalyticsError(422, "INVALID_RESULT", "查询结果无法按冻结合同验收。") from None
+        encoded = canonical_json(parsed.model_dump(mode="json"))
+        if len(encoded.encode()) > self.profile.max_result_bytes:
+            raise AnalyticsError(422, "RESULT_TOO_LARGE", "结果超过本次 B0 的大小上限。")
+        return encoded
+
+    @staticmethod
+    def _query_worker_success(row) -> bool:
+        return (row is not None and row["state"] == "EXITED" and row["active_slot"] is None
+                and row["error_code"] is None and row["exit_code"] == 0)
 
     def _inspect_query_steps(self, con, row, binding: ChannelFollowupRunBinding) -> None:
         limit = self.profile.max_tool_steps
@@ -1191,13 +1268,13 @@ class RunStore:
             if self.family == QUERY_RUN_FAMILY:
                 self._inspect_query_step(con, row, step, binding)
                 exited = con.execute(
-                    "SELECT 1 FROM worker_executions WHERE step_id=? AND run_id=? AND attempt_id=? "
-                    "AND state='EXITED' AND active_slot IS NULL AND error_code IS NULL",
+                    "SELECT * FROM worker_executions WHERE step_id=? AND run_id=? AND attempt_id=?",
                     (step_id, run_id, attempt_id),
                 ).fetchone()
-                if exited is None:
+                if not self._query_worker_success(exited):
                     raise AnalyticsError(409, "WORKER_NOT_EXITED", "查询步骤尚未有已退出且释放租约的成功执行记录，不能提交结果。")
-                raise AnalyticsError(409, "QUERY_COMPLETE_NOT_ENABLED", "本版本不提交查询成功结果；需后续 worker 接线。")
+                encoded = self._encode_query_result(result)
+                self._decode_query_result(con, row, step, encoded, binding)
             if step["state"] == "SUCCEEDED":
                 if step["result_json"] != encoded:
                     raise _conflict()
@@ -1356,8 +1433,10 @@ class RunStore:
                     if step is None or pending:
                         raise AnalyticsError(409, "INCOMPLETE_EVIDENCE", "没有完整主结果或仍有未完成步骤，不能提交成功。")
                     if self.family == QUERY_RUN_FAMILY:
-                        raise AnalyticsError(409, "QUERY_COMPLETE_NOT_ENABLED", "本版本不提交查询成功结果；需后续 worker 接线。")
-                    result = AnalyticsB0Result.model_validate_json(step["result_json"])
+                        run_binding = self._inspect_query_run(con, row)
+                        result = self._decode_query_result(con, row, step, step["result_json"], run_binding)
+                    else:
+                        result = AnalyticsB0Result.model_validate_json(step["result_json"])
                 row = self._update(con, row, status=status, phase="FINALIZING", active_slot=None,
                                    error_code=error_code, result=result, primary_result_ref=primary)
                 con.execute("UPDATE dispatch_intents SET state='EXITED' WHERE run_id=?", (row["run_id"],))

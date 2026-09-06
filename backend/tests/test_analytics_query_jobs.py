@@ -309,12 +309,30 @@ def test_complete_requires_exited_worker_and_has_no_success_bypass(tmp_path):
         con.execute(
             "INSERT INTO worker_executions "
             "(execution_id, run_id, attempt_id, step_id, lease_dev, lease_ino, state, active_slot, deadline_ms) "
-            "VALUES (?, ?, ?, ?, 1, 1, 'EXITED', NULL, ?)",
+            "VALUES (?, ?, ?, ?, 1, 1, 'RUNNING', 1, ?)",
             ("exec_1", intent.run_id, intent.attempt_id, step.step_id, step.deadline_ms),
         )
-    with pytest.raises(AnalyticsError) as disabled:
+    with pytest.raises(AnalyticsError) as active:
         store.complete_step(query_actor(), intent.run_id, intent.attempt_id, step.step_id, {"ignored": True})
-    assert disabled.value.code == "QUERY_COMPLETE_NOT_ENABLED"
+    assert active.value.code == "WORKER_ACTIVE"
+    with sqlite_connection(store.path) as con:
+        con.execute(
+            "UPDATE worker_executions SET state='EXITED', active_slot=NULL, exit_code=NULL, error_code=NULL "
+            "WHERE execution_id='exec_1'",
+        )
+    with pytest.raises(AnalyticsError) as unknown:
+        store.complete_step(query_actor(), intent.run_id, intent.attempt_id, step.step_id, {"ignored": True})
+    assert unknown.value.code == "WORKER_NOT_EXITED"
+    with sqlite_connection(store.path) as con:
+        con.execute("UPDATE worker_executions SET exit_code=1 WHERE execution_id='exec_1'")
+    with pytest.raises(AnalyticsError) as nonzero:
+        store.complete_step(query_actor(), intent.run_id, intent.attempt_id, step.step_id, {"ignored": True})
+    assert nonzero.value.code == "WORKER_NOT_EXITED"
+    with sqlite_connection(store.path) as con:
+        con.execute("UPDATE worker_executions SET exit_code=0, error_code=NULL WHERE execution_id='exec_1'")
+    with pytest.raises(AnalyticsError) as invalid:
+        store.complete_step(query_actor(), intent.run_id, intent.attempt_id, step.step_id, {"ignored": True})
+    assert invalid.value.code == "INVALID_RESULT"
     with sqlite_connection(store.path) as con:
         assert con.execute("SELECT state FROM steps WHERE step_id=?", (step.step_id,)).fetchone()[0] == "STARTED"
         assert con.execute("SELECT result_json FROM steps WHERE step_id=?", (step.step_id,)).fetchone()[0] is None

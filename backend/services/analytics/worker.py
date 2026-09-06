@@ -9,6 +9,7 @@ import json
 import os
 import re
 import selectors
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -20,6 +21,8 @@ from uuid import uuid4
 import psutil
 
 from backend.contracts.analytics import AnalyticsB0Result
+from backend.contracts.analytics_query import ChannelFollowupResult
+from backend.contracts.analytics_query_run import QUERY_RUN_FAMILY
 from .access import AnalyticsError, require
 from .execution_lease import create_lease
 from .resource_profile import MIB
@@ -73,10 +76,18 @@ def temp_bytes(directory):
 class WorkerManager:
     def __init__(self, store, resolve_actor, fixture, *, launch=spawn_worker, fault_hook=None):
         fixture.validate()
+        if store.family == QUERY_RUN_FAMILY:
+            from backend.analytics_query_fixture import ChannelFollowupFixture
+            if type(fixture) is not ChannelFollowupFixture:
+                raise ValueError("channel_followup worker requires a sealed query fixture")
+            stored = store.query_fixture_descriptor()
+            if stored is not None and fixture.binding_descriptor() != stored.model_dump(mode="json"):
+                raise ValueError("worker fixture does not match the store binding")
         self.store, self.resolve_actor, self.fixture = store, resolve_actor, fixture
         self.launch, self.fault_hook = launch, fault_hook
         self._owned = set()
         self._mutex = threading.Lock()
+        self._result_type = ChannelFollowupResult if store.family == QUERY_RUN_FAMILY else AnalyticsB0Result
 
     def _hook(self, point, payload):
         if self.fault_hook is not None:
@@ -102,9 +113,22 @@ class WorkerManager:
         try:
             if principal is None or principal.actor_id != record["owner"]:
                 return "PERMISSION_REVOKED"
-            require(principal, "run:create")
-        except AnalyticsError:
-            return "PERMISSION_REVOKED"
+            require(principal, "run:create", data_scope=self.store.data_scope)
+            if self.store.family == QUERY_RUN_FAMILY:
+                try:
+                    self.store.query_step_binding(
+                        principal, record["run_id"], record["attempt_id"], record["step_id"],
+                    )
+                except sqlite3.DatabaseError:
+                    pass
+        except AnalyticsError as error:
+            if error.status in {401, 403} or error.code in {"FORBIDDEN", "PERMISSION_REVOKED"}:
+                return "PERMISSION_REVOKED"
+            if error.code == "QUERY_TIMEOUT":
+                return "TIMEOUT"
+            if error.code in {"FAMILY_MISMATCH", "BINDING_MISSING", "BINDING_CORRUPT"}:
+                return "TOOL_FAILED"
+            raise
         if record["cancel_reason"]:
             return "TOOL_FAILED" if record["cancel_reason"] == "USER_REQUEST" else record["cancel_reason"]
         if min(record["deadline_ms"], record["run_deadline_ms"]) <= self.store.clock():
@@ -113,10 +137,29 @@ class WorkerManager:
             return "EXECUTION_UNKNOWN"
         return None
 
+    def _child_config(self, principal, intent, step, binding, fd, temporary):
+        config = {"binding": binding, "profile": self.store.profile.model_dump(), "profile_hash": self.store.profile.digest,
+                  "fixture": asdict(self.fixture), "lease_fd": fd, "temp_dir": str(temporary)}
+        if self.store.family != QUERY_RUN_FAMILY:
+            return config
+        frozen = self.store.query_step_binding(principal, intent.run_id, intent.attempt_id, step.step_id)
+        config.update({
+            "family": QUERY_RUN_FAMILY,
+            "request": frozen.request.model_dump(mode="json"),
+            "permission_scope": frozen.permission_scope,
+            "fixture_descriptor": frozen.fixture.model_dump(mode="json"),
+            "resolved_filters": frozen.resolved_filters,
+        })
+        return config
+
     def execute(self, principal, intent, step):
         # The child validates before opening DuckDB and again before emitting a
         # result. Execute-time validation belongs inside that leased protocol:
         # a parent preflight exception would leave no durable failure/exit proof.
+        if step.disposition != "EXECUTE":
+            raise AnalyticsError(409, "CONFLICT", "请求、状态或版本已变化，请读取当前任务后核对。")
+        if self.store.family == QUERY_RUN_FAMILY:
+            self.store.query_step_binding(principal, intent.run_id, intent.attempt_id, step.step_id)
         execution_id = "exec_" + uuid4().hex
         fd, dev, ino, temporary = create_lease(self.store.directory, execution_id)
         binding = {"execution_id": execution_id, "run_id": intent.run_id,
@@ -130,8 +173,7 @@ class WorkerManager:
         try:
             self.store.begin_worker(principal, intent.run_id, intent.attempt_id, step.step_id, execution_id, dev, ino)
             registered = True
-            config = {"binding": binding, "profile": self.store.profile.model_dump(), "profile_hash": self.store.profile.digest,
-                      "fixture": asdict(self.fixture), "lease_fd": fd, "temp_dir": str(temporary)}
+            config = self._child_config(principal, intent, step, binding, fd, temporary)
             child = self.launch(config, fd)
             # Closing (not unlocking) leaves the inherited description held by
             # the child. There is no unleased interval before or after spawn.
@@ -209,7 +251,7 @@ class WorkerManager:
                                 elif frame["type"] == "result" and ready and result is None and not error:
                                     if frame["profile_hash"] != self.store.profile.digest:
                                         raise ValueError("profile drift")
-                                    result = AnalyticsB0Result.model_validate(frame["result"])
+                                    result = self._result_type.model_validate(frame["result"])
                                     self._hook("worker:result", {**binding, "pid": child.pid})
                                 elif frame["type"] == "error" and frame["code"] in {"TOOL_FAILED", "RESOURCE_EXCEEDED"}:
                                     error = frame["code"]
