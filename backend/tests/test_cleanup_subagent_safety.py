@@ -405,3 +405,7 @@ class TestOpenCheckFailClosedUnit:
             with patch("scripts.etl.common.open_check.subprocess.run", return_value=fake):
                 is_open, reason = is_open_by_any_process("/tmp/fake.duckdb")
         assert is_open is False
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

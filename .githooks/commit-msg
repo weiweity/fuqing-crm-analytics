@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Sprint 58 #2 阶段 A: commit-msg blocking hook 模板 (默认不启用).
-# Phase B 升级时, 直接复制此文件到 .githooks/commit-msg 覆盖现有 WARN hook.
+# Active commit-msg gate: propagate the checker status.
 
 set -u
 
@@ -27,7 +26,3 @@ if [ "$EXIT_CODE" -eq 1 ]; then
 fi
 
 exit "$EXIT_CODE"
-
-# ## Stage 2 完成 — Sprint 58 #2 阶段 A
-# - 备用 blocking hook 模板已准备好, Phase B 复制到 `.githooks/commit-msg` 即可启用.
-# - 阶段 A 不修改现有 `.githooks/commit-msg` 与 `.githooks/pre-commit`.

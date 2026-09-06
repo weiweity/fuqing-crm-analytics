@@ -123,3 +123,8 @@ class TestLayer6TrackerSafeDelete:
         )
         assert db_file.exists()
         assert result["deleted_count"] == 0
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+import pytest
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

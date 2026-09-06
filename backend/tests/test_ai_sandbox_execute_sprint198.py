@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import secrets
 import subprocess
 import sys
 import json
@@ -12,8 +11,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-os.environ.setdefault("HEALTH_API_KEY", secrets.token_urlsafe(32))
-os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 VALID_SANDBOX_SQL = """
@@ -32,10 +29,6 @@ WHERE o.pay_time >= '2026-06-15 00:00:00'::TIMESTAMP
 @pytest.fixture
 def synthetic_client(monkeypatch_synthetic_ad_hoc_connection, monkeypatch, tmp_path):
     monkeypatch.setenv("FQ_TAKE_ROOT", str(tmp_path / "take_root"))
-    from backend.routers import auth
-
-    auth.VALID_CREDENTIALS = auth._load_credentials()
-    auth._LOGIN_ATTEMPTS.clear()
     from backend.main import app
 
     return TestClient(app)

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import secrets
 import subprocess
 import sys
 from pathlib import Path
@@ -12,8 +11,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-os.environ.setdefault("HEALTH_API_KEY", secrets.token_urlsafe(32))
-os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 COSMETIC_ID = "803474428381"
 MEDICAL_ID = "597655781410"
@@ -25,10 +22,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 @pytest.fixture
 def synthetic_client(monkeypatch_synthetic_ad_hoc_connection, monkeypatch, tmp_path):
     monkeypatch.setenv("FQ_TAKE_ROOT", str(tmp_path / "take_root"))
-    from backend.routers import auth
-
-    auth.VALID_CREDENTIALS = auth._load_credentials()
-    auth._LOGIN_ATTEMPTS.clear()
     from backend.main import app
 
     return TestClient(app)

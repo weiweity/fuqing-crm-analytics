@@ -1,29 +1,9 @@
 #!/usr/bin/env python3
-"""branch_cleanup.py — Sprint 177+ L4.8 自动化: 删本地+远程已 merge main 的分支
+"""Explicit branch maintenance; default is a read-only preview.
 
-触发方式 (Claude Code hook):
-- PostToolUse matcher=Bash
-- 检测 Bash command 包含 "git push origin main" 模式
-- 自动检测本地 + 远程已 merge main 的分支, 一键删除
-
-用法 (manual):
-    python3 scripts/branch_cleanup.py [--dry-run] [--keep-protected]
-
-保护分支 (永不删):
-    main / master / HEAD
-    sprint175/main-multi-fix (历史 metadata 分支, Sprint 176 close 已迁)
-    feature/*-sprint172|173|174|175 (Sprint 172-175 已合并保留作为历史)
-    fix/sprint173-month-week-window-fallback (Sprint 173 已合并)
-
-排除规则 (跨 sprint 实战 fix):
-- 当前分支永远不删
-- main / master / HEAD / develop
-- origin/main HEAD
-
-Sprint 177 实战 fix 模式 #61:
-- push main 后 hook 自动扫
-- "✅ 删除 X 个本地分支" / "✅ 删除 Y 个远程分支" / 跟 L4.8 永久规则配套
-- 网络超时 silent skip (跟 Sprint 176.1 hot reload retry 模式 stable)
+Run from the reviewed repository. --apply requires exact --local branch names.
+Remote deletion is deliberately outside this script: review fresh remote refs
+and authorize the corresponding Git operation separately. No hook calls this.
 """
 from __future__ import annotations
 import argparse
@@ -70,96 +50,56 @@ def get_local_merged() -> List[str]:
     return [b for b in branches if b and b not in PROTECTED and b != current and not b.startswith("origin/")]
 
 
-def get_remote_merged() -> List[str]:
-    """列出远程已 merge origin/main 的分支 (排除 PROTECTED)."""
-    rc, out = run(["git", "branch", "-r", "--format=%(refname:short)"])
-    if rc != 0:
-        return []
-    branches = [b.strip() for b in out.split("\n") if b.strip()]
-    # 排除 origin (HEAD 拆解) + origin/main + PROTECTED
-    return [
-        b for b in branches
-        if b
-        and b != "origin"  # origin/HEAD 拆解的占位
-        and not b.endswith("/HEAD")
-        and not b.endswith("/main")
-        and b not in PROTECTED
-    ]
-
-
 def is_merged(branch: str, base: str = "main") -> bool:
     """检查 branch 是否已 merge 进 base."""
     rc, _ = run(["git", "merge-base", "--is-ancestor", branch, base])
     return rc == 0
 
 
-def delete_local(branch: str, dry_run: bool = False) -> bool:
-    """删本地分支 (已 merge 走 -d, 未 merge 走 -D 防御)."""
+def delete_local(branch: str, dry_run: bool = True) -> bool:
+    """Delete only merged, unoccupied branches; never fall back to force."""
+    if branch in PROTECTED or branch.startswith('-') or not is_merged(branch):
+        return False
     if dry_run:
         print(f"  [dry-run] would delete local: {branch}")
         return True
-    rc, out = run(["git", "branch", "-d", branch])
-    if rc != 0:
-        # Unmerged 走 -D (防御误删)
-        rc2, out2 = run(["git", "branch", "-D", branch])
-        if rc2 == 0:
-            print(f"  [force -D] local: {branch}")
-            return True
-        print(f"  ✗ failed delete local {branch}: {out2}")
+    rc, out = run(["git", "branch", "-d", "--", branch])
+    if rc:
+        print(f"  refused local deletion: {branch}: {out}")
         return False
-    print(f"  ✅ local: {branch}")
+    print(f"  deleted local: {branch}")
     return True
 
 
-def delete_remote(branch: str, dry_run: bool = False) -> bool:
-    """删远程分支 (silent skip on network timeout)."""
-    if dry_run:
-        print(f"  [dry-run] would delete remote: {branch}")
-        return True
-    rc, out = run(["git", "push", "origin", "--delete", branch], timeout=60)
-    if rc == 0:
-        print(f"  ✅ remote: {branch}")
-        return True
-    if rc == 124:
-        print(f"  ⏭ silent skip remote (network timeout): {branch}")
-        return False
-    print(f"  ✗ failed delete remote {branch}: {out[:100]}")
-    return False
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Sprint 177+ L4.8 自动化: 删已 merge main 的分支")
-    parser.add_argument("--dry-run", action="store_true", help="只看, 不真删")
-    parser.add_argument("--keep-protected", action="store_true", default=True, help="保留 PROTECTED 列表分支")
-    args = parser.parse_args()
-
-    print("=== L4.8 自动化: branch cleanup ===")
-    print(f"  dry-run: {args.dry_run}")
-
-    # 1. 本地分支
-    local_merged = []
-    for b in get_local_merged():
-        if is_merged(b, "main"):
-            local_merged.append(b)
-    print(f"\n[本地] 已 merge main 的分支 ({len(local_merged)} 个):")
-    local_deleted = 0
-    for b in local_merged:
-        if delete_local(b, args.dry_run):
-            local_deleted += 1
-
-    # 2. 远程分支
-    remote_merged = []
-    for b in get_remote_merged():
-        if is_merged(b, "origin/main"):
-            remote_merged.append(b)
-    print(f"\n[远程] 已 merge origin/main 的分支 ({len(remote_merged)} 个):")
-    remote_deleted = 0
-    for b in remote_merged:
-        if delete_remote(b, args.dry_run):
-            remote_deleted += 1
-
-    print(f"\n=== Summary: {local_deleted} local + {remote_deleted} remote deleted ===")
-    return 0
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="Preview merged local branches; apply exact authorized targets")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="read-only preview (default)")
+    mode.add_argument("--apply", action="store_true", help="delete explicitly listed local branches")
+    parser.add_argument("--local", action="append", default=[], metavar="BRANCH")
+    # Kept for old manual callers; protection is unconditional.
+    parser.add_argument("--keep-protected", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    if args.apply and not args.local:
+        parser.error("--apply requires exact --local BRANCH targets")
+    rc, status = run(["git", "status", "--porcelain"])
+    if rc or (args.apply and status):
+        print("Cannot apply cleanup in an unavailable or dirty checkout", file=sys.stderr)
+        return 1
+    eligible = set(get_local_merged())
+    targets = list(dict.fromkeys(args.local)) if args.local else sorted(eligible)
+    candidates = []
+    for branch in targets:
+        if branch not in eligible or not is_merged(branch):
+            if args.local:
+                print(f"Refused protected/current/unmerged target: {branch}", file=sys.stderr)
+                return 1
+            continue
+        candidates.append(branch)
+    completed = sum(delete_local(branch, dry_run=not args.apply) for branch in candidates)
+    action = "deleted" if args.apply else "eligible (preview only)"
+    print(f"Summary: {completed} local {action}; remote deletion requires a separate reviewed action")
+    return 0 if completed == len(candidates) else 1
 
 
 if __name__ == "__main__":

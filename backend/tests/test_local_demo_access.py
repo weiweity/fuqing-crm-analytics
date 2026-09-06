@@ -6,11 +6,15 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 from backend.services.local_demo_access import allows_local_demo
-from backend.tests.test_missions_api import synthetic_db  # generated fixture, never private data
+from backend.tests.test_missions_api import synthetic_db as synthetic_db  # generated fixture, never private data
 
 
 @pytest.fixture
 def local_client(monkeypatch, tmp_path: Path, synthetic_db: Path):
+    def forbidden_legacy_connection(*args, **kwargs):
+        pytest.fail("Mission must not borrow the archived CRM read connection")
+
+    monkeypatch.setattr("backend.services.dual_conn.get_read_connection", forbidden_legacy_connection)
     for name, value in {
         "FQ_LOCAL_DEMO_NO_LOGIN": "1",
         "FQ_MISSION_DEMO_ENABLED": "1",

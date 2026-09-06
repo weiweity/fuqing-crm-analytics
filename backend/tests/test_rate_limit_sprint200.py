@@ -10,10 +10,7 @@
 from __future__ import annotations
 
 import os
-import secrets
 
-os.environ.setdefault("HEALTH_API_KEY", secrets.token_urlsafe(32))
-os.environ.setdefault("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -32,7 +29,9 @@ def configure_test_credentials(monkeypatch):
     monkeypatch.setenv("FQ_CRM_PASSWORDS", "admin:123456,fqsw:fqsw888")
     from backend.routers import auth
 
-    monkeypatch.setattr(auth, "VALID_CREDENTIALS", auth._load_credentials())
+    from backend.tests.conftest import _synthetic_password_hashes
+    cached = _synthetic_password_hashes()
+    monkeypatch.setattr(auth, "VALID_CREDENTIALS", {user: cached[user] for user in ("admin", "fqsw")})
 
 
 def test_module_collection_preserves_external_rate_limit(tmp_path):

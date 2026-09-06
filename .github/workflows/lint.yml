@@ -1,6 +1,6 @@
 name: CI
 
-# 2026-06-13 减量: 加 paths 过滤, docs 提交不触发 CI
+# 当前：所有 PR/main push 先用共用矩阵选择 job；普通文档只运行轻量计划。
 # Sprint 41/83/85/87/123/129: e2e 分层、Node 24、ruff 自定义 step 等历史见 CHANGELOG
 # 2026-07-25 PR5: permissions least-privilege、persist-credentials=false、
 #   frontend/contract/FilterBuilder/audit jobs；lock/Docker/compose 变更触发
@@ -9,45 +9,18 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - 'scripts/**'
-      - 'frontend-vue3/src/**'
-      - 'frontend-vue3/e2e/**'
-      - 'frontend-vue3/playwright.config.ts'
-      - 'frontend-vue3/package.json'
-      - 'frontend-vue3/package-lock.json'
-      - 'frontend-vue3/Dockerfile'
-      - 'frontend-vue3/.npmrc'
-      - 'frontend-vue3/vite.config.ts'
-      - 'frontend-vue3/tsconfig*.json'
-      - 'frontend-vue3/vitest.config.ts'
-      - 'requirements.txt'
-      - 'requirements-lock.txt'
-      - 'requirements-e2e.txt'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - '.dockerignore'
-      - '.githooks/**'
-      - '.github/workflows/**'
-      - 'CLAUDE.md'
-      - 'AGENTS.md'
-      - '.claude/settings.json'
-      - '.claude/skills/**'
-      - 'docs/maintenance/**'
-      - 'docs/operating/**'
-      - 'docs/business/**'
-      - 'docs/validation-reports/**'
-      - 'docs/飞书版架构文档/**'
 
 # 最小权限：默认只读 contents；禁止 GITHUB_TOKEN 写仓库
 permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/check-plan.yml
+
   lint:
+    needs: changes
+    if: needs.changes.outputs.checks == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -70,6 +43,8 @@ jobs:
         run: ruff check backend/
 
   ground-truth-lint:
+    needs: changes
+    if: needs.changes.outputs.tooling == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -86,6 +61,8 @@ jobs:
             "docs/飞书版架构文档/*.md"
 
   contract-filterbuilder-lint:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -100,6 +77,8 @@ jobs:
         run: python3 backend/scripts/check_channel_alias.py
 
   test:
+    needs: changes
+    if: needs.changes.outputs.checks == 'true'
     runs-on: ubuntu-latest
     env:
       FQ_CRM_ADMINS: admin
@@ -115,17 +94,23 @@ jobs:
       - run: pip install -r requirements-lock.txt
       - name: B2 import completeness check
         run: python3 .githooks/check_imports.py
-      - name: Run full pytest (C-class deselect SSOT)
+      - name: Run the same Python plan as local pre-push
+        env:
+          CHECK_PLAN: ${{ needs.changes.outputs.plan }}
         run: |
-          set -euo pipefail
-          DESELECT_ARGS=()
-          while IFS= read -r tok; do
-            [ -n "$tok" ] && DESELECT_ARGS+=("$tok")
-          done < <(bash scripts/ci/pytest_deselect_args.sh)
-          echo "C-class deselect count: $((${#DESELECT_ARGS[@]} / 2))"
-          PYTHONPATH=. pytest backend/tests/ -q -m "not slow" "${DESELECT_ARGS[@]}"
+          python3 -c "import json, os; print('\n'.join(json.loads(os.environ['CHECK_PLAN'])['files']))" > changed-files.txt
+          python3 scripts/ci/run_checks.py --files-from changed-files.txt --only python
+      - name: Upload bounded test evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: backend-check-evidence
+          path: .context/checks/
+          if-no-files-found: ignore
 
   frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -142,13 +127,17 @@ jobs:
           cache-dependency-path: frontend-vue3/package-lock.json
       - name: npm ci (official registry via .npmrc; no --legacy-peer-deps)
         run: npm ci
-      - name: vue-tsc + vite build
-        run: npm run build
-      # L4.81 unit 基线已在 #45 对齐 raw-ratio；unit 恢复硬门禁
-      - name: unit tests
-        run: npm run test:unit
+      - name: Run the same frontend plan as local pre-push
+        working-directory: .
+        env:
+          CHECK_PLAN: ${{ needs.changes.outputs.plan }}
+        run: |
+          python3 -c "import json, os; print('\n'.join(json.loads(os.environ['CHECK_PLAN'])['files']))" > changed-files.txt
+          python3 scripts/ci/run_checks.py --files-from changed-files.txt --only frontend
 
   dependency-audit:
+    needs: changes
+    if: needs.changes.outputs.dependencies == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -178,6 +167,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   docker-smoke:
+    needs: changes
+    if: needs.changes.outputs.deployment == 'true'
     runs-on: ubuntu-latest
     # 用 MB 级 seed DB 启动真实容器并探活；绝不复制生产 141GB DuckDB。
     steps:

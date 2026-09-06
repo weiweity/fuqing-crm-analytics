@@ -446,3 +446,7 @@ class TestTrackerDBDisabled:
         TrackerDB(db_path=db_path)
         # DB 文件不该存在
         assert not os.path.exists(db_path)
+
+
+# Only cleanup/ETL tests require the tracker fixture; pure tests never import ETL.
+pytestmark = pytest.mark.usefixtures("isolate_tmp_tracker")

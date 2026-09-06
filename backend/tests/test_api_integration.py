@@ -18,13 +18,10 @@ NOTE: These tests require:
 """
 import pytest
 import os
-import secrets
 from pathlib import Path
 
 # Force test credentials — must override .env's FQ_CRM_PASSWORDS (load_dotenv in auth.py
 # reads .env before this module runs; setdefault would NOT override the .env value).
-os.environ["HEALTH_API_KEY"] = os.environ.get("HEALTH_API_KEY") or secrets.token_urlsafe(32)
-os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 # Check if database exists before running integration tests
 # Sprint 22 #31: 默认名 sample.duckdb 改 fuqing_crm.duckdb (跟 backend/config.py 一致 + 真实生产文件)

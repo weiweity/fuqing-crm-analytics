@@ -1,4 +1,6 @@
 #!/bin/bash
+# Preserve the checker exit status when its output is shortened by tail.
+set -o pipefail
 # Sprint 30.2 soft WARN (CHANGELOG 跟随 hard block → soft WARN)
 # Sprint 178+: hooksPath 保护 (防止 pytest 修改 core.hooksPath 指向 tmp dir)
 # Finish 2026-07-19: light path when no code staged
@@ -81,7 +83,7 @@ fi
 if [ -f "backend/scripts/check_l4_91_excel_export_ssot.py" ]; then
     STAGED_VUE=$(echo "$STAGED" | grep -E '\.vue$|\.ts$' || true)
     if [ -n "$STAGED_VUE" ]; then
-        if ! python3 backend/scripts/check_l4_91_excel_export_ssot.py 2>&1 | tail -10; then
+        if ! python3 backend/scripts/check_l4_91_excel_export_ssot.py --staged 2>&1 | tail -10; then
             echo "❌ L4.91 Excel 导出 SSOT lint 失败"
             exit 1
         fi

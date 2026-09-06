@@ -91,7 +91,7 @@ class TestPathClassify:
     def test_docs_only_skip(self, path_class):
         assert path_class.classify_paths(["docs/TECH-DEBT.md", "CHANGELOG.md"]) == "skip"
         assert path_class.classify_paths(["HANDOFF.md", "STATUS.md"]) == "skip"
-        assert path_class.classify_paths(["CLAUDE.md", "README.md"]) == "skip"
+        assert path_class.classify_paths(["CLAUDE.md", "README.md"]) == "tooling"
         assert path_class.classify_paths([".gitignore", "VERSION"]) == "skip"
         assert path_class.classify_paths([".gitignore", "docs/a.md", "STATUS.md"]) == "skip"
 
@@ -124,12 +124,12 @@ class TestPathClassify:
         )
         assert targets == ["backend/tests/test_a.py"]
 
-    def test_scripts_only_ruff(self, path_class):
-        assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "ruff"
-        assert path_class.classify_paths([".githooks/pre-push"]) == "ruff"
+    def test_scripts_select_tooling_regressions(self, path_class):
+        assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "tooling"
+        assert path_class.classify_paths([".githooks/pre-push"]) == "tooling"
         assert path_class.classify_paths(
             ["scripts/branch_cleanup.py", "docs/foo.md"]
-        ) == "ruff"
+        ) == "tooling"
 
     def test_mixed_docs_and_service_full(self, path_class):
         assert (
@@ -139,12 +139,12 @@ class TestPathClassify:
             == "full"
         )
 
-    def test_frontend_only_skip(self, path_class):
+    def test_frontend_selects_own_matrix(self, path_class):
         assert (
             path_class.classify_paths(
                 ["frontend-vue3/src/App.vue", "frontend-vue3/src/types.ts"]
             )
-            == "skip"
+            == "matrix"
         )
 
     def test_empty_defaults_full(self, path_class):
@@ -208,13 +208,13 @@ class TestPrePushScript:
         assert "pytest_deselect_args.sh" in text or "pytest_c_class_deselects" in text
         assert "test_rfm_cache_drop_recreate" not in text
         assert "test_w2_manifest" not in text
-        assert "pre_push_path_class.py" in text
+        assert "scripts/ci/run_checks.py" in text
 
     def test_pre_push_clears_parent_git_repository_environment(self):
         text = PRE_PUSH.read_text(encoding="utf-8")
         assert "_run_pytest_isolated" in text
         assert "git rev-parse --local-env-vars" in text
-        assert text.count("_run_pytest_isolated ") >= 2
+        assert "| _run_pytest_isolated" in text
 
     def test_pre_push_skips_branch_delete_only(self):
         """Regression: git push --delete must not fall through to full pytest."""

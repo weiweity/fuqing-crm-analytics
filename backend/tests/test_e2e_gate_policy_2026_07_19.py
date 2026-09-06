@@ -45,14 +45,13 @@ class TestPrCiNoBlockingE2e:
         # 核心门禁：lint / ground-truth-lint / test（PR5+ 可增加 contract/frontend/audit/docker）
         for required in ("lint", "test", "ground-truth-lint"):
             assert required in jobs, f"PR CI 缺 job {required}, 实际 {jobs}"
-        allowed_extra = {
-            "contract-filterbuilder-lint",
-            "frontend",
-            "dependency-audit",
-            "docker-smoke",
-        }
-        unexpected = set(jobs) - {"lint", "test", "ground-truth-lint"} - allowed_extra
-        assert not unexpected, f"PR CI 出现未声明 job: {unexpected}"
+        assert wf["jobs"]["changes"]["uses"] == "./.github/workflows/check-plan.yml"
+        # Validate the safety contract instead of freezing a historical job list.
+        for job in wf['jobs'].values():
+            for step in job.get('steps', []):
+                run = str(step.get('run', '')).lower()
+                assert 'playwright test' not in run and 'npx playwright' not in run
+
 
     def test_lint_yml_text_has_no_playwright_step(self) -> None:
         text = LINT_YML.read_text(encoding="utf-8")

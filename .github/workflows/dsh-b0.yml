@@ -2,26 +2,18 @@ name: DSH B0 isolated plugin and kernel
 
 on:
   pull_request:
-    paths:
-      - 'backend/analytics*.py'
-      - 'backend/contracts/analytics*'
-      - 'backend/services/analytics/**'
-      - 'backend/semantic/analytics_b0.py'
-      - 'backend/tests/*analytics*'
-      - 'dsh-plugins/analytics-workbench/**'
-      - 'scripts/dsh-b0/**'
-      - 'frontend-vue3/src/assets/brand/**'
-      - 'frontend-vue3/public/shine-mage-mark.svg'
-      - 'frontend-vue3/src/App.vue'
-      - 'frontend-vue3/src/composables/useFilterSync.ts'
-      - '.github/workflows/dsh-b0.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    uses: ./.github/workflows/check-plan.yml
+
   b0-contract-build:
+    needs: changes
+    if: needs.changes.outputs.b0 == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

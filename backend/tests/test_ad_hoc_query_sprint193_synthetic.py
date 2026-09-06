@@ -1,22 +1,14 @@
 from __future__ import annotations
 
-import os
-import secrets
 
 import pytest
 from fastapi.testclient import TestClient
 
 
-os.environ.setdefault("HEALTH_API_KEY", secrets.token_urlsafe(32))
-os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 
 @pytest.fixture
 def client(monkeypatch_synthetic_ad_hoc_connection):
-    from backend.routers import auth
-
-    auth.VALID_CREDENTIALS = auth._load_credentials()
-    auth._LOGIN_ATTEMPTS.clear()
     from backend.main import app
 
     return TestClient(app)

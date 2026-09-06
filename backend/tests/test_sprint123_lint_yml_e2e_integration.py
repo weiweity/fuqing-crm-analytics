@@ -1,7 +1,7 @@
 """CI e2e 布局契约 (Sprint 123 集成史 → 2026-07-19 门禁分层).
 
 历史: Sprint 123 曾把 e2e 并进 lint.yml。
-现行: PR CI (lint.yml) 仅 lint + ground-truth-lint + test；
+现行: PR CI 根据共用矩阵选择静态、测试、构建和审计 job；
       可选壳层 smoke 在 e2e-smoke.yml（不挡 merge）。
 """
 from __future__ import annotations
@@ -25,21 +25,19 @@ class TestSprint123LintYmlE2EIntegration:
             return yaml.safe_load(f)
 
     def test_lint_yml_pr_jobs_without_e2e(self):
-        """PR/main lint.yml = 3 jobs，无 e2e。"""
+        """PR/main 保留核心检查，独立 smoke 不混入阻断门。"""
         workflow = self._load_workflow(".github/workflows/lint.yml")
         jobs = list(workflow["jobs"].keys())
         assert "lint" in jobs
         assert "ground-truth-lint" in jobs
         assert "test" in jobs
         assert "e2e" not in jobs, f"PR CI 不得含 e2e job, 实际 {jobs}"
-        allowed_extra = {
-            "contract-filterbuilder-lint",
-            "frontend",
-            "dependency-audit",
-            "docker-smoke",
-        }
-        unexpected = set(jobs) - {"lint", "ground-truth-lint", "test"} - allowed_extra
-        assert not unexpected, f"未声明 job: {unexpected}"
+        # Validate the safety contract instead of freezing a historical job list.
+        for job in workflow['jobs'].values():
+            for step in job.get('steps', []):
+                run = str(step.get('run', '')).lower()
+                assert 'playwright test' not in run and 'npx playwright' not in run
+
 
     def test_e2e_yml_independent_deleted(self):
         """旧独立 e2e.yml 仍不存在（能力迁到 e2e-smoke.yml）。"""

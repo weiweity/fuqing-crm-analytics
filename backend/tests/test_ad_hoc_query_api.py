@@ -15,15 +15,11 @@ Scope: backend/routers/ad_hoc_query.py 9 endpoint 各 1 case ≥ 200 + dq-report
 """
 from __future__ import annotations
 
-import os
-import secrets
 
 import pytest
 from fastapi.testclient import TestClient
 
 # --- 强制 test credentials (跟 test_api_integration.py 同模式, 避免 .env 抢值) ---
-os.environ.setdefault("HEALTH_API_KEY", secrets.token_urlsafe(32))
-os.environ["FQ_CRM_PASSWORDS"] = "testuser:testpass123"
 
 # --- L4.4 Sprint 39: 旧 12 个真连 DuckDB 测试仍保留 production skipif ---
 from backend.tests.conftest import _PROD_DUCKDB_AVAILABLE  # noqa: E402
@@ -47,10 +43,6 @@ def client(monkeypatch_connection):
 def synthetic_client(monkeypatch_synthetic_ad_hoc_connection, monkeypatch, tmp_path):
     """Sprint 193: 让 Sprint 190 daily-gsv-multi-period 3 case 不依赖 production DuckDB."""
     monkeypatch.setenv("FQ_TAKE_ROOT", str(tmp_path / "take_root"))
-    from backend.routers import auth
-
-    auth.VALID_CREDENTIALS = auth._load_credentials()
-    auth._LOGIN_ATTEMPTS.clear()
     from backend.main import app
 
     return TestClient(app)

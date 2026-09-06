@@ -20,14 +20,17 @@ def test_asset_consumers_checkout_lfs_without_persisting_credentials(workflow, j
     assert checkout["with"]["persist-credentials"] is False
 
 
-def test_b0_path_filter_includes_external_assets_and_legacy_seams():
-    document = yaml.safe_load((ROOT / ".github/workflows/dsh-b0.yml").read_text())
-    # PyYAML's YAML 1.1 loader treats the unquoted Actions key 'on' as True.
-    events = document.get("on", document.get(True))
-    paths = events["pull_request"]["paths"]
-    assert set(paths) >= {
-        "frontend-vue3/src/assets/brand/**",
-        "frontend-vue3/public/shine-mage-mark.svg",
-        "frontend-vue3/src/App.vue",
-        "frontend-vue3/src/composables/useFilterSync.ts",
-    }
+@pytest.mark.parametrize('path', [
+    'frontend-vue3/src/assets/brand/logo.png',
+    'frontend-vue3/public/shine-mage-mark.svg',
+    'frontend-vue3/src/App.vue',
+    'frontend-vue3/src/composables/useFilterSync.ts',
+])
+def test_b0_path_filter_includes_external_assets_and_legacy_seams(path):
+    from scripts.ci.pre_push_path_class import verification_plan
+    document = yaml.safe_load((ROOT / '.github/workflows/dsh-b0.yml').read_text())
+    events = document.get('on', document.get(True))
+    assert 'pull_request' in events
+    assert document['jobs']['changes']['uses'] == './.github/workflows/check-plan.yml'
+    assert "needs.changes.outputs.b0 == 'true'" in document['jobs']['b0-contract-build']['if']
+    assert verification_plan([path])['b0'] is True
