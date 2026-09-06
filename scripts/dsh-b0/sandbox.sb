@@ -1,0 +1,52 @@
+;; B0-only macOS outer process boundary. This is NOT DSH's Shell sandbox.
+;; All path parameters must be canonical absolute paths to synthetic B0 assets.
+;; Readable: system/runtime code, fixed upstream, reviewed local plugin, synthetic
+;; B0 config/runtime root, isolated DSH home/workspace/tmp. Writable: only those
+;; three isolated state directories; READ_CONFIG grants no write capability.
+;; Never use a repository root or a real personal home for a writable parameter.
+;; OPENSSL_CONF=/dev/null is required; env must be constructed from an allowlist.
+;; macOS Seatbelt is a deprecated/private interface: rerun sandbox-probe.mjs on
+;; the actual OS/runtime before use. Passing this probe is not DSH/UI validation.
+(version 1)
+(deny default)
+
+;; Apple's dyld bootstrap rules permit system Cryptex mapping and the exact
+;; loader fcntl operations. Without them this Homebrew Node aborts with 134.
+;; Deliberately do NOT import bsd.sb: it grants .CFUserTextEncoding file reads.
+(import "/System/Library/Sandbox/Profiles/dyld-support.sb")
+(allow process-exec (literal (param "NODE_BINARY")))
+(allow signal (target self))
+(allow sysctl-read)
+(allow dynamic-code-generation)
+(allow file-read-metadata)
+
+;; Executable/runtime software only; Homebrew etc/config is not included.
+(allow file-read* file-map-executable
+  (subpath "/System")
+  (subpath "/usr/lib")
+  (subpath (param "RUNTIME_CELLAR")))
+(allow file-read*
+  (subpath (param "READ_SOURCE"))
+  (subpath (param "READ_PLUGIN"))
+  (subpath (param "READ_CONFIG")))
+(allow file-read* file-write*
+  (subpath (param "STATE_HOME"))
+  (subpath (param "WORKSPACE"))
+  (subpath (param "TEMP_DIR")))
+(allow file-read*
+  (literal "/dev/null")
+  (literal "/dev/zero")
+  (literal "/dev/random")
+  (literal "/dev/urandom"))
+(allow file-write-data (literal "/dev/null") (subpath "/dev/fd"))
+
+;; SBPL accepts localhost or *, not numeric IPs, in address filters. localhost
+;; is the loopback address class (IPv4/IPv6), not a DNS lookup. The process must
+;; still bind/connect numerically to 127.0.0.1; no other local port is granted.
+;; Use BIND_ENDPOINT=localhost:4317 and MOCK_ENDPOINT=localhost:4319 for B0.
+(allow network-bind network-inbound
+  (local ip (param "BIND_ENDPOINT"))
+  (local ip (param "BRIDGE_ENDPOINT")))
+(allow network-outbound
+  (remote ip (param "MOCK_ENDPOINT"))
+  (remote ip (param "KERNEL_ENDPOINT")))

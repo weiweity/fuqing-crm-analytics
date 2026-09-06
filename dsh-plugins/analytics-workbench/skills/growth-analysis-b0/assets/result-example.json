@@ -1,0 +1,8 @@
+{
+  "kind": "SHAPE_EXAMPLE_NOT_EVIDENCE",
+  "data_source": "SYNTHETIC_FIXTURE",
+  "source_run_id": "REQUIRES_BACKEND_SUCCESS",
+  "source_step_id": "REQUIRES_BACKEND_SUCCESS",
+  "evidence_ref": "REQUIRES_BACKEND_SUCCESS",
+  "numeric_values": null
+}

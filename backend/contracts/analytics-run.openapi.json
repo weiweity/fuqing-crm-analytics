@@ -1,0 +1,1589 @@
+{
+  "components": {
+    "schemas": {
+      "AnalyticsB0Facts": {
+        "additionalProperties": false,
+        "properties": {
+          "customers": {
+            "const": 100,
+            "default": 100,
+            "title": "Customers",
+            "type": "integer"
+          },
+          "repeat_customers": {
+            "const": 25,
+            "default": 25,
+            "title": "Repeat Customers",
+            "type": "integer"
+          },
+          "repeat_ratio": {
+            "const": 0.25,
+            "default": 0.25,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Repeat Ratio",
+            "type": "number"
+          }
+        },
+        "title": "AnalyticsB0Facts",
+        "type": "object"
+      },
+      "AnalyticsB0Result": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_mode": {
+            "const": "STUB",
+            "default": "STUB",
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "contains_real_data": {
+            "const": false,
+            "default": false,
+            "title": "Contains Real Data",
+            "type": "boolean"
+          },
+          "data_as_of": {
+            "const": "2026-09-01",
+            "default": "2026-09-01",
+            "title": "Data As Of",
+            "type": "string"
+          },
+          "data_source": {
+            "const": "SYNTHETIC_FIXTURE",
+            "default": "SYNTHETIC_FIXTURE",
+            "title": "Data Source",
+            "type": "string"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/AnalyticsB0Facts"
+          },
+          "fixture_id": {
+            "const": "b0-channel-repeat-2026-09-01",
+            "default": "b0-channel-repeat-2026-09-01",
+            "title": "Fixture Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-b0/v1",
+            "default": "analytics-run-b0/v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "facts"
+        ],
+        "title": "AnalyticsB0Result",
+        "type": "object"
+      },
+      "AnalyticsCancelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "const": "USER_REQUEST",
+            "default": "USER_REQUEST",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "AnalyticsCancelRequest",
+        "type": "object"
+      },
+      "AnalyticsConversation": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "run_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            "title": "Run Ids",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "analytics-run-b0/v1",
+            "default": "analytics-run-b0/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "title",
+          "created_at"
+        ],
+        "title": "AnalyticsConversation",
+        "type": "object"
+      },
+      "AnalyticsConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "default": "B0 合成任务",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "AnalyticsConversationRequest",
+        "type": "object"
+      },
+      "AnalyticsErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "recovery_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Url"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "request_id"
+        ],
+        "title": "AnalyticsErrorDetail",
+        "type": "object"
+      },
+      "AnalyticsErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/AnalyticsErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "AnalyticsErrorResponse",
+        "type": "object"
+      },
+      "AnalyticsEventPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/AnalyticsRunPhase"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalyticsRunStatus"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Step Id"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "phase",
+          "version"
+        ],
+        "title": "AnalyticsEventPayload",
+        "type": "object"
+      },
+      "AnalyticsRunAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "phase": {
+            "const": "ACCEPTED",
+            "default": "ACCEPTED",
+            "title": "Phase",
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-b0/v1",
+            "default": "analytics-run-b0/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "QUEUED",
+            "default": "QUEUED",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "location"
+        ],
+        "title": "AnalyticsRunAccepted",
+        "type": "object"
+      },
+      "AnalyticsRunDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "dispatch_attempts": {
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Dispatch Attempts",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "execution_active": {
+            "title": "Execution Active",
+            "type": "boolean"
+          },
+          "profile_hash": {
+            "title": "Profile Hash",
+            "type": "string"
+          },
+          "profile_version": {
+            "title": "Profile Version",
+            "type": "string"
+          },
+          "runtime_status": {
+            "enum": [
+              "PENDING",
+              "DISPATCHING",
+              "ACCEPTED",
+              "UNKNOWN",
+              "EXITED"
+            ],
+            "title": "Runtime Status",
+            "type": "string"
+          },
+          "tool_steps_used": {
+            "maximum": 8,
+            "minimum": 0,
+            "title": "Tool Steps Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "runtime_status",
+          "execution_active",
+          "tool_steps_used",
+          "dispatch_attempts",
+          "profile_version",
+          "profile_hash"
+        ],
+        "title": "AnalyticsRunDiagnostics",
+        "type": "object"
+      },
+      "AnalyticsRunEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AnalyticsEventPayload"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "sequence": {
+            "minimum": 1,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "run.updated",
+              "run.started",
+              "tool.started",
+              "tool.completed",
+              "run.needs_input",
+              "run.completed",
+              "run.failed",
+              "run.cancelled"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "run_id",
+          "sequence",
+          "type",
+          "occurred_at",
+          "payload"
+        ],
+        "title": "AnalyticsRunEvent",
+        "type": "object"
+      },
+      "AnalyticsRunPhase": {
+        "enum": [
+          "ACCEPTED",
+          "PLANNING",
+          "EXECUTING",
+          "FINALIZING"
+        ],
+        "title": "AnalyticsRunPhase",
+        "type": "string"
+      },
+      "AnalyticsRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "condition_patch": {
+            "title": "Condition Patch",
+            "type": "null"
+          },
+          "parent_run_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Run Id"
+          },
+          "question": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-b0/v1",
+            "default": "analytics-run-b0/v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AnalyticsRunRequest",
+        "type": "object"
+      },
+      "AnalyticsRunSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_mode": {
+            "const": "STUB",
+            "default": "STUB",
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "conversation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/AnalyticsRunDiagnostics"
+          },
+          "evidence_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Digest"
+          },
+          "evidence_refs": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "last_sequence": {
+            "minimum": 0,
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "parent_run_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Run Id"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/AnalyticsRunPhase"
+          },
+          "primary_result_ref": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Result Ref"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalyticsB0Result"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-b0/v1",
+            "default": "analytics-run-b0/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_kind": {
+            "const": "CHAT",
+            "default": "CHAT",
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalyticsRunStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "version",
+          "source_ref",
+          "conversation_id",
+          "parent_run_id",
+          "status",
+          "phase",
+          "created_at",
+          "updated_at",
+          "deadline",
+          "result",
+          "evidence_digest",
+          "primary_result_ref",
+          "evidence_refs",
+          "last_sequence",
+          "diagnostics"
+        ],
+        "title": "AnalyticsRunSnapshot",
+        "type": "object"
+      },
+      "AnalyticsRunStatus": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "NEEDS_INPUT",
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELLING",
+          "CANCELLED",
+          "UNKNOWN"
+        ],
+        "title": "AnalyticsRunStatus",
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "B0Bearer": {
+        "description": "Explicit local B0 identity only; no default identity, CRM auth or production SSO.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Shine Mage B0 Run Kernel",
+    "version": "analytics-run-b0/v1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/analytics/conversations": {
+      "post": {
+        "operationId": "analytics_create_conversation",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsConversation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Conversation"
+      }
+    },
+    "/api/v1/analytics/conversations/{conversation_id}": {
+      "get": {
+        "operationId": "analytics_get_conversation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsConversation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Conversation"
+      }
+    },
+    "/api/v1/analytics/conversations/{conversation_id}/runs": {
+      "post": {
+        "operationId": "analytics_create_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsRunAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Run"
+      }
+    },
+    "/api/v1/analytics/runs/{run_id}": {
+      "get": {
+        "operationId": "analytics_get_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsRunSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Run"
+      }
+    },
+    "/api/v1/analytics/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "analytics_cancel_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsRunSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Cancel Run"
+      }
+    },
+    "/api/v1/analytics/runs/{run_id}/events": {
+      "get": {
+        "operationId": "analytics_stream_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "description": "Opaque event_id returned by this run; must agree with after when both are sent.",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Bounded SSE connection. Reconnect using the last event_id; never resubmit a run."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Stream Run"
+      }
+    }
+  },
+  "security": [
+    {
+      "B0Bearer": []
+    }
+  ],
+  "x-analytics-event-schema": {
+    "$ref": "#/components/schemas/AnalyticsRunEvent"
+  },
+  "x-schema-sha256": "5d93c3aabf362865e8f24e28c96a8d1f75717c80370f31734407d85b128b9679"
+}
