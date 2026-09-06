@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { summarizeRequest, evidenceFor, requestIdOf } from './native-evidence.mjs';
+import { registeredSessionIds } from './runtime-family.mjs';
 
 export const name = 'analytics-workbench-b0-bridge';
 export const inject = ['agents', 'sessions', 'sessionController'];
@@ -14,8 +15,8 @@ const id = (value: unknown): value is string => typeof value === 'string' && /^[
 
 export function apply(ctx: Context): void {
   const token = process.env.B0_RUNTIME_TOKEN;
-  const sessionId = process.env.B0_SESSION_ID;
-  if (!token || token.length < 32 || !id(sessionId)) throw new Error('B0 bridge requires explicit isolated capabilities');
+  const sessions = registeredSessionIds();
+  if (!token || token.length < 32) throw new Error('B0 bridge requires explicit isolated capabilities');
   const expected = Buffer.from(`Bearer ${token}`);
   let admitting = false;
   const server = createServer((req, res) => {
@@ -29,15 +30,15 @@ export function apply(ctx: Context): void {
       let raw = '';
       for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > 65536) return respond(413, { error: 'too-large' }); }
       const intent = JSON.parse(raw);
-      let agent = ctx.agents.get(sessionId as never);
-      if (req.url === '/health') return respond(200, { ready: agent !== undefined });
-      if (!intent || ['run_id', 'attempt_id', 'session_id', 'request_id'].some(key => !id(intent[key])) || intent.session_id !== sessionId) return respond(409, { error: 'binding' });
+      if (req.url === '/health') return respond(200, { ready: sessions.every(sessionId => ctx.agents.get(sessionId as never) !== undefined) });
+      if (!intent || ['run_id', 'attempt_id', 'session_id', 'request_id'].some(key => !id(intent[key])) || !sessions.includes(intent.session_id)) return respond(409, { error: 'binding' });
+      let agent = ctx.agents.get(intent.session_id as never);
       if (!agent && req.url === '/observe') {
         // The pinned official resume path first takes the cross-process
         // session write lease, appends interrupted-tail closers and attaches
         // an idle agent. It does not send/replay a prompt or wake the inbox.
         // A still-live holder rejects the lease: never adopt by saved PID.
-        const restored = await ctx.sessionController.resolveAgent(sessionId as never);
+        const restored = await ctx.sessionController.resolveAgent(intent.session_id as never);
         if ('error' in restored) return respond(503, { error: 'native-unavailable' });
         agent = restored.agent;
       }
@@ -46,9 +47,9 @@ export function apply(ctx: Context): void {
       if (req.url === '/dispatch') {
         if (summary.received) return respond(200, { accepted: true });
         if (admitting || agent.status !== 'idle' || agent.inbox.hasPending) return respond(409, { error: 'agent-busy' });
-        const request = intent.payload?.native_request ?? { sessionId, requestId: intent.request_id, mode: 'queue',
+        const request = intent.payload?.native_request ?? { sessionId: intent.session_id, requestId: intent.request_id, mode: 'queue',
           content: [{ type: 'text', text: intent.payload?.question }], clientTimeZone: 'Asia/Shanghai' };
-        if (request.sessionId !== sessionId || request.requestId !== intent.request_id || request.mode !== 'queue'
+        if (request.sessionId !== intent.session_id || request.requestId !== intent.request_id || request.mode !== 'queue'
           || request.content?.length !== 1 || request.content[0].type !== 'text' || typeof request.content[0].text !== 'string'
           || !request.content[0].text.trim() || request.content[0].text.length > 8000) return respond(409, { error: 'payload' });
         admitting = true;
@@ -72,7 +73,7 @@ export function apply(ctx: Context): void {
       const idle = await Promise.race([agent.whenIdle().then(() => true), delay(80, false)]);
       const durable = idle && await ctx.sessions.flush(agent.session);
       summary = summarizeRequest(agent.session.snapshotEvents(), intent.request_id);
-      const exited = idle && durable && ctx.agents.get(sessionId as never) === agent && agent.status === 'idle' && !agent.inbox.hasPending;
+      const exited = idle && durable && ctx.agents.get(intent.session_id as never) === agent && agent.status === 'idle' && !agent.inbox.hasPending;
       return respond(200, evidenceFor(intent, summary, exited));
     })().catch(() => { if (!res.headersSent) respond(503, { error: 'native-unavailable' }); else res.end(); });
   });

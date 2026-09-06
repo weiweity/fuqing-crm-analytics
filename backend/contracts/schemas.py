@@ -26,8 +26,9 @@ from .analytics_query import (
 )
 from .analytics_query_run import (
     AnalyticsQueryConversation, AnalyticsQueryConversationRequest,
-    AnalyticsQueryRunAccepted, AnalyticsQueryRunEvent, AnalyticsQueryRunRequest,
-    AnalyticsQueryRunSnapshot, ChannelFollowupFixtureDescriptor, ChannelFollowupRunBinding,
+    AnalyticsQueryNativeReceipt, AnalyticsQueryRunAccepted, AnalyticsQueryRunEvent,
+    AnalyticsQueryRunRequest, AnalyticsQueryRunSnapshot, ChannelFollowupFixtureDescriptor,
+    ChannelFollowupRunBinding,
 )
 # Sprint 203 R9: cohort_retention contracts 删 (前端 sampling 03-tab 解耦, cohort-retention/matrix API 移除)
 
@@ -78,7 +79,8 @@ __all__ = [
     "ChannelFollowupQueryRequest", "ChannelFollowupRefund", "ChannelFollowupResolvedFilters",
     "ChannelFollowupResult", "ChannelFollowupSnapshot",
     "AnalyticsQueryConversation", "AnalyticsQueryConversationRequest",
-    "AnalyticsQueryRunAccepted", "AnalyticsQueryRunEvent", "AnalyticsQueryRunRequest",
-    "AnalyticsQueryRunSnapshot", "ChannelFollowupFixtureDescriptor", "ChannelFollowupRunBinding",
+    "AnalyticsQueryNativeReceipt", "AnalyticsQueryRunAccepted", "AnalyticsQueryRunEvent",
+    "AnalyticsQueryRunRequest", "AnalyticsQueryRunSnapshot", "ChannelFollowupFixtureDescriptor",
+    "ChannelFollowupRunBinding",
     # Sprint 203 R9: SamplingLock*/Rolling*/CohortRetention 删
 ]  # noqa: E501

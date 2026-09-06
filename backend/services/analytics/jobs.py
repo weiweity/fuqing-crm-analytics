@@ -51,6 +51,7 @@ from backend.contracts.analytics_query_run import (
     QUERY_RUN_SCHEMA,
     AnalyticsQueryConversation,
     AnalyticsQueryConversationRequest,
+    AnalyticsQueryNativePrompt,
     AnalyticsQueryRunAccepted,
     AnalyticsQueryRunRequest,
     AnalyticsQueryRunSnapshot,
@@ -413,12 +414,66 @@ class RunStore:
         }
 
     @staticmethod
-    def _accept_digest(request_payload, method_package_digest, fixture, permission_scope) -> str:
-        return content_hash({
+    def _accept_digest(request_payload, method_package_digest, fixture, permission_scope,
+                       native=None) -> str:
+        payload = {
             "request": request_payload, "family": QUERY_RUN_FAMILY,
             "method_package_digest": method_package_digest,
             "fixture": fixture, "permission_scope": permission_scope,
-        })
+        }
+        if native is not None:
+            payload["native"] = native
+        return content_hash(payload)
+
+    def _query_native_payload(self, con, row) -> dict | None:
+        stored = self._idempotency(con, row["owner"], "runtime.native-binding", row["run_id"], "native")
+        intent = con.execute("SELECT * FROM dispatch_intents WHERE run_id=?", (row["run_id"],)).fetchone()
+        if stored is None:
+            if intent is not None:
+                try:
+                    payload = json.loads(intent["payload_json"])
+                except json.JSONDecodeError:
+                    raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
+                if payload.get("native_request") is not None:
+                    raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
+            return None
+        try:
+            native = AnalyticsQueryNativePrompt.model_validate(json.loads(stored["response_json"]))
+            native = native.model_dump(mode="json")
+        except Exception:
+            raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
+        if content_hash(native) != stored["request_hash"]:
+            raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
+        if intent is None:
+            raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
+        try:
+            payload = json.loads(intent["payload_json"])
+        except json.JSONDecodeError:
+            raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
+        if (payload.get("native_request") != native or intent["request_id"] != native["requestId"]
+                or intent["session_id"] != native["sessionId"]):
+            raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
+        conversation = con.execute(
+            "SELECT runtime_session_id FROM conversations WHERE conversation_id=?",
+            (row["conversation_id"],),
+        ).fetchone()
+        if conversation is None or conversation["runtime_session_id"] != native["sessionId"]:
+            raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
+        return native
+
+    @staticmethod
+    def _freeze_query_native(native_request, request, key) -> dict:
+        try:
+            prompt = AnalyticsQueryNativePrompt.model_validate(native_request)
+            frozen = prompt.model_dump(mode="json")
+        except Exception:
+            raise AnalyticsError(422, "UNSUPPORTED_NATIVE", "查询任务的 native 受理无效。") from None
+        if frozen["requestId"] != key:
+            raise _conflict()
+        normalized = AnalyticsQueryRunRequest(question=frozen["content"][0]["text"]).question
+        if normalized != request.question:
+            raise _conflict()
+        return frozen
 
     def _inspect_query_run(self, con, row) -> ChannelFollowupRunBinding:
         """Persistence self-check. Does not grant or re-check current capabilities."""
@@ -444,9 +499,10 @@ class RunStore:
         method = self._idempotency(con, row["owner"], "runtime.binding", row["run_id"], "method")
         if method is None or method["request_hash"] != binding.method_package_digest:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
+        native = self._query_native_payload(con, row)
         expected = self._accept_digest(
             request.model_dump(mode="json"), binding.method_package_digest,
-            binding.fixture.model_dump(mode="json"), binding.permission_scope,
+            binding.fixture.model_dump(mode="json"), binding.permission_scope, native,
         )
         if expected != row["request_hash"]:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
@@ -757,8 +813,6 @@ class RunStore:
                 request = AnalyticsQueryRunRequest.model_validate(request.model_dump(mode="python"))
             except Exception:
                 raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "任务合同与当前实例不一致。") from None
-            if native_request is not None:
-                raise AnalyticsError(422, "UNSUPPORTED_NATIVE", "本版本不接受查询任务的 native 受理。")
             if method_package_digest is None:
                 raise ValueError("explicit fixed method package digest required")
             if fixture_descriptor is None:
@@ -768,6 +822,7 @@ class RunStore:
         payload = request.model_dump(mode="json")
         permission_scope = self._permission_scope(principal) if self.family == QUERY_RUN_FAMILY else None
         binding_payload = None
+        frozen_native = None
         if self.family == QUERY_RUN_FAMILY:
             try:
                 fixture = ChannelFollowupFixtureDescriptor.model_validate(fixture_descriptor)
@@ -778,13 +833,17 @@ class RunStore:
                 }).model_dump(mode="json")
             except Exception:
                 raise AnalyticsError(422, "INVALID_FIXTURE", "封存快照描述无效。") from None
+            if native_request is not None:
+                frozen_native = self._freeze_query_native(native_request, request, key)
             digest = self._accept_digest(
                 payload, method_package_digest, binding_payload["fixture"], permission_scope,
+                frozen_native,
             )
         else:
             # Native metadata is supplied only by the validated server-side adapter,
             # never by the public RunRequest. Preserve its original request ID for
             # DSH's optimistic echo and journal deduplication.
+            frozen_native = native_request
             digest = content_hash(payload if native_request is None else {"request": payload, "native": native_request})
         accepted_type = AnalyticsQueryRunAccepted if self.family == QUERY_RUN_FAMILY else AnalyticsRunAccepted
         with self._transaction() as con:
@@ -798,9 +857,9 @@ class RunStore:
                 return accepted_type.model_validate_json(prior["response_json"])
             if not allow_new:
                 raise AnalyticsError(503, "RUNTIME_NOT_CONNECTED", "运行时尚未接线，不接受新的执行任务。")
-            if native_request is not None:
-                if (native_request.get("sessionId") != conversation["runtime_session_id"]
-                        or native_request.get("requestId") != key
+            if frozen_native is not None:
+                if (frozen_native.get("sessionId") != conversation["runtime_session_id"]
+                        or frozen_native.get("requestId") != key
                         or con.execute("SELECT 1 FROM dispatch_intents WHERE request_id=?", (key,)).fetchone()):
                     raise _conflict()
             if request.parent_run_id is not None:
@@ -851,10 +910,10 @@ class RunStore:
             dispatch_payload = {"question": request.question, "parent_run_id": request.parent_run_id}
             if self.family == QUERY_RUN_FAMILY:
                 dispatch_payload["family"] = self.family
-            if native_request is not None:
-                dispatch_payload["native_request"] = native_request
+            if frozen_native is not None:
+                dispatch_payload["native_request"] = frozen_native
             con.execute("INSERT INTO dispatch_intents VALUES (?, ?, ?, ?, ?, ?, 'PENDING', 0)",
-                        (run_id, conversation["runtime_session_id"], key if native_request is not None else _id("dispatch"), attempt_id,
+                        (run_id, conversation["runtime_session_id"], key if frozen_native is not None else _id("dispatch"), attempt_id,
                          canonical_json(dispatch_payload), content_hash(dispatch_payload)))
             self._remember(con, principal, "run:create", conversation_id, key, digest, response.model_dump(mode="json"), 202)
             if method_package_digest is not None:
@@ -862,6 +921,9 @@ class RunStore:
             if binding_payload is not None:
                 self._remember(con, principal, "runtime.binding", run_id, "descriptor",
                                content_hash(binding_payload), binding_payload, 200)
+            if self.family == QUERY_RUN_FAMILY and frozen_native is not None:
+                self._remember(con, principal, "runtime.native-binding", run_id, "native",
+                               content_hash(frozen_native), frozen_native, 200)
             self._emit(con, con.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone(), "run.updated")
             self._hook("accept:before_commit")
         self._hook("accept:after_commit")

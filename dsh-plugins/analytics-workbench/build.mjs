@@ -9,6 +9,7 @@ const upstream = resolve(process.argv[2] ?? join(root, '../../.context/dsh-b0/up
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const { build, compiler } = await bindToolchain(root, upstream);
 const skillPackage = await packSkills(root);
+const querySkillPackage = await packSkills(root, 'channel_followup');
 checkTypes(root, compiler);
 
 const external = [
@@ -20,7 +21,10 @@ const common = { absWorkingDir: root, bundle: true, sourcemap: true, logLevel: '
 await build({
   ...common, entryPoints: ['src/index.ts', 'src/tool.ts', 'src/skills.ts'], outdir: 'lib', platform: 'node',
   target: 'node24', format: 'esm',
-  define: { __B0_SKILL_PACKAGE__: JSON.stringify(skillPackage) },
+  define: {
+    __B0_SKILL_PACKAGE__: JSON.stringify(skillPackage),
+    __QUERY_SKILL_PACKAGE__: JSON.stringify(querySkillPackage),
+  },
   external: ['@deepseek-ai/*'],
 });
 await build({

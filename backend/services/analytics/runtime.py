@@ -13,6 +13,10 @@ import stat
 from dataclasses import asdict
 from urllib.request import Request, build_opener, ProxyHandler, HTTPRedirectHandler
 
+from backend.contracts.analytics_query_run import (
+    QUERY_RUN_FAMILY, AnalyticsQueryNativeReceipt,
+)
+
 from .access import AnalyticsError
 from .jobs import ExecutionObservation
 
@@ -174,3 +178,26 @@ def execute_native_fixture(store, resolve_actor, session_id, request_id, call_id
         "customers": result.facts.customers, "repeat_customers": result.facts.repeat_customers,
         "repeat_rate": result.facts.repeat_ratio,
     }}
+
+
+def execute_native_query(store, resolve_actor, session_id, request_id, call_id, query_request, *, workers):
+    """Trusted query-tool lookup, never the latest run and never a model-supplied path."""
+    if store.family != QUERY_RUN_FAMILY:
+        raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
+    matches = store.runtime_work(session_id=session_id, request_id=request_id)
+    if len(matches) != 1:
+        raise AnalyticsError(409, "UNBOUND_NATIVE_REQUEST", "当前原生请求没有已登记的任务绑定。")
+    work = matches[0]
+    principal = resolve_actor(work["owner"])
+    if principal is None:
+        raise AnalyticsError(403, "FORBIDDEN", "当前任务身份已失效。")
+    intent = work["intent"]
+    step = store.reserve_step(principal, intent.run_id, intent.attempt_id, call_id, request=query_request)
+    if step.disposition == "PENDING":
+        raise AnalyticsError(409, "STEP_PENDING", "原工具步骤尚未确认，不能重复执行。")
+    result = (workers.execute(principal, intent, step) if step.disposition == "EXECUTE"
+              else store.step_result(principal, intent.run_id, intent.attempt_id, step.step_id))
+    return AnalyticsQueryNativeReceipt(
+        run_id=intent.run_id, attempt_id=intent.attempt_id, step_id=step.step_id,
+        disposition=step.disposition, result=result,
+    ).model_dump(mode="json")
