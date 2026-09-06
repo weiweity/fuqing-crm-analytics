@@ -6,9 +6,9 @@
 
 开发入口：[唯一 Agent 规则](../../AGENTS.md)；[2026-09-06 规则统一与项目盘查](./AGENT-RULES-AUDIT-2026-09-06.md)记录 Astra 工作方式适配、旧自动化停用及未删除候选，不改变 B0 业务验收结论。
 
-**当前 8 小时 Goal（2026-09-07，已启动）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 推进本地 synthetic G0–G5。它承接历史 B0 PARTIAL，补数据合同/合成金标准、首条合成业务查询和原生接线，不是重跑 T01–T09，也不是 B1–B4 完整产品或真实业务。Git 为 `PR_DELIVERY`（任务分支/commit/push/小 PR）；merge/部署/删分支/真实库/产品模型未授权。不要把历史「只授权 B0 / 未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」当成当前全局指令。G0 文档单元当时未跑业务测试、记录时点未启动 B0 服务。T09 已提交 `bd6d8fe`（PR #69 base #68；CI 34049400372/34049400375 对该 SHA 成功；原生 `runtime-eDvn6c` PASS）——P1 CI 不是 G1 CI。G1 源码已提交 `857d2ce`（[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70) base PR #69）；独立 pipeline 178 Python / 143 源 Node / 14 built，最终 pre-push 178 Python / 145 Node / 14 built+clean/typechecks PASS（`G1-push.log`）；原生四问 `runtime-SNWYss` PASS（第一次 `hkeo4K` F3 失败保留）。G1 CI 对 `857d2ce` **PASS**（runs 34052132760 / 34052132799）。G2a 独立 `analytics-channel-followup/v1` 合同与手算金标准见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)；SQL/HTTP 未实现。
+**当前 8 小时 Goal（2026-09-07，已启动）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 推进本地 synthetic G0–G5。它承接历史 B0 PARTIAL，补数据合同/合成金标准、首条合成业务查询和原生接线，不是重跑 T01–T09，也不是 B1–B4 完整产品或真实业务。Git 为 `PR_DELIVERY`（任务分支/commit/push/小 PR）；merge/部署/删分支/真实库/产品模型未授权。不要把历史「只授权 B0 / 未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」当成当前全局指令。G0 文档单元当时未跑业务测试、记录时点未启动 B0 服务。T09 已提交 `bd6d8fe`（PR #69 base #68；CI 34049400372/34049400375 对该 SHA 成功；原生 `runtime-eDvn6c` PASS）——P1 CI 不是 G1 CI。G1 源码已提交 `857d2ce`（[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70) base PR #69）；独立 pipeline 178 Python / 143 源 Node / 14 built，最终 pre-push 178 Python / 145 Node / 14 built+clean/typechecks PASS（`G1-push.log`）；原生四问 `runtime-SNWYss` PASS（第一次 `hkeo4K` F3 失败保留）。G1 CI 对 `857d2ce` **PASS**（runs 34052132760 / 34052132799）。G2a 独立 `analytics-channel-followup/v1` 合同与手算金标准见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)。G3a 离线确定性计算见 [渠道后续购买计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)；worker/HTTP/native 未实现。
 
-2026-09-06 的工作流治理见 [治理实施记录](./WORKFLOW-GOVERNANCE-2026-09-06.md)；后续提交、PR 与两处前端遗留修复见 [阶段 Git 与 QA](./PHASE-GIT-QA-2026-09-06.md)，日常命令见 [验证入口](../operating/verification.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）；第 3 项（T09）本 Goal 已提交 `bd6d8fe`，PR #69，见 [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)。整体 B0 PARTIAL。G1 已提交 `857d2ce` / PR #70。G2a 合同子集见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)。
+2026-09-06 的工作流治理见 [治理实施记录](./WORKFLOW-GOVERNANCE-2026-09-06.md)；后续提交、PR 与两处前端遗留修复见 [阶段 Git 与 QA](./PHASE-GIT-QA-2026-09-06.md)，日常命令见 [验证入口](../operating/verification.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）；第 3 项（T09）本 Goal 已提交 `bd6d8fe`，PR #69，见 [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)。整体 B0 PARTIAL。G1 已提交 `857d2ce` / PR #70。G2a 合同子集见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)。G3a 离线计算见 [渠道后续购买计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。
 
 阶段 Git 检查与开放项见[草稿提交检查](./PHASE-DRAFT-REVIEW-2026-09-06.md)。该记录区分局部测试、推送检查和完整产品验收，不以 Draft PR 代替合并或部署许可。
 
@@ -32,7 +32,8 @@
 - [8 小时 Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)：当前 synthetic G0–G5 执行入口；启动账本不在本文重复计时。
 - [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)：历史 B0 最新本地验收与开放项；
 - [G1 原生 running / 非法结果拒绝](./B0-NATIVE-STATE-2026-09-07.md)：本范围原生四问 PASS（`runtime-SNWYss`）；第一次 `hkeo4K` F3 失败保留；源码已提交 `857d2ce` / PR #70；
-- [渠道首次观察队列合同与金标准](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)：G2a `analytics-channel-followup/v1` 独立合同与手算金标准；SQL/HTTP 未实现；
+- [渠道首次观察队列合同与金标准](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)：G2a `analytics-channel-followup/v1` 独立合同与手算金标准；
+- [渠道首次观察队列离线计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)：G3a 从 G2 输入计算 G2 结果；worker/HTTP/native 未实现；
 - [B0 工具卡 DOM 增量](./B0-TOOL-CARD-DOM-2026-09-06.md) / [T01–T09 清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)：历史 B0 当轮入口；[T01–T07 收口](./B0-LOCAL-CLOSEOUT-2026-09-06.md)保留既有分层验收、开放风险和服务收尾。
 - [B0 方法与上下文](./B0-METHOD-CONTROL-VALIDATION-2026-09-06.md) / [当前控制面清单](./B0-CONTROL-MANIFEST-2026-09-06.md)：整包、原生组件压缩及持续权限修复的红/绿证据。
 - [B0 监督器复查与工程阶段](./B0-SUPERVISOR-RECHECK-2026-09-06.md)：历史专项入口；七问单次 PASS，历史退出根因仍未解。

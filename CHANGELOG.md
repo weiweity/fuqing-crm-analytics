@@ -3,7 +3,8 @@
 ### Added
 - 隔离 B0 FastAPI 任务账本、权限/幂等/取消恢复、物理 worker 与有界合成 fixture；固定 DSH 单运行时插件、方法包/上下文重建、统一构建与 CI 入口。
 - 工具卡组件 DOM、资源/提交故障、干净重建与原生接缝的分层回归及证据文档；整体仍为 B0 PARTIAL，不代表完整产品、真实模型或容量验收。
-- 独立 synthetic 查询合同 `analytics-channel-followup/v1` 与 11 用户/22 订单手算金标准（G2a）；离线 OpenAPI/TS 无 HTTP 路由。不改旧 `analytics-run-b0/v1` 固定 25%。SQL/worker/新接口未实现。审查修复：UTC 微秒规范 hash、resolved 自洽校验、空 `product_ids` schema、严格 RFC3339/布尔/整数 wire、JS 安全整数传输上限。
+- 独立 synthetic 查询合同 `analytics-channel-followup/v1` 与 11 用户/22 订单手算金标准（G2a）；离线 OpenAPI/TS 无 HTTP 路由。不改旧 `analytics-run-b0/v1` 固定 25%。审查修复：UTC 微秒规范 hash、resolved 自洽校验、空 `product_ids` schema、严格 RFC3339/布尔/整数 wire、JS 安全整数传输上限。
+- G3a 离线确定性渠道后续购买计算：三表 synthetic snapshot 封板 + 固定参数化 SQL + 只读执行，字面对照 G2 N30/60/90 金标准。不接 HTTP/native/worker 调度；旧 B0 4MiB 与 25% 未改。审查修复：ASCII/`encode` 比较不受 nocase collation 漂移、manifest 与 catalog 自洽、有界 `LIMIT` 读取超量行。
 
 ### Changed
 - B0 增加明确 opt-in 的 native-state 测试入口：真实 SQL_ACTIVE 探针；未知版本/非法 facts 经正常 result 帧由生产 validator 拒绝。下一问须等 native turn 与 Send message。`runtime-SNWYss` 四问 PASS；第一次 `hkeo4K` 因 F3 失败保留。默认 kernel/HTTP 合同不变。G1 源码已提交 `857d2ce` / PR #70。
@@ -19,7 +20,7 @@
 - Agent 行为统一维护于 AGENTS.md，CLAUDE.md 仅兼容引用；同步 hooks、工作流文档和当前 T08 状态摘要。
 
 ### Known issues
-- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；源码已提交 `857d2ce` / PR #70，最终 pre-push 178 Python / 145 Node / 14 built。整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G2a 仅为合同与手算金标准，SQL 未跑。无合并、部署或真实数据操作授权。
+- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；源码已提交 `857d2ce` / PR #70，最终 pre-push 178 Python / 145 Node / 14 built。整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G3a 仅为离线计算，worker/HTTP/native 未跑。无合并、部署或真实数据操作授权。
 
 ## [0.5.0.0] - 2026-09-04
 

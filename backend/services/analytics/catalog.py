@@ -52,7 +52,7 @@ QUERY_FAMILIES: dict[str, QueryFamily] = {
         query_id=FAMILY_CHANNEL_FOLLOWUP,
         status=QueryFamilyStatus.SUPPORTED_CONTRACT,
         title="首次观察到的渠道 / N日二单率",
-        notes="Contract and hand goldens only in this unit; SQL is later.",
+        notes="Offline deterministic SQL compute exists; worker/HTTP/native are not in G3a.",
     ),
     FAMILY_FIRST_PURCHASE_PRODUCT_PATH: QueryFamily(
         query_id=FAMILY_FIRST_PURCHASE_PRODUCT_PATH,

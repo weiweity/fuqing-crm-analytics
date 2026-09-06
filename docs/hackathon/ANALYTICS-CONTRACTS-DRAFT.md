@@ -2,7 +2,7 @@
 
 日期：2026-09-05。状态：`DRAFT`（完整产品 API 仍未实现）；B0 子集已有可装配合同与原生接线。G2a 另有独立 synthetic 查询合同子集，**不是**全部目标已 IMPLEMENTED。
 
-2026-09-07 局部实现说明：本文件仍是完整产品的目标草案，不是所有接口已实现。前置 B0 的会话/任务/取消/事件子集已落为独立 `analytics-run-b0/v1`，并已接到原生 DSH Web（独立插件、单 Agent Loop、官方 mock）；[实际接口及边界](./B0-RUN-KERNEL-2026-09-06.md)、[T09 原生故障](./B0-NATIVE-FAULT-2026-09-07.md)、[G1 原生状态](./B0-NATIVE-STATE-2026-09-07.md)和[生成 OpenAPI](../../backend/contracts/analytics-run.openapi.json)为该小样的可装配合同。G1 源码已提交 `857d2ce`（[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)，base [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)）。G2a 新增独立 `analytics-channel-followup/v1` 查询输入/结果合同与手工金标准，见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)；**无 SQL、无新 HTTP、无完整 B1**。不支持业务 condition patch、保存/驾驶舱/QUERY刷新；完整三类查询产品 API 仍为下文草案。B0 固定 fixture（含原生卡展示的 100 / 25 / 25%）不是渠道后续购买等三类业务实现，且本子集未改该 25%。隔离入口使用 4315–4319，不是公网地址。不得把 B0 固定 fixture 类型冒充三类完整分析结果。
+2026-09-07 局部实现说明：本文件仍是完整产品的目标草案，不是所有接口已实现。前置 B0 的会话/任务/取消/事件子集已落为独立 `analytics-run-b0/v1`，并已接到原生 DSH Web（独立插件、单 Agent Loop、官方 mock）；[实际接口及边界](./B0-RUN-KERNEL-2026-09-06.md)、[T09 原生故障](./B0-NATIVE-FAULT-2026-09-07.md)、[G1 原生状态](./B0-NATIVE-STATE-2026-09-07.md)和[生成 OpenAPI](../../backend/contracts/analytics-run.openapi.json)为该小样的可装配合同。G1 源码已提交 `857d2ce`（[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)，base [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)）。G2a 新增独立 `analytics-channel-followup/v1` 查询输入/结果合同与手工金标准，见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)；G3a 离线 SQL 见 [渠道后续购买计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。**无新 HTTP、无完整 B1**。不支持业务 condition patch、保存/驾驶舱/QUERY刷新；完整三类查询产品 API 仍为下文草案。B0 固定 fixture（含原生卡展示的 100 / 25 / 25%）不是渠道后续购买等三类业务实现，且本子集未改该 25%。隔离入口使用 4315–4319，不是公网地址。不得把 B0 固定 fixture 类型冒充三类完整分析结果。
 
 autoplan v2 范围：§3.5 订阅、§3.6 专家台为后续设计，不实现首版调度/投递/多人专家 API。v1 以单个经营专家、三类受控查询、保存/驾驶舱与分析人群草案闭环为准；不再要求先改造旧 RFM。
 
@@ -295,7 +295,7 @@ POST /decision-drafts/{id}/exports 受理返回202，固定export_id、attempt_i
 - N=30/60/90 日时，成熟分母仅纳入 as_of >= first_paid_at + N 天的人；分子为该人群在 [first_paid_at, first_paid_at+N天] 且排序晚于首订单的另一有效订单人数。空分母为 null；未成熟人数单列。新增严格 v1 与旧草图 (0,N] 文字/旧视图并非默认等价。
 - 后续跨渠道、后续商品、净支付观察值采用同一 N 日窗口和成熟分母；不能用全历史 cross_channel_rate 与 N 日二单率并排比较而不说明。无历史覆盖只称“首次观察到”，不是因果获客/终身 LTV。
 - cohort_digest 由固定规范化、排序后的合成成员集合和绑定元数据计算，规范与 hash_version 一并存储；大名单不经模型。不可用净支付观察值宣称利润/增量，成本缺失为 null + reason。
-- 2026-09-07 G2a 子集：渠道首次观察队列的独立合同与 11 用户/22 订单手算金标准已按本节粒度落地，见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)。后两族仍 DEFERRED；SQL/HTTP 未实现。本节完整目标不因此改为 IMPLEMENTED。
+- 2026-09-07 G2a/G3a 子集：渠道首次观察队列的独立合同、11 用户/22 订单手算金标准与离线 SQL 已落地，见 [渠道后续购买合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md) 与 [计算报告](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。后两族仍 DEFERRED；HTTP/worker 未实现。本节完整目标不因此改为 IMPLEMENTED。
 
 ## 8. 合同交付检查
 

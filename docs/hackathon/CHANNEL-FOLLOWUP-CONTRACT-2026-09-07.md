@@ -1,6 +1,6 @@
 # 渠道首次观察队列 → N 日二单 / 跨渠道（G2a 合同与金标准）
 
-日期：2026-09-07。修订时点：G2a 审查修复（任务分支 `codex/channel-followup-contracts`，基于 G1 `857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)，P1 [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)）。状态：**CONTRACT_AND_HAND_GOLDENS_ONLY**。不是 SQL 通过、不是 HTTP 上线、不是完整 B1、不是三查询族全部合同通过。
+日期：2026-09-07。修订时点：G3a 离线计算（任务分支 `codex/channel-followup-compute`，基于 G2a `ae02f87` / [PR #71](https://github.com/weiweity/fuqing-crm-analytics/pull/71)，G1 [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)）。状态：**CONTRACT_PLUS_OFFLINE_COMPUTE**。离线 SQL 见 [计算报告](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)；不是 HTTP 上线、不是 worker 总治理、不是完整 B1、不是三查询族全部合同通过。
 
 本文件是可验证的 tracked synthetic 子集合同。完整产品目标仍见 [接口草案](./ANALYTICS-CONTRACTS-DRAFT.md) §2 / §3.1 / §7 与 [实施方案](./UNIFIED-ANALYTICS-PLAN.md) §4。手算输入与预期以本文件第 5 节和 `backend/tests/fixtures/analytics_channel_followup_v1*.json` 为准，不是旧 B0 100/25/25%。
 
@@ -11,12 +11,12 @@
 | 查询合同 `analytics-channel-followup/v1` | 已落地：请求、resolved filters、snapshot 输入、结果模型 |
 | 离线 OpenAPI / 生成 TS | 已落地：`paths` 为空，`x-not-an-http-api=true` |
 | 手工 11 用户 / 22 订单金标准 | 已落地；字面手算，不是查询输出 |
-| SQL / worker / 运行调度 | **尚未实现（NOT RUN）** |
+| SQL / worker / 运行调度 | 离线 SQL **G3a PASS**；worker/调度 **尚未实现** |
 | 新 HTTP 路由 | **无**。不得把 OpenAPI components 当成可调用 API |
 | 旧 `analytics-run-b0/v1` 与插件 `analytics-b0/v1` 固定 25% | **未改** |
 | 会计批准 / 真实获客 / 终身复购 | **不是**。本子集是 synthetic 候选口径 |
 
-G1 源码已提交 `857d2cee7096027b87dc6ca1f2dfd0720fb1a7fd`，PR #70，base PR #69。G1 CI 对该精确 SHA **PASS**（runs 34052132760 / 34052132799；B0 + path plans SUCCESS，其余按范围 SKIPPED；证据 `G1-final-ci.json`，约 2026-09-06T18:34–18:37Z）。P1 CI 不是 G1 CI。G2a 实现待 Codex 提交。
+G1 源码已提交 `857d2cee7096027b87dc6ca1f2dfd0720fb1a7fd`，PR #70，base PR #69。G1 CI 对该精确 SHA **PASS**（runs 34052132760 / 34052132799；B0 + path plans SUCCESS，其余按范围 SKIPPED；证据 `G1-final-ci.json`，约 2026-09-06T18:34–18:37Z）。P1 CI 不是 G1 CI。G2a 已提交 `ae02f87` / [PR #71](https://github.com/weiweity/fuqing-crm-analytics/pull/71)，CI PASS。G3a 离线计算在任务分支 `codex/channel-followup-compute`，Git 由 Codex 按 PR 交付。
 
 ## 2. 可验证字段、单位、版本
 
@@ -60,7 +60,7 @@ G1 源码已提交 `857d2cee7096027b87dc6ca1f2dfd0720fb1a7fd`，PR #70，base PR
 | 首购商品路径 | `DEFERRED` | 共享 FIXED 窗口 / N / snapshot / 渠道等输入形状；无本族金标准、成功 payload 或 HTTP |
 | 候选承接人群 | `DEFERRED` | 后续可复用同一 `(synthetic_user_id, order_id)` 粒度；G2a 不是三族合同都通过 |
 
-本候选 v1 已核对：`ChannelFollowupQueryRequest.query_id`、`ChannelFollowupResolvedFilters.query_id`、`ChannelFollowupResult.query_id` 均为 `Literal["channel_first_observed_followup"]`（`backend/contracts/analytics_query.py`）。`test_request_rejects_unsupported_or_unknown_inputs` 对 `query_id=first_purchase_product_path` 期望 `ValidationError`；`require_supported_query` 对 `DEFERRED` 族抛 `UnsupportedQueryError`（`this subset does not emit a success payload`），由 `test_deferred_families_have_no_success_payload` 覆盖。其他查询族在本候选 v1 被拒绝，不提供成功结果。渠道族 SQL 留 G3。
+本候选 v1 已核对：`ChannelFollowupQueryRequest.query_id`、`ChannelFollowupResolvedFilters.query_id`、`ChannelFollowupResult.query_id` 均为 `Literal["channel_first_observed_followup"]`（`backend/contracts/analytics_query.py`）。`test_request_rejects_unsupported_or_unknown_inputs` 对 `query_id=first_purchase_product_path` 期望 `ValidationError`；`require_supported_query` 对 `DEFERRED` 族抛 `UnsupportedQueryError`（`this subset does not emit a success payload`），由 `test_deferred_families_have_no_success_payload` 覆盖。其他查询族在本候选 v1 被拒绝，不提供成功结果。渠道族离线 SQL 见 [G3a 计算报告](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。
 
 ## 5. 手工例子预期（as_of=2026-09-01T00:00:00+08:00）
 
@@ -80,12 +80,11 @@ G1 源码已提交 `857d2cee7096027b87dc6ca1f2dfd0720fb1a7fd`，PR #70，base PR
 
 ## 6. 尚未实现
 
-- 查询函数 / SQL / DuckDB
-- worker、RunStore 接线、新 HTTP
+- worker、RunStore 接线、新 HTTP、原生工具卡
 - 人群审批、保存资产、仓库/ETL
 - 真实业务数据与产品模型
 
-测试只证明合同与手工例子自洽。实际计算留 G3。
+离线查询函数与 DuckDB 见 [G3a 计算报告](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。金标准 `expected.json` 仍是手工预期来源（`hand_calculated` / `NOT_RUN`），不是生产答案。
 
 ## 7. 产物
 
@@ -96,3 +95,4 @@ G1 源码已提交 `857d2cee7096027b87dc6ca1f2dfd0720fb1a7fd`，PR #70，base PR
 - `dsh-plugins/analytics-workbench/src/query-contract.generated.d.ts`
 - fixtures：`backend/tests/fixtures/analytics_channel_followup_v1.json` 与 `_expected.json`
 - 旧 B0 OpenAPI SHA-256 保持 `5d93c3aabf362865e8f24e28c96a8d1f75717c80370f31734407d85b128b9679`
+- G3a 离线计算：`backend/analytics_query_fixture.py`、`backend/services/analytics/queries.py`、`backend/tests/test_analytics_channel_followup.py`、[计算报告](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)
