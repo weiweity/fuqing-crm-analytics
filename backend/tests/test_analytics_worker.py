@@ -111,11 +111,46 @@ def test_live_execution_lease_fences_native_terminal_and_step_commit(tmp_path):
 def test_stricter_fault_profile_never_raises_approved_default_ceilings(tmp_path):
     store, _, intent, step, fixture = setup_worker(tmp_path, duckdb_memory_mib=16, worker_temp_mib=1,
                                                   worker_rss_observation_mib=256)
-    result = WorkerManager(store, lambda _: actor(), fixture).execute(actor(), intent, step)
+    try:
+        result = WorkerManager(store, lambda _: actor(), fixture).execute(actor(), intent, step)
+    except AnalyticsError as error:
+        pytest.fail(f"{error.code}; worker evidence: {store.worker_records(active_only=False)}")
     assert result == fixture_result()
     record = store.worker_records(active_only=False)[0]
     assert json.loads(record["metrics_json"])["settings"]["memory_limit"] == "16.0 MiB"
     assert asdict(fixture)["manifest_sha256"]
+
+
+def test_worker_peak_excludes_parent_image_and_retains_own_freed_peak():
+    # Force the same fork/exec path as an inherited worker lease, with a large
+    # but bounded parent image. No DB or persistent file is involved.
+    padding = bytearray(256 * 1024 * 1024)
+    read_fd, write_fd = os.pipe()
+    try:
+        command = '''
+import json, resource, sys
+from backend.analytics_worker import worker_peak_rss_bytes
+before = worker_peak_rss_bytes()
+memory = bytearray(32 * 1024 * 1024)
+allocated = worker_peak_rss_bytes()
+del memory
+print(json.dumps(dict(before=before, allocated=allocated, freed=worker_peak_rss_bytes(),
+    legacy=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == "darwin" else 1024))))
+'''
+        child = subprocess.run([sys.executable, '-c', command], cwd=REPO_ROOT,
+                               env=child_environment(), pass_fds=(read_fd,),
+                               capture_output=True, text=True, timeout=15)
+        assert child.returncode == 0, child.stderr
+        observed = json.loads(child.stdout)
+        assert observed['allocated'] >= observed['before'] + 24 * 1024 * 1024, observed
+        assert observed['freed'] >= observed['allocated'], observed
+        assert observed['freed'] < len(padding), observed
+        if sys.platform == 'linux':
+            assert observed['legacy'] >= len(padding), observed
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+        del padding
 
 
 @pytest.mark.parametrize("reason", ["cancel", "permission", "query_deadline", "run_deadline"])

@@ -8,6 +8,8 @@ an orphan even if its query is still running. Recovery never signals old PIDs.
 import fcntl
 import json
 import os
+from pathlib import Path
+import re
 import resource
 import stat
 import sys
@@ -22,6 +24,20 @@ from backend.services.analytics.resource_profile import B0ResourceProfile
 
 def emit(value):
     print(json.dumps(value, ensure_ascii=False, allow_nan=False), flush=True)
+
+
+def worker_peak_rss_bytes():
+    # Linux getrusage preserves pre-exec high water, including the forked
+    # supervisor's address space. VmHWM belongs to this exec's memory map.
+    # Both are observations, not a kernel-enforced RSS limit.
+    if sys.platform == "linux":
+        status = Path("/proc/self/status").read_text()
+        match = re.search(r"^VmHWM:\s+(\d+)\s+kB$", status, re.MULTILINE)
+        if match is None:
+            raise RuntimeError("worker memory observation unavailable")
+        return int(match[1]) * 1024
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return int(peak if sys.platform == "darwin" else peak * 1024)
 
 
 def query_fixture(con, _config):
@@ -102,8 +118,7 @@ def run_child(*, workload=query_fixture, config=None):
     finally:
         if con is not None:
             con.close()
-        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        emit({"type": "closed", **binding, "rss_peak_bytes": int(peak if sys.platform == "darwin" else peak * 1024),
+        emit({"type": "closed", **binding, "rss_peak_bytes": worker_peak_rss_bytes(),
               "elapsed_ms": round((time.monotonic() - started) * 1000)})
         # Do not unlock early; the descriptor stays locked until process exit.
 
