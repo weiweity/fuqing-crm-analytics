@@ -78,7 +78,19 @@ def test_runner_keeps_c_class_ssot_and_explicit_slow_exclusion(tmp_path):
     args = bounded.pytest_args(['backend/tests/test_check_runner.py'], tmp_path / 'group.xml')
     assert args.count('--deselect') == 7
     assert args[args.index('-m', args.index('pytest')) + 1] == 'not slow'
-    assert '-n0' in args
+    assert 'no:xdist' in args
+
+
+def test_runner_executes_without_optional_xdist_plugin(tmp_path):
+    sample = tmp_path / 'test_serial_sample.py'
+    sample.write_text('def test_serial():\n    assert 2 + 2 == 4\n')
+    env = bounded.isolated_env(tmp_path)
+    env['PYTEST_DISABLE_PLUGIN_AUTOLOAD'] = '1'
+    command = bounded.pytest_args([str(sample)], tmp_path / 'sample.xml')
+    result = subprocess.run([*command, '--noconftest'], cwd=tmp_path, env=env,
+                            capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert '1 passed' in result.stdout
 
 
 def test_runner_terminates_only_its_child_on_resource_limit(monkeypatch, tmp_path):

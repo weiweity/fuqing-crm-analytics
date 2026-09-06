@@ -82,7 +82,9 @@ def pytest_args(targets: list[str], junit: Path) -> list[str]:
     sys.path.insert(0, str(ROOT))
     from scripts.ci.pre_push_path_class import load_deselect_nodeids
     deselects = [arg for node in load_deselect_nodeids() for arg in ('--deselect', node)]
-    return [sys.executable, '-m', 'pytest', *targets, '-x', '-q', '-n0',
+    # Disable the optional plugin with pytest's built-in switch. `-n0` itself
+    # requires xdist, which is not installed by the CI lockfile.
+    return [sys.executable, '-m', 'pytest', *targets, '-x', '-q', '-p', 'no:xdist',
             '-m', 'not slow', '--durations=10', '-p', 'no:cacheprovider',
             f'--junitxml={junit}', *deselects]
 
