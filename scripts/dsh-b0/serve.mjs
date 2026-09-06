@@ -22,12 +22,14 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const b0 = join(root, '.context/dsh-b0');
 const upstream = join(b0, 'upstream');
 const args = process.argv.slice(2);
-const cardScenario = args.at(-1) === '--native-cards';
-if (cardScenario) args.pop();
+let scenario = 'lifecycle';
+if (args.at(-1) === '--native-cards' || args.at(-1) === '--native-state') scenario = args.pop().slice(2);
+const cardScenario = scenario === 'native-cards';
+const stateScenario = scenario === 'native-state';
 const [pythonFlag, python, pluginFlag, pluginArg, ...extra] = args;
 assert.ok(pythonFlag === '--python' && python && isAbsolute(python) && !extra.length
   && (pluginFlag === undefined || (pluginFlag === '--plugin' && pluginArg && isAbsolute(pluginArg))),
-'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards]');
+'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards|--native-state]');
 assert.equal(process.platform, 'darwin', 'The native verification runner requires the macOS Seatbelt profile');
 assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Use Node 24');
 const plugin = await realpath(pluginArg ?? join(root, 'dsh-plugins/analytics-workbench'));
@@ -78,6 +80,13 @@ const fixture = JSON.parse(execFileSync(python, ['-m', 'backend.analytics_fixtur
 const kernelConfig = { state_dir: kernelState, session_id: sessionId, runtime_token: runtimeToken,
   gateway_token: gatewayToken, fixture, method_package_digest: methodPackageDigest };
 await writeJson(join(runtime, 'kernel-private.json'), kernelConfig);
+if (stateScenario) {
+  const probe = join(runtime, 'probe');
+  await mkdir(probe, { recursive: true, mode: 0o700 });
+  await mkdir(join(probe, 'release'), { recursive: true, mode: 0o700 });
+  await writeFile(join(probe, 'sequence.json'),
+    JSON.stringify(['sql_hold', 'unknown_schema', 'illegal_facts', 'passthrough']) + '\n', { mode: 0o600 });
+}
 await writeJson(join(ownHome, 'profiles/web/package.json'), {
   name: 'shine-mage-b0-web-profile', private: true, type: 'module',
   dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'], patchReload: 'startup' } },
@@ -127,13 +136,19 @@ const environment = {
 };
 const { startMockLlmServer } = await import(pathToFileURL(join(upstream, 'packages/test-support/llm-mock-server/lib/index.js')).href);
 const mock = await startB0MockProvider(startMockLlmServer, { host: '127.0.0.1', port: mockPort, apiKey: 'b0-mock-only',
-  // Opt-in finite wire script: success, real worker fault (no next model step),
-  // native Skill card, recovered query. No tool or journal outcome is fabricated.
+  // Opt-in finite wire script. Native-cards: success, real worker fault (no next
+  // model step), Skill, recovered query. Native-state: SQL-hold success, two
+  // parent-protocol rejections, recovered query. No journal outcome is fabricated.
   ...(cardScenario ? { script: [
     { sequence: ['tool_call_success'] }, { sequence: ['success'] },
     { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'], toolName: 'skill', toolArguments: JSON.stringify({ name: 'growth-analysis-b0' }) },
     { sequence: ['tool_call_success'] }, { sequence: ['success'] },
+    { sequence: ['tool_call_success'] }, { sequence: ['success'] },
+  ] } : stateScenario ? { script: [
+    { sequence: ['tool_call_success'] }, { sequence: ['success'] },
+    { sequence: ['tool_call_success'] },
+    { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'] }, { sequence: ['success'] },
   ] } : {}),
   sequence: ['tool_call_success', 'success', 'tool_call_success', 'success', 'slow_success', 'tool_call_success', 'success', 'server_error',
@@ -169,7 +184,7 @@ const currentPath = join(b0, 'current.json');
 function startKernel() {
   kernelGeneration++;
   const generation = kernelGeneration;
-  kernel = spawn(python, ['-m', 'backend.analytics_runtime'], { cwd: root, env: {
+  kernel = spawn(python, ['-m', stateScenario ? 'backend.tests.analytics_native_probe' : 'backend.analytics_runtime'], { cwd: root, env: {
     PATH: `${dirname(python)}:/usr/bin:/bin`, PYTHONPATH: root, PYTHONNOUSERSITE: '1',
     PYTHON_DOTENV_DISABLED: '1', PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1',
   }, stdio: ['pipe', 'ignore', 'pipe'] });
@@ -183,7 +198,7 @@ function startKernel() {
 async function writeCurrent() {
   await writeJson(currentPath, { runtime, supervisorPid: process.pid, childPid: child?.pid,
     kernelPid: kernel?.pid, kernelGeneration, hostGeneration, hostReadyGeneration, webPort, mockPort, pinned, plugin,
-    verificationScenario: cardScenario ? 'native-cards' : 'lifecycle' });
+    verificationScenario: scenario });
 }
 async function bootHost() {
   hostGeneration++;

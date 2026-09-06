@@ -66,7 +66,7 @@ if (mode === '--prepare') {
   console.log('B0 pinned preparation complete; run --check next. Python packages are never installed by this script.');
 } else {
   await verifySource();
-  for (const file of ['asset-ui-smoke.mjs', 'theme-ui-smoke.mjs', 'native-ui-smoke.mjs', 'native-card-smoke.mjs', 'tool-card-dom-smoke.mjs', 'gateway-smoke.mjs', 'control-permission-probe.mjs']) {
+  for (const file of ['asset-ui-smoke.mjs', 'theme-ui-smoke.mjs', 'native-ui-smoke.mjs', 'native-card-smoke.mjs', 'native-state-smoke.mjs', 'tool-card-dom-smoke.mjs', 'gateway-smoke.mjs', 'control-permission-probe.mjs']) {
     run(process.execPath, ['--check', join(root, 'scripts/dsh-b0', file)]);
   }
   run(python, ['-c', String.raw`
@@ -79,18 +79,20 @@ for line in pathlib.Path('scripts/dsh-b0/requirements.lock').read_text().splitli
 print('B0 exact Python closure verified')
 `]);
   run(process.execPath, ['scripts/dsh-b0/run-kernel-contract.mjs', '--check', '--python', python]);
-  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context'].map(name => `backend/tests/test_analytics_${name}.py`);
+  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe'].map(name => `backend/tests/test_analytics_${name}.py`);
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py',
     'backend/analytics_fixture.py', 'backend/analytics_worker.py', 'backend/semantic/analytics_b0.py',
     'backend/contracts/analytics.py', 'backend/services/analytics', 'backend/tests/analytics_run_support.py',
-    'backend/tests/analytics_run_fault_probe.py', 'backend/tests/analytics_worker_probe.py', ...pyTests]);
+    'backend/tests/analytics_run_fault_probe.py', 'backend/tests/analytics_worker_probe.py',
+    'backend/tests/analytics_native_probe.py', ...pyTests]);
   const builtTests = ['built.test.mjs', 'loader.test.mjs', 'skills-loader.test.mjs', 'tool-card-dom.test.mjs'];
   const sourceTests = (await readdir(join(plugin, 'test'))).filter(name => name.endsWith('.test.mjs') && !builtTests.includes(name));
   run(process.execPath, ['--test', ...sourceTests.map(name => join(plugin, 'test', name)),
     'scripts/dsh-b0/gateway-policy.test.mjs', 'scripts/dsh-b0/transport-safety.test.mjs', 'scripts/dsh-b0/mock-provider.test.mjs',
     'scripts/dsh-b0/lifecycle-observer.test.mjs', 'scripts/dsh-b0/permission-fence.test.mjs', 'scripts/dsh-b0/ui-seams.test.mjs',
-    'scripts/dsh-b0/package-manager-env.test.mjs', 'scripts/dsh-b0/diagnostic-sink.test.mjs']);
+    'scripts/dsh-b0/package-manager-env.test.mjs', 'scripts/dsh-b0/diagnostic-sink.test.mjs',
+    'scripts/dsh-b0/native-state-smoke.test.mjs']);
   run(process.execPath, [join(plugin, 'build.mjs'), upstream]);
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
 
