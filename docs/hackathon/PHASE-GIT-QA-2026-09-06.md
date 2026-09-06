@@ -38,4 +38,6 @@
 
 Linux 峰值补丁采用当前进程映像的 `/proc/self/status` VmHWM，保留监督器采样与原资源上限。依据 [getrusage 手册](https://www.man7.org/linux/man-pages/man2/getrusage.2.html) 的 exec 保留行为和 [Linux proc 文档](https://www.kernel.org/doc/html/latest/filesystems/proc.html)；新增大父进程 fork/exec 与子进程释放后保留峰值回归，本地 worker/资源 59 项通过。Linux 实测由后续 CI 证明，不以 macOS 单测替代。
 
+第三轮 Linux 已验证旧指标污染：[CI 34043450329](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34043450329) 中相同子进程的旧指标为 567083008 bytes，当前映像峰值约 71475200 bytes，原严格资源测试通过。新增回归的相邻峰值读数相差 20480 bytes，触发了不适用的逐字节单调断言；改为确认释放后仍保留 32 MiB 工作负载的峰值增量。[B0 34043450142](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34043450142) 同样只有此断言失败，原有 164 项通过，包括此前六项 UDF 故障测试。最终全绿结果仍以 PR 后续 checks 为准。
+
 历史 Excel 全仓审计仍有 32 项旧问题，未改变字段倍率。真实模型、业务 UAT、容量、数仓 ETL、公开交付及分支清理不属于本次通过结论。

@@ -143,7 +143,10 @@ print(json.dumps(dict(before=before, allocated=allocated, freed=worker_peak_rss_
         assert child.returncode == 0, child.stderr
         observed = json.loads(child.stdout)
         assert observed['allocated'] >= observed['before'] + 24 * 1024 * 1024, observed
-        assert observed['freed'] >= observed['allocated'], observed
+        # Linux batches RSS accounting; adjacent VmHWM reads can differ by a
+        # few pages. Prove the 32 MiB workload peak survives freeing it, rather
+        # than requiring byte-exact monotonic reads from this observation.
+        assert observed['freed'] >= observed['before'] + 24 * 1024 * 1024, observed
         assert observed['freed'] < len(padding), observed
         if sys.platform == 'linux':
             assert observed['legacy'] >= len(padding), observed
