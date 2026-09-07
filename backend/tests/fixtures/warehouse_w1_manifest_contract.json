@@ -1,0 +1,45 @@
+{
+  "schema_version": "analytics-warehouse-schema/v1",
+  "rule_version": "analytics-warehouse-rules/v1",
+  "generator_version": "analytics-warehouse-generator/v1",
+  "pipeline_version": "analytics-warehouse-pipeline/v1",
+  "method": "hand_calculated",
+  "required_manifest_keys": [
+    "schema_version",
+    "rule_version",
+    "generator_version",
+    "pipeline_version",
+    "source_identity",
+    "content_hash",
+    "file_hashes",
+    "contains_real_data",
+    "data_source",
+    "seed",
+    "as_of",
+    "timezone",
+    "currency",
+    "amount_unit",
+    "amount_precision",
+    "row_counts"
+  ],
+  "required_source_identity_keys": ["kind", "generator_id", "seed", "produced_at"],
+  "required_file_hash_names": [
+    "orders.jsonl",
+    "lines.jsonl",
+    "refunds.jsonl",
+    "product_versions.jsonl",
+    "identities.jsonl"
+  ],
+  "contains_real_data": false,
+  "data_source": "SYNTHETIC_WAREHOUSE",
+  "seed": 20260907,
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "resource_limits": {
+    "duckdb_memory_mib": 32,
+    "duckdb_threads": 2
+  }
+}

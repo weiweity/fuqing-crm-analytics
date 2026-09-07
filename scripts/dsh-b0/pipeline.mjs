@@ -13,11 +13,13 @@ import { packageManagerEnv } from './package-manager-env.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const plugin = join(root, 'dsh-plugins/analytics-workbench');
 const b0 = join(root, '.context/dsh-b0');
-const upstream = join(b0, 'upstream');
 const buildTools = join(plugin, 'build-tools');
 const [mode, pythonFlag, python, ...extra] = process.argv.slice(2);
 assert.ok(['--prepare', '--check'].includes(mode) && pythonFlag === '--python' && isAbsolute(python ?? '') && !extra.length,
   'Usage: node scripts/dsh-b0/pipeline.mjs --prepare|--check --python /absolute/python3.14');
+assert.ok(!process.env.B0_BUILD_UPSTREAM || mode === '--check',
+  'B0_BUILD_UPSTREAM is a read-only --check override; --prepare must use the local pinned checkout');
+const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(b0, 'upstream'));
 const pin = JSON.parse(await readFile(join(plugin, 'toolchain.json'), 'utf8'));
 assert.equal(Number(process.versions.node.split('.')[0]), pin.node_major);
 let env = {
@@ -25,6 +27,7 @@ let env = {
   PATH: `${dirname(process.execPath)}:${dirname(python)}:/usr/bin:/bin`,
   PYTHONPATH: root, PYTHONNOUSERSITE: '1', PYTHON_DOTENV_DISABLED: '1',
   PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1',
+  B0_BUILD_UPSTREAM: upstream,
   COREPACK_ENABLE_DOWNLOAD_PROMPT: '0', LEFTHOOK: '0',
 };
 function run(command, args, cwd = root, extraEnv = {}) {
