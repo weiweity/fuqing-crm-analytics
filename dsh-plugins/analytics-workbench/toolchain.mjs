@@ -56,7 +56,7 @@ export function checkTypes(plugin, compiler) {
   const ts = compiler;
   for (const [face, entries, types] of [
     ['host', ['src/index.ts', 'src/tool.ts', 'src/skills.ts'], ['node']],
-    ['client', ['src/client/index.tsx', 'src/client/platform.d.ts', 'test/run-contract.typecheck.ts'], ['react']],
+    ['client', ['src/client/index.tsx', 'src/client/platform.d.ts', 'src/saved-analysis-view.tsx', 'test/run-contract.typecheck.ts'], ['react']],
   ]) {
     const program = ts.createProgram(entries.map(entry => join(plugin, entry)), {
       strict: true, noEmit: true, skipLibCheck: false, target: ts.ScriptTarget.ES2023,

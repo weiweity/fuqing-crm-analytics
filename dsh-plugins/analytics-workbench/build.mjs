@@ -33,4 +33,11 @@ await build({
   banner: { js: `window.__ModuleLoader__.load({ id: ${JSON.stringify(manifest.name)}, factory: (require) => {\nvar module = { exports: {} }; var exports = module.exports;` },
   footer: { js: 'return module.exports;\n} });' },
 });
+// These offline views are built and checked independently until native/HTTP
+// registration is implemented. Do not silently exclude them from verification.
+await build({
+  ...common, entryPoints: ['src/saved-analysis-view.tsx'],
+  outdir: 'lib/views', platform: 'browser', target: 'es2022',
+  format: 'esm', jsx: 'automatic', external,
+});
 console.log(`B0 plugin built. Host entry: ${pathToFileURL(join(root, 'lib/index.js')).href}`);
