@@ -6,15 +6,15 @@
 
 开发入口：[唯一 Agent 规则](../../AGENTS.md)；[2026-09-06 规则统一与项目盘查](./AGENT-RULES-AUDIT-2026-09-06.md)记录 Astra 工作方式适配、旧自动化停用及未删除候选，不改变 B0 业务验收结论。
 
-**当前 8 小时 Goal（2026-09-07，已启动）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 推进本地 synthetic G0–G5。它承接历史 B0 PARTIAL，补数据合同/合成金标准、首条合成业务查询和原生接线，不是重跑 T01–T09，也不是 B1–B4 完整产品或真实业务。Git 为 `PR_DELIVERY`（任务分支/commit/push/小 PR）；merge/部署/删分支/真实库/产品模型未授权。不要把历史「只授权 B0 / 未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」当成当前全局指令。G0 文档单元本身未运行测试、记录时点未启动 B0 服务（不断言其后 G1）。Codex 已在本轮 Goal 独立重跑 T09 本地 pipeline（167 Python / 138 源 Node / 14 编译装配与 `clean-build-gCPO3b`，exit 0）；不是远端 CI，也不是原生四问新重跑。
+**当前 8 小时 Goal（2026-09-07，已启动）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 推进本地 synthetic G0–G5。它承接历史 B0 PARTIAL，补数据合同/合成金标准、首条合成业务查询和原生接线，不是重跑 T01–T09，也不是 B1–B4 完整产品或真实业务。Git 为 `PR_DELIVERY`（任务分支/commit/push/小 PR）；merge/部署/删分支/真实库/产品模型未授权。不要把历史「只授权 B0 / 未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」当成当前全局指令。G0 文档单元当时未跑业务测试、记录时点未启动 B0 服务。T09 已提交 `bd6d8fe`（PR #69 base #68；CI 34049400372/34049400375 对该 SHA 成功；原生 `runtime-eDvn6c` PASS）——P1 CI 不是 G1 CI。G1 独立 pipeline 178 Python / 143 源 Node / 14 built（`G1-independent-pipeline.log`）；F3 后 7 Node smoke PASS。G1 原生四问 `runtime-SNWYss` PASS（第一次 `hkeo4K` F3 失败保留）。G1 源码未提交；最终 full pipeline 待 Codex。
 
-2026-09-06 的工作流治理见 [治理实施记录](./WORKFLOW-GOVERNANCE-2026-09-06.md)；后续提交、PR 与两处前端遗留修复见 [阶段 Git 与 QA](./PHASE-GIT-QA-2026-09-06.md)，日常命令见 [验证入口](../operating/verification.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）；第 3 项本地结果见 [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)，整体 B0 PARTIAL。T09 16 个本地文件仍未提交/推送。
+2026-09-06 的工作流治理见 [治理实施记录](./WORKFLOW-GOVERNANCE-2026-09-06.md)；后续提交、PR 与两处前端遗留修复见 [阶段 Git 与 QA](./PHASE-GIT-QA-2026-09-06.md)，日常命令见 [验证入口](../operating/verification.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）；第 3 项（T09）本 Goal 已提交 `bd6d8fe`，PR #69，见 [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)。整体 B0 PARTIAL。G1 实现仍为本地 dirty，待 Codex Git 交付。
 
 阶段 Git 检查与开放项见[草稿提交检查](./PHASE-DRAFT-REVIEW-2026-09-06.md)。该记录区分局部测试、推送检查和完整产品验收，不以 Draft PR 代替合并或部署许可。
 
 当前任务顺序与状态统一看[方案收口与总待办](./PLAN-CLOSEOUT-2026-09-05.md)：保留原 11 工作包，补齐架构、数仓/ETL 和多人验证依赖。10 人使用、峰值 5 人分析、约千万行、T+1、多品牌/店铺隔离是规划输入，不是已测容量。2026-09-06 已从方案收口进入 B0 最小任务内核实施，不等于整包验收通过。
 
-增量审核：[D1–D4 已确认](./ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)。T01–T08 保留既有方法/compaction、权限、七问和组件 8 状态证据；最新 [T09 原生故障与监督器验证](./B0-NATIVE-FAULT-2026-09-07.md)补齐真实 worker 故障到原生失败卡、Skill 与分析卡同轮共存、刷新恢复，并修复已复现的 stderr EPIPE 退出及运行中夹具漂移漏记失败。T09 当时本地检查为 167 Python / 138 源 Node / 14 编译与装配，干净构建一致。G0 文档单元未运行测试。本轮 Goal 中 Codex 已按同一口径重跑本地 pipeline（exit 0，干净构建 `clean-build-gCPO3b`；干净重建的 14 项不累计）。原生四问与远端 CI 未在本轮新重跑。历史三次退出缺少原始原因证据，整体 B0 仍 PARTIAL。
+增量审核：[D1–D4 已确认](./ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)。T01–T08 保留既有方法/compaction、权限、七问和组件 8 状态证据；最新 [T09 原生故障与监督器验证](./B0-NATIVE-FAULT-2026-09-07.md)补齐真实 worker 故障到原生失败卡、Skill 与分析卡同轮共存、刷新恢复，并修复已复现的 stderr EPIPE 退出及运行中夹具漂移漏记失败。T09 当时本地检查为 167 Python / 138 源 Node / 14 编译与装配；本 Goal 已提交并经 PR #69 CI 对 `bd6d8fe` 成功，原生 `runtime-eDvn6c` PASS。G0 文档单元当时未跑业务测试。G1 独立 pipeline 178/143/14；F3 后 7 Node smoke PASS。G1 原生四问 `runtime-SNWYss` PASS，第一次 `hkeo4K` F3 失败保留。G1 最终 full pipeline 与 G1 CI 待 Codex，不能把 P1 CI 算作 G1。历史三次退出缺少原始原因证据，整体 B0 仍 PARTIAL。
 
 最新开工约束：[视觉、Git/gstack、架构图与技术栈基线](./ENGINEERING-BASELINE-2026-09-05.md)。保持 DSH 视觉与单运行时、独立插件和业务服务；B1–B4 完整产品、真实模型、业务 UAT 与公开发布不在本 Goal 范围。本次原生通过项不扩大为全部状态、全部工具或长期稳定性通过。
 
@@ -31,6 +31,7 @@
 - [产品与实施计划 v2.3](./UNIFIED-ANALYTICS-PLAN.md)：保留历史autoplan及工程复审；B0内核片段已实施，完整合同/金标准→纵向闭环→本地验收仍待完成。
 - [8 小时 Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)：当前 synthetic G0–G5 执行入口；启动账本不在本文重复计时。
 - [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)：历史 B0 最新本地验收与开放项；
+- [G1 原生 running / 非法结果拒绝](./B0-NATIVE-STATE-2026-09-07.md)：本范围原生四问 PASS（`runtime-SNWYss`）；第一次 `hkeo4K` F3 失败保留；G1 尚未提交；
 - [B0 工具卡 DOM 增量](./B0-TOOL-CARD-DOM-2026-09-06.md) / [T01–T09 清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)：历史 B0 当轮入口；[T01–T07 收口](./B0-LOCAL-CLOSEOUT-2026-09-06.md)保留既有分层验收、开放风险和服务收尾。
 - [B0 方法与上下文](./B0-METHOD-CONTROL-VALIDATION-2026-09-06.md) / [当前控制面清单](./B0-CONTROL-MANIFEST-2026-09-06.md)：整包、原生组件压缩及持续权限修复的红/绿证据。
 - [B0 监督器复查与工程阶段](./B0-SUPERVISOR-RECHECK-2026-09-06.md)：历史专项入口；七问单次 PASS，历史退出根因仍未解。

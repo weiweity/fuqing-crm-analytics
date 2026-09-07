@@ -2,7 +2,7 @@
 
 日期：2026-09-06。总目标：完成已批准的 **隔离 synthetic B0 本地工程验收**，形成可核对的通过项、未通过项和后续交付清单，不把小样称作完整产品。
 
-当前结论（更新于 2026-09-07）：**T01–T09 已执行，整体 B0 仍 PARTIAL**。最新 [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)已验证真实失败卡、多 key 卡片共存和刷新；确定的 EPIPE 故障模式已修复，历史三次退出无法归因，原生 running/未知版本全链仍未实测。T01–T08 下表保留当轮证据；DONE 仅指限定小样和审计任务，不是完整产品验收。原生四问只证明当时 T09 候选，本轮未重跑四问或远端 CI。G0 文档单元本身未运行测试。本轮 Goal 中 Codex 已独立重跑 T09 本地 pipeline（`.context/goal-8h/evidence/T09-initial-pipeline.log` exit 0；167 Python / 138 源 Node / 14 编译装配，干净重建重复这 14 项、不累计为 28；完整类型与 `clean-build-gCPO3b` 通过，副本 `.context/goal-8h/evidence/T09-initial-build-evidence.json`）。该目录被 Git 忽略，不是未跟踪源码。
+当前结论（更新于 2026-09-07）：**T01–T09 已执行，整体 B0 仍 PARTIAL**。最新 [T09 原生故障与监督器](./B0-NATIVE-FAULT-2026-09-07.md)已验证真实失败卡、多 key 卡片共存和刷新；确定的 EPIPE 故障模式已修复，历史三次退出无法归因。T09 已在本 Goal 提交 `bd6d8fe`（PR #69 base PR #68；CI runs 34049400372/34049400375 对该 SHA 成功；原生四问 `runtime-eDvn6c` PASS）。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) **本范围原生补证 PASS**（`runtime-SNWYss` 四问；第一次 `hkeo4K` F3 失败保留）。独立 pipeline 178 Python / 143 源 Node / 14 built（F3 前口径）；F3 后 7 Node smoke PASS。G1 源码未提交，最终 full pipeline 待 Codex，P1 CI 不是 G1 CI。T01–T08 下表保留当轮证据。G0 文档单元当时未跑业务测试。该目录被 Git 忽略，不是未跟踪源码。
 
 本清单是 **2026-09-06 B0 当轮队列（T01–T09）**，不是 2026-09-07 的 8 小时 Goal 任务卡。Goal 入口见 [8 小时计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)：synthetic G0–G5 在本清单 PARTIAL 之上继续合同/金标准、首条合成查询和原生接线，**不重写下表 DONE/OPEN，也不把 G2–G4 记成 B1–B4 完整产品**。本轮 Goal 已授权 scoped Git（任务分支/commit/push/小 PR）；merge/部署/删分支/真实库/产品模型仍未授权。下文「工作位置与分支不变 / 不自动 commit」只约束当时 T01–T09 当轮，不是本 Goal 全局指令。G0 文档修订记录时点未启动 B0 服务，不断言其后 G1 是否启动。
 
@@ -48,4 +48,5 @@
 - T02–T07 最终更新：当前 `runtime-qCzzrY` 七问与分层小样通过，最终干净构建为 `clean-build-DPNRQY`。本轮完成结果、未验证门及停止证据统一看[本地收口报告](./B0-LOCAL-CLOSEOUT-2026-09-06.md)，不以历史基线数量充当最新结果。
 - T08 增量更新：仅测试/验证脚本及文档，未改业务组件；`clean-build-XiUowY` 和两档工具卡页面通过，编译客户端 hash 与 T01–T07 一致。详细层级、限制和清理见[增量报告](./B0-TOOL-CARD-DOM-2026-09-06.md)。
 
-- T09：第 1、2 项 PR #67 合并后，在 `codex/b0-native-fault-validation` 完成本地修复与原生四问验证；未提交/推送第 3 项。最新证据、失败留痕与停止记录见 [T09 报告](./B0-NATIVE-FAULT-2026-09-07.md)。
+- T09：第 1、2 项 PR #67 合并后，在 `codex/b0-native-fault-validation` 完成本地修复与原生四问验证；当时第 3 项仅本地。本 Goal 已提交 T09 为 `bd6d8fe`，PR #69 base PR #68，CI 34049400372/34049400375 对该 SHA 成功；当前原生四问 `runtime-eDvn6c` PASS。证据见 [T09 报告](./B0-NATIVE-FAULT-2026-09-07.md)。P1 CI 不是 G1 CI。
+- G1（2026-09-07）：native running / 未知版本与非法 facts 拒绝链已落地。F1 dump-only 非法 result；F2 真实工具卡 running；F3 等 native turn + Send message。`runtime-SNWYss` 四问 PASS（`G1-native-retry.log`）；第一次 `hkeo4K` 因 F3 失败保留。独立 pipeline 178/143/14；F3 后 7 Node PASS。G1 尚未 commit/push/CI，最终 full pipeline 待 Codex。报告 [B0 原生状态](./B0-NATIVE-STATE-2026-09-07.md)。不改写上表 T01–T09 DONE，也不闭合历史三次监督器退出。

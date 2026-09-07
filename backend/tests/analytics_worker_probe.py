@@ -13,6 +13,18 @@ from contextlib import AbstractContextManager
 from backend.tests.analytics_run_support import REPO_ROOT, child_environment
 
 
+class ProbeDumpOnly:
+    """Trusted test producer: run_child emits this payload via the normal result frame."""
+
+    __slots__ = ("_payload",)
+
+    def __init__(self, payload):
+        self._payload = payload
+
+    def model_dump(self, mode="json"):
+        return self._payload
+
+
 class ProbeLauncher(AbstractContextManager):
     def __init__(self, mode, *, ignore_term=False):
         self.mode, self.ignore_term = mode, ignore_term
@@ -120,6 +132,16 @@ def main():
             worker.emit({"type": "result", **current["binding"], "attempt_id": "foreign-attempt",
                          "profile_hash": current["profile_hash"],
                          "result": worker.query_fixture(con, current).model_dump(mode="json")})
+        elif probe["mode"] in {"unknown_schema", "illegal_facts"}:
+            # Correctly bound frame, invalid payload only. No extra error frame.
+            payload = worker.query_fixture(con, current).model_dump(mode="json")
+            if probe["mode"] == "unknown_schema":
+                payload["schema_version"] = "analytics-run-b0/v99"
+            else:
+                payload["facts"] = {**payload["facts"], "repeat_ratio": 0.99}
+            return ProbeDumpOnly(payload)
+        elif probe["mode"] == "passthrough":
+            pass
         elif probe["mode"] != "closed_hold":
             raise ValueError("unsupported test workload")
         return worker.query_fixture(con, current)

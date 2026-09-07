@@ -5,6 +5,7 @@
 - 工具卡组件 DOM、资源/提交故障、干净重建与原生接缝的分层回归及证据文档；整体仍为 B0 PARTIAL，不代表完整产品、真实模型或容量验收。
 
 ### Changed
+- B0 增加明确 opt-in 的 native-state 测试入口：真实 SQL_ACTIVE 探针；未知版本/非法 facts 经正常 result 帧由生产 validator 拒绝。下一问须等 native turn 与 Send message。`runtime-SNWYss` 四问 PASS；第一次 `hkeo4K` 因 F3 失败保留。默认 kernel/HTTP 合同不变。G1 源码尚未提交。
 - B0 supervisor 在 stderr 接收端关闭时记录一次 EPIPE 并停止该通道转发；夹具运行中漂移由持有租约的 worker 校验并落盘 TOOL_FAILED，保留原资源与事实校验边界。新增原生故障/Skill 共存四问验证入口，仅本地合成证据。
 - Linux worker 峰值按当前进程映像观测，保留资源上限与父进程采样；B0 故障测试补齐固定 NumPy 依赖和探针失败诊断。
 - 共用登录页仅声明增长董事会演示使用合成数据，CRM 访问仍按账号权限，移除整个环境均为演示的误导。
@@ -17,7 +18,7 @@
 - Agent 行为统一维护于 AGENTS.md，CLAUDE.md 仅兼容引用；同步 hooks、工作流文档和当前 T08 状态摘要。
 
 ### Known issues
-- 原生故障事件至工具卡全链、卡片共存及历史监督器退出根因仍开放；无合并、部署或真实数据操作授权。
+- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G1 源码未提交；最终 full pipeline 待 Codex。无合并、部署或真实数据操作授权。
 
 ## [0.5.0.0] - 2026-09-04
 
