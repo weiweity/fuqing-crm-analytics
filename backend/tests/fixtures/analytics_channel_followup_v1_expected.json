@@ -1,0 +1,122 @@
+{
+  "schema_version": "analytics-channel-followup/v1",
+  "computation": "NOT_RUN",
+  "method": "hand_calculated",
+  "not_a_query_pass": true,
+  "display_name": "首次观察到的渠道 / N日二单率",
+  "fixture_id": "analytics_channel_followup_v1",
+  "note": "Literal hand goldens for this 11-user/22-order example. SQL/native/real business NOT RUN.",
+  "windows": {
+    "30": {
+      "observation_days": 30,
+      "channels": [
+        {
+          "channel_id": "A",
+          "channel_mature_cohort_count": 7,
+          "channel_immature_count": 1,
+          "channel_repeat_count": 4,
+          "channel_cross_channel_count": 3,
+          "channel_repeat_ratio": 0.5714285714285714,
+          "channel_cross_channel_ratio": 0.42857142857142855,
+          "channel_window_net_paid_minor": 87000,
+          "channel_empty_reason": null
+        },
+        {
+          "channel_id": "B",
+          "channel_mature_cohort_count": 2,
+          "channel_immature_count": 0,
+          "channel_repeat_count": 1,
+          "channel_cross_channel_count": 0,
+          "channel_repeat_ratio": 0.5,
+          "channel_cross_channel_ratio": 0.0,
+          "channel_window_net_paid_minor": 23000,
+          "channel_empty_reason": null
+        }
+      ],
+      "totals": {
+        "channel_mature_cohort_count": 9,
+        "channel_immature_count": 1,
+        "channel_repeat_count": 5,
+        "channel_cross_channel_count": 3,
+        "channel_repeat_ratio": 0.5555555555555556,
+        "channel_cross_channel_ratio": 0.3333333333333333,
+        "channel_window_net_paid_minor": 110000,
+        "channel_empty_reason": null
+      }
+    },
+    "60": {
+      "observation_days": 60,
+      "channels": [
+        {
+          "channel_id": "A",
+          "channel_mature_cohort_count": 7,
+          "channel_immature_count": 1,
+          "channel_repeat_count": 5,
+          "channel_cross_channel_count": 4,
+          "channel_repeat_ratio": 0.7142857142857143,
+          "channel_cross_channel_ratio": 0.5714285714285714,
+          "channel_window_net_paid_minor": 92000,
+          "channel_empty_reason": null
+        },
+        {
+          "channel_id": "B",
+          "channel_mature_cohort_count": 2,
+          "channel_immature_count": 0,
+          "channel_repeat_count": 1,
+          "channel_cross_channel_count": 0,
+          "channel_repeat_ratio": 0.5,
+          "channel_cross_channel_ratio": 0.0,
+          "channel_window_net_paid_minor": 23000,
+          "channel_empty_reason": null
+        }
+      ],
+      "totals": {
+        "channel_mature_cohort_count": 9,
+        "channel_immature_count": 1,
+        "channel_repeat_count": 6,
+        "channel_cross_channel_count": 4,
+        "channel_repeat_ratio": 0.6666666666666666,
+        "channel_cross_channel_ratio": 0.4444444444444444,
+        "channel_window_net_paid_minor": 115000,
+        "channel_empty_reason": null
+      }
+    },
+    "90": {
+      "observation_days": 90,
+      "channels": [
+        {
+          "channel_id": "A",
+          "channel_mature_cohort_count": 2,
+          "channel_immature_count": 6,
+          "channel_repeat_count": 2,
+          "channel_cross_channel_count": 2,
+          "channel_repeat_ratio": 1.0,
+          "channel_cross_channel_ratio": 1.0,
+          "channel_window_net_paid_minor": 30000,
+          "channel_empty_reason": null
+        },
+        {
+          "channel_id": "B",
+          "channel_mature_cohort_count": 0,
+          "channel_immature_count": 2,
+          "channel_repeat_count": 0,
+          "channel_cross_channel_count": 0,
+          "channel_repeat_ratio": null,
+          "channel_cross_channel_ratio": null,
+          "channel_window_net_paid_minor": null,
+          "channel_empty_reason": "EMPTY_MATURE_COHORT"
+        }
+      ],
+      "totals": {
+        "channel_mature_cohort_count": 2,
+        "channel_immature_count": 8,
+        "channel_repeat_count": 2,
+        "channel_cross_channel_count": 2,
+        "channel_repeat_ratio": 1.0,
+        "channel_cross_channel_ratio": 1.0,
+        "channel_window_net_paid_minor": 30000,
+        "channel_empty_reason": null
+      }
+    }
+  }
+}
