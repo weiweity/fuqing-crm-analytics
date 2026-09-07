@@ -1,0 +1,250 @@
+{
+  "schema_version": "analytics-warehouse-schema/v2",
+  "fixture_id": "warehouse-w3-hand-incremental/v1",
+  "computation": "NOT_RUN",
+  "method": "hand_calculated",
+  "not_generated_from_sql": true,
+  "not_a_query_pass": true,
+  "note": "Literal hand goldens for W3 incremental facts. Arithmetic is in notes. Not generated from warehouse SQL.",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "next_as_of": "2026-09-16T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "window_days": 30,
+  "existing_max_pay_time": "2026-08-31T00:00:00+08:00",
+  "notes": {
+    "late_historical": "recent-1 1000 + late-hist-1 2500 = 3500. late-hist-1 paid 2026-07-01 is 62 days before 2026-09-01, so old max_pay_time append/refresh both miss it.",
+    "future_refund_held": "held-1 gross 8000; refund 3000 at 2026-09-10 is after as_of 2026-09-01, so refund_minor_as_of=0 and net=8000.",
+    "future_refund_next_snapshot": "8000-3000=5000 once as_of moves to 2026-09-16. Current snapshot as_of stays 2026-09-01 until that run.",
+    "outside_30d_refund": "old-1 gross 6000 paid 2026-07-01; refund 1500 at 2026-07-10 is before as_of and outside the last-30-days wall (window start 2026-08-02). 6000-1500=4500.",
+    "first_purchase_late": "later-1 paid 2026-08-10 channel A 5000 is first after run 1. early-1 paid 2026-06-01 channel B 2000 is earlier, so first becomes early-1 / B / 2000.",
+    "resend": "resend-1 5000 resent with the same record hash must stay 5000, not 5000+5000.",
+    "rule_keep": "keep-1 PAID 1200 has no refund and stays valid 1200.",
+    "rule_cancelled": "cancel-1 CANCELLED 4000: v1 valid_statuses=[PAID] so is_valid=false; v2 adds CANCELLED so is_valid=true. net stays 4000.",
+    "rule_net": "net-1 10000 minus standard 2000 = 8000 under v1; v2 also counts correction 1000 so 10000-2000-1000=7000.",
+    "idempotent": "A no-change rerun must keep the same header keys, nets, validity, and first-purchase order_id."
+  },
+  "shared_product_versions": [
+    {
+      "product_id": "sku_a",
+      "product_version_id": "sku_a-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    }
+  ],
+  "rules_v1": {
+    "valid_statuses": ["PAID"],
+    "channel_map": {},
+    "counted_refund_classes": ["standard"]
+  },
+  "rules_v2": {
+    "valid_statuses": ["PAID", "CANCELLED"],
+    "channel_map": {"B": "B-mapped"},
+    "counted_refund_classes": ["standard", "correction"]
+  },
+  "late_historical": {
+    "existing_orders": [
+      {
+        "synthetic_user_id": "u-recent",
+        "order_id": "recent-1",
+        "paid_at": "2026-08-31T00:00:00+08:00",
+        "channel": "A",
+        "status": "PAID",
+        "gross_paid_minor": 1000
+      }
+    ],
+    "incoming_orders": [
+      {
+        "synthetic_user_id": "u-late",
+        "order_id": "late-hist-1",
+        "paid_at": "2026-07-01T00:00:00+08:00",
+        "channel": "B",
+        "status": "PAID",
+        "gross_paid_minor": 2500
+      }
+    ],
+    "old_rule_would_append": false,
+    "old_rule_would_refresh": false,
+    "expected_loaded_keys": [
+      ["u-late", "late-hist-1"],
+      ["u-recent", "recent-1"]
+    ],
+    "expected_header_count": 2,
+    "expected_header_gross_sum_minor": 3500,
+    "expected_affected_order_keys": 1
+  },
+  "future_refund": {
+    "order": {
+      "synthetic_user_id": "u-ref",
+      "order_id": "held-1",
+      "paid_at": "2026-08-15T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 8000
+    },
+    "refund": {
+      "refund_id": "held-1-r1",
+      "synthetic_user_id": "u-ref",
+      "order_id": "held-1",
+      "refunded_at": "2026-09-10T00:00:00+08:00",
+      "refund_minor": 3000
+    },
+    "held": {
+      "gross_paid_minor": 8000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 8000,
+      "is_valid": true,
+      "as_of": "2026-09-01T00:00:00+08:00"
+    },
+    "next_snapshot": {
+      "gross_paid_minor": 8000,
+      "refund_minor_as_of": 3000,
+      "net_paid_minor": 5000,
+      "is_valid": true,
+      "as_of": "2026-09-16T00:00:00+08:00"
+    }
+  },
+  "outside_30d_refund": {
+    "order": {
+      "synthetic_user_id": "u-old",
+      "order_id": "old-1",
+      "paid_at": "2026-07-01T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 6000
+    },
+    "refund": {
+      "refund_id": "old-1-r1",
+      "synthetic_user_id": "u-old",
+      "order_id": "old-1",
+      "refunded_at": "2026-07-10T00:00:00+08:00",
+      "refund_minor": 1500
+    },
+    "expected": {
+      "gross_paid_minor": 6000,
+      "refund_minor_as_of": 1500,
+      "net_paid_minor": 4500,
+      "is_valid": true
+    }
+  },
+  "first_purchase_late": {
+    "existing_order": {
+      "synthetic_user_id": "u-fp",
+      "order_id": "later-1",
+      "paid_at": "2026-08-10T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 5000
+    },
+    "incoming_order": {
+      "synthetic_user_id": "u-fp",
+      "order_id": "early-1",
+      "paid_at": "2026-06-01T00:00:00+08:00",
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 2000
+    },
+    "expected_first": {
+      "synthetic_user_id": "u-fp",
+      "order_id": "early-1",
+      "channel": "B",
+      "header_gross_paid_minor": 2000,
+      "header_net_paid_minor": 2000
+    }
+  },
+  "resend": {
+    "order": {
+      "synthetic_user_id": "u-rs",
+      "order_id": "resend-1",
+      "paid_at": "2026-08-20T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 5000
+    },
+    "expected_header_count": 1,
+    "expected_gross_sum_minor": 5000,
+    "expected_affected_on_resend": 0
+  },
+  "rule_change": {
+    "orders": [
+      {
+        "synthetic_user_id": "u-rule",
+        "order_id": "keep-1",
+        "paid_at": "2026-08-01T00:00:00+08:00",
+        "channel": "A",
+        "status": "PAID",
+        "gross_paid_minor": 1200
+      },
+      {
+        "synthetic_user_id": "u-rule",
+        "order_id": "cancel-1",
+        "paid_at": "2026-08-02T00:00:00+08:00",
+        "channel": "B",
+        "status": "CANCELLED",
+        "gross_paid_minor": 4000
+      },
+      {
+        "synthetic_user_id": "u-rule",
+        "order_id": "net-1",
+        "paid_at": "2026-08-03T00:00:00+08:00",
+        "channel": "A",
+        "status": "PAID",
+        "gross_paid_minor": 10000
+      }
+    ],
+    "refunds": [
+      {
+        "refund_id": "net-1-std",
+        "synthetic_user_id": "u-rule",
+        "order_id": "net-1",
+        "refunded_at": "2026-08-04T00:00:00+08:00",
+        "refund_minor": 2000,
+        "refund_class": "standard"
+      },
+      {
+        "refund_id": "net-1-corr",
+        "synthetic_user_id": "u-rule",
+        "order_id": "net-1",
+        "refunded_at": "2026-08-05T00:00:00+08:00",
+        "refund_minor": 1000,
+        "refund_class": "correction"
+      }
+    ],
+    "before": {
+      "keep-1": {"net_paid_minor": 1200, "is_valid": true, "channel": "A", "refund_minor_as_of": 0},
+      "cancel-1": {"net_paid_minor": 4000, "is_valid": false, "channel": "B", "refund_minor_as_of": 0},
+      "net-1": {"net_paid_minor": 8000, "is_valid": true, "channel": "A", "refund_minor_as_of": 2000}
+    },
+    "after": {
+      "keep-1": {"net_paid_minor": 1200, "is_valid": true, "channel": "A", "refund_minor_as_of": 0},
+      "cancel-1": {"net_paid_minor": 4000, "is_valid": true, "channel": "B-mapped", "refund_minor_as_of": 0},
+      "net-1": {"net_paid_minor": 7000, "is_valid": true, "channel": "A", "refund_minor_as_of": 3000}
+    },
+    "expected_affected_order_keys": 2
+  },
+  "permission": {
+    "brand_a_order": {
+      "synthetic_user_id": "u-a",
+      "order_id": "scope-a-1",
+      "paid_at": "2026-08-10T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 3000
+    },
+    "brand_b_order": {
+      "synthetic_user_id": "u-b",
+      "order_id": "scope-b-1",
+      "paid_at": "2026-08-11T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 7000
+    },
+    "cross_scope_request": {
+      "permission_scope": "brand_a",
+      "synthetic_user_ids": ["u-b"],
+      "outcome": "PermissionScopeDenied"
+    }
+  }
+}

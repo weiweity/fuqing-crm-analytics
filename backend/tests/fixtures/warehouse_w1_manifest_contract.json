@@ -1,5 +1,5 @@
 {
-  "schema_version": "analytics-warehouse-schema/v1",
+  "schema_version": "analytics-warehouse-schema/v2",
   "rule_version": "analytics-warehouse-rules/v1",
   "generator_version": "analytics-warehouse-generator/v1",
   "pipeline_version": "analytics-warehouse-pipeline/v1",
