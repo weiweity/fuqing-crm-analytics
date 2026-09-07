@@ -1,0 +1,46 @@
+{
+  "method": "hand_calculated",
+  "computation": "NOT_RUN",
+  "not_generated_from_sql": true,
+  "fixture_id": "synthetic-handoff-audience-v1",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "observation_days": 30,
+  "rule_version": "handoff-audience-rule/v1",
+  "digest_algorithm": "sha256",
+  "digest_encoding": "utf-8",
+  "notes": {
+    "kind": "READ_ONLY_DEFINITION",
+    "not_draft_export": true,
+    "marketing_sent": false,
+    "members_only_for_digest": true,
+    "empty_count_is_zero": true,
+    "not_channel_golden": "independent ha-* users; not the channel-followup golden; not B0 fixed fixture"
+  },
+  "hand_trace": {
+    "included": {
+      "ha-0009007199254741000": "channel A, first basket sample-sku-1+full-sku-1, 1 valid order in N=30, mature, long id remains str",
+      "ha-1": "channel A, first basket sample-sku-1+full-sku-1, 1 valid order in N=30, mature"
+    },
+    "excluded": {
+      "ha-2": "N=30 内另有有效订单，窗口有效订单数=2",
+      "ha-4": "首购渠道 B",
+      "ha-5": "首购商品不含 sample-sku-1",
+      "ha-6": "窗口内未买到映射正装",
+      "ha-7": "未成熟（2026-08-20 + 30d > as_of）",
+      "ha-9": "全历史首单 2026-05-20 在入组窗之前",
+      "ha-10": "后续正装在 as_of 前全额退款，净额=0 不是有效订单；首单无正装",
+      "ha-11": "首单已有正装，但窗口内另有第二笔有效订单"
+    }
+  },
+  "members_for_digest_only": ["ha-0009007199254741000", "ha-1"],
+  "digest_canonical": "{\"members\":[\"ha-0009007199254741000\",\"ha-1\"],\"rule_version\":\"handoff-audience-rule/v1\"}",
+  "cohort_count": 2,
+  "cohort_digest": "6c8f095b72838ede74e166227feb719eefcc53d363be533ada827aec0608d6b9",
+  "empty_sample_sku_2": {
+    "sample_product_id": "sample-sku-2",
+    "members_for_digest_only": [],
+    "digest_canonical": "{\"members\":[],\"rule_version\":\"handoff-audience-rule/v1\"}",
+    "cohort_count": 0,
+    "cohort_digest": "78cf2b2f43d172eb48b3804957c78861e4c2c63a10d1a7ff9600a7dea9951ea8"
+  }
+}

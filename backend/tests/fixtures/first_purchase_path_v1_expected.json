@@ -1,0 +1,80 @@
+{
+  "method": "hand_calculated",
+  "computation": "NOT_RUN",
+  "not_generated_from_sql": true,
+  "fixture_id": "synthetic-first-purchase-path-v1",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "cohort_window": {"kind": "FIXED", "start_date": "2026-06-01", "end_date": "2026-09-01"},
+  "mapping_version": "sample-full-map/v1",
+  "notes": {
+    "grain": "(synthetic_user_id, order_id)",
+    "first": "all-history earliest valid order, then FIXED cohort filter; start inclusive, end exclusive",
+    "expand": "first-order distinct products; user enrolled once, this family emits one row per product",
+    "sample_to_full": "mapping key SKU only; mapped full on any valid order in [first, first+N*24h] including the first basket",
+    "subsequent_any": "another valid order strictly after first within N*24h",
+    "mature": "as_of >= first + N*24h",
+    "empty": "mature_count=0 → ratios null + EMPTY_MATURE_COHORT, never 0.0",
+    "not_channel_golden": "independent fp-* users and fen amounts; not the channel-followup golden; not B0 fixed fixture"
+  },
+  "hand_trace": {
+    "excluded": {
+      "fp-6": "first valid 2026-05-20 is before cohort start; 2026-06-10 is subsequent, not first"
+    },
+    "enrolled": ["9007199254740993-fp", "fp-1", "fp-10", "fp-2", "fp-3", "fp-4", "fp-5", "fp-7", "fp-8", "fp-9"],
+    "n30_immature": ["fp-5"],
+    "n90_mature": ["fp-1", "fp-2", "fp-3"],
+    "sample-sku-1_n30": {
+      "mature": ["fp-1", "fp-10", "fp-2", "fp-4", "fp-8", "9007199254740993-fp"],
+      "immature": ["fp-5"],
+      "subsequent_any": ["fp-1", "fp-10", "fp-8"],
+      "sample_to_full": ["fp-1", "fp-4", "fp-8"],
+      "fp-2_day31": "2026-07-03 is first+31d, outside N=30, inside N=60/90",
+      "fp-4_same_basket": "first order already contains full-sku-1; subsequent_any=0, sample_to_full=1",
+      "dup_line": "fp-1 first order has two sample-sku-1 lines; still one product row"
+    }
+  },
+  "windows": {
+    "30": {
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 9,
+      "cohort_immature_count": 1,
+      "products": [
+        {"product_id": "full-sku-1", "mature_count": 1, "immature_count": 0, "subsequent_any_count": 0, "sample_to_full_count": 0},
+        {"product_id": "late-sku", "mature_count": 0, "immature_count": 1, "subsequent_any_count": 0, "sample_to_full_count": 0},
+        {"product_id": "other-sku", "mature_count": 2, "immature_count": 0, "subsequent_any_count": 1, "sample_to_full_count": 0},
+        {"product_id": "sample-sku-1", "mature_count": 6, "immature_count": 1, "subsequent_any_count": 3, "sample_to_full_count": 3},
+        {"product_id": "sample-sku-2", "mature_count": 2, "immature_count": 0, "subsequent_any_count": 2, "sample_to_full_count": 1}
+      ]
+    },
+    "60": {
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 9,
+      "cohort_immature_count": 1,
+      "products": [
+        {"product_id": "full-sku-1", "mature_count": 1, "immature_count": 0, "subsequent_any_count": 0, "sample_to_full_count": 0},
+        {"product_id": "late-sku", "mature_count": 0, "immature_count": 1, "subsequent_any_count": 0, "sample_to_full_count": 0},
+        {"product_id": "other-sku", "mature_count": 2, "immature_count": 0, "subsequent_any_count": 1, "sample_to_full_count": 0},
+        {"product_id": "sample-sku-1", "mature_count": 6, "immature_count": 1, "subsequent_any_count": 4, "sample_to_full_count": 4},
+        {"product_id": "sample-sku-2", "mature_count": 2, "immature_count": 0, "subsequent_any_count": 2, "sample_to_full_count": 1}
+      ]
+    },
+    "90": {
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 3,
+      "cohort_immature_count": 7,
+      "products": [
+        {"product_id": "full-sku-1", "mature_count": 0, "immature_count": 1, "subsequent_any_count": 0, "sample_to_full_count": 0},
+        {"product_id": "late-sku", "mature_count": 0, "immature_count": 1, "subsequent_any_count": 0, "sample_to_full_count": 0},
+        {"product_id": "other-sku", "mature_count": 1, "immature_count": 1, "subsequent_any_count": 1, "sample_to_full_count": 0},
+        {"product_id": "sample-sku-1", "mature_count": 2, "immature_count": 5, "subsequent_any_count": 2, "sample_to_full_count": 2},
+        {"product_id": "sample-sku-2", "mature_count": 1, "immature_count": 1, "subsequent_any_count": 1, "sample_to_full_count": 0}
+      ]
+    }
+  },
+  "channel_a_n30": {
+    "cohort_enrolled_count": 8,
+    "cohort_mature_count": 7,
+    "cohort_immature_count": 1,
+    "product_ids": ["full-sku-1", "late-sku", "other-sku", "sample-sku-1"]
+  }
+}

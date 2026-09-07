@@ -1,0 +1,76 @@
+{
+  "schema_version": "analytics-handoff-audience/v1",
+  "snapshot_id": "synthetic-handoff-audience-v1",
+  "data_version": "synthetic-handoff-audience-data/v1",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "scope": "synthetic",
+  "contains_real_data": false,
+  "sku_mappings": {
+    "mapping_version": "sample-full-map/v1",
+    "pairs": [
+      {"sample_product_id": "sample-sku-1", "full_product_id": "full-sku-1"},
+      {"sample_product_id": "sample-sku-2", "full_product_id": "full-sku-2"}
+    ]
+  },
+  "rule": {
+    "rule_version": "handoff-audience-rule/v1",
+    "first_channel": "A",
+    "sample_product_id": "sample-sku-1",
+    "requires_mapped_full_in_window": true,
+    "exclude_min_valid_orders_in_window": 2,
+    "require_mature": true,
+    "window_includes_first_order": true,
+    "sample_to_full_includes_first_order": true,
+    "notes": [
+      "只读人群定义，不是 DRAFT_EXPORT，不发送营销。",
+      "全历史最早有效订单为首次，再过滤 FIXED 入组窗。",
+      "入选：首购渠道 A、首购商品含 sample-sku-1、N=30 内买到映射正装、成熟、窗口内有效订单数 < 2。",
+      "有效订单计数含首单，因此入选者必须在首单篮子内同时买到映射正装，且观察窗内无第二笔有效订单。",
+      "未成熟不入选：N 日窗口尚未结束，不能断定不会出现第二笔。"
+    ]
+  },
+  "orders": [
+    {"order_id": "ha-1-a", "synthetic_user_id": "ha-1", "paid_at": "2026-06-01T00:00:00+08:00", "channel": "A", "gross_paid_minor": 13200, "status": "PAID"},
+    {"order_id": "ha-2-a", "synthetic_user_id": "ha-2", "paid_at": "2026-06-02T00:00:00+08:00", "channel": "A", "gross_paid_minor": 8100, "status": "PAID"},
+    {"order_id": "ha-2-b", "synthetic_user_id": "ha-2", "paid_at": "2026-06-10T00:00:00+08:00", "channel": "A", "gross_paid_minor": 14000, "status": "PAID"},
+    {"order_id": "ha-4-a", "synthetic_user_id": "ha-4", "paid_at": "2026-06-04T00:00:00+08:00", "channel": "B", "gross_paid_minor": 16000, "status": "PAID"},
+    {"order_id": "ha-5-a", "synthetic_user_id": "ha-5", "paid_at": "2026-06-05T00:00:00+08:00", "channel": "A", "gross_paid_minor": 12000, "status": "PAID"},
+    {"order_id": "ha-6-a", "synthetic_user_id": "ha-6", "paid_at": "2026-06-06T00:00:00+08:00", "channel": "A", "gross_paid_minor": 9000, "status": "PAID"},
+    {"order_id": "ha-7-a", "synthetic_user_id": "ha-7", "paid_at": "2026-08-20T00:00:00+08:00", "channel": "A", "gross_paid_minor": 11000, "status": "PAID"},
+    {"order_id": "ha-8-a", "synthetic_user_id": "ha-0009007199254741000", "paid_at": "2026-06-07T00:00:00+08:00", "channel": "A", "gross_paid_minor": 15000, "status": "PAID"},
+    {"order_id": "ha-9-a", "synthetic_user_id": "ha-9", "paid_at": "2026-05-20T00:00:00+08:00", "channel": "A", "gross_paid_minor": 10000, "status": "PAID"},
+    {"order_id": "ha-10-a", "synthetic_user_id": "ha-10", "paid_at": "2026-06-08T00:00:00+08:00", "channel": "A", "gross_paid_minor": 6000, "status": "PAID"},
+    {"order_id": "ha-10-b", "synthetic_user_id": "ha-10", "paid_at": "2026-06-18T00:00:00+08:00", "channel": "A", "gross_paid_minor": 8000, "status": "PAID"},
+    {"order_id": "ha-11-a", "synthetic_user_id": "ha-11", "paid_at": "2026-06-09T00:00:00+08:00", "channel": "A", "gross_paid_minor": 13000, "status": "PAID"},
+    {"order_id": "ha-11-b", "synthetic_user_id": "ha-11", "paid_at": "2026-06-20T00:00:00+08:00", "channel": "A", "gross_paid_minor": 2000, "status": "PAID"}
+  ],
+  "lines": [
+    {"line_id": "ha-1-a-l1", "order_id": "ha-1-a", "synthetic_user_id": "ha-1", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-1-a-l2", "order_id": "ha-1-a", "synthetic_user_id": "ha-1", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-2-a-l1", "order_id": "ha-2-a", "synthetic_user_id": "ha-2", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-2-b-l1", "order_id": "ha-2-b", "synthetic_user_id": "ha-2", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-4-a-l1", "order_id": "ha-4-a", "synthetic_user_id": "ha-4", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-4-a-l2", "order_id": "ha-4-a", "synthetic_user_id": "ha-4", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-5-a-l1", "order_id": "ha-5-a", "synthetic_user_id": "ha-5", "product_id": "other-sku", "quantity": 1},
+    {"line_id": "ha-5-a-l2", "order_id": "ha-5-a", "synthetic_user_id": "ha-5", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-6-a-l1", "order_id": "ha-6-a", "synthetic_user_id": "ha-6", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-7-a-l1", "order_id": "ha-7-a", "synthetic_user_id": "ha-7", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-7-a-l2", "order_id": "ha-7-a", "synthetic_user_id": "ha-7", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-8-a-l1", "order_id": "ha-8-a", "synthetic_user_id": "ha-0009007199254741000", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-8-a-l2", "order_id": "ha-8-a", "synthetic_user_id": "ha-0009007199254741000", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-9-a-l1", "order_id": "ha-9-a", "synthetic_user_id": "ha-9", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-9-a-l2", "order_id": "ha-9-a", "synthetic_user_id": "ha-9", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-10-a-l1", "order_id": "ha-10-a", "synthetic_user_id": "ha-10", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-10-b-l1", "order_id": "ha-10-b", "synthetic_user_id": "ha-10", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-11-a-l1", "order_id": "ha-11-a", "synthetic_user_id": "ha-11", "product_id": "sample-sku-1", "quantity": 1},
+    {"line_id": "ha-11-a-l2", "order_id": "ha-11-a", "synthetic_user_id": "ha-11", "product_id": "full-sku-1", "quantity": 1},
+    {"line_id": "ha-11-b-l1", "order_id": "ha-11-b", "synthetic_user_id": "ha-11", "product_id": "other-sku", "quantity": 1}
+  ],
+  "refunds": [
+    {"refund_id": "ha-10-r1", "order_id": "ha-10-b", "synthetic_user_id": "ha-10", "refunded_at": "2026-08-31T00:00:00+08:00", "refund_minor": 8000}
+  ]
+}
