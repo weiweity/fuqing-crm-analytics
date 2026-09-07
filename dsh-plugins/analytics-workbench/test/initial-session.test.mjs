@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { B0_PRIMARY_SESSION_ID as primary, configuredSession, bindInitialSession } from '../src/initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID as primary, QUERY_SESSION_IDS, configuredSession, bindInitialSession } from '../src/initial-session.mjs';
 
 const ready = { phase: 'ready', ids: [primary], byId: { [primary]: { id: primary } }, current: undefined };
 function fixture(initial) {
@@ -50,6 +50,21 @@ test('unmount while pending prevents later selection', () => {
   f.publish(ready);
   assert.deepEqual(f.opened, []);
 });
+test('query pair selects the first registered session once; later user switch is kept', () => {
+  const [first, second] = QUERY_SESSION_IDS;
+  const queryReady = { phase: 'ready', ids: [...QUERY_SESSION_IDS],
+    byId: { [first]: { id: first }, [second]: { id: second } }, current: undefined };
+  assert.equal(configuredSession(queryReady), first);
+  assert.equal(configuredSession({ ...queryReady, ids: [first], byId: { [first]: { id: first } } }), null);
+  const f = fixture(queryReady);
+  const dispose = bindInitialSession(f.sessions, () => assert.fail('unexpected selection failure'));
+  assert.deepEqual(f.opened, [first]);
+  f.publish({ ...queryReady, current: second });
+  f.publish(queryReady);
+  assert.deepEqual(f.opened, [first]);
+  dispose();
+});
+
 test('open failure is reported once, never retried or replaced with another session', () => {
   const f = fixture(ready);
   let failures = 0, attempts = 0;

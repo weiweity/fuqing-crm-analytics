@@ -14,6 +14,8 @@ import {
 } from '../model.mjs';
 import { css } from './styles.ts';
 import { bindInitialSession } from '../initial-session.mjs';
+import { QUERY_TOOL_NAME } from '../query-model.mjs';
+import { QueryToolCard } from './query-card.tsx';
 import { RunStatus } from './run-status.tsx';
 
 function initialState() {
@@ -220,6 +222,9 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
     name: 'tool.call.toolview', key: TOOL_NAME,
   }, AnalyticsToolCard));
+  ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+    name: 'tool.call.toolview', key: QUERY_TOOL_NAME,
+  }, QueryToolCard));
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));

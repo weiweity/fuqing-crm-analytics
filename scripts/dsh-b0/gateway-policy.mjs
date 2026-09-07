@@ -39,11 +39,24 @@ const shape = (value, required = [], optional = []) => record(value)
 const empty = (value) => shape(value);
 const inSet = (set, value) => set instanceof Set ? set.has(value) : Array.isArray(set) && set.includes(value);
 const preset = (scope) => scope.presetId ?? 'analytics-b0';
-const scopeOkay = (scope) => record(scope) && bounded(scope.sessionId) && bounded(scope.workspaceId)
+function twoSessionList(scope) {
+  if (!Array.isArray(scope.sessionIds)) return null;
+  if (scope.sessionIds.length !== 2 || new Set(scope.sessionIds).size !== 2 || !scope.sessionIds.every((id) => bounded(id))) return null;
+  return bounded(scope.sessionId) && scope.sessionIds.includes(scope.sessionId) ? scope.sessionIds : null;
+}
+function allowlist(scope) {
+  if (scope.sessionIds !== undefined) return twoSessionList(scope);
+  return bounded(scope.sessionId) ? [scope.sessionId] : null;
+}
+const ownSession = (scope, sessionId) => allowlist(scope)?.includes(sessionId) === true;
+export function sessionAllowed(scope, sessionId) {
+  return record(scope) && ownSession(scope, sessionId);
+}
+const scopeOkay = (scope) => record(scope) && allowlist(scope) !== null && bounded(scope.sessionId) && bounded(scope.workspaceId)
   && bounded(scope.workspacePath, 4096) && scope.workspacePath.startsWith('/')
   && (scope.requestActorId === undefined || (bounded(scope.actorId) && scope.requestActorId === scope.actorId));
 const addressOkay = (value, scope) => shape(value, ['kind', 'sessionId'])
-  && value.kind === 'session' && value.sessionId === scope.sessionId;
+  && value.kind === 'session' && ownSession(scope, value.sessionId);
 const budgetOkay = (value) => value === undefined || (integer(value) && value >= 1 && value <= MAX_HISTORY_MESSAGES);
 
 function requestOf(payload) {
@@ -74,14 +87,14 @@ export function authorizeHttp(method, payload, scope) {
       && budgetOkay(request.maxMessages) ? allow() : deny('invalid-session-page');
   }
   if (method === 'session/cancel') {
-    return shape(request, ['sessionId']) && request.sessionId === scope.sessionId
+    return shape(request, ['sessionId']) && ownSession(scope, request.sessionId)
       ? allow() : deny('invalid-session-cancel');
   }
   if (method === 'session/prompt') {
     if (scope.inFlight !== false) return deny('one-task-already-in-flight');
     if (!shape(request, ['requestId', 'sessionId', 'mode', 'content'], ['clientTimeZone'])
       || !bounded(request.requestId, 128) || !/^[A-Za-z0-9_.:-]+$/.test(request.requestId)
-      || request.sessionId !== scope.sessionId || request.mode !== 'queue'
+      || !ownSession(scope, request.sessionId) || request.mode !== 'queue'
       || !Array.isArray(request.content) || request.content.length !== 1
       || !shape(request.content[0], ['type', 'text']) || request.content[0].type !== 'text'
       || !bounded(request.content[0].text, MAX_PROMPT_CHARS) || !request.content[0].text.trim()
@@ -168,10 +181,10 @@ function projections(value, scope) {
 }
 
 function summary(value, scope) {
-  if (!record(value) || value.sessionId !== scope.sessionId || value.origin === 'subagent'
+  if (!record(value) || !ownSession(scope, value.sessionId) || value.origin === 'subagent'
     || (value.cwd !== undefined && value.cwd !== scope.workspacePath)
-    || (value.parentSessionId !== undefined && value.parentSessionId !== scope.sessionId)) return null;
-  return { sessionId: scope.sessionId, updatedAt: Number.isFinite(value.updatedAt) ? value.updatedAt : 0,
+    || (value.parentSessionId !== undefined && value.parentSessionId !== value.sessionId)) return null;
+  return { sessionId: value.sessionId, updatedAt: Number.isFinite(value.updatedAt) ? value.updatedAt : 0,
     running: value.running === true, blank: value.blank === true, cwd: scope.workspacePath,
     ...(value.projections ? { projections: projections(value.projections, scope) } : {}) };
 }
@@ -180,7 +193,7 @@ function workspace(value, scope) {
   if (!record(value) || value.workspaceId !== scope.workspaceId || value.path !== scope.workspacePath) return null;
   return { workspaceId: scope.workspaceId, path: scope.workspacePath,
     title: typeof value.title === 'string' ? value.title.slice(0, 200) : 'B0 Synthetic',
-    sessionIds: Array.isArray(value.sessionIds) ? value.sessionIds.filter((id) => id === scope.sessionId) : [],
+    sessionIds: Array.isArray(value.sessionIds) ? value.sessionIds.filter((id) => ownSession(scope, id)) : [],
     createdAt: typeof value.createdAt === 'string' ? value.createdAt : '',
     updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '' };
 }
@@ -264,44 +277,50 @@ export function filterStreamItem(endpoint, value, scope) {
       const row = summary(args[0], scope);
       return row ? { type: 'emit', event: value.event, args: [row] } : null;
     }
-    if (args[0] !== scope.sessionId) return null;
-    if (value.event === 'api-session/removed' && args.length === 1) return { type: 'emit', event: value.event, args: [scope.sessionId] };
-    if (value.event === 'api-session/status' && args.length === 2 && typeof args[1] === 'boolean') return { type: 'emit', event: value.event, args: [scope.sessionId, args[1]] };
-    if (value.event === 'api-session/activity' && args.length === 2 && Number.isFinite(args[1])) return { type: 'emit', event: value.event, args: [scope.sessionId, args[1]] };
+    if (!ownSession(scope, args[0])) return null;
+    if (value.event === 'api-session/removed' && args.length === 1) return { type: 'emit', event: value.event, args: [args[0]] };
+    if (value.event === 'api-session/status' && args.length === 2 && typeof args[1] === 'boolean') return { type: 'emit', event: value.event, args: [args[0], args[1]] };
+    if (value.event === 'api-session/activity' && args.length === 2 && Number.isFinite(args[1])) return { type: 'emit', event: value.event, args: [args[0], args[1]] };
     return null;
   }
   if (endpoint === 'workspace/follow') {
-    const ownIds = (items, id) => Array.isArray(items) ? items.filter((item) => item === id) : [];
+    const ownIds = (items, test) => Array.isArray(items) ? items.filter(test) : [];
     if (value.type === 'baseline' && record(value.value) && Array.isArray(value.value.items)) return {
       type: 'baseline', value: { items: value.value.items.map((item) => workspace(item, scope)).filter(Boolean),
-        archivedSessionIds: ownIds(value.value.archivedSessionIds, scope.sessionId) } };
+        archivedSessionIds: ownIds(value.value.archivedSessionIds, (id) => ownSession(scope, id)) } };
     if (value.type === 'upsert') { const item = workspace(value.workspace, scope); return item ? { type: 'upsert', workspace: item } : null; }
     if (value.type === 'remove' && value.workspaceId === scope.workspaceId) return { type: 'remove', workspaceId: scope.workspaceId };
-    if (value.type === 'order') return { type: 'order', workspaceIds: ownIds(value.workspaceIds, scope.workspaceId) };
-    if (value.type === 'archived') return { type: 'archived', archivedSessionIds: ownIds(value.archivedSessionIds, scope.sessionId) };
+    if (value.type === 'order') return { type: 'order', workspaceIds: ownIds(value.workspaceIds, (id) => id === scope.workspaceId) };
+    if (value.type === 'archived') return { type: 'archived', archivedSessionIds: ownIds(value.archivedSessionIds, (id) => ownSession(scope, id)) };
     return null;
   }
   if (endpoint === 'session/control') {
+    const listed = allowlist(scope) ?? [];
     if (value.type === 'baseline' && record(value.value)) {
       const output = { queues: {}, jobs: {}, projections: {} };
       for (const key of ['queues', 'jobs', 'projections']) {
-        if (!record(value.value[key]) || !own(value.value[key], scope.sessionId)) continue;
-        const item = value.value[key][scope.sessionId];
-        const safe = key === 'projections' ? projections(item, scope) : scopedJson(item, scope);
-        if (safe !== null) output[key][scope.sessionId] = safe;
+        if (!record(value.value[key])) continue;
+        for (const sessionId of listed) {
+          if (!own(value.value[key], sessionId)) continue;
+          const item = value.value[key][sessionId];
+          const bound = { ...scope, sessionId };
+          const safe = key === 'projections' ? projections(item, bound) : scopedJson(item, bound);
+          if (safe !== null) output[key][sessionId] = safe;
+        }
       }
       return { type: 'baseline', value: output };
     }
-    if (value.sessionId !== scope.sessionId) return null;
+    if (!ownSession(scope, value.sessionId)) return null;
+    const bound = { ...scope, sessionId: value.sessionId };
     if (value.type === 'queue' || value.type === 'jobs') {
       const key = value.type === 'queue' ? 'items' : 'jobs';
-      const safe = Array.isArray(value[key]) ? scopedJson(value[key], scope) : null;
-      return safe === null ? null : { type: value.type, sessionId: scope.sessionId, [key]: safe };
+      const safe = Array.isArray(value[key]) ? scopedJson(value[key], bound) : null;
+      return safe === null ? null : { type: value.type, sessionId: value.sessionId, [key]: safe };
     }
     if (value.type === 'projection' && projectionKeys.has(value.key) && integer(value.seq)) {
       if (value.key === 'agentPreset' && value.value !== null && value.value !== preset(scope)) return null;
-      const safe = scopedJson(value.value, scope);
-      return safe === null && value.value !== null ? null : { type: 'projection', sessionId: scope.sessionId, key: value.key, value: safe, seq: value.seq };
+      const safe = scopedJson(value.value, bound);
+      return safe === null && value.value !== null ? null : { type: 'projection', sessionId: value.sessionId, key: value.key, value: safe, seq: value.seq };
     }
     return null;
   }

@@ -1,6 +1,7 @@
 ## [unreleased] - 2026-09-06 (B0 phase draft)
 
 ### Added
+- G4b 双会话原生查询接线：`serve.mjs --native-query` 写 `family=channel_followup` 与恰好两登记 session；finite mock 两轮真实 SQL（A N30 / B N60）；gateway 静态两 session allowlist 与 follow 流绑定；query 工具卡与 session 切换立即清 view。取消/畸形 producer **DEFERRED**。旧 B0 单会话与 25% 卡保持。
 - G4a 查询族 native/HTTP 最小接通：独立 `analytics-query` ASGI（GET conversation/run + cancel）、固定 `/internal/native/channel-followup` helper、两登记会话共享 RunStore/WorkerManager、Host `analytics_channel_followup_query` 与 query 方法包。ASGI/真实 worker/真实 Cordis loader **PASS**。浏览器/Gateway/卡片 **NOT RUN**，G4 未完成。
 - 隔离 B0 FastAPI 任务账本、权限/幂等/取消恢复、物理 worker 与有界合成 fixture；固定 DSH 单运行时插件、方法包/上下文重建、统一构建与 CI 入口。
 - 工具卡组件 DOM、资源/提交故障、干净重建与原生接缝的分层回归及证据文档；整体仍为 B0 PARTIAL，不代表完整产品、真实模型或容量验收。
@@ -10,6 +11,7 @@
 - G3b2 渠道后续购买共享 worker：同一 `WorkerManager`/`RunStore`/lease 上运行首条受控合成查询。`complete_step` 要求 `EXITED`+`exit_code=0`+租约释放；结果按 store family 固定 codec。G4a 已接 HTTP/native helper；浏览器仍 **NOT RUN**。G3/G4 整体未完成。
 
 ### Fixed
+- G4b driver 不再用原始 sessionId 当可见标题；按 session/list 的 blank/title 点 New session 或 treeitem，成功后先 expand 再断言可见卡。query 卡 16px；query 会话 RunStatus 显示「合成查询 / SYNTHETIC」。初始 driver 切 B 失败与手工 verify-existing 层级保留。修复后 fresh driver 核心 native **PASS**（`runtime-zPbEKI`）；Git / 正常 full pre-push / 最终 CI 待 Codex。
 - 候选远端 B0 CI `34058300555` 中 context 并发测试把生产 100ms `BEGIN IMMEDIATE` 超时当成失败。测试改为只收集既有 503 `STATE_UNAVAILABLE` retryable=True，双方退出后用原 unit/resource 重放，并增加确定性 busy→原请求恢复回归。jobs 源码与 100ms timeout 未改。
 - 候选远端 B0 CI `34059478378` 中 terminal race 同样把 100ms 锁等待 503 当成失败（context 修复后的新路径）。三个 Barrier 竞争测试改为收集既有 busy 并在双方退出后用原 key/IfMatch/observation 单次重放；另增 cancel-first/success-first 确定性 busy 终态回归。生产 timeout/jobs 源码未改。该历史失败保留；其后同一 HEAD `754dbd8982a5911cb369bba0d6ecb11b7da66a81` 的 B0 `34060784432` 与 backend `34060784439` 均 SUCCESS（`G3a-final-ci.json`），不把已修复候选继续标成未复跑。
 
@@ -27,7 +29,7 @@
 - Agent 行为统一维护于 AGENTS.md，CLAUDE.md 仅兼容引用；同步 hooks、工作流文档和当前 T08 状态摘要。
 
 ### Known issues
-- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；源码已提交 `857d2ce` / PR #70，最终 pre-push 178 Python / 145 Node / 14 built。整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G3a 仅为离线计算。G3b1 为 store/contract 绑定。G3b2 已接 backend 共享 worker。G4a ASGI/loader PASS，浏览器/Gateway **NOT RUN**，G4 未完成。历史 B0 CI `34059478378` 曾 1 fail；同一候选 HEAD `754dbd8` 随后 B0 `34060784432` 与 backend `34060784439` SUCCESS。无合并、部署或真实数据操作授权。
+- 本 G1 原生状态补证 PASS（`runtime-SNWYss`）；源码已提交 `857d2ce` / PR #70。整体 B0 仍 PARTIAL。历史三次监督器退出 OPEN/UNKNOWN。G4a `0665976c` / PR #75 CI SUCCESS（浏览器当时 NOT RUN，历史层级保留）。G4b 核心 native PASS（fresh `runtime-zPbEKI`）；Git/full pre-push/最终 CI 待 Codex。cancel/畸形 producer **DEFERRED**。无合并、部署或真实数据操作授权。第一查询族仅为合成候选。
 
 ## [0.5.0.0] - 2026-09-04
 

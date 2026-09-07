@@ -110,7 +110,7 @@ test('summarizer turn-end plus durable tool result gates the scheduler, not a fi
 
 test('serve opt-in keeps production kernel default and uses the test-only module only for native-state', async () => {
   const serve = await readFile(join(here, 'serve.mjs'), 'utf8');
-  assert.match(serve, /\[--native-cards\|--native-state\]/);
+  assert.match(serve, /\[--native-cards\|--native-state\|--native-query\]/);
   assert.match(serve, /stateScenario \? 'backend\.tests\.analytics_native_probe' : 'backend\.analytics_runtime'/);
   assert.match(serve, /verificationScenario: scenario/);
   assert.equal((serve.match(/backend\.analytics_runtime/g) || []).length, 1);
