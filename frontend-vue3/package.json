@@ -44,7 +44,7 @@
     "typescript": "~6.0.2",
     "vite": "8.1.5",
     "vitest": "^4.1.8",
-    "vue-tsc": "^3.2.6"
+    "vue-tsc": "^3.3.11"
   },
   "overrides": {
     "js-yaml": "4.3.1",
