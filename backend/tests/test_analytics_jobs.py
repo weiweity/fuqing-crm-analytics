@@ -5,7 +5,7 @@ import os
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
-from threading import Barrier
+from threading import Barrier, Event, Thread
 from types import SimpleNamespace
 
 import pytest
@@ -17,6 +17,27 @@ from backend.tests.analytics_run_support import (
     accept, actor, conversation, fixture_result, make_store, observation, profile,
     receive, send, sqlite_connection, start_probe, stop_owned, successful_step,
 )
+
+
+def _expected_busy(error):
+    return error.status == 503 and error.code == "STATE_UNAVAILABLE" and error.retryable is True
+
+
+def _call_or_busy(fn):
+    try:
+        return fn()
+    except AnalyticsError as error:
+        if not _expected_busy(error):
+            raise
+        return error
+
+
+def _is_busy(result):
+    return isinstance(result, AnalyticsError) and _expected_busy(result)
+
+
+def _terminal_events(store, run_id):
+    return [event for event in store.events(actor(), run_id) if event.type in {"run.completed", "run.cancelled"}]
 
 
 def test_receiver_frames_adjacent_events_without_waiting_on_empty_fd():
@@ -37,17 +58,28 @@ def test_atomic_idempotency_across_independent_connections(tmp_path):
 
     def submit(store):
         barrier.wait(timeout=5)
-        return accept(store, conversation_id=conv.conversation_id)
+        return _call_or_busy(lambda: accept(store, conversation_id=conv.conversation_id))
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         left, right = pool.submit(submit, first), pool.submit(submit, second)
-        assert left.result(timeout=5) == right.result(timeout=5)
+        left_result, right_result = left.result(timeout=5), right.result(timeout=5)
+    accepted = []
+    for store, result in ((first, left_result), (second, right_result)):
+        if _is_busy(result):
+            accepted.append(accept(store, conversation_id=conv.conversation_id))
+        else:
+            accepted.append(result)
+    assert accepted[0] == accepted[1]
     with sqlite_connection(first.path) as con:
         assert con.execute("SELECT count(*) FROM runs").fetchone()[0] == 1
         assert con.execute("SELECT count(*) FROM dispatch_intents").fetchone()[0] == 1
         assert con.execute("SELECT count(*) FROM idempotency WHERE operation='run:create'").fetchone()[0] == 1
         assert con.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-    assert first.get(actor(), left.result().run_id).status == "QUEUED"
+    run_id = accepted[0].run_id
+    assert first.get(actor(), run_id).status == "QUEUED"
+    restored = RunStore(first.directory, profile())
+    assert restored.get(actor(), run_id).status == "QUEUED"
+    assert accept(restored, conversation_id=conv.conversation_id) == accepted[0]
 
 
 def test_semantic_hash_defaults_and_original_response_after_completion(tmp_path):
@@ -300,13 +332,22 @@ def test_claim_race_only_one_global_execution_across_owners(tmp_path):
 
     def claim(store):
         barrier.wait(timeout=5)
-        return store.claim_next(actor)
+        return _call_or_busy(lambda: store.claim_next(actor))
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         a, b = pool.submit(claim, left), pool.submit(claim, right)
-        values = [a.result(timeout=5), b.result(timeout=5)]
+        first_claim, second_claim = a.result(timeout=5), b.result(timeout=5)
+    values = []
+    for store, result in ((left, first_claim), (right, second_claim)):
+        if _is_busy(result):
+            values.append(store.claim_next(actor))
+        else:
+            values.append(result)
     dispatched = [value for value in values if value is not None]
     assert len(dispatched) == 1 and dispatched[0].run_id == first.run_id
+    restored = RunStore(left.directory, profile())
+    assert restored.get(actor("alice"), first.run_id).diagnostics.execution_active
+    assert restored.claim_next(actor) is None
 
 
 def test_actual_terminal_race_has_one_winner_and_one_terminal_event(tmp_path):
@@ -317,27 +358,136 @@ def test_actual_terminal_race_has_one_winner_and_one_terminal_event(tmp_path):
     step = successful_step(left, intent)
     version = left.get(actor(), accepted.run_id).version
     barrier = Barrier(2)
+    request = AnalyticsCancelRequest()
+    evidence = observation(intent, "SUCCEEDED", primary=step.step_id)
 
     def cancel():
         barrier.wait(timeout=5)
         try:
-            return right.cancel(actor(), accepted.run_id, "cancel-race", version, AnalyticsCancelRequest()).status
+            return right.cancel(actor(), accepted.run_id, "cancel-race", version, request)
         except AnalyticsError as error:
-            assert error.status == 409
-            return "STALE_VERSION"
+            if _expected_busy(error) or error.status == 409:
+                return error
+            raise
 
     def finish():
         barrier.wait(timeout=5)
-        return left.observe(actor(), observation(intent, "SUCCEEDED", primary=step.step_id))
+        return _call_or_busy(lambda: left.observe(actor(), evidence))
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         cancellation, completion = pool.submit(cancel), pool.submit(finish)
-        cancel_status, terminal = cancellation.result(timeout=5), completion.result(timeout=5)
-    assert terminal.status == ("SUCCEEDED" if cancel_status == "STALE_VERSION" else "CANCELLED")
-    assert not terminal.diagnostics.execution_active
-    assert (terminal.result is None) == (terminal.status == "CANCELLED")
-    final_events = [e for e in right.events(actor(), accepted.run_id) if e.type in {"run.completed", "run.cancelled"}]
-    assert len(final_events) == 1
+        cancel_result, observe_result = cancellation.result(timeout=5), completion.result(timeout=5)
+    if _is_busy(cancel_result):
+        try:
+            right.cancel(actor(), accepted.run_id, "cancel-race", version, request)
+        except AnalyticsError as error:
+            assert error.status == 409
+    if _is_busy(observe_result):
+        left.observe(actor(), evidence)
+    final = left.get(actor(), accepted.run_id)
+    assert final.status in {"SUCCEEDED", "CANCELLED"}
+    assert not final.diagnostics.execution_active
+    assert (final.result is None) == (final.status == "CANCELLED")
+    assert len(_terminal_events(right, accepted.run_id)) == 1
+    with pytest.raises(AnalyticsError) as error:
+        right.cancel(actor(), accepted.run_id, "cancel-stale", version, request)
+    assert error.value.status == 409
+    restored = RunStore(left.directory, profile())
+    again = restored.get(actor(), accepted.run_id)
+    assert again.status == final.status and again.result == final.result
+    assert not again.diagnostics.execution_active
+    assert len(_terminal_events(restored, accepted.run_id)) == 1
+
+
+@pytest.mark.parametrize("held_first", ["cancel", "success"])
+def test_terminal_busy_original_request_replays_to_one_terminal(tmp_path, held_first):
+    left = make_store(tmp_path / "state")
+    right = RunStore(left.directory, profile())
+    accepted = accept(left)
+    intent = left.claim_next(actor)
+    step = successful_step(left, intent)
+    version = left.get(actor(), accepted.run_id).version
+    request = AnalyticsCancelRequest()
+    evidence = observation(intent, "SUCCEEDED", primary=step.step_id)
+    written, release = Event(), Event()
+    outcomes, caught = {}, []
+    hold_point = "cancel:before_commit" if held_first == "cancel" else "observe:before_commit"
+    holder_store = right if held_first == "cancel" else left
+
+    def hook(point):
+        if point != hold_point:
+            return
+        written.set()
+        assert release.wait(timeout=2), "busy peer did not finish while the first transaction was open"
+
+    def hold():
+        try:
+            if held_first == "cancel":
+                outcomes["held"] = right.cancel(actor(), accepted.run_id, "cancel-race", version, request)
+            else:
+                outcomes["held"] = left.observe(actor(), evidence)
+        except BaseException as error:
+            caught.append(error)
+
+    def contend():
+        try:
+            assert written.wait(timeout=2), "holder did not write before busy peer"
+            try:
+                if held_first == "cancel":
+                    left.observe(actor(), evidence)
+                else:
+                    right.cancel(actor(), accepted.run_id, "cancel-race", version, request)
+            except AnalyticsError as error:
+                if not _expected_busy(error):
+                    raise
+                outcomes["busy"] = error
+            else:
+                raise AssertionError("second peer obtained the lock while the first transaction was open")
+            current = left.get(actor(), accepted.run_id)
+            assert current.status == "RUNNING" and current.result is None
+            assert _terminal_events(left, accepted.run_id) == []
+        except BaseException as error:
+            caught.append(error)
+        finally:
+            release.set()
+
+    holder_store.fault_hook = hook
+    holder = Thread(target=hold)
+    contender = Thread(target=contend)
+    try:
+        holder.start()
+        contender.start()
+        holder.join(timeout=3)
+        contender.join(timeout=3)
+        assert not holder.is_alive() and not contender.is_alive()
+        if caught:
+            raise caught[0]
+        assert outcomes["busy"].status == 503 and outcomes["busy"].retryable is True
+        if held_first == "cancel":
+            replayed = left.observe(actor(), evidence)
+            assert replayed.status == "CANCELLED"
+        else:
+            with pytest.raises(AnalyticsError) as error:
+                right.cancel(actor(), accepted.run_id, "cancel-race", version, request)
+            assert error.value.status == 409
+        expected = "CANCELLED" if held_first == "cancel" else "SUCCEEDED"
+        final = left.get(actor(), accepted.run_id)
+        assert final.status == expected
+        assert not final.diagnostics.execution_active
+        assert (final.result is None) == (expected == "CANCELLED")
+        assert len(_terminal_events(left, accepted.run_id)) == 1
+        restored = RunStore(left.directory, profile())
+        again = restored.get(actor(), accepted.run_id)
+        assert again.status == expected and again.result == final.result
+        assert not again.diagnostics.execution_active
+        assert len(_terminal_events(restored, accepted.run_id)) == 1
+    finally:
+        release.set()
+        holder_store.fault_hook = None
+        if holder.ident is not None:
+            holder.join(timeout=2)
+        if contender.ident is not None:
+            contender.join(timeout=2)
 
 
 @pytest.mark.parametrize("changed", [{"attempt_id": "wrong"}, {"session_id": "wrong"}, {"request_id": "wrong"}, {"run_id": "wrong"}])

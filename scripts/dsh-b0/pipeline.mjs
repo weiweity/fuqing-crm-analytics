@@ -80,10 +80,10 @@ print('B0 exact Python closure verified')
 `]);
   run(process.execPath, ['scripts/dsh-b0/run-kernel-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/query-contract.mjs', '--check', '--python', python]);
-  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts'].map(name => `backend/tests/test_analytics_${name}.py`);
+  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup'].map(name => `backend/tests/test_analytics_${name}.py`);
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py',
-    'backend/analytics_fixture.py', 'backend/analytics_worker.py', 'backend/semantic/analytics_b0.py',
+    'backend/analytics_fixture.py', 'backend/analytics_query_fixture.py', 'backend/analytics_worker.py', 'backend/semantic/analytics_b0.py',
     'backend/semantic/analytics_channel_followup.py',
     'backend/contracts/analytics.py', 'backend/contracts/analytics_query.py', 'backend/services/analytics', 'backend/tests/analytics_run_support.py',
     'backend/tests/analytics_run_fault_probe.py', 'backend/tests/analytics_worker_probe.py',
