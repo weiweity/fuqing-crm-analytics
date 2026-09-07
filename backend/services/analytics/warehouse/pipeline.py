@@ -29,6 +29,7 @@ from backend.services.analytics.warehouse.contract import (
     WAREHOUSE_DUCKDB_THREADS,
     WAREHOUSE_TEMP_MIB,
     WarehouseContractError,
+    normalize_rules,
     utc_naive_instant,
 )
 from backend.services.analytics.warehouse.facts import (
@@ -41,7 +42,14 @@ from backend.services.analytics.warehouse.facts import (
     load_staging_orders,
     load_staging_refunds,
     load_staging_versions,
-    upsert_facts,
+)
+from backend.services.analytics.warehouse.incremental import (
+    classify_affected_orders,
+    count_future_refunds,
+    install_rules,
+    merge_staging_into_source,
+    read_previous_meta,
+    rebuild_affected_facts,
 )
 from backend.services.analytics.warehouse.ingest import (
     assert_read_matches_plan,
@@ -50,6 +58,7 @@ from backend.services.analytics.warehouse.ingest import (
     plan_ingest,
     read_planned_jsonl,
 )
+from backend.services.analytics.warehouse.generate import content_hash_from_file_hashes
 from backend.services.analytics.warehouse.observe import PipelineObservation, StageTimer, process_ru_maxrss_bytes
 
 
@@ -103,6 +112,7 @@ def connect_warehouse(path, *, write: bool, temp_directory=None):
 def _reset_staging(connection) -> None:
     for table in (
         "stg_line_version",
+        "stg_affected_order",
         "stg_identity",
         "stg_order_header",
         "stg_order_line",
@@ -127,15 +137,15 @@ def _ensure_schema(connection) -> None:
     _reset_staging(connection)
 
 
-def _insert_or_replace_meta(connection, *, as_of, content_hash: str, seed) -> None:
+def _insert_or_replace_meta(connection, *, as_of, content_hash: str, seed, rules, rule_version: str) -> None:
     connection.execute("DELETE FROM warehouse_meta")
     connection.execute(
         """
-        INSERT INTO warehouse_meta VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO warehouse_meta VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             SCHEMA_VERSION,
-            RULE_VERSION,
+            rule_version,
             GENERATOR_VERSION,
             PIPELINE_VERSION,
             utc_naive_instant(as_of),
@@ -146,25 +156,9 @@ def _insert_or_replace_meta(connection, *, as_of, content_hash: str, seed) -> No
             content_hash,
             seed,
             False,
+            json.dumps(normalize_rules(rules), sort_keys=True, separators=(",", ":"), ensure_ascii=False),
         ],
     )
-
-
-def _validated_file_hashes(manifest: dict) -> dict[str, str]:
-    if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise WarehouseContractError("unsupported source schema")
-    hashes = manifest.get("file_hashes")
-    if not isinstance(hashes, dict) or not hashes:
-        raise WarehouseContractError("source file_hashes required")
-    for name, digest in hashes.items():
-        if not isinstance(name, str) or Path(name).name != name or name in {".", ".."}:
-            raise WarehouseContractError("source hash names must be filenames")
-        if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
-            raise WarehouseContractError("source file hash must be SHA-256")
-    from backend.services.analytics.warehouse.generate import content_hash_from_file_hashes
-    if content_hash_from_file_hashes(hashes) != manifest.get("content_hash"):
-        raise WarehouseContractError("source content hash mismatch")
-    return hashes
 
 
 def _read_group(source_dir: Path, names: tuple[str, ...], *, now, max_age_days, file_hashes, extra_patterns=()) -> tuple[list[dict], int, list[str], list[str]]:
@@ -178,6 +172,39 @@ def _read_group(source_dir: Path, names: tuple[str, ...], *, now, max_age_days, 
     result = read_planned_jsonl(plan, file_hashes=file_hashes)
     assert_read_matches_plan(plan, result)
     return result.records, result.bytes_read, result.opened, [path.name for path in plan.skipped]
+
+
+def _validate_existing_schema(database: Path) -> None:
+    """Reject incompatible state without resetting staging or opening a writer."""
+    import duckdb
+
+    connection = duckdb.connect(str(database), read_only=True, config=_write_config())
+    try:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info('warehouse_meta')").fetchall()}
+        if "schema_version" not in columns or "rules_json" not in columns:
+            raise WarehouseContractError("incompatible warehouse schema; preserve old state and rebuild synthetic sources in a separate empty directory")
+        versions = connection.execute("SELECT schema_version FROM warehouse_meta").fetchall()
+        if versions != [(SCHEMA_VERSION,)]:
+            raise WarehouseContractError("incompatible warehouse schema; preserve old state and rebuild synthetic sources in a separate empty directory")
+    finally:
+        connection.close()
+
+
+def _validated_file_hashes(manifest: dict) -> dict[str, str]:
+    # v1 source JSONL remains readable; only the persisted warehouse schema changed.
+    if manifest.get("schema_version") not in {"analytics-warehouse-schema/v1", SCHEMA_VERSION}:
+        raise WarehouseContractError("unsupported source schema")
+    hashes = manifest.get("file_hashes")
+    if not isinstance(hashes, dict) or not hashes:
+        raise WarehouseContractError("source file_hashes required")
+    for name, digest in hashes.items():
+        if not isinstance(name, str) or Path(name).name != name or name in {".", ".."}:
+            raise WarehouseContractError("source hash names must be filenames")
+        if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+            raise WarehouseContractError("source file hash must be SHA-256")
+    if content_hash_from_file_hashes(hashes) != manifest.get("content_hash"):
+        raise WarehouseContractError("source content hash mismatch")
+    return hashes
 
 
 @dataclass(frozen=True)
@@ -213,6 +240,7 @@ def run_warehouse_pipeline(
     if incremental:
         if not database.is_file():
             raise WarehouseContractError("incremental load requires an existing warehouse")
+        _validate_existing_schema(database)
     elif any(warehouse_root.iterdir()):
         raise WarehouseContractError("full warehouse publish requires an empty directory")
 
@@ -229,6 +257,7 @@ def run_warehouse_pipeline(
     timer_start = time.perf_counter_ns()
     observation.marks_ns["start"] = 0
     connection = None
+    transaction_open = False
     try:
         source_manifest_path = source_root / MANIFEST_NAME
         source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
@@ -277,8 +306,28 @@ def run_warehouse_pipeline(
 
         observation.marks_ns["after_ingest"] = time.perf_counter_ns() - timer_start
         connection = connect_warehouse(database, write=True)
+        connection.execute("BEGIN TRANSACTION")
+        transaction_open = True
         _ensure_schema(connection)
-        _insert_or_replace_meta(connection, as_of=as_of_value, content_hash=content_hash, seed=seed)
+        previous = read_previous_meta(connection) if incremental else None
+        if incremental and previous is None:
+            raise WarehouseContractError("incremental load requires warehouse_meta")
+        if not incremental and not identities:
+            raise WarehouseContractError("identities are required")
+        rules = normalize_rules(source_manifest.get("rules"))
+        rule_version = source_manifest.get("rule_version") or RULE_VERSION
+        rules_changed = previous is not None and (
+            previous.rules != rules or previous.rule_version != rule_version
+        )
+        install_rules(connection, rules)
+        _insert_or_replace_meta(
+            connection,
+            as_of=as_of_value,
+            content_hash=content_hash,
+            seed=seed,
+            rules=rules,
+            rule_version=rule_version,
+        )
 
         with StageTimer(observation, "identity", rows_in=len(identities)) as identity_stage:
             identity_rows = load_identities(connection, identities)
@@ -291,6 +340,13 @@ def run_warehouse_pipeline(
             load_staging_versions(connection, versions)
             unconstrained = count_unconstrained_product_join(connection)
             matched = attach_product_versions(connection)
+            affected = classify_affected_orders(
+                connection,
+                previous=previous,
+                new_as_of=as_of_value,
+                rules_changed=rules_changed,
+            )
+            merge_staging_into_source(connection)
             transform_stage.rows_out = matched
             transform_stage.extra = {
                 "header_rows": header_rows,
@@ -298,20 +354,34 @@ def run_warehouse_pipeline(
                 "range_join_rows": matched,
                 "unconstrained_product_join_rows": unconstrained,
                 "header_amounts_aggregated_from_join": False,
+                **affected.to_extra(),
             }
 
         with StageTimer(observation, "load", rows_in=len(orders)) as load_stage:
-            counts = upsert_facts(connection)
+            counts = rebuild_affected_facts(connection)
+            future_refunds = count_future_refunds(connection)
             load_stage.rows_out = counts["fact_order_header"]
             load_stage.extra = {
                 "incremental": incremental,
                 "used_global_max_pay_time": False,
+                "used_mtime_as_incremental_cursor": False,
+                "full_table_rebuild": False if incremental else True,
                 "grain": ["synthetic_user_id", "order_id"],
                 "row_counts": counts,
+                "affected_order_keys": affected.affected_order_keys,
+                "headers_rewritten": affected.affected_order_keys,
+                "unchanged_records": affected.unchanged_records,
+                "new_or_changed_records": affected.new_or_changed_records,
+                "content_hash_compared": True,
+                "as_of_unchanged": affected.as_of_unchanged,
+                "rules_changed": affected.rules_changed,
+                "future_refunds_held": future_refunds,
             }
 
         observation.marks_ns["before_publish"] = time.perf_counter_ns() - timer_start
         with StageTimer(observation, "publish", rows_in=counts["fact_order_header"]) as publish_stage:
+            connection.execute("COMMIT")
+            transaction_open = False
             connection.execute("CHECKPOINT")
             observation.checkpoint = True
             observation.marks_ns["after_checkpoint"] = time.perf_counter_ns() - timer_start
@@ -323,7 +393,7 @@ def run_warehouse_pipeline(
             db_hash = hashlib.sha256(database.read_bytes()).hexdigest()
             published = {
                 "schema_version": SCHEMA_VERSION,
-                "rule_version": RULE_VERSION,
+                "rule_version": rule_version,
                 "generator_version": GENERATOR_VERSION,
                 "pipeline_version": PIPELINE_VERSION,
                 "source_identity": source_manifest.get("source_identity"),
@@ -376,9 +446,13 @@ def run_warehouse_pipeline(
             content_hash=content_hash,
             row_counts=counts,
         )
-    except Exception:
+    except BaseException:
         if connection is not None:
-            connection.close()
+            try:
+                if transaction_open:
+                    connection.execute("ROLLBACK")
+            finally:
+                connection.close()
         raise
 
 

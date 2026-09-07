@@ -1,4 +1,4 @@
-"""Synthetic analytics warehouse (W1/W2). Importing this package never opens DuckDB."""
+"""Synthetic analytics warehouse (W1/W2/W3). Importing this package never opens DuckDB."""
 
 from backend.services.analytics.warehouse.contract import (
     AMOUNT_PRECISION,

@@ -1,5 +1,5 @@
 {
-  "schema_version": "analytics-warehouse-schema/v1",
+  "schema_version": "analytics-warehouse-schema/v2",
   "fixture_id": "warehouse-w2-hand-snapshot/v1",
   "computation": "NOT_RUN",
   "method": "hand_calculated",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = "analytics-warehouse-schema/v1"
+SCHEMA_VERSION = "analytics-warehouse-schema/v2"
 RULE_VERSION = "analytics-warehouse-rules/v1"
 GENERATOR_VERSION = "analytics-warehouse-generator/v1"
 PIPELINE_VERSION = "analytics-warehouse-pipeline/v1"
@@ -25,6 +25,11 @@ PUBLISHED_MANIFEST_NAME = "published.json"
 EMPTY_DENOMINATOR = "EMPTY_DENOMINATOR"
 STATUS_PAID = "PAID"
 STATUS_CANCELLED = "CANCELLED"
+DEFAULT_RULES = {
+    "valid_statuses": [STATUS_PAID],
+    "channel_map": {},
+    "counted_refund_classes": None,
+}
 
 
 class PermissionScopeDenied(ValueError):
@@ -74,3 +79,36 @@ def ratio_from_counts(numerator: int, denominator: int):
     if denominator == 0:
         return None, EMPTY_DENOMINATOR
     return numerator / denominator, None
+
+
+def normalize_rules(raw) -> dict:
+    """Fact-layer rules. Missing counted_refund_classes means every class counts."""
+    if raw is None:
+        return {
+            "valid_statuses": list(DEFAULT_RULES["valid_statuses"]),
+            "channel_map": dict(DEFAULT_RULES["channel_map"]),
+            "counted_refund_classes": None,
+        }
+    if type(raw) is not dict:
+        raise WarehouseContractError("rules must be an object")
+    statuses = raw.get("valid_statuses", DEFAULT_RULES["valid_statuses"])
+    if type(statuses) is not list or not statuses or any(type(item) is not str or not item for item in statuses):
+        raise WarehouseContractError("valid_statuses must be a non-empty list of strings")
+    channel_map = raw.get("channel_map") or {}
+    if type(channel_map) is not dict:
+        raise WarehouseContractError("channel_map must be an object")
+    mapped = {}
+    for key, value in channel_map.items():
+        if type(key) is not str or not key or type(value) is not str or not value:
+            raise WarehouseContractError("channel_map keys and values must be non-empty strings")
+        mapped[key] = value
+    classes = raw.get("counted_refund_classes")
+    if classes is not None:
+        if type(classes) is not list or any(type(item) is not str or not item for item in classes):
+            raise WarehouseContractError("counted_refund_classes must be a list of strings or null")
+        classes = list(classes)
+    return {
+        "valid_statuses": list(statuses),
+        "channel_map": mapped,
+        "counted_refund_classes": classes,
+    }

@@ -25,6 +25,7 @@ from backend.services.analytics.warehouse.contract import (
     SCHEMA_VERSION,
     TIMEZONE,
     WarehouseContractError,
+    normalize_rules,
     require_minor,
     require_str_id,
 )
@@ -65,6 +66,11 @@ def content_hash_from_file_hashes(file_hashes: dict[str, str]) -> str:
     return _sha256_hex(material.encode("utf-8"))
 
 
+def canonical_record_hash(record: dict) -> str:
+    material = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return _sha256_hex(material.encode("utf-8"))
+
+
 def _manifest_bytes(manifest: dict) -> bytes:
     return (json.dumps(manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
 
@@ -91,6 +97,8 @@ def write_tabular_sources(
     seed: int | None = None,
     source_kind: str = "synthetic_generator",
     generator_id: str = "analytics-warehouse-w1",
+    rules=None,
+    rule_version: str = RULE_VERSION,
 ) -> SourceManifest:
     root = Path(directory)
     if not root.is_dir():
@@ -117,7 +125,7 @@ def write_tabular_sources(
     digest = content_hash_from_file_hashes(file_hashes)
     manifest = {
         "schema_version": SCHEMA_VERSION,
-        "rule_version": RULE_VERSION,
+        "rule_version": rule_version,
         "generator_version": GENERATOR_VERSION,
         "pipeline_version": PIPELINE_VERSION,
         "source_identity": {
@@ -144,6 +152,8 @@ def write_tabular_sources(
             "identities": len(identities),
         },
     }
+    if rules is not None:
+        manifest["rules"] = normalize_rules(rules)
     _write_exclusive(root / MANIFEST_NAME, _manifest_bytes(manifest))
     return SourceManifest(str(root), manifest, digest)
 

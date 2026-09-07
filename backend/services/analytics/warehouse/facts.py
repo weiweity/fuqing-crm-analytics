@@ -9,6 +9,7 @@ from backend.services.analytics.warehouse.contract import (
     require_str_id,
     utc_naive_instant,
 )
+from backend.services.analytics.warehouse.generate import canonical_record_hash
 
 CREATE_SQL = """
 CREATE TABLE dim_customer (
@@ -87,7 +88,42 @@ CREATE TABLE warehouse_meta (
     amount_precision VARCHAR COLLATE C NOT NULL,
     content_hash VARCHAR COLLATE C NOT NULL,
     seed BIGINT,
-    contains_real_data BOOLEAN NOT NULL
+    contains_real_data BOOLEAN NOT NULL,
+    rules_json VARCHAR COLLATE C NOT NULL
+);
+CREATE TABLE src_order_header (
+    synthetic_user_id VARCHAR COLLATE C NOT NULL,
+    order_id VARCHAR COLLATE C NOT NULL,
+    paid_at TIMESTAMP NOT NULL,
+    channel VARCHAR COLLATE C NOT NULL,
+    status VARCHAR COLLATE C NOT NULL,
+    gross_paid_minor BIGINT NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL,
+    PRIMARY KEY (synthetic_user_id, order_id)
+);
+CREATE TABLE src_order_line (
+    line_id VARCHAR COLLATE C NOT NULL PRIMARY KEY,
+    synthetic_user_id VARCHAR COLLATE C NOT NULL,
+    order_id VARCHAR COLLATE C NOT NULL,
+    product_id VARCHAR COLLATE C NOT NULL,
+    quantity BIGINT NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
+);
+CREATE TABLE src_refund (
+    refund_id VARCHAR COLLATE C NOT NULL PRIMARY KEY,
+    synthetic_user_id VARCHAR COLLATE C NOT NULL,
+    order_id VARCHAR COLLATE C NOT NULL,
+    refunded_at TIMESTAMP NOT NULL,
+    refund_minor BIGINT NOT NULL,
+    refund_class VARCHAR COLLATE C NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
+);
+CREATE TABLE src_product_version (
+    product_version_id VARCHAR COLLATE C NOT NULL PRIMARY KEY,
+    product_id VARCHAR COLLATE C NOT NULL,
+    valid_from TIMESTAMP NOT NULL,
+    valid_to TIMESTAMP NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
 );
 """
 
@@ -105,27 +141,37 @@ CREATE TABLE stg_order_header (
     paid_at TIMESTAMP NOT NULL,
     channel VARCHAR COLLATE C NOT NULL,
     status VARCHAR COLLATE C NOT NULL,
-    gross_paid_minor BIGINT NOT NULL
+    gross_paid_minor BIGINT NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
 );
 CREATE TABLE stg_order_line (
     line_id VARCHAR COLLATE C NOT NULL,
     synthetic_user_id VARCHAR COLLATE C NOT NULL,
     order_id VARCHAR COLLATE C NOT NULL,
     product_id VARCHAR COLLATE C NOT NULL,
-    quantity BIGINT NOT NULL
+    quantity BIGINT NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
 );
 CREATE TABLE stg_refund (
     refund_id VARCHAR COLLATE C NOT NULL,
     synthetic_user_id VARCHAR COLLATE C NOT NULL,
     order_id VARCHAR COLLATE C NOT NULL,
     refunded_at TIMESTAMP NOT NULL,
-    refund_minor BIGINT NOT NULL
+    refund_minor BIGINT NOT NULL,
+    refund_class VARCHAR COLLATE C NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
 );
 CREATE TABLE stg_product_version (
     product_id VARCHAR COLLATE C NOT NULL,
     product_version_id VARCHAR COLLATE C NOT NULL,
     valid_from TIMESTAMP NOT NULL,
-    valid_to TIMESTAMP NOT NULL
+    valid_to TIMESTAMP NOT NULL,
+    content_hash VARCHAR COLLATE C NOT NULL
+);
+CREATE TABLE stg_affected_order (
+    synthetic_user_id VARCHAR COLLATE C NOT NULL,
+    order_id VARCHAR COLLATE C NOT NULL,
+    PRIMARY KEY (synthetic_user_id, order_id)
 );
 """
 
@@ -138,7 +184,7 @@ def _encode_list_sql(column: str) -> str:
 
 def load_identities(connection, identities: list[dict]) -> int:
     if not identities:
-        raise WarehouseContractError("identities are required")
+        return int(connection.execute("SELECT COUNT(*) FROM dim_customer").fetchone()[0])
     rows = []
     for item in identities:
         rows.append((
@@ -244,9 +290,10 @@ def load_staging_orders(connection, orders: list[dict]) -> int:
             require_str_id(order.get("channel"), name="channel"),
             require_str_id(order.get("status"), name="status"),
             require_minor(order.get("gross_paid_minor"), name="gross_paid_minor"),
+            canonical_record_hash(order),
         ))
     if rows:
-        connection.executemany("INSERT INTO stg_order_header VALUES (?, ?, ?, ?, ?, ?)", rows)
+        connection.executemany("INSERT INTO stg_order_header VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
     unknown = connection.execute(
         """
         SELECT COUNT(*) FROM stg_order_header h
@@ -273,14 +320,20 @@ def load_staging_lines(connection, lines: list[dict]) -> int:
             require_str_id(line.get("order_id"), name="order_id"),
             require_str_id(line.get("product_id"), name="product_id"),
             quantity,
+            canonical_record_hash(line),
         ))
     if rows:
-        connection.executemany("INSERT INTO stg_order_line VALUES (?, ?, ?, ?, ?)", rows)
+        connection.executemany("INSERT INTO stg_order_line VALUES (?, ?, ?, ?, ?, ?)", rows)
     orphans = connection.execute(
         """
         SELECT COUNT(*) FROM stg_order_line l
         WHERE NOT EXISTS (
             SELECT 1 FROM stg_order_header h
+            WHERE encode(h.synthetic_user_id) = encode(l.synthetic_user_id)
+              AND encode(h.order_id) = encode(l.order_id)
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM src_order_header h
             WHERE encode(h.synthetic_user_id) = encode(l.synthetic_user_id)
               AND encode(h.order_id) = encode(l.order_id)
         )
@@ -294,20 +347,32 @@ def load_staging_lines(connection, lines: list[dict]) -> int:
 def load_staging_refunds(connection, refunds: list[dict]) -> int:
     rows = []
     for refund in refunds:
+        refund_class = refund.get("refund_class")
+        if refund_class is None:
+            refund_class = "standard"
+        else:
+            refund_class = require_str_id(refund_class, name="refund_class")
         rows.append((
             require_str_id(refund.get("refund_id"), name="refund_id"),
             require_str_id(refund.get("synthetic_user_id"), name="synthetic_user_id"),
             require_str_id(refund.get("order_id"), name="order_id"),
             utc_naive_instant(refund.get("refunded_at")),
             require_minor(refund.get("refund_minor"), name="refund_minor"),
+            refund_class,
+            canonical_record_hash(refund),
         ))
     if rows:
-        connection.executemany("INSERT INTO stg_refund VALUES (?, ?, ?, ?, ?)", rows)
+        connection.executemany("INSERT INTO stg_refund VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
     orphans = connection.execute(
         """
         SELECT COUNT(*) FROM stg_refund r
         WHERE NOT EXISTS (
             SELECT 1 FROM stg_order_header h
+            WHERE encode(h.synthetic_user_id) = encode(r.synthetic_user_id)
+              AND encode(h.order_id) = encode(r.order_id)
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM src_order_header h
             WHERE encode(h.synthetic_user_id) = encode(r.synthetic_user_id)
               AND encode(h.order_id) = encode(r.order_id)
         )
@@ -330,9 +395,10 @@ def load_staging_versions(connection, versions: list[dict]) -> int:
             require_str_id(version.get("product_version_id"), name="product_version_id"),
             valid_from,
             valid_to,
+            canonical_record_hash(version),
         ))
     if rows:
-        connection.executemany("INSERT INTO stg_product_version VALUES (?, ?, ?, ?)", rows)
+        connection.executemany("INSERT INTO stg_product_version VALUES (?, ?, ?, ?, ?)", rows)
     overlap = connection.execute(
         """
         SELECT COUNT(*) FROM stg_product_version a
@@ -386,113 +452,7 @@ def attach_product_versions(connection) -> int:
     return int(matched)
 
 
-def upsert_facts(connection) -> dict[str, int]:
-    connection.execute(
-        """
-        INSERT INTO fact_order_header
-        SELECT
-            h.synthetic_user_id,
-            h.order_id,
-            c.customer_key,
-            h.paid_at,
-            h.channel,
-            h.status,
-            c.permission_scope,
-            c.identity_domain,
-            h.gross_paid_minor,
-            COALESCE(r.refund_minor, 0),
-            h.gross_paid_minor - COALESCE(r.refund_minor, 0),
-            (
-                h.status = 'PAID'
-                AND h.paid_at <= m.as_of
-                AND (h.gross_paid_minor - COALESCE(r.refund_minor, 0)) > 0
-            )
-        FROM stg_order_header h
-        JOIN dim_customer c
-          ON encode(c.synthetic_user_id) = encode(h.synthetic_user_id)
-        CROSS JOIN warehouse_meta m
-        LEFT JOIN (
-            SELECT synthetic_user_id, order_id, SUM(refund_minor) AS refund_minor
-            FROM stg_refund, warehouse_meta
-            WHERE refunded_at <= warehouse_meta.as_of
-            GROUP BY encode(synthetic_user_id), encode(order_id), synthetic_user_id, order_id
-        ) r
-          ON encode(r.synthetic_user_id) = encode(h.synthetic_user_id)
-         AND encode(r.order_id) = encode(h.order_id)
-        ON CONFLICT (synthetic_user_id, order_id) DO UPDATE SET
-            customer_key = excluded.customer_key,
-            paid_at = excluded.paid_at,
-            channel = excluded.channel,
-            status = excluded.status,
-            permission_scope = excluded.permission_scope,
-            identity_domain = excluded.identity_domain,
-            gross_paid_minor = excluded.gross_paid_minor,
-            refund_minor_as_of = excluded.refund_minor_as_of,
-            net_paid_minor = excluded.net_paid_minor,
-            is_valid = excluded.is_valid
-        """
-    )
-    connection.execute(
-        """
-        INSERT INTO fact_order_refund
-        SELECT refund_id, synthetic_user_id, order_id, refunded_at, refund_minor
-        FROM stg_refund
-        ON CONFLICT (refund_id) DO UPDATE SET
-            synthetic_user_id = excluded.synthetic_user_id,
-            order_id = excluded.order_id,
-            refunded_at = excluded.refunded_at,
-            refund_minor = excluded.refund_minor
-        """
-    )
-    connection.execute(
-        """
-        INSERT INTO fact_order_line
-        SELECT line_id, synthetic_user_id, order_id, product_id, quantity, product_version_id
-        FROM stg_line_version
-        ON CONFLICT (line_id) DO UPDATE SET
-            synthetic_user_id = excluded.synthetic_user_id,
-            order_id = excluded.order_id,
-            product_id = excluded.product_id,
-            quantity = excluded.quantity,
-            product_version_id = excluded.product_version_id
-        """
-    )
-    connection.execute("DELETE FROM fact_first_purchase")
-    connection.execute("DELETE FROM fact_first_purchase_product")
-    connection.execute(
-        """
-        INSERT INTO fact_first_purchase
-        SELECT
-            synthetic_user_id,
-            customer_key,
-            order_id,
-            paid_at,
-            channel,
-            gross_paid_minor,
-            net_paid_minor
-        FROM (
-            SELECT
-                h.*,
-                ROW_NUMBER() OVER (
-                    PARTITION BY encode(synthetic_user_id)
-                    ORDER BY paid_at ASC, encode(order_id) ASC
-                ) AS rn
-            FROM fact_order_header h
-            WHERE is_valid
-        ) ranked
-        WHERE rn = 1
-        """
-    )
-    connection.execute(
-        """
-        INSERT INTO fact_first_purchase_product
-        SELECT DISTINCT f.synthetic_user_id, l.product_id
-        FROM fact_first_purchase f
-        JOIN fact_order_line l
-          ON encode(l.synthetic_user_id) = encode(f.synthetic_user_id)
-         AND encode(l.order_id) = encode(f.order_id)
-        """
-    )
+def fact_row_counts(connection) -> dict[str, int]:
     counts = connection.execute(
         """
         SELECT
