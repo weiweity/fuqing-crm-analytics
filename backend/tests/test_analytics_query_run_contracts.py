@@ -21,8 +21,10 @@ from backend.contracts.analytics_query import (
     query_contract_openapi,
 )
 from backend.contracts.analytics_query_run import (
+    QUERY_RECEIPT_SCHEMA,
     QUERY_RUN_SCHEMA,
     AnalyticsQueryConversation,
+    AnalyticsQueryNativeReceipt,
     AnalyticsQueryRunAccepted,
     AnalyticsQueryRunRequest,
     AnalyticsQueryRunSnapshot,
@@ -31,6 +33,7 @@ from backend.contracts.analytics_query_run import (
     query_run_contract_openapi,
 )
 from backend.contracts.schemas import (
+    AnalyticsQueryNativeReceipt as ExportedReceipt,
     AnalyticsQueryRunRequest as ExportedRequest,
     AnalyticsQueryRunSnapshot as ExportedSnapshot,
     ChannelFollowupRunBinding as ExportedBinding,
@@ -144,6 +147,8 @@ def test_schemas_reexport_query_run_types():
     assert ExportedRequest is AnalyticsQueryRunRequest
     assert ExportedSnapshot is AnalyticsQueryRunSnapshot
     assert ExportedBinding is ChannelFollowupRunBinding
+    assert ExportedReceipt is AnalyticsQueryNativeReceipt
+    assert QUERY_RECEIPT_SCHEMA == "analytics-run-channel-followup-native-receipt/v1"
 
 
 def test_openapi_is_store_only_and_does_not_mount_http():
@@ -155,6 +160,7 @@ def test_openapi_is_store_only_and_does_not_mount_http():
     assert "x-js-max-safe-integer" not in schema
     assert "x-timestamp-canonical-rule" not in schema
     assert "AnalyticsQueryRunSnapshot" in schema["components"]["schemas"]
+    assert "AnalyticsQueryNativeReceipt" in schema["components"]["schemas"]
     assert "ChannelFollowupResult" in schema["components"]["schemas"]
     assert "AnalyticsB0Result" not in schema["components"]["schemas"]
     assert "AnalyticsRunSnapshot" not in schema["components"]["schemas"]

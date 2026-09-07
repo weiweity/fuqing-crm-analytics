@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { constants } from 'node:fs';
 import { lstat, open, readdir, realpath } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
-import { freezeSkillPackage, PACKAGE_LIMITS, validateManifest } from './src/skill-package.mjs';
+import { FAMILIES, freezeSkillPackage, PACKAGE_LIMITS, validateManifest } from './src/skill-package.mjs';
 
 async function regularBytes(path, limit) {
   const info = await lstat(path);
@@ -24,9 +24,11 @@ async function regularBytes(path, limit) {
   } finally { await handle.close(); }
 }
 
-export async function packSkills(plugin) {
-  const manifest = JSON.parse(await regularBytes(join(plugin, 'skill-package.lock.json'), 8192));
-  validateManifest(manifest);
+export async function packSkills(plugin, family = 'b0') {
+  const spec = FAMILIES[family];
+  if (!spec) throw new Error('unsupported skill family');
+  const manifest = JSON.parse(await regularBytes(join(plugin, spec.lockFile), 8192));
+  validateManifest(manifest, family);
   const root = resolve(plugin, 'skills', manifest.name);
   for (const path of [join(plugin, 'skills'), root]) {
     const info = await lstat(path);
@@ -56,6 +58,6 @@ export async function packSkills(plugin) {
   const contents = {};
   for (const key of found) contents[key] = await regularBytes(join(root, key), PACKAGE_LIMITS.fileBytes);
   const input = { manifest, contents };
-  freezeSkillPackage(input);
+  freezeSkillPackage(input, family);
   return input;
 }

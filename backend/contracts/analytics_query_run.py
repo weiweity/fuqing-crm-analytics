@@ -32,6 +32,7 @@ from backend.contracts.analytics_query import (
 
 QUERY_RUN_SCHEMA = "analytics-run-channel-followup/v1"
 QUERY_CONTEXT_SCHEMA = "analytics-channel-followup-runtime-context/v1"
+QUERY_RECEIPT_SCHEMA = "analytics-run-channel-followup-native-receipt/v1"
 QUERY_RUN_FAMILY = "channel_followup"
 QUERY_DATA_SCOPE = "channel-followup-fixture"
 QUERY_TOOL = "analytics_channel_followup_query"
@@ -149,6 +150,34 @@ class AnalyticsQueryRunEvent(AnalyticsQueryRunModel):
     payload: AnalyticsQueryEventPayload
 
 
+class AnalyticsQueryNativeText(AnalyticsQueryRunModel):
+    type: Literal["text"]
+    text: Annotated[str, Field(min_length=1, max_length=8000)]
+
+    @field_validator("text")
+    @classmethod
+    def supported_text(cls, value: str) -> str:
+        AnalyticsQueryRunRequest(question=value)
+        return value
+
+
+class AnalyticsQueryNativePrompt(AnalyticsQueryRunModel):
+    requestId: OpaqueId
+    sessionId: OpaqueId
+    mode: Literal["queue"]
+    content: Annotated[list[AnalyticsQueryNativeText], Field(min_length=1, max_length=1)]
+    clientTimeZone: Literal["UTC", "Asia/Shanghai"] = "Asia/Shanghai"
+
+
+class AnalyticsQueryNativeReceipt(AnalyticsQueryRunModel):
+    schema_version: Literal["analytics-run-channel-followup-native-receipt/v1"] = QUERY_RECEIPT_SCHEMA
+    run_id: OpaqueId
+    attempt_id: OpaqueId
+    step_id: OpaqueId
+    disposition: Literal["EXECUTE", "REUSE_RESULT"]
+    result: ChannelFollowupResult
+
+
 OPENAPI_MODELS = (
     ChannelFollowupFixtureDescriptor,
     ChannelFollowupRunBinding,
@@ -159,6 +188,7 @@ OPENAPI_MODELS = (
     AnalyticsQueryRunSnapshot,
     AnalyticsQueryEventPayload,
     AnalyticsQueryRunEvent,
+    AnalyticsQueryNativeReceipt,
     ChannelFollowupResult,
 )
 

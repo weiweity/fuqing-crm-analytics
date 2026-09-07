@@ -192,6 +192,66 @@ def test_accept_and_reserve_are_atomic_on_fault(tmp_path):
         assert con.execute("SELECT tool_steps_used FROM runs WHERE run_id=?", (accepted.run_id,)).fetchone()[0] == 0
 
 
+def query_native(session="session-a", key="native-1", text="查看合成渠道后续购买", timezone="Asia/Shanghai"):
+    return {"sessionId": session, "requestId": key, "mode": "queue",
+            "content": [{"type": "text", "text": text}], "clientTimeZone": timezone}
+
+
+def test_query_native_accept_replays_without_new_run_and_store_only_hash_unchanged(tmp_path):
+    store = make_query_store(tmp_path / "native")
+    conv = store.create_conversation(
+        query_actor(), "native", AnalyticsQueryConversationRequest(), runtime_session_id="session-a",
+    )
+    first = store.accept(
+        query_actor(), conv.conversation_id, "native-1",
+        AnalyticsQueryRunRequest(question="查看合成渠道后续购买"),
+        method_package_digest=DIGEST, fixture_descriptor=golden_descriptor(),
+        native_request=query_native(),
+    )
+    replay = store.accept(
+        query_actor(), conv.conversation_id, "native-1",
+        AnalyticsQueryRunRequest(question="查看合成渠道后续购买"),
+        allow_new=False, method_package_digest=DIGEST, fixture_descriptor=golden_descriptor(),
+        native_request=query_native(),
+    )
+    assert replay == first
+    assert store.get_conversation(query_actor(), conv.conversation_id).run_ids == [first.run_id]
+    restored = RunStore(store.directory, profile(), family="channel_followup")
+    assert restored.get(query_actor(), first.run_id).run_id == first.run_id
+    with pytest.raises(AnalyticsError) as timezone:
+        store.accept(
+            query_actor(), conv.conversation_id, "native-1",
+            AnalyticsQueryRunRequest(question="查看合成渠道后续购买"),
+            method_package_digest=DIGEST, fixture_descriptor=golden_descriptor(),
+            native_request=query_native(timezone="UTC"),
+        )
+    assert timezone.value.status == 409
+    with pytest.raises(AnalyticsError) as question:
+        store.accept(
+            query_actor(), conv.conversation_id, "native-1",
+            AnalyticsQueryRunRequest(question="换一个问题"),
+            method_package_digest=DIGEST, fixture_descriptor=golden_descriptor(),
+            native_request=query_native(text="换一个问题"),
+        )
+    assert question.value.status == 409
+    with pytest.raises(AnalyticsError) as session:
+        store.accept(
+            query_actor(), conv.conversation_id, "native-1",
+            AnalyticsQueryRunRequest(question="查看合成渠道后续购买"),
+            method_package_digest=DIGEST, fixture_descriptor=golden_descriptor(),
+            native_request=query_native(session="session-b"),
+        )
+    assert session.value.status == 409
+    plain = make_query_store(tmp_path / "plain")
+    original = query_accept(plain)
+    again = query_accept(plain)
+    assert again == original
+    with sqlite_connection(plain.path) as con:
+        assert con.execute(
+            "SELECT count(*) FROM idempotency WHERE operation='runtime.native-binding'",
+        ).fetchone()[0] == 0
+
+
 def test_replay_same_key_and_condition_conflict(tmp_path):
     store = make_query_store(tmp_path / "query")
     conv = query_conversation(store)

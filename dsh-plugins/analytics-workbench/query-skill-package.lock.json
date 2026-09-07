@@ -1,0 +1,12 @@
+{
+  "schema_version": "analytics-channel-followup-skill-package/v1",
+  "name": "channel-followup-query",
+  "version": "query-v1",
+  "scope": "CHANNEL_FOLLOWUP_SYNTHETIC_ONLY",
+  "description": "合成渠道后续购买查询：先确认 FIXED/N 支持范围，再读取受控证据；恢复时不信任旧摘要，不执行审批或营销。",
+  "files": {
+    "SKILL.md": "c0dbca38f2e4cde35572d6b00f02e766e77cf75a6c258fc46ea49b21348a3e83",
+    "references/evidence-policy.md": "d32648ffb4e70aced9709df692bbf202bd85965e766a3f6964d2be12ec3554ac",
+    "assets/result-example.json": "7f3090d6cbde551d1145732eed6c51a2f9b1bc0539ce8d1e3904ebb688c51ff8"
+  }
+}

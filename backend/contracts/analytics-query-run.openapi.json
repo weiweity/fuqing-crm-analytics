@@ -103,6 +103,58 @@
         "title": "AnalyticsQueryEventPayload",
         "type": "object"
       },
+      "AnalyticsQueryNativeReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "disposition": {
+            "enum": [
+              "EXECUTE",
+              "REUSE_RESULT"
+            ],
+            "title": "Disposition",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ChannelFollowupResult"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-channel-followup-native-receipt/v1",
+            "default": "analytics-run-channel-followup-native-receipt/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "step_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "attempt_id",
+          "step_id",
+          "disposition",
+          "result"
+        ],
+        "title": "AnalyticsQueryNativeReceipt",
+        "type": "object"
+      },
       "AnalyticsQueryRunAccepted": {
         "additionalProperties": false,
         "properties": {
@@ -1114,5 +1166,5 @@
   "x-query-result-schema": "analytics-channel-followup/v1",
   "x-query-run-schema": "analytics-run-channel-followup/v1",
   "x-store-only": true,
-  "x-schema-sha256": "303b59d46e814d01650b3b46e8655dccb609f205679e4725ff7b48481f68350c"
+  "x-schema-sha256": "390430dfc4b244df0c8b929719f8a1cc30e0c1a99c36793d63725f7f71e13f5a"
 }

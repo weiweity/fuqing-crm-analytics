@@ -2,12 +2,18 @@ import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { TOOL_NAME, decodeFixture } from './model.mjs';
 import { requestForTool } from './native-evidence.mjs';
+import { QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
+import { apply as applyQueryTool } from './query-tool.ts';
 
 export const name = 'analytics-workbench-b0-tool';
 export const inject = ['tools'];
 
 /** The only Host capability contributed by this package. */
 export function apply(ctx: Context): void {
+  if (runtimeFamily() === QUERY_FAMILY) {
+    applyQueryTool(ctx);
+    return;
+  }
   ctx.tools.register(defineTool({
     name: TOOL_NAME,
     description: 'B0 synthetic fixture only. Request the fixed channel sample from the local run kernel; no real database or arbitrary SQL.',

@@ -5,8 +5,8 @@
 ## 实际能力与边界
 
 - 根 Host 入口 `lib/index.js` 同时提供 UI discover 与私有原生协议桥，不登记工具、不保存业务账本或循环调用模型。桥只接受本次运行能力，返回原请求关联的原生日志及 `whenIdle + flush` 退出证据。
-- 独立 `lib/tool.js` 仅登记 `analytics_b0_query`，参数只有 `{"query":"channel_repeat_rate"}`。从可信原生 call/turn 查找原 requestId，在 FastAPI 预留步骤后取得固定 `STUB / SYNTHETIC_FIXTURE`：100 位合成客户、25 位复购、25%，日期 2026-09-01。调用私有 loopback 接口；无 SQL、真实文件查询、任意网络或本地备用结果路径。
-- 独立 `lib/skills.js` 注册固定 `growth-analysis-b0` 及精确资源工具；整包包含 `SKILL.md`、证据引用与无数字示例，`skill-package.lock.json` 冻结全部字节。构建拒绝越界、软/硬链接、额外文件/脚本、超限和引用漂移；运行时读取不可变快照。每步与方法读取都回查后端权限、版本和预算，不新增通用文件工具或 Agent loop。
+- 独立 `lib/tool.js` 默认登记 `analytics_b0_query`，参数只有 `{"query":"channel_repeat_rate"}`。从可信原生 call/turn 查找原 requestId，在 FastAPI 预留步骤后取得固定 `STUB / SYNTHETIC_FIXTURE`：100 位合成客户、25 位复购、25%，日期 2026-09-01。调用私有 loopback 接口；无 SQL、真实文件查询、任意网络或本地备用结果路径。`B0_RUNTIME_FAMILY=channel_followup` 时改为登记 `analytics_channel_followup_query`（完整 G2 请求，固定 `/internal/native/channel-followup`，输出 typed receipt）。浏览器卡片仍只服务 B0 fixture，G4b 未做。
+- 独立 `lib/skills.js` 默认注册固定 `growth-analysis-b0` 及精确资源工具；整包包含 `SKILL.md`、证据引用与无数字示例，`skill-package.lock.json` 冻结全部字节。query-mode 另有不可变 `channel-followup-query` 包与 `query-skill-package.lock.json`。构建拒绝越界、软/硬链接、额外文件/脚本、超限和引用漂移；运行时读取不可变快照。每步与方法读取都回查后端权限、版本和预算，不新增通用文件工具或 Agent loop。
 - 客户端登记品牌 `sidebar.brand.mark/name` 及原四项 `sidebar.footer.action`、`shell.overlay`、`tool.call.toolview`、`conversation.input.dock`；品牌单槽使用 `priority:-10` 先于上游默认贡献，不修改上游代码。等待 owner 声明后登记；两个 root 插槽共享 `defineStore`。任务状态栏只读 FastAPI 投影，展示最近三个 run 的状态、阶段和步数；断线明确标记旧快照，刷新不重新提交。
 - UI-B01 最小适配：客户端只在 `ctx.sessions.list.phase === 'ready'` 且指定 `session-b0-synthetic-primary` 同时存在于 Host `ids/byId` 时，通过公开 `ctx.sessions.open(id)` 自动选中一次。不会调用 `create`、操作 DOM、选任意其他会话，或在用户后续切换时抢回焦点；目标缺失继续等待，选择失败只报告一次并无 fallback。每次插件重新加载/页面刷新会重新校验，这是 B0 固定主会话接缝，不是业务 run 自动受理实现。
 - “我的驾驶舱 · B0”打开一份源码内置的合成资产，不依赖活动会话/模型。只支持一个板块的手工标题预览、应用、撤销未应用草稿与页面刷新恢复；不是 AI 局部编辑实现，也不是完整可组装驾驶舱。

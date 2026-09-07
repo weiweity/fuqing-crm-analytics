@@ -1,4 +1,4 @@
-/** Generated query-run store contract; do not edit. Not an HTTP API. OpenAPI SHA-256: 303b59d46e814d01650b3b46e8655dccb609f205679e4725ff7b48481f68350c */
+/** Generated query-run store contract; do not edit. Not an HTTP API. OpenAPI SHA-256: 390430dfc4b244df0c8b929719f8a1cc30e0c1a99c36793d63725f7f71e13f5a */
 export type paths = Record<string, never>;
 export type webhooks = Record<string, never>;
 export interface components {
@@ -47,6 +47,27 @@ export interface components {
             step_id: string | null;
             /** Version */
             version: number;
+        };
+        /** AnalyticsQueryNativeReceipt */
+        AnalyticsQueryNativeReceipt: {
+            /** Attempt Id */
+            attempt_id: string;
+            /**
+             * Disposition
+             * @enum {string}
+             */
+            disposition: "EXECUTE" | "REUSE_RESULT";
+            result: components["schemas"]["ChannelFollowupResult"];
+            /** Run Id */
+            run_id: string;
+            /**
+             * Schema Version
+             * @default analytics-run-channel-followup-native-receipt/v1
+             * @constant
+             */
+            schema_version: "analytics-run-channel-followup-native-receipt/v1";
+            /** Step Id */
+            step_id: string;
         };
         /** AnalyticsQueryRunAccepted */
         AnalyticsQueryRunAccepted: {
