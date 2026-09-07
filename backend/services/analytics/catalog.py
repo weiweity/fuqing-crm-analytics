@@ -22,6 +22,7 @@ from backend.contracts.analytics_query import (
     ChannelFollowupSnapshot,
     compute_filter_hash,
     filter_hash_payload,
+    parse_query_datetime,
     revalidate_model,
     snapshot_digest,
 )
@@ -45,6 +46,15 @@ class QueryFamily:
     status: QueryFamilyStatus
     title: str
     notes: str
+
+
+@dataclass(frozen=True)
+class SnapshotBindingMetadata:
+    snapshot_id: str
+    data_version: str
+    data_digest: str
+    as_of: datetime
+    timezone: str
 
 
 QUERY_FAMILIES: dict[str, QueryFamily] = {
@@ -84,17 +94,38 @@ def require_supported_query(query_id: str) -> QueryFamily:
     return family
 
 
-def bind_resolved_filters(
+def _snapshot_binding_metadata(metadata: SnapshotBindingMetadata | dict) -> SnapshotBindingMetadata:
+    if isinstance(metadata, SnapshotBindingMetadata):
+        return metadata
+    if not isinstance(metadata, dict):
+        raise ValueError("snapshot binding metadata must be a mapping")
+    as_of = metadata.get("as_of")
+    if not isinstance(as_of, datetime):
+        as_of = parse_query_datetime(as_of)
+    digest = metadata.get("data_digest")
+    if type(digest) is not str or len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        raise ValueError("snapshot data_digest is invalid")
+    return SnapshotBindingMetadata(
+        snapshot_id=metadata["snapshot_id"],
+        data_version=metadata["data_version"],
+        data_digest=digest,
+        as_of=as_of,
+        timezone=metadata["timezone"],
+    )
+
+
+def bind_resolved_filters_from_metadata(
     request: ChannelFollowupQueryRequest | dict,
-    snapshot: ChannelFollowupSnapshot | dict,
+    metadata: SnapshotBindingMetadata | dict,
     permission_scope: str,
 ) -> ChannelFollowupResolvedFilters:
+    """Normalize request + sealed snapshot identity. Does not open DuckDB."""
     request = revalidate_model(ChannelFollowupQueryRequest, request)
-    snapshot = revalidate_model(ChannelFollowupSnapshot, snapshot)
+    metadata = _snapshot_binding_metadata(metadata)
     require_supported_query(request.query_id)
-    if request.data_snapshot_ref != snapshot.snapshot_id:
+    if request.data_snapshot_ref != metadata.snapshot_id:
         raise ValueError("data_snapshot_ref does not match the snapshot")
-    if request.timezone != snapshot.timezone:
+    if request.timezone != metadata.timezone:
         raise ValueError("timezone must match the registered snapshot")
     if request.query_version != QUERY_VERSION or request.metric_version != METRIC_VERSION:
         raise ValueError("unsupported query or metric version")
@@ -102,13 +133,12 @@ def bind_resolved_filters(
     start = datetime.combine(request.cohort_window.start_date, time.min, tzinfo=zone)
     end = datetime.combine(request.cohort_window.end_date, time.min, tzinfo=zone)
     channels = tuple(sorted(request.channel_ids)) if request.channel_ids else REGISTERED_CHANNELS
-    digest = snapshot_digest(snapshot)
     payload = filter_hash_payload(
-        as_of=snapshot.as_of,
+        as_of=metadata.as_of,
         channel_ids=channels,
-        data_digest=digest,
-        data_snapshot_ref=snapshot.snapshot_id,
-        data_version=snapshot.data_version,
+        data_digest=metadata.data_digest,
+        data_snapshot_ref=metadata.snapshot_id,
+        data_version=metadata.data_version,
         observation_days=request.observation_days,
         permission_scope=permission_scope,
         resolved_cohort_end=end,
@@ -119,9 +149,28 @@ def bind_resolved_filters(
         resolved_cohort_start=start,
         resolved_cohort_end=end,
         observation_days=request.observation_days,
-        as_of=snapshot.as_of,
+        as_of=metadata.as_of,
         channel_ids=channels,
         permission_scope=permission_scope,
-        data_digest=digest,
+        data_digest=metadata.data_digest,
         filter_hash=compute_filter_hash(payload),
+    )
+
+
+def bind_resolved_filters(
+    request: ChannelFollowupQueryRequest | dict,
+    snapshot: ChannelFollowupSnapshot | dict,
+    permission_scope: str,
+) -> ChannelFollowupResolvedFilters:
+    snapshot = revalidate_model(ChannelFollowupSnapshot, snapshot)
+    return bind_resolved_filters_from_metadata(
+        request,
+        SnapshotBindingMetadata(
+            snapshot_id=snapshot.snapshot_id,
+            data_version=snapshot.data_version,
+            data_digest=snapshot_digest(snapshot),
+            as_of=snapshot.as_of,
+            timezone=snapshot.timezone,
+        ),
+        permission_scope,
     )
