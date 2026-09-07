@@ -12,10 +12,13 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from pydantic import Field, field_validator
 from starlette.concurrency import run_in_threadpool
 
-from backend.analytics_app import create_app, _single_header
+from backend.analytics_analysis_app import create_analysis_app
+from backend.analytics_app import create_app, _error_response, _single_header
+from backend.analytics_cockpit_app import create_cockpit_app
 from backend.analytics_fixture import SyntheticFixture
 from backend.analytics_query_app import create_query_app
 from backend.analytics_query_fixture import ChannelFollowupFixture
@@ -26,7 +29,9 @@ from backend.contracts.analytics_query_run import (
     AnalyticsQueryRunRequest,
 )
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, B0IdentityRegistry
+from backend.services.analytics.cockpit import CockpitStore
 from backend.services.analytics.jobs import RunStore
+from backend.services.analytics.saved_analyses import SavedAnalysisStore
 from backend.services.analytics.resource_profile import B0ResourceProfile, B0_SMALL_FIXTURE_PROFILE
 from backend.services.analytics.runtime import HostBridge, RunDispatcher, execute_native_fixture, execute_native_query
 from backend.services.analytics.worker import WorkerManager
@@ -100,6 +105,44 @@ def _attach_lifecycle(app, dispatcher):
     app.router.lifespan_context = lifecycle
 
 
+QUERY_CAPABILITIES = frozenset({"run:create", "run:read", "run:cancel"})
+ASSET_CAPABILITIES = frozenset({
+    "analysis:save", "analysis:read", "dashboard:read", "dashboard:update",
+})
+
+
+def _query_capabilities(config) -> frozenset[str]:
+    extra = config.get("asset_capabilities")
+    if extra is None:
+        return QUERY_CAPABILITIES
+    if not isinstance(extra, list) or not extra or set(extra) - ASSET_CAPABILITIES:
+        raise ValueError("asset_capabilities must be an explicit analysis/dashboard subset")
+    return QUERY_CAPABILITIES | frozenset(extra)
+
+
+def _attach_asset_http(app, config, run_store, registry) -> None:
+    """Mount saved-analysis and cockpit HTTP on the query runtime. No second dispatcher."""
+    analysis_store = SavedAnalysisStore(Path(config["analysis_dir"]))
+    cockpit_store = CockpitStore(Path(config["cockpit_dir"]))
+    analysis_app = create_analysis_app(run_store, analysis_store, registry, runtime_ready=app.state.runtime_ready)
+    cockpit_app = create_cockpit_app(analysis_store, cockpit_store, registry, runtime_ready=app.state.runtime_ready)
+    app.router.routes.extend(analysis_app.router.routes)
+    app.router.routes.extend(cockpit_app.router.routes)
+    app.state.analysis_store = analysis_store
+    app.state.cockpit_store = cockpit_store
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request: Request, _error: RequestValidationError):
+        path = request.url.path
+        if path.startswith("/api/v1/analytics/dashboards"):
+            message = "请求与当前驾驶舱合同不匹配，请检查版本、字段和取值。"
+        elif path.startswith("/api/v1/analytics/analyses"):
+            message = "请求与当前分析合同不匹配，请检查版本、字段和取值。"
+        else:
+            message = "请求与当前查询合同不匹配，请检查版本、字段和取值。"
+        return _error_response(AnalyticsError(422, "INVALID_REQUEST", message), request.state.analytics_request_id)
+
+
 def _query_runtime_app(config, *, bridge=None):
     session_ids = config.get("session_ids")
     if (not isinstance(session_ids, list) or len(session_ids) != 2 or len(set(session_ids)) != 2
@@ -114,7 +157,7 @@ def _query_runtime_app(config, *, bridge=None):
     registry = B0IdentityRegistry()
     actor = AnalyticsPrincipal(
         "b0-synthetic-owner",
-        frozenset({"run:create", "run:read", "run:cancel"}),
+        _query_capabilities(config),
         frozenset({"channel-followup-fixture"}),
     )
     registry.grant(gateway_token, actor)
@@ -200,6 +243,8 @@ def _query_runtime_app(config, *, bridge=None):
         return execute_native_query(store, resolve_actor, payload.session_id, payload.request_id, payload.call_id,
                                     payload.request, workers=workers)
 
+    if config.get("asset_capabilities") is not None:
+        _attach_asset_http(app, config, store, registry)
     return app
 
 

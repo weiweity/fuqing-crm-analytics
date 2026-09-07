@@ -25,6 +25,11 @@ test('query-card source keeps existing fault copy and stamps data-query-fault', 
   assert.match(cardSource, /data-query-fault="malformed"/);
   assert.match(cardSource, /data-query-fault="ok"/);
   assert.match(cardSource, /合成查询运行中…/);
+  assert.match(cardSource, /data-testid="analytics-query-cancel"/);
+  assert.match(cardSource, /停止查询/);
+  assert.match(cardSource, /\/api\/session\/cancel/);
+  assert.match(cardSource, /classifyCancelOutcome/);
+  assert.match(cardSource, /data-cancel-state/);
   assert.match(cardSource, /查询工具失败；没有可用结果。未执行业务动作。/);
   assert.match(cardSource, /查询结果格式无法识别或版本不支持；不推断分析成功。/);
   assert.match(cardSource, /QUERY_RECEIPT_SCHEMA/);
@@ -60,6 +65,7 @@ test('compiled query fault cards hide channel digits when lib/client.js is prese
     assert.ok(html.includes(expected), id);
     assert.ok(html.includes(`data-query-fault="${fault}"`), id);
     assert.equal(html.includes('data-testid="analytics-query-tool-result"'), false, id);
+    assert.equal(html.includes('data-testid="analytics-query-cancel"'), id === 'running');
     assert.doesNotMatch(html, /N=30|1100\.00 元|result_ref|25%|SENSITIVE|onerror=/i);
   }
 });

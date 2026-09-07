@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { authorizeHttp, authorizeStream, filterHttpResult, filterStreamItem, sessionAllowed } from './gateway-policy.mjs';
+import { assetHeaderViolation, mapAssetRoute } from './asset-routes.mjs';
 import { pluginManifest, refreshedPluginManifest, safeRpcResult } from './transport-safety.mjs';
 import { currentPermission, permissionFence } from './permission-fence.mjs';
 import { brandAssets } from './brand-assets.mjs';
@@ -37,6 +38,7 @@ const kernelPrivate = JSON.parse(await readFile(join(runtime, 'kernel-private.js
 const { gateway_token: gatewayToken } = kernelPrivate;
 assert.ok(typeof gatewayToken === 'string' && gatewayToken.length >= 32);
 const queryFamily = kernelPrivate.family === 'channel_followup';
+const assetsEnabled = Array.isArray(kernelPrivate.asset_capabilities) && kernelPrivate.asset_capabilities.length > 0;
 if (queryFamily) {
   assert.ok(Array.isArray(refs.sessionIds) && refs.sessionIds.length === 2 && refs.sessionIds.includes(refs.sessionId));
 }
@@ -169,6 +171,39 @@ async function httpHandler(req, res) {
     res.writeHead(303, { location: '/', 'set-cookie': `shine-b0=${session}; HttpOnly; SameSite=Strict; Path=/`, 'cache-control': 'no-store' }); res.end(); return;
   }
   if (!browserAuthenticated(req)) return deny(res, undefined, 401);
+  if (assetsEnabled) {
+    const mapped = mapAssetRoute(req.method, url.pathname, url.searchParams);
+    if (mapped) {
+      if (mapped.kind === 'reject' || assetHeaderViolation(req.rawHeaders)) {
+        audit('asset', url.pathname, false, mapped.kind === 'reject' ? 'asset-allowlist' : 'asset-header');
+        return deny(res);
+      }
+      if (mapped.kind === 'status') {
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+        res.end(JSON.stringify({
+          http_api: 'CONNECTED', analyses: true, cockpit: true, snapshot: true, synthetic: true,
+        }));
+        return;
+      }
+      const headers = {};
+      if (mapped.key && req.headers['idempotency-key']) headers['idempotency-key'] = req.headers['idempotency-key'];
+      if (mapped.match && req.headers['if-match']) headers['if-match'] = req.headers['if-match'];
+      let body;
+      if (req.method !== 'GET') {
+        try { body = await bodyOf(req); }
+        catch { audit('asset', url.pathname, false, 'invalid-json'); return deny(res, undefined, 400); }
+      }
+      const response = await kernel(mapped.kernel, { method: req.method, headers, body });
+      const out = { 'content-type': 'application/json', 'cache-control': 'no-store' };
+      const etag = response.headers.get('etag');
+      const location = response.headers.get('location');
+      if (etag) out.etag = etag;
+      if (location) out.location = location;
+      res.writeHead(response.status, out);
+      res.end(await response.text());
+      return;
+    }
+  }
   if (!await currentAccess()) return deny(res);
   if (req.method === 'GET' && !url.search && brands.has(url.pathname)) {
     const asset = brands.get(url.pathname);

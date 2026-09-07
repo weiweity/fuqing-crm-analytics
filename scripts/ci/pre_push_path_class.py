@@ -112,7 +112,10 @@ def scoped_pytest_targets(paths: list[str]) -> list[str]:
 B0_PREFIXES = ('dsh-plugins/analytics-workbench/', 'scripts/dsh-b0/',
                'backend/services/analytics/', 'backend/tests/analytics_')
 B0_EXACT = {'backend/contracts/analytics.py', 'backend/semantic/analytics_b0.py',
-            '.github/workflows/dsh-b0.yml'}
+            '.github/workflows/dsh-b0.yml', 'backend/analytics_analysis_app.py',
+            'backend/contracts/analytics_analysis.py', 'backend/contracts/analytics-analysis.openapi.json',
+            'backend/analytics_cockpit_app.py', 'backend/contracts/analytics_cockpit.py',
+            'backend/contracts/analytics-cockpit.openapi.json'}
 SHARED = {'backend/tests/conftest.py', 'pyproject.toml', 'requirements.txt',
           'requirements-lock.txt', 'uv.lock', 'scripts/run_backend_tests_bounded.py'}
 GROUND_TRUTH_PREFIXES = ('docs/validation-reports/', 'docs/飞书版架构文档/')

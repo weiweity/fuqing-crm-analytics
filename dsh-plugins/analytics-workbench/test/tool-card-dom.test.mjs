@@ -18,7 +18,9 @@ for (const example of QUERY_CARD_CASES) {
     assert.ok(html.includes(example.expected));
     assert.equal(html.includes('data-testid="analytics-query-tool-result"'), example.success);
     assert.equal(html.includes('role="status"'), !example.success);
-    assert.doesNotMatch(html, /<script|<img|<button|<a\b|SENSITIVE_FAKE_DETAIL|onerror=/i);
+    assert.doesNotMatch(html, /<script|<img|<a\b|SENSITIVE_FAKE_DETAIL|onerror=/i);
+    assert.equal(html.includes('data-testid="analytics-query-cancel"'), example.id === 'query-running');
+    if (example.id !== 'query-running') assert.doesNotMatch(html, /<button/i);
     if (!example.success) {
       assert.doesNotMatch(html, /25%|N=30|result_ref|EMPTY_MATURE_COHORT|空成熟队列/);
     }
@@ -32,6 +34,7 @@ test('query card stylesheet is 16px and does not keep the 13px body size', () =>
   assert.match(harness.css, /\.analytics-query-card \{ font-size:16px/);
   assert.doesNotMatch(harness.css, /\.analytics-query-card \{ font-size:13px/);
   assert.match(harness.css, /tabular-nums/);
+  assert.match(harness.css, /\.analytics-query-card button \{/);
 });
 test('compiled plugin owns B0 and query tool keys, preserving other native card registrations', () => {
   assert.deepEqual(harness.registrations.filter(r => r.options.name === 'tool.call.toolview').map(r => r.options.key),

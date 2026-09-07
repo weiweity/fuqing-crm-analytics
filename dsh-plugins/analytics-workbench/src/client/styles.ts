@@ -24,6 +24,9 @@ export const css = `
 .analytics-b0-card { padding:12px; border:1px solid var(--dsw-alias-line-primary,currentColor); border-radius:8px; overflow-wrap:anywhere; }
 .analytics-query-card { font-size:16px; line-height:1.5; overflow-wrap:anywhere; word-break:break-word; max-width:100%; }
 .analytics-query-card p, .analytics-query-card small { margin:6px 0; overflow-wrap:anywhere; word-break:break-word; font-variant-numeric:tabular-nums; }
+.analytics-query-card button { display:block; box-sizing:border-box; min-height:44px; margin-top:8px; border:1px solid var(--dsw-alias-line-primary,currentColor); border-radius:8px; padding:8px 12px; font:inherit; color:inherit; background:transparent; cursor:pointer; }
+.analytics-query-card button:disabled { opacity:.5; cursor:not-allowed; }
+.analytics-query-card button:focus-visible { outline:2px solid currentColor; outline-offset:3px; }
 .analytics-query-card abbr { text-decoration:underline dotted; font-variant-numeric:tabular-nums; }
 .analytics-b0-runs { box-sizing:border-box; flex:none; pointer-events:auto; width:calc(100% - 2 * var(--dsh-composer-side-clearance,16px) - 4 * var(--dsh-composer-dock-inset,8px)); max-width:calc(var(--dsh-composer-card-max-width,780px) - 4 * var(--dsh-composer-dock-inset,8px)); margin:0 auto; padding:8px 12px; border:.5px solid var(--dsw-alias-border-l1,currentColor); border-radius:12px; background:var(--dsw-specific-tip,var(--dsw-alias-bg-base,Canvas)); font:inherit; font-size:12px; line-height:1.6; color:var(--dsw-alias-label-secondary,inherit); overflow-wrap:anywhere; }
 .analytics-b0-runs abbr { text-decoration:none; font-variant-numeric:tabular-nums; }

@@ -37,7 +37,9 @@ from backend.contracts.analytics import (
 )
 from backend.contracts.analytics_query import (
     DATA_VERSION,
+    METRIC_ID,
     METRIC_VERSION,
+    QUERY_ID,
     QUERY_VERSION,
     ChannelFollowupQueryRequest,
     ChannelFollowupResult,
@@ -1005,6 +1007,53 @@ class RunStore:
             row = self._run(con, principal, run_id)
             self._authorize_run(con, principal, row, "run:read")
             return self._snapshot(con, row)
+
+    def query_succeeded_source(self, principal: AnalyticsPrincipal, run_id: str) -> dict:
+        """Authorized SUCCEEDED query source. Requires run:read. Starts no worker."""
+        if self.family != QUERY_RUN_FAMILY:
+            raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
+        with self._connection(readonly=True) as con:
+            con.execute("BEGIN")
+            row = self._run(con, principal, run_id)
+            binding = self._authorize_run(con, principal, row, "run:read")
+            if row["status"] != "SUCCEEDED":
+                raise AnalyticsError(422, "UNPROCESSABLE", "只能绑定 SUCCEEDED 运行。")
+            if row["result_json"] is None or row["primary_result_ref"] is None:
+                raise AnalyticsError(422, "UNPROCESSABLE", "SUCCEEDED 结果缺少冻结步骤引用。")
+            step = con.execute(
+                "SELECT * FROM steps WHERE run_id=? AND step_id=?",
+                (run_id, row["primary_result_ref"]),
+            ).fetchone()
+            if step is None or step["state"] != "SUCCEEDED":
+                raise AnalyticsError(422, "UNPROCESSABLE", "SUCCEEDED 结果缺少冻结步骤引用。")
+            frozen = self._inspect_query_step(con, row, step, binding)
+            result = self._decode_query_result(con, row, step, row["result_json"], binding)
+            request = ChannelFollowupQueryRequest.model_validate(frozen["request"])
+            dumped = result.model_dump(mode="json")
+            digest = content_hash(dumped)
+            if row["evidence_digest"] != digest:
+                raise AnalyticsError(409, "BINDING_CORRUPT", "查询结果与冻结绑定不一致。")
+            if result.query_id != QUERY_ID or result.query_version != QUERY_VERSION:
+                raise AnalyticsError(422, "UNPROCESSABLE", "本波只允许 channel_first_observed_followup / channel-followup-query/v1。")
+            if result.metric_id != METRIC_ID or result.metric_version != METRIC_VERSION:
+                raise AnalyticsError(422, "UNPROCESSABLE", "指标版本与本波合同不一致。")
+            if result.data_version != DATA_VERSION:
+                raise AnalyticsError(422, "UNPROCESSABLE", "数据版本与本波合同不一致。")
+            return {
+                "run_id": run_id,
+                "status": "SUCCEEDED",
+                "query_id": result.query_id,
+                "query_version": result.query_version,
+                "metric_id": result.metric_id,
+                "metric_version": result.metric_version,
+                "data_version": result.data_version,
+                "filter_hash": result.filter_hash,
+                "evidence_digest": digest,
+                "request": request.model_dump(mode="json"),
+                "result": dumped,
+                "owner_id": principal.actor_id,
+                "primary_result_ref": row["primary_result_ref"],
+            }
 
     def rebuild_context(self, principal, run_id, attempt_id, *, package_digest, unit_id, resource=None):
         """Re-read authoritative state, never a model summary or a cached grant.

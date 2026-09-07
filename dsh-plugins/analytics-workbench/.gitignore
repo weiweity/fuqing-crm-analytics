@@ -1,4 +1,5 @@
 /lib/
 /node_modules/
+/build-tools/node_modules
 /build-tools/node_modules/
 *.tsbuildinfo
