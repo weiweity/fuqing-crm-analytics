@@ -54,8 +54,13 @@ def test_security_and_build_jobs_are_hard_gates() -> None:
         "frontend",
         "dependency-audit",
         "docker-smoke",
+        "b0-contract-build",
+        "merge-gate",
     ):
         assert jobs[job_name].get("continue-on-error") is not True
+    assert jobs["merge-gate"].get("if") == "always()"
+    assert jobs["ground-truth-lint"]["if"] == "needs.changes.outputs.ground_truth == 'true'"
+    assert jobs["contract-filterbuilder-lint"]["if"] == "needs.changes.outputs.filterbuilder == 'true'"
 
     ground_truth_steps = jobs["ground-truth-lint"]["steps"]
     ground_truth_run = next(

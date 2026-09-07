@@ -19,6 +19,10 @@ on:
         value: ${{ jobs.changes.outputs.plan }}
       b0:
         value: ${{ jobs.changes.outputs.b0 }}
+      ground_truth:
+        value: ${{ jobs.changes.outputs.ground_truth }}
+      filterbuilder:
+        value: ${{ jobs.changes.outputs.filterbuilder }}
 
 permissions:
   contents: read
@@ -34,6 +38,8 @@ jobs:
       checks: ${{ steps.plan.outputs.checks }}
       deployment: ${{ steps.plan.outputs.deployment }}
       dependencies: ${{ steps.plan.outputs.dependencies }}
+      ground_truth: ${{ steps.plan.outputs.ground_truth }}
+      filterbuilder: ${{ steps.plan.outputs.filterbuilder }}
       plan: ${{ steps.plan.outputs.plan }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
