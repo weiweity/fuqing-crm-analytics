@@ -115,6 +115,11 @@ B0_EXACT = {'backend/contracts/analytics.py', 'backend/semantic/analytics_b0.py'
             '.github/workflows/dsh-b0.yml'}
 SHARED = {'backend/tests/conftest.py', 'pyproject.toml', 'requirements.txt',
           'requirements-lock.txt', 'uv.lock', 'scripts/run_backend_tests_bounded.py'}
+GROUND_TRUTH_PREFIXES = ('docs/validation-reports/', 'docs/飞书版架构文档/')
+FILTERBUILDER_EXACT = {
+    'backend/scripts/check_filter_builder_usage.py',
+    'backend/scripts/check_channel_alias.py',
+}
 TOOL_TESTS = [
     'backend/tests/test_git_hook_boundaries.py',
     'backend/tests/test_pre_push_smart_path.py',
@@ -146,6 +151,7 @@ def verification_plan(paths: list[str]) -> dict:
     files = sorted({_norm(p) for p in paths if _norm(p)})
     plan = {'backend': 'none', 'b0': False, 'frontend': False,
             'tooling': False, 'deployment': False, 'dependencies': False,
+            'ground_truth': False, 'filterbuilder': False,
             'targets': [], 'files': files}
     for p in files:
         if p in SHARED:
@@ -158,6 +164,17 @@ def verification_plan(paths: list[str]) -> dict:
             plan['b0'] = True
             if p.startswith('.github/'):
                 plan['tooling'] = True
+            # FilterBuilder scanners walk backend/services/**, including analytics.
+            if p.startswith('backend/services/'):
+                plan['filterbuilder'] = True
+            # B0-prefixed tests must still run as scoped Python; #80 skipped otherwise.
+            if is_test_path(p):
+                if Path(p).name.startswith('test_') and p.endswith('.py'):
+                    plan['targets'].append(p)
+                    if plan['backend'] == 'none':
+                        plan['backend'] = 'scoped'
+                else:
+                    plan['backend'] = 'full'
         elif p.startswith('frontend-vue3/'):
             plan['frontend'] = True
             if p.endswith(('package.json', 'package-lock.json')):
@@ -172,11 +189,15 @@ def verification_plan(paths: list[str]) -> dict:
                 'AGENTS.md', 'CLAUDE.md', 'scripts/branch_cleanup.py', 'scripts/setup-hooks.sh',
                 'scripts/sync-agents.sh', '.pre-commit-config.yaml'}:
             plan['tooling'] = True
+            if p.startswith(('.github/workflows/', 'scripts/ci/')):
+                plan['b0'] = True
             if p.startswith('.github/workflows/'):
                 plan['backend'] = 'full'
                 plan['frontend'] = True
                 plan['deployment'] = True
                 plan['dependencies'] = True
+            if p.endswith('check_review_ground_truth.py'):
+                plan['ground_truth'] = True
         elif is_test_path(p):
             if Path(p).name.startswith('test_') and p.endswith('.py'):
                 plan['targets'].append(p)
@@ -187,13 +208,21 @@ def verification_plan(paths: list[str]) -> dict:
         elif p in {'Dockerfile', 'docker-compose.yml', '.dockerignore'}:
             plan['deployment'] = True
             plan['backend'] = 'full'
-        elif p.startswith(('docs/operating/', 'docs/maintenance/', 'docs/validation-reports/')):
+        elif p.startswith(('docs/operating/', 'docs/maintenance/')):
             plan['tooling'] = True
+        elif p.startswith(GROUND_TRUTH_PREFIXES):
+            plan['tooling'] = True
+            plan['ground_truth'] = True
+        elif p in FILTERBUILDER_EXACT:
+            plan['filterbuilder'] = True
+            plan['backend'] = 'full'
         elif is_skip_path(p):
             continue
         else:
             # Unmapped code, offline ETL and root configuration are conservative.
             plan['backend'] = 'full'
+            if p.startswith('backend/services/'):
+                plan['filterbuilder'] = True
     if not files:
         plan['backend'] = 'full'
         plan['tooling'] = True
@@ -272,7 +301,8 @@ def main(argv: list[str] | None = None) -> int:
     plan = verification_plan(paths)
     if args.github_output:
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-            for axis in ('b0', 'frontend', 'tooling', 'deployment', 'dependencies'):
+            for axis in ('b0', 'frontend', 'tooling', 'deployment', 'dependencies',
+                         'ground_truth', 'filterbuilder'):
                 output.write(f'{axis}={str(plan[axis]).lower()}\n')
             output.write(f'backend={str(plan["backend"] != "none").lower()}\n')
             output.write(f'checks={str(plan["backend"] != "none" or plan["tooling"]).lower()}\n')

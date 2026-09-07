@@ -129,14 +129,23 @@ def test_plan_cli_does_not_execute_checks():
     assert result.returncode == 0 and json.loads(result.stdout)['backend'] == 'full'
 
 
+def test_b0_pipeline_lists_query_native_fault():
+    text = (ROOT / 'scripts/dsh-b0/pipeline.mjs').read_text()
+    assert 'query_native_fault' in text
+
+
 def test_ci_reuses_local_matrix_and_owns_profile_exclusions():
     import yaml
     workflows = ROOT / '.github/workflows'
     shared = yaml.safe_load((workflows / 'check-plan.yml').read_text())
     assert 'scripts/ci/pre_push_path_class.py' in shared['jobs']['changes']['steps'][-1]['run']
-    for name in ('lint.yml', 'dsh-b0.yml'):
-        data = yaml.safe_load((workflows / name).read_text())
-        assert data['jobs']['changes']['uses'] == './.github/workflows/check-plan.yml'
+    data = yaml.safe_load((workflows / 'lint.yml').read_text())
+    assert data['jobs']['changes']['uses'] == './.github/workflows/check-plan.yml'
+    assert 'b0-contract-build' in data['jobs']
+    assert 'merge-gate' in data['jobs']
+    dispatch = yaml.safe_load((workflows / 'dsh-b0.yml').read_text())
+    assert 'changes' not in dispatch['jobs']
+    assert 'pull_request' not in (dispatch.get('on') or dispatch.get(True) or {})
     for name in ('nightly.yml', 'weekly-report.yml'):
         text = (workflows / name).read_text()
         assert 'scripts/run_backend_tests_bounded.py' in text

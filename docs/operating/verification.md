@@ -4,7 +4,7 @@
 
 ## 单一检查定义
 
-`scripts/ci/pre_push_path_class.py:verification_plan` 定义互相独立的 backend/B0/frontend/tooling/dependencies/deployment 维度；`scripts/ci/run_checks.py` 生成并执行命令。本地 pre-push、PR 的 Python/Vue 检查共用它；两个 PR workflow 共用 `check-plan.yml`。B0 的本地与 CI 构建始终调用既有 `scripts/dsh-b0/pipeline.mjs`。
+`scripts/ci/pre_push_path_class.py:verification_plan` 定义互相独立的 backend/B0/frontend/tooling/dependencies/deployment 维度，另有 ground_truth 与 filterbuilder 触发轴；`scripts/ci/run_checks.py` 生成并执行命令。本地 pre-push、PR 的 Python/Vue/B0 检查共用它；PR CI 只通过 `lint.yml` 调用一次 `check-plan.yml`。`dsh-b0.yml` 仅 `workflow_dispatch` 做空机器 `--prepare`。B0 的本地与 CI 构建始终调用既有 `scripts/dsh-b0/pipeline.mjs`。`merge-gate` 在路径计划失败或已选 job 失败/取消时阻断；skip 不算失败。branch protection 的增补（`b0-contract-build`、`merge-gate`）不在 git 里，需管理员另改。
 
 | 改动 | 选择与边界 |
 |---|---|

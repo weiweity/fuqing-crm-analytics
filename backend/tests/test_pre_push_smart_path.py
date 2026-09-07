@@ -125,11 +125,73 @@ class TestPathClassify:
         assert targets == ["backend/tests/test_a.py"]
 
     def test_scripts_select_tooling_regressions(self, path_class):
-        assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "tooling"
+        assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "matrix"
         assert path_class.classify_paths([".githooks/pre-push"]) == "tooling"
         assert path_class.classify_paths(
             ["scripts/branch_cleanup.py", "docs/foo.md"]
         ) == "tooling"
+
+    def test_analytics_tests_select_scoped_python_and_b0(self, path_class):
+        plan = path_class.verification_plan(
+            ["backend/tests/test_analytics_query_native_fault.py"]
+        )
+        assert plan["b0"] is True
+        assert plan["backend"] == "scoped"
+        assert plan["targets"] == ["backend/tests/test_analytics_query_native_fault.py"]
+        assert path_class.classify_paths(
+            ["backend/tests/test_analytics_query_native_fault.py"]
+        ) == "scoped"
+
+    def test_analytics_probe_and_fixture_expand_backend(self, path_class):
+        probe = path_class.verification_plan(
+            ["backend/tests/analytics_query_native_fault_probe.py"]
+        )
+        assert probe["b0"] is True
+        assert probe["backend"] == "full"
+        fixture = path_class.verification_plan(
+            ["backend/tests/fixtures/warehouse_w1_manifest_contract.json"]
+        )
+        assert fixture["backend"] == "full"
+        assert fixture["b0"] is False
+
+    def test_feishu_docs_select_ground_truth_not_operating_docs(self, path_class):
+        feishu = path_class.verification_plan(
+            ["docs/飞书版架构文档/architecture.md"]
+        )
+        assert feishu["ground_truth"] is True
+        assert feishu["tooling"] is True
+        operating = path_class.verification_plan(
+            ["docs/operating/verification.md"]
+        )
+        assert operating["tooling"] is True
+        assert operating["ground_truth"] is False
+
+    def test_workflow_and_classifier_select_b0(self, path_class):
+        lint_wf = path_class.verification_plan([".github/workflows/lint.yml"])
+        assert lint_wf["b0"] is True
+        assert lint_wf["backend"] == "full"
+        classifier = path_class.verification_plan(
+            ["scripts/ci/pre_push_path_class.py"]
+        )
+        assert classifier["b0"] is True
+        assert classifier["tooling"] is True
+
+    def test_filterbuilder_trigger_includes_analytics_services_not_tests(self, path_class):
+        warehouse = path_class.verification_plan(
+            ["backend/services/analytics/warehouse/pipeline.py"]
+        )
+        assert warehouse["b0"] is True
+        assert warehouse["filterbuilder"] is True
+        churn = path_class.verification_plan(["backend/services/churn.py"])
+        assert churn["filterbuilder"] is True
+        tests_only = path_class.verification_plan(
+            ["backend/tests/test_analytics_query_native_fault.py"]
+        )
+        assert tests_only["filterbuilder"] is False
+        vue = path_class.verification_plan(["frontend-vue3/src/types.ts"])
+        assert vue["frontend"] is True
+        assert vue["b0"] is False
+        assert vue["backend"] == "none"
 
     def test_mixed_docs_and_service_full(self, path_class):
         assert (

@@ -17,6 +17,7 @@
 - G3b2 渠道后续购买共享 worker：同一 `WorkerManager`/`RunStore`/lease 上运行首条受控合成查询。`complete_step` 要求 `EXITED`+`exit_code=0`+租约释放；结果按 store family 固定 codec。G4a 已接 HTTP/native helper；浏览器仍 **NOT RUN**。G3/G4 整体未完成。
 
 ### Fixed
+- CI 路径矩阵：`test_analytics_*` 同时点亮 scoped Python；B0 `--check` 纳入 `query_native_fault`。飞书架构文档改动点亮 ground-truth，运维 verification 文档不再误跑该 job。FilterBuilder job 仅在 `backend/services/**` 或检查器脚本变化时触发，扫描范围仍含 analytics。PR 上 B0 并入 `lint.yml`，去掉第二份 changes；`merge-gate` 在 changes 失败或已选检查失败/取消时失败。不改 GitHub required 列表本身。
 - G4b driver 不再用原始 sessionId 当可见标题；按 session/list 的 blank/title 点 New session 或 treeitem，成功后先 expand 再断言可见卡。query 卡 16px；query 会话 RunStatus 显示「合成查询 / SYNTHETIC」。初始 driver 切 B 失败与手工 verify-existing 层级保留。修复后 fresh driver 核心 native **PASS**（`runtime-zPbEKI`）；Git / 正常 full pre-push / 最终 CI 待 Codex。
 - 候选远端 B0 CI `34058300555` 中 context 并发测试把生产 100ms `BEGIN IMMEDIATE` 超时当成失败。测试改为只收集既有 503 `STATE_UNAVAILABLE` retryable=True，双方退出后用原 unit/resource 重放，并增加确定性 busy→原请求恢复回归。jobs 源码与 100ms timeout 未改。
 - 候选远端 B0 CI `34059478378` 中 terminal race 同样把 100ms 锁等待 503 当成失败（context 修复后的新路径）。三个 Barrier 竞争测试改为收集既有 busy 并在双方退出后用原 key/IfMatch/observation 单次重放；另增 cancel-first/success-first 确定性 busy 终态回归。生产 timeout/jobs 源码未改。该历史失败保留；其后同一 HEAD `754dbd8982a5911cb369bba0d6ecb11b7da66a81` 的 B0 `34060784432` 与 backend `34060784439` 均 SUCCESS（`G3a-final-ci.json`），不把已修复候选继续标成未复跑。

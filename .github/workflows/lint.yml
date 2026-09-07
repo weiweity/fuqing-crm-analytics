@@ -1,6 +1,8 @@
 name: CI
 
 # 当前：所有 PR/main push 先用共用矩阵选择 job；普通文档只运行轻量计划。
+# B0 合同构建并入本 workflow，避免与 dsh-b0.yml 各算一遍 changes。
+# merge-gate 在 changes 失败或任一已选 job 失败/取消时失败；skip 不算失败。
 # Sprint 41/83/85/87/123/129: e2e 分层、Node 24、ruff 自定义 step 等历史见 CHANGELOG
 # 2026-07-25 PR5: permissions least-privilege、persist-credentials=false、
 #   frontend/contract/FilterBuilder/audit jobs；lock/Docker/compose 变更触发
@@ -44,7 +46,7 @@ jobs:
 
   ground-truth-lint:
     needs: changes
-    if: needs.changes.outputs.tooling == 'true'
+    if: needs.changes.outputs.ground_truth == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -62,7 +64,7 @@ jobs:
 
   contract-filterbuilder-lint:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.filterbuilder == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -268,3 +270,70 @@ jobs:
           curl --fail --silent http://127.0.0.1:18080/api/v1/health >/dev/null
           curl --fail --silent --head http://127.0.0.1:18080/ \
             | grep -i '^Content-Security-Policy:'
+
+  b0-contract-build:
+    needs: changes
+    if: needs.changes.outputs.b0 == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # Each action's pinned action.yml declares node24. This is distinct from
+      # the Node 24 runtime selected for our own build and verification below.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          clean: false
+          lfs: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        id: python
+        with:
+          python-version: '3.14'
+      - name: Create B0-only Python environment
+        env:
+          B0_PYTHON: ${{ steps.python.outputs.python-path }}
+        run: |
+          "$B0_PYTHON" -m venv .context/dsh-b0/python-env
+          .context/dsh-b0/python-env/bin/python -m pip install --disable-pip-version-check -r scripts/dsh-b0/requirements.lock
+      - name: Prepare exact public DSH and private build tools
+        run: node scripts/dsh-b0/pipeline.mjs --prepare --python "$GITHUB_WORKSPACE/.context/dsh-b0/python-env/bin/python"
+      - name: Same local and CI checks, including clean-directory rebuild
+        run: node scripts/dsh-b0/pipeline.mjs --check --python "$GITHUB_WORKSPACE/.context/dsh-b0/python-env/bin/python"
+
+  merge-gate:
+    needs:
+      - changes
+      - lint
+      - test
+      - ground-truth-lint
+      - contract-filterbuilder-lint
+      - frontend
+      - dependency-audit
+      - docker-smoke
+      - b0-contract-build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Path plan must succeed
+        if: needs.changes.result != 'success'
+        run: |
+          echo "changes result=${{ needs.changes.result }}"
+          exit 1
+      - name: Selected checks must not fail or cancel
+        if: >-
+          needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
+          needs.test.result == 'failure' || needs.test.result == 'cancelled' ||
+          needs.ground-truth-lint.result == 'failure' || needs.ground-truth-lint.result == 'cancelled' ||
+          needs.contract-filterbuilder-lint.result == 'failure' || needs.contract-filterbuilder-lint.result == 'cancelled' ||
+          needs.frontend.result == 'failure' || needs.frontend.result == 'cancelled' ||
+          needs.dependency-audit.result == 'failure' || needs.dependency-audit.result == 'cancelled' ||
+          needs.docker-smoke.result == 'failure' || needs.docker-smoke.result == 'cancelled' ||
+          needs.b0-contract-build.result == 'failure' || needs.b0-contract-build.result == 'cancelled'
+        run: |
+          echo "a selected check failed or was cancelled"
+          exit 1
+      - name: Gate passed
+        run: echo "changes succeeded; selected jobs succeeded or skipped"
