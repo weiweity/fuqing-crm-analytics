@@ -1,8 +1,9 @@
-"""Offline deterministic channel-follow-up compute. No HTTP or worker.
+"""Offline deterministic channel-follow-up compute. No HTTP or native.
 
 The caller must pass an already restricted read-only DuckDB connection and
-close it. This module never opens the legacy Web singleton and does not
-schedule execution. Source validation is required before the fixed SQL runs.
+close it. Shared worker child reuses this on a leased connection. This module
+never opens the legacy Web singleton and does not schedule execution. Source
+validation is required before the fixed SQL runs.
 """
 
 from __future__ import annotations
