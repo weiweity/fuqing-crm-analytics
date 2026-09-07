@@ -28,15 +28,33 @@ async function call(method, request) {
   if (response.status !== 200 || value.result?.ok !== true) throw new Error(`${method}: ${JSON.stringify(value)}`);
   return value.result.value;
 }
+const kernelPrivate = JSON.parse(await readFile(join(runtime, 'kernel-private.json'), 'utf8'));
+const queryMode = kernelPrivate.family === 'channel_followup';
 const action = process.argv[2] ?? 'bootstrap';
 if (action === 'bootstrap') {
   const unauth = await fetch(`${base}/api/session/catalog`, { method: 'POST', signal: AbortSignal.timeout(5000) });
   assert.equal(unauth.status, 401);
   const created = await call('workspace/create', { path: join(runtime, 'synthetic-workspace') });
-  const session = await call('session/create', { workspaceId: created.workspace.workspaceId, sessionId: 'session-b0-synthetic-primary', agentPreset: 'analytics-b0' });
-  const refs = { workspaceId: created.workspace.workspaceId, sessionId: session.sessionId, unauthenticated_status: unauth.status };
-  await file('refs.json', refs);
-  console.log(JSON.stringify(refs));
+  if (queryMode) {
+    assert.ok(Array.isArray(kernelPrivate.session_ids) && kernelPrivate.session_ids.length === 2);
+    const sessionIds = [];
+    for (const sessionId of kernelPrivate.session_ids) {
+      const session = await call('session/create', {
+        workspaceId: created.workspace.workspaceId, sessionId, agentPreset: 'analytics-b0',
+      });
+      assert.equal(session.sessionId, sessionId);
+      sessionIds.push(session.sessionId);
+    }
+    const refs = { workspaceId: created.workspace.workspaceId, sessionId: sessionIds[0], sessionIds,
+      unauthenticated_status: unauth.status };
+    await file('refs.json', refs);
+    console.log(JSON.stringify(refs));
+  } else {
+    const session = await call('session/create', { workspaceId: created.workspace.workspaceId, sessionId: 'session-b0-synthetic-primary', agentPreset: 'analytics-b0' });
+    const refs = { workspaceId: created.workspace.workspaceId, sessionId: session.sessionId, unauthenticated_status: unauth.status };
+    await file('refs.json', refs);
+    console.log(JSON.stringify(refs));
+  }
 } else if (action === 'prepare-ui') {
   // The testing notice was read and Continue was clicked in the native UI.
   // Seed only these cosmetic preferences using the internal setup identity;
@@ -50,6 +68,7 @@ if (action === 'bootstrap') {
   }
   console.log('B0 internal setup: testing notice acknowledged; Chinese locale requested. No browser settings write granted.');
 } else if (action === 'isolation-fixtures') {
+  assert.equal(queryMode, false, 'query native-query does not create foreign sessions');
   const evidencePath = join(runtime, 'current-native-fixtures.json');
   // Explicit setup-only path. Two empty synthetic sessions, no prompts/models.
   const report = { status: 'RUNNING', sessionIds: [], workspaceIds: [], valid_prompts_sent: 0 };

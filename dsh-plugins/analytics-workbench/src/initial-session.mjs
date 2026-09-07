@@ -1,10 +1,16 @@
-/** B0 navigation only: select the exact Host-listed session, never create one. */
+/** B0/query navigation only: select the exact Host-listed session, never create one. */
 export const B0_PRIMARY_SESSION_ID = 'session-b0-synthetic-primary';
+export const QUERY_SESSION_IDS = Object.freeze(['session-query-synthetic-a', 'session-query-synthetic-b']);
+
+function listed(snapshot, id) {
+  return snapshot.ids.includes(id) && snapshot.byId[id]?.id === id;
+}
 
 export function configuredSession(snapshot) {
-  if (snapshot.phase !== 'ready' || !snapshot.ids.includes(B0_PRIMARY_SESSION_ID)
-    || snapshot.byId[B0_PRIMARY_SESSION_ID]?.id !== B0_PRIMARY_SESSION_ID) return null;
-  return snapshot.byId[B0_PRIMARY_SESSION_ID].id;
+  if (snapshot.phase !== 'ready') return null;
+  if (QUERY_SESSION_IDS.every(id => listed(snapshot, id))) return QUERY_SESSION_IDS[0];
+  if (listed(snapshot, B0_PRIMARY_SESSION_ID)) return B0_PRIMARY_SESSION_ID;
+  return null;
 }
 
 /** One attempt per plugin lifetime; later user navigation is never overridden. */

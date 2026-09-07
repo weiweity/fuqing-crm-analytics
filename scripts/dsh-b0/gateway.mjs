@@ -6,7 +6,7 @@ import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { authorizeHttp, authorizeStream, filterHttpResult, filterStreamItem } from './gateway-policy.mjs';
+import { authorizeHttp, authorizeStream, filterHttpResult, filterStreamItem, sessionAllowed } from './gateway-policy.mjs';
 import { pluginManifest, refreshedPluginManifest, safeRpcResult } from './transport-safety.mjs';
 import { currentPermission, permissionFence } from './permission-fence.mjs';
 import { brandAssets } from './brand-assets.mjs';
@@ -33,8 +33,13 @@ let pluginUrls = pluginManifest(bootHtml, upstreamOrigin);
 const pass = randomBytes(32).toString('base64url');
 const session = randomBytes(32).toString('base64url');
 const scope = { ...refs, workspacePath: join(runtime, 'synthetic-workspace'), inFlight: false };
-const { gateway_token: gatewayToken } = JSON.parse(await readFile(join(runtime, 'kernel-private.json'), 'utf8'));
+const kernelPrivate = JSON.parse(await readFile(join(runtime, 'kernel-private.json'), 'utf8'));
+const { gateway_token: gatewayToken } = kernelPrivate;
 assert.ok(typeof gatewayToken === 'string' && gatewayToken.length >= 32);
+const queryFamily = kernelPrivate.family === 'channel_followup';
+if (queryFamily) {
+  assert.ok(Array.isArray(refs.sessionIds) && refs.sessionIds.length === 2 && refs.sessionIds.includes(refs.sessionId));
+}
 const policyLog = [];
 const upstreamRequire = createRequire(join(b0, 'upstream/packages/api/gateway/package.json'));
 const { WebSocket, WebSocketServer } = upstreamRequire('ws');
@@ -78,26 +83,41 @@ async function kernel(path, { method = 'GET', body, headers = {} } = {}) {
   }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(5000), redirect: 'error' });
 }
 
-async function currentAccess() {
+async function currentAccess(sessionId = scope.sessionId) {
   return currentPermission(async () => {
-    const response = await kernel('/internal/native/context');
+    if (!sessionAllowed(scope, sessionId)) return false;
+    const response = await kernel('/internal/native/context', {
+      headers: queryFamily ? { 'x-runtime-session-id': sessionId } : {},
+    });
     if (!response.ok) { await response.body?.cancel(); return false; }
-    return (await response.json()).session_id === scope.sessionId;
+    return (await response.json()).session_id === sessionId;
   });
+}
+
+function requestSession(method, request) {
+  if (method === 'session/page') return request?.address?.sessionId;
+  if (method === 'session/prompt' || method === 'session/cancel') return request?.sessionId;
+  return undefined;
 }
 
 async function nativeMutation(method, request, rpcId, res) {
   let response;
   let accepted;
+  const sessionId = request?.sessionId;
+  const sessionHeaders = queryFamily ? { 'x-runtime-session-id': sessionId } : {};
   if (method === 'session/prompt') {
+    if (!await currentAccess(sessionId)) return deny(res, rpcId);
     response = await kernel('/internal/native/prompt', { method: 'POST', body: request });
     accepted = await response.json();
   } else {
-    const contextResponse = await kernel('/internal/native/context');
+    if (!await currentAccess(sessionId)) return deny(res, rpcId);
+    const contextResponse = await kernel('/internal/native/context', { headers: sessionHeaders });
     if (!contextResponse.ok) return deny(res, rpcId, contextResponse.status);
     const context = await contextResponse.json();
+    if (context.session_id !== sessionId) return deny(res, rpcId);
+    const runPath = queryFamily ? '/api/v1/analytics-query/runs/' : '/api/v1/analytics/runs/';
     const snapshots = await Promise.all(context.conversation.run_ids.map(async id => {
-      const row = await kernel(`/api/v1/analytics/runs/${encodeURIComponent(id)}`);
+      const row = await kernel(`${runPath}${encodeURIComponent(id)}`, { headers: sessionHeaders });
       if (!row.ok) throw new Error('kernel run read failed');
       return row.json();
     }));
@@ -108,8 +128,8 @@ async function nativeMutation(method, request, rpcId, res) {
       res.end(JSON.stringify({ type: 'server-response', rpcId, result: { ok: true, value: { accepted: true } } }));
       return;
     }
-    response = await kernel(`/api/v1/analytics/runs/${target.run_id}/cancel`, { method: 'POST', body: { reason: 'USER_REQUEST' },
-      headers: { 'idempotency-key': `native-cancel-${rpcId}`, 'if-match': String(target.version) } });
+    response = await kernel(`${runPath}${target.run_id}/cancel`, { method: 'POST', body: { reason: 'USER_REQUEST' },
+      headers: { 'idempotency-key': `native-cancel-${rpcId}`, 'if-match': String(target.version), ...sessionHeaders } });
     accepted = await response.json();
   }
   if (!response.ok || typeof accepted.run_id !== 'string') return deny(res, rpcId, response.status);
@@ -164,6 +184,15 @@ async function httpHandler(req, res) {
   // Read-only run projection for the native plugin. Browser capabilities and
   // DSH credentials never cross this boundary. No generic HTTP proxy.
   if (req.method === 'GET' && !url.search && (url.pathname === '/b0/context' || /^\/b0\/runs\/run_[a-f0-9]{32}$/.test(url.pathname))) {
+    const headerSession = req.headers['x-runtime-session-id'];
+    if (queryFamily) {
+      if (!sessionAllowed(scope, headerSession) || !await currentAccess(headerSession)) return deny(res);
+      const path = url.pathname === '/b0/context' ? '/internal/native/context'
+        : url.pathname.replace('/b0/runs/', '/api/v1/analytics-query/runs/');
+      const response = await kernel(path, { headers: { 'x-runtime-session-id': headerSession } });
+      res.writeHead(response.status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(await response.text()); return;
+    }
     const path = url.pathname === '/b0/context' ? '/internal/native/context' : url.pathname.replace('/b0/runs/', '/api/v1/analytics/runs/');
     const response = await kernel(path);
     res.writeHead(response.status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -187,10 +216,13 @@ async function httpHandler(req, res) {
     const permit = authorizeHttp(method, envelope.payload, scope);
     audit('http', method, permit.allowed, permit.reason);
     if (!permit.allowed) return deny(res, envelope.rpcId);
+    const targetSession = requestSession(method, request);
+    if (targetSession !== undefined && !await currentAccess(targetSession)) return deny(res, envelope.rpcId);
     if (['session/prompt', 'session/cancel'].includes(method)) return nativeMutation(method, request, envelope.rpcId, res);
     const response = await fetch(`${upstreamOrigin}/api/${method}`, { method: 'POST',
       headers: { 'content-type': 'application/json', cookie: internalCookie }, body: JSON.stringify(envelope), signal: AbortSignal.timeout(10000) });
-    const result = safeRpcResult(await response.json(), envelope.rpcId, method, scope, filterHttpResult);
+    const filterScope = targetSession ? { ...scope, sessionId: targetSession } : scope;
+    const result = safeRpcResult(await response.json(), envelope.rpcId, method, filterScope, filterHttpResult);
     if (result === null) return deny(res, envelope.rpcId, 502);
     res.writeHead(response.status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
     res.end(JSON.stringify(result)); return;
@@ -225,7 +257,7 @@ server.on('upgrade', (req, socket, head) => { void (async () => {
     const send = value => { if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(value)); };
     const forward = message => { if (upstream.readyState === WebSocket.OPEN) upstream.send(JSON.stringify(message)); else if (pending.length < 32) pending.push(message); else client.close(1008, 'B0 stream limit'); };
     upstream.on('open', () => { for (const message of pending.splice(0)) forward(message); });
-    client.on('message', (data, binary) => { void incoming.enqueue(() => {
+    client.on('message', (data, binary) => { void incoming.enqueue(async () => {
       try {
         if (binary) throw new Error('binary denied');
         const message = JSON.parse(String(data));
@@ -233,7 +265,15 @@ server.on('upgrade', (req, socket, head) => { void (async () => {
         const permit = authorizeStream(message, { ...scope, seenStreamIds: seen, activeStreamIds: new Set(active.keys()) });
         audit('ws', message.endpoint ?? message.type, permit.allowed, permit.reason);
         if (!permit.allowed) { send({ type: 'error', streamId: message.streamId ?? 'invalid', error: { code: 'gateway/forbidden', message: 'B0 stream denied', details: {} } }); return; }
-        if (message.type === 'open') { seen.add(message.streamId); active.set(message.streamId, message.endpoint); }
+        if (message.type === 'open') {
+          const boundSession = message.endpoint === 'session/follow' ? message.payload?.args?.request?.address?.sessionId : undefined;
+          if (message.endpoint === 'session/follow' && !await currentAccess(boundSession)) {
+            send({ type: 'error', streamId: message.streamId, error: { code: 'gateway/forbidden', message: 'B0 stream denied', details: {} } });
+            return;
+          }
+          seen.add(message.streamId);
+          active.set(message.streamId, { endpoint: message.endpoint, sessionId: boundSession });
+        }
         forward(message);
         if (message.type === 'cancel') active.delete(message.streamId);
       } catch { client.close(1008, 'B0 invalid frame'); }
@@ -242,10 +282,12 @@ server.on('upgrade', (req, socket, head) => { void (async () => {
       try {
         if (binary) throw new Error('binary upstream');
         const message = JSON.parse(String(data));
-        const endpoint = active.get(message.streamId);
-        if (!endpoint) return;
+        const binding = active.get(message.streamId);
+        if (!binding) return;
+        const endpoint = binding.endpoint;
         if (message.type === 'item') {
-          const value = filterStreamItem(endpoint, message.value, scope);
+          const filterScope = endpoint === 'session/follow' ? { ...scope, sessionId: binding.sessionId } : scope;
+          const value = filterStreamItem(endpoint, message.value, filterScope);
           if (value !== null) send({ type: 'item', streamId: message.streamId, value });
         } else if (message.type === 'end') { send(message); active.delete(message.streamId); }
         else if (message.type === 'error') send({ type: 'error', streamId: message.streamId, error: { code: 'gateway/internal', message: 'B0 upstream stream error', details: {} } });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { authorizeHttp, authorizeStream, authorizeFetch, filterHttpResult, filterStreamItem } from './gateway-policy.mjs';
+import { authorizeHttp, authorizeStream, authorizeFetch, filterHttpResult, filterStreamItem, sessionAllowed } from './gateway-policy.mjs';
 
 const scope = Object.freeze({ actorId: 'b0-actor', requestActorId: 'b0-actor', sessionId: 'b0-session',
   workspaceId: 'b0-workspace', workspacePath: '/synthetic/workspace', inFlight: false,
@@ -215,4 +215,61 @@ test('malformed/null and prototype-pollution payloads fail closed', () => {
     assert.equal(authorizeHttp('session/modelCatalog', value, scope).allowed, false);
   }
   assert.equal(filterStreamItem('session/follow', event(JSON.parse('{"__proto__":{"secret":"hidden"}}')), scope), null);
+});
+
+const sessionB = 'session-query-synthetic-b';
+const two = Object.freeze({ ...scope, sessionIds: [scope.sessionId, sessionB] });
+const bSummary = () => ({ ...ownSummary(), sessionId: sessionB });
+const bSnapshot = () => ({ ...snapshot(), header: { ...snapshot().header, id: sessionB } });
+
+test('two-session allowlist admits A and B HTTP/stream and rejects a third session', () => {
+  assert.equal(sessionAllowed(two, scope.sessionId), true);
+  assert.equal(sessionAllowed(two, sessionB), true);
+  assert.equal(sessionAllowed(two, 'session-other'), false);
+  assert.equal(sessionAllowed(scope, sessionB), false);
+  assert.equal(authorizeHttp('session/prompt', payload({ ...prompt(), sessionId: sessionB }), two).allowed, true);
+  assert.equal(authorizeHttp('session/cancel', payload({ sessionId: sessionB }), two).allowed, true);
+  assert.equal(authorizeHttp('session/page', payload({ address: { kind: 'session', sessionId: sessionB }, throughSeq: 2 }), two).allowed, true);
+  for (const request of [
+    { ...prompt(), sessionId: 'session-other' },
+  ]) assert.equal(authorizeHttp('session/prompt', payload(request), two).allowed, false);
+  assert.equal(authorizeHttp('session/cancel', payload({ sessionId: 'session-other' }), two).allowed, false);
+  assert.equal(authorizeHttp('session/page', payload({ address: { kind: 'session', sessionId: 'session-other' }, throughSeq: 2 }), two).allowed, false);
+  assert.equal(authorizeStream(open('session/follow', 's', payload({ address: { kind: 'session', sessionId: sessionB }, assistantStream: true })), two).allowed, true);
+  assert.equal(authorizeStream(open('session/follow', 's', payload({ address: { kind: 'session', sessionId: 'session-other' } })), two).allowed, false);
+  assert.equal(authorizeHttp('session/modelCatalog', empty(), { ...scope, sessionIds: [scope.sessionId] }).allowed, false);
+});
+
+test('two-session list and workspace keep A+B and drop a third identity', () => {
+  const listed = filterHttpResult('session/list', { items: [ownSummary(), bSummary(), { ...ownSummary(), sessionId: 'session-other' }] }, two);
+  assert.deepEqual(listed.items.map((item) => item.sessionId), [scope.sessionId, sessionB]);
+  const baseline = filterStreamItem('workspace/follow', { type: 'baseline', value: {
+    items: [{ ...ownWorkspace(), sessionIds: [scope.sessionId, sessionB, 'session-other'] }],
+    archivedSessionIds: [scope.sessionId, sessionB, 'session-other'],
+  } }, two);
+  assert.deepEqual(baseline.value.items[0].sessionIds, [scope.sessionId, sessionB]);
+  assert.deepEqual(baseline.value.archivedSessionIds, [scope.sessionId, sessionB]);
+});
+
+test('A follow stream drops B frames; B follow keeps B and drops A', () => {
+  const aBound = { ...two, sessionId: scope.sessionId };
+  const bBound = { ...two, sessionId: sessionB };
+  assert.equal(filterStreamItem('session/follow', bSnapshot(), aBound), null);
+  assert.equal(filterStreamItem('session/follow', snapshot(), bBound), null);
+  assert.equal(filterStreamItem('session/follow', bSnapshot(), bBound).header.id, sessionB);
+  assert.equal(filterStreamItem('session/follow', snapshot(), aBound).header.id, scope.sessionId);
+  assert.equal(filterStreamItem('$events', { type: 'emit', event: 'api-session/status', args: [sessionB, true] }, two).args[0], sessionB);
+  assert.equal(filterStreamItem('$events', { type: 'emit', event: 'api-session/status', args: ['session-other', true] }, two), null);
+});
+
+test('cancel target is the requested registered session, not a sibling or third', () => {
+  assert.equal(authorizeHttp('session/cancel', payload({ sessionId: scope.sessionId }), two).allowed, true);
+  assert.equal(authorizeHttp('session/cancel', payload({ sessionId: sessionB }), two).allowed, true);
+  assert.equal(authorizeHttp('session/cancel', payload({ sessionId: 'session-other' }), two).allowed, false);
+  const control = filterStreamItem('session/control', { type: 'baseline', value: {
+    queues: { [scope.sessionId]: [], [sessionB]: [], other: [{ hidden: true }] },
+    jobs: { [sessionB]: [] }, projections: {},
+  } }, two);
+  assert.deepEqual(Object.keys(control.value.queues).sort(), [scope.sessionId, sessionB].sort());
+  assert.equal(JSON.stringify(control).includes('hidden'), false);
 });

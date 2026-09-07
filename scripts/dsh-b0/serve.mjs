@@ -17,19 +17,23 @@ import { observeLifecycle } from './lifecycle-observer.mjs';
 import { createDiagnosticSink } from './diagnostic-sink.mjs';
 import { packSkills } from '../../dsh-plugins/analytics-workbench/pack-skills.mjs';
 import { packageDigest } from '../../dsh-plugins/analytics-workbench/src/skill-package.mjs';
+import { QUERY_SESSION_IDS, queryMockScript } from './query-scenario.mjs';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const b0 = join(root, '.context/dsh-b0');
 const upstream = join(b0, 'upstream');
 const args = process.argv.slice(2);
 let scenario = 'lifecycle';
-if (args.at(-1) === '--native-cards' || args.at(-1) === '--native-state') scenario = args.pop().slice(2);
+if (args.at(-1) === '--native-cards' || args.at(-1) === '--native-state' || args.at(-1) === '--native-query') {
+  scenario = args.pop().slice(2);
+}
 const cardScenario = scenario === 'native-cards';
 const stateScenario = scenario === 'native-state';
+const queryScenario = scenario === 'native-query';
 const [pythonFlag, python, pluginFlag, pluginArg, ...extra] = args;
 assert.ok(pythonFlag === '--python' && python && isAbsolute(python) && !extra.length
   && (pluginFlag === undefined || (pluginFlag === '--plugin' && pluginArg && isAbsolute(pluginArg))),
-'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards|--native-state]');
+'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards|--native-state|--native-query]');
 assert.equal(process.platform, 'darwin', 'The native verification runner requires the macOS Seatbelt profile');
 assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Use Node 24');
 const plugin = await realpath(pluginArg ?? join(root, 'dsh-plugins/analytics-workbench'));
@@ -51,8 +55,12 @@ async function assertFree(port) {
 
 assert.equal(execFileSync('git', ['-C', upstream, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), pinned);
 for (const file of [cli, profilePath, python, join(plugin, 'lib/index.js'), join(plugin, 'lib/tool.js')]) await access(file);
-const { methodPackageDigest } = await import(pathToFileURL(join(plugin, 'lib/skills.js')).href);
+const { methodPackageDigest, queryMethodPackageDigest } = await import(pathToFileURL(join(plugin, 'lib/skills.js')).href);
 assert.equal(methodPackageDigest, packageDigest((await packSkills(plugin)).manifest), 'Built Skill package differs from the reviewed source closure');
+if (queryScenario) {
+  assert.equal(queryMethodPackageDigest, packageDigest((await packSkills(plugin, 'channel_followup')).manifest, 'channel_followup'),
+    'Built query Skill package differs from the reviewed source closure');
+}
 await Promise.all([4315, 4316, 4318, webPort, mockPort].map(assertFree));
 await mkdir(b0, { recursive: true, mode: 0o700 });
 const runtime = await mkdtemp(join(b0, 'runtime-'));
@@ -66,19 +74,26 @@ const kernelState = join(runtime, 'kernel');
 const fixtureDirectory = join(runtime, 'fixture');
 const runtimeToken = randomBytes(32).toString('base64url');
 const gatewayToken = randomBytes(32).toString('base64url');
-const sessionId = 'session-b0-synthetic-primary';
+const sessionIds = queryScenario ? [...QUERY_SESSION_IDS] : ['session-b0-synthetic-primary'];
+const sessionId = sessionIds[0];
 for (const path of [kernelState, fixtureDirectory, ownHome, workspace, join(presets, 'analytics-b0'), join(runtime, 'tmp'), join(ownHome, 'agents'), join(runtime, 'skills'), join(ownHome, 'profiles/web')]) {
   await mkdir(path, { recursive: true, mode: 0o700 });
 }
 const writeJson = (path, value) => writeFile(path, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
-const fixture = JSON.parse(execFileSync(python, ['-m', 'backend.analytics_fixture', '--create', fixtureDirectory], {
+const fixture = JSON.parse(execFileSync(python, queryScenario
+  ? [join(root, 'scripts/dsh-b0/setup-query-fixture.py'), fixtureDirectory]
+  : ['-m', 'backend.analytics_fixture', '--create', fixtureDirectory], {
   cwd: root, encoding: 'utf8', timeout: 30000, env: {
     PATH: `${dirname(python)}:/usr/bin:/bin`, PYTHONPATH: root, PYTHONNOUSERSITE: '1',
     PYTHON_DOTENV_DISABLED: '1', PYTHONDONTWRITEBYTECODE: '1',
   },
 }));
-const kernelConfig = { state_dir: kernelState, session_id: sessionId, runtime_token: runtimeToken,
-  gateway_token: gatewayToken, fixture, method_package_digest: methodPackageDigest };
+const kernelConfig = queryScenario
+  ? { state_dir: kernelState, family: 'channel_followup', session_id: sessionId, session_ids: sessionIds,
+    runtime_token: runtimeToken, gateway_token: gatewayToken, fixture,
+    method_package_digest: queryMethodPackageDigest }
+  : { state_dir: kernelState, session_id: sessionId, runtime_token: runtimeToken,
+    gateway_token: gatewayToken, fixture, method_package_digest: methodPackageDigest };
 await writeJson(join(runtime, 'kernel-private.json'), kernelConfig);
 if (stateScenario) {
   const probe = join(runtime, 'probe');
@@ -93,7 +108,9 @@ await writeJson(join(ownHome, 'profiles/web/package.json'), {
 });
 await writeJson(join(presets, 'analytics-b0/agent.cordis.yml'), [
   { id: 'persona', name: '@deepseek-ai/dsh-persona', config: {
-    text: '你是仅用于B0验证的经营分析助手。所有数据都是合成的，只能使用已登记分析工具；不得把合成输出称为真实经营结论。',
+    text: queryScenario
+      ? '你是仅用于合成渠道后续购买验证的经营分析助手。所有数据都是合成的，只能使用已登记查询工具；不得把合成输出称为真实经营结论。'
+      : '你是仅用于B0验证的经营分析助手。所有数据都是合成的，只能使用已登记分析工具；不得把合成输出称为真实经营结论。',
     complete: true, includeRuntimeContext: false,
   } },
   { id: 'analytics-b0-tool', name: pathToFileURL(join(plugin, 'lib/tool.js')).href },
@@ -133,6 +150,7 @@ const environment = {
   DSH_BUNDLED_SKILL_DIR: join(runtime, 'skills'), DSH_TELEMETRY_DISABLED: '1',
   TMPDIR: join(runtime, 'tmp'), B0_MOCK_KEY: 'b0-mock-only',
   B0_RUNTIME_TOKEN: runtimeToken, B0_SESSION_ID: sessionId,
+  ...(queryScenario ? { B0_RUNTIME_FAMILY: 'channel_followup', B0_SESSION_IDS: sessionIds.join(',') } : {}),
 };
 const { startMockLlmServer } = await import(pathToFileURL(join(upstream, 'packages/test-support/llm-mock-server/lib/index.js')).href);
 const mock = await startB0MockProvider(startMockLlmServer, { host: '127.0.0.1', port: mockPort, apiKey: 'b0-mock-only',
@@ -150,11 +168,13 @@ const mock = await startB0MockProvider(startMockLlmServer, { host: '127.0.0.1', 
     { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'] }, { sequence: ['success'] },
-  ] } : {}),
+  ] } : queryScenario ? { script: queryMockScript() } : {}),
   sequence: ['tool_call_success', 'success', 'tool_call_success', 'success', 'slow_success', 'tool_call_success', 'success', 'server_error',
     'slow_success', 'tool_call_success', 'success'],
-  toolName: 'analytics_b0_query', toolArguments: JSON.stringify({ query: 'channel_repeat_rate' }),
-  successText: 'B0合成验证：这个结论不代表真实业务表现。', chunkSize: 1, chunkDelayMs: 1200,
+  toolName: queryScenario ? 'analytics_channel_followup_query' : 'analytics_b0_query',
+  toolArguments: queryScenario ? queryMockScript()[0].toolArguments : JSON.stringify({ query: 'channel_repeat_rate' }),
+  successText: queryScenario ? '合成查询完成：数字来自真实 worker SQL，不是模型编造。' : 'B0合成验证：这个结论不代表真实业务表现。',
+  chunkSize: 1, chunkDelayMs: queryScenario ? 0 : 1200,
 });
 lifecycle.record('mock-ready');
 

@@ -66,10 +66,11 @@ test('built browser factory requires only platform modules and registers shared-
   notify();
   notify();
   assert.deepEqual(opened, [primary]);
-  assert.equal(entries.length, 6);
+  assert.equal(entries.length, 7);
   assert.deepEqual(entries.map(row => row.options.name), ['sidebar.brand.mark', 'sidebar.brand.name',
-    'sidebar.footer.action', 'shell.overlay', 'tool.call.toolview', 'conversation.input.dock']);
+    'sidebar.footer.action', 'shell.overlay', 'tool.call.toolview', 'tool.call.toolview', 'conversation.input.dock']);
   assert.equal(entries[4].options.key, 'analytics_b0_query');
+  assert.equal(entries[5].options.key, 'analytics_channel_followup_query');
   assert.equal(entries[0].options.priority, -10);
   assert.equal(entries[1].options.priority, -10);
   const selection = entries[3].options.inject();
