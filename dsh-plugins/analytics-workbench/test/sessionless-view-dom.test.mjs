@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SavedAnalysisView } from '../lib/views/saved-analysis-view.js';
+import { CockpitView } from '../lib/views/cockpit-view.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(root, '../../.context/dsh-b0/upstream'));
@@ -14,6 +15,7 @@ const { renderToStaticMarkup } = require('react-dom/server');
 
 for (const [name, Component, marker] of [
   ['saved analysis', SavedAnalysisView, 'analytics-saved-analysis-view'],
+  ['cockpit', CockpitView, 'analytics-cockpit-view'],
 ]) {
   test(`compiled ${name} renders without a session and preserves unavailable/denied states`, () => {
     const empty = renderToStaticMarkup(React.createElement(Component, { list: [], sessionId: null }));

@@ -36,7 +36,7 @@ await build({
 // These offline views are built and checked independently until native/HTTP
 // registration is implemented. Do not silently exclude them from verification.
 await build({
-  ...common, entryPoints: ['src/saved-analysis-view.tsx'],
+  ...common, entryPoints: ['src/saved-analysis-view.tsx', 'src/cockpit-view.tsx'],
   outdir: 'lib/views', platform: 'browser', target: 'es2022',
   format: 'esm', jsx: 'automatic', external,
 });
