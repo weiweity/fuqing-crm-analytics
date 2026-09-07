@@ -6,6 +6,7 @@
 - 私人驾驶舱独立 store 与组件：添加/复制/移除/布局、键盘绑定说明（未接事件）、finite mock 局部预览/保存/撤销、版本冲突 409、板块错误隔离。HTTP 未接通，未注册到 `client/index.tsx`。组件纳入 strict 类型检查与编译后 DOM。
 - 分析保存独立 SQLite store 与无会话 SNAPSHOT 组件：绑定 SUCCEEDED 渠道后续购买结果及完整条件/版本/权限；请求与 resolved_filters 必须经 catalog 解析合同一致。HTTP/OpenAPI **未接通**。组件纳入 strict 类型检查与独立编译。拒绝 B0 100/25/25%。
 - 另两查询族离线计算：`first_purchase_product_path` 与 `candidate_handoff_audience` 独立手算金标准与只读 DuckDB；catalog 仍 DEFERRED，无 HTTP/worker。
+- 渠道后续购买取消/畸形隔离闭环：两 session 取消不串 run；SUCCEEDED 后再 cancel 不抹结果；未知版本/畸形 receipt 不渲染渠道数字。`query-card-fault` 在 build 后执行。`--native-query` 浏览器运行中取消 **NOT RUN**。历史三次 supervisor 退出仍 UNKNOWN。
 - G4b 双会话原生查询接线：`serve.mjs --native-query` 写 `family=channel_followup` 与恰好两登记 session；finite mock 两轮真实 SQL（A N30 / B N60）；gateway 静态两 session allowlist 与 follow 流绑定；query 工具卡与 session 切换立即清 view。取消/畸形 producer **DEFERRED**。旧 B0 单会话与 25% 卡保持。
 - G4a 查询族 native/HTTP 最小接通：独立 `analytics-query` ASGI（GET conversation/run + cancel）、固定 `/internal/native/channel-followup` helper、两登记会话共享 RunStore/WorkerManager、Host `analytics_channel_followup_query` 与 query 方法包。ASGI/真实 worker/真实 Cordis loader **PASS**。浏览器/Gateway/卡片 **NOT RUN**，G4 未完成。
 - 隔离 B0 FastAPI 任务账本、权限/幂等/取消恢复、物理 worker 与有界合成 fixture；固定 DSH 单运行时插件、方法包/上下文重建、统一构建与 CI 入口。
