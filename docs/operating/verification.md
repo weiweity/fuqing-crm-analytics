@@ -43,6 +43,8 @@ B0 独立入口：`node scripts/dsh-b0/pipeline.mjs --check --python /absolute/p
 
 已有固定版本工具链可通过环境变量 `B0_BUILD_UPSTREAM=/absolute/prepared/upstream` 供 `--check` 只读复用。仍强制验证上游 SHA、锁文件、SDK 与类型版本；不下载、不升级。该覆盖不允许用于 `--prepare`。
 
+未接入入口的保存分析组件必须独立通过类型检查、编译后 DOM 测试与干净重建。
+
 ## 提交内容与历史审计
 
 Excel SSOT 的提交入口使用 `--staged`：从 Git index 读取变更 view 文件全文，工作树中未暂存的修复不能掩盖错误；新增/重命名文件同样校验四条规则。无参数命令仍全量扫描 views。`--only-new` 为 `--staged` 的兼容别名，原先该参数仅打印文案但没有筛选。

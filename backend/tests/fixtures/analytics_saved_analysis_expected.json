@@ -1,0 +1,120 @@
+{
+  "handwritten": true,
+  "not_generated_by_store": true,
+  "not_a_query_pass": true,
+  "computation": "NOT_RUN",
+  "note": "Hand-written expected saved-analysis document. analysis_id is assigned by the store and matched by pattern in tests.",
+  "analysis": {
+    "schema_version": "analytics-saved-analysis/v1",
+    "version": 1,
+    "title": "首次观察到的渠道 / 30日二单率",
+    "query_ref": {
+      "query_id": "channel_first_observed_followup",
+      "query_version": "channel-followup-query/v1"
+    },
+    "metric_refs": [
+      {
+        "metric_id": "channel_first_observed_n_day_repeat",
+        "metric_version": "channel-followup-metric/v1"
+      }
+    ],
+    "filters": {
+      "schema_version": "analytics-channel-followup/v1",
+      "query_id": "channel_first_observed_followup",
+      "query_version": "channel-followup-query/v1",
+      "metric_id": "channel_first_observed_n_day_repeat",
+      "metric_version": "channel-followup-metric/v1",
+      "cohort_window": {
+        "kind": "FIXED",
+        "start_date": "2026-06-01",
+        "end_date": "2026-09-01"
+      },
+      "observation_days": 30,
+      "data_snapshot_ref": "synthetic-channel-followup-v1",
+      "timezone": "Asia/Shanghai",
+      "channel_ids": ["A"],
+      "cohort_ref": null,
+      "product_ids": [],
+      "exclude_low_price": false,
+      "comparison": null
+    },
+    "visual_spec": {
+      "schema_version": "analytics-visual-table/v1",
+      "kind": "TABLE"
+    },
+    "created_from_run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "owner_id": "alice",
+    "visibility": "PRIVATE",
+    "endorsement": "PERSONAL",
+    "data_mode": "SNAPSHOT",
+    "snapshot": {
+      "run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+      "data_snapshot_ref": "synthetic-channel-followup-v1",
+      "as_of": "2026-08-31T16:00:00Z",
+      "resolved_filters": {
+        "schema_version": "analytics-channel-followup/v1",
+        "query_id": "channel_first_observed_followup",
+        "query_version": "channel-followup-query/v1",
+        "metric_id": "channel_first_observed_n_day_repeat",
+        "metric_version": "channel-followup-metric/v1",
+        "data_version": "synthetic-channel-followup-data/v1",
+        "hash_version": "channel-followup-filter-hash/v1",
+        "cohort_window_kind": "FIXED",
+        "resolved_cohort_start": "2026-05-31T16:00:00Z",
+        "resolved_cohort_end": "2026-08-31T16:00:00Z",
+        "observation_days": 30,
+        "data_snapshot_ref": "synthetic-channel-followup-v1",
+        "as_of": "2026-08-31T16:00:00Z",
+        "timezone": "Asia/Shanghai",
+        "channel_ids": ["A"],
+        "cohort_ref": null,
+        "product_ids": [],
+        "exclude_low_price": false,
+        "comparison": null,
+        "permission_scope": "scope_saved_1",
+        "data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "filter_hash": "e4db9c2e9227b104329a1ec48646a64241d2647f41681cb3a509b0842ae1fcf1"
+      }
+    },
+    "facts": {
+      "display_name": "首次观察到的渠道 / N日二单率",
+      "currency": "CNY",
+      "amount_unit": "minor",
+      "amount_precision": "integer_fen",
+      "observation_days": 30,
+      "channels": [
+        {
+          "channel_mature_cohort_count": 2,
+          "channel_immature_count": 0,
+          "channel_repeat_count": 1,
+          "channel_cross_channel_count": 0,
+          "channel_repeat_ratio": 0.5,
+          "channel_cross_channel_ratio": 0.0,
+          "channel_window_net_paid_minor": 100,
+          "channel_empty_reason": null,
+          "channel_id": "A"
+        }
+      ],
+      "totals": {
+        "channel_mature_cohort_count": 2,
+        "channel_immature_count": 0,
+        "channel_repeat_count": 1,
+        "channel_cross_channel_count": 0,
+        "channel_repeat_ratio": 0.5,
+        "channel_cross_channel_ratio": 0.0,
+        "channel_window_net_paid_minor": 100,
+        "channel_empty_reason": null
+      }
+    },
+    "data_version": "synthetic-channel-followup-data/v1",
+    "filter_hash": "e4db9c2e9227b104329a1ec48646a64241d2647f41681cb3a509b0842ae1fcf1",
+    "limitations": [
+      "finite mock: not a live compute; synthetic candidate only."
+    ],
+    "refresh_candidate": null,
+    "created_at": "2027-01-15T08:00:00.000000+00:00",
+    "finite_mock": true,
+    "http_api": "NOT_CONNECTED"
+  }
+}
