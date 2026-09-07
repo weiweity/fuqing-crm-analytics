@@ -1,10 +1,12 @@
 # 方案收口与总待办：产品、架构、数仓、ETL
 
-初版日期：2026-09-05；执行更新：2026-09-06。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL`。
+初版日期：2026-09-05；执行更新：2026-09-07。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5`。
 
 初版响应“整理待办、先收尾、拉 Git 分支，再讨论未收口计划”，后续按用户确认续完 D1–D4 并进入最小 B0 实施。**方案收口不等于整个实现/运行验收完成。** 本文是当前任务顺序与状态入口；原商业、交互、合同、评审和测试文档继续各自负责细节，不另起一套 autoplan。
 
-最新执行：[T01–T08 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)已在限定小样范围内执行，T01–T07 证据见[本地收口报告](./B0-LOCAL-CLOSEOUT-2026-09-06.md)，T08 见[工具卡组件 DOM 报告](./B0-TOOL-CARD-DOM-2026-09-06.md)。8 状态组件 DOM 已补证；原生故障事件至卡片全链、其他 key 卡片共存及历史监督器根因仍未闭合，整体 B0 PARTIAL；没有自动进入 B1–B4。
+**当前 8 小时 Goal（已启动，不以本文重复计时）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)，真实授权见启动账本。本轮只做本地 synthetic G0–G5：T09/B0 剩余证据与收尾、数据合同/合成金标准、首条合成业务查询、原生展示接线。它承接历史 B0 PARTIAL，不是重开 T01–T09 验收，也不是 B1–B4 完整产品、真实库或付费模型。Git 模式 `PR_DELIVERY`：本轮允许任务分支、commit、push、小 PR；未授权 merge、部署、删分支。历史「未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」只描述当时 B0 当轮，不能当本 Goal 全局指令。
+
+历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）；原 PR 分支 `codex/architecture-warehouse-plan-closeout`。最新 [T09](./B0-NATIVE-FAULT-2026-09-07.md) 验证真实 worker 失败至原生卡片、Skill 与分析卡同轮共存及刷新，修复 stderr EPIPE 模式与运行中夹具校验漏记。历史三次 supervisor 退出缺少原因证据、原生 running/未知版本拒绝全链仍开放。T09 的 16 个本地文件仍未提交/推送。原生四问只证明当时 T09 候选，本轮未重跑四问或远端 CI。G0 文档单元未运行测试；Codex 已在本轮 Goal 独立重跑 T09 本地 pipeline（167 Python / 138 源 Node / 14 编译装配，干净重建重复这 14 项；`clean-build-gCPO3b`，exit 0）。G0 记录时点未启动 B0 服务；原 Mission 演示 8000/5173 保持。
 
 ## 1. 已确定，不再重复讨论
 
@@ -17,7 +19,7 @@
 | 业务权威 | FastAPI 负责身份、指标合同、任务、资产、审批；DSH 负责 Agent 执行；Node 只转发协议 | DSH 会话日志或 Node 内存状态可以代替业务事实 |
 | 数据改造 | 应用状态与分析数据逻辑分离；标准化输入、订单事实、共享客户特征、版本化结果分层 | 将整座真实 DuckDB 搬到 PostgreSQL，或立即拆成两个远端仓库 |
 | 优化顺序 | 先减少重复计算和中间结果，再做受控并发与基准；Python 保留编排，优先复用原生计算引擎 | Rust 重写已决定、已有量化全链提速承诺 |
-| 工作方式 | 当前一人主导设计、一个集成人；保留一软件仓、短分支、小评审单元；沿用 Git/gstack 闸门 | 已授权提交、推送、PR、合并或部署 |
+| 工作方式 | 当前一人主导设计、一个集成人；保留一软件仓、短分支、小评审单元；沿用 Git/gstack 闸门 | 方案收口当时的 Git 授权；其后 PR #67 已按当时授权合并。本轮 Goal 另授权 scoped 分支/commit/push/小 PR，仍未授权 merge、部署或删分支 |
 
 第一版仍只交付**一个增长专家、三类受控查询、一个私人驾驶舱、一个合成标准 BI 适配和审批后的合成 DRAFT_EXPORT**。三类查询覆盖渠道后续购买、首购商品/小样承接、候选人群；不按“一个接口一个员工”扩展系统。
 
@@ -37,14 +39,14 @@
 | CEO 价值、DSH/StaffDeck 方向、可组合驾驶舱 | 方案已确认 | [商业方案](./CEO-VALUE-PLAN.md)、[交互规格](./DSH-UI-INTERACTION-SPEC.md)；不是业务效果验收 |
 | 历史 autoplan / AI 工程复审 | 静态记录已留存，保留降级 | [实施计划](./UNIFIED-ANALYTICS-PLAN.md)；不得覆盖模型/视觉降级或当作新审核通过 |
 | 后续工程基线增量审核 | **D1–D4 已确认，四节静态审核完成** | [增量记录](./ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)；含独立 B0 资源配置及统一预算；未作独立模型复核，不覆盖历史降级 |
-| B0 任务内核/只读 worker 单元 | **本地局部验证完成** | [T08 增量](./B0-TOOL-CARD-DOM-2026-09-06.md)：164 Python / 133 Node / 14 编译组件与装配、完整类型和干净构建通过；14 项含新增组件回归 9 项，不全部称为原生装配。物理退出/RSS/temp/spill/提交故障有子集证据，远端 CI 未跑 |
-| DSH B0 承载小样 | **PARTIAL / 本轮队列执行收口** | 方法/compaction 组件、当前权限、七问、BI 合同接缝、品牌及工具卡 8 状态组件 DOM 已验；历史退出根因、原生故障事件至卡片全链及完整业务仍未闭合；[逐门结论](./B0-LOCAL-CLOSEOUT-2026-09-06.md)与[T08](./B0-TOOL-CARD-DOM-2026-09-06.md) |
+| B0 任务内核/只读 worker 单元 | **本地局部验证完成（T09 当时；本轮 Codex 已重跑 pipeline）** | [T09](./B0-NATIVE-FAULT-2026-09-07.md)：当时 167 Python / 138 源 Node / 14 编译组件与装配、完整类型和干净构建通过。本轮 Goal Codex 独立重跑同一口径本地 pipeline，exit 0，干净构建 `clean-build-gCPO3b`（14 项干净重建不累计）。G0 文档单元未运行这些检查。PR #67 候选 `c5b1566` 当时远端 CI 已绿并已合并为 `ee66469`；T09 新补丁仍仅本地、未提交，本轮重跑不是远端 CI 或原生四问 |
+| DSH B0 承载小样 | **PARTIAL / 本轮队列执行收口** | 方法/compaction 组件、当前权限、七问、BI 合同接缝、品牌及工具卡 8 状态组件 DOM 已验；T09 已补 worker 故障全链与卡片共存；历史退出归因、其余原生状态及完整业务仍开放；[逐门结论](./B0-LOCAL-CLOSEOUT-2026-09-06.md)与[T08](./B0-TOOL-CARD-DOM-2026-09-06.md) |
 | 本地资源与派样聚合优化 | 首轮局部实现/验证已有记录 | [性能报告](./ANALYTICS-PERFORMANCE-2026-09-05.md)；整数键仅合成实验，不等于千万行 RFM 或多人容量通过 |
 | ETL 诊断 | 源码排查与上一轮隔离复现已完成，重构未实施 | [ETL 证据](./ETL-DIAGNOSIS-2026-09-05.md)；没有真实全链耗时或引擎优劣基准 |
 | 新分析 API、完整问数/保存/驾驶舱/人群链 | 最小 B0 合同/原生接线已有局部证据，完整链待实施/验收 | [接口草案](./ANALYTICS-CONTRACTS-DRAFT.md)不等于所有接口可调用；临时 B0 app 已按授权启动验证并停止，完整业务功能和旧 Mission 仍分开 |
 | 架构图 | 已留存目标架构四件套 | [图源与维护说明](../../diagrams/README.md)；当前图是本地 B0 目标，不是多人部署或新版 ETL 已落地图 |
 
-初次收口只有文档和本地分支操作；后续按 B0 授权新增内核、worker、构建及自包含故障测试，并临时启动隔离 DSH/mock 验证后停止。各单元数量和失败证据分开留存，不能沿用历史测试数量充当最新证据。未启动旧 CRM、执行 ETL、读取真实库或写入远端 Git。
+初次收口只有文档和本地分支操作；后续按当时 B0 授权新增内核、worker、构建及自包含故障测试，并临时启动隔离 DSH/mock 验证后停止。各单元数量和失败证据分开留存，不能沿用历史测试数量充当最新证据，也不能把 T09 当时计数或本轮本地 pipeline 重跑记为远端 CI / 原生四问新通过。未启动旧 CRM、执行 ETL 或读取真实库。远端 Git：第 1、2 项已随 PR #67 推送并合并；P0 规划已 commit `26960bb`（依赖 `codex/goal-8h-plan`）；T09 本地补丁仍未提交。G0 记录时点未启动 B0 服务。
 
 ## 4. 执行顺序：两条工程线，一个合同汇合点
 
@@ -86,7 +88,7 @@ W3 的目标是改数据流，不给旧脚本再叠一层缓存。当前已有 P
 
 | 工作包 | 当前状态 | 收口/完成要求 |
 |---|---|---|
-| C-T1 承载证明 | PARTIAL；本轮小样队列已执行 | 业务任务/取消/恢复、方法/压缩组件、BI 合同接缝、品牌与工具卡 8 状态组件 DOM 已有证据；保留原生故障事件全链、卡片共存和历史稳定性缺口；不冒充真实模型 |
+| C-T1 承载证明 | PARTIAL；本轮小样队列已执行 | 业务任务/取消/恢复、方法/压缩组件、BI 合同接缝、品牌与工具卡 8 状态组件 DOM 已有证据；T09 已补真实工具失败与卡片共存，保留其余原生状态和历史稳定性缺口；不冒充真实模型 |
 | E-T1 合同与金标准 | B0 任务合同子集已实现，完整包待实施 | 与 W2/W4 共用指标、粒度和版本；三查询族与人工答案一致 |
 | E-T2 资产与任务 | B0 任务状态/预算子集已实现，完整包待实施 | 独立计算、队列/取消/幂等、运行归属、保存与快照；不同 run 不共享在途 worker |
 | D-T1 问数与画布 | B0 接缝已有，产品包待实施 | 连续追问、父 run/条件继承、真实阶段、澄清/失败、证据与响应式 |
@@ -123,11 +125,13 @@ Hermes 多运行时、自由组队/工作流、自进化、长期记忆自动写
 
 ## 10. Git 与文档交付规则
 
-- 已创建本地续接分支 `codex/architecture-warehouse-plan-closeout`，HEAD 仍为 `de2d785f4e0c7abe7fcd8fbb39be7d8c5a0c9642`，沿用现有 worktree，保留历史未提交改动。2026-09-06 只读实查：远端 `main` 与本地 `origin/main` 同为 `89d342355b65e79418964780ec4e1b2f80b7ca02`，当前领先 13 / 落后 0；本分支无 upstream、远端同名分支或 PR。没有 fetch/merge/重置、提交或推送。
+- **当前（G0 修复记录时点）**：工作树 `.worktrees/hackathon-mission-mvp`，分支 `codex/b0-t09-delivery`，HEAD `26960bb3cd7edddc125d05e00a23d22511768620`。P0 规划已 commit，依赖分支 `codex/goal-8h-plan`。`origin/main` 仍为 `ee664690c64a2d1129bd3a53f086d3088b51b8ae`。[PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 已 MERGED（head `c5b1566`，merge `ee66469`）；原 PR 分支 `codex/architecture-warehouse-plan-closeout`。T09 16 个本地文件仍 dirty/未推送；4 份 Goal 规划材料已随 P0 提交，不再当作未跟踪。本轮 Goal 选择 `PR_DELIVERY`：允许任务分支、具名暂存、commit、push、小 PR；禁止自动 merge、部署、删分支。Git 写入由 Codex 统一执行，不在共享 main 实施。
+- **Goal 启动基线（保留）**：当时工作分支 `codex/b0-native-fault-validation`，HEAD `c5b156636326d026b096ca4d7f6ea6c26945c91d`；4 份规划材料当时 untracked。该快照已被 P0 `26960bb` 取代，不得再当作当前 HEAD。
+- **历史（2026-09-05/06 方案收口当时）**：已创建本地续接分支 `codex/architecture-warehouse-plan-closeout`，当时 HEAD 为 `de2d785f4e0c7abe7fcd8fbb39be7d8c5a0c9642`，沿用现有 worktree，保留历史未提交改动。2026-09-06 只读实查：远端 `main` 与本地 `origin/main` 同为 `89d342355b65e79418964780ec4e1b2f80b7ca02`，当时领先 13 / 落后 0；该分支当时无 upstream、远端同名分支或 PR。那次没有 fetch/merge/重置、提交或推送。该快照已被后续 PR #67 取代，不得再当作当前远端状态。
 - 分支只增加进度指针，**不是提交或未提交文件备份**。旧 Vue/登录/Mission、B0 与本地性能改动不整体打包提交，不清理、不 stash/reset。
-- 后续审阅单元：本次方案/证据 → 插件构建与最小任务内核 → 数据合同与回归 → ETL/共享特征 → 产品纵向链 → 对应验证。实际文件重叠先核对，再拆 commit/PR；提交、推送和合并仍分别遵守授权。
+- 后续审阅单元：本次方案/证据 → 插件构建与最小任务内核 → 数据合同与回归 → ETL/共享特征 → 产品纵向链 → 对应验证。实际文件重叠先核对，再拆 commit/PR；提交、推送和合并仍分别遵守**当时或当轮**授权。本轮 Goal 的小 PR 队列见 Goal 计划 4A，不等于已获 merge。
 - 实施时同步主合同、生成类型、测试与 API 用法；不得把目标路径、设计图或 mock 截图写成可调用/已部署。图表结构修改同步四件套，旧审计与失败记录保留。
-- 本文整合待办，不修改其他历史 gstack 评审等级；本次[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)四节静态审核已完成，D1–D4 确认。下一步按检查点补 B0，旧 PARTIAL 和全部未执行证据门保留；不重跑 CEO 商业讨论。
+- 本文整合待办，不修改其他历史 gstack 评审等级；本次[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)四节静态审核已完成，D1–D4 确认。当前下一步是 8 小时 Goal 的 G0–G5（synthetic 合同/首查/接线），不是把历史 B0 清单重跑一遍，也不是进入 B1–B4 完整产品。旧 PARTIAL 和全部未执行证据门保留；不重跑 CEO 商业讨论。
 
 初次收口验证（历史记录，不是本次 D4 运行证据）：13 份新增/更新文档的 172 个本地文件引用均存在，文档 diff/新增文件空白检查通过；当时增量记录的末节和 NOT_CLEARED 标记保留。建分支前后 121 个脏文件的路径/内容汇总 hash 一致，HEAD 未变，范围外已跟踪改动及暂存区 diff hash 未变。该次没有提交、推送、应用测试、真实库或 ETL 操作。
 

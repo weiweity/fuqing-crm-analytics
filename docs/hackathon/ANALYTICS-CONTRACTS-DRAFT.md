@@ -1,8 +1,8 @@
 # 统一分析工作台：接口与数据对象草案
 
-日期：2026-09-05。状态：`DRAFT / NOT IMPLEMENTED`。
+日期：2026-09-05。状态：`DRAFT`（完整产品 API 仍未实现）；B0 子集已有可装配合同与原生接线。
 
-2026-09-06 局部实现说明：本文件仍是完整产品的目标草案，不是所有接口已实现。前置 B0 的会话/任务/取消/事件子集已落为独立 `analytics-run-b0/v1`，[实际接口及边界](./B0-RUN-KERNEL-2026-09-06.md)和[生成 OpenAPI](../../backend/contracts/analytics-run.openapi.json)为该小样的可装配合同；不支持业务 condition patch、保存/驾驶舱/QUERY刷新，未接 DSH，也没有在线服务地址。不得把 B0 固定 fixture 类型冒充三类完整分析结果。
+2026-09-07 局部实现说明：本文件仍是完整产品的目标草案，不是所有接口已实现。前置 B0 的会话/任务/取消/事件子集已落为独立 `analytics-run-b0/v1`，并已接到原生 DSH Web（独立插件、单 Agent Loop、官方 mock）；[实际接口及边界](./B0-RUN-KERNEL-2026-09-06.md)、[T09 原生故障](./B0-NATIVE-FAULT-2026-09-07.md)和[生成 OpenAPI](../../backend/contracts/analytics-run.openapi.json)为该小样的可装配合同。不支持业务 condition patch、保存/驾驶舱/QUERY刷新；完整三类查询产品 API 仍为下文草案。B0 固定 fixture（含原生卡展示的 100 / 25 / 25%）不是渠道后续购买等三类业务实现。隔离入口使用 4315–4319，不是公网地址；G0 文档修订记录时点未启动 B0 服务（不断言其后单元）。不得把 B0 固定 fixture 类型冒充三类完整分析结果。
 
 autoplan v2 范围：§3.5 订阅、§3.6 专家台为后续设计，不实现首版调度/投递/多人专家 API。v1 以单个经营专家、三类受控查询、保存/驾驶舱与分析人群草案闭环为准；不再要求先改造旧 RFM。
 
