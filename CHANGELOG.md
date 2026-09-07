@@ -1,6 +1,7 @@
 ## [unreleased] - 2026-09-06 (B0 phase draft)
 
 ### Added
+- W1/W2 合成分析仓：独立 `backend/services/analytics/warehouse/`，固定种子输入与 manifest（来源身份、内容 hash、schema/规则版本）；读取前核对实际字节与总 hash；阶段观测用 tracemalloc 峰值而不是进程 ru_maxrss；订单头 `(synthetic_user_id, order_id)` 与明细分离。金标准手算。不跑旧 ETL。本地 W1/W2 pytest 含源 hash 负测。
 - G4b 双会话原生查询接线：`serve.mjs --native-query` 写 `family=channel_followup` 与恰好两登记 session；finite mock 两轮真实 SQL（A N30 / B N60）；gateway 静态两 session allowlist 与 follow 流绑定；query 工具卡与 session 切换立即清 view。取消/畸形 producer **DEFERRED**。旧 B0 单会话与 25% 卡保持。
 - G4a 查询族 native/HTTP 最小接通：独立 `analytics-query` ASGI（GET conversation/run + cancel）、固定 `/internal/native/channel-followup` helper、两登记会话共享 RunStore/WorkerManager、Host `analytics_channel_followup_query` 与 query 方法包。ASGI/真实 worker/真实 Cordis loader **PASS**。浏览器/Gateway/卡片 **NOT RUN**，G4 未完成。
 - 隔离 B0 FastAPI 任务账本、权限/幂等/取消恢复、物理 worker 与有界合成 fixture；固定 DSH 单运行时插件、方法包/上下文重建、统一构建与 CI 入口。

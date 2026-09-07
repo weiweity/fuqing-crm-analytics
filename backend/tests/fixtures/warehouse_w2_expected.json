@@ -1,0 +1,234 @@
+{
+  "schema_version": "analytics-warehouse-schema/v1",
+  "fixture_id": "warehouse-w2-hand-snapshot/v1",
+  "computation": "NOT_RUN",
+  "method": "hand_calculated",
+  "not_generated_from_sql": true,
+  "not_a_query_pass": true,
+  "note": "Literal hand goldens for W2 fact grain. Arithmetic is in notes. Channel-follow-up 11-user query expected.json is not this set.",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "empty_denominator_policy": "null_not_zero",
+  "notes": {
+    "customer_keys": "Sort (identity_domain, synthetic_user_id) by UTF-8 bytes: group-1/0009007199254740993=1, group-1/user_dup_a=2, group-1/user_dup_b=3, group-1/user_same_ts=4, group-2/user_scope_b=5.",
+    "basket": "basket-1 header 15000 with two lines; do not add 15000 twice.",
+    "partial_refund": "partial-1 10000-3000=7000; refund 2026-07-02 is before as_of.",
+    "as_of_inclusive": "asof-refund-1 5000-1000=4000; refund timestamp equals as_of so it is included.",
+    "future_refund": "future-refund-1 refund 2026-09-02 is after as_of; net stays 8000.",
+    "same_instant": "same-a and same-b share paid_at. encode('same-a') < encode('same-b'), so first purchase is same-a / channel A. Both remain separate headers 8000 and 2000.",
+    "full_refund": "full-refund-1 5000-5000=0 so is_valid=false.",
+    "cancelled": "cancelled-1 status CANCELLED so is_valid=false even with gross 3000.",
+    "shared_order_id": "(user_dup_a, shared-oid)=4000 and (user_dup_b, shared-oid)=6000 are two facts.",
+    "valid_brand_a_net": "15000+7000+4000+8000+8000+2000+4000+6000=54000",
+    "valid_brand_a_gross": "15000+10000+5000+8000+8000+2000+4000+6000=58000",
+    "long_id": "0009007199254740993 stays a string; it is over the JS safe integer."
+  },
+  "customer_keys": [
+    {"synthetic_user_id": "0009007199254740993", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 1},
+    {"synthetic_user_id": "user_dup_a", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 2},
+    {"synthetic_user_id": "user_dup_b", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 3},
+    {"synthetic_user_id": "user_same_ts", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 4},
+    {"synthetic_user_id": "user_scope_b", "identity_domain": "group-2", "permission_scope": "brand_b", "customer_key": 5}
+  ],
+  "cross_channel_identity": {
+    "identity_domain": "group-1",
+    "permission_scope": "brand_a",
+    "sources": [
+      {"source_channel": "taobao", "source_user_id": "tb-0009007199254740993"},
+      {"source_channel": "jd", "source_user_id": "jd-0009007199254740993"}
+    ],
+    "synthetic_user_id": "0009007199254740993",
+    "customer_key": 1
+  },
+  "headers": [
+    {
+      "synthetic_user_id": "0009007199254740993",
+      "order_id": "asof-refund-1",
+      "customer_key": 1,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 5000,
+      "refund_minor_as_of": 1000,
+      "net_paid_minor": 4000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "0009007199254740993",
+      "order_id": "basket-1",
+      "customer_key": 1,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 15000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 15000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "0009007199254740993",
+      "order_id": "future-refund-1",
+      "customer_key": 1,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 8000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 8000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "0009007199254740993",
+      "order_id": "partial-1",
+      "customer_key": 1,
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 10000,
+      "refund_minor_as_of": 3000,
+      "net_paid_minor": 7000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "user_dup_a",
+      "order_id": "shared-oid",
+      "customer_key": 2,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 4000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 4000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "user_dup_b",
+      "order_id": "shared-oid",
+      "customer_key": 3,
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 6000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 6000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "user_same_ts",
+      "order_id": "cancelled-1",
+      "customer_key": 4,
+      "channel": "B",
+      "status": "CANCELLED",
+      "gross_paid_minor": 3000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 3000,
+      "is_valid": false
+    },
+    {
+      "synthetic_user_id": "user_same_ts",
+      "order_id": "full-refund-1",
+      "customer_key": 4,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 5000,
+      "refund_minor_as_of": 5000,
+      "net_paid_minor": 0,
+      "is_valid": false
+    },
+    {
+      "synthetic_user_id": "user_same_ts",
+      "order_id": "same-a",
+      "customer_key": 4,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 8000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 8000,
+      "is_valid": true
+    },
+    {
+      "synthetic_user_id": "user_same_ts",
+      "order_id": "same-b",
+      "customer_key": 4,
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 2000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 2000,
+      "is_valid": true
+    }
+  ],
+  "brand_b_headers": [
+    {
+      "synthetic_user_id": "user_scope_b",
+      "order_id": "other-scope-1",
+      "customer_key": 5,
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 12000,
+      "refund_minor_as_of": 0,
+      "net_paid_minor": 12000,
+      "is_valid": true
+    }
+  ],
+  "first_purchases_brand_a": [
+    {
+      "synthetic_user_id": "0009007199254740993",
+      "customer_key": 1,
+      "order_id": "basket-1",
+      "channel": "A",
+      "header_gross_paid_minor": 15000,
+      "header_net_paid_minor": 15000,
+      "product_ids": ["sku_full", "sku_sample"]
+    },
+    {
+      "synthetic_user_id": "user_dup_a",
+      "customer_key": 2,
+      "order_id": "shared-oid",
+      "channel": "A",
+      "header_gross_paid_minor": 4000,
+      "header_net_paid_minor": 4000,
+      "product_ids": ["sku_shared_a"]
+    },
+    {
+      "synthetic_user_id": "user_dup_b",
+      "customer_key": 3,
+      "order_id": "shared-oid",
+      "channel": "B",
+      "header_gross_paid_minor": 6000,
+      "header_net_paid_minor": 6000,
+      "product_ids": ["sku_shared_b"]
+    },
+    {
+      "synthetic_user_id": "user_same_ts",
+      "customer_key": 4,
+      "order_id": "same-a",
+      "channel": "A",
+      "header_gross_paid_minor": 8000,
+      "header_net_paid_minor": 8000,
+      "product_ids": ["sku_a"]
+    }
+  ],
+  "aggregates_brand_a": {
+    "header_count": 10,
+    "line_count": 11,
+    "valid_header_count": 8,
+    "valid_header_gross_sum_minor": 58000,
+    "valid_header_net_sum_minor": 54000,
+    "basket_line_count": 2,
+    "basket_header_gross_paid_minor": 15000,
+    "shared_order_id_header_count": 2,
+    "long_user_id": "0009007199254740993"
+  },
+  "permission": {
+    "brand_a_user_ids": [
+      "0009007199254740993",
+      "user_dup_a",
+      "user_dup_b",
+      "user_same_ts"
+    ],
+    "brand_b_user_ids": ["user_scope_b"],
+    "cross_scope_request": {
+      "permission_scope": "brand_a",
+      "synthetic_user_ids": ["user_scope_b"],
+      "outcome": "PermissionScopeDenied"
+    }
+  }
+}

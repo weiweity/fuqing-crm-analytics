@@ -1,0 +1,18 @@
+{
+  "schema_version": "analytics-warehouse-w1/v1",
+  "case": "product_version_join_does_not_repeat_header_amount",
+  "method": "hand_calculated",
+  "note": "80 orders of one product, 20 non-overlapping versions. Cartesian product_id join is 80*20=1600. Each order matches exactly one version by paid_at range. Header GMV is 80*1000=80000, not 1600*1000.",
+  "n_orders": 80,
+  "n_versions": 20,
+  "unit_gross_minor": 1000,
+  "product_id": "sku_join",
+  "paid_at": "2026-06-01T12:00:00+08:00",
+  "version_day0": "2026-06-01T00:00:00+08:00",
+  "expected_header_count": 80,
+  "expected_line_count": 80,
+  "expected_join_matches": 80,
+  "hand_naive_cartesian_rows": 1600,
+  "expected_header_gross_sum_minor": 80000,
+  "wrong_join_gross_if_repeated": 1600000
+}

@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { namespaceToolCallLine, startB0MockProvider } from './mock-provider.mjs';
-import { startMockLlmServer } from '../../.context/dsh-b0/upstream/packages/test-support/llm-mock-server/lib/index.js';
+import { resolve, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? fileURLToPath(new URL('../../.context/dsh-b0/upstream', import.meta.url)));
+const { startMockLlmServer } = await import(pathToFileURL(join(upstream, 'packages/test-support/llm-mock-server/lib/index.js')).href);
 
 test('fixture namespaces only request-scoped tool identity, keeping arguments and facts unchanged', () => {
   const original = 'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"mock-call-1","function":{"name":"any_tool","arguments":"{\\\"x\\\":1}"}}]}}]}';

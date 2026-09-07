@@ -1,0 +1,38 @@
+{
+  "schema_version": "analytics-warehouse-w1/v1",
+  "case": "late_historical_order_not_dropped_by_max_pay_time",
+  "method": "hand_calculated",
+  "note": "Old incremental used pay_time > global max for append and last-30-days for refresh. A never-seen 60-day-old order is in neither bucket. New grain is (synthetic_user_id, order_id).",
+  "now": "2026-09-01T00:00:00+08:00",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "window_days": 30,
+  "existing_max_pay_time": "2026-08-31T00:00:00+08:00",
+  "existing_orders": [
+    {
+      "synthetic_user_id": "u-recent",
+      "order_id": "recent-1",
+      "paid_at": "2026-08-31T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 1000
+    }
+  ],
+  "incoming_orders": [
+    {
+      "synthetic_user_id": "u-late",
+      "order_id": "late-hist-1",
+      "paid_at": "2026-07-01T00:00:00+08:00",
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 2500
+    }
+  ],
+  "old_rule_would_append": false,
+  "old_rule_would_refresh": false,
+  "expected_loaded_keys": [
+    ["u-late", "late-hist-1"],
+    ["u-recent", "recent-1"]
+  ],
+  "expected_header_count": 2,
+  "expected_header_gross_sum_minor": 3500
+}
