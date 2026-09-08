@@ -17,7 +17,7 @@
 - 本仓库包含归档 CRM 与隔离 synthetic 二开工程；默认冷存，不是本地即生产。不得因合并、会话启动/结束或普通验证自动启动/重启服务、MCP、ETL、回填或守护进程。
 - 大型真实 DuckDB 和原始业务数据是归档资产：不删除、改写、迁移或复制到测试/演示；不读取/输出凭据。只读查询也要确认目标和锁兼容，不通过停无关服务、复制大库或改配置绕过。
 - 当前二开沿用 DSH 原生 Web/单一 Agent Loop、独立业务插件、FastAPI 业务状态与权限、SQLite B0 状态和小型只读合成 DuckDB。B0 与 B1–B4、synthetic 与真实业务验收分开。
-- 当前任务范围看 [B0 执行清单](docs/hackathon/B0-EXECUTION-CHECKLIST-2026-09-06.md)，当前证据看 [黑客松入口](docs/hackathon/README.md)。不把旧 CRM 的 STATUS/历史测试数当作新版集成证据。
+- 当前任务范围看 [B0 执行清单](docs/hackathon/B0-EXECUTION-CHECKLIST-2026-09-06.md)，当前证据看 [黑客松入口](docs/hackathon/README.md) 与 [STATUS.md](STATUS.md)。`origin/main` 已含 v0.6.0.0 opt-in `--native-query-assets` 驾驶舱，产品仍 PARTIAL。不把旧 CRM 的 STATUS/历史测试数当作新版集成证据。
 - 已授权的 B0 检查使用 `scripts/dsh-b0/` 对应入口；旧 CRM 演示仅按明确请求使用 `scripts/ops/start-stack.sh` / `stop-stack.sh`。运行前核验解释器、实际端口和进程归属；B0 Python 用 3.14+，Node 版本见固定工具链，不自动升级环境。
 - 验证用临时服务结束后只停止本次拥有的实例。用户要交互查看的演示保持可用至用户结束；不终止无关进程，不安装 launchd，不搬现有目录。
 

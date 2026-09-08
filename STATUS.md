@@ -2,26 +2,25 @@
 
 > **短表 SSOT**。编年：[`docs/history/STATUS-HISTORY.md`](docs/history/STATUS-HISTORY.md) · 债：`docs/TECH-DEBT.md` · 文档：`docs/README.md`
 
-## 当前快照（2026-09-05 黑客松本地收口）
+## 当前快照（2026-09-08 PR 收口）
 
 | 项 | 值 |
 |---|---|
-| **VERSION** | 以根目录 `VERSION` 为准 |
-| **main** | `89d3423`：PR #65、#66 已合并；当前 open PR 为 0 |
-| **进行中分支** | `codex/fix-local-demo-startup`：本文提交后 13 个本地提交，未 push、未建 PR、未部署 |
-| **黑客松主链** | `GET /today → CEO 增长董事会 → 受控自由问数 → 审批 → DRAFT_EXPORT`；只使用合成数据 |
-| **可合并 CI** | **lint + test + ground-truth-lint + contract-filterbuilder-lint + frontend + dependency-audit + docker-smoke** 全部 required；e2e 非 PR 门禁 |
+| **VERSION** | `0.6.0.0`（根目录 `VERSION`） |
+| **main** | `5e382db`。#100 查询资产驾驶舱及 #85–#99 依赖、#92 ruff 0.16.6 已 squash 合入。开放 PR **0**，对应远程功能分支已删 |
+| **进行中分支** | 无待合入远端 PR。本地 `fuqing-crm-analytics` 工作树可能落后 `origin/main`，以 `git fetch` 为准 |
+| **黑客松主链** | 旧 Mission 演示仍是 `GET /today → 增长董事会 → 问数 → 审批 → DRAFT_EXPORT`（8000/5173）。B0 查询资产为 opt-in `--native-query-assets`（4315–4319），产品仍 PARTIAL |
+| **可合并 CI** | required：`lint` `test` `ground-truth-lint` `contract-filterbuilder-lint` `frontend` `dependency-audit` `docker-smoke` `b0-contract-build` `merge-gate`。skip 不算失败。e2e 非 PR 门禁 |
 | **定时 CI** | Nightly / Weekly 与 PR 同口径；timeout 45min |
 | **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md` |
-| **Actions 策略** | 仅 GitHub-owned Actions；所有 workflow 强制 40 位 commit SHA |
-| **DuckDB 升级** | PyPI 已发布 1.5.5；仅 checklist，必须先有可恢复备份与恢复演练，**不**在本分支执行 |
-| **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md) — 凭据轮换、备份恢复、runtime 同步等已明确排期/门禁 |
+| **Actions 策略** | 仅 GitHub-owned Actions；workflow 动作为 40 位 commit SHA |
+| **ruff** | 锁 `0.16.6`；`pyproject.toml` `lint.select = ["E4","E7","E9","F"]`（保持 0.15 默认 59 条，不启用 0.16 的 413 条） |
+| **债** | [`docs/TECH-DEBT.md`](docs/TECH-DEBT.md)。驾驶舱测试 GAP、公网提交、W4/W5 见 [总待办](docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md) |
 | **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
 | **Admin Upload** | **已撤回**，无产品路由 |
 | **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git** |
-| **服务** | 本地演示正由本分支监听 127.0.0.1:5173 / 127.0.0.1:8000；Compose 容器内 backend `:8001` |
-| **验证** | 前端 163 passed + build；后端 1512 passed / 84 skipped / 0 failed；可见浏览器主链通过 |
-| **未完成** | Figma 可编辑稿受 MCP transport error 阻塞；Push / PR / Merge 未授权；公网部署明确暂缓 |
+| **服务** | 旧 CRM 演示 127.0.0.1:5173 / 8000；B0 隔离 4315–4319。不要停别人的 8000/5173 |
+| **未完成** | 产品仍 PARTIAL；公网部署/网址提交仍暂缓；历史三次 supervisor 退出仍 UNKNOWN。PR 队列已空 |
 
 ## 人工运维门禁（本分支不自动执行）
 
