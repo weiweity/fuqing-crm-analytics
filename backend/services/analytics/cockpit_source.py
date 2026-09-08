@@ -37,7 +37,6 @@ from backend.services.analytics.cockpit import OPAQUE_ID, PLUGIN_TABLE, CockpitS
 from backend.services.analytics.resource_profile import canonical_json
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
 
-SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
 SAFE_LAYOUT = {"x": 0, "y": 0, "w": 6, "h": 4}
 _CARD_ERRORS = {403, 404, 409, 422}
 _SOURCE_DECODE_ERRORS = (json.JSONDecodeError, TypeError, ValueError, KeyError, ValidationError)
@@ -290,7 +289,6 @@ def project_dashboard(
     analysis_store: SavedAnalysisStore, principal: AnalyticsPrincipal, payload: dict, *, base_version: int,
 ) -> dict:
     document = dict(payload)
-    document["http_api"] = "CONNECTED"
     document["base_version"] = base_version
     document["cards"] = [project_card(analysis_store, principal, card) for card in payload.get("cards") or []]
     return document

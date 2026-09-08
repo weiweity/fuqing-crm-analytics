@@ -22,7 +22,7 @@ const source = await readFile(join(root, 'lib/client.js'), 'utf8');
 const runningBlock = { callId: 'cancel-call-a', name: QUERY_TOOL_NAME, argsRaw: '{}', turn: 1, step: 1, time: 0, subCalls: [] };
 
 function installDom() {
-  const dom = new JSDOM('<!doctype html><html><body><div data-session-id="session-query-synthetic-a"><div id="root"></div></div></body></html>',
+  const dom = new JSDOM('<!doctype html><html><body><div data-session-id="session-query-synthetic-b"></div><div data-session-id="session-query-synthetic-a"><div id="root"></div></div></body></html>',
     { url: 'http://127.0.0.1:4318/' });
   const previous = { window: globalThis.window, document: globalThis.document, fetch: globalThis.fetch };
   globalThis.window = dom.window;
@@ -59,7 +59,9 @@ async function mountCard(fetchImpl) {
   globalThis.fetch = fetchImpl;
   const rootEl = globalThis.document.getElementById('root');
   const root = createRoot(rootEl);
-  const render = (block) => act(() => { root.render(React.createElement(queryCard.component, { block, callId: block.callId, toolName: QUERY_TOOL_NAME })); });
+  const render = (block) => act(() => { root.render(React.createElement(queryCard.component, {
+    block, callId: block.callId, toolName: QUERY_TOOL_NAME, sessionId: 'session-query-synthetic-a',
+  })); });
   await render(runningBlock);
   return { root, render, unmount: () => act(() => root.unmount()) };
 }
@@ -83,8 +85,10 @@ test('compiled cancel click surfaces HTTP/RPC/network outcomes and suppresses un
     const onUnhandled = (error) => { unhandled.push(String(error?.message ?? error)); };
     process.on('unhandledRejection', onUnhandled);
     let calls = 0, statusReads = 0, bodyReads = 0;
-    const fetchImpl = async () => {
+    const cancelled = [];
+    const fetchImpl = async (_url, options = {}) => {
       calls += 1;
+      cancelled.push(JSON.parse(String(options.body ?? '{}'))?.payload?.args?.request?.sessionId);
       if (mode.network) throw new Error('review synthetic network failure');
       return {
         get ok() { statusReads += 1; return mode.status >= 200 && mode.status < 300; },
@@ -98,6 +102,7 @@ test('compiled cancel click surfaces HTTP/RPC/network outcomes and suppresses un
     await act(async () => { button.click(); await delay(20); });
     const html = card().outerHTML;
     assert.equal(calls, 1, mode.id);
+    assert.deepEqual(cancelled, ['session-query-synthetic-a'], mode.id);
     assert.ok(statusReads + bodyReads > 0 || mode.network, mode.id);
     assert.ok(html.includes(mode.expect), mode.id);
     assert.equal(html.includes('SECRET_DETAIL'), false, mode.id);

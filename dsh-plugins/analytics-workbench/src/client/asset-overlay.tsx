@@ -28,7 +28,7 @@ function clampLayout(layout: { x: number; y: number; w: number; h: number }, pat
   next.w = Math.min(12, Math.max(2, next.w));
   next.h = Math.min(12, Math.max(2, next.h));
   next.x = Math.min(12 - next.w, Math.max(0, next.x));
-  next.y = Math.max(0, next.y);
+  next.y = Math.min(240, Math.max(0, next.y));
   return next;
 }
 
@@ -46,11 +46,11 @@ export function HttpAssetOverlay(props: OverlayProps) {
   const [preview, setPreview] = useState<DashboardDoc | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modelUp, setModelUp] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [dragX, setDragX] = useState<number | null>(null);
   const previewSeq = useRef(0);
   const dirtyRef = useRef(false);
+  const dragCleanup = useRef<(() => void) | null>(null);
 
   const shown = preview ?? dashboard;
   const dirty = pending !== null;
@@ -63,9 +63,18 @@ export function HttpAssetOverlay(props: OverlayProps) {
     if (!open && dialog.open) dialog.close();
   }, [open]);
   useEffect(() => () => {
+    dragCleanup.current?.();
+    dragCleanup.current = null;
     if (focusFrame.current !== undefined) cancelAnimationFrame(focusFrame.current);
     dialogRef.current?.close();
   }, []);
+  useEffect(() => {
+    if (!open) {
+      dragCleanup.current?.();
+      dragCleanup.current = null;
+      setDragX(null);
+    }
+  }, [open]);
   useEffect(() => {
     if (open && !dirtyRef.current) void refresh();
   }, [open]);
@@ -256,7 +265,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
       .analytics-cockpit-card[data-selected="1"] { outline:2px solid currentColor; }
     `}</style>
     <dialog ref={dialogRef} className="analytics-b0-dialog analytics-cockpit-http" aria-labelledby="analytics-b0-heading"
-      data-testid="analytics-b0-dialog" data-http="CONNECTED" data-asset="1" data-model={modelUp ? '1' : '0'}
+      data-testid="analytics-b0-dialog" data-http="CONNECTED" data-asset="1"
       data-session={selectedSession ? '1' : '0'} data-preview={pending ? '1' : '0'}
       onCancel={event => { event.preventDefault(); requestClose(); }}
       onClose={afterClose}>
@@ -285,12 +294,6 @@ export function HttpAssetOverlay(props: OverlayProps) {
         <button type="button" data-testid="analytics-asset-board" onClick={() => setPanel('board')}>驾驶舱</button>
         <button type="button" data-testid="analytics-asset-analyses" onClick={() => setPanel('analyses')}>已保存分析</button>
         <button type="button" data-testid="analytics-asset-refresh" onClick={() => void refresh()}>重新读取</button>
-        <button type="button" data-testid="analytics-asset-model-probe" onClick={async () => {
-          try {
-            const row = await fetch('http://127.0.0.1:4319/unavailable-probe', { signal: AbortSignal.timeout(800) });
-            setModelUp(row.ok);
-          } catch { setModelUp(false); }
-        }}>检查模型</button>
       </div>
       {loading && <p role="status">正在读取资产…</p>}
       {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
@@ -320,7 +323,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
                 data-card-id={card.card_id} data-card-error="1" data-source="UNAVAILABLE" role="status">
                 固定历史快照不可用：{card.message}
                 {card.card_id && <button type="button" data-testid={`analytics-remove-${card.card_id}`} onClick={() => void runPreview({
-                  op: 'remove', body: { op: 'remove', card_id: card.card_id }, key: `remove-${card.card_id}`, label: '移除错误卡',
+                  op: 'remove', body: { op: 'remove', card_id: card.card_id },
+                  key: `remove-${card.card_id}-v${dashboard?.version}`, label: '移除错误卡',
                 })}>移除板块</button>}
               </article>
             : <article key={card.card_id} className="analytics-b0-card analytics-query-card analytics-cockpit-card"
@@ -365,16 +369,21 @@ export function HttpAssetOverlay(props: OverlayProps) {
                 setDragX(next.x);
               }
               function finish(ev: PointerEvent) {
-                window.removeEventListener('pointermove', move);
-                window.removeEventListener('pointerup', finish);
-                window.removeEventListener('pointercancel', finish);
+                dragCleanup.current?.();
+                dragCleanup.current = null;
                 const next = clampLayout(originLayout, { x: origin + Math.round((ev.clientX - startX) / 48) });
                 setDragX(null);
                 if (next.x !== origin) void layoutPatch({ x: next.x });
               }
+              dragCleanup.current?.();
               window.addEventListener('pointermove', move);
               window.addEventListener('pointerup', finish);
               window.addEventListener('pointercancel', finish);
+              dragCleanup.current = () => {
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', finish);
+                window.removeEventListener('pointercancel', finish);
+              };
             }}>拖动列</button>
         </div>}
         {pending && dashboard && <p>撤销将整板恢复到版本 {dashboard.version} 的已保存配置，不是单卡编辑。</p>}

@@ -32,6 +32,7 @@ from backend.contracts.analytics_query import (
     ChannelFollowupResolvedFilters,
 )
 from backend.contracts.analytics_query_run import QUERY_DATA_SCOPE
+from backend.contracts.analytics_cockpit import GRID_MAX_ROW
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
 from backend.services.analytics.resource_profile import canonical_json, content_hash
 
@@ -212,8 +213,9 @@ def _layout(value: object) -> dict[str, int]:
         if type(payload[key]) is not int:
             raise _invalid("layout 必须是整数栅格。")
     x, y, w, h = payload["x"], payload["y"], payload["w"], payload["h"]
-    if x < 0 or y < 0 or w < MIN_SPAN or h < MIN_SPAN or w > MAX_SPAN or h > MAX_SPAN or x + w > GRID_COLUMNS:
-        raise _unprocessable("布局超出 12 列栅格或小于最小尺寸。")
+    if (x < 0 or y < 0 or y > GRID_MAX_ROW or w < MIN_SPAN or h < MIN_SPAN
+            or w > MAX_SPAN or h > MAX_SPAN or x + w > GRID_COLUMNS):
+        raise _unprocessable("布局超出 12 列栅格、行上限或小于最小尺寸。")
     return {"x": x, "y": y, "w": w, "h": h}
 
 

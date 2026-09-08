@@ -30,6 +30,8 @@ test('gateway asset map is not a generic /api proxy', async () => {
   assert.match(gateway, /mapAssetRoute/);
   assert.match(gateway, /assetsEnabled/);
   assert.match(gateway, /browser-authorization|assetHeaderViolation/);
+  assert.match(gateway, /kernel\('\/api\/v1\/analytics\/dashboards'\)/);
+  assert.match(gateway, /http_api: 'UNAVAILABLE'/);
   assert.doesNotMatch(gateway, /fetch\(`http:\/\/127\.0\.0\.1:4315\$\{url\.pathname\}`/);
 });
 
@@ -43,4 +45,10 @@ test('assets smoke drives real save/join controls and does not swallow failures'
   assert.match(smoke, /missing visible control/);
   assert.doesNotMatch(smoke, /\.catch\(\(\) => \{\}\)/);
   assert.doesNotMatch(smoke, /includes\('合成查询'\)/);
+});
+
+test('HTTP overlay does not fetch the mock provider loopback', async () => {
+  const overlay = await readFile(join(here, '../../dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx'), 'utf8');
+  assert.doesNotMatch(overlay, /127\.0\.0\.1:4319/);
+  assert.doesNotMatch(overlay, /unavailable-probe/);
 });

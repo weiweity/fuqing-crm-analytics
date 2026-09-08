@@ -61,7 +61,7 @@ export function dashboardContainsAnalysis(payload, analysisId, version) {
 }
 
 export function formatCard(card) {
-  if (!card || card.source_status === 'UNAVAILABLE') {
+  if (!card || card.source_status !== 'OK') {
     return {
       kind: 'error',
       card_id: card?.card_id ?? '',

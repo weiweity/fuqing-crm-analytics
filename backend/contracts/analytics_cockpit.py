@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Union
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from backend.contracts.analytics import AnalyticsModel, OpaqueId
 from backend.contracts.analytics_analysis import AnalyticsSavedSnapshot
@@ -18,6 +18,8 @@ DASHBOARD_SCHEMA = "analytics-cockpit/v1"
 FILTER_SCHEMA = "analytics-cockpit-filters/v1"
 VISUAL_TABLE = "analytics-visual-table/v1"
 HTTP_API_CONNECTED = "CONNECTED"
+GRID_COLUMNS = 12
+GRID_MAX_ROW = 240  # 20 cards * max span 12; CSS grid DoS cap.
 AnalysisId = Annotated[str, Field(min_length=11, max_length=128, pattern=r"^analysis_[A-Za-z0-9_.:-]{1,118}$")]
 
 
@@ -41,10 +43,16 @@ class AnalyticsCockpitAnalysisRef(AnalyticsModel):
 
 
 class AnalyticsCockpitLayout(AnalyticsModel):
-    x: Annotated[int, Field(strict=True, ge=0)]
-    y: Annotated[int, Field(strict=True, ge=0)]
+    x: Annotated[int, Field(strict=True, ge=0, le=10)]
+    y: Annotated[int, Field(strict=True, ge=0, le=GRID_MAX_ROW)]
     w: Annotated[int, Field(strict=True, ge=2, le=12)]
     h: Annotated[int, Field(strict=True, ge=2, le=12)]
+
+    @model_validator(mode="after")
+    def grid_bounds(self):
+        if self.x + self.w > GRID_COLUMNS:
+            raise ValueError("layout exceeds the 12-column grid")
+        return self
 
 
 class AnalyticsCockpitTablePlugin(AnalyticsModel):

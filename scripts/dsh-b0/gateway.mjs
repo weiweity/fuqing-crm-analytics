@@ -179,6 +179,21 @@ async function httpHandler(req, res) {
         return deny(res);
       }
       if (mapped.kind === 'status') {
+        let live = false;
+        try {
+          const probe = await kernel('/api/v1/analytics/dashboards');
+          live = probe.status === 200;
+          await probe.body?.cancel?.();
+        } catch {
+          live = false;
+        }
+        if (!live) {
+          res.writeHead(503, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+          res.end(JSON.stringify({
+            http_api: 'UNAVAILABLE', analyses: false, cockpit: false, snapshot: true, synthetic: true,
+          }));
+          return;
+        }
         res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
         res.end(JSON.stringify({
           http_api: 'CONNECTED', analyses: true, cockpit: true, snapshot: true, synthetic: true,

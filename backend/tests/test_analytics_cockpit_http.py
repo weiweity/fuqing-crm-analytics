@@ -214,6 +214,13 @@ def test_two_saved_windows_stay_isolated_across_copy_layout_remove_undo(tmp_path
     pinned = next(card for card in latest.json()["cards"] if card["card_id"] == card_30["card_id"])
     assert pinned["analysis_ref"]["version"] == 1
     assert pinned["facts"]["observation_days"] == 30
+    tall = client.post(
+        f"{PREFIX}/{dashboard_id}/versions",
+        json={"op": "layout", "card_id": card_60["card_id"], "layout": {"x": 0, "y": 241, "w": 12, "h": 4}},
+        headers=headers(key="lay-tall", etag=latest.json()["version"]),
+    )
+    assert tall.status_code == 422
+    assert client.get(f"{PREFIX}/{dashboard_id}", headers=headers()).json()["cards"]
     removed = client.post(
         f"{PREFIX}/{dashboard_id}/versions",
         json={"op": "remove", "card_id": clone["card_id"]},

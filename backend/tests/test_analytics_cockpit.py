@@ -139,6 +139,20 @@ def test_add_copy_remove_layout_keep_stable_card_id_and_snapshot(tmp_path):
     assert [item["card_id"] for item in removed["cards"]] == [card["card_id"]]
 
 
+def test_layout_y_above_row_cap_is_unprocessable(tmp_path):
+    store = make_store(tmp_path / "cockpit")
+    board = seed_board(store)
+    added = store.apply(actor(), "add-1", board["dashboard_id"], "1", add_patch()).as_dict()
+    with pytest.raises(AnalyticsError) as tall:
+        store.apply(
+            actor(), "layout-tall", board["dashboard_id"], "2",
+            {"op": "layout", "card_id": added["cards"][0]["card_id"], "layout": {"x": 0, "y": 241, "w": 6, "h": 4}},
+        )
+    assert tall.value.status == 422
+    current = store.get(actor(), board["dashboard_id"]).as_dict()
+    assert current["cards"][0]["layout"]["y"] != 241
+
+
 def test_preview_does_not_persist_and_save_requires_if_match(tmp_path):
     store = make_store(tmp_path / "cockpit")
     board = seed_board(store)

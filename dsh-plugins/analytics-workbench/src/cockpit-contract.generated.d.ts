@@ -1,4 +1,4 @@
-/** Generated cockpit HTTP contract; do not edit. OpenAPI SHA-256: 478c7ab035fcbb6354c13b2027022008d2b096c6708d79a63a593688968d113a */
+/** Generated cockpit HTTP contract; do not edit. OpenAPI SHA-256: a7ff4611afdf98a0588b6d7f26fcf3573d5338fa95245ed0460e6fd76396efa8 */
 export interface paths {
     "/api/v1/analytics/dashboards": {
         parameters: {

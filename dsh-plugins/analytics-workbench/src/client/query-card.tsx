@@ -34,12 +34,14 @@ function queryFaultKind(block: ToolCallViewProps['block']): 'running' | 'tool-er
   return typeof version === 'string' && version !== QUERY_RECEIPT_SCHEMA ? 'unknown-version' : 'malformed';
 }
 
-function currentQuerySessionId(): string | null {
-  if (typeof document === 'undefined') return null;
-  return document.querySelector('[data-session-id]')?.getAttribute('data-session-id') ?? null;
+function cardSessionId(props: ToolCallViewProps): string | null {
+  const value = (props as { sessionId?: unknown }).sessionId;
+  return typeof value === 'string' && value ? value : null;
 }
 
-export function QueryToolCard({ block }: ToolCallViewProps) {
+export function QueryToolCard(props: ToolCallViewProps) {
+  const { block } = props;
+  const sessionId = cardSessionId(props);
   const callId = block.callId;
   const [phase, setPhase] = useState<CancelPhase>('idle');
   const phaseRef = useRef<CancelPhase>('idle');
@@ -53,17 +55,17 @@ export function QueryToolCard({ block }: ToolCallViewProps) {
 
   async function submitCancel() {
     if (phaseRef.current === 'submitting' || phaseRef.current === 'accepted') return;
-    const sessionId = currentQuerySessionId();
+    const targetSession = sessionId;
     const gen = generationRef.current;
     phaseRef.current = 'submitting';
     setPhase('submitting');
     let outcome: CancelPhase = 'error';
     try {
-      if (sessionId) {
+      if (targetSession) {
         const response = await fetch('/api/session/cancel', {
           method: 'POST', credentials: 'same-origin', cache: 'no-store', redirect: 'error',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(sessionCancelEnvelope(sessionId, `query-cancel-${Date.now()}`)),
+          body: JSON.stringify(sessionCancelEnvelope(targetSession, `query-cancel-${Date.now()}`)),
         });
         let body: unknown = null;
         try { body = await response.json(); } catch { body = null; }

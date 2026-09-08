@@ -122,8 +122,12 @@ def _query_capabilities(config) -> frozenset[str]:
 
 def _attach_asset_http(app, config, run_store, registry) -> None:
     """Mount saved-analysis and cockpit HTTP on the query runtime. No second dispatcher."""
-    analysis_store = SavedAnalysisStore(Path(config["analysis_dir"]))
-    cockpit_store = CockpitStore(Path(config["cockpit_dir"]))
+    analysis_dir = config.get("analysis_dir")
+    cockpit_dir = config.get("cockpit_dir")
+    if not isinstance(analysis_dir, str) or not analysis_dir.strip() or not isinstance(cockpit_dir, str) or not cockpit_dir.strip():
+        raise ValueError("asset_capabilities require analysis_dir and cockpit_dir")
+    analysis_store = SavedAnalysisStore(Path(analysis_dir))
+    cockpit_store = CockpitStore(Path(cockpit_dir))
     analysis_app = create_analysis_app(run_store, analysis_store, registry, runtime_ready=app.state.runtime_ready)
     cockpit_app = create_cockpit_app(analysis_store, cockpit_store, registry, runtime_ready=app.state.runtime_ready)
     app.router.routes.extend(analysis_app.router.routes)
