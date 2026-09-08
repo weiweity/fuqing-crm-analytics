@@ -1,4 +1,4 @@
-/** Compiled HTTP overlay: discard, stale preview, drag commit. Mock transport only. */
+/** Compiled HTTP overlay: discard, stale preview, drag, add/create, undo. Mock transport only. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -36,6 +36,19 @@ const card = {
 const board = {
   schema_version: 'analytics-cockpit/v1', http_api: 'CONNECTED', dashboard_id: 'dashboard_1',
   version: 2, preview: false, cards: [card],
+};
+const analysis = {
+  schema_version: 'analytics-saved-analysis/v1',
+  analysis_id: 'analysis_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  version: 1,
+  title: '渠道后续购买',
+  observation_days: 30,
+  as_of: '2026-08-31T16:00:00.000000+00:00',
+  http_api: 'CONNECTED',
+};
+const emptyBoard = {
+  schema_version: 'analytics-cockpit/v1', http_api: 'CONNECTED', dashboard_id: 'dashboard_1',
+  version: 1, preview: false, cards: [],
 };
 
 function jsonResponse(status, payload) {
@@ -160,20 +173,41 @@ async function waitFor(check) {
 function connectedBoardFetch(options = {}) {
   const calls = [];
   let previewGate = options.previewGate ?? null;
+  let currentBoard = options.board === undefined ? { ...board } : options.board;
+  const analyses = options.analyses ?? [];
+  const previewStatus = options.previewStatus ?? 200;
+  const saveStatus = options.saveStatus ?? 200;
   const fetchImpl = async (url, init = {}) => {
     const path = String(url);
     const method = init.method ?? 'GET';
     calls.push({ method, path, headers: init.headers ?? {}, body: init.body });
     if (path === '/b0/assets') return jsonResponse(200, { http_api: 'CONNECTED', cockpit: true });
     if (method === 'GET' && path === '/b0/dashboards') {
-      return jsonResponse(200, { items: [{ dashboard_id: 'dashboard_1', version: 2 }] });
+      if (!currentBoard) return jsonResponse(200, { items: [] });
+      return jsonResponse(200, { items: [{ dashboard_id: currentBoard.dashboard_id, version: currentBoard.version }] });
     }
-    if (method === 'GET' && path === '/b0/analyses') return jsonResponse(200, { items: [] });
-    if (method === 'GET' && path === '/b0/dashboards/dashboard_1') return jsonResponse(200, board);
-    if (method === 'POST' && path === '/b0/dashboards/dashboard_1/preview') {
-      const payload = { ...board, preview: true, version: 2 };
+    if (method === 'GET' && path === '/b0/analyses') return jsonResponse(200, { items: analyses });
+    if (method === 'POST' && path === '/b0/dashboards') {
+      currentBoard = { ...(options.createdBoard ?? emptyBoard) };
+      return jsonResponse(201, currentBoard);
+    }
+    if (currentBoard && method === 'GET' && path === `/b0/dashboards/${currentBoard.dashboard_id}`) {
+      return jsonResponse(200, currentBoard);
+    }
+    if (currentBoard && method === 'POST' && path === `/b0/dashboards/${currentBoard.dashboard_id}/preview`) {
+      if (previewStatus === 409) {
+        return jsonResponse(409, { error: { code: 'CONFLICT', message: '版本已变化。' } });
+      }
+      const payload = { ...currentBoard, preview: true };
       if (previewGate) return previewGate.promise.then(() => jsonResponse(200, payload));
       return jsonResponse(200, payload);
+    }
+    if (currentBoard && method === 'POST' && path === `/b0/dashboards/${currentBoard.dashboard_id}/versions`) {
+      if (saveStatus === 409) {
+        return jsonResponse(409, { error: { code: 'CONFLICT', message: '版本冲突。' } });
+      }
+      currentBoard = { ...currentBoard, version: currentBoard.version + 1, preview: false };
+      return jsonResponse(201, currentBoard);
     }
     throw new Error(`unexpected ${method} ${path}`);
   };
@@ -292,6 +326,143 @@ test('layout drag commits on pointerup and does not preview on pointermove', asy
   const preview = calls.filter(row => row.path.endsWith('/preview')).at(-1);
   assert.equal(JSON.parse(preview.body).op, 'layout');
   assert.equal(JSON.parse(preview.body).layout.x, 2);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+function statusText() {
+  return globalThis.document.querySelector('[data-testid="analytics-asset-status"]')?.textContent ?? '';
+}
+
+test('undoBoard is a no-op when the saved board has no prior version', async () => {
+  const { previous } = installDom();
+  const { calls, fetchImpl } = connectedBoardFetch({ board: { ...board, version: 1 } });
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]'));
+  const before = calls.filter(row => row.path.endsWith('/preview')).length;
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]').click();
+    await delay(20);
+  });
+  await waitFor(() => statusText().includes('没有可恢复的历史版本。'));
+  assert.equal(calls.filter(row => row.path.endsWith('/preview')).length, before);
+  assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'), null);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('undoBoard previews restore_from_version against the current board etag', async () => {
+  const { previous } = installDom();
+  const { calls, fetchImpl } = connectedBoardFetch();
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]'));
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]').click();
+    await delay(20);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  const preview = calls.filter(row => row.method === 'POST' && row.path.endsWith('/preview')).at(-1);
+  assert.equal(JSON.parse(preview.body).op, 'undo');
+  assert.equal(JSON.parse(preview.body).scope, 'board');
+  assert.equal(JSON.parse(preview.body).restore_from_version, 1);
+  assert.equal(preview.headers['if-match'], '2');
+  assert.match(globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]').textContent, /整板恢复到版本 1/);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('analyses panel add previews analysis_ref then save posts the add intent key', async () => {
+  const { previous } = installDom();
+  const { calls, fetchImpl } = connectedBoardFetch({ analyses: [analysis] });
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-asset-analyses"]'));
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-asset-analyses"]').click();
+    await delay(10);
+  });
+  await waitFor(() => globalThis.document.querySelector(`[data-testid="analytics-join-${analysis.analysis_id}"]`));
+  await act(async () => {
+    globalThis.document.querySelector(`[data-testid="analytics-join-${analysis.analysis_id}"]`).click();
+    await delay(20);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  assert.equal(calls.some(row => row.method === 'POST' && row.path === '/b0/dashboards'), false);
+  const preview = calls.filter(row => row.method === 'POST' && row.path.endsWith('/preview')).at(-1);
+  assert.deepEqual(JSON.parse(preview.body), {
+    op: 'add', analysis_ref: { analysis_id: analysis.analysis_id, version: 1 },
+  });
+  assert.equal(preview.headers['if-match'], '2');
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-cockpit-save"]').click();
+    await delay(20);
+  });
+  await waitFor(() => statusText().includes('已保存固定历史快照。'));
+  const saved = calls.find(row => row.method === 'POST' && row.path.endsWith('/versions'));
+  assert.equal(saved.headers['idempotency-key'], `add-${analysis.analysis_id}-v1-b2`);
+  assert.equal(saved.headers['if-match'], '2');
+  assert.equal(JSON.parse(saved.body).op, 'add');
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('addAnalysis creates the owner board before previewing add when none exists', async () => {
+  const { previous } = installDom();
+  const { calls, fetchImpl } = connectedBoardFetch({ board: null, analyses: [analysis] });
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-empty"]'));
+  assert.equal(calls.some(row => row.method === 'POST' && row.path === '/b0/dashboards'), false);
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-asset-analyses"]').click();
+    await delay(10);
+  });
+  await waitFor(() => globalThis.document.querySelector(`[data-testid="analytics-join-${analysis.analysis_id}"]`));
+  await act(async () => {
+    globalThis.document.querySelector(`[data-testid="analytics-join-${analysis.analysis_id}"]`).click();
+    await delay(20);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  const created = calls.find(row => row.method === 'POST' && row.path === '/b0/dashboards');
+  assert.equal(created.headers['idempotency-key'], 'board-owner');
+  assert.equal(JSON.parse(created.body).title, '我的驾驶舱');
+  const preview = calls.filter(row => row.method === 'POST' && row.path.endsWith('/preview')).at(-1);
+  assert.equal(preview.path, '/b0/dashboards/dashboard_1/preview');
+  assert.equal(JSON.parse(preview.body).op, 'add');
+  assert.equal(preview.headers['if-match'], '1');
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('preview 409 re-reads and does not keep a stale pending op', async () => {
+  const { previous } = installDom();
+  const { fetchImpl } = connectedBoardFetch({ previewStatus: 409 });
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-action="copy"]'));
+  await act(async () => {
+    globalThis.document.querySelector('[data-action="copy"]').click();
+    await delay(20);
+  });
+  await waitFor(() => statusText().includes('版本已变化，已重新读取，请再预览。'));
+  assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'), null);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('save 409 re-reads and does not keep the pending preview', async () => {
+  const { previous } = installDom();
+  const { fetchImpl } = connectedBoardFetch({ saveStatus: 409 });
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-action="copy"]'));
+  await act(async () => {
+    globalThis.document.querySelector('[data-action="copy"]').click();
+    await delay(20);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-cockpit-save"]').click();
+    await delay(20);
+  });
+  await waitFor(() => statusText().includes('版本冲突，未覆盖。请读取当前驾驶舱后再试。'));
+  assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'), null);
   mounted.unmount();
   restoreDom(previous);
 });
