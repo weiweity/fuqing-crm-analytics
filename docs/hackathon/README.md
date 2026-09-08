@@ -6,7 +6,9 @@
 
 开发入口：[唯一 Agent 规则](../../AGENTS.md)；[2026-09-06 规则统一与项目盘查](./AGENT-RULES-AUDIT-2026-09-06.md)记录 Astra 工作方式适配、旧自动化停用及未删除候选，不改变 B0 业务验收结论。
 
-**Git 收口（2026-09-08）**：`origin/main` = `1a785d1`（#101 docs closeout）。#100 v0.6.0.0 查询资产驾驶舱已 squash 合入；#85–#99 依赖与 ruff 0.16.6（`lint.select` 仍为 0.15 的 `E4/E7/E9/F`）已合入。本分支 `test/cockpit-overlay-gap` = v0.6.1.0，仅补 overlay 撤销整板/加入/无板创建/409 编译后 DOM；尚无 PR。公网部署仍暂缓。产品仍 PARTIAL。
+**Git 收口（2026-09-08）**：`origin/main` = `b2c634f`（#104）。#100 v0.6.0.0 查询资产驾驶舱、#102 v0.6.1.0 overlay 编译后 DOM、#103 v0.6.2.0 加入重试/不串板、#104 v0.6.3.0 首购离线金标准已 squash 合入；#85–#99 依赖与 ruff 0.16.6（`lint.select` 仍为 0.15 的 `E4/E7/E9/F`）已合入。公网部署仍暂缓。产品仍 PARTIAL。
+
+**并行 gstack Goal（2026-09-08，已结束交付）**：双轨已串行 `/ship` + `/land-and-deploy`。[#103](https://github.com/weiweity/fuqing-crm-analytics/pull/103) v0.6.2.0 overlay：保存成功后 join 4xx/409 只重试加入；两 CONNECTED overlay 不串板；切分析面板不把卸载控件当 hang。[#104](https://github.com/weiweity/fuqing-crm-analytics/pull/104) v0.6.3.0 首购离线金标准：JSON snapshot 变换，缺商品角色整查询拒绝且不输出转化率。catalog / HTTP / worker 仍 DEFERRED。计划原稿仍是本地未跟踪文件，不代表仓库已收录。
 
 **8 小时 Goal 当时口径（2026-09-07，已结束交付）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 做过本地 synthetic G0–G5。它承接历史 B0 PARTIAL，不是重跑 T01–T09，也不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`（分支/commit/push/小 PR）；**之后**已获 merge 授权并把队列合进 `main`。不要把「未授权 merge」当成现在的指令。G0 文档单元当时未跑业务测试。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)；G1 `857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G4b 报告仍是当时证据。G4a 浏览器当时 **NOT RUN**。G4b 核心 native PASS（`runtime-zPbEKI`）。交接快照见 [Goal 结果](./GOAL-8H-RESULT-2026-09-07.md)。v0.6.0.0 opt-in `--native-query-assets`：SUCCEEDED 查询保存为 SNAPSHOT，「我的驾驶舱」HTTP overlay 查看/加入/复制/预览/撤销；默认查询入口不带资产。见 [CHANGELOG](../../CHANGELOG.md) 与 [插件 README](../../dsh-plugins/analytics-workbench/README.md)。
 
