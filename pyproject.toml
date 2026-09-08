@@ -19,6 +19,11 @@ python-preference = "only-managed"
 # scraper/ 重新纳入顶层 ruff check，pyproject.toml 不再需要单独 exclude。
 exclude = ["scripts/archive/*"]
 
+[tool.ruff.lint]
+# ruff 0.16 defaulted to 413 rules (was 59). Keep the 0.15 set so bumping
+# the pin does not rewrite backend/.
+select = ["E4", "E7", "E9", "F"]
+
 [tool.ruff.lint.per-file-ignores]
 # health.py: intentional import-after-logger for fail-fast API key check
 "backend/routers/health.py" = ["E402"]
