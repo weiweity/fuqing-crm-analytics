@@ -20,6 +20,19 @@ test('asset routes are an exact method/path whitelist', () => {
   assert.equal(mapAssetRoute('POST', `/b0/dashboards/${dash}/versions`, empty).key, true);
   assert.equal(mapAssetRoute('DELETE', `/b0/dashboards/${dash}`, empty).kind, 'reject');
   assert.equal(mapAssetRoute('GET', '/b0/other', empty), null);
+  assert.equal(mapAssetRoute('GET', '/b0/dashboards', empty).kernel, '/api/v1/analytics/dashboards');
+  assert.equal(mapAssetRoute('POST', '/b0/dashboards', empty).key, true);
+  assert.equal(mapAssetRoute('GET', `/b0/dashboards/${dash}`, empty).kernel, `/api/v1/analytics/dashboards/${dash}`);
+  assert.equal(mapAssetRoute('GET', '/b0/assets', new URLSearchParams('x=1')).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', '/b0/analyses', new URLSearchParams('q=1')).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', '/b0/dashboards', new URLSearchParams('q=1')).kind, 'reject');
+  assert.equal(mapAssetRoute('POST', `/b0/analyses/${id}`, empty).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', `/b0/analyses/${id}`, new URLSearchParams('version=2&other=1')).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', `/b0/analyses/${id}`, new URLSearchParams('version=01')).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', `/b0/dashboards/${dash}/preview`, empty).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', `/b0/dashboards/${dash}/versions`, empty).kind, 'reject');
+  assert.equal(mapAssetRoute('POST', `/b0/dashboards/${dash}/preview`, new URLSearchParams('x=1')).kind, 'reject');
+  assert.equal(mapAssetRoute('GET', `/b0/dashboards/${dash}`, new URLSearchParams('x=1')).kind, 'reject');
 });
 
 test('browser must not send backend bearer, session fence, or duplicate version headers', () => {

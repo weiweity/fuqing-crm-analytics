@@ -6,6 +6,7 @@ import os
 import sqlite3
 from contextlib import closing
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.analytics_runtime import QUERY_CAPABILITIES, runtime_app
@@ -124,5 +125,56 @@ def test_asset_runtime_save_add_preview_without_session_header(tmp_path):
             f"/api/v1/analytics-query/runs/{run_id}", headers=gateway(SESSIONS[0]),
         )
         assert query.status_code == 200
+    finally:
+        client.close()
+
+
+def test_invalid_asset_capabilities_are_rejected_before_attach(tmp_path):
+    config = asset_config(tmp_path)
+    for extra in ([], ["run:create"], ["analysis:save", "run:read"], "analysis:save"):
+        config["asset_capabilities"] = extra
+        with pytest.raises(ValueError, match="asset_capabilities"):
+            runtime_app(config, bridge=Receiver())
+
+
+def test_asset_capabilities_without_store_dirs_fail_before_attach(tmp_path):
+    config = query_config(tmp_path)
+    config["asset_capabilities"] = list(ASSET_CAPS)
+    with pytest.raises(ValueError, match="analysis_dir|cockpit_dir"):
+        runtime_app(config, bridge=Receiver())
+    config["analysis_dir"] = str(tmp_path / "analyses")
+    with pytest.raises(ValueError, match="cockpit_dir"):
+        runtime_app(config, bridge=Receiver())
+
+
+def test_asset_runtime_validation_messages_follow_the_request_path(tmp_path):
+    app = setup_asset_app(tmp_path)
+    client = TestClient(app)
+    try:
+        auth = {"authorization": f"Bearer {GATEWAY}"}
+        analysis = client.post(
+            "/api/v1/analytics/analyses",
+            json={"title": 1},
+            headers={**auth, "idempotency-key": "bad-analysis"},
+        )
+        assert analysis.status_code == 422
+        assert analysis.json()["error"]["code"] == "INVALID_REQUEST"
+        assert "分析合同" in analysis.json()["error"]["message"]
+        dashboard = client.post(
+            "/api/v1/analytics/dashboards",
+            json={"title": 1},
+            headers={**auth, "idempotency-key": "bad-board"},
+        )
+        assert dashboard.status_code == 422
+        assert dashboard.json()["error"]["code"] == "INVALID_REQUEST"
+        assert "驾驶舱合同" in dashboard.json()["error"]["message"]
+        query = client.post(
+            "/api/v1/analytics-query/runs/run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/cancel",
+            json={"reason": 1},
+            headers={**gateway(SESSIONS[0]), "idempotency-key": "bad-cancel", "if-match": "1"},
+        )
+        assert query.status_code == 422
+        assert query.json()["error"]["code"] == "INVALID_REQUEST"
+        assert "查询合同" in query.json()["error"]["message"]
     finally:
         client.close()
