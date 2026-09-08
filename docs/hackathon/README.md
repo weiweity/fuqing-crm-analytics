@@ -6,7 +6,7 @@
 
 开发入口：[唯一 Agent 规则](../../AGENTS.md)；[2026-09-06 规则统一与项目盘查](./AGENT-RULES-AUDIT-2026-09-06.md)记录 Astra 工作方式适配、旧自动化停用及未删除候选，不改变 B0 业务验收结论。
 
-**Git 收口（2026-09-08）**：`origin/main` = `5e382db`（#92）。#100 v0.6.0.0 查询资产驾驶舱已 squash 合入；#85–#99 依赖与 ruff 0.16.6（`lint.select` 仍为 0.15 的 `E4/E7/E9/F`）已合入。开放 PR **0**，对应远程分支已删。公网部署仍暂缓。产品仍 PARTIAL。
+**Git 收口（2026-09-08）**：`origin/main` = `1a785d1`（#101 docs closeout）。#100 v0.6.0.0 查询资产驾驶舱已 squash 合入；#85–#99 依赖与 ruff 0.16.6（`lint.select` 仍为 0.15 的 `E4/E7/E9/F`）已合入。本分支 `test/cockpit-overlay-gap` = v0.6.1.0，仅补 overlay 撤销整板/加入/无板创建/409 编译后 DOM；尚无 PR。公网部署仍暂缓。产品仍 PARTIAL。
 
 **8 小时 Goal 当时口径（2026-09-07，已结束交付）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 做过本地 synthetic G0–G5。它承接历史 B0 PARTIAL，不是重跑 T01–T09，也不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`（分支/commit/push/小 PR）；**之后**已获 merge 授权并把队列合进 `main`。不要把「未授权 merge」当成现在的指令。G0 文档单元当时未跑业务测试。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)；G1 `857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G4b 报告仍是当时证据。G4a 浏览器当时 **NOT RUN**。G4b 核心 native PASS（`runtime-zPbEKI`）。交接快照见 [Goal 结果](./GOAL-8H-RESULT-2026-09-07.md)。v0.6.0.0 opt-in `--native-query-assets`：SUCCEEDED 查询保存为 SNAPSHOT，「我的驾驶舱」HTTP overlay 查看/加入/复制/预览/撤销；默认查询入口不带资产。见 [CHANGELOG](../../CHANGELOG.md) 与 [插件 README](../../dsh-plugins/analytics-workbench/README.md)。
 
@@ -40,7 +40,7 @@
 - [渠道首次观察队列共享 worker](./CHANNEL-FOLLOWUP-WORKER-2026-09-07.md)：G3b2 backend 共享 worker 合成查询；HTTP/native 当时 **NOT RUN**；
 - [渠道首次观察队列 native 接通（G4a）](./CHANNEL-FOLLOWUP-NATIVE-G4A-2026-09-07.md)：ASGI/真实 worker/真实 Cordis loader PASS；浏览器/Gateway/卡片 **NOT RUN**，G4 未完成；
 - [渠道首次观察队列双会话原生查询（G4b）](./CHANNEL-FOLLOWUP-NATIVE-G4B-2026-09-07.md)：核心 native PASS（fresh `runtime-zPbEKI`）；初始 FAIL 与手工 verify-existing 层级保留；
-- [查询资产 HTTP overlay（v0.6.0.0）](../../CHANGELOG.md)：opt-in `--native-query-assets`；独立 `/b0/analyses` 与 `/b0/dashboards`；默认查询入口不带资产；产品仍 PARTIAL；
+- [查询资产 HTTP overlay（v0.6.0.0；v0.6.1.0 补编译后 DOM）](../../CHANGELOG.md)：opt-in `--native-query-assets`；独立 `/b0/analyses` 与 `/b0/dashboards`；默认查询入口不带资产；overlay 撤销整板/加入/无板创建/409 重读有 mock 编译后 DOM；产品仍 PARTIAL；
 - [8 小时 Goal 交接（G5）](./GOAL-8H-RESULT-2026-09-07.md)：当时提交前快照。2026-09-08 起相关 PR 已合入 `main`（见上文 Git 收口）；
 - [B0 工具卡 DOM 增量](./B0-TOOL-CARD-DOM-2026-09-06.md) / [T01–T09 清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)：历史 B0 当轮入口；[T01–T07 收口](./B0-LOCAL-CLOSEOUT-2026-09-06.md)保留既有分层验收、开放风险和服务收尾。
 - [B0 方法与上下文](./B0-METHOD-CONTROL-VALIDATION-2026-09-06.md) / [当前控制面清单](./B0-CONTROL-MANIFEST-2026-09-06.md)：整包、原生组件压缩及持续权限修复的红/绿证据。
