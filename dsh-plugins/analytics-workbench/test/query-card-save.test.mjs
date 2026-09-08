@@ -189,6 +189,62 @@ test('join keeps the analysis saved when listing the board fails', async () => {
   restoreDom(previous);
 });
 
+test('save 201 then dashboard 4xx/409 does not POST a second analysis; join retries joinAttempt only', async () => {
+  for (const joinStatus of [409, 422]) {
+    const { previous } = installDom();
+    const calls = [];
+    const analysisDoc = {
+      analysis_id: `analysis_keep_${joinStatus}`,
+      version: 1,
+      title: '渠道后续购买 N=30',
+      http_api: 'CONNECTED',
+    };
+    const fetchImpl = async (url, options = {}) => {
+      const path = String(url);
+      const method = options.method ?? 'GET';
+      calls.push({ method, path, headers: options.headers ?? {}, body: options.body });
+      if (path === '/b0/assets') return jsonResponse(200, { http_api: 'CONNECTED', cockpit: true });
+      if (method === 'POST' && path === '/b0/analyses') {
+        return jsonResponse(201, analysisDoc);
+      }
+      if (method === 'GET' && path === '/b0/analyses') {
+        return jsonResponse(200, { items: [analysisDoc] });
+      }
+      if (method === 'GET' && path === '/b0/dashboards') return jsonResponse(200, { items: [board] });
+      if (method === 'GET' && path === '/b0/dashboards/dashboard_1') return jsonResponse(200, board);
+      if (method === 'POST' && path === '/b0/dashboards/dashboard_1/versions') {
+        return jsonResponse(joinStatus, { error: { code: joinStatus === 409 ? 'CONFLICT' : 'UNPROCESSABLE', message: '驾驶舱版本冲突。' } });
+      }
+      throw new Error(`unexpected ${method} ${path}`);
+    };
+    const mounted = await mountCard(fetchImpl);
+    await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-query-save-button"]'));
+    const save = globalThis.document.querySelector('[data-testid="analytics-query-save-button"]');
+    const join = globalThis.document.querySelector('[data-testid="analytics-query-join-button"]');
+    await act(async () => { save.click(); await delay(20); });
+    await waitFor(() => statusText().includes('已保存当前口径'));
+    assert.equal(save.disabled, true);
+    await act(async () => { join.click(); await delay(20); });
+    await waitFor(() => statusText().includes('分析已保存；加入驾驶舱失败'));
+    const listGetsAfterJoin = calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length;
+    await act(async () => { save.click(); join.click(); await delay(20); });
+    await waitFor(() => statusText().includes('分析已保存；加入驾驶舱失败'));
+    const analysisPosts = calls.filter(row => row.method === 'POST' && row.path === '/b0/analyses');
+    assert.equal(analysisPosts.length, 1);
+    assert.equal(JSON.parse(analysisPosts[0].body).created_from_run_id, 'run_1');
+    assert.equal(
+      calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length,
+      listGetsAfterJoin,
+    );
+    const listed = await fetchImpl('/b0/analyses');
+    const payload = await listed.json();
+    assert.equal(payload.items.length, 1);
+    assert.equal(payload.items[0].analysis_id, analysisDoc.analysis_id);
+    mounted.unmount();
+    restoreDom(previous);
+  }
+});
+
 test('duplicate save click while posting does not open a second request', async () => {
   const { previous } = installDom();
   let release;

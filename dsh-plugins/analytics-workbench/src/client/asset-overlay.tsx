@@ -51,10 +51,16 @@ export function HttpAssetOverlay(props: OverlayProps) {
   const previewSeq = useRef(0);
   const dirtyRef = useRef(false);
   const dragCleanup = useRef<(() => void) | null>(null);
+  const boardRef = useRef<DashboardDoc | null>(null);
 
   const shown = preview ?? dashboard;
   const dirty = pending !== null;
   dirtyRef.current = dirty;
+
+  function commitBoard(next: DashboardDoc | null) {
+    boardRef.current = next;
+    setDashboard(next);
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -95,13 +101,22 @@ export function HttpAssetOverlay(props: OverlayProps) {
       setAnalyses(decodeHttpAnalysisList(list.payload) ?? []);
       if (boards.status === 200) {
         const items = Array.isArray(boards.payload?.items) ? boards.payload.items : [];
-        if (items.length === 0) setDashboard(null);
+        const pinnedId = boardRef.current?.dashboard_id;
+        const listed = pinnedId
+          ? items.find((row: { dashboard_id?: string }) => row?.dashboard_id === pinnedId)
+          : items[0];
+        const targetId = (listed && typeof listed.dashboard_id === 'string' && listed.dashboard_id)
+          || pinnedId
+          || (items[0] && typeof items[0].dashboard_id === 'string' ? items[0].dashboard_id : undefined);
+        if (!targetId) commitBoard(null);
         else {
-          const row = await assetRequest(`/b0/dashboards/${items[0].dashboard_id}`);
-          setDashboard(decodeHttpDashboard(row.payload));
+          const row = await assetRequest(`/b0/dashboards/${targetId}`);
+          const decoded = decodeHttpDashboard(row.payload);
+          if (decoded) commitBoard(decoded);
+          else if (!pinnedId) commitBoard(null);
         }
       } else {
-        setDashboard(null);
+        if (!boardRef.current) commitBoard(null);
         setMessage(decodeAssetError(boards.payload).message);
       }
       setPreview(null);
@@ -147,7 +162,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
         return null;
       }
       const decoded = decodeHttpDashboard(created.payload);
-      setDashboard(decoded);
+      commitBoard(decoded);
       return decoded;
     } catch {
       setMessage('资产请求失败。');
@@ -155,13 +170,15 @@ export function HttpAssetOverlay(props: OverlayProps) {
     }
   }
 
-  async function runPreview(op: PendingOp, board = dashboard) {
+  async function runPreview(op: PendingOp, board = boardRef.current) {
     if (!board) return;
+    const dashboardId = board.dashboard_id;
+    const etag = board.version;
     const seq = ++previewSeq.current;
     setLoading(true);
     try {
-      const row = await assetRequest(`/b0/dashboards/${board.dashboard_id}/preview`, {
-        method: 'POST', body: op.body, etag: board.version,
+      const row = await assetRequest(`/b0/dashboards/${dashboardId}/preview`, {
+        method: 'POST', body: op.body, etag,
       });
       if (previewSeq.current !== seq) return;
       if (row.status === 409) {
@@ -185,11 +202,14 @@ export function HttpAssetOverlay(props: OverlayProps) {
   }
 
   async function savePending() {
-    if (!pending || !dashboard) return;
+    const board = boardRef.current;
+    if (!pending || !board) return;
+    const dashboardId = board.dashboard_id;
+    const etag = board.version;
     setLoading(true);
     try {
-      const row = await assetRequest(`/b0/dashboards/${dashboard.dashboard_id}/versions`, {
-        method: 'POST', body: pending.body, key: pending.key, etag: dashboard.version,
+      const row = await assetRequest(`/b0/dashboards/${dashboardId}/versions`, {
+        method: 'POST', body: pending.body, key: pending.key, etag,
       });
       if (row.status === 409) {
         setMessage('版本冲突，未覆盖。请读取当前驾驶舱后再试。');
@@ -200,7 +220,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
         setMessage(decodeAssetError(row.payload).message);
         return;
       }
-      setDashboard(decodeHttpDashboard(row.payload));
+      const decoded = decodeHttpDashboard(row.payload);
+      if (decoded) commitBoard(decoded);
       setPreview(null);
       setPending(null);
       setMessage('已保存固定历史快照。');
@@ -213,7 +234,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
   }
 
   async function addAnalysis(item: { analysis_id: string; version: number; title: string }) {
-    const board = dashboard ?? await createBoard();
+    const board = boardRef.current ?? await createBoard();
     if (!board) return;
     const key = addIntentKey(item.analysis_id, item.version, board.version);
     if (!key) {
@@ -230,32 +251,40 @@ export function HttpAssetOverlay(props: OverlayProps) {
   }
 
   async function undoBoard() {
-    if (!dashboard || dashboard.version < 2) {
+    const board = boardRef.current;
+    if (!board || board.version < 2) {
       setMessage('没有可恢复的历史版本。');
       return;
     }
-    const restore = dashboard.version - 1;
+    const restore = board.version - 1;
     await runPreview({
       op: 'undo',
       body: { op: 'undo', scope: 'board', restore_from_version: restore },
-      key: `undo-to-${restore}-from-${dashboard.version}`,
+      key: `undo-to-${restore}-from-${board.version}`,
       label: `整板恢复到版本 ${restore}`,
-    });
+    }, board);
   }
 
   const rawCards = Array.isArray(shown?.cards) ? shown.cards as unknown[] : [];
   const cards = rawCards.map(formatCard);
   const selected = cards.find(card => card.card_id === selectedCardId) ?? null;
 
+  function showAnalyses() {
+    previewSeq.current += 1;
+    setLoading(false);
+    setPanel('analyses');
+  }
+
   async function layoutPatch(patch: Record<string, number>) {
-    if (!selected || selected.kind !== 'ok' || !dashboard) return;
+    const board = boardRef.current;
+    if (!selected || selected.kind !== 'ok' || !board) return;
     const layout = clampLayout(selected.layout, patch);
     await runPreview({
       op: 'layout',
       body: { op: 'layout', card_id: selected.card_id, layout },
-      key: `layout-${selected.card_id}-v${dashboard.version}`,
+      key: `layout-${selected.card_id}-v${board.version}`,
       label: '调整布局',
-    });
+    }, board);
   }
 
   return <>
@@ -265,7 +294,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
       .analytics-cockpit-card[data-selected="1"] { outline:2px solid currentColor; }
     `}</style>
     <dialog ref={dialogRef} className="analytics-b0-dialog analytics-cockpit-http" aria-labelledby="analytics-b0-heading"
-      data-testid="analytics-b0-dialog" data-http="CONNECTED" data-asset="1"
+      data-testid="analytics-b0-dialog" data-http="CONNECTED" data-asset="1" data-panel={panel}
+      data-dashboard-id={shown?.dashboard_id ?? ''}
       data-session={selectedSession ? '1' : '0'} data-preview={pending ? '1' : '0'}
       onCancel={event => { event.preventDefault(); requestClose(); }}
       onClose={afterClose}>
@@ -292,13 +322,13 @@ export function HttpAssetOverlay(props: OverlayProps) {
         onClick={() => props.detachSelection()}>脱离会话阅读</button>
       <div className="analytics-cockpit-toolbar">
         <button type="button" data-testid="analytics-asset-board" onClick={() => setPanel('board')}>驾驶舱</button>
-        <button type="button" data-testid="analytics-asset-analyses" onClick={() => setPanel('analyses')}>已保存分析</button>
+        <button type="button" data-testid="analytics-asset-analyses" onClick={showAnalyses}>已保存分析</button>
         <button type="button" data-testid="analytics-asset-refresh" onClick={() => void refresh()}>重新读取</button>
       </div>
       {loading && <p role="status">正在读取资产…</p>}
       {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
       {pending && <p className="analytics-b0-preview" data-testid="analytics-cockpit-preview">{pending.label} · 预览未保存</p>}
-      {panel === 'analyses' && <section data-testid="analytics-saved-analysis-view">
+      {panel === 'analyses' && <section data-panel="analyses" data-testid="analytics-saved-analysis-view">
         {analyses.length === 0
           ? <p data-testid="analytics-saved-analysis-empty">从一次成功查询保存分析后，可加入驾驶舱。</p>
           : <ul data-testid="analytics-saved-analysis-list">{analyses.map(item => <li key={item.analysis_id}>
@@ -308,14 +338,14 @@ export function HttpAssetOverlay(props: OverlayProps) {
               onClick={() => void addAnalysis(item)}>加入我的驾驶舱</button>
           </li>)}</ul>}
       </section>}
-      {panel === 'board' && <section data-testid="analytics-cockpit-view" data-http="CONNECTED">
+      {panel === 'board' && <section data-panel="board" data-testid="analytics-cockpit-view" data-http="CONNECTED">
         {!shown && <p data-testid="analytics-cockpit-empty">从已保存分析添加</p>}
         {shown && <p>版本 v{shown.version}{shown.preview ? ' · 预览' : ''}</p>}
         <div className="analytics-cockpit-toolbar">
           <button type="button" data-action="add" data-testid="analytics-cockpit-add"
-            onClick={() => setPanel('analyses')}>从已保存分析添加</button>
+            onClick={showAnalyses}>从已保存分析添加</button>
           <button type="button" data-testid="analytics-cockpit-save" disabled={!pending} onClick={() => void savePending()}>保存</button>
-          <button type="button" data-testid="analytics-cockpit-undo" onClick={() => void undoBoard()}>撤销整板</button>
+          {panel === 'board' && <button type="button" data-testid="analytics-cockpit-undo" onClick={() => void undoBoard()}>撤销整板</button>}
         </div>
         <div className="analytics-cockpit-grid" data-testid="analytics-cockpit-grid">
           {cards.map(card => card.kind === 'error'
@@ -324,8 +354,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
                 固定历史快照不可用：{card.message}
                 {card.card_id && <button type="button" data-testid={`analytics-remove-${card.card_id}`} onClick={() => void runPreview({
                   op: 'remove', body: { op: 'remove', card_id: card.card_id },
-                  key: `remove-${card.card_id}-v${dashboard?.version}`, label: '移除错误卡',
-                })}>移除板块</button>}
+                  key: `remove-${card.card_id}-v${boardRef.current?.version}`, label: '移除错误卡',
+                }, boardRef.current ?? undefined)}>移除板块</button>}
               </article>
             : <article key={card.card_id} className="analytics-b0-card analytics-query-card analytics-cockpit-card"
                 data-card-id={card.card_id} data-card-error="0" data-source="OK" data-observation-days={card.days}
@@ -342,13 +372,13 @@ export function HttpAssetOverlay(props: OverlayProps) {
                 <small>run {card.run_id} · 合成数据</small>
                 <p>
                   <button type="button" data-action="copy" onClick={event => { event.stopPropagation(); void runPreview({
-                    op: 'copy', body: { op: 'copy', card_id: card.card_id }, key: `copy-${card.card_id}-v${dashboard?.version}`,
+                    op: 'copy', body: { op: 'copy', card_id: card.card_id }, key: `copy-${card.card_id}-v${boardRef.current?.version}`,
                     label: '复制板块',
-                  }); }}>复制板块</button>
+                  }, boardRef.current ?? undefined); }}>复制板块</button>
                   <button type="button" data-action="remove" onClick={event => { event.stopPropagation(); void runPreview({
-                    op: 'remove', body: { op: 'remove', card_id: card.card_id }, key: `remove-${card.card_id}-v${dashboard?.version}`,
+                    op: 'remove', body: { op: 'remove', card_id: card.card_id }, key: `remove-${card.card_id}-v${boardRef.current?.version}`,
                     label: '移除板块',
-                  }); }}>移除板块</button>
+                  }, boardRef.current ?? undefined); }}>移除板块</button>
                 </p>
               </article>)}
         </div>

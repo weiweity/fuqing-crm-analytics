@@ -1,3 +1,10 @@
+## [0.6.2.0] - 2026-09-08
+
+### Fixed
+- 查询卡保存成功后，驾驶舱加入 4xx/409 只重试加入，不再第二次 POST `/b0/analyses`；分析仍在列表里。
+- 两个 CONNECTED overlay 实例各自钉住 `dashboard_id`，preview/save/undo 不串板。
+- 切到已保存分析面板后卸载撤销按钮，未挂载控件超时不再当成 overlay hang。产品仍 PARTIAL。
+
 ## [0.6.1.0] - 2026-09-08
 
 ### Changed

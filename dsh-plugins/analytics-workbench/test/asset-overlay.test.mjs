@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createEditor } from '../src/model.mjs';
+import { QUERY_TOOL_NAME } from '../src/query-model.mjs';
+import { QUERY_CARD_CASES } from './tool-card-harness.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(root, '../../.context/dsh-b0/upstream'));
@@ -19,6 +21,7 @@ const { JSDOM } = createRequire(join(upstream, 'node_modules/jsdom/package.json'
 const stores = await import(pathToFileURL(join(upstream, 'packages/client/store/lib/index.js')).href);
 const source = await readFile(join(root, 'lib/client.js'), 'utf8');
 const overlaySource = await readFile(join(root, 'src/client/asset-overlay.tsx'), 'utf8');
+const successBlock = QUERY_CARD_CASES.find(row => row.id === 'query-success').block;
 
 const card = {
   card_id: 'card_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -101,7 +104,7 @@ function restoreDom(previous) {
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
 
-function Shell({ Overlay, Footer, actionsRef }) {
+function Shell({ Overlay, Footer, actionsRef, QueryCard }) {
   const [snap, setSnap] = React.useState({
     open: true, confirmClose: false, editor: createEditor(), message: '',
   });
@@ -121,10 +124,13 @@ function Shell({ Overlay, Footer, actionsRef }) {
       detachSelection() {},
       restoreSelection() {},
     }),
+    QueryCard ? React.createElement(QueryCard, {
+      block: successBlock, callId: successBlock.callId, toolName: QUERY_TOOL_NAME,
+    }) : null,
   );
 }
 
-async function mountShell(fetchImpl) {
+async function mountShell(fetchImpl, options = {}) {
   let factory;
   const context = {
     window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } }, fetch: fetchImpl }),
@@ -151,15 +157,19 @@ async function mountShell(fetchImpl) {
   } } });
   const Overlay = registrations.find(row => row.options.name === 'shell.overlay')?.component;
   const Footer = registrations.find(row => row.options.name === 'sidebar.footer.action')?.component;
+  const QueryCard = registrations.find(row => row.options.key === QUERY_TOOL_NAME)?.component;
   assert.ok(Overlay && Footer);
+  if (options.withQueryCard) assert.ok(QueryCard);
   globalThis.fetch = fetchImpl;
   const actionsRef = { close: 0, requestClose: 0, keepEditing: 0, discard: 0 };
   const rootEl = globalThis.document.getElementById('root');
   const root = createRoot(rootEl);
   await act(() => {
-    root.render(React.createElement(Shell, { Overlay, Footer, actionsRef }));
+    root.render(React.createElement(Shell, {
+      Overlay, Footer, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null,
+    }));
   });
-  return { actionsRef, unmount: () => act(() => root.unmount()) };
+  return { actionsRef, Overlay, QueryCard, unmount: () => act(() => root.unmount()) };
 }
 
 async function waitFor(check) {
@@ -174,7 +184,8 @@ function connectedBoardFetch(options = {}) {
   const calls = [];
   let previewGate = options.previewGate ?? null;
   let currentBoard = options.board === undefined ? { ...board } : options.board;
-  const analyses = options.analyses ?? [];
+  const analyses = [...(options.analyses ?? [])];
+  const analysisDoc = options.analysisDoc ?? null;
   const previewStatus = options.previewStatus ?? 200;
   const saveStatus = options.saveStatus ?? 200;
   const previewOkBeforeConflict = options.previewOkBeforeConflict ?? 0;
@@ -187,6 +198,23 @@ function connectedBoardFetch(options = {}) {
     if (method === 'GET' && path === '/b0/dashboards') {
       if (!currentBoard) return jsonResponse(200, { items: [] });
       return jsonResponse(200, { items: [{ dashboard_id: currentBoard.dashboard_id, version: currentBoard.version }] });
+    }
+    if (method === 'POST' && path === '/b0/analyses') {
+      const status = options.analysisSaveStatus ?? 201;
+      if (status >= 400) {
+        return jsonResponse(status, options.analysisSaveError ?? { error: { code: 'UNPROCESSABLE', message: '保存失败。' } });
+      }
+      const doc = analysisDoc ?? {
+        schema_version: 'analytics-saved-analysis/v1',
+        analysis_id: 'analysis_saved',
+        version: 1,
+        title: '渠道后续购买',
+        observation_days: 30,
+        as_of: '2026-08-31T16:00:00.000000+00:00',
+        http_api: 'CONNECTED',
+      };
+      if (!analyses.some(row => row.analysis_id === doc.analysis_id)) analyses.push(doc);
+      return jsonResponse(status, doc);
     }
     if (method === 'GET' && path === '/b0/analyses') return jsonResponse(200, { items: analyses });
     if (method === 'POST' && path === '/b0/dashboards') {
@@ -206,15 +234,18 @@ function connectedBoardFetch(options = {}) {
       return jsonResponse(200, payload);
     }
     if (currentBoard && method === 'POST' && path === `/b0/dashboards/${currentBoard.dashboard_id}/versions`) {
-      if (saveStatus === 409) {
-        return jsonResponse(409, { error: { code: 'CONFLICT', message: '版本冲突。' } });
+      if (saveStatus >= 400) {
+        const payload = saveStatus === 409
+          ? { error: { code: 'CONFLICT', message: '版本冲突。' } }
+          : (options.saveError ?? { error: { code: 'UNPROCESSABLE', message: '驾驶舱保存失败。' } });
+        return jsonResponse(saveStatus, payload);
       }
       currentBoard = { ...currentBoard, version: currentBoard.version + 1, preview: false };
       return jsonResponse(201, currentBoard);
     }
     throw new Error(`unexpected ${method} ${path}`);
   };
-  return { calls, fetchImpl, setPreviewGate(gate) { previewGate = gate; } };
+  return { calls, fetchImpl, analyses, setPreviewGate(gate) { previewGate = gate; } };
 }
 
 test('RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds', async () => {
@@ -475,6 +506,232 @@ test('save 409 re-reads and does not keep the pending preview', async () => {
   await waitFor(() => statusText().includes('版本冲突，未覆盖。请读取当前驾驶舱后再试。')
     && !globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
   assert.ok(calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length > getsBeforeSave);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+function querySaveStatus() {
+  return globalThis.document.querySelector('[data-testid="analytics-query-save-status"]')?.textContent ?? '';
+}
+
+function dualBoardFetch(boardA, boardB) {
+  const boards = {
+    [boardA.dashboard_id]: { ...boardA },
+    [boardB.dashboard_id]: { ...boardB },
+  };
+  let listPrimary = boardA.dashboard_id;
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    const path = String(url);
+    const method = init.method ?? 'GET';
+    calls.push({ method, path, headers: init.headers ?? {}, body: init.body });
+    if (path === '/b0/assets') return jsonResponse(200, { http_api: 'CONNECTED', cockpit: true });
+    if (method === 'GET' && path === '/b0/analyses') return jsonResponse(200, { items: [] });
+    if (method === 'GET' && path === '/b0/dashboards') {
+      const row = boards[listPrimary];
+      return jsonResponse(200, { items: [{ dashboard_id: row.dashboard_id, version: row.version }] });
+    }
+    const match = path.match(/^\/b0\/dashboards\/([^/]+)(?:\/(preview|versions))?$/);
+    if (!match || !boards[match[1]]) throw new Error(`unexpected ${method} ${path}`);
+    const id = match[1];
+    if (method === 'GET' && !match[2]) return jsonResponse(200, boards[id]);
+    if (method === 'POST' && match[2] === 'preview') {
+      return jsonResponse(200, { ...boards[id], preview: true });
+    }
+    if (method === 'POST' && match[2] === 'versions') {
+      boards[id] = { ...boards[id], version: boards[id].version + 1, preview: false };
+      return jsonResponse(201, boards[id]);
+    }
+    throw new Error(`unexpected ${method} ${path}`);
+  };
+  return {
+    calls,
+    fetchImpl,
+    setListPrimary(id) { listPrimary = id; },
+  };
+}
+
+async function mountDualOverlays(fetchImpl) {
+  let factory;
+  const context = {
+    window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } }, fetch: fetchImpl }),
+    document: globalThis.document,
+    fetch: fetchImpl,
+    Event: globalThis.window.Event,
+    CustomEvent: globalThis.window.CustomEvent,
+    requestAnimationFrame: globalThis.window.requestAnimationFrame,
+    cancelAnimationFrame: globalThis.window.cancelAnimationFrame,
+  };
+  vm.runInNewContext(source, context, { timeout: 2000 });
+  const api = factory.factory(name => {
+    if (name === 'react') return React;
+    if (name === 'react/jsx-runtime') return webReq('react/jsx-runtime');
+    if (name === '@deepseek-ai/dsh-client-store') return stores;
+    throw new Error(`unexpected ${name}`);
+  });
+  const registrations = [];
+  api.apply({ effect: () => {}, sessions: {
+    list: { getSnapshot: () => ({ current: undefined, ids: [] }), subscribe: () => () => {} },
+    open() {}, clear() {},
+  }, slots: { inject: (_, fn) => fn(), register: (options, component) => {
+    registrations.push({ options, component }); return () => {};
+  } } });
+  const Overlay = registrations.find(row => row.options.name === 'shell.overlay')?.component;
+  assert.ok(Overlay);
+  globalThis.fetch = fetchImpl;
+  const host = { setCount: null };
+  function DualShell() {
+    const [count, setCount] = React.useState(1);
+    host.setCount = setCount;
+    const [snap] = React.useState({
+      open: true, confirmClose: false, editor: createEditor(), message: '',
+    });
+    const actions = {
+      close() {}, requestClose() {}, keepEditing() {}, discardAndClose() {}, open() {},
+    };
+    const nodes = [];
+    for (let i = 0; i < count; i++) {
+      nodes.push(React.createElement('div', { key: String(i), 'data-overlay-instance': String(i) },
+        React.createElement(Overlay, {
+          useStore: selector => selector(snap),
+          actions,
+          useSessions: selector => selector({ current: i === 0 ? 'session-a' : 'session-b' }),
+          detachSelection() {},
+          restoreSelection() {},
+        })));
+    }
+    return React.createElement(React.Fragment, null, ...nodes);
+  }
+  const rootEl = globalThis.document.getElementById('root');
+  const root = createRoot(rootEl);
+  await act(() => { root.render(React.createElement(DualShell)); });
+  return {
+    async addSecond() {
+      await act(() => { host.setCount(2); });
+    },
+    unmount: () => act(() => root.unmount()),
+  };
+}
+
+function instanceDialog(index) {
+  return globalThis.document.querySelector(`[data-overlay-instance="${index}"] [data-testid="analytics-b0-dialog"]`);
+}
+
+function boardWrites(calls) {
+  return calls.filter(row => row.method === 'POST' && /\/b0\/dashboards\/[^/]+\/(preview|versions)$/.test(row.path));
+}
+
+test('save 201 then dashboard 4xx/409 does not POST a second analysis', async () => {
+  const { previous } = installDom();
+  const analysisDoc = {
+    schema_version: 'analytics-saved-analysis/v1',
+    analysis_id: 'analysis_keep_first',
+    version: 1,
+    title: '渠道后续购买',
+    observation_days: 30,
+    as_of: '2026-08-31T16:00:00.000000+00:00',
+    http_api: 'CONNECTED',
+  };
+  const { calls, fetchImpl } = connectedBoardFetch({ saveStatus: 409, analysisDoc });
+  const mounted = await mountShell(fetchImpl, { withQueryCard: true });
+  await waitFor(() => globalThis.document.querySelector('[data-http="CONNECTED"]'));
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-query-save-button"]'));
+  const save = globalThis.document.querySelector('[data-testid="analytics-query-save-button"]');
+  const join = globalThis.document.querySelector('[data-testid="analytics-query-join-button"]');
+  await act(async () => { save.click(); await delay(20); });
+  await waitFor(() => querySaveStatus().includes('已保存当前口径'));
+  assert.equal(save.disabled, true);
+  await act(async () => { join.click(); await delay(20); });
+  await waitFor(() => querySaveStatus().includes('分析已保存；加入驾驶舱失败'));
+  await act(async () => { save.click(); join.click(); await delay(20); });
+  const analysisPosts = calls.filter(row => row.method === 'POST' && row.path === '/b0/analyses');
+  assert.equal(analysisPosts.length, 1);
+  const listed = await fetchImpl('/b0/analyses');
+  const payload = await listed.json();
+  assert.equal(payload.items.length, 1);
+  assert.equal(payload.items[0].analysis_id, analysisDoc.analysis_id);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('two overlay instances keep preview save undo on their own dashboard_id', async () => {
+  const { previous } = installDom();
+  const boardA = { ...board, dashboard_id: 'dashboard_session_a', version: 4 };
+  const boardB = { ...board, dashboard_id: 'dashboard_session_b', version: 7 };
+  const { calls, fetchImpl, setListPrimary } = dualBoardFetch(boardA, boardB);
+  const mounted = await mountDualOverlays(fetchImpl);
+  await waitFor(() => instanceDialog(0)?.getAttribute('data-http') === 'CONNECTED'
+    && instanceDialog(0)?.getAttribute('data-dashboard-id') === boardA.dashboard_id);
+  setListPrimary(boardB.dashboard_id);
+  await mounted.addSecond();
+  await waitFor(() => instanceDialog(1)?.getAttribute('data-http') === 'CONNECTED'
+    && instanceDialog(1)?.getAttribute('data-dashboard-id') === boardB.dashboard_id);
+  assert.equal(instanceDialog(0).getAttribute('data-dashboard-id'), boardA.dashboard_id);
+
+  const beforeA = boardWrites(calls).length;
+  await act(async () => {
+    instanceDialog(0).querySelector('[data-testid="analytics-cockpit-undo"]').click();
+    await delay(20);
+  });
+  await waitFor(() => boardWrites(calls).length > beforeA);
+  const undoA = boardWrites(calls).at(-1);
+  assert.equal(undoA.path, `/b0/dashboards/${boardA.dashboard_id}/preview`);
+  assert.equal(undoA.headers['if-match'], String(boardA.version));
+  assert.equal(JSON.parse(undoA.body).op, 'undo');
+
+  await act(async () => {
+    instanceDialog(0).querySelector('[data-testid="analytics-cockpit-save"]').click();
+    await delay(20);
+  });
+  await waitFor(() => boardWrites(calls).some(row => row.path === `/b0/dashboards/${boardA.dashboard_id}/versions`));
+  const saveA = boardWrites(calls).find(row => row.path === `/b0/dashboards/${boardA.dashboard_id}/versions`);
+  assert.equal(saveA.headers['if-match'], String(boardA.version));
+  assert.equal(boardWrites(calls).some(row => row.path.includes(boardB.dashboard_id)), false);
+
+  const beforeB = boardWrites(calls).length;
+  await act(async () => {
+    instanceDialog(1).querySelector('[data-action="copy"]').click();
+    await delay(20);
+  });
+  await waitFor(() => boardWrites(calls).length > beforeB);
+  const previewB = boardWrites(calls).at(-1);
+  assert.equal(previewB.path, `/b0/dashboards/${boardB.dashboard_id}/preview`);
+  assert.equal(previewB.headers['if-match'], String(boardB.version));
+
+  await act(async () => {
+    instanceDialog(1).querySelector('[data-testid="analytics-cockpit-save"]').click();
+    await delay(20);
+  });
+  await waitFor(() => boardWrites(calls).some(row => row.path === `/b0/dashboards/${boardB.dashboard_id}/versions`));
+  const aWrites = boardWrites(calls).filter(row => row.path.includes(`/b0/dashboards/${boardA.dashboard_id}/`));
+  const bWrites = boardWrites(calls).filter(row => row.path.includes(`/b0/dashboards/${boardB.dashboard_id}/`));
+  assert.ok(aWrites.length >= 2);
+  assert.ok(bWrites.length >= 2);
+  assert.equal(aWrites.every(row => !row.path.includes(boardB.dashboard_id)), true);
+  assert.equal(bWrites.every(row => !row.path.includes(boardA.dashboard_id)), true);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('analyses panel sets data-panel=analyses, omits undo, and does not claim overlay hung', async () => {
+  const { previous } = installDom();
+  const { fetchImpl } = connectedBoardFetch();
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]'));
+  const dialog = globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]');
+  assert.equal(dialog.getAttribute('data-panel'), 'board');
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-asset-analyses"]').click();
+    await delay(10);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-saved-analysis-view"]'));
+  assert.equal(dialog.getAttribute('data-panel'), 'analyses');
+  assert.ok(globalThis.document.querySelector('[data-panel="analyses"]'));
+  assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]'), null);
+  const text = globalThis.document.documentElement?.textContent ?? '';
+  assert.doesNotMatch(text, /overlay hung/i);
+  assert.doesNotMatch(text, /hung/i);
+  assert.doesNotMatch(text, /卡死/);
   mounted.unmount();
   restoreDom(previous);
 });

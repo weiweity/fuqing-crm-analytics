@@ -117,53 +117,71 @@ export function QueryToolCard(props: ToolCallViewProps) {
   </div>;
 }
 
+type SavePhase = 'idle' | 'saving' | 'saved' | 'joining' | 'joined' | 'join-error';
+
 function QuerySaveActions({ runId, days }: { runId: string; days: number }) {
   const [available, setAvailable] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'saving' | 'saved' | 'joining' | 'joined' | 'join-error'>('idle');
+  const [phase, setPhase] = useState<SavePhase>('idle');
   const [analysis, setAnalysis] = useState<{ analysis_id: string; version: number } | null>(null);
   const [status, setStatus] = useState('');
   const joinAttempt = useRef<{ dashboardId: string; key: string; etag: number } | null>(null);
+  const phaseRef = useRef<SavePhase>('idle');
+  const analysisRef = useRef<{ analysis_id: string; version: number } | null>(null);
   useEffect(() => { void probeAssetHttp().then(setAvailable); }, [runId]);
   if (!available) return null;
 
+  function go(next: SavePhase) {
+    phaseRef.current = next;
+    setPhase(next);
+  }
+
+  const saveLocked = analysis !== null || phase === 'saving' || phase === 'joining'
+    || phase === 'saved' || phase === 'join-error' || phase === 'joined';
+
   async function save() {
-    if (phase === 'saving' || phase === 'joining') return;
-    setPhase('saving');
+    // A successful POST /b0/analyses must not be repeated after join 4xx/409.
+    if (analysisRef.current || phaseRef.current === 'saving' || phaseRef.current === 'joining'
+      || phaseRef.current === 'saved' || phaseRef.current === 'join-error' || phaseRef.current === 'joined') {
+      return;
+    }
+    go('saving');
     try {
       const title = `渠道后续购买 N=${days}`;
       const row = await assetRequest('/b0/analyses', {
         method: 'POST', body: { created_from_run_id: runId, title }, key: `save-${runId}`,
       });
       if (row.status !== 201 && row.status !== 200) {
-        setPhase('idle');
+        go('idle');
         setStatus(decodeAssetError(row.payload).message);
         return;
       }
       if (typeof row.payload?.analysis_id !== 'string' || typeof row.payload?.version !== 'number') {
-        setPhase('idle');
+        go('idle');
         setStatus('资产请求失败。');
         return;
       }
       const saved = { analysis_id: row.payload.analysis_id, version: row.payload.version };
+      analysisRef.current = saved;
       setAnalysis(saved);
-      setPhase('saved');
+      go('saved');
       setStatus('已保存当前口径和本次快照。不附带营销批准。');
       window.dispatchEvent(new CustomEvent('analytics-asset-changed'));
     } catch {
-      setPhase('idle');
+      go('idle');
       setStatus('资产请求失败。');
     }
   }
 
   async function join() {
-    if (!analysis || phase === 'joining' || phase === 'joined') return;
-    setPhase('joining');
+    const saved = analysisRef.current;
+    if (!saved || phaseRef.current === 'joining' || phaseRef.current === 'joined') return;
+    go('joining');
     try {
-      let attempt = phase === 'join-error' ? joinAttempt.current : null;
+      let attempt = joinAttempt.current;
       if (!attempt) {
         const listed = await assetRequest('/b0/dashboards');
         if (listed.status !== 200) {
-          setPhase('join-error');
+          go('join-error');
           setStatus(`分析已保存；加入驾驶舱失败。${decodeAssetError(listed.payload).message}`);
           return;
         }
@@ -173,7 +191,7 @@ function QuerySaveActions({ runId, days }: { runId: string; days: number }) {
             method: 'POST', body: { title: '我的驾驶舱' }, key: 'board-owner',
           });
           if (created.status !== 200 && created.status !== 201) {
-            setPhase('join-error');
+            go('join-error');
             setStatus(decodeAssetError(created.payload).message);
             return;
           }
@@ -182,9 +200,9 @@ function QuerySaveActions({ runId, days }: { runId: string; days: number }) {
         const dashboardId = dashboard?.dashboard_id;
         const version = dashboard?.version;
         const key = typeof dashboardId === 'string' && typeof version === 'number'
-          ? addIntentKey(analysis.analysis_id, analysis.version, version) : null;
+          ? addIntentKey(saved.analysis_id, saved.version, version) : null;
         if (typeof dashboardId !== 'string' || typeof version !== 'number' || !key) {
-          setPhase('join-error');
+          go('join-error');
           setStatus('分析已保存；加入驾驶舱失败。资产请求失败。');
           return;
         }
@@ -193,39 +211,45 @@ function QuerySaveActions({ runId, days }: { runId: string; days: number }) {
       }
       const added = await assetRequest(`/b0/dashboards/${attempt.dashboardId}/versions`, {
         method: 'POST',
-        body: { op: 'add', analysis_ref: { analysis_id: analysis.analysis_id, version: analysis.version } },
+        body: { op: 'add', analysis_ref: { analysis_id: saved.analysis_id, version: saved.version } },
         key: attempt.key,
         etag: attempt.etag,
       });
       if (added.status === 409) {
         const current = await assetRequest(`/b0/dashboards/${attempt.dashboardId}`);
-        if (dashboardContainsAnalysis(current.payload, analysis.analysis_id, analysis.version)) {
-          setPhase('joined');
+        if (dashboardContainsAnalysis(current.payload, saved.analysis_id, saved.version)) {
+          go('joined');
           setStatus('已加入我的驾驶舱。');
           window.dispatchEvent(new CustomEvent('analytics-asset-changed'));
           return;
         }
-        joinAttempt.current = null;
-        setPhase('join-error');
+        const decoded = decodeHttpDashboard(current.payload);
+        if (decoded) {
+          const nextKey = addIntentKey(saved.analysis_id, saved.version, decoded.version);
+          if (nextKey) {
+            joinAttempt.current = { dashboardId: decoded.dashboard_id, key: nextKey, etag: decoded.version };
+          }
+        }
+        go('join-error');
         setStatus(`分析已保存；加入驾驶舱失败。${decodeAssetError(added.payload).message}`);
         return;
       }
       if (added.status !== 200 && added.status !== 201) {
-        setPhase('join-error');
+        go('join-error');
         setStatus(`分析已保存；加入驾驶舱失败。${decodeAssetError(added.payload).message}`);
         return;
       }
-      setPhase('joined');
+      go('joined');
       setStatus('已加入我的驾驶舱。');
       window.dispatchEvent(new CustomEvent('analytics-asset-changed'));
     } catch {
-      setPhase('join-error');
+      go('join-error');
       setStatus('分析已保存；加入驾驶舱失败。资产请求失败。');
     }
   }
 
   return <div data-testid="analytics-query-save">
-    <button type="button" data-testid="analytics-query-save-button" disabled={phase === 'saving' || phase === 'joining'}
+    <button type="button" data-testid="analytics-query-save-button" disabled={saveLocked}
       onClick={() => { void save(); }}>保存分析</button>
     <button type="button" data-testid="analytics-query-join-button"
       disabled={!analysis || phase === 'joining' || phase === 'joined'} onClick={() => { void join(); }}>加入我的驾驶舱</button>
