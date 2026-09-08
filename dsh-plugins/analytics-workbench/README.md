@@ -5,14 +5,15 @@
 ## 实际能力与边界
 
 - 根 Host 入口 `lib/index.js` 同时提供 UI discover 与私有原生协议桥，不登记工具、不保存业务账本或循环调用模型。桥只接受本次运行能力，返回原请求关联的原生日志及 `whenIdle + flush` 退出证据。
-- 独立 `lib/tool.js` 默认登记 `analytics_b0_query`，参数只有 `{"query":"channel_repeat_rate"}`。从可信原生 call/turn 查找原 requestId，在 FastAPI 预留步骤后取得固定 `STUB / SYNTHETIC_FIXTURE`：100 位合成客户、25 位复购、25%，日期 2026-09-01。调用私有 loopback 接口；无 SQL、真实文件查询、任意网络或本地备用结果路径。`B0_RUNTIME_FAMILY=channel_followup` 时改为登记 `analytics_channel_followup_query`（完整 G2 请求，固定 `/internal/native/channel-followup`，输出 typed receipt）。浏览器卡片仍只服务 B0 fixture，G4b 未做。
+- 独立 `lib/tool.js` 默认登记 `analytics_b0_query`，参数只有 `{"query":"channel_repeat_rate"}`。从可信原生 call/turn 查找原 requestId，在 FastAPI 预留步骤后取得固定 `STUB / SYNTHETIC_FIXTURE`：100 位合成客户、25 位复购、25%，日期 2026-09-01。调用私有 loopback 接口；无 SQL、真实文件查询、任意网络或本地备用结果路径。`B0_RUNTIME_FAMILY=channel_followup` 时改为登记 `analytics_channel_followup_query`（完整 G2 请求，固定 `/internal/native/channel-followup`，输出 typed receipt）。B0 fixture 工具卡仍保留；渠道后续购买查询卡见 G4b，资产保存见 `--native-query-assets`。
 - 独立 `lib/skills.js` 默认注册固定 `growth-analysis-b0` 及精确资源工具；整包包含 `SKILL.md`、证据引用与无数字示例，`skill-package.lock.json` 冻结全部字节。query-mode 另有不可变 `channel-followup-query` 包与 `query-skill-package.lock.json`。构建拒绝越界、软/硬链接、额外文件/脚本、超限和引用漂移；运行时读取不可变快照。每步与方法读取都回查后端权限、版本和预算，不新增通用文件工具或 Agent loop。
 - 客户端登记品牌 `sidebar.brand.mark/name` 及原四项 `sidebar.footer.action`、`shell.overlay`、`tool.call.toolview`、`conversation.input.dock`；品牌单槽使用 `priority:-10` 先于上游默认贡献，不修改上游代码。等待 owner 声明后登记；两个 root 插槽共享 `defineStore`。任务状态栏只读 FastAPI 投影，展示最近三个 run 的状态、阶段和步数；断线明确标记旧快照，刷新不重新提交。
 - UI-B01 最小适配：客户端只在 `ctx.sessions.list.phase === 'ready'` 且指定 `session-b0-synthetic-primary` 同时存在于 Host `ids/byId` 时，通过公开 `ctx.sessions.open(id)` 自动选中一次。不会调用 `create`、操作 DOM、选任意其他会话，或在用户后续切换时抢回焦点；目标缺失继续等待，选择失败只报告一次并无 fallback。每次插件重新加载/页面刷新会重新校验，这是 B0 固定主会话接缝，不是业务 run 自动受理实现。
-- “我的驾驶舱 · B0”打开一份源码内置的合成资产，不依赖活动会话/模型。只支持一个板块的手工标题预览、应用、撤销未应用草稿与页面刷新恢复；不是 AI 局部编辑实现，也不是完整可组装驾驶舱。
-- localStorage 仅存 `analytics-b0-ui/v1 + title` 两字段。数据仍为源码 fixture；不缓存授权、身份、结果或业务资产。存储失败有明确提示。没有跨浏览器、多用户权限、后端持久化或数据刷新。
+- 默认“我的驾驶舱 · B0”打开源码内置 finite mock：一个板块的手工标题预览、应用、撤销未应用草稿与页面刷新恢复；不依赖活动会话/模型。不是 AI 局部编辑，也不是完整可组装驾驶舱。
+- 仅当 `serve.mjs --native-query-assets` 且 GET `/b0/assets` 返回 `http_api=CONNECTED` 时，同一入口改走 HTTP overlay：列出已保存 SNAPSHOT，对唯一私人驾驶舱 add/copy/remove/layout/preview/undo。浏览器不带 backend bearer；GET 列表不自动建板。kernel 不可用时 `/b0/assets` 为 `UNAVAILABLE`，不报 CONNECTED，入口回退 mock。
+- mock 路径的 localStorage 仅存 `analytics-b0-ui/v1 + title` 两字段，不缓存授权、身份、结果或业务资产。HTTP overlay 的权威资产在独立 SQLite（`analyses/` 与 `cockpit/`）；分析库读取与驾驶舱写入是先后事务，不是跨库原子。
 - 驾驶舱可经公开 `sessions.clear()` 脱离当前会话，关闭时仅恢复仍存在的原选择，不创建/删除/取消会话；未应用草稿退出需确认，Tab 双向保持在弹层、关闭后归还固定入口焦点。原始品牌静态路径与完整条件往返标本由固定网关服务；后者不是实际同条件 BI，不加载旧 Vue/Pinia。
-- 工具卡只读取 `block.meta` 的精确版本化 fixture；处理中/失败/未知格式分开。不会从模型文本猜结果成功，不开放保存、导出或审批。
+- 工具卡只读取 `block.meta` 的精确版本化结果；处理中/失败/未知格式分开，不从模型文本猜成功。默认不开放保存、导出或审批。`--native-query-assets` 下可将 SUCCEEDED 查询保存为 SNAPSHOT 并加入驾驶舱；仍无导出/审批。“停止查询”取消当前卡片所属会话，不取页面第一个 `data-session-id`。
 
 ## 固定构建与验证
 

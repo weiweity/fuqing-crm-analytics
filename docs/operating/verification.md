@@ -39,11 +39,11 @@ python3 scripts/run_backend_tests_bounded.py backend/tests/test_local_demo_acces
 
 包含 B0/Vue 的检查会先核对 Node 24，再运行耗时步骤；手工入口可用 `--node /absolute/node` 选择已有解释器。Git hook 继承调用 shell 的 PATH，需要在该次操作中选用已有 Node 24，不自动安装或修改全局版本。
 
-B0 独立入口：`node scripts/dsh-b0/pipeline.mjs --check --python /absolute/python3.14`。`--prepare` 会下载固定上游和安装构建依赖，属于另一个明确动作。插件 `package.json` 的 `test` 是部分源测试便捷入口，`test:built` 也只有一个子集，均不能作为完整 B0 通过声明。旧 Vue 的依赖由 `frontend-vue3/package-lock.json` 管理，B0 的固定版本由 toolchain/自身锁管理，旧后端由 requirements-lock 管理；此轮未升级依赖。
+B0 独立入口：`node scripts/dsh-b0/pipeline.mjs --check --python /absolute/python3.14`。`--prepare` 会下载固定上游和安装构建依赖，属于另一个明确动作。插件 `package.json` 的 `test` 是部分源测试便捷入口，`test:built` 也只有一个子集，均不能作为完整 B0 通过声明。原生查询资产需显式 `node scripts/dsh-b0/serve.mjs --python /absolute/python3.14 --native-query-assets`，不替代默认 `--native-query`。离线分析/驾驶舱合同用 `scripts/dsh-b0/analysis-contract.mjs` 与 `cockpit-contract.mjs`，不启动旧 CRM。旧 Vue 的依赖由 `frontend-vue3/package-lock.json` 管理，B0 的固定版本由 toolchain/自身锁管理，旧后端由 requirements-lock 管理；此轮未升级依赖。
 
 已有固定版本工具链可通过环境变量 `B0_BUILD_UPSTREAM=/absolute/prepared/upstream` 供 `--check` 只读复用。仍强制验证上游 SHA、锁文件、SDK 与类型版本；不下载、不升级。该覆盖不允许用于 `--prepare`。
 
-未接入入口的保存分析/驾驶舱组件也必须独立通过类型检查、编译后 DOM 测试与干净重建。
+保存分析/驾驶舱的 finite mock 组件仍须独立通过类型检查、编译后 DOM 测试与干净重建。HTTP CONNECTED overlay 另有 `query-card-save`、`asset-overlay`、`native-query-assets-smoke` 与独立 analysis/cockpit HTTP 测试；默认查询入口不带资产能力。
 
 ## 提交内容与历史审计
 
