@@ -4,7 +4,7 @@
 
 > **价值定稿（2026-09-05）**：已确认让老板拍板一个有边界的天猫内部跨渠道客户增长试点，主线是“渠道 × 首购商品 × 后续购买”。见 [CEO 价值与首版决策方案](./docs/hackathon/CEO-VALUE-PLAN.md)（用户已批准定稿，APPROVED）。统一分析工作台方向保留；用户已确认保留 DSH 原生 UI，详见 [DSH 交互设计](./docs/hackathon/DSH-UI-INTERACTION-SPEC.md)。原生 UI 的集成、运行时与模型仍待验证，公网部署继续暂缓。
 
-> **当前总待办（2026-09-08）**：[方案收口清单](./docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md)仍管产品/仓/多人顺序。`origin/main` 已合入 v0.6.0.0 查询资产驾驶舱（#100）及 #85–#99 / #92；开放 PR 为 0。B0 已接 DSH 原生查询与 opt-in `--native-query-assets` overlay，产品仍 PARTIAL。约千万行、10 人使用仍是规划输入。公网部署继续暂缓。
+> **当前总待办（2026-09-08）**：[方案收口清单](./docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md)仍管产品/仓/多人顺序。`origin/main` 已合入 v0.6.0.0 查询资产驾驶舱（#100）及 #85–#99 / #92。本分支 v0.6.1.0 补 overlay 撤销整板/加入/无板创建/409 编译后 DOM；开放 PR 为 0。B0 已接 DSH 原生查询与 opt-in `--native-query-assets` overlay，产品仍 PARTIAL。约千万行、10 人使用仍是规划输入。公网部署继续暂缓。
 
 ---
 

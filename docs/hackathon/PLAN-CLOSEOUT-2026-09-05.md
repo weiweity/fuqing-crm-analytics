@@ -1,12 +1,12 @@
 # 方案收口与总待办：产品、架构、数仓、ETL
 
-初版日期：2026-09-05；执行更新：2026-09-08。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。`origin/main` = `5e382db`，开放 PR 0。
+初版日期：2026-09-05；执行更新：2026-09-08。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。`origin/main` = `1a785d1`（v0.6.0.0）。本分支 v0.6.1.0 overlay 测试，尚无 PR。开放 PR 0。
 
 初版响应“整理待办、先收尾、拉 Git 分支，再讨论未收口计划”，后续按用户确认续完 D1–D4 并进入最小 B0 实施。**方案收口不等于整个实现/运行验收完成。** 本文是当前任务顺序与状态入口；原商业、交互、合同、评审和测试文档继续各自负责细节，不另起一套 autoplan。
 
 **8 小时 Goal（2026-09-07 当时口径；2026-09-08 已合入）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)。当时只做本地 synthetic G0–G5，不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`。**之后**已 squash 合入 #100（v0.6.0.0 驾驶舱）及 #85–#99、#92；远程功能分支已删。仍未授权公网部署。历史「未获 Git 授权」只描述当时当轮，不能当现在的指令。
 
-历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。原 Mission 演示 8000/5173 保持。
+历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。本分支 v0.6.1.0 补 overlay 撤销整板/加入/无板创建/409 编译后 DOM。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。原 Mission 演示 8000/5173 保持。
 
 ## 1. 已确定，不再重复讨论
 
@@ -125,14 +125,14 @@ Hermes 多运行时、自由组队/工作流、自进化、长期记忆自动写
 
 ## 10. Git 与文档交付规则
 
-- **当前（2026-09-08）**：`origin/main` = `5e382db`。#100 与 #85–#99、#92 已 squash 合入并删远程功能分支。开放 PR 0。仍未授权公网部署。下文各条是当时快照，不得当作现在的 HEAD。
+- **当前（2026-09-08）**：`origin/main` = `1a785d1`（#101）。#100 与 #85–#99、#92 已 squash 合入。本分支 `test/cockpit-overlay-gap` = v0.6.1.0 overlay 测试，尚无 PR。开放 PR 0。仍未授权公网部署。下文各条是当时快照，不得当作现在的 HEAD。
 - **G0 修复记录时点（保留）**：当时分支 `codex/b0-t09-delivery`，HEAD `26960bb`；T09 16 个文件当时仍 dirty。该快照已被 P1 `bd6d8fe` / PR #69 取代，不得再当作当前「T09 未提交」。
 - **Goal 启动基线（保留）**：当时工作分支 `codex/b0-native-fault-validation`，HEAD `c5b156636326d026b096ca4d7f6ea6c26945c91d`；4 份规划材料当时 untracked。该快照已被 P0 `26960bb` 取代，不得再当作当前 HEAD。
 - **历史（2026-09-05/06 方案收口当时）**：已创建本地续接分支 `codex/architecture-warehouse-plan-closeout`，当时 HEAD 为 `de2d785f4e0c7abe7fcd8fbb39be7d8c5a0c9642`，沿用现有 worktree，保留历史未提交改动。2026-09-06 只读实查：远端 `main` 与本地 `origin/main` 同为 `89d342355b65e79418964780ec4e1b2f80b7ca02`，当时领先 13 / 落后 0；该分支当时无 upstream、远端同名分支或 PR。那次没有 fetch/merge/重置、提交或推送。该快照已被后续 PR #67 取代，不得再当作当前远端状态。
 - 分支只增加进度指针，**不是提交或未提交文件备份**。旧 Vue/登录/Mission、B0 与本地性能改动不整体打包提交，不清理、不 stash/reset。
 - 后续审阅单元：数据合同与回归 → ETL/共享特征 → 产品纵向链 → 对应验证。提交、推送和合并仍分别遵守**当时或当轮**授权。Goal 当时的小 PR 队列已经合入 `main`。
 - 实施时同步主合同、生成类型、测试与 API 用法；不得把目标路径、设计图或 mock 截图写成可调用/已部署。图表结构修改同步四件套，旧审计与失败记录保留。
-- 本文整合待办，不修改其他历史 gstack 评审等级；本次[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)四节静态审核已完成，D1–D4 确认。G0–G5 源码已在 `main`。下一步不是重跑历史 B0 清单，也不是默认进入 B1–B4 完整产品。旧 PARTIAL、驾驶舱测试 GAP、W4/W5 与公网提交仍开放；不重跑 CEO 商业讨论。
+- 本文整合待办，不修改其他历史 gstack 评审等级；本次[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)四节静态审核已完成，D1–D4 确认。G0–G5 源码已在 `main`。下一步不是重跑历史 B0 清单，也不是默认进入 B1–B4 完整产品。旧 PARTIAL、W4/W5 与公网提交仍开放。v0.6.1.0 已补 overlay 撤销整板/加入/无板创建/409 编译后 DOM，产品仍 PARTIAL；不重跑 CEO 商业讨论。
 
 初次收口验证（历史记录，不是本次 D4 运行证据）：13 份新增/更新文档的 172 个本地文件引用均存在，文档 diff/新增文件空白检查通过；当时增量记录的末节和 NOT_CLEARED 标记保留。建分支前后 121 个脏文件的路径/内容汇总 hash 一致，HEAD 未变，范围外已跟踪改动及暂存区 diff hash 未变。该次没有提交、推送、应用测试、真实库或 ETL 操作。
 

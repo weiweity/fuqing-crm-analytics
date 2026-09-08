@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-08 `main` 已合入 v0.6.0.0 查询资产驾驶舱；开放 PR 0。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-08 本分支 v0.6.1.0 overlay 编译后 DOM（undo/add/createBoard/409）；`origin/main` 仍为 v0.6.0.0。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 
