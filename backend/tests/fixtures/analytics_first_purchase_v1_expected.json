@@ -1,0 +1,254 @@
+{
+  "schema_version": "analytics-first-purchase-path/v1",
+  "computation": "NOT_RUN",
+  "method": "hand_calculated",
+  "hand_calculated": true,
+  "not_generated_from_compute": true,
+  "display_name": "首购商品路径 / N日正装转化",
+  "fixture_id": "analytics_first_purchase_v1",
+  "permission_scope": "synthetic-demo",
+  "request": {
+    "schema_version": "analytics-first-purchase-path/v1",
+    "query_id": "first_purchase_product_path",
+    "query_version": "first-purchase-path-query/v1",
+    "metric_id": "first_purchase_product_n_day_finished",
+    "metric_version": "first-purchase-path-metric/v1",
+    "cohort_window": {
+      "kind": "FIXED",
+      "start_date": "2026-06-01",
+      "end_date": "2026-09-01"
+    },
+    "observation_days": 30,
+    "data_snapshot_ref": "synthetic-first-purchase-v1",
+    "timezone": "Asia/Shanghai",
+    "channel_ids": [],
+    "cohort_ref": null,
+    "product_ids": [],
+    "exclude_low_price": false,
+    "comparison": null
+  },
+  "result": {
+    "schema_version": "analytics-first-purchase-path/v1",
+    "answer_mode": "DETERMINISTIC_TOOL",
+    "query_id": "first_purchase_product_path",
+    "query_version": "first-purchase-path-query/v1",
+    "metric_id": "first_purchase_product_n_day_finished",
+    "metric_version": "first-purchase-path-metric/v1",
+    "data_version": "synthetic-first-purchase-data/v1",
+    "hash_version": "first-purchase-path-filter-hash/v1",
+    "contains_real_data": false,
+    "data_source": "SYNTHETIC_SNAPSHOT",
+    "data_snapshot_ref": "synthetic-first-purchase-v1",
+    "as_of": "2026-08-31T16:00:00.000000+00:00",
+    "resolved_filters": {
+      "schema_version": "analytics-first-purchase-path/v1",
+      "query_id": "first_purchase_product_path",
+      "query_version": "first-purchase-path-query/v1",
+      "metric_id": "first_purchase_product_n_day_finished",
+      "metric_version": "first-purchase-path-metric/v1",
+      "data_version": "synthetic-first-purchase-data/v1",
+      "hash_version": "first-purchase-path-filter-hash/v1",
+      "cohort_window_kind": "FIXED",
+      "resolved_cohort_start": "2026-05-31T16:00:00.000000+00:00",
+      "resolved_cohort_end": "2026-08-31T16:00:00.000000+00:00",
+      "observation_days": 30,
+      "data_snapshot_ref": "synthetic-first-purchase-v1",
+      "as_of": "2026-08-31T16:00:00.000000+00:00",
+      "timezone": "Asia/Shanghai",
+      "channel_ids": [
+        "A",
+        "B"
+      ],
+      "cohort_ref": null,
+      "product_ids": [],
+      "exclude_low_price": false,
+      "comparison": null,
+      "permission_scope": "synthetic-demo",
+      "data_digest": "147bf33c1966faef1ca6935663616b9ac376c5bb374bf842780487989477ae9b",
+      "filter_hash": "4720204f2c7d4a9157fbef1cda1c50f71c6cbd3b51742efd79d23e7b91ce09d2"
+    },
+    "filter_hash": "4720204f2c7d4a9157fbef1cda1c50f71c6cbd3b51742efd79d23e7b91ce09d2",
+    "status": "OK",
+    "reason_code": null,
+    "missing_product_ids": [],
+    "facts": {
+      "display_name": "首购商品路径 / N日正装转化",
+      "currency": "CNY",
+      "amount_unit": "minor",
+      "amount_precision": "integer_fen",
+      "observation_days": 30,
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 9,
+      "cohort_immature_count": 1,
+      "products": [
+        {
+          "product_id": "sku-f1",
+          "role": "finished",
+          "enrolled_count": 1,
+          "mature_count": 1,
+          "immature_count": 0,
+          "finished_conversion_count": 0,
+          "finished_conversion_ratio": 0.0,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s1",
+          "role": "sample",
+          "enrolled_count": 6,
+          "mature_count": 5,
+          "immature_count": 1,
+          "finished_conversion_count": 3,
+          "finished_conversion_ratio": 0.6,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s2",
+          "role": "sample",
+          "enrolled_count": 3,
+          "mature_count": 3,
+          "immature_count": 0,
+          "finished_conversion_count": 1,
+          "finished_conversion_ratio": 0.3333333333333333,
+          "empty_reason": null
+        }
+      ]
+    },
+    "limitations": [
+      "synthetic 候选口径：首购商品路径 / N日正装转化，不是真实获客、终身复购或会计批准。",
+      "每用户按全历史最早有效订单入组一次；本族按该首单去重商品行展开，展开行之和不是独立人数。",
+      "正装转化只计观察窗内、排序晚于首单的另一有效订单上的 finished 角色 SKU，不含首单同篮。",
+      "商品角色映射缺失时整单拒绝（MISSING_PRODUCT_ROLE），facts 为 null，不得输出转化率。",
+      "空成熟分母的比例为 null + EMPTY_MATURE_COHORT，不得写 0。",
+      "filter_hash 只证明规范化 payload 自洽，不是权限凭证。",
+      "整数 wire 字段上限 9007199254740991 是 JSON/JS 安全整数传输约束，不是经营阈值。"
+    ]
+  },
+  "windows": {
+    "30": {
+      "display_name": "首购商品路径 / N日正装转化",
+      "currency": "CNY",
+      "amount_unit": "minor",
+      "amount_precision": "integer_fen",
+      "observation_days": 30,
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 9,
+      "cohort_immature_count": 1,
+      "products": [
+        {
+          "product_id": "sku-f1",
+          "role": "finished",
+          "enrolled_count": 1,
+          "mature_count": 1,
+          "immature_count": 0,
+          "finished_conversion_count": 0,
+          "finished_conversion_ratio": 0.0,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s1",
+          "role": "sample",
+          "enrolled_count": 6,
+          "mature_count": 5,
+          "immature_count": 1,
+          "finished_conversion_count": 3,
+          "finished_conversion_ratio": 0.6,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s2",
+          "role": "sample",
+          "enrolled_count": 3,
+          "mature_count": 3,
+          "immature_count": 0,
+          "finished_conversion_count": 1,
+          "finished_conversion_ratio": 0.3333333333333333,
+          "empty_reason": null
+        }
+      ]
+    },
+    "60": {
+      "display_name": "首购商品路径 / N日正装转化",
+      "currency": "CNY",
+      "amount_unit": "minor",
+      "amount_precision": "integer_fen",
+      "observation_days": 60,
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 9,
+      "cohort_immature_count": 1,
+      "products": [
+        {
+          "product_id": "sku-f1",
+          "role": "finished",
+          "enrolled_count": 1,
+          "mature_count": 1,
+          "immature_count": 0,
+          "finished_conversion_count": 0,
+          "finished_conversion_ratio": 0.0,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s1",
+          "role": "sample",
+          "enrolled_count": 6,
+          "mature_count": 5,
+          "immature_count": 1,
+          "finished_conversion_count": 4,
+          "finished_conversion_ratio": 0.8,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s2",
+          "role": "sample",
+          "enrolled_count": 3,
+          "mature_count": 3,
+          "immature_count": 0,
+          "finished_conversion_count": 1,
+          "finished_conversion_ratio": 0.3333333333333333,
+          "empty_reason": null
+        }
+      ]
+    },
+    "90": {
+      "display_name": "首购商品路径 / N日正装转化",
+      "currency": "CNY",
+      "amount_unit": "minor",
+      "amount_precision": "integer_fen",
+      "observation_days": 90,
+      "cohort_enrolled_count": 10,
+      "cohort_mature_count": 3,
+      "cohort_immature_count": 7,
+      "products": [
+        {
+          "product_id": "sku-f1",
+          "role": "finished",
+          "enrolled_count": 1,
+          "mature_count": 0,
+          "immature_count": 1,
+          "finished_conversion_count": 0,
+          "finished_conversion_ratio": null,
+          "empty_reason": "EMPTY_MATURE_COHORT"
+        },
+        {
+          "product_id": "sku-s1",
+          "role": "sample",
+          "enrolled_count": 6,
+          "mature_count": 2,
+          "immature_count": 4,
+          "finished_conversion_count": 2,
+          "finished_conversion_ratio": 1.0,
+          "empty_reason": null
+        },
+        {
+          "product_id": "sku-s2",
+          "role": "sample",
+          "enrolled_count": 3,
+          "mature_count": 1,
+          "immature_count": 2,
+          "finished_conversion_count": 1,
+          "finished_conversion_ratio": 1.0,
+          "empty_reason": null
+        }
+      ]
+    }
+  }
+}

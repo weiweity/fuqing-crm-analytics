@@ -1,0 +1,316 @@
+{
+  "schema_version": "analytics-first-purchase-path/v1",
+  "snapshot_id": "synthetic-first-purchase-v1",
+  "data_version": "synthetic-first-purchase-data/v1",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "scope": "synthetic",
+  "contains_real_data": false,
+  "product_roles": [
+    {
+      "product_id": "sku-f1",
+      "role": "finished"
+    },
+    {
+      "product_id": "sku-s1",
+      "role": "sample"
+    },
+    {
+      "product_id": "sku-s2",
+      "role": "sample"
+    }
+  ],
+  "orders": [
+    {
+      "order_id": "fp-a-1",
+      "synthetic_user_id": "fp-a",
+      "paid_at": "2026-06-01T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 13100,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-b-1",
+      "synthetic_user_id": "fp-b",
+      "paid_at": "2026-06-02T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 14200,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-b-2",
+      "synthetic_user_id": "fp-b",
+      "paid_at": "2026-07-03T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 25600,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-c-1",
+      "synthetic_user_id": "fp-c",
+      "paid_at": "2026-06-03T00:00:00+08:00",
+      "channel": "B",
+      "gross_paid_minor": 11800,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-c-2",
+      "synthetic_user_id": "fp-c",
+      "paid_at": "2026-06-20T00:00:00+08:00",
+      "channel": "B",
+      "gross_paid_minor": 33100,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-d-1",
+      "synthetic_user_id": "fp-d",
+      "paid_at": "2026-06-04T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 16500,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-e-1",
+      "synthetic_user_id": "fp-e",
+      "paid_at": "2026-08-20T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 9900,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-f-1",
+      "synthetic_user_id": "fp-f",
+      "paid_at": "2026-05-20T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 8800,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-f-2",
+      "synthetic_user_id": "fp-f",
+      "paid_at": "2026-06-10T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 21000,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-g-bad",
+      "synthetic_user_id": "fp-g",
+      "paid_at": "2026-06-05T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 15000,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-g-ok",
+      "synthetic_user_id": "fp-g",
+      "paid_at": "2026-06-07T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 12200,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-h-1",
+      "synthetic_user_id": "fp-h",
+      "paid_at": "2026-06-08T00:00:00+08:00",
+      "channel": "B",
+      "gross_paid_minor": 40400,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-h-2",
+      "synthetic_user_id": "fp-h",
+      "paid_at": "2026-06-18T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 7700,
+      "status": "PAID"
+    },
+    {
+      "order_id": "dup-oid",
+      "synthetic_user_id": "fp-i",
+      "paid_at": "2026-06-09T00:00:00+08:00",
+      "channel": "B",
+      "gross_paid_minor": 10100,
+      "status": "PAID"
+    },
+    {
+      "order_id": "fp-i-2",
+      "synthetic_user_id": "fp-i",
+      "paid_at": "2026-06-12T00:00:00+08:00",
+      "channel": "B",
+      "gross_paid_minor": 19800,
+      "status": "PAID"
+    },
+    {
+      "order_id": "a-first",
+      "synthetic_user_id": "fp-j",
+      "paid_at": "2026-06-10T12:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 11300,
+      "status": "PAID"
+    },
+    {
+      "order_id": "b-second",
+      "synthetic_user_id": "fp-j",
+      "paid_at": "2026-06-10T12:00:00+08:00",
+      "channel": "B",
+      "gross_paid_minor": 22700,
+      "status": "PAID"
+    },
+    {
+      "order_id": "dup-oid",
+      "synthetic_user_id": "0009007199254740993",
+      "paid_at": "2026-06-11T00:00:00+08:00",
+      "channel": "A",
+      "gross_paid_minor": 13600,
+      "status": "PAID"
+    }
+  ],
+  "lines": [
+    {
+      "line_id": "fp-a-1-l1",
+      "order_id": "fp-a-1",
+      "synthetic_user_id": "fp-a",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-a-1-l2",
+      "order_id": "fp-a-1",
+      "synthetic_user_id": "fp-a",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-b-1-l1",
+      "order_id": "fp-b-1",
+      "synthetic_user_id": "fp-b",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-b-2-l1",
+      "order_id": "fp-b-2",
+      "synthetic_user_id": "fp-b",
+      "product_id": "sku-f1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-c-1-l1",
+      "order_id": "fp-c-1",
+      "synthetic_user_id": "fp-c",
+      "product_id": "sku-s2",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-c-2-l1",
+      "order_id": "fp-c-2",
+      "synthetic_user_id": "fp-c",
+      "product_id": "sku-f1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-d-1-l1",
+      "order_id": "fp-d-1",
+      "synthetic_user_id": "fp-d",
+      "product_id": "sku-s2",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-e-1-l1",
+      "order_id": "fp-e-1",
+      "synthetic_user_id": "fp-e",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-f-1-l1",
+      "order_id": "fp-f-1",
+      "synthetic_user_id": "fp-f",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-f-2-l1",
+      "order_id": "fp-f-2",
+      "synthetic_user_id": "fp-f",
+      "product_id": "sku-f1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-g-bad-l1",
+      "order_id": "fp-g-bad",
+      "synthetic_user_id": "fp-g",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-g-ok-l1",
+      "order_id": "fp-g-ok",
+      "synthetic_user_id": "fp-g",
+      "product_id": "sku-s2",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-h-1-l1",
+      "order_id": "fp-h-1",
+      "synthetic_user_id": "fp-h",
+      "product_id": "sku-f1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-h-2-l1",
+      "order_id": "fp-h-2",
+      "synthetic_user_id": "fp-h",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-i-1-l1",
+      "order_id": "dup-oid",
+      "synthetic_user_id": "fp-i",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-i-2-l1",
+      "order_id": "fp-i-2",
+      "synthetic_user_id": "fp-i",
+      "product_id": "sku-f1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-j-a-l1",
+      "order_id": "a-first",
+      "synthetic_user_id": "fp-j",
+      "product_id": "sku-s1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-j-b-l1",
+      "order_id": "b-second",
+      "synthetic_user_id": "fp-j",
+      "product_id": "sku-f1",
+      "quantity": 1
+    },
+    {
+      "line_id": "fp-k-1-l1",
+      "order_id": "dup-oid",
+      "synthetic_user_id": "0009007199254740993",
+      "product_id": "sku-s1",
+      "quantity": 1
+    }
+  ],
+  "refunds": [
+    {
+      "refund_id": "fp-g-r1",
+      "order_id": "fp-g-bad",
+      "synthetic_user_id": "fp-g",
+      "refunded_at": "2026-06-06T00:00:00+08:00",
+      "refund_minor": 15000
+    }
+  ]
+}
