@@ -4,7 +4,7 @@
 
 > **价值定稿（2026-09-05）**：已确认让老板拍板一个有边界的天猫内部跨渠道客户增长试点，主线是“渠道 × 首购商品 × 后续购买”。见 [CEO 价值与首版决策方案](./docs/hackathon/CEO-VALUE-PLAN.md)（用户已批准定稿，APPROVED）。统一分析工作台方向保留；用户已确认保留 DSH 原生 UI，详见 [DSH 交互设计](./docs/hackathon/DSH-UI-INTERACTION-SPEC.md)。原生 UI 的集成、运行时与模型仍待验证，公网部署继续暂缓。
 
-> **当前总待办（2026-09-06）**：[方案、架构、数仓与 ETL 收口清单](./docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md)统一管理任务顺序与证据，保留原 [11 工作包](./docs/hackathon/AUTOPLAN-IMPLEMENTATION-TASKS-2026-09-05.md)。商业/DSH/StaffDeck 方向及[工程基线 D1–D4](./docs/hackathon/ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)已确认，四节静态审核完成，历史模型/视觉降级保留。[首个 B0 任务内核代码单元](./docs/hackathon/B0-RUN-KERNEL-2026-09-06.md)已实现并通过局部测试；DSH 尚未接线，B0 仍 PARTIAL。约千万行、10 人使用/5 人问数仍是规划输入，不是已迁库或容量通过。完整 analytics 草案不等于可调用 API；没有启动服务、操作真实库或部署。
+> **当前总待办（2026-09-08）**：[方案收口清单](./docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md)仍管产品/仓/多人顺序。`origin/main` 已合入 v0.6.0.0 查询资产驾驶舱（#100）及 #85–#99 / #92；开放 PR 为 0。B0 已接 DSH 原生查询与 opt-in `--native-query-assets` overlay，产品仍 PARTIAL。约千万行、10 人使用仍是规划输入。公网部署继续暂缓。
 
 ---
 

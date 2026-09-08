@@ -1,6 +1,6 @@
 # 渠道后续购买双会话原生查询（G4b）
 
-日期：2026-09-07。任务分支 `codex/channel-followup-native-ui`。基线 G4a `0665976c5b7d5e364b12e7c58f599924556881cf`（[PR #75](https://github.com/weiweity/fuqing-crm-analytics/pull/75)）。状态：**核心 native PASS**。Git / 正常 full pre-push / 最终 CI **待 Codex**；无未来 PR/SHA。
+日期：2026-09-07。任务分支当时 `codex/channel-followup-native-ui`。基线 G4a `0665976c5b7d5e364b12e7c58f599924556881cf`（[PR #75](https://github.com/weiweity/fuqing-crm-analytics/pull/75)）。当时状态：**核心 native PASS**；Git / full pre-push / 最终 CI **待 Codex**。收口（2026-09-08）：相关代码已在 `main`（经后续 PR 合入），不是仍待提交。
 
 本文件记录 G4b：DSH 原生 UI、gateway 两 session allowlist 和 finite mock 接到恰好两个登记会话。结果由真实 worker SQL 计算。synthetic / finite mock，不是真实业务或付费模型。
 

@@ -1,8 +1,8 @@
 # 8 小时 Goal 交接（G5）
 
-**提交前快照。** 最终候选 SHA / PR / CI 以 Codex 最终审计或本 PR 交付为准，本文不自指尚未发生的 commit。
+**当时提交前快照（2026-09-07）。** 收口（2026-09-08）：G4b 及后续查询资产已合入 `origin/main`（#100 等）；开放 PR 0。下文「待 Codex / 无 merge」只描述当时窗口，不是现在的 Git 状态。
 
-窗口：`2026-09-06T17:18:01Z` → `2026-09-07T01:18:01Z`（`.context/goal-8h/state.json`）。时间盒，不是产品完成。工作树 `.worktrees/hackathon-mission-mvp`，分支 `codex/channel-followup-native-ui`，当前 HEAD `0665976c`（G4a / PR #75）。G4b 源码仍为未提交 dirty。**无 merge / deploy。**
+窗口：`2026-09-06T17:18:01Z` → `2026-09-07T01:18:01Z`（`.context/goal-8h/state.json`）。时间盒，不是产品完成。工作树当时 `.worktrees/hackathon-mission-mvp`，分支 `codex/channel-followup-native-ui`，当时 HEAD `0665976c`（G4a / PR #75）。G4b 源码当时仍为未提交 dirty。
 
 ## 单元状态
 
