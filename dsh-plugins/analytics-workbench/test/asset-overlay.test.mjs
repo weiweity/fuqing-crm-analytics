@@ -177,6 +177,8 @@ function connectedBoardFetch(options = {}) {
   const analyses = options.analyses ?? [];
   const previewStatus = options.previewStatus ?? 200;
   const saveStatus = options.saveStatus ?? 200;
+  const previewOkBeforeConflict = options.previewOkBeforeConflict ?? 0;
+  let previewHits = 0;
   const fetchImpl = async (url, init = {}) => {
     const path = String(url);
     const method = init.method ?? 'GET';
@@ -188,14 +190,15 @@ function connectedBoardFetch(options = {}) {
     }
     if (method === 'GET' && path === '/b0/analyses') return jsonResponse(200, { items: analyses });
     if (method === 'POST' && path === '/b0/dashboards') {
-      currentBoard = { ...(options.createdBoard ?? emptyBoard) };
+      currentBoard = { ...emptyBoard };
       return jsonResponse(201, currentBoard);
     }
     if (currentBoard && method === 'GET' && path === `/b0/dashboards/${currentBoard.dashboard_id}`) {
       return jsonResponse(200, currentBoard);
     }
     if (currentBoard && method === 'POST' && path === `/b0/dashboards/${currentBoard.dashboard_id}/preview`) {
-      if (previewStatus === 409) {
+      previewHits += 1;
+      if (previewStatus === 409 && previewHits > previewOkBeforeConflict) {
         return jsonResponse(409, { error: { code: 'CONFLICT', message: '版本已变化。' } });
       }
       const payload = { ...currentBoard, preview: true };
@@ -434,22 +437,7 @@ test('addAnalysis creates the owner board before previewing add when none exists
 
 test('preview 409 re-reads and does not keep a stale pending op', async () => {
   const { previous } = installDom();
-  const { fetchImpl } = connectedBoardFetch({ previewStatus: 409 });
-  const mounted = await mountShell(fetchImpl);
-  await waitFor(() => globalThis.document.querySelector('[data-action="copy"]'));
-  await act(async () => {
-    globalThis.document.querySelector('[data-action="copy"]').click();
-    await delay(20);
-  });
-  await waitFor(() => statusText().includes('版本已变化，已重新读取，请再预览。'));
-  assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'), null);
-  mounted.unmount();
-  restoreDom(previous);
-});
-
-test('save 409 re-reads and does not keep the pending preview', async () => {
-  const { previous } = installDom();
-  const { fetchImpl } = connectedBoardFetch({ saveStatus: 409 });
+  const { calls, fetchImpl } = connectedBoardFetch({ previewStatus: 409, previewOkBeforeConflict: 1 });
   const mounted = await mountShell(fetchImpl);
   await waitFor(() => globalThis.document.querySelector('[data-action="copy"]'));
   await act(async () => {
@@ -457,12 +445,36 @@ test('save 409 re-reads and does not keep the pending preview', async () => {
     await delay(20);
   });
   await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  const getsBeforeConflict = calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length;
+  await act(async () => {
+    globalThis.document.querySelector('[data-action="copy"]').click();
+    await delay(20);
+  });
+  await waitFor(() => statusText().includes('版本已变化，已重新读取，请再预览。')
+    && !globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  assert.ok(calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length > getsBeforeConflict);
+  mounted.unmount();
+  restoreDom(previous);
+});
+
+test('save 409 re-reads and does not keep the pending preview', async () => {
+  const { previous } = installDom();
+  const { calls, fetchImpl } = connectedBoardFetch({ saveStatus: 409 });
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-action="copy"]'));
+  await act(async () => {
+    globalThis.document.querySelector('[data-action="copy"]').click();
+    await delay(20);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  const getsBeforeSave = calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length;
   await act(async () => {
     globalThis.document.querySelector('[data-testid="analytics-cockpit-save"]').click();
     await delay(20);
   });
-  await waitFor(() => statusText().includes('版本冲突，未覆盖。请读取当前驾驶舱后再试。'));
-  assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'), null);
+  await waitFor(() => statusText().includes('版本冲突，未覆盖。请读取当前驾驶舱后再试。')
+    && !globalThis.document.querySelector('[data-testid="analytics-cockpit-preview"]'));
+  assert.ok(calls.filter(row => row.method === 'GET' && row.path === '/b0/dashboards').length > getsBeforeSave);
   mounted.unmount();
   restoreDom(previous);
 });
