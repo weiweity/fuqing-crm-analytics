@@ -1,9 +1,15 @@
+## [0.6.3.0] - 2026-09-08
+
+### Added
+- 第二查询族「首购商品 → N 日正装转化」独立离线合同与手算金标准：JSON snapshot 变换，缺商品角色映射整查询拒绝且不输出转化率。不接 HTTP/worker。产品仍 PARTIAL。catalog 仍 DEFERRED。
+
 ## [0.6.2.0] - 2026-09-08
 
 ### Fixed
 - 查询卡保存成功后，驾驶舱加入 4xx/409 只重试加入，不再第二次 POST `/b0/analyses`；分析仍在列表里。
 - 两个 CONNECTED overlay 实例各自钉住 `dashboard_id`，preview/save/undo 不串板。
 - 切到已保存分析面板后卸载撤销按钮，未挂载控件超时不再当成 overlay hang。产品仍 PARTIAL。
+
 
 ## [0.6.1.0] - 2026-09-08
 
