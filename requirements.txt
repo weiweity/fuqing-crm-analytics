@@ -28,8 +28,8 @@ python-pptx>=0.6.0      # PPT 生成
 openai>=1.0.0           # OpenAI API（ad-hoc / 可选脚本；非核心 request 路径）
 
 # 工具
-python-dotenv>=1.0.0    # 环境变量管理
-pydantic>=2.0.0         # 数据验证
+python-dotenv>=1.2.3    # 环境变量管理
+pydantic>=2.13.5         # 数据验证
 python-dateutil>=2.8.0  # 日期处理
 pyarrow>=15.0.0         # Arrow 格式支持
 bcrypt>=4.0.0           # 密码哈希（routers/auth.py token 认证）
