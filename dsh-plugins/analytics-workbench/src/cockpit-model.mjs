@@ -177,7 +177,7 @@ function decodeLayout(value) {
   if (!exact(value, LAYOUT_KEYS)) return null;
   const { x, y, w, h } = value;
   if (![x, y, w, h].every(item => Number.isInteger(item))) return null;
-  if (x < 0 || y < 0 || w < 2 || h < 2 || w > 12 || h > 12 || x + w > 12) return null;
+  if (x < 0 || y < 0 || y > 240 || w < 2 || h < 2 || w > 12 || h > 12 || x + w > 12) return null;
   return value;
 }
 

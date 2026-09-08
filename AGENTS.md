@@ -43,7 +43,7 @@
 
 - 仅在需要理解代码且本仓库存在 `.codegraph/` 时优先 CodeGraph；不可用、失败、过时或不足就用限定范围的 `rg` / 源码读取，不自动安装或重建索引。不要扫描无关凭据、会话、缓存或真实数据。
 - 旧 CRM 保持 semantic 口径 → service 逻辑 → contract Schema 分层；用户输入 SQL 用 FilterBuilder 和 `?` 参数化，渠道别名/展开遵循实际合同，禁止脑补字段和阈值。规格与实现不一致时明确区分。
-- 改接口要同步受影响的 OpenAPI/Schema、调用方类型及展示/导出，先区分 B0 与旧 CRM 契约；`analytics-run` 使用 [离线生成器](scripts/dsh-b0/run-kernel-contract.mjs)，不能为生成类型默认启动旧 CRM。
+- 改接口要同步受影响的 OpenAPI/Schema、调用方类型及展示/导出，先区分 B0 与旧 CRM 契约；`analytics-run` 使用 [离线生成器](scripts/dsh-b0/run-kernel-contract.mjs)，保存分析/驾驶舱 HTTP 使用 [analysis-contract.mjs](scripts/dsh-b0/analysis-contract.mjs) 与 [cockpit-contract.mjs](scripts/dsh-b0/cockpit-contract.mjs)，不能为生成类型默认启动旧 CRM。
 - ratio/pct/ppt/rate 不凭后缀猜倍率：沿 semantic → contract → caller → 格式化/导出核对。保留旧 CRM 的 raw ratio 与集中格式化边界、参数范围及 None 展示；不把旧 0–100 命名一刀切套到 B0 0–1 合同。
 - 旧 Web 单例连接由其 owner 释放，不在请求服务随意 close；独立 ETL/worker 连接由对应 owner 管理。事务/持久化改动用隔离小库覆盖新连接、commit/close 和进程退出，不用单连接通过代替落盘证据。
 - subprocess 使用明确有效的 cwd；Python 子进程按任务设置绝对 PYTHONPATH。测试路径从 `__file__` 解析，临时改 cwd 使用 fixture/finally 恢复，平台分支放入口/skip 条件，不污染核心逻辑。

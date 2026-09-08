@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, writeFile, realpath, access } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, realpath, access, chmod } from 'node:fs/promises';
 import { resolve, join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createServer } from 'node:net';
@@ -18,22 +18,28 @@ import { createDiagnosticSink } from './diagnostic-sink.mjs';
 import { packSkills } from '../../dsh-plugins/analytics-workbench/pack-skills.mjs';
 import { packageDigest } from '../../dsh-plugins/analytics-workbench/src/skill-package.mjs';
 import { QUERY_SESSION_IDS, queryMockScript } from './query-scenario.mjs';
+import { queryFaultMockScript } from './native-query-fault-scenario.mjs';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const b0 = join(root, '.context/dsh-b0');
 const upstream = join(b0, 'upstream');
 const args = process.argv.slice(2);
 let scenario = 'lifecycle';
-if (args.at(-1) === '--native-cards' || args.at(-1) === '--native-state' || args.at(-1) === '--native-query') {
+if (args.at(-1) === '--native-cards' || args.at(-1) === '--native-state'
+  || args.at(-1) === '--native-query' || args.at(-1) === '--native-query-fault'
+  || args.at(-1) === '--native-query-assets') {
   scenario = args.pop().slice(2);
 }
 const cardScenario = scenario === 'native-cards';
 const stateScenario = scenario === 'native-state';
 const queryScenario = scenario === 'native-query';
+const queryFaultScenario = scenario === 'native-query-fault';
+const queryAssetsScenario = scenario === 'native-query-assets';
+const queryFamily = queryScenario || queryFaultScenario || queryAssetsScenario;
 const [pythonFlag, python, pluginFlag, pluginArg, ...extra] = args;
 assert.ok(pythonFlag === '--python' && python && isAbsolute(python) && !extra.length
   && (pluginFlag === undefined || (pluginFlag === '--plugin' && pluginArg && isAbsolute(pluginArg))),
-'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards|--native-state|--native-query]');
+'Usage: node serve.mjs --python /absolute/python3.14 [--plugin /absolute/clean-plugin] [--native-cards|--native-state|--native-query|--native-query-fault|--native-query-assets]');
 assert.equal(process.platform, 'darwin', 'The native verification runner requires the macOS Seatbelt profile');
 assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Use Node 24');
 const plugin = await realpath(pluginArg ?? join(root, 'dsh-plugins/analytics-workbench'));
@@ -57,7 +63,7 @@ assert.equal(execFileSync('git', ['-C', upstream, 'rev-parse', 'HEAD'], { encodi
 for (const file of [cli, profilePath, python, join(plugin, 'lib/index.js'), join(plugin, 'lib/tool.js')]) await access(file);
 const { methodPackageDigest, queryMethodPackageDigest } = await import(pathToFileURL(join(plugin, 'lib/skills.js')).href);
 assert.equal(methodPackageDigest, packageDigest((await packSkills(plugin)).manifest), 'Built Skill package differs from the reviewed source closure');
-if (queryScenario) {
+if (queryFamily) {
   assert.equal(queryMethodPackageDigest, packageDigest((await packSkills(plugin, 'channel_followup')).manifest, 'channel_followup'),
     'Built query Skill package differs from the reviewed source closure');
 }
@@ -74,13 +80,13 @@ const kernelState = join(runtime, 'kernel');
 const fixtureDirectory = join(runtime, 'fixture');
 const runtimeToken = randomBytes(32).toString('base64url');
 const gatewayToken = randomBytes(32).toString('base64url');
-const sessionIds = queryScenario ? [...QUERY_SESSION_IDS] : ['session-b0-synthetic-primary'];
+const sessionIds = queryFamily ? [...QUERY_SESSION_IDS] : ['session-b0-synthetic-primary'];
 const sessionId = sessionIds[0];
 for (const path of [kernelState, fixtureDirectory, ownHome, workspace, join(presets, 'analytics-b0'), join(runtime, 'tmp'), join(ownHome, 'agents'), join(runtime, 'skills'), join(ownHome, 'profiles/web')]) {
   await mkdir(path, { recursive: true, mode: 0o700 });
 }
 const writeJson = (path, value) => writeFile(path, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
-const fixture = JSON.parse(execFileSync(python, queryScenario
+const fixture = JSON.parse(execFileSync(python, queryFamily
   ? [join(root, 'scripts/dsh-b0/setup-query-fixture.py'), fixtureDirectory]
   : ['-m', 'backend.analytics_fixture', '--create', fixtureDirectory], {
   cwd: root, encoding: 'utf8', timeout: 30000, env: {
@@ -88,12 +94,23 @@ const fixture = JSON.parse(execFileSync(python, queryScenario
     PYTHON_DOTENV_DISABLED: '1', PYTHONDONTWRITEBYTECODE: '1',
   },
 }));
-const kernelConfig = queryScenario
+const kernelConfig = queryFamily
   ? { state_dir: kernelState, family: 'channel_followup', session_id: sessionId, session_ids: sessionIds,
     runtime_token: runtimeToken, gateway_token: gatewayToken, fixture,
     method_package_digest: queryMethodPackageDigest }
   : { state_dir: kernelState, session_id: sessionId, runtime_token: runtimeToken,
     gateway_token: gatewayToken, fixture, method_package_digest: methodPackageDigest };
+if (queryAssetsScenario) {
+  const analysisDir = join(runtime, 'analyses');
+  const cockpitDir = join(runtime, 'cockpit');
+  for (const path of [analysisDir, cockpitDir]) {
+    await mkdir(path, { recursive: true, mode: 0o700 });
+    await chmod(path, 0o700);
+  }
+  kernelConfig.analysis_dir = analysisDir;
+  kernelConfig.cockpit_dir = cockpitDir;
+  kernelConfig.asset_capabilities = ['analysis:save', 'analysis:read', 'dashboard:read', 'dashboard:update'];
+}
 await writeJson(join(runtime, 'kernel-private.json'), kernelConfig);
 if (stateScenario) {
   const probe = join(runtime, 'probe');
@@ -101,6 +118,12 @@ if (stateScenario) {
   await mkdir(join(probe, 'release'), { recursive: true, mode: 0o700 });
   await writeFile(join(probe, 'sequence.json'),
     JSON.stringify(['sql_hold', 'unknown_schema', 'illegal_facts', 'passthrough']) + '\n', { mode: 0o600 });
+} else if (queryFaultScenario) {
+  const probe = join(runtime, 'probe');
+  await mkdir(probe, { recursive: true, mode: 0o700 });
+  await mkdir(join(probe, 'release'), { recursive: true, mode: 0o700 });
+  await writeFile(join(probe, 'sequence.json'),
+    JSON.stringify(['sql_hold', 'unknown_schema', 'passthrough']) + '\n', { mode: 0o600 });
 }
 await writeJson(join(ownHome, 'profiles/web/package.json'), {
   name: 'shine-mage-b0-web-profile', private: true, type: 'module',
@@ -108,7 +131,7 @@ await writeJson(join(ownHome, 'profiles/web/package.json'), {
 });
 await writeJson(join(presets, 'analytics-b0/agent.cordis.yml'), [
   { id: 'persona', name: '@deepseek-ai/dsh-persona', config: {
-    text: queryScenario
+    text: queryFamily
       ? '你是仅用于合成渠道后续购买验证的经营分析助手。所有数据都是合成的，只能使用已登记查询工具；不得把合成输出称为真实经营结论。'
       : '你是仅用于B0验证的经营分析助手。所有数据都是合成的，只能使用已登记分析工具；不得把合成输出称为真实经营结论。',
     complete: true, includeRuntimeContext: false,
@@ -150,14 +173,14 @@ const environment = {
   DSH_BUNDLED_SKILL_DIR: join(runtime, 'skills'), DSH_TELEMETRY_DISABLED: '1',
   TMPDIR: join(runtime, 'tmp'), B0_MOCK_KEY: 'b0-mock-only',
   B0_RUNTIME_TOKEN: runtimeToken, B0_SESSION_ID: sessionId,
-  ...(queryScenario ? { B0_RUNTIME_FAMILY: 'channel_followup', B0_SESSION_IDS: sessionIds.join(',') } : {}),
+  ...(queryFamily ? { B0_RUNTIME_FAMILY: 'channel_followup', B0_SESSION_IDS: sessionIds.join(',') } : {}),
 };
 const { startMockLlmServer } = await import(pathToFileURL(join(upstream, 'packages/test-support/llm-mock-server/lib/index.js')).href);
 const mock = await startB0MockProvider(startMockLlmServer, { host: '127.0.0.1', port: mockPort, apiKey: 'b0-mock-only',
   // Opt-in finite wire script. Native-cards: success, real worker fault (no next
   // model step), Skill, recovered query. Native-state: SQL-hold success, two
   // parent-protocol rejections, recovered query. No journal outcome is fabricated.
-  ...(cardScenario ? { script: [
+  ...(queryAssetsScenario ? { script: queryMockScript() } : cardScenario ? { script: [
     { sequence: ['tool_call_success'] }, { sequence: ['success'] },
     { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'], toolName: 'skill', toolArguments: JSON.stringify({ name: 'growth-analysis-b0' }) },
@@ -168,13 +191,15 @@ const mock = await startB0MockProvider(startMockLlmServer, { host: '127.0.0.1', 
     { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'] },
     { sequence: ['tool_call_success'] }, { sequence: ['success'] },
-  ] } : queryScenario ? { script: queryMockScript() } : {}),
+  ] } : queryFaultScenario ? { script: queryFaultMockScript() } : queryScenario ? { script: queryMockScript() } : {}),
   sequence: ['tool_call_success', 'success', 'tool_call_success', 'success', 'slow_success', 'tool_call_success', 'success', 'server_error',
     'slow_success', 'tool_call_success', 'success'],
-  toolName: queryScenario ? 'analytics_channel_followup_query' : 'analytics_b0_query',
-  toolArguments: queryScenario ? queryMockScript()[0].toolArguments : JSON.stringify({ query: 'channel_repeat_rate' }),
-  successText: queryScenario ? '合成查询完成：数字来自真实 worker SQL，不是模型编造。' : 'B0合成验证：这个结论不代表真实业务表现。',
-  chunkSize: 1, chunkDelayMs: queryScenario ? 0 : 1200,
+  toolName: queryFamily ? 'analytics_channel_followup_query' : 'analytics_b0_query',
+  toolArguments: queryFaultScenario ? queryFaultMockScript()[0].toolArguments
+    : (queryScenario || queryAssetsScenario) ? queryMockScript()[0].toolArguments
+      : JSON.stringify({ query: 'channel_repeat_rate' }),
+  successText: queryFamily ? '合成查询完成：数字来自真实 worker SQL，不是模型编造。' : 'B0合成验证：这个结论不代表真实业务表现。',
+  chunkSize: 1, chunkDelayMs: queryFamily ? 0 : 1200,
 });
 lifecycle.record('mock-ready');
 
@@ -182,7 +207,7 @@ lifecycle.record('mock-ready');
 const sandboxArgs = [
   '-D', `NODE_BINARY=${await realpath(binary)}`,
   '-D', `RUNTIME_CELLAR=${runtimeCodeRoot(binary)}`,
-  '-D', `READ_SOURCE=${upstream}`, '-D', `READ_PLUGIN=${plugin}`, '-D', `READ_CONFIG=${runtime}`,
+  '-D', `READ_SOURCE=${await realpath(upstream)}`, '-D', `READ_PLUGIN=${plugin}`, '-D', `READ_CONFIG=${runtime}`,
   '-D', `STATE_HOME=${ownHome}`, '-D', `WORKSPACE=${workspace}`, '-D', `TEMP_DIR=${join(runtime, 'tmp')}`,
   '-D', 'BIND_ENDPOINT=localhost:4317', '-D', 'MOCK_ENDPOINT=localhost:4319',
   '-D', 'BRIDGE_ENDPOINT=localhost:4316', '-D', 'KERNEL_ENDPOINT=localhost:4315',
@@ -204,7 +229,7 @@ const currentPath = join(b0, 'current.json');
 function startKernel() {
   kernelGeneration++;
   const generation = kernelGeneration;
-  kernel = spawn(python, ['-m', stateScenario ? 'backend.tests.analytics_native_probe' : 'backend.analytics_runtime'], { cwd: root, env: {
+  kernel = spawn(python, ['-m', queryFaultScenario ? 'backend.tests.analytics_query_native_fault_probe' : stateScenario ? 'backend.tests.analytics_native_probe' : 'backend.analytics_runtime'], { cwd: root, env: {
     PATH: `${dirname(python)}:/usr/bin:/bin`, PYTHONPATH: root, PYTHONNOUSERSITE: '1',
     PYTHON_DOTENV_DISABLED: '1', PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1',
   }, stdio: ['pipe', 'ignore', 'pipe'] });

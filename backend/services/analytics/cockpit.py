@@ -32,6 +32,7 @@ from backend.contracts.analytics_query import (
     ChannelFollowupResolvedFilters,
 )
 from backend.contracts.analytics_query_run import QUERY_DATA_SCOPE
+from backend.contracts.analytics_cockpit import GRID_MAX_ROW
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
 from backend.services.analytics.resource_profile import canonical_json, content_hash
 
@@ -212,8 +213,9 @@ def _layout(value: object) -> dict[str, int]:
         if type(payload[key]) is not int:
             raise _invalid("layout 必须是整数栅格。")
     x, y, w, h = payload["x"], payload["y"], payload["w"], payload["h"]
-    if x < 0 or y < 0 or w < MIN_SPAN or h < MIN_SPAN or w > MAX_SPAN or h > MAX_SPAN or x + w > GRID_COLUMNS:
-        raise _unprocessable("布局超出 12 列栅格或小于最小尺寸。")
+    if (x < 0 or y < 0 or y > GRID_MAX_ROW or w < MIN_SPAN or h < MIN_SPAN
+            or w > MAX_SPAN or h > MAX_SPAN or x + w > GRID_COLUMNS):
+        raise _unprocessable("布局超出 12 列栅格、行上限或小于最小尺寸。")
     return {"x": x, "y": y, "w": w, "h": h}
 
 
@@ -531,6 +533,13 @@ class CockpitStore:
         )
 
     def create(self, principal: AnalyticsPrincipal, key: str, payload: dict[str, Any] | None = None) -> CockpitRecord:
+        record, _status = self.acquire(principal, key, payload)
+        return record
+
+    def acquire(
+        self, principal: AnalyticsPrincipal, key: str, payload: dict[str, Any] | None = None,
+    ) -> tuple[CockpitRecord, int]:
+        """Create or return the owner's private board. Status is 201 for first insert, 200 if it already existed."""
         self._require(principal, CAPABILITY_WRITE)
         key = validate_key(key)
         body = _mapping(payload or {}, label="create")
@@ -542,7 +551,7 @@ class CockpitStore:
         with self._transaction() as con:
             prior = self._prior(con, principal, "dashboard:create", "", key, digest)
             if prior is not None:
-                return CockpitRecord(**json.loads(prior["response_json"]))
+                return CockpitRecord(**json.loads(prior["response_json"])), int(prior["http_status"])
             existing = con.execute(
                 "SELECT dashboard_id FROM owners WHERE owner=?", (principal.actor_id,),
             ).fetchone()
@@ -551,7 +560,7 @@ class CockpitStore:
                 record = self._record(row, preview=False, persisted=True, affected=[])
                 response = record.as_dict()
                 self._remember(con, principal, "dashboard:create", "", key, digest, response, 200)
-                return CockpitRecord(**response)
+                return CockpitRecord(**response), 200
             dashboard_id = _id("dashboard")
             created_ms = self.clock()
             con.execute("INSERT INTO owners VALUES (?, ?)", (principal.actor_id, dashboard_id))
@@ -568,7 +577,7 @@ class CockpitStore:
             record = self._record(row, preview=False, persisted=True, affected=[])
             response = record.as_dict()
             self._remember(con, principal, "dashboard:create", "", key, digest, response, 201)
-            return CockpitRecord(**response)
+            return CockpitRecord(**response), 201
 
     def get(self, principal: AnalyticsPrincipal, dashboard_id: str | None = None) -> CockpitRecord:
         self._require(principal, CAPABILITY_READ)
@@ -583,6 +592,16 @@ class CockpitStore:
             else:
                 dashboard_id = _opaque(dashboard_id, label="dashboard_id")
             row = self._dashboard_row(con, principal, dashboard_id, None)
+            return self._record(row, preview=False, persisted=True, affected=[])
+
+    def get_version(self, principal: AnalyticsPrincipal, dashboard_id: str, version: int) -> CockpitRecord:
+        """Read a specific saved version. Used by HTTP to authorize copy/undo sources."""
+        self._require(principal, CAPABILITY_READ)
+        dashboard_id = _opaque(dashboard_id, label="dashboard_id")
+        if type(version) is not int or version < 1:
+            raise _invalid("version 必须是从 1 起的整数。")
+        with self._connection(readonly=True) as con:
+            row = self._dashboard_row(con, principal, dashboard_id, version)
             return self._record(row, preview=False, persisted=True, affected=[])
 
     def list(self, principal: AnalyticsPrincipal) -> list[dict[str, Any]]:
@@ -606,7 +625,10 @@ class CockpitStore:
                 "http_api": "NOT_CONNECTED",
             }]
 
-    def preview(self, principal: AnalyticsPrincipal, dashboard_id: str, patch: dict[str, Any]) -> CockpitRecord:
+    def preview(
+        self, principal: AnalyticsPrincipal, dashboard_id: str, patch: dict[str, Any],
+        if_match: str | None = None,
+    ) -> CockpitRecord:
         self._require(principal, CAPABILITY_READ)
         dashboard_id = _opaque(dashboard_id, label="dashboard_id")
         body = _mapping(patch, label="patch")
@@ -614,8 +636,9 @@ class CockpitStore:
         extra = set(body) - PATCH_FIELDS
         if extra:
             raise _invalid("请求包含未声明字段。")
+        version = None if if_match is None else validate_if_match(if_match)
         with self._connection(readonly=True) as con:
-            row = self._dashboard_row(con, principal, dashboard_id, None)
+            row = self._dashboard_row(con, principal, dashboard_id, version)
             cards, title, filters, affected = self._apply_patch(con, row, body, preview=True)
             return self._record(
                 row, preview=True, persisted=False, affected=affected,

@@ -2,7 +2,7 @@
 
 日期：2026-09-05。状态：`UI_DIRECTION_CONFIRMED / INTERACTION_DRAFT / B0_PARTIAL`。
 
-执行更新：[T01–T07 本地收口](./B0-LOCAL-CLOSEOUT-2026-09-06.md)已取得原生七问/业务 run 映射、驾驶舱无会话/模型不可用、BI 完整条件合同接缝、原品牌/深浅主题/三档视口/键盘等小样证据；[T08 工具卡 DOM](./B0-TOOL-CARD-DOM-2026-09-06.md)补齐 8 种编译组件状态与两档展示。UI-B02 原生故障事件全链、其他 key 动态共存及历史稳定性仍未闭合，整体 B0 PARTIAL。临时服务已停止；下文保留完整设计合同，授权仍仅 B0，不把小样当完整产品。
+执行更新：[T01–T07 本地收口](./B0-LOCAL-CLOSEOUT-2026-09-06.md)已取得原生七问/业务 run 映射、驾驶舱无会话/模型不可用、BI 完整条件合同接缝、原品牌/深浅主题/三档视口/键盘等小样证据；[T08 工具卡 DOM](./B0-TOOL-CARD-DOM-2026-09-06.md)补齐 8 种编译组件状态与两档展示。v0.6.0.0 另接通 opt-in HTTP overlay（`--native-query-assets`）：SUCCEEDED 查询可保存 SNAPSHOT，固定入口可加入/复制/预览/撤销；默认入口仍是 finite mock，产品仍 PARTIAL。UI-B02 原生故障事件全链、其他 key 动态共存及历史稳定性仍未闭合，整体 B0 PARTIAL。临时服务已停止；下文保留完整设计合同，不把小样当完整产品。
 
 用户已确认“UI设计先保留DeepSeek Harness，开始下一步设计”。本文件落实设计方向，安装/运行事实与授权以B0报告为准，不代表完整界面、正式产品实现、模型付费或公网发布获准。业务范围仍以[实施计划](./UNIFIED-ANALYTICS-PLAN.md)为准，字段以[接口草案](./ANALYTICS-CONTRACTS-DRAFT.md)为准。
 

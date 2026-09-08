@@ -25,8 +25,11 @@
 | 静态 GET | `/`、DSH 固定构建 `/assets/` 与 favicon；插件 URL 仅精确 boot manifest 集合 | 不提供通用代理；宿主重启仅允许同模块/同内容批次的新 boot nonce |
 | 品牌 GET | `/b0/brand/logo.png`、`/favicon.svg` | 只读原始固定 hash 素材；不接路径参数 |
 | BI 合同样例 GET | `/b0/board-sample?ref=b0-condition-specimen-v1` | 唯一固定合成引用；无脚本、无查询、无旧 Vue/Pinia。附加旧筛选、任意 return、重复/未知引用均拒绝；不是实际 run 解析器 |
+| 资产探测 GET | `/b0/assets` | 仅 `kernel-private.json` 的 `asset_capabilities` 非空时（`--native-query-assets`）进入 allowlist。kernel `GET /api/v1/analytics/dashboards` 200 才返回 `http_api=CONNECTED`；否则 503 `UNAVAILABLE`，不得报 CONNECTED |
+| 已保存分析 | GET/POST `/b0/analyses`；GET `/b0/analyses/analysis_*`，可选正整数 `version` | 同样仅资产能力开启时开放。代理到 `/api/v1/analytics/analyses`。POST 需 Idempotency-Key。浏览器禁止 `Authorization` 与 `x-runtime-session-id`。多余 query、非 GET 单项、非法 version 拒绝 |
+| 私人驾驶舱 | GET/POST `/b0/dashboards`；GET `/b0/dashboards/{id}`；POST `.../preview` 与 `.../versions` | 同样仅资产能力开启时开放。代理到 `/api/v1/analytics/dashboards`。GET 不自动建板。preview/versions 需 If-Match。DELETE 与多余 query 拒绝 |
 
-以上 POST 使用精确 JSON-RPC envelope，URL 与 method 必须一致，顶层未知字段拒绝，API URL 不得携带 query。不开放其余工作区/会话创建、删除、fork、rename、search、模型/预设切换、配置写入、凭据、命令执行、动态插件检查/安装、文件操作。
+以上 POST 使用精确 JSON-RPC envelope，URL 与 method 必须一致，顶层未知字段拒绝，API URL 不得携带 query。不开放其余工作区/会话创建、删除、fork、rename、search、模型/预设切换、配置写入、凭据、命令执行、动态插件检查/安装、文件操作。默认 `--native-query` 不登记资产路由。
 
 ## WS mux 与 Fetch
 

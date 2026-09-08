@@ -1,10 +1,23 @@
+## [0.6.0.0] - 2026-09-08
+
+### Added
+- 查询结果可以保存成固定历史快照，并从「我的驾驶舱」固定入口查看、加入、复制、预览后再保存、整板撤销。默认查询入口不带资产能力；需显式 `--native-query-assets`。浏览器不带 backend bearer，网关只放行 `/b0/analyses` 与 `/b0/dashboards`。产品仍 PARTIAL。
+- 已保存分析与驾驶舱走独立 HTTP：从 SUCCEEDED 查询 run 保存 SNAPSHOT，驾驶舱按指定分析版本 add/copy/remove/layout/undo。GET 不自动建板。分析库读取与驾驶舱写入是先后事务，不是跨库原子。
+
+### Fixed
+- 驾驶舱布局 `y` 有行上限，避免把 CSS grid 写崩。
+- overlay 不再直连 mock 模型端口；`/b0/assets` 在 kernel 不可用时不再报 CONNECTED。
+- 「停止查询」取消当前卡片所属会话，不再取页面上第一个 `data-session-id`。
+- 错误卡移除与普通移除一样带上驾驶舱版本幂等键；未知板块状态不当成成功快照。
+- 驾驶舱来源必须绑定完整口径；坏 JSON 返回合同错误，不再 500。
+
 ## [unreleased] - 2026-09-06 (B0 phase draft)
 
 ### Added
 - W3 合成仓真增量：按记录 content hash 与主键找受影响订单再重写事实；单批事务回滚；旧/新关联一并失效。仓 schema 升 v2，写入前只读拒绝 v1，不自动迁移。W4/W5 未做。
 - W1/W2 合成分析仓：独立 `backend/services/analytics/warehouse/`，固定种子输入与 manifest（来源身份、内容 hash、schema/规则版本）；读取前核对实际字节与总 hash；阶段观测用 tracemalloc 峰值而不是进程 ru_maxrss；订单头 `(synthetic_user_id, order_id)` 与明细分离。金标准手算。不跑旧 ETL。本地 W1/W2 pytest 含源 hash 负测。
-- 私人驾驶舱独立 store 与组件：添加/复制/移除/布局、键盘绑定说明（未接事件）、finite mock 局部预览/保存/撤销、版本冲突 409、板块错误隔离。HTTP 未接通，未注册到 `client/index.tsx`。组件纳入 strict 类型检查与编译后 DOM。
-- 分析保存独立 SQLite store 与无会话 SNAPSHOT 组件：绑定 SUCCEEDED 渠道后续购买结果及完整条件/版本/权限；请求与 resolved_filters 必须经 catalog 解析合同一致。HTTP/OpenAPI **未接通**。组件纳入 strict 类型检查与独立编译。拒绝 B0 100/25/25%。
+- 私人驾驶舱独立 store 与组件的 finite mock 路径仍保留；HTTP CONNECTED overlay 见 0.6.0.0。
+- 分析保存独立 SQLite store 仍拒绝 B0 100/25/25%；HTTP CONNECTED 见 0.6.0.0。
 - 另两查询族离线计算：`first_purchase_product_path` 与 `candidate_handoff_audience` 独立手算金标准与只读 DuckDB；catalog 仍 DEFERRED，无 HTTP/worker。
 - 渠道后续购买取消/畸形隔离闭环：两 session 取消不串 run；SUCCEEDED 后再 cancel 不抹结果；未知版本/畸形 receipt 不渲染渠道数字。`query-card-fault` 在 build 后执行。`--native-query` 浏览器运行中取消 **NOT RUN**。历史三次 supervisor 退出仍 UNKNOWN。
 - G4b 双会话原生查询接线：`serve.mjs --native-query` 写 `family=channel_followup` 与恰好两登记 session；finite mock 两轮真实 SQL（A N30 / B N60）；gateway 静态两 session allowlist 与 follow 流绑定；query 工具卡与 session 切换立即清 view。取消/畸形 producer **DEFERRED**。旧 B0 单会话与 25% 卡保持。
@@ -17,6 +30,7 @@
 - G3b2 渠道后续购买共享 worker：同一 `WorkerManager`/`RunStore`/lease 上运行首条受控合成查询。`complete_step` 要求 `EXITED`+`exit_code=0`+租约释放；结果按 store family 固定 codec。G4a 已接 HTTP/native helper；浏览器仍 **NOT RUN**。G3/G4 整体未完成。
 
 ### Fixed
+- B1 查询卡取消：检查 HTTP 与 RPC `result.ok`，在当前卡展示安全的受理/失败文案，禁止重复提交；失败可人工重试。主浏览器取消只点一次查询卡。第三问绑定 N=30；同取消场景补会话 B 的 N=60 成功。不宣布 CANCELLED。
 - CI 路径矩阵：`test_analytics_*` 同时点亮 scoped Python；B0 `--check` 纳入 `query_native_fault`。飞书架构文档改动点亮 ground-truth，运维 verification 文档不再误跑该 job。FilterBuilder job 仅在 `backend/services/**` 或检查器脚本变化时触发，扫描范围仍含 analytics。PR 上 B0 并入 `lint.yml`，去掉第二份 changes；`merge-gate` 在 changes 失败或已选检查失败/取消时失败。不改 GitHub required 列表本身。
 - G4b driver 不再用原始 sessionId 当可见标题；按 session/list 的 blank/title 点 New session 或 treeitem，成功后先 expand 再断言可见卡。query 卡 16px；query 会话 RunStatus 显示「合成查询 / SYNTHETIC」。初始 driver 切 B 失败与手工 verify-existing 层级保留。修复后 fresh driver 核心 native **PASS**（`runtime-zPbEKI`）；Git / 正常 full pre-push / 最终 CI 待 Codex。
 - 候选远端 B0 CI `34058300555` 中 context 并发测试把生产 100ms `BEGIN IMMEDIATE` 超时当成失败。测试改为只收集既有 503 `STATE_UNAVAILABLE` retryable=True，双方退出后用原 unit/resource 重放，并增加确定性 busy→原请求恢复回归。jobs 源码与 100ms timeout 未改。

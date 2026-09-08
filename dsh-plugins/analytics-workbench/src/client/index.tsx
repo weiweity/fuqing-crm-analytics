@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineStore, type PropsStore } from '@deepseek-ai/dsh-client-store';
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
@@ -17,6 +17,8 @@ import { bindInitialSession } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { QueryToolCard } from './query-card.tsx';
 import { RunStatus } from './run-status.tsx';
+import { HttpAssetOverlay } from './asset-overlay.tsx';
+import { probeAssetHttp } from '../asset-http.mjs';
 
 function initialState() {
   try {
@@ -67,16 +69,25 @@ type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
   restoreSelection(): void;
 };
 
+function RoutedOverlay(props: OverlayProps) {
+  const [assets, setAssets] = useState(false);
+  useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
+  return assets ? <HttpAssetOverlay {...props} /> : <AssetOverlay {...props} />;
+}
+
 function BrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>) {
   return <><style>{css}</style><span className="analytics-b0-mark" role="img" aria-label="伸美原帽子标识"
     style={{ width: size, height: size }} /></>;
 }
 
 function Footer(props: FooterProps) {
+  const [assets, setAssets] = useState(false);
+  useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
   return <><style>{css}</style><button className="analytics-b0-trigger" type="button"
-    title="我的驾驶舱 · B0 合成样例" aria-label="打开我的驾驶舱，B0 合成样例"
+    title={assets ? '我的驾驶舱' : '我的驾驶舱 · B0 合成样例'}
+    aria-label={assets ? '打开我的驾驶舱' : '打开我的驾驶舱，B0 合成样例'}
     data-testid="analytics-b0-open" onClick={() => props.actions.open()}>
-    {props.wide ? '我的驾驶舱 · B0' : 'B0'}
+    {props.wide ? (assets ? '我的驾驶舱' : '我的驾驶舱 · B0') : (assets ? '驾驶舱' : 'B0')}
   </button></>;
 }
 
@@ -218,7 +229,7 @@ export function apply(ctx: Context): void {
         },
       };
     },
-  }, AssetOverlay));
+  }, RoutedOverlay));
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
     name: 'tool.call.toolview', key: TOOL_NAME,
   }, AnalyticsToolCard));

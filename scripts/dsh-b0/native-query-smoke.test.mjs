@@ -98,11 +98,11 @@ test('visible card wait requires exact session and rejects the other N', () => {
 
 test('serve opt-in keeps production kernel for native-query and does not enable the probe', async () => {
   const serve = await readFile(join(here, 'serve.mjs'), 'utf8');
-  assert.match(serve, /\[--native-cards\|--native-state\|--native-query\]/);
+  assert.match(serve, /\[--native-cards\|--native-state\|--native-query\|--native-query-fault\|--native-query-assets\]/);
   assert.match(serve, /queryScenario/);
   assert.match(serve, /B0_RUNTIME_FAMILY: 'channel_followup'/);
-  assert.match(serve, /stateScenario \? 'backend\.tests\.analytics_native_probe' : 'backend\.analytics_runtime'/);
+  assert.match(serve, /queryFaultScenario \? 'backend\.tests\.analytics_query_native_fault_probe' : stateScenario \? 'backend\.tests\.analytics_native_probe' : 'backend\.analytics_runtime'/);
   assert.equal((serve.match(/backend\.analytics_runtime/g) || []).length, 1);
   assert.doesNotMatch(serve, /queryScenario \? 'backend\.tests/);
-  assert.doesNotMatch(serve, /sql_hold.*native-query|native-query.*sql_hold/);
+  assert.doesNotMatch(serve, /queryScenario \? \{ script: queryFaultMockScript/);
 });

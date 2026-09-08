@@ -22,7 +22,9 @@ from backend.services.analytics.access import AnalyticsError
 from backend.services.analytics.execution_lease import create_lease
 from backend.services.analytics.jobs import RunStore
 from backend.services.analytics.worker import WorkerManager
-from backend.tests.analytics_query_native_fault_probe import HISTORICAL_SUPERVISOR_EXITS
+from backend.tests.analytics_query_native_fault_probe import (
+    DEFAULT_SEQUENCE, HISTORICAL_SUPERVISOR_EXITS, QUERY_ALLOWED_MODES, prepare_query_probe_dir,
+)
 from backend.tests.analytics_query_worker_probe import QueryProbeLauncher
 from backend.tests.analytics_run_support import observation, sqlite_connection
 from backend.tests.test_analytics_query_jobs import (
@@ -98,6 +100,14 @@ def test_historical_supervisor_exits_remain_unknown():
     assert HISTORICAL_SUPERVISOR_EXITS["status"] == "UNKNOWN"
     assert HISTORICAL_SUPERVISOR_EXITS["closed_by_epipe"] is False
     assert "EPIPE" not in HISTORICAL_SUPERVISOR_EXITS["verdict"]
+
+
+def test_query_native_fault_sequence_allows_only_three_modes(tmp_path):
+    assert QUERY_ALLOWED_MODES == ("sql_hold", "unknown_schema", "passthrough")
+    assert DEFAULT_SEQUENCE == QUERY_ALLOWED_MODES
+    prepare_query_probe_dir(tmp_path / "ok")
+    with pytest.raises(ValueError, match="invalid query native-fault probe sequence"):
+        prepare_query_probe_dir(tmp_path / "illegal", sequence=("sql_hold", "illegal_facts", "passthrough"))
 
 
 def test_cancel_session_a_does_not_cancel_queued_session_b(tmp_path):

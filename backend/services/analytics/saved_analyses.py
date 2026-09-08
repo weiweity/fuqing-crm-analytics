@@ -501,6 +501,42 @@ class SavedAnalysisStore:
             )
         return {"run_id": run_id, "owner_id": principal.actor_id, "status": "SUCCEEDED"}
 
+    def save_from_trusted_source(
+        self, principal: AnalyticsPrincipal, key: str, *, title: str, visual_spec: dict[str, str] | None,
+        trusted: dict[str, Any],
+    ) -> SavedAnalysisRecord:
+        """Persist from a server-resolved SUCCEEDED run. Not a public register route.
+
+        register_succeeded_run and save are sequential analysis-DB transactions.
+        A save failure may leave a valid trusted-source row; this is not
+        cross-RunStore / analysis-store atomicity. HTTP callers still
+        re-authorize and re-resolve the authoritative source on every request.
+        """
+        self._require(principal, CAPABILITY_SAVE)
+        key = validate_key(key)
+        title = _title(title)
+        visual = _visual_spec(visual_spec)
+        query_ref = _query_ref(None)
+        metric_refs = _metric_refs(None)
+        ingested = self.register_succeeded_run(principal, {
+            "run_id": trusted["run_id"], "status": trusted["status"],
+            "query_id": trusted["query_id"], "query_version": trusted["query_version"],
+            "metric_id": trusted["metric_id"], "metric_version": trusted["metric_version"],
+            "data_version": trusted["data_version"], "filter_hash": trusted["filter_hash"],
+            "evidence_digest": trusted["evidence_digest"], "request": trusted["request"],
+            "result": trusted["result"],
+        })
+        if ingested["owner_id"] != principal.actor_id or ingested["run_id"] != trusted["run_id"]:
+            raise _missing()
+        return self.save(principal, key, {
+            "title": title,
+            "created_from_run_id": trusted["run_id"],
+            "filters": trusted["request"],
+            "visual_spec": visual,
+            "query_ref": query_ref,
+            "metric_refs": metric_refs,
+        })
+
     def save(self, principal: AnalyticsPrincipal, key: str, payload: dict[str, Any]) -> SavedAnalysisRecord:
         self._require(principal, CAPABILITY_SAVE)
         key = validate_key(key)

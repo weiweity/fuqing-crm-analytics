@@ -1,12 +1,12 @@
 # 方案收口与总待办：产品、架构、数仓、ETL
 
-初版日期：2026-09-05；执行更新：2026-09-07。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5`。
+初版日期：2026-09-05；执行更新：2026-09-08。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5`。
 
 初版响应“整理待办、先收尾、拉 Git 分支，再讨论未收口计划”，后续按用户确认续完 D1–D4 并进入最小 B0 实施。**方案收口不等于整个实现/运行验收完成。** 本文是当前任务顺序与状态入口；原商业、交互、合同、评审和测试文档继续各自负责细节，不另起一套 autoplan。
 
 **当前 8 小时 Goal（已启动，不以本文重复计时）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)，真实授权见启动账本。本轮只做本地 synthetic G0–G5：T09/B0 剩余证据与收尾、数据合同/合成金标准、首条合成业务查询、原生展示接线。它承接历史 B0 PARTIAL，不是重开 T01–T09 验收，也不是 B1–B4 完整产品、真实库或付费模型。Git 模式 `PR_DELIVERY`：本轮允许任务分支、commit、push、小 PR；未授权 merge、部署、删分支。历史「未获 Git 授权 / 保持分支不变 / 不得进入任何 B1」只描述当时 B0 当轮，不能当本 Goal 全局指令。
 
-历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）。T09 本 Goal 已提交 `bd6d8fe`，[PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69) base PR #68，CI runs 34049400372/34049400375 对该 SHA 成功；原生四问 `runtime-eDvn6c` PASS（P1 CI 不是 G1 CI）。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) **本范围原生补证 PASS**（`runtime-SNWYss` 四问；第一次 `hkeo4K` F3 失败保留）。源码已提交 `857d2ce`，[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70) base PR #69；独立 pipeline 178 Python / 143 源 Node / 14 built，最终 pre-push 178/145/14 built+clean/typechecks PASS。G1 CI 对 `857d2ce` PASS（runs 34052132760 / 34052132799）。G2a 渠道后续购买合同与手算金标准见 [CHANNEL-FOLLOWUP-CONTRACT](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)。G3a 离线 SQL 见 [CHANNEL-FOLLOWUP-COMPUTE](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。G3b1 store 绑定见 [CHANNEL-FOLLOWUP-RUN-BINDING](./CHANNEL-FOLLOWUP-RUN-BINDING-2026-09-07.md)。G3b2 共享 worker 见 [CHANNEL-FOLLOWUP-WORKER](./CHANNEL-FOLLOWUP-WORKER-2026-09-07.md)；backend 已接，HTTP/native **NOT RUN**，G3 整体未完成。历史三次 supervisor 退出仍开放。G0 文档单元当时未跑业务测试。原 Mission 演示 8000/5173 保持。
+历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项已由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合并（候选 `c5b1566`，merge `ee66469` = 当前 `origin/main`）。T09 本 Goal 已提交 `bd6d8fe`，[PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69) base PR #68，CI runs 34049400372/34049400375 对该 SHA 成功；原生四问 `runtime-eDvn6c` PASS（P1 CI 不是 G1 CI）。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) **本范围原生补证 PASS**（`runtime-SNWYss` 四问；第一次 `hkeo4K` F3 失败保留）。源码已提交 `857d2ce`，[PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70) base PR #69；独立 pipeline 178 Python / 143 源 Node / 14 built，最终 pre-push 178/145/14 built+clean/typechecks PASS。G1 CI 对 `857d2ce` PASS（runs 34052132760 / 34052132799）。G2a 渠道后续购买合同与手算金标准见 [CHANNEL-FOLLOWUP-CONTRACT](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)。G3a 离线 SQL 见 [CHANNEL-FOLLOWUP-COMPUTE](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md)。G3b1 store 绑定见 [CHANNEL-FOLLOWUP-RUN-BINDING](./CHANNEL-FOLLOWUP-RUN-BINDING-2026-09-07.md)。G3b2 共享 worker 见 [CHANNEL-FOLLOWUP-WORKER](./CHANNEL-FOLLOWUP-WORKER-2026-09-07.md)；backend 已接，HTTP/native **NOT RUN**，G3 整体未完成。v0.6.0.0 另接通 opt-in SNAPSHOT 保存与驾驶舱 HTTP overlay（`--native-query-assets`）；默认查询入口不带资产，产品仍 PARTIAL。历史三次 supervisor 退出仍开放。G0 文档单元当时未跑业务测试。原 Mission 演示 8000/5173 保持。
 
 ## 1. 已确定，不再重复讨论
 
@@ -43,7 +43,7 @@
 | DSH B0 承载小样 | **PARTIAL / G1 已提交** | 方法/compaction 组件、当前权限、七问、BI 合同接缝、品牌及工具卡 8 状态组件 DOM 已验；T09 已补 worker 故障全链与卡片共存；G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS（`hkeo4K` F3 失败保留）；源码 `857d2ce` / PR #70；历史退出归因及完整业务仍开放；[逐门结论](./B0-LOCAL-CLOSEOUT-2026-09-06.md)与[T08](./B0-TOOL-CARD-DOM-2026-09-06.md) |
 | 本地资源与派样聚合优化 | 首轮局部实现/验证已有记录 | [性能报告](./ANALYTICS-PERFORMANCE-2026-09-05.md)；整数键仅合成实验，不等于千万行 RFM 或多人容量通过 |
 | ETL 诊断 | 源码排查与上一轮隔离复现已完成，重构未实施 | [ETL 证据](./ETL-DIAGNOSIS-2026-09-05.md)；没有真实全链耗时或引擎优劣基准 |
-| 新分析 API、完整问数/保存/驾驶舱/人群链 | 最小 B0 合同/原生接线已有局部证据，完整链待实施/验收 | [接口草案](./ANALYTICS-CONTRACTS-DRAFT.md)不等于所有接口可调用；临时 B0 app 已按授权启动验证并停止，完整业务功能和旧 Mission 仍分开 |
+| 新分析 API、完整问数/保存/驾驶舱/人群链 | SNAPSHOT 保存/驾驶舱 HTTP 为 v0.6.0.0 PARTIAL；完整链待实施/验收 | [接口草案](./ANALYTICS-CONTRACTS-DRAFT.md)不等于所有接口可调用；opt-in `--native-query-assets` 接通 `/b0/analyses` 与 `/b0/dashboards`，GET 不自动建板；完整业务功能和旧 Mission 仍分开 |
 | 架构图 | 已留存目标架构四件套 | [图源与维护说明](../../diagrams/README.md)；当前图是本地 B0 目标，不是多人部署或新版 ETL 已落地图 |
 
 初次收口只有文档和本地分支操作；后续按当时 B0 授权新增内核、worker、构建及自包含故障测试，并临时启动隔离 DSH/mock 验证后停止。各单元数量和失败证据分开留存，不能沿用历史测试数量充当最新证据，也不能把 T09 当时计数或本轮本地 pipeline 重跑记为远端 CI / 原生四问新通过。未启动旧 CRM、执行 ETL 或读取真实库。远端 Git：第 1、2 项已随 PR #67 推送并合并；P0 规划 PR #68 / `26960bb`；T09/P1 为 `bd6d8fe` PR #69（CI 对该 SHA 成功）。G1 已提交 `857d2ce` / PR #70，CI 对该 SHA PASS（34052132760 / 34052132799）。G0 记录时点未启动 B0 服务。

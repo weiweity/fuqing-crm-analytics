@@ -114,7 +114,7 @@ test('historical three supervisor exits stay UNKNOWN and are not closed by EPIPE
   assert.equal(HISTORICAL_SUPERVISOR_EXITS.closed_by_epipe, false);
   assert.deepEqual(historicalSupervisorRecord(), HISTORICAL_SUPERVISOR_EXITS);
   const serve = await readFile(join(here, '../../../scripts/dsh-b0/serve.mjs'), 'utf8');
-  assert.match(serve, /stateScenario \? 'backend\.tests\.analytics_native_probe' : 'backend\.analytics_runtime'/);
+  assert.match(serve, /queryFaultScenario \? 'backend\.tests\.analytics_query_native_fault_probe' : stateScenario \? 'backend\.tests\.analytics_native_probe' : 'backend\.analytics_runtime'/);
   assert.doesNotMatch(serve, /queryScenario \? 'backend\.tests/);
 });
 
