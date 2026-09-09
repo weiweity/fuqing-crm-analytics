@@ -1,0 +1,33 @@
+{
+  "validated_head": "a2305125d58ab7963233e5e084df1d7f00302bbd",
+  "source": {
+    "head": "a2305125d58ab7963233e5e084df1d7f00302bbd",
+    "python_check_sources_sha256": "e12a68b4b8b6a57a49e6cbe46e46e723be683b89c95239169efdb3e68bac8583"
+  },
+  "backend": {
+    "tests": 2341,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 77,
+    "time": 207.965,
+    "groups_with_junit": 10,
+    "runner_returncode": 0
+  },
+  "backend_passed": 2264,
+  "backend_deselected": 71,
+  "vue": {
+    "test_files_passed": 23,
+    "tests_passed": 205,
+    "build": "PASS"
+  },
+  "remote_ci": "NOT_RUN",
+  "real_model": "NOT_RUN",
+  "real_business_uat": "NOT_RUN",
+  "capacity": "NOT_RUN",
+  "b0_pipeline": "PASS",
+  "lfs_upload": {
+    "objects": 16,
+    "status": "PASS"
+  },
+  "branch_push": "PASS"
+}

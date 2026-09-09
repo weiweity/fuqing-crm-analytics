@@ -1,0 +1,4 @@
+{
+  "not_an_error": "EMPTY",
+  "note": "Empty is not an error. Use ResultRef completeness=EMPTY."
+}

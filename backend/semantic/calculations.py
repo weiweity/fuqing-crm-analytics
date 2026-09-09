@@ -28,7 +28,7 @@ from typing import Optional
 # GSV 口径 SQL 表达式（单一数据源）
 # ============================================================
 GSV_AMOUNT_COL: str = """
-    CASE WHEN is_refund = FALSE AND order_status != '交易关闭'
+    CASE WHEN is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE
          THEN actual_amount ELSE 0 END
 """.strip()
 
@@ -131,22 +131,40 @@ def mom_ratio(cur: Optional[float], prev: Optional[float]) -> Optional[float]:
     return None
 
 
-def safe_ratio(numerator: float, denominator: float, default: float = 0.0) -> float:
+_SAFE_RATIO_UNSET = object()
+
+
+def safe_ratio(
+    numerator: float,
+    denominator: float,
+    default: float | None | object = _SAFE_RATIO_UNSET,
+) -> float | None:
     """
     安全除法（避免除零）
 
     Args:
         numerator: 分子
         denominator: 分母
-        default: 分母为0时的默认值
+        default: 分母为 0 且分子非 0 时的默认值；省略时为 0.0。
+                 0/0 在未显式传 default 时返回 None，禁止伪 0%。
 
     Returns:
-        numerator / denominator 或 default
+        numerator / denominator，或 default / None
     """
+    fallback: float | None = 0.0 if default is _SAFE_RATIO_UNSET else default  # type: ignore[assignment]
     # 防御 NoneType (Sprint 201 R1 v2.1 followup: pre-existing NoneType 阻塞 CI -x, 跟 dual_conn 0 关联)
     if numerator is None or denominator is None:
-        return default
-    return numerator / denominator if denominator != 0 else default
+        return fallback
+    try:
+        num = float(numerator)
+        den = float(denominator)
+    except (TypeError, ValueError):
+        return fallback
+    if den == 0:
+        if num == 0 and default is _SAFE_RATIO_UNSET:
+            return None
+        return fallback
+    return num / den
 
 
 def percentage_to_ratio(percent: float) -> float:

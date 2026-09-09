@@ -47,6 +47,7 @@ P1-3 二轮 (2026-06-07) — 3 修:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import subprocess
@@ -383,6 +384,31 @@ def find_triggers(added_lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
     return triggers
 
 
+# This exact historical archive is evidence, not a current implementation claim.
+# Verify both manifest and indexed/committed bytes; editing either loses exemption.
+FROZEN_PLAN = "docs/hackathon/parallel-competition-2026-09-09/g0/"
+FROZEN_PLAN_MANIFEST_SHA = "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937"
+
+
+def verified_frozen_plan(path: str, committed: bool = False) -> bool:
+    prefix = FROZEN_PLAN + "plan-snapshot/"
+    if not path.startswith(prefix):
+        return False
+    revision = "HEAD:" if committed else ":"
+    def read_git(name):
+        result = subprocess.run(["git", "show", revision + name], capture_output=True, check=False)
+        return result.stdout if result.returncode == 0 else b""
+    manifest = read_git(FROZEN_PLAN + "PLAN-SNAPSHOT-FILES.sha256")
+    if hashlib.sha256(manifest).hexdigest() != FROZEN_PLAN_MANIFEST_SHA:
+        return False
+    relative = path[len(prefix):]
+    for line in manifest.decode("utf-8").splitlines():
+        digest, name = line.split("  ", 1)
+        if name == relative:
+            return hashlib.sha256(read_git(path)).hexdigest() == digest
+    return False
+
+
 def check_file(path: str, committed: bool = False) -> list[tuple[int, str, str]]:
     """检查单个 staged / committed 文件. 返回 [(lineno, trigger, reason), ...] violations.
 
@@ -400,6 +426,8 @@ def check_file(path: str, committed: bool = False) -> list[tuple[int, str, str]]
       - 解决 CI 结构性 no-op 问题
     """
     violations: list[tuple[int, str, str]] = []
+    if verified_frozen_plan(path, committed):
+        return violations
     if committed:
         # B2 修: 已 commit 文件模式, 整文件扫
         content = get_committed_content(path)

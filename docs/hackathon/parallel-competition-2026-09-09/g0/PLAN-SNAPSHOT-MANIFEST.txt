@@ -1,0 +1,7 @@
+created_at=2026-09-09T18:00:00+08:00
+main_cwd=/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics
+main_branch=main
+base_sha=71a65f06f87cb3a5cbd888372487b6b36faaf2a6
+base_sha_short=71a65f06f87c
+note=whitelist planning snapshot; excludes ARCHIVE.md and GOAL-PARALLEL-* untracked files; excludes live tasks.json
+plan_snapshot_hash=53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937

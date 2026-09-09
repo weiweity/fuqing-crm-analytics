@@ -1,7 +1,13 @@
 /** Selectors stay inside the plugin; upstream DSH theme tokens remain authoritative.
  * Geometry follows ui-primitives Button (36×18) / Input (32×8) / Modal (r24, layer-2).
- * DESIGN.md Vue 44px touch and Outfit/Deep Plum are not applied to the DSH shell.
+ * DESIGN.md Vue 44px touch and Outfit/Deep Plum are not applied to the DSH native chrome.
+ * Competition brand tokens live in ./competition-shell/ and must not paint analytics-b0-* rules.
  */
+export {
+  competitionTokens, antdTheme, antdSeedToken, competitionCssVars, BRAND_ASSET_URLS,
+} from './competition-shell/tokens.ts';
+export { competitionShellCss } from './competition-shell/css.ts';
+
 export const css = `
 .analytics-b0-logo, .analytics-b0-mark { display:block; background:currentColor; mask-repeat:no-repeat; mask-size:contain; mask-position:center; }
 .analytics-b0-logo { width:177px; aspect-ratio:249 / 45; margin:8px 0; mask-image:url('/b0/brand/logo.png'); }

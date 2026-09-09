@@ -1,0 +1,23 @@
+{
+  "batch_id": "batch_c0_multi",
+  "items": [
+    {
+      "board_id": "dash_c0_board_a",
+      "error_code": null,
+      "operation_id": "op_c0_board_a",
+      "retryable": false,
+      "status": "SUCCEEDED",
+      "version": 1
+    },
+    {
+      "board_id": null,
+      "error_code": "ANALYSIS_UNAVAILABLE",
+      "operation_id": "op_c0_board_b",
+      "retryable": true,
+      "status": "FAILED",
+      "version": null
+    }
+  ],
+  "schema_version": "competition-board-batch/v1",
+  "status": "PARTIAL"
+}

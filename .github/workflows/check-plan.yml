@@ -15,6 +15,10 @@ on:
         value: ${{ jobs.changes.outputs.deployment }}
       dependencies:
         value: ${{ jobs.changes.outputs.dependencies }}
+      python_dependencies:
+        value: ${{ jobs.changes.outputs.python_dependencies }}
+      frontend_dependencies:
+        value: ${{ jobs.changes.outputs.frontend_dependencies }}
       plan:
         value: ${{ jobs.changes.outputs.plan }}
       b0:
@@ -40,6 +44,8 @@ jobs:
       dependencies: ${{ steps.plan.outputs.dependencies }}
       ground_truth: ${{ steps.plan.outputs.ground_truth }}
       filterbuilder: ${{ steps.plan.outputs.filterbuilder }}
+      python_dependencies: ${{ steps.plan.outputs.python_dependencies }}
+      frontend_dependencies: ${{ steps.plan.outputs.frontend_dependencies }}
       plan: ${{ steps.plan.outputs.plan }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

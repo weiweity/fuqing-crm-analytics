@@ -135,6 +135,7 @@ TOOL_TESTS = [
     'backend/tests/test_check_l4_91_excel_export_ssot.py',
     'backend/tests/test_github_actions_hardening.py',
     'backend/tests/test_ci_e2e_env_config.py',
+    'backend/tests/test_e2e_gate_policy_2026_07_19.py',
     'backend/tests/test_ci_lfs_checkout.py',
 ]
 
@@ -154,6 +155,7 @@ def verification_plan(paths: list[str]) -> dict:
     files = sorted({_norm(p) for p in paths if _norm(p)})
     plan = {'backend': 'none', 'b0': False, 'frontend': False,
             'tooling': False, 'deployment': False, 'dependencies': False,
+            'python_dependencies': False, 'frontend_dependencies': False,
             'ground_truth': False, 'filterbuilder': False,
             'targets': [], 'files': files}
     for p in files:
@@ -161,7 +163,7 @@ def verification_plan(paths: list[str]) -> dict:
             plan['backend'] = 'full'
             plan['tooling'] = True
             if p not in {'backend/tests/conftest.py', 'scripts/run_backend_tests_bounded.py'}:
-                plan['dependencies'] = True
+                plan['python_dependencies'] = True
                 plan['b0'] = True
         elif is_b0_path(p):
             plan['b0'] = True
@@ -181,24 +183,37 @@ def verification_plan(paths: list[str]) -> dict:
         elif p.startswith('frontend-vue3/'):
             plan['frontend'] = True
             if p.endswith(('package.json', 'package-lock.json')):
-                plan['dependencies'] = True
+                plan['frontend_dependencies'] = True
             if '/assets/brand/' in p or p in {'frontend-vue3/src/App.vue',
                   'frontend-vue3/src/composables/useFilterSync.ts',
                   'frontend-vue3/public/shine-mage-mark.svg'}:
                 plan['b0'] = True
             if p.endswith('Dockerfile'):
                 plan['deployment'] = True
+        elif p in {'.github/workflows/nightly.yml', '.github/workflows/e2e-smoke.yml'}:
+            # Validate each optional workflow's consumers, without selecting
+            # unrelated Docker builds, dependency audits or the native B0 build.
+            plan['tooling'] = True
+            plan['backend'] = 'full'
+            if p.endswith('e2e-smoke.yml'):
+                plan['frontend'] = True
+            else:
+                plan['ground_truth'] = True
         elif p.startswith(('.githooks/', 'scripts/ci/', '.github/', '.claude/')) or p in {
                 'AGENTS.md', 'CLAUDE.md', 'scripts/branch_cleanup.py', 'scripts/setup-hooks.sh',
                 'scripts/sync-agents.sh', '.pre-commit-config.yaml'}:
             plan['tooling'] = True
             if p.startswith(('.github/workflows/', 'scripts/ci/')):
                 plan['b0'] = True
-            if p.startswith('.github/workflows/'):
+            if p.startswith('.github/workflows/') or p in {
+                    'scripts/ci/pre_push_path_class.py', 'scripts/ci/run_checks.py'}:
+                # Main/shared/unknown workflows and selection/execution code
+                # can affect every job. Keep broad coverage for these changes.
                 plan['backend'] = 'full'
                 plan['frontend'] = True
                 plan['deployment'] = True
-                plan['dependencies'] = True
+                plan['python_dependencies'] = True
+                plan['frontend_dependencies'] = True
             if p.endswith('check_review_ground_truth.py'):
                 plan['ground_truth'] = True
         elif is_test_path(p):
@@ -229,6 +244,7 @@ def verification_plan(paths: list[str]) -> dict:
     if not files:
         plan['backend'] = 'full'
         plan['tooling'] = True
+    plan['dependencies'] = plan['python_dependencies'] or plan['frontend_dependencies']
     return plan
 
 
@@ -305,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.github_output:
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
             for axis in ('b0', 'frontend', 'tooling', 'deployment', 'dependencies',
-                         'ground_truth', 'filterbuilder'):
+                         'ground_truth', 'filterbuilder', 'python_dependencies', 'frontend_dependencies'):
                 output.write(f'{axis}={str(plan[axis]).lower()}\n')
             output.write(f'backend={str(plan["backend"] != "none").lower()}\n')
             output.write(f'checks={str(plan["backend"] != "none" or plan["tooling"]).lower()}\n')

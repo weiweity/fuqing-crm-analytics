@@ -1,4 +1,8 @@
-"""Offline candidate handoff-audience compute. No HTTP, worker, or catalog success path."""
+"""Offline candidate handoff-audience compute. No HTTP, worker, or catalog success path.
+
+This family is first-channel sample→full. Last-year F≥4 frozen membership is
+`competition_audience`, not this query.
+"""
 
 from __future__ import annotations
 
@@ -36,6 +40,25 @@ MAX_DATABASE_BYTES = 4 * 1024 * 1024
 DUCKDB_MEMORY_MIB = 32
 DUCKDB_THREADS = 2
 DUCKDB_TEMP_MIB = 32
+HANDOFF_IS_NOT_LAST_YEAR_F4 = True
+_LAST_YEAR_F4_KEYS = frozenset({
+    "enrollment_window",
+    "observation_window",
+    "non_repurchase",
+    "f_threshold",
+    "existing_family",
+    "ORIGIN_CHANNEL_ABSENT",
+    "ORIGIN_PRODUCT_ABSENT",
+    "STOREWIDE_ABSENT",
+})
+
+
+def refuse_last_year_f4_impersonation(request) -> None:
+    if not isinstance(request, dict):
+        return
+    hits = _LAST_YEAR_F4_KEYS.intersection(request)
+    if hits:
+        raise ValueError("handoff-audience cannot impersonate last-year F>=4 frozen cohort")
 
 _CREATE_SQL = """
 CREATE TABLE handoff_orders (
@@ -223,6 +246,7 @@ def execute_handoff_audience(
     temp_directory,
 ) -> dict:
     """Deterministic offline compute. Does not call require_supported_query."""
+    refuse_last_year_f4_impersonation(request)
     resolved = resolve_handoff(request, snapshot, permission_scope)
     fixture = materialize_handoff_fixture(fixture_directory, snapshot)
     before = fixture.physical_sha256()
@@ -290,3 +314,13 @@ def execute_handoff_audience(
         "limitations": list(LIMITATIONS),
         "database_sha256": after,
     }
+
+
+def preview_competition_candidates(principal, payload, **kwargs):
+    from backend.services.analytics.competition_audience import preview_candidates
+    return preview_candidates(principal, payload, **kwargs)
+
+
+def save_competition_draft(principal, payload, **kwargs):
+    from backend.services.analytics.competition_audience import save_draft
+    return save_draft(principal, payload, **kwargs)

@@ -1,5 +1,12 @@
 export const COCKPIT_CSS: string;
 export const COPY: Readonly<Record<string, string>>;
+export const COMPETITION_COPY: Readonly<Record<string, string>>;
+export function decodeCompetitionBoardSpec(value: unknown): unknown | null;
+export function decodeCompetitionResultRef(value: unknown): unknown | null;
+export function decodeCompetitionError(value: unknown): unknown | null;
+export function canEndorse(value: unknown): boolean;
+export function decodeCandidateSet(value: unknown): unknown | null;
+export function decodeActionDraft(value: unknown): unknown | null;
 type Input = { dashboard?: unknown; list?: unknown[] | null; error?: { status: number; code: string; message: string } | null; sessionId?: string | null; modelAvailable?: boolean; selectedCardId?: string | null };
 type KeyboardBinding = { action: string; key: string; altKey: boolean; shiftKey: boolean; shortcut: string; label: string };
 type Base = { heading: string; sessionId: string | null; modelAvailable: boolean; keyboard: Record<'add' | 'copy' | 'remove', KeyboardBinding>; preview?: boolean; version?: number; http: string };

@@ -28,6 +28,8 @@ READ_CONCURRENCY_LIMIT = max(
     int(os.environ.get("FQ_READ_CONCURRENCY_LIMIT", str(READ_POOL_SIZE))),
 )
 ACTIVE_READ_LIMIT = min(READ_POOL_SIZE, READ_CONCURRENCY_LIMIT)
+READ_ACQUIRE_TIMEOUT_SECONDS = 5.0
+_read_pool_timeouts = 0
 READ_MEMORY_LIMIT = os.environ.get("FQ_READ_MEMORY_LIMIT", "").strip() or DUCKDB_MEMORY_LIMIT
 WRITE_MEMORY_LIMIT = os.environ.get("FQ_WRITE_MEMORY_LIMIT", "").strip() or DUCKDB_MEMORY_LIMIT
 CACHE_MEMORY_LIMIT = os.environ.get("FQ_CACHE_MEMORY_LIMIT", "").strip() or default_cache_memory_limit()
@@ -138,15 +140,24 @@ class ReadPoolTimeout(Exception):
     pass
 
 
-def get_read_connection(timeout: float = 5.0) -> duckdb.DuckDBPyConnection:
+def read_pool_timeout_count() -> int:
+    """Number of bounded wait expirations. Observability only; not an SLO."""
+
+    return _read_pool_timeouts
+
+
+def get_read_connection(timeout: float = READ_ACQUIRE_TIMEOUT_SECONDS) -> duckdb.DuckDBPyConnection:
     """Borrow a read-only DuckDB connection for dashboard queries.
 
     Pool saturation waits at most five seconds, then degrades to HTTP 503.
     跟 L4.69 RFM 雪崩真治本 (ThreadPoolExecutor 串行) 1:1 stable 配套, 跟 L4.51
     Read-Write Splitting (read_only 池) 1:1 stable 永久规则链配套.
+    A cancelled waiter must not close or steal another request's connection.
     """
+    global _read_pool_timeouts
     acquired = _read_semaphore.acquire(timeout=timeout)
     if not acquired:
+        _read_pool_timeouts += 1
         raise ReadPoolTimeout(
             f"DuckDB read concurrency limit {ACTIVE_READ_LIMIT} stayed full "
             f"for {timeout}s; retry after the active query finishes."
@@ -172,7 +183,11 @@ def get_read_connection(timeout: float = 5.0) -> duckdb.DuckDBPyConnection:
 
 
 def return_read_connection(conn: duckdb.DuckDBPyConnection) -> None:
-    """Return a read-only connection to the pool, closing extras."""
+    """Return this request's read-only connection to the pool.
+
+    Only this borrowed connection is closed if the pool is already full.
+    Other in-flight owners keep their connections.
+    """
 
     try:
         with _read_lock:

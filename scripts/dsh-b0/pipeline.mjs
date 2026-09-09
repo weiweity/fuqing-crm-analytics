@@ -24,7 +24,7 @@ const pin = JSON.parse(await readFile(join(plugin, 'toolchain.json'), 'utf8'));
 assert.equal(Number(process.versions.node.split('.')[0]), pin.node_major);
 let env = {
   ...Object.fromEntries(Object.entries(process.env).filter(([key]) => ['HOME', 'CI', 'SYSTEMROOT'].includes(key))),
-  PATH: `${dirname(process.execPath)}:${dirname(python)}:/usr/bin:/bin`,
+  PATH: `${dirname(process.execPath)}:${dirname(python)}:/usr/bin:/bin:/usr/sbin:/sbin`,
   PYTHONPATH: root, PYTHONNOUSERSITE: '1', PYTHON_DOTENV_DISABLED: '1',
   PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1',
   B0_BUILD_UPSTREAM: upstream,
@@ -91,6 +91,7 @@ print('B0 exact Python closure verified')
   run(process.execPath, ['scripts/dsh-b0/first-purchase-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/first-purchase-analysis-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/first-purchase-cockpit-contract.mjs', '--check', '--python', python]);
+  run(process.execPath, ['scripts/dsh-b0/competition-c0-contract.mjs', '--check', '--python', python]);
   const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup', 'query_jobs', 'query_run_contracts', 'query_worker', 'query_runtime', 'query_native_fault', 'saved_analyses', 'analysis_http', 'cockpit', 'cockpit_http', 'query_assets_runtime', 'first_purchase', 'first_purchase_http', 'first_purchase_kernel', 'first_purchase_analysis', 'first_purchase_source', 'first_purchase_native', 'customer_features_w4', 'feature_publication_w5', 'runtime_ports'].map(name => `backend/tests/test_analytics_${name}.py`);
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py', 'backend/analytics_query_app.py',
@@ -116,6 +117,15 @@ print('B0 exact Python closure verified')
     'scripts/dsh-b0/asset-routes.test.mjs']);
   run(process.execPath, [join(plugin, 'build.mjs'), upstream]);
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
+
+  const competitionTests = [];
+  for (const directory of ['src/client', 'src/competition-agent', 'tests']) {
+    const base = join(plugin, directory);
+    for (const entry of await readdir(base, { recursive: true })) {
+      if (entry.endsWith('.test.mjs')) competitionTests.push(join(base, entry));
+    }
+  }
+  run(process.execPath, ['--test', ...competitionTests], root, { B0_BUILD_UPSTREAM: upstream });
 
   const clean = await mkdtemp(join(b0, 'clean-build-'));
   // No source symlinks or existing output/node_modules in the clean copy.

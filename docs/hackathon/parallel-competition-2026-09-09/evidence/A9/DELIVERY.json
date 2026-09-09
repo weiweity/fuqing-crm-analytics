@@ -1,0 +1,111 @@
+{
+  "task_id": "A9",
+  "status": "PARTIAL",
+  "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a9",
+  "branch": "codex/competition-a9",
+  "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "head": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "dirty_at_start": true,
+  "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+  "contract_hash": "PENDING_C0",
+  "copied_from_a1_a2": false,
+  "batch": 1,
+  "mode": "independent_counterexamples",
+  "changed_files": [
+    "backend/tests/test_competition_acceptance.py",
+    "backend/tests/test_competition_acceptance_golden.py",
+    "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs",
+    "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-browser-model-capacity.test.mjs",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/ACCEPTANCE-MATRIX.md",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/HANDCALC-COUNTEREXAMPLES.md",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/DELIVERY.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/assumptions.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t01_periods.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t01_t17_matrix.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t02_t03_orders.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t04_units.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t05_cohort.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t06_t12_checklist.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t13_t17_not_run.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-skeleton.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-skeleton.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/bounded-runner.log"
+  ],
+  "patch_artifacts": [
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/ACCEPTANCE-MATRIX.md",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/HANDCALC-COUNTEREXAMPLES.md",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/"
+  ],
+  "independent_goldens": {
+    "T01": "2026-09-01 T+1 MTD available_days=0 SUCCEEDED_EMPTY; leap 2024-02-23..29 =7d yoy 2023-02-23..28=6d; cross-year 2025-12-28..2026-01-03 yoy 2024-12-28..2025-01-03; end<start INVALID_PERIOD 422",
+    "T02": "U-SEP5 2026-09-05 first buy is OLD in 09-15..21; O-TRI 17.50+22.00+10.50=50.00 F=1 not 3; default period_gsv=378.00 old=2 new=5",
+    "T03": "current_only and history_recompute both period_gsv=375.00 but old 2 vs 1 and U-SAMPLE OLD/F=3 vs NEW/F=1",
+    "T05": "orig_channel_returned=4 switched=2 storewide_not_returned=4 orig_channel_not_returned=6; 6!=4"
+  },
+  "validation": [
+    {
+      "command": "python3 -m ruff check backend/tests/test_competition_acceptance.py backend/tests/test_competition_acceptance_golden.py",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-skeleton.log"
+    },
+    {
+      "command": "python3 -m pytest backend/tests/test_competition_acceptance.py backend/tests/test_competition_acceptance_golden.py -q --tb=line --no-header -p no:cacheprovider",
+      "exit_code": 1,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-skeleton.log",
+      "result": "35 failed, 0 passed, 0 skipped; fail-closed on missing backend.services.metrics.competition_acceptance"
+    },
+    {
+      "command": "python3 scripts/run_backend_tests_bounded.py backend/tests/test_competition_acceptance.py backend/tests/test_competition_acceptance_golden.py",
+      "exit_code": 1,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/bounded-runner.log",
+      "bounded_report": ".context/checks/20260909T093417771976Z/summary.json"
+    },
+    {
+      "command": "node --test dsh-plugins/analytics-workbench/tests/competition-acceptance/*.test.mjs",
+      "exit_code": 1,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-skeleton.log",
+      "result": "9 failed, 0 passed, 0 skipped"
+    }
+  ],
+  "integration_requests": [
+    {
+      "owner": "A1",
+      "path": "backend/contracts/ and docs/hackathon/parallel-competition-2026-09-09/contracts/",
+      "reason": "C0 still PENDING_C0. Map A9 fixture aliases (CH_SAMPLE, SUCCEEDED_EMPTY, INVALID_PERIOD, history_recomputed, amount yuan vs fen) onto frozen Condition/ResultRef without A9 editing contracts.",
+      "consumers": ["A2", "A3", "A8", "A9"],
+      "negative_tests": "T01 INVALID_PERIOD vs SUCCEEDED_EMPTY; T04 0/0 ratio null"
+    },
+    {
+      "owner": "A2",
+      "path": "backend/tests/test_competition_metrics*.py",
+      "reason": "A9 goldens are independent. Do not copy 378.00/375.00/6≠4 into A2 expected tables and call it two-source verification.",
+      "consumers": ["A9"],
+      "negative_tests": "U-SEP5 month-start misclassify; line COUNT(*) F=3; sample paths equalized by GSV only"
+    },
+    {
+      "owner": "Grok",
+      "path": "backend/services/metrics/competition_acceptance (does not exist; not A9-owned)",
+      "reason": "Keep fail-closed until a real SUT is wired. Do not skip/xfail A9 tests or share fixtures/runner to make them pass.",
+      "consumers": ["A9"],
+      "negative_tests": "unimplemented import must remain Failed"
+    }
+  ],
+  "not_run": [
+    "T01-T17 all acceptance layers (contract/compute/HTTP/DOM/browser/model/capacity)",
+    "live HTTP against backend",
+    "DSH / compiled plugin DOM with real overlay",
+    "real model eval (T13, T15, T17 model items)",
+    "browser E2E (T10, T11, T15, T17)",
+    "capacity T16 (no load, no P95/RSS run)",
+    "real DuckDB / archive data",
+    "ports 8000/5173/4327 (user-owned; A9 did not bind or stop them)"
+  ],
+  "risks": [
+    "C0 unfrozen: field names and error codes in A9 fixtures are design aliases, not generated types.",
+    "Sample channel production ids unknown; fixtures use CH_SAMPLE only.",
+    "Amount unit is decimal yuan for hand arithmetic; C0 may freeze integer fen (×100).",
+    "Existing PeriodBuilder.mtd(2026-09-01) and audience_summary default MTD disagree with the competition empty-month rule; A9 did not change that code.",
+    "safe_ratio currently defaults zero denominator to 0; T04 requires null — that is a future fail, not a pass."
+  ],
+  "owned_processes": []
+}

@@ -155,3 +155,89 @@ def test_docker_runtime_smoke_keeps_both_containers_on_one_network() -> None:
     assert run.index("http://127.0.0.1:18080/api/v1/health") < run.index(
         "Content-Security-Policy:"
     )
+
+
+def test_ruff_install_reads_exactly_one_pin_and_never_installs_the_backend(monkeypatch, tmp_path):
+    import subprocess
+    import sys
+
+    workflow = yaml.safe_load((WORKFLOWS_DIR / 'lint.yml').read_text())
+    steps = workflow['jobs']['lint']['steps']
+    install = next(step['run'] for step in steps if step.get('name') == 'Install only the locked Ruff version')
+    source = install.split("python - <<'PYTHON'\n", 1)[1].rsplit('PYTHON', 1)[0]
+    actual_lock = (REPO_ROOT / 'requirements-lock.txt').read_text()
+    calls = []
+    monkeypatch.setattr(subprocess, 'run', lambda args, **kwargs: calls.append((args, kwargs)))
+    monkeypatch.chdir(tmp_path)
+    lock = tmp_path / 'requirements-lock.txt'
+    lock.write_text(actual_lock)
+    exec(compile(source, 'workflow-ruff-install', 'exec'), {})
+    pin = next(line for line in actual_lock.splitlines() if line.startswith('ruff=='))
+    assert calls == [([sys.executable, '-m', 'pip', 'install', '--no-deps', pin], {'check': True})]
+    for invalid in ('requests==2.0.0\n', 'ruff==0.16.6\nruff==0.15.15\n', 'ruff>=0.16.6\n'):
+        lock.write_text(invalid)
+        calls.clear()
+        import pytest
+        with pytest.raises(SystemExit):
+            exec(compile(source, 'workflow-ruff-install', 'exec'), {})
+        assert calls == []
+
+
+def test_dependency_selection_survives_cli_and_reusable_workflow_outputs(tmp_path):
+    import json
+    import os
+    import subprocess
+    import sys
+
+    shared = yaml.safe_load((WORKFLOWS_DIR / 'check-plan.yml').read_text())
+    events = shared.get('on', shared.get(True))
+    job = yaml.safe_load((WORKFLOWS_DIR / 'lint.yml').read_text())['jobs']['dependency-audit']
+    for path, python_selected, frontend_selected in (
+        ('frontend-vue3/package-lock.json', False, True),
+        ('requirements-lock.txt', True, False),
+        ('.github/workflows/lint.yml', True, True),
+    ):
+        output = tmp_path / 'github-output'
+        output.write_text('')
+        result = subprocess.run(
+            [sys.executable, 'scripts/ci/pre_push_path_class.py', path, '--json', '--github-output'],
+            cwd=REPO_ROOT, env={**os.environ, 'GITHUB_OUTPUT': str(output)},
+            capture_output=True, text=True, timeout=5,
+        )
+        assert result.returncode == 0, result.stderr
+        flags = dict(line.split('=', 1) for line in output.read_text().splitlines())
+        assert flags['dependencies'] == 'true'
+        assert json.loads(flags['plan']) == json.loads(result.stdout)
+        for axis, selected in (('python_dependencies', python_selected), ('frontend_dependencies', frontend_selected)):
+            assert flags[axis] == str(selected).lower()
+            assert shared['jobs']['changes']['outputs'][axis] == '${{ steps.plan.outputs.' + axis + ' }}'
+            assert events['workflow_call']['outputs'][axis]['value'] == '${{ jobs.changes.outputs.' + axis + ' }}'
+        selected_steps = []
+        for step in job['steps']:
+            condition = step.get('if')
+            if condition:
+                match = re.fullmatch(r"needs.changes.outputs.(python_dependencies|frontend_dependencies) == 'true'", condition)
+                assert match, condition
+                if flags[match[1]] != 'true':
+                    continue
+            selected_steps.append(step)
+        runs = '\n'.join(step.get('run', '') for step in selected_steps)
+        uses = '\n'.join(step.get('uses', '') for step in selected_steps)
+        assert ('pip-audit -r' in runs) == python_selected
+        assert ('actions/setup-python@' in uses) == python_selected
+        assert ('npm audit' in runs) == frontend_selected
+        assert ('actions/setup-node@' in uses) == frontend_selected
+        assert ('npm ci' in runs) == frontend_selected
+
+
+def test_ci_python_uses_deduplicated_runner_and_lint_remains_required():
+    workflow = yaml.safe_load((WORKFLOWS_DIR / 'lint.yml').read_text())
+    jobs = workflow['jobs']
+    assert jobs['lint']['if'] == jobs['test']['if']
+    assert 'lint' in jobs['merge-gate']['needs'] and 'test' in jobs['merge-gate']['needs']
+    runs = '\n'.join(step.get('run', '') for step in jobs['test']['steps'])
+    assert '--only ci-python' in runs
+    assert '.githooks/check_imports.py' not in runs
+    lint_runs = '\n'.join(step.get('run', '') for step in jobs['lint']['steps'])
+    assert 'ruff check backend/' in lint_runs
+    assert 'scripts/sync-agents.sh --check' in lint_runs

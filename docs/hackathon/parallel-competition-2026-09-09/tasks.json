@@ -1,0 +1,144 @@
+[
+  {
+    "id": "A1",
+    "title": "共享合同与能力目录",
+    "status": "DISPATCHED_BATCH1",
+    "task_file": "A1.md",
+    "start_condition": "第一批；先冻结C0，再持续处理变更申请",
+    "suggested_branch": "codex/competition-a1",
+    "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a1",
+    "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0",
+    "batch": 1,
+    "mode": "implement_c0",
+    "reserved_ports": [18080],
+    "writable_files": [
+      "backend/contracts/",
+      "dsh-plugins/analytics-workbench/src/*contract.generated.d.ts",
+      "scripts/dsh-b0/*contract.mjs",
+      "docs/hackathon/parallel-competition-2026-09-09/contracts/",
+      "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/"
+    ]
+  },
+  {
+    "id": "A2",
+    "title": "旧CRM计算与日期口径",
+    "status": "BATCH1_PARTIAL",
+    "task_file": "A2.md",
+    "start_condition": "第一批可只读盘查/设计手算夹具；C0后实现",
+    "suggested_branch": "codex/competition-a2",
+    "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a2",
+    "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0",
+    "batch": 1,
+    "mode": "readonly_audit_and_golden_design",
+    "reserved_ports": [],
+    "writable_files": [
+      "backend/tests/test_competition_metrics*.py",
+      "docs/hackathon/parallel-competition-2026-09-09/evidence/A2/"
+    ]
+  },
+  {
+    "id": "A3",
+    "title": "API治理、读取预算与旧MCP修复",
+    "status": "PLANNED",
+    "task_file": "A3.md",
+    "start_condition": "C0后与A2/A5/A8并行；计算未交付时仅用C0注入夹具",
+    "suggested_branch": "codex/competition-a3",
+    "worktree": null,
+    "base_sha": null,
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0"
+  },
+  {
+    "id": "A4",
+    "title": "DSH基座、品牌壳与统一主题",
+    "status": "BATCH1_PARTIAL",
+    "task_file": "A4.md",
+    "start_condition": "第一批；不依赖业务接口修完",
+    "suggested_branch": "codex/competition-a4",
+    "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a4",
+    "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0",
+    "batch": 1,
+    "mode": "shell_theme_and_native_matrix",
+    "reserved_ports": [14327, 15173],
+    "writable_files": [
+      "scripts/dsh-dev/",
+      "dsh-plugins/analytics-workbench/src/client/styles.ts",
+      "dsh-plugins/analytics-workbench/src/client/competition-shell/",
+      "docs/hackathon/parallel-competition-2026-09-09/evidence/A4/"
+    ]
+  },
+  {
+    "id": "A5",
+    "title": "分析资产与看板后端",
+    "status": "PLANNED",
+    "task_file": "A5.md",
+    "start_condition": "C0后与A2/A3/A8并行",
+    "suggested_branch": "codex/competition-a5",
+    "worktree": null,
+    "base_sha": null,
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0"
+  },
+  {
+    "id": "A6",
+    "title": "可编辑看板与人群行动前端",
+    "status": "PLANNED",
+    "task_file": "A6.md",
+    "start_condition": "C0+A4主题导出后开发；A5/A8未完成时消费合同fixture",
+    "suggested_branch": "codex/competition-a6",
+    "worktree": null,
+    "base_sha": null,
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0"
+  },
+  {
+    "id": "A7",
+    "title": "电商分析Skill与DSH工具编排",
+    "status": "PLANNED",
+    "task_file": "A7.md",
+    "start_condition": "C0后可写工具/Skill与离线eval；真接线依赖A2/A3/A5/A8",
+    "suggested_branch": "codex/competition-a7",
+    "worktree": null,
+    "base_sha": null,
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0"
+  },
+  {
+    "id": "A8",
+    "title": "固定人群追踪、召回候选与行动草稿",
+    "status": "PLANNED",
+    "task_file": "A8.md",
+    "start_condition": "C0后与A2/A3/A5并行；先做独立金标准，真实特征依赖A2",
+    "suggested_branch": "codex/competition-a8",
+    "worktree": null,
+    "base_sha": null,
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0"
+  },
+  {
+    "id": "A9",
+    "title": "独立验收、故障验证与容量",
+    "status": "BATCH1_PARTIAL",
+    "task_file": "A9.md",
+    "start_condition": "第一批只设计独立fixture/验收表；集成后由总控调度实测",
+    "suggested_branch": "codex/competition-a9",
+    "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a9",
+    "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+    "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+    "contract_hash": "PENDING_C0",
+    "batch": 1,
+    "mode": "independent_counterexamples",
+    "reserved_ports": [],
+    "writable_files": [
+      "backend/tests/test_competition_acceptance*.py",
+      "dsh-plugins/analytics-workbench/tests/competition-acceptance/",
+      "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/"
+    ]
+  }
+]

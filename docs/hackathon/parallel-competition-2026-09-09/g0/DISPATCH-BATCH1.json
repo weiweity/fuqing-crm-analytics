@@ -1,0 +1,37 @@
+{
+  "batch": 1,
+  "dispatched_at": "2026-09-09",
+  "controller": "grok",
+  "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+  "contract_hash": "PENDING_C0",
+  "max_concurrent": 4,
+  "agents": [
+    {
+      "task_id": "A1",
+      "subagent_id": "01a08565-a67b-7251-b4ff-7445541cf22b",
+      "mode": "implement_c0",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a1"
+    },
+    {
+      "task_id": "A2",
+      "subagent_id": "01a08565-a67d-70e0-b708-c102dd94137a",
+      "mode": "readonly_audit_and_golden_design",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a2"
+    },
+    {
+      "task_id": "A4",
+      "subagent_id": "01a08565-a67d-70e0-b708-c1156e8f0820",
+      "mode": "shell_theme_and_native_matrix",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a4"
+    },
+    {
+      "task_id": "A9",
+      "subagent_id": "01a08565-a67d-70e0-b708-c12a34d56028",
+      "mode": "independent_counterexamples",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a9"
+    }
+  ],
+  "not_dispatched": ["A3", "A5", "A6", "A7", "A8"],
+  "user_ports_do_not_touch": [4327, 8000, 5173]
+}

@@ -24,7 +24,7 @@ _R_BUCKET_SEGMENTATION_TEMPLATE = """
     pre_cutoff_users AS (
         SELECT user_id, MAX(pay_time) AS pre_cutoff_last_pay
         FROM orders o
-        WHERE pay_time <= ?::TIMESTAMP
+        WHERE CAST(pay_time AS DATE) <= ?::DATE
           AND {valid_base}
           {refund_where}
           {exclude_where_hist}

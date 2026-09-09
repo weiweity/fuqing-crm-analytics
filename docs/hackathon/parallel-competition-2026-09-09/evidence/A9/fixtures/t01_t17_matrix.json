@@ -1,0 +1,248 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "contract_hash": "PENDING_C0",
+  "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "this_batch_status_rule": "every case is NOT_RUN; fail-closed tests must not PASS",
+  "cases": [
+    {
+      "id": "T01",
+      "plan": "API-01",
+      "title": "日期窗口：9/1 T+1 空月、闰日、跨年、结束早于开始、月中起始、大促双窗",
+      "inputs": "fixtures/t01_periods.json",
+      "assertions": [
+        "无本月可用天返回 SUCCEEDED_EMPTY，不比较完整未来月或整段上月",
+        "闰日同比钳到目标月末日并回显实际日期",
+        "上周同星期 = 两端减 7 天，不是 ISO 周序号",
+        "用户 end<start => INVALID_PERIOD 422；cutoff 后无交集 => SUCCEEDED_EMPTY",
+        "新老 cutoff = analysis_start-1，不是月初"
+      ],
+      "layers": ["contract", "compute", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T02",
+      "plan": "API-02",
+      "title": "9/5 首购在 9/15-21 为老客；一单三明细 F=1；同日两单 F=2；退款与历史截断",
+      "inputs": "fixtures/t02_t03_orders.json",
+      "assertions": [
+        "U-SEP5 identity=OLD because 2026-09-05 < 2026-09-15",
+        "U-TRI-LINE lifetime_f=1 and period_gsv=50.00 not F=3",
+        "U-TWO lifetime_f=2",
+        "full refund net 0 is outside buyer set",
+        "partial refund net 63.00 F=1",
+        "U-TRUNC marked HISTORY_COVERAGE_TRUNCATED"
+      ],
+      "layers": ["compute", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T03",
+      "plan": "API-02",
+      "title": "派样首购→正装复购；只剔本期 vs 历史重算；销售/历史 scope 独立",
+      "inputs": "fixtures/t02_t03_orders.json",
+      "assertions": [
+        "default period_gsv=378.00 old=2 new=5",
+        "current_only period_gsv=375.00 identity unchanged old=2",
+        "history_recompute period_gsv=375.00 but old=1 and U-SAMPLE becomes NEW F=1",
+        "same 375.00 must not collapse the two paths",
+        "sales=CH_RETAIL history=ALL keeps U-SAMPLE OLD",
+        "echo 历史口径已重算 only on recompute path"
+      ],
+      "layers": ["compute", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T04",
+      "plan": "API-02",
+      "title": "GSV≠GMV；会员/未知；新老交叉；raw ratio；零分母；负净额",
+      "inputs": "fixtures/t04_units.json",
+      "assertions": [
+        "GSV 82 not list 100",
+        "UNKNOWN stays UNKNOWN",
+        "do not add member GSV + old GSV",
+        "2/8 = 0.25 not 25",
+        "0/0 conversion is null not 0%",
+        "over-refund floors GSV at 0 and drops F"
+      ],
+      "layers": ["contract", "compute", "http", "dom"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T05",
+      "plan": "P4",
+      "title": "去年 F>=4 固定 10 人：原渠道回购 4、转渠 2、全店未回 4 → 原渠道未回 6 ≠ 全店未回 4",
+      "inputs": "fixtures/t05_cohort.json",
+      "assertions": [
+        "unique frozen size 10",
+        "orig_channel_not_returned=6 != storewide_not_returned=4",
+        "C11 with 2026 F>=4 is excluded",
+        "product repurchase is a separate set of 4",
+        "do not label C07-C10 as permanent churn"
+      ],
+      "layers": ["compute", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T06",
+      "plan": "API-03/P5b",
+      "title": "跨品牌猜 ID、缓存后撤权、过期登录",
+      "inputs": "fixtures/t06_t12_checklist.json#T06",
+      "assertions": ["401/403 规范", "缓存/分页/保存/候选/导出均按当前权限", "无 PII 与凭据泄露"],
+      "layers": ["contract", "http"],
+      "requires_real_model": false,
+      "requires_browser": true,
+      "requires_capacity": false,
+      "status": "NOT_RUN",
+      "browser_note": "HTTP 负测可先于浏览器；本批两层皆 NOT_RUN"
+    },
+    {
+      "id": "T07",
+      "plan": "API-05",
+      "title": "截断/多字节/坏 JSON/缺页/失效引用",
+      "inputs": "fixtures/t06_t12_checklist.json#T07",
+      "assertions": ["不完整不得报完整成功", "空结果 ≠ 错误", "中文不得按字节切断"],
+      "layers": ["contract", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T08",
+      "plan": "API-04/06",
+      "title": "只读 POST 准入、饱和 503、取消、迟到 attempt",
+      "inputs": "fixtures/t06_t12_checklist.json#T08",
+      "assertions": ["精确路由准入", "503 有界可恢复", "取消不关他人连接", "迟到 attempt 不得发布"],
+      "layers": ["http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T09",
+      "plan": "P2/P3",
+      "title": "认可结果、批量成板、幂等、部分成功、丢回执",
+      "inputs": "fixtures/t06_t12_checklist.json#T09",
+      "assertions": ["不重复创建", "同键不同 payload 拒绝", "逐板回执", "失败块不得冒充成功"],
+      "layers": ["contract", "http", "dom"],
+      "requires_real_model": false,
+      "requires_browser": true,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T10",
+      "plan": "P3",
+      "title": "点选后切板、样式 vs 筛选、非法 patch",
+      "inputs": "fixtures/t06_t12_checklist.json#T10",
+      "assertions": ["在途稳定 ID", "样式不查询", "筛选新 run", "预览=实际"],
+      "layers": ["http", "dom", "browser"],
+      "requires_real_model": false,
+      "requires_browser": true,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T11",
+      "plan": "P3",
+      "title": "409 冲突、放弃≠撤销、刷新重启、模型关闭、升降级",
+      "inputs": "fixtures/t06_t12_checklist.json#T11",
+      "assertions": ["409 不覆盖", "放弃≠撤销", "模型不可用仍可看已存板"],
+      "layers": ["http", "dom", "browser"],
+      "requires_real_model": false,
+      "requires_browser": true,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T12",
+      "plan": "P4",
+      "title": "零候选、AND/OR 去重、文案 vs 规则过期、撤权、不自动发送",
+      "inputs": "fixtures/t06_t12_checklist.json#T12",
+      "assertions": ["零候选不虚构名单", "人数按集合", "规则变更草稿过期"],
+      "layers": ["compute", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T13",
+      "plan": "E-T5",
+      "title": "真实模型 eval",
+      "inputs": "fixtures/t13_t17_not_run.json#T13",
+      "assertions": ["stub 文本不得标通过", "每类独立标记"],
+      "layers": ["model"],
+      "requires_real_model": true,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T14",
+      "plan": "W4/W5/E-T2",
+      "title": "as_of/规则版本、无新单推进 R、晚到退款、会员历史未知",
+      "inputs": "fixtures/t13_t17_not_run.json#T14",
+      "assertions": ["R 随 as_of 推进", "F/M 不偷看未来", "SQLite 落盘不只单连接"],
+      "layers": ["compute", "http"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T15",
+      "plan": "C-T2/P5a",
+      "title": "三角色全链 UAT",
+      "inputs": "fixtures/t13_t17_not_run.json#T15",
+      "assertions": ["不靠开发控制台补数", "耗时/纠错/证据覆盖率分层"],
+      "layers": ["browser", "model"],
+      "requires_real_model": true,
+      "requires_browser": true,
+      "requires_capacity": false,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T16",
+      "plan": "API-06/P5c",
+      "title": "容量：固定到达次数、冷热、多板渲染、候选分页",
+      "inputs": "fixtures/t13_t17_not_run.json#T16",
+      "assertions": ["每档至少 30 次到达全计入", "禁止本批宣布性能通过"],
+      "layers": ["capacity"],
+      "requires_real_model": false,
+      "requires_browser": false,
+      "requires_capacity": true,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "T17",
+      "plan": "C-T1/P0",
+      "title": "原生能力保留与品牌、视口、键盘",
+      "inputs": "fixtures/t13_t17_not_run.json#T17",
+      "assertions": ["plugin off/on 逐项状态", "未配真实模型 NOT_RUN", "无上游品牌漏出"],
+      "layers": ["dom", "browser"],
+      "requires_real_model": true,
+      "requires_browser": true,
+      "requires_capacity": false,
+      "status": "NOT_RUN",
+      "model_note": "未配真实模型时原生模型项保持 NOT_RUN"
+    }
+  ]
+}

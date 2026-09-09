@@ -125,7 +125,7 @@ class TestPathClassify:
         assert targets == ["backend/tests/test_a.py"]
 
     def test_scripts_select_tooling_regressions(self, path_class):
-        assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "matrix"
+        assert path_class.classify_paths(["scripts/ci/pre_push_path_class.py"]) == "full"
         assert path_class.classify_paths([".githooks/pre-push"]) == "tooling"
         assert path_class.classify_paths(
             ["scripts/branch_cleanup.py", "docs/foo.md"]

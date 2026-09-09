@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/analytics/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Analytics Catalog */
+        get: operations["analytics_catalog_api_v1_analytics_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -970,6 +987,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audience/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audience Capabilities
+         * @description Live capability catalog for this bind layer. Official /analytics/catalog is unwired.
+         */
+        get: operations["get_audience_capabilities_api_v1_audience_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audience/results/{result_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audience Result
+         * @description Read a stored summary by result_id. Rechecks current owner; never returns others' facts.
+         */
+        get: operations["get_audience_result_api_v1_audience_results__result_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rfm/r-flow": {
         parameters: {
             query?: never;
@@ -1907,6 +1964,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/missions/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取本地合成演示访问模式 */
+        get: operations["mission_access"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取今日唯一 CEO Mission */
+        get: operations["mission_get_today"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 使用受控语义层回答经营问题 */
+        post: operations["mission_diagnose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/{mission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 按 ID 读取 Mission */
+        get: operations["mission_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/{mission_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 审批 Mission */
+        post: operations["mission_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/{mission_id}/audience-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 生成 90/10 合成人群草稿 */
+        post: operations["mission_create_draft_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/{mission_id}/demo-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 将本地演示恢复到审批前 */
+        post: operations["mission_reset_demo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/missions/{mission_id}/audience-exports/{export_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 下载受保护的合成人群草稿 */
+        get: operations["mission_download_draft_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1970,6 +2163,17 @@ export interface components {
          * @enum {string}
          */
         AnchorMode: "first" | "last" | "every";
+        /** ApprovalRequest */
+        ApprovalRequest: {
+            /**
+             * Decision
+             * @default APPROVE
+             * @constant
+             */
+            decision: "APPROVE";
+            /** Note */
+            note?: string | null;
+        };
         /** ApproveRequestOut */
         ApproveRequestOut: {
             /** Success */
@@ -2046,80 +2250,50 @@ export interface components {
             old_gsv: number;
             /** Old Aus */
             old_aus: number;
-            /**
-             * Old Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            old_gsv_ratio: number;
-            /**
-             * Old Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            old_users_ratio: number;
+            /** Old Gsv Ratio */
+            old_gsv_ratio: number | null;
+            /** Old Users Ratio */
+            old_users_ratio: number | null;
             /** New Users */
             new_users: number;
             /** New Gsv */
             new_gsv: number;
             /** New Aus */
             new_aus: number;
-            /**
-             * New Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            new_gsv_ratio: number;
-            /**
-             * New Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            new_users_ratio: number;
+            /** New Gsv Ratio */
+            new_gsv_ratio: number | null;
+            /** New Users Ratio */
+            new_users_ratio: number | null;
             /** Member Users */
             member_users: number;
             /** Member Gsv */
             member_gsv: number;
             /** Member Aus */
             member_aus: number;
-            /**
-             * Member Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            member_gsv_ratio: number;
-            /**
-             * Member Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            member_users_ratio: number;
+            /** Member Gsv Ratio */
+            member_gsv_ratio: number | null;
+            /** Member Users Ratio */
+            member_users_ratio: number | null;
             /** Member Old Users */
             member_old_users: number;
             /** Member Old Gsv */
             member_old_gsv: number;
             /** Member Old Aus */
             member_old_aus: number;
-            /**
-             * Member Old Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            member_old_gsv_ratio: number;
-            /**
-             * Member Old Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            member_old_users_ratio: number;
+            /** Member Old Gsv Ratio */
+            member_old_gsv_ratio: number | null;
+            /** Member Old Users Ratio */
+            member_old_users_ratio: number | null;
             /** Member New Users */
             member_new_users: number;
             /** Member New Gsv */
             member_new_gsv: number;
             /** Member New Aus */
             member_new_aus: number;
-            /**
-             * Member New Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            member_new_gsv_ratio: number;
-            /**
-             * Member New Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            member_new_users_ratio: number;
+            /** Member New Gsv Ratio */
+            member_new_gsv_ratio: number | null;
+            /** Member New Users Ratio */
+            member_new_users_ratio: number | null;
             /** Comp Gsv Users */
             comp_gsv_users: number;
             /** Comp Gsv */
@@ -2132,80 +2306,50 @@ export interface components {
             comp_old_gsv: number;
             /** Comp Old Aus */
             comp_old_aus: number;
-            /**
-             * Comp Old Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_old_gsv_ratio: number;
-            /**
-             * Comp Old Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_old_users_ratio: number;
+            /** Comp Old Gsv Ratio */
+            comp_old_gsv_ratio: number | null;
+            /** Comp Old Users Ratio */
+            comp_old_users_ratio: number | null;
             /** Comp New Users */
             comp_new_users: number;
             /** Comp New Gsv */
             comp_new_gsv: number;
             /** Comp New Aus */
             comp_new_aus: number;
-            /**
-             * Comp New Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_new_gsv_ratio: number;
-            /**
-             * Comp New Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_new_users_ratio: number;
+            /** Comp New Gsv Ratio */
+            comp_new_gsv_ratio: number | null;
+            /** Comp New Users Ratio */
+            comp_new_users_ratio: number | null;
             /** Comp Member Users */
             comp_member_users: number;
             /** Comp Member Gsv */
             comp_member_gsv: number;
             /** Comp Member Aus */
             comp_member_aus: number;
-            /**
-             * Comp Member Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_member_gsv_ratio: number;
-            /**
-             * Comp Member Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_member_users_ratio: number;
+            /** Comp Member Gsv Ratio */
+            comp_member_gsv_ratio: number | null;
+            /** Comp Member Users Ratio */
+            comp_member_users_ratio: number | null;
             /** Comp Member Old Users */
             comp_member_old_users: number;
             /** Comp Member Old Gsv */
             comp_member_old_gsv: number;
             /** Comp Member Old Aus */
             comp_member_old_aus: number;
-            /**
-             * Comp Member Old Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_member_old_gsv_ratio: number;
-            /**
-             * Comp Member Old Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_member_old_users_ratio: number;
+            /** Comp Member Old Gsv Ratio */
+            comp_member_old_gsv_ratio: number | null;
+            /** Comp Member Old Users Ratio */
+            comp_member_old_users_ratio: number | null;
             /** Comp Member New Users */
             comp_member_new_users: number;
             /** Comp Member New Gsv */
             comp_member_new_gsv: number;
             /** Comp Member New Aus */
             comp_member_new_aus: number;
-            /**
-             * Comp Member New Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_member_new_gsv_ratio: number;
-            /**
-             * Comp Member New Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            comp_member_new_users_ratio: number;
+            /** Comp Member New Gsv Ratio */
+            comp_member_new_gsv_ratio: number | null;
+            /** Comp Member New Users Ratio */
+            comp_member_new_users_ratio: number | null;
             /** Prev2 Gsv Users */
             prev2_gsv_users: number;
             /** Prev2 Gsv */
@@ -2218,80 +2362,50 @@ export interface components {
             prev2_old_gsv: number;
             /** Prev2 Old Aus */
             prev2_old_aus: number;
-            /**
-             * Prev2 Old Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_old_gsv_ratio: number;
-            /**
-             * Prev2 Old Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_old_users_ratio: number;
+            /** Prev2 Old Gsv Ratio */
+            prev2_old_gsv_ratio: number | null;
+            /** Prev2 Old Users Ratio */
+            prev2_old_users_ratio: number | null;
             /** Prev2 New Users */
             prev2_new_users: number;
             /** Prev2 New Gsv */
             prev2_new_gsv: number;
             /** Prev2 New Aus */
             prev2_new_aus: number;
-            /**
-             * Prev2 New Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_new_gsv_ratio: number;
-            /**
-             * Prev2 New Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_new_users_ratio: number;
+            /** Prev2 New Gsv Ratio */
+            prev2_new_gsv_ratio: number | null;
+            /** Prev2 New Users Ratio */
+            prev2_new_users_ratio: number | null;
             /** Prev2 Member Users */
             prev2_member_users: number;
             /** Prev2 Member Gsv */
             prev2_member_gsv: number;
             /** Prev2 Member Aus */
             prev2_member_aus: number;
-            /**
-             * Prev2 Member Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_member_gsv_ratio: number;
-            /**
-             * Prev2 Member Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_member_users_ratio: number;
+            /** Prev2 Member Gsv Ratio */
+            prev2_member_gsv_ratio: number | null;
+            /** Prev2 Member Users Ratio */
+            prev2_member_users_ratio: number | null;
             /** Prev2 Member Old Users */
             prev2_member_old_users: number;
             /** Prev2 Member Old Gsv */
             prev2_member_old_gsv: number;
             /** Prev2 Member Old Aus */
             prev2_member_old_aus: number;
-            /**
-             * Prev2 Member Old Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_member_old_gsv_ratio: number;
-            /**
-             * Prev2 Member Old Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_member_old_users_ratio: number;
+            /** Prev2 Member Old Gsv Ratio */
+            prev2_member_old_gsv_ratio: number | null;
+            /** Prev2 Member Old Users Ratio */
+            prev2_member_old_users_ratio: number | null;
             /** Prev2 Member New Users */
             prev2_member_new_users: number;
             /** Prev2 Member New Gsv */
             prev2_member_new_gsv: number;
             /** Prev2 Member New Aus */
             prev2_member_new_aus: number;
-            /**
-             * Prev2 Member New Gsv Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_member_new_gsv_ratio: number;
-            /**
-             * Prev2 Member New Users Ratio
-             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
-             */
-            prev2_member_new_users_ratio: number;
+            /** Prev2 Member New Gsv Ratio */
+            prev2_member_new_gsv_ratio: number | null;
+            /** Prev2 Member New Users Ratio */
+            prev2_member_new_users_ratio: number | null;
             /** Yoy Gsv */
             yoy_gsv?: number | null;
             /** Yoy Gsv Users */
@@ -2349,8 +2463,11 @@ export interface components {
             /** Yoy Member New Users Ratio Ppt */
             yoy_member_new_users_ratio_ppt?: number | null;
         };
-        /** AudienceSummaryRequest */
-        AudienceSummaryRequest: {
+        /**
+         * AudienceSummaryBindRequest
+         * @description HTTP bind: expose product_ids without changing the A1 AudienceSummaryRequest schema.
+         */
+        AudienceSummaryBindRequest: {
             /**
              * Year
              * @description 对比基准年，如2026
@@ -2403,32 +2520,10 @@ export interface components {
              * @description 订单号列表，仅统计匹配订单
              */
             order_ids?: string[] | null;
-        };
-        /** AudienceSummaryResponse */
-        AudienceSummaryResponse: {
-            /**
-             * Year Label
-             * @default 2026
-             */
-            year_label: string;
-            /**
-             * Comp Year Label
-             * @default 2025
-             */
-            comp_year_label: string;
-            /**
-             * Prev2 Year Label
-             * @default 2024
-             */
-            prev2_year_label: string;
-            /** Metric Type */
-            metric_type: string;
-            /** Indicators */
-            indicators: components["schemas"]["YearComparisonRow"][];
-            /** Channel All */
-            channel_all: components["schemas"]["ChannelGSVRow"][];
-            /** Channel Member */
-            channel_member: components["schemas"]["ChannelGSVRow"][];
+            /** Product Ids */
+            product_ids?: string[] | null;
+        } & {
+            [key: string]: unknown;
         };
         /** AudienceTableResponse */
         AudienceTableResponse: {
@@ -2984,131 +3079,6 @@ export interface components {
                 [key: string]: components["schemas"]["ValueTierTableRow"][];
             } | null;
         };
-        /** ChannelGSVRow */
-        ChannelGSVRow: {
-            /** Channel */
-            channel: string;
-            /**
-             * Gsv 2026
-             * @default 0
-             */
-            gsv_2026: number;
-            /**
-             * Gsv 2025
-             * @default 0
-             */
-            gsv_2025: number;
-            /** Yoy */
-            yoy?: number | null;
-            /** Ratio 2026 */
-            ratio_2026?: number | null;
-            /** Ratio 2025 */
-            ratio_2025?: number | null;
-            /** Ratio Yoy */
-            ratio_yoy?: number | null;
-            /** Users 2026 */
-            users_2026?: number | null;
-            /** Users 2025 */
-            users_2025?: number | null;
-            /** Users Yoy */
-            users_yoy?: number | null;
-            /** Aus 2026 */
-            aus_2026?: number | null;
-            /** Aus 2025 */
-            aus_2025?: number | null;
-            /** Aus Yoy */
-            aus_yoy?: number | null;
-            /** New Gsv 2026 */
-            new_gsv_2026?: number | null;
-            /** New Gsv 2025 */
-            new_gsv_2025?: number | null;
-            /** New Gsv Yoy */
-            new_gsv_yoy?: number | null;
-            /** New Gsv Ratio 2026 */
-            new_gsv_ratio_2026?: number | null;
-            /** New Gsv Ratio 2025 */
-            new_gsv_ratio_2025?: number | null;
-            /** New Gsv Ratio Yoy */
-            new_gsv_ratio_yoy?: number | null;
-            /** Old Gsv 2026 */
-            old_gsv_2026?: number | null;
-            /** Old Gsv 2025 */
-            old_gsv_2025?: number | null;
-            /** Old Gsv Yoy */
-            old_gsv_yoy?: number | null;
-            /** Old Gsv Ratio 2026 */
-            old_gsv_ratio_2026?: number | null;
-            /** Old Gsv Ratio 2025 */
-            old_gsv_ratio_2025?: number | null;
-            /** Old Gsv Ratio Yoy */
-            old_gsv_ratio_yoy?: number | null;
-            /** New Users 2026 */
-            new_users_2026?: number | null;
-            /** New Users 2025 */
-            new_users_2025?: number | null;
-            /** New Users Yoy */
-            new_users_yoy?: number | null;
-            /** New Aus 2026 */
-            new_aus_2026?: number | null;
-            /** New Aus 2025 */
-            new_aus_2025?: number | null;
-            /** New Aus Yoy */
-            new_aus_yoy?: number | null;
-            /** Old Users 2026 */
-            old_users_2026?: number | null;
-            /** Old Users 2025 */
-            old_users_2025?: number | null;
-            /** Old Users Yoy */
-            old_users_yoy?: number | null;
-            /** Old Aus 2026 */
-            old_aus_2026?: number | null;
-            /** Old Aus 2025 */
-            old_aus_2025?: number | null;
-            /** Old Aus Yoy */
-            old_aus_yoy?: number | null;
-            /** Member Ratio 2026 */
-            member_ratio_2026?: number | null;
-            /** Member Ratio 2025 */
-            member_ratio_2025?: number | null;
-            /** Member Ratio Yoy */
-            member_ratio_yoy?: number | null;
-            /** Member New Gsv 2026 */
-            member_new_gsv_2026?: number | null;
-            /** Member New Gsv 2025 */
-            member_new_gsv_2025?: number | null;
-            /** Member New Gsv Yoy */
-            member_new_gsv_yoy?: number | null;
-            /** Member New Gsv Ratio 2026 */
-            member_new_gsv_ratio_2026?: number | null;
-            /** Member New Gsv Ratio 2025 */
-            member_new_gsv_ratio_2025?: number | null;
-            /** Member New Gsv Ratio Yoy */
-            member_new_gsv_ratio_yoy?: number | null;
-            /** Member Old Gsv 2026 */
-            member_old_gsv_2026?: number | null;
-            /** Member Old Gsv 2025 */
-            member_old_gsv_2025?: number | null;
-            /** Member Old Gsv Yoy */
-            member_old_gsv_yoy?: number | null;
-            /** Member Old Gsv Ratio 2026 */
-            member_old_gsv_ratio_2026?: number | null;
-            /** Member Old Gsv Ratio 2025 */
-            member_old_gsv_ratio_2025?: number | null;
-            /** Member Old Gsv Ratio Yoy */
-            member_old_gsv_ratio_yoy?: number | null;
-            /** Member New Vs All New 2026 */
-            member_new_vs_all_new_2026?: number | null;
-            /** Member New Vs All New 2025 */
-            member_new_vs_all_new_2025?: number | null;
-            /** Member New Vs All New Yoy */
-            member_new_vs_all_new_yoy?: number | null;
-            /** Member Old Vs All Old 2026 */
-            member_old_vs_all_old_2026?: number | null;
-            /** Member Old Vs All Old 2025 */
-            member_old_vs_all_old_2025?: number | null;
-            /** Member Old Vs All Old Yoy */
-            member_old_vs_all_old_yoy?: number | null;
-        };
         /**
          * ChannelHealthScoreItem
          * @description 单个渠道健康评分
@@ -3397,6 +3367,35 @@ export interface components {
              */
             yoy_repurchase_rate: number;
         };
+        /** DiagnoseRequest */
+        DiagnoseRequest: {
+            /** Question */
+            question: string;
+        };
+        /** DiagnoseResponse */
+        DiagnoseResponse: {
+            /** Question */
+            question: string;
+            /** Intent */
+            intent: string;
+            /**
+             * Answer Mode
+             * @constant
+             */
+            answer_mode: "DETERMINISTIC_TOOL";
+            /** Answer */
+            answer: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            }[];
+            /** Limitations */
+            limitations: string[];
+            /** Data Provenance */
+            data_provenance: {
+                [key: string]: unknown;
+            };
+        };
         /**
          * DqReportRequest
          * @description dq-report: 数据质量 5/15 项规则报告.
@@ -3513,6 +3512,41 @@ export interface components {
             download_url?: string | null;
             /** Error */
             error?: string | null;
+        };
+        /** ExportResponse */
+        ExportResponse: {
+            /** Mission Id */
+            mission_id: string;
+            /**
+             * Mission Status
+             * @constant
+             */
+            mission_status: "WAITING_MEASUREMENT";
+            /** Mission Version */
+            mission_version: number;
+            /** Export Id */
+            export_id: string;
+            /**
+             * Export Status
+             * @constant
+             */
+            export_status: "DRAFT_EXPORT_READY";
+            /** Row Count */
+            row_count: number;
+            /** Experiment Count */
+            experiment_count: number;
+            /** Holdout Count */
+            holdout_count: number;
+            /** Sha256 */
+            sha256: string;
+            /** Download Url */
+            download_url: string;
+            /** Expires At */
+            expires_at?: null;
+            /** Data Provenance */
+            data_provenance: {
+                [key: string]: unknown;
+            };
         };
         /**
          * FixedProductListCompareRequest
@@ -4113,6 +4147,61 @@ export interface components {
             rank_change?: number | null;
             /** Gsv Change */
             gsv_change?: number | null;
+        };
+        /** MissionResponse */
+        MissionResponse: {
+            /** Mission Id */
+            mission_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "AWAITING_APPROVAL" | "APPROVED" | "WAITING_MEASUREMENT";
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Executive Summary */
+            executive_summary: string;
+            /** Recommendation */
+            recommendation: string;
+            /** Decision */
+            decision: {
+                [key: string]: unknown;
+            };
+            /** Channel Metrics */
+            channel_metrics: {
+                [key: string]: unknown;
+            }[];
+            /** Target Audience */
+            target_audience: {
+                [key: string]: unknown;
+            };
+            /** Economics */
+            economics: {
+                [key: string]: unknown;
+            };
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            }[];
+            /** State Timeline */
+            state_timeline: {
+                [key: string]: unknown;
+            }[];
+            /** Approval */
+            approval?: {
+                [key: string]: unknown;
+            } | null;
+            latest_export?: components["schemas"]["ExportResponse"] | null;
+            /** Demo Controls */
+            demo_controls?: {
+                [key: string]: boolean;
+            };
+            /** Data Provenance */
+            data_provenance: {
+                [key: string]: unknown;
+            };
         };
         /**
          * NewCustomerChannelQuality
@@ -6925,28 +7014,6 @@ export interface components {
             type2_ratio: number;
         };
         /**
-         * YearComparisonRow
-         * @description 30指标对比表格的一行（年份动态）
-         */
-        YearComparisonRow: {
-            /** Field */
-            field: string;
-            /**
-             * Kind
-             * @default money
-             */
-            kind: string;
-            /**
-             * Values By Year
-             * @default {}
-             */
-            values_by_year: {
-                [key: string]: number | null;
-            };
-            /** Yoy */
-            yoy?: number | null;
-        };
-        /**
          * YoyBattleRequest
          * @description yoy-battle: baseline vs current 双窗口 YOY 战斗.
          */
@@ -6997,6 +7064,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    analytics_catalog_api_v1_analytics_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     health_check_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -8498,10 +8585,16 @@ export interface operations {
                 end_date?: string | null;
                 /** @description 逗号分隔的渠道列表 */
                 channels?: string | null;
-                /** @description 指标类型：GMV 或 GSV */
+                /** @description 指标类型：仅 GSV */
                 metric_type?: string;
                 /** @description 排除的渠道列表 */
                 exclude_channels?: string[] | null;
+                /** @description 仅会员行；service 已支持 */
+                member_only?: boolean;
+                /** @description table 无自选对比，传入则 422 */
+                compare_start_date?: string | null;
+                /** @description table 无自选对比，传入则 422 */
+                compare_end_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -8534,7 +8627,7 @@ export interface operations {
             query?: {
                 /** @description 对比基准年（仅影响列标签） */
                 year?: number;
-                /** @description GMV 或 GSV */
+                /** @description 仅 GSV */
                 metric_type?: string;
                 /** @description WTD / MTD / YTD / Q1-Q4 */
                 period?: string | null;
@@ -8552,6 +8645,8 @@ export interface operations {
                 compare_end_date?: string | null;
                 /** @description 订单号列表，仅统计匹配订单 */
                 order_ids?: string[] | null;
+                /** @description 产品 ID 列表，透传 service */
+                product_ids?: string[] | null;
             };
             header?: never;
             path?: never;
@@ -8565,7 +8660,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AudienceSummaryResponse"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -8588,7 +8683,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AudienceSummaryRequest"];
+                "application/json": components["schemas"]["AudienceSummaryBindRequest"];
             };
         };
         responses: {
@@ -8598,7 +8693,61 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AudienceSummaryResponse"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audience_capabilities_api_v1_audience_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_audience_result_api_v1_audience_results__result_id__get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                result_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -8896,7 +9045,7 @@ export interface operations {
                 channel?: string | null;
                 /** @description 对比日期范围 [start, end] */
                 compare_date_range?: string[] | null;
-                /** @description 是否剔除低价渠道（Sampling 本期接收参数） */
+                /** @description 是否剔除低价渠道（未实现则为 422） */
                 exclude_low_price?: boolean;
             };
             header?: never;
@@ -10003,6 +10152,248 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClaimRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mission_access: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    mission_get_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissionResponse"];
+                };
+            };
+        };
+    };
+    mission_diagnose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagnoseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnoseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mission_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mission_approve: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                mission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mission_create_draft_export: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                mission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mission_reset_demo: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                mission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mission_download_draft_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mission_id: string;
+                export_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

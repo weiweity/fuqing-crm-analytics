@@ -1,0 +1,178 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-error/v1",
+        "default": "competition-error/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Code",
+      "enum": null,
+      "name": "code",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Code",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Message",
+      "enum": null,
+      "name": "message",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Message",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Param",
+      "enum": null,
+      "name": "param",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Param"
+      }
+    },
+    {
+      "description": "Retryable",
+      "enum": null,
+      "name": "retryable",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Retryable",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Retry After",
+      "enum": null,
+      "name": "retry_after",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Retry After"
+      }
+    },
+    {
+      "description": "Request Id",
+      "enum": null,
+      "name": "request_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Doc Ref",
+      "enum": null,
+      "name": "doc_ref",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Doc Ref"
+      }
+    },
+    {
+      "description": "Recovery Url",
+      "enum": null,
+      "name": "recovery_url",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Recovery Url"
+      }
+    },
+    {
+      "description": "Http Status",
+      "enum": null,
+      "name": "http_status",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maximum": 599,
+        "minimum": 400,
+        "title": "Http Status",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Maps To",
+      "enum": null,
+      "name": "maps_to",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "backend.contracts.analytics.AnalyticsErrorDetail",
+        "title": "Maps To",
+        "type": "string"
+      }
+    }
+  ],
+  "model": "CompetitionErrorDetail",
+  "schema_version": "competition-error/v1"
+}

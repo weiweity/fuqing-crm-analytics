@@ -1,14 +1,7 @@
 name: E2E Smoke (optional)
 
-# 2026-07-19 门禁分层:
-# - PR/main 默认 CI (lint.yml) 不再跑浏览器 e2e → 可合并 = lint + test
-# - 本 workflow 仅 workflow_dispatch + 工作日 nightly，失败不挡 PR merge
-# - 极简: requirements-e2e.txt（非 requirements-lock）+ 仅 login 壳层 smoke
-
+# 旧 CRM 登录壳层仅按需手动验证；当前 DSH 主链由 CI 的 B0 检查覆盖。
 on:
-  schedule:
-    # 工作日 UTC 14:00 ≈ 北京 22:00（nightly pytest 之后）
-    - cron: '0 14 * * 1-5'
   workflow_dispatch:
 
 permissions:

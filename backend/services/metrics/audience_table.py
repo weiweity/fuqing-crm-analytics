@@ -1,10 +1,10 @@
 """指标服务 - 人群表格
 get_audience_table
 """
-from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from backend.db.connection import get_connection
 from backend.semantic.calculations import yoy_ratio, yoy_absolute, safe_ratio
+from backend.semantic.time import PeriodBuilder
 
 from backend.semantic.filters import FilterBuilder, MetricType
 
@@ -27,65 +27,38 @@ def get_audience_table(
         - free:  使用传入的 start_date/end_date 作为当年期，参考期自动为去年对应月
     channels: 渠道筛选列表，默认全渠道
     """
-    from calendar import monthrange
     from datetime import date
 
     today = date.today()
-    yesterday = today - timedelta(days=1)   # MTD 截止昨天（t-1），不含当天
 
     # ========================================
     # 动态日期计算（三年：2026/2025/2024 MTD）
     # ========================================
     if mode == "mtd":
-        # 当年MTD（结束日期用 yesterday.day，避免含当天部分数据）
-        cur_year = today.year
-        cur_month = today.month
-        _, last_day = monthrange(cur_year, cur_month)
-        cur_start = f"{cur_year}-{cur_month:02d}-01"
-        cur_end = f"{cur_year}-{cur_month:02d}-{min(yesterday.day, last_day):02d}"
-        # cutoff = cur_start - 1天（老客判定：first_pay_date <= cutoff）
-        # MTD模式下 cur_start=当月1号，所以 cutoff=上月末（等价）
-        cutoff = (datetime(cur_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        # 去年MTD（2025 MTD）
-        comp_year = cur_year - 1
-        comp_start = f"{comp_year}-{cur_month:02d}-01"
-        comp_end = f"{comp_year}-{cur_month:02d}-{min(yesterday.day, last_day):02d}"
-        # comp_cutoff = 去年当月1号 - 1天
-        comp_cutoff = (datetime(comp_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        # 前年MTD（2024 MTD，用于三年对比）
-        prev2_year = cur_year - 2
-        prev2_start = f"{prev2_year}-{cur_month:02d}-01"
-        prev2_end = f"{prev2_year}-{cur_month:02d}-{min(yesterday.day, last_day):02d}"
-        # prev2_cutoff = 前年当月1号 - 1天
-        prev2_cutoff = (datetime(prev2_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+        ranges = PeriodBuilder.mtd(today=today)
+        if getattr(ranges["current"], "empty", False):
+            return {
+                "completeness": "EMPTY",
+                "empty_reason": "NO_CURRENT_MONTH_DATA",
+                "current_period": None,
+                "comparison_period": None,
+                "rows": [],
+            }
     else:
-        # free 模式：使用传入日期（支持三年对比：当年 + 去年 + 前年同期）
         if not start_date or not end_date:
             raise ValueError("free 模式需要传入 start_date 和 end_date")
-        cur_start, cur_end = start_date, end_date
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-
-        # 当年 cutoff = start_date - 1天（与 calculate_new_old_users 口径一致）
-        cutoff = (start_dt - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        # 去年同月同期（year-1）
-        ly_start = datetime(start_dt.year - 1, start_dt.month, start_dt.day)
-        ly_end = datetime(end_dt.year - 1, end_dt.month, end_dt.day)
-        comp_start = ly_start.strftime("%Y-%m-%d")
-        comp_end = ly_end.strftime("%Y-%m-%d")
-        # comp_cutoff = 去年 start_date - 1天
-        comp_cutoff = (ly_start - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        # 前年同月同期（year-2）
-        p2y_start = datetime(start_dt.year - 2, start_dt.month, start_dt.day)
-        p2y_end = datetime(end_dt.year - 2, end_dt.month, end_dt.day)
-        prev2_start = p2y_start.strftime("%Y-%m-%d")
-        prev2_end = p2y_end.strftime("%Y-%m-%d")
-        # prev2_cutoff = 前年 start_date - 1天
-        prev2_cutoff = (p2y_start - timedelta(days=1)).strftime("%Y-%m-%d")
+        if start_date > end_date:
+            raise ValueError("period start_date must be <= end_date")
+        ranges = PeriodBuilder.free(start_date, end_date)
+    cur_start = ranges["current"].start
+    cur_end = ranges["current"].end
+    cutoff = ranges["current"].cutoff
+    comp_start = ranges["comparison"].start
+    comp_end = ranges["comparison"].end
+    comp_cutoff = ranges["comparison"].cutoff
+    prev2_start = ranges["prev2"].start
+    prev2_end = ranges["prev2"].end
+    prev2_cutoff = ranges["prev2"].cutoff
 
     cur_start_dt = f"{cur_start} 00:00:00"
     cur_end_dt = f"{cur_end} 23:59:59"
@@ -224,6 +197,13 @@ def get_audience_table(
         """将 DuckDB 的 NULL (None) 转为 0"""
         return float(v) if v is not None else 0.0
 
+    def _ratio(num, den):
+        value = safe_ratio(num, den)
+        return None if value is None else round(value, 4)
+
+    def _round_nullable(value, digits):
+        return None if value is None else round(value, digits)
+
     cur_map = {r[0]: r for r in cur}
     comp_map = {r[0]: r for r in comp}
     prev2_map = {r[0]: r for r in prev2} if prev2 else {}
@@ -283,15 +263,15 @@ def get_audience_table(
         comp_member_old_users_val = int(comp_member_old_users) if comp_member_old_users is not None else 0
         comp_member_old_gsv_val = round(_n(comp_member_old_gsv), 2)
         comp_member_old_aus_val = comp_member_old_gsv_val / comp_member_old_users_val if comp_member_old_users_val > 0 else 0.0
-        comp_member_old_gsv_ratio_val = round(safe_ratio(comp_member_old_gsv_val, _n(comp_member_gsv)), 4)
-        comp_member_old_users_ratio_val = round(
-            safe_ratio(comp_member_old_users_val, int(comp_member_users) if comp_member_users else 0), 4)
+        comp_member_old_gsv_ratio_val = _ratio(comp_member_old_gsv_val, _n(comp_member_gsv))
+        comp_member_old_users_ratio_val = _ratio(
+            comp_member_old_users_val, int(comp_member_users) if comp_member_users else 0)
         comp_member_new_users_val = max(0, int(comp_member_users) - comp_member_old_users_val) if comp_member_users is not None else 0
         comp_member_new_gsv_val = max(0.0, _n(comp_member_gsv) - comp_member_old_gsv_val)
         comp_member_new_aus_val = comp_member_new_gsv_val / comp_member_new_users_val if comp_member_new_users_val > 0 else 0.0
-        comp_member_new_gsv_ratio_val = round(safe_ratio(comp_member_new_gsv_val, _n(comp_member_gsv)), 4)
-        comp_member_new_users_ratio_val = round(
-            safe_ratio(comp_member_new_users_val, int(comp_member_users) if comp_member_users else 0), 4)
+        comp_member_new_gsv_ratio_val = _ratio(comp_member_new_gsv_val, _n(comp_member_gsv))
+        comp_member_new_users_ratio_val = _ratio(
+            comp_member_new_users_val, int(comp_member_users) if comp_member_users else 0)
 
         # 前年（2024年）
         prev2_gsv_val = round(_n(prev2_gsv), 2)
@@ -311,15 +291,15 @@ def get_audience_table(
         prev2_member_old_users_val = int(prev2_member_old_users) if prev2_member_old_users is not None else 0
         prev2_member_old_gsv_val = round(_n(prev2_member_old_gsv), 2)
         prev2_member_old_aus_val = prev2_member_old_gsv_val / prev2_member_old_users_val if prev2_member_old_users_val > 0 else 0.0
-        prev2_member_old_gsv_ratio_val = round(safe_ratio(prev2_member_old_gsv_val, _n(prev2_member_gsv)), 4)
-        prev2_member_old_users_ratio_val = round(
-            safe_ratio(prev2_member_old_users_val, int(prev2_member_users) if prev2_member_users else 0), 4)
+        prev2_member_old_gsv_ratio_val = _ratio(prev2_member_old_gsv_val, _n(prev2_member_gsv))
+        prev2_member_old_users_ratio_val = _ratio(
+            prev2_member_old_users_val, int(prev2_member_users) if prev2_member_users else 0)
         prev2_member_new_users_val = max(0, int(prev2_member_users) - prev2_member_old_users_val) if prev2_member_users is not None else 0
         prev2_member_new_gsv_val = max(0.0, _n(prev2_member_gsv) - prev2_member_old_gsv_val)
         prev2_member_new_aus_val = prev2_member_new_gsv_val / prev2_member_new_users_val if prev2_member_new_users_val > 0 else 0.0
-        prev2_member_new_gsv_ratio_val = round(safe_ratio(prev2_member_new_gsv_val, _n(prev2_member_gsv)), 4)
-        prev2_member_new_users_ratio_val = round(
-            safe_ratio(prev2_member_new_users_val, int(prev2_member_users) if prev2_member_users else 0), 4)
+        prev2_member_new_gsv_ratio_val = _ratio(prev2_member_new_gsv_val, _n(prev2_member_gsv))
+        prev2_member_new_users_ratio_val = _ratio(
+            prev2_member_new_users_val, int(prev2_member_users) if prev2_member_users else 0)
 
         rows.append({
             "dimension": key,
@@ -330,28 +310,28 @@ def get_audience_table(
             "old_users": int(old_users),
             "old_gsv": round(_n(old_gsv), 2),
             "old_aus": round(_n(old_aus), 2),
-            "old_gsv_ratio": round(old_gsv_ratio, 4),
-            "old_users_ratio": round(old_users_ratio, 4),
+            "old_gsv_ratio": _round_nullable(old_gsv_ratio, 4),
+            "old_users_ratio": _round_nullable(old_users_ratio, 4),
             "new_users": int(new_users),
             "new_gsv": round(new_gsv, 2),
             "new_aus": round(new_aus, 2),
-            "new_gsv_ratio": round(new_gsv_ratio, 4),
-            "new_users_ratio": round(new_users_ratio, 4),
+            "new_gsv_ratio": _round_nullable(new_gsv_ratio, 4),
+            "new_users_ratio": _round_nullable(new_users_ratio, 4),
             "member_users": int(member_users),
             "member_gsv": round(_n(member_gsv), 2),
             "member_aus": round(_n(member_aus), 2),
-            "member_gsv_ratio": round(member_gsv_ratio, 4),
-            "member_users_ratio": round(member_users_ratio, 4),
+            "member_gsv_ratio": _round_nullable(member_gsv_ratio, 4),
+            "member_users_ratio": _round_nullable(member_users_ratio, 4),
             "member_old_users": int(member_old_users),
             "member_old_gsv": round(_n(member_old_gsv), 2),
             "member_old_aus": round(_n(member_old_gsv) / member_old_users if member_old_users > 0 else 0.0, 2),
-            "member_old_gsv_ratio": round(member_old_gsv_ratio, 4),
-            "member_old_users_ratio": round(member_old_users_ratio, 4),
+            "member_old_gsv_ratio": _round_nullable(member_old_gsv_ratio, 4),
+            "member_old_users_ratio": _round_nullable(member_old_users_ratio, 4),
             "member_new_users": int(member_new_users),
             "member_new_gsv": round(member_new_gsv, 2),
             "member_new_aus": round(member_new_aus, 2),
-            "member_new_gsv_ratio": round(member_new_gsv_ratio, 4),
-            "member_new_users_ratio": round(member_new_users_ratio, 4),
+            "member_new_gsv_ratio": _round_nullable(member_new_gsv_ratio, 4),
+            "member_new_users_ratio": _round_nullable(member_new_users_ratio, 4),
             # 2025年（去年）
             "comp_gsv_users": comp_gsv_users_val,
             "comp_gsv": comp_gsv_val,
@@ -364,8 +344,8 @@ def get_audience_table(
             "comp_new_users": comp_new_users_val,
             "comp_new_gsv": round(comp_new_gsv_val, 2),
             "comp_new_aus": round(comp_new_aus_val, 2),
-            "comp_new_gsv_ratio": round(comp_new_gsv_ratio_val, 4),
-            "comp_new_users_ratio": round(comp_new_users_ratio_val, 4),
+            "comp_new_gsv_ratio": _round_nullable(comp_new_gsv_ratio_val, 4),
+            "comp_new_users_ratio": _round_nullable(comp_new_users_ratio_val, 4),
             "comp_member_users": int(comp_member_users) if comp_member_users is not None else 0,
             "comp_member_gsv": round(_n(comp_member_gsv), 2),
             "comp_member_aus": round(_n(comp_member_aus), 2),
@@ -379,8 +359,8 @@ def get_audience_table(
             "comp_member_new_users": comp_member_new_users_val,
             "comp_member_new_gsv": round(comp_member_new_gsv_val, 2),
             "comp_member_new_aus": round(comp_member_new_aus_val, 2),
-            "comp_member_new_gsv_ratio": round(comp_member_new_gsv_ratio_val, 4),
-            "comp_member_new_users_ratio": round(comp_member_new_users_ratio_val, 4),
+            "comp_member_new_gsv_ratio": _round_nullable(comp_member_new_gsv_ratio_val, 4),
+            "comp_member_new_users_ratio": _round_nullable(comp_member_new_users_ratio_val, 4),
             # 2024年（前年）
             "prev2_gsv_users": prev2_gsv_users_val,
             "prev2_gsv": prev2_gsv_val,
@@ -393,8 +373,8 @@ def get_audience_table(
             "prev2_new_users": prev2_new_users_val,
             "prev2_new_gsv": round(prev2_new_gsv_val, 2),
             "prev2_new_aus": round(prev2_new_aus_val, 2),
-            "prev2_new_gsv_ratio": round(prev2_new_gsv_ratio_val, 4),
-            "prev2_new_users_ratio": round(prev2_new_users_ratio_val, 4),
+            "prev2_new_gsv_ratio": _round_nullable(prev2_new_gsv_ratio_val, 4),
+            "prev2_new_users_ratio": _round_nullable(prev2_new_users_ratio_val, 4),
             "prev2_member_users": int(prev2_member_users) if prev2_member_users is not None else 0,
             "prev2_member_gsv": round(_n(prev2_member_gsv), 2),
             "prev2_member_aus": round(_n(prev2_member_aus), 2),
@@ -408,8 +388,8 @@ def get_audience_table(
             "prev2_member_new_users": prev2_member_new_users_val,
             "prev2_member_new_gsv": round(prev2_member_new_gsv_val, 2),
             "prev2_member_new_aus": round(prev2_member_new_aus_val, 2),
-            "prev2_member_new_gsv_ratio": round(prev2_member_new_gsv_ratio_val, 4),
-            "prev2_member_new_users_ratio": round(prev2_member_new_users_ratio_val, 4),
+            "prev2_member_new_gsv_ratio": _round_nullable(prev2_member_new_gsv_ratio_val, 4),
+            "prev2_member_new_users_ratio": _round_nullable(prev2_member_new_users_ratio_val, 4),
             # YoY = (2026 - 2025) / 2025
             "yoy_gsv": yoy_absolute(round(_n(gsv), 2), comp_gsv_val),
             "yoy_gsv_users": yoy_absolute(int(gsv_users), comp_gsv_users_val),

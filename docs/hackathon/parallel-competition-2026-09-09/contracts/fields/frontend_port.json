@@ -1,0 +1,103 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-frontend-ports/v1",
+        "default": "competition-frontend-ports/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Port Id",
+      "enum": null,
+      "name": "port_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Port Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Owner",
+      "enum": [
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A8"
+      ],
+      "name": "owner",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "A4",
+          "A5",
+          "A6",
+          "A7",
+          "A8"
+        ],
+        "title": "Owner",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Name",
+      "enum": null,
+      "name": "name",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Name",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Signature",
+      "enum": null,
+      "name": "signature",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Signature",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Support Status",
+      "enum": null,
+      "name": "support_status",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "NOT_CONNECTED",
+        "default": "NOT_CONNECTED",
+        "title": "Support Status",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Notes",
+      "enum": null,
+      "name": "notes",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Notes",
+        "type": "string"
+      }
+    }
+  ],
+  "model": "CompetitionFrontendPort",
+  "schema_version": "competition-frontend-ports/v1"
+}

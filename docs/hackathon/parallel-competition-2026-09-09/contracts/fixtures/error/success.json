@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": "STATE_UNAVAILABLE",
+    "doc_ref": "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T08",
+    "http_status": 503,
+    "maps_to": "backend.contracts.analytics.AnalyticsErrorDetail",
+    "message": "状态暂不可用。",
+    "param": null,
+    "recovery_url": null,
+    "request_id": "req_c0_503",
+    "retry_after": 1,
+    "retryable": true,
+    "schema_version": "competition-error/v1"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "batch": {
+    "batch_id": "batch_c0_1",
+    "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+    "operations": [
+      {
+        "board_id": null,
+        "endorsed_result_refs": [
+          {
+            "analysis_id": "analysis_c0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "completeness": "COMPLETE",
+            "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "result_id": "result_c0_gsv_20260831",
+            "run_id": "run_c0_gsv_20260831"
+          }
+        ],
+        "idempotency_key": "board-create-a",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "operation_id": "op_c0_board_a",
+        "request_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "title": "8月GSV诊断板"
+      }
+    ],
+    "schema_version": "competition-board-batch/v1"
+  },
+  "board": {
+    "affected_block_ids": [
+      "card_c0_block_1",
+      "card_c0_block_2"
+    ],
+    "base_version": 3,
+    "batch_id": "batch_c0_1",
+    "block_ids": [
+      "card_c0_block_1",
+      "card_c0_block_2"
+    ],
+    "board_id": "dash_c0_board_a",
+    "data_mode": "SNAPSHOT",
+    "data_namespace": "analytics-cockpit/v1",
+    "existing_dashboard_schema": "analytics-cockpit/v1",
+    "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+    "limitations": [
+      "沿用 analytics-cockpit/v1 SNAPSHOT 读兼容；competition-board/v1 新板走隔离命名空间。"
+    ],
+    "operation_id": "op_c0_board_a",
+    "owner_id": "analyst.brand-a",
+    "persisted": true,
+    "preview": false,
+    "schema_version": "competition-board/v1",
+    "snapshot_compat": "READ_OLD_SNAPSHOT",
+    "title": "8月GSV诊断板",
+    "version": 4,
+    "visibility": "PRIVATE"
+  },
+  "patch": {
+    "attempt_id": "attempt_c0_style_1",
+    "base_version": 4,
+    "block_id": "card_c0_block_1",
+    "board_id": "dash_c0_board_a",
+    "cockpit_op": null,
+    "display_op": {
+      "card_id": "card_c0_block_1",
+      "display_overrides": {
+        "title": "渠道贡献（样式）"
+      },
+      "op": "display"
+    },
+    "filter_change": null,
+    "idempotency_key": "patch-style-1",
+    "intent": "STYLE_ONLY",
+    "schema_version": "competition-board-patch/v1"
+  }
+}

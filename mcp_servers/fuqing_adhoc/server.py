@@ -122,11 +122,24 @@ MAX_CONTENT_LENGTH = 1_048_576  # 1 MB - 单条消息上限
 
 
 def _write_message(payload: dict[str, object]) -> None:
-    """MCP stdio: 一行 JSON + \\n."""
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    """MCP stdio: 一行完整 JSON + \\n. Never byte-slice a JSON body."""
+    try:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    except (TypeError, ValueError):
+        body = json.dumps(
+            {"jsonrpc": "2.0", "error": {"code": -32603, "message": "encode failed"}},
+            ensure_ascii=False,
+        ).encode("utf-8")
     if len(body) > MAX_CONTENT_LENGTH:
-        # Sprint 182 Phase 4: outbound 限大小, 防撑爆 WorkBuddy 上下文 token
-        body = body[:MAX_CONTENT_LENGTH]
+        fallback = {
+            "jsonrpc": "2.0",
+            "id": payload.get("id"),
+            "error": {
+                "code": -32603,
+                "message": "payload exceeds MCP stdio limit; use HTTP result_ref/pagination",
+            },
+        }
+        body = json.dumps(fallback, ensure_ascii=False).encode("utf-8")
     sys.stdout.buffer.write(body)
     sys.stdout.buffer.write(b"\n")
     sys.stdout.buffer.flush()
@@ -142,7 +155,8 @@ def _read_message() -> dict[str, object] | None:
     if not line:
         return None  # EOF
     if len(line) > MAX_CONTENT_LENGTH:
-        return None  # 单行 size 超限 (防 OOM)
+        # Do not treat oversized input as EOF (that stopped the server).
+        return {"jsonrpc": "2.0", "id": None, "error_oversized": True}
     line = line.strip()
     if not line:
         return None  # 空行, 跳过 (不该返 None 但 MCP client 不会发空行)
@@ -220,13 +234,32 @@ def _handle_call_tool(req_id: object, params: dict[str, object]) -> dict[str, ob
                 "isError": True,
             },
         }
-    if result["returncode"] != 0:
-        text = (result.get("stderr") or "") + (result.get("stdout") or "")
+    stdout = str(result.get("stdout") or "")
+    stderr = str(result.get("stderr") or "")
+    truncated = "[truncated]" in stdout or "[truncated]" in stderr
+    if result["returncode"] != 0 or truncated:
+        if truncated:
+            envelope = {
+                "completeness": "FAILED",
+                "truncated": True,
+                "http_fallback": (
+                    "POST /api/v1/audience/summary | "
+                    "POST /api/v1/ad-hoc/two-year-overview | "
+                    "POST /api/v1/ad-hoc/new-old-customer"
+                ),
+                "message": (
+                    "MCP stdio truncated this tool output; it is not a complete "
+                    "result. Use HTTP pagination/result_ref."
+                ),
+            }
+            text = json.dumps(envelope, ensure_ascii=False)
+        else:
+            text = stderr + stdout or "CLI failed"
         return {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
-                "content": [{"type": "text", "text": text or "CLI failed"}],
+                "content": [{"type": "text", "text": text}],
                 "isError": True,
             },
         }
@@ -234,7 +267,7 @@ def _handle_call_tool(req_id: object, params: dict[str, object]) -> dict[str, ob
         "jsonrpc": "2.0",
         "id": req_id,
         "result": {
-            "content": [{"type": "text", "text": str(result.get("stdout") or "")}],
+            "content": [{"type": "text", "text": stdout}],
             "isError": False,
         },
     }
@@ -267,11 +300,22 @@ def _dispatch(req: dict[str, object]) -> dict[str, object] | None:
 
 
 def serve() -> None:
-    """stdio JSON-RPC main loop."""
+    """stdio JSON-RPC main loop.
+
+    Transport is still serial (one request at a time). CLI calls are bounded by
+    subprocess timeout; oversized messages no longer exit the server.
+    """
     while True:
         req = _read_message()
         if req is None:
             return  # EOF
+        if req.get("error_oversized"):
+            _write_message({
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32600, "message": "message too large; use HTTP"},
+            })
+            continue
         resp = _dispatch(req)
         if resp is not None:
             _write_message(resp)

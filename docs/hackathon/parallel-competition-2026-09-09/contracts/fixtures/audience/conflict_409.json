@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": "VERSION_CONFLICT",
+    "doc_ref": "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T12",
+    "http_status": 409,
+    "maps_to": "backend.contracts.analytics.AnalyticsErrorDetail",
+    "message": "草稿 base_version 冲突，未覆盖。",
+    "param": "version",
+    "recovery_url": null,
+    "request_id": "req_c0_409_draft",
+    "retry_after": null,
+    "retryable": false,
+    "schema_version": "competition-error/v1"
+  }
+}

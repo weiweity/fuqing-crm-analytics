@@ -211,7 +211,7 @@ def run_channel_slice(
             int(cu["gsv"]),
             cu["orders"],
             cu["customers"],
-            int(aov),
+            int(aov) if aov is not None else None,
             yoy_str,
         ])
     return rows_out

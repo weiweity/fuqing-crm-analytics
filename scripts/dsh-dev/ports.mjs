@@ -1,11 +1,15 @@
-/** Own only 4325-4329. Never probe-kill foreign listeners. */
+/** Own 4325-4329 or competition 14327. Never probe-kill foreign listeners. */
 import assert from 'node:assert/strict';
 import { createServer } from 'node:net';
-import { FOREIGN_PORTS, HOST, PORT_RANGE, PORTS } from './constants.mjs';
+import {
+  ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, FOREIGN_PORTS, HOST, PORT_RANGE, PORTS,
+} from './constants.mjs';
 
 export function assertOwnedPort(port) {
   const n = Number(port);
-  assert.ok(Number.isInteger(n) && PORT_RANGE.includes(n), `port must be one of ${PORT_RANGE.join(',')}`);
+  assert.ok(Number.isInteger(n) && ALLOWED_WEB_PORTS.includes(n),
+    `port must be one of ${ALLOWED_WEB_PORTS.join(',')}`);
+  assert.notEqual(n, COMPETITION_VITE_PORT, '15173 is reserved for Vite; dsh-dev must not bind it');
   assert.ok(!FOREIGN_PORTS.includes(n), `refusing foreign port ${n}`);
   return n;
 }
@@ -29,4 +33,4 @@ export async function assertRangeFree(host = HOST) {
   for (const port of PORT_RANGE) await assertFree(port, host);
 }
 
-export { PORTS, PORT_RANGE, FOREIGN_PORTS, HOST };
+export { PORTS, PORT_RANGE, FOREIGN_PORTS, HOST, ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT };

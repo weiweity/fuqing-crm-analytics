@@ -1,0 +1,157 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-audience/v1",
+        "default": "competition-audience/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Candidate Set Id",
+      "enum": null,
+      "name": "candidate_set_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Candidate Set Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Cohort Id",
+      "enum": null,
+      "name": "cohort_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Cohort Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Source Result Ref",
+      "enum": null,
+      "name": "source_result_ref",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Source Result Ref",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "combine",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/CombineOp"
+      }
+    },
+    {
+      "description": "Unique Count",
+      "enum": null,
+      "name": "unique_count",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maximum": 9007199254740991,
+        "minimum": 0,
+        "title": "Unique Count",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Customer Keys",
+      "enum": null,
+      "name": "customer_keys",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        "title": "Customer Keys",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Explanations",
+      "enum": null,
+      "name": "explanations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "$ref": "#/$defs/CandidateExplanation"
+        },
+        "title": "Explanations",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Auto Send",
+      "enum": null,
+      "name": "auto_send",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": false,
+        "default": false,
+        "title": "Auto Send",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Permission Scope",
+      "enum": null,
+      "name": "permission_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Permission Scope",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Limitations",
+      "enum": null,
+      "name": "limitations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "title": "Limitations",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionCandidateSet",
+  "schema_version": "competition-audience/v1"
+}

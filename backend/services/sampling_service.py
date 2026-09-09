@@ -12,6 +12,9 @@ import duckdb
 from backend.db.connection import get_connection
 from backend.contracts.sampling import SamplingLevelSummary
 from backend.semantic.calculations import yoy_absolute, yoy_ratio, safe_ratio
+
+# Archived sampling endpoints retain their numeric zero fallback explicitly;
+# competition ratios use the nullable C0 contract.
 from backend.semantic.channels import DB_TO_UI, GIFT_SAMPLE_DB
 from backend.semantic.filters import expand_channels
 
@@ -85,16 +88,16 @@ def _build_channel_metrics(channel: str, row: Tuple[Any, ...]) -> Dict[str, Any]
         'channel': channel,
         'sample_users': sample_users,
         'repurchase_users': repurchase_users,
-        'repurchase_rate': round(safe_ratio(repurchase_users, sample_users), 4),
+        'repurchase_rate': round(safe_ratio(repurchase_users, sample_users, default=0.0), 4),
         'repurchase_gsv': round(repurchase_gsv, 2),
-        'repurchase_aus': round(safe_ratio(repurchase_gsv, repurchase_users), 2),
+        'repurchase_aus': round(safe_ratio(repurchase_gsv, repurchase_users, default=0.0), 2),
         'full_repurchase_users': full_users,
-        'full_repurchase_rate': round(safe_ratio(full_users, sample_users), 4),
+        'full_repurchase_rate': round(safe_ratio(full_users, sample_users, default=0.0), 4),
         'full_repurchase_gsv': round(full_gsv, 2),
-        'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
+        'full_repurchase_aus': round(safe_ratio(full_gsv, full_users, default=0.0), 2),
         'nonfull_repurchase_users': nonfull_users,
         'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
-        'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
+        'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users, default=0.0), 2),
     }
 
 
@@ -452,18 +455,18 @@ def get_sampling_roi(
                 'category': cat,
                 'sample_users': su,
                 'repurchase_users': ru,
-                'repurchase_rate': round(safe_ratio(ru, su), 4),
+                'repurchase_rate': round(safe_ratio(ru, su, default=0.0), 4),
                 'repurchase_gsv': round(gsv, 2),
-                'repurchase_aus': round(safe_ratio(gsv, ru), 2),
+                'repurchase_aus': round(safe_ratio(gsv, ru, default=0.0), 2),
                 'same_category_repurchase': same,
-                'same_category_rate': round(safe_ratio(same, su), 4),
+                'same_category_rate': round(safe_ratio(same, su, default=0.0), 4),
                 'full_repurchase_users': full_users,
-                'full_repurchase_rate': round(safe_ratio(full_users, su), 4),
+                'full_repurchase_rate': round(safe_ratio(full_users, su, default=0.0), 4),
                 'full_repurchase_gsv': round(full_gsv, 2),
-                'full_repurchase_aus': round(safe_ratio(full_gsv, full_users), 2),
+                'full_repurchase_aus': round(safe_ratio(full_gsv, full_users, default=0.0), 2),
                 'nonfull_repurchase_users': nonfull_users,
                 'nonfull_repurchase_gsv': round(nonfull_gsv, 2),
-                'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users), 2),
+                'nonfull_repurchase_aus': round(safe_ratio(nonfull_gsv, nonfull_users, default=0.0), 2),
             })
 
         # 跟 channels_result 同模式 (line 332-377): 用 compare_date_range 区分 mom / yoy
@@ -488,13 +491,13 @@ def get_sampling_roi(
             nonfull_gsv_c = float(row[9] or 0)
             compare_cat_by_key[(DB_TO_UI.get(ch_db, ch_db), cat)] = {
                 'repurchase_users': ru_c,
-                'repurchase_rate': round(safe_ratio(ru_c, su_c), 4),
+                'repurchase_rate': round(safe_ratio(ru_c, su_c, default=0.0), 4),
                 'repurchase_gsv': round(gsv_c, 2),
-                'repurchase_aus': round(safe_ratio(gsv_c, ru_c), 2),
+                'repurchase_aus': round(safe_ratio(gsv_c, ru_c, default=0.0), 2),
                 'full_repurchase_users': full_users_c,
-                'full_repurchase_rate': round(safe_ratio(full_users_c, su_c), 4),
+                'full_repurchase_rate': round(safe_ratio(full_users_c, su_c, default=0.0), 4),
                 'full_repurchase_gsv': round(full_gsv_c, 2),
-                'full_repurchase_aus': round(safe_ratio(full_gsv_c, full_users_c), 2),
+                'full_repurchase_aus': round(safe_ratio(full_gsv_c, full_users_c, default=0.0), 2),
                 'nonfull_repurchase_gsv': round(nonfull_gsv_c, 2),
             }
 
@@ -507,7 +510,7 @@ def get_sampling_roi(
         # Sprint 139: DQM 守卫 — 正装 GSV 占比偏低时返回 warnings, 不阻断 API
         total_posize_gsv = sum(c.get('full_repurchase_gsv', 0) for c in channels_result)
         total_gsv = sum(c.get('repurchase_gsv', 0) for c in channels_result)
-        posize_ratio = safe_ratio(total_posize_gsv, total_gsv)
+        posize_ratio = safe_ratio(total_posize_gsv, total_gsv, default=0.0)
         quality_flags = []
         if total_gsv > 0 and posize_ratio < 0.30:
             quality_flags.append({
@@ -677,7 +680,7 @@ def get_sampling_repurchase_buckets(
             'bucket': bucket,
             'users': users,
             'gsv': round(gsv, 2),
-            'aus': round(safe_ratio(gsv, users), 2),
+            'aus': round(safe_ratio(gsv, users, default=0.0), 2),
         })
 
     return {
@@ -754,7 +757,7 @@ def get_sampling_repurchase_tracking(
 
         for bucket_name in ['0-7d', '8-30d', '31-60d', '61-90d']:
             users = int(bucket_map.get(bucket_name, 0))
-            rate = round(safe_ratio(users, sample_users_count), 4)
+            rate = round(safe_ratio(users, sample_users_count, default=0.0), 4)
             flat_buckets.append({
                 'bucket': bucket_name,
                 'year_label': year_label,

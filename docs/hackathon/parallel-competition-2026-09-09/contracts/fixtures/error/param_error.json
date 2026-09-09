@@ -1,0 +1,17 @@
+{
+  "expected": {
+    "code": "INVALID_REQUEST",
+    "http_status": 422,
+    "param": "maps_to"
+  },
+  "payload": {
+    "error": {
+      "code": "X",
+      "http_status": 400,
+      "maps_to": "nope",
+      "message": "x",
+      "request_id": "r",
+      "retryable": false
+    }
+  }
+}

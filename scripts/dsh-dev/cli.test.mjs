@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { B0_DEMO_DISABLE_IDS, FOREIGN_PORTS, PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS } from './constants.mjs';
+import {
+  B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, FOREIGN_PORTS,
+  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS,
+} from './constants.mjs';
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
 import { assertNoB0Disables, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
 import { assertOwnedHost, assertOwnedPort } from './ports.mjs';
@@ -25,11 +28,13 @@ test('plugin flag only accepts on or off', () => {
 
 test('owned ports reject B0 and Mission listeners', () => {
   assert.equal(assertOwnedPort(4327), PORTS.web);
+  assert.equal(assertOwnedPort(COMPETITION_WEB_PORT), COMPETITION_WEB_PORT);
   assert.deepEqual([...PORT_RANGE], [4325, 4326, 4327, 4328, 4329]);
   for (const port of FOREIGN_PORTS) {
     assert.throws(() => assertOwnedPort(port));
   }
   assert.throws(() => assertOwnedPort(80));
+  assert.throws(() => assertOwnedPort(COMPETITION_VITE_PORT));
   assert.equal(assertOwnedHost('127.0.0.1'), '127.0.0.1');
   assert.throws(() => assertOwnedHost('0.0.0.0'));
 });
@@ -39,7 +44,9 @@ test('serve args pin loopback and refuse foreign ports', () => {
   assert.equal(options.plugin, 'off');
   assert.equal(options.webPort, 4327);
   assert.equal(options.host, '127.0.0.1');
+  assert.equal(parseServeArgs(['--plugin', 'off', '--web-port', '14327']).webPort, COMPETITION_WEB_PORT);
   assert.throws(() => parseServeArgs(['--web-port', '4317']));
+  assert.throws(() => parseServeArgs(['--web-port', '15173']));
   assert.throws(() => parseServeArgs(['--host', '0.0.0.0']));
   assert.throws(() => parseServeArgs(['--plugin', 'maybe']));
 });

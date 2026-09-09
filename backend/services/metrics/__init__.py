@@ -9,6 +9,7 @@ __all__ = [
     "get_product_metrics",
     "get_audience_table",
     "calculate_audience_summary",
+    "compute_competition_metrics",
 ]
 
 from .overview import (
@@ -21,3 +22,4 @@ from .overview import (
 )
 from .audience_table import get_audience_table
 from .audience_summary import calculate_audience_summary
+from .competition_compute import compute_competition_metrics

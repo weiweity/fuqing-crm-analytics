@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": "UNAUTHENTICATED",
+    "doc_ref": "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T06",
+    "http_status": 401,
+    "maps_to": "backend.contracts.analytics.AnalyticsErrorDetail",
+    "message": "需要本次有效身份。",
+    "param": "Authorization",
+    "recovery_url": null,
+    "request_id": "req_c0_401_error",
+    "retry_after": null,
+    "retryable": false,
+    "schema_version": "competition-error/v1"
+  }
+}

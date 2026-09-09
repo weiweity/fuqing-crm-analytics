@@ -31,9 +31,21 @@ from backend.contracts.analytics_query import (
     ChannelFollowupQueryRequest,
     ChannelFollowupResolvedFilters,
 )
+from backend.contracts.competition_c0 import (
+    CompetitionBoardSpec,
+    CompetitionPatchRequest,
+    PatchIntent,
+)
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal
 from backend.services.analytics.catalog import bind_resolved_filters_from_metadata
-from backend.services.analytics.cockpit import OPAQUE_ID, PLUGIN_TABLE, CockpitStore, _spec_hash
+from backend.services.analytics.cockpit import (
+    OPAQUE_ID,
+    PLUGIN_TABLE,
+    CockpitRecord,
+    CockpitStore,
+    _spec_hash,
+    legacy_spec_payload,
+)
 from backend.services.analytics.resource_profile import canonical_json
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
 
@@ -292,3 +304,28 @@ def project_dashboard(
     document["base_version"] = base_version
     document["cards"] = [project_card(analysis_store, principal, card) for card in payload.get("cards") or []]
     return document
+
+
+def project_legacy_board_spec(record: CockpitRecord) -> dict:
+    return CompetitionBoardSpec.model_validate(legacy_spec_payload(record)).model_dump(mode="json")
+
+
+def project_legacy_board_document(
+    analysis_store: SavedAnalysisStore, principal: AnalyticsPrincipal, record: CockpitRecord,
+) -> dict:
+    spec = project_legacy_board_spec(record)
+    return {
+        "spec": spec,
+        "blocks": [project_card(analysis_store, principal, card) for card in record.cards],
+        "data_namespace": spec["data_namespace"],
+        "snapshot_compat": spec["snapshot_compat"],
+        "http_api": "NOT_CONNECTED",
+        "finite_mock": True,
+    }
+
+
+def reject_filter_change(payload: CompetitionPatchRequest) -> None:
+    if payload.intent == PatchIntent.FILTER_CHANGE or payload.filter_change is not None:
+        raise AnalyticsError(
+            422, "NOT_CONNECTED", "FILTER_CHANGE 必须创建新 run，当前驾驶舱未接通。",
+        )

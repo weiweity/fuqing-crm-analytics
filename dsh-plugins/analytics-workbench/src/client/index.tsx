@@ -21,20 +21,25 @@ import { QueryToolCard } from './query-card.tsx';
 import { FirstPurchaseQueryCard } from './first-purchase-query-card.tsx';
 import { RunStatus } from './run-status.tsx';
 import { HttpAssetOverlay } from './asset-overlay.tsx';
+import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
 import { probeAssetHttp } from '../asset-http.mjs';
+import { competitionHttpOptions } from './competition-http.mjs';
+import { ThemeProvider } from './competition-shell/index.ts';
+import { PRODUCT_NAME, watchCompetitionBrandSurface } from './brand-surface.mjs';
 
 function initialState() {
   try {
     const restored = restoreTitle(window.localStorage.getItem(TITLE_STORAGE_KEY));
     return {
       open: false,
+      openTick: 0,
       confirmClose: false,
       editor: createEditor(restored.title),
       message: restored.invalid ? '本地 UI 偏好格式无效，已使用默认标题。'
         : restored.restored ? '已恢复本浏览器的 UI 标题；不是业务后端持久化。' : '',
     };
   } catch {
-    return { open: false, confirmClose: false, editor: createEditor(), message: '浏览器存储不可用；本次 UI 修改仅在当前页面有效。' };
+    return { open: false, openTick: 0, confirmClose: false, editor: createEditor(), message: '浏览器存储不可用；本次 UI 修改仅在当前页面有效。' };
   }
 }
 
@@ -42,7 +47,7 @@ function createWorkbenchStore() {
   return defineStore({
     init: initialState,
     actions: {
-      open: draft => { draft.open = true; draft.confirmClose = false; },
+      open: draft => { draft.open = true; draft.confirmClose = false; draft.openTick = (draft.openTick || 0) + 1; },
       close: draft => { draft.open = false; draft.confirmClose = false; },
       requestClose: draft => {
         if (draft.editor.draft !== draft.editor.title || draft.editor.preview) draft.confirmClose = true;
@@ -74,8 +79,18 @@ type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
 
 function RoutedOverlay(props: OverlayProps) {
   const [assets, setAssets] = useState(false);
+  const competitionHttp = competitionHttpOptions();
+  const openTick = props.useStore(state => state.openTick ?? 0);
   useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
-  return assets ? <HttpAssetOverlay {...props} /> : <AssetOverlay {...props} />;
+  return (
+    <ThemeProvider className="sm-overlay-theme">
+      <OverlayErrorBoundary resetKey={openTick}>
+        {assets || competitionHttp
+          ? <HttpAssetOverlay key={openTick} {...props} />
+          : <AssetOverlay key={openTick} {...props} />}
+      </OverlayErrorBoundary>
+    </ThemeProvider>
+  );
 }
 
 function BrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>) {
@@ -85,17 +100,20 @@ function BrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>) {
 
 function Footer(props: FooterProps) {
   const [assets, setAssets] = useState(false);
+  const competitionHttp = competitionHttpOptions();
   useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
+  const live = Boolean(assets || competitionHttp);
   return <><style>{css}</style><button className="analytics-b0-trigger" type="button"
-    title={assets ? '我的驾驶舱' : '我的驾驶舱 · B0 合成样例'}
-    aria-label={assets ? '打开我的驾驶舱' : '打开我的驾驶舱，B0 合成样例'}
+    title={live ? '我的驾驶舱' : '我的驾驶舱 · 合成样例'}
+    aria-label={live ? '打开我的驾驶舱' : '打开我的驾驶舱，合成样例'}
     data-testid="analytics-b0-open" onClick={() => props.actions.open()}>
-    {props.wide ? (assets ? '我的驾驶舱' : '我的驾驶舱 · B0') : (assets ? '驾驶舱' : 'B0')}
+    {props.wide ? '我的驾驶舱' : '驾驶舱'}
   </button></>;
 }
 
 function AssetOverlay(props: OverlayProps) {
   const open = props.useStore(state => state.open);
+  const openTick = props.useStore(state => state.openTick ?? 0);
   const editor = props.useStore(state => state.editor);
   const message = props.useStore(state => state.message);
   const confirmClose = props.useStore(state => state.confirmClose);
@@ -107,7 +125,7 @@ function AssetOverlay(props: OverlayProps) {
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  }, [open, openTick]);
   useEffect(() => () => {
     if (focusFrame.current !== undefined) cancelAnimationFrame(focusFrame.current);
     dialogRef.current?.close();
@@ -146,7 +164,7 @@ function AssetOverlay(props: OverlayProps) {
     onCancel={event => { event.preventDefault(); props.actions.requestClose(); }}
     onClose={afterClose}>
     <header><div><span className="analytics-b0-logo" role="img" aria-label="SHINE MAGE 原始 Logo" data-testid="analytics-b0-logo" />
-      <h2 id="analytics-b0-heading">伸美 · 我的驾驶舱</h2></div>
+      <h2 id="analytics-b0-heading">{PRODUCT_NAME}</h2></div>
       <button type="button" data-testid="analytics-b0-close" onClick={() => props.actions.requestClose()}>返回聊天</button></header>
     {confirmClose && <section className="analytics-b0-preview" role="alert" data-testid="analytics-b0-close-confirm">
       <p>标题草稿尚未应用，是否放弃本次修改？</p>
@@ -207,8 +225,9 @@ export function apply(ctx: Context): void {
   }), 'analytics-b0: select exact Host-listed primary once');
   // Same handle + same root scope = one shared open/editor state across entries.
   const store = createWorkbenchStore();
+  ctx.effect(() => watchCompetitionBrandSurface(), 'competition-brand-surface');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
-  ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({ name: 'sidebar.brand.name', priority: -10 }, () => <>伸美 · B0</>));
+  ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({ name: 'sidebar.brand.name', priority: -10 }, () => <>{PRODUCT_NAME}</>));
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store,
   }, Footer));

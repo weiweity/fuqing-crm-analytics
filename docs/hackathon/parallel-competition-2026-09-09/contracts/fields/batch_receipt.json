@@ -1,0 +1,69 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-board-batch/v1",
+        "default": "competition-board-batch/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Batch Id",
+      "enum": null,
+      "name": "batch_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Batch Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Status",
+      "enum": [
+        "SUCCEEDED",
+        "PARTIAL",
+        "FAILED"
+      ],
+      "name": "status",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "SUCCEEDED",
+          "PARTIAL",
+          "FAILED"
+        ],
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Items",
+      "enum": null,
+      "name": "items",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "$ref": "#/$defs/BoardOpReceipt"
+        },
+        "maxItems": 20,
+        "minItems": 1,
+        "title": "Items",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionBoardBatchReceipt",
+  "schema_version": "competition-board-batch/v1"
+}

@@ -6,11 +6,13 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm';
 import { freezeSkillPackage, type SkillPackageInput } from './skill-package.mjs';
 import { requestForStep, requestForTool } from './native-evidence.mjs';
 import { loadRunContext } from './runtime-context.ts';
-import { FIRST_PURCHASE_FAMILY, QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
+import { COMPETITION_FAMILY, FIRST_PURCHASE_FAMILY, QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
+import { apply as applyCompetitionGrowth } from './competition-agent/apply.ts';
 
 declare const __B0_SKILL_PACKAGE__: SkillPackageInput;
 declare const __QUERY_SKILL_PACKAGE__: SkillPackageInput;
 declare const __FIRST_PURCHASE_SKILL_PACKAGE__: SkillPackageInput;
+declare const __COMPETITION_SKILL_PACKAGE__: SkillPackageInput;
 const b0Pack = freezeSkillPackage(__B0_SKILL_PACKAGE__);
 const queryPack = freezeSkillPackage(__QUERY_SKILL_PACKAGE__, QUERY_FAMILY);
 const firstPurchasePack = freezeSkillPackage(__FIRST_PURCHASE_SKILL_PACKAGE__, FIRST_PURCHASE_FAMILY);
@@ -30,6 +32,10 @@ declare module '@deepseek-ai/dsh-llm' {
 
 export function apply(ctx: Context): void {
   const family = runtimeFamily();
+  if (family === COMPETITION_FAMILY) {
+    applyCompetitionGrowth(ctx, __COMPETITION_SKILL_PACKAGE__);
+    return;
+  }
   const queryMode = family === QUERY_FAMILY;
   const firstPurchaseMode = family === FIRST_PURCHASE_FAMILY;
   const pack = queryMode ? queryPack : firstPurchaseMode ? firstPurchasePack : b0Pack;

@@ -1,0 +1,1475 @@
+{
+  "base": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "ci_commits": [
+    "a3ffe50",
+    "57075a5"
+  ],
+  "files": [
+    {
+      "source": "competition-integration",
+      "path": "DESIGN.md",
+      "sha256": "67e55d81857c92aadcfcff5d7205ad6736ee0756ec0e1c74b297cef5cf4b7c11"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/analytics_competition_app.py",
+      "sha256": "93dc87b08725b2728dc810b52704249732d6ef7d0c7cbb97312b9e2880dc3a27"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/contracts/analytics-competition-c0.openapi.json",
+      "sha256": "21ca78d9adfc0945f1daf29d966806d3ddde20f0f47be605bd1cd49be76eca95"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/contracts/competition_c0.py",
+      "sha256": "164aedc8489a740fbc92354adbd26f1737f7bb30e134fcf08494c17e2c561348"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/contracts/schemas.py",
+      "sha256": "711f92d52a478b5ac4a4e0b61c552e5df2edb99d7be01fb05a04881dda8b36e5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/contracts/tests/test_competition_c0.py",
+      "sha256": "c5554a3ba23f0433af8cedb6e69ac662d49d0178b387c0dff80e8090d62f7a55"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/db/connection.py",
+      "sha256": "0198395d75d346f76c4255025451d095d42be47a3f1ff64af37123f6f3769e76"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/main.py",
+      "sha256": "e1ef10c0a49eec0afff92004cedc520cf6b8a2037fbd92194aa901ad77b1c2c4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/middleware/query_router.py",
+      "sha256": "12a0fe06e597f1d1519f5caae9387d53fff5748b729ba07a3295c6f63d2b54a6"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/routers/audience.py",
+      "sha256": "5f15452f8cf2486ccde812be8cedb2126d46233bf92f1b92eef8629e1f35e495"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/routers/sampling.py",
+      "sha256": "aaee5ddb5e3aabac1ac1e4742cec8ee8c52f88615daf0e15fbfab2ea7afc4ae2"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/semantic/calculations.py",
+      "sha256": "424752a5e4e48ce51602746a8b8cb7e17c42fd26f43d7034dcff7142018828f7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/semantic/time.py",
+      "sha256": "7c180ac85cc915a22a4a00cb027dd72bf1f68f82cce199d9eca13382b24023d2"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/analysis_source.py",
+      "sha256": "4cc046b4ab38ea03c7cbc86898eb450e79320c12aee7ade50879e850499f48f4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/cockpit.py",
+      "sha256": "038e6f971232dac93400cea1bc735d2cd054232d5a3f39c9602ab80916e63f65"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/cockpit_source.py",
+      "sha256": "98b90529483eb208be0b4d9907ca770884797407ea2770c3a63248f9c0781754"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_assets/__init__.py",
+      "sha256": "91fd980dd9bb4f50349127ea34df3fa4ef893ac0ce92f9434d7df4418ef47353"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_assets/service.py",
+      "sha256": "3db8347ea1b8ac6192fef54857aee3638f5f0a5995cb2809bd4bf3dc4bd137fb"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_assets/store.py",
+      "sha256": "32ba86a081290e47bb70fa3224db31ffdba9aebd281dc3666b6837972f18d478"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/__init__.py",
+      "sha256": "afbfb3afe91a2c286375371460827d21dbac6251646b18cce816d64a495730df"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/candidates.py",
+      "sha256": "ae7f7aa8eb478c16305e9797440748e523c55a93abf1800c9e3e2da5dbe8c3dc"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/cohort.py",
+      "sha256": "0a9049205a52e5ae879b77943656791fd4a567103caf946a06bbe3338c4adf8f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/drafts.py",
+      "sha256": "d9a84e73882d736209fb2c096e0e9b81e96e7354137ee22823d389460d54e41e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/errors.py",
+      "sha256": "2ddda337e4cc3dcfd60cc48af531a0f273db48ec77a9ccab5ab6f537592a599c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/features.py",
+      "sha256": "f56afce065fb777adbef15f998ab8a4b8d66c4c5adfb56904e915b3191abc6f9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/golden.py",
+      "sha256": "b809a9a92b890bcc54381d459fffc3cf6602a5000c9eb86f2ed7f2831df5e1be"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/service.py",
+      "sha256": "6550719c738937264587a71ffc07209f841564f02c9902199df964399492232b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_audience/store.py",
+      "sha256": "a0a30623b4f09a2db2824d06ca409c60740cce3f1ec05e77749b16817b097bb2"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/__init__.py",
+      "sha256": "8b8a05d3739bcfc82a363c5638569e84a364e36f17dcccd135aa2393d2abbe24"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/catalog.py",
+      "sha256": "aa055fd922e01dc1d4987b9c363fcddc1a990d3aaf108f38f1be260a40c0551f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/chain.py",
+      "sha256": "302e3700afb3a3b51f47d6796c22fa56a4c53effb3f92882415114c3e381797a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/condition.py",
+      "sha256": "50cc1df3dd686a4f191a0faf27423f78aaf9aeb95f1148b63e931a1f576c5bed"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/errors.py",
+      "sha256": "0cd840c6bb7aec75cd316647a47c45099ba08eb95322396cb8a8dd4f9b8607fc"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/eval.py",
+      "sha256": "132b5648655917ef8e1c787a0d24566e9cf7da16ab15ca6b7594eaf2a721e428"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/fixtures.py",
+      "sha256": "b5311c32782ef5799f03bf6a38aac3561956c97a1d4415305948e6fff1190c85"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/orchestrator.py",
+      "sha256": "17406f1990d871a72641572c594fbd9ef7297ca466941ce99182c603eec75593"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/patch.py",
+      "sha256": "9052dda99d16924735dcd4b0cf947580dce785b1f427b00cf9db6dd6e805dcb7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/planner.py",
+      "sha256": "f30ba54b5519ac5c1b183aa6b8a442fb2607dab52a0c8942819ab630a36f5fe2"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/tests/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py",
+      "sha256": "0baab94cb17d0844e4213e86a62f22960980d1e227168ada3e8b7356b45066a4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/family_handoff_audience.py",
+      "sha256": "4f8758a5506ceb116a0095f90656bc7c4f26ea198cac890238c8512196fae913"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/analytics/saved_analyses.py",
+      "sha256": "9194f978e1f314c8e0a7a199998eb8e7e954ea4cfcb46924e55d5fea728e730b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/dual_conn.py",
+      "sha256": "8ba09e29b2e4086380d2c3929f06a49526b7899dc9fa16555207c8b199a2acf5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/metrics/__init__.py",
+      "sha256": "3e1c661a0f016e6dde1e36f783d4b0083194254c6bebf51d4743c269d692d091"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/metrics/audience_summary.py",
+      "sha256": "f986f1833fe319adcb13735238729df15dae79b13ce44186d142f72644c8d255"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/metrics/audience_table.py",
+      "sha256": "251e9a11e352595a43166181dc4fe20d3d37d647e919f9e7719b58cf9f779c20"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/metrics/competition_compute.py",
+      "sha256": "2468bc405c976e7ced019a6639c39ed7a6223bc4d15a03260c6f7aac09768d99"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/__init__.py",
+      "sha256": "960195839cfba811782097d18161707e2e1724938a47d045d977eee36a6dd24b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/_flow_engine.py",
+      "sha256": "a28fa0cb3ab5e2499afdc8602a2f4bb86fdc728aefa3df477e0e15c9f18722bd"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/_shared.py",
+      "sha256": "e6a3802f61ccb89fdbb09c824eccbae7dca0a692563f5fc02b574b743aba459a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/as_of.py",
+      "sha256": "f91cc463a9c55d98856677d3fef0e6576251cebba47bd160cce6cd0ce02cf392"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/extended.py",
+      "sha256": "3a9df8f2dd0cc9b1e74ccd3801370a1edcd896cf7f85fbf3713e6ad3e4d9cd75"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/f_flow.py",
+      "sha256": "ef7f2ecc8d45c0ba1c101cc6f06a0c338a4ad07bdd9b9bc59fd49969dbc19ea5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/services/rfm/r_flow.py",
+      "sha256": "ed8cfcdb7202cd0bb2b1e87b175d462b66a1220754845283d384e8ebddd7cb95"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_api.py",
+      "sha256": "9b75da076064b4fe706217720d28d9ba5e8b92e5fca9fc7f48b2256e91acc0b3"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_assets.py",
+      "sha256": "9e960a5855e159c5bb31adf3dee44c37ced02fbd79947f8c7e3161d4fbd5e396"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_assets_compat.py",
+      "sha256": "a1dc7230c26d9e71e8aa0c216e6ccf185a5cf9944c0f7559e16b40f1fcd3a8ff"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_audience.py",
+      "sha256": "81139b4335b8327b9a2230758804932f20cd102b6634820923128eec48dbfa42"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_audience_t05.py",
+      "sha256": "17a942d2a36f31f1c576c1466d5fee43c0606a8edffdbab78aff811aa9559737"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_http_wiring.py",
+      "sha256": "a775a3d5dcb500b604700c412a036ea6d203199347cd664fc9c8579b237d1aa4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "backend/tests/test_competition_metrics.py",
+      "sha256": "bf1b7e8eba98adfeca7e80d641b4fc52aa3f98bb4063a3c093aea1863eeb987a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/development/services.md",
+      "sha256": "e5fc4c8509686dddfe58a7f4d12d9e9fc34e6082289623acdfb202d4f09bdaa6"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/AUTOPLAN-COMPETITION-REVIEW-2026-09-09.md",
+      "sha256": "adaae0e1f2de1377b1947843547d571daf0576bb44a15a79967f1f6b48869487"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md",
+      "sha256": "4fbfac1c70a0083794b76761ecab0ed4b03f70f33277857bfed8e3d8c71fbe19"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/DSH-UI-INTERACTION-SPEC.md",
+      "sha256": "d04614bf19e469969d4541c2520e13893134319a0933a0cafdb22808cd868667"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md",
+      "sha256": "a2d74aa8b2191fbb33e3aa8ab5b2a5ae34d5ac4157d717d82672ce867e74a888"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/README.md",
+      "sha256": "6a303ea943d177fbf92c85c17ff95ee8b72062b87bd4feaa722ce85638c7a89c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/TODOS.md",
+      "sha256": "f57f3a9ccabdc4fb51c1bb11eb092f5641612a212251084bb61cfb5c658eb8ae"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A1.md",
+      "sha256": "ff0202b8fd6527ca03b791dcc81d50f9a8071e5d8a1db6f842bd0a8a7de3e8e7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A2.md",
+      "sha256": "cc70cdd9342d0b4dfee90aefa2375120e46c0d2f7f99743f53b858b7fed4c535"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A3.md",
+      "sha256": "467b95422d48ce72f0866b01e646cebee39e793dcd6b2ce1cd8fbb16765fdb09"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A4.md",
+      "sha256": "87f89493abf340550858bd6a2fad5b81e4e6c84a8271b3fc0fecdc7aab7cf6db"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A5.md",
+      "sha256": "5306ee8327b5ef180159fc26f64ee2df2d047eeb5bb672bfa0a293bce2f462d6"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A6.md",
+      "sha256": "bccb147187e202178b9d19baa2cb91551fd5f106f77dc5b1dac02cff6198e544"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A7.md",
+      "sha256": "6c0fbb9a965f68fe1034372a3d143a0511919b357fc97fb57bfc6fbca566dd3e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A8.md",
+      "sha256": "de5cc1d876311bb7b8a2f7834e38e6aaaefaf937789f64fee5a4f1a0af0b6553"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/A9.md",
+      "sha256": "00c3dbd0256f3da2293f7b7b3f2f229880758c4c875d346522ec1b0312c21d56"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/README.md",
+      "sha256": "c5c371780482e5cdcfeb75535c399f101021a85113eb87c740bbd70a4173ed32"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/C0-MANIFEST.json",
+      "sha256": "0d8ec2ad781edc501f6816aac55d3d82f0390df2abf66683df6585ef6944a16d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/competition-c0-contract.typecheck.ts",
+      "sha256": "75567b4096d82e4847aa8a4a08c683c8617aa5e60178b2a9a4bec1f3a027c801"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/defaults.json",
+      "sha256": "ff613fcd8eac27e4a024d6e229637dfefe45db4a71d7c2a67ce8273548d9ffd9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/action.json",
+      "sha256": "974ef88aa85c3d6ef0501feddf7214b2b78abda93f50baa889ba876a5caf9ab8"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/batch.json",
+      "sha256": "da376cc043a0d61e62f49824de9953f12a536c65eb42106019228df9cf6014d8"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/batch_receipt.json",
+      "sha256": "76e10424940b82cdcfc587a7ea0270cd70d51e122edee5d65254ae60fa2b20e7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/board.json",
+      "sha256": "37f7baea16940666d80498ab3f01e36693ae67072b20b72d85159d330f0a0916"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/candidates.json",
+      "sha256": "003bb01954a2d815e437f3359aed8d3718c245082a7c6af06fca48f90f0210be"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/capability.json",
+      "sha256": "79e11b673944475b0466b5e246fc7adbd96ee34c8c30b9434ab27f09ebb11310"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/cohort.json",
+      "sha256": "94ad4ad42e9f1e4bd4a6de071c39ddfbe336ecdbc79c5ffd15b967edb8124a4b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/condition.json",
+      "sha256": "6cf1dbfb45939373d774b58dcb85fa18cc224e4d25dbe970c332704e935c7291"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/error.json",
+      "sha256": "cc8488e0784f23b67306e37d972205c733e5a60e73393b3dbab7c21ea73f7f91"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/frontend_port.json",
+      "sha256": "92eb3037f3ced45c036937983ec762a920ea98a5ae918c23a507c5cc694fdd33"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/patch.json",
+      "sha256": "d3c43fbb58ea2deadd4a06dfa2c9eba38c96e55a5ed524e80da409d1e504858f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/resolved_condition.json",
+      "sha256": "b7b17fab40934bef1a7f1ad13bbfcf68dbedea6a7868594e79e7684b7e6c8763"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/result.json",
+      "sha256": "5015530a808a6cc3045bb309709a2f0717f0a7c97841e9ff20b3b3b83266e767"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/conflict_409.json",
+      "sha256": "c623c73949f2ba3ecbd51d894dc600e5693c51334878b5661fc447777456d39e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/empty.json",
+      "sha256": "739932ce51a6a4480e670917cb8275220d074beaa95210456cd27bae3db31c2f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/param_error.json",
+      "sha256": "51d902da84bde1b90a2ee15b213f31db75d7fed8faad8b04d4987b0860e6188a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/partial_success.json",
+      "sha256": "8dd5a0f96d36f1498349f693bfb023d441530de6c132d8232963e7d6864d32f8"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/permission_denied.json",
+      "sha256": "4de1d349cb32e3a81ce159e257b13736afbdd11801b8de659859bf8c757c6df5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/success.json",
+      "sha256": "ad714da725b734997fccb0692718560d3d486e47053879f587ba53309d614249"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/conflict_409.json",
+      "sha256": "433b07c41703896e7b0fc044af4f45bdf179d8fc85d43882529449bd3424761c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/empty.json",
+      "sha256": "a57558e08e8fa010d66427d4a80bac67533c27bb8d5dba3218de4bbba137aab3"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/param_error.json",
+      "sha256": "23aca0be089634e4cc842837baa202dfdeb154b0a998e46b1bc970dea5cb5995"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/partial_success.json",
+      "sha256": "e197736c3dca22c24560e69d88197f4b3bc94494a915dafe1476c7bf8fe218f5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/permission_denied.json",
+      "sha256": "58858bd202154fb0774b90c1545b879f69067b03ba8d8b67971f6930a2d4d009"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/success.json",
+      "sha256": "4d025fb5de64fbf2da227ad7300c2abaa3962b3c4d88e16733dd73b9cc2159af"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/empty.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/param_error.json",
+      "sha256": "23b05c513ecc6c81d48b23f7e47b8fb262978f764ae1e954eb77ade0339b6c17"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/permission_denied.json",
+      "sha256": "da5f359fd9cbd26a8d7c0bc1c928b25f6148e867936817bb8396eb89fb20f249"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/success.json",
+      "sha256": "686b0f0a67a62b4c2ae40bb1557040f44dabe7c162ecc4beec33274595b671ef"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/empty.json",
+      "sha256": "01cbbe6c449bf8d9b2c1d900e5a392dd2abe057dffc2b384277a1afa343e73cf"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/param_error.json",
+      "sha256": "3bf297ec9a0698268bc14cd6324be1e4ccaedc7903e31f8a23387344ba38ea4a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/permission_denied.json",
+      "sha256": "37767f00ababc05764a307dd8fa324374ba40c6aa54bbdabd5c7b1477632c222"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/success.json",
+      "sha256": "2aa9d892538fc4b0a54553c1f71bad1ceef1267b0b9533e6c7d6f15bd63497f4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/empty.json",
+      "sha256": "02347391abdbf0c007437923ef9bfdcffcd8118d50dfc1df6ac720b27e2007ae"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/param_error.json",
+      "sha256": "0bda5bd87acf772718ab25f47b6f44fe4b4d3cf145962d0c91574c76b4975327"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/permission_denied.json",
+      "sha256": "c65beb360ae409e19eaa24b04506750fdac59dbc3a2f657cdbc31e4dae0a731c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/success.json",
+      "sha256": "59f30e7af5ff3e7a8ca5d51ba294f2b99ac8b663b9cf97fd00e7f5324bae9f78"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/empty.json",
+      "sha256": "34097f13721afdc5a60a43557dec6c7e9023e2481abf66a1943c65eb961d8d26"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/param_error.json",
+      "sha256": "2796cc347fc4f44373b35cc9d249fb276e9634b8ecf07d5edde941ffdc3a0db8"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/permission_denied.json",
+      "sha256": "ab110f77e042b98437bae5e42b0c2954d9a9d5e9d5f56721213491282043f5e7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/success.json",
+      "sha256": "c5c8160a597b1e0c31dde1efa0cfb4a435f6492e82a6ec4a099660095f00152b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/frontend_ports.json",
+      "sha256": "8e9ffdfb50e851f8c41463e7e877a4d38973ada75438cb0deddfba246c0efa35"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/mapping.json",
+      "sha256": "26e8f3be6896f2c7dee5a2379a6f599cb8c5718cbbe7dff9984804e98cd3afe4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/contracts/support_matrix.json",
+      "sha256": "330297bad4a330ed571914a951e56f859e910b0154aa90d8b893b7bd8666662a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/DELIVERY.json",
+      "sha256": "15ffb15ec1bd2777afa9e8072bf64e34b5ad369ff02bbae1fcacac4d849f75fb"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/DELIVERY.json",
+      "sha256": "77b01abe3523ec723a29a790c77b284ed8e62a3d281ca3fb6e2926cf643dcd23"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/cases.json",
+      "sha256": "e3447e8830d93febcb92c0b91ec4f834681707fbc36bd10019d7e5b1020f30c5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/report.json",
+      "sha256": "5ff4aae50439c2914e3ad9741753b0e16ea26870e378b7ad53a956b7ac69b731"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/DELIVERY-BROWSER-LOOP-2026-09-09.md",
+      "sha256": "d6cce7c0db4e4649381dd98b17f2a546a49bb46aadb4a285f1c6f19bccf5001e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/DELIVERY-T05-A6A7-T17-2026-09-09.md",
+      "sha256": "579591598dd21e39fecb403e9babceaa9e5bf0cadc3204e68c3500a08d48be7e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/DELIVERY-THREE-FIXES-2026-09-09.md",
+      "sha256": "56bb55538ad41eed3c64beaf333718d24c12bea9efbc009e6358c8808082f90c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/LOGO-CROSS-WORKTREE.md",
+      "sha256": "e991bcf4f4a691c1c151ca3e36b4217a36d3bb30887e359cc6b95d146684cbef"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/samepage-01-open.png",
+      "sha256": "bdd8292d1b441af4f546327dcdc95b560ebd3888ada05a7cbcf1986d2a5aa210"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/samepage-02-results.png",
+      "sha256": "2d518df4d3714c3f55c4553b8c8d9c0d4c3f940ddbf2f49072cb7d9ee51ce460"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/samepage-03-fail-retry.png",
+      "sha256": "2049773e927a49a3d5df87e108709746007b4c474b9792ff743efa85d692f73c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/samepage-04-new-board.png",
+      "sha256": "4ac2b8f3efc6ba30908637c8b16c8d7c4237bd1854a1fb75cf9f53320309283c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/samepage-05-reopen.png",
+      "sha256": "48f47395806ec8535d2997585cd432c99d551351eb92d9ceb7670d6797fda12e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/samepage-06-success-clean.png",
+      "sha256": "b3c07d606d0ec56339db2c5600c86f25c5b2dc91de8d0849f845a79d5fb0cc89"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-1024.png",
+      "sha256": "0563b5765ee23a9c2f8dd8f143b12e28bf139ccec8dcfc17372bef4c7d6c3896"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-1440-native.png",
+      "sha256": "797f930a4fe548f6858181257a21b4e9693c0e858a17b5c862a4fe505f7e1828"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-1440-overlay-http.png",
+      "sha256": "8eef3ab023a1be56b49d2ddf94abe6642be92f4e13f4f38d32c8b08ef5683e57"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-1440-settings.png",
+      "sha256": "1d7e6eba2be0052b7d7cc8726e89bc3967438e1ef879ed9071a554cbfa90b13d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-390.png",
+      "sha256": "26c88a395517dbfd44309f07494ccf4b6fe0f2a1a2dcd0a0d7b5363510828617"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-loop-board-open.png",
+      "sha256": "e2844f152c1a7c3b135563a2494764c358e6a16e1e555df56a41a86e639ac92d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-loop-edit-board.png",
+      "sha256": "1462eafc59e612d5ca7a7686a1daae6346c058ba39bb0d094156089d582a824f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-loop-reopen.png",
+      "sha256": "e2844f152c1a7c3b135563a2494764c358e6a16e1e555df56a41a86e639ac92d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-native-brand.png",
+      "sha256": "20edc9dac836dc283e7d7f7c7962c2881a69c45d42bd42e379e2e0df6b4a435f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-overlay-planes.png",
+      "sha256": "e05e10e652360a7e5860708e496b3996930ee4c4ab0913441b181b4632916704"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/GROK/screenshots/t17-settings.png",
+      "sha256": "692eca5c6bc42cd55514dc94bb5cd949f66d9c00f82a92662e809c859f75274f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/DISPATCH-BATCH1.json",
+      "sha256": "3f61067cb82958c8546943ba5a0a187c434e6d0a22232f4e42f4d53d3d2eb759"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/G1-PREP.md",
+      "sha256": "a59863be6db9b3952b2a45d586c9803d0657f5770c7f55e162f921bc52c71330"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/G1-VERDICT.md",
+      "sha256": "ecb99bbbc25cf42b965f086f1dbb65f39f9abef3b2939a470fcd04b5168b7f64"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/PLAN-SNAPSHOT-FILES.sha256",
+      "sha256": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/PLAN-SNAPSHOT-HASH.txt",
+      "sha256": "707ba7a49ace10833388c278563ec74c8c87756fde1dbd22fe82dd95abf80cbf"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/PLAN-SNAPSHOT-MANIFEST.txt",
+      "sha256": "a4bdad5846ef1439bc22b47218151d327f86d32c85a01eee1f9efdf7a0fa38e4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/REGISTRY.md",
+      "sha256": "8731abf0c612f1bf12cc24deffffb6f98710db820fc26394cdfbe7a0fcd54b79"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A1.md",
+      "sha256": "f82dab41517408ab602555bc3189dd81e58520b2219fc21858b1b7501a8118e3"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A2-impl.md",
+      "sha256": "f8741fc8228421602166a99d176ffc6382e2cd4b0e836d13582cb41d3f0b2033"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A2.md",
+      "sha256": "a0bf2eeb7a251337112e97f25e8a7a2d9aa30ae5d9540ffdd66c2fcff929ad63"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A3.md",
+      "sha256": "61e915c3ee3316f42fe1ea229631e8892446251bbb93fec0696200ca256bdfd3"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A4.md",
+      "sha256": "25e24c81d68e7080ef7cb19f3ffbaea0e7866c1a08e29183929ebda3d71b438f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A5.md",
+      "sha256": "dd4c558459b2748c279da1770ac70ad0d5003c05c03e45b22acca54c947c1910"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A8.md",
+      "sha256": "a18a944f5ba23db452672e2a030dc6e3789b97e0976d9a3b00c146a990fa7bb4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/assignments/A9.md",
+      "sha256": "a733606ea78b68a8099919f1e4bcfcb2059a51a106cfd74256d85aa8bfcedc9c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/DESIGN.md",
+      "sha256": "67e55d81857c92aadcfcff5d7205ad6736ee0756ec0e1c74b297cef5cf4b7c11"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/AUTOPLAN-COMPETITION-REVIEW-2026-09-09.md",
+      "sha256": "adaae0e1f2de1377b1947843547d571daf0576bb44a15a79967f1f6b48869487"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md",
+      "sha256": "4fbfac1c70a0083794b76761ecab0ed4b03f70f33277857bfed8e3d8c71fbe19"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/DSH-UI-INTERACTION-SPEC.md",
+      "sha256": "d04614bf19e469969d4541c2520e13893134319a0933a0cafdb22808cd868667"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md",
+      "sha256": "a2d74aa8b2191fbb33e3aa8ab5b2a5ae34d5ac4157d717d82672ce867e74a888"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/README.md",
+      "sha256": "6a303ea943d177fbf92c85c17ff95ee8b72062b87bd4feaa722ce85638c7a89c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/TODOS.md",
+      "sha256": "f57f3a9ccabdc4fb51c1bb11eb092f5641612a212251084bb61cfb5c658eb8ae"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A1.md",
+      "sha256": "ff0202b8fd6527ca03b791dcc81d50f9a8071e5d8a1db6f842bd0a8a7de3e8e7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A2.md",
+      "sha256": "cc70cdd9342d0b4dfee90aefa2375120e46c0d2f7f99743f53b858b7fed4c535"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A3.md",
+      "sha256": "467b95422d48ce72f0866b01e646cebee39e793dcd6b2ce1cd8fbb16765fdb09"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A4.md",
+      "sha256": "87f89493abf340550858bd6a2fad5b81e4e6c84a8271b3fc0fecdc7aab7cf6db"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A5.md",
+      "sha256": "5306ee8327b5ef180159fc26f64ee2df2d047eeb5bb672bfa0a293bce2f462d6"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A6.md",
+      "sha256": "bccb147187e202178b9d19baa2cb91551fd5f106f77dc5b1dac02cff6198e544"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A7.md",
+      "sha256": "6c0fbb9a965f68fe1034372a3d143a0511919b357fc97fb57bfc6fbca566dd3e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A8.md",
+      "sha256": "de5cc1d876311bb7b8a2f7834e38e6aaaefaf937789f64fee5a4f1a0af0b6553"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/A9.md",
+      "sha256": "00c3dbd0256f3da2293f7b7b3f2f229880758c4c875d346522ec1b0312c21d56"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/g0/plan-snapshot/docs/hackathon/parallel-competition-2026-09-09/README.md",
+      "sha256": "cfa6404fa086a351c3baed6c92cd63ae216bb490a502c48ed2111dd540ec04fb"
+    },
+    {
+      "source": "competition-integration",
+      "path": "docs/hackathon/parallel-competition-2026-09-09/tasks.json",
+      "sha256": "4ddff525d3c84b5f4bc586a412d3c8cf43469e1bf72f13ab3d6dbee32e7fc7b3"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/build.mjs",
+      "sha256": "d3357a1863a7aebd5127486d6747cbe40146dd039e58e123db6b67b887c8b51b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/skills/competition-growth/SKILL.md",
+      "sha256": "66d370ded4e416885cd2c0ba587255e08b95a9268b909f3acd13f8cde9d64059"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/skills/competition-growth/assets/result-example.json",
+      "sha256": "793077df8dc80bc82e02f4a8c9aba0b1105b72377054b6e75f38ff9fc2d6a11c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/skills/competition-growth/references/evidence-policy.md",
+      "sha256": "514ba998d14463de5c2072a4e2eec435e2da6d23e64d17dc542b1c18a85e84c9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx",
+      "sha256": "7d6cbef99e01ac05ce781b706a0d79db31c0fd19b9c741221bb87446ce0b1a9a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/brand-surface.d.mts",
+      "sha256": "bd4afe9e36accb14f92c92f8ba497f5d215fc7308f1cda9d4b675debbb4498ba"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/brand-surface.mjs",
+      "sha256": "f0927436f04d6af0a9ff28a95ac627adce2d762f4c7013ab5b20635d5a86894a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/brand-surface.test.mjs",
+      "sha256": "23071426adcec7a81b55e5e0af666e92c5e2d30ed40ba4de97154d2e9c225780"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx",
+      "sha256": "3ed7c02ea238dd97ea1b8766a51f459a0ba93e04e601c92300217899bf58d138"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/c0-fixtures.d.mts",
+      "sha256": "3dd8c8e1a36fd39c995d5e670533595f3ac5f66f7877d963cf74b3056c6784fc"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/c0-fixtures.mjs",
+      "sha256": "ab3314bb8b01fd17f813b50b32b1598dd60f67f7fa240c35348aa782ad1f2a7c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/competition-actions.test.mjs",
+      "sha256": "e278d2a108d4fb58248791aba48e9c011efa9f39c6d842df36787c9c2b4c4b7e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/index.ts",
+      "sha256": "b56d37f64269a0773c42351de0ed83412a2b0fc1bfed0fbc199ee8360d33ca5e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/mount.ts",
+      "sha256": "d299a43954df3d0b3e0cde0f682197e4999ed437ceedd262d2d8b6f7be6e93eb"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/transport.d.mts",
+      "sha256": "d66f84aeaaf36b0e73ef567c7a15036085104e984e6fb9db2f8ca081c98921b4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-actions/transport.mjs",
+      "sha256": "f52fac621dddfa881cb805322f548a7e71f3edd719342d9805b9ccc7a58e2bc7"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx",
+      "sha256": "20cea1b05be9432ab047db5ddfd59cc5f7f72371d5c984fd60eed682b3f707a4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/c0-fixtures.d.mts",
+      "sha256": "e0e8af2c605c93552ac64246515944250a9a74adf417e3c95a51045bceebdd6b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/c0-fixtures.mjs",
+      "sha256": "8b3fbbb9e9729a0a8f3c166273136d9fa239381310f5f96f774b25a2dc419738"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs",
+      "sha256": "1dc0327bc034608c0056ee5cccca9cbf0243fa3a48173dd2793589d116e48d36"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board.test.mjs",
+      "sha256": "01eea9b12d1ca33690907e69b0264ca2b3ea5532cb1d44fef6f67f74cb347629"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts",
+      "sha256": "cb6636ba809c918ad94b7cce38e2b3ed92a9eddfd171a991d636ddedaa08012f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/decode.d.mts",
+      "sha256": "8a7f342ce55686da07a976b5c860717bcbedfd5d43875d8fa06a1bf1ac305fe9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs",
+      "sha256": "9ece7872e5a478fa45d7cd1e19e43fd80f4981c5d19911768c6bbfc199e0c5ee"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/index.ts",
+      "sha256": "0ec6d6aac1053d4a0ddd0d2ac8d726b61972f4a0efbca3ed1e62d0abb0b66665"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/layout.d.mts",
+      "sha256": "659fba117083f4c04227af1268ac268135cbc858a3c74a4871c31243e772b240"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/layout.mjs",
+      "sha256": "8d3cea3de91933195627358a49430e1a261d343875bcadf74cc8bfeb844e9ab9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/mount.ts",
+      "sha256": "0e9bccaa7c5f88a570da697a30044f653cf17eb00b4585c4a544d53a29331031"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/selection.d.mts",
+      "sha256": "11cd5b9aafb73f187ac98f14028859dc282babb5a5a1ef57c9e74213553a9de4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/selection.mjs",
+      "sha256": "0e1685bf4fa175370950f8e292577dd699df6269384634e402a65c78d4ce282d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/transport.d.mts",
+      "sha256": "9a3af8264d5f89e526975e3f80282754547263f71789bd8560cff9a5d94d3cca"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs",
+      "sha256": "2694accf4744a332e432db9c106f25321401166f9d11c1965167d3391a7156b8"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts",
+      "sha256": "c41103bf170a7ededd4c5a1f3be0638645ea611d712a56580b80c0386488aa9f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-http.d.mts",
+      "sha256": "1fea3211c99307f6d9acbcc493fa13e515edca1f312e4e80f44c860058768151"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-http.mjs",
+      "sha256": "135566a9ba2877d040b96ffccaa9d9d671310ac2bce9297d4487c0b8bf4f7128"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-http.test.mjs",
+      "sha256": "e2a63cc4679caa49fcb6d52b961f399f1b4553f475aeec59d0eef9ac7dff7ca9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/BrandChrome.tsx",
+      "sha256": "4e13e6698a6dadbfc9a77d291796a60ebb52f1bef8933b392e3485a8bc34746b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/LayoutSlot.tsx",
+      "sha256": "bcfa817fa024a5ece6c8a9fb5fa43716c4e968335145c0fa70353220fdd748e6"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/StatusEvidence.tsx",
+      "sha256": "b9cad4911664906406e2bd21053df4b21b8652b9d9afeaab82df372b4d429a0b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/ThemeProvider.tsx",
+      "sha256": "44de89793acde3368e88c1679ecb837edcb2ff55684d7e46ee41bb9f90f8fd9d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/competition-shell.test.mjs",
+      "sha256": "11367f71dee3c33b92f291f70177ad395c4d77d77ecf1b39e66dd6b866cf2ba5"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/css.ts",
+      "sha256": "6ecaead10fb9b066974b8347e6d4d37aa8c9000ac0cd6250361d771f6746b95d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/index.ts",
+      "sha256": "38e349d4db5927501887cc4910797420ce3aaa652f369a3018863982c78d79b9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/competition-shell/tokens.ts",
+      "sha256": "d6b796f0c4445c70a9c8816340f9339e5496ca77c8302d2219af3e6f8ef3ef7b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/index.tsx",
+      "sha256": "2bc7438d43b679a180f8580ee483ffdf5cc2cf4780f51e0910945a9fd6c81f83"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.d.mts",
+      "sha256": "fb69cbe0011b73612e04e846533eecfaa12b93798890e78f55386ff2de436eb9"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.mjs",
+      "sha256": "cca85b97759804005c96c782bac976df94de989c625e899854cd2799e6ad5b58"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.test.mjs",
+      "sha256": "fdb75f3bf6f4795437bece5d772544520230f2aacf4ff4a994572006ff23b477"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.tsx",
+      "sha256": "9f544edfb2c8b651d1d4d08a6d4c383010000cac9a292e1f71cf6ef050693e06"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/client/styles.ts",
+      "sha256": "c3cbe2edc3bb8fb54017ee91ca3c6469376a8e3372b06e29873c916930410da2"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/cockpit-model.d.mts",
+      "sha256": "3c1bb8b43b8d642a0b8f5bb7560fd7ff34676a1589f56236b132f83322326edb"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/cockpit-model.mjs",
+      "sha256": "25789f001d201d6104de24f0f596f19772c3a0920a905fa6a32060072b25b99a"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/cockpit-view.tsx",
+      "sha256": "f719dc97d89b6b57f2a6e0acfe855651f4205abb2000bcd32b4266e5f5b32a86"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts",
+      "sha256": "789bbd1e080071a305836ed73712fbb7e10339634036c9702079436d87968b80"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs",
+      "sha256": "ff2b71dffca5af850a7a0c0746338b39d0ef7502ba23a4e0b8c9f7980fce4f96"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/exports.mjs",
+      "sha256": "3137eed5f8a781c9ba1f32ec2338c8a54226362459f033e5a231cd1f8ae0b217"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/family.d.mts",
+      "sha256": "49ef5410fbc4fb030a82d4897f1de77355174bab9f48be937c7e71b27b5786cc"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/family.mjs",
+      "sha256": "bbc23aa9a3eda59322b23d09d0d6939822b2941770a07aba9ded22938277ce13"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/frozen-package.json",
+      "sha256": "3d06a6c3736b8b47c0469d428a8b4cb97c07338d1574ab063a9388069d558715"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/offline.mjs",
+      "sha256": "2ffca551f3a4847b1f0139e188f7341252f6bf2f8b0cd66a7920282a7f245baa"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/pack-skill.mjs",
+      "sha256": "3af60d95ba41e3b362a0c9cec3506054a30ce571d2f2f208f933ce6c10106edb"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/patch.mjs",
+      "sha256": "03130c8f540d5d388d1c3d867e0ce1a9e769f16012a0bcfe4b274a5b73db90af"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/selected-edit.mjs",
+      "sha256": "cd19356217ea23e8214af063a83ed859b40dd2adaebfdcbf1bf6c597a4442bcf"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.d.mts",
+      "sha256": "2a481cbb8faf02b4dd44888f80e894b4339acf62a19a0535d436ab7c75d6a8ff"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.lock.json",
+      "sha256": "12b8553ce84e57d845902473746392115e64df2aa375d9482fe710aabde908e4"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.mjs",
+      "sha256": "c2e4b7349e550682bc7fd9efadf3c7be645103f4cd94af61d43ad8f18acb6c1b"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/tools.d.mts",
+      "sha256": "1fcba1079a2090bcd272b549467286df1ee31280b9a5f3bc7aeeebdbe9adc527"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs",
+      "sha256": "75f1fb6edea966f7e63d98e0a21656e1fa40371dda27e791c5b814a7c5c88b13"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/competition-c0-contract.generated.d.ts",
+      "sha256": "994845c41d85a8e6360dcfcf54f5c500efbe92bb936a1e61ac292da2f0fe3435"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/runtime-family.d.mts",
+      "sha256": "4f2e102a4fd9497c3d73a303506c48ff4ed0ea27edf528060a52d75741381e85"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/runtime-family.mjs",
+      "sha256": "ce5e67f01f356669c2b766c93a1a3276507cc56028e055ffd87c3cb927400bbc"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/skill-package.mjs",
+      "sha256": "91e80530eea489a22e4888a23c72c08abe9b8d2485dcae9b3dc26780ae536c9d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/skills.ts",
+      "sha256": "01cb3cfce8e9fb2ecc921dd486213f68a95209e26c7933f8559032ba8b5a3d44"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/src/tool.ts",
+      "sha256": "88e00f75f451ccdf329454d1cd092b89f18de57bab224f3fa849309b2e389101"
+    },
+    {
+      "source": "competition-integration",
+      "path": "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs",
+      "sha256": "40a9428d89ed439c29890844baaa348eabb5097cd80439f5d282fe29108725b1"
+    },
+    {
+      "source": "competition-integration",
+      "path": "mcp_servers/fuqing_adhoc/server.py",
+      "sha256": "e8b588d3d0b83f2b2942e78e352a3a483a43beb756373efc581a65a4d3013cfe"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/competition-synth-http.py",
+      "sha256": "4c01a4368813f426ea51da0864632814716b38de08cf9f51fbe1a5bdb3429526"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-b0/competition-c0-contract.mjs",
+      "sha256": "6c858a7c744987c6bc621674bd6666c10584e1c9bced740796e5779ffbcbdf7f"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/README.md",
+      "sha256": "4fab28ec999063ba6af9275e10906dfb2fd9a9c09c061b9dcfa9b6fb14035a43"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/brand.mjs",
+      "sha256": "e4aa06a085ae095ee087058d9b424973bfcb02b57d1b21a35b86a1f77224f760"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/brand.test.mjs",
+      "sha256": "b310fd1008991be76bc9e401b248ba4161be3b65d1f641ad786d8c9847b13d98"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/cli.mjs",
+      "sha256": "0769a547773fb4b615b9d1637ec1eaf62d039b0aad3be6b0ea35aec52dfbb3ab"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/cli.test.mjs",
+      "sha256": "3870d468a6d346bf70f69f8b2c1c21a242275073c970a726cded2ed2622eee8c"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/constants.mjs",
+      "sha256": "21dc9d9ad16fe8b23a006d6633039943b02f1001c35a603ff68d5903aeb3ed3e"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/diagnose.mjs",
+      "sha256": "d8febc964f940d420ebe854a73a2a78c3f76fc5ce3f37ea9f791f35b0b54a274"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/diagnose.test.mjs",
+      "sha256": "a9d5744e1865954d097f6b451bcd770a2b1bf9fd5a148d2c4eb7a702b580a56d"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/ports.mjs",
+      "sha256": "3739bb15e78711d2485b4db13895e6cf1acd333fc5d3881157781d511fe4ef02"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/serve.mjs",
+      "sha256": "16c6a04d1b502b65394aee687b9651be9339d90b6a7a5bb8ccc6e7f06581b935"
+    },
+    {
+      "source": "competition-integration",
+      "path": "scripts/dsh-dev/supervisor.test.mjs",
+      "sha256": "98bb125a33bb26ab099eb7c3b8b3616df75c4703f667c95300b52642f4904d5d"
+    },
+    {
+      "source": "competition-a9",
+      "path": "backend/tests/test_competition_acceptance.py",
+      "sha256": "b84a56b8db62676628662bd8c7f986a2cc14a86eff162eceece50f55bd81e077"
+    },
+    {
+      "source": "competition-a9",
+      "path": "backend/tests/test_competition_acceptance_golden.py",
+      "sha256": "ecd1736f9df5a053a785d4ea2be71082e51579ac90dab7f5f14708228346e2db"
+    },
+    {
+      "source": "competition-a9",
+      "path": "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-browser-model-capacity.test.mjs",
+      "sha256": "9d70d1a701140ce1a17027b73c2f5978cce97d42ba1ebe0fdd1fbeb763e93286"
+    },
+    {
+      "source": "competition-a9",
+      "path": "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs",
+      "sha256": "a25927055463ec442e5bc40c75a00b1035b40f92f991c8fda098a31acca79e51"
+    }
+  ],
+  "additional_a9_evidence": [
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/ACCEPTANCE-MATRIX.md",
+      "sha256": "7e082eee96e82909a81edfe5b8ceabc71f4ed8c75ca1aef041f939fa5230b396"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/DELIVERY-G4.json",
+      "sha256": "6a0ec58e40ef73b8e0a89470784e05bc72122bc2c2d6f7bf3171dbf48813ddbf"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/DELIVERY.json",
+      "sha256": "f2817fddf04a477b66ef54c2d5a5c358f34c15b86b730f7c6f7161968adf93bb"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/HANDCALC-COUNTEREXAMPLES.md",
+      "sha256": "ad35b0039cc7c50b921c55ecfa0c1366201618cdcbf3e4396ef108fdd1b74531"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/assumptions.json",
+      "sha256": "ce68bd654b5c3c63594b572b75a999cb5b4a1fb442312a4c10ca37df637fa286"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t01_periods.json",
+      "sha256": "853c5816d1dc9cd9cff2e01b5d492fb246d2a4aee8e85055f85a7508793a29d7"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t01_t17_matrix.json",
+      "sha256": "f0107114cd6e4a3416ba28463a3f2193cdf98619215b4cebc016c1b7caf92deb"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t02_t03_orders.json",
+      "sha256": "6e82f65cf7f99cd393c5a86403b2a631fe4d76dfa5245c1392a60514aa8ee8ae"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t04_units.json",
+      "sha256": "d2510308147667cd70c2e4c970a9c98850dc9cd31194591c0cb136c9ad558e98"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t05_cohort.json",
+      "sha256": "3f56c58c8c0e669a9f18a5ffbac99fd0003c697f021c910154e4703b2c39f8a1"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t06_t12_checklist.json",
+      "sha256": "4f3ba1e8311a78446ee971ab080fbded5b542b310f0e6194cd9dcbe2e2b90534"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t13_t17_not_run.json",
+      "sha256": "a2375c637d9e014ed378c3c00d601ca53d332ed1f10f2a1d827f662de2ee4e4a"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/bounded-runner.log",
+      "sha256": "ec2f56e27a0e0fc9401336ec3a871cc387d51a9f3d29c89b7fd01d51b54f8be7"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-g4-rerun.log",
+      "sha256": "32a98ac1e2324cf0894b4982c19da4ffbeb38b4bb27471f48dcf97de4d3e82b9"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-g4.log",
+      "sha256": "ce36f05fd61840a220c52858f6f07251681829c491ba6904bc950c0fcdd6d069"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-skeleton.log",
+      "sha256": "32ea60c85b3fcaa9f39fe65bcf0c0eb113467932e0e1ea54ca56d563469325e8"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-g4-after-a2fix.log",
+      "sha256": "66bef59d2e5b056ef0e5f9b13392c37184f73405f0392ecdfe63d7e314bb52f1"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-g4-rerun.log",
+      "sha256": "6abe0b7049a3c827b6c2864a1eaf6985610770c797d6f20c0f044b2e2769e385"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-g4.log",
+      "sha256": "bdd5342507bcc62878a3e65894b3192e223d72912016c075b80a4fe151e9cc0d"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-skeleton.log",
+      "sha256": "e1cd6813153e937cc9a9240959757a24024f5aa9e67560488ffa03d1d34c2bbd"
+    },
+    {
+      "path": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/ruff-g4.log",
+      "sha256": "f56ce0b5286af165ae62c2ea87b106a4ac44293928da4a8cdfceefbed8411852"
+    }
+  ]
+}

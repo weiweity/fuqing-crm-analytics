@@ -1,0 +1,16 @@
+{
+  "expected": {
+    "code": "INVALID_REQUEST",
+    "http_status": 422,
+    "param": "concept"
+  },
+  "payload": {
+    "capability_id": "x",
+    "concept": "Nope",
+    "existing_types": [],
+    "notes": "x",
+    "required_capabilities": [],
+    "support_status": "SUPPORTED",
+    "title": "x"
+  }
+}

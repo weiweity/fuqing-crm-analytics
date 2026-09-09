@@ -1,0 +1,411 @@
+[
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.gsv",
+    "concept": "Condition",
+    "existing_types": [
+      "AudienceSummaryRequest.metric_type",
+      "FilterBuilder.with_metric_type(MetricType.GSV)"
+    ],
+    "http_mapping": "POST /api/v1/audience/summary",
+    "notes": "C0 tools must send GSV. Old /audience/table defaults to GMV and is not the competition default.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "backend.services.metrics.audience_summary.calculate_audience_summary",
+    "support_status": "PARTIAL",
+    "title": "GSV 下降",
+    "unknown_flags": [],
+    "w4_mapping": "amount_unit minor / currency CNY on synthetic warehouse"
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.yoy",
+    "concept": "Condition",
+    "existing_types": [
+      "PeriodBuilder.free",
+      "shift_year_clamped",
+      "AudienceSummaryRequest.compare_*"
+    ],
+    "http_mapping": "POST /api/v1/audience/summary compare_start_date/compare_end_date",
+    "notes": "Leap days clamp to month end. Custom audience_summary cutoff still uses month-start; C0 cutoff is start-1.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "backend.semantic.time.PeriodBuilder",
+    "support_status": "PARTIAL",
+    "title": "去年同期",
+    "unknown_flags": [
+      "NEW_OLD_CUSTOM_MONTH_CUTOFF"
+    ],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.last_week_same_weekday",
+    "concept": "Condition",
+    "existing_types": [
+      "PeriodBuilder.wtd"
+    ],
+    "http_mapping": null,
+    "notes": "Existing WTD is week-to-date vs last week WTD, not an arbitrary window's last-week same weekday. Resolver is new.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "backend.semantic.time.PeriodBuilder.wtd",
+    "support_status": "PARTIAL",
+    "title": "上周同星期",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.promo_dual_window",
+    "concept": "Condition",
+    "existing_types": [
+      "AudienceSummaryRequest.compare_start_date/compare_end_date"
+    ],
+    "http_mapping": "POST /api/v1/audience/summary",
+    "notes": "Comparison dates exist on summary POST. Must be echoed as actual execution windows.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "calculate_audience_summary",
+    "support_status": "PARTIAL",
+    "title": "大促自选两段",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.channel",
+    "concept": "ResultRef",
+    "existing_types": [
+      "AudienceSummaryResponse.channel_all",
+      "ChannelFollowupResult"
+    ],
+    "http_mapping": "POST /api/v1/audience/summary; channel-follow-up query family",
+    "notes": "Channel-follow-up product_ids stay empty-array const. Competition product scope is a different bind.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "calculate_audience_summary / analytics_channel_followup",
+    "support_status": "PARTIAL",
+    "title": "渠道下降贡献",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.sample_exclude_current",
+    "concept": "Condition",
+    "existing_types": [
+      "FilterBuilder.with_exclude_channels",
+      "AudienceSummaryRequest.exclude_channels"
+    ],
+    "http_mapping": "exclude_channels on /audience/summary and /audience/table",
+    "notes": "Channel set is UNKNOWN: sampling_service uses U先派样/百补派样; category_service adds 赠品&0.01/其他. Do not freeze a guessed set.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "FilterBuilder.with_exclude_channels",
+    "support_status": "PARTIAL",
+    "title": "剔除小样（仅本期销售）",
+    "unknown_flags": [
+      "SAMPLE_CHANNEL_SET"
+    ],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.sample_recompute_history",
+    "concept": "Condition",
+    "existing_types": [
+      "none"
+    ],
+    "http_mapping": null,
+    "notes": "No old-CRM path recomputes new/old or RFM after excluding sample from history. C0 only defines the explicit mode.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "none; A2 must add an explicit history-scope path",
+    "support_status": "UNSUPPORTED",
+    "title": "剔除小样并重算历史",
+    "unknown_flags": [
+      "SAMPLE_CHANNEL_SET"
+    ],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.new_old",
+    "concept": "Condition",
+    "existing_types": [
+      "DateRange.cutoff=start-1",
+      "calculate_audience_summary custom month-start cutoff"
+    ],
+    "http_mapping": null,
+    "notes": "C0 cutoff is analysis start minus one day. Old custom summary uses month-start minus one day and is LEGACY_INCOMPATIBLE.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "backend.semantic.time.DateRange; audience_summary.py custom branch",
+    "support_status": "PARTIAL",
+    "title": "新老客（分析 start 前）",
+    "unknown_flags": [
+      "NEW_OLD_CUSTOM_MONTH_CUTOFF"
+    ],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.member",
+    "concept": "Condition",
+    "existing_types": [
+      "OrderFilters.is_member",
+      "AudienceRow.member_*"
+    ],
+    "http_mapping": null,
+    "notes": "Current-order is_member is not last-year membership. Historical member mark is UNKNOWN.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": "backend.semantic.filters.OrderFilters.is_member",
+    "support_status": "PARTIAL",
+    "title": "会员交叉",
+    "unknown_flags": [
+      "MEMBER_HISTORY"
+    ],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.product",
+    "concept": "Condition",
+    "existing_types": [
+      "AudienceTableRequest.dimension",
+      "ChannelFollowupQueryRequest.product_ids=empty"
+    ],
+    "http_mapping": "/api/v1/audience/table dimension=spu_*",
+    "notes": "channel-follow-up rejects any product filter. Bind layer must 422 rather than drop product_ids.",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "PARTIAL",
+    "title": "产品下钻",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.rfm",
+    "concept": "ResultRef",
+    "existing_types": [
+      "backend.services.rfm",
+      "W4 valid_order_count"
+    ],
+    "http_mapping": null,
+    "notes": "W4 F is valid order count at header grain. Old CRM RFM F grain is UNKNOWN until A2 verifies it is not line COUNT(*).",
+    "required_capabilities": [
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "PARTIAL",
+    "title": "RFM 交叉",
+    "unknown_flags": [
+      "F_ORDER_GRAIN_OLD_CRM",
+      "VALID_ORDER_RULE_OLD_CRM"
+    ],
+    "w4_mapping": "backend.services.analytics.customer_features.contract ORDER_GRAIN=(synthetic_user_id,order_id)"
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.fixed_cohort",
+    "concept": "Audience",
+    "existing_types": [
+      "analytics-handoff-audience/v1 (different rule)"
+    ],
+    "http_mapping": null,
+    "notes": "handoff-audience is first-channel sample→full, not last-year F≥4 frozen membership. T05 is A8 new compute.",
+    "required_capabilities": [
+      "cohort:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "UNSUPPORTED",
+    "title": "去年固定 cohort 本期回购",
+    "unknown_flags": [
+      "F_ORDER_GRAIN_OLD_CRM",
+      "MEMBER_HISTORY"
+    ],
+    "w4_mapping": "valid_order_count / first_paid_at / last_paid_at"
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "diag.non_repurchase",
+    "concept": "Audience",
+    "existing_types": [
+      "none"
+    ],
+    "http_mapping": null,
+    "notes": "ORIGIN_CHANNEL_ABSENT / ORIGIN_PRODUCT_ABSENT / STOREWIDE_ABSENT are C0 enums only until A8 implements them.",
+    "required_capabilities": [
+      "cohort:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "UNSUPPORTED",
+    "title": "三种未回购",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "asset.save_snapshot",
+    "concept": "ResultRef",
+    "existing_types": [
+      "AnalyticsSavedAnalysis",
+      "SavedAnalysisStore"
+    ],
+    "http_mapping": "POST /api/v1/analytics/analyses",
+    "notes": "Existing CONNECTED saved-analysis HTTP. C0 endorsements bind these result refs.",
+    "required_capabilities": [
+      "analysis:save"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "SUPPORTED",
+    "title": "保存 SNAPSHOT 分析",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "board.single_cockpit",
+    "concept": "BoardSpec",
+    "existing_types": [
+      "AnalyticsDashboard",
+      "AnalyticsCockpitOp"
+    ],
+    "http_mapping": "POST/GET /api/v1/analytics/dashboards",
+    "notes": "One private SNAPSHOT board with TABLE cards. Batch multi-board and FILTER_CHANGE are not on this HTTP.",
+    "required_capabilities": [
+      "dashboard:read",
+      "dashboard:update"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "PARTIAL",
+    "title": "单板驾驶舱",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "board.batch",
+    "concept": "BoardSpec",
+    "existing_types": [
+      "CompetitionBoardBatchRequest"
+    ],
+    "http_mapping": null,
+    "notes": "Schema frozen. A5 implements persistence. Same-idempotency-key different payload is 409.",
+    "required_capabilities": [
+      "dashboard:update",
+      "analysis:read"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "NOT_CONNECTED",
+    "title": "认可后批量成板",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "board.patch_409",
+    "concept": "Patch",
+    "existing_types": [
+      "CockpitStore.apply If-Match",
+      "AnalyticsError 409"
+    ],
+    "http_mapping": "POST /api/v1/analytics/dashboards/{id}/versions",
+    "notes": "Existing cockpit 409 does not overwrite. C0 adds param/retry_after/doc_ref on the error body.",
+    "required_capabilities": [
+      "dashboard:update"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "SUPPORTED",
+    "title": "版本冲突",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "action.draft",
+    "concept": "Action",
+    "existing_types": [
+      "Mission ExportResponse is a different object"
+    ],
+    "http_mapping": null,
+    "notes": "No auto send. Rule/source changes expire drafts; copy-only edits do not.",
+    "required_capabilities": [
+      "draft:write"
+    ],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "NOT_CONNECTED",
+    "title": "行动草稿",
+    "unknown_flags": [],
+    "w4_mapping": null
+  },
+  {
+    "actor_filtered": true,
+    "backend_recheck": true,
+    "capability_id": "catalog.http",
+    "concept": "Capabilities",
+    "existing_types": [
+      "QUERY_FAMILIES",
+      "AnalyticsPrincipal"
+    ],
+    "http_mapping": "GET /api/v1/analytics/catalog (planned, not wired)",
+    "notes": "C0 freezes the catalog document. A3 maps live calls. Actor filter does not replace backend checks.",
+    "required_capabilities": [],
+    "schema_version": "competition-capabilities/v1",
+    "service_mapping": null,
+    "support_status": "NOT_CONNECTED",
+    "title": "能力目录 HTTP",
+    "unknown_flags": [],
+    "w4_mapping": null
+  }
+]

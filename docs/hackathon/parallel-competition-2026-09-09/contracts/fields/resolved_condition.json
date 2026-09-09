@@ -1,0 +1,405 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-condition/v1",
+        "default": "competition-condition/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Metrics Contract Id",
+      "enum": null,
+      "name": "metrics_contract_id",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-metrics/v1",
+        "default": "competition-metrics/v1",
+        "title": "Metrics Contract Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Metric Type",
+      "enum": null,
+      "name": "metric_type",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "GSV",
+        "title": "Metric Type",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Timezone",
+      "enum": null,
+      "name": "timezone",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "Asia/Shanghai",
+        "title": "Timezone",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "current_period",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/InclusiveDateRange"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "comparison_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/ComparisonMode"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "comparison_period",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/InclusiveDateRange"
+      }
+    },
+    {
+      "description": "Cutoff",
+      "enum": null,
+      "name": "cutoff",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "format": "date",
+        "title": "Cutoff",
+        "type": "string"
+      }
+    },
+    {
+      "description": "As Of",
+      "enum": null,
+      "name": "as_of",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "format": "date-time",
+        "title": "As Of",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Published At",
+      "enum": null,
+      "name": "published_at",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "format": "date-time",
+        "title": "Published At",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Event Time",
+      "enum": null,
+      "name": "event_time",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "format": "date-time",
+        "title": "Event Time",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "source_tense",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/SourceTense"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "sales_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/FilterScope"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "history_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/FilterScope"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "sample_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/SampleMode"
+      }
+    },
+    {
+      "description": "Sample Channel Ids",
+      "enum": null,
+      "name": "sample_channel_ids",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sample Channel Ids"
+      }
+    },
+    {
+      "description": "Sample History Recomputed",
+      "enum": null,
+      "name": "sample_history_recomputed",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Sample History Recomputed",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Sample Channel Set Status",
+      "enum": null,
+      "name": "sample_channel_set_status",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "UNKNOWN",
+        "title": "Sample Channel Set Status",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Data Cutoff Policy",
+      "enum": null,
+      "name": "data_cutoff_policy",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "T_PLUS_1_YESTERDAY",
+        "title": "Data Cutoff Policy",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Leap Day Alignment",
+      "enum": null,
+      "name": "leap_day_alignment",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "CLAMP_TO_MONTH_END",
+        "title": "Leap Day Alignment",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Data Snapshot Ref",
+      "enum": null,
+      "name": "data_snapshot_ref",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Data Snapshot Ref",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Data Version",
+      "enum": null,
+      "name": "data_version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Data Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Rule Version",
+      "enum": null,
+      "name": "rule_version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Rule Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Warehouse As Of",
+      "enum": null,
+      "name": "warehouse_as_of",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Warehouse As Of"
+      }
+    },
+    {
+      "description": "Feature As Of",
+      "enum": null,
+      "name": "feature_as_of",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Feature As Of"
+      }
+    },
+    {
+      "description": "Permission Scope",
+      "enum": null,
+      "name": "permission_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Permission Scope",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Actor Id",
+      "enum": null,
+      "name": "actor_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Actor Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Filter Hash",
+      "enum": null,
+      "name": "filter_hash",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 64,
+        "minLength": 64,
+        "pattern": "^[0-9a-f]{64}$",
+        "title": "Filter Hash",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Ignored Filters",
+      "enum": null,
+      "name": "ignored_filters",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 0,
+        "title": "Ignored Filters",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Unknown Flags",
+      "enum": null,
+      "name": "unknown_flags",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "$ref": "#/$defs/UnknownFlag"
+        },
+        "title": "Unknown Flags",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Limitations",
+      "enum": null,
+      "name": "limitations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "title": "Limitations",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionResolvedCondition",
+  "schema_version": "competition-condition/v1"
+}

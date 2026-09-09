@@ -109,7 +109,9 @@ def isolated_env(scratch: Path) -> dict[str, str]:
 
 def run(chunk_size: int, rss_limit_gb: float, targets: list[str],
         report_dir: Path, timeout_seconds: float) -> int:
-    tests = targets or [str(p.relative_to(ROOT)) for p in sorted(TEST_ROOT.glob('test_*.py'))]
+    tests = targets or [str(p.relative_to(ROOT)) for p in sorted([*TEST_ROOT.glob('test_*.py'),
+        ROOT / 'backend/contracts/tests/test_competition_c0.py',
+        ROOT / 'backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py'])]
     if not tests:
         raise ValueError('no tests selected')
     report_dir.mkdir(parents=True, exist_ok=False)

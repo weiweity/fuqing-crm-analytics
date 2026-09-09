@@ -1,0 +1,271 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-board/v1",
+        "default": "competition-board/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Board Id",
+      "enum": null,
+      "name": "board_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Board Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Block Ids",
+      "enum": null,
+      "name": "block_ids",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        "title": "Block Ids",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Version",
+      "enum": null,
+      "name": "version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "minimum": 1,
+        "title": "Version",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Base Version",
+      "enum": null,
+      "name": "base_version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "minimum": 1,
+        "title": "Base Version",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Title",
+      "enum": null,
+      "name": "title",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Title",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Owner Id",
+      "enum": null,
+      "name": "owner_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Owner Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Visibility",
+      "enum": null,
+      "name": "visibility",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "PRIVATE",
+        "title": "Visibility",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "layout_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/BoardLayoutMode"
+      }
+    },
+    {
+      "description": "Existing Dashboard Schema",
+      "enum": null,
+      "name": "existing_dashboard_schema",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "analytics-cockpit/v1",
+        "title": "Existing Dashboard Schema",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Data Namespace",
+      "enum": [
+        "analytics-cockpit/v1",
+        "competition-board/v1"
+      ],
+      "name": "data_namespace",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "analytics-cockpit/v1",
+          "competition-board/v1"
+        ],
+        "title": "Data Namespace",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "snapshot_compat",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/SnapshotCompat"
+      }
+    },
+    {
+      "description": "Data Mode",
+      "enum": null,
+      "name": "data_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "SNAPSHOT",
+        "title": "Data Mode",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Preview",
+      "enum": null,
+      "name": "preview",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Preview",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Persisted",
+      "enum": null,
+      "name": "persisted",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Persisted",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Batch Id",
+      "enum": null,
+      "name": "batch_id",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Batch Id"
+      }
+    },
+    {
+      "description": "Operation Id",
+      "enum": null,
+      "name": "operation_id",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Operation Id"
+      }
+    },
+    {
+      "description": "Affected Block Ids",
+      "enum": null,
+      "name": "affected_block_ids",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "type": "string"
+        },
+        "title": "Affected Block Ids",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Limitations",
+      "enum": null,
+      "name": "limitations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "title": "Limitations",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionBoardSpec",
+  "schema_version": "competition-board/v1"
+}

@@ -24,7 +24,15 @@ import time
 import logging
 
 from backend.services.exceptions import ServiceError, ValidationError, NotFoundError
-from backend.middleware.query_router import QueryRouterMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
+
+from backend.middleware.query_router import (
+    QueryRouterMiddleware,
+    competition_error_response,
+    new_request_id,
+    overlay_live_capabilities,
+)
 from backend.services.query_metrics import render_prometheus
 from backend.config import DUCKDB_PATH  # Sprint 203 R3: db_size endpoint
 
@@ -47,6 +55,14 @@ def _asgi_path(request: Request) -> str:
     if isinstance(path, str):
         return path
     return ""
+
+
+def _c0_error_path(path: str) -> bool:
+    return (
+        path.startswith("/api/v1/audience")
+        or path.startswith("/api/v1/analytics/competition")
+        or path == "/api/v1/analytics/catalog"
+    )
 
 
 def validate_startup_db() -> None:
@@ -364,15 +380,29 @@ async def rate_limit_middleware(request: Request, call_next):
 
     if len(bucket) >= rate_limit_per_minute:
         # L4.36 友好错误: 返 429 + Retry-After 头
-        response = JSONResponse(
-            status_code=429,
-            content={
-                "detail": f"Rate limit exceeded ({rate_limit_per_minute} req/min). "
-                          "Retry in 60s. (L4.36 graceful retry, Sprint 200 R1 v2.1)",
-                "retry_after_seconds": _RATE_LIMIT_WINDOW,
-                "user_id": user_id,
-            },
-        )
+        if _c0_error_path(path):
+            response = competition_error_response(
+                http_status=429,
+                code="RATE_LIMITED",
+                message=(
+                    f"Rate limit exceeded ({rate_limit_per_minute} req/min). "
+                    "Retry in 60s. (L4.36 graceful retry, Sprint 200 R1 v2.1)"
+                ),
+                request_id=new_request_id(),
+                retryable=True,
+                retry_after=_RATE_LIMIT_WINDOW,
+                doc_ref="docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T08",
+            )
+        else:
+            response = JSONResponse(
+                status_code=429,
+                content={
+                    "detail": f"Rate limit exceeded ({rate_limit_per_minute} req/min). "
+                              "Retry in 60s. (L4.36 graceful retry, Sprint 200 R1 v2.1)",
+                    "retry_after_seconds": _RATE_LIMIT_WINDOW,
+                    "user_id": user_id,
+                },
+            )
         response.headers["Retry-After"] = str(_RATE_LIMIT_WINDOW)
         response.headers["X-RateLimit-Limit"] = str(rate_limit_per_minute)
         response.headers["X-RateLimit-Remaining"] = "0"
@@ -479,6 +509,12 @@ async def auth_middleware(request: Request, call_next):
 
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
+        if _c0_error_path(path):
+            return competition_error_response(
+                http_status=401, code="UNAUTHENTICATED", message="需要本次有效身份。",
+                request_id=new_request_id(), retryable=False, param="Authorization",
+                doc_ref="docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T06",
+            )
         return JSONResponse(status_code=401, content={"detail": "未提供认证令牌"})
 
     token = auth[7:]
@@ -486,6 +522,12 @@ async def auth_middleware(request: Request, call_next):
     from backend.routers.auth import _verify_token
     username = _verify_token(token)
     if username is None:
+        if _c0_error_path(path):
+            return competition_error_response(
+                http_status=401, code="UNAUTHENTICATED", message="登录已过期，请重新登录",
+                request_id=new_request_id(), retryable=False, param="Authorization",
+                doc_ref="docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T06",
+            )
         return JSONResponse(status_code=401, content={"detail": "登录已过期，请重新登录"})
 
     # Sprint 205+ Admin Upload: 把已验证的 username 写到 request.state,
@@ -535,6 +577,29 @@ def _add_future_date_warning(request: Request, json_response: JSONResponse) -> J
     if warning := _future_date_warning_for_request(request):
         json_response.headers["X-Data-Warning"] = warning
     return json_response
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_handler(request: Request, exc: RequestValidationError):
+    path = _asgi_path(request)
+    if not _c0_error_path(path):
+        return await request_validation_exception_handler(request, exc)
+    loc = ""
+    if exc.errors():
+        loc = str(exc.errors()[0].get("loc", ("body",))[-1])
+    return competition_error_response(
+        http_status=422, code="INVALID_REQUEST", message="请求与当前合同不匹配。",
+        request_id=new_request_id(), retryable=False, param=loc or None,
+        doc_ref="docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T03",
+    )
+
+
+@app.get("/api/v1/analytics/catalog")
+def analytics_catalog(request: Request):
+    return {
+        "schema_version": "competition-capabilities/v1",
+        "capabilities": overlay_live_capabilities(None),
+    }
 
 
 @app.exception_handler(ServiceError)

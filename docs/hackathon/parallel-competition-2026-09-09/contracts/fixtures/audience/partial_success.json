@@ -1,0 +1,52 @@
+{
+  "accepted": {
+    "auto_send": false,
+    "candidate_set_id": "cand_c0_10",
+    "cohort_id": "cohort_c0_ly_f_unknown",
+    "combine": "AND",
+    "customer_keys": [
+      "cust_c0_1",
+      "cust_c0_2"
+    ],
+    "explanations": [
+      {
+        "customer_key": "cust_c0_1",
+        "reasons": [
+          "ORIGIN_CHANNEL_ABSENT"
+        ]
+      },
+      {
+        "customer_key": "cust_c0_2",
+        "reasons": [
+          "ORIGIN_CHANNEL_ABSENT"
+        ]
+      }
+    ],
+    "limitations": [
+      "合成 customer_key，不导出真实名单。"
+    ],
+    "permission_scope": "scope-brand-a",
+    "schema_version": "competition-audience/v1",
+    "source_result_ref": "result_c0_gsv_20260831",
+    "unique_count": 2
+  },
+  "combine": "OR",
+  "note": "一条规则成功、一条规则因 F 粒度 UNKNOWN 被拒绝，不得把失败规则人数加进成功集合。",
+  "rejected": {
+    "error": {
+      "code": "UNSUPPORTED_FILTER",
+      "doc_ref": "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T05",
+      "http_status": 422,
+      "maps_to": "backend.contracts.analytics.AnalyticsErrorDetail",
+      "message": "F 粒度 UNKNOWN，拒绝应用 f_threshold。",
+      "param": "f_threshold",
+      "recovery_url": null,
+      "request_id": "req_c0_partial_audience",
+      "retry_after": null,
+      "retryable": false,
+      "schema_version": "competition-error/v1"
+    },
+    "rule_id": "rule_f_ge_4"
+  },
+  "status": "PARTIAL"
+}

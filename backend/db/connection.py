@@ -69,9 +69,16 @@ class ThreadSafeCursor:
 class ThreadSafeConnection:
     """线程安全连接包装器：execute 自动获取全局查询锁并预取结果"""
 
-    def __init__(self, conn: duckdb.DuckDBPyConnection, lock: threading.RLock | None = None):
+    def __init__(
+        self,
+        conn: duckdb.DuckDBPyConnection,
+        lock: threading.RLock | None = None,
+        *,
+        pooled: bool = False,
+    ):
         self._conn = conn
         self._lock = lock or _query_lock
+        self._pooled = pooled
 
     def execute(self, *args, **kwargs):
         with self._lock:
@@ -84,6 +91,12 @@ class ThreadSafeConnection:
             return ThreadSafeCursor(c, self._lock)
 
     def close(self):
+        # Request-scoped pooled connections are owned by query_router / dual_conn.
+        # Closing them here would recycle or destroy a connection another request
+        # may still hold after this handler returns.
+        if self._pooled:
+            logger.debug("skip close of request-pooled DuckDB connection")
+            return None
         with self._lock:
             return self._conn.close()
 
@@ -113,7 +126,7 @@ def get_connection() -> ThreadSafeConnection:
 
     request_conn = dual_conn.get_request_connection()
     if request_conn is not None:
-        return ThreadSafeConnection(request_conn.conn, request_conn.lock)
+        return ThreadSafeConnection(request_conn.conn, request_conn.lock, pooled=True)
 
     global _conn
     if _conn is not None:
@@ -127,8 +140,16 @@ def get_connection() -> ThreadSafeConnection:
 
 
 def close_connection() -> None:
-    """关闭全局 DuckDB 连接（应用关闭时调用）"""
+    """关闭全局 DuckDB 写单例（应用关闭时调用）。
+
+    请求仍占用池连接时不得 drain 共享 read pool，避免关掉他人 owner 的连接。
+    """
     global _conn
+    from backend.services import dual_conn
+
+    if dual_conn.get_request_connection() is not None:
+        logger.debug("request still owns a pooled connection; skip process-wide close")
+        return
     with _lock:
         if _conn is not None:
             try:
@@ -138,7 +159,6 @@ def close_connection() -> None:
                 logger.debug("关闭 DuckDB 连接时出错: %s", e)
             _conn = None
     try:
-        from backend.services.dual_conn import close_all_connections
-        close_all_connections()
+        dual_conn.close_all_connections()
     except Exception as e:  # noqa: BLE001
         logger.debug("关闭 dual DuckDB 连接池时出错: %s", e)

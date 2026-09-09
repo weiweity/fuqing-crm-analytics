@@ -1,0 +1,38 @@
+{
+  "expected": {
+    "code": "INVALID_REQUEST",
+    "http_status": 422,
+    "param": "unique_count"
+  },
+  "payload": {
+    "auto_send": false,
+    "candidate_set_id": "cand_c0_10",
+    "cohort_id": "cohort_c0_ly_f_unknown",
+    "combine": "AND",
+    "customer_keys": [
+      "cust_c0_1",
+      "cust_c0_2"
+    ],
+    "explanations": [
+      {
+        "customer_key": "cust_c0_1",
+        "reasons": [
+          "ORIGIN_CHANNEL_ABSENT"
+        ]
+      },
+      {
+        "customer_key": "cust_c0_2",
+        "reasons": [
+          "ORIGIN_CHANNEL_ABSENT"
+        ]
+      }
+    ],
+    "limitations": [
+      "合成 customer_key，不导出真实名单。"
+    ],
+    "permission_scope": "scope-brand-a",
+    "schema_version": "competition-audience/v1",
+    "source_result_ref": "result_c0_gsv_20260831",
+    "unique_count": 99
+  }
+}

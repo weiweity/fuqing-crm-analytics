@@ -39,16 +39,16 @@ def get_user_rfm_extended(
                 COUNT(DISTINCT o.order_id) AS order_count,
                 COALESCE(SUM(
                     CASE
-                        WHEN o.pay_time >= params.as_of_date - INTERVAL '30' DAY
-                         AND o.pay_time <= params.as_of_date + INTERVAL '1' DAY
+                        WHEN CAST(o.pay_time AS DATE) >= params.as_of_date - INTERVAL '30' DAY
+                         AND CAST(o.pay_time AS DATE) <= params.as_of_date
                             THEN o.actual_amount
                         ELSE 0
                     END
                 ), 0)
                 - COALESCE(SUM(
                     CASE
-                        WHEN o.pay_time >= params.as_of_date - INTERVAL '60' DAY
-                         AND o.pay_time < params.as_of_date - INTERVAL '30' DAY
+                        WHEN CAST(o.pay_time AS DATE) >= params.as_of_date - INTERVAL '60' DAY
+                         AND CAST(o.pay_time AS DATE) < params.as_of_date - INTERVAL '30' DAY
                             THEN o.actual_amount
                         ELSE 0
                     END
@@ -57,7 +57,7 @@ def get_user_rfm_extended(
             FROM orders o
             CROSS JOIN params
             WHERE o.user_id IN ({placeholders})
-              AND o.pay_time <= params.as_of_date + INTERVAL '1' DAY
+              AND CAST(o.pay_time AS DATE) <= params.as_of_date
               AND o.is_refund = FALSE
               AND o.order_status != '交易关闭'
               AND o.channel != '购物金'

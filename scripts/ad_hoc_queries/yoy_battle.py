@@ -167,14 +167,14 @@ def run_yoy_battle(
         else:
             bl_val = float(bl[m])
             cu_val = float(cu[m])
-        abs_diff = cu_val - bl_val
+        abs_diff = None if cu_val is None or bl_val is None else cu_val - bl_val
         # 复用 semantic/calculations.yoy_absolute (Sprint 60+ 强一致)
         yoy = _yoy_absolute(cu_val, bl_val)
         rows_out.append([
             m,
-            f"{bl_val:.2f}" if m == "aov" else int(bl_val),
-            f"{cu_val:.2f}" if m == "aov" else int(cu_val),
-            (f"{abs_diff:+.2f}" if m == "aov" else f"{int(abs_diff):+d}"),
+            None if bl_val is None else (f"{bl_val:.2f}" if m == "aov" else int(bl_val)),
+            None if cu_val is None else (f"{cu_val:.2f}" if m == "aov" else int(cu_val)),
+            None if abs_diff is None else (f"{abs_diff:+.2f}" if m == "aov" else f"{int(abs_diff):+d}"),
             _format_yoy(yoy),
         ])
     return rows_out

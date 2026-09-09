@@ -1,0 +1,187 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "timezone": "Asia/Shanghai",
+  "cases": [
+    {
+      "id": "T01-A-SEPT1-TPLUS1-EMPTY-MTD",
+      "input": {
+        "as_of_today": "2026-09-01",
+        "data_cutoff": "2026-08-31",
+        "mode": "MTD",
+        "requested_month": "2026-09"
+      },
+      "weekday_facts": {
+        "as_of_today": "Tuesday",
+        "data_cutoff": "Monday"
+      },
+      "expected": {
+        "status": "SUCCEEDED_EMPTY",
+        "reason": "NO_AVAILABLE_DAYS",
+        "current": {
+          "start": "2026-09-01",
+          "end": null,
+          "available_days": 0
+        },
+        "yoy": {"status": "NOT_COMPARED_WHEN_CURRENT_EMPTY"},
+        "forbidden": [
+          "2026-08-01..2026-08-31 as September MTD",
+          "2026-09-01..2026-09-30 future complete month",
+          "2025-09-01..2025-09-30 full-month YoY against empty current"
+        ]
+      }
+    },
+    {
+      "id": "T01-A2-WTD-ON-SEPT1-IS-NOT-MTD-FILL",
+      "input": {
+        "as_of_today": "2026-09-01",
+        "data_cutoff": "2026-08-31",
+        "mode": "LAST_WEEK_SAME_WEEKDAY"
+      },
+      "expected": {
+        "current": {"start": "2026-08-31", "end": "2026-08-31", "weekday": "Monday"},
+        "last_week_same_weekday": {"start": "2026-08-24", "end": "2026-08-24", "weekday": "Monday"},
+        "note": "WTD/上周同星期可落在 8 月；不得拿它填补空的 9 月 MTD"
+      }
+    },
+    {
+      "id": "T01-B1-LEAP-SINGLE-DAY",
+      "input": {
+        "as_of_today": "2024-03-01",
+        "data_cutoff": "2024-02-29",
+        "mode": "FREE",
+        "current_start": "2024-02-29",
+        "current_end": "2024-02-29"
+      },
+      "weekday_facts": {"current_end": "Thursday"},
+      "expected": {
+        "current": {"start": "2024-02-29", "end": "2024-02-29", "days": 1},
+        "yoy": {"start": "2023-02-28", "end": "2023-02-28", "days": 1, "clamp": "2024-02-29->2023-02-28"},
+        "prev2": {"start": "2022-02-28", "end": "2022-02-28"},
+        "last_week_same_weekday": {"start": "2024-02-22", "end": "2024-02-22", "weekday": "Thursday"},
+        "forbidden": ["date(2023,2,29) crash", "2023-03-01 roll-forward", "hide clamp"]
+      }
+    },
+    {
+      "id": "T01-B2-LEAP-FULL-FEBRUARY",
+      "input": {
+        "mode": "FREE",
+        "current_start": "2024-02-01",
+        "current_end": "2024-02-29",
+        "data_cutoff": "2024-02-29"
+      },
+      "expected": {
+        "current": {"start": "2024-02-01", "end": "2024-02-29", "days": 29},
+        "yoy": {"start": "2023-02-01", "end": "2023-02-28", "days": 28},
+        "echo_unequal_day_counts": true
+      }
+    },
+    {
+      "id": "T01-B3-LEAP-7DAY-WINDOW",
+      "input": {
+        "mode": "FREE",
+        "current_start": "2024-02-23",
+        "current_end": "2024-02-29"
+      },
+      "weekday_facts": {"start": "Friday", "end": "Thursday"},
+      "arithmetic": "2024-02-23..29 inclusive = 7 days; 2023-02-23..28 inclusive = 6 days; last week = minus 7 days",
+      "expected": {
+        "current": {"start": "2024-02-23", "end": "2024-02-29", "days": 7},
+        "last_week_same_weekday": {"start": "2024-02-16", "end": "2024-02-22", "days": 7},
+        "yoy": {"start": "2023-02-23", "end": "2023-02-28", "days": 6}
+      }
+    },
+    {
+      "id": "T01-C1-CROSS-YEAR-7DAY",
+      "input": {
+        "mode": "FREE",
+        "current_start": "2025-12-28",
+        "current_end": "2026-01-03"
+      },
+      "weekday_facts": {"start": "Sunday", "end": "Saturday"},
+      "expected": {
+        "current": {"start": "2025-12-28", "end": "2026-01-03", "days": 7},
+        "yoy": {"start": "2024-12-28", "end": "2025-01-03", "days": 7},
+        "last_week_same_weekday": {"start": "2025-12-21", "end": "2025-12-27", "days": 7},
+        "new_old_cutoff": "2025-12-27"
+      }
+    },
+    {
+      "id": "T01-C2-JAN1-TPLUS1-EMPTY-MTD",
+      "input": {
+        "as_of_today": "2026-01-01",
+        "data_cutoff": "2025-12-31",
+        "mode": "MTD",
+        "requested_month": "2026-01"
+      },
+      "expected": {
+        "status": "SUCCEEDED_EMPTY",
+        "available_days": 0,
+        "forbidden": ["2025-12-01..2025-12-31 as January MTD"]
+      }
+    },
+    {
+      "id": "T01-D1-END-BEFORE-START",
+      "input": {
+        "mode": "FREE",
+        "current_start": "2026-09-15",
+        "current_end": "2026-09-01"
+      },
+      "expected": {
+        "status": "FAILED",
+        "error_code": "INVALID_PERIOD",
+        "http": 422,
+        "forbidden": ["swap dates into 09-01..09-15", "return SUCCEEDED_EMPTY"]
+      }
+    },
+    {
+      "id": "T01-D2-VALID-RANGE-EMPTY-AFTER-CUTOFF",
+      "input": {
+        "mode": "FREE",
+        "current_start": "2026-09-15",
+        "current_end": "2026-09-21",
+        "data_cutoff": "2026-09-10"
+      },
+      "expected": {
+        "status": "SUCCEEDED_EMPTY",
+        "reason": "NO_OVERLAP_WITH_CUTOFF",
+        "error_code_not": "INVALID_PERIOD"
+      }
+    },
+    {
+      "id": "T01-E-MID-MONTH-START",
+      "input": {
+        "as_of_today": "2026-09-22",
+        "data_cutoff": "2026-09-21",
+        "mode": "FREE",
+        "current_start": "2026-09-15",
+        "current_end": "2026-09-21"
+      },
+      "weekday_facts": {"start": "Tuesday", "end": "Monday"},
+      "expected": {
+        "current": {"start": "2026-09-15", "end": "2026-09-21", "days": 7},
+        "yoy": {"start": "2025-09-15", "end": "2025-09-21", "days": 7},
+        "last_week_same_weekday": {"start": "2026-09-08", "end": "2026-09-14", "days": 7},
+        "new_old_cutoff": "2026-09-14",
+        "forbidden_new_old_cutoff": "2026-08-31"
+      }
+    },
+    {
+      "id": "T01-F-PROMO-DUAL-WINDOW",
+      "input": {
+        "mode": "PROMO_DUAL",
+        "current_start": "2026-06-16",
+        "current_end": "2026-06-18",
+        "compare_start": "2025-06-16",
+        "compare_end": "2025-06-18",
+        "data_cutoff": "2026-09-21"
+      },
+      "expected": {
+        "current": {"start": "2026-06-16", "end": "2026-06-18", "days": 3},
+        "compare": {"start": "2025-06-16", "end": "2025-06-18", "days": 3},
+        "must_echo_both_windows": true,
+        "not_auto_last_week": true
+      }
+    }
+  ]
+}

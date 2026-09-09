@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "doc_ref": "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T06",
+    "http_status": 403,
+    "maps_to": "backend.contracts.analytics.AnalyticsErrorDetail",
+    "message": "当前身份无权预览该候选明细。",
+    "param": "customer_key",
+    "recovery_url": null,
+    "request_id": "req_c0_403_audience",
+    "retry_after": null,
+    "retryable": false,
+    "schema_version": "competition-error/v1"
+  }
+}

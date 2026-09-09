@@ -1,0 +1,222 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-capabilities/v1",
+        "default": "competition-capabilities/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Capability Id",
+      "enum": null,
+      "name": "capability_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Capability Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Title",
+      "enum": null,
+      "name": "title",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Title",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Concept",
+      "enum": [
+        "Condition",
+        "ResultRef",
+        "BoardSpec",
+        "Patch",
+        "Audience",
+        "Action",
+        "Error",
+        "Capabilities",
+        "FrontendPort"
+      ],
+      "name": "concept",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "Condition",
+          "ResultRef",
+          "BoardSpec",
+          "Patch",
+          "Audience",
+          "Action",
+          "Error",
+          "Capabilities",
+          "FrontendPort"
+        ],
+        "title": "Concept",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "support_status",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/SupportStatus"
+      }
+    },
+    {
+      "description": "Existing Types",
+      "enum": null,
+      "name": "existing_types",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Existing Types",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Http Mapping",
+      "enum": null,
+      "name": "http_mapping",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Http Mapping"
+      }
+    },
+    {
+      "description": "Service Mapping",
+      "enum": null,
+      "name": "service_mapping",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Service Mapping"
+      }
+    },
+    {
+      "description": "W4 Mapping",
+      "enum": null,
+      "name": "w4_mapping",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "W4 Mapping"
+      }
+    },
+    {
+      "description": "Required Capabilities",
+      "enum": null,
+      "name": "required_capabilities",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Required Capabilities",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Actor Filtered",
+      "enum": null,
+      "name": "actor_filtered",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": true,
+        "default": true,
+        "title": "Actor Filtered",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Backend Recheck",
+      "enum": null,
+      "name": "backend_recheck",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": true,
+        "default": true,
+        "title": "Backend Recheck",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Unknown Flags",
+      "enum": null,
+      "name": "unknown_flags",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Unknown Flags",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Notes",
+      "enum": null,
+      "name": "notes",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Notes",
+        "type": "string"
+      }
+    }
+  ],
+  "model": "CompetitionCapability",
+  "schema_version": "competition-capabilities/v1"
+}

@@ -4,14 +4,22 @@ import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
+import { assertFree } from './ports.mjs';
 import { bootHost, stopOwned, terminateChild } from './serve.mjs';
 
 async function fixture(source) {
+  let webPort;
+  for (const port of [4328, 4329]) {
+    try { await assertFree(port); webPort = port; break; }
+    catch (error) { if (error.code !== 'EADDRINUSE') throw error; }
+  }
+  assert.ok(webPort, 'supervisor tests need an unused 4328 or 4329; never stop existing listeners');
+  source = source.replaceAll('TEST_WEB_PORT', String(webPort));
   const runtime = await mkdtemp(join(tmpdir(), 'dsh-supervisor-'));
   const cli = join(runtime, 'fake.mjs');
   await writeFile(cli, source);
   await mkdir(join(runtime, 'tmp'));
-  return { runtime, home: runtime, workspace: runtime, cli, patches: [], host: '127.0.0.1', webPort: 4327 };
+  return { runtime, home: runtime, workspace: runtime, cli, patches: [], host: '127.0.0.1', webPort };
 }
 test('legacy PID metadata never authorizes stopping a process', async () => {
   await assert.rejects(stopOwned({ childPid: process.pid, supervisorPid: process.pid }), /refusing to signal stored PIDs/);
@@ -24,12 +32,12 @@ test('startup timeout reaps its child before rejecting', async () => {
 });
 test('a running sibling kernel does not block the web supervisor', async () => {
   const sibling = createServer();
-  await new Promise(resolve => sibling.listen(4325, '127.0.0.1', resolve));
+  await new Promise(resolve => sibling.listen(0, '127.0.0.1', resolve));
   let booted;
   try {
-    const prepared = await fixture(`console.log('http://127.0.0.1:4327/?token=synthetic-ready-token'); setInterval(() => {}, 1000);`);
+    const prepared = await fixture(`console.log('http://127.0.0.1:TEST_WEB_PORT/?token=synthetic-ready-token'); setInterval(() => {}, 1000);`);
     booted = await bootHost(prepared, { timeoutMs: 1000 });
-    assert.equal(booted.origin, 'http://127.0.0.1:4327');
+    assert.equal(booted.origin, `http://127.0.0.1:${prepared.webPort}`);
   } finally {
     if (booted) await terminateChild(booted.child, booted.childExit);
     await new Promise(resolve => sibling.close(resolve));

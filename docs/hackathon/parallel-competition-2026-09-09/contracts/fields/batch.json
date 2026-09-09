@@ -1,0 +1,59 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-board-batch/v1",
+        "default": "competition-board-batch/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Batch Id",
+      "enum": null,
+      "name": "batch_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Batch Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "layout_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/BoardLayoutMode"
+      }
+    },
+    {
+      "description": "Operations",
+      "enum": null,
+      "name": "operations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "$ref": "#/$defs/BoardOperation"
+        },
+        "maxItems": 20,
+        "minItems": 1,
+        "title": "Operations",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionBoardBatchRequest",
+  "schema_version": "competition-board-batch/v1"
+}

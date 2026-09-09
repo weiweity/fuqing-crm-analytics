@@ -1,0 +1,102 @@
+{
+  "analysis_id": null,
+  "completeness": "EMPTY",
+  "contains_real_data": false,
+  "data_mode": "SNAPSHOT",
+  "empty_reason": "NO_CURRENT_MONTH_DATA",
+  "evidence_digest": null,
+  "existing_result_schema": "none",
+  "facts_schema_ref": "competition-result/v1#empty",
+  "limitations": [
+    "2026-09-01 T+1 时 9 月尚无可用数据：EMPTY，不比较未来完整月。",
+    "C0 不把 B0 STUB 或未核清口径写成 SUPPORTED。"
+  ],
+  "metric_id": null,
+  "metric_version": null,
+  "page": null,
+  "primary_result_ref": null,
+  "query_id": "competition_gsv_mtd",
+  "query_version": "competition-metrics/v1",
+  "resolved_condition": {
+    "actor_id": "analyst.brand-a",
+    "as_of": "2026-08-31T16:00:00.000000+00:00",
+    "comparison_mode": "YOY_SAME_PERIOD",
+    "comparison_period": {
+      "end_bound": "INCLUSIVE_CALENDAR_DAY",
+      "end_date": "2025-08-31",
+      "start_date": "2025-08-01"
+    },
+    "current_period": {
+      "end_bound": "INCLUSIVE_CALENDAR_DAY",
+      "end_date": "2026-09-01",
+      "start_date": "2026-09-01"
+    },
+    "cutoff": "2026-08-31",
+    "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+    "data_snapshot_ref": "synthetic-c0-demo-v1",
+    "data_version": "synthetic-c0-demo-data/v1",
+    "event_time": "2026-08-31T16:00:00.000000+00:00",
+    "feature_as_of": "2026-08-31T16:00:00.000000+00:00",
+    "filter_hash": "f78739b000599e5e183a868646ee5a81a2c988e39cbb444e8abd4ac3cd20ba81",
+    "history_scope": {
+      "channel_ids": [],
+      "kind": "ALL",
+      "product_ids": []
+    },
+    "ignored_filters": [],
+    "leap_day_alignment": "CLAMP_TO_MONTH_END",
+    "limitations": [
+      "2026-09-01 T+1 时 9 月尚无可用数据：EMPTY，不比较未来完整月。",
+      "C0 不把 B0 STUB 或未核清口径写成 SUPPORTED。"
+    ],
+    "metric_type": "GSV",
+    "metrics_contract_id": "competition-metrics/v1",
+    "permission_scope": "scope-brand-a",
+    "published_at": "2026-08-31T16:00:00.000000+00:00",
+    "rule_version": "competition-condition-rule/v1",
+    "sales_scope": {
+      "channel_ids": [],
+      "kind": "ALL",
+      "product_ids": []
+    },
+    "sample_channel_ids": null,
+    "sample_channel_set_status": "UNKNOWN",
+    "sample_history_recomputed": false,
+    "sample_mode": "INCLUDE",
+    "schema_version": "competition-condition/v1",
+    "source_tense": "PUBLISHED_SNAPSHOT",
+    "timezone": "Asia/Shanghai",
+    "unknown_flags": [
+      {
+        "code": "SAMPLE_CHANNEL_SET",
+        "note": "派样渠道集合未在 C0 冻结；执行必须回显实际 sample_channel_ids。",
+        "status": "UNKNOWN"
+      },
+      {
+        "code": "MEMBER_HISTORY",
+        "note": "无核验历史会员状态，不得把 UNKNOWN 当非会员。",
+        "status": "UNKNOWN"
+      },
+      {
+        "code": "F_ORDER_GRAIN_OLD_CRM",
+        "note": "旧 CRM RFM F 粒度未核清；W4 仅声明 (synthetic_user_id, order_id)。",
+        "status": "UNKNOWN"
+      },
+      {
+        "code": "NEW_OLD_CUSTOM_MONTH_CUTOFF",
+        "note": "audience_summary 自定义日期仍用月初 cutoff；C0 要求 start-1。",
+        "status": "UNKNOWN"
+      },
+      {
+        "code": "VALID_ORDER_RULE_OLD_CRM",
+        "note": "旧有效订单规则以 FilterBuilder.valid_order 为准，不在 C0 另造阈值。",
+        "status": "UNKNOWN"
+      }
+    ],
+    "warehouse_as_of": "2026-08-31T16:00:00.000000+00:00"
+  },
+  "result_id": "result_c0_empty_20260901",
+  "row_count": 0,
+  "run_id": "run_c0_empty_20260901",
+  "schema_version": "competition-result/v1"
+}
