@@ -15,14 +15,15 @@
 | **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md` |
 | **Actions 策略** | 仅 GitHub-owned Actions；workflow 动作为 40 位 commit SHA |
 | **ruff** | 锁 `0.16.6`；`pyproject.toml` `lint.select = ["E4","E7","E9","F"]`（保持 0.15 默认 59 条，不启用 0.16 的 413 条） |
-| **债** | 产品仍 PARTIAL；首购 catalog 已按合成 native/HTTP/合同证据升为 SUPPORTED_CONTRACT；候选人群仍 DEFERRED。W4 完整共享分析层、W5、真实模型与完整业务验收未完成 |
+| **债** | 产品仍 PARTIAL；首购 catalog 已按合成 native/HTTP/合同证据升为 SUPPORTED_CONTRACT；候选人群仍 DEFERRED。W4 基础特征共享读取、W5 特征产物原子发布已实现，发布状态以本轮 PR 为准；完整 W4/整仓发布、真实模型与完整业务验收未完成 |
 | **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
 | **Admin Upload** | **已撤回**，无产品路由 |
 | **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git** |
 | **服务** | 核验时 PID 36717/36727 仍监听 8000/5173，cwd 指向已删除的旧演示目录；不是当前主线运行证据。本轮未停止或重启 |
-| **未完成** | 真实模型原生浏览器、W5、多人/容量/业务 UAT、公网仍未完成；历史三次 supervisor 退出 UNKNOWN |
+| **未完成** | 真实模型原生浏览器、整仓发布、多人/容量/业务 UAT、公网仍未完成；历史三次 supervisor 退出 UNKNOWN |
 
 发布 CI：#108 的 `34310344976` 必需检查通过，按路径规则跳过项不算运行通过；已合并为 `d95e504`。完整业务验收仍开放。本轮本地统一 pipeline：428 项 Python、223 项源 Node、类型检查、编译后 49 项（含干净重建）通过。OCR Medium 与浏览器发现的终态总结上下文修复后已串行重跑通过。原生 DSH 浏览器 stub 合成闭环已通过（查询→总结→保存→加入驾驶舱→脱离会话重读）；补修成功后总结上下文，不代表真实模型或业务 UAT。见 [首购原生闭环](docs/hackathon/FIRST-PURCHASE-NATIVE-LOOP-2026-09-09.md)、[交接](docs/hackathon/FIRST-PURCHASE-NATIVE-HANDOFF-2026-09-09.md) 与 [并行集成清单](docs/hackathon/PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。本地证据在 `.context/parallel-round2-review/evidence-2026-09-09/`。
+本轮 W4/W5 本地接缝与分支核对见 [实施记录](docs/hackathon/W4-W5-LOCAL-2026-09-09.md)；临停本轮 DSH 后 Loader 与干净重建通过，历史端口冲突证据保留。
 
 ## 历史人工运维门禁（待重新核验，不自动执行）
 
