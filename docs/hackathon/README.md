@@ -2,9 +2,11 @@
 
 本目录记录黑客松产品决策和本地演示基线，它不替代原有 CRM 分析文档。公网部署与网址提交仍是独立待办。
 
+当前主线基线为 `f818fca`（#110），VERSION `0.7.0.0`。本轮 [DSH 基座与插件兼容集成](./DSH-COMPAT-INTEGRATION-2026-09-09.md) 是未提交本地候选；开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md)，插件 UI 交接见 [DSH-PLUGIN-UI-COMPAT](./DSH-PLUGIN-UI-COMPAT.md)。原生能力全量、真实模型和业务 UAT 仍未验收。
+
 ## 当前采用的目标方案（2026-09-05）
 
-**最新发布（2026-09-09）**：v0.7.0.0 已经 [PR #108](https://github.com/weiweity/fuqing-crm-analytics/pull/108) 合入 `d95e504`，PR CI 必需检查通过。本机 DSH 合成演示已验证首购查询→保存分析→加入驾驶舱；使用本地 stub，真实模型和公网未验。见 [发布收尾](./RELEASE-0700-CLOSEOUT-2026-09-09.md)。以下各轮记录保留其历史时点。
+**首购发布历史（2026-09-09）**：v0.7.0.0 已经 [PR #108](https://github.com/weiweity/fuqing-crm-analytics/pull/108) 合入 `d95e504`，PR CI 必需检查通过。本机 DSH 合成演示已验证首购查询→保存分析→加入驾驶舱；使用本地 stub，真实模型和公网未验。见 [发布收尾](./RELEASE-0700-CLOSEOUT-2026-09-09.md)。以下各轮记录保留其历史时点。
 
 **当前第二轮结果**：[候选复核与资产集成](./PARALLEL-ROUND2-REVIEW-2026-09-08.md) 保留历史阻断。2026-09-09 已在集成 worktree 接通首购原生持久绑定、在途协议、decoder/编译后卡片与查询→保存→驾驶舱合成闭环；候选人群仍未开放。原生浏览器 stub 合成查询→总结→保存→驾驶舱→脱离会话重读已补验通过；真实模型仍 NOT RUN。交接见 [HANDOFF](./FIRST-PURCHASE-NATIVE-HANDOFF-2026-09-09.md)，交付记录见 [闭环](./FIRST-PURCHASE-NATIVE-LOOP-2026-09-09.md)。
 

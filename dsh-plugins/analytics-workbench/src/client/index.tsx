@@ -13,6 +13,7 @@ import {
   applyTitle, serializeTitle, restoreTitle, decodeFixture,
 } from '../model.mjs';
 import { css } from './styles.ts';
+import { trapDialogTab } from './focus.ts';
 import { bindInitialSession } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { FIRST_PURCHASE_TOOL_NAME } from '../first-purchase-query-model.mjs';
@@ -140,15 +141,8 @@ function AssetOverlay(props: OverlayProps) {
 
   return <><style>{css}</style><dialog ref={dialogRef} className="analytics-b0-dialog"
     aria-labelledby="analytics-b0-heading" aria-describedby="analytics-b0-boundary"
-    data-testid="analytics-b0-dialog"
-    onKeyDown={event => {
-      if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return;
-      const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]')]
-        .filter(element => element.getClientRects().length > 0);
-      const target = event.shiftKey && document.activeElement === controls[0] ? controls.at(-1)
-        : !event.shiftKey && document.activeElement === controls.at(-1) ? controls[0] : undefined;
-      if (target) { event.preventDefault(); target.focus(); }
-    }}
+    data-testid="analytics-b0-dialog" data-dsh-native-chrome="1"
+    onKeyDown={trapDialogTab}
     onCancel={event => { event.preventDefault(); props.actions.requestClose(); }}
     onClose={afterClose}>
     <header><div><span className="analytics-b0-logo" role="img" aria-label="SHINE MAGE 原始 Logo" data-testid="analytics-b0-logo" />

@@ -7,6 +7,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { createServer } from 'node:net';
 
+const portBase = process.env.B0_PORT_BASE ?? '4325';
+assert.ok(['4325', '4335'].includes(portBase), 'Loader tests require a separate synthetic port block');
+process.env.B0_PORT_BASE = portBase;
+const bridgePort = Number(portBase) + 1;
+
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(plugin, '../../.context/dsh-b0/upstream'));
 const load = path => import(pathToFileURL(join(upstream, path)).href);
@@ -19,8 +24,8 @@ test('built package root and per-agent tool load through real Cordis include and
   // probe somebody else's server with this test's ephemeral capability.
   const portProbe = createServer();
   await new Promise((ready, reject) => {
-    portProbe.once('error', () => reject(new Error('Loader test requires port 4316 free; stop only your own B0 runtime first.')));
-    portProbe.listen(4316, '127.0.0.1', ready);
+    portProbe.once('error', () => reject(new Error('Loader test requires its isolated bridge port free; no listener was stopped.')));
+    portProbe.listen(bridgePort, '127.0.0.1', ready);
   });
   await new Promise((ready, reject) => portProbe.close(error => error ? reject(error) : ready()));
   const fixture = await mkdtemp(join(plugin, 'lib/loader-fixture-'));
@@ -48,7 +53,7 @@ test('built package root and per-agent tool load through real Cordis include and
         await ctx.loader.await();
         if (face === 'tool') assert.deepEqual(registered.map(tool => tool.name), ['analytics_b0_query']);
         else {
-          const response = await fetch('http://127.0.0.1:4316/health', {
+          const response = await fetch(`http://127.0.0.1:${bridgePort}/health`, {
             method: 'POST', headers: { authorization: `Bearer ${token}` }, body: '{}',
             signal: AbortSignal.timeout(3000), redirect: 'error',
           });
@@ -65,8 +70,8 @@ test('built package root and per-agent tool load through real Cordis include and
 test('query-family Cordis loader registers query tool and two-session health', async () => {
   const portProbe = createServer();
   await new Promise((ready, reject) => {
-    portProbe.once('error', () => reject(new Error('Loader test requires port 4316 free; stop only your own B0 runtime first.')));
-    portProbe.listen(4316, '127.0.0.1', ready);
+    portProbe.once('error', () => reject(new Error('Loader test requires its isolated bridge port free; no listener was stopped.')));
+    portProbe.listen(bridgePort, '127.0.0.1', ready);
   });
   await new Promise((ready, reject) => portProbe.close(error => error ? reject(error) : ready()));
   const fixture = await mkdtemp(join(plugin, 'lib/loader-fixture-'));
@@ -100,7 +105,7 @@ test('query-family Cordis loader registers query tool and two-session health', a
         await ctx.loader.await();
         if (face === 'tool') assert.deepEqual(registered.map(tool => tool.name), ['analytics_channel_followup_query']);
         else {
-          const response = await fetch('http://127.0.0.1:4316/health', {
+          const response = await fetch(`http://127.0.0.1:${bridgePort}/health`, {
             method: 'POST', headers: { authorization: `Bearer ${token}` }, body: '{}',
             signal: AbortSignal.timeout(3000), redirect: 'error',
           });

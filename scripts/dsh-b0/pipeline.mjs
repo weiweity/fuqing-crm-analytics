@@ -81,6 +81,8 @@ for line in pathlib.Path('scripts/dsh-b0/requirements.lock').read_text().splitli
     assert metadata.version(name) == version, f'B0 dependency drift: {name}'
 print('B0 exact Python closure verified')
 `]);
+  console.log('DSH dev supervisor unit checks (separate from native compatibility acceptance)');
+  run(process.execPath, ['--test', ...(await readdir(join(root, 'scripts/dsh-dev'))).filter(n => n.endsWith('.test.mjs')).map(n => join(root, 'scripts/dsh-dev', n))], root, { DSH_DEV_UPSTREAM: upstream });
   run(process.execPath, ['scripts/dsh-b0/run-kernel-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/query-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/query-run-contract.mjs', '--check', '--python', python]);
@@ -89,7 +91,7 @@ print('B0 exact Python closure verified')
   run(process.execPath, ['scripts/dsh-b0/first-purchase-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/first-purchase-analysis-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/first-purchase-cockpit-contract.mjs', '--check', '--python', python]);
-  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup', 'query_jobs', 'query_run_contracts', 'query_worker', 'query_runtime', 'query_native_fault', 'saved_analyses', 'analysis_http', 'cockpit', 'cockpit_http', 'query_assets_runtime', 'first_purchase', 'first_purchase_http', 'first_purchase_kernel', 'first_purchase_analysis', 'first_purchase_source', 'first_purchase_native', 'customer_features_w4', 'feature_publication_w5'].map(name => `backend/tests/test_analytics_${name}.py`);
+  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup', 'query_jobs', 'query_run_contracts', 'query_worker', 'query_runtime', 'query_native_fault', 'saved_analyses', 'analysis_http', 'cockpit', 'cockpit_http', 'query_assets_runtime', 'first_purchase', 'first_purchase_http', 'first_purchase_kernel', 'first_purchase_analysis', 'first_purchase_source', 'first_purchase_native', 'customer_features_w4', 'feature_publication_w5', 'runtime_ports'].map(name => `backend/tests/test_analytics_${name}.py`);
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py', 'backend/analytics_query_app.py',
     'backend/analytics_analysis_app.py', 'backend/analytics_cockpit_app.py',
@@ -103,7 +105,7 @@ print('B0 exact Python closure verified')
     'backend/tests/analytics_run_fault_probe.py', 'backend/tests/analytics_worker_probe.py',
     'backend/tests/analytics_query_worker_probe.py',
     'backend/tests/analytics_native_probe.py', 'backend/tests/analytics_query_native_fault_probe.py', ...pyTests]);
-  const builtTests = ['built.test.mjs', 'loader.test.mjs', 'skills-loader.test.mjs', 'tool-card-dom.test.mjs', 'query-skills-loader.test.mjs', 'sessionless-view-dom.test.mjs', 'query-card-fault.test.mjs', 'query-card-cancel.test.mjs', 'query-card-save.test.mjs', 'asset-overlay.test.mjs', 'first-purchase-query-card.test.mjs'];
+  const builtTests = ['built.test.mjs', 'loader.test.mjs', 'skills-loader.test.mjs', 'tool-card-dom.test.mjs', 'query-skills-loader.test.mjs', 'sessionless-view-dom.test.mjs', 'query-card-fault.test.mjs', 'query-card-cancel.test.mjs', 'query-card-save.test.mjs', 'asset-overlay.test.mjs', 'first-purchase-query-card.test.mjs', 'plugin-ui-lifecycle.test.mjs'];
   const sourceTests = (await readdir(join(plugin, 'test'))).filter(name => name.endsWith('.test.mjs') && !builtTests.includes(name));
   run(process.execPath, ['--test', ...sourceTests.map(name => join(plugin, 'test', name)),
     'scripts/dsh-b0/gateway-policy.test.mjs', 'scripts/dsh-b0/transport-safety.test.mjs', 'scripts/dsh-b0/mock-provider.test.mjs',

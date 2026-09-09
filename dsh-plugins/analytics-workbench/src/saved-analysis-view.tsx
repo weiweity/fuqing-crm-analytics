@@ -26,6 +26,7 @@ export function SavedAnalysisView(props: SavedAnalysisViewProps) {
   return <>
     <style>{css}</style>
     <div className="analytics-b0-dialog analytics-saved-analysis" data-testid="analytics-saved-analysis-view"
+      data-dsh-native-chrome="1"
       data-kind={view.kind} data-session={session} data-model={model} data-http="NOT_CONNECTED">
       <h2>{view.heading}</h2>
       <p>{COPY.noSession}</p>

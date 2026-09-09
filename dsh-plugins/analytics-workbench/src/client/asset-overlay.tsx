@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import { css } from './styles.ts';
+import { trapDialogTab } from './focus.ts';
 import { COCKPIT_CSS } from '../cockpit-model.mjs';
 import {
   addIntentKey, assetRequest, decodeAssetError, decodeHttpAnalysisList, decodeHttpDashboard, formatCard,
@@ -289,14 +290,13 @@ export function HttpAssetOverlay(props: OverlayProps) {
 
   return <>
     <style>{css + COCKPIT_CSS + `
-      .analytics-b0-dialog.analytics-cockpit-http { width:min(1100px,calc(100vw - 32px)); }
-      .analytics-cockpit-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
-      .analytics-cockpit-card[data-selected="1"] { outline:2px solid currentColor; }
+      .analytics-cockpit-card[data-selected="1"] { outline:2px solid var(--dsw-alias-brand-primary,currentColor); outline-offset:2px; }
     `}</style>
     <dialog ref={dialogRef} className="analytics-b0-dialog analytics-cockpit-http" aria-labelledby="analytics-b0-heading"
-      data-testid="analytics-b0-dialog" data-http="CONNECTED" data-asset="1" data-panel={panel}
+      data-testid="analytics-b0-dialog" data-dsh-native-chrome="1" data-http="CONNECTED" data-asset="1" data-panel={panel}
       data-dashboard-id={shown?.dashboard_id ?? ''}
       data-session={selectedSession ? '1' : '0'} data-preview={pending ? '1' : '0'}
+      onKeyDown={trapDialogTab}
       onCancel={event => { event.preventDefault(); requestClose(); }}
       onClose={afterClose}>
       <header>
@@ -350,7 +350,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
         <div className="analytics-cockpit-grid" data-testid="analytics-cockpit-grid">
           {cards.map(card => card.kind === 'error'
             ? <article key={card.card_id || 'broken'} className="analytics-b0-card analytics-cockpit-card"
-                data-card-id={card.card_id} data-card-error="1" data-source="UNAVAILABLE" role="status">
+                data-card-id={card.card_id} data-card-error="1" data-source="UNAVAILABLE" role="status"
+                style={{ gridColumn: '1 / -1' }}>
                 固定历史快照不可用：{card.message}
                 {card.card_id && <button type="button" data-testid={`analytics-remove-${card.card_id}`} onClick={() => void runPreview({
                   op: 'remove', body: { op: 'remove', card_id: card.card_id },

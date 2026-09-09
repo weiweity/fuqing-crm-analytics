@@ -1,3 +1,4 @@
+import { kernelUrl } from './runtime-endpoints.ts';
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import { FIRST_PURCHASE_FAMILY, QUERY_FAMILY, isRegisteredSession, runtimeFamily } from './runtime-family.mjs';
 
@@ -10,7 +11,7 @@ export async function loadRunContext(agent: Agent | undefined, requestId: string
   if (!token || !agent || !isRegisteredSession(agent.id) || !requestId) {
     throw new Error(queryMode ? 'query context has no bound native request' : 'B0 context has no bound native request');
   }
-  const response = await fetch('http://127.0.0.1:4315/internal/native/run-context', {
+  const response = await fetch(kernelUrl('/internal/native/run-context'), {
     method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify({ session_id: agent.id, request_id: requestId, unit_id: unitId, package_digest: packageDigest, resource }),
     signal: AbortSignal.any([signal, AbortSignal.timeout(3000)]), redirect: 'error',

@@ -1,3 +1,4 @@
+import { currentPorts } from './ports.mjs';
 /** Internal B0 smoke driver. Credentials stay in memory; all requests are local. */
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -7,11 +8,12 @@ import { spawnSync } from 'node:child_process';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const current = JSON.parse(await readFile(join(root, '.context/dsh-b0/current.json'), 'utf8'));
+const ports = currentPorts(current);
 const { runtime } = current;
 assert.ok(runtime.startsWith(join(root, '.context/dsh-b0/runtime-')));
 const { launchUrl } = JSON.parse(await readFile(join(runtime, 'browser-private.json'), 'utf8'));
 const url = new URL(launchUrl);
-assert.equal(url.origin, 'http://127.0.0.1:4317');
+assert.equal(url.origin, `http://127.0.0.1:${ports.web}`);
 const base = url.origin;
 const auth = await fetch(launchUrl, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
 const cookie = auth.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
@@ -102,7 +104,7 @@ if (action === 'bootstrap') {
   // Let the established browse skill drive the existing browser daemon. Do not
   // echo the launch URL or pass credentials to another browser implementation.
   const business = JSON.parse(await readFile(join(runtime, 'gateway-private.json'), 'utf8'));
-  assert.equal(new URL(business.launchUrl).origin, 'http://127.0.0.1:4318');
+  assert.equal(new URL(business.launchUrl).origin, `http://127.0.0.1:${ports.gateway}`);
   const [flag, browse, ...extra] = process.argv.slice(3);
   assert.ok(flag === '--browse' && isAbsolute(browse ?? '') && !extra.length, 'Pass browser --browse /absolute/browse');
   const result = spawnSync(browse, ['newtab', business.launchUrl], { encoding: 'utf8', timeout: 45000 });

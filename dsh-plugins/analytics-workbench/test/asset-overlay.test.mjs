@@ -21,6 +21,8 @@ const { JSDOM } = createRequire(join(upstream, 'node_modules/jsdom/package.json'
 const stores = await import(pathToFileURL(join(upstream, 'packages/client/store/lib/index.js')).href);
 const source = await readFile(join(root, 'lib/client.js'), 'utf8');
 const overlaySource = await readFile(join(root, 'src/client/asset-overlay.tsx'), 'utf8');
+const mockOverlaySource = await readFile(join(root, 'src/client/index.tsx'), 'utf8');
+const focusSource = await readFile(join(root, 'src/client/focus.ts'), 'utf8');
 const successBlock = QUERY_CARD_CASES.find(row => row.id === 'query-success').block;
 
 const card = {
@@ -328,6 +330,14 @@ test('stale preview response is ignored after a newer refresh generation', async
   assert.ok(calls.some(row => row.method === 'POST' && row.path.endsWith('/preview')));
   mounted.unmount();
   restoreDom(previous);
+});
+
+test('HTTP overlay and mock overlay share the native dialog Tab trap', () => {
+  assert.match(focusSource, /export function trapDialogTab/);
+  assert.match(overlaySource, /onKeyDown=\{trapDialogTab\}/);
+  assert.match(mockOverlaySource, /onKeyDown=\{trapDialogTab\}/);
+  assert.match(overlaySource, /data-dsh-native-chrome="1"/);
+  assert.match(overlaySource, /gridColumn: '1 \/ -1'/);
 });
 
 test('layout drag commits on pointerup and does not preview on pointermove', async () => {

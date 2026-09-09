@@ -1,9 +1,10 @@
+import { kernelUrl } from './runtime-endpoints.ts';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { requestForTool } from './native-evidence.mjs';
 import { isRegisteredSession } from './runtime-family.mjs';
 import {
-  QUERY_KERNEL_URL, QUERY_RECEIPT_LIMIT, QUERY_TOOL_NAME,
+  QUERY_RECEIPT_LIMIT, QUERY_TOOL_NAME,
   decodeQueryReceipt, decodeQueryRequest, readBoundedJson,
 } from './query-model.mjs';
 
@@ -140,7 +141,7 @@ export function apply(ctx: Context): void {
       if (!request) throw new Error('query tool rejected invalid parameters');
       const requestId = requestForTool(agent.session.snapshotEvents(), exec.callId);
       if (!requestId) throw new Error('query tool has no journal-correlated native request');
-      const response = await fetch(QUERY_KERNEL_URL, {
+      const response = await fetch(kernelUrl('/internal/native/channel-followup'), {
         method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({ session_id: agent.id, request_id: requestId, call_id: exec.callId, request }),
         signal: AbortSignal.any([exec.signal, AbortSignal.timeout(33000)]), redirect: 'error',

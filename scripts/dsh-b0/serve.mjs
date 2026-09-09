@@ -3,6 +3,7 @@
  * No real data, model credentials, user config, or existing demo processes.
  */
 import assert from 'node:assert/strict';
+import { portBlock } from './ports.mjs';
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, writeFile, realpath, access, chmod, readFile } from 'node:fs/promises';
 import { resolve, join, dirname, isAbsolute } from 'node:path';
@@ -23,8 +24,11 @@ import { firstPurchaseMockScript } from './first-purchase-scenario.mjs';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const b0 = join(root, '.context/dsh-b0');
-const upstream = join(b0, 'upstream');
+const upstream = process.env.B0_BUILD_UPSTREAM ?? join(b0, 'upstream');
 const args = process.argv.slice(2);
+const portIndex = args.indexOf('--port-base');
+const portBase = portIndex < 0 ? 4315 : Number(args.splice(portIndex, 2)[1]);
+const ports = portBlock(portBase);
 let scenario = 'lifecycle';
 if (args.at(-1) === '--native-cards' || args.at(-1) === '--native-state'
   || args.at(-1) === '--native-query' || args.at(-1) === '--native-query-fault'
@@ -46,8 +50,8 @@ assert.equal(process.platform, 'darwin', 'The native verification runner require
 assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Use Node 24');
 const plugin = await realpath(pluginArg ?? join(root, 'dsh-plugins/analytics-workbench'));
 const pinned = 'd347e703908d0406b7a7ef80e3a0e594d86b2215';
-const webPort = 4317;
-const mockPort = 4319;
+const webPort = ports.web;
+const mockPort = ports.mock;
 const binary = process.execPath;
 const cli = join(upstream, 'apps/cli/lib/bin.js');
 const profilePath = join(root, 'scripts/dsh-b0/sandbox.sb');
@@ -73,7 +77,7 @@ if (firstPurchaseScenario) {
   assert.equal(firstPurchaseMethodPackageDigest, packageDigest((await packSkills(plugin, 'first_purchase')).manifest, 'first_purchase'),
     'Built first-purchase Skill package differs from the reviewed source closure');
 }
-await Promise.all([4315, 4316, 4318, webPort, mockPort].map(assertFree));
+await Promise.all(Object.values(ports).map(assertFree));
 await mkdir(b0, { recursive: true, mode: 0o700 });
 const runtime = await mkdtemp(join(b0, 'runtime-'));
 const lifecycle = observeLifecycle(runtime);
@@ -123,6 +127,7 @@ if (queryAssetsScenario || firstPurchaseScenario) {
   kernelConfig.cockpit_dir = cockpitDir;
   kernelConfig.asset_capabilities = ['analysis:save', 'analysis:read', 'dashboard:read', 'dashboard:update'];
 }
+kernelConfig.port_base = portBase;
 await writeJson(join(runtime, 'kernel-private.json'), kernelConfig);
 if (stateScenario) {
   const probe = join(runtime, 'probe');
@@ -186,7 +191,7 @@ const environment = {
   DSH_HOME: ownHome, DSH_AGENTS_HOME: join(ownHome, 'agents'),
   DSH_BUNDLED_SKILL_DIR: join(runtime, 'skills'), DSH_TELEMETRY_DISABLED: '1',
   TMPDIR: join(runtime, 'tmp'), B0_MOCK_KEY: 'b0-mock-only',
-  B0_RUNTIME_TOKEN: runtimeToken, B0_SESSION_ID: sessionId,
+  B0_PORT_BASE: String(portBase), B0_RUNTIME_TOKEN: runtimeToken, B0_SESSION_ID: sessionId,
   ...(queryFamily ? { B0_RUNTIME_FAMILY: 'channel_followup', B0_SESSION_IDS: sessionIds.join(',') } : {}),
   ...(firstPurchaseScenario ? { B0_RUNTIME_FAMILY: 'first_purchase' } : {}),
 };
@@ -227,8 +232,8 @@ const sandboxArgs = [
   '-D', `RUNTIME_CELLAR=${runtimeCodeRoot(binary)}`,
   '-D', `READ_SOURCE=${await realpath(upstream)}`, '-D', `READ_PLUGIN=${plugin}`, '-D', `READ_CONFIG=${runtime}`,
   '-D', `STATE_HOME=${ownHome}`, '-D', `WORKSPACE=${workspace}`, '-D', `TEMP_DIR=${join(runtime, 'tmp')}`,
-  '-D', 'BIND_ENDPOINT=localhost:4317', '-D', 'MOCK_ENDPOINT=localhost:4319',
-  '-D', 'BRIDGE_ENDPOINT=localhost:4316', '-D', 'KERNEL_ENDPOINT=localhost:4315',
+  '-D', `BIND_ENDPOINT=localhost:${ports.web}`, '-D', `MOCK_ENDPOINT=localhost:${ports.mock}`,
+  '-D', `BRIDGE_ENDPOINT=localhost:${ports.bridge}`, '-D', `KERNEL_ENDPOINT=localhost:${ports.kernel}`,
   '-f', profilePath,
 ];
 let child;
@@ -260,7 +265,7 @@ function startKernel() {
 }
 async function writeCurrent() {
   await writeJson(currentPath, { runtime, supervisorPid: process.pid, childPid: child?.pid,
-    kernelPid: kernel?.pid, kernelGeneration, hostGeneration, hostReadyGeneration, webPort, mockPort, pinned, plugin,
+    kernelPid: kernel?.pid, kernelGeneration, hostGeneration, hostReadyGeneration, portBase, webPort, mockPort, pinned, plugin,
     verificationScenario: scenario });
 }
 async function bootHost() {

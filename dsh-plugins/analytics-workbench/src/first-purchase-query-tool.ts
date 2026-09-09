@@ -1,9 +1,10 @@
+import { kernelUrl } from './runtime-endpoints.ts';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { requestForTool } from './native-evidence.mjs';
 import { isRegisteredSession } from './runtime-family.mjs';
 import {
-  FIRST_PURCHASE_KERNEL_URL, FIRST_PURCHASE_RECEIPT_LIMIT, FIRST_PURCHASE_TOOL_NAME,
+  FIRST_PURCHASE_RECEIPT_LIMIT, FIRST_PURCHASE_TOOL_NAME,
   decodeFirstPurchaseReceipt, decodeFirstPurchaseRequest, readBoundedJson, receiptMatchesRequest,
   type FirstPurchaseNativeReceipt,
 } from './first-purchase-query-model.mjs';
@@ -78,7 +79,7 @@ export function apply(ctx: Context): void {
       if (!request) throw new Error('first-purchase tool rejected invalid parameters');
       const requestId = requestForTool(agent.session.snapshotEvents(), exec.callId);
       if (!requestId) throw new Error('first-purchase tool has no journal-correlated native request');
-      const response = await fetch(FIRST_PURCHASE_KERNEL_URL, {
+      const response = await fetch(kernelUrl('/internal/native/first-purchase'), {
         method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({ session_id: agent.id, request_id: requestId, call_id: exec.callId, request }),
         signal: AbortSignal.any([exec.signal, AbortSignal.timeout(33000)]), redirect: 'error',

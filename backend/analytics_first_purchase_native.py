@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from backend.services.analytics.runtime_ports import bridge_origin
+
 import asyncio
 import secrets
 from contextlib import asynccontextmanager
@@ -146,7 +148,7 @@ def create_first_purchase_native_app(config, *, bridge=None):
     descriptor = fixture.binding_descriptor()
     workers = WorkerManager(store, resolve_actor, fixture)
     dispatcher = RunDispatcher(
-        store, resolve_actor, bridge or HostBridge("http://127.0.0.1:4316", runtime_token),
+        store, resolve_actor, bridge or HostBridge(bridge_origin(config), runtime_token),
         workers=workers,
     )
     runtime = FirstPurchaseRuntime(store, fixture, resolve_actor)

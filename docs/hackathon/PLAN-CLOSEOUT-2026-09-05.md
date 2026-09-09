@@ -1,12 +1,14 @@
 # 方案收口与总待办：产品、架构、数仓、ETL
 
-初版日期：2026-09-05；执行更新：2026-09-09。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。本次发布 `origin/main` = `d95e504`，VERSION `0.7.0.0`，#108 已合并且 PR CI 必需检查通过；集成历史见 [并行清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。
+初版日期：2026-09-05；执行更新：2026-09-09。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。当前核验 `origin/main` = `f818fca`（#110），首购历史发布为 `d95e504`，VERSION `0.7.0.0`，#108 已合并且 PR CI 必需检查通过；集成历史见 [并行清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。
 
 初版响应“整理待办、先收尾、拉 Git 分支，再讨论未收口计划”，后续按用户确认续完 D1–D4 并进入最小 B0 实施。**方案收口不等于整个实现/运行验收完成。** 本文是当前任务顺序与状态入口；原商业、交互、合同、评审和测试文档继续各自负责细节，不另起一套 autoplan。
 
 **8 小时 Goal（2026-09-07 当时口径；2026-09-08 已合入）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)。当时只做本地 synthetic G0–G5，不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`。**之后**已 squash 合入 #100（v0.6.0.0 驾驶舱）及 #85–#99、#92；远程功能分支已删。仍未授权公网部署。历史「未获 Git 授权」只描述当时当轮，不能当现在的指令。
 
 历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。v0.6.1.0 的 overlay 编译后 DOM 及 v0.6.2.0 重试/不串板修复已合入。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。核验时 8000/5173 仍有旧进程，其 cwd 已不存在；#108 合并后已在 main 完成本机 DSH stub 合成首购查询、保存与驾驶舱验证。
+
+本轮优先顺序：先验收完整 DSH 基座与可选业务插件，再恢复 W4/W5 扩展。已完成部分与边界见 [兼容集成记录](./DSH-COMPAT-INTEGRATION-2026-09-09.md)。真实模型、完整原生能力矩阵和多人/容量验收仍开放；不从源码存在推断功能通过。
 
 ## 1. 已确定，不再重复讨论
 
