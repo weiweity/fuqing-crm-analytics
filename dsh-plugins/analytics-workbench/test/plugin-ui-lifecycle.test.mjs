@@ -31,6 +31,7 @@ test('ordinary native chat has no synthetic run status; registered B0 still has 
 function loadClient() {
   const seed = new Map([
     ['react', webRequire('react')],
+    ['react-dom', webRequire('react-dom')],
     ['react/jsx-runtime', webRequire('react/jsx-runtime')],
     ['@deepseek-ai/dsh-client-store', stores],
   ]);
@@ -47,6 +48,7 @@ function mount(client) {
   const effects = [];
   client.apply({
     effect: factory => { effects.push(factory()); },
+    theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => ({ phase: 'ready', ids: [], byId: {} }), subscribe: () => () => {} },
       open() { assert.fail('lifecycle test opened a session'); },
@@ -86,6 +88,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   const entries = [];
   const ctx = {
     effect: factory => factory(),
+    theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => ({ phase: 'ready', ids: [], byId: {} }), subscribe: () => () => {} },
       open() {}, clear() {}, create() { assert.fail('lifecycle test created a session'); },

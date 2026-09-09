@@ -1,0 +1,71 @@
+{
+  "source_base": "e63df18f8781f7ce123df93a4a10e7f6fc874fb2",
+  "source_status": "uncommitted visual increment",
+  "api": "http://127.0.0.1:18084/api/v1/analytics/competition",
+  "web": "http://127.0.0.1:4328",
+  "native_theme": {
+    "initial_system": "light",
+    "explicit_dark_after_reload": "dark",
+    "explicit_light_after_reload": "light"
+  },
+  "viewports": [
+    1440,
+    1024,
+    390
+  ],
+  "phone": {
+    "viewport": 390,
+    "page": 390,
+    "dialog": 342,
+    "dialog_scroll": 342,
+    "drag": "none",
+    "resize": "none"
+  },
+  "focus": {
+    "shift_tab_from_first": "发送局部编辑",
+    "tab_from_last": "返回聊天",
+    "stayed_in_dialog": true
+  },
+  "boards": {
+    "items": [
+      {
+        "schema_version": "competition-board/v1",
+        "board_id": "board_a5680b5a18408fad9733ee0b10779d92",
+        "block_ids": [
+          "block_bab068dd48a2593c8a584a94bba6d3a7"
+        ],
+        "version": 2,
+        "base_version": 2,
+        "title": "8月GSV诊断板",
+        "owner_id": "alice",
+        "visibility": "PRIVATE",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "existing_dashboard_schema": "analytics-cockpit/v1",
+        "data_namespace": "competition-board/v1",
+        "snapshot_compat": "ISOLATED_NEW",
+        "data_mode": "SNAPSHOT",
+        "preview": false,
+        "persisted": true,
+        "batch_id": "batch_4f2b43785daf4e1e92f740e04c669636",
+        "operation_id": "op_4f2b43785daf4e1e92f740e04c669636_0",
+        "affected_block_ids": [],
+        "limitations": [
+          "competition-board/v1 隔离命名空间；旧 analytics-cockpit/v1 SNAPSHOT 只读兼容。",
+          "结果按 analysis_id/run_id/evidence_digest 共享引用，不按板重复计算。"
+        ]
+      }
+    ],
+    "http_api": "CONNECTED",
+    "asset_plane": "competition"
+  },
+  "client_sha256": "4163a958e54dcd92f3288d492da635f59db325c954137dcc6ddd1de7cf6ba018",
+  "model_calls": 0,
+  "t13": "not part of this synthetic UI run",
+  "limitations": [
+    "System随操作系统变化尚未模拟",
+    "原生全流程与运行中撤权仍开放",
+    "现有技术标识与文案仍需整理",
+    "本人T15未签收",
+    "正式T16未验收"
+  ]
+}

@@ -70,10 +70,14 @@
 
 4325/18083 已使用新插件/计算代码，原模型配置、旧 BAR 看板和行动草稿 v2 保留。切换前四库备份/隔离恢复通过；新结果库另有独立备份恢复。90 次单用户合成读取全部成功，P95 8.36–13.83 ms，只是当前数据基线。
 
-证据、运行位置和回退边界统一见[本轮交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。源码尚未提交；原生取消期间不发布的验收、主题与 Ant Design、完整诊断/旧 MCP、业务口径、本人 T15 和正式 T16 仍开放。T13 的两个 GSV 用例通过不替代全套真实业务评测。
+证据、运行位置和回退边界统一见[本轮交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。此处为数值接线完成时点；后续提交、取消与主题接入见下文。完整诊断/旧 MCP、业务口径、本人 T15 和正式 T16 仍开放。T13 的两个 GSV 用例通过不替代全套真实业务评测。
 
 ## 诊断取消增量复查
 
 计算中取消后仍发布已实际复现并修复。Node transport 手动 AbortSignal 和 5 秒超时均经真实 HTTP 阻止 SQLite 发布，跨进程与回执失败语义已覆盖；完整 backend 2320 passed / 77 skipped、独立 B0 全流程 PASS，见[交付](DIAGNOSIS-CANCELLATION-2026-09-10.md)。浏览器原生停止入口、用户 T15、正式 T16、业务默认值和整体发布条件继续开放，不缩减七阶段范围。
 
-数值与取消代码 `d9c9162` 已推送到 #115，并切换 4325/18083；五库备份恢复和旧资产一致性通过，Models 配置保留原位。见[当前切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。`d9c9162` 的远端 CI 成功；后续文档提交 `afb62b0` 的首购原生测试收到可重试 503 而失败。现已用隔离 SQLite 写锁验证沿原调用恢复和单 worker，并修正测试的瞬态等待，11 项通过；新提交 CI 待核验，详见[失败与回归记录](evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md)。
+数值与取消代码 `d9c9162` 已推送到 #115，并切换 4325/18083；五库备份恢复和旧资产一致性通过，Models 配置保留原位。见[当前切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。`d9c9162` 的远端 CI 成功；后续文档提交 `afb62b0` 的首购原生测试收到可重试 503 而失败。现已用隔离 SQLite 写锁验证沿原调用恢复和单 worker，并修正测试的瞬态等待，11 项通过；修复提交 `e63df18` 的 [CI 34410948184](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34410948184) 已成功，详见[失败与回归记录](evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md)。
+
+## 原生主题与实际 AntD 增量
+
+独立 `competition-visual-readiness` 基于 `e63df18` 补官方主题服务、实际 AntD 表单和窄屏控件。4328/18084 临时合成浏览器实测 Light/Dark 刷新保持、BAR 410/305 保存重开与弹层焦点；完整 B0 pipeline 和干净重建 PASS，审计 0 告警。临时实例已停止，4325 用户候选尚未切换。失败截图、测试告警和未完成项见[视觉结果](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)，不能把本增量当作完整 T17、T15 或 T16。

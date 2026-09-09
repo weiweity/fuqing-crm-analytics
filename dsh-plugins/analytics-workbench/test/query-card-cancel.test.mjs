@@ -46,6 +46,7 @@ async function mountCard(fetchImpl) {
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
     if (name === 'react') return React;
+    if (name === 'react-dom') return webReq('react-dom');
     if (name === 'react/jsx-runtime') return webReq('react/jsx-runtime');
     if (name === '@deepseek-ai/dsh-client-store') return stores;
     throw new Error(`unexpected ${name}`);

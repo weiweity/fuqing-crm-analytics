@@ -1,0 +1,12 @@
+diff --git a/es/PickerPanel/index.d.ts b/es/PickerPanel/index.d.ts
+--- a/es/PickerPanel/index.d.ts
++++ b/es/PickerPanel/index.d.ts
+@@ -40,1 +40,1 @@
+-export interface SinglePickerPanelProps<DateType extends object = any> extends BasePickerPanelProps<DateType> {
++export interface SinglePickerPanelProps<DateType extends object = any> extends Omit<BasePickerPanelProps<DateType>, 'defaultValue'> {
+diff --git a/lib/PickerPanel/index.d.ts b/lib/PickerPanel/index.d.ts
+--- a/lib/PickerPanel/index.d.ts
++++ b/lib/PickerPanel/index.d.ts
+@@ -40,1 +40,1 @@
+-export interface SinglePickerPanelProps<DateType extends object = any> extends BasePickerPanelProps<DateType> {
++export interface SinglePickerPanelProps<DateType extends object = any> extends Omit<BasePickerPanelProps<DateType>, 'defaultValue'> {

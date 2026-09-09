@@ -1,39 +1,44 @@
-import { createContext, useContext, type ComponentType, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
+import ConfigProvider from 'antd/es/config-provider';
+import antdAlgorithms from 'antd/es/theme';
 import { competitionShellCss } from './css.ts';
-import { antdTheme, competitionCssVars, competitionTokens, type CompetitionTokens } from './tokens.ts';
+import { competitionThemeFor, competitionTokens, type CompetitionTokens, type CompetitionColorScheme } from './tokens.ts';
 
 const CompetitionThemeContext = createContext<CompetitionTokens>(competitionTokens);
+const ColorSchemeContext = createContext<CompetitionColorScheme>('dark');
 
 export function useCompetitionTheme(): CompetitionTokens {
   return useContext(CompetitionThemeContext);
 }
 
-export type AntdConfigProvider = ComponentType<{ theme?: unknown; children?: ReactNode }>;
-
 export type ThemeProviderProps = {
   children: ReactNode;
   className?: string;
-  /** Injected by the integrator after antd is locked. A4 does not import antd. */
-  ConfigProvider?: AntdConfigProvider;
-  /** antd.theme.darkAlgorithm or equivalent. Optional until antd is a dependency. */
-  algorithm?: unknown;
+  /** Nested business views inherit the mode resolved by the native runtime. */
+  colorScheme?: CompetitionColorScheme;
 };
 
-export function ThemeProvider({ children, className, ConfigProvider, algorithm }: ThemeProviderProps) {
-  const theme = { ...antdTheme, algorithm: algorithm ?? undefined };
-  const inner = (
-    <CompetitionThemeContext.Provider value={competitionTokens}>
+export function ThemeProvider({ children, className, colorScheme }: ThemeProviderProps) {
+  const inherited = useContext(ColorSchemeContext);
+  const mode = colorScheme ?? inherited;
+  const tokens = competitionThemeFor(mode);
+  const theme = { ...tokens.antd, algorithm: mode === 'dark' ? antdAlgorithms.darkAlgorithm : antdAlgorithms.defaultAlgorithm };
+  return (
+    <ColorSchemeContext.Provider value={mode}>
+    <ConfigProvider theme={theme} getPopupContainer={trigger => trigger?.closest('dialog') ?? trigger?.parentElement ?? document.body}>
+    <CompetitionThemeContext.Provider value={tokens}>
       <style>{competitionShellCss}</style>
       <div
         className={['sm-competition-root', className].filter(Boolean).join(' ')}
         data-sm-theme="competition"
+        data-sm-color-scheme={mode}
         data-testid="sm-theme-root"
-        style={competitionCssVars as CSSProperties}
+        style={tokens.cssVars as CSSProperties}
       >
         {children}
       </div>
     </CompetitionThemeContext.Provider>
+    </ConfigProvider>
+    </ColorSchemeContext.Provider>
   );
-  if (!ConfigProvider) return inner;
-  return <ConfigProvider theme={theme}>{inner}</ConfigProvider>;
 }

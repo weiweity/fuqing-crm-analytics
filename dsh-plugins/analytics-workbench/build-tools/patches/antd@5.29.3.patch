@@ -1,0 +1,16 @@
+diff --git a/es/_util/hooks/useForceUpdate.d.ts b/es/_util/hooks/useForceUpdate.d.ts
+index 8d47ba7405399c62561d58188167c0fe911ab0a0..423f9ea256cb6bb224aa8edbf4adb06cfc39fb6f 100644
+--- a/es/_util/hooks/useForceUpdate.d.ts
++++ b/es/_util/hooks/useForceUpdate.d.ts
+@@ -1,2 +1,2 @@
+ import React from 'react';
+-export declare const useForceUpdate: () => [number, React.ActionDispatch<[]>];
++export declare const useForceUpdate: () => [number, React.DispatchWithoutAction];
+diff --git a/lib/_util/hooks/useForceUpdate.d.ts b/lib/_util/hooks/useForceUpdate.d.ts
+index 8d47ba7405399c62561d58188167c0fe911ab0a0..423f9ea256cb6bb224aa8edbf4adb06cfc39fb6f 100644
+--- a/lib/_util/hooks/useForceUpdate.d.ts
++++ b/lib/_util/hooks/useForceUpdate.d.ts
+@@ -1,2 +1,2 @@
+ import React from 'react';
+-export declare const useForceUpdate: () => [number, React.ActionDispatch<[]>];
++export declare const useForceUpdate: () => [number, React.DispatchWithoutAction];

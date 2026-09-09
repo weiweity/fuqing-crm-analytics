@@ -3,9 +3,16 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
-  "engines": { "node": "24.x" },
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "antd": "5.29.3",
     "openapi-typescript": "7.13.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "typescript": "6.0.3"
   }
 }

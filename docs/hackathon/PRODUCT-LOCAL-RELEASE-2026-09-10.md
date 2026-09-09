@@ -13,6 +13,10 @@
 
 完整 B0 pipeline 的默认构建不携带本实例 HTTP 配置。验收前按环境重建插件并重启本工作树拥有的 DSH supervisor；沿用同一 runtime，不能使用 `--fresh` 覆盖用户配置。
 
+## 当前源码与视觉候选
+
+4325/18083 运行 `d9c9162` 的数值与取消代码，用户 Models 配置保留原位；当前工作树另含不影响运行时的测试/文档修复 `e63df18`。数值与取消切换后的五库备份恢复见[切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。下节四库记录保留较早时点，不作为当前完整恢复点。独立[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)已完成局部验证，尚未替换用户候选；切换时仍须绑定对应源码、锁和构建。
+
 ## 备份与恢复证据
 
 只停止本轮拥有的 18083 API 后，通过 SQLite `Connection.backup()` 保存 4 库，再用相同接口恢复至另一个目录；不直接复制 WAL 文件。备份目录 `.context/readiness-backup-20260910`，恢复目录 `.context/readiness-restore-20260910`，均私有权限。备份对应运营草稿创建之前的状态。

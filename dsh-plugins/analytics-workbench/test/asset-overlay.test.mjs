@@ -106,7 +106,7 @@ function restoreDom(previous) {
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
 
-function Shell({ Overlay, Footer, actionsRef, QueryCard }) {
+function Shell({ Overlay, Footer, actionsRef, QueryCard, themeSource }) {
   const [snap, setSnap] = React.useState({
     open: true, openTick: 1, confirmClose: false, editor: createEditor(), message: '',
   });
@@ -122,6 +122,7 @@ function Shell({ Overlay, Footer, actionsRef, QueryCard }) {
   return React.createElement(React.Fragment, null,
     React.createElement(Footer, { wide: true, useStore: selector => selector(snap), actions }),
     React.createElement(Overlay, {
+      themeSource: themeSource ?? { subscribe: () => () => {}, getSnapshot: () => 'dark' },
       useStore: selector => selector(snap),
       actions,
       useSessions: selector => selector({ current: undefined }),
@@ -139,6 +140,12 @@ async function mountShell(fetchImpl, options = {}) {
   const context = {
     window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } }, fetch: fetchImpl }),
     document: globalThis.document,
+    getComputedStyle: globalThis.window.getComputedStyle.bind(globalThis.window),
+    HTMLElement: globalThis.window.HTMLElement,
+    Element: globalThis.window.Element,
+    ShadowRoot: globalThis.window.ShadowRoot,
+    SVGElement: globalThis.window.SVGElement,
+    setTimeout, clearTimeout,
     fetch: fetchImpl,
     Event: globalThis.window.Event,
     CustomEvent: globalThis.window.CustomEvent,
@@ -148,6 +155,7 @@ async function mountShell(fetchImpl, options = {}) {
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
     if (name === 'react') return React;
+    if (name === 'react-dom') return webReq('react-dom');
     if (name === 'react/jsx-runtime') return webReq('react/jsx-runtime');
     if (name === '@deepseek-ai/dsh-client-store') return stores;
     throw new Error(`unexpected ${name}`);
@@ -170,7 +178,7 @@ async function mountShell(fetchImpl, options = {}) {
   const root = createRoot(rootEl);
   await act(() => {
     root.render(React.createElement(Shell, {
-      Overlay, Footer, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null,
+      Overlay, Footer, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null, themeSource: options.themeSource,
     }));
   });
   return { actionsRef, Overlay, QueryCard, unmount: () => act(() => root.unmount()) };
@@ -251,6 +259,38 @@ function connectedBoardFetch(options = {}) {
   };
   return { calls, fetchImpl, analyses, setPreviewGate(gate) { previewGate = gate; } };
 }
+
+test('native resolved mode updates the existing dialog and inherited competition controls', async () => {
+  const { previous, dom } = installDom();
+  let mode = 'light';
+  const listeners = new Set();
+  const themeSource = { getSnapshot: () => mode, subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn); } };
+  const fixture = connectedBoardFetch();
+  const mounted = await mountShell(fixture.fetchImpl, { themeSource });
+  try {
+    await waitFor(() => document.querySelector('[data-testid="analytics-b0-dialog"]'));
+    const dialog = document.querySelector('[data-testid="analytics-b0-dialog"]');
+    const root = document.querySelector('.sm-overlay-theme');
+    assert.equal(root.dataset.smColorScheme, 'light');
+    assert.equal(root.style.getPropertyValue('--sm-bg'), '#FEFCFF');
+    const competition = [...dialog.querySelectorAll('button')].find(button => button.textContent.includes('认可成板'));
+    assert.ok(competition);
+    await act(async () => { competition.click(); await delay(20); });
+    await waitFor(() => dialog.querySelector('[data-testid="sm-open-board"]'));
+    assert.ok(dialog.querySelector('.ant-btn'), 'actual AntD button is rendered');
+    for (const next of ['dark', 'light']) {
+      await act(() => { mode = next; for (const listener of listeners) listener(); });
+      assert.equal(document.querySelector('[data-testid="analytics-b0-dialog"]'), dialog);
+      assert.equal(dialog.open, true);
+      assert.deepEqual([...document.querySelectorAll('[data-sm-color-scheme]')].map(node => node.dataset.smColorScheme), [next, next]);
+    }
+    assert.equal(mounted.actionsRef.close, 0);
+  } finally {
+    await mounted.unmount();
+    assert.equal(listeners.size, 0);
+    dom.window.close(); restoreDom(previous);
+  }
+});
 
 test('RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds', async () => {
   const competitionLive = /127\.0\.0\.1:18082/.test(source);
@@ -604,6 +644,12 @@ async function mountDualOverlays(fetchImpl) {
   const context = {
     window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } }, fetch: fetchImpl }),
     document: globalThis.document,
+    getComputedStyle: globalThis.window.getComputedStyle.bind(globalThis.window),
+    HTMLElement: globalThis.window.HTMLElement,
+    Element: globalThis.window.Element,
+    ShadowRoot: globalThis.window.ShadowRoot,
+    SVGElement: globalThis.window.SVGElement,
+    setTimeout, clearTimeout,
     fetch: fetchImpl,
     Event: globalThis.window.Event,
     CustomEvent: globalThis.window.CustomEvent,
@@ -613,6 +659,7 @@ async function mountDualOverlays(fetchImpl) {
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
     if (name === 'react') return React;
+    if (name === 'react-dom') return webReq('react-dom');
     if (name === 'react/jsx-runtime') return webReq('react/jsx-runtime');
     if (name === '@deepseek-ai/dsh-client-store') return stores;
     throw new Error(`unexpected ${name}`);
@@ -641,7 +688,8 @@ async function mountDualOverlays(fetchImpl) {
     for (let i = 0; i < count; i++) {
       nodes.push(React.createElement('div', { key: String(i), 'data-overlay-instance': String(i) },
         React.createElement(Overlay, {
-          useStore: selector => selector(snap),
+          themeSource: { subscribe: () => () => {}, getSnapshot: () => 'dark' },
+      useStore: selector => selector(snap),
           actions,
           useSessions: selector => selector({ current: i === 0 ? 'session-a' : 'session-b' }),
           detachSelection() {},

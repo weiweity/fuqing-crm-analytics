@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineStore, type PropsStore } from '@deepseek-ai/dsh-client-store';
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
@@ -6,6 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client';
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client';
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client';
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client';
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client';
 import type {} from '@deepseek-ai/dsh-api-session-controller/client';
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client';
 import {
@@ -25,6 +26,7 @@ import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
 import { probeAssetHttp } from '../asset-http.mjs';
 import { competitionHttpOptions } from './competition-http.mjs';
 import { ThemeProvider } from './competition-shell/index.ts';
+import { nativeBrandTokens, type CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { PRODUCT_NAME, watchCompetitionBrandSurface } from './brand-surface.mjs';
 
 function initialState() {
@@ -73,17 +75,19 @@ function createWorkbenchStore() {
 type StoreProps = PropsStore<ReturnType<typeof createWorkbenchStore>>;
 type FooterProps = PropsRuntime<'sidebar.footer.action'> & StoreProps;
 type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
+  themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   detachSelection(): void;
   restoreSelection(): void;
 };
 
 function RoutedOverlay(props: OverlayProps) {
+  const colorScheme = useSyncExternalStore(props.themeSource.subscribe, props.themeSource.getSnapshot);
   const [assets, setAssets] = useState(false);
   const competitionHttp = competitionHttpOptions();
   const openTick = props.useStore(state => state.openTick ?? 0);
   useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
   return (
-    <ThemeProvider className="sm-overlay-theme">
+    <ThemeProvider className="sm-overlay-theme" colorScheme={colorScheme}>
       <OverlayErrorBoundary resetKey={openTick}>
         {assets || competitionHttp
           ? <HttpAssetOverlay key={openTick} {...props} />
@@ -217,7 +221,7 @@ function AnalyticsToolCard({ block }: ToolCallViewProps) {
 }
 
 export const name = 'analytics-workbench-b0-client';
-export const inject = ['slots', 'sessions'];
+export const inject = ['slots', 'sessions', 'theme'];
 
 export function apply(ctx: Context): void {
   ctx.effect(() => bindInitialSession(ctx.sessions, () => {
@@ -225,6 +229,7 @@ export function apply(ctx: Context): void {
   }), 'analytics-b0: select exact Host-listed primary once');
   // Same handle + same root scope = one shared open/editor state across entries.
   const store = createWorkbenchStore();
+  ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.effect(() => watchCompetitionBrandSurface(), 'competition-brand-surface');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
   ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({ name: 'sidebar.brand.name', priority: -10 }, () => <>{PRODUCT_NAME}</>));
@@ -236,6 +241,10 @@ export function apply(ctx: Context): void {
     inject: () => {
       let prior: ReturnType<typeof ctx.sessions.list.getSnapshot>['current'];
       return {
+        themeSource: {
+          subscribe: (listener: () => void) => { const dispose = ctx.on('theme/change', listener); return () => { dispose(); }; },
+          getSnapshot: () => ctx.theme.getTheme().active.colorScheme,
+        },
         detachSelection() { prior = ctx.sessions.list.getSnapshot().current; ctx.sessions.clear(); },
         restoreSelection() {
           const list = ctx.sessions.list.getSnapshot();

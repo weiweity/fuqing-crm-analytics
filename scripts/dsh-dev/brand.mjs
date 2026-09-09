@@ -68,9 +68,8 @@ export async function apply(ctx) {
   registerAsset(ctx, '/b0/brand/outfit-ofl.txt', ofl);
   ctx.on('webserver/index-inject', table => table.push({ kind: 'style',
     text: [
-      'html { color-scheme: dark; }',
       '.analytics-b0-mark { background-image:url("/b0/brand/logo.png"); background-repeat:no-repeat; background-size:auto 100%; background-position:0 50%; }',
-      '.analytics-b0-logo { background-image:url("/b0/brand/logo.png"); background-repeat:no-repeat; background-size:contain; width:177px; height:32px; display:inline-block; }',
+      '.analytics-b0-logo { background-image:url("/b0/brand/logo.png"); background-repeat:no-repeat; background-size:contain; width:177px; height:32px; display:inline-block; filter:var(--sm-native-logo-filter,none); }',
       '@font-face{font-family:"Outfit";src:url("/b0/brand/outfit.ttf") format("truetype");font-weight:100 900;font-style:normal;font-display:swap;}',
     ].join(''),
   }));

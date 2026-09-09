@@ -1,0 +1,5 @@
+patchedDependencies:
+  antd@5.29.3: patches/antd@5.29.3.patch
+  rc-picker@4.11.3: patches/rc-picker@4.11.3.patch
+overrides:
+  'js-yaml@4.3.1': 4.3.2

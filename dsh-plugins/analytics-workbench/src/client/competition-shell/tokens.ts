@@ -61,7 +61,7 @@ export const competitionMotion = Object.freeze({
   standard: '240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
 });
 
-/** Ant Design 5 seed tokens. Pass to ConfigProvider after antd is locked; do not import antd here. */
+/** Ant Design 5 seed tokens; algorithms are applied by the React provider. */
 export const antdSeedToken = Object.freeze({
   colorPrimary: competitionColor.brandPrimary,
   colorSuccess: competitionColor.brandAccent,
@@ -87,7 +87,6 @@ export const antdSeedToken = Object.freeze({
 export const antdTheme = Object.freeze({
   cssVar: { prefix: 'sm', key: 'competition' },
   hashed: true,
-  algorithmHint: 'dark' as const,
   token: antdSeedToken,
 });
 
@@ -138,6 +137,76 @@ export const competitionTokens = Object.freeze({
   breakpoint: Object.freeze({ phone: 390, tablet: 768, desktop: 1440 }),
 });
 
-export type CompetitionTokens = typeof competitionTokens;
+export type CompetitionColorScheme = 'light' | 'dark';
+
+const lightColor = Object.freeze({
+  ...competitionColor,
+  background: competitionColor.ink,
+  backgroundTop: '#F7F2FA',
+  backgroundMiddle: '#F0E8F5',
+  backgroundBottom: competitionColor.ink,
+  ink: competitionColor.background,
+  brandSecondary: '#674482',
+  copyStrong: '#33273C',
+  copy: '#51415D',
+  muted: '#675471',
+  faint: '#81708C',
+  danger: '#AB2944',
+});
+const lightMaterial = Object.freeze({
+  ...competitionMaterial,
+  line: 'rgba(103, 68, 130, 0.16)',
+  lineStrong: 'rgba(103, 68, 130, 0.32)',
+  glass: 'rgba(128, 93, 157, 0.04)',
+  nav: 'rgba(254, 252, 255, 0.96)',
+  navActive: 'rgba(128, 93, 157, 0.10)',
+});
+const lightCompetitionTokens = Object.freeze({
+  ...competitionTokens, color: lightColor, material: lightMaterial,
+  cssVars: Object.freeze({
+    ...competitionCssVars,
+    '--sm-bg': lightColor.background, '--sm-bg-top': lightColor.backgroundTop,
+    '--sm-ink': lightColor.ink, '--sm-copy': lightColor.copy, '--sm-muted': lightColor.muted,
+    '--sm-lilac': lightColor.brandSecondary, '--sm-danger': lightColor.danger,
+    '--sm-signal': competitionColor.brandPrimary,
+    '--sm-line': lightMaterial.line, '--sm-line-strong': lightMaterial.lineStrong,
+    '--sm-glass': lightMaterial.glass, '--sm-nav': lightMaterial.nav, '--sm-nav-active': lightMaterial.navActive,
+    '--sm-filter-brand-inverse': 'none',
+  }),
+  antd: Object.freeze({
+    ...antdTheme, cssVar: { prefix: 'sm', key: 'competition-light' },
+    token: Object.freeze({
+      ...antdSeedToken, colorText: lightColor.ink, colorTextSecondary: lightColor.copy,
+      colorTextTertiary: lightColor.muted, colorBgBase: lightColor.background,
+      colorBgLayout: lightColor.background, colorBgContainer: lightColor.background,
+      colorBgElevated: lightColor.background, colorBorder: lightMaterial.lineStrong,
+      colorSplit: lightMaterial.line, colorError: lightColor.danger,
+    }),
+  }),
+});
+
+export function competitionThemeFor(scheme: CompetitionColorScheme) {
+  return scheme === 'light' ? lightCompetitionTokens : competitionTokens;
+}
+
+/** Owned override layer for DSH's official theme presenter. Never writes preferences. */
+export const nativeBrandTokens = Object.freeze(Object.fromEntries(Object.entries({
+  '--dsw-alias-bg-base': [lightColor.background, competitionColor.background],
+  '--dsw-alias-bg-layer-1': [lightColor.backgroundTop, competitionColor.backgroundTop],
+  '--dsw-alias-bg-layer-2': [lightColor.backgroundMiddle, competitionColor.backgroundMiddle],
+  '--dsw-alias-bg-overlay': [lightColor.background, competitionColor.backgroundMiddle],
+  '--dsw-alias-border-l1': [lightMaterial.line, competitionMaterial.line],
+  '--dsw-alias-border-l2': [lightMaterial.lineStrong, competitionMaterial.lineStrong],
+  '--dsw-alias-brand-primary': [competitionColor.brandPrimary, competitionColor.brandPrimary],
+  '--dsw-alias-label-primary': [lightColor.ink, competitionColor.ink],
+  '--dsw-alias-label-secondary': [lightColor.copy, competitionColor.copy],
+  '--dsw-alias-state-error-primary': [lightColor.danger, competitionColor.danger],
+  '--dsw-specific-sidebar-fill': [lightColor.backgroundTop, competitionColor.backgroundTop],
+  '--dsw-font-family': [competitionFont.body, competitionFont.body],
+  '--ds-font-family-code': [competitionFont.mono, competitionFont.mono],
+  '--sm-native-logo-filter': ['none', 'brightness(0) invert(1)'],
+}).map(([name, [light, dark]]) => [name, { light, dark }])));
+
+export type CompetitionTokens = ReturnType<typeof competitionThemeFor>;
 export type AntdSeedToken = typeof antdSeedToken;
 export type AntdThemeConfig = typeof antdTheme;

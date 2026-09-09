@@ -1,3 +1,7 @@
+import Button from 'antd/es/button';
+import Radio from 'antd/es/radio';
+import Checkbox from 'antd/es/checkbox';
+import TextArea from 'antd/es/input/TextArea';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   ConditionChips, ErrorState, EvidenceBlock, LayoutSlot, StatusBanner, ThemeProvider,
@@ -163,6 +167,7 @@ export function BoardWorkbench(props: BoardMountProps) {
   const [pending, setPending] = useState<BoardPatchRequest | null>(null);
   const [layouts, setLayouts] = useState<Record<string, LayoutBox>>({});
   const [patchBusy, setPatchBusy] = useState(false);
+  const [resultsLoaded, setResultsLoaded] = useState(false);
   const patchSending = useRef(false);
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [uiBlockId, setUiBlockId] = useState<string | null>(null);
@@ -201,6 +206,7 @@ export function BoardWorkbench(props: BoardMountProps) {
         return;
       }
       setResults(row.body.filter(Boolean));
+      setResultsLoaded(true);
     });
     const listed = typeof transport.listBoards === 'function'
       ? transport.listBoards()
@@ -338,7 +344,7 @@ export function BoardWorkbench(props: BoardMountProps) {
     }), 'preview');
   }
 
-  function onPointer(block: BlockView, axis: 'x' | 'w', event: ReactPointerEvent<HTMLButtonElement>) {
+  function onPointer(block: BlockView, axis: 'x' | 'w', event: ReactPointerEvent<HTMLElement>) {
     if (pending || restore || patchSending.current) return;
     const origin = block.layout;
     const start = event.clientX;
@@ -527,41 +533,41 @@ export function BoardWorkbench(props: BoardMountProps) {
           {restore && shown ? (
             <section className="sm-leave-restore" data-testid="sm-leave-restore" role="status">
               <p>浏览器草稿可恢复，不是经营事实权威。board {shown.board_id} · attempt {restore.attempt_id}</p>
-              <button type="button" onClick={() => { void runPatch(restore, 'preview'); setRestore(null); }}>继续编辑草稿</button>
-              <button type="button" onClick={() => {
+              <Button htmlType="button" onClick={() => { void runPatch(restore, 'preview'); setRestore(null); }}>继续编辑草稿</Button>
+              <Button htmlType="button" onClick={() => {
                 transport.discardPreview?.();
                 writeLocalDraft(shown.board_id, null); endInflight(restore.attempt_id); setRestore(null);
-              }}>放弃浏览器草稿</button>
+              }}>放弃浏览器草稿</Button>
             </section>
           ) : null}
           {confirmLeave ? (
             <section className="sm-leave-restore" data-testid="sm-leave-confirm" role="alert">
               <p>预览尚未保存。放弃预览不等于撤销已保存版本。</p>
-              <button type="button" onClick={() => setConfirmLeave(false)}>继续编辑</button>
-              <button type="button" data-testid="sm-discard-preview" onClick={() => {
+              <Button htmlType="button" onClick={() => setConfirmLeave(false)}>继续编辑</Button>
+              <Button htmlType="button" data-testid="sm-discard-preview" onClick={() => {
                 transport.discardPreview?.();
                 setPending(null); setPreview(null); setConfirmLeave(false);
                 setLayouts({}); setTitles({});
                 if (shown) writeLocalDraft(shown.board_id, null);
                 if (pending) endInflight(pending.attempt_id);
                 setMessage('已放弃预览。已保存版本未变。');
-              }}>放弃预览</button>
+              }}>放弃预览</Button>
             </section>
           ) : null}
           <div className="sm-competition-toolbar">
-            <button type="button" data-current={panel === 'endorse' ? '1' : '0'} onClick={() => setPanel('endorse')}>选择结果</button>
-            <button type="button" data-current={panel === 'confirm' ? '1' : '0'} onClick={() => setPanel('confirm')}>确认摘要</button>
-            <button type="button" data-current={panel === 'board' ? '1' : '0'} data-testid="sm-open-board" onClick={() => setPanel('board')}>编辑看板</button>
-            <button type="button" data-testid="sm-board-save" disabled={!pending || patchBusy} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</button>
-            <button type="button" data-testid="sm-board-undo" disabled={Boolean(pending || restore) || patchBusy} onClick={() => {
+            <Button htmlType="button" data-current={panel === 'endorse' ? '1' : '0'} onClick={() => setPanel('endorse')}>选择结果</Button>
+            <Button htmlType="button" data-current={panel === 'confirm' ? '1' : '0'} onClick={() => setPanel('confirm')}>确认摘要</Button>
+            <Button htmlType="button" data-current={panel === 'board' ? '1' : '0'} data-testid="sm-open-board" onClick={() => setPanel('board')}>编辑看板</Button>
+            <Button htmlType="button" data-testid="sm-board-save" disabled={!pending || patchBusy} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</Button>
+            <Button htmlType="button" data-testid="sm-board-undo" disabled={Boolean(pending || restore) || patchBusy} onClick={() => {
               if (!board || board.version < 2) { setMessage('没有可恢复的历史版本。'); return; }
               void runPatch(buildPatch({
                 intent: 'STRUCTURE',
                 cockpit_op: { op: 'undo', scope: 'board', restore_from_version: board.version - 1 },
                 idempotency_key: `undo-to-${board.version - 1}-from-${board.version}`,
               }), 'undo');
-            }}>撤销已保存</button>
-            <button type="button" disabled={!dirty || patchBusy} onClick={() => setConfirmLeave(true)}>放弃预览</button>
+            }}>撤销已保存</Button>
+            <Button htmlType="button" disabled={!dirty || patchBusy} onClick={() => setConfirmLeave(true)}>放弃预览</Button>
           </div>
           {message ? <p role="status" data-testid="sm-board-status">{message}</p> : null}
 
@@ -570,16 +576,14 @@ export function BoardWorkbench(props: BoardMountProps) {
               <p>认可对象是勾选的成功结果，不是整段聊天。空结果可查看，不能成板。</p>
               <fieldset>
                 <legend>成板模式（默认待确认）</legend>
-                <label>
-                  <input type="radio" name="layout-mode" checked={layoutMode === 'ONE_BOARD_MULTI_BLOCK'}
-                    onChange={() => setLayoutMode('ONE_BOARD_MULTI_BLOCK')} />
+                <Radio name="layout-mode" checked={layoutMode === 'ONE_BOARD_MULTI_BLOCK'}
+                    onChange={() => setLayoutMode('ONE_BOARD_MULTI_BLOCK')}>
                   一板多块
-                </label>
-                <label>
-                  <input type="radio" name="layout-mode" checked={layoutMode === 'BATCH_MULTI_BOARD'}
-                    onChange={() => setLayoutMode('BATCH_MULTI_BOARD')} />
+                </Radio>
+                <Radio name="layout-mode" checked={layoutMode === 'BATCH_MULTI_BOARD'}
+                    onChange={() => setLayoutMode('BATCH_MULTI_BOARD')}>
                   批量分板
-                </label>
+                </Radio>
                 <small>{BOARD_LAYOUT_MODE_DEFAULT.note}</small>
               </fieldset>
               <ul className="sm-endorsement-list" data-testid="sm-result-list">
@@ -587,9 +591,7 @@ export function BoardWorkbench(props: BoardMountProps) {
                   const eligible = canEndorse(result);
                   return (
                     <li key={result.result_id} data-completeness={result.completeness}>
-                      <label>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           disabled={!eligible}
                           checked={selectedIds.includes(result.result_id)}
                           onChange={event => {
@@ -597,17 +599,19 @@ export function BoardWorkbench(props: BoardMountProps) {
                               ? [...current, result.result_id]
                               : current.filter(id => id !== result.result_id));
                           }}
-                        />
+                        >
                         <span>
                           <strong>{comparisonText(result)}</strong> · {result.completeness}
                           {result.empty_reason ? ` · ${result.empty_reason}` : ''}
                           <br />query {result.query_id} · {result.resolved_condition?.metric_type ?? '—'}
                         </span>
-                      </label>
+                        </Checkbox>
                     </li>
                   );
                 })}
               </ul>
+              {resultsLoaded && !error && results.length === 0 ? <ErrorState kind="empty" title="还没有可认可的结果"
+                detail="先在原生聊天完成一次诊断，再回到这里选择结果。当前没有可成板的数据。" /> : null}
               {panel === 'confirm' && selectedResult.map(result => (
                 <article key={result.result_id} data-testid="sm-confirm-summary">
                   <h3>确认摘要 {result.result_id}</h3>
@@ -617,14 +621,14 @@ export function BoardWorkbench(props: BoardMountProps) {
                   <p>历史范围 {result.resolved_condition?.history_scope?.kind ?? '—'} · 销售范围 {result.resolved_condition?.sales_scope?.kind ?? '—'}</p>
                 </article>
               ))}
-              <button type="button" data-testid="sm-confirm-boards" onClick={event => {
+              <Button htmlType="button" data-testid="sm-confirm-boards" disabled={selectedIds.length === 0} onClick={event => {
                 event.preventDefault();
                 event.stopPropagation();
                 setPanel('confirm');
                 void confirmBoards();
               }}>
                 按认可结果成板
-              </button>
+              </Button>
             </section>
           ) : null}
 
@@ -681,7 +685,7 @@ export function BoardWorkbench(props: BoardMountProps) {
                       <h3>{block.title}</h3>
                       <p>{block.plugin} · x{layout.x}/y{layout.y}/w{layout.w}/h{layout.h}</p>
                       <RegisteredChart block={block} />
-                      <label>
+                      <div className="sm-block-controls"><label>
                         图表类型
                         <select
                           value={block.plugin}
@@ -691,10 +695,11 @@ export function BoardWorkbench(props: BoardMountProps) {
                           {PLUGINS.map(name => <option key={name} value={name}>{name}</option>)}
                         </select>
                       </label>
-                      <button type="button" className="sm-drag-handle" data-testid={`sm-drag-${block.block_id}`}
-                        onPointerDown={event => onPointer(block, 'x', event)}>拖动列</button>
-                      <button type="button" className="sm-resize-handle" data-testid={`sm-resize-${block.block_id}`}
-                        onPointerDown={event => onPointer(block, 'w', event)}>缩放宽</button>
+                      <Button htmlType="button" className="sm-drag-handle" data-testid={`sm-drag-${block.block_id}`}
+                        onPointerDown={event => onPointer(block, 'x', event)}>拖动列</Button>
+                      <Button htmlType="button" className="sm-resize-handle" data-testid={`sm-resize-${block.block_id}`}
+                        onPointerDown={event => onPointer(block, 'w', event)}>缩放宽</Button>
+                      </div>
                     </article>
                   );
                 })}
@@ -702,33 +707,33 @@ export function BoardWorkbench(props: BoardMountProps) {
               {uiBlockId ? (
                 <div className="sm-layout-controls" data-testid="sm-layout-controls">
                   {Object.entries(LAYOUT_ACTIONS).map(([action, spec]) => (
-                    <button key={action} type="button" aria-keyshortcuts={spec.shortcut}
+                    <Button key={action} htmlType="button" aria-keyshortcuts={spec.shortcut}
                       className={action === 'up' || action === 'down' ? 'sm-phone-only' : undefined}
                       onClick={() => {
                         const current = layouts[uiBlockId] ?? blocks.find(row => row.block_id === uiBlockId)?.layout;
                         if (current) void layoutCommit(uiBlockId, applyLayoutAction(current, action));
-                      }}>{spec.label}</button>
+                      }}>{spec.label}</Button>
                   ))}
                 </div>
               ) : null}
               <div className="sm-scope-chat" data-testid="sm-scope-chat">
                 <p>{scopeMode === 'block' ? '聊天范围：只改此板块' : '聊天范围：整板'} · 在途目标 {inflight ? `${inflight.board_id}/${inflight.block_id}` : '无'}</p>
                 <p>切选中不改变在途 attempt。切到整板需明确操作。</p>
-                <button type="button" data-testid="sm-scope-block" onClick={() => uiBlockId && selectBlock(uiBlockId)}>只改此板块</button>
-                <button type="button" data-testid="sm-scope-board" onClick={selectWholeBoard}>切换为整板</button>
+                <Button htmlType="button" data-testid="sm-scope-block" onClick={() => uiBlockId && selectBlock(uiBlockId)}>只改此板块</Button>
+                <Button htmlType="button" data-testid="sm-scope-board" onClick={selectWholeBoard}>切换为整板</Button>
                 <fieldset>
                   <legend>补丁意图</legend>
-                  <label><input type="radio" name="intent" checked={intent === 'STYLE_ONLY'} onChange={() => setIntent('STYLE_ONLY')} /> STYLE_ONLY（不查询）</label>
-                  <label><input type="radio" name="intent" checked={intent === 'FILTER_CHANGE'} onChange={() => setIntent('FILTER_CHANGE')} /> FILTER_CHANGE（新 run，当前未接通）</label>
-                  <label><input type="radio" name="intent" checked={intent === 'STRUCTURE'} onChange={() => setIntent('STRUCTURE')} /> STRUCTURE</label>
+                  <Radio name="intent" checked={intent === 'STYLE_ONLY'} onChange={() => setIntent('STYLE_ONLY')} >STYLE_ONLY（不查询）</Radio>
+                  <Radio name="intent" checked={intent === 'FILTER_CHANGE'} onChange={() => setIntent('FILTER_CHANGE')} >FILTER_CHANGE（新 run，当前未接通）</Radio>
+                  <Radio name="intent" checked={intent === 'STRUCTURE'} onChange={() => setIntent('STRUCTURE')} >STRUCTURE</Radio>
                 </fieldset>
-                <textarea
+                <TextArea
                   aria-label={scopeMode === 'block' ? '只改此板块' : '整板编辑'}
                   value={instruction}
                   onChange={event => setInstruction(event.target.value)}
                   placeholder="例：这一块只看直播，其他不动"
                 />
-                <button type="button" data-testid="sm-scope-send" onClick={submitChat}>发送局部编辑</button>
+                <Button htmlType="button" data-testid="sm-scope-send" onClick={submitChat}>发送局部编辑</Button>
               </div>
             </section>
           ) : null}

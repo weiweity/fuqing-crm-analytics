@@ -31,6 +31,8 @@ function installDom() {
   }
   const previous = { window: globalThis.window, document: globalThis.document, sessionStorage: globalThis.sessionStorage,
     act: globalThis.IS_REACT_ACT_ENVIRONMENT };
+  previous.browserGlobals = new Map(['getComputedStyle', 'HTMLElement', 'Element', 'SVGElement', 'ShadowRoot'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const key of previous.browserGlobals.keys()) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: typeof dom.window[key] === 'function' && key === 'getComputedStyle' ? dom.window[key].bind(dom.window) : dom.window[key] });
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
   globalThis.sessionStorage = dom.window.sessionStorage;
@@ -39,6 +41,7 @@ function installDom() {
 }
 
 function restoreDom(previous) {
+  for (const [key, descriptor] of previous.browserGlobals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
   if (previous.window === undefined) delete globalThis.window; else globalThis.window = previous.window;
   if (previous.document === undefined) delete globalThis.document; else globalThis.document = previous.document;
   if (previous.sessionStorage === undefined) delete globalThis.sessionStorage; else globalThis.sessionStorage = previous.sessionStorage;

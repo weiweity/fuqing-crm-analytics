@@ -6,6 +6,8 @@
 
 > **当前交付（2026-09-10）**：competition 集成 #112 和 7 项审查修复 #114 已合入 main `788b5b1`；PR 与合并后的主线 CI 均通过。独立合成浏览器已验证连续成板、失败重试、保存布局重开及行动草稿 v2，见 [修复 QA](./docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。当前按 [产品验收与发布准备账本](./docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 推进；T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL，整产品仍 PARTIAL。约千万行、10 人使用仍是规划输入，公网尚未部署。
 
+> **候选追加**：#115 数值与取消代码已提交；`e63df18` CI SUCCESS。独立视觉增量已验证原生浅/深色同步、实际 AntD 控件和窄屏成板重开，完整 B0 检查通过；尚未切换 4325 用户候选，完整验收仍开放。见[视觉结果与边界](./docs/hackathon/PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)。
+
 ---
 
 ## 项目简介

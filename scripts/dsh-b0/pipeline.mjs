@@ -65,6 +65,10 @@ if (mode === '--prepare') {
   run('corepack', ['pnpm', 'rebuild', 'esbuild', 'fs-ext', 'koffi', 'node-pty'], upstream);
   run('corepack', ['pnpm', 'run', 'build:official'], upstream);
   run('corepack', ['pnpm', 'install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org'], buildTools);
+  // This closure now includes the browser's AntD implementation. Audit it
+  // during explicit online preparation; offline --check still installs and
+  // fetches nothing. The archived Vue dependency job covers a different lock.
+  run('corepack', ['pnpm', 'audit', '--prod', '--audit-level=high', '--registry=https://registry.npmjs.org'], buildTools);
   await verifySource();
   console.log('B0 pinned preparation complete; run --check next. Python packages are never installed by this script.');
 } else {
@@ -139,7 +143,11 @@ print('B0 exact Python closure verified')
   for (const item of ['package.json', 'toolchain.json', 'toolchain.mjs', 'build.mjs', 'pack-skills.mjs', 'skill-package.lock.json', 'query-skill-package.lock.json', 'first-purchase-query-skill-package.lock.json', 'skills', 'src', 'test']) {
     await cp(join(plugin, item), join(clean, item), { recursive: true, errorOnExist: true, force: false, dereference: true });
   }
-  run(process.execPath, [join(clean, 'build.mjs'), upstream]);
+  await mkdir(join(clean, 'build-tools'));
+  for (const item of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches']) {
+    await cp(join(buildTools, item), join(clean, 'build-tools', item), { recursive: true });
+  }
+  run(process.execPath, [join(clean, 'build.mjs'), upstream, buildTools]);
   run(process.execPath, ['--test', ...builtTests.map(file => join(clean, 'test', file))], clean, { B0_BUILD_UPSTREAM: upstream });
   const hashes = {};
   for (const item of ['index.js', 'tool.js', 'skills.js', 'client.js', 'views/saved-analysis-view.js', 'views/cockpit-view.js']) {

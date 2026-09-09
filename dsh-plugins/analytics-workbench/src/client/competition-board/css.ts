@@ -74,7 +74,14 @@ export const competitionBoardCss = `
 .sm-drag-handle, .sm-resize-handle {
   min-height: var(--sm-touch); min-width: var(--sm-touch);
 }
-.sm-resize-handle { position: absolute; right: 4px; bottom: 4px; }
+.sm-block-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sm-block-controls label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sm-block-controls select {
+  min-height: var(--sm-touch); padding: 0 12px; border-radius: 12px;
+  border: 1px solid var(--sm-line-strong); background: var(--sm-bg-top); color: var(--sm-ink);
+  font: 14px/22px var(--sm-font-body);
+}
+.sm-competition-board .ant-radio-wrapper, .sm-competition-actions .ant-radio-wrapper { min-height: var(--sm-touch); align-items: center; }
 .sm-phone-only { display: none; }
 @media (max-width: 1024px) {
   .sm-competition-board, .sm-competition-actions { padding: 0 12px 20px; }
@@ -85,7 +92,7 @@ export const competitionBoardCss = `
 }
 @media (max-width: 390px) {
   .sm-phone-only { display: flex; }
-  .sm-drag-handle, .sm-resize-handle { display: none; }
+  .sm-competition-board .sm-drag-handle, .sm-competition-board .sm-resize-handle { display: none; }
   .sm-competition-board h2 { font-size: 20px; line-height: 28px; }
 }
 @media (prefers-reduced-motion: reduce) {

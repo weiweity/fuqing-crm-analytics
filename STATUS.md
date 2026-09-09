@@ -7,10 +7,11 @@
 | 项 | 状态 |
 |---|---|
 | VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
-| 当前分支 | `codex/competition-product-readiness`，#115；数值与取消代码提交 `d9c9162` 已推送，独立开发树保留同提交；[七阶段账本](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| 当前候选 | `codex/competition-product-readiness`，#115；数值与取消 `d9c9162`、CI 重试修复 `e63df18` 已推送；[七阶段账本](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| 视觉增量 | 独立 `competition-visual-readiness` 补原生主题同步与真实 AntD；浅/深色刷新、成板和窄屏局部 QA 已验证，尚未切换 4325；[实际结果与边界](docs/hackathon/PRODUCT-VISUAL-INTEGRATION-2026-09-10.md) |
 | main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
 | 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
-| 验证 | #115 旧 `8c2e676` CI SUCCESS，新 `d9c9162` CI 尚在运行；数值接线完整合成后端 2320 passed / 77 skipped，B0 全流程 PASS；[源码绑定证据](docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json) |
+| 验证 | #115 `d9c9162` 与 `e63df18` CI SUCCESS；后者为 [34410948184](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34410948184)。数值接线完整合成后端 2320 passed / 77 skipped，B0 全流程 PASS；视觉增量按自己的结果判断；[源码绑定证据](docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json) |
 | T13 | GSV 两条真实 DeepSeek 评测 PASS：ALL 410/305、CH_RETAIL 400/300，结果成板刷新重开一致；完整 T13 仍 PARTIAL，见[本轮交付](docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md) |
 | T15 / T16 / T17 | 用户本人 UAT 待执行；现有合成单用户性能基线已测，正式容量范围/阈值待确认；原生能力仍 PARTIAL |
 | 产品边界 | B0、比赛合成 HTTP、旧 CRM 分开；真实人群/完整诊断、完整视觉及旧 MCP 开放项仍保留 |
@@ -21,7 +22,7 @@
 
 ## 验证与历史入口
 
-本地及 CI 按 [验证入口](docs/operating/verification.md) 的共同路径矩阵执行；skip 不算运行通过。固定 DSH、Node/Python、依赖和锁文件未升级。
+本地及 CI 按 [验证入口](docs/operating/verification.md) 的共同路径矩阵执行；skip 不算运行通过。固定 DSH、Node/Python、React 和 TypeScript 未升级；视觉增量新增 AntD 锁及声明补丁，并修复构建依赖链的 js-yaml。
 
 #114 最终候选 CI `34385964860` 与合并后 main CI 均已核验，见 [维修 QA](docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。本轮独立证据与开放项以 [产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 为准。
 

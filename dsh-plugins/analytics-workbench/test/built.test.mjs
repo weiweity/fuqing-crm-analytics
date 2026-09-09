@@ -29,6 +29,7 @@ test('built browser factory requires only platform modules and registers shared-
   const stores = await import(pathToFileURL(join(upstream, 'packages/client/store/lib/index.js')).href);
   const seed = new Map([
     ['react', webRequire('react')],
+    ['react-dom', webRequire('react-dom')],
     ['react/jsx-runtime', webRequire('react/jsx-runtime')],
     ['@deepseek-ai/dsh-client-store', stores],
   ]);
@@ -51,6 +52,7 @@ test('built browser factory requires only platform modules and registers shared-
   let notify;
   client.apply({
     effect: factory => { effects.push(factory()); },
+    theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => snapshot, subscribe: listener => { notify = listener; return () => { notify = undefined; }; } },
       open: id => { opened.push(id); snapshot = { ...snapshot, current: id }; },

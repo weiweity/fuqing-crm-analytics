@@ -1,3 +1,8 @@
+import Radio from 'antd/es/radio';
+import Checkbox from 'antd/es/checkbox';
+import Input from 'antd/es/input';
+import TextArea from 'antd/es/input/TextArea';
+import Button from 'antd/es/button';
 import { useEffect, useRef, useState } from 'react';
 import {
   ConditionChips, ErrorState, EvidenceBlock, LayoutSlot, StatusBanner, ThemeProvider,
@@ -141,25 +146,21 @@ export function ActionsWorkbench(props: ActionsMountProps) {
             <fieldset>
               <legend>未回购规则（可多选，合并去重）</legend>
               {NON_REPURCHASE.map(kind => (
-                <label key={kind}>
-                  <input
-                    type="checkbox"
+                <Checkbox key={kind}
                     checked={rules.includes(kind)}
                     onChange={event => setRules(current => event.target.checked
                       ? [...current, kind]
                       : current.filter(row => row !== kind))}
-                  />
-                  {kind}
-                </label>
+                  >{kind}</Checkbox>
               ))}
             </fieldset>
             <fieldset>
               <legend>组合</legend>
-              <label><input type="radio" name="combine" checked={combine === 'AND'} onChange={() => setCombine('AND')} /> AND</label>
-              <label><input type="radio" name="combine" checked={combine === 'OR'} onChange={() => setCombine('OR')} /> OR</label>
+              <Radio name="combine" checked={combine === 'AND'} onChange={() => setCombine('AND')} >AND</Radio>
+              <Radio name="combine" checked={combine === 'OR'} onChange={() => setCombine('OR')} >OR</Radio>
             </fieldset>
             <p>F 粒度 {cohort?.rules?.[0]?.f_grain_status ?? 'UNKNOWN'}，禁止填写 f_threshold。</p>
-            <button type="button" data-testid="sm-preview-candidates" onClick={() => void preview()}>预览候选人数</button>
+            <Button htmlType="button" data-testid="sm-preview-candidates" onClick={() => void preview()}>预览候选人数</Button>
             {pack?.partial ? (
               <ErrorState kind="partial" title="部分规则失败"
                 detail={`${pack.partial.note} 拒绝 ${pack.partial.rejected?.rule_id}，不得把失败规则人数加进成功集合。`} />
@@ -196,30 +197,30 @@ export function ActionsWorkbench(props: ActionsMountProps) {
                     detail="规则或来源变更后草稿过期，需重新计算候选并复核。文案变更不会过期。" />
                 ) : null}
                 <label>对照设计
-                  <textarea value={copy.control_design} onChange={event => setCopy(current => ({ ...current, control_design: event.target.value }))} />
+                  <TextArea value={copy.control_design} onChange={event => setCopy(current => ({ ...current, control_design: event.target.value }))} />
                 </label>
                 <label>停止条件
-                  <textarea value={copy.stop_condition} onChange={event => setCopy(current => ({ ...current, stop_condition: event.target.value }))} />
+                  <TextArea value={copy.stop_condition} onChange={event => setCopy(current => ({ ...current, stop_condition: event.target.value }))} />
                 </label>
                 <label>复盘日期
-                  <input type="text" value={reviewBy} onChange={event => setReviewBy(event.target.value)} />
+                  <Input value={reviewBy} onChange={event => setReviewBy(event.target.value)} />
                 </label>
                 <div className="sm-competition-toolbar">
-                  <button type="button" data-testid="sm-save-copy" onClick={() => void save('copy')}>保存文案（不过期）</button>
-                  <button type="button" data-testid="sm-mark-rule-change" onClick={() => void save('rule')}>标记规则已变</button>
-                  <button type="button" data-testid="sm-submit-review" onClick={() => void save('review')}>提交复核</button>
-                  <button type="button" disabled data-testid="sm-auto-send">不自动发送</button>
+                  <Button htmlType="button" data-testid="sm-save-copy" onClick={() => void save('copy')}>保存文案（不过期）</Button>
+                  <Button htmlType="button" data-testid="sm-mark-rule-change" onClick={() => void save('rule')}>标记规则已变</Button>
+                  <Button htmlType="button" data-testid="sm-submit-review" onClick={() => void save('review')}>提交复核</Button>
+                  <Button htmlType="button" disabled data-testid="sm-auto-send">不自动发送</Button>
                 </div>
               </>
             ) : (
               <>
                 <p>尚无草稿。先预览候选，再填写并保存。</p>
                 {candidates ? <>
-                  <label>对照设计<textarea value={copy.control_design}
+                  <label>对照设计<TextArea value={copy.control_design}
                     onChange={event => setCopy(current => ({ ...current, control_design: event.target.value }))} /></label>
-                  <label>停止条件<textarea value={copy.stop_condition}
+                  <label>停止条件<TextArea value={copy.stop_condition}
                     onChange={event => setCopy(current => ({ ...current, stop_condition: event.target.value }))} /></label>
-                  <button type="button" data-testid="sm-create-draft" onClick={() => void save('create')}>保存行动草稿</button>
+                  <Button htmlType="button" data-testid="sm-create-draft" onClick={() => void save('create')}>保存行动草稿</Button>
                 </> : null}
               </>
             )}

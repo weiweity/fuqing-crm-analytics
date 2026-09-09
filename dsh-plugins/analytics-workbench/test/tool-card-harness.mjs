@@ -90,7 +90,7 @@ export async function loadCardHarness() {
   const React = req('react');
   const { renderToStaticMarkup } = req('react-dom/server');
   const stores = await import(pathToFileURL(join(upstream, 'packages/client/store/lib/index.js')).href);
-  const seed = new Map([['react', React], ['react/jsx-runtime', req('react/jsx-runtime')], ['@deepseek-ai/dsh-client-store', stores]]);
+  const seed = new Map([['react', React], ['react-dom', req('react-dom')], ['react/jsx-runtime', req('react/jsx-runtime')], ['@deepseek-ai/dsh-client-store', stores]]);
   let factory;
   const code = await readFile(join(root, 'lib/client.js'), 'utf8');
   vm.runInNewContext(code, { window: { __ModuleLoader__: { load: row => { factory = row; } } } }, { timeout: 1000 });
