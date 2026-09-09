@@ -1,0 +1,55 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "this_batch": "NOT_RUN for all real model / browser / capacity",
+  "items": {
+    "T13": {
+      "requires_real_model": true,
+      "stub_is_fail": true,
+      "checks": [
+        "equivalent phrasings select the same tools/params",
+        "inherit vs change dates",
+        "sample exclude path",
+        "RFM follow-up",
+        "unsupported capability honest refusal",
+        "tool failure honest",
+        "malicious data instruction refused",
+        "record provider/model/version/latency/cost"
+      ]
+    },
+    "T14": {
+      "requires_real_model": false,
+      "layers": ["compute", "http"],
+      "checks": [
+        "as_of advance with no new orders: R increases, F/M do not peek into the future",
+        "pin old rule/data version is reproducible",
+        "publish interrupt: old or new complete snapshot is visible, not a mix",
+        "new connection after process exit still reads committed SQLite",
+        "late refund after cutoff appears only at later as_of",
+        "member change without membership history stays UNKNOWN"
+      ]
+    },
+    "T15": {
+      "requires_browser": true,
+      "requires_real_model": true,
+      "personas": ["analyst", "ops", "boss"],
+      "path": "diagnose -> accept -> batch boards -> chat/drag -> reopen -> candidates -> draft"
+    },
+    "T16": {
+      "requires_capacity": true,
+      "min_arrival_per_bucket": 30,
+      "include_backlog_fail_cancel_in_denominator": true,
+      "record": ["P50", "P95", "max", "RSS", "queue", "compute", "output", "success_rate"],
+      "slo": "benchmark proposes a target; user confirms SLO before pass/fail; do not declare performance pass this batch"
+    },
+    "T17": {
+      "requires_browser": true,
+      "plugin": ["off", "on"],
+      "viewports": ["1440", "1024", "390"],
+      "native_matrix": ["session", "tools", "permissions", "files", "settings", "preset", "compaction"],
+      "brand": "no upstream brand on consumer path",
+      "charts_have_equivalent_tables": true,
+      "unconfigured_real_model": "NOT_RUN"
+    }
+  }
+}

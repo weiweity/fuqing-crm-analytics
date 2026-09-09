@@ -148,3 +148,24 @@ other = get_other_product_assets(store_id="store_001", period="2026-06")
 **L4.x 候选规则**（Sprint 172 评估）：
 - **codegraph 实证**：写业务规格前必 `codegraph_search` + `git grep`，不脑补业务口径
 - **防串台字段前缀分离**：多维度交叉业务输出字段必须带 sheet/dimension 专属前缀
+
+## 比赛主线 A3：只读 HTTP 治理（2026-09-09）
+
+旧 CRM 看板 HTTP 的认证、错误体、只读 POST 准入和结果引用由本层绑定，不改 A2 计算、不改 A1 合同。
+
+| 项 | 行为 |
+|---|---|
+| 认证 | `/api/v1/audience/*` 后端再校验 Bearer / `request.state.username`。缺令牌 401 `UNAUTHENTICATED`，猜别人的 `result_id` 403 `FORBIDDEN`。main.py 外层 401/429 仍是旧 `{detail}`，接线见 A3 DELIVERY `integration_requests`。 |
+| 错误 | 本层 401/403/422/503 使用 C0 `CompetitionErrorResponse`（`code/message/param/retryable/retry_after/request_id/doc_ref/http_status`）。429 辅助函数已提供，待 main.py 限流中间件改调。 |
+| 只读 POST | `query_router.READ_ONLY_POST_ENDPOINTS` 仅：`POST /api/v1/audience/summary`、`POST /api/v1/ad-hoc/two-year-overview`、`POST /api/v1/ad-hoc/new-old-customer`（及历史别名 `/api/v1/two-year-overview`、`/api/v1/new-old-customer`）。其它 POST 不进 read pool。 |
+| period | `GET/POST /audience/summary` 把 `period` 原样传给 `calculate_audience_summary(period=)`，不再先折成 start/end。`period=WTD` 的 cutoff 走 PeriodBuilder 周一-1。 |
+| metric_type | 只接受 `GSV`。`GMV` 或缺省被改写为成功 GSV 视为失败 → 422。`/audience/table` 默认改为 GSV。 |
+| product_ids | summary GET query / POST body 透传 service。Capabilities `diag.product` 标 PARTIAL（不是 UNSUPPORTED）。 |
+| member_only | `/audience/table` 暴露并传 `get_audience_table`。table 的 `compare_*` 未实现 → 422。 |
+| exclude_low_price | `GET /sampling/roi?exclude_low_price=true` → 422，不调用 service。 |
+| 结果/分页 | summary 响应含 `result_ref` + `integrity.checksum`；`GET /audience/results/{result_id}` 按当前 owner 再鉴权并分页。完整页 `complete=true` 不得留下未读行。 |
+| 连接 | read 获取最多等 5s，饱和 503 `STATE_UNAVAILABLE` 且 retryable。取消等待 worker 结束后才归还**本请求**连接，不 `close_all`。请求内 `ThreadSafeConnection.close()` 对 pooled 连接是 no-op。 |
+| 能力目录 | 活映射：`GET /api/v1/audience/capabilities`（actor 过滤 + 后端仍鉴权）。官方 `GET /api/v1/analytics/catalog` 仍需总控接线。 |
+| 旧 MCP | `_run_cli` 仍截断 stdout/stderr（既有泄漏防护）。截断结果在 `tools/call` 上 `isError=true` + `completeness=FAILED`，不得冒充完整成功。出站 JSON 禁止按字节切开。stdio 仍串行；CLI 有 300s 上限。优先走 HTTP。 |
+
+正负例（轻量，不启 8000/5173/4327）：`backend/tests/test_competition_api.py`。预留验证端口 18081。

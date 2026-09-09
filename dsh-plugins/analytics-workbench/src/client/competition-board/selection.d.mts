@@ -1,0 +1,10 @@
+export type EditScope = { board_id: string; block_id: string | null; base_version: number; attempt_id?: string };
+export function setUiSelection(scope: EditScope | null): void;
+export function beginInflight(scope: EditScope & { attempt_id: string }): string;
+export function endInflight(attemptId: string): void;
+export function getInflight(attemptId?: string): EditScope | null;
+export function getUiSelection(): EditScope | null;
+export function getPatchTarget(): EditScope | null;
+export function subscribeSelection(listener: (state: { inflight: EditScope | null; ui: EditScope | null; target: EditScope | null }) => void): () => void;
+export function disposeSelectionUi(): void;
+export function resetInflightForTests(): void;

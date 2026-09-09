@@ -1,11 +1,13 @@
 /** Trusted static family and registered session list. Not a plugin registry. */
 export const QUERY_FAMILY = 'channel_followup';
 export const FIRST_PURCHASE_FAMILY = 'first_purchase';
+export const COMPETITION_FAMILY = 'competition_growth';
 const sessionId = value => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(value);
 
 export function runtimeFamily() {
   if (process.env.B0_RUNTIME_FAMILY === QUERY_FAMILY) return QUERY_FAMILY;
   if (process.env.B0_RUNTIME_FAMILY === FIRST_PURCHASE_FAMILY) return FIRST_PURCHASE_FAMILY;
+  if (process.env.B0_RUNTIME_FAMILY === COMPETITION_FAMILY) return COMPETITION_FAMILY;
   return 'b0';
 }
 

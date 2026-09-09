@@ -297,6 +297,19 @@ class SavedAnalysisRecord:
     finite_mock: bool
     http_api: str
 
+    def binding(self) -> dict[str, Any]:
+        """Shared result pointer. Callers must not copy facts per board."""
+        snapshot = self.snapshot
+        return {
+            "analysis_id": self.analysis_id,
+            "version": self.version,
+            "run_id": snapshot["run_id"],
+            "created_from_run_id": self.created_from_run_id,
+            "evidence_digest": snapshot["evidence_digest"],
+            "filter_hash": self.filter_hash,
+            "data_version": self.data_version,
+        }
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
@@ -677,6 +690,20 @@ class SavedAnalysisStore:
             "snapshot_run_id": snapshot["run_id"],
             "snapshot_rewritten": False,
         }
+
+    def find_latest_for_run(self, principal: AnalyticsPrincipal, run_id: str) -> SavedAnalysisRecord | None:
+        """Owner-scoped SNAPSHOT bound to a SUCCEEDED run. None if not saved yet."""
+        self._require(principal, CAPABILITY_READ)
+        run_id = _opaque(run_id, label="run_id")
+        with self._connection(readonly=True) as con:
+            row = con.execute(
+                """SELECT * FROM analyses WHERE owner=? AND created_from_run_id=?
+                   ORDER BY created_ms DESC, version DESC, analysis_id DESC LIMIT 1""",
+                (principal.actor_id, run_id),
+            ).fetchone()
+            if row is None:
+                return None
+            return self._record(con, row)
 
     def get(
         self, principal: AnalyticsPrincipal, analysis_id: str, version: int | None = None,

@@ -40,6 +40,16 @@ export const FAMILIES = Object.freeze({
     provider: 'analytics-first-purchase-approved-bundle',
     lockFile: 'first-purchase-query-skill-package.lock.json',
   }),
+  competition_growth: Object.freeze({
+    skillName: 'competition-growth',
+    resourceTool: 'competition_growth_skill_resource',
+    schemaVersion: 'competition-growth-skill-package/v1',
+    versionPattern: /^cg-v[1-9][0-9]*$/,
+    scope: 'COMPETITION_SYNTHETIC_ONLY',
+    resourceSchema: 'competition-growth-skill-resource/v1',
+    provider: 'analytics-competition-approved-bundle',
+    lockFile: 'src/competition-agent/skill-package.lock.json',
+  }),
 });
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 const resourcePath = /^(?:SKILL\.md|(?:references|assets)\/[a-z0-9][a-z0-9-]*\.(?:md|json))$/;

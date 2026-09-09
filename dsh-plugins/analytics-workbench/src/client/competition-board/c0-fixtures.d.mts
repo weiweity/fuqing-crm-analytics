@@ -1,0 +1,20 @@
+export const C0_CONTRACT_HASH: string;
+export const C0_SCHEMA: string;
+export const FIXTURE_ROOT: string;
+export const BOARD_SUCCESS: {
+  batch: Record<string, unknown>;
+  board: Record<string, unknown>;
+  patch: Record<string, unknown>;
+};
+export const BOARD_EMPTY: Record<string, unknown>;
+export const BOARD_PARTIAL: Record<string, unknown>;
+export const BOARD_CONFLICT: { error: Record<string, unknown> };
+export const BOARD_FORBIDDEN: { error: Record<string, unknown> };
+export const BOARD_PARAM_ERROR: { expected: Record<string, unknown>; payload: Record<string, unknown> };
+export const RESULT_SUCCESS: any;
+export const RESULT_EMPTY: any;
+export const RESULT_FORBIDDEN: { error: Record<string, unknown> };
+export const RESULT_PARAM_ERROR: { expected: Record<string, unknown>; payload: Record<string, unknown> };
+export const DEFAULT_PRINCIPAL: { actor_id: string; permission_scope: string };
+export const BOARD_LAYOUT_MODE_DEFAULT: { key: string; pending_confirmation: boolean; value: string; note: string };
+export const REGISTERED_PLUGINS: readonly string[];

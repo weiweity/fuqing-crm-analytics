@@ -415,7 +415,7 @@ def tmp_duckdb_with_synthetic_orders(synthetic_duckdb_factory):
 
 
 @pytest.fixture
-def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders):
+def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders, monkeypatch):
     """Patch service and ad-hoc read-only paths to use the synthetic DuckDB."""
     from contextlib import contextmanager
     import os
@@ -437,6 +437,10 @@ def monkeypatch_synthetic_ad_hoc_connection(tmp_duckdb_with_synthetic_orders):
 
         def __getattr__(self, name):
             return getattr(self._conn, name)
+
+    from backend.services import dual_conn
+    monkeypatch.setattr(dual_conn, "get_read_connection", lambda: tmp_duckdb_with_synthetic_orders)
+    monkeypatch.setattr(dual_conn, "return_read_connection", lambda conn: None)
 
     original_conn = connection._conn
     original_get_connection = connection.get_connection

@@ -53,8 +53,19 @@ function isolatedEnv(runtime, home) {
   const kept = Object.fromEntries(Object.entries(process.env).filter(([key]) => (
     key === 'HOME' || key === 'LANG' || key === 'TZ'
   ) && !API_KEY_ENV.includes(key)));
+  const competition = {};
+  const httpBase = process.env.COMPETITION_HTTP_BASE;
+  const httpToken = process.env.COMPETITION_HTTP_TOKEN;
+  if (httpBase && httpToken) {
+    if (/:(4327|8000|5173)(\/|$)/.test(httpBase)) {
+      throw new Error('COMPETITION_HTTP_BASE must not target 4327/8000/5173');
+    }
+    competition.COMPETITION_HTTP_BASE = httpBase;
+    competition.COMPETITION_HTTP_TOKEN = httpToken;
+  }
   return {
     ...kept,
+    ...competition,
     PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
     LANG: kept.LANG ?? 'en_US.UTF-8',
     TZ: kept.TZ ?? 'Asia/Shanghai',

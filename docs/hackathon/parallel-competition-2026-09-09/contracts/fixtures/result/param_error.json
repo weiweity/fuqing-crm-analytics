@@ -1,0 +1,11 @@
+{
+  "expected": {
+    "code": "INVALID_REQUEST",
+    "http_status": 422,
+    "param": "schema_version"
+  },
+  "payload": {
+    "completeness": "COMPLETE",
+    "schema_version": "analytics-run-b0/v1"
+  }
+}

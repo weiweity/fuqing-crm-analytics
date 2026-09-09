@@ -54,7 +54,10 @@ def commands(plan: dict, root: Path = ROOT, only: str | None = None) -> list[tup
         for task in ('build', 'test:unit'):
             add('frontend', ['npm', 'run', task], root / 'frontend-vue3')
     if plan['b0']:
-        add('b0', ['node', 'scripts/dsh-b0/pipeline.mjs', '--check', '--python', python])
+        b0_python = os.environ.get('FQ_B0_PYTHON', python)
+        if not Path(b0_python).is_absolute() or not Path(b0_python).is_file():
+            raise ValueError('FQ_B0_PYTHON must name an existing absolute Python executable')
+        add('b0', ['node', 'scripts/dsh-b0/pipeline.mjs', '--check', '--python', b0_python])
     return steps
 
 

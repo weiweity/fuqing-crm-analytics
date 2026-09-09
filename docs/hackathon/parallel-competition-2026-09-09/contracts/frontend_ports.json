@@ -1,0 +1,65 @@
+[
+  {
+    "name": "theme_tokens_export",
+    "notes": "A4 owns global styles/brand. A6 consumes tokens; does not rewrite DESIGN.md.",
+    "owner": "A4",
+    "port_id": "a4.theme_tokens",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "export function competitionThemeTokens(): Readonly<Record<string, string>>",
+    "support_status": "NOT_CONNECTED"
+  },
+  {
+    "name": "shell_slots",
+    "notes": "Native DSH slots remain reachable. Competition UI mounts inside these slots.",
+    "owner": "A4",
+    "port_id": "a4.shell_slots",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "slots: ask | analysis | cockpit | actions",
+    "support_status": "NOT_CONNECTED"
+  },
+  {
+    "name": "mount_dispose",
+    "notes": "A6 board/actions UI. Dispose must drop listeners; in-flight board_id is not stored only in React state.",
+    "owner": "A6",
+    "port_id": "a6.mount",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "mount(el, props): { dispose(): void }",
+    "support_status": "NOT_CONNECTED"
+  },
+  {
+    "name": "selection_scope",
+    "notes": "UI selection cannot rewrite FastAPI in-flight patch target.",
+    "owner": "A6",
+    "port_id": "a6.selection",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "{ board_id: OpaqueId, block_id: OpaqueId, base_version: number }",
+    "support_status": "NOT_CONNECTED"
+  },
+  {
+    "name": "selected_edit_event",
+    "notes": "A7 emits controlled patch requests. Illegal paths/scripts are contract failures.",
+    "owner": "A7",
+    "port_id": "a7.selected_edit",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "event: { board_id, block_id, base_version, intent: PatchIntent }",
+    "support_status": "NOT_CONNECTED"
+  },
+  {
+    "name": "board_transport",
+    "notes": "HTTP registration stays with Grok. Transport must send C0 BoardSpec/Patch types.",
+    "owner": "A5",
+    "port_id": "a5.transport",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "preview/apply/batch(principal, payload, If-Match, Idempotency-Key)",
+    "support_status": "NOT_CONNECTED"
+  },
+  {
+    "name": "audience_transport",
+    "notes": "customer_key stays inside permission_scope. No cross-brand identity join as access.",
+    "owner": "A8",
+    "port_id": "a8.transport",
+    "schema_version": "competition-frontend-ports/v1",
+    "signature": "previewCandidates/saveDraft(principal, payload)",
+    "support_status": "NOT_CONNECTED"
+  }
+]

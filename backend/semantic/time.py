@@ -16,6 +16,7 @@ class DateRange:
     start: str   # YYYY-MM-DD
     end: str     # YYYY-MM-DD
     cutoff: str  # YYYY-MM-DD（新老客判定边界 = start - 1天）
+    empty: bool = False  # T+1 月初等：有 start 但无可用日，禁止回落到上月或未来完整月
 
     @property
     def start_dt(self) -> str:
@@ -33,6 +34,70 @@ def shift_year_clamped(value: date, years: int = 1) -> date:
     target_year = value.year - years
     target_day = min(value.day, monthrange(target_year, value.month)[1])
     return date(target_year, value.month, target_day)
+
+
+def analysis_cutoff(start: date | str) -> date:
+    """C0 新老/历史边界：分析窗 start 的前一个日历日，不是月初前一天。"""
+    start_dt = start if isinstance(start, date) else datetime.strptime(start[:10], "%Y-%m-%d").date()
+    return start_dt - timedelta(days=1)
+
+
+def tplus1_yesterday(today: Optional[date] = None) -> date:
+    """T+1 数据截止日：不含 today。"""
+    return (today or date.today()) - timedelta(days=1)
+
+
+def current_month_available(today: Optional[date] = None) -> bool:
+    """月初 T+1 时昨天仍属上月，本月尚无可用数据。"""
+    today = today or date.today()
+    yesterday = tplus1_yesterday(today)
+    return yesterday >= date(today.year, today.month, 1)
+
+
+def _as_date(value: date | str) -> date:
+    if isinstance(value, date):
+        return value
+    return datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+
+
+def window_has_no_current_month_data(
+    start: date | str,
+    end: date | str | None = None,
+    today: Optional[date] = None,
+) -> bool:
+    """T+1 下本月尚无数据，且分析窗落在该未成熟月（含未来完整月）。"""
+    del end  # 空态由 start 是否落入未成熟月决定；end 仅作调用方对称参数。
+    today = today or date.today()
+    if current_month_available(today):
+        return False
+    month_start = date(today.year, today.month, 1)
+    return _as_date(start) >= month_start
+
+
+def resolve_comparison_range(
+    mode: str,
+    start_date: str,
+    end_date: str,
+    compare_start_date: Optional[str] = None,
+    compare_end_date: Optional[str] = None,
+) -> DateRange:
+    """按 C0 comparison_mode 解析对比窗；cutoff = 对比 start - 1。"""
+    normalized = (mode or "YOY_SAME_PERIOD").upper()
+    if normalized in {"YOY_SAME_PERIOD", "YOY"}:
+        return PeriodBuilder.yoy(start_date, end_date)
+    if normalized == "LAST_WEEK_SAME_WEEKDAY":
+        return PeriodBuilder.last_week_same_weekday(start_date, end_date)
+    if normalized == "CUSTOM_DUAL_WINDOW":
+        if not compare_start_date or not compare_end_date:
+            raise ValueError("CUSTOM_DUAL_WINDOW requires compare_start_date and compare_end_date")
+        if compare_start_date > compare_end_date:
+            raise ValueError("compare period start_date must be <= end_date")
+        return DateRange(
+            start=compare_start_date,
+            end=compare_end_date,
+            cutoff=analysis_cutoff(compare_start_date).strftime("%Y-%m-%d"),
+        )
+    raise ValueError(f"unsupported comparison_mode: {mode}")
 
 
 class PeriodBuilder:
@@ -95,9 +160,29 @@ class PeriodBuilder:
         """
         构造 MTD 三周期（当年 / 去年 / 前年）
         截止昨天（t-1），不含当天。
+        T+1 月初昨天仍属上月时返回本月空窗（start=月末月初，end=start，empty=True），
+        不得回落到完整上月，也不得造未来完整月。
         """
         today = today or date.today()
         yesterday = today - timedelta(days=1)
+        month_start = date(today.year, today.month, 1)
+        if yesterday < month_start:
+            def _empty_month(year: int, month: int) -> DateRange:
+                start = date(year, month, 1)
+                cutoff = start - timedelta(days=1)
+                return DateRange(
+                    start=start.strftime("%Y-%m-%d"),
+                    end=start.strftime("%Y-%m-%d"),
+                    cutoff=cutoff.strftime("%Y-%m-%d"),
+                    empty=True,
+                )
+
+            return {
+                "current": _empty_month(today.year, today.month),
+                "comparison": _empty_month(today.year - 1, today.month),
+                "prev2": _empty_month(today.year - 2, today.month),
+            }
+
         cur_year, cur_month = yesterday.year, yesterday.month
         end_day = yesterday.day
 
@@ -283,7 +368,20 @@ class PeriodBuilder:
         return DateRange(
             start=previous_start.strftime("%Y-%m-%d"),
             end=previous_end.strftime("%Y-%m-%d"),
-            cutoff=(previous_start - timedelta(days=1)).strftime("%Y-%m-%d"),
+            cutoff=analysis_cutoff(previous_start).strftime("%Y-%m-%d"),
+        )
+
+    @staticmethod
+    def last_week_same_weekday(start_date: str, end_date: str) -> DateRange:
+        """任意闭区间整体回退 7 天（上周同星期），cutoff = 新 start - 1。"""
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+        prev_start = start_dt - timedelta(days=7)
+        prev_end = end_dt - timedelta(days=7)
+        return DateRange(
+            start=prev_start.strftime("%Y-%m-%d"),
+            end=prev_end.strftime("%Y-%m-%d"),
+            cutoff=analysis_cutoff(prev_start).strftime("%Y-%m-%d"),
         )
 
     @staticmethod

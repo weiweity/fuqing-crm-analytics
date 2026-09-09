@@ -1,0 +1,173 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-audience/v1",
+        "default": "competition-audience/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Cohort Id",
+      "enum": null,
+      "name": "cohort_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Cohort Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "enrollment_window",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/InclusiveDateRange"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "observation_window",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/InclusiveDateRange"
+      }
+    },
+    {
+      "description": "Enrollment Rule Version",
+      "enum": null,
+      "name": "enrollment_rule_version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Enrollment Rule Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "As Of",
+      "enum": null,
+      "name": "as_of",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "format": "date-time",
+        "title": "As Of",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Published At",
+      "enum": null,
+      "name": "published_at",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "format": "date-time",
+        "title": "Published At",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "source_tense",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/SourceTense"
+      }
+    },
+    {
+      "description": "Member History Status",
+      "enum": null,
+      "name": "member_history_status",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "UNKNOWN",
+        "title": "Member History Status",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Existing Family",
+      "enum": [
+        "analytics-handoff-audience/v1",
+        "none"
+      ],
+      "name": "existing_family",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "analytics-handoff-audience/v1",
+          "none"
+        ],
+        "title": "Existing Family",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Rules",
+      "enum": null,
+      "name": "rules",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "$ref": "#/$defs/CohortRule"
+        },
+        "maxItems": 8,
+        "minItems": 1,
+        "title": "Rules",
+        "type": "array"
+      }
+    },
+    {
+      "description": "Permission Scope",
+      "enum": null,
+      "name": "permission_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Permission Scope",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Limitations",
+      "enum": null,
+      "name": "limitations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "title": "Limitations",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionCohortSpec",
+  "schema_version": "competition-audience/v1"
+}

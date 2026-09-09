@@ -1,0 +1,11 @@
+export function createFixtureBoardTransport(options?: { scenario?: string; principal?: { actor_id: string; permission_scope: string } }): any;
+export function createHttpBoardTransport(options: { fetchImpl: typeof fetch; basePath?: string }): any;
+export function createBoardTransport(options?: { http?: { fetchImpl: typeof fetch; basePath?: string }; scenario?: string }): any;
+export function clone<T>(value: T): T;
+export function canEndorse(result: unknown): boolean;
+export function decodeCompetitionBatchReceipt(value: unknown): unknown | null;
+export function decodeCompetitionBoardSpec(value: unknown): unknown | null;
+export function decodeCompetitionError(value: unknown): unknown | null;
+export function decodeCompetitionPatchRequest(value: unknown): unknown | null;
+export function decodeCompetitionResultRef(value: unknown): unknown | null;
+export function toEndorsedResultRef(result: unknown): unknown | null;

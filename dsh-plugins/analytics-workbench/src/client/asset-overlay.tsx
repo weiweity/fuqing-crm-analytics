@@ -6,11 +6,17 @@ import { COCKPIT_CSS } from '../cockpit-model.mjs';
 import {
   addIntentKey, assetRequest, decodeAssetError, decodeHttpAnalysisList, decodeHttpDashboard, formatCard,
 } from '../asset-http.mjs';
+import { BoardWorkbench } from './competition-board/index.ts';
+import { ActionsWorkbench } from './competition-actions/index.ts';
+import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
+import { createHttpBoardTransport } from './competition-board/transport.mjs';
+import { createHttpAudienceTransport } from './competition-actions/transport.mjs';
+import { competitionHttpOptions } from './competition-http.mjs';
 
 type DashboardDoc = NonNullable<ReturnType<typeof decodeHttpDashboard>>;
 type AnalysisItem = { analysis_id: string; version: number; title: string; observation_days?: number; as_of?: string };
 type OverlayProps = PropsRuntime<'shell.overlay'> & {
-  useStore<T>(selector: (state: { open: boolean; confirmClose: boolean }) => T): T;
+  useStore<T>(selector: (state: { open: boolean; confirmClose: boolean; openTick?: number }) => T): T;
   actions: {
     close(): void;
     requestClose(): void;
@@ -35,19 +41,22 @@ function clampLayout(layout: { x: number; y: number; w: number; h: number }, pat
 
 export function HttpAssetOverlay(props: OverlayProps) {
   const open = props.useStore((state: { open: boolean }) => state.open);
+  const openTick = props.useStore((state: { openTick?: number }) => state.openTick ?? 0);
   const confirmClose = props.useStore((state: { confirmClose: boolean }) => state.confirmClose);
   const selectedSession = props.useSessions(state => state.current);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
-  const [panel, setPanel] = useState<'board' | 'analyses'>('board');
+  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>('board');
   const [dashboard, setDashboard] = useState<DashboardDoc | null>(null);
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const competitionHttp = competitionHttpOptions();
   const [pending, setPending] = useState<PendingOp | null>(null);
   const [preview, setPreview] = useState<DashboardDoc | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [visited, setVisited] = useState<{ board: boolean; actions: boolean }>({ board: false, actions: false });
   const [dragX, setDragX] = useState<number | null>(null);
   const previewSeq = useRef(0);
   const dirtyRef = useRef(false);
@@ -68,7 +77,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  }, [open, openTick]);
   useEffect(() => () => {
     dragCleanup.current?.();
     dragCleanup.current = null;
@@ -116,6 +125,12 @@ export function HttpAssetOverlay(props: OverlayProps) {
           if (decoded) commitBoard(decoded);
           else if (!pinnedId) commitBoard(null);
         }
+        setMessage(competitionHttp
+          ? 'B0 /b0/assets 与比赛 /api/v1/analytics/competition 分开。比赛成板走合成 HTTP。'
+          : '');
+      } else if (competitionHttp) {
+        if (!boardRef.current) commitBoard(null);
+        setMessage('B0 同域 /b0/dashboards 未接线。比赛资产走合成 HTTP，不把 /b0/assets 404 写成比赛失败。');
       } else {
         if (!boardRef.current) commitBoard(null);
         setMessage(decodeAssetError(boards.payload).message);
@@ -125,10 +140,37 @@ export function HttpAssetOverlay(props: OverlayProps) {
       setConfirmDiscard(false);
       setDragX(null);
     } catch {
-      setMessage('资产请求失败。');
+      setMessage(competitionHttp
+        ? 'B0 同域资产不可达。比赛 HTTP 仍可在「认可成板」使用。'
+        : '资产请求失败。');
     } finally {
       setLoading(false);
     }
+  }
+
+  function keepDialogOpen() {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) {
+      try { dialog.showModal(); } catch { /* already in top layer */ }
+    }
+  }
+
+  function handleDialogClose(event: { preventDefault(): void }) {
+    if (open) {
+      event.preventDefault();
+      keepDialogOpen();
+      return;
+    }
+    afterClose();
+  }
+
+  function selectPanel(next: 'board' | 'analyses' | 'competition-board' | 'competition-actions') {
+    if (next === 'competition-board') setVisited(current => ({ ...current, board: true }));
+    if (next === 'competition-actions') setVisited(current => ({ ...current, actions: true }));
+    window.setTimeout(() => {
+      setPanel(next);
+      keepDialogOpen();
+    }, 0);
   }
 
   function afterClose() {
@@ -183,8 +225,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
       });
       if (previewSeq.current !== seq) return;
       if (row.status === 409) {
-        setMessage('版本已变化，已重新读取，请再预览。');
         await refresh();
+        setMessage('版本已变化，已重新读取，请再预览。');
         return;
       }
       if (row.status !== 200) {
@@ -213,8 +255,8 @@ export function HttpAssetOverlay(props: OverlayProps) {
         method: 'POST', body: pending.body, key: pending.key, etag,
       });
       if (row.status === 409) {
-        setMessage('版本冲突，未覆盖。请读取当前驾驶舱后再试。');
         await refresh();
+        setMessage('版本冲突，未覆盖。请读取当前驾驶舱后再试。');
         return;
       }
       if (row.status !== 200 && row.status !== 201) {
@@ -273,7 +315,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
   function showAnalyses() {
     previewSeq.current += 1;
     setLoading(false);
-    setPanel('analyses');
+    selectPanel('analyses');
   }
 
   async function layoutPatch(patch: Record<string, number>) {
@@ -293,16 +335,17 @@ export function HttpAssetOverlay(props: OverlayProps) {
       .analytics-cockpit-card[data-selected="1"] { outline:2px solid var(--dsw-alias-brand-primary,currentColor); outline-offset:2px; }
     `}</style>
     <dialog ref={dialogRef} className="analytics-b0-dialog analytics-cockpit-http" aria-labelledby="analytics-b0-heading"
-      data-testid="analytics-b0-dialog" data-dsh-native-chrome="1" data-http="CONNECTED" data-asset="1" data-panel={panel}
+      data-testid="analytics-b0-dialog" data-dsh-native-chrome="1" data-http="CONNECTED" data-asset="1" data-panel="assets" data-competition-panel={panel}
       data-dashboard-id={shown?.dashboard_id ?? ''}
       data-session={selectedSession ? '1' : '0'} data-preview={pending ? '1' : '0'}
+      {...{ closedby: 'none' }}
       onKeyDown={trapDialogTab}
       onCancel={event => { event.preventDefault(); requestClose(); }}
-      onClose={afterClose}>
+      onClose={handleDialogClose}>
       <header>
         <div>
           <span className="analytics-b0-logo" role="img" aria-label="SHINE MAGE 原始 Logo" data-testid="analytics-b0-logo" />
-          <h2 id="analytics-b0-heading">伸美 · 我的驾驶舱</h2>
+          <h2 id="analytics-b0-heading">伸美 AI 增长董事会</h2>
         </div>
         <button type="button" data-testid="analytics-b0-close" onClick={requestClose}>返回聊天</button>
       </header>
@@ -320,14 +363,24 @@ export function HttpAssetOverlay(props: OverlayProps) {
       <p data-testid="analytics-b0-selection">{selectedSession ? '原会话仍保留；此资产不依赖会话。' : '当前无活动会话；固定资产仍可读。'}</p>
       <button type="button" data-testid="analytics-b0-detach" disabled={!selectedSession}
         onClick={() => props.detachSelection()}>脱离会话阅读</button>
-      <div className="analytics-cockpit-toolbar">
-        <button type="button" data-testid="analytics-asset-board" onClick={() => setPanel('board')}>驾驶舱</button>
-        <button type="button" data-testid="analytics-asset-analyses" onClick={showAnalyses}>已保存分析</button>
-        <button type="button" data-testid="analytics-asset-refresh" onClick={() => void refresh()}>重新读取</button>
+      <div className="analytics-cockpit-toolbar" onMouseDown={event => event.stopPropagation()}>
+        <button type="button" data-testid="analytics-asset-board" onClick={event => { event.stopPropagation(); selectPanel('board'); }}>驾驶舱</button>
+        <button type="button" data-testid="analytics-asset-analyses" onClick={event => { event.stopPropagation(); showAnalyses(); }}>已保存分析</button>
+        <button type="button" data-testid="analytics-competition-board" onClick={event => { event.stopPropagation(); selectPanel('competition-board'); }}>认可成板</button>
+        <button type="button" data-testid="analytics-competition-actions" onClick={event => { event.stopPropagation(); selectPanel('competition-actions'); }}>人群行动</button>
+        <button type="button" data-testid="analytics-asset-refresh" onClick={event => { event.stopPropagation(); void refresh(); }}>重新读取</button>
       </div>
       {loading && <p role="status">正在读取资产…</p>}
       {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
       {pending && <p className="analytics-b0-preview" data-testid="analytics-cockpit-preview">{pending.label} · 预览未保存</p>}
+      {(panel === 'competition-board' || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
+        <OverlayErrorBoundary resetKey={openTick}>
+          <BoardWorkbench key={openTick} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
+        </OverlayErrorBoundary>
+      </section>}
+      {(panel === 'competition-actions' || visited.actions) && <section hidden={panel !== 'competition-actions'} data-panel="competition-actions" data-testid="analytics-competition-actions-view">
+        <ActionsWorkbench modelAvailable={false} transport={competitionHttp ? createHttpAudienceTransport(competitionHttp) : undefined} />
+      </section>}
       {panel === 'analyses' && <section data-panel="analyses" data-testid="analytics-saved-analysis-view">
         {analyses.length === 0
           ? <p data-testid="analytics-saved-analysis-empty">从一次成功查询保存分析后，可加入驾驶舱。</p>

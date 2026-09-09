@@ -1,0 +1,70 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "numeric_values": "none-this-batch",
+  "items": {
+    "T06": [
+      "Two brands, two actors A/B. Guessing the other actor's result_id/board_id/cohort_id yields 401 without login or 403 with login but wrong scope.",
+      "Cache hit after revoke: subsequent read/pagination/save/edit/candidate/export all re-check current permission; 403; no PII in body.",
+      "Expired login is 401 AUTH_REQUIRED, not a stale 200 with cached facts.",
+      "Capability catalog is actor-filtered AND backend still authorizes.",
+      "Standard preset, native files, attachments, MCP must not reach business credentials or data directories.",
+      "Revoke during submit/fetch/publish/read: later stages fail closed; UI clears revoked details.",
+      "No server credential leak in errors or logs of this fixture."
+    ],
+    "T07": [
+      ">4096 ASCII characters: not a successful complete result.",
+      "Multibyte Chinese (e.g. U+7684 的 is 3 UTF-8 bytes) must not be cut at byte 4096 into invalid JSON.",
+      "Payload over message boundary: INCOMPLETE_RESULT, not 200-complete.",
+      "Empty JSON and malformed JSON: INVALID_JSON, distinct from SUCCEEDED_EMPTY.",
+      "Last page missing or row_count != checksum: refuse complete success.",
+      "Stale result ref: RESULT_UNAVAILABLE, no permission bypass via cache."
+    ],
+    "T08": [
+      "Two read-only POSTs on exact admitted routes succeed under budget.",
+      "Non-read-only POST is not admitted as read-only.",
+      "Read-pool saturation returns 503 CAPACITY_BUSY with retry_after; later request can recover.",
+      "Cancel does not close another owner's connection.",
+      "Queue time and execute time are recorded separately.",
+      "No unbounded retry; at most the frozen budget.",
+      "Late attempt after cancel must not publish.",
+      "Diagnostic tool-count / total deadline / concurrency budget exhaustion saves partial evidence and marks analysis incomplete."
+    ],
+    "T09": [
+      "Acknowledge only the checked successful results, not the whole chat.",
+      "Multi-board batch has batch_id plus per-board operation_id and fingerprint.",
+      "Same idempotency key + same payload retries without duplicate boards.",
+      "Same idempotency key + different payload is rejected.",
+      "Partial block/board failure returns per-item status; failed items cannot look succeeded.",
+      "Lost receipt after commit recovers from receipt log; must not recreate succeeded boards.",
+      "Crash recovery retries only failed items.",
+      "Confirm summary dates/filters/history-scope/version match sources."
+    ],
+    "T10": [
+      "Select board A, start generate, switch selection to B: in-flight target remains A's stable board_id/block_id/base_version.",
+      "Style-only patch does not start a query.",
+      "Filter change starts a new run.",
+      "Illegal path or arbitrary script patch is rejected (MODEL_INVALID_PATCH).",
+      "Preview diff equals applied diff.",
+      "FastAPI persists in-flight target across refresh and session switch."
+    ],
+    "T11": [
+      "Two clients, same base_version: second save is 409 VERSION_CONFLICT and must not overwrite.",
+      "Discard preview is not undo of a saved version.",
+      "Undo of a saved version is itself version-checked.",
+      "Refresh/restart restores draft vs saved correctly.",
+      "Model unavailable: saved board and manual edit still work.",
+      "Upgrade-then-downgrade matrix covers BoardSpec, candidate, draft, SQLite schema, result-ref retention."
+    ],
+    "T12": [
+      "Zero candidates: allow condition edit; never invent a suggested list.",
+      "AND/OR combinations use set cardinality after dedup.",
+      "Duplicate customer keys count once.",
+      "Manual copy edit does not change evidence snapshot.",
+      "Rule or source change expires the draft and requires recompute; copy edit does not.",
+      "Revoke hides details immediately.",
+      "No automatic send.",
+      "Each included customer has an explain-why record."
+    ]
+  }
+}

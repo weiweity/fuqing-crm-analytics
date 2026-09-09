@@ -14,8 +14,24 @@ export const PORTS = Object.freeze({
 
 export const PORT_RANGE = Object.freeze([4325, 4326, 4327, 4328, 4329]);
 
+/** Competition-track reserved listeners. Vite is documented only; dsh-dev never binds it. */
+export const COMPETITION_WEB_PORT = 14327;
+export const COMPETITION_VITE_PORT = 15173;
+
+/** Ports this supervisor may bind as --web-port. Does not include Vite 15173. */
+export const ALLOWED_WEB_PORTS = Object.freeze([...PORT_RANGE, COMPETITION_WEB_PORT]);
+
+/** Occupied 4327 is the user DSH demo; diagnose/start must not reuse or stop it. */
+export const USER_DEMO_PORTS = Object.freeze([4327]);
+
 /** Foreign listeners this track must never stop or reuse. */
 export const FOREIGN_PORTS = Object.freeze([8000, 5173, 4315, 4316, 4317, 4318, 4319]);
+
+export const BRAND_DIGESTS = Object.freeze({
+  logoPng: '21b8273703b9015027b572cb830b8bb01e9fc406c39b14ec7c228fbcdcaf4000',
+  markSvg: '1bcd095360e42081429d23972e25f8d4a831a241df565d920c020d27aab8f4a8',
+  outfitTtf: 'fc7287273e66929776e2ba54f144fe699080bec29f61bf649d70d871468aeade',
+});
 
 /**
  * Extra Host-row disables applied by scripts/dsh-b0/serve.mjs.

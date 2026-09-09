@@ -1,0 +1,47 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "cases": [
+    {
+      "id": "T04-GSV-NOT-GMV",
+      "order": {"list_amount": "100.00", "actual_amount": "82.00", "status": "paid"},
+      "expected": {"gsv": "82.00", "forbidden": ["100.00 as default GMV"]}
+    },
+    {
+      "id": "T04-MEMBER-UNKNOWN",
+      "customers": [
+        {"user_id": "U-MEM", "member": "YES", "gsv": "10.00", "identity": "OLD"},
+        {"user_id": "U-NON", "member": "NO", "gsv": "20.00", "identity": "NEW"},
+        {"user_id": "U-UNK", "member": "UNKNOWN", "gsv": "30.00", "identity": "OLD"}
+      ],
+      "expected": {
+        "unknown_stays_unknown": true,
+        "member_gsv": "10.00",
+        "non_member_gsv": "20.00",
+        "unknown_gsv": "30.00",
+        "old_gsv": "40.00",
+        "new_gsv": "20.00",
+        "total_gsv": "60.00",
+        "forbidden": ["UNKNOWN coerced to NO", "member_gsv + old_gsv as a total"]
+      }
+    },
+    {
+      "id": "T04-RAW-RATIO-AND-ZERO-DENOM",
+      "old": 2,
+      "buyers": 8,
+      "converted": 0,
+      "cohort": 0,
+      "expected": {
+        "old_share": "0.25",
+        "old_share_not": 25,
+        "conversion": null,
+        "forbidden": ["0%", "0.0 as fake conversion", "safe_ratio default 0"]
+      }
+    },
+    {
+      "id": "T04-NEGATIVE-NET",
+      "order": {"actual_amount": "90.00", "refund": "120.00"},
+      "expected": {"net_gsv": "0.00", "effective": false, "f": 0, "not_negative_rate": true}
+    }
+  ]
+}

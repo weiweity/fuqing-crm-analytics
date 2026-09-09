@@ -1,0 +1,15 @@
+{
+  "auto_send": false,
+  "candidate_set_id": "cand_c0_zero",
+  "cohort_id": "cohort_c0_ly_f_unknown",
+  "combine": "AND",
+  "customer_keys": [],
+  "explanations": [],
+  "limitations": [
+    "零候选不得伪造建议名单。"
+  ],
+  "permission_scope": "scope-brand-a",
+  "schema_version": "competition-audience/v1",
+  "source_result_ref": "result_c0_gsv_20260831",
+  "unique_count": 0
+}

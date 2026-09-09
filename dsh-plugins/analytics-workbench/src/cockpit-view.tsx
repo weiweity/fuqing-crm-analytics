@@ -1,5 +1,9 @@
 import { css } from './client/styles.ts';
 import { COCKPIT_CSS, COPY, buildCockpitView } from './cockpit-model.mjs';
+import { BoardWorkbench } from './client/competition-board/index.ts';
+import { ActionsWorkbench } from './client/competition-actions/index.ts';
+import type { BoardTransport } from './client/competition-board/types.ts';
+import type { ActionsMountProps } from './client/competition-actions/index.ts';
 
 type CockpitViewProps = {
   dashboard?: unknown;
@@ -8,9 +12,18 @@ type CockpitViewProps = {
   sessionId?: string | null;
   modelAvailable?: boolean;
   selectedCardId?: string | null;
+  surface?: 'b0' | 'competition-board' | 'competition-actions';
+  boardTransport?: BoardTransport;
+  audienceTransport?: ActionsMountProps['transport'];
 };
 
 export function CockpitView(props: CockpitViewProps) {
+  if (props.surface === 'competition-board') {
+    return <BoardWorkbench transport={props.boardTransport} modelAvailable={props.modelAvailable === true} />;
+  }
+  if (props.surface === 'competition-actions') {
+    return <ActionsWorkbench transport={props.audienceTransport} modelAvailable={props.modelAvailable === true} />;
+  }
   const view = buildCockpitView({
     dashboard: props.dashboard ?? null,
     list: props.list ?? null,

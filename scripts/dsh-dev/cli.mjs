@@ -4,27 +4,42 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { writeFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { NATIVE_WEB_IDS, PLUGIN_UI_ID } from './constants.mjs';
+import { COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, NATIVE_WEB_IDS, PLUGIN_UI_ID } from './constants.mjs';
 import { repoRoot, contextRoot, currentPath } from './paths.mjs';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { bootHost, dumpConfig, parseServeArgs, prepareRuntime, readCurrent, stopOwned, writeCurrent, terminateChild } from './serve.mjs';
+import { diagnose, printDiagnose } from './diagnose.mjs';
 
-const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status>
+const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status|diagnose>
   --upstream /absolute/pinned/dsh
   --plugin on|off
   --plugin-path /absolute/plugin
   --extra-patch /absolute/overlay.yml
   --runtime /absolute/runtime
-  --web-port 4327
+  --web-port 4327|14327
   --host 127.0.0.1
   --detach          start only
-  --fresh           new runtime dir under .context/dsh-dev/`;
+  --fresh           new runtime dir under .context/dsh-dev/
+
+Node 24 required for check/start. diagnose is read-only: it never binds ports or signals PIDs.
+User demo 127.0.0.1:4327 / 8000 / 5173 must not be stopped or reused.
+Independent DSH: --web-port ${COMPETITION_WEB_PORT}. Vite ${COMPETITION_VITE_PORT} is reserved and not bound here.
+Launch tokens are never printed. Unauthenticated GET / must stay 401.`;
 
 function parseArgv(argv) {
   const [command, ...rest] = argv;
-  assert.ok(['check', 'dump-config', 'start', 'stop', 'status'].includes(command), USAGE);
-  if (command === 'stop' || command === 'status') {
+  assert.ok(['check', 'dump-config', 'start', 'stop', 'status', 'diagnose'].includes(command), USAGE);
+  if (command === 'stop' || command === 'status' || command === 'diagnose') {
+    if (command === 'diagnose') {
+      const upstreamFlag = rest.indexOf('--upstream');
+      const options = {};
+      if (upstreamFlag >= 0) {
+        assert.ok(rest[upstreamFlag + 1] && !rest[upstreamFlag + 1].startsWith('--'), 'missing value for --upstream');
+        options.upstream = rest[upstreamFlag + 1];
+      }
+      return { command, options };
+    }
     assert.equal(rest.length, 0, `${command} takes no flags`);
     return { command };
   }
@@ -125,7 +140,8 @@ async function runStatus() {
 }
 
 const { command, options } = parseArgv(process.argv.slice(2));
-if (command === 'check' || command === 'dump-config') await runCheck(options);
+if (command === 'diagnose') printDiagnose(await diagnose(options ?? {}));
+else if (command === 'check' || command === 'dump-config') await runCheck(options);
 else if (command === 'start') {
   if (options.detach) {
     const child = spawn(process.execPath, [join(repoRoot, 'scripts/dsh-dev/cli.mjs'), 'start',

@@ -30,6 +30,13 @@ from .analytics_query_run import (
     AnalyticsQueryRunRequest, AnalyticsQueryRunSnapshot, ChannelFollowupFixtureDescriptor,
     ChannelFollowupRunBinding,
 )
+from .competition_c0 import (
+    CompetitionActionDraft, CompetitionBoardBatchReceipt, CompetitionBoardBatchRequest,
+    CompetitionBoardSpec, CompetitionCandidateSet, CompetitionCapability,
+    CompetitionCohortSpec, CompetitionCondition, CompetitionErrorDetail,
+    CompetitionErrorResponse, CompetitionFrontendPort, CompetitionPatchRequest,
+    CompetitionResolvedCondition, CompetitionResultRef,
+)
 # Sprint 203 R9: cohort_retention contracts 删 (前端 sampling 03-tab 解耦, cohort-retention/matrix API 移除)
 
 __all__ = [
@@ -82,5 +89,10 @@ __all__ = [
     "AnalyticsQueryNativeReceipt", "AnalyticsQueryRunAccepted", "AnalyticsQueryRunEvent",
     "AnalyticsQueryRunRequest", "AnalyticsQueryRunSnapshot", "ChannelFollowupFixtureDescriptor",
     "ChannelFollowupRunBinding",
+    "CompetitionActionDraft", "CompetitionBoardBatchReceipt", "CompetitionBoardBatchRequest",
+    "CompetitionBoardSpec", "CompetitionCandidateSet", "CompetitionCapability",
+    "CompetitionCohortSpec", "CompetitionCondition", "CompetitionErrorDetail",
+    "CompetitionErrorResponse", "CompetitionFrontendPort", "CompetitionPatchRequest",
+    "CompetitionResolvedCondition", "CompetitionResultRef",
     # Sprint 203 R9: SamplingLock*/Rolling*/CohortRetention 删
 ]  # noqa: E501

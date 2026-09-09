@@ -1,0 +1,30 @@
+{
+  "schema_version": "dsh-b0-build-evidence/v1",
+  "at": "2026-09-09T15:02:27.330Z",
+  "upstream_sha": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "upstream_lock_sha256": "2c903ab870f821ee2db62fa9417d11b1c2b9c65fbeec30e851ddc53c4cc8c383",
+  "node": "v24.19.0",
+  "python": "Python 3.14.4",
+  "clean_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-closeout/.context/dsh-b0/clean-build-gsOKD2",
+  "stages": [
+    "contract",
+    "python-unit",
+    "ruff",
+    "node-unit",
+    "host-types",
+    "client-types",
+    "build",
+    "real-cordis-loader-synthetic-services",
+    "clean-rebuild"
+  ],
+  "artifact_sha256": {
+    "index.js": "0b1e6a9c2ec717c0092f2fba02ddf998d425e7357f7de1ffa83fa0e9adfc3009",
+    "tool.js": "6fcce3563bdb946d17ff7feee6560cdca3b14ecdf08b4bf9917f7087c5e7fc7e",
+    "skills.js": "b025e9bdf0d0e9fd75cd7fe97aa18b624cca316cf16747c90c35e8b77e4cbe25",
+    "client.js": "c49057b5a2e80acba4acc6fe0de281207b4a29552dbd1e6a16bd5c264a639640",
+    "views/saved-analysis-view.js": "8f1beb5a73c3198602431b86082af577876d92913fb53d42fecdaeff821c2bc1",
+    "views/cockpit-view.js": "9b81cc98dde882f583d95de4e043fbc88c1f41ae50195e2acdc89aef2f3b9e07"
+  },
+  "remote_ci_executed": false,
+  "native_dsh_profile_e2e": "separate evidence required"
+}

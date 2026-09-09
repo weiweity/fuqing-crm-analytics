@@ -108,14 +108,16 @@ function restoreDom(previous) {
 
 function Shell({ Overlay, Footer, actionsRef, QueryCard }) {
   const [snap, setSnap] = React.useState({
-    open: true, confirmClose: false, editor: createEditor(), message: '',
+    open: true, openTick: 1, confirmClose: false, editor: createEditor(), message: '',
   });
   const actions = {
     close: () => { actionsRef.close += 1; setSnap(state => ({ ...state, open: false, confirmClose: false })); },
     requestClose: () => { actionsRef.requestClose += 1; setSnap(state => ({ ...state, confirmClose: true })); },
     keepEditing: () => { actionsRef.keepEditing += 1; setSnap(state => ({ ...state, confirmClose: false })); },
     discardAndClose: () => { actionsRef.discard += 1; setSnap(state => ({ ...state, open: false, confirmClose: false })); },
-    open: () => setSnap(state => ({ ...state, open: true, confirmClose: false })),
+    open: () => setSnap(state => ({
+      ...state, open: true, confirmClose: false, openTick: (state.openTick || 0) + 1,
+    })),
   };
   return React.createElement(React.Fragment, null,
     React.createElement(Footer, { wide: true, useStore: selector => selector(snap), actions }),
@@ -251,13 +253,20 @@ function connectedBoardFetch(options = {}) {
 }
 
 test('RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds', async () => {
+  const competitionLive = /127\.0\.0\.1:18082/.test(source);
   const { previous } = installDom();
   const fetchImpl = async () => jsonResponse(404, { error: { code: 'NOT_FOUND', message: 'no assets' } });
   const mounted = await mountShell(fetchImpl);
   await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-open"]'));
-  assert.match(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').textContent, /B0/);
-  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-title-input"]'));
-  assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.getAttribute('data-http'), null);
+  if (competitionLive) {
+    assert.match(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').textContent, /我的驾驶舱/);
+    await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]'));
+    assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.getAttribute('data-http'), 'CONNECTED');
+  } else {
+    assert.match(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').getAttribute('aria-label'), /合成样例/);
+    await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-title-input"]'));
+    assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.getAttribute('data-http'), null);
+  }
   mounted.unmount();
   restoreDom(previous);
 
@@ -336,8 +345,37 @@ test('HTTP overlay and mock overlay share the native dialog Tab trap', () => {
   assert.match(focusSource, /export function trapDialogTab/);
   assert.match(overlaySource, /onKeyDown=\{trapDialogTab\}/);
   assert.match(mockOverlaySource, /onKeyDown=\{trapDialogTab\}/);
+  assert.match(overlaySource, /handleDialogClose/);
+  assert.match(overlaySource, /closedby/);
+  assert.match(overlaySource, /OverlayErrorBoundary/);
+  assert.match(overlaySource, /resetKey=\{openTick\}/);
+  assert.match(mockOverlaySource, /key=\{openTick\}/);
+  assert.match(mockOverlaySource, /openTick = \(draft.openTick \|\| 0\) \+ 1/);
+  assert.match(overlaySource, /B0 同域 \/b0\/dashboards 未接线/);
   assert.match(overlaySource, /data-dsh-native-chrome="1"/);
   assert.match(overlaySource, /gridColumn: '1 \/ -1'/);
+});
+
+test('footer open remounts overlay after close on the same page', async () => {
+  const { previous } = installDom();
+  const { fetchImpl } = connectedBoardFetch();
+  const mounted = await mountShell(fetchImpl);
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]'));
+  const dialog = globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]');
+  assert.equal(dialog.open, true);
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-b0-close"]').click();
+    await delay(20);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.open !== true);
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="analytics-b0-open"]').click();
+    await delay(30);
+  });
+  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.open === true);
+  assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]').open, true);
+  mounted.unmount();
+  restoreDom(previous);
 });
 
 test('layout drag commits on pointerup and does not preview on pointermove', async () => {
@@ -729,13 +767,13 @@ test('analyses panel sets data-panel=analyses, omits undo, and does not claim ov
   const mounted = await mountShell(fetchImpl);
   await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]'));
   const dialog = globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]');
-  assert.equal(dialog.getAttribute('data-panel'), 'board');
+  assert.equal(dialog.getAttribute('data-competition-panel'), 'board');
   await act(async () => {
     globalThis.document.querySelector('[data-testid="analytics-asset-analyses"]').click();
     await delay(10);
   });
   await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-saved-analysis-view"]'));
-  assert.equal(dialog.getAttribute('data-panel'), 'analyses');
+  assert.equal(dialog.getAttribute('data-competition-panel'), 'analyses');
   assert.ok(globalThis.document.querySelector('[data-panel="analyses"]'));
   assert.equal(globalThis.document.querySelector('[data-testid="analytics-cockpit-undo"]'), null);
   const text = globalThis.document.documentElement?.textContent ?? '';

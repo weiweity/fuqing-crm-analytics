@@ -4,7 +4,7 @@
 前缀: /api/v1/sampling/*
 """
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query, Request, Response
 from typing import Optional, List
 
 from backend.config import _default_start_date, _default_end_date
@@ -18,6 +18,7 @@ from backend.services.sampling_service import (
     get_sampling_repurchase_buckets,
     get_sampling_repurchase_tracking,
 )
+from backend.middleware.query_router import DOC_T03, competition_error_response, new_request_id
 from backend.services import check_future_date
 
 router = APIRouter(prefix="/api/v1/sampling", tags=["派样看板"])
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api/v1/sampling", tags=["派样看板"])
 
 @router.get("/roi", response_model=SamplingROIResponse)
 def get_sampling_roi_api(
+    request: Request,
     response: Response,
     start_date: str = Query(default=_default_start_date(), description="派样起始日期"),
     end_date: str = Query(default=_default_end_date(), description="派样结束日期"),
@@ -32,7 +34,7 @@ def get_sampling_roi_api(
     level: str = Query(default="spu_category", description="品类维度：spu_category/spu_tier/spu_product_class"),
     channel: Optional[str] = Query(default=None, description="筛选特定派样渠道"),
     compare_date_range: Optional[List[str]] = Query(default=None, description="对比日期范围 [start, end]"),
-    exclude_low_price: bool = Query(default=False, description="是否剔除低价渠道（Sampling 本期接收参数）"),
+    exclude_low_price: bool = Query(default=False, description="是否剔除低价渠道（未实现则为 422）"),
 ):
     """
     派样 ROI 分析
@@ -41,6 +43,16 @@ def get_sampling_roi_api(
     - 渠道汇总：派样人数、所选窗口回购人数、回购率、贡献GSV、AUS
     - 品类明细：每个渠道×品类的回购情况（含同品类回购）
     """
+    if exclude_low_price:
+        return competition_error_response(
+            http_status=422,
+            code="INVALID_REQUEST",
+            message="exclude_low_price 在 ROI 未实现，不得静默丢弃。",
+            request_id=new_request_id(request.headers.get("x-request-id")),
+            retryable=False,
+            param="exclude_low_price",
+            doc_ref=DOC_T03,
+        )
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
     compare_tuple = None

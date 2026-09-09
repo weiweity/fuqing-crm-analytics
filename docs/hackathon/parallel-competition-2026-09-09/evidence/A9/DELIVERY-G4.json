@@ -1,0 +1,108 @@
+{
+  "task_id": "A9",
+  "status": "FAIL",
+  "batch": "G4",
+  "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a9",
+  "branch": "codex/competition-a9",
+  "sut": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-integration",
+  "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "head": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+  "contract_hash": "97ee36833200b3a1626a4fa88e6b3bc9591bfb5f6bebc5e666aeabdcce13815a",
+  "copied_from_a1_a2": false,
+  "mode": "independent_acceptance_against_integration_snapshot",
+  "pass": 3,
+  "fail": 10,
+  "not_run": 4,
+  "case_rollup": {
+    "PASS": ["T06", "T07", "T12"],
+    "FAIL": ["T01", "T02", "T03", "T04", "T05", "T08", "T09", "T10", "T11", "T14"],
+    "NOT_RUN": ["T13", "T15", "T16", "T17"]
+  },
+  "layer_cells": {
+    "PASS": 16,
+    "FAIL": 12,
+    "NOT_RUN": 12
+  },
+  "pytest": {
+    "passed": 32,
+    "failed": 11,
+    "exit_code": 1,
+    "import_mode": "importlib",
+    "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-g4.log"
+  },
+  "node": {
+    "passed": 11,
+    "failed": 1,
+    "exit_code": 1,
+    "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-g4.log"
+  },
+  "real_entries_checked": [
+    "backend.services.metrics.competition_compute",
+    "backend.services.rfm.as_of",
+    "backend.semantic.time",
+    "backend.routers.audience",
+    "backend.analytics_competition_app",
+    "backend.services.analytics.competition_assets",
+    "backend.services.analytics.competition_audience",
+    "dsh-plugins/analytics-workbench/src/client/competition-board"
+  ],
+  "sut_file_sha256": {
+    "backend/services/metrics/competition_compute.py": "0a688321fa3e11704d1af507db695df7ec5f6fb739a97c757876200cb8269f4f",
+    "backend/routers/audience.py": "5f15452f8cf2486ccde812be8cedb2126d46233bf92f1b92eef8629e1f35e495",
+    "backend/analytics_competition_app.py": "31f359ff963db1627f80b185724001573fcbb398c2b45b7971ded4fecf58bbd9",
+    "backend/services/analytics/competition_assets/service.py": "3db8347ea1b8ac6192fef54857aee3638f5f0a5995cb2809bd4bf3dc4bd137fb",
+    "backend/services/analytics/competition_audience/service.py": "07b067de5750c12c61457a13aca991f7319d8ddbe06c4b5dd2b81f518b781d22",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "dcee67cd6a3002a592dfb9305427cfe581b83b5d1e6f9e0a986bb90df7547c50"
+  },
+  "independent_goldens_held": {
+    "T01": "leap clamp 2024-02-29->2023-02-28; 7d vs 6d yoy; last week minus 7; cutoff=start-1; end<start 422",
+    "T02_F": "O-TRI F=1 not 3; U-TWO F=2",
+    "T03_identity": "current_only U-SAMPLE OLD/F=3 vs history_recompute NEW/F=1",
+    "T05_compute": "A9 C01-C10 orig_channel_not_returned=6 != storewide_not_returned=4"
+  },
+  "fail_closed_findings": [
+    "PeriodBuilder.mtd(2026-09-01) and HTTP period=MTD return August",
+    "compute_competition_metrics empty September still echoes 2026-09-01..09-30",
+    "U-SEP5 with period GSV 0 is omitted from old_users",
+    "partial refund counted as 90.00 not net 63.00; path GSV 402 not 375/378",
+    "safe_ratio(0,0)=0 not null",
+    "HTTP candidates/preview uses A8 t05u* not A9 C01-C10",
+    "competition HTTP has no cancel/late-attempt publish guard",
+    "compiled lib/views/cockpit-view.js missing",
+    "no dated refund path for T14 late refund"
+  ],
+  "not_run_reasons": {
+    "T13": "no real model; stub forbidden",
+    "T15": "no browser UAT and no real model",
+    "T16": "capacity heavy run forbidden this batch",
+    "T17": "no independent DSH; did not start 14327 or touch user 4327"
+  },
+  "ports": {
+    "did_not_bind": ["8000", "5173", "4327"],
+    "note": "user-owned listeners were observed and left untouched"
+  },
+  "changed_files": [
+    "backend/tests/test_competition_acceptance.py",
+    "backend/tests/test_competition_acceptance_golden.py",
+    "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs",
+    "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-browser-model-capacity.test.mjs",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/ACCEPTANCE-MATRIX.md",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/DELIVERY-G4.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/pytest-g4.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/node-g4.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/validation/ruff-g4.log"
+  ],
+  "did_not_modify": [
+    "shared runner scripts/run_backend_tests_bounded.py",
+    "backend/tests/conftest.py",
+    "SUT business code",
+    "A1/A2 fixtures"
+  ],
+  "owned_processes": [],
+  "risks": [
+    "SUT worktree is dirty uncommitted integration; hashes are file contents not a git commit",
+    "A9 conftest prepends A9 root; tests call prefer_sut() so PYTHONPATH alone is not sufficient",
+    "T09-T11 source DOM passed; compiled React DOM still fail-closed"
+  ]
+}

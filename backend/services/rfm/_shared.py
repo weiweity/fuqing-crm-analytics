@@ -8,9 +8,8 @@ import json
 import hashlib
 import logging
 from typing import Optional, Dict, List, Any
-from datetime import date, timedelta, datetime
-from calendar import monthrange
-from backend.semantic.time import PeriodBuilder, shift_year_clamped
+from datetime import date, datetime
+from backend.semantic.time import PeriodBuilder, analysis_cutoff
 from backend.semantic.filters import VALID_ORDER_BASE, VALID_ORDER_BASE_PREFIXED
 from backend.db import connection as bdc
 from backend.config import DATA_DIR
@@ -30,7 +29,7 @@ FLOW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 #
 # Sprint 18 #123 bump: 加了 check_manifest_version_and_invalidate() 启动 hook,
 # 跨进程持久化 last_seen_manifest_version. 行为变化 → bump v0.4.14.35 → v0.4.14.47.
-FLOW_ALGO_VERSION = "v0.4.14.47"
+FLOW_ALGO_VERSION = "v0.4.14.48-c0-f-order"
 
 # 语义层统一口径（向后兼容别名）
 _VALID_BASE = VALID_ORDER_BASE
@@ -82,54 +81,35 @@ def _resolve_date_ranges(
             period = None
 
     if start_date and end_date:
-        cur_start_dt = f"{start_date} 00:00:00"
-        cur_end_dt = f"{end_date} 23:59:59"
-        cur_start_y, cur_start_m, cur_start_d = map(int, start_date.split("-"))
-        cur_end_y, cur_end_m, cur_end_d = map(int, end_date.split("-"))
-        # cutoff = start_date - 1天（与 PeriodBuilder 语义层一致）
-        # RFM 分类必须基于观察期开始前的历史行为，否则当期订单会污染分类，
-        # 导致"价值/发展"回购率虚高（循环论证），"保持/挽留"回购率虚低。
-        cutoff_date = date(cur_start_y, cur_start_m, cur_start_d) - timedelta(days=1)
-        cutoff = cutoff_date.strftime("%Y-%m-%d")
+        if start_date > end_date:
+            raise ValueError("period start_date must be <= end_date")
+        ranges = PeriodBuilder.free(start_date, end_date)
+        cur_range = ranges["current"]
+        prev2_range = ranges["prev2"]
+        cur_start_dt = cur_range.start_dt
+        cur_end_dt = cur_range.end_dt
+        cutoff = cur_range.cutoff
+        current_year_label = start_date[:4]
+        prev2_year_label = prev2_range.start[:4]
 
-        # ── 对比期：优先使用自定义对比日期（环比 / 自定义）──
         if compare_start_date and compare_end_date:
-            comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split("-"))
+            if compare_start_date > compare_end_date:
+                raise ValueError("compare period start_date must be <= end_date")
             ly_start_dt = f"{compare_start_date} 00:00:00"
             ly_end_dt = f"{compare_end_date} 23:59:59"
-            # cutoff = compare_start_date - 1天（与 PeriodBuilder 一致）
-            comp_cutoff_date = date(comp_start_y, comp_start_m, comp_start_d) - timedelta(days=1)
-            ly_cutoff_str = comp_cutoff_date.strftime("%Y-%m-%d")
-            comp_year_label = str(comp_start_y)
+            ly_cutoff_str = analysis_cutoff(compare_start_date).strftime("%Y-%m-%d")
+            comp_year_label = compare_start_date[:4]
         else:
-            # 默认：去年同期
-            ly_date = shift_year_clamped(date(cur_start_y, cur_start_m, cur_start_d))
-            ly_start_dt = f"{ly_date.year}-{ly_date.month:02d}-{ly_date.day:02d} 00:00:00"
-            ly_end_year, ly_end_month = cur_end_y - 1, cur_end_m
-            ly_end_day = min(cur_end_d, monthrange(ly_end_year, ly_end_month)[1])
-            ly_end_dt = f"{ly_end_year}-{ly_end_month:02d}-{ly_end_day:02d} 23:59:59"
-            # cutoff = 去年同期 start - 1天
-            ly_cutoff_date = date(ly_date.year, ly_date.month, ly_date.day) - timedelta(days=1)
-            ly_cutoff_str = ly_cutoff_date.strftime("%Y-%m-%d")
-            comp_year_label = str(cur_start_y - 1)
-
-        # prev2 始终为前年同期（固定基准）
-        y2_date = shift_year_clamped(date(cur_start_y, cur_start_m, cur_start_d), 2)
-        y2_start_dt = f"{y2_date.year}-{y2_date.month:02d}-{y2_date.day:02d} 00:00:00"
-        y2_end_year, y2_end_month = cur_end_y - 2, cur_end_m
-        y2_end_day = min(cur_end_d, monthrange(y2_end_year, y2_end_month)[1])
-        y2_end_dt = f"{y2_end_year}-{y2_end_month:02d}-{y2_end_day:02d} 23:59:59"
-        # cutoff = 前年同期 start - 1天
-        y2_cutoff_date = date(y2_date.year, y2_date.month, y2_date.day) - timedelta(days=1)
-        y2_cutoff_str = y2_cutoff_date.strftime("%Y-%m-%d")
-
-        current_year_label = str(cur_start_y)
-        prev2_year_label = str(cur_start_y - 2)
+            comp_range = ranges["comparison"]
+            ly_start_dt = comp_range.start_dt
+            ly_end_dt = comp_range.end_dt
+            ly_cutoff_str = comp_range.cutoff
+            comp_year_label = comp_range.start[:4]
 
         return {
             "current": (cur_start_dt, cur_end_dt, cutoff),
             "comp": (ly_start_dt, ly_end_dt, ly_cutoff_str),
-            "prev2": (y2_start_dt, y2_end_dt, y2_cutoff_str),
+            "prev2": (prev2_range.start_dt, prev2_range.end_dt, prev2_range.cutoff),
             "labels": (current_year_label, comp_year_label, prev2_year_label),
         }
 
@@ -185,6 +165,11 @@ def _flow_cache_key(
     compare_start_date: Optional[str],
     compare_end_date: Optional[str],
     data_version: str,
+    sample_mode: Optional[str] = None,
+    sample_channel_ids: Optional[List[str]] = None,
+    as_of: Optional[str] = None,
+    history_channels: Optional[List[str]] = None,
+    history_product_ids: Optional[List[str]] = None,
 ) -> str:
     """生成缓存文件名 (MD5 full 32 char + namespace prefix `flow_`).
 
@@ -195,11 +180,14 @@ def _flow_cache_key(
     exclude_part = (
         ",".join(sorted(exclude_channels)) if exclude_channels else ""
     )
+    sample_part = ",".join(sorted(sample_channel_ids or []))
     payload = (
         f"{flow_type}|{start_date}|{end_date}|{channel or ''}|"
         f"{metric_type}|{exclude_part}|{compare_start_date or ''}|"
-        f"{compare_end_date or ''}|{data_version}|{FLOW_ALGO_VERSION}"
+        f"{compare_end_date or ''}|{data_version}|{FLOW_ALGO_VERSION}|"
+        f"{sample_mode or 'INCLUDE'}|{sample_part}|{as_of or ''}"
     )
+    payload += "|" + json.dumps([sorted(history_channels or []), sorted(history_product_ids or [])], ensure_ascii=False)
     digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # full 32 char
     return f"flow_{digest}.json"
 

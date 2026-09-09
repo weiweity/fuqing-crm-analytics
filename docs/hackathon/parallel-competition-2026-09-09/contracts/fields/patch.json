@@ -1,0 +1,185 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-board-patch/v1",
+        "default": "competition-board-patch/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Board Id",
+      "enum": null,
+      "name": "board_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Board Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Block Id",
+      "enum": null,
+      "name": "block_id",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Block Id"
+      }
+    },
+    {
+      "description": "Base Version",
+      "enum": null,
+      "name": "base_version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "minimum": 1,
+        "title": "Base Version",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Attempt Id",
+      "enum": null,
+      "name": "attempt_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Attempt Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Idempotency Key",
+      "enum": null,
+      "name": "idempotency_key",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Idempotency Key",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "intent",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/PatchIntent"
+      }
+    },
+    {
+      "description": "Cockpit Op",
+      "enum": null,
+      "name": "cockpit_op",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "discriminator": {
+              "mapping": {
+                "add": "#/$defs/AnalyticsCockpitAddOp",
+                "copy": "#/$defs/AnalyticsCockpitCopyOp",
+                "layout": "#/$defs/AnalyticsCockpitLayoutOp",
+                "remove": "#/$defs/AnalyticsCockpitRemoveOp",
+                "undo": "#/$defs/AnalyticsCockpitUndoOp"
+              },
+              "propertyName": "op"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/AnalyticsCockpitAddOp"
+              },
+              {
+                "$ref": "#/$defs/AnalyticsCockpitCopyOp"
+              },
+              {
+                "$ref": "#/$defs/AnalyticsCockpitRemoveOp"
+              },
+              {
+                "$ref": "#/$defs/AnalyticsCockpitLayoutOp"
+              },
+              {
+                "$ref": "#/$defs/AnalyticsCockpitUndoOp"
+              }
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Cockpit Op"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "display_op",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CompetitionDisplayOp"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "filter_change",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CompetitionFilterChangeOp"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    }
+  ],
+  "model": "CompetitionPatchRequest",
+  "schema_version": "competition-board-patch/v1"
+}

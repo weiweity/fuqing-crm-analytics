@@ -37,6 +37,12 @@ from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal
 from backend.services.analytics.resource_profile import canonical_json, content_hash
 
 DASHBOARD_SCHEMA = "analytics-cockpit/v1"
+COMPETITION_BOARD_NAMESPACE = "competition-board/v1"
+LEGACY_SNAPSHOT_COMPAT = "READ_OLD_SNAPSHOT"
+LEGACY_BOARD_LIMITATION = (
+    "沿用 analytics-cockpit/v1 SNAPSHOT 读兼容；competition-board/v1 新板走隔离命名空间。"
+)
+EMPTY_BOARD_LIMITATION = "无块的已存板仍是合法 BoardSpec，不等于失败。"
 FILTER_SCHEMA = "analytics-cockpit-filters/v1"
 DATA_SCOPE = QUERY_DATA_SCOPE
 CAPABILITY_READ = "dashboard:read"
@@ -416,6 +422,36 @@ class CockpitRecord:
             "finite_mock": True,
             "http_api": "NOT_CONNECTED",
         }
+
+
+def legacy_block_ids(cards: list[dict[str, Any]]) -> list[str]:
+    return [card["card_id"] for card in cards if isinstance(card.get("card_id"), str)]
+
+
+def legacy_spec_payload(record: CockpitRecord) -> dict[str, Any]:
+    """Read-only BoardSpec envelope for analytics-cockpit/v1 SNAPSHOT boards."""
+    block_ids = legacy_block_ids(record.cards)
+    return {
+        "schema_version": "competition-board/v1",
+        "board_id": record.dashboard_id,
+        "block_ids": block_ids,
+        "version": record.version,
+        "base_version": record.version,
+        "title": record.title,
+        "owner_id": record.owner_id,
+        "visibility": "PRIVATE",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "existing_dashboard_schema": DASHBOARD_SCHEMA,
+        "data_namespace": DASHBOARD_SCHEMA,
+        "snapshot_compat": LEGACY_SNAPSHOT_COMPAT,
+        "data_mode": "SNAPSHOT",
+        "preview": False,
+        "persisted": True,
+        "batch_id": None,
+        "operation_id": None,
+        "affected_block_ids": [],
+        "limitations": [EMPTY_BOARD_LIMITATION if not block_ids else LEGACY_BOARD_LIMITATION],
+    }
 
 
 class CockpitStore:

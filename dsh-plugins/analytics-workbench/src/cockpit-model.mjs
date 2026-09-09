@@ -1,5 +1,14 @@
 /** Decode/display a private SNAPSHOT cockpit. No metric compute, no HTTP, no session. */
 import { formatEmptyReason, formatFenYuan, formatRatioPercent } from './query-format.mjs';
+import {
+  canEndorse, decodeCompetitionBoardSpec, decodeCompetitionError, decodeCompetitionResultRef,
+} from './client/competition-board/decode.mjs';
+import { decodeActionDraft, decodeCandidateSet } from './client/competition-actions/transport.mjs';
+
+export {
+  canEndorse, decodeCompetitionBoardSpec, decodeCompetitionError, decodeCompetitionResultRef,
+};
+export { decodeActionDraft, decodeCandidateSet };
 
 export const COCKPIT_SCHEMA = 'analytics-cockpit/v1';
 export const FILTER_SCHEMA = 'analytics-cockpit-filters/v1';
@@ -360,6 +369,19 @@ export function buildCockpitView({
   return { ...base, kind: 'empty', message: COPY.empty };
 }
 
+export const COMPETITION_COPY = Object.freeze({
+  endorse: '认可结果',
+  confirm: '确认成板',
+  board: '可编辑看板',
+  actions: '人群行动',
+  discardPreview: '放弃预览不等于撤销已保存版本',
+  conflict: '409 保留本地草案，重读后再保存',
+  modelDown: '模型不可用时仍可查看已存板并手动编辑',
+  zero: '零候选不得伪造建议名单',
+  expired: '规则或来源变更后草稿过期；文案变更不过期',
+  noSend: '不自动发送',
+});
+
 export const COCKPIT_CSS = `
 .analytics-cockpit-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; }
 .analytics-cockpit-card { min-height:44px; }
@@ -368,6 +390,9 @@ export const COCKPIT_CSS = `
 @media (max-width:768px) {
   .analytics-cockpit-grid { grid-template-columns:1fr; }
   .analytics-cockpit-card { grid-column:1 / -1 !important; grid-row:auto !important; }
+}
+@media (max-width:390px) {
+  .analytics-cockpit-grid { grid-template-columns:1fr; }
 }
 `;
 

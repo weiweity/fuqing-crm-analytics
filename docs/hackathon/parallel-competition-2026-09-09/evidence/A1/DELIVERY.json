@@ -1,0 +1,156 @@
+{
+  "task_id": "A1",
+  "status": "COMPLETE",
+  "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a1",
+  "branch": "codex/competition-a1",
+  "head": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "dirty_at_start": [
+    "DESIGN.md",
+    "docs/hackathon/DSH-UI-INTERACTION-SPEC.md",
+    "docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md",
+    "docs/hackathon/README.md",
+    "docs/hackathon/TODOS.md",
+    "ASSIGNMENT.md",
+    "docs/hackathon/AUTOPLAN-COMPETITION-REVIEW-2026-09-09.md",
+    "docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md",
+    "docs/hackathon/parallel-competition-2026-09-09/"
+  ],
+  "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+  "contract_hash": "97ee36833200b3a1626a4fa88e6b3bc9591bfb5f6bebc5e666aeabdcce13815a",
+  "openapi_sha256": "6d6558e894441d707417003ad9f92e4fc486c1c21c1b92a6d9bc1a24f5c5967f",
+  "c0_schema": "competition-c0/v1",
+  "changed_files": [
+    "backend/contracts/competition_c0.py",
+    "backend/contracts/schemas.py",
+    "backend/contracts/analytics-competition-c0.openapi.json",
+    "backend/contracts/tests/test_competition_c0.py",
+    "dsh-plugins/analytics-workbench/src/competition-c0-contract.generated.d.ts",
+    "scripts/dsh-b0/competition-c0-contract.mjs",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/C0-MANIFEST.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/competition-c0-contract.typecheck.ts",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/defaults.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/mapping.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/support_matrix.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/frontend_ports.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/action.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/batch.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/batch_receipt.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/board.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/candidates.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/capability.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/cohort.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/condition.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/frontend_port.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/patch.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/resolved_condition.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fields/result.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/conflict_409.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/empty.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/param_error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/partial_success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/permission_denied.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/audience/success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/conflict_409.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/empty.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/param_error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/partial_success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/permission_denied.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/board/success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/empty.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/param_error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/permission_denied.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/capabilities/success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/empty.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/param_error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/permission_denied.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/condition/success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/empty.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/param_error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/permission_denied.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/error/success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/empty.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/param_error.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/permission_denied.json",
+    "docs/hackathon/parallel-competition-2026-09-09/contracts/fixtures/result/success.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/DELIVERY.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/env.txt",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/pytest-c0.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/contract-lint.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/ruff-c0.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/c0-generator-check.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/existing-generators.log",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/verification-plan.log"
+  ],
+  "patch_artifacts": [],
+  "validation": [
+    {
+      "command": "/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 -m pytest backend/contracts/tests/test_competition_c0.py backend/contracts/tests/test_lint.py -q --noconftest",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/pytest-c0.log"
+    },
+    {
+      "command": "/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 -m backend.contracts._lint",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/contract-lint.log"
+    },
+    {
+      "command": "/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 -m ruff check backend/contracts/competition_c0.py backend/contracts/schemas.py backend/contracts/tests/test_competition_c0.py",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/ruff-c0.log"
+    },
+    {
+      "command": "node scripts/dsh-b0/competition-c0-contract.mjs --check --python /Users/hutou/homebrew/opt/python@3.14/bin/python3.14",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/c0-generator-check.log"
+    },
+    {
+      "command": "node scripts/dsh-b0/{run-kernel,query,query-run,analysis,cockpit,first-purchase,first-purchase-analysis,first-purchase-cockpit}-contract.mjs --check --python /Users/hutou/homebrew/opt/python@3.14/bin/python3.14",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A1/existing-generators.log"
+    }
+  ],
+  "integration_requests": [
+    {
+      "owner": "Grok",
+      "path": "scripts/dsh-b0/pipeline.mjs",
+      "reason": "C0 离线生成器未接入既有 B0 pipeline --check 列表，重复执行无漂移目前只能手工跑 competition-c0-contract.mjs。",
+      "minimal_diff": "在 first-purchase-cockpit-contract.mjs --check 之后增加: run(process.execPath, ['scripts/dsh-b0/competition-c0-contract.mjs', '--check', '--python', python]);",
+      "consumers": ["A5", "A6", "A7", "A8", "A9", "CI"],
+      "negative_test": "改 generated d.ts 或 OpenAPI 后 pipeline --check 必须非零。"
+    },
+    {
+      "owner": "Grok",
+      "path": "scripts/ci/pre_push_path_class.py",
+      "reason": "backend/contracts/competition_c0.py 与 analytics-competition-c0.openapi.json 当前是未映射路径，verification_plan 会选 backend=full；A1 禁止重型测试，且这些文件属于 B0 合同族。",
+      "minimal_diff": "B0_EXACT 增加 backend/contracts/competition_c0.py 与 backend/contracts/analytics-competition-c0.openapi.json。",
+      "consumers": ["local pre-push", "PR CI"],
+      "negative_test": "只改 competition_c0.py 时 plan.b0=true 且 backend!=full。"
+    }
+  ],
+  "not_run": [
+    "scripts/dsh-b0/pipeline.mjs --check（A1 禁止重型测试：含 analytics pytest 全套、插件构建、native smoke）",
+    "python3 scripts/ci/run_checks.py 实跑（plan-only 显示 backend=full + b0=true，未执行）",
+    "127.0.0.1:18080 临时 OpenAPI 服务（使用 models_json_schema 离线生成，未占端口）",
+    "T01–T07 业务计算与真实 HTTP 401/403（合同/fixture 层，不算计算已修）"
+  ],
+  "risks": [
+    "SAMPLE_CHANNEL_SET / MEMBER_HISTORY / F_ORDER_GRAIN_OLD_CRM / VALID_ORDER_RULE_OLD_CRM / NEW_OLD_CUSTOM_MONTH_CUTOFF 标 UNKNOWN，未编造规则。",
+    "旧 audience_summary 自定义日期 cutoff 仍是月初-1，与 C0 start-1 不兼容；绑定层不得静默调用该分支。",
+    "FILTER_CHANGE、批量分板、能力目录 HTTP、行动草稿均为 NOT_CONNECTED；现有 cockpit HTTP 仍是单板 SNAPSHOT TABLE。",
+    "B0 AnalyticsErrorDetail 仍无 param/retry_after/doc_ref；C0 CompetitionErrorDetail 是超集，A3 接线前旧错误体不完整。",
+    "sample_mode_when_excluding 与 board_layout_mode 默认值待确认，请求里必须显式传枚举。"
+  ],
+  "owned_processes": [],
+  "mapping_summary": {
+    "Condition": "CompetitionCondition ← ChannelFollowupQueryRequest / AudienceSummaryRequest / FilterBuilder / DateRange；AnalyticsRunRequest.condition_patch 仍为 None",
+    "ResultRef": "CompetitionResultRef ← AnalyticsRunSnapshot.primary_result_ref / ChannelFollowupResult / AnalyticsSavedSnapshot",
+    "BoardSpec": "CompetitionBoardSpec.board_id=AnalyticsDashboard.dashboard_id；block_id=card_id；旧 SNAPSHOT 只读兼容，新 competition-board/v1 隔离命名空间",
+    "Patch": "CompetitionPatchRequest 复用 AnalyticsCockpitOp；STYLE_ONLY 不查询，FILTER_CHANGE 必须新 run",
+    "Audience": "CompetitionCohortSpec/CandidateSet；handoff-audience 不得冒充去年 F≥4",
+    "Action": "CompetitionActionDraft；不是 Mission DRAFT_EXPORT；auto_send=false",
+    "Error": "CompetitionErrorDetail 超集映射 AnalyticsErrorDetail",
+    "Capabilities": "CompetitionCapability + SUPPORT_MATRIX；actor 过滤但后端仍鉴权"
+  }
+}

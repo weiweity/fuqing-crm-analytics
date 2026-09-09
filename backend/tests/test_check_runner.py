@@ -234,3 +234,15 @@ def test_ci_deduplicates_checks_without_weakening_local_plan(paths):
     assert select_tests(ci) == select_tests(local)
     if 'scripts/ci/run_checks.py' in paths:
         assert ['-m', 'ruff', 'check', 'scripts/ci/run_checks.py'] in ci
+
+
+def test_b0_can_use_separate_locked_python_without_changing_backend(monkeypatch, tmp_path):
+    executable = tmp_path / "python"
+    executable.write_text("test executable path")
+    monkeypatch.setenv("FQ_B0_PYTHON", str(executable))
+    plan = verification_plan(["backend/main.py", "scripts/dsh-b0/pipeline.mjs"])
+    steps = commands(plan)
+    b0 = next(args for axis, args, _ in steps if axis == "b0")
+    backend = next(args for axis, args, _ in steps if axis == "backend")
+    assert b0[-1] == str(executable)
+    assert backend[0] == sys.executable

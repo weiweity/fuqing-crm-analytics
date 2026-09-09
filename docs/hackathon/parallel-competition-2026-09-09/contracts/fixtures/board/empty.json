@@ -1,0 +1,23 @@
+{
+  "affected_block_ids": [],
+  "base_version": 1,
+  "batch_id": null,
+  "block_ids": [],
+  "board_id": "dash_c0_board_a",
+  "data_mode": "SNAPSHOT",
+  "data_namespace": "analytics-cockpit/v1",
+  "existing_dashboard_schema": "analytics-cockpit/v1",
+  "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+  "limitations": [
+    "无块的已存板仍是合法 BoardSpec，不等于失败。"
+  ],
+  "operation_id": null,
+  "owner_id": "analyst.brand-a",
+  "persisted": true,
+  "preview": false,
+  "schema_version": "competition-board/v1",
+  "snapshot_compat": "READ_OLD_SNAPSHOT",
+  "title": "空板",
+  "version": 1,
+  "visibility": "PRIVATE"
+}

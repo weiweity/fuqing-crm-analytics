@@ -1,0 +1,87 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "analysis": {
+    "start": "2026-09-15",
+    "end": "2026-09-21",
+    "as_of_today": "2026-09-22",
+    "data_cutoff": "2026-09-21",
+    "new_old_cutoff": "2026-09-14",
+    "timezone": "Asia/Shanghai"
+  },
+  "channels": {
+    "CH_RETAIL": "synthetic retail",
+    "CH_SAMPLE": "synthetic sample; real 派样 ids PENDING_C0"
+  },
+  "orders": [
+    {"order_id": "O-SEP5", "user_id": "U-SEP5", "paid_date": "2026-09-05", "channel": "CH_RETAIL", "actual_amount": "64.00", "lines": [{"sku": "SKU-R", "amount": "64.00"}], "refunds": []},
+    {"order_id": "O-TRI", "user_id": "U-TRI-LINE", "paid_date": "2026-09-16", "channel": "CH_RETAIL", "actual_amount": "50.00", "lines": [{"sku": "SKU-A", "amount": "17.50"}, {"sku": "SKU-B", "amount": "22.00"}, {"sku": "SKU-C", "amount": "10.50"}], "refunds": []},
+    {"order_id": "O-S0", "user_id": "U-SAMPLE", "paid_date": "2026-08-20", "channel": "CH_SAMPLE", "actual_amount": "3.00", "lines": [{"sku": "SKU-S", "amount": "3.00"}], "refunds": []},
+    {"order_id": "O-S1", "user_id": "U-SAMPLE", "paid_date": "2026-09-16", "channel": "CH_SAMPLE", "actual_amount": "3.00", "lines": [{"sku": "SKU-S", "amount": "3.00"}], "refunds": []},
+    {"order_id": "O-R1", "user_id": "U-SAMPLE", "paid_date": "2026-09-18", "channel": "CH_RETAIL", "actual_amount": "188.00", "lines": [{"sku": "SKU-F", "amount": "188.00"}], "refunds": []},
+    {"order_id": "O-N1", "user_id": "U-NEW", "paid_date": "2026-09-19", "channel": "CH_RETAIL", "actual_amount": "41.00", "lines": [{"sku": "SKU-N", "amount": "41.00"}], "refunds": []},
+    {"order_id": "O-D1", "user_id": "U-TWO", "paid_date": "2026-09-17", "channel": "CH_RETAIL", "actual_amount": "12.00", "lines": [{"sku": "SKU-D1", "amount": "12.00"}], "refunds": []},
+    {"order_id": "O-D2", "user_id": "U-TWO", "paid_date": "2026-09-17", "channel": "CH_RETAIL", "actual_amount": "13.00", "lines": [{"sku": "SKU-D2", "amount": "13.00"}], "refunds": []},
+    {"order_id": "O-RF", "user_id": "U-FULL", "paid_date": "2026-09-16", "channel": "CH_RETAIL", "actual_amount": "77.00", "lines": [{"sku": "SKU-RF", "amount": "77.00"}], "refunds": [{"refunded_at": "2026-09-18", "amount": "77.00"}]},
+    {"order_id": "O-PR", "user_id": "U-PART", "paid_date": "2026-09-16", "channel": "CH_RETAIL", "actual_amount": "90.00", "lines": [{"sku": "SKU-PR", "amount": "90.00"}], "refunds": [{"refunded_at": "2026-09-18", "amount": "27.00"}]},
+    {"order_id": "O-TR", "user_id": "U-TRUNC", "paid_date": "2026-09-16", "channel": "CH_RETAIL", "actual_amount": "8.00", "lines": [{"sku": "SKU-T", "amount": "8.00"}], "refunds": [], "history_coverage_start": "2026-01-01"}
+  ],
+  "hand_arithmetic": {
+    "tri_line_sum": "17.50 + 22.00 + 10.50 = 50.00",
+    "partial_net": "90.00 - 27.00 = 63.00",
+    "full_net": "77.00 - 77.00 = 0.00 => not effective",
+    "two_same_day": "12.00 + 13.00 = 25.00",
+    "default_period_gsv": "50 + 3 + 188 + 41 + 12 + 13 + 63 + 8 = 378.00",
+    "exclude_sample_period_gsv": "378.00 - 3.00 = 375.00"
+  },
+  "expected_by_path": {
+    "default_include_sample": {
+      "period_gsv": "378.00",
+      "period_order_count": 8,
+      "identities": {
+        "U-SEP5": {"identity": "OLD", "lifetime_f": 1, "period_gsv": "0.00", "why": "2026-09-05 < 2026-09-15; month-start cutoff 2026-08-31 would wrongly mark NEW"},
+        "U-TRI-LINE": {"identity": "NEW", "lifetime_f": 1, "period_gsv": "50.00", "fail_if_f": 3},
+        "U-SAMPLE": {"identity": "OLD", "lifetime_f": 3, "period_gsv": "191.00"},
+        "U-NEW": {"identity": "NEW", "lifetime_f": 1, "period_gsv": "41.00"},
+        "U-TWO": {"identity": "NEW", "lifetime_f": 2, "period_gsv": "25.00"},
+        "U-FULL": {"identity": "OUT_OF_BUYER_SET", "lifetime_f": 0, "period_gsv": "0.00"},
+        "U-PART": {"identity": "NEW", "lifetime_f": 1, "period_gsv": "63.00"},
+        "U-TRUNC": {"identity": "NEW", "lifetime_f": 1, "period_gsv": "8.00", "history_flag": "HISTORY_COVERAGE_TRUNCATED"}
+      },
+      "old_count": 2,
+      "new_count": 5,
+      "history_recomputed": false
+    },
+    "current_only_exclude_sample": {
+      "period_gsv": "375.00",
+      "period_order_count": 7,
+      "old_count": 2,
+      "new_count": 5,
+      "U-SAMPLE": {"identity": "OLD", "lifetime_f": 3, "period_gsv": "188.00"},
+      "history_recomputed": false
+    },
+    "history_recompute_exclude_sample": {
+      "period_gsv": "375.00",
+      "period_order_count": 7,
+      "old_count": 1,
+      "new_count": 6,
+      "U-SAMPLE": {"identity": "NEW", "lifetime_f": 1, "period_gsv": "188.00", "first_effective": "2026-09-18"},
+      "history_recomputed": true,
+      "must_echo": "历史口径已重算"
+    },
+    "sales_retail_history_all_default": {
+      "period_gsv": "375.00",
+      "U-SAMPLE": {"identity": "OLD", "lifetime_f": 3},
+      "note": "sales_scope=CH_RETAIL must not collapse history_scope"
+    }
+  },
+  "path_diff_current_only_vs_history_recompute": {
+    "period_gsv_equal": true,
+    "period_gsv": "375.00",
+    "identity_equal": false,
+    "old_count": {"current_only": 2, "history_recompute": 1},
+    "U-SAMPLE_identity": {"current_only": "OLD", "history_recompute": "NEW"},
+    "U-SAMPLE_lifetime_f": {"current_only": 3, "history_recompute": 1},
+    "trap": "same period GSV must not imply same identity path"
+  }
+}

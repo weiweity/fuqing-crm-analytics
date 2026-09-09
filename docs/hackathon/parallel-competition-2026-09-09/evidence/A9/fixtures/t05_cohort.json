@@ -1,0 +1,71 @@
+{
+  "author": "A9",
+  "copied_from_a1_a2": false,
+  "snapshot": {
+    "as_of": "2025-12-31",
+    "rule": "F_2025 >= 4 on effective orders paid in calendar 2025",
+    "original_channel": "CH_HOME",
+    "original_product": "P-HOME",
+    "size": 10,
+    "member_ids": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10"]
+  },
+  "observation": {
+    "start": "2026-01-01",
+    "end": "2026-09-21",
+    "data_cutoff": "2026-09-21"
+  },
+  "year_2025_template": {
+    "orders": [
+      {"paid_date": "2025-02-10", "channel": "CH_HOME", "product": "P-HOME", "amount": "19.00"},
+      {"paid_date": "2025-05-12", "channel": "CH_HOME", "product": "P-HOME", "amount": "19.00"},
+      {"paid_date": "2025-08-08", "channel": "CH_HOME", "product": "P-HOME", "amount": "19.00"},
+      {"paid_date": "2025-11-03", "channel": "CH_HOME", "product": "P-HOME", "amount": "19.00"}
+    ],
+    "f": 4,
+    "gsv": "76.00"
+  },
+  "year_2026_repurchase": [
+    {"user_id": "C01", "paid_date": "2026-03-01", "channel": "CH_HOME", "product": "P-HOME", "amount": "27.00"},
+    {"user_id": "C02", "paid_date": "2026-03-04", "channel": "CH_HOME", "product": "P-OTHER", "amount": "27.00"},
+    {"user_id": "C03", "paid_date": "2026-03-07", "channel": "CH_HOME", "product": "P-HOME", "amount": "27.00"},
+    {"user_id": "C04", "paid_date": "2026-03-10", "channel": "CH_HOME", "product": "P-HOME", "amount": "27.00"},
+    {"user_id": "C05", "paid_date": "2026-04-02", "channel": "CH_OTHER", "product": "P-HOME", "amount": "27.00"},
+    {"user_id": "C06", "paid_date": "2026-04-05", "channel": "CH_OTHER", "product": "P-OTHER", "amount": "27.00"}
+  ],
+  "no_2026_orders": ["C07", "C08", "C09", "C10"],
+  "non_member_decoy": {
+    "user_id": "C11",
+    "note": "2026 F>=4 but absent from 2025 snapshot; must not enter frozen cohort",
+    "orders_2026_count": 5
+  },
+  "sets": {
+    "orig_channel_returned": ["C01", "C02", "C03", "C04"],
+    "switched_other_channel": ["C05", "C06"],
+    "storewide_not_returned": ["C07", "C08", "C09", "C10"],
+    "orig_channel_not_returned": ["C05", "C06", "C07", "C08", "C09", "C10"],
+    "storewide_returned": ["C01", "C02", "C03", "C04", "C05", "C06"],
+    "orig_product_returned": ["C01", "C03", "C04", "C05"],
+    "orig_product_not_returned": ["C02", "C06", "C07", "C08", "C09", "C10"]
+  },
+  "counts": {
+    "cohort_unique": 10,
+    "orig_channel_returned": 4,
+    "switched_other_channel": 2,
+    "storewide_not_returned": 4,
+    "orig_channel_not_returned": 6,
+    "storewide_returned": 6,
+    "orig_product_returned": 4,
+    "orig_product_not_returned": 6
+  },
+  "key_inequality": {
+    "orig_channel_not_returned": 6,
+    "storewide_not_returned": 4,
+    "assert": "6 != 4"
+  },
+  "fail_if": [
+    "reselect cohort by 2026 F (would drop C07-C10 and add C11)",
+    "treat orig_channel_not_returned as storewide_not_returned",
+    "count duplicate C01 source rows as 11 members",
+    "call C07-C10 permanently churned; they are observation-window non-returners only"
+  ]
+}

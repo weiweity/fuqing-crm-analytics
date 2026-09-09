@@ -1,0 +1,82 @@
+[
+  {
+    "c0_type": "CompetitionCondition",
+    "concept": "Condition",
+    "existing_types": [
+      "backend.contracts.analytics_query.ChannelFollowupQueryRequest",
+      "backend.contracts.audience.AudienceSummaryRequest",
+      "backend.semantic.filters.FilterBuilder",
+      "backend.semantic.time.DateRange",
+      "backend.contracts.analytics.AnalyticsRunRequest.condition_patch=None"
+    ],
+    "notes": "B0/query-run condition_patch remains None. C0 is the shared explicit object; old HTTP is a partial projection."
+  },
+  {
+    "c0_type": "CompetitionResultRef",
+    "concept": "ResultRef",
+    "existing_types": [
+      "backend.contracts.analytics.AnalyticsRunSnapshot.primary_result_ref",
+      "backend.contracts.analytics_query.ChannelFollowupResult",
+      "backend.contracts.analytics_analysis.AnalyticsSavedSnapshot",
+      "backend.contracts.analytics_query.ChannelFollowupResolvedFilters"
+    ],
+    "notes": "Reuse existing facts schemas by facts_schema_ref. Do not treat B0 STUB as a business result."
+  },
+  {
+    "c0_type": "CompetitionBoardSpec",
+    "concept": "BoardSpec",
+    "existing_types": [
+      "backend.contracts.analytics_cockpit.AnalyticsDashboard",
+      "dashboard_id→board_id",
+      "card_id→block_id",
+      "base_version"
+    ],
+    "notes": "analytics-cockpit/v1 SNAPSHOT stays readable. competition-board/v1 is an isolated namespace; no silent migration."
+  },
+  {
+    "c0_type": "CompetitionPatchRequest",
+    "concept": "Patch",
+    "existing_types": [
+      "backend.contracts.analytics_cockpit.AnalyticsCockpitOp",
+      "backend.services.analytics.cockpit.PATCH_FIELDS"
+    ],
+    "notes": "STYLE_ONLY must not query. FILTER_CHANGE creates a new run and is NOT_CONNECTED on current cockpit HTTP."
+  },
+  {
+    "c0_type": "CompetitionCohortSpec/CompetitionCandidateSet",
+    "concept": "Audience",
+    "existing_types": [
+      "backend.semantic.analytics_handoff_audience",
+      "backend.contracts.audience.AudienceRow",
+      "backend.services.analytics.family_handoff_audience"
+    ],
+    "notes": "handoff-audience is sample-to-full, not last-year F≥4. T05 cohort is a new A8 computation."
+  },
+  {
+    "c0_type": "CompetitionActionDraft",
+    "concept": "Action",
+    "existing_types": [
+      "backend.contracts.mission.ExportResponse.DRAFT_EXPORT_READY"
+    ],
+    "notes": "Mission DRAFT_EXPORT is experiment-arm export, not recall action drafts. auto_send is always false."
+  },
+  {
+    "c0_type": "CompetitionErrorDetail",
+    "concept": "Error",
+    "existing_types": [
+      "backend.contracts.analytics.AnalyticsErrorDetail",
+      "backend.services.analytics.access.AnalyticsError"
+    ],
+    "notes": "B0 subset lacks param/retry_after/doc_ref. C0 requires them; maps_to AnalyticsErrorDetail."
+  },
+  {
+    "c0_type": "CompetitionCapability",
+    "concept": "Capabilities",
+    "existing_types": [
+      "backend.services.analytics.access.AnalyticsPrincipal",
+      "backend.services.analytics.catalog.QUERY_FAMILIES",
+      "dashboard:read/dashboard:update/analysis:save/analysis:read"
+    ],
+    "notes": "Catalog is actor-filtered; backend still re-checks. HTTP catalog is NOT_CONNECTED."
+  }
+]

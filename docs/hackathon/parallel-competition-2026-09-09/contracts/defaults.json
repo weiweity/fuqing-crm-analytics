@@ -1,0 +1,68 @@
+[
+  {
+    "key": "metric_type",
+    "note": "工具必须显式传 GSV；旧 /audience/table 默认 GMV 不得继承。",
+    "pending_confirmation": false,
+    "value": "GSV"
+  },
+  {
+    "key": "timezone",
+    "note": "与 ChannelFollowupQueryRequest.timezone 及 W4 customer features 一致。",
+    "pending_confirmation": false,
+    "value": "Asia/Shanghai"
+  },
+  {
+    "key": "end_bound",
+    "note": "旧 CRM pay_time 闭区间。channel-follow-up FIXED 仍是开区间结束，绑定层用 exclusive_end_date()。",
+    "pending_confirmation": false,
+    "value": "INCLUSIVE_CALENDAR_DAY"
+  },
+  {
+    "key": "data_cutoff_policy",
+    "note": "PeriodBuilder 使用昨天；无本月可用数据返回 EMPTY，不比较未来完整月。",
+    "pending_confirmation": false,
+    "value": "T_PLUS_1_YESTERDAY"
+  },
+  {
+    "key": "leap_day_alignment",
+    "note": "已有 semantic.time.shift_year_clamped：目标年无该日则收敛到当月最后一天。",
+    "pending_confirmation": false,
+    "value": "CLAMP_TO_MONTH_END"
+  },
+  {
+    "key": "sample_mode_first_purchase_rfm",
+    "note": "小样默认计入首次购买和 RFM；剔除必须显式 sample_mode。",
+    "pending_confirmation": false,
+    "value": "INCLUDE"
+  },
+  {
+    "key": "sample_mode_when_excluding",
+    "note": "待确认。推荐剔除小样只过滤本期销售；EXCLUDE_AND_RECOMPUTE_HISTORY 必须显式选择。",
+    "pending_confirmation": true,
+    "value": "EXCLUDE_CURRENT_SALES_ONLY"
+  },
+  {
+    "key": "board_layout_mode",
+    "note": "待确认。推荐一组认可分析一板多块；BATCH_MULTI_BOARD 为可选显式模式。",
+    "pending_confirmation": true,
+    "value": "ONE_BOARD_MULTI_BLOCK"
+  },
+  {
+    "key": "data_mode",
+    "note": "沿用 analytics-saved-analysis/v1 与 analytics-cockpit/v1。LATEST_SUCCESS 为 NOT_CONNECTED。",
+    "pending_confirmation": false,
+    "value": "SNAPSHOT"
+  },
+  {
+    "key": "auto_send",
+    "note": "行动草稿不得自动发送；与 Mission DRAFT_EXPORT 不是同一对象。",
+    "pending_confirmation": false,
+    "value": false
+  },
+  {
+    "key": "member_history",
+    "note": "无核验过的历史会员状态时保持 UNKNOWN，不得伪装非会员。",
+    "pending_confirmation": false,
+    "value": "UNKNOWN"
+  }
+]

@@ -39,7 +39,7 @@ def _run_f_flow_period(
         conn, start_dt, end_dt, cutoff_dt,
         dimension="f",
         segment_order=F_SEGMENT_ORDER,
-        hist_extra_cols="COUNT(*) AS frequency",
+        hist_extra_cols="COUNT(DISTINCT order_id) AS frequency",
         segmentation_cte=_F_SEGMENTATION_CTE,
         channel=channel,
         metric_type=metric_type,
@@ -62,7 +62,7 @@ def get_rfm_f_flow(
     return get_rfm_flow(
         dimension="f",
         segment_order=F_SEGMENT_ORDER,
-        hist_extra_cols="COUNT(*) AS frequency",
+        hist_extra_cols="COUNT(DISTINCT order_id) AS frequency",
         segmentation_cte=_F_SEGMENTATION_CTE,
         year=year,
         metric_type=metric_type,

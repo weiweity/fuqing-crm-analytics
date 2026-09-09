@@ -1,15 +1,21 @@
 """指标服务 - 人群汇总
 calculate_audience_summary
 """
-from datetime import datetime, timedelta
+from datetime import date
 from typing import Optional, List, Dict, Any
 from backend.db.connection import get_connection
 from backend.semantic.filters import OrderFilters
 from backend.semantic.calculations import yoy_ratio, yoy_absolute, safe_ratio
-from backend.semantic.time import PeriodBuilder
+from backend.semantic.time import (
+    PeriodBuilder,
+    analysis_cutoff,
+    current_month_available,
+    resolve_comparison_range,
+)
 
 from ._shared import _expand_channel
 from backend.semantic.channels import UI_TO_DB, DB_TO_UI, CHANNEL_ORDER
+from .competition_compute import empty_mtd_summary, normalize_sample_mode
 from .overview import get_overview_metrics
 from .audience_table import get_audience_table
 
@@ -25,6 +31,13 @@ def calculate_audience_summary(
     compare_end_date: Optional[str] = None,
     product_ids: Optional[List[str]] = None,
     order_ids: Optional[List[str]] = None,
+    sample_mode: Optional[str] = None,
+    sample_channel_ids: Optional[List[str]] = None,
+    history_channels: Optional[List[str]] = None,
+    history_product_ids: Optional[List[str]] = None,
+    comparison_mode: Optional[str] = None,
+    today: Optional[date] = None,
+    conn=None,
 ) -> Dict[str, Any]:
     """
     人群看板汇总：三面板数据计算
@@ -38,10 +51,12 @@ def calculate_audience_summary(
     - channel：渠道筛选（为空则展示全店/所有渠道）
     - exclude_channels: 排除的渠道列表（如低价渠道）
     """
-    from datetime import date
-    from calendar import monthrange
-
-    today = date.today()
+    if (metric_type or "").upper() != "GSV":
+        raise ValueError("calculate_audience_summary requires explicit metric_type=GSV; received type is not ignored")
+    sample_mode, sample_channel_ids = normalize_sample_mode(sample_mode, sample_channel_ids)
+    today = today or date.today()
+    if start_date and end_date and start_date > end_date:
+        raise ValueError("period start_date must be <= end_date")
 
     # ── 日期范围解析 ────────────────────────────────────────────────
     # 优先级：period（PeriodBuilder） > start_date/end_date（自定义） > 默认MTD
@@ -50,6 +65,10 @@ def calculate_audience_summary(
         try:
             pb_func = getattr(PeriodBuilder, period.lower())
             ranges = pb_func(today=today)
+            if getattr(ranges["current"], "empty", False) or (
+                str(period).upper() == "MTD" and not current_month_available(today)
+            ):
+                return empty_mtd_summary(today=today, metric_type="GSV")
             cur_range = ranges["current"]
             comp_range = ranges["comparison"]
             prev2_range = ranges["prev2"]
@@ -75,86 +94,77 @@ def calculate_audience_summary(
             period = None  # fallback
 
     if not period and start_date and end_date:
-        # 用户自定义日期范围（已修复 end_date day bug）
-        cur_start_dt = f"{start_date} 00:00:00"
-        cur_end_dt = f"{end_date} 23:59:59"
-        cur_start_y, cur_start_m, cur_start_d = map(int, start_date.split('-'))
-        cur_end_y, cur_end_m, cur_end_d = map(int, end_date.split('-'))
-        date(cur_start_y, cur_start_m, cur_start_d)
-        cutoff_date = date(cur_start_y, cur_start_m, 1) - timedelta(days=1)
-        cutoff = cutoff_date.strftime("%Y-%m-%d")
-        # 同比：同期去年（结束日改用 end_date 的 day）
-        ly_date = date(cur_start_y - 1, cur_start_m, cur_start_d)
-        ly_start_dt = f"{ly_date.year}-{ly_date.month:02d}-{ly_date.day:02d} 00:00:00"
-        ly_end_year, ly_end_month = cur_end_y - 1, cur_end_m
-        ly_end_day = min(cur_end_d, monthrange(ly_end_year, ly_end_month)[1])
-        ly_end_dt = f"{ly_end_year}-{ly_end_month:02d}-{ly_end_day:02d} 23:59:59"
-        # cutoff 必须以【开始月】为准，不能用结束月（否则 Q1 会切成 2-28）
-        ly_cutoff = date(ly_date.year, ly_date.month, 1) - timedelta(days=1)
-        ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
-        y2_date = date(cur_start_y - 2, cur_start_m, cur_start_d)
-        y2_start_dt = f"{y2_date.year}-{y2_date.month:02d}-{y2_date.day:02d} 00:00:00"
-        y2_end_year, y2_end_month = cur_end_y - 2, cur_end_m
-        y2_end_day = min(cur_end_d, monthrange(y2_end_year, y2_end_month)[1])
-        y2_end_dt = f"{y2_end_year}-{y2_end_month:02d}-{y2_end_day:02d} 23:59:59"
-        y2_cutoff = date(y2_date.year, y2_date.month, 1) - timedelta(days=1)
-        y2_cutoff_str = y2_cutoff.strftime("%Y-%m-%d")
-        current_year_label = str(cur_start_y)
-        comp_year_label = str(cur_start_y - 1)
-        prev2_year_label = str(cur_start_y - 2)
+        ranges = PeriodBuilder.free(start_date, end_date)
+        cur_range = ranges["current"]
+        comp_range = ranges["comparison"]
+        prev2_range = ranges["prev2"]
+        cur_start_dt = f"{cur_range.start} 00:00:00"
+        cur_end_dt = f"{cur_range.end} 23:59:59"
+        ly_start_dt = f"{comp_range.start} 00:00:00"
+        ly_end_dt = f"{comp_range.end} 23:59:59"
+        y2_start_dt = f"{prev2_range.start} 00:00:00"
+        y2_end_dt = f"{prev2_range.end} 23:59:59"
+        cutoff = cur_range.cutoff
+        ly_cutoff_str = comp_range.cutoff
+        y2_cutoff_str = prev2_range.cutoff
+        current_year_label = start_date[:4]
+        comp_year_label = comp_range.start[:4]
+        prev2_year_label = prev2_range.start[:4]
     elif not period:
-        # 默认当月MTD
-        yesterday = today - timedelta(days=1)
-        cur_month = today.month
-        _, last_day_cur = monthrange(today.year, cur_month)
-        cur_start = f"{today.year}-{cur_month:02d}-01"
-        cur_end = f"{today.year}-{cur_month:02d}-{min(yesterday.day, last_day_cur):02d}"
-        cur_start_dt = f"{cur_start} 00:00:00"
-        cur_end_dt = f"{cur_end} 23:59:59"
-        cur_start_y, cur_start_m, cur_start_d = today.year, cur_month, 1
-        cutoff = (datetime(today.year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+        if not current_month_available(today):
+            return empty_mtd_summary(today=today, metric_type="GSV")
+        ranges = PeriodBuilder.mtd(today=today)
+        cur_range = ranges["current"]
+        comp_range = ranges["comparison"]
+        prev2_range = ranges["prev2"]
+        cur_start_dt = f"{cur_range.start} 00:00:00"
+        cur_end_dt = f"{cur_range.end} 23:59:59"
+        ly_start_dt = f"{comp_range.start} 00:00:00"
+        ly_end_dt = f"{comp_range.end} 23:59:59"
+        y2_start_dt = f"{prev2_range.start} 00:00:00"
+        y2_end_dt = f"{prev2_range.end} 23:59:59"
+        cutoff = cur_range.cutoff
+        ly_cutoff_str = comp_range.cutoff
+        y2_cutoff_str = prev2_range.cutoff
+        current_year_label = cur_range.start[:4]
+        comp_year_label = comp_range.start[:4]
+        prev2_year_label = prev2_range.start[:4]
 
-        comp_year = today.year - 1
-        _, last_day_comp = monthrange(comp_year, cur_month)
-        comp_start = f"{comp_year}-{cur_month:02d}-01"
-        comp_end = f"{comp_year}-{cur_month:02d}-{min(yesterday.day, last_day_comp):02d}"
-        comp_start_dt = f"{comp_start} 00:00:00"
-        comp_end_dt = f"{comp_end} 23:59:59"
-        comp_cutoff = (datetime(comp_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        prev2_year = today.year - 2
-        _, last_day_prev2 = monthrange(prev2_year, cur_month)
-        prev2_start = f"{prev2_year}-{cur_month:02d}-01"
-        prev2_end = f"{prev2_year}-{cur_month:02d}-{min(yesterday.day, last_day_prev2):02d}"
-        prev2_start_dt = f"{prev2_start} 00:00:00"
-        prev2_end_dt = f"{prev2_end} 23:59:59"
-        prev2_cutoff = (datetime(prev2_year, cur_month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-        ly_start_dt = comp_start_dt
-        ly_end_dt = comp_end_dt
-        ly_cutoff_str = comp_cutoff
-        y2_start_dt = prev2_start_dt
-        y2_end_dt = prev2_end_dt
-        y2_cutoff_str = prev2_cutoff
-        current_year_label = str(today.year)
-        comp_year_label = str(comp_year)
-        prev2_year_label = str(prev2_year)
-
-    # ── 自定义对比期覆盖 ─────────────────────────────────────
-    if compare_start_date and compare_end_date:
+    # ── 对比期：C0 comparison_mode，再允许自定义窗覆盖 ────────
+    current_start = cur_start_dt[:10]
+    current_end = cur_end_dt[:10]
+    if comparison_mode:
+        mode = comparison_mode.upper()
+        if mode == "CUSTOM_DUAL_WINDOW" or (compare_start_date and compare_end_date):
+            comp = resolve_comparison_range(
+                "CUSTOM_DUAL_WINDOW", current_start, current_end,
+                compare_start_date, compare_end_date,
+            )
+        else:
+            comp = resolve_comparison_range(mode, current_start, current_end)
+        ly_start_dt = f"{comp.start} 00:00:00"
+        ly_end_dt = f"{comp.end} 23:59:59"
+        ly_cutoff_str = comp.cutoff
+        if mode == "CUSTOM_DUAL_WINDOW" or (compare_start_date and compare_end_date):
+            comp_year_label = "对比期"
+            y2_start_dt = "2099-01-01 00:00:00"
+            y2_end_dt = "2099-01-01 00:00:00"
+            y2_cutoff_str = "2099-01-01"
+            prev2_year_label = ""
+        else:
+            comp_year_label = comp.start[:4]
+    elif compare_start_date and compare_end_date:
         ly_start_dt = f"{compare_start_date} 00:00:00"
         ly_end_dt = f"{compare_end_date} 23:59:59"
-        comp_start_y, comp_start_m, comp_start_d = map(int, compare_start_date.split('-'))
-        ly_cutoff = date(comp_start_y, comp_start_m, 1) - timedelta(days=1)
-        ly_cutoff_str = ly_cutoff.strftime("%Y-%m-%d")
+        ly_cutoff_str = analysis_cutoff(compare_start_date).strftime("%Y-%m-%d")
         comp_year_label = "对比期"
-        # 用户自选对比期时，prev2 无意义，归零
         y2_start_dt = "2099-01-01 00:00:00"
         y2_end_dt = "2099-01-01 00:00:00"
         y2_cutoff_str = "2099-01-01"
         prev2_year_label = ""
 
-    conn = get_connection()
+    if conn is None:
+        conn = get_connection()
     try:
 
         def _n(v):
@@ -162,6 +172,13 @@ def calculate_audience_summary(
 
         def _safe_int(v):
             return int(v) if v is not None else 0
+
+        def _ratio(num, den):
+            value = safe_ratio(num, den)
+            return None if value is None else round(value, 4)
+
+        def _r(value, digits=4):
+            return None if value is None else round(value, digits)
 
         def _aggregate_channel_rows(data_map, db_channels):
             """聚合多个 DB 渠道的数据（用于组合渠道如'纯派样'）"""
@@ -197,6 +214,7 @@ def calculate_audience_summary(
 
         def _run_period_data(start_dt, end_dt, cutoff_dt, ch_filter: Optional[str] = None, ex_channels: Optional[List[str]] = None):
             """执行一个周期的查询，支持可选渠道过滤"""
+            mode = sample_mode
             params = [start_dt, end_dt]
             # valid_order() 来自语义层 uniform 口径
             valid_sql, _valid_params = OrderFilters.valid_order()
@@ -212,8 +230,11 @@ def calculate_audience_summary(
                     placeholders = ",".join(["?"] * len(db_channels))
                     where_parts.append(f"o.channel IN ({placeholders})")
                     params.extend(db_channels)
-            if ex_channels:
-                db_ex = [UI_TO_DB.get(ch, ch) for ch in ex_channels]
+            period_ex = list(ex_channels or [])
+            if mode != "INCLUDE":
+                period_ex.extend(sample_channel_ids or [])
+            if period_ex:
+                db_ex = [UI_TO_DB.get(ch, ch) for ch in period_ex]
                 placeholders = ",".join(["?"] * len(db_ex))
                 where_parts.append(f"o.channel NOT IN ({placeholders})")
                 params.extend(db_ex)
@@ -232,7 +253,51 @@ def calculate_audience_summary(
                     where_parts.append(f"o.order_id IN ({placeholders})")
                     params.extend(order_ids)
             where_sql = " AND ".join(where_parts)
-            full_params = params + [cutoff_dt]
+            hist_params: List = []
+            recompute_history = (
+                mode == "EXCLUDE_AND_RECOMPUTE_HISTORY"
+                or bool(history_channels)
+                or bool(history_product_ids)
+            )
+            if recompute_history:
+                hist_where = [
+                    "h.pay_time IS NOT NULL",
+                    "h.is_goujinjin = FALSE",
+                    "h.order_status != '交易关闭'",
+                    "h.is_refund = FALSE",
+                ]
+                if mode == "EXCLUDE_AND_RECOMPUTE_HISTORY":
+                    db_ex = [UI_TO_DB.get(ch, ch) for ch in (sample_channel_ids or [])]
+                    placeholders = ",".join(["?"] * len(db_ex))
+                    hist_where.append(f"h.channel NOT IN ({placeholders})")
+                    hist_params.extend(db_ex)
+                if history_channels:
+                    db_hist = [UI_TO_DB.get(ch, ch) for ch in history_channels]
+                    placeholders = ",".join(["?"] * len(db_hist))
+                    hist_where.append(f"h.channel IN ({placeholders})")
+                    hist_params.extend(db_hist)
+                if history_product_ids:
+                    placeholders = ",".join(["?"] * len(history_product_ids))
+                    hist_where.append(f"h.product_id IN ({placeholders})")
+                    hist_params.extend(history_product_ids)
+                old_customers_sql = f"""
+            old_customers AS (
+                SELECT user_id FROM (
+                    SELECT h.user_id, MIN(DATE(h.pay_time)) AS first_pay_date
+                    FROM orders h
+                    WHERE {" AND ".join(hist_where)}
+                    GROUP BY h.user_id
+                ) firsts
+                WHERE first_pay_date <= ?::DATE
+            )"""
+            else:
+                old_customers_sql = """
+            old_customers AS (
+                SELECT DISTINCT u.user_id
+                FROM user_first_purchase u
+                WHERE u.first_pay_date <= ?::DATE
+            )"""
+            full_params = params + hist_params + [cutoff_dt]
 
             sql = f"""
             WITH
@@ -240,11 +305,7 @@ def calculate_audience_summary(
                 SELECT * FROM orders o
                 WHERE {where_sql}
             ),
-            old_customers AS (
-                SELECT DISTINCT u.user_id
-                FROM user_first_purchase u
-                WHERE u.first_pay_date <= ?::DATE
-            ),
+            {old_customers_sql},
             enriched AS (
                 SELECT
                     o.channel AS dim_key,
@@ -271,6 +332,10 @@ def calculate_audience_summary(
                         NULLIF(COUNT(DISTINCT CASE WHEN is_member = TRUE THEN user_id END), 0) AS member_aus,
                     COUNT(DISTINCT CASE WHEN is_member = TRUE AND is_old = 1 THEN user_id END) AS member_old_users,
                     SUM(amount * CASE WHEN is_member = TRUE AND is_old = 1 THEN 1 ELSE 0 END) AS member_old_gsv,
+                    COUNT(DISTINCT CASE WHEN is_member IS NULL THEN user_id END) AS unknown_users,
+                    SUM(amount * CASE WHEN is_member IS NULL THEN 1 ELSE 0 END) AS unknown_gsv,
+                    COUNT(DISTINCT CASE WHEN is_member = FALSE THEN user_id END) AS non_member_users,
+                    SUM(amount * CASE WHEN is_member = FALSE THEN 1 ELSE 0 END) AS non_member_gsv,
                     GROUPING(dim_key) AS _grp
                 FROM enriched
                 GROUP BY GROUPING SETS ((dim_key), ())
@@ -280,7 +345,9 @@ def calculate_audience_summary(
                 gsv_users, gsv, aus,
                 old_users, old_gsv, old_aus,
                 member_users, member_gsv, member_aus,
-                member_old_users, member_old_gsv
+                member_old_users, member_old_gsv,
+                unknown_users, unknown_gsv,
+                non_member_users, non_member_gsv
             FROM grouped
             ORDER BY _grp ASC, gsv DESC
             """
@@ -288,7 +355,7 @@ def calculate_audience_summary(
             return {r[0]: r[1:] for r in raw}
 
         def _extract_metrics(data_map):
-            r = data_map.get('__TOTAL__', (0,) * 11)
+            r = data_map.get('__TOTAL__', (0,) * 15)
             gsv_users = _safe_int(r[0])
             gsv = _n(r[1])
             aus = _n(r[2])
@@ -305,6 +372,10 @@ def calculate_audience_summary(
             new_aus = new_gsv / new_users if new_users > 0 else 0.0
             member_new_gsv = max(0, member_gsv - member_old_gsv)
             member_new_users = max(0, member_users - member_old_users)
+            unknown_users = _safe_int(r[11]) if len(r) > 11 else 0
+            unknown_gsv = _n(r[12]) if len(r) > 12 else 0.0
+            non_member_users = _safe_int(r[13]) if len(r) > 13 else max(0, gsv_users - member_users - unknown_users)
+            non_member_gsv = _n(r[14]) if len(r) > 14 else max(0.0, gsv - member_gsv - unknown_gsv)
             return {
                 "gsv": gsv, "users": gsv_users, "aus": aus,
                 "old_gsv": old_gsv, "old_users": old_users, "old_aus": old_aus,
@@ -325,6 +396,10 @@ def calculate_audience_summary(
                 "member_new_aus": member_new_gsv / member_new_users if member_new_users > 0 else 0.0,
                 "member_new_gsv_ratio": round(member_new_gsv / member_gsv, 4) if member_gsv > 0 else 0.0,
                 "member_new_users_ratio": round(member_new_users / member_users, 4) if member_users > 0 else 0.0,
+                "unknown_users": unknown_users,
+                "unknown_gsv": unknown_gsv,
+                "non_member_users": non_member_users,
+                "non_member_gsv": non_member_gsv,
             }
 
         # Panel A 数据：支持渠道筛选（ch_filter=channel 时取该渠道数据；为空时取全店）
@@ -645,26 +720,26 @@ def calculate_audience_summary(
                 "new_gsv_2026": member_new_gsv_2026,
                 "new_gsv_2025": member_new_gsv_2025,
                 "new_gsv_yoy": yoy_absolute(member_new_gsv_2026, member_new_gsv_2025),
-                "new_gsv_ratio_2026": round(member_new_ratio_2026 , 4),
-                "new_gsv_ratio_2025": round(member_new_ratio_2025 , 4),
+                "new_gsv_ratio_2026": _r(member_new_ratio_2026),
+                "new_gsv_ratio_2025": _r(member_new_ratio_2025),
                 "new_gsv_ratio_yoy": yoy_ratio(member_new_ratio_2026, member_new_ratio_2025),
                 "old_gsv_2026": member_old_gsv_2026,
                 "old_gsv_2025": member_old_gsv_2025,
                 "old_gsv_yoy": yoy_absolute(member_old_gsv_2026, member_old_gsv_2025),
-                "old_gsv_ratio_2026": round(member_old_ratio_2026 , 4),
-                "old_gsv_ratio_2025": round(member_old_ratio_2025 , 4),
+                "old_gsv_ratio_2026": _r(member_old_ratio_2026),
+                "old_gsv_ratio_2025": _r(member_old_ratio_2025),
                 "old_gsv_ratio_yoy": yoy_ratio(member_old_ratio_2026, member_old_ratio_2025),
                 "member_new_gsv_2026": member_new_gsv_2026,
                 "member_new_gsv_2025": member_new_gsv_2025,
                 "member_new_gsv_yoy": yoy_absolute(member_new_gsv_2026, member_new_gsv_2025),
-                "member_new_gsv_ratio_2026": round(member_new_ratio_2026 , 4),
-                "member_new_gsv_ratio_2025": round(member_new_ratio_2025 , 4),
+                "member_new_gsv_ratio_2026": _r(member_new_ratio_2026),
+                "member_new_gsv_ratio_2025": _r(member_new_ratio_2025),
                 "member_new_gsv_ratio_yoy": yoy_ratio(member_new_ratio_2026, member_new_ratio_2025),
                 "member_old_gsv_2026": member_old_gsv_2026,
                 "member_old_gsv_2025": member_old_gsv_2025,
                 "member_old_gsv_yoy": yoy_absolute(member_old_gsv_2026, member_old_gsv_2025),
-                "member_old_gsv_ratio_2026": round(member_old_ratio_2026 , 4),
-                "member_old_gsv_ratio_2025": round(member_old_ratio_2025 , 4),
+                "member_old_gsv_ratio_2026": _r(member_old_ratio_2026),
+                "member_old_gsv_ratio_2025": _r(member_old_ratio_2025),
                 "member_old_gsv_ratio_yoy": yoy_ratio(member_old_ratio_2026, member_old_ratio_2025),
                 "new_users_2026": member_new_users_2026,
                 "new_users_2025": member_new_users_2025,
@@ -737,27 +812,27 @@ def calculate_audience_summary(
                     "new_gsv_2026": member_new_gsv_2026,
                     "new_gsv_2025": member_new_gsv_2025,
                     "new_gsv_yoy": yoy_absolute(member_new_gsv_2026, member_new_gsv_2025),
-                    "new_gsv_ratio_2026": round(member_new_ratio_2026 , 4),
-                    "new_gsv_ratio_2025": round(member_new_ratio_2025 , 4),
+                    "new_gsv_ratio_2026": _r(member_new_ratio_2026),
+                    "new_gsv_ratio_2025": _r(member_new_ratio_2025),
                     "new_gsv_ratio_yoy": yoy_ratio(member_new_ratio_2026, member_new_ratio_2025),
                     "old_gsv_2026": member_old_gsv_2026,
                     "old_gsv_2025": member_old_gsv_2025,
                     "old_gsv_yoy": yoy_absolute(member_old_gsv_2026, member_old_gsv_2025),
-                    "old_gsv_ratio_2026": round(member_old_ratio_2026 , 4),
-                    "old_gsv_ratio_2025": round(member_old_ratio_2025 , 4),
+                    "old_gsv_ratio_2026": _r(member_old_ratio_2026),
+                    "old_gsv_ratio_2025": _r(member_old_ratio_2025),
                     "old_gsv_ratio_yoy": yoy_ratio(member_old_ratio_2026, member_old_ratio_2025),
                     # 原始会员字段保留（供扩展列使用）
                     "member_new_gsv_2026": member_new_gsv_2026,
                     "member_new_gsv_2025": member_new_gsv_2025,
                     "member_new_gsv_yoy": yoy_absolute(member_new_gsv_2026, member_new_gsv_2025),
-                    "member_new_gsv_ratio_2026": round(member_new_ratio_2026 , 4),
-                    "member_new_gsv_ratio_2025": round(member_new_ratio_2025 , 4),
+                    "member_new_gsv_ratio_2026": _r(member_new_ratio_2026),
+                    "member_new_gsv_ratio_2025": _r(member_new_ratio_2025),
                     "member_new_gsv_ratio_yoy": yoy_ratio(member_new_ratio_2026, member_new_ratio_2025),
                     "member_old_gsv_2026": member_old_gsv_2026,
                     "member_old_gsv_2025": member_old_gsv_2025,
                     "member_old_gsv_yoy": yoy_absolute(member_old_gsv_2026, member_old_gsv_2025),
-                    "member_old_gsv_ratio_2026": round(member_old_ratio_2026 , 4),
-                    "member_old_gsv_ratio_2025": round(member_old_ratio_2025 , 4),
+                    "member_old_gsv_ratio_2026": _r(member_old_ratio_2026),
+                    "member_old_gsv_ratio_2025": _r(member_old_ratio_2025),
                     "member_old_gsv_ratio_yoy": yoy_ratio(member_old_ratio_2026, member_old_ratio_2025),
                     "new_users_2026": member_new_users_2026,
                     "new_users_2025": member_new_users_2025,
@@ -812,21 +887,21 @@ def calculate_audience_summary(
             "aus_2026": round(ttl_mem_aus_2026, 2),
             "aus_2025": round(ttl_mem_aus_2025, 2),
             "aus_yoy": yoy_absolute(ttl_mem_aus_2026, ttl_mem_aus_2025),
-            "member_ratio_2026": round(safe_ratio(mem_total_gsv, all_total_gsv) , 4),
-            "member_ratio_2025": round(safe_ratio(mem_comp_total_gsv, all_comp_total_gsv) , 4),
+            "member_ratio_2026": _ratio(mem_total_gsv, all_total_gsv),
+            "member_ratio_2025": _ratio(mem_comp_total_gsv, all_comp_total_gsv),
             "member_ratio_yoy": yoy_ratio(safe_ratio(mem_total_gsv, all_total_gsv), safe_ratio(mem_comp_total_gsv, all_comp_total_gsv)),
             # 复用全店列定义：占比 = 会员新客/老客 / 会员总GSV
             "new_gsv_2026": ttl_mem_new_gsv_2026,
             "new_gsv_2025": ttl_mem_new_gsv_2025,
             "new_gsv_yoy": yoy_absolute(ttl_mem_new_gsv_2026, ttl_mem_new_gsv_2025),
-            "new_gsv_ratio_2026": round(ttl_mem_new_ratio_2026 , 4),
-            "new_gsv_ratio_2025": round(ttl_mem_new_ratio_2025 , 4),
+            "new_gsv_ratio_2026": _r(ttl_mem_new_ratio_2026),
+            "new_gsv_ratio_2025": _r(ttl_mem_new_ratio_2025),
             "new_gsv_ratio_yoy": yoy_ratio(ttl_mem_new_ratio_2026, ttl_mem_new_ratio_2025),
             "old_gsv_2026": ttl_mem_old_gsv_2026,
             "old_gsv_2025": ttl_mem_old_gsv_2025,
             "old_gsv_yoy": yoy_absolute(ttl_mem_old_gsv_2026, ttl_mem_old_gsv_2025),
-            "old_gsv_ratio_2026": round(ttl_mem_old_ratio_2026 , 4),
-            "old_gsv_ratio_2025": round(ttl_mem_old_ratio_2025 , 4),
+            "old_gsv_ratio_2026": _r(ttl_mem_old_ratio_2026),
+            "old_gsv_ratio_2025": _r(ttl_mem_old_ratio_2025),
             "old_gsv_ratio_yoy": yoy_ratio(ttl_mem_old_ratio_2026, ttl_mem_old_ratio_2025),
             "new_users_2026": ttl_mem_new_users_2026,
             "new_users_2025": ttl_mem_new_users_2025,
@@ -844,14 +919,14 @@ def calculate_audience_summary(
             "member_new_gsv_2026": ttl_mem_new_gsv_2026,
             "member_new_gsv_2025": ttl_mem_new_gsv_2025,
             "member_new_gsv_yoy": yoy_absolute(ttl_mem_new_gsv_2026, ttl_mem_new_gsv_2025),
-            "member_new_gsv_ratio_2026": round(ttl_mem_new_ratio_2026 , 4),
-            "member_new_gsv_ratio_2025": round(ttl_mem_new_ratio_2025 , 4),
+            "member_new_gsv_ratio_2026": _r(ttl_mem_new_ratio_2026),
+            "member_new_gsv_ratio_2025": _r(ttl_mem_new_ratio_2025),
             "member_new_gsv_ratio_yoy": yoy_ratio(ttl_mem_new_ratio_2026, ttl_mem_new_ratio_2025),
             "member_old_gsv_2026": ttl_mem_old_gsv_2026,
             "member_old_gsv_2025": ttl_mem_old_gsv_2025,
             "member_old_gsv_yoy": yoy_absolute(ttl_mem_old_gsv_2026, ttl_mem_old_gsv_2025),
-            "member_old_gsv_ratio_2026": round(ttl_mem_old_ratio_2026 , 4),
-            "member_old_gsv_ratio_2025": round(ttl_mem_old_ratio_2025 , 4),
+            "member_old_gsv_ratio_2026": _r(ttl_mem_old_ratio_2026),
+            "member_old_gsv_ratio_2025": _r(ttl_mem_old_ratio_2025),
             "member_old_gsv_ratio_yoy": yoy_ratio(ttl_mem_old_ratio_2026, ttl_mem_old_ratio_2025),
         })
 
@@ -872,21 +947,50 @@ def calculate_audience_summary(
             mn_2025 = m_row.get("member_new_gsv_2025", 0)
             mo_2026 = m_row.get("member_old_gsv_2026", 0)
             mo_2025 = m_row.get("member_old_gsv_2025", 0)
-            m_row["member_new_vs_all_new_2026"] = round(safe_ratio(mn_2026, all_new_2026) , 4)
-            m_row["member_new_vs_all_new_2025"] = round(safe_ratio(mn_2025, all_new_2025) , 4)
-            m_row["member_new_vs_all_new_yoy"] = yoy_ratio(safe_ratio(mn_2026, all_new_2026), safe_ratio(mn_2025, all_new_2025))
-            m_row["member_old_vs_all_old_2026"] = round(safe_ratio(mo_2026, all_old_2026) , 4)
-            m_row["member_old_vs_all_old_2025"] = round(safe_ratio(mo_2025, all_old_2025) , 4)
-            m_row["member_old_vs_all_old_yoy"] = yoy_ratio(safe_ratio(mo_2026, all_old_2026), safe_ratio(mo_2025, all_old_2025))
+            mn_all_2026 = safe_ratio(mn_2026, all_new_2026)
+            mn_all_2025 = safe_ratio(mn_2025, all_new_2025)
+            mo_all_2026 = safe_ratio(mo_2026, all_old_2026)
+            mo_all_2025 = safe_ratio(mo_2025, all_old_2025)
+            m_row["member_new_vs_all_new_2026"] = None if mn_all_2026 is None else round(mn_all_2026, 4)
+            m_row["member_new_vs_all_new_2025"] = None if mn_all_2025 is None else round(mn_all_2025, 4)
+            m_row["member_new_vs_all_new_yoy"] = yoy_ratio(mn_all_2026, mn_all_2025)
+            m_row["member_old_vs_all_old_2026"] = None if mo_all_2026 is None else round(mo_all_2026, 4)
+            m_row["member_old_vs_all_old_2025"] = None if mo_all_2025 is None else round(mo_all_2025, 4)
+            m_row["member_old_vs_all_old_yoy"] = yoy_ratio(mo_all_2026, mo_all_2025)
 
         return {
             "year_label": current_year_label,
             "comp_year_label": comp_year_label,
             "prev2_year_label": prev2_year_label,
-            "metric_type": metric_type,
+            "metric_type": "GSV",
+            "completeness": "COMPLETE",
             "indicators": indicators,
             "channel_all": channel_all,
             "channel_member": channel_member,
+            "unknown_users": cur_m["unknown_users"],
+            "unknown_gsv": cur_m["unknown_gsv"],
+            "non_member_users": cur_m["non_member_users"],
+            "non_member_gsv": cur_m["non_member_gsv"],
+            "old_users": cur_m["old_users"],
+            "new_users": cur_m["new_users"],
+            "gsv": cur_m["gsv"],
+            "current_period": {"start": current_start, "end": current_end, "cutoff": cutoff},
+            "comparison_period": {
+                "start": ly_start_dt[:10],
+                "end": ly_end_dt[:10],
+                "cutoff": ly_cutoff_str,
+            },
+            "executed": {
+                "timezone": "Asia/Shanghai",
+                "metric_type": "GSV",
+                "cutoff": cutoff,
+                "sample_mode": sample_mode,
+                "sample_channel_ids": sample_channel_ids,
+                "sample_history_recomputed": sample_mode == "EXCLUDE_AND_RECOMPUTE_HISTORY",
+                "sample_channel_set_status": "UNKNOWN",
+                "member_history_status": "UNKNOWN",
+                "ignored_filters": [],
+            },
         }
     finally:
         pass

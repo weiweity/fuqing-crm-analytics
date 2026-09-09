@@ -1,0 +1,36 @@
+{
+  "expected": {
+    "code": "INVALID_REQUEST",
+    "http_status": 422,
+    "param": "visibility"
+  },
+  "payload": {
+    "affected_block_ids": [
+      "card_c0_block_1",
+      "card_c0_block_2"
+    ],
+    "base_version": 3,
+    "batch_id": "batch_c0_1",
+    "block_ids": [
+      "card_c0_block_1",
+      "card_c0_block_2"
+    ],
+    "board_id": "dash_c0_board_a",
+    "data_mode": "SNAPSHOT",
+    "data_namespace": "analytics-cockpit/v1",
+    "existing_dashboard_schema": "analytics-cockpit/v1",
+    "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+    "limitations": [
+      "沿用 analytics-cockpit/v1 SNAPSHOT 读兼容；competition-board/v1 新板走隔离命名空间。"
+    ],
+    "operation_id": "op_c0_board_a",
+    "owner_id": "analyst.brand-a",
+    "persisted": true,
+    "preview": false,
+    "schema_version": "competition-board/v1",
+    "snapshot_compat": "READ_OLD_SNAPSHOT",
+    "title": "8月GSV诊断板",
+    "version": 4,
+    "visibility": "PUBLIC"
+  }
+}

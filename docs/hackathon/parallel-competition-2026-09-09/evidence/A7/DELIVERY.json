@@ -1,0 +1,171 @@
+{
+  "task_id": "A7",
+  "status": "PARTIAL",
+  "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-a7",
+  "branch": "codex/competition-a7",
+  "head": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "base_sha": "71a65f06f87cb3a5cbd888372487b6b36faaf2a6",
+  "plan_snapshot_hash": "53f472f11c0ddfdf2106dd71fabe3c22c475a639a93962e95795931be8fb2937",
+  "contract_hash": "97ee36833200b3a1626a4fa88e6b3bc9591bfb5f6bebc5e666aeabdcce13815a",
+  "c0_version": "competition-c0/v1",
+  "summary": "离线诊断 Skill、受控工具模块与 C0 fixture 编排已交付。pack-skills/client/index 未改，留给总控注册。真服务未接；T13 真实模型 NOT_RUN。完整链因 diag.fixed_cohort/diag.non_repurchase UNSUPPORTED 与 action.draft NOT_CONNECTED 只能 PARTIAL。",
+  "changed_files": [
+    "backend/services/analytics/competition_diagnosis/__init__.py",
+    "backend/services/analytics/competition_diagnosis/catalog.py",
+    "backend/services/analytics/competition_diagnosis/chain.py",
+    "backend/services/analytics/competition_diagnosis/condition.py",
+    "backend/services/analytics/competition_diagnosis/errors.py",
+    "backend/services/analytics/competition_diagnosis/eval.py",
+    "backend/services/analytics/competition_diagnosis/fixtures.py",
+    "backend/services/analytics/competition_diagnosis/orchestrator.py",
+    "backend/services/analytics/competition_diagnosis/patch.py",
+    "backend/services/analytics/competition_diagnosis/planner.py",
+    "backend/services/analytics/competition_diagnosis/tests/__init__.py",
+    "backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py",
+    "dsh-plugins/analytics-workbench/skills/competition-growth/SKILL.md",
+    "dsh-plugins/analytics-workbench/skills/competition-growth/assets/result-example.json",
+    "dsh-plugins/analytics-workbench/skills/competition-growth/references/evidence-policy.md",
+    "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts",
+    "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/exports.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/family.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/frozen-package.json",
+    "dsh-plugins/analytics-workbench/src/competition-agent/offline.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/pack-skill.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/patch.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/selected-edit.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.lock.json",
+    "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.mjs",
+    "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/DELIVERY.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/cases.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/report.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/logs/offline-eval.log"
+  ],
+  "patch_artifacts": [
+    "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.lock.json",
+    "dsh-plugins/analytics-workbench/src/competition-agent/frozen-package.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/cases.json",
+    "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/report.json"
+  ],
+  "exports": {
+    "skill_name": "competition-growth",
+    "family": "competition_growth",
+    "tools": [
+      "competition_growth_skill_resource",
+      "competition_growth_capabilities",
+      "competition_growth_step",
+      "competition_growth_patch"
+    ],
+    "apply": "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts",
+    "pack": "dsh-plugins/analytics-workbench/src/competition-agent/pack-skill.mjs",
+    "python_adapter": "backend.services.analytics.competition_diagnosis",
+    "selected_edit_port": "a7.selected_edit",
+    "second_runtime": false
+  },
+  "validation": [
+    {
+      "command": "python3 -m ruff check backend/services/analytics/competition_diagnosis",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/logs/offline-eval.log"
+    },
+    {
+      "command": "PYTHONPATH=. python3 -m pytest backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py -q --disable-warnings",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/logs/offline-eval.log"
+    },
+    {
+      "command": "PYTHONPATH=. python3 -m backend.services.analytics.competition_diagnosis.eval",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/eval/report.json"
+    },
+    {
+      "command": "node --test dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs",
+      "exit_code": 0,
+      "evidence": "docs/hackathon/parallel-competition-2026-09-09/evidence/A7/logs/offline-eval.log"
+    }
+  ],
+  "eval": {
+    "planner": "OFFLINE_STUB",
+    "t13_real_model": "NOT_RUN",
+    "t13_stub": "PASS",
+    "cases_passed": 30,
+    "cases_total": 30,
+    "covers": ["T03", "T06", "T08", "T10", "T13-stub"]
+  },
+  "integration_requests": [
+    {
+      "owner": "Grok",
+      "path": "dsh-plugins/analytics-workbench/src/skill-package.mjs",
+      "reason": "把 competition_growth family 加入 FAMILIES，使原生 pack-skills 能打包 A7 Skill。",
+      "min_diff": "FAMILIES.competition_growth = { skillName: 'competition-growth', resourceTool: 'competition_growth_skill_resource', schemaVersion: 'competition-growth-skill-package/v1', versionPattern: /^cg-v[1-9][0-9]*$/, scope: 'COMPETITION_SYNTHETIC_ONLY', resourceSchema: 'competition-growth-skill-resource/v1', provider: 'analytics-competition-approved-bundle', lockFile: 'src/competition-agent/skill-package.lock.json' }。SkillFamily 联合类型同步。不要改现有 b0/channel_followup/first_purchase digest。",
+      "consumers": ["pack-skills.mjs", "src/skills.ts", "build.mjs"],
+      "negative_tests": ["未登记 family 仍 throw unsupported skill family", "B0 digest 不变"]
+    },
+    {
+      "owner": "Grok",
+      "path": "dsh-plugins/analytics-workbench/src/skills.ts",
+      "reason": "在单一 Agent Loop 注册 competition-growth Skill 与 resource tool。",
+      "min_diff": "import freezeCompetitionSkillPackage 或扩展 freezeSkillPackage(family)。runtime family 为 competition_growth 时 register pack.definition 与 competition_growth_skill_resource。不要第二 runtime。",
+      "consumers": ["Host loader"],
+      "negative_tests": ["未授权 resource key deny", "userInvocable false"]
+    },
+    {
+      "owner": "Grok",
+      "path": "dsh-plugins/analytics-workbench/src/tool.ts",
+      "reason": "注册 capabilities/step/patch 三个受控工具，不暴露旧 95 路由。",
+      "min_diff": "import { apply as applyCompetition } from './competition-agent/apply.ts'。family 匹配时调用。execute 在 A3 接线前保持 NOT_CONNECTED，禁止 fetch 4327/8000/5173。",
+      "consumers": ["DSH tools"],
+      "negative_tests": ["capability_id=/api/v1/audience/table 拒绝", "GMV 拒绝"]
+    },
+    {
+      "owner": "Grok",
+      "path": "dsh-plugins/analytics-workbench/build.mjs",
+      "reason": "构建期注入 Skill 包字节，避免运行时读文件系统。",
+      "min_diff": "packCompetitionSkill 或 packSkills(plugin, 'competition_growth')；define __COMPETITION_SKILL_PACKAGE__。仅在授权装配时加入 entryPoints。",
+      "consumers": ["lib/skills.js"],
+      "negative_tests": ["未改现有 B0/query/first-purchase define"]
+    },
+    {
+      "owner": "A3",
+      "path": "planned GET/POST competition catalog and diagnosis HTTP",
+      "reason": "将 DiagnosisAdapter.run_step 接到已鉴权 HTTP；A7 不复制计算、不改 main.py。",
+      "min_diff": "transport 调 A2 计算，回显 resolved_condition；catalog.http 仍 actor_filtered + backend_recheck。",
+      "consumers": ["competition_growth_step"],
+      "negative_tests": ["T06 撤权", "T08 预算/取消"]
+    },
+    {
+      "owner": "A5",
+      "path": "board patch transport",
+      "reason": "STYLE_ONLY 不查询；FILTER_CHANGE 新 run。A7 只生成 CompetitionPatchRequest。",
+      "min_diff": "If-Match base_version；同幂等键不同 payload 409。UI 选中不能改写在途 board_id/block_id。",
+      "consumers": ["a7.selected_edit", "competition_growth_patch"],
+      "negative_tests": ["T10 非法脚本", "T10 切选中"]
+    },
+    {
+      "owner": "A8",
+      "path": "fixed cohort / non-repurchase / draft",
+      "reason": "diag.fixed_cohort 与 diag.non_repurchase 当前 UNSUPPORTED；action.draft NOT_CONNECTED。A7 已诚实拒答。",
+      "min_diff": "不得用 handoff-audience 冒充去年 F≥4。auto_send 恒 false。",
+      "consumers": ["competition_growth_step"],
+      "negative_tests": ["T05 三种未回购", "T12 零候选"]
+    }
+  ],
+  "not_run": [
+    "T13 真实模型/provider/费用",
+    "A2 真计算接线",
+    "A3 HTTP/MCP",
+    "A5 看板持久化 apply",
+    "A8 cohort 金标准计算",
+    "B0 pipeline pack-skills 注册",
+    "4327/8000/5173 及任何内核 HTTP"
+  ],
+  "risks": [
+    "完整诊断链在 C0 中因固定 cohort/未回购 UNSUPPORTED 不能标 COMPLETE。",
+    "FILTER_CHANGE 与行动草稿 live 为 NOT_CONNECTED。",
+    "派样渠道集合、会员历史、旧 CRM F 粒度仍为 UNKNOWN。",
+    "离线 planner 是规则 stub，不能替代 T13 真模型。",
+    "本机 node 为 v25.8.2，未跑 toolchain Node 24 的 B0 pipeline。"
+  ],
+  "owned_processes": []
+}

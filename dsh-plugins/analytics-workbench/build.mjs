@@ -11,6 +11,7 @@ const { build, compiler } = await bindToolchain(root, upstream);
 const skillPackage = await packSkills(root);
 const querySkillPackage = await packSkills(root, 'channel_followup');
 const firstPurchaseSkillPackage = await packSkills(root, 'first_purchase');
+const competitionSkillPackage = await packSkills(root, 'competition_growth');
 checkTypes(root, compiler);
 
 const external = [
@@ -26,12 +27,17 @@ await build({
     __B0_SKILL_PACKAGE__: JSON.stringify(skillPackage),
     __QUERY_SKILL_PACKAGE__: JSON.stringify(querySkillPackage),
     __FIRST_PURCHASE_SKILL_PACKAGE__: JSON.stringify(firstPurchaseSkillPackage),
+    __COMPETITION_SKILL_PACKAGE__: JSON.stringify(competitionSkillPackage),
   },
   external: ['@deepseek-ai/*'],
 });
 await build({
   ...common, entryPoints: ['src/client/index.tsx'], outfile: 'lib/client.js',
   platform: 'browser', target: 'es2022', format: 'cjs', jsx: 'automatic', external,
+  define: {
+    'process.env.COMPETITION_HTTP_BASE': JSON.stringify(process.env.COMPETITION_HTTP_BASE || ''),
+    'process.env.COMPETITION_HTTP_TOKEN': JSON.stringify(process.env.COMPETITION_HTTP_TOKEN || ''),
+  },
   banner: { js: `window.__ModuleLoader__.load({ id: ${JSON.stringify(manifest.name)}, factory: (require) => {\nvar module = { exports: {} }; var exports = module.exports;` },
   footer: { js: 'return module.exports;\n} });' },
 });

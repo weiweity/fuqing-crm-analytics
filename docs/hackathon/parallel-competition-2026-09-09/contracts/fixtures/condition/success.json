@@ -1,0 +1,37 @@
+{
+  "as_of": "2026-08-31T16:00:00.000000+00:00",
+  "comparison_mode": "YOY_SAME_PERIOD",
+  "comparison_period": {
+    "end_bound": "INCLUSIVE_CALENDAR_DAY",
+    "end_date": "2025-08-31",
+    "start_date": "2025-08-01"
+  },
+  "current_period": {
+    "end_bound": "INCLUSIVE_CALENDAR_DAY",
+    "end_date": "2026-08-31",
+    "start_date": "2026-08-01"
+  },
+  "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+  "data_snapshot_ref": "synthetic-c0-demo-v1",
+  "history_scope": {
+    "channel_ids": [],
+    "kind": "ALL",
+    "product_ids": []
+  },
+  "leap_day_alignment": "CLAMP_TO_MONTH_END",
+  "metric_type": "GSV",
+  "metrics_contract_id": "competition-metrics/v1",
+  "rule_version": "competition-condition-rule/v1",
+  "sales_scope": {
+    "channel_ids": [],
+    "kind": "ALL",
+    "product_ids": []
+  },
+  "sample_channel_ids": [
+    "sample-channel-unverified-a",
+    "sample-channel-unverified-b"
+  ],
+  "sample_mode": "EXCLUDE_CURRENT_SALES_ONLY",
+  "schema_version": "competition-condition/v1",
+  "timezone": "Asia/Shanghai"
+}

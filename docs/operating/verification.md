@@ -99,3 +99,15 @@ Excel SSOT 的提交入口使用 `--staged`：从 Git index 读取变更 view �
 `DSH_DEV_UPSTREAM=/absolute/pinned/upstream node --test scripts/dsh-dev/*.test.mjs` 检查开发入口及 supervisor 失败清理，需 4325/4327 空闲；不停止现有监听。原生 UI-only 开关使用 `scripts/dsh-dev/cli.mjs start --plugin on|off`，与 B0 pipeline 分层。
 
 B0 `serve.mjs --python /absolute/python3.14 --port-base 4335 --native-first-purchase` 使用 4335–4339；gateway 与 rpc 从同工作树 `current.json` 读取端口，三者均在隔离 worktree 执行。`B0_BUILD_UPSTREAM` 可只读复用固定 checkout。Loader 测试默认使用独立 4326，支持 `B0_PORT_BASE=4335` 选择 4336；端口忙直接失败，不停止用户演示。完整基座 Settings 的插件清单为只读，启停在启动配置层验证。
+
+
+## 比赛集成候选复现（2026-09-09）
+
+比赛 Python 验收随 backend 全套运行，包含 A9、本地 HTTP、C0 合同和诊断服务测试；
+B0 pipeline 另检查 C0 离线产物以及比赛插件源测试和编译后 DOM。
+两套 Python 锁不同，混合检查可设置 `FQ_B0_PYTHON=/absolute/b0-venv/bin/python`，
+仅 B0 使用该解释器，其余检查仍使用 runner 的解释器；不安装或跳过检查。
+Logo 使用当前 checkout 的 Git LFS 字节，可执行
+`git lfs pull --include=frontend-vue3/src/assets/brand/shine-mage.png --exclude=`。
+不再从相邻工作树读取 Logo。supervisor 单测只选空闲 4328/4329；已有监听不停止。
+比赛 HTTP 演示仍为 synthetic；T13/T15/T16 不由单元测试替代。

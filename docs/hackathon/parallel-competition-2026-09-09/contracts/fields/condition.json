@@ -1,0 +1,250 @@
+{
+  "actual_execution": [
+    "current_period",
+    "comparison_period",
+    "timezone",
+    "cutoff",
+    "as_of",
+    "published_at",
+    "event_time",
+    "source_tense",
+    "sales_scope",
+    "history_scope",
+    "sample_mode",
+    "sample_channel_ids",
+    "rule_version",
+    "data_version"
+  ],
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-condition/v1",
+        "default": "competition-condition/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Metrics Contract Id",
+      "enum": null,
+      "name": "metrics_contract_id",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-metrics/v1",
+        "default": "competition-metrics/v1",
+        "title": "Metrics Contract Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Metric Type",
+      "enum": null,
+      "name": "metric_type",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "GSV",
+        "title": "Metric Type",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Timezone",
+      "enum": null,
+      "name": "timezone",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "Asia/Shanghai",
+        "title": "Timezone",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "current_period",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/InclusiveDateRange"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "comparison_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/ComparisonMode"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "comparison_period",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/InclusiveDateRange"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "sales_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/FilterScope"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "history_scope",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/FilterScope"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "sample_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/SampleMode"
+      }
+    },
+    {
+      "description": "Sample Channel Ids",
+      "enum": null,
+      "name": "sample_channel_ids",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sample Channel Ids"
+      }
+    },
+    {
+      "description": "Data Cutoff Policy",
+      "enum": null,
+      "name": "data_cutoff_policy",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "T_PLUS_1_YESTERDAY",
+        "title": "Data Cutoff Policy",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Leap Day Alignment",
+      "enum": null,
+      "name": "leap_day_alignment",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "CLAMP_TO_MONTH_END",
+        "title": "Leap Day Alignment",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Data Snapshot Ref",
+      "enum": null,
+      "name": "data_snapshot_ref",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Data Snapshot Ref"
+      }
+    },
+    {
+      "description": "As Of",
+      "enum": null,
+      "name": "as_of",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "As Of"
+      }
+    },
+    {
+      "description": "Rule Version",
+      "enum": null,
+      "name": "rule_version",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Rule Version"
+      }
+    }
+  ],
+  "model": "CompetitionCondition",
+  "permission_identity": {
+    "http": "Authorization Bearer as CockpitBearer / B0 identity; old CRM session is not C0 identity",
+    "request": "no owner_id; extra=forbid rejects client-supplied owner",
+    "resolved": "actor_id + permission_scope from AnalyticsPrincipal"
+  },
+  "schema_version": "competition-condition/v1",
+  "units": {
+    "amounts": "minor integer fen when facts reuse analytics_query",
+    "dates": "ISO YYYY-MM-DD in Asia/Shanghai",
+    "ratios": "0-1 on reused *_ratio fields; do not guess suffix magnitude",
+    "timestamps": "canonical UTC YYYY-MM-DDTHH:MM:SS.ffffff+00:00"
+  }
+}

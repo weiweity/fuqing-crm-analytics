@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { TOOL_NAME, decodeFixture } from './model.mjs';
 import { requestForTool } from './native-evidence.mjs';
-import { FIRST_PURCHASE_FAMILY, QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
+import { COMPETITION_FAMILY, FIRST_PURCHASE_FAMILY, QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
 import { apply as applyQueryTool } from './query-tool.ts';
 import { apply as applyFirstPurchaseQueryTool } from './first-purchase-query-tool.ts';
 
@@ -18,6 +18,9 @@ export function apply(ctx: Context): void {
   }
   if (runtimeFamily() === FIRST_PURCHASE_FAMILY) {
     applyFirstPurchaseQueryTool(ctx);
+    return;
+  }
+  if (runtimeFamily() === COMPETITION_FAMILY) {
     return;
   }
   ctx.tools.register(defineTool({

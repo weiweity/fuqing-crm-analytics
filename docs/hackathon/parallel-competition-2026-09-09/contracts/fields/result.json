@@ -1,0 +1,348 @@
+{
+  "fields": [
+    {
+      "description": "Schema Version",
+      "enum": null,
+      "name": "schema_version",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": "competition-result/v1",
+        "default": "competition-result/v1",
+        "title": "Schema Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Result Id",
+      "enum": null,
+      "name": "result_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_.:-]+$",
+        "title": "Result Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Run Id",
+      "enum": null,
+      "name": "run_id",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Run Id"
+      }
+    },
+    {
+      "description": "Analysis Id",
+      "enum": null,
+      "name": "analysis_id",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Analysis Id"
+      }
+    },
+    {
+      "description": "Query Id",
+      "enum": null,
+      "name": "query_id",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Query Id",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Query Version",
+      "enum": null,
+      "name": "query_version",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "title": "Query Version",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Metric Id",
+      "enum": null,
+      "name": "metric_id",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Metric Id"
+      }
+    },
+    {
+      "description": "Metric Version",
+      "enum": null,
+      "name": "metric_version",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Metric Version"
+      }
+    },
+    {
+      "description": "Facts Schema Ref",
+      "enum": [
+        "backend.contracts.analytics_query.ChannelFollowupResult",
+        "backend.contracts.analytics_first_purchase.FirstPurchaseResult",
+        "backend.contracts.audience.AudienceSummaryResponse",
+        "backend.semantic.analytics_handoff_audience",
+        "competition-result/v1#empty",
+        "competition-result/v1#unsupported"
+      ],
+      "name": "facts_schema_ref",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "backend.contracts.analytics_query.ChannelFollowupResult",
+          "backend.contracts.analytics_first_purchase.FirstPurchaseResult",
+          "backend.contracts.audience.AudienceSummaryResponse",
+          "backend.semantic.analytics_handoff_audience",
+          "competition-result/v1#empty",
+          "competition-result/v1#unsupported"
+        ],
+        "title": "Facts Schema Ref",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Existing Result Schema",
+      "enum": [
+        "analytics-channel-followup/v1",
+        "analytics-first-purchase-path/v1",
+        "analytics-saved-analysis/v1",
+        "analytics-run-b0/v1",
+        "analytics-handoff-audience/v1",
+        "none"
+      ],
+      "name": "existing_result_schema",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "enum": [
+          "analytics-channel-followup/v1",
+          "analytics-first-purchase-path/v1",
+          "analytics-saved-analysis/v1",
+          "analytics-run-b0/v1",
+          "analytics-handoff-audience/v1",
+          "none"
+        ],
+        "title": "Existing Result Schema",
+        "type": "string"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "completeness",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/Completeness"
+      }
+    },
+    {
+      "description": "Empty Reason",
+      "enum": [
+        "NO_CURRENT_MONTH_DATA",
+        "EMPTY_MATURE_COHORT",
+        "ZERO_COHORT",
+        "PERIOD_AFTER_AS_OF",
+        null
+      ],
+      "name": "empty_reason",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "default": null,
+        "enum": [
+          "NO_CURRENT_MONTH_DATA",
+          "EMPTY_MATURE_COHORT",
+          "ZERO_COHORT",
+          "PERIOD_AFTER_AS_OF",
+          null
+        ],
+        "title": "Empty Reason"
+      }
+    },
+    {
+      "description": "Row Count",
+      "enum": null,
+      "name": "row_count",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "maximum": 9007199254740991,
+        "minimum": 0,
+        "title": "Row Count",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "page",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ResultPage"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    {
+      "description": "",
+      "enum": null,
+      "name": "resolved_condition",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "$ref": "#/$defs/CompetitionResolvedCondition"
+      }
+    },
+    {
+      "description": "Evidence Digest",
+      "enum": null,
+      "name": "evidence_digest",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Evidence Digest"
+      }
+    },
+    {
+      "description": "Primary Result Ref",
+      "enum": null,
+      "name": "primary_result_ref",
+      "nullable": true,
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Primary Result Ref"
+      }
+    },
+    {
+      "description": "Data Mode",
+      "enum": null,
+      "name": "data_mode",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "const": "SNAPSHOT",
+        "title": "Data Mode",
+        "type": "string"
+      }
+    },
+    {
+      "description": "Contains Real Data",
+      "enum": null,
+      "name": "contains_real_data",
+      "nullable": false,
+      "required": false,
+      "schema": {
+        "const": false,
+        "default": false,
+        "title": "Contains Real Data",
+        "type": "boolean"
+      }
+    },
+    {
+      "description": "Limitations",
+      "enum": null,
+      "name": "limitations",
+      "nullable": false,
+      "required": true,
+      "schema": {
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "title": "Limitations",
+        "type": "array"
+      }
+    }
+  ],
+  "model": "CompetitionResultRef",
+  "schema_version": "competition-result/v1"
+}

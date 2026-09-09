@@ -28,6 +28,26 @@ from backend.services.rfm._shared import (
 # 渠道过滤 SQL 构建（公共逻辑）
 # ============================================================
 
+def _sample_mode_filters(
+    sample_mode: Optional[str],
+    sample_channel_ids: Optional[List[str]],
+) -> Tuple[str, str, List, List]:
+    """C0 小样三路径：INCLUDE / 只剔本期 / 历史重算。不得猜渠道全集。"""
+    from backend.semantic.filters import expand_channels
+    from backend.services.metrics.competition_compute import normalize_sample_mode
+
+    mode, sample_ids = normalize_sample_mode(sample_mode, sample_channel_ids)
+    if mode == "INCLUDE":
+        return "", "", [], []
+    db_ids = expand_channels(sample_ids or [])
+    placeholders = ",".join(["?"] * len(db_ids))
+    where_base = f" AND o.channel NOT IN ({placeholders})"
+    params = list(db_ids)
+    if mode == "EXCLUDE_AND_RECOMPUTE_HISTORY":
+        return where_base, where_base, params, list(params)
+    return where_base, "", params, []
+
+
 def _build_channel_filter(
     channel: Optional[str],
     exclude_channels: Optional[List[str]],
@@ -179,6 +199,11 @@ def run_flow_period(
     channel: Optional[str] = None,
     metric_type: str = "GSV",
     exclude_channels: Optional[List[str]] = None,
+    sample_mode: Optional[str] = None,
+    sample_channel_ids: Optional[List[str]] = None,
+    history_channels: Optional[List[str]] = None,
+    history_product_ids: Optional[List[str]] = None,
+    as_of: Optional[str] = None,
 ) -> Tuple[
     Dict[str, Dict[str, float]],
     Dict[str, Dict[str, float]],
@@ -205,29 +230,57 @@ def run_flow_period(
     """
     seg_col = f"{dimension}_segment"
 
+    from backend.semantic.filters import expand_channels
+
     # 渠道过滤
     (
         channel_where_base, channel_where_hist,
         exclude_where_base, exclude_where_hist,
         base_extra, hist_all_extra, hist_same_extra,
     ) = _build_channel_filter(channel, exclude_channels)
+    sample_where_base, sample_where_hist, sample_base_params, sample_hist_params = (
+        _sample_mode_filters(sample_mode, sample_channel_ids)
+    )
+    exclude_where_base = f"{exclude_where_base}{sample_where_base}"
+    exclude_where_hist = f"{exclude_where_hist}{sample_where_hist}"
+    base_extra = list(base_extra) + sample_base_params
+    hist_all_extra = list(hist_all_extra) + sample_hist_params
+    hist_same_extra = list(hist_same_extra) + sample_hist_params
+
+    history_where = ""
+    history_params: List = []
+    if history_channels:
+        db_hist = expand_channels(history_channels)
+        placeholders = ",".join(["?"] * len(db_hist))
+        history_where = f" AND o.channel IN ({placeholders})"
+        history_params = list(db_hist)
+    if history_product_ids:
+        placeholders = ",".join(["?"] * len(history_product_ids))
+        history_where += f" AND o.product_id IN ({placeholders})"
+        history_params.extend(history_product_ids)
+
+    as_of_pred = ""
+    as_of_params: List = []
+    if as_of:
+        as_of_pred = " AND CAST(pay_time AS DATE) <= ?::DATE"
+        as_of_params = [as_of[:10]]
 
     base_params = [start_dt, end_dt] + base_extra
 
     # hist_customers CTE 改用 start_dt 截止（观察期前行为，避免循环论证）。
     # R/F/M 段级分桶基于 start_dt 之前的行为，与 R/F/M 区间流转一致。
     # TTL 仍基于 end_dt（含当期），是商业指标。
-    hist_all_params = [start_dt, start_dt] + hist_all_extra
-    hist_same_params = [start_dt, start_dt] + hist_same_extra
+    hist_all_params = [start_dt, start_dt] + hist_all_extra + history_params + as_of_params
+    hist_same_params = [start_dt, start_dt] + hist_same_extra + as_of_params
 
     # ttl_users CTE（独立口径）：截至 end_dt（含当期）的累计去重用户，
     # 与 hist_customers 的 cutoff 语义解耦 —— RFM 分类基于观察期前行为
     # （避免循环论证），但"已购客TTL"是商业指标，应包含当期新增用户。
     # 参数顺序：all(end_dt)、same(end_dt)、member_all(end_dt)、member_same(end_dt)
-    ttl_all_params = [end_dt] + hist_all_extra
-    ttl_same_params = [end_dt] + hist_same_extra
-    ttl_member_all_params = [end_dt] + hist_all_extra
-    ttl_member_same_params = [end_dt] + hist_same_extra
+    ttl_all_params = [end_dt] + hist_all_extra + history_params + as_of_params
+    ttl_same_params = [end_dt] + hist_same_extra + as_of_params
+    ttl_member_all_params = [end_dt] + hist_all_extra + history_params + as_of_params
+    ttl_member_same_params = [end_dt] + hist_same_extra + as_of_params
 
     # R 桶专用：_R_BUCKET_SEGMENTATION_CTE 用 pre_cutoff MAX(pay_time) + DATEDIFF 到 cutoff_dt。
     # 2 个占位符：(1) pre_cutoff_users subquery 的 WHERE 上限 (TIMESTAMP)，
@@ -278,6 +331,8 @@ def run_flow_period(
           AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
+          {history_where}
+          {as_of_pred}
         GROUP BY user_id
         UNION ALL
         SELECT 'same' AS channel_flag,
@@ -291,6 +346,7 @@ def run_flow_period(
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}
+          {as_of_pred}
         GROUP BY user_id
     ),
     -- TTL 独立口径：截至 end_dt（含当期）的全量历史用户
@@ -300,6 +356,8 @@ def run_flow_period(
           AND {_VALID_BASE}
           {refund_where}
           {exclude_where_hist}
+          {history_where}
+          {as_of_pred}
         GROUP BY user_id
     ),
     ttl_users_same AS (
@@ -309,6 +367,7 @@ def run_flow_period(
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}
+          {as_of_pred}
         GROUP BY user_id
     ),
     ttl_users_member_all AS (
@@ -318,6 +377,8 @@ def run_flow_period(
           AND is_member = TRUE
           {refund_where}
           {exclude_where_hist}
+          {history_where}
+          {as_of_pred}
         GROUP BY user_id
     ),
     ttl_users_member_same AS (
@@ -328,6 +389,7 @@ def run_flow_period(
           {refund_where}
           {channel_where_hist}
           {exclude_where_hist}
+          {as_of_pred}
         GROUP BY user_id
     ),
     {segmentation_cte},
@@ -434,6 +496,11 @@ def get_rfm_flow(
     exclude_channels: Optional[List[str]] = None,
     compare_start_date: Optional[str] = None,
     compare_end_date: Optional[str] = None,
+    sample_mode: Optional[str] = None,
+    sample_channel_ids: Optional[List[str]] = None,
+    history_channels: Optional[List[str]] = None,
+    history_product_ids: Optional[List[str]] = None,
+    as_of: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     RFM 区间流转看板通用接口。
@@ -462,6 +529,11 @@ def get_rfm_flow(
         flow_type, start_date or "", end_date or "",
         channel, metric_type, exclude_channels,
         compare_start_date, compare_end_date, data_version,
+        sample_mode=sample_mode,
+        sample_channel_ids=sample_channel_ids,
+        as_of=as_of,
+        history_channels=history_channels,
+        history_product_ids=history_product_ids,
     )
     cached = _get_cached_flow(cache_key, data_version)
     if cached is not None:
@@ -469,20 +541,30 @@ def get_rfm_flow(
 
     conn = bdc.get_connection()
     try:
+        flow_kwargs = dict(
+            channel=channel,
+            metric_type=metric_type,
+            exclude_channels=exclude_channels,
+            sample_mode=sample_mode,
+            sample_channel_ids=sample_channel_ids,
+            history_channels=history_channels,
+            history_product_ids=history_product_ids,
+            as_of=as_of,
+        )
         cur_all, cur_same, cur_member_all, cur_member_same = run_flow_period(
             conn, cur_start_dt, cur_end_dt, cutoff,
             dimension, segment_order, hist_extra_cols, segmentation_cte,
-            channel, metric_type, exclude_channels,
+            **flow_kwargs,
         )
         comp_all, comp_same, comp_member_all, comp_member_same = run_flow_period(
             conn, comp_start_dt, comp_end_dt, comp_cutoff,
             dimension, segment_order, hist_extra_cols, segmentation_cte,
-            channel, metric_type, exclude_channels,
+            **flow_kwargs,
         )
         prev2_all, prev2_same, prev2_member_all, prev2_member_same = run_flow_period(
             conn, prev2_start_dt, prev2_end_dt, prev2_cutoff,
             dimension, segment_order, hist_extra_cols, segmentation_cte,
-            channel, metric_type, exclude_channels,
+            **flow_kwargs,
         )
     finally:
         pass
