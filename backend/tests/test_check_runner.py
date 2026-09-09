@@ -146,13 +146,13 @@ def test_ci_reuses_local_matrix_and_owns_profile_exclusions():
     dispatch = yaml.safe_load((workflows / 'dsh-b0.yml').read_text())
     assert 'changes' not in dispatch['jobs']
     assert 'pull_request' not in (dispatch.get('on') or dispatch.get(True) or {})
-    for name in ('nightly.yml', 'weekly-report.yml'):
+    for name in ('nightly.yml',):
         text = (workflows / name).read_text()
         assert 'scripts/run_backend_tests_bounded.py' in text
         assert 'pytest backend/tests/' not in text
         assert 'pytest_deselect_args.sh' not in text
     text = (workflows / 'lint.yml').read_text()
-    assert 'scripts/ci/run_checks.py' in text and '--only python' in text and '--only frontend' in text
+    assert 'scripts/ci/run_checks.py' in text and '--only ci-python' in text and '--only frontend' in text
 
 
 def test_node_mismatch_fails_before_any_expensive_check():
@@ -171,3 +171,66 @@ def test_code_renamed_to_docs_keeps_the_removed_code_check():
     plan = verification_plan(['backend/services/old.py', 'docs/history/old.py'])
     assert plan['backend'] == 'full'
     assert '--no-renames' in (ROOT / '.github/workflows/check-plan.yml').read_text()
+
+
+@pytest.mark.parametrize('paths,expected', [
+    (['frontend-vue3/package-lock.json'], (False, True)),
+    (['requirements-lock.txt'], (True, False)),
+    (['requirements-lock.txt', 'frontend-vue3/package-lock.json'], (True, True)),
+    (['backend/services/churn.py'], (False, False)),
+    (['.github/workflows/lint.yml'], (True, True)),
+    (['.github/workflows/check-plan.yml'], (True, True)),
+])
+def test_dependency_ecosystems_are_independent_and_union_on_mixed_changes(paths, expected):
+    plan = verification_plan(paths)
+    assert (plan['python_dependencies'], plan['frontend_dependencies']) == expected
+    assert plan['dependencies'] == any(expected)
+
+
+@pytest.mark.parametrize('path,frontend,ground_truth', [
+    ('.github/workflows/nightly.yml', False, True),
+    ('.github/workflows/e2e-smoke.yml', True, False),
+])
+def test_optional_workflows_cover_their_consumers_without_unrelated_jobs(path, frontend, ground_truth):
+    plan = verification_plan([path])
+    assert plan['backend'] == 'full' and plan['tooling']
+    assert plan['frontend'] == frontend and plan['ground_truth'] == ground_truth
+    assert not any(plan[key] for key in ('b0', 'deployment', 'dependencies'))
+    mixed = verification_plan([path, 'dsh-plugins/analytics-workbench/src/tool.ts', 'Dockerfile'])
+    assert mixed['b0'] and mixed['deployment']
+
+
+@pytest.mark.parametrize('path', [
+    '.github/workflows/lint.yml', '.github/workflows/check-plan.yml',
+    '.github/workflows/new-workflow.yml',
+    'scripts/ci/pre_push_path_class.py', 'scripts/ci/run_checks.py',
+])
+def test_core_or_unknown_ci_configuration_keeps_broad_coverage(path):
+    plan = verification_plan([path])
+    assert plan['backend'] == 'full'
+    assert all(plan[key] for key in ('b0', 'frontend', 'tooling', 'deployment',
+                                     'python_dependencies', 'frontend_dependencies'))
+
+
+@pytest.mark.parametrize('paths', [
+    ['backend/services/churn.py'], ['AGENTS.md'],
+    ['scripts/ci/run_checks.py', 'backend/tests/test_check_runner.py'],
+])
+def test_ci_deduplicates_checks_without_weakening_local_plan(paths):
+    plan = verification_plan(paths)
+    local = [args[1:] for _, args, _ in commands(plan, only='python')]
+    ci = [args[1:] for _, args, _ in commands(plan, only='ci-python')]
+    assert ci.count(['.githooks/check_imports.py']) == 1
+    assert ['-m', 'ruff', 'check', 'backend/'] not in ci
+    assert ['scripts/sync-agents.sh', '--check'] not in ci
+    if plan['backend'] != 'none':
+        assert ['-m', 'ruff', 'check', 'backend/'] in local
+        assert ['.githooks/check_imports.py'] in local
+    if plan['tooling']:
+        assert ['scripts/sync-agents.sh', '--check'] in local
+    # Same actual test commands/targets; only lint ownership differs.
+    def select_tests(steps):
+        return [args for args in steps if 'pytest' in args or 'scripts/run_backend_tests_bounded.py' in args]
+    assert select_tests(ci) == select_tests(local)
+    if 'scripts/ci/run_checks.py' in paths:
+        assert ['-m', 'ruff', 'check', 'scripts/ci/run_checks.py'] in ci

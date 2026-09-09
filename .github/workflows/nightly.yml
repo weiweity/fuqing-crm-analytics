@@ -1,15 +1,12 @@
-name: Nightly Health Check
+name: Weekly Backend Health Check
 
-# B3 P1: 既有定时运行合成 not-slow pytest + 单独跑一遍 import 完整性 (FOLLOWUPS.md §B3)
-# 收益: 周末/夜间回归早 1 天发现, 不会再 30+ run 红了才看到
-# 验收: workflow_dispatch 手动触发, 故意改坏, 等晚上 9 点 (UTC 13:00 = 北京 21:00), 看 GitHub mail
-
+# 冷存仓库每周回归；保留手动入口与原 weekly-report 的摘要/报告。
+# 文件名保留 nightly.yml，沿用现有工作流入口与历史。
 on:
   schedule:
-    # 2026-06-13 减量: 改成周一到周五 (省 28% 跑批)
-    # Free plan 2,000 min/月私仓额度优化
-    - cron: '0 13 * * 1-5'
-  workflow_dispatch:  # 允许手动触发 (测试 + 应急验证)
+    # 周一 UTC 01:00 = 北京时间 09:00
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,56 +14,37 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # 2026-07-21: PR test 实测 ~28min；原 15min 会在 pytest ~46% 被 GHA 取消 (cancelled 假红)
     timeout-minutes: 45
     env:
-      # Sprint 205+ v3 (跟 handoff-upload-admin-v3 §7.3 1:1 stable 永久规则化沿用):
-      # 跟 FQ_CRM_PASSWORDS 1:1 stable 配套 (跟 L4.86 治本 1:1 stable 永久规则化沿用)
-      # admin upload 后台 admin 角色白名单 (默认 "admin", 跟 .env 兜底一致)
-      # 跟 L4.88 conftest.py autouse fixture _reset_fq_crm_admins_env reload env 1:1 stable 永久规则化沿用
       FQ_CRM_ADMINS: admin
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0  # P1-3 B2: 需全历史给 ground-truth lint 跑 git log --all
+          fetch-depth: 0  # ground-truth 检查需要提交历史
 
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.14"
           cache: 'pip'
-          # 与 pip install 一致：cache key 用 lock，避免 requirements.txt 漂移导致 cache 失效/错配
           cache-dependency-path: requirements-lock.txt
-      - name: Install dependencies (lock 锁版本, v0.4.7.7 B4)
+      - name: Install locked dependencies
         run: pip install -r requirements-lock.txt
 
       - name: B2 import completeness check (根因预防复检)
-        # B2 是本地 pre-commit 防线, nightly 再跑一遍防止 B2 钩子被 --no-verify 绕过
         run: python3 .githooks/check_imports.py
 
-      - name: P1-3 ground truth lint (B2 nightly 扫已合 main 历史)
-        # 扫已合 main 的 docs/ review 文件, 防止 D-4 类错误混入历史
-        # P1-3 二轮 B2 修 (2026-06-07): 改用 --committed 模式 (git show HEAD:<path>),
-        # 旧 staged 模式对已 commit 文件永远 no-op
+      - name: Ground truth lint (committed history)
         run: |
           python3 .githooks/check_review_ground_truth.py --committed --files \
             "docs/validation-reports/*.md" \
-            "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (nightly)"
+            "docs/飞书版架构文档/*.md" || echo "::warning::ground truth lint warning (weekly)"
 
       - name: Run ruff
-        # Sprint 192 fix (B6 留尾): 跟 lint job (lint.yml) 100% 对齐, 只跑 backend/ 跳过其他.
-        # 之前 nightly `ruff check .` 跟 lint `ruff check backend/` 范围漂移, 报
-        # scripts/_archive/adhoc_product_new_old.py 等 12 false-positive fail
-        # (Sprint 182 之前归档, 不影响 backend 业务代码). 1 行 yaml 改动.
-        # 累计 23 次 /document-release 真治本, 累计 L4.x 36 stable (新增 L4.45 nightly ruff 范围对齐).
         run: ruff check backend/
 
-      # Sprint 60.3+ fix: CI runner 跑不动 10.6M 行 DuckDB integration 慢测试 (test_is_member_mark_sync.py),
-      # 排除 pytest.mark.slow，避免 job hang。
-      # Sprint C + Track A 2026-07-19: C-class deselect SSOT (scripts/ci/pytest_c_class_deselects.txt)
-      # shared with lint.yml + pre-push — 1:1 stable, no hardcoded drift.
       - name: Run synthetic backend profile (shared bounded runner)
         run: python3 scripts/run_backend_tests_bounded.py --report-dir .context/checks/backend-ci
 
@@ -76,3 +54,8 @@ jobs:
         with:
           name: backend-check-evidence
           path: .context/checks/backend-ci/
+          retention-days: 90
+
+      - name: Write actual suite totals
+        if: always()
+        run: python3 scripts/ci/summarize_checks.py .context/checks/backend-ci >> "$GITHUB_STEP_SUMMARY"

@@ -17,7 +17,7 @@ from scripts.ci.pre_push_path_class import TOOL_TESTS, verification_plan  # noqa
 def commands(plan: dict, root: Path = ROOT, only: str | None = None) -> list[tuple[str, list[str], Path]]:
     steps = []
     def add(axis, args, cwd=root):
-        if only is None or only == axis or (only == 'python' and axis in {'backend', 'tooling'}):
+        if only is None or only == axis or (only in {'python', 'ci-python'} and axis in {'backend', 'tooling'}):
             steps.append((axis, args, cwd))
     python = sys.executable
     if plan['backend'] != 'none':
@@ -25,12 +25,20 @@ def commands(plan: dict, root: Path = ROOT, only: str | None = None) -> list[tup
         # A deleted/renamed test file is a real change, never silently dropped.
         if any(not (root / target).is_file() for target in targets):
             targets = []
-        add('backend', [python, '-m', 'ruff', 'check', 'backend/'])
+        # CI's required lint job owns backend Ruff and the Agent entrypoint.
+        # Local/default plans remain self-contained.
+        if only != 'ci-python':
+            add('backend', [python, '-m', 'ruff', 'check', 'backend/'])
         add('backend', [python, '.githooks/check_imports.py'])
         add('backend', [python, 'scripts/run_backend_tests_bounded.py', *targets])
     if plan['tooling']:
-        add('tooling', ['bash', 'scripts/sync-agents.sh', '--check'])
+        if only != 'ci-python':
+            add('tooling', ['bash', 'scripts/sync-agents.sh', '--check'])
+        elif plan['backend'] == 'none':
+            add('tooling', [python, '.githooks/check_imports.py'])
         changed_python = [p for p in plan['files'] if p.endswith('.py') and (root / p).is_file()]
+        if only == 'ci-python':
+            changed_python = [p for p in changed_python if not p.startswith('backend/')]
         if changed_python:
             add('tooling', [python, '-m', 'ruff', 'check', *changed_python])
         for path in plan['files']:
@@ -83,7 +91,7 @@ def main(argv=None) -> int:
     parser.add_argument('--files-from', required=True, help='newline-delimited paths, or - for stdin')
     parser.add_argument('--plan-only', action='store_true')
     parser.add_argument('--node', type=Path, help='existing Node binary; changes only this check process PATH')
-    parser.add_argument('--only', choices=['backend', 'tooling', 'frontend', 'b0', 'python'])
+    parser.add_argument('--only', choices=['backend', 'tooling', 'frontend', 'b0', 'python', 'ci-python'])
     parser.add_argument('--backend-mode', choices=['skip', 'ruff', 'scoped', 'full'])
     args = parser.parse_args(argv)
     paths = sys.stdin.read().splitlines() if args.files_from == '-' else Path(args.files_from).read_text().splitlines()
