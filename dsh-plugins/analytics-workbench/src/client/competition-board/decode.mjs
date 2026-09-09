@@ -30,17 +30,50 @@ export function decodeCompetitionError(value) {
 }
 
 export function decodeCompetitionResultRef(value) {
-  if (!isObj(value) || value.schema_version !== 'competition-result/v1') return null;
+  if (!isObj(value) || !['competition-result/v1', 'competition-computed-result/v1'].includes(value.schema_version)) return null;
   if (!opaque(value.result_id) || !COMPLETENESS.has(value.completeness)) return null;
   if (value.data_mode !== 'SNAPSHOT' || value.contains_real_data !== false) return null;
   if (typeof value.query_id !== 'string' || typeof value.query_version !== 'string') return null;
   if (!Array.isArray(value.limitations) || value.limitations.length < 1) return null;
   if (!isObj(value.resolved_condition) || value.resolved_condition.metric_type !== 'GSV') return null;
   if (value.resolved_condition.timezone !== 'Asia/Shanghai') return null;
+  if (value.schema_version === 'competition-computed-result/v1' && !validComputedResult(value)) return null;
   return value;
 }
 
+function validComputedResult(value) {
+  const number = v => typeof v === 'number' && Number.isFinite(v);
+  const count = v => Number.isSafeInteger(v) && v >= 0;
+  const day = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const period = (p, expected) => isObj(p) && isObj(p.requested_period) && isObj(expected)
+    && p.requested_period.start_date === expected.start_date && p.requested_period.end_date === expected.end_date
+    && count(p.order_count) && count(p.customer_count) && p.customer_count <= p.order_count
+    && (p.through_date === null ? p.gsv === null && p.order_count === 0 && p.customer_count === 0
+      : day(p.through_date) && p.through_date >= expected.start_date && p.through_date <= expected.end_date && number(p.gsv) && p.gsv >= 0);
+  const facts = value.facts;
+  if (value.execution_kind !== 'TOOL_COMPUTATION' || value.query_id !== 'competition_gsv_comparison'
+    || value.query_version !== 'competition-gsv-query/v1' || value.metric_version !== 'competition-gsv-metric/v1'
+    || value.facts_schema_ref !== 'backend.contracts.competition_computed.CompetitionGsvFacts'
+    || value.existing_result_schema !== 'competition-gsv-facts/v1' || !opaque(value.run_id)
+    || (value.analysis_id != null && !opaque(value.analysis_id)) || !sha256(value.data_digest) || !sha256(value.evidence_digest)
+    || value.primary_result_ref !== value.result_id || !isObj(facts) || facts.schema_version !== 'competition-gsv-facts/v1'
+    || facts.metric_type !== 'GSV' || !period(facts.current, value.resolved_condition.current_period)
+    || !period(facts.comparison, value.resolved_condition.comparison_period)) return false;
+  const c = facts.current.gsv; const p = facts.comparison.gsv;
+  if (c === null || p === null) return value.completeness === 'EMPTY' && value.row_count === 0 && value.page === null
+    && ['NO_CURRENT_MONTH_DATA', 'PERIOD_AFTER_AS_OF'].includes(value.empty_reason)
+    && facts.difference === null && facts.change_ratio === null && facts.change_ratio_unavailable_reason === 'PERIOD_UNAVAILABLE';
+  if (value.completeness !== 'COMPLETE' || value.row_count !== 2 || value.empty_reason !== null
+    || value.page?.total !== 2 || value.page?.complete !== true || value.page?.checksum !== value.evidence_digest
+    || !number(facts.difference) || Math.abs(facts.difference - (c - p)) > 0.00011) return false;
+  return p === 0 ? facts.change_ratio === null && facts.change_ratio_unavailable_reason === 'ZERO_COMPARISON_GSV'
+    : number(facts.change_ratio) && facts.change_ratio_unavailable_reason === null
+      && Math.abs(facts.change_ratio - (c - p) / p) <= 1e-12 * Math.max(1, Math.abs((c - p) / p));
+}
+
 export function canEndorse(result) {
+  if (result?.schema_version === 'competition-computed-result/v1'
+    && (!decodeCompetitionResultRef(result) || !opaque(result.analysis_id))) return false;
   return Boolean(result && result.completeness === 'COMPLETE' && result.contains_real_data === false
     && opaque(result.result_id) && opaque(result.run_id) && sha256(result.evidence_digest));
 }

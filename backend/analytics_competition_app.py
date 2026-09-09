@@ -20,7 +20,7 @@ from backend.middleware.query_router import (
     new_request_id,
     overlay_live_capabilities,
 )
-from backend.services.analytics.access import AnalyticsError, B0IdentityRegistry
+from backend.services.analytics.access import AnalyticsError, B0IdentityRegistry, require
 from backend.services.analytics.cockpit import CockpitStore
 from backend.services.analytics.competition_assets import (
     CompetitionAssetService,
@@ -34,6 +34,12 @@ from backend.services.analytics.competition_audience import (
 from backend.services.analytics.competition_diagnosis.errors import DiagnosisFault
 from backend.services.analytics.competition_diagnosis.orchestrator import DiagnosisAdapter
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
+from backend.contracts.competition_computed import DATA_SCOPE as COMPUTED_SCOPE
+from backend.services.analytics.competition_diagnosis.computed import CAPABILITIES as COMPUTED_CAPABILITIES, compute_result
+from backend.services.analytics.competition_diagnosis.store import ComputedResultStore
+from backend.services.analytics.competition_diagnosis.synthetic import SyntheticDiagnosisSource
+from backend.services.analytics.first_purchase.asset_state import opaque
+from backend.services.analytics.resource_profile import content_hash
 
 PREFIX = "/api/v1/analytics/competition"
 
@@ -58,16 +64,21 @@ def create_competition_app(
     asset_state_dir: Path | None = None,
     audience_state_dir: Path | None = None,
     runtime_ready: Callable[[], bool] | None = None,
+    diagnosis_source: SyntheticDiagnosisSource | None = None,
+    diagnosis_state_dir: Path | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Competition Assets", version="competition-c0/v1",
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(_BodyLimit)
     registry = identities or B0IdentityRegistry()
+    if (diagnosis_source is None) != (diagnosis_state_dir is None):
+        raise ValueError("computed diagnosis requires an explicit source and private state directory")
+    computed_store = ComputedResultStore(diagnosis_state_dir) if diagnosis_state_dir is not None else None
     if asset_state_dir is None or analysis_store is None:
         assets: CompetitionAssetService | None = None
     else:
         assets = CompetitionAssetService(
-            asset_state_dir, analysis_store=analysis_store, cockpit_store=cockpit_store,
+            asset_state_dir, analysis_store=analysis_store, cockpit_store=cockpit_store, computed_store=computed_store,
         )
     audience = CompetitionAudienceService(audience_state_dir) if audience_state_dir is not None else None
     diagnosis_sessions: dict[tuple[str, str], tuple[DiagnosisAdapter, float]] = {}
@@ -90,6 +101,46 @@ def create_competition_app(
         if analysis_store is None:
             raise AnalyticsError(503, "STATE_UNAVAILABLE", "分析资产库尚未显式配置。", retryable=True)
         return analysis_store
+
+    def execute_computed(request, adapter, capability_id, condition, request_id):
+        if capability_id not in COMPUTED_CAPABILITIES:
+            raise AnalyticsError(503, "NOT_CONNECTED", "当前计算源尚未实现此诊断步骤。")
+        opaque(request_id, label="request_id")
+        actor = principal(request)
+        require(actor, "analysis:read", data_scope=COMPUTED_SCOPE)
+        session_id = adapter.session.session_id
+        fingerprint = content_hash({"capability_id": capability_id, "condition": condition.model_dump(mode="json")})
+        prior = computed_store.prior(actor, session_id, request_id, fingerprint)
+        if prior is not None:
+            return prior
+        try:
+            result = compute_result(diagnosis_source, actor, condition, capability_id,
+                                    session_id=session_id, request_id=request_id)
+        except ValueError as error:
+            raise AnalyticsError(503, "STATE_UNAVAILABLE", "合成诊断快照不可用，未保存计算结果。", retryable=True) from error
+        current_actor = principal(request)
+        require(current_actor, "analysis:read", data_scope=COMPUTED_SCOPE)
+        if current_actor.actor_id != actor.actor_id or adapter.session.budget.cancelled:
+            raise AnalyticsError(403, "FORBIDDEN", "计算期间身份或执行许可已变化，未发布结果。")
+        if "analysis:save" in actor.capabilities:
+            result = computed_store.save(current_actor, session_id, request_id, fingerprint, result)
+        else:
+            computed_store.require_active(current_actor, session_id, request_id)
+        return result
+
+    def computed_capabilities(body, actor):
+        if diagnosis_source is None:
+            return body
+        for item in body.get("capabilities", []):
+            computed = item.get("capability_id") in COMPUTED_CAPABILITIES and COMPUTED_SCOPE in actor.data_scopes
+            if item.get("capability_id", "").startswith("diag."):
+                item["support_status"] = "SUPPORTED" if computed else "NOT_CONNECTED"
+                item["execution_mode"] = "COMPUTED_SYNTHETIC" if computed else "NOT_IMPLEMENTED"
+        body["source_context"] = {"contains_real_data": False, "snapshot_id": diagnosis_source.snapshot_id,
+                                  "data_through": diagnosis_source.data_through.isoformat(),
+                                  "published_at": diagnosis_source.published_at.isoformat(),
+                                  "computed_capabilities": sorted(COMPUTED_CAPABILITIES) if COMPUTED_SCOPE in actor.data_scopes else []}
+        return body
 
     @contextmanager
     def diagnosis_for(actor, payload):
@@ -174,13 +225,13 @@ def create_competition_app(
     @app.get("/api/v1/analytics/catalog")
     def catalog(request: Request):
         actor = principal(request)
-        return {
+        return computed_capabilities({
             "schema_version": "competition-capabilities/v1",
             "capabilities": overlay_live_capabilities(set(actor.capabilities)),
-        }
+        }, actor)
 
     @app.get(f"{PREFIX}/results")
-    def list_results(request: Request):
+    def list_results(request: Request, limit: int = 100, offset: int = 0):
         actor = principal(request)
         store = require_analyses()
         items = []
@@ -192,6 +243,8 @@ def create_competition_app(
             item = _competition_result_item(record)
             if item.get("run_id") and item.get("evidence_digest"):
                 items.append(item)
+        if computed_store is not None and COMPUTED_SCOPE in actor.data_scopes:
+            items = computed_store.list_results(actor, limit=limit, offset=offset) + items
         return {"items": items, "http_api": "CONNECTED", "asset_plane": "competition"}
 
     @app.post(f"{PREFIX}/diagnosis/capabilities")
@@ -205,7 +258,16 @@ def create_competition_app(
             raise AnalyticsError(fault.error.http_status or 400, fault.error.code, fault.error.message) from fault
         body["live_transport"] = "HTTP_CONNECTED"
         body["http_api"] = "CONNECTED"
-        return body
+        return computed_capabilities(body, actor)
+
+    @app.post(f"{PREFIX}/diagnosis/cancel")
+    def diagnosis_cancel(payload: dict[str, Any], request: Request):
+        actor = principal(request)
+        if computed_store is None:
+            raise AnalyticsError(503, "NOT_CONNECTED", "可取消的诊断计算服务尚未接线。")
+        # Never acquire diagnosis_lock: a pending computation holds that lock.
+        # Owner comes only from authentication, never the model's payload.
+        return computed_store.cancel(actor, payload.get("session_id"), payload.get("request_id"))
 
     @app.post(f"{PREFIX}/diagnosis/step")
     def diagnosis_step(payload: dict[str, Any], request: Request):
@@ -219,11 +281,16 @@ def create_competition_app(
                     request_id=request_id,
                     condition=payload.get("condition") if isinstance(payload.get("condition"), dict) else None,
                     condition_patch=payload.get("condition_patch") if isinstance(payload.get("condition_patch"), dict) else None,
+                    execute=(lambda cap, condition: execute_computed(request, adapter, cap, condition, request_id)) if computed_store is not None else None,
                 )
         except DiagnosisFault as fault:
             raise AnalyticsError(fault.error.http_status or 400, fault.error.code, fault.error.message) from fault
         body["live_transport"] = "HTTP_CONNECTED"
         body["http_api"] = "CONNECTED"
+        if computed_store is not None:
+            body["planner"] = "HOST_OWNED"
+            body["execution_mode"] = "COMPUTED_SYNTHETIC"
+            body["analysis_persisted"] = bool(body.get("result", {}).get("analysis_id"))
         return body
 
     @app.post(f"{PREFIX}/diagnosis/patch")

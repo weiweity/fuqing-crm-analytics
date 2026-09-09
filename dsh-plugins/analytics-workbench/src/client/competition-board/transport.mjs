@@ -300,6 +300,10 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
       const row = await request(`${basePath}/results`);
       if (!row.ok) return row;
       const items = Array.isArray(row.body) ? row.body : (row.body?.items || []);
+      if (!Array.isArray(items) || items.some(item => !decodeCompetitionResultRef(item))) {
+        return fail(502, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_RESULT', http_status: 502,
+          message: '结果格式或数值校验失败，未载入认可列表。' } });
+      }
       return { ...row, body: items };
     },
     async previewBatch(_p, payload) {
@@ -340,6 +344,14 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
       const spec = row.body?.spec && row.body.spec.schema_version === 'competition-board/v1'
         ? row.body.spec
         : row.body;
+      if (Array.isArray(spec?.blocks)) {
+        for (const block of spec.blocks) {
+          if (block.result?.schema_version === 'competition-computed-result/v1' && !decodeCompetitionResultRef(block.result)) {
+            block.result = null;
+            block.source_status = 'UNAVAILABLE';
+          }
+        }
+      }
       return { ...row, body: spec };
     },
   };

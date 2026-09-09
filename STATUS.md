@@ -7,17 +7,17 @@
 | 项 | 状态 |
 |---|---|
 | VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
-| 当前分支 | `codex/competition-product-readiness`，本轮修改尚未提交；[七阶段账本](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| 当前分支 | `codex/competition-diagnosis-integration`，从 #115 的 `8c2e676` 隔离推进；数值与取消增量已完成本地验证，Git 整合沿 #115；[七阶段账本](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
 | 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
-| 验证 | 局部后端/编译后 DOM/构建已通过；完整矩阵正在执行，失败及后续结果见账本 |
-| T13 | PARTIAL：DSH DeepSeek-V4-Flash 真实调用和合成 HTTP 工具已测；不是完整业务计算 |
+| 验证 | #115 必需 CI SUCCESS；数值接线完整合成后端 2320 passed / 77 skipped，B0 全流程 PASS；[源码绑定证据](docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json) |
+| T13 | GSV 两条真实 DeepSeek 评测 PASS：ALL 410/305、CH_RETAIL 400/300，结果成板刷新重开一致；完整 T13 仍 PARTIAL，见[本轮交付](docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md) |
 | T15 / T16 / T17 | 用户本人 UAT 待执行；现有合成单用户性能基线已测，正式容量范围/阈值待确认；原生能力仍 PARTIAL |
 | 产品边界 | B0、比赛合成 HTTP、旧 CRM 分开；真实人群/完整诊断、完整视觉及旧 MCP 开放项仍保留 |
 | 原服务 | 4327（PID 81058）、8000/5173（36717/36727）、14327（90347）未动；不是本轮运行证据 |
 | 本轮候选 | 4325 DSH + 18083 合成 API，独立状态；保留供配置和验收，停止仅限本轮实例 |
 | 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；本轮只核对文件元数据约 131GB，未打开、复制或改写 |
-| 发布 | 未新建正式 release；本轮 Git 发布、备份恢复和正式发布后检查待完成 |
+| 发布 | #115 为 draft PR，未合并；4325/18083 已运行数值增量，取消补丁待受控切换，保留原模型配置及状态；切换前四库备份和旧板/草稿恢复验证 PASS；正式 release 待完成 |
 
 ## 验证与历史入口
 

@@ -49,4 +49,21 @@ HTTP 兼容调用未传 `session_id` 时视作单次独立请求；需要 `INHER
 
 ## 验证范围
 
+新 GSV 数值采用独立的 `competition-computed-result/v1` / `competition-gsv-facts/v1`，生成器为 `scripts/dsh-b0/competition-computed-contract.mjs`。显式配置诊断源和私有结果库后，diag.gsv 及三种双期比较调用 A2 计算；其他未实现诊断标明未接通。来源仅允许受限小型合成快照，不支持 HTTP 输入任意数据库路径。
+
+计算结果在 `diagnosis_results.sqlite3` 冻结保存 facts、resolved_condition 与 digest。相同 actor/session/request 重试重读，条件变更用新 request_id；跨进程恢复不依赖源 DuckDB。省略 session_id 的兼容请求是独立调用，不承诺跨请求重试身份。读取、认可、添加、复制、撤销和重开核对当前权限及 run/result/analysis 绑定。旧 ChannelFollowup 投影继续保留为元数据结果，不用于伪装新计算。
+
+本扩展的 GSV 金额保持原值，change_ratio 为 raw ratio，仅在展示边界转百分比。对比期零值返回空比例及原因；没有覆盖的期间返回 EMPTY，不可认可。原生工具中断等待后，会独立请求下述诊断取消端点；只有后端确认的取消才承诺禁止后续保存。
+
 回归入口为 `backend/tests/test_competition_review_regressions.py`、插件 `competition-board-dom.test.mjs` 和 `batch-intent.test.mjs`；共用接缝仍运行 `scripts/dsh-b0/pipeline.mjs --check`。实际结果以本轮修复记录为准，合成组件/HTTP 验证不能替代真实浏览器三角色 UAT、T13 真实模型或 T16 容量测试。
+
+## 诊断计算取消（2026-09-10 增量）
+
+`POST /diagnosis/cancel` 请求为 `{session_id, request_id}`，两项均为必填的 1–128 位 opaque ID。身份仅取当前 Bearer registry，要求 `analysis:read` 和 `competition-diagnosis-fixture` 数据域；不接受模型提供的 owner 作为授权依据。未接计算服务时返回 503/NOT_CONNECTED。
+
+- 200 回执为 `{session_id, request_id, status: "CANCELLED", late_attempt_publish: false}`。按 actor/session/request 在诊断库 metadata 持久化，取消和 save 共用 BEGIN IMMEDIATE；重复取消幂等。之后相同请求返回 409/CANCELLED，继续诊断必须换 request_id，其他会话和请求不受影响。
+- 已保存快照时返回 409/ALREADY_PUBLISHED，保留已发布的结果；写锁竞争返回可重试 503/STATE_UNAVAILABLE。取消端点不等待持有计算任务的会话锁。
+- 宿主工具把实际 session_id 和 request_id 发给该端点，取消请求使用新的 2 秒 signal；原计算仍限 5 秒。宿主步骤预算 7.5 秒包含回执等待。中断、超时或丢失响应时只尝试一次取消，不重跑计算。
+- 回执丢失、权限失效、服务/写锁不可用或绑定不匹配时，工具错误的 `cancellation.status` 为 UNCONFIRMED，不声称已阻止保存。HTTP 已保存先于取消返回时为 ALREADY_PUBLISHED。浏览器关闭、进程崩溃或不使用本 transport 的客户端断线本身不等于确认取消。
+
+无需表迁移；新进程会读取取消记录。旧计算版本不检查该记录，不能用旧代码继续写同一诊断库并声称保留此保证。原生停止按钮到宿主 signal 的浏览器全路径验收仍与实际 Node transport/HTTP 取消回归分开，见[取消交付](../hackathon/DIAGNOSIS-CANCELLATION-2026-09-10.md)。

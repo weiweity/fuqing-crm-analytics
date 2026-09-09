@@ -1,0 +1,43 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_native_abort_during_compute_never_publishes _______________
+
+held_computation = ('http://127.0.0.1:63079', <threading.Event at 0x114ae3ed0: set>, <threading.Event at 0x114c60b90: set>, <threading.Event at 0x114c35220: set>)
+tmp_path = PosixPath('/private/var/folders/tz/wswl3q3117v437rw68yd90gh0000gn/T/pytest-of-hutou/pytest-1728/test_native_abort_during_compu0')
+
+    @pytest.mark.skipif(shutil.which("node") is None, reason="native HTTP transport requires Node")
+    def test_native_abort_during_compute_never_publishes(held_computation, tmp_path):
+        base, entered, release, attempted = held_computation
+        payload = {"capability_id": "diag.gsv", "condition_mode": "EXPLICIT",
+                   "condition": condition().model_dump(mode="json"), "session_id": "native-cancel", "request_id": "r1"}
+        script = """
+    import { liveDiagnosisCall } from './dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs';
+    const abort = new AbortController();
+    const outcome = liveDiagnosisCall('competition_growth_step', JSON.parse(process.env.CANCEL_TEST_PAYLOAD), abort.signal)
+      .then(value => ({value}), error => ({name: error.name, cancellation: error.cancellation}));
+    process.stdin.once('data', () => abort.abort());
+    console.log(JSON.stringify(await outcome));
+    process.stdin.destroy();
+    """
+        process = subprocess.Popen([shutil.which("node"), "--input-type=module", "-e", script], cwd=ROOT,
+            env={**os.environ, "COMPETITION_HTTP_BASE": base, "COMPETITION_HTTP_TOKEN": TOKEN,
+                 "CANCEL_TEST_PAYLOAD": json.dumps(payload)}, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True)
+        try:
+            assert entered.wait(15), "native transport never reached the computation"
+            stdout, stderr = process.communicate("stop\n", timeout=10)
+            assert process.returncode == 0, stderr
+            outcome = json.loads(stdout)
+            assert outcome["name"] == "AbortError", outcome
+            release.set()
+            assert attempted.wait(10), "backend did not reach its publication boundary"
+>           assert ComputedResultStore(tmp_path / "diagnosis").list_results(ALICE) == []
+E           AssertionError: assert [{'analysis_i...: False, ...}] == []
+E
+E             Left contains one more item: {'analysis_id': 'analysis_diag_a37f79fdca4813d9de7457ceedeb298b204c31cc0d9eb0a7', 'capability_id': 'diag.gsv', 'completeness': 'COMPLETE', 'contains_real_data': False, ...}
+E             Use -v to get more diff
+
+backend/tests/test_competition_diagnosis_cancel.py:90: AssertionError
+=========================== short test summary info ============================
+FAILED backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes
+1 failed, 1 warning in 0.87s

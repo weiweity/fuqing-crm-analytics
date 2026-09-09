@@ -122,11 +122,17 @@ def seed_orders(conn, orders: list[dict]) -> None:
         )
         """
     )
+    conn.execute(
+        "CREATE TABLE refunds (order_id VARCHAR, refunded_at DATE, amount DOUBLE)"
+    )
     for order in orders:
-        refunds = order.get("refunds") or []
-        net = Decimal(str(order["actual_amount"])) - sum(
-            (Decimal(str(item["amount"])) for item in refunds), Decimal("0")
-        )
+        # Persist the dated input explicitly; the SUT must not discover test files.
+        # Do not turn a later full refund into a retroactive closed-order flag.
+        for refund in order.get("refunds") or []:
+            conn.execute(
+                "INSERT INTO refunds VALUES (?, ?::DATE, ?)",
+                [order["order_id"], refund["refunded_at"], float(refund["amount"])],
+            )
         lines = order.get("lines") or [{"sku": "SKU", "amount": order["actual_amount"]}]
         for index, line in enumerate(lines, start=1):
             conn.execute(
@@ -141,9 +147,9 @@ def seed_orders(conn, orders: list[dict]) -> None:
                     order["channel"],
                     float(line["amount"]),
                     order.get("is_member"),
-                    bool(order.get("is_refund")) or net <= 0,
+                    bool(order.get("is_refund")),
                     False,
-                    "交易关闭" if net <= 0 else "交易成功",
+                    order.get("order_status", "交易成功"),
                     line.get("sku") or order.get("product") or "P",
                     "正装",
                 ],

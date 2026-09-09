@@ -59,18 +59,45 @@ export async function liveDiagnosisCall(toolName, args = {}, signal) {
     : toolName === PATCH_TOOL_NAME
       ? '/diagnosis/patch'
       : '/diagnosis/step';
-  const response = await fetch(`${base}/api/v1/analytics/competition${path}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify(args),
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(5000)]) : AbortSignal.timeout(5000),
-    redirect: 'error',
-  });
+  const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(5000)]) : AbortSignal.timeout(5000);
+  let response;
   try {
+    response = await fetch(`${base}/api/v1/analytics/competition${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(args),
+      signal: deadline,
+      redirect: 'error',
+    });
     return await response.json();
-  } catch {
+  } catch (error) {
+    // Stopping fetch only drops the response. Cancel publication separately,
+    // using a fresh bounded signal and the actual host session/request binding.
+    // Never retry the computation, or claim an unacknowledged cancel succeeded.
+    if (toolName === STEP_TOOL_NAME && args.session_id && args.request_id) {
+      const cancellation = await cancelDiagnosis(base, token, args);
+      const failure = new Error(deadline.aborted ? String(deadline.reason?.message || 'Diagnosis aborted') : 'Diagnosis transport failed', { cause: error });
+      failure.name = deadline.aborted ? (deadline.reason?.name || 'AbortError') : 'Error';
+      failure.cancellation = cancellation;
+      throw failure;
+    }
+    if (deadline.aborted || !response) throw error;
     return liveTransportRefused();
   }
+}
+
+async function cancelDiagnosis(base, token, { session_id, request_id }) {
+  try {
+    const response = await fetch(`${base}/api/v1/analytics/competition/diagnosis/cancel`, {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ session_id, request_id }), signal: AbortSignal.timeout(2000), redirect: 'error',
+    });
+    const body = await response.json();
+    if (response.ok && body.status === 'CANCELLED' && body.session_id === session_id
+        && body.request_id === request_id && body.late_attempt_publish === false) return body;
+    if (response.status === 409 && body.error?.code === 'ALREADY_PUBLISHED') return { status: 'ALREADY_PUBLISHED' };
+  } catch { /* Receipt unavailable: do not turn a lost response into a success. */ }
+  return { status: 'UNCONFIRMED' };
 }
 
 export function liveTransportRefused() {

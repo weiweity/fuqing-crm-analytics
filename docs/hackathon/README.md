@@ -4,6 +4,8 @@
 
 2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。
 
+2026-09-10 追加：#115 候选 `8c2e676` 的必需 CI 已通过，仍为 draft。数值增量已完成显式计算、可信快照与认可成板：完整合成后端 2315 passed / 77 skipped，B0 全流程 PASS；两条真实 DeepSeek 评测得到 410/305 和 400/300，后一结果成板后刷新仍一致。4325/18083 已更新，旧板和草稿保留。增量未提交，完整产品仍 PARTIAL；见[本轮交付与边界](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)和[工程计划](DIAGNOSIS-INTEGRATION-PLAN-2026-09-10.md)。
+
 ## 当前采用的目标方案（2026-09-09）
 
 并行开发交接：[Grok总控与9个角色任务包](./parallel-competition-2026-09-09/README.md) 保留当时的任务拆分、所有权和验收合同；代码已由 #112 集成、#114 补修。任务包不是当前执行状态源，当前状态以顶部账本和证据为准。
@@ -136,3 +138,5 @@ Mission GET /today
 - `DRAFT_EXPORT_READY` 不等于短信已发送，也不等于已对接 CRM。
 
 接口、幂等与状态转换见 [MISSION-API.md](./MISSION-API.md)，合成数据生成见 [`scripts/synthetic/README.md`](../../scripts/synthetic/README.md)。
+
+诊断取消增量：见[交付与边界](DIAGNOSIS-CANCELLATION-2026-09-10.md)，实际 transport/HTTP/SQLite 通过，完整后端 2320 passed / 77 skipped、B0 PASS；浏览器原生取消全路径仍独立记录。

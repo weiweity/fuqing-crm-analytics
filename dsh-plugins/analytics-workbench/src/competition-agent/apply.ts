@@ -61,7 +61,8 @@ export function apply(ctx: Context, packInput: { manifest: object; contents: Rec
         schema: { type: 'object', additionalProperties: true },
         render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
       },
-      timeoutMs: 5000,
+      // HTTP computation remains bounded to 5s; leave 2s for a cancel receipt.
+      timeoutMs: toolName === STEP_TOOL_NAME ? 7500 : 5000,
       isConcurrencySafe: () => false,
       execute: async (args, exec) => liveDiagnosisCall(toolName, {
         ...args, session_id: exec.agent?.session.id,

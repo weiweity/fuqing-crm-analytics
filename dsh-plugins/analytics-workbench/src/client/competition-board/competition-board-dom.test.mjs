@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { readFileSync } from 'node:fs';
 import { createFixtureBoardTransport, createHttpBoardTransport } from './transport.mjs';
 import { createFixtureAudienceTransport, createHttpAudienceTransport } from '../competition-actions/transport.mjs';
 import { AUDIENCE_SUCCESS } from '../competition-actions/c0-fixtures.mjs';
@@ -45,6 +46,57 @@ function restoreDom(previous) {
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
 
+test('compiled board renders persisted computed GSV and data-driven chart preferences after reopen', async () => {
+  const result = JSON.parse(readFileSync(join(plugin, 'tests/competition-computed/result.json'), 'utf8'));
+  const { previous, dom } = installDom();
+  resetInflightForTests();
+  const transport = createFixtureBoardTransport();
+  transport.listEndorseableResults = async () => ({ ok: true, status: 200, body: [result] });
+  const withComputed = () => {
+    const board = transport.getSavedBoard();
+    board.blocks = board.blocks.map(block => ({ ...block, result, result_id: result.result_id, source_status: 'OK' }));
+    return board;
+  };
+  transport.listBoards = async () => ({ ok: true, status: 200, body: [withComputed()] });
+  transport.loadBoard = async () => ({ ok: true, status: 200, body: withComputed() });
+  let root;
+  const mount = async () => {
+    root = createRoot(globalThis.document.getElementById('root'));
+    await act(async () => { root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })); await delay(20); });
+    assert.match(globalThis.document.querySelector('[data-testid="sm-result-list"]').textContent, /本期 410 \/ 对比 305/);
+    await act(() => globalThis.document.querySelector('[data-testid="sm-open-board"]').click());
+    await waitFor(() => globalThis.document.querySelector('article[data-block-id] select'));
+  };
+  try {
+    for (const type of ['BAR', 'LINE', 'METRIC']) {
+      await mount();
+      const select = globalThis.document.querySelector('article[data-block-id] select');
+      await act(async () => { select.value = type; select.dispatchEvent(new dom.window.Event('change', { bubbles: true })); await delay(20); });
+      await act(async () => { globalThis.document.querySelector('[data-testid="sm-board-save"]').click(); await delay(20); });
+      await act(() => root.unmount()); root = null;
+      await mount();
+      const block = globalThis.document.querySelector('article[data-block-id]');
+      assert.match(block.textContent, /本期 GSV410/);
+      assert.match(block.textContent, /对比期 GSV305/);
+      assert.match(block.textContent, /34.43%/);
+      assert.equal(block.querySelector('[data-testid="sm-chart-no-series"]'), null);
+      if (type === 'BAR') {
+        const bars = [...block.querySelectorAll('.sm-chart-bar-track > div')];
+        assert.equal(bars.length, 2);
+        assert.ok(Math.abs(parseFloat(bars[0].style.width) - 305 / 410 * 100) < 0.001);
+        assert.equal(bars[1].style.width, '100%');
+      } else if (type === 'LINE') {
+        assert.ok(block.querySelector('[data-testid="sm-computed-line"] polyline'));
+        assert.match(block.textContent, /非每日趋势/);
+      } else assert.match(block.querySelector('[data-testid="sm-computed-metric"]').textContent, /410/);
+      await act(() => root.unmount()); root = null;
+    }
+  } finally {
+    if (root) await act(() => root.unmount());
+    dom.window.close(); restoreDom(previous); resetInflightForTests();
+  }
+});
+
 async function waitFor(check) {
   for (let i = 0; i < 40; i++) {
     if (check()) return;
@@ -52,6 +104,36 @@ async function waitFor(check) {
   }
   throw new Error('competition-board DOM wait timeout');
 }
+
+test('T04 compiled DOM preserves GSV 0.25 and formats only the raw ratio as 25%', async () => {
+  const result = JSON.parse(readFileSync(join(plugin, 'tests/competition-computed/result.json'), 'utf8'));
+  result.facts.current.gsv = 0.25;
+  result.facts.comparison.gsv = 0.2;
+  result.facts.difference = 0.05;
+  result.facts.change_ratio = 0.25;
+  const { previous, dom } = installDom();
+  resetInflightForTests();
+  const transport = createFixtureBoardTransport();
+  const board = transport.getSavedBoard();
+  board.blocks = board.blocks.map(block => ({ ...block, result, result_id: result.result_id, source_status: 'OK' }));
+  transport.listEndorseableResults = async () => ({ ok: true, status: 200, body: [result] });
+  transport.listBoards = async () => ({ ok: true, status: 200, body: [board] });
+  transport.loadBoard = async () => ({ ok: true, status: 200, body: board });
+  const root = createRoot(document.getElementById('root'));
+  try {
+    await act(async () => { root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })); await delay(20); });
+    await act(() => document.querySelector('[data-testid="sm-open-board"]').click());
+    await waitFor(() => document.querySelector('article[data-block-id]'));
+    const row = label => document.querySelector(`article [data-field="${label}"] td`).textContent;
+    assert.equal(row('本期 GSV'), '0.25');
+    assert.equal(row('对比期 GSV'), '0.2');
+    assert.equal(row('GSV 变动额'), '0.05');
+    assert.equal(row('GSV 变动比例'), '25.00%');
+  } finally {
+    await act(() => root.unmount());
+    dom.window.close(); restoreDom(previous); resetInflightForTests();
+  }
+});
 
 test('chart preference enables save and survives component reopen, bound to the changed block', async () => {
   resetInflightForTests();

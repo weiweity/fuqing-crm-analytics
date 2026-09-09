@@ -6,6 +6,9 @@ from typing import Any
 
 def competition_result_item(record) -> dict[str, Any]:
     """C0 endorsable pointer from a saved SNAPSHOT. Not a B0 /b0/assets document."""
+    if record.schema_version == "competition-computed-analysis/v1":
+        from backend.contracts.competition_computed import CompetitionComputedResult
+        return CompetitionComputedResult.model_validate(record.snapshot["computed_result"]).model_dump(mode="json")
     binding = record.binding()
     snapshot = record.snapshot if isinstance(record.snapshot, dict) else {}
     as_of = snapshot.get("as_of") or "2026-08-31T16:00:00.000000+00:00"
@@ -60,4 +63,3 @@ def competition_result_item(record) -> dict[str, Any]:
         "http_api": "CONNECTED",
         "finite_mock": True,
     }
-

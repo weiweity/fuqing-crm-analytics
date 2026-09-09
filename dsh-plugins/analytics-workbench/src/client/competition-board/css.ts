@@ -47,6 +47,12 @@ export const competitionBoardCss = `
 .sm-block[data-inflight="1"] { box-shadow: inset 0 0 0 1px var(--sm-signal); }
 .sm-block-selected-label { color: var(--sm-signal); font-size: 12px; }
 .sm-chart-table { width: 100%; border-collapse: collapse; }
+.sm-chart-bar-track { height: 12px; background: var(--sm-glass); margin: 4px 0 12px; }
+.sm-chart-bar-track > div { height: 100%; background: var(--sm-signal); }
+[data-testid="sm-computed-line"] { margin: 0; }
+[data-testid="sm-computed-line"] svg { width: 100%; max-height: 180px; }
+[data-testid="sm-computed-line"] polyline { fill: none; stroke: var(--sm-signal); stroke-width: 2; }
+[data-testid="sm-computed-line"] circle { fill: var(--sm-signal); }
 .sm-chart-table th, .sm-chart-table td {
   text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--sm-line); color: var(--sm-copy);
 }

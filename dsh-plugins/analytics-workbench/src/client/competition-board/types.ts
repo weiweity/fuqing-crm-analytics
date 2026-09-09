@@ -1,5 +1,6 @@
 import type { components } from '../../competition-c0-contract.generated.d.ts';
 import type { components as chartComponents } from '../../competition-chart-contract.generated.d.ts';
+import type { components as computedComponents } from '../../competition-computed-contract.generated.d.ts';
 
 export type CompetitionBoardSpec = components['schemas']['CompetitionBoardSpec'] & {
   blocks?: Array<{
@@ -17,7 +18,7 @@ export type CompetitionChartPatchRequest = chartComponents['schemas']['Competiti
 export type BoardPatchRequest = CompetitionPatchRequest | CompetitionChartPatchRequest;
 export type CompetitionBoardBatchRequest = components['schemas']['CompetitionBoardBatchRequest'];
 export type CompetitionBoardBatchReceipt = components['schemas']['CompetitionBoardBatchReceipt'];
-export type CompetitionResultRef = components['schemas']['CompetitionResultRef'];
+export type CompetitionResultRef = components['schemas']['CompetitionResultRef'] | computedComponents['schemas']['CompetitionComputedResult'];
 export type CompetitionErrorDetail = components['schemas']['CompetitionErrorDetail'];
 export type EndorsedResultRef = components['schemas']['EndorsedResultRef'];
 export type PatchIntent = components['schemas']['PatchIntent'];

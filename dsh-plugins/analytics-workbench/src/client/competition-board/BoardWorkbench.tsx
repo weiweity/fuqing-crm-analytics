@@ -21,6 +21,12 @@ import type {
 
 const DRAFT_PREFIX = 'competition-a6-board-draft:';
 const PLUGINS: RegisteredPlugin[] = ['TABLE', 'BAR', 'LINE', 'METRIC', 'EVIDENCE'];
+const amount = (value: number | null) => value === null ? '暂无数据' : value.toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+
+function comparisonText(result: CompetitionResultRef): string {
+  if (result.schema_version !== 'competition-computed-result/v1') return result.result_id;
+  return `GSV 本期 ${amount(result.facts.current.gsv)} / 对比 ${amount(result.facts.comparison.gsv)}`;
+}
 
 function opaqueAttempt(): string {
   const bytes = globalThis.crypto?.getRandomValues?.(new Uint8Array(8));
@@ -57,6 +63,16 @@ function rowsFor(result: CompetitionResultRef | null): { label: string; value: s
   const resolved = result.resolved_condition;
   const current = resolved?.current_period;
   return [
+    ...(result.schema_version === 'competition-computed-result/v1' ? [
+      { label: '本期 GSV', value: amount(result.facts.current.gsv) },
+      { label: '对比期 GSV', value: amount(result.facts.comparison.gsv) },
+      { label: 'GSV 变动额', value: amount(result.facts.difference) },
+      { label: 'GSV 变动比例', value: result.facts.change_ratio === null
+        ? (result.facts.change_ratio_unavailable_reason === 'ZERO_COMPARISON_GSV' ? '对比期为 0，比例不可计算' : '期间无可用数据')
+        : `${(result.facts.change_ratio * 100).toFixed(2)}%` },
+      { label: '本期有效订单数', value: String(result.facts.current.order_count) },
+      { label: '本期实际截数', value: result.facts.current.through_date ?? '暂无数据' },
+    ] : []),
     { label: '完整性', value: result.completeness ?? '—' },
     { label: '行数', value: formatResultRowCount(result) },
     { label: '空因', value: result.empty_reason ?? '—' },
@@ -88,12 +104,29 @@ function blocksFrom(spec: CompetitionBoardSpec | null, results: CompetitionResul
 
 function RegisteredChart({ block }: { block: BlockView }) {
   const empty = block.result?.completeness === 'EMPTY';
+  const facts = block.result?.schema_version === 'competition-computed-result/v1' ? block.result.facts : null;
+  const values = facts && facts.current.gsv !== null && facts.comparison.gsv !== null
+    ? [{ label: '对比期', value: facts.comparison.gsv }, { label: '本期', value: facts.current.gsv }] : null;
+  const maximum = Math.max(1, ...(values?.map(item => item.value) ?? []));
   return (
     <div data-plugin={block.plugin} data-testid={`sm-chart-${block.block_id}`}>
       {empty ? <p>无可用样本：{block.result?.empty_reason}。缺分母不显示 0%。</p> : null}
-      {!empty && ['BAR', 'LINE', 'METRIC'].includes(block.plugin) ? (
+      {!empty && !values && ['BAR', 'LINE', 'METRIC'].includes(block.plugin) ? (
         <p role="status" data-testid="sm-chart-no-series">当前结果仅提供元数据，暂无可绘制的数值序列。图表类型偏好可保存。</p>
       ) : null}
+      {values && block.plugin === 'BAR' ? <div data-testid="sm-computed-bars" aria-label="GSV 两期柱形对比">
+        {values.map(item => <div key={item.label}>
+          <span>{item.label} {amount(item.value)}</span>
+          <div className="sm-chart-bar-track"><div style={{ width: `${item.value / maximum * 100}%` }} /></div>
+        </div>)}
+      </div> : null}
+      {values && block.plugin === 'LINE' ? <figure data-testid="sm-computed-line">
+        <svg viewBox="0 0 260 130" role="img" aria-label={`GSV 两期连线：${values.map(item => `${item.label} ${item.value}`).join('，')}`}>
+          <polyline points={values.map((item, index) => `${30 + index * 200},${110 - item.value / maximum * 90}`).join(' ')} />
+          {values.map((item, index) => <circle key={item.label} cx={30 + index * 200} cy={110 - item.value / maximum * 90} r="4" />)}
+        </svg><figcaption>两期数值对比，非每日趋势</figcaption>
+      </figure> : null}
+      {values && block.plugin === 'METRIC' ? <p data-testid="sm-computed-metric">本期 GSV {amount(values[1].value)}</p> : null}
       <table className="sm-chart-table">
         <caption>{block.summary}</caption>
         <thead><tr><th>字段</th><th>值</th></tr></thead>
@@ -566,7 +599,7 @@ export function BoardWorkbench(props: BoardMountProps) {
                           }}
                         />
                         <span>
-                          <strong>{result.result_id}</strong> · {result.completeness}
+                          <strong>{comparisonText(result)}</strong> · {result.completeness}
                           {result.empty_reason ? ` · ${result.empty_reason}` : ''}
                           <br />query {result.query_id} · {result.resolved_condition?.metric_type ?? '—'}
                         </span>
@@ -580,6 +613,7 @@ export function BoardWorkbench(props: BoardMountProps) {
                   <h3>确认摘要 {result.result_id}</h3>
                   <ConditionChips items={conditionChips(result)} />
                   <EvidenceBlock {...evidenceFields(result)} />
+                  {result.schema_version === 'competition-computed-result/v1' ? <p>{comparisonText(result)}</p> : null}
                   <p>历史范围 {result.resolved_condition?.history_scope?.kind ?? '—'} · 销售范围 {result.resolved_condition?.sales_scope?.kind ?? '—'}</p>
                 </article>
               ))}

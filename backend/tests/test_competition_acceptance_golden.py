@@ -64,6 +64,22 @@ def orders_conn():
     return conn, fixture
 
 
+def test_refund_fixture_persists_dates_without_retroactive_closed_state():
+    conn, _ = orders_conn()
+    try:
+        assert conn.execute(
+            "SELECT order_id, CAST(refunded_at AS VARCHAR), amount FROM refunds ORDER BY order_id"
+        ).fetchall() == [("O-PR", "2026-09-18", 27.0), ("O-RF", "2026-09-18", 77.0)]
+        before = rfm_as_of()(conn, as_of="2026-09-17")
+        after = rfm_as_of()(conn, as_of="2026-09-18")
+        assert money(before["U-FULL"]["m"]) == money("77.00")
+        assert "U-FULL" not in after
+        assert money(before["U-PART"]["m"]) == money("90.00")
+        assert money(after["U-PART"]["m"]) == money("63.00")
+    finally:
+        conn.close()
+
+
 def run_path(conn, fixture, sample_mode, sample_ids):
     analysis = fixture["analysis"]
     kwargs = {

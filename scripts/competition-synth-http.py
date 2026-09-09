@@ -3,10 +3,9 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from copy import deepcopy
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,6 +43,7 @@ def main() -> None:
     from backend.services.analytics.access import AnalyticsPrincipal, B0IdentityRegistry
     from backend.services.analytics.cockpit import CockpitStore
     from backend.services.analytics.saved_analyses import SavedAnalysisStore
+    from backend.services.analytics.competition_diagnosis.synthetic import demo_snapshot, materialize_synthetic_source
 
     if PORT in {4327, 8000, 5173, 14327}:
         raise SystemExit(f"refusing to bind user/demo port {PORT}")
@@ -53,34 +53,27 @@ def main() -> None:
         "cohort:read", "draft:write",
     })
     identities.grant(TOKEN, AnalyticsPrincipal("alice", caps, frozenset({
-        "channel-followup-fixture", "brand-a", "scope-brand-a",
+        "channel-followup-fixture", "competition-diagnosis-fixture", "brand-a", "scope-brand-a",
     })))
     analyses = SavedAnalysisStore(_private(STATE / "saved"))
     cockpit = CockpitStore(_private(STATE / "cockpit"))
-    fixture = ROOT / "backend/tests/fixtures/analytics_saved_analysis_succeeded_run.json"
-    if fixture.is_file():
-        run = deepcopy(json.loads(fixture.read_text())["run"])
-        principal = identities.resolve(f"Bearer {TOKEN}")
-        analyses.register_succeeded_run(principal, run)
-        analyses.save(principal, "save-synth", {
-            "title": "synth GSV",
-            "created_from_run_id": run["run_id"],
-            "filters": deepcopy(run["request"]),
-        })
-    app = create_competition_app(
-        analyses, cockpit, identities,
-        asset_state_dir=_private(STATE / "assets"),
-        audience_state_dir=_private(STATE / "audience"),
-    )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[web_origin()],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    print(f"COMPETITION_SYNTH_READY http://{HOST}:{PORT}/api/v1/analytics/catalog", flush=True)
-    uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
+    with TemporaryDirectory(prefix="diagnosis-source-", dir=_private(STATE)) as source_dir:
+        diagnosis_source = materialize_synthetic_source(Path(source_dir), demo_snapshot())
+        app = create_competition_app(
+            analyses, cockpit, identities,
+            asset_state_dir=_private(STATE / "assets"),
+            audience_state_dir=_private(STATE / "audience"),
+            diagnosis_source=diagnosis_source, diagnosis_state_dir=_private(STATE / "diagnosis"),
+        )
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[web_origin()],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        print(f"COMPETITION_SYNTH_READY http://{HOST}:{PORT}/api/v1/analytics/catalog", flush=True)
+        uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
 
 
 if __name__ == "__main__":
