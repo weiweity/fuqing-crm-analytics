@@ -2,11 +2,11 @@
 
 本目录记录黑客松产品决策和本地演示基线，它不替代原有 CRM 分析文档。公网部署与网址提交仍是独立待办。
 
-2026-09-09 本地核验主线基线为 `71a65f0`（#111；未重新查询远端），VERSION `0.7.0.0`。本轮 [DSH 基座与插件兼容集成](./DSH-COMPAT-INTEGRATION-2026-09-09.md) 已在本地主线，历史未提交状态不再描述当前代码；开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md)，插件 UI 交接见 [DSH-PLUGIN-UI-COMPAT](./DSH-PLUGIN-UI-COMPAT.md)。原生能力全量、真实模型和业务 UAT 仍未验收。
+2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。
 
 ## 当前采用的目标方案（2026-09-09）
 
-并行开发交接：[Grok总控与9个角色任务包](./parallel-competition-2026-09-09/README.md)，含逐轨文件所有权、C0合同门、批次/集成顺序、验收出口与可复制提示词。任务包已拆分，尚未派发实施。
+并行开发交接：[Grok总控与9个角色任务包](./parallel-competition-2026-09-09/README.md) 保留当时的任务拆分、所有权和验收合同；代码已由 #112 集成、#114 补修。任务包不是当前执行状态源，当前状态以顶部账本和证据为准。
 
 本轮[总计划§12](./PLAN-CLOSEOUT-2026-09-05.md)更新首版为自由诊断 → 批量可编辑看板 → 召回候选与行动草稿；保留 DSH 全功能，前台采用自有比赛品牌/Ant Design。旧 CRM API-01–06 与口径、工具合同同步纳主线；三问是已实现基线，候选不再计划延期。[评审附件](./AUTOPLAN-COMPETITION-REVIEW-2026-09-09.md)与[验收计划](./COMPETITION-TEST-PLAN-2026-09-09.md)记录本次修改，未代表API修复/新UI实现。以下保留历史时点。
 

@@ -1,0 +1,75 @@
+{
+  "at": "2026-09-09T19:36:13.717056+00:00",
+  "scope": "owned synthetic state only; original API stopped during backup",
+  "method": "SQLite backup API; second backup to isolated restore root",
+  "initial_verification": "harness expected list instead of HTTP items envelope; corrected before PASS",
+  "databases": [
+    {
+      "path": "assets/competition_assets.sqlite3",
+      "bytes": 73728,
+      "sha256": "38d8cab5476da4d656ff5311fd2870b8d405af2027991c36324407d99d95257d",
+      "quick_check": "ok",
+      "tables": {
+        "batches": 1,
+        "boards": 2,
+        "edit_targets": 1,
+        "endorsed_results": 1,
+        "idempotency": 0,
+        "metadata": 4,
+        "operations": 1
+      }
+    },
+    {
+      "path": "audience/competition-audience.sqlite",
+      "bytes": 36864,
+      "sha256": "50665dd03ec24d6fe87142c00802b187645e36ebbc50828ab41fbb0337503d7b",
+      "quick_check": "ok",
+      "tables": {
+        "candidates": 0,
+        "cohorts": 0,
+        "drafts": 0,
+        "metadata": 3
+      }
+    },
+    {
+      "path": "cockpit/cockpit.sqlite3",
+      "bytes": 45056,
+      "sha256": "6bd0ad04fc659a515f161cc8b3d865b631d303c215b51b86973b0ddc7590a030",
+      "quick_check": "ok",
+      "tables": {
+        "dashboards": 0,
+        "idempotency": 0,
+        "metadata": 3,
+        "owners": 0
+      }
+    },
+    {
+      "path": "saved/analyses.sqlite3",
+      "bytes": 49152,
+      "sha256": "f738a99d60328b9dad4b449ba642b5105acf145c89335b19dc8e0b925c678648",
+      "quick_check": "ok",
+      "tables": {
+        "analyses": 1,
+        "idempotency": 1,
+        "metadata": 3,
+        "refresh_candidates": 0,
+        "succeeded_runs": 1
+      }
+    }
+  ],
+  "restore_http": {
+    "list_status": 200,
+    "board_status": 200,
+    "boards": 1,
+    "board_id": "board_4dcb6d75329580a96315a8882a1819a7",
+    "version": 2,
+    "chart": "BAR"
+  },
+  "previous_version_read": {
+    "head": "3862e7711d72075e95b57932dc7fe0ed2ae4511b",
+    "board_status": 200,
+    "version": 2,
+    "chart": "BAR",
+    "scope": "previous candidate reads restored new chart data; no older-version writes or full browser downgrade tested"
+  }
+}

@@ -1,0 +1,102 @@
+[
+  {
+    "path": "/api/v1/analytics/competition/boards",
+    "method": "GET",
+    "status": 200,
+    "request": null
+  },
+  {
+    "path": "/api/v1/analytics/competition/results",
+    "method": "GET",
+    "status": 200,
+    "request": null
+  },
+  {
+    "path": "/api/v1/analytics/competition/batches",
+    "method": "POST",
+    "status": 200,
+    "request": {
+      "schema_version": "competition-board-batch/v1",
+      "batch_id": "batch_4cc4d3974227455ba8cbff00a5be96f3",
+      "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+      "operations": [
+        {
+          "board_id": null,
+          "endorsed_result_refs": [
+            {
+              "analysis_id": "analysis_2581bd98a72748ffab8bf1ec00e51ef5",
+              "completeness": "COMPLETE",
+              "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+              "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ],
+          "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+          "idempotency_key": "create-4cc4d3974227455ba8cbff00a5be96f3-0",
+          "operation_id": "op_4cc4d3974227455ba8cbff00a5be96f3_0",
+          "request_fingerprint": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+          "title": "8月GSV诊断板"
+        }
+      ]
+    }
+  },
+  {
+    "path": "/api/v1/analytics/competition/boards/board_4dcb6d75329580a96315a8882a1819a7",
+    "method": "GET",
+    "status": 200,
+    "request": null,
+    "version": 1,
+    "blocks": [
+      {
+        "block_id": "block_dbc867e0413ad9054ee0a69f68f90179",
+        "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ]
+  },
+  {
+    "path": "/api/v1/analytics/competition/boards/board_4dcb6d75329580a96315a8882a1819a7/preview",
+    "method": "POST",
+    "status": 200,
+    "request": {
+      "schema_version": "competition-board-chart-patch/v1",
+      "attempt_id": "attempt_c0_b7b357a1fdbfd9e8",
+      "idempotency_key": "attempt_c0_b7b357a1fdbfd9e8",
+      "intent": "STYLE_ONLY",
+      "board_id": "board_4dcb6d75329580a96315a8882a1819a7",
+      "block_id": "block_dbc867e0413ad9054ee0a69f68f90179",
+      "base_version": 1,
+      "chart_type": "BAR"
+    },
+    "version": 1,
+    "blocks": [
+      {
+        "block_id": "block_dbc867e0413ad9054ee0a69f68f90179",
+        "plugin": "BAR",
+        "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ]
+  },
+  {
+    "path": "/api/v1/analytics/competition/boards/board_4dcb6d75329580a96315a8882a1819a7/versions",
+    "method": "POST",
+    "status": 200,
+    "request": {
+      "schema_version": "competition-board-chart-patch/v1",
+      "attempt_id": "attempt_c0_b7b357a1fdbfd9e8",
+      "idempotency_key": "attempt_c0_b7b357a1fdbfd9e8",
+      "intent": "STYLE_ONLY",
+      "board_id": "board_4dcb6d75329580a96315a8882a1819a7",
+      "block_id": "block_dbc867e0413ad9054ee0a69f68f90179",
+      "base_version": 1,
+      "chart_type": "BAR"
+    },
+    "version": 2,
+    "blocks": [
+      {
+        "block_id": "block_dbc867e0413ad9054ee0a69f68f90179",
+        "plugin": "BAR",
+        "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ]
+  }
+]

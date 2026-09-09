@@ -13,6 +13,21 @@ const webRequire = createRequire(join(upstream, 'apps/web/package.json'));
 const stores = await import(pathToFileURL(join(upstream, 'packages/client/store/lib/index.js')).href);
 const source = await readFile(join(root, 'lib/client.js'), 'utf8');
 
+test('ordinary native chat has no synthetic run status; registered B0 still has its status', () => {
+  const { entries, effects } = mount(loadClient());
+  const component = entries.find(row => row.options.name === 'conversation.input.dock').component;
+  const React = webRequire('react');
+  const { renderToStaticMarkup } = webRequire('react-dom/server');
+  try {
+    const native = renderToStaticMarkup(React.createElement(component, { session: { sessionId: 'native-session-uuid' } }));
+    assert.equal(native, '');
+    const registered = renderToStaticMarkup(React.createElement(component, { session: { sessionId: 'session-b0-synthetic-primary' } }));
+    assert.match(registered, /B0 任务内核状态/);
+  } finally {
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+  }
+});
+
 function loadClient() {
   const seed = new Map([
     ['react', webRequire('react')],

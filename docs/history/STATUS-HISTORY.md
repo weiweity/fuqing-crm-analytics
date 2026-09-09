@@ -36,3 +36,30 @@
 
 ---
 > 2026-07-19 压缩：原 200 行；完整见 git history。保留 Sprint 99 / L4.20 闭环证据行。
+
+
+## 2026-09-10：从短状态页迁出的历史上下文
+
+以下保留旧时点记录，不是当前运行或执行授权。
+
+## 首购与 W4/W5 历史证据（2026-09-09）
+
+发布 CI：#108 的 `34310344976` 必需检查通过，按路径规则跳过项不算运行通过；已合并为 `d95e504`。完整业务验收仍开放。该轮本地统一 pipeline：428 项 Python、223 项源 Node、类型检查、编译后 49 项（含干净重建）通过。OCR Medium 与浏览器发现的终态总结上下文修复后已串行重跑通过。原生 DSH 浏览器 stub 合成闭环已通过（查询→总结→保存→加入驾驶舱→脱离会话重读）；补修成功后总结上下文，不代表真实模型或业务 UAT。见 [首购原生闭环](docs/hackathon/FIRST-PURCHASE-NATIVE-LOOP-2026-09-09.md)、[交接](docs/hackathon/FIRST-PURCHASE-NATIVE-HANDOFF-2026-09-09.md) 与 [并行集成清单](docs/hackathon/PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。本地证据在 `.context/parallel-round2-review/evidence-2026-09-09/`。
+本轮 W4/W5 本地接缝与分支核对见 [实施记录](docs/hackathon/W4-W5-LOCAL-2026-09-09.md)；临停本轮 DSH 后 Loader 与干净重建通过，历史端口冲突证据保留。
+
+本轮基座兼容结果见 [DSH 集成记录](docs/hackathon/DSH-COMPAT-INTEGRATION-2026-09-09.md)。完整原生 web profile 与 B0 合成栈分开；Settings 插件清单为只读展示，不能声称通用热启停已验。上述 #108 测试数字保留为历史证据。
+
+
+## 历史人工运维门禁（待重新核验，不自动执行）
+
+下表保留历史记录，不将旧版本、运行环境或备份状况当成今日已核实事实。
+
+| 优先级 | 动作 | 当前门禁 |
+|---|---|---|
+| **P0** | 轮换曾出现在公开 PR 历史中的管理员口令 | 需 owner 决定新口令并安排 backend 重启；只清当前 PR 正文不能撤销历史泄漏 |
+| **P0** | 建立 DuckDB 可恢复备份 | 旧 `copy2 + zstd` 执行路径已硬停用，但当前仍无已验证恢复点；需 ≥2× 库体积空间、停写窗口、原生一致性副本与异机恢复演练 |
+| **P1** | 同步生产 venv / 重启服务 | 仅在代码合并、`git pull --ff-only`、依赖审计和发布抽检后执行 |
+| **P1** | DuckDB 1.5.5 升级 | 必须排在备份恢复演练之后，独立 PR/维护窗口 |
+| **P2** | 退役 1.5.4 release checker | 先核对已安装 LaunchAgent，再人工 unload/remove；不得从仓库模板重新安装 |
+
+阅读顺序：1. 本文件 → 2. TECH-DEBT → 3. `docs/README.md` → 4. `AGENTS.md`（行为规则）→ 5. `docs/rules/L4-permanent-rules.md`（按需）；第二轮历史结果：资产后端接线完成，pipeline 418 项 Python、215 项源 Node 测试及类型/构建/干净重建通过。当时原生候选未导入，见 [第二轮复核](docs/hackathon/PARALLEL-ROUND2-REVIEW-2026-09-08.md)。再上一轮 405 项 Python 见 [集成结果](docs/hackathon/PARALLEL-INTEGRATION-RESULT-2026-09-08.md)，均不代表远端 CI 或 native UI 新验收。

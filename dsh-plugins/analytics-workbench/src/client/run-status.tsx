@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client';
-import { QUERY_SESSION_IDS } from '../initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS } from '../initial-session.mjs';
 import { emptyRunView, loadRunView, visibleRunView, type RunView } from '../run-view.mjs';
 import { css } from './styles.ts';
 
@@ -10,6 +10,12 @@ const labels = { QUEUED: '排队中', RUNNING: '运行中', NEEDS_INPUT: '需要
 const phases = { ACCEPTED: '已受理', PLANNING: '规划', EXECUTING: '执行工具', FINALIZING: '已核对退出' };
 
 export function RunStatus(props: PropsRuntime<'conversation.input.dock'>) {
+  const id = props.session.sessionId;
+  if (id !== B0_PRIMARY_SESSION_ID && !QUERY_SESSION_IDS.some(value => value === id)) return null;
+  return <RegisteredRunStatus {...props} />;
+}
+
+function RegisteredRunStatus(props: PropsRuntime<'conversation.input.dock'>) {
   const sessionId = props.session.sessionId;
   const [view, setView] = useState<RunView>(() => emptyRunView(sessionId));
   const [problem, setProblem] = useState('正在读取任务内核…');

@@ -14,7 +14,7 @@ import { batchIntent, finishBatchIntent } from './batch-intent.mjs';
 import { competitionHttpOptions } from '../competition-http.mjs';
 import { competitionBoardCss } from './css.ts';
 import type {
-  BoardLayoutMode, BoardMountProps, BoardTransport, BlockView, CompetitionBoardSpec,
+  BoardLayoutMode, BoardMountProps, BoardTransport, BoardPatchRequest, BlockView, CompetitionBoardSpec,
   CompetitionErrorDetail, CompetitionPatchRequest, CompetitionResultRef, LayoutBox,
   PatchIntent, Principal, RegisteredPlugin, SelectedEditEvent,
 } from './types.ts';
@@ -28,11 +28,11 @@ function opaqueAttempt(): string {
   return `attempt_c0_${suffix}`;
 }
 
-function readLocalDraft(boardId: string): { patch: CompetitionPatchRequest; not_business_authority: true } | null {
+function readLocalDraft(boardId: string): { patch: BoardPatchRequest; not_business_authority: true } | null {
   try {
     const raw = sessionStorage.getItem(DRAFT_PREFIX + boardId);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { patch?: CompetitionPatchRequest; not_business_authority?: boolean };
+    const parsed = JSON.parse(raw) as { patch?: BoardPatchRequest; not_business_authority?: boolean };
     if (!parsed?.patch || parsed.not_business_authority !== true) return null;
     return { patch: parsed.patch, not_business_authority: true };
   } catch {
@@ -40,7 +40,7 @@ function readLocalDraft(boardId: string): { patch: CompetitionPatchRequest; not_
   }
 }
 
-function writeLocalDraft(boardId: string, patch: CompetitionPatchRequest | null) {
+function writeLocalDraft(boardId: string, patch: BoardPatchRequest | null) {
   try {
     if (!patch) {
       sessionStorage.removeItem(DRAFT_PREFIX + boardId);
@@ -91,20 +91,8 @@ function RegisteredChart({ block }: { block: BlockView }) {
   return (
     <div data-plugin={block.plugin} data-testid={`sm-chart-${block.block_id}`}>
       {empty ? <p>无可用样本：{block.result?.empty_reason}。缺分母不显示 0%。</p> : null}
-      {!empty && block.plugin === 'BAR' ? (
-        <div className="sm-chart-bar" aria-hidden="true">
-          {block.rows.map(row => (
-            <div key={row.label}>
-              <span>{row.label}</span>
-              <span className="sm-chart-bar-track"><i style={{ width: row.label === '行数' ? '40%' : '18%' }} /></span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {!empty && block.plugin === 'LINE' ? (
-        <svg viewBox="0 0 120 36" width="100%" height="36" role="img" aria-label={block.summary}>
-          <polyline fill="none" stroke="currentColor" strokeWidth="2" points="0,28 24,20 48,22 72,12 96,16 120,8" />
-        </svg>
+      {!empty && ['BAR', 'LINE', 'METRIC'].includes(block.plugin) ? (
+        <p role="status" data-testid="sm-chart-no-series">当前结果仅提供元数据，暂无可绘制的数值序列。图表类型偏好可保存。</p>
       ) : null}
       <table className="sm-chart-table">
         <caption>{block.summary}</caption>
@@ -139,9 +127,10 @@ export function BoardWorkbench(props: BoardMountProps) {
   const [layoutMode, setLayoutMode] = useState<BoardLayoutMode>(BOARD_LAYOUT_MODE_DEFAULT.value as BoardLayoutMode);
   const [board, setBoard] = useState<CompetitionBoardSpec | null>(null);
   const [preview, setPreview] = useState<CompetitionBoardSpec | null>(null);
-  const [pending, setPending] = useState<CompetitionPatchRequest | null>(null);
+  const [pending, setPending] = useState<BoardPatchRequest | null>(null);
   const [layouts, setLayouts] = useState<Record<string, LayoutBox>>({});
-  const [plugins, setPlugins] = useState<Record<string, RegisteredPlugin>>({});
+  const [patchBusy, setPatchBusy] = useState(false);
+  const patchSending = useRef(false);
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [uiBlockId, setUiBlockId] = useState<string | null>(null);
   const [scopeMode, setScopeMode] = useState<'block' | 'board'>('block');
@@ -152,7 +141,7 @@ export function BoardWorkbench(props: BoardMountProps) {
   const [receipt, setReceipt] = useState<unknown>(null);
   const creationIntent = useRef<ReturnType<typeof batchIntent> | null>(null);
   const creating = useRef(false);
-  const [restore, setRestore] = useState<CompetitionPatchRequest | null>(null);
+  const [restore, setRestore] = useState<BoardPatchRequest | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const dragCleanup = useRef<(() => void) | null>(null);
@@ -165,10 +154,9 @@ export function BoardWorkbench(props: BoardMountProps) {
     return list.map(block => ({
       ...block,
       layout: layouts[block.block_id] ?? block.layout,
-      plugin: plugins[block.block_id] ?? block.plugin,
       title: titles[block.block_id] ?? block.title,
     }));
-  }, [shown, results, layouts, plugins, titles]);
+  }, [shown, results, layouts, titles]);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,9 +206,15 @@ export function BoardWorkbench(props: BoardMountProps) {
     if (spec) setUiSelection({ board_id: spec.board_id, block_id: null, base_version: spec.version });
   }
 
-  async function runPatch(next: CompetitionPatchRequest, kind: 'preview' | 'apply' | 'undo') {
+  async function runPatch(next: BoardPatchRequest, kind: 'preview' | 'apply' | 'undo') {
+    if (patchSending.current) return;
+    if (pending && pending.attempt_id !== next.attempt_id) {
+      setMessage('请先保存或放弃当前预览，再进行下一次编辑。');
+      return;
+    }
+    patchSending.current = true; setPatchBusy(true);
     const target = getPatchTarget();
-    const payload = {
+    const payload: BoardPatchRequest = next.schema_version === 'competition-board-chart-patch/v1' ? next : {
       ...next,
       board_id: target?.board_id ?? next.board_id,
       block_id: next.intent === 'STYLE_ONLY' || next.intent === 'FILTER_CHANGE'
@@ -228,41 +222,61 @@ export function BoardWorkbench(props: BoardMountProps) {
         : next.block_id,
       base_version: target?.base_version ?? next.base_version,
     };
-    beginInflight({
-      board_id: payload.board_id,
-      block_id: payload.block_id,
-      base_version: payload.base_version,
-      attempt_id: payload.attempt_id,
-    });
-    const headers = { 'If-Match': String(payload.base_version), 'Idempotency-Key': payload.idempotency_key };
-    const method = kind === 'apply' ? transport.applyPatch : kind === 'undo' ? transport.undo : transport.previewPatch;
-    const row = await method(principal, payload, headers);
-    if (!row.ok) {
-      setError(row.body.error);
-      if (row.status === 409) writeLocalDraft(payload.board_id, payload);
-      if (row.status !== 409) endInflight(payload.attempt_id);
-      return;
+    try {
+      setError(null);
+      beginInflight({
+        board_id: payload.board_id,
+        block_id: payload.block_id,
+        base_version: payload.base_version,
+        attempt_id: payload.attempt_id,
+      });
+      const headers = { 'If-Match': String(payload.base_version), 'Idempotency-Key': payload.idempotency_key };
+      const method = kind === 'apply' ? transport.applyPatch : kind === 'undo' ? transport.undo : transport.previewPatch;
+      const row = await method(principal, payload, headers);
+      if (!row.ok) {
+        setError(row.body.error);
+        if (row.status === 409) writeLocalDraft(payload.board_id, payload);
+        if (row.status !== 409) endInflight(payload.attempt_id);
+        return;
+      }
+      if (kind === 'apply') {
+        setBoard(row.body);
+        setPreview(null);
+        setPending(null);
+        setLayouts({}); setTitles({});
+        writeLocalDraft(payload.board_id, null);
+        setMessage('已保存新版本。撤销走版本检查，不是放弃预览。');
+        endInflight(payload.attempt_id);
+        return;
+      }
+      setPreview(row.body);
+      setPending(payload);
+      writeLocalDraft(payload.board_id, payload);
+      setMessage(kind === 'undo' ? '预览整板恢复。尚未保存。' : '预览未保存，不会写入驾驶舱。');
+      setPanel('board');
+    } catch {
+      setMessage('请求未确认，请重试；已保存版本以服务端重读为准。');
+      setPending(payload);
+      writeLocalDraft(payload.board_id, payload);
+    } finally {
+      patchSending.current = false; setPatchBusy(false);
     }
-    if (kind === 'apply') {
-      setBoard(row.body);
-      setPreview(null);
-      setPending(null);
-      setLayouts({}); setTitles({}); setPlugins({});
-      writeLocalDraft(payload.board_id, null);
-      setMessage('已保存新版本。撤销走版本检查，不是放弃预览。');
-      endInflight(payload.attempt_id);
-      return;
-    }
-    setPreview(row.body);
-    setPending(payload);
-    writeLocalDraft(payload.board_id, payload);
-    setMessage(kind === 'undo' ? '预览整板恢复。尚未保存。' : '预览未保存，不会写入驾驶舱。');
-    setPanel('board');
+  }
+
+  async function chartCommit(blockId: string, chartType: RegisteredPlugin) {
+    if (!board || patchBusy || pending || getInflight()) return;
+    selectBlock(blockId);
+    const attempt = opaqueAttempt();
+    await runPatch({
+      schema_version: 'competition-board-chart-patch/v1',
+      attempt_id: attempt, idempotency_key: attempt, intent: 'STYLE_ONLY',
+      board_id: board.board_id, block_id: blockId, base_version: board.version, chart_type: chartType,
+    }, 'preview');
   }
 
   function buildPatch(partial: Partial<CompetitionPatchRequest> & { intent: PatchIntent }): CompetitionPatchRequest {
     const spec = shown;
-    const blockId = scopeMode === 'board' ? null : uiBlockId;
+    const blockId = partial.block_id !== undefined ? partial.block_id : scopeMode === 'board' ? null : uiBlockId;
     return {
       schema_version: 'competition-board-patch/v1',
       attempt_id: opaqueAttempt(),
@@ -278,6 +292,10 @@ export function BoardWorkbench(props: BoardMountProps) {
   }
 
   async function layoutCommit(blockId: string, layout: LayoutBox) {
+    if (pending || restore || patchSending.current) {
+      setMessage('请先保存或放弃当前预览，再进行下一次编辑。');
+      return;
+    }
     setLayouts(current => ({ ...current, [blockId]: layout }));
     await runPatch(buildPatch({
       intent: 'STRUCTURE',
@@ -288,6 +306,7 @@ export function BoardWorkbench(props: BoardMountProps) {
   }
 
   function onPointer(block: BlockView, axis: 'x' | 'w', event: ReactPointerEvent<HTMLButtonElement>) {
+    if (pending || restore || patchSending.current) return;
     const origin = block.layout;
     const start = event.clientX;
     function move(ev: PointerEvent) {
@@ -382,7 +401,7 @@ export function BoardWorkbench(props: BoardMountProps) {
         if (loaded.ok && loaded.body?.board_id) {
           setError(null);
           setBoard(loaded.body);
-          setLayouts({}); setTitles({}); setPlugins({});
+          setLayouts({}); setTitles({});
           setPreview(null);
           setPanel('board');
           completeIntent();
@@ -458,10 +477,10 @@ export function BoardWorkbench(props: BoardMountProps) {
         >
           <h2>认可结果与可编辑看板</h2>
           <StatusBanner
-            kind={modelAvailable ? 'synthetic' : 'model_unavailable'}
+            kind="synthetic"
             message={modelAvailable
               ? 'SYNTHETIC · C0 fixture。经营事实以后端校验为准。'
-              : '模型不可用。仍可查看已存板并手动拖拽/键盘改布局。'}
+              : '此看板入口提供手动编辑；对话诊断请在原生聊天中进行。'}
           />
           {error ? (
             <ErrorState
@@ -475,8 +494,11 @@ export function BoardWorkbench(props: BoardMountProps) {
           {restore && shown ? (
             <section className="sm-leave-restore" data-testid="sm-leave-restore" role="status">
               <p>浏览器草稿可恢复，不是经营事实权威。board {shown.board_id} · attempt {restore.attempt_id}</p>
-              <button type="button" onClick={() => { setPending(restore); setRestore(null); setPanel('board'); }}>继续编辑草稿</button>
-              <button type="button" onClick={() => { writeLocalDraft(shown.board_id, null); setRestore(null); }}>放弃浏览器草稿</button>
+              <button type="button" onClick={() => { void runPatch(restore, 'preview'); setRestore(null); }}>继续编辑草稿</button>
+              <button type="button" onClick={() => {
+                transport.discardPreview?.();
+                writeLocalDraft(shown.board_id, null); endInflight(restore.attempt_id); setRestore(null);
+              }}>放弃浏览器草稿</button>
             </section>
           ) : null}
           {confirmLeave ? (
@@ -486,7 +508,7 @@ export function BoardWorkbench(props: BoardMountProps) {
               <button type="button" data-testid="sm-discard-preview" onClick={() => {
                 transport.discardPreview?.();
                 setPending(null); setPreview(null); setConfirmLeave(false);
-                setLayouts({}); setTitles({}); setPlugins({});
+                setLayouts({}); setTitles({});
                 if (shown) writeLocalDraft(shown.board_id, null);
                 if (pending) endInflight(pending.attempt_id);
                 setMessage('已放弃预览。已保存版本未变。');
@@ -497,8 +519,8 @@ export function BoardWorkbench(props: BoardMountProps) {
             <button type="button" data-current={panel === 'endorse' ? '1' : '0'} onClick={() => setPanel('endorse')}>选择结果</button>
             <button type="button" data-current={panel === 'confirm' ? '1' : '0'} onClick={() => setPanel('confirm')}>确认摘要</button>
             <button type="button" data-current={panel === 'board' ? '1' : '0'} data-testid="sm-open-board" onClick={() => setPanel('board')}>编辑看板</button>
-            <button type="button" data-testid="sm-board-save" disabled={!pending} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</button>
-            <button type="button" data-testid="sm-board-undo" onClick={() => {
+            <button type="button" data-testid="sm-board-save" disabled={!pending || patchBusy} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</button>
+            <button type="button" data-testid="sm-board-undo" disabled={Boolean(pending || restore) || patchBusy} onClick={() => {
               if (!board || board.version < 2) { setMessage('没有可恢复的历史版本。'); return; }
               void runPatch(buildPatch({
                 intent: 'STRUCTURE',
@@ -506,7 +528,7 @@ export function BoardWorkbench(props: BoardMountProps) {
                 idempotency_key: `undo-to-${board.version - 1}-from-${board.version}`,
               }), 'undo');
             }}>撤销已保存</button>
-            <button type="button" disabled={!dirty} onClick={() => setConfirmLeave(true)}>放弃预览</button>
+            <button type="button" disabled={!dirty || patchBusy} onClick={() => setConfirmLeave(true)}>放弃预览</button>
           </div>
           {message ? <p role="status" data-testid="sm-board-status">{message}</p> : null}
 
@@ -626,12 +648,11 @@ export function BoardWorkbench(props: BoardMountProps) {
                       <p>{block.plugin} · x{layout.x}/y{layout.y}/w{layout.w}/h{layout.h}</p>
                       <RegisteredChart block={block} />
                       <label>
-                        登记图表
+                        图表类型
                         <select
                           value={block.plugin}
-                          onChange={event => setPlugins(current => ({
-                            ...current, [block.block_id]: event.target.value as RegisteredPlugin,
-                          }))}
+                          disabled={Boolean(pending || restore) || patchBusy}
+                          onChange={event => void chartCommit(block.block_id, event.target.value as RegisteredPlugin)}
                         >
                           {PLUGINS.map(name => <option key={name} value={name}>{name}</option>)}
                         </select>

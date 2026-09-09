@@ -88,6 +88,16 @@ export function looksLikeIllegalScript(value) {
   return /<script|javascript:|onerror\s*=|onload\s*=/i.test(text);
 }
 
+export function decodeBoardPatchRequest(value) {
+  if (value?.schema_version !== 'competition-board-chart-patch/v1') return decodeCompetitionPatchRequest(value);
+  const fields = ['schema_version', 'board_id', 'block_id', 'base_version', 'attempt_id', 'idempotency_key', 'intent', 'chart_type'];
+  if (!isObj(value) || Object.keys(value).some(key => !fields.includes(key)) || !has(value, fields)) return null;
+  if (![value.board_id, value.block_id, value.attempt_id].every(opaque) || !Number.isSafeInteger(value.base_version) || value.base_version < 1) return null;
+  if (typeof value.idempotency_key !== 'string' || !value.idempotency_key.length || value.idempotency_key.length > 200) return null;
+  if (value.intent !== 'STYLE_ONLY' || !['TABLE', 'BAR', 'LINE', 'METRIC', 'EVIDENCE'].includes(value.chart_type)) return null;
+  return value;
+}
+
 export function decodeCompetitionBatchRequest(value) {
   if (!isObj(value) || value.schema_version !== 'competition-board-batch/v1') return null;
   if (!opaque(value.batch_id) || !LAYOUT_MODES.has(value.layout_mode)) return null;

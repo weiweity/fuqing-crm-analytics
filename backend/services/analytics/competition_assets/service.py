@@ -31,6 +31,7 @@ from backend.contracts.competition_c0 import (
     PatchIntent,
     SnapshotCompat,
 )
+from backend.contracts.competition_chart import CompetitionChartPatchRequest
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
 from backend.services.analytics.analysis_source import resolve_endorsed_result
 from backend.services.analytics.cockpit import (
@@ -520,11 +521,15 @@ class CompetitionAssetService:
     def apply_patch(self, principal: AnalyticsPrincipal, payload: dict[str, Any] | CompetitionPatchRequest):
         return self._mutate_patch(principal, payload, persist=True)
 
-    def _parse_patch(self, payload) -> CompetitionPatchRequest:
+    def _parse_patch(self, payload) -> CompetitionPatchRequest | CompetitionChartPatchRequest:
         try:
-            return payload if isinstance(payload, CompetitionPatchRequest) else CompetitionPatchRequest.model_validate(payload)
+            if isinstance(payload, (CompetitionPatchRequest, CompetitionChartPatchRequest)):
+                return payload
+            model = (CompetitionChartPatchRequest if isinstance(payload, dict) and payload.get("schema_version") == "competition-board-chart-patch/v1"
+                     else CompetitionPatchRequest)
+            return model.model_validate(payload)
         except ValidationError:
-            raise _unprocessable("补丁不符合 competition-board-patch/v1。") from None
+            raise _unprocessable("补丁不符合 C0 或比赛图表运行时合同。") from None
 
     def _load_competition_row(self, principal, board_id: str, version: int | None = None):
         with self.store.readonly() as con:
@@ -558,7 +563,8 @@ class CompetitionAssetService:
         self._require(principal, CAPABILITY_WRITE if persist else CAPABILITY_READ)
         patch = self._parse_patch(payload)
         validate_key(patch.idempotency_key)
-        reject_filter_change(patch)
+        if isinstance(patch, CompetitionPatchRequest):
+            reject_filter_change(patch)
         if self._load_competition_row(principal, patch.board_id) is None:
             if self.cockpit is not None:
                 try:
@@ -645,6 +651,11 @@ class CompetitionAssetService:
     def _apply_c0_patch(self, con, principal, row, patch: CompetitionPatchRequest, *, preview: bool):
         blocks = json.loads(row["blocks_json"])
         title = row["title"]
+        if isinstance(patch, CompetitionChartPatchRequest):
+            target = self._require_block(blocks, patch.block_id)
+            updated = {**target, "plugin": patch.chart_type}
+            return ([updated if block["block_id"] == target["block_id"] else block for block in blocks],
+                    title, [target["block_id"]])
         if patch.intent == PatchIntent.STYLE_ONLY:
             return self._style_only(blocks, title, patch)
         if patch.cockpit_op is None:

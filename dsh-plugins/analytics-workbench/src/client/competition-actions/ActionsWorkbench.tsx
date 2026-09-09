@@ -108,7 +108,7 @@ export function ActionsWorkbench(props: ActionsMountProps) {
           <h2>召回候选与行动草稿</h2>
           <p data-testid="sm-no-auto-send">不自动发送 · auto_send=false · 不是 Mission DRAFT_EXPORT</p>
           <StatusBanner
-            kind={props.modelAvailable ? 'synthetic' : 'model_unavailable'}
+            kind="synthetic"
             message="auto_send=false。不是 Mission DRAFT_EXPORT。合成 customer_key，不导出真实名单。"
           />
           {error ? (

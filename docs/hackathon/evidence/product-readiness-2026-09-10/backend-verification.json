@@ -1,0 +1,128 @@
+{
+  "profile": "synthetic-not-slow",
+  "source": {
+    "head": "788b5b108fed22526805248a86f310ef7602cc6e",
+    "python_check_sources_sha256": "9c28251a540c45ccf95fd5d7285e16e54a1a0a30dbaf1a2b5c2e6912e8d467a4"
+  },
+  "scope": "daily synthetic not slow and shared C-class exclusions; not archived data",
+  "counts": {
+    "targets": 239,
+    "tests": 2359,
+    "passed": 2282,
+    "skipped": 77,
+    "failure": 0,
+    "error": 0
+  },
+  "groups": [
+    {
+      "report": "20260909T191247809919Z",
+      "group": 1,
+      "targets": 25,
+      "tests": 275,
+      "failure": 0,
+      "error": 0,
+      "skipped": 4,
+      "passed": 271,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191247809919Z",
+      "group": 2,
+      "targets": 25,
+      "tests": 390,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "passed": 390,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191247809919Z",
+      "group": 3,
+      "targets": 25,
+      "tests": 226,
+      "failure": 0,
+      "error": 0,
+      "skipped": 15,
+      "passed": 211,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191247809919Z",
+      "group": 4,
+      "targets": 25,
+      "tests": 305,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "passed": 305,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191247809919Z",
+      "group": 5,
+      "targets": 25,
+      "tests": 207,
+      "failure": 0,
+      "error": 0,
+      "skipped": 4,
+      "passed": 203,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191247809919Z",
+      "group": 6,
+      "targets": 25,
+      "tests": 163,
+      "failure": 0,
+      "error": 0,
+      "skipped": 6,
+      "passed": 157,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191912217065Z",
+      "group": 1,
+      "targets": 25,
+      "tests": 208,
+      "failure": 0,
+      "error": 0,
+      "skipped": 1,
+      "passed": 207,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191912217065Z",
+      "group": 2,
+      "targets": 25,
+      "tests": 182,
+      "failure": 0,
+      "error": 0,
+      "skipped": 43,
+      "passed": 139,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191912217065Z",
+      "group": 3,
+      "targets": 25,
+      "tests": 269,
+      "failure": 0,
+      "error": 0,
+      "skipped": 3,
+      "passed": 266,
+      "returncode": 0
+    },
+    {
+      "report": "20260909T191912217065Z",
+      "group": 4,
+      "targets": 14,
+      "tests": 134,
+      "failure": 0,
+      "error": 0,
+      "skipped": 1,
+      "passed": 133,
+      "returncode": 0
+    }
+  ]
+}

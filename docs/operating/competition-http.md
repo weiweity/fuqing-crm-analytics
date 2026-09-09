@@ -12,6 +12,12 @@
 
 HTTP `previewBatch` 只作本地 C0 请求校验；`applyBatch` 才 POST `/batches`。避免一次点击分别在“预览”和“应用”发送两次写请求。批次各操作独立提交，PARTIAL 保留原请求重试。
 
+## 图表偏好运行时扩展
+
+原有预览和保存路由同时接受 `competition-board-chart-patch/v1`：必填 `board_id`、`block_id`、`base_version`、`attempt_id`、`idempotency_key`，`intent=STYLE_ONLY`，`chart_type` 限于 TABLE/BAR/LINE/METRIC/EVIDENCE。只修改目标板块的 `plugin`，不改变来源、条件或数值。沿既有权限、取消、版本冲突与幂等事务校验；预览不落盘，保存递增版本，GET 返回已保存偏好。
+
+扩展在 `backend/contracts/competition_chart.py` 单独定义。使用 `node scripts/dsh-b0/competition-chart-contract.mjs --check|--write --python /absolute/python3.14` 离线核验或生成 OpenAPI 与调用方类型；已纳入 B0 pipeline，不改冻结 C0。组件在当前预览保存或放弃前阻止下一次编辑；重开可恢复浏览器草稿，放弃不会覆盖服务端版本。没有数值序列时不绘制猜测图形。
+
 ## 取消与持久化
 
 `POST /batches/{id}/cancel` 和 `POST /attempts/{id}/cancel` 要求当前 `dashboard:update` 及业务数据域权限。取消按 actor、目标种类和 ID 记录到资产 SQLite 的 metadata；状态 schema 仍为 v1。

@@ -9,6 +9,7 @@ import {
   decodeCompetitionBoardSpec, decodeCompetitionError, decodeCompetitionPatchRequest,
   decodeCompetitionResultRef, looksLikeIllegalScript, toEndorsedResultRef,
   defaultBlockLayout,
+  decodeBoardPatchRequest,
 } from './decode.mjs';
 
 export function clone(value) {
@@ -173,7 +174,7 @@ export function createFixtureBoardTransport(options = {}) {
           },
         });
       }
-      const decoded = decodeCompetitionPatchRequest(payload);
+      const decoded = decodeBoardPatchRequest(payload);
       if (!decoded) return fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422, param: 'intent' } });
       if (decoded.intent === 'FILTER_CHANGE') {
         return fail(422, {
@@ -207,13 +208,18 @@ export function createFixtureBoardTransport(options = {}) {
         const block = next.blocks?.find(row => row.block_id === decoded.cockpit_op.card_id);
         if (block) block.layout = clone(decoded.cockpit_op.layout);
       }
+      if (decoded.schema_version === 'competition-board-chart-patch/v1') {
+        const block = next.blocks?.find(row => row.block_id === decoded.block_id);
+        if (!block) return fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422 } });
+        block.plugin = decoded.chart_type;
+      }
       preview = next;
       pendingPatch = decoded;
       return ok(200, next);
     },
 
     async applyPatch(_principal, payload, headers = {}) {
-      const decoded = decodeCompetitionPatchRequest(payload);
+      const decoded = decodeBoardPatchRequest(payload);
       if (!decoded) return fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422 } });
       if (scenario === 'conflict_409' || Number(headers['If-Match'] ?? headers['if-match']) !== board.version) {
         return fail(409, clone(BOARD_CONFLICT));
@@ -255,7 +261,7 @@ export function createFixtureBoardTransport(options = {}) {
     async loadBoard(boardId) {
       if (scenario === 'permission_denied') return fail(403, clone(BOARD_FORBIDDEN));
       if (boardId && boardId !== board.board_id) return fail(403, clone(BOARD_FORBIDDEN));
-      return ok(200, clone(preview ?? board));
+      return ok(200, clone(board));
     },
 
     discardPreview() {

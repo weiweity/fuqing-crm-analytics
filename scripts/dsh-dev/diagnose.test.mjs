@@ -37,8 +37,9 @@ test('inspectListener reports a bound owned-range port without killing it', asyn
   assert.equal(freed.state, 'free');
 });
 
-test('diagnose classifies foreign and user-demo ports without probing them over HTTP', async () => {
-  const report = await diagnose();
+test('diagnose classifies foreign and user-demo ports without probing them over HTTP', async t => {
+  t.mock.method(globalThis, 'fetch', async () => assert.fail('cold-state diagnosis must not send HTTP'));
+  const report = await diagnose({}, async () => null);
   assert.equal(report.kind, 'DSH_DEV_DIAGNOSE');
   assert.equal(report.repo, repoRoot);
   assert.deepEqual(report.actions_not_taken, [

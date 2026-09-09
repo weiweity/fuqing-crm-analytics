@@ -1,39 +1,30 @@
 # 项目状态 (Project Status)
 
-> **短表 SSOT**。编年：[`docs/history/STATUS-HISTORY.md`](docs/history/STATUS-HISTORY.md) · 债：`docs/TECH-DEBT.md` · 文档：`docs/README.md`
+> 当前短表；编年与旧运维事项见 [STATUS-HISTORY.md](docs/history/STATUS-HISTORY.md)。
 
-## 当前快照（2026-09-09 本地原生闭环）
+## 当前快照（2026-09-10）
 
-| 项 | 值 |
+| 项 | 状态 |
 |---|---|
-| **VERSION** | `0.7.0.0`（#108 已合并） |
-| **main** | `f818fca`（#110）；首购原生、W4 最小层及 W5 特征产物发布已合入 |
-| **进行中分支** | `codex/dsh-compat-integration`：DSH 原生基座与插件 UI 本地集成已提交，进入发布验证；旧合成演示保留 |
-| **黑客松主链** | 旧 Mission 演示仍是 `GET /today → 增长董事会 → 问数 → 审批 → DRAFT_EXPORT`（8000/5173）。B0 查询资产为 opt-in `--native-query-assets`；首购原生为 `--native-first-purchase`（4315–4319），产品仍 PARTIAL |
-| **可合并 CI** | required：`lint` `test` `ground-truth-lint` `contract-filterbuilder-lint` `frontend` `dependency-audit` `docker-smoke` `b0-contract-build` `merge-gate`。skip 不算失败。e2e 非 PR 门禁 |
-| **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md`；Actions 仅 GitHub-owned、固定 40 位 SHA；定时 CI 同口径、45min |
-| **ruff** | 锁 `0.16.6`；`pyproject.toml` `lint.select = ["E4","E7","E9","F"]`（保持 0.15 默认 59 条，不启用 0.16 的 413 条） |
-| **债** | 产品仍 PARTIAL；首购 catalog 已按合成 native/HTTP/合同证据升为 SUPPORTED_CONTRACT；候选人群仍 DEFERRED。W4 基础特征共享读取、W5 特征产物原子发布已实现，发布状态以本轮 PR 为准；完整 W4/整仓发布、真实模型与完整业务验收未完成 |
-| **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
-| **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git**；Admin Upload 已撤回，无产品路由 |
-| **服务** | 核验时 PID 36717/36727 仍监听 8000/5173，cwd 指向已删除的旧演示目录；不是当前主线运行证据。本轮未停止或重启 |
-| **未完成** | 真实模型原生浏览器、整仓发布、多人/容量/业务 UAT、公网仍未完成；历史三次 supervisor 退出 UNKNOWN |
+| VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
+| 当前分支 | `codex/competition-product-readiness`，本轮修改尚未提交；[七阶段账本](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
+| 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
+| 验证 | 局部后端/编译后 DOM/构建已通过；完整矩阵正在执行，失败及后续结果见账本 |
+| T13 | PARTIAL：DSH DeepSeek-V4-Flash 真实调用和合成 HTTP 工具已测；不是完整业务计算 |
+| T15 / T16 / T17 | 用户本人 UAT 待执行；现有合成单用户性能基线已测，正式容量范围/阈值待确认；原生能力仍 PARTIAL |
+| 产品边界 | B0、比赛合成 HTTP、旧 CRM 分开；真实人群/完整诊断、完整视觉及旧 MCP 开放项仍保留 |
+| 原服务 | 4327（PID 81058）、8000/5173（36717/36727）、14327（90347）未动；不是本轮运行证据 |
+| 本轮候选 | 4325 DSH + 18083 合成 API，独立状态；保留供配置和验收，停止仅限本轮实例 |
+| 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；本轮只核对文件元数据约 131GB，未打开、复制或改写 |
+| 发布 | 未新建正式 release；本轮 Git 发布、备份恢复和正式发布后检查待完成 |
 
-发布 CI：#108 的 `34310344976` 必需检查通过，按路径规则跳过项不算运行通过；已合并为 `d95e504`。完整业务验收仍开放。本轮本地统一 pipeline：428 项 Python、223 项源 Node、类型检查、编译后 49 项（含干净重建）通过。OCR Medium 与浏览器发现的终态总结上下文修复后已串行重跑通过。原生 DSH 浏览器 stub 合成闭环已通过（查询→总结→保存→加入驾驶舱→脱离会话重读）；补修成功后总结上下文，不代表真实模型或业务 UAT。见 [首购原生闭环](docs/hackathon/FIRST-PURCHASE-NATIVE-LOOP-2026-09-09.md)、[交接](docs/hackathon/FIRST-PURCHASE-NATIVE-HANDOFF-2026-09-09.md) 与 [并行集成清单](docs/hackathon/PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。本地证据在 `.context/parallel-round2-review/evidence-2026-09-09/`。
-本轮 W4/W5 本地接缝与分支核对见 [实施记录](docs/hackathon/W4-W5-LOCAL-2026-09-09.md)；临停本轮 DSH 后 Loader 与干净重建通过，历史端口冲突证据保留。
+## 验证与历史入口
 
-本轮基座兼容结果见 [DSH 集成记录](docs/hackathon/DSH-COMPAT-INTEGRATION-2026-09-09.md)。完整原生 web profile 与 B0 合成栈分开；Settings 插件清单为只读展示，不能声称通用热启停已验。上述 #108 测试数字保留为历史证据。
+本地及 CI 按 [验证入口](docs/operating/verification.md) 的共同路径矩阵执行；skip 不算运行通过。固定 DSH、Node/Python、依赖和锁文件未升级。
 
-## 历史人工运维门禁（待重新核验，不自动执行）
+#114 最终候选 CI `34385964860` 与合并后 main CI 均已核验，见 [维修 QA](docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。本轮独立证据与开放项以 [产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 为准。
 
-下表保留历史记录，不将旧版本、运行环境或备份状况当成今日已核实事实。
+#108 首购、W4/W5 和更早测试数、原生 stub 闭环及历史运维门禁已迁入 [历史记录](docs/history/STATUS-HISTORY.md)，不扩大为当前真实模型、容量或业务验收通过。
 
-| 优先级 | 动作 | 当前门禁 |
-|---|---|---|
-| **P0** | 轮换曾出现在公开 PR 历史中的管理员口令 | 需 owner 决定新口令并安排 backend 重启；只清当前 PR 正文不能撤销历史泄漏 |
-| **P0** | 建立 DuckDB 可恢复备份 | 旧 `copy2 + zstd` 执行路径已硬停用，但当前仍无已验证恢复点；需 ≥2× 库体积空间、停写窗口、原生一致性副本与异机恢复演练 |
-| **P1** | 同步生产 venv / 重启服务 | 仅在代码合并、`git pull --ff-only`、依赖审计和发布抽检后执行 |
-| **P1** | DuckDB 1.5.5 升级 | 必须排在备份恢复演练之后，独立 PR/维护窗口 |
-| **P2** | 退役 1.5.4 release checker | 先核对已安装 LaunchAgent，再人工 unload/remove；不得从仓库模板重新安装 |
-
-阅读顺序：1. 本文件 → 2. TECH-DEBT → 3. `docs/README.md` → 4. `AGENTS.md`（行为规则）→ 5. `docs/rules/L4-permanent-rules.md`（按需）；第二轮历史结果：资产后端接线完成，pipeline 418 项 Python、215 项源 Node 测试及类型/构建/干净重建通过。当时原生候选未导入，见 [第二轮复核](docs/hackathon/PARALLEL-ROUND2-REVIEW-2026-09-08.md)。再上一轮 405 项 Python 见 [集成结果](docs/hackathon/PARALLEL-INTEGRATION-RESULT-2026-09-08.md)，均不代表远端 CI 或 native UI 新验收。
+行为与数据边界见 [AGENTS.md](AGENTS.md)，设计合同见 [DESIGN.md](DESIGN.md)，其他债务见 [TECH-DEBT](docs/TECH-DEBT.md)。

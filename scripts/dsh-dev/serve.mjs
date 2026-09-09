@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, writeFile, readFile, access } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { API_KEY_ENV, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
 import { findReadyUrl, originOf, redactLaunchLog } from './launch-url.mjs';
@@ -49,11 +49,16 @@ export function parseServeArgs(argv) {
   return options;
 }
 
-function isolatedEnv(runtime, home) {
+export function isolatedEnv(runtime, home) {
   const kept = Object.fromEntries(Object.entries(process.env).filter(([key]) => (
     key === 'HOME' || key === 'LANG' || key === 'TZ'
   ) && !API_KEY_ENV.includes(key)));
   const competition = {};
+  const caFile = process.env.NODE_EXTRA_CA_CERTS;
+  if (caFile) {
+    assert.ok(isAbsolute(caFile), 'NODE_EXTRA_CA_CERTS must be an absolute public CA bundle path');
+    competition.NODE_EXTRA_CA_CERTS = caFile;
+  }
   const httpBase = process.env.COMPETITION_HTTP_BASE;
   const httpToken = process.env.COMPETITION_HTTP_TOKEN;
   if (httpBase && httpToken) {

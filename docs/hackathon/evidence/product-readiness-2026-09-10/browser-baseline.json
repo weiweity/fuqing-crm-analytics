@@ -1,0 +1,319 @@
+{
+  "schema_version": "readiness-browser-baseline/v1",
+  "at": "2026-09-09T19:11:49.363Z",
+  "url": "http://127.0.0.1:4325/",
+  "viewport": "1440x1000",
+  "scope": "authenticated existing native session, warm browser cache, local candidate",
+  "samples": [
+    {
+      "ttfb_ms": 9.800000190734863,
+      "fcp_ms": 136,
+      "lcp_ms": 288,
+      "dom_interactive_ms": 53.700000286102295,
+      "full_load_ms": 180.7000002861023,
+      "total_requests": 27,
+      "transfer_bytes": 436460,
+      "resources": [
+        {
+          "path": "/api/agentPresets/list",
+          "type": "fetch",
+          "bytes": 937,
+          "ms": 24.399999618530273
+        },
+        {
+          "path": "/assets/vendor-CCJJTK99.js",
+          "type": "other",
+          "bytes": 216147,
+          "ms": 22.699999809265137
+        },
+        {
+          "path": "/assets/index-eaoyilRb.js",
+          "type": "script",
+          "bytes": 174014,
+          "ms": 21.699999809265137
+        },
+        {
+          "path": "/api/agentPresets/list",
+          "type": "fetch",
+          "bytes": 936,
+          "ms": 17
+        },
+        {
+          "path": "/api/session/list",
+          "type": "fetch",
+          "bytes": 2798,
+          "ms": 16.59999990463257
+        },
+        {
+          "path": "/api/subagents/list",
+          "type": "fetch",
+          "bytes": 439,
+          "ms": 16.40000009536743
+        },
+        {
+          "path": "/assets/vendor-BNsW4eBh.css",
+          "type": "link",
+          "bytes": 9051,
+          "ms": 16.199999809265137
+        },
+        {
+          "path": "/assets/index-C3Rc1vHc.css",
+          "type": "link",
+          "bytes": 10405,
+          "ms": 15.799999713897705
+        },
+        {
+          "path": "/api/dynamicCordisRunner/syncInspectManifest",
+          "type": "fetch",
+          "bytes": 414,
+          "ms": 9.400000095367432
+        },
+        {
+          "path": "/api/settings/describe",
+          "type": "fetch",
+          "bytes": 5239,
+          "ms": 8.400000095367432
+        },
+        {
+          "path": "/api/session/modelCatalog",
+          "type": "fetch",
+          "bytes": 876,
+          "ms": 6.599999904632568
+        },
+        {
+          "path": "/api/dynamicCordisRunner/inventory",
+          "type": "fetch",
+          "bytes": 418,
+          "ms": 6.199999809265137
+        },
+        {
+          "path": "/api/commands/list",
+          "type": "fetch",
+          "bytes": 711,
+          "ms": 6.099999904632568
+        },
+        {
+          "path": "/api/skills/list",
+          "type": "fetch",
+          "bytes": 423,
+          "ms": 5.900000095367432
+        },
+        {
+          "path": "/api/dynamicCordisRunner/inventory",
+          "type": "fetch",
+          "bytes": 418,
+          "ms": 4.099999904632568
+        }
+      ],
+      "native_input_present": true,
+      "incorrect_b0_status": false
+    },
+    {
+      "ttfb_ms": 1.1000003814697266,
+      "fcp_ms": 84,
+      "lcp_ms": 188,
+      "dom_interactive_ms": 6.5,
+      "full_load_ms": 82.80000019073486,
+      "total_requests": 27,
+      "transfer_bytes": 436462,
+      "resources": [
+        {
+          "path": "/api/agentPresets/list",
+          "type": "fetch",
+          "bytes": 937,
+          "ms": 18.699999809265137
+        },
+        {
+          "path": "/api/agentPresets/list",
+          "type": "fetch",
+          "bytes": 937,
+          "ms": 13.299999713897705
+        },
+        {
+          "path": "/api/session/list",
+          "type": "fetch",
+          "bytes": 2800,
+          "ms": 11.900000095367432
+        },
+        {
+          "path": "/api/subagents/list",
+          "type": "fetch",
+          "bytes": 438,
+          "ms": 11.800000190734863
+        },
+        {
+          "path": "/assets/vendor-CCJJTK99.js",
+          "type": "other",
+          "bytes": 216147,
+          "ms": 10.300000190734863
+        },
+        {
+          "path": "/assets/index-eaoyilRb.js",
+          "type": "script",
+          "bytes": 174014,
+          "ms": 8.900000095367432
+        },
+        {
+          "path": "/api/dynamicCordisRunner/syncInspectManifest",
+          "type": "fetch",
+          "bytes": 417,
+          "ms": 8.200000286102295
+        },
+        {
+          "path": "/api/settings/describe",
+          "type": "fetch",
+          "bytes": 5234,
+          "ms": 6.800000190734863
+        },
+        {
+          "path": "/api/session/modelCatalog",
+          "type": "fetch",
+          "bytes": 876,
+          "ms": 5.5
+        },
+        {
+          "path": "/api/dynamicCordisRunner/inventory",
+          "type": "fetch",
+          "bytes": 418,
+          "ms": 5.300000190734863
+        },
+        {
+          "path": "/api/commands/list",
+          "type": "fetch",
+          "bytes": 710,
+          "ms": 5.199999809265137
+        },
+        {
+          "path": "/api/skills/list",
+          "type": "fetch",
+          "bytes": 425,
+          "ms": 5
+        },
+        {
+          "path": "/api/dynamicCordisRunner/inventory",
+          "type": "fetch",
+          "bytes": 418,
+          "ms": 4
+        },
+        {
+          "path": "/api/credentials/describe",
+          "type": "fetch",
+          "bytes": 464,
+          "ms": 3.700000286102295
+        },
+        {
+          "path": "/api/dynamicCordisRunner/syncInspectManifest",
+          "type": "fetch",
+          "bytes": 415,
+          "ms": 2.0999999046325684
+        }
+      ],
+      "native_input_present": true,
+      "incorrect_b0_status": false
+    },
+    {
+      "ttfb_ms": 1.0999999046325684,
+      "fcp_ms": 80,
+      "lcp_ms": 164,
+      "dom_interactive_ms": 8.099999904632568,
+      "full_load_ms": 77.59999990463257,
+      "total_requests": 27,
+      "transfer_bytes": 436457,
+      "resources": [
+        {
+          "path": "/api/agentPresets/list",
+          "type": "fetch",
+          "bytes": 936,
+          "ms": 22.40000009536743
+        },
+        {
+          "path": "/api/agentPresets/list",
+          "type": "fetch",
+          "bytes": 935,
+          "ms": 21.5
+        },
+        {
+          "path": "/api/subagents/list",
+          "type": "fetch",
+          "bytes": 439,
+          "ms": 20
+        },
+        {
+          "path": "/api/session/list",
+          "type": "fetch",
+          "bytes": 2799,
+          "ms": 19.800000190734863
+        },
+        {
+          "path": "/api/dynamicCordisRunner/syncInspectManifest",
+          "type": "fetch",
+          "bytes": 415,
+          "ms": 14
+        },
+        {
+          "path": "/api/settings/describe",
+          "type": "fetch",
+          "bytes": 5234,
+          "ms": 12.400000095367432
+        },
+        {
+          "path": "/assets/vendor-CCJJTK99.js",
+          "type": "other",
+          "bytes": 216147,
+          "ms": 9.299999713897705
+        },
+        {
+          "path": "/assets/index-eaoyilRb.js",
+          "type": "script",
+          "bytes": 174014,
+          "ms": 7.5
+        },
+        {
+          "path": "/api/session/modelCatalog",
+          "type": "fetch",
+          "bytes": 878,
+          "ms": 7.400000095367432
+        },
+        {
+          "path": "/api/dynamicCordisRunner/inventory",
+          "type": "fetch",
+          "bytes": 417,
+          "ms": 5.699999809265137
+        },
+        {
+          "path": "/api/dynamicCordisRunner/inventory",
+          "type": "fetch",
+          "bytes": 418,
+          "ms": 4
+        },
+        {
+          "path": "/api/skills/list",
+          "type": "fetch",
+          "bytes": 424,
+          "ms": 3.8000001907348633
+        },
+        {
+          "path": "/api/commands/list",
+          "type": "fetch",
+          "bytes": 712,
+          "ms": 3.799999713897705
+        },
+        {
+          "path": "/api/credentials/describe",
+          "type": "fetch",
+          "bytes": 465,
+          "ms": 3.5999999046325684
+        },
+        {
+          "path": "/api/credentials/describe",
+          "type": "fetch",
+          "bytes": 465,
+          "ms": 3.299999713897705
+        }
+      ],
+      "native_input_present": true,
+      "incorrect_b0_status": false
+    }
+  ],
+  "comparison": "first baseline; no prior regression comparison"
+}

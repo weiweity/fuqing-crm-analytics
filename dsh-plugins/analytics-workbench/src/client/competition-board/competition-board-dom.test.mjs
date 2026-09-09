@@ -28,9 +28,11 @@ function installDom() {
   if (typeof dom.window.PointerEvent !== 'function') {
     dom.window.PointerEvent = class PointerEvent extends dom.window.MouseEvent {};
   }
-  const previous = { window: globalThis.window, document: globalThis.document, act: globalThis.IS_REACT_ACT_ENVIRONMENT };
+  const previous = { window: globalThis.window, document: globalThis.document, sessionStorage: globalThis.sessionStorage,
+    act: globalThis.IS_REACT_ACT_ENVIRONMENT };
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
+  globalThis.sessionStorage = dom.window.sessionStorage;
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   return { dom, previous };
 }
@@ -38,6 +40,7 @@ function installDom() {
 function restoreDom(previous) {
   if (previous.window === undefined) delete globalThis.window; else globalThis.window = previous.window;
   if (previous.document === undefined) delete globalThis.document; else globalThis.document = previous.document;
+  if (previous.sessionStorage === undefined) delete globalThis.sessionStorage; else globalThis.sessionStorage = previous.sessionStorage;
   if (previous.act === undefined) delete globalThis.IS_REACT_ACT_ENVIRONMENT;
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
@@ -49,6 +52,88 @@ async function waitFor(check) {
   }
   throw new Error('competition-board DOM wait timeout');
 }
+
+test('chart preference enables save and survives component reopen, bound to the changed block', async () => {
+  resetInflightForTests();
+  const { previous, dom } = installDom();
+  const transport = createFixtureBoardTransport();
+  transport.listBoards = async () => ({ ok: true, status: 200, body: [transport.getSavedBoard()] });
+  let root;
+  const mount = async () => {
+    root = createRoot(globalThis.document.getElementById('root'));
+    await act(async () => {
+      root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport }));
+      await delay(20);
+    });
+    await waitFor(() => globalThis.document.querySelector('[data-testid="sm-result-list"] li'));
+    await act(() => globalThis.document.querySelector('[data-testid="sm-open-board"]').click());
+    await waitFor(() => globalThis.document.querySelector('article[data-block-id] select'));
+  };
+  try {
+    await mount();
+    const id = transport.getSavedBoard().block_ids.at(-1);
+    const firstId = transport.getSavedBoard().block_ids[0];
+    const firstPlugin = transport.getSavedBoard().blocks[0].plugin;
+    for (const plugin of ['LINE', 'METRIC', 'EVIDENCE', 'TABLE', 'BAR']) {
+      const selector = `article[data-block-id="${id}"] select`;
+      await act(async () => {
+        const select = globalThis.document.querySelector(selector);
+        select.value = plugin;
+        select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+        await delay(20);
+      });
+      const save = globalThis.document.querySelector('[data-testid="sm-board-save"]');
+      assert.equal(save.disabled, false, 'chart change must create a saveable preview');
+      assert.equal(transport.getPendingPatch().block_id, id);
+      const chartAttempt = transport.getPendingPatch().attempt_id;
+      await act(async () => {
+        globalThis.document.querySelector('[data-testid="sm-competition-board"]').dispatchEvent(
+          new dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }));
+        await delay(20);
+      });
+      assert.equal(transport.getPendingPatch().attempt_id, chartAttempt,
+        'layout interaction must not replace an unsaved chart preference');
+      if (['LINE', 'BAR', 'METRIC'].includes(plugin)) {
+        const block = globalThis.document.querySelector(`article[data-block-id="${id}"]`);
+        assert.match(block.querySelector('[data-testid="sm-chart-no-series"]').textContent, /暂无可绘制的数值序列/);
+        assert.equal(block.querySelector('polyline, .sm-chart-bar-track'), null);
+      }
+      await act(async () => { save.click(); await delay(20); });
+      assert.equal(transport.getSavedBoard().blocks.find(block => block.block_id === id).plugin, plugin);
+      if (firstId !== id) assert.equal(transport.getSavedBoard().blocks[0].plugin, firstPlugin);
+      await act(() => root.unmount());
+      await mount();
+      assert.equal(globalThis.document.querySelector(selector).value, plugin);
+      assert.equal(globalThis.document.querySelector('[data-testid="sm-board-save"]').disabled, true);
+    }
+    const selector = `article[data-block-id="${id}"] select`;
+    const choose = async plugin => act(async () => {
+      const select = globalThis.document.querySelector(selector);
+      select.value = plugin;
+      select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+      await delay(20);
+    });
+    await choose('LINE');
+    await act(() => root.unmount());
+    await mount();
+    const resume = [...globalThis.document.querySelectorAll('button')].find(button => button.textContent === '继续编辑草稿');
+    assert.ok(resume, 'unfinished preview must be offered after reopening');
+    await act(async () => { resume.click(); await delay(20); });
+    assert.equal(globalThis.document.querySelector(selector).value, 'LINE', 'resume must reload the actual preview');
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-board-save"]').click(); await delay(20); });
+    await choose('EVIDENCE');
+    await act(() => root.unmount());
+    await mount();
+    const discard = [...globalThis.document.querySelectorAll('button')].find(button => button.textContent === '放弃浏览器草稿');
+    await act(() => discard.click());
+    assert.equal(globalThis.document.querySelector(selector).value, 'LINE', 'discard must retain the saved chart');
+    await choose('TABLE');
+    assert.equal(transport.getPendingPatch().chart_type, 'TABLE', 'discard must release the old in-flight target');
+  } finally {
+    if (root) await act(() => root.unmount());
+    dom.window.close(); restoreDom(previous); resetInflightForTests();
+  }
+});
 
 test('compiled B0 cockpit view still renders empty/denied without competition surface', () => {
   const empty = renderToStaticMarkup(React.createElement(CockpitView, { list: [], sessionId: null }));
@@ -62,13 +147,14 @@ test('compiled B0 cockpit view still renders empty/denied without competition su
   assert.doesNotMatch(denied, /SENSITIVE_FIXTURE/);
 });
 
-test('compiled competition board surface shows endorsement and model-unavailable banner', () => {
+test('compiled competition board surface explains manual editing without claiming native model unavailable', () => {
   const html = renderToStaticMarkup(React.createElement(CockpitView, {
     surface: 'competition-board', modelAvailable: false,
   }));
   assert.match(html, /data-testid="sm-competition-board"/);
   assert.match(html, /data-model="0"/);
-  assert.match(html, /模型不可用/);
+  assert.match(html, /此看板入口提供手动编辑/);
+  assert.doesNotMatch(html, /模型不可用/);
   assert.match(html, /一板多块/);
   assert.match(html, /批量分板/);
   assert.match(html, /data-testid="sm-endorsement"/);

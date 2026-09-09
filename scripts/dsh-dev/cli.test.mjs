@@ -7,7 +7,32 @@ import {
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
 import { assertNoB0Disables, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
 import { assertOwnedHost, assertOwnedPort } from './ports.mjs';
-import { parseServeArgs } from './serve.mjs';
+import { isolatedEnv, parseServeArgs } from './serve.mjs';
+
+test('isolated launch accepts an explicit public CA bundle without forwarding keys or TLS bypass', () => {
+  const additions = {
+    NODE_EXTRA_CA_CERTS: '/tmp/public-ca.pem',
+    NODE_TLS_REJECT_UNAUTHORIZED: '0',
+    DEEPSEEK_API_KEY: 'synthetic-key-not-real',
+    COMPETITION_HTTP_BASE: 'http://127.0.0.1:18083',
+    COMPETITION_HTTP_TOKEN: 'synthetic-competition-token',
+  };
+  const prior = Object.fromEntries(Object.keys(additions).map(key => [key, process.env[key]]));
+  try {
+    Object.assign(process.env, additions);
+    const env = isolatedEnv('/tmp/runtime', '/tmp/runtime/harness');
+    assert.equal(env.NODE_EXTRA_CA_CERTS, '/tmp/public-ca.pem');
+    assert.equal(env.NODE_TLS_REJECT_UNAUTHORIZED, undefined);
+    assert.equal(env.DEEPSEEK_API_KEY, undefined);
+    assert.equal(env.COMPETITION_HTTP_BASE, 'http://127.0.0.1:18083');
+    process.env.NODE_EXTRA_CA_CERTS = 'relative.pem';
+    assert.throws(() => isolatedEnv('/tmp/runtime', '/tmp/runtime/harness'), /absolute public CA/);
+  } finally {
+    for (const [key, value] of Object.entries(prior)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
 
 test('plugin overlay inserts file URL and never copies B0 demo disables', () => {
   const patch = buildPluginOverlay('/tmp/analytics-workbench');

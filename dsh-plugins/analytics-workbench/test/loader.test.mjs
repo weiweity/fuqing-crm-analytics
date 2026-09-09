@@ -19,6 +19,35 @@ const { Context } = await load('vendor/cordis/lib/index.js');
 const { default: Loader } = await load('vendor/loader/lib/index.js');
 const { default: Include } = await load('vendor/include/lib/index.js');
 
+test('one package entry registers competition tools only for explicitly connected native UI', async () => {
+  const additions = { DSH_ANALYTICS_UI_ONLY: '1', COMPETITION_HTTP_BASE: 'http://127.0.0.1:18083',
+    COMPETITION_HTTP_TOKEN: 'synthetic-loader-token' };
+  const prior = Object.fromEntries(Object.keys(additions).map(key => [key, process.env[key]]));
+  try {
+    Object.assign(process.env, additions);
+    for (const connected of [false, true]) {
+      process.env.COMPETITION_HTTP_BASE = connected ? additions.COMPETITION_HTTP_BASE : '';
+      const ctx = new Context();
+      const tools = [], skills = [];
+      ctx.provide('agents', {});
+      ctx.provide('sessions', {});
+      ctx.provide('sessionController', {});
+      ctx.provide('tools', { register: tool => tools.push(tool.name) });
+      ctx.provide('skills', { register: skill => skills.push(skill) });
+      try {
+        await ctx.plugin(await import(pathToFileURL(join(plugin, 'lib/index.js')).href));
+        assert.deepEqual(tools, connected ? ['competition_growth_skill_resource', 'competition_growth_capabilities',
+          'competition_growth_step', 'competition_growth_patch'] : []);
+        assert.equal(skills.length, connected ? 1 : 0);
+      } finally { await ctx.fiber.dispose(); }
+    }
+  } finally {
+    for (const [key, value] of Object.entries(prior)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
 test('built package root and per-agent tool load through real Cordis include and dispose', async () => {
   // The fixed B0 private bridge port is part of the runtime contract. Never
   // probe somebody else's server with this test's ephemeral capability.

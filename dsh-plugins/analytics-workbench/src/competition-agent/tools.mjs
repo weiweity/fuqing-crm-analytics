@@ -1,4 +1,4 @@
-/** Tool schemas for DSH registration. Live execute is NOT_CONNECTED in this track. */
+/** Method tool metadata and the bounded, explicitly configured HTTP transport. */
 
 import {
   CAPABILITIES_TOOL_NAME, FORBIDDEN_EXPANSIONS, PATCH_TOOL_NAME, REGISTERED_TOOLS,
@@ -23,6 +23,8 @@ export const TOOL_SPECS = Object.freeze({
       capability_id: { type: 'string', enum: [...STEP_CAPABILITIES], required: true },
       condition_mode: { type: 'string', enum: ['INHERIT', 'EXPLICIT'], required: true },
       request_id: { type: 'string', required: true },
+      condition: { type: 'object', additionalProperties: true },
+      condition_patch: { type: 'object', additionalProperties: true },
     },
   }),
   [PATCH_TOOL_NAME]: Object.freeze({
@@ -31,6 +33,8 @@ export const TOOL_SPECS = Object.freeze({
     parameters: {
       intent: { type: 'string', enum: ['STYLE_ONLY', 'FILTER_CHANGE', 'STRUCTURE'], required: true },
       request_id: { type: 'string', required: true },
+      selection: { type: 'object', additionalProperties: true },
+      payload: { type: 'object', additionalProperties: true },
     },
   }),
 });
@@ -41,7 +45,9 @@ export function assertRegisteredTool(name) {
   }
 }
 
-export async function liveDiagnosisCall(toolName, args = {}) {
+export async function liveDiagnosisCall(toolName, args = {}, signal) {
+  assertRegisteredTool(toolName);
+  signal?.throwIfAborted();
   const base = String(process.env.COMPETITION_HTTP_BASE || '').replace(/\/$/, '');
   const token = String(process.env.COMPETITION_HTTP_TOKEN || '');
   if (!base || !token) return liveTransportRefused();
@@ -57,6 +63,7 @@ export async function liveDiagnosisCall(toolName, args = {}) {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify(args),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(5000)]) : AbortSignal.timeout(5000),
     redirect: 'error',
   });
   try {

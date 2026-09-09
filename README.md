@@ -4,7 +4,7 @@
 
 > **价值定稿（2026-09-05）**：已确认让老板拍板一个有边界的天猫内部跨渠道客户增长试点，主线是“渠道 × 首购商品 × 后续购买”。见 [CEO 价值与首版决策方案](./docs/hackathon/CEO-VALUE-PLAN.md)（用户已批准定稿，APPROVED）。统一分析工作台方向保留；用户已确认保留 DSH 原生 UI，详见 [DSH 交互设计](./docs/hackathon/DSH-UI-INTERACTION-SPEC.md)。原生 UI 的集成、运行时与模型仍待验证，公网部署继续暂缓。
 
-> **当前总待办（2026-09-08）**：[方案收口清单](./docs/hackathon/PLAN-CLOSEOUT-2026-09-05.md)仍管产品/仓/多人顺序。`origin/main` 已合入 v0.6.0.0 查询资产驾驶舱（#100）及 #85–#99 / #92。本分支 v0.6.1.0 补 overlay 撤销整板/加入/无板创建/409 编译后 DOM；开放 PR 为 0。B0 已接 DSH 原生查询与 opt-in `--native-query-assets` overlay，产品仍 PARTIAL。约千万行、10 人使用仍是规划输入。公网部署继续暂缓。
+> **当前交付（2026-09-10）**：competition 集成 #112 和 7 项审查修复 #114 已合入 main `788b5b1`；PR 与合并后的主线 CI 均通过。独立合成浏览器已验证连续成板、失败重试、保存布局重开及行动草稿 v2，见 [修复 QA](./docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。当前按 [产品验收与发布准备账本](./docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 推进；T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL，整产品仍 PARTIAL。约千万行、10 人使用仍是规划输入，公网尚未部署。
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## 快速开始
 
-以下是**既有演示/私有分析的历史入口**，不是新工作台的synthetic quickstart或本轮启动授权。新同事先读 [黑客松范围与状态](./docs/hackathon/README.md)；不要为了解新方案执行ETL、全量测试或直接继承私人数据库配置。新的合成起步指南在对应功能实现时交付。
+新 DSH 开发入口见 [dsh-dev 使用说明](./scripts/dsh-dev/README.md)，比赛 HTTP 包络与隔离约定见 [competition-http](./docs/operating/competition-http.md)，验证按 [当前验证入口](./docs/operating/verification.md) 选择范围。以下是**既有演示/私有分析的历史入口**，不作为新工作台的默认启动或验证命令；不要继承私人数据库配置。
 
 ### 1. 启动本地演示
 

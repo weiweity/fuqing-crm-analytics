@@ -1,0 +1,83 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Competition chart preference",
+    "version": "1"
+  },
+  "paths": {},
+  "x-runtime-extension": "competition-board-chart-patch/v1",
+  "components": {
+    "schemas": {
+      "CompetitionChartPatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-board-chart-patch/v1",
+            "default": "competition-board-chart-patch/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "board_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Board Id",
+            "type": "string"
+          },
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "base_version": {
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "attempt_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "intent": {
+            "const": "STYLE_ONLY",
+            "default": "STYLE_ONLY",
+            "title": "Intent",
+            "type": "string"
+          },
+          "chart_type": {
+            "enum": [
+              "TABLE",
+              "BAR",
+              "LINE",
+              "METRIC",
+              "EVIDENCE"
+            ],
+            "title": "Chart Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_id",
+          "block_id",
+          "base_version",
+          "attempt_id",
+          "idempotency_key",
+          "chart_type"
+        ],
+        "title": "CompetitionChartPatchRequest",
+        "type": "object"
+      }
+    }
+  }
+}
