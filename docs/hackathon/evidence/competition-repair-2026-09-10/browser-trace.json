@@ -1,0 +1,500 @@
+{
+  "requests": [
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/results",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/batches",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "schema_version": "competition-board-batch/v1",
+        "batch_id": "batch_10d9d8310a2f4799956c243c5d42a3c6",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "operations": [
+          {
+            "board_id": null,
+            "endorsed_result_refs": [
+              {
+                "analysis_id": "analysis_e8bc4599139d43c0be476d45289573ef",
+                "completeness": "COMPLETE",
+                "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+                "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+            "idempotency_key": "create-10d9d8310a2f4799956c243c5d42a3c6-0",
+            "operation_id": "op_10d9d8310a2f4799956c243c5d42a3c6_0",
+            "request_fingerprint": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+            "title": "8月GSV诊断板"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_199a697f45bb8e73aa562025d6b93b58",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/batches",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "schema_version": "competition-board-batch/v1",
+        "batch_id": "batch_518124e1a3f145c48cbb70173efb3c04",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "operations": [
+          {
+            "board_id": null,
+            "endorsed_result_refs": [
+              {
+                "analysis_id": "analysis_d86a1c20c87740fe9a48871c3cd46b4f",
+                "completeness": "COMPLETE",
+                "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+                "result_id": "result_repair_second_synthetic",
+                "run_id": "run_repair_second_synthetic"
+              }
+            ],
+            "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+            "idempotency_key": "create-518124e1a3f145c48cbb70173efb3c04-0",
+            "operation_id": "op_518124e1a3f145c48cbb70173efb3c04_0",
+            "request_fingerprint": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+            "title": "8月GSV诊断板"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/batches",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "schema_version": "competition-board-batch/v1",
+        "batch_id": "batch_518124e1a3f145c48cbb70173efb3c04",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "operations": [
+          {
+            "board_id": null,
+            "endorsed_result_refs": [
+              {
+                "analysis_id": "analysis_d86a1c20c87740fe9a48871c3cd46b4f",
+                "completeness": "COMPLETE",
+                "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+                "result_id": "result_repair_second_synthetic",
+                "run_id": "run_repair_second_synthetic"
+              }
+            ],
+            "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+            "idempotency_key": "create-518124e1a3f145c48cbb70173efb3c04-0",
+            "operation_id": "op_518124e1a3f145c48cbb70173efb3c04_0",
+            "request_fingerprint": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+            "title": "8月GSV诊断板"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_11495ddf98a01b592eb464a7c663352d",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/results",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_11495ddf98a01b592eb464a7c663352d",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/drafts/current",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/candidates/preview",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "cohort": {
+          "cohort_id": "cohort_t05_ly_f4_10",
+          "enrollment_window": {
+            "start_date": "2025-01-01",
+            "end_date": "2025-12-31"
+          },
+          "observation_window": {
+            "start_date": "2026-08-01",
+            "end_date": "2026-08-31"
+          },
+          "enrollment_rule_version": "competition-cohort-rule/v1",
+          "as_of": "2025-12-31T16:00:00.000000+00:00",
+          "published_at": "2026-08-31T16:00:00.000000+00:00",
+          "source_tense": "PUBLISHED_SNAPSHOT",
+          "member_history_status": "UNKNOWN",
+          "existing_family": "none",
+          "rules": [
+            {
+              "rule_id": "rule_origin_channel_absent_0",
+              "kind": "NON_REPURCHASE",
+              "non_repurchase": "ORIGIN_CHANNEL_ABSENT",
+              "member_mark": "UNKNOWN",
+              "f_threshold": null,
+              "f_grain_status": "UNKNOWN",
+              "channel_ids": [],
+              "product_ids": []
+            }
+          ],
+          "permission_scope": "scope-brand-a",
+          "limitations": [
+            "合成 customer_key，不导出真实名单；auto_send 恒为 false。"
+          ]
+        },
+        "combine": "AND",
+        "source_result_ref": "result_t05_gsv_20260831",
+        "permission_scope": "scope-brand-a",
+        "auto_send": false
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/drafts",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "auto_send": false,
+        "permission_scope": "scope-brand-a",
+        "candidate_set_id": "cand_faf1c5f6985641e49251d6044b634497",
+        "draft_id": null,
+        "rule_changed": false,
+        "copy_only_change": false,
+        "control_design": "合成验收对照组：固定夹具，不执行营销",
+        "stop_condition": "合成验收完成即停止，不发送"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/drafts/current",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/drafts",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "auto_send": false,
+        "permission_scope": "scope-brand-a",
+        "candidate_set_id": "cand_faf1c5f6985641e49251d6044b634497",
+        "draft_id": "draft_de43c537a909468ea91b07fc60f6703e",
+        "base_version": 1,
+        "rule_changed": false,
+        "copy_only_change": true,
+        "control_design": "合成验收第二版对照组：仅更新草稿",
+        "stop_condition": "合成验收完成即停止，不发送"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/drafts/current",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/results",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_11495ddf98a01b592eb464a7c663352d",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_11495ddf98a01b592eb464a7c663352d/preview",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "schema_version": "competition-board-patch/v1",
+        "attempt_id": "attempt_c0_f8abd5412f753135",
+        "base_version": 1,
+        "block_id": "block_4da7e6c011513c36028c0d8ac72f2ad6",
+        "board_id": "board_11495ddf98a01b592eb464a7c663352d",
+        "cockpit_op": {
+          "op": "layout",
+          "card_id": "block_4da7e6c011513c36028c0d8ac72f2ad6",
+          "layout": {
+            "h": 4,
+            "w": 6,
+            "x": 1,
+            "y": 0
+          }
+        },
+        "display_op": null,
+        "filter_change": null,
+        "idempotency_key": "layout-block_4da7e6c011513c36028c0d8ac72f2ad6-v1",
+        "intent": "STRUCTURE"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_11495ddf98a01b592eb464a7c663352d/versions",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "schema_version": "competition-board-patch/v1",
+        "attempt_id": "attempt_c0_f8abd5412f753135",
+        "base_version": 1,
+        "block_id": "block_4da7e6c011513c36028c0d8ac72f2ad6",
+        "board_id": "board_11495ddf98a01b592eb464a7c663352d",
+        "cockpit_op": {
+          "op": "layout",
+          "card_id": "block_4da7e6c011513c36028c0d8ac72f2ad6",
+          "layout": {
+            "h": 4,
+            "w": 6,
+            "x": 1,
+            "y": 0
+          }
+        },
+        "display_op": null,
+        "filter_change": null,
+        "idempotency_key": "layout-block_4da7e6c011513c36028c0d8ac72f2ad6-v1",
+        "intent": "STRUCTURE"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/results",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_11495ddf98a01b592eb464a7c663352d",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/step",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1",
+        "capability_id": "diag.gsv",
+        "condition_mode": "EXPLICIT",
+        "condition": {
+          "schema_version": "competition-condition/v1",
+          "metrics_contract_id": "competition-metrics/v1",
+          "metric_type": "GSV",
+          "timezone": "Asia/Shanghai",
+          "current_period": {
+            "start_date": "2026-08-01",
+            "end_date": "2026-08-31",
+            "end_bound": "INCLUSIVE_CALENDAR_DAY"
+          },
+          "comparison_mode": "YOY_SAME_PERIOD",
+          "comparison_period": {
+            "start_date": "2025-08-01",
+            "end_date": "2025-08-31",
+            "end_bound": "INCLUSIVE_CALENDAR_DAY"
+          },
+          "sales_scope": {
+            "kind": "ALL",
+            "channel_ids": [],
+            "product_ids": []
+          },
+          "history_scope": {
+            "kind": "ALL",
+            "channel_ids": [],
+            "product_ids": []
+          },
+          "sample_mode": "EXCLUDE_CURRENT_SALES_ONLY",
+          "sample_channel_ids": [
+            "sample-channel-unverified-a",
+            "sample-channel-unverified-b"
+          ],
+          "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+          "leap_day_alignment": "CLAMP_TO_MONTH_END",
+          "data_snapshot_ref": "synthetic-c0-demo-v1",
+          "as_of": "2026-08-31T16:00:00.000000+00:00",
+          "rule_version": "competition-condition-rule/v1"
+        }
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/step",
+      "method": "POST",
+      "status": 422,
+      "body": {
+        "session_id": "browser_qa_session_2",
+        "capability_id": "diag.gsv",
+        "condition_mode": "INHERIT"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 429,
+      "body": {
+        "session_id": "browser_qa_session_1"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/diagnosis/capabilities",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "session_id": "browser_qa_session_3"
+      }
+    },
+    {
+      "path": "/api/v1/analytics/competition/drafts/current",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "method": "GET",
+      "status": 200,
+      "body": null
+    }
+  ],
+  "errors": [],
+  "dialogs": [
+    {
+      "open": true
+    }
+  ],
+  "body": "伸美 AI 增长董事会\n返回聊天\n\n固定历史快照 / 合成数据 · 无活动会话、模型不可用时仍可读已保存资产。\n\n当前无活动会话；固定资产仍可读。\n\n脱离会话阅读\n驾驶舱\n已保存分析\n认可成板\n人群行动\n重新读取\n\nB0 同域 /b0/dashboards 未接线。比赛资产走合成 HTTP，不把 /b0/assets 404 写成比赛失败。\n\n召回候选与行动草稿\n\n不自动发送 · auto_send=false · 不是 Mission DRAFT_EXPORT\n\n模型不可用 · auto_send=false。不是 Mission DRAFT_EXPORT。合成 customer_key，不导出真实名单。\n\n候选规则\n入组 2025-01-01–2025-12-31\n观察 2026-08-01–2026-08-31\n会员历史 UNKNOWN\n已有 family none\n证据与局限\n\n截数 2025-12-31T16:00:00.000000+00:00 · 指标 — · 数据 —\n\n来源 PUBLISHED_SNAPSHOT · digest —\n\n局限：合成 customer_key，不导出真实名单；auto_send 恒为 false。\n\n未知项：MEMBER_HISTORY；F_ORDER_GRAIN_OLD_CRM\n\n未回购规则（可多选，合并去重）\nORIGIN_CHANNEL_ABSENTORIGIN_PRODUCT_ABSENTSTOREWIDE_ABSENT\n组合\n AND OR\n\nF 粒度 UNKNOWN，禁止填写 f_threshold。\n\n预览候选人数\n\nunique_count=6 · keys=6 · auto_send=false\n\nt05u05：ORIGIN_CHANNEL_ABSENT\nt05u06：ORIGIN_CHANNEL_ABSENT\nt05u07：ORIGIN_CHANNEL_ABSENT\nt05u08：ORIGIN_CHANNEL_ABSENT\nt05u09：ORIGIN_CHANNEL_ABSENT\nt05u10：ORIGIN_CHANNEL_ABSENT\n行动草稿\n\ndraft draft_de43c537a909468ea91b07fc60f6703e · v2 · DRAFT\n\n负责人 alice · 复核人 — · 复盘 —\n\n预算上限 CNY · 渠道 —\n\n未知项：MEMBER_HISTORY；SAMPLE_CHANNEL_SET；incremental_roi；reviewer_id；review_by；budget_cap_minor\n\n局限：GSV 下降不等于投放回报低；缺成本时只给试验优先级。；行动草稿不得自动发送；不是 Mission DRAFT_EXPORT。\n\n对照设计停止条件复盘日期\n保存文案（不过期）\n标记规则已变\n提交复核\n不自动发送\n\nSYNTHETIC · HTTP CONNECTED · 浏览器不缓存 facts。每次打开重新鉴权读取。"
+}

@@ -1,6 +1,8 @@
 # Competition 审查修复交付（2026-09-10）
 
-本轮修复此前独立复现的 7 项问题，代码位于 `competition-closeout` 工作树、`codex/competition-closeout` 分支。基线为 `0d13886c8c339a93ff6df12a07047526528bca29`；修复尚未提交，当前成果以工作区文件及 `.context/competition-repair/repair-manifest.json` 的 SHA-256 为准。
+本轮修复此前独立复现的 7 项问题。修复最初位于 `competition-closeout` 工作树；Git 收口在新建的 `competition-repair-ship` 工作树、`codex/competition-review-fixes` 分支完成，基线为已合并 PR #112 的 `38242b4`。生产修复提交为 `1550f43cbb8192c8b6df59eaee20ae039e87dda6`，已推送并创建 [PR #114](https://github.com/weiweity/fuqing-crm-analytics/pull/114)。原修复树保留，21 个文件迁移时逐一核对 SHA-256。
+
+本文下方保留首轮本地回归结果；后续正常 pre-push、远端 CI、独立浏览器验收与开放项见 [Git 收口和 QA 记录](COMPETITION-REPAIR-QA-2026-09-10.md)。GitHub PR 状态是最终合并状态的权威来源。
 
 ## 修复结果
 
@@ -49,7 +51,7 @@ PATH="$PWD/.context/reproduce-python/bin:/Users/hutou/homebrew/opt/node@24/bin:/
 
 ## 交付边界
 
-这是 7 项已知问题的本地修复及回归结果，不代表 OCR 175 文件全量审核完成，也不代表整产品已通过。OCR 保持停止；本轮没有 commit、push、PR、merge 或部署。
+这是 7 项已知问题的修复及回归结果，不代表 OCR 175 文件全量审核完成，也不代表整产品已通过。OCR 保持停止；后续授权的提交、推送、PR 和浏览器验收按上方收口记录单独绑定证据，没有部署。
 
 没有运行付费业务模型、真实业务数据、浏览器三角色 UAT 或容量测试；T13/T15/T16 和原有 T17 PARTIAL 状态没有借本轮回归改为通过。预先运行的 4327、8000、5173、14327 实例未重启或终止。
 
