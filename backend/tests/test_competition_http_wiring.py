@@ -338,3 +338,20 @@ def test_cancellation_is_scoped_to_authenticated_actor(tmp_path):
         result = client.post(f"{base}/batches", json={"batch_id": "shared_batch"})
         assert result.status_code >= 400
         assert (result.json()["error"]["code"] == "CANCELLED") is cancelled
+
+
+def test_synthetic_browser_origin_is_explicit_and_isolated(monkeypatch):
+    import runpy
+
+    module = runpy.run_path(str(Path(__file__).resolve().parents[2] / "scripts/competition-synth-http.py"))
+    origin = module["web_origin"]
+    monkeypatch.delenv("COMPETITION_SYNTH_WEB_ORIGIN", raising=False)
+    assert origin() == "http://127.0.0.1:14327"
+    monkeypatch.setenv("COMPETITION_SYNTH_WEB_ORIGIN", "http://127.0.0.1:4329")
+    assert origin() == "http://127.0.0.1:4329"
+    import pytest
+
+    for value in ("*", "https://example.com", "http://127.0.0.1:4327", "http://127.0.0.1:8000", "http://127.0.0.1:5173"):
+        monkeypatch.setenv("COMPETITION_SYNTH_WEB_ORIGIN", value)
+        with pytest.raises(ValueError, match="isolated loopback"):
+            origin()

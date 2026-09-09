@@ -20,6 +20,15 @@ STATE = Path(os.environ.get(
 ))
 
 
+def web_origin() -> str:
+    """Allow one explicitly selected, isolated DSH origin."""
+    origin = os.environ.get("COMPETITION_SYNTH_WEB_ORIGIN", "http://127.0.0.1:14327")
+    allowed = {f"http://127.0.0.1:{port}" for port in (4325, 4326, 4328, 4329, 14327)}
+    if origin not in allowed:
+        raise ValueError("COMPETITION_SYNTH_WEB_ORIGIN must name an isolated loopback DSH port")
+    return origin
+
+
 def _private(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     path.chmod(0o700)
@@ -65,7 +74,7 @@ def main() -> None:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://127.0.0.1:14327"],
+        allow_origins=[web_origin()],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

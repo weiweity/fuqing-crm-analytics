@@ -1,0 +1,6 @@
+{
+  "scripts/competition-synth-http.py": "e5e9001e9d1a33c9eecda4ec3f26111a1078dbc60519c6490e86f844ab550b46",
+  "backend/tests/test_competition_http_wiring.py": "03707de0ea31215b8d4021f25484eb9989ff3f0e944e18ab9ce324cbd287e0ca",
+  "dsh-plugins/analytics-workbench/src/client/index.tsx": "266b4ecab837576b67bbc03e83aaf2ae897e73c0bcf2e511893fc7e172b9b969",
+  "dsh-plugins/analytics-workbench/src/client/competition-shell/css.ts": "ef1700e596e90b0d842383ca00a99066980177c3807855e0caab4c8ed9353230"
+}

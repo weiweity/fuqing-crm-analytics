@@ -18,6 +18,7 @@ export const competitionShellCss = `
   font-size: 16px; line-height: 24px;
 }
 .sm-competition-root *, .sm-competition-root *::before, .sm-competition-root *::after { box-sizing: border-box; }
+.sm-competition-root.sm-overlay-theme { display: contents; }
 .sm-brand-mark { display: inline-flex; align-items: center; gap: 12px; padding: var(--sm-logo-pad); color: var(--sm-ink); }
 .sm-brand-mark img {
   display: block; width: var(--sm-logo-width); height: auto; aspect-ratio: var(--sm-logo-ratio);

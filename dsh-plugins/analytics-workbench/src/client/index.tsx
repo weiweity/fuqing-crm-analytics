@@ -83,7 +83,7 @@ function RoutedOverlay(props: OverlayProps) {
   const openTick = props.useStore(state => state.openTick ?? 0);
   useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
   return (
-    <ThemeProvider>
+    <ThemeProvider className="sm-overlay-theme">
       <OverlayErrorBoundary resetKey={openTick}>
         {assets || competitionHttp
           ? <HttpAssetOverlay key={openTick} {...props} />
