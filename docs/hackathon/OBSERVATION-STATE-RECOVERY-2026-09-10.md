@@ -9,3 +9,15 @@
 回归在临时真实 SQLite 中，在 Host 返回 RUNNING 后持有写锁，真实 observe 超时后释放锁。修复前断言失败；修复后锁期间快照不变、暂停新准入，恢复后同一 intent 且仅一次 dispatch，事件中没有 UNKNOWN/CANCELLING。首轮恢复断言要求整个快照完全不变，但有效确认会推进 DISPATCHING → ACCEPTED；已改为校验状态、原 intent、dispatch 次数与事件，锁期间完全不变断言仍保留。
 
 相关两文件 23 passed / 1 warning。完整后端与 B0 将由正常 pre-push 检查；当前不是已推送或远端 CI 通过的声明。具体源文件、失败库时序及日志摘要见 [observation-lock.json](evidence/visual-readiness-2026-09-10/observation-lock.json)。本轮未切换 4325/18083 或调用模型。
+
+## 远端 worker 监控读锁追加
+
+`4d8a968` 的正常本地推送检查通过：受影响后端 12 passed，完整 B0 478 Python passed，类型、组件、干净重建和 LFS 上传成功。远端 [CI 34414999794](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34414999794) 的 B0 构建成功，完整 Python 任务在 `test_result_and_closed_without_process_exit_cannot_complete` 失败。堆栈明确为 WorkerManager.execute 的监控循环调用 worker_records，抛出 sqlite3.OperationalError: database is locked；不是前述观察状态分类的同一个位置。
+
+监控循环原本对无法核验的进程/状态错误走受控停止，但漏掉 sqlite3.DatabaseError。补入同一异常集合，沿既有 terminate/kill、真实退出与落盘门禁返回 EXECUTION_UNKNOWN；不把锁错误当作成功，也不放任无法核验权限和期限的 worker 继续运行。没有新增错误枚举、存储格式或无限重试。
+
+新增回归在真实 SQL 子进程发出 CLOSED_FRAME_NOT_EXIT 且仍存活时，向唯一监控读取边界注入远端记录的 SQLite 异常。修复前原异常穿透；修复后返回 AnalyticsError，子进程以 -9 退出、持久记录 EXITED 且释放 active_slot，steps.result_json 仍为空。查询 worker、基础 worker、首购原生及原生运行时共 76 passed / 1 warning；Ruff 与差异检查通过。此测试只在驱动故障边界注入异常，不能描述为真实 SQLite 写锁测试；真实写锁证据在前节。
+
+同轮只读核对旧 MCP：2 个已有回归通过，确认截断已标失败、超大中文 JSON 返回完整错误；串行 300 秒 CLI、取消及完整结果交付仍 PARTIAL。比赛运行时通过已配置 HTTP 直连，不经过旧 stdio。未启动旧 MCP 或读取真实数据库。
+
+源码及原始日志摘要见 [worker-read-recovery.json](evidence/visual-readiness-2026-09-10/worker-read-recovery.json)。本追加还需自己的正常推送和远端检查；不沿用 `4d8a968` 的局部成功。用户 4325/18083 保留原版本与 Models 配置，未切换。

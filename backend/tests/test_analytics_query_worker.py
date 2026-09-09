@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import time
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
@@ -238,6 +240,39 @@ def test_sql_active_stop_releases_lease_without_result_or_budget_reset(tmp_path,
         store.step_result(query_actor(), intent.run_id, intent.attempt_id, step.step_id)
     fd, _dev, _ino, _temporary = create_lease(store.directory, "exec_" + "d" * 32)
     os.close(fd)
+
+
+def test_worker_state_read_failure_stops_owned_child_without_raw_driver_error(tmp_path, monkeypatch):
+    store, _, intent, step, fixture = setup_query_worker(tmp_path)
+    fail_read = threading.Event()
+    worker_records = store.worker_records
+
+    def interrupted_read(**kwargs):
+        if kwargs.get("execution_id") and fail_read.is_set():
+            fail_read.clear()
+            raise sqlite3.OperationalError("database is locked")
+        return worker_records(**kwargs)
+
+    monkeypatch.setattr(store, "worker_records", interrupted_read)
+    with ThreadPoolExecutor(max_workers=1) as pool, QueryProbeLauncher("closed_hold", ignore_term=True) as launch:
+        future = pool.submit(
+            WorkerManager(store, lambda _: query_actor(), fixture, launch=launch).execute,
+            query_actor(), intent, step,
+        )
+        assert launch.receive()["event"] == "CLOSED_FRAME_NOT_EXIT"
+        assert launch.child.poll() is None and not future.done()
+        # Inject the exact failed driver boundary from CI; SQL calculation,
+        # child process, lease, stop and exit persistence remain real.
+        fail_read.set()
+        with pytest.raises(AnalyticsError) as failed:
+            future.result(timeout=8)
+        assert failed.value.code == "EXECUTION_UNKNOWN"
+        assert launch.child.returncode == -9
+    record = worker_records(active_only=False)[0]
+    assert record["state"] == "EXITED" and record["active_slot"] is None
+    assert record["error_code"] == "EXECUTION_UNKNOWN"
+    with sqlite_connection(store.path) as con:
+        assert con.execute("SELECT result_json FROM steps WHERE step_id=?", (step.step_id,)).fetchone()[0] is None
 
 
 def test_result_and_closed_without_process_exit_cannot_complete(tmp_path):

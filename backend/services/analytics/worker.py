@@ -198,7 +198,7 @@ class WorkerManager:
                                 error = "RESOURCE_EXCEEDED"
                         except psutil.NoSuchProcess:
                             pass
-                        except (OSError, ValueError, AnalyticsError, IndexError, psutil.Error):
+                        except (OSError, sqlite3.DatabaseError, ValueError, AnalyticsError, IndexError, psutil.Error):
                             error = error or "EXECUTION_UNKNOWN"
                         if error and stop_started is None:
                             try:
