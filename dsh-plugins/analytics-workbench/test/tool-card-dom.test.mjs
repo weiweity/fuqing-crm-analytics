@@ -38,5 +38,5 @@ test('query card stylesheet is 16px and does not keep the 13px body size', () =>
 });
 test('compiled plugin owns B0 and query tool keys, preserving other native card registrations', () => {
   assert.deepEqual(harness.registrations.filter(r => r.options.name === 'tool.call.toolview').map(r => r.options.key),
-    ['analytics_b0_query', 'analytics_channel_followup_query']);
+    ['analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query']);
 });

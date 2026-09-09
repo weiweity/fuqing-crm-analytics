@@ -19,7 +19,6 @@ from backend.semantic.analytics_first_purchase_path import (
 from backend.services.analytics.catalog import (
     QUERY_FAMILIES,
     QueryFamilyStatus,
-    UnsupportedQueryError,
     require_supported_query,
 )
 from backend.services.analytics.family_first_purchase import execute_first_purchase_path
@@ -126,17 +125,16 @@ def _imported_names(path: Path) -> set[str]:
     return names
 
 
-def test_catalog_stays_deferred_and_family_source_skips_supported_path():
+def test_catalog_supported_and_family_source_skips_channel_payload():
     family_path = Path(__file__).resolve().parents[1] / "services/analytics/family_first_purchase.py"
     semantic_path = Path(__file__).resolve().parents[1] / "semantic/analytics_first_purchase_path.py"
     imported = _imported_names(family_path) | _imported_names(semantic_path)
     assert "require_supported_query" not in imported
     assert "ChannelFollowupResult" not in imported
     assert "backend.services.analytics.catalog" not in imported
-    assert QUERY_FAMILIES[QUERY_ID].status is QueryFamilyStatus.DEFERRED
-    assert FAMILY_STATUS == "DEFERRED"
-    with pytest.raises(UnsupportedQueryError, match="DEFERRED"):
-        require_supported_query(QUERY_ID)
+    assert QUERY_FAMILIES[QUERY_ID].status is QueryFamilyStatus.SUPPORTED_CONTRACT
+    assert FAMILY_STATUS == "SUPPORTED_CONTRACT"
+    require_supported_query(QUERY_ID)
 
 
 @pytest.mark.parametrize("days", [30, 60, 90])

@@ -1,0 +1,1387 @@
+{
+  "components": {
+    "schemas": {
+      "AnalyticsCancelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "const": "USER_REQUEST",
+            "default": "USER_REQUEST",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "AnalyticsCancelRequest",
+        "type": "object"
+      },
+      "AnalyticsErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "recovery_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Url"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "request_id"
+        ],
+        "title": "AnalyticsErrorDetail",
+        "type": "object"
+      },
+      "AnalyticsErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/AnalyticsErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "AnalyticsErrorResponse",
+        "type": "object"
+      },
+      "AnalyticsRunDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "dispatch_attempts": {
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Dispatch Attempts",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "execution_active": {
+            "title": "Execution Active",
+            "type": "boolean"
+          },
+          "profile_hash": {
+            "title": "Profile Hash",
+            "type": "string"
+          },
+          "profile_version": {
+            "title": "Profile Version",
+            "type": "string"
+          },
+          "runtime_status": {
+            "enum": [
+              "PENDING",
+              "DISPATCHING",
+              "ACCEPTED",
+              "UNKNOWN",
+              "EXITED"
+            ],
+            "title": "Runtime Status",
+            "type": "string"
+          },
+          "tool_steps_used": {
+            "maximum": 8,
+            "minimum": 0,
+            "title": "Tool Steps Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "runtime_status",
+          "execution_active",
+          "tool_steps_used",
+          "dispatch_attempts",
+          "profile_version",
+          "profile_hash"
+        ],
+        "title": "AnalyticsRunDiagnostics",
+        "type": "object"
+      },
+      "AnalyticsRunPhase": {
+        "enum": [
+          "ACCEPTED",
+          "PLANNING",
+          "EXECUTING",
+          "FINALIZING"
+        ],
+        "title": "AnalyticsRunPhase",
+        "type": "string"
+      },
+      "AnalyticsRunStatus": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "NEEDS_INPUT",
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELLING",
+          "CANCELLED",
+          "UNKNOWN"
+        ],
+        "title": "AnalyticsRunStatus",
+        "type": "string"
+      },
+      "FirstPurchaseFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_precision": {
+            "const": "integer_fen",
+            "default": "integer_fen",
+            "title": "Amount Precision",
+            "type": "string"
+          },
+          "amount_unit": {
+            "const": "minor",
+            "default": "minor",
+            "title": "Amount Unit",
+            "type": "string"
+          },
+          "cohort_enrolled_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Cohort Enrolled Count",
+            "type": "integer"
+          },
+          "cohort_immature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Cohort Immature Count",
+            "type": "integer"
+          },
+          "cohort_mature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Cohort Mature Count",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "CNY",
+            "default": "CNY",
+            "title": "Currency",
+            "type": "string"
+          },
+          "display_name": {
+            "const": "首购商品路径 / N日正装转化",
+            "default": "首购商品路径 / N日正装转化",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/FirstPurchaseProductRow"
+            },
+            "title": "Products",
+            "type": "array"
+          }
+        },
+        "required": [
+          "observation_days",
+          "cohort_enrolled_count",
+          "cohort_mature_count",
+          "cohort_immature_count",
+          "products"
+        ],
+        "title": "FirstPurchaseFacts",
+        "type": "object"
+      },
+      "FirstPurchaseFixedWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "kind": {
+            "const": "FIXED",
+            "title": "Kind",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "start_date",
+          "end_date"
+        ],
+        "title": "FirstPurchaseFixedWindow",
+        "type": "object"
+      },
+      "FirstPurchaseKernelSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_mode": {
+            "const": "DETERMINISTIC_TOOL",
+            "default": "DETERMINISTIC_TOOL",
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "conversation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/AnalyticsRunDiagnostics"
+          },
+          "evidence_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Digest"
+          },
+          "evidence_refs": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "last_sequence": {
+            "minimum": 0,
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "parent_run_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Run Id"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/AnalyticsRunPhase"
+          },
+          "primary_result_ref": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Result Ref"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-run-first-purchase-path/v1",
+            "default": "analytics-run-first-purchase-path/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_kind": {
+            "const": "CHAT",
+            "default": "CHAT",
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalyticsRunStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "version",
+          "source_ref",
+          "conversation_id",
+          "parent_run_id",
+          "status",
+          "phase",
+          "created_at",
+          "updated_at",
+          "deadline",
+          "result",
+          "evidence_digest",
+          "primary_result_ref",
+          "evidence_refs",
+          "last_sequence",
+          "diagnostics"
+        ],
+        "title": "FirstPurchaseKernelSnapshot",
+        "type": "object"
+      },
+      "FirstPurchaseProductRow": {
+        "additionalProperties": false,
+        "properties": {
+          "empty_reason": {
+            "anyOf": [
+              {
+                "const": "EMPTY_MATURE_COHORT",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Reason"
+          },
+          "enrolled_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Enrolled Count",
+            "type": "integer"
+          },
+          "finished_conversion_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Finished Conversion Count",
+            "type": "integer"
+          },
+          "finished_conversion_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished Conversion Ratio"
+          },
+          "immature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Immature Count",
+            "type": "integer"
+          },
+          "mature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Mature Count",
+            "type": "integer"
+          },
+          "product_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "sample",
+              "finished"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "role",
+          "enrolled_count",
+          "mature_count",
+          "immature_count",
+          "finished_conversion_count"
+        ],
+        "title": "FirstPurchaseProductRow",
+        "type": "object"
+      },
+      "FirstPurchaseQueryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_ids": {
+            "items": {
+              "enum": [
+                "A",
+                "B"
+              ],
+              "type": "string"
+            },
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "cohort_ref": {
+            "title": "Cohort Ref",
+            "type": "null"
+          },
+          "cohort_window": {
+            "$ref": "#/components/schemas/FirstPurchaseFixedWindow"
+          },
+          "comparison": {
+            "title": "Comparison",
+            "type": "null"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-first-purchase-v1",
+            "default": "synthetic-first-purchase-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "exclude_low_price": {
+            "const": false,
+            "default": false,
+            "title": "Exclude Low Price",
+            "type": "boolean"
+          },
+          "metric_id": {
+            "const": "first_purchase_product_n_day_finished",
+            "default": "first_purchase_product_n_day_finished",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "first-purchase-path-metric/v1",
+            "default": "first-purchase-path-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "product_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Product Ids",
+            "type": "array"
+          },
+          "query_id": {
+            "const": "first_purchase_product_path",
+            "default": "first_purchase_product_path",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "first-purchase-path-query/v1",
+            "default": "first-purchase-path-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-path/v1",
+            "default": "analytics-first-purchase-path/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cohort_window",
+          "observation_days"
+        ],
+        "title": "FirstPurchaseQueryRequest",
+        "type": "object"
+      },
+      "FirstPurchaseResolvedFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "channel_ids": {
+            "items": {
+              "enum": [
+                "A",
+                "B"
+              ],
+              "type": "string"
+            },
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "cohort_ref": {
+            "title": "Cohort Ref",
+            "type": "null"
+          },
+          "cohort_window_kind": {
+            "const": "FIXED",
+            "default": "FIXED",
+            "title": "Cohort Window Kind",
+            "type": "string"
+          },
+          "comparison": {
+            "title": "Comparison",
+            "type": "null"
+          },
+          "data_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Data Digest",
+            "type": "string"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-first-purchase-v1",
+            "default": "synthetic-first-purchase-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "data_version": {
+            "const": "synthetic-first-purchase-data/v1",
+            "default": "synthetic-first-purchase-data/v1",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "exclude_low_price": {
+            "const": false,
+            "default": false,
+            "title": "Exclude Low Price",
+            "type": "boolean"
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "hash_version": {
+            "const": "first-purchase-path-filter-hash/v1",
+            "default": "first-purchase-path-filter-hash/v1",
+            "title": "Hash Version",
+            "type": "string"
+          },
+          "metric_id": {
+            "const": "first_purchase_product_n_day_finished",
+            "default": "first_purchase_product_n_day_finished",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "first-purchase-path-metric/v1",
+            "default": "first-purchase-path-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "permission_scope": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Permission Scope",
+            "type": "string"
+          },
+          "product_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Product Ids",
+            "type": "array"
+          },
+          "query_id": {
+            "const": "first_purchase_product_path",
+            "default": "first_purchase_product_path",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "first-purchase-path-query/v1",
+            "default": "first-purchase-path-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "resolved_cohort_end": {
+            "title": "Resolved Cohort End",
+            "type": "string"
+          },
+          "resolved_cohort_start": {
+            "title": "Resolved Cohort Start",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-path/v1",
+            "default": "analytics-first-purchase-path/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resolved_cohort_start",
+          "resolved_cohort_end",
+          "observation_days",
+          "as_of",
+          "channel_ids",
+          "permission_scope",
+          "data_digest",
+          "filter_hash"
+        ],
+        "title": "FirstPurchaseResolvedFilters",
+        "type": "object"
+      },
+      "FirstPurchaseResult": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_mode": {
+            "const": "DETERMINISTIC_TOOL",
+            "default": "DETERMINISTIC_TOOL",
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "contains_real_data": {
+            "const": false,
+            "default": false,
+            "title": "Contains Real Data",
+            "type": "boolean"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-first-purchase-v1",
+            "default": "synthetic-first-purchase-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "data_source": {
+            "const": "SYNTHETIC_SNAPSHOT",
+            "default": "SYNTHETIC_SNAPSHOT",
+            "title": "Data Source",
+            "type": "string"
+          },
+          "data_version": {
+            "const": "synthetic-first-purchase-data/v1",
+            "default": "synthetic-first-purchase-data/v1",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseFacts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "hash_version": {
+            "const": "first-purchase-path-filter-hash/v1",
+            "default": "first-purchase-path-filter-hash/v1",
+            "title": "Hash Version",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metric_id": {
+            "const": "first_purchase_product_n_day_finished",
+            "default": "first_purchase_product_n_day_finished",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "first-purchase-path-metric/v1",
+            "default": "first-purchase-path-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "missing_product_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Product Ids",
+            "type": "array"
+          },
+          "query_id": {
+            "const": "first_purchase_product_path",
+            "default": "first_purchase_product_path",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "first-purchase-path-query/v1",
+            "default": "first-purchase-path-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "const": "MISSING_PRODUCT_ROLE",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "resolved_filters": {
+            "$ref": "#/components/schemas/FirstPurchaseResolvedFilters"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-path/v1",
+            "default": "analytics-first-purchase-path/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "REJECTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "resolved_filters",
+          "filter_hash",
+          "status",
+          "limitations"
+        ],
+        "title": "FirstPurchaseResult",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "FirstPurchaseBearer": {
+        "description": "Explicit local first-purchase identity only; no default identity, CRM auth or production SSO.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Shine Mage First-Purchase Path Kernel",
+    "version": "analytics-run-first-purchase-path/v1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/analytics-first-purchase/runs": {
+      "post": {
+        "operationId": "analytics_first_purchase_create_run",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirstPurchaseQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseKernelSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseKernelSnapshot"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Run"
+      }
+    },
+    "/api/v1/analytics-first-purchase/runs/{run_id}": {
+      "get": {
+        "operationId": "analytics_first_purchase_get_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseKernelSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Run"
+      }
+    },
+    "/api/v1/analytics-first-purchase/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "analytics_first_purchase_cancel_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseKernelSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Cancel Run"
+      }
+    }
+  },
+  "security": [
+    {
+      "FirstPurchaseBearer": []
+    }
+  ],
+  "x-first-purchase-run-schema": "analytics-run-first-purchase-path/v1",
+  "x-not-channel-followup": true,
+  "x-not-native-product": true,
+  "x-shared-run-kernel": true,
+  "x-schema-sha256": "f9fb8927bf11127d19c848d2683cdf4edcf66dde5b57f8c13c13d6c21a39ab66"
+}

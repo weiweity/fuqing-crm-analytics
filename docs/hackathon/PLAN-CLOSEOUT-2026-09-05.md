@@ -1,12 +1,12 @@
 # 方案收口与总待办：产品、架构、数仓、ETL
 
-初版日期：2026-09-05；执行更新：2026-09-08。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。`origin/main` = `1a785d1`（v0.6.0.0）。本分支 v0.6.1.0 overlay 测试，尚无 PR。开放 PR 0。
+初版日期：2026-09-05；执行更新：2026-09-08。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。本次核验 `origin/main` = `3ec1c86`，VERSION `0.6.3.0`，开放 PR 0。#102–#104 已合入；当前本地集成准备见 [并行清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。
 
 初版响应“整理待办、先收尾、拉 Git 分支，再讨论未收口计划”，后续按用户确认续完 D1–D4 并进入最小 B0 实施。**方案收口不等于整个实现/运行验收完成。** 本文是当前任务顺序与状态入口；原商业、交互、合同、评审和测试文档继续各自负责细节，不另起一套 autoplan。
 
 **8 小时 Goal（2026-09-07 当时口径；2026-09-08 已合入）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)。当时只做本地 synthetic G0–G5，不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`。**之后**已 squash 合入 #100（v0.6.0.0 驾驶舱）及 #85–#99、#92；远程功能分支已删。仍未授权公网部署。历史「未获 Git 授权」只描述当时当轮，不能当现在的指令。
 
-历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。本分支 v0.6.1.0 补 overlay 撤销整板/加入/无板创建/409 编译后 DOM。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。原 Mission 演示 8000/5173 保持。
+历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。v0.6.1.0 的 overlay 编译后 DOM 及 v0.6.2.0 重试/不串板修复已合入。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。核验时 8000/5173 仍有旧进程，其 cwd 已不存在；当前主线未做运行验收。
 
 ## 1. 已确定，不再重复讨论
 
@@ -64,11 +64,11 @@
 - [x] **A1｜续完现有增量工程审核**。对象为[工程开工基线](./ENGINEERING-BASELINE-2026-09-05.md)，Architecture/Code Quality/Tests/Performance 四节完成，D1–D4 均确认；范围、故障地图、实施检查点及未验证项已留存。此勾选只代表静态方案审查，不代表独立复核、代码/运行测试或 B0 验收通过。
 - [ ] **A2｜冻结最小任务与数据合同**。复用 E-T1/E-T2/X-T1：持久登记 run/key/hash/dispatch intent/原 202、按 attempt 观察结果、查询/取消/重启恢复、schema 与生成类型同源。D3 采用真实落盘小 SQLite＋受控子进程＋少量固定 DSH/stub 接线，按[故障地图](./ENGINEERING-RUN-TEST-PLAN-2026-09-06.md)同批交付。**当前 PARTIAL**：原生映射、单一账本、物理 worker、提交/资源故障及扩展七问子集已验证；完整数据合同与整个故障地图未验，不勾选整项。
 - [ ] **A3｜明确本地与多人 profile、补架构图**。D4 已确认独立 B0 资源配置和 FastAPI 单一预算执行，旧 BI 不变；落点与断言见[增量审核](./ENGINEERING-INCREMENTAL-REVIEW-2026-09-05.md)。现图保留本地 SQLite/只读合成 DuckDB；仍须补 ETL 分层、发布/读取边界、多人身份与状态库方案，Mermaid 与 Excalidraw/SVG/PNG 同步；不因 B0 配置方案确认勾选整个 A3。
-- [ ] **A4｜固定兼容与协作边界**。同仓插件、固定 DSH/Node/pnpm、依赖锁、官方装配、统一本地/CI 入口及完整类型/Loader/干净目录复建已本地验证；原生主题、三档视口、dispose、键盘及标题偏好/条件标本往返已有小样证据。远端 CI/required checks/新机器空缓存及真正布局组件组合未跑，不勾选整项；旧 Vue/npm 不升级，不发布 npm 包。
+- [ ] **A4｜固定兼容与协作边界**。同仓插件、固定 DSH/Node/pnpm、依赖锁、官方装配、统一本地/CI 入口及完整类型/Loader/干净目录复建已本地验证；原生主题、三档视口、dispose、键盘及标题偏好/条件标本往返已有小样证据。当前主线 CI 已成功；required checks 管理配置、新机器空缓存及完整布局业务验收不能由该结果替代，不勾选整项；旧 Vue/npm 不升级，不发布 npm 包。
 
 ## 6. 待办 W：数仓改型、ETL 与计算优化
 
-这些是已认可方向的**待实施分解**，不是已改造完成；也不授权操作真实归档库。
+W1–W3 已有合成实现与局部验证；下表保留完整完成标准，不据此宣称真实 ETL 改造完成。W4 最小客户特征层本轮已本地验证（完整 W4 范围仍开放），W5 未实施。
 
 | 编号 | 工作与顺序 | 完成标准 |
 |---|---|---|
@@ -89,10 +89,10 @@ W3 的目标是改数据流，不给旧脚本再叠一层缓存。当前已有 P
 | 工作包 | 当前状态 | 收口/完成要求 |
 |---|---|---|
 | C-T1 承载证明 | PARTIAL；本轮小样队列已执行 | 业务任务/取消/恢复、方法/压缩组件、BI 合同接缝、品牌与工具卡 8 状态组件 DOM 已有证据；T09 已补真实工具失败与卡片共存，保留其余原生状态和历史稳定性缺口；不冒充真实模型 |
-| E-T1 合同与金标准 | B0 任务合同已有；G2a 渠道队列合同+手算金标准已落地；G3a 离线 SQL 已落地，worker/HTTP 待 G3b/G4 | 与 W2/W4 共用指标、粒度和版本；后两族 DEFERRED；见 [G2a 合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)、[G3a 计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md) |
-| E-T2 资产与任务 | B0 任务状态/预算子集已实现，完整包待实施 | 独立计算、队列/取消/幂等、运行归属、保存与快照；不同 run 不共享在途 worker |
+| E-T1 合同与金标准 | 渠道查询已有 worker/HTTP/native 子集；首购 v0.6.3.0 离线合同与 JSON 金标准已合入，首购共享 worker/独立 HTTP 本轮本地通过；首购 native 与候选人群运行接入仍待完成 | 与 W2/W4 共用指标、粒度和版本；后两族 DEFERRED；见 [G2a 合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)、[G3a 计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md) |
+| E-T2 资产与任务 | B0 任务/预算及 SNAPSHOT 保存、版本化驾驶舱子集已实现，完整包待验 | 独立计算、队列/取消/幂等、运行归属、保存与快照；不同 run 不共享在途 worker |
 | D-T1 问数与画布 | B0 接缝已有，产品包待实施 | 连续追问、父 run/条件继承、真实阶段、澄清/失败、证据与响应式 |
-| D-T2 可组合驾驶舱 | 静态承载已有，产品包待实施 | 添加/复制/移除/布局、AI 局部配置、预览/保存/撤销/版本冲突；固定查看不依赖模型 |
+| D-T2 可组合驾驶舱 | v0.6.0–0.6.2 已有 HTTP 资产操作及 overlay 回归，完整产品包仍 PARTIAL | 添加/复制/移除/布局、AI 局部配置、预览/保存/撤销/版本冲突；固定查看不依赖模型 |
 | E-T4 同条件标准 BI | 合同接缝小样已验，业务包待实施 | 固定条件标本不是实际 run 解析器；只适配一个合成 BI，完整服务端鉴权，不开放旧真实 CRM |
 | E-T3 人群与行动草案 | 待实施 | 绑定明确 source_result_ref，审批冻结证据；合成导出与当前分析人群一致，不发送营销 |
 | X-T1 API 与接线 | B0 HTTP/类型/DSH 七问及当前权限小样已验证 | OpenAPI/Pydantic/TS 同源；完整产品协议仍待实施，草案和可调用接口分开 |
@@ -125,17 +125,21 @@ Hermes 多运行时、自由组队/工作流、自进化、长期记忆自动写
 
 ## 10. Git 与文档交付规则
 
-- **当前（2026-09-08）**：`origin/main` = `1a785d1`（#101）。#100 与 #85–#99、#92 已 squash 合入。本分支 `test/cockpit-overlay-gap` = v0.6.1.0 overlay 测试，尚无 PR。开放 PR 0。仍未授权公网部署。下文各条是当时快照，不得当作现在的 HEAD。
+- **当前（2026-09-08 核验）**：主线 `3ec1c86` / v0.6.3.0，#100、#102–#104 及文档收口已合入。当前分支已完成两个候选的本地修复、共享内核/HTTP 接线及回归，见 [集成结果](./PARALLEL-INTEGRATION-RESULT-2026-09-08.md)；无提交/推送/合并/部署动作。
 - **G0 修复记录时点（保留）**：当时分支 `codex/b0-t09-delivery`，HEAD `26960bb`；T09 16 个文件当时仍 dirty。该快照已被 P1 `bd6d8fe` / PR #69 取代，不得再当作当前「T09 未提交」。
 - **Goal 启动基线（保留）**：当时工作分支 `codex/b0-native-fault-validation`，HEAD `c5b156636326d026b096ca4d7f6ea6c26945c91d`；4 份规划材料当时 untracked。该快照已被 P0 `26960bb` 取代，不得再当作当前 HEAD。
 - **历史（2026-09-05/06 方案收口当时）**：已创建本地续接分支 `codex/architecture-warehouse-plan-closeout`，当时 HEAD 为 `de2d785f4e0c7abe7fcd8fbb39be7d8c5a0c9642`，沿用现有 worktree，保留历史未提交改动。2026-09-06 只读实查：远端 `main` 与本地 `origin/main` 同为 `89d342355b65e79418964780ec4e1b2f80b7ca02`，当时领先 13 / 落后 0；该分支当时无 upstream、远端同名分支或 PR。那次没有 fetch/merge/重置、提交或推送。该快照已被后续 PR #67 取代，不得再当作当前远端状态。
 - 分支只增加进度指针，**不是提交或未提交文件备份**。旧 Vue/登录/Mission、B0 与本地性能改动不整体打包提交，不清理、不 stash/reset。
 - 后续审阅单元：数据合同与回归 → ETL/共享特征 → 产品纵向链 → 对应验证。提交、推送和合并仍分别遵守**当时或当轮**授权。Goal 当时的小 PR 队列已经合入 `main`。
 - 实施时同步主合同、生成类型、测试与 API 用法；不得把目标路径、设计图或 mock 截图写成可调用/已部署。图表结构修改同步四件套，旧审计与失败记录保留。
-- 本文整合待办，不修改其他历史 gstack 评审等级；本次[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)四节静态审核已完成，D1–D4 确认。G0–G5 源码已在 `main`。下一步不是重跑历史 B0 清单，也不是默认进入 B1–B4 完整产品。旧 PARTIAL、W4/W5 与公网提交仍开放。v0.6.1.0 已补 overlay 撤销整板/加入/无板创建/409 编译后 DOM，产品仍 PARTIAL；不重跑 CEO 商业讨论。
+- 本文整合待办，不修改其他历史 gstack 评审等级；本次[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)四节静态审核已完成，D1–D4 确认。G0–G5 源码已在 `main`。下一步不是重跑历史 B0 清单，也不是默认进入 B1–B4 完整产品。旧 PARTIAL、完整 W4、W5 与公网提交仍开放。v0.6.1.0 已补 overlay 撤销整板/加入/无板创建/409 编译后 DOM，产品仍 PARTIAL；不重跑 CEO 商业讨论。
 
 初次收口验证（历史记录，不是本次 D4 运行证据）：13 份新增/更新文档的 172 个本地文件引用均存在，文档 diff/新增文件空白检查通过；当时增量记录的末节和 NOT_CLEARED 标记保留。建分支前后 121 个脏文件的路径/内容汇总 hash 一致，HEAD 未变，范围外已跟踪改动及暂存区 diff hash 未变。该次没有提交、推送、应用测试、真实库或 ETL 操作。
 
 ## 11. 证据入口
 
 技术事实及独立来源保留在[工程基线](./ENGINEERING-BASELINE-2026-09-05.md)、[分析性能报告](./ANALYTICS-PERFORMANCE-2026-09-05.md)、[ETL 诊断](./ETL-DIAGNOSIS-2026-09-05.md)。外部产品能力不证明本项目已集成，本地微基准不证明真实业务端到端性能；同一组织的文档和 GitHub 不算两个独立来源。
+
+### 第二轮本地增量（2026-09-08）
+
+首购独立保存/驾驶舱 HTTP 已补共享冻结来源，418 项 pipeline Python 测试通过。原生候选需返修，卡片保存与资产弹层尚未装配；完整 E-T2/D-T1 不勾选。当前详情见 [第二轮复核](./PARALLEL-ROUND2-REVIEW-2026-09-08.md)。

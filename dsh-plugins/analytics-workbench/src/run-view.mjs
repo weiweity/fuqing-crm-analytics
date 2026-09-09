@@ -1,7 +1,8 @@
 /** Read-only native UI projection. Refresh cannot create or replay a prompt. */
 const b0Schema = 'analytics-run-b0/v1';
 const querySchema = 'analytics-run-channel-followup/v1';
-const schemas = new Set([b0Schema, querySchema]);
+const firstPurchaseSchema = 'analytics-run-first-purchase-path/v1';
+const schemas = new Set([b0Schema, querySchema, firstPurchaseSchema]);
 const statuses = new Set(['QUEUED', 'RUNNING', 'NEEDS_INPUT', 'SUCCEEDED', 'FAILED', 'CANCELLING', 'CANCELLED', 'UNKNOWN']);
 const phases = new Set(['ACCEPTED', 'PLANNING', 'EXECUTING', 'FINALIZING']);
 const runId = value => typeof value === 'string' && /^run_[a-f0-9]{32}$/.test(value);

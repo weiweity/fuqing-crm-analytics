@@ -1,0 +1,1924 @@
+{
+  "components": {
+    "schemas": {
+      "AnalyticsErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "recovery_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Url"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "request_id"
+        ],
+        "title": "AnalyticsErrorDetail",
+        "type": "object"
+      },
+      "AnalyticsErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/AnalyticsErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "AnalyticsErrorResponse",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitAddOp": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_ref": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitAnalysisRef"
+          },
+          "display_overrides": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseCockpitDisplayOverrides"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseCockpitLayout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "add"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          },
+          "plugin_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseCockpitTablePlugin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "analysis_ref"
+        ],
+        "title": "FirstPurchaseCockpitAddOp",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitAnalysisRef": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_id": {
+            "maxLength": 128,
+            "minLength": 11,
+            "pattern": "^analysis_[A-Za-z0-9_.:-]{1,118}$",
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "analysis_id",
+          "version"
+        ],
+        "title": "FirstPurchaseCockpitAnalysisRef",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitCardError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "FirstPurchaseCockpitCardError",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitCardOk": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_ref": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitAnalysisRef"
+          },
+          "card_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Card Id",
+            "type": "string"
+          },
+          "data_mode": {
+            "const": "SNAPSHOT",
+            "title": "Data Mode",
+            "type": "string"
+          },
+          "display_overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Display Overrides",
+            "type": "object"
+          },
+          "effective_spec_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Effective Spec Hash",
+            "type": "string"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/FirstPurchaseFacts"
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "filter_mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Filter Mapping",
+            "type": "object"
+          },
+          "freshness": {
+            "const": "PINNED",
+            "title": "Freshness",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitLayout"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "local_filters": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Local Filters",
+            "type": "object"
+          },
+          "plugin_ref": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitTablePlugin"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/FirstPurchaseSavedSnapshot"
+          },
+          "source_status": {
+            "type": "string",
+            "enum": [
+              "OK"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          }
+        },
+        "required": [
+          "card_id",
+          "plugin_ref",
+          "analysis_ref",
+          "data_mode",
+          "layout",
+          "display_overrides",
+          "filter_mapping",
+          "local_filters",
+          "snapshot",
+          "facts",
+          "filter_hash",
+          "limitations",
+          "effective_spec_hash",
+          "freshness",
+          "source_status"
+        ],
+        "title": "FirstPurchaseCockpitCardOk",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitCardUnavailable": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseCockpitAnalysisRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "card_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Card Id",
+            "type": "string"
+          },
+          "data_mode": {
+            "const": "SNAPSHOT",
+            "default": "SNAPSHOT",
+            "title": "Data Mode",
+            "type": "string"
+          },
+          "error": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitCardError"
+          },
+          "freshness": {
+            "const": "PINNED",
+            "default": "PINNED",
+            "title": "Freshness",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitLayout"
+          },
+          "plugin_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstPurchaseCockpitTablePlugin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_status": {
+            "type": "string",
+            "enum": [
+              "UNAVAILABLE"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          }
+        },
+        "required": [
+          "card_id",
+          "layout",
+          "error",
+          "source_status"
+        ],
+        "title": "FirstPurchaseCockpitCardUnavailable",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitCopyOp": {
+        "additionalProperties": false,
+        "properties": {
+          "card_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Card Id",
+            "type": "string"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "copy"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          }
+        },
+        "required": [
+          "op",
+          "card_id"
+        ],
+        "title": "FirstPurchaseCockpitCopyOp",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "FirstPurchaseCockpitCreateRequest",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitDisplayOverrides": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "FirstPurchaseCockpitDisplayOverrides",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-cockpit-filters/v1",
+            "default": "analytics-first-purchase-cockpit-filters/v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_ids"
+        ],
+        "title": "FirstPurchaseCockpitFilters",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitLayout": {
+        "additionalProperties": false,
+        "properties": {
+          "h": {
+            "maximum": 12,
+            "minimum": 2,
+            "title": "H",
+            "type": "integer"
+          },
+          "w": {
+            "maximum": 12,
+            "minimum": 2,
+            "title": "W",
+            "type": "integer"
+          },
+          "x": {
+            "maximum": 10,
+            "minimum": 0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "maximum": 240,
+            "minimum": 0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "title": "FirstPurchaseCockpitLayout",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitLayoutOp": {
+        "additionalProperties": false,
+        "properties": {
+          "card_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Card Id",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitLayout"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "layout"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          }
+        },
+        "required": [
+          "op",
+          "card_id",
+          "layout"
+        ],
+        "title": "FirstPurchaseCockpitLayoutOp",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitRemoveOp": {
+        "additionalProperties": false,
+        "properties": {
+          "card_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Card Id",
+            "type": "string"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "remove"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          }
+        },
+        "required": [
+          "op",
+          "card_id"
+        ],
+        "title": "FirstPurchaseCockpitRemoveOp",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitTablePlugin": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "TABLE",
+            "default": "TABLE",
+            "title": "Type",
+            "type": "string"
+          },
+          "version": {
+            "const": "analytics-visual-table/v1",
+            "default": "analytics-visual-table/v1",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "FirstPurchaseCockpitTablePlugin",
+        "type": "object"
+      },
+      "FirstPurchaseCockpitUndoOp": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "undo"
+            ],
+            "description": "discriminator enum property added by openapi-typescript"
+          },
+          "restore_from_version": {
+            "minimum": 1,
+            "title": "Restore From Version",
+            "type": "integer"
+          },
+          "scope": {
+            "const": "board",
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "scope",
+          "restore_from_version"
+        ],
+        "title": "FirstPurchaseCockpitUndoOp",
+        "type": "object"
+      },
+      "FirstPurchaseDashboard": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_card_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            "title": "Affected Card Ids",
+            "type": "array"
+          },
+          "base_version": {
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "cards": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "OK": "#/components/schemas/FirstPurchaseCockpitCardOk",
+                  "UNAVAILABLE": "#/components/schemas/FirstPurchaseCockpitCardUnavailable"
+                },
+                "propertyName": "source_status"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/FirstPurchaseCockpitCardOk"
+                },
+                {
+                  "$ref": "#/components/schemas/FirstPurchaseCockpitCardUnavailable"
+                }
+              ]
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "dashboard_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Dashboard Id",
+            "type": "string"
+          },
+          "finite_mock": {
+            "const": true,
+            "title": "Finite Mock",
+            "type": "boolean"
+          },
+          "global_filters": {
+            "$ref": "#/components/schemas/FirstPurchaseCockpitFilters"
+          },
+          "http_api": {
+            "const": "CONNECTED",
+            "default": "CONNECTED",
+            "title": "Http Api",
+            "type": "string"
+          },
+          "owner_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Owner Id",
+            "type": "string"
+          },
+          "persisted": {
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "preview": {
+            "title": "Preview",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-cockpit/v1",
+            "default": "analytics-first-purchase-cockpit/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "visibility": {
+            "const": "PRIVATE",
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dashboard_id",
+          "version",
+          "base_version",
+          "title",
+          "owner_id",
+          "visibility",
+          "cards",
+          "global_filters",
+          "created_at",
+          "preview",
+          "persisted",
+          "affected_card_ids",
+          "finite_mock"
+        ],
+        "title": "FirstPurchaseDashboard",
+        "type": "object"
+      },
+      "FirstPurchaseDashboardList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FirstPurchaseDashboardListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-cockpit/v1",
+            "default": "analytics-first-purchase-cockpit/v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "FirstPurchaseDashboardList",
+        "type": "object"
+      },
+      "FirstPurchaseDashboardListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "card_count": {
+            "minimum": 0,
+            "title": "Card Count",
+            "type": "integer"
+          },
+          "dashboard_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Dashboard Id",
+            "type": "string"
+          },
+          "finite_mock": {
+            "const": true,
+            "title": "Finite Mock",
+            "type": "boolean"
+          },
+          "http_api": {
+            "const": "CONNECTED",
+            "default": "CONNECTED",
+            "title": "Http Api",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-cockpit/v1",
+            "default": "analytics-first-purchase-cockpit/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "visibility": {
+            "const": "PRIVATE",
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dashboard_id",
+          "version",
+          "title",
+          "visibility",
+          "card_count",
+          "finite_mock"
+        ],
+        "title": "FirstPurchaseDashboardListItem",
+        "type": "object"
+      },
+      "FirstPurchaseFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_precision": {
+            "const": "integer_fen",
+            "default": "integer_fen",
+            "title": "Amount Precision",
+            "type": "string"
+          },
+          "amount_unit": {
+            "const": "minor",
+            "default": "minor",
+            "title": "Amount Unit",
+            "type": "string"
+          },
+          "cohort_enrolled_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Cohort Enrolled Count",
+            "type": "integer"
+          },
+          "cohort_immature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Cohort Immature Count",
+            "type": "integer"
+          },
+          "cohort_mature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Cohort Mature Count",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "CNY",
+            "default": "CNY",
+            "title": "Currency",
+            "type": "string"
+          },
+          "display_name": {
+            "const": "首购商品路径 / N日正装转化",
+            "default": "首购商品路径 / N日正装转化",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/FirstPurchaseProductRow"
+            },
+            "title": "Products",
+            "type": "array"
+          }
+        },
+        "required": [
+          "observation_days",
+          "cohort_enrolled_count",
+          "cohort_mature_count",
+          "cohort_immature_count",
+          "products"
+        ],
+        "title": "FirstPurchaseFacts",
+        "type": "object"
+      },
+      "FirstPurchaseProductRow": {
+        "additionalProperties": false,
+        "properties": {
+          "empty_reason": {
+            "anyOf": [
+              {
+                "const": "EMPTY_MATURE_COHORT",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Reason"
+          },
+          "enrolled_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Enrolled Count",
+            "type": "integer"
+          },
+          "finished_conversion_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Finished Conversion Count",
+            "type": "integer"
+          },
+          "finished_conversion_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished Conversion Ratio"
+          },
+          "immature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Immature Count",
+            "type": "integer"
+          },
+          "mature_count": {
+            "ge": 0,
+            "le": 9007199254740991,
+            "title": "Mature Count",
+            "type": "integer"
+          },
+          "product_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "sample",
+              "finished"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "role",
+          "enrolled_count",
+          "mature_count",
+          "immature_count",
+          "finished_conversion_count"
+        ],
+        "title": "FirstPurchaseProductRow",
+        "type": "object"
+      },
+      "FirstPurchaseResolvedFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "channel_ids": {
+            "items": {
+              "enum": [
+                "A",
+                "B"
+              ],
+              "type": "string"
+            },
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "cohort_ref": {
+            "title": "Cohort Ref",
+            "type": "null"
+          },
+          "cohort_window_kind": {
+            "const": "FIXED",
+            "default": "FIXED",
+            "title": "Cohort Window Kind",
+            "type": "string"
+          },
+          "comparison": {
+            "title": "Comparison",
+            "type": "null"
+          },
+          "data_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Data Digest",
+            "type": "string"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-first-purchase-v1",
+            "default": "synthetic-first-purchase-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "data_version": {
+            "const": "synthetic-first-purchase-data/v1",
+            "default": "synthetic-first-purchase-data/v1",
+            "title": "Data Version",
+            "type": "string"
+          },
+          "exclude_low_price": {
+            "const": false,
+            "default": false,
+            "title": "Exclude Low Price",
+            "type": "boolean"
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "hash_version": {
+            "const": "first-purchase-path-filter-hash/v1",
+            "default": "first-purchase-path-filter-hash/v1",
+            "title": "Hash Version",
+            "type": "string"
+          },
+          "metric_id": {
+            "const": "first_purchase_product_n_day_finished",
+            "default": "first_purchase_product_n_day_finished",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "first-purchase-path-metric/v1",
+            "default": "first-purchase-path-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "observation_days": {
+            "enum": [
+              30,
+              60,
+              90
+            ],
+            "title": "Observation Days",
+            "type": "integer"
+          },
+          "permission_scope": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Permission Scope",
+            "type": "string"
+          },
+          "product_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Product Ids",
+            "type": "array"
+          },
+          "query_id": {
+            "const": "first_purchase_product_path",
+            "default": "first_purchase_product_path",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "first-purchase-path-query/v1",
+            "default": "first-purchase-path-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "resolved_cohort_end": {
+            "title": "Resolved Cohort End",
+            "type": "string"
+          },
+          "resolved_cohort_start": {
+            "title": "Resolved Cohort Start",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "analytics-first-purchase-path/v1",
+            "default": "analytics-first-purchase-path/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resolved_cohort_start",
+          "resolved_cohort_end",
+          "observation_days",
+          "as_of",
+          "channel_ids",
+          "permission_scope",
+          "data_digest",
+          "filter_hash"
+        ],
+        "title": "FirstPurchaseResolvedFilters",
+        "type": "object"
+      },
+      "FirstPurchaseSavedSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "data_snapshot_ref": {
+            "const": "synthetic-first-purchase-v1",
+            "default": "synthetic-first-purchase-v1",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "evidence_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Evidence Digest",
+            "type": "string"
+          },
+          "resolved_filters": {
+            "$ref": "#/components/schemas/FirstPurchaseResolvedFilters"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "evidence_digest",
+          "resolved_filters",
+          "as_of"
+        ],
+        "title": "FirstPurchaseSavedSnapshot",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "CockpitBearer": {
+        "description": "Explicit local first-purchase cockpit identity; not CRM auth.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Shine Mage First-Purchase Cockpit",
+    "version": "analytics-first-purchase-cockpit/v1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/analytics-first-purchase/dashboards": {
+      "get": {
+        "operationId": "analytics_first_purchase_dashboard_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseDashboardList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Dashboards"
+      },
+      "post": {
+        "operationId": "analytics_first_purchase_dashboard_create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirstPurchaseCockpitCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseDashboard"
+                }
+              }
+            },
+            "description": "Owner already has a private dashboard."
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseDashboard"
+                }
+              }
+            },
+            "description": "Created the owner's private dashboard."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Dashboard"
+      }
+    },
+    "/api/v1/analytics-first-purchase/dashboards/{dashboard_id}": {
+      "get": {
+        "operationId": "analytics_first_purchase_dashboard_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "title": "Dashboard Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseDashboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Dashboard"
+      }
+    },
+    "/api/v1/analytics-first-purchase/dashboards/{dashboard_id}/preview": {
+      "post": {
+        "operationId": "analytics_first_purchase_dashboard_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "title": "Dashboard Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "add": "#/components/schemas/FirstPurchaseCockpitAddOp",
+                    "copy": "#/components/schemas/FirstPurchaseCockpitCopyOp",
+                    "layout": "#/components/schemas/FirstPurchaseCockpitLayoutOp",
+                    "remove": "#/components/schemas/FirstPurchaseCockpitRemoveOp",
+                    "undo": "#/components/schemas/FirstPurchaseCockpitUndoOp"
+                  },
+                  "propertyName": "op"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitAddOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitCopyOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitRemoveOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitLayoutOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitUndoOp"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseDashboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Preview Dashboard"
+      }
+    },
+    "/api/v1/analytics-first-purchase/dashboards/{dashboard_id}/versions": {
+      "post": {
+        "operationId": "analytics_first_purchase_dashboard_apply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "title": "Dashboard Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "add": "#/components/schemas/FirstPurchaseCockpitAddOp",
+                    "copy": "#/components/schemas/FirstPurchaseCockpitCopyOp",
+                    "layout": "#/components/schemas/FirstPurchaseCockpitLayoutOp",
+                    "remove": "#/components/schemas/FirstPurchaseCockpitRemoveOp",
+                    "undo": "#/components/schemas/FirstPurchaseCockpitUndoOp"
+                  },
+                  "propertyName": "op"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitAddOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitCopyOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitRemoveOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitLayoutOp"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FirstPurchaseCockpitUndoOp"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstPurchaseDashboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Precondition Required"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Apply Dashboard"
+      }
+    }
+  },
+  "security": [
+    {
+      "CockpitBearer": []
+    }
+  ],
+  "x-cockpit-http": true,
+  "x-first-purchase-cockpit-http": true,
+  "x-not-b0-run-kernel": true,
+  "x-query-session-fence": false,
+  "x-saved-analysis-http": false,
+  "x-schema-sha256": "512e5b41006202bb49d05021fc6f5dd84007fbe1713ac38545d3edac80e9db05"
+}

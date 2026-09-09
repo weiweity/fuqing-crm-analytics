@@ -1,3 +1,19 @@
+## [0.7.0.0] - 2026-09-09
+
+### Added
+- 首购 JSON 查询使用共享 RunStore family、物理 worker 与独立 HTTP factory；离线 OpenAPI/TypeScript 及统一 pipeline 接入。
+- 首购保存分析与驾驶舱独立 HTTP / SNAPSHOT 状态库；共享来源校验冻结步骤、原始条件、结果与方法摘要，拒绝合同拒绝结果。
+- 首购原生 prompt/tool 使用共享持久绑定：principal/session/request/run/attempt/method digest；在途重试保留同一 run；宿主 tick 推进排队任务。查询→保存分析→驾驶舱合成闭环可本地验证。
+- W4 只读客户首末购、有效订单数/净额及日期推进特征；复用合成仓权限与事实，不改 W1–W3 或实施 W5。
+
+### Fixed
+- 首购查询成功后的原生总结步骤可读取有界可信上下文，避免结果卡成功但对话报错；终态方法读取仍拒绝，原预算不重置。已补浏览器查询、保存与驾驶舱重读。
+- 移除临时首购独立账本；共享预算、取消、幂等、当前权限和真实退出证据，重启不重复执行不确定任务。
+- 首购 native 不再以 request_id 冒充 run_id，不再用内存字典作为唯一绑定；context 读取实际状态与剩余预算。
+- 首购 decoder 按合同校验转化率、空成熟分母、完整 resolved_filters 与 receipt 绑定；编译后卡片测试走真实 renderer。
+- 首购 native accept 的 location 使用 `/api/v1/analytics-first-purchase/runs/{run_id}`，不再复用渠道 query 内部路径；共享来源校验失败文案按当前族 codec 生成。
+- W4 摘要覆盖实际 JSONL 字节；导出前拒绝行内容或摘要漂移，空集使用零字节摘要。
+
 ## [0.6.3.0] - 2026-09-08
 
 ### Added

@@ -21,8 +21,6 @@ from uuid import uuid4
 import psutil
 
 from backend.contracts.analytics import AnalyticsB0Result
-from backend.contracts.analytics_query import ChannelFollowupResult
-from backend.contracts.analytics_query_run import QUERY_RUN_FAMILY
 from .access import AnalyticsError, require
 from .execution_lease import create_lease
 from .resource_profile import MIB
@@ -76,9 +74,11 @@ def temp_bytes(directory):
 class WorkerManager:
     def __init__(self, store, resolve_actor, fixture, *, launch=spawn_worker, fault_hook=None):
         fixture.validate()
-        if store.family == QUERY_RUN_FAMILY:
+        if store.is_query:
             from backend.analytics_query_fixture import ChannelFollowupFixture
-            if type(fixture) is not ChannelFollowupFixture:
+            from backend.analytics_first_purchase_fixture import FirstPurchaseFixture
+            expected_fixture = FirstPurchaseFixture if store.family == "first_purchase" else ChannelFollowupFixture
+            if type(fixture) is not expected_fixture:
                 raise ValueError("channel_followup worker requires a sealed query fixture")
             stored = store.query_fixture_descriptor()
             if stored is not None and fixture.binding_descriptor() != stored.model_dump(mode="json"):
@@ -87,7 +87,7 @@ class WorkerManager:
         self.launch, self.fault_hook = launch, fault_hook
         self._owned = set()
         self._mutex = threading.Lock()
-        self._result_type = ChannelFollowupResult if store.family == QUERY_RUN_FAMILY else AnalyticsB0Result
+        self._result_type = store.codec.result if store.is_query else AnalyticsB0Result
 
     def _hook(self, point, payload):
         if self.fault_hook is not None:
@@ -114,7 +114,7 @@ class WorkerManager:
             if principal is None or principal.actor_id != record["owner"]:
                 return "PERMISSION_REVOKED"
             require(principal, "run:create", data_scope=self.store.data_scope)
-            if self.store.family == QUERY_RUN_FAMILY:
+            if self.store.is_query:
                 try:
                     self.store.query_step_binding(
                         principal, record["run_id"], record["attempt_id"], record["step_id"],
@@ -140,11 +140,11 @@ class WorkerManager:
     def _child_config(self, principal, intent, step, binding, fd, temporary):
         config = {"binding": binding, "profile": self.store.profile.model_dump(), "profile_hash": self.store.profile.digest,
                   "fixture": asdict(self.fixture), "lease_fd": fd, "temp_dir": str(temporary)}
-        if self.store.family != QUERY_RUN_FAMILY:
+        if not self.store.is_query:
             return config
         frozen = self.store.query_step_binding(principal, intent.run_id, intent.attempt_id, step.step_id)
         config.update({
-            "family": QUERY_RUN_FAMILY,
+            "family": self.store.family,
             "request": frozen.request.model_dump(mode="json"),
             "permission_scope": frozen.permission_scope,
             "fixture_descriptor": frozen.fixture.model_dump(mode="json"),
@@ -158,7 +158,7 @@ class WorkerManager:
         # a parent preflight exception would leave no durable failure/exit proof.
         if step.disposition != "EXECUTE":
             raise AnalyticsError(409, "CONFLICT", "请求、状态或版本已变化，请读取当前任务后核对。")
-        if self.store.family == QUERY_RUN_FAMILY:
+        if self.store.is_query:
             self.store.query_step_binding(principal, intent.run_id, intent.attempt_id, step.step_id)
         execution_id = "exec_" + uuid4().hex
         fd, dev, ino, temporary = create_lease(self.store.directory, execution_id)
@@ -244,7 +244,9 @@ class WorkerManager:
                                     metrics["settings"] = frame["settings"]
                                     version, revision = frame["engine_version"], frame["engine_revision"]
                                     if (not isinstance(version, str) or re.fullmatch(r"[0-9a-z.]{1,32}", version) is None
-                                            or not isinstance(revision, str) or re.fullmatch(r"[a-f0-9]{7,40}", revision) is None):
+                                            or not isinstance(revision, str)
+                                            or (revision != "stdlib-json" if self.store.family == "first_purchase"
+                                                else re.fullmatch(r"[a-f0-9]{7,40}", revision) is None)):
                                         raise ValueError("invalid engine identity")
                                     metrics["engine"] = {"version": version, "source_revision": revision}
                                     self._hook("worker:ready", {**binding, "pid": child.pid})

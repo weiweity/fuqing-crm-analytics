@@ -16,9 +16,10 @@ from urllib.request import Request, build_opener, ProxyHandler, HTTPRedirectHand
 from backend.contracts.analytics_query_run import (
     QUERY_RUN_FAMILY, AnalyticsQueryNativeReceipt,
 )
+from backend.contracts.analytics_first_purchase_kernel import FirstPurchaseNativeReceipt
 
 from .access import AnalyticsError
-from .jobs import ExecutionObservation
+from .jobs import ExecutionObservation, TERMINAL
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -200,4 +201,71 @@ def execute_native_query(store, resolve_actor, session_id, request_id, call_id, 
     return AnalyticsQueryNativeReceipt(
         run_id=intent.run_id, attempt_id=intent.attempt_id, step_id=step.step_id,
         disposition=step.disposition, result=result,
+    ).model_dump(mode="json")
+
+
+def execute_native_first_purchase(store, resolve_actor, session_id, request_id, call_id, query_request, *, workers):
+    """Trusted first-purchase tool lookup. Same run for in-flight retry; never a new key."""
+    if store.family != "first_purchase":
+        raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
+    matches = store.runtime_work(session_id=session_id, request_id=request_id)
+    if len(matches) != 1:
+        raise AnalyticsError(409, "UNBOUND_NATIVE_REQUEST", "当前原生请求没有已登记的任务绑定。")
+    work = matches[0]
+    principal = resolve_actor(work["owner"])
+    if principal is None:
+        raise AnalyticsError(403, "FORBIDDEN", "当前任务身份已失效。")
+    intent = work["intent"]
+    snapshot = store.get(principal, intent.run_id)
+    if snapshot.status == "CANCELLED":
+        raise AnalyticsError(409, "RUN_CANCELLED", "查询任务已取消，未得到可绑定结果。")
+    if snapshot.status == "FAILED":
+        raise AnalyticsError(409, "TOOL_FAILED", "查询执行未得到可绑定结果。")
+    if snapshot.status in TERMINAL and snapshot.status != "SUCCEEDED":
+        raise AnalyticsError(409, "TOOL_FAILED", "查询执行未得到可绑定结果。")
+    if snapshot.status == "SUCCEEDED":
+        if snapshot.result is None or snapshot.primary_result_ref is None:
+            raise AnalyticsError(409, "TOOL_FAILED", "查询执行未得到可绑定结果。")
+        return 200, FirstPurchaseNativeReceipt(
+            run_id=intent.run_id, request_id=request_id, call_id=call_id,
+            attempt_id=intent.attempt_id, step_id=snapshot.primary_result_ref,
+            disposition="REUSE_RESULT", run_status=snapshot.status, result=snapshot.result,
+        ).model_dump(mode="json")
+    if snapshot.status in {"QUEUED", "CANCELLING", "UNKNOWN"} or snapshot.status != "RUNNING":
+        return 202, FirstPurchaseNativeReceipt(
+            run_id=intent.run_id, request_id=request_id, call_id=call_id,
+            attempt_id=intent.attempt_id, disposition="IN_FLIGHT",
+            run_status=snapshot.status, result=None,
+        ).model_dump(mode="json")
+    try:
+        step = store.reserve_step(principal, intent.run_id, intent.attempt_id, call_id, request=query_request)
+    except AnalyticsError as error:
+        if error.status == 409 and error.code in {"CONFLICT", "STEP_PENDING"}:
+            current = store.get(principal, intent.run_id)
+            if current.status in {"CANCELLED"}:
+                raise AnalyticsError(409, "RUN_CANCELLED", "查询任务已取消，未得到可绑定结果。") from error
+            if current.status in {"FAILED"}:
+                raise AnalyticsError(409, "TOOL_FAILED", "查询执行未得到可绑定结果。") from error
+            return 202, FirstPurchaseNativeReceipt(
+                run_id=intent.run_id, request_id=request_id, call_id=call_id,
+                attempt_id=intent.attempt_id, disposition="IN_FLIGHT",
+                run_status=current.status, result=None,
+            ).model_dump(mode="json")
+        raise
+    if step.disposition == "PENDING":
+        return 202, FirstPurchaseNativeReceipt(
+            run_id=intent.run_id, request_id=request_id, call_id=call_id,
+            attempt_id=intent.attempt_id, disposition="IN_FLIGHT",
+            run_status="RUNNING", result=None,
+        ).model_dump(mode="json")
+    result = (workers.execute(principal, intent, step) if step.disposition == "EXECUTE"
+              else store.step_result(principal, intent.run_id, intent.attempt_id, step.step_id))
+    snapshot = store.observe(principal, ExecutionObservation(
+        intent.run_id, intent.attempt_id, intent.session_id, intent.request_id,
+        True, "SUCCEEDED", step.step_id,
+    ))
+    return 200, FirstPurchaseNativeReceipt(
+        run_id=intent.run_id, request_id=request_id, call_id=call_id,
+        attempt_id=intent.attempt_id, step_id=step.step_id,
+        disposition=step.disposition, run_status=snapshot.status, result=result,
     ).model_dump(mode="json")

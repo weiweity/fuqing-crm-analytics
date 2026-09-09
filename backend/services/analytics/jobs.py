@@ -36,13 +36,7 @@ from backend.contracts.analytics import (
     AnalyticsRunSnapshot,
 )
 from backend.contracts.analytics_query import (
-    DATA_VERSION,
-    METRIC_ID,
-    METRIC_VERSION,
-    QUERY_ID,
-    QUERY_VERSION,
     ChannelFollowupQueryRequest,
-    ChannelFollowupResult,
     canonical_rfc3339,
     parse_query_datetime,
 )
@@ -51,23 +45,20 @@ from backend.contracts.analytics_query_run import (
     QUERY_DATA_SCOPE,
     QUERY_RUN_FAMILY,
     QUERY_RUN_SCHEMA,
-    AnalyticsQueryConversation,
-    AnalyticsQueryConversationRequest,
     AnalyticsQueryNativePrompt,
-    AnalyticsQueryRunAccepted,
-    AnalyticsQueryRunRequest,
-    AnalyticsQueryRunSnapshot,
     ChannelFollowupFixtureDescriptor,
-    ChannelFollowupRunBinding,
 )
+from backend.contracts.analytics_first_purchase_kernel import FIRST_PURCHASE_CONTEXT_SCHEMA
+from backend.contracts.analytics_first_purchase_run import FIRST_PURCHASE_HTTP_PREFIX
 from .access import AnalyticsError, AnalyticsPrincipal, require
-from .catalog import bind_resolved_filters_from_metadata
 from .execution_lease import clear_owned_spill, released_lease
 from .resource_profile import B0ResourceProfile, canonical_json, content_hash
 from backend.semantic.analytics_b0 import CHANNEL, CONTENT_SHA256, DATA_AS_OF, FIXTURE_ID
 
-RUN_FAMILIES = ("b0", QUERY_RUN_FAMILY)
-FAMILY_SCOPE = {"b0": "b0-fixture", QUERY_RUN_FAMILY: QUERY_DATA_SCOPE}
+from .query_codecs import CODECS, resolve_filters
+
+RUN_FAMILIES = ("b0", *CODECS)
+FAMILY_SCOPE = {"b0": "b0-fixture", QUERY_RUN_FAMILY: QUERY_DATA_SCOPE, "first_purchase": "first-purchase-fixture"}
 
 APPLICATION_ID = 1397572144  # SMB0, not a general-purpose SQLite database.
 STATE_SCHEMA_VERSION = 2  # Existing v1 evidence is retained, never auto-migrated.
@@ -220,7 +211,7 @@ class ExecutionObservation:
 
 class RunStore:
     def __init__(self, state_dir: Path, profile: B0ResourceProfile,
-                 *, family: Literal["b0", "channel_followup"] = "b0",
+                 *, family: Literal["b0", "channel_followup", "first_purchase"] = "b0",
                  clock: Callable[[], int] = _now_ms,
                  fault_hook: Callable[[str], None] | None = None):
         # No default path, dotenv, database fallback, migration or deletion.
@@ -236,6 +227,8 @@ class RunStore:
         self.path = self.directory / "runs.sqlite3"
         self.profile = profile
         self.family = family
+        self.codec = CODECS.get(family)
+        self.is_query = self.codec is not None
         self.data_scope = FAMILY_SCOPE[family]
         self.clock = clock
         self.fault_hook = fault_hook
@@ -280,8 +273,8 @@ class RunStore:
                     con.execute("PRAGMA user_version=2")
                     con.execute("INSERT INTO metadata VALUES (?, ?)", ("profile_hash", self.profile.digest))
                     con.execute("INSERT INTO metadata VALUES (?, ?)", ("profile_json", canonical_json(self.profile.model_dump())))
-                    if self.family == QUERY_RUN_FAMILY:
-                        con.execute("INSERT INTO metadata VALUES (?, ?)", ("run_family", QUERY_RUN_FAMILY))
+                    if self.is_query:
+                        con.execute("INSERT INTO metadata VALUES (?, ?)", ("run_family", self.family))
                     con.execute("COMMIT")
                 except BaseException:
                     if con.in_transaction:
@@ -367,9 +360,8 @@ class RunStore:
     def _permission_scope(self, principal: AnalyticsPrincipal) -> str:
         return content_hash({"actor_id": principal.actor_id, "data_scope": self.data_scope})
 
-    @staticmethod
-    def _owner_scope(owner: str) -> str:
-        return content_hash({"actor_id": owner, "data_scope": QUERY_DATA_SCOPE})
+    def _owner_scope(self, owner: str) -> str:
+        return content_hash({"actor_id": owner, "data_scope": self.data_scope})
 
     @staticmethod
     def _request_schema(row) -> str | None:
@@ -383,7 +375,7 @@ class RunStore:
         return schema if isinstance(schema, str) else None
 
     def _assert_run_schema(self, row) -> None:
-        expected = QUERY_RUN_SCHEMA if self.family == QUERY_RUN_FAMILY else ANALYTICS_RUN_SCHEMA
+        expected = self.codec.schema if self.is_query else ANALYTICS_RUN_SCHEMA
         if self._request_schema(row) != expected:
             raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
 
@@ -395,7 +387,7 @@ class RunStore:
         ).fetchone()
 
     @staticmethod
-    def _fixture_metadata(binding: ChannelFollowupRunBinding) -> dict:
+    def _fixture_metadata(binding: object) -> dict:
         fixture = binding.fixture
         return {
             "snapshot_id": fixture.snapshot_id,
@@ -405,21 +397,19 @@ class RunStore:
             "timezone": fixture.timezone,
         }
 
-    @staticmethod
-    def _step_payload(request: ChannelFollowupQueryRequest, resolved, binding: ChannelFollowupRunBinding) -> dict:
+    def _step_payload(self, request: object, resolved, binding: object) -> dict:
         return {
             "request": request.model_dump(mode="json"),
             "resolved_filters": resolved.model_dump(mode="json"),
             "data_digest": binding.fixture.data_digest,
             "permission_scope": binding.permission_scope,
-            "family": QUERY_RUN_FAMILY,
+            "family": self.family,
         }
 
-    @staticmethod
-    def _accept_digest(request_payload, method_package_digest, fixture, permission_scope,
+    def _accept_digest(self, request_payload, method_package_digest, fixture, permission_scope,
                        native=None) -> str:
         payload = {
-            "request": request_payload, "family": QUERY_RUN_FAMILY,
+            "request": request_payload, "family": self.family,
             "method_package_digest": method_package_digest,
             "fixture": fixture, "permission_scope": permission_scope,
         }
@@ -463,8 +453,7 @@ class RunStore:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
         return native
 
-    @staticmethod
-    def _freeze_query_native(native_request, request, key) -> dict:
+    def _freeze_query_native(self, native_request, request, key) -> dict:
         try:
             prompt = AnalyticsQueryNativePrompt.model_validate(native_request)
             frozen = prompt.model_dump(mode="json")
@@ -472,17 +461,17 @@ class RunStore:
             raise AnalyticsError(422, "UNSUPPORTED_NATIVE", "查询任务的 native 受理无效。") from None
         if frozen["requestId"] != key:
             raise _conflict()
-        normalized = AnalyticsQueryRunRequest(question=frozen["content"][0]["text"]).question
+        normalized = self.codec.run_request(question=frozen["content"][0]["text"]).question
         if normalized != request.question:
             raise _conflict()
         return frozen
 
-    def _inspect_query_run(self, con, row) -> ChannelFollowupRunBinding:
+    def _inspect_query_run(self, con, row) -> object:
         """Persistence self-check. Does not grant or re-check current capabilities."""
-        if self.family != QUERY_RUN_FAMILY:
+        if not self.is_query:
             raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
         try:
-            request = AnalyticsQueryRunRequest.model_validate(json.loads(row["request_json"]))
+            request = self.codec.run_request.model_validate(json.loads(row["request_json"]))
         except Exception:
             raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。") from None
         descriptor = self._idempotency(con, row["owner"], "runtime.binding", row["run_id"], "descriptor")
@@ -490,13 +479,13 @@ class RunStore:
             raise AnalyticsError(409, "BINDING_MISSING", "查询任务缺少冻结绑定，不能继续。")
         try:
             stored = json.loads(descriptor["response_json"])
-            binding = ChannelFollowupRunBinding.model_validate(stored)
-            binding = ChannelFollowupRunBinding.model_validate(binding.model_dump(mode="python"))
+            binding = self.codec.binding.model_validate(stored)
+            binding = self.codec.binding.model_validate(binding.model_dump(mode="python"))
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
         if content_hash(stored) != descriptor["request_hash"]:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
-        if binding.family != QUERY_RUN_FAMILY or binding.permission_scope != self._owner_scope(row["owner"]):
+        if binding.family != self.family or binding.permission_scope != self._owner_scope(row["owner"]):
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
         method = self._idempotency(con, row["owner"], "runtime.binding", row["run_id"], "method")
         if method is None or method["request_hash"] != binding.method_package_digest:
@@ -510,17 +499,15 @@ class RunStore:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
         return binding
 
-    def _inspect_query_step(self, con, row, step, binding: ChannelFollowupRunBinding) -> dict:
+    def _inspect_query_step(self, con, row, step, binding: object) -> dict:
         stored_row = self._idempotency(con, row["owner"], "runtime.step-binding", row["run_id"], step["call_id"])
         if stored_row is None:
             raise AnalyticsError(409, "BINDING_MISSING", "查询步骤缺少冻结绑定，不能继续。")
         try:
             stored = json.loads(stored_row["response_json"])
-            request = ChannelFollowupQueryRequest.model_validate(stored["request"])
-            request = ChannelFollowupQueryRequest.model_validate(request.model_dump(mode="python"))
-            resolved = bind_resolved_filters_from_metadata(
-                request, self._fixture_metadata(binding), binding.permission_scope,
-            )
+            request = self.codec.request.model_validate(stored["request"])
+            request = self.codec.request.model_validate(request.model_dump(mode="python"))
+            resolved = resolve_filters(self.family, request, binding)
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询步骤绑定已损坏，不能继续。") from None
         payload = self._step_payload(request, resolved, binding)
@@ -532,7 +519,7 @@ class RunStore:
             or stored.get("resolved_filters") != payload["resolved_filters"]
             or stored.get("permission_scope") != binding.permission_scope
             or stored.get("data_digest") != binding.fixture.data_digest
-            or stored.get("family") != QUERY_RUN_FAMILY
+            or stored.get("family") != self.family
         ):
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询步骤绑定已损坏，不能继续。")
         return payload
@@ -582,14 +569,14 @@ class RunStore:
                 raise ValueError("existing state has no run family; channel_followup requires explicit metadata")
             if self._query_evidence(con):
                 raise ValueError("missing run_family metadata with query evidence; refusing B0 downgrade")
-        if self.family == QUERY_RUN_FAMILY:
+        if self.is_query:
             self._assert_query_integrity(con)
         elif self._query_evidence(con):
             raise ValueError("B0 store contains query evidence; refusing to open")
 
-    def _authorize_run(self, con, principal: AnalyticsPrincipal, row, capability: str) -> ChannelFollowupRunBinding | None:
+    def _authorize_run(self, con, principal: AnalyticsPrincipal, row, capability: str) -> object | None:
         self._require(principal, capability)
-        if self.family != QUERY_RUN_FAMILY:
+        if not self.is_query:
             self._assert_run_schema(row)
             return None
         binding = self._inspect_query_run(con, row)
@@ -597,25 +584,25 @@ class RunStore:
             raise AnalyticsError(403, "FORBIDDEN", "当前身份无权操作此查询任务。")
         return binding
 
-    def _decode_query_result(self, con, row, step, encoded: str, binding: ChannelFollowupRunBinding) -> ChannelFollowupResult:
+    def _decode_query_result(self, con, row, step, encoded: str, binding: object) -> object:
         frozen = self._inspect_query_step(con, row, step, binding)
         try:
             payload = json.loads(encoded)
             # Family-fixed codec: never select a result type from schema_version.
-            result = ChannelFollowupResult.model_validate(payload)
+            result = self.codec.result.model_validate(payload)
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询结果与冻结绑定不一致。") from None
         resolved = frozen["resolved_filters"]
         request = frozen["request"]
         dumped = result.resolved_filters.model_dump(mode="json")
         if (
-            result.query_version != QUERY_VERSION
-            or result.metric_version != METRIC_VERSION
-            or result.data_version != DATA_VERSION
+            result.query_version != self.codec.query_version
+            or result.metric_version != self.codec.metric_version
+            or result.data_version != self.codec.data_version
             or result.data_snapshot_ref != binding.fixture.snapshot_id
             or result.filter_hash != resolved["filter_hash"]
             or dumped != resolved
-            or result.facts.observation_days != request["observation_days"]
+            or (result.facts is not None and result.facts.observation_days != request["observation_days"])
             or result.resolved_filters.permission_scope != frozen["permission_scope"]
             or result.resolved_filters.data_digest != frozen["data_digest"]
             or result.resolved_filters.data_digest != binding.fixture.data_digest
@@ -624,9 +611,9 @@ class RunStore:
             raise AnalyticsError(409, "BINDING_MISMATCH", "查询结果与冻结步骤绑定不一致。")
         return result
 
-    def query_fixture_descriptor(self) -> ChannelFollowupFixtureDescriptor | None:
+    def query_fixture_descriptor(self) -> object | None:
         """Unique frozen fixture identity for this query store. No budget charge."""
-        if self.family != QUERY_RUN_FAMILY:
+        if not self.is_query:
             raise ValueError("query fixture identity is only defined for channel_followup stores")
         with self._connection(readonly=True) as con:
             con.execute("BEGIN")
@@ -640,7 +627,7 @@ class RunStore:
                            step_id: str) -> QueryStepBinding:
         """Fresh authorized read of the frozen step. Callers cannot rebind scope."""
         self._require(principal, "run:create")
-        if self.family != QUERY_RUN_FAMILY:
+        if not self.is_query:
             raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
         with self._connection(readonly=True) as con:
             con.execute("BEGIN")
@@ -656,8 +643,8 @@ class RunStore:
                 raise _conflict()
             frozen = self._inspect_query_step(con, row, step, binding)
             return QueryStepBinding(
-                run_id=run_id, attempt_id=attempt_id, step_id=step_id, family=QUERY_RUN_FAMILY,
-                request=ChannelFollowupQueryRequest.model_validate(frozen["request"]),
+                run_id=run_id, attempt_id=attempt_id, step_id=step_id, family=self.family,
+                request=self.codec.request.model_validate(frozen["request"]),
                 resolved_filters=frozen["resolved_filters"], fixture=binding.fixture,
                 permission_scope=binding.permission_scope,
                 method_package_digest=binding.method_package_digest,
@@ -666,7 +653,7 @@ class RunStore:
     def _encode_query_result(self, result) -> str:
         try:
             payload = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
-            parsed = ChannelFollowupResult.model_validate(payload)
+            parsed = self.codec.result.model_validate(payload)
         except Exception:
             raise AnalyticsError(422, "INVALID_RESULT", "查询结果无法按冻结合同验收。") from None
         encoded = canonical_json(parsed.model_dump(mode="json"))
@@ -679,7 +666,7 @@ class RunStore:
         return (row is not None and row["state"] == "EXITED" and row["active_slot"] is None
                 and row["error_code"] is None and row["exit_code"] == 0)
 
-    def _inspect_query_steps(self, con, row, binding: ChannelFollowupRunBinding) -> None:
+    def _inspect_query_steps(self, con, row, binding: object) -> None:
         limit = self.profile.max_tool_steps
         steps = con.execute(
             "SELECT * FROM steps WHERE run_id=? ORDER BY rowid LIMIT ?",
@@ -692,7 +679,7 @@ class RunStore:
 
     def _replay_query_conversation(self, con, principal, cached: str):
         try:
-            conversation = AnalyticsQueryConversation.model_validate_json(cached)
+            conversation = self.codec.conversation.model_validate_json(cached)
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
         row = self._conversation(con, principal, conversation.conversation_id)
@@ -702,7 +689,7 @@ class RunStore:
 
     def _replay_query_accepted(self, con, principal, conversation_id, digest, cached: str):
         try:
-            response = AnalyticsQueryRunAccepted.model_validate_json(cached)
+            response = self.codec.accepted.model_validate_json(cached)
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
         stored = con.execute(
@@ -727,7 +714,7 @@ class RunStore:
 
     def _replay_query_snapshot(self, con, principal, row, cached: str):
         try:
-            snapshot = AnalyticsQueryRunSnapshot.model_validate_json(cached)
+            snapshot = self.codec.snapshot.model_validate_json(cached)
         except Exception:
             raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。") from None
         if (
@@ -755,27 +742,27 @@ class RunStore:
         return snapshot
 
     def create_conversation(self, principal: AnalyticsPrincipal, key: str,
-                            request: AnalyticsConversationRequest | AnalyticsQueryConversationRequest,
+                            request: object,
                             *, runtime_session_id: str | None = None):
         self._require(principal, "run:create")
-        expected = AnalyticsQueryConversationRequest if self.family == QUERY_RUN_FAMILY else AnalyticsConversationRequest
+        expected = self.codec.conversation_request if self.is_query else AnalyticsConversationRequest
         if not isinstance(request, expected):
             raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "会话合同与当前实例不一致。")
-        if self.family == QUERY_RUN_FAMILY:
+        if self.is_query:
             try:
-                request = AnalyticsQueryConversationRequest.model_validate(request.model_dump(mode="python"))
+                request = self.codec.conversation_request.model_validate(request.model_dump(mode="python"))
             except Exception:
                 raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "会话合同与当前实例不一致。") from None
         validate_key(key)
         digest_payload = {**request.model_dump(mode="json"), **({"native_session": runtime_session_id} if runtime_session_id else {})}
-        if self.family == QUERY_RUN_FAMILY:
+        if self.is_query:
             digest_payload = {**digest_payload, "family": self.family}
         digest = content_hash(digest_payload)
-        conversation_type = AnalyticsQueryConversation if self.family == QUERY_RUN_FAMILY else AnalyticsConversation
+        conversation_type = self.codec.conversation if self.is_query else AnalyticsConversation
         with self._transaction() as con:
             prior = self._prior(con, principal, "conversation:create", "", key, digest)
             if prior:
-                if self.family == QUERY_RUN_FAMILY:
+                if self.is_query:
                     return self._replay_query_conversation(con, principal, prior["response_json"])
                 return conversation_type.model_validate_json(prior["response_json"])
             counts = con.execute("SELECT count(*), count(CASE WHEN owner=? THEN 1 END) FROM conversations",
@@ -792,7 +779,7 @@ class RunStore:
 
     def get_conversation(self, principal: AnalyticsPrincipal, conversation_id: str):
         self._require(principal, "run:read")
-        conversation_type = AnalyticsQueryConversation if self.family == QUERY_RUN_FAMILY else AnalyticsConversation
+        conversation_type = self.codec.conversation if self.is_query else AnalyticsConversation
         with self._connection(readonly=True) as con:
             row = self._conversation(con, principal, conversation_id)
             ids = con.execute("SELECT run_id FROM runs WHERE conversation_id=? AND owner=? ORDER BY rowid",
@@ -808,11 +795,11 @@ class RunStore:
         if method_package_digest is not None and (len(method_package_digest) != 64
                 or any(c not in "0123456789abcdef" for c in method_package_digest)):
             raise ValueError("explicit fixed method package digest required")
-        if self.family == QUERY_RUN_FAMILY:
-            if not isinstance(request, AnalyticsQueryRunRequest):
+        if self.is_query:
+            if not isinstance(request, self.codec.run_request):
                 raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "任务合同与当前实例不一致。")
             try:
-                request = AnalyticsQueryRunRequest.model_validate(request.model_dump(mode="python"))
+                request = self.codec.run_request.model_validate(request.model_dump(mode="python"))
             except Exception:
                 raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "任务合同与当前实例不一致。") from None
             if method_package_digest is None:
@@ -822,20 +809,22 @@ class RunStore:
         elif not isinstance(request, AnalyticsRunRequest) or fixture_descriptor is not None:
             raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "任务合同与当前实例不一致。")
         payload = request.model_dump(mode="json")
-        permission_scope = self._permission_scope(principal) if self.family == QUERY_RUN_FAMILY else None
+        permission_scope = self._permission_scope(principal) if self.is_query else None
         binding_payload = None
         frozen_native = None
-        if self.family == QUERY_RUN_FAMILY:
+        if self.is_query:
             try:
-                fixture = ChannelFollowupFixtureDescriptor.model_validate(fixture_descriptor)
-                fixture = ChannelFollowupFixtureDescriptor.model_validate(fixture.model_dump(mode="python"))
-                binding_payload = ChannelFollowupRunBinding.model_validate({
-                    "family": QUERY_RUN_FAMILY, "method_package_digest": method_package_digest,
+                fixture = self.codec.descriptor.model_validate(fixture_descriptor)
+                fixture = self.codec.descriptor.model_validate(fixture.model_dump(mode="python"))
+                binding_payload = self.codec.binding.model_validate({
+                    "family": self.family, "method_package_digest": method_package_digest,
                     "fixture": fixture.model_dump(mode="json"), "permission_scope": permission_scope,
                 }).model_dump(mode="json")
             except Exception:
                 raise AnalyticsError(422, "INVALID_FIXTURE", "封存快照描述无效。") from None
             if native_request is not None:
+                if self.family not in {QUERY_RUN_FAMILY, "first_purchase"}:
+                    raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "当前族尚未接通 native 受理。")
                 frozen_native = self._freeze_query_native(native_request, request, key)
             digest = self._accept_digest(
                 payload, method_package_digest, binding_payload["fixture"], permission_scope,
@@ -847,12 +836,12 @@ class RunStore:
             # DSH's optimistic echo and journal deduplication.
             frozen_native = native_request
             digest = content_hash(payload if native_request is None else {"request": payload, "native": native_request})
-        accepted_type = AnalyticsQueryRunAccepted if self.family == QUERY_RUN_FAMILY else AnalyticsRunAccepted
+        accepted_type = self.codec.accepted if self.is_query else AnalyticsRunAccepted
         with self._transaction() as con:
             conversation = self._conversation(con, principal, conversation_id)
             prior = self._prior(con, principal, "run:create", conversation_id, key, digest)
             if prior:
-                if self.family == QUERY_RUN_FAMILY:
+                if self.is_query:
                     return self._replay_query_accepted(
                         con, principal, conversation_id, digest, prior["response_json"],
                     )
@@ -868,13 +857,13 @@ class RunStore:
                 parent = self._run(con, principal, request.parent_run_id)
                 if parent["conversation_id"] != conversation_id:
                     raise _missing()
-                if self.family == QUERY_RUN_FAMILY:
+                if self.is_query:
                     parent_binding = self._inspect_query_run(con, parent)
-                    child_fixture = ChannelFollowupRunBinding.model_validate(binding_payload).fixture
+                    child_fixture = self.codec.binding.model_validate(binding_payload).fixture
                     if (parent_binding.fixture != child_fixture
                             or parent_binding.permission_scope != permission_scope):
                         raise AnalyticsError(422, "UNSUPPORTED_PARENT", "不支持的父子任务关系。")
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 existing = con.execute(
                     "SELECT actor, target FROM idempotency WHERE operation='runtime.binding' AND key='descriptor' LIMIT 1",
                 ).fetchone()
@@ -884,7 +873,7 @@ class RunStore:
                     if previous_run is None:
                         raise AnalyticsError(409, "BINDING_CORRUPT", "查询任务绑定已损坏，不能继续。")
                     previous = self._inspect_query_run(con, previous_run)
-                    if previous.fixture != ChannelFollowupRunBinding.model_validate(binding_payload).fixture:
+                    if previous.fixture != self.codec.binding.model_validate(binding_payload).fixture:
                         raise AnalyticsError(409, "FIXTURE_CONFLICT", "同一查询实例不能绑定不同的封存快照。")
             counts = con.execute("SELECT count(*), count(CASE WHEN owner=? THEN 1 END) FROM runs",
                                  (principal.actor_id,)).fetchone()
@@ -897,8 +886,12 @@ class RunStore:
                 raise AnalyticsError(429, "RUN_QUOTA", "任务队列或当前调用者在途额度已满。", retryable=True)
             self._admit_storage(con, new_run=True)
             now, run_id, attempt_id = self.clock(), _id("run"), _id("attempt")
-            location = (f"/internal/store/analytics-query/runs/{run_id}" if self.family == QUERY_RUN_FAMILY
-                        else f"/api/v1/analytics/runs/{run_id}")
+            if self.family == "first_purchase":
+                location = f"{FIRST_PURCHASE_HTTP_PREFIX}/runs/{run_id}"
+            elif self.is_query:
+                location = f"/internal/store/analytics-query/runs/{run_id}"
+            else:
+                location = f"/api/v1/analytics/runs/{run_id}"
             response = accepted_type(run_id=run_id, location=location)
             con.execute("""INSERT INTO runs (
                 run_id, owner, conversation_id, parent_run_id, request_json, request_hash,
@@ -910,7 +903,7 @@ class RunStore:
                          canonical_json(self.profile.model_dump()), self.profile.digest,
                          now, now, now + self.profile.run_timeout_ms, attempt_id))
             dispatch_payload = {"question": request.question, "parent_run_id": request.parent_run_id}
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 dispatch_payload["family"] = self.family
             if frozen_native is not None:
                 dispatch_payload["native_request"] = frozen_native
@@ -923,7 +916,7 @@ class RunStore:
             if binding_payload is not None:
                 self._remember(con, principal, "runtime.binding", run_id, "descriptor",
                                content_hash(binding_payload), binding_payload, 200)
-            if self.family == QUERY_RUN_FAMILY and frozen_native is not None:
+            if self.is_query and frozen_native is not None:
                 self._remember(con, principal, "runtime.native-binding", run_id, "native",
                                content_hash(frozen_native), frozen_native, 200)
             self._emit(con, con.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone(), "run.updated")
@@ -944,7 +937,7 @@ class RunStore:
                 FROM runs r JOIN dispatch_intents d USING(run_id) WHERE """ + predicate, values).fetchall()
             work = []
             for row in rows:
-                if self.family == QUERY_RUN_FAMILY:
+                if self.is_query:
                     binding = self._inspect_query_run(con, row)
                     for step in con.execute("SELECT * FROM steps WHERE run_id=? ORDER BY rowid", (row["run_id"],)):
                         self._inspect_query_step(con, row, step, binding)
@@ -969,7 +962,7 @@ class RunStore:
             profile_version=json.loads(row["profile_json"])["version"], profile_hash=row["profile_hash"],
             error_code=row["error_code"],
         )
-        if self.family != QUERY_RUN_FAMILY:
+        if not self.is_query:
             return AnalyticsRunSnapshot(
                 run_id=row["run_id"], version=row["version"], source_ref=row["conversation_id"],
                 conversation_id=row["conversation_id"], parent_run_id=row["parent_run_id"],
@@ -991,7 +984,7 @@ class RunStore:
             if step is None:
                 raise AnalyticsError(409, "BINDING_MISSING", "查询结果缺少冻结步骤绑定，不能继续。")
             result = self._decode_query_result(con, row, step, row["result_json"], binding)
-        return AnalyticsQueryRunSnapshot(
+        return self.codec.snapshot(
             run_id=row["run_id"], version=row["version"], source_ref=row["conversation_id"],
             conversation_id=row["conversation_id"], parent_run_id=row["parent_run_id"],
             status=row["status"], phase=row["phase"], created_at=_timestamp(row["created_ms"]),
@@ -1012,6 +1005,17 @@ class RunStore:
         """Authorized SUCCEEDED query source. Requires run:read. Starts no worker."""
         if self.family != QUERY_RUN_FAMILY:
             raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
+        return self._succeeded_query_source(principal, run_id)
+
+    def succeeded_operating_source(self, principal: AnalyticsPrincipal, run_id: str) -> dict:
+        """Read a frozen operating source using the store's trusted family codec."""
+        if self.family == QUERY_RUN_FAMILY:
+            return self.query_succeeded_source(principal, run_id)
+        if self.family != "first_purchase":
+            raise AnalyticsError(409, "FAMILY_MISMATCH", "任务合同与当前实例不一致。")
+        return self._succeeded_query_source(principal, run_id)
+
+    def _succeeded_query_source(self, principal: AnalyticsPrincipal, run_id: str) -> dict:
         with self._connection(readonly=True) as con:
             con.execute("BEGIN")
             row = self._run(con, principal, run_id)
@@ -1028,18 +1032,23 @@ class RunStore:
                 raise AnalyticsError(422, "UNPROCESSABLE", "SUCCEEDED 结果缺少冻结步骤引用。")
             frozen = self._inspect_query_step(con, row, step, binding)
             result = self._decode_query_result(con, row, step, row["result_json"], binding)
-            request = ChannelFollowupQueryRequest.model_validate(frozen["request"])
+            request = self.codec.request.model_validate(frozen["request"])
             dumped = result.model_dump(mode="json")
             digest = content_hash(dumped)
             if row["evidence_digest"] != digest:
                 raise AnalyticsError(409, "BINDING_CORRUPT", "查询结果与冻结绑定不一致。")
-            if result.query_id != QUERY_ID or result.query_version != QUERY_VERSION:
-                raise AnalyticsError(422, "UNPROCESSABLE", "本波只允许 channel_first_observed_followup / channel-followup-query/v1。")
-            if result.metric_id != METRIC_ID or result.metric_version != METRIC_VERSION:
+            if result.query_id != self.codec.query_id or result.query_version != self.codec.query_version:
+                raise AnalyticsError(
+                    422, "UNPROCESSABLE",
+                    f"本波只允许 {self.codec.query_id} / {self.codec.query_version}。",
+                )
+            if result.metric_id != self.codec.metric_id or result.metric_version != self.codec.metric_version:
                 raise AnalyticsError(422, "UNPROCESSABLE", "指标版本与本波合同不一致。")
-            if result.data_version != DATA_VERSION:
+            if result.data_version != self.codec.data_version:
                 raise AnalyticsError(422, "UNPROCESSABLE", "数据版本与本波合同不一致。")
-            return {
+            if self.family == "first_purchase" and (result.status != "OK" or result.facts is None):
+                raise AnalyticsError(422, "UNPROCESSABLE", "合同拒绝结果不能保存为有效经营分析。")
+            source = {
                 "run_id": run_id,
                 "status": "SUCCEEDED",
                 "query_id": result.query_id,
@@ -1054,6 +1063,9 @@ class RunStore:
                 "owner_id": principal.actor_id,
                 "primary_result_ref": row["primary_result_ref"],
             }
+            if self.family == "first_purchase":
+                source["method_package_digest"] = binding.method_package_digest
+            return source
 
     def rebuild_context(self, principal, run_id, attempt_id, *, package_digest, unit_id, resource=None):
         """Re-read authoritative state, never a model summary or a cached grant.
@@ -1075,8 +1087,13 @@ class RunStore:
         with self._transaction() as con:
             row = self._run(con, principal, run_id)
             self._authorize_run(con, principal, row, "run:read")
-            if (row["attempt_id"] != attempt_id or row["status"] != "RUNNING"
-                    or row["active_slot"] is None or row["cancel_reason"] or row["deadline_ms"] <= self.clock()):
+            # A completed first-purchase tool still needs a bounded native
+            # model step to summarize its trusted receipt. No method/tool grant.
+            summary_only = (self.family == "first_purchase" and resource is None
+                            and row["status"] == "SUCCEEDED" and row["active_slot"] is None)
+            if (row["attempt_id"] != attempt_id
+                    or (not summary_only and (row["status"] != "RUNNING" or row["active_slot"] is None))
+                    or row["cancel_reason"] or row["deadline_ms"] <= self.clock()):
                 raise _conflict()
             binding = self._prior(con, principal, "runtime.binding", run_id, "method", package_digest)
             if binding is None:
@@ -1100,7 +1117,7 @@ class RunStore:
                 "deadline": _timestamp(row["deadline_ms"]).isoformat(),
                 "remaining_ms": max(0, row["deadline_ms"] - self.clock()),
             }
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 payload = self._query_context(con, principal, row, attempt_id, package_digest, remaining)
             else:
                 completed = []
@@ -1127,6 +1144,8 @@ class RunStore:
             return payload
 
     def _query_context(self, con, principal, row, attempt_id, package_digest, remaining):
+        if not self.is_query:
+            raise AnalyticsError(422, "UNSUPPORTED_REQUEST", "当前族尚未接通 native 上下文。")
         run_binding = self._inspect_query_run(con, row)
         if run_binding.permission_scope != self._permission_scope(principal):
             raise AnalyticsError(403, "FORBIDDEN", "当前身份无权操作此查询任务。")
@@ -1148,13 +1167,14 @@ class RunStore:
                 completed.append({"step_id": step["step_id"], "call_id": step["call_id"], "state": "SUCCEEDED",
                                   "request": frozen["request"], "resolved_filters": frozen["resolved_filters"],
                                   "result": result, "evidence_digest": content_hash(result)})
+        context_schema = QUERY_CONTEXT_SCHEMA if self.family == QUERY_RUN_FAMILY else FIRST_PURCHASE_CONTEXT_SCHEMA
         return {
-            "schema_version": QUERY_CONTEXT_SCHEMA, "run_id": row["run_id"], "attempt_id": attempt_id,
+            "schema_version": context_schema, "run_id": row["run_id"], "attempt_id": attempt_id,
             "run_version": row["version"], "run_status": row["status"], "phase": row["phase"],
             "question": json.loads(row["request_json"])["question"], "parent_run_id": row["parent_run_id"],
             "conditions": conditions, "registered_queries": registered,
-            "versions": {"contract": QUERY_RUN_SCHEMA, "method_package_digest": run_binding.method_package_digest,
-                         "query": QUERY_VERSION, "metric": METRIC_VERSION,
+            "versions": {"contract": self.codec.schema, "method_package_digest": run_binding.method_package_digest,
+                         "query": self.codec.query_version, "metric": self.codec.metric_version,
                          "fixture_id": run_binding.fixture.snapshot_id,
                          "data_digest": run_binding.fixture.data_digest},
             "completed_steps": completed, "primary_result_ref": row["primary_result_ref"],
@@ -1207,13 +1227,13 @@ class RunStore:
         self._require(principal, "run:cancel")
         validate_key(key)
         digest = content_hash({"request": request.model_dump(), "if_match": version})
-        snapshot_type = AnalyticsQueryRunSnapshot if self.family == QUERY_RUN_FAMILY else AnalyticsRunSnapshot
+        snapshot_type = self.codec.snapshot if self.is_query else AnalyticsRunSnapshot
         with self._transaction() as con:
             row = self._run(con, principal, run_id)
             self._authorize_run(con, principal, row, "run:cancel")
             prior = self._prior(con, principal, "run:cancel", run_id, key, digest)
             if prior:
-                if self.family == QUERY_RUN_FAMILY:
+                if self.is_query:
                     return self._replay_query_snapshot(con, principal, row, prior["response_json"])
                 return snapshot_type.model_validate_json(prior["response_json"])
             if version != row["version"]:
@@ -1255,7 +1275,7 @@ class RunStore:
                 row = con.execute("SELECT * FROM runs WHERE run_id=? AND status='QUEUED'", (candidate["run_id"],)).fetchone()
                 if row is None:
                     continue
-                if allowed and self.family == QUERY_RUN_FAMILY:
+                if allowed and self.is_query:
                     try:
                         binding = self._inspect_query_run(con, row)
                         if binding.permission_scope != self._permission_scope(principal):
@@ -1296,12 +1316,12 @@ class RunStore:
                      call_id: str, *, query: str = "channel_repeat_rate", request=None) -> StepReservation:
         self._require(principal, "run:create")
         validate_key(call_id)
-        if self.family == QUERY_RUN_FAMILY:
+        if self.is_query:
             if request is None:
                 raise AnalyticsError(422, "UNSUPPORTED_QUERY", "查询步骤必须提供已登记的完整条件。")
             try:
-                query_request = ChannelFollowupQueryRequest.model_validate(
-                    request.model_dump(mode="python") if isinstance(request, ChannelFollowupQueryRequest) else request
+                query_request = self.codec.request.model_validate(
+                    request.model_dump(mode="python") if isinstance(request, self.codec.request) else request
                 )
             except Exception:
                 raise AnalyticsError(422, "INVALID_QUERY", "查询条件无法按冻结快照规范化。") from None
@@ -1318,11 +1338,9 @@ class RunStore:
                 raise _conflict()
             if row["status"] != "RUNNING" or row["cancel_reason"] or row["deadline_ms"] <= self.clock():
                 raise _conflict()
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 try:
-                    resolved = bind_resolved_filters_from_metadata(
-                        query_request, self._fixture_metadata(binding), binding.permission_scope,
-                    )
+                    resolved = resolve_filters(self.family, query_request, binding)
                 except Exception:
                     raise AnalyticsError(422, "INVALID_QUERY", "查询条件无法按冻结快照规范化。") from None
                 step_payload = self._step_payload(query_request, resolved, binding)
@@ -1358,7 +1376,7 @@ class RunStore:
     def complete_step(self, principal: AnalyticsPrincipal, run_id: str, attempt_id: str,
                       step_id: str, result) -> None:
         self._require(principal, "run:create")
-        if self.family != QUERY_RUN_FAMILY:
+        if not self.is_query:
             # Revalidate even if an internal caller used model_construct().
             result = AnalyticsB0Result.model_validate(result.model_dump(mode="json"))
             encoded = canonical_json(result.model_dump(mode="json"))
@@ -1376,7 +1394,7 @@ class RunStore:
             step = con.execute("SELECT * FROM steps WHERE run_id=? AND attempt_id=? AND step_id=?", (run_id, attempt_id, step_id)).fetchone()
             if step is None:
                 raise _conflict()
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 self._inspect_query_step(con, row, step, binding)
                 exited = con.execute(
                     "SELECT * FROM worker_executions WHERE step_id=? AND run_id=? AND attempt_id=?",
@@ -1406,7 +1424,7 @@ class RunStore:
                                (run_id, attempt_id, step_id)).fetchone()
             if step is None:
                 raise _conflict()
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 return self._decode_query_result(con, row, step, step["result_json"], binding)
             return AnalyticsB0Result.model_validate_json(step["result_json"])
 
@@ -1421,7 +1439,7 @@ class RunStore:
             if (row["attempt_id"] != attempt_id or row["status"] != "RUNNING" or row["cancel_reason"]
                     or step is None or step["state"] != "STARTED" or step["deadline_ms"] <= self.clock()):
                 raise _conflict()
-            if self.family == QUERY_RUN_FAMILY:
+            if self.is_query:
                 self._inspect_query_step(con, row, step, binding)
             if con.execute("SELECT 1 FROM worker_executions WHERE step_id=?", (step_id,)).fetchone():
                 raise AnalyticsError(409, "WORKER_ALREADY_REGISTERED", "原步骤已有执行记录，不能启动第二份执行。")
@@ -1505,7 +1523,7 @@ class RunStore:
             if allowed:
                 try:
                     self._require(principal, "run:create")
-                    if self.family == QUERY_RUN_FAMILY:
+                    if self.is_query:
                         binding = self._inspect_query_run(con, row)
                         if binding.permission_scope != self._permission_scope(principal):
                             raise AnalyticsError(403, "FORBIDDEN", "当前身份无权操作此查询任务。")
@@ -1543,7 +1561,7 @@ class RunStore:
                     pending = con.execute("SELECT 1 FROM steps WHERE run_id=? AND state!='SUCCEEDED'", (row["run_id"],)).fetchone()
                     if step is None or pending:
                         raise AnalyticsError(409, "INCOMPLETE_EVIDENCE", "没有完整主结果或仍有未完成步骤，不能提交成功。")
-                    if self.family == QUERY_RUN_FAMILY:
+                    if self.is_query:
                         run_binding = self._inspect_query_run(con, row)
                         result = self._decode_query_result(con, row, step, step["result_json"], run_binding)
                     else:
@@ -1580,7 +1598,7 @@ class RunStore:
         with self._transaction() as con:
             rows = con.execute("SELECT * FROM runs WHERE active_slot=1").fetchall()
             for row in rows:
-                if self.family == QUERY_RUN_FAMILY:
+                if self.is_query:
                     binding = self._inspect_query_run(con, row)
                     for step in con.execute("SELECT * FROM steps WHERE run_id=? ORDER BY rowid", (row["run_id"],)):
                         self._inspect_query_step(con, row, step, binding)

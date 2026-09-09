@@ -1,0 +1,224 @@
+{
+  "schema_version": "analytics-warehouse-schema/v2",
+  "feature_layer_version": "analytics-customer-features/v1",
+  "feature_pipeline_version": "analytics-customer-features-pipeline/v1",
+  "fixture_id": "warehouse-w4-customer-features/v1",
+  "computation": "NOT_RUN",
+  "method": "hand_calculated",
+  "hand_calculated": true,
+  "not_generated_from_sql": true,
+  "not_a_query_pass": true,
+  "not_rfm_buckets": true,
+  "note": "Literal hand goldens for W4 customer features. Arithmetic is in notes. Channel-follow-up and W2 header expected.json are not this set. Not old CRM RFM R/F/M buckets.",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "next_as_of": "2026-09-16T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "valid_order_rule": "fact_order_header.is_valid",
+  "order_grain": ["synthetic_user_id", "order_id"],
+  "recency_unit": "86400_second_days",
+  "notes": {
+    "customer_keys": "New keys ORDER BY encode(identity_domain), encode(synthetic_user_id): group-1/u-basket=1, u-dup-a=2, u-dup-b=3, u-future=4, u-invalid=5, u-late=6, u-refund=7, u-same=8, group-2/u-scope-b=9.",
+    "basket_lines": "basket-1 header 15000 with two lines; valid_order_count=1 and valid_net_paid_minor=15000, not 30000.",
+    "partial_refund": "paid-1 10000-3000=7000; refund 2026-07-02 is before as_of.",
+    "as_of_inclusive": "asof-1 5000-1000=4000; refund timestamp equals as_of so it is included.",
+    "future_refund_held": "held-1 refund 2026-09-10 is after warehouse as_of 2026-09-01; net stays 8000 on this snapshot.",
+    "u_refund_net": "7000+4000+8000=19000 at warehouse as_of 2026-09-01.",
+    "same_instant": "same-a and same-b share paid_at. encode('same-a') < encode('same-b'), so first_order_id=same-a and last_order_id=same-b. net=8000+2000=10000.",
+    "shared_order_id": "(u-dup-a, shared-oid)=4000 and (u-dup-b, shared-oid)=6000 are two customers.",
+    "invalid_excluded": "cancelled-1 status CANCELLED and full-1 net 0 so is_valid=false; u-invalid has no feature row.",
+    "future_paid_held": "future-paid-1 paid_at 2026-09-10 is after warehouse as_of, is_valid=false; absent from 2026-09-01 features even if feature_as_of advances.",
+    "late_absent": "u-late has identity but no order in the first snapshot, so no feature row until incremental late-1.",
+    "days_u_basket": "last 2026-06-01T10:00+08 = UTC 2026-06-01T02:00; as_of UTC 2026-08-31T16:00; 91d+14h; 91.",
+    "days_u_dup_a": "last UTC 2026-06-20T01:00 to 2026-08-31T16:00; 72d+15h; 72.",
+    "days_u_dup_b": "last UTC 2026-06-21T01:00 to 2026-08-31T16:00; 71d+15h; 71.",
+    "days_u_refund": "last 2026-08-15T00:00+08 = UTC 2026-08-14T16:00 to 2026-08-31T16:00; 17d; 17.",
+    "days_u_same": "last UTC 2026-06-10T04:00 to 2026-08-31T16:00; 82d+12h; 82.",
+    "days_u_scope_b": "last UTC 2026-06-21T16:00 to 2026-08-31T16:00; 71d; 71.",
+    "clock_advance": "feature_as_of 2026-09-16 without rebuilding warehouse adds 15*86400 seconds. last_paid_at and net stay snapshot values. future refund and future-paid order stay excluded.",
+    "days_clock_u_basket": "91+15=106.",
+    "days_clock_u_dup_a": "72+15=87.",
+    "days_clock_u_dup_b": "71+15=86.",
+    "days_clock_u_refund": "17+15=32.",
+    "days_clock_u_same": "82+15=97.",
+    "days_clock_u_scope_b": "71+15=86.",
+    "late_loaded": "late-1 header 2500 paid 2026-07-01T00:00+08; last UTC 2026-06-30T16:00 to 2026-08-31T16:00; 62d; 62.",
+    "rebuild_refund": "W3 incremental as_of 2026-09-16 counts held-1 refund 2000 so net=7000+4000+6000=17000; days_since_last_paid=32.",
+    "rebuild_future_paid": "W3 as_of 2026-09-16 makes future-paid-1 valid 3000; last UTC 2026-09-09T16:00 to 2026-09-15T16:00; 6d; 6."
+  },
+  "customer_keys": [
+    {"synthetic_user_id": "u-basket", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 1},
+    {"synthetic_user_id": "u-dup-a", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 2},
+    {"synthetic_user_id": "u-dup-b", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 3},
+    {"synthetic_user_id": "u-future", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 4},
+    {"synthetic_user_id": "u-invalid", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 5},
+    {"synthetic_user_id": "u-late", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 6},
+    {"synthetic_user_id": "u-refund", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 7},
+    {"synthetic_user_id": "u-same", "identity_domain": "group-1", "permission_scope": "brand_a", "customer_key": 8},
+    {"synthetic_user_id": "u-scope-b", "identity_domain": "group-2", "permission_scope": "brand_b", "customer_key": 9}
+  ],
+  "absent_at_warehouse_as_of": ["u-future", "u-invalid", "u-late"],
+  "brand_a_as_of": [
+    {
+      "customer_key": 1,
+      "synthetic_user_id": "u-basket",
+      "identity_domain": "group-1",
+      "permission_scope": "brand_a",
+      "first_order_id": "basket-1",
+      "first_paid_at": "2026-06-01T10:00:00+08:00",
+      "last_order_id": "basket-1",
+      "last_paid_at": "2026-06-01T10:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 15000,
+      "days_since_last_paid": 91
+    },
+    {
+      "customer_key": 2,
+      "synthetic_user_id": "u-dup-a",
+      "identity_domain": "group-1",
+      "permission_scope": "brand_a",
+      "first_order_id": "shared-oid",
+      "first_paid_at": "2026-06-20T09:00:00+08:00",
+      "last_order_id": "shared-oid",
+      "last_paid_at": "2026-06-20T09:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 4000,
+      "days_since_last_paid": 72
+    },
+    {
+      "customer_key": 3,
+      "synthetic_user_id": "u-dup-b",
+      "identity_domain": "group-1",
+      "permission_scope": "brand_a",
+      "first_order_id": "shared-oid",
+      "first_paid_at": "2026-06-21T09:00:00+08:00",
+      "last_order_id": "shared-oid",
+      "last_paid_at": "2026-06-21T09:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 6000,
+      "days_since_last_paid": 71
+    },
+    {
+      "customer_key": 7,
+      "synthetic_user_id": "u-refund",
+      "identity_domain": "group-1",
+      "permission_scope": "brand_a",
+      "first_order_id": "paid-1",
+      "first_paid_at": "2026-07-01T08:00:00+08:00",
+      "last_order_id": "held-1",
+      "last_paid_at": "2026-08-15T00:00:00+08:00",
+      "valid_order_count": 3,
+      "valid_net_paid_minor": 19000,
+      "days_since_last_paid": 17
+    },
+    {
+      "customer_key": 8,
+      "synthetic_user_id": "u-same",
+      "identity_domain": "group-1",
+      "permission_scope": "brand_a",
+      "first_order_id": "same-a",
+      "first_paid_at": "2026-06-10T12:00:00+08:00",
+      "last_order_id": "same-b",
+      "last_paid_at": "2026-06-10T12:00:00+08:00",
+      "valid_order_count": 2,
+      "valid_net_paid_minor": 10000,
+      "days_since_last_paid": 82
+    }
+  ],
+  "brand_b_as_of": [
+    {
+      "customer_key": 9,
+      "synthetic_user_id": "u-scope-b",
+      "identity_domain": "group-2",
+      "permission_scope": "brand_b",
+      "first_order_id": "other-1",
+      "first_paid_at": "2026-06-22T00:00:00+08:00",
+      "last_order_id": "other-1",
+      "last_paid_at": "2026-06-22T00:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 12000,
+      "days_since_last_paid": 71
+    }
+  ],
+  "clock_advance_brand_a": [
+    {
+      "synthetic_user_id": "u-basket",
+      "last_paid_at": "2026-06-01T10:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 15000,
+      "days_since_last_paid": 106
+    },
+    {
+      "synthetic_user_id": "u-dup-a",
+      "last_paid_at": "2026-06-20T09:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 4000,
+      "days_since_last_paid": 87
+    },
+    {
+      "synthetic_user_id": "u-dup-b",
+      "last_paid_at": "2026-06-21T09:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 6000,
+      "days_since_last_paid": 86
+    },
+    {
+      "synthetic_user_id": "u-refund",
+      "last_paid_at": "2026-08-15T00:00:00+08:00",
+      "valid_order_count": 3,
+      "valid_net_paid_minor": 19000,
+      "days_since_last_paid": 32
+    },
+    {
+      "synthetic_user_id": "u-same",
+      "last_paid_at": "2026-06-10T12:00:00+08:00",
+      "valid_order_count": 2,
+      "valid_net_paid_minor": 10000,
+      "days_since_last_paid": 97
+    }
+  ],
+  "late_incremental": {
+    "synthetic_user_id": "u-late",
+    "customer_key": 6,
+    "identity_domain": "group-1",
+    "permission_scope": "brand_a",
+    "first_order_id": "late-1",
+    "first_paid_at": "2026-07-01T00:00:00+08:00",
+    "last_order_id": "late-1",
+    "last_paid_at": "2026-07-01T00:00:00+08:00",
+    "valid_order_count": 1,
+    "valid_net_paid_minor": 2500,
+    "days_since_last_paid": 62
+  },
+  "warehouse_rebuild_next_as_of": {
+    "u-refund": {
+      "last_paid_at": "2026-08-15T00:00:00+08:00",
+      "valid_order_count": 3,
+      "valid_net_paid_minor": 17000,
+      "days_since_last_paid": 32
+    },
+    "u-future": {
+      "customer_key": 4,
+      "first_order_id": "future-paid-1",
+      "first_paid_at": "2026-09-10T00:00:00+08:00",
+      "last_order_id": "future-paid-1",
+      "last_paid_at": "2026-09-10T00:00:00+08:00",
+      "valid_order_count": 1,
+      "valid_net_paid_minor": 3000,
+      "days_since_last_paid": 6
+    }
+  },
+  "permission": {
+    "brand_a_feature_user_ids": ["u-basket", "u-dup-a", "u-dup-b", "u-refund", "u-same"],
+    "brand_b_feature_user_ids": ["u-scope-b"],
+    "cross_scope_request": {
+      "permission_scope": "brand_a",
+      "synthetic_user_ids": ["u-scope-b"],
+      "outcome": "PermissionScopeDenied"
+    }
+  },
+  "basket_line_count": 2,
+  "basket_header_net_minor": 15000
+}

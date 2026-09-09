@@ -1,0 +1,12 @@
+{
+  "schema_version": "analytics-first-purchase-skill-package/v1",
+  "name": "first-purchase-query",
+  "version": "fp-query-v1",
+  "scope": "FIRST_PURCHASE_SYNTHETIC_ONLY",
+  "description": "合成首购商品路径查询：先确认 FIXED/N 支持范围，再读取受控证据；缺角色不得展示转化率；恢复时不信任旧摘要。",
+  "files": {
+    "SKILL.md": "8698fbad74d2497db78ec3126aca3e30e859b3b078f2bc7dccf34c363d3503f4",
+    "references/evidence-policy.md": "43cb2b35cbad1544932335ddf95ef5bf6162d529f9588abf398acd0f3e525d29",
+    "assets/result-example.json": "c5c134b2bea4fa003724fb24625b90f51489fcecbac957c1018dada2e019ce15"
+  }
+}

@@ -71,7 +71,7 @@ test('SQL hold proof requires RUNNING worker and matching execution, not QUEUED'
 
 test('serve opt-in keeps --native-query on analytics_runtime and attaches the query probe only for --native-query-fault', async () => {
   const serve = await readFile(join(here, 'serve.mjs'), 'utf8');
-  assert.match(serve, /\[--native-cards\|--native-state\|--native-query\|--native-query-fault\|--native-query-assets\]/);
+  assert.match(serve, /\[--native-cards\|--native-state\|--native-query\|--native-query-fault\|--native-query-assets\|--native-first-purchase\]/);
   assert.match(serve, /queryFaultScenario/);
   assert.match(serve, /queryFaultScenario \? 'backend\.tests\.analytics_query_native_fault_probe'/);
   assert.match(serve, /queryFaultScenario \? \{ script: queryFaultMockScript\(\) \}/);

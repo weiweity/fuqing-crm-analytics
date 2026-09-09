@@ -10,6 +10,7 @@ const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const { build, compiler } = await bindToolchain(root, upstream);
 const skillPackage = await packSkills(root);
 const querySkillPackage = await packSkills(root, 'channel_followup');
+const firstPurchaseSkillPackage = await packSkills(root, 'first_purchase');
 checkTypes(root, compiler);
 
 const external = [
@@ -24,6 +25,7 @@ await build({
   define: {
     __B0_SKILL_PACKAGE__: JSON.stringify(skillPackage),
     __QUERY_SKILL_PACKAGE__: JSON.stringify(querySkillPackage),
+    __FIRST_PURCHASE_SKILL_PACKAGE__: JSON.stringify(firstPurchaseSkillPackage),
   },
   external: ['@deepseek-ai/*'],
 });
@@ -36,7 +38,7 @@ await build({
 // These offline views are built and checked independently until native/HTTP
 // registration is implemented. Do not silently exclude them from verification.
 await build({
-  ...common, entryPoints: ['src/saved-analysis-view.tsx', 'src/cockpit-view.tsx'],
+  ...common, entryPoints: ['src/saved-analysis-view.tsx', 'src/cockpit-view.tsx', 'src/first-purchase-saved-analysis-view.tsx', 'src/first-purchase-cockpit-view.tsx'],
   outdir: 'lib/views', platform: 'browser', target: 'es2022',
   format: 'esm', jsx: 'automatic', external,
 });

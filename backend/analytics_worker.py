@@ -78,6 +78,18 @@ def query_channel_followup(con, config):
     return result
 
 
+def query_first_purchase(_con, config):
+    from backend.contracts.analytics_first_purchase import FirstPurchaseResult
+    from backend.services.analytics.first_purchase.adapter import bound_first_purchase_result
+    result = FirstPurchaseResult.model_validate(bound_first_purchase_result(
+        request=config["request"], snapshot=json.loads(config["fixture"]["payload"]),
+        permission_scope=config["permission_scope"],
+    ))
+    if result.resolved_filters.model_dump(mode="json") != config["resolved_filters"]:
+        raise ValueError("first-purchase frozen result mismatch")
+    return result
+
+
 def _engine_settings(con):
     return dict(con.execute(
         "SELECT name, value FROM duckdb_settings() WHERE name IN (?, ?, ?, ?, ?, ?)",
@@ -140,12 +152,12 @@ def run_child(*, workload=None, config=None):
     keys = set(config)
     if keys == B0_WORKER_CONFIG_KEYS:
         family = "b0"
-    elif keys == QUERY_WORKER_CONFIG_KEYS and config.get("family") == QUERY_RUN_FAMILY:
-        family = QUERY_RUN_FAMILY
+    elif keys == QUERY_WORKER_CONFIG_KEYS and config.get("family") in {QUERY_RUN_FAMILY, "first_purchase"}:
+        family = config["family"]
     else:
         raise ValueError("unknown worker configuration")
     if workload is None:
-        workload = query_channel_followup if family == QUERY_RUN_FAMILY else query_fixture
+        workload = {"first_purchase": query_first_purchase, QUERY_RUN_FAMILY: query_channel_followup, "b0": query_fixture}[family]
     binding = config["binding"]
     if set(binding) != {"execution_id", "run_id", "attempt_id", "step_id"}:
         raise ValueError("incomplete worker binding")
@@ -173,15 +185,23 @@ def run_child(*, workload=None, config=None):
 
     con = None
     try:
-        if family == QUERY_RUN_FAMILY:
+        if family == "first_purchase":
+            from backend.analytics_first_purchase_fixture import FirstPurchaseFixture
+            fixture = FirstPurchaseFixture(**config["fixture"])
+            fixture.validate()
+            if fixture.binding_descriptor() != config["fixture_descriptor"]:
+                raise ValueError("first-purchase fixture drift")
+            settings = {"engine": "python-json", "access_mode": "READ_ONLY"}
+        elif family == QUERY_RUN_FAMILY:
             fixture, con, settings = _open_query(config, profile, temp)
         else:
             fixture, con, settings = _open_b0(config, profile, temp)
         emit({"type": "ready", **binding, "profile_hash": profile.digest, "settings": settings,
-              "engine_version": duckdb.__version__, "engine_revision": duckdb.__git_revision__})
+              "engine_version": sys.version.split()[0] if family == "first_purchase" else duckdb.__version__,
+              "engine_revision": "stdlib-json" if family == "first_purchase" else duckdb.__git_revision__})
         result = workload(con, config)
         fixture.validate()  # Detect changed input before making a result visible.
-        if family == QUERY_RUN_FAMILY and fixture.binding_descriptor() != config["fixture_descriptor"]:
+        if family != "b0" and fixture.binding_descriptor() != config["fixture_descriptor"]:
             raise ValueError("query fixture changed")
         # A result frame is not exit; the parent waits for the owned process AND
         # the lease before committing this step or freeing any execution slot.

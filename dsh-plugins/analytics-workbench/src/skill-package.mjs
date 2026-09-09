@@ -6,6 +6,8 @@ export const SKILL_NAME = 'growth-analysis-b0';
 export const RESOURCE_TOOL_NAME = 'analytics_b0_skill_resource';
 export const QUERY_SKILL_NAME = 'channel-followup-query';
 export const QUERY_RESOURCE_TOOL_NAME = 'analytics_channel_followup_skill_resource';
+export const FIRST_PURCHASE_SKILL_NAME = 'first-purchase-query';
+export const FIRST_PURCHASE_RESOURCE_TOOL_NAME = 'analytics_first_purchase_skill_resource';
 export const PACKAGE_LIMITS = Object.freeze({ files: 16, fileBytes: 32768, totalBytes: 65536 });
 export const FAMILIES = Object.freeze({
   b0: Object.freeze({
@@ -27,6 +29,16 @@ export const FAMILIES = Object.freeze({
     resourceSchema: 'analytics-channel-followup-skill-resource/v1',
     provider: 'analytics-query-approved-bundle',
     lockFile: 'query-skill-package.lock.json',
+  }),
+  first_purchase: Object.freeze({
+    skillName: FIRST_PURCHASE_SKILL_NAME,
+    resourceTool: FIRST_PURCHASE_RESOURCE_TOOL_NAME,
+    schemaVersion: 'analytics-first-purchase-skill-package/v1',
+    versionPattern: /^fp-query-v[1-9][0-9]*$/,
+    scope: 'FIRST_PURCHASE_SYNTHETIC_ONLY',
+    resourceSchema: 'analytics-first-purchase-skill-resource/v1',
+    provider: 'analytics-first-purchase-approved-bundle',
+    lockFile: 'first-purchase-query-skill-package.lock.json',
   }),
 });
 export const sha256 = value => createHash('sha256').update(value).digest('hex');

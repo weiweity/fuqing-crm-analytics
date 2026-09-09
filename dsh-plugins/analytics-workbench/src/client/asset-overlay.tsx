@@ -360,15 +360,19 @@ export function HttpAssetOverlay(props: OverlayProps) {
             : <article key={card.card_id} className="analytics-b0-card analytics-query-card analytics-cockpit-card"
                 data-card-id={card.card_id} data-card-error="0" data-source="OK" data-observation-days={card.days}
                 data-selected={selectedCardId === card.card_id ? '1' : '0'}
-                data-run-id={card.run_id}
+                data-run-id={card.run_id} data-family={card.family}
                 style={{
                   gridColumn: `${(dragX !== null && card.card_id === selectedCardId ? dragX : card.layout.x) + 1} / span ${card.layout.w}`,
                   gridRow: `${card.layout.y + 1} / span ${card.layout.h}`,
                 }}
                 onClick={() => setSelectedCardId(card.card_id)}>
                 <h3>{card.title}</h3>
-                <p>固定历史快照 · N={card.days} · 渠道 {card.channels || '全部'} · as_of {card.as_of}</p>
-                {card.totals && <p>成熟 {card.totals.channel_mature_cohort_count} / 二单 {card.totals.channel_repeat_count}</p>}
+                {card.family === 'first_purchase'
+                  ? <p>固定历史快照 · 首购商品路径 · N={card.days} · as_of {card.as_of}</p>
+                  : <p>固定历史快照 · N={card.days} · 渠道 {card.channels || '全部'} · as_of {card.as_of}</p>}
+                {card.family === 'first_purchase'
+                  ? <p>成熟 {card.cohortMature ?? 0} · {card.displayName}</p>
+                  : card.totals && <p>成熟 {card.totals.channel_mature_cohort_count} / 二单 {card.totals.channel_repeat_count}</p>}
                 <small>run {card.run_id} · 合成数据</small>
                 <p>
                   <button type="button" data-action="copy" onClick={event => { event.stopPropagation(); void runPreview({

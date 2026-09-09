@@ -66,9 +66,9 @@ QUERY_FAMILIES: dict[str, QueryFamily] = {
     ),
     FAMILY_FIRST_PURCHASE_PRODUCT_PATH: QueryFamily(
         query_id=FAMILY_FIRST_PURCHASE_PRODUCT_PATH,
-        status=QueryFamilyStatus.DEFERRED,
+        status=QueryFamilyStatus.SUPPORTED_CONTRACT,
         title="首购商品路径",
-        notes="Deferred. Shares FilterSpec-shaped inputs (FIXED window, N, snapshot, channels) but has no success payload, HTTP route, or golden in G2a.",
+        notes="Synthetic first-purchase path: shared RunStore/worker, independent HTTP, native prompt/tool, and SNAPSHOT save/cockpit. Candidate audience remains deferred. Not a production metric.",
     ),
     FAMILY_CANDIDATE_HANDOFF_AUDIENCE: QueryFamily(
         query_id=FAMILY_CANDIDATE_HANDOFF_AUDIENCE,
