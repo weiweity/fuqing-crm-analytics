@@ -1,0 +1,10 @@
+{
+  "head": "6e0c4a1568e915ff9272be7c3aba5c8925f86f0b",
+  "port": 18083,
+  "synthetic_only": true,
+  "row_count": 1,
+  "board_count_after_retry_and_process_restart": 1,
+  "board_id": "board_e2471d04c90aaed9eed585b0dce5b554",
+  "persisted": true,
+  "browser_uat": "NOT_RUN"
+}

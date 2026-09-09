@@ -17,7 +17,13 @@ Logo 使用本树 git lfs pull 的原字节。
 B0 pipeline 460 Python、20 supervisor、225 源测试、53 编译测试、52 比赛 Node 测试，
 再在不带 lib/node_modules 的干净插件副本重建并通过 53 编译测试，产物逐字节一致。
 BUILD-EVIDENCE.json 记录产物哈希。Vue 类型检查与构建通过。
-完整 backend 和 push hook 的最终状态在后续 Git 交付记录中补齐。
+第一次 pre-push 在 backend 第 9 组被旧 MTD 月初断言拦截，未开始 LFS 或远端推送。
+该断言仍要求回落完整上月，与已冻结 C0 月初 EMPTY 金标准冲突；现更新为本月空窗并保留闰年 cutoff 校验。
+最后两组已独立重跑通过；下次推送仍完整执行正常门禁，不按前次结果跳过。
+
+提交 6e0c4a1568e915ff9272be7c3aba5c8925f86f0b 后，另起本轮自有 18083 合成 HTTP，
+认可→成板→重复提交仍一块板→停止并重启该 Python→GET 重开 persisted=true。
+行数为 1，板数为 1，见 LIVE-REPRODUCTION.json。仅结束本轮 18083 实例。
 
 ## 提交前审查与修复
 
@@ -31,6 +37,7 @@ BUILD-EVIDENCE.json 记录产物哈希。Vue 类型检查与构建通过。
 - 非 C0 参数校验保留 FastAPI 原异常编码器，避免不可序列化错误对象造成 500。
 - 品牌脚本允许无 document 的插件装配测试；更新过期 footer 文案断言。
 - 检查 SQL 参数、持久化事务、身份范围、构建依赖及新增文件；未引入真实数据库或凭据。
+- 历史计划钩子误报：冻结 G0 的 17 文件逐字节校验原 manifest；检查器只对该固定 manifest 和匹配的 Git index/HEAD 字节识别历史证据，改写快照或 manifest 仍不豁免。当前计划文档追加历史条件说明。
 
 ## 复现命令
 

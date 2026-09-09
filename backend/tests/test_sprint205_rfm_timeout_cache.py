@@ -591,9 +591,13 @@ class TestRFMPrecomputePlan:
         assert semantic_ranges["comparison"].start == "2027-02-28"
         assert ytd_ranges["current"].end == "2024-02-29"
         assert ytd_ranges["comparison"].end == "2023-02-28"
-        assert mtd_ranges["current"].start == "2024-02-01"
-        assert mtd_ranges["current"].end == "2024-02-29"
-        assert mtd_ranges["comparison"].end == "2023-02-28"
+        # C0 T+1: month day one is an empty current-month window, never last month.
+        assert mtd_ranges["current"].start == "2024-03-01"
+        assert mtd_ranges["current"].end == "2024-03-01"
+        assert mtd_ranges["current"].empty is True
+        assert mtd_ranges["current"].cutoff == "2024-02-29"
+        assert mtd_ranges["comparison"].empty is True
+        assert mtd_ranges["comparison"].cutoff == "2023-02-28"
         assert http_ranges["comp"][0] == "2027-02-28 00:00:00"
         assert http_ranges["prev2"][0] == "2026-02-28 00:00:00"
 
