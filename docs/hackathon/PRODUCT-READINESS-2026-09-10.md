@@ -81,3 +81,5 @@
 ## 原生主题与实际 AntD 增量
 
 独立 `competition-visual-readiness` 基于 `e63df18` 补官方主题服务、实际 AntD 表单和窄屏控件。4328/18084 临时合成浏览器实测 Light/Dark 刷新保持、BAR 410/305 保存重开与弹层焦点；完整 B0 pipeline 和干净重建 PASS，审计 0 告警。临时实例已停止，4325 用户候选尚未切换。失败截图、测试告警和未完成项见[视觉结果](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)，不能把本增量当作完整 T17、T15 或 T16。
+
+正常 pre-push 又暴露首购原生观察写锁误记 UNKNOWN 的恢复缺陷；已独立复现并修复共享调度器，相关 23 项回归通过，完整检查与推送仍需完成。见[恢复记录](OBSERVATION-STATE-RECOVERY-2026-09-10.md)。

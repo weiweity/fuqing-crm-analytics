@@ -123,6 +123,56 @@ def test_sqlite_writer_contention_pauses_dispatch_and_recovers_without_resend(tm
         dispatcher.close()
 
 
+def test_observation_write_lock_does_not_turn_known_runtime_into_unknown(tmp_path, monkeypatch):
+    store, _, run = setup_native(tmp_path)
+    with sqlite_connection(store.path) as writer:
+        class LockingReceiver(Receiver):
+            hold_observation = False
+
+            def call(self, operation, payload):
+                evidence = super().call(operation, payload)
+                if operation == "observe" and self.hold_observation:
+                    self.hold_observation = False
+                    writer.execute("BEGIN IMMEDIATE")
+                return evidence
+
+        receiver = LockingReceiver()
+        dispatcher = RunDispatcher(store, lambda _: actor(), receiver)
+        observe = store.observe
+
+        def observe_then_release(*args, **kwargs):
+            try:
+                return observe(*args, **kwargs)
+            finally:
+                # Real SQLite timeout, then release before the dispatcher's
+                # error handler. A fallback UNKNOWN write would now succeed.
+                if writer.in_transaction:
+                    writer.rollback()
+
+        monkeypatch.setattr(store, "observe", observe_then_release)
+        dispatcher.start()
+        try:
+            dispatcher.tick()
+            before = store.get(actor(), run.run_id)
+            assert before.status == "RUNNING"
+            intent = store.runtime_work()[0]["intent"]
+            receiver.hold_observation = True
+            dispatcher.tick()
+            assert store.get(actor(), run.run_id) == before
+            assert not dispatcher.ready and dispatcher.last_error == "STATE_UNAVAILABLE"
+            dispatcher.tick()
+            assert dispatcher.ready and dispatcher.last_error is None
+            recovered = store.get(actor(), run.run_id)
+            assert recovered.status == "RUNNING"
+            assert recovered.diagnostics.dispatch_attempts == 1
+            assert store.runtime_work()[0]["intent"] == intent
+            assert all(event.payload.status not in {"UNKNOWN", "CANCELLING"}
+                       for event in store.events(actor(), run.run_id))
+            assert sum(method == "dispatch" for method, _ in receiver.calls) == 1
+        finally:
+            dispatcher.close()
+
+
 def test_cancel_receipt_holds_slot_until_later_exit_and_second_question_dispatches(tmp_path):
     store, conv, run = setup_native(tmp_path)
     receiver = Receiver()

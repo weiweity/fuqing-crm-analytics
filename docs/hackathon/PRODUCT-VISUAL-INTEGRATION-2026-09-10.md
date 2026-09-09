@@ -56,3 +56,7 @@
 提交前按 gstack review checklist 核对主题订阅/卸载、表单受控状态、权限与持久化接缝、固定依赖及构建副作用，未发现本视觉增量新的阻断项；未进行第二模型审查。旧基线 `e63df18` 的 [CI 34410948184](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34410948184) 已成功；不能将它当作本视觉增量的远端 CI。
 
 以下仍开放：原生权限/运行中撤权和浏览器 Stop 全路径；首次欢迎历史误报根因；业务文案与可展开证据整理；全部状态的 DESIGN 检查；旧 MCP 与完整诊断；业务默认值/UNKNOWN；用户本人 T15、正式 T16。控制台可见未接线的 B0 assets/dashboards/analyses 404，本轮未将其记录为比赛 API 失败，也未声称控制台无错误。整产品继续 PARTIAL。
+
+## 推送检查追加
+
+视觉提交 `fa8978b` 的正常 pre-push 在既有首购原生锁测试失败，上传未开始。独立复现后补共享调度器的本地状态错误分类修复，见[失败、修复与后续检查](OBSERVATION-STATE-RECOVERY-2026-09-10.md)。上面的视觉检查结果保留其运行时点，不替代后续完整检查。
