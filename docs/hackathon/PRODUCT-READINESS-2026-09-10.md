@@ -76,4 +76,4 @@
 
 计算中取消后仍发布已实际复现并修复。Node transport 手动 AbortSignal 和 5 秒超时均经真实 HTTP 阻止 SQLite 发布，跨进程与回执失败语义已覆盖；完整 backend 2320 passed / 77 skipped、独立 B0 全流程 PASS，见[交付](DIAGNOSIS-CANCELLATION-2026-09-10.md)。浏览器原生停止入口、用户 T15、正式 T16、业务默认值和整体发布条件继续开放，不缩减七阶段范围。
 
-数值与取消代码 `d9c9162` 已推送到 #115，并切换 4325/18083；五库备份恢复和旧资产一致性通过，Models 配置保留原位。见[当前切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。新 SHA 的远端 CI 在本记录写入时进行中。
+数值与取消代码 `d9c9162` 已推送到 #115，并切换 4325/18083；五库备份恢复和旧资产一致性通过，Models 配置保留原位。见[当前切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。`d9c9162` 的远端 CI 成功；后续文档提交 `afb62b0` 的首购原生测试收到可重试 503 而失败。现已用隔离 SQLite 写锁验证沿原调用恢复和单 worker，并修正测试的瞬态等待，11 项通过；新提交 CI 待核验，详见[失败与回归记录](evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md)。
