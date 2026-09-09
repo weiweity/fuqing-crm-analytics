@@ -2,7 +2,7 @@
 
 状态：**PARTIAL**。真实 provider 已调用，业务工具的后端仍使用 C0 合成适配器；不代表真实业务计算或完整 T13 通过。
 
-用户明确选择 DSH 的 DeepSeek-V4-Flash，并在 4325 原生 Models 页面完成配置。固定 DSH 为 `d347e703908d0406b7a7ef80e3a0e594d86b2215`；基础 HEAD `788b5b1`，本轮源码未提交。使用 Standard mode、Read Only、自有 `workspace-read-only` 和原生单 Agent Loop。模型服务为 `https://api.deepseek.com`；未读取、输出或复制用户密钥。
+用户明确选择 DSH 的 DeepSeek-V4-Flash，并在 4325 原生 Models 页面完成配置。固定 DSH 为 `d347e703908d0406b7a7ef80e3a0e594d86b2215`；评测时基础 HEAD `788b5b1`、源码未提交；后续由 source-manifest.json 和包含本报告的提交绑定。使用 Standard mode、Read Only、自有 `workspace-read-only` 和原生单 Agent Loop。模型服务为 `https://api.deepseek.com`；未读取、输出或复制用户密钥。
 
 ## 实际失败和修复
 
