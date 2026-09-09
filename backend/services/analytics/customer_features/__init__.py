@@ -13,7 +13,14 @@ from backend.services.analytics.customer_features.contract import (
     VALID_ORDER_RULE,
 )
 
+from backend.services.analytics.customer_features.published import (
+    FeaturePublicationStore, FeatureSnapshot, PublicationConflict,
+)
+
 __all__ = [
+    "FeaturePublicationStore",
+    "FeatureSnapshot",
+    "PublicationConflict",
     "CustomerFeatureRun",
     "FEATURE_LAYER_VERSION",
     "FEATURE_PIPELINE_VERSION",
