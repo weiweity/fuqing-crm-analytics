@@ -1,12 +1,12 @@
 # 方案收口与总待办：产品、架构、数仓、ETL
 
-初版日期：2026-09-05；执行更新：2026-09-08。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。本次核验 `origin/main` = `3ec1c86`，VERSION `0.6.3.0`，开放 PR 0。#102–#104 已合入；当前本地集成准备见 [并行清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。
+初版日期：2026-09-05；执行更新：2026-09-09。状态：`PLAN_CONSOLIDATED / LOCAL_B0_QUEUE_EXECUTED / NATIVE_SEVEN_QUESTIONS_PASS / B0_PARTIAL / GOAL_8H_SYNTHETIC_G0_G5 / PR_QUEUE_LANDED`。本次发布 `origin/main` = `d95e504`，VERSION `0.7.0.0`，#108 已合并且 PR CI 必需检查通过；集成历史见 [并行清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。
 
 初版响应“整理待办、先收尾、拉 Git 分支，再讨论未收口计划”，后续按用户确认续完 D1–D4 并进入最小 B0 实施。**方案收口不等于整个实现/运行验收完成。** 本文是当前任务顺序与状态入口；原商业、交互、合同、评审和测试文档继续各自负责细节，不另起一套 autoplan。
 
 **8 小时 Goal（2026-09-07 当时口径；2026-09-08 已合入）**：范围见 [Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md)。当时只做本地 synthetic G0–G5，不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`。**之后**已 squash 合入 #100（v0.6.0.0 驾驶舱）及 #85–#99、#92；远程功能分支已删。仍未授权公网部署。历史「未获 Git 授权」只描述当时当轮，不能当现在的指令。
 
-历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。v0.6.1.0 的 overlay 编译后 DOM 及 v0.6.2.0 重试/不串板修复已合入。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。核验时 8000/5173 仍有旧进程，其 cwd 已不存在；当前主线未做运行验收。
+历史 B0（T01–T09）仍 **PARTIAL**。最新执行：[T01–T09 连续清单](./B0-EXECUTION-CHECKLIST-2026-09-06.md)。第 1、2 项当时由 [PR #67](https://github.com/weiweity/fuqing-crm-analytics/pull/67) 合入 `ee66469`（**不是**现在的 `origin/main`）。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)。G1 [native-state](./B0-NATIVE-STATE-2026-09-07.md) 四问 `runtime-SNWYss` PASS；`857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G3b 报告仍是当时分层证据；G3b2 当时 HTTP/native **NOT RUN**。v0.6.0.0 opt-in SNAPSHOT 与驾驶舱 HTTP overlay（`--native-query-assets`）已在 `main`。v0.6.1.0 的 overlay 编译后 DOM 及 v0.6.2.0 重试/不串板修复已合入。产品仍 PARTIAL。历史三次 supervisor 退出仍开放。核验时 8000/5173 仍有旧进程，其 cwd 已不存在；#108 合并后已在 main 完成本机 DSH stub 合成首购查询、保存与驾驶舱验证。
 
 ## 1. 已确定，不再重复讨论
 
@@ -89,7 +89,7 @@ W3 的目标是改数据流，不给旧脚本再叠一层缓存。当前已有 P
 | 工作包 | 当前状态 | 收口/完成要求 |
 |---|---|---|
 | C-T1 承载证明 | PARTIAL；本轮小样队列已执行 | 业务任务/取消/恢复、方法/压缩组件、BI 合同接缝、品牌与工具卡 8 状态组件 DOM 已有证据；T09 已补真实工具失败与卡片共存，保留其余原生状态和历史稳定性缺口；不冒充真实模型 |
-| E-T1 合同与金标准 | 渠道查询已有 worker/HTTP/native 子集；首购 v0.6.3.0 离线合同与 JSON 金标准已合入，首购共享 worker/独立 HTTP 本轮本地通过；首购 native 与候选人群运行接入仍待完成 | 与 W2/W4 共用指标、粒度和版本；后两族 DEFERRED；见 [G2a 合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)、[G3a 计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md) |
+| E-T1 合同与金标准 | 渠道查询已有 worker/HTTP/native 子集；首购 v0.6.3.0 离线合同与 JSON 金标准已合入，首购共享 worker/独立 HTTP 本轮本地通过；首购 native 合成闭环随 #108 合入；候选人群运行接入待完成 | 与 W2/W4 共用指标、粒度和版本；首购 SUPPORTED_CONTRACT，候选人群 DEFERRED；见 [G2a 合同](./CHANNEL-FOLLOWUP-CONTRACT-2026-09-07.md)、[G3a 计算](./CHANNEL-FOLLOWUP-COMPUTE-2026-09-07.md) |
 | E-T2 资产与任务 | B0 任务/预算及 SNAPSHOT 保存、版本化驾驶舱子集已实现，完整包待验 | 独立计算、队列/取消/幂等、运行归属、保存与快照；不同 run 不共享在途 worker |
 | D-T1 问数与画布 | B0 接缝已有，产品包待实施 | 连续追问、父 run/条件继承、真实阶段、澄清/失败、证据与响应式 |
 | D-T2 可组合驾驶舱 | v0.6.0–0.6.2 已有 HTTP 资产操作及 overlay 回归，完整产品包仍 PARTIAL | 添加/复制/移除/布局、AI 局部配置、预览/保存/撤销/版本冲突；固定查看不依赖模型 |
