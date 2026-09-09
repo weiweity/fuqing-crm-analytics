@@ -6,10 +6,11 @@ import { pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
-import { createFixtureBoardTransport } from './transport.mjs';
-import { createFixtureAudienceTransport } from '../competition-actions/transport.mjs';
+import { createFixtureBoardTransport, createHttpBoardTransport } from './transport.mjs';
+import { createFixtureAudienceTransport, createHttpAudienceTransport } from '../competition-actions/transport.mjs';
+import { AUDIENCE_SUCCESS } from '../competition-actions/c0-fixtures.mjs';
 import { resetInflightForTests } from './selection.mjs';
-import { RESULT_EMPTY, RESULT_SUCCESS } from './c0-fixtures.mjs';
+import { BOARD_SUCCESS, RESULT_EMPTY, RESULT_SUCCESS } from './c0-fixtures.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const plugin = resolve(here, '../../..');
@@ -166,6 +167,12 @@ test('actions DOM: AND count, zero audience, copy-only vs expired draft', async 
   assert.match(globalThis.document.body.textContent, /零人群|零候选/);
 
   transport.setScenario('success');
+  // A newly previewed candidate set starts a separate draft; it must not
+  // silently retarget the previous draft's immutable candidate binding.
+  await act(async () => {
+    globalThis.document.querySelector('[data-testid="sm-create-draft"]').click();
+    await delay(20);
+  });
   await act(async () => {
     globalThis.document.querySelector('[data-testid="sm-save-copy"]').click();
     await delay(20);
@@ -269,4 +276,119 @@ test('failed 成板 retry stays mounted and does not duplicate the board', async
   root.unmount();
   restoreDom(previous);
   resetInflightForTests();
+});
+
+test('HTTP board reopens pinned result and layout; unavailable binding never substitutes list results', async () => {
+  for (const unavailable of [false, true]) {
+    const { previous, dom } = installDom();
+    const spec = { ...structuredClone(BOARD_SUCCESS.board), block_ids: ['block_saved_b'] };
+    const a = { ...structuredClone(RESULT_SUCCESS), result_id: 'result_A', query_id: 'query_A' };
+    const b = { ...structuredClone(RESULT_SUCCESS), result_id: 'result_B', query_id: 'query_B', row_count: 77 };
+    const document = { spec, blocks: [{ block_id: 'block_saved_b', result_id: 'result_B',
+      result: unavailable ? undefined : b, source_status: unavailable ? 'UNAVAILABLE' : 'OK',
+      layout: { x: 6, y: 9, w: 4, h: 4 }, display_overrides: { title: 'saved block B' } }] };
+    const transport = createHttpBoardTransport({ fetchImpl: async path => ({ status: 200, json: async () =>
+      path.endsWith('/results') ? { items: [a] } : path.endsWith('/boards') ? { items: [spec] } : document }) });
+    const root = createRoot(globalThis.document.getElementById('root'));
+    try {
+      await act(() => root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })));
+      await waitFor(() => globalThis.document.querySelector('[data-testid="sm-result-list"] li'));
+      await act(() => globalThis.document.querySelector('[data-testid="sm-open-board"]').click());
+      await waitFor(() => globalThis.document.querySelector('[data-block-id="block_saved_b"]'));
+      const block = globalThis.document.querySelector('[data-block-id="block_saved_b"]');
+      assert.equal(block.style.gridColumn, '7 / span 4');
+      assert.equal(block.style.gridRow, '10 / span 4');
+      assert.match(block.textContent, /saved block B/);
+      assert.doesNotMatch(block.textContent, /query_A/);
+      if (unavailable) assert.doesNotMatch(block.textContent, /query_B|77/);
+      else { assert.match(block.textContent, /query_B/); assert.equal(block.querySelector('[data-field="行数"] td').textContent, '77'); }
+    } finally { await act(() => root.unmount()); dom.window.close(); restoreDom(previous); resetInflightForTests(); }
+  }
+});
+
+test('HTTP create retries keep IDs, next selection creates a distinct board, preview does not write', async () => {
+  const { previous, dom } = installDom();
+  const rows = ['A', 'B'].map(letter => ({ ...structuredClone(RESULT_SUCCESS), result_id: `result_${letter}` }));
+  const boards = new Map();
+  const requests = [];
+  let loseFirstResponse = true;
+  const fetchImpl = async (path, options) => {
+    if (options.method === 'POST') {
+      assert.ok(path.endsWith('/batches'));
+      const payload = JSON.parse(options.body);
+      requests.push(payload);
+      const existing = boards.get(payload.batch_id);
+      if (existing) assert.deepEqual(existing.payload, payload);
+      else {
+        const spec = { ...structuredClone(BOARD_SUCCESS.board), board_id: `board_${boards.size + 1}`,
+          block_ids: ['block_created'], version: 1, base_version: 1 };
+        const ref = payload.operations[0].endorsed_result_refs[0];
+        boards.set(payload.batch_id, { payload, spec, blocks: [{ block_id: 'block_created', result_id: ref.result_id,
+          result: rows.find(row => row.result_id === ref.result_id), layout: { x: 0, y: 0, w: 6, h: 4 } }] });
+      }
+      if (loseFirstResponse) { loseFirstResponse = false; throw new Error('synthetic response lost after commit'); }
+      const board = boards.get(payload.batch_id).spec;
+      return { status: 200, json: async () => ({ status: 'SUCCEEDED', board, items: [{ board_id: board.board_id }] }) };
+    }
+    const body = path.endsWith('/results') ? { items: rows }
+      : path.endsWith('/boards') ? { items: [...boards.values()].map(row => row.spec) }
+        : [...boards.values()].find(row => path.endsWith('/' + row.spec.board_id));
+    return { status: 200, json: async () => body };
+  };
+  const transport = createHttpBoardTransport({ fetchImpl });
+  const root = createRoot(globalThis.document.getElementById('root'));
+  try {
+    await act(() => root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })));
+    await waitFor(() => globalThis.document.querySelectorAll('[data-testid="sm-result-list"] input').length === 2);
+    await act(() => globalThis.document.querySelector('[data-testid="sm-result-list"] input').click());
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-confirm-boards"]').click(); await delay(20); });
+    assert.equal(requests.length, 1);
+    assert.equal(boards.size, 1);
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-confirm-boards"]').click(); await delay(20); });
+    assert.equal(requests.length, 2);
+    assert.deepEqual(requests[0], requests[1]);
+    assert.equal(boards.size, 1);
+    await act(() => [...globalThis.document.querySelectorAll('button')].find(button => button.textContent === '选择结果').click());
+    const boxes = globalThis.document.querySelectorAll('[data-testid="sm-result-list"] input');
+    await act(() => { boxes[0].click(); boxes[1].click(); });
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-confirm-boards"]').click(); await delay(20); });
+    assert.equal(boards.size, 2);
+    assert.notEqual(requests[2].batch_id, requests[0].batch_id);
+    assert.notEqual(requests[2].operations[0].operation_id, requests[0].operations[0].operation_id);
+  } finally { await act(() => root.unmount()); dom.window.close(); restoreDom(previous); resetInflightForTests(); }
+});
+
+test('HTTP actions can create first draft, reopen with a new transport, then update same versioned draft', async () => {
+  const { previous, dom } = installDom();
+  const pack = structuredClone(AUDIENCE_SUCCESS);
+  let saved = null;
+  let root;
+  const writes = [];
+  const fetchImpl = async (path, options) => {
+    if (path.endsWith('/candidates/preview')) return { status: 200, json: async () => ({ candidates: pack.candidates, cohort: pack.cohort }) };
+    if (options.method === 'POST') {
+      const payload = JSON.parse(options.body); writes.push(payload);
+      saved = { ...pack.draft, draft_id: 'draft_new', candidate_set_id: pack.candidates.candidate_set_id,
+        version: (saved?.version || 0) + 1, control_design: payload.control_design, stop_condition: payload.stop_condition };
+      return { status: 200, json: async () => saved };
+    }
+    return { status: 200, json: async () => ({ draft: saved, candidates: saved ? pack.candidates : null, cohort: saved ? pack.cohort : null }) };
+  };
+  try {
+    root = createRoot(globalThis.document.getElementById('root'));
+    await act(() => root.render(React.createElement(CockpitView, { surface: 'competition-actions', audienceTransport: createHttpAudienceTransport({ fetchImpl }) })));
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-preview-candidates"]').click(); await delay(20); });
+    await waitFor(() => globalThis.document.querySelector('[data-testid="sm-create-draft"]'));
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-create-draft"]').click(); await delay(20); });
+    assert.equal(writes.length, 1);
+    await act(() => root.unmount());
+    root = createRoot(globalThis.document.getElementById('root'));
+    await act(() => root.render(React.createElement(CockpitView, { surface: 'competition-actions', audienceTransport: createHttpAudienceTransport({ fetchImpl }) })));
+    await waitFor(() => globalThis.document.querySelector('[data-testid="sm-save-copy"]'));
+    assert.match(globalThis.document.querySelector('[data-testid="sm-draft-panel"]').textContent, /draft_new/);
+    await act(async () => { globalThis.document.querySelector('[data-testid="sm-save-copy"]').click(); await delay(20); });
+    assert.equal(writes[1].draft_id, 'draft_new');
+    assert.equal(writes[1].base_version, 1);
+    assert.equal(writes[1].candidate_set_id, pack.candidates.candidate_set_id);
+  } finally { if (root) await act(() => root.unmount()); dom.window.close(); restoreDom(previous); }
 });

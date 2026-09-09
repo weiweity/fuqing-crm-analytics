@@ -8,6 +8,7 @@ import {
   canEndorse, decodeCompetitionBatchReceipt, decodeCompetitionBatchRequest,
   decodeCompetitionBoardSpec, decodeCompetitionError, decodeCompetitionPatchRequest,
   decodeCompetitionResultRef, looksLikeIllegalScript, toEndorsedResultRef,
+  defaultBlockLayout,
 } from './decode.mjs';
 
 export function clone(value) {
@@ -37,6 +38,17 @@ export function createFixtureBoardTransport(options = {}) {
   let applyCount = 0;
   const idempotency = new Map();
   const results = (options.results ?? [RESULT_SUCCESS, RESULT_EMPTY]).map(clone);
+  function bindFixture(spec, refs = BOARD_SUCCESS.batch.operations[0].endorsed_result_refs) {
+    spec.blocks = spec.block_ids.map((block_id, index) => {
+      const ref = refs[index % refs.length];
+      return { block_id, result_id: ref?.result_id,
+        result: results.find(row => row.result_id === ref?.result_id),
+        layout: defaultBlockLayout(index), plugin: index === 1 ? 'BAR' : 'TABLE',
+        display_overrides: {}, source_status: 'OK' };
+    });
+    return spec;
+  }
+  bindFixture(board);
 
   const api = {
     kind: 'fixture',
@@ -81,6 +93,7 @@ export function createFixtureBoardTransport(options = {}) {
       next.batch_id = decoded.batch_id;
       next.operation_id = decoded.operations[0].operation_id;
       next.title = decoded.operations[0].title;
+      bindFixture(next, decoded.operations[0].endorsed_result_refs);
       preview = next;
       return ok(200, { board: next, receipt: null });
     },
@@ -119,6 +132,7 @@ export function createFixtureBoardTransport(options = {}) {
       next.batch_id = decoded.batch_id;
       next.operation_id = decoded.operations[0].operation_id;
       next.title = decoded.operations[0].title;
+      bindFixture(next, decoded.operations[0].endorsed_result_refs);
       next.version = board.version + 1;
       next.base_version = board.version;
       board = next;
@@ -186,6 +200,12 @@ export function createFixtureBoardTransport(options = {}) {
       next.affected_block_ids = decoded.block_id ? [decoded.block_id] : next.block_ids;
       if (decoded.display_op?.display_overrides?.title && decoded.block_id) {
         next.title = board.title;
+        const block = next.blocks?.find(row => row.block_id === decoded.block_id);
+        if (block) block.display_overrides = clone(decoded.display_op.display_overrides);
+      }
+      if (decoded.cockpit_op?.op === 'layout') {
+        const block = next.blocks?.find(row => row.block_id === decoded.cockpit_op.card_id);
+        if (block) block.layout = clone(decoded.cockpit_op.layout);
       }
       preview = next;
       pendingPatch = decoded;
@@ -263,7 +283,10 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
     try { payload = await response.json(); } catch { payload = null; }
     const error = decodeCompetitionError(payload);
     if (error) return fail(response.status, { error });
-    return { ok: response.status >= 200 && response.status < 300, status: response.status, body: payload };
+    const bodyValue = payload?.spec?.schema_version === 'competition-board/v1'
+      ? { ...payload.spec, blocks: Array.isArray(payload.blocks) ? payload.blocks : [] }
+      : payload;
+    return { ok: response.status >= 200 && response.status < 300, status: response.status, body: bodyValue };
   }
   return {
     kind: 'http',
@@ -273,7 +296,10 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
       const items = Array.isArray(row.body) ? row.body : (row.body?.items || []);
       return { ...row, body: items };
     },
-    async previewBatch(_p, payload) { return request(`${basePath}/batches`, { method: 'POST', body: payload }); },
+    async previewBatch(_p, payload) {
+      return decodeCompetitionBatchRequest(payload) ? ok(200, { board: null, receipt: null })
+        : fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422 } });
+    },
     async applyBatch(_p, payload, headers = {}) {
       return request(`${basePath}/batches`, {
         method: 'POST', body: payload, key: headers['Idempotency-Key'] ?? headers['idempotency-key'],

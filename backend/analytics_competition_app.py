@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from pathlib import Path
+from threading import RLock
+from time import monotonic
 from typing import Any, Callable
 from uuid import uuid4
 
@@ -23,6 +26,7 @@ from backend.services.analytics.competition_assets import (
     CompetitionAssetService,
     as_competition_error,
 )
+from backend.services.analytics.competition_assets.result import competition_result_item as _competition_result_item
 from backend.services.analytics.competition_audience import (
     CompetitionAudienceError,
     CompetitionAudienceService,
@@ -32,64 +36,6 @@ from backend.services.analytics.competition_diagnosis.orchestrator import Diagno
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
 
 PREFIX = "/api/v1/analytics/competition"
-
-
-def _competition_result_item(record) -> dict[str, Any]:
-    """C0 endorsable pointer from a saved SNAPSHOT. Not a B0 /b0/assets document."""
-    binding = record.binding()
-    snapshot = record.snapshot if isinstance(record.snapshot, dict) else {}
-    as_of = snapshot.get("as_of") or "2026-08-31T16:00:00.000000+00:00"
-    run_id = binding.get("run_id") or snapshot.get("run_id")
-    analysis_id = binding.get("analysis_id")
-    digest = binding.get("evidence_digest") or snapshot.get("evidence_digest")
-    result_id = f"result_{str(run_id or analysis_id or 'synth')[4:]}"
-    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", result_id or ""):
-        result_id = f"result_{str(analysis_id or 'synth')}"
-    return {
-        "schema_version": "competition-result/v1",
-        "result_id": result_id,
-        "run_id": run_id,
-        "analysis_id": analysis_id,
-        "evidence_digest": digest,
-        "completeness": "COMPLETE",
-        "contains_real_data": False,
-        "data_mode": "SNAPSHOT",
-        "query_id": record.query_ref.get("query_id") if isinstance(record.query_ref, dict) else "channel_first_observed_followup",
-        "query_version": record.query_ref.get("query_version") if isinstance(record.query_ref, dict) else "channel-followup-query/v1",
-        "metric_id": "gsv",
-        "metric_version": "competition-metrics/v1",
-        "existing_result_schema": "analytics-channel-followup/v1",
-        "facts_schema_ref": "backend.contracts.analytics_query.ChannelFollowupResult",
-        "primary_result_ref": result_id,
-        "empty_reason": None,
-        "limitations": list(record.limitations) or ["合成 SNAPSHOT，不是真实经营结论。"],
-        "row_count": 1,
-        "page": {
-            "checksum": digest,
-            "complete": True,
-            "limit": 50,
-            "offset": 0,
-            "total": 1,
-        },
-        "resolved_condition": {
-            "metric_type": "GSV",
-            "timezone": "Asia/Shanghai",
-            "as_of": as_of,
-            "comparison_mode": "YOY_SAME_PERIOD",
-            "current_period": {"start_date": "2026-08-01", "end_date": "2026-08-31", "end_bound": "INCLUSIVE_CALENDAR_DAY"},
-            "comparison_period": {"start_date": "2025-08-01", "end_date": "2025-08-31", "end_bound": "INCLUSIVE_CALENDAR_DAY"},
-            "cutoff": "2026-07-31",
-            "sample_mode": "EXCLUDE_CURRENT_SALES_ONLY",
-            "data_version": "synthetic-c0-demo-data/v1",
-            "rule_version": "competition-condition-rule/v1",
-            "source_tense": "PUBLISHED_SNAPSHOT",
-            "history_scope": {"channel_ids": [], "kind": "ALL", "product_ids": []},
-            "sales_scope": {"channel_ids": [], "kind": "ALL", "product_ids": []},
-            "unknown_flags": [],
-        },
-        "http_api": "CONNECTED",
-        "finite_mock": True,
-    }
 
 
 def _request_id(request: Request) -> str:
@@ -124,28 +70,11 @@ def create_competition_app(
             asset_state_dir, analysis_store=analysis_store, cockpit_store=cockpit_store,
         )
     audience = CompetitionAudienceService(audience_state_dir) if audience_state_dir is not None else None
-    # T08: cancel then reject late attempt publish. In-memory per app instance.
-    cancelled_attempts: set[tuple[str, str]] = set()
-    cancelled_batches: set[tuple[str, str]] = set()
-    diagnosis_by_actor: dict[str, DiagnosisAdapter] = {}
+    diagnosis_sessions: dict[tuple[str, str], tuple[DiagnosisAdapter, float]] = {}
+    diagnosis_lock = RLock()
 
     def principal(request: Request):
         return registry.resolve(_single_header(request, "authorization"))
-
-    def reject_late_attempt_publish(actor_id: str, attempt_id: str | None, *, batch_id: str | None = None) -> None:
-        """After cancel, a late attempt must not publish a new board version."""
-        if attempt_id and (actor_id, attempt_id) in cancelled_attempts:
-            raise AnalyticsError(
-                409, "CANCELLED",
-                "迟到 attempt 已取消，禁止发布。",
-                retryable=False,
-            )
-        if batch_id and (actor_id, batch_id) in cancelled_batches:
-            raise AnalyticsError(
-                409, "CANCELLED",
-                "批次已取消，迟到 attempt 禁止发布。",
-                retryable=False,
-            )
 
     def require_assets() -> CompetitionAssetService:
         if assets is None:
@@ -162,12 +91,34 @@ def create_competition_app(
             raise AnalyticsError(503, "STATE_UNAVAILABLE", "分析资产库尚未显式配置。", retryable=True)
         return analysis_store
 
-    def diagnosis_for(actor) -> DiagnosisAdapter:
-        adapter = diagnosis_by_actor.get(actor.actor_id)
-        if adapter is None:
-            adapter = DiagnosisAdapter(actor, session_id=f"http_{actor.actor_id}")
-            diagnosis_by_actor[actor.actor_id] = adapter
-        return adapter
+    @contextmanager
+    def diagnosis_for(actor, payload):
+        session_id = payload.get("session_id")
+        if session_id is None:
+            # Legacy callers without a session are standalone requests. Never
+            # inherit another conversation's condition, authority or budget.
+            yield DiagnosisAdapter(actor, session_id=f"standalone_{uuid4().hex}")
+            return
+        if not isinstance(session_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", session_id):
+            raise AnalyticsError(422, "INVALID_REQUEST", "session_id 必须是有效会话标识。")
+        with diagnosis_lock:
+            now = monotonic()
+            for key, (_, touched) in list(diagnosis_sessions.items()):
+                if now - touched > 1800:
+                    del diagnosis_sessions[key]
+            key = (actor.actor_id, session_id)
+            entry = diagnosis_sessions.get(key)
+            if entry is None:
+                if len(diagnosis_sessions) >= 256:
+                    raise AnalyticsError(429, "BUSY", "诊断会话已达上限，请稍后重试。", retryable=True)
+                adapter = DiagnosisAdapter(actor, session_id=session_id)
+            else:
+                adapter = entry[0]
+                if adapter.session.principal != actor:
+                    # A permission change also invalidates inherited evidence.
+                    adapter = DiagnosisAdapter(actor, session_id=session_id, budget=adapter.session.budget)
+            diagnosis_sessions[key] = (adapter, now)
+            yield adapter
 
     def idempotency(request: Request) -> str:
         key = _single_header(request, "idempotency-key")
@@ -248,7 +199,8 @@ def create_competition_app(
         actor = principal(request)
         request_id = str(payload.get("request_id") or _request_id(request))
         try:
-            body = diagnosis_for(actor).list_capabilities(request_id)
+            with diagnosis_for(actor, payload) as adapter:
+                body = adapter.list_capabilities(request_id)
         except DiagnosisFault as fault:
             raise AnalyticsError(fault.error.http_status or 400, fault.error.code, fault.error.message) from fault
         body["live_transport"] = "HTTP_CONNECTED"
@@ -260,13 +212,14 @@ def create_competition_app(
         actor = principal(request)
         request_id = str(payload.get("request_id") or _request_id(request))
         try:
-            body = diagnosis_for(actor).run_step(
-                capability_id=str(payload.get("capability_id") or ""),
-                condition_mode=str(payload.get("condition_mode") or "INHERIT"),
-                request_id=request_id,
-                condition=payload.get("condition") if isinstance(payload.get("condition"), dict) else None,
-                condition_patch=payload.get("condition_patch") if isinstance(payload.get("condition_patch"), dict) else None,
-            )
+            with diagnosis_for(actor, payload) as adapter:
+                body = adapter.run_step(
+                    capability_id=str(payload.get("capability_id") or ""),
+                    condition_mode=str(payload.get("condition_mode") or "INHERIT"),
+                    request_id=request_id,
+                    condition=payload.get("condition") if isinstance(payload.get("condition"), dict) else None,
+                    condition_patch=payload.get("condition_patch") if isinstance(payload.get("condition_patch"), dict) else None,
+                )
         except DiagnosisFault as fault:
             raise AnalyticsError(fault.error.http_status or 400, fault.error.code, fault.error.message) from fault
         body["live_transport"] = "HTTP_CONNECTED"
@@ -277,25 +230,25 @@ def create_competition_app(
     def diagnosis_patch(payload: dict[str, Any], request: Request):
         actor = principal(request)
         request_id = str(payload.get("request_id") or _request_id(request))
-        adapter = diagnosis_for(actor)
         selection = payload.get("selection") if isinstance(payload.get("selection"), dict) else {}
         patch_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
         try:
             from backend.services.analytics.competition_diagnosis.patch import plan_patch
-            body = plan_patch(
-                intent=str(payload.get("intent") or ""),
-                payload=patch_payload,
-                selection=selection,
-                in_flight=adapter.session.in_flight_patch,
-                request_id=request_id,
-            )
+            with diagnosis_for(actor, payload) as adapter:
+                body = plan_patch(
+                    intent=str(payload.get("intent") or ""),
+                    payload=patch_payload,
+                    selection=selection,
+                    in_flight=adapter.session.in_flight_patch,
+                    request_id=request_id,
+                )
+                adapter.session.in_flight_patch = {
+                    "board_id": body.get("board_id"),
+                    "block_id": body.get("block_id"),
+                    "base_version": body.get("base_version"),
+                }
         except DiagnosisFault as fault:
             raise AnalyticsError(fault.error.http_status or 400, fault.error.code, fault.error.message) from fault
-        adapter.session.in_flight_patch = {
-            "board_id": body.get("board_id"),
-            "block_id": body.get("block_id"),
-            "base_version": body.get("base_version"),
-        }
         body["live_transport"] = "HTTP_CONNECTED"
         body["http_api"] = "CONNECTED"
         return body
@@ -312,7 +265,7 @@ def create_competition_app(
     @app.post(f"{PREFIX}/batches")
     def apply_batch(payload: dict[str, Any], request: Request):
         actor = principal(request)
-        reject_late_attempt_publish(actor.actor_id, None, batch_id=str(payload.get("batch_id") or "") or None)
+        require_assets().check_cancelled(actor, "batch", str(payload.get("batch_id") or ""))
         result = require_assets().apply_batch(actor, payload)
         if not isinstance(result, dict):
             return result
@@ -354,13 +307,14 @@ def create_competition_app(
     def apply_patch(board_id: str, payload: dict[str, Any], request: Request):
         body = dict(payload)
         body.setdefault("board_id", board_id)
-        reject_late_attempt_publish(principal(request).actor_id, str(body.get("attempt_id") or "") or None)
+        actor = principal(request)
+        require_assets().check_cancelled(actor, "attempt", str(body.get("attempt_id") or ""))
         matched = if_match_version(request)
         if matched is not None:
             body["base_version"] = matched
         elif "base_version" not in body:
             raise AnalyticsError(428, "IF_MATCH_REQUIRED", "保存需要 If-Match 或 base_version。")
-        return require_assets().apply_patch(principal(request), body)
+        return require_assets().apply_patch(actor, body)
 
     @app.get(f"{PREFIX}/attempts/{{attempt_id}}")
     def get_attempt(attempt_id: str, request: Request):
@@ -372,23 +326,11 @@ def create_competition_app(
 
     @app.post(f"{PREFIX}/attempts/{{attempt_id}}/cancel")
     def cancel_attempt(attempt_id: str, request: Request):
-        actor = principal(request)
-        cancelled_attempts.add((actor.actor_id, attempt_id))
-        return {
-            "attempt_id": attempt_id,
-            "status": "CANCELLED",
-            "late_attempt_publish": False,
-        }
+        return require_assets().cancel(principal(request), "attempt", attempt_id)
 
     @app.post(f"{PREFIX}/batches/{{batch_id}}/cancel")
     def cancel_batch(batch_id: str, request: Request):
-        actor = principal(request)
-        cancelled_batches.add((actor.actor_id, batch_id))
-        return {
-            "batch_id": batch_id,
-            "status": "CANCELLED",
-            "late_attempt_publish": False,
-        }
+        return require_assets().cancel(principal(request), "batch", batch_id)
 
     @app.post(f"{PREFIX}/candidates/preview")
     def preview_candidates(payload: dict[str, Any], request: Request):
@@ -407,7 +349,6 @@ def create_competition_app(
 
     @app.get(f"{PREFIX}/drafts/current")
     def load_current_draft(request: Request):
-        principal(request)
-        return {"http_api": "CONNECTED", "draft": None, "candidates": None}
+        return require_audience().load_current_draft(principal(request))
 
     return app

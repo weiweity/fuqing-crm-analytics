@@ -1,6 +1,16 @@
 import type { components } from '../../competition-c0-contract.generated.d.ts';
 
-export type CompetitionBoardSpec = components['schemas']['CompetitionBoardSpec'];
+export type CompetitionBoardSpec = components['schemas']['CompetitionBoardSpec'] & {
+  blocks?: Array<{
+    block_id: string;
+    result_id?: string;
+    result?: CompetitionResultRef;
+    layout: LayoutBox;
+    display_overrides?: { title?: string };
+    source_status?: string;
+    plugin?: RegisteredPlugin;
+  }>;
+};
 export type CompetitionPatchRequest = components['schemas']['CompetitionPatchRequest'];
 export type CompetitionBoardBatchRequest = components['schemas']['CompetitionBoardBatchRequest'];
 export type CompetitionBoardBatchReceipt = components['schemas']['CompetitionBoardBatchReceipt'];

@@ -60,23 +60,32 @@ export function ActionsWorkbench(props: ActionsMountProps) {
     });
     if (!row.ok) { setError(row.body.error); return; }
     setError(null);
-    setPack(current => ({ ...current, ...row.body }));
+    setPack(current => ({ ...current, ...row.body,
+      draft: current?.draft?.candidate_set_id === row.body.candidates?.candidate_set_id ? current?.draft : null,
+    }));
     const count = row.body.candidates?.unique_count ?? 0;
     setMessage(count === 0
       ? '零候选。可改规则，不得伪造建议名单。'
       : `去重后 ${count} 人。combine=${row.body.candidates.combine}。`);
   }
 
-  async function save(kind: 'copy' | 'rule' | 'review') {
-    const payload = kind === 'copy'
+  async function save(kind: 'create' | 'copy' | 'rule' | 'review') {
+    const payload = kind === 'create' ? { ...copy }
+      : kind === 'copy'
       ? { copy_only_change: true, ...copy }
       : kind === 'review'
         ? { copy_only_change: true, status: 'REVIEW_PENDING', review_by: reviewBy, reviewer_id: 'reviewer.ops', ...copy }
         : { rule_changed: true, ...copy };
-    const row = await transport.saveDraft(principal, payload);
+    const row = await transport.saveDraft(principal, {
+      ...payload, candidate_set_id: pack?.candidates?.candidate_set_id,
+      permission_scope: pack?.candidates?.permission_scope,
+      draft_id: pack?.draft?.draft_id, base_version: pack?.draft?.version,
+    });
     if (!row.ok) { setError(row.body.error); return; }
     setPack(current => ({ ...current, draft: row.body }));
-    setMessage(kind === 'copy'
+    setError(null);
+    setMessage(kind === 'create' ? '行动草稿已保存，可重新打开。'
+      : kind === 'copy'
       ? '仅文案变更，证据与人数未改，草稿未过期。'
       : kind === 'review'
         ? '已提交复核。不自动发送。'
@@ -202,7 +211,18 @@ export function ActionsWorkbench(props: ActionsMountProps) {
                   <button type="button" disabled data-testid="sm-auto-send">不自动发送</button>
                 </div>
               </>
-            ) : <p>尚无草稿。</p>}
+            ) : (
+              <>
+                <p>尚无草稿。先预览候选，再填写并保存。</p>
+                {candidates ? <>
+                  <label>对照设计<textarea value={copy.control_design}
+                    onChange={event => setCopy(current => ({ ...current, control_design: event.target.value }))} /></label>
+                  <label>停止条件<textarea value={copy.stop_condition}
+                    onChange={event => setCopy(current => ({ ...current, stop_condition: event.target.value }))} /></label>
+                  <button type="button" data-testid="sm-create-draft" onClick={() => void save('create')}>保存行动草稿</button>
+                </> : null}
+              </>
+            )}
           </section>
         </div>
       </LayoutSlot>

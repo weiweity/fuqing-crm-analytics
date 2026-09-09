@@ -16,7 +16,7 @@ from backend.contracts.competition_c0 import (
     CompetitionCandidateSet,
     CompetitionCohortSpec,
 )
-from backend.services.analytics.competition_audience.errors import unavailable
+from backend.services.analytics.competition_audience.errors import CompetitionAudienceError, forbidden, unavailable
 
 APPLICATION_ID = 1397571928  # SMA8
 STATE_SCHEMA_VERSION = 1
@@ -188,17 +188,27 @@ class AudienceStore:
 
     def put_candidates(self, candidates: CompetitionCandidateSet) -> None:
         with transaction(self.path) as con:
+            existing = con.execute(
+                "SELECT * FROM candidates WHERE candidate_set_id=?", (candidates.candidate_set_id,),
+            ).fetchone()
+            if existing is not None:
+                if existing["permission_scope"] != candidates.permission_scope:
+                    raise forbidden(param="candidate_set_id")
+                # Candidate sets are snapshots. Reusing an ID must never change
+                # the membership or evidence of an already linked draft.
+                if (existing["cohort_id"] != candidates.cohort_id
+                        or existing["payload_json"] != dump(candidates)):
+                    raise CompetitionAudienceError(
+                        409, "CONFLICT", "候选集 ID 已绑定其他内容，请重新预览生成新 ID。",
+                        param="candidate_set_id",
+                    )
+                return
             con.execute(
                 """
                 INSERT INTO candidates(
                     candidate_set_id, cohort_id, permission_scope, combine,
                     source_result_ref, unique_count, payload_json
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(candidate_set_id) DO UPDATE SET
-                    combine=excluded.combine,
-                    source_result_ref=excluded.source_result_ref,
-                    unique_count=excluded.unique_count,
-                    payload_json=excluded.payload_json
                 """,
                 (
                     candidates.candidate_set_id, candidates.cohort_id,
@@ -218,6 +228,16 @@ class AudienceStore:
             return con.execute(
                 "SELECT * FROM drafts WHERE draft_id=? ORDER BY version DESC LIMIT 1",
                 (draft_id,),
+            ).fetchone()
+
+    def current_draft(self, owner: str, scopes: frozenset[str]) -> sqlite3.Row | None:
+        if not scopes:
+            return None
+        with connect(self.path, readonly=True) as con:
+            placeholders = ",".join("?" for _ in scopes)
+            return con.execute(
+                f"SELECT * FROM drafts WHERE owner=? AND permission_scope IN ({placeholders}) "
+                "ORDER BY rowid DESC LIMIT 1", (owner, *sorted(scopes)),
             ).fetchone()
 
     def insert_draft(self, draft: CompetitionActionDraft, permission_scope: str) -> None:

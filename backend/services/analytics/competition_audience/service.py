@@ -30,6 +30,7 @@ from backend.services.analytics.competition_audience.errors import (
     forbidden,
     invalid,
     unauthenticated,
+    unavailable,
 )
 from backend.services.analytics.competition_audience.features import (
     CohortFeatureSource,
@@ -254,7 +255,30 @@ class CompetitionAudienceService:
         row = self.store.get_candidates(candidate_set_id)
         if row is None or row["permission_scope"] != permission_scope or permission_scope not in owner.data_scopes:
             raise forbidden(param="customer_key")
-        return CompetitionCandidateSet.model_validate(json.loads(row["payload_json"]))
+        candidates = CompetitionCandidateSet.model_validate(json.loads(row["payload_json"]))
+        if (candidates.permission_scope != row["permission_scope"]
+                or candidates.cohort_id != row["cohort_id"]
+                or candidates.candidate_set_id != row["candidate_set_id"]
+                or candidates.source_result_ref != row["source_result_ref"]
+                or candidates.unique_count != row["unique_count"]):
+            raise unavailable("候选集内容与权限绑定不一致，拒绝读取。")
+        return candidates
+
+    def load_current_draft(self, principal) -> dict:
+        if not isinstance(principal, AnalyticsPrincipal) or not principal.actor_id:
+            raise unauthenticated()
+        if not {CAP_DRAFT, CAP_READ} <= principal.capabilities:
+            raise forbidden(param="draft_id")
+        row = self.store.current_draft(principal.actor_id, principal.data_scopes)
+        if row is None:
+            return {"http_api": "CONNECTED", "draft": None, "candidates": None, "cohort": None}
+        draft = self.get_draft(principal, row["draft_id"], permission_scope=row["permission_scope"])
+        candidates = self.get_candidates(
+            principal, draft.candidate_set_id, permission_scope=row["permission_scope"],
+        )
+        cohort = self._visible_cohort(principal, candidates.cohort_id, row["permission_scope"])
+        return {"http_api": "CONNECTED", "draft": draft.model_dump(mode="json"),
+                "candidates": candidates.model_dump(mode="json"), "cohort": json.loads(cohort["spec_json"])}
 
     def save_draft(self, principal, payload) -> CompetitionActionDraft:
         body = _payload(payload)
@@ -285,6 +309,10 @@ class CompetitionAudienceService:
         if base != current["version"]:
             raise conflict()
         latest = CompetitionActionDraft.model_validate(json.loads(current["payload_json"]))
+        if body.get("rule_changed") is True:
+            expired = expire_draft(latest, "RULE_CHANGED")
+            self.store.insert_draft(expired, scope)
+            return expired
         if copy_only:
             merged = {
                 **latest.model_dump(mode="json"),
@@ -298,6 +326,8 @@ class CompetitionAudienceService:
                 "budget_cap_minor": body.get("budget_cap_minor", latest.budget_cap_minor),
             }
             status = latest.status
+            if body.get("status") == "REVIEW_PENDING" and status != DraftStatus.EXPIRED:
+                status = DraftStatus.REVIEW_PENDING
             reason = latest.expired_reason
             draft = build_draft(
                 draft_id=draft_id, version=latest.version + 1, candidates=candidates,

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { FORBIDDEN_EXPANSIONS, REGISTERED_TOOLS, SKILL_NAME } from './family.mjs';
 import { packCompetitionSkill } from './pack-skill.mjs';
 import { freezeCompetitionSkillPackage, packageDigest } from './skill-package.mjs';
@@ -74,4 +74,38 @@ test('offline python eval suite', () => {
   assert.equal(report.t13_real_model, 'NOT_RUN');
   assert.deepEqual(report.failed, []);
   assert.equal(report.passed, report.total);
+});
+
+test('built native diagnosis tools forward trusted session IDs over model-supplied values', async () => {
+  const built = await import(pathToFileURL(resolve(plugin, 'lib/skills.js')).href);
+  const keys = ['B0_RUNTIME_FAMILY', 'COMPETITION_HTTP_BASE', 'COMPETITION_HTTP_TOKEN'];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  try {
+    process.env.B0_RUNTIME_FAMILY = 'competition_growth';
+    process.env.COMPETITION_HTTP_BASE = 'http://127.0.0.1:18082';
+    process.env.COMPETITION_HTTP_TOKEN = 'isolated-test-token-no-network';
+    globalThis.fetch = async (_url, options) => {
+      requests.push(JSON.parse(options.body));
+      return Response.json({ live_transport: 'HTTP_CONNECTED' });
+    };
+    const registered = [];
+    built.apply({ skills: { register() {} }, tools: { register(tool) { registered.push(tool); } } });
+    const tools = registered.filter(tool => !tool.name.endsWith('_resource'));
+    assert.equal(tools.length, 3);
+    for (const session_id of ['native_one', 'native_two']) {
+      for (const tool of tools) {
+        await tool.execute({ request_id: 'request_one', session_id: 'model_cannot_choose' },
+          { agent: { session: { id: session_id } } });
+      }
+    }
+    assert.deepEqual(requests.map(body => body.session_id),
+      ['native_one', 'native_one', 'native_one', 'native_two', 'native_two', 'native_two']);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key];
+    }
+  }
 });
