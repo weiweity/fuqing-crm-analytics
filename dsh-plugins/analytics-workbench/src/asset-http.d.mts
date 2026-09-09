@@ -23,6 +23,7 @@ export function addIntentKey(analysisId: string, analysisVersion: number, boardV
 export function dashboardContainsAnalysis(payload: unknown, analysisId: string, version: number): boolean;
 export function formatCard(card: unknown): {
   kind: 'error' | 'ok';
+  family?: 'first_purchase' | 'channel_followup';
   card_id: string;
   analysis_ref?: { analysis_id: string; version: number } | null;
   layout: { x: number; y: number; w: number; h: number };
@@ -33,5 +34,8 @@ export function formatCard(card: unknown): {
   channels?: string;
   run_id?: string;
   limitations?: string[];
-  totals?: { channel_mature_cohort_count: number; channel_repeat_count: number };
+  totals?: { channel_mature_cohort_count: number; channel_repeat_count: number } | null;
+  products?: unknown[] | null;
+  cohortMature?: number | null;
+  displayName?: string;
 };

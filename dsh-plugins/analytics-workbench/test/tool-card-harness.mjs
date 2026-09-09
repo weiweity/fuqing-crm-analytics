@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, join } from 'node:path';
 import { FIXTURE, TOOL_NAME } from '../src/model.mjs';
 import { QUERY_TOOL_NAME } from '../src/query-model.mjs';
+import { FIRST_PURCHASE_TOOL_NAME } from '../src/first-purchase-query-model.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(root, '../../.context/dsh-b0/upstream'));
@@ -103,7 +104,9 @@ export async function loadCardHarness() {
   const cards = registrations.filter(r => r.options.name === 'tool.call.toolview');
   const b0Card = cards.find(row => row.options.key === TOOL_NAME);
   const queryCard = cards.find(row => row.options.key === QUERY_TOOL_NAME);
+  const firstPurchaseCard = cards.find(row => row.options.key === FIRST_PURCHASE_TOOL_NAME);
   assert.ok(b0Card); assert.ok(queryCard);
+  assert.ok(firstPurchaseCard, 'compiled client is missing the first-purchase renderer');
   const brand = registrations.find(r => r.options.name === 'sidebar.brand.mark');
   const brandHtml = renderToStaticMarkup(React.createElement(brand.component, { size: 24 }));
   const css = brandHtml.match(/<style>([\s\S]*?)<\/style>/)?.[1];
@@ -120,5 +123,6 @@ export async function loadCardHarness() {
   }
   return { css, client_sha256: createHash('sha256').update(code).digest('hex'), registrations,
     render(block) { return renderCard(b0Card.component, TOOL_NAME, block); },
-    renderQuery(block) { return renderCard(queryCard.component, QUERY_TOOL_NAME, block); } };
+    renderQuery(block) { return renderCard(queryCard.component, QUERY_TOOL_NAME, block); },
+    renderFirstPurchase(block) { return renderCard(firstPurchaseCard.component, FIRST_PURCHASE_TOOL_NAME, block); } };
 }

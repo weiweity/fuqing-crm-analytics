@@ -86,10 +86,16 @@ print('B0 exact Python closure verified')
   run(process.execPath, ['scripts/dsh-b0/query-run-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/analysis-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/cockpit-contract.mjs', '--check', '--python', python]);
-  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup', 'query_jobs', 'query_run_contracts', 'query_worker', 'query_runtime', 'query_native_fault', 'saved_analyses', 'analysis_http', 'cockpit', 'cockpit_http', 'query_assets_runtime'].map(name => `backend/tests/test_analytics_${name}.py`);
+  run(process.execPath, ['scripts/dsh-b0/first-purchase-contract.mjs', '--check', '--python', python]);
+  run(process.execPath, ['scripts/dsh-b0/first-purchase-analysis-contract.mjs', '--check', '--python', python]);
+  run(process.execPath, ['scripts/dsh-b0/first-purchase-cockpit-contract.mjs', '--check', '--python', python]);
+  const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup', 'query_jobs', 'query_run_contracts', 'query_worker', 'query_runtime', 'query_native_fault', 'saved_analyses', 'analysis_http', 'cockpit', 'cockpit_http', 'query_assets_runtime', 'first_purchase', 'first_purchase_http', 'first_purchase_kernel', 'first_purchase_analysis', 'first_purchase_source', 'first_purchase_native', 'customer_features_w4'].map(name => `backend/tests/test_analytics_${name}.py`);
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py', 'backend/analytics_query_app.py',
     'backend/analytics_analysis_app.py', 'backend/analytics_cockpit_app.py',
+    'backend/analytics_first_purchase_app.py', 'backend/analytics_first_purchase_analysis_app.py', 'backend/analytics_first_purchase_cockpit_app.py', 'backend/analytics_first_purchase_native.py', 'backend/contracts/analytics_first_purchase_analysis.py', 'backend/contracts/analytics_first_purchase_cockpit.py', 'backend/analytics_first_purchase_fixture.py',
+    'backend/services/analytics/first_purchase', 'backend/services/analytics/customer_features', 'backend/services/analytics/query_codecs.py',
+    'backend/contracts/analytics_first_purchase_kernel.py', 'backend/contracts/analytics_first_purchase_run.py',
     'backend/analytics_fixture.py', 'backend/analytics_query_fixture.py', 'backend/analytics_worker.py', 'backend/semantic/analytics_b0.py',
     'backend/semantic/analytics_channel_followup.py',
     'backend/contracts/analytics.py', 'backend/contracts/analytics_query.py', 'backend/contracts/analytics_query_run.py',
@@ -97,7 +103,7 @@ print('B0 exact Python closure verified')
     'backend/tests/analytics_run_fault_probe.py', 'backend/tests/analytics_worker_probe.py',
     'backend/tests/analytics_query_worker_probe.py',
     'backend/tests/analytics_native_probe.py', 'backend/tests/analytics_query_native_fault_probe.py', ...pyTests]);
-  const builtTests = ['built.test.mjs', 'loader.test.mjs', 'skills-loader.test.mjs', 'tool-card-dom.test.mjs', 'query-skills-loader.test.mjs', 'sessionless-view-dom.test.mjs', 'query-card-fault.test.mjs', 'query-card-cancel.test.mjs', 'query-card-save.test.mjs', 'asset-overlay.test.mjs'];
+  const builtTests = ['built.test.mjs', 'loader.test.mjs', 'skills-loader.test.mjs', 'tool-card-dom.test.mjs', 'query-skills-loader.test.mjs', 'sessionless-view-dom.test.mjs', 'query-card-fault.test.mjs', 'query-card-cancel.test.mjs', 'query-card-save.test.mjs', 'asset-overlay.test.mjs', 'first-purchase-query-card.test.mjs'];
   const sourceTests = (await readdir(join(plugin, 'test'))).filter(name => name.endsWith('.test.mjs') && !builtTests.includes(name));
   run(process.execPath, ['--test', ...sourceTests.map(name => join(plugin, 'test', name)),
     'scripts/dsh-b0/gateway-policy.test.mjs', 'scripts/dsh-b0/transport-safety.test.mjs', 'scripts/dsh-b0/mock-provider.test.mjs',
@@ -111,7 +117,7 @@ print('B0 exact Python closure verified')
 
   const clean = await mkdtemp(join(b0, 'clean-build-'));
   // No source symlinks or existing output/node_modules in the clean copy.
-  for (const item of ['package.json', 'toolchain.json', 'toolchain.mjs', 'build.mjs', 'pack-skills.mjs', 'skill-package.lock.json', 'query-skill-package.lock.json', 'skills', 'src', 'test']) {
+  for (const item of ['package.json', 'toolchain.json', 'toolchain.mjs', 'build.mjs', 'pack-skills.mjs', 'skill-package.lock.json', 'query-skill-package.lock.json', 'first-purchase-query-skill-package.lock.json', 'skills', 'src', 'test']) {
     await cp(join(plugin, item), join(clean, item), { recursive: true, errorOnExist: true, force: false, dereference: true });
   }
   run(process.execPath, [join(clean, 'build.mjs'), upstream]);

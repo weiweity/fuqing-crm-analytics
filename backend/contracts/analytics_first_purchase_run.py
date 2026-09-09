@@ -1,0 +1,5 @@
+"""First-purchase shared HTTP route constants; payload types live in kernel contract."""
+FIRST_PURCHASE_RUN_SCHEMA = "analytics-run-first-purchase-path/v1"
+FIRST_PURCHASE_RUN_FAMILY = "first_purchase"
+FIRST_PURCHASE_DATA_SCOPE = "first-purchase-fixture"
+FIRST_PURCHASE_HTTP_PREFIX = "/api/v1/analytics-first-purchase"

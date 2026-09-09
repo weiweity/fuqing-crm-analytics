@@ -41,7 +41,9 @@ export function decodeHttpAnalysisList(payload) {
 }
 
 export function decodeHttpDashboard(payload) {
-  if (!payload || payload.http_api !== ASSET_HTTP || payload.schema_version !== 'analytics-cockpit/v1') return null;
+  if (!payload || payload.http_api !== ASSET_HTTP) return null;
+  if (payload.schema_version !== 'analytics-cockpit/v1'
+    && payload.schema_version !== 'analytics-first-purchase-cockpit/v1') return null;
   if (!Array.isArray(payload.cards) || typeof payload.dashboard_id !== 'string') return null;
   return payload;
 }
@@ -72,9 +74,12 @@ export function formatCard(card) {
   }
   const filters = card.snapshot?.resolved_filters;
   const facts = card.facts;
+  const firstPurchase = facts && Array.isArray(facts.products)
+    && facts.display_name === '首购商品路径 / N日正装转化';
   const channels = Array.isArray(filters?.channel_ids) ? filters.channel_ids.join('+') : '';
   return {
     kind: 'ok',
+    family: firstPurchase ? 'first_purchase' : 'channel_followup',
     card_id: card.card_id,
     analysis_ref: card.analysis_ref,
     layout: card.layout,
@@ -84,6 +89,9 @@ export function formatCard(card) {
     channels,
     run_id: card.snapshot?.run_id,
     limitations: card.limitations,
-    totals: facts?.totals,
+    totals: firstPurchase ? null : facts?.totals,
+    products: firstPurchase ? facts.products : null,
+    cohortMature: firstPurchase ? facts.cohort_mature_count : null,
+    displayName: facts?.display_name,
   };
 }

@@ -1,11 +1,12 @@
 import type { Agent } from '@deepseek-ai/dsh-agent';
-import { QUERY_FAMILY, isRegisteredSession, runtimeFamily } from './runtime-family.mjs';
+import { FIRST_PURCHASE_FAMILY, QUERY_FAMILY, isRegisteredSession, runtimeFamily } from './runtime-family.mjs';
 
 export async function loadRunContext(agent: Agent | undefined, requestId: string | undefined,
   unitId: string, packageDigest: string, signal: AbortSignal, resource: string | null = null): Promise<Record<string, unknown>> {
   signal.throwIfAborted();
   const token = process.env.B0_RUNTIME_TOKEN;
-  const queryMode = runtimeFamily() === QUERY_FAMILY;
+  const family = runtimeFamily();
+  const queryMode = family === QUERY_FAMILY || family === FIRST_PURCHASE_FAMILY;
   if (!token || !agent || !isRegisteredSession(agent.id) || !requestId) {
     throw new Error(queryMode ? 'query context has no bound native request' : 'B0 context has no bound native request');
   }
@@ -30,11 +31,13 @@ export async function loadRunContext(agent: Agent | undefined, requestId: string
     }
   } finally { reader.releaseLock(); }
   const context = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  const schema = queryMode ? 'analytics-channel-followup-runtime-context/v1' : 'analytics-b0-runtime-context/v1';
+  const schema = family === FIRST_PURCHASE_FAMILY ? 'analytics-first-purchase-runtime-context/v1'
+    : family === QUERY_FAMILY ? 'analytics-channel-followup-runtime-context/v1' : 'analytics-b0-runtime-context/v1';
   const approval = queryMode ? 'NOT_AVAILABLE_IN_QUERY_RUN' : 'NOT_AVAILABLE_IN_B0';
   if (context.schema_version !== schema || context.session_id !== agent.id
     || context.request_id !== requestId || context.versions?.method_package_digest !== packageDigest
-    || context.run_status !== 'RUNNING' || context.contains_real_data !== false
+    || !(context.run_status === 'RUNNING' || (family === FIRST_PURCHASE_FAMILY
+      && resource === null && context.run_status === 'SUCCEEDED')) || context.contains_real_data !== false
     || context.approval_state !== approval || context.memory_authority !== 'NONE') {
     throw new Error(queryMode ? 'query context contract mismatch' : 'B0 context contract mismatch');
   }

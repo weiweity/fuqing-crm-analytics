@@ -342,10 +342,10 @@ def test_filter_hash_is_stable_under_permutation_and_changes_with_permission():
 
 
 def test_deferred_families_have_no_success_payload():
-    assert QUERY_FAMILY_STATUS[FAMILY_FIRST_PURCHASE_PRODUCT_PATH] == QueryFamilyStatus.DEFERRED
+    assert QUERY_FAMILY_STATUS[FAMILY_FIRST_PURCHASE_PRODUCT_PATH] == QueryFamilyStatus.SUPPORTED_CONTRACT
+    assert QUERY_FAMILIES[FAMILY_FIRST_PURCHASE_PRODUCT_PATH].status is QueryFamilyStatus.SUPPORTED_CONTRACT
     assert QUERY_FAMILIES[FAMILY_CANDIDATE_HANDOFF_AUDIENCE].status is QueryFamilyStatus.DEFERRED
-    with pytest.raises(UnsupportedQueryError, match="DEFERRED"):
-        require_supported_query(FAMILY_FIRST_PURCHASE_PRODUCT_PATH)
+    require_supported_query(FAMILY_FIRST_PURCHASE_PRODUCT_PATH)
     with pytest.raises(UnsupportedQueryError, match="DEFERRED"):
         require_supported_query(FAMILY_CANDIDATE_HANDOFF_AUDIENCE)
     require_supported_query(QUERY_ID)

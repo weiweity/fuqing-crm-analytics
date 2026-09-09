@@ -1,0 +1,15 @@
+{
+  "schema_version": "analytics-run-first-purchase-native-receipt/v1",
+  "note": "Structural example only. Not execution evidence and not a native product pass.",
+  "run_id": "example-run",
+  "request_id": "example-request",
+  "call_id": "example-call",
+  "result": {
+    "status": "OK",
+    "reason_code": null,
+    "facts": {
+      "display_name": "首购商品路径 / N日正装转化",
+      "observation_days": 30
+    }
+  }
+}

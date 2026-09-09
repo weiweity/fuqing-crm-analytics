@@ -38,6 +38,7 @@ const kernelPrivate = JSON.parse(await readFile(join(runtime, 'kernel-private.js
 const { gateway_token: gatewayToken } = kernelPrivate;
 assert.ok(typeof gatewayToken === 'string' && gatewayToken.length >= 32);
 const queryFamily = kernelPrivate.family === 'channel_followup';
+const firstPurchaseFamily = kernelPrivate.family === 'first_purchase';
 const assetsEnabled = Array.isArray(kernelPrivate.asset_capabilities) && kernelPrivate.asset_capabilities.length > 0;
 if (queryFamily) {
   assert.ok(Array.isArray(refs.sessionIds) && refs.sessionIds.length === 2 && refs.sessionIds.includes(refs.sessionId));
@@ -117,7 +118,8 @@ async function nativeMutation(method, request, rpcId, res) {
     if (!contextResponse.ok) return deny(res, rpcId, contextResponse.status);
     const context = await contextResponse.json();
     if (context.session_id !== sessionId) return deny(res, rpcId);
-    const runPath = queryFamily ? '/api/v1/analytics-query/runs/' : '/api/v1/analytics/runs/';
+    const runPath = firstPurchaseFamily ? '/api/v1/analytics-first-purchase/runs/'
+      : queryFamily ? '/api/v1/analytics-query/runs/' : '/api/v1/analytics/runs/';
     const snapshots = await Promise.all(context.conversation.run_ids.map(async id => {
       const row = await kernel(`${runPath}${encodeURIComponent(id)}`, { headers: sessionHeaders });
       if (!row.ok) throw new Error('kernel run read failed');
@@ -172,7 +174,8 @@ async function httpHandler(req, res) {
   }
   if (!browserAuthenticated(req)) return deny(res, undefined, 401);
   if (assetsEnabled) {
-    const mapped = mapAssetRoute(req.method, url.pathname, url.searchParams);
+    const mapped = mapAssetRoute(req.method, url.pathname, url.searchParams,
+      firstPurchaseFamily ? 'first_purchase' : 'channel_followup');
     if (mapped) {
       if (mapped.kind === 'reject' || assetHeaderViolation(req.rawHeaders)) {
         audit('asset', url.pathname, false, mapped.kind === 'reject' ? 'asset-allowlist' : 'asset-header');
@@ -181,7 +184,8 @@ async function httpHandler(req, res) {
       if (mapped.kind === 'status') {
         let live = false;
         try {
-          const probe = await kernel('/api/v1/analytics/dashboards');
+          const probe = await kernel(firstPurchaseFamily
+            ? '/api/v1/analytics-first-purchase/dashboards' : '/api/v1/analytics/dashboards');
           live = probe.status === 200;
           await probe.body?.cancel?.();
         } catch {
@@ -240,6 +244,13 @@ async function httpHandler(req, res) {
       const path = url.pathname === '/b0/context' ? '/internal/native/context'
         : url.pathname.replace('/b0/runs/', '/api/v1/analytics-query/runs/');
       const response = await kernel(path, { headers: { 'x-runtime-session-id': headerSession } });
+      res.writeHead(response.status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(await response.text()); return;
+    }
+    if (firstPurchaseFamily) {
+      const path = url.pathname === '/b0/context' ? '/internal/native/context'
+        : url.pathname.replace('/b0/runs/', '/api/v1/analytics-first-purchase/runs/');
+      const response = await kernel(path);
       res.writeHead(response.status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       res.end(await response.text()); return;
     }

@@ -256,6 +256,9 @@ def runtime_app(config, *, bridge=None):
     family = config.get("family", "b0")
     if family == QUERY_RUN_FAMILY:
         return _query_runtime_app(config, bridge=bridge)
+    if family == "first_purchase":
+        from backend.analytics_first_purchase_native import create_first_purchase_native_app
+        return create_first_purchase_native_app(config, bridge=bridge)
     if family != "b0":
         raise ValueError("unsupported runtime family")
     session_id = config["session_id"]

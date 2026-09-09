@@ -20,9 +20,9 @@ test('native-query-assets is an explicit opt-in and does not replace native-quer
 
 test('query-only kernel config in serve does not grant asset capabilities by default', async () => {
   const serve = await readFile(join(here, 'serve.mjs'), 'utf8');
-  const defaultBlock = serve.slice(serve.indexOf('const kernelConfig'), serve.indexOf('if (queryAssetsScenario)'));
+  const defaultBlock = serve.slice(serve.indexOf('const kernelConfig'), serve.indexOf('if (queryAssetsScenario || firstPurchaseScenario)'));
   assert.doesNotMatch(defaultBlock, /asset_capabilities/);
-  assert.match(serve, /if \(queryAssetsScenario\) \{/);
+  assert.match(serve, /if \(queryAssetsScenario \|\| firstPurchaseScenario\) \{/);
 });
 
 test('gateway asset map is not a generic /api proxy', async () => {
@@ -30,7 +30,8 @@ test('gateway asset map is not a generic /api proxy', async () => {
   assert.match(gateway, /mapAssetRoute/);
   assert.match(gateway, /assetsEnabled/);
   assert.match(gateway, /browser-authorization|assetHeaderViolation/);
-  assert.match(gateway, /kernel\('\/api\/v1\/analytics\/dashboards'\)/);
+  assert.match(gateway, /\/api\/v1\/analytics\/dashboards/);
+  assert.match(gateway, /\/api\/v1\/analytics-first-purchase\/dashboards/);
   assert.match(gateway, /http_api: 'UNAVAILABLE'/);
   assert.doesNotMatch(gateway, /fetch\(`http:\/\/127\.0\.0\.1:4315\$\{url\.pathname\}`/);
 });

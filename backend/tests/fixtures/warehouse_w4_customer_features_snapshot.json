@@ -1,0 +1,273 @@
+{
+  "schema_version": "analytics-warehouse-schema/v2",
+  "fixture_id": "warehouse-w4-customer-features/v1",
+  "as_of": "2026-09-01T00:00:00+08:00",
+  "next_as_of": "2026-09-16T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "amount_unit": "minor",
+  "amount_precision": "integer_fen",
+  "contains_real_data": false,
+  "note": "Independent W4 customer-feature snapshot. Not the W2 header golden and not RFM buckets.",
+  "identities": [
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-basket",
+      "synthetic_user_id": "u-basket",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-dup-a",
+      "synthetic_user_id": "u-dup-a",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-dup-b",
+      "synthetic_user_id": "u-dup-b",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-future",
+      "synthetic_user_id": "u-future",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-invalid",
+      "synthetic_user_id": "u-invalid",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-late",
+      "synthetic_user_id": "u-late",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-refund",
+      "synthetic_user_id": "u-refund",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-1",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-same",
+      "synthetic_user_id": "u-same",
+      "permission_scope": "brand_a"
+    },
+    {
+      "identity_domain": "group-2",
+      "source_channel": "taobao",
+      "source_user_id": "tb-u-scope-b",
+      "synthetic_user_id": "u-scope-b",
+      "permission_scope": "brand_b"
+    }
+  ],
+  "orders": [
+    {
+      "synthetic_user_id": "u-basket",
+      "order_id": "basket-1",
+      "paid_at": "2026-06-01T10:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 15000
+    },
+    {
+      "synthetic_user_id": "u-refund",
+      "order_id": "paid-1",
+      "paid_at": "2026-07-01T08:00:00+08:00",
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 10000
+    },
+    {
+      "synthetic_user_id": "u-refund",
+      "order_id": "asof-1",
+      "paid_at": "2026-08-01T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 5000
+    },
+    {
+      "synthetic_user_id": "u-refund",
+      "order_id": "held-1",
+      "paid_at": "2026-08-15T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 8000
+    },
+    {
+      "synthetic_user_id": "u-same",
+      "order_id": "same-a",
+      "paid_at": "2026-06-10T12:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 8000
+    },
+    {
+      "synthetic_user_id": "u-same",
+      "order_id": "same-b",
+      "paid_at": "2026-06-10T12:00:00+08:00",
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 2000
+    },
+    {
+      "synthetic_user_id": "u-dup-a",
+      "order_id": "shared-oid",
+      "paid_at": "2026-06-20T09:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 4000
+    },
+    {
+      "synthetic_user_id": "u-dup-b",
+      "order_id": "shared-oid",
+      "paid_at": "2026-06-21T09:00:00+08:00",
+      "channel": "B",
+      "status": "PAID",
+      "gross_paid_minor": 6000
+    },
+    {
+      "synthetic_user_id": "u-invalid",
+      "order_id": "cancelled-1",
+      "paid_at": "2026-06-16T00:00:00+08:00",
+      "channel": "B",
+      "status": "CANCELLED",
+      "gross_paid_minor": 3000
+    },
+    {
+      "synthetic_user_id": "u-invalid",
+      "order_id": "full-1",
+      "paid_at": "2026-06-15T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 5000
+    },
+    {
+      "synthetic_user_id": "u-future",
+      "order_id": "future-paid-1",
+      "paid_at": "2026-09-10T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 3000
+    },
+    {
+      "synthetic_user_id": "u-scope-b",
+      "order_id": "other-1",
+      "paid_at": "2026-06-22T00:00:00+08:00",
+      "channel": "A",
+      "status": "PAID",
+      "gross_paid_minor": 12000
+    }
+  ],
+  "late_order": {
+    "synthetic_user_id": "u-late",
+    "order_id": "late-1",
+    "paid_at": "2026-07-01T00:00:00+08:00",
+    "channel": "B",
+    "status": "PAID",
+    "gross_paid_minor": 2500
+  },
+  "lines": [
+    {"line_id": "basket-1-l1", "synthetic_user_id": "u-basket", "order_id": "basket-1", "product_id": "sku_sample", "quantity": 1},
+    {"line_id": "basket-1-l2", "synthetic_user_id": "u-basket", "order_id": "basket-1", "product_id": "sku_full", "quantity": 1},
+    {"line_id": "paid-1-l1", "synthetic_user_id": "u-refund", "order_id": "paid-1", "product_id": "sku_b", "quantity": 1},
+    {"line_id": "asof-1-l1", "synthetic_user_id": "u-refund", "order_id": "asof-1", "product_id": "sku_a", "quantity": 1},
+    {"line_id": "held-1-l1", "synthetic_user_id": "u-refund", "order_id": "held-1", "product_id": "sku_a", "quantity": 1},
+    {"line_id": "same-a-l1", "synthetic_user_id": "u-same", "order_id": "same-a", "product_id": "sku_a", "quantity": 1},
+    {"line_id": "same-b-l1", "synthetic_user_id": "u-same", "order_id": "same-b", "product_id": "sku_b", "quantity": 1},
+    {"line_id": "shared-a-l1", "synthetic_user_id": "u-dup-a", "order_id": "shared-oid", "product_id": "sku_shared_a", "quantity": 1},
+    {"line_id": "shared-b-l1", "synthetic_user_id": "u-dup-b", "order_id": "shared-oid", "product_id": "sku_shared_b", "quantity": 1},
+    {"line_id": "cancelled-1-l1", "synthetic_user_id": "u-invalid", "order_id": "cancelled-1", "product_id": "sku_a", "quantity": 1},
+    {"line_id": "full-1-l1", "synthetic_user_id": "u-invalid", "order_id": "full-1", "product_id": "sku_a", "quantity": 1},
+    {"line_id": "future-paid-1-l1", "synthetic_user_id": "u-future", "order_id": "future-paid-1", "product_id": "sku_a", "quantity": 1},
+    {"line_id": "other-1-l1", "synthetic_user_id": "u-scope-b", "order_id": "other-1", "product_id": "sku_a", "quantity": 1}
+  ],
+  "late_line": {
+    "line_id": "late-1-l1",
+    "synthetic_user_id": "u-late",
+    "order_id": "late-1",
+    "product_id": "sku_a",
+    "quantity": 1
+  },
+  "refunds": [
+    {
+      "refund_id": "paid-1-r1",
+      "synthetic_user_id": "u-refund",
+      "order_id": "paid-1",
+      "refunded_at": "2026-07-02T00:00:00+08:00",
+      "refund_minor": 3000
+    },
+    {
+      "refund_id": "asof-1-r1",
+      "synthetic_user_id": "u-refund",
+      "order_id": "asof-1",
+      "refunded_at": "2026-09-01T00:00:00+08:00",
+      "refund_minor": 1000
+    },
+    {
+      "refund_id": "held-1-r1",
+      "synthetic_user_id": "u-refund",
+      "order_id": "held-1",
+      "refunded_at": "2026-09-10T00:00:00+08:00",
+      "refund_minor": 2000
+    },
+    {
+      "refund_id": "full-1-r1",
+      "synthetic_user_id": "u-invalid",
+      "order_id": "full-1",
+      "refunded_at": "2026-06-16T00:00:00+08:00",
+      "refund_minor": 5000
+    }
+  ],
+  "product_versions": [
+    {
+      "product_id": "sku_sample",
+      "product_version_id": "sku_sample-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    },
+    {
+      "product_id": "sku_full",
+      "product_version_id": "sku_full-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    },
+    {
+      "product_id": "sku_a",
+      "product_version_id": "sku_a-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    },
+    {
+      "product_id": "sku_b",
+      "product_version_id": "sku_b-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    },
+    {
+      "product_id": "sku_shared_a",
+      "product_version_id": "sku_shared_a-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    },
+    {
+      "product_id": "sku_shared_b",
+      "product_version_id": "sku_shared_b-v1",
+      "valid_from": "2026-01-01T00:00:00+08:00",
+      "valid_to": "2027-01-01T00:00:00+08:00"
+    }
+  ]
+}
