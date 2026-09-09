@@ -1,3 +1,4 @@
+import { currentPorts } from './ports.mjs';
 /** B0 transport experiment. Explicit manifest, not a production access service. */
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -16,13 +17,14 @@ import { resolveBoardSample, boardSampleHtml } from './board-sample.mjs';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const b0 = join(root, '.context/dsh-b0');
 const current = JSON.parse(await readFile(join(b0, 'current.json'), 'utf8'));
+const ports = currentPorts(current);
 const { runtime } = current;
 assert.ok(runtime.startsWith(join(b0, 'runtime-')));
 const refs = JSON.parse(await readFile(join(runtime, 'refs.json'), 'utf8'));
 const { launchUrl } = JSON.parse(await readFile(join(runtime, 'browser-private.json'), 'utf8'));
-assert.equal(new URL(launchUrl).origin, 'http://127.0.0.1:4317');
-const upstreamOrigin = 'http://127.0.0.1:4317';
-const origin = 'http://127.0.0.1:4318';
+assert.equal(new URL(launchUrl).origin, `http://127.0.0.1:${ports.web}`);
+const upstreamOrigin = `http://127.0.0.1:${ports.web}`;
+const origin = `http://127.0.0.1:${ports.gateway}`;
 const brands = await brandAssets(root);
 const exchange = await fetch(launchUrl, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
 let internalCookie = exchange.headers.getSetCookie().map(s => s.split(';')[0]).join('; ');
@@ -44,7 +46,7 @@ if (queryFamily) {
   assert.ok(Array.isArray(refs.sessionIds) && refs.sessionIds.length === 2 && refs.sessionIds.includes(refs.sessionId));
 }
 const policyLog = [];
-const upstreamRequire = createRequire(join(b0, 'upstream/packages/api/gateway/package.json'));
+const upstreamRequire = createRequire(join(process.env.B0_BUILD_UPSTREAM ?? join(b0, 'upstream'), 'packages/api/gateway/package.json'));
 const { WebSocket, WebSocketServer } = upstreamRequire('ws');
 const wss = new WebSocketServer({ noServer: true, maxPayload: 65536 });
 const links = new Set();
@@ -81,7 +83,7 @@ async function refreshOwnedUpstream() {
   try { await refreshing; } finally { refreshing = undefined; }
 }
 async function kernel(path, { method = 'GET', body, headers = {} } = {}) {
-  return fetch(`http://127.0.0.1:4315${path}`, { method, headers: {
+  return fetch(`http://127.0.0.1:${ports.kernel}${path}`, { method, headers: {
     'content-type': 'application/json', authorization: `Bearer ${gatewayToken}`, ...headers,
   }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(5000), redirect: 'error' });
 }
@@ -150,7 +152,7 @@ function browserAuthenticated(req) {
   return (req.headers.cookie ?? '').split(';').some(s => equal(s.trim(), `shine-b0=${session}`));
 }
 function sameOrigin(req) {
-  return req.headers.host === '127.0.0.1:4318' && (!req.headers.origin || req.headers.origin === origin)
+  return req.headers.host === `127.0.0.1:${ports.gateway}` && (!req.headers.origin || req.headers.origin === origin)
     && (!req.headers['sec-fetch-site'] || ['same-origin', 'none'].includes(req.headers['sec-fetch-site']));
 }
 function audit(transport, method, allowed, reason) {
@@ -309,7 +311,7 @@ server.on('upgrade', (req, socket, head) => { void (async () => {
   }
   if (socket.destroyed) return;
   wss.handleUpgrade(req, socket, head, client => {
-    const upstream = new WebSocket('ws://127.0.0.1:4317/api/remote.mux', { headers: { cookie: internalCookie }, maxPayload: 1024 * 1024 });
+    const upstream = new WebSocket(`ws://127.0.0.1:${ports.web}/api/remote.mux`, { headers: { cookie: internalCookie }, maxPayload: 1024 * 1024 });
     const seen = new Set(); const active = new Map(); const pending = [];
     const denied = () => { client.close(1008, 'B0 current permission unavailable'); upstream.terminate(); };
     const incoming = permissionFence(currentAccess, denied, { queueLimit: 16 });
@@ -360,9 +362,9 @@ server.on('upgrade', (req, socket, head) => { void (async () => {
     upstream.on('error', () => client.close(1011, 'B0 upstream unavailable'));
   });
 })().catch(() => { socket.destroy(); }); });
-await new Promise((ok, fail) => { server.once('error', fail); server.listen(4318, '127.0.0.1', ok); });
+await new Promise((ok, fail) => { server.once('error', fail); server.listen(ports.gateway, '127.0.0.1', ok); });
 await writeGatewayState(current.hostGeneration);
-console.log('B0_GATEWAY_READY http://127.0.0.1:4318/ (native credential withheld; synthetic owner only)');
+console.log(`B0_GATEWAY_READY ${origin}/ (native credential withheld; synthetic owner only)`);
 process.on('SIGUSR1', () => { void refreshOwnedUpstream().catch(() => {
   console.error('B0_GATEWAY_REFRESH_FAILED; no requests replayed or policy widened');
 }); });

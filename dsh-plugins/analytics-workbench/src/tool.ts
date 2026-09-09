@@ -1,3 +1,4 @@
+import { kernelUrl } from './runtime-endpoints.ts';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { TOOL_NAME, decodeFixture } from './model.mjs';
@@ -55,7 +56,7 @@ export function apply(ctx: Context): void {
       if (!token || !agent || agent.id !== process.env.B0_SESSION_ID) throw new Error('B0 tool has no bound execution context');
       const requestId = requestForTool(agent.session.snapshotEvents(), exec.callId);
       if (!requestId) throw new Error('B0 tool has no journal-correlated native request');
-      const response = await fetch('http://127.0.0.1:4315/internal/native/fixture', {
+      const response = await fetch(kernelUrl('/internal/native/fixture'), {
         method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({ session_id: agent.id, request_id: requestId, call_id: exec.callId, query: args.query }),
         signal: AbortSignal.any([exec.signal, AbortSignal.timeout(33000)]), redirect: 'error',

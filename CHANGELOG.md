@@ -1,5 +1,13 @@
 ## [0.7.0.0] - 2026-09-09
 
+## [Unreleased]
+
+- 新增固定 DSH 原生 web 开发入口，可开关业务 UI；隔离状态与凭据，不复制 B0 disable 清单。
+- 开发 supervisor 使用认证控制端点停止自有子进程，启动超时回收子进程；拒绝凭历史 PID 杀进程。
+- 合成启动器、kernel、bridge、gateway 与 RPC 支持明确端口组；默认 4315–4319，隔离验收使用 4335–4339。
+- 插件样式对齐 DSH 原生令牌，补 HTTP 弹层焦点循环与错误卡整行布局；不改旧 Vue 品牌设计。
+
+
 ### Added
 - 首购 JSON 查询使用共享 RunStore family、物理 worker 与独立 HTTP factory；离线 OpenAPI/TypeScript 及统一 pipeline 接入。
 - 首购保存分析与驾驶舱独立 HTTP / SNAPSHOT 状态库；共享来源校验冻结步骤、原始条件、结果与方法摘要，拒绝合同拒绝结果。

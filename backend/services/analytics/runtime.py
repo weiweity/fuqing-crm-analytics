@@ -29,7 +29,7 @@ class _NoRedirect(HTTPRedirectHandler):
 
 class HostBridge:
     def __init__(self, origin: str, token: str):
-        if origin != "http://127.0.0.1:4316" or len(token) < 32:
+        if origin not in {"http://127.0.0.1:4316", "http://127.0.0.1:4326", "http://127.0.0.1:4336"} or len(token) < 32:
             raise ValueError("explicit loopback B0 bridge configuration required")
         self.origin, self.token = origin, token
         self.opener = build_opener(ProxyHandler({}), _NoRedirect())

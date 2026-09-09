@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { summarizeRequest, evidenceFor, requestIdOf } from './native-evidence.mjs';
+import { runtimePortBase } from './runtime-endpoints.ts';
 import { registeredSessionIds } from './runtime-family.mjs';
 
 export const name = 'analytics-workbench-b0-bridge';
@@ -14,6 +15,7 @@ export const inject = ['agents', 'sessions', 'sessionController'];
 const id = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(value);
 
 export function apply(ctx: Context): void {
+  if (process.env.DSH_ANALYTICS_UI_ONLY === '1') return;
   const token = process.env.B0_RUNTIME_TOKEN;
   const sessions = registeredSessionIds();
   if (!token || token.length < 32) throw new Error('B0 bridge requires explicit isolated capabilities');
@@ -80,7 +82,7 @@ export function apply(ctx: Context): void {
   ctx.effect(async () => {
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);
-      server.listen(4316, '127.0.0.1', () => { server.off('error', reject); resolve(); });
+      server.listen(runtimePortBase() + 1, '127.0.0.1', () => { server.off('error', reject); resolve(); });
     });
     return async () => { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); };
   }, 'analytics-b0: private native bridge');

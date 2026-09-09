@@ -312,3 +312,8 @@ class TestPrePushScript:
         assert "delete" in r.stdout.lower() or "skip" in r.stdout.lower()
         # must not start full suite
         assert "Running full pytest" not in r.stdout
+
+
+def test_dsh_dev_changes_select_b0_pipeline(path_class):
+    plan = path_class.verification_plan(["scripts/dsh-dev/serve.mjs"])
+    assert plan["b0"] is True

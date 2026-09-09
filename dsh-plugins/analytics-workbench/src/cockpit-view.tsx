@@ -25,6 +25,7 @@ export function CockpitView(props: CockpitViewProps) {
   return <>
     <style>{css + COCKPIT_CSS}</style>
     <div className="analytics-b0-dialog analytics-cockpit" data-testid="analytics-cockpit-view"
+      data-dsh-native-chrome="1"
       data-kind={view.kind} data-session={session} data-model={model} data-http="NOT_CONNECTED"
       data-finite-mock="1" data-keyboard-add={keys.add.shortcut} data-keyboard-copy={keys.copy.shortcut}
       data-keyboard-remove={keys.remove.shortcut} data-preview={view.preview ? '1' : '0'}
@@ -52,7 +53,8 @@ export function CockpitView(props: CockpitViewProps) {
         <div className="analytics-cockpit-grid" data-testid="analytics-cockpit-grid">
           {view.cards.map(card => card.kind === 'error'
             ? <article key={card.card_id ?? 'broken'} className="analytics-b0-card analytics-cockpit-card"
-                data-card-id={card.card_id ?? ''} data-card-error="1" role="status">{COPY.cardError}</article>
+                data-card-id={card.card_id ?? ''} data-card-error="1" role="status"
+                style={{ gridColumn: '1 / -1' }}>{COPY.cardError}</article>
             : <article key={card.card_id} className="analytics-b0-card analytics-query-card analytics-cockpit-card"
                 data-card-id={card.card_id} data-card-error="0" data-affected={card.affected ? '1' : '0'}
                 data-plugin={card.plugin} data-selected={card.selected ? '1' : '0'}

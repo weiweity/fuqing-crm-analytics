@@ -3,6 +3,8 @@
 Only this module's __main__ starts a local service. No legacy CRM import.
 """
 
+from backend.services.analytics.runtime_ports import bridge_origin, runtime_port_base
+
 import asyncio
 import json
 import secrets
@@ -185,7 +187,7 @@ def _query_runtime_app(config, *, bridge=None):
     fixture.validate()
     descriptor = fixture.binding_descriptor()
     workers = WorkerManager(store, resolve_actor, fixture)
-    dispatcher = RunDispatcher(store, resolve_actor, bridge or HostBridge("http://127.0.0.1:4316", runtime_token),
+    dispatcher = RunDispatcher(store, resolve_actor, bridge or HostBridge(bridge_origin(config), runtime_token),
                                workers=workers)
     mapping = {session_id: conv.conversation_id for session_id, conv in conversations.items()}
     app = create_query_app(store, registry, runtime_ready=lambda: dispatcher.ready,
@@ -279,7 +281,7 @@ def runtime_app(config, *, bridge=None):
     store = RunStore(Path(config["state_dir"]), B0ResourceProfile(**B0_SMALL_FIXTURE_PROFILE))
     conv = store.create_conversation(actor, "native-primary", AnalyticsConversationRequest(), runtime_session_id=session_id)
     workers = WorkerManager(store, resolve_actor, SyntheticFixture(**config["fixture"]))
-    dispatcher = RunDispatcher(store, resolve_actor, bridge or HostBridge("http://127.0.0.1:4316", runtime_token), workers=workers)
+    dispatcher = RunDispatcher(store, resolve_actor, bridge or HostBridge(bridge_origin(config), runtime_token), workers=workers)
     app = create_app(store, registry, runtime_ready=lambda: dispatcher.ready, runtime_conversation_id=conv.conversation_id)
 
     @asynccontextmanager
@@ -364,5 +366,5 @@ if __name__ == "__main__":
         raise SystemExit("B0 requires Python 3.14+")
     import uvicorn
     setup = json.loads(sys.stdin.readline(65537))
-    uvicorn.run(runtime_app(setup), host="127.0.0.1", port=4315, access_log=False, log_level="warning",
+    uvicorn.run(runtime_app(setup), host="127.0.0.1", port=runtime_port_base(setup), access_log=False, log_level="warning",
                 loop="asyncio", http="h11", ws="none")

@@ -109,7 +109,7 @@ def scoped_pytest_targets(paths: list[str]) -> list[str]:
     return out
 
 
-B0_PREFIXES = ('dsh-plugins/analytics-workbench/', 'scripts/dsh-b0/',
+B0_PREFIXES = ('dsh-plugins/analytics-workbench/', 'scripts/dsh-b0/', 'scripts/dsh-dev/',
                'backend/services/analytics/', 'backend/tests/analytics_')
 B0_EXACT = {'backend/contracts/analytics.py', 'backend/semantic/analytics_b0.py',
             '.github/workflows/dsh-b0.yml', 'backend/analytics_analysis_app.py',

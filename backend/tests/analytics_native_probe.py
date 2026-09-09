@@ -6,6 +6,8 @@ Private proof/release files belong to this synthetic runtime directory only.
 
 from __future__ import annotations
 
+from backend.services.analytics.runtime_ports import runtime_port_base
+
 import json
 import os
 import re
@@ -262,5 +264,5 @@ if __name__ == "__main__":
     import uvicorn
 
     setup = json.loads(sys.stdin.readline(65537))
-    uvicorn.run(native_probe_app(setup), host="127.0.0.1", port=4315, access_log=False, log_level="warning",
+    uvicorn.run(native_probe_app(setup), host="127.0.0.1", port=runtime_port_base(setup), access_log=False, log_level="warning",
                 loop="asyncio", http="h11", ws="none")

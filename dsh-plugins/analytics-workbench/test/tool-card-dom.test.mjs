@@ -30,11 +30,13 @@ for (const example of QUERY_CARD_CASES) {
     }
   });
 }
-test('query card stylesheet is 16px and does not keep the 13px body size', () => {
-  assert.match(harness.css, /\.analytics-query-card \{ font-size:16px/);
+test('query card stylesheet uses native DSH body token and does not keep the 13px body size', () => {
+  assert.match(harness.css, /--dsw-font-base-16/);
   assert.doesNotMatch(harness.css, /\.analytics-query-card \{ font-size:13px/);
   assert.match(harness.css, /tabular-nums/);
   assert.match(harness.css, /\.analytics-query-card button \{/);
+  assert.match(harness.css, /min-height:36px/);
+  assert.doesNotMatch(harness.css, /min-height:44px/);
 });
 test('compiled plugin owns B0 and query tool keys, preserving other native card registrations', () => {
   assert.deepEqual(harness.registrations.filter(r => r.options.name === 'tool.call.toolview').map(r => r.options.key),
