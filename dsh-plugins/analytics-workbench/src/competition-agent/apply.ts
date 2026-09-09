@@ -48,7 +48,9 @@ export function apply(ctx: Context, packInput: { manifest: object; contents: Rec
       },
       timeoutMs: 5000,
       isConcurrencySafe: () => false,
-      execute: async args => liveDiagnosisCall(toolName, args) as never,
+      execute: async (args, exec) => liveDiagnosisCall(toolName, {
+        ...args, session_id: exec.agent?.session.id,
+      }) as never,
     }));
   }
 }

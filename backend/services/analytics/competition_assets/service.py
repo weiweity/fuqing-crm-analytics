@@ -55,6 +55,7 @@ from backend.services.analytics.cockpit_source import (
     resolve_trusted_analysis_card,
 )
 from backend.services.analytics.competition_assets.store import CompetitionAssetStore
+from backend.services.analytics.competition_assets.result import competition_result_item
 from backend.services.analytics.resource_profile import canonical_json, content_hash
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
 
@@ -326,6 +327,7 @@ class CompetitionAssetService:
             "items": items,
         }).model_dump(mode="json")
         with self.store.transaction() as con:
+            self.store.require_not_cancelled(con, principal, "batch", request.batch_id)
             self.store.upsert_batch(
                 con, principal, batch_id=request.batch_id, layout_mode=request.layout_mode.value,
                 status=receipt["status"], receipt=receipt,
@@ -340,10 +342,20 @@ class CompetitionAssetService:
                 raise _missing()
             return json.loads(row["receipt_json"])
 
+    def check_cancelled(self, principal, kind: str, target_id: str) -> None:
+        with self.store.readonly() as con:
+            self.store.require_not_cancelled(con, principal, kind, target_id)
+
+    def cancel(self, principal, kind: str, target_id: str) -> dict[str, Any]:
+        self._require(principal, CAPABILITY_WRITE)
+        self.store.cancel(principal, kind, target_id)
+        return {f"{kind}_id": target_id, "status": "CANCELLED", "late_attempt_publish": False}
+
     def _apply_operation(self, principal, batch_id: str, layout_mode: BoardLayoutMode, operation) -> dict[str, Any]:
         payload_hash = operation_payload_hash(batch_id, operation)
         try:
             with self.store.transaction() as con:
+                self.store.require_not_cancelled(con, principal, "batch", batch_id)
                 existing = self.store.get_operation(con, principal, operation.operation_id)
                 by_key = self.store.get_operation_by_key(con, principal, operation.idempotency_key)
                 if by_key is not None and by_key["operation_id"] != operation.operation_id:
@@ -566,6 +578,7 @@ class CompetitionAssetService:
                 raise _version_conflict()
         if persist:
             with self.store.transaction() as con:
+                self.store.require_not_cancelled(con, principal, "attempt", patch.attempt_id)
                 attempt = self._ensure_attempt(con, principal, patch, payload_hash, persist=True)
                 if attempt["status"] == "APPLIED" and attempt["result_json"]:
                     return json.loads(attempt["result_json"])
@@ -753,7 +766,10 @@ class CompetitionAssetService:
             if trusted["snapshot"]["evidence_digest"] != block.get("evidence_digest"):
                 raise AnalyticsError(409, "BINDING_CORRUPT", "板块冻结快照与保存分析不一致。")
             local_filters = block.get("local_filters") if isinstance(block.get("local_filters"), dict) else {}
+            result = competition_result_item(self.analyses.get(principal, ref["analysis_id"], ref["version"]))
+            result["result_id"] = result["primary_result_ref"] = block["result_id"]
             payload.update({
+                "result": result,
                 "snapshot": dict(trusted["snapshot"]),
                 "facts": dict(trusted["facts"]),
                 "limitations": list(trusted["limitations"]),

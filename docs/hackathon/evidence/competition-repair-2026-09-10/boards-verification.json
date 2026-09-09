@@ -1,0 +1,459 @@
+{
+  "boards": {
+    "items": [
+      {
+        "schema_version": "competition-board/v1",
+        "board_id": "board_11495ddf98a01b592eb464a7c663352d",
+        "block_ids": [
+          "block_4da7e6c011513c36028c0d8ac72f2ad6"
+        ],
+        "version": 2,
+        "base_version": 2,
+        "title": "8月GSV诊断板",
+        "owner_id": "alice",
+        "visibility": "PRIVATE",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "existing_dashboard_schema": "analytics-cockpit/v1",
+        "data_namespace": "competition-board/v1",
+        "snapshot_compat": "ISOLATED_NEW",
+        "data_mode": "SNAPSHOT",
+        "preview": false,
+        "persisted": true,
+        "batch_id": "batch_518124e1a3f145c48cbb70173efb3c04",
+        "operation_id": "op_518124e1a3f145c48cbb70173efb3c04_0",
+        "affected_block_ids": [],
+        "limitations": [
+          "competition-board/v1 隔离命名空间；旧 analytics-cockpit/v1 SNAPSHOT 只读兼容。",
+          "结果按 analysis_id/run_id/evidence_digest 共享引用，不按板重复计算。"
+        ]
+      },
+      {
+        "schema_version": "competition-board/v1",
+        "board_id": "board_199a697f45bb8e73aa562025d6b93b58",
+        "block_ids": [
+          "block_eed8cd0f064ce6922a605a37f68144ff"
+        ],
+        "version": 1,
+        "base_version": 1,
+        "title": "8月GSV诊断板",
+        "owner_id": "alice",
+        "visibility": "PRIVATE",
+        "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+        "existing_dashboard_schema": "analytics-cockpit/v1",
+        "data_namespace": "competition-board/v1",
+        "snapshot_compat": "ISOLATED_NEW",
+        "data_mode": "SNAPSHOT",
+        "preview": false,
+        "persisted": true,
+        "batch_id": "batch_10d9d8310a2f4799956c243c5d42a3c6",
+        "operation_id": "op_10d9d8310a2f4799956c243c5d42a3c6_0",
+        "affected_block_ids": [],
+        "limitations": [
+          "competition-board/v1 隔离命名空间；旧 analytics-cockpit/v1 SNAPSHOT 只读兼容。",
+          "结果按 analysis_id/run_id/evidence_digest 共享引用，不按板重复计算。"
+        ]
+      }
+    ],
+    "http_api": "CONNECTED",
+    "asset_plane": "competition"
+  },
+  "details": [
+    {
+      "status": 200,
+      "body": {
+        "spec": {
+          "schema_version": "competition-board/v1",
+          "board_id": "board_11495ddf98a01b592eb464a7c663352d",
+          "block_ids": [
+            "block_4da7e6c011513c36028c0d8ac72f2ad6"
+          ],
+          "version": 2,
+          "base_version": 2,
+          "title": "8月GSV诊断板",
+          "owner_id": "alice",
+          "visibility": "PRIVATE",
+          "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+          "existing_dashboard_schema": "analytics-cockpit/v1",
+          "data_namespace": "competition-board/v1",
+          "snapshot_compat": "ISOLATED_NEW",
+          "data_mode": "SNAPSHOT",
+          "preview": false,
+          "persisted": true,
+          "batch_id": "batch_518124e1a3f145c48cbb70173efb3c04",
+          "operation_id": "op_518124e1a3f145c48cbb70173efb3c04_0",
+          "affected_block_ids": [],
+          "limitations": [
+            "competition-board/v1 隔离命名空间；旧 analytics-cockpit/v1 SNAPSHOT 只读兼容。",
+            "结果按 analysis_id/run_id/evidence_digest 共享引用，不按板重复计算。"
+          ]
+        },
+        "blocks": [
+          {
+            "analysis_ref": {
+              "analysis_id": "analysis_d86a1c20c87740fe9a48871c3cd46b4f",
+              "version": 1
+            },
+            "block_id": "block_4da7e6c011513c36028c0d8ac72f2ad6",
+            "card_id": "block_4da7e6c011513c36028c0d8ac72f2ad6",
+            "data_mode": "SNAPSHOT",
+            "display_overrides": {},
+            "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+            "filter_hash": "e4db9c2e9227b104329a1ec48646a64241d2647f41681cb3a509b0842ae1fcf1",
+            "filter_mapping": {},
+            "freshness": "PINNED",
+            "layout": {
+              "h": 4,
+              "w": 6,
+              "x": 1,
+              "y": 0
+            },
+            "local_filters": {},
+            "plugin_ref": {
+              "type": "TABLE",
+              "version": "analytics-visual-table/v1"
+            },
+            "result_id": "result_repair_second_synthetic",
+            "run_id": "run_repair_second_synthetic",
+            "result": {
+              "schema_version": "competition-result/v1",
+              "result_id": "result_repair_second_synthetic",
+              "run_id": "run_repair_second_synthetic",
+              "analysis_id": "analysis_d86a1c20c87740fe9a48871c3cd46b4f",
+              "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+              "completeness": "COMPLETE",
+              "contains_real_data": false,
+              "data_mode": "SNAPSHOT",
+              "query_id": "channel_first_observed_followup",
+              "query_version": "channel-followup-query/v1",
+              "metric_id": "gsv",
+              "metric_version": "competition-metrics/v1",
+              "existing_result_schema": "analytics-channel-followup/v1",
+              "facts_schema_ref": "backend.contracts.analytics_query.ChannelFollowupResult",
+              "primary_result_ref": "result_repair_second_synthetic",
+              "empty_reason": null,
+              "limitations": [
+                "finite mock: not a live compute; synthetic candidate only."
+              ],
+              "row_count": 1,
+              "page": {
+                "checksum": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+                "complete": true,
+                "limit": 50,
+                "offset": 0,
+                "total": 1
+              },
+              "resolved_condition": {
+                "metric_type": "GSV",
+                "timezone": "Asia/Shanghai",
+                "as_of": "2026-08-31T16:00:00Z",
+                "comparison_mode": "YOY_SAME_PERIOD",
+                "current_period": {
+                  "start_date": "2026-08-01",
+                  "end_date": "2026-08-31",
+                  "end_bound": "INCLUSIVE_CALENDAR_DAY"
+                },
+                "comparison_period": {
+                  "start_date": "2025-08-01",
+                  "end_date": "2025-08-31",
+                  "end_bound": "INCLUSIVE_CALENDAR_DAY"
+                },
+                "cutoff": "2026-07-31",
+                "sample_mode": "EXCLUDE_CURRENT_SALES_ONLY",
+                "data_version": "synthetic-c0-demo-data/v1",
+                "rule_version": "competition-condition-rule/v1",
+                "source_tense": "PUBLISHED_SNAPSHOT",
+                "history_scope": {
+                  "channel_ids": [],
+                  "kind": "ALL",
+                  "product_ids": []
+                },
+                "sales_scope": {
+                  "channel_ids": [],
+                  "kind": "ALL",
+                  "product_ids": []
+                },
+                "unknown_flags": []
+              },
+              "http_api": "CONNECTED",
+              "finite_mock": true
+            },
+            "snapshot": {
+              "as_of": "2026-08-31T16:00:00Z",
+              "data_snapshot_ref": "synthetic-channel-followup-v1",
+              "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+              "resolved_filters": {
+                "as_of": "2026-08-31T16:00:00Z",
+                "channel_ids": [
+                  "A"
+                ],
+                "cohort_ref": null,
+                "cohort_window_kind": "FIXED",
+                "comparison": null,
+                "data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "data_snapshot_ref": "synthetic-channel-followup-v1",
+                "data_version": "synthetic-channel-followup-data/v1",
+                "exclude_low_price": false,
+                "filter_hash": "e4db9c2e9227b104329a1ec48646a64241d2647f41681cb3a509b0842ae1fcf1",
+                "hash_version": "channel-followup-filter-hash/v1",
+                "metric_id": "channel_first_observed_n_day_repeat",
+                "metric_version": "channel-followup-metric/v1",
+                "observation_days": 30,
+                "permission_scope": "scope_saved_1",
+                "product_ids": [],
+                "query_id": "channel_first_observed_followup",
+                "query_version": "channel-followup-query/v1",
+                "resolved_cohort_end": "2026-08-31T16:00:00Z",
+                "resolved_cohort_start": "2026-05-31T16:00:00Z",
+                "schema_version": "analytics-channel-followup/v1",
+                "timezone": "Asia/Shanghai"
+              },
+              "run_id": "run_repair_second_synthetic"
+            },
+            "facts": {
+              "amount_precision": "integer_fen",
+              "amount_unit": "minor",
+              "channels": [
+                {
+                  "channel_cross_channel_count": 0,
+                  "channel_cross_channel_ratio": 0,
+                  "channel_empty_reason": null,
+                  "channel_id": "A",
+                  "channel_immature_count": 0,
+                  "channel_mature_cohort_count": 2,
+                  "channel_repeat_count": 1,
+                  "channel_repeat_ratio": 0.5,
+                  "channel_window_net_paid_minor": 100
+                }
+              ],
+              "currency": "CNY",
+              "display_name": "首次观察到的渠道 / N日二单率",
+              "observation_days": 30,
+              "totals": {
+                "channel_cross_channel_count": 0,
+                "channel_cross_channel_ratio": 0,
+                "channel_empty_reason": null,
+                "channel_immature_count": 0,
+                "channel_mature_cohort_count": 2,
+                "channel_repeat_count": 1,
+                "channel_repeat_ratio": 0.5,
+                "channel_window_net_paid_minor": 100
+              }
+            },
+            "limitations": [
+              "finite mock: not a live compute; synthetic candidate only."
+            ],
+            "effective_spec_hash": "14fa11ec381fe7915895ab651cd889aa9e83ec18234058268e3d49c4c4bd1b38",
+            "source_status": "OK"
+          }
+        ],
+        "data_namespace": "competition-board/v1",
+        "snapshot_compat": "ISOLATED_NEW",
+        "http_api": "NOT_CONNECTED",
+        "finite_mock": true
+      }
+    },
+    {
+      "status": 200,
+      "body": {
+        "spec": {
+          "schema_version": "competition-board/v1",
+          "board_id": "board_199a697f45bb8e73aa562025d6b93b58",
+          "block_ids": [
+            "block_eed8cd0f064ce6922a605a37f68144ff"
+          ],
+          "version": 1,
+          "base_version": 1,
+          "title": "8月GSV诊断板",
+          "owner_id": "alice",
+          "visibility": "PRIVATE",
+          "layout_mode": "ONE_BOARD_MULTI_BLOCK",
+          "existing_dashboard_schema": "analytics-cockpit/v1",
+          "data_namespace": "competition-board/v1",
+          "snapshot_compat": "ISOLATED_NEW",
+          "data_mode": "SNAPSHOT",
+          "preview": false,
+          "persisted": true,
+          "batch_id": "batch_10d9d8310a2f4799956c243c5d42a3c6",
+          "operation_id": "op_10d9d8310a2f4799956c243c5d42a3c6_0",
+          "affected_block_ids": [],
+          "limitations": [
+            "competition-board/v1 隔离命名空间；旧 analytics-cockpit/v1 SNAPSHOT 只读兼容。",
+            "结果按 analysis_id/run_id/evidence_digest 共享引用，不按板重复计算。"
+          ]
+        },
+        "blocks": [
+          {
+            "analysis_ref": {
+              "analysis_id": "analysis_e8bc4599139d43c0be476d45289573ef",
+              "version": 1
+            },
+            "block_id": "block_eed8cd0f064ce6922a605a37f68144ff",
+            "card_id": "block_eed8cd0f064ce6922a605a37f68144ff",
+            "data_mode": "SNAPSHOT",
+            "display_overrides": {},
+            "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+            "filter_hash": "e4db9c2e9227b104329a1ec48646a64241d2647f41681cb3a509b0842ae1fcf1",
+            "filter_mapping": {},
+            "freshness": "PINNED",
+            "layout": {
+              "h": 4,
+              "w": 6,
+              "x": 0,
+              "y": 0
+            },
+            "local_filters": {},
+            "plugin_ref": {
+              "type": "TABLE",
+              "version": "analytics-visual-table/v1"
+            },
+            "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "result": {
+              "schema_version": "competition-result/v1",
+              "result_id": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "analysis_id": "analysis_e8bc4599139d43c0be476d45289573ef",
+              "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+              "completeness": "COMPLETE",
+              "contains_real_data": false,
+              "data_mode": "SNAPSHOT",
+              "query_id": "channel_first_observed_followup",
+              "query_version": "channel-followup-query/v1",
+              "metric_id": "gsv",
+              "metric_version": "competition-metrics/v1",
+              "existing_result_schema": "analytics-channel-followup/v1",
+              "facts_schema_ref": "backend.contracts.analytics_query.ChannelFollowupResult",
+              "primary_result_ref": "result_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "empty_reason": null,
+              "limitations": [
+                "finite mock: not a live compute; synthetic candidate only."
+              ],
+              "row_count": 1,
+              "page": {
+                "checksum": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+                "complete": true,
+                "limit": 50,
+                "offset": 0,
+                "total": 1
+              },
+              "resolved_condition": {
+                "metric_type": "GSV",
+                "timezone": "Asia/Shanghai",
+                "as_of": "2026-08-31T16:00:00Z",
+                "comparison_mode": "YOY_SAME_PERIOD",
+                "current_period": {
+                  "start_date": "2026-08-01",
+                  "end_date": "2026-08-31",
+                  "end_bound": "INCLUSIVE_CALENDAR_DAY"
+                },
+                "comparison_period": {
+                  "start_date": "2025-08-01",
+                  "end_date": "2025-08-31",
+                  "end_bound": "INCLUSIVE_CALENDAR_DAY"
+                },
+                "cutoff": "2026-07-31",
+                "sample_mode": "EXCLUDE_CURRENT_SALES_ONLY",
+                "data_version": "synthetic-c0-demo-data/v1",
+                "rule_version": "competition-condition-rule/v1",
+                "source_tense": "PUBLISHED_SNAPSHOT",
+                "history_scope": {
+                  "channel_ids": [],
+                  "kind": "ALL",
+                  "product_ids": []
+                },
+                "sales_scope": {
+                  "channel_ids": [],
+                  "kind": "ALL",
+                  "product_ids": []
+                },
+                "unknown_flags": []
+              },
+              "http_api": "CONNECTED",
+              "finite_mock": true
+            },
+            "snapshot": {
+              "as_of": "2026-08-31T16:00:00Z",
+              "data_snapshot_ref": "synthetic-channel-followup-v1",
+              "evidence_digest": "648c3b426f9691725fc291eb43d9077dae338374980cd23898296db030e1a5af",
+              "resolved_filters": {
+                "as_of": "2026-08-31T16:00:00Z",
+                "channel_ids": [
+                  "A"
+                ],
+                "cohort_ref": null,
+                "cohort_window_kind": "FIXED",
+                "comparison": null,
+                "data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "data_snapshot_ref": "synthetic-channel-followup-v1",
+                "data_version": "synthetic-channel-followup-data/v1",
+                "exclude_low_price": false,
+                "filter_hash": "e4db9c2e9227b104329a1ec48646a64241d2647f41681cb3a509b0842ae1fcf1",
+                "hash_version": "channel-followup-filter-hash/v1",
+                "metric_id": "channel_first_observed_n_day_repeat",
+                "metric_version": "channel-followup-metric/v1",
+                "observation_days": 30,
+                "permission_scope": "scope_saved_1",
+                "product_ids": [],
+                "query_id": "channel_first_observed_followup",
+                "query_version": "channel-followup-query/v1",
+                "resolved_cohort_end": "2026-08-31T16:00:00Z",
+                "resolved_cohort_start": "2026-05-31T16:00:00Z",
+                "schema_version": "analytics-channel-followup/v1",
+                "timezone": "Asia/Shanghai"
+              },
+              "run_id": "run_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "facts": {
+              "amount_precision": "integer_fen",
+              "amount_unit": "minor",
+              "channels": [
+                {
+                  "channel_cross_channel_count": 0,
+                  "channel_cross_channel_ratio": 0,
+                  "channel_empty_reason": null,
+                  "channel_id": "A",
+                  "channel_immature_count": 0,
+                  "channel_mature_cohort_count": 2,
+                  "channel_repeat_count": 1,
+                  "channel_repeat_ratio": 0.5,
+                  "channel_window_net_paid_minor": 100
+                }
+              ],
+              "currency": "CNY",
+              "display_name": "首次观察到的渠道 / N日二单率",
+              "observation_days": 30,
+              "totals": {
+                "channel_cross_channel_count": 0,
+                "channel_cross_channel_ratio": 0,
+                "channel_empty_reason": null,
+                "channel_immature_count": 0,
+                "channel_mature_cohort_count": 2,
+                "channel_repeat_count": 1,
+                "channel_repeat_ratio": 0.5,
+                "channel_window_net_paid_minor": 100
+              }
+            },
+            "limitations": [
+              "finite mock: not a live compute; synthetic candidate only."
+            ],
+            "effective_spec_hash": "709daf7dd674ce75f17b6ce887843579e1eca8b5b730523bfed317a011119e61",
+            "source_status": "OK"
+          }
+        ],
+        "data_namespace": "competition-board/v1",
+        "snapshot_compat": "ISOLATED_NEW",
+        "http_api": "NOT_CONNECTED",
+        "finite_mock": true
+      }
+    }
+  ],
+  "batchCount": 3,
+  "retryBodyIdentical": true,
+  "newIntentDistinct": true,
+  "dialogs": [
+    {
+      "open": true
+    }
+  ],
+  "errors": []
+}

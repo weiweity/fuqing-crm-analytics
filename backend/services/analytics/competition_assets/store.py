@@ -118,6 +118,23 @@ class CompetitionAssetStore:
     def close(self) -> None:
         """Connections are per-call; callers drop the instance before reopen."""
 
+    @staticmethod
+    def require_not_cancelled(con, principal, kind: str, target_id: str) -> None:
+        key = "cancel:" + canonical_json([principal.actor_id, kind, target_id])
+        if con.execute("SELECT 1 FROM metadata WHERE key=?", (key,)).fetchone():
+            raise AnalyticsError(409, "CANCELLED", "操作已取消，禁止发布。")
+
+    def cancel(self, principal, kind: str, target_id: str) -> None:
+        # The existing metadata namespace keeps cancellation durable without a
+        # schema migration. BEGIN IMMEDIATE arbitrates with every publish.
+        with self.transaction() as con:
+            existing = (self.get_batch(con, principal, target_id) if kind == "batch"
+                        else self.get_attempt(con, principal, target_id))
+            if existing is not None and existing["status"] in {"SUCCEEDED", "APPLIED"}:
+                raise AnalyticsError(409, "ALREADY_PUBLISHED", "操作已发布，取消不能撤销已保存版本。")
+            key = "cancel:" + canonical_json([principal.actor_id, kind, target_id])
+            con.execute("INSERT OR IGNORE INTO metadata(key,value) VALUES (?,?)", (key, "true"))
+
     def _initialize(self) -> None:
         flags = os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW
         fd = os.open(self.directory / ".initialize.lock", flags, 0o600)

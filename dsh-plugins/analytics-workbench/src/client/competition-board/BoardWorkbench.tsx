@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import {
   ConditionChips, ErrorState, EvidenceBlock, LayoutSlot, StatusBanner, ThemeProvider,
 } from '../competition-shell/index.ts';
-import { BOARD_LAYOUT_MODE_DEFAULT, DEFAULT_PRINCIPAL, RESULT_SUCCESS, RESULT_EMPTY } from './c0-fixtures.mjs';
+import { BOARD_LAYOUT_MODE_DEFAULT, DEFAULT_PRINCIPAL } from './c0-fixtures.mjs';
 import { canEndorse, conditionChips, defaultBlockLayout, evidenceFields, formatResultRowCount, toEndorsedResultRef } from './decode.mjs';
 import { applyLayoutAction, clampLayout, LAYOUT_ACTIONS, matchLayoutKeyboard, pointerDelta } from './layout.mjs';
 import {
@@ -10,6 +10,7 @@ import {
   subscribeSelection,
 } from './selection.mjs';
 import { createBoardTransport } from './transport.mjs';
+import { batchIntent, finishBatchIntent } from './batch-intent.mjs';
 import { competitionHttpOptions } from '../competition-http.mjs';
 import { competitionBoardCss } from './css.ts';
 import type {
@@ -67,13 +68,15 @@ function rowsFor(result: CompetitionResultRef | null): { label: string; value: s
 function blocksFrom(spec: CompetitionBoardSpec | null, results: CompetitionResultRef[]): BlockView[] {
   if (!spec) return [];
   return spec.block_ids.map((block_id, index) => {
-    const result = results.find(row => row.completeness === 'COMPLETE') ?? results[0] ?? null;
-    const plugin: RegisteredPlugin = index === 1 ? 'BAR' : 'TABLE';
+    const saved = spec.blocks?.find(block => block.block_id === block_id);
+    const result = saved?.source_status === 'UNAVAILABLE' ? null
+      : saved?.result ?? results.find(row => row.result_id === saved?.result_id) ?? null;
+    const plugin: RegisteredPlugin = saved?.plugin ?? 'TABLE';
     return {
       block_id,
-      title: index === 0 && spec.title ? spec.title : `板块 ${index + 1}`,
+      title: saved?.display_overrides?.title ?? (index === 0 && spec.title ? spec.title : `板块 ${index + 1}`),
       plugin,
-      layout: defaultBlockLayout(index),
+      layout: saved?.layout ?? defaultBlockLayout(index),
       result,
       rows: rowsFor(result),
       summary: result
@@ -147,6 +150,8 @@ export function BoardWorkbench(props: BoardMountProps) {
   const [error, setError] = useState<CompetitionErrorDetail | null>(null);
   const [message, setMessage] = useState('');
   const [receipt, setReceipt] = useState<unknown>(null);
+  const creationIntent = useRef<ReturnType<typeof batchIntent> | null>(null);
+  const creating = useRef(false);
   const [restore, setRestore] = useState<CompetitionPatchRequest | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -156,7 +161,7 @@ export function BoardWorkbench(props: BoardMountProps) {
   const shown = preview ?? board;
 
   const blocks = useMemo(() => {
-    const list = blocksFrom(shown, results.length ? results : [RESULT_SUCCESS, RESULT_EMPTY]);
+    const list = blocksFrom(shown, results);
     return list.map(block => ({
       ...block,
       layout: layouts[block.block_id] ?? block.layout,
@@ -242,6 +247,7 @@ export function BoardWorkbench(props: BoardMountProps) {
       setBoard(row.body);
       setPreview(null);
       setPending(null);
+      setLayouts({}); setTitles({}); setPlugins({});
       writeLocalDraft(payload.board_id, null);
       setMessage('已保存新版本。撤销走版本检查，不是放弃预览。');
       endInflight(payload.attempt_id);
@@ -317,6 +323,8 @@ export function BoardWorkbench(props: BoardMountProps) {
   }
 
   async function confirmBoards() {
+    if (creating.current) return;
+    creating.current = true;
     try {
       setError(null);
       const endorsed = selectedIds
@@ -327,31 +335,9 @@ export function BoardWorkbench(props: BoardMountProps) {
         setMessage('只能认可 completeness=COMPLETE 的成功结果。');
         return;
       }
-      const operations = layoutMode === 'BATCH_MULTI_BOARD'
-        ? endorsed.map((ref, index) => ({
-          board_id: null,
-          endorsed_result_refs: [ref],
-          idempotency_key: `board-create-${ref.result_id}`,
-          layout_mode: layoutMode,
-          operation_id: `op_c0_board_${index + 1}`,
-          request_fingerprint: ref.evidence_digest,
-          title: `认可 ${ref.result_id}`,
-        }))
-        : [{
-          board_id: null,
-          endorsed_result_refs: endorsed,
-          idempotency_key: 'board-create-a',
-          layout_mode: layoutMode,
-          operation_id: 'op_c0_board_a',
-          request_fingerprint: endorsed[0].evidence_digest,
-          title: '8月GSV诊断板',
-        }];
-      const payload = {
-        schema_version: 'competition-board-batch/v1' as const,
-        batch_id: layoutMode === 'BATCH_MULTI_BOARD' ? 'batch_c0_multi' : 'batch_c0_1',
-        layout_mode: layoutMode,
-        operations,
-      };
+      creationIntent.current = batchIntent(principal, layoutMode, endorsed, creationIntent.current);
+      const payload = creationIntent.current.payload;
+      const operations = payload.operations;
       const previewRow = await transport.previewBatch(principal, payload);
       if (!previewRow.ok) {
         setError(previewRow.body.error);
@@ -372,12 +358,21 @@ export function BoardWorkbench(props: BoardMountProps) {
         board?: CompetitionBoardSpec | null;
         spec?: CompetitionBoardSpec;
         items?: Array<{ board_id?: string }>;
+        status?: string;
+        receipt?: { status: string };
       };
-      if (applied.board?.schema_version === 'competition-board/v1') {
+      function completeIntent() {
+        if ((applied.receipt?.status ?? applied.status) === 'SUCCEEDED') {
+          finishBatchIntent(principal, creationIntent.current);
+          creationIntent.current = null;
+        }
+      }
+      if (transport.kind === 'fixture' && applied.board?.schema_version === 'competition-board/v1') {
         setError(null);
         setBoard(applied.board);
         setPreview(null);
         setPanel('board');
+        completeIntent();
         setMessage('已按认可结果成板。同结果多视图共享 result_id，不重复计算。');
         return;
       }
@@ -387,9 +382,14 @@ export function BoardWorkbench(props: BoardMountProps) {
         if (loaded.ok && loaded.body?.board_id) {
           setError(null);
           setBoard(loaded.body);
+          setLayouts({}); setTitles({}); setPlugins({});
           setPreview(null);
           setPanel('board');
+          completeIntent();
           setMessage('已按认可结果成板。同结果多视图共享 result_id，不重复计算。');
+        } else {
+          if (!loaded.ok) setError(loaded.body.error);
+          setMessage('成板请求已返回，读取已存看板失败。可重试原请求，不会重复建板。');
         }
       }
     } catch (caught) {
@@ -403,6 +403,8 @@ export function BoardWorkbench(props: BoardMountProps) {
         retryable: true,
       } as CompetitionErrorDetail);
       setMessage('成板未完成。驾驶舱保持打开，可重试；相同幂等键不会重复建板。');
+    } finally {
+      creating.current = false;
     }
   }
 
@@ -484,6 +486,7 @@ export function BoardWorkbench(props: BoardMountProps) {
               <button type="button" data-testid="sm-discard-preview" onClick={() => {
                 transport.discardPreview?.();
                 setPending(null); setPreview(null); setConfirmLeave(false);
+                setLayouts({}); setTitles({}); setPlugins({});
                 if (shown) writeLocalDraft(shown.board_id, null);
                 if (pending) endInflight(pending.attempt_id);
                 setMessage('已放弃预览。已保存版本未变。');

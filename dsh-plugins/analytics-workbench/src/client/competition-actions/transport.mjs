@@ -89,6 +89,13 @@ export function createFixtureAudienceTransport(options = {}) {
       if (scenario === 'conflict_409') return fail(409, clone(AUDIENCE_CONFLICT));
       if (scenario === 'permission_denied') return fail(403, clone(AUDIENCE_FORBIDDEN));
       const next = clone(draft);
+      const isNew = !payload.draft_id && payload.candidate_set_id && payload.candidate_set_id !== draft.candidate_set_id;
+      if (isNew) {
+        next.draft_id = `draft_fixture_${globalThis.crypto.randomUUID()}`;
+        next.candidate_set_id = payload.candidate_set_id;
+        next.source_result_ref = candidates.source_result_ref;
+        next.status = 'DRAFT'; next.expired_reason = null; next.copy_only_change = false;
+      }
       if (payload.copy_only_change) {
         next.copy_only_change = true;
         next.control_design = payload.control_design ?? next.control_design;
@@ -103,7 +110,7 @@ export function createFixtureAudienceTransport(options = {}) {
       if (payload.reviewer_id) next.reviewer_id = payload.reviewer_id;
       if (payload.review_by) next.review_by = payload.review_by;
       if (payload.status === 'REVIEW_PENDING') next.status = 'REVIEW_PENDING';
-      next.version += 1;
+      next.version = isNew ? 1 : next.version + 1;
       next.auto_send = false;
       draft = next;
       return ok(200, next);
@@ -160,6 +167,8 @@ export function createHttpAudienceTransport({ fetchImpl, basePath = '/api/v1/ana
   }
   let lastCandidateSetId = null;
   let lastDraftId = null;
+  let lastDraftVersion;
+  let permissionScope = 'scope-brand-a';
   async function request(path, { method = 'GET', body } = {}) {
     const headers = {};
     if (body !== undefined) headers['content-type'] = 'application/json';
@@ -178,15 +187,22 @@ export function createHttpAudienceTransport({ fetchImpl, basePath = '/api/v1/ana
     async previewCandidates(_p, payload) {
       const body = wrapAudiencePreviewPayload(payload || {});
       const row = await request(`${basePath}/candidates/preview`, { method: 'POST', body });
-      if (row.ok) lastCandidateSetId = row.body?.candidates?.candidate_set_id || lastCandidateSetId;
+      if (row.ok) {
+        const next = row.body?.candidates?.candidate_set_id;
+        if (next && next !== lastCandidateSetId) { lastDraftId = null; lastDraftVersion = undefined; }
+        lastCandidateSetId = next || lastCandidateSetId;
+        permissionScope = row.body?.candidates?.permission_scope || permissionScope;
+      }
       return row;
     },
     async saveDraft(_p, payload = {}) {
       const body = {
         auto_send: false,
-        permission_scope: payload.permission_scope || 'scope-brand-a',
+        permission_scope: payload.permission_scope || permissionScope,
         candidate_set_id: payload.candidate_set_id || lastCandidateSetId,
         draft_id: payload.draft_id || lastDraftId,
+        base_version: payload.base_version ?? lastDraftVersion,
+        rule_changed: payload.rule_changed === true,
         copy_only_change: payload.copy_only_change === true,
         control_design: payload.control_design,
         stop_condition: payload.stop_condition,
@@ -194,12 +210,24 @@ export function createHttpAudienceTransport({ fetchImpl, basePath = '/api/v1/ana
         review_by: payload.review_by,
         status: payload.status,
         owner_id: payload.owner_id,
+        budget_cap_minor: payload.budget_cap_minor,
+        channel: payload.channel,
+        product_id: payload.product_id,
       };
       const row = await request(`${basePath}/drafts`, { method: 'POST', body });
-      if (row.ok) lastDraftId = row.body?.draft_id || lastDraftId;
+      if (row.ok) { lastDraftId = row.body?.draft_id || lastDraftId; lastDraftVersion = row.body?.version; }
       return row;
     },
-    async loadDraft() { return request(`${basePath}/drafts/current`); },
+    async loadDraft() {
+      const row = await request(`${basePath}/drafts/current`);
+      if (row.ok) {
+        lastDraftId = row.body?.draft?.draft_id || null;
+        lastDraftVersion = row.body?.draft?.version;
+        lastCandidateSetId = row.body?.candidates?.candidate_set_id || null;
+        permissionScope = row.body?.candidates?.permission_scope || permissionScope;
+      }
+      return row;
+    },
   };
 }
 

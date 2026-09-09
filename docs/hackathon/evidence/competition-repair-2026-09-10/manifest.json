@@ -1,0 +1,14 @@
+{
+  "code_commit": "1550f43cbb8192c8b6df59eaee20ae039e87dda6",
+  "upstream_commit": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "sha256": {
+    "boards-verification.json": "7d8c7235bb8a5b10c235bd20511c90b549cd0bdcc9135a4499eaa8e07fa5da69",
+    "browser-trace-layout.json": "fffc077b27f94c62fca883a323dca729cb648416809fefafb0366d27d072686b",
+    "browser-trace.json": "2ca542bd9307863ea240d9b353b679327aa0118104498886936748c1f54c6c5a",
+    "diagnosis-session-qa.json": "ddfab1088da7c764d9d40728d15d243fee0352e05f86a83f481ef9e2e3e4ee00",
+    "screenshots/board-layout-persisted.png": "66e8c699399865672824290ff83d529c7d99961247409f36dd91d126ca1db1ac",
+    "screenshots/board-response-lost.png": "757c24d4a51fce3145a919b408eabba22daf84ba2589a25c7c21c5f33db77b63",
+    "screenshots/draft-v2-reopened.png": "bf62a3d222e05fe0f3defd4f29df44be6b04cf9d27558794207fe92fa27a259b",
+    "screenshots/onboarding-save-failed.png": "3b5f5bc7cd63d3699cef118508b9fbc669c6c4482bf73bbef6a65cfa9c45fabe"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "level": "Browser fetch -> live synthetic HTTP; explicit test session IDs, no model call",
+  "firstStatus": 200,
+  "inheritStatus": 422,
+  "budget": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "exhaustedStatus": 429,
+  "freshStatus": 200,
+  "pass": true
+}
