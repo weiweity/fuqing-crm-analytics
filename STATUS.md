@@ -8,17 +8,14 @@
 |---|---|
 | **VERSION** | `0.7.0.0`（#108 已合并） |
 | **main** | `f818fca`（#110）；首购原生、W4 最小层及 W5 特征产物发布已合入 |
-| **进行中分支** | `codex/dsh-compat-integration`：DSH 原生基座与插件 UI 本地集成，未提交；旧合成演示保留 |
+| **进行中分支** | `codex/dsh-compat-integration`：DSH 原生基座与插件 UI 本地集成已提交，进入发布验证；旧合成演示保留 |
 | **黑客松主链** | 旧 Mission 演示仍是 `GET /today → 增长董事会 → 问数 → 审批 → DRAFT_EXPORT`（8000/5173）。B0 查询资产为 opt-in `--native-query-assets`；首购原生为 `--native-first-purchase`（4315–4319），产品仍 PARTIAL |
 | **可合并 CI** | required：`lint` `test` `ground-truth-lint` `contract-filterbuilder-lint` `frontend` `dependency-audit` `docker-smoke` `b0-contract-build` `merge-gate`。skip 不算失败。e2e 非 PR 门禁 |
-| **定时 CI** | Nightly / Weekly 与 PR 同口径；timeout 45min |
-| **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md` |
-| **Actions 策略** | 仅 GitHub-owned Actions；workflow 动作为 40 位 commit SHA |
+| **供应链文档** | `docs/operating/supply-chain.md` · `github-governance-checklist.md` · `docker-ports-and-images.md`；Actions 仅 GitHub-owned、固定 40 位 SHA；定时 CI 同口径、45min |
 | **ruff** | 锁 `0.16.6`；`pyproject.toml` `lint.select = ["E4","E7","E9","F"]`（保持 0.15 默认 59 条，不启用 0.16 的 413 条） |
 | **债** | 产品仍 PARTIAL；首购 catalog 已按合成 native/HTTP/合同证据升为 SUPPORTED_CONTRACT；候选人群仍 DEFERRED。W4 基础特征共享读取、W5 特征产物原子发布已实现，发布状态以本轮 PR 为准；完整 W4/整仓发布、真实模型与完整业务验收未完成 |
 | **运维脚本** | [`scripts/ops/`](scripts/ops/)（launchd 已指新路径） |
-| **Admin Upload** | **已撤回**，无产品路由 |
-| **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git** |
+| **生产数据** | `data/processed/fuqing_crm.duckdb` 本地，**不进 git**；Admin Upload 已撤回，无产品路由 |
 | **服务** | 核验时 PID 36717/36727 仍监听 8000/5173，cwd 指向已删除的旧演示目录；不是当前主线运行证据。本轮未停止或重启 |
 | **未完成** | 真实模型原生浏览器、整仓发布、多人/容量/业务 UAT、公网仍未完成；历史三次 supervisor 退出 UNKNOWN |
 
