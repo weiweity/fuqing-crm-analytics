@@ -59,16 +59,19 @@ class ProbeLauncher(AbstractContextManager):
     def release(self):
         os.write(self.gate_write, b"1")
 
-    def __exit__(self, *_exc):
+    def close(self, *, close_worker_streams=True):
         # Only owned children; ensure a failed test cannot strand a live query.
         if self.child is not None and self.child.poll() is None:
             self.child.kill()
             self.child.wait(timeout=5)
-        if self.child is not None:
+        if self.child is not None and close_worker_streams:
             for stream in (self.child.stdin, self.child.stdout, self.child.stderr):
                 stream.close()
         for fd in (self.proof_read, self.proof_write, self.gate_read, self.gate_write):
             os.close(fd)
+
+    def __exit__(self, *_exc):
+        self.close()
 
 
 def main():

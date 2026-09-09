@@ -86,6 +86,9 @@ def pytest_args(targets: list[str], junit: Path) -> list[str]:
     # requires xdist, which is not installed by the CI lockfile.
     return [sys.executable, '-m', 'pytest', *targets, '-x', '-q', '-p', 'no:xdist',
             '-m', 'not slow', '--durations=10', '-p', 'no:cacheprovider',
+            # Dump thread stacks while a test is stuck, before the outer
+            # process deadline kills it. This does not relax that deadline.
+            '-o', 'faulthandler_timeout=60',
             f'--junitxml={junit}', *deselects]
 
 

@@ -21,3 +21,11 @@
 同轮只读核对旧 MCP：2 个已有回归通过，确认截断已标失败、超大中文 JSON 返回完整错误；串行 300 秒 CLI、取消及完整结果交付仍 PARTIAL。比赛运行时通过已配置 HTTP 直连，不经过旧 stdio。未启动旧 MCP 或读取真实数据库。
 
 源码及原始日志摘要见 [worker-read-recovery.json](evidence/visual-readiness-2026-09-10/worker-read-recovery.json)。本追加还需自己的正常推送和远端检查；不沿用 `4d8a968` 的局部成功。用户 4325/18083 保留原版本与 Models 配置，未切换。
+
+## 原生测试探针的管道关闭竞态
+
+`bcbad29` 的 [CI 34415937002](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34415937002) B0 成功，Python 第二组完成 97 项后触发 900 秒超时。按同一收集顺序，下一个是 `test_close_kills_this_instance_sql_hold_child`；没有远端线程堆栈，故这是定位推断。原第二组在 macOS 本地 393 passed / 1 warning，未重现 Linux 卡死。
+
+独立确定性回归确认资源归属错误：真实 SQL 子进程进入屏障后，协调器 close 杀掉子进程，也关闭了已交给 worker selector 的 stdout/stderr。现协调器只停止自有子进程并关闭探针专用管道，由 WorkerManager 读到 EOF 后关闭协议流；独立 ProbeLauncher 默认仍完整清理。回归修复前 1 failed，修复后相关 51 passed / 1 warning，确认真实 -9 退出及两条管道都能排空到 EOF。
+
+检查入口增加 pytest 的 60 秒线程堆栈输出，保留 900 秒组超时与原测试选择；已有 runner 回归 44 passed。该补丁修复测试探针的生命周期，不扩大产品运行时异常处理。源文件和日志摘要见 [probe-pipe-ownership.json](evidence/visual-readiness-2026-09-10/probe-pipe-ownership.json)。本次还需正常推送和新 SHA 的 CI；4325/18083 与模型配置保持原状。

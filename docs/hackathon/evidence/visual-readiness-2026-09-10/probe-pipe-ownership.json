@@ -1,0 +1,41 @@
+{
+  "base_head": "bcbad29922ff0b25024e01cb3a36810e9f3d24df",
+  "ci_failure": {
+    "run": 34415937002,
+    "job": 102680742397,
+    "result": "group 2 timeout after 900s; 97 completed cases",
+    "stack_trace_available": false,
+    "suspected_case": "test_close_kills_this_instance_sql_hold_child",
+    "inference": "97 completed cases maps the next case to coordinator close; Linux hang itself not locally reproduced"
+  },
+  "reproduction": {
+    "before": "real SQL child killed, but consumer registered stdout/stderr unexpectedly closed; 1 failed",
+    "after": "51 passed, 1 warning; includes actual child exit and draining both streams to EOF",
+    "runner": "44 passed",
+    "original_group2_local": "393 passed, 1 warning before repair; macOS did not reproduce Linux hang"
+  },
+  "changes": [
+    "probe coordinator leaves returned Popen streams to WorkerManager",
+    "standalone ProbeLauncher still closes its own streams by default",
+    "pytest thread stack dump after 60 seconds; hard 900 second group bound unchanged"
+  ],
+  "review": "Scoped two-pass review completed; no new blocking finding",
+  "source_sha256": {
+    "backend/tests/analytics_native_probe.py": "a48eeac1fcfeb71722689db5f0330e29b275d66f6d9bd6bf36e5e62782759640",
+    "backend/tests/analytics_worker_probe.py": "190b64a20e0c873b88e9dc03bb0162efa75ecf1b2ca5d695b9720a818ed0e3e4",
+    "backend/tests/test_analytics_native_probe.py": "d04854369de58b156e60711d08709d15734030856a8005a28e6a4f130e2e463d",
+    "scripts/run_backend_tests_bounded.py": "4483044bec4e3501b429cc48c8f2714df51df4e29b3b6b4c79c519149e38d033"
+  },
+  "local_logs_sha256": {
+    ".context/probe-pipe-before.log": "54cd7ae5cfcfec89be3cdf013d0495d40d5a59ff47926360b715902e4fdf09b9",
+    ".context/probe-pipe-after.log": "bf7a7f87676f258434903bf58193cc62992cb7f38c5fb4fd29559489a1c52174",
+    ".context/probe-runner-after.log": "e8fbaebd38b191f6b3fcadfb4bb50e8708629152c09f3c9d2fad41341e5b1fa7",
+    ".context/ci-bcb-group2-local.log": "4e485f59055205153372fe7edc2a9c9d9b5dfd923cfdd75a30b9d291028eace8",
+    ".context/visual-ci-bcb-python-failed.log": "c4d8c3744023ba3276c6abaf04ff7eec7eef365f23793996e1cda2e47457ca9a"
+  },
+  "limits": [
+    "latest full CI pending",
+    "no candidate switch or model call",
+    "no archived data access"
+  ]
+}
