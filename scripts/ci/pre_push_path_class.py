@@ -135,6 +135,7 @@ TOOL_TESTS = [
     'backend/tests/test_check_l4_91_excel_export_ssot.py',
     'backend/tests/test_github_actions_hardening.py',
     'backend/tests/test_ci_e2e_env_config.py',
+    'backend/tests/test_e2e_gate_policy_2026_07_19.py',
     'backend/tests/test_ci_lfs_checkout.py',
 ]
 

@@ -1,7 +1,7 @@
 """e2e 门禁分层契约 (2026-07-19): PR 不挡 + 可选极简 smoke.
 
-可合并 = lint + test（lint.yml）。
-浏览器 e2e 仅 e2e-smoke.yml（workflow_dispatch / schedule），不挡 PR merge。
+合并由 lint.yml 的路径选择与 merge-gate 汇总门禁约束。
+浏览器 e2e 仅 e2e-smoke.yml（仅 workflow_dispatch），不挡 PR merge。
 """
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ class TestOptionalE2eSmoke:
         assert on is not None
         on_keys = set(on.keys()) if isinstance(on, dict) else set()
         assert "workflow_dispatch" in on_keys, "smoke 必须可手动触发"
-        assert "schedule" in on_keys, "smoke 必须有 nightly schedule"
+        assert "schedule" not in on_keys, "旧登录 smoke 仅手动，不再定时运行"
         assert "pull_request" not in on_keys, "smoke 不得挂 pull_request（否则挡 PR）"
         # push 也不默认挡 main PR 路径；允许无 push 或仅不在 lint 路径
         assert "push" not in on_keys
