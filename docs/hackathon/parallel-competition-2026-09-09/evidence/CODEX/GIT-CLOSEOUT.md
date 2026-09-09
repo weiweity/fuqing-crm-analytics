@@ -19,7 +19,11 @@ B0 pipeline 460 Python、20 supervisor、225 源测试、53 编译测试、52 �
 BUILD-EVIDENCE.json 记录产物哈希。Vue 类型检查与构建通过。
 第一次 pre-push 在 backend 第 9 组被旧 MTD 月初断言拦截，未开始 LFS 或远端推送。
 该断言仍要求回落完整上月，与已冻结 C0 月初 EMPTY 金标准冲突；现更新为本月空窗并保留闰年 cutoff 校验。
-最后两组已独立重跑通过；下次推送仍完整执行正常门禁，不按前次结果跳过。
+最终 a2305125d58ab7963233e5e084df1d7f00302bbd 正常 pre-push 全部通过：
+backend 2264 passed / 77 skipped / 71 deselected；Vue 23 文件、205 测试通过且构建通过；
+B0 完整 pipeline 与干净副本逐字节重建通过。16 个 LFS 对象（1.6 MB）上传成功，
+分支 codex/competition-closeout 已推送 origin。后续仅补验证记录，不改执行代码。
+远端 CI 未执行：CI 触发条件是 PR 或 main push，本次只推候选分支，未创建 PR/merge。
 
 提交 6e0c4a1568e915ff9272be7c3aba5c8925f86f0b 后，另起本轮自有 18083 合成 HTTP，
 认可→成板→重复提交仍一块板→停止并重启该 Python→GET 重开 persisted=true。

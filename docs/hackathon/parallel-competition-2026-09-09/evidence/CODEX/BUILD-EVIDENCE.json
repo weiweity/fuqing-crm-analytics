@@ -1,11 +1,11 @@
 {
   "schema_version": "dsh-b0-build-evidence/v1",
-  "at": "2026-09-09T15:02:27.330Z",
+  "at": "2026-09-09T15:19:55.866Z",
   "upstream_sha": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
   "upstream_lock_sha256": "2c903ab870f821ee2db62fa9417d11b1c2b9c65fbeec30e851ddc53c4cc8c383",
   "node": "v24.19.0",
   "python": "Python 3.14.4",
-  "clean_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-closeout/.context/dsh-b0/clean-build-gsOKD2",
+  "clean_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-closeout/.context/dsh-b0/clean-build-hLHI7V",
   "stages": [
     "contract",
     "python-unit",
