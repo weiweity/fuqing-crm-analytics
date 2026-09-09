@@ -4,15 +4,17 @@
 
 ## 当前采用的目标方案（2026-09-05）
 
+**最新发布（2026-09-09）**：v0.7.0.0 已经 [PR #108](https://github.com/weiweity/fuqing-crm-analytics/pull/108) 合入 `d95e504`，PR CI 必需检查通过。本机 DSH 合成演示已验证首购查询→保存分析→加入驾驶舱；使用本地 stub，真实模型和公网未验。见 [发布收尾](./RELEASE-0700-CLOSEOUT-2026-09-09.md)。以下各轮记录保留其历史时点。
+
 **当前第二轮结果**：[候选复核与资产集成](./PARALLEL-ROUND2-REVIEW-2026-09-08.md) 保留历史阻断。2026-09-09 已在集成 worktree 接通首购原生持久绑定、在途协议、decoder/编译后卡片与查询→保存→驾驶舱合成闭环；候选人群仍未开放。原生浏览器 stub 合成查询→总结→保存→驾驶舱→脱离会话重读已补验通过；真实模型仍 NOT RUN。交接见 [HANDOFF](./FIRST-PURCHASE-NATIVE-HANDOFF-2026-09-09.md)，交付记录见 [闭环](./FIRST-PURCHASE-NATIVE-LOOP-2026-09-09.md)。
 
-**上一轮本地工作**：[首购查询 / W4 并行集成清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。两个候选已收到，Codex 已完成共享内核、物理 worker、独立 HTTP 和 W4 最小层集成；本轮 pipeline 405 项 Python 测试通过，W1–W3 另跑 27 项通过。详见 [集成结果](./PARALLEL-INTEGRATION-RESULT-2026-09-08.md) 与 [HTTP 使用说明](./FIRST-PURCHASE-SHARED-HTTP.md)。尚未提交，首购 native UI 未验收。
+**上一轮本地工作**：[首购查询 / W4 并行集成清单](./PARALLEL-QUERY-W4-INTEGRATION-2026-09-08.md)。两个候选已收到，Codex 已完成共享内核、物理 worker、独立 HTTP 和 W4 最小层集成；本轮 pipeline 405 项 Python 测试通过，W1–W3 另跑 27 项通过。详见 [集成结果](./PARALLEL-INTEGRATION-RESULT-2026-09-08.md) 与 [HTTP 使用说明](./FIRST-PURCHASE-SHARED-HTTP.md)。当时尚未提交、首购 native UI 未验收；已由 #108 的合成原生闭环证据更新。
 
 开发入口：[唯一 Agent 规则](../../AGENTS.md)；[2026-09-06 规则统一与项目盘查](./AGENT-RULES-AUDIT-2026-09-06.md)记录 Astra 工作方式适配、旧自动化停用及未删除候选，不改变 B0 业务验收结论。
 
 **Git 收口（2026-09-08）**：本次核验基线 `origin/main` = `3ec1c86`（#107）。#100 v0.6.0.0 查询资产驾驶舱、#102 v0.6.1.0 overlay 编译后 DOM、#103 v0.6.2.0 加入重试/不串板、#104 v0.6.3.0 首购离线金标准、#105–#107 hackathon README 收口已 squash 合入；#85–#99 依赖与 ruff 0.16.6（`lint.select` 仍为 0.15 的 `E4/E7/E9/F`）已合入。公网部署仍暂缓。产品仍 PARTIAL。
 
-**并行 gstack Goal（2026-09-08，已结束交付）**：双轨已串行 `/ship` + `/land-and-deploy`。[#103](https://github.com/weiweity/fuqing-crm-analytics/pull/103) v0.6.2.0 overlay：保存成功后 join 4xx/409 只重试加入；两 CONNECTED overlay 不串板；切分析面板不把卸载控件当 hang。[#104](https://github.com/weiweity/fuqing-crm-analytics/pull/104) v0.6.3.0 首购离线金标准：JSON snapshot 变换，缺商品角色整查询拒绝且不输出转化率。该历史版本 catalog / HTTP / worker 当时仍 DEFERRED；本轮本地 worker/独立 HTTP 已通过，native catalog 保持 DEFERRED。计划原稿仍是本地未跟踪文件，不代表仓库已收录。
+**并行 gstack Goal（2026-09-08，已结束交付）**：双轨已串行 `/ship` + `/land-and-deploy`。[#103](https://github.com/weiweity/fuqing-crm-analytics/pull/103) v0.6.2.0 overlay：保存成功后 join 4xx/409 只重试加入；两 CONNECTED overlay 不串板；切分析面板不把卸载控件当 hang。[#104](https://github.com/weiweity/fuqing-crm-analytics/pull/104) v0.6.3.0 首购离线金标准：JSON snapshot 变换，缺商品角色整查询拒绝且不输出转化率。该历史版本 catalog / HTTP / worker 当时仍 DEFERRED；后续 #108 的 worker/HTTP/合成 native 已通过，首购 catalog 为 SUPPORTED_CONTRACT；候选人群仍 DEFERRED。计划原稿仍是本地未跟踪文件，不代表仓库已收录。
 
 **8 小时 Goal 当时口径（2026-09-07，已结束交付）**：[Goal 计划](./GOAL-8H-CODEX-GROK-2026-09-07.md) 做过本地 synthetic G0–G5。它承接历史 B0 PARTIAL，不是重跑 T01–T09，也不是 B1–B4 完整产品。当时 Git 是 `PR_DELIVERY`（分支/commit/push/小 PR）；**之后**已获 merge 授权并把队列合进 `main`。不要把「未授权 merge」当成现在的指令。G0 文档单元当时未跑业务测试。T09 `bd6d8fe` / [PR #69](https://github.com/weiweity/fuqing-crm-analytics/pull/69)；G1 `857d2ce` / [PR #70](https://github.com/weiweity/fuqing-crm-analytics/pull/70)。G2a–G4b 报告仍是当时证据。G4a 浏览器当时 **NOT RUN**。G4b 核心 native PASS（`runtime-zPbEKI`）。交接快照见 [Goal 结果](./GOAL-8H-RESULT-2026-09-07.md)。v0.6.0.0 opt-in `--native-query-assets`：SUCCEEDED 查询保存为 SNAPSHOT，「我的驾驶舱」HTTP overlay 查看/加入/复制/预览/撤销；默认查询入口不带资产。见 [CHANGELOG](../../CHANGELOG.md) 与 [插件 README](../../dsh-plugins/analytics-workbench/README.md)。
 
