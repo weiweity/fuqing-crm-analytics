@@ -1,0 +1,59 @@
+/** Private T17 fixture: local model responses; actual native tools and compaction. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
+import {pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+import {namespaceToolCallLine} from '../scripts/dsh-b0/mock-provider.mjs';
+const config=JSON.parse(await readFile(new URL('./t17-extended-current.json',import.meta.url),'utf8'));
+const root=config.root, seed=join(root,'runtime/workspace/seed.txt');
+const {startMockLlmServer}=await import(pathToFileURL(join(config.upstream,'packages/test-support/llm-mock-server/lib/index.js')));
+const common={port:0,repeatLast:true,chunkSize:256,chunkDelayMs:0,randomSeed:29};
+const summary=['Primary Request and Intent','Key Technical Concepts','Files and Code','Errors and Fixes','Pending Jobs','Current Work','Next Step','Critical Context'].map((h,i)=>`## ${h}\n- ${i===2?seed:i===6?'Read seed.txt again using the native tool.':'Local native fixture; seed content is T17_EXTENDED_NATIVE_SEED.'}`).join('\n\n');
+const servers=new Map();
+for(const [name,toolName,args] of [
+ ['read','read',{file_path:seed}],
+ ['minimal','str_replace_editor',{command:'view',path:seed}],
+ ['ptc','run_code',{code:`return await tools.read({file_path:${JSON.stringify(seed)}})`,description:'Read the isolated T17 seed through the actual generated SDK'}],
+]) servers.set(name,await startMockLlmServer({...common,sequence:['tool_call_success'],toolName,toolArguments:JSON.stringify(args)}));
+servers.set('done',await startMockLlmServer({...common,sequence:['success'],successText:'Local T17 fixture response. Evaluate actual native logs and file results.'}));
+servers.set('history',await startMockLlmServer({...common,sequence:['success'],successText:Array.from({length:160},(_,i)=>`History item ${i+1}: local synthetic acceptance keeps the native seed unchanged and preserves workspace context.`).join('\n')}));
+servers.set('summary',await startMockLlmServer({...common,sequence:['success'],successText:summary}));
+const event=row=>appendFile(join(root,'provider-events.jsonl'),JSON.stringify({time_ms:Date.now(),...row})+'\n');
+let number=0;const inflight=new Set();
+const server=createServer((req,res)=>{
+ const abort=new AbortController();inflight.add(abort);res.once('close',()=>{if(!res.writableFinished)abort.abort()});
+ void(async()=>{
+  if(req.method!=='POST'||req.url!=='/v1/chat/completions'){res.writeHead(404).end();return}
+  const id=++number;if(id>60){await event({id,event:'REQUEST_LIMIT'});res.writeHead(409).end('fixture request limit');return}
+  let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>2*1024*1024)throw Error('fixture body limit')}
+  const body=JSON.parse(raw),messages=body.messages??[],toolNames=(body.tools??[]).map(t=>t.function?.name);
+  const lastUser=messages.findLastIndex(m=>m.role==='user');
+  const lastText=JSON.stringify(messages[lastUser]?.content??'');
+  const compact=lastText.includes('You are now acting as a compaction engine');
+  let marker=null,userIndex=-1;
+  for(let i=lastUser;i>=0;i--){if(messages[i].role!=='user')continue;const found=JSON.stringify(messages[i].content).match(/T17_EXT_(STANDARD|MINIMAL|PTC|CREATOR|CUSTOM|REPLAY|OFF|HISTORY)\b/);if(found){marker=found[1];userIndex=i;break}}
+  const toolResults=messages.slice(userIndex+1).filter(m=>m.role==='tool');
+  let served='done';
+  if(compact)served='summary';
+  else if(marker==='HISTORY')served='history';
+  else if(marker&&toolResults.length===0){
+   served=marker==='MINIMAL'?'minimal':marker==='PTC'?'ptc':'read';
+   const needed={minimal:'str_replace_editor',ptc:'run_code',read:'read'}[served];
+   if(!toolNames.includes(needed))throw Error(`expected native tool ${needed} absent for ${marker}`);
+  }
+  await event({id,marker,served,model:body.model,toolNames,message_count:messages.length,request_bytes:Buffer.byteLength(raw),has_checkpoint:messages.some(m=>JSON.stringify(m.content).includes('<compacted-summary>')),toolResults:toolResults.map(m=>({tool_call_id:m.tool_call_id,content:String(m.content).slice(0,10000)}))});
+  const response=await fetch(servers.get(served).baseURL+req.url,{method:'POST',headers:{'content-type':'application/json'},body:raw,signal:abort.signal});
+  res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'text/plain'});
+  let pending='';const decoder=new TextDecoder();
+  for await(const chunk of response.body){pending+=decoder.decode(chunk,{stream:true});let at;while((at=pending.indexOf('\n'))>=0){const line=pending.slice(0,at);pending=pending.slice(at+1);if(!res.write(namespaceToolCallLine(line,id)+'\n'))await once(res,'drain',{signal:abort.signal})}}
+  if(pending)res.write(namespaceToolCallLine(pending,id));res.end();
+ })().catch(async error=>{await event({event:'PROVIDER_ERROR',name:error.name,message:error.message});if(!res.headersSent)res.writeHead(502);res.end()}).finally(()=>inflight.delete(abort));
+});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const port=server.address().port;
+await writeFile(join(root,'provider.patch.json'),JSON.stringify([{id:'llm-deepseek',config:{apiKeyEnv:'T17_FIXTURE_KEY',baseURL:`http://127.0.0.1:${port}/v1`,thinking:'disabled',reasoningEffort:'off',maxTokens:8192,streamIdleTimeoutMs:30000,retryPolicy:{mode:'normal',maxRetries:0}}}],null,2)+'\n');
+await writeFile(join(root,'provider-ready.json'),JSON.stringify({pid:process.pid,port,fixture:true})+'\n');
+console.log('T17 extended provider ready; all endpoints loopback.');
+async function close(){for(const a of inflight)a.abort();server.closeAllConnections();await new Promise(r=>server.close(r));await Promise.all([...servers.values()].map(s=>s.close()));process.exit(0)}
+process.once('SIGTERM',()=>void close());process.once('SIGINT',()=>void close());

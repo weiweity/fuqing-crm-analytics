@@ -1,0 +1,13 @@
+{
+  "scope": "/review checkpoint: docs and evidence increment; no product or fixed upstream source changes",
+  "result": "No actionable findings in this increment after checking report claims against native logs, provider events and cleanup. Full product gates remain open.",
+  "local_links_checked": 145,
+  "broken_links": 0,
+  "prior_failures_retained": true,
+  "runtime_tests": "Not repeated: no runtime source change; native fixture and post-exit assertions executed this turn.",
+  "ci_verified": {
+    "run": 34426683769,
+    "head": "84a4eb3dae7dbbf020f152a04da49971c87fa2bf",
+    "conclusion": "SUCCESS"
+  }
+}

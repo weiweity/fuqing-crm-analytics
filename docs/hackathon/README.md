@@ -4,9 +4,9 @@
 
 2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。
 
-2026-09-10 当前：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；DeepSeek 配置与会话保留，原生主题同步、实际 AntD、BAR 400/300 重开、五库备份恢复通过。快速 canary DEGRADED（既有 B0 404），完整产品仍 PARTIAL。见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。文档提交 `6b32ce9` 的 CI 亦 SUCCESS；后续[原生 Stop/文件权限补验](PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)及[审批/默认隔离/重启恢复](PRODUCT-NATIVE-APPROVAL-2026-09-10.md)通过局部用例，`d2a5a6f` CI SUCCESS；4328/18084 临时实例已关闭。
+上一轮主题接入：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；DeepSeek 配置与会话保留，原生主题同步、实际 AntD、BAR 400/300 重开、五库备份恢复通过。快速 canary DEGRADED（既有 B0 404），完整产品仍 PARTIAL。见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。文档提交 `6b32ce9` 的 CI 亦 SUCCESS；后续[原生 Stop/文件权限补验](PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)及[审批/默认隔离/重启恢复](PRODUCT-NATIVE-APPROVAL-2026-09-10.md)通过局部用例，`d2a5a6f` CI SUCCESS；4328/18084 临时实例已关闭。
 
-当前最新：`9948de3` CI SUCCESS，[驾驶舱首屏与断连恢复](PRODUCT-VISUAL-DENSITY-2026-09-10.md)已[切换 4325](PRODUCT-DENSITY-CANDIDATE-2026-09-10.md)。原 DeepSeek 配置、2 块板和 3 条结果保持，18083 API 未重启。临时 4328/18084 已关闭，完整产品仍 PARTIAL。
+当前运行代码 `9948de3`、文档基线 `84a4eb3` CI 均 SUCCESS，[驾驶舱首屏与断连恢复](PRODUCT-VISUAL-DENSITY-2026-09-10.md)已[切换 4325](PRODUCT-DENSITY-CANDIDATE-2026-09-10.md)。原 DeepSeek 配置、2 块板和 3 条结果保持，18083 API 未重启。新增[原生目录、五种 preset 与手动压缩补验](PRODUCT-NATIVE-EXTENDED-2026-09-10.md)局部通过；临时 4328/18084 已关闭，完整产品仍 PARTIAL。
 
 ## 当前采用的目标方案（2026-09-09）
 
