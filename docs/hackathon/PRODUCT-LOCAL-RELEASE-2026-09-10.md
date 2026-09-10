@@ -6,7 +6,7 @@
 
 - 工作树：`/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness`。
 - Web：`http://127.0.0.1:4325/`；synthetic API：`http://127.0.0.1:18083`。只绑定 loopback，Web 未认证访问为 401。
-- DSH 上游：`d347e703908d0406b7a7ef80e3a0e594d86b2215`；准备位置为 `competition-closeout/.context/dsh-b0/upstream`。Node 24.19.0；现有 backend/B0 独立 Python 3.14.4 环境，没有升级依赖。
+- DSH 上游：`d347e703908d0406b7a7ef80e3a0e594d86b2215`；准备位置为 `competition-closeout/.context/dsh-b0/upstream`。Node 24.19.0；现有 backend/B0 独立 Python 3.14.4 环境保持。新增业务依赖按本轮锁文件在独立目录安装。
 - DSH runtime：本树 `.context/dsh-dev/runtime-Cn0Ifc`；保留用户配置的 DeepSeek-V4-Flash 凭据和原生会话。模型密钥不写入 Git、日志或备份证据。
 - API 状态：本树 `.context/competition-synth`。启动显式指定 `COMPETITION_SYNTH_PORT=18083`、`COMPETITION_SYNTH_WEB_ORIGIN=http://127.0.0.1:4325`，通过已有 `scripts/competition-synth-http.py` 入口。
 - DSH 与浏览器插件构建使用同一 `COMPETITION_HTTP_BASE` 和 synthetic token；模型证书链使用 `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem`。认证控制状态只供 `cli.mjs` 读取，禁止整文件输出。
@@ -15,7 +15,7 @@
 
 ## 当前源码与视觉候选
 
-4325/18083 运行 `d9c9162` 的数值与取消代码，用户 Models 配置保留原位；当前工作树另含不影响运行时的测试/文档修复 `e63df18`。数值与取消切换后的五库备份恢复见[切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。下节四库记录保留较早时点，不作为当前完整恢复点。独立[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)已完成局部验证，尚未替换用户候选；切换时仍须绑定对应源码、锁和构建。
+4325/18083 当前运行 `d482bd6`，已包含主题与状态恢复增量，用户 Models 配置保留原位；本次五库新备份与隔离恢复见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。数值与取消切换后的五库备份恢复见[切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。下节四库记录保留较早时点，不作为当前完整恢复点。独立[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)已进入当前候选；源码、锁和构建哈希绑定在当前切换证据中。
 
 ## 备份与恢复证据
 
@@ -26,7 +26,7 @@
 ## 回退操作与条件
 
 1. 先从本工作树 `cli.mjs status` 及监听归属确认当前 4325/18083；只停止该 supervisor 和本轮 API。用户的 4327/8000/5173，以及 Grok 14327 不参与。
-2. 当前状态保留原位。需要恢复备份时，将四库通过 SQLite backup 接口恢复到**新的私有目录**，运行 quick_check 并核对 manifest。不要覆盖当前目录或将旧备份直接拷到活库上。
+2. 当前状态保留原位。需要恢复备份时，将当前备份的五库通过 SQLite backup 接口恢复到**新的私有目录**，运行 quick_check 并核对 manifest。不要覆盖当前目录或将旧备份直接拷到活库上。
 3. 使用显式 `COMPETITION_SYNTH_STATE=/absolute/restored-directory` 启动候选 API，再启动同一 DSH runtime；重建对应版本的插件。先检查未经认证 401、已认证会话可用、原板及草稿版本，再允许继续编辑。
 4. 本轮证实了备份可恢复和旧后端可读。旧版完整浏览器降级、旧版继续写新状态未验证；切回旧代码前必须补验，不能仅因 schema 仍为 v1 就宣称可无损降级。恢复此备份会看不到备份之后创建的运营草稿，当前目录必须保留以便对照和恢复。
 

@@ -4,7 +4,7 @@
 
 2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。
 
-2026-09-10 追加：#115 仍为 draft，数值与取消代码 `d9c9162` 已提交并切换至 4325/18083，测试瞬态重试修复 `e63df18` CI SUCCESS。两条真实 DeepSeek GSV 评测及结果成板重开已有证据，见[数值交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。独立[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)已验证原生主题同步、真实 AntD、窄屏与 BAR 重开，B0 全流程 PASS；尚未切换用户候选，完整产品仍 PARTIAL。
+2026-09-10 当前：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；DeepSeek 配置与会话保留，原生主题同步、实际 AntD、BAR 400/300 重开、五库备份恢复通过。快速 canary DEGRADED（既有 B0 404），完整产品仍 PARTIAL。见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。
 
 ## 当前采用的目标方案（2026-09-09）
 
