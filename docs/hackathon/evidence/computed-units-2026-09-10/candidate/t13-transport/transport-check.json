@@ -1,0 +1,28 @@
+{
+  "capabilities": {
+    "live_transport": "HTTP_CONNECTED",
+    "registered": 4,
+    "planner": "OFFLINE_STUB"
+  },
+  "step": {
+    "schema": "competition-diagnosis-orchestrator/v1",
+    "keys": [
+      "schema_version",
+      "planner",
+      "live_transport",
+      "support_status",
+      "condition_trace",
+      "resolved_condition",
+      "result",
+      "evidence",
+      "chain_status",
+      "analysis_complete",
+      "budget",
+      "limitations",
+      "http_api",
+      "execution_mode",
+      "analysis_persisted"
+    ]
+  },
+  "forbidden": "PROMPT_INJECTION_REFUSED"
+}

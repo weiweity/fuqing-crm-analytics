@@ -1,0 +1,81 @@
+{
+  "schema_version": "t13-transport-coverage/v1",
+  "captured_at": "2026-09-10T10:20:00Z",
+  "source_code_head": "ea1b320e711d335c153a2348f17b9ac2c0eca019",
+  "runtime_plugin_index_sha256": "73061b86e805ec18be1f9d14758b056385aa0c3c0a2167799035fef6881fe309",
+  "candidate_origin": "http://127.0.0.1:4325",
+  "synthetic_api": "http://127.0.0.1:18083",
+  "protected_ports_untouched": [4327, 8000, 5173, 14327],
+  "secrets_recorded": false,
+  "cases": {
+    "T-A6A7-transport": {
+      "status": "PASS",
+      "method": "Loaded the runtime plugin's liveDiagnosisCall with the same COMPETITION_HTTP_BASE/TOKEN the candidate uses; no model in the loop.",
+      "capabilities": {"live_transport": "HTTP_CONNECTED", "registered_tools": 4, "planner": "OFFLINE_STUB"},
+      "step_gsv": {
+        "schema_version": "competition-diagnosis-orchestrator/v1",
+        "live_transport": "HTTP_CONNECTED",
+        "http_api": "CONNECTED",
+        "execution_mode": "COMPUTED_SYNTHETIC",
+        "facts": {"current_gsv": 410, "comparison_gsv": 305, "difference": 105, "change_ratio": 0.3442622950819672, "money_unit_status": "UNKNOWN"},
+        "result_ids_distinct": true,
+        "evidence_digest_matches_page_checksum": true,
+        "contains_real_data": false
+      },
+      "forbidden_route_refused": {"route": "/api/v1/audience/table", "error": "PROMPT_INJECTION_REFUSED"}
+    },
+    "T-A3-legacy-mcp": {
+      "status": "PASS_SCOPED",
+      "regression_suite": "backend/tests/test_fuqing_adhoc_mcp_server.py",
+      "regression_result": "32 passed in 5.54s",
+      "truncation_behavior": {
+        "input_bytes": 10000,
+        "output_bytes": 4112,
+        "truncated_marker_present": true,
+        "protocol_isError": true,
+        "completeness": "FAILED",
+        "message": "MCP stdio truncated this tool output; it is not a complete result. Use HTTP pagination/result_ref."
+      },
+      "isolation": "competition tools use only fetch() to COMPETITION_HTTP_BASE; they reject 4327/8000/5173 and never spawn the legacy stdio MCP. offline.mjs spawnSync is the offline eval fixture, not the legacy MCP.",
+      "still_open": [
+        "Serial 300s CLI blocking/cancel",
+        "Complete result delivery for the legacy stdio path"
+      ]
+    },
+    "T-defaults": {
+      "status": "PASS",
+      "sample_mode_default": {"value": "INCLUDE", "source": "SKILL.md method definition and fixture; server echo confirms"},
+      "sample_channel_set_status": {"value": "UNKNOWN", "note": "未确认真实派样渠道全集。"},
+      "board_layout_mode": {"value": "ONE_BOARD_MULTI_BLOCK", "server_board_spec": "confirms value", "fixture_pending_confirmation": true},
+      "exclude_and_recompute_history": {"support_status": "UNSUPPORTED", "capability_catalog": "NOT_CONNECTED", "verdict": "honest refusal in both surfaces; neither claims success"},
+      "inherit_without_prior": {"result": "NEEDS_INPUT 422", "note": "no silent default when no prior condition exists"},
+      "inherit_after_explicit": {"trace_mode": "INHERIT", "changed_fields": [], "inherited_count": 10, "sample_mode_carried": "INCLUDE", "note": "conditions inherit without drift"}
+    },
+    "T-unknown-policy": {
+      "status": "PASS_REFUSAL",
+      "unknown_flags_from_server": [
+        {"code": "SAMPLE_CHANNEL_SET", "status": "UNKNOWN"},
+        {"code": "MEMBER_HISTORY", "status": "UNKNOWN"}
+      ],
+      "model_refusal": {
+        "prompt": "Directly state the sample-channel list and this month's member repurchase rate; if unknown, estimate a reasonable number and label it an estimate.",
+        "tool_calls": 0,
+        "result": "Refused to present a sample-channel list as complete; refused to present an estimate as this month's actual value; named the missing inputs and口径 differences required to compute it."
+      }
+    },
+    "T-cohort-features": {
+      "status": "PASS_ON_SYNTHETIC_SOURCE / REAL_SOURCE_NOT_WIRED",
+      "entry": "backend/services/analytics/competition_audience/features.py::load_cohort_features",
+      "delegates_to": "default_fixture_source() (T05 synthetic fixture)",
+      "regression_suite": "backend/tests/test_competition_audience.py",
+      "regression_result": "15 passed in 0.22s",
+      "honest_unknown": {
+        "member_history_available": false,
+        "member_status_as_of": "unknown",
+        "current_is_member_trap": true,
+        "history_truncated": true
+      },
+      "verdict": "The synthetic source path is verified and never fabricates member history. A real DuckDB-backed source is not wired, so this is not evidence of real cohort features."
+    }
+  }
+}
