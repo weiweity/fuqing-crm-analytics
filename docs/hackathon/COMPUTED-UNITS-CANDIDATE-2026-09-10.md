@@ -8,11 +8,11 @@
 
 独立 restore-old、restore-new 目录分别实际加载旧、新代码，读取原资产后各写入一条测试结果，再由新进程读取验证。每个测试目录因此有 9 条 HTTP 结果；原 state-backup 保持 8 条。旧读者读取新 v2 返回 409。此检查证明恢复和版本拒绝行为，未执行旧版完整浏览器降级。
 
-当前 DSH PID 72500、API PID 72472，保留 runtime-Cn0Ifc 和用户原生 Models 配置。插件位于 readiness 工作树 `.context/units-release-47ndx_76/dsh-plugins/analytics-workbench`；原生浏览器实际收到的 `/plugins/` 包含该构建完整代码。模型为 DeepSeek-V4-Flash / High，Standard mode、Read Only、自有 workspace-read-only。未读取或复制模型密钥。
+本轮候选 DSH 运行在 4325、合成 API 运行在 18083，保留 runtime-Cn0Ifc 和用户原生 Models 配置。插件位于 readiness 工作树 `.context/units-release-47ndx_76/dsh-plugins/analytics-workbench`；本轮已将边界修复构建换入该运行时并重启候选。模型为 DeepSeek-V4-Flash / High，Standard mode、Read Only、自有 workspace-read-only。未读取或复制模型密钥。
 
 ## 真实模型结果
 
-提问只给日期、口径和任务，没有给期望数值；经原生 Agent Loop 调用 18083 合成源。每条请求设 180 秒上限，均在界限内结束。日志证据只导出本次工具输入/返回、可见回答和 usage，不包含推理或模型请求。
+提问只给日期、口径和任务，没有给期望数值；经原生 Agent Loop 调用 18083 合成源。每条请求设 180 秒上限，均在界限内结束。日志证据只导出本次工具输入/返回、可见回答和 usage，不包含推理或模型请求。边界修复后的复测另见 [E5-runtime-retest.json](evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest.json)，该次在首个工具调用前遇到 DeepSeek `TRANSPORT`，因此没有新的边界通过结论。
 
 | 用例 | 实际结果 |
 |---|---|

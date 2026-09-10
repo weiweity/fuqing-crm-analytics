@@ -1,0 +1,21 @@
+{
+  "schema_version": "t13-boundary-runtime-retest/v1",
+  "attempted_at": "2026-09-10T07:45:30Z",
+  "source_code_head": "ea1b320e711d335c153a2348f17b9ac2c0eca019",
+  "runtime_plugin_index_sha256": "73061b86e805ec18be1f9d14758b056385aa0c3c0a2167799035fef6881fe309",
+  "candidate_origin": "http://127.0.0.1:4325",
+  "synthetic_api": "http://127.0.0.1:18083",
+  "model": "DeepSeek-V4-Flash",
+  "mode": "High",
+  "status": "BLOCKED_TRANSPORT",
+  "steps": [
+    "Started the candidate with the rebuilt plugin artifact and preserved runtime.",
+    "Opened an authenticated browser session and sent the boundary regression prompt.",
+    "DeepSeek API transport failed after the product's five retries before any tool call."
+  ],
+  "tool_calls": 0,
+  "boundary_verdict": "UNVERIFIED",
+  "reason": "No competition tool result occurred, so the native-tool guard was not exercised in this runtime attempt.",
+  "protected_ports_untouched": [4327, 8000, 5173, 14327],
+  "secrets_recorded": false
+}

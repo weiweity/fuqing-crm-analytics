@@ -1,6 +1,8 @@
 {
   "schema_version": "t13-boundary-coverage/v1",
   "candidate_code_head_before_boundary_fix": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "candidate_code_head_after_boundary_fix": "ea1b320e711d335c153a2348f17b9ac2c0eca019",
+  "runtime_plugin_index_sha256": "73061b86e805ec18be1f9d14758b056385aa0c3c0a2167799035fef6881fe309",
   "candidate_origin": "http://127.0.0.1:4325",
   "synthetic_api": "http://127.0.0.1:18083",
   "native_session_id": "session-11ad1f09-b047-49ca-a69e-5edd0dd51f80",
@@ -40,12 +42,18 @@
     "E5_native_safe_sha256": "28fbd3913cfade552480b5989fad97d915d70a1fd3a47b2e6bf33ff37d1c5ecf"
   },
   "boundary_fix": {
-    "status": "SOURCE_PATCHED_RUNTIME_RETEST_PENDING",
+    "status": "RUNTIME_RETEST_BLOCKED_TRANSPORT",
     "files": [
       "dsh-plugins/analytics-workbench/src/competition-agent/boundary.mjs",
       "dsh-plugins/analytics-workbench/src/competition-agent/boundary.d.mts",
       "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts"
     ],
-    "policy": "After a registered competition method returns, deny other native tools for that agent until agent/turn-stopping; leave ordinary turns and registered methods available, and allow run_code only as the PTC transport whose nested calls remain guarded."
+    "policy": "After a registered competition method returns, deny other native tools for that agent until agent/turn-stopping; leave ordinary turns and registered methods available, and allow run_code only as the PTC transport whose nested calls remain guarded.",
+    "runtime_retest": {
+      "status": "BLOCKED_TRANSPORT",
+      "tool_calls": 0,
+      "boundary_verdict": "UNVERIFIED",
+      "evidence": "E5-runtime-retest.json"
+    }
   }
 }
