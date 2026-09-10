@@ -11,8 +11,16 @@
     ".": "./lib/index.js",
     "./tool": "./lib/tool.js",
     "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
+  "files": [
+    "lib/index.js",
+    "lib/tool.js",
+    "lib/skills.js",
+    "lib/client.js",
+    "cordis.patch.yml"
+  ],
   "dsh": {
     "client": {
       "platform": "web",
@@ -25,6 +33,9 @@
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-api-session-controller"
       ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     }
   },
   "scripts": {
