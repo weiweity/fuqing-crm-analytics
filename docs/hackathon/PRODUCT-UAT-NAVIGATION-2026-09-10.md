@@ -24,6 +24,10 @@
 
 ## 检查及失败证据
 
+重新验证 `18dfc58` 的 [CI 34433743967](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34433743967) 中，B0 再次 SUCCESS，后端在 `test_real_duckdb_external_sort_spill_and_quota[64]` 遇到 `RESOURCE_EXCEEDED`，未到后续 Ruff 步骤。原始日志未给出触发限制的资源指标。本机该组 3 项通过，另 24 次相同合成排序全部成功，临时文件峰值 47.4375–59.6875 MiB；这不能代替 Linux 失败归因。现仅在失败分支补持久化 worker 记录和有界 probe 回执，保留原配额、成功断言和负测，等待新远端证据。见[诊断记录](evidence/uat-navigation-2026-09-10/spill-ci-diagnostics.json)。
+
+切换前还发现准备包的 `COMPETITION_HTTP_BASE` 误含 API 路径；实际共享 HTTP 选项在该配置下返回 404，改为服务根地址后返回 200 和原有 2 块板。已重新构建独立插件，错误准备包保留且从未启用；4325 仍是原版本。
+
 提交 `2dae78d` 的 [CI 34432529663](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34432529663) 中，后端 2322 passed / 79 skipped，B0 SUCCESS；整体失败来自本次新增证据 Python 的 40 项 Ruff 格式问题。后续修正四个现行辅助脚本的格式，展开多模块 import 后 AST 等价；历史失败草稿改存 `.py.txt`，字节与失败提交一致。打包器同步保留该文本后缀。原始 CI 输出与[修正核验](evidence/uat-navigation-2026-09-10/ci-format-fix.json)均保留，远端重新验证仍待完成，4325 未切换。
 
 最终完整 B0 pipeline 通过：离线合同、480 项 Python、Node、编译后 DOM、严格类型检查和干净重建。原始 [pipeline 日志](evidence/uat-navigation-2026-09-10/uat-navigation-final-pipeline.log) 保留每组实际数量，不用 45 项局部测试代替全套。提交前完成[人工范围审查](evidence/uat-navigation-2026-09-10/review.json)。

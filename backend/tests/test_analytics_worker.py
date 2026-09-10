@@ -318,7 +318,19 @@ def test_real_duckdb_external_sort_spill_and_quota(tmp_path, temp_mib):
             with pytest.raises(AnalyticsError, match="RESOURCE_EXCEEDED"):
                 manager.execute(actor(), intent, step)
         else:
-            assert manager.execute(actor(), intent, step) == fixture_result()
+            try:
+                result = manager.execute(actor(), intent, step)
+            except AnalyticsError as error:
+                # Keep the original quota. A generic RESOURCE_EXCEEDED traceback
+                # cannot distinguish an engine limit from the parent's RSS/temp
+                # observation; retain the actual exit record and owned proof.
+                records = store.worker_records(active_only=False)
+                try:
+                    proof = launch.receive(timeout=0.2)
+                except (AssertionError, OSError) as proof_error:
+                    proof = {"unavailable": type(proof_error).__name__}
+                pytest.fail(f"{error.code}; worker evidence: {records}; probe: {proof}", pytrace=False)
+            assert result == fixture_result()
             proof = launch.receive()
             assert proof["event"] == "SPILL_COMPLETE"
         assert launch.child.returncode is not None
