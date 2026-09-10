@@ -1,0 +1,19 @@
+{
+  "timestamp_ns": 1789020696416975000,
+  "authenticated": false,
+  "tls_verification": true,
+  "results": [
+    {
+      "label": "node-public-ca",
+      "rc": 0,
+      "stdout": "{\"status\":401,\"elapsed_ms\":3474}\n",
+      "stderr": ""
+    },
+    {
+      "label": "curl-public-ca",
+      "rc": 0,
+      "stdout": "401 2.971361\n",
+      "stderr": ""
+    }
+  ]
+}

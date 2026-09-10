@@ -1,0 +1,79 @@
+"""Validate an isolated candidate restore using the selected checkout's actual HTTP app."""
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import json
+import sys
+
+from fastapi.testclient import TestClient
+from backend.analytics_competition_app import create_competition_app
+from backend.services.analytics.access import AnalyticsPrincipal, B0IdentityRegistry
+from backend.services.analytics.cockpit import CockpitStore
+from backend.services.analytics.saved_analyses import SavedAnalysisStore
+from backend.services.analytics.competition_diagnosis.synthetic import demo_snapshot, materialize_synthetic_source
+
+state, before_file, mode, output = map(Path, sys.argv[1:5])
+assert state.name.startswith("restore-"), "only isolated restored state may be tested"
+assert state.parent.name.startswith("units-release-")
+before = json.loads(before_file.read_text())
+registry = B0IdentityRegistry()
+caps = frozenset({"analysis:save", "analysis:read", "dashboard:read", "dashboard:update", "cohort:read", "draft:write"})
+registry.grant("b0-competition-synth-token-32chars", AnalyticsPrincipal("alice", caps, frozenset({
+    "channel-followup-fixture", "competition-diagnosis-fixture", "brand-a", "scope-brand-a",
+})))
+base = "/api/v1/analytics/competition"
+with TemporaryDirectory(prefix="restore-source-", dir=state) as source_dir:
+    source = materialize_synthetic_source(Path(source_dir), demo_snapshot())
+    app = create_competition_app(
+        SavedAnalysisStore(state / "saved"), CockpitStore(state / "cockpit"), registry,
+        asset_state_dir=state / "assets", audience_state_dir=state / "audience",
+        diagnosis_source=source, diagnosis_state_dir=state / "diagnosis",
+    )
+    with TestClient(app, headers={"Authorization": "Bearer b0-competition-synth-token-32chars"}) as client:
+        if str(mode) == "old-reject-v2":
+            response = client.get(base + "/results")
+            assert response.status_code == 409, response.text
+            assert response.json()["error"]["code"] == "BINDING_CORRUPT"
+            report = {"status": "PASS", "mode": str(mode), "old_reader_new_facts": "rejected with 409"}
+        else:
+            for path, expected in before.items():
+                response = client.get(base + path)
+                assert response.status_code == 200, (path, response.status_code)
+                assert response.json() == expected, ("restored response changed", path)
+            report = {"status": "PASS", "mode": str(mode), "old_assets_equal": True,
+                      "boards": len(before["/boards"]["items"]), "results": len(before["/results"]["items"]),
+                      "draft_id": before["/drafts/current"]["draft"]["draft_id"],
+                      "draft_version": before["/drafts/current"]["draft"]["version"]}
+            if str(mode) in {"new-write", "old-write"}:
+                # Existing baseline analysis conditions are explicit, bounded synthetic inputs.
+                condition = {
+                    "metric_type": "GSV", "timezone": "Asia/Shanghai",
+                    "current_period": {"start_date": "2026-08-01", "end_date": "2026-08-31", "end_bound": "INCLUSIVE_CALENDAR_DAY"},
+                    "comparison_period": {"start_date": "2025-08-01", "end_date": "2025-08-31", "end_bound": "INCLUSIVE_CALENDAR_DAY"},
+                    "comparison_mode": "YOY_SAME_PERIOD", "sales_scope": {"kind": "ALL"}, "history_scope": {"kind": "ALL"},
+                    "sample_mode": "INCLUDE", "sample_channel_ids": None, "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+                    "leap_day_alignment": "CLAMP_TO_MONTH_END",
+                }
+                response = client.post(base + "/diagnosis/step", json={
+                    "capability_id": "diag.gsv", "condition_mode": "EXPLICIT", "condition": condition,
+                    "request_id": "units-restore", "session_id": str(mode),
+                })
+                assert response.status_code == 200, response.text
+                result = response.json()["result"]
+                assert response.json()["analysis_persisted"] is True
+                assert result["facts"]["current"]["gsv"] == 410
+                assert result["facts"]["comparison"]["gsv"] == 305
+                version = "competition-gsv-facts/v2" if str(mode) == "new-write" else "competition-gsv-facts/v1"
+                assert result["facts"]["schema_version"] == version
+                if str(mode) == "new-write":
+                    assert result["facts"]["money_unit"] == {"status": "UNKNOWN", "currency": None, "amount_unit": None}
+                else:
+                    assert "money_unit" not in result["facts"]
+                results = client.get(base + "/results").json()["items"]
+                assert len(results) == report["results"] + 1
+                assert all(item in results for item in before["/results"]["items"])
+                report.update(written_schema=version, written_result_id=result["result_id"],
+                              written_evidence_digest=result["evidence_digest"], results_after=len(results))
+                after = {path: client.get(base + path).json() for path in before}
+                output.with_name(f"after-{mode}.json").write_text(json.dumps(after, ensure_ascii=False, indent=2) + "\n")
+output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+print(json.dumps(report, ensure_ascii=False))

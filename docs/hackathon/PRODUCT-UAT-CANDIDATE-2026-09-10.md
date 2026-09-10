@@ -1,12 +1,12 @@
 # 看板候选切换与真实等价问法评测
 
-**最新状态**：方法修正 `6202e89` 的 CI 34437915131 SUCCESS，已进入同一 4325；A3/B2 两次真实复测正确区分结果与运行标识。原有资产保持，现有 2 块板、8 条计算结果。完整 T13 仍 PARTIAL，下文保留各阶段失败及切换时点。
+**最新状态**：单位修复 `84b0ac8` CI SUCCESS，已进入 4325/18083。五库恢复、原生单位展示及三条有界真实复测见[当前单位候选](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)；现有 2 块板、10 条结果、原草稿 v2。完整 T13 仍 PARTIAL，下文保留各阶段失败及切换时点。
 
-**单位判断更正**：重新核对 A3/B2 各自原生能力目录，实际都没有 currency/amount_unit；“目录标注 CNY/minor”是模型无来源推断，此前仅称措辞不一致不准确。[原生复核证据](evidence/computed-units-2026-09-10/native-unit-source-audit.json)保留绑定哈希；原回答和旧报告仍留存。[本地修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)已接通明确单位状态，但尚未切换当前候选或复测模型。
+**单位判断更正**：重新核对 A3/B2 各自原生能力目录，实际都没有 currency/amount_unit；“目录标注 CNY/minor”是模型无来源推断，此前仅称措辞不一致不准确。[原生复核证据](evidence/computed-units-2026-09-10/native-unit-source-audit.json)保留绑定哈希；原回答和旧报告仍留存。[本地修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)已接通明确单位状态，现已切换并完成局部真实复测；历史无来源回答保留。
 
 独立候选 4325 已切换看板直达、多板选择和条件证据补丁。插件源码 `2dae78d4da6741162732401ea3b0827a7dce073c`，验证提交 `cde6a81ef332414fda815076576f7fb795b37082` 的 [CI 34435439275](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34435439275) SUCCESS。先前证据脚本 Ruff 失败已关闭；上一次 Linux spill 的 RESOURCE_EXCEEDED 本次未再出现，新增诊断信息没有改变配额，根因仍未确定，不能写成已修复。
 
-## 当前运行与切换验证
+## 看板直达阶段的运行与切换验证
 
 - 4325 DSH 从 PID 73577 切换至 10843，18083 API 一直为 PID 23661。仍使用原 runtime-Cn0Ifc，DeepSeek-V4-Flash / High、Read Only 及原生会话保留，未读取或复制模型密钥。
 - 编译产物使用服务根地址 `COMPETITION_HTTP_BASE=http://127.0.0.1:18083`；客户端和工具自己追加 API 路径。此前错误准备包从未启动。新插件为 `.context/uat-navigation-release-1xkkouyu/plugin-origin`，原插件保留为 `previous-plugin`。

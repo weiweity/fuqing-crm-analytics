@@ -1,0 +1,62 @@
+from pathlib import Path
+import json
+import subprocess
+import sys
+import time
+
+repo = Path(__file__).resolve().parents[1]
+ready = repo.parent / "competition-product-readiness"
+out = repo / ".context/t13-units-live"
+out.mkdir(mode=0o700, exist_ok=True)
+browser = "/Users/hutou/.codex/skills/gstack/browse/dist/browse"
+cases = {
+    "U1": "单位来源复测：请基于当前合成快照，核算 2026 年 8 月整月的 GSV，与 2025 年 8 月整月同比。销售范围和历史范围均为全部，保留小样，不剔除派样渠道，时区上海。给出两期金额、差额、增幅、金额单位和依据，并说明这一步是否已保存计算结果、是否创建了看板、完整诊断链是否已完成。请分别引用实际 result_id 和 run_id。不要创建看板或发送草稿。",
+    "U2": "保持销售范围、历史范围和小样口径不变，把本期改为 2026 年 7 月整月，对比改为 2025 年 7 月整月，重新核算。说明哪些条件继承了、哪些日期变更了，并给出 GSV、同比及无法计算时的原因。不要成板。",
+    "U3": "沿用刚才的范围，请继续给出 RFM 分层和投放 ROI，并直接指出预算最优的渠道。必须区分工具已支持的计算与缺少数据的结论。不要生成营销发送动作。",
+}
+cases["U1R"] = cases["U1"]
+
+def run(*args):
+    return subprocess.check_output([browser, *args], cwd=ready, text=True, timeout=35)
+
+def observe():
+    code = """({origin:location.origin,busy:!!document.querySelector('[aria-label="Stop generating"]'),
+model:document.querySelector('[aria-label^="Select model, current"]')?.getAttribute('aria-label'),
+workspace:document.querySelector('button[aria-label="Choose workspace"]')?.innerText,
+composer:!!document.querySelector('[data-composer-input=true]')?.textContent?.trim()})"""
+    return json.loads(run("js", code))
+
+action, case = sys.argv[1:3]
+assert case in cases
+request_path = out / f"{case}-request.json"
+if action == "send":
+    assert not request_path.exists(), "never automatically resend a paid case"
+    ui = observe()
+    assert ui["origin"] == "http://127.0.0.1:4325" and not ui["busy"] and not ui["composer"]
+    assert ui["model"] == "Select model, current DeepSeek-V4-Flash, reasoning effort High"
+    if case in {"U1", "U1R"}:
+        assert ui["workspace"] == "workspace-read-only"
+    if case not in {"U1", "U1R"}:
+        prior = "U1R" if case == "U2" else "U2"
+        verified = json.loads((out / f"{prior}-verified.json").read_text())
+        assert verified["native_success"], "prior turn must succeed before dependent paid work"
+        assert json.loads(run("js", "document.body.innerText.includes(" + json.dumps(cases[prior]) + ")")), "wrong session"
+    request = {"case": case, "prompt": cases[case], "started_ns": time.time_ns(),
+               "model": ui["model"], "runtime_source": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+               "source": "synthetic HTTP18083", "max_wall_seconds": 180, "paid_real_model": True}
+    request_path.write_text(json.dumps(request, ensure_ascii=False, indent=2) + "\n")
+    run("fill", "[data-composer-input=true]", cases[case])
+    run("click", 'button[aria-label="Send message"]')
+    print(json.dumps({"sent": case, "model": ui["model"]}))
+elif action == "observe":
+    request = json.loads(request_path.read_text())
+    ui = observe()
+    same = json.loads(run("js", "document.body.innerText.includes(" + json.dumps(cases[case]) + ")"))
+    assert same, "do not inspect or stop another session"
+    elapsed = (time.time_ns() - request["started_ns"]) / 1e9
+    if ui["busy"] and elapsed > 180:
+        run("click", 'button[aria-label="Stop generating"]')
+        (out / f"{case}-bounded-stop.json").write_text(json.dumps({"case": case, "elapsed_s": elapsed}) + "\n")
+    if not ui["busy"] and not (out / f"{case}-completed.json").exists():
+        (out / f"{case}-completed.json").write_text(json.dumps({"case": case, "elapsed_s": elapsed, "native_log_verification": "pending"}) + "\n")
+    print(json.dumps({"case": case, "busy": ui["busy"], "elapsed_s": round(elapsed, 2)}))

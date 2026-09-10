@@ -1,0 +1,6 @@
+{
+  "result_detail_probe": "404; no individual result route exists; verified exact object via documented GET /results instead",
+  "followup_guard": "Completed native sessions no longer have Choose workspace menu; use bound successful prior turn and same-session prompt guard. No U2 request was sent in failed attempt.",
+  "native_extract": "User messages carry no turn field; bind to preceding turn/start, then filter tool and visible answer events by that turn.",
+  "screenshot": "Browser denied screenshot output outside its worktree; wrote within owned readiness release and copied the resulting artifact."
+}

@@ -1,0 +1,53 @@
+{
+  "source": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "kind": "standalone compiled component with synthetic fixture transport; not native DSH or model eval",
+  "checks": [
+    {
+      "case": "unknown",
+      "chart": "BAR",
+      "width": 390,
+      "unit": "未知（按原始数值展示）",
+      "overflow": 0,
+      "amount": "410"
+    },
+    {
+      "case": "minor",
+      "chart": "LINE",
+      "width": 390,
+      "unit": "人民币分（CNY minor）",
+      "overflow": 0,
+      "amount": "410",
+      "ratio": "34.43%"
+    },
+    {
+      "case": "major",
+      "chart": "METRIC",
+      "width": 1440,
+      "unit": "人民币元（CNY major）",
+      "overflow": 0,
+      "amount": "410",
+      "ratio": "34.43%"
+    },
+    {
+      "case": "legacy",
+      "chart": "TABLE",
+      "width": 390,
+      "unit": "未记录（旧结果）",
+      "overflow": 0,
+      "amount": "410",
+      "ratio": "34.43%"
+    }
+  ],
+  "initial_harness_failure": "bare process references in standalone fixture build; added explicit empty HTTP env definitions; failed screenshot retained",
+  "screenshots_inspected": [
+    "unknown-390.png",
+    "minor-390.png",
+    "major-1440.png",
+    "legacy-390.png"
+  ],
+  "limitations": [
+    "standalone fixture uses fallback font: /b0/brand/outfit.ttf returned404; not full DESIGN or nativeDSH visual pass",
+    "only component display, not live model or HTTP persistence"
+  ],
+  "cleanup": "Owned18586server stopped by Ctrl-C; own browser tab2closed"
+}

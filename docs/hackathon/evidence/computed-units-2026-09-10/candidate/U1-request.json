@@ -1,0 +1,10 @@
+{
+  "case": "U1",
+  "prompt": "单位来源复测：请基于当前合成快照，核算 2026 年 8 月整月的 GSV，与 2025 年 8 月整月同比。销售范围和历史范围均为全部，保留小样，不剔除派样渠道，时区上海。给出两期金额、差额、增幅、金额单位和依据，并说明这一步是否已保存计算结果、是否创建了看板、完整诊断链是否已完成。请分别引用实际 result_id 和 run_id。不要创建看板或发送草稿。",
+  "started_ns": 1789020292138343000,
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "runtime_source": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "source": "synthetic HTTP18083",
+  "max_wall_seconds": 180,
+  "paid_real_model": true
+}

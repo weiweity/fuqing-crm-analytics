@@ -1,0 +1,19 @@
+{
+  "case": "U1",
+  "native_success": false,
+  "classification": "TRANSPORT_BEFORE_TOOLS",
+  "session_id": "session-5c6d7524-727a-4fa0-a484-a631629376ff",
+  "native_log_sha256": "48eda5750f192a5b1f3da9d2e42c55d48e1659f072251ef7d25b4dac5d6719f3",
+  "llm_retries": 5,
+  "tool_calls": 0,
+  "assistant_messages": 0,
+  "turn_end": [
+    {
+      "kind": "error",
+      "error": {
+        "message": "DeepSeek API request to https://api.deepseek.com failed",
+        "code": "TRANSPORT"
+      }
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 # 伸美 AI 增长董事会
 
-最新独立增量：[看板直达、多板切换与条件证据](./docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md)已进入 4325，方法修正 `6202e89` CI SUCCESS，已进入 4325；真实等价问法数值与标识引用回归通过，完整产品仍 PARTIAL。
+最新独立增量：[单位修复候选](./docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) `84b0ac8` CI SUCCESS，已进入 4325/18083；五库恢复和局部真实模型复测完成，完整产品仍 PARTIAL。
 
 > AI 黑客松作品 · 多渠道客户资产诊断 · 受控自由问数与人群决策
 
 > **价值定稿（2026-09-05）**：已确认让老板拍板一个有边界的天猫内部跨渠道客户增长试点，主线是“渠道 × 首购商品 × 后续购买”。见 [CEO 价值与首版决策方案](./docs/hackathon/CEO-VALUE-PLAN.md)（用户已批准定稿，APPROVED）。统一分析工作台方向保留；用户已确认保留 DSH 原生 UI，详见 [DSH 交互设计](./docs/hackathon/DSH-UI-INTERACTION-SPEC.md)。原生 UI 的集成、运行时与模型仍待验证，公网部署继续暂缓。
 
-> **当前交付（2026-09-10）**：competition 集成 #112 和 7 项审查修复 #114 已合入 main `788b5b1`；PR 与合并后的主线 CI 均通过。独立合成浏览器已验证连续成板、失败重试、保存布局重开及行动草稿 v2，见 [修复 QA](./docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。当前按 [产品验收与发布准备账本](./docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 推进；[单位来源修复](./docs/hackathon/COMPUTED-UNITS-DELIVERY-2026-09-10.md)已完成本地验证，候选切换和真实复测待执行。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL，整产品仍 PARTIAL。约千万行、10 人使用仍是规划输入，公网尚未部署。
+> **当前交付（2026-09-10）**：competition 集成 #112 和 7 项审查修复 #114 已合入 main `788b5b1`；PR 与合并后的主线 CI 均通过。独立合成浏览器已验证连续成板、失败重试、保存布局重开及行动草稿 v2，见 [修复 QA](./docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。当前按 [产品验收与发布准备账本](./docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 推进；[单位来源修复](./docs/hackathon/COMPUTED-UNITS-DELIVERY-2026-09-10.md)已完成本地验证、五库恢复、候选切换和局部真实复测。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL，整产品仍 PARTIAL。约千万行、10 人使用仍是规划输入，公网尚未部署。
 
-> **候选追加**：4325 插件为 `6202e89`，18083 API 未重启；原有板与模型配置保持，真实复测后为 2 块板、8 条结果。来源标识修正通过两条真实复测，其余表述问题保留，快速 canary 仍有 B0 404，见[当前候选与评测](./docs/hackathon/PRODUCT-UAT-CANDIDATE-2026-09-10.md)。
+> **候选追加**：4325/18083 均为 `84b0ac8`，模型配置和原资产保持，现有 2 块板、10 条结果、原草稿 v2；单位/标识/自动保存表述在本次真实用例通过，完整 T13 及 B0 404 仍开放，见[当前记录](./docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md)。
 
 ---
 

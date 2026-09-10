@@ -1,0 +1,25 @@
+{
+  "dialog": true,
+  "panel": "competition-board",
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "unit": "未记录（旧结果）",
+  "amount": "400",
+  "error": null,
+  "artifact": {
+    "assets": [
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "exactPluginCode": false
+      },
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "exactPluginCode": true
+      }
+    ],
+    "matched": true
+  },
+  "anonymous_root": 401,
+  "code_head": "84b0ac816352eefef761cbaafc30a54a46dd0517"
+}

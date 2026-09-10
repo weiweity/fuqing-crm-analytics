@@ -1,0 +1,163 @@
+"""Switch only the verified local candidate; preserve both source and state rollback paths."""
+from contextlib import closing
+from pathlib import Path
+import hashlib
+import json
+import os
+import signal
+import sqlite3
+import subprocess
+import sys
+import time
+import urllib.request
+
+repo = Path(__file__).resolve().parents[1]
+ready = repo.parent / "competition-product-readiness"
+config_file = repo / ".context/units-candidate.json"
+config = json.loads(config_file.read_text())
+release = Path(config["release"])
+state = ready / ".context/competition-synth"
+before = json.loads((release / "before-assets.json").read_text())
+ci = json.loads((repo / ".context/units-ci-browser.json").read_text())
+assert ci["head_sha"] == config["head"] and ci["conclusion"] == "success"
+assert all(next(j for j in ci["jobs"] if j["name"] == name)["conclusion"] == "success"
+           for name in ["test", "b0-contract-build", "lint", "merge-gate"])
+assert config["backup_stage"] == "RESTORE_OLD_AND_NEW_PASS"
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ready, text=True).strip() == config["previous_backend_head"]
+assert not subprocess.check_output(["git", "status", "--porcelain"], cwd=ready, text=True).strip()
+for relative, digest in config["hashes"].items():
+    assert hashlib.sha256((Path(config["plugin"]) / relative).read_bytes()).hexdigest() == digest
+for entry in config["backup_manifest"]:
+    path = Path(config["backup_path"]) / entry["path"]
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == entry["sha256"]
+node = "/Users/hutou/homebrew/opt/node@24/bin/node"
+browser = "/Users/hutou/.codex/skills/gstack/browse/dist/browse"
+
+def listeners(port):
+    process = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"], capture_output=True, text=True)
+    return sorted(set(int(pid) for pid in process.stdout.split()))
+
+def write_config():
+    config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n")
+
+def get(path):
+    request = urllib.request.Request("http://127.0.0.1:18083/api/v1/analytics/competition" + path,
+                                    headers={"Authorization": "Bearer b0-competition-synth-token-32chars"})
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return json.load(response)
+
+def stop_api(pid):
+    assert listeners(18083) == [pid]
+    os.kill(pid, signal.SIGTERM)
+    for _ in range(60):
+        if not listeners(18083):
+            return
+        time.sleep(0.1)
+    raise RuntimeError("owned API did not stop; do not start another")
+
+def start_api(checkout, state_path, label):
+    assert not listeners(18083)
+    env = {"HOME": os.environ["HOME"], "PATH": os.defpath, "PYTHONPATH": str(checkout), "PYTHON_DOTENV_DISABLED": "1",
+           "COMPETITION_SYNTH_PORT": "18083", "COMPETITION_SYNTH_WEB_ORIGIN": "http://127.0.0.1:4325",
+           "COMPETITION_SYNTH_STATE": str(state_path)}
+    with (release / f"{label}-api.log").open("w") as log:
+        process = subprocess.Popen([sys.executable, "scripts/competition-synth-http.py"], cwd=checkout, env=env,
+                                   stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    config["api_pid"] = process.pid
+    write_config()
+    for _ in range(80):
+        if process.poll() is not None:
+            raise RuntimeError(f"{label} API exited; inspect owned log")
+        if listeners(18083) == [process.pid]:
+            return process
+        time.sleep(0.1)
+    raise RuntimeError(f"{label} API startup did not finish")
+
+def start_dsh(plugin, label):
+    assert not listeners(4325)
+    env = {"HOME": os.environ["HOME"], "PATH": "/Users/hutou/homebrew/opt/node@24/bin:/usr/bin:/bin", "LANG": "en_US.UTF-8",
+           "TZ": "Asia/Shanghai", "NODE_EXTRA_CA_CERTS": "/etc/ssl/cert.pem",
+           "COMPETITION_HTTP_BASE": "http://127.0.0.1:18083", "COMPETITION_HTTP_TOKEN": "b0-competition-synth-token-32chars"}
+    config["start_requested_ns"] = time.time_ns()
+    write_config()
+    result = subprocess.run([node, "scripts/dsh-dev/cli.mjs", "start", "--plugin", "on", "--plugin-path", str(plugin),
+                             "--runtime", config["runtime"], "--web-port", "4325", "--upstream", config["upstream"], "--detach"],
+                            cwd=ready, env=env, capture_output=True, text=True, timeout=45)
+    (release / f"{label}-dsh.log").write_text(result.stdout + result.stderr)
+    assert result.returncode == 0, f"{label} DSH start failed"
+    for _ in range(80):
+        path = ready / ".context/dsh-dev/current.json"
+        if path.is_file():
+            current = json.loads(path.read_text())
+            if (current["runtime"] == config["runtime"] and current["plugin"] == str(plugin)
+                    and listeners(4325) == [current["childPid"]]):
+                config["dsh_pid"] = current["childPid"]
+                return
+        time.sleep(0.1)
+    raise RuntimeError(f"{label} DSH startup not yet confirmed")
+
+current = json.loads((ready / ".context/dsh-dev/current.json").read_text())
+assert current["runtime"] == config["runtime"] and current["plugin"] == config["previous_plugin"]
+assert current["childPid"] == config["before_dsh_pid"] and listeners(4325) == [config["before_dsh_pid"]]
+assert listeners(18083) == [config["api_pid"]]
+check = """({origin:location.origin,busy:!!document.querySelector('[aria-label="Stop generating"]'),
+running:[...document.querySelectorAll('[role=treeitem]')].filter(x=>/Running|运行中/.test(x.getAttribute('aria-label')||x.textContent||'')).length,
+dialog:!!document.querySelector('dialog[open]'),composer:!!document.querySelector('[data-composer-input=true]')?.textContent?.trim()})"""
+ui = json.loads(subprocess.check_output([browser, "js", check], cwd=ready, text=True, timeout=30))
+assert ui["origin"] == "http://127.0.0.1:4325" and not any(ui[key] for key in ["busy", "running", "dialog", "composer"])
+assert {path: get(path) for path in before} == before, "candidate assets changed since backup; refresh backup before switching"
+new_started = False
+try:
+    subprocess.run([node, "scripts/dsh-dev/cli.mjs", "stop"], cwd=ready, check=True, timeout=35)
+    stop_api(config["api_pid"])
+    # Compare all persisted tables, including records not surfaced by the selected HTTP paths.
+    for entry in config["backup_manifest"]:
+        with closing(sqlite3.connect((state / entry["path"]).as_uri() + "?mode=ro", uri=True)) as live:
+            live_sql = list(live.iterdump())
+        with closing(sqlite3.connect((Path(config["backup_path"]) / entry["path"]).as_uri() + "?mode=ro", uri=True)) as backup:
+            assert live_sql == list(backup.iterdump()), "state changed since backup; do not fast-forward"
+    config["stage"] = "SOURCE_FF_AFTER_API_STOP"
+    write_config()
+    subprocess.run(["git", "-c", "core.hooksPath=.githooks", "merge", "--ff-only", config["head"]], cwd=ready,
+                   check=True, stdout=subprocess.DEVNULL, timeout=30)
+    new_started = True
+    start_api(ready, state, "units")
+    assert {path: get(path) for path in before} == before
+    catalog_request = urllib.request.Request("http://127.0.0.1:18083/api/v1/analytics/catalog",
+                                            headers={"Authorization": "Bearer b0-competition-synth-token-32chars"})
+    with urllib.request.urlopen(catalog_request, timeout=5) as response:
+        catalog = json.load(response)
+    assert catalog["source_context"]["money_unit"] == {"status": "UNKNOWN", "currency": None, "amount_unit": None}
+    start_dsh(Path(config["plugin"]), "units")
+    config["stage"] = "NEW_CANDIDATE_RUNNING"
+    config["active_state"] = str(state)
+    config["active_backend_head"] = config["head"]
+    config["assets_equal_after_switch"] = True
+    write_config()
+except Exception:
+    if listeners(4325):
+        owner = json.loads((ready / ".context/dsh-dev/current.json").read_text())
+        assert owner["runtime"] == config["runtime"] and listeners(4325) == [owner["childPid"]]
+        subprocess.run([node, "scripts/dsh-dev/cli.mjs", "stop"], cwd=ready, check=True, timeout=35)
+    if listeners(18083):
+        stop_api(config["api_pid"])
+    rollback_state = state
+    if new_started:
+        # Preserve potentially new v2 writes in place; old code uses a fresh old snapshot.
+        rollback_state = release / "rollback-state"
+        rollback_state.mkdir(mode=0o700)
+        for entry in config["backup_manifest"]:
+            source = Path(config["backup_path"]) / entry["path"]
+            target = rollback_state / entry["path"]
+            target.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+            with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as old, closing(sqlite3.connect(target)) as new:
+                old.backup(new)
+            target.chmod(0o600)
+    start_api(Path(config["previous_backend_source"]), rollback_state, "rollback")
+    start_dsh(Path(config["previous_plugin"]), "rollback")
+    config["stage"] = "ROLLED_BACK_AFTER_SWITCH_ERROR"
+    config["active_state"] = str(rollback_state)
+    config["active_backend_head"] = config["previous_backend_head"]
+    write_config()
+    raise
+print(json.dumps({key: config[key] for key in ["stage", "head", "api_pid", "dsh_pid", "assets_equal_after_switch"]}))

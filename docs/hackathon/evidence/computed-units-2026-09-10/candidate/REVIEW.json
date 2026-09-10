@@ -1,0 +1,15 @@
+{
+  "status": "PASS_FOR_EVIDENCE_DELIVERY",
+  "code_head": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "scope": "current documentation and bounded evidence only; production source unchanged",
+  "checks": [
+    "all exported artifact digests match",
+    "modified Markdown local links resolve",
+    "safe native export excludes model requests, credentials and reasoning",
+    "U1R exact units/numeric facts and U2 independent SQLite equality",
+    "current backup distinguished from mutated restore test directories",
+    "transport failure, 503 refusals, harness failures and B0 404 retained",
+    "full T13/T15/T16/T17 and full browser rollback remain open"
+  ],
+  "test_policy": "No duplicate backend/B0 run; exact code commit CI success recorded. Normal repository hooks still required."
+}

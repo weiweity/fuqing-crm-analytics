@@ -1,0 +1,10 @@
+{
+  "case": "U2",
+  "prompt": "保持销售范围、历史范围和小样口径不变，把本期改为 2026 年 7 月整月，对比改为 2025 年 7 月整月，重新核算。说明哪些条件继承了、哪些日期变更了，并给出 GSV、同比及无法计算时的原因。不要成板。",
+  "started_ns": 1789020912195289000,
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "runtime_source": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "source": "synthetic HTTP18083",
+  "max_wall_seconds": 180,
+  "paid_real_model": true
+}
