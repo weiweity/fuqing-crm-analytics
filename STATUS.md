@@ -13,7 +13,7 @@
 | 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
 | 验证 | `d482bd6` [CI 34418047588 SUCCESS](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34418047588)：Linux 后端 2322 passed / 79 skipped，B0 480 passed / 20 warnings；本地后端 2324 passed / 77 skipped |
 | T13 | GSV 两条真实 DeepSeek 评测 PASS：ALL 410/305、CH_RETAIL 400/300，结果成板刷新重开一致；完整 T13 仍 PARTIAL，见[本轮交付](docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md) |
-| T15 / T16 / T17 | 用户本人 UAT 待执行；正式容量范围/阈值待确认；[原生 Stop、文件权限与同会话恢复](docs/hackathon/PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)局部 PASS，完整 T17 仍 PARTIAL |
+| T15 / T16 / T17 | 用户本人 UAT 待执行；正式容量范围/阈值待确认；[原生审批、权限隔离及重启恢复](docs/hackathon/PRODUCT-NATIVE-APPROVAL-2026-09-10.md)局部 PASS，完整 T17 仍 PARTIAL |
 | 产品边界 | B0、比赛合成 HTTP、旧 CRM 分开；真实人群/完整诊断、完整视觉及旧 MCP 开放项仍保留 |
 | 原服务 | 4327（PID 81058）、8000/5173（36717/36727）、14327（90347）未动；不是本轮运行证据 |
 | 本轮候选 | 4325 DSH + 18083 合成 API，独立状态；保留供配置和验收，停止仅限本轮实例 |

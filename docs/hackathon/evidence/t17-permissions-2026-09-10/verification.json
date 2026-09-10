@@ -1,0 +1,1187 @@
+{
+  "status": "Bounded native approval, next-call policy, defaults/replay and Minimal plugin off/on observations PASS; full T17 PARTIAL",
+  "source_head": "d2a5a6f0ecb204bfe315f7448ab7859192745110",
+  "code_commit": "d482bd603c04f608c5e66f33291cfb0aee35bac7",
+  "upstream_commit": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "ci": {
+    "run": 34421652594,
+    "head": "d2a5a6f0ecb204bfe315f7448ab7859192745110",
+    "observed_status": "SUCCESS",
+    "skipped_jobs_not_counted_as_passed": true
+  },
+  "provider": "local official mock server via loopback router; no external model request; not T13",
+  "data": "only new isolated synthetic state and fixture files; user configuration not copied",
+  "browser": {
+    "approval-before-reject": {
+      "approvalVisible": true,
+      "reason": "Waiting for approval\nescalate sandbox to workspace-write: T17 local acceptance: allow this one fixture file operation inside the isolated workspace.\nReject\nAllow once",
+      "rejectEnabled": true
+    },
+    "before-allow-files": {
+      "rejected_file_exists": false,
+      "allowed_file_exists_before_approval": false
+    },
+    "after-reject": {
+      "approvalVisible": false,
+      "permission": "Access mode, current: Read Only",
+      "text": "伸美 AI 增长董事会\nNew Session\nWorkspaces\nworkspace\nT17 permission fixture finished. Judge actual native tool results and persisted\nnow\n我的驾驶舱\nSettings\nT17 permission fixture finished. Judge actual native tool results and persisted\nStandard mode\nSession log\nChat\nTrajectory\npermission\npreset read-only\nSystem prompt\nT17_ESC_REJECT: try the fixture write, then ask for one-time workspace access; reject this test request.\n08:40\n2 tool calls\n\nT17 permission fixture finished. Judge actual native tool results and persisted state.\n\nUsage 99 tok\nRan for 38s\n08:41\nMessage or run a task... / commands, @ files or sessions\nRead Only\nDeepSeek-V4-Flash\nOff\n1 turns · 3 steps| LLM 0.1s · Tool call 37.9s| TTFT avg 0s · 15000 tok/s| Cache hit 0%| Input 9 tok · Output 90 tok\nDetails\nClick a tool row in the message flow to view its details"
+    },
+    "after-allow": {
+      "approvalVisible": false,
+      "permission": "Access mode, current: Read Only"
+    },
+    "during-switch-browser-failed-before-prompt": {
+      "case": "switch running conversation before its next confined tool call",
+      "fixture_only": true,
+      "status": "FAILED",
+      "error": "Expecting value: line 1 column 1 (char 0)",
+      "released_ns": 1789000947300465000
+    },
+    "during-switch-browser": {
+      "case": "switch running conversation before its next confined tool call",
+      "fixture_only": true,
+      "before": "Access mode, current: Workspace Write",
+      "pending": {
+        "id": 10,
+        "marker": "DURING_SWITCH",
+        "event": "LLM_WAITING_BEFORE_TOOL_EMISSION"
+      },
+      "generation_running": true,
+      "after": "Access mode, current: Read Only",
+      "permission_switched_ns": 1789000971216369000,
+      "status": "PERMISSION_NARROWED_BEFORE_TOOL",
+      "released_ns": 1789000971216548000
+    },
+    "default-change-existing-session": {
+      "generalDefault": "Read Only",
+      "currentSession": "Access mode, current: Workspace Write",
+      "selectedSession": "T17 permission fixture finished. Judge actual native tool results and persisted1min"
+    },
+    "new-session-default": {
+      "permission": "Access mode, current: Read Only",
+      "selectedSession": "New Session",
+      "blank": true
+    },
+    "agent-preset-options": [
+      "Standard mode\nFull coding agent with file editing, shell, file and web search, skills, planning, goals, subagents, and workflows.",
+      "PTC mode\nFull coding agent without the workflow tool; other tools are exposed through the PTC mode SDK so the model can combine multi-step operations in one TypeScript program.",
+      "Minimal mode\nTwo-tool coding agent with persistent bash and str_replace_editor.",
+      "Creator mode\nBuilt for creating custom agent presets, with all Standard mode capabilities plus runtime inspection, plugin experiments, and preset-authoring guidance."
+    ],
+    "preset-before-restart": {
+      "minimalVisible": true,
+      "permission": "Access mode, current: Read Only",
+      "probeVisible": true
+    },
+    "preset-after-restart": {
+      "minimalVisible": true,
+      "probeVisible": true,
+      "permission": "Access mode, current: Read Only"
+    },
+    "original-session-after-restart": {
+      "standardVisible": true,
+      "rejectTurn": true,
+      "permission": "Access mode, current: Workspace Write"
+    },
+    "general-after-restart": {
+      "defaultAfterRestart": "Read Only",
+      "currentSession": "Access mode, current: Workspace Write"
+    },
+    "plugin-off-browser": {
+      "title": "T17 permission fixture finished. Judge actual native tool results and persisted — DeepSeek Harness",
+      "minimalVisible": true,
+      "permission": "Access mode, current: Read Only",
+      "businessFooter": false
+    }
+  },
+  "provider_events": [
+    {
+      "time_ns": 1789000823457000000,
+      "id": 1,
+      "marker": "ESC_REJECT",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "ESC_REJECT",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789000823457000000,
+      "id": 2,
+      "marker": "ESC_REJECT",
+      "toolNames": [],
+      "served": "success",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789000823505000000,
+      "id": 3,
+      "marker": "ESC_REJECT",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "ESC_REJECT_APPROVAL",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-1:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        }
+      ]
+    },
+    {
+      "time_ns": 1789000861387000000,
+      "id": 4,
+      "marker": "ESC_REJECT",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-1:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        },
+        {
+          "tool_call_id": "b0-request-3:mock-call-1",
+          "content": "Error: the user rejected escalating this operation to \"workspace-write\""
+        }
+      ]
+    },
+    {
+      "time_ns": 1789000874202000000,
+      "id": 5,
+      "marker": "ESC_ALLOW",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "ESC_ALLOW",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789000874227000000,
+      "id": 6,
+      "marker": "ESC_ALLOW",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "ESC_ALLOW_APPROVAL",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-5:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        }
+      ]
+    },
+    {
+      "time_ns": 1789000894954000000,
+      "id": 7,
+      "marker": "ESC_ALLOW",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-5:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        },
+        {
+          "tool_call_id": "b0-request-6:mock-call-1",
+          "content": "<path>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/escalation-allowed.txt</path>\n<type>file</type>\n<content>\nCreated file\n</content>"
+        }
+      ]
+    },
+    {
+      "time_ns": 1789000905181000000,
+      "id": 8,
+      "marker": "AFTER_ALLOW",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "AFTER_ALLOW",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789000905206000000,
+      "id": 9,
+      "marker": "AFTER_ALLOW",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-8:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        }
+      ]
+    },
+    {
+      "time_ns": 1789000971001000000,
+      "id": 10,
+      "marker": "DURING_SWITCH",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "DURING_SWITCH",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789000971224000000,
+      "id": 10,
+      "event": "TOOL_EMISSION_RELEASED"
+    },
+    {
+      "time_ns": 1789000971253000000,
+      "id": 11,
+      "marker": "DURING_SWITCH",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-10:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        }
+      ]
+    },
+    {
+      "time_ns": 1789001103445000000,
+      "id": 12,
+      "marker": null,
+      "toolNames": [
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "str_replace_editor"
+      ],
+      "served": "success",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789001103445000000,
+      "id": 13,
+      "marker": null,
+      "toolNames": [],
+      "served": "success",
+      "toolResults": []
+    },
+    {
+      "time_ns": 1789001295483000000,
+      "id": 14,
+      "marker": null,
+      "toolNames": [
+        "bash",
+        "str_replace_editor"
+      ],
+      "served": "success",
+      "toolResults": []
+    }
+  ],
+  "native_records": [
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "session",
+      "version": 2,
+      "id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "createdAt": 1789000804268,
+      "cwd": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace",
+      "isSeeded": false,
+      "delegationDepth": 0,
+      "agentPreset": "standard"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "permission/preset",
+      "seq": 0,
+      "time": 1789000804350,
+      "data": {
+        "preset": "workspace-write"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "sandbox/mode",
+      "seq": 1,
+      "time": 1789000804352,
+      "data": {
+        "mode": "workspace-write"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "approval/policy",
+      "seq": 2,
+      "time": 1789000804352,
+      "data": {
+        "policy": "ask"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "permission/preset",
+      "seq": 4,
+      "time": 1789000823197,
+      "data": {
+        "preset": "read-only"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "sandbox/mode",
+      "seq": 5,
+      "time": 1789000823197,
+      "data": {
+        "mode": "read-only"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/call",
+      "seq": 20,
+      "time": 1789000823477,
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "callId": "b0-request-1:mock-call-1",
+        "name": "write",
+        "arguments": "{\"file_path\":\"/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/escalation-rejected.txt\",\"content\":\"T17_REJECT_MUST_NOT_EXIST\\n\"}"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/result",
+      "seq": 22,
+      "time": 1789000823489,
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-1:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-1:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "45fe541b-d063-4f2f-a59e-9fd432e93a12"
+        },
+        "error": {
+          "name": "FsError",
+          "code": "FS_SANDBOX_DENIED"
+        }
+      },
+      "sourceEventSeqs": [
+        20
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/call",
+      "seq": 26,
+      "time": 1789000823509,
+      "data": {
+        "turn": 1,
+        "step": 2,
+        "callId": "b0-request-3:mock-call-1",
+        "name": "write",
+        "arguments": "{\"file_path\":\"/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/escalation-rejected.txt\",\"content\":\"T17_REJECT_MUST_NOT_EXIST\\n\",\"sandbox_permissions\":\"workspace-write\",\"justification\":\"T17 local acceptance: allow this one fixture file operation inside the isolated workspace.\"}"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "approval/asked",
+      "seq": 27,
+      "time": 1789000823514,
+      "data": {
+        "id": "dc304def-a10b-4c3a-b1b7-2a0c9ccbfcd8",
+        "toolName": "write",
+        "callId": "b0-request-3:mock-call-1",
+        "reason": "escalate sandbox to workspace-write: T17 local acceptance: allow this one fixture file operation inside the isolated workspace."
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "approval/decided",
+      "seq": 28,
+      "time": 1789000861364,
+      "data": {
+        "id": "dc304def-a10b-4c3a-b1b7-2a0c9ccbfcd8",
+        "outcome": "rejected"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/result",
+      "seq": 29,
+      "time": 1789000861364,
+      "data": {
+        "turn": 1,
+        "step": 2,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-3:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-3:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: the user rejected escalating this operation to \"workspace-write\""
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "ba2f3d34-7c6a-4248-81b2-726ac889c900"
+        }
+      },
+      "sourceEventSeqs": [
+        26
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/call",
+      "seq": 41,
+      "time": 1789000874206,
+      "data": {
+        "turn": 2,
+        "step": 1,
+        "callId": "b0-request-5:mock-call-1",
+        "name": "write",
+        "arguments": "{\"file_path\":\"/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/escalation-allowed.txt\",\"content\":\"T17_ALLOWED_ONCE\\n\"}"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/result",
+      "seq": 42,
+      "time": 1789000874212,
+      "data": {
+        "turn": 2,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-5:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-5:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "c1498993-9476-4957-bce3-6e459a3bec29"
+        },
+        "error": {
+          "name": "FsError",
+          "code": "FS_SANDBOX_DENIED"
+        }
+      },
+      "sourceEventSeqs": [
+        41
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/call",
+      "seq": 46,
+      "time": 1789000874230,
+      "data": {
+        "turn": 2,
+        "step": 2,
+        "callId": "b0-request-6:mock-call-1",
+        "name": "write",
+        "arguments": "{\"file_path\":\"/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/escalation-allowed.txt\",\"content\":\"T17_ALLOWED_ONCE\\n\",\"sandbox_permissions\":\"workspace-write\",\"justification\":\"T17 local acceptance: allow this one fixture file operation inside the isolated workspace.\"}"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "approval/asked",
+      "seq": 47,
+      "time": 1789000874234,
+      "data": {
+        "id": "f339f201-7af2-4a11-bb74-5ee43ff637bb",
+        "toolName": "write",
+        "callId": "b0-request-6:mock-call-1",
+        "reason": "escalate sandbox to workspace-write: T17 local acceptance: allow this one fixture file operation inside the isolated workspace."
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "approval/decided",
+      "seq": 48,
+      "time": 1789000894931,
+      "data": {
+        "id": "f339f201-7af2-4a11-bb74-5ee43ff637bb",
+        "outcome": "allowed-once"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/result",
+      "seq": 49,
+      "time": 1789000894939,
+      "data": {
+        "turn": 2,
+        "step": 2,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-6:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-6:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<path>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/escalation-allowed.txt</path>\n<type>file</type>\n<content>\nCreated file\n</content>"
+                }
+              ],
+              "isError": false
+            }
+          ],
+          "role": "user",
+          "id": "7645bbe7-8618-413b-bbb3-ab4e9be618b1"
+        },
+        "meta": {
+          "diffs": []
+        }
+      },
+      "sourceEventSeqs": [
+        46
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/call",
+      "seq": 61,
+      "time": 1789000905185,
+      "data": {
+        "turn": 3,
+        "step": 1,
+        "callId": "b0-request-8:mock-call-1",
+        "name": "write",
+        "arguments": "{\"file_path\":\"/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/after-allow.txt\",\"content\":\"T17_NO_STICKY_GRANT\\n\"}"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/result",
+      "seq": 62,
+      "time": 1789000905191,
+      "data": {
+        "turn": 3,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-8:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-8:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "f0b7102d-e4e4-4510-85f4-b2249b0029ea"
+        },
+        "error": {
+          "name": "FsError",
+          "code": "FS_SANDBOX_DENIED"
+        }
+      },
+      "sourceEventSeqs": [
+        61
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "permission/preset",
+      "seq": 69,
+      "time": 1789000947266,
+      "data": {
+        "preset": "workspace-write"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "sandbox/mode",
+      "seq": 70,
+      "time": 1789000947266,
+      "data": {
+        "mode": "workspace-write"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "permission/preset",
+      "seq": 79,
+      "time": 1789000971182,
+      "data": {
+        "preset": "read-only"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "sandbox/mode",
+      "seq": 80,
+      "time": 1789000971182,
+      "data": {
+        "mode": "read-only"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/call",
+      "seq": 83,
+      "time": 1789000971229,
+      "data": {
+        "turn": 4,
+        "step": 1,
+        "callId": "b0-request-10:mock-call-1",
+        "name": "write",
+        "arguments": "{\"file_path\":\"/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace/after-switch.txt\",\"content\":\"T17_SWITCH_MUST_DENY\\n\"}"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "tool/result",
+      "seq": 84,
+      "time": 1789000971236,
+      "data": {
+        "turn": 4,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-10:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-10:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "23ba0cb6-47c7-474a-b96a-bcd56f882d04"
+        },
+        "error": {
+          "name": "FsError",
+          "code": "FS_SANDBOX_DENIED"
+        }
+      },
+      "sourceEventSeqs": [
+        83
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "permission/preset",
+      "seq": 92,
+      "time": 1789001021683,
+      "data": {
+        "preset": "workspace-write"
+      }
+    },
+    {
+      "session_id": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "type": "sandbox/mode",
+      "seq": 93,
+      "time": 1789001021683,
+      "data": {
+        "mode": "workspace-write"
+      }
+    },
+    {
+      "session_id": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "type": "session",
+      "version": 2,
+      "id": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "createdAt": 1789001035956,
+      "cwd": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-permissions-us1t8w8r/runtime/workspace",
+      "isSeeded": false,
+      "delegationDepth": 0,
+      "agentPreset": "standard"
+    },
+    {
+      "session_id": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "type": "permission/preset",
+      "seq": 0,
+      "time": 1789001035961,
+      "data": {
+        "preset": "read-only"
+      }
+    },
+    {
+      "session_id": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "type": "sandbox/mode",
+      "seq": 1,
+      "time": 1789001035961,
+      "data": {
+        "mode": "read-only"
+      }
+    },
+    {
+      "session_id": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "type": "approval/policy",
+      "seq": 2,
+      "time": 1789001035961,
+      "data": {
+        "policy": "ask"
+      }
+    },
+    {
+      "session_id": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "type": "agent-preset/selected",
+      "seq": 3,
+      "time": 1789001103132,
+      "data": {
+        "agentPreset": "minimal"
+      }
+    }
+  ],
+  "journal_hashes_after_exit": [
+    {
+      "session": "session-bb3d5ef4-c1af-49d7-ba53-c15373b1a6c1",
+      "sha256": "6e3cf41f81649c370dbeccd5f37b2ba8e92ea439c5859f609d65b483cfb72813",
+      "record_count": 97
+    },
+    {
+      "session": "session-7510da5b-5c4f-477e-84ec-59edc48e03f4",
+      "sha256": "cc3f11dde9a59dba9f599386418e81c25ed2f70e868416b0b94aff9b77f83994",
+      "record_count": 28
+    }
+  ],
+  "approval_ids_paired": true,
+  "escalation_exact_retry_arguments_verified": true,
+  "next_call_mode_event_seq": 80,
+  "next_call_tool_seq": 83,
+  "allowed_file": {
+    "bytes": 17,
+    "sha256": "31583f8aed320f18a5d8102ba4e46aee8ab7082a01f2090f39152d4041a45c06"
+  },
+  "absent_files": [
+    "escalation-rejected.txt",
+    "after-allow.txt",
+    "after-switch.txt"
+  ],
+  "minimal_catalog_on": [
+    "bash",
+    "competition_growth_capabilities",
+    "competition_growth_patch",
+    "competition_growth_skill_resource",
+    "competition_growth_step",
+    "str_replace_editor"
+  ],
+  "minimal_catalog_off": [
+    "bash",
+    "str_replace_editor"
+  ],
+  "post_exit_file_checks": true,
+  "final_listeners": {
+    "4325": [
+      23690
+    ],
+    "18083": [
+      23661
+    ],
+    "4327": [
+      81058
+    ],
+    "8000": [
+      36717
+    ],
+    "5173": [
+      36727
+    ],
+    "14327": [
+      90347
+    ],
+    "4328": [],
+    "18084": []
+  },
+  "helpers": {
+    "t17-permissions-provider.mjs": {
+      "executed_sha256": "10ec3d9ed811aa345e4570a3e57df1186624f0878a2491e3deddff13d3930f2e",
+      "archived_sha256": "10ec3d9ed811aa345e4570a3e57df1186624f0878a2491e3deddff13d3930f2e"
+    },
+    "t17-permissions-api.py": {
+      "executed_sha256": "91351705f40cb39728f1bba5b2351cdd31d5c4c82ce844912cade920047c6997",
+      "archived_sha256": "91351705f40cb39728f1bba5b2351cdd31d5c4c82ce844912cade920047c6997"
+    },
+    "t17-permissions-workspace.mjs": {
+      "executed_sha256": "472e6447ea760bdf5f46471e224a66ad90240643806cbfe2f3ad968f80b6d646",
+      "archived_sha256": "eda6fa78e4e1a39db973b0a3584aadaa2990d41ec3618e765961706eb6effc6e"
+    },
+    "t17-permissions-switch.py": {
+      "executed_sha256": "d3c59667c865e2b1e6ed6cb373e9c486623fc406a3a5248153a2f40dcf44e4d8",
+      "archived_sha256": "d3c59667c865e2b1e6ed6cb373e9c486623fc406a3a5248153a2f40dcf44e4d8"
+    }
+  },
+  "cleanup": {
+    "stopped_web_port": 4328,
+    "stopped_api_pid": 43074,
+    "stopped_provider_pid": 43063,
+    "kept_user_ports": [
+      4325,
+      18083,
+      4327,
+      8000,
+      5173,
+      14327,
+      18082
+    ]
+  },
+  "failures_retained": [
+    "Workspace menu :text-is selector failed because label is inside a child; subsequent dependent controls were absent; no model request began. Corrected selector before cases.",
+    "First pre-call driver parsed a CLI string as JSON and failed before prompt; its report and release marker were renamed and preserved after confirming no DURING_SWITCH request existed.",
+    "Initial broad Reject selector also matched tool detail containing rejected filename; scoped it to the native approval card before action."
+  ],
+  "limitations": [
+    "Mode switch is verified before the next confined tool call, as fixed upstream specifies; not interruption of an existing syscall.",
+    "This is native filesystem policy, not business actor/data-scope revocation or credential reachability verification.",
+    "Minimal on/off comparison checks actual exposed tool names and session replay; not full PTC/Creator/custom preset behavior.",
+    "System directory picker, long-session/compaction, full visual and remaining T13/T15/T16/release gates remain open."
+  ]
+}
