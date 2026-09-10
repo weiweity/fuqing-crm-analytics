@@ -1,0 +1,28 @@
+{
+  "base": "4d8a96854f6fb05e2da1a914a04f2cedd8e69064",
+  "ci": {
+    "id": 34414999794,
+    "python": "FAILED in query worker state read; raw sqlite3.OperationalError",
+    "b0": "SUCCESS"
+  },
+  "regression": {
+    "before": "1 failed: raw sqlite3.OperationalError escaped",
+    "after": "76 passed / 1 warning",
+    "boundary": "one injected driver read failure; real SQL child, execution lease, stop and exit persistence",
+    "state": "EXITED, no active slot, exit -9, no published result"
+  },
+  "legacy_mcp_recheck": "2 passed / 1 warning; no MCP service started or business DB opened",
+  "source_sha256": {
+    "backend/services/analytics/worker.py": "437557f263c6adbf32c5a6dadfdd0268a5497400b3706bcf07a11d37011c3ca6",
+    "backend/tests/test_analytics_query_worker.py": "ffc2ce25dd578b102956eb32c6d62a36debd6db563f83c620b52585e048c71e1"
+  },
+  "log_sha256": {
+    ".context/visual-push-recovery.log": "ddc014ee2d544f77c034d11794d51a18c3ef2f54a57a09158a16b4cfb5c2c292",
+    ".context/visual-ci-python-failed.log": "552fed08aa7562dc3f884232c45644a49aa00784849ce68399da9e3b7cfaecbb",
+    ".context/worker-read-before.log": "76b6c5e7377cdc24cdc8e45314802f21c1a07ddfa1eff07d38902b647268885b",
+    ".context/worker-read-after.log": "f5e4115ba58d2e0e0589e3a8848e1f4f796a55e2207b5d3665381cf8329bc6a9",
+    ".context/legacy-mcp-recheck.log": "f15088c21cb2eab835b94878a8e590de7d2d8a75126134fae23bcd2278357d3d"
+  },
+  "current_commit_push_checks": "pending",
+  "user_candidate_switched": false
+}

@@ -231,7 +231,9 @@ class NativeProbeCoordinator(AbstractContextManager):
         _unlink_if_owned(self.current_path)
         for launcher in owned:
             try:
-                launcher.__exit__(None, None, None)
+                # WorkerManager owns the returned Popen protocol streams. It
+                # must drain EOF and close them after its selector exits.
+                launcher.close(close_worker_streams=False)
             except OSError:
                 pass
 

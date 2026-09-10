@@ -5,6 +5,7 @@ import {
   createHttpAudienceTransport, wrapAudiencePreviewPayload,
 } from './competition-actions/transport.mjs';
 import { assertCompetitionHttpBase, competitionHttpOptions } from './competition-http.mjs';
+import { RESULT_SUCCESS } from './competition-board/c0-fixtures.mjs';
 
 test('competition HTTP options refuse user demo ports', () => {
   assert.throws(() => assertCompetitionHttpBase('http://127.0.0.1:4327'), /4327/);
@@ -41,7 +42,7 @@ test('HTTP transports post C0 paths and unwrap results list', async () => {
     if (String(path).endsWith('/results')) {
       return {
         status: 200,
-        async json() { return { items: [{ result_id: 'result_synth' }], http_api: 'CONNECTED' }; },
+        async json() { return { items: [structuredClone(RESULT_SUCCESS)], http_api: 'CONNECTED' }; },
       };
     }
     if (String(path).includes('/candidates/preview')) {
@@ -63,7 +64,7 @@ test('HTTP transports post C0 paths and unwrap results list', async () => {
   const board = createHttpBoardTransport({ fetchImpl });
   const listed = await board.listEndorseableResults();
   assert.equal(listed.ok, true);
-  assert.equal(listed.body[0].result_id, 'result_synth');
+  assert.equal(listed.body[0].result_id, RESULT_SUCCESS.result_id);
   const audience = createHttpAudienceTransport({ fetchImpl });
   const preview = await audience.previewCandidates({}, { combine: 'AND', rules: ['STOREWIDE_ABSENT'] });
   assert.equal(preview.ok, true);

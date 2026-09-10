@@ -1,0 +1,78 @@
+from pathlib import Path
+from compression import zstd
+import json,hashlib,subprocess,shutil
+repo=Path.cwd();config=json.loads((repo/'.context/t17-extended-current.json').read_text());root=Path(config['root'])
+out=repo/'docs/hackathon/evidence/t17-extended-2026-09-10';out.mkdir(parents=True,exist_ok=True)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+events=[json.loads(l) for l in (root/'provider-events.jsonl').read_text().splitlines()]
+by_id={e['id']:e for e in events if 'id' in e}
+assert max(by_id)==33
+business={'competition_growth_capabilities','competition_growth_patch','competition_growth_skill_resource','competition_growth_step'}
+matrix=[]
+for name,on,off,tool in [('standard',1,22,'read'),('minimal',4,24,'str_replace_editor'),('ptc',7,26,'run_code'),('cordis',10,28,'read'),('t17-standard-copy',13,30,'read')]:
+ a,b=by_id[on],by_id[off]
+ assert a['served']!='done' and b['served']!='done'
+ if name=='ptc':assert a['toolNames']==b['toolNames']==['run_code']
+ else:assert set(a['toolNames'])-set(b['toolNames'])==business and set(b['toolNames']).issubset(a['toolNames'])
+ for start in [on,off]:
+  result=next(e for e in events if any(r['tool_call_id']==f'b0-request-{start}:mock-call-1' for r in e.get('toolResults',[])))
+  assert 'T17_EXTENDED_NATIVE_SEED' in str(result['toolResults'])
+ matrix.append({'preset':name,'on_request_id':on,'off_request_id':off,'executed_tool':tool,'on_catalog':a['toolNames'],'off_catalog':b['toolNames'],'actual_seed_read_both_modes':True})
+native=[];journals=[];presets=set();compact_rows=None
+for p in sorted((root/'runtime/harness/sessions').rglob('session.v2.jsonl.zstd')):
+ rows=[json.loads(l) for l in zstd.decompress(p.read_bytes()).decode().splitlines()]
+ chosen=[r['data']['agentPreset'] for r in rows if r['type']=='agent-preset/selected']
+ preset=chosen[-1] if chosen else rows[0]['agentPreset'];presets.add(preset)
+ journals.append({'session_id':p.parent.name,'preset':preset,'sha256_after_exit':sha(p),'records':len(rows)})
+ for e in rows:
+  if e['type'] in {'agent-preset/selected','tool/call','tool/result','command/run','command/done','compaction/start','compaction/summary','compaction/end'} or (e['type']=='user/message' and '<compacted-summary>' in str(e['data'])):
+   native.append({'session_id':p.parent.name,**e})
+  if e['type']=='tool/result':
+   blocks=e['data']['message']['content']
+   assert all(not b.get('isError',False) for b in blocks)
+ if any(r['type']=='compaction/start' for r in rows):compact_rows=rows
+assert presets=={'standard','minimal','ptc','cordis','t17-standard-copy'}
+assert compact_rows is not None
+summary=next(r for r in compact_rows if r['type']=='compaction/summary')
+start=next(r for r in compact_rows if r['type']=='compaction/start');end=next(r for r in compact_rows if r['type']=='compaction/end')
+replacement=next(r for r in compact_rows if r.get('seq')==50)
+done=next(r for r in compact_rows if r['type']=='command/done')
+assert start['data']['compactionId']==summary['data']['compactionId']==end['data']['compactionId']
+assert start['seq']<summary['seq']<replacement['seq']<end['seq']<done['seq'] and done['data']['kind']=='success'
+assert replacement['type']=='user/message' and '<compacted-summary>' in str(replacement['data'])
+assert summary['data']['shadowedTokenCount']==10613 and len(summary['data']['shadowedSeqs'])==12
+shadowed=[r for r in compact_rows if r.get('seq') in summary['data']['shadowedSeqs']]
+history_shadowed=sum(str(r['data'].get('message',r['data']).get('content',[])).count('History item ') for r in shadowed)
+assert history_shadowed==320
+assert by_id[22]['has_checkpoint'] and by_id[22]['history_item_count']==160
+assert by_id[32]['marker']=='CUSTOM' and business.issubset(by_id[32]['toolNames'])
+assert 'T17_EXTENDED_NATIVE_SEED' in str(by_id[33]['toolResults'])
+workspace=json.loads((root/'runtime/harness/storages/workspace.json').read_text())
+entries=list(workspace['tables']['workspaces'].values());assert len(entries)==1
+assert entries[0]['path']==str(root/'runtime/workspace') and len(entries[0]['sessionIds'])==5
+seed=(root/'runtime/workspace/seed.txt').read_bytes();assert seed==b'T17_EXTENDED_NATIVE_SEED\n'
+custom=root/'runtime/harness/.agent-presets/t17-standard-copy'
+assert sha(custom/'agent.cordis.yml')==sha(Path(config['upstream'])/'packages/preset/agent-presets/presets/standard/agent.cordis.yml')
+browser={}
+for p in sorted(root.glob('*.json')):
+ if p.name in {'provider.patch.json','provider-ready.json','provider-before-restart.json','pre-restart-journals.json'}:continue
+ v=json.loads(p.read_text())
+ if 'text' in v:
+  assert v['url']=='http://127.0.0.1:4328/'
+  v['full_text_characters']=len(v['text']);v['text_tail']=v.pop('text')[-6000:]
+  browser[p.stem]=v
+assert 'Compacted 12 history items' in browser['compact-complete']['text_tail']
+assert 'T17 custom standard' in browser['custom-on-return']['text_tail']
+cleanup=json.loads((root/'cleanup.json').read_text())
+assert cleanup['final_listeners']['4328']==cleanup['final_listeners']['18084']==[]
+helpers={}
+for name in ['t17-extended-provider.mjs','t17-extended-browser.py','t17-extended-pack.py']:
+ src=repo/'.context'/name;target=out/(name+'.txt');target.write_text(src.read_text().rstrip()+'\n');helpers[name]={'executed_sha256':sha(src),'archived_sha256':sha(target)}
+for name in ['provider-before-title-fix.mjs','provider-before-checkpoint-observer.mjs']:
+ src=root/name;target=out/(name+'.txt');target.write_text(src.read_text().rstrip()+'\n');helpers[name]={'executed_sha256':sha(src),'archived_sha256':sha(target)}
+images={}
+for name in ['compact-replay.png','custom-restored-off.png','custom-on-return.png']:
+ shutil.copyfile(root/name,out/name);images[name]={'sha256':sha(out/name),'visually_inspected':True,'viewport':'1280x720'}
+report={'status':'Bounded native picker/presets/manual compaction PASS; full T17 PARTIAL','source_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'runtime_code':'9948de39e87d71dbfefc223aa020b696ed8068c8','upstream_commit':'d347e703908d0406b7a7ef80e3a0e594d86b2215','ci':{'run':34426683769,'head':'84a4eb3dae7dbbf020f152a04da49971c87fa2bf','conclusion':'SUCCESS'},'provider':'Official local mock through bounded loopback router; no paid model; not T13','provider_requests_attempted':33,'provider_failed_requests':1,'provider_events':events,'preset_matrix':matrix,'journals_after_exit':journals,'native_records':native,'browser':browser,'workspace_storage':workspace,'directory_picker':{'selected_via':'Browser Add workspace -> owned osascript PID 86064 (parent 85865) -> native Go to Folder text field -> native Select button','creation_used_workspace_rpc_helper':False,'cancellation':json.loads((root/'picker-cancel.json').read_text()),'final_workspace_count':1},'compaction':{'mode':'native /compact command; manual','source_command_id':start['data']['sourceCommandId'],'shadowed_items':12,'shadowed_estimated_tokens':10613,'shadowed_history_lines':history_shadowed,'retained_recent_history_lines_after_restart':160,'checkpoint_in_real_post_restart_request':True,'summary_quality':'Fixed local fixture text; no evaluation of real-model summarization quality','automatic_pressure_or_overflow':'NOT_RUN'},'custom_preset':{'created_by':'Settings -> Agent presets -> Duplicate: Standard mode','id':'t17-standard-copy','agent_config_byte_identical_to_shipped_standard':True,'files':{p.name:sha(p) for p in custom.iterdir() if p.is_file()}},'seed_after_exit_sha256':hashlib.sha256(seed).hexdigest(),'compiled_plugin_client_sha256':sha(root/'plugin/lib/client.js'),'cleanup':cleanup,'helpers':helpers,'screenshots':images,'failures_retained':['First router treated native title generation (no tools) as a file-tool request and returned 502. Native file read succeeded; router corrected before later cases; original script retained.','Old @ref workspace selection ambiguous; escaped the menu before any prompt.','Settings aria-label selector and Duplicate text selector timed out; corrected using observed native DOM labels. Broad dialog snapshot was ambiguous; inspected individual dialogs.','First local journal inspection indexed seq on session header and failed; first pack counted duplicated stream assembly text along with final message content and failed. Corrected to final message content; no runtime mutation.','Early has_checkpoint observer also matched the compaction instruction mentioning the summary tag; after correction it requires the actual checkpoint preamble. Only corrected post-restart request 22 and durable replacement support checkpoint replay.'],'limitations':['Preset evidence covers actual read execution, composition and restart; not every specialized tool, Creator plugin authoring, or arbitrary user-authored preset.','Three long synthetic text responses exercise manual compaction, not automatic overflow or real-model summary quality.','Directory chooser is native macOS UI; screenshots show browser results, not the OS picker itself.','Full DESIGN matrix, business actor/data-scope revocation and real data/credential boundaries retain their separate gates.','User T15 signoff, complete T13, formal T16 and full release are still open.']}
+(out/'verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'evidence':str(out),'sessions':len(journals),'presets':len(matrix),'native_records':len(native),'shadowed_tokens':10613,'attempted_local_requests':33,'temporary_listeners':0}))

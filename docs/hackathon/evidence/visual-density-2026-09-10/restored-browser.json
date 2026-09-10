@@ -1,0 +1,10 @@
+{
+  "dialogOpen": true,
+  "error": false,
+  "chart": "BAR",
+  "values": [
+    "对比期 305",
+    "本期 410"
+  ],
+  "native": "light"
+}

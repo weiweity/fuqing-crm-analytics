@@ -11,7 +11,7 @@ async function source(name) {
   return readFile(join(dir, name), 'utf8');
 }
 
-test('competition shell exports the A6 contract names and does not import antd', async () => {
+test('competition shell exports the A6 contract names with the locked AntD provider', async () => {
   const index = await source('index.ts');
   for (const name of [
     'ThemeProvider', 'LayoutSlot', 'CompetitionShell', 'BrandMark', 'BrandNav', 'WelcomeHero',
@@ -22,8 +22,8 @@ test('competition shell exports the A6 contract names and does not import antd',
   }
   assert.doesNotMatch(index, /from 'antd'|from "antd"/);
   const provider = await source('ThemeProvider.tsx');
-  assert.doesNotMatch(provider, /from 'antd'|from "antd"/);
-  assert.match(provider, /ConfigProvider\?:/);
+  assert.match(provider, /from 'antd\/es\/config-provider'/);
+  assert.doesNotMatch(provider, /ConfigProvider\?:/);
 });
 
 test('brand tokens follow DESIGN.md and keep original asset URLs', async () => {

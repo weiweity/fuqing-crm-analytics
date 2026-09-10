@@ -1,0 +1,22 @@
+{
+  "case": "E5",
+  "turn": 5,
+  "session_id": "session-11ad1f09-b047-49ca-a69e-5edd0dd51f80",
+  "native_log_sha256_at_extract": "2e82c2e9e2cadbcf297a8e55d9636dc9b282a416dc42d38e45837911412eaa4c",
+  "native_success": false,
+  "tools": [
+    "competition_growth_patch",
+    "bash",
+    "grep",
+    "read",
+    "read",
+    "grep"
+  ],
+  "reason": {
+    "kind": "error",
+    "error": {
+      "message": "DeepSeek API request to https://api.deepseek.com failed",
+      "code": "TRANSPORT"
+    }
+  }
+}

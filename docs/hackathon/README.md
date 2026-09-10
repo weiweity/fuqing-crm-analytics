@@ -1,12 +1,20 @@
 # AI 增长董事会
 
+最新独立增量：[看板直达、多板切换与条件证据](PRODUCT-UAT-NAVIGATION-2026-09-10.md)已进入 4325，方法修正 `6202e89` CI SUCCESS，已进入 4325；真实等价问法数值与标识引用回归通过，完整产品仍 PARTIAL。
+
 本目录记录黑客松产品决策和本地演示基线，它不替代原有 CRM 分析文档。公网部署与网址提交仍是独立待办。
 
-2026-09-09 本地核验主线基线为 `71a65f0`（#111；未重新查询远端），VERSION `0.7.0.0`。本轮 [DSH 基座与插件兼容集成](./DSH-COMPAT-INTEGRATION-2026-09-09.md) 已在本地主线，历史未提交状态不再描述当前代码；开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md)，插件 UI 交接见 [DSH-PLUGIN-UI-COMPAT](./DSH-PLUGIN-UI-COMPAT.md)。原生能力全量、真实模型和业务 UAT 仍未验收。
+2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。
+
+上一轮主题接入：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；DeepSeek 配置与会话保留，原生主题同步、实际 AntD、BAR 400/300 重开、五库备份恢复通过。快速 canary DEGRADED（既有 B0 404），完整产品仍 PARTIAL。见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。文档提交 `6b32ce9` 的 CI 亦 SUCCESS；后续[原生 Stop/文件权限补验](PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)及[审批/默认隔离/重启恢复](PRODUCT-NATIVE-APPROVAL-2026-09-10.md)通过局部用例，`d2a5a6f` CI SUCCESS；4328/18084 临时实例已关闭。
+
+当前 4325/18083 均运行 `84b0ac8`，CI SUCCESS；五库恢复、原生单位展示和三条有界真实复测见[当前单位候选](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)。模型配置和原有板/草稿保持。本轮追加 `2dad216`（CI SUCCESS）：T13 原生工具边界 runtime 复测通过，A6/A7 HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径分项取证，见[边界复测](evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest-verified.json)与 [transport 覆盖](evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json)。完整 T13 仍开放。
+
+[单位来源修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)已完成本地合同、持久化与编译后 DOM 验证；当前合成源单位保持 UNKNOWN。已切换运行实例并完成局部真实模型复测。
 
 ## 当前采用的目标方案（2026-09-09）
 
-并行开发交接：[Grok总控与9个角色任务包](./parallel-competition-2026-09-09/README.md)，含逐轨文件所有权、C0合同门、批次/集成顺序、验收出口与可复制提示词。任务包已拆分，尚未派发实施。
+并行开发交接：[Grok总控与9个角色任务包](./parallel-competition-2026-09-09/README.md) 保留当时的任务拆分、所有权和验收合同；代码已由 #112 集成、#114 补修。任务包不是当前执行状态源，当前状态以顶部账本和证据为准。
 
 本轮[总计划§12](./PLAN-CLOSEOUT-2026-09-05.md)更新首版为自由诊断 → 批量可编辑看板 → 召回候选与行动草稿；保留 DSH 全功能，前台采用自有比赛品牌/Ant Design。旧 CRM API-01–06 与口径、工具合同同步纳主线；三问是已实现基线，候选不再计划延期。[评审附件](./AUTOPLAN-COMPETITION-REVIEW-2026-09-09.md)与[验收计划](./COMPETITION-TEST-PLAN-2026-09-09.md)记录本次修改，未代表API修复/新UI实现。以下保留历史时点。
 
@@ -136,3 +144,5 @@ Mission GET /today
 - `DRAFT_EXPORT_READY` 不等于短信已发送，也不等于已对接 CRM。
 
 接口、幂等与状态转换见 [MISSION-API.md](./MISSION-API.md)，合成数据生成见 [`scripts/synthetic/README.md`](../../scripts/synthetic/README.md)。
+
+诊断取消增量：见[交付与边界](DIAGNOSIS-CANCELLATION-2026-09-10.md)，实际 transport/HTTP/SQLite 通过，完整后端 2320 passed / 77 skipped、B0 PASS；浏览器原生取消全路径仍独立记录。

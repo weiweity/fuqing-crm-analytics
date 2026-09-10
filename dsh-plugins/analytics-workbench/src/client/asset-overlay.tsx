@@ -46,11 +46,11 @@ export function HttpAssetOverlay(props: OverlayProps) {
   const selectedSession = props.useSessions(state => state.current);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
-  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>('board');
+  const competitionHttp = competitionHttpOptions();
+  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>(competitionHttp ? 'competition-board' : 'board');
   const [dashboard, setDashboard] = useState<DashboardDoc | null>(null);
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const competitionHttp = competitionHttpOptions();
   const [pending, setPending] = useState<PendingOp | null>(null);
   const [preview, setPreview] = useState<DashboardDoc | null>(null);
   const [message, setMessage] = useState('');
@@ -64,6 +64,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
   const boardRef = useRef<DashboardDoc | null>(null);
 
   const shown = preview ?? dashboard;
+  const legacyPanel = panel === 'board' || panel === 'analyses';
   const dirty = pending !== null;
   dirtyRef.current = dirty;
 
@@ -92,13 +93,16 @@ export function HttpAssetOverlay(props: OverlayProps) {
     }
   }, [open]);
   useEffect(() => {
-    if (open && !dirtyRef.current) void refresh();
-  }, [open]);
+    if (open && legacyPanel && !dirtyRef.current) void refresh();
+  }, [open, legacyPanel]);
   useEffect(() => {
-    function onSaved() { if (open && !dirtyRef.current) void refresh(); }
+    if (open && panel === 'competition-board') setVisited(current => ({ ...current, board: true }));
+  }, [open, panel]);
+  useEffect(() => {
+    function onSaved() { if (open && legacyPanel && !dirtyRef.current) void refresh(); }
     window.addEventListener('analytics-asset-changed', onSaved);
     return () => window.removeEventListener('analytics-asset-changed', onSaved);
-  }, [open]);
+  }, [open, legacyPanel]);
 
   async function refresh() {
     previewSeq.current += 1;
@@ -125,12 +129,10 @@ export function HttpAssetOverlay(props: OverlayProps) {
           if (decoded) commitBoard(decoded);
           else if (!pinnedId) commitBoard(null);
         }
-        setMessage(competitionHttp
-          ? 'B0 /b0/assets 与比赛 /api/v1/analytics/competition 分开。比赛成板走合成 HTTP。'
-          : '');
+        setMessage('');
       } else if (competitionHttp) {
         if (!boardRef.current) commitBoard(null);
-        setMessage('B0 同域 /b0/dashboards 未接线。比赛资产走合成 HTTP，不把 /b0/assets 404 写成比赛失败。');
+        setMessage('此驾驶舱服务暂不可用。已认可的诊断看板请从「认可成板」打开。');
       } else {
         if (!boardRef.current) commitBoard(null);
         setMessage(decodeAssetError(boards.payload).message);
@@ -141,7 +143,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
       setDragX(null);
     } catch {
       setMessage(competitionHttp
-        ? 'B0 同域资产不可达。比赛 HTTP 仍可在「认可成板」使用。'
+        ? '此驾驶舱服务暂不可用。已认可的诊断看板请从「认可成板」打开。'
         : '资产请求失败。');
     } finally {
       setLoading(false);
@@ -359,23 +361,34 @@ export function HttpAssetOverlay(props: OverlayProps) {
           }}>放弃草稿并返回</button>
         </div>
       </section>}
-      <p><strong>固定历史快照 / 合成数据</strong> · 无活动会话、模型不可用时仍可读已保存资产。</p>
-      <p data-testid="analytics-b0-selection">{selectedSession ? '原会话仍保留；此资产不依赖会话。' : '当前无活动会话；固定资产仍可读。'}</p>
-      <button type="button" data-testid="analytics-b0-detach" disabled={!selectedSession}
-        onClick={() => props.detachSelection()}>脱离会话阅读</button>
-      <div className="analytics-cockpit-toolbar" onMouseDown={event => event.stopPropagation()}>
-        <button type="button" data-testid="analytics-asset-board" onClick={event => { event.stopPropagation(); selectPanel('board'); }}>驾驶舱</button>
-        <button type="button" data-testid="analytics-asset-analyses" onClick={event => { event.stopPropagation(); showAnalyses(); }}>已保存分析</button>
-        <button type="button" data-testid="analytics-competition-board" onClick={event => { event.stopPropagation(); selectPanel('competition-board'); }}>认可成板</button>
-        <button type="button" data-testid="analytics-competition-actions" onClick={event => { event.stopPropagation(); selectPanel('competition-actions'); }}>人群行动</button>
-        <button type="button" data-testid="analytics-asset-refresh" onClick={event => { event.stopPropagation(); void refresh(); }}>重新读取</button>
+      <div className="analytics-asset-context">
+        <p><strong>合成数据 · 固定历史快照</strong></p>
+        <details data-testid="analytics-asset-details">
+          <summary>会话与连接说明</summary>
+          <p data-testid="analytics-b0-selection">{selectedSession ? '原会话仍保留；此资产不依赖会话。' : '当前无活动会话；固定资产仍可读。'}</p>
+          <p>已保存资产可独立阅读，每次打开重新鉴权读取。</p>
+          <p>{competitionHttp
+            ? '认可成板与人群行动已配置独立合成 HTTP；连接结果以各页实际请求为准。B0 /b0/dashboards 与 /b0/analyses 属于另一服务。'
+            : '认可成板与人群行动当前使用内置合成夹具。B0 资产由同域服务读取。'}</p>
+          <button type="button" data-testid="analytics-b0-detach" disabled={!selectedSession}
+            onClick={() => props.detachSelection()}>脱离会话阅读</button>
+        </details>
       </div>
-      {loading && <p role="status">正在读取资产…</p>}
-      {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
-      {pending && <p className="analytics-b0-preview" data-testid="analytics-cockpit-preview">{pending.label} · 预览未保存</p>}
-      {(panel === 'competition-board' || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
+      <nav className="analytics-cockpit-toolbar" aria-label="资产页面" onMouseDown={event => event.stopPropagation()}>
+        <button type="button" aria-pressed={panel === 'board'} data-testid="analytics-asset-board" onClick={event => { event.stopPropagation(); selectPanel('board'); }}>{competitionHttp ? '查询驾驶舱' : '驾驶舱'}</button>
+        <button type="button" aria-pressed={panel === 'analyses'} data-testid="analytics-asset-analyses" onClick={event => { event.stopPropagation(); showAnalyses(); }}>已保存分析</button>
+        <button type="button" aria-pressed={panel === 'competition-board'} data-testid="analytics-competition-board" onClick={event => { event.stopPropagation(); selectPanel('competition-board'); }}>认可成板</button>
+        <button type="button" aria-pressed={panel === 'competition-actions'} data-testid="analytics-competition-actions" onClick={event => { event.stopPropagation(); selectPanel('competition-actions'); }}>人群行动</button>
+      </nav>
+      {legacyPanel && <>
+        <button type="button" data-testid="analytics-asset-refresh" onClick={() => void refresh()}>重新读取</button>
+        {loading && <p role="status">正在读取资产…</p>}
+        {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
+        {pending && <p className="analytics-b0-preview" data-testid="analytics-cockpit-preview">{pending.label} · 预览未保存</p>}
+      </>}
+      {((open && panel === 'competition-board') || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
         <OverlayErrorBoundary resetKey={openTick}>
-          <BoardWorkbench key={openTick} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
+          <BoardWorkbench key={openTick} initialPanel={competitionHttp ? 'board' : undefined} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
         </OverlayErrorBoundary>
       </section>}
       {(panel === 'competition-actions' || visited.actions) && <section hidden={panel !== 'competition-actions'} data-panel="competition-actions" data-testid="analytics-competition-actions-view">
@@ -476,7 +489,6 @@ export function HttpAssetOverlay(props: OverlayProps) {
         </div>}
         {pending && dashboard && <p>撤销将整板恢复到版本 {dashboard.version} 的已保存配置，不是单卡编辑。</p>}
       </section>}
-      <p><small>SYNTHETIC · HTTP CONNECTED · 浏览器不缓存 facts。每次打开重新鉴权读取。</small></p>
     </dialog>
   </>;
 }

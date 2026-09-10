@@ -1,0 +1,263 @@
+{
+  "calls": [
+    {
+      "callId": "call_00_ET_TK3f56V3ybsnTJglNYVU8587",
+      "name": "skill",
+      "arguments": "{\"name\": \"competition-growth\"}"
+    },
+    {
+      "callId": "call_00_lBfMRq5YzjGoWEXzbF4u2807",
+      "name": "competition_growth_skill_resource",
+      "arguments": "{\"resource\": \"references/evidence-policy.md\"}"
+    },
+    {
+      "callId": "call_01_KzaCFlKcONOOvqVMFUv21454",
+      "name": "competition_growth_capabilities",
+      "arguments": "{\"request_id\": \"req-cap-001\"}"
+    },
+    {
+      "callId": "call_00_WIwTc9s3Cvn9o7DToH4V1514",
+      "name": "competition_growth_step",
+      "arguments": "{\"request_id\": \"req-gsv-yoy-001\", \"capability_id\": \"diag.gsv\", \"condition_mode\": \"EXPLICIT\", \"condition\": {\"metric_type\": \"GSV\", \"timezone\": \"Asia/Shanghai\", \"current_period\": {\"start_date\": \"2026-08-01\", \"end_date\": \"2026-08-31\", \"end_bound\": \"INCLUSIVE_CALENDAR_DAY\"}, \"comparison_period\": {\"start_date\": \"2025-08-01\", \"end_date\": \"2025-08-31\", \"end_bound\": \"INCLUSIVE_CALENDAR_DAY\"}, \"comparison_mode\": \"YOY_SAME_PERIOD\", \"sales_scope\": {\"kind\": \"ALL\", \"channel_ids\": [], \"product_ids\": []}, \"history_scope\": {\"kind\": \"ALL\", \"channel_ids\": [], \"product_ids\": []}, \"sample_mode\": \"INCLUDE\", \"sample_channel_ids\": null}}"
+    }
+  ],
+  "computed_results": [
+    {
+      "schema_version": "competition-diagnosis-orchestrator/v1",
+      "planner": "HOST_OWNED",
+      "live_transport": "HTTP_CONNECTED",
+      "support_status": "PARTIAL",
+      "condition_trace": {
+        "mode": "EXPLICIT",
+        "inherited_fields": [],
+        "changed_fields": [
+          "current_period",
+          "comparison_mode",
+          "comparison_period",
+          "sales_scope",
+          "history_scope",
+          "sample_mode",
+          "sample_channel_ids"
+        ],
+        "sample_mode": "INCLUDE"
+      },
+      "resolved_condition": {
+        "schema_version": "competition-condition/v1",
+        "metrics_contract_id": "competition-metrics/v1",
+        "metric_type": "GSV",
+        "timezone": "Asia/Shanghai",
+        "current_period": {
+          "start_date": "2026-08-01",
+          "end_date": "2026-08-31",
+          "end_bound": "INCLUSIVE_CALENDAR_DAY"
+        },
+        "comparison_mode": "YOY_SAME_PERIOD",
+        "comparison_period": {
+          "start_date": "2025-08-01",
+          "end_date": "2025-08-31",
+          "end_bound": "INCLUSIVE_CALENDAR_DAY"
+        },
+        "cutoff": "2026-07-31",
+        "as_of": "2026-08-31T16:00:00.000000+00:00",
+        "published_at": "2026-08-31T16:00:00.000000+00:00",
+        "event_time": "2026-08-31T16:00:00.000000+00:00",
+        "source_tense": "PUBLISHED_SNAPSHOT",
+        "sales_scope": {
+          "kind": "ALL",
+          "channel_ids": [],
+          "product_ids": []
+        },
+        "history_scope": {
+          "kind": "ALL",
+          "channel_ids": [],
+          "product_ids": []
+        },
+        "sample_mode": "INCLUDE",
+        "sample_channel_ids": null,
+        "sample_history_recomputed": false,
+        "sample_channel_set_status": "UNKNOWN",
+        "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+        "leap_day_alignment": "CLAMP_TO_MONTH_END",
+        "data_snapshot_ref": "synthetic-diagnosis-202608-v1",
+        "data_version": "synthetic-diagnosis-data/v1",
+        "rule_version": "competition-condition-rule/v1",
+        "warehouse_as_of": "2026-08-31T16:00:00.000000+00:00",
+        "feature_as_of": null,
+        "permission_scope": "diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1",
+        "actor_id": "alice",
+        "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+        "ignored_filters": [],
+        "unknown_flags": [
+          {
+            "code": "SAMPLE_CHANNEL_SET",
+            "status": "UNKNOWN",
+            "note": "未确认真实派样渠道全集。"
+          },
+          {
+            "code": "MEMBER_HISTORY",
+            "status": "UNKNOWN",
+            "note": "当前合成源不提供会员历史。"
+          }
+        ],
+        "limitations": [
+          "仅显式小型合成快照，不代表真实经营结论。",
+          "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+          "派样渠道全集与会员历史仍为 UNKNOWN。",
+          "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+        ]
+      },
+      "result": {
+        "schema_version": "competition-computed-result/v1",
+        "execution_kind": "TOOL_COMPUTATION",
+        "result_id": "result_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+        "run_id": "run_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+        "analysis_id": "analysis_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+        "query_id": "competition_gsv_comparison",
+        "query_version": "competition-gsv-query/v1",
+        "capability_id": "diag.gsv",
+        "metric_id": "gsv",
+        "metric_version": "competition-gsv-metric/v1",
+        "facts_schema_ref": "backend.contracts.competition_computed.CompetitionGsvFacts",
+        "existing_result_schema": "competition-gsv-facts/v1",
+        "completeness": "COMPLETE",
+        "empty_reason": null,
+        "row_count": 2,
+        "page": {
+          "offset": 0,
+          "limit": 2,
+          "total": 2,
+          "checksum": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "complete": true
+        },
+        "resolved_condition": {
+          "schema_version": "competition-condition/v1",
+          "metrics_contract_id": "competition-metrics/v1",
+          "metric_type": "GSV",
+          "timezone": "Asia/Shanghai",
+          "current_period": {
+            "start_date": "2026-08-01",
+            "end_date": "2026-08-31",
+            "end_bound": "INCLUSIVE_CALENDAR_DAY"
+          },
+          "comparison_mode": "YOY_SAME_PERIOD",
+          "comparison_period": {
+            "start_date": "2025-08-01",
+            "end_date": "2025-08-31",
+            "end_bound": "INCLUSIVE_CALENDAR_DAY"
+          },
+          "cutoff": "2026-07-31",
+          "as_of": "2026-08-31T16:00:00.000000+00:00",
+          "published_at": "2026-08-31T16:00:00.000000+00:00",
+          "event_time": "2026-08-31T16:00:00.000000+00:00",
+          "source_tense": "PUBLISHED_SNAPSHOT",
+          "sales_scope": {
+            "kind": "ALL",
+            "channel_ids": [],
+            "product_ids": []
+          },
+          "history_scope": {
+            "kind": "ALL",
+            "channel_ids": [],
+            "product_ids": []
+          },
+          "sample_mode": "INCLUDE",
+          "sample_channel_ids": null,
+          "sample_history_recomputed": false,
+          "sample_channel_set_status": "UNKNOWN",
+          "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+          "leap_day_alignment": "CLAMP_TO_MONTH_END",
+          "data_snapshot_ref": "synthetic-diagnosis-202608-v1",
+          "data_version": "synthetic-diagnosis-data/v1",
+          "rule_version": "competition-condition-rule/v1",
+          "warehouse_as_of": "2026-08-31T16:00:00.000000+00:00",
+          "feature_as_of": null,
+          "permission_scope": "diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1",
+          "actor_id": "alice",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+          "ignored_filters": [],
+          "unknown_flags": [
+            {
+              "code": "SAMPLE_CHANNEL_SET",
+              "status": "UNKNOWN",
+              "note": "未确认真实派样渠道全集。"
+            },
+            {
+              "code": "MEMBER_HISTORY",
+              "status": "UNKNOWN",
+              "note": "当前合成源不提供会员历史。"
+            }
+          ],
+          "limitations": [
+            "仅显式小型合成快照，不代表真实经营结论。",
+            "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+            "派样渠道全集与会员历史仍为 UNKNOWN。",
+            "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+          ]
+        },
+        "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+        "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+        "primary_result_ref": "result_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+        "data_mode": "SNAPSHOT",
+        "contains_real_data": false,
+        "limitations": [
+          "仅显式小型合成快照，不代表真实经营结论。",
+          "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+          "派样渠道全集与会员历史仍为 UNKNOWN。",
+          "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+        ],
+        "facts": {
+          "schema_version": "competition-gsv-facts/v1",
+          "metric_type": "GSV",
+          "current": {
+            "requested_period": {
+              "start_date": "2026-08-01",
+              "end_date": "2026-08-31",
+              "end_bound": "INCLUSIVE_CALENDAR_DAY"
+            },
+            "through_date": "2026-08-31",
+            "gsv": 410,
+            "order_count": 3,
+            "customer_count": 3
+          },
+          "comparison": {
+            "requested_period": {
+              "start_date": "2025-08-01",
+              "end_date": "2025-08-31",
+              "end_bound": "INCLUSIVE_CALENDAR_DAY"
+            },
+            "through_date": "2025-08-31",
+            "gsv": 305,
+            "order_count": 3,
+            "customer_count": 3
+          },
+          "difference": 105,
+          "change_ratio": 0.3442622950819672,
+          "change_ratio_unavailable_reason": null
+        }
+      },
+      "evidence": {
+        "result_id": "result_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+        "run_id": "run_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+        "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+        "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+        "completeness": "COMPLETE"
+      },
+      "chain_status": "PARTIAL",
+      "analysis_complete": false,
+      "budget": {
+        "used_calls": 2,
+        "max_tool_calls": 12,
+        "remaining": 10
+      },
+      "limitations": [
+        "仅显式小型合成快照，不代表真实经营结论。",
+        "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+        "派样渠道全集与会员历史仍为 UNKNOWN。",
+        "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+      ],
+      "http_api": "CONNECTED",
+      "execution_mode": "COMPUTED_SYNTHETIC",
+      "analysis_persisted": true
+    }
+  ]
+}

@@ -137,7 +137,14 @@ class RunDispatcher:
                 current = self.store.runtime_work(session_id=intent.session_id, request_id=intent.request_id)[0]
                 if current["cancel_requested"] and current["status"] not in {"CANCELLED", "FAILED", "SUCCEEDED", "NEEDS_INPUT"}:
                     self.bridge.call("cancel", payload)  # Receipt is NOT exit.
-            except Exception:
+            except Exception as error:
+                if isinstance(error, sqlite3.DatabaseError) or (
+                    isinstance(error, AnalyticsError)
+                    and error.status == 503 and error.code == "STATE_UNAVAILABLE"
+                ):
+                    # Local persistence failure is not unknown Host evidence.
+                    # Let tick pause admissions and reconcile the same intent.
+                    raise
                 self.ready = False
                 self.store.observe(self.resolve_actor(item["owner"]), ExecutionObservation(
                     intent.run_id, intent.attempt_id, intent.session_id, intent.request_id, False, "UNKNOWN"))

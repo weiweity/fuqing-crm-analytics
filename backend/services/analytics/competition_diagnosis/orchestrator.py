@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from backend.contracts.competition_c0 import (
     CompetitionCondition,
@@ -48,6 +48,7 @@ from backend.services.analytics.competition_diagnosis.fixtures import (
     unsupported_result,
 )
 from backend.services.analytics.competition_diagnosis.patch import plan_patch
+from backend.contracts.competition_computed import CompetitionComputedResult
 
 
 @dataclass
@@ -84,7 +85,7 @@ class DiagnosisSession:
     principal: AnalyticsPrincipal
     budget: Budget = field(default_factory=Budget)
     prior_condition: dict[str, Any] | None = None
-    last_result: CompetitionResultRef | None = None
+    last_result: CompetitionResultRef | CompetitionComputedResult | None = None
     steps: list[StepRecord] = field(default_factory=list)
     in_flight_patch: dict[str, Any] | None = None
     faults: frozenset[str] = field(default_factory=frozenset)
@@ -174,7 +175,12 @@ class DiagnosisAdapter:
             condition_patch=condition_patch,
             request_id=request_id,
         )
-        self.session.prior_condition = parsed.model_dump(mode="json")
+        resolved = parsed.model_dump(mode="json")
+        if self.session.prior_condition is not None and self.session.prior_condition != resolved:
+            self.session.steps.clear()
+            self.session.last_result = None
+            self.session.chain_status = "PARTIAL"
+        self.session.prior_condition = resolved
         return parsed, trace
 
     def run_step(
@@ -185,6 +191,7 @@ class DiagnosisAdapter:
         request_id: str,
         condition: dict[str, Any] | None = None,
         condition_patch: dict[str, Any] | None = None,
+        execute: Callable[[str, CompetitionCondition], CompetitionResultRef | CompetitionComputedResult] | None = None,
     ) -> dict[str, Any]:
         self._charge(request_id)
         if capability_id in FORBIDDEN_EXPANSIONS or capability_id.startswith("/"):
@@ -204,7 +211,7 @@ class DiagnosisAdapter:
             return self._step_payload(cap.support_status.value, result, trace, capability_id, queries=False)
         if not executable(cap.support_status):
             raise unsupported_capability(cap.notes, request_id, capability_id)
-        result = fixture_result(capability_id, parsed, cap.support_status)
+        result = execute(capability_id, parsed) if execute is not None else fixture_result(capability_id, parsed, cap.support_status)
         if result.completeness.value == "EMPTY":
             self.session.chain_status = "EMPTY"
         return self._step_payload(cap.support_status.value, result, trace, capability_id, queries=True)
@@ -212,7 +219,7 @@ class DiagnosisAdapter:
     def _step_payload(
         self,
         support_status: str,
-        result: CompetitionResultRef,
+        result: CompetitionResultRef | CompetitionComputedResult,
         trace: dict[str, Any],
         capability_id: str,
         *,
@@ -321,7 +328,7 @@ class DiagnosisAdapter:
             return "EMPTY"
         succeeded = {
             item.capability_id for item in self.session.steps
-            if item.completeness in {"COMPLETE", "PARTIAL"}
+            if item.completeness == "COMPLETE"
         }
         comparison_ok = bool(succeeded & set(COMPARISON_BY_MODE.values()))
         required_ok = True

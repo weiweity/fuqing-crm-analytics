@@ -1,0 +1,128 @@
+[
+  {
+    "viewport": [
+      1440,
+      1000
+    ],
+    "dialog": true,
+    "width": 1100,
+    "scroll": 1100,
+    "options": [
+      {
+        "text": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838",
+        "inDialog": true,
+        "rect": {
+          "x": 198,
+          "right": 1242
+        }
+      },
+      {
+        "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+        "inDialog": true,
+        "rect": {
+          "x": 198,
+          "right": 1242
+        }
+      }
+    ],
+    "keyboard": [
+      {
+        "text": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838",
+        "expanded": "true"
+      },
+      {
+        "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+        "expanded": "true"
+      }
+    ],
+    "after": {
+      "selection": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+      "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9\n销售范围 渠道 CH_RETAIL\n小样 INCLUDE\ncompetition_gsv_comparison COMPLETE；截数 2026-08-31T16:00:00.000000+00:00\n字段\t值\n本期 GSV\t400\n对比期 GSV\t300\nGSV 变动额\t100\nGSV 变动比例\t33.33%\n本期有效订单数\t2\n本期实际截数\t2026-08-31\n完整性\tCOMPLETE\n行数\t2\n空因\t—\n本期\t2026-08-01–2026-08-31\n对比\tYOY_SAME_PERIOD\n条件与证据\n板块标识与布局\n图表类型\nTABLE\nBAR\nLINE\nMETRIC\nEVIDENCE\n拖动列\n缩放宽",
+      "dialogOpen": true
+    }
+  },
+  {
+    "viewport": [
+      1024,
+      900
+    ],
+    "dialog": true,
+    "width": 976,
+    "scroll": 976,
+    "options": [
+      {
+        "text": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838",
+        "inDialog": true,
+        "rect": {
+          "x": 52,
+          "right": 972
+        }
+      },
+      {
+        "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+        "inDialog": true,
+        "rect": {
+          "x": 52,
+          "right": 972
+        }
+      }
+    ],
+    "keyboard": [
+      {
+        "text": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838",
+        "expanded": "true"
+      },
+      {
+        "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+        "expanded": "true"
+      }
+    ],
+    "after": {
+      "selection": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+      "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9\n销售范围 渠道 CH_RETAIL\n小样 INCLUDE\ncompetition_gsv_comparison COMPLETE；截数 2026-08-31T16:00:00.000000+00:00\n字段\t值\n本期 GSV\t400\n对比期 GSV\t300\nGSV 变动额\t100\nGSV 变动比例\t33.33%\n本期有效订单数\t2\n本期实际截数\t2026-08-31\n完整性\tCOMPLETE\n行数\t2\n空因\t—\n本期\t2026-08-01–2026-08-31\n对比\tYOY_SAME_PERIOD\n条件与证据\n板块标识与布局\n图表类型\nTABLE\nBAR\nLINE\nMETRIC\nEVIDENCE\n拖动列\n缩放宽",
+      "dialogOpen": true
+    }
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ],
+    "dialog": true,
+    "width": 342,
+    "scroll": 342,
+    "options": [
+      {
+        "text": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838",
+        "inDialog": true,
+        "rect": {
+          "x": 44,
+          "right": 346
+        }
+      },
+      {
+        "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+        "inDialog": true,
+        "rect": {
+          "x": 44,
+          "right": 346
+        }
+      }
+    ],
+    "keyboard": [
+      {
+        "text": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838",
+        "expanded": "true"
+      },
+      {
+        "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+        "expanded": "true"
+      }
+    ],
+    "after": {
+      "selection": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f",
+      "text": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9\n销售范围 渠道 CH_RETAIL\n小样 INCLUDE\ncompetition_gsv_comparison COMPLETE；截数 2026-08-31T16:00:00.000000+00:00\n字段\t值\n本期 GSV\t400\n对比期 GSV\t300\nGSV 变动额\t100\nGSV 变动比例\t33.33%\n本期有效订单数\t2\n本期实际截数\t2026-08-31\n完整性\tCOMPLETE\n行数\t2\n空因\t—\n本期\t2026-08-01–2026-08-31\n对比\tYOY_SAME_PERIOD\n条件与证据\n板块标识与布局\n图表类型\nTABLE\nBAR\nLINE\nMETRIC\nEVIDENCE",
+      "dialogOpen": true
+    }
+  }
+]

@@ -1,0 +1,207 @@
+{
+  "url": "http://127.0.0.1:4328/",
+  "text": "伸美 AI 增长董事会\nNew Session\nWorkspaces\nworkspace\nUAT local fixture response. Actual tool and persistence evidence determine the o\nnow\n我的驾驶舱\nSettings\nUAT local fixture response. Actual tool and persistence evidence determine the o\nStandard mode\nSession log\nChat\nTrajectory\nSystem prompt\nUAT_ALL — 请计算2026年8月GSV，对比2025年8月；本期和对比期都用整月，保留小样。ALL 用全部销售范围；RETAIL 仅用 CH_RETAIL。只使用本地合成数据。\n10:52\n1 tool call\n\nUAT local fixture response. Actual tool and persistence evidence determine the outcome.\n\nUsage 95 tok\nRan for 0s\n10:52\nMessage or run a task... / commands, @ files or sessions\nWorkspace Write\nDeepSeek-V4-Flash\nOff\n1 turns · 2 steps| LLM 0.1s · Tool call 0.1s| TTFT avg 0s · 22250 tok/s| Cache hit 0%| Input 6 tok · Output 89 tok\nDetails\nClick a tool row in the message flow to view its details",
+  "buttons": [
+    {
+      "text": "伸美 AI 增长董事会",
+      "label": "New session",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Collapse sidebar",
+      "disabled": false
+    },
+    {
+      "text": "New Session",
+      "label": "New session",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Search sessions",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "View options",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Add workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Workspace actions for workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "New session in workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Session actions for UAT local fixture response. Actual tool and persistence evidence determine the o",
+      "disabled": false
+    },
+    {
+      "text": "我的驾驶舱",
+      "label": "打开我的驾驶舱",
+      "disabled": false
+    },
+    {
+      "text": "Settings",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "UAT local fixture response. Actual tool and persistence evidence determine the o",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "Session log",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Chat",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Trajectory",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "1 tool call",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Good response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Bad response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Branch into a new conversation",
+      "disabled": false
+    },
+    {
+      "text": "Usage 95 tok",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Ran for 0s",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Commands",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Add attachment",
+      "disabled": false
+    },
+    {
+      "text": "Workspace Write",
+      "label": "Access mode, current: Workspace Write",
+      "disabled": false
+    },
+    {
+      "text": "DeepSeek-V4-Flash\nOff",
+      "label": "Select model, current DeepSeek-V4-Flash, reasoning effort Off",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "0% of context used",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Send message",
+      "disabled": true
+    },
+    {
+      "text": "",
+      "label": "Close details",
+      "disabled": false
+    },
+    {
+      "text": "返回聊天",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "脱离会话阅读",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "查询驾驶舱",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "已保存分析",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "认可成板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "人群行动",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "选择结果",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "确认摘要",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "编辑看板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "选择结果",
+      "label": null,
+      "disabled": false
+    }
+  ],
+  "recorded_at_ms": 1789008734428
+}

@@ -1,0 +1,40 @@
+{
+  "base": "fa8978bb52553d5fc9c218c324ddb3ef1f9b1511",
+  "pre_push": "FAILED; upload not started",
+  "failed_test": "test_http_state_busy_keeps_original_call_and_recovers_without_duplicate_worker",
+  "failure_response": {
+    "status": 409,
+    "code": "EXECUTION_UNKNOWN"
+  },
+  "failed_state": {
+    "source": "/private/tmp/pytest-of-hutou/pytest-320/test_http_state_busy_keeps_ori0/state/runs.sqlite3",
+    "run_sequence": [
+      "QUEUED",
+      "RUNNING",
+      "RUNNING",
+      "UNKNOWN",
+      "CANCELLING"
+    ],
+    "worker_exit_code": -15,
+    "worker_error": "EXECUTION_UNKNOWN",
+    "exact_original_caught_exception": "not logged; do not infer its precise call site"
+  },
+  "independent_reproduction": {
+    "mechanism": "Real SQLite writer acquired after correlated RUNNING evidence; release after observe transaction timeout before dispatcher handler",
+    "before": "1 failed: known state was replaced",
+    "intermediate": "22 passed / 1 failed: successful acknowledgement legitimately advances state version; refine recovery assertion while retaining unchanged-state assertion during lock",
+    "after": "23 passed / 1 warning; original intent, one dispatch, no UNKNOWN/CANCELLING event"
+  },
+  "source_sha256": {
+    "backend/services/analytics/runtime.py": "e5ec450a7d42832cc8cec0f5c2a944a0a1b28843341f5e45504592bbb34fe95d",
+    "backend/tests/test_analytics_native_runtime.py": "c332e2c53c767960f320b8248e4254fcd73ca3d310bb8196292e776c543788c1"
+  },
+  "log_sha256": {
+    ".context/visual-push.log": "be896a5efdd094f8c0eba49c6fb81f53d3425e804bba5e3544a483d01b629e3a",
+    ".context/observation-lock-before.log": "dc60c11c05319ad038101fdb02432e519c22ca3e91d5cfd135c325fbc1c06cee",
+    ".context/observation-lock-after.log": "4fec09085049ecd0344272dc258cf91f6915fe0070aaeec255164e000d6a2e0a",
+    ".context/observation-lock-recovery.log": "e3a0755a9eee1a239b9758e06cb0e8893f9b09950dbbdfbadd1ae7b17e9d3f26"
+  },
+  "full_post_fix_checks": "pending normal pre-push",
+  "native_browser_acceptance": false
+}

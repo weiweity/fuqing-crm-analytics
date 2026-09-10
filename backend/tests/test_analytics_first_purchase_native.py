@@ -9,6 +9,7 @@ import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from time import monotonic, sleep
 from types import SimpleNamespace
 
 import pytest
@@ -111,6 +112,21 @@ def auth(token=GATEWAY):
 
 def runtime_headers():
     return {"authorization": f"Bearer {RUNTIME}"}
+
+
+def settled_native_step(client, payload):
+    """Poll the same native call within a bound; only documented transient states."""
+    deadline = monotonic() + 5
+    while True:
+        response = client.post("/internal/native/first-purchase", json=payload, headers=runtime_headers())
+        body = response.json()
+        retryable = (
+            response.status_code == 503 and body.get("error", {}).get("code") == "STATE_UNAVAILABLE"
+            and body.get("error", {}).get("retryable") is True
+        ) or (response.status_code == 202 and body.get("disposition") == "IN_FLIGHT")
+        if not retryable or monotonic() >= deadline:
+            return response
+        sleep(0.05)
 
 
 def test_prompt_binds_real_run_before_execute_and_survives_reopen(tmp_path):
@@ -291,10 +307,10 @@ def test_http_prompt_context_execute_cancel_and_get_readonly(tmp_path):
         if current["status"] == "QUEUED":
             intent = app.state.store.claim_next(lambda owner: fp_actor() if owner == "synthetic-demo" else None)
             assert intent is not None
-        executed = client.post("/internal/native/first-purchase", json={
+        executed = settled_native_step(client, {
             "session_id": SESSION, "request_id": "req-1", "call_id": "call-ok",
             "request": EXPECTED["request"],
-        }, headers=runtime_headers())
+        })
         assert executed.status_code == 200, executed.text
         receipt = executed.json()
         assert receipt["run_id"] == run_id
@@ -340,6 +356,37 @@ def test_http_prompt_context_execute_cancel_and_get_readonly(tmp_path):
         assert cancel.status_code == 200
         assert cancel.json()["status"] == "SUCCEEDED"
         assert cancel.json()["result"]["facts"] == EXPECTED["result"]["facts"]
+
+
+def test_http_state_busy_keeps_original_call_and_recovers_without_duplicate_worker(tmp_path):
+    app = native_app(tmp_path)
+    payload = {"session_id": SESSION, "request_id": "req-1", "call_id": "busy-call",
+               "request": EXPECTED["request"]}
+    with TestClient(app) as client:
+        app.state.dispatcher.tick()
+        accepted = client.post("/internal/native/prompt", json=native_prompt(), headers=auth())
+        assert accepted.status_code == 202, accepted.text
+        run_id = accepted.json()["run_id"]
+        app.state.dispatcher.tick()
+        assert app.state.store.get(fp_actor(), run_id).status == "RUNNING"
+        # Real lock on this test's small SQLite. Do not replace production code
+        # or weaken the transient-error contract to force a passing response.
+        with sqlite_connection(app.state.store.path) as writer:
+            writer.execute("BEGIN EXCLUSIVE")
+            busy = client.post("/internal/native/first-purchase", json=payload, headers=runtime_headers())
+            assert busy.status_code == 503, busy.text
+            assert busy.json()["error"]["code"] == "STATE_UNAVAILABLE"
+            assert busy.json()["error"]["retryable"] is True
+            writer.rollback()
+        completed = settled_native_step(client, payload)
+        assert completed.status_code == 200, completed.text
+        assert completed.json()["run_id"] == run_id
+        assert completed.json()["result"]["facts"] == EXPECTED["result"]["facts"]
+        replay = settled_native_step(client, payload)
+        assert replay.status_code == 200 and replay.json()["disposition"] == "REUSE_RESULT"
+        assert replay.json()["run_id"] == run_id
+        assert len(app.state.store.runtime_work(session_id=SESSION, request_id="req-1")) == 1
+        assert len(app.state.store.worker_records(active_only=False)) == 1
 
 
 def test_http_in_flight_worker_cancel_requires_exit(tmp_path):

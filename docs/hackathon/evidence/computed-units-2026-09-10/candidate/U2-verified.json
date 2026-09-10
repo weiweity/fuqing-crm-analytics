@@ -1,0 +1,73 @@
+{
+  "case": "U2",
+  "turn": 2,
+  "session_id": "session-1d2a1284-1398-47c6-80df-345ce80b07e6",
+  "native_log_sha256_at_extract": "6c466085963e2ad811abd5295b294e7ed20e60de37082b139d8b9600b9acb79c",
+  "native_success": true,
+  "tools": [
+    "competition_growth_step"
+  ],
+  "reason": {
+    "kind": "completed"
+  },
+  "classification": "DATE_PATCH_AND_ZERO_DENOMINATOR_PASS",
+  "facts": {
+    "schema_version": "competition-gsv-facts/v2",
+    "metric_type": "GSV",
+    "current": {
+      "requested_period": {
+        "start_date": "2026-07-01",
+        "end_date": "2026-07-31",
+        "end_bound": "INCLUSIVE_CALENDAR_DAY"
+      },
+      "through_date": "2026-07-31",
+      "gsv": 0,
+      "order_count": 0,
+      "customer_count": 0
+    },
+    "comparison": {
+      "requested_period": {
+        "start_date": "2025-07-01",
+        "end_date": "2025-07-31",
+        "end_bound": "INCLUSIVE_CALENDAR_DAY"
+      },
+      "through_date": "2025-07-31",
+      "gsv": 0,
+      "order_count": 0,
+      "customer_count": 0
+    },
+    "difference": 0,
+    "change_ratio": null,
+    "change_ratio_unavailable_reason": "ZERO_COMPARISON_GSV",
+    "money_unit": {
+      "status": "UNKNOWN",
+      "currency": null,
+      "amount_unit": null
+    }
+  },
+  "condition_trace": {
+    "mode": "EXPLICIT",
+    "inherited_fields": [
+      "sales_scope",
+      "history_scope",
+      "sample_mode",
+      "sample_channel_ids",
+      "data_snapshot_ref",
+      "as_of",
+      "rule_version"
+    ],
+    "changed_fields": [
+      "comparison_mode",
+      "current_period",
+      "comparison_period"
+    ],
+    "sample_mode": "INCLUDE"
+  },
+  "result_id": "result_diag_d6dc526c45233092c37740f5146c85ee4b3e7f288c4a39d6",
+  "run_id": "run_diag_d6dc526c45233092c37740f5146c85ee4b3e7f288c4a39d6",
+  "http_list_equals_tool_result": true,
+  "persisted_results_after": 10,
+  "same_scope_sample_timezone": true,
+  "answer_zero_ratio_unavailable": true,
+  "answer_persistence_and_partial_correct": true
+}

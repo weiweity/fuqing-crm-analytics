@@ -1,0 +1,63 @@
+"""Explicit local acceptance fixture; never a production app entry."""
+from pathlib import Path
+import json,os,sys,time,threading
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from backend import analytics_competition_app as wiring
+from backend.services.analytics.access import AnalyticsPrincipal,B0IdentityRegistry
+from backend.services.analytics.saved_analyses import SavedAnalysisStore
+from backend.services.analytics.cockpit import CockpitStore
+from backend.services.analytics.competition_diagnosis.synthetic import demo_snapshot,materialize_synthetic_source
+from backend.services.analytics.competition_diagnosis.store import ComputedResultStore
+import uvicorn
+config=json.loads((ROOT/'.context/t17-native-current.json').read_text());run=Path(config['root'])
+assert run.parent==ROOT/'.context' and run.name.startswith('t17-native-')
+TOKEN='b0-competition-synth-token-32chars'
+lock=threading.Lock()
+def event(kind,**values):
+ row={'event':kind,'time_ns':time.time_ns(),**values}
+ with lock:
+  with (run/'api-events.jsonl').open('a') as out: out.write(json.dumps(row)+'\n')
+ return row
+original_compute=wiring.compute_result
+original_save=ComputedResultStore.save
+original_cancel=ComputedResultStore.cancel
+
+def compute(*args,**kwargs):
+ result=original_compute(*args,**kwargs)
+ if kwargs['request_id']=='t17-stop-r1':
+  event('COMPUTED_BEFORE_PUBLICATION',session_id=kwargs['session_id'],request_id=kwargs['request_id'])
+  (run/'entered.json').write_text(json.dumps({'session_id':kwargs['session_id'],'request_id':kwargs['request_id']}))
+  deadline=time.monotonic()+20
+  while not (run/'release').exists() and time.monotonic()<deadline: time.sleep(0.01)
+  if not (run/'release').exists():
+   event('BARRIER_TIMEOUT');raise RuntimeError('acceptance barrier not released')
+  event('BARRIER_RELEASED',request_id=kwargs['request_id'])
+ return result
+
+def save(self,actor,session_id,request_id,*args,**kwargs):
+ try:
+  result=original_save(self,actor,session_id,request_id,*args,**kwargs)
+  event('PUBLISHED',session_id=session_id,request_id=request_id)
+  return result
+ except Exception as error:
+  event('PUBLICATION_REFUSED',session_id=session_id,request_id=request_id,error=getattr(error,'code',type(error).__name__))
+  raise
+
+def cancel(self,actor,session_id,request_id):
+ result=original_cancel(self,actor,session_id,request_id)
+ event('CANCEL_RECEIPT',session_id=session_id,request_id=request_id,status=result['status'])
+ return result
+wiring.compute_result=compute
+ComputedResultStore.save=save
+ComputedResultStore.cancel=cancel
+registry=B0IdentityRegistry()
+registry.grant(TOKEN,AnalyticsPrincipal('alice',frozenset({'analysis:read','analysis:save','dashboard:read','dashboard:update','cohort:read','draft:write'}),frozenset({'competition-diagnosis-fixture','channel-followup-fixture','brand-a','scope-brand-a'})))
+state=run/'state'
+for part in ['saved','cockpit','assets','audience','diagnosis']: (state/part).mkdir(mode=0o700,exist_ok=True)
+source=materialize_synthetic_source(run/'source',demo_snapshot())
+app=wiring.create_competition_app(SavedAnalysisStore(state/'saved'),CockpitStore(state/'cockpit'),registry,asset_state_dir=state/'assets',audience_state_dir=state/'audience',diagnosis_source=source,diagnosis_state_dir=state/'diagnosis')
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(CORSMiddleware,allow_origins=['http://127.0.0.1:4328'],allow_credentials=True,allow_methods=['*'],allow_headers=['*'])
+event('API_READY',port=18084,pid=os.getpid())
+uvicorn.run(app,host='127.0.0.1',port=18084,log_level='warning')

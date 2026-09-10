@@ -1,3 +1,4 @@
+import Button from 'antd/es/button';
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { trapDialogTab } from '../focus.ts';
 import { BRAND_ASSET_URLS, PRODUCT_NAME, PRODUCT_NAME_EN, PRODUCT_TAGLINE } from './tokens.ts';
@@ -42,16 +43,16 @@ export function BrandNav({
         {COMPETITION_NAV_ITEMS.map(item => {
           const current = item.id === active;
           return (
-            <button
+            <Button
               key={item.id}
-              type="button"
+              htmlType="button"
               role="listitem"
               aria-current={current ? 'page' : undefined}
               data-testid={`sm-nav-${item.id}`}
               onClick={() => onNavigate?.(item.id)}
             >
               {item.label}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -80,7 +81,7 @@ export function WelcomeHero({ onPick }: { onPick?: (text: string) => void }) {
       <ul className="sm-welcome-suggestions">
         {SUGGESTED_PROMPTS.map(text => (
           <li key={text}>
-            <button type="button" data-testid="sm-suggest" onClick={() => onPick?.(text)}>{text}</button>
+            <Button htmlType="button" data-testid="sm-suggest" onClick={() => onPick?.(text)}>{text}</Button>
           </li>
         ))}
       </ul>
@@ -115,7 +116,7 @@ export function ErrorState({
     <section className="sm-error-state" data-kind={kind} data-testid="sm-error-state" role="alert">
       <h2>{title ?? fallback.title}</h2>
       <p>{detail ?? fallback.detail}</p>
-      {onAction && actionLabel ? <button type="button" onClick={onAction}>{actionLabel}</button> : null}
+      {onAction && actionLabel ? <Button htmlType="button" onClick={onAction}>{actionLabel}</Button> : null}
     </section>
   );
 }
@@ -151,7 +152,7 @@ export function ShellDialog({
     >
       <header>
         <h2 id={headingId}>{title}</h2>
-        <button type="button" data-testid="sm-shell-dialog-close" onClick={onClose}>关闭</button>
+        <Button htmlType="button" data-testid="sm-shell-dialog-close" onClick={onClose}>关闭</Button>
       </header>
       {children}
     </dialog>

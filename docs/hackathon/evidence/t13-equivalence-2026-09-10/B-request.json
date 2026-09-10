@@ -1,0 +1,11 @@
+{
+  "case": "B",
+  "prompt": "等价表达评测 B：使用当前合成数据，看看 2026-08-01 到 08-31 的交易净额，相比 2025-08-01 到 08-31 多了还是少了。指标用 GSV；所有销售渠道和商品都算，历史范围也是全部，小样计入，采用 Asia/Shanghai。请列出本期、对比期、变化额和变化比例，并附查询来源与局限。仅分析，不成板、不建行动草稿、不发送。",
+  "started_ns": 1789013960290111000,
+  "provider": "configured DSH DeepSeek-V4-Flash",
+  "reasoning": "High",
+  "runtime_plugin_source": "2dae78d4da6741162732401ea3b0827a7dce073c",
+  "source": "current synthetic HTTP18083",
+  "max_wall_seconds": 180,
+  "paid_real_model": true
+}

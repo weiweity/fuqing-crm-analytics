@@ -1,0 +1,115 @@
+{
+  "source_base": "e63df18f8781f7ce123df93a4a10e7f6fc874fb2",
+  "source_status": "visual increment bound by source_sha256",
+  "source_sha256": {
+    "dsh-plugins/analytics-workbench/build-tools/package.json": "07fb27df1be0742eac62d80037d29b73c2e5553abb21accd57715ea28bb9d9b6",
+    "dsh-plugins/analytics-workbench/build-tools/patches/README.md": "85961086ea56ccfc7db78b262f3ca44f6f35c64d8346d708bd3dcd66dd14004f",
+    "dsh-plugins/analytics-workbench/build-tools/patches/antd@5.29.3.patch": "b9a69e8e39c4b3d9f19e88ef0127b5dd761bdb22502afaf3ab021e50a95231a8",
+    "dsh-plugins/analytics-workbench/build-tools/patches/rc-picker@4.11.3.patch": "32a1444d988718291c6fadfe265b5f6f4d16d5f4b3518e3d582e689697d3681e",
+    "dsh-plugins/analytics-workbench/build-tools/pnpm-lock.yaml": "42dc1264ae730533d8ae9ce4c395c04f0126086113fd7cd91cf625e565fee514",
+    "dsh-plugins/analytics-workbench/build-tools/pnpm-workspace.yaml": "dbc14781ee36f55e22cacb667f0079cc413f38ae3242dcd8342d3b704a0506b5",
+    "dsh-plugins/analytics-workbench/build.mjs": "5f55544209dbae49c2458cc332b44aadb84e8b1b90aed2e9da40833cc34b8c80",
+    "dsh-plugins/analytics-workbench/package.json": "02e8bd79929ce09a226f9655c9c5a929001f2988773bfb1ba2df73dc3199ce23",
+    "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx": "87a0e228d3c5a14a13f447097288b1ed35fb845466492eb3ae27b29dc3801822",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "83b4cbcbf5c95221675cd38572dded14ad2b6cad119522b03b31cc523f618826",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs": "9b7a2ccfdb287e62abe1cdc2de492fc047e0cd3ae67371b6d57f017932aee3c0",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts": "c4818da3587bc4dc0371710dbb837f7d9ef470f40d585424437df66b497fa158",
+    "dsh-plugins/analytics-workbench/src/client/competition-shell/BrandChrome.tsx": "204e7e3b125fb524c9010b66984289bae7250f6ca63aea0b968fcc8ab11cfe39",
+    "dsh-plugins/analytics-workbench/src/client/competition-shell/LayoutSlot.tsx": "65469ce4c488292a0a0bcdee05d9c90cbaac073d6a2fbf268782590796118c1d",
+    "dsh-plugins/analytics-workbench/src/client/competition-shell/ThemeProvider.tsx": "256aa0463a2bf94838b4faf6029179da3b01a9e8af289140c1e6c33e4d2deb46",
+    "dsh-plugins/analytics-workbench/src/client/competition-shell/competition-shell.test.mjs": "99f190e22a94604a022166fa348941c685374e14471df4e64f52f57dc82aab59",
+    "dsh-plugins/analytics-workbench/src/client/competition-shell/index.ts": "4cf787ecc39c985585bf5329bbc05ac3e3db78d38047289c578df3d13ccb2c2f",
+    "dsh-plugins/analytics-workbench/src/client/competition-shell/tokens.ts": "e84e60a22621031299d9dd9b2e57f535ebccd7e5eb4469619f2f00f06fd3723b",
+    "dsh-plugins/analytics-workbench/src/client/index.tsx": "2cdfa0d22e5847e5df0dad917c363b6ef7028a2556fcd4aa1a8732aa1ddacea6",
+    "dsh-plugins/analytics-workbench/src/client/styles.ts": "39a735920489399e1b89e7f73c89975edef30b4b3018fe78f81a7e7d8a13de94",
+    "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs": "0ef5cfb684ca02c50836e2215d3fc14e9d456e38d69b0a6b96049017b0616517",
+    "dsh-plugins/analytics-workbench/test/built.test.mjs": "3238d2feb36cc59db416799761d9101bedb54dc394a8785e73b65886e912326a",
+    "dsh-plugins/analytics-workbench/test/plugin-ui-lifecycle.test.mjs": "32123415483fd79fdd5e0e0b150a952eea6df8f0e0c12f322b775a57de143d02",
+    "dsh-plugins/analytics-workbench/test/query-card-cancel.test.mjs": "c95e466c4e75e4a197381bf6ddd5aa7a4dc846d9fc7ff9f953002335ddf8c9f9",
+    "dsh-plugins/analytics-workbench/test/query-card-save.test.mjs": "4cef6917d0c46ff2c3274e0c22f820722f0c1d089c73ad51235dad950eae1e0d",
+    "dsh-plugins/analytics-workbench/test/tool-card-harness.mjs": "8d79ec99efa3ed2e8162de9b02dcbc8b6d4796ce3b1f0fe9d6aa2014171d0d90",
+    "dsh-plugins/analytics-workbench/toolchain.json": "998190f94a7e63e697b243d94f02706cece2de24899f245e4012e64d2ed67d74",
+    "dsh-plugins/analytics-workbench/toolchain.mjs": "ccfee9db0d6a3ebd92380f93c894695c03a55d431fad07cbdda1307c8dbc9fdb",
+    "scripts/dsh-b0/pipeline.mjs": "47fbd78c872846d4525d1aa78963e9a537e804084edc439134bcfeae069f4d1b",
+    "scripts/dsh-dev/brand.mjs": "aea5e72524a3cf27370d939a538fa5ae41318dcc5681f5ec865578ab1d3efcde",
+    "scripts/dsh-dev/brand.test.mjs": "d875b606c6ab16ce0caaaff1023854822c5ef0088c129cc318fa399e775a71e4"
+  },
+  "pipeline": {
+    "schema_version": "dsh-b0-build-evidence/v1",
+    "at": "2026-09-09T22:47:03.646Z",
+    "upstream_sha": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+    "upstream_lock_sha256": "2c903ab870f821ee2db62fa9417d11b1c2b9c65fbeec30e851ddc53c4cc8c383",
+    "node": "v24.19.0",
+    "python": "Python 3.14.4",
+    "clean_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/dsh-b0/clean-build-YpywH8",
+    "stages": [
+      "contract",
+      "python-unit",
+      "ruff",
+      "node-unit",
+      "host-types",
+      "client-types",
+      "build",
+      "real-cordis-loader-synthetic-services",
+      "clean-rebuild"
+    ],
+    "artifact_sha256": {
+      "index.js": "3d615120de8773dc3b48f5e7d5af4fd9ed57f1cebe1c623b405dcbcfa8b2c9be",
+      "tool.js": "99baa240cc2ab0accc7e842a98ca447137e3343736f2fce9df6b1a3b0062bab0",
+      "skills.js": "19cb932b4a211f64c89ea1fe4ca4524aaa70b640283b92962de3ab01a422b03b",
+      "client.js": "f6ae4dd29413f3d78ad888867c8722f3e4b906f0d4720ff8536697ecdd501130",
+      "views/saved-analysis-view.js": "81b8e742a7c08d1a00b74ebb8d32a1bf87ebd41893971a87fe068ac0fcfc261c",
+      "views/cockpit-view.js": "6ce36b142c57be8caf0d862f1a655a806b87e478f050ca48b341f23d3bc538b1"
+    },
+    "remote_ci_executed": false,
+    "native_dsh_profile_e2e": "separate evidence required"
+  },
+  "python_summary": [
+    "477 passed, 10 warnings in 52.98s"
+  ],
+  "node_suites": [
+    "21",
+    "225",
+    "56",
+    "67",
+    "56"
+  ],
+  "local_logs": {
+    ".context/visual-b0-verified.log": "a5f49c35b15eed0dc0f88238f21d2254e851778102867514e82002fb824bc048",
+    ".context/visual-dom-final.log": "8385ff2abb7beda489c2f64c16198bf08d2a00eff577be933d7a4b611f02e3b8",
+    ".context/visual-b0-final.log": "a3da1dede6b61e7f9bf10f29e1de4504293ab53f0c13347181198daaa7a2c3ee",
+    ".context/visual-dependency-audit-fixed.json": "506e033a7102b79d251f797ac84e808b710d53074dd6d4ccaa818afb5c8d824f"
+  },
+  "audit": {
+    "advisories": {},
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0
+      },
+      "dependencies": 111,
+      "devDependencies": 0,
+      "optionalDependencies": 0,
+      "totalDependencies": 111
+    }
+  },
+  "client_bundle": {
+    "raw_bytes": 455651,
+    "gzip_bytes": 137644,
+    "profile": "default build with no COMPETITION_HTTP_BASE; browser evidence uses a separate HTTP-configured build"
+  },
+  "warnings": [
+    "B0 pytest reported 10 warnings plus finalization warnings for unclosed SQLite connections. Exit status was 0; this is not a zero-warning claim.",
+    "React act warnings remain in component test logs."
+  ],
+  "review": {
+    "method": "gstack checklist, primary agent, scoped diff from e63df18 plus integration seam source",
+    "result": "No new blocking issue found in this visual increment; documented product and native acceptance gaps remain.",
+    "limits": "No independent model review or full native permission flow in this increment."
+  },
+  "candidate_switched": false,
+  "remote_ci_for_visual": "not yet run"
+}

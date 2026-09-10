@@ -1,0 +1,60 @@
+{
+  "cases": {
+    "A2": {
+      "session_id": "session-f7203c55-5893-4912-afb5-5af95dc7b863",
+      "native_log_sha256": "56115c7c3f6ba4e8b8af933a509e3c64d5fd6bddd655d2e46c689cd9b1a35878",
+      "turn_reason": {
+        "kind": "completed"
+      },
+      "native_tool_calls": 5,
+      "computation_calls": 2,
+      "results": [
+        {
+          "result_id": "result_diag_0fc1336f3e38099d399fb6e3482c206ec322ed4bedf1ffc6",
+          "run_id": "run_diag_0fc1336f3e38099d399fb6e3482c206ec322ed4bedf1ffc6",
+          "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a"
+        },
+        {
+          "result_id": "result_diag_ed30c88f875d0454c217e3c16c5709ad32e49abe6973d953",
+          "run_id": "run_diag_ed30c88f875d0454c217e3c16c5709ad32e49abe6973d953",
+          "evidence_digest": "7a5ac0ed988b1fdb284f35983045527ccc84717fc906dbeb4ed4a7cf62b066c5",
+          "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a"
+        }
+      ],
+      "uncached_input_tokens": 20905,
+      "cached_input_tokens": 60032,
+      "output_tokens": 3298,
+      "numeric_and_condition_checks": "PASS",
+      "citation_check": "FAIL: final answer aliases result_id/run_id to result_id although native result has distinct IDs",
+      "fees": "UNKNOWN: provider billing not queried; these are native usage counters"
+    },
+    "B": {
+      "session_id": "session-71832c44-c365-47fe-abae-29b2ee6651b0",
+      "native_log_sha256": "3cbe8069d10a5c003cd736a0e5e3edfd7288a0cf1017eed80d6aac6960fd809d",
+      "turn_reason": {
+        "kind": "completed"
+      },
+      "native_tool_calls": 4,
+      "computation_calls": 1,
+      "results": [
+        {
+          "result_id": "result_diag_c5a1e368967791c1af667b4aad15535c6df8115ec8b5e13b",
+          "run_id": "run_diag_c5a1e368967791c1af667b4aad15535c6df8115ec8b5e13b",
+          "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a"
+        }
+      ],
+      "uncached_input_tokens": 10008,
+      "cached_input_tokens": 49280,
+      "output_tokens": 2353,
+      "numeric_and_condition_checks": "PASS",
+      "citation_check": "FAIL: final answer aliases result_id/run_id to result_id although native result has distinct IDs",
+      "fees": "UNKNOWN: provider billing not queried; these are native usage counters"
+    }
+  },
+  "overall": "PARTIAL: numeric equivalence passed, citation failed; method correction awaits real rerun"
+}

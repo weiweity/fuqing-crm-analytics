@@ -1,0 +1,40 @@
+{
+  "schema_version": "computed-snapshot-backup/v1",
+  "status": "PASS",
+  "source": ".context/competition-synth/diagnosis",
+  "backup": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-diagnosis-integration/.context/computed-backup-jpslbmjp/diagnosis_results.sqlite3",
+  "restored": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-diagnosis-integration/.context/computed-restore-d4b3dsuz",
+  "sha256": "f809e0b25c4726742b07220e85c6089783b6305d871709ec37d203b11085ea25",
+  "count": 1,
+  "facts": {
+    "schema_version": "competition-gsv-facts/v1",
+    "metric_type": "GSV",
+    "current": {
+      "requested_period": {
+        "start_date": "2026-08-01",
+        "end_date": "2026-08-31",
+        "end_bound": "INCLUSIVE_CALENDAR_DAY"
+      },
+      "through_date": "2026-08-31",
+      "gsv": 410.0,
+      "order_count": 3,
+      "customer_count": 3
+    },
+    "comparison": {
+      "requested_period": {
+        "start_date": "2025-08-01",
+        "end_date": "2025-08-31",
+        "end_bound": "INCLUSIVE_CALENDAR_DAY"
+      },
+      "through_date": "2025-08-31",
+      "gsv": 305.0,
+      "order_count": 3,
+      "customer_count": 3
+    },
+    "difference": 105.0,
+    "change_ratio": 0.3442622950819672,
+    "change_ratio_unavailable_reason": null
+  },
+  "credential_files_touched": false,
+  "contains_real_data": false
+}

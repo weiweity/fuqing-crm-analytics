@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "mode": "new-write",
+  "old_assets_equal": true,
+  "boards": 2,
+  "results": 8,
+  "draft_id": "draft_46510707572a435c92b27ed1eef98fe1",
+  "draft_version": 2,
+  "written_schema": "competition-gsv-facts/v2",
+  "written_result_id": "result_diag_3cc288b464e76e93b57760e35f5f1adfd370b5e25323664e",
+  "written_evidence_digest": "2b7992fbca99eeab8118f34565c8b5dd467fd4957dcf41b7bd3dbeac5c4cbf73",
+  "results_after": 9
+}

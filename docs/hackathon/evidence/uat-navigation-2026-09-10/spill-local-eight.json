@@ -1,0 +1,289 @@
+[
+  {
+    "iteration": 0,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99359,
+      "execution_id": "exec_7decbc2499624a0d8a927a2e1622aaaf",
+      "run_id": "run_1c06429b6c414e8191151197c4c1bbf1",
+      "attempt_id": "attempt_4eb73f97017a4938840dcfbf96d434f7",
+      "step_id": "step_18695e6cc98648d396b7c852c43fcacd",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 619,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195313664,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 58556416,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 1,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99371,
+      "execution_id": "exec_369e3f76eea24d56b3c198822cd7aa70",
+      "run_id": "run_9f3189b7453845498247310a45073874",
+      "attempt_id": "attempt_cdf769aa529c4a218fdd6e9658b9237a",
+      "step_id": "step_1919fe4a97cb405d8faaa51999d48014",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 569,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195248128,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 52330496,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 2,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99372,
+      "execution_id": "exec_586ee75137c94f7faecf33e435047ef6",
+      "run_id": "run_8497ba352b5648edb62ed414e4b80a85",
+      "attempt_id": "attempt_ddaa3263aca5441a90ce0d3e91a3c3e7",
+      "step_id": "step_ef3be4958f52422088ba332119ae6c46",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 556,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195215360,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 54263808,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 3,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99380,
+      "execution_id": "exec_8da59ad67f9f41188ae785bbcc931f7e",
+      "run_id": "run_8f76a7f39b914226bfa673f757af7b14",
+      "attempt_id": "attempt_87970510021b4e45b7e61d5df5ed4baa",
+      "step_id": "step_b6d9e24babd947c28e86206a723e1f73",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 562,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195231744,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 53805056,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 4,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99385,
+      "execution_id": "exec_64e886880b64454fa787e09d648ac787",
+      "run_id": "run_98507e54fbaf4a8f921ecb48a0ad516a",
+      "attempt_id": "attempt_05d1d149f0684a4092e831f425a655ad",
+      "step_id": "step_7221b224f8624a8d86136ab03de8db39",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 568,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195264512,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 59604992,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 5,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99393,
+      "execution_id": "exec_f96b3c4876c8495781d3d322f8317f2c",
+      "run_id": "run_6730eab5cb9f4c158be1c68e849333f0",
+      "attempt_id": "attempt_36504af1006e4eff866c56547b8c9dad",
+      "step_id": "step_a661af4d6581478293d066ae28bc7016",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 565,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195559424,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 54198272,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 6,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99394,
+      "execution_id": "exec_0830a26a374c4d8b9e955028aa9156cc",
+      "run_id": "run_bef50c67a0e5466b8c137f36461e29a1",
+      "attempt_id": "attempt_aa0a16ca19fd4a6b8f33bee42e276d13",
+      "step_id": "step_ee0a1a0f8b604d23837216a8a5104a61",
+      "temp_files": [
+        "duckdb_temp_storage_DEFAULT-0.tmp",
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 574,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 196771840,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 60162048,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  },
+  {
+    "iteration": 7,
+    "error": null,
+    "proof": {
+      "event": "SPILL_COMPLETE",
+      "pid": 99405,
+      "execution_id": "exec_0fb3beaa8e2e4795b4983e8cbb04d2da",
+      "run_id": "run_42ffe170b3304dde8a5f5b50ff0c5b35",
+      "attempt_id": "attempt_ca83d568978b47acb26ea5bac4f12bcf",
+      "step_id": "step_f98b8eb40d704444973729bcf791ccdb",
+      "temp_files": [
+        "duckdb_temp_storage_S224K-0.tmp"
+      ]
+    },
+    "metrics": {
+      "elapsed_ms": 570,
+      "engine": {
+        "source_revision": "14eca11bd9",
+        "version": "1.5.3"
+      },
+      "forced_kill": false,
+      "rss_peak_bytes": 195231744,
+      "settings": {
+        "access_mode": "read_only",
+        "enable_external_access": "false",
+        "lock_configuration": "true",
+        "max_temp_directory_size": "64.0 MiB",
+        "memory_limit": "32.0 MiB",
+        "threads": "2"
+      },
+      "temp_peak_bytes": 50921472,
+      "temp_removed_bytes": 0,
+      "temp_removed_files": 0
+    }
+  }
+]

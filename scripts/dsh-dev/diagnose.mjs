@@ -271,8 +271,8 @@ async function inspectAuth(current) {
   }
 }
 
-export async function diagnose(options = {}) {
-  const current = await readCurrent();
+export async function diagnose(options = {}, readState = readCurrent) {
+  const current = await readState();
   const node24 = findNode24();
   const runningMajor = Number(process.versions.node.split('.')[0]);
   const upstream = await inspectUpstream(options.upstream);

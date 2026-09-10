@@ -1,0 +1,93 @@
+{
+  "head": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "release": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/units-release-47ndx_76",
+  "plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/units-release-47ndx_76/dsh-plugins/analytics-workbench",
+  "previous_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/t13-method-release-hws0ksxq/plugin",
+  "runtime": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/dsh-dev/runtime-Cn0Ifc",
+  "upstream": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-closeout/.context/dsh-b0/upstream",
+  "http_origin": "http://127.0.0.1:18083",
+  "status": "NEW_CANDIDATE_RUNNING",
+  "requires": [
+    "exact commit CI success",
+    "no active native model or user edits",
+    "owned API/DSH stop and fresh five-DB backup",
+    "isolated old/new restore and assets verification",
+    "FF backend source only after API stop",
+    "old-state rollback retains post-upgrade state"
+  ],
+  "hashes": {
+    "lib/client.js": "18307a2fa2906ef8c4c0be06d3b3c7f7488436a318da7256a2c73289b8fb39c1",
+    "lib/index.js": "e4a0361895ed49b0ec8bfcd575a103f6905bb09780c7a32688c70321df9d0772",
+    "lib/skills.js": "8cd294774888228408cc574bf7efe73fc96a549bc9b9d7e8fe16a938255d4bfb"
+  },
+  "previous_backend_head": "24a3722b6681bd58ec8045101078be3d41984e75",
+  "previous_backend_source": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/units-release-47ndx_76/previous-source",
+  "previous_backend_sha256": {
+    "backend/contracts/competition_computed.py": "6393eb36347daa1a847c7ee71c4915c5cde4dadf550dcbea229e5111c2ff4724",
+    "backend/services/analytics/competition_diagnosis/computed.py": "ca1215c02f9eea57cc0afa1c4b12a4c81e789a3452a140e025df013173a4dc9d",
+    "backend/services/analytics/competition_diagnosis/synthetic.py": "5e6d0399b475a9e462ec519db7cc2b1a2183974596a4ef79f877aaba292284a7",
+    "backend/services/analytics/competition_diagnosis/store.py": "b4c81e9795e202c34b0f687bb58afc0e959a89006821cb46cd83a996db58ab24"
+  },
+  "ci_run_id": 34441966415,
+  "ci_status": "SUCCESS",
+  "backup_started_at": 1789019602.285129,
+  "backup_stage": "RESTORE_OLD_AND_NEW_PASS",
+  "api_pid": 72472,
+  "old_start_requested_ns": 1789019603639578000,
+  "old_restart_dispatched": true,
+  "backup_manifest": [
+    {
+      "path": "assets/competition_assets.sqlite3",
+      "bytes": 86016,
+      "sha256": "d1dbd9e7fdd2b1c603f2462757937d3f418839450e70f98bedf5845e44e30314"
+    },
+    {
+      "path": "audience/competition-audience.sqlite",
+      "bytes": 36864,
+      "sha256": "8122a73a22aabac876d6678c662ca7718051a1751570b61141ccee5995f5393d"
+    },
+    {
+      "path": "cockpit/cockpit.sqlite3",
+      "bytes": 45056,
+      "sha256": "6bd0ad04fc659a515f161cc8b3d865b631d303c215b51b86973b0ddc7590a030"
+    },
+    {
+      "path": "saved/analyses.sqlite3",
+      "bytes": 49152,
+      "sha256": "f738a99d60328b9dad4b449ba642b5105acf145c89335b19dc8e0b925c678648"
+    },
+    {
+      "path": "diagnosis/diagnosis_results.sqlite3",
+      "bytes": 69632,
+      "sha256": "e2ea5ba3bd30f560bdaa5c2cbad0f39ca50fac6e7af2b70891c903aa73718a62"
+    }
+  ],
+  "backup_path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/units-release-47ndx_76/state-backup",
+  "protected_listeners": {
+    "4327": [
+      81058
+    ],
+    "8000": [
+      36717
+    ],
+    "5173": [
+      36727
+    ],
+    "14327": [
+      90347
+    ]
+  },
+  "before_counts": {
+    "boards": 2,
+    "results": 8
+  },
+  "before_dsh_pid": 69160,
+  "ci_evidence": "public GitHub API rendered in browser;run34441966415head84b0ac8successupdated2026-09-10T05:49:18Z",
+  "stage": "NEW_CANDIDATE_RUNNING",
+  "start_requested_ns": 1789019993953924000,
+  "dsh_pid": 72500,
+  "active_state": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/competition-synth",
+  "active_backend_head": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "assets_equal_after_switch": true,
+  "source_worktree_ff_completed": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness"
+}

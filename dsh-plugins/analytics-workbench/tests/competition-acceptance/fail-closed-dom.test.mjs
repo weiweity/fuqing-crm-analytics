@@ -86,11 +86,9 @@ test('T11 model-unavailable still shows saved board; discard is not undo', () =>
   assert.match(view, /competition-board/);
 });
 
-test('T04 DOM does not treat 0.25 as 25 and keeps GSV explicit', () => {
-  const ui = requireFile(join(boardDir, 'BoardWorkbench.tsx'), 'BoardWorkbench.tsx');
-  assert.doesNotMatch(ui, /\* 100/);
-  assert.match(ui, /GSV|完整性/);
-});
+// T04 amounts/ratios are asserted against the compiled component in
+// competition-board-dom.test.mjs. A source-wide "* 100" ban cannot distinguish
+// currency from the explicitly contracted raw-ratio formatter or chart width.
 
 test('T12 actions source covers zero candidates and no auto send', () => {
   const actions = requireFile(join(actionsDir, 'ActionsWorkbench.tsx'), 'ActionsWorkbench.tsx');

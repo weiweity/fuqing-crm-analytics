@@ -1,0 +1,91 @@
+{
+  "observed_ns": 1789021197885794000,
+  "scope": "single native browser and separate readonly SQLite process; not continuous monitoring",
+  "status": "DEGRADED",
+  "reason": "existing B0 assets 404",
+  "http_resources": [
+    {
+      "path": "/b0/assets",
+      "status": 404
+    },
+    {
+      "path": "/b0/assets",
+      "status": 404
+    },
+    {
+      "path": "/api/v1/analytics/competition/results",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_cec58430029a57ed942835bba3ef84de",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/analytics/competition/results",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/analytics/competition/boards/board_cec58430029a57ed942835bba3ef84de",
+      "status": 200
+    }
+  ],
+  "separate_process_v2_matches_tool": {
+    "U1R": true,
+    "U2": true
+  },
+  "listeners": {
+    "4325": [
+      "p72500",
+      "cnode",
+      "f15",
+      "n127.0.0.1:4325"
+    ],
+    "18083": [
+      "p72472",
+      "cPython",
+      "f6",
+      "n127.0.0.1:18083"
+    ],
+    "4327": [
+      "p81058",
+      "cnode",
+      "f14",
+      "n127.0.0.1:4327"
+    ],
+    "8000": [
+      "p36717",
+      "cPython",
+      "f9",
+      "n127.0.0.1:8000"
+    ],
+    "5173": [
+      "p36727",
+      "cnode",
+      "f14",
+      "n127.0.0.1:5173",
+      "p82038",
+      "cnode",
+      "f16",
+      "n[::1]:5173"
+    ],
+    "14327": [
+      "p90347",
+      "cnode",
+      "f14",
+      "n127.0.0.1:14327"
+    ]
+  },
+  "board_count": 2,
+  "result_list_count": 10,
+  "new_v2_results": 2,
+  "draft_version": 2,
+  "model_busy": false
+}

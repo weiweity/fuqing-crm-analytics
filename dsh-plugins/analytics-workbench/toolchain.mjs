@@ -6,7 +6,7 @@ import { dirname, join, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 
-export async function bindToolchain(plugin, upstream) {
+export async function bindToolchain(plugin, upstream, buildTools = join(plugin, 'build-tools')) {
   const pin = JSON.parse(await readFile(join(plugin, 'toolchain.json'), 'utf8'));
   assert.equal(Number(process.versions.node.split('.')[0]), pin.node_major, 'Use the pinned Node major');
   const git = args => execFileSync('git', ['-C', upstream, ...args], { encoding: 'utf8' }).trim();
@@ -25,6 +25,21 @@ export async function bindToolchain(plugin, upstream) {
   const esbuild = vite('esbuild');
   assert.equal(esbuild.version, pin.esbuild);
   const bindings = new Map();
+  // A clean source copy may reuse the already-installed, identical locked
+  // dependency closure. Verification never installs from the registry.
+  for (const file of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/antd@5.29.3.patch', 'patches/rc-picker@4.11.3.patch']) {
+    assert.deepEqual(await readFile(join(plugin, 'build-tools', file)), await readFile(join(buildTools, file)), `Build dependency ${file} differs`);
+  }
+  const buildManifest = await readJson(join(buildTools, 'package.json'));
+  const business = createRequire(join(buildTools, 'package.json'));
+  for (const name of ['antd', '@types/react-dom']) {
+    const packagePath = business.resolve(`${name}/package.json`);
+    assert.equal((await readJson(packagePath)).version, buildManifest.dependencies[name], `Business dependency drift: ${name}`);
+    bindings.set(name, dirname(packagePath));
+  }
+  for (const name of ['react', 'react-dom']) {
+    assert.equal((await readJson(business.resolve(`${name}/package.json`))).version, pin.react, `React closure drift: ${name}`);
+  }
   for (const [name, path] of Object.entries(pin.sdk_bindings)) {
     const target = join(upstream, path);
     const manifest = await readJson(join(target, 'package.json'));
@@ -32,7 +47,7 @@ export async function bindToolchain(plugin, upstream) {
     if (name.startsWith('@deepseek-ai/dsh-')) assert.equal(manifest.version, pin.sdk_version);
     bindings.set(name, target);
   }
-  for (const [name, resolver, version] of [['react', web, pin.react], ['@types/react', conversation, pin.react_types], ['@types/node', req, pin.node_types]]) {
+  for (const [name, resolver, version] of [['react', web, pin.react], ['react-dom', web, pin.react], ['@types/react', conversation, pin.react_types], ['@types/node', req, pin.node_types]]) {
     const packagePath = resolver.resolve(`${name}/package.json`);
     assert.equal((await readJson(packagePath)).version, version);
     bindings.set(name, dirname(packagePath));
@@ -67,7 +82,13 @@ export function checkTypes(plugin, compiler) {
       // The pinned session-controller declaration imports this SDK type but
       // omits its direct dependency. Supply it in our consumer type closure;
       // keep the upstream pristine and still check every declaration.
-      paths: { '@deepseek-ai/dsh-util-values': [join(plugin, 'node_modules/@deepseek-ai/dsh-util-values/lib/types/index.d.ts')] },
+      paths: {
+        '@deepseek-ai/dsh-util-values': [join(plugin, 'node_modules/@deepseek-ai/dsh-util-values/lib/types/index.d.ts')],
+        'react': [join(plugin, 'node_modules/@types/react/index.d.ts')],
+        'react/*': [join(plugin, 'node_modules/@types/react/*')],
+        'react-dom': [join(plugin, 'node_modules/@types/react-dom/index.d.ts')],
+        'react-dom/*': [join(plugin, 'node_modules/@types/react-dom/*')],
+      },
     });
     const diagnostics = ts.getPreEmitDiagnostics(program);
     if (diagnostics.length) throw new Error(`${face} typecheck failed:\n` + ts.formatDiagnosticsWithColorAndContext(diagnostics, {

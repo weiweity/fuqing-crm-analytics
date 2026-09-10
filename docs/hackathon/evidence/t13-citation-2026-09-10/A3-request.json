@@ -1,0 +1,11 @@
+{
+  "case": "A3",
+  "prompt": "等价表达评测 A3：请用当前合成快照，核算 2026 年 8 月整月的 GSV，并与 2025 年 8 月整月同比。销售范围和历史范围均为全部，保留小样，不剔除任何派样渠道，时区上海。请给出两期金额、差额、同比比例及可核验来源，并说明数据边界。只做诊断，不创建看板、行动草稿或发送消息。",
+  "started_ns": 1789015811567074000,
+  "provider": "configured DSH DeepSeek-V4-Flash",
+  "reasoning": "High",
+  "runtime_plugin_source": "6202e89c9a998fc868758fe993da5b163d146e38",
+  "source": "current synthetic HTTP18083",
+  "max_wall_seconds": 180,
+  "paid_real_model": true
+}

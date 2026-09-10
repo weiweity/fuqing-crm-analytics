@@ -1,0 +1,562 @@
+{
+  "base_head": "dea8332aad7fd3b7214b048ebe5a4fc874fe669f",
+  "source_sha256": {
+    "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx": "03be3f7df67f6a8aafb69c3cf4fa7d46800d86bcd69c6d11ca27b70dcac894d0",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "975040f11f4cd2cc81283e99bf78d762c0b7c2105ac65a34b50a71b89d57b006",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs": "10187db19c331c7dca2ff16801f3ae4e83f41cd2309dc1083b1d8e30b2fa5e79",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts": "14ddd2296a20474bb94c76623d76a0d653e9fe413f75266ec953652c9a6ba9bf",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs": "3667a253202e6efca10fb8e3e7056d794b8ba56876023172fe7c75501427b184",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts": "72afc4856e8e311d6a3f34c710f396faf36b1d78e3cd2fdf715d62d54081ba15",
+    "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs": "3ece40f9b6e64c080fdd856ed1a0c817898772a366b8ed886a35d011594b1384"
+  },
+  "browser_client_sha256": "62a3ab794eedb889d806092b495b3a935ea695dea2e46397fe42eaecab2ffd3d",
+  "upstream": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "fixture_root": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/uat-navigation-xlnfdit6",
+  "provider": "local deterministic fixture; no paid model calls; not T13",
+  "provider_requests": 5,
+  "results": [
+    {
+      "analysis_id": "analysis_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "capability_id": "diag.gsv",
+      "completeness": "COMPLETE",
+      "contains_real_data": false,
+      "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+      "data_mode": "SNAPSHOT",
+      "empty_reason": null,
+      "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+      "execution_kind": "TOOL_COMPUTATION",
+      "existing_result_schema": "competition-gsv-facts/v1",
+      "facts": {
+        "change_ratio": 0.3442622950819672,
+        "change_ratio_unavailable_reason": null,
+        "comparison": {
+          "customer_count": 3,
+          "gsv": 305.0,
+          "order_count": 3,
+          "requested_period": {
+            "end_bound": "INCLUSIVE_CALENDAR_DAY",
+            "end_date": "2025-08-31",
+            "start_date": "2025-08-01"
+          },
+          "through_date": "2025-08-31"
+        },
+        "current": {
+          "customer_count": 3,
+          "gsv": 410.0,
+          "order_count": 3,
+          "requested_period": {
+            "end_bound": "INCLUSIVE_CALENDAR_DAY",
+            "end_date": "2026-08-31",
+            "start_date": "2026-08-01"
+          },
+          "through_date": "2026-08-31"
+        },
+        "difference": 105.0,
+        "metric_type": "GSV",
+        "schema_version": "competition-gsv-facts/v1"
+      },
+      "facts_schema_ref": "backend.contracts.competition_computed.CompetitionGsvFacts",
+      "limitations": [
+        "仅显式小型合成快照，不代表真实经营结论。",
+        "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+        "派样渠道全集与会员历史仍为 UNKNOWN。",
+        "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+      ],
+      "metric_id": "gsv",
+      "metric_version": "competition-gsv-metric/v1",
+      "page": {
+        "checksum": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+        "complete": true,
+        "limit": 2,
+        "offset": 0,
+        "total": 2
+      },
+      "primary_result_ref": "result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "query_id": "competition_gsv_comparison",
+      "query_version": "competition-gsv-query/v1",
+      "resolved_condition": {
+        "actor_id": "alice",
+        "as_of": "2026-08-31T16:00:00.000000+00:00",
+        "comparison_mode": "YOY_SAME_PERIOD",
+        "comparison_period": {
+          "end_bound": "INCLUSIVE_CALENDAR_DAY",
+          "end_date": "2025-08-31",
+          "start_date": "2025-08-01"
+        },
+        "current_period": {
+          "end_bound": "INCLUSIVE_CALENDAR_DAY",
+          "end_date": "2026-08-31",
+          "start_date": "2026-08-01"
+        },
+        "cutoff": "2026-07-31",
+        "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+        "data_snapshot_ref": "synthetic-diagnosis-202608-v1",
+        "data_version": "synthetic-diagnosis-data/v1",
+        "event_time": "2026-08-31T16:00:00.000000+00:00",
+        "feature_as_of": null,
+        "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+        "history_scope": {
+          "channel_ids": [],
+          "kind": "ALL",
+          "product_ids": []
+        },
+        "ignored_filters": [],
+        "leap_day_alignment": "CLAMP_TO_MONTH_END",
+        "limitations": [
+          "仅显式小型合成快照，不代表真实经营结论。",
+          "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+          "派样渠道全集与会员历史仍为 UNKNOWN。",
+          "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+        ],
+        "metric_type": "GSV",
+        "metrics_contract_id": "competition-metrics/v1",
+        "permission_scope": "diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1",
+        "published_at": "2026-08-31T16:00:00.000000+00:00",
+        "rule_version": "competition-condition-rule/v1",
+        "sales_scope": {
+          "channel_ids": [],
+          "kind": "ALL",
+          "product_ids": []
+        },
+        "sample_channel_ids": null,
+        "sample_channel_set_status": "UNKNOWN",
+        "sample_history_recomputed": false,
+        "sample_mode": "INCLUDE",
+        "schema_version": "competition-condition/v1",
+        "source_tense": "PUBLISHED_SNAPSHOT",
+        "timezone": "Asia/Shanghai",
+        "unknown_flags": [
+          {
+            "code": "SAMPLE_CHANNEL_SET",
+            "note": "未确认真实派样渠道全集。",
+            "status": "UNKNOWN"
+          },
+          {
+            "code": "MEMBER_HISTORY",
+            "note": "当前合成源不提供会员历史。",
+            "status": "UNKNOWN"
+          }
+        ],
+        "warehouse_as_of": "2026-08-31T16:00:00.000000+00:00"
+      },
+      "result_id": "result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "row_count": 2,
+      "run_id": "run_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "schema_version": "competition-computed-result/v1"
+    },
+    {
+      "analysis_id": "analysis_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+      "capability_id": "diag.gsv",
+      "completeness": "COMPLETE",
+      "contains_real_data": false,
+      "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+      "data_mode": "SNAPSHOT",
+      "empty_reason": null,
+      "evidence_digest": "177551ff97f8a2ab47f4c0667b1edbc85230d186184e5b707471bbd69ee8a5c6",
+      "execution_kind": "TOOL_COMPUTATION",
+      "existing_result_schema": "competition-gsv-facts/v1",
+      "facts": {
+        "change_ratio": 0.3333333333333333,
+        "change_ratio_unavailable_reason": null,
+        "comparison": {
+          "customer_count": 2,
+          "gsv": 300.0,
+          "order_count": 2,
+          "requested_period": {
+            "end_bound": "INCLUSIVE_CALENDAR_DAY",
+            "end_date": "2025-08-31",
+            "start_date": "2025-08-01"
+          },
+          "through_date": "2025-08-31"
+        },
+        "current": {
+          "customer_count": 2,
+          "gsv": 400.0,
+          "order_count": 2,
+          "requested_period": {
+            "end_bound": "INCLUSIVE_CALENDAR_DAY",
+            "end_date": "2026-08-31",
+            "start_date": "2026-08-01"
+          },
+          "through_date": "2026-08-31"
+        },
+        "difference": 100.0,
+        "metric_type": "GSV",
+        "schema_version": "competition-gsv-facts/v1"
+      },
+      "facts_schema_ref": "backend.contracts.competition_computed.CompetitionGsvFacts",
+      "limitations": [
+        "仅显式小型合成快照，不代表真实经营结论。",
+        "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+        "派样渠道全集与会员历史仍为 UNKNOWN。",
+        "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+      ],
+      "metric_id": "gsv",
+      "metric_version": "competition-gsv-metric/v1",
+      "page": {
+        "checksum": "177551ff97f8a2ab47f4c0667b1edbc85230d186184e5b707471bbd69ee8a5c6",
+        "complete": true,
+        "limit": 2,
+        "offset": 0,
+        "total": 2
+      },
+      "primary_result_ref": "result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+      "query_id": "competition_gsv_comparison",
+      "query_version": "competition-gsv-query/v1",
+      "resolved_condition": {
+        "actor_id": "alice",
+        "as_of": "2026-08-31T16:00:00.000000+00:00",
+        "comparison_mode": "YOY_SAME_PERIOD",
+        "comparison_period": {
+          "end_bound": "INCLUSIVE_CALENDAR_DAY",
+          "end_date": "2025-08-31",
+          "start_date": "2025-08-01"
+        },
+        "current_period": {
+          "end_bound": "INCLUSIVE_CALENDAR_DAY",
+          "end_date": "2026-08-31",
+          "start_date": "2026-08-01"
+        },
+        "cutoff": "2026-07-31",
+        "data_cutoff_policy": "T_PLUS_1_YESTERDAY",
+        "data_snapshot_ref": "synthetic-diagnosis-202608-v1",
+        "data_version": "synthetic-diagnosis-data/v1",
+        "event_time": "2026-08-31T16:00:00.000000+00:00",
+        "feature_as_of": null,
+        "filter_hash": "00447879a77fabafe72bdac78615384b187f56601561e3a6c918eeb007fa22c8",
+        "history_scope": {
+          "channel_ids": [],
+          "kind": "ALL",
+          "product_ids": []
+        },
+        "ignored_filters": [],
+        "leap_day_alignment": "CLAMP_TO_MONTH_END",
+        "limitations": [
+          "仅显式小型合成快照，不代表真实经营结论。",
+          "仅 GSV 双期计算完成，不代表完整诊断链完成。",
+          "派样渠道全集与会员历史仍为 UNKNOWN。",
+          "GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。"
+        ],
+        "metric_type": "GSV",
+        "metrics_contract_id": "competition-metrics/v1",
+        "permission_scope": "diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1",
+        "published_at": "2026-08-31T16:00:00.000000+00:00",
+        "rule_version": "competition-condition-rule/v1",
+        "sales_scope": {
+          "channel_ids": [
+            "CH_RETAIL"
+          ],
+          "kind": "CHANNEL_IDS",
+          "product_ids": []
+        },
+        "sample_channel_ids": null,
+        "sample_channel_set_status": "UNKNOWN",
+        "sample_history_recomputed": false,
+        "sample_mode": "INCLUDE",
+        "schema_version": "competition-condition/v1",
+        "source_tense": "PUBLISHED_SNAPSHOT",
+        "timezone": "Asia/Shanghai",
+        "unknown_flags": [
+          {
+            "code": "SAMPLE_CHANNEL_SET",
+            "note": "未确认真实派样渠道全集。",
+            "status": "UNKNOWN"
+          },
+          {
+            "code": "MEMBER_HISTORY",
+            "note": "当前合成源不提供会员历史。",
+            "status": "UNKNOWN"
+          }
+        ],
+        "warehouse_as_of": "2026-08-31T16:00:00.000000+00:00"
+      },
+      "result_id": "result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+      "row_count": 2,
+      "run_id": "run_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+      "schema_version": "competition-computed-result/v1"
+    }
+  ],
+  "boards": [
+    {
+      "board_id": "board_809656dfca7a4ebd2202f0a4a863d838",
+      "version": 1,
+      "title": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "blocks": [
+        {
+          "analysis_ref": {
+            "analysis_id": "analysis_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+            "version": 1
+          },
+          "block_id": "block_be13ac2deb3353d58b1c2e602ca8431f",
+          "card_id": "block_be13ac2deb3353d58b1c2e602ca8431f",
+          "data_mode": "SNAPSHOT",
+          "display_overrides": {},
+          "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+          "filter_mapping": {},
+          "freshness": "PINNED",
+          "layout": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "local_filters": {},
+          "plugin_ref": {
+            "type": "TABLE",
+            "version": "analytics-visual-table/v1"
+          },
+          "result_id": "result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+          "run_id": "run_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556"
+        }
+      ]
+    },
+    {
+      "board_id": "board_809656dfca7a4ebd2202f0a4a863d838",
+      "version": 2,
+      "title": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "blocks": [
+        {
+          "analysis_ref": {
+            "analysis_id": "analysis_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+            "version": 1
+          },
+          "block_id": "block_be13ac2deb3353d58b1c2e602ca8431f",
+          "card_id": "block_be13ac2deb3353d58b1c2e602ca8431f",
+          "data_mode": "SNAPSHOT",
+          "display_overrides": {},
+          "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+          "filter_mapping": {},
+          "freshness": "PINNED",
+          "layout": {
+            "h": 4,
+            "w": 5,
+            "x": 0,
+            "y": 0
+          },
+          "local_filters": {},
+          "plugin_ref": {
+            "type": "TABLE",
+            "version": "analytics-visual-table/v1"
+          },
+          "result_id": "result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+          "run_id": "run_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556"
+        }
+      ]
+    },
+    {
+      "board_id": "board_809656dfca7a4ebd2202f0a4a863d838",
+      "version": 3,
+      "title": "认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+      "blocks": [
+        {
+          "analysis_ref": {
+            "analysis_id": "analysis_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+            "version": 1
+          },
+          "block_id": "block_be13ac2deb3353d58b1c2e602ca8431f",
+          "card_id": "block_be13ac2deb3353d58b1c2e602ca8431f",
+          "data_mode": "SNAPSHOT",
+          "display_overrides": {},
+          "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a",
+          "filter_mapping": {},
+          "freshness": "PINNED",
+          "layout": {
+            "h": 4,
+            "w": 5,
+            "x": 1,
+            "y": 0
+          },
+          "local_filters": {},
+          "plugin_ref": {
+            "type": "TABLE",
+            "version": "analytics-visual-table/v1"
+          },
+          "result_id": "result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556",
+          "run_id": "run_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556"
+        }
+      ]
+    },
+    {
+      "board_id": "board_e6f5c996edba63c0d1b5542242e5261f",
+      "version": 1,
+      "title": "认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+      "blocks": [
+        {
+          "analysis_ref": {
+            "analysis_id": "analysis_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+            "version": 1
+          },
+          "block_id": "block_d883aae8b051334801c1bc0215280af5",
+          "card_id": "block_d883aae8b051334801c1bc0215280af5",
+          "data_mode": "SNAPSHOT",
+          "display_overrides": {},
+          "evidence_digest": "177551ff97f8a2ab47f4c0667b1edbc85230d186184e5b707471bbd69ee8a5c6",
+          "filter_hash": "00447879a77fabafe72bdac78615384b187f56601561e3a6c918eeb007fa22c8",
+          "filter_mapping": {},
+          "freshness": "PINNED",
+          "layout": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "local_filters": {},
+          "plugin_ref": {
+            "type": "TABLE",
+            "version": "analytics-visual-table/v1"
+          },
+          "result_id": "result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9",
+          "run_id": "run_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9"
+        }
+      ]
+    }
+  ],
+  "drafts": [
+    {
+      "auto_send": false,
+      "budget_cap_minor": null,
+      "candidate_set_id": "cand_d511425f5cfa4d0194a1e3f3d742ed9c",
+      "channel": null,
+      "control_design": "仅本地合成预演，不发送；保留未触达对照组。",
+      "copy_only_change": false,
+      "currency": "CNY",
+      "draft_id": "draft_1de428dfcbc949869e07b7c5c197f129",
+      "existing_mission_export": "not-mission-draft-export",
+      "expired_reason": null,
+      "limitations": [
+        "GSV 下降不等于投放回报低；缺成本时只给试验优先级。",
+        "行动草稿不得自动发送；不是 Mission DRAFT_EXPORT。"
+      ],
+      "owner_id": "alice",
+      "product_id": null,
+      "review_by": null,
+      "reviewer_id": null,
+      "schema_version": "competition-action/v1",
+      "source_result_ref": "result_t05_gsv_20260831",
+      "status": "DRAFT",
+      "stop_condition": "候选来源变化立即暂停并复核。",
+      "unknowns": [
+        "MEMBER_HISTORY",
+        "SAMPLE_CHANNEL_SET",
+        "incremental_roi",
+        "reviewer_id",
+        "review_by",
+        "budget_cap_minor"
+      ],
+      "version": 1
+    },
+    {
+      "auto_send": false,
+      "budget_cap_minor": null,
+      "candidate_set_id": "cand_d511425f5cfa4d0194a1e3f3d742ed9c",
+      "channel": null,
+      "control_design": "仅本地合成预演，不发送；保留未触达对照组。",
+      "copy_only_change": true,
+      "currency": "CNY",
+      "draft_id": "draft_1de428dfcbc949869e07b7c5c197f129",
+      "existing_mission_export": "not-mission-draft-export",
+      "expired_reason": null,
+      "limitations": [
+        "GSV 下降不等于投放回报低；缺成本时只给试验优先级。",
+        "行动草稿不得自动发送；不是 Mission DRAFT_EXPORT。"
+      ],
+      "owner_id": "alice",
+      "product_id": null,
+      "review_by": null,
+      "reviewer_id": null,
+      "schema_version": "competition-action/v1",
+      "source_result_ref": "result_t05_gsv_20260831",
+      "status": "DRAFT",
+      "stop_condition": "候选来源变化或证据过期立即暂停并复核。",
+      "unknowns": [
+        "MEMBER_HISTORY",
+        "SAMPLE_CHANNEL_SET",
+        "incremental_roi",
+        "reviewer_id",
+        "review_by",
+        "budget_cap_minor"
+      ],
+      "version": 2
+    }
+  ],
+  "candidates": [
+    {
+      "auto_send": false,
+      "candidate_set_id": "cand_d511425f5cfa4d0194a1e3f3d742ed9c",
+      "cohort_id": "cohort_t05_ly_f4_10",
+      "combine": "AND",
+      "customer_keys": [
+        "t05u05",
+        "t05u06",
+        "t05u07",
+        "t05u08",
+        "t05u09",
+        "t05u10"
+      ],
+      "explanations": [
+        {
+          "customer_key": "t05u05",
+          "reasons": [
+            "ORIGIN_CHANNEL_ABSENT"
+          ]
+        },
+        {
+          "customer_key": "t05u06",
+          "reasons": [
+            "ORIGIN_CHANNEL_ABSENT"
+          ]
+        },
+        {
+          "customer_key": "t05u07",
+          "reasons": [
+            "ORIGIN_CHANNEL_ABSENT"
+          ]
+        },
+        {
+          "customer_key": "t05u08",
+          "reasons": [
+            "ORIGIN_CHANNEL_ABSENT"
+          ]
+        },
+        {
+          "customer_key": "t05u09",
+          "reasons": [
+            "ORIGIN_CHANNEL_ABSENT"
+          ]
+        },
+        {
+          "customer_key": "t05u10",
+          "reasons": [
+            "ORIGIN_CHANNEL_ABSENT"
+          ]
+        }
+      ],
+      "limitations": [
+        "观察期未回购候选，不能确定为永久流失。",
+        "成员固定在入组 as_of，不得用今年 RFM 重选人。",
+        "会员历史 UNKNOWN；handoff-audience 不得冒充本 cohort。",
+        "合成 customer_key，不导出真实名单；auto_send 恒为 false。"
+      ],
+      "permission_scope": "scope-brand-a",
+      "schema_version": "competition-audience/v1",
+      "source_result_ref": "result_t05_gsv_20260831",
+      "unique_count": 6
+    }
+  ],
+  "post_process_exit_reads": true,
+  "owned_ports_stopped": [
+    4328,
+    18084,
+    63359
+  ],
+  "user_candidate_unchanged": "4325 PID73577 / 18083 PID23661",
+  "pipeline": "PASS final full B0 including clean rebuild; Python480 passed; see exact log",
+  "focused_tests": "45 passed before final pipeline",
+  "pointer_drag": "NOT_RUN: browser CDP allowlist rejected Input.dispatchMouseEvent; no bypass. Keyboard resize/move independently verified.",
+  "visual": "1440/1024/390 selector keyboard and overflow checks PASS; screenshots inspected; technical titles and crowded first screen still PARTIAL",
+  "uat": "engineering partial only; no user signoff, no full multi-step diagnosis, no diagnosis-derived cohort",
+  "created_at_ms": 1789009681382
+}

@@ -1,0 +1,254 @@
+[bounded-pytest] group 1/10: 25 files
+........................................................................ [ 26%]
+......sss.................s............................................. [ 52%]
+........................................................................ [ 78%]
+............................................................             [100%]
+============================= slowest 10 durations =============================
+1.03s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[facts_json]
+1.02s call     backend/tests/test_analytics_cockpit_http.py::test_source_request_must_bind_full_resolved_filters
+1.01s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[request_json]
+1.01s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[snapshot_json]
+0.96s call     backend/tests/test_analytics_cockpit_http.py::test_two_saved_windows_stay_isolated_across_copy_layout_remove_undo
+0.96s call     backend/tests/test_analytics_cockpit_http.py::test_corrupt_card_shape_does_not_500_the_board
+0.96s call     backend/tests/test_analytics_cockpit_http.py::test_copy_and_undo_require_visible_sources_before_write
+0.95s call     backend/tests/test_analytics_cockpit_http.py::test_cached_facts_drift_and_source_corruption_degrade_only_that_card
+0.94s call     backend/tests/test_analytics_cockpit_http.py::test_remove_corrupt_source_without_restoring_or_analysis_read
+0.93s call     backend/tests/test_analytics_cockpit_http.py::test_one_unavailable_card_does_not_block_remove
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:34: optional host skill is unavailable; repository contracts remain covered separately
+SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:53: optional host skill is unavailable; repository contracts remain covered separately
+SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:71: optional host skill is unavailable; repository contracts remain covered separately
+SKIPPED [1] backend/tests/test_adhoc_query_hitrate_monitor.py:33: optional macOS host skills are unavailable
+272 passed, 4 skipped, 1 warning in 36.73s
+[bounded-pytest] group 1 rc=0 time=37.363s peak_rss_gb=0.61
+[bounded-pytest] group 2/10: 25 files
+........................................................................ [ 18%]
+........................................................................ [ 36%]
+........................................................................ [ 54%]
+........................................................................ [ 73%]
+........................................................................ [ 91%]
+..................................                                       [100%]
+============================= slowest 10 durations =============================
+1.20s call     backend/tests/test_analytics_native_probe.py::test_parent_rejection_dies_under_validator_bypass
+1.18s call     backend/tests/test_analytics_native_probe.py::test_unknown_schema_and_illegal_facts_are_parent_rejections
+0.99s call     backend/tests/test_analytics_query_worker.py::test_result_and_closed_without_process_exit_cannot_complete
+0.97s call     backend/tests/test_analytics_query_worker.py::test_worker_state_read_failure_stops_owned_child_without_raw_driver_error
+0.97s call     backend/tests/test_analytics_query_native_fault.py::test_cancel_sql_hold_on_a_releases_worker_and_leaves_b_queued
+0.96s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[run_deadline]
+0.96s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[cancel]
+0.95s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[permission]
+0.95s call     backend/tests/test_analytics_worker.py::test_readonly_close_and_result_frames_cannot_replace_actual_process_exit
+0.95s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[query_deadline]
+394 passed, 1 warning in 44.84s
+[bounded-pytest] group 2 rc=0 time=45.333s peak_rss_gb=0.60
+[bounded-pytest] group 3/10: 25 files
+sssssssss............................................................... [ 31%]
+........................................ss.ss........................... [ 63%]
+.....................................................................ss. [ 95%]
+..........                                                               [100%]
+============================= slowest 10 durations =============================
+0.89s call     backend/tests/test_check_sql_fstring_consistency.py::TestCheckSqlFStringConsistencyFixture::test_extended_default_scan_includes_scripts_etl
+0.52s call     backend/tests/test_ci_cross_sprint_drift.py::test_check_drift_runs_and_exits_zero
+0.51s setup    backend/tests/test_assertions_thresholds.py::TestTotalDropThreshold::test_weekday_aware_threshold_no_alarm
+0.44s call     backend/tests/test_check_channel_alias.py::test_all_backend_services_pass
+0.28s call     backend/tests/test_backup_duckdb.py::TestBackupDuckdbSprint625Retention::test_prune_deletes_zst_older_than_retention
+0.15s call     backend/tests/test_branch_cleanup.py::test_default_only_previews
+0.11s call     backend/tests/test_check_runner.py::test_runner_executes_without_optional_xdist_plugin
+0.10s call     backend/tests/test_branch_cleanup.py::test_unmerged_branch_is_refused
+0.10s call     backend/tests/test_branch_cleanup.py::test_apply_requires_exact_targets
+0.10s call     backend/tests/test_branch_cleanup.py::test_occupied_worktree_branch_is_refused
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_api_integration.py:92: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+SKIPPED [1] backend/tests/test_api_integration.py:98: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+SKIPPED [1] backend/tests/test_api_integration.py:113: Database not found
+SKIPPED [1] backend/tests/test_api_integration.py:120: Database not found
+SKIPPED [1] backend/tests/test_api_integration.py:130: Database not found
+SKIPPED [1] backend/tests/test_api_integration.py:142: Database not found
+SKIPPED [1] backend/tests/test_api_integration.py:157: Database not found
+SKIPPED [1] backend/tests/test_api_integration.py:169: Database not found
+SKIPPED [1] backend/tests/test_api_integration.py:183: Database not found
+SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:141: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:165: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:218: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:238: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+SKIPPED [1] backend/tests/test_churn_user_list_fstring.py:44: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+SKIPPED [1] backend/tests/test_churn_user_list_fstring.py:66: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+211 passed, 15 skipped, 1 warning in 6.36s
+[bounded-pytest] group 3 rc=0 time=6.927s peak_rss_gb=0.27
+[bounded-pytest] group 4/10: 25 files
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+........................................................................ [ 95%]
+..............                                                           [100%]
+============================= slowest 10 durations =============================
+5.08s call     backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[deadline]
+0.84s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[False-True]
+0.84s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[False-False]
+0.81s call     backend/tests/test_claude_hooks.py::test_post_edit_lints_only_the_target_without_fixing_it[0]
+0.81s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[True-True]
+0.80s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[True-False]
+0.51s setup    backend/tests/test_ci_lfs_checkout.py::test_asset_consumers_checkout_lfs_without_persisting_credentials[lint.yml-b0-contract-build]
+0.50s call     backend/tests/test_claude_hooks.py::test_post_edit_lints_only_the_target_without_fixing_it[1]
+0.49s call     backend/tests/test_claude_hooks.py::test_contract_reminder_does_not_generate_or_start_service
+0.26s call     backend/tests/test_competition_diagnosis_cancel.py::test_cancel_is_durable_scoped_and_cannot_undo_publication
+302 passed, 1 warning in 17.57s
+[bounded-pytest] group 4 rc=0 time=18.119s peak_rss_gb=0.35
+[bounded-pytest] group 5/10: 25 files
+....................................................................s... [ 29%]
+......................................s................................. [ 58%]
+..........................................................s............. [ 87%]
+.............................s.                                          [100%]
+============================= slowest 10 durations =============================
+1.18s setup    backend/tests/test_e2e_root_fix_2026_07_19.py::TestE2eAuthTestModeBehavior::test_double_login_ok_in_test_mode
+1.16s call     backend/tests/test_git_hook_boundaries.py::test_pre_push_preserves_refs_for_lfs_even_when_checks_skip[extra0]
+1.05s call     backend/tests/test_git_hook_boundaries.py::test_precommit_propagates_checker_failure[check_test_order.py-backend/tests/test_example.py]
+1.04s call     backend/tests/test_git_hook_boundaries.py::test_precommit_propagates_checker_failure[backend.contracts._lint-backend/contracts/example.py]
+0.96s call     backend/tests/test_git_hook_boundaries.py::test_precommit_propagates_checker_failure[check_imports.py-backend/example.py]
+0.91s call     backend/tests/test_git_hook_boundaries.py::test_pre_push_propagates_lfs_failure
+0.89s call     backend/tests/test_git_hook_boundaries.py::test_new_branch_checks_cumulative_range_and_keeps_rename_sources
+0.88s call     backend/tests/test_git_hook_boundaries.py::test_precommit_propagates_checker_failure[check_review_ground_truth.py-backend/example.py]
+0.86s call     backend/tests/test_git_hook_boundaries.py::test_validation_failure_prevents_lfs_upload
+0.85s call     backend/tests/test_git_hook_boundaries.py::test_precommit_propagates_checker_failure[check_l4_91_excel_export_ssot.py-frontend-vue3/src/example.ts]
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_distribution_filter_builder.py:130: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+SKIPPED [1] backend/tests/test_etl_sample_received_at.py:17: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_fuqing_adhoc_mcp_server.py:644: ~/.workbuddy/.mcp.json 不存在 (WorkBuddy 没装)
+SKIPPED [1] backend/tests/test_governance_cleanup_2026_07_19.py:128: LaunchAgents not installed: ['com.fuqing.pre-existing-fail-monitor.weekly.plist', 'com.fuqing.memory-size-monitor.weekly.plist', 'com.fuqing.adhoc-hitrate-monitor.weekly.plist', 'com.fuqing.clickhouse-poc-monitor.weekly.plist', 'com.fuqing.db-size-alert.daily.plist']
+243 passed, 4 skipped, 1 deselected, 1 warning in 23.39s
+[bounded-pytest] group 5 rc=0 time=24.007s peak_rss_gb=0.38
+[bounded-pytest] group 6/10: 25 files
+........................................................................ [ 45%]
+......sssss............................................................. [ 90%]
+............s..                                                          [100%]
+============================= slowest 10 durations =============================
+0.85s call     backend/tests/test_l4_85_4_account_handoff.py::test_login_and_login_request_share_account_lockout
+0.77s call     backend/tests/test_hackathon_synthetic_generator.py::test_synthetic_scenario_preserves_relationship_and_channel_quality_contrast
+0.56s call     backend/tests/test_hackathon_synthetic_generator.py::test_same_seed_produces_same_business_content_hash
+0.51s setup    backend/tests/test_ground_truth_frozen_plan.py::test_frozen_snapshot_requires_indexed_manifest_and_bytes
+0.34s call     backend/tests/test_l4_85_2_login_both_paths.py::test_login_then_apply_after_logout
+0.34s call     backend/tests/test_l4_85_4_account_handoff.py::test_same_ip_retry_rotates_claim_and_refreshes_authoritative_ttl
+0.21s call     backend/tests/test_hackathon_synthetic_generator.py::test_generator_refuses_silent_overwrite
+0.19s call     backend/tests/test_hackathon_synthetic_generator.py::test_validator_rejects_pii_like_text
+0.19s call     backend/tests/test_hackathon_synthetic_generator.py::test_generator_creates_valid_synthetic_only_dataset
+0.18s call     backend/tests/test_hackathon_synthetic_generator.py::test_stable_user_id_links_relationship_and_cross_channel_orders
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:41: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:53: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:65: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:77: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:95: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+SKIPPED [1] backend/tests/test_l4_85_4_account_handoff.py:150: production DuckDB 不可用 (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)
+153 passed, 6 skipped, 6 deselected, 1 warning in 7.99s
+[bounded-pytest] group 6 rc=0 time=8.62s peak_rss_gb=0.28
+[bounded-pytest] group 7/10: 25 files
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+.....................................................s......             [100%]
+============================= slowest 10 durations =============================
+1.73s call     backend/tests/test_rate_limit_sprint200.py::TestRateLimitBasic::test_auth_endpoints_bypass_rate_limit
+1.25s call     backend/tests/test_rate_limit_sprint200.py::test_module_collection_preserves_external_rate_limit
+0.77s setup    backend/tests/test_missions_api.py::test_mission_chain_from_today_to_draft_export
+0.77s setup    backend/tests/test_local_demo_access.py::test_anonymous_synthetic_chain_and_real_api_isolation
+0.51s setup    backend/tests/test_l4_85_4_stale_token_logout.py::test_logout_clears_all_user_tokens
+0.36s call     backend/tests/test_l4_85_6_cmd_q_token_evict.py::test_bug2_fix_beacon_a_cmdq_b_login_200
+0.35s call     backend/tests/test_l4_85_6_cmd_q_token_evict.py::test_bug2_fix_evictor_a_cmdq_b_login_200
+0.34s setup    backend/tests/test_rate_limit_sprint200.py::TestRateLimitUserIsolation::test_admin_and_fqsw_separate_buckets
+0.34s call     backend/tests/test_l4_85_4_stale_token_logout.py::test_login_after_logout_works
+0.34s call     backend/tests/test_l4_85_6_cmd_q_token_evict.py::test_bug2_reproduce_a_cmdq_b_login_409
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_read_write_splitting_sprint201.py:204: L4.53: snapshot 机制 Sprint 201 R2 已根除 (Read-Write Splitting 已够, ATTACH read_only 替代)
+203 passed, 1 skipped, 1 warning in 12.69s
+[bounded-pytest] group 7 rc=0 time=13.427s peak_rss_gb=0.53
+[bounded-pytest] group 8/10: 25 files
+................................sss.............s..............sssssssss [ 46%]
+sssssss...sssssssssssssssssss........................................... [ 92%]
+............                                                             [100%]
+============================= slowest 10 durations =============================
+34.19s call     backend/tests/test_security_p0_auth.py::test_random_username_flood_state_capacity_bounded
+1.02s call     backend/tests/test_security_p0_auth.py::test_different_ip_does_not_lock_real_account_for_legit_ip
+0.98s call     backend/tests/test_sim_prod_etl.py::test_sim_prod_incremental_runs_with_new_rows
+0.85s call     backend/tests/test_security_p0_auth.py::test_login_request_shares_combo_lockout
+0.58s call     backend/tests/test_sim_prod_etl.py::test_sim_prod_100_runs_idempotent_new_connection
+0.51s setup    backend/tests/test_repurchase_standard_filter_builder.py::TestRepurchaseStandardFilterBuilder::test_no_valid_sql_fstring_in_standard_source
+0.35s call     backend/tests/test_security_pr2_frontend.py::test_config_history_requires_admin
+0.35s call     backend/tests/test_security_pr2_frontend.py::test_rfm_cache_invalidate_requires_admin
+0.35s call     backend/tests/test_security_pr2_frontend.py::test_ops_health_endpoints_require_admin[/api/v1/health/manifest]
+0.35s call     backend/tests/test_security_p0_auth.py::test_known_and_unknown_account_same_401_shape
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_rfm_extended_sprint142.py:62: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_rfm_extended_sprint142.py:82: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_rfm_extended_sprint142.py:101: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_rfm_flow_ttl_ratio.py:304: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+SKIPPED [5] backend/tests/test_sampling_level_aggregation_sprint142.py:59: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_level_aggregation_sprint142.py:82: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:61: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:68: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:75: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:85: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:86: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:102: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:115: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:144: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:154: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:167: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:64: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:100: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:175: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:184: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_sprint139.py:18: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_sprint139.py:43: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_sprint139.py:69: production DuckDB 不可用
+SKIPPED [5] backend/tests/test_sampling_sprint140.py:18: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_sprint140.py:46: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_sprint140.py:63: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_sprint141.py:23: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:56: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:67: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:83: production DuckDB 不可用
+SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:94: production DuckDB 不可用
+117 passed, 39 skipped, 2 deselected, 1 warning in 44.81s
+[bounded-pytest] group 8 rc=0 time=45.502s peak_rss_gb=0.33
+[bounded-pytest] group 9/10: 25 files
+....................ssss................................................ [ 24%]
+...........ss............s.............................................. [ 48%]
+........................................................................ [ 73%]
+........................................................................ [ 97%]
+......                                                                   [100%]
+============================= slowest 10 durations =============================
+5.02s call     backend/tests/test_sprint202_r7_etl_uvicorn_lock.py::TestRunEtlBootoutWaitTimeout::test_max_wait_30s_timeout
+3.01s call     backend/tests/test_sprint202_r7_etl_uvicorn_lock.py::TestRunEtlBootoutSigtermFallback::test_sigterm_fallback_five_retries
+2.98s call     backend/tests/test_status_update.py::test_pytest_output_change_adapts
+2.01s call     backend/tests/test_stack_ops_scripts.py::test_start_script_serves_frontend_from_frontend_root
+1.30s call     backend/tests/test_sprint201_l2_storage.py::TestSprint201L2StorageGovernance::test_db_size_alert_script_exists_and_runs
+0.51s call     backend/tests/test_test_environment.py::test_cached_hashes_preserve_real_bcrypt_cost_and_passwords
+0.51s setup    backend/tests/test_skill_v2_7_eval.py::TestOrderIdsTwoYearOverview::test_service_signature_has_order_ids
+0.51s call     backend/tests/test_stack_ops_scripts.py::test_start_script_cleans_api_when_frontend_preflight_fails
+0.28s call     backend/tests/test_sprint112_cleanup_backups_refactor.py::TestSprint112CleanupBackups::test_prune_respects_keep_min_param
+0.28s call     backend/tests/test_sprint116_lsof_missing_path.py::TestSprint116LsofMissingPath::test_prune_returns_deleted_names_for_observability
+=========================== short test summary info ============================
+SKIPPED [4] backend/tests/test_skill_v2_7_eval.py:43: L4.35 SKILL.md source path not found: /var/folders/tz/wswl3q3117v437rw68yd90gh0000gn/T/fq-check-s0drn0kj/home/.claude/skills/ad-hoc-query/SKILL.md
+SKIPPED [2] backend/tests/test_sprint202_r1_etl_perf.py:87: 生产 DuckDB 业务库不可用（缺失/空库/无 orders）
+SKIPPED [1] backend/tests/test_sprint202_r7_etl_uvicorn_lock.py:470: Linux CI runner 跳过 darwin-only 测试
+287 passed, 7 skipped in 21.28s
+[bounded-pytest] group 9 rc=0 time=21.888s peak_rss_gb=0.49
+[bounded-pytest] group 10/10: 18 files
+........................................................................ [ 45%]
+.........s.............................................................. [ 91%]
+..............                                                           [100%]
+============================= slowest 10 durations =============================
+0.89s setup    backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_manifest_info
+0.51s setup    backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_empty_when_no_manifest
+0.51s call     backend/tests/test_w2_manifest.py::TestSnapshotManifestSIGKILL::test_sigkill_during_write_leaves_manifest_intact
+0.48s call     backend/tests/test_wo_cleanup_orphans.py::TestCleanupFqTmpOrphans::test_max_count_cap
+0.47s call     backend/tests/test_wo_cleanup_orphans.py::TestCleanupFqTmpOrphans::test_cap_starvation_avoided
+0.47s call     backend/tests/test_workbuddy_e2e.py::TestDailyGsvMultiPeriodE2E::test_call_daily_gsv_multi_period_dispatches
+0.39s call     backend/tests/test_workbuddy_e2e.py::TestE2EScriptIntegration::test_e2e_script_exits_zero_with_pass
+0.20s call     backend/tests/test_w4_fact_rfm.py::TestW4BatchInsert::test_w4_batch_perf
+0.20s call     backend/tests/test_w4_fact_rfm.py::TestW4BatchInsert::test_w4_batch_insert_equivalent
+0.19s call     backend/tests/test_wo_cleanup_orphans.py::TestCleanupFqTmpOrphans::test_byte_cap
+=========================== short test summary info ============================
+SKIPPED [1] backend/tests/test_w4_full.py:319: archived-data fixture requires explicit authorization/profile
+157 passed, 1 skipped, 62 deselected, 1 warning in 7.62s
+[bounded-pytest] group 10 rc=0 time=8.209s peak_rss_gb=0.37
+[bounded-pytest] report: /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/checks/20260910T051700777793Z/summary.json

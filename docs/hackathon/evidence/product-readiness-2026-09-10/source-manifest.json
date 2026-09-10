@@ -1,0 +1,53 @@
+{
+  "base_head": "788b5b108fed22526805248a86f310ef7602cc6e",
+  "scope": "changed source and generated contract files; documentation is bound by enclosing commit",
+  "sha256": {
+    "backend/contracts/analytics-competition-chart.openapi.json": "4a4bc5c9bd3a6453c93dabb4e73e0c4c64edd78e5545a6a6390cdc5b68e9656d",
+    "backend/contracts/competition_chart.py": "f1985ad5452fe9422527a3736f19c343ab63fd1b30bd3cc47f990d5de51412dc",
+    "backend/services/analytics/competition_assets/service.py": "9329a6ac211f746ac6a1e860fe83c4f9e14edc967e0f19b11175f5716cc13b30",
+    "backend/tests/test_competition_chart_persistence.py": "cf6450a5b08c52981474be2066a9ea298fee7a6d5db87b94b48974f21c34181e",
+    "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx": "d6d2354c032ee9beef8a01c1fa25f9d51b3105edeb9e0d497178bd069ca5a61c",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "5390b782d7cc365b4abb7146b1022f93279103d8f790ba6aea26db67ae82e29d",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs": "31c7e9ecdd6c5bc56ee2cc307ba3e542df3e9a21a0a5d72fa0a74cd0e7a71dac",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs": "39b6aaf238a0b58dd0078bcf763ef8b3e5d4d450f2ae53df8ecb2bea0d0aabe2",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs": "980fea38aeeb75289f410c8df213f9cc75780ebca60180370d0bf45b43a91f05",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts": "368ec155cc39655a5f20033349f81a1f874ae1c354ec02d7acb2184ce30212b5",
+    "dsh-plugins/analytics-workbench/src/client/run-status.tsx": "9d5809efacf5982c09675de5d61052c310c4ab65b914bec6efdc44e5d4da432e",
+    "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts": "101e919fe7c895b47032d611252431884a49dc3e80b9f941550cf3d31ee6c4eb",
+    "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs": "c2f2c1568913ba75e7bc1ff3f9f9fda97d93d747fee3e2d032eacd0557491ba9",
+    "dsh-plugins/analytics-workbench/src/competition-agent/tools.d.mts": "30cd1e9f6296f3cb2abc86094bbb7378bbeacd8374aa14f99c15b27c222973b9",
+    "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs": "a1577ccd01e11a26f493ddc12d5ff9fa89d26ac85295c767659860106577e39f",
+    "dsh-plugins/analytics-workbench/src/competition-chart-contract.generated.d.ts": "899bc4e74cdf6c7953ca9ab29bf7f69f8fc23dd9266a0839ff3a69657a4941f2",
+    "dsh-plugins/analytics-workbench/src/index.ts": "ae59dc9213aa9ac7ede90973c4be9c8eb89271bef82a6faaf70a2b7acf05ea60",
+    "dsh-plugins/analytics-workbench/test/loader.test.mjs": "d39c8e17e9a354f8fcf487ada0083c8898f38f71df63733ec0eb6f5f694d8e01",
+    "dsh-plugins/analytics-workbench/test/plugin-ui-lifecycle.test.mjs": "2dc888f82d24bb657cf475e67ff15fd9db5a7902a6094274a6c9863130b2e228",
+    "scripts/diagnostics/benchmark_competition_http.py": "275a37ac11171b5ec30ebd80423b4973d24b8260390f6a2748b65068835c7db6",
+    "scripts/dsh-b0/competition-chart-contract.mjs": "3ea24e0f2e6a125f213c73f62b4f18b8a6a6bcb73f3a49d8c91907e051d0e2d8",
+    "scripts/dsh-b0/pipeline.mjs": "3c707b2f0c7f100864cf4d1f9fd9b460c20ba1a02214567f9a3d330ad29bddca",
+    "scripts/dsh-dev/README.md": "9478d7adff7551b1f3c823e394cbc040c5a0294ef92ee63f31f2fd760c41ecfa",
+    "scripts/dsh-dev/cli.test.mjs": "95b766c5d47a9f813cc2c1f0642fb4380fd4379fdac82d30e490eae7e0803839",
+    "scripts/dsh-dev/diagnose.mjs": "e30d6899b1a8746f162ac76efb5ff4949ad9eff65cdf1150c8fa5ea9848e34ed",
+    "scripts/dsh-dev/diagnose.test.mjs": "f6a9e95121726f3dc3da628e3648b8967d1490dc64ce910f1462bc280bd91aab",
+    "scripts/dsh-dev/serve.mjs": "1cebf5f13111589bea11bf007c422c76677e7cacf74a9cc55ac3dda0164ba31d"
+  },
+  "screenshots_sha256": {
+    "chart-before-visual.png": "dab9d884f96a8fd678f48f695a2072aa012fe7e68cb3b430cb304dbb2566afa6",
+    "chart-reopened-1440.png": "ba1d7be8f08de00b6e6c46fdcd2b7993f8d3f152d434482ff359736f60b80f49",
+    "chart-reopened-390.png": "7c25b8d3b89d03023fdc18ea3f5141b34391ca8b1f7b81e2b8248b9c0cbe0f1f",
+    "final-chart-1440.png": "e1c8acf340aa1c5b684f7f0358ae407806f5fa30e7403186a8f9cecec7cee5b3",
+    "final-chart-390.png": "c118117aedc6b114d4e8466a0afe7184278ff09a477ae8c5b5933240f15c2406",
+    "native-session-missing-credential.png": "aa4a3d3b2eef6045fb1197a5f38e82faf2d81f249bd0dae0c1bb257753da6bb4",
+    "native-settings-dark.png": "3d0c37a54008fe8790f3a64a016908ff8589eea0d8c6f94525f226425ff80e17",
+    "t13-completed.png": "7f2d08a03622d4305093a0e21178e3d5051ae1ecc1f2deadb7926800cc8838e4",
+    "t13-connected.png": "1f55345338aca3fae34902f77eb27ee5d125ada8150326d1c3027194d3a78f38",
+    "t13-first-real-request.png": "fa0a3ffa95b9fe7e0cb409eb93f29c64a40b83ab75d83aa2baf74201febd961b",
+    "uat-draft-created.png": "e0297d3e53fe126f7b9d615e312643bae41a821886547a6f9f89e3a51b832ddb",
+    "uat-draft-details-v2.png": "5a5255a9261d57c333be7f1a70535beba439d836460ff8b61d7a31b961a9b095",
+    "uat-draft-reopened.png": "2cfad004a0a1592ca4e7f4196ebc2747d9e71112cee2cacfe57892a1de3cf55b"
+  },
+  "live_plugin_artifacts_sha256": {
+    "index.js": "c4e08902b44f84d9dfa51c052144f50e405c2b2201cfd92ad4456b20d6ba4615",
+    "client.js": "69ac319a447c9ff128cb19c484130017e58d21202ecc0a5d83d4095ca5c4193a",
+    "views/cockpit-view.js": "56364114ef7f662af8d67525b210768bfddad63a6bfc63b05aab0223e4250e17"
+  }
+}

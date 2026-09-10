@@ -1,0 +1,33 @@
+{
+  "scope": "two fresh native plugin-on runtimes; no model configured or called",
+  "rows": [
+    {
+      "attempt": 1,
+      "runtime": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/dsh-dev/runtime-x4xPjn",
+      "elapsed_ms": 1746,
+      "immediate": {
+        "alert": [],
+        "modelSetup": true,
+        "welcome": false
+      },
+      "refresh": {
+        "modelSetup": true,
+        "alert": []
+      }
+    },
+    {
+      "attempt": 2,
+      "runtime": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/dsh-dev/runtime-cUJYoB",
+      "elapsed_ms": 1525,
+      "immediate": {
+        "alert": [],
+        "modelSetup": true,
+        "welcome": false
+      },
+      "refresh": {
+        "modelSetup": true,
+        "alert": []
+      }
+    }
+  ]
+}

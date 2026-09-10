@@ -1,0 +1,38 @@
+from pathlib import Path
+import json,subprocess,time
+repo=Path.cwd()
+run=Path(json.loads((repo/'.context/t17-native-current.json').read_text())['root'])
+browser='/Users/hutou/.codex/skills/gstack/browse/dist/browse'
+assert not (run/'entered.json').exists() and not (run/'release').exists(), 'do not overwrite previous attempt'
+def browse(*args):
+    p=subprocess.run([browser,*args],cwd=repo,text=True,capture_output=True,timeout=7)
+    if p.returncode: raise RuntimeError(p.stdout+p.stderr)
+    return p.stdout
+report={'case':'native Stop at publication boundary','fixture_only':True,'attempt':1}
+try:
+    browse('fill','[data-composer-input="true"]','T17_STOP: compute the synthetic GSV and pause before publication for native Stop.')
+    report['send_ns']=time.time_ns()
+    browse('click','button[aria-label="Send message"]')
+    end=time.monotonic()+8
+    while not (run/'entered.json').exists() and time.monotonic()<end: time.sleep(.02)
+    assert (run/'entered.json').exists(), 'computation never reached publication barrier'
+    report['entered']=json.loads((run/'entered.json').read_text())
+    report['stop_click_started_ns']=time.time_ns()
+    report['stop_click_output']=browse('click','button[aria-label="Stop generating"]')
+    report['stop_click_ended_ns']=time.time_ns()
+    end=time.monotonic()+3
+    while time.monotonic()<end:
+        events=[json.loads(l) for l in (run/'api-events.jsonl').read_text().splitlines()]
+        receipts=[e for e in events if e['event']=='CANCEL_RECEIPT' and e.get('request_id')=='t17-stop-r1']
+        if receipts:break
+        time.sleep(.02)
+    report['cancel_receipts']=receipts
+    assert receipts and receipts[-1]['status']=='CANCELLED'
+    report['status']='NATIVE_STOP_RECEIPT_CONFIRMED'
+except Exception as error:
+    report['status']='FAILED';report['error']=str(error)
+finally:
+    (run/'release').write_text('release owned test barrier\n')
+    report['release_ns']=time.time_ns()
+    (run/'native-stop-browser.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps(report,ensure_ascii=False))

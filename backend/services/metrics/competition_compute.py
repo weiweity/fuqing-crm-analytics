@@ -5,10 +5,7 @@
 
 from __future__ import annotations
 
-import json
-import sys
 from datetime import date
-from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from backend.semantic.time import (
@@ -101,85 +98,8 @@ def _refunds_table_present(conn) -> bool:
         return False
 
 
-def _ensure_refunds_from_loaded_fixtures(conn) -> None:
-    """Recover dated refunds a seeder computed but did not persist.
-
-    A9 seed_orders uses refunds[] only to flip is_refund/交易关闭, then inserts
-    line gross. If that fixture is loaded in-process and the same order_ids
-    are on conn, materialize refunds(order_id, refunded_at, amount).
-    """
-    if getattr(conn, "_a2_dated_refunds_ready", False):
-        return
-    if _refunds_table_present(conn):
-        try:
-            conn._a2_dated_refunds_ready = True
-        except Exception:
-            pass
-        return
-    try:
-        existing = {row[0] for row in conn.execute("SELECT DISTINCT order_id FROM orders").fetchall()}
-    except Exception:
-        return
-    rows: list[tuple[str, str, float]] = []
-    fixture_candidates: list[Path] = []
-    for module in list(sys.modules.values()):
-        fixtures_dir = getattr(module, "FIXTURES", None)
-        if fixtures_dir is not None:
-            fixture_candidates.append(Path(fixtures_dir) / "t02_t03_orders.json")
-        filename = getattr(module, "__file__", "") or ""
-        if "test_competition_acceptance" not in filename.replace("\\", "/"):
-            continue
-        for parent in Path(filename).resolve().parents:
-            fixture_candidates.append(
-                parent
-                / "docs/hackathon/parallel-competition-2026-09-09/evidence/A9/fixtures/t02_t03_orders.json"
-            )
-    seen_files: set[str] = set()
-    for fixture in fixture_candidates:
-        key_path = str(fixture)
-        if key_path in seen_files or not fixture.is_file():
-            continue
-        seen_files.add(key_path)
-        try:
-            payload = json.loads(fixture.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError, TypeError):
-            continue
-        for order in payload.get("orders") or []:
-            oid = order.get("order_id")
-            if oid not in existing:
-                continue
-            for refund in order.get("refunds") or []:
-                when = str(refund.get("refunded_at") or "")[:10]
-                if not when:
-                    continue
-                rows.append((str(oid), when, float(refund["amount"])))
-        if rows:
-            break
-    if not rows:
-        return
-    conn.execute(
-        """
-        CREATE TABLE refunds (
-            order_id VARCHAR,
-            refunded_at DATE,
-            amount DOUBLE
-        )
-        """
-    )
-    for oid, refunded_at, amount in rows:
-        conn.execute(
-            "INSERT INTO refunds VALUES (?, ?::DATE, ?)",
-            [oid, refunded_at, amount],
-        )
-    try:
-        conn._a2_dated_refunds_ready = True
-    except Exception:
-        pass
-
-
 def has_dated_refunds(conn) -> bool:
     """True when conn has a dated `refunds(order_id, refunded_at, amount)` path."""
-    _ensure_refunds_from_loaded_fixtures(conn)
     return _refunds_table_present(conn)
 
 

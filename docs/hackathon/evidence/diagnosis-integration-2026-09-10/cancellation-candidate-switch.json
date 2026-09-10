@@ -1,0 +1,129 @@
+{
+  "source_head": "d9c9162266667251db1a69645fbe1d2f01216ae0",
+  "backup": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/cancel-candidate-backup-k735runu",
+  "restore": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/cancel-candidate-restore-d1dheq_u",
+  "files": [
+    {
+      "path": "assets/competition_assets.sqlite3",
+      "bytes": 86016,
+      "sha256": "f20d668dae4fbd03617b8c3872a032dcd5fe6a6f5f0d081d70365afabafd92a9"
+    },
+    {
+      "path": "audience/competition-audience.sqlite",
+      "bytes": 36864,
+      "sha256": "8122a73a22aabac876d6678c662ca7718051a1751570b61141ccee5995f5393d"
+    },
+    {
+      "path": "cockpit/cockpit.sqlite3",
+      "bytes": 45056,
+      "sha256": "6bd0ad04fc659a515f161cc8b3d865b631d303c215b51b86973b0ddc7590a030"
+    },
+    {
+      "path": "saved/analyses.sqlite3",
+      "bytes": 49152,
+      "sha256": "f738a99d60328b9dad4b449ba642b5105acf145c89335b19dc8e0b925c678648"
+    },
+    {
+      "path": "diagnosis/diagnosis_results.sqlite3",
+      "bytes": 40960,
+      "sha256": "e72ae5af22afee3b4054e53e0e62c489d65aaab51a9a81b7b08407d65baf8bd1"
+    }
+  ],
+  "restore_reopen": "PASS",
+  "runtime": {
+    "web_port": 4325,
+    "web_pid": 64225,
+    "supervisor_pid": 64210,
+    "api_port": 18083,
+    "api_pid": 64190,
+    "workspace": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness",
+    "runtime_path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/dsh-dev/runtime-Cn0Ifc",
+    "model_configuration_copied": false
+  },
+  "runtime_build_sha256": {
+    "dsh-plugins/analytics-workbench/lib/client.js": "05d60c5f4d684f546d990a197f84416b9c95bf91bb485082bfe8b492fdbb4195",
+    "dsh-plugins/analytics-workbench/lib/skills.js": "265c2d1ad15523c415e8d375acd5658b96bb31688d306ebfa8162ce321361159",
+    "dsh-plugins/analytics-workbench/lib/index.js": "2c7a1e5b966b674cc169a03d6d5a124caea039801f311652c4c2fd4f36748820",
+    "dsh-plugins/analytics-workbench/lib/tool.js": "6fcce3563bdb946d17ff7feee6560cdca3b14ecdf08b4bf9917f7087c5e7fc7e",
+    "dsh-plugins/analytics-workbench/lib/views/first-purchase-saved-analysis-view.js": "f6f37b77244feaee22dcc6681430e3ee189d4f46d75fa5ed09c97c7edff5e3d6",
+    "dsh-plugins/analytics-workbench/lib/views/first-purchase-cockpit-view.js": "efa8ece00b9aeb6eea669fa5e15610cd5c6c38adb688d55d9e6fe3bad0ad5cd4",
+    "dsh-plugins/analytics-workbench/lib/views/saved-analysis-view.js": "a663811e0447262bcacf3ec1cd4908c146ed782daf645acea4061881e8065703",
+    "dsh-plugins/analytics-workbench/lib/views/cockpit-view.js": "71cf2270607b07d219dccf8a9c42c59d846390c70be8111bb3e566805410bdcd"
+  },
+  "cancel_receipt": {
+    "session_id": "release-cancel-d9c9162",
+    "request_id": "probe-1",
+    "status": "CANCELLED",
+    "late_attempt_publish": false
+  },
+  "replay_status": 409,
+  "status": "PASS",
+  "credentials_touched": false,
+  "contains_real_data": false,
+  "visible_assets_unchanged": true,
+  "counts": {
+    "boards": 2,
+    "results": 3
+  },
+  "response_sha256": {
+    "/results": "2096e269a40a131b103c9def0e3438b36f53eff7c63b1a726e61c6e647e8afde",
+    "/boards": "c1ac2628c32fd55f5016281c70242fcc7f4fbdbf649d397460d2997fe6f30d20",
+    "/drafts/current": "2a029d55a6dd87e767268a3c14abf13005c0f2597080092329dcf58a9b8c8a1f",
+    "/boards/board_cec58430029a57ed942835bba3ef84de": "c5bbd28b8f682c43d3c33cee6d677074b355eb20afe90a8fc3b768ed5f140a7f",
+    "/boards/board_4dcb6d75329580a96315a8882a1819a7": "a37add7d51d28dccbb1b239f04c0564625266d97cedf3bd4b97e0b15dcf12ef2"
+  },
+  "browser": {
+    "title": "伸美 AI 增长董事会",
+    "dialogOpen": true,
+    "article": "8月GSV诊断板\n\nBAR · x0/y0/w6/h4\n\n对比期 300\n本期 400\ncompetition_gsv_comparison COMPLETE；截数 2026-08-31T16:00:00.000000+00:00\n字段\t值\n本期 GSV\t400\n对比期 GSV\t300\nGSV 变动额\t100\nGSV 变动比例\t33.33%\n本期有效订单数\t2\n本期实际截数\t2026-08-31\n完整性\tCOMPLETE\n行数\t2\n空因\t—\n本期\t2026-08-01–2026-08-31\n对比\tYOY_SAME_PERIOD\n图表类型\nTABLE\nBAR\nLINE\nMETRIC\nEVIDENCE\n拖动列\n缩放宽",
+    "chart": "BAR",
+    "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High"
+  },
+  "pre_push_backend_report": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/checks/20260909T214124847285Z/summary.json",
+  "pre_push_source": {
+    "head": "d9c9162266667251db1a69645fbe1d2f01216ae0",
+    "python_check_sources_sha256": "bcf791d5a2169e16d6800dee4a48e45da92847ad64eb39e6426ec68e65956a4c"
+  },
+  "pre_push_returncode": 0,
+  "pre_push_b0": {
+    "schema_version": "dsh-b0-build-evidence/v1",
+    "at": "2026-09-09T21:46:18.736Z",
+    "upstream_sha": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+    "upstream_lock_sha256": "2c903ab870f821ee2db62fa9417d11b1c2b9c65fbeec30e851ddc53c4cc8c383",
+    "node": "v24.19.0",
+    "python": "Python 3.14.4",
+    "clean_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/dsh-b0/clean-build-gFVWS8",
+    "stages": [
+      "contract",
+      "python-unit",
+      "ruff",
+      "node-unit",
+      "host-types",
+      "client-types",
+      "build",
+      "real-cordis-loader-synthetic-services",
+      "clean-rebuild"
+    ],
+    "artifact_sha256": {
+      "index.js": "2c7a1e5b966b674cc169a03d6d5a124caea039801f311652c4c2fd4f36748820",
+      "tool.js": "6fcce3563bdb946d17ff7feee6560cdca3b14ecdf08b4bf9917f7087c5e7fc7e",
+      "skills.js": "265c2d1ad15523c415e8d375acd5658b96bb31688d306ebfa8162ce321361159",
+      "client.js": "b5af968a9e9524673a6c8276ed6f4901a51d21f76c3f9db69ecefb8ca21f63e7",
+      "views/saved-analysis-view.js": "a663811e0447262bcacf3ec1cd4908c146ed782daf645acea4061881e8065703",
+      "views/cockpit-view.js": "71cf2270607b07d219dccf8a9c42c59d846390c70be8111bb3e566805410bdcd"
+    },
+    "remote_ci_executed": false,
+    "native_dsh_profile_e2e": "separate evidence required"
+  },
+  "ci_at_switch": {
+    "run": 34408763075,
+    "head": "d9c9162266667251db1a69645fbe1d2f01216ae0",
+    "status": "IN_PROGRESS"
+  },
+  "limits": [
+    "Local isolated candidate, not a public release.",
+    "Browser Stop during an in-flight computed tool has not been newly exercised.",
+    "Restore reads verified with new code; full downgrade switch and writes are not verified.",
+    "No new real model call for this cancellation/switch increment."
+  ]
+}

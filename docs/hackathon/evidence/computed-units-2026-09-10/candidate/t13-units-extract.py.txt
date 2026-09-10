@@ -1,0 +1,55 @@
+"""Export only bounded eval tool I/O and visible text; never model requests/reasoning."""
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+import sys
+
+root = Path(__file__).resolve().parent / 't13-units-live'
+case = sys.argv[1]
+assert case in {'U1', 'U1R', 'U2', 'U3'}
+request = json.loads((root / f'{case}-request.json').read_text())
+binding = 'session.json' if case == 'U1' else 'U1R-session.json'
+path = Path(json.loads((root / binding).read_text())['session_path']) / 'session.v2.jsonl.zstd'
+assert 'workspace-read-only' in str(path) and path.parent.name.startswith('session-')
+events = [json.loads(line) for line in subprocess.check_output(['zstd', '-dc', str(path)]).splitlines() if line]
+turns = set()
+current_turn = None
+for event in events:
+    if event.get('type') == 'turn/start':
+        current_turn = event['data']['turn']
+    if event.get('type') == 'user/message' and request['prompt'] in json.dumps(event['data'], ensure_ascii=False):
+        assert current_turn is not None
+        turns.add(current_turn)
+assert len(turns) == 1, 'bind exact prompt to one native turn'
+turn = next(iter(turns))
+safe = []
+for event in events:
+    data = event.get('data', {})
+    if data.get('turn') != turn:
+        continue
+    kind = event['type']
+    if kind == 'tool/call':
+        safe.append({'type': kind, **{key: data[key] for key in ['turn', 'step', 'callId', 'name', 'arguments']}})
+    elif kind == 'tool/result':
+        for block in data['message']['content']:
+            if block['type'] == 'tool-result':
+                safe.append({'type': kind, 'callId': block['toolCallId'], 'isError': block.get('isError', False),
+                             'content': [item for item in block['content'] if item['type'] == 'text']})
+    elif kind == 'assistant/message':
+        safe.append({'type': kind, 'turn': turn, 'step': data['step'], 'usage': data.get('usage'),
+                     'text': '\n'.join(item['text'] for item in data['message']['content'] if item['type'] == 'text')})
+    elif kind == 'turn/end':
+        safe.append({'type': kind, **data})
+assert safe and safe[-1]['type'] == 'turn/end', 'native turn has not finished'
+final = [event['text'] for event in safe if event['type'] == 'assistant/message']
+(root / f'{case}-native-safe.json').write_text(json.dumps(safe, ensure_ascii=False, indent=2) + '\n')
+(root / f'{case}-final.md').write_text((final[-1] if final else '') + '\n')
+summary = {'case': case, 'turn': turn, 'session_id': path.parent.name,
+           'native_log_sha256_at_extract': hashlib.sha256(path.read_bytes()).hexdigest(),
+           'native_success': safe[-1]['reason']['kind'] == 'completed',
+           'tools': [event['name'] for event in safe if event['type'] == 'tool/call'],
+           'reason': safe[-1]['reason']}
+(root / f'{case}-native-summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n')
+print(json.dumps(summary, ensure_ascii=False))
+print(final[-1] if final else '')

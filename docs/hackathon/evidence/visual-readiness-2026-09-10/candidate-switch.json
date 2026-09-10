@@ -1,0 +1,194 @@
+{
+  "source_head": "d482bd603c04f608c5e66f33291cfb0aee35bac7",
+  "ci": {
+    "run": 34418047588,
+    "status": "SUCCESS",
+    "linux_backend_passed": 2322,
+    "linux_backend_skipped": 79,
+    "b0_python_passed": 480,
+    "b0_warnings": 20
+  },
+  "local_checks": {
+    "backend_passed": 2324,
+    "backend_skipped": 77,
+    "b0_python_passed": 480
+  },
+  "runtime": {
+    "web": "http://127.0.0.1:4325/",
+    "api": "http://127.0.0.1:18083",
+    "web_pid": 23690,
+    "api_pid": 23661,
+    "supervisor_pid": 23673,
+    "upstream": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+    "model_choice": "DeepSeek-V4-Flash / High",
+    "runtime_reused": ".context/dsh-dev/runtime-Cn0Ifc",
+    "model_configuration_touched": false
+  },
+  "state": {
+    "backup": ".context/visual-release-backup-hxgrs_oq",
+    "files": [
+      {
+        "path": "assets/competition_assets.sqlite3",
+        "bytes": 86016,
+        "sha256": "f20d668dae4fbd03617b8c3872a032dcd5fe6a6f5f0d081d70365afabafd92a9"
+      },
+      {
+        "path": "audience/competition-audience.sqlite",
+        "bytes": 36864,
+        "sha256": "8122a73a22aabac876d6678c662ca7718051a1751570b61141ccee5995f5393d"
+      },
+      {
+        "path": "cockpit/cockpit.sqlite3",
+        "bytes": 45056,
+        "sha256": "6bd0ad04fc659a515f161cc8b3d865b631d303c215b51b86973b0ddc7590a030"
+      },
+      {
+        "path": "saved/analyses.sqlite3",
+        "bytes": 49152,
+        "sha256": "f738a99d60328b9dad4b449ba642b5105acf145c89335b19dc8e0b925c678648"
+      },
+      {
+        "path": "diagnosis/diagnosis_results.sqlite3",
+        "bytes": 40960,
+        "sha256": "f3207d92caec750030557a149b78e89182e46880ac8b242e1a13c2fd8058e5c6"
+      }
+    ],
+    "restore": ".context/visual-release-restore-xgm1zuwc",
+    "restore_status": "PASS",
+    "boards": 2,
+    "results": 3,
+    "existing_responses_identical": true,
+    "cancel_receipt": "CANCELLED",
+    "cancel_replay_http": 409
+  },
+  "built_js_sha256": {
+    "lib/client.js": "972cad12a944e081e44a847defaf2b860c8bdd1d5b0650868452f42a132844f1",
+    "lib/index.js": "3d615120de8773dc3b48f5e7d5af4fd9ed57f1cebe1c623b405dcbcfa8b2c9be",
+    "lib/skills.js": "19cb932b4a211f64c89ea1fe4ca4524aaa70b640283b92962de3ab01a422b03b",
+    "lib/tool.js": "99baa240cc2ab0accc7e842a98ca447137e3343736f2fce9df6b1a3b0062bab0",
+    "lib/views/cockpit-view.js": "6ce36b142c57be8caf0d862f1a655a806b87e478f050ca48b341f23d3bc538b1",
+    "lib/views/first-purchase-cockpit-view.js": "ca4aa0be46ef89489a519c4763035e21836a000ea25f403d7cbcc47f7b7d4e66",
+    "lib/views/first-purchase-saved-analysis-view.js": "93036602327808cd66960a1fe52d39df4d3b060122a54b0260b1e8bb1f05cd95",
+    "lib/views/saved-analysis-view.js": "81b8e742a7c08d1a00b74ebb8d32a1bf87ebd41893971a87fe068ac0fcfc261c"
+  },
+  "build_lock_sha256": "42dc1264ae730533d8ae9ce4c395c04f0126086113fd7cd91cf625e565fee514",
+  "browser": {
+    "reload": {
+      "title": "伸美 AI 增长董事会",
+      "nativeMode": "light",
+      "businessModes": [
+        "light",
+        "light"
+      ],
+      "dialogOpen": true,
+      "chart": [
+        "BAR"
+      ],
+      "current400": true,
+      "comparison300": true,
+      "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High"
+    },
+    "narrow": {
+      "nativeMode": "dark",
+      "businessModes": [
+        "dark",
+        "dark"
+      ],
+      "dialogOpen": true,
+      "width": 342,
+      "scrollWidth": 342,
+      "chart": [
+        "BAR"
+      ],
+      "resultVisible": true
+    },
+    "screenshots": [
+      "screenshots/candidate-light-1440.png",
+      "screenshots/candidate-dark-390.png"
+    ],
+    "automation_failures": [
+      "initial theme selector named a nonexistent attribute; corrected to data-sm-color-scheme",
+      "AntD button text-is selector timed out after reload; fresh accessible ref succeeded; failed intermediate JSON retained locally"
+    ]
+  },
+  "canary": {
+    "mode": "quick",
+    "url": "http://127.0.0.1:4325/",
+    "source_head": "d482bd603c04f608c5e66f33291cfb0aee35bac7",
+    "base_branch": "main",
+    "status": "DEGRADED",
+    "checks": 1,
+    "duration_minutes": null,
+    "comparison": "qualitative saved pre-switch evidence; no same-profile numeric baseline",
+    "browser": {
+      "origin": "http://127.0.0.1:4325",
+      "title": "伸美 AI 增长董事会",
+      "loadTimeMs": 134,
+      "logoStatus": 200,
+      "logoType": "image/png",
+      "businessModes": [
+        "light",
+        "light"
+      ],
+      "dialogOpen": true,
+      "chart": [
+        "BAR"
+      ],
+      "current400": true,
+      "comparison300": true,
+      "httpResources": [
+        {
+          "origin": "http://127.0.0.1:18083",
+          "path": "/api/v1/analytics/competition/results",
+          "status": 200
+        },
+        {
+          "origin": "http://127.0.0.1:18083",
+          "path": "/api/v1/analytics/competition/boards",
+          "status": 200
+        },
+        {
+          "origin": "http://127.0.0.1:18083",
+          "path": "/api/v1/analytics/competition/boards/board_cec58430029a57ed942835bba3ef84de",
+          "status": 200
+        }
+      ]
+    },
+    "console_errors": 4,
+    "failed_resources": [
+      {
+        "origin": "http://127.0.0.1:4325",
+        "path": "/b0/assets",
+        "status": 404
+      },
+      {
+        "origin": "http://127.0.0.1:4325",
+        "path": "/b0/assets",
+        "status": 404
+      },
+      {
+        "origin": "http://127.0.0.1:4325",
+        "path": "/b0/dashboards",
+        "status": 404
+      },
+      {
+        "origin": "http://127.0.0.1:4325",
+        "path": "/b0/analyses",
+        "status": 404
+      }
+    ],
+    "new_regressions_observed": false,
+    "limits": [
+      "known B0 plane 404s remain",
+      "not continuous monitoring",
+      "no formal performance verdict; load time is a single observation",
+      "T15/T16/full T17 remain open"
+    ]
+  },
+  "limits": [
+    "local candidate only, PR draft and unmerged",
+    "T15 user signoff, formal T16, full T17 and diagnosis chain remain open",
+    "new model calls in this switch: 0",
+    "old-version write rollback not verified"
+  ]
+}

@@ -1,0 +1,142 @@
+"""Short owned-candidate pause for consistent synthetic backup; restart unchanged source."""
+from contextlib import closing
+from pathlib import Path
+import hashlib
+import json
+import os
+import signal
+import sqlite3
+import subprocess
+import sys
+import time
+import urllib.request
+
+repo = Path(__file__).resolve().parents[1]
+ready = repo.parent / "competition-product-readiness"
+config_file = repo / ".context/units-candidate.json"
+config = json.loads(config_file.read_text())
+release = Path(config["release"])
+state = ready / ".context/competition-synth"
+node = "/Users/hutou/homebrew/opt/node@24/bin/node"
+browser = "/Users/hutou/.codex/skills/gstack/browse/dist/browse"
+dbs = ["assets/competition_assets.sqlite3", "audience/competition-audience.sqlite",
+       "cockpit/cockpit.sqlite3", "saved/analyses.sqlite3", "diagnosis/diagnosis_results.sqlite3"]
+assert not (release / "state-backup").exists(), "never overwrite an earlier backup"
+assert release.parent == ready / ".context"
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ready, text=True).strip() == config["previous_backend_head"]
+assert not subprocess.check_output(["git", "status", "--porcelain"], cwd=ready, text=True).strip()
+for rel in dbs:
+    path = state / rel
+    assert not path.is_symlink() and not path.parent.is_symlink() and path.is_file()
+    assert path.stat().st_size < 16 * 1024 * 1024 and path.stat().st_uid == os.getuid()
+
+def listeners(port):
+    p = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"], capture_output=True, text=True)
+    return sorted(set(int(x) for x in p.stdout.split()))
+
+protected = {str(port): listeners(port) for port in [4327, 8000, 5173, 14327]}
+current = json.loads((ready / ".context/dsh-dev/current.json").read_text())
+assert current["webPort"] == 4325 and current["childPid"] == 28243
+assert current["runtime"] == config["runtime"] and current["plugin"] == config["previous_plugin"]
+assert listeners(4325) == [28243] and listeners(18083) == [23661]
+command = subprocess.check_output(["ps", "-p", "23661", "-o", "command="], text=True)
+assert "competition-synth-http.py" in command
+code = """({origin:location.origin,busy:!!document.querySelector('[aria-label="Stop generating"]'),
+running:[...document.querySelectorAll('[role=treeitem]')].filter(x=>/Running|运行中/.test(x.getAttribute('aria-label')||x.textContent||'')).length,
+tree:document.querySelectorAll('[role=treeitem]').length,dialog:!!document.querySelector('dialog[open]'),
+composer:!!document.querySelector('[data-composer-input=true]')?.textContent?.trim()})"""
+ui = json.loads(subprocess.check_output([browser, "js", code], cwd=ready, text=True, timeout=30))
+assert ui["origin"] == "http://127.0.0.1:4325" and ui["tree"] > 0
+assert not any(ui[key] for key in ["busy", "running", "dialog", "composer"]), ui
+
+def get(path):
+    request = urllib.request.Request("http://127.0.0.1:18083/api/v1/analytics/competition" + path,
+                                    headers={"Authorization": "Bearer b0-competition-synth-token-32chars"})
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return json.load(response)
+
+def assets():
+    out = {path: get(path) for path in ["/boards", "/results", "/drafts/current"]}
+    for item in out["/boards"]["items"]:
+        path = "/boards/" + item["board_id"]
+        out[path] = get(path)
+    return out
+
+def write_config():
+    config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n")
+
+config["backup_started_at"] = time.time()
+config["backup_stage"] = "STOPPING_OWNED_CANDIDATE"
+write_config()
+subprocess.run([node, "scripts/dsh-dev/cli.mjs", "stop"], cwd=ready, check=True, timeout=35)
+assert not listeners(4325)
+before = assets()
+(release / "before-assets.json").write_text(json.dumps(before, ensure_ascii=False, indent=2) + "\n")
+assert listeners(18083) == [23661]
+os.kill(23661, signal.SIGTERM)
+for _ in range(50):
+    if not listeners(18083):
+        break
+    time.sleep(0.1)
+assert not listeners(18083), "owned API has not stopped; do not back up or replace it"
+
+backup_error = None
+manifest = []
+try:
+    for destination in ["state-backup", "restore-old", "restore-new"]:
+        root = release / destination
+        root.mkdir(mode=0o700)
+        for rel in dbs:
+            source = state / rel if destination == "state-backup" else release / "state-backup" / rel
+            target = root / rel
+            target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as old, closing(sqlite3.connect(target)) as new:
+                old.backup(new)
+                assert new.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            target.chmod(0o600)
+            if destination == "state-backup":
+                manifest.append({"path": rel, "bytes": target.stat().st_size,
+                                 "sha256": hashlib.sha256(target.read_bytes()).hexdigest()})
+    config["backup_stage"] = "BACKUP_CREATED"
+except Exception as error:
+    backup_error = error
+    config["backup_stage"] = "BACKUP_FAILED"
+finally:
+    # Source/state remain unchanged. Reopen only the owned candidate, even if the copy failed.
+    env = {"HOME": os.environ["HOME"], "PATH": os.defpath, "PYTHONPATH": str(ready),
+           "PYTHON_DOTENV_DISABLED": "1", "COMPETITION_SYNTH_PORT": "18083",
+           "COMPETITION_SYNTH_STATE": str(state), "COMPETITION_SYNTH_WEB_ORIGIN": "http://127.0.0.1:4325"}
+    with (release / "old-api-restart.log").open("w") as log:
+        api = subprocess.Popen([sys.executable, "scripts/competition-synth-http.py"], cwd=ready, env=env,
+                               stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    config["api_pid"] = api.pid
+    write_config()
+    for _ in range(60):
+        if api.poll() is not None:
+            raise RuntimeError("old API restart failed; inspect owned restart log")
+        if listeners(18083) == [api.pid]:
+            break
+        time.sleep(0.1)
+    assert listeners(18083) == [api.pid]
+    assert assets() == before, "old candidate assets changed across backup pause"
+    runtime_env = {"HOME": os.environ["HOME"], "PATH": "/Users/hutou/homebrew/opt/node@24/bin:/usr/bin:/bin",
+                   "LANG": "en_US.UTF-8", "TZ": "Asia/Shanghai", "NODE_EXTRA_CA_CERTS": "/etc/ssl/cert.pem",
+                   "COMPETITION_HTTP_BASE": "http://127.0.0.1:18083", "COMPETITION_HTTP_TOKEN": "b0-competition-synth-token-32chars"}
+    config["old_start_requested_ns"] = time.time_ns()
+    result = subprocess.run([node, "scripts/dsh-dev/cli.mjs", "start", "--plugin", "on",
+                             "--plugin-path", config["previous_plugin"], "--runtime", config["runtime"],
+                             "--web-port", "4325", "--upstream", config["upstream"], "--detach"],
+                            cwd=ready, env=runtime_env, capture_output=True, text=True, timeout=45)
+    (release / "old-dsh-restart.log").write_text(result.stdout + result.stderr)
+    assert result.returncode == 0, "old DSH restart failed; inspect owned restart log"
+    config["old_restart_dispatched"] = True
+    config["backup_manifest"] = manifest
+    config["backup_path"] = str(release / "state-backup")
+    config["protected_listeners"] = protected
+    config["before_counts"] = {"boards": len(before["/boards"]["items"]), "results": len(before["/results"]["items"])}
+    write_config()
+    assert {str(port): listeners(port) for port in [4327, 8000, 5173, 14327]} == protected
+if backup_error:
+    raise backup_error
+print(json.dumps({"backup": "created", "databases": len(manifest), **config["before_counts"],
+                  "api_pid": api.pid, "candidate": "old version restart dispatched; verify before continuing"}))

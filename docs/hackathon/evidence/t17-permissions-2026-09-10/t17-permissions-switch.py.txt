@@ -1,0 +1,38 @@
+from pathlib import Path
+import json,subprocess,time
+repo=Path.cwd();run=Path(json.loads((repo/'.context/t17-permissions-current.json').read_text())['root'])
+browser='/Users/hutou/.codex/skills/gstack/browse/dist/browse'
+def browse(*args):
+    p=subprocess.run([browser,*args],cwd=repo,text=True,capture_output=True,timeout=8)
+    if p.returncode:raise RuntimeError(p.stdout+p.stderr)
+    return p.stdout
+def permission():
+    return browse('js','document.querySelector(\'button[aria-label^="Access mode, current:"]\')?.getAttribute("aria-label")').strip()
+assert not (run/'pending-call.json').exists() and not (run/'release-call').exists()
+report={'case':'switch running conversation before its next confined tool call','fixture_only':True}
+try:
+    browse('click','button[aria-label^="Access mode, current:"]')
+    browse('click','[role="menuitem"]:has-text("Workspace Write")')
+    report['before']=permission()
+    assert report['before']=='Access mode, current: Workspace Write'
+    browse('fill','[data-composer-input="true"]','T17_DURING_SWITCH: pause before tool emission so the native permission can be narrowed.')
+    browse('click','button[aria-label="Send message"]')
+    end=time.monotonic()+8
+    while not (run/'pending-call.json').exists() and time.monotonic()<end:time.sleep(.02)
+    assert (run/'pending-call.json').exists(),'provider never reached pre-call barrier'
+    report['pending']=json.loads((run/'pending-call.json').read_text())
+    report['generation_running']=json.loads(browse('js','!!document.querySelector(\'button[aria-label="Stop generating"]\')'))
+    assert report['generation_running']
+    browse('click','button[aria-label^="Access mode, current:"]')
+    browse('click','[role="menuitem"]:has-text("Read Only")')
+    report['after']=permission()
+    report['permission_switched_ns']=time.time_ns()
+    assert report['after']=='Access mode, current: Read Only'
+    report['status']='PERMISSION_NARROWED_BEFORE_TOOL'
+except Exception as error:
+    report['status']='FAILED';report['error']=str(error)
+finally:
+    (run/'release-call').write_text('release owned pre-call barrier\n')
+    report['released_ns']=time.time_ns()
+    (run/'during-switch-browser.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps(report,ensure_ascii=False))

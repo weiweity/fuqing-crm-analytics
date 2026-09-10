@@ -1,0 +1,71 @@
+{
+  "id": 34441966415,
+  "head_sha": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "status": "completed",
+  "conclusion": "success",
+  "updated_at": "2026-09-10T05:49:18Z",
+  "observed_at": "2026-09-10T05:56:26.440963+00:00",
+  "source": "https://api.github.com/repos/weiweity/fuqing-crm-analytics/actions/runs/34441966415",
+  "jobs": [
+    {
+      "id": 102758706929,
+      "name": "changes / changes",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 102758735689,
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 102758735731,
+      "name": "contract-filterbuilder-lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 102758735786,
+      "name": "b0-contract-build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 102758735790,
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 102758736534,
+      "name": "ground-truth-lint",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 102758736829,
+      "name": "dependency-audit",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 102758736889,
+      "name": "frontend",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 102758737130,
+      "name": "docker-smoke",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 102760567770,
+      "name": "merge-gate",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

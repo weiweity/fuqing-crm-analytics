@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID } from './constants.mjs';
 
 export function pluginEnabled(value) {
@@ -18,13 +17,23 @@ export async function assertPluginRoot(pluginRoot) {
   return pluginRoot;
 }
 
-/** Patch list consumed by `dsh --patch`. Empty means do not pass --patch. */
+/**
+ * Native dev overlay: the brand-assets row only.
+ *
+ * The business plugin installs through `dsh plugin add` as a profile bundle
+ * (`@shine-mage/dsh-analytics-workbench-b0`), so this overlay must not insert
+ * a second `analytics-workbench-ui` row: two rows share the id and the later
+ * one wins, which would silently shadow the installed bundle with a stale
+ * copied artifact.
+ *
+ * The brand-assets row stays here because it resolves repository paths
+ * (logo, favicon, Outfit font) outside any publishable package.
+ */
 export function buildPluginOverlay(pluginRoot) {
-  assert.ok(pluginRoot.startsWith('/'), 'plugin path must be absolute');
-  const rows = [{
-    id: PLUGIN_UI_ID,
-    name: pathToFileURL(join(pluginRoot, 'lib/index.js')).href,
-  }, { id: 'analytics-dev-brand-assets', name: new URL('./brand.mjs', import.meta.url).href }];
+  if (pluginRoot !== undefined) {
+    assert.ok(pluginRoot.startsWith('/'), 'plugin path must be absolute');
+  }
+  const rows = [{ id: 'analytics-dev-brand-assets', name: new URL('./brand.mjs', import.meta.url).href }];
   const patch = [{ insert: rows }];
   assertNoB0Disables(patch);
   return patch;

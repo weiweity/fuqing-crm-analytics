@@ -1,0 +1,57 @@
+[
+  {
+    "command": [
+      "scroll",
+      ".sm-drag-handle"
+    ],
+    "seconds": 0.044,
+    "output": "Scrolled to bottom\n"
+  },
+  {
+    "command": [
+      "click",
+      "[data-testid=\"sm-scope-block\"]"
+    ],
+    "seconds": 0.09,
+    "output": "Clicked [data-testid=\"sm-scope-block\"] → now at http://127.0.0.1:4328/\n"
+  },
+  {
+    "command": [
+      "press",
+      "Alt+ArrowRight"
+    ],
+    "seconds": 0.068,
+    "output": "Pressed Alt+ArrowRight\n"
+  },
+  {
+    "command": [
+      "click",
+      "[data-testid=\"sm-board-save\"]"
+    ],
+    "seconds": 0.082,
+    "output": "Clicked [data-testid=\"sm-board-save\"] → now at http://127.0.0.1:4328/\n"
+  },
+  {
+    "command": [
+      "reload"
+    ],
+    "seconds": 0.093,
+    "output": "Reloaded http://127.0.0.1:4328/\n"
+  },
+  {
+    "command": [
+      "click",
+      "[data-testid=\"analytics-b0-open\"]"
+    ],
+    "seconds": 0.809,
+    "output": "Clicked [data-testid=\"analytics-b0-open\"] → now at http://127.0.0.1:4328/\n"
+  },
+  {
+    "command": [
+      "wait",
+      "[data-testid=\"sm-board-grid\"] .sm-block"
+    ],
+    "seconds": 0.037,
+    "output": "Element [data-testid=\"sm-board-grid\"] .sm-block appeared\n"
+  }
+]

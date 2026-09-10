@@ -2,6 +2,7 @@
 
 import json
 import os
+import selectors
 import subprocess
 import sys
 import time
@@ -15,6 +16,7 @@ from fastapi.testclient import TestClient
 from backend.analytics_runtime import runtime_app
 from backend.contracts.analytics import AnalyticsB0Result
 from backend.services.analytics.access import AnalyticsError
+from backend.services.analytics.execution_lease import create_lease
 from backend.services.analytics.jobs import RunStore
 from backend.services.analytics.worker import WorkerManager, spawn_worker
 from backend.tests.analytics_native_probe import (
@@ -293,6 +295,45 @@ def test_close_kills_this_instance_sql_hold_child(tmp_path):
         raise AssertionError("owned probe child remained after coordinator close")
     record = store.worker_records(active_only=False)[0]
     assert record["state"] == "EXITED" and record["active_slot"] is None
+
+
+def test_coordinator_close_preserves_worker_owned_pipes_until_eof(tmp_path):
+    # Pause the consuming owner by not reading yet. Closing these registered
+    # pipes in the coordinator can strand a Linux epoll map after child exit.
+    store, fixture, probe = setup_probe_runtime(tmp_path, ("sql_hold",))
+    intent, step = start_step(store, "pipe-owner")
+    execution_id = "exec_" + "de" * 16
+    fd, _dev, _ino, temporary = create_lease(store.directory, execution_id)
+    binding = {"execution_id": execution_id, "run_id": intent.run_id,
+               "attempt_id": intent.attempt_id, "step_id": step.step_id}
+    coordinator = NativeProbeCoordinator(probe)
+    child = None
+    try:
+        child = coordinator({"binding": binding, "profile": store.profile.model_dump(),
+                             "profile_hash": store.profile.digest, "fixture": asdict(fixture),
+                             "lease_fd": fd, "temp_dir": str(temporary)}, fd)
+        os.close(fd)
+        fd = None
+        assert wait_proof(probe)["pid"] == child.pid
+        with selectors.DefaultSelector() as selector:
+            for stream in (child.stdout, child.stderr):
+                selector.register(stream, selectors.EVENT_READ)
+            coordinator.close()
+            assert child.poll() == -9
+            assert not child.stdout.closed and not child.stderr.closed
+            deadline = time.monotonic() + 3
+            while selector.get_map() and time.monotonic() < deadline:
+                for key, _events in selector.select(timeout=0.02):
+                    if not os.read(key.fd, 65536):
+                        selector.unregister(key.fileobj)
+            assert not selector.get_map(), "worker owner must be able to drain both pipes to EOF"
+    finally:
+        coordinator.close()
+        if child is not None:
+            for stream in (child.stdin, child.stdout, child.stderr):
+                stream.close()
+        if fd is not None:
+            os.close(fd)
 
 
 def test_probe_dir_helper_is_sibling_of_kernel_state(tmp_path):

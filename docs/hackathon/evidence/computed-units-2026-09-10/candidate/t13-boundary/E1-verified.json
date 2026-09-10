@@ -1,0 +1,8 @@
+{
+  "case": "E1",
+  "status": "PASS",
+  "equivalent_to": "U1R",
+  "facts_conditions_data_evidence_equal": true,
+  "distinct_execution_identifiers": true,
+  "answer_unknown_unit_and_persistence_correct": true
+}

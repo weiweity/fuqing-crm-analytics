@@ -37,7 +37,13 @@ PATH 上的 Node 若不是 24，check/start 会失败。诊断会指出可用的
 
 未带 cookie 的 `GET /` 必须 401。启动日志里的 `?token=` 只用于一次兑换 HttpOnly cookie，随后 303 到 `/`。文档、诊断 JSON 和 probe 输出不得打印 token。禁止关认证绕过。
 
-## 陈旧构建
+## 真实模型与比赛工具
+
+用户在本实例 Settings → Models 配置 provider；开发入口不从其他工作树或 shell 复制模型密钥。若运行机器需要额外信任链，可显式设置 `NODE_EXTRA_CA_CERTS=/absolute/public-ca-bundle.pem`。只接受绝对路径，Node 仍验证证书；不得用关闭 TLS 校验代替。2026-09-10 的候选通过 `/etc/ssl/cert.pem` 完成真实 DeepSeek-V4-Flash 调用。
+
+同时显式设置 `COMPETITION_HTTP_BASE`、`COMPETITION_HTTP_TOKEN` 后，单一业务插件入口注册诊断工具。宿主注入当前会话和取消信号；每次 HTTP 最长 5 秒。结构化条件由后端严格验证，模型不能注入身份或权限。该连接本身不保证业务计算完成，当前诊断服务仍有合成 fixture 返回；见 [T13 记录](../../docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md)。浏览器构建也需使用相同的 HTTP 配置；普通离线 pipeline 会重新生成默认构建，用户验收前须按实例配置重建。
+
+## 构建检查
 
 诊断检查：固定 SHA / lock SHA-256、`apps/cli/lib/bin.js`、`apps/web/dist/index.html`、源码是否新于产物、插件 `lib/index.js`。缺产物时标 stale，不在本入口执行 `pnpm install` 或 `pipeline --prepare`。
 

@@ -7,8 +7,9 @@ import { packCompetitionSkill } from './pack-skill.mjs';
 import { freezeCompetitionSkillPackage, packageDigest } from './skill-package.mjs';
 import { planPatch } from './patch.mjs';
 import { selectedEditEvent, bindInFlight } from './selected-edit.mjs';
-import { assertRegisteredTool, liveTransportRefused } from './tools.mjs';
+import { assertRegisteredTool, liveDiagnosisCall, liveTransportRefused } from './tools.mjs';
 import { runOfflineEval } from './offline.mjs';
+import { createCompetitionToolBoundary } from './boundary.mjs';
 
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -36,6 +37,47 @@ test('registered tools do not include old routes', () => {
     assert.throws(() => assertRegisteredTool(item), /PROMPT_INJECTION_REFUSED/);
   }
   assert.equal(liveTransportRefused().live_transport, 'NOT_CONNECTED');
+});
+
+test('competition boundary blocks native tools only after a method result and until turn stop', () => {
+  const boundary = createCompetitionToolBoundary();
+  const agent = {};
+  const execution = name => ({ name, agent });
+  assert.equal(boundary.guard(execution('bash')), undefined);
+  boundary.mark(execution('competition_growth_patch'));
+  assert.match(boundary.guard(execution('bash')), /method boundary/);
+  assert.match(boundary.guard(execution('grep')), /native filesystem/);
+  assert.equal(boundary.guard(execution('competition_growth_step')), undefined);
+  assert.equal(boundary.guard(execution('run_code')), undefined);
+  boundary.clear(agent);
+  assert.equal(boundary.guard(execution('read')), undefined);
+});
+
+test('native cancellation reaches the pending HTTP request and never retries', async () => {
+  const prior = { base: process.env.COMPETITION_HTTP_BASE, token: process.env.COMPETITION_HTTP_TOKEN };
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  const abort = new AbortController();
+  try {
+    process.env.COMPETITION_HTTP_BASE = 'http://127.0.0.1:18083';
+    process.env.COMPETITION_HTTP_TOKEN = 'synthetic-cancel-token';
+    globalThis.fetch = async (_url, options) => {
+      calls++;
+      return new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true });
+      });
+    };
+    const pending = liveDiagnosisCall('competition_growth_step', { request_id: 'cancel_test' }, abort.signal);
+    abort.abort();
+    await assert.rejects(pending, { name: 'AbortError' });
+    assert.equal(calls, 1);
+    await assert.rejects(liveDiagnosisCall('competition_growth_step', {}, abort.signal), { name: 'AbortError' });
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prior.base === undefined) delete process.env.COMPETITION_HTTP_BASE; else process.env.COMPETITION_HTTP_BASE = prior.base;
+    if (prior.token === undefined) delete process.env.COMPETITION_HTTP_TOKEN; else process.env.COMPETITION_HTTP_TOKEN = prior.token;
+  }
 });
 
 test('STYLE_ONLY does not query; FILTER_CHANGE is a new run', () => {
@@ -91,17 +133,46 @@ test('built native diagnosis tools forward trusted session IDs over model-suppli
       return Response.json({ live_transport: 'HTTP_CONNECTED' });
     };
     const registered = [];
-    built.apply({ skills: { register() {} }, tools: { register(tool) { registered.push(tool); } } });
+    const listeners = new Map();
+    built.apply({
+      skills: { register() {} },
+      tools: {
+        register(tool) { registered.push(tool); },
+        guard(fn) { listeners.set('guard', fn); },
+      },
+      on(name, fn) { listeners.set(name, fn); },
+    });
     const tools = registered.filter(tool => !tool.name.endsWith('_resource'));
     assert.equal(tools.length, 3);
+    const condition = {
+      current_period: { start_date: '2026-08-01', end_date: '2026-08-31' },
+      comparison_period: { start_date: '2025-08-01', end_date: '2025-08-31' },
+      comparison_mode: 'YOY_SAME_PERIOD', metric_type: 'GSV', timezone: 'Asia/Shanghai',
+      sales_scope: { kind: 'ALL', channel_ids: [], product_ids: [] },
+      history_scope: { kind: 'ALL', channel_ids: [], product_ids: [] },
+      sample_mode: 'INCLUDE', sample_channel_ids: null,
+    };
+    const step = tools.find(tool => tool.name.endsWith('_step'));
+    assert.equal(step.parameters.properties.condition.type, 'object', 'model must see structured conditions');
+    assert.equal(step.parameters.properties.condition_patch.type, 'object');
+    await assert.rejects(step.execute({ request_id: 'bad', capability_id: 'diag.gsv',
+      condition_mode: 'EXPLICIT', condition: 'dates in prose' }, {}));
+    assert.equal(requests.length, 0, 'invalid conditions must not reach HTTP');
     for (const session_id of ['native_one', 'native_two']) {
       for (const tool of tools) {
-        await tool.execute({ request_id: 'request_one', session_id: 'model_cannot_choose' },
+        const args = tool.name.endsWith('_step')
+          ? { capability_id: 'diag.gsv', condition_mode: 'EXPLICIT', condition }
+          : tool.name.endsWith('_patch') ? { intent: 'STYLE_ONLY',
+            selection: { board_id: 'board_one', block_id: 'block_one', base_version: 1 },
+            payload: { display_op: { op: 'display' } } } : {};
+        await tool.execute({ request_id: 'request_one', session_id: 'model_cannot_choose', ...args },
           { agent: { session: { id: session_id } } });
       }
     }
     assert.deepEqual(requests.map(body => body.session_id),
       ['native_one', 'native_one', 'native_one', 'native_two', 'native_two', 'native_two']);
+    assert.deepEqual(requests[1].condition, condition);
+    assert.deepEqual(requests[4].condition, condition);
   } finally {
     globalThis.fetch = originalFetch;
     for (const key of keys) {

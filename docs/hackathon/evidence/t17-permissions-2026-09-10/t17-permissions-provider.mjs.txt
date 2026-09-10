@@ -1,0 +1,67 @@
+/** T17 native approval fixture: local responses, real native enforcement. */
+import {readFile,writeFile,appendFile,access} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
+import {pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
+import {namespaceToolCallLine} from '../scripts/dsh-b0/mock-provider.mjs';
+const config=JSON.parse(await readFile(new URL('./t17-permissions-current.json',import.meta.url),'utf8'));
+const root=config.root;
+const {startMockLlmServer}=await import(pathToFileURL(join(config.upstream,'packages/test-support/llm-mock-server/lib/index.js')));
+const writes={
+ ESC_REJECT:{file_path:join(root,'runtime/workspace/escalation-rejected.txt'),content:'T17_REJECT_MUST_NOT_EXIST\n'},
+ ESC_ALLOW:{file_path:join(root,'runtime/workspace/escalation-allowed.txt'),content:'T17_ALLOWED_ONCE\n'},
+ AFTER_ALLOW:{file_path:join(root,'runtime/workspace/after-allow.txt'),content:'T17_NO_STICKY_GRANT\n'},
+ DURING_SWITCH:{file_path:join(root,'runtime/workspace/after-switch.txt'),content:'T17_SWITCH_MUST_DENY\n'},
+};
+const servers=new Map();
+for(const [marker,args] of Object.entries(writes)){
+ servers.set(marker,await startMockLlmServer({port:0,sequence:['tool_call_success'],repeatLast:true,toolName:'write',toolArguments:JSON.stringify(args),chunkSize:256,chunkDelayMs:0,randomSeed:19}));
+ if(marker.startsWith('ESC_'))servers.set(marker+'_APPROVAL',await startMockLlmServer({port:0,sequence:['tool_call_success'],repeatLast:true,toolName:'write',toolArguments:JSON.stringify({...args,sandbox_permissions:'workspace-write',justification:'T17 local acceptance: allow this one fixture file operation inside the isolated workspace.'}),chunkSize:256,chunkDelayMs:0,randomSeed:19}));
+}
+const done=await startMockLlmServer({port:0,sequence:['success'],repeatLast:true,successText:'T17 permission fixture finished. Judge actual native tool results and persisted state.',chunkSize:256,chunkDelayMs:0,randomSeed:19});
+const event=row=>appendFile(join(root,'provider-events.jsonl'),JSON.stringify({time_ns:Date.now()*1e6,...row})+'\n');
+let number=0;
+const inflight=new Set();
+const server=createServer((req,res)=>{
+ const abort=new AbortController();inflight.add(abort);res.once('close',()=>{if(!res.writableFinished)abort.abort()});
+ void(async()=>{
+  if(req.method!=='POST'||req.url!=='/v1/chat/completions'){res.writeHead(404).end();return}
+  const id=++number;if(id>40){await event({id,event:'REQUEST_LIMIT'});res.writeHead(409).end('fixture request limit');return}
+  let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>2*1024*1024)throw Error('fixture body limit')}
+  const body=JSON.parse(raw);const messages=body.messages??[];const toolNames=(body.tools??[]).map(t=>t.function?.name);
+  let marker=null,userIndex=-1;
+  for(let i=messages.length-1;i>=0;i--){if(messages[i].role!=='user')continue;const found=JSON.stringify(messages[i].content).match(/T17_(ESC_REJECT|ESC_ALLOW|AFTER_ALLOW|DURING_SWITCH)\b/);if(found){marker=found[1];userIndex=i;break}}
+  const toolResults=messages.slice(userIndex+1).filter(m=>m.role==='tool');
+  let served='success';
+  if(marker&&toolNames.includes('write')){
+   if(toolResults.length===0)served=marker;
+   else if(marker.startsWith('ESC_')&&toolResults.length===1){
+    if(!String(toolResults[0].content).includes('file access denied under read-only mode'))throw Error('initial native sandbox denial absent; refuse synthetic success');
+    served=marker+'_APPROVAL';
+   }
+  }
+  await event({id,marker,toolNames,served,toolResults:toolResults.map(m=>({tool_call_id:m.tool_call_id,content:String(m.content).slice(0,10000)}))});
+  if(served==='DURING_SWITCH'){
+   await writeFile(join(root,'pending-call.json'),JSON.stringify({id,marker,event:'LLM_WAITING_BEFORE_TOOL_EMISSION'})+'\n');
+   const end=Date.now()+25000;let released=false;
+   while(Date.now()<end&&!abort.signal.aborted){try{await access(join(root,'release-call'));released=true;break}catch{}await delay(20,undefined,{signal:abort.signal})}
+   if(!released)throw Error('fixture pre-call release absent');
+   await event({id,event:'TOOL_EMISSION_RELEASED'});
+  }
+  const pick=served==='success'?done:servers.get(served);
+  const response=await fetch(pick.baseURL+req.url,{method:'POST',headers:{'content-type':'application/json'},body:raw,signal:abort.signal});
+  res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'text/plain'});
+  let pending='';const decoder=new TextDecoder();
+  for await(const chunk of response.body){pending+=decoder.decode(chunk,{stream:true});let at;while((at=pending.indexOf('\n'))>=0){const line=pending.slice(0,at);pending=pending.slice(at+1);if(!res.write(namespaceToolCallLine(line,id)+'\n'))await once(res,'drain',{signal:abort.signal})}}
+  if(pending)res.write(namespaceToolCallLine(pending,id));res.end();
+ })().catch(async error=>{await event({event:'PROVIDER_ERROR',name:error.name,message:error.message});if(!res.headersSent)res.writeHead(502);res.end()}).finally(()=>inflight.delete(abort));
+});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const port=server.address().port;
+await writeFile(join(root,'provider.patch.json'),JSON.stringify([{id:'llm-deepseek',config:{apiKeyEnv:'T17_FIXTURE_KEY',baseURL:`http://127.0.0.1:${port}/v1`,thinking:'disabled',reasoningEffort:'off',maxTokens:1024,streamIdleTimeoutMs:30000,retryPolicy:{mode:'normal',maxRetries:0}}}],null,2)+'\n');
+await writeFile(join(root,'provider-ready.json'),JSON.stringify({pid:process.pid,port,upstream:config.upstream,fixture:true})+'\n');
+console.log('T17 permission provider ready, only loopback endpoints.');
+async function close(){for(const a of inflight)a.abort();server.closeAllConnections();await new Promise(r=>server.close(r));await Promise.all([...servers.values(),done].map(s=>s.close()));process.exit(0)}
+process.once('SIGTERM',()=>void close());process.once('SIGINT',()=>void close());

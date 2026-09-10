@@ -65,6 +65,10 @@ if (mode === '--prepare') {
   run('corepack', ['pnpm', 'rebuild', 'esbuild', 'fs-ext', 'koffi', 'node-pty'], upstream);
   run('corepack', ['pnpm', 'run', 'build:official'], upstream);
   run('corepack', ['pnpm', 'install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org'], buildTools);
+  // This closure now includes the browser's AntD implementation. Audit it
+  // during explicit online preparation; offline --check still installs and
+  // fetches nothing. The archived Vue dependency job covers a different lock.
+  run('corepack', ['pnpm', 'audit', '--prod', '--audit-level=high', '--registry=https://registry.npmjs.org'], buildTools);
   await verifySource();
   console.log('B0 pinned preparation complete; run --check next. Python packages are never installed by this script.');
 } else {
@@ -92,10 +96,17 @@ print('B0 exact Python closure verified')
   run(process.execPath, ['scripts/dsh-b0/first-purchase-analysis-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/first-purchase-cockpit-contract.mjs', '--check', '--python', python]);
   run(process.execPath, ['scripts/dsh-b0/competition-c0-contract.mjs', '--check', '--python', python]);
+  run(process.execPath, ['scripts/dsh-b0/competition-chart-contract.mjs', '--check', '--python', python]);
+  run(process.execPath, ['scripts/dsh-b0/competition-computed-contract.mjs', '--check', '--python', python]);
   const pyTests = ['jobs', 'access', 'run_contracts', 'run_resources', 'native_runtime', 'worker', 'context', 'native_probe', 'query_contracts', 'channel_followup', 'query_jobs', 'query_run_contracts', 'query_worker', 'query_runtime', 'query_native_fault', 'saved_analyses', 'analysis_http', 'cockpit', 'cockpit_http', 'query_assets_runtime', 'first_purchase', 'first_purchase_http', 'first_purchase_kernel', 'first_purchase_analysis', 'first_purchase_source', 'first_purchase_native', 'customer_features_w4', 'feature_publication_w5', 'runtime_ports'].map(name => `backend/tests/test_analytics_${name}.py`);
+  // HTTP/computation tests import the archived CRM dependency closure and run
+  // under the shared bounded backend profile, not the minimal B0 interpreter.
+  pyTests.push('backend/tests/test_competition_assets.py',
+    'backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py');
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py', 'backend/analytics_query_app.py',
     'backend/analytics_analysis_app.py', 'backend/analytics_cockpit_app.py',
+    'backend/analytics_competition_app.py', 'backend/contracts/competition_computed.py', 'scripts/competition-synth-http.py',
     'backend/analytics_first_purchase_app.py', 'backend/analytics_first_purchase_analysis_app.py', 'backend/analytics_first_purchase_cockpit_app.py', 'backend/analytics_first_purchase_native.py', 'backend/contracts/analytics_first_purchase_analysis.py', 'backend/contracts/analytics_first_purchase_cockpit.py', 'backend/analytics_first_purchase_fixture.py',
     'backend/services/analytics/first_purchase', 'backend/services/analytics/customer_features', 'backend/services/analytics/query_codecs.py',
     'backend/contracts/analytics_first_purchase_kernel.py', 'backend/contracts/analytics_first_purchase_run.py',
@@ -132,7 +143,11 @@ print('B0 exact Python closure verified')
   for (const item of ['package.json', 'toolchain.json', 'toolchain.mjs', 'build.mjs', 'pack-skills.mjs', 'skill-package.lock.json', 'query-skill-package.lock.json', 'first-purchase-query-skill-package.lock.json', 'skills', 'src', 'test']) {
     await cp(join(plugin, item), join(clean, item), { recursive: true, errorOnExist: true, force: false, dereference: true });
   }
-  run(process.execPath, [join(clean, 'build.mjs'), upstream]);
+  await mkdir(join(clean, 'build-tools'));
+  for (const item of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches']) {
+    await cp(join(buildTools, item), join(clean, 'build-tools', item), { recursive: true });
+  }
+  run(process.execPath, [join(clean, 'build.mjs'), upstream, buildTools]);
   run(process.execPath, ['--test', ...builtTests.map(file => join(clean, 'test', file))], clean, { B0_BUILD_UPSTREAM: upstream });
   const hashes = {};
   for (const item of ['index.js', 'tool.js', 'skills.js', 'client.js', 'views/saved-analysis-view.js', 'views/cockpit-view.js']) {

@@ -1,0 +1,869 @@
+{
+  "status": "PASS for bounded cases; full T17 PARTIAL",
+  "source_head": "6b32ce94937bf7cc82dbfc72ee93fa6a27ec2c00",
+  "code_commit": "d482bd603c04f608c5e66f33291cfb0aee35bac7",
+  "upstream_commit": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "mode": "local deterministic provider, full native DSH profile; not T13; no external model request",
+  "fixture_ports": {
+    "web": 4328,
+    "api": 18084
+  },
+  "cases": {
+    "read_only_read": "native read returned exact seed",
+    "read_only_write": "native sandbox denied; denied.txt absent",
+    "workspace_write": "native write created exact 29 bytes",
+    "native_stop": "native Stop generating click; host session-bound CANCELLED receipt; late publish refused; no cancelled result on fresh connection",
+    "recover_same_session": "one result; current 410/comparison 305",
+    "new_session_and_switch": "new empty native session; original session replay retained Stop, recovery and write"
+  },
+  "stop": {
+    "case": "native Stop at publication boundary",
+    "fixture_only": true,
+    "attempt": 1,
+    "send_ns": 1788999768223087000,
+    "entered": {
+      "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+      "request_id": "t17-stop-r1"
+    },
+    "stop_click_started_ns": 1788999768464222000,
+    "stop_click_output": "Clicked button[aria-label=\"Stop generating\"] → now at http://127.0.0.1:4328/\n",
+    "stop_click_ended_ns": 1788999768524498000,
+    "cancel_receipts": [
+      {
+        "event": "CANCEL_RECEIPT",
+        "time_ns": 1788999768525690000,
+        "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+        "request_id": "t17-stop-r1",
+        "status": "CANCELLED"
+      }
+    ],
+    "status": "NATIVE_STOP_RECEIPT_CONFIRMED",
+    "release_ns": 1788999768550825000
+  },
+  "persistence": {
+    "verification": "new read-only SQLite connection + on-disk file bytes",
+    "integrity_check": "ok",
+    "results": [
+      {
+        "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+        "request_id": "t17-recover-r1"
+      }
+    ],
+    "cancelled_requests": [
+      [
+        "cancel:[\"alice\",\"session-f0f98016-df81-40da-8f93-a27ef6fb0cef\",\"t17-stop-r1\"]",
+        "true"
+      ]
+    ],
+    "facts": {
+      "change_ratio": 0.3442622950819672,
+      "change_ratio_unavailable_reason": null,
+      "comparison": {
+        "customer_count": 3,
+        "gsv": 305.0,
+        "order_count": 3,
+        "requested_period": {
+          "end_bound": "INCLUSIVE_CALENDAR_DAY",
+          "end_date": "2025-08-31",
+          "start_date": "2025-08-01"
+        },
+        "through_date": "2025-08-31"
+      },
+      "current": {
+        "customer_count": 3,
+        "gsv": 410.0,
+        "order_count": 3,
+        "requested_period": {
+          "end_bound": "INCLUSIVE_CALENDAR_DAY",
+          "end_date": "2026-08-31",
+          "start_date": "2026-08-01"
+        },
+        "through_date": "2026-08-31"
+      },
+      "difference": 105.0,
+      "metric_type": "GSV",
+      "schema_version": "competition-gsv-facts/v1"
+    },
+    "denied_file_exists": false,
+    "written_bytes": 29,
+    "written_sha256": "d9fafd926e8055833f08b0d55a8bba4a5a0c6e622c85bda4da25cbabb15dda6e",
+    "seed_unchanged": true
+  },
+  "new_session": {
+    "selected": "New Session",
+    "conversationEmpty": true,
+    "permission": "Access mode, current: Workspace Write"
+  },
+  "switched_back": {
+    "selected": "T17 local fixture response. Actual tool and persistence evidence determine the o1min",
+    "stopError": true,
+    "recoverTurn": true,
+    "writeTurn": true,
+    "readDenied": false,
+    "permission": "Access mode, current: Workspace Write"
+  },
+  "api_events": [
+    {
+      "event": "API_READY",
+      "time_ns": 1788999176190624000,
+      "port": 18084,
+      "pid": 32242
+    },
+    {
+      "event": "COMPUTED_BEFORE_PUBLICATION",
+      "time_ns": 1788999768445362000,
+      "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+      "request_id": "t17-stop-r1"
+    },
+    {
+      "event": "CANCEL_RECEIPT",
+      "time_ns": 1788999768525690000,
+      "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+      "request_id": "t17-stop-r1",
+      "status": "CANCELLED"
+    },
+    {
+      "event": "BARRIER_RELEASED",
+      "time_ns": 1788999768557914000,
+      "request_id": "t17-stop-r1"
+    },
+    {
+      "event": "PUBLICATION_REFUSED",
+      "time_ns": 1788999768559180000,
+      "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+      "request_id": "t17-stop-r1",
+      "error": "CANCELLED"
+    },
+    {
+      "event": "PUBLISHED",
+      "time_ns": 1788999776869243000,
+      "session_id": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+      "request_id": "t17-recover-r1"
+    }
+  ],
+  "provider_events": [
+    {
+      "id": 1,
+      "marker": "READ",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": []
+    },
+    {
+      "id": 2,
+      "marker": "READ",
+      "toolNames": [],
+      "served": "success",
+      "toolResults": []
+    },
+    {
+      "id": 3,
+      "marker": "READ",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "read",
+      "toolResults": []
+    },
+    {
+      "id": 4,
+      "marker": "READ",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-3:mock-call-1",
+          "content": "<path>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-49pzp83g/runtime/workspace/seed.txt</path>\n<type>file</type>\n<content>\n1: T17_READ_ONLY_SEED\n\n(End of file - total 1 lines)\n</content>"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "marker": "DENY",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "write",
+      "toolResults": []
+    },
+    {
+      "id": 6,
+      "marker": "DENY",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-5:mock-call-1",
+          "content": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "marker": "STOP",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "competition_growth_step",
+      "toolResults": []
+    },
+    {
+      "id": 8,
+      "marker": "RECOVER",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "competition_growth_step",
+      "toolResults": []
+    },
+    {
+      "id": 9,
+      "marker": "RECOVER",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-8:mock-call-1",
+          "content": "{\"schema_version\":\"competition-diagnosis-orchestrator/v1\",\"planner\":\"HOST_OWNED\",\"live_transport\":\"HTTP_CONNECTED\",\"support_status\":\"PARTIAL\",\"condition_trace\":{\"mode\":\"EXPLICIT\",\"inherited_fields\":[],\"changed_fields\":[\"current_period\",\"comparison_mode\",\"comparison_period\",\"sales_scope\",\"history_scope\",\"sample_mode\",\"sample_channel_ids\"],\"sample_mode\":\"INCLUDE\"},\"resolved_condition\":{\"schema_version\":\"competition-condition/v1\",\"metrics_contract_id\":\"competition-metrics/v1\",\"metric_type\":\"GSV\",\"timezone\":\"Asia/Shanghai\",\"current_period\":{\"start_date\":\"2026-08-01\",\"end_date\":\"2026-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"comparison_mode\":\"YOY_SAME_PERIOD\",\"comparison_period\":{\"start_date\":\"2025-08-01\",\"end_date\":\"2025-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"cutoff\":\"2026-07-31\",\"as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"published_at\":\"2026-08-31T16:00:00.000000+00:00\",\"event_time\":\"2026-08-31T16:00:00.000000+00:00\",\"source_tense\":\"PUBLISHED_SNAPSHOT\",\"sales_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"history_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"sample_mode\":\"INCLUDE\",\"sample_channel_ids\":null,\"sample_history_recomputed\":false,\"sample_channel_set_status\":\"UNKNOWN\",\"data_cutoff_policy\":\"T_PLUS_1_YESTERDAY\",\"leap_day_alignment\":\"CLAMP_TO_MONTH_END\",\"data_snapshot_ref\":\"synthetic-diagnosis-202608-v1\",\"data_version\":\"synthetic-diagnosis-data/v1\",\"rule_version\":\"competition-condition-rule/v1\",\"warehouse_as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"feature_as_of\":null,\"permission_scope\":\"diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1\",\"actor_id\":\"alice\",\"filter_hash\":\"59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a\",\"ignored_filters\":[],\"unknown_flags\":[{\"code\":\"SAMPLE_CHANNEL_SET\",\"status\":\"UNKNOWN\",\"note\":\"未确认真实派样渠道全集。\"},{\"code\":\"MEMBER_HISTORY\",\"status\":\"UNKNOWN\",\"note\":\"当前合成源不提供会员历史。\"}],\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"]},\"result\":{\"schema_version\":\"competition-computed-result/v1\",\"execution_kind\":\"TOOL_COMPUTATION\",\"result_id\":\"result_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"run_id\":\"run_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"analysis_id\":\"analysis_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"query_id\":\"competition_gsv_comparison\",\"query_version\":\"competition-gsv-query/v1\",\"capability_id\":\"diag.gsv\",\"metric_id\":\"gsv\",\"metric_version\":\"competition-gsv-metric/v1\",\"facts_schema_ref\":\"backend.contracts.competition_computed.CompetitionGsvFacts\",\"existing_result_schema\":\"competition-gsv-facts/v1\",\"completeness\":\"COMPLETE\",\"empty_reason\":null,\"row_count\":2,\"page\":{\"offset\":0,\"limit\":2,\"total\":2,\"checksum\":\"ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9\",\"complete\":true},\"resolved_condition\":{\"schema_version\":\"competition-condition/v1\",\"metrics_contract_id\":\"competition-metrics/v1\",\"metric_type\":\"GSV\",\"timezone\":\"Asia/Shanghai\",\"current_period\":{\"start_date\":\"2026-08-01\",\"end_date\":\"2026-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"comparison_mode\":\"YOY_SAME_PERIOD\",\"comparison_period\":{\"start_date\":\"2025-08-01\",\"end_date\":\"2025-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"cutoff\":\"2026-07-31\",\"as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"published_at\":\"2026-08-31T16:00:00.000000+00:00\",\"event_time\":\"2026-08-31T16:00:00.000000+00:00\",\"source_tense\":\"PUBLISHED_SNAPSHOT\",\"sales_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"history_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"sample_mode\":\"INCLUDE\",\"sample_channel_ids\":null,\"sample_history_recomputed\":false,\"sample_channel_set_status\":\"UNKNOWN\",\"data_cutoff_policy\":\"T_PLUS_1_YESTERDAY\",\"leap_day_alignment\":\"CLAMP_TO_MONTH_END\",\"data_snapshot_ref\":\"synthetic-diagnosis-202608-v1\",\"data_version\":\"synthetic-diagnosis-data/v1\",\"rule_version\":\"competition-condition-rule/v1\",\"warehouse_as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"feature_as_of\":null,\"permission_scope\":\"diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1\",\"actor_id\":\"alice\",\"filter_hash\":\"59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a\",\"ignored_filters\":[],\"unknown_flags\":[{\"code\":\"SAMPLE_CHANNEL_SET\",\"status\":\"UNKNOWN\",\"note\":\"未确认真实派样渠道全集。\"},{\"code\":\"MEMBER_HISTORY\",\"status\":\"UNKNOWN\",\"note\":\"当前合成源不提供会员历史。\"}],\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"]},\"data_digest\":\"4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c\",\"evidence_digest\":\"ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9\",\"primary_result_ref\":\"result_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"data_mode\":\"SNAPSHOT\",\"contains_real_data\":false,\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"],\"facts\":{\"schema_version\":\"competition-gsv-facts/v1\",\"metric_type\":\"GSV\",\"current\":{\"requested_period\":{\"start_date\":\"2026-08-01\",\"end_date\":\"2026-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"through_date\":\"2026-08-31\",\"gsv\":410,\"order_count\":3,\"customer_count\":3},\"comparison\":{\"requested_period\":{\"start_date\":\"2025-08-01\",\"end_date\":\"2025-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"through_date\":\"2025-08-31\",\"gsv\":305,\"order_count\":3,\"customer_count\":3},\"difference\":105,\"change_ratio\":0.3442622950819672,\"change_ratio_unavailable_reason\":null}},\"evidence\":{\"result_id\":\"result_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"run_id\":\"run_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"evidence_digest\":\"ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9\",\"filter_hash\":\"59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a\",\"completeness\":\"COMPLETE\"},\"chain_status\":\"PARTIAL\",\"analysis_complete\":false,\"budget\":{\"used_calls\":2,\"max_tool_calls\":12,\"remaining\":10},\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"],\"http_api\":\"CONNECTED\",\"execution_mode\":\"COMPUTED_SYNTHETIC\",\"analysis_persisted\":true}"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "marker": "WRITE",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "write",
+      "toolResults": []
+    },
+    {
+      "id": 11,
+      "marker": "WRITE",
+      "toolNames": [
+        "ask_user_question",
+        "bash",
+        "competition_growth_capabilities",
+        "competition_growth_patch",
+        "competition_growth_skill_resource",
+        "competition_growth_step",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "ralph",
+        "read",
+        "read_image",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "write"
+      ],
+      "served": "success",
+      "toolResults": [
+        {
+          "tool_call_id": "b0-request-10:mock-call-1",
+          "content": "<path>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-49pzp83g/runtime/workspace/written.txt</path>\n<type>file</type>\n<content>\nCreated file\n</content>"
+        }
+      ]
+    }
+  ],
+  "journal_tool_results": [
+    {
+      "type": "command/done",
+      "seq": 6,
+      "time": 1788999590024,
+      "data": {
+        "commandId": "cmd-696988e4-1",
+        "kind": "success",
+        "text": "preset read-only"
+      }
+    },
+    {
+      "type": "assistant/attempt",
+      "seq": 28,
+      "time": 1788999684048,
+      "data": {
+        "turn": 2,
+        "step": 1,
+        "stream": [
+          {
+            "type": "chunk",
+            "time": 1788999684048,
+            "chunk": {
+              "type": "finish",
+              "reason": {
+                "kind": "error",
+                "failure": {
+                  "message": "DeepSeek API error (HTTP 409)",
+                  "code": "HTTP_409",
+                  "status": 409
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "turn/end",
+      "seq": 30,
+      "time": 1788999684050,
+      "data": {
+        "turn": 2,
+        "reason": {
+          "kind": "error",
+          "error": {
+            "message": "DeepSeek API error (HTTP 409)",
+            "code": "HTTP_409",
+            "status": 409
+          }
+        }
+      }
+    },
+    {
+      "type": "tool/result",
+      "seq": 38,
+      "time": 1788999721017,
+      "data": {
+        "turn": 3,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-3:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-3:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<path>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-49pzp83g/runtime/workspace/seed.txt</path>\n<type>file</type>\n<content>\n1: T17_READ_ONLY_SEED\n\n(End of file - total 1 lines)\n</content>"
+                }
+              ],
+              "isError": false
+            }
+          ],
+          "role": "user",
+          "id": "28c493f6-78d7-4041-9674-98f58249f92b"
+        },
+        "meta": {
+          "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-49pzp83g/runtime/workspace/seed.txt",
+          "offset": 1,
+          "lines": [
+            {
+              "number": 1,
+              "text": "T17_READ_ONLY_SEED"
+            }
+          ],
+          "totalLines": 1
+        }
+      },
+      "sourceEventSeqs": [
+        37
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "type": "tool/result",
+      "seq": 51,
+      "time": 1788999733350,
+      "data": {
+        "turn": 4,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-5:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-5:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available — retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "cc1bc0e5-5516-4d1a-8ba0-b3f21dad6e16"
+        },
+        "error": {
+          "name": "FsError",
+          "code": "FS_SANDBOX_DENIED"
+        }
+      },
+      "sourceEventSeqs": [
+        50
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "type": "tool/result",
+      "seq": 64,
+      "time": 1788999768526,
+      "data": {
+        "turn": 5,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-7:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-7:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Error: Diagnosis aborted"
+                }
+              ],
+              "isError": true
+            }
+          ],
+          "role": "user",
+          "id": "9a2a774f-4ac4-4cf9-9e7f-20c566189562"
+        }
+      },
+      "sourceEventSeqs": [
+        63
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "type": "tool/result",
+      "seq": 73,
+      "time": 1788999776870,
+      "data": {
+        "turn": 6,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-8:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-8:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"schema_version\":\"competition-diagnosis-orchestrator/v1\",\"planner\":\"HOST_OWNED\",\"live_transport\":\"HTTP_CONNECTED\",\"support_status\":\"PARTIAL\",\"condition_trace\":{\"mode\":\"EXPLICIT\",\"inherited_fields\":[],\"changed_fields\":[\"current_period\",\"comparison_mode\",\"comparison_period\",\"sales_scope\",\"history_scope\",\"sample_mode\",\"sample_channel_ids\"],\"sample_mode\":\"INCLUDE\"},\"resolved_condition\":{\"schema_version\":\"competition-condition/v1\",\"metrics_contract_id\":\"competition-metrics/v1\",\"metric_type\":\"GSV\",\"timezone\":\"Asia/Shanghai\",\"current_period\":{\"start_date\":\"2026-08-01\",\"end_date\":\"2026-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"comparison_mode\":\"YOY_SAME_PERIOD\",\"comparison_period\":{\"start_date\":\"2025-08-01\",\"end_date\":\"2025-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"cutoff\":\"2026-07-31\",\"as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"published_at\":\"2026-08-31T16:00:00.000000+00:00\",\"event_time\":\"2026-08-31T16:00:00.000000+00:00\",\"source_tense\":\"PUBLISHED_SNAPSHOT\",\"sales_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"history_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"sample_mode\":\"INCLUDE\",\"sample_channel_ids\":null,\"sample_history_recomputed\":false,\"sample_channel_set_status\":\"UNKNOWN\",\"data_cutoff_policy\":\"T_PLUS_1_YESTERDAY\",\"leap_day_alignment\":\"CLAMP_TO_MONTH_END\",\"data_snapshot_ref\":\"synthetic-diagnosis-202608-v1\",\"data_version\":\"synthetic-diagnosis-data/v1\",\"rule_version\":\"competition-condition-rule/v1\",\"warehouse_as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"feature_as_of\":null,\"permission_scope\":\"diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1\",\"actor_id\":\"alice\",\"filter_hash\":\"59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a\",\"ignored_filters\":[],\"unknown_flags\":[{\"code\":\"SAMPLE_CHANNEL_SET\",\"status\":\"UNKNOWN\",\"note\":\"未确认真实派样渠道全集。\"},{\"code\":\"MEMBER_HISTORY\",\"status\":\"UNKNOWN\",\"note\":\"当前合成源不提供会员历史。\"}],\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"]},\"result\":{\"schema_version\":\"competition-computed-result/v1\",\"execution_kind\":\"TOOL_COMPUTATION\",\"result_id\":\"result_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"run_id\":\"run_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"analysis_id\":\"analysis_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"query_id\":\"competition_gsv_comparison\",\"query_version\":\"competition-gsv-query/v1\",\"capability_id\":\"diag.gsv\",\"metric_id\":\"gsv\",\"metric_version\":\"competition-gsv-metric/v1\",\"facts_schema_ref\":\"backend.contracts.competition_computed.CompetitionGsvFacts\",\"existing_result_schema\":\"competition-gsv-facts/v1\",\"completeness\":\"COMPLETE\",\"empty_reason\":null,\"row_count\":2,\"page\":{\"offset\":0,\"limit\":2,\"total\":2,\"checksum\":\"ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9\",\"complete\":true},\"resolved_condition\":{\"schema_version\":\"competition-condition/v1\",\"metrics_contract_id\":\"competition-metrics/v1\",\"metric_type\":\"GSV\",\"timezone\":\"Asia/Shanghai\",\"current_period\":{\"start_date\":\"2026-08-01\",\"end_date\":\"2026-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"comparison_mode\":\"YOY_SAME_PERIOD\",\"comparison_period\":{\"start_date\":\"2025-08-01\",\"end_date\":\"2025-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"cutoff\":\"2026-07-31\",\"as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"published_at\":\"2026-08-31T16:00:00.000000+00:00\",\"event_time\":\"2026-08-31T16:00:00.000000+00:00\",\"source_tense\":\"PUBLISHED_SNAPSHOT\",\"sales_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"history_scope\":{\"kind\":\"ALL\",\"channel_ids\":[],\"product_ids\":[]},\"sample_mode\":\"INCLUDE\",\"sample_channel_ids\":null,\"sample_history_recomputed\":false,\"sample_channel_set_status\":\"UNKNOWN\",\"data_cutoff_policy\":\"T_PLUS_1_YESTERDAY\",\"leap_day_alignment\":\"CLAMP_TO_MONTH_END\",\"data_snapshot_ref\":\"synthetic-diagnosis-202608-v1\",\"data_version\":\"synthetic-diagnosis-data/v1\",\"rule_version\":\"competition-condition-rule/v1\",\"warehouse_as_of\":\"2026-08-31T16:00:00.000000+00:00\",\"feature_as_of\":null,\"permission_scope\":\"diag_scope_eaf26ec83268052d8d74268aa630ef0669eb67c1\",\"actor_id\":\"alice\",\"filter_hash\":\"59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a\",\"ignored_filters\":[],\"unknown_flags\":[{\"code\":\"SAMPLE_CHANNEL_SET\",\"status\":\"UNKNOWN\",\"note\":\"未确认真实派样渠道全集。\"},{\"code\":\"MEMBER_HISTORY\",\"status\":\"UNKNOWN\",\"note\":\"当前合成源不提供会员历史。\"}],\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"]},\"data_digest\":\"4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c\",\"evidence_digest\":\"ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9\",\"primary_result_ref\":\"result_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"data_mode\":\"SNAPSHOT\",\"contains_real_data\":false,\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"],\"facts\":{\"schema_version\":\"competition-gsv-facts/v1\",\"metric_type\":\"GSV\",\"current\":{\"requested_period\":{\"start_date\":\"2026-08-01\",\"end_date\":\"2026-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"through_date\":\"2026-08-31\",\"gsv\":410,\"order_count\":3,\"customer_count\":3},\"comparison\":{\"requested_period\":{\"start_date\":\"2025-08-01\",\"end_date\":\"2025-08-31\",\"end_bound\":\"INCLUSIVE_CALENDAR_DAY\"},\"through_date\":\"2025-08-31\",\"gsv\":305,\"order_count\":3,\"customer_count\":3},\"difference\":105,\"change_ratio\":0.3442622950819672,\"change_ratio_unavailable_reason\":null}},\"evidence\":{\"result_id\":\"result_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"run_id\":\"run_diag_147440b09500a45786345043f1d222386b836c59f5ebedd1\",\"evidence_digest\":\"ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9\",\"filter_hash\":\"59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a\",\"completeness\":\"COMPLETE\"},\"chain_status\":\"PARTIAL\",\"analysis_complete\":false,\"budget\":{\"used_calls\":2,\"max_tool_calls\":12,\"remaining\":10},\"limitations\":[\"仅显式小型合成快照，不代表真实经营结论。\",\"仅 GSV 双期计算完成，不代表完整诊断链完成。\",\"派样渠道全集与会员历史仍为 UNKNOWN。\",\"GSV 按订单净额计算；商品过滤下退款沿现有订单级规则抵扣。\"],\"http_api\":\"CONNECTED\",\"execution_mode\":\"COMPUTED_SYNTHETIC\",\"analysis_persisted\":true}"
+                }
+              ],
+              "isError": false
+            }
+          ],
+          "role": "user",
+          "id": "54132e9a-a1ac-4f8c-ab6b-38e73b9054b5"
+        }
+      },
+      "sourceEventSeqs": [
+        72
+      ],
+      "surfaceOp": "append"
+    },
+    {
+      "type": "command/done",
+      "seq": 82,
+      "time": 1788999791989,
+      "data": {
+        "commandId": "cmd-696988e4-2",
+        "kind": "success",
+        "text": "preset workspace-write"
+      }
+    },
+    {
+      "type": "tool/result",
+      "seq": 91,
+      "time": 1788999792208,
+      "data": {
+        "turn": 7,
+        "step": 1,
+        "message": {
+          "source": {
+            "kind": "tool",
+            "callId": "b0-request-10:mock-call-1"
+          },
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "b0-request-10:mock-call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<path>/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/t17-native-49pzp83g/runtime/workspace/written.txt</path>\n<type>file</type>\n<content>\nCreated file\n</content>"
+                }
+              ],
+              "isError": false
+            }
+          ],
+          "role": "user",
+          "id": "8177f5a2-6f65-401b-b5c3-e7fa4a763b94"
+        },
+        "meta": {
+          "diffs": []
+        }
+      },
+      "sourceEventSeqs": [
+        90
+      ],
+      "surfaceOp": "append"
+    }
+  ],
+  "journal_hashes_after_stop": [
+    {
+      "session": "session-ceeb78a9-19d6-433e-a8a8-4a515de35b11",
+      "sha256": "0552aab35d6ca9f083d34e8b3ab08f97f92cda826f5d98fd204de923a1b8e232",
+      "records": 4
+    },
+    {
+      "session": "session-f0f98016-df81-40da-8f93-a27ef6fb0cef",
+      "sha256": "57909f22734b39fbb5abed88e0a9bef25a56496d758a0a3e7fb0c15f2011f145",
+      "records": 98
+    }
+  ],
+  "process_exit_persistence_verified": true,
+  "cleanup": {
+    "stopped_web_port": 4328,
+    "stopped_api_pid": 32242,
+    "stopped_provider_pid": 36184,
+    "kept_user_ports": [
+      4325,
+      18083,
+      4327,
+      8000,
+      5173,
+      14327,
+      18082
+    ]
+  },
+  "compiled_js_sha256": {
+    "dsh-plugins/analytics-workbench/lib/client.js": "4163a958e54dcd92f3288d492da635f59db325c954137dcc6ddd1de7cf6ba018",
+    "dsh-plugins/analytics-workbench/lib/skills.js": "19cb932b4a211f64c89ea1fe4ca4524aaa70b640283b92962de3ab01a422b03b",
+    "dsh-plugins/analytics-workbench/lib/index.js": "3d615120de8773dc3b48f5e7d5af4fd9ed57f1cebe1c623b405dcbcfa8b2c9be",
+    "dsh-plugins/analytics-workbench/lib/tool.js": "99baa240cc2ab0accc7e842a98ca447137e3343736f2fce9df6b1a3b0062bab0",
+    "dsh-plugins/analytics-workbench/lib/views/first-purchase-saved-analysis-view.js": "93036602327808cd66960a1fe52d39df4d3b060122a54b0260b1e8bb1f05cd95",
+    "dsh-plugins/analytics-workbench/lib/views/first-purchase-cockpit-view.js": "ca4aa0be46ef89489a519c4763035e21836a000ea25f403d7cbcc47f7b7d4e66",
+    "dsh-plugins/analytics-workbench/lib/views/saved-analysis-view.js": "81b8e742a7c08d1a00b74ebb8d32a1bf87ebd41893971a87fe068ac0fcfc261c",
+    "dsh-plugins/analytics-workbench/lib/views/cockpit-view.js": "6ce36b142c57be8caf0d862f1a655a806b87e478f050ca48b341f23d3bc538b1"
+  },
+  "helper_sha256": {
+    "t17-native-api.py": "ba2c8d534842d1c3f9355b911dc204b469800c2f1535032a4ad4c1748c5628a0",
+    "t17-native-provider.mjs": "4e2cd82505a448ea9d495360f305bbffea91d2c6db0fdbe545395fdacbd17f5c",
+    "t17-native-workspace.mjs": "839bc785a58922b5801d1f3fb0545dec5d85da3f1ef9dec92fe8e9baf03e9475",
+    "t17-native-stop.py": "91876adbd5f64188542fddd259c4b6763bafd8e0f8842531171ca0b1a7435428"
+  },
+  "failed_attempts": [
+    "First READ used obsolete str_replace_editor name; no native tool ran, not PASS.",
+    "First correction started counter at 100 with maximum 40; local fixture returned HTTP 409; failed turn retained. Counter corrected to 2; subsequent native cases used real read/write names.",
+    "Initial CLI start rejected relative extra-patch path before starting; corrected to absolute.",
+    "Initial textarea selector timed out; actual composer is contenteditable."
+  ],
+  "limitations": [
+    "Computation barrier starts after tiny SQL computation; proves cancellation prevents publication, not physical SQL interruption.",
+    "Workspace was registered by native HTTP RPC; OS directory picker unverified.",
+    "Permission escalation dialog, in-flight revocation and preset persistence matrix remain unverified.",
+    "After reload the denied tool row was collapsed; browser switched-back readDenied=false is a DOM visibility result, while persisted native tool/result retains denial.",
+    "UI local-provider generic completion text does not judge correctness; real native tool outputs and stored state do.",
+    "Business T13/T15/T16, full DESIGN and release gates remain open."
+  ],
+  "executed_helper_sha256": {
+    "t17-native-api.py": "ba2c8d534842d1c3f9355b911dc204b469800c2f1535032a4ad4c1748c5628a0",
+    "t17-native-provider.mjs": "4e2cd82505a448ea9d495360f305bbffea91d2c6db0fdbe545395fdacbd17f5c",
+    "t17-native-workspace.mjs": "89c288bd4e664c6f4bd68c3e1b54135ceb3be10843f5d79f1e00042ccdf00a6f",
+    "t17-native-stop.py": "9e8aafcdab0e8a8c32cb4812697cc91ff1ebfc4abb77208a136344fb09b1fc05"
+  },
+  "archive_normalization": "Only trailing blank lines normalized in archived helper copies; executed and archive digests retained separately."
+}

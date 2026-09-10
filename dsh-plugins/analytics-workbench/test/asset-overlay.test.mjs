@@ -106,7 +106,7 @@ function restoreDom(previous) {
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
 
-function Shell({ Overlay, Footer, actionsRef, QueryCard }) {
+function Shell({ Overlay, Footer, actionsRef, QueryCard, themeSource }) {
   const [snap, setSnap] = React.useState({
     open: true, openTick: 1, confirmClose: false, editor: createEditor(), message: '',
   });
@@ -122,6 +122,7 @@ function Shell({ Overlay, Footer, actionsRef, QueryCard }) {
   return React.createElement(React.Fragment, null,
     React.createElement(Footer, { wide: true, useStore: selector => selector(snap), actions }),
     React.createElement(Overlay, {
+      themeSource: themeSource ?? { subscribe: () => () => {}, getSnapshot: () => 'dark' },
       useStore: selector => selector(snap),
       actions,
       useSessions: selector => selector({ current: undefined }),
@@ -139,15 +140,26 @@ async function mountShell(fetchImpl, options = {}) {
   const context = {
     window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } }, fetch: fetchImpl }),
     document: globalThis.document,
+    getComputedStyle: globalThis.window.getComputedStyle.bind(globalThis.window),
+    HTMLElement: globalThis.window.HTMLElement,
+    Element: globalThis.window.Element,
+    ShadowRoot: globalThis.window.ShadowRoot,
+    SVGElement: globalThis.window.SVGElement,
+    setTimeout, clearTimeout,
     fetch: fetchImpl,
     Event: globalThis.window.Event,
     CustomEvent: globalThis.window.CustomEvent,
     requestAnimationFrame: globalThis.window.requestAnimationFrame,
     cancelAnimationFrame: globalThis.window.cancelAnimationFrame,
+    ...(options.competitionHttp ? {
+      COMPETITION_HTTP_BASE: 'http://127.0.0.1:18084',
+      COMPETITION_HTTP_TOKEN: 'test-only-synthetic-token',
+    } : {}),
   };
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
     if (name === 'react') return React;
+    if (name === 'react-dom') return webReq('react-dom');
     if (name === 'react/jsx-runtime') return webReq('react/jsx-runtime');
     if (name === '@deepseek-ai/dsh-client-store') return stores;
     throw new Error(`unexpected ${name}`);
@@ -170,7 +182,7 @@ async function mountShell(fetchImpl, options = {}) {
   const root = createRoot(rootEl);
   await act(() => {
     root.render(React.createElement(Shell, {
-      Overlay, Footer, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null,
+      Overlay, Footer, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null, themeSource: options.themeSource,
     }));
   });
   return { actionsRef, Overlay, QueryCard, unmount: () => act(() => root.unmount()) };
@@ -251,6 +263,38 @@ function connectedBoardFetch(options = {}) {
   };
   return { calls, fetchImpl, analyses, setPreviewGate(gate) { previewGate = gate; } };
 }
+
+test('native resolved mode updates the existing dialog and inherited competition controls', async () => {
+  const { previous, dom } = installDom();
+  let mode = 'light';
+  const listeners = new Set();
+  const themeSource = { getSnapshot: () => mode, subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn); } };
+  const fixture = connectedBoardFetch();
+  const mounted = await mountShell(fixture.fetchImpl, { themeSource });
+  try {
+    await waitFor(() => document.querySelector('[data-testid="analytics-b0-dialog"]'));
+    const dialog = document.querySelector('[data-testid="analytics-b0-dialog"]');
+    const root = document.querySelector('.sm-overlay-theme');
+    assert.equal(root.dataset.smColorScheme, 'light');
+    assert.equal(root.style.getPropertyValue('--sm-bg'), '#FEFCFF');
+    const competition = [...dialog.querySelectorAll('button')].find(button => button.textContent.includes('认可成板'));
+    assert.ok(competition);
+    await act(async () => { competition.click(); await delay(20); });
+    await waitFor(() => dialog.querySelector('[data-testid="sm-open-board"]'));
+    assert.ok(dialog.querySelector('.ant-btn'), 'actual AntD button is rendered');
+    for (const next of ['dark', 'light']) {
+      await act(() => { mode = next; for (const listener of listeners) listener(); });
+      assert.equal(document.querySelector('[data-testid="analytics-b0-dialog"]'), dialog);
+      assert.equal(dialog.open, true);
+      assert.deepEqual([...document.querySelectorAll('[data-sm-color-scheme]')].map(node => node.dataset.smColorScheme), [next, next]);
+    }
+    assert.equal(mounted.actionsRef.close, 0);
+  } finally {
+    await mounted.unmount();
+    assert.equal(listeners.size, 0);
+    dom.window.close(); restoreDom(previous);
+  }
+});
 
 test('RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds', async () => {
   const competitionLive = /127\.0\.0\.1:18082/.test(source);
@@ -351,9 +395,81 @@ test('HTTP overlay and mock overlay share the native dialog Tab trap', () => {
   assert.match(overlaySource, /resetKey=\{openTick\}/);
   assert.match(mockOverlaySource, /key=\{openTick\}/);
   assert.match(mockOverlaySource, /openTick = \(draft.openTick \|\| 0\) \+ 1/);
-  assert.match(overlaySource, /B0 同域 \/b0\/dashboards 未接线/);
   assert.match(overlaySource, /data-dsh-native-chrome="1"/);
   assert.match(overlaySource, /gridColumn: '1 \/ -1'/);
+});
+
+test('closed connection details remain keyboard reachable without exposing hidden controls', async () => {
+  const { previous, dom } = installDom();
+  let mounted;
+  try {
+    mounted = await mountShell(connectedBoardFetch().fetchImpl);
+    await waitFor(() => document.querySelector('[data-testid="analytics-asset-details"]'));
+    const dialog = document.querySelector('[data-testid="analytics-b0-dialog"]');
+    const details = dialog.querySelector('[data-testid="analytics-asset-details"]');
+    const summary = details.querySelector('summary');
+    const close = dialog.querySelector('[data-testid="analytics-b0-close"]');
+    assert.equal(details.open, false);
+    // JSDOM has no layout; model a dialog whose only visible controls are
+    // Close and the collapsed summary. Its nested button must not enter the trap.
+    for (const element of dialog.querySelectorAll('*')) {
+      element.getClientRects = () => element === close || element === summary ? [{}] : [];
+    }
+    close.focus();
+    await act(() => close.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      key: 'Tab', shiftKey: true, bubbles: true, cancelable: true,
+    })));
+    assert.equal(document.activeElement, summary);
+    await act(() => summary.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      key: 'Tab', bubbles: true, cancelable: true,
+    })));
+    assert.equal(document.activeElement, close);
+  } finally {
+    if (mounted) mounted.unmount();
+    dom.window.close(); restoreDom(previous);
+  }
+});
+
+test('configured competition opens its board directly and loads B0 only on explicit navigation', async () => {
+  const { previous, dom } = installDom();
+  let mounted;
+  const paths = [];
+  const fetchImpl = async url => {
+    const path = String(url);
+    paths.push(path);
+    if (path === '/b0/assets') return jsonResponse(200, { http_api: 'CONNECTED', cockpit: true });
+    if (path === '/b0/dashboards') return jsonResponse(404, { error: { message: 'B0 unavailable' } });
+    if (path.endsWith('/results')) return jsonResponse(503, { error: {
+      code: 'SERVICE_UNAVAILABLE', message: '诊断结果暂时不可读取。', http_status: 503, request_id: 'visible-error-1',
+      schema_version: 'competition-error/v1', retryable: true, maps_to: 'backend.contracts.analytics.AnalyticsErrorDetail',
+    } });
+    return jsonResponse(200, { items: [] });
+  };
+  try {
+    mounted = await mountShell(fetchImpl, { competitionHttp: true });
+    await waitFor(() => document.querySelector('[data-testid="sm-error-state"]'));
+    assert.equal(document.querySelector('dialog').getAttribute('data-competition-panel'), 'competition-board');
+    assert.ok(document.querySelector('[data-testid="sm-board-editor"]'));
+    assert.equal(paths.includes('/b0/dashboards'), false);
+    assert.equal(paths.includes('/b0/analyses'), false);
+    assert.equal(document.querySelector('[data-testid="analytics-asset-refresh"]'), null);
+    assert.equal(document.querySelector('[data-testid="analytics-asset-status"]'), null);
+    assert.match(document.querySelector('[data-testid="sm-error-state"]').textContent, /诊断结果暂时不可读取/);
+    const detail = document.querySelector('[data-testid="sm-board-error-details"]');
+    assert.equal(detail.open, false);
+    assert.match(detail.textContent, /visible-error-1/);
+    assert.equal(document.querySelector('[data-testid="sm-board-save"]'), null);
+    const boundary = document.querySelector('.analytics-asset-context strong');
+    assert.match(boundary.textContent, /合成数据/);
+    assert.equal(boundary.closest('details'), null);
+    await act(async () => { document.querySelector('[data-testid="analytics-asset-board"]').click(); await delay(20); });
+    await waitFor(() => statusText().includes('此驾驶舱服务暂不可用'));
+    assert.match(statusText(), /此驾驶舱服务暂不可用/);
+    assert.ok(document.querySelector('[data-testid="analytics-asset-refresh"]'));
+  } finally {
+    if (mounted) mounted.unmount();
+    dom.window.close(); restoreDom(previous);
+  }
 });
 
 test('footer open remounts overlay after close on the same page', async () => {
@@ -604,6 +720,12 @@ async function mountDualOverlays(fetchImpl) {
   const context = {
     window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } }, fetch: fetchImpl }),
     document: globalThis.document,
+    getComputedStyle: globalThis.window.getComputedStyle.bind(globalThis.window),
+    HTMLElement: globalThis.window.HTMLElement,
+    Element: globalThis.window.Element,
+    ShadowRoot: globalThis.window.ShadowRoot,
+    SVGElement: globalThis.window.SVGElement,
+    setTimeout, clearTimeout,
     fetch: fetchImpl,
     Event: globalThis.window.Event,
     CustomEvent: globalThis.window.CustomEvent,
@@ -613,6 +735,7 @@ async function mountDualOverlays(fetchImpl) {
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
     if (name === 'react') return React;
+    if (name === 'react-dom') return webReq('react-dom');
     if (name === 'react/jsx-runtime') return webReq('react/jsx-runtime');
     if (name === '@deepseek-ai/dsh-client-store') return stores;
     throw new Error(`unexpected ${name}`);
@@ -641,7 +764,8 @@ async function mountDualOverlays(fetchImpl) {
     for (let i = 0; i < count; i++) {
       nodes.push(React.createElement('div', { key: String(i), 'data-overlay-instance': String(i) },
         React.createElement(Overlay, {
-          useStore: selector => selector(snap),
+          themeSource: { subscribe: () => () => {}, getSnapshot: () => 'dark' },
+      useStore: selector => selector(snap),
           actions,
           useSessions: selector => selector({ current: i === 0 ? 'session-a' : 'session-b' }),
           detachSelection() {},

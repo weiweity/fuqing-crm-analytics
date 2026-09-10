@@ -1,0 +1,765 @@
+test	Run the same Python plan as local pre-push	﻿2026-09-10T03:14:38.9723535Z ##[group]Run python3 -c "import json, os; print('\n'.join(json.loads(os.environ['CHECK_PLAN'])['files']))" > changed-files.txt
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9724318Z ^[[36;1mpython3 -c "import json, os; print('\n'.join(json.loads(os.environ['CHECK_PLAN'])['files']))" > changed-files.txt^[[0m
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9724960Z ^[[36;1mpython3 scripts/ci/run_checks.py --files-from changed-files.txt --only ci-python^[[0m
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9748370Z shell: /usr/bin/bash -e {0}
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9748623Z env:
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9748817Z   FQ_CRM_ADMINS: admin
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9749105Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9749522Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9749920Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9750293Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9750655Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9751017Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9808940Z   CHECK_PLAN: {"backend": "full", "b0": true, "frontend": false, "tooling": true, "deployment": false, "dependencies": false, "python_dependencies": false, "frontend_dependencies": false, "ground_truth": false, "filterbuilder": true, "targets": ["backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py"], "files": ["CHANGELOG.md", "README.md", "STATUS.md", "backend/analytics_competition_app.py", "backend/contracts/analytics-competition-chart.openapi.json", "backend/contracts/analytics-competition-computed.openapi.json", "backend/contracts/competition_chart.py", "backend/contracts/competition_computed.py", "backend/services/analytics/competition_assets/result.py", "backend/services/analytics/competition_assets/service.py", "backend/services/analytics/competition_diagnosis/computed.py", "backend/services/analytics/competition_diagnosis/orchestrator.py", "backend/services/analytics/competition_diagnosis/store.py", "backend/services/analytics/competition_diagnosis/synthetic.py", "backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py", "backend/services/analytics/runtime.py", "backend/services/analytics/worker.py", "backend/services/metrics/competition_compute.py", "backend/tests/analytics_native_probe.py", "backend/tests/analytics_worker_probe.py", "backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py", "docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md", "docs/hackathon/DIAGNOSIS-CANCELLATION-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-PLAN-2026-09-10.md", "docs/hackathon/OBSERVATION-STATE-RECOVERY-2026-09-10.md", "docs/hackathon/PRODUCT-CANDIDATE-SWITCH-2026-09-10.md", "docs/hackathon/PRODUCT-DENSITY-CANDIDATE-2026-09-10.md", "docs/hackathon/PRODUCT-LOCAL-RELEASE-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-APPROVAL-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-EXTENDED-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md", "docs/hackathon/PRODUCT-READINESS-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-INTEGRATION-2026-09-10.md", "docs/hackathon/README.md", "docs/hackathon/TODOS.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/REVIEW.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-before.txt", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-candidate-switch.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/candidate-backup-compatibility.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computation-isolation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-backup-restore.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-browser.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-baseline.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-live.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-1440.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-390.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/t13-computed-board-reopened.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-browser-text.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-eval.json", "docs/hackathon/evidence/product-readiness-2026-09-10/REVIEW-AND-VERIFICATION.md", "docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md", "docs/hackathon/evidence/product-readiness-2026-09-10/backend-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/browser-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/build-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/chart-http-trace.json", "docs/hackathon/evidence/product-readiness-2026-09-10/http-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-before-visual.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-session-missing-credential.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-settings-dark.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-completed.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-connected.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-first-real-request.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-created.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-details-v2.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-reopened.png", "docs/hackathon/evidence/product-readiness-2026-09-10/source-manifest.json", "docs/hackathon/evidence/product-readiness-2026-09-10/state-backup-restore.json", "docs/hackathon/evidence/product-readiness-2026-09-10/welcome-reproduction.json", "docs/hackathon/evidence/t17-extended-2026-09-10/compact-replay.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-on-return.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-restored-off.png", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-checkpoint-observer.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-title-fix.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/review.json", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-browser.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-pack.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-provider.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/verification.json", "docs/hackathon/evidence/t17-native-2026-09-10/native-stop-recover-write.png", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-api.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-provider.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-stop.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-workspace.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/verification.json", "docs/hackathon/evidence/t17-permissions-2026-09-10/approval-pending.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/default-and-session-after-restart.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-api.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-provider.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-switch.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-workspace.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/batch-created.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/board-all-evidence.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/detached-reading.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v1.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2-reopened.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions-before.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edited-board-reloaded.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/empty-final.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/provider-events.jsonl", "docs/hackathon/evidence/uat-navigation-2026-09-10/review.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-all-evidence.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-before-controls.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-final.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-board-choice-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-entry-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-provider.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-workspace.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_all.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_retail.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-checks.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.py.txt", "docs/hackathon/evidence/visual-density-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-density-2026-09-10/disconnected.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-browser.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-http.json", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1024.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/empty-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/restored-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/observation-lock.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/probe-pipe-ownership.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-dark-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-light-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-bar-390-fixed.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1024.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-editor-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-settings-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-bar-reopen-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/worker-read-recovery.json", "docs/history/STATUS-HISTORY.md", "docs/operating/competition-http.md", "dsh-plugins/analytics-workbench/build-tools/package.json", "dsh-plugins/analytics-workbench/build-tools/patches/README.md", "dsh-plugins/analytics-workbench/build-tools/patches/antd@5.29.3.patch", "dsh-plugins/analytics-workbench/build-tools/patches/rc-picker@4.11.3.patch", "dsh-plugins/analytics-workbench/build-tools/pnpm-lock.yaml", "dsh-plugins/analytics-workbench/build-tools/pnpm-workspace.yaml", "dsh-plugins/analytics-workbench/build.mjs", "dsh-plugins/analytics-workbench/package.json", "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx", "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/computed-result.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts", "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts", "dsh-plugins/analytics-workbench/src/client/competition-http.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/BrandChrome.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/LayoutSlot.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/ThemeProvider.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/competition-shell.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/index.ts", "dsh-plugins/analytics-workbench/src/client/competition-shell/tokens.ts", "dsh-plugins/analytics-workbench/src/client/focus.ts", "dsh-plugins/analytics-workbench/src/client/index.tsx", "dsh-plugins/analytics-workbench/src/client/run-status.tsx", "dsh-plugins/analytics-workbench/src/client/styles.ts", "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts", "dsh-plugins/analytics-workbench/src/competition-agent/cancellation.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/tools.d.mts", "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs", "dsh-plugins/analytics-workbench/src/competition-chart-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/competition-computed-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/index.ts", "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs", "dsh-plugins/analytics-workbench/test/built.test.mjs", "dsh-plugins/analytics-workbench/test/loader.test.mjs", "dsh-plugins/analytics-workbench/test/plugin-ui-lifecycle.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-cancel.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-save.test.mjs", "dsh-plugins/analytics-workbench/test/tool-card-harness.mjs", "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs", "dsh-plugins/analytics-workbench/tests/competition-computed/result.json", "dsh-plugins/analytics-workbench/toolchain.json", "dsh-plugins/analytics-workbench/toolchain.mjs", "scripts/competition-synth-http.py", "scripts/diagnostics/benchmark_competition_http.py", "scripts/dsh-b0/competition-chart-contract.mjs", "scripts/dsh-b0/competition-computed-contract.mjs", "scripts/dsh-b0/pipeline.mjs", "scripts/dsh-dev/README.md", "scripts/dsh-dev/brand.mjs", "scripts/dsh-dev/brand.test.mjs", "scripts/dsh-dev/cli.test.mjs", "scripts/dsh-dev/diagnose.mjs", "scripts/dsh-dev/diagnose.test.mjs", "scripts/dsh-dev/serve.mjs", "scripts/run_backend_tests_bounded.py"]}
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:38.9939352Z ##[endgroup]
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:39.1077492Z {"backend": "full", "b0": true, "frontend": false, "tooling": true, "deployment": false, "dependencies": false, "python_dependencies": false, "frontend_dependencies": false, "ground_truth": false, "filterbuilder": true, "targets": ["backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py"], "files": ["CHANGELOG.md", "README.md", "STATUS.md", "backend/analytics_competition_app.py", "backend/contracts/analytics-competition-chart.openapi.json", "backend/contracts/analytics-competition-computed.openapi.json", "backend/contracts/competition_chart.py", "backend/contracts/competition_computed.py", "backend/services/analytics/competition_assets/result.py", "backend/services/analytics/competition_assets/service.py", "backend/services/analytics/competition_diagnosis/computed.py", "backend/services/analytics/competition_diagnosis/orchestrator.py", "backend/services/analytics/competition_diagnosis/store.py", "backend/services/analytics/competition_diagnosis/synthetic.py", "backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py", "backend/services/analytics/runtime.py", "backend/services/analytics/worker.py", "backend/services/metrics/competition_compute.py", "backend/tests/analytics_native_probe.py", "backend/tests/analytics_worker_probe.py", "backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py", "docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md", "docs/hackathon/DIAGNOSIS-CANCELLATION-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-PLAN-2026-09-10.md", "docs/hackathon/OBSERVATION-STATE-RECOVERY-2026-09-10.md", "docs/hackathon/PRODUCT-CANDIDATE-SWITCH-2026-09-10.md", "docs/hackathon/PRODUCT-DENSITY-CANDIDATE-2026-09-10.md", "docs/hackathon/PRODUCT-LOCAL-RELEASE-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-APPROVAL-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-EXTENDED-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md", "docs/hackathon/PRODUCT-READINESS-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-INTEGRATION-2026-09-10.md", "docs/hackathon/README.md", "docs/hackathon/TODOS.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/REVIEW.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-before.txt", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-candidate-switch.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/candidate-backup-compatibility.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computation-isolation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-backup-restore.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-browser.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-baseline.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-live.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-1440.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-390.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/t13-computed-board-reopened.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-browser-text.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-eval.json", "docs/hackathon/evidence/product-readiness-2026-09-10/REVIEW-AND-VERIFICATION.md", "docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md", "docs/hackathon/evidence/product-readiness-2026-09-10/backend-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/browser-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/build-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/chart-http-trace.json", "docs/hackathon/evidence/product-readiness-2026-09-10/http-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-before-visual.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-session-missing-credential.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-settings-dark.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-completed.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-connected.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-first-real-request.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-created.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-details-v2.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-reopened.png", "docs/hackathon/evidence/product-readiness-2026-09-10/source-manifest.json", "docs/hackathon/evidence/product-readiness-2026-09-10/state-backup-restore.json", "docs/hackathon/evidence/product-readiness-2026-09-10/welcome-reproduction.json", "docs/hackathon/evidence/t17-extended-2026-09-10/compact-replay.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-on-return.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-restored-off.png", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-checkpoint-observer.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-title-fix.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/review.json", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-browser.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-pack.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-provider.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/verification.json", "docs/hackathon/evidence/t17-native-2026-09-10/native-stop-recover-write.png", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-api.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-provider.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-stop.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-workspace.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/verification.json", "docs/hackathon/evidence/t17-permissions-2026-09-10/approval-pending.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/default-and-session-after-restart.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-api.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-provider.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-switch.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-workspace.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/batch-created.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/board-all-evidence.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/detached-reading.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v1.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2-reopened.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions-before.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edited-board-reloaded.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/empty-final.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/provider-events.jsonl", "docs/hackathon/evidence/uat-navigation-2026-09-10/review.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-all-evidence.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-before-controls.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-final.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-board-choice-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-entry-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-provider.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-workspace.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_all.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_retail.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-checks.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.py.txt", "docs/hackathon/evidence/visual-density-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-density-2026-09-10/disconnected.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-browser.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-http.json", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1024.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/empty-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/restored-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/observation-lock.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/probe-pipe-ownership.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-dark-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-light-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-bar-390-fixed.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1024.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-editor-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-settings-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-bar-reopen-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/worker-read-recovery.json", "docs/history/STATUS-HISTORY.md", "docs/operating/competition-http.md", "dsh-plugins/analytics-workbench/build-tools/package.json", "dsh-plugins/analytics-workbench/build-tools/patches/README.md", "dsh-plugins/analytics-workbench/build-tools/patches/antd@5.29.3.patch", "dsh-plugins/analytics-workbench/build-tools/patches/rc-picker@4.11.3.patch", "dsh-plugins/analytics-workbench/build-tools/pnpm-lock.yaml", "dsh-plugins/analytics-workbench/build-tools/pnpm-workspace.yaml", "dsh-plugins/analytics-workbench/build.mjs", "dsh-plugins/analytics-workbench/package.json", "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx", "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/computed-result.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts", "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts", "dsh-plugins/analytics-workbench/src/client/competition-http.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/BrandChrome.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/LayoutSlot.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/ThemeProvider.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/competition-shell.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/index.ts", "dsh-plugins/analytics-workbench/src/client/competition-shell/tokens.ts", "dsh-plugins/analytics-workbench/src/client/focus.ts", "dsh-plugins/analytics-workbench/src/client/index.tsx", "dsh-plugins/analytics-workbench/src/client/run-status.tsx", "dsh-plugins/analytics-workbench/src/client/styles.ts", "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts", "dsh-plugins/analytics-workbench/src/competition-agent/cancellation.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/tools.d.mts", "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs", "dsh-plugins/analytics-workbench/src/competition-chart-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/competition-computed-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/index.ts", "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs", "dsh-plugins/analytics-workbench/test/built.test.mjs", "dsh-plugins/analytics-workbench/test/loader.test.mjs", "dsh-plugins/analytics-workbench/test/plugin-ui-lifecycle.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-cancel.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-save.test.mjs", "dsh-plugins/analytics-workbench/test/tool-card-harness.mjs", "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs", "dsh-plugins/analytics-workbench/tests/competition-computed/result.json", "dsh-plugins/analytics-workbench/toolchain.json", "dsh-plugins/analytics-workbench/toolchain.mjs", "scripts/competition-synth-http.py", "scripts/diagnostics/benchmark_competition_http.py", "scripts/dsh-b0/competition-chart-contract.mjs", "scripts/dsh-b0/competition-computed-contract.mjs", "scripts/dsh-b0/pipeline.mjs", "scripts/dsh-dev/README.md", "scripts/dsh-dev/brand.mjs", "scripts/dsh-dev/brand.test.mjs", "scripts/dsh-dev/cli.test.mjs", "scripts/dsh-dev/diagnose.mjs", "scripts/dsh-dev/diagnose.test.mjs", "scripts/dsh-dev/serve.mjs", "scripts/run_backend_tests_bounded.py"]}
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:39.1136012Z [checks:backend] /opt/hostedtoolcache/Python/3.14.7/x64/bin/python3 .githooks/check_imports.py
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:40.6492188Z ✅ B2: 16 个 3rd-party imports 全部声明在 requirements.txt
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:40.6493063Z    (local packages detected: 96; transitive allow: 8)
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:40.6554426Z [checks:backend] /opt/hostedtoolcache/Python/3.14.7/x64/bin/python3 scripts/run_backend_tests_bounded.py
+test	Run the same Python plan as local pre-push	2026-09-10T03:14:40.7724198Z [bounded-pytest] group 1/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:15:03.6867161Z ........................................................................ [ 26%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:15:16.7198070Z ......sss.................s............................................. [ 52%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:03.5377519Z ........................................................................ [ 78%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3289642Z ............................................................             [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3293041Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3294036Z 2.63s call     backend/tests/test_analytics_cockpit_http.py::test_source_request_must_bind_full_resolved_filters
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3294938Z 2.62s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[facts_json]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3298758Z 2.62s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[request_json]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3300014Z 2.61s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[snapshot_json]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3301951Z 2.55s call     backend/tests/test_analytics_cockpit_http.py::test_cached_facts_drift_and_source_corruption_degrade_only_that_card
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3303452Z 2.53s call     backend/tests/test_analytics_cockpit_http.py::test_two_saved_windows_stay_isolated_across_copy_layout_remove_undo
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3304648Z 2.50s call     backend/tests/test_analytics_cockpit_http.py::test_copy_and_undo_require_visible_sources_before_write
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3305835Z 2.50s call     backend/tests/test_analytics_cockpit_http.py::test_remove_corrupt_source_without_restoring_or_analysis_read
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3307005Z 2.49s call     backend/tests/test_analytics_cockpit_http.py::test_corrupt_card_shape_does_not_500_the_board
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3308093Z 2.45s call     backend/tests/test_analytics_cockpit_http.py::test_one_unavailable_card_does_not_block_remove
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3308936Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3309871Z SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:34: optional host skill is unavailable; repository contracts remain covered separately
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3311065Z SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:53: optional host skill is unavailable; repository contracts remain covered separately
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3312499Z SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:71: optional host skill is unavailable; repository contracts remain covered separately
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3313446Z SKIPPED [1] backend/tests/test_adhoc_query_hitrate_monitor.py:33: optional macOS host skills are unavailable
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:15.3313934Z 272 passed, 4 skipped, 1 warning in 92.80s (0:01:32)
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:16.2366990Z [bounded-pytest] group 1 rc=0 time=95.463s peak_rss_gb=0.50
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:16.2369406Z [bounded-pytest] group 2/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:44.8056059Z ........................................................................ [ 18%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:16:59.4760878Z ........................................................................ [ 36%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:17:26.7183711Z ........................................................................ [ 54%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:17:37.6606650Z ........................................................................ [ 73%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:17:42.5655087Z ........................................................................ [ 91%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5927754Z ..................................                                       [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5931777Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5932657Z 3.31s call     backend/tests/test_analytics_native_probe.py::test_parent_rejection_dies_under_validator_bypass
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5933568Z 3.04s call     backend/tests/test_analytics_native_probe.py::test_unknown_schema_and_illegal_facts_are_parent_rejections
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5934640Z 2.31s call     backend/tests/test_analytics_query_runtime.py::test_native_helper_real_worker_n30_n60_pending_and_reuse
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5935888Z 1.78s call     backend/tests/test_analytics_query_worker.py::test_owner_crash_never_adopts_pid_or_resends_query[SQL_ACTIVE]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5937214Z 1.73s call     backend/tests/test_analytics_query_worker.py::test_result_and_closed_without_process_exit_cannot_complete
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5938612Z 1.70s call     backend/tests/test_analytics_query_worker.py::test_worker_state_read_failure_stops_owned_child_without_raw_driver_error
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5939672Z 1.68s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[cancel]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5940439Z 1.67s call     backend/tests/test_analytics_query_native_fault.py::test_cancel_sql_hold_on_a_releases_worker_and_leaves_b_queued
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5941219Z 1.65s call     backend/tests/test_analytics_worker.py::test_owner_crash_never_adopts_pid_replays_sql_or_resets_original_budget[SQL_ACTIVE]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5942650Z 1.62s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[query_deadline]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:08.5943492Z 394 passed, 1 warning in 111.76s (0:01:51)
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:09.2089048Z [bounded-pytest] group 2 rc=0 time=112.971s peak_rss_gb=0.62
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:09.2090676Z [bounded-pytest] group 3/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:15.1475861Z sssssssss............................................................... [ 31%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:16.6299921Z ........................................ss.ss........................... [ 63%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:20.0000305Z .....................................................................ss. [ 95%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0484477Z ..........                                                               [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0487119Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0488277Z 1.90s call     backend/tests/test_check_sql_fstring_consistency.py::TestCheckSqlFStringConsistencyFixture::test_extended_default_scan_includes_scripts_etl
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0489084Z 1.10s call     backend/tests/test_check_channel_alias.py::test_all_backend_services_pass
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0489647Z 0.95s call     backend/tests/test_ci_cross_sprint_drift.py::test_check_drift_runs_and_exits_zero
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0490326Z 0.77s setup    backend/tests/test_assertions_thresholds.py::TestTotalDropThreshold::test_weekday_aware_threshold_no_alarm
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0491561Z 0.40s call     backend/tests/test_check_runner.py::test_runner_executes_without_optional_xdist_plugin
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0492145Z 0.11s call     backend/tests/test_branch_cleanup.py::test_apply_requires_exact_targets
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0492811Z 0.11s call     backend/tests/test_backup_duckdb.py::TestBackupDuckdbSprint625Retention::test_prune_deletes_zst_older_than_retention
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0493499Z 0.07s call     backend/tests/test_branch_cleanup.py::test_occupied_worktree_branch_is_refused
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0494019Z 0.06s call     backend/tests/test_branch_cleanup.py::test_unmerged_branch_is_refused
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0494639Z 0.06s call     backend/tests/test_branch_cleanup.py::test_apply_deletes_only_selected_merged_branch
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0497606Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0498720Z SKIPPED [1] backend/tests/test_api_integration.py:92: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0499748Z SKIPPED [1] backend/tests/test_api_integration.py:98: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0500512Z SKIPPED [1] backend/tests/test_api_integration.py:113: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0501203Z SKIPPED [1] backend/tests/test_api_integration.py:120: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0502078Z SKIPPED [1] backend/tests/test_api_integration.py:130: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0502674Z SKIPPED [1] backend/tests/test_api_integration.py:142: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0503109Z SKIPPED [1] backend/tests/test_api_integration.py:157: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0503534Z SKIPPED [1] backend/tests/test_api_integration.py:169: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0503960Z SKIPPED [1] backend/tests/test_api_integration.py:183: Database not found
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0504623Z SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:141: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0505515Z SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:165: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0506393Z SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:218: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0507261Z SKIPPED [1] backend/tests/test_category_overview_filter_builder.py:238: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0508161Z SKIPPED [1] backend/tests/test_churn_user_list_fstring.py:44: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0509106Z SKIPPED [1] backend/tests/test_churn_user_list_fstring.py:66: 生产 DuckDB 不可用 (CI / fresh checkout / data/processed/ 缺文件)
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.0509588Z 211 passed, 15 skipped, 1 warning in 11.25s
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.7853381Z [bounded-pytest] group 3 rc=0 time=12.576s peak_rss_gb=0.33
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:21.7857772Z [bounded-pytest] group 4/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:28.2871472Z ........................................................................ [ 25%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:29.4934670Z ........................................................................ [ 50%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:39.4658714Z ........................................................................ [ 75%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7269240Z .......................................................................  [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7272501Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7273584Z 5.04s call     backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[deadline]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7274376Z 2.08s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[True-True]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7275177Z 2.06s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[False-True]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7276202Z 2.02s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[True-False]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7276995Z 2.02s call     backend/tests/test_competition_compute_isolation.py::test_loaded_fixture_module_cannot_change_computation[False-False]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7277825Z 0.76s setup    backend/tests/test_ci_lfs_checkout.py::test_asset_consumers_checkout_lfs_without_persisting_credentials[lint.yml-b0-contract-build]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7278637Z 0.73s call     backend/tests/test_competition_diagnosis_cancel.py::test_cancel_is_durable_scoped_and_cannot_undo_publication
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7279383Z 0.67s call     backend/tests/test_competition_diagnosis_store.py::test_saved_result_survives_new_process_and_rejects_corruption
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7280118Z 0.38s call     backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[native]
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7281621Z 0.19s call     backend/tests/test_competition_diagnosis_store.py::test_http_computation_endorse_batch_and_frozen_reopen
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:49.7282212Z 287 passed, 1 warning in 27.67s
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:50.3998719Z [bounded-pytest] group 4 rc=0 time=28.614s peak_rss_gb=0.44
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:50.4002928Z [bounded-pytest] group 5/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:18:55.3709222Z ....................................................................s... [ 29%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:04.1293215Z ......................................s................................. [ 58%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:25.1240661Z ..........................................................s............. [ 87%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0655706Z .............................s.                                          [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0658391Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0659415Z 2.39s setup    backend/tests/test_e2e_root_fix_2026_07_19.py::TestE2eAuthTestModeBehavior::test_double_login_ok_in_test_mode
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0660670Z 1.61s setup    backend/tests/test_e2e_root_fix_2026_07_19.py::TestE2eAuthTestModeBehavior::test_reset_without_token_in_test_mode
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0662460Z 1.35s call     backend/tests/test_fixed_product_list_compare_sprint196.py::TestSprint196FixedProductListCompare::test_rows_match_archived_formula_on_synthetic_data
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0663981Z 1.32s call     backend/tests/test_competition_review_regressions.py::test_cancel_is_committed_across_process_exit
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0664671Z 1.31s call     backend/tests/test_duckdb_race_regression.py::test_concurrent_writes_30_workers_100_each_no_race
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0665620Z 1.01s call     backend/tests/test_fuqing_adhoc_mcp_server.py::TestMcpToolDispatch::test_run_daily_gsv_basic
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0666359Z 1.01s call     backend/tests/test_fuqing_adhoc_mcp_server.py::TestCliSubprocessLockRegression::test_cli_subcommand_help_recognized[ask]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0667217Z 1.00s call     backend/tests/test_fuqing_adhoc_mcp_server.py::TestCliSubprocessLockRegression::test_cli_subcommand_help_recognized[daily-gsv]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0668123Z 1.00s call     backend/tests/test_fuqing_adhoc_mcp_server.py::TestCliSubprocessLockRegression::test_cli_subcommand_help_recognized[two-year-overview]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0669016Z 1.00s call     backend/tests/test_fuqing_adhoc_mcp_server.py::TestCliSubprocessLockRegression::test_cli_subcommand_help_recognized[yoy-battle]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0669636Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0670262Z SKIPPED [1] backend/tests/test_distribution_filter_builder.py:130: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0671190Z SKIPPED [1] backend/tests/test_etl_sample_received_at.py:17: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0672023Z SKIPPED [1] backend/tests/test_fuqing_adhoc_mcp_server.py:644: ~/.workbuddy/.mcp.json 不存在 (WorkBuddy 没装)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0672769Z SKIPPED [1] backend/tests/test_governance_cleanup_2026_07_19.py:113: LaunchAgents is macOS-only
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.0673257Z 243 passed, 4 skipped, 1 deselected, 1 warning in 36.39s
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.9753795Z [bounded-pytest] group 5 rc=0 time=37.575s peak_rss_gb=0.48
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:27.9755926Z [bounded-pytest] group 6/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:43.9752929Z ........................................................................ [ 45%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:45.1401554Z ......sssss............................................................. [ 90%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6017489Z ............s..                                                          [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6019948Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6021694Z 4.15s call     backend/tests/test_hackathon_synthetic_generator.py::test_synthetic_scenario_preserves_relationship_and_channel_quality_contrast
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6023055Z 2.87s call     backend/tests/test_hackathon_synthetic_generator.py::test_same_seed_produces_same_business_content_hash
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6024108Z 1.30s call     backend/tests/test_l4_85_4_account_handoff.py::test_login_and_login_request_share_account_lockout
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6025032Z 1.05s call     backend/tests/test_hackathon_synthetic_generator.py::test_validator_rejects_pii_like_text
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6026171Z 0.96s call     backend/tests/test_hackathon_synthetic_generator.py::test_stable_user_id_links_relationship_and_cross_channel_orders
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6026936Z 0.95s call     backend/tests/test_hackathon_synthetic_generator.py::test_generator_creates_valid_synthetic_only_dataset
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6027762Z 0.94s call     backend/tests/test_hackathon_synthetic_generator.py::test_generator_refuses_silent_overwrite
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6028433Z 0.76s setup    backend/tests/test_ground_truth_frozen_plan.py::test_frozen_snapshot_requires_indexed_manifest_and_bytes
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6029159Z 0.52s call     backend/tests/test_l4_85_4_account_handoff.py::test_same_ip_retry_rotates_claim_and_refreshes_authoritative_ttl
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6030027Z 0.52s call     backend/tests/test_l4_85_2_login_both_paths.py::test_login_then_apply_after_logout
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6030790Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6032376Z SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:41: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6034029Z SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:53: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6035952Z SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:65: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6037576Z SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:77: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6039246Z SKIPPED [1] backend/tests/test_l4_75_3_notifications.py:95: CI runner 缺 production DuckDB 或 FQ_CRM_PASSWORDS (跟 L4.4 + L4.5 1:1 stable 永久规则化沿用)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6040884Z SKIPPED [1] backend/tests/test_l4_85_4_account_handoff.py:150: production DuckDB 不可用 (跟 L4.4 真连 DuckDB test skipif 1:1 stable 永久规则化沿用)
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:49.6042319Z 153 passed, 6 skipped, 6 deselected, 1 warning in 21.35s
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:50.2890910Z [bounded-pytest] group 6 rc=0 time=22.313s peak_rss_gb=0.27
+test	Run the same Python plan as local pre-push	2026-09-10T03:19:50.2893249Z [bounded-pytest] group 7/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:04.7537276Z ........................................................................ [ 35%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:11.4638570Z ........................................................................ [ 70%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6238486Z .....................................................s......             [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6240709Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6242077Z 4.13s setup    backend/tests/test_local_demo_access.py::test_anonymous_synthetic_chain_and_real_api_isolation
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6243109Z 4.06s setup    backend/tests/test_missions_api.py::test_mission_chain_from_today_to_draft_export
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6244186Z 2.63s call     backend/tests/test_rate_limit_sprint200.py::test_module_collection_preserves_external_rate_limit
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6245450Z 2.58s call     backend/tests/test_rate_limit_sprint200.py::TestRateLimitBasic::test_auth_endpoints_bypass_rate_limit
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6246617Z 0.76s setup    backend/tests/test_l4_85_4_stale_token_logout.py::test_logout_clears_all_user_tokens
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6247552Z 0.66s call     backend/tests/test_missions_api.py::test_main_app_registers_documented_mission_routes
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6248123Z 0.60s call     backend/tests/test_missions_api.py::test_mission_chain_from_today_to_draft_export
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6248664Z 0.52s call     backend/tests/test_l4_85_4_stale_token_logout.py::test_login_after_logout_works
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6249231Z 0.52s call     backend/tests/test_l4_85_6_cmd_q_token_evict.py::test_bug2_fix_beacon_a_cmdq_b_login_200
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6249809Z 0.52s call     backend/tests/test_l4_85_6_cmd_q_token_evict.py::test_bug2_reproduce_a_cmdq_b_login_409
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6252272Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6253402Z SKIPPED [1] backend/tests/test_read_write_splitting_sprint201.py:204: L4.53: snapshot 机制 Sprint 201 R2 已根除 (Read-Write Splitting 已够, ATTACH read_only 替代)
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:19.6254011Z 203 passed, 1 skipped, 1 warning in 29.06s
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:20.5206438Z [bounded-pytest] group 7 rc=0 time=30.231s peak_rss_gb=0.56
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:20.5212759Z [bounded-pytest] group 8/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:20:26.0321891Z ................................sss.............s..............sssssssss [ 46%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:27.9826292Z sssssss...sssssssssssssssssss........................................... [ 92%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6393434Z ...........s                                                             [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6395127Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6396014Z 51.73s call     backend/tests/test_security_p0_auth.py::test_random_username_flood_state_capacity_bounded
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6396935Z 4.68s call     backend/tests/test_sim_prod_etl.py::test_sim_prod_incremental_runs_with_new_rows
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6397513Z 1.94s call     backend/tests/test_sim_prod_etl.py::test_sim_prod_100_runs_idempotent_new_connection
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6398368Z 1.55s call     backend/tests/test_security_p0_auth.py::test_different_ip_does_not_lock_real_account_for_legit_ip
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6398965Z 1.30s call     backend/tests/test_security_p0_auth.py::test_login_request_shares_combo_lockout
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6399748Z 0.77s setup    backend/tests/test_repurchase_standard_filter_builder.py::TestRepurchaseStandardFilterBuilder::test_no_valid_sql_fstring_in_standard_source
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6400594Z 0.69s call     backend/tests/test_security_pr2_frontend.py::test_logout_openapi_declares_json_body_and_no_query_token
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6401215Z 0.54s call     backend/tests/test_security_pr2_frontend.py::test_config_history_requires_admin
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6402058Z 0.54s call     backend/tests/test_security_pr2_frontend.py::test_rfm_cache_invalidate_requires_admin
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6402646Z 0.53s call     backend/tests/test_security_pr2_frontend.py::test_config_audit_log_requires_admin
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6413834Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6414793Z SKIPPED [1] backend/tests/test_rfm_extended_sprint142.py:62: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6415794Z SKIPPED [1] backend/tests/test_rfm_extended_sprint142.py:82: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6416798Z SKIPPED [1] backend/tests/test_rfm_extended_sprint142.py:101: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6417698Z SKIPPED [1] backend/tests/test_rfm_flow_ttl_ratio.py:304: archived-data acceptance requires separately authorized FQ_TEST_ARCHIVE_DB
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6418480Z SKIPPED [5] backend/tests/test_sampling_level_aggregation_sprint142.py:59: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6419142Z SKIPPED [1] backend/tests/test_sampling_level_aggregation_sprint142.py:82: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6419781Z SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:61: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6420397Z SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:68: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6421031Z SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:75: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6421890Z SKIPPED [1] backend/tests/test_sampling_repurchase_distribution.py:85: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6422501Z SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:86: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6423128Z SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:102: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6423736Z SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:115: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6424337Z SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:144: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6424943Z SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:154: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6425559Z SKIPPED [1] backend/tests/test_sampling_repurchase_tracking.py:167: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6426123Z SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:64: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6426639Z SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:100: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6427147Z SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:175: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6427670Z SKIPPED [1] backend/tests/test_sampling_roi_yoy.py:184: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6428195Z SKIPPED [1] backend/tests/test_sampling_sprint139.py:18: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6428716Z SKIPPED [1] backend/tests/test_sampling_sprint139.py:43: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6429247Z SKIPPED [1] backend/tests/test_sampling_sprint139.py:69: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6429762Z SKIPPED [5] backend/tests/test_sampling_sprint140.py:18: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6430280Z SKIPPED [1] backend/tests/test_sampling_sprint140.py:46: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6430793Z SKIPPED [1] backend/tests/test_sampling_sprint140.py:63: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6431549Z SKIPPED [1] backend/tests/test_sampling_sprint141.py:23: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6432097Z SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:56: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6432659Z SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:67: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6433217Z SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:83: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6433789Z SKIPPED [1] backend/tests/test_sampling_ttl_aggregation.py:94: production DuckDB 不可用
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6434440Z SKIPPED [1] backend/tests/test_sim_prod_etl.py:295: CI 环境 DuckDB 并发锁行为不稳定 (15+ min 死锁), 本地验证 PASS
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:34.6434926Z 116 passed, 40 skipped, 2 deselected, 1 warning in 73.85s (0:01:13)
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:35.3269458Z [bounded-pytest] group 8 rc=0 time=74.805s peak_rss_gb=0.34
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:35.3273748Z [bounded-pytest] group 9/10: 25 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:40.7154059Z ....................ssss................................................ [ 24%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:48.9361946Z ...........ss...........s............................................... [ 48%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:21:51.6069054Z ........................................................................ [ 73%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.3868588Z ........................................................................ [ 97%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5136984Z ......                                                                   [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5140239Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5141079Z 9.65s call     backend/tests/test_status_update.py::test_pytest_output_change_adapts
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5142331Z 5.00s call     backend/tests/test_sprint202_r7_etl_uvicorn_lock.py::TestRunEtlBootoutWaitTimeout::test_max_wait_30s_timeout
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5143825Z 3.00s call     backend/tests/test_sprint202_r7_etl_uvicorn_lock.py::TestRunEtlBootoutSigtermFallback::test_sigterm_fallback_five_retries
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5144866Z 1.22s call     backend/tests/test_stack_ops_scripts.py::test_start_script_serves_frontend_from_frontend_root
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5145521Z 0.76s call     backend/tests/test_test_environment.py::test_cached_hashes_preserve_real_bcrypt_cost_and_passwords
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5146218Z 0.76s setup    backend/tests/test_skill_v2_7_eval.py::TestOrderIdsTwoYearOverview::test_service_signature_has_order_ids
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5146931Z 0.42s call     backend/tests/test_test_environment.py::test_test_collection_has_no_top_level_environment_mutations
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5147611Z 0.37s call     backend/tests/test_test_environment.py::test_plain_pytest_does_not_import_app_or_touch_previous_sessions
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5148265Z 0.25s call     backend/tests/test_tmp_duckdb_fixture_sprint193.py::test_tmp_duckdb_isolated_per_worker
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5148845Z 0.18s call     backend/tests/test_startup_validation.py::test_production_accepts_healthy_db
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5162070Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5162884Z SKIPPED [4] backend/tests/test_skill_v2_7_eval.py:43: L4.35 SKILL.md source path not found: /tmp/fq-check-fqh6tfnn/home/.claude/skills/ad-hoc-query/SKILL.md
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5163912Z SKIPPED [2] backend/tests/test_sprint202_r1_etl_perf.py:87: 生产 DuckDB 业务库不可用（缺失/空库/无 orders）
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5164761Z SKIPPED [1] backend/tests/test_sprint202_r7_etl_uvicorn_lock.py:451: darwin-only lsof/pgrep/launchctl path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:04.5165417Z 287 passed, 7 skipped in 28.92s
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:05.3843708Z [bounded-pytest] group 9 rc=0 time=30.056s peak_rss_gb=0.56
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:05.3847861Z [bounded-pytest] group 10/10: 18 files
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:14.7982971Z ........................................................................ [ 45%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:20.2427737Z .........s.............................................................. [ 91%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1523452Z .............s                                                           [100%]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1525279Z ============================= slowest 10 durations =============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1526163Z 1.39s setup    backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_manifest_info
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1527399Z 0.87s call     backend/tests/test_workbuddy_e2e.py::TestE2EScriptIntegration::test_e2e_script_exits_zero_with_pass
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1528730Z 0.82s call     backend/tests/test_workbuddy_e2e.py::TestDailyGsvMultiPeriodE2E::test_call_daily_gsv_multi_period_dispatches
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1529972Z 0.77s setup    backend/tests/test_w2_manifest.py::TestRfmVersionEndpoint::test_endpoint_returns_empty_when_no_manifest
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1530893Z 0.73s call     backend/tests/test_w4_fact_rfm.py::TestW4BatchInsert::test_w4_batch_insert_equivalent
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1531629Z 0.72s call     backend/tests/test_w4_fact_rfm.py::TestW4BatchInsert::test_w4_batch_perf
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1532300Z 0.50s call     backend/tests/test_w2_manifest.py::TestSnapshotManifestSIGKILL::test_sigkill_during_write_leaves_manifest_intact
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1533049Z 0.33s setup    backend/tests/test_w4_full.py::TestMergeReplaceLateArriving::test_merge_replace_idempotency
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1533683Z 0.33s setup    backend/tests/test_w4_full.py::TestEnumerateCombos::test_enumerate_combos_9_channels
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1534490Z 0.33s setup    backend/tests/test_w4_full.py::TestEnumerateCombos::test_enumerate_combos_60_items
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1534964Z =========================== short test summary info ============================
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1535481Z SKIPPED [1] backend/tests/test_w4_full.py:319: archived-data fixture requires explicit authorization/profile
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1536349Z SKIPPED [1] backend/tests/test_workbuddy_e2e.py:281: Codex CLI 未装, 跳过 (实际 WorkBuddy 调用 Codex)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.1536812Z 156 passed, 2 skipped, 62 deselected, 1 warning in 16.50s
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.8498818Z [bounded-pytest] group 10 rc=0 time=17.465s peak_rss_gb=0.40
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.8648053Z [bounded-pytest] report: /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.context/checks/20260910T031440742225Z/summary.json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.8748966Z [checks:tooling] /opt/hostedtoolcache/Python/3.14.7/x64/bin/python3 -m ruff check docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py scripts/competition-synth-http.py scripts/diagnostics/benchmark_competition_http.py scripts/run_backend_tests_bounded.py
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9056156Z E401 [*] Multiple imports on one line
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9056888Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py:2:1
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9057330Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9057523Z 1 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9057827Z 2 | import hashlib,json,shutil,sqlite3,subprocess,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9058158Z   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9058815Z 3 | repo=Path(__file__).resolve().parents[1];root=repo/'.context/uat-navigation-xlnfdit6'
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9059489Z 4 | out=repo/'docs/hackathon/evidence/uat-navigation-2026-09-10';out.mkdir(parents=True,exist_ok=True)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9060048Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9060298Z help: Split imports
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9060498Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9060681Z 1 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9061052Z   - import hashlib,json,shutil,sqlite3,subprocess,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9061684Z 2 + import hashlib
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9062028Z 3 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9062341Z 4 + import shutil
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9062661Z 5 + import sqlite3
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9063019Z 6 + import subprocess
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9063557Z 7 + import time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9064228Z 8 | repo=Path(__file__).resolve().parents[1];root=repo/'.context/uat-navigation-xlnfdit6'
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9064783Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9064928Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9065099Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9065852Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py:3:41
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9066513Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9066785Z 1 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9067148Z 2 | import hashlib,json,shutil,sqlite3,subprocess,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9067579Z 3 | repo=Path(__file__).resolve().parents[1];root=repo/'.context/uat-navigation-xlnfdit6'
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9067979Z   |                                         ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9068421Z 4 | out=repo/'docs/hackathon/evidence/uat-navigation-2026-09-10';out.mkdir(parents=True,exist_ok=True)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9068941Z 5 | def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9069263Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9069354Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9069480Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9069890Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py:4:61
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9070259Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9070498Z 2 | import hashlib,json,shutil,sqlite3,subprocess,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9070926Z 3 | repo=Path(__file__).resolve().parents[1];root=repo/'.context/uat-navigation-xlnfdit6'
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9071891Z 4 | out=repo/'docs/hackathon/evidence/uat-navigation-2026-09-10';out.mkdir(parents=True,exist_ok=True)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9072358Z   |                                                             ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9072717Z 5 | def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9073034Z 6 | def rows(db,sql):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9073232Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9073330Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9073439Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9073850Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py:7:75
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9074213Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9074461Z 5 | def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9074769Z 6 | def rows(db,sql):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9075173Z 7 |  with sqlite3.connect((root/'state'/db).as_uri()+'?mode=ro',uri=True) as c:return c.execute(sql).fetchall()
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9075647Z   |                                                                           ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9076158Z 8 | results=[json.loads(row[0]) for row in rows('diagnosis/diagnosis_results.sqlite3','select result_json from results')]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9076643Z 9 | assert len(results)==2
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9076858Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9076952Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9077076Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9077498Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py:34:26
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9077875Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9078647Z 32 | for f in ['uat-navigation-provider.mjs','uat-navigation-workspace.mjs','uat-navigation-browser.py','uat-navigation-edit.py','uat-navig…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9079253Z 33 |  shutil.copy2(repo/'.context'/f,out/f)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9079583Z 34 | screens=out/'screenshots';screens.mkdir(exist_ok=True)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9079894Z    |                          ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9080503Z 35 | for f in ['uat-entry-before.png','uat-board-choice-before.png','empty-before-controls.png','empty-final.png','board-all-evidence.png',…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9081111Z 36 |  if (root/f).exists():shutil.copy2(root/f,screens/f)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9081731Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9081841Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9081962Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9082373Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py:36:22
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9082749Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9082980Z 34 | screens=out/'screenshots';screens.mkdir(exist_ok=True)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9083777Z 35 | for f in ['uat-entry-before.png','uat-board-choice-before.png','empty-before-controls.png','empty-final.png','board-all-evidence.png',…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9084380Z 36 |  if (root/f).exists():shutil.copy2(root/f,screens/f)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9084666Z    |                      ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9085252Z 37 | for name in ['uat-entry-before-test','uat-navigation-pipeline','uat-navigation-final-pipeline','uat-navigation-evidence-dom','uat-navi…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9085905Z 38 |  shutil.copy2(repo/'.context'/(name+'.log'),out/(name+'.log'))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9086208Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9086307Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9086401Z E401 [*] Multiple imports on one line
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9086767Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:1:1
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9087129Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9087301Z 1 | import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9087501Z   | ^^^^^^^^^^^^^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9087713Z 2 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9088050Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9088377Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9088549Z help: Split imports
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9088738Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9088920Z   - import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9089120Z 1 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9089307Z 2 + import time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9089503Z 3 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9089789Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9089883Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9090006Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9090407Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:5:25
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9090766Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9091034Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9091786Z 4 | spec=spec_from_file_location('browser',Path(__file__).with_name('uat-navigation-browser.py'))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9092272Z 5 | b=module_from_spec(spec);spec.loader.exec_module(b)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9092571Z   |                         ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9092801Z 6 | events=[]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9093011Z 7 | def action(*args):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9093221Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9093324Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9093438Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9093841Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:8:24
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9094214Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9094387Z  6 | events=[]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9094575Z  7 | def action(*args):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9094818Z  8 |  start=time.monotonic();value=b.run(*args)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9095088Z    |                        ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9095482Z  9 |  events.append({'command':list(args),'seconds':round(time.monotonic()-start,3),'output':value})
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9096043Z 10 |  (b.root/'edit-actions.json').write_text(json.dumps(events,ensure_ascii=False,indent=2))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9096425Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9096527Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9096638Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9097026Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:16:32
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9097381Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9097561Z 14 |  while time.monotonic()<end:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9098188Z 15 |   state=b.js('({save:document.querySelector("[data-testid=sm-board-save]")?.disabled,hint:document.querySelector("[data-testid=sm-prev…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9098743Z 16 |   if state.get('save') is False:return
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9099009Z    |                                ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9099246Z 17 |   time.sleep(.1)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9099488Z 18 |  raise RuntimeError('preview missing')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9099740Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9099843Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9099955Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9100352Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:24:11
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9100720Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9101097Z 22 |  for kind,x,buttons in [('mousePressed',r['x'],1),('mouseMoved',r['x']+delta,1),('mouseReleased',r['x']+delta,0)]:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9102180Z 23 |   action('cdp','Input.dispatchMouseEvent',json.dumps({'type':kind,'x':x,'y':r['y'],'button':'left','buttons':buttons,'clickCount':1}))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9102712Z 24 |  settled();b.record(name+'-preview')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9102964Z    |           ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9103393Z 25 |  assert b.js('({disabled:document.querySelector(".sm-board-picker input[role=combobox]").disabled})')['disabled']
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9103921Z 26 |  action('click','[data-testid="sm-board-save"]')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9104204Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9104295Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9104413Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9104801Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:29:98
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9105160Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9105381Z 27 |  end=time.monotonic()+10
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9105738Z 28 |  while time.monotonic()<end:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9106195Z 29 |   if not b.js('({pending:!!document.querySelector("[data-testid=sm-preview-hint]")})')['pending']:break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9106702Z    |                                                                                                  ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9107011Z 30 |   time.sleep(.1)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9107247Z 31 |  else:raise RuntimeError('save pending')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9107522Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9107614Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9107806Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9108191Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py:31:6
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9108546Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9108912Z 29 |   if not b.js('({pending:!!document.querySelector("[data-testid=sm-preview-hint]")})')['pending']:break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9109369Z 30 |   time.sleep(.1)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9109613Z 31 |  else:raise RuntimeError('save pending')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9109896Z    |      ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9110085Z 32 |  b.record(name+'-saved')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9110525Z 33 | action('click','[data-testid="sm-saved-board-evidence"] summary')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9110856Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9110958Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9111055Z E401 [*] Multiple imports on one line
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9111664Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py:2:1
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9112055Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9112250Z 1 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9112504Z 2 | import json,subprocess,time,sys
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9112763Z   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9113016Z 3 | repo=Path(__file__).resolve().parents[1]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9113436Z 4 | root=Path(json.loads((repo/'.context/uat-navigation-current.json').read_text())['root'])
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9113830Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9114011Z help: Split imports
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9114204Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9114383Z 1 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9114618Z   - import json,subprocess,time,sys
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9114862Z 2 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9115060Z 3 + import subprocess
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9115256Z 4 + import time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9115437Z 5 + import sys
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9115644Z 6 | repo=Path(__file__).resolve().parents[1]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9115899Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9115986Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9116180Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9116586Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py:8:17
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9116988Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9117166Z  6 | def run(*args):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9117502Z  7 |  p=subprocess.run([b,*args],cwd=repo,text=True,capture_output=True,timeout=35)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9117938Z  8 |  if p.returncode:raise RuntimeError(p.stderr+p.stdout)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9118248Z    |                 ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9118458Z  9 |  return p.stdout
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9118697Z 10 | def js(code):return json.loads(run('js',code))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9118965Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9119061Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9119185Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9119728Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py:26:26
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9120124Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9120549Z 24 |   state=js('({busy:!!document.querySelector("button[aria-label=\\"Stop generating\\"]"),text:document.body.innerText})')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9121318Z 25 |   if count>before and not state['busy'] and ('UAT local fixture response' in state['text'] or 'History item 160:' in state['text']):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9122027Z 26 |    record(marker.lower());return
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9122293Z    |                          ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9122529Z 27 |   time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9122889Z 28 |  record(marker.lower()+'-timeout');raise RuntimeError('native turn did not settle')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9123263Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9123362Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9123479Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9123902Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py:28:35
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9124305Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9124485Z 26 |    record(marker.lower());return
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9124726Z 27 |   time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9125053Z 28 |  record(marker.lower()+'-timeout');raise RuntimeError('native turn did not settle')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9125437Z    |                                   ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9125747Z 29 | if __name__=='__main__':
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9126002Z 30 |  if sys.argv[1]=='record':record(sys.argv[2])
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9126262Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9126360Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9126472Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9126878Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py:30:26
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9127258Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9127550Z 28 |  record(marker.lower()+'-timeout');raise RuntimeError('native turn did not settle')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9127928Z 29 | if __name__=='__main__':
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9128181Z 30 |  if sys.argv[1]=='record':record(sys.argv[2])
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9128461Z    |                          ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9128722Z 31 |  elif sys.argv[1]=='prompt':prompt(sys.argv[2])
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9128995Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9129085Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9129201Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9129607Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py:31:28
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9129993Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9130176Z 29 | if __name__=='__main__':
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9130429Z 30 |  if sys.argv[1]=='record':record(sys.argv[2])
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9130734Z 31 |  elif sys.argv[1]=='prompt':prompt(sys.argv[2])
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9131013Z    |                            ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9131165Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9131270Z E401 [*] Multiple imports on one line
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9131867Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:1:1
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9132244Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9132428Z 1 | import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9132636Z   | ^^^^^^^^^^^^^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9132848Z 2 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9133177Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9133525Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9133722Z help: Split imports
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9133910Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9134079Z   - import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9134276Z 1 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9134461Z 2 + import time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9134666Z 3 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9134875Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9134968Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9135079Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9135482Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:5:25
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9135858Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9136121Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9136624Z 4 | spec=spec_from_file_location('browser',Path(__file__).with_name('uat-navigation-browser.py'))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9137183Z 5 | b=module_from_spec(spec);spec.loader.exec_module(b)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9137485Z   |                         ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9137698Z 6 | events=[]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9137888Z 7 | def action(*args):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9138085Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9138179Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9138299Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9138718Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:8:24
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9139089Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9139257Z  6 | events=[]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9139456Z  7 | def action(*args):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9139694Z  8 |  start=time.monotonic();value=b.run(*args)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9139961Z    |                        ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9140348Z  9 |  events.append({'command':list(args),'seconds':round(time.monotonic()-start,3),'output':value})
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9140918Z 10 |  (b.root/'edit-actions.json').write_text(json.dumps(events,ensure_ascii=False,indent=2))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9141310Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9141539Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9141685Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9142087Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:16:32
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9142468Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9142707Z 14 |  while time.monotonic()<end:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9143586Z 15 |   state=b.js('({save:document.querySelector("[data-testid=sm-board-save]")?.disabled,hint:document.querySelector("[data-testid=sm-prev…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9144300Z 16 |   if state.get('save') is False:return
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9144580Z    |                                ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9144818Z 17 |   time.sleep(.1)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9145051Z 18 |  raise RuntimeError('preview missing')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9145325Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9145432Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9145560Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9146005Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:23:11
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9146388Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9146605Z 21 |  action('click','[data-testid="sm-scope-block"]')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9146900Z 22 |  action('press',key)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9147132Z 23 |  settled();b.record(name+'-preview')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9147375Z    |           ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9147792Z 24 |  assert b.js('({disabled:document.querySelector(".sm-board-picker input[role=combobox]").disabled})')['disabled']
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9148325Z 25 |  action('click','[data-testid="sm-board-save"]')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9148593Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9148689Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9148795Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9149186Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:28:98
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9149562Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9149760Z 26 |  end=time.monotonic()+10
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9150000Z 27 |  while time.monotonic()<end:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9150424Z 28 |   if not b.js('({pending:!!document.querySelector("[data-testid=sm-preview-hint]")})')['pending']:break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9150926Z    |                                                                                                  ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9151227Z 29 |   time.sleep(.1)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9151634Z 30 |  else:raise RuntimeError('save pending')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9151922Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9152071Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9152226Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9152806Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py:30:6
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9153414Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9154061Z 28 |   if not b.js('({pending:!!document.querySelector("[data-testid=sm-preview-hint]")})')['pending']:break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9154800Z 29 |   time.sleep(.1)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9155152Z 30 |  else:raise RuntimeError('save pending')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9155640Z    |      ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9156025Z 31 |  b.record(name+'-saved')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9156700Z 32 | edit('.sm-drag-handle','Alt+ArrowRight','keyboard-move')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9157072Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9157231Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9157363Z E401 [*] Multiple imports on one line
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9158054Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:1:1
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9158517Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9158692Z 1 | import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9158899Z   | ^^^^^^^^^^^^^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9159117Z 2 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9159446Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9159777Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9159947Z help: Split imports
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9160161Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9160334Z   - import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9160533Z 1 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9160716Z 2 + import time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9160915Z 3 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9161135Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9161222Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9161524Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9162038Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:5:25
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9162423Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9162701Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9163223Z 4 | spec=spec_from_file_location('browser',Path(__file__).with_name('uat-navigation-browser.py'))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9163803Z 5 | b=module_from_spec(spec);spec.loader.exec_module(b)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9164097Z   |                         ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9164322Z 6 | checks=[]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9164561Z 7 | for width,height in [(1440,1000),(1024,900),(390,844)]:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9164835Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9164933Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9165049Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9165474Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:9:17
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9165856Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9166085Z  7 | for width,height in [(1440,1000),(1024,900),(390,844)]:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9166395Z  8 |  b.run('viewport',f'{width}x{height}')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9166749Z  9 |  b.run('reload');b.run('click','[data-testid="analytics-b0-open"]')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9167074Z    |                 ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9167339Z 10 |  b.run('wait','.sm-board-picker input:not(:disabled)')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9168069Z 11 |  b.js('({closed:(()=>{for(const d of document.querySelectorAll("dialog details"))d.open=false;document.querySelector("dialog").scrollT…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9168600Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9168694Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9168806Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9169223Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:21:32
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9169624Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9169816Z 19 |  for attempt in range(4):
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9170266Z 20 |   opened=b.js('({expanded:document.querySelector(".sm-board-picker input").getAttribute("aria-expanded")})')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9170759Z 21 |   if opened['expanded']=='true':break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9171036Z    |                                ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9171311Z 22 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9171826Z 23 |  else:raise RuntimeError('keyboard did not open picker')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9172126Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9172226Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9172351Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9172781Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:22:29
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9173169Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9173558Z 20 |   opened=b.js('({expanded:document.querySelector(".sm-board-picker input").getAttribute("aria-expanded")})')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9174054Z 21 |   if opened['expanded']=='true':break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9174341Z 22 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9174616Z    |                             ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9174906Z 23 |  else:raise RuntimeError('keyboard did not open picker')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9175783Z 24 |  state=b.js('({dialog:!!document.querySelector("dialog[open]"),width:document.querySelector("dialog").clientWidth,scroll:document.quer…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9176320Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9176424Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9176534Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9176943Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:23:6
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9177338Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9177540Z 21 |   if opened['expanded']=='true':break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9177830Z 22 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9178163Z 23 |  else:raise RuntimeError('keyboard did not open picker')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9178461Z    |      ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9178989Z 24 |  state=b.js('({dialog:!!document.querySelector("dialog[open]"),width:document.querySelector("dialog").clientWidth,scroll:document.quer…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9179847Z 25 |  assert state['dialog'] and state['width']==state['scroll'] and len(state['options'])==2 and all(x['inDialog'] for x in state['options…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9180352Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9180445Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9180556Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9180975Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:32:77
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9181493Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9182085Z 30 |   active=b.js('({text:document.getElementById(document.querySelector(".sm-board-picker input").getAttribute("aria-activedescendant"))?…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9182734Z 31 |   state['keyboard'].append(active)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9183101Z 32 |   if active['expanded']=='true' and '42e5261f' in (active.get('text') or ''):break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9183504Z    |                                                                             ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9183832Z 33 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9184190Z 34 |  else:raise RuntimeError('keyboard did not reach retail option')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9184527Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9184634Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9184751Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9185183Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:33:29
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9185567Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9185759Z 31 |   state['keyboard'].append(active)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9186165Z 32 |   if active['expanded']=='true' and '42e5261f' in (active.get('text') or ''):break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9186591Z 33 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9186870Z    |                             ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9187186Z 34 |  else:raise RuntimeError('keyboard did not reach retail option')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9187536Z 35 |  b.run('press','Enter');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9187804Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9187894Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9188007Z E701 Multiple statements on one line (colon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9188417Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:34:6
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9188803Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9189097Z 32 |   if active['expanded']=='true' and '42e5261f' in (active.get('text') or ''):break
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9189488Z 33 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9189838Z 34 |  else:raise RuntimeError('keyboard did not reach retail option')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9190154Z    |      ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9190361Z 35 |  b.run('press','Enter');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9190679Z 36 |  b.run('wait','[data-testid="sm-board-grid"] .sm-block')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9190965Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9191063Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9191181Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9191956Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py:35:24
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9192347Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9192561Z 33 |   b.run('press','ArrowDown');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9192953Z 34 |  else:raise RuntimeError('keyboard did not reach retail option')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9193418Z 35 |  b.run('press','Enter');time.sleep(.15)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9193679Z    |                        ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9193953Z 36 |  b.run('wait','[data-testid="sm-board-grid"] .sm-block')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9194702Z 37 |  state['after']=b.js('({selection:document.querySelector(".sm-board-picker .ant-select-selection-item").innerText,text:document.queryS…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9195251Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9195344Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9195445Z E401 [*] Multiple imports on one line
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9195807Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py:1:1
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9196167Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9196340Z 1 | import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9196541Z   | ^^^^^^^^^^^^^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9196751Z 2 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9197071Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9197411Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9197591Z help: Split imports
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9197780Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9197960Z   - import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9198166Z 1 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9198356Z 2 + import time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9198557Z 3 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9198775Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9198875Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9198979Z F401 [*] `time` imported but unused
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9199330Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py:1:13
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9199749Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9199919Z 1 | import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9200113Z   |             ^^^^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9200323Z 2 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9200646Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9200978Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9201175Z help: Remove unused import: `time`
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9201590Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9201864Z   - import json,time
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9202100Z 1 + import json
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9202297Z 2 | from pathlib import Path
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9202519Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9202605Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9202726Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9203106Z  --> docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py:5:25
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9203456Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9203722Z 3 | from importlib.util import spec_from_file_location,module_from_spec
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9204229Z 4 | spec=spec_from_file_location('browser',Path(__file__).with_name('uat-navigation-browser.py'))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9204706Z 5 | b=module_from_spec(spec);spec.loader.exec_module(b)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9204997Z   |                         ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9205212Z 6 | checks=[]
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9205447Z 7 | for width,height in [(1440,1000),(1024,900),(390,844)]:
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9205721Z   |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9205814Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9205928Z E702 Multiple statements on one line (semicolon)
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9206324Z   --> docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py:15:22
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9206687Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9206914Z 13 |  b.run('screenshot',str(b.root/f'picker-{width}.png'))
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9207334Z 14 |  # Native keyboard on the focused AntD input: choose the second authorized board.
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9207741Z 15 |  b.run('press','End');b.run('press','Enter')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9208018Z    |                      ^
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9208280Z 16 |  b.run('wait','[data-testid="sm-board-grid"] .sm-block')
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9208965Z 17 |  state['after']=b.js('({selection:document.querySelector(".sm-board-picker .ant-select-selection-item").innerText,text:document.queryS…
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9209503Z    |
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9209595Z 
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9209681Z Found 40 errors.
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9209897Z [*] 7 fixable with the `--fix` option.
+test	Run the same Python plan as local pre-push	2026-09-10T03:22:22.9219849Z ##[error]Process completed with exit code 1.
+merge-gate	Selected checks must not fail or cancel	﻿2026-09-10T03:22:29.1819669Z ##[group]Run echo "a selected check failed or was cancelled"
+merge-gate	Selected checks must not fail or cancel	2026-09-10T03:22:29.1821010Z ^[[36;1mecho "a selected check failed or was cancelled"^[[0m
+merge-gate	Selected checks must not fail or cancel	2026-09-10T03:22:29.1822030Z ^[[36;1mexit 1^[[0m
+merge-gate	Selected checks must not fail or cancel	2026-09-10T03:22:29.2537335Z shell: /usr/bin/bash -e {0}
+merge-gate	Selected checks must not fail or cancel	2026-09-10T03:22:29.2538202Z ##[endgroup]
+merge-gate	Selected checks must not fail or cancel	2026-09-10T03:22:29.2734343Z a selected check failed or was cancelled
+merge-gate	Selected checks must not fail or cancel	2026-09-10T03:22:29.2751057Z ##[error]Process completed with exit code 1.

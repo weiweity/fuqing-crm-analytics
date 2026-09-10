@@ -1,0 +1,51 @@
+{
+  "url": "http://127.0.0.1:4325/",
+  "panel": "competition-board",
+  "dialog": true,
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "error": null,
+  "board_options": [
+    {
+      "text": "8月GSV诊断板 · a3ef84de",
+      "title": "8月GSV诊断板 · a3ef84de"
+    },
+    {
+      "text": "8月GSV诊断板 · 2a1819a7",
+      "title": "8月GSV诊断板 · 2a1819a7"
+    }
+  ],
+  "artifact": {
+    "assets": [
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "characters": 4420912,
+        "exactPluginCode": true
+      },
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "characters": 18649,
+        "exactPluginCode": false
+      }
+    ],
+    "matched": true
+  },
+  "assets_equal": true,
+  "boards": 2,
+  "results": 3,
+  "dsh_pid": 10843,
+  "api_pid": 23661,
+  "console_error_paths": [
+    "/b0/assets",
+    "/b0/assets"
+  ],
+  "source_head": "2dae78d4da6741162732401ea3b0827a7dce073c",
+  "validation_head": "cde6a81ef332414fda815076576f7fb795b37082",
+  "ci_run": 34435439275,
+  "client_sha256": "5d4ba5535dd6882c52a1942a02036b73d1b8c220316c123d133a6f7a3787e3a2",
+  "previous_client_sha256": "2e10270eb957dee97d3fe7743202a4f6178da8b30b74f6e1589527707ba7949e",
+  "public_ca_path": "/etc/ssl/cert.pem",
+  "rollback_exercised": false,
+  "assets_comparison_timing": "before subsequent real A2/B computations"
+}

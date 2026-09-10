@@ -17,6 +17,7 @@ test('native dev brand extension serves verified local assets', async () => {
       assert.equal(rows[0].kind, 'style');
       assert.match(rows[0].text, /\/b0\/brand\/logo\.png/);
       assert.match(rows[0].text, /Outfit/);
+      assert.doesNotMatch(rows[0].text, /color-scheme\s*:/, 'native theme preference owns color scheme');
     },
     webServer: { register(route) { routes.set(route.path, route); return () => routes.delete(route.path); } },
   });

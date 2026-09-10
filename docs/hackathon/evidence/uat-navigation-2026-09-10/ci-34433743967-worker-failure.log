@@ -1,0 +1,625 @@
+2026-09-10T03:33:05.9579686Z Current runner version: '2.337.0'
+2026-09-10T03:33:05.9606609Z ##[group]Runner Image Provisioner
+2026-09-10T03:33:05.9607572Z Hosted Compute Agent
+2026-09-10T03:33:05.9608293Z Version: 20260828.587
+2026-09-10T03:33:05.9608962Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-10T03:33:05.9609947Z Build Date: 2026-08-28T16:44:25Z
+2026-09-10T03:33:05.9610724Z Worker ID: {56961c91-c80f-49f4-8a5c-9e1a84b0f9b4}
+2026-09-10T03:33:05.9611477Z Azure Region: westus3
+2026-09-10T03:33:05.9612130Z ##[endgroup]
+2026-09-10T03:33:05.9613541Z ##[group]Operating System
+2026-09-10T03:33:05.9614184Z Ubuntu
+2026-09-10T03:33:05.9614870Z 24.04.4
+2026-09-10T03:33:05.9615460Z LTS
+2026-09-10T03:33:05.9616064Z ##[endgroup]
+2026-09-10T03:33:05.9616643Z ##[group]Runner Image
+2026-09-10T03:33:05.9617272Z Image: ubuntu-24.04
+2026-09-10T03:33:05.9617980Z Version: 20260831.293.1
+2026-09-10T03:33:05.9619534Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260831.293/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-10T03:33:05.9621305Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260831.293
+2026-09-10T03:33:05.9622305Z ##[endgroup]
+2026-09-10T03:33:05.9623605Z ##[group]GITHUB_TOKEN Permissions
+2026-09-10T03:33:05.9625584Z Contents: read
+2026-09-10T03:33:05.9626354Z Metadata: read
+2026-09-10T03:33:05.9626963Z ##[endgroup]
+2026-09-10T03:33:05.9629172Z Secret source: Actions
+2026-09-10T03:33:05.9630427Z Cache mode: write
+2026-09-10T03:33:05.9631203Z Prepare workflow directory
+2026-09-10T03:33:06.0070758Z Prepare all required actions
+2026-09-10T03:33:06.0117724Z Getting action download info
+2026-09-10T03:33:06.3149943Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-09-10T03:33:06.4317912Z Download action repository 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97' (SHA:5fda3b95a4ea91299a34e894583c3862153e4b97)
+2026-09-10T03:33:06.5254868Z Download action repository 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+2026-09-10T03:33:06.6997666Z Complete job name: test
+2026-09-10T03:33:06.7764952Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-09-10T03:33:06.7765973Z with:
+2026-09-10T03:33:06.7766428Z   persist-credentials: false
+2026-09-10T03:33:06.7766998Z   repository: weiweity/fuqing-crm-analytics
+2026-09-10T03:33:06.7771420Z   token: ***
+2026-09-10T03:33:06.7771863Z   ssh-strict: true
+2026-09-10T03:33:06.7772316Z   ssh-user: git
+2026-09-10T03:33:06.7772744Z   clean: true
+2026-09-10T03:33:06.7773194Z   sparse-checkout-cone-mode: true
+2026-09-10T03:33:06.7773725Z   fetch-depth: 1
+2026-09-10T03:33:06.7774162Z   fetch-tags: false
+2026-09-10T03:33:06.7774612Z   show-progress: true
+2026-09-10T03:33:06.7775057Z   lfs: false
+2026-09-10T03:33:06.7775475Z   submodules: false
+2026-09-10T03:33:06.7775922Z   set-safe-directory: true
+2026-09-10T03:33:06.7776429Z   allow-unsafe-pr-checkout: false
+2026-09-10T03:33:06.7777208Z env:
+2026-09-10T03:33:06.7777627Z   FQ_CRM_ADMINS: admin
+2026-09-10T03:33:06.7778080Z ##[endgroup]
+2026-09-10T03:33:06.8774526Z Syncing repository: weiweity/fuqing-crm-analytics
+2026-09-10T03:33:06.8776467Z ##[group]Getting Git version info
+2026-09-10T03:33:06.8777578Z Working directory is '/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics'
+2026-09-10T03:33:06.8778760Z [command]/usr/bin/git version
+2026-09-10T03:33:06.8865083Z git version 2.55.0
+2026-09-10T03:33:06.8886161Z ##[endgroup]
+2026-09-10T03:33:06.8899974Z Temporarily overriding HOME='/home/runner/work/_temp/b45a6545-1e9f-4ca8-923c-85469e999da1' before making global git config changes
+2026-09-10T03:33:06.8902424Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-10T03:33:06.8909015Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics
+2026-09-10T03:33:06.8958286Z Deleting the contents of '/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics'
+2026-09-10T03:33:06.8962087Z ##[group]Determining repository object format
+2026-09-10T03:33:06.8963750Z ##[endgroup]
+2026-09-10T03:33:06.8964612Z ##[group]Initializing the repository
+2026-09-10T03:33:06.8969377Z [command]/usr/bin/git init /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics
+2026-09-10T03:33:06.9088559Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-10T03:33:06.9090814Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-10T03:33:06.9092503Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-10T03:33:06.9093621Z hint: call:
+2026-09-10T03:33:06.9094085Z hint:
+2026-09-10T03:33:06.9094685Z hint: 	git config --global init.defaultBranch <name>
+2026-09-10T03:33:06.9095558Z hint:
+2026-09-10T03:33:06.9096474Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-10T03:33:06.9097514Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-10T03:33:06.9098353Z hint:
+2026-09-10T03:33:06.9098826Z hint: 	git branch -m <name>
+2026-09-10T03:33:06.9099623Z hint:
+2026-09-10T03:33:06.9100307Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-10T03:33:06.9101505Z Initialized empty Git repository in /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git/
+2026-09-10T03:33:06.9104960Z [command]/usr/bin/git remote add origin https://github.com/weiweity/fuqing-crm-analytics
+2026-09-10T03:33:06.9158616Z ##[endgroup]
+2026-09-10T03:33:06.9159546Z ##[group]Disabling automatic garbage collection
+2026-09-10T03:33:06.9162707Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-10T03:33:06.9195865Z ##[endgroup]
+2026-09-10T03:33:06.9197058Z ##[group]Setting up auth
+2026-09-10T03:33:06.9197946Z Removing SSH command configuration
+2026-09-10T03:33:06.9201812Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-10T03:33:06.9240490Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-10T03:33:06.9625007Z Removing HTTP extra header
+2026-09-10T03:33:06.9628447Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-10T03:33:06.9669198Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-10T03:33:06.9917839Z Removing includeIf entries pointing to credentials config files
+2026-09-10T03:33:06.9924562Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-10T03:33:06.9968290Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-10T03:33:07.0230648Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-10T03:33:07.0274483Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git.path /home/runner/work/_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:07.0311730Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:07.0352541Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:07.0390158Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:07.0424833Z ##[endgroup]
+2026-09-10T03:33:07.0425987Z ##[group]Fetching the repository
+2026-09-10T03:33:07.0432825Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +dc9359905546d97ec6a5ace3373da07e81b69a99:refs/remotes/pull/115/merge
+2026-09-10T03:33:08.5178753Z From https://github.com/weiweity/fuqing-crm-analytics
+2026-09-10T03:33:08.5180913Z  * [new ref]         dc9359905546d97ec6a5ace3373da07e81b69a99 -> pull/115/merge
+2026-09-10T03:33:08.5185256Z ##[endgroup]
+2026-09-10T03:33:08.5186925Z ##[group]Determining the checkout info
+2026-09-10T03:33:08.5188693Z ##[endgroup]
+2026-09-10T03:33:08.5190044Z [command]/usr/bin/git sparse-checkout disable
+2026-09-10T03:33:08.5247549Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-10T03:33:08.5290195Z ##[group]Checking out the ref
+2026-09-10T03:33:08.5291593Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/115/merge
+2026-09-10T03:33:09.2221112Z Note: switching to 'refs/remotes/pull/115/merge'.
+2026-09-10T03:33:09.2221791Z 
+2026-09-10T03:33:09.2222294Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-09-10T03:33:09.2223200Z changes and commit them, and you can discard any commits you make in this
+2026-09-10T03:33:09.2224168Z state without impacting any branches by switching back to a branch.
+2026-09-10T03:33:09.2224728Z 
+2026-09-10T03:33:09.2225149Z If you want to create a new branch to retain commits you create, you may
+2026-09-10T03:33:09.2227986Z do so (now or later) by using -c with the switch command. Example:
+2026-09-10T03:33:09.2228513Z 
+2026-09-10T03:33:09.2228741Z   git switch -c <new-branch-name>
+2026-09-10T03:33:09.2229075Z 
+2026-09-10T03:33:09.2229479Z Or undo this operation with:
+2026-09-10T03:33:09.2229779Z 
+2026-09-10T03:33:09.2229952Z   git switch -
+2026-09-10T03:33:09.2230232Z 
+2026-09-10T03:33:09.2230691Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-09-10T03:33:09.2231302Z 
+2026-09-10T03:33:09.2232236Z HEAD is now at dc93599 Merge 18dfc582c8a13c41c48141e7f7380ba3bdfcebcf into 788b5b108fed22526805248a86f310ef7602cc6e
+2026-09-10T03:33:09.2624642Z ##[endgroup]
+2026-09-10T03:33:09.2675342Z [command]/usr/bin/git log -1 --format=%H
+2026-09-10T03:33:09.2707154Z dc9359905546d97ec6a5ace3373da07e81b69a99
+2026-09-10T03:33:09.2717303Z ##[group]Removing auth
+2026-09-10T03:33:09.2717824Z Removing SSH command configuration
+2026-09-10T03:33:09.2721325Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-10T03:33:09.2758192Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-10T03:33:09.3002234Z Removing HTTP extra header
+2026-09-10T03:33:09.3005664Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-10T03:33:09.3045898Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-10T03:33:09.3294028Z Removing includeIf entries pointing to credentials config files
+2026-09-10T03:33:09.3297049Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-10T03:33:09.3330608Z includeif.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git.path
+2026-09-10T03:33:09.3407808Z includeif.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git/worktrees/*.path
+2026-09-10T03:33:09.3408552Z includeif.gitdir:/github/workspace/.git.path
+2026-09-10T03:33:09.3409083Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-10T03:33:09.3411037Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git.path
+2026-09-10T03:33:09.3412013Z /home/runner/work/_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:09.3415371Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-87683ee1\-cf38\-4f3f\-ab5a\-ce0324a27648\.config
+2026-09-10T03:33:09.3421781Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git/worktrees/*.path
+2026-09-10T03:33:09.3479411Z /home/runner/work/_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:09.3487412Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-87683ee1\-cf38\-4f3f\-ab5a\-ce0324a27648\.config
+2026-09-10T03:33:09.3527667Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-09-10T03:33:09.3560911Z /github/runner_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:09.3570398Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-87683ee1\-cf38\-4f3f\-ab5a\-ce0324a27648\.config
+2026-09-10T03:33:09.3607041Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-10T03:33:09.3635692Z /github/runner_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config
+2026-09-10T03:33:09.3690610Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-87683ee1\-cf38\-4f3f\-ab5a\-ce0324a27648\.config
+2026-09-10T03:33:09.3731392Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-10T03:33:09.3971245Z Removing credentials config '/home/runner/work/_temp/git-credentials-87683ee1-cf38-4f3f-ab5a-ce0324a27648.config'
+2026-09-10T03:33:09.3978929Z ##[endgroup]
+2026-09-10T03:33:09.4230555Z ##[group]Run actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+2026-09-10T03:33:09.4231037Z with:
+2026-09-10T03:33:09.4231308Z   python-version: 3.14
+2026-09-10T03:33:09.4231585Z   cache: pip
+2026-09-10T03:33:09.4231888Z   cache-dependency-path: requirements-lock.txt
+2026-09-10T03:33:09.4232244Z   check-latest: false
+2026-09-10T03:33:09.4235307Z   token: ***
+2026-09-10T03:33:09.4235576Z   update-environment: true
+2026-09-10T03:33:09.4235879Z   allow-prereleases: false
+2026-09-10T03:33:09.4236166Z   freethreaded: false
+2026-09-10T03:33:09.4236435Z env:
+2026-09-10T03:33:09.4236679Z   FQ_CRM_ADMINS: admin
+2026-09-10T03:33:09.4236942Z ##[endgroup]
+2026-09-10T03:33:09.5433209Z ##[group]Installed versions
+2026-09-10T03:33:09.5525869Z Successfully set up CPython (3.14.7)
+2026-09-10T03:33:09.5526922Z ##[endgroup]
+2026-09-10T03:33:09.5831531Z [command]/opt/hostedtoolcache/Python/3.14.7/x64/bin/pip cache dir
+2026-09-10T03:33:09.8882542Z /home/runner/.cache/pip
+2026-09-10T03:33:10.1214481Z Cache hit for: setup-python-Linux-x64-24.04-Ubuntu-python-3.14.7-pip-082ed0a0d5fb7ef674e1f2e2e58bc864e116752631601437f9cc4629f1c71af9
+2026-09-10T03:33:11.3642941Z Received 25165824 of 161458250 (15.6%), 24.0 MBs/sec
+2026-09-10T03:33:12.3300810Z Received 161458250 of 161458250 (100.0%), 78.3 MBs/sec
+2026-09-10T03:33:12.3301920Z Cache Size: ~154 MB (161458250 B)
+2026-09-10T03:33:12.3405567Z [command]/usr/bin/tar -xf /home/runner/work/_temp/807cbf9e-7d80-4f38-ae26-f5f6e248a75c/cache.tzst -P -C /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics --use-compress-program unzstd
+2026-09-10T03:33:12.5720222Z Cache restored successfully
+2026-09-10T03:33:12.5810980Z Cache restored from key: setup-python-Linux-x64-24.04-Ubuntu-python-3.14.7-pip-082ed0a0d5fb7ef674e1f2e2e58bc864e116752631601437f9cc4629f1c71af9
+2026-09-10T03:33:12.5994254Z ##[group]Run pip install -r requirements-lock.txt
+2026-09-10T03:33:12.5994782Z pip install -r requirements-lock.txt
+2026-09-10T03:33:12.6042070Z shell: /usr/bin/bash -e {0}
+2026-09-10T03:33:12.6042393Z env:
+2026-09-10T03:33:12.6042655Z   FQ_CRM_ADMINS: admin
+2026-09-10T03:33:12.6042987Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:12.6043456Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+2026-09-10T03:33:12.6043931Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:12.6044341Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:12.6044740Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:12.6045133Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+2026-09-10T03:33:12.6045480Z ##[endgroup]
+2026-09-10T03:33:13.2814670Z Collecting annotated-doc==0.0.4 (from -r requirements-lock.txt (line 8))
+2026-09-10T03:33:13.2829039Z   Using cached annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+2026-09-10T03:33:13.3008408Z Collecting annotated-types==0.7.0 (from -r requirements-lock.txt (line 9))
+2026-09-10T03:33:13.3021149Z   Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+2026-09-10T03:33:13.3241432Z Collecting anyio==4.13.0 (from -r requirements-lock.txt (line 10))
+2026-09-10T03:33:13.3263573Z   Using cached anyio-4.13.0-py3-none-any.whl.metadata (4.5 kB)
+2026-09-10T03:33:13.3801946Z Collecting bcrypt==5.0.0 (from -r requirements-lock.txt (line 11))
+2026-09-10T03:33:13.3815827Z   Using cached bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl.metadata (10 kB)
+2026-09-10T03:33:13.4020276Z Collecting certifi==2026.2.25 (from -r requirements-lock.txt (line 12))
+2026-09-10T03:33:13.4032922Z   Using cached certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+2026-09-10T03:33:13.4939000Z Collecting cffi==2.0.0 (from -r requirements-lock.txt (line 13))
+2026-09-10T03:33:13.4954264Z   Using cached cffi-2.0.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+2026-09-10T03:33:13.5288842Z Collecting chardet==7.4.3 (from -r requirements-lock.txt (line 14))
+2026-09-10T03:33:13.5301256Z   Using cached chardet-7.4.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (9.4 kB)
+2026-09-10T03:33:13.6326588Z Collecting charset-normalizer==3.4.7 (from -r requirements-lock.txt (line 15))
+2026-09-10T03:33:13.6341183Z   Using cached charset_normalizer-3.4.7-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+2026-09-10T03:33:13.6556404Z Collecting click==8.3.3 (from -r requirements-lock.txt (line 16))
+2026-09-10T03:33:13.6568972Z   Using cached click-8.3.3-py3-none-any.whl.metadata (2.6 kB)
+2026-09-10T03:33:13.8441075Z Collecting duckdb==1.5.3 (from -r requirements-lock.txt (line 17))
+2026-09-10T03:33:13.8455470Z   Using cached duckdb-1.5.3-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (4.2 kB)
+2026-09-10T03:33:13.8611416Z Collecting et_xmlfile==2.0.0 (from -r requirements-lock.txt (line 18))
+2026-09-10T03:33:13.8622453Z   Using cached et_xmlfile-2.0.0-py3-none-any.whl.metadata (2.7 kB)
+2026-09-10T03:33:13.8972594Z Collecting fastapi==0.136.1 (from -r requirements-lock.txt (line 19))
+2026-09-10T03:33:13.8984932Z   Using cached fastapi-0.136.1-py3-none-any.whl.metadata (28 kB)
+2026-09-10T03:33:13.9168338Z Collecting h11==0.16.0 (from -r requirements-lock.txt (line 20))
+2026-09-10T03:33:13.9181226Z   Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+2026-09-10T03:33:13.9397916Z Collecting httpcore==1.0.9 (from -r requirements-lock.txt (line 21))
+2026-09-10T03:33:13.9413563Z   Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+2026-09-10T03:33:13.9650982Z Collecting httpx==0.28.1 (from -r requirements-lock.txt (line 22))
+2026-09-10T03:33:13.9662939Z   Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+2026-09-10T03:33:13.9839978Z Collecting idna==3.15 (from -r requirements-lock.txt (line 23))
+2026-09-10T03:33:13.9851680Z   Using cached idna-3.15-py3-none-any.whl.metadata (7.7 kB)
+2026-09-10T03:33:14.0002920Z Collecting iniconfig==2.3.0 (from -r requirements-lock.txt (line 24))
+2026-09-10T03:33:14.0014098Z   Using cached iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+2026-09-10T03:33:14.0207871Z Collecting Jinja2==3.1.6 (from -r requirements-lock.txt (line 25))
+2026-09-10T03:33:14.0219047Z   Using cached jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+2026-09-10T03:33:14.0669021Z Collecting MarkupSafe==3.0.3 (from -r requirements-lock.txt (line 26))
+2026-09-10T03:33:14.0683923Z   Using cached markupsafe-3.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+2026-09-10T03:33:14.2377290Z Collecting numpy==2.4.4 (from -r requirements-lock.txt (line 27))
+2026-09-10T03:33:14.2391208Z   Using cached numpy-2.4.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+2026-09-10T03:33:14.2576871Z Collecting openpyxl==3.1.5 (from -r requirements-lock.txt (line 28))
+2026-09-10T03:33:14.2590114Z   Using cached openpyxl-3.1.5-py2.py3-none-any.whl.metadata (2.5 kB)
+2026-09-10T03:33:14.2774634Z Collecting packaging==26.1 (from -r requirements-lock.txt (line 29))
+2026-09-10T03:33:14.2785771Z   Using cached packaging-26.1-py3-none-any.whl.metadata (3.5 kB)
+2026-09-10T03:33:14.3774718Z Collecting pandas==3.0.2 (from -r requirements-lock.txt (line 30))
+2026-09-10T03:33:14.3789149Z   Using cached pandas-3.0.2-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+2026-09-10T03:33:14.4126446Z Collecting pluggy==1.6.0 (from -r requirements-lock.txt (line 31))
+2026-09-10T03:33:14.4138400Z   Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+2026-09-10T03:33:14.4731364Z Collecting psutil==7.2.2 (from -r requirements-lock.txt (line 32))
+2026-09-10T03:33:14.4746062Z   Using cached psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl.metadata (22 kB)
+2026-09-10T03:33:14.5576411Z Collecting pyarrow==24.0.0 (from -r requirements-lock.txt (line 33))
+2026-09-10T03:33:14.5590397Z   Using cached pyarrow-24.0.0-cp314-cp314-manylinux_2_28_x86_64.whl.metadata (3.0 kB)
+2026-09-10T03:33:14.5744982Z Collecting pycparser==3.0 (from -r requirements-lock.txt (line 34))
+2026-09-10T03:33:14.5756919Z   Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+2026-09-10T03:33:14.6963186Z Collecting pydantic==2.13.5 (from -r requirements-lock.txt (line 35))
+2026-09-10T03:33:14.6977049Z   Using cached pydantic-2.13.5-py3-none-any.whl.metadata (110 kB)
+2026-09-10T03:33:15.3876342Z Collecting pydantic_core==2.46.5 (from -r requirements-lock.txt (line 36))
+2026-09-10T03:33:15.3890559Z   Using cached pydantic_core-2.46.5-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.6 kB)
+2026-09-10T03:33:15.4154002Z Collecting pytest==9.0.3 (from -r requirements-lock.txt (line 37))
+2026-09-10T03:33:15.4166553Z   Using cached pytest-9.0.3-py3-none-any.whl.metadata (7.6 kB)
+2026-09-10T03:33:15.4352581Z Collecting python-dateutil==2.9.0.post0 (from -r requirements-lock.txt (line 38))
+2026-09-10T03:33:15.4364017Z   Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+2026-09-10T03:33:15.4531069Z Collecting python-docx==1.2.0 (from -r requirements-lock.txt (line 39))
+2026-09-10T03:33:15.4542651Z   Using cached python_docx-1.2.0-py3-none-any.whl.metadata (2.0 kB)
+2026-09-10T03:33:15.4723435Z Collecting python-dotenv==1.2.3 (from -r requirements-lock.txt (line 40))
+2026-09-10T03:33:15.4735669Z   Using cached python_dotenv-1.2.3-py3-none-any.whl.metadata (29 kB)
+2026-09-10T03:33:15.4922574Z Collecting python-multipart==0.0.31 (from -r requirements-lock.txt (line 41))
+2026-09-10T03:33:15.4934433Z   Using cached python_multipart-0.0.31-py3-none-any.whl.metadata (2.1 kB)
+2026-09-10T03:33:15.5099896Z Collecting python-pptx==1.0.2 (from -r requirements-lock.txt (line 42))
+2026-09-10T03:33:15.5113852Z   Using cached python_pptx-1.0.2-py3-none-any.whl.metadata (2.5 kB)
+2026-09-10T03:33:15.5469140Z Collecting PyYAML==6.0.2 (from -r requirements-lock.txt (line 43))
+2026-09-10T03:33:15.5470073Z   Using cached pyyaml-6.0.2-cp314-cp314-linux_x86_64.whl
+2026-09-10T03:33:15.5741752Z Collecting requests==2.33.1 (from -r requirements-lock.txt (line 44))
+2026-09-10T03:33:15.5754427Z   Using cached requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+2026-09-10T03:33:15.8600637Z Collecting ruff==0.16.6 (from -r requirements-lock.txt (line 45))
+2026-09-10T03:33:15.8615290Z   Using cached ruff-0.16.6-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (26 kB)
+2026-09-10T03:33:15.9280590Z Collecting setuptools==83.0.0 (from -r requirements-lock.txt (line 46))
+2026-09-10T03:33:15.9294513Z   Using cached setuptools-83.0.0-py3-none-any.whl.metadata (6.6 kB)
+2026-09-10T03:33:15.9498105Z Collecting six==1.17.0 (from -r requirements-lock.txt (line 47))
+2026-09-10T03:33:15.9510207Z   Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+2026-09-10T03:33:15.9749085Z Collecting starlette==1.3.1 (from -r requirements-lock.txt (line 48))
+2026-09-10T03:33:15.9761607Z   Using cached starlette-1.3.1-py3-none-any.whl.metadata (6.4 kB)
+2026-09-10T03:33:15.9921772Z Collecting typing-inspection==0.4.2 (from -r requirements-lock.txt (line 49))
+2026-09-10T03:33:15.9934086Z   Using cached typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+2026-09-10T03:33:16.0154973Z Collecting typing_extensions==4.16.0 (from -r requirements-lock.txt (line 50))
+2026-09-10T03:33:16.0167807Z   Using cached typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+2026-09-10T03:33:16.0396808Z Collecting urllib3==2.7.0 (from -r requirements-lock.txt (line 51))
+2026-09-10T03:33:16.0408876Z   Using cached urllib3-2.7.0-py3-none-any.whl.metadata (6.9 kB)
+2026-09-10T03:33:16.0673035Z Collecting uvicorn==0.47.0 (from -r requirements-lock.txt (line 52))
+2026-09-10T03:33:16.0685546Z   Using cached uvicorn-0.47.0-py3-none-any.whl.metadata (6.7 kB)
+2026-09-10T03:33:16.0892620Z Collecting wheel==0.46.3 (from -r requirements-lock.txt (line 53))
+2026-09-10T03:33:16.0904693Z   Using cached wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+2026-09-10T03:33:16.1225749Z Collecting xlsxwriter==3.2.9 (from -r requirements-lock.txt (line 54))
+2026-09-10T03:33:16.1237885Z   Using cached xlsxwriter-3.2.9-py3-none-any.whl.metadata (2.7 kB)
+2026-09-10T03:33:16.2403132Z Collecting xxhash==3.7.0 (from -r requirements-lock.txt (line 55))
+2026-09-10T03:33:16.2417395Z   Using cached xxhash-3.7.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+2026-09-10T03:33:16.2870695Z Collecting pygments>=2.7.2 (from pytest==9.0.3->-r requirements-lock.txt (line 37))
+2026-09-10T03:33:16.2883021Z   Using cached pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+2026-09-10T03:33:16.4970891Z Collecting lxml>=3.1.0 (from python-docx==1.2.0->-r requirements-lock.txt (line 39))
+2026-09-10T03:33:16.4985988Z   Using cached lxml-6.1.3-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.3 kB)
+2026-09-10T03:33:16.6697877Z Collecting Pillow>=3.3.2 (from python-pptx==1.0.2->-r requirements-lock.txt (line 42))
+2026-09-10T03:33:16.6712272Z   Using cached pillow-12.3.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+2026-09-10T03:33:16.6904826Z Using cached annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+2026-09-10T03:33:16.6916003Z Using cached annotated_types-0.7.0-py3-none-any.whl (13 kB)
+2026-09-10T03:33:16.6927398Z Using cached anyio-4.13.0-py3-none-any.whl (114 kB)
+2026-09-10T03:33:16.6939011Z Using cached bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (278 kB)
+2026-09-10T03:33:16.6951213Z Using cached certifi-2026.2.25-py3-none-any.whl (153 kB)
+2026-09-10T03:33:16.6962746Z Using cached cffi-2.0.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (219 kB)
+2026-09-10T03:33:16.6974951Z Using cached chardet-7.4.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (887 kB)
+2026-09-10T03:33:16.6989956Z Using cached charset_normalizer-3.4.7-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (215 kB)
+2026-09-10T03:33:16.7001116Z Using cached click-8.3.3-py3-none-any.whl (110 kB)
+2026-09-10T03:33:16.7012806Z Using cached duckdb-1.5.3-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (21.5 MB)
+2026-09-10T03:33:16.7098036Z Using cached et_xmlfile-2.0.0-py3-none-any.whl (18 kB)
+2026-09-10T03:33:16.7108710Z Using cached fastapi-0.136.1-py3-none-any.whl (117 kB)
+2026-09-10T03:33:16.7119897Z Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+2026-09-10T03:33:16.7131015Z Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+2026-09-10T03:33:16.7142134Z Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+2026-09-10T03:33:16.7153166Z Using cached idna-3.15-py3-none-any.whl (72 kB)
+2026-09-10T03:33:16.7164340Z Using cached iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+2026-09-10T03:33:16.7175170Z Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+2026-09-10T03:33:16.7187034Z Using cached markupsafe-3.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (23 kB)
+2026-09-10T03:33:16.7198080Z Using cached numpy-2.4.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+2026-09-10T03:33:16.7268931Z Using cached openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
+2026-09-10T03:33:16.7281259Z Using cached packaging-26.1-py3-none-any.whl (95 kB)
+2026-09-10T03:33:16.7293029Z Using cached pandas-3.0.2-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (10.9 MB)
+2026-09-10T03:33:16.7344571Z Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+2026-09-10T03:33:16.7356283Z Using cached psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+2026-09-10T03:33:16.7367621Z Using cached pyarrow-24.0.0-cp314-cp314-manylinux_2_28_x86_64.whl (48.9 MB)
+2026-09-10T03:33:16.7541349Z Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+2026-09-10T03:33:16.7551783Z Using cached pydantic-2.13.5-py3-none-any.whl (472 kB)
+2026-09-10T03:33:16.7564555Z Using cached pydantic_core-2.46.5-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+2026-09-10T03:33:16.7583207Z Using cached pytest-9.0.3-py3-none-any.whl (375 kB)
+2026-09-10T03:33:16.7597800Z Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+2026-09-10T03:33:16.7609685Z Using cached python_docx-1.2.0-py3-none-any.whl (252 kB)
+2026-09-10T03:33:16.7621604Z Using cached python_dotenv-1.2.3-py3-none-any.whl (22 kB)
+2026-09-10T03:33:16.7632572Z Using cached python_multipart-0.0.31-py3-none-any.whl (29 kB)
+2026-09-10T03:33:16.7643614Z Using cached python_pptx-1.0.2-py3-none-any.whl (472 kB)
+2026-09-10T03:33:16.7656176Z Using cached requests-2.33.1-py3-none-any.whl (64 kB)
+2026-09-10T03:33:16.7667418Z Using cached urllib3-2.7.0-py3-none-any.whl (131 kB)
+2026-09-10T03:33:16.7678795Z Using cached ruff-0.16.6-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (10.3 MB)
+2026-09-10T03:33:16.7723729Z Using cached setuptools-83.0.0-py3-none-any.whl (1.0 MB)
+2026-09-10T03:33:16.7744422Z Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+2026-09-10T03:33:16.7755442Z Using cached starlette-1.3.1-py3-none-any.whl (73 kB)
+2026-09-10T03:33:16.7766553Z Using cached typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+2026-09-10T03:33:16.7777578Z Using cached typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+2026-09-10T03:33:16.7788488Z Using cached uvicorn-0.47.0-py3-none-any.whl (71 kB)
+2026-09-10T03:33:16.7799832Z Using cached wheel-0.46.3-py3-none-any.whl (30 kB)
+2026-09-10T03:33:16.7810852Z Using cached xlsxwriter-3.2.9-py3-none-any.whl (175 kB)
+2026-09-10T03:33:16.7822734Z Using cached xxhash-3.7.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (194 kB)
+2026-09-10T03:33:16.7834618Z Using cached lxml-6.1.3-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+2026-09-10T03:33:16.7862945Z Using cached pillow-12.3.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.9 MB)
+2026-09-10T03:33:16.7898910Z Using cached pygments-2.21.0-py3-none-any.whl (1.3 MB)
+2026-09-10T03:33:17.1498263Z Installing collected packages: xxhash, xlsxwriter, urllib3, typing_extensions, six, setuptools, ruff, PyYAML, python-multipart, python-dotenv, pygments, pycparser, pyarrow, psutil, pluggy, Pillow, packaging, numpy, MarkupSafe, lxml, iniconfig, idna, h11, et_xmlfile, duckdb, click, charset-normalizer, chardet, certifi, bcrypt, annotated-types, annotated-doc, wheel, uvicorn, typing-inspection, requests, python-pptx, python-docx, python-dateutil, pytest, pydantic_core, openpyxl, Jinja2, httpcore, cffi, anyio, starlette, pydantic, pandas, httpx, fastapi
+2026-09-10T03:33:33.9733855Z 
+2026-09-10T03:33:33.9780003Z Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.3 Pillow-12.3.0 PyYAML-6.0.2 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.13.0 bcrypt-5.0.0 certifi-2026.2.25 cffi-2.0.0 chardet-7.4.3 charset-normalizer-3.4.7 click-8.3.3 duckdb-1.5.3 et_xmlfile-2.0.0 fastapi-0.136.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.15 iniconfig-2.3.0 lxml-6.1.3 numpy-2.4.4 openpyxl-3.1.5 packaging-26.1 pandas-3.0.2 pluggy-1.6.0 psutil-7.2.2 pyarrow-24.0.0 pycparser-3.0 pydantic-2.13.5 pydantic_core-2.46.5 pygments-2.21.0 pytest-9.0.3 python-dateutil-2.9.0.post0 python-docx-1.2.0 python-dotenv-1.2.3 python-multipart-0.0.31 python-pptx-1.0.2 requests-2.33.1 ruff-0.16.6 setuptools-83.0.0 six-1.17.0 starlette-1.3.1 typing-inspection-0.4.2 typing_extensions-4.16.0 urllib3-2.7.0 uvicorn-0.47.0 wheel-0.46.3 xlsxwriter-3.2.9 xxhash-3.7.0
+2026-09-10T03:33:34.2247787Z ##[group]Run python3 -c "import json, os; print('\n'.join(json.loads(os.environ['CHECK_PLAN'])['files']))" > changed-files.txt
+2026-09-10T03:33:34.2248684Z python3 -c "import json, os; print('\n'.join(json.loads(os.environ['CHECK_PLAN'])['files']))" > changed-files.txt
+2026-09-10T03:33:34.2249622Z python3 scripts/ci/run_checks.py --files-from changed-files.txt --only ci-python
+2026-09-10T03:33:34.2292646Z shell: /usr/bin/bash -e {0}
+2026-09-10T03:33:34.2292920Z env:
+2026-09-10T03:33:34.2293133Z   FQ_CRM_ADMINS: admin
+2026-09-10T03:33:34.2293463Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:34.2293926Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+2026-09-10T03:33:34.2294361Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:34.2294773Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:34.2295170Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:33:34.2295607Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+2026-09-10T03:33:34.2360970Z   CHECK_PLAN: {"backend": "full", "b0": true, "frontend": false, "tooling": true, "deployment": false, "dependencies": false, "python_dependencies": false, "frontend_dependencies": false, "ground_truth": false, "filterbuilder": true, "targets": ["backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py"], "files": ["CHANGELOG.md", "README.md", "STATUS.md", "backend/analytics_competition_app.py", "backend/contracts/analytics-competition-chart.openapi.json", "backend/contracts/analytics-competition-computed.openapi.json", "backend/contracts/competition_chart.py", "backend/contracts/competition_computed.py", "backend/services/analytics/competition_assets/result.py", "backend/services/analytics/competition_assets/service.py", "backend/services/analytics/competition_diagnosis/computed.py", "backend/services/analytics/competition_diagnosis/orchestrator.py", "backend/services/analytics/competition_diagnosis/store.py", "backend/services/analytics/competition_diagnosis/synthetic.py", "backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py", "backend/services/analytics/runtime.py", "backend/services/analytics/worker.py", "backend/services/metrics/competition_compute.py", "backend/tests/analytics_native_probe.py", "backend/tests/analytics_worker_probe.py", "backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py", "docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md", "docs/hackathon/DIAGNOSIS-CANCELLATION-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-PLAN-2026-09-10.md", "docs/hackathon/OBSERVATION-STATE-RECOVERY-2026-09-10.md", "docs/hackathon/PRODUCT-CANDIDATE-SWITCH-2026-09-10.md", "docs/hackathon/PRODUCT-DENSITY-CANDIDATE-2026-09-10.md", "docs/hackathon/PRODUCT-LOCAL-RELEASE-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-APPROVAL-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-EXTENDED-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md", "docs/hackathon/PRODUCT-READINESS-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-INTEGRATION-2026-09-10.md", "docs/hackathon/README.md", "docs/hackathon/TODOS.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/REVIEW.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-before.txt", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-candidate-switch.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/candidate-backup-compatibility.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computation-isolation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-backup-restore.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-browser.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-baseline.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-live.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-1440.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-390.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/t13-computed-board-reopened.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-browser-text.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-eval.json", "docs/hackathon/evidence/product-readiness-2026-09-10/REVIEW-AND-VERIFICATION.md", "docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md", "docs/hackathon/evidence/product-readiness-2026-09-10/backend-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/browser-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/build-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/chart-http-trace.json", "docs/hackathon/evidence/product-readiness-2026-09-10/http-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-before-visual.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-session-missing-credential.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-settings-dark.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-completed.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-connected.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-first-real-request.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-created.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-details-v2.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-reopened.png", "docs/hackathon/evidence/product-readiness-2026-09-10/source-manifest.json", "docs/hackathon/evidence/product-readiness-2026-09-10/state-backup-restore.json", "docs/hackathon/evidence/product-readiness-2026-09-10/welcome-reproduction.json", "docs/hackathon/evidence/t17-extended-2026-09-10/compact-replay.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-on-return.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-restored-off.png", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-checkpoint-observer.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-title-fix.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/review.json", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-browser.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-pack.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-provider.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/verification.json", "docs/hackathon/evidence/t17-native-2026-09-10/native-stop-recover-write.png", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-api.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-provider.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-stop.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-workspace.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/verification.json", "docs/hackathon/evidence/t17-permissions-2026-09-10/approval-pending.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/default-and-session-after-restart.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-api.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-provider.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-switch.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-workspace.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/batch-created.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/board-all-evidence.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/ci-34432529663-failed.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/ci-format-fix.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/detached-reading.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v1.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2-reopened.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions-before.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edited-board-reloaded.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/empty-final.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-focus-before.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-select-before.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-select-timing-before.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py.txt", "docs/hackathon/evidence/uat-navigation-2026-09-10/provider-events.jsonl", "docs/hackathon/evidence/uat-navigation-2026-09-10/review.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-all-evidence.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-before-controls.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-final.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-board-choice-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-entry-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-entry-before-test.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-evidence-dom.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-final-pipeline.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-pipeline.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-provider.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-workspace.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_all.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_retail.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py.txt", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-checks.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.py.txt", "docs/hackathon/evidence/visual-density-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-density-2026-09-10/disconnected.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-browser.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-http.json", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1024.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/empty-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/restored-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/observation-lock.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/probe-pipe-ownership.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-dark-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-light-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-bar-390-fixed.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1024.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-editor-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-settings-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-bar-reopen-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/worker-read-recovery.json", "docs/history/STATUS-HISTORY.md", "docs/operating/competition-http.md", "dsh-plugins/analytics-workbench/build-tools/package.json", "dsh-plugins/analytics-workbench/build-tools/patches/README.md", "dsh-plugins/analytics-workbench/build-tools/patches/antd@5.29.3.patch", "dsh-plugins/analytics-workbench/build-tools/patches/rc-picker@4.11.3.patch", "dsh-plugins/analytics-workbench/build-tools/pnpm-lock.yaml", "dsh-plugins/analytics-workbench/build-tools/pnpm-workspace.yaml", "dsh-plugins/analytics-workbench/build.mjs", "dsh-plugins/analytics-workbench/package.json", "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx", "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/computed-result.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts", "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts", "dsh-plugins/analytics-workbench/src/client/competition-http.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/BrandChrome.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/LayoutSlot.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/ThemeProvider.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/competition-shell.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/index.ts", "dsh-plugins/analytics-workbench/src/client/competition-shell/tokens.ts", "dsh-plugins/analytics-workbench/src/client/focus.ts", "dsh-plugins/analytics-workbench/src/client/index.tsx", "dsh-plugins/analytics-workbench/src/client/run-status.tsx", "dsh-plugins/analytics-workbench/src/client/styles.ts", "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts", "dsh-plugins/analytics-workbench/src/competition-agent/cancellation.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/tools.d.mts", "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs", "dsh-plugins/analytics-workbench/src/competition-chart-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/competition-computed-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/index.ts", "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs", "dsh-plugins/analytics-workbench/test/built.test.mjs", "dsh-plugins/analytics-workbench/test/loader.test.mjs", "dsh-plugins/analytics-workbench/test/plugin-ui-lifecycle.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-cancel.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-save.test.mjs", "dsh-plugins/analytics-workbench/test/tool-card-harness.mjs", "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs", "dsh-plugins/analytics-workbench/tests/competition-computed/result.json", "dsh-plugins/analytics-workbench/toolchain.json", "dsh-plugins/analytics-workbench/toolchain.mjs", "scripts/competition-synth-http.py", "scripts/diagnostics/benchmark_competition_http.py", "scripts/dsh-b0/competition-chart-contract.mjs", "scripts/dsh-b0/competition-computed-contract.mjs", "scripts/dsh-b0/pipeline.mjs", "scripts/dsh-dev/README.md", "scripts/dsh-dev/brand.mjs", "scripts/dsh-dev/brand.test.mjs", "scripts/dsh-dev/cli.test.mjs", "scripts/dsh-dev/diagnose.mjs", "scripts/dsh-dev/diagnose.test.mjs", "scripts/dsh-dev/serve.mjs", "scripts/run_backend_tests_bounded.py"]}
+2026-09-10T03:33:34.2426415Z ##[endgroup]
+2026-09-10T03:33:34.3462853Z {"backend": "full", "b0": true, "frontend": false, "tooling": true, "deployment": false, "dependencies": false, "python_dependencies": false, "frontend_dependencies": false, "ground_truth": false, "filterbuilder": true, "targets": ["backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py"], "files": ["CHANGELOG.md", "README.md", "STATUS.md", "backend/analytics_competition_app.py", "backend/contracts/analytics-competition-chart.openapi.json", "backend/contracts/analytics-competition-computed.openapi.json", "backend/contracts/competition_chart.py", "backend/contracts/competition_computed.py", "backend/services/analytics/competition_assets/result.py", "backend/services/analytics/competition_assets/service.py", "backend/services/analytics/competition_diagnosis/computed.py", "backend/services/analytics/competition_diagnosis/orchestrator.py", "backend/services/analytics/competition_diagnosis/store.py", "backend/services/analytics/competition_diagnosis/synthetic.py", "backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py", "backend/services/analytics/runtime.py", "backend/services/analytics/worker.py", "backend/services/metrics/competition_compute.py", "backend/tests/analytics_native_probe.py", "backend/tests/analytics_worker_probe.py", "backend/tests/test_analytics_first_purchase_native.py", "backend/tests/test_analytics_native_probe.py", "backend/tests/test_analytics_native_runtime.py", "backend/tests/test_analytics_query_worker.py", "backend/tests/test_competition_acceptance.py", "backend/tests/test_competition_acceptance_golden.py", "backend/tests/test_competition_chart_persistence.py", "backend/tests/test_competition_compute_isolation.py", "backend/tests/test_competition_computed_results.py", "backend/tests/test_competition_diagnosis_cancel.py", "backend/tests/test_competition_diagnosis_store.py", "docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md", "docs/hackathon/DIAGNOSIS-CANCELLATION-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md", "docs/hackathon/DIAGNOSIS-INTEGRATION-PLAN-2026-09-10.md", "docs/hackathon/OBSERVATION-STATE-RECOVERY-2026-09-10.md", "docs/hackathon/PRODUCT-CANDIDATE-SWITCH-2026-09-10.md", "docs/hackathon/PRODUCT-DENSITY-CANDIDATE-2026-09-10.md", "docs/hackathon/PRODUCT-LOCAL-RELEASE-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-APPROVAL-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-EXTENDED-2026-09-10.md", "docs/hackathon/PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md", "docs/hackathon/PRODUCT-READINESS-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-2026-09-10.md", "docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md", "docs/hackathon/PRODUCT-VISUAL-INTEGRATION-2026-09-10.md", "docs/hackathon/README.md", "docs/hackathon/TODOS.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/CI-NATIVE-RETRY.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/REVIEW.md", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-before.txt", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-candidate-switch.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/cancellation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/candidate-backup-compatibility.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computation-isolation-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-backup-restore.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-browser.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-baseline.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-http-live.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/computed-verification.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-1440.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/computed-bar-390.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/screenshots/t13-computed-board-reopened.png", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-browser-text.json", "docs/hackathon/evidence/diagnosis-integration-2026-09-10/t13-computed-eval.json", "docs/hackathon/evidence/product-readiness-2026-09-10/REVIEW-AND-VERIFICATION.md", "docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md", "docs/hackathon/evidence/product-readiness-2026-09-10/backend-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/browser-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/build-verification.json", "docs/hackathon/evidence/product-readiness-2026-09-10/chart-http-trace.json", "docs/hackathon/evidence/product-readiness-2026-09-10/http-baseline.json", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-before-visual.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/chart-reopened-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-1440.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/final-chart-390.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-session-missing-credential.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/native-settings-dark.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-completed.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-connected.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/t13-first-real-request.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-created.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-details-v2.png", "docs/hackathon/evidence/product-readiness-2026-09-10/screenshots/uat-draft-reopened.png", "docs/hackathon/evidence/product-readiness-2026-09-10/source-manifest.json", "docs/hackathon/evidence/product-readiness-2026-09-10/state-backup-restore.json", "docs/hackathon/evidence/product-readiness-2026-09-10/welcome-reproduction.json", "docs/hackathon/evidence/t17-extended-2026-09-10/compact-replay.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-on-return.png", "docs/hackathon/evidence/t17-extended-2026-09-10/custom-restored-off.png", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-checkpoint-observer.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/provider-before-title-fix.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/review.json", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-browser.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-pack.py.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/t17-extended-provider.mjs.txt", "docs/hackathon/evidence/t17-extended-2026-09-10/verification.json", "docs/hackathon/evidence/t17-native-2026-09-10/native-stop-recover-write.png", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-api.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-provider.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-stop.py.txt", "docs/hackathon/evidence/t17-native-2026-09-10/t17-native-workspace.mjs.txt", "docs/hackathon/evidence/t17-native-2026-09-10/verification.json", "docs/hackathon/evidence/t17-permissions-2026-09-10/approval-pending.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/default-and-session-after-restart.png", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-api.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-provider.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-switch.py.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/t17-permissions-workspace.mjs.txt", "docs/hackathon/evidence/t17-permissions-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/batch-created.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/board-all-evidence.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/ci-34432529663-failed.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/ci-format-fix.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/detached-reading.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v1.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2-reopened.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/draft-v2.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions-before.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edit-actions.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/edited-board-reloaded.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/empty-final.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-focus-before.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-move-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-preview.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-resize-saved.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-select-before.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/keyboard-select-timing-before.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/pack-uat-navigation.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/pointer-attempt.py.txt", "docs/hackathon/evidence/uat-navigation-2026-09-10/provider-events.jsonl", "docs/hackathon/evidence/uat-navigation-2026-09-10/review.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/board-all-evidence.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-before-controls.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/empty-final.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1024.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-1440.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/picker-390.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-board-choice-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/screenshots/uat-entry-before.png", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-entry-before-test.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-browser.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-edit.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-evidence-dom.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-final-pipeline.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-pipeline.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-provider.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.log", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-visual.py", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat-navigation-workspace.mjs", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_all.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/uat_retail.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/verification.json", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-before.py.txt", "docs/hackathon/evidence/uat-navigation-2026-09-10/visual-checks.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-density-2026-09-10/browser-check.py.txt", "docs/hackathon/evidence/visual-density-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-density-2026-09-10/disconnected.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-browser.json", "docs/hackathon/evidence/visual-density-2026-09-10/restored-http.json", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1024.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-dark-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-1440.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/candidate-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/disconnected-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/empty-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/screenshots/restored-fixed-390.png", "docs/hackathon/evidence/visual-density-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/browser-check.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/candidate-switch.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/observation-lock.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/probe-pipe-ownership.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-dark-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/candidate-light-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-bar-390-fixed.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1024.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-board-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-editor-390.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/dark-settings-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-bar-reopen-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/screenshots/light-board-1440.png", "docs/hackathon/evidence/visual-readiness-2026-09-10/verification.json", "docs/hackathon/evidence/visual-readiness-2026-09-10/worker-read-recovery.json", "docs/history/STATUS-HISTORY.md", "docs/operating/competition-http.md", "dsh-plugins/analytics-workbench/build-tools/package.json", "dsh-plugins/analytics-workbench/build-tools/patches/README.md", "dsh-plugins/analytics-workbench/build-tools/patches/antd@5.29.3.patch", "dsh-plugins/analytics-workbench/build-tools/patches/rc-picker@4.11.3.patch", "dsh-plugins/analytics-workbench/build-tools/pnpm-lock.yaml", "dsh-plugins/analytics-workbench/build-tools/pnpm-workspace.yaml", "dsh-plugins/analytics-workbench/build.mjs", "dsh-plugins/analytics-workbench/package.json", "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx", "dsh-plugins/analytics-workbench/src/client/competition-actions/ActionsWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/computed-result.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts", "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs", "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts", "dsh-plugins/analytics-workbench/src/client/competition-http.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/BrandChrome.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/LayoutSlot.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/ThemeProvider.tsx", "dsh-plugins/analytics-workbench/src/client/competition-shell/competition-shell.test.mjs", "dsh-plugins/analytics-workbench/src/client/competition-shell/index.ts", "dsh-plugins/analytics-workbench/src/client/competition-shell/tokens.ts", "dsh-plugins/analytics-workbench/src/client/focus.ts", "dsh-plugins/analytics-workbench/src/client/index.tsx", "dsh-plugins/analytics-workbench/src/client/run-status.tsx", "dsh-plugins/analytics-workbench/src/client/styles.ts", "dsh-plugins/analytics-workbench/src/competition-agent/apply.ts", "dsh-plugins/analytics-workbench/src/competition-agent/cancellation.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/competition-agent.test.mjs", "dsh-plugins/analytics-workbench/src/competition-agent/tools.d.mts", "dsh-plugins/analytics-workbench/src/competition-agent/tools.mjs", "dsh-plugins/analytics-workbench/src/competition-chart-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/competition-computed-contract.generated.d.ts", "dsh-plugins/analytics-workbench/src/index.ts", "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs", "dsh-plugins/analytics-workbench/test/built.test.mjs", "dsh-plugins/analytics-workbench/test/loader.test.mjs", "dsh-plugins/analytics-workbench/test/plugin-ui-lifecycle.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-cancel.test.mjs", "dsh-plugins/analytics-workbench/test/query-card-save.test.mjs", "dsh-plugins/analytics-workbench/test/tool-card-harness.mjs", "dsh-plugins/analytics-workbench/tests/competition-acceptance/fail-closed-dom.test.mjs", "dsh-plugins/analytics-workbench/tests/competition-computed/result.json", "dsh-plugins/analytics-workbench/toolchain.json", "dsh-plugins/analytics-workbench/toolchain.mjs", "scripts/competition-synth-http.py", "scripts/diagnostics/benchmark_competition_http.py", "scripts/dsh-b0/competition-chart-contract.mjs", "scripts/dsh-b0/competition-computed-contract.mjs", "scripts/dsh-b0/pipeline.mjs", "scripts/dsh-dev/README.md", "scripts/dsh-dev/brand.mjs", "scripts/dsh-dev/brand.test.mjs", "scripts/dsh-dev/cli.test.mjs", "scripts/dsh-dev/diagnose.mjs", "scripts/dsh-dev/diagnose.test.mjs", "scripts/dsh-dev/serve.mjs", "scripts/run_backend_tests_bounded.py"]}
+2026-09-10T03:33:34.3528623Z [checks:backend] /opt/hostedtoolcache/Python/3.14.7/x64/bin/python3 .githooks/check_imports.py
+2026-09-10T03:33:36.1190960Z ✅ B2: 16 个 3rd-party imports 全部声明在 requirements.txt
+2026-09-10T03:33:36.1191650Z    (local packages detected: 96; transitive allow: 8)
+2026-09-10T03:33:36.1265157Z [checks:backend] /opt/hostedtoolcache/Python/3.14.7/x64/bin/python3 scripts/run_backend_tests_bounded.py
+2026-09-10T03:33:36.2345933Z [bounded-pytest] group 1/10: 25 files
+2026-09-10T03:34:00.3363186Z ........................................................................ [ 26%]
+2026-09-10T03:34:14.6623824Z ......sss.................s............................................. [ 52%]
+2026-09-10T03:35:04.5050510Z ........................................................................ [ 78%]
+2026-09-10T03:35:16.6331168Z ............................................................             [100%]
+2026-09-10T03:35:16.6335521Z ============================= slowest 10 durations =============================
+2026-09-10T03:35:16.6336592Z 2.92s call     backend/tests/test_analytics_cockpit_http.py::test_source_request_must_bind_full_resolved_filters
+2026-09-10T03:35:16.6340053Z 2.86s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[snapshot_json]
+2026-09-10T03:35:16.6341138Z 2.85s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[facts_json]
+2026-09-10T03:35:16.6342395Z 2.81s call     backend/tests/test_analytics_cockpit_http.py::test_source_json_decode_failures_are_safe_contract_errors[request_json]
+2026-09-10T03:35:16.6343411Z 2.80s call     backend/tests/test_analytics_cockpit_http.py::test_two_saved_windows_stay_isolated_across_copy_layout_remove_undo
+2026-09-10T03:35:16.6344241Z 2.71s call     backend/tests/test_analytics_cockpit_http.py::test_corrupt_card_shape_does_not_500_the_board
+2026-09-10T03:35:16.6344983Z 2.69s call     backend/tests/test_analytics_cockpit_http.py::test_copy_and_undo_require_visible_sources_before_write
+2026-09-10T03:35:16.6345761Z 2.68s call     backend/tests/test_analytics_cockpit_http.py::test_remove_corrupt_source_without_restoring_or_analysis_read
+2026-09-10T03:35:16.6346565Z 2.65s call     backend/tests/test_analytics_cockpit_http.py::test_cached_facts_drift_and_source_corruption_degrade_only_that_card
+2026-09-10T03:35:16.6347328Z 2.63s call     backend/tests/test_analytics_cockpit_http.py::test_one_unavailable_card_does_not_block_remove
+2026-09-10T03:35:16.6347888Z =========================== short test summary info ============================
+2026-09-10T03:35:16.6348605Z SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:34: optional host skill is unavailable; repository contracts remain covered separately
+2026-09-10T03:35:16.6349762Z SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:53: optional host skill is unavailable; repository contracts remain covered separately
+2026-09-10T03:35:16.6350661Z SKIPPED [1] backend/tests/test_ad_hoc_query_sprint183.py:71: optional host skill is unavailable; repository contracts remain covered separately
+2026-09-10T03:35:16.6351451Z SKIPPED [1] backend/tests/test_adhoc_query_hitrate_monitor.py:33: optional macOS host skills are unavailable
+2026-09-10T03:35:16.6351994Z 272 passed, 4 skipped, 1 warning in 99.66s (0:01:39)
+2026-09-10T03:35:17.7570325Z [bounded-pytest] group 1 rc=0 time=101.521s peak_rss_gb=0.50
+2026-09-10T03:35:17.7572795Z [bounded-pytest] group 2/10: 25 files
+2026-09-10T03:35:48.9556844Z ........................................................................ [ 18%]
+2026-09-10T03:36:04.8345958Z ........................................................................ [ 36%]
+2026-09-10T03:36:33.7303638Z ........................................................................ [ 54%]
+2026-09-10T03:36:45.8091825Z ........................................................................ [ 73%]
+2026-09-10T03:36:50.6920981Z ........................................................................ [ 91%]
+2026-09-10T03:37:11.2373682Z ...........................F
+2026-09-10T03:37:11.2374259Z =================================== FAILURES ===================================
+2026-09-10T03:37:11.2375073Z ______________ test_real_duckdb_external_sort_spill_and_quota[64] ______________
+2026-09-10T03:37:11.2375567Z 
+2026-09-10T03:37:11.2376136Z tmp_path = PosixPath('/tmp/fq-check-8od552up/tmp/pytest-of-runner/pytest-1/test_real_duckdb_external_sort1')
+2026-09-10T03:37:11.2376979Z temp_mib = 64
+2026-09-10T03:37:11.2377166Z 
+2026-09-10T03:37:11.2377384Z     @pytest.mark.parametrize("temp_mib", [1, 64])
+2026-09-10T03:37:11.2378087Z     def test_real_duckdb_external_sort_spill_and_quota(tmp_path, temp_mib):
+2026-09-10T03:37:11.2379066Z         store, _, intent, step, fixture = setup_worker(tmp_path, duckdb_memory_mib=32, worker_temp_mib=temp_mib,
+2026-09-10T03:37:11.2380147Z                                                       worker_rss_observation_mib=256)
+2026-09-10T03:37:11.2380753Z         original = fixture.validate().read_bytes()
+2026-09-10T03:37:11.2381263Z         with ProbeLauncher("spill") as launch:
+2026-09-10T03:37:11.2381932Z             manager = WorkerManager(store, lambda _: actor(), fixture, launch=launch)
+2026-09-10T03:37:11.2382908Z             if temp_mib == 1:
+2026-09-10T03:37:11.2390173Z                 with pytest.raises(AnalyticsError, match="RESOURCE_EXCEEDED"):
+2026-09-10T03:37:11.2392671Z                     manager.execute(actor(), intent, step)
+2026-09-10T03:37:11.2393085Z             else:
+2026-09-10T03:37:11.2393686Z >               assert manager.execute(actor(), intent, step) == fixture_result()
+2026-09-10T03:37:11.2394335Z                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-10T03:37:11.2394670Z 
+2026-09-10T03:37:11.2394884Z backend/tests/test_analytics_worker.py:321: 
+2026-09-10T03:37:11.2395474Z _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+2026-09-10T03:37:11.2395901Z 
+2026-09-10T03:37:11.2396336Z self = <backend.services.analytics.worker.WorkerManager object at 0x7fe32f459760>
+2026-09-10T03:37:11.2397732Z principal = AnalyticsPrincipal(actor_id='alice', capabilities=frozenset({'run:create', 'run:cancel', 'run:read'}), data_scopes=frozenset({'b0-fixture'}))
+2026-09-10T03:37:11.2401008Z intent = DispatchIntent(run_id='run_4dca5fbc26be4672956ab9ef7805b83f', attempt_id='attempt_1edfdae80a224d96a9609bf1cd98771f', s... '查看合成渠道'}, payload_hash='fbdbacc0b7971632f2e758f19412ee9ffc962235e0447c91566be06f8e768bf4', deadline_ms=1789011549623)
+2026-09-10T03:37:11.2402610Z step = StepReservation(step_id='step_a7f5cdb4da11467e8fd89a0d1c21d343', disposition='EXECUTE', deadline_ms=1789011459628)
+2026-09-10T03:37:11.2403090Z 
+2026-09-10T03:37:11.2403224Z     def execute(self, principal, intent, step):
+2026-09-10T03:37:11.2403647Z         # The child validates before opening DuckDB and again before emitting a
+2026-09-10T03:37:11.2404190Z         # result. Execute-time validation belongs inside that leased protocol:
+2026-09-10T03:37:11.2404730Z         # a parent preflight exception would leave no durable failure/exit proof.
+2026-09-10T03:37:11.2405149Z         if step.disposition != "EXECUTE":
+2026-09-10T03:37:11.2405661Z             raise AnalyticsError(409, "CONFLICT", "请求、状态或版本已变化，请读取当前任务后核对。")
+2026-09-10T03:37:11.2406052Z         if self.store.is_query:
+2026-09-10T03:37:11.2406498Z             self.store.query_step_binding(principal, intent.run_id, intent.attempt_id, step.step_id)
+2026-09-10T03:37:11.2406969Z         execution_id = "exec_" + uuid4().hex
+2026-09-10T03:37:11.2407373Z         fd, dev, ino, temporary = create_lease(self.store.directory, execution_id)
+2026-09-10T03:37:11.2407852Z         binding = {"execution_id": execution_id, "run_id": intent.run_id,
+2026-09-10T03:37:11.2408282Z                    "attempt_id": intent.attempt_id, "step_id": step.step_id}
+2026-09-10T03:37:11.2408639Z         child, registered = None, False
+2026-09-10T03:37:11.2408972Z         result, ready, closed, error = None, False, False, None
+2026-09-10T03:37:11.2409889Z         metrics = {"rss_peak_bytes": 0, "temp_peak_bytes": 0, "forced_kill": False}
+2026-09-10T03:37:11.2410280Z         started = time.monotonic()
+2026-09-10T03:37:11.2410543Z         with self._mutex:
+2026-09-10T03:37:11.2410798Z             self._owned.add(execution_id)
+2026-09-10T03:37:11.2411070Z         try:
+2026-09-10T03:37:11.2411517Z             self.store.begin_worker(principal, intent.run_id, intent.attempt_id, step.step_id, execution_id, dev, ino)
+2026-09-10T03:37:11.2412018Z             registered = True
+2026-09-10T03:37:11.2412388Z             config = self._child_config(principal, intent, step, binding, fd, temporary)
+2026-09-10T03:37:11.2412825Z             child = self.launch(config, fd)
+2026-09-10T03:37:11.2413210Z             # Closing (not unlocking) leaves the inherited description held by
+2026-09-10T03:37:11.2413668Z             # the child. There is no unleased interval before or after spawn.
+2026-09-10T03:37:11.2414028Z             os.close(fd)
+2026-09-10T03:37:11.2414265Z             fd = None
+2026-09-10T03:37:11.2414563Z             self._hook("worker:spawned", {**binding, "pid": child.pid})
+2026-09-10T03:37:11.2414971Z             self.store.worker_started(execution_id, child.pid)
+2026-09-10T03:37:11.2415488Z             process = psutil.Process(child.pid)
+2026-09-10T03:37:11.2415874Z             pending, stderr_bytes, frames, stop_started = b"", 0, 0, None
+2026-09-10T03:37:11.2416270Z             with selectors.DefaultSelector() as selector:
+2026-09-10T03:37:11.2416683Z                 selector.register(child.stdout, selectors.EVENT_READ, "stdout")
+2026-09-10T03:37:11.2417144Z                 selector.register(child.stderr, selectors.EVENT_READ, "stderr")
+2026-09-10T03:37:11.2417556Z                 while child.poll() is None or selector.get_map():
+2026-09-10T03:37:11.2417896Z                     if child.poll() is None:
+2026-09-10T03:37:11.2418170Z                         try:
+2026-09-10T03:37:11.2418529Z                             record = self.store.worker_records(execution_id=execution_id)[0]
+2026-09-10T03:37:11.2418970Z                             error = error or self._stop_reason(record)
+2026-09-10T03:37:11.2419816Z                             metrics["rss_peak_bytes"] = max(metrics["rss_peak_bytes"], process.memory_info().rss)
+2026-09-10T03:37:11.2420779Z                             metrics["temp_peak_bytes"] = max(metrics["temp_peak_bytes"], temp_bytes(temporary))
+2026-09-10T03:37:11.2421395Z                             if (metrics["rss_peak_bytes"] > self.store.profile.worker_rss_observation_mib * MIB
+2026-09-10T03:37:11.2422070Z                                     or metrics["temp_peak_bytes"] > self.store.profile.worker_temp_mib * MIB):
+2026-09-10T03:37:11.2422516Z                                 error = "RESOURCE_EXCEEDED"
+2026-09-10T03:37:11.2422844Z                         except psutil.NoSuchProcess:
+2026-09-10T03:37:11.2423140Z                             pass
+2026-09-10T03:37:11.2423612Z                         except (OSError, sqlite3.DatabaseError, ValueError, AnalyticsError, IndexError, psutil.Error):
+2026-09-10T03:37:11.2424144Z                             error = error or "EXECUTION_UNKNOWN"
+2026-09-10T03:37:11.2424479Z                         if error and stop_started is None:
+2026-09-10T03:37:11.2424772Z                             try:
+2026-09-10T03:37:11.2425119Z                                 self.store.request_stop(intent.run_id, intent.attempt_id, error)
+2026-09-10T03:37:11.2425537Z                             except AnalyticsError:
+2026-09-10T03:37:11.2425983Z                                 pass  # Physical stop still occurs; persistence failure does not free a slot.
+2026-09-10T03:37:11.2426417Z                             child.terminate()
+2026-09-10T03:37:11.2426724Z                             stop_started = time.monotonic()
+2026-09-10T03:37:11.2427181Z                             self._hook("worker:stop-requested", {**binding, "pid": child.pid, "error": error})
+2026-09-10T03:37:11.2428372Z                         if stop_started is not None and time.monotonic() - stop_started >= 0.5:
+2026-09-10T03:37:11.2429037Z                             child.kill()
+2026-09-10T03:37:11.2429756Z                             metrics["forced_kill"] = True
+2026-09-10T03:37:11.2430188Z                     for key, _events in selector.select(timeout=0.02):
+2026-09-10T03:37:11.2430571Z                         data = os.read(key.fileobj.fileno(), 65536)
+2026-09-10T03:37:11.2430883Z                         if not data:
+2026-09-10T03:37:11.2431181Z                             selector.unregister(key.fileobj)
+2026-09-10T03:37:11.2431476Z                             continue
+2026-09-10T03:37:11.2431738Z                         if key.data == "stderr":
+2026-09-10T03:37:11.2432034Z                             stderr_bytes += len(data)
+2026-09-10T03:37:11.2432339Z                             if stderr_bytes > 65536:
+2026-09-10T03:37:11.2432644Z                                 error = "RESOURCE_EXCEEDED"
+2026-09-10T03:37:11.2433034Z                             continue  # Driver details/paths are not public diagnostics.
+2026-09-10T03:37:11.2433411Z                         pending += data
+2026-09-10T03:37:11.2433772Z                         if len(pending) > self.store.profile.max_result_bytes + 65536:
+2026-09-10T03:37:11.2434390Z                             error, pending = "RESOURCE_EXCEEDED", b""
+2026-09-10T03:37:11.2434717Z                             continue
+2026-09-10T03:37:11.2434986Z                         while b"\n" in pending:
+2026-09-10T03:37:11.2435323Z                             line, pending = pending.split(b"\n", 1)
+2026-09-10T03:37:11.2435630Z                             frames += 1
+2026-09-10T03:37:11.2435892Z                             if frames > 8:
+2026-09-10T03:37:11.2436180Z                                 error = "RESOURCE_EXCEEDED"
+2026-09-10T03:37:11.2436472Z                                 continue
+2026-09-10T03:37:11.2436726Z                             try:
+2026-09-10T03:37:11.2436989Z                                 frame = json.loads(line)
+2026-09-10T03:37:11.2437313Z                                 if not isinstance(frame, dict):
+2026-09-10T03:37:11.2437668Z                                     raise ValueError("invalid worker frame")
+2026-09-10T03:37:11.2438112Z                                 if any(frame.get(field) != value for field, value in binding.items()):
+2026-09-10T03:37:11.2438547Z                                     raise ValueError("foreign worker frame")
+2026-09-10T03:37:11.2438907Z                                 if frame["type"] == "ready" and not ready:
+2026-09-10T03:37:11.2439519Z                                     if frame["profile_hash"] != self.store.profile.digest:
+2026-09-10T03:37:11.2439935Z                                         raise ValueError("profile drift")
+2026-09-10T03:37:11.2440260Z                                     ready = True
+2026-09-10T03:37:11.2440587Z                                     metrics["settings"] = frame["settings"]
+2026-09-10T03:37:11.2441044Z                                     version, revision = frame["engine_version"], frame["engine_revision"]
+2026-09-10T03:37:11.2441625Z                                     if (not isinstance(version, str) or re.fullmatch(r"[0-9a-z.]{1,32}", version) is None
+2026-09-10T03:37:11.2442109Z                                             or not isinstance(revision, str)
+2026-09-10T03:37:11.2442562Z                                             or (revision != "stdlib-json" if self.store.family == "first_purchase"
+2026-09-10T03:37:11.2443078Z                                                 else re.fullmatch(r"[a-f0-9]{7,40}", revision) is None)):
+2026-09-10T03:37:11.2443515Z                                         raise ValueError("invalid engine identity")
+2026-09-10T03:37:11.2443966Z                                     metrics["engine"] = {"version": version, "source_revision": revision}
+2026-09-10T03:37:11.2444448Z                                     self._hook("worker:ready", {**binding, "pid": child.pid})
+2026-09-10T03:37:11.2445093Z                                 elif frame["type"] == "result" and ready and result is None and not error:
+2026-09-10T03:37:11.2445582Z                                     if frame["profile_hash"] != self.store.profile.digest:
+2026-09-10T03:37:11.2445993Z                                         raise ValueError("profile drift")
+2026-09-10T03:37:11.2446403Z                                     result = self._result_type.model_validate(frame["result"])
+2026-09-10T03:37:11.2446868Z                                     self._hook("worker:result", {**binding, "pid": child.pid})
+2026-09-10T03:37:11.2447435Z                                 elif frame["type"] == "error" and frame["code"] in {"TOOL_FAILED", "RESOURCE_EXCEEDED"}:
+2026-09-10T03:37:11.2447927Z                                     error = frame["code"]
+2026-09-10T03:37:11.2448277Z                                 elif frame["type"] == "closed" and not closed:
+2026-09-10T03:37:11.2448643Z                                     peak = frame["rss_peak_bytes"]
+2026-09-10T03:37:11.2449030Z                                     if type(peak) is not int or not 0 <= peak <= 2**50:
+2026-09-10T03:37:11.2449586Z                                         raise ValueError("invalid observation")
+2026-09-10T03:37:11.2450173Z                                     metrics["rss_peak_bytes"] = max(metrics["rss_peak_bytes"], peak)
+2026-09-10T03:37:11.2450595Z                                     closed = True
+2026-09-10T03:37:11.2450891Z                                 else:
+2026-09-10T03:37:11.2451224Z                                     raise ValueError("invalid worker frame order")
+2026-09-10T03:37:11.2451599Z                             except (KeyError, TypeError, ValueError):
+2026-09-10T03:37:11.2451945Z                                 error = error or "TOOL_FAILED"
+2026-09-10T03:37:11.2452251Z             child.wait(timeout=3)
+2026-09-10T03:37:11.2452638Z             metrics["temp_peak_bytes"] = max(metrics["temp_peak_bytes"], temp_bytes(temporary))
+2026-09-10T03:37:11.2453150Z             metrics["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+2026-09-10T03:37:11.2453601Z             record = self.store.worker_records(execution_id=execution_id)[0]
+2026-09-10T03:37:11.2453989Z             error = error or self._stop_reason(record)
+2026-09-10T03:37:11.2454426Z             if metrics["rss_peak_bytes"] > self.store.profile.worker_rss_observation_mib * MIB:
+2026-09-10T03:37:11.2454849Z                 error = "RESOURCE_EXCEEDED"
+2026-09-10T03:37:11.2455223Z             if not ready or not closed or result is None or child.returncode != 0:
+2026-09-10T03:37:11.2455606Z                 error = error or "TOOL_FAILED"
+2026-09-10T03:37:11.2456034Z             self._hook("worker:exited", {**binding, "pid": child.pid, "exit_code": child.returncode})
+2026-09-10T03:37:11.2456668Z             self.store.worker_exited(execution_id, exit_code=child.returncode, error_code=error, metrics=metrics)
+2026-09-10T03:37:11.2457146Z             if error:
+2026-09-10T03:37:11.2457615Z >               raise AnalyticsError(409, error, "合成查询已停止或失败；原任务状态可继续查询。")
+2026-09-10T03:37:11.2458104Z E               backend.services.analytics.access.AnalyticsError: RESOURCE_EXCEEDED
+2026-09-10T03:37:11.2458426Z 
+2026-09-10T03:37:11.2458582Z backend/services/analytics/worker.py:282: AnalyticsError
+2026-09-10T03:37:11.2458979Z ============================= slowest 10 durations =============================
+2026-09-10T03:37:11.2459769Z 3.65s call     backend/tests/test_analytics_native_probe.py::test_parent_rejection_dies_under_validator_bypass
+2026-09-10T03:37:11.2460510Z 3.38s call     backend/tests/test_analytics_native_probe.py::test_unknown_schema_and_illegal_facts_are_parent_rejections
+2026-09-10T03:37:11.2461254Z 2.54s call     backend/tests/test_analytics_query_runtime.py::test_native_helper_real_worker_n30_n60_pending_and_reuse
+2026-09-10T03:37:11.2461997Z 2.00s call     backend/tests/test_analytics_query_worker.py::test_owner_crash_never_adopts_pid_or_resends_query[SQL_ACTIVE]
+2026-09-10T03:37:11.2462954Z 1.75s call     backend/tests/test_analytics_query_native_fault.py::test_cancel_sql_hold_on_a_releases_worker_and_leaves_b_queued
+2026-09-10T03:37:11.2463719Z 1.74s call     backend/tests/test_analytics_query_worker.py::test_result_and_closed_without_process_exit_cannot_complete
+2026-09-10T03:37:11.2464520Z 1.74s call     backend/tests/test_analytics_query_worker.py::test_worker_state_read_failure_stops_owned_child_without_raw_driver_error
+2026-09-10T03:37:11.2465331Z 1.72s call     backend/tests/test_analytics_first_purchase_native.py::test_native_success_save_cockpit_roundtrip_and_negatives
+2026-09-10T03:37:11.2466157Z 1.72s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[permission]
+2026-09-10T03:37:11.2467014Z 1.69s call     backend/tests/test_analytics_query_worker.py::test_sql_active_stop_releases_lease_without_result_or_budget_reset[cancel]
+2026-09-10T03:37:11.2467623Z =========================== short test summary info ============================
+2026-09-10T03:37:11.2468409Z FAILED backend/tests/test_analytics_worker.py::test_real_duckdb_external_sort_spill_and_quota[64] - backend.services.analytics.access.AnalyticsError: RESOURCE_EXCEEDED
+2026-09-10T03:37:11.2469172Z !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+2026-09-10T03:37:11.2469904Z 1 failed, 387 passed, 1 warning in 112.80s (0:01:52)
+2026-09-10T03:37:11.9045699Z [bounded-pytest] group 2 rc=1 time=114.147s peak_rss_gb=0.63
+2026-09-10T03:37:12.1166603Z [bounded-pytest] report: /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics/.context/checks/20260910T033336199049Z/summary.json
+2026-09-10T03:37:12.1371790Z ##[error]Process completed with exit code 1.
+2026-09-10T03:37:12.1457044Z ##[group]Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+2026-09-10T03:37:12.1457460Z with:
+2026-09-10T03:37:12.1457680Z   name: backend-check-evidence
+2026-09-10T03:37:12.1457943Z   path: .context/checks/
+2026-09-10T03:37:12.1458209Z   if-no-files-found: ignore
+2026-09-10T03:37:12.1458454Z   compression-level: 6
+2026-09-10T03:37:12.1458681Z   overwrite: false
+2026-09-10T03:37:12.1458903Z   include-hidden-files: false
+2026-09-10T03:37:12.1459150Z   archive: true
+2026-09-10T03:37:12.1459631Z env:
+2026-09-10T03:37:12.1459829Z   FQ_CRM_ADMINS: admin
+2026-09-10T03:37:12.1460119Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:37:12.1460554Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+2026-09-10T03:37:12.1460975Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:37:12.1461351Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:37:12.1461758Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-09-10T03:37:12.1462127Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+2026-09-10T03:37:12.1462451Z ##[endgroup]
+2026-09-10T03:37:12.2932231Z With the provided path, there will be 3 files uploaded
+2026-09-10T03:37:12.2933260Z Artifact name is valid!
+2026-09-10T03:37:12.2933779Z Root directory input is valid!
+2026-09-10T03:37:12.6456243Z Uploading artifact: backend-check-evidence.zip
+2026-09-10T03:37:12.6497154Z Beginning upload of artifact content to blob storage
+2026-09-10T03:37:12.9698463Z Uploaded bytes 21859
+2026-09-10T03:37:13.0224791Z Finished uploading artifact content to blob storage!
+2026-09-10T03:37:13.0225579Z SHA256 digest of uploaded artifact is 5b92b196e80ab225818afae8b288ddf568be9c22e0af01a1c0f649355705923c
+2026-09-10T03:37:13.0226275Z Finalizing artifact upload
+2026-09-10T03:37:13.4465982Z Artifact backend-check-evidence successfully finalized. Artifact ID 10135503169
+2026-09-10T03:37:13.4467025Z Artifact backend-check-evidence has been successfully uploaded! Final size is 21859 bytes. Artifact ID is 10135503169
+2026-09-10T03:37:13.4469716Z Artifact download URL: https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34433743967/artifacts/10135503169
+2026-09-10T03:37:13.4679012Z Post job cleanup.
+2026-09-10T03:37:13.5553193Z [command]/usr/bin/git version
+2026-09-10T03:37:13.5598380Z git version 2.55.0
+2026-09-10T03:37:13.5632177Z Temporarily overriding HOME='/home/runner/work/_temp/3a611cbc-a617-4668-9e75-e1170a024fe4' before making global git config changes
+2026-09-10T03:37:13.5633547Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-10T03:37:13.5636991Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fuqing-crm-analytics/fuqing-crm-analytics
+2026-09-10T03:37:13.5671875Z Removing SSH command configuration
+2026-09-10T03:37:13.5678744Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-10T03:37:13.5715959Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-10T03:37:13.5976891Z Removing HTTP extra header
+2026-09-10T03:37:13.5983869Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-10T03:37:13.6021954Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-10T03:37:13.6282798Z Removing includeIf entries pointing to credentials config files
+2026-09-10T03:37:13.6290592Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-10T03:37:13.6329136Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-10T03:37:13.6753690Z Cleaning up orphan processes

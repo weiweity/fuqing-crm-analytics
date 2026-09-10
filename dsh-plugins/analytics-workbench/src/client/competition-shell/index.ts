@@ -5,7 +5,7 @@ export {
 export type { AntdSeedToken, AntdThemeConfig, CompetitionTokens } from './tokens.ts';
 export { competitionShellCss } from './css.ts';
 export { ThemeProvider, useCompetitionTheme } from './ThemeProvider.tsx';
-export type { AntdConfigProvider, ThemeProviderProps } from './ThemeProvider.tsx';
+export type { ThemeProviderProps } from './ThemeProvider.tsx';
 export {
   CompetitionShell, LayoutSlot, LAYOUT_SLOT_NAMES,
 } from './LayoutSlot.tsx';

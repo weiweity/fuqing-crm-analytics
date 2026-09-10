@@ -1,0 +1,11 @@
+# The analytics-workbench bundle patch: the business surface over dsh-base.
+# A profile lists this bundle in dsh.profile.bundles; `dsh --profile <name>`
+# applies this layer after @deepseek-ai/dsh-base. Rows here reference the
+# package by name so Node module resolution finds the installed code.
+#
+# This layer mirrors the dsh-dev overlay's business row. The native dev brand
+# assets row stays in scripts/dsh-dev/overlay.mjs because it resolves repository
+# paths outside this package.
+- insert:
+    - id: analytics-workbench-ui
+      name: '@shine-mage/dsh-analytics-workbench-b0'

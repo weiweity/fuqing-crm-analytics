@@ -1,0 +1,24 @@
+{
+  "session_id": "session-71832c44-c365-47fe-abae-29b2ee6651b0",
+  "native_log_sha256": "3cbe8069d10a5c003cd736a0e5e3edfd7288a0cf1017eed80d6aac6960fd809d",
+  "turn_reason": {
+    "kind": "completed"
+  },
+  "native_tool_calls": 4,
+  "computation_calls": 1,
+  "results": [
+    {
+      "result_id": "result_diag_c5a1e368967791c1af667b4aad15535c6df8115ec8b5e13b",
+      "run_id": "run_diag_c5a1e368967791c1af667b4aad15535c6df8115ec8b5e13b",
+      "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+      "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+      "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a"
+    }
+  ],
+  "uncached_input_tokens": 10008,
+  "cached_input_tokens": 49280,
+  "output_tokens": 2353,
+  "numeric_and_condition_checks": "PASS",
+  "citation_check": "FAIL: final answer aliases result_id/run_id to result_id although native result has distinct IDs",
+  "fees": "UNKNOWN: provider billing not queried; these are native usage counters"
+}

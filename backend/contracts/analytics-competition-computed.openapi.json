@@ -1,0 +1,860 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Computed competition GSV",
+    "version": "1"
+  },
+  "paths": {},
+  "x-runtime-extension": "competition-computed-result/v1",
+  "components": {
+    "schemas": {
+      "ComparisonMode": {
+        "enum": [
+          "YOY_SAME_PERIOD",
+          "LAST_WEEK_SAME_WEEKDAY",
+          "CUSTOM_DUAL_WINDOW"
+        ],
+        "title": "ComparisonMode",
+        "type": "string"
+      },
+      "CompetitionGsvFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-gsv-facts/v1",
+            "default": "competition-gsv-facts/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "default": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "change_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio"
+          },
+          "change_ratio_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "ZERO_COMPARISON_GSV"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio Unavailable Reason"
+          }
+        },
+        "required": [
+          "current",
+          "comparison",
+          "difference",
+          "change_ratio",
+          "change_ratio_unavailable_reason"
+        ],
+        "title": "CompetitionGsvFacts",
+        "type": "object"
+      },
+      "CompetitionGsvFactsV2": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-gsv-facts/v2",
+            "default": "competition-gsv-facts/v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "default": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "change_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio"
+          },
+          "change_ratio_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "ZERO_COMPARISON_GSV"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio Unavailable Reason"
+          },
+          "money_unit": {
+            "$ref": "#/components/schemas/CompetitionMoneyUnit"
+          }
+        },
+        "required": [
+          "current",
+          "comparison",
+          "difference",
+          "change_ratio",
+          "change_ratio_unavailable_reason",
+          "money_unit"
+        ],
+        "title": "CompetitionGsvFactsV2",
+        "type": "object"
+      },
+      "CompetitionMoneyUnit": {
+        "additionalProperties": false,
+        "description": "Source-declared raw amount unit, never inferred from another catalogue.",
+        "properties": {
+          "status": {
+            "default": "UNKNOWN",
+            "enum": [
+              "KNOWN",
+              "UNKNOWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "const": "CNY",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Currency"
+          },
+          "amount_unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "major",
+                  "minor"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Unit"
+          }
+        },
+        "title": "CompetitionMoneyUnit",
+        "type": "object"
+      },
+      "CompetitionResolvedCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-condition/v1",
+            "default": "competition-condition/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metrics_contract_id": {
+            "const": "competition-metrics/v1",
+            "default": "competition-metrics/v1",
+            "title": "Metrics Contract Id",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          },
+          "current_period": {
+            "$ref": "#/components/schemas/InclusiveDateRange"
+          },
+          "comparison_mode": {
+            "$ref": "#/components/schemas/ComparisonMode"
+          },
+          "comparison_period": {
+            "$ref": "#/components/schemas/InclusiveDateRange"
+          },
+          "cutoff": {
+            "format": "date",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "event_time": {
+            "format": "date-time",
+            "title": "Event Time",
+            "type": "string"
+          },
+          "source_tense": {
+            "$ref": "#/components/schemas/SourceTense"
+          },
+          "sales_scope": {
+            "$ref": "#/components/schemas/FilterScope"
+          },
+          "history_scope": {
+            "$ref": "#/components/schemas/FilterScope"
+          },
+          "sample_mode": {
+            "$ref": "#/components/schemas/SampleMode"
+          },
+          "sample_channel_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sample Channel Ids"
+          },
+          "sample_history_recomputed": {
+            "title": "Sample History Recomputed",
+            "type": "boolean"
+          },
+          "sample_channel_set_status": {
+            "const": "UNKNOWN",
+            "title": "Sample Channel Set Status",
+            "type": "string"
+          },
+          "data_cutoff_policy": {
+            "const": "T_PLUS_1_YESTERDAY",
+            "title": "Data Cutoff Policy",
+            "type": "string"
+          },
+          "leap_day_alignment": {
+            "const": "CLAMP_TO_MONTH_END",
+            "title": "Leap Day Alignment",
+            "type": "string"
+          },
+          "data_snapshot_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Data Snapshot Ref",
+            "type": "string"
+          },
+          "data_version": {
+            "title": "Data Version",
+            "type": "string"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "warehouse_as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warehouse As Of"
+          },
+          "feature_as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Feature As Of"
+          },
+          "permission_scope": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Permission Scope",
+            "type": "string"
+          },
+          "actor_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "filter_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Filter Hash",
+            "type": "string"
+          },
+          "ignored_filters": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Ignored Filters",
+            "type": "array"
+          },
+          "unknown_flags": {
+            "items": {
+              "$ref": "#/components/schemas/UnknownFlag"
+            },
+            "title": "Unknown Flags",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "metric_type",
+          "timezone",
+          "current_period",
+          "comparison_mode",
+          "comparison_period",
+          "cutoff",
+          "as_of",
+          "published_at",
+          "event_time",
+          "source_tense",
+          "sales_scope",
+          "history_scope",
+          "sample_mode",
+          "sample_history_recomputed",
+          "sample_channel_set_status",
+          "data_cutoff_policy",
+          "leap_day_alignment",
+          "data_snapshot_ref",
+          "data_version",
+          "rule_version",
+          "permission_scope",
+          "actor_id",
+          "filter_hash",
+          "unknown_flags",
+          "limitations"
+        ],
+        "title": "CompetitionResolvedCondition",
+        "type": "object"
+      },
+      "Completeness": {
+        "enum": [
+          "COMPLETE",
+          "EMPTY",
+          "INSUFFICIENT",
+          "UNSUPPORTED",
+          "FAILED",
+          "PARTIAL"
+        ],
+        "title": "Completeness",
+        "type": "string"
+      },
+      "FilterScope": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ScopeKind"
+          },
+          "channel_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Channel Ids",
+            "type": "array"
+          },
+          "product_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Product Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "FilterScope",
+        "type": "object"
+      },
+      "GsvPeriodFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "requested_period": {
+            "$ref": "#/components/schemas/InclusiveDateRange"
+          },
+          "through_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Through Date"
+          },
+          "gsv": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gsv"
+          },
+          "order_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Order Count",
+            "type": "integer"
+          },
+          "customer_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Customer Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "requested_period",
+          "through_date",
+          "gsv",
+          "order_count",
+          "customer_count"
+        ],
+        "title": "GsvPeriodFacts",
+        "type": "object"
+      },
+      "InclusiveDateRange": {
+        "additionalProperties": false,
+        "properties": {
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "end_bound": {
+            "const": "INCLUSIVE_CALENDAR_DAY",
+            "default": "INCLUSIVE_CALENDAR_DAY",
+            "title": "End Bound",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "end_date"
+        ],
+        "title": "InclusiveDateRange",
+        "type": "object"
+      },
+      "ResultPage": {
+        "additionalProperties": false,
+        "properties": {
+          "offset": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "total": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "checksum": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Checksum",
+            "type": "string"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "offset",
+          "limit",
+          "total",
+          "checksum",
+          "complete"
+        ],
+        "title": "ResultPage",
+        "type": "object"
+      },
+      "SampleMode": {
+        "enum": [
+          "INCLUDE",
+          "EXCLUDE_CURRENT_SALES_ONLY",
+          "EXCLUDE_AND_RECOMPUTE_HISTORY"
+        ],
+        "title": "SampleMode",
+        "type": "string"
+      },
+      "ScopeKind": {
+        "enum": [
+          "ALL",
+          "CHANNEL_IDS",
+          "PRODUCT_IDS",
+          "CHANNEL_AND_PRODUCT"
+        ],
+        "title": "ScopeKind",
+        "type": "string"
+      },
+      "SourceTense": {
+        "enum": [
+          "PUBLISHED_SNAPSHOT",
+          "REBUILT_FROM_LATEST_CORRECTIONS"
+        ],
+        "title": "SourceTense",
+        "type": "string"
+      },
+      "UnknownFlag": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "SAMPLE_CHANNEL_SET",
+              "MEMBER_HISTORY",
+              "F_ORDER_GRAIN_OLD_CRM",
+              "NEW_OLD_CUSTOM_MONTH_CUTOFF",
+              "VALID_ORDER_RULE_OLD_CRM"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "status": {
+            "const": "UNKNOWN",
+            "default": "UNKNOWN",
+            "title": "Status",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "note"
+        ],
+        "title": "UnknownFlag",
+        "type": "object"
+      },
+      "CompetitionComputedResult": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-computed-result/v1",
+            "default": "competition-computed-result/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "execution_kind": {
+            "const": "TOOL_COMPUTATION",
+            "default": "TOOL_COMPUTATION",
+            "title": "Execution Kind",
+            "type": "string"
+          },
+          "result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Result Id",
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "analysis_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Id"
+          },
+          "query_id": {
+            "const": "competition_gsv_comparison",
+            "default": "competition_gsv_comparison",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "query_version": {
+            "const": "competition-gsv-query/v1",
+            "default": "competition-gsv-query/v1",
+            "title": "Query Version",
+            "type": "string"
+          },
+          "capability_id": {
+            "enum": [
+              "diag.gsv",
+              "diag.yoy",
+              "diag.last_week_same_weekday",
+              "diag.promo_dual_window"
+            ],
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "metric_id": {
+            "const": "gsv",
+            "default": "gsv",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "const": "competition-gsv-metric/v1",
+            "default": "competition-gsv-metric/v1",
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "facts_schema_ref": {
+            "default": "backend.contracts.competition_computed.CompetitionGsvFacts",
+            "enum": [
+              "backend.contracts.competition_computed.CompetitionGsvFacts",
+              "backend.contracts.competition_computed.CompetitionGsvFactsV2"
+            ],
+            "title": "Facts Schema Ref",
+            "type": "string"
+          },
+          "existing_result_schema": {
+            "default": "competition-gsv-facts/v1",
+            "enum": [
+              "competition-gsv-facts/v1",
+              "competition-gsv-facts/v2"
+            ],
+            "title": "Existing Result Schema",
+            "type": "string"
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "empty_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "NO_CURRENT_MONTH_DATA",
+                  "PERIOD_AFTER_AS_OF"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Reason"
+          },
+          "row_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultPage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolved_condition": {
+            "$ref": "#/components/schemas/CompetitionResolvedCondition"
+          },
+          "data_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Data Digest",
+            "type": "string"
+          },
+          "evidence_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Evidence Digest",
+            "type": "string"
+          },
+          "primary_result_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Primary Result Ref",
+            "type": "string"
+          },
+          "data_mode": {
+            "const": "SNAPSHOT",
+            "default": "SNAPSHOT",
+            "title": "Data Mode",
+            "type": "string"
+          },
+          "contains_real_data": {
+            "const": false,
+            "default": false,
+            "title": "Contains Real Data",
+            "type": "boolean"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "facts": {
+            "discriminator": {
+              "mapping": {
+                "competition-gsv-facts/v1": "#/components/schemas/CompetitionGsvFacts",
+                "competition-gsv-facts/v2": "#/components/schemas/CompetitionGsvFactsV2"
+              },
+              "propertyName": "schema_version"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFacts"
+              },
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFactsV2"
+              }
+            ],
+            "title": "Facts"
+          }
+        },
+        "required": [
+          "result_id",
+          "run_id",
+          "capability_id",
+          "completeness",
+          "empty_reason",
+          "row_count",
+          "page",
+          "resolved_condition",
+          "data_digest",
+          "evidence_digest",
+          "primary_result_ref",
+          "limitations",
+          "facts"
+        ],
+        "title": "CompetitionComputedResult",
+        "type": "object"
+      }
+    }
+  }
+}

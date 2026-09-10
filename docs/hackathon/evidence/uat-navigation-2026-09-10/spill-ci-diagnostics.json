@@ -1,0 +1,21 @@
+{
+  "failed_ci": 34433743967,
+  "head": "18dfc582c8a13c41c48141e7f7380ba3bdfcebcf",
+  "failed_case": "backend/tests/test_analytics_worker.py::test_real_duckdb_external_sort_spill_and_quota[64]",
+  "failure": "RESOURCE_EXCEEDED; original output cannot distinguish parent RSS/temp limit from engine OutOfMemory",
+  "b0_ci": "SUCCESS",
+  "backend_ci": "stopped at first failure; Ruff follow-up not reached",
+  "local_targeted_tests": "3 passed before and after failure-diagnostics change",
+  "local_spill_repetitions": 24,
+  "local_failures": 0,
+  "local_temp_range_mib": [
+    47.4375,
+    59.6875
+  ],
+  "local_rss_peak_mib": 188.875,
+  "diagnostic_only_change": "On the original positive-case error, fail with persisted worker records and bounded owned probe receipt. Original success comparison, negative quota and profile unchanged. No product code changed.",
+  "review": "Manual commit checkpoint: error remains a failure; context manager still closes owned child and descriptors; the 0.2s proof read is bounded; original positive and negative assertions retained.",
+  "test_file_sha256": "1555ca41a4723793c5094a6bfc42daf9d6cec3c80f108ebe80082e9a0929616c",
+  "next_action": "Run exact remote CI with new diagnostics; do not infer a resource cause or loosen quota from local success.",
+  "candidate_preflight": "Prepared plugin with duplicated API prefix was rejected before launch: actual shared HTTP options returned404. Rebuilt with origin http://127.0.0.1:18083; same options returned200 and2boards. Corrected plugin remains unstarted; user4325/18083 unchanged."
+}

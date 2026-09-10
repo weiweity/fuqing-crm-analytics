@@ -1,0 +1,15 @@
+{
+  "case": "E3",
+  "turn": 3,
+  "session_id": "session-11ad1f09-b047-49ca-a69e-5edd0dd51f80",
+  "native_log_sha256_at_extract": "a2fe65fa9f07df94b2d017590f271cc0bb63ead7ae5a6d4a6c69d95cb92e6e46",
+  "native_success": true,
+  "tools": [
+    "competition_growth_step",
+    "competition_growth_step",
+    "competition_growth_step"
+  ],
+  "reason": {
+    "kind": "completed"
+  }
+}

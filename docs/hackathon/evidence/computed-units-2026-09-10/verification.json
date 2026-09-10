@@ -1,0 +1,18 @@
+{
+  "backend": {
+    "passed": 2339,
+    "skipped": 77,
+    "deselected": 71,
+    "status": "PASS",
+    "groups": 10
+  },
+  "b0": "PASS: offline contracts, 480 Python tests, source tests, host/client typechecks, compiled DOM, clean rebuild",
+  "targeted_backend": "47 passed",
+  "unit_decoder": "5 passed",
+  "reader_compatibility": "new reads v1/v2; fixed old reader rejects v2; old JSON unchanged",
+  "current_runtime": "unchanged: 4325 plugin6202e89, API18083",
+  "unit_real_model_eval": "NOT_RUN",
+  "current_unit_visual_browser": "NOT_RUN",
+  "new_candidate_backup_restore": "NOT_RUN",
+  "original_failures": "targeted-failure-1/2: test expected wrong canonical publication-time string; application unchanged; original evidence retained"
+}

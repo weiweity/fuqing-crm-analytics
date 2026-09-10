@@ -1,0 +1,58 @@
+[
+  {
+    "command": [
+      "scroll",
+      ".sm-resize-handle"
+    ],
+    "seconds": 0.117,
+    "output": "Scrolled to bottom\n"
+  },
+  {
+    "command": [
+      "focus",
+      ".sm-resize-handle"
+    ],
+    "seconds": 0.035,
+    "output": "focus requires headed mode. Run `$B connect` first.\n"
+  },
+  {
+    "command": [
+      "press",
+      "Alt+Shift+ArrowLeft"
+    ],
+    "seconds": 0.058,
+    "output": "Pressed Alt+Shift+ArrowLeft\n"
+  },
+  {
+    "command": [
+      "click",
+      "[data-testid=\"sm-board-save\"]"
+    ],
+    "seconds": 0.068,
+    "output": "Clicked [data-testid=\"sm-board-save\"] → now at http://127.0.0.1:4328/\n"
+  },
+  {
+    "command": [
+      "scroll",
+      ".sm-drag-handle"
+    ],
+    "seconds": 0.032,
+    "output": "Scrolled to bottom\n"
+  },
+  {
+    "command": [
+      "focus",
+      ".sm-drag-handle"
+    ],
+    "seconds": 0.032,
+    "output": "focus requires headed mode. Run `$B connect` first.\n"
+  },
+  {
+    "command": [
+      "press",
+      "Alt+ArrowRight"
+    ],
+    "seconds": 0.034,
+    "output": "Pressed Alt+ArrowRight\n"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "run_reference_regression": "PASS for A3/B2 only; native method package and exact returned result/run IDs checked",
+  "full_T13": "PARTIAL",
+  "remaining_output_inconsistencies": [
+    "A3 names CNY minor amounts as cents; B2 notes the catalogue unit but leaves facts unit unexpressed",
+    "B2 calls the ratio contract B0 though this result uses competition-gsv-facts/v1",
+    "B2 says no files were written; it does not distinguish direct file operations from tool analysis_persisted=true"
+  ],
+  "evidence": "A3-answer.md and B2-answer.md plus corresponding tool results",
+  "old_failures": "../t13-equivalence-2026-09-10 contains original A TRANSPORT and A2/B mixed-ID failures"
+}

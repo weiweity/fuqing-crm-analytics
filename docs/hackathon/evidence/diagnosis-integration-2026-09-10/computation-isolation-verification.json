@@ -1,0 +1,91 @@
+{
+  "base_commit": "8c2e676cf9a9c4baa62aef67aa08f44b12cb0e66",
+  "branch": "codex/competition-diagnosis-integration",
+  "committed": false,
+  "source": {
+    "head": "8c2e676cf9a9c4baa62aef67aa08f44b12cb0e66",
+    "python_check_sources_sha256": "d011db4849ba15e0cd84b0a8a047401e9b8638748280ae48d1727e225aeee3bc"
+  },
+  "profile": "synthetic-not-slow",
+  "started_at": "2026-09-09T20:16:06.467174+00:00",
+  "elapsed_seconds": 217.972,
+  "file_count": 240,
+  "groups": [
+    {
+      "number": 1,
+      "returncode": 0,
+      "elapsed_seconds": 38.435
+    },
+    {
+      "number": 2,
+      "returncode": 0,
+      "elapsed_seconds": 44.148
+    },
+    {
+      "number": 3,
+      "returncode": 0,
+      "elapsed_seconds": 7.054
+    },
+    {
+      "number": 4,
+      "returncode": 0,
+      "elapsed_seconds": 11.577
+    },
+    {
+      "number": 5,
+      "returncode": 0,
+      "elapsed_seconds": 21.056
+    },
+    {
+      "number": 6,
+      "returncode": 0,
+      "elapsed_seconds": 8.954
+    },
+    {
+      "number": 7,
+      "returncode": 0,
+      "elapsed_seconds": 11.072
+    },
+    {
+      "number": 8,
+      "returncode": 0,
+      "elapsed_seconds": 45.921
+    },
+    {
+      "number": 9,
+      "returncode": 0,
+      "elapsed_seconds": 21.574
+    },
+    {
+      "number": 10,
+      "returncode": 0,
+      "elapsed_seconds": 8.128
+    }
+  ],
+  "result": {
+    "tests": 2364,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 77,
+    "passed": 2287
+  },
+  "ruff_backend": "PASS",
+  "diff_check": "PASS",
+  "regression_before_fix": {
+    "failed": 2,
+    "passed": 2,
+    "writable_without_fixture_gsv": 100,
+    "writable_with_external_fixture_gsv": 73,
+    "readonly_with_external_fixture": "failed while creating refunds"
+  },
+  "file_sha256": {
+    "backend/services/metrics/competition_compute.py": "ad085b5725e5f23e6f360b7bae147be066cb782dddc94e8648136347cda66cd5",
+    "backend/tests/test_competition_acceptance.py": "af2fcb04e108c3e23375e4c8d11f85e538a3b06c01fd3f752396ab2fec64981f",
+    "backend/tests/test_competition_acceptance_golden.py": "d55d358141fff0efe8270310831a213d329633c26a3ae449c77ad7a253ba683d",
+    "backend/tests/test_competition_compute_isolation.py": "7e50483858ce548ca1c8dede4fa610b654deeb6e05e98c981267cfcdf1e4b781"
+  },
+  "runtime_switched": false,
+  "real_data_accessed": false,
+  "new_model_calls": 0,
+  "product_status": "PARTIAL"
+}

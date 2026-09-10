@@ -1,0 +1,87 @@
+{
+  "created_at": "2026-09-10T01:23:58.008344+00:00",
+  "base_head": "84754076923828343b5929b8a8ea7a01ddcd8d74",
+  "source_sha256": {
+    "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx": "989345475643d11db46aabd8354e4d83afc8dcb2fdf2d3ec0ab0419066883c13",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "19227c33b5b377c78c104cf437a8ee9e44712be68acc09883465c4118cccebca",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs": "60ae8dcd0d80f23f25c07dafb266bbc8bcc7e06d447735297a882a3c3bd09ca8",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board.test.mjs": "2950da049ad8d8cfbcf8ec2375e45d4603f55e47a3c02ce5cd3e1b4b274c9858",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts": "ce43b600110939df834b6dd9d6747034a578f83f0a02528ec1804aa551230402",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/transport.mjs": "a895a9e6bec9e3678e6212462d926266342355b150c433107d60116de0dee9c0",
+    "dsh-plugins/analytics-workbench/src/client/focus.ts": "97bcab8a943c9042bc1ab804056eac448a5d88f808004ea6058a8fdfc74eef27",
+    "dsh-plugins/analytics-workbench/src/client/styles.ts": "2192acfd604ad4eb9343c2cbb8cd98d9b6caebcfe59fb3b050811670c43db9bc",
+    "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs": "673d60db0b2d307cf342e072b6bf71f2be152c6d7d55cc16532162ad0d57d33d"
+  },
+  "browser_artifacts": {
+    "visual_before_network_fix": "391c791b1762abb2b66550a72c7afec227270bdefc704f56c8e30d3d75c9cf7d",
+    "network_fixed": "f6a31a9f03812b2a55a09b56a5f1d710f73b942e2fd62dbc74120718fb42dc17"
+  },
+  "default_client": "509fff9b2b768bae433cb5a48925adf9aff449137c8e456639b17ed5962098b4",
+  "log_sha256": {
+    "visual-density-dom.log": "5fc8cba9ab989f0351a65531c46173e1b2bfa93339ef52c4f1db97ab0e75d2be",
+    "visual-density-transport.log": "6f99d65436da92c92f46ee3018e3b59fa28c1e22e2bb67d64352fbab85f6270f",
+    "visual-density-network-dom.log": "1e344cc82cee469cec83c3332f63e09b3a2e475c36a8f5ef3148587bec0d8450",
+    "visual-density-b0-final.log": "4e24e32289b60c73dbbe86687c34f0491c03becf204f35f9a20a05d5095fc7c1"
+  },
+  "checks": {
+    "scoped_compiled_dom": 32,
+    "transport": 11,
+    "b0_python": {
+      "passed": 480,
+      "warnings": 20
+    },
+    "b0_node_stages": [
+      225,
+      58,
+      70,
+      58
+    ],
+    "strict_types": "PASS",
+    "clean_build": "PASS"
+  },
+  "review": {
+    "performed_by": "current Codex agent",
+    "scope": "working diff: UI density, focus, HTTP error boundary; no OCR restart",
+    "result": "No remaining blocking finding in this increment",
+    "checks": [
+      "synthetic boundary remains visible",
+      "closed details and keyboard focus",
+      "B0 status does not mask competition failures",
+      "no automatic uncertain write retry; same idempotency and version headers",
+      "no upstream, credential, persistence or model configuration change"
+    ],
+    "limits": [
+      "not full T17 or independent multi-model review",
+      "existing table/scope technical copy remains"
+    ]
+  },
+  "service_cleanup": {
+    "temporary_ports": [
+      4328,
+      18084
+    ],
+    "stopped": true,
+    "preserved_user_candidate": {
+      "4325": 23690,
+      "18083": 23661
+    }
+  },
+  "deployment": "not switched; user candidate stays d482bd6",
+  "remote_ci": "not run for this uncommitted increment",
+  "failures_preserved": [
+    "initial disconnected screenshot; rejected fetch failed to render before repair",
+    "first-run native modals blocked premature clicks",
+    "CLI unquoted primitive JSON parse in browser metric harness"
+  ],
+  "screenshots": {
+    "board-dark-1024.png": "dbbb2582684fea97f70d100d963a40c5165e653967fac1588f6a371c895eb5e2",
+    "board-dark-1440.png": "4806dba01b7d5fee315290f6ea30b8298290760ef42d7f873406d63e69482683",
+    "board-dark-390.png": "d75f367cfdb24799092577b427611ac314e1e76394a4ce9b41816320c933d78a",
+    "board-light-1440.png": "b63bee3e8ca4aa58200226cd7be33e9fcb47afe3252fb898b422fea934a0e533",
+    "board-light-390.png": "a59f3a1f61619783630d984a1eaf23b693e11756ada94f23f4104ca3bd9256b2",
+    "disconnected-390.png": "61890c20d46e39504213e3c46fab17ef2fc3093e6c4797a7bb1076b0211872d4",
+    "disconnected-fixed-390.png": "4549eeaa4175183cb166e33172233ada8a902fb7fdedfe037c6d2c6167f3f247",
+    "empty-390.png": "024d965456efc42508b633454d612916995c55b00d824f9e88ba0df4a553da05",
+    "restored-fixed-390.png": "1dab6fbb7f026dbb225b8a949bfa56f1ca2605688442f83796deba2c08d7125f"
+  }
+}

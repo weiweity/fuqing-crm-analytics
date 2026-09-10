@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { ThemeProvider, type AntdConfigProvider } from './ThemeProvider.tsx';
+import { ThemeProvider } from './ThemeProvider.tsx';
+import type { CompetitionColorScheme } from './tokens.ts';
 import {
   BrandNav, ErrorState, PageTitle, ShellDialog, WelcomeHero,
   type CompetitionNavId, type ErrorKind,
@@ -41,16 +42,15 @@ export type CompetitionShellProps = {
   status?: { kind: StatusKind; message: string };
   error?: { kind: ErrorKind; title: string; detail: string; actionLabel?: string; onAction?: () => void } | null;
   dialog?: { open: boolean; title: string; children: ReactNode; onClose: () => void };
-  ConfigProvider?: AntdConfigProvider;
-  algorithm?: unknown;
+  colorScheme?: CompetitionColorScheme;
 };
 
 export function CompetitionShell({
   active = 'ask', onNavigate, onSuggest, title, eyebrow, children, slots, status, error, dialog,
-  ConfigProvider, algorithm,
+  colorScheme,
 }: CompetitionShellProps) {
   return (
-    <ThemeProvider ConfigProvider={ConfigProvider} algorithm={algorithm}>
+    <ThemeProvider colorScheme={colorScheme}>
       <LayoutSlot name="nav">{slots?.nav ?? <BrandNav active={active} onNavigate={onNavigate} />}</LayoutSlot>
       <div className="sm-competition-main">
         <LayoutSlot name="title">

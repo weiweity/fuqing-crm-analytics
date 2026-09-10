@@ -9,6 +9,7 @@ import {
   decodeCompetitionBoardSpec, decodeCompetitionError, decodeCompetitionPatchRequest,
   decodeCompetitionResultRef, looksLikeIllegalScript, toEndorsedResultRef,
   defaultBlockLayout,
+  decodeBoardPatchRequest,
 } from './decode.mjs';
 
 export function clone(value) {
@@ -173,7 +174,7 @@ export function createFixtureBoardTransport(options = {}) {
           },
         });
       }
-      const decoded = decodeCompetitionPatchRequest(payload);
+      const decoded = decodeBoardPatchRequest(payload);
       if (!decoded) return fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422, param: 'intent' } });
       if (decoded.intent === 'FILTER_CHANGE') {
         return fail(422, {
@@ -207,13 +208,18 @@ export function createFixtureBoardTransport(options = {}) {
         const block = next.blocks?.find(row => row.block_id === decoded.cockpit_op.card_id);
         if (block) block.layout = clone(decoded.cockpit_op.layout);
       }
+      if (decoded.schema_version === 'competition-board-chart-patch/v1') {
+        const block = next.blocks?.find(row => row.block_id === decoded.block_id);
+        if (!block) return fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422 } });
+        block.plugin = decoded.chart_type;
+      }
       preview = next;
       pendingPatch = decoded;
       return ok(200, next);
     },
 
     async applyPatch(_principal, payload, headers = {}) {
-      const decoded = decodeCompetitionPatchRequest(payload);
+      const decoded = decodeBoardPatchRequest(payload);
       if (!decoded) return fail(422, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_REQUEST', http_status: 422 } });
       if (scenario === 'conflict_409' || Number(headers['If-Match'] ?? headers['if-match']) !== board.version) {
         return fail(409, clone(BOARD_CONFLICT));
@@ -255,7 +261,7 @@ export function createFixtureBoardTransport(options = {}) {
     async loadBoard(boardId) {
       if (scenario === 'permission_denied') return fail(403, clone(BOARD_FORBIDDEN));
       if (boardId && boardId !== board.board_id) return fail(403, clone(BOARD_FORBIDDEN));
-      return ok(200, clone(preview ?? board));
+      return ok(200, clone(board));
     },
 
     discardPreview() {
@@ -270,19 +276,36 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
   if (typeof fetchImpl !== 'function') {
     throw new Error('HTTP transport 需要注入 fetchImpl；默认 UI 使用 C0 fixture transport。');
   }
+  function localFailure(status, code, message) {
+    return fail(status, { error: {
+      schema_version: 'competition-error/v1', code, message,
+      param: null, request_id: 'client-transport', retryable: status >= 500 || status === 408 || status === 429, retry_after: null,
+      http_status: status, maps_to: 'backend.contracts.analytics.AnalyticsErrorDetail',
+      doc_ref: null, recovery_url: null,
+    } });
+  }
   async function request(path, { method = 'GET', body, etag, key } = {}) {
     const headers = {};
     if (body !== undefined) headers['content-type'] = 'application/json';
     if (key) headers['idempotency-key'] = key;
     if (etag !== undefined && etag !== null) headers['if-match'] = String(etag);
-    const response = await fetchImpl(path, {
-      method, credentials: 'same-origin', cache: 'no-store', redirect: 'error', headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    let response;
+    try {
+      response = await fetchImpl(path, {
+        method, credentials: 'same-origin', cache: 'no-store', redirect: 'error', headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    } catch {
+      return localFailure(503, 'NETWORK_ERROR',
+        '无法连接看板服务。请恢复连接后重新打开；保存结果请以重新读取的版本为准。');
+    }
     let payload = null;
     try { payload = await response.json(); } catch { payload = null; }
     const error = decodeCompetitionError(payload);
     if (error) return fail(response.status, { error });
+    if (response.status < 200 || response.status >= 300) {
+      return localFailure(response.status, 'HTTP_ERROR', `看板服务返回 HTTP ${response.status}，未能读取有效响应。`);
+    }
     const bodyValue = payload?.spec?.schema_version === 'competition-board/v1'
       ? { ...payload.spec, blocks: Array.isArray(payload.blocks) ? payload.blocks : [] }
       : payload;
@@ -294,6 +317,10 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
       const row = await request(`${basePath}/results`);
       if (!row.ok) return row;
       const items = Array.isArray(row.body) ? row.body : (row.body?.items || []);
+      if (!Array.isArray(items) || items.some(item => !decodeCompetitionResultRef(item))) {
+        return fail(502, { error: { ...BOARD_CONFLICT.error, code: 'INVALID_RESULT', http_status: 502,
+          message: '结果格式或数值校验失败，未载入认可列表。' } });
+      }
       return { ...row, body: items };
     },
     async previewBatch(_p, payload) {
@@ -334,6 +361,14 @@ export function createHttpBoardTransport({ fetchImpl, basePath = '/api/v1/analyt
       const spec = row.body?.spec && row.body.spec.schema_version === 'competition-board/v1'
         ? row.body.spec
         : row.body;
+      if (Array.isArray(spec?.blocks)) {
+        for (const block of spec.blocks) {
+          if (block.result?.schema_version === 'competition-computed-result/v1' && !decodeCompetitionResultRef(block.result)) {
+            block.result = null;
+            block.source_status = 'UNAVAILABLE';
+          }
+        }
+      }
       return { ...row, body: spec };
     },
   };

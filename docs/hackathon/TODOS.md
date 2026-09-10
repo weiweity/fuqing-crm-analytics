@@ -1,10 +1,37 @@
 # TODOS
 
-本清单只保留延后功能和独立授权事项，不是所有项目待办，也不是执行授权。当前任务顺序、架构/数仓/ETL/多人验证以[总待办](./PLAN-CLOSEOUT-2026-09-05.md)为准；原首版 [11 工作包](./AUTOPLAN-IMPLEMENTATION-TASKS-2026-09-05.md)保留编号。
+本清单保留验收缺口、延后功能和独立授权事项，不是执行授权。当前七阶段任务与证据以[产品验收与发布准备](./PRODUCT-READINESS-2026-09-10.md)为准；[总待办](./PLAN-CLOSEOUT-2026-09-05.md)保留架构/数仓/ETL/多人规划，原首版 [11 工作包](./AUTOPLAN-IMPLEMENTATION-TASKS-2026-09-05.md)保留编号。
+
+## 当前产品验收（2026-09-10）
+
+- [x] #112 集成和 #114 七项修复已合入 main `788b5b1`；PR/main CI 均通过。
+- [x] 图表类型持久化与草稿恢复/放弃修复，组件、HTTP、浏览器刷新重开通过。
+- [ ] 首次启动保存反馈历史误报：3 次新运行时未复现，原根因仍待复现。
+- [ ] 补 T17 原生工作区/会话/设置/工具/权限，以及按 DESIGN 的视觉验收。
+- [x] 原生浅/深色与业务主题同步、实际 AntD 表单接入；隔离浏览器验证刷新保持、BAR 保存重开及 390 窄屏修复，见[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)。完整 T17/视觉仍开放。
+- [ ] 处理待确认业务口径、核对旧 MCP/截断开放项，执行 T13 真实模型 eval。
+- [x] GSV 数值诊断 → 保存 → 成板：显式合成源、独立合同与可信快照已接通；两条真实 DeepSeek 评测及刷新重开通过，完整后端 2320 passed / 77 skipped，B0 PASS。见[本轮交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。
+- [x] 数值增量运行时切换与取消：`d482bd6` 已切换独立候选且 CI SUCCESS；浏览器原生停止阻止迟到发布、同会话恢复通过，见[原生补验](PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)。不代表物理 SQL 中断；完整诊断链、T15/T16 和视觉开放项继续保留。
+- [x] 原生文件权限、提权拒绝/仅一次批准、运行中收窄后约束下一次调用、新会话默认隔离和重启恢复已实测；Minimal 的插件 off/on 工具目录保留，见[原生审批补验](PRODUCT-NATIVE-APPROVAL-2026-09-10.md)。
+- [x] 系统目录选择/取消、五种 preset 实际文件读取与 off/on 恢复、原生手动压缩后继续执行已补验，见[目录与压缩证据](PRODUCT-NATIVE-EXTENDED-2026-09-10.md)。不代表所有专用工具或真实模型摘要质量通过。
+- [ ] T17 完整视觉及其余边界仍开放；原生文件权限证据不代替业务撤权与真实数据/凭据可达边界。
+- [x] 驾驶舱首屏精简、键盘详情、B0/比赛错误隔离和真实断连恢复已独立验证，`9948de3` CI SUCCESS 并[切换 4325](PRODUCT-DENSITY-CANDIDATE-2026-09-10.md)；其余技术文案和完整视觉仍开放。
+- [ ] 分析师、运营、老板完整流程预演及业务代表 T15 验收。
+- [x] 修复驾驶舱入口、多板选择和已存板条件证据；新隔离状态经原生工具计算两组 GSV、批量两板、键盘布局保存、草稿 v2 重开和三种宽度验证，见[本轮预演](PRODUCT-UAT-NAVIGATION-2026-09-10.md)。真实拖动、诊断到人群关联和本人 T15 仍开放。
+- [x] 看板直达与选择已进入 4325，`cde6a81` CI SUCCESS，原有板与配置保持，见[切换与评测](PRODUCT-UAT-CANDIDATE-2026-09-10.md)。
+- [x] T13 result_id/run_id 混用回归：方法修正 `6202e89` CI SUCCESS，已切换；A3/B2 实际加载新方法包，数值/条件及分别引用原标识通过。
+- [x] [单位来源本地修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)：源声明→v2 facts→摘要→HTTP/持久化→看板；源未声明单位时为 UNKNOWN，旧 v1 摘要原样兼容。不为未声明的单位设置人民币默认值。
+- [x] 单位修复 `84b0ac8` CI SUCCESS、五库恢复和运行切换完成；[原生单位展示与真实 DeepSeek 局部复测](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)通过。旧读者拒绝 v2，不能直接降级到含新结果的状态。
+- [ ] 完整 T13：单位/标识/自动保存、原生工具边界、A6/A7 真实 HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径已分项取证（见 [transport 覆盖](evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json)）。其余鲁棒性、已知未接通能力的重复调用仍开放；真实 DuckDB 数据源的 cohort 特征未接线。Linux spill 配额偶发失败未归因，CI 通过不等于根因修复。
+- [x] T13 原生工具边界：E5 已复现业务工具失败后可调用 `bash/grep/read`；源码按 agent/turn 接入 `tools.guard()`。真实 runtime 复测通过：`competition_growth_patch` 返回后同回合原生 `read` 被拒绝，另起无 competition 调用的原生回合 `glob` 正常执行，turn `completed`。此前 `TRANSPORT` 的根因是候选启动缺 `NODE_EXTRA_CA_CERTS`（Node 无法校验 DeepSeek TLS 链），非网络；同一次启动还缺 `COMPETITION_HTTP_BASE/TOKEN` 使 competition 工具未注册。见 [E5 复测](evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest-verified.json)。
+- [ ] 前端性能基线和 T16 数据量/并发/P95/RSS 专项验证。
+- [ ] 明确发布版本/环境、状态备份与回退，完成部署后的关键路径与指标验证。
+
+历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。本轮 T13 已执行有界真实 DeepSeek 调用、T17 补验，均 PARTIAL；T15 待本人验收，T16 仅有单用户合成基线，不自动勾选为完成。
 
 ## 已纳入当前首版（不再列作延期）
 
-自由诊断、认可后批量成板、拖拽缩放与聊天编辑、自有比赛品牌、召回候选预览及行动草稿已进入 [总计划§12](./PLAN-CLOSEOUT-2026-09-05.md)。旧 CRM 的日期/口径/契约/读取准入/完整返回/性能取证分别登记 API-01–06，按实际依赖阻断相应接入，不能仅更新 API 文档后宣称可用。候选人群当前运行登记仍 DEFERRED 是实现状态，不是再次延期。
+自由诊断、认可后批量成板、拖拽缩放与聊天编辑、自有比赛品牌、召回候选预览及行动草稿已进入 [总计划§12](./PLAN-CLOSEOUT-2026-09-05.md)。competition 候选与草稿合成 HTTP 已在 #112/#114 实现并补验；真实人群、旧 CRM catalog 和 MCP 各按自身证据判断。旧 CRM 的日期/口径/契约/读取准入/完整返回/性能取证仍分别登记 API-01–06。
 
 ## 公开交付
 
@@ -77,3 +104,5 @@
 ## Completed
 
 本延后清单尚无完成项；不表示其他工作毫无进展。已有成果、局部验证与未验收内容统一见总待办。
+
+- [x] 视觉与状态恢复增量进入 4325/18083；五库新备份恢复及浏览器重开通过，[快速 canary DEGRADED](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)保留既有 B0 404。

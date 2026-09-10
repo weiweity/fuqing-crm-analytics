@@ -1,0 +1,62 @@
+{
+  "prior_harness_failure": "First capture parsed an unquoted CLI primitive string as JSON; browser actions had succeeded. Repaired to return an object.",
+  "390x844": {
+    "width": 390,
+    "dialogWidth": 342,
+    "scrollWidth": 342,
+    "boardTop": 594,
+    "barCount": 2,
+    "chart": "BAR",
+    "synthetic": "合成数据 · 固定历史快照",
+    "detailsOpen": false,
+    "native": "dark",
+    "business": [
+      "dark"
+    ]
+  },
+  "1024x900": {
+    "width": 1024,
+    "dialogWidth": 976,
+    "scrollWidth": 976,
+    "boardTop": 440,
+    "barCount": 2,
+    "chart": "BAR",
+    "synthetic": "合成数据 · 固定历史快照",
+    "detailsOpen": false,
+    "native": "dark",
+    "business": [
+      "dark"
+    ]
+  },
+  "1440x1000": {
+    "width": 1440,
+    "dialogWidth": 1100,
+    "scrollWidth": 1100,
+    "boardTop": 440,
+    "barCount": 2,
+    "chart": "BAR",
+    "synthetic": "合成数据 · 固定历史快照",
+    "detailsOpen": false,
+    "native": "dark",
+    "business": [
+      "dark"
+    ]
+  },
+  "details_open_by_enter": true,
+  "details_closed_by_enter": true,
+  "backward_wrap": {
+    "inside": true,
+    "text": "发送局部编辑"
+  },
+  "forward_wrap": {
+    "testid": "analytics-b0-close"
+  },
+  "system_switch_light": {
+    "native": "light",
+    "business": [
+      "light",
+      "light"
+    ]
+  },
+  "status": "PASS"
+}

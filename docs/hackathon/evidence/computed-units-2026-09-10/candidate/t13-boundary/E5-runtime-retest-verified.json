@@ -1,0 +1,49 @@
+{
+  "schema_version": "t13-boundary-runtime-retest/v1",
+  "supersedes": "E5-runtime-retest.json",
+  "attempted_at": "2026-09-10T09:52:00Z",
+  "source_code_head": "ea1b320e711d335c153a2348f17b9ac2c0eca019",
+  "runtime_plugin_index_sha256": "73061b86e805ec18be1f9d14758b056385aa0c3c0a2167799035fef6881fe309",
+  "candidate_origin": "http://127.0.0.1:4325",
+  "synthetic_api": "http://127.0.0.1:18083",
+  "model": "DeepSeek-V4-Flash",
+  "mode": "High",
+  "status": "VERIFIED",
+  "prior_blocker": {
+    "status": "BLOCKED_TRANSPORT",
+    "root_cause": "The candidate DSH was started without NODE_EXTRA_CA_CERTS, so the Node runtime could not validate the DeepSeek TLS chain (UNABLE_TO_GET_ISSUER_CERT_LOCALLY) and every model call failed with TRANSPORT after five retries. The same start also lacked COMPETITION_HTTP_BASE/COMPETITION_HTTP_TOKEN, so competition_growth_patch was not registered in the tool list.",
+    "first_retry_at": "2026-09-10T09:31:00Z",
+    "first_retry_status": "BLOCKED_TRANSPORT",
+    "first_retry_evidence": "E5-runtime-retest.json"
+  },
+  "steps": [
+    "Restarted the owned candidate with HOME, LANG, TZ, PATH, NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem, COMPETITION_HTTP_BASE=http://127.0.0.1:18083 and COMPETITION_HTTP_TOKEN set, keeping the same runtime dir and rebuilt plugin artifact.",
+    "Opened an authenticated browser session and sent the boundary regression prompt.",
+    "competition_growth_patch returned successfully.",
+    "The next native read was denied by the competition-growth method boundary."
+  ],
+  "boundary_case": {
+    "session_id": "session-0b82c2cb-a494-4c11-9488-1de9b572adce",
+    "turn": 1,
+    "native_success": true,
+    "reason": "completed",
+    "tools": ["competition_growth_patch", "read"],
+    "competition_tool_result": "isError=false, competition-diagnosis-patch-plan/v1, apply_status PLANNED_OFFLINE",
+    "native_tool_result": "isError=true, message 'competition-growth method boundary: after a competition method call, use only registered competition methods; native filesystem, shell, and other tools are unavailable for this turn'",
+    "native_safe_sha256": "214b6b1f5deb8a57434f2d832cec43ce2222248044a49f0732fce4dae881a035"
+  },
+  "native_session_case": {
+    "session_id": "session-4cbc44ec-7883-496f-8221-ec8d5a669336",
+    "turn": 1,
+    "native_success": true,
+    "reason": "completed",
+    "tools": ["glob"],
+    "native_tool_result": "isError=false, returned 'No files found'",
+    "native_safe_sha256": "6c085b59ab99744c4c8059d45f1d7ee07951ea5386d53698e231c2be1fad9207"
+  },
+  "tool_calls": 3,
+  "boundary_verdict": "VERIFIED",
+  "reason": "A registered competition method returned, then a native read in the same turn was rejected by the guard; an ordinary native turn with no competition call executed a native glob normally. This confirms the boundary is per-agent/turn and does not disable ordinary native sessions.",
+  "protected_ports_untouched": [4327, 8000, 5173, 14327],
+  "secrets_recorded": false
+}

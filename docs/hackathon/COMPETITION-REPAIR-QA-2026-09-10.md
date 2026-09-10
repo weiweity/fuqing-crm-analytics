@@ -1,6 +1,6 @@
 # Competition 修复 Git 收口与独立 QA（2026-09-10）
 
-本次修复范围的合成浏览器回归通过，生产代码为 `1550f43cbb8192c8b6df59eaee20ae039e87dda6`。[PR #114](https://github.com/weiweity/fuqing-crm-analytics/pull/114) 承载提交、推送和合并记录；本文附加提交只更新证据，不改变已验代码。完整产品仍为 PARTIAL。
+本次修复范围的合成浏览器回归通过，生产代码为 `1550f43cbb8192c8b6df59eaee20ae039e87dda6`。[PR #114](https://github.com/weiweity/fuqing-crm-analytics/pull/114) 已合并为 `788b5b108fed22526805248a86f310ef7602cc6e`；最终 PR 提交 `3862e77` 与合并提交的文件树一致。完整产品仍为 PARTIAL，后续工作统一记入[七阶段验收账本](PRODUCT-READINESS-2026-09-10.md)。
 
 ## 版本和环境
 
@@ -22,7 +22,7 @@
 |---|---|
 | commit 前审查 | 7 项修复、并发/权限/持久化边界及编译调用方审查完成；未发现本修复新增的阻断项。OCR 未恢复。 |
 | 正常 pre-push | PASS；后端定向 9 项、工具 187 项、共享 B0（460 项 Python、Node 各分组、合同、类型、真实 Cordis loader、干净重建）和 FilterBuilder；LFS 正常。 |
-| 远端 CI | `1550f43` 的 lint、test、contract-filterbuilder-lint、b0-contract-build、merge-gate 全部成功，见 [CI run 34384108053](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34384108053)。未选中的 job 是 SKIPPED，不算执行通过。最终证据提交仍由 PR 必需检查约束。 |
+| 远端 CI | 最终 PR 提交 `3862e77` 的 [CI run 34385964860](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34385964860) 和合并后 main `788b5b1` 的 [CI run 34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) 均为 SUCCESS。未选中的 job 是 SKIPPED，不算执行通过。 |
 | 连续成板 | 第一份结果建板成功；换选第二份结果，新 batch/operation/idempotency ID 建成另一块板，无 409。 |
 | 丢响应重试 | 浏览器 fetch 包装在第二次 POST `/batches` 的服务端 200 后主动抛出网络错误；dialog 仍开。点击同一成板按钮重试，请求体逐字相同，仍共 2 块板。见 [请求与数量断言](evidence/competition-repair-2026-09-10/boards-verification.json)。这项有意故障不是后端失败。 |
 | 同页重开、保存布局 | 返回聊天 → footer 再开 → 认可成板 → 编辑看板，显示已存板、COMPLETE 和行数 1；选中板块右移、保存版本，再关闭重开仍为 `x1/y0/w6/h4`。GET 恢复的是该板绑定的第二份结果。 |
@@ -45,7 +45,7 @@
 
 ![首次启动提示仍报保存失败](evidence/competition-repair-2026-09-10/screenshots/onboarding-save-failed.png)
 
-T13 真实模型、T15 三角色业务 UAT、T16 容量仍未运行；T17 仍 PARTIAL。没有真实业务数据、营销发送、部署或恢复 OCR。上述开放项不属于本次 7 项修复的新回归，不能用本次范围通过替代整产品验收。
+本份七项修复 QA 完成时，T13 真实模型、T15 三角色业务 UAT、T16 容量未运行，T17 PARTIAL；后续真实模型与性能证据见七阶段验收账本。没有真实业务数据、营销发送、部署或恢复 OCR。上述开放项不属于本次 7 项修复的新回归，不能用本次范围通过替代整产品验收。
 
 ## 复现及收尾
 
@@ -53,4 +53,4 @@ T13 真实模型、T15 三角色业务 UAT、T16 容量仍未运行；T17 仍 PA
 
 启动使用 `COMPETITION_SYNTH_PORT=18083`、`COMPETITION_SYNTH_WEB_ORIGIN=http://127.0.0.1:4325`、私有 `COMPETITION_SYNTH_STATE`，以及 `scripts/dsh-dev/cli.mjs start --plugin on --web-port 4325 --fresh --detach --upstream <固定上游>`。浏览器 transport 指向本轨合成 API；认证只使用启动器的公开合成夹具 token，日志不保留认证头或 DSH launch token。
 
-本次临时实例用新工作树的 `scripts/dsh-dev/cli.mjs stop` 和核验归属后的 18083 进程停止；原修复树及其工具链保留。4327 / 8000 / 5173 和既有 14327 不属于本轨，保持原状。最终是否已合并、实例回收及版本核验，以 PR 状态和本轮交付答复为准。
+本次临时实例已用修复工作树的 `scripts/dsh-dev/cli.mjs stop` 和核验归属后的 18083 进程停止，独立浏览器也已回收；原修复树及其工具链保留。4327 / 8000 / 5173 和既有 14327 不属于本轨，保持原状。Git 已完成合并及 main CI 核验。

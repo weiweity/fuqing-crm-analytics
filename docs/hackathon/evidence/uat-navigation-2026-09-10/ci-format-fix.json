@@ -1,0 +1,19 @@
+{
+  "failed_ci": 34432529663,
+  "failed_head": "2dae78d4da6741162732401ea3b0827a7dce073c",
+  "backend_passed": 2322,
+  "backend_skipped": 79,
+  "b0": "SUCCESS",
+  "actual_failure": "40 Ruff errors in newly committed Python evidence helpers; 0 business test failures",
+  "fix": "format four current helpers; preserve failed historical drafts byte-for-byte as .py.txt",
+  "ast_equivalent_after_expanding_multi_import": [
+    "pack-uat-navigation.py",
+    "uat-navigation-visual.py",
+    "uat-navigation-edit.py",
+    "uat-navigation-browser.py"
+  ],
+  "historical_drafts_byte_identical": true,
+  "review": "manual commit checkpoint: formatting AST equivalence and evidence preservation checked; no business source changed",
+  "remote_revalidation": "PENDING",
+  "packer_followup": "Two historical draft destinations now retain .py.txt; manual path review after AST-equivalent formatting."
+}

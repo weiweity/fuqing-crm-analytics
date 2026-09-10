@@ -31,6 +31,7 @@ from backend.contracts.competition_c0 import (
     PatchIntent,
     SnapshotCompat,
 )
+from backend.contracts.competition_chart import CompetitionChartPatchRequest
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
 from backend.services.analytics.analysis_source import resolve_endorsed_result
 from backend.services.analytics.cockpit import (
@@ -58,6 +59,7 @@ from backend.services.analytics.competition_assets.store import CompetitionAsset
 from backend.services.analytics.competition_assets.result import competition_result_item
 from backend.services.analytics.resource_profile import canonical_json, content_hash
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
+from backend.services.analytics.competition_diagnosis.store import ComputedResultStore, is_computed_reference
 
 CAPABILITY_READ = "dashboard:read"
 CAPABILITY_WRITE = "dashboard:update"
@@ -257,15 +259,36 @@ class CompetitionAssetService:
         *,
         analysis_store: SavedAnalysisStore,
         cockpit_store: CockpitStore | None = None,
+        computed_store: ComputedResultStore | None = None,
         clock: Callable[[], int] = _now_ms,
     ):
         self.store = CompetitionAssetStore(state_dir, clock=clock)
         self.analyses = analysis_store
         self.cockpit = cockpit_store
+        self.computed = computed_store
         self.clock = clock
 
     def close(self) -> None:
         self.store.close()
+
+    def _computed_store(self):
+        if self.computed is None:
+            raise AnalyticsError(503, "STATE_UNAVAILABLE", "诊断结果库尚未配置。")
+        return self.computed
+
+    def _resolve_endorsed(self, principal, ref):
+        if is_computed_reference(ref.analysis_id, ref.run_id):
+            return self._computed_store().resolve_endorsed(principal, ref)
+        return resolve_endorsed_result(self.analyses, principal, ref)
+
+    def _resolve_card(self, principal, analysis_id, version):
+        if is_computed_reference(analysis_id):
+            return self._computed_store().resolve_card(principal, analysis_id, version)
+        return resolve_trusted_analysis_card(self.analyses, principal, analysis_id, version)
+
+    def _analysis(self, principal, analysis_id, version):
+        store = self._computed_store() if is_computed_reference(analysis_id) else self.analyses
+        return store.get(principal, analysis_id, version)
 
     def _require(self, principal: AnalyticsPrincipal, capability: str) -> None:
         require(principal, capability, data_scope=DATA_SCOPE)
@@ -288,7 +311,7 @@ class CompetitionAssetService:
                 return json.loads(prior["response_json"])
             bindings = []
             for item in parsed:
-                binding = resolve_endorsed_result(self.analyses, principal, item)
+                binding = self._resolve_endorsed(principal, item)
                 self.store.upsert_endorsement(con, principal, binding)
                 bindings.append({
                     "result_id": binding["result_id"],
@@ -371,7 +394,7 @@ class CompetitionAssetService:
                     bindings = []
                     for ref in operation.endorsed_result_refs:
                         try:
-                            bindings.append(resolve_endorsed_result(self.analyses, principal, ref))
+                            bindings.append(self._resolve_endorsed(principal, ref))
                         except AnalyticsError as error:
                             if error.status == 404:
                                 raise AnalyticsError(
@@ -520,11 +543,15 @@ class CompetitionAssetService:
     def apply_patch(self, principal: AnalyticsPrincipal, payload: dict[str, Any] | CompetitionPatchRequest):
         return self._mutate_patch(principal, payload, persist=True)
 
-    def _parse_patch(self, payload) -> CompetitionPatchRequest:
+    def _parse_patch(self, payload) -> CompetitionPatchRequest | CompetitionChartPatchRequest:
         try:
-            return payload if isinstance(payload, CompetitionPatchRequest) else CompetitionPatchRequest.model_validate(payload)
+            if isinstance(payload, (CompetitionPatchRequest, CompetitionChartPatchRequest)):
+                return payload
+            model = (CompetitionChartPatchRequest if isinstance(payload, dict) and payload.get("schema_version") == "competition-board-chart-patch/v1"
+                     else CompetitionPatchRequest)
+            return model.model_validate(payload)
         except ValidationError:
-            raise _unprocessable("补丁不符合 competition-board-patch/v1。") from None
+            raise _unprocessable("补丁不符合 C0 或比赛图表运行时合同。") from None
 
     def _load_competition_row(self, principal, board_id: str, version: int | None = None):
         with self.store.readonly() as con:
@@ -558,7 +585,8 @@ class CompetitionAssetService:
         self._require(principal, CAPABILITY_WRITE if persist else CAPABILITY_READ)
         patch = self._parse_patch(payload)
         validate_key(patch.idempotency_key)
-        reject_filter_change(patch)
+        if isinstance(patch, CompetitionPatchRequest):
+            reject_filter_change(patch)
         if self._load_competition_row(principal, patch.board_id) is None:
             if self.cockpit is not None:
                 try:
@@ -645,6 +673,11 @@ class CompetitionAssetService:
     def _apply_c0_patch(self, con, principal, row, patch: CompetitionPatchRequest, *, preview: bool):
         blocks = json.loads(row["blocks_json"])
         title = row["title"]
+        if isinstance(patch, CompetitionChartPatchRequest):
+            target = self._require_block(blocks, patch.block_id)
+            updated = {**target, "plugin": patch.chart_type}
+            return ([updated if block["block_id"] == target["block_id"] else block for block in blocks],
+                    title, [target["block_id"]])
         if patch.intent == PatchIntent.STYLE_ONLY:
             return self._style_only(blocks, title, patch)
         if patch.cockpit_op is None:
@@ -699,9 +732,7 @@ class CompetitionAssetService:
     def _add_block(self, principal, blocks, title, patch, op: AnalyticsCockpitAddOp):
         if len(blocks) >= MAX_CARDS:
             raise _unprocessable("驾驶舱板块数量已达上限。")
-        trusted = resolve_trusted_analysis_card(
-            self.analyses, principal, op.analysis_ref.analysis_id, op.analysis_ref.version,
-        )
+        trusted = self._resolve_card(principal, op.analysis_ref.analysis_id, op.analysis_ref.version)
         block_id = stable_id("block", patch.attempt_id, op.analysis_ref.analysis_id, str(op.analysis_ref.version))
         layout = op.layout.model_dump(mode="json") if op.layout is not None else _next_layout(blocks)
         display = {} if op.display_overrides is None else _display_overrides(op.display_overrides.model_dump(mode="json"))
@@ -710,7 +741,8 @@ class CompetitionAssetService:
             "card_id": block_id,
             "plugin_ref": dict(PLUGIN_TABLE),
             "analysis_ref": dict(trusted["analysis_ref"]),
-            "result_id": trusted["snapshot"]["run_id"],
+            "result_id": (trusted["snapshot"]["computed_result"]["result_id"]
+                          if is_computed_reference(op.analysis_ref.analysis_id) else trusted["snapshot"]["run_id"]),
             "run_id": trusted["snapshot"]["run_id"],
             "evidence_digest": trusted["snapshot"]["evidence_digest"],
             "data_mode": "SNAPSHOT",
@@ -750,9 +782,7 @@ class CompetitionAssetService:
             raise _missing()
         restored = json.loads(prior["blocks_json"])
         for block in restored:
-            resolve_trusted_analysis_card(
-                self.analyses, principal, block["analysis_ref"]["analysis_id"], block["analysis_ref"]["version"],
-            )
+            self._resolve_card(principal, block["analysis_ref"]["analysis_id"], block["analysis_ref"]["version"])
         return restored, prior["title"], [block["block_id"] for block in restored]
 
     def _hydrate_block(self, principal: AnalyticsPrincipal, block: dict[str, Any]) -> dict[str, Any]:
@@ -760,14 +790,16 @@ class CompetitionAssetService:
         payload["card_id"] = block["block_id"]
         try:
             ref = block.get("analysis_ref") or {}
-            trusted = resolve_trusted_analysis_card(
-                self.analyses, principal, ref["analysis_id"], ref["version"],
-            )
+            trusted = self._resolve_card(principal, ref["analysis_id"], ref["version"])
             if trusted["snapshot"]["evidence_digest"] != block.get("evidence_digest"):
                 raise AnalyticsError(409, "BINDING_CORRUPT", "板块冻结快照与保存分析不一致。")
             local_filters = block.get("local_filters") if isinstance(block.get("local_filters"), dict) else {}
-            result = competition_result_item(self.analyses.get(principal, ref["analysis_id"], ref["version"]))
-            result["result_id"] = result["primary_result_ref"] = block["result_id"]
+            result = competition_result_item(self._analysis(principal, ref["analysis_id"], ref["version"]))
+            if is_computed_reference(ref["analysis_id"]):
+                if any(result[key] != block.get(key) for key in ("result_id", "run_id")):
+                    raise AnalyticsError(409, "BINDING_CORRUPT", "板块结果与冻结的诊断执行不一致。")
+            else:
+                result["result_id"] = result["primary_result_ref"] = block["result_id"]
             payload.update({
                 "result": result,
                 "snapshot": dict(trusted["snapshot"]),

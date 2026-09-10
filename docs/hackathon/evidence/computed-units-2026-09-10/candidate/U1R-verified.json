@@ -1,0 +1,50 @@
+{
+  "case": "U1R",
+  "native_success": true,
+  "classification": "BOUNDED_UNIT_AND_PERSISTENCE_PASS",
+  "session_id": "session-1d2a1284-1398-47c6-80df-345ce80b07e6",
+  "native_log_sha256": "064ae8a6ca9943d7e87a4baba9e16197db96a465909abb5d6545f074ec9536f5",
+  "tool_calls": 4,
+  "result_id": "result_diag_b2a6ca3444c0fdff61171b489c01b1cfccc1713d24abbeb3",
+  "run_id": "run_diag_b2a6ca3444c0fdff61171b489c01b1cfccc1713d24abbeb3",
+  "facts": {
+    "schema_version": "competition-gsv-facts/v2",
+    "metric_type": "GSV",
+    "current": {
+      "requested_period": {
+        "start_date": "2026-08-01",
+        "end_date": "2026-08-31",
+        "end_bound": "INCLUSIVE_CALENDAR_DAY"
+      },
+      "through_date": "2026-08-31",
+      "gsv": 410,
+      "order_count": 3,
+      "customer_count": 3
+    },
+    "comparison": {
+      "requested_period": {
+        "start_date": "2025-08-01",
+        "end_date": "2025-08-31",
+        "end_bound": "INCLUSIVE_CALENDAR_DAY"
+      },
+      "through_date": "2025-08-31",
+      "gsv": 305,
+      "order_count": 3,
+      "customer_count": 3
+    },
+    "difference": 105,
+    "change_ratio": 0.3442622950819672,
+    "change_ratio_unavailable_reason": null,
+    "money_unit": {
+      "status": "UNKNOWN",
+      "currency": null,
+      "amount_unit": null
+    }
+  },
+  "http_list_persisted_equals_tool_result": true,
+  "analysis_persisted": true,
+  "chain_status": "PARTIAL",
+  "answer_unit_unknown": true,
+  "answer_separate_ids": true,
+  "answer_persistence_and_no_board_explicit": true
+}

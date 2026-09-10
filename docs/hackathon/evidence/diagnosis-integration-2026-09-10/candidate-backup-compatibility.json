@@ -1,0 +1,38 @@
+{
+  "schema_version": "candidate-precomputed-backup/v1",
+  "status": "PASS",
+  "original_state": "competition-product-readiness/.context/competition-synth",
+  "backup": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-diagnosis-integration/.context/precomputed-candidate-backup-cns8_0zv",
+  "restore": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-diagnosis-integration/.context/precomputed-candidate-restore-qe28j1w7",
+  "files": [
+    {
+      "path": "assets/competition_assets.sqlite3",
+      "bytes": 73728,
+      "sha256": "c4ef40df6c72f6496ae869a7ba829ce43d544b982422755fdac0c6679d001137"
+    },
+    {
+      "path": "audience/competition-audience.sqlite",
+      "bytes": 36864,
+      "sha256": "8122a73a22aabac876d6678c662ca7718051a1751570b61141ccee5995f5393d"
+    },
+    {
+      "path": "cockpit/cockpit.sqlite3",
+      "bytes": 45056,
+      "sha256": "6bd0ad04fc659a515f161cc8b3d865b631d303c215b51b86973b0ddc7590a030"
+    },
+    {
+      "path": "saved/analyses.sqlite3",
+      "bytes": 49152,
+      "sha256": "f738a99d60328b9dad4b449ba642b5105acf145c89335b19dc8e0b925c678648"
+    }
+  ],
+  "old_board": {
+    "version": 2,
+    "chart": "BAR",
+    "http_status": 200
+  },
+  "draft_http_status": 200,
+  "credential_files_touched": false,
+  "contains_real_data": false,
+  "initial_probe_error": "Used nonexistent /drafts/{id}; corrected to the documented /drafts/current before passing"
+}
