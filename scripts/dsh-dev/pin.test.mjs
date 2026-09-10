@@ -4,7 +4,6 @@ import { createServer } from 'node:net';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { readToolchain, verifyUpstream } from './pin.mjs';
 import { assertFree } from './ports.mjs';
@@ -32,7 +31,7 @@ test('plugin overlay is JSON that DSH --patch can read and does not disable nati
     const file = join(dir, 'plugin.patch.yml');
     await writeFile(file, JSON.stringify(patch, null, 2));
     const parsed = JSON.parse(await (await import('node:fs/promises')).readFile(file, 'utf8'));
-    assert.equal(parsed[0].insert[0].name, pathToFileURL('/opt/plugin/lib/index.js').href);
+    assert.equal(parsed[0].insert[0].id, 'analytics-dev-brand-assets');
     assert.equal(JSON.stringify(parsed).includes('"disabled":true'), false);
   } finally {
     await rm(dir, { recursive: true, force: true });

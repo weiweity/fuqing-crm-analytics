@@ -34,11 +34,14 @@ test('isolated launch accepts an explicit public CA bundle without forwarding ke
   }
 });
 
-test('plugin overlay inserts file URL and never copies B0 demo disables', () => {
+test('plugin overlay carries only the brand-assets row and never copies B0 demo disables', () => {
   const patch = buildPluginOverlay('/tmp/analytics-workbench');
   assert.equal(patch.length, 1);
-  assert.equal(patch[0].insert[0].id, PLUGIN_UI_ID);
-  assert.ok(patch[0].insert[0].name.startsWith('file:///tmp/analytics-workbench/lib/index.js'));
+  assert.equal(patch[0].insert.length, 1);
+  assert.equal(patch[0].insert[0].id, 'analytics-dev-brand-assets');
+  // The business plugin installs as a profile bundle; a second
+  // analytics-workbench-ui row here would shadow it with a stale copy.
+  assert.equal(JSON.stringify(patch).includes(PLUGIN_UI_ID), false);
   assertNoB0Disables(patch);
   for (const id of B0_DEMO_DISABLE_IDS) {
     assert.equal(JSON.stringify(patch).includes(`"${id}"`), false);
