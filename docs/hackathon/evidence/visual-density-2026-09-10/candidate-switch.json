@@ -1,0 +1,62 @@
+{
+  "source_head": "9948de39e87d71dbfefc223aa020b696ed8068c8",
+  "ci": {
+    "id": 34425535023,
+    "status": "SUCCESS"
+  },
+  "runtime": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/dsh-dev/runtime-Cn0Ifc",
+  "active_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/visual-density-release-z9u8cg_q/plugin",
+  "rollback_plugin": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-product-readiness/.context/visual-density-release-z9u8cg_q/previous-plugin",
+  "client_sha256": "2e10270eb957dee97d3fe7743202a4f6178da8b30b74f6e1589527707ba7949e",
+  "browser": {
+    "assets": [
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "bytes": 18683,
+        "sha256": "d7c87b0f759c92939f127d8b05dea97a12d4c0b3709c0ab80853bc6177e18635"
+      },
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "bytes": 4307335,
+        "sha256": "6723a195aee39ed112dba71d1d7a608454d74364737c88795dd1d4ea1cb97346"
+      }
+    ],
+    "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+    "summary": "会话与连接说明",
+    "chart": "BAR",
+    "rows": [
+      "本期 GSV400",
+      "对比期 GSV300",
+      "GSV 变动额100",
+      "GSV 变动比例33.33%"
+    ],
+    "detailsClosed": true,
+    "bundle_verified": true,
+    "plugin_code_sha256": "f6f067e5f160d361a31905793795e9550b1867c581724904d6adac1f3b022e2a",
+    "comparison": "Built plugin code excluding its trailing sourceMappingURL occurs verbatim inside combined DSH response.",
+    "initial_verification_failures": [
+      "Whole combined bundle digest differs from a single plugin by construction.",
+      "Individual module URL without prepared revision returned 404; compared exact code inside the observed combined response instead."
+    ],
+    "matched_plugin_code_characters": 458613,
+    "source_map_comments_removed": 1
+  },
+  "api_unchanged_pid": 23661,
+  "dsh_pid": 73577,
+  "same_boards": 2,
+  "same_results": 3,
+  "board_details_equal": true,
+  "model_calls": 0,
+  "model_configuration_touched": false,
+  "database_migration": false,
+  "data_backup": "No new data backup: frontend-only switch; API and five existing stores stay in place. Earlier five-store backup/restore remains a historical snapshot.",
+  "rollback_scope": "previous plugin copied and dependency binding preserved; frontend rollback prepared, not executed. No claim about reverting or rewriting data.",
+  "canary": "PASS for new UI and read-only asset comparison; known B0 404 remains DEGRADED overall. One additional 404 was the failed individual-module verification probe, not a user flow.",
+  "timestamp": "2026-09-10T01:41:38.816947+00:00",
+  "screenshots": {
+    "candidate-1440.png": "cc167e00cc31515a96a70538adbcc21c1e39a0a9d4ed9cc253dd1f96d267a1b6",
+    "candidate-390.png": "2109105defc6c20c50207a2cd2b974005ec2d6f27031190ae90eaccb3e5aa059"
+  }
+}

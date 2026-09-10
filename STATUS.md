@@ -7,8 +7,8 @@
 | 项 | 状态 |
 |---|---|
 | VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
-| 当前候选 | `codex/competition-product-readiness`，#115 draft；源码 `d482bd6` 已推送并切换 4325/18083；[切换证据](docs/hackathon/PRODUCT-CANDIDATE-SWITCH-2026-09-10.md) |
-| 视觉增量 | 原生浅/深色同步、实际 AntD 已进入候选；新增首屏精简、键盘详情与断连恢复已独立验证，尚未切换 4325，见[本轮证据](docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md)；完整 T17/视觉仍 PARTIAL |
+| 当前候选 | `codex/competition-product-readiness`，#115 draft；`9948de3` CI SUCCESS，界面已切换 4325，18083 API 保持原进程；[当前切换](docs/hackathon/PRODUCT-DENSITY-CANDIDATE-2026-09-10.md) |
+| 视觉增量 | 原生浅/深色、实际 AntD、首屏精简、键盘详情与断连恢复已进入候选；[独立验证](docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md)通过，完整 T17/视觉仍 PARTIAL |
 | main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
 | 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
 | 验证 | `d482bd6` [CI 34418047588 SUCCESS](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34418047588)：Linux 后端 2322 passed / 79 skipped，B0 480 passed / 20 warnings；本地后端 2324 passed / 77 skipped |
@@ -18,7 +18,7 @@
 | 原服务 | 4327（PID 81058）、8000/5173（36717/36727）、14327（90347）未动；不是本轮运行证据 |
 | 本轮候选 | 4325 DSH + 18083 合成 API，独立状态；保留供配置和验收，停止仅限本轮实例 |
 | 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；本轮只核对文件元数据约 131GB，未打开、复制或改写 |
-| 发布 | 本地候选已更新；五库新备份恢复、旧资产一致性与 BAR 刷新重开 PASS，Models 配置保留。快速 canary DEGRADED（既有 B0 404）；#115 未合并，非正式 release |
+| 发布 | 本地界面候选已更新；本次保留新旧插件，API/状态库不变，旧资产与模型选择一致。此前五库备份恢复为历史快照。快速 canary DEGRADED（既有 B0 404）；#115 未合并，非正式 release |
 
 ## 验证与历史入口
 

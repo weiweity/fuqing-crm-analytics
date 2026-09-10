@@ -6,7 +6,7 @@
 
 2026-09-10 当前：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；DeepSeek 配置与会话保留，原生主题同步、实际 AntD、BAR 400/300 重开、五库备份恢复通过。快速 canary DEGRADED（既有 B0 404），完整产品仍 PARTIAL。见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。文档提交 `6b32ce9` 的 CI 亦 SUCCESS；后续[原生 Stop/文件权限补验](PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)及[审批/默认隔离/重启恢复](PRODUCT-NATIVE-APPROVAL-2026-09-10.md)通过局部用例，`d2a5a6f` CI SUCCESS；4328/18084 临时实例已关闭。
 
-新增[驾驶舱首屏与断连恢复](PRODUCT-VISUAL-DENSITY-2026-09-10.md)：390/1024/1440、键盘说明、System 模拟切换与真实断连重开通过，完整 B0 PASS；补丁尚未切换 4325。临时 4328/18084 已关闭，完整产品仍 PARTIAL。
+当前最新：`9948de3` CI SUCCESS，[驾驶舱首屏与断连恢复](PRODUCT-VISUAL-DENSITY-2026-09-10.md)已[切换 4325](PRODUCT-DENSITY-CANDIDATE-2026-09-10.md)。原 DeepSeek 配置、2 块板和 3 条结果保持，18083 API 未重启。临时 4328/18084 已关闭，完整产品仍 PARTIAL。
 
 ## 当前采用的目标方案（2026-09-09）
 
