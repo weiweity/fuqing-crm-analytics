@@ -19,6 +19,8 @@
 
 ## 备份与恢复证据
 
+**单位 v2 切换前置条件**：新读者读取旧 v1 不改 JSON 或摘要，固定旧读者读取新 v2 明确返回 409，见[跨版本实测](evidence/computed-units-2026-09-10/reader-compatibility.json)。当前单位修复仅本地验证。切换 4325/18083 前须更新五库备份，并用独立恢复目录验证现有全部板、草稿和 8 条结果；以下历史备份不能代替此检查。回退保留升级后的状态，旧代码只使用对应旧快照。
+
 只停止本轮拥有的 18083 API 后，通过 SQLite `Connection.backup()` 保存 4 库，再用相同接口恢复至另一个目录；不直接复制 WAL 文件。备份目录 `.context/readiness-backup-20260910`，恢复目录 `.context/readiness-restore-20260910`，均私有权限。备份对应运营草稿创建之前的状态。
 
 备份范围为 `assets/competition_assets.sqlite3`、`audience/competition-audience.sqlite`、`cockpit/cockpit.sqlite3`、`saved/analyses.sqlite3`。四库 quick_check=ok，各表行数一致；恢复后新应用 GET /boards 返回 1 块板，GET 明细为同一板 v2/BAR。旧候选 `3862e7711d72075e95b57932dc7fe0ed2ae4511b` 也实际读到同一恢复板 v2/BAR。完整证据见 [state-backup-restore.json](evidence/product-readiness-2026-09-10/state-backup-restore.json)。

@@ -49,8 +49,14 @@ function restoreDom(previous) {
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
 
-test('compiled board renders persisted computed GSV and data-driven chart preferences after reopen', async () => {
-  const result = JSON.parse(readFileSync(join(plugin, 'tests/competition-computed/result.json'), 'utf8'));
+const unitFixtures = JSON.parse(readFileSync(join(plugin, 'tests/competition-computed/unit-results.json'), 'utf8'));
+for (const [name, result, unitLabel] of [
+  ['legacy', JSON.parse(readFileSync(join(plugin, 'tests/competition-computed/result.json'), 'utf8')), '未记录（旧结果）'],
+  ['unknown', unitFixtures.unknown, '未知（按原始数值展示）'],
+  ['major', unitFixtures.major, '人民币元（CNY major）'],
+  ['minor', unitFixtures.minor, '人民币分（CNY minor）'],
+]) {
+test(`compiled board preserves computed amounts, ${name} units and chart preferences after reopen`, async () => {
   const { previous, dom } = installDom();
   resetInflightForTests();
   const transport = createFixtureBoardTransport();
@@ -67,11 +73,12 @@ test('compiled board renders persisted computed GSV and data-driven chart prefer
     root = createRoot(globalThis.document.getElementById('root'));
     await act(async () => { root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })); await delay(20); });
     assert.match(globalThis.document.querySelector('[data-testid="sm-result-list"]').textContent, /本期 410 \/ 对比 305/);
+    assert.ok(globalThis.document.querySelector('[data-testid="sm-result-list"]').textContent.includes(unitLabel));
     await act(() => globalThis.document.querySelector('[data-testid="sm-open-board"]').click());
     await waitFor(() => globalThis.document.querySelector('article[data-block-id] select'));
   };
   try {
-    for (const type of ['BAR', 'LINE', 'METRIC']) {
+    for (const type of ['TABLE', 'BAR', 'LINE', 'METRIC', 'EVIDENCE']) {
       await mount();
       const select = globalThis.document.querySelector('article[data-block-id] select');
       await act(async () => { select.value = type; select.dispatchEvent(new dom.window.Event('change', { bubbles: true })); await delay(20); });
@@ -82,6 +89,7 @@ test('compiled board renders persisted computed GSV and data-driven chart prefer
       assert.match(block.textContent, /本期 GSV410/);
       assert.match(block.textContent, /对比期 GSV305/);
       assert.match(block.textContent, /34.43%/);
+      assert.equal(block.querySelector('[data-field="金额单位"] td').textContent, unitLabel);
       assert.match(block.textContent, /销售范围 全部/);
       const savedEvidence = block.querySelector('[data-testid="sm-saved-board-evidence"]');
       assert.equal(savedEvidence.open, false);
@@ -96,8 +104,9 @@ test('compiled board renders persisted computed GSV and data-driven chart prefer
         assert.equal(bars[1].style.width, '100%');
       } else if (type === 'LINE') {
         assert.ok(block.querySelector('[data-testid="sm-computed-line"] polyline'));
+        assert.ok(block.querySelector('[data-testid="sm-computed-line"] svg').getAttribute('aria-label').includes(unitLabel));
         assert.match(block.textContent, /非每日趋势/);
-      } else assert.match(block.querySelector('[data-testid="sm-computed-metric"]').textContent, /410/);
+      } else if (type === 'METRIC') assert.match(block.querySelector('[data-testid="sm-computed-metric"]').textContent, /410/);
       await act(() => root.unmount()); root = null;
     }
   } finally {
@@ -105,6 +114,7 @@ test('compiled board renders persisted computed GSV and data-driven chart prefer
     dom.window.close(); restoreDom(previous); resetInflightForTests();
   }
 });
+}
 
 async function waitFor(check) {
   for (let i = 0; i < 40; i++) {

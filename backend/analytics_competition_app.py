@@ -137,6 +137,7 @@ def create_competition_app(
                 item["support_status"] = "SUPPORTED" if computed else "NOT_CONNECTED"
                 item["execution_mode"] = "COMPUTED_SYNTHETIC" if computed else "NOT_IMPLEMENTED"
         body["source_context"] = {"contains_real_data": False, "snapshot_id": diagnosis_source.snapshot_id,
+                                  "money_unit": diagnosis_source.money_unit.model_dump(mode="json"),
                                   "data_through": diagnosis_source.data_through.isoformat(),
                                   "published_at": diagnosis_source.published_at.isoformat(),
                                   "computed_capabilities": sorted(COMPUTED_CAPABILITIES) if COMPUTED_SCOPE in actor.data_scopes else []}

@@ -1,0 +1,16 @@
+[bounded-pytest] group 1/1: 3 files
+...............................................                          [100%]
+============================= slowest 10 durations =============================
+5.06s call     backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[deadline]
+0.23s call     backend/tests/test_competition_diagnosis_cancel.py::test_cancel_is_durable_scoped_and_cannot_undo_publication
+0.23s setup    backend/tests/test_competition_computed_results.py::test_two_period_arithmetic_and_order_grain
+0.23s call     backend/tests/test_competition_diagnosis_store.py::test_saved_result_survives_new_process_and_rejects_corruption
+0.18s teardown backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[deadline]
+0.16s call     backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[native]
+0.14s teardown backend/tests/test_competition_diagnosis_cancel.py::test_native_abort_during_compute_never_publishes[native]
+0.14s call     backend/tests/test_competition_diagnosis_store.py::test_sqlite_writer_conflict_does_not_publish_result
+0.12s call     backend/tests/test_competition_diagnosis_cancel.py::test_busy_cancel_is_unconfirmed_and_must_not_claim_to_fence
+0.11s call     backend/tests/test_competition_diagnosis_store.py::test_http_computation_endorse_batch_and_frozen_reopen[None]
+47 passed, 1 warning in 8.00s
+[bounded-pytest] group 1 rc=0 time=8.604s peak_rss_gb=0.24
+[bounded-pytest] report: /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/checks/20260910T051448707159Z/summary.json

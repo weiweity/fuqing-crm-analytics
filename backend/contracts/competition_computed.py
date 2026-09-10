@@ -20,6 +20,7 @@ QUERY_VERSION = "competition-gsv-query/v1"
 METRIC_VERSION = "competition-gsv-metric/v1"
 RESULT_SCHEMA = "competition-computed-result/v1"
 FACTS_SCHEMA = "competition-gsv-facts/v1"
+UNIT_FACTS_SCHEMA = "competition-gsv-facts/v2"
 DATA_SCOPE = "competition-diagnosis-fixture"
 
 
@@ -77,6 +78,28 @@ class CompetitionGsvFacts(CompetitionModel):
         return self
 
 
+class CompetitionMoneyUnit(CompetitionModel):
+    """Source-declared raw amount unit, never inferred from another catalogue."""
+
+    status: Literal["KNOWN", "UNKNOWN"] = "UNKNOWN"
+    currency: Literal["CNY"] | None = None
+    amount_unit: Literal["major", "minor"] | None = None
+
+    @model_validator(mode="after")
+    def declared_unit(self):
+        if self.status == "KNOWN":
+            if self.currency is None or self.amount_unit is None:
+                raise ValueError("a known amount unit requires currency and denomination")
+        elif self.currency is not None or self.amount_unit is not None:
+            raise ValueError("an unknown amount unit cannot assert a currency or denomination")
+        return self
+
+
+class CompetitionGsvFactsV2(CompetitionGsvFacts):
+    schema_version: Literal["competition-gsv-facts/v2"] = UNIT_FACTS_SCHEMA
+    money_unit: CompetitionMoneyUnit
+
+
 class CompetitionComputedResult(CompetitionModel):
     schema_version: Literal["competition-computed-result/v1"] = RESULT_SCHEMA
     execution_kind: Literal["TOOL_COMPUTATION"] = "TOOL_COMPUTATION"
@@ -88,8 +111,8 @@ class CompetitionComputedResult(CompetitionModel):
     capability_id: Literal["diag.gsv", "diag.yoy", "diag.last_week_same_weekday", "diag.promo_dual_window"]
     metric_id: Literal["gsv"] = "gsv"
     metric_version: Literal["competition-gsv-metric/v1"] = METRIC_VERSION
-    facts_schema_ref: Literal["backend.contracts.competition_computed.CompetitionGsvFacts"] = "backend.contracts.competition_computed.CompetitionGsvFacts"
-    existing_result_schema: Literal["competition-gsv-facts/v1"] = FACTS_SCHEMA
+    facts_schema_ref: Literal["backend.contracts.competition_computed.CompetitionGsvFacts", "backend.contracts.competition_computed.CompetitionGsvFactsV2"] = "backend.contracts.competition_computed.CompetitionGsvFacts"
+    existing_result_schema: Literal["competition-gsv-facts/v1", "competition-gsv-facts/v2"] = FACTS_SCHEMA
     completeness: Completeness
     empty_reason: Literal["NO_CURRENT_MONTH_DATA", "PERIOD_AFTER_AS_OF"] | None
     row_count: StrictCount
@@ -101,10 +124,15 @@ class CompetitionComputedResult(CompetitionModel):
     data_mode: Literal["SNAPSHOT"] = "SNAPSHOT"
     contains_real_data: Literal[False] = False
     limitations: Annotated[list[str], Field(min_length=1)]
-    facts: CompetitionGsvFacts
+    facts: Annotated[CompetitionGsvFacts | CompetitionGsvFactsV2, Field(discriminator="schema_version")]
 
     @model_validator(mode="after")
     def bound_facts(self):
+        expected_ref = ("backend.contracts.competition_computed.CompetitionGsvFactsV2"
+                        if self.facts.schema_version == UNIT_FACTS_SCHEMA
+                        else "backend.contracts.competition_computed.CompetitionGsvFacts")
+        if self.existing_result_schema != self.facts.schema_version or self.facts_schema_ref != expected_ref:
+            raise ValueError("facts schema references must match the actual facts version")
         if self.primary_result_ref != self.result_id:
             raise ValueError("primary result must reference this result")
         if (self.facts.current.requested_period != self.resolved_condition.current_period

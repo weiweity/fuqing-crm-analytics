@@ -1,0 +1,966 @@
+B0 exact Python closure verified
+DSH dev supervisor unit checks (separate from native compatibility acceptance)
+✔ native dev brand extension serves verified local assets (4.687792ms)
+✔ missing or unresolved local logo fails without consulting another checkout (6.420458ms)
+✔ isolated launch accepts an explicit public CA bundle without forwarding keys or TLS bypass (0.845333ms)
+✔ plugin overlay inserts file URL and never copies B0 demo disables (0.161125ms)
+✔ plugin flag only accepts on or off (0.054708ms)
+✔ owned ports reject B0 and Mission listeners (0.64325ms)
+✔ serve args pin loopback and refuse foreign ports (0.201167ms)
+✔ launch URL helper requires a tokenized loopback URL and redacts it (0.204041ms)
+✔ pinned SHA matches toolchain contract constant (0.03425ms)
+✔ value-taking flags cannot silently fall back after a missing argument (0.173625ms)
+✔ diagnose source never signals PIDs or binds a listen socket (2.376666ms)
+✔ inspectListener reports a bound owned-range port without killing it (74.372125ms)
+✔ diagnose classifies foreign and user-demo ports without probing them over HTTP (462.243292ms)
+✔ assertFree fails when the owned port is already bound (6.230958ms)
+✔ plugin overlay is JSON that DSH --patch can read and does not disable native rows (2.238416ms)
+✔ verifyUpstream matches the pinned SHA when the checkout is present (23.049417ms)
+✔ cli check refuses a foreign --web-port without starting anything (39.350625ms)
+✔ legacy PID metadata never authorizes stopping a process (0.871125ms)
+✔ startup timeout reaps its child before rejecting (518.428833ms)
+✔ a running sibling kernel does not block the web supervisor (104.522ms)
+✔ excess startup output stays bounded and the child is reaped (105.2075ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 778.401833
+B0 contract verified; sha256=5d93c3aabf362865e8f24e28c96a8d1f75717c80370f31734407d85b128b9679; TypeScript checks passed
+query contract verified; sha256=38b72d2728131084e8038a16f958e6d245aa035cfbcf44bb49d32cc28b6c2f17; TypeScript checks passed; not an HTTP API
+query-run contract verified; sha256=390430dfc4b244df0c8b929719f8a1cc30e0c1a99c36793d63725f7f71e13f5a; TypeScript checks passed; store-only, not an HTTP API
+saved-analysis contract verified; sha256=805ba7ead5de1b881b8550947063b63bddcf877b3264f7f6b15f10a6dac56c4d; TypeScript checks passed
+cockpit contract verified; sha256=a7ff4611afdf98a0588b6d7f26fcf3573d5338fa95245ed0460e6fd76396efa8; TypeScript checks passed
+first-purchase contract verified; sha256=f9fb8927bf11127d19c848d2683cdf4edcf66dde5b57f8c13c13d6c21a39ab66; TypeScript checks passed
+first-purchase saved-analysis contract verified; sha256=f913d2a669597d8e493b0d85e86b34b411aa35d67ceb3a6bec6382ddcc837d40; TypeScript checks passed
+first-purchase cockpit contract verified; sha256=512e5b41006202bb49d05021fc6f5dd84007fbe1713ac38545d3edac80e9db05; TypeScript checks passed
+competition C0 contract verified; sha256=6d6558e894441d707417003ad9f92e4fc486c1c21c1b92a6d9bc1a24f5c5967f; contract_hash=97ee36833200b3a1626a4fa88e6b3bc9591bfb5f6bebc5e666aeabdcce13815a; TypeScript checks passed
+Competition chart runtime contract check passed
+Competition computed runtime contract check passed
+........................................................................ [ 15%]
+........................................................................ [ 30%]
+........................................................................ [ 45%]
+........................................................................ [ 60%]
+........................................................................ [ 75%]
+........................................................................ [ 90%]
+................................................                         [100%]
+480 passed, 20 warnings in 52.43s
+/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-closeout/.context/reproduce-python/lib/python3.14/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored while finalizing database connection <sqlite3.Connection object at 0x10a87d7b0>: None
+
+Traceback (most recent call last):
+  File "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-closeout/.context/reproduce-python/lib/python3.14/site-packages/_pytest/unraisableexception.py", line 33, in gc_collect_harder
+    gc.collect()
+    ~~~~~~~~~~^^
+ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10a87d7b0>
+
+
+  warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+All checks passed!
+✔ asset error envelope never treats 500-class payloads as success (1.19375ms)
+✔ HTTP dashboard decoder requires CONNECTED and keeps UNAVAILABLE cards without facts (0.74075ms)
+✔ analysis list decoder reads items envelope (0.285542ms)
+✔ add intent key includes board version so a later add is a new idempotency digest (0.122875ms)
+✔ dashboardContainsAnalysis reads analysis_ref without treating UNAVAILABLE facts as success (0.119417ms)
+✔ assetRequest is same-origin, never sends bearer, and keeps parse failures as null payload (0.413458ms)
+✔ probeAssetHttp requires CONNECTED cockpit and fails closed on transport errors (0.285917ms)
+✔ formatCard ok path joins channels and keeps a default title without facts leakage on null cards (0.173959ms)
+✔ decode helpers fail closed on empty codes, truncated messages, and incomplete dashboards (0.124125ms)
+✔ cockpit decodes SNAPSHOT facts without a session and does not recompute ratios (1.055583ms)
+✔ one broken card is isolated from the other card (0.60575ms)
+✔ finite mock AI preview highlights only the target card and does not persist (0.171166ms)
+✔ keyboard bindings match add/copy/remove and are documented constants (0.080917ms)
+✔ B0 25% fixture and extra fields are rejected without poisoning other cards (0.057917ms)
+✔ empty cockpit and unauthorized views do not require a live session or model (0.0815ms)
+✔ view source is a sessionless renderer and does not compute business metrics (1.245ms)
+✔ builds first-purchase cockpit board from SNAPSHOT cards (1.202625ms)
+✔ view source exports FirstPurchaseCockpitView and stays NOT_CONNECTED (0.710792ms)
+✔ decodeFirstPurchaseRequest accepts registered request and rejects owner/scope (0.530041ms)
+✔ decodeFirstPurchaseReceipt requires complete filters and ratio consistency (0.383166ms)
+✔ empty mature denominator stays null (0.092375ms)
+✔ decodeFirstPurchaseReceipt maps REJECTED without conversion fields (0.078416ms)
+✔ in-flight receipt is accepted without a result (0.047834ms)
+✔ receiptMatchesRequest binds request_id call_id and query window (0.086083ms)
+✔ save binding is run-id only (0.284208ms)
+✔ overflow stream is cancelled (13.941708ms)
+✔ decodes first-purchase SNAPSHOT and rejects channel/B0 (1.705917ms)
+✔ save panel stays disabled without SUCCEEDED (0.062375ms)
+✔ view source exports FirstPurchaseSavedAnalysisView and stays NOT_CONNECTED (0.296375ms)
+✔ selection requires ready and exact matching Host ids plus byId entry (0.713875ms)
+✔ pending and unrelated ready lists do not select; arriving exact primary selects once (0.733584ms)
+✔ already restored exact primary consumes the initial choice without another open (0.105042ms)
+✔ unmount while pending prevents later selection (0.805625ms)
+✔ query pair selects the first registered session once; later user switch is kept (0.153666ms)
+✔ open failure is reported once, never retried or replaced with another session (0.116625ms)
+✔ fixture has internally consistent synthetic counts and round-trips through presentation metadata (0.639625ms)
+✔ unknown, partial, extra, or altered metadata never becomes a successful card (0.064333ms)
+✔ preview does not apply; apply changes only a UI title after explicit preview (0.633166ms)
+✔ editing after preview invalidates it; stale revision also cannot apply (0.168541ms)
+✔ titles are bounded; plain text remains plain text without an HTML execution path (0.075917ms)
+✔ refresh restore persists only the title, never synthetic facts or business identity (0.08575ms)
+✔ corrupt or future preferences fall back safely (0.293166ms)
+✔ tool supports only the fixed query and honors cancellation (0.196917ms)
+✔ native journal turn/end without actual exit cannot finish a run (0.8815ms)
+✔ second question and old late result remain correlated to their own turn (0.665125ms)
+✔ discarded pending prompt needs native idle before cancellation proof (0.136208ms)
+✔ missing or ambiguous request never manufactures completion (1.646584ms)
+✔ official interrupted-tail repair is failure only after the resumed driver is idle and durable (0.153667ms)
+✔ plugin chrome uses native DSH tokens and does not paint Vue 44px rectangles (0.399958ms)
+✔ plugin registers additive business keys and does not occupy native tool names (0.114083ms)
+✔ cancel copy is safe and does not claim CANCELLED (0.674083ms)
+✔ classifyCancelOutcome reads HTTP and RPC envelope without exposing server text (0.114875ms)
+✔ valid receipt is ok and may show facts (1.205625ms)
+✔ unknown version and malformed receipts never allow channel facts (0.36175ms)
+✔ tool-error and running blocks keep the existing copy and hide numbers (0.112833ms)
+✔ cancel A does not rewrite peer B; SUCCEEDED survives a later cancel (0.15525ms)
+✔ released worker and refresh inventory stay exact (0.109917ms)
+✔ historical three supervisor exits stay UNKNOWN and are not closed by EPIPE (5.134083ms)
+✔ fail-card markers never include channel facts (0.087292ms)
+✔ raw 0-1 ratios become percents; null stays an explicit placeholder (0.339625ms)
+✔ integer fen become yuan; null stays an explicit placeholder (0.057375ms)
+✔ empty mature reason keeps a Chinese meaning and the machine code (0.341209ms)
+✔ valid request and receipt decode (0.637084ms)
+✔ SQL extra field unknown version and unknown schema are rejected (0.055875ms)
+✔ illegal numbers and null shapes do not decode (0.528ms)
+✔ query package is a second frozen family and does not change B0 digest (0.855ms)
+✔ refresh only GETs authenticated context and exact run snapshot, never resubmits (18.888916ms)
+✔ foreign-session and foreign-run responses are not rendered (0.816917ms)
+✔ permission loss is explicit and no fallback data source or write is tried (0.246917ms)
+✔ query run schema is accepted and switching session hides the other view immediately (0.382625ms)
+✔ saved analysis decodes without a session and does not recompute ratios (1.666833ms)
+✔ refresh candidate is not treated as the pinned SNAPSHOT (0.206958ms)
+✔ B0 25% fixture and extra fields are rejected (0.172333ms)
+✔ unauthorized view does not require a live session or model (0.0865ms)
+✔ empty list offers start-analysis and save panel disables incomplete runs (0.1285ms)
+✔ list items stay SNAPSHOT and HTTP remains disconnected (0.159209ms)
+✔ view source is a sessionless renderer and does not compute business metrics (0.476167ms)
+✔ entire B0 package binds method, reference and example without numeric evidence (1.059208ms)
+✔ live package is an immutable snapshot independent of later source mutations (0.447084ms)
+✔ resource key denies ../SKILL.md (0.529833ms)
+✔ resource key denies /etc/passwd (0.187416ms)
+✔ resource key denies https://example.com/private (0.146792ms)
+✔ resource key denies references/../SKILL.md (0.123083ms)
+✔ resource key denies references/%2e%2e/SKILL.md (0.124209ms)
+✔ resource key denies assets\result-example.json (0.121875ms)
+✔ resource key denies SKILL.md (0.138875ms)
+✔ resource key denies * (0.621292ms)
+✔ resource key denies scripts/run.sh (0.186875ms)
+✔ resource key denies __proto__ (0.148208ms)
+✔ changed bytes denied for SKILL.md (0.640792ms)
+✔ changed bytes denied for assets/result-example.json (0.226125ms)
+✔ changed bytes denied for references/evidence-policy.md (0.159291ms)
+✔ manifest changes change the package identity; omitted files and oversized content fail closed (0.600042ms)
+✔ unregistered file cannot silently join the packaged closure (41.385875ms)
+✔ build-time rejects file-symlink (19.1065ms)
+✔ build-time rejects directory-symlink (14.302125ms)
+✔ build-time rejects root-symlink (21.619333ms)
+✔ build-time rejects hard-link (10.2935ms)
+✔ build-time rejects script-directory (9.84525ms)
+✔ build-time rejects reference-drift (8.317875ms)
+✔ asset routes are an exact method/path whitelist (0.601459ms)
+✔ browser must not send backend bearer, session fence, or duplicate version headers (0.074541ms)
+✔ a real closed stderr consumer is reported once and the supervisor remains alive (138.094708ms)
+✔ unexpected synchronous and asynchronous stream errors are not swallowed (0.296ms)
+✔ synchronous EPIPE disables subsequent writes and repeated events remain bounded (0.089709ms)
+✔ metadata exact empty arguments: session/modelCatalog (1.696042ms)
+✔ metadata exact empty arguments: agentPresets/list (0.129625ms)
+✔ metadata exact empty arguments: settings/describe (0.082042ms)
+✔ metadata exact empty arguments: session/canOpenWorkspacePath (0.077917ms)
+✔ metadata exact empty arguments: settings/canOpenAgentPresetDirectory (0.069542ms)
+✔ native session/list accepts only its real _request empty object (0.1205ms)
+✔ prompt is same-session text-only queue, bounded and single-flight (0.359125ms)
+✔ page and cancel reject another session, subagents, extras and unbounded pages (0.195041ms)
+✔ default deny HTTP session/create (0.098583ms)
+✔ default deny HTTP session/selectModel (0.1175ms)
+✔ default deny HTTP session/fork (0.059917ms)
+✔ default deny HTTP session/rename (0.046083ms)
+✔ default deny HTTP session/search (0.036916ms)
+✔ default deny HTTP session/attachment (0.032042ms)
+✔ default deny HTTP session/openWorkspacePath (0.0315ms)
+✔ default deny HTTP session/updateQueue (0.034416ms)
+✔ default deny HTTP agentPresets/select (0.032959ms)
+✔ default deny HTTP agentPresets/copy (0.033667ms)
+✔ default deny HTTP agentPresets/read (0.037625ms)
+✔ default deny HTTP agentPresets/deletePreset (0.033166ms)
+✔ default deny HTTP workspace/create (0.051125ms)
+✔ default deny HTTP workspace/delete (0.044542ms)
+✔ default deny HTTP directoryPicker/list (0.037375ms)
+✔ default deny HTTP directoryPicker/pick (0.0315ms)
+✔ default deny HTTP directoryPicker/createDirectory (0.03175ms)
+✔ default deny HTTP settings/update (0.031333ms)
+✔ default deny HTTP settings/mutate (0.030459ms)
+✔ default deny HTTP settings/replace (0.030834ms)
+✔ default deny HTTP settings/openSettingsDocument (0.044375ms)
+✔ default deny HTTP credentials/describe (0.047833ms)
+✔ default deny HTTP credentials/set (0.0305ms)
+✔ default deny HTTP commands/execute (0.035583ms)
+✔ default deny HTTP $events/result (0.038709ms)
+✔ default deny HTTP plugins/list (0.038042ms)
+✔ default deny HTTP session/%70rompt (0.040458ms)
+✔ default deny HTTP /api/session/prompt (0.037417ms)
+✔ default deny HTTP future/endpoint (0.038958ms)
+✔ actor scope is server-owned and fails closed on mismatch (0.4655ms)
+✔ all RemoteFetch variants are denied (0.06975ms)
+✔ WS admits only four declared streams and exact payloads (0.180083ms)
+✔ WS multiplex ID cannot be reopened across endpoints or after cancellation (0.0925ms)
+✔ HTTP session list strips foreign rows and unknown fields (0.35375ms)
+✔ preset roster is fixed, read-only and has no source paths (0.140875ms)
+✔ settings.describe exports only explicit UI namespaces, no base/user/secrets (0.871542ms)
+✔ model metadata keeps only the configured default route, no diagnostics or extra fields (0.172625ms)
+✔ events bootstrap does not reveal HOME or forward waterfall/global events (0.210834ms)
+✔ control baseline and increments cannot leak sibling sessions (0.152375ms)
+✔ workspace stream filters roots, memberships and archived/order identifiers (0.217541ms)
+✔ follow snapshots reject other session headers; durable/event data remains scoped (0.423542ms)
+✔ HTTP page drops foreign structured data and does not mutate inputs (0.101333ms)
+✔ malformed/null and prototype-pollution payloads fail closed (0.087583ms)
+✔ two-session allowlist admits A and B HTTP/stream and rejects a third session (0.2225ms)
+✔ two-session list and workspace keep A+B and drop a third identity (0.171542ms)
+✔ A follow stream drops B frames; B follow keeps B and drops A (0.163542ms)
+✔ cancel target is the requested registered session, not a sibling or third (0.128167ms)
+✔ passive heartbeat does not keep a normal child alive; exit code is retained (37.66125ms)
+✔ uncaught exception is observed without preventing default process failure (38.499791ms)
+✔ unhandled rejection is observed without preventing default process failure (28.282708ms)
+✔ SIGTERM is not intercepted or falsely reported as clean exit (25.286625ms)
+✔ SIGKILL is not intercepted or falsely reported as clean exit (25.188875ms)
+✔ metadata allowlist omits raw messages, arbitrary strings, paths and secrets (1.133417ms)
+✔ bounded evidence reserves fatal and exit events after ordinary event cap (2.157834ms)
+✔ existing evidence and symlink targets are not overwritten (1.371167ms)
+✔ fixture namespaces only request-scoped tool identity, keeping arguments and facts unchanged (0.623875ms)
+✔ official mock wire uses distinct native IDs and observes actual client closure (59.5725ms)
+✔ finite multi-tool script configures official producers and refuses exhaustion (6.610541ms)
+✔ native-query-assets is an explicit opt-in and does not replace native-query (3.9245ms)
+✔ query-only kernel config in serve does not grant asset capabilities by default (0.836209ms)
+✔ gateway asset map is not a generic /api proxy (2.474917ms)
+✔ assets smoke drives real save/join controls and does not swallow failures (1.856833ms)
+✔ HTTP overlay does not fetch the mock provider loopback (1.305375ms)
+✔ fault entry is independent of the normal native-query scenario (0.583166ms)
+✔ fault mock binds A restore N=30 then a later B N=60 turn, not a second call in the success turn (0.2665ms)
+✔ visible cancel parsers prefer the query card button; Stop generating is observed not auto-clicked (4.38325ms)
+✔ SQL hold proof requires RUNNING worker and matching execution, not QUEUED (0.216416ms)
+✔ serve opt-in keeps --native-query on analytics_runtime and attaches the query probe only for --native-query-fault (2.947ms)
+✔ native-query is two distinct prompts on two registered sessions (1.029208ms)
+✔ finite mock is two query calls plus two wrap-ups with N30 then N60, no slow chunks (0.152666ms)
+✔ query request matches the G4a FIXED window and empty channel_ids (0.198417ms)
+✔ composer ready still gates the next send (0.132ms)
+✔ session switch plan uses unique other blank or visible title, never raw session ids (0.179958ms)
+✔ snapshot parsers match New session / treeitem titles and ignore raw session ids (0.208459ms)
+✔ visible card wait requires exact session and rejects the other N (0.096416ms)
+✔ serve opt-in keeps production kernel for native-query and does not enable the probe (2.154541ms)
+✔ native-state questions are four distinct prompts and do not infer running from success (1.066792ms)
+✔ release path is bound to the current execution id and rejects traversal (3.572084ms)
+✔ running proof requires the actual tool card text, not a generic task RUNNING status (0.117833ms)
+✔ error path releases the current hold without sending another prompt (2.5715ms)
+✔ next prompt requires native turn settlement and composer, not backend terminal alone (0.502291ms)
+✔ summarizer turn-end plus durable tool result gates the scheduler, not a fixed sleep (0.519333ms)
+✔ serve opt-in keeps production kernel default and uses the test-only module only for native-state (0.927416ms)
+✔ nested upstream pnpm resolves through project-local Corepack with sanitized PATH (252.322042ms)
+✔ each operation checks current authority, including after successful authentication (1.122958ms)
+✔ authority errors and malformed positive values fail closed (0.765209ms)
+✔ bounded queue cannot execute after overflow even if a prior grant later succeeds (0.119333ms)
+✔ stream operations retain order and recheck between queued messages (5.94975ms)
+✔ idle established streams are closed after revocation without a new message (5.43725ms)
+✔ explicit disposal prevents late checks from delivering content (0.128042ms)
+✔ ready URL is found only after the full newline, at every chunk split (1.111334ms)
+✔ launch lookup rejects foreign origins, duplicate/invalid token and fragments (0.271959ms)
+✔ complete log redacts both launch secrets and truncated token tails (0.148708ms)
+✔ manifest preserves exact published query URLs and HTML ampersands (1.464042ms)
+✔ manifest rejects external, credentials, fragments and non-published URL forms (0.965167ms)
+✔ boot graph is parsed as JSON, never executed as JavaScript (0.071875ms)
+✔ owned Host restart refreshes exact per-boot URLs while preserving modules and content batches (0.268584ms)
+✔ Host restart cannot extend allowlist through new-module (0.132625ms)
+✔ Host restart cannot extend allowlist through missing-module (0.066ms)
+✔ Host restart cannot extend allowlist through changed-batch (0.098833ms)
+✔ Host restart cannot extend allowlist through missing-batch (0.058791ms)
+✔ Host restart cannot extend allowlist through extra-query (0.06125ms)
+✔ Host restart cannot extend allowlist through mixed-nonce (0.044833ms)
+✔ Host restart cannot extend allowlist through wrong-index (0.042625ms)
+✔ Host restart cannot extend allowlist through extra-script (0.341125ms)
+✔ RPC errors never return upstream paths, credentials, headers or extra fields (0.109ms)
+✔ RPC success is projected through policy, dropping envelope and value extras (0.138792ms)
+✔ unknown/mismatched RPC envelopes and rejected outputs fail closed (0.074417ms)
+✔ original logo and cropped favicon match the approved bytes (3.326833ms)
+✔ complete condition envelope survives transport with empty, false and null preserved (0.197917ms)
+✔ sample reference rejects old filters, snapshots, duplicated refs and arbitrary return URLs (0.05ms)
+✔ isolated specimen has no executable script, old router or dynamic destination (1.160917ms)
+ℹ tests 225
+ℹ suites 0
+ℹ pass 225
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 521.043416
+B0 host full typecheck passed
+B0 client full typecheck passed
+
+  dsh-plugins/analytics-workbench/lib/skills.js      50.1kb
+  dsh-plugins/analytics-workbench/lib/tool.js        32.7kb
+  dsh-plugins/analytics-workbench/lib/index.js       28.8kb
+  dsh-plugins/analytics-workbench/lib/skills.js.map  79.1kb
+  dsh-plugins/analytics-workbench/lib/tool.js.map    72.8kb
+  dsh-plugins/analytics-workbench/lib/index.js.map   50.8kb
+
+⚡ Done in 14ms
+
+  dsh-plugins/analytics-workbench/lib/client.js      574.6kb
+  dsh-plugins/analytics-workbench/lib/client.js.map    2.2mb
+
+⚡ Done in 133ms
+
+  dsh-plugins/analytics-workbench/lib/views/cockpit-view.js            513.4kb
+  ...ins/analytics-workbench/lib/views/first-purchase-cockpit-view.js   50.4kb
+  dsh-plugins/analytics-workbench/lib/views/saved-analysis-view.js      32.8kb
+  ...lytics-workbench/lib/views/first-purchase-saved-analysis-view.js   25.7kb
+  dsh-plugins/analytics-workbench/lib/views/cockpit-view.js.map          2.1mb
+  ...analytics-workbench/lib/views/first-purchase-cockpit-view.js.map   98.2kb
+  ...plugins/analytics-workbench/lib/views/saved-analysis-view.js.map   73.2kb
+  ...cs-workbench/lib/views/first-purchase-saved-analysis-view.js.map   48.1kb
+
+⚡ Done in 89ms
+B0 plugin built. Host entry: file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/index.js
+✔ native resolved mode updates the existing dialog and inherited competition controls (251.998792ms)
+✔ RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds (51.128458ms)
+✔ dirty overlay close asks to discard and does not keep the preview after discard (93.845042ms)
+✔ stale preview response is ignored after a newer refresh generation (88.603209ms)
+✔ HTTP overlay and mock overlay share the native dialog Tab trap (0.2295ms)
+✔ closed connection details remain keyboard reachable without exposing hidden controls (29.860584ms)
+✔ configured competition opens its board directly and loads B0 only on explicit navigation (88.092667ms)
+✔ footer open remounts overlay after close on the same page (77.424958ms)
+✔ layout drag commits on pointerup and does not preview on pointermove (58.652958ms)
+✔ undoBoard is a no-op when the saved board has no prior version (42.237708ms)
+✔ undoBoard previews restore_from_version against the current board etag (42.591667ms)
+✔ analyses panel add previews analysis_ref then save posts the add intent key (77.336708ms)
+✔ addAnalysis creates the owner board before previewing add when none exists (54.167625ms)
+✔ preview 409 re-reads and does not keep a stale pending op (63.24525ms)
+✔ save 409 re-reads and does not keep the pending preview (66.833375ms)
+✔ save 201 then dashboard 4xx/409 does not POST a second analysis (85.197833ms)
+✔ two overlay instances keep preview save undo on their own dashboard_id (119.564542ms)
+✔ analyses panel sets data-panel=analyses, omits undo, and does not claim overlay hung (34.992ms)
+✔ built Host root requires isolated capabilities; tool fails closed without native context (39.979875ms)
+✔ built browser factory requires only platform modules and registers shared-root entries (68.214417ms)
+✔ compiled first-purchase card covers states without skipping the renderer (77.054583ms)
+✔ one package entry registers competition tools only for explicitly connected native UI (36.089208ms)
+✔ built package root and per-agent tool load through real Cordis include and dispose (67.600792ms)
+✔ query-family Cordis loader registers query tool and two-session health (18.815833ms)
+✔ ordinary native chat has no synthetic run status; registered B0 still has its status (60.68125ms)
+✔ apply registers business slots; dispose removes them without touching native keys (9.880083ms)
+✔ a second apply on the same fake ctx duplicates registrations; Host must not double-insert the plugin (5.142209ms)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+✔ compiled cancel click surfaces HTTP/RPC/network outcomes and suppresses unhandledRejection (389.635709ms)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+✔ duplicate click while submitting does not open a second request (40.818584ms)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at nh (evalmachine.<anonymous>:202:16862)
+Warning: The current testing environment is not configured to support act(...)
+✔ late cancel response does not paint a later call card (31.425166ms)
+✔ query-card source keeps existing fault copy and stamps data-query-fault (0.381792ms)
+✔ unknown version, extra fields, and tool errors classify without leaking channel facts (0.242375ms)
+✔ compiled query fault cards hide channel digits when lib/client.js is present (67.611167ms)
+✔ save then join creates an owner board and posts add with board-version key (126.739125ms)
+✔ save surfaces contract errors and malformed payloads without treating them as saved (63.859166ms)
+✔ join keeps the analysis saved when listing the board fails (53.394375ms)
+✔ save 201 then dashboard 4xx/409 does not POST a second analysis; join retries joinAttempt only (146.61625ms)
+✔ duplicate save click while posting does not open a second request (51.937958ms)
+✔ query-family Cordis skills register immutable method and deny unknown skill name (20.819166ms)
+✔ compiled saved analysis renders without a session and preserves unavailable/denied states (2.375458ms)
+✔ compiled cockpit renders without a session and preserves unavailable/denied states (0.776375ms)
+✔ native filesystem provider excludes synthetic personal/project roots and an explicit empty bundled root (10.523833ms)
+✔ native skill loading and real compaction preserve fresh backend authority and deny revoked reads (34.321208ms)
+✔ compiled React tool card DOM: running (0.626709ms)
+✔ compiled React tool card DOM: success (0.275875ms)
+✔ compiled React tool card DOM: tool-error (0.120375ms)
+✔ compiled React tool card DOM: unknown-version (0.088167ms)
+✔ compiled React tool card DOM: missing-meta (0.084167ms)
+✔ compiled React tool card DOM: extra-meta (0.0715ms)
+✔ compiled React tool card DOM: changed-facts (0.077583ms)
+✔ compiled React tool card DOM: error-with-meta (0.086542ms)
+✔ compiled React query tool card DOM: query-running (0.401708ms)
+✔ compiled React query tool card DOM: query-success (1.41725ms)
+✔ compiled React query tool card DOM: query-null (0.209334ms)
+✔ compiled React query tool card DOM: query-failed (0.154708ms)
+✔ compiled React query tool card DOM: query-unknown (0.2385ms)
+✔ query card stylesheet uses native DSH body token and does not keep the 13px body size (0.131125ms)
+✔ compiled plugin owns B0 and query tool keys, preserving other native card registrations (0.364791ms)
+ℹ tests 58
+ℹ suites 0
+ℹ pass 58
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1885.192292
+✔ brand surface sets DESIGN title and replaces upstream greeting (0.401292ms)
+✔ embedded audience fixtures match frozen C0 JSON (7.743416ms)
+✔ candidate decode requires unique_count to equal deduped keys and auto_send false (0.354708ms)
+✔ AND success, OR partial, zero audience, copy-only vs rule expiry, 409 (1.511834ms)
+✔ actions UI source covers AND/OR, zero, explanations, draft expiry and no auto send (3.9875ms)
+✔ remount retry retains intent; success and different actor start new intents (3.373833ms)
+✔ compiled board preserves computed amounts, legacy units and chart preferences after reopen (884.040208ms)
+✔ compiled board preserves computed amounts, unknown units and chart preferences after reopen (713.352292ms)
+✔ compiled board preserves computed amounts, major units and chart preferences after reopen (703.100167ms)
+✔ compiled board preserves computed amounts, minor units and chart preferences after reopen (700.164333ms)
+✔ compiled board reports disconnected service and a failed saved-board read instead of an empty success (44.488458ms)
+✔ T04 compiled DOM preserves GSV 0.25 and formats only the raw ratio as 25% (48.318ms)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+✔ chart preference enables save and survives component reopen, bound to the changed block (924.224417ms)
+✔ compiled B0 cockpit view still renders empty/denied without competition surface (2.044125ms)
+✔ compiled competition board surface explains manual editing without claiming native model unavailable (8.857291ms)
+✔ compiled actions surface shows zero-copy and no auto send (1.469417ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: An update to Gd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Gd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:38067)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+Warning: An update to Gd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Gd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:38067)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+✔ board DOM: endorse COMPLETE, reject empty, preview layout on pointerup not pointermove, 409 keeps draft (106.374ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+✔ actions DOM: AND count, zero audience, copy-only vs expired draft (154.879666ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45845)
+✔ HTTP-shaped sparse result: confirm panel does not throw, 行数 is not undefined (70.4735ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+✔ failed 成板 retry stays mounted and does not duplicate the board (136.069833ms)
+✔ HTTP board reopens pinned result and layout; unavailable binding never substitutes list results (50.185209ms)
+✔ HTTP create retries keep IDs, next selection creates a distinct board, preview does not write (106.493ms)
+✔ HTTP actions can create first draft, reopen with a new transport, then update same versioned draft (103.866083ms)
+✔ saved-board picker loads each authorized board, preserves selection on reopen and locks unsaved edits (203.185333ms)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+Warning: An update to Vd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Vd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:5118)
+    at jce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45845)
+✔ board switching keeps the prior asset on denial and does not restore an unlisted preference (204.447042ms)
+✔ HTTP connection loss yields a displayable error without retrying an uncertain write (0.602ms)
+✔ non-contract HTTP errors remain visible and contracted permission errors retain their identity (0.211833ms)
+✔ embedded board/result fixtures match frozen C0 JSON (10.402792ms)
+✔ C0 board decode rejects PUBLIC visibility and accepts empty boards (0.32975ms)
+✔ illegal HTML/JS patches are rejected before transport (0.204ms)
+✔ UI selection does not rewrite in-flight patch target (0.096709ms)
+✔ layout clamp and keyboard substitutes match overlay bounds (0.099292ms)
+✔ fixture transport covers endorse, partial batch, style preview, 409, 403 (0.766334ms)
+✔ FILTER_CHANGE and empty result stay honest (0.264375ms)
+✔ formatResultRowCount never renders undefined; sparse confirm chips do not throw (0.178875ms)
+✔ board UI source covers endorsement, grid, scope chat, 409 and keyboard substitutes (1.9535ms)
+✔ units follow versioned computed facts; legacy results remain unchanged (0.627041ms)
+✔ v2 HTTP decoder rejects missing, ambiguous or mismatched units (11.059ms)
+✔ computed GSV is a separate, endorsable saved result with raw ratios (0.076291ms)
+✔ computed decoder rejects forged family, percentages and corrupt values (0.212667ms)
+✔ HTTP transport does not load malformed computed amounts into endorsement list (0.195208ms)
+✔ competition HTTP options refuse user demo ports (0.515334ms)
+✔ HTTP audience wrap turns UI chips into C0 T05 preview body (0.094458ms)
+✔ HTTP transports post C0 paths and unwrap results list (0.353459ms)
+✔ competition shell exports the A6 contract names with the locked AntD provider (4.993583ms)
+✔ brand tokens follow DESIGN.md and keep original asset URLs (1.863416ms)
+✔ competition CSS covers welcome/nav/title/error/dialog and reduced motion (1.131459ms)
+✔ native chrome export const css is not painted with Vue brand literals (3.33875ms)
+✔ layout slots include A6 mount points and do not register native DSH keys (2.813167ms)
+The above error occurred in the <Boom> component:
+
+    at Boom (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.test.mjs:18:9)
+    at OverlayErrorBoundary (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.mjs:6:5)
+    at div
+    at Shell (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/src/client/overlay-error-boundary.test.mjs:28:20)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, OverlayErrorBoundary.
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+✔ OverlayErrorBoundary keeps siblings mounted and remounts on resetKey (50.705ms)
+✔ native abort preserves publication outcome: CANCELLED (12.225125ms)
+✔ native abort preserves publication outcome: ALREADY_PUBLISHED (0.678209ms)
+✔ native abort preserves publication outcome: UNCONFIRMED (0.186875ms)
+✔ native abort preserves publication outcome: wrong-binding (0.244041ms)
+✔ competition skill package freezes without numeric evidence (14.694042ms)
+✔ resource key denies ../SKILL.md (2.292167ms)
+✔ resource key denies /etc/passwd (1.256958ms)
+✔ resource key denies https://example.com/private (1.323583ms)
+✔ resource key denies scripts/run.sh (1.50775ms)
+✔ resource key denies SKILL.md (0.973708ms)
+✔ registered tools do not include old routes (0.145792ms)
+✔ native cancellation reaches the pending HTTP request and never retries (0.664916ms)
+✔ STYLE_ONLY does not query; FILTER_CHANGE is a new run (0.143ms)
+✔ illegal script patch and in-flight selection (0.134791ms)
+✔ offline python eval suite (203.180416ms)
+✔ built native diagnosis tools forward trusted session IDs over model-supplied values (19.91675ms)
+✔ T13 real model is NOT_RUN and stub is forbidden (0.686417ms)
+✔ T15 browser+model UAT is NOT_RUN (0.799625ms)
+✔ T16 capacity is NOT_RUN and must not start a load run (0.242791ms)
+✔ T17 native/browser matrix is NOT_RUN without independent DSH (0.227916ms)
+✔ does not bind user demo ports 8000/5173/4327 (0.311458ms)
+✔ T09-T11 board source exists on SUT and keeps in-flight target (0.495583ms)
+✔ T09 board UI source covers endorsement and partial batch (0.256791ms)
+✔ T10 style-only is not a query; illegal script rejected (0.849333ms)
+✔ T11 model-unavailable still shows saved board; discard is not undo (0.558667ms)
+✔ T12 actions source covers zero candidates and no auto send (0.111792ms)
+✔ T09-T11 compiled React DOM is fail-closed without lib/views (0.138292ms)
+ℹ tests 77
+ℹ suites 0
+ℹ pass 77
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5553.613167
+B0 host full typecheck passed
+B0 client full typecheck passed
+
+  .context/dsh-b0/clean-build-Fonslv/lib/skills.js      50.1kb
+  .context/dsh-b0/clean-build-Fonslv/lib/tool.js        32.7kb
+  .context/dsh-b0/clean-build-Fonslv/lib/index.js       28.8kb
+  .context/dsh-b0/clean-build-Fonslv/lib/skills.js.map  79.1kb
+  .context/dsh-b0/clean-build-Fonslv/lib/tool.js.map    72.8kb
+  .context/dsh-b0/clean-build-Fonslv/lib/index.js.map   50.8kb
+
+⚡ Done in 8ms
+
+  .context/dsh-b0/clean-build-Fonslv/lib/client.js      574.6kb
+  .context/dsh-b0/clean-build-Fonslv/lib/client.js.map    2.3mb
+
+⚡ Done in 128ms
+
+  .context/dsh-b0/clean-build-Fonslv/lib/views/cockpit-view.js         513.4kb
+  ...h-b0/clean-build-Fonslv/lib/views/first-purchase-cockpit-view.js   50.4kb
+  .context/dsh-b0/clean-build-Fonslv/lib/views/saved-analysis-view.js   32.8kb
+  ...ean-build-Fonslv/lib/views/first-purchase-saved-analysis-view.js   25.7kb
+  .context/dsh-b0/clean-build-Fonslv/lib/views/cockpit-view.js.map       2.1mb
+  .../clean-build-Fonslv/lib/views/first-purchase-cockpit-view.js.map   98.2kb
+  ...t/dsh-b0/clean-build-Fonslv/lib/views/saved-analysis-view.js.map   73.2kb
+  ...build-Fonslv/lib/views/first-purchase-saved-analysis-view.js.map   48.1kb
+
+⚡ Done in 78ms
+B0 plugin built. Host entry: file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/.context/dsh-b0/clean-build-Fonslv/lib/index.js
+✔ native resolved mode updates the existing dialog and inherited competition controls (229.347542ms)
+✔ RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds (47.476709ms)
+✔ dirty overlay close asks to discard and does not keep the preview after discard (90.339875ms)
+✔ stale preview response is ignored after a newer refresh generation (85.391791ms)
+✔ HTTP overlay and mock overlay share the native dialog Tab trap (0.189333ms)
+✔ closed connection details remain keyboard reachable without exposing hidden controls (26.523084ms)
+✔ configured competition opens its board directly and loads B0 only on explicit navigation (80.096291ms)
+✔ footer open remounts overlay after close on the same page (74.522333ms)
+✔ layout drag commits on pointerup and does not preview on pointermove (57.714042ms)
+✔ undoBoard is a no-op when the saved board has no prior version (41.696125ms)
+✔ undoBoard previews restore_from_version against the current board etag (40.663292ms)
+✔ analyses panel add previews analysis_ref then save posts the add intent key (77.254916ms)
+✔ addAnalysis creates the owner board before previewing add when none exists (54.383375ms)
+✔ preview 409 re-reads and does not keep a stale pending op (64.766458ms)
+✔ save 409 re-reads and does not keep the pending preview (66.203084ms)
+✔ save 201 then dashboard 4xx/409 does not POST a second analysis (83.553334ms)
+✔ two overlay instances keep preview save undo on their own dashboard_id (119.145125ms)
+✔ analyses panel sets data-panel=analyses, omits undo, and does not claim overlay hung (34.730334ms)
+✔ built Host root requires isolated capabilities; tool fails closed without native context (37.859292ms)
+✔ built browser factory requires only platform modules and registers shared-root entries (81.090625ms)
+✔ compiled first-purchase card covers states without skipping the renderer (68.995042ms)
+✔ one package entry registers competition tools only for explicitly connected native UI (39.180666ms)
+✔ built package root and per-agent tool load through real Cordis include and dispose (61.432542ms)
+✔ query-family Cordis loader registers query tool and two-session health (12.086417ms)
+✔ ordinary native chat has no synthetic run status; registered B0 still has its status (67.739292ms)
+✔ apply registers business slots; dispose removes them without touching native keys (6.126542ms)
+✔ a second apply on the same fake ctx duplicates registrations; Host must not double-insert the plugin (5.339334ms)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+✔ compiled cancel click surfaces HTTP/RPC/network outcomes and suppresses unhandledRejection (367.808542ms)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+✔ duplicate click while submitting does not open a second request (40.093ms)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+Warning: The current testing environment is not configured to support act(...)
+    at nh (evalmachine.<anonymous>:202:16862)
+Warning: The current testing environment is not configured to support act(...)
+✔ late cancel response does not paint a later call card (30.614833ms)
+✔ query-card source keeps existing fault copy and stamps data-query-fault (0.717959ms)
+✔ unknown version, extra fields, and tool errors classify without leaking channel facts (0.485334ms)
+✔ compiled query fault cards hide channel digits when lib/client.js is present (85.018083ms)
+✔ save then join creates an owner board and posts add with board-version key (120.324417ms)
+✔ save surfaces contract errors and malformed payloads without treating them as saved (59.702417ms)
+✔ join keeps the analysis saved when listing the board fails (50.285709ms)
+✔ save 201 then dashboard 4xx/409 does not POST a second analysis; join retries joinAttempt only (142.784583ms)
+✔ duplicate save click while posting does not open a second request (51.080625ms)
+✔ query-family Cordis skills register immutable method and deny unknown skill name (22.304792ms)
+✔ compiled saved analysis renders without a session and preserves unavailable/denied states (2.270625ms)
+✔ compiled cockpit renders without a session and preserves unavailable/denied states (0.799875ms)
+✔ native filesystem provider excludes synthetic personal/project roots and an explicit empty bundled root (9.920583ms)
+✔ native skill loading and real compaction preserve fresh backend authority and deny revoked reads (27.6375ms)
+✔ compiled React tool card DOM: running (0.587833ms)
+✔ compiled React tool card DOM: success (0.260125ms)
+✔ compiled React tool card DOM: tool-error (0.105916ms)
+✔ compiled React tool card DOM: unknown-version (0.086792ms)
+✔ compiled React tool card DOM: missing-meta (0.075708ms)
+✔ compiled React tool card DOM: extra-meta (0.077583ms)
+✔ compiled React tool card DOM: changed-facts (0.084625ms)
+✔ compiled React tool card DOM: error-with-meta (0.0845ms)
+✔ compiled React query tool card DOM: query-running (0.372333ms)
+✔ compiled React query tool card DOM: query-success (1.667917ms)
+✔ compiled React query tool card DOM: query-null (0.221375ms)
+✔ compiled React query tool card DOM: query-failed (0.084875ms)
+✔ compiled React query tool card DOM: query-unknown (0.100625ms)
+✔ query card stylesheet uses native DSH body token and does not keep the 13px body size (0.056667ms)
+✔ compiled plugin owns B0 and query tool keys, preserving other native card registrations (0.523334ms)
+ℹ tests 58
+ℹ suites 0
+ℹ pass 58
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1676.374875
+B0 pipeline passed; clean plugin: /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/dsh-b0/clean-build-Fonslv

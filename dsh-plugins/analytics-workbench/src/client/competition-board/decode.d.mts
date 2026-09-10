@@ -13,6 +13,7 @@ export function looksLikeIllegalScript(value: unknown): boolean;
 export function decodeCompetitionBatchRequest(value: unknown): any | null;
 export function decodeCompetitionBatchReceipt(value: unknown): any | null;
 export function formatResultRowCount(result: any): string;
+export function formatAmountUnit(result: any): string;
 export function conditionChips(result: any): { id: string; label: string; value: string }[];
 export function evidenceFields(result: any): {
   asOf?: string; metricVersion?: string; dataVersion?: string; digest?: string; source?: string;

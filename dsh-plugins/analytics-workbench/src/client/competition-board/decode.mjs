@@ -51,12 +51,17 @@ function validComputedResult(value) {
     && (p.through_date === null ? p.gsv === null && p.order_count === 0 && p.customer_count === 0
       : day(p.through_date) && p.through_date >= expected.start_date && p.through_date <= expected.end_date && number(p.gsv) && p.gsv >= 0);
   const facts = value.facts;
+  const version = facts?.schema_version;
+  const factsRef = version === 'competition-gsv-facts/v2'
+    ? 'backend.contracts.competition_computed.CompetitionGsvFactsV2'
+    : version === 'competition-gsv-facts/v1' ? 'backend.contracts.competition_computed.CompetitionGsvFacts' : null;
+  if (!factsRef || value.facts_schema_ref !== factsRef || value.existing_result_schema !== version) return false;
+  if (version === 'competition-gsv-facts/v2' ? !validMoneyUnit(facts.money_unit) : Object.hasOwn(facts, 'money_unit')) return false;
   if (value.execution_kind !== 'TOOL_COMPUTATION' || value.query_id !== 'competition_gsv_comparison'
     || value.query_version !== 'competition-gsv-query/v1' || value.metric_version !== 'competition-gsv-metric/v1'
-    || value.facts_schema_ref !== 'backend.contracts.competition_computed.CompetitionGsvFacts'
-    || value.existing_result_schema !== 'competition-gsv-facts/v1' || !opaque(value.run_id)
+    || !opaque(value.run_id)
     || (value.analysis_id != null && !opaque(value.analysis_id)) || !sha256(value.data_digest) || !sha256(value.evidence_digest)
-    || value.primary_result_ref !== value.result_id || !isObj(facts) || facts.schema_version !== 'competition-gsv-facts/v1'
+    || value.primary_result_ref !== value.result_id || !isObj(facts)
     || facts.metric_type !== 'GSV' || !period(facts.current, value.resolved_condition.current_period)
     || !period(facts.comparison, value.resolved_condition.comparison_period)) return false;
   const c = facts.current.gsv; const p = facts.comparison.gsv;
@@ -69,6 +74,19 @@ function validComputedResult(value) {
   return p === 0 ? facts.change_ratio === null && facts.change_ratio_unavailable_reason === 'ZERO_COMPARISON_GSV'
     : number(facts.change_ratio) && facts.change_ratio_unavailable_reason === null
       && Math.abs(facts.change_ratio - (c - p) / p) <= 1e-12 * Math.max(1, Math.abs((c - p) / p));
+}
+
+function validMoneyUnit(unit) {
+  if (!isObj(unit) || keysOf(unit).join(',') !== 'amount_unit,currency,status') return false;
+  return unit.status === 'UNKNOWN' ? unit.currency === null && unit.amount_unit === null
+    : unit.status === 'KNOWN' && unit.currency === 'CNY' && ['major', 'minor'].includes(unit.amount_unit);
+}
+
+export function formatAmountUnit(result) {
+  if (result?.facts?.schema_version === 'competition-gsv-facts/v1') return '未记录（旧结果）';
+  const unit = result?.facts?.money_unit;
+  if (!validMoneyUnit(unit) || unit.status !== 'KNOWN') return '未知（按原始数值展示）';
+  return unit.amount_unit === 'minor' ? '人民币分（CNY minor）' : '人民币元（CNY major）';
 }
 
 export function canEndorse(result) {

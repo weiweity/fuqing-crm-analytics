@@ -17,7 +17,8 @@ from backend.services.analytics.competition_diagnosis.computed import compute_re
 from backend.services.analytics.competition_diagnosis.store import ComputedResultStore
 from backend.services.analytics.resource_profile import content_hash
 from backend.services.analytics.saved_analyses import SavedAnalysisStore
-from backend.tests.test_competition_computed_results import source as computed_source, condition
+from backend.tests.test_competition_computed_results import source as computed_source, condition, snapshot
+from backend.services.analytics.competition_diagnosis.synthetic import materialize_synthetic_source
 
 source = computed_source
 
@@ -109,11 +110,18 @@ def test_saved_execution_cannot_move_to_another_request(tmp_path, source):
     assert error.value.code == "BINDING_CORRUPT"
 
 
-def test_http_computation_endorse_batch_and_frozen_reopen(tmp_path, source):
+@pytest.mark.parametrize("denomination", [None, "major", "minor"])
+def test_http_computation_endorse_batch_and_frozen_reopen(tmp_path, source, denomination):
+    unit = {"status": "UNKNOWN", "currency": None, "amount_unit": None}
+    if denomination:
+        unit = {"status": "KNOWN", "currency": "CNY", "amount_unit": denomination}
+        source = materialize_synthetic_source(private(tmp_path / "declared"), {**snapshot(), "money_unit": unit})
     registry = B0IdentityRegistry()
     registry.grant(TOKEN, ALICE)
     registry.grant(OTHER_TOKEN, BOB)
     with TestClient(app_at(tmp_path, source, registry), headers={"Authorization": f"Bearer {TOKEN}"}) as client:
+        catalog = client.post(BASE + "/diagnosis/capabilities", json={"session_id": "native-session"}).json()
+        assert catalog["source_context"]["money_unit"] == unit
         payload = {"capability_id": "diag.gsv", "condition_mode": "EXPLICIT", "condition": condition().model_dump(mode="json"),
                    "request_id": "req1", "session_id": "native-session"}
         response = client.post(BASE + "/diagnosis/step", json=payload)
@@ -121,6 +129,8 @@ def test_http_computation_endorse_batch_and_frozen_reopen(tmp_path, source):
         result = response.json()["result"]
         assert response.json()["analysis_persisted"] is True
         assert result["facts"]["current"]["gsv"] == 140
+        assert result["facts"]["schema_version"] == "competition-gsv-facts/v2"
+        assert result["facts"]["money_unit"] == unit
         assert response.json()["analysis_complete"] is False
         assert client.post(BASE + "/diagnosis/step", json=payload).json()["result"] == result
         items = client.get(BASE + "/results").json()["items"]

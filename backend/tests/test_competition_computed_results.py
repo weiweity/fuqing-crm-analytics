@@ -1,5 +1,7 @@
 """Independent arithmetic for computed diagnosis; no C0/A9 numeric fixtures."""
 from copy import deepcopy
+import json
+from pathlib import Path
 
 import duckdb
 import pytest
@@ -10,6 +12,7 @@ from backend.contracts.competition_computed import CompetitionComputedResult, DA
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal
 from backend.services.analytics.competition_diagnosis.computed import compute_result
 from backend.services.analytics.competition_diagnosis.synthetic import materialize_synthetic_source
+from backend.services.analytics.resource_profile import content_hash
 
 PRINCIPAL = AnalyticsPrincipal("alice", frozenset({"analysis:read", "analysis:save"}), frozenset({DATA_SCOPE}))
 
@@ -171,3 +174,73 @@ def test_changed_facts_cannot_keep_old_evidence(source):
     payload["facts"]["change_ratio"] = 10 / 135
     with pytest.raises(ValidationError, match="evidence digest"):
         CompetitionComputedResult.model_validate(payload)
+
+
+def test_legacy_v1_roundtrip_keeps_original_facts_and_digest():
+    path = Path(__file__).resolve().parents[2] / "dsh-plugins/analytics-workbench/tests/competition-computed/result.json"
+    original = json.loads(path.read_text())
+    parsed = CompetitionComputedResult.model_validate(original)
+    assert parsed.model_dump(mode="json") == original
+    assert "money_unit" not in parsed.facts.model_dump(mode="json")
+
+
+def test_undeclared_unit_is_unknown_without_changing_source_digest(source):
+    result = calculate(source)
+    assert result.facts.schema_version == "competition-gsv-facts/v2"
+    assert result.facts.money_unit.model_dump() == {"status": "UNKNOWN", "currency": None, "amount_unit": None}
+    # The existing loader normalizes publication time to UTC before hashing.
+    assert result.data_digest == content_hash({**snapshot(), "published_at": "2026-08-31T16:00:00.000000+00:00"})
+
+
+@pytest.mark.parametrize("denomination", ["major", "minor"])
+def test_declared_unit_preserves_raw_arithmetic_and_is_bound_to_evidence(tmp_path, source, denomination):
+    declared = snapshot()
+    declared["money_unit"] = {"status": "KNOWN", "currency": "CNY", "amount_unit": denomination}
+    folder = tmp_path / "declared"
+    folder.mkdir(mode=0o700)
+    result = calculate(materialize_synthetic_source(folder, declared))
+    original = calculate(source)
+    assert result.facts.money_unit.model_dump() == declared["money_unit"]
+    assert result.facts.current.gsv == original.facts.current.gsv == 140
+    assert result.facts.change_ratio == original.facts.change_ratio
+    assert result.data_digest != original.data_digest
+    assert result.evidence_digest != original.evidence_digest
+    forged = result.model_dump(mode="json")
+    forged["facts"]["money_unit"]["amount_unit"] = "minor" if denomination == "major" else "major"
+    with pytest.raises(ValidationError, match="evidence digest"):
+        CompetitionComputedResult.model_validate(forged)
+
+
+@pytest.mark.parametrize("unit", [
+    None, {"status": "KNOWN"}, {"status": "UNKNOWN", "currency": "CNY"},
+    {"status": "KNOWN", "currency": "CNY", "amount_unit": "yuan"},
+    {"status": "KNOWN", "currency": "USD", "amount_unit": "major"},
+    {"status": "UNKNOWN", "scale": 100},
+])
+def test_malformed_source_units_fail_before_database_creation(tmp_path, unit):
+    folder = tmp_path / "invalid-unit"
+    folder.mkdir(mode=0o700)
+    with pytest.raises(ValidationError):
+        materialize_synthetic_source(folder, {**snapshot(), "money_unit": unit})
+    assert list(folder.iterdir()) == []
+
+
+@pytest.mark.parametrize("field,value", [
+    ("facts_schema_ref", "backend.contracts.competition_computed.CompetitionGsvFacts"),
+    ("existing_result_schema", "competition-gsv-facts/v1"),
+])
+def test_v2_rejects_mismatched_facts_references(source, field, value):
+    forged = calculate(source).model_dump(mode="json")
+    forged[field] = value
+    with pytest.raises(ValidationError, match="facts schema references"):
+        CompetitionComputedResult.model_validate(forged)
+
+
+def test_ui_unit_fixtures_match_actual_computation():
+    import runpy
+
+    folder = Path(__file__).resolve().parents[2] / "dsh-plugins/analytics-workbench/tests/competition-computed"
+    actual = runpy.run_path(str(folder / "unit-fixtures.py"))["fixtures"]()
+    assert actual == json.loads((folder / "unit-results.json").read_text())
+    for result in actual.values():
+        CompetitionComputedResult.model_validate(result)

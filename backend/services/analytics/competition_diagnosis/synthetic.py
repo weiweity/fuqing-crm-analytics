@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from hashlib import sha256
 import json
@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from datetime import timedelta
 
 from backend.contracts.analytics_query import canonical_rfc3339, parse_query_datetime
+from backend.contracts.competition_computed import CompetitionMoneyUnit
 from backend.services.analytics.resource_profile import canonical_json, content_hash
 
 MAX_ROWS = 10000
@@ -39,6 +40,7 @@ class SyntheticDiagnosisSource:
     published_at: datetime
     coverage_start: date
     data_through: date
+    money_unit: CompetitionMoneyUnit = field(default_factory=CompetitionMoneyUnit)
 
     @contextmanager
     def connect(self):
@@ -70,8 +72,10 @@ def materialize_synthetic_source(directory: Path, payload: dict) -> SyntheticDia
     payload = json.loads(canonical_json(payload))
     expected = {"contains_real_data", "snapshot_id", "data_version", "published_at",
                 "coverage_start", "data_through", "orders", "refunds"}
-    if set(payload) != expected or payload["contains_real_data"] is not False:
+    if set(payload) - {"money_unit"} != expected or payload["contains_real_data"] is not False:
         raise ValueError("only explicit synthetic diagnosis snapshots are accepted")
+    money_unit = (CompetitionMoneyUnit.model_validate(payload["money_unit"])
+                  if "money_unit" in payload else CompetitionMoneyUnit())
     orders, refunds = payload["orders"], payload["refunds"]
     if not isinstance(orders, list) or not isinstance(refunds, list) or len(orders) + len(refunds) > MAX_ROWS:
         raise ValueError("synthetic diagnosis input exceeds its row bound")
@@ -124,7 +128,7 @@ def materialize_synthetic_source(directory: Path, payload: dict) -> SyntheticDia
     path.chmod(0o600)
     return SyntheticDiagnosisSource(path, sha256(path.read_bytes()).hexdigest(), content_hash(payload),
                                     payload["snapshot_id"], payload["data_version"], published_at,
-                                    coverage_start, data_through)
+                                    coverage_start, data_through, money_unit)
 
 
 def demo_snapshot() -> dict:

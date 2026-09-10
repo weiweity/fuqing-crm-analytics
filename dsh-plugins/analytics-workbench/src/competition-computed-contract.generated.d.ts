@@ -48,16 +48,17 @@ export interface components {
             /**
              * Existing Result Schema
              * @default competition-gsv-facts/v1
-             * @constant
+             * @enum {string}
              */
-            existing_result_schema: "competition-gsv-facts/v1";
-            facts: components["schemas"]["CompetitionGsvFacts"];
+            existing_result_schema: "competition-gsv-facts/v1" | "competition-gsv-facts/v2";
+            /** Facts */
+            facts: components["schemas"]["CompetitionGsvFacts"] | components["schemas"]["CompetitionGsvFactsV2"];
             /**
              * Facts Schema Ref
              * @default backend.contracts.competition_computed.CompetitionGsvFacts
-             * @constant
+             * @enum {string}
              */
-            facts_schema_ref: "backend.contracts.competition_computed.CompetitionGsvFacts";
+            facts_schema_ref: "backend.contracts.competition_computed.CompetitionGsvFacts" | "backend.contracts.competition_computed.CompetitionGsvFactsV2";
             /** Limitations */
             limitations: string[];
             /**
@@ -118,11 +119,55 @@ export interface components {
              */
             metric_type: "GSV";
             /**
-             * Schema Version
-             * @default competition-gsv-facts/v1
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
             schema_version: "competition-gsv-facts/v1";
+        };
+        /** CompetitionGsvFactsV2 */
+        CompetitionGsvFactsV2: {
+            /** Change Ratio */
+            change_ratio: number | null;
+            /** Change Ratio Unavailable Reason */
+            change_ratio_unavailable_reason: ("PERIOD_UNAVAILABLE" | "ZERO_COMPARISON_GSV") | null;
+            comparison: components["schemas"]["GsvPeriodFacts"];
+            current: components["schemas"]["GsvPeriodFacts"];
+            /** Difference */
+            difference: number | null;
+            /**
+             * Metric Type
+             * @default GSV
+             * @constant
+             */
+            metric_type: "GSV";
+            money_unit: components["schemas"]["CompetitionMoneyUnit"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "competition-gsv-facts/v2";
+        };
+        /**
+         * CompetitionMoneyUnit
+         * @description Source-declared raw amount unit, never inferred from another catalogue.
+         */
+        CompetitionMoneyUnit: {
+            /**
+             * Amount Unit
+             * @default null
+             */
+            amount_unit: ("major" | "minor") | null;
+            /**
+             * Currency
+             * @default null
+             */
+            currency: "CNY" | null;
+            /**
+             * Status
+             * @default UNKNOWN
+             * @enum {string}
+             */
+            status: "KNOWN" | "UNKNOWN";
         };
         /** CompetitionResolvedCondition */
         CompetitionResolvedCondition: {

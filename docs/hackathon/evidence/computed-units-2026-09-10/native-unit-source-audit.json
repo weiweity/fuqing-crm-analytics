@@ -1,0 +1,44 @@
+{
+  "A3": {
+    "native_log_sha256": "05d088b98120bfe98d0cc4200bf192d8744a69cf698a0c97e6c835ae469896bf",
+    "session_id": "session-e1190317-b53b-4b12-b468-e0185a0ea3e3",
+    "capability_returns": 1,
+    "source_context": [
+      {
+        "contains_real_data": false,
+        "snapshot_id": "synthetic-diagnosis-202608-v1",
+        "data_through": "2026-08-31",
+        "published_at": "2026-09-01T00:00:00+08:00",
+        "computed_capabilities": [
+          "diag.gsv",
+          "diag.last_week_same_weekday",
+          "diag.promo_dual_window",
+          "diag.yoy"
+        ]
+      }
+    ],
+    "currency_or_amount_unit_fields_in_actual_catalog": [],
+    "finding": "CNY/minor claims are unsupported; the actual catalog declares no monetary unit."
+  },
+  "B2": {
+    "native_log_sha256": "79a984ee88f0df41fb5bc3fd040a21a88e6b86e112a1189b54be7752727d21d0",
+    "session_id": "session-e1789576-43a2-402e-b77f-e35f83a9e758",
+    "capability_returns": 1,
+    "source_context": [
+      {
+        "contains_real_data": false,
+        "snapshot_id": "synthetic-diagnosis-202608-v1",
+        "data_through": "2026-08-31",
+        "published_at": "2026-09-01T00:00:00+08:00",
+        "computed_capabilities": [
+          "diag.gsv",
+          "diag.last_week_same_weekday",
+          "diag.promo_dual_window",
+          "diag.yoy"
+        ]
+      }
+    ],
+    "currency_or_amount_unit_fields_in_actual_catalog": [],
+    "finding": "CNY/minor claims are unsupported; the actual catalog declares no monetary unit."
+  }
+}

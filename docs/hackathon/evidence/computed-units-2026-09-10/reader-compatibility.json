@@ -1,0 +1,14 @@
+{
+  "old_head": "24a3722b6681bd58ec8045101078be3d41984e75",
+  "old_reader_new_v2": {
+    "status": "REJECT",
+    "code": "BINDING_CORRUPT",
+    "http_status": 409
+  },
+  "new_reader_old_v1": "PASS; original JSON and evidence unchanged",
+  "new_reader_new_v2": "PASS; separate process",
+  "old_reader_old_v1_after_new_write": "PASS",
+  "unchanged_source_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+  "state": "temporary synthetic SQLite only; no candidate or archived database touched",
+  "rollback_requirement": "Restore an isolated pre-upgrade state with the old reader; preserve all new state."
+}

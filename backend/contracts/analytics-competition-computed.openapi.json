@@ -86,6 +86,125 @@
         "title": "CompetitionGsvFacts",
         "type": "object"
       },
+      "CompetitionGsvFactsV2": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-gsv-facts/v2",
+            "default": "competition-gsv-facts/v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "default": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "change_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio"
+          },
+          "change_ratio_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "ZERO_COMPARISON_GSV"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio Unavailable Reason"
+          },
+          "money_unit": {
+            "$ref": "#/components/schemas/CompetitionMoneyUnit"
+          }
+        },
+        "required": [
+          "current",
+          "comparison",
+          "difference",
+          "change_ratio",
+          "change_ratio_unavailable_reason",
+          "money_unit"
+        ],
+        "title": "CompetitionGsvFactsV2",
+        "type": "object"
+      },
+      "CompetitionMoneyUnit": {
+        "additionalProperties": false,
+        "description": "Source-declared raw amount unit, never inferred from another catalogue.",
+        "properties": {
+          "status": {
+            "default": "UNKNOWN",
+            "enum": [
+              "KNOWN",
+              "UNKNOWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "const": "CNY",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Currency"
+          },
+          "amount_unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "major",
+                  "minor"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Unit"
+          }
+        },
+        "title": "CompetitionMoneyUnit",
+        "type": "object"
+      },
       "CompetitionResolvedCondition": {
         "additionalProperties": false,
         "properties": {
@@ -604,14 +723,20 @@
             "type": "string"
           },
           "facts_schema_ref": {
-            "const": "backend.contracts.competition_computed.CompetitionGsvFacts",
             "default": "backend.contracts.competition_computed.CompetitionGsvFacts",
+            "enum": [
+              "backend.contracts.competition_computed.CompetitionGsvFacts",
+              "backend.contracts.competition_computed.CompetitionGsvFactsV2"
+            ],
             "title": "Facts Schema Ref",
             "type": "string"
           },
           "existing_result_schema": {
-            "const": "competition-gsv-facts/v1",
             "default": "competition-gsv-facts/v1",
+            "enum": [
+              "competition-gsv-facts/v1",
+              "competition-gsv-facts/v2"
+            ],
             "title": "Existing Result Schema",
             "type": "string"
           },
@@ -694,7 +819,22 @@
             "type": "array"
           },
           "facts": {
-            "$ref": "#/components/schemas/CompetitionGsvFacts"
+            "discriminator": {
+              "mapping": {
+                "competition-gsv-facts/v1": "#/components/schemas/CompetitionGsvFacts",
+                "competition-gsv-facts/v2": "#/components/schemas/CompetitionGsvFactsV2"
+              },
+              "propertyName": "schema_version"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFacts"
+              },
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFactsV2"
+              }
+            ],
+            "title": "Facts"
           }
         },
         "required": [

@@ -1,0 +1,35 @@
+[bounded-pytest] group 1/1: 3 files
+.......................F
+=================================== FAILURES ===================================
+________ test_undeclared_unit_is_unknown_without_changing_source_digest ________
+
+source = SyntheticDiagnosisSource(path=PosixPath('/private/var/folders/tz/wswl3q3117v437rw68yd90gh0000gn/T/fq-check-h5ctorcu/tm...through=datetime.date(2026, 8, 31), money_unit=CompetitionMoneyUnit(status='UNKNOWN', currency=None, amount_unit=None))
+
+    def test_undeclared_unit_is_unknown_without_changing_source_digest(source):
+        result = calculate(source)
+        assert result.facts.schema_version == "competition-gsv-facts/v2"
+        assert result.facts.money_unit.model_dump() == {"status": "UNKNOWN", "currency": None, "amount_unit": None}
+>       assert result.data_digest == content_hash(snapshot())
+E       AssertionError: assert '7f4bf0f31101...cd96261a421ba' == '1226b0b3c15c...f4786356514e0'
+E         
+E         - 1226b0b3c15c2dffc35fa3b4b084babb2646cd91c392ef8eb3af4786356514e0
+E         + 7f4bf0f311017ab8c4dcc266b32594945a92a916d1475c593dccd96261a421ba
+
+backend/tests/test_competition_computed_results.py:191: AssertionError
+============================= slowest 10 durations =============================
+0.40s setup    backend/tests/test_competition_computed_results.py::test_two_period_arithmetic_and_order_grain
+0.03s call     backend/tests/test_competition_computed_results.py::test_as_of_excludes_later_refund_and_clamps_effective_end
+0.02s call     backend/tests/test_competition_computed_results.py::test_two_period_arithmetic_and_order_grain
+0.02s call     backend/tests/test_competition_computed_results.py::test_comparison_modes[LAST_WEEK_SAME_WEEKDAY-diag.last_week_same_weekday-compare1]
+0.02s call     backend/tests/test_competition_computed_results.py::test_comparison_modes[CUSTOM_DUAL_WINDOW-diag.promo_dual_window-compare0]
+0.02s call     backend/tests/test_competition_computed_results.py::test_explicit_sample_modes[EXCLUDE_CURRENT_SALES_ONLY]
+0.02s call     backend/tests/test_competition_computed_results.py::test_sales_scopes_apply_to_both_periods[scope2]
+0.02s call     backend/tests/test_competition_computed_results.py::test_sales_scopes_apply_to_both_periods[scope1]
+0.02s call     backend/tests/test_competition_computed_results.py::test_sales_scopes_apply_to_both_periods[scope0]
+0.01s call     backend/tests/test_competition_computed_results.py::test_changed_facts_cannot_keep_old_evidence
+=========================== short test summary info ============================
+FAILED backend/tests/test_competition_computed_results.py::test_undeclared_unit_is_unknown_without_changing_source_digest
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 23 passed, 1 warning in 1.22s
+[bounded-pytest] group 1 rc=1 time=1.887s peak_rss_gb=0.18
+[bounded-pytest] report: /Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/checks/20260910T051207156703Z/summary.json

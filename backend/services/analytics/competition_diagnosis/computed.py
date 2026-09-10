@@ -7,7 +7,8 @@ from zoneinfo import ZoneInfo
 from backend.contracts.analytics_query import canonical_rfc3339
 from backend.contracts.competition_c0 import CompetitionCondition, condition_hash_payload
 from backend.contracts.competition_computed import (
-    DATA_SCOPE, QUERY_ID, QUERY_VERSION, CompetitionComputedResult, CompetitionGsvFacts, GsvPeriodFacts, evidence_payload,
+    DATA_SCOPE, QUERY_ID, QUERY_VERSION, UNIT_FACTS_SCHEMA, CompetitionComputedResult,
+    CompetitionGsvFactsV2, GsvPeriodFacts, evidence_payload,
 )
 from backend.semantic.time import resolve_comparison_range
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
@@ -96,7 +97,7 @@ def compute_result(source: SyntheticDiagnosisSource, principal: AnalyticsPrincip
                                           customer_count=len({row["user_id"] for row in orders})))
     c, p = periods[0].gsv, periods[1].gsv
     unavailable = c is None or p is None
-    facts = CompetitionGsvFacts(current=periods[0], comparison=periods[1],
+    facts = CompetitionGsvFactsV2(current=periods[0], comparison=periods[1], money_unit=source.money_unit,
         difference=None if unavailable else round(c - p, 4),
         change_ratio=None if unavailable or p == 0 else (c - p) / p,
         change_ratio_unavailable_reason="PERIOD_UNAVAILABLE" if unavailable else "ZERO_COMPARISON_GSV" if p == 0 else None)
@@ -104,6 +105,8 @@ def compute_result(source: SyntheticDiagnosisSource, principal: AnalyticsPrincip
     result_id = "result_diag_" + execution
     payload = {"result_id": result_id, "run_id": "run_diag_" + execution, "capability_id": capability_id,
                "query_id": QUERY_ID, "query_version": QUERY_VERSION, "metric_version": "competition-gsv-metric/v1",
+               "existing_result_schema": UNIT_FACTS_SCHEMA,
+               "facts_schema_ref": "backend.contracts.competition_computed.CompetitionGsvFactsV2",
                "data_digest": source.data_digest, "resolved_condition": resolved, "facts": facts.model_dump(mode="json")}
     digest = content_hash(evidence_payload(payload))
     payload.update(evidence_digest=digest, primary_result_ref=result_id, limitations=LIMITATIONS,

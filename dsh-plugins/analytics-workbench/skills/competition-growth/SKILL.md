@@ -7,5 +7,7 @@
 3. 条件：无先验时提交完整 `competition-condition/v1`（`metric_type=GSV`，`timezone=Asia/Shanghai`）。后续默认 `INHERIT`；改日期/范围/`sample_mode` 必须 `EXPLICIT`。变更本期或对比方式时必须同时给 `comparison_period`，不得自行闰日平移。小样默认 `INCLUDE`（计入首购/RFM）；剔除须显式 `sample_mode` 与 `sample_channel_ids`，不得猜派样渠道。`EXCLUDE_AND_RECOMPUTE_HISTORY` 当前 `UNSUPPORTED`。会员历史 `UNKNOWN`。cutoff 为分析 start 前一天，不调用旧月初 cutoff。销售 scope 与历史 scope 分开保存。
 4. 每步只引用后端回显的 `result_id`、`run_id`、`evidence_digest`、`filter_hash`、`resolved_condition`。`result_id` 与 `run_id` 不是别名，须分别引用原值；不需要的标识可以省略，不能合并或推导。`EMPTY` 不是错误、不是 0%。`UNSUPPORTED` / `NOT_CONNECTED` / `FAILED` 不得写成成功。预算耗尽或取消必须写「分析未完成」（`PARTIAL`）。完整链与部分完成必须区分；当前固定 cohort 与未回购为 `UNSUPPORTED`，不得声称完整诊断链。
 5. 点选编辑使用稳定 `board_id` / `block_id` / `base_version`。`STYLE_ONLY` 只改标题/颜色 token/布局，不查询。`FILTER_CHANGE` 创建新 run，不得伪装换肤。任意 HTML/JS/越权路径拒绝。在途目标不被 UI 切选中改写。草稿不得自动发送。
+6. 金额单位只引用本次结果的 `facts.money_unit`。`UNKNOWN` 或旧结果缺字段时说明单位未知，按原数值报告，不称元、分或 CNY，不从其他能力目录或 B0 合同借用单位。同比比例使用本次 competition facts 的 raw ratio，展示百分比时乘 100。不要把 competition 结果称作 B0 合同。
+7. `analysis_persisted=true` 表示工具已自动保存计算结果；回答应区分这项写入、创建看板和营销发送。没有调用文件工具不等于没有任何持久化，不得笼统声称“未写入任何文件”。
 
 资源仅通过登记相对键读取。示例 `assets/result-example.json` 不是运行证据。模型不得修改本包。pack-skills 与 client/index 由总控注册，不在本方法内另起 Agent 运行时。

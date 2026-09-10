@@ -1,0 +1,24 @@
+{
+  "base_head": "24a3722b6681bd58ec8045101078be3d41984e75",
+  "files": {
+    "backend/analytics_competition_app.py": "a9c5125119d7d10a126a3399dd1f326586fb8f289de5861b2b04c6f497743a7b",
+    "backend/contracts/analytics-competition-computed.openapi.json": "7a32090da660e5c41c2e16d65631a446d426a4b2fc780c10b7c7a45ecbcc3115",
+    "backend/contracts/competition_computed.py": "8d052cfe7efc07edb172f2e4d0f9b398418e0d09ca653aab0d2f66c0a83675b5",
+    "backend/services/analytics/competition_diagnosis/computed.py": "08ab1f9a6b3e468a5e2b197f9d9dce38c09f90829e7cc2811145683734e8b7b8",
+    "backend/services/analytics/competition_diagnosis/synthetic.py": "55ce7936a30517f569d8ea2a96005f1341af33cf589ce7d91cf0b06c6c17df31",
+    "backend/tests/test_competition_computed_results.py": "81204a74c895eab49b58da7c1323aaad9eadc09d92cbc798ed2e8a383ebdcd1a",
+    "backend/tests/test_competition_diagnosis_store.py": "ee87f8c8e97274b1fe76d2831672bdaa203fff058244642aec31c5be8a0d986f",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "7003afb0f7314e6328dc1204bf5d93cc4b01a3c27b9e1f392426406fde18ba8d",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs": "31dc46f7ac2497b9e7f5e5a25c9c30e581a8c089d7b8527ade10ac212b31bee7",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/computed-result.test.mjs": "52ae570e72d37a8dc0aa33ea6d2df4fcb886b1be34656275aeb7734238e99966",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/decode.d.mts": "f71fa5496c481ee13cb9adb2581034462d3df15ffd908acf71645a585fecdd59",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs": "099a5a73d276fc463cb63ded624f994f1f26917fd05680b9309d9b62956fe25e",
+    "dsh-plugins/analytics-workbench/src/competition-agent/frozen-package.json": "3e05197a86e7293e76df59523950ca3ab9bf03b1eb232951293bb45004ad3890",
+    "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.lock.json": "1437c078dbf103c57ac0cc0729f57820e09457b6886943ab258b602ceebad33d",
+    "dsh-plugins/analytics-workbench/src/competition-computed-contract.generated.d.ts": "c23a7434be34d92976039655a22c3538ec467700af4d4f652fb8e62828d02fd6",
+    "dsh-plugins/analytics-workbench/tests/competition-computed/unit-fixtures.py": "5d9bca072876b7d0189c26d024b374b8df7af9ebe814b8a69bd34f742306a93a",
+    "dsh-plugins/analytics-workbench/tests/competition-computed/unit-results.json": "76a8aad761b07d6815cb664f92c45f168e8f22b6971cf1379ac8f5caa7950cad",
+    "dsh-plugins/analytics-workbench/skills/competition-growth/SKILL.md": "0b1101727c9fa22bb49c9f6ca3d532c4c57a83d1ebdd59a8453c3750b4931f7d",
+    "dsh-plugins/analytics-workbench/skills/competition-growth/references/evidence-policy.md": "29c6448ab837ed415ab9c55e299a8218232a88a56b04a74166eaf58edb47a99e"
+  }
+}
