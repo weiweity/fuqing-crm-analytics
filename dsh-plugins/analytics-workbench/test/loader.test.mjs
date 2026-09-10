@@ -32,7 +32,7 @@ test('one package entry registers competition tools only for explicitly connecte
       ctx.provide('agents', {});
       ctx.provide('sessions', {});
       ctx.provide('sessionController', {});
-      ctx.provide('tools', { register: tool => tools.push(tool.name) });
+      ctx.provide('tools', { register: tool => tools.push(tool.name), guard: () => {} });
       ctx.provide('skills', { register: skill => skills.push(skill) });
       try {
         await ctx.plugin(await import(pathToFileURL(join(plugin, 'lib/index.js')).href));
