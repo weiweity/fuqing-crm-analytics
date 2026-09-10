@@ -1,0 +1,16 @@
+{
+  "case": "E1",
+  "turn": 1,
+  "session_id": "session-11ad1f09-b047-49ca-a69e-5edd0dd51f80",
+  "native_log_sha256_at_extract": "f64ea39096f2303c84dbf01f21443feceeb63639efc820253c4a1f73e00a8624",
+  "native_success": true,
+  "tools": [
+    "skill",
+    "competition_growth_skill_resource",
+    "competition_growth_capabilities",
+    "competition_growth_step"
+  ],
+  "reason": {
+    "kind": "completed"
+  }
+}

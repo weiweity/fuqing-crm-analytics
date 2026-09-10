@@ -5,6 +5,7 @@ import { freezeCompetitionSkillPackage } from './skill-package.mjs';
 import {
   CAPABILITIES_TOOL_NAME, PATCH_TOOL_NAME, RESOURCE_SCHEMA, RESOURCE_TOOL_NAME, STEP_TOOL_NAME,
 } from './family.mjs';
+import { createCompetitionToolBoundary } from './boundary.mjs';
 import { liveDiagnosisCall } from './tools.mjs';
 
 export const name = 'analytics-workbench-competition-growth';
@@ -12,6 +13,11 @@ export const inject = ['skills', 'tools'];
 
 export function apply(ctx: Context, packInput: { manifest: object; contents: Record<string, string> }): void {
   const pack = freezeCompetitionSkillPackage(packInput);
+  const boundary = createCompetitionToolBoundary();
+  ctx.tools.guard(boundary.guard);
+  ctx.on('tools/result', boundary.mark);
+  ctx.on('agent/turn-stopping', ({ agent }) => { boundary.clear(agent); });
+  ctx.on('agent/disposed', ({ agent }) => { boundary.clear(agent); });
   ctx.skills.register(pack.definition as never);
   ctx.tools.register(defineTool({
     name: RESOURCE_TOOL_NAME,
@@ -54,7 +60,7 @@ export function apply(ctx: Context, packInput: { manifest: object; contents: Rec
             base_version: { type: 'integer' as const, required: true as const },
           }, description: 'Only the explicit selected target; never invent identifiers or a version.' },
           payload: { type: 'object' as const, additionalProperties: true,
-            description: 'Controlled patch payload, validated by backend. No arbitrary scripts or HTML. This tool plans a patch; it does not persist a board.' },
+            description: 'Controlled patch payload, validated by backend. For STYLE_ONLY send exactly one display_op, for example {op:"display",card_id:"<selected block>",display_overrides:{}}; FILTER_CHANGE requires filter_change; STRUCTURE requires cockpit_op. No arbitrary scripts or HTML. This tool plans a patch; it does not persist a board.' },
         } : {}),
       },
       output: {

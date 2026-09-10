@@ -1,0 +1,10 @@
+{
+  "case": "E2",
+  "prompt": "在刚才口径上剔除小样，看看同比会如何变化。",
+  "started_ns": 1789022419221239000,
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "runtime_source": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "source": "synthetic HTTP18083",
+  "max_wall_seconds": 180,
+  "paid_real_model": true
+}

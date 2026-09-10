@@ -1,0 +1,11 @@
+{
+  "case": "E4",
+  "turn": 4,
+  "session_id": "session-11ad1f09-b047-49ca-a69e-5edd0dd51f80",
+  "native_log_sha256_at_extract": "9cbc82947c38f8bf260e6b8418c02f6e7a13c09d15472e35c1f736b0fd901168",
+  "native_success": true,
+  "tools": [],
+  "reason": {
+    "kind": "completed"
+  }
+}

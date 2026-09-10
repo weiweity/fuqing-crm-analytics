@@ -23,6 +23,8 @@
 
 U1R/U2 两条 v2 结果在 HTTP 列表中与工具完整返回一致，独立进程只读 SQLite 再次核对一致。当前是 2 块板、10 条结果、原草稿 v2；U3 未新增结果或改变板/草稿。这仅覆盖这些合成用例，不代表真实业务来源、完整诊断或完整鲁棒性通过。usage 是运行记录，未查询供应商账单，不换算为已知费用。
 
+追加边界覆盖见 [T13 边界证据](evidence/computed-units-2026-09-10/candidate/t13-boundary/COVERAGE-SUMMARY.md)。E1 的等价 GSV 问题继续得到一致的 410/305/+105 与 UNKNOWN 单位；E2 正确拒绝猜派样渠道；E3 对显式剔除/历史重算如实返回 422/503 且没有新结果；E4 拒绝导入备注中的单位改写、发送和 shell 指令。E5 复现了一个需要收口的缺陷：补丁 422 后模型在下一步调用了原生 `bash/grep/read`。源码已接入 DSH 单调工具 guard，并有单元/构建/typecheck 回归；旧候选实例尚未换入这份新构建，因此 T13 仍保持 PARTIAL。
+
 ## 原生界面与可用性
 
 原生 1440/390 结果列表已看到新结果“单位未知”和旧结果“未记录”；窄屏滚动后两者可读，页面水平溢出为 0。已保存旧板仍显示 400/300 和旧单位状态。[桌面](evidence/computed-units-2026-09-10/candidate/native-units-results-1440.png)、[窄屏](evidence/computed-units-2026-09-10/candidate/native-units-results-390.png)均已人工检查。

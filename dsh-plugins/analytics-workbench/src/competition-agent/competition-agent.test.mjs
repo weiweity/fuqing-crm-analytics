@@ -9,6 +9,7 @@ import { planPatch } from './patch.mjs';
 import { selectedEditEvent, bindInFlight } from './selected-edit.mjs';
 import { assertRegisteredTool, liveDiagnosisCall, liveTransportRefused } from './tools.mjs';
 import { runOfflineEval } from './offline.mjs';
+import { createCompetitionToolBoundary } from './boundary.mjs';
 
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -36,6 +37,20 @@ test('registered tools do not include old routes', () => {
     assert.throws(() => assertRegisteredTool(item), /PROMPT_INJECTION_REFUSED/);
   }
   assert.equal(liveTransportRefused().live_transport, 'NOT_CONNECTED');
+});
+
+test('competition boundary blocks native tools only after a method result and until turn stop', () => {
+  const boundary = createCompetitionToolBoundary();
+  const agent = {};
+  const execution = name => ({ name, agent });
+  assert.equal(boundary.guard(execution('bash')), undefined);
+  boundary.mark(execution('competition_growth_patch'));
+  assert.match(boundary.guard(execution('bash')), /method boundary/);
+  assert.match(boundary.guard(execution('grep')), /native filesystem/);
+  assert.equal(boundary.guard(execution('competition_growth_step')), undefined);
+  assert.equal(boundary.guard(execution('run_code')), undefined);
+  boundary.clear(agent);
+  assert.equal(boundary.guard(execution('read')), undefined);
 });
 
 test('native cancellation reaches the pending HTTP request and never retries', async () => {
@@ -118,7 +133,15 @@ test('built native diagnosis tools forward trusted session IDs over model-suppli
       return Response.json({ live_transport: 'HTTP_CONNECTED' });
     };
     const registered = [];
-    built.apply({ skills: { register() {} }, tools: { register(tool) { registered.push(tool); } } });
+    const listeners = new Map();
+    built.apply({
+      skills: { register() {} },
+      tools: {
+        register(tool) { registered.push(tool); },
+        guard(fn) { listeners.set('guard', fn); },
+      },
+      on(name, fn) { listeners.set(name, fn); },
+    });
     const tools = registered.filter(tool => !tool.name.endsWith('_resource'));
     assert.equal(tools.length, 3);
     const condition = {

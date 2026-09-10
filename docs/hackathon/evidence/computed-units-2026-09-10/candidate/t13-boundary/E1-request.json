@@ -1,0 +1,10 @@
+{
+  "case": "E1",
+  "prompt": "核对当前合成快照的交易净额变化，指标采用 GSV。日期为 2026-08-01 至 2026-08-31，对照 2025-08-01 至 2025-08-31，均包含结束日。销售范围和历史范围都是全部，保留小样，上海时区。请给出两期净额、差额、相对变化、金额单位和这次计算的来源标识，说明保存状态。暂不成板。",
+  "started_ns": 1789022321896274000,
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "runtime_source": "84b0ac816352eefef761cbaafc30a54a46dd0517",
+  "source": "synthetic HTTP18083",
+  "max_wall_seconds": 180,
+  "paid_real_model": true
+}
