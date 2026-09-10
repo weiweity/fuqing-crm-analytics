@@ -1,5 +1,7 @@
 # AI 增长董事会
 
+最新独立增量：[看板直达、多板切换与条件证据](PRODUCT-UAT-NAVIGATION-2026-09-10.md)已修复，完整 B0 及合成浏览器预演通过；4325 尚未切换该补丁，完整产品仍 PARTIAL。
+
 本目录记录黑客松产品决策和本地演示基线，它不替代原有 CRM 分析文档。公网部署与网址提交仍是独立待办。
 
 2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。

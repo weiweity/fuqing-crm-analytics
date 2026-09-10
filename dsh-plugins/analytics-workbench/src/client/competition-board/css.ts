@@ -12,6 +12,8 @@ export const competitionBoardCss = `
 .sm-competition-toolbar, .sm-layout-controls, .sm-scope-chat, .sm-diff, .sm-leave-restore {
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0;
 }
+.sm-board-picker { display: grid; gap: 8px; margin: 12px 0; min-width: 0; }
+.sm-board-picker .ant-select { width: 100%; min-width: 0; }
 .sm-competition-board button, .sm-competition-actions button, .sm-scope-chat button,
 .sm-layout-controls button, .sm-endorsement button {
   display: inline-flex; align-items: center; justify-content: center;

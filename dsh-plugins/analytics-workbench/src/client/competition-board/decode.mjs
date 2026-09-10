@@ -169,6 +169,18 @@ function periodRange(period) {
   return `${period.start_date}–${period.end_date}`;
 }
 
+function scopeLabel(scope) {
+  if (scope?.kind === 'ALL') return '全部';
+  const parts = [];
+  if (scope?.kind === 'CHANNEL_IDS' || scope?.kind === 'CHANNEL_AND_PRODUCT') {
+    parts.push(`渠道 ${scope.channel_ids?.join('、') || '未提供'}`);
+  }
+  if (scope?.kind === 'PRODUCT_IDS' || scope?.kind === 'CHANNEL_AND_PRODUCT') {
+    parts.push(`商品 ${scope.product_ids?.join('、') || '未提供'}`);
+  }
+  return parts.join('；') || '未提供';
+}
+
 export function conditionChips(result) {
   const resolved = result?.resolved_condition;
   if (!resolved) return [];
@@ -176,6 +188,8 @@ export function conditionChips(result) {
     { id: 'metric', label: '指标', value: displayValue(resolved.metric_type) },
     { id: 'current', label: '本期', value: periodRange(resolved.current_period) },
     { id: 'compare', label: '对比', value: `${displayValue(resolved.comparison_mode)} ${periodRange(resolved.comparison_period)}` },
+    { id: 'sales', label: '销售范围', value: scopeLabel(resolved.sales_scope) },
+    { id: 'history', label: '历史范围', value: scopeLabel(resolved.history_scope) },
     { id: 'cutoff', label: 'cutoff', value: displayValue(resolved.cutoff) },
     { id: 'sample', label: '小样', value: displayValue(resolved.sample_mode) },
     { id: 'tz', label: '时区', value: displayValue(resolved.timezone) },

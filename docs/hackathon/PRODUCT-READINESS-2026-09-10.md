@@ -2,6 +2,8 @@
 
 ## 目标与基线
 
+最新独立增量：[看板入口、多板选择与条件证据](PRODUCT-UAT-NAVIGATION-2026-09-10.md)已修复并通过完整 B0。全新原生本地夹具完成实际合成 GSV 计算、两板成板、布局/草稿重开和三种宽度检查；未计入真实 T13 或本人 T15，4325 尚未切换该补丁。
+
 执行用户明确采用的七阶段目标，先完成前 3 项，后续阶段保持开放直至具备相应真实证据。主线基线 `788b5b108fed22526805248a86f310ef7602cc6e`；本轮工作树 `competition-product-readiness`，分支 `codex/competition-product-readiness`。工作树从主线新建，原主工作副本的未提交设计和规划文件保留。
 
 [PR #114](https://github.com/weiweity/fuqing-crm-analytics/pull/114) 已合并；最终候选 CI `34385964860`、[main CI `34386758906`](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) 均已实时核验为 SUCCESS。原修复与合成浏览器证据见 [维修交付](COMPETITION-REPAIR-2026-09-10.md) 和 [维修 QA](COMPETITION-REPAIR-QA-2026-09-10.md)。既有通过项不扩大为整产品通过。

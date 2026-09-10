@@ -1,5 +1,7 @@
 # 伸美 AI 增长董事会
 
+最新独立增量：[看板直达、多板切换与条件证据](./docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md)已修复，完整 B0 及合成浏览器预演通过；4325 尚未切换该补丁，完整产品仍 PARTIAL。
+
 > AI 黑客松作品 · 多渠道客户资产诊断 · 受控自由问数与人群决策
 
 > **价值定稿（2026-09-05）**：已确认让老板拍板一个有边界的天猫内部跨渠道客户增长试点，主线是“渠道 × 首购商品 × 后续购买”。见 [CEO 价值与首版决策方案](./docs/hackathon/CEO-VALUE-PLAN.md)（用户已批准定稿，APPROVED）。统一分析工作台方向保留；用户已确认保留 DSH 原生 UI，详见 [DSH 交互设计](./docs/hackathon/DSH-UI-INTERACTION-SPEC.md)。原生 UI 的集成、运行时与模型仍待验证，公网部署继续暂缓。

@@ -430,11 +430,13 @@ test('closed connection details remain keyboard reachable without exposing hidde
   }
 });
 
-test('B0 status and refresh stay on B0 pages while the competition request error remains visible', async () => {
+test('configured competition opens its board directly and loads B0 only on explicit navigation', async () => {
   const { previous, dom } = installDom();
   let mounted;
+  const paths = [];
   const fetchImpl = async url => {
     const path = String(url);
+    paths.push(path);
     if (path === '/b0/assets') return jsonResponse(200, { http_api: 'CONNECTED', cockpit: true });
     if (path === '/b0/dashboards') return jsonResponse(404, { error: { message: 'B0 unavailable' } });
     if (path.endsWith('/results')) return jsonResponse(503, { error: {
@@ -445,9 +447,11 @@ test('B0 status and refresh stay on B0 pages while the competition request error
   };
   try {
     mounted = await mountShell(fetchImpl, { competitionHttp: true });
-    await waitFor(() => statusText().includes('此驾驶舱服务暂不可用'));
-    await act(async () => { document.querySelector('[data-testid="analytics-competition-board"]').click(); await delay(30); });
     await waitFor(() => document.querySelector('[data-testid="sm-error-state"]'));
+    assert.equal(document.querySelector('dialog').getAttribute('data-competition-panel'), 'competition-board');
+    assert.ok(document.querySelector('[data-testid="sm-board-editor"]'));
+    assert.equal(paths.includes('/b0/dashboards'), false);
+    assert.equal(paths.includes('/b0/analyses'), false);
     assert.equal(document.querySelector('[data-testid="analytics-asset-refresh"]'), null);
     assert.equal(document.querySelector('[data-testid="analytics-asset-status"]'), null);
     assert.match(document.querySelector('[data-testid="sm-error-state"]').textContent, /诊断结果暂时不可读取/);
@@ -459,6 +463,7 @@ test('B0 status and refresh stay on B0 pages while the competition request error
     assert.match(boundary.textContent, /合成数据/);
     assert.equal(boundary.closest('details'), null);
     await act(async () => { document.querySelector('[data-testid="analytics-asset-board"]').click(); await delay(20); });
+    await waitFor(() => statusText().includes('此驾驶舱服务暂不可用'));
     assert.match(statusText(), /此驾驶舱服务暂不可用/);
     assert.ok(document.querySelector('[data-testid="analytics-asset-refresh"]'));
   } finally {

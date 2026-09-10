@@ -82,6 +82,12 @@ test('compiled board renders persisted computed GSV and data-driven chart prefer
       assert.match(block.textContent, /本期 GSV410/);
       assert.match(block.textContent, /对比期 GSV305/);
       assert.match(block.textContent, /34.43%/);
+      assert.match(block.textContent, /销售范围 全部/);
+      const savedEvidence = block.querySelector('[data-testid="sm-saved-board-evidence"]');
+      assert.equal(savedEvidence.open, false);
+      assert.match(savedEvidence.textContent, /2025-08-01–2025-08-31/);
+      assert.match(savedEvidence.textContent, /历史范围 全部/);
+      assert.match(savedEvidence.textContent, new RegExp(result.evidence_digest.slice(0, 8)));
       assert.equal(block.querySelector('[data-testid="sm-chart-no-series"]'), null);
       if (type === 'BAR') {
         const bars = [...block.querySelectorAll('.sm-chart-bar-track > div')];
@@ -590,4 +596,85 @@ test('HTTP actions can create first draft, reopen with a new transport, then upd
     assert.equal(writes[1].base_version, 1);
     assert.equal(writes[1].candidate_set_id, pack.candidates.candidate_set_id);
   } finally { if (root) await act(() => root.unmount()); dom.window.close(); restoreDom(previous); }
+});
+
+
+test('saved-board picker loads each authorized board, preserves selection on reopen and locks unsaved edits', async () => {
+  // A fresh compiled module keeps deliberately retained attempts in other cases isolated.
+  const { CockpitView } = await import(pathToFileURL(join(plugin, 'lib/views/cockpit-view.js')).href + '?picker=switch');
+  const { previous, dom } = installDom(); resetInflightForTests();
+  const a = { ...structuredClone(createFixtureBoardTransport().getSavedBoard()), title: 'First saved board' };
+  const b = { ...structuredClone(createFixtureBoardTransport().getSavedBoard()), board_id: 'dash_c0_board_b', title: 'Second saved board' };
+  const transport = createFixtureBoardTransport();
+  const reads = [], patches = [];
+  transport.listBoards = async () => ({ ok: true, status: 200, body: [a, b] });
+  transport.loadBoard = async id => { reads.push(id); return { ok: true, status: 200, body: structuredClone(id === b.board_id ? b : a) }; };
+  transport.previewPatch = async (_actor, patch) => { patches.push(patch); return { ok: true, status: 200, body: { ...structuredClone(b), preview: true } }; };
+  let root;
+  const mount = async () => {
+    root = createRoot(document.getElementById('root'));
+    await act(async () => { root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })); await delay(20); });
+    await act(() => document.querySelector('[data-testid="sm-open-board"]').click());
+  };
+  try {
+    await mount();
+    assert.ok(document.querySelector('[aria-label="选择已保存看板"]'), 'saved assets must be selectable');
+    await act(() => document.querySelector('.sm-board-picker .ant-select-selector').dispatchEvent(new dom.window.MouseEvent('mousedown', { bubbles: true })));
+    const option = [...document.querySelectorAll('[role="option"]')].find(el => el.textContent.includes('Second saved board'));
+    assert.ok(option); await act(async () => { option.click(); await delay(20); });
+    assert.equal(reads.at(-1), b.board_id);
+    await act(() => root.unmount()); root = null;
+    await mount();
+    assert.equal(reads.at(-1), b.board_id, 'reopen honors an authorized selected board');
+    const block = document.querySelector('article[data-block-id]');
+    await act(() => block.click());
+    const select = block.querySelector('select');
+    await act(async () => { select.value = 'BAR'; select.dispatchEvent(new dom.window.Event('change', { bubbles: true })); await delay(20); });
+    assert.equal(patches.length, 1); assert.equal(patches[0].board_id, b.board_id);
+    assert.equal(document.querySelector('.sm-board-picker input[role="combobox"]').disabled, true);
+    await act(() => [...document.querySelectorAll('[data-testid="sm-board-editor"] button')].find(el => el.textContent === '放弃预览').click());
+    await act(() => document.querySelector('[data-testid="sm-discard-preview"]').click());
+    assert.equal(document.querySelector('.sm-board-picker input[role="combobox"]').disabled, false);
+  } finally { if (root) await act(() => root.unmount()); dom.window.close(); restoreDom(previous); resetInflightForTests(); }
+});
+
+
+test('board switching keeps the prior asset on denial and does not restore an unlisted preference', async () => {
+  const { CockpitView } = await import(pathToFileURL(join(plugin, 'lib/views/cockpit-view.js')).href + '?picker=denial');
+  const { previous, dom } = installDom(); resetInflightForTests();
+  const transport = createFixtureBoardTransport();
+  const a = { ...structuredClone(transport.getSavedBoard()), title: 'Accessible board' };
+  const b = { ...structuredClone(a), board_id: 'dash_c0_board_b', title: 'Denied board' };
+  let rows = [a, b], deny = false, gate; const reads = [];
+  transport.listBoards = async () => ({ ok: true, status: 200, body: rows });
+  transport.loadBoard = async id => {
+    reads.push(id);
+    if (id === b.board_id && deny) {
+      await new Promise(resolve => { gate = resolve; });
+      return { ok: false, status: 403, body: { error: { code: 'FORBIDDEN', http_status: 403, message: 'Board access revoked', request_id: 'picker-denied' } } };
+    }
+    return { ok: true, status: 200, body: structuredClone(id === b.board_id ? b : a) };
+  };
+  let root;
+  const mount = async () => {
+    root = createRoot(document.getElementById('root'));
+    await act(async () => { root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })); await delay(20); });
+    await act(() => document.querySelector('[data-testid="sm-open-board"]').click());
+  };
+  const chooseB = async () => {
+    await act(() => document.querySelector('.sm-board-picker .ant-select-selector').dispatchEvent(new dom.window.MouseEvent('mousedown', { bubbles: true })));
+    await act(() => [...document.querySelectorAll('[role="option"]')].find(el => el.textContent.includes('Denied board')).click());
+  };
+  try {
+    await mount(); deny = true; await chooseB();
+    assert.equal(document.querySelector('[data-testid="sm-scope-send"]'), null, 'no edits while the new board is loading');
+    await act(async () => { gate(); await delay(20); });
+    assert.match(document.querySelector('[data-testid="sm-error-state"]').textContent, /Board access revoked/);
+    assert.match(document.querySelector('.sm-board-picker .ant-select-selection-item').textContent, /Accessible board/);
+    deny = false; await chooseB(); await act(async () => { await delay(20); });
+    assert.match(document.querySelector('.sm-board-picker .ant-select-selection-item').textContent, /Denied board/);
+    await act(() => root.unmount()); root = null; rows = [a]; reads.length = 0;
+    await mount();
+    assert.deepEqual(reads, [a.board_id], 'revoked saved preference must not bypass the current list');
+  } finally { if (root) await act(() => root.unmount()); dom.window.close(); restoreDom(previous); resetInflightForTests(); }
 });

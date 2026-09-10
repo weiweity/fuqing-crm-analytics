@@ -1,0 +1,14 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+const config=JSON.parse(await readFile(new URL('./uat-navigation-current.json',import.meta.url),'utf8'));
+const priv=JSON.parse(await readFile(join(config.root,'runtime/browser-private.json'),'utf8'));
+if(priv.launchOrigin!=='http://127.0.0.1:4328')throw Error('fixture origin');
+const exchange=await fetch(priv.launchUrl,{redirect:'manual'});
+const cookie=exchange.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
+const method='workspace/create';
+const response=await fetch(priv.launchOrigin+'/api/'+method,{method:'POST',headers:{'content-type':'application/json',cookie},body:JSON.stringify({type:'client-request',rpcId:'t17-workspace-setup',method,payload:{args:{request:{path:join(config.root,'runtime/workspace')}}}}),signal:AbortSignal.timeout(10000)});
+const value=await response.json();
+if(value.result?.ok!==true)throw Error(JSON.stringify(value));
+await writeFile(join(config.root,'workspace-setup.json'),JSON.stringify({method,transport:'native HTTP RPC; setup only, OS picker not exercised',...value.result.value},null,2)+'\n');
+console.log(JSON.stringify({status:response.status,workspaceId:value.result.value.workspace.workspaceId}));
+

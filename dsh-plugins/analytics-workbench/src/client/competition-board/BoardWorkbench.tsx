@@ -1,6 +1,7 @@
 import Button from 'antd/es/button';
 import Radio from 'antd/es/radio';
 import Checkbox from 'antd/es/checkbox';
+import Select from 'antd/es/select';
 import TextArea from 'antd/es/input/TextArea';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
@@ -157,12 +158,17 @@ export function BoardWorkbench(props: BoardMountProps) {
   const transportRef = useRef<BoardTransport>(props.transport ?? createBoardTransport(httpOptions ? { http: httpOptions } : {}));
   const transport = props.transport ?? transportRef.current;
   const principal: Principal = props.principal ?? DEFAULT_PRINCIPAL;
+  const selectedBoardKey = `competition-a6-board-selection:${transport.kind}:${principal.actor_id}`;
   const modelAvailable = props.modelAvailable === true;
-  const [panel, setPanel] = useState<'endorse' | 'confirm' | 'board'>('endorse');
+  const [panel, setPanel] = useState<'endorse' | 'confirm' | 'board'>(props.initialPanel ?? 'endorse');
   const [results, setResults] = useState<CompetitionResultRef[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [layoutMode, setLayoutMode] = useState<BoardLayoutMode>(BOARD_LAYOUT_MODE_DEFAULT.value as BoardLayoutMode);
   const [board, setBoard] = useState<CompetitionBoardSpec | null>(null);
+  const [boardChoices, setBoardChoices] = useState<CompetitionBoardSpec[]>([]);
+  const [openingBoard, setOpeningBoard] = useState(true);
+  const boardLoadSeq = useRef(0);
+  const boardOpening = useRef(true);
   const [preview, setPreview] = useState<CompetitionBoardSpec | null>(null);
   const [pending, setPending] = useState<BoardPatchRequest | null>(null);
   const [layouts, setLayouts] = useState<Record<string, LayoutBox>>({});
@@ -218,18 +224,56 @@ export function BoardWorkbench(props: BoardMountProps) {
         return;
       }
       const items = row.ok && Array.isArray(row.body) ? row.body : [];
-      const first = items.find(item => item?.board_id) ?? null;
+      setBoardChoices(items.filter(item => item?.board_id));
+      let preferred: string | null = null;
+      try { preferred = sessionStorage.getItem(selectedBoardKey); } catch { /* optional UI preference */ }
+      const first = items.find(item => item?.board_id === preferred) ?? items.find(item => item?.board_id) ?? null;
       const targetId = first?.board_id;
       if (!targetId) return;
+      const seq = ++boardLoadSeq.current;
+      boardOpening.current = true; setOpeningBoard(true);
       const loaded = await transport.loadBoard(targetId);
-      if (cancelled) return;
+      if (cancelled || seq !== boardLoadSeq.current) return;
+      boardOpening.current = false; setOpeningBoard(false);
       if (!loaded.ok) { setError(loaded.body.error); return; }
       setBoard(loaded.body);
       const local = readLocalDraft(loaded.body.board_id);
       if (local) setRestore(local.patch);
+    }).catch(() => {
+      if (!cancelled) setMessage('读取看板失败，请重新打开后重试。');
+    }).finally(() => {
+      if (!cancelled) { boardOpening.current = false; setOpeningBoard(false); }
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; boardLoadSeq.current += 1; };
   }, []);
+
+  function rememberBoard(next: CompetitionBoardSpec) {
+    setBoard(next);
+    try { sessionStorage.setItem(selectedBoardKey, next.board_id); } catch { /* optional UI preference */ }
+    setBoardChoices(current => current.some(item => item.board_id === next.board_id)
+      ? current.map(item => item.board_id === next.board_id ? next : item)
+      : [...current, next]);
+  }
+
+  async function selectSavedBoard(boardId: string) {
+    if (boardId === board?.board_id || pending || restore || patchSending.current || boardOpening.current || getInflight()) return;
+    const seq = ++boardLoadSeq.current;
+    boardOpening.current = true; setOpeningBoard(true);
+    try {
+      const loaded = await transport.loadBoard(boardId);
+      if (seq !== boardLoadSeq.current) return;
+      if (!loaded.ok) { setError(loaded.body.error); return; }
+      rememberBoard(loaded.body);
+      setUiSelection(null); setUiBlockId(null); setScopeMode('block');
+      setLayouts({}); setTitles({}); setInstruction(''); setPreview(null);
+      setRestore(readLocalDraft(loaded.body.board_id)?.patch ?? null);
+      setError(null); setMessage('');
+    } catch {
+      if (seq === boardLoadSeq.current) setMessage('读取看板失败，仍保留原看板，请重试。');
+    } finally {
+      if (seq === boardLoadSeq.current) { boardOpening.current = false; setOpeningBoard(false); }
+    }
+  }
 
   useEffect(() => subscribeSelection(() => setSelectionTick(value => value + 1)), []);
   useEffect(() => () => {
@@ -251,7 +295,7 @@ export function BoardWorkbench(props: BoardMountProps) {
   }
 
   async function runPatch(next: BoardPatchRequest, kind: 'preview' | 'apply' | 'undo') {
-    if (patchSending.current) return;
+    if (patchSending.current || boardOpening.current) return;
     if (pending && pending.attempt_id !== next.attempt_id) {
       setMessage('请先保存或放弃当前预览，再进行下一次编辑。');
       return;
@@ -284,7 +328,7 @@ export function BoardWorkbench(props: BoardMountProps) {
         return;
       }
       if (kind === 'apply') {
-        setBoard(row.body);
+        rememberBoard(row.body);
         setPreview(null);
         setPending(null);
         setLayouts({}); setTitles({});
@@ -386,7 +430,7 @@ export function BoardWorkbench(props: BoardMountProps) {
   }
 
   async function confirmBoards() {
-    if (creating.current) return;
+    if (creating.current || boardOpening.current) return;
     creating.current = true;
     try {
       setError(null);
@@ -424,6 +468,10 @@ export function BoardWorkbench(props: BoardMountProps) {
         status?: string;
         receipt?: { status: string };
       };
+      if (transport.listBoards) {
+        const listed = await transport.listBoards();
+        if (listed.ok && Array.isArray(listed.body)) setBoardChoices(listed.body.filter(item => item?.board_id));
+      }
       function completeIntent() {
         if ((applied.receipt?.status ?? applied.status) === 'SUCCEEDED') {
           finishBatchIntent(principal, creationIntent.current);
@@ -432,7 +480,7 @@ export function BoardWorkbench(props: BoardMountProps) {
       }
       if (transport.kind === 'fixture' && applied.board?.schema_version === 'competition-board/v1') {
         setError(null);
-        setBoard(applied.board);
+        rememberBoard(applied.board);
         setPreview(null);
         setPanel('board');
         completeIntent();
@@ -444,7 +492,7 @@ export function BoardWorkbench(props: BoardMountProps) {
         const loaded = await transport.loadBoard(createdId);
         if (loaded.ok && loaded.body?.board_id) {
           setError(null);
-          setBoard(loaded.body);
+          rememberBoard(loaded.body);
           setLayouts({}); setTitles({});
           setPreview(null);
           setPanel('board');
@@ -646,6 +694,24 @@ export function BoardWorkbench(props: BoardMountProps) {
 
           {panel === 'board' ? (
             <section data-testid="sm-board-editor">
+              <label className="sm-board-picker">
+                已保存看板
+                <Select
+                  aria-label="选择已保存看板"
+                  value={board?.board_id}
+                  placeholder="还没有已保存看板"
+                  options={boardChoices.map(item => ({ value: item.board_id, label: `${item.title} · ${item.board_id.slice(-8)}` }))}
+                  virtual={false}
+                  getPopupContainer={trigger => trigger.parentElement ?? trigger}
+                  disabled={boardChoices.length === 0 || Boolean(pending || restore || inflight) || patchBusy || openingBoard}
+                  onChange={value => void selectSavedBoard(value)}
+                />
+              </label>
+              {openingBoard ? <p role="status">正在读取看板…</p> : !shown ? (
+                <ErrorState kind="empty" title="还没有已保存看板"
+                  detail="先在聊天完成诊断，再选择成功结果成板。"
+                  actionLabel="选择结果" onAction={() => setPanel('endorse')} />
+              ) : <>
               <div className="sm-competition-toolbar" aria-label="保存与撤销">
                 <Button htmlType="button" data-testid="sm-board-save" disabled={!pending || patchBusy} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</Button>
                 <Button htmlType="button" data-testid="sm-board-undo" disabled={Boolean(pending || restore) || patchBusy} onClick={() => {
@@ -658,8 +724,10 @@ export function BoardWorkbench(props: BoardMountProps) {
                 }}>撤销已保存</Button>
                 <Button htmlType="button" disabled={!dirty || patchBusy} onClick={() => setConfirmLeave(true)}>放弃预览</Button>
               </div>
-              {!shown || !shown.block_ids?.length ? (
-                <ErrorState kind="empty" title="空板" detail="无块的已存板仍合法。从已保存分析添加，不预填假 KPI。" />
+              {!shown.block_ids?.length ? (
+                <ErrorState kind="empty" title="看板暂无板块"
+                  detail="这是已保存的空看板。可选择成功结果创建新看板。"
+                  actionLabel="选择结果" onAction={() => setPanel('endorse')} />
               ) : null}
               {preview ? <p className="sm-diff" data-testid="sm-preview-hint">预览未保存。受影响板块 {shown?.affected_block_ids?.join(', ') || '—'}</p> : null}
               {pending && board ? (
@@ -694,7 +762,13 @@ export function BoardWorkbench(props: BoardMountProps) {
                     >
                       {selected ? <p className="sm-block-selected-label">已选中 · 只改此板块</p> : null}
                       <h3>{block.title}</h3>
+                      {block.result ? <ConditionChips items={conditionChips(block.result).filter(item => item.id === 'sales' || item.id === 'sample')} /> : null}
                       <RegisteredChart block={block} />
+                      {block.result ? <details className="sm-board-details" data-testid="sm-saved-board-evidence">
+                        <summary>条件与证据</summary>
+                        <ConditionChips items={conditionChips(block.result)} />
+                        <EvidenceBlock {...evidenceFields(block.result)} />
+                      </details> : null}
                       <details className="sm-board-details">
                         <summary>板块标识与布局</summary>
                         <p>{block.block_id} · {block.plugin} · x{layout.x}/y{layout.y}/w{layout.w}/h{layout.h}</p>
@@ -749,6 +823,7 @@ export function BoardWorkbench(props: BoardMountProps) {
                 />
                 <Button htmlType="button" data-testid="sm-scope-send" onClick={submitChat}>发送局部编辑</Button>
               </div>
+              </>}
             </section>
           ) : null}
         </div>

@@ -82,6 +82,7 @@ export type BlockView = {
 export type CreateRoot = (el: HTMLElement) => { render(node: unknown): void; unmount(): void };
 
 export type BoardMountProps = {
+  initialPanel?: 'endorse' | 'board';
   transport?: BoardTransport;
   modelAvailable?: boolean;
   principal?: Principal;

@@ -46,11 +46,11 @@ export function HttpAssetOverlay(props: OverlayProps) {
   const selectedSession = props.useSessions(state => state.current);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
-  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>('board');
+  const competitionHttp = competitionHttpOptions();
+  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>(competitionHttp ? 'competition-board' : 'board');
   const [dashboard, setDashboard] = useState<DashboardDoc | null>(null);
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const competitionHttp = competitionHttpOptions();
   const [pending, setPending] = useState<PendingOp | null>(null);
   const [preview, setPreview] = useState<DashboardDoc | null>(null);
   const [message, setMessage] = useState('');
@@ -93,13 +93,16 @@ export function HttpAssetOverlay(props: OverlayProps) {
     }
   }, [open]);
   useEffect(() => {
-    if (open && !dirtyRef.current) void refresh();
-  }, [open]);
+    if (open && legacyPanel && !dirtyRef.current) void refresh();
+  }, [open, legacyPanel]);
   useEffect(() => {
-    function onSaved() { if (open && !dirtyRef.current) void refresh(); }
+    if (open && panel === 'competition-board') setVisited(current => ({ ...current, board: true }));
+  }, [open, panel]);
+  useEffect(() => {
+    function onSaved() { if (open && legacyPanel && !dirtyRef.current) void refresh(); }
     window.addEventListener('analytics-asset-changed', onSaved);
     return () => window.removeEventListener('analytics-asset-changed', onSaved);
-  }, [open]);
+  }, [open, legacyPanel]);
 
   async function refresh() {
     previewSeq.current += 1;
@@ -372,7 +375,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
         </details>
       </div>
       <nav className="analytics-cockpit-toolbar" aria-label="资产页面" onMouseDown={event => event.stopPropagation()}>
-        <button type="button" aria-pressed={panel === 'board'} data-testid="analytics-asset-board" onClick={event => { event.stopPropagation(); selectPanel('board'); }}>驾驶舱</button>
+        <button type="button" aria-pressed={panel === 'board'} data-testid="analytics-asset-board" onClick={event => { event.stopPropagation(); selectPanel('board'); }}>{competitionHttp ? '查询驾驶舱' : '驾驶舱'}</button>
         <button type="button" aria-pressed={panel === 'analyses'} data-testid="analytics-asset-analyses" onClick={event => { event.stopPropagation(); showAnalyses(); }}>已保存分析</button>
         <button type="button" aria-pressed={panel === 'competition-board'} data-testid="analytics-competition-board" onClick={event => { event.stopPropagation(); selectPanel('competition-board'); }}>认可成板</button>
         <button type="button" aria-pressed={panel === 'competition-actions'} data-testid="analytics-competition-actions" onClick={event => { event.stopPropagation(); selectPanel('competition-actions'); }}>人群行动</button>
@@ -383,9 +386,9 @@ export function HttpAssetOverlay(props: OverlayProps) {
         {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
         {pending && <p className="analytics-b0-preview" data-testid="analytics-cockpit-preview">{pending.label} · 预览未保存</p>}
       </>}
-      {(panel === 'competition-board' || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
+      {((open && panel === 'competition-board') || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
         <OverlayErrorBoundary resetKey={openTick}>
-          <BoardWorkbench key={openTick} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
+          <BoardWorkbench key={openTick} initialPanel={competitionHttp ? 'board' : undefined} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
         </OverlayErrorBoundary>
       </section>}
       {(panel === 'competition-actions' || visited.actions) && <section hidden={panel !== 'competition-actions'} data-panel="competition-actions" data-testid="analytics-competition-actions-view">

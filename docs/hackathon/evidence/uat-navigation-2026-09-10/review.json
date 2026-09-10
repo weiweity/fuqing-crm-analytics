@@ -1,0 +1,24 @@
+{
+  "mode": "manual /review checkpoint; no OCR or subagents",
+  "base": "dea8332aad7fd3b7214b048ebe5a4fc874fe669f",
+  "source_sha256": {
+    "dsh-plugins/analytics-workbench/src/client/asset-overlay.tsx": "03be3f7df67f6a8aafb69c3cf4fa7d46800d86bcd69c6d11ca27b70dcac894d0",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/BoardWorkbench.tsx": "975040f11f4cd2cc81283e99bf78d762c0b7c2105ac65a34b50a71b89d57b006",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/competition-board-dom.test.mjs": "10187db19c331c7dca2ff16801f3ae4e83f41cd2309dc1083b1d8e30b2fa5e79",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/css.ts": "14ddd2296a20474bb94c76623d76a0d653e9fe413f75266ec953652c9a6ba9bf",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/decode.mjs": "3667a253202e6efca10fb8e3e7056d794b8ba56876023172fe7c75501427b184",
+    "dsh-plugins/analytics-workbench/src/client/competition-board/types.ts": "72afc4856e8e311d6a3f34c710f396faf36b1d78e3cd2fdf715d62d54081ba15",
+    "dsh-plugins/analytics-workbench/test/asset-overlay.test.mjs": "3ece40f9b6e64c080fdd856ed1a0c817898772a366b8ed886a35d011594b1384"
+  },
+  "reviewed": [
+    "authorized list before restoring preference; every selection reloads board through current transport",
+    "pending edits, loading, restore and in-flight target guards",
+    "no selection-listener disposal during switch; explicit reset of board-local UI",
+    "B0 explicit navigation retained; competition mount remains open-gated",
+    "saved condition/evidence derives from persisted result; no ratio or date rewriting",
+    "batch receipt identity retained; list refresh includes both created boards",
+    "final full B0 PASS and real browser two-board selection/save/reopen"
+  ],
+  "actionable_findings": [],
+  "limits": "Manual scoped review, not an independent full repository/security audit."
+}

@@ -1,0 +1,317 @@
+{
+  "url": "http://127.0.0.1:4328/",
+  "text": "伸美 AI 增长董事会\nNew Session\nWorkspaces\nworkspace\nUAT local fixture response. Actual tool and persistence evidence determine the o\n8min\n我的驾驶舱\nSettings\nUAT local fixture response. Actual tool and persistence evidence determine the o\nStandard mode\nSession log\nChat\nTrajectory\nSystem prompt\nUAT_ALL — 请计算2026年8月GSV，对比2025年8月；本期和对比期都用整月，保留小样。ALL 用全部销售范围；RETAIL 仅用 CH_RETAIL。只使用本地合成数据。\n10:52\n1 tool call\n\nUAT local fixture response. Actual tool and persistence evidence determine the outcome.\n\nUsage 95 tok\nRan for 0s\n10:52\nUAT_RETAIL — 请计算2026年8月GSV，对比2025年8月；本期和对比期都用整月，保留小样。ALL 用全部销售范围；RETAIL 仅用 CH_RETAIL。只使用本地合成数据。\n10:52\n1 tool call\n\nUAT local fixture response. Actual tool and persistence evidence determine the outcome.\n\nUsage 95 tok\nRan for 0s\n10:52\nMessage or run a task... / commands, @ files or sessions\nWorkspace Write\nDeepSeek-V4-Flash\nOff\n2 turns · 4 steps| LLM 0.1s · Tool call 0.2s| TTFT avg 0s · 29667 tok/s| Cache hit 0%| Input 12 tok · Output 178 tok\nDetails\nClick a tool row in the message flow to view its details\n伸美 AI 增长董事会\n返回聊天\n\n合成数据 · 固定历史快照\n\n会话与连接说明\n查询驾驶舱\n已保存分析\n认可成板\n人群行动\n召回候选与行动草稿\n\n不自动发送 · auto_send=false · 不是 Mission DRAFT_EXPORT\n\nSYNTHETIC · auto_send=false。不是 Mission DRAFT_EXPORT。合成 customer_key，不导出真实名单。\n\n候选规则\n入组 2025-01-01–2025-12-31\n观察 2026-08-01–2026-08-31\n会员历史 UNKNOWN\n已有 family none\n证据与局限\n\n截数 2025-12-31T16:00:00.000000+00:00 · 指标 — · 数据 —\n\n来源 PUBLISHED_SNAPSHOT · digest —\n\n局限：合成 customer_key，不导出真实名单；auto_send 恒为 false。\n\n未知项：MEMBER_HISTORY；F_ORDER_GRAIN_OLD_CRM\n\n未回购规则（可多选，合并去重）\nORIGIN_CHANNEL_ABSENT\nORIGIN_PRODUCT_ABSENT\nSTOREWIDE_ABSENT\n组合\nAND\nOR\n\nF 粒度 UNKNOWN，禁止填写 f_threshold。\n\n预览候选人数\n\nunique_count=6 · keys=6 · auto_send=false\n\nt05u05：ORIGIN_CHANNEL_ABSENT\nt05u06：ORIGIN_CHANNEL_ABSENT\nt05u07：ORIGIN_CHANNEL_ABSENT\nt05u08：ORIGIN_CHANNEL_ABSENT\nt05u09：ORIGIN_CHANNEL_ABSENT\nt05u10：ORIGIN_CHANNEL_ABSENT\n行动草稿\n\ndraft draft_1de428dfcbc949869e07b7c5c197f129 · v2 · DRAFT\n\n负责人 alice · 复核人 — · 复盘 —\n\n预算上限 CNY · 渠道 —\n\n未知项：MEMBER_HISTORY；SAMPLE_CHANNEL_SET；incremental_roi；reviewer_id；review_by；budget_cap_minor\n\n局限：GSV 下降不等于投放回报低；缺成本时只给试验优先级。；行动草稿不得自动发送；不是 Mission DRAFT_EXPORT。\n\n对照设计停止条件复盘日期\n保存文案（不过期）\n标记规则已变\n提交复核\n不自动发送",
+  "buttons": [
+    {
+      "text": "伸美 AI 增长董事会",
+      "label": "New session",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Collapse sidebar",
+      "disabled": false
+    },
+    {
+      "text": "New Session",
+      "label": "New session",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Search sessions",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "View options",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Add workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Workspace actions for workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "New session in workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Session actions for UAT local fixture response. Actual tool and persistence evidence determine the o",
+      "disabled": false
+    },
+    {
+      "text": "我的驾驶舱",
+      "label": "打开我的驾驶舱",
+      "disabled": false
+    },
+    {
+      "text": "Settings",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "UAT local fixture response. Actual tool and persistence evidence determine the o",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "Session log",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Chat",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Trajectory",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Jump to turn 1",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Jump to turn 2",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "1 tool call",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Good response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Bad response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Branch into a new conversation",
+      "disabled": false
+    },
+    {
+      "text": "Usage 95 tok",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Ran for 0s",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "1 tool call",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Good response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Bad response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Branch into a new conversation",
+      "disabled": false
+    },
+    {
+      "text": "Usage 95 tok",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Ran for 0s",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Commands",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Add attachment",
+      "disabled": false
+    },
+    {
+      "text": "Workspace Write",
+      "label": "Access mode, current: Workspace Write",
+      "disabled": false
+    },
+    {
+      "text": "DeepSeek-V4-Flash\nOff",
+      "label": "Select model, current DeepSeek-V4-Flash, reasoning effort Off",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "0% of context used",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Send message",
+      "disabled": true
+    },
+    {
+      "text": "",
+      "label": "Close details",
+      "disabled": false
+    },
+    {
+      "text": "返回聊天",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "查询驾驶舱",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "已保存分析",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "认可成板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "人群行动",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "选择结果",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "确认摘要",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "编辑看板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "保存新版本",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "撤销已保存",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "放弃预览",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "拖动列",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "缩放宽",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "只改此板块",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "切换为整板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "发送局部编辑",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "预览候选人数",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "保存文案（不过期）",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "标记规则已变",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "提交复核",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "不自动发送",
+      "label": null,
+      "disabled": true
+    }
+  ],
+  "recorded_at_ms": 1789009224390
+}

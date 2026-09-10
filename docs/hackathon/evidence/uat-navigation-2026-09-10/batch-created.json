@@ -1,0 +1,292 @@
+{
+  "url": "http://127.0.0.1:4328/",
+  "text": "伸美 AI 增长董事会\nNew Session\nWorkspaces\nworkspace\nUAT local fixture response. Actual tool and persistence evidence determine the o\nnow\n我的驾驶舱\nSettings\nUAT local fixture response. Actual tool and persistence evidence determine the o\nStandard mode\nSession log\nChat\nTrajectory\nSystem prompt\nUAT_ALL — 请计算2026年8月GSV，对比2025年8月；本期和对比期都用整月，保留小样。ALL 用全部销售范围；RETAIL 仅用 CH_RETAIL。只使用本地合成数据。\n10:52\n1 tool call\n\nUAT local fixture response. Actual tool and persistence evidence determine the outcome.\n\nUsage 95 tok\nRan for 0s\n10:52\nUAT_RETAIL — 请计算2026年8月GSV，对比2025年8月；本期和对比期都用整月，保留小样。ALL 用全部销售范围；RETAIL 仅用 CH_RETAIL。只使用本地合成数据。\n10:52\n1 tool call\n\nUAT local fixture response. Actual tool and persistence evidence determine the outcome.\n\nUsage 95 tok\nRan for 0s\n10:52\nMessage or run a task... / commands, @ files or sessions\nWorkspace Write\nDeepSeek-V4-Flash\nOff\n2 turns · 4 steps| LLM 0.1s · Tool call 0.2s| TTFT avg 0s · 29667 tok/s| Cache hit 0%| Input 12 tok · Output 178 tok\nDetails\nClick a tool row in the message flow to view its details\n伸美 AI 增长董事会\n返回聊天\n\n合成数据 · 固定历史快照\n\n会话与连接说明\n查询驾驶舱\n已保存分析\n认可成板\n人群行动\n认可结果与可编辑看板\n\nSYNTHETIC · 合成数据 · 此看板入口提供手动编辑。\n\n选择结果\n确认摘要\n编辑看板\n\n已按认可结果成板。同结果多视图共享 result_id，不重复计算。\n\n已保存看板\n认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9 · 42e5261f\n保存新版本\n撤销已保存\n放弃预览\n认可 result_diag_0a577be211a2a3214b50838a6dadfe6b3e194c8a4da92fe9\n销售范围 渠道 CH_RETAIL\n小样 INCLUDE\ncompetition_gsv_comparison COMPLETE；截数 2026-08-31T16:00:00.000000+00:00\n字段\t值\n本期 GSV\t400\n对比期 GSV\t300\nGSV 变动额\t100\nGSV 变动比例\t33.33%\n本期有效订单数\t2\n本期实际截数\t2026-08-31\n完整性\tCOMPLETE\n行数\t2\n空因\t—\n本期\t2026-08-01–2026-08-31\n对比\tYOY_SAME_PERIOD\n条件与证据\n板块标识与布局\n图表类型\nTABLE\nBAR\nLINE\nMETRIC\nEVIDENCE\n拖动列\n缩放宽\n\n聊天范围：只改此板块 · 在途目标 无\n\n切选中不改变在途 attempt。切到整板需明确操作。\n\n只改此板块\n切换为整板\n补丁意图\nSTYLE_ONLY（不查询）\nFILTER_CHANGE（新 run，当前未接通）\nSTRUCTURE\n发送局部编辑",
+  "buttons": [
+    {
+      "text": "伸美 AI 增长董事会",
+      "label": "New session",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Collapse sidebar",
+      "disabled": false
+    },
+    {
+      "text": "New Session",
+      "label": "New session",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Search sessions",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "View options",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Add workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Workspace actions for workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "New session in workspace",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Session actions for UAT local fixture response. Actual tool and persistence evidence determine the o",
+      "disabled": false
+    },
+    {
+      "text": "我的驾驶舱",
+      "label": "打开我的驾驶舱",
+      "disabled": false
+    },
+    {
+      "text": "Settings",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "UAT local fixture response. Actual tool and persistence evidence determine the o",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "Session log",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Chat",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Trajectory",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Jump to turn 1",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Jump to turn 2",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "1 tool call",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Good response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Bad response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Branch into a new conversation",
+      "disabled": false
+    },
+    {
+      "text": "Usage 95 tok",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Ran for 0s",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "1 tool call",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Copy",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Good response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Bad response",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Branch into a new conversation",
+      "disabled": false
+    },
+    {
+      "text": "Usage 95 tok",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "Ran for 0s",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Commands",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Add attachment",
+      "disabled": false
+    },
+    {
+      "text": "Workspace Write",
+      "label": "Access mode, current: Workspace Write",
+      "disabled": false
+    },
+    {
+      "text": "DeepSeek-V4-Flash\nOff",
+      "label": "Select model, current DeepSeek-V4-Flash, reasoning effort Off",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "0% of context used",
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": "Send message",
+      "disabled": true
+    },
+    {
+      "text": "",
+      "label": "Close details",
+      "disabled": false
+    },
+    {
+      "text": "返回聊天",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "查询驾驶舱",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "已保存分析",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "认可成板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "人群行动",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "选择结果",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "确认摘要",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "编辑看板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "保存新版本",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "撤销已保存",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "放弃预览",
+      "label": null,
+      "disabled": true
+    },
+    {
+      "text": "拖动列",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "缩放宽",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "只改此板块",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "切换为整板",
+      "label": null,
+      "disabled": false
+    },
+    {
+      "text": "发送局部编辑",
+      "label": null,
+      "disabled": false
+    }
+  ],
+  "recorded_at_ms": 1789009015792
+}
