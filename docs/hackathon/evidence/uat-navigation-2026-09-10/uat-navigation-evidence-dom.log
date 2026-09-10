@@ -1,0 +1,345 @@
+✔ compiled board renders persisted computed GSV and data-driven chart preferences after reopen (594.363875ms)
+✔ compiled board reports disconnected service and a failed saved-board read instead of an empty success (54.748042ms)
+✔ T04 compiled DOM preserves GSV 0.25 and formats only the raw ratio as 25% (53.870125ms)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+✔ chart preference enables save and survives component reopen, bound to the changed block (895.60825ms)
+✔ compiled B0 cockpit view still renders empty/denied without competition surface (1.740125ms)
+✔ compiled competition board surface explains manual editing without claiming native model unavailable (7.841209ms)
+✔ compiled actions surface shows zero-copy and no auto send (1.3385ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: An update to Kd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Kd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:37940)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+Warning: An update to Kd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at Kd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:37940)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+✔ board DOM: endorse COMPLETE, reject empty, preview layout on pointerup not pointermove, 409 keeps draft (107.275417ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+✔ actions DOM: AND count, zero audience, copy-only vs expired draft (157.088416ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js:993:45718)
+✔ HTTP-shaped sparse result: confirm panel does not throw, 行数 is not undefined (74.454667ms)
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+✔ failed 成板 retry stays mounted and does not duplicate the board (134.937583ms)
+✔ HTTP board reopens pinned result and layout; unavailable binding never substitutes list results (50.928375ms)
+✔ HTTP create retries keep IDs, next selection creates a distinct board, preview does not write (107.219667ms)
+✔ HTTP actions can create first draft, reopen with a new transport, then update same versioned draft (103.714458ms)
+✔ saved-board picker loads each authorized board, preserves selection on reopen and locks unsaved edits (216.366542ms)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+Warning: An update to zd inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at zd (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:4991)
+    at kce (file:///Users/hutou/Desktop/ai-engineering/%E5%8E%86%E5%8F%B2%E9%A1%B9%E7%9B%AE/fuqin-date/.worktrees/competition-visual-readiness/dsh-plugins/analytics-workbench/lib/views/cockpit-view.js?picker=denial:993:45718)
+✔ board switching keeps the prior asset on denial and does not restore an unlisted preference (210.220167ms)
+✔ HTTP connection loss yields a displayable error without retrying an uncertain write (0.549917ms)
+✔ non-contract HTTP errors remain visible and contracted permission errors retain their identity (0.196625ms)
+✔ embedded board/result fixtures match frozen C0 JSON (4.234291ms)
+✔ C0 board decode rejects PUBLIC visibility and accepts empty boards (0.183166ms)
+✔ illegal HTML/JS patches are rejected before transport (0.188875ms)
+✔ UI selection does not rewrite in-flight patch target (0.089125ms)
+✔ layout clamp and keyboard substitutes match overlay bounds (0.091458ms)
+✔ fixture transport covers endorse, partial batch, style preview, 409, 403 (0.73975ms)
+✔ FILTER_CHANGE and empty result stay honest (0.093292ms)
+✔ formatResultRowCount never renders undefined; sparse confirm chips do not throw (0.161541ms)
+✔ board UI source covers endorsement, grid, scope chat, 409 and keyboard substitutes (1.44825ms)
+✔ native resolved mode updates the existing dialog and inherited competition controls (220.0465ms)
+✔ RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds (47.764709ms)
+✔ dirty overlay close asks to discard and does not keep the preview after discard (91.573625ms)
+✔ stale preview response is ignored after a newer refresh generation (87.815584ms)
+✔ HTTP overlay and mock overlay share the native dialog Tab trap (0.210625ms)
+✔ closed connection details remain keyboard reachable without exposing hidden controls (27.973625ms)
+✔ configured competition opens its board directly and loads B0 only on explicit navigation (84.217333ms)
+✔ footer open remounts overlay after close on the same page (75.99175ms)
+✔ layout drag commits on pointerup and does not preview on pointermove (58.165292ms)
+✔ undoBoard is a no-op when the saved board has no prior version (43.502208ms)
+✔ undoBoard previews restore_from_version against the current board etag (42.9955ms)
+✔ analyses panel add previews analysis_ref then save posts the add intent key (78.662625ms)
+✔ addAnalysis creates the owner board before previewing add when none exists (53.247875ms)
+✔ preview 409 re-reads and does not keep a stale pending op (62.864834ms)
+✔ save 409 re-reads and does not keep the pending preview (66.546667ms)
+✔ save 201 then dashboard 4xx/409 does not POST a second analysis (84.669375ms)
+✔ two overlay instances keep preview save undo on their own dashboard_id (115.749541ms)
+✔ analyses panel sets data-panel=analyses, omits undo, and does not claim overlay hung (33.216792ms)
+ℹ tests 45
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3237.9885

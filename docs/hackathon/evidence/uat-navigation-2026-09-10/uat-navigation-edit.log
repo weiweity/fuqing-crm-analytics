@@ -1,0 +1,4 @@
+{"record": "keyboard-move-preview", "url": "http://127.0.0.1:4328/", "chars": 2000}
+{"record": "keyboard-move-saved", "url": "http://127.0.0.1:4328/", "chars": 1807}
+{"record": "edited-board-reloaded", "url": "http://127.0.0.1:4328/", "chars": 1737}
+{"editor": "已保存看板\n认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556 · a863d838\n保存新版本\n撤销已保存\n放弃预览\n认可 result_diag_2165c447f80752d3083847f217aec2b2f0c41beccd4c8556\n销售范围 全部\n小样 INCLUDE\ncompetition_gsv_comparison COMPLETE；截数 2026-08-31T16:00:00.000000+00:00\n字段\t值\n本期 GSV\t410\n对比期 GSV\t305\nGSV 变动额\t105\nGSV 变动比例\t34.43%\n本期有效订单数\t3\n本期实际截数\t2026-08-31\n完整性\tCOMPLETE\n行数\t2\n空因\t—\n本期\t2026-08-01–2026-08-31\n对比\tYOY_SAME_PERIOD\n条件与证据\n板块标识与布局\n图表类型\nTABLE\nBAR\nLINE\nMETRIC\nEVIDENCE\n拖动列\n缩放宽\n\n聊天范围：只改此板块 · 在途目标 无\n\n切选中不改变在途 attempt。切到整板需明确操作。\n\n只改此板块\n切换为整板\n补丁意图\nSTYLE_ONLY（不查询）\nFILTER_CHANGE（新 run，当前未接通）\nSTRUCTURE\n发送局部编辑", "style": "grid-area: 1 / 2 / span 4 / span 5;"}

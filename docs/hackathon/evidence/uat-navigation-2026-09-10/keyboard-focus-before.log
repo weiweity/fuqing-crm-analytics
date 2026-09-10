@@ -1,0 +1,12 @@
+{"record": "keyboard-resize-preview", "url": "http://127.0.0.1:4328/", "chars": 2000}
+{"record": "keyboard-resize-saved", "url": "http://127.0.0.1:4328/", "chars": 1807}
+Traceback (most recent call last):
+  File "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/uat-navigation-edit.py", line 33, in <module>
+    edit('.sm-drag-handle','Alt+ArrowRight','keyboard-move')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/uat-navigation-edit.py", line 23, in edit
+    settled();b.record(name+'-preview')
+    ~~~~~~~^^
+  File "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/uat-navigation-edit.py", line 18, in settled
+    raise RuntimeError('preview missing')
+RuntimeError: preview missing

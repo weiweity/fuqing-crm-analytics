@@ -24,6 +24,8 @@
 
 ## 检查及失败证据
 
+提交 `2dae78d` 的 [CI 34432529663](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34432529663) 中，后端 2322 passed / 79 skipped，B0 SUCCESS；整体失败来自本次新增证据 Python 的 40 项 Ruff 格式问题。后续修正四个现行辅助脚本的格式，展开多模块 import 后 AST 等价；历史失败草稿改存 `.py.txt`，字节与失败提交一致。打包器同步保留该文本后缀。原始 CI 输出与[修正核验](evidence/uat-navigation-2026-09-10/ci-format-fix.json)均保留，远端重新验证仍待完成，4325 未切换。
+
 最终完整 B0 pipeline 通过：离线合同、480 项 Python、Node、编译后 DOM、严格类型检查和干净重建。原始 [pipeline 日志](evidence/uat-navigation-2026-09-10/uat-navigation-final-pipeline.log) 保留每组实际数量，不用 45 项局部测试代替全套。提交前完成[人工范围审查](evidence/uat-navigation-2026-09-10/review.json)。
 
 修复前入口回归失败，以及首轮新测试被既有在途状态污染的失败均保留。测试使用独立编译模块隔离状态后，最终全套通过。浏览器初稿错误选择器、只支持 headed 的 focus 命令、隐藏下拉项及过快键盘取证导致的失败也保留；最终脚本从刷新后的确定状态开始，检查真实 combobox 展开和激活项后操作。

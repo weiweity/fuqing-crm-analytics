@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/.worktrees/competition-visual-readiness/.context/uat-navigation-visual.py", line 23, in <module>
+    assert '42e5261f' in state['after']['selection'] and '400' in state['after']['text'] and 'CH_RETAIL' in state['after']['text'] and state['after']['dialogOpen']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
