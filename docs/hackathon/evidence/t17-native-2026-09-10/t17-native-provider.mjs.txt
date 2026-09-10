@@ -1,0 +1,43 @@
+/** Full-profile native acceptance provider. Local fixture, no external model. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
+import {pathToFileURL} from 'node:url';
+import {join,resolve} from 'node:path';
+import {namespaceToolCallLine} from '../scripts/dsh-b0/mock-provider.mjs';
+const config=JSON.parse(await readFile(new URL('./t17-native-current.json',import.meta.url),'utf8'));
+const root=config.root;
+const {startMockLlmServer}=await import(pathToFileURL(join(config.upstream,'packages/test-support/llm-mock-server/lib/index.js')));
+const condition={metric_type:'GSV',timezone:'Asia/Shanghai',current_period:{start_date:'2026-08-01',end_date:'2026-08-31',end_bound:'INCLUSIVE_CALENDAR_DAY'},comparison_period:{start_date:'2025-08-01',end_date:'2025-08-31',end_bound:'INCLUSIVE_CALENDAR_DAY'},comparison_mode:'YOY_SAME_PERIOD',sales_scope:{kind:'ALL'},history_scope:{kind:'ALL'},sample_mode:'INCLUDE',sample_channel_ids:null,data_cutoff_policy:'T_PLUS_1_YESTERDAY',leap_day_alignment:'CLAMP_TO_MONTH_END'};
+const cases={STOP:['competition_growth_step',{capability_id:'diag.gsv',condition_mode:'EXPLICIT',condition,request_id:'t17-stop-r1'}],RECOVER:['competition_growth_step',{capability_id:'diag.gsv',condition_mode:'EXPLICIT',condition,request_id:'t17-recover-r1'}],READ:['read',{file_path:join(root,'runtime/workspace/seed.txt')}],DENY:['write',{file_path:join(root,'runtime/workspace/denied.txt'),content:'T17_DENIED_WRITE_MUST_NOT_EXIST\n'}],WRITE:['write',{file_path:join(root,'runtime/workspace/written.txt'),content:'T17_WORKSPACE_WRITE_VERIFIED\n'}]};
+const servers=new Map();
+for(const [name,[toolName,args]] of Object.entries(cases)) servers.set(name,await startMockLlmServer({port:0,sequence:['tool_call_success'],repeatLast:true,toolName,toolArguments:JSON.stringify(args),chunkSize:256,chunkDelayMs:0,randomSeed:17}));
+const done=await startMockLlmServer({port:0,sequence:['success'],repeatLast:true,successText:'T17 local fixture response. Actual tool and persistence evidence determine the outcome.',chunkSize:256,chunkDelayMs:0,randomSeed:17});
+let number=2;
+const inflight=new Set();
+const server=createServer((req,res)=>{
+ const abort=new AbortController();inflight.add(abort);res.once('close',()=>{if(!res.writableFinished)abort.abort()});
+ void(async()=>{
+  if(req.method!=='POST'||req.url!=='/v1/chat/completions'){res.writeHead(404).end();return}
+  const id=++number;if(id>40){res.writeHead(409).end('fixture request limit');return}
+  let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>2*1024*1024)throw Error('fixture body limit')}
+  const body=JSON.parse(raw);const messages=body.messages??[];const toolNames=(body.tools??[]).map(t=>t.function?.name);
+  let marker=null,userIndex=-1;
+  for(let i=messages.length-1;i>=0;i--){if(messages[i].role!=='user')continue;const found=JSON.stringify(messages[i].content).match(/T17_(STOP|RECOVER|READ|DENY|WRITE)\b/);if(found){marker=found[1];userIndex=i;break}}
+  const toolResults=messages.slice(userIndex+1).filter(m=>m.role==='tool');
+  const pick=marker&&toolNames.includes(cases[marker][0])&&toolResults.length===0 ? servers.get(marker) : done;
+  await appendFile(join(root,'provider-events.jsonl'),JSON.stringify({id,marker,toolNames,served:pick===done?'success':cases[marker][0],toolResults:toolResults.map(m=>({tool_call_id:m.tool_call_id,content:String(m.content).slice(0,10000)}))})+'\n');
+  const response=await fetch(pick.baseURL+req.url,{method:'POST',headers:{'content-type':'application/json'},body:raw,signal:abort.signal});
+  res.writeHead(response.status,{'content-type':response.headers.get('content-type')??'text/plain'});
+  let pending='';const decoder=new TextDecoder();
+  for await(const chunk of response.body){pending+=decoder.decode(chunk,{stream:true});let at;while((at=pending.indexOf('\n'))>=0){const line=pending.slice(0,at);pending=pending.slice(at+1);if(!res.write(namespaceToolCallLine(line,id)+'\n'))await once(res,'drain',{signal:abort.signal})}}
+  if(pending)res.write(namespaceToolCallLine(pending,id));res.end();
+ })().catch(error=>{appendFile(join(root,'provider-events.jsonl'),JSON.stringify({event:'PROVIDER_ERROR',name:error.name,message:error.message})+'\n');if(!res.headersSent)res.writeHead(502);res.end()}).finally(()=>inflight.delete(abort));
+});
+await new Promise(resolve=>server.listen(Number(process.env.T17_PROVIDER_PORT ?? 0),'127.0.0.1',resolve));
+const port=server.address().port;
+await writeFile(join(root,'provider.patch.json'),JSON.stringify([{id:'llm-deepseek',config:{apiKeyEnv:'T17_FIXTURE_KEY',baseURL:`http://127.0.0.1:${port}/v1`,thinking:'disabled',reasoningEffort:'off',maxTokens:1024,streamIdleTimeoutMs:5000,retryPolicy:{mode:'normal',maxRetries:0}}}],null,2)+'\n');
+await writeFile(join(root,'provider-ready.json'),JSON.stringify({pid:process.pid,port,upstream:config.upstream,fixture:true})+'\n');
+console.log('T17 local provider ready; full native profile retained.');
+async function close(){for(const a of inflight)a.abort();server.closeAllConnections();await new Promise(r=>server.close(r));await Promise.all([...servers.values(),done].map(s=>s.close()));process.exit(0)}
+process.once('SIGTERM',()=>void close());process.once('SIGINT',()=>void close());
