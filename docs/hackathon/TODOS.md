@@ -22,8 +22,8 @@
 - [x] T13 result_id/run_id 混用回归：方法修正 `6202e89` CI SUCCESS，已切换；A3/B2 实际加载新方法包，数值/条件及分别引用原标识通过。
 - [x] [单位来源本地修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)：源声明→v2 facts→摘要→HTTP/持久化→看板；源未声明单位时为 UNKNOWN，旧 v1 摘要原样兼容。不为未声明的单位设置人民币默认值。
 - [x] 单位修复 `84b0ac8` CI SUCCESS、五库恢复和运行切换完成；[原生单位展示与真实 DeepSeek 局部复测](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)通过。旧读者拒绝 v2，不能直接降级到含新结果的状态。
-- [ ] 完整 T13：单位/标识/自动保存在本次局部用例通过；其余鲁棒性、已知未接通能力的重复调用仍开放。Linux spill 配额偶发失败未归因，CI 通过不等于根因修复。
-- [ ] T13 原生工具边界：E5 已复现业务工具失败后可调用 `bash/grep/read`；源码已接入按 agent/turn 的 `tools.guard()`，候选已换入新构建，但 DeepSeek-V4-Flash 复测在首个工具调用前 `TRANSPORT`，边界仍待真实工具调用确认且普通 DSH 会话仍需复核。
+- [ ] 完整 T13：单位/标识/自动保存、原生工具边界、A6/A7 真实 HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径已分项取证（见 [transport 覆盖](evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json)）。其余鲁棒性、已知未接通能力的重复调用仍开放；真实 DuckDB 数据源的 cohort 特征未接线。Linux spill 配额偶发失败未归因，CI 通过不等于根因修复。
+- [x] T13 原生工具边界：E5 已复现业务工具失败后可调用 `bash/grep/read`；源码按 agent/turn 接入 `tools.guard()`。真实 runtime 复测通过：`competition_growth_patch` 返回后同回合原生 `read` 被拒绝，另起无 competition 调用的原生回合 `glob` 正常执行，turn `completed`。此前 `TRANSPORT` 的根因是候选启动缺 `NODE_EXTRA_CA_CERTS`（Node 无法校验 DeepSeek TLS 链），非网络；同一次启动还缺 `COMPETITION_HTTP_BASE/TOKEN` 使 competition 工具未注册。见 [E5 复测](evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest-verified.json)。
 - [ ] 前端性能基线和 T16 数据量/并发/P95/RSS 专项验证。
 - [ ] 明确发布版本/环境、状态备份与回退，完成部署后的关键路径与指标验证。
 

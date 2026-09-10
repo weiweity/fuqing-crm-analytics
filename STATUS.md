@@ -7,13 +7,13 @@
 | 项 | 状态 |
 |---|---|
 | VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
-| 当前候选 | #115 draft；4325/18083 均为 `84b0ac8`，CI SUCCESS；[当前候选](docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) |
+| 当前候选 | #115 draft，head `2dad216`，CI [34465750440](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34465750440) SUCCESS；4325/18083 运行 `84b0ac8` 插件产物；[当前候选](docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) |
 | 视觉增量 | 原生浅/深色、实际 AntD、首屏精简、键盘详情与断连恢复已进入候选；[独立验证](docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md)通过，完整 T17/视觉仍 PARTIAL |
 | 最新增量 | 五库恢复、原生未知/旧单位展示、真实金额单位/改期/拒答局部复测完成，完整 T13 PARTIAL；[单位修复](docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) |
 | main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
 | 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
 | 验证 | `d482bd6` [CI 34418047588 SUCCESS](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34418047588)：Linux 后端 2322 passed / 79 skipped，B0 480 passed / 20 warnings；本地后端 2324 passed / 77 skipped |
-| T13 | GSV 两条真实 DeepSeek 评测 PASS：ALL 410/305、CH_RETAIL 400/300，结果成板刷新重开一致；完整 T13 仍 PARTIAL，见[本轮交付](docs/hackathon/DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md) |
+| T13 | GSV 两条真实 DeepSeek 评测 PASS：ALL 410/305、CH_RETAIL 400/300；原生工具边界 runtime 复测 PASS（competition 回合原生工具被拒，普通原生回合不受影响）；A6/A7 HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径已分项取证。完整 T13 仍 PARTIAL，见[边界复测](docs/hackathon/evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest-verified.json)与 [transport 覆盖](docs/hackathon/evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json) |
 | T15 / T16 / T17 | 用户本人 UAT 待执行；正式容量范围/阈值待确认；原生审批与权限已补验；[目录选择、五种 preset 和手动压缩恢复](docs/hackathon/PRODUCT-NATIVE-EXTENDED-2026-09-10.md)局部 PASS，完整 T17 仍 PARTIAL |
 | 产品边界 | B0、比赛合成 HTTP、旧 CRM 分开；真实人群/完整诊断、完整视觉及旧 MCP 开放项仍保留 |
 | 原服务 | 4327（PID 81058）、8000/5173（36717/36727）、14327（90347）未动；不是本轮运行证据 |

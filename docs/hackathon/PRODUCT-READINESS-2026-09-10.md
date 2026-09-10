@@ -2,7 +2,9 @@
 
 ## 目标与基线
 
-最新独立增量：[单位来源修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)将源声明绑定到 v2 事实与摘要，旧 v1 保持原样，已通过本地合同/存储/编译后 DOM 检查。复核原生工具确认 A3/B2 的 CNY/minor 说法没有来源支持，已纠正此前“措辞不一致”的判断。4325/18083 已运行 `84b0ac8`，CI SUCCESS；[五库恢复、原生展示和三条有界真实复测](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)已完成。U1 连接失败保留，U1R 单位/标识/自动保存、U2 改期/零分母和 U3 如实拒答有各自证据。完整 T13、本人 T15 及其余门禁保持开放。
+最新独立增量：[单位来源修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)将源声明绑定到 v2 事实与摘要，旧 v1 保持原样，已通过本地合同/存储/编译后 DOM 检查。复核原生工具确认 A3/B2 的 CNY/minor 说法没有来源支持，已纠正此前“措辞不一致”的判断。4325/18083 已运行 `84b0ac8`，CI SUCCESS；[五库恢复、原生展示和三条有界真实复测](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)已完成。U1 连接失败保留，U1R 单位/标识/自动保存、U2 改期/零分母和 U3 如实拒答有各自证据。
+
+本轮追加（`2dad216`，CI [34465750440](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34465750440) SUCCESS）：T13 原生工具边界在真实 runtime 复测通过——`competition_growth_patch` 返回后同回合原生 `read` 被拒，无 competition 调用的普通原生回合 `glob` 正常执行，turn `completed`；此前 `TRANSPORT` 的根因确认为候选启动缺 `NODE_EXTRA_CA_CERTS`（对照实验：同环境补该变量后 Node 从 `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` 变为 401）。另分项取证：A6/A7 真实 HTTP transport（`HTTP_CONNECTED`，GSV 410/305/+105）、旧 MCP 截断转 `isError`、默认值（`sample_mode=INCLUDE`、`board_layout_mode=ONE_BOARD_MULTI_BLOCK`）与 UNKNOWN 口径拒答。完整 T13、本人 T15 及其余门禁保持开放；cohort 特征真实数据源未接线，旧 MCP 串行 300s CLI 与完整结果交付仍 PARTIAL。
 
 执行用户明确采用的七阶段目标，先完成前 3 项，后续阶段保持开放直至具备相应真实证据。主线基线 `788b5b108fed22526805248a86f310ef7602cc6e`；本轮工作树 `competition-product-readiness`，分支 `codex/competition-product-readiness`。工作树从主线新建，原主工作副本的未提交设计和规划文件保留。
 
@@ -15,7 +17,7 @@
 | 1 工程状态 | STATUS、README、TODO、交付记录一致；核验 main CI | 文档引用/差异核验；CI 绑定 `788b5b1` | 文档已同步，差异检查通过，main CI SUCCESS |
 | 2 缺陷修复 | 首次启动无误报；图表类型保存/刷新/重开一致 | 根因复现、失败到通过回归、真实浏览器 | 图表修复已通过组件和 HTTP 持久化回归；首次欢迎误报暂未复现 |
 | 3 原生与视觉 | T17 工作区、会话、设置、工具、权限；主题、弹层、窄屏、错误状态 | 固定 DSH 的真实原生路径、按 DESIGN 的截图和结果矩阵 | PARTIAL：原生 Stop、文件权限/审批、默认隔离、系统目录选择、五种 preset 文件执行和手动压缩恢复已实测；完整视觉及其他边界仍开放 |
-| 4 业务与模型 | 明确默认值/UNKNOWN；核对旧 MCP/截断；T13 | 业务口径确认记录、完整工具返回证据、真实模型 eval | T13 PARTIAL：真实 DeepSeek 调用与合成工具已实测，见下文 |
+| 4 业务与模型 | 明确默认值/UNKNOWN；核对旧 MCP/截断；T13 | 业务口径确认记录、完整工具返回证据、真实模型 eval | T13 PARTIAL：真实 DeepSeek 调用、原生工具边界、HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径已分项实测，见下文 |
 | 5 三角色 UAT | 分析师诊断成板、运营候选草稿、老板阅读决策 | 完整路径预演和业务代表验收记录 | GSV 模型结果入板与重开已通；本人待验，完整诊断与视觉仍 PARTIAL |
 | 6 性能容量 | 页面性能基线；数据量/并发/P95/RSS/超时 | 可复现测量配置、原始结果及预算比较 | 单用户合成基线已测；T16 正式阈值及归档规模待确认 |
 | 7 发布 | 版本/环境、状态备份与回退、部署后验证 | 目标环境及配置、恢复证据、发布版本和关键路径/指标 | 本地候选已更新，状态备份恢复 PASS；Git 候选交付中，未正式发布 |

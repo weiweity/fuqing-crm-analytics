@@ -8,7 +8,7 @@
 
 上一轮主题接入：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；DeepSeek 配置与会话保留，原生主题同步、实际 AntD、BAR 400/300 重开、五库备份恢复通过。快速 canary DEGRADED（既有 B0 404），完整产品仍 PARTIAL。见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。文档提交 `6b32ce9` 的 CI 亦 SUCCESS；后续[原生 Stop/文件权限补验](PRODUCT-NATIVE-STOP-PERMISSIONS-2026-09-10.md)及[审批/默认隔离/重启恢复](PRODUCT-NATIVE-APPROVAL-2026-09-10.md)通过局部用例，`d2a5a6f` CI SUCCESS；4328/18084 临时实例已关闭。
 
-当前 4325/18083 均运行 `84b0ac8`，CI SUCCESS；五库恢复、原生单位展示和三条有界真实复测见[当前单位候选](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)。模型配置和原有板/草稿保持，完整 T13 仍开放。
+当前 4325/18083 均运行 `84b0ac8`，CI SUCCESS；五库恢复、原生单位展示和三条有界真实复测见[当前单位候选](COMPUTED-UNITS-CANDIDATE-2026-09-10.md)。模型配置和原有板/草稿保持。本轮追加 `2dad216`（CI SUCCESS）：T13 原生工具边界 runtime 复测通过，A6/A7 HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径分项取证，见[边界复测](evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest-verified.json)与 [transport 覆盖](evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json)。完整 T13 仍开放。
 
 [单位来源修复](COMPUTED-UNITS-DELIVERY-2026-09-10.md)已完成本地合同、持久化与编译后 DOM 验证；当前合成源单位保持 UNKNOWN。已切换运行实例并完成局部真实模型复测。
 

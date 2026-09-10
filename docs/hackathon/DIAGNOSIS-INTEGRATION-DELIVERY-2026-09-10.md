@@ -43,7 +43,7 @@ DSH 原生 DeepSeek-V4-Flash，Standard mode / Read Only，实际执行两条用
 ## 仍需完成
 
 - D5 更新：实际 Node transport 取消/超时 → HTTP → SQLite 不发布已修复并验证，见[取消交付](DIAGNOSIS-CANCELLATION-2026-09-10.md)。新增完整后端 2320 passed / 77 skipped、B0 PASS；浏览器停止入口、Git 版本绑定及正式发布检查仍分开记录。
-- 完整诊断链、旧 MCP/截断、业务默认值和 UNKNOWN 边界仍沿总账本保留。模型使用了方法资源中的 UNSUPPORTED 旧措辞，而当前计算源目录对未接能力回显 NOT_CONNECTED；未宣称其可执行，但精确状态措辞仍需统一。
+- 完整诊断链、旧 MCP 剩余项、业务默认值和 UNKNOWN 边界仍沿总账本保留。本轮已分项取证：默认值 `sample_mode=INCLUDE`/`board_layout_mode=ONE_BOARD_MULTI_BLOCK` 与服务端回显一致；UNKNOWN 口径（`SAMPLE_CHANNEL_SET`、`MEMBER_HISTORY`）由服务端 `unknown_flags` 声明且模型拒答编造。模型方法资源用 UNSUPPORTED、计算源目录对未接能力回显 NOT_CONNECTED，两者措辞不同但均为诚实拒答，未宣称可执行；精确措辞统一仍作为后续项保留，见 [transport 覆盖](evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json)。
 - T15 由用户本人按[更新清单](PRODUCT-UAT-2026-09-10.md)验收。正式 T16 的数据范围/阈值待确认。
 - 外层浅色与业务区深色的主题不一致、Ant Design 完整落地及其余 T17 视觉/权限路径仍开放。两条 GSV 真模型通过不等于全部 T13 或产品通过。
 
