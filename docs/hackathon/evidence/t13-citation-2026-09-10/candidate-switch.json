@@ -1,0 +1,49 @@
+{
+  "url": "http://127.0.0.1:4325/",
+  "panel": "competition-board",
+  "dialog": true,
+  "model": "Select model, current DeepSeek-V4-Flash, reasoning effort High",
+  "error": null,
+  "board_options": [
+    {
+      "text": "8月GSV诊断板 · a3ef84de",
+      "title": "8月GSV诊断板 · a3ef84de"
+    },
+    {
+      "text": "8月GSV诊断板 · 2a1819a7",
+      "title": "8月GSV诊断板 · 2a1819a7"
+    }
+  ],
+  "artifact": {
+    "assets": [
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "characters": 4420912,
+        "exactPluginCode": true
+      },
+      {
+        "path": "/plugins/",
+        "status": 200,
+        "characters": 18649,
+        "exactPluginCode": false
+      }
+    ],
+    "matched": true
+  },
+  "assets_equal": true,
+  "boards": 2,
+  "results": 6,
+  "dsh_pid": 28243,
+  "api_pid": 23661,
+  "source_head": "6202e89c9a998fc868758fe993da5b163d146e38",
+  "validation_head": "6202e89c9a998fc868758fe993da5b163d146e38",
+  "ci_run": 34437915131,
+  "host_sha256": "c8f730212e84029a1208f5920da4c64b3101387ff97b3992df4d76101c3ab5fd",
+  "skills_sha256": "10b2a1a921774561fb5a285a737125f52d630701a83066c50cd7546c29213f9f",
+  "client_sha256": "5d4ba5535dd6882c52a1942a02036b73d1b8c220316c123d133a6f7a3787e3a2",
+  "method_package_digest": "ae3b0f92ac34a11c161b246648ca1c3421cce02c208d2704f708715f72cc0713",
+  "evidence_policy_digest": "f0d2c54797dff5ac9bf6464bcf9f1ebdda06bf18d05339bf6a8cfcc981f1d345",
+  "rollback_exercised": false,
+  "assets_comparison_timing": "before subsequent A3/B2 rerun"
+}

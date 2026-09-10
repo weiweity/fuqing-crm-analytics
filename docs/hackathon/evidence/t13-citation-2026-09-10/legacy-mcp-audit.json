@@ -1,0 +1,20 @@
+{
+  "head": "6202e89c9a998fc868758fe993da5b163d146e38",
+  "scope": "source audit only; no archived CLI, MCP service, real database or data read",
+  "source": "mcp_servers/fuqing_adhoc/server.py",
+  "source_sha256": "e8b588d3d0b83f2b2942e78e352a3a483a43beb756373efc581a65a4d3013cfe",
+  "closed_subitem": "truncated content returns isError=true and completeness=FAILED; no successful complete result claim",
+  "open": [
+    "MAX_STDOUT_BYTES actually slices Python string by4096characters",
+    "subprocess.run captures entire output before slicing",
+    "stdio loop remains serial; CLI timeout300s; no observed mid-call cancellation or pagination delivery"
+  ],
+  "current_product": "native competition_growth tools use explicit HTTP18083; registered forbidden expansions include oldCRM routes, execute_sql, run_script and shell",
+  "acceptance": "old MCP remains PARTIAL; this audit does not mark full T07/T08 or API05 pass",
+  "targeted_regression": {
+    "command": "PYTHON_DOTENV_DISABLED=1 <existing backend Python> -m pytest backend/tests/test_competition_api.py -k mcp -q",
+    "result": "2 passed /12 deselected /1 warning",
+    "log": ".context/t13-equivalence-live/legacy-mcp-targeted.log",
+    "scope": "truncation reported as failure; large response JSON framing remains valid; mocked CLI/stdout only"
+  }
+}

@@ -7,9 +7,9 @@
 | 项 | 状态 |
 |---|---|
 | VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
-| 当前候选 | #115 draft；4325 插件 `2dae78d`，验证提交 `cde6a81` CI SUCCESS，18083 API 保持；[当前候选与评测](docs/hackathon/PRODUCT-UAT-CANDIDATE-2026-09-10.md) |
+| 当前候选 | #115 draft；4325 插件 `6202e89` CI SUCCESS，18083 API 保持；[当前候选与评测](docs/hackathon/PRODUCT-UAT-CANDIDATE-2026-09-10.md) |
 | 视觉增量 | 原生浅/深色、实际 AntD、首屏精简、键盘详情与断连恢复已进入候选；[独立验证](docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md)通过，完整 T17/视觉仍 PARTIAL |
-| 最新增量 | 看板直达、多板选择与条件证据已切换；真实问法 A2/B 数值等价，但混用 result_id/run_id。方法已修正、B0 PASS，待进入候选及真实复测 |
+| 最新增量 | 看板增量与方法修正已切换；A3/B2 真实问法数值、条件与 result_id/run_id 引用回归通过。单位、合同归属及自动持久化表述仍需修正，完整 T13 PARTIAL |
 | main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
 | 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
 | 验证 | `d482bd6` [CI 34418047588 SUCCESS](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34418047588)：Linux 后端 2322 passed / 79 skipped，B0 480 passed / 20 warnings；本地后端 2324 passed / 77 skipped |

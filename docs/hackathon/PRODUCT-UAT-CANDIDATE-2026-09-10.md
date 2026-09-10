@@ -1,5 +1,7 @@
 # 看板候选切换与真实等价问法评测
 
+**最新状态**：方法修正 `6202e89` 的 CI 34437915131 SUCCESS，已进入同一 4325；A3/B2 两次真实复测正确区分结果与运行标识。原有资产保持，现有 2 块板、8 条计算结果。完整 T13 仍 PARTIAL，下文保留各阶段失败及切换时点。
+
 独立候选 4325 已切换看板直达、多板选择和条件证据补丁。插件源码 `2dae78d4da6741162732401ea3b0827a7dce073c`，验证提交 `cde6a81ef332414fda815076576f7fb795b37082` 的 [CI 34435439275](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34435439275) SUCCESS。先前证据脚本 Ruff 失败已关闭；上一次 Linux spill 的 RESOURCE_EXCEEDED 本次未再出现，新增诊断信息没有改变配额，根因仍未确定，不能写成已修复。
 
 ## 当前运行与切换验证
@@ -31,3 +33,16 @@
 本次方法修正明确区分两个标识、禁止补前缀推导，并要求只有不同数据源/方法证据才能称独立复核；同步重新生成实际运行包和锁。完整 B0 pipeline 已通过。**修正尚未进入 4325，也尚未用真实模型复测，不标记问题已关闭。** 两次成功评测的缓存/非缓存输入、输出计数分别记录；未查询 provider 账单，不把 token 数换算为已知费用。
 
 用户本人 T15、正式 T16、完整 T13/T17、业务默认值与 UNKNOWN、旧 MCP/截断以及完整发布与回退门禁继续开放。4327/8000/5173 和 14327 未动；仅本轮候选 4325/18083 保持供验收。
+
+
+## 方法修正后的实际复测
+
+`6202e89c9a998fc868758fe993da5b163d146e38` 的 [CI 34437915131](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34437915131) SUCCESS 后，仅重启本轮 4325 DSH，PID 28243；18083 API 仍是 PID 23661。新插件为 `.context/t13-method-release-hws0ksxq/plugin`，此前可用插件保留为同目录 `previous-plugin`，仍未执行这次回退。相同 runtime、模型选择和全部 2 块板/6 条结果在切换前后保持，随后 A3/B2 新增两条计算结果，现为 8 条。见[切换证据](evidence/t13-citation-2026-09-10/candidate-switch.json)。
+
+两次均从新原生会话开始，使用原问题条件，未在问题中提供正确数值或标识。每次各 4 个工具调用、1 次实际计算；工具读取的新方法包 digest 均为 `ae3b0f92ac34a11c161b246648ca1c3421cce02c208d2704f708715f72cc0713`，证据规则 digest 为 `f0d2c54797dff5ac9bf6464bcf9f1ebdda06bf18d05339bf6a8cfcc981f1d345`。因此确认实际运行了修正的方法，而非仅修改源文档。
+
+A3 选择 diag.yoy，B2 选择 diag.gsv，两者都返回完整双期事实 410/305/+105/+34.43%，销售/历史范围、日期、时区和小样条件一致，data_digest/filter_hash 一致。两者 capability_id 不同，evidence_digest 可以不同，各自与持久化结果匹配；不要求模型必须调用同一个能力。最终回答都分别给出真实的 result_diag_… 与 run_diag_…，也没有再把同源返回称为独立复核。
+
+[复测及原始工具证据](evidence/t13-citation-2026-09-10/verification.json)关闭的是这两条用例中的标识混用。完整 T13 不因此通过：A3/B2 对金额单位的表达仍不一致；B2 将比例合同称为 B0，且“未写入任何文件”没有解释工具已自动持久化分析。见[剩余表述问题](evidence/t13-citation-2026-09-10/remaining-findings.json)。真实问题保留，不通过删掉失败回答或只保留数字检查来标整体成功。
+
+本轮亦核对旧 MCP 当前源码：截断返回 isError=true/FAILED，大消息 JSON 不被字节切坏，两项针对性回归通过；stdio 仍串行，CLI 同步最长 300 秒且先捕获全部输出，分页和运行中取消仍开放。只运行 mocked CLI/stdout 测试，未启动旧 MCP 或真实业务查询。见[核对记录](evidence/t13-citation-2026-09-10/legacy-mcp-audit.json)。

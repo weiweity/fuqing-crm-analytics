@@ -1,0 +1,69 @@
+{
+  "cases": {
+    "A3": {
+      "session_id": "session-e1190317-b53b-4b12-b468-e0185a0ea3e3",
+      "native_log_sha256": "05d088b98120bfe98d0cc4200bf192d8744a69cf698a0c97e6c835ae469896bf",
+      "turn_reason": {
+        "kind": "completed"
+      },
+      "native_tool_calls": 4,
+      "computation_calls": 1,
+      "results": [
+        {
+          "capability_id": "diag.yoy",
+          "result_id": "result_diag_367feb5ab5be7f7c200eabb6401cac25cba4afbee251d0c9",
+          "run_id": "run_diag_367feb5ab5be7f7c200eabb6401cac25cba4afbee251d0c9",
+          "evidence_digest": "7a5ac0ed988b1fdb284f35983045527ccc84717fc906dbeb4ed4a7cf62b066c5",
+          "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a"
+        }
+      ],
+      "uncached_input_tokens": 10141,
+      "cached_input_tokens": 49536,
+      "output_tokens": 2498,
+      "numeric_and_condition_checks": "PASS",
+      "citation_check": "PASS: cited run IDs match actual returned IDs; no combined alias",
+      "method_packages": [
+        {
+          "package_digest": "ae3b0f92ac34a11c161b246648ca1c3421cce02c208d2704f708715f72cc0713",
+          "content_digest": "f0d2c54797dff5ac9bf6464bcf9f1ebdda06bf18d05339bf6a8cfcc981f1d345",
+          "resource": "references/evidence-policy.md"
+        }
+      ],
+      "fees": "UNKNOWN: provider billing not queried; these are native usage counters"
+    },
+    "B2": {
+      "session_id": "session-e1789576-43a2-402e-b77f-e35f83a9e758",
+      "native_log_sha256": "79a984ee88f0df41fb5bc3fd040a21a88e6b86e112a1189b54be7752727d21d0",
+      "turn_reason": {
+        "kind": "completed"
+      },
+      "native_tool_calls": 4,
+      "computation_calls": 1,
+      "results": [
+        {
+          "capability_id": "diag.gsv",
+          "result_id": "result_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+          "run_id": "run_diag_37395f8f67fe570a5a7a218291c247a21cc33f52cb4e1fd7",
+          "evidence_digest": "ce5d1dfebdd34ac7c18faab7cc852cddd54b6644d66aeea026f48da0f60bf3b9",
+          "data_digest": "4ed2e7e41226acd33034e931680a998c1399fb5ebda53acd9dec3a70b03fd21c",
+          "filter_hash": "59a9e266efdb0a7a3a3cbac15c9db5cef171e12925062d813e92ff8f6c9edc2a"
+        }
+      ],
+      "uncached_input_tokens": 10215,
+      "cached_input_tokens": 50048,
+      "output_tokens": 3420,
+      "numeric_and_condition_checks": "PASS",
+      "citation_check": "PASS: cited run IDs match actual returned IDs; no combined alias",
+      "method_packages": [
+        {
+          "package_digest": "ae3b0f92ac34a11c161b246648ca1c3421cce02c208d2704f708715f72cc0713",
+          "content_digest": "f0d2c54797dff5ac9bf6464bcf9f1ebdda06bf18d05339bf6a8cfcc981f1d345",
+          "resource": "references/evidence-policy.md"
+        }
+      ],
+      "fees": "UNKNOWN: provider billing not queried; these are native usage counters"
+    }
+  },
+  "overall": "PASS for these bounded equivalence and citation cases only; full T13 remains PARTIAL"
+}

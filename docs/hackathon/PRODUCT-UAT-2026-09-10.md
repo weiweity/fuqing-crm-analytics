@@ -1,8 +1,8 @@
 # 本人验收清单（本地候选）
 
-入口：http://127.0.0.1:4325/。使用已配置 DeepSeek-V4-Flash 的独立实例。模型配置与状态保留在 `competition-product-readiness`，当前插件为提交 `2dae78d`，合成 API 保持原进程；验证提交 `cde6a81` CI SUCCESS，上游固定 `d347e703908d0406b7a7ef80e3a0e594d86b2215`。本清单只验当前合成候选，不作为真实业务或公网验收。
+入口：http://127.0.0.1:4325/。使用已配置 DeepSeek-V4-Flash 的独立实例。模型配置与状态保留在 `competition-product-readiness`，当前插件为提交 `6202e89`，合成 API 保持原进程；代码 CI 34437915131 SUCCESS，上游固定 `d347e703908d0406b7a7ef80e3a0e594d86b2215`。本清单只验当前合成候选，不作为真实业务或公网验收。
 
-最新真实模型复测数值一致，但回答混用了 result_id/run_id；其修正尚待真实复测。详见[候选与评测](PRODUCT-UAT-CANDIDATE-2026-09-10.md)，不把数字正确等同于来源准确。
+最新两条真实模型复测的数值、条件与 result_id/run_id 引用回归通过；完整 T13 及单位/合同归属等表述问题仍开放。详见[候选与评测](PRODUCT-UAT-CANDIDATE-2026-09-10.md)，不把数字正确等同于来源准确。
 
 ## 三条路径
 
