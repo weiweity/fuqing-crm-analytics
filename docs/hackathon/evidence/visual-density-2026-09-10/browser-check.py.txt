@@ -1,0 +1,47 @@
+import json, pathlib, subprocess
+
+base = pathlib.Path(__file__).resolve().parents[2]
+run = pathlib.Path(__file__).resolve().parent
+browse = '/Users/hutou/.codex/skills/gstack/browse/dist/browse'
+check = {'prior_harness_failure': 'First capture parsed an unquoted CLI primitive string as JSON; browser actions had succeeded. Repaired to return an object.'}
+
+def call(*args):
+    r = subprocess.run([browse, *args], cwd=base, capture_output=True, text=True, timeout=15)
+    assert r.returncode == 0, (args, r.stdout, r.stderr)
+    return r.stdout
+
+def js(code):
+    return json.loads(call('js', code))
+
+try:
+    for size in ['390x844', '1024x900', '1440x1000']:
+        call('viewport', size)
+        call('js', 'document.querySelector("[data-testid=analytics-b0-dialog]").scrollTop=0')
+        data = js('''(()=>{const d=document.querySelector("[data-testid=analytics-b0-dialog]");const b=d.querySelector(".sm-block");return {width:innerWidth,dialogWidth:d.clientWidth,scrollWidth:d.scrollWidth,boardTop:b.getBoundingClientRect().top,barCount:b.querySelectorAll(".sm-chart-bar-track").length,chart:b.dataset.plugin,synthetic:d.querySelector(".analytics-asset-context strong").textContent,detailsOpen:d.querySelector("details").open,native:document.documentElement.style.colorScheme,business:[...d.querySelectorAll("[data-sm-color-scheme]")].map(x=>x.dataset.smColorScheme)}})()''')
+        assert data['dialogWidth'] == data['scrollWidth']
+        assert data['barCount'] == 2 and data['chart'] == 'BAR'
+        assert not data['detailsOpen'] and '合成数据' in data['synthetic']
+        assert data['native'] == 'dark' and set(data['business']) == {'dark'}
+        check[size] = data
+    call('js', 'document.querySelector("[data-testid=analytics-asset-details] summary").focus()')
+    call('press', 'Enter')
+    check['details_open_by_enter'] = js('document.querySelector("[data-testid=analytics-asset-details]").open')
+    assert check['details_open_by_enter']
+    call('press', 'Enter')
+    check['details_closed_by_enter'] = not js('document.querySelector("[data-testid=analytics-asset-details]").open')
+    assert check['details_closed_by_enter']
+    call('js', 'document.querySelector("[data-testid=analytics-b0-close]").focus()')
+    call('press', 'Shift+Tab')
+    check['backward_wrap'] = js('({inside:document.querySelector("dialog[open]").contains(document.activeElement),text:document.activeElement.textContent})')
+    assert check['backward_wrap']['inside'] and check['backward_wrap']['text'] == '发送局部编辑'
+    call('press', 'Tab')
+    check['forward_wrap'] = js('({testid:document.activeElement.dataset.testid})')
+    assert check['forward_wrap']['testid'] == 'analytics-b0-close'
+    call('cdp', 'Emulation.setEmulatedMedia', json.dumps({'features':[{'name':'prefers-color-scheme','value':'light'}]}))
+    check['system_switch_light'] = js('({native:document.documentElement.style.colorScheme,business:[...document.querySelectorAll("[data-sm-color-scheme]")].map(x=>x.dataset.smColorScheme)})')
+    assert check['system_switch_light']['native'] == 'light' and set(check['system_switch_light']['business']) == {'light'}
+    call('screenshot', 'docs/hackathon/evidence/visual-density-2026-09-10/screenshots/board-light-1440.png')
+    check['status'] = 'PASS'
+finally:
+    (run/'browser-check.json').write_text(json.dumps(check, ensure_ascii=False, indent=2))
+print(json.dumps(check, ensure_ascii=False))

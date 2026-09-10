@@ -75,6 +75,11 @@ export const competitionBoardCss = `
   min-height: var(--sm-touch); min-width: var(--sm-touch);
 }
 .sm-block-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sm-competition-board .sm-status-banner { margin: 8px 0; padding: 8px 12px; }
+.sm-competition-board .sm-status-banner p { margin: 0; }
+.sm-board-details { margin: 8px 0; font: 13px/20px var(--sm-font-body); overflow-wrap: anywhere; }
+.sm-board-details summary { cursor: pointer; min-height: var(--sm-touch); align-content: center; }
+.sm-board-details summary:focus-visible { outline: 2px solid var(--sm-purple); outline-offset: 2px; }
 .sm-block-controls label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .sm-block-controls select {
   min-height: var(--sm-touch); padding: 0 12px; border-radius: 12px;

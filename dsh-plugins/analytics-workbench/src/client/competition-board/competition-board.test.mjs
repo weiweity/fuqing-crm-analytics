@@ -15,7 +15,35 @@ import { applyLayoutAction, clampLayout, matchLayoutKeyboard } from './layout.mj
 import {
   beginInflight, endInflight, getInflight, getPatchTarget, getUiSelection, resetInflightForTests, setUiSelection,
 } from './selection.mjs';
-import { createFixtureBoardTransport } from './transport.mjs';
+import { createFixtureBoardTransport, createHttpBoardTransport } from './transport.mjs';
+
+test('HTTP connection loss yields a displayable error without retrying an uncertain write', async () => {
+  const calls = [];
+  const transport = createHttpBoardTransport({ fetchImpl: async (path, options) => {
+    calls.push({ path, options });
+    throw new TypeError('private transport detail must not be exposed');
+  } });
+  const read = await transport.listEndorseableResults();
+  assert.equal(read.ok, false);
+  assert.equal(decodeCompetitionError(read.body).code, 'NETWORK_ERROR');
+  const write = await transport.applyPatch(null, { board_id: 'board-1', base_version: 2, idempotency_key: 'same-intent' });
+  assert.equal(write.ok, false);
+  assert.equal(decodeCompetitionError(write.body).request_id, 'client-transport');
+  assert.match(write.body.error.message, /保存结果请以重新读取的版本为准/);
+  assert.doesNotMatch(JSON.stringify(write), /private transport detail/);
+  assert.equal(calls.length, 2, 'one call per operation; no automatic POST retry');
+  assert.equal(calls[1].options.headers['idempotency-key'], 'same-intent');
+  assert.equal(calls[1].options.headers['if-match'], '2');
+});
+
+test('non-contract HTTP errors remain visible and contracted permission errors retain their identity', async () => {
+  const transport = createHttpBoardTransport({ fetchImpl: async () => ({
+    status: 502, json: async () => { throw new SyntaxError('HTML gateway response'); },
+  }) });
+  assert.equal(decodeCompetitionError((await transport.listBoards()).body).code, 'HTTP_ERROR');
+  const denied = createHttpBoardTransport({ fetchImpl: async () => ({ status: 403, json: async () => BOARD_FORBIDDEN }) });
+  assert.deepEqual((await denied.listBoards()).body.error, BOARD_FORBIDDEN.error);
+});
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../../../../../');

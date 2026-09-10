@@ -108,6 +108,34 @@ async function waitFor(check) {
   throw new Error('competition-board DOM wait timeout');
 }
 
+test('compiled board reports disconnected service and a failed saved-board read instead of an empty success', async () => {
+  for (const scenario of ['disconnected', 'board-list-failed', 'board-read-failed']) {
+    const { previous, dom } = installDom();
+    resetInflightForTests();
+    const transport = createHttpBoardTransport({ fetchImpl: async path => {
+      if (scenario === 'disconnected') throw new TypeError('Failed to fetch');
+      if (path.endsWith('/results')) return { status: 200, json: async () => ({ items: [] }) };
+      if (scenario === 'board-read-failed' && path.endsWith('/boards')) {
+        return { status: 200, json: async () => ({ items: [{ board_id: 'unavailable-board' }] }) };
+      }
+      return { status: 502, json: async () => { throw new SyntaxError('not JSON'); } };
+    } });
+    const root = createRoot(document.getElementById('root'));
+    try {
+      await act(() => root.render(React.createElement(CockpitView, { surface: 'competition-board', boardTransport: transport })));
+      await waitFor(() => document.querySelector('[data-testid="sm-error-state"]'));
+      const error = document.querySelector('[data-testid="sm-error-state"]');
+      assert.match(error.textContent, scenario === 'disconnected' ? /无法连接看板服务/ : /HTTP 502/);
+      assert.doesNotMatch(document.body.textContent, /还没有可认可的结果/);
+      assert.equal(document.querySelector('[data-testid="sm-confirm-boards"]').disabled, true);
+      assert.equal(document.querySelector('[data-testid="sm-board-error-details"]').open, false);
+    } finally {
+      await act(() => root.unmount());
+      dom.window.close(); restoreDom(previous); resetInflightForTests();
+    }
+  }
+});
+
 test('T04 compiled DOM preserves GSV 0.25 and formats only the raw ratio as 25%', async () => {
   const result = JSON.parse(readFileSync(join(plugin, 'tests/competition-computed/result.json'), 'utf8'));
   result.facts.current.gsv = 0.25;

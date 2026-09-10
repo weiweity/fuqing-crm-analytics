@@ -151,6 +151,10 @@ async function mountShell(fetchImpl, options = {}) {
     CustomEvent: globalThis.window.CustomEvent,
     requestAnimationFrame: globalThis.window.requestAnimationFrame,
     cancelAnimationFrame: globalThis.window.cancelAnimationFrame,
+    ...(options.competitionHttp ? {
+      COMPETITION_HTTP_BASE: 'http://127.0.0.1:18084',
+      COMPETITION_HTTP_TOKEN: 'test-only-synthetic-token',
+    } : {}),
   };
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
@@ -391,9 +395,76 @@ test('HTTP overlay and mock overlay share the native dialog Tab trap', () => {
   assert.match(overlaySource, /resetKey=\{openTick\}/);
   assert.match(mockOverlaySource, /key=\{openTick\}/);
   assert.match(mockOverlaySource, /openTick = \(draft.openTick \|\| 0\) \+ 1/);
-  assert.match(overlaySource, /B0 同域 \/b0\/dashboards 未接线/);
   assert.match(overlaySource, /data-dsh-native-chrome="1"/);
   assert.match(overlaySource, /gridColumn: '1 \/ -1'/);
+});
+
+test('closed connection details remain keyboard reachable without exposing hidden controls', async () => {
+  const { previous, dom } = installDom();
+  let mounted;
+  try {
+    mounted = await mountShell(connectedBoardFetch().fetchImpl);
+    await waitFor(() => document.querySelector('[data-testid="analytics-asset-details"]'));
+    const dialog = document.querySelector('[data-testid="analytics-b0-dialog"]');
+    const details = dialog.querySelector('[data-testid="analytics-asset-details"]');
+    const summary = details.querySelector('summary');
+    const close = dialog.querySelector('[data-testid="analytics-b0-close"]');
+    assert.equal(details.open, false);
+    // JSDOM has no layout; model a dialog whose only visible controls are
+    // Close and the collapsed summary. Its nested button must not enter the trap.
+    for (const element of dialog.querySelectorAll('*')) {
+      element.getClientRects = () => element === close || element === summary ? [{}] : [];
+    }
+    close.focus();
+    await act(() => close.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      key: 'Tab', shiftKey: true, bubbles: true, cancelable: true,
+    })));
+    assert.equal(document.activeElement, summary);
+    await act(() => summary.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      key: 'Tab', bubbles: true, cancelable: true,
+    })));
+    assert.equal(document.activeElement, close);
+  } finally {
+    if (mounted) mounted.unmount();
+    dom.window.close(); restoreDom(previous);
+  }
+});
+
+test('B0 status and refresh stay on B0 pages while the competition request error remains visible', async () => {
+  const { previous, dom } = installDom();
+  let mounted;
+  const fetchImpl = async url => {
+    const path = String(url);
+    if (path === '/b0/assets') return jsonResponse(200, { http_api: 'CONNECTED', cockpit: true });
+    if (path === '/b0/dashboards') return jsonResponse(404, { error: { message: 'B0 unavailable' } });
+    if (path.endsWith('/results')) return jsonResponse(503, { error: {
+      code: 'SERVICE_UNAVAILABLE', message: '诊断结果暂时不可读取。', http_status: 503, request_id: 'visible-error-1',
+      schema_version: 'competition-error/v1', retryable: true, maps_to: 'backend.contracts.analytics.AnalyticsErrorDetail',
+    } });
+    return jsonResponse(200, { items: [] });
+  };
+  try {
+    mounted = await mountShell(fetchImpl, { competitionHttp: true });
+    await waitFor(() => statusText().includes('此驾驶舱服务暂不可用'));
+    await act(async () => { document.querySelector('[data-testid="analytics-competition-board"]').click(); await delay(30); });
+    await waitFor(() => document.querySelector('[data-testid="sm-error-state"]'));
+    assert.equal(document.querySelector('[data-testid="analytics-asset-refresh"]'), null);
+    assert.equal(document.querySelector('[data-testid="analytics-asset-status"]'), null);
+    assert.match(document.querySelector('[data-testid="sm-error-state"]').textContent, /诊断结果暂时不可读取/);
+    const detail = document.querySelector('[data-testid="sm-board-error-details"]');
+    assert.equal(detail.open, false);
+    assert.match(detail.textContent, /visible-error-1/);
+    assert.equal(document.querySelector('[data-testid="sm-board-save"]'), null);
+    const boundary = document.querySelector('.analytics-asset-context strong');
+    assert.match(boundary.textContent, /合成数据/);
+    assert.equal(boundary.closest('details'), null);
+    await act(async () => { document.querySelector('[data-testid="analytics-asset-board"]').click(); await delay(20); });
+    assert.match(statusText(), /此驾驶舱服务暂不可用/);
+    assert.ok(document.querySelector('[data-testid="analytics-asset-refresh"]'));
+  } finally {
+    if (mounted) mounted.unmount();
+    dom.window.close(); restoreDom(previous);
+  }
 });
 
 test('footer open remounts overlay after close on the same page', async () => {

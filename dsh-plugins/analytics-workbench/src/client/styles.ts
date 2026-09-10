@@ -97,6 +97,13 @@ export const css = `
 .analytics-b0-runs abbr { text-decoration:none; font-variant-numeric:tabular-nums; }
 .analytics-b0-dialog .analytics-cockpit-card { min-height:36px; }
 .analytics-cockpit-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.analytics-cockpit-toolbar button[aria-pressed="true"] { background:var(--dsw-alias-interactive-bg-active); }
+.analytics-asset-context { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 16px; }
+.analytics-asset-context details { flex:1; min-width:160px; }
+.analytics-asset-context summary { cursor:pointer; min-height:36px; align-content:center; }
+.analytics-asset-context details[open] { flex-basis:100%; }
+.analytics-asset-context details p { overflow-wrap:anywhere; }
+.analytics-b0-dialog .sm-competition-board, .analytics-b0-dialog .sm-competition-actions { padding-inline:0; }
 .analytics-cockpit-card[data-card-error="1"] { border-style:dashed; color:var(--dsw-alias-state-error-primary,inherit); }
 @media (max-width:480px) {
   .analytics-b0-dialog { padding:0 16px 16px; width:min(100vw - 24px, 760px); }

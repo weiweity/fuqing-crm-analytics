@@ -213,12 +213,17 @@ export function BoardWorkbench(props: BoardMountProps) {
       : Promise.resolve({ ok: false, status: 404, body: null });
     void listed.then(async row => {
       if (cancelled) return;
+      if (!row.ok) {
+        if (row.body?.error) setError(row.body.error);
+        return;
+      }
       const items = row.ok && Array.isArray(row.body) ? row.body : [];
       const first = items.find(item => item?.board_id) ?? null;
       const targetId = first?.board_id;
       if (!targetId) return;
       const loaded = await transport.loadBoard(targetId);
-      if (cancelled || !loaded.ok) return;
+      if (cancelled) return;
+      if (!loaded.ok) { setError(loaded.body.error); return; }
       setBoard(loaded.body);
       const local = readLocalDraft(loaded.body.board_id);
       if (local) setRestore(local.patch);
@@ -518,18 +523,22 @@ export function BoardWorkbench(props: BoardMountProps) {
           <StatusBanner
             kind="synthetic"
             message={modelAvailable
-              ? 'SYNTHETIC · C0 fixture。经营事实以后端校验为准。'
-              : '此看板入口提供手动编辑；对话诊断请在原生聊天中进行。'}
+              ? '合成数据，仅用于验收。'
+              : '合成数据 · 此看板入口提供手动编辑。'}
           />
-          {error ? (
+          {error ? <>
             <ErrorState
               kind={errorKind(error)}
               title={error.http_status === 409 ? '版本冲突（409）' : error.code}
-              detail={`${error.message} param=${error.param ?? '—'} request_id=${error.request_id}`}
+              detail={error.message}
               actionLabel={error.http_status === 409 ? '重读后再保存' : undefined}
               onAction={error.http_status === 409 ? () => { setError(null); setMessage('已保留本地草案，请核对差异后重做。'); } : undefined}
             />
-          ) : null}
+            <details className="sm-board-details" data-testid="sm-board-error-details">
+              <summary>错误详情</summary>
+              <p>code={error.code} param={error.param ?? '—'} request_id={error.request_id}</p>
+            </details>
+          </> : null}
           {restore && shown ? (
             <section className="sm-leave-restore" data-testid="sm-leave-restore" role="status">
               <p>浏览器草稿可恢复，不是经营事实权威。board {shown.board_id} · attempt {restore.attempt_id}</p>
@@ -558,16 +567,6 @@ export function BoardWorkbench(props: BoardMountProps) {
             <Button htmlType="button" data-current={panel === 'endorse' ? '1' : '0'} onClick={() => setPanel('endorse')}>选择结果</Button>
             <Button htmlType="button" data-current={panel === 'confirm' ? '1' : '0'} onClick={() => setPanel('confirm')}>确认摘要</Button>
             <Button htmlType="button" data-current={panel === 'board' ? '1' : '0'} data-testid="sm-open-board" onClick={() => setPanel('board')}>编辑看板</Button>
-            <Button htmlType="button" data-testid="sm-board-save" disabled={!pending || patchBusy} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</Button>
-            <Button htmlType="button" data-testid="sm-board-undo" disabled={Boolean(pending || restore) || patchBusy} onClick={() => {
-              if (!board || board.version < 2) { setMessage('没有可恢复的历史版本。'); return; }
-              void runPatch(buildPatch({
-                intent: 'STRUCTURE',
-                cockpit_op: { op: 'undo', scope: 'board', restore_from_version: board.version - 1 },
-                idempotency_key: `undo-to-${board.version - 1}-from-${board.version}`,
-              }), 'undo');
-            }}>撤销已保存</Button>
-            <Button htmlType="button" disabled={!dirty || patchBusy} onClick={() => setConfirmLeave(true)}>放弃预览</Button>
           </div>
           {message ? <p role="status" data-testid="sm-board-status">{message}</p> : null}
 
@@ -647,6 +646,18 @@ export function BoardWorkbench(props: BoardMountProps) {
 
           {panel === 'board' ? (
             <section data-testid="sm-board-editor">
+              <div className="sm-competition-toolbar" aria-label="保存与撤销">
+                <Button htmlType="button" data-testid="sm-board-save" disabled={!pending || patchBusy} onClick={() => pending && void runPatch(pending, 'apply')}>保存新版本</Button>
+                <Button htmlType="button" data-testid="sm-board-undo" disabled={Boolean(pending || restore) || patchBusy} onClick={() => {
+                  if (!board || board.version < 2) { setMessage('没有可恢复的历史版本。'); return; }
+                  void runPatch(buildPatch({
+                    intent: 'STRUCTURE',
+                    cockpit_op: { op: 'undo', scope: 'board', restore_from_version: board.version - 1 },
+                    idempotency_key: `undo-to-${board.version - 1}-from-${board.version}`,
+                  }), 'undo');
+                }}>撤销已保存</Button>
+                <Button htmlType="button" disabled={!dirty || patchBusy} onClick={() => setConfirmLeave(true)}>放弃预览</Button>
+              </div>
               {!shown || !shown.block_ids?.length ? (
                 <ErrorState kind="empty" title="空板" detail="无块的已存板仍合法。从已保存分析添加，不预填假 KPI。" />
               ) : null}
@@ -683,8 +694,11 @@ export function BoardWorkbench(props: BoardMountProps) {
                     >
                       {selected ? <p className="sm-block-selected-label">已选中 · 只改此板块</p> : null}
                       <h3>{block.title}</h3>
-                      <p>{block.plugin} · x{layout.x}/y{layout.y}/w{layout.w}/h{layout.h}</p>
                       <RegisteredChart block={block} />
+                      <details className="sm-board-details">
+                        <summary>板块标识与布局</summary>
+                        <p>{block.block_id} · {block.plugin} · x{layout.x}/y{layout.y}/w{layout.w}/h{layout.h}</p>
+                      </details>
                       <div className="sm-block-controls"><label>
                         图表类型
                         <select
