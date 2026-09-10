@@ -1,6 +1,6 @@
 # 伸美 AI 增长董事会
 
-最新独立增量：[看板直达、多板切换与条件证据](./docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md)已修复，完整 B0 及合成浏览器预演通过；4325 尚未切换该补丁，完整产品仍 PARTIAL。
+最新独立增量：[看板直达、多板切换与条件证据](./docs/hackathon/PRODUCT-UAT-NAVIGATION-2026-09-10.md)已进入 4325，验证提交 `cde6a81` CI SUCCESS；真实等价问法数值一致，但发现来源标识混用，完整产品仍 PARTIAL。
 
 > AI 黑客松作品 · 多渠道客户资产诊断 · 受控自由问数与人群决策
 
@@ -8,7 +8,7 @@
 
 > **当前交付（2026-09-10）**：competition 集成 #112 和 7 项审查修复 #114 已合入 main `788b5b1`；PR 与合并后的主线 CI 均通过。独立合成浏览器已验证连续成板、失败重试、保存布局重开及行动草稿 v2，见 [修复 QA](./docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。当前按 [产品验收与发布准备账本](./docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 推进；T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL，整产品仍 PARTIAL。约千万行、10 人使用仍是规划输入，公网尚未部署。
 
-> **候选追加**：#115 `d482bd6` CI SUCCESS，已切换 4325/18083；原生主题、实际 AntD、BAR 重开及五库恢复有本轮证据。快速 canary 仍有既有 B0 404，整产品 PARTIAL。见[当前候选切换](./docs/hackathon/PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。
+> **候选追加**：4325 插件为 `2dae78d`，18083 API 未重启；原有板与模型配置保持，真实复测后为 2 块板、6 条结果。来源标识修正待真实复测，快速 canary 仍有 B0 404，见[当前候选与评测](./docs/hackathon/PRODUCT-UAT-CANDIDATE-2026-09-10.md)。
 
 ---
 

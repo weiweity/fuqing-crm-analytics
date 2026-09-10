@@ -1,0 +1,12 @@
+{
+  "base": "cde6a81ef332414fda815076576f7fb795b37082",
+  "review": "PASS: bounded method clarification, no provider/runtime/schema change; generated resources match source via full pipeline",
+  "tests": "full B0 pipeline PASS",
+  "real_model_fix_verification": "NOT_RUN; A2/B citation failures retained",
+  "source_sha256": {
+    "dsh-plugins/analytics-workbench/skills/competition-growth/SKILL.md": "7517b9d5ec7a1ca9d80588b02c703edb13b6657c9bccfbaf13a67266d30986b8",
+    "dsh-plugins/analytics-workbench/skills/competition-growth/references/evidence-policy.md": "f0d2c54797dff5ac9bf6464bcf9f1ebdda06bf18d05339bf6a8cfcc981f1d345",
+    "dsh-plugins/analytics-workbench/src/competition-agent/frozen-package.json": "842fbe607738fcd4f1f08f752b45ed9b6e5b663ffee5b4f79869978366bcd769",
+    "dsh-plugins/analytics-workbench/src/competition-agent/skill-package.lock.json": "dac1ca2bc12f1b778eaa63b331b3718ecdbb76c423b914adec2b77f1df995566"
+  }
+}

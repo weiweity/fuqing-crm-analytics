@@ -9,13 +9,13 @@
 - DSH 上游：`d347e703908d0406b7a7ef80e3a0e594d86b2215`；准备位置为 `competition-closeout/.context/dsh-b0/upstream`。Node 24.19.0；现有 backend/B0 独立 Python 3.14.4 环境保持。新增业务依赖按本轮锁文件在独立目录安装。
 - DSH runtime：本树 `.context/dsh-dev/runtime-Cn0Ifc`；保留用户配置的 DeepSeek-V4-Flash 凭据和原生会话。模型密钥不写入 Git、日志或备份证据。
 - API 状态：本树 `.context/competition-synth`。启动显式指定 `COMPETITION_SYNTH_PORT=18083`、`COMPETITION_SYNTH_WEB_ORIGIN=http://127.0.0.1:4325`，通过已有 `scripts/competition-synth-http.py` 入口。
-- DSH 与浏览器插件构建使用同一 `COMPETITION_HTTP_BASE` 和 synthetic token；模型证书链使用 `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem`。认证控制状态只供 `cli.mjs` 读取，禁止整文件输出。
+- DSH 与浏览器插件构建使用同一服务根地址 `COMPETITION_HTTP_BASE=http://127.0.0.1:18083` 和 synthetic token（不含 API 路径）；模型证书链使用 `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem`。认证控制状态只供 `cli.mjs` 读取，禁止整文件输出。
 
 完整 B0 pipeline 的默认构建不携带本实例 HTTP 配置。验收前按环境重建插件并重启本工作树拥有的 DSH supervisor；沿用同一 runtime，不能使用 `--fresh` 覆盖用户配置。
 
 ## 当前源码与视觉候选
 
-4325/18083 当前运行 `d482bd6`，已包含主题与状态恢复增量，用户 Models 配置保留原位；本次五库新备份与隔离恢复见[当前切换记录](PRODUCT-CANDIDATE-SWITCH-2026-09-10.md)。数值与取消切换后的五库备份恢复见[切换记录](DIAGNOSIS-CANCELLATION-2026-09-10.md)。下节四库记录保留较早时点，不作为当前完整恢复点。独立[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)已进入当前候选；源码、锁和构建哈希绑定在当前切换证据中。
+4325 当前插件为 `2dae78d`，验证提交 `cde6a81` CI SUCCESS；18083 API 仍为 PID 23661。模型配置和原有板保持，新旧插件及运行绑定见[当前候选与评测](PRODUCT-UAT-CANDIDATE-2026-09-10.md)。真实评测新增计算结果后现有 6 条结果、2 块板，本次没有刷新历史完整备份。方法引用修正尚未进入运行候选。
 
 ## 备份与恢复证据
 

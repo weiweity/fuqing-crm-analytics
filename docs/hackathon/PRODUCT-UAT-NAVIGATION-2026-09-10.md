@@ -41,3 +41,7 @@
 运行环境固定 DSH `d347e703908d0406b7a7ef80e3a0e594d86b2215`、Node 24、已有 Python 3.14。只使用隔离合成状态和本地 dummy provider；不得复制用户 Models 凭据。原始 provider、工作区、浏览器、编辑、视觉与打包脚本存于[证据目录](evidence/uat-navigation-2026-09-10/)，辅助脚本从 `.context/uat-navigation-current.json` 读取独立目录和端口。默认完整检查使用 `node scripts/dsh-b0/pipeline.mjs --check --python /absolute/b0-python`，构建前移除 `COMPETITION_HTTP_*` 环境变量；浏览器插件则显式编入本轮 18084 并复制为独立产物。
 
 本轮预演不是完整 T15：人群来自固定队列，尚未由本次 GSV 自动推导；完整多步诊断、模型编辑、真实鼠标拖动与本人签字仍缺。完整 T13/T17、业务默认值/UNKNOWN、旧 MCP/截断和正式 T16 继续开放，未做真实数据、公网部署或营销发送。
+
+## 后续切换
+
+`cde6a81` 的 CI 34435439275 SUCCESS；随后 4325 已切换源代码 `2dae78d` 的正确 origin 插件，原资产和模型配置保持。前述“未切换/等待 CI”为各历史时点，当前见[切换与真实评测](PRODUCT-UAT-CANDIDATE-2026-09-10.md)。之前 Linux spill 失败未再现但根因未确定。
