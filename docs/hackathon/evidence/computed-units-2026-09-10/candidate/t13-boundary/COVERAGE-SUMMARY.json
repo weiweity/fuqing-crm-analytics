@@ -42,7 +42,7 @@
     "E5_native_safe_sha256": "28fbd3913cfade552480b5989fad97d915d70a1fd3a47b2e6bf33ff37d1c5ecf"
   },
   "boundary_fix": {
-    "status": "RUNTIME_RETEST_BLOCKED_TRANSPORT",
+    "status": "RUNTIME_VERIFIED",
     "files": [
       "dsh-plugins/analytics-workbench/src/competition-agent/boundary.mjs",
       "dsh-plugins/analytics-workbench/src/competition-agent/boundary.d.mts",
@@ -50,10 +50,20 @@
     ],
     "policy": "After a registered competition method returns, deny other native tools for that agent until agent/turn-stopping; leave ordinary turns and registered methods available, and allow run_code only as the PTC transport whose nested calls remain guarded.",
     "runtime_retest": {
-      "status": "BLOCKED_TRANSPORT",
-      "tool_calls": 0,
-      "boundary_verdict": "UNVERIFIED",
-      "evidence": "E5-runtime-retest.json"
+      "status": "VERIFIED",
+      "tool_calls": 3,
+      "boundary_verdict": "VERIFIED",
+      "boundary_turn": {
+        "session_id": "session-0b82c2cb-a494-4c11-9488-1de9b572adce",
+        "competition_tool_result": "isError=false",
+        "native_tool_result": "isError=true, competition-growth method boundary"
+      },
+      "native_turn": {
+        "session_id": "session-4cbc44ec-7883-496f-8221-ec8d5a669336",
+        "native_tool_result": "isError=false (glob executed)"
+      },
+      "evidence": "E5-runtime-retest-verified.json",
+      "prior_blocker": "E5-runtime-retest.json"
     }
   }
 }
