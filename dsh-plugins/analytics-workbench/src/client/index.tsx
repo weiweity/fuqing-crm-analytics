@@ -4,7 +4,7 @@ import { defineStore, type PropsStore } from '@deepseek-ai/dsh-client-store';
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client';
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client';
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client';
+import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client';
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client';
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client';
 import type {} from '@deepseek-ai/dsh-api-session-controller/client';
@@ -28,6 +28,7 @@ import { competitionHttpOptions } from './competition-http.mjs';
 import { ThemeProvider } from './competition-shell/index.ts';
 import { nativeBrandTokens, type CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { PRODUCT_NAME, watchCompetitionBrandSurface } from './brand-surface.mjs';
+import { COCKPIT_PANEL_ID, CockpitMainPanel, CockpitPanelIcon } from './cockpit-main-panel.tsx';
 
 function initialState() {
   try {
@@ -75,7 +76,9 @@ function createWorkbenchStore() {
 }
 
 type StoreProps = PropsStore<ReturnType<typeof createWorkbenchStore>>;
-type FooterProps = PropsRuntime<'sidebar.footer.action'> & StoreProps;
+type FooterProps = PropsRuntime<'sidebar.footer.action'> & StoreProps & {
+  openCockpit?(): boolean;
+};
 type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   detachSelection(): void;
@@ -126,7 +129,10 @@ function Footer(props: FooterProps) {
   return <><style>{css}</style><button className="analytics-b0-trigger" type="button"
     title={live ? '我的驾驶舱' : '我的驾驶舱 · 合成样例'}
     aria-label={live ? '打开我的驾驶舱' : '打开我的驾驶舱，合成样例'}
-    data-testid="analytics-b0-open" onClick={() => props.actions.open()}>
+    data-testid="analytics-b0-open" onClick={() => {
+      if (props.openCockpit?.()) props.actions.close();
+      else props.actions.open();
+    }}>
     {props.wide ? '我的驾驶舱' : '驾驶舱'}
   </button></>;
 }
@@ -237,7 +243,7 @@ function AnalyticsToolCard({ block }: ToolCallViewProps) {
 }
 
 export const name = 'analytics-workbench-b0-client';
-export const inject = ['slots', 'sessions', 'theme'];
+export const inject = ['slots', 'sessions', 'theme', 'layout'];
 
 export function apply(ctx: Context): void {
   ctx.effect(() => bindInitialSession(ctx.sessions, () => {
@@ -249,18 +255,41 @@ export function apply(ctx: Context): void {
   ctx.effect(() => watchCompetitionBrandSurface(), 'competition-brand-surface');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
   ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({ name: 'sidebar.brand.name', priority: -10 }, () => <>{PRODUCT_NAME}</>));
+  const openCockpitPanel = (): boolean => {
+    try {
+      const layout = ctx.layout;
+      if (layout == null || typeof layout.selectPanel !== 'function') return false;
+      layout.selectPanel(COCKPIT_PANEL_ID as MainPanelId);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const goConversation = (): void => {
+    try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
+  };
+  const themeSource = {
+    subscribe: (listener: () => void) => {
+      try {
+        const dispose = ctx.on('theme/change', listener);
+        return () => { dispose(); };
+      } catch { return () => {}; }
+    },
+    getSnapshot: (): CompetitionColorScheme => {
+      try { return ctx.theme.getTheme().active.colorScheme; }
+      catch { return 'dark'; }
+    },
+  };
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store,
+    inject: () => ({ openCockpit: openCockpitPanel }),
   }, Footer));
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store,
     inject: () => {
       let prior: ReturnType<typeof ctx.sessions.list.getSnapshot>['current'];
       return {
-        themeSource: {
-          subscribe: (listener: () => void) => { const dispose = ctx.on('theme/change', listener); return () => { dispose(); }; },
-          getSnapshot: () => ctx.theme.getTheme().active.colorScheme,
-        },
+        themeSource,
         detachSelection() { prior = ctx.sessions.list.getSnapshot().current; ctx.sessions.clear(); },
         restoreSelection() {
           const list = ctx.sessions.list.getSnapshot();
@@ -285,4 +314,11 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20, store,
   }, GenerateCockpitDock));
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist', id: COCKPIT_PANEL_ID, order: 20, label: '驾驶舱',
+  }, CockpitPanelIcon));
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: COCKPIT_PANEL_ID,
+    inject: () => ({ goConversation, themeSource }),
+  }, CockpitMainPanel));
 }

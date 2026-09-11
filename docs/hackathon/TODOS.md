@@ -11,8 +11,8 @@
 - [x] #121 GSV SSOT：`calculations.GSV_PREDICATE`，filters/metrics 生产路径不再各写一份
 - [x] #122 DQ 本地告警：断言与监控失败时发出可观测本地告警，不回接飞书
 - [x] #124 聊天下「生成驾驶舱」：`conversation.input.dock` 打开 overlay 并落到认可成板
-- [ ] **T13 可重放离线 eval**（本刀）：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测
-- [ ] 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit`。查看已存板。代码在 `archive/2026-09-11-cockpit-t2`
+- [x] #125 T13 可重放离线 eval：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测
+- [ ] **侧栏固定入口**（本刀）：`sidebar.panellist` / `main` key=`cockpit`。查看已存板；生成仍走聊天下
 
 ## 当前验收缺口（开放，需对应证据）
 
@@ -27,7 +27,7 @@
 
 ## 已在 main 的证据（不要当成未完成任务）
 
-- [x] #112 集成、#114 七项修复、#115 持久化诊断看板、**#116–#124 收口短 PR**已合入 main（当前 HEAD 见 STATUS）。
+- [x] #112 集成、#114 七项修复、#115 持久化诊断看板、**#116–#125 收口短 PR**已合入 main（当前 HEAD 见 STATUS）。
 - [x] 图表类型持久化与草稿恢复/放弃。
 - [x] 原生浅/深色与业务主题、AntD 表单；完整 T17/视觉仍开放，见[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)。
 - [x] GSV 数值诊断 → 保存 → 成板（合成源）；两条真实 DeepSeek 评测及刷新重开，见[本轮交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。

@@ -392,7 +392,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
         {message && <p role="status" data-testid="analytics-asset-status">{message}</p>}
         {pending && <p className="analytics-b0-preview" data-testid="analytics-cockpit-preview">{pending.label} · 预览未保存</p>}
       </>}
-      {((open && panel === 'competition-board') || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
+      {open && (panel === 'competition-board' || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
         <OverlayErrorBoundary resetKey={openTick}>
           <BoardWorkbench key={openTick} initialPanel={intent === 'generate' ? 'endorse' : (competitionHttp ? 'board' : undefined)} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
         </OverlayErrorBoundary>
