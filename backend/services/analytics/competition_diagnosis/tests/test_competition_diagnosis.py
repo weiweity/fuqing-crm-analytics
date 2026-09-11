@@ -17,6 +17,12 @@ def test_offline_eval_suite_passes():
     assert report["failed"] == []
     assert report["passed"] == report["total"]
     assert report["total"] >= 20
+    by_id = {item["id"]: item for item in report["results"]}
+    inherit = by_id["T03-step-inherit"]
+    assert inherit["payload"]["result"]["result_id"] != inherit["payload"]["result"]["run_id"]
+    assert "GSV 下降不能断言最佳投放 ROI" in by_id["T13-stub-gsv-not-roi"]["payload"]["error"]["message"]
+    limitations = by_id["T03-step-recompute-unsupported"]["payload"]["result"]["limitations"]
+    assert any("C0 不把 B0 STUB 或未核清口径写成 SUPPORTED" in item for item in limitations)
 
 
 def test_tools_do_not_expose_old_routes():

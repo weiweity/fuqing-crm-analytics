@@ -108,6 +108,19 @@ def run_case(case: dict[str, Any]) -> dict[str, Any]:
         actual = _lookup(payload, key)
         if isinstance(actual, list) and value in actual:
             failures.append(f"{key} unexpectedly has {value!r}")
+    for left, right in case.get("expect_ne") or []:
+        if _lookup(payload, left) == _lookup(payload, right):
+            failures.append(f"{left} must differ from {right}")
+    for key, value in (case.get("expect_contains") or {}).items():
+        actual = _lookup(payload, key)
+        if isinstance(actual, list):
+            text = "\n".join(str(item) for item in actual)
+        elif isinstance(actual, str):
+            text = actual
+        else:
+            text = ""
+        if value not in text:
+            failures.append(f"{key} missing {value!r}")
     return {
         "id": case["id"],
         "ok": not failures,
@@ -132,6 +145,9 @@ def _lookup(payload: dict[str, Any], key: str) -> Any:
     for part in key.split("."):
         if isinstance(current, dict) and part in current:
             current = current[part]
+        elif isinstance(current, list) and part.isdigit():
+            index = int(part)
+            current = current[index] if 0 <= index < len(current) else None
         else:
             return None
     return current

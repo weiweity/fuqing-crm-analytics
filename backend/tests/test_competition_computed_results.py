@@ -56,6 +56,9 @@ def calculate(source, request=None, cap="diag.gsv", actor=PRINCIPAL):
 
 def test_two_period_arithmetic_and_order_grain(source):
     result = calculate(source)
+    assert result.result_id != result.run_id
+    assert result.result_id.startswith("result_diag_")
+    assert result.run_id.startswith("run_diag_")
     assert result.facts.current.gsv == 140  # 30+60+60-20+10
     assert result.facts.comparison.gsv == 135  # 100+40-10+5
     assert result.facts.difference == 5
@@ -146,6 +149,14 @@ def test_zero_comparison_returns_null_ratio(source, both_zero):
     assert result.facts.change_ratio_unavailable_reason == "ZERO_COMPARISON_GSV"
 
 
+def test_unimplemented_capability_refuses_without_inventing_facts(source):
+    with pytest.raises(AnalyticsError) as exc:
+        calculate(source, cap="diag.rfm")
+    assert exc.value.status == 422
+    assert exc.value.code == "UNSUPPORTED_CAPABILITY"
+    assert "尚未实现所请求的诊断能力" in exc.value.message
+
+
 def test_current_permissions_and_corrupt_snapshot_fail(source):
     with pytest.raises(AnalyticsError) as exc:
         calculate(source, actor=AnalyticsPrincipal("alice", frozenset(), PRINCIPAL.data_scopes))
@@ -186,6 +197,7 @@ def test_legacy_v1_roundtrip_keeps_original_facts_and_digest():
 
 def test_undeclared_unit_is_unknown_without_changing_source_digest(source):
     result = calculate(source)
+    assert result.result_id != result.run_id
     assert result.facts.schema_version == "competition-gsv-facts/v2"
     assert result.facts.money_unit.model_dump() == {"status": "UNKNOWN", "currency": None, "amount_unit": None}
     # The existing loader normalizes publication time to UTC before hashing.

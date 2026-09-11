@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- T13 离线 eval 增加可重放断言：`result_id ≠ run_id`、拒答文案包含诚实口径、`money_unit` 随结果。不代替真实模型复测。
+
 - 聊天下增加「生成驾驶舱」：`conversation.input.dock` 打开 overlay 并落到认可成板。侧栏 panellist 固定入口后做。
 
 - 施工队列勾选 #121 GSV、#122 DQ。

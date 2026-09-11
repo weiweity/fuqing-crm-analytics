@@ -146,6 +146,9 @@
       "expect": {
         "error.code": "ROI_UNSUPPORTED",
         "expanded_tools": false
+      },
+      "expect_contains": {
+        "error.message": "GSV 下降不能断言最佳投放 ROI"
       }
     },
     {
@@ -177,7 +180,11 @@
         "condition_trace.mode": "INHERIT",
         "support_status": "PARTIAL",
         "analysis_complete": false
-      }
+      },
+      "expect_ne": [
+        ["result.result_id", "result.run_id"],
+        ["evidence.result_id", "evidence.run_id"]
+      ]
     },
     {
       "id": "T03-step-gmv-rejected",
@@ -229,7 +236,13 @@
         "result.completeness": "UNSUPPORTED",
         "support_status": "UNSUPPORTED",
         "analysis_complete": false
-      }
+      },
+      "expect_contains": {
+        "result.limitations": "C0 不把 B0 STUB 或未核清口径写成 SUPPORTED"
+      },
+      "expect_ne": [
+        ["result.result_id", "result.run_id"]
+      ]
     },
     {
       "id": "T03-empty-mtd",
