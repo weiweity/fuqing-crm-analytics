@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-- 施工队列勾选 #121 GSV、#122 DQ；下一刀 T13 离线 eval。
+- 聊天下增加「生成驾驶舱」：`conversation.input.dock` 打开 overlay 并落到认可成板。侧栏 panellist 固定入口后做。
+
+- 施工队列勾选 #121 GSV、#122 DQ。
 
 - DQ 断言与监控失败时发出可观测本地告警（不回接飞书）；测试断言告警真正发出。
 

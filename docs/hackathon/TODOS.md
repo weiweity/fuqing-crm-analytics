@@ -10,8 +10,9 @@
 - [x] #119 访客入会率 API 0-1 raw，前端水平值 `*100`
 - [x] #121 GSV SSOT：`calculations.GSV_PREDICATE`，filters/metrics 生产路径不再各写一份
 - [x] #122 DQ 本地告警：断言与监控失败时发出可观测本地告警，不回接飞书
-- [ ] **T13 可重放离线 eval**（下一刀，说「开 T13」）：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测。代码在 `archive/2026-09-11-iron-rules-t4`，不要顺手捡驾驶舱
-- [ ] 驾驶舱 UI 上 main：`sidebar.panellist` / `main` key=`cockpit` + TOOL_SPECS。代码在 `archive/2026-09-11-cockpit-t2`。钉已是 0.1.5，可以上 main，排在本队列最后
+- [ ] **聊天下「生成驾驶舱」**（本刀）：`conversation.input.dock` 按钮打开 overlay，落到认可成板。侧栏 tab 不要顺手捡
+- [ ] T13 可重放离线 eval：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测。代码在 `archive/2026-09-11-iron-rules-t4`
+- [ ] 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit`。查看已存板。代码在 `archive/2026-09-11-cockpit-t2`
 
 ## 当前验收缺口（开放，需对应证据）
 

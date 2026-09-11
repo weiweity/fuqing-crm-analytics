@@ -15,7 +15,7 @@ import {
 } from '../model.mjs';
 import { css } from './styles.ts';
 import { trapDialogTab } from './focus.ts';
-import { bindInitialSession } from '../initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { FIRST_PURCHASE_TOOL_NAME } from '../first-purchase-query-model.mjs';
 import { QueryToolCard } from './query-card.tsx';
@@ -35,13 +35,14 @@ function initialState() {
     return {
       open: false,
       openTick: 0,
+      intent: 'view' as 'view' | 'generate',
       confirmClose: false,
       editor: createEditor(restored.title),
       message: restored.invalid ? '本地 UI 偏好格式无效，已使用默认标题。'
         : restored.restored ? '已恢复本浏览器的 UI 标题；不是业务后端持久化。' : '',
     };
   } catch {
-    return { open: false, openTick: 0, confirmClose: false, editor: createEditor(), message: '浏览器存储不可用；本次 UI 修改仅在当前页面有效。' };
+    return { open: false, openTick: 0, intent: 'view' as const, confirmClose: false, editor: createEditor(), message: '浏览器存储不可用；本次 UI 修改仅在当前页面有效。' };
   }
 }
 
@@ -49,8 +50,9 @@ function createWorkbenchStore() {
   return defineStore({
     init: initialState,
     actions: {
-      open: draft => { draft.open = true; draft.confirmClose = false; draft.openTick = (draft.openTick || 0) + 1; },
-      close: draft => { draft.open = false; draft.confirmClose = false; },
+      open: draft => { draft.open = true; draft.intent = 'view'; draft.confirmClose = false; draft.openTick = (draft.openTick || 0) + 1; },
+      openGenerate: draft => { draft.open = true; draft.intent = 'generate'; draft.confirmClose = false; draft.openTick = (draft.openTick || 0) + 1; },
+      close: draft => { draft.open = false; draft.intent = 'view'; draft.confirmClose = false; },
       requestClose: draft => {
         if (draft.editor.draft !== draft.editor.title || draft.editor.preview) draft.confirmClose = true;
         else draft.open = false;
@@ -58,7 +60,7 @@ function createWorkbenchStore() {
       keepEditing: draft => { draft.confirmClose = false; },
       discardAndClose: draft => {
         draft.editor = changeDraft(draft.editor, draft.editor.title);
-        draft.open = false; draft.confirmClose = false;
+        draft.open = false; draft.intent = 'view'; draft.confirmClose = false;
       },
       edit: (draft, title: string) => { draft.editor = changeDraft(draft.editor, title); draft.message = ''; },
       preview: draft => {
@@ -100,6 +102,20 @@ function RoutedOverlay(props: OverlayProps) {
 function BrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>) {
   return <><style>{css}</style><span className="analytics-b0-mark" role="img" aria-label="伸美原帽子标识"
     style={{ width: size, height: size }} /></>;
+}
+
+type DockProps = PropsRuntime<'conversation.input.dock'> & StoreProps;
+
+function GenerateCockpitDock(props: DockProps) {
+  const id = props.session.sessionId;
+  if (id !== B0_PRIMARY_SESSION_ID && !QUERY_SESSION_IDS.some(value => value === id)) return null;
+  return <><style>{css}</style>
+    <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-cockpit"
+      title="用这次认可的分析结果生成驾驶舱"
+      aria-label="生成驾驶舱"
+      onClick={() => props.actions.openGenerate()}>
+      生成驾驶舱
+    </button></>;
 }
 
 function Footer(props: FooterProps) {
@@ -266,4 +282,7 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));
+  ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
+    name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20, store,
+  }, GenerateCockpitDock));
 }

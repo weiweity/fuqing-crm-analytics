@@ -16,7 +16,7 @@ import { competitionHttpOptions } from './competition-http.mjs';
 type DashboardDoc = NonNullable<ReturnType<typeof decodeHttpDashboard>>;
 type AnalysisItem = { analysis_id: string; version: number; title: string; observation_days?: number; as_of?: string };
 type OverlayProps = PropsRuntime<'shell.overlay'> & {
-  useStore<T>(selector: (state: { open: boolean; confirmClose: boolean; openTick?: number }) => T): T;
+  useStore<T>(selector: (state: { open: boolean; confirmClose: boolean; openTick?: number; intent?: 'view' | 'generate' }) => T): T;
   actions: {
     close(): void;
     requestClose(): void;
@@ -42,12 +42,15 @@ function clampLayout(layout: { x: number; y: number; w: number; h: number }, pat
 export function HttpAssetOverlay(props: OverlayProps) {
   const open = props.useStore((state: { open: boolean }) => state.open);
   const openTick = props.useStore((state: { openTick?: number }) => state.openTick ?? 0);
+  const intent = props.useStore((state: { intent?: 'view' | 'generate' }) => state.intent ?? 'view');
   const confirmClose = props.useStore((state: { confirmClose: boolean }) => state.confirmClose);
   const selectedSession = props.useSessions(state => state.current);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
   const competitionHttp = competitionHttpOptions();
-  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>(competitionHttp ? 'competition-board' : 'board');
+  const [panel, setPanel] = useState<'board' | 'analyses' | 'competition-board' | 'competition-actions'>(
+    intent === 'generate' || competitionHttp ? 'competition-board' : 'board',
+  );
   const [dashboard, setDashboard] = useState<DashboardDoc | null>(null);
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -73,6 +76,9 @@ export function HttpAssetOverlay(props: OverlayProps) {
     setDashboard(next);
   }
 
+  useEffect(() => {
+    if (open && intent === 'generate') setPanel('competition-board');
+  }, [open, openTick, intent]);
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -388,7 +394,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
       </>}
       {((open && panel === 'competition-board') || visited.board) && <section hidden={panel !== 'competition-board'} data-panel="competition-board" data-testid="analytics-competition-board-view">
         <OverlayErrorBoundary resetKey={openTick}>
-          <BoardWorkbench key={openTick} initialPanel={competitionHttp ? 'board' : undefined} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
+          <BoardWorkbench key={openTick} initialPanel={intent === 'generate' ? 'endorse' : (competitionHttp ? 'board' : undefined)} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
         </OverlayErrorBoundary>
       </section>}
       {(panel === 'competition-actions' || visited.actions) && <section hidden={panel !== 'competition-actions'} data-panel="competition-actions" data-testid="analytics-competition-actions-view">

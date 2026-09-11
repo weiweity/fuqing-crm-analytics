@@ -86,6 +86,19 @@ export const css = `
 .analytics-query-card p, .analytics-query-card small { margin:6px 0; overflow-wrap:anywhere; word-break:break-word; font-variant-numeric:tabular-nums; }
 .analytics-query-card button { margin:8px 8px 0 0; }
 .analytics-query-card abbr { text-decoration:underline dotted; font-variant-numeric:tabular-nums; }
+.analytics-b0-generate-dock {
+  display:flex; align-items:center; justify-content:center; box-sizing:border-box;
+  width:calc(100% - 2 * var(--dsh-composer-side-clearance,16px) - 4 * var(--dsh-composer-dock-inset,8px));
+  max-width:calc(var(--dsh-composer-card-max-width,780px) - 4 * var(--dsh-composer-dock-inset,8px));
+  margin:0 auto 8px; height:36px; min-height:36px; padding:0 12px; border:0; border-radius:12px;
+  background:var(--dsw-alias-interactive-bg-hover,transparent);
+  color:var(--dsw-alias-label-primary,inherit);
+  font:var(--dsw-font-s-14,14px/22px inherit); cursor:pointer;
+}
+.analytics-b0-generate-dock:hover { background:var(--dsw-alias-interactive-bg-active,transparent); }
+.analytics-b0-generate-dock:focus-visible {
+  outline:2px solid var(--dsw-alias-brand-primary,currentColor); outline-offset:2px;
+}
 .analytics-b0-runs {
   box-sizing:border-box; flex:none; pointer-events:auto;
   width:calc(100% - 2 * var(--dsh-composer-side-clearance,16px) - 4 * var(--dsh-composer-dock-inset,8px));
