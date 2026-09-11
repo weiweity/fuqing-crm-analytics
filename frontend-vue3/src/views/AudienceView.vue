@@ -1616,7 +1616,7 @@ const visitorTrendChartOption = computed(() => {
       {
         name: '入会率',
         type: 'line',
-        data: data.map((d) => d.member_join_rate),
+        data: data.map((d) => d.member_join_rate * 100),
         smooth: true,
         symbol: 'none',
         lineStyle: { width: 2.5, color: '#f59e0b' },
@@ -1626,7 +1626,7 @@ const visitorTrendChartOption = computed(() => {
       {
         name: `${compareLabelShort.value}入会率`,
         type: 'line',
-        data: data.map((d) => d.ly_member_join_rate),
+        data: data.map((d) => d.ly_member_join_rate * 100),
         smooth: true,
         symbol: 'none',
         lineStyle: { width: 1.5, color: '#d1d5db', type: 'dashed' },
@@ -1935,7 +1935,7 @@ const channelMemberXlsxColumns = computed(() => {
           <n-gi :span="1" class="h-full">
             <MetricCard
               title="会员入会率"
-              :value="visitorSummary ? `${visitorSummary.member_join_rate.toFixed(2)}%` : '—'"
+              :value="visitorSummary ? `${(visitorSummary.member_join_rate * 100).toFixed(2)}%` : '—'"
               :change="visitorChange('member_join_rate_yoy', 'member_join_rate_mom')"
               :loading="visitorLoading"
               unit="pp"
@@ -1944,7 +1944,7 @@ const channelMemberXlsxColumns = computed(() => {
           <n-gi :span="1" class="h-full">
             <MetricCard
               :title="`${compareLabelShort}入会率`"
-              :value="visitorSummary ? `${visitorSummary.ly_member_join_rate.toFixed(2)}%` : '—'"
+              :value="visitorSummary ? `${(visitorSummary.ly_member_join_rate * 100).toFixed(2)}%` : '—'"
               :loading="visitorLoading"
             />
           </n-gi>

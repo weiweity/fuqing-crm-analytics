@@ -96,6 +96,23 @@ def test_daily_trend_member_join_rate_uses_percentage_field():
     )
 
 
+def test_visitor_summary_accepts_raw_ratio_over_one():
+    """累计入会率 >100% 在 0-1 raw 下是 1.2726，schema 必须接受。"""
+    resp = VisitorSummaryResponse(
+        start_date="2026-05-13",
+        end_date="2026-06-12",
+        visitors=10000,
+        new_members=12000,
+        member_join_rate=1.2726,
+        ly_visitors=9000,
+        ly_new_members=8000,
+        ly_member_join_rate=0.8888,
+        member_join_rate_yoy=0.3838,
+    )
+    assert resp.member_join_rate == 1.2726
+    assert resp.member_join_rate_yoy == 0.3838
+
+
 def test_visitor_summary_accepts_over_100_percentage():
     """业务场景: 累计入会率 >100% (Sprint 4 P0 多次入会累计), schema 必须接受.
 
