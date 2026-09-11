@@ -1,13 +1,15 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-08 本分支 v0.6.1.0 overlay 编译后 DOM（undo/add/createBoard/409）；`origin/main` 仍为 v0.6.0.0。产品仍 PARTIAL。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-11。`origin/main` 为 **v0.7.0.0**（#108–#115 已合）。当前 SHA 与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 
 | 文档 | 用途 |
 |---|---|
-| [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界 |
+| [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界（证据链；当前 SHA 看 STATUS） |
+| [`hackathon/PRODUCT-READINESS-2026-09-10.md`](./hackathon/PRODUCT-READINESS-2026-09-10.md) | 七阶段验收账本 |
+| [`hackathon/TODOS.md`](./hackathon/TODOS.md) | 验收缺口与延期项（不是执行授权） |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
 | [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
 | [`../DESIGN.md`](../DESIGN.md) | 伸美 VI、Liquid Glass 令牌与页面组件边界 |
