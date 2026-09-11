@@ -35,5 +35,6 @@ def test_status_is_short_with_history_archive():
     status = (REPO / "STATUS.md").read_text(encoding="utf-8")
     assert "当前快照" in status
     assert "STATUS-HISTORY.md" in status
-    assert len(status.splitlines()) < 40
+    assert "本轮施工计划" in status
+    assert len(status.splitlines()) < 80
     assert (REPO / "docs/history/STATUS-HISTORY.md").is_file()

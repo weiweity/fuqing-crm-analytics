@@ -18,6 +18,8 @@ Sample CRM - 指标注册表 (Metrics Registry)
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+from backend.semantic.calculations import GSV_AMOUNT_COL, GSV_PREDICATE
+
 
 @dataclass
 class MetricDefinition:
@@ -49,7 +51,7 @@ METRICS: Dict[str, MetricDefinition] = {
     "gsv": MetricDefinition(
         key="gsv",
         name="GSV",
-        sql_expr="SUM(CASE WHEN (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN actual_amount ELSE 0 END)",
+        sql_expr=f"SUM({GSV_AMOUNT_COL})",
         description="有效销售额，剔除购物金和退款订单",
         filters=["gsv"],
         dimensions=["date", "channel", "spu_tier", "spu_product_class", "spu_product_subclass", "province", "city", "segment"],
@@ -67,7 +69,7 @@ METRICS: Dict[str, MetricDefinition] = {
     "member_gsv": MetricDefinition(
         key="member_gsv",
         name="会员GSV",
-        sql_expr="SUM(CASE WHEN is_member = TRUE AND (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN actual_amount ELSE 0 END)",
+        sql_expr=f"SUM(CASE WHEN is_member = TRUE AND ({GSV_PREDICATE}) THEN actual_amount ELSE 0 END)",
         description="会员订单的有效销售额",
         filters=["member", "gsv"],
         dimensions=["date", "channel", "spu_tier", "province", "segment"],
@@ -120,7 +122,7 @@ METRICS: Dict[str, MetricDefinition] = {
     "gsv_order_count": MetricDefinition(
         key="gsv_order_count",
         name="有效订单数",
-        sql_expr="COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN order_id END)",
+        sql_expr=f"COUNT(DISTINCT CASE WHEN ({GSV_PREDICATE}) THEN order_id END)",
         description="GSV口径下的去重订单数",
         filters=["gsv"],
         dimensions=["date", "channel", "spu_tier", "province", "segment"],
