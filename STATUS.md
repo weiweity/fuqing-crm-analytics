@@ -2,31 +2,33 @@
 
 > 当前短表；编年与旧运维事项见 [STATUS-HISTORY.md](docs/history/STATUS-HISTORY.md)。
 
-## 当前快照（2026-09-10）
+## 当前快照（2026-09-11）
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | `0.7.0.0` / `788b5b1`（#114）；#112 比赛集成及 #114 七项修复已合并 |
-| 当前候选 | #115 draft，head `2dad216`，CI [34465750440](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34465750440) SUCCESS；4325/18083 运行 `84b0ac8` 插件产物；[当前候选](docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) |
-| 视觉增量 | 原生浅/深色、实际 AntD、首屏精简、键盘详情与断连恢复已进入候选；[独立验证](docs/hackathon/PRODUCT-VISUAL-DENSITY-2026-09-10.md)通过，完整 T17/视觉仍 PARTIAL |
-| 最新增量 | 五库恢复、原生未知/旧单位展示、真实金额单位/改期/拒答局部复测完成，完整 T13 PARTIAL；[单位修复](docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) |
-| main CI | [34386758906](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34386758906) SUCCESS，绑定 `788b5b1`；不代表本轮未提交修改通过 CI |
-| 本轮修复 | 图表类型经预览/保存落盘，刷新重开保持；普通原生会话不再误报 B0 中断；原生比赛工具注册、条件入参及显式 CA 配置已补齐 |
-| 验证 | `d482bd6` [CI 34418047588 SUCCESS](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34418047588)：Linux 后端 2322 passed / 79 skipped，B0 480 passed / 20 warnings；本地后端 2324 passed / 77 skipped |
-| T13 | GSV 两条真实 DeepSeek 评测 PASS：ALL 410/305、CH_RETAIL 400/300；原生工具边界 runtime 复测 PASS（competition 回合原生工具被拒，普通原生回合不受影响）；A6/A7 HTTP transport、旧 MCP/截断、默认值与 UNKNOWN 口径已分项取证。完整 T13 仍 PARTIAL，见[边界复测](docs/hackathon/evidence/computed-units-2026-09-10/candidate/t13-boundary/E5-runtime-retest-verified.json)与 [transport 覆盖](docs/hackathon/evidence/computed-units-2026-09-10/candidate/t13-transport/TRANSPORT-COVERAGE.json) |
-| T15 / T16 / T17 | 用户本人 UAT 待执行；正式容量范围/阈值待确认；原生审批与权限已补验；[目录选择、五种 preset 和手动压缩恢复](docs/hackathon/PRODUCT-NATIVE-EXTENDED-2026-09-10.md)局部 PASS，完整 T17 仍 PARTIAL |
-| 产品边界 | B0、比赛合成 HTTP、旧 CRM 分开；真实人群/完整诊断、完整视觉及旧 MCP 开放项仍保留 |
-| 原服务 | 4327（PID 81058）、8000/5173（36717/36727）、14327（90347）未动；不是本轮运行证据 |
-| 本轮候选 | 4325 DSH + 18083 合成 API，独立状态；保留供配置和验收，停止仅限本轮实例 |
-| 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；本轮只核对文件元数据约 131GB，未打开、复制或改写 |
-| 发布 | 本地界面候选已更新；本次保留新旧插件，API/状态库不变，旧资产与模型选择一致。此前五库备份恢复为历史快照。快速 canary DEGRADED（既有 B0 404）；#115 未合并，非正式 release |
+| VERSION / main | `0.7.0.0` / `bda4e47`（vitest 4.1.11）；#112、#114、**#115 已合并**（#115 = `f380c1e`） |
+| main CI | [34566156877](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34566156877) SUCCESS，绑定 `bda4e47`；#115 合并 CI [34498144935](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34498144935) SUCCESS |
+| DSH 钉 | **main 固定 0.1.3-alpha.1**（`d347e703`）。`sidebar.panellist` 只存在于 **0.1.5-rc.1**（`codex/competition-next`，`183f08e9`）。在 main 上核对槽位会得到假阴性 |
+| 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
+| T15 / T16 / T17 | T15 须用户本人 UAT；T16 仅单用户合成基线；T17 视觉与其余边界仍开放 |
+| 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；约 131GB。禁止打开、复制、改写或对其执行 SQL |
+| 发布 | 非正式 release。公网部署仍要独立授权 |
+
+## 当前施工边界（防乱）
+
+下一轮默认只做已授权的短 PR。遇到下列项就停，不要当顺手活：
+
+- 不要把比赛工具接到通用 metric HTTP，也不要把 `ChannelFollowupQueryRequest` 泛化成新合同
+- 不要给模型新增 SQL 工具，不要从 `FORBIDDEN_EXPANSIONS` 拿掉 `execute_sql`，不要把 `ai_sandbox` 接到比赛 Agent
+- 驾驶舱 0.1.5 槽位（`sidebar.panellist` / `main` key=`cockpit`）只在 `codex/competition-next` 施工；不要改 DSH 上游
+- T3 备份、`cleanup_backups.sh` 的 `keep_min`、口令轮换、T15 本人验收：要显式授权
+- 未提交的 visitor / GSV / DQ / 驾驶舱 WIP 在本地归档分支，**不在 main 上**
 
 ## 验证与历史入口
 
-本地及 CI 按 [验证入口](docs/operating/verification.md) 的共同路径矩阵执行；skip 不算运行通过。固定 DSH、Node/Python、React 和 TypeScript 未升级；视觉增量新增 AntD 锁及声明补丁，并修复构建依赖链的 js-yaml。
+本地及 CI 按 [验证入口](docs/operating/verification.md)。skip 不算运行通过。B0 当轮 T01–T09 已收口，清单是历史队列，不是当前任务卡。
 
-#114 最终候选 CI `34385964860` 与合并后 main CI 均已核验，见 [维修 QA](docs/hackathon/COMPETITION-REPAIR-QA-2026-09-10.md)。本轮独立证据与开放项以 [产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) 为准。
+#108 首购、W4/W5 和更早测试数已迁入 [历史记录](docs/history/STATUS-HISTORY.md)，不扩大为当前真实模型、容量或业务验收通过。
 
-#108 首购、W4/W5 和更早测试数、原生 stub 闭环及历史运维门禁已迁入 [历史记录](docs/history/STATUS-HISTORY.md)，不扩大为当前真实模型、容量或业务验收通过。
-
-行为与数据边界见 [AGENTS.md](AGENTS.md)，设计合同见 [DESIGN.md](DESIGN.md)，其他债务见 [TECH-DEBT](docs/TECH-DEBT.md)。
+行为与数据边界见 [AGENTS.md](AGENTS.md)，设计合同见 [DESIGN.md](DESIGN.md)，开放债见 [TECH-DEBT](docs/TECH-DEBT.md)，验收缺口见 [TODOS](docs/hackathon/TODOS.md)。
