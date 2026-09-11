@@ -28,7 +28,8 @@
 | 6 | DQ 本地告警（不接飞书） | #122 | 已合 |
 | 7 | 聊天下「生成驾驶舱」（`conversation.input.dock`） | #124 | 已合 |
 | 8 | T13 可重放离线 eval | #125 | 已合 |
-| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | 本短 PR | **本刀**：查看已存板；生成仍走聊天下 |
+| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | #126 | 已合 |
+| 10 | dsh-dev 收进 main：6677 + 插件插拔 | 本短 PR | **本刀**：只留 main 起 6677；`--plugin off` 回官方壳 |
 
 ## 当前施工边界（防乱）
 

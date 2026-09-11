@@ -1,12 +1,15 @@
-/** Own 4325-4329 or competition 14327. Never probe-kill foreign listeners. */
+/** Own 4325-4329, competition 14327, or local 6677. Never probe-kill foreign listeners. */
 import assert from 'node:assert/strict';
 import { createServer } from 'node:net';
 import {
-  ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, FOREIGN_PORTS, HOST, PORT_RANGE, PORTS,
+  ALLOWED_WEB_PORTS, BROWSER_BLOCKED_PORTS, COMPETITION_VITE_PORT, FOREIGN_PORTS, HOST,
+  PORT_RANGE, PORTS,
 } from './constants.mjs';
 
 export function assertOwnedPort(port) {
   const n = Number(port);
+  assert.ok(!BROWSER_BLOCKED_PORTS.includes(n),
+    `port ${n} is on the Chromium ERR_UNSAFE_PORT blocklist; a listener here never renders in a browser`);
   assert.ok(Number.isInteger(n) && ALLOWED_WEB_PORTS.includes(n),
     `port must be one of ${ALLOWED_WEB_PORTS.join(',')}`);
   assert.notEqual(n, COMPETITION_VITE_PORT, '15173 is reserved for Vite; dsh-dev must not bind it');

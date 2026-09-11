@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { writeFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, NATIVE_WEB_IDS, PLUGIN_UI_ID } from './constants.mjs';
+import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, NATIVE_WEB_IDS } from './constants.mjs';
+import { pluginRowState } from './overlay.mjs';
 import { repoRoot, contextRoot, currentPath } from './paths.mjs';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { bootHost, dumpConfig, parseServeArgs, prepareRuntime, readCurrent, stopOwned, writeCurrent, terminateChild } from './serve.mjs';
+import { bootHost, dumpConfig, installProfilePlugin, parseServeArgs, prepareRuntime, readCurrent, stopOwned, writeCurrent, terminateChild } from './serve.mjs';
 import { diagnose, printDiagnose } from './diagnose.mjs';
 
 const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status|diagnose>
@@ -17,7 +18,7 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --plugin-path /absolute/plugin
   --extra-patch /absolute/overlay.yml
   --runtime /absolute/runtime
-  --web-port 4327|14327
+  --web-port ${ALLOWED_WEB_PORTS.join('|')}
   --host 127.0.0.1
   --detach          start only
   --fresh           new runtime dir under .context/dsh-dev/
@@ -55,13 +56,16 @@ function assertDumpContainsNative(text) {
 
 async function runCheck(options) {
   const prepared = await prepareRuntime({ ...options, fresh: options.runtime ? options.fresh : true });
+  if (prepared.enabled) installProfilePlugin(prepared);
   const dump = await dumpConfig(prepared);
   await writeFile(join(prepared.runtime, 'dump-config.txt'), dump, { mode: 0o600 });
   assertDumpContainsNative(dump);
+  const row = pluginRowState(dump);
   if (prepared.enabled) {
-    assert.ok(dump.includes(PLUGIN_UI_ID), 'plugin overlay was not composed into dump-config');
+    assert.equal(row.present, true, 'plugin overlay was not composed into dump-config');
+    assert.equal(row.disabled, false, 'plugin row is disabled while --plugin on');
   } else {
-    assert.equal(dump.includes(PLUGIN_UI_ID), false, 'plugin overlay leaked into plugin-off dump');
+    assert.equal(row.disabled, true, 'plugin row is still active in a plugin-off dump');
   }
   console.log(`DSH_DEV_CHECK pinned=${prepared.verified.upstream_sha} plugin=${prepared.enabled ? 'on' : 'off'}`);
   console.log(`DSH_DEV_DUMP ${join(prepared.runtime, 'dump-config.txt')}`);
@@ -79,6 +83,7 @@ async function runStart(options) {
   let booted, server;
   try {
     const prepared = await prepareRuntime(options);
+    if (prepared.enabled) installProfilePlugin(prepared);
     booted = await bootHost(prepared, { signal: abort.signal });
     const token = randomBytes(32).toString('hex');
     let finish;
