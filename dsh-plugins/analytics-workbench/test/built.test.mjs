@@ -68,9 +68,10 @@ test('built browser factory requires only platform modules and registers shared-
   notify();
   notify();
   assert.deepEqual(opened, [primary]);
-  assert.equal(entries.length, 8);
+  assert.equal(entries.length, 9);
   assert.deepEqual(entries.map(row => row.options.name), ['sidebar.brand.mark', 'sidebar.brand.name',
-    'sidebar.footer.action', 'shell.overlay', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'conversation.input.dock']);
+    'sidebar.footer.action', 'shell.overlay', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
+    'conversation.input.dock', 'conversation.input.dock']);
   assert.equal(entries[4].options.key, 'analytics_b0_query');
   assert.equal(entries[5].options.key, 'analytics_channel_followup_query');
   assert.equal(entries[6].options.key, 'analytics_first_purchase_query');
@@ -82,10 +83,19 @@ test('built browser factory requires only platform modules and registers shared-
   selection.restoreSelection();
   assert.equal(snapshot.current, primary);
   assert.equal(entries[2].options.store, entries[3].options.store);
+  assert.equal(entries[8].options.id, 'shine-mage.analytics-b0.generate-cockpit');
+  assert.equal(entries[8].options.store, entries[2].options.store);
   const state = entries[2].options.store.create();
   assert.equal(state.getSnapshot().open, false);
   state.actions.open();
   assert.equal(state.getSnapshot().open, true);
+  assert.equal(state.getSnapshot().intent, 'view');
+  state.actions.close();
+  state.actions.openGenerate();
+  assert.equal(state.getSnapshot().open, true);
+  assert.equal(state.getSnapshot().intent, 'generate');
+  state.actions.close();
+  state.actions.open();
   state.actions.edit('编译产物标题');
   state.actions.preview();
   state.actions.requestClose();

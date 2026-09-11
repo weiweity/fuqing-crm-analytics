@@ -23,6 +23,19 @@ test('ordinary native chat has no synthetic run status; registered B0 still has 
     assert.equal(native, '');
     const registered = renderToStaticMarkup(React.createElement(component, { session: { sessionId: 'session-b0-synthetic-primary' } }));
     assert.match(registered, /B0 任务内核状态/);
+    const generate = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
+    const store = generate.options.store.create();
+    const nativeGenerate = renderToStaticMarkup(React.createElement(generate.component, {
+      session: { sessionId: 'native-session-uuid' }, useStore: selector => selector(store.getSnapshot()), actions: store.actions,
+    }));
+    assert.equal(nativeGenerate, '');
+    const registeredGenerate = renderToStaticMarkup(React.createElement(generate.component, {
+      session: { sessionId: 'session-b0-synthetic-primary' }, useStore: selector => selector(store.getSnapshot()), actions: store.actions,
+    }));
+    assert.match(registeredGenerate, /生成驾驶舱/);
+    store.actions.openGenerate();
+    assert.equal(store.getSnapshot().open, true);
+    assert.equal(store.getSnapshot().intent, 'generate');
   } finally {
     for (const dispose of effects) if (typeof dispose === 'function') dispose();
   }
@@ -74,7 +87,8 @@ test('apply registers business slots; dispose removes them without touching nati
   const { entries, effects } = mount(client);
   assert.deepEqual(entries.map(row => row.options.name), [
     'sidebar.brand.mark', 'sidebar.brand.name', 'sidebar.footer.action', 'shell.overlay',
-    'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'conversation.input.dock',
+    'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
+    'conversation.input.dock', 'conversation.input.dock',
   ]);
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
     'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query',
@@ -100,6 +114,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   };
   client.apply(ctx);
   client.apply(ctx);
-  assert.equal(entries.length, 16);
+  assert.equal(entries.length, 18);
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.footer').length, 2);
+  assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit').length, 2);
 });

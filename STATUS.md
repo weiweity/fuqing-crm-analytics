@@ -26,8 +26,9 @@
 | 4 | 访客入会率 API 0-1 raw，前端水平值 `*100` | #119 | 已合 |
 | 5 | GSV 口径谓词 SSOT | #121 | 已合 |
 | 6 | DQ 本地告警（不接飞书） | #122 | 已合 |
-| 7 | T13 可重放离线 eval | 归档 `archive/2026-09-11-iron-rules-t4` | **下一刀**（说「开 T13」）；不代替真实模型复测 |
-| 8 | 驾驶舱 UI：`sidebar.panellist` / `main` key=`cockpit` | 归档 `archive/2026-09-11-cockpit-t2` | 其后；钉已是 0.1.5，**可以上 main**，不要提前捡 |
+| 7 | 聊天下「生成驾驶舱」（`conversation.input.dock`） | 本短 PR | **先做**：认可结果后从输入框下成板；不是侧栏 tab |
+| 8 | T13 可重放离线 eval | 归档 `archive/2026-09-11-iron-rules-t4` | 其后；不代替真实模型复测 |
+| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | 归档 `archive/2026-09-11-cockpit-t2` | 其后；钉已是 0.1.5，**可以上 main**。查看已存板，不要和生成入口混一刀 |
 
 ## 当前施工边界（防乱）
 
@@ -37,7 +38,7 @@
 - 不要给模型新增 SQL 工具，不要从 `FORBIDDEN_EXPANSIONS` 拿掉 `execute_sql`，不要把 `ai_sandbox` 接到比赛 Agent
 - 不要改 DSH 上游源码。不要打开、复制、改写 131GB DuckDB，也不对其执行 SQL
 - T3 备份、`cleanup_backups.sh` 的 `keep_min`、口令轮换、T15 本人验收、公网部署：要显式授权
-- T13 eval / 驾驶舱 WIP 在上表对应归档分支，**未合进 main 前不要从别的刀顺手捡**
+- T13 eval / 侧栏 panellist WIP 在归档分支，**未合进 main 前不要从别的刀顺手捡**。HTML 静态页、飞书多维表另授权
 
 ## 验证与历史入口
 
