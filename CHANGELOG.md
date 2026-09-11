@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- 卫生：施工队列勾选 #127；本地只留 main 与 salvage 归档。现行 DSH 钉均为 0.1.5-rc.1。黑客松旧文里的 0.1.3 SHA 是当时快照，不改。
+
 - dsh-dev 收进 main：`--web-port 6677`，`--plugin on` 走 `dsh plugin add`，`--plugin off` 禁用伸美包。不再依赖 competition-next 工作树起浏览器。
 
 - 侧栏增加驾驶舱固定入口：`sidebar.panellist` id=`cockpit` + `main` key=`cockpit` 查看已存板。聊天下仍负责生成。底栏优先切到该面板，没有 layout 时回退 overlay。
