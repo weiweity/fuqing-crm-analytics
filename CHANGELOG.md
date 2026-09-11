@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- 把本轮短 PR 施工顺序写入 STATUS / TODOS（GSV → DQ → T13 eval → 驾驶舱），避免只存在对话里。
+
 - 访客入会率 API 改为 0-1 raw（`PercentageField`），前端 *100 显示；服务层不再 *100。同比/环比仍走 MetricCard `unit=pp`（YOYGuard 内部 *100）。
 
 - main 的 DSH 钉从 0.1.3-alpha.1 升到 0.1.5-rc.1（`183f08e9`）。原生桥按 `inbox.nextTurn` / `nextStep` 判断是否仍有待处理输入。skill loader 测试不再重复挂 `session-projection`（0.1.5 testkit 已挂）。本地 0.1.3 checkout 已删；后续再升架构仍改 `toolchain.json` 并跑 pipeline，不改上游源码。

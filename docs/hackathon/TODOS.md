@@ -1,6 +1,17 @@
 # TODOS
 
-本清单**不是执行授权**。当前 Git 与施工边界看仓库根 [STATUS.md](../../STATUS.md)。七阶段证据以[产品验收与发布准备](./PRODUCT-READINESS-2026-09-10.md)为准。[总待办](./PLAN-CLOSEOUT-2026-09-05.md)和原 [11 工作包](./AUTOPLAN-IMPLEMENTATION-TASKS-2026-09-05.md)是规划编号，默认不要当本轮任务卡。
+施工顺序与禁区看仓库根 [STATUS.md](../../STATUS.md)「本轮施工计划」。本文件分两块：**本轮施工队列**（短 PR，一次一刀）和 **验收缺口**（要证据，不是授权）。七阶段账本：[产品验收与发布准备](./PRODUCT-READINESS-2026-09-10.md)。[总待办](./PLAN-CLOSEOUT-2026-09-05.md)和原 [11 工作包](./AUTOPLAN-IMPLEMENTATION-TASKS-2026-09-05.md)是规划编号，默认不要当本轮任务卡。
+
+## 本轮施工队列（一次一刀；下一刀仍要一句话开干）
+
+- [x] #116 文档入口，对齐施工边界
+- [x] #117 L4.91 R3 白名单：`member_join_rate` / `ly_member_join_rate` 展示 `*100`
+- [x] #118 main DSH 钉升级到 0.1.5-rc.1；本地 0.1.3 checkout 已删
+- [x] #119 访客入会率 API 0-1 raw，前端水平值 `*100`
+- [ ] **GSV SSOT**（下一刀，说「开 GSV」）：`calculations.GSV_PREDICATE`，filters/metrics 生产路径不再各写一份。代码在 `archive/2026-09-11-iron-rules-t4`，不要顺手捡 DQ/T13/驾驶舱
+- [ ] DQ 本地告警：断言与监控失败时发出可观测本地告警，不回接飞书。同一归档
+- [ ] T13 可重放离线 eval：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测。同一归档
+- [ ] 驾驶舱 UI 上 main：`sidebar.panellist` / `main` key=`cockpit` + TOOL_SPECS。代码在 `archive/2026-09-11-cockpit-t2`。钉已是 0.1.5，可以上 main，排在本队列最后
 
 ## 当前验收缺口（开放，需对应证据）
 
@@ -15,7 +26,7 @@
 
 ## 已在 main 的证据（不要当成未完成任务）
 
-- [x] #112 集成、#114 七项修复、**#115 持久化诊断看板**已合入 main（当前 HEAD 见 STATUS，不再写死 `788b5b1`）。
+- [x] #112 集成、#114 七项修复、#115 持久化诊断看板、**#116–#119 收口短 PR**已合入 main（当前 HEAD 见 STATUS）。
 - [x] 图表类型持久化与草稿恢复/放弃。
 - [x] 原生浅/深色与业务主题、AntD 表单；完整 T17/视觉仍开放，见[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)。
 - [x] GSV 数值诊断 → 保存 → 成板（合成源）；两条真实 DeepSeek 评测及刷新重开，见[本轮交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。
