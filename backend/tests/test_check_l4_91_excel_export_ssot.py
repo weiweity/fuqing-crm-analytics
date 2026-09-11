@@ -124,6 +124,24 @@ import { YOYGuard } from '@/components/YOYGuard.vue'
         rc, output = self._run_lint()
         self.assertNotIn("R3:no-frontend-times-100", output)
 
+    def test_r3_member_join_rate_display_times_100_is_allowlisted(self):
+        """PercentageField 水平值 0-1 raw，展示 *100 不报；同比字段仍报。"""
+        self._write_vue_file("AudienceView.vue", '''
+<script setup lang="ts">
+const label = `${(visitorSummary.member_join_rate * 100).toFixed(2)}%`
+const ly = data.map((d) => d.ly_member_join_rate * 100)
+const bad = computed(() => row.gsv_yoy * 100)
+const alsoBad = row.member_join_rate_yoy * 100
+</script>
+''')
+        rc, output = self._run_lint()
+        self.assertEqual(rc, 1, f"YOY *100 仍应 rc=1, 实际 {rc}, output: {output}")
+        self.assertIn("R3:no-frontend-times-100", output)
+        self.assertIn("gsv_yoy", output)
+        self.assertIn("member_join_rate_yoy", output)
+        self.assertNotIn("visitorSummary.member_join_rate * 100", output)
+        self.assertNotIn("ly_member_join_rate * 100", output)
+
     # R4: yoy-kind-required
     def test_r4_yoy_column_missing_kind_should_violate(self):
         """故意 1 个 YOY 列缺 kind enum, lint 应该报 violation."""

@@ -76,7 +76,7 @@
 | 1 | `kind` enum 显式 | YOY 列必须显式 `kind: 'yoy_pct'` / `'yoy_pp'` / `'yoy_day'` | L4.91 PR0 kind enum 1:1 stable |
 | 2 | 不 raw 'xlsx' | frontend views 不允许直接 `import 'xlsx'`, 必须用 `exportSheetToXlsx` SSOT | L4.91 PR0 + L4.20 SSOT 反漂移 1:1 stable |
 | 3 | 不写 Excel 公式 | 禁写 `{t:'n', f:'=...'}` 公式对象 | L4.91 PR0 assertNotFormula + Sprint 174 SSOT 0 公式 1:1 stable |
-| 4 | 不 frontend `*100` | 禁对 YOY/ratio 字段 `*100` 散落 | L4.81 反模式 0 容忍 + CLAUDE.md "前端只展示" 1:1 stable |
+| 4 | 不 frontend `*100` | 禁对 YOY/ratio 字段 `*100` 散落。`member_join_rate` / `ly_member_join_rate` 水平值展示 `*100` 在 R3 白名单（PercentageField 0-1 raw） | L4.81 水平值前端显示 *100；同比仍走 YOYGuard / kind |
 | 5 | 不冗余 `*_yoy_label` | 删冗余 label 字符串列 (Bug #2 fix 1:1 stable) | L4.91 PR1 partial 1:1 stable |
 | 6 | WYSIWYG | frontend table 列 === Excel export 列 | L4.80 永久规则化沿用 |
 

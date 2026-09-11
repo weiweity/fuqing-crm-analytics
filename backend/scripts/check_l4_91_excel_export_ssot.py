@@ -4,7 +4,8 @@
 4 件 L4.91 SSOT 反漂移规则 (跟 L4.19 check_channel_alias + L4.34.1 check_sql_fstring_consistency + L4.50 + L4.59 1:1 stable 模式沿用):
   1. no-raw-xlsx-bypass: frontend views 不允许直接 import 'xlsx' (必须用 exportSheetToXlsx SSOT)
   2. no-excel-formula-write: frontend views 不允许写 Excel 公式对象 {t:'n', f:'=...'} (跟 L4.91 PR0 assertNotFormula 1:1 stable 永久规则化沿用)
-  3. no-frontend-times-100: frontend views 不允许对 YOY/ratio 字段 *100 (L4.81 反模式, 跟 CLAUDE.md "前端只展示, 禁止前端算" 1:1 stable 永久规则化沿用)
+  3. no-frontend-times-100: frontend views 不允许对 YOY/ratio 字段 *100
+     (L4.81: 同比由 YOYGuard/kind 显示。PercentageField 水平值 0-1 raw 的展示 *100 见 R3_DISPLAY_PERCENT_FIELDS)
   4. yoy-kind-required: XlsxColumn 中 YOY 列必须显式 kind enum (yoy_pct / yoy_pp / yoy_day), 不允许 raw numFmt 隐性分支 (跟 L4.91 PR0 kind enum 1:1 stable 永久规则化沿用)
 
 默认全目录审计；--staged 检查 Git 暂存区中变更的 view 文件全文，
@@ -36,11 +37,15 @@ RAW_XLSX_ALLOWED_FILES = {
 # 规则 2: 禁写 Excel 公式对象 (L4.91 PR0 assertNotFormula object 1:1 stable 永久规则化沿用)
 EXCEL_FORMULA_OBJECT_RE = re.compile(r"""\bf:\s*['"][=+\-]""")  # f: "=..." / f: "+..." / f: "-..."
 
-# 规则 3: 禁对 YOY/ratio 字段前端 *100 (L4.81 反模式, 跟 CLAUDE.md "前端只展示" 1:1 stable 永久规则化沿用)
-#    检测 *.yoy * 100 / *.ratio * 100 / *_yoy * 100 等模式
+# 规则 3: 禁对 YOY/ratio 字段前端 *100。同比走 YOYGuard / xlsx kind，禁止视图里再算一遍。
+# PercentageField 水平值（0-1 raw）的展示 *100 是 L4.81 调用方职责，不走 YOY 组件。
 FRONTEND_TIMES_100_RE = re.compile(
     r"""\b(?P<field>\w*[._](?:yoy|YoY|YoYPct|YoYPp|ratio|ppt|pp|YoYPp|rate))\s*\*\s*100"""
 )
+R3_DISPLAY_PERCENT_FIELDS = frozenset({
+    "member_join_rate",
+    "ly_member_join_rate",
+})
 
 # 规则 4: YOY 列必须显式 kind enum (L4.91 PR0 kind enum 1:1 stable 永久规则化沿用)
 #    检测 XlsxColumn[] 中 key 包含 _yoy / _YoY / _mom / _YoYPct / _YoYPp 但未设 kind
@@ -127,21 +132,32 @@ def check_rule2_no_excel_formula_object(path: Path, text: str) -> list[Violation
     return violations
 
 
+def _r3_field_name(captured: str) -> str:
+    return captured.rsplit(".", 1)[-1]
+
+
 def check_rule3_no_frontend_times_100(path: Path, text: str) -> list[Violation]:
-    """no-frontend-times-100: 禁对 YOY/ratio 字段前端 *100 (L4.81 反模式)"""
+    """no-frontend-times-100: 禁对 YOY/ratio 字段前端 *100；水平 PercentageField 展示见白名单。"""
     violations: list[Violation] = []
     for i, line in enumerate(text.splitlines(), start=1):
-        # 跳过注释行
         stripped = line.strip()
         if stripped.startswith("//") or stripped.startswith("*") or stripped.startswith("#"):
             continue
         for m in FRONTEND_TIMES_100_RE.finditer(line):
+            name = _r3_field_name(m.group("field"))
+            if name in R3_DISPLAY_PERCENT_FIELDS:
+                continue
             violations.append(
                 Violation(
                     rule="R3:no-frontend-times-100",
                     file=path,
                     line=i,
-                    message=f"Frontend multiplies YOY/ratio field '{m.group('field')}' by 100; backend should return raw value (跟 L4.81 no *100 契约 + CLAUDE.md '前端只展示' 1:1 stable 永久规则化沿用): {line.strip()[:100]}",
+                    message=(
+                        f"Frontend multiplies YOY/ratio field '{m.group('field')}' by 100; "
+                        "backend returns raw 0-1 and YOYGuard/xlsx kind display it. "
+                        f"Level PercentageField display allowlist: {sorted(R3_DISPLAY_PERCENT_FIELDS)}. "
+                        f"{line.strip()[:100]}"
+                    ),
                 )
             )
     return violations
