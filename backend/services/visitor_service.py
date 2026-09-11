@@ -24,11 +24,11 @@ _VISITOR_PERIOD_SQL = """
 
 
 def _query_visitor_period(conn, start: str, end: str) -> Tuple[int, int, float]:
-    """查询指定周期的访客汇总，返回 (visitors, new_members, join_rate%)"""
+    """查询指定周期的访客汇总，返回 (visitors, new_members, join_rate 0-1 raw)"""
     row = conn.execute(_VISITOR_PERIOD_SQL, [start, end]).fetchone()
     visitors = int(row[0]) if row[0] else 0
     new_members = int(row[1]) if row[1] else 0
-    join_rate = float(row[2]) * 100 if row[2] else 0.0
+    join_rate = float(row[2]) if row[2] else 0.0
     return visitors, new_members, join_rate
 
 
@@ -167,10 +167,10 @@ def get_visitor_daily_trend(start_date: str, end_date: str,
                 "date": str(date_val),
                 "visitors": visitors,
                 "new_members": new_members,
-                "member_join_rate": round(rate * 100, 4),
+                "member_join_rate": round(rate, 6),
                 "ly_visitors": int(comp_row[1]) if comp_row else 0,
                 "ly_new_members": int(comp_row[2]) if comp_row else 0,
-                "ly_member_join_rate": round(float(comp_row[3]) * 100, 4) if comp_row else 0.0,
+                "ly_member_join_rate": round(float(comp_row[3]), 6) if comp_row else 0.0,
             })
 
         return result

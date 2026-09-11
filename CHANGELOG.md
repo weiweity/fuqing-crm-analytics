@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-- main 的 DSH 钉从 0.1.3-alpha.1 升到 0.1.5-rc.1（`183f08e9`）。原生桥按 `inbox.nextTurn` / `nextStep` 判断是否仍有待处理输入。skill loader 测试不再重复挂 `session-projection`（0.1.5 testkit 已挂）。旧 0.1.3 checkout 仅本地归档，不删。后续再升架构仍改 `toolchain.json` 并跑 pipeline，不改上游源码。
+- 访客入会率 API 改为 0-1 raw（`PercentageField`），前端 *100 显示；服务层不再 *100。同比/环比仍走 MetricCard `unit=pp`（YOYGuard 内部 *100）。
+
+- main 的 DSH 钉从 0.1.3-alpha.1 升到 0.1.5-rc.1（`183f08e9`）。原生桥按 `inbox.nextTurn` / `nextStep` 判断是否仍有待处理输入。skill loader 测试不再重复挂 `session-projection`（0.1.5 testkit 已挂）。本地 0.1.3 checkout 已删；后续再升架构仍改 `toolchain.json` 并跑 pipeline，不改上游源码。
 
 - L4.91 R3 允许访客入会率水平值（`member_join_rate` / `ly_member_join_rate`）展示 `*100`；同比/占比字段仍禁止视图内再乘。
 

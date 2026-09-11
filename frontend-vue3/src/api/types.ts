@@ -6913,7 +6913,7 @@ export interface components {
         /**
          * VisitorDailyTrendItem
          * @description 访客入会率每日趋势项.
-         *     注意: daily trend 跟 summary 不同, member_join_rate/ly_member_join_rate 是 0-100 percentage (service *100 后)
+         *     member_join_rate / ly_member_join_rate 是 PercentageField 0-1 raw；前端 *100 显示。
          */
         VisitorDailyTrendItem: {
             /** Date */
@@ -6952,8 +6952,7 @@ export interface components {
         /**
          * VisitorSummaryResponse
          * @description 访客入会率汇总响应.
-         *     注意: member_join_rate / ly_member_join_rate 是 0-100 percentage 形式
-         *     (Sprint 17 B2 全量 audit 治理范围), 前端直接显示 value%.
+         *     member_join_rate / ly_member_join_rate 是 PercentageField 0-1 raw；前端 *100 显示为百分比。
          */
         VisitorSummaryResponse: {
             /** Start Date */

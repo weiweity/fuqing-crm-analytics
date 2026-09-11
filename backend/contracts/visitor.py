@@ -6,8 +6,7 @@ from .types import PercentageField, PpField  # Sprint 17 B2 全量 audit
 
 class VisitorSummaryResponse(BaseModel):
     """访客入会率汇总响应.
-    注意: member_join_rate / ly_member_join_rate 是 0-100 percentage 形式
-    (Sprint 17 B2 全量 audit 治理范围), 前端直接显示 value%."""
+    member_join_rate / ly_member_join_rate 是 PercentageField 0-1 raw；前端 *100 显示为百分比。"""
     start_date: str
     end_date: str
     visitors: int
@@ -28,12 +27,11 @@ class VisitorSummaryResponse(BaseModel):
 
 class VisitorDailyTrendItem(BaseModel):
     """访客入会率每日趋势项.
-    注意: daily trend 跟 summary 不同, member_join_rate/ly_member_join_rate 是 0-100 percentage (service *100 后)
+    member_join_rate / ly_member_join_rate 是 PercentageField 0-1 raw；前端 *100 显示。
     """
     date: str
     visitors: int
     new_members: int
-    # 0-100 percentage
     member_join_rate: "PercentageField"
     ly_visitors: int
     ly_new_members: int
