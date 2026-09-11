@@ -27,10 +27,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
 
-# Sprint 164: 飞书完整解耦, _send_lark_alert_mockable 改 no-op (保留签名, send_alert=False 路径走 print)
-def _send_lark_alert_mockable(content: str, open_id = None) -> tuple:
-    """Sprint 164 no-op: 飞书解耦, 保留签名避免调用方改动."""
-    return (False, "Sprint 164 飞书解耦, no-op")
+# Sprint 164: 飞书通道不解耦回接。失败必须发出可观测本地告警，测试断言这条路径。
+_EMITTED_ALERTS: list[str] = []
+
+
+def emitted_alerts() -> list[str]:
+    return list(_EMITTED_ALERTS)
+
+
+def clear_emitted_alerts() -> None:
+    _EMITTED_ALERTS.clear()
+
+
+def _send_lark_alert_mockable(content: str, open_id=None) -> tuple:
+    """发出本地 DQ 告警。不调用飞书；返回 (True, channel) 表示已发出。"""
+    _EMITTED_ALERTS.append(content)
+    print(f"  [DQ alert] {content[:120]}")
+    return (True, "local-alert")
 
 
 # ─────────────────────────────────────────────────────────────

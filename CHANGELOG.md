@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- DQ 断言与监控失败时发出可观测本地告警（不回接飞书）；测试断言告警真正发出。
+
 - GSV 口径谓词收到 `calculations.GSV_PREDICATE`；filters/metrics 生产路径不再各写一份。
 
 - 把本轮短 PR 施工顺序写入 STATUS / TODOS（GSV → DQ → T13 eval → 驾驶舱），避免只存在对话里。
