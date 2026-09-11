@@ -48,7 +48,8 @@ export function apply(ctx: Context): void {
       let summary = summarizeRequest(agent.session.snapshotEvents(), intent.request_id);
       if (req.url === '/dispatch') {
         if (summary.received) return respond(200, { accepted: true });
-        if (admitting || agent.status !== 'idle' || agent.inbox.hasPending) return respond(409, { error: 'agent-busy' });
+        // Inbox.hasPending was removed in 0.1.5; pending input is the two ordered lists.
+        if (admitting || agent.status !== 'idle' || agent.inbox.nextTurn.length > 0 || agent.inbox.nextStep.length > 0) return respond(409, { error: 'agent-busy' });
         const request = intent.payload?.native_request ?? { sessionId: intent.session_id, requestId: intent.request_id, mode: 'queue',
           content: [{ type: 'text', text: intent.payload?.question }], clientTimeZone: 'Asia/Shanghai' };
         if (request.sessionId !== intent.session_id || request.requestId !== intent.request_id || request.mode !== 'queue'
@@ -75,7 +76,8 @@ export function apply(ctx: Context): void {
       const idle = await Promise.race([agent.whenIdle().then(() => true), delay(80, false)]);
       const durable = idle && await ctx.sessions.flush(agent.session);
       summary = summarizeRequest(agent.session.snapshotEvents(), intent.request_id);
-      const exited = idle && durable && ctx.agents.get(intent.session_id as never) === agent && agent.status === 'idle' && !agent.inbox.hasPending;
+      const exited = idle && durable && ctx.agents.get(intent.session_id as never) === agent && agent.status === 'idle'
+        && agent.inbox.nextTurn.length === 0 && agent.inbox.nextStep.length === 0;
       return respond(200, evidenceFor(intent, summary, exited));
     })().catch(() => { if (!res.headersSent) respond(503, { error: 'native-unavailable' }); else res.end(); });
   });

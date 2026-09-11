@@ -1,5 +1,5 @@
 /**
- * B0 synthetic-only policy, pinned to DSH d347e703908d0406b7a7ef80e3a0e594d86b2215.
+ * B0 synthetic-only policy, pinned to DSH 183f08e9c6dde7e36cd2318eaee70b0da08fb35e.
  * Pure functions: no IO, credentials, mutable session state, or runtime imports.
  * Wire references: packages/client/connection/src/client/rpc.ts:32-50;
  * packages/api/gateway/src/stream-protocol.ts:243-308;
@@ -21,7 +21,7 @@
  * Stream ID sets are snapshots supplied by the broker before each decision.
  */
 
-export const DSH_B0_SOURCE_SHA = 'd347e703908d0406b7a7ef80e3a0e594d86b2215';
+export const DSH_B0_SOURCE_SHA = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e';
 export const MAX_PROMPT_CHARS = 8000;
 export const MAX_HISTORY_MESSAGES = 100;
 export const SETTINGS_NAMESPACES = Object.freeze(['locale', 'ui-theme', 'ui-chat', 'ui-conversation', 'ui-onboarding']);

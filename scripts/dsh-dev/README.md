@@ -2,7 +2,7 @@
 
 本地完整 DSH web 基座入口。不是 B0 合成笼，不管理 8000/5173/4315–4319。
 
-固定上游：`deepseek-ai/deepseek-harness@d347e703908d0406b7a7ef80e3a0e594d86b2215`。Node 24。
+固定上游：`deepseek-ai/deepseek-harness@183f08e9c6dde7e36cd2318eaee70b0da08fb35e`（0.1.5-rc.1）。Node 24。后续再升版本仍改 `dsh-plugins/analytics-workbench/toolchain.json` 与本入口 `PINNED_SHA`，不要直接改上游源码。
 
 ## 命令
 
