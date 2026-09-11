@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- 侧栏增加驾驶舱固定入口：`sidebar.panellist` id=`cockpit` + `main` key=`cockpit` 查看已存板。聊天下仍负责生成。底栏优先切到该面板，没有 layout 时回退 overlay。
+
 - T13 离线 eval 增加可重放断言：`result_id ≠ run_id`、拒答文案包含诚实口径、`money_unit` 随结果。不代替真实模型复测。
 
 - 聊天下增加「生成驾驶舱」：`conversation.input.dock` 打开 overlay 并落到认可成板。侧栏 panellist 固定入口后做。

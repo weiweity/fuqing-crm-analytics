@@ -6,7 +6,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | `0.7.0.0`。HEAD 以 `git log -1` 为准；已合 #112、#114、#115、**#116–#124** |
+| VERSION / main | `0.7.0.0`。HEAD 以 `git log -1` 为准；已合 #112、#114、#115、**#116–#125** |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -27,8 +27,8 @@
 | 5 | GSV 口径谓词 SSOT | #121 | 已合 |
 | 6 | DQ 本地告警（不接飞书） | #122 | 已合 |
 | 7 | 聊天下「生成驾驶舱」（`conversation.input.dock`） | #124 | 已合 |
-| 8 | T13 可重放离线 eval | 本短 PR | **本刀**：`result_id ≠ run_id`、拒答、`money_unit`；不代替真实模型 |
-| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | 归档 `archive/2026-09-11-cockpit-t2` | 其后；查看已存板，不要和生成入口混一刀 |
+| 8 | T13 可重放离线 eval | #125 | 已合 |
+| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | 本短 PR | **本刀**：查看已存板；生成仍走聊天下 |
 
 ## 当前施工边界（防乱）
 
@@ -38,7 +38,7 @@
 - 不要给模型新增 SQL 工具，不要从 `FORBIDDEN_EXPANSIONS` 拿掉 `execute_sql`，不要把 `ai_sandbox` 接到比赛 Agent
 - 不要改 DSH 上游源码。不要打开、复制、改写 131GB DuckDB，也不对其执行 SQL
 - T3 备份、`cleanup_backups.sh` 的 `keep_min`、口令轮换、T15 本人验收、公网部署：要显式授权
-- T13 eval / 侧栏 panellist WIP 在归档分支，**未合进 main 前不要从别的刀顺手捡**。HTML 静态页、飞书多维表另授权
+- HTML 静态页、飞书多维表另授权。不要把聊天下生成和侧栏查看混成一个入口
 
 ## 验证与历史入口
 

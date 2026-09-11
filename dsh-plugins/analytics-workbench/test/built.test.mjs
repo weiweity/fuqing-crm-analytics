@@ -46,13 +46,14 @@ test('built browser factory requires only platform modules and registers shared-
     return seed.get(spec);
   });
   const entries = [];
-  const effects = [], opened = [];
+  const effects = [], opened = [], selected = [];
   const primary = 'session-b0-synthetic-primary';
   let snapshot = { phase: 'pending', ids: [primary], byId: { [primary]: { id: primary } } };
   let notify;
   client.apply({
     effect: factory => { effects.push(factory()); },
     theme: { overrideTokens: () => () => {} },
+    layout: { selectPanel: id => { selected.push(id); } },
     sessions: {
       list: { getSnapshot: () => snapshot, subscribe: listener => { notify = listener; return () => { notify = undefined; }; } },
       open: id => { opened.push(id); snapshot = { ...snapshot, current: id }; },
@@ -68,10 +69,10 @@ test('built browser factory requires only platform modules and registers shared-
   notify();
   notify();
   assert.deepEqual(opened, [primary]);
-  assert.equal(entries.length, 9);
+  assert.equal(entries.length, 11);
   assert.deepEqual(entries.map(row => row.options.name), ['sidebar.brand.mark', 'sidebar.brand.name',
     'sidebar.footer.action', 'shell.overlay', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
-    'conversation.input.dock', 'conversation.input.dock']);
+    'conversation.input.dock', 'conversation.input.dock', 'sidebar.panellist', 'main']);
   assert.equal(entries[4].options.key, 'analytics_b0_query');
   assert.equal(entries[5].options.key, 'analytics_channel_followup_query');
   assert.equal(entries[6].options.key, 'analytics_first_purchase_query');
@@ -85,6 +86,13 @@ test('built browser factory requires only platform modules and registers shared-
   assert.equal(entries[2].options.store, entries[3].options.store);
   assert.equal(entries[8].options.id, 'shine-mage.analytics-b0.generate-cockpit');
   assert.equal(entries[8].options.store, entries[2].options.store);
+  assert.equal(entries[9].options.name, 'sidebar.panellist');
+  assert.equal(entries[9].options.id, 'cockpit');
+  assert.equal(entries[10].options.name, 'main');
+  assert.equal(entries[10].options.key, 'cockpit');
+  assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
+  assert.equal(entries[2].options.inject().openCockpit(), true);
+  assert.deepEqual(selected, ['cockpit']);
   const state = entries[2].options.store.create();
   assert.equal(state.getSnapshot().open, false);
   state.actions.open();

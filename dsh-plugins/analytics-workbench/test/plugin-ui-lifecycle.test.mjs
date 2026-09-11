@@ -56,7 +56,7 @@ function loadClient() {
   });
 }
 
-function mount(client) {
+function mount(client, extra = {}) {
   const entries = [];
   const effects = [];
   client.apply({
@@ -78,6 +78,7 @@ function mount(client) {
         };
       },
     },
+    ...extra,
   });
   return { entries, effects };
 }
@@ -89,12 +90,31 @@ test('apply registers business slots; dispose removes them without touching nati
     'sidebar.brand.mark', 'sidebar.brand.name', 'sidebar.footer.action', 'shell.overlay',
     'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
     'conversation.input.dock', 'conversation.input.dock',
+    'sidebar.panellist', 'main',
   ]);
+  const panel = entries.find(row => row.options.name === 'sidebar.panellist');
+  const main = entries.find(row => row.options.name === 'main');
+  assert.equal(panel.options.id, 'cockpit');
+  assert.equal(main.options.key, 'cockpit');
+  assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
+  assert.equal(entries[2].options.inject().openCockpit(), false);
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
     'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query',
   ]);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
   assert.equal(entries.length, 0);
+});
+
+test('footer openCockpit selects sidebar.panellist id cockpit on the main slot', () => {
+  const selected = [];
+  const { entries, effects } = mount(loadClient(), {
+    layout: { selectPanel: id => { selected.push(id); } },
+  });
+  assert.equal(entries[2].options.inject().openCockpit(), true);
+  assert.deepEqual(selected, ['cockpit']);
+  assert.equal(entries.find(row => row.options.name === 'sidebar.panellist').options.id,
+    entries.find(row => row.options.name === 'main').options.key);
+  for (const dispose of effects) if (typeof dispose === 'function') dispose();
 });
 
 test('a second apply on the same fake ctx duplicates registrations; Host must not double-insert the plugin', () => {
@@ -114,7 +134,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   };
   client.apply(ctx);
   client.apply(ctx);
-  assert.equal(entries.length, 18);
+  assert.equal(entries.length, 22);
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.footer').length, 2);
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit').length, 2);
 });
