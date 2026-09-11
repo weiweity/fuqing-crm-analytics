@@ -1,12 +1,12 @@
 /** Full DSH web supervisor. Owns only this runtime and 4325-4329. */
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, writeFile, readFile, access } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { API_KEY_ENV, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
 import { findReadyUrl, originOf, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, assertPluginRoot, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
+import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
 import { readToolchain, verifyUpstream } from './pin.mjs';
 import { assertOwnedHost, assertOwnedPort, assertFree } from './ports.mjs';
 import { assertCli, contextRoot, currentPath, defaultPluginPath, defaultRuntimeRoot, ensureDir, repoRoot, resolveUpstream } from './paths.mjs';
@@ -108,6 +108,10 @@ export async function prepareRuntime(options) {
     overlayPath = join(runtime, 'plugin.patch.yml');
     await writeJson(overlayPath, overlay);
     patches.push(overlayPath);
+  } else {
+    overlayPath = join(runtime, 'plugin-off.patch.yml');
+    await writeJson(overlayPath, buildPluginDisable());
+    patches.push(overlayPath);
   }
   for (const extra of options.extraPatch) {
     await access(extra);
@@ -124,6 +128,37 @@ export async function prepareRuntime(options) {
     pin, upstream, verified, cli, enabled, pluginPath, overlayPath, patches,
     runtime, home, workspace, host: options.host, webPort: options.webPort,
   };
+}
+
+/** `dsh plugin --profile web add <absolute plugin path>`. */
+export function profilePluginAddArgs(cli, pluginPath) {
+  assert.ok(cli && cli.startsWith('/'), 'cli path must be absolute');
+  assert.ok(pluginPath && pluginPath.startsWith('/'), 'plugin path must be absolute');
+  return [cli, 'plugin', '--profile', 'web', 'add', pluginPath];
+}
+
+function pluginInstallEnv(runtime, home) {
+  const env = isolatedEnv(runtime, home);
+  const parts = [dirname(process.execPath), process.env.PATH, env.PATH].filter(Boolean);
+  return { ...env, PATH: parts.join(':') };
+}
+
+/**
+ * Install the local workbench into this runtime's web profile.
+ * `--plugin off` must not call this; off only disables the already-installed row.
+ */
+export function installProfilePlugin(prepared) {
+  assert.equal(prepared.enabled, true, 'installProfilePlugin is plugin-on only');
+  const args = profilePluginAddArgs(prepared.cli, prepared.pluginPath).slice(1);
+  const result = spawnSync(process.execPath, [prepared.cli, ...args], {
+    cwd: prepared.workspace,
+    env: pluginInstallEnv(prepared.runtime, prepared.home),
+    encoding: 'utf8',
+    timeout: 180000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const detail = (result.stderr || result.stdout || result.error?.message || '').slice(-2000);
+  assert.ok(!result.error && result.status === 0, `dsh plugin add failed: ${detail}`);
 }
 
 export function dumpConfigArgs(prepared) {

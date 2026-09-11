@@ -39,6 +39,29 @@ export function buildPluginOverlay(pluginRoot) {
   return patch;
 }
 
+/**
+ * `--plugin off` layer: switch the installed bundle row off by id.
+ * The bundle is a persistent profile layer; dropping the brand overlay is not enough.
+ */
+export function buildPluginDisable() {
+  const patch = [{ id: PLUGIN_UI_ID, disabled: true }];
+  assertNoB0Disables(patch);
+  return patch;
+}
+
+/** Presence alone cannot tell off from on: off keeps the row and sets disabled. */
+export function pluginRowState(dump) {
+  const lines = String(dump).split('\n');
+  const start = lines.findIndex(line => line.trim() === `- id: ${PLUGIN_UI_ID}`);
+  if (start === -1) return { present: false, disabled: false };
+  let disabled = false;
+  for (const line of lines.slice(start + 1)) {
+    if (/^- /.test(line)) break;
+    if (/^\s+disabled:\s*true\s*$/.test(line)) disabled = true;
+  }
+  return { present: true, disabled };
+}
+
 export function assertNoB0Disables(patch) {
   const disabled = new Set();
   const visit = (value) => {

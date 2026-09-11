@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- dsh-dev 收进 main：`--web-port 6677`，`--plugin on` 走 `dsh plugin add`，`--plugin off` 禁用伸美包。不再依赖 competition-next 工作树起浏览器。
+
 - 侧栏增加驾驶舱固定入口：`sidebar.panellist` id=`cockpit` + `main` key=`cockpit` 查看已存板。聊天下仍负责生成。底栏优先切到该面板，没有 layout 时回退 overlay。
 
 - T13 离线 eval 增加可重放断言：`result_id ≠ run_id`、拒答文案包含诚实口径、`money_unit` 随结果。不代替真实模型复测。

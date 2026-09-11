@@ -11,6 +11,8 @@
 node scripts/dsh-dev/cli.mjs diagnose --upstream /absolute/pinned/dsh
 
 node scripts/dsh-dev/cli.mjs check --plugin off --upstream /absolute/pinned/dsh
+node scripts/dsh-dev/cli.mjs start --plugin on --web-port 6677 --fresh --detach
+node scripts/dsh-dev/cli.mjs start --plugin off --web-port 6677 --fresh --detach
 node scripts/dsh-dev/cli.mjs start --plugin off --web-port 14327 --runtime /ABS/.context/dsh-dev/runtime-a4
 node scripts/dsh-dev/cli.mjs status
 node scripts/dsh-dev/probe.mjs          # 只打 owned current.json；不打印 token
@@ -28,6 +30,7 @@ PATH 上的 Node 若不是 24，check/start 会失败。诊断会指出可用的
 | 127.0.0.1:4327 | 用户 DSH 演示 | 禁止停止、复用、HTTP 探测冒充本轨 |
 | 8000 / 5173 | 用户已有 Mission/Vite | 禁止停止或复用 |
 | 4315–4319 | B0 合成笼 | 禁止停止或复用 |
+| **6677** | 本产品本地 DSH（浏览器可开） | `--plugin on` 装伸美包；`--plugin off` 只禁用该包，官方壳还在 |
 | **14327** | 比赛轨独立 DSH | 允许作为 `--web-port`；默认不启动 |
 | 15173 | 比赛轨 Vite 预留 | 本入口不绑定 |
 
@@ -53,5 +56,5 @@ PATH 上的 Node 若不是 24，check/start 会失败。诊断会指出可用的
 
 1. Node 24 + 已 pin 且已构建的上游。
 2. `diagnose` 中 upstream=ready、4327 归 user_demo、14327=free。
-3. 需要独立实例时：`--web-port 14327 --plugin on|off`，结束必须 `stop` 或杀掉本 supervisor PID。
+3. 日常：从 **main** `start --plugin on --web-port 6677 --fresh --detach`。插拔伸美：`on`/`off`。不要用 competition-next 工作树起 6677。结束必须 `stop`。
 4. 用 `probe.mjs` 确认 401/兑换/200。真实模型、浏览器原生矩阵仍单独标 NOT_RUN。

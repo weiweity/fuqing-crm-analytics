@@ -12,7 +12,8 @@
 - [x] #122 DQ 本地告警：断言与监控失败时发出可观测本地告警，不回接飞书
 - [x] #124 聊天下「生成驾驶舱」：`conversation.input.dock` 打开 overlay 并落到认可成板
 - [x] #125 T13 可重放离线 eval：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测
-- [ ] **侧栏固定入口**（本刀）：`sidebar.panellist` / `main` key=`cockpit`。查看已存板；生成仍走聊天下
+- [x] #126 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit`
+- [ ] **dsh-dev 收进 main**（本刀）：6677 从 main 起；`--plugin on/off` 插拔伸美包；卸掉后回官方壳。市场/IM 是另装的包，不是上游
 
 ## 当前验收缺口（开放，需对应证据）
 

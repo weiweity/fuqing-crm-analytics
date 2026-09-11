@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, FOREIGN_PORTS,
+  B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, FOREIGN_PORTS,
   PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS,
 } from './constants.mjs';
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
+import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, pluginEnabled, pluginRowState } from './overlay.mjs';
 import { assertOwnedHost, assertOwnedPort } from './ports.mjs';
-import { isolatedEnv, parseServeArgs } from './serve.mjs';
+import { isolatedEnv, parseServeArgs, profilePluginAddArgs } from './serve.mjs';
 
 test('isolated launch accepts an explicit public CA bundle without forwarding keys or TLS bypass', () => {
   const additions = {
@@ -48,6 +48,26 @@ test('plugin overlay carries only the brand-assets row and never copies B0 demo 
   }
 });
 
+test('plugin-on install is dsh plugin add of the absolute workbench path', () => {
+  const cli = '/abs/upstream/apps/cli/lib/bin.js';
+  const plugin = '/abs/dsh-plugins/analytics-workbench';
+  assert.deepEqual(profilePluginAddArgs(cli, plugin), [cli, 'plugin', '--profile', 'web', 'add', plugin]);
+  assert.throws(() => profilePluginAddArgs(cli, 'dsh-plugin'), /absolute/);
+});
+
+test('plugin-off layer disables the installed bundle and never touches native rows', () => {
+  const patch = buildPluginDisable();
+  assert.deepEqual(patch, [{ id: PLUGIN_UI_ID, disabled: true }]);
+  assertNoB0Disables(patch);
+});
+
+test('plugin row state tells a disabled plugin-off row from an active plugin-on row', () => {
+  const header = `# == @shine-mage/dsh-analytics-workbench-b0\n- id: ${PLUGIN_UI_ID}\n  name: '@shine-mage/dsh-analytics-workbench-b0'\n`;
+  assert.deepEqual(pluginRowState(`${header}  disabled: true\n`), { present: true, disabled: true });
+  assert.deepEqual(pluginRowState(`${header}- id: next-row\n`), { present: true, disabled: false });
+  assert.deepEqual(pluginRowState('- id: other-row\n  disabled: true\n'), { present: false, disabled: false });
+});
+
 test('plugin flag only accepts on or off', () => {
   assert.equal(pluginEnabled('off'), false);
   assert.equal(pluginEnabled('on'), true);
@@ -57,6 +77,10 @@ test('plugin flag only accepts on or off', () => {
 test('owned ports reject B0 and Mission listeners', () => {
   assert.equal(assertOwnedPort(4327), PORTS.web);
   assert.equal(assertOwnedPort(COMPETITION_WEB_PORT), COMPETITION_WEB_PORT);
+  assert.equal(assertOwnedPort(DEV_WEB_PORT), DEV_WEB_PORT);
+  for (const port of [6666, 6665, 6000, 10080]) {
+    assert.throws(() => assertOwnedPort(port), /ERR_UNSAFE_PORT/);
+  }
   assert.deepEqual([...PORT_RANGE], [4325, 4326, 4327, 4328, 4329]);
   for (const port of FOREIGN_PORTS) {
     assert.throws(() => assertOwnedPort(port));
@@ -73,6 +97,7 @@ test('serve args pin loopback and refuse foreign ports', () => {
   assert.equal(options.webPort, 4327);
   assert.equal(options.host, '127.0.0.1');
   assert.equal(parseServeArgs(['--plugin', 'off', '--web-port', '14327']).webPort, COMPETITION_WEB_PORT);
+  assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).webPort, DEV_WEB_PORT);
   assert.throws(() => parseServeArgs(['--web-port', '4317']));
   assert.throws(() => parseServeArgs(['--web-port', '15173']));
   assert.throws(() => parseServeArgs(['--host', '0.0.0.0']));
