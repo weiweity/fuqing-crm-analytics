@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- GSV 口径谓词收到 `calculations.GSV_PREDICATE`；filters/metrics 生产路径不再各写一份。
+
 - 把本轮短 PR 施工顺序写入 STATUS / TODOS（GSV → DQ → T13 eval → 驾驶舱），避免只存在对话里。
 
 - 访客入会率 API 改为 0-1 raw（`PercentageField`），前端 *100 显示；服务层不再 *100。同比/环比仍走 MetricCard `unit=pp`（YOYGuard 内部 *100）。

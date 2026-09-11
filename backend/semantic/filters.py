@@ -12,6 +12,7 @@ Sample CRM - 统一过滤条件构造器
 from enum import Enum
 from typing import List, Optional, Tuple, Any
 
+from backend.semantic.calculations import GSV_PREDICATE, gsv_amount_expr
 from backend.semantic.channels import UI_TO_DB as _CHANNEL_UI_TO_DB
 
 
@@ -82,7 +83,7 @@ class OrderFilters:
     @staticmethod
     def valid_order() -> Tuple[str, List[Any]]:
         """有效订单 = 非购物金 AND 非退款（GSV口径，双重保险）"""
-        return "is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE", []
+        return GSV_PREDICATE, []
 
     @staticmethod
     def gmv_base() -> Tuple[str, List[Any]]:
@@ -299,13 +300,13 @@ class FilterBuilder:
         但如果需要在同一 SQL 中同时计算 GMV 和 GSV，需要用此方法生成 GSV 的 CASE WHEN。
         """
         if self._metric_type == MetricType.GSV:
-            return f"SUM(CASE WHEN (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN {column} ELSE 0 END)"
+            return f"SUM({gsv_amount_expr(column)})"
         return f"SUM({column})"
 
     def build_count_expr(self, distinct_column: str = "order_id") -> str:
         """构造计数表达式（GSV 模式下只计有效订单）"""
         if self._metric_type == MetricType.GSV:
-            return f"COUNT(DISTINCT CASE WHEN (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN {distinct_column} END)"
+            return f"COUNT(DISTINCT CASE WHEN ({GSV_PREDICATE}) THEN {distinct_column} END)"
         return f"COUNT(DISTINCT {distinct_column})"
 
 
@@ -316,7 +317,7 @@ class AmountExprBuilder:
 
     @staticmethod
     def gsv(column: str = "actual_amount") -> str:
-        return f"CASE WHEN (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN {column} ELSE 0 END"
+        return gsv_amount_expr(column)
 
     @staticmethod
     def gmv(column: str = "actual_amount") -> str:
@@ -324,7 +325,7 @@ class AmountExprBuilder:
 
     @staticmethod
     def sum_gsv(column: str = "actual_amount") -> str:
-        return f"SUM(CASE WHEN (is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE) THEN {column} ELSE 0 END)"
+        return f"SUM({gsv_amount_expr(column)})"
 
     @staticmethod
     def sum_gmv(column: str = "actual_amount") -> str:

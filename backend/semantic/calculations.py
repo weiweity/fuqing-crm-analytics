@@ -27,10 +27,15 @@ from typing import Optional
 # ============================================================
 # GSV 口径 SQL 表达式（单一数据源）
 # ============================================================
-GSV_AMOUNT_COL: str = """
-    CASE WHEN is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE
-         THEN actual_amount ELSE 0 END
-""".strip()
+GSV_PREDICATE: str = "is_goujinjin = FALSE AND order_status != '交易关闭' AND is_refund = FALSE"
+GSV_AMOUNT_COL: str = f"CASE WHEN {GSV_PREDICATE} THEN actual_amount ELSE 0 END"
+
+
+def gsv_amount_expr(column: str = "actual_amount") -> str:
+    """GSV 金额 CASE 表达式。默认列与 GSV_AMOUNT_COL 逐字相同。"""
+    if column == "actual_amount":
+        return GSV_AMOUNT_COL
+    return f"CASE WHEN {GSV_PREDICATE} THEN {column} ELSE 0 END"
 
 
 def yoy_absolute(cur: Optional[float], comp: Optional[float]) -> Optional[float]:
