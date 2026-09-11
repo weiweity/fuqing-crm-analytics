@@ -68,11 +68,23 @@ def save_snapshot(snapshot: dict) -> None:
         raise
 
 
-# Sprint 164: 飞书完整解耦, send_lark_alert 改 no-op (保留签名, --alert 路径走 print)
+# Sprint 164: 飞书通道不解耦回接。--alert 必须发出可观测本地告警。
+_EMITTED_ALERTS: list[str] = []
+
+
+def emitted_alerts() -> list[str]:
+    return list(_EMITTED_ALERTS)
+
+
+def clear_emitted_alerts() -> None:
+    _EMITTED_ALERTS.clear()
+
+
 def send_lark_alert(content: str) -> tuple:
-    """Sprint 164 no-op: 飞书解耦, 保留签名避免 --alert 调用方改动."""
-    print(f"  [Sprint 164 飞书解耦] would alert: {content[:120]}")
-    return (False, "Sprint 164 飞书解耦, no-op")
+    """发出本地 DQ 告警。不调用飞书；返回 (True, channel) 表示已发出。"""
+    _EMITTED_ALERTS.append(content)
+    print(f"  [DQ alert] {content[:120]}")
+    return (True, "local-alert")
 
 
 def run_checks(conn) -> dict:
