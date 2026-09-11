@@ -6,7 +6,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | `0.7.0.0`。HEAD 以 `git log -1` 为准；已合 #112、#114、#115、**#116–#122** |
+| VERSION / main | `0.7.0.0`。HEAD 以 `git log -1` 为准；已合 #112、#114、#115、**#116–#124** |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -26,9 +26,9 @@
 | 4 | 访客入会率 API 0-1 raw，前端水平值 `*100` | #119 | 已合 |
 | 5 | GSV 口径谓词 SSOT | #121 | 已合 |
 | 6 | DQ 本地告警（不接飞书） | #122 | 已合 |
-| 7 | 聊天下「生成驾驶舱」（`conversation.input.dock`） | 本短 PR | **先做**：认可结果后从输入框下成板；不是侧栏 tab |
-| 8 | T13 可重放离线 eval | 归档 `archive/2026-09-11-iron-rules-t4` | 其后；不代替真实模型复测 |
-| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | 归档 `archive/2026-09-11-cockpit-t2` | 其后；钉已是 0.1.5，**可以上 main**。查看已存板，不要和生成入口混一刀 |
+| 7 | 聊天下「生成驾驶舱」（`conversation.input.dock`） | #124 | 已合 |
+| 8 | T13 可重放离线 eval | 本短 PR | **本刀**：`result_id ≠ run_id`、拒答、`money_unit`；不代替真实模型 |
+| 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | 归档 `archive/2026-09-11-cockpit-t2` | 其后；查看已存板，不要和生成入口混一刀 |
 
 ## 当前施工边界（防乱）
 
