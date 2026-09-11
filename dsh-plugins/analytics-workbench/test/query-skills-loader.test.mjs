@@ -12,7 +12,6 @@ const { mountAgentLoopTestDependencies } = await load('packages/test-support/age
 const { default: AgentLoop } = await load('packages/core/agent-loop');
 const { default: SkillRegistry } = await load('packages/skill/skill');
 const skillTool = await load('packages/skill/tool-skill');
-const { default: ProjectionRegistry } = await load('packages/session/session-projection');
 const { default: TokenMeter } = await load('packages/llm/token-meter');
 const built = await import(pathToFileURL(join(plugin, 'lib/skills.js')).href);
 const sessions = ['session-query-a', 'session-query-b'];
@@ -43,7 +42,6 @@ test('query-family Cordis skills register immutable method and deny unknown skil
   const ctx = new Context();
   try {
     await mountAgentLoopTestDependencies(ctx);
-    await ctx.plugin(ProjectionRegistry);
     await ctx.plugin(AgentLoop, { agents: [] });
     await ctx.plugin(TokenMeter);
     await ctx.plugin(SkillRegistry);

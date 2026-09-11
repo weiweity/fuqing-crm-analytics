@@ -90,7 +90,7 @@ test('launch URL helper requires a tokenized loopback URL and redacts it', () =>
 });
 
 test('pinned SHA matches toolchain contract constant', () => {
-  assert.equal(PINNED_SHA, 'd347e703908d0406b7a7ef80e3a0e594d86b2215');
+  assert.equal(PINNED_SHA, '183f08e9c6dde7e36cd2318eaee70b0da08fb35e');
 });
 
 

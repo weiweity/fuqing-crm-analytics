@@ -17,7 +17,6 @@ const { default: AgentLoop } = await load('packages/core/agent-loop');
 const { default: SkillRegistry } = await load('packages/skill/skill');
 const skillTool = await load('packages/skill/tool-skill');
 const skillFilesystem = await load('packages/skill/skill-filesystem');
-const { default: ProjectionRegistry } = await load('packages/session/session-projection');
 const { default: TokenMeter } = await load('packages/llm/token-meter');
 const { BasicCompactionEngine } = await load('packages/compaction/compaction-basic');
 const { createUserMessage, LlmAdapter } = await load('packages/llm/llm');
@@ -100,7 +99,6 @@ test('native skill loading and real compaction preserve fresh backend authority 
   const ctx = new Context();
   try {
     await mountAgentLoopTestDependencies(ctx);
-    await ctx.plugin(ProjectionRegistry);
     await ctx.plugin(AgentLoop, { agents: [] });
     await ctx.plugin(TokenMeter);
     await ctx.plugin(SkillRegistry);

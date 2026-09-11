@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- main 的 DSH 钉从 0.1.3-alpha.1 升到 0.1.5-rc.1（`183f08e9`）。原生桥按 `inbox.nextTurn` / `nextStep` 判断是否仍有待处理输入。skill loader 测试不再重复挂 `session-projection`（0.1.5 testkit 已挂）。旧 0.1.3 checkout 仅本地归档，不删。后续再升架构仍改 `toolchain.json` 并跑 pipeline，不改上游源码。
+
 - L4.91 R3 允许访客入会率水平值（`member_join_rate` / `ly_member_join_rate`）展示 `*100`；同比/占比字段仍禁止视图内再乘。
 
 - 计算结果增加可核验的金额单位状态，随 v2 事实纳入证据摘要并保留至看板；合成源未声明时显示未知，旧 v1 结果保持原摘要并显示未记录。金额不隐式换算。诊断方法禁止猜测单位、混用合同归属或忽略计算结果的自动持久化。
