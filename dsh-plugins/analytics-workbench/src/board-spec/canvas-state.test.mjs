@@ -82,3 +82,17 @@ test('stageTitlePatch refuses empty ask', () => {
   assert.equal(got.ok, false);
   assert.equal(got.error.code, 'PATCH_TITLE');
 });
+
+test('illegal tab, missing block, invalid spec, and empty rollback are refused', () => {
+  const invalid = createCanvasState({ board_id: 'x', version: 1, blocks: [{ block_id: 'z', kind: 'PIE' }] });
+  assert.equal(invalid.ok, false);
+  assert.equal(invalid.error.code, 'SPEC_KIND');
+  const state = boot();
+  assert.equal(setTab(state, 'sql').error.code, 'CANVAS_TAB');
+  assert.equal(selectBlock(state, 'nope').error.code, 'CANVAS_SELECT');
+  assert.equal(rollbackTo(state, 9).error.code, 'ROLLBACK_MISSING');
+  assert.equal(rollbackTo(state, 0).error.code, 'ROLLBACK_VERSION');
+  assert.equal(rollbackPrevious(state).error.code, 'ROLLBACK_MISSING');
+  assert.equal(previousHistoryVersion(state), null);
+  assert.equal(setAsk(state, /** @type {any} */ (1)).value.ask, '');
+});

@@ -29,3 +29,22 @@ test('factsFromGsvResult refuses incomplete GSV', () => {
   assert.equal(got.ok, false);
   assert.equal(got.error.code, 'FACTS_SHAPE');
 });
+
+test('factsFromGsvResult computes difference when omitted; catalog keys source_result_ref and id', () => {
+  const got = factsFromGsvResult({
+    facts: { current: { gsv: 50 }, comparison: { gsv: 20 } },
+  });
+  assert.equal(got.ok, true);
+  assert.equal(got.value.r1.difference, 30);
+  assert.equal('change_ratio' in got.value.r1, false);
+  const catalog = catalogFromGsvItems([
+    { facts: { current: { gsv: 1 } } },
+    { source_result_ref: 'src_a', facts: { current: { gsv: 10 }, comparison: { gsv: 4 }, difference: 6 } },
+    { id: 'legacy', facts: { current: { gsv: 8 }, comparison: { gsv: 8 }, difference: 0 } },
+    { facts: { current: { gsv: 3 }, comparison: { gsv: 1 }, difference: 2 } },
+  ]);
+  assert.equal(catalog.src_a.current_gsv, 10);
+  assert.equal(catalog.legacy.current_gsv, 8);
+  assert.equal(catalog.r3.current_gsv, 3);
+  assert.deepEqual(catalogFromGsvItems(null), {});
+});

@@ -31,3 +31,36 @@ test('brand surface sets DESIGN title and replaces upstream greeting', () => {
   assert.equal(h1.textContent, PRODUCT_HEADLINE);
   assert.equal(created[0].href, '/b0/brand/mark.svg');
 });
+
+test('brand surface hides 预览版 and does not rewrite nested headline hosts', () => {
+  const nested = { textContent: 'Into the Unknown', children: { length: 1 } };
+  const leaf = { textContent: '把增长问清楚', children: { length: 0 } };
+  const badge = { textContent: '预览版', style: {}, setAttribute(name, value) { this[name] = value; } };
+  const icon = { setAttribute(name, value) { this[name] = value; } };
+  const doc = {
+    documentElement: {},
+    title: 'DeepSeek Harness',
+    head: { appendChild() {} },
+    querySelector(sel) {
+      if (String(sel).includes('rel="icon"') || String(sel).startsWith('link')) return icon;
+      return null;
+    },
+    querySelectorAll(sel) {
+      const key = String(sel);
+      if (key.includes('previewBadge')) return [badge];
+      if (key.includes('h1')) return [nested, leaf];
+      if (key.includes('span')) return [leaf];
+      return [];
+    },
+    createElement() {
+      return { rel: '', href: '', setAttribute() {} };
+    },
+  };
+  const out = applyCompetitionBrandSurface(doc);
+  assert.equal(nested.textContent, 'Into the Unknown');
+  assert.equal(leaf.textContent, PRODUCT_HEADLINE);
+  assert.equal(badge.hidden, '');
+  assert.equal(badge.style.display, 'none');
+  assert.equal(out.greeting, true);
+  assert.equal(icon.href, '/b0/brand/mark.svg');
+});

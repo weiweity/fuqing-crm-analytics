@@ -36,6 +36,25 @@ export function openHttpsLink(url) {
   return { ok: true, href: got.src, target: '_blank', rel: 'noopener noreferrer' };
 }
 
+function isBlockedHost(host) {
+  const h = String(host || '').toLowerCase().replace(/\.$/, '').replace(/^\[|\]$/g, '');
+  if (!h) return true;
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local')) return true;
+  if (h === '::1' || h.startsWith('fe80:') || h.startsWith('fc') || h.startsWith('fd')) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const parts = m.slice(1).map(Number);
+    if (parts.some((n) => n > 255)) return true;
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+  }
+  return false;
+}
+
 export async function refreshSandboxHtml(url, fetchImpl = fetch) {
   const frame = httpsSandboxFrame(url);
   if (!frame.ok) return frame;
@@ -44,9 +63,13 @@ export async function refreshSandboxHtml(url, fetchImpl = fetch) {
       method: 'GET',
       credentials: 'omit',
       referrerPolicy: 'no-referrer',
+      redirect: 'manual',
       headers: { accept: 'text/html' },
     });
     if (!res || !res.ok) return fail('SANDBOX_REFRESH', '刷新失败，未改沙箱。');
+    if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
+      return fail('SANDBOX_REFRESH', '刷新失败，未改沙箱。');
+    }
     const type = String(res.headers.get('content-type') || '');
     if (!/text\/html/i.test(type) && !/text\/plain/i.test(type)) {
       return fail('SANDBOX_REFRESH', '刷新结果不是 HTML，未改沙箱。');
@@ -67,10 +90,18 @@ export async function refreshSandboxHtml(url, fetchImpl = fetch) {
 export function httpsSandboxFrame(url) {
   if (typeof url !== 'string') return fail('SANDBOX_URL', '需要 https 链接');
   const trimmed = url.trim();
-  if (!/^https:\/\//i.test(trimmed)) return fail('SANDBOX_URL', '只允许 https 链接');
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return fail('SANDBOX_URL', '只允许 https 链接');
+  }
+  if (parsed.protocol !== 'https:') return fail('SANDBOX_URL', '只允许 https 链接');
+  if (parsed.username || parsed.password) return fail('SANDBOX_URL', '只允许 https 链接');
+  if (isBlockedHost(parsed.hostname)) return fail('SANDBOX_URL', '只允许 https 链接');
   return {
     ok: true,
-    src: trimmed,
+    src: parsed.href,
     sandbox: '',
     referrerPolicy: 'no-referrer',
   };

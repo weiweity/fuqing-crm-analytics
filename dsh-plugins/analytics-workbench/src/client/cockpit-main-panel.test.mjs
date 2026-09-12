@@ -276,3 +276,100 @@ test('cockpit refresh catalogs GSV by result_id so GENERATE bindings stay live',
     restoreDom(previous);
   }
 });
+
+test('cockpit board live subscribe paints pending then cancel drops it without writing', async () => {
+  const { CockpitMainPanel } = await loadPanel();
+  const { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } = await import('../board-spec/fixture.mjs');
+  const { previous, dom } = installDom();
+  const root = createRoot(dom.window.document.getElementById('root'));
+  let slice = {
+    boardSpec: null, boardFacts: null, boardError: '',
+    pendingGenerate: { spec: BOARD_SPEC_FIXTURE, facts: BOARD_SPEC_FACTS },
+  };
+  const listeners = new Set();
+  const board = {
+    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+    getSnapshot() { return slice; },
+    actions: {
+      cancelGenerate() {
+        slice = { ...slice, pendingGenerate: null };
+        for (const listener of listeners) listener();
+      },
+    },
+  };
+  const themeSource = { subscribe() { return () => {}; }, getSnapshot() { return 'dark'; } };
+  try {
+    await act(() => {
+      root.render(React.createElement(CockpitMainPanel, {
+        goConversation() {},
+        themeSource,
+        board,
+      }));
+    });
+    assert.ok(dom.window.document.querySelector('[data-testid="sm-generate-modal"]'));
+    assert.equal(dom.window.document.querySelector('[data-testid="sm-board-spec-canvas"]'), null);
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-generate-cancel"]').click(); });
+    assert.equal(dom.window.document.querySelector('[data-testid="sm-generate-modal"]'), null);
+    assert.ok(dom.window.document.querySelector('[data-testid="sm-cockpit-empty"]'));
+  } finally {
+    await act(() => root.unmount());
+    dom.window.close();
+    restoreDom(previous);
+  }
+});
+
+test('cockpit results fetch failure or empty catalog keeps generate-time facts', async () => {
+  const { CockpitMainPanel } = await loadPanel();
+  const { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } = await import('../board-spec/fixture.mjs');
+  const { previous, dom } = installDom();
+  const root = createRoot(dom.window.document.getElementById('root'));
+  const slice = {
+    boardSpec: BOARD_SPEC_FIXTURE, boardFacts: BOARD_SPEC_FACTS, boardError: '', pendingGenerate: null, boardEpoch: 1,
+  };
+  const themeSource = { subscribe() { return () => {}; }, getSnapshot() { return 'dark'; } };
+  let catalogSet = 0;
+  let refreshed = 0;
+  try {
+    await act(() => {
+      root.render(React.createElement(CockpitMainPanel, {
+        goConversation() {},
+        themeSource,
+        useStore(selector) { return selector(slice); },
+        actions: {
+          setFactsCatalog() { catalogSet += 1; },
+          refreshBoard() { refreshed += 1; },
+        },
+        askTransport: {
+          resultsPath: '/api/v1/analytics/results',
+          async fetchImpl() { throw new Error('offline'); },
+        },
+      }));
+    });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+    assert.equal(catalogSet, 0);
+    assert.ok(refreshed >= 1);
+    await act(() => {
+      root.render(React.createElement(CockpitMainPanel, {
+        goConversation() {},
+        themeSource,
+        useStore(selector) { return selector({ ...slice, boardEpoch: 2 }); },
+        actions: {
+          setFactsCatalog() { catalogSet += 1; },
+          refreshBoard() { refreshed += 1; },
+        },
+        askTransport: {
+          resultsPath: '/api/v1/analytics/results',
+          async fetchImpl() {
+            return { ok: true, async json() { return { items: [{ result_id: 'x' }] }; } };
+          },
+        },
+      }));
+    });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+    assert.equal(catalogSet, 0);
+  } finally {
+    await act(() => root.unmount());
+    dom.window.close();
+    restoreDom(previous);
+  }
+});

@@ -98,3 +98,28 @@ test('LINK kind requires url', () => {
   assert.equal(got.ok, false);
   assert.equal(got.error.code, 'SPEC_LINK');
 });
+
+test('applyPatch set_kind/set_layout/set_metric_ref; LINK href ok; missing block and LINK-without-url refused', () => {
+  const href = parseBoardSpec({
+    board_id: 'b',
+    version: 1,
+    blocks: [{ block_id: 'l1', kind: 'LINK', href: 'https://example.invalid/x' }],
+  });
+  assert.equal(href.ok, true);
+  const kind = applyPatch(validBoard, { block_id: 'b1', base_version: 1, op: 'set_kind', kind: 'LINE' });
+  assert.equal(kind.ok, true);
+  assert.equal(kind.value.blocks[0].kind, 'LINE');
+  const layout = applyPatch(validBoard, {
+    block_id: 'b1', base_version: 1, op: 'set_layout', layout: { x: 1, y: 2, w: 3, h: 4 },
+  });
+  assert.deepEqual(layout.value.blocks[0].layout, { x: 1, y: 2, w: 3, h: 4 });
+  const metric = applyPatch(validBoard, {
+    block_id: 'b1', base_version: 1, op: 'set_metric_ref', metric_ref: 'retail_gsv',
+  });
+  assert.equal(metric.value.blocks[0].metric_ref, 'retail_gsv');
+  const missing = applyPatch(validBoard, { block_id: 'nope', base_version: 1, op: 'set_title', title: 'x' });
+  assert.equal(missing.error.code, 'PATCH_BLOCK_MISSING');
+  const toLink = applyPatch(validBoard, { block_id: 'b1', base_version: 1, op: 'set_kind', kind: 'LINK' });
+  assert.equal(toLink.ok, false);
+  assert.equal(toLink.error.code, 'SPEC_LINK');
+});

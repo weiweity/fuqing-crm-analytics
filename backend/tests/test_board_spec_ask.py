@@ -77,3 +77,25 @@ def test_ask_empty_does_not_invent_patch():
     })
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "PATCH_TITLE"
+
+
+def test_ask_missing_block_id():
+    response = _client().post("/api/v1/analytics/board-spec/ask", json={
+        "board_id": "board_x", "version": 1, "block_id": "  ", "ask": "标题",
+    })
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "CANVAS_NO_SELECTION"
+
+
+def test_ask_rejects_bool_version_and_sets_bar_kind():
+    bad = _client().post("/api/v1/analytics/board-spec/ask", json={
+        "board_id": "board_x", "version": True, "block_id": "b1", "ask": "标题",
+    })
+    assert bad.status_code == 422
+    assert bad.json()["error"]["code"] == "PATCH_BASE_VERSION"
+    ok = _client().post("/api/v1/analytics/board-spec/ask", json={
+        "board_id": "board_x", "version": 1, "block_id": "b1", "ask": "换成柱状",
+    })
+    assert ok.status_code == 200
+    assert ok.json()["patch"]["op"] == "set_kind"
+    assert ok.json()["patch"]["kind"] == "BAR"

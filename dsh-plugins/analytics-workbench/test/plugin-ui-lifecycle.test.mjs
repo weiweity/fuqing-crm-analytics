@@ -154,3 +154,91 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.footer').length, 2);
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit').length, 2);
 });
+
+test('board store refreshBoard rebinds catalog; cancelGenerate drops pending; generateBoard writes', () => {
+  const { entries, effects } = mount(loadClient());
+  try {
+    const board = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit').options.inject().board;
+    board.actions.setFactsCatalog({
+      demo_live: { current_gsv: 999, comparison_gsv: 1, difference: 998 },
+    });
+    board.actions.refreshBoard();
+    assert.equal(board.getSnapshot().boardFacts.demo_live.current_gsv, 999);
+    assert.equal(board.getSnapshot().boardFacts.demo_private, undefined);
+    const spec = {
+      board_id: 'board_x',
+      version: 1,
+      blocks: [{ block_id: 'm1', kind: 'METRIC', title: 'x', source_result_id: 'demo_live' }],
+    };
+    board.actions.proposeGenerate({ spec, facts: { demo_live: { current_gsv: 1, comparison_gsv: 1, difference: 0 } } });
+    assert.ok(board.getSnapshot().pendingGenerate);
+    board.actions.cancelGenerate();
+    assert.equal(board.getSnapshot().pendingGenerate, null);
+    board.actions.generateBoard();
+    assert.match(board.getSnapshot().boardError, /没有可绑定的核验结果/);
+    board.actions.generateBoard({ spec, facts: { demo_live: { current_gsv: 2, comparison_gsv: 1, difference: 1 } } });
+    assert.equal(board.getSnapshot().boardSpec.board_id, 'board_x');
+    assert.equal(board.getSnapshot().pendingGenerate, null);
+  } finally {
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+  }
+});
+
+test('generate dock proposes a bound board from results and appends a LINK without Feishu token', async () => {
+  const { JSDOM } = createRequire(join(upstream, 'node_modules/jsdom/package.json'))('jsdom');
+  const React = webRequire('react');
+  const { createRoot } = webRequire('react-dom/client');
+  const act = typeof React.act === 'function' ? React.act : webRequire('react-dom/test-utils').act;
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:4318/' });
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    act: globalThis.IS_REACT_ACT_ENVIRONMENT,
+  };
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const { entries, effects } = mount(loadClient());
+  const root = createRoot(dom.window.document.getElementById('root'));
+  let opened = 0;
+  try {
+    const generate = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
+    const board = generate.options.inject().board;
+    await act(() => {
+      root.render(React.createElement(generate.component, {
+        session: { sessionId: 'session-b0-synthetic-primary' },
+        board,
+        openCockpit() { opened += 1; },
+        async fetchResults() {
+          return [{
+            result_id: 'result_c0',
+            facts: { current: { gsv: 410 }, comparison: { gsv: 305 }, difference: 105 },
+          }];
+        },
+      }));
+    });
+    await act(() => { dom.window.document.querySelector('[data-testid="analytics-b0-generate-cockpit"]').click(); });
+    for (let i = 0; i < 30 && !board.getSnapshot().pendingGenerate; i += 1) {
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); });
+    }
+    const pending = board.getSnapshot().pendingGenerate;
+    assert.ok(pending);
+    assert.equal(pending.spec.blocks[0].source_result_id, 'result_c0');
+    assert.equal(pending.facts.result_c0.current_gsv, 410);
+    assert.equal(opened, 1);
+    board.actions.cancelGenerate();
+    await act(() => { dom.window.document.querySelector('[data-testid="analytics-b0-generate-feishu"]').click(); });
+    const linked = board.getSnapshot().pendingGenerate;
+    assert.ok(linked);
+    assert.ok(linked.spec.blocks.some(block => block.kind === 'LINK' && block.block_id === 'b7'));
+    assert.equal(opened, 2);
+  } finally {
+    await act(() => root.unmount());
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+    if (previous.window === undefined) delete globalThis.window; else globalThis.window = previous.window;
+    if (previous.document === undefined) delete globalThis.document; else globalThis.document = previous.document;
+    if (previous.act === undefined) delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+    else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
+    dom.window.close();
+  }
+});

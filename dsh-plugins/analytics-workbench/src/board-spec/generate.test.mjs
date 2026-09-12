@@ -73,3 +73,22 @@ test('summarizeGenerate lists kinds without writing', () => {
   assert.match(text, /METRIC/);
   assert.match(text, /确认后进入画布/);
 });
+
+test('specWithLink refuses non-LINK; summarizeGenerate returns the parse error', () => {
+  const bad = specWithLink(null, { block_id: 'x', kind: 'METRIC' });
+  assert.equal(bad.ok, false);
+  assert.equal(bad.error.code, 'SPEC_LINK');
+  const msg = summarizeGenerate({ board_id: 'x', version: 1, blocks: [{ block_id: 'z', kind: 'PIE' }] });
+  assert.match(msg, /非法 kind/);
+  const illegalBoard = specWithLink(
+    { board_id: 'x', version: 1, blocks: [{ block_id: 'z', kind: 'PIE' }] },
+    BOARD_SPEC_FIXTURE.blocks.find((b) => b.kind === 'LINK'),
+  );
+  assert.equal(illegalBoard.ok, false);
+  const withSession = specFromGsvFacts(
+    { result_c0: { current_gsv: 410, comparison_gsv: 305, difference: 105 } },
+    { session_id: 'sess_ask', board_id: 'board_custom' },
+  );
+  assert.equal(withSession.value.session_id, 'sess_ask');
+  assert.equal(withSession.value.board_id, 'board_custom');
+});

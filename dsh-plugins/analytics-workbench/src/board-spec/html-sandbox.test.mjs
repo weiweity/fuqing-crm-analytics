@@ -33,6 +33,14 @@ test('httpsSandboxFrame rejects javascript and http', () => {
   assert.equal(got.sandbox, '');
 });
 
+test('httpsSandboxFrame rejects loopback, private, and credentialed hosts', () => {
+  assert.equal(httpsSandboxFrame('https://127.0.0.1/x').ok, false);
+  assert.equal(httpsSandboxFrame('https://localhost/x').ok, false);
+  assert.equal(httpsSandboxFrame('https://192.168.1.1/x').ok, false);
+  assert.equal(httpsSandboxFrame('https://10.0.0.2/x').ok, false);
+  assert.equal(httpsSandboxFrame('https://user:pass@example.invalid/x').ok, false);
+});
+
 test('wrapSandboxHtml keeps payload inside srcdoc only', () => {
   const wrapped = wrapSandboxHtml('<img src=x onerror=bad()>');
   assert.match(wrapped, /onerror=bad/);
@@ -60,6 +68,7 @@ test('refreshSandboxHtml GETs https HTML without Authorization and wraps srcdoc'
   assert.equal(got.ok, true);
   assert.match(got.srcdoc, /live/);
   assert.equal(headers[0].credentials, 'omit');
+  assert.equal(headers[0].redirect, 'manual');
   assert.equal(headers[0].headers.authorization, undefined);
 });
 
@@ -78,4 +87,20 @@ test('openHttpsLink is noopener and refuses javascript', () => {
   assert.equal(got.ok, true);
   assert.equal(got.target, '_blank');
   assert.equal(got.rel, 'noopener noreferrer');
+});
+
+test('htmlSandboxFrame refuses other kinds; refresh fails closed on throw and oversized HTML', async () => {
+  assert.equal(htmlSandboxFrame({ kind: 'METRIC' }).error.code, 'SANDBOX_KIND');
+  const huge = await refreshSandboxHtml('https://example.invalid/x', async () => (
+    new Response('h'.repeat(100_001), { status: 200, headers: { 'content-type': 'text/html' } })
+  ));
+  assert.equal(huge.ok, false);
+  assert.equal(huge.error.code, 'SANDBOX_REFRESH');
+  const boom = await refreshSandboxHtml('https://example.invalid/x', async () => { throw new Error('net'); });
+  assert.equal(boom.error.code, 'SANDBOX_REFRESH');
+  const plain = await refreshSandboxHtml('https://example.invalid/x', async () => (
+    new Response('<p>ok</p>', { status: 200, headers: { 'content-type': 'text/plain' } })
+  ));
+  assert.equal(plain.ok, true);
+  assert.match(plain.srcdoc, /ok/);
 });

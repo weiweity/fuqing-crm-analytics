@@ -64,7 +64,7 @@ function installDom() {
     act: globalThis.IS_REACT_ACT_ENVIRONMENT,
   };
   previous.browserGlobals = new Map(
-    ['getComputedStyle', 'HTMLElement', 'Element', 'SVGElement', 'ShadowRoot', 'HTMLTextAreaElement', 'HTMLButtonElement']
+    ['getComputedStyle', 'HTMLElement', 'Element', 'SVGElement', 'ShadowRoot', 'HTMLTextAreaElement', 'HTMLButtonElement', 'HTMLInputElement']
       .map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
   );
   for (const key of previous.browserGlobals.keys()) {
@@ -229,6 +229,98 @@ test('open-canvas refresh rebinds METRIC and drops to unbound without 0%', async
     assert.ok(dom.window.document.querySelector('[data-testid="sm-board-spec-unbound"]'));
     assert.equal(dom.window.document.querySelector('[data-testid="sm-board-spec-metric-headline"]'), null);
   } finally {
+    await act(() => root.unmount());
+    dom.window.close();
+    restoreDom(previous);
+  }
+});
+
+test('canvas cancel drops pending; askTransport HTTP stages without writing version', async () => {
+  const { BoardSpecCanvas } = await loadCanvas();
+  const { previous, dom } = installDom();
+  const root = createRoot(dom.window.document.getElementById('root'));
+  let back = 0;
+  try {
+    await act(() => {
+      root.render(React.createElement(BoardSpecCanvas, {
+        spec: BOARD_SPEC_FIXTURE,
+        facts: BOARD_SPEC_FACTS,
+        goConversation() { back += 1; },
+        askTransport: {
+          async fetchImpl() {
+            return Response.json({
+              patch: { block_id: 'b3', base_version: 1, op: 'set_title', title: 'HTTP标题' },
+            });
+          },
+        },
+      }));
+    });
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-cockpit-back"]').click(); });
+    assert.equal(back, 1);
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-board-spec-block-b3"]').click(); });
+    await act(() => { typeAsk('HTTP标题'); });
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-board-spec-propose"]').click(); });
+    for (let i = 0; i < 20 && !dom.window.document.querySelector('[data-testid="sm-board-spec-patch-modal"]'); i += 1) {
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
+    }
+    assert.ok(dom.window.document.querySelector('[data-testid="sm-board-spec-patch-modal"]'));
+    assert.match(dom.window.document.querySelector('[data-testid="sm-board-spec-version"]').textContent, /版本 v1/);
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-board-spec-cancel"]').click(); });
+    assert.equal(dom.window.document.querySelector('[data-testid="sm-board-spec-patch-modal"]'), null);
+    assert.match(dom.window.document.querySelector('[data-testid="sm-board-spec-version"]').textContent, /版本 v1/);
+  } finally {
+    await act(() => root.unmount());
+    dom.window.close();
+    restoreDom(previous);
+  }
+});
+
+test('browser tab https URL uses sandbox iframe; refresh_url replaces srcdoc without parent markup', async () => {
+  const { BoardSpecCanvas } = await loadCanvas();
+  const { previous, dom } = installDom();
+  const root = createRoot(dom.window.document.getElementById('root'));
+  const priorFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.equal(url, 'https://example.invalid/sandbox');
+    return new Response('<p>live-refresh</p>', { status: 200, headers: { 'content-type': 'text/html' } });
+  };
+  try {
+    await act(() => {
+      root.render(React.createElement(BoardSpecCanvas, {
+        spec: {
+          board_id: 'board_refresh',
+          version: 1,
+          blocks: [{
+            block_id: 'h1',
+            kind: 'html_sandbox',
+            title: '渠道结构',
+            html: '<p>seed</p>',
+            refresh_url: 'https://example.invalid/sandbox',
+          }],
+        },
+        facts: {},
+      }));
+    });
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-board-spec-tab-browser"]').click(); });
+    const urlInput = dom.window.document.querySelector('[data-testid="sm-board-spec-url"]');
+    await act(() => { testUtils.Simulate.change(urlInput, { target: { value: 'https://example.invalid/doc' } }); });
+    const httpsFrame = dom.window.document.querySelector('[data-testid="sm-board-spec-iframe"]');
+    assert.equal(httpsFrame.getAttribute('src'), 'https://example.invalid/doc');
+    assert.equal(httpsFrame.getAttribute('sandbox'), '');
+    await act(() => { testUtils.Simulate.change(urlInput, { target: { value: '' } }); });
+    const refresh = dom.window.document.querySelector('[data-testid="sm-board-spec-html-refresh"]');
+    assert.ok(refresh);
+    await act(() => { refresh.click(); });
+    for (let i = 0; i < 20; i += 1) {
+      const srcdoc = dom.window.document.querySelector('[data-testid="sm-board-spec-iframe"]')?.getAttribute('srcdoc') || '';
+      if (srcdoc.includes('live-refresh')) break;
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
+    }
+    const htmlFrame = dom.window.document.querySelector('[data-testid="sm-board-spec-iframe"]');
+    assert.match(htmlFrame.getAttribute('srcdoc') ?? '', /live-refresh/);
+    assert.doesNotMatch(dom.window.document.body.textContent, /live-refresh/);
+  } finally {
+    globalThis.fetch = priorFetch;
     await act(() => root.unmount());
     dom.window.close();
     restoreDom(previous);

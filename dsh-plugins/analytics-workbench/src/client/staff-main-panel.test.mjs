@@ -66,7 +66,7 @@ function installDom() {
   }
   const previous = { window: globalThis.window, document: globalThis.document, act: globalThis.IS_REACT_ACT_ENVIRONMENT };
   previous.browserGlobals = new Map(
-    ['getComputedStyle', 'HTMLElement', 'Element', 'SVGElement', 'ShadowRoot', 'HTMLButtonElement']
+    ['getComputedStyle', 'HTMLElement', 'Element', 'SVGElement', 'ShadowRoot', 'HTMLButtonElement', 'HTMLInputElement']
       .map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
   );
   for (const key of previous.browserGlobals.keys()) {
@@ -123,6 +123,34 @@ test('staff mine tab lists 增长分析师; card click returns to conversation',
     assert.equal(back, 1);
     await act(() => { dom.window.document.querySelector('[data-testid="sm-staff-back"]').click(); });
     assert.equal(back, 2);
+  } finally {
+    await act(() => root.unmount());
+    dom.window.close();
+    restoreDom(previous);
+  }
+});
+
+test('staff search filters mine cards by name and plaza without openPlazaRole returns to conversation', async () => {
+  const { StaffMainPanel } = await loadPanel();
+  const { previous, dom } = installDom();
+  const root = createRoot(dom.window.document.getElementById('root'));
+  const testUtils = webReq('react-dom/test-utils');
+  let back = 0;
+  try {
+    await act(() => {
+      root.render(React.createElement(StaffMainPanel, {
+        goConversation() { back += 1; },
+        themeSource: { subscribe() { return () => {}; }, getSnapshot() { return 'dark'; } },
+      }));
+    });
+    const input = dom.window.document.querySelector('[data-testid="sm-staff-search"]');
+    await act(() => { testUtils.Simulate.change(input, { target: { value: '经营参谋' } }); });
+    assert.ok(dom.window.document.querySelector('[data-testid="sm-staff-card-ops-advisor"]'));
+    assert.equal(dom.window.document.querySelector('[data-testid="sm-staff-card-growth-analyst"]'), null);
+    await act(() => { testUtils.Simulate.change(input, { target: { value: '' } }); });
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-staff-tab-plaza"]').click(); });
+    await act(() => { dom.window.document.querySelector('[data-testid="sm-staff-card-legal"]').click(); });
+    assert.equal(back, 1);
   } finally {
     await act(() => root.unmount());
     dom.window.close();

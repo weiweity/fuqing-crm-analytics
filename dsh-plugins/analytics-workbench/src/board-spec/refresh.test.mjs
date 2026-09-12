@@ -38,3 +38,19 @@ test('refreshFactsFromTransport HTTP 500 does not invent numbers', async () => {
   assert.equal(got.ok, false);
   assert.equal(got.error.code, 'FACTS_HTTP');
 });
+
+test('refreshFactsFromTransport copies catalog facts; missing fetchImpl uses local catalog', async () => {
+  const live = await refreshFactsFromTransport(BOARD_SPEC_FIXTURE, {
+    fetchImpl: async () => Response.json({ facts: { r1: { current_gsv: 451, comparison_gsv: 300 } } }),
+  });
+  assert.equal(live.ok, true);
+  assert.equal(live.value.r1.current_gsv, 451);
+  const local = await refreshFactsFromTransport(BOARD_SPEC_FIXTURE, { catalog: BOARD_SPEC_FACTS });
+  assert.equal(local.ok, true);
+  assert.equal(local.value.r1.current_gsv, 400);
+  const boom = await refreshFactsFromTransport(BOARD_SPEC_FIXTURE, {
+    fetchImpl: async () => { throw new Error('offline'); },
+  });
+  assert.equal(boom.ok, false);
+  assert.equal(boom.error.code, 'FACTS_HTTP');
+});

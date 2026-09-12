@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { proposeAsk, proposeAskLocal, titleFromAsk } from './ask.mjs';
+import { kindFromAsk, proposeAsk, proposeAskLocal, refreshSelectedFacts, titleFromAsk } from './ask.mjs';
 import { confirmPatch, createCanvasState, selectBlock, setAsk } from './canvas-state.mjs';
 import { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } from './fixture.mjs';
 
@@ -105,4 +105,55 @@ test('proposeAsk HTTP legal PATCH is pending until confirmPatch', async () => {
   const written = confirmPatch(staged.value);
   assert.equal(written.value.spec.version, 2);
   assert.equal(written.value.spec.blocks.find((b) => b.block_id === 'b3').title, '本月渠道占比');
+});
+
+test('proposeAsk HTTP version conflict is fail-closed and does not write', async () => {
+  const got = await proposeAsk(selectedAsk('本月渠道占比'), {
+    fetchImpl: async () => Response.json({
+      patch: { block_id: 'b3', base_version: 9, op: 'set_title', title: '偷改' },
+    }),
+  });
+  assert.equal(got.ok, false);
+  assert.equal(got.error.code, 'PATCH_VERSION_CONFLICT');
+});
+
+test('proposeAsk without transport stages locally; facts HTTP fail and throw do not write', async () => {
+  const local = await proposeAsk(selectedAsk('本月渠道占比'));
+  assert.equal(local.ok, true);
+  assert.equal(local.value.pending_patch.op, 'set_title');
+  assert.equal(local.value.spec.version, 1);
+  const failed = await proposeAsk(selectedAsk('本月 GSV 是多少'), {
+    fetchImpl: async () => new Response('no', { status: 500 }),
+    resultsPath: '/api/v1/analytics/competition/results',
+  });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.error.code, 'ASK_FACTS');
+  const boom = await proposeAsk(selectedAsk('本月渠道占比'), {
+    fetchImpl: async () => { throw new Error('offline'); },
+  });
+  assert.equal(boom.ok, false);
+  assert.equal(boom.error.code, 'ASK_HTTP');
+});
+
+test('kindFromAsk maps 柱/表; refreshSelectedFacts refuses unbound or missing catalog rows', () => {
+  assert.equal(kindFromAsk('换成柱状'), 'BAR');
+  assert.equal(kindFromAsk('改成表'), 'TABLE');
+  assert.equal(kindFromAsk('加一块 METRIC'), 'METRIC');
+  assert.equal(kindFromAsk('随便说说'), null);
+  const none = proposeAskLocal(createCanvasState(BOARD_SPEC_FIXTURE, BOARD_SPEC_FACTS).value);
+  assert.equal(none.error.code, 'CANVAS_NO_SELECTION');
+  let state = selectBlock(createCanvasState(BOARD_SPEC_FIXTURE, BOARD_SPEC_FACTS).value, 'b7').value;
+  const unbound = refreshSelectedFacts(state, [{
+    result_id: 'r1',
+    facts: { current: { gsv: 410 }, comparison: { gsv: 305 }, difference: 105 },
+  }]);
+  assert.equal(unbound.ok, false);
+  assert.equal(unbound.error.code, 'ASK_FACTS');
+  state = selectBlock(createCanvasState(BOARD_SPEC_FIXTURE, BOARD_SPEC_FACTS).value, 'b1').value;
+  const missing = refreshSelectedFacts(state, [{
+    result_id: 'other',
+    facts: { current: { gsv: 410 }, comparison: { gsv: 305 }, difference: 105 },
+  }]);
+  assert.equal(missing.ok, false);
+  assert.equal(missing.error.code, 'ASK_FACTS');
 });
