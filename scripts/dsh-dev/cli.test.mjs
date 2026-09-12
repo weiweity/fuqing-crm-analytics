@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import {
   B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, FOREIGN_PORTS,
   PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS,
@@ -25,6 +26,10 @@ test('isolated launch accepts an explicit public CA bundle without forwarding ke
     assert.equal(env.NODE_TLS_REJECT_UNAUTHORIZED, undefined);
     assert.equal(env.DEEPSEEK_API_KEY, undefined);
     assert.equal(env.COMPETITION_HTTP_BASE, 'http://127.0.0.1:18083');
+    delete process.env.NODE_EXTRA_CA_CERTS;
+    const fallback = isolatedEnv('/tmp/runtime', '/tmp/runtime/harness');
+    if (existsSync('/etc/ssl/cert.pem')) assert.equal(fallback.NODE_EXTRA_CA_CERTS, '/etc/ssl/cert.pem');
+    assert.equal(fallback.DEEPSEEK_API_KEY, undefined);
     process.env.NODE_EXTRA_CA_CERTS = 'relative.pem';
     assert.throws(() => isolatedEnv('/tmp/runtime', '/tmp/runtime/harness'), /absolute public CA/);
   } finally {

@@ -11,8 +11,9 @@
 node scripts/dsh-dev/cli.mjs diagnose --upstream /absolute/pinned/dsh
 
 node scripts/dsh-dev/cli.mjs check --plugin off --upstream /absolute/pinned/dsh
-node scripts/dsh-dev/cli.mjs start --plugin on --web-port 6677 --fresh --detach
-node scripts/dsh-dev/cli.mjs start --plugin off --web-port 6677 --fresh --detach
+node scripts/dsh-dev/cli.mjs reload
+node scripts/dsh-dev/cli.mjs start --plugin on --web-port 6677 --detach
+node scripts/dsh-dev/cli.mjs start --plugin off --web-port 6677 --detach
 node scripts/dsh-dev/cli.mjs start --plugin off --web-port 14327 --runtime /ABS/.context/dsh-dev/runtime-a4
 node scripts/dsh-dev/cli.mjs status
 node scripts/dsh-dev/probe.mjs          # 只打 owned current.json；不打印 token
@@ -56,5 +57,5 @@ PATH 上的 Node 若不是 24，check/start 会失败。诊断会指出可用的
 
 1. Node 24 + 已 pin 且已构建的上游。
 2. `diagnose` 中 upstream=ready、4327 归 user_demo、14327=free。
-3. 日常：从 **main** `start --plugin on --web-port 6677 --fresh --detach`。插拔伸美：`on`/`off`。不要用 competition-next 工作树起 6677。结束必须 `stop`。
+3. 日常改插件：`node scripts/dsh-dev/cli.mjs reload`（Node 24）。会构建 workbench、在**固定** `.context/dsh-dev/runtime` 上重启 6677，并打开启动 URL。启动器会自动带 `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem`，否则 Node 24 连不上 `api.deepseek.com`。不要用 `--fresh`，否则 API Key 和设置里另装的插件会丢。不要用系统里的 `dsh web` 另开一套 home。`--fresh` 只用于故意清空的验收机。插拔伸美：`on`/`off`。不要用 competition-next 工作树起 6677。结束必须 `stop`。
 4. 用 `probe.mjs` 确认 401/兑换/200。真实模型、浏览器原生矩阵仍单独标 NOT_RUN。

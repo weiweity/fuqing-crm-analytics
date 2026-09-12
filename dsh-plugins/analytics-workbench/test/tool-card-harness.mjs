@@ -107,9 +107,14 @@ export async function loadCardHarness() {
   const firstPurchaseCard = cards.find(row => row.options.key === FIRST_PURCHASE_TOOL_NAME);
   assert.ok(b0Card); assert.ok(queryCard);
   assert.ok(firstPurchaseCard, 'compiled client is missing the first-purchase renderer');
-  const brand = registrations.find(r => r.options.name === 'sidebar.brand.mark');
-  const brandHtml = renderToStaticMarkup(React.createElement(brand.component, { size: 24 }));
-  const css = brandHtml.match(/<style>([\s\S]*?)<\/style>/)?.[1];
+  const footer = registrations.find(r => r.options.name === 'sidebar.footer.action');
+  assert.ok(footer, 'compiled client is missing the footer that owns plugin CSS');
+  const footerHtml = renderToStaticMarkup(React.createElement(footer.component, {
+    wide: true,
+    actions: { close() {}, open() {} },
+    openCockpit() { return false; },
+  }));
+  const css = footerHtml.match(/<style>([\s\S]*?)<\/style>/)?.[1];
   assert.ok(css?.includes('.analytics-b0-card'));
   function renderCard(component, toolName, block) {
     const wire = JSON.stringify(block);

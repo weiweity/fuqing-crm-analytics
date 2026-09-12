@@ -14,6 +14,7 @@
 - [x] #125 T13 可重放离线 eval：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测
 - [x] #126 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit`
 - [x] #127 dsh-dev 收进 main：6677 从 main 起；`--plugin on/off` 插拔伸美包。市场/IM 是另装的包，不是上游
+- [x] `feat/board-spec-cockpit` 驾驶舱按 BoardSpec 生成：确认写入、`result_id` 绑数字、沙箱无脚本、侧栏样例板。未合 main
 
 ## 当前验收缺口（开放，需对应证据）
 

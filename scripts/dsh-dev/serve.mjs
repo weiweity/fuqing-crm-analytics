@@ -1,6 +1,7 @@
 /** Full DSH web supervisor. Owns only this runtime and 4325-4329. */
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, writeFile, readFile, access } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -54,7 +55,8 @@ export function isolatedEnv(runtime, home) {
     key === 'HOME' || key === 'LANG' || key === 'TZ'
   ) && !API_KEY_ENV.includes(key)));
   const competition = {};
-  const caFile = process.env.NODE_EXTRA_CA_CERTS;
+  const caFile = process.env.NODE_EXTRA_CA_CERTS
+    ?? (existsSync('/etc/ssl/cert.pem') ? '/etc/ssl/cert.pem' : undefined);
   if (caFile) {
     assert.ok(isAbsolute(caFile), 'NODE_EXTRA_CA_CERTS must be an absolute public CA bundle path');
     competition.NODE_EXTRA_CA_CERTS = caFile;

@@ -1,6 +1,6 @@
 # Competition 合成 HTTP 的状态与调用约定
 
-实现入口为 `backend/analytics_competition_app.py`，前缀 `/api/v1/analytics/competition`。本文记录 2026-09-10 审查修复后的运行时包络，不改变冻结 C0 合同、其 hash 或离线 OpenAPI 的 `paths: {}`。调用方类型位于插件的 `src/client/competition-board/types.ts`；C0 schema 继续由既有离线生成器核验。
+实现入口为 `backend/analytics_competition_app.py`，前缀 `/api/v1/analytics/competition`。本文记录 2026-09-10 审查修复后的运行时包络，不改变冻结 C0 合同、其 hash 或离线 OpenAPI 的 `paths: {}`。调用方类型位于插件的 `src/client/competition-board/types.ts`；C0 schema 继续由既有离线生成器核验。同 app 另有 `POST /api/v1/analytics/board-spec/ask`：已认证调用返回 `{patch}` 建议（`set_title` / `set_kind` / `set_metric_ref`），不写看板、不写 facts、不接飞书。
 
 ## 看板读取与成板
 

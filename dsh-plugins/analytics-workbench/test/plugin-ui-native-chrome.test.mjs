@@ -38,6 +38,7 @@ test('plugin registers additive business keys and does not occupy native tool na
   assert.match(indexSource, /id: 'shine-mage.analytics-b0.generate-cockpit'/);
   assert.match(indexSource, /name: 'sidebar.panellist'/);
   assert.match(indexSource, /name: 'main'/);
+  assert.match(indexSource, /name: 'conversation.hero.brand.mark'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
   assert.doesNotMatch(indexSource, /name: 'sidebar'/);
   assert.doesNotMatch(indexSource, /name: 'conversation'/);
