@@ -50,7 +50,9 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /seedBoard\.spec/);
   assert.match(indexSource, /seedBoard\.facts/);
   assert.doesNotMatch(indexSource, /onClick=\{\(\) => props\.actions\.openGenerate\(\)\}/);
-  assert.match(indexSource, /if \(props\.openCockpit\?\.\(\)\) props\.actions\.close\(\);/);
+  assert.match(indexSource, /const opened = props\.openCockpit\?\.\(\);/);
+  assert.match(indexSource, /if \(opened\) props\.actions\.close\(\);/);
+  assert.match(indexSource, /if \(!opened\) props\.actions\.open\(\);/);
   assert.doesNotMatch(indexSource, /else props\.actions\.open\(\);/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
 });

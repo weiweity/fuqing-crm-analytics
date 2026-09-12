@@ -231,7 +231,9 @@ function Footer(props: FooterProps) {
     title={live ? '我的驾驶舱' : '我的驾驶舱 · 合成样例'}
     aria-label={live ? '打开我的驾驶舱' : '打开我的驾驶舱，合成样例'}
     data-testid="analytics-b0-open" onClick={() => {
-      if (props.openCockpit?.()) props.actions.close();
+      const opened = props.openCockpit?.();
+      if (opened) props.actions.close();
+      if (!opened) props.actions.open();
     }}>
     {props.wide ? '我的驾驶舱' : '驾驶舱'}
   </button></>;
