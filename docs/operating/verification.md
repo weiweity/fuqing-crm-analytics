@@ -10,7 +10,7 @@
 |---|---|
 | 普通文档 | 不跑业务全套；差异/引用由本次编辑验证 |
 | AGENTS、自动化配置、运维/验证文档 | 入口和 hook 行为回归；CI 的 ground-truth 仍使用 committed 模式 |
-| B0 插件/内核/合同 | 既有 B0 pipeline：离线合同、Python/Node、编译/装配与干净构建；无需旧 CRM 全套 |
+| B0 插件/内核/合同 | 既有 B0 pipeline：离线合同、Python/Node、编译/装配与干净构建；含 BoardSpec 源测试。`backend/tests/test_board_spec_ask.py` 走合成 backend。无需旧 CRM 全套 |
 | Vue | `npm run build`（含 vue-tsc）和 `test:unit`；品牌、App、FilterSync 共用接缝同时选择 B0 |
 | 旧 CRM 实现、未知代码、ETL | 合成 backend 全套；不运行真实 ETL |
 | 普通 backend 测试文件 | 选中文件；删除/改名后缺失目标扩大到全套 |

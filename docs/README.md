@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-11。`origin/main` 为 **v0.7.0.0**（#108–#115 已合）。当前 SHA 与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-12。`origin/main` 为 **v0.7.0.0**（#108–#127 已合）。当前 SHA、分支与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 
@@ -92,6 +92,7 @@ fuqing-crm-analytics/docs/
 | 你想… | 看 |
 |---|---|
 | 演示 AI 增长董事会 / 调用 Mission API | `hackathon/README.md` + `hackathon/MISSION-API.md` |
+| 看 BoardSpec 驾驶舱怎么生成 / 刷新 | [`../dsh-plugins/analytics-workbench/README.md`](../dsh-plugins/analytics-workbench/README.md) + 根 `STATUS.md` 当前分支 |
 | 项目能不能用 / 债指针 | 根 `STATUS.md` + `TECH-DEBT.md` |
 | 团队怎么合 PR | 根 `AGENTS.md`；`operating/team-workflow-v1.md` 仅作历史参考 |
 | 根目录该不该堆文件 | `operating/project-hygiene.md` |

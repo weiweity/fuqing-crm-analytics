@@ -31,7 +31,7 @@
 
 ## 快速开始
 
-新 DSH 开发入口见 [dsh-dev 使用说明](./scripts/dsh-dev/README.md)，比赛 HTTP 包络与隔离约定见 [competition-http](./docs/operating/competition-http.md)，验证按 [当前验证入口](./docs/operating/verification.md) 选择范围。以下是**既有演示/私有分析的历史入口**，不作为新工作台的默认启动或验证命令；不要继承私人数据库配置。
+新 DSH 开发入口见 [dsh-dev 使用说明](./scripts/dsh-dev/README.md)（日常改插件用 `reload`，不要 `--fresh`）。本分支侧栏驾驶舱按 BoardSpec 生成，见 [插件 README](./dsh-plugins/analytics-workbench/README.md)。比赛 HTTP 包络与隔离约定见 [competition-http](./docs/operating/competition-http.md)，验证按 [当前验证入口](./docs/operating/verification.md) 选择范围。以下是**既有演示/私有分析的历史入口**，不作为新工作台的默认启动或验证命令；不要继承私人数据库配置。
 
 ### 1. 启动本地演示
 

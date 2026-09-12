@@ -2,11 +2,12 @@
 
 > 当前短表；编年与旧运维事项见 [STATUS-HISTORY.md](docs/history/STATUS-HISTORY.md)。
 
-## 当前快照（2026-09-11）
+## 当前快照（2026-09-12）
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | `0.7.0.0`。HEAD 以 `git log -1` 为准；已合 #112、#114、#115、**#116–#127** |
+| VERSION / main | `origin/main` 仍是 `0.7.0.0`。已合 #112、#114、#115、**#116–#127** |
+| 当前分支 | `feat/board-spec-cockpit`，本树 VERSION `0.8.0.0`，未合 main。HEAD 以 `git log -1` 为准 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -29,7 +30,8 @@
 | 7 | 聊天下「生成驾驶舱」（`conversation.input.dock`） | #124 | 已合 |
 | 8 | T13 可重放离线 eval | #125 | 已合 |
 | 9 | 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit` | #126 | 已合 |
-| 10 | dsh-dev 收进 main：6677 + 插件插拔 | #127 | 已合。本地只留 main 工作树；6677 由 main 拉起 |
+| 10 | dsh-dev 收进 main：6677 + 插件插拔 | #127 | 已合。日常改插件用 `reload`，固定 `.context/dsh-dev/runtime`，不要 `--fresh` |
+| 11 | 驾驶舱按 BoardSpec 生成：确认写入、`result_id` 绑数字、沙箱无脚本 | `feat/board-spec-cockpit` | 本分支未合 |
 
 ## 当前施工边界（防乱）
 

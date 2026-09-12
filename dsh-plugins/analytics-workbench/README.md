@@ -13,6 +13,11 @@
 - 仅当 `serve.mjs --native-query-assets` 且 GET `/b0/assets` 返回 `http_api=CONNECTED` 时，同一入口改走 HTTP overlay：列出已保存 SNAPSHOT，对唯一私人驾驶舱 add/copy/remove/layout/preview/undo。浏览器不带 backend bearer；GET 列表不自动建板。无板时加入会先 `POST /b0/dashboards` 再建预览；预览/保存 409 后重读，不保留过期 pending。kernel 不可用时 `/b0/assets` 为 `UNAVAILABLE`，不报 CONNECTED，入口回退 mock。`test/asset-overlay.test.mjs` 用 mock transport 覆盖上述编译后 DOM，不是浏览器 E2E。
 - mock 路径的 localStorage 仅存 `analytics-b0-ui/v1 + title` 两字段，不缓存授权、身份、结果或业务资产。HTTP overlay 的权威资产在独立 SQLite（`analyses/` 与 `cockpit/`）；分析库读取与驾驶舱写入是先后事务，不是跨库原子。
 - 侧栏「驾驶舱」面板（`sidebar.panellist` id=`cockpit` + `main` key=`cockpit`）的默认初值就是一块合成样例看板：`src/board-spec/demo-board.mjs` 的 `board_demo_channel_gsv_2026_08`，3 个 METRIC 加 LINE/BAR/TABLE/EVIDENCE/LINK，数字全部来自冻结的固定 `source_result_id`。标题带「样例」、证据块标 `SYNTHETIC`，明示不是真实经营数据；它只是前端 store 初值，不写业务库、不执行查询，聊天下「生成驾驶舱」会把它换成对话产物。
+- 聊天下「生成驾驶舱」只预览草案，确认后才写入画布（`GENERATE_BOARD`）。没有可绑定的核验结果就拒绝整板，不画 0%。点选卡片后旁路问数只建议 `PATCH_BLOCK`（`set_title` / `set_kind` / `set_metric_ref` / `set_layout`），再确认才落盘；「这个数字是多少」走绑定刷新，不改标题。HTTP：`POST /api/v1/analytics/board-spec/ask` 只返回 patch，不写 facts、不接飞书。
+- 画布 closed kinds：`METRIC` `BAR` `LINE` `TABLE` `EVIDENCE` `html_sandbox` `LINK`。刷新按块上的 `source_result_id` 重绑数字，不是写死 `r1`。回退走 history 上一版。`html_sandbox` 用 srcdoc + CSP（无 script）；刷新不跟随跳转、不打内网。
+- 聊天下「生成飞书文档 / 生成多维表」只往板上加 LINK 占位（`example.invalid`），不接飞书 token。
+- 侧栏「数据员工」面板（`sidebar.panellist` id=`staff` + `main` key=`staff`）是旁路 fixture，不另开一套聊天；广场入口可 `sessions.create()` 回到对话。
+- 底栏「我的驾驶舱」有 `layout.selectPanel('cockpit')` 就切侧栏面板；没有 layout 才打开 overlay。
 - 驾驶舱可经公开 `sessions.clear()` 脱离当前会话，关闭时仅恢复仍存在的原选择，不创建/删除/取消会话；未应用草稿退出需确认，Tab 双向保持在弹层、关闭后归还固定入口焦点。原始品牌静态路径与完整条件往返标本由固定网关服务；后者不是实际同条件 BI，不加载旧 Vue/Pinia。
 - 工具卡只读取 `block.meta` 的精确版本化结果；处理中/失败/未知格式分开，不从模型文本猜成功。默认不开放保存、导出或审批。`--native-query-assets` 下可将 SUCCEEDED 查询保存为 SNAPSHOT 并加入驾驶舱；仍无导出/审批。“停止查询”取消当前卡片所属会话，不取页面第一个 `data-session-id`。
 
