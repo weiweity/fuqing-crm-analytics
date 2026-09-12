@@ -1,15 +1,12 @@
 /** Durable dsh-dev home. --fresh must not be the daily reload path. */
 import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { contextRoot, defaultRuntimeRoot } from './paths.mjs';
+import { defaultRuntimeRoot } from './paths.mjs';
 
 const EXTRA_PLUGINS = Object.freeze(['dsh-plugin', '@xmanrui/dsh-im']);
 
-export function siblingRuntimes(root = contextRoot()) {
-  return [
-    join(root, 'runtime-84Hlmm'),
-    join(root, 'runtime-N8ZUob'),
-  ];
+export function siblingRuntimes() {
+  return [];
 }
 
 async function fileSize(path) {

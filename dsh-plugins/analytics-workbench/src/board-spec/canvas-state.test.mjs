@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  cancelPatch, confirmPatch, createCanvasState, rollbackTo, selectBlock, setAsk, setTab, stageTitlePatch,
-  visibleBlocks,
+  cancelPatch, confirmPatch, createCanvasState, previousHistoryVersion, rollbackPrevious, rollbackTo,
+  selectBlock, setAsk, setTab, stageTitlePatch, visibleBlocks,
 } from './canvas-state.mjs';
 import { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } from './fixture.mjs';
 
@@ -37,6 +37,25 @@ test('confirmPatch writes title then rollback restores v1', () => {
   const original = rolled.value.spec.blocks.find((b) => b.block_id === 'b3');
   assert.equal(original.title, '两期连线');
   assert.equal(rolled.value.spec.version, 1);
+});
+
+test('rollbackPrevious restores the last history version not v1', () => {
+  let state = boot();
+  state = selectBlock(state, 'b3').value;
+  state = setAsk(state, '本月渠道占比').value;
+  state = confirmPatch(stageTitlePatch(state).value).value;
+  state = selectBlock(state, 'b3').value;
+  state = setAsk(state, '渠道结构新标题').value;
+  state = confirmPatch(stageTitlePatch(state).value).value;
+  assert.equal(state.spec.version, 3);
+  assert.equal(previousHistoryVersion(state), 2);
+  const rolled = rollbackPrevious(state);
+  assert.equal(rolled.ok, true);
+  assert.equal(rolled.value.spec.version, 2);
+  assert.equal(rolled.value.spec.blocks.find((b) => b.block_id === 'b3').title, '本月渠道占比');
+  const again = rollbackPrevious(rolled.value);
+  assert.equal(again.value.spec.version, 1);
+  assert.equal(again.value.spec.blocks.find((b) => b.block_id === 'b3').title, '两期连线');
 });
 
 test('confirmPatch without pending is refused', () => {

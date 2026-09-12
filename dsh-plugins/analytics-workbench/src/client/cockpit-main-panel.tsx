@@ -4,7 +4,7 @@ import { ThemeProvider } from './competition-shell/index.ts';
 import { type CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { BoardSpecCanvas } from './board-spec-canvas.tsx';
 import { summarizeGenerate } from '../board-spec/generate.mjs';
-import { factsFromGsvResult } from '../board-spec/facts-from-result.mjs';
+import { catalogFromGsvItems } from '../board-spec/facts-from-result.mjs';
 
 export const COCKPIT_PANEL_ID = 'cockpit';
 
@@ -124,13 +124,10 @@ export function CockpitMainPanel(props: CockpitMainPanelProps) {
         if (!res || !res.ok) return;
         const body = await res.json();
         const items = Array.isArray(body.items) ? body.items : [];
-        for (const item of items) {
-          const mapped = factsFromGsvResult(item);
-          if (!mapped.ok) continue;
-          actions.setFactsCatalog?.(mapped.value);
-          actions.refreshBoard?.();
-          return;
-        }
+        const catalog = catalogFromGsvItems(items);
+        if (Object.keys(catalog).length === 0) return;
+        actions.setFactsCatalog?.(catalog);
+        actions.refreshBoard?.();
       } catch { /* keep generate-time facts */ }
     })();
   }, [spec, epoch, actions, props.askTransport]);

@@ -1,13 +1,19 @@
 /** html_sandbox leaf: iframe only. No parent DOM, no token, no model SQL. */
 
-const SCRIPT_SANDBOX = 'allow-scripts';
+export const HTML_SANDBOX = '';
 
 function fail(code, message) {
   return { ok: false, error: { code, message } };
 }
 
+function neutralizeWrapperBreakout(html) {
+  return String(html)
+    .replace(/<\/(?=html|head|body)\b/gi, '&lt;/')
+    .replace(/<meta\b/gi, '&lt;meta');
+}
+
 export function wrapSandboxHtml(html) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; script-src 'unsafe-inline';"></head><body>${String(html)}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https:; style-src 'unsafe-inline';"></head><body>${neutralizeWrapperBreakout(html)}</body></html>`;
 }
 
 export function htmlSandboxFrame(block) {
@@ -19,7 +25,7 @@ export function htmlSandboxFrame(block) {
   return {
     ok: true,
     srcdoc: wrapSandboxHtml(html),
-    sandbox: SCRIPT_SANDBOX,
+    sandbox: HTML_SANDBOX,
     referrerPolicy: 'no-referrer',
   };
 }
@@ -50,7 +56,7 @@ export async function refreshSandboxHtml(url, fetchImpl = fetch) {
     return {
       ok: true,
       srcdoc: wrapSandboxHtml(html),
-      sandbox: SCRIPT_SANDBOX,
+      sandbox: HTML_SANDBOX,
       referrerPolicy: 'no-referrer',
     };
   } catch {

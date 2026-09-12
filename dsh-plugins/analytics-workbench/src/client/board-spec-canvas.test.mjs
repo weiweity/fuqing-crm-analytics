@@ -101,7 +101,8 @@ test('canvas source paints closed kinds and does not execute HTML', () => {
   assert.match(canvasSource, /confirmPatch/);
   assert.match(canvasSource, /proposeAsk/);
   assert.match(canvasSource, /sm-board-spec-patch-modal/);
-  assert.match(canvasSource, /rollbackTo/);
+  assert.match(canvasSource, /rollbackPrevious/);
+  assert.doesNotMatch(canvasSource, /rollbackTo\(state, 1\)/);
   assert.match(canvasSource, /BOARD_SPEC_KINDS/);
   assert.doesNotMatch(canvasSource, /dangerouslySetInnerHTML/);
   assert.doesNotMatch(canvasSource, /innerHTML\s*=/);
@@ -136,7 +137,8 @@ test('canvas paints bound METRIC 400, unbound empty, and html_sandbox without ma
     assert.match(dom.window.document.querySelector('[data-testid="sm-board-spec-browser"]').textContent, /不改 DSH 壳/);
     const iframe = dom.window.document.querySelector('[data-testid="sm-board-spec-iframe"]');
     assert.ok(iframe);
-    assert.equal(iframe.getAttribute('sandbox'), 'allow-scripts');
+    assert.equal(iframe.getAttribute('sandbox'), '');
+    assert.doesNotMatch(iframe.getAttribute('sandbox') ?? '', /allow-scripts/);
     assert.doesNotMatch(iframe.getAttribute('sandbox') ?? '', /allow-same-origin/);
     assert.match(iframe.getAttribute('srcdoc') ?? '', /steal/);
     assert.equal(dom.window.document.querySelector('script'), null);

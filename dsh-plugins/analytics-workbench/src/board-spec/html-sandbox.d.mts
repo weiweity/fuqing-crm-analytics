@@ -1,3 +1,4 @@
+export const HTML_SANDBOX: '';
 export type SandboxFail = { ok: false; error: { code: string; message: string } };
 export type HtmlFrame = { ok: true; empty: true } | { ok: true; srcdoc: string; sandbox: string; referrerPolicy: 'no-referrer' };
 export type HttpsFrame = { ok: true; src: string; sandbox: string; referrerPolicy: 'no-referrer' };

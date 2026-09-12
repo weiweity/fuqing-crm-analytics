@@ -80,6 +80,18 @@ export function confirmPatch(state) {
   };
 }
 
+export function previousHistoryVersion(state) {
+  const current = state.spec.version;
+  let best = null;
+  for (const snap of state.history) {
+    const version = snap && typeof snap.version === 'number' ? snap.version : null;
+    if (version != null && version < current && (best === null || version > best)) {
+      best = version;
+    }
+  }
+  return best;
+}
+
 export function rollbackTo(state, toVersion) {
   const parsed = parseRollback({ board_id: state.spec.board_id, to_version: toVersion });
   if (!parsed.ok) return parsed;
@@ -95,4 +107,10 @@ export function rollbackTo(state, toVersion) {
       ask: '',
     },
   };
+}
+
+export function rollbackPrevious(state) {
+  const toVersion = previousHistoryVersion(state);
+  if (toVersion == null) return fail('ROLLBACK_MISSING', '没有上一版可回退');
+  return rollbackTo(state, toVersion);
 }

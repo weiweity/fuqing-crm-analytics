@@ -17,5 +17,7 @@ export function setAsk(state: CanvasState, ask: string): CanvasResult;
 export function stageTitlePatch(state: CanvasState): CanvasResult;
 export function cancelPatch(state: CanvasState): CanvasResult;
 export function confirmPatch(state: CanvasState): CanvasResult;
+export function previousHistoryVersion(state: CanvasState): number | null;
 export function rollbackTo(state: CanvasState, version: number): CanvasResult;
+export function rollbackPrevious(state: CanvasState): CanvasResult;
 export function visibleBlocks(state: CanvasState): InterpretedBlock[];

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  cancelPatch, confirmPatch, createCanvasState, rollbackTo, selectBlock, setAsk, setTab,
+  cancelPatch, confirmPatch, createCanvasState, previousHistoryVersion, rollbackPrevious, selectBlock, setAsk, setTab,
   visibleBlocks,
 } from '../board-spec/canvas-state.mjs';
 import { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } from '../board-spec/fixture.mjs';
 import { BOARD_SPEC_KINDS } from '../board-spec/kinds.mjs';
 import { interpretBoard } from '../board-spec/interpret.mjs';
-import { htmlSandboxFrame, httpsSandboxFrame, openHttpsLink, refreshSandboxHtml } from '../board-spec/html-sandbox.mjs';
+import { HTML_SANDBOX, htmlSandboxFrame, httpsSandboxFrame, openHttpsLink, refreshSandboxHtml } from '../board-spec/html-sandbox.mjs';
 import { proposeAsk, proposeAskLocal } from '../board-spec/ask.mjs';
 
 const ADD_KINDS = BOARD_SPEC_KINDS.filter((kind) => kind !== 'LINK');
@@ -240,7 +240,7 @@ function SandboxFrames({ spec, url, overrides, onRefresh }: {
       const id = typeof row.block_id === 'string' ? row.block_id : '';
       const override = id ? overrides[id] : '';
       if (override) {
-        frames.push({ id, srcdoc: override, sandbox: 'allow-scripts', referrerPolicy: 'no-referrer', refresh_url: row.refresh_url });
+        frames.push({ id, srcdoc: override, sandbox: HTML_SANDBOX, referrerPolicy: 'no-referrer', refresh_url: row.refresh_url });
         return;
       }
       if (frame.ok && 'srcdoc' in frame) {
@@ -248,7 +248,7 @@ function SandboxFrames({ spec, url, overrides, onRefresh }: {
         return;
       }
       if (typeof row.refresh_url === 'string' && row.refresh_url) {
-        frames.push({ id, sandbox: 'allow-scripts', referrerPolicy: 'no-referrer', refresh_url: row.refresh_url });
+        frames.push({ id, sandbox: HTML_SANDBOX, referrerPolicy: 'no-referrer', refresh_url: row.refresh_url });
       }
     });
   }
@@ -335,8 +335,8 @@ export function BoardSpecCanvas(props: BoardSpecCanvasProps = {}) {
               <p>这场对话的产物。单击卡片，右侧按当前表问数；不满意可回退。</p>
             </div>
             <button type="button" className="sm-spec-rollback" data-testid="sm-board-spec-rollback"
-              disabled={state.spec.version <= 1}
-              onClick={() => apply(rollbackTo(state, 1))}>回退此看板</button>
+              disabled={previousHistoryVersion(state) == null}
+              onClick={() => apply(rollbackPrevious(state))}>回退此看板</button>
           </div>
           <div className="sm-spec-tabs" role="tablist">
             {TABS.map((tab) => (

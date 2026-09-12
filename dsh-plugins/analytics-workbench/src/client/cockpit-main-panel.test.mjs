@@ -38,7 +38,8 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /生成多维表/);
   assert.match(indexSource, /specWithLink/);
   assert.match(indexSource, /\/api\/v1\/analytics\/board-spec\/ask/);
-  assert.match(panelSource, /factsFromGsvResult/);
+  assert.match(panelSource, /catalogFromGsvItems/);
+  assert.doesNotMatch(panelSource, /factsFromGsvResult/);
   assert.match(panelSource, /setFactsCatalog/);
   assert.match(indexSource, /confirmGenerate/);
   assert.match(indexSource, /refreshBoard/);
@@ -212,6 +213,61 @@ test('the seeded demo board paints its synthetic channels in the cockpit', async
     assert.ok(dom.window.document.querySelector('[data-testid="sm-board-spec-table"]'));
     assert.equal(dom.window.document.querySelector('[data-testid="sm-board-spec-unbound"]'), null);
     assert.match(dom.window.document.querySelector('[data-testid="sm-board-spec-evidence"]').textContent, /SYNTHETIC/);
+  } finally {
+    await act(() => root.unmount());
+    dom.window.close();
+    restoreDom(previous);
+  }
+});
+
+test('cockpit refresh catalogs GSV by result_id so GENERATE bindings stay live', async () => {
+  const { CockpitMainPanel } = await loadPanel();
+  const { previous, dom } = installDom();
+  const root = createRoot(dom.window.document.getElementById('root'));
+  const spec = {
+    board_id: 'board_retail_gsv_result_c0_gsv_20260831',
+    version: 1,
+    blocks: [{
+      block_id: 'm1', kind: 'METRIC', title: '零售 GSV', metric_ref: 'retail_gsv',
+      source_result_id: 'result_c0_gsv_20260831',
+    }],
+  };
+  const slice = { boardSpec: spec, boardFacts: null, boardError: '', pendingGenerate: null, boardEpoch: 1 };
+  const themeSource = { subscribe() { return () => {}; }, getSnapshot() { return 'dark'; } };
+  let catalog = null;
+  let settle;
+  const settled = new Promise((resolve) => { settle = resolve; });
+  try {
+    await act(() => {
+      root.render(React.createElement(CockpitMainPanel, {
+        goConversation() {},
+        themeSource,
+        useStore(selector) { return selector(slice); },
+        actions: {
+          setFactsCatalog(next) { catalog = next; settle(); },
+          refreshBoard() {},
+        },
+        askTransport: {
+          resultsPath: '/api/v1/analytics/results',
+          async fetchImpl() {
+            return {
+              ok: true,
+              async json() {
+                return {
+                  items: [{
+                    result_id: 'result_c0_gsv_20260831',
+                    facts: { current: { gsv: 410 }, comparison: { gsv: 305 }, difference: 105 },
+                  }],
+                };
+              },
+            };
+          },
+        },
+      }));
+    });
+    await act(async () => { await settled; });
+    assert.equal(catalog.r1, undefined);
+    assert.equal(catalog.result_c0_gsv_20260831.current_gsv, 410);
   } finally {
     await act(() => root.unmount());
     dom.window.close();

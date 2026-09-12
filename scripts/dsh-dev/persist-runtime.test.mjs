@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ensurePersistentRuntime } from './persist-runtime.mjs';
+import { fileURLToPath } from 'node:url';
+import { ensurePersistentRuntime, siblingRuntimes } from './persist-runtime.mjs';
 
 test('ensurePersistentRuntime copies a source harness and keeps the larger credentials file', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-persist-'));
@@ -22,4 +23,11 @@ test('ensurePersistentRuntime copies a source harness and keeps the larger crede
   const pkg = await readFile(join(dest, 'harness/profiles/web/package.json'), 'utf8');
   assert.match(pkg, new RegExp(dest.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(pkg, /runtime-N8ZUob/);
+});
+
+test('siblingRuntimes does not pin disposable runtime-* names', async () => {
+  assert.deepEqual(siblingRuntimes(), []);
+  const source = await readFile(fileURLToPath(new URL('./persist-runtime.mjs', import.meta.url)), 'utf8');
+  assert.doesNotMatch(source, /runtime-84Hlmm/);
+  assert.doesNotMatch(source, /runtime-N8ZUob/);
 });
