@@ -2,17 +2,20 @@
 /** Local DSH-base entry. Does not manage 8000/5173/4315-4319. */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
+import { writeFile, mkdir, rm, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, NATIVE_WEB_IDS } from './constants.mjs';
+import { spawnSync } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
+import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR } from './constants.mjs';
 import { pluginRowState } from './overlay.mjs';
-import { repoRoot, contextRoot, currentPath } from './paths.mjs';
+import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultRuntimeRoot } from './paths.mjs';
+import { ensurePersistentRuntime } from './persist-runtime.mjs';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { bootHost, dumpConfig, installProfilePlugin, parseServeArgs, prepareRuntime, readCurrent, stopOwned, writeCurrent, terminateChild } from './serve.mjs';
+import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, stopOwned, writeCurrent, terminateChild } from './serve.mjs';
 import { diagnose, printDiagnose } from './diagnose.mjs';
 
-const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status|diagnose>
+const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status|diagnose|reload>
   --upstream /absolute/pinned/dsh
   --plugin on|off
   --plugin-path /absolute/plugin
@@ -21,16 +24,26 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --web-port ${ALLOWED_WEB_PORTS.join('|')}
   --host 127.0.0.1
   --detach          start only
-  --fresh           new runtime dir under .context/dsh-dev/
+  --fresh           NEW empty runtime (wipes API keys and extra plugins). Daily plugin rebuilds must use reload, not --fresh.
 
-Node 24 required for check/start. diagnose is read-only: it never binds ports or signals PIDs.
+reload  builds the workbench, restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
+
+Node 24 required for check/start/reload. diagnose is read-only: it never binds ports or signals PIDs.
 User demo 127.0.0.1:4327 / 8000 / 5173 must not be stopped or reused.
 Independent DSH: --web-port ${COMPETITION_WEB_PORT}. Vite ${COMPETITION_VITE_PORT} is reserved and not bound here.
 Launch tokens are never printed. Unauthenticated GET / must stay 401.`;
 
 function parseArgv(argv) {
   const [command, ...rest] = argv;
-  assert.ok(['check', 'dump-config', 'start', 'stop', 'status', 'diagnose'].includes(command), USAGE);
+  assert.ok(['check', 'dump-config', 'start', 'stop', 'status', 'diagnose', 'reload'].includes(command), USAGE);
+  if (command === 'reload') {
+    const flags = rest.filter(flag => flag !== '--fresh' && flag !== '--detach');
+    const options = parseServeArgs(flags.includes('--plugin') ? flags : ['--plugin', 'on', '--web-port', String(DEV_WEB_PORT), ...flags]);
+    options.fresh = false;
+    options.detach = true;
+    options.runtime = options.runtime ?? defaultRuntimeRoot();
+    return { command, options };
+  }
   if (command === 'stop' || command === 'status' || command === 'diagnose') {
     if (command === 'diagnose') {
       const upstreamFlag = rest.indexOf('--upstream');
@@ -83,6 +96,8 @@ async function runStart(options) {
   let booted, server;
   try {
     const prepared = await prepareRuntime(options);
+    const tls = isolatedEnv(prepared.runtime, prepared.home).NODE_EXTRA_CA_CERTS;
+    console.log(tls ? `DSH_DEV_TLS ${tls}` : 'DSH_DEV_TLS missing; Node 24 cannot verify api.deepseek.com without a CA bundle');
     if (prepared.enabled) installProfilePlugin(prepared);
     booted = await bootHost(prepared, { signal: abort.signal });
     const token = randomBytes(32).toString('hex');
@@ -122,6 +137,50 @@ async function runStart(options) {
   }
 }
 
+async function waitUnauthReady(origin, timeoutMs = 90000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const response = await fetch(`${origin}/`, { redirect: 'manual', signal: AbortSignal.timeout(2000) });
+      if (response.status === 401) return;
+    } catch { /* host not listening yet */ }
+    await delay(500);
+  }
+  throw new Error(`DSH_DEV_RELOAD ${origin}/ did not become ready`);
+}
+
+async function openLaunchUrl(runtime) {
+  const priv = JSON.parse(await readFile(join(runtime, 'browser-private.json'), 'utf8'));
+  assert.equal(typeof priv.launchUrl, 'string');
+  assert.equal(typeof priv.launchOrigin, 'string');
+  const opener = process.platform === 'darwin' ? 'open' : 'xdg-open';
+  spawn(opener, [priv.launchUrl], { stdio: 'ignore', detached: true }).unref();
+  console.log(`DSH_DEV_OPEN ${priv.launchOrigin}/ (launch token not printed)`);
+}
+
+async function runReload(options) {
+  assert.equal(Number(process.versions.node.split('.')[0]), NODE_MAJOR, `Use Node ${NODE_MAJOR}`);
+  const runtime = await ensurePersistentRuntime({ dest: options.runtime ?? defaultRuntimeRoot() });
+  const plugin = defaultPluginPath();
+  const built = spawnSync(process.execPath, [join(plugin, 'build.mjs')], {
+    cwd: plugin, stdio: 'inherit', env: process.env, timeout: 180000,
+  });
+  assert.equal(built.status, 0, 'plugin build.mjs failed');
+  await stopOwned();
+  const child = spawn(process.execPath, [
+    join(repoRoot, 'scripts/dsh-dev/cli.mjs'), 'start',
+    '--plugin', options.plugin || 'on',
+    '--web-port', String(options.webPort || DEV_WEB_PORT),
+    '--runtime', runtime,
+  ], { cwd: repoRoot, env: process.env, detached: true, stdio: 'ignore' });
+  child.unref();
+  console.log(`DSH_DEV_DETACHED pid=${child.pid}`);
+  const origin = `http://127.0.0.1:${options.webPort || DEV_WEB_PORT}`;
+  await waitUnauthReady(origin);
+  await openLaunchUrl(runtime);
+  console.log(`DSH_DEV_RELOADED runtime=${runtime}`);
+}
+
 async function runStatus() {
   const current = await readCurrent();
   if (!current) {
@@ -158,6 +217,8 @@ else if (command === 'start') {
   } else {
     await runStart(options);
   }
+} else if (command === 'reload') {
+  await runReload(options);
 } else if (command === 'stop') {
   const result = await stopOwned();
   console.log(result.stopped ? 'DSH_DEV_STOPPED acknowledged by owned supervisor' : 'DSH_DEV_STATUS stopped');

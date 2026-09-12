@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyCompetitionBrandSurface, PRODUCT_GREETING, PRODUCT_NAME } from './brand-surface.mjs';
+import { applyCompetitionBrandSurface, PRODUCT_HEADLINE, PRODUCT_NAME } from './brand-surface.mjs';
 
 test('brand surface sets DESIGN title and replaces upstream greeting', () => {
   const h1 = { textContent: 'Into the Unknown' };
@@ -28,6 +28,6 @@ test('brand surface sets DESIGN title and replaces upstream greeting', () => {
   const out = applyCompetitionBrandSurface(doc);
   assert.equal(out.title, PRODUCT_NAME);
   assert.equal(doc.title, PRODUCT_NAME);
-  assert.equal(h1.textContent, PRODUCT_GREETING);
+  assert.equal(h1.textContent, PRODUCT_HEADLINE);
   assert.equal(created[0].href, '/b0/brand/mark.svg');
 });

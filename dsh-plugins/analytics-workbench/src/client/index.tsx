@@ -13,7 +13,7 @@ import {
   TOOL_NAME, TITLE_STORAGE_KEY, FIXTURE, createEditor, changeDraft, previewTitle,
   applyTitle, serializeTitle, restoreTitle, decodeFixture,
 } from '../model.mjs';
-import { css } from './styles.ts';
+import { css, markCss } from './styles.ts';
 import { trapDialogTab } from './focus.ts';
 import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
@@ -29,6 +29,13 @@ import { ThemeProvider } from './competition-shell/index.ts';
 import { nativeBrandTokens, type CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { PRODUCT_NAME, watchCompetitionBrandSurface } from './brand-surface.mjs';
 import { COCKPIT_PANEL_ID, CockpitMainPanel, CockpitPanelIcon } from './cockpit-main-panel.tsx';
+import { STAFF_PANEL_ID, StaffMainPanel, StaffPanelIcon } from './staff-main-panel.tsx';
+import { applyGenerate, generateBoard, specFromGsvFacts, specWithLink } from '../board-spec/generate.mjs';
+import { catalogFromGsvItems } from '../board-spec/facts-from-result.mjs';
+import { refreshFacts } from '../board-spec/refresh.mjs';
+
+import { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } from '../board-spec/fixture.mjs';
+import { DEMO_BOARD } from '../board-spec/demo-board.mjs';
 
 function initialState() {
   try {
@@ -38,21 +45,80 @@ function initialState() {
       openTick: 0,
       intent: 'view' as 'view' | 'generate',
       confirmClose: false,
+      boardSpec: null as object | null,
+      boardFacts: null as object | null,
+      boardError: '',
+      pendingGenerate: null as { spec: object; facts: object | null } | null,
+      boardEpoch: 0,
+      factsCatalog: null as object | null,
       editor: createEditor(restored.title),
       message: restored.invalid ? '本地 UI 偏好格式无效，已使用默认标题。'
         : restored.restored ? '已恢复本浏览器的 UI 标题；不是业务后端持久化。' : '',
     };
   } catch {
-    return { open: false, openTick: 0, intent: 'view' as const, confirmClose: false, editor: createEditor(), message: '浏览器存储不可用；本次 UI 修改仅在当前页面有效。' };
+    return {
+      open: false, openTick: 0, intent: 'view' as const, confirmClose: false,
+      boardSpec: null, boardFacts: null, boardError: '', pendingGenerate: null, boardEpoch: 0, factsCatalog: null,
+      editor: createEditor(), message: '浏览器存储不可用；本次 UI 修改仅在当前页面有效。',
+    };
   }
 }
 
-function createWorkbenchStore() {
+/** A seeded store opens the cockpit on a board; the dock still replaces it. */
+function createWorkbenchStore(seedBoard: { spec: object; facts: object | null } | null = null) {
   return defineStore({
-    init: initialState,
+    init: () => {
+      const state = initialState();
+      if (seedBoard) {
+        state.boardSpec = seedBoard.spec;
+        state.boardFacts = seedBoard.facts;
+      }
+      return state;
+    },
     actions: {
       open: draft => { draft.open = true; draft.intent = 'view'; draft.confirmClose = false; draft.openTick = (draft.openTick || 0) + 1; },
       openGenerate: draft => { draft.open = true; draft.intent = 'generate'; draft.confirmClose = false; draft.openTick = (draft.openTick || 0) + 1; },
+      generateBoard: (draft, payload?: { spec?: object; facts?: object | null }) => {
+        if (!payload?.spec) {
+          draft.boardError = '这场对话没有可绑定的核验结果，未写入。';
+          return;
+        }
+        applyGenerate(draft, payload.spec, payload.facts ?? null);
+        draft.pendingGenerate = null;
+      },
+      proposeGenerate: (draft, payload?: { spec?: object; facts?: object | null }) => {
+        if (!payload?.spec) {
+          draft.pendingGenerate = null;
+          draft.boardError = '这场对话没有可绑定的核验结果，未写入。';
+          return;
+        }
+        const got = generateBoard(payload.spec, payload.facts ?? null);
+        if (!got.ok) {
+          draft.boardError = got.error.message;
+          draft.pendingGenerate = null;
+          return;
+        }
+        draft.boardError = '';
+        draft.pendingGenerate = got.value;
+      },
+      confirmGenerate: (draft) => {
+        if (!draft.pendingGenerate) return;
+        applyGenerate(draft, draft.pendingGenerate.spec, draft.pendingGenerate.facts);
+        draft.pendingGenerate = null;
+        draft.boardEpoch = (draft.boardEpoch || 0) + 1;
+      },
+      setFactsCatalog: (draft, catalog: object | null) => { draft.factsCatalog = catalog; },
+      refreshBoard: (draft) => {
+        if (!draft.boardSpec) return;
+        const catalog = draft.factsCatalog ?? draft.boardFacts;
+        const got = refreshFacts(draft.boardSpec, catalog);
+        if (!got.ok) {
+          draft.boardError = got.error.message;
+          return;
+        }
+        draft.boardFacts = got.value;
+      },
+      cancelGenerate: (draft) => { draft.pendingGenerate = null; },
       close: draft => { draft.open = false; draft.intent = 'view'; draft.confirmClose = false; },
       requestClose: draft => {
         if (draft.editor.draft !== draft.editor.title || draft.editor.preview) draft.confirmClose = true;
@@ -90,7 +156,11 @@ function RoutedOverlay(props: OverlayProps) {
   const [assets, setAssets] = useState(false);
   const competitionHttp = competitionHttpOptions();
   const openTick = props.useStore(state => state.openTick ?? 0);
-  useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
+  const open = props.useStore(state => state.open);
+  useEffect(() => {
+    if (!open) return;
+    void probeAssetHttp().then(setAssets);
+  }, [open]);
   return (
     <ThemeProvider className="sm-overlay-theme" colorScheme={colorScheme}>
       <OverlayErrorBoundary resetKey={openTick}>
@@ -102,36 +172,66 @@ function RoutedOverlay(props: OverlayProps) {
   );
 }
 
-function BrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>) {
-  return <><style>{css}</style><span className="analytics-b0-mark" role="img" aria-label="伸美原帽子标识"
-    style={{ width: size, height: size }} /></>;
+function BrandMark({ size, className }: { size?: number; className?: string }) {
+  return <><style>{markCss}</style><span className={['analytics-b0-mark', className].filter(Boolean).join(' ')}
+    role="img" aria-label="伸美原帽子标识" style={{ width: size, height: size }} /></>;
 }
 
-type DockProps = PropsRuntime<'conversation.input.dock'> & StoreProps;
+type BoardLive = ReturnType<ReturnType<typeof createWorkbenchStore>['create']>;
+
+type DockProps = PropsRuntime<'conversation.input.dock'> & {
+  openCockpit?(): boolean;
+  board: BoardLive;
+  fetchResults?(): Promise<unknown[]>;
+};
 
 function GenerateCockpitDock(props: DockProps) {
   const id = props.session.sessionId;
   if (id !== B0_PRIMARY_SESSION_ID && !QUERY_SESSION_IDS.some(value => value === id)) return null;
+  const proposeBoard = () => {
+    void (async () => {
+      const items = props.fetchResults ? await props.fetchResults() : [];
+      const catalog = catalogFromGsvItems(items);
+      const spec = specFromGsvFacts(catalog, { session_id: props.session.sessionId });
+      if (!spec.ok) props.board.actions.proposeGenerate();
+      else props.board.actions.proposeGenerate({ spec: spec.value, facts: catalog });
+      props.openCockpit?.();
+    })();
+  };
+  const proposeLink = (blockId: string) => {
+    const link = BOARD_SPEC_FIXTURE.blocks.find((block: { block_id?: string }) => block.block_id === blockId);
+    if (!link) return;
+    const snap = props.board.getSnapshot();
+    const next = specWithLink(snap.boardSpec, link);
+    if (!next.ok) return;
+    props.board.actions.proposeGenerate({ spec: next.value, facts: snap.boardFacts });
+    props.openCockpit?.();
+  };
   return <><style>{css}</style>
-    <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-cockpit"
-      title="用这次认可的分析结果生成驾驶舱"
-      aria-label="生成驾驶舱"
-      onClick={() => props.actions.openGenerate()}>
-      生成驾驶舱
-    </button></>;
+    <div className="analytics-b0-artifacts" data-testid="analytics-b0-artifacts">
+      <span>聊完后生成产物，进入驾驶舱：</span>
+      <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-cockpit"
+        title="用这次认可的分析结果生成驾驶舱"
+        aria-label="生成驾驶舱"
+        onClick={proposeBoard}>生成驾驶舱</button>
+      <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-feishu"
+        title="写入飞书文档链接，不接飞书 token"
+        aria-label="生成飞书文档"
+        onClick={() => proposeLink('b7')}>生成飞书文档</button>
+      <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-bitable"
+        title="写入多维表链接，不接飞书 token"
+        aria-label="生成多维表"
+        onClick={() => proposeLink('b8')}>生成多维表</button>
+    </div></>;
 }
 
 function Footer(props: FooterProps) {
-  const [assets, setAssets] = useState(false);
-  const competitionHttp = competitionHttpOptions();
-  useEffect(() => { void probeAssetHttp().then(setAssets); }, []);
-  const live = Boolean(assets || competitionHttp);
+  const live = Boolean(competitionHttpOptions());
   return <><style>{css}</style><button className="analytics-b0-trigger" type="button"
     title={live ? '我的驾驶舱' : '我的驾驶舱 · 合成样例'}
     aria-label={live ? '打开我的驾驶舱' : '打开我的驾驶舱，合成样例'}
     data-testid="analytics-b0-open" onClick={() => {
       if (props.openCockpit?.()) props.actions.close();
-      else props.actions.open();
     }}>
     {props.wide ? '我的驾驶舱' : '驾驶舱'}
   </button></>;
@@ -249,12 +349,15 @@ export function apply(ctx: Context): void {
   ctx.effect(() => bindInitialSession(ctx.sessions, () => {
     console.warn('analytics-b0: the configured primary session could not be selected; no fallback attempted');
   }), 'analytics-b0: select exact Host-listed primary once');
-  // Same handle + same root scope = one shared open/editor state across entries.
-  const store = createWorkbenchStore();
+  const chromeStore = createWorkbenchStore();
+  const boardLive = createWorkbenchStore(DEMO_BOARD).create();
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.effect(() => watchCompetitionBrandSurface(), 'competition-brand-surface');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
   ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({ name: 'sidebar.brand.name', priority: -10 }, () => <>{PRODUCT_NAME}</>));
+  ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
+    name: 'conversation.hero.brand.mark', priority: -10,
+  }, BrandMark));
   const openCockpitPanel = (): boolean => {
     try {
       const layout = ctx.layout;
@@ -281,11 +384,11 @@ export function apply(ctx: Context): void {
     },
   };
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-    name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store,
+    name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store: chromeStore,
     inject: () => ({ openCockpit: openCockpitPanel }),
   }, Footer));
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store,
+    name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store: chromeStore,
     inject: () => {
       let prior: ReturnType<typeof ctx.sessions.list.getSnapshot>['current'];
       return {
@@ -312,13 +415,64 @@ export function apply(ctx: Context): void {
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
-    name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20, store,
+    name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20,
+    inject: () => ({
+      openCockpit: openCockpitPanel,
+      board: boardLive,
+      async fetchResults() {
+        const http = competitionHttpOptions();
+        if (!http) return [];
+        try {
+          const res = await http.fetchImpl(`${http.basePath}/results`);
+          if (!res || !res.ok) return [];
+          const body = await res.json();
+          return Array.isArray(body.items) ? body.items : [];
+        } catch {
+          return [];
+        }
+      },
+    }),
   }, GenerateCockpitDock));
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: COCKPIT_PANEL_ID, order: 20, label: '驾驶舱',
   }, CockpitPanelIcon));
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main', key: COCKPIT_PANEL_ID,
-    inject: () => ({ goConversation, themeSource }),
+    inject: () => {
+      const http = competitionHttpOptions();
+      return {
+        goConversation,
+        themeSource,
+        board: boardLive,
+        askTransport: http
+          ? {
+            fetchImpl: http.fetchImpl,
+            path: '/api/v1/analytics/board-spec/ask',
+            resultsPath: `${http.basePath}/results`,
+          }
+          : undefined,
+      };
+    },
   }, CockpitMainPanel));
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist', id: STAFF_PANEL_ID, order: 21, label: '数据员工',
+  }, StaffPanelIcon));
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: STAFF_PANEL_ID,
+    inject: () => ({
+      goConversation,
+      themeSource,
+      openPlazaRole() {
+        void (async () => {
+          try {
+            const created = await ctx.sessions.create();
+            ctx.sessions.open(created);
+            ctx.layout?.selectPanel(null);
+          } catch {
+            goConversation();
+          }
+        })();
+      },
+    }),
+  }, StaffMainPanel));
 }

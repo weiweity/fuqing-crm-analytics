@@ -21,6 +21,7 @@ from backend.middleware.query_router import (
     overlay_live_capabilities,
 )
 from backend.services.analytics.access import AnalyticsError, B0IdentityRegistry, require
+from backend.services.analytics.board_spec_ask import propose_ask_patch
 from backend.services.analytics.cockpit import CockpitStore
 from backend.services.analytics.competition_assets import (
     CompetitionAssetService,
@@ -222,6 +223,11 @@ def create_competition_app(
             request_id=_request_id(request), retryable=False,
             param=loc or None, doc_ref="docs/hackathon/COMPETITION-TEST-PLAN-2026-09-09.md#T03",
         )
+
+    @app.post("/api/v1/analytics/board-spec/ask")
+    def board_spec_ask(payload: dict[str, Any], request: Request):
+        principal(request)
+        return {"patch": propose_ask_patch(payload)}
 
     @app.get("/api/v1/analytics/catalog")
     def catalog(request: Request):

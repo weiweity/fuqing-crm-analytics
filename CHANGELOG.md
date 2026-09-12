@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- 驾驶舱默认落一块合成样例看板（`board-spec/demo-board.mjs`）：打开侧栏「驾驶舱」直接渲染 3 个 METRIC、LINE/BAR/TABLE、证据与链接块，不再是空态。样例标题带「样例」、证据块标 `SYNTHETIC`，明示非真实经营数据；聊天下「生成驾驶舱」仍会替换它。仅前端内存初值，不写业务库、不跑查询。
+
 - 卫生：施工队列勾选 #127；本地只留 main 与 salvage 归档。现行 DSH 钉均为 0.1.5-rc.1。黑客松旧文里的 0.1.3 SHA 是当时快照，不改。
 
 - dsh-dev 收进 main：`--web-port 6677`，`--plugin on` 走 `dsh plugin add`，`--plugin off` 禁用伸美包。不再依赖 competition-next 工作树起浏览器。

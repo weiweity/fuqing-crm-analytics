@@ -8,10 +8,17 @@ export {
 } from './competition-shell/tokens.ts';
 export { competitionShellCss } from './competition-shell/css.ts';
 
+export const markCss = `
+.analytics-b0-mark {
+  display:block; background:currentColor; mask-repeat:no-repeat; mask-size:contain; mask-position:center;
+  mask-image:url('/b0/brand/mark.svg');
+}
+`;
+
 export const css = `
 .analytics-b0-logo, .analytics-b0-mark { display:block; background:currentColor; mask-repeat:no-repeat; mask-size:contain; mask-position:center; }
 .analytics-b0-logo { width:177px; aspect-ratio:249 / 45; margin:8px 0; mask-image:url('/b0/brand/logo.png'); }
-.analytics-b0-mark { mask-image:url('/favicon.svg'); }
+.analytics-b0-mark { mask-image:url('/b0/brand/mark.svg'); }
 .analytics-b0-trigger {
   display:flex; align-items:center; justify-content:flex-start; box-sizing:border-box;
   width:100%; height:36px; min-height:36px; padding:0 10px 0 8px; border:0; border-radius:12px;
@@ -86,13 +93,19 @@ export const css = `
 .analytics-query-card p, .analytics-query-card small { margin:6px 0; overflow-wrap:anywhere; word-break:break-word; font-variant-numeric:tabular-nums; }
 .analytics-query-card button { margin:8px 8px 0 0; }
 .analytics-query-card abbr { text-decoration:underline dotted; font-variant-numeric:tabular-nums; }
-.analytics-b0-generate-dock {
-  display:flex; align-items:center; justify-content:center; box-sizing:border-box;
+.analytics-b0-artifacts {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; box-sizing:border-box;
   width:calc(100% - 2 * var(--dsh-composer-side-clearance,16px) - 4 * var(--dsh-composer-dock-inset,8px));
   max-width:calc(var(--dsh-composer-card-max-width,780px) - 4 * var(--dsh-composer-dock-inset,8px));
-  margin:0 auto 8px; height:36px; min-height:36px; padding:0 12px; border:0; border-radius:12px;
+  margin:0 auto 8px; padding:0 4px;
+  color:var(--dsw-alias-label-secondary,inherit);
+  font:var(--dsw-font-xxs-12,12px/18px inherit);
+}
+.analytics-b0-generate-dock {
+  display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
+  height:26px; min-height:26px; padding:0 12px; border:0; border-radius:8px;
   background:var(--dsw-alias-interactive-bg-hover,transparent);
-  color:var(--dsw-alias-label-primary,inherit);
+  color:var(--dsw-alias-brand-primary,inherit);
   font:var(--dsw-font-s-14,14px/22px inherit); cursor:pointer;
 }
 .analytics-b0-generate-dock:hover { background:var(--dsw-alias-interactive-bg-active,transparent); }
