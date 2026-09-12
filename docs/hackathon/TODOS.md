@@ -14,7 +14,7 @@
 - [x] #125 T13 可重放离线 eval：`result_id ≠ run_id`、拒答文案、`money_unit`。不代替真实模型复测
 - [x] #126 侧栏固定入口：`sidebar.panellist` / `main` key=`cockpit`
 - [x] #127 dsh-dev 收进 main：6677 从 main 起；`--plugin on/off` 插拔伸美包。市场/IM 是另装的包，不是上游
-- [x] `feat/board-spec-cockpit` 驾驶舱按 BoardSpec 生成：确认写入、`result_id` 绑数字、沙箱无脚本、侧栏样例板。未合 main
+- [x] #129 驾驶舱按 BoardSpec 生成：确认写入、`result_id` 绑数字、沙箱无脚本、侧栏样例板。合入 `main` `a729ff6`（v0.8.0.0）
 
 ## 当前验收缺口（开放，需对应证据）
 
@@ -29,7 +29,7 @@
 
 ## 已在 main 的证据（不要当成未完成任务）
 
-- [x] #112 集成、#114 七项修复、#115 持久化诊断看板、**#116–#127 收口短 PR**已合入 main（当前 HEAD 见 STATUS）。
+- [x] #112 集成、#114 七项修复、#115 持久化诊断看板、**#116–#129**已合入 main（当前 HEAD 见 STATUS）。#129 为 BoardSpec 驾驶舱 v0.8.0.0。
 - [x] 图表类型持久化与草稿恢复/放弃。
 - [x] 原生浅/深色与业务主题、AntD 表单；完整 T17/视觉仍开放，见[视觉增量](PRODUCT-VISUAL-INTEGRATION-2026-09-10.md)。
 - [x] GSV 数值诊断 → 保存 → 成板（合成源）；两条真实 DeepSeek 评测及刷新重开，见[本轮交付](DIAGNOSIS-INTEGRATION-DELIVERY-2026-09-10.md)。

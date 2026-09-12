@@ -18,6 +18,8 @@
 
 ## [Unreleased]
 
+- 卫生：STATUS / TODOS / AGENTS 快照跟 `main` v0.8.0.0（#129 已合）。黑客松旧文里的 0.1.3 / 0.7.0.0 SHA 是当时快照，不改。
+
 - 卫生：施工队列勾选 #127；本地只留 main 与 salvage 归档。现行 DSH 钉均为 0.1.5-rc.1。黑客松旧文里的 0.1.3 SHA 是当时快照，不改。
 
 - dsh-dev 收进 main：`--web-port 6677`，`--plugin on` 走 `dsh plugin add`，`--plugin off` 禁用伸美包。不再依赖 competition-next 工作树起浏览器。
