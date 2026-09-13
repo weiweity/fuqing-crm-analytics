@@ -159,6 +159,249 @@
         "title": "CompetitionGsvFactsV2",
         "type": "object"
       },
+      "CompetitionGsvFactsV3": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-gsv-facts/v3",
+            "default": "competition-gsv-facts/v3",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "default": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "change_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio"
+          },
+          "change_ratio_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "ZERO_COMPARISON_GSV"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio Unavailable Reason"
+          },
+          "money_unit": {
+            "$ref": "#/components/schemas/CompetitionMoneyUnit"
+          },
+          "current_daily": {
+            "$ref": "#/components/schemas/GsvDailySeries"
+          }
+        },
+        "required": [
+          "current",
+          "comparison",
+          "difference",
+          "change_ratio",
+          "change_ratio_unavailable_reason",
+          "money_unit",
+          "current_daily"
+        ],
+        "title": "CompetitionGsvFactsV3",
+        "type": "object"
+      },
+      "CompetitionGsvFactsV4": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-gsv-facts/v4",
+            "default": "competition-gsv-facts/v4",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "default": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/GsvPeriodFacts"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "change_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio"
+          },
+          "change_ratio_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "ZERO_COMPARISON_GSV"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio Unavailable Reason"
+          },
+          "money_unit": {
+            "$ref": "#/components/schemas/CompetitionMoneyUnit"
+          },
+          "current_daily": {
+            "$ref": "#/components/schemas/GsvDailySeries"
+          },
+          "channel_bridge": {
+            "$ref": "#/components/schemas/GsvChannelBridge"
+          }
+        },
+        "required": [
+          "current",
+          "comparison",
+          "difference",
+          "change_ratio",
+          "change_ratio_unavailable_reason",
+          "money_unit",
+          "current_daily",
+          "channel_bridge"
+        ],
+        "title": "CompetitionGsvFactsV4",
+        "type": "object"
+      },
+      "CompetitionGsvFactsV5": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "competition-gsv-facts/v5",
+            "default": "competition-gsv-facts/v5",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "metric_type": {
+            "const": "GSV",
+            "default": "GSV",
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/GsvPeriodFactsV5"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/GsvPeriodFactsV5"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "change_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio"
+          },
+          "change_ratio_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "ZERO_COMPARISON_GSV"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Ratio Unavailable Reason"
+          },
+          "money_unit": {
+            "$ref": "#/components/schemas/CompetitionMoneyUnit"
+          },
+          "current_daily": {
+            "$ref": "#/components/schemas/GsvDailySeries"
+          },
+          "channel_bridge": {
+            "$ref": "#/components/schemas/GsvChannelBridge"
+          },
+          "current_purchase_frequency": {
+            "$ref": "#/components/schemas/PurchaseFrequencyFunnel"
+          }
+        },
+        "required": [
+          "current",
+          "comparison",
+          "difference",
+          "change_ratio",
+          "change_ratio_unavailable_reason",
+          "money_unit",
+          "current_daily",
+          "channel_bridge",
+          "current_purchase_frequency"
+        ],
+        "title": "CompetitionGsvFactsV5",
+        "type": "object"
+      },
       "CompetitionMoneyUnit": {
         "additionalProperties": false,
         "description": "Source-declared raw amount unit, never inferred from another catalogue.",
@@ -462,6 +705,180 @@
         "title": "FilterScope",
         "type": "object"
       },
+      "GsvChannelBridge": {
+        "additionalProperties": false,
+        "description": "Additive sales-channel comparison, not causal marketing attribution.",
+        "properties": {
+          "dimension": {
+            "const": "SALES_CHANNEL",
+            "default": "SALES_CHANNEL",
+            "title": "Dimension",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "MONEY_UNIT_UNKNOWN",
+                  "AMBIGUOUS_ORDER_CHANNEL",
+                  "INVALID_CHANNEL",
+                  "CHANNEL_LIMIT_EXCEEDED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "contributions": {
+            "items": {
+              "$ref": "#/components/schemas/GsvChannelContribution"
+            },
+            "maxItems": 200,
+            "title": "Contributions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "unavailable_reason",
+          "contributions"
+        ],
+        "title": "GsvChannelBridge",
+        "type": "object"
+      },
+      "GsvChannelContribution": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Channel",
+            "type": "string"
+          },
+          "current_gsv": {
+            "minimum": 0,
+            "title": "Current Gsv",
+            "type": "number"
+          },
+          "comparison_gsv": {
+            "minimum": 0,
+            "title": "Comparison Gsv",
+            "type": "number"
+          },
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          }
+        },
+        "required": [
+          "channel",
+          "current_gsv",
+          "comparison_gsv",
+          "delta"
+        ],
+        "title": "GsvChannelContribution",
+        "type": "object"
+      },
+      "GsvDailyPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "gsv": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gsv"
+          },
+          "order_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Order Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "gsv",
+          "order_count"
+        ],
+        "title": "GsvDailyPoint",
+        "type": "object"
+      },
+      "GsvDailySeries": {
+        "additionalProperties": false,
+        "description": "Payment-day net GSV at the parent result's cutoff, not refund-day cashflow.",
+        "properties": {
+          "grain": {
+            "const": "DAY",
+            "default": "DAY",
+            "title": "Grain",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "UNSUPPORTED_RANGE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "const": "RANGE_EXCEEDS_366_DAYS",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/GsvDailyPoint"
+            },
+            "maxItems": 366,
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "unavailable_reason",
+          "points"
+        ],
+        "title": "GsvDailySeries",
+        "type": "object"
+      },
       "GsvPeriodFacts": {
         "additionalProperties": false,
         "properties": {
@@ -515,6 +932,82 @@
         "title": "GsvPeriodFacts",
         "type": "object"
       },
+      "GsvPeriodFactsV5": {
+        "additionalProperties": false,
+        "properties": {
+          "requested_period": {
+            "$ref": "#/components/schemas/InclusiveDateRange"
+          },
+          "through_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Through Date"
+          },
+          "gsv": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gsv"
+          },
+          "order_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Order Count",
+            "type": "integer"
+          },
+          "customer_count": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Count"
+          },
+          "customer_count_unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "AMBIGUOUS_ORDER_CUSTOMER",
+                  "INVALID_CUSTOMER"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Customer Count Unavailable Reason"
+          }
+        },
+        "required": [
+          "requested_period",
+          "through_date",
+          "gsv",
+          "order_count",
+          "customer_count"
+        ],
+        "title": "GsvPeriodFactsV5",
+        "type": "object"
+      },
       "InclusiveDateRange": {
         "additionalProperties": false,
         "properties": {
@@ -540,6 +1033,86 @@
           "end_date"
         ],
         "title": "InclusiveDateRange",
+        "type": "object"
+      },
+      "PurchaseFrequencyFunnel": {
+        "additionalProperties": false,
+        "description": "Nested customer sets by distinct effective orders within the current window.\n\nNot a visitor/event conversion funnel, lifetime first purchase, or elapsed-time\nanalysis. Same-day orders count separately; split order lines do not.",
+        "properties": {
+          "basis": {
+            "const": "CURRENT_PERIOD_EFFECTIVE_ORDERS",
+            "default": "CURRENT_PERIOD_EFFECTIVE_ORDERS",
+            "title": "Basis",
+            "type": "string"
+          },
+          "entity": {
+            "const": "USER_ID",
+            "default": "USER_ID",
+            "title": "Entity",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERIOD_UNAVAILABLE",
+                  "AMBIGUOUS_ORDER_CUSTOMER",
+                  "INVALID_CUSTOMER"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/PurchaseFrequencyStage"
+            },
+            "maxItems": 3,
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "unavailable_reason",
+          "stages"
+        ],
+        "title": "PurchaseFrequencyFunnel",
+        "type": "object"
+      },
+      "PurchaseFrequencyStage": {
+        "additionalProperties": false,
+        "properties": {
+          "minimum_orders": {
+            "maximum": 3,
+            "minimum": 1,
+            "title": "Minimum Orders",
+            "type": "integer"
+          },
+          "customer_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Customer Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "minimum_orders",
+          "customer_count"
+        ],
+        "title": "PurchaseFrequencyStage",
         "type": "object"
       },
       "ResultPage": {
@@ -726,7 +1299,10 @@
             "default": "backend.contracts.competition_computed.CompetitionGsvFacts",
             "enum": [
               "backend.contracts.competition_computed.CompetitionGsvFacts",
-              "backend.contracts.competition_computed.CompetitionGsvFactsV2"
+              "backend.contracts.competition_computed.CompetitionGsvFactsV2",
+              "backend.contracts.competition_computed.CompetitionGsvFactsV3",
+              "backend.contracts.competition_computed.CompetitionGsvFactsV4",
+              "backend.contracts.competition_computed.CompetitionGsvFactsV5"
             ],
             "title": "Facts Schema Ref",
             "type": "string"
@@ -735,7 +1311,10 @@
             "default": "competition-gsv-facts/v1",
             "enum": [
               "competition-gsv-facts/v1",
-              "competition-gsv-facts/v2"
+              "competition-gsv-facts/v2",
+              "competition-gsv-facts/v3",
+              "competition-gsv-facts/v4",
+              "competition-gsv-facts/v5"
             ],
             "title": "Existing Result Schema",
             "type": "string"
@@ -822,7 +1401,10 @@
             "discriminator": {
               "mapping": {
                 "competition-gsv-facts/v1": "#/components/schemas/CompetitionGsvFacts",
-                "competition-gsv-facts/v2": "#/components/schemas/CompetitionGsvFactsV2"
+                "competition-gsv-facts/v2": "#/components/schemas/CompetitionGsvFactsV2",
+                "competition-gsv-facts/v3": "#/components/schemas/CompetitionGsvFactsV3",
+                "competition-gsv-facts/v4": "#/components/schemas/CompetitionGsvFactsV4",
+                "competition-gsv-facts/v5": "#/components/schemas/CompetitionGsvFactsV5"
               },
               "propertyName": "schema_version"
             },
@@ -832,6 +1414,15 @@
               },
               {
                 "$ref": "#/components/schemas/CompetitionGsvFactsV2"
+              },
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFactsV3"
+              },
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFactsV4"
+              },
+              {
+                "$ref": "#/components/schemas/CompetitionGsvFactsV5"
               }
             ],
             "title": "Facts"
