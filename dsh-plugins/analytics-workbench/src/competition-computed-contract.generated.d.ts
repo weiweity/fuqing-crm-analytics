@@ -50,15 +50,15 @@ export interface components {
              * @default competition-gsv-facts/v1
              * @enum {string}
              */
-            existing_result_schema: "competition-gsv-facts/v1" | "competition-gsv-facts/v2";
+            existing_result_schema: "competition-gsv-facts/v1" | "competition-gsv-facts/v2" | "competition-gsv-facts/v3" | "competition-gsv-facts/v4" | "competition-gsv-facts/v5";
             /** Facts */
-            facts: components["schemas"]["CompetitionGsvFacts"] | components["schemas"]["CompetitionGsvFactsV2"];
+            facts: components["schemas"]["CompetitionGsvFacts"] | components["schemas"]["CompetitionGsvFactsV2"] | components["schemas"]["CompetitionGsvFactsV3"] | components["schemas"]["CompetitionGsvFactsV4"] | components["schemas"]["CompetitionGsvFactsV5"];
             /**
              * Facts Schema Ref
              * @default backend.contracts.competition_computed.CompetitionGsvFacts
              * @enum {string}
              */
-            facts_schema_ref: "backend.contracts.competition_computed.CompetitionGsvFacts" | "backend.contracts.competition_computed.CompetitionGsvFactsV2";
+            facts_schema_ref: "backend.contracts.competition_computed.CompetitionGsvFacts" | "backend.contracts.competition_computed.CompetitionGsvFactsV2" | "backend.contracts.competition_computed.CompetitionGsvFactsV3" | "backend.contracts.competition_computed.CompetitionGsvFactsV4" | "backend.contracts.competition_computed.CompetitionGsvFactsV5";
             /** Limitations */
             limitations: string[];
             /**
@@ -146,6 +146,81 @@ export interface components {
              * @enum {string}
              */
             schema_version: "competition-gsv-facts/v2";
+        };
+        /** CompetitionGsvFactsV3 */
+        CompetitionGsvFactsV3: {
+            /** Change Ratio */
+            change_ratio: number | null;
+            /** Change Ratio Unavailable Reason */
+            change_ratio_unavailable_reason: ("PERIOD_UNAVAILABLE" | "ZERO_COMPARISON_GSV") | null;
+            comparison: components["schemas"]["GsvPeriodFacts"];
+            current: components["schemas"]["GsvPeriodFacts"];
+            current_daily: components["schemas"]["GsvDailySeries"];
+            /** Difference */
+            difference: number | null;
+            /**
+             * Metric Type
+             * @default GSV
+             * @constant
+             */
+            metric_type: "GSV";
+            money_unit: components["schemas"]["CompetitionMoneyUnit"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "competition-gsv-facts/v3";
+        };
+        /** CompetitionGsvFactsV4 */
+        CompetitionGsvFactsV4: {
+            /** Change Ratio */
+            change_ratio: number | null;
+            /** Change Ratio Unavailable Reason */
+            change_ratio_unavailable_reason: ("PERIOD_UNAVAILABLE" | "ZERO_COMPARISON_GSV") | null;
+            channel_bridge: components["schemas"]["GsvChannelBridge"];
+            comparison: components["schemas"]["GsvPeriodFacts"];
+            current: components["schemas"]["GsvPeriodFacts"];
+            current_daily: components["schemas"]["GsvDailySeries"];
+            /** Difference */
+            difference: number | null;
+            /**
+             * Metric Type
+             * @default GSV
+             * @constant
+             */
+            metric_type: "GSV";
+            money_unit: components["schemas"]["CompetitionMoneyUnit"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "competition-gsv-facts/v4";
+        };
+        /** CompetitionGsvFactsV5 */
+        CompetitionGsvFactsV5: {
+            /** Change Ratio */
+            change_ratio: number | null;
+            /** Change Ratio Unavailable Reason */
+            change_ratio_unavailable_reason: ("PERIOD_UNAVAILABLE" | "ZERO_COMPARISON_GSV") | null;
+            channel_bridge: components["schemas"]["GsvChannelBridge"];
+            comparison: components["schemas"]["GsvPeriodFactsV5"];
+            current: components["schemas"]["GsvPeriodFactsV5"];
+            current_daily: components["schemas"]["GsvDailySeries"];
+            current_purchase_frequency: components["schemas"]["PurchaseFrequencyFunnel"];
+            /** Difference */
+            difference: number | null;
+            /**
+             * Metric Type
+             * @default GSV
+             * @constant
+             */
+            metric_type: "GSV";
+            money_unit: components["schemas"]["CompetitionMoneyUnit"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            schema_version: "competition-gsv-facts/v5";
         };
         /**
          * CompetitionMoneyUnit
@@ -284,10 +359,98 @@ export interface components {
             /** Product Ids */
             product_ids?: string[];
         };
+        /**
+         * GsvChannelBridge
+         * @description Additive sales-channel comparison, not causal marketing attribution.
+         */
+        GsvChannelBridge: {
+            /** Contributions */
+            contributions: components["schemas"]["GsvChannelContribution"][];
+            /**
+             * Dimension
+             * @default SALES_CHANNEL
+             * @constant
+             */
+            dimension: "SALES_CHANNEL";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "AVAILABLE" | "UNAVAILABLE";
+            /** Unavailable Reason */
+            unavailable_reason: ("PERIOD_UNAVAILABLE" | "MONEY_UNIT_UNKNOWN" | "AMBIGUOUS_ORDER_CHANNEL" | "INVALID_CHANNEL" | "CHANNEL_LIMIT_EXCEEDED") | null;
+        };
+        /** GsvChannelContribution */
+        GsvChannelContribution: {
+            /** Channel */
+            channel: string;
+            /** Comparison Gsv */
+            comparison_gsv: number;
+            /** Current Gsv */
+            current_gsv: number;
+            /** Delta */
+            delta: number;
+        };
+        /** GsvDailyPoint */
+        GsvDailyPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Gsv */
+            gsv: number | null;
+            /** Order Count */
+            order_count: number;
+        };
+        /**
+         * GsvDailySeries
+         * @description Payment-day net GSV at the parent result's cutoff, not refund-day cashflow.
+         */
+        GsvDailySeries: {
+            /**
+             * Grain
+             * @default DAY
+             * @constant
+             */
+            grain: "DAY";
+            /** Points */
+            points: components["schemas"]["GsvDailyPoint"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "AVAILABLE" | "UNSUPPORTED_RANGE";
+            /**
+             * Timezone
+             * @default Asia/Shanghai
+             * @constant
+             */
+            timezone: "Asia/Shanghai";
+            /** Unavailable Reason */
+            unavailable_reason: "RANGE_EXCEEDS_366_DAYS" | null;
+        };
         /** GsvPeriodFacts */
         GsvPeriodFacts: {
             /** Customer Count */
             customer_count: number;
+            /** Gsv */
+            gsv: number | null;
+            /** Order Count */
+            order_count: number;
+            requested_period: components["schemas"]["InclusiveDateRange"];
+            /** Through Date */
+            through_date: string | null;
+        };
+        /** GsvPeriodFactsV5 */
+        GsvPeriodFactsV5: {
+            /** Customer Count */
+            customer_count: number | null;
+            /**
+             * Customer Count Unavailable Reason
+             * @default null
+             */
+            customer_count_unavailable_reason: ("AMBIGUOUS_ORDER_CUSTOMER" | "INVALID_CUSTOMER") | null;
             /** Gsv */
             gsv: number | null;
             /** Order Count */
@@ -314,6 +477,43 @@ export interface components {
              * Format: date
              */
             start_date: string;
+        };
+        /**
+         * PurchaseFrequencyFunnel
+         * @description Nested customer sets by distinct effective orders within the current window.
+         *
+         *     Not a visitor/event conversion funnel, lifetime first purchase, or elapsed-time
+         *     analysis. Same-day orders count separately; split order lines do not.
+         */
+        PurchaseFrequencyFunnel: {
+            /**
+             * Basis
+             * @default CURRENT_PERIOD_EFFECTIVE_ORDERS
+             * @constant
+             */
+            basis: "CURRENT_PERIOD_EFFECTIVE_ORDERS";
+            /**
+             * Entity
+             * @default USER_ID
+             * @constant
+             */
+            entity: "USER_ID";
+            /** Stages */
+            stages: components["schemas"]["PurchaseFrequencyStage"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "AVAILABLE" | "UNAVAILABLE";
+            /** Unavailable Reason */
+            unavailable_reason: ("PERIOD_UNAVAILABLE" | "AMBIGUOUS_ORDER_CUSTOMER" | "INVALID_CUSTOMER") | null;
+        };
+        /** PurchaseFrequencyStage */
+        PurchaseFrequencyStage: {
+            /** Customer Count */
+            customer_count: number;
+            /** Minimum Orders */
+            minimum_orders: number;
         };
         /** ResultPage */
         ResultPage: {

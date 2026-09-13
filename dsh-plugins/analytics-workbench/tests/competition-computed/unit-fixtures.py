@@ -1,4 +1,4 @@
-"""Generate real computed synthetic v2 fixtures; never rewrite the v1 golden."""
+"""Generate current v5 synthetic fixtures; preserve the v1/v2/v3/v4 compatibility goldens."""
 import json
 from pathlib import Path
 import tempfile
@@ -25,4 +25,4 @@ def fixtures():
 
 
 if __name__ == "__main__":
-    Path(__file__).with_name("unit-results.json").write_text(json.dumps(fixtures(), ensure_ascii=False, indent=2) + "\n")
+    Path(__file__).with_name("funnel-results.json").write_text(json.dumps(fixtures(), ensure_ascii=False, indent=2) + "\n")

@@ -129,7 +129,8 @@ def test_http_computation_endorse_batch_and_frozen_reopen(tmp_path, source, deno
         result = response.json()["result"]
         assert response.json()["analysis_persisted"] is True
         assert result["facts"]["current"]["gsv"] == 140
-        assert result["facts"]["schema_version"] == "competition-gsv-facts/v2"
+        assert result["facts"]["schema_version"] == "competition-gsv-facts/v5"
+        assert len(result["facts"]["current_daily"]["points"]) == 31
         assert result["facts"]["money_unit"] == unit
         assert response.json()["analysis_complete"] is False
         assert client.post(BASE + "/diagnosis/step", json=payload).json()["result"] == result

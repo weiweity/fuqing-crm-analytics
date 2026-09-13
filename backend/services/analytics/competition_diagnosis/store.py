@@ -154,6 +154,30 @@ class ComputedResultStore:
                                 (principal.actor_id, limit, offset)).fetchall()
         return [self._parse(row, principal).model_dump(mode="json") for row in rows]
 
+    def get_result(self, principal: AnalyticsPrincipal, session_id: str, result_id: str) -> CompetitionComputedResult:
+        """Exact session-bound lookup for the library canvas; never list-and-pick."""
+        require(principal, "analysis:read", data_scope=DATA_SCOPE)
+        opaque(session_id, label="session_id")
+        opaque(result_id, label="result_id")
+        suffix = result_id.removeprefix("result_diag_")
+        if result_id == suffix or len(suffix) != 48 or any(char not in "0123456789abcdef" for char in suffix):
+            raise self._missing()
+        with self._read() as conn:
+            row = conn.execute("SELECT * FROM results WHERE owner=? AND session_id=? AND run_id=?",
+                               (principal.actor_id, session_id, "run_diag_" + suffix)).fetchone()
+        return self._parse(row, principal)
+
+    def list_session_results(self, principal: AnalyticsPrincipal, session_id: str, *, limit=20, offset=0):
+        """Bounded catalogue for one native session, with no cross-session fallback."""
+        require(principal, "analysis:read", data_scope=DATA_SCOPE)
+        opaque(session_id, label="session_id")
+        if type(limit) is not int or not 1 <= limit <= 20 or type(offset) is not int or not 0 <= offset <= 1000000:
+            raise AnalyticsError(422, "INVALID_REQUEST", "结果分页参数无效。")
+        with self._read() as conn:
+            rows = conn.execute("SELECT * FROM results WHERE owner=? AND session_id=? ORDER BY created_ms DESC, run_id LIMIT ? OFFSET ?",
+                                (principal.actor_id, session_id, limit + 1, offset)).fetchall()
+        return [self._parse(row, principal) for row in rows[:limit]], len(rows) > limit
+
     def get(self, principal: AnalyticsPrincipal, analysis_id: str, version=1) -> SavedAnalysisRecord:
         require(principal, "analysis:read", data_scope=DATA_SCOPE)
         opaque(analysis_id, label="analysis_id")
