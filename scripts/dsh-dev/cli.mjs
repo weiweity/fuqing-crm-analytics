@@ -2,17 +2,16 @@
 /** Local DSH-base entry. Does not manage 8000/5173/4315-4319. */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { writeFile, mkdir, rm, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR } from './constants.mjs';
 import { pluginRowState } from './overlay.mjs';
 import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultRuntimeRoot } from './paths.mjs';
 import { ensurePersistentRuntime } from './persist-runtime.mjs';
-import { createServer } from 'node:http';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, stopOwned, writeCurrent, terminateChild } from './serve.mjs';
+import { randomBytes } from 'node:crypto';
+import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, runOwnedSupervisor, stopOwned, watchOwnedStart } from './serve.mjs';
 import { diagnose, printDiagnose } from './diagnose.mjs';
 
 const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status|diagnose|reload>
@@ -87,66 +86,28 @@ async function runCheck(options) {
 
 async function runStart(options) {
   await mkdir(contextRoot(), { recursive: true, mode: 0o700 });
-  const lock = join(contextRoot(), 'supervisor.lock');
-  await mkdir(lock, { mode: 0o700 }); // Exclusive; stale lock requires inspection, never PID killing.
   const abort = new AbortController();
   const onSignal = () => abort.abort();
   process.once('SIGTERM', onSignal);
   process.once('SIGINT', onSignal);
-  let booted, server;
   try {
-    const prepared = await prepareRuntime(options);
-    const tls = isolatedEnv(prepared.runtime, prepared.home).NODE_EXTRA_CA_CERTS;
-    console.log(tls ? `DSH_DEV_TLS ${tls}` : 'DSH_DEV_TLS missing; Node 24 cannot verify api.deepseek.com without a CA bundle');
-    if (prepared.enabled) installProfilePlugin(prepared);
-    booted = await bootHost(prepared, { signal: abort.signal });
-    const token = randomBytes(32).toString('hex');
-    let finish;
-    let askedToStop = false;
-    const requested = new Promise(resolve => { finish = resolve; });
-    server = createServer((req, res) => {
-      const actual = Buffer.from(req.headers.authorization ?? '');
-      const expected = Buffer.from(`Bearer ${token}`);
-      if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) { res.writeHead(401).end(); return; }
-      if (req.method === 'GET' && req.url === '/status') { res.writeHead(200).end(); return; }
-      if (req.method !== 'POST' || req.url !== '/stop') { res.writeHead(404).end(); return; }
-      askedToStop = true;
-      void terminateChild(booted.child, booted.childExit).then(() => {
-        res.writeHead(200).end(); finish();
-      }).catch(() => { res.writeHead(500).end(); finish(); });
+    await runOwnedSupervisor({
+      contextDir: contextRoot(),
+      startId: process.env.DSH_DEV_START_ID,
+      signal: abort.signal,
+      boot: async ({ signal }) => {
+        const prepared = await prepareRuntime(options);
+        const tls = isolatedEnv(prepared.runtime, prepared.home).NODE_EXTRA_CA_CERTS;
+        console.log(tls ? `DSH_DEV_TLS ${tls}` : 'DSH_DEV_TLS missing; Node 24 cannot verify api.deepseek.com without a CA bundle');
+        if (prepared.enabled) installProfilePlugin(prepared);
+        const booted = await bootHost(prepared, { signal });
+        return { ...prepared, ...booted };
+      },
     });
-    await new Promise((resolve, reject) => {
-      server.once('error', reject); server.listen(0, '127.0.0.1', resolve);
-    });
-    await writeCurrent({ ...prepared, child: booted.child, control: { port: server.address().port, token } });
-    console.log(`DSH_DEV_READY ${booted.origin}/ (launch token not printed)`);
-    console.log(`DSH_DEV_RUNTIME ${prepared.runtime}`);
-    const aborted = new Promise(resolve => {
-      if (abort.signal.aborted) resolve();
-      else abort.signal.addEventListener('abort', resolve, { once: true });
-    });
-    const outcome = await Promise.race([requested, booted.childExit.then(exit => ({ exit })), aborted]);
-    if (outcome?.exit && !askedToStop && !abort.signal.aborted) process.exitCode = outcome.exit.code ?? 1;
   } finally {
-    if (booted) await terminateChild(booted.child, booted.childExit);
-    if (server) await new Promise(resolve => server.close(resolve));
-    await rm(currentPath(), { force: true });
-    await rm(lock, { recursive: true });
     process.removeListener('SIGTERM', onSignal);
     process.removeListener('SIGINT', onSignal);
   }
-}
-
-async function waitUnauthReady(origin, timeoutMs = 90000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    try {
-      const response = await fetch(`${origin}/`, { redirect: 'manual', signal: AbortSignal.timeout(2000) });
-      if (response.status === 401) return;
-    } catch { /* host not listening yet */ }
-    await delay(500);
-  }
-  throw new Error(`DSH_DEV_RELOAD ${origin}/ did not become ready`);
 }
 
 async function openLaunchUrl(runtime) {
@@ -167,16 +128,24 @@ async function runReload(options) {
   });
   assert.equal(built.status, 0, 'plugin build.mjs failed');
   await stopOwned();
+  const startId = randomBytes(16).toString('hex');
   const child = spawn(process.execPath, [
     join(repoRoot, 'scripts/dsh-dev/cli.mjs'), 'start',
     '--plugin', options.plugin || 'on',
     '--web-port', String(options.webPort || DEV_WEB_PORT),
     '--runtime', runtime,
-  ], { cwd: repoRoot, env: process.env, detached: true, stdio: 'ignore' });
+  ], {
+    cwd: repoRoot,
+    env: { ...process.env, DSH_DEV_START_ID: startId },
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  child.stdout?.unref();
+  child.stderr?.unref();
   child.unref();
   console.log(`DSH_DEV_DETACHED pid=${child.pid}`);
   const origin = `http://127.0.0.1:${options.webPort || DEV_WEB_PORT}`;
-  await waitUnauthReady(origin);
+  await watchOwnedStart(child, { origin, runtime, currentPath: currentPath(), startId });
   await openLaunchUrl(runtime);
   console.log(`DSH_DEV_RELOADED runtime=${runtime}`);
 }
@@ -203,23 +172,32 @@ async function runStatus() {
   console.log(`DSH_DEV_PLUGIN ${current.pluginEnabled ? current.plugin : 'off'}`);
 }
 
-const { command, options } = parseArgv(process.argv.slice(2));
-if (command === 'diagnose') printDiagnose(await diagnose(options ?? {}));
-else if (command === 'check' || command === 'dump-config') await runCheck(options);
-else if (command === 'start') {
-  if (options.detach) {
-    const child = spawn(process.execPath, [join(repoRoot, 'scripts/dsh-dev/cli.mjs'), 'start',
-      ...process.argv.slice(3).filter(flag => flag !== '--detach')], {
-      cwd: repoRoot, detached: true, stdio: 'ignore', env: process.env,
-    });
-    child.unref();
-    console.log(`DSH_DEV_DETACHED pid=${child.pid}`);
-  } else {
-    await runStart(options);
-  }
-} else if (command === 'reload') {
-  await runReload(options);
-} else if (command === 'stop') {
-  const result = await stopOwned();
-  console.log(result.stopped ? 'DSH_DEV_STOPPED acknowledged by owned supervisor' : 'DSH_DEV_STATUS stopped');
-} else if (command === 'status') await runStatus();
+function isCliEntry() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  const self = fileURLToPath(import.meta.url);
+  return self === entry || self === resolve(entry);
+}
+
+if (isCliEntry()) {
+  const { command, options } = parseArgv(process.argv.slice(2));
+  if (command === 'diagnose') printDiagnose(await diagnose(options ?? {}));
+  else if (command === 'check' || command === 'dump-config') await runCheck(options);
+  else if (command === 'start') {
+    if (options.detach) {
+      const child = spawn(process.execPath, [join(repoRoot, 'scripts/dsh-dev/cli.mjs'), 'start',
+        ...process.argv.slice(3).filter(flag => flag !== '--detach')], {
+        cwd: repoRoot, detached: true, stdio: 'ignore', env: process.env,
+      });
+      child.unref();
+      console.log(`DSH_DEV_DETACHED pid=${child.pid}`);
+    } else {
+      await runStart(options);
+    }
+  } else if (command === 'reload') {
+    await runReload(options);
+  } else if (command === 'stop') {
+    const result = await stopOwned();
+    console.log(result.stopped ? 'DSH_DEV_STOPPED acknowledged by owned supervisor' : 'DSH_DEV_STATUS stopped');
+  } else if (command === 'status') await runStatus();
+}
