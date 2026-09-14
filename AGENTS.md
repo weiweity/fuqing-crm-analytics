@@ -17,7 +17,7 @@
 - 本仓库包含归档 CRM 与隔离 synthetic 二开工程；默认冷存，不是本地即生产。不得因合并、会话启动/结束或普通验证自动启动/重启服务、MCP、ETL、回填或守护进程。
 - 大型真实 DuckDB 和原始业务数据是归档资产：不删除、改写、迁移或复制到测试/演示；不读取/输出凭据。只读查询也要确认目标和锁兼容，不通过停无关服务、复制大库或改配置绕过。
 - 当前二开沿用 DSH 原生 Web/单一 Agent Loop、独立业务插件、FastAPI 业务状态与权限、SQLite B0 状态和小型只读合成 DuckDB。B0 与 B1–B4、synthetic 与真实业务验收分开。
-- 当前 Git、**本轮施工计划**、施工边界和产品是否 PARTIAL 看 [STATUS.md](STATUS.md)。短 PR 勾选看 [TODOS 本轮施工队列](docs/hackathon/TODOS.md)；验收账本看 [产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md)。[B0 执行清单](docs/hackathon/B0-EXECUTION-CHECKLIST-2026-09-06.md) 是 2026-09-06 的 T01–T09 历史队列，不是当前任务卡。[黑客松入口](docs/hackathon/README.md) 保留 9 月 10 日证据链，SHA 以 STATUS 为准。`origin/main` 为 v0.8.0.0（`a729ff6`，#129）。main 的 DSH 钉是 0.1.5-rc.1（`183f08e9`）。本轮短 PR #116–#129 已合。不要改 DSH 上游源码。卸伸美包应回到官方 web 壳。后续再升架构改 `toolchain.json` 并跑 pipeline。产品仍 PARTIAL。不把旧 CRM 的 STATUS/历史测试数当作新版集成证据。
+- 当前 Git、**本轮施工计划**、施工边界和产品是否 PARTIAL 看 [STATUS.md](STATUS.md)。任务接续与短 PR 勾选看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)；验收账本看 [产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md)。[B0 执行清单](docs/hackathon/B0-EXECUTION-CHECKLIST-2026-09-06.md) 是 2026-09-06 的 T01–T09 历史队列，不是当前任务卡。[黑客松入口](docs/hackathon/README.md) 保留历史证据链，最新 SHA 以 STATUS 为准。VERSION仍为0.8.0.0（版本基线`a729ff6`，#129），不是最新代码HEAD。main 的 DSH 钉是 0.1.5-rc.1（`183f08e9`）。不要改 DSH 上游源码。卸伸美包应回到官方 web 壳。后续再升架构改 `toolchain.json` 并跑 pipeline。产品仍 PARTIAL。不把旧 CRM 的 STATUS/历史测试数当作新版集成证据。
 - 已授权的 B0 检查使用 `scripts/dsh-b0/` 对应入口；旧 CRM 演示仅按明确请求使用 `scripts/ops/start-stack.sh` / `stop-stack.sh`。运行前核验解释器、实际端口和进程归属；B0 Python 用 3.14+，Node 版本见固定工具链，不自动升级环境。
 - 验证用临时服务结束后只停止本次拥有的实例。用户要交互查看的演示保持可用至用户结束；不终止无关进程，不安装 launchd，不搬现有目录。
 
@@ -34,6 +34,7 @@
 - 编辑前确认工作位置、分支及 dirty 状态，保留用户改动；不自动 stash/reset、换分支、清理分支或改 Git 配置。日常局部修改在当前任务工作树推进，有冲突时先隔离或说明。
 - commit、push、PR、merge、部署/发布、外发消息、数据迁移与删除按各自动作的实际授权执行。“继续”“收口”“多文件”不自动串联这些动作；缺少 Git 授权不阻止本地编辑交付。
 - 保留 commit 前 /review、merge 前 /qa 检查点，只约束已授权的对应动作。push 按现有 hooks/CI 路径策略核验；不默认绕过 hooks，不直接在 main/master 提交业务修改，不合并无关改动。
+- 本仓已纳管 [ship-pr](.agents/skills/ship-pr/SKILL.md) 作为交付与安全清理入口；调用技能不扩大发布、服务切换或删除权限。
 - 当前验证矩阵、命令、隔离与自动入口见 [验证入口](docs/operating/verification.md)；本地与 CI 共用选择实现，不把历史测试数或某个便捷子集当作完整通过。
 - 验证按影响范围：规则/文档检查差异、引用和继承；工具/脚本检查真实输入输出及副作用；业务代码验证受影响行为，契约/连接/权限等共用层扩大必要覆盖。测试通过后无新变化、失败或未解风险时不固定多轮 review、不反复全量重跑。
 - 验证脚本须读取真实配置/产物，不能只测试复制出来的旧实现；负测在隔离夹具中进行，不往仓库源码临时追加错误来测试再恢复。
