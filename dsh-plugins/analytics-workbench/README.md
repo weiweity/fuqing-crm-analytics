@@ -2,11 +2,11 @@
 
 固定上游：`deepseek-ai/deepseek-harness@183f08e9c6dde7e36cd2318eaee70b0da08fb35e`（sdk `0.1.5-rc.1`，见 `toolchain.json`）。私有本地验证包，不发布 npm，不包含模型密钥或真实数据。2026-09-06 已接独立 FastAPI B0 任务内核、固定方法包与当前权限接缝；完整 B0 仍为 PARTIAL，见[当前收口报告](../../docs/hackathon/B0-LOCAL-CLOSEOUT-2026-09-06.md)。
 
-## 本轮组件库合同与实现（2026-09-13，未提交）
+## 本轮组件库合同与实现（2026-09-14）
 
-目标与验收以 [TODOS 本轮 Goal](../../docs/hackathon/TODOS.md#本轮-goal组件库优先的-ai-无代码驾驶舱2026-09-13) 为准。下方 v0.8 记录不代表无代码平台已经完成。
+目标与验收以 [TODOS 的 M1 核心交付](../../docs/hackathon/TODOS.md#m1-核心交付) 为准，代码落点与CI见 [STATUS](../../STATUS.md)及 [#134](https://github.com/weiweity/fuqing-crm-analytics/pull/134)。下方分项测试数／“待验”保留各阶段证据语境，以TODOS的最新接续为准；不代表无代码平台已经完成。
 
-目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。实际模型选型待验证。
+目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。已有原模型自由组板和METRIC标题编辑的真实证据；剩余五类编辑与日期换数、S2-C1已存板状态感知仍开放，不要求重新选模型。
 
 ### 六类首批合同
 
@@ -21,7 +21,7 @@
 | TEXT / `151:2016` | `content`（≤4000）；`align=start/center`；`text_style=body/callout` | 纯说明文本，无数据依赖；明确标非核验数字，不执行标记或脚本 | 3×3 / 6×5 |
 | EVIDENCE / `153:2026` | `summary`（≤1000）；`expanded` | 来源标签及证据条目来自结果；可改摘要不冒充来源原文 | 3×3 / 6×5 |
 
-组件集位于 [当前 Figma 文件](https://www.figma.com/design/PS8LQRBiuoY6uNxugWjbT3)。六张工程属性表已同步至原组件页（METRIC `227:2`、LINE `227:3`、BAR `228:2`、TABLE `228:3`、TEXT `228:4`、EVIDENCE `228:5`），明确当前字段与未来差距；它们是显式合同，不是 Code Connect，也不代表 Figma 已暴露每个属性开关。六类代表性修改均已接正式主流程：指标标题、趋势图例、对比数值标签、明细可见列、说明正文、证据说明；节点与分层证据见 [TODOS](../../docs/hackathon/TODOS.md#a3--b2-组件合同与修改原型2026-09-13)。实际点击/滚动、跨多项修改组合及完整视觉仍待验；原双序列设计示例不等于代码已支持多序列。
+组件集位于 [当前 Figma 文件](https://www.figma.com/design/PS8LQRBiuoY6uNxugWjbT3)。六张工程属性表已同步至原组件页（METRIC `227:2`、LINE `227:3`、BAR `228:2`、TABLE `228:3`、TEXT `228:4`、EVIDENCE `228:5`），明确当前字段与未来差距；它们是显式合同，不是 Code Connect，也不代表 Figma 已暴露每个属性开关。六类代表性修改均已接正式主流程：指标标题、趋势图例、对比数值标签、明细可见列、说明正文、证据说明；后续验收见 [TODOS](../../docs/hackathon/TODOS.md#m1-验收门槛)。实际点击/滚动、跨多项修改组合及完整视觉仍待验；原双序列设计示例不等于代码已支持多序列。
 
 2026-09-13 原生属性补齐：下列四项已绑定各自五态组件，并通过真实 Figma 实例 `setProperties` 开关及截图验证。正式原型保持80帧/两个入口；LINE/BAR/TABLE各59实例几何和显示读回不变。EVIDENCE另外三个隐藏实例的查询返回有差异，祖先隐藏与整屏截图确认未泄露内容，未伪报逐字相同。
 

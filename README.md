@@ -1,6 +1,8 @@
 # 伸美 AI 增长董事会
 
-最新独立增量：[单位修复候选](./docs/hackathon/COMPUTED-UNITS-CANDIDATE-2026-09-10.md) `84b0ac8` CI SUCCESS，已进入 4325/18083；五库恢复和局部真实模型复测完成，完整产品仍 PARTIAL。
+当前代码交付与运行边界见 [STATUS](./STATUS.md)，下一步见 [M1 核心交付](./docs/hackathon/TODOS.md#m1-核心交付)。组件库优先的 AI 驾驶舱代码已有分层实现，M1／产品仍 PARTIAL；Git合入不等于正式release、运行环境切换或本人UAT通过。
+
+下方9月5–10日的决策、端口和候选追加保留为历史记录，不作为当前服务或Git HEAD。
 
 > AI 黑客松作品 · 多渠道客户资产诊断 · 受控自由问数与人群决策
 
@@ -87,7 +89,7 @@ cd frontend-vue3 && npx playwright test                   # E2E
 | **文档总索引** | [`docs/README.md`](./docs/README.md) |
 | **版本变更** | [`CHANGELOG.md`](./CHANGELOG.md) · 老条目 `docs/history/CHANGELOG_HISTORY.md` |
 | **AI 行为规则** | [`AGENTS.md`](./AGENTS.md)（唯一正文；CLAUDE 仅导入）；旧 CRM L4 细则按主题查阅 |
-| **协作 / 整洁** | [`docs/operating/team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
+| **当前交付 / 整洁** | [`ship-pr`](./.agents/skills/ship-pr/SKILL.md)；历史协作参考 [`team-workflow-v1.md`](./docs/operating/team-workflow-v1.md) · [`project-hygiene.md`](./docs/operating/project-hygiene.md) |
 | **AI 增长董事会** | [`docs/hackathon/README.md`](./docs/hackathon/README.md) · [`MISSION-API.md`](./docs/hackathon/MISSION-API.md) |
 | **视觉与交互基线** | [`DESIGN.md`](./DESIGN.md) |
 
