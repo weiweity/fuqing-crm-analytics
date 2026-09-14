@@ -142,8 +142,10 @@ test('built native diagnosis tools forward trusted session IDs over model-suppli
       },
       on(name, fn) { listeners.set(name, fn); },
     });
-    const tools = registered.filter(tool => !tool.name.endsWith('_resource'));
+    const tools = registered.filter(tool => ['competition_growth_capabilities', 'competition_growth_step', 'competition_growth_patch'].includes(tool.name));
     assert.equal(tools.length, 3);
+    assert.deepEqual(registered.filter(tool => tool.name.startsWith('competition_board_')).map(tool => tool.name),
+      ['competition_board_catalog', 'competition_board_generate', 'competition_board_edit_context', 'competition_board_edit']);
     const condition = {
       current_period: { start_date: '2026-08-01', end_date: '2026-08-31' },
       comparison_period: { start_date: '2025-08-01', end_date: '2025-08-31' },

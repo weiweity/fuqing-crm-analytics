@@ -1,0 +1,17 @@
+[
+  {"name":"nested","counts":[10,5,1],"valid":true},
+  {"name":"zero-tail","counts":[10,0,0],"valid":true},
+  {"name":"empty-cohort","counts":[0,0,0],"valid":true},
+  {"name":"equal","counts":[10,10,10],"valid":true},
+  {"name":"safe-limit","counts":[9007199254740991,1,0],"valid":true},
+  {"name":"unsafe-count","counts":[9007199254740992,1,0],"valid":false},
+  {"name":"increasing","counts":[1,2,0],"valid":false},
+  {"name":"after-zero","counts":[10,0,1],"valid":false},
+  {"name":"negative","counts":[10,5,-1],"valid":false},
+  {"name":"fraction","counts":[10,1.5,0],"valid":false},
+  {"name":"boolean","counts":[true,0,0],"valid":false},
+  {"name":"string","counts":["10",5,0],"valid":false},
+  {"name":"missing","counts":[10,null,0],"valid":false},
+  {"name":"one-stage","counts":[10],"valid":false},
+  {"name":"too-many","counts":[13,12,11,10,9,8,7,6,5,4,3,2,1],"valid":false}
+]

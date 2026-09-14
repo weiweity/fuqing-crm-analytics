@@ -1,0 +1,14 @@
+[
+  {"name":"positive-negative-zero", "valid":true, "data":{"unit":"CNY 元","start":{"label":"对比期","value":100},"end":{"label":"本期","value":90},"contributions":[{"label":"增加","value":20},{"label":"减少","value":-30},{"label":"不变","value":0}]}},
+  {"name":"negative-start-cross-zero", "valid":true, "data":{"unit":"个","start":{"label":"起点","value":-40},"end":{"label":"终点","value":20},"contributions":[{"label":"增加","value":80},{"label":"减少","value":-20}]}},
+  {"name":"all-zero", "valid":true, "data":{"unit":"个","start":{"label":"起点","value":0},"end":{"label":"终点","value":0},"contributions":[{"label":"不变","value":0}]}},
+  {"name":"empty-contributions-no-change", "valid":true, "data":{"unit":"个","start":{"label":"起点","value":0},"end":{"label":"终点","value":0},"contributions":[]}},
+  {"name":"decimal-rounding", "valid":true, "data":{"unit":"CNY 元","start":{"label":"起点","value":0.1},"end":{"label":"终点","value":0.3},"contributions":[{"label":"增加","value":0.2}]}},
+  {"name":"missing-data", "valid":false, "data":{"unit":"个","start":{"label":"起点","value":null},"end":{"label":"终点","value":0},"contributions":[]}},
+  {"name":"unknown-unit", "valid":false, "data":{"unit":null,"start":{"label":"起点","value":10},"end":{"label":"终点","value":10},"contributions":[]}},
+  {"name":"duplicate-contribution", "valid":false, "data":{"unit":"个","start":{"label":"起点","value":0},"end":{"label":"终点","value":2},"contributions":[{"label":"相同","value":1},{"label":"相同","value":1}]}},
+  {"name":"invented-gap", "valid":false, "data":{"unit":"个","start":{"label":"起点","value":10},"end":{"label":"终点","value":100},"contributions":[{"label":"增加","value":1}]}},
+  {"name":"executable-property", "valid":false, "data":{"unit":"个","start":{"label":"起点","value":10},"end":{"label":"终点","value":10},"contributions":[],"script":"alert(1)"}},
+  {"name":"boolean-number", "valid":false, "data":{"unit":"个","start":{"label":"起点","value":true},"end":{"label":"终点","value":1},"contributions":[]}},
+  {"name":"cumulative-overflow", "valid":false, "data":{"unit":"个","start":{"label":"起点","value":1e308},"end":{"label":"终点","value":1e308},"contributions":[{"label":"溢出","value":1e308},{"label":"回落","value":-1e308}]}}
+]

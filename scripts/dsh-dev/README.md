@@ -45,7 +45,16 @@ PATH 上的 Node 若不是 24，check/start 会失败。诊断会指出可用的
 
 用户在本实例 Settings → Models 配置 provider；开发入口不从其他工作树或 shell 复制模型密钥。若运行机器需要额外信任链，可显式设置 `NODE_EXTRA_CA_CERTS=/absolute/public-ca-bundle.pem`。只接受绝对路径，Node 仍验证证书；不得用关闭 TLS 校验代替。2026-09-10 的候选通过 `/etc/ssl/cert.pem` 完成真实 DeepSeek-V4-Flash 调用。
 
-同时显式设置 `COMPETITION_HTTP_BASE`、`COMPETITION_HTTP_TOKEN` 后，单一业务插件入口注册诊断工具。宿主注入当前会话和取消信号；每次 HTTP 最长 5 秒。结构化条件由后端严格验证，模型不能注入身份或权限。该连接本身不保证业务计算完成，当前诊断服务仍有合成 fixture 返回；见 [T13 记录](../../docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md)。浏览器构建也需使用相同的 HTTP 配置；普通离线 pipeline 会重新生成默认构建，用户验收前须按实例配置重建。
+同时显式设置 `COMPETITION_HTTP_BASE`、`COMPETITION_HTTP_TOKEN` 后，单一业务插件入口注册诊断及组件库生成工具。宿主注入当前会话和取消信号；每次 HTTP 最长 5 秒。结构化条件由后端严格验证，模型不能注入身份或权限。当前仅合成源，见 [T13 历史记录](../../docs/hackathon/evidence/product-readiness-2026-09-10/T13-LIVE.md)。本轮新看板通过 DSH 认证 Connection RPC 由 Host 转发，浏览器构建不再注入业务 token；无需按凭据重编公共 JS。旧 C0 直连 overlay 的认证迁移和部署兼容仍待验，不以本条声明旧路径可用。启动还须显式配置 BoardSpec 状态目录；功能与证据见 [插件 README](../../dsh-plugins/analytics-workbench/README.md)。
+
+真实模型验收前，可对**明确指定的已运行实例**执行只读通道预检：
+
+```bash
+node scripts/dsh-dev/board-model-preflight.mjs --runtime /absolute/runtime --output /absolute/evidence.json
+node --test scripts/dsh-dev/board-model-preflight.test.mjs
+```
+
+预检仅兑换本地原生认证、读取模型目录与看板 `status`，不创建会话、不发模型请求、不改设置、不重启。拒绝非回环地址，不记录启动 token、cookie 或原始错误响应。退出码 0 只表示 `transport_ready`，2 表示通道条件未满足，1 表示输入/输出失败。**模型目录在未配置密钥时也可能列出路由**；`credentials_verified=false`、`model_execution=NOT_RUN` 必须保留，不能以预检替代真实调用或业务服务连通验证。看板 404 表示该实例未提供当前协议，不自动 reload 已有用户实例。
 
 ## 构建检查
 

@@ -1,0 +1,132 @@
+{
+  "schema_version": "board-component-catalog/v1",
+  "library_version": "board-components/v1",
+  "catalog_revision": 4,
+  "figma_file_key": "PS8LQRBiuoY6uNxugWjbT3",
+  "grid": { "columns": 12, "max_rows": 2000, "row_height_px": 40, "gap_px": 16 },
+  "common_properties": {
+    "subtitle": { "type": "string", "maxLength": 240, "default": "" },
+    "tone": { "type": "string", "enum": ["neutral", "accent", "muted"], "default": "neutral" },
+    "density": { "type": "string", "enum": ["comfortable", "compact"], "default": "comfortable" }
+  },
+  "components": [
+    {
+      "kind": "METRIC", "name": "指标卡", "version": 1, "figma_node_id": "145:30",
+      "data_shape": "scalar", "requires_result": true,
+      "min_size": { "w": 3, "h": 3 }, "default_size": { "w": 4, "h": 4 },
+      "properties": {
+        "show_comparison": { "type": "boolean", "default": true },
+        "value_format": { "type": "string", "enum": ["standard", "compact"], "default": "standard" }
+      }
+    },
+    {
+      "kind": "LINE", "name": "趋势图", "version": 1, "figma_node_id": "147:91",
+      "data_shape": "ordered_series", "requires_result": true,
+      "min_size": { "w": 4, "h": 5 }, "default_size": { "w": 6, "h": 7 },
+      "properties": {
+        "show_legend": { "type": "boolean", "default": true },
+        "show_points": { "type": "boolean", "default": true },
+        "line_style": { "type": "string", "enum": ["solid", "dashed"], "default": "solid" }
+      }
+    },
+    {
+      "kind": "BAR", "name": "对比图", "version": 1, "figma_node_id": "149:90",
+      "data_shape": "categorical_series", "requires_result": true,
+      "min_size": { "w": 4, "h": 4 }, "default_size": { "w": 6, "h": 6 },
+      "properties": {
+        "orientation": { "type": "string", "enum": ["horizontal", "vertical"], "default": "horizontal" },
+        "show_values": { "type": "boolean", "default": true }
+      }
+    },
+    {
+      "kind": "TABLE", "name": "明细表", "version": 1, "figma_node_id": "150:2091",
+      "data_shape": "table", "requires_result": true,
+      "min_size": { "w": 4, "h": 4 }, "default_size": { "w": 6, "h": 7 },
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 80 }, "maxItems": 12, "uniqueItems": true, "default": [] },
+        "page_size": { "type": "integer", "minimum": 5, "maximum": 100, "default": 10 },
+        "sort_field": { "type": "string", "maxLength": 80, "default": "" },
+        "sort_direction": { "type": "string", "enum": ["asc", "desc"], "default": "asc" }
+      }
+    },
+    {
+      "kind": "TEXT", "name": "文本说明", "version": 1, "figma_node_id": "151:2016",
+      "data_shape": "plain_text", "requires_result": false,
+      "min_size": { "w": 3, "h": 3 }, "default_size": { "w": 6, "h": 5 },
+      "properties": {
+        "content": { "type": "string", "maxLength": 4000, "default": "" },
+        "align": { "type": "string", "enum": ["start", "center"], "default": "start" },
+        "text_style": { "type": "string", "enum": ["body", "callout"], "default": "body" }
+      }
+    },
+    {
+      "kind": "EVIDENCE", "name": "证据卡", "version": 1, "figma_node_id": "153:2026",
+      "data_shape": "provenance", "requires_result": true,
+      "min_size": { "w": 3, "h": 3 }, "default_size": { "w": 6, "h": 5 },
+      "properties": {
+        "summary": { "type": "string", "maxLength": 1000, "default": "" },
+        "expanded": { "type": "boolean", "default": true }
+      }
+    },
+    {
+      "kind": "PROCESS", "name": "流程说明", "version": 1, "figma_node_id": "271:2", "design_status": "PARTIAL",
+      "data_shape": "process_draft", "requires_result": false, "allows_result": false,
+      "min_size": { "w": 4, "h": 5 }, "default_size": { "w": 6, "h": 8 },
+      "properties": {
+        "nodes": { "type": "array", "maxItems": 40, "default": [], "items": {
+          "type": "object", "required": ["id", "label"], "properties": {
+            "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+            "label": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "owner": { "type": "string", "maxLength": 80, "default": "" },
+            "detail": { "type": "string", "maxLength": 1000, "default": "" }
+          }
+        } },
+        "edges": { "type": "array", "maxItems": 100, "default": [], "items": {
+          "type": "object", "required": ["from", "to"], "properties": {
+            "from": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+            "to": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+            "label": { "type": "string", "maxLength": 160, "default": "" }
+          }
+        } },
+        "show_owners": { "type": "boolean", "default": true },
+        "show_details": { "type": "boolean", "default": true }
+      }
+    },
+    {
+      "kind": "TIMELINE", "name": "日期时间线", "version": 1, "figma_node_id": "276:2", "design_status": "PARTIAL",
+      "data_shape": "timeline_draft", "requires_result": false, "allows_result": false,
+      "min_size": { "w": 4, "h": 5 }, "default_size": { "w": 6, "h": 8 },
+      "properties": {
+        "events": { "type": "array", "maxItems": 40, "default": [], "items": {
+          "type": "object", "required": ["id", "date", "label"], "properties": {
+            "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+            "date": { "type": "string", "minLength": 10, "maxLength": 10, "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+            "label": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "detail": { "type": "string", "maxLength": 1000, "default": "" }
+          }
+        } },
+        "timezone": { "type": "string", "enum": ["Asia/Shanghai", "UTC"], "default": "Asia/Shanghai" },
+        "show_details": { "type": "boolean", "default": true }
+      }
+    },
+    {
+      "kind": "WATERFALL", "name": "贡献瀑布", "version": 1, "figma_node_id": "289:402", "design_status": "PARTIAL",
+      "data_shape": "reconciled_waterfall", "requires_result": true,
+      "min_size": { "w": 4, "h": 5 }, "default_size": { "w": 6, "h": 8 },
+      "properties": {
+        "show_values": { "type": "boolean", "default": true },
+        "show_table": { "type": "boolean", "default": true }
+      }
+    },
+    {
+      "kind": "FUNNEL", "name": "人群漏斗", "version": 1, "figma_node_id": "297:2", "design_status": "PARTIAL",
+      "data_shape": "nested_customer_counts", "requires_result": true,
+      "min_size": { "w": 4, "h": 5 }, "default_size": { "w": 6, "h": 8 },
+      "properties": {
+        "show_values": { "type": "boolean", "default": true },
+        "show_rates": { "type": "boolean", "default": true },
+        "rate_basis": { "type": "string", "enum": ["previous", "first"], "default": "previous" }
+      }
+    }
+  ]
+}

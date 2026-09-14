@@ -4,9 +4,12 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import { freezeCompetitionSkillPackage } from './skill-package.mjs';
 import {
   CAPABILITIES_TOOL_NAME, PATCH_TOOL_NAME, RESOURCE_SCHEMA, RESOURCE_TOOL_NAME, STEP_TOOL_NAME,
+  BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME,
+  BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME,
 } from './family.mjs';
 import { createCompetitionToolBoundary } from './boundary.mjs';
 import { liveDiagnosisCall } from './tools.mjs';
+import { BOARD_TOOL_PARAMETERS, executeBoardTool } from './board-tools.mjs';
 
 export const name = 'analytics-workbench-competition-growth';
 export const inject = ['skills', 'tools'];
@@ -73,6 +76,26 @@ export function apply(ctx: Context, packInput: { manifest: object; contents: Rec
       execute: async (args, exec) => liveDiagnosisCall(toolName, {
         ...args, session_id: exec.agent?.session.id,
       }, exec.signal) as never,
+    }));
+  }
+  for (const toolName of [BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) {
+    ctx.tools.register(defineTool({
+      name: toolName,
+      description: toolName === BOARD_CATALOG_TOOL_NAME
+        ? 'Read our branded component catalogue and available results for this native session. No new query or model call.'
+        : toolName === BOARD_EDIT_CONTEXT_TOOL_NAME
+        ? 'Read the user-selected component, current bound facts and editable catalogue. Requires an existing UI edit_context_id in this native session. Does not select or modify anything.'
+        : toolName === BOARD_EDIT_TOOL_NAME
+        ? 'Propose changes to exactly the UI-selected component. Native session, target and version are server-bound. Display changes reuse facts; data changes need a matching controlled result. Never saves or confirms.'
+        : 'Compose a library-first board PREVIEW from current-session results. This does not publish/save a board. The user must inspect and confirm in the UI.',
+      parameters: BOARD_TOOL_PARAMETERS[toolName] as never,
+      output: { schema: { type: 'object', additionalProperties: true },
+        render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+        // DSH does not copy canonical values to persisted tool-card metadata.
+        presentationMeta: toolName === BOARD_GENERATE_TOOL_NAME || toolName === BOARD_EDIT_TOOL_NAME ? (_args, value) => value : undefined },
+      timeoutMs: toolName === BOARD_EDIT_TOOL_NAME ? 11000 : 6000,
+      isConcurrencySafe: () => false,
+      execute: async (args, execution) => executeBoardTool(toolName, args as Record<string, unknown>, execution) as never,
     }));
   }
 }

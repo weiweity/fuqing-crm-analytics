@@ -47,6 +47,7 @@ export function assertRegisteredTool(name) {
 
 export async function liveDiagnosisCall(toolName, args = {}, signal) {
   assertRegisteredTool(toolName);
+  if (![CAPABILITIES_TOOL_NAME, STEP_TOOL_NAME, PATCH_TOOL_NAME].includes(toolName)) throw new Error('NOT_A_DIAGNOSIS_TOOL');
   signal?.throwIfAborted();
   const base = String(process.env.COMPETITION_HTTP_BASE || '').replace(/\/$/, '');
   const token = String(process.env.COMPETITION_HTTP_TOKEN || '');

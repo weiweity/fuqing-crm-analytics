@@ -8,6 +8,8 @@ import { BOARD_SPEC_KINDS } from '../board-spec/kinds.mjs';
 import { interpretBoard } from '../board-spec/interpret.mjs';
 import { HTML_SANDBOX, htmlSandboxFrame, httpsSandboxFrame, openHttpsLink, refreshSandboxHtml } from '../board-spec/html-sandbox.mjs';
 import { proposeAsk, proposeAskLocal } from '../board-spec/ask.mjs';
+import { LibraryComponentBody, libraryComponentCss } from './library-components.tsx';
+import type { InterpretedBlock } from '../board-spec/interpret.mjs';
 
 const ADD_KINDS = BOARD_SPEC_KINDS.filter((kind) => kind !== 'LINK');
 const TABS = [
@@ -152,7 +154,14 @@ function metricCaption(paint: Record<string, unknown>) {
   return `本期 ${current} · 对比 ${comparison}${pctText}`;
 }
 
-function paintBody(block: { kind: string; bind: string; source_result_id: string | null; paint: Record<string, unknown> }) {
+function paintBody(block: InterpretedBlock) {
+  if (block.library) return <LibraryComponentBody view={block.library} />;
+  if (block.kind === 'TEXT') {
+    return <div data-testid="sm-board-spec-text" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', textAlign: block.paint.align === 'center' ? 'center' : 'start' }}>
+      {typeof block.paint.content === 'string' ? block.paint.content : ''}
+      <p className="sm-spec-caption">说明文本 · 非核验经营数字</p>
+    </div>;
+  }
   if (block.bind !== 'bound' && block.kind !== 'LINK' && block.kind !== 'EVIDENCE' && block.kind !== 'html_sandbox') {
     return <p className="sm-spec-empty" data-testid="sm-board-spec-unbound">未绑定结果，不显示 0%</p>;
   }
@@ -324,6 +333,7 @@ export function BoardSpecCanvas(props: BoardSpecCanvasProps = {}) {
   return (
     <div className="sm-spec-shell" data-testid="sm-board-spec-canvas" data-tab={state.tab} data-version={state.spec.version}>
       <style>{css}</style>
+      <style>{libraryComponentCss}</style>
       <div className="sm-spec-center">
         <div className="sm-spec-chrome">
           <div className="sm-spec-title">
@@ -384,6 +394,7 @@ export function BoardSpecCanvas(props: BoardSpecCanvasProps = {}) {
                   data-on={state.selected_block_id === block.block_id ? '1' : '0'}
                   onClick={() => apply(selectBlock(state, block.block_id))}
                   onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
                       apply(selectBlock(state, block.block_id));

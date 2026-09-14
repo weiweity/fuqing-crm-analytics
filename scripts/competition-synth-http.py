@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthetic competition HTTP on 18082. Does not bind 8000/4327/5173."""
+"""Synthetic competition HTTP on 18082. Does not bind 8000/4327/5173/6677."""
 
 from __future__ import annotations
 
@@ -19,13 +19,21 @@ STATE = Path(os.environ.get(
 ))
 
 
-def web_origin() -> str:
-    """Allow one explicitly selected, isolated DSH origin."""
-    origin = os.environ.get("COMPETITION_SYNTH_WEB_ORIGIN", "http://127.0.0.1:14327")
-    allowed = {f"http://127.0.0.1:{port}" for port in (4325, 4326, 4328, 4329, 14327)}
+def allowed_web_origin(origin: str) -> str:
+    allowed = {f"http://127.0.0.1:{port}" for port in (4325, 4326, 4328, 4329, 6677, 14327)}
     if origin not in allowed:
         raise ValueError("COMPETITION_SYNTH_WEB_ORIGIN must name an isolated loopback DSH port")
     return origin
+
+
+def web_origin() -> str:
+    """Allow one explicitly selected, isolated DSH origin."""
+    return allowed_web_origin(os.environ.get("COMPETITION_SYNTH_WEB_ORIGIN", "http://127.0.0.1:14327"))
+
+
+def refuse_protected_bind_port(port: int) -> None:
+    if port in {4327, 8000, 5173, 6677, 14327}:
+        raise SystemExit(f"refusing to bind user/demo port {port}")
 
 
 def _private(path: Path) -> Path:
@@ -35,6 +43,7 @@ def _private(path: Path) -> Path:
 
 
 def main() -> None:
+    refuse_protected_bind_port(PORT)
     sys.path.insert(0, str(ROOT))
     from fastapi.middleware.cors import CORSMiddleware
     import uvicorn
@@ -44,9 +53,6 @@ def main() -> None:
     from backend.services.analytics.cockpit import CockpitStore
     from backend.services.analytics.saved_analyses import SavedAnalysisStore
     from backend.services.analytics.competition_diagnosis.synthetic import demo_snapshot, materialize_synthetic_source
-
-    if PORT in {4327, 8000, 5173, 14327}:
-        raise SystemExit(f"refusing to bind user/demo port {PORT}")
     identities = B0IdentityRegistry()
     caps = frozenset({
         "analysis:save", "analysis:read", "dashboard:read", "dashboard:update",
@@ -64,6 +70,7 @@ def main() -> None:
             asset_state_dir=_private(STATE / "assets"),
             audience_state_dir=_private(STATE / "audience"),
             diagnosis_source=diagnosis_source, diagnosis_state_dir=_private(STATE / "diagnosis"),
+            board_state_dir=_private(STATE / "board-documents"),
         )
         app.add_middleware(
             CORSMiddleware,

@@ -1,0 +1,23 @@
+[
+  {"name":"empty process","kind":"PROCESS","props":{},"valid":true},
+  {"name":"branch and labelled return","kind":"PROCESS","props":{"nodes":[{"id":"review","label":"核对口径","owner":"分析师"},{"id":"approve","label":"确认","owner":"老板"}],"edges":[{"from":"review","to":"approve"},{"from":"approve","to":"review","label":"需修改"}]},"valid":true},
+  {"name":"self loop is explicit","kind":"PROCESS","props":{"nodes":[{"id":"retry","label":"重试"}],"edges":[{"from":"retry","to":"retry","label":"继续检查"}]},"valid":true},
+  {"name":"duplicate node ids","kind":"PROCESS","props":{"nodes":[{"id":"a","label":"一步"},{"id":"a","label":"二步"}]},"valid":false},
+  {"name":"dangling edge","kind":"PROCESS","props":{"nodes":[{"id":"a","label":"一步"}],"edges":[{"from":"a","to":"missing"}]},"valid":false},
+  {"name":"duplicate edges","kind":"PROCESS","props":{"nodes":[{"id":"a","label":"一步"}],"edges":[{"from":"a","to":"a"},{"from":"a","to":"a","label":""}]},"valid":false},
+  {"name":"missing node title","kind":"PROCESS","props":{"nodes":[{"id":"a"}]},"valid":false},
+  {"name":"whitespace title","kind":"PROCESS","props":{"nodes":[{"id":"a","label":"  "}]},"valid":false},
+  {"name":"script field is not content","kind":"PROCESS","props":{"nodes":[{"id":"a","label":"一步","script":"alert(1)"}]},"valid":false},
+  {"name":"arbitrary style rejected","kind":"PROCESS","props":{"nodes":[{"id":"a","label":"一步","color":"#00ff00"}]},"valid":false},
+  {"name":"wrong boolean type","kind":"PROCESS","props":{"show_owners":1},"valid":false},
+  {"name":"empty timeline","kind":"TIMELINE","props":{},"valid":true},
+  {"name":"same day and leap date","kind":"TIMELINE","props":{"events":[{"id":"a","date":"2024-02-29","label":"讨论"},{"id":"b","date":"2024-02-29","label":"审阅"},{"id":"c","date":"2024-03-10","label":"复盘"}]},"valid":true},
+  {"name":"dates preserve calendar not host zone","kind":"TIMELINE","props":{"timezone":"UTC","events":[{"id":"a","date":"0099-01-01","label":"日期"}]},"valid":true},
+  {"name":"invalid leap day","kind":"TIMELINE","props":{"events":[{"id":"a","date":"2023-02-29","label":"无效"}]},"valid":false},
+  {"name":"invalid month end","kind":"TIMELINE","props":{"events":[{"id":"a","date":"2026-04-31","label":"无效"}]},"valid":false},
+  {"name":"zero year","kind":"TIMELINE","props":{"events":[{"id":"a","date":"0000-01-01","label":"无效"}]},"valid":false},
+  {"name":"date does not accept timestamp","kind":"TIMELINE","props":{"events":[{"id":"a","date":"2026-09-13T00:00:00Z","label":"无效"}]},"valid":false},
+  {"name":"duplicate event ids","kind":"TIMELINE","props":{"events":[{"id":"a","date":"2026-09-13","label":"甲"},{"id":"a","date":"2026-09-14","label":"乙"}]},"valid":false},
+  {"name":"unsupported timezone","kind":"TIMELINE","props":{"timezone":"guess"},"valid":false},
+  {"name":"no executable event","kind":"TIMELINE","props":{"events":[{"id":"a","date":"2026-09-13","label":"甲","onclick":"run()"}]},"valid":false}
+]

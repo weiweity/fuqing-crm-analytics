@@ -1,4 +1,5 @@
 import { parseBoardSpec } from './schema.mjs';
+import { projectComponent } from './component-view.mjs';
 
 function amount(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
@@ -8,7 +9,7 @@ function amount(value) {
 function factsFor(block, factsByResultId) {
   const id = block.source_result_id;
   if (!id) return { bind: 'unbound', facts: null };
-  const facts = factsByResultId && typeof factsByResultId === 'object'
+  const facts = factsByResultId && typeof factsByResultId === 'object' && Object.hasOwn(factsByResultId, id)
     ? factsByResultId[id]
     : null;
   if (!facts) return { bind: 'missing_result', facts: null };
@@ -27,6 +28,10 @@ function series(facts) {
 
 function paint(block, bind, facts) {
   const kind = block.kind;
+  if (kind === 'TEXT') {
+    return { kind, content: block.props?.content ?? '', align: block.props?.align ?? 'start',
+      note: '说明文本，不作为核验经营数字' };
+  }
   if (kind === 'LINK') {
     return {
       kind,
@@ -90,6 +95,7 @@ export function interpretBoard(spec, factsByResultId = null) {
       source_result_id: typeof block.source_result_id === 'string' ? block.source_result_id : null,
       bind,
       paint: paint(block, bind, facts),
+      ...(block.library_version ? { library: projectComponent(block, facts) } : {}),
     };
   });
   return {

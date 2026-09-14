@@ -1241,7 +1241,7 @@ class RunStore:
             count = con.execute("SELECT count(*) FROM idempotency WHERE operation='run:cancel' AND target=?", (run_id,)).fetchone()[0]
             if count >= self.profile.max_cancel_keys_per_run:
                 raise AnalyticsError(429, "CANCEL_KEY_LIMIT", "取消请求标识额度已满，请使用原 key 查询或重放。")
-            if row["status"] not in TERMINAL and row["cancel_reason"] is None:
+            if row["status"] not in TERMINAL and row["cancel_reason"] in {None, "EXECUTION_UNKNOWN"}:
                 queued = row["status"] == "QUEUED"
                 row = self._update(con, row, status="CANCELLED" if queued else "CANCELLING", cancel_reason="USER_REQUEST")
                 if queued:

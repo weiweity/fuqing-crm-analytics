@@ -12,6 +12,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -20,6 +21,7 @@ from backend.contracts.analytics import AnalyticsB0Result, AnalyticsCancelReques
 from backend.contracts.analytics_query import ChannelFollowupResult
 from backend.contracts.analytics_query_run import QUERY_RUN_SCHEMA, AnalyticsQueryRunSnapshot
 from backend.services.analytics.access import AnalyticsError
+from backend.services.analytics import jobs as jobs_module
 from backend.services.analytics.execution_lease import create_lease
 from backend.services.analytics.jobs import RunStore
 from backend.services.analytics.worker import WorkerManager
@@ -242,6 +244,70 @@ def test_sql_active_stop_releases_lease_without_result_or_budget_reset(tmp_path,
     os.close(fd)
 
 
+@pytest.mark.parametrize("reason,code", [
+    ("cancel", "TOOL_FAILED"),
+    ("permission", "PERMISSION_REVOKED"),
+    ("query_deadline", "TIMEOUT"),
+    ("run_deadline", "TIMEOUT"),
+])
+def test_sql_active_specific_stop_outranks_retryable_observation_lock(tmp_path, monkeypatch, reason, code):
+    store, _, intent, step, fixture = setup_query_worker(tmp_path)
+    fail_read = threading.Event()
+    stop_started = threading.Event()
+    worker_records = store.worker_records
+    allowed = [query_actor()]
+    initial = store.get(query_actor(), intent.run_id)
+
+    def interrupted_read(**kwargs):
+        if kwargs.get("execution_id") and fail_read.is_set():
+            fail_read.clear()
+            raise sqlite3.OperationalError("database is locked")
+        return worker_records(**kwargs)
+
+    monkeypatch.setattr(store, "worker_records", interrupted_read)
+
+    def manager_actor(_name):
+        return allowed[0]
+
+    def hook(point, _payload):
+        if point == "worker:stop-requested":
+            stop_started.set()
+
+    with ThreadPoolExecutor(max_workers=1) as pool, QueryProbeLauncher("sql_hold", ignore_term=True) as launch:
+        future = pool.submit(
+            WorkerManager(store, manager_actor, fixture, launch=launch, fault_hook=hook).execute,
+            query_actor(), intent, step,
+        )
+        proof = launch.receive()
+        assert proof["event"] == "SQL_ACTIVE" and launch.child.poll() is None
+        pid = launch.child.pid
+        fail_read.set()
+        assert stop_started.wait(5), "owned worker did not start physical stop after the observation lock"
+        if reason == "cancel":
+            store.cancel(query_actor(), intent.run_id, "cancel", store.get(query_actor(), intent.run_id).version,
+                         AnalyticsCancelRequest())
+        elif reason == "permission":
+            allowed[0] = query_actor(scopes={"b0-fixture"})
+        else:
+            store.clock = lambda: (step.deadline_ms if reason == "query_deadline" else intent.deadline_ms) + 1
+        with pytest.raises(AnalyticsError) as failed:
+            future.result(timeout=8)
+        assert failed.value.code == code
+        assert launch.child.returncode == -9
+        assert not Path(f"/proc/{pid}").exists() if os.path.exists("/proc") else True
+    record = worker_records(active_only=False)[0]
+    assert record["state"] == "EXITED" and record["active_slot"] is None
+    assert record["error_code"] == code
+    assert store.worker_records() == []
+    stopped = store.get(query_actor(), intent.run_id)
+    assert stopped.result is None
+    assert stopped.diagnostics.tool_steps_used == initial.diagnostics.tool_steps_used
+    with pytest.raises(AnalyticsError):
+        store.step_result(query_actor(), intent.run_id, intent.attempt_id, step.step_id)
+    fd, _dev, _ino, _temporary = create_lease(store.directory, "exec_" + "d" * 32)
+    os.close(fd)
+
+
 def test_worker_state_read_failure_stops_owned_child_without_raw_driver_error(tmp_path, monkeypatch):
     store, _, intent, step, fixture = setup_query_worker(tmp_path)
     fail_read = threading.Event()
@@ -296,15 +362,36 @@ def test_result_and_closed_without_process_exit_cannot_complete(tmp_path):
 
 
 @pytest.mark.parametrize("mode,code", [("wrong_n", "BINDING_MISMATCH"), ("wrong_scope", "BINDING_MISMATCH")])
-def test_parent_binding_rejects_self_consistent_mutants_without_child_error_frame(tmp_path, mode, code):
+@pytest.mark.parametrize("advance_parent_clock", [False, True])
+def test_parent_binding_rejects_self_consistent_mutants_without_child_error_frame(
+    tmp_path, mode, code, advance_parent_clock, monkeypatch,
+):
     store, _, intent, step, fixture = setup_query_worker(tmp_path)
+    # This is a binding-rejection test, not a deadline race. Keep its business
+    # clock fixed; the active-stop tests above exercise real timeout rejection.
+    binding_now = store.clock()
+    store.clock = lambda: binding_now
+    clock_jumps = []
+
+    def hook(point, _payload):
+        if advance_parent_clock and point == "worker:result":
+            # Exercise the real parent clock boundary without a 30-second sleep
+            # or changing the child process's clock and production deadlines.
+            monkeypatch.setattr(jobs_module, "time", SimpleNamespace(
+                time_ns=lambda: (step.deadline_ms + 1) * 1_000_000,
+            ))
+            clock_jumps.append(point)
+
     with QueryProbeLauncher(mode) as launch:
         with pytest.raises(AnalyticsError) as failed:
-            WorkerManager(store, lambda _: query_actor(), fixture, launch=launch).execute(
+            WorkerManager(store, lambda _: query_actor(), fixture, launch=launch, fault_hook=hook).execute(
                 query_actor(), intent, step,
             )
         assert failed.value.code == code
         assert launch.child.returncode == 0
+    assert clock_jumps == (["worker:result"] if advance_parent_clock else [])
+    if advance_parent_clock:
+        assert jobs_module._now_ms() > step.deadline_ms > store.clock()
     record = store.worker_records(active_only=False)[0]
     assert record["state"] == "EXITED" and record["active_slot"] is None
     assert record["exit_code"] == 0 and record["error_code"] is None
