@@ -5,6 +5,10 @@ import { type CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { BoardSpecCanvas } from './board-spec-canvas.tsx';
 import { summarizeGenerate } from '../board-spec/generate.mjs';
 import { catalogFromGsvItems } from '../board-spec/facts-from-result.mjs';
+import { LibraryCockpitPanel } from './library-workspace.tsx';
+import type { LibraryBoardClient } from './library-board-client.mjs';
+import type { CockpitComposition } from './cockpit-composition.mjs';
+import { ActivateCockpitComposition } from './cockpit-composition.tsx';
 
 export const COCKPIT_PANEL_ID = 'cockpit';
 
@@ -29,6 +33,8 @@ export type BoardLive = {
 };
 
 export type CockpitMainPanelProps = PropsRuntime<'main'> & {
+  library?: LibraryBoardClient;
+  composition?: CockpitComposition;
   goConversation(): void;
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   useStore?(selector: (state: BoardStoreSlice) => unknown): unknown;
@@ -84,6 +90,13 @@ export function CockpitPanelIcon({ size, active }: PropsRuntime<'sidebar.panelli
 }
 
 export function CockpitMainPanel(props: CockpitMainPanelProps) {
+  if (props.library && props.composition) return <ActivateCockpitComposition composition={props.composition}
+    library={props.library} themeSource={props.themeSource} goConversation={props.goConversation} />;
+  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} />;
+  return <LegacyCockpitMainPanel {...props} />;
+}
+
+function LegacyCockpitMainPanel(props: CockpitMainPanelProps) {
   const colorScheme = useSyncExternalStore(props.themeSource.subscribe, props.themeSource.getSnapshot);
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const cachedSlice = useRef(emptySlice);

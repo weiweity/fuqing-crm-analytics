@@ -15,6 +15,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from backend.analytics_app import _BodyLimit, _single_header
+from backend.board_spec_routes import board_spec_router
+from backend.services.analytics.board_documents import BoardDocumentStore
+from backend.services.analytics.board_result_adapter import computed_board_resolver
 from backend.middleware.query_router import (
     competition_error_response,
     new_request_id,
@@ -67,6 +70,7 @@ def create_competition_app(
     runtime_ready: Callable[[], bool] | None = None,
     diagnosis_source: SyntheticDiagnosisSource | None = None,
     diagnosis_state_dir: Path | None = None,
+    board_state_dir: Path | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Competition Assets", version="competition-c0/v1",
                   docs_url=None, redoc_url=None, openapi_url=None)
@@ -75,6 +79,7 @@ def create_competition_app(
     if (diagnosis_source is None) != (diagnosis_state_dir is None):
         raise ValueError("computed diagnosis requires an explicit source and private state directory")
     computed_store = ComputedResultStore(diagnosis_state_dir) if diagnosis_state_dir is not None else None
+    boards = BoardDocumentStore(board_state_dir, resolve_facts=computed_board_resolver(computed_store)) if board_state_dir is not None else None
     if asset_state_dir is None or analysis_store is None:
         assets: CompetitionAssetService | None = None
     else:
@@ -87,6 +92,8 @@ def create_competition_app(
 
     def principal(request: Request):
         return registry.resolve(_single_header(request, "authorization"))
+
+    app.include_router(board_spec_router(boards, principal, computed_store))
 
     def require_assets() -> CompetitionAssetService:
         if assets is None:

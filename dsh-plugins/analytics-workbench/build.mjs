@@ -37,8 +37,9 @@ const clientBuild = await build({
   platform: 'browser', target: 'es2022', format: 'cjs', jsx: 'automatic', external, minify: true, metafile: true,
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
-    'process.env.COMPETITION_HTTP_BASE': JSON.stringify(process.env.COMPETITION_HTTP_BASE || ''),
-    'process.env.COMPETITION_HTTP_TOKEN': JSON.stringify(process.env.COMPETITION_HTTP_TOKEN || ''),
+    // Service configuration is Host-owned. Never bake a bearer token into public JS.
+    'process.env.COMPETITION_HTTP_BASE': JSON.stringify(''),
+    'process.env.COMPETITION_HTTP_TOKEN': JSON.stringify(''),
   },
   banner: { js: `window.__ModuleLoader__.load({ id: ${JSON.stringify(manifest.name)}, factory: (require) => {\nvar module = { exports: {} }; var exports = module.exports;` },
   footer: { js: 'return module.exports;\n} });' },

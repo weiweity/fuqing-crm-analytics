@@ -1,0 +1,23 @@
+export const COMPOSITION_PIN: string;
+export const CHAT_MIN: 400;
+export const CANVAS_MIN: 560;
+export const SPLIT_GAP: 8;
+export type CompositionState = { open: boolean; fallback: boolean; showChat: boolean; narrowView: string;
+  width: number; sessionId: string | null; sessionAvailable: boolean };
+export type CockpitComposition = {
+  subscribe(listener: () => void): () => void;
+  getSnapshot(): CompositionState;
+  open(sessionId?: string | null): void;
+  bindSession(sessionId: string | null): void;
+  revealChat(): void; toggleChat(): void; showCanvas(): void; setWidth(width: number): void;
+  close(): void; fallback(): void; dispose(): void;
+};
+export function compositionGeometry(width: number, preferred?: number, showChat?: boolean, narrowView?: string): {
+  mode: string; canvas: number; chat: number;
+};
+export function createCockpitComposition(options: {
+  sessions: { list: { getSnapshot(): { current?: string; ids: readonly string[] }; subscribe(listener: () => void): () => void }; open(id: never): unknown };
+  layout: { selectPanel(id: never): void };
+}): CockpitComposition;
+export function nativeCompositionTarget(anchor: HTMLElement): { frame: HTMLElement; center: HTMLElement; native: HTMLElement } | null;
+export function leaseNativeComposition(native: HTMLElement): { update(width: number, hidden: boolean): void; dispose(): void };

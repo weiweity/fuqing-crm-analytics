@@ -1,0 +1,10 @@
+export type GridBox = { x: number; y: number; w: number; h: number };
+export const GRID: Readonly<{ columns: number; max_rows: number; row_height_px: number; gap_px: number }>;
+export type GridBlock = { block_id: string; title: string; kind: string; layout: GridBox };
+export type GridMetrics = { column: number; columnPitch: number; row: number; rowPitch: number; gap: number };
+export function sameBox(a: GridBox, b: GridBox): boolean;
+export function overlaps(a: GridBox, b: GridBox): boolean;
+export function gridMetrics(width: number): GridMetrics;
+export function gestureBox(block: GridBlock, mode: 'move' | 'resize', dx: number, dy: number, metrics: GridMetrics): GridBox;
+export function validatePlacement(blocks: readonly GridBlock[], blockId: string, box: GridBox): { ok: true; value: GridBox } | { ok: false; message: string };
+export function changedLayouts(before: { blocks: readonly GridBlock[] }, after: { blocks: readonly GridBlock[] }): { block_id: string; layout: GridBox }[];

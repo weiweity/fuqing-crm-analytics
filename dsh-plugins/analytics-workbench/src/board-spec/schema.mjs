@@ -1,4 +1,5 @@
 import { BOARD_SPEC_KINDS, PATCH_OPS } from './kinds.mjs';
+import { isPlainObject, parseComponentProps, mergeComponentProps, parseComponentLayout, componentDefinition, COMPONENT_CATALOG } from './component-catalog.mjs';
 
 const KIND_SET = new Set(BOARD_SPEC_KINDS);
 const PATCH_SET = new Set(PATCH_OPS);
@@ -44,6 +45,20 @@ export function parseBoardSpec(raw) {
     ids.add(b.block_id);
     if (!KIND_SET.has(b.kind)) {
       return fail('SPEC_KIND', `非法 kind: ${String(b.kind)}`);
+    }
+    if (componentDefinition(b.kind)?.allows_result === false && b.source_result_id != null) {
+      return fail('COMPONENT_SOURCE', '规划说明不能冒充核验结果');
+    }
+    if (b.props !== undefined) {
+      const properties = parseComponentProps(b.kind, b.props);
+      if (!properties.ok) return properties;
+    }
+    if (b.library_version !== undefined) {
+      if (b.library_version !== COMPONENT_CATALOG.library_version) return fail('COMPONENT_VERSION', '不支持该组件库版本');
+      const properties = parseComponentProps(b.kind, b.props ?? {});
+      if (!properties.ok) return properties;
+      const layout = parseComponentLayout(b.kind, b.layout);
+      if (!layout.ok) return layout;
     }
     if (b.kind === 'LINK' && !isNonEmptyString(b.url) && !isNonEmptyString(b.href)) {
       return fail('SPEC_LINK', `LINK 块 ${b.block_id} 需要 url`);
@@ -94,8 +109,9 @@ export function parsePatchBlock(raw) {
   if (p.op === 'set_layout') {
     const layout = parseLayout(p.layout);
     if (!layout.ok) return layout;
-    p.layout = layout.value;
+    return { ok: true, value: { ...p, layout: layout.value } };
   }
+  if (p.op === 'set_props' && !isPlainObject(p.props)) return fail('COMPONENT_PROPS', 'set_props 需要普通 props 对象');
   return { ok: true, value: p };
 }
 
@@ -139,6 +155,11 @@ export function applyPatch(spec, patch) {
   if (p.op === 'set_kind') next.kind = p.kind;
   if (p.op === 'set_metric_ref') next.metric_ref = p.metric_ref;
   if (p.op === 'set_layout' && p.layout && typeof p.layout === 'object') next.layout = p.layout;
+  if (p.op === 'set_props') {
+    const properties = mergeComponentProps(next.kind, next.props, p.props);
+    if (!properties.ok) return properties;
+    next.props = properties.value;
+  }
   blocks[idx] = next;
   return parseBoardSpec({ ...board, version: board.version + 1, blocks });
 }

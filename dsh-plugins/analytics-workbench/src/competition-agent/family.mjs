@@ -5,16 +5,22 @@ export const RESOURCE_TOOL_NAME = 'competition_growth_skill_resource';
 export const CAPABILITIES_TOOL_NAME = 'competition_growth_capabilities';
 export const STEP_TOOL_NAME = 'competition_growth_step';
 export const PATCH_TOOL_NAME = 'competition_growth_patch';
+export const BOARD_CATALOG_TOOL_NAME = 'competition_board_catalog';
+export const BOARD_GENERATE_TOOL_NAME = 'competition_board_generate';
+export const BOARD_EDIT_CONTEXT_TOOL_NAME = 'competition_board_edit_context';
+export const BOARD_EDIT_TOOL_NAME = 'competition_board_edit';
 export const FAMILY = 'competition_growth';
 export const SCHEMA_VERSION = 'competition-growth-skill-package/v1';
 export const RESOURCE_SCHEMA = 'competition-growth-skill-resource/v1';
 export const SCOPE = 'COMPETITION_SYNTHETIC_ONLY';
 export const PROVIDER = 'analytics-competition-approved-bundle';
 export const VERSION_PATTERN = /^cg-v[1-9][0-9]*$/;
-export const SKILL_VERSION = 'cg-v1';
+export const SKILL_VERSION = 'cg-v5';
 export const PACKAGE_LIMITS = Object.freeze({ files: 16, fileBytes: 32768, totalBytes: 65536 });
 export const REGISTERED_TOOLS = Object.freeze([
   RESOURCE_TOOL_NAME, CAPABILITIES_TOOL_NAME, STEP_TOOL_NAME, PATCH_TOOL_NAME,
+  BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME,
+  BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME,
 ]);
 export const FORBIDDEN_EXPANSIONS = Object.freeze([
   '/api/v1/audience/table', '/api/v1/audience/summary', '/api/v1/analytics/catalog',

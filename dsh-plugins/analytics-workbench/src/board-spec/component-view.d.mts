@@ -1,0 +1,21 @@
+export type ComponentSeries = { points: { label: string; value: number | null }[]; ordered: boolean; unit: string | null };
+export type FunnelContent = { unit: '人'; cohort_label: string; counting_rule: string; stages: { label: string; count: number }[] };
+export type WaterfallContent = { unit: string; start: { label: string; value: number }; end: { label: string; value: number };
+  contributions: { label: string; value: number }[] };
+export type ComponentTable = { columns: { key: string; label: string; unit?: string | null }[]; rows: Record<string, string | number | null>[] };
+export type ProcessNode = { id: string; label: string; owner?: string; detail?: string };
+export type ProcessContent = { nodes: ProcessNode[]; edges: { from: string; to: string; label?: string }[] };
+export type TimelineEvent = { id: string; date: string; label: string; detail?: string };
+export type TimelineContent = { lanes: number; groups: { date: string; events: TimelineEvent[]; position: number; lane: number; number: number }[] };
+export type ComponentView = {
+  kind?: string; props?: Record<string, unknown>; source_result_id?: string | null;
+  status: 'ready' | 'empty' | 'error'; code?: string; message?: string;
+  scalar?: { value: number; comparison?: number | null; unit: string | null };
+  series?: ComponentSeries; table?: ComponentTable;
+  process?: ProcessContent; timeline?: TimelineContent;
+  waterfall?: WaterfallContent;
+  funnel?: FunnelContent;
+  evidence?: { source_label: string; items: { label: string; value: string }[] };
+};
+export const COMPONENT_FACTS_VERSION: 'board-component-facts/v1';
+export function projectComponent(block: { kind: string; props?: object; source_result_id?: string | null }, facts: unknown): ComponentView;

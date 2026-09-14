@@ -1,0 +1,1903 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Library BoardSpec",
+    "version": "1"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "BoardBARBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "BAR",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardBARProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardBARBlock",
+        "type": "object"
+      },
+      "BoardBARProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "orientation": {
+            "default": "horizontal",
+            "enum": [
+              "horizontal",
+              "vertical"
+            ],
+            "title": "Orientation",
+            "type": "string"
+          },
+          "show_values": {
+            "default": true,
+            "title": "Show Values",
+            "type": "boolean"
+          }
+        },
+        "title": "BoardBARProps",
+        "type": "object"
+      },
+      "BoardEVIDENCEBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "EVIDENCE",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardEVIDENCEProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardEVIDENCEBlock",
+        "type": "object"
+      },
+      "BoardEVIDENCEProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "maxLength": 1000,
+            "minLength": 0,
+            "title": "Summary",
+            "type": "string"
+          },
+          "expanded": {
+            "default": true,
+            "title": "Expanded",
+            "type": "boolean"
+          }
+        },
+        "title": "BoardEVIDENCEProps",
+        "type": "object"
+      },
+      "BoardFUNNELBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "FUNNEL",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardFUNNELProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardFUNNELBlock",
+        "type": "object"
+      },
+      "BoardFUNNELProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "show_values": {
+            "default": true,
+            "title": "Show Values",
+            "type": "boolean"
+          },
+          "show_rates": {
+            "default": true,
+            "title": "Show Rates",
+            "type": "boolean"
+          },
+          "rate_basis": {
+            "default": "previous",
+            "enum": [
+              "previous",
+              "first"
+            ],
+            "title": "Rate Basis",
+            "type": "string"
+          }
+        },
+        "title": "BoardFUNNELProps",
+        "type": "object"
+      },
+      "BoardLINEBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "LINE",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardLINEProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardLINEBlock",
+        "type": "object"
+      },
+      "BoardLINEProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "show_legend": {
+            "default": true,
+            "title": "Show Legend",
+            "type": "boolean"
+          },
+          "show_points": {
+            "default": true,
+            "title": "Show Points",
+            "type": "boolean"
+          },
+          "line_style": {
+            "default": "solid",
+            "enum": [
+              "solid",
+              "dashed"
+            ],
+            "title": "Line Style",
+            "type": "string"
+          }
+        },
+        "title": "BoardLINEProps",
+        "type": "object"
+      },
+      "BoardLayout": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "maximum": 12,
+            "minimum": 0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "maximum": 2000,
+            "minimum": 0,
+            "title": "Y",
+            "type": "integer"
+          },
+          "w": {
+            "maximum": 12,
+            "minimum": 1,
+            "title": "W",
+            "type": "integer"
+          },
+          "h": {
+            "maximum": 2000,
+            "minimum": 1,
+            "title": "H",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "title": "BoardLayout",
+        "type": "object"
+      },
+      "BoardMETRICBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "METRIC",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardMETRICProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardMETRICBlock",
+        "type": "object"
+      },
+      "BoardMETRICProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "show_comparison": {
+            "default": true,
+            "title": "Show Comparison",
+            "type": "boolean"
+          },
+          "value_format": {
+            "default": "standard",
+            "enum": [
+              "standard",
+              "compact"
+            ],
+            "title": "Value Format",
+            "type": "string"
+          }
+        },
+        "title": "BoardMETRICProps",
+        "type": "object"
+      },
+      "BoardPROCESSBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "PROCESS",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardPROCESSProps"
+          },
+          "source_result_id": {
+            "default": null,
+            "title": "Source Result Id",
+            "type": "null"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind"
+        ],
+        "title": "BoardPROCESSBlock",
+        "type": "object"
+      },
+      "BoardPROCESSEdgesItem": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "title": "From",
+            "type": "string"
+          },
+          "to": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "title": "To",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 160,
+            "minLength": 0,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "title": "BoardPROCESSEdgesItem",
+        "type": "object"
+      },
+      "BoardPROCESSNodesItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Label",
+            "type": "string"
+          },
+          "owner": {
+            "default": "",
+            "maxLength": 80,
+            "minLength": 0,
+            "title": "Owner",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "maxLength": 1000,
+            "minLength": 0,
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "BoardPROCESSNodesItem",
+        "type": "object"
+      },
+      "BoardPROCESSProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "nodes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BoardPROCESSNodesItem"
+            },
+            "maxItems": 40,
+            "minItems": 0,
+            "title": "Nodes",
+            "type": "array",
+            "uniqueItems": false
+          },
+          "edges": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BoardPROCESSEdgesItem"
+            },
+            "maxItems": 100,
+            "minItems": 0,
+            "title": "Edges",
+            "type": "array",
+            "uniqueItems": false
+          },
+          "show_owners": {
+            "default": true,
+            "title": "Show Owners",
+            "type": "boolean"
+          },
+          "show_details": {
+            "default": true,
+            "title": "Show Details",
+            "type": "boolean"
+          }
+        },
+        "title": "BoardPROCESSProps",
+        "type": "object"
+      },
+      "BoardTABLEBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "TABLE",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardTABLEProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardTABLEBlock",
+        "type": "object"
+      },
+      "BoardTABLEProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "columns": {
+            "default": [],
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 0,
+            "title": "Columns",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "page_size": {
+            "default": 10,
+            "maximum": 100,
+            "minimum": 5,
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "sort_field": {
+            "default": "",
+            "maxLength": 80,
+            "minLength": 0,
+            "title": "Sort Field",
+            "type": "string"
+          },
+          "sort_direction": {
+            "default": "asc",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Sort Direction",
+            "type": "string"
+          }
+        },
+        "title": "BoardTABLEProps",
+        "type": "object"
+      },
+      "BoardTEXTBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "TEXT",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardTEXTProps"
+          },
+          "source_result_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Result Id"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind"
+        ],
+        "title": "BoardTEXTBlock",
+        "type": "object"
+      },
+      "BoardTEXTProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "content": {
+            "default": "",
+            "maxLength": 4000,
+            "minLength": 0,
+            "title": "Content",
+            "type": "string"
+          },
+          "align": {
+            "default": "start",
+            "enum": [
+              "start",
+              "center"
+            ],
+            "title": "Align",
+            "type": "string"
+          },
+          "text_style": {
+            "default": "body",
+            "enum": [
+              "body",
+              "callout"
+            ],
+            "title": "Text Style",
+            "type": "string"
+          }
+        },
+        "title": "BoardTEXTProps",
+        "type": "object"
+      },
+      "BoardTIMELINEBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "TIMELINE",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardTIMELINEProps"
+          },
+          "source_result_id": {
+            "default": null,
+            "title": "Source Result Id",
+            "type": "null"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind"
+        ],
+        "title": "BoardTIMELINEBlock",
+        "type": "object"
+      },
+      "BoardTIMELINEEventsItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "maxLength": 10,
+            "minLength": 10,
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "title": "Date",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Label",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "maxLength": 1000,
+            "minLength": 0,
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "label"
+        ],
+        "title": "BoardTIMELINEEventsItem",
+        "type": "object"
+      },
+      "BoardTIMELINEProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BoardTIMELINEEventsItem"
+            },
+            "maxItems": 40,
+            "minItems": 0,
+            "title": "Events",
+            "type": "array",
+            "uniqueItems": false
+          },
+          "timezone": {
+            "default": "Asia/Shanghai",
+            "enum": [
+              "Asia/Shanghai",
+              "UTC"
+            ],
+            "title": "Timezone",
+            "type": "string"
+          },
+          "show_details": {
+            "default": true,
+            "title": "Show Details",
+            "type": "boolean"
+          }
+        },
+        "title": "BoardTIMELINEProps",
+        "type": "object"
+      },
+      "BoardWATERFALLBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "library_version": {
+            "const": "board-components/v1",
+            "default": "board-components/v1",
+            "title": "Library Version",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          },
+          "kind": {
+            "const": "WATERFALL",
+            "title": "Kind",
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BoardWATERFALLProps"
+          },
+          "source_result_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Source Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "title",
+          "layout",
+          "kind",
+          "source_result_id"
+        ],
+        "title": "BoardWATERFALLBlock",
+        "type": "object"
+      },
+      "BoardWATERFALLProps": {
+        "additionalProperties": false,
+        "properties": {
+          "subtitle": {
+            "default": "",
+            "maxLength": 240,
+            "minLength": 0,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "accent",
+              "muted"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "density": {
+            "default": "comfortable",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "show_values": {
+            "default": true,
+            "title": "Show Values",
+            "type": "boolean"
+          },
+          "show_table": {
+            "default": true,
+            "title": "Show Table",
+            "type": "boolean"
+          }
+        },
+        "title": "BoardWATERFALLProps",
+        "type": "object"
+      },
+      "BoardDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "BAR": "#/components/schemas/BoardBARBlock",
+                  "EVIDENCE": "#/components/schemas/BoardEVIDENCEBlock",
+                  "FUNNEL": "#/components/schemas/BoardFUNNELBlock",
+                  "LINE": "#/components/schemas/BoardLINEBlock",
+                  "METRIC": "#/components/schemas/BoardMETRICBlock",
+                  "PROCESS": "#/components/schemas/BoardPROCESSBlock",
+                  "TABLE": "#/components/schemas/BoardTABLEBlock",
+                  "TEXT": "#/components/schemas/BoardTEXTBlock",
+                  "TIMELINE": "#/components/schemas/BoardTIMELINEBlock",
+                  "WATERFALL": "#/components/schemas/BoardWATERFALLBlock"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/BoardMETRICBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardLINEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardBARBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardTABLEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardTEXTBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardEVIDENCEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardPROCESSBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardTIMELINEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardWATERFALLBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardFUNNELBlock"
+                }
+              ]
+            },
+            "maxItems": 60,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "session_id",
+          "blocks"
+        ],
+        "title": "BoardDraft",
+        "type": "object"
+      },
+      "BoardDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "blocks": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "BAR": "#/components/schemas/BoardBARBlock",
+                  "EVIDENCE": "#/components/schemas/BoardEVIDENCEBlock",
+                  "FUNNEL": "#/components/schemas/BoardFUNNELBlock",
+                  "LINE": "#/components/schemas/BoardLINEBlock",
+                  "METRIC": "#/components/schemas/BoardMETRICBlock",
+                  "PROCESS": "#/components/schemas/BoardPROCESSBlock",
+                  "TABLE": "#/components/schemas/BoardTABLEBlock",
+                  "TEXT": "#/components/schemas/BoardTEXTBlock",
+                  "TIMELINE": "#/components/schemas/BoardTIMELINEBlock",
+                  "WATERFALL": "#/components/schemas/BoardWATERFALLBlock"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/BoardMETRICBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardLINEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardBARBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardTABLEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardTEXTBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardEVIDENCEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardPROCESSBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardTIMELINEBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardWATERFALLBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BoardFUNNELBlock"
+                }
+              ]
+            },
+            "maxItems": 60,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "board-spec/v1",
+            "default": "board-spec/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "board_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Board Id",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "session_id",
+          "blocks",
+          "board_id",
+          "version"
+        ],
+        "title": "BoardDocument",
+        "type": "object"
+      },
+      "BlockChanges": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "props": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Props"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoardLayout"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "METRIC",
+                  "LINE",
+                  "BAR",
+                  "TABLE",
+                  "TEXT",
+                  "EVIDENCE",
+                  "PROCESS",
+                  "TIMELINE",
+                  "WATERFALL",
+                  "FUNNEL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Kind"
+          },
+          "source_result_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Result Id"
+          }
+        },
+        "title": "BlockChanges",
+        "type": "object"
+      },
+      "BoardPatchPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/BlockChanges"
+          }
+        },
+        "required": [
+          "base_version",
+          "block_id",
+          "changes"
+        ],
+        "title": "BoardPatchPreview",
+        "type": "object"
+      },
+      "LayoutChange": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/BoardLayout"
+          }
+        },
+        "required": [
+          "block_id",
+          "layout"
+        ],
+        "title": "LayoutChange",
+        "type": "object"
+      },
+      "BoardLayoutPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutChange"
+            },
+            "maxItems": 60,
+            "minItems": 1,
+            "title": "Layouts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "base_version",
+          "layouts"
+        ],
+        "title": "BoardLayoutPreview",
+        "type": "object"
+      },
+      "BoardRollbackPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "to_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "To Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "base_version",
+          "to_version"
+        ],
+        "title": "BoardRollbackPreview",
+        "type": "object"
+      },
+      "BoardSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/BoardDocument"
+          },
+          "facts_by_result_id": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Facts By Result Id",
+            "type": "object"
+          }
+        },
+        "required": [
+          "spec",
+          "facts_by_result_id"
+        ],
+        "title": "BoardSnapshot",
+        "type": "object"
+      },
+      "BoardPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "preview_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Preview Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "APPLIED",
+              "CANCELLED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "GENERATE",
+              "PATCH",
+              "LAYOUT",
+              "ROLLBACK"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "expires_at_ms": {
+            "title": "Expires At Ms",
+            "type": "integer"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/BoardSnapshot"
+          }
+        },
+        "required": [
+          "preview_id",
+          "status",
+          "operation",
+          "base_version",
+          "expires_at_ms",
+          "snapshot"
+        ],
+        "title": "BoardPreview",
+        "type": "object"
+      },
+      "BoardRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "operation": {
+            "enum": [
+              "GENERATE",
+              "PATCH",
+              "LAYOUT",
+              "ROLLBACK"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "created_at_ms": {
+            "title": "Created At Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "created_at_ms"
+        ],
+        "title": "BoardRevision",
+        "type": "object"
+      },
+      "BoardEditSelection": {
+        "additionalProperties": false,
+        "description": "Created by the UI, never by a model tool. Session comes from the saved board.",
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_version",
+          "block_id"
+        ],
+        "title": "BoardEditSelection",
+        "type": "object"
+      },
+      "BoardEditProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/BlockChanges"
+          }
+        },
+        "required": [
+          "session_id",
+          "changes"
+        ],
+        "title": "BoardEditProposal",
+        "type": "object"
+      },
+      "BoardEditContext": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "board-edit-context/v1",
+            "default": "board-edit-context/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "edit_context_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Edit Context Id",
+            "type": "string"
+          },
+          "board_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Board Id",
+            "type": "string"
+          },
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "expires_at_ms": {
+            "title": "Expires At Ms",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "PROPOSED",
+              "CANCELLED",
+              "APPLIED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "preview_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Id"
+          },
+          "block": {
+            "discriminator": {
+              "mapping": {
+                "BAR": "#/components/schemas/BoardBARBlock",
+                "EVIDENCE": "#/components/schemas/BoardEVIDENCEBlock",
+                "FUNNEL": "#/components/schemas/BoardFUNNELBlock",
+                "LINE": "#/components/schemas/BoardLINEBlock",
+                "METRIC": "#/components/schemas/BoardMETRICBlock",
+                "PROCESS": "#/components/schemas/BoardPROCESSBlock",
+                "TABLE": "#/components/schemas/BoardTABLEBlock",
+                "TEXT": "#/components/schemas/BoardTEXTBlock",
+                "TIMELINE": "#/components/schemas/BoardTIMELINEBlock",
+                "WATERFALL": "#/components/schemas/BoardWATERFALLBlock"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BoardMETRICBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardLINEBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardBARBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardTABLEBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardTEXTBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardEVIDENCEBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardPROCESSBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardTIMELINEBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardWATERFALLBlock"
+              },
+              {
+                "$ref": "#/components/schemas/BoardFUNNELBlock"
+              }
+            ],
+            "title": "Block"
+          },
+          "facts_by_result_id": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Facts By Result Id",
+            "type": "object"
+          }
+        },
+        "required": [
+          "edit_context_id",
+          "board_id",
+          "base_version",
+          "block_id",
+          "session_id",
+          "expires_at_ms",
+          "status",
+          "preview_id",
+          "block",
+          "facts_by_result_id"
+        ],
+        "title": "BoardEditContext",
+        "type": "object"
+      },
+      "BoardCurrentEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoardEditContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "context"
+        ],
+        "title": "BoardCurrentEdit",
+        "type": "object"
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+import type { components } from '../board-spec-contract.generated.js';
+export type LibrarySnapshot = components['schemas']['BoardSnapshot'];
+export type LibraryPreview = components['schemas']['BoardPreview'];
+export type LibraryEditContext = components['schemas']['BoardEditContext'];
+export type LibraryState = { busy: boolean; message: string; confirmationUncertain: boolean;
+  boards: { board_id: string; title: string; version: number; session_id: string }[];
+  saved: LibrarySnapshot | null; preview: LibraryPreview | null;
+  layoutDraft: LibrarySnapshot | null;
+  editContext: LibraryEditContext | null;
+  incoming: { kind: 'board' | 'preview' | 'edit'; id: string; contextId?: string } | null;
+  history: components['schemas']['BoardRevision'][];
+};
+export type LibraryBoardClient = {
+  getSnapshot(): LibraryState;
+  subscribe(listener: () => void): () => void;
+  dispose(): void;
+  refresh(): Promise<void>;
+  openBoard(id: string): Promise<void>;
+  openPreview(id: string, contextId?: string): Promise<void>;
+  beginEdit(blockId: string): Promise<void>;
+  resumeEdit(): Promise<void>;
+  inspectEdit(): Promise<void>;
+  keepDraft(): void;
+  discardAndNavigate(): Promise<void>;
+  cancel(): Promise<void>;
+  confirm(): Promise<void>;
+  inspectConfirmation(): Promise<void>;
+  loadHistory(): Promise<void>;
+  rollback(version: number): Promise<void>;
+  beginLayout(): void;
+  updateLayout(blockId: string, box: { x: number; y: number; w: number; h: number }): void;
+  previewLayout(): Promise<void>;
+};
+export function createLibraryBoardClient(call: (channel: string, operation: string, payload: unknown, signal?: AbortSignal) => Promise<unknown>,
+  options?: { editNative?(context: LibraryEditContext): Promise<void> }): LibraryBoardClient;

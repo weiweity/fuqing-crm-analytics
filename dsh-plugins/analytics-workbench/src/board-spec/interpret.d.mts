@@ -1,3 +1,4 @@
+import type { ComponentView } from './component-view.mjs';
 export type InterpretedBlock = {
   block_id: string;
   kind: string;
@@ -6,6 +7,7 @@ export type InterpretedBlock = {
   source_result_id: string | null;
   bind: string;
   paint: Record<string, unknown>;
+  library?: ComponentView;
 };
 export function interpretBoard(spec: unknown, factsByResultId?: object | null):
   | { ok: true; value: { board_id: string; version: number; blocks: InterpretedBlock[] } }

@@ -8,6 +8,7 @@ import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client';
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client';
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client';
 import type {} from '@deepseek-ai/dsh-api-session-controller/client';
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client';
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client';
 import {
   TOOL_NAME, TITLE_STORAGE_KEY, FIXTURE, createEditor, changeDraft, previewTitle,
@@ -36,6 +37,12 @@ import { refreshFacts } from '../board-spec/refresh.mjs';
 
 import { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } from '../board-spec/fixture.mjs';
 import { DEMO_BOARD } from '../board-spec/demo-board.mjs';
+import { createLibraryBoardClient, type LibraryBoardClient } from './library-board-client.mjs';
+import { LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
+import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
+import { createCockpitComposition } from './cockpit-composition.mjs';
+import { callBoardConnection } from '../board-spec/connection-call.mjs';
+import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 
 function initialState() {
   try {
@@ -144,6 +151,7 @@ function createWorkbenchStore(seedBoard: { spec: object; facts: object | null } 
 type StoreProps = PropsStore<ReturnType<typeof createWorkbenchStore>>;
 type FooterProps = PropsRuntime<'sidebar.footer.action'> & StoreProps & {
   openCockpit?(): boolean;
+  library?: LibraryBoardClient;
 };
 type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
@@ -180,6 +188,8 @@ function BrandMark({ size, className }: { size?: number; className?: string }) {
 type BoardLive = ReturnType<ReturnType<typeof createWorkbenchStore>['create']>;
 
 type DockProps = PropsRuntime<'conversation.input.dock'> & {
+  library?: LibraryBoardClient;
+  generateNative?(sessionId: string): Promise<void>;
   openCockpit?(): boolean;
   board: BoardLive;
   fetchResults?(): Promise<unknown[]>;
@@ -187,6 +197,7 @@ type DockProps = PropsRuntime<'conversation.input.dock'> & {
 
 function GenerateCockpitDock(props: DockProps) {
   const id = props.session.sessionId;
+  if (props.library && props.generateNative) return <LibraryGenerateDock sessionId={id} generate={props.generateNative} />;
   if (id !== B0_PRIMARY_SESSION_ID && !QUERY_SESSION_IDS.some(value => value === id)) return null;
   const proposeBoard = () => {
     void (async () => {
@@ -226,7 +237,7 @@ function GenerateCockpitDock(props: DockProps) {
 }
 
 function Footer(props: FooterProps) {
-  const live = Boolean(competitionHttpOptions());
+  const live = Boolean(props.library || competitionHttpOptions());
   return <><style>{css}</style><button className="analytics-b0-trigger" type="button"
     title={live ? '我的驾驶舱' : '我的驾驶舱 · 合成样例'}
     aria-label={live ? '打开我的驾驶舱' : '打开我的驾驶舱，合成样例'}
@@ -345,7 +356,7 @@ function AnalyticsToolCard({ block }: ToolCallViewProps) {
 }
 
 export const name = 'analytics-workbench-b0-client';
-export const inject = ['slots', 'sessions', 'theme', 'layout'];
+export const inject = ['slots', 'sessions', 'theme', 'layout', 'remote', 'remote.session'];
 
 export function apply(ctx: Context): void {
   ctx.effect(() => bindInitialSession(ctx.sessions, () => {
@@ -353,6 +364,27 @@ export function apply(ctx: Context): void {
   }), 'analytics-b0: select exact Host-listed primary once');
   const chromeStore = createWorkbenchStore();
   const boardLive = createWorkbenchStore(DEMO_BOARD).create();
+  const connection = ctx.get?.('connection') as ConnectionHandle | undefined;
+  const composition = connection?.rpc?.call && typeof ctx.layout?.selectPanel === 'function'
+    ? createCockpitComposition({ sessions: ctx.sessions, layout: ctx.layout }) : undefined;
+  const library = connection?.rpc?.call
+    ? createLibraryBoardClient((channel, operation, payload, signal) => callBoardConnection(connection.rpc, channel, operation, payload, signal), {
+      async editNative(context) {
+        const sessionId = ctx.sessions.list.getSnapshot().ids.find(id => id === context.session_id);
+        if (!sessionId) throw new Error('此看板的原生会话当前不可用；已保存内容仍可查看，请恢复原会话后编辑。');
+        if (composition) { composition.open(sessionId); composition.revealChat(); }
+        else { ctx.sessions.open(sessionId); ctx.layout?.selectPanel(null); }
+        const reply = await ctx.remote.session.prompt({
+          sessionId, requestId: `board-edit-${crypto.randomUUID()}` as never,
+          mode: 'queue', clientTimeZone: 'Asia/Shanghai',
+          content: [{ type: 'text', text: `我已在驾驶舱选中一个组件。编辑上下文：${context.edit_context_id}。请用 competition_board_edit_context 读取这个上下文，告诉我选中了什么并询问我要怎样修改；此消息只选择目标，不授权你自行改变内容。等我提出修改要求，再通过 competition_board_edit 生成该组件的修改预览，由我检查后确认。不要生成整板、重选目标或自动保存。` }],
+        });
+        if (!reply.ok || !reply.value.accepted) throw new Error('原生对话未接受编辑请求；选中目标保留，可重试转入对话或取消。');
+      },
+    })
+    : undefined;
+  ctx.effect(() => () => library?.dispose(), 'analytics-board: client lifetime');
+  ctx.effect(() => () => composition?.dispose(), 'analytics-board: native composition lifetime');
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.effect(() => watchCompetitionBrandSurface(), 'competition-brand-surface');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
@@ -364,6 +396,11 @@ export function apply(ctx: Context): void {
     try {
       const layout = ctx.layout;
       if (layout == null || typeof layout.selectPanel !== 'function') return false;
+      if (composition && library) {
+        const state = library.getSnapshot();
+        composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
+        return true;
+      }
       layout.selectPanel(COCKPIT_PANEL_ID as MainPanelId);
       return true;
     } catch {
@@ -371,6 +408,7 @@ export function apply(ctx: Context): void {
     }
   };
   const goConversation = (): void => {
+    composition?.close();
     try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
   };
   const themeSource = {
@@ -385,9 +423,13 @@ export function apply(ctx: Context): void {
       catch { return 'dark'; }
     },
   };
+  if (composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
+    inject: () => ({ composition, library, themeSource }),
+  }, CockpitCompositionOverlay));
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store: chromeStore,
-    inject: () => ({ openCockpit: openCockpitPanel }),
+    inject: () => ({ openCockpit: openCockpitPanel, library }),
   }, Footer));
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store: chromeStore,
@@ -413,6 +455,10 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
     name: 'tool.call.toolview', key: FIRST_PURCHASE_TOOL_NAME,
   }, FirstPurchaseQueryCard));
+  for (const toolName of [BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+    name: 'tool.call.toolview', key: toolName,
+    inject: () => ({ library, openCockpit: openCockpitPanel }),
+  }, LibraryPreviewToolCard));
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));
@@ -421,6 +467,15 @@ export function apply(ctx: Context): void {
     inject: () => ({
       openCockpit: openCockpitPanel,
       board: boardLive,
+      library,
+      async generateNative(sessionId: string) {
+        const reply = await ctx.remote.session.prompt({
+          sessionId: sessionId as never, requestId: `board-${crypto.randomUUID()}` as never,
+          mode: 'queue', clientTimeZone: 'Asia/Shanghai',
+          content: [{ type: 'text', text: '请基于当前会话已有的问数结果生成驾驶舱预览。先用 competition_board_catalog 核对组件库和当前会话结果，再用 competition_board_generate 按我的需求组装。没有对应结果时说明缺口，不编造数字、不重复查数；生成后由我在工具卡打开预览并确认保存。' }],
+        });
+        if (!reply.ok || !reply.value.accepted) throw new Error('native prompt not accepted');
+      },
       async fetchResults() {
         const http = competitionHttpOptions();
         if (!http) return [];
@@ -446,6 +501,8 @@ export function apply(ctx: Context): void {
         goConversation,
         themeSource,
         board: boardLive,
+        library,
+        composition,
         askTransport: http
           ? {
             fetchImpl: http.fetchImpl,

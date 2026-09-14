@@ -20,6 +20,7 @@
     "@deepseek-ai/dsh-skill": "packages/skill/skill",
     "@deepseek-ai/dsh-util-values": "packages/util/values",
     "@deepseek-ai/dsh-api-session-controller": "packages/api/session-controller",
+    "@deepseek-ai/dsh-client-connection": "packages/client/connection",
     "@deepseek-ai/dsh-client-store": "packages/client/store",
     "@deepseek-ai/dsh-client-ui-slots": "packages/client/ui-slots",
     "@deepseek-ai/dsh-client-ui-primitives": "packages/client/ui-primitives",

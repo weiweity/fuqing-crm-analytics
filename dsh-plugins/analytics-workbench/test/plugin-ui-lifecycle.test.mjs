@@ -103,7 +103,7 @@ test('apply registers business slots; dispose removes them without touching nati
   const { entries, effects } = mount(client);
   assert.deepEqual(entries.map(row => row.options.name), [
     'sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'shell.overlay',
-    'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
+    'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
     'conversation.input.dock', 'conversation.input.dock',
     'sidebar.panellist', 'main',
     'sidebar.panellist', 'main',
@@ -115,7 +115,7 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
   assert.equal(entries.find(row => row.options.name === 'sidebar.footer.action').options.inject().openCockpit(), false);
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
-    'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query',
+    'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query', 'competition_board_generate', 'competition_board_edit',
   ]);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
   assert.equal(entries.length, 0);
@@ -150,7 +150,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   };
   client.apply(ctx);
   client.apply(ctx);
-  assert.equal(entries.length, 28);
+  assert.equal(entries.length, 32);
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.footer').length, 2);
   assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit').length, 2);
 });

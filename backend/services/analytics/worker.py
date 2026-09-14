@@ -114,25 +114,29 @@ class WorkerManager:
             if principal is None or principal.actor_id != record["owner"]:
                 return "PERMISSION_REVOKED"
             require(principal, "run:create", data_scope=self.store.data_scope)
-            if self.store.is_query:
-                try:
-                    self.store.query_step_binding(
-                        principal, record["run_id"], record["attempt_id"], record["step_id"],
-                    )
-                except sqlite3.DatabaseError:
-                    pass
         except AnalyticsError as error:
             if error.status in {401, 403} or error.code in {"FORBIDDEN", "PERMISSION_REVOKED"}:
                 return "PERMISSION_REVOKED"
-            if error.code == "QUERY_TIMEOUT":
-                return "TIMEOUT"
-            if error.code in {"FAMILY_MISMATCH", "BINDING_MISSING", "BINDING_CORRUPT"}:
-                return "TOOL_FAILED"
             raise
-        if record["cancel_reason"]:
+        if record["cancel_reason"] and record["cancel_reason"] != "EXECUTION_UNKNOWN":
             return "TOOL_FAILED" if record["cancel_reason"] == "USER_REQUEST" else record["cancel_reason"]
         if min(record["deadline_ms"], record["run_deadline_ms"]) <= self.store.clock():
             return "TIMEOUT"
+        if self.store.is_query:
+            try:
+                self.store.query_step_binding(
+                    principal, record["run_id"], record["attempt_id"], record["step_id"],
+                )
+            except sqlite3.DatabaseError:
+                pass
+            except AnalyticsError as error:
+                if error.status in {401, 403} or error.code in {"FORBIDDEN", "PERMISSION_REVOKED"}:
+                    return "PERMISSION_REVOKED"
+                if error.code == "QUERY_TIMEOUT":
+                    return "TIMEOUT"
+                if error.code in {"FAMILY_MISMATCH", "BINDING_MISSING", "BINDING_CORRUPT"}:
+                    return "TOOL_FAILED"
+                raise
         if record["run_status"] != "RUNNING":
             return "EXECUTION_UNKNOWN"
         return None
@@ -271,7 +275,11 @@ class WorkerManager:
             metrics["temp_peak_bytes"] = max(metrics["temp_peak_bytes"], temp_bytes(temporary))
             metrics["elapsed_ms"] = round((time.monotonic() - started) * 1000)
             record = self.store.worker_records(execution_id=execution_id)[0]
-            error = error or self._stop_reason(record)
+            persisted = self._stop_reason(record)
+            if persisted and persisted != "EXECUTION_UNKNOWN" and error in {None, "EXECUTION_UNKNOWN"}:
+                error = persisted
+            else:
+                error = error or persisted
             if metrics["rss_peak_bytes"] > self.store.profile.worker_rss_observation_mib * MIB:
                 error = "RESOURCE_EXCEEDED"
             if not ready or not closed or result is None or child.returncode != 0:

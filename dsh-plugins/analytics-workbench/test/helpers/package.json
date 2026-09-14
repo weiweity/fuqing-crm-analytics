@@ -1,0 +1,6 @@
+{
+  "name": "@shine-mage/analytics-test-helpers",
+  "private": true,
+  "type": "module",
+  "description": "Host-only disposable test helpers. A separate named package prevents DSH nearest-package client discovery from loading the business UI."
+}
