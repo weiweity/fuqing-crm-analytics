@@ -277,6 +277,9 @@ test('declared remote and remote.session let generateNative and editNative submi
   assert.equal(prompts[0].content[0].type, 'text');
   assert.match(prompts[0].content[0].text, /competition_board_generate/);
   assert.match(prompts[0].content[0].text, /不重复查数/);
+  assert.match(prompts[0].content[0].text, /saved_boards/);
+  assert.match(prompts[0].content[0].text, /不是草稿/);
+  assert.match(prompts[0].content[0].text, /另一份待确认新板/);
   assert.equal(/自动保存|自行保存/.test(prompts[0].content[0].text), false);
 
   const library = libraryOf(entries);

@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
+import { once } from 'node:events';
 import { executeBoardTool, BOARD_TOOL_PARAMETERS } from './board-tools.mjs';
 import { BOARD_CATALOG_TOOL_NAME as CATALOG, BOARD_GENERATE_TOOL_NAME as GENERATE,
   BOARD_EDIT_CONTEXT_TOOL_NAME as CONTEXT, BOARD_EDIT_TOOL_NAME as EDIT } from './family.mjs';
@@ -72,4 +74,83 @@ test('native edit tools cannot create a selection or replace its owner/session/t
   contextReply = context;
   previewReply = libraryPreview(librarySnapshot({ boardId: 'wrong', version: 2 }));
   assert.equal((await executeBoardTool(EDIT, { edit_context_id: eid, changes }, execution)).error.code, 'INVALID_RESPONSE');
+});
+
+test('catalog saved_boards reach the tool result, missing is unknown, generate stays unpublished', async t => {
+  const previous = ['COMPETITION_HTTP_BASE', 'COMPETITION_HTTP_TOKEN'].map(key => [key, process.env[key]]);
+  t.after(() => previous.forEach(([key, value]) => { if (value === undefined) delete process.env[key]; else process.env[key] = value; }));
+  const saved = { board_id: 'board_' + 'a'.repeat(32), title: '原板 v2', version: 2,
+    facts: { secret: 9 }, spec: { blocks: [{ kind: 'METRIC' }] } };
+  let payload = { schema_version: 'board-generation-context/v1', session_id: 'native_session',
+    catalog: COMPONENT_CATALOG, results: [], saved_boards: [saved], saved_boards_status: 'complete' };
+  const preview = libraryPreview();
+  const server = http.createServer((req, res) => {
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify(req.method === 'POST' ? preview : payload));
+  });
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  process.env.COMPETITION_HTTP_BASE = `http://127.0.0.1:${server.address().port}`;
+  process.env.COMPETITION_HTTP_TOKEN = 'isolated-saved-board-tool';
+  const exec = { agent: { session: { id: 'native_session' } } };
+  const catalog = await executeBoardTool(CATALOG, {}, exec);
+  assert.deepEqual(catalog.saved_boards, [{ board_id: saved.board_id, title: saved.title, version: 2 }]);
+  assert.equal(catalog.saved_boards_status, 'complete');
+  assert.equal(JSON.stringify(catalog.saved_boards).includes('facts'), false);
+  const generated = await executeBoardTool(GENERATE, { title: preview.snapshot.spec.title, blocks: preview.snapshot.spec.blocks }, exec);
+  assert.equal(generated.status, 'PREVIEW_READY');
+  assert.equal(generated.published, false);
+  assert.notEqual(generated.board_id, saved.board_id);
+  payload = { schema_version: 'board-generation-context/v1', session_id: 'native_session', catalog: COMPONENT_CATALOG, results: [] };
+  const legacy = await executeBoardTool(CATALOG, {}, exec);
+  assert.equal(Object.hasOwn(legacy, 'saved_boards'), false);
+  assert.equal(Object.hasOwn(legacy, 'saved_boards_status'), false);
+  payload = { ...payload, saved_boards: { board_id: saved.board_id } };
+  assert.equal((await executeBoardTool(CATALOG, {}, exec)).error.code, 'INVALID_RESPONSE');
+  payload = { schema_version: 'board-generation-context/v1', session_id: 'native_session', catalog: COMPONENT_CATALOG, results: [],
+    saved_boards_status: 'complete' };
+  const lying = await executeBoardTool(CATALOG, {}, exec);
+  assert.equal(Object.hasOwn(lying, 'saved_boards'), false);
+  assert.equal(lying.saved_boards_status, 'unknown');
+  assert.deepEqual(Object.keys(BOARD_TOOL_PARAMETERS), [CATALOG, GENERATE, CONTEXT, EDIT]);
+});
+
+test('catalog saved board titles follow the unicode code-point Title contract', async t => {
+  const previous = ['COMPETITION_HTTP_BASE', 'COMPETITION_HTTP_TOKEN'].map(key => [key, process.env[key]]);
+  t.after(() => previous.forEach(([key, value]) => { if (value === undefined) delete process.env[key]; else process.env[key] = value; }));
+  process.env.COMPETITION_HTTP_BASE = 'http://127.0.0.1:4318';
+  process.env.COMPETITION_HTTP_TOKEN = 'isolated-title-contract';
+  let payload;
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(payload)));
+  const exec = { agent: { session: { id: 'native_session' } } };
+  const catalogOf = async title => {
+    payload = { schema_version: 'board-generation-context/v1', session_id: 'native_session',
+      catalog: COMPONENT_CATALOG, results: [], saved_boards_status: 'complete',
+      saved_boards: [{ board_id: 'board_' + 'a'.repeat(32), title, version: 1 }] };
+    return executeBoardTool(CATALOG, {}, exec);
+  };
+  const nonBmp = '\u{20BB7}'.repeat(81);
+  const accepted = await catalogOf(nonBmp);
+  assert.equal(accepted.saved_boards_status, 'complete');
+  assert.equal(accepted.saved_boards[0].title, nonBmp);
+  assert.equal(accepted.saved_boards[0].title.length, 162);
+  assert.equal(Array.from(accepted.saved_boards[0].title).length, 81);
+  const emoji = await catalogOf('😀'.repeat(160));
+  assert.equal(emoji.saved_boards[0].title, '😀'.repeat(160));
+  assert.equal((await catalogOf('a'.repeat(159))).saved_boards[0].title.length, 159);
+  assert.equal((await catalogOf('a'.repeat(160))).saved_boards[0].title.length, 160);
+  assert.equal((await catalogOf(' a')).saved_boards[0].title, ' a');
+  assert.equal((await catalogOf('\u{20BB7}'.repeat(160))).error, undefined);
+  assert.equal((await catalogOf('\u{20BB7}'.repeat(160))).saved_boards[0].title.length, 320);
+  assert.equal((await catalogOf('a'.repeat(161))).error.code, 'INVALID_RESPONSE');
+  assert.equal((await catalogOf('\u{20BB7}'.repeat(161))).error.code, 'INVALID_RESPONSE');
+  assert.equal((await catalogOf('')).error.code, 'INVALID_RESPONSE');
+  assert.equal((await catalogOf('   ')).error.code, 'INVALID_RESPONSE');
+  assert.equal((await catalogOf('\n')).error.code, 'INVALID_RESPONSE');
+  payload = { schema_version: 'board-generation-context/v1', session_id: 'native_session',
+    catalog: COMPONENT_CATALOG, results: [], saved_boards_status: 'complete',
+    saved_boards: [{ board_id: 'board_' + 'a'.repeat(32), title: 12, version: 1 }] };
+  assert.equal((await executeBoardTool(CATALOG, {}, exec)).error.code, 'INVALID_RESPONSE');
+  assert.deepEqual(Object.keys(BOARD_TOOL_PARAMETERS), [CATALOG, GENERATE, CONTEXT, EDIT]);
 });

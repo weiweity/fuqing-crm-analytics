@@ -5,6 +5,24 @@ import { boardPreview, boardEditContext } from '../board-spec/receipt.mjs';
 import { BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from './family.mjs';
 
 const identity = value => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(value);
+const SAVED_BOARD_STATUSES = new Set(['complete', 'truncated', 'unavailable', 'unknown']);
+function isBoardTitle(title) {
+  if (typeof title !== 'string') return false;
+  const points = Array.from(title);
+  return points.length >= 1 && points.length <= 160 && /\S/.test(title);
+}
+function savedBoardSummaries(value) {
+  if (!Array.isArray(value)) return null;
+  const items = [];
+  for (const row of value) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+    const boardId = row.board_id, title = row.title, version = row.version;
+    if (!identity(boardId) || !isBoardTitle(title)
+      || !Number.isSafeInteger(version) || version < 1) return null;
+    items.push({ board_id: boardId, title, version });
+  }
+  return items;
+}
 const integer = { type: 'integer', required: true };
 const layout = { type: 'object', required: true, additionalProperties: false,
   properties: { x: integer, y: integer, w: integer, h: integer },
@@ -83,9 +101,25 @@ export async function executeBoardTool(name, args, execution) {
   execution.signal?.throwIfAborted();
   if (!result.ok) return { schema_version: 'board-tool-result/v1', status: 'REFUSED', error: result.error };
   if (name === BOARD_CATALOG_TOOL_NAME) {
-    if (result.value?.schema_version === 'board-generation-context/v1' && result.value.session_id === sessionId
-      && result.value.catalog?.library_version === COMPONENT_CATALOG.library_version && Array.isArray(result.value.results)) return result.value;
-    return { schema_version: 'board-tool-result/v1', status: 'REFUSED', error: { code: 'INVALID_RESPONSE', message: '组件目录回执与当前会话不一致。' } };
+    if (!(result.value?.schema_version === 'board-generation-context/v1' && result.value.session_id === sessionId
+      && result.value.catalog?.library_version === COMPONENT_CATALOG.library_version && Array.isArray(result.value.results))) {
+      return { schema_version: 'board-tool-result/v1', status: 'REFUSED', error: { code: 'INVALID_RESPONSE', message: '组件目录回执与当前会话不一致。' } };
+    }
+    const context = { ...result.value };
+    if (Object.hasOwn(context, 'saved_boards')) {
+      const summaries = savedBoardSummaries(context.saved_boards);
+      if (summaries === null) return { schema_version: 'board-tool-result/v1', status: 'REFUSED',
+        error: { code: 'INVALID_RESPONSE', message: '已保存看板摘要不符合合同。' } };
+      context.saved_boards = summaries;
+    }
+    if (Object.hasOwn(context, 'saved_boards_status')) {
+      if (typeof context.saved_boards_status !== 'string' || !SAVED_BOARD_STATUSES.has(context.saved_boards_status)) {
+        context.saved_boards_status = 'unknown';
+      } else if (context.saved_boards_status === 'complete' && !Object.hasOwn(context, 'saved_boards')) {
+        context.saved_boards_status = 'unknown';
+      }
+    }
+    return context;
   }
   let preview;
   try { preview = boardPreview(result.value); } catch { /* Fail closed on a malformed service receipt. */ }

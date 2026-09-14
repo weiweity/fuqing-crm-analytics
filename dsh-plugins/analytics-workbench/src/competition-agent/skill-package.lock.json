@@ -5,7 +5,7 @@
   "scope": "COMPETITION_SYNTHETIC_ONLY",
   "description": "Synthetic competition growth diagnosis method. Not a production SOP. No extra tools, data, or approval power.",
   "files": {
-    "SKILL.md": "23e92e2656dd9cf29f9532d1a2cc3046c739093d556a97c5d27f895da665365e",
+    "SKILL.md": "b631984ff10ec945dc689fc1127826550b24e4fb92fe838c920e005f9cf82480",
     "assets/result-example.json": "793077df8dc80bc82e02f4a8c9aba0b1105b72377054b6e75f38ff9fc2d6a11c",
     "references/evidence-policy.md": "29c6448ab837ed415ab9c55e299a8218232a88a56b04a74166eaf58edb47a99e"
   }

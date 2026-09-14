@@ -26,8 +26,8 @@ def board_spec_router(store, principal, computed_store=None):
     @router.get("/context")
     def context(session_id: str, request: Request, response: Response, offset: int = 0):
         who = actor(request, response)
-        service()  # Do not advertise generation when board persistence is unavailable.
-        return board_generation_context(computed_store, who, session_id, offset=offset)
+        boards = service()  # Do not advertise generation when board persistence is unavailable.
+        return board_generation_context(computed_store, who, session_id, offset=offset, board_store=boards)
 
     @router.post("/previews", response_model=BoardPreview, status_code=201)
     def generate(payload: BoardDraft, request: Request, response: Response):
