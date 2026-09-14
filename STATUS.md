@@ -6,7 +6,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `12a21de`（#134），后续文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
+| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `b7dbc7b`（#136），后续文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -16,7 +16,7 @@
 
 ## 本轮施工计划（现行，不要只记在对话里）
 
-当前先完成现有成果的 Git、文档和工作树收尾，不开启新功能。唯一接续卡为 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)，不用另建 `todo.md`。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，审查、QA、CI 与各动作授权分别核验。
+S2-C1 代码已合 #136。当前这一刀只做文档收口，不开启新功能。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)，不用另建 `todo.md`。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，审查、QA、CI 与各动作授权分别核验。
 
 产品方向：原生问数 → 复用结果、优先定制组件自由组板 → 预览 → 确认保存 → 指定组件 AI 修改／自由布局 → 重开／回退。六类是首批能力，不是六张固定模板或最终上限；旧交接的三操作、固定会话和主区互斥不是最终产品要求。
 
@@ -26,17 +26,18 @@
 | P2 计算事实 | [#132](https://github.com/weiweity/fuqing-crm-analytics/pull/132)，`13bf175` | 逐日／渠道贡献／购买频次及 Python/JS 差额校验；原施工树旧快照不是最终 R4 |
 | 工作流纳管 | [#133](https://github.com/weiweity/fuqing-crm-analytics/pull/133)，`a52309b` | 仓库专属 ship-pr；PR 与该 main CI 均成功 |
 | P3/P4 + AI-1 | [#134](https://github.com/weiweity/fuqing-crm-analytics/pull/134)，`12a21de` | 104 文件业务包 + 3 文件取消修复，按组合验证交付；不宣称每个子包独立可发布 |
+| S2-C1 已存板目录 | [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)，`b7dbc7b` | 同会话 `saved_boards` 摘要；有界合成真实措辞复验。不宣称 S2/M1 完成 |
 
-本轮合成检查与受控浏览器 QA 的精确范围见 #134；[PR CI 34809535341](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34809535341)与该业务提交的[main CI 34810185362](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34810185362)均成功。原失败日志和隔离证据保留；CI不替代完整真实模型、Figma或本人UAT。P2后的历史main CI `34768344985`失败不回写为成功；本轮取消修复证实机制，不声称重现了那次CI的具体交错。
+#134 的合成检查与受控浏览器 QA 范围不变；[PR CI 34809535341](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34809535341)与该业务提交的[main CI 34810185362](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34810185362)均成功。#136 [PR CI 34844745522](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34844745522)成功。合入 SHA `b7dbc7b` 的 [main CI 34846189734](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34846189734) 首次 `b0-contract-build` 因 `first_purchase_native` 503/409 失败，`--failed` 重跑后含 `merge-gate` 成功；不把后一次绿灯写成从未失败。P2 后历史 main CI `34768344985` 失败不回写为成功。CI 不替代完整真实模型、Figma、本人 UAT 或合入后的运行态验收。
 
 ### M1 接续与剩余事项
 
-- S0/S1已有基线与同实例装配证据；S2仍 **PARTIAL**。9 月 13 日真实模型已完成六类自由组板，以及 METRIC 只改标题的取消／确认 v2／重开和生成快捷入口；其余五类指定编辑、LINE 日期换数尚未验完。
-- **下一产品修复是 S2-C1 方案 B，尚未实施**：确认只更新 UI／服务端，模型下一轮目录缺已存板摘要，因而误称已保存 v2 为“旧草稿”。补同权限／同会话 `saved_boards` 摘要与状态指引，不自动追加模型 prompt、不新增模型确认写入权限。
+- S0/S1已有基线与同实例装配证据；S2仍 **PARTIAL**。9 月 13 日真实模型已完成六类自由组板，以及 METRIC 只改标题的取消／确认 v2／重开和生成快捷入口。S2-C1 方案 B 已合 #136：catalog 与 `GET /api/v1/analytics/board-spec/context` 对同会话返回 `saved_boards`（`board_id`/title/version）与 `saved_boards_status`（complete／truncated／unavailable／unknown；不可用时省略列表）。确认前预览不进已保存列表；GENERATE 仍铸新 `board_id`。有界合成复验（5/6 次调用）中模型不再把已存 v2 称为待放弃旧草稿。本人 UAT 与合入后的宿主运行验收仍 NOT_RUN。
+- **下一产品修复**为其余五类真实模型编辑、LINE 日期换数与当前模型板回退。TABLE/FUNNEL 生成合同 422 与越界 bash 尝试留作可靠性问题，不在 S2-C1 扩修。
 - S3 对齐正式 Figma、组件属性与原生交互；S4 综合 QA；S5 可用 UAT 入口和交接；G1–G6及用户本人 U1均不能以 Git 交付代签。四类扩库已有实现，完整变体与真实模型验证归 M2。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
-- 本轮不切换运行环境：6677／18082 保留，不重启、不改模型、不读真实数据；Git 更新不表示运行中的产物已切到最新 main。后续集成须核对产物、状态兼容与维护窗口，不用 `--fresh`。
-- 文档与本地清理单独验收。原施工文件已逐项私有备份；`HANDOVER-CODEX.md` 继续保留、不提交。只有完成合并、main 检查、独有成果及进程归属对账后，才清理已完成分支／工作树。
+- Git 合入不等于部署或本地 6677 已加载新插件。当前 6677 在复验后已回切原仓插件；后续集成须另核维护窗口，不用 `--fresh`，不改模型、不读真实大库。
+- 文档与本地清理单独验收。`HANDOVER-CODEX.md` 继续保留、不提交。只有完成文档 PR、main 检查、独有成果及进程归属对账后，才清理已完成分支／工作树。
 
 ## 已合施工记录（#116–#129）
 
