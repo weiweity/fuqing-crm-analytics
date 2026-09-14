@@ -83,6 +83,14 @@ designs/
 
 # Agent 工具本地状态不入仓；根 AGENTS.md 是需版本控制的唯一行为正文。
 .agents/
+# 仅共享仓库交付技能；逐级放行父目录，再默认忽略其余内容。
+!/.agents/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/ship-pr/
+/.agents/skills/ship-pr/*
+!/.agents/skills/ship-pr/SKILL.md
 .codex/
 !/AGENTS.md
 # Sprint 184 实战发现: HANDOFF-TO-CODEX-Sprint{N}.md 是 Stage 1 临时输出,
