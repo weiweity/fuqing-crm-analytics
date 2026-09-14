@@ -192,6 +192,56 @@ class BoardDocumentStore:
                 items.append({key: spec[key] for key in ("board_id", "title", "version", "session_id")})
             return items
 
+    def list_session_saved_summaries(self, actor, session_id, *, limit=20, page_size=100, scan_limit=500):
+        """Committed heads for one session. Truncation is explicit; a short page is not emptiness."""
+        self._access(actor)
+        opaque(session_id, label="session_id")
+        if type(limit) is not int or not 1 <= limit <= 20:
+            raise fault("INVALID_BOARD", 422)
+        if type(page_size) is not int or not 1 <= page_size <= 100:
+            raise fault("INVALID_BOARD", 422)
+        if type(scan_limit) is not int or not 1 <= scan_limit <= 500:
+            raise fault("INVALID_BOARD", 422)
+        items, unknown = [], False
+        with self._read() as con:
+            heads = con.execute(
+                "SELECT board_id, version FROM heads WHERE owner=? ORDER BY board_id LIMIT ?",
+                (actor.actor_id, scan_limit + 1)).fetchall()
+            over_scan = len(heads) > scan_limit
+            for head in heads[:scan_limit]:
+                row = con.execute(
+                    "SELECT * FROM revisions WHERE owner=? AND board_id=? AND version=?",
+                    (actor.actor_id, head["board_id"], head["version"])).fetchone()
+                if row is None:
+                    unknown = True
+                    continue
+                try:
+                    snapshot, _ = self._decode(actor, row, version=head["version"])
+                except AnalyticsError as error:
+                    if error.status == 403:
+                        continue
+                    if error.code in {"BINDING_CORRUPT", "NOT_FOUND"}:
+                        unknown = True
+                        continue
+                    raise
+                spec = snapshot["spec"]
+                if spec.get("session_id") != session_id:
+                    if spec.get("session_id") is None:
+                        unknown = True
+                    continue
+                items.append({key: spec[key] for key in ("board_id", "title", "version")})
+                if len(items) > limit:
+                    break
+        extra = items[limit:]
+        shown = items[:limit]
+        if unknown:
+            status = "unknown"
+        elif extra or over_scan:
+            status = "truncated"
+        else:
+            status = "complete"
+        return {"items": shown, "status": status}
+
     @staticmethod
     def _page(limit, offset):
         if type(limit) is not int or not 1 <= limit <= 100 or type(offset) is not int or not 0 <= offset <= 1000000:

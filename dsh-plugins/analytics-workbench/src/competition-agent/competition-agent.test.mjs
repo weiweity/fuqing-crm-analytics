@@ -21,6 +21,9 @@ test('competition skill package freezes without numeric evidence', async () => {
   assert.deepEqual(pack.resources, ['assets/result-example.json', 'references/evidence-policy.md']);
   assert.equal(JSON.parse(pack.read('assets/result-example.json').content).numeric_values, null);
   assert.match(pack.definition.content, /不是生产经营 SOP/);
+  assert.match(pack.definition.content, /已保存看板不是草稿/);
+  assert.match(pack.definition.content, /另一份待确认新板/);
+  assert.match(pack.definition.content, /不得声称已查全或没有已存板/);
   assert.equal(pack.definition.invocation.userInvocable, false);
 });
 
