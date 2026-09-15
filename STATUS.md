@@ -6,7 +6,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `fce2de83`（#157），文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
+| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `dbe5e6ed`（#158），文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -31,7 +31,7 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 | R-1 生成配置错误恢复 | [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)，`698278e` | 提交前预检指出非法属性／重叠块；有界真实模型 3 次＋Chrome 预览取消。TABLE `show_values` NOT_OBSERVED。不勾 G1–G6 |
 | 侧栏比赛看板入口 | [#155](https://github.com/weiweity/fuqing-crm-analytics/pull/155) / [#157](https://github.com/weiweity/fuqing-crm-analytics/pull/157)，`fce2de83` | 新标签打开独立 15173；不内嵌。5173 留给其它 Vite |
 
-#134 的合成检查与受控浏览器 QA 范围不变；[PR CI 34809535341](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34809535341)与该业务提交的[main CI 34810185362](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34810185362)均成功。#136 [PR CI 34844745522](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34844745522)成功。合入 SHA `b7dbc7b` 的 [main CI 34846189734](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34846189734) 首次 `b0-contract-build` 因 `first_purchase_native` 503/409 失败，`--failed` 重跑后含 `merge-gate` 成功；不把后一次绿灯写成从未失败。#153 [PR CI 34940883528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34940883528)与合入 SHA `698278e` 的 [main CI 34950368840](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34950368840)均成功。#155 [PR CI 34957745433](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34957745433)与 `27052fab` 的 [main CI 34959522528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34959522528)均成功。#157 [PR CI 34964763768](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34964763768)首次 test 因 DuckDB spill 失败、`--failed` 重跑后与 `fce2de83` 的 [main CI 34966517072](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34966517072)均成功。P2 后历史 main CI `34768344985` 失败不回写为成功。CI 不替代完整真实模型、Figma、本人 UAT 或合入后的运行态验收。
+#134 的合成检查与受控浏览器 QA 范围不变；[PR CI 34809535341](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34809535341)与该业务提交的[main CI 34810185362](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34810185362)均成功。#136 [PR CI 34844745522](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34844745522)成功。合入 SHA `b7dbc7b` 的 [main CI 34846189734](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34846189734) 首次 `b0-contract-build` 因 `first_purchase_native` 503/409 失败，`--failed` 重跑后含 `merge-gate` 成功；不把后一次绿灯写成从未失败。#153 [PR CI 34940883528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34940883528)与合入 SHA `698278e` 的 [main CI 34950368840](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34950368840)均成功。#155 [PR CI 34957745433](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34957745433)与 `27052fab` 的 [main CI 34959522528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34959522528)均成功。#157 [PR CI 34964763768](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34964763768)首次 test 因 DuckDB spill 失败、`--failed` 重跑后与 `fce2de83` 的 [main CI 34966517072](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34966517072)均成功。#158 与 `dbe5e6ed` 的 [main CI 34976252688](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34976252688)成功。P2 后历史 main CI `34768344985` 失败不回写为成功。CI 不替代完整真实模型、Figma、本人 UAT 或合入后的运行态验收。
 
 ### M1 接续与剩余事项
 
@@ -39,8 +39,8 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **下一产品缺口**不再是五类编辑／换数／回退实现。B3 核心恢复分支双视口和 12 次忙态恢复按钮实点已有证据。用户授权后已本地修复 390px 侧栏挤压、取消拒绝提示与英文连接错误，B0 完整检查／干净重建通过，详见 [S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)。窄屏覆盖导航与中文连接错误已由真实 Chrome 核验；取消拒绝新文案通过状态回归，未再次制造正式壳落盘故障。当前说明板 **v15**、原板 **v9**，修复验证没有新增保存版本。本批修复代码与证据一并交付；Git 合入以对应 PR 回执为准，整体 PARTIAL。
 - S3 指定 Figma 矩阵已通过，示例金额不作 facts；历史证据见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。85 历史意外返回对话仍未定因，88 设置失败导致的同正文 v15 保留。R-1 代码已合 #153；有界复验观察到布局重叠预检与 FUNNEL 保留，Chrome 取消未保存。TABLE `show_values` 与 bash 越界本轮未复现。接续整理固定候选的 S4 综合 QA 与 S5 本人 UAT。G1–G6／U1 不代签，四类扩库完整变体归 M2。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
-- Git 合入不等于部署。6677 加载隔离 main 插件（web 24482），18082 仍 71160。比赛看板默认 15173，不抢 5173。未 `--fresh`。
-- 文档与本地清理单独验收。`HANDOVER-CODEX.md` 继续保留、不提交。只有完成文档 PR、main 检查、独有成果及进程归属对账后，才清理已完成分支／工作树。
+- Git 合入不等于部署。6677 插件在 `main-runtime`（web 12386）；比赛看板 15173/8000 仍绑 docs-155。18082 仍 71160。未 `--fresh`。8010/5180、14327/18083 仍在听、未授权未停。
+- 本地清理 PARTIAL：已删 4 棵空闲树与 6 个已合分支；`main` 已 ff 到 `dbe5e6ed`。原仓 dirty 14 文件与 `HANDOVER-CODEX.md` 保留。下一产品：S4、S5/G6、U1、完整 T13/T16/T17、M2、正式发布。
 
 ## 已合施工记录（#116–#129）
 
