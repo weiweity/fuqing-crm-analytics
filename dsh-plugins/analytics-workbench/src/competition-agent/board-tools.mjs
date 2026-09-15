@@ -1,5 +1,6 @@
 /** Native model surface: catalogue and draft only. No confirm/delete/HTTP passthrough. */
-import { COMPONENT_CATALOG, LIBRARY_KINDS } from '../board-spec/component-catalog.mjs';
+import { COMPONENT_CATALOG, LIBRARY_KINDS, isPlainObject, parseComponentProps, parseComponentLayout } from '../board-spec/component-catalog.mjs';
+import { overlaps } from '../board-spec/grid-layout.mjs';
 import { boardServerRequest } from '../board-spec/server-http.mjs';
 import { boardPreview, boardEditContext } from '../board-spec/receipt.mjs';
 import { BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from './family.mjs';
@@ -26,7 +27,37 @@ function savedBoardSummaries(value) {
 const integer = { type: 'integer', required: true };
 const layout = { type: 'object', required: true, additionalProperties: false,
   properties: { x: integer, y: integer, w: integer, h: integer },
-  description: '12-column non-overlapping integer grid. Use catalogue min_size/default_size. No pixel CSS.' };
+  description: '12-column non-overlapping integer grid. Use catalogue min_size/default_size. A block ends at y+h; place the next row at or below that end, accounting for the tallest block. No pixel CSS.' };
+
+// Reuse the same catalogue validators as the canvas. The server still owns
+// request validation and result binding; this preflight only explains common
+// configuration failures before HTTP and never changes or retries the draft.
+function generationError(args) {
+  const fail = (code, message) => ({ code, message, details: { phase: 'preflight' } });
+  if (!isBoardTitle(args.title) || !Array.isArray(args.blocks) || args.blocks.length < 1 || args.blocks.length > 60) {
+    return fail('INVALID_REQUEST', 'title 须为 1–160 字符的非空标题，blocks 须包含 1–60 个组件。');
+  }
+  const seen = new Set();
+  for (const [index, block] of args.blocks.entries()) {
+    const at = `blocks[${index}]`;
+    if (!isPlainObject(block) || !identity(block.block_id) || !isBoardTitle(block.title)) {
+      return fail('INVALID_REQUEST', `${at} 须包含有效的 block_id 和非空标题。`);
+    }
+    if (seen.has(block.block_id)) return fail('INVALID_REQUEST', `${at}.block_id 重复；请使用唯一标识。`);
+    seen.add(block.block_id);
+    if (!LIBRARY_KINDS.includes(block.kind)) return fail('COMPONENT_UNSUPPORTED', `${at}.kind 不在当前组件目录中。`);
+    if (block.library_version !== undefined && block.library_version !== COMPONENT_CATALOG.library_version) {
+      return fail('COMPONENT_VERSION', `${at}.library_version 须为 ${COMPONENT_CATALOG.library_version}。`);
+    }
+    const props = parseComponentProps(block.kind, block.props === undefined ? {} : block.props);
+    if (!props.ok) return fail(props.error.code, `${at}.props：${props.error.message.slice(0, 240)}。请只按该组件的目录属性修正。`);
+    const box = parseComponentLayout(block.kind, block.layout);
+    if (!box.ok) return fail(box.error.code, `${at}.layout：${box.error.message}；请核对目录最小尺寸和画布边界。`);
+    const collision = args.blocks.slice(0, index).findIndex(other => overlaps(other.layout, block.layout));
+    if (collision !== -1) return fail('COMPONENT_OVERLAP', `${at}.layout 与 blocks[${collision}].layout 重叠；按 y+h 核对行末，只修正布局，保留所需组件及来源。`);
+  }
+  return undefined;
+}
 
 export const BOARD_TOOL_PARAMETERS = Object.freeze({
   [BOARD_CATALOG_TOOL_NAME]: {
@@ -69,6 +100,11 @@ export async function executeBoardTool(name, args, execution) {
     error: { code: 'SESSION_REQUIRED', message: '需要当前原生会话，不接受模型指定的会话。' } };
   if (!args || typeof args !== 'object' || Array.isArray(args)) return { schema_version: 'board-tool-result/v1', status: 'REFUSED',
     error: { code: 'INVALID_REQUEST', message: '看板工具参数必须为对象。' } };
+  if (name === BOARD_GENERATE_TOOL_NAME) {
+    const error = generationError(args);
+    if (error) return { schema_version: 'board-tool-result/v1', status: 'REFUSED', error,
+      next_action: '配置未提交到服务端。仅按本次错误与 competition_board_catalog 修正配置后重提一次；仍失败则停止并说明。不得使用 bash、文件、脚本或其他工具排查，不得删除所需组件来绕过校验。' };
+  }
   let result, edit;
   const editing = name === BOARD_EDIT_CONTEXT_TOOL_NAME || name === BOARD_EDIT_TOOL_NAME;
   if (editing) {
