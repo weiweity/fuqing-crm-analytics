@@ -1,23 +1,22 @@
 import type { EChartsOption } from 'echarts'
+import { shineMageTheme } from '@/theme'
 
-// Stripe Design System chart color palette
 export const CHART_COLORS = [
-  '#533afd', // Stripe Purple
-  '#15be53', // Stripe Green
-  '#ea2261', // Stripe Ruby
-  '#f96bee', // Stripe Magenta
-  '#9b6829', // Stripe Lemon
-  '#665efd', // Purple Mid
-  '#108c3d', // Green Text
-  '#4434d4', // Purple Hover
-  '#64748d', // Slate
-  '#061b31', // Navy
+  shineMageTheme.color.brandPrimary,
+  shineMageTheme.color.brandAccent,
+  shineMageTheme.color.brandSecondary,
+  shineMageTheme.color.danger,
+  shineMageTheme.color.success,
+  shineMageTheme.color.brandPrimaryHover,
+  shineMageTheme.color.warning,
+  shineMageTheme.color.brandPrimaryPressed,
+  shineMageTheme.color.muted,
+  shineMageTheme.color.ink,
 ]
 
-// Brand primary — use this instead of hardcoded colors in series
-export const BRAND_PRIMARY = '#533afd'
-export const BRAND_PRIMARY_LIGHT = '#7c5df5'
-export const BRAND_SECONDARY = '#15be53'
+export const BRAND_PRIMARY = shineMageTheme.color.brandPrimary
+export const BRAND_PRIMARY_LIGHT = shineMageTheme.color.brandPrimaryHover
+export const BRAND_SECONDARY = shineMageTheme.color.brandSecondary
 
 export const BRAND_FONT = "'-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif"
 

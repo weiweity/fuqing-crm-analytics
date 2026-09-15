@@ -200,7 +200,7 @@ const trendOption = computed(() => {
 
 // ─── RFM分布饼图 ───────────────────────────────────────────────
 const SEGMENT_NAMES = ['Champions', 'Loyal', 'Potential', 'New', 'At Risk', 'Need Attn', 'Promising', 'About to Sleep']
-const SEGMENT_COLORS = ['#533afd', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ef4444', '#f59e0b', '#10b981', '#94a3b8']
+const SEGMENT_COLORS = ['#805D9D', '#D3C3E8', '#9877B1', '#F2FFDC', '#FF7D91', '#F59E0B', '#10B981', '#9A8BA4']
 
 const rfmPieOption = computed(() => {
   const users = userListData.value?.users ?? []

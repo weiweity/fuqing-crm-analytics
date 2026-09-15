@@ -12,6 +12,6 @@ export function useNavItems() {
   return computed<NavItem[]>(() => {
     if (authStore.localDemoNoLogin) return NAV_ITEMS.filter((item) => item.key === '/growth-board')
     void authStore.isAdmin  // keep reactive auth dependency for future admin-only items
-    return NAV_ITEMS
+    return NAV_ITEMS.filter((item) => !item.hidden)
   })
 }

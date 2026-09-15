@@ -331,7 +331,7 @@ const drilldownXlsxColumns = computed<XlsxColumn[]>(() => [
 .kpi-rate.danger { color: #dc2626 !important; }
 .kpi-hint { font-size: 11px; color: #94a3b8; margin: -10px 0 14px 4px; }
 .chart-wrap, .table-wrap, .member-wrap { margin: 10px 0; }
-.selected-hint { color: #533afd; font-size: 12px; margin-top: 2px; font-weight: 500; }
+.selected-hint { color: var(--sm-purple); font-size: 12px; margin-top: 2px; font-weight: 500; }
 .table-scroll-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
 .table-hint { font-size: 11px; color: #94a3b8; margin-top: 6px; }
 .member-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

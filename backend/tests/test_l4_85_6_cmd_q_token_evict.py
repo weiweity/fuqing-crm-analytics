@@ -7,11 +7,11 @@ user 7/11 报 Bug #2: 'A 运营登录后退出 (Cmd+Q), B 运营 20 秒后再次
 2. backend ACTIVE_TOKENS[tokenA] 仍在内存 dict
 3. last_active_at 永远停止滑动 (前端不再发请求)
 4. _is_account_active('admin') 检查 last_active_at < 3min → True
-5. B 端 login() 抛 409 → 申请 + 同意 → A 已经不在, 申请 3min 后 expired
-6. user 体验劣化: '需要申请登录, 但当前没人在看板'
+5. 看板现允许同账号并行 login 200，旧 token 保留
+6. 历史路径曾是 409 → 申请接管；前端申请按钮已撤
 
 4 case 锁 L4.85.6 治本:
-- test_bug2_reproduce: A login + Cmd+Q 模拟 (不 logout) + 20s 后 B login 409 (现状 fail, 治本 PASS)
+- test_concurrent_login_after_cmdq: A login + Cmd+Q 模拟 (不 logout) + B login 200（同账号并行会话）
 - test_bug2_fix_beacon: A login + Cmd+Q + beforeunload sendBeacon → 后端踢 token → B login 200 (方案 A)
 - test_bug2_fix_evictor: A login + Cmd+Q + background task evict > 1min → B login 200 (方案 D)
 - test_evictor_idempotent: background task evict 时 token 还在 ACTIVE_TOKENS → 安全 evict 不影响其他 user
@@ -43,12 +43,8 @@ def reset_state():
     auth_module._LOGIN_ATTEMPTS.clear()
 
 
-def test_bug2_reproduce_a_cmdq_b_login_409():
-    """核心 case 1: 验证 Bug #2 真根因 (现状 FAIL, 治本 PASS).
-
-    场景: A login → 模拟 Cmd+Q (不调 logout) → 20 秒后 B login → 应该 409 (现状)
-    治本后: A beforeunload sendBeacon 或后台 evict > 1min → B login 200.
-    """
+def test_concurrent_login_after_cmdq():
+    """同账号并行登录：A 未 logout 时 B 仍可 login 200，旧 token 保留。"""
     from fastapi.testclient import TestClient
     from backend.main import app
     client = TestClient(app)
@@ -61,13 +57,13 @@ def test_bug2_reproduce_a_cmdq_b_login_409():
     # 2. 模拟 A Cmd+Q: 不调 logout, 但 last_active_at 模拟 50 秒前 (模拟 A 操作后 50 秒, 然后 Cmd+Q)
     auth_module.ACTIVE_TOKENS[a_token] = ("admin", datetime.now() - timedelta(seconds=50))
 
-    # 3. B 端 admin login (不同 IP, 模拟第二台设备)
-    # 现状: _is_account_active('admin') 检查 last_active_at 50s < 3min → True → 409
+    # 3. B 端 admin login（同账号并行会话，不再 409）
     b_resp = client.post("/api/v1/auth/login", json={"username": "admin", "password": "123456"})
-    assert b_resp.status_code == 409, (
-        f"现状期望 409 (Bug #2 真根因), 实际 {b_resp.status_code}: {b_resp.text}"
+    assert b_resp.status_code == 200, (
+        f"同账号并行登录应 200, 实际 {b_resp.status_code}: {b_resp.text}"
     )
-    assert "正在被使用" in b_resp.json().get("detail", "")
+    assert a_token in auth_module.ACTIVE_TOKENS
+    assert b_resp.json()["token"] in auth_module.ACTIVE_TOKENS
 
 
 def test_bug2_fix_beacon_a_cmdq_b_login_200():

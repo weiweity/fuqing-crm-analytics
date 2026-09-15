@@ -57,15 +57,14 @@ describe('router auth guard (Admin Upload route removed)', () => {
     }
   })
 
-  it('authenticated root route opens the CEO growth board', async () => {
+  it('authenticated root route opens the audience board', async () => {
     const authStore = useAuthStore()
     authStore.setSession('token-user', 'fqsw', false)
 
     await router.push('/').catch(() => {})
     await flushPromises()
 
-    expect(router.currentRoute.value.path).toBe('/growth-board')
-    expect(router.currentRoute.value.meta.immersive).toBe(true)
+    expect(router.currentRoute.value.path).toBe('/audience')
   })
 
   it('/admin/upload is not a registered product route', async () => {

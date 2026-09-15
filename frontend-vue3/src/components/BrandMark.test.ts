@@ -26,7 +26,8 @@ describe('approved Shine Mage source logo', () => {
     expect(logo.attributes('width')).toBe('249')
     expect(logo.attributes('height')).toBe('45')
     expect(wrapper.find('svg').exists()).toBe(false)
-    expect(wrapper.text()).toContain('伸美集团 · CRM 增长分析平台')
+    expect(wrapper.text()).not.toContain('伸美集团 · CRM 增长分析平台')
+    expect(wrapper.get('[aria-label]').attributes('aria-label')).toBe('SHINE MAGE')
     expect(wrapper.classes()).toContain('inverse')
   })
 
