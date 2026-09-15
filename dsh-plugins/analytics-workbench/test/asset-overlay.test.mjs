@@ -172,7 +172,7 @@ async function mountShell(fetchImpl, options = {}) {
     registrations.push({ options, component }); return () => {};
   } } });
   const Overlay = registrations.find(row => row.options.name === 'shell.overlay')?.component;
-  const Footer = registrations.find(row => row.options.name === 'sidebar.footer.action')?.component;
+  const Footer = registrations.find(row => row.options.id === 'shine-mage.analytics-b0.footer')?.component;
   const QueryCard = registrations.find(row => row.options.key === QUERY_TOOL_NAME)?.component;
   assert.ok(Overlay && Footer);
   if (options.withQueryCard) assert.ok(QueryCard);

@@ -107,7 +107,7 @@ export async function loadCardHarness() {
   const firstPurchaseCard = cards.find(row => row.options.key === FIRST_PURCHASE_TOOL_NAME);
   assert.ok(b0Card); assert.ok(queryCard);
   assert.ok(firstPurchaseCard, 'compiled client is missing the first-purchase renderer');
-  const footer = registrations.find(r => r.options.name === 'sidebar.footer.action');
+  const footer = registrations.find(r => r.options.id === 'shine-mage.analytics-b0.footer');
   assert.ok(footer, 'compiled client is missing the footer that owns plugin CSS');
   const footerHtml = renderToStaticMarkup(React.createElement(footer.component, {
     wide: true,

@@ -25,6 +25,7 @@ export const css = `
   background:transparent; color:var(--dsw-alias-label-primary,inherit);
   font:var(--dsw-font-s-14,14px/22px inherit); cursor:pointer;
 }
+a.analytics-b0-trigger { text-decoration:none; }
 .analytics-b0-trigger:hover { background:var(--dsw-alias-interactive-bg-hover); }
 .analytics-b0-trigger:active { background:var(--dsw-alias-interactive-bg-active); }
 .analytics-b0-dialog {

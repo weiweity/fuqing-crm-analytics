@@ -64,7 +64,13 @@ function loadClient() {
     ['@deepseek-ai/dsh-client-store', stores],
   ]);
   let factoryRow;
-  vm.runInNewContext(source, { window: { localStorage: { getItem: () => null }, __ModuleLoader__: { load: row => { factoryRow = row; } } } }, { timeout: 1000 });
+  vm.runInNewContext(source, {
+    window: {
+      localStorage: { getItem: () => null },
+      open: () => { assert.fail('lifecycle test opened a tab'); },
+      __ModuleLoader__: { load: row => { factoryRow = row; } },
+    },
+  }, { timeout: 1000 });
   return factoryRow.factory(spec => {
     assert.ok(seed.has(spec), `unexpected browser require: ${spec}`);
     return seed.get(spec);
@@ -102,7 +108,7 @@ test('apply registers business slots; dispose removes them without touching nati
   const client = loadClient();
   const { entries, effects } = mount(client);
   assert.deepEqual(entries.map(row => row.options.name), [
-    'sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'shell.overlay',
+    'sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay',
     'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
     'conversation.input.dock', 'conversation.input.dock',
     'sidebar.panellist', 'main',
@@ -113,7 +119,12 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.deepEqual(panels.map(row => row.options.id), ['cockpit', 'staff']);
   assert.deepEqual(mains.map(row => row.options.key), ['cockpit', 'staff']);
   assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
-  assert.equal(entries.find(row => row.options.name === 'sidebar.footer.action').options.inject().openCockpit(), false);
+  const footers = entries.filter(row => row.options.name === 'sidebar.footer.action');
+  assert.deepEqual(footers.map(row => row.options.id),
+    ['shine-mage.analytics-b0.footer', 'shine-mage.analytics-b0.legacy-board']);
+  assert.deepEqual(footers.map(row => row.options.order), [10, 20]);
+  assert.equal(footers[0].options.inject().openCockpit(), false);
+  assert.equal(typeof footers[1].component, 'function');
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
     'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query', 'competition_board_generate', 'competition_board_edit',
   ]);
@@ -126,11 +137,32 @@ test('footer openCockpit selects sidebar.panellist id cockpit on the main slot',
   const { entries, effects } = mount(loadClient(), {
     layout: { selectPanel: id => { selected.push(id); } },
   });
-  assert.equal(entries.find(row => row.options.name === 'sidebar.footer.action').options.inject().openCockpit(), true);
+  assert.equal(entries.find(row => row.options.id === 'shine-mage.analytics-b0.footer').options.inject().openCockpit(), true);
   assert.deepEqual(selected, ['cockpit']);
   assert.equal(entries.find(row => row.options.name === 'sidebar.panellist').options.id,
     entries.find(row => row.options.name === 'main').options.key);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
+});
+
+test('legacy board entry renders wide and rail copy and links to the board in a new tab', () => {
+  const { entries, effects } = mount(loadClient());
+  const React = webRequire('react');
+  const { renderToStaticMarkup } = webRequire('react-dom/server');
+  try {
+    const row = entries.find(item => item.options.id === 'shine-mage.analytics-b0.legacy-board');
+    const wide = renderToStaticMarkup(React.createElement(row.component, { wide: true }));
+    const rail = renderToStaticMarkup(React.createElement(row.component, { wide: false }));
+    assert.match(wide, /比赛看板/);
+    assert.match(rail, />看板</);
+    assert.match(wide, /aria-label="打开比赛看板"/);
+    assert.match(wide, /data-testid="legacy-board-open"/);
+    // The address, the new-tab target, and the opener severance are the behavior.
+    assert.match(wide, /href="http:\/\/127\.0\.0\.1:5173\/"/);
+    assert.match(wide, /target="_blank"/);
+    assert.match(wide, /rel="noopener noreferrer"/);
+  } finally {
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+  }
 });
 
 test('a second apply on the same fake ctx duplicates registrations; Host must not double-insert the plugin', () => {
@@ -150,9 +182,13 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   };
   client.apply(ctx);
   client.apply(ctx);
-  assert.equal(entries.length, 32);
-  assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.footer').length, 2);
-  assert.equal(entries.filter(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit').length, 2);
+  // A second apply duplicates every registration; no identity is added or lost.
+  const ids = entries.filter(row => row.options.id !== undefined).map(row => row.options.id);
+  for (const id of ['shine-mage.analytics-b0.footer', 'shine-mage.analytics-b0.legacy-board',
+    'shine-mage.analytics-b0.generate-cockpit', 'shine-mage.analytics-b0.overlay']) {
+    assert.equal(entries.filter(row => row.options.id === id).length, 2, `${id} registered twice`);
+    assert.equal(ids.filter(value => value === id).length, 2, `${id} counted twice`);
+  }
 });
 
 test('board store refreshBoard rebinds catalog; cancelGenerate drops pending; generateBoard writes', () => {
