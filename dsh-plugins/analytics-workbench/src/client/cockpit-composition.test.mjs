@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
-import { COMPOSITION_PIN, compositionGeometry, createCockpitComposition, nativeCompositionTarget, leaseNativeComposition } from './cockpit-composition.mjs';
+import { COMPOSITION_PIN, compositionGeometry, createCockpitComposition, nativeCompositionTarget, leaseNativeComposition, leaseCompactNavigation } from './cockpit-composition.mjs';
 const plugin = fileURLToPath(new URL('../..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(plugin, '../../.context/dsh-b0/upstream'));
 const { JSDOM } = createRequire(join(upstream, 'node_modules/jsdom/package.json'))('jsdom');
@@ -78,4 +78,25 @@ test('controlled seam leases the original native subtree, restores prior attribu
   assert.ok(nativeCompositionTarget(anchor));
   target.native.removeAttribute('data-phase'); assert.equal(nativeCompositionTarget(anchor), null);
   dom.window.close();
+});
+
+test('compact navigation preserves native widths, sidebar identity and preferences across expansion, resize and disposal', () => {
+  const dom = new JSDOM('<div id="frame" style="grid-template-columns:280px minmax(0,1fr) 0px"><aside><button>导航</button></aside><main></main></div>');
+  const frame = dom.window.document.querySelector('#frame'), sidebar = frame.firstElementChild;
+  const button = sidebar.firstElementChild;
+  const beforeStyle = frame.style.cssText, beforeChildren = frame.innerHTML;
+  const lease = leaseCompactNavigation(frame, frame.lastElementChild);
+  assert.equal(lease.update(390), true); assert.ok(frame.hasAttribute('data-sm-cockpit-compact'));
+  assert.equal(frame.style.gridTemplateColumns, '280px minmax(0,1fr) 0px');
+  assert.equal(frame.style.getPropertyValue('--sm-cockpit-sidebar-width'), '280px');
+  frame.setAttribute('data-sidebar-collapsed', '');
+  assert.equal(lease.update(390), false);
+  frame.removeAttribute('data-sidebar-collapsed'); frame.style.gridTemplateColumns = '350px minmax(0,1fr) 0px';
+  assert.equal(lease.update(390), true);
+  assert.equal(frame.style.getPropertyValue('--sm-cockpit-sidebar-width'), '350px');
+  assert.equal(lease.update(1020), false); assert.equal(frame.hasAttribute('data-sm-cockpit-compact'), false);
+  assert.equal(sidebar.firstElementChild, button);
+  frame.style.gridTemplateColumns = '280px minmax(0,1fr) 0px'; lease.dispose(); lease.dispose();
+  assert.equal(frame.style.cssText, beforeStyle); assert.equal(frame.innerHTML, beforeChildren);
+  assert.deepEqual(frame.getAttributeNames(), ['id', 'style']); dom.window.close();
 });

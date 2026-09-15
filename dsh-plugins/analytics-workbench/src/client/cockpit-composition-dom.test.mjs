@@ -25,8 +25,8 @@ test('compiled overlay measures official slot wrappers, preserves draft/identity
   for (const key of globals) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
     value: key === 'IS_REACT_ACT_ENVIRONMENT' ? true : ['getComputedStyle','requestAnimationFrame','cancelAnimationFrame'].includes(key) ? dom.window[key].bind(dom.window) : dom.window[key] });
   const doc = dom.window.document, center = doc.querySelector('#center'), native = doc.querySelector('[data-phase]'), input = doc.querySelector('textarea');
-  let width = 1160;
-  doc.querySelector('#frame').getBoundingClientRect = () => ({ left: 0, top: 0, width: 1440, height: 900 });
+  let width = 1160, frameWidth = 1440, sidebarToggles = 0;
+  doc.querySelector('#frame').getBoundingClientRect = () => ({ left: 0, top: 0, width: frameWidth, height: 900 });
   center.getBoundingClientRect = () => ({ left: 280, top: 0, width, height: 900 });
   const captured = new WeakMap();
   dom.window.HTMLElement.prototype.setPointerCapture = function (id) { captured.set(this,id); };
@@ -34,7 +34,7 @@ test('compiled overlay measures official slot wrappers, preserves draft/identity
   dom.window.HTMLElement.prototype.releasePointerCapture = function () { captured.delete(this); };
   input.value = '保留原生草稿'; doc.querySelector('#opener').focus();
   const saved = librarySnapshot();
-  const composition = createCockpitComposition({ sessions: { list: { getSnapshot: () => ({ current: saved.spec.session_id, ids: [saved.spec.session_id] }), subscribe: () => () => {} }, open() { assert.fail('unexpected session switch'); } }, layout: { selectPanel() {} } });
+  const composition = createCockpitComposition({ sessions: { list: { getSnapshot: () => ({ current: saved.spec.session_id, ids: [saved.spec.session_id] }), subscribe: () => () => {} }, open() { assert.fail('unexpected session switch'); } }, layout: { selectPanel() {}, toggleSidebar() { sidebarToggles++; doc.querySelector('#frame').toggleAttribute('data-sidebar-collapsed'); } } });
   const library = createLibraryBoardClient(async (_c, operation) => operation === 'list' ? ok(listOf(saved)) : ok(saved));
   const root = createRoot(doc.querySelector('#root'));
   const frame = async callback => act(async () => { callback?.(); await new Promise(resolve => dom.window.requestAnimationFrame(() => dom.window.requestAnimationFrame(resolve))); });
@@ -85,14 +85,22 @@ test('compiled overlay measures official slot wrappers, preserves draft/identity
     assert.equal(native.inert, true); assert.equal(doc.activeElement.dataset.testid, 'composition-toggle-chat');
     await frame(() => composition.revealChat());
     assert.equal(native.inert, false); assert.equal(input.value, '保留原生草稿');
-    width = 334;
+    width = 334; frameWidth = 390;
     await frame(() => dom.window.dispatchEvent(new dom.window.Event('resize')));
     assert.equal(doc.querySelector('[data-composition-mode]').dataset.compositionMode, 'chat');
+    assert.ok(doc.querySelector('[data-composition-mode]').hasAttribute('inert'));
+    assert.equal(native.inert, true);
+    await frame(() => doc.querySelector('[aria-label="收起导航，查看驾驶舱"]').click());
+    assert.equal(sidebarToggles, 1);
+    assert.equal(doc.querySelector('[data-composition-mode]').hasAttribute('inert'), false);
+    assert.equal(native.inert, false); assert.equal(input.value, '保留原生草稿');
     await frame(() => composition.showCanvas());
     assert.equal(doc.querySelector('[data-composition-mode]').dataset.compositionMode, 'canvas');
     doc.querySelector('[data-testid=composition-toggle-chat]').focus();
     await frame(() => composition.close());
     assert.equal(native.hasAttribute('data-sm-cockpit-native'), false);
+    assert.equal(doc.querySelector('#frame').hasAttribute('data-sm-cockpit-compact'), false);
+    assert.equal(doc.querySelector('[data-sm-cockpit-sidebar]'), null);
     assert.equal(native.style.getPropertyValue('--sm-cockpit-chat-width'), '');
     assert.equal(doc.activeElement.id, 'opener'); assert.equal(input.value, '保留原生草稿');
     await frame(() => composition.open(saved.spec.session_id));
