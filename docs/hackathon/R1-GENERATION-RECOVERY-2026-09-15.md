@@ -1,6 +1,6 @@
 # R-1 生成配置错误恢复（2026-09-15）
 
-本地修复与隔离原生工具／HTTP 回归完成，B0 完整检查与干净重建通过。基线为已合 S3 的 `c734957`（#152），分支 `codex/fix-r1-board-generation`。修复提交 `dccc80e` 已提交、推送至草稿 [PR #153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)，推送门禁通过。真实模型行为复验仍 **NOT_RUN**；尚未切换运行环境或合并，产品保持 **PARTIAL**。
+本地修复与隔离原生工具／HTTP 回归完成，B0 完整检查与干净重建通过。基线为已合 S3 的 `c734957`（#152）。[PR #153](https://github.com/weiweity/fuqing-crm-analytics/pull/153) 已 squash 合入 `698278e`。有界真实模型 3 次与 Chrome 预览取消已记账；TABLE `show_values` **NOT_OBSERVED**。产品保持 **PARTIAL**。
 
 ## 原因与原始证据
 
@@ -30,7 +30,7 @@
 | 编译与类型 | 固定 DSH `183f08e9`、Node 24、Python 3.14；host/client 完整类型检查与本插件构建通过 |
 | 隔离集成 | 已构建原生工具 SDK → FastAPI → SQLite → 认证 RPC 通过。原始非法参数直接到后端仍为 422；修正后 TABLE 与 LINE/FUNNEL/TABLE 均为 PENDING，取消后没有已保存 head；结果仍只有一条。原有确认、布局、回退、点选编辑及重开链继续通过 |
 | B0 完整检查 | PASS：486 项 Python、Ruff、源测试、编译后测试、Cordis loader、host/client 类型与干净重建；六个构建产物一致。不是旧 CRM 全套或真实模型验收 |
-| 真实模型／Chrome | 本次未跑；单测不能保证模型以后不会尝试 bash，或不会误删组件 |
+| 真实模型／Chrome | 3 次提示：问数通过；第一次生成因观察器把 `llm/retry` 当失败中止、未调用 generate；重试 8 次 generate，命中 `COMPONENT_OVERLAP` 预检，FUNNEL 保留，WATERFALL 因无对账贡献被数据合同拒绝。终态未保存 6 块预览，Chrome 打开后取消。TABLE `show_values` NOT_OBSERVED；bash 本轮 0 次。单测仍不能保证以后绝不 bash |
 
 本轮新增集成测试首次运行的普通工具对照因测试替身缺少 SDK `output.render` 失败，补齐测试替身后通过；该次不是业务守卫放行失败，不抹去失败记录。两个新源回归在添加前置校验前失败，修复后通过。
 
@@ -38,8 +38,8 @@
 
 ## 交付与剩余
 
-本地详细记录位于本工作树 `.context/checks/r1-board-generation-20260915/`，不进 Git。提交前 `/review` 已完成 OCR preview/rule：5 个代码/配置文件全部审查，另手审 6 个 Markdown，无未闭合高风险问题。PR 与当前 HEAD 的 CI 状态、最终合并回执以 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153) 为准；CI 不能替代真实模型 QA。
+本地详细记录位于本机 `.context/checks/r1-board-generation-20260915/`，不进 Git。#153 squash 合入 `698278e`；PR CI [34940883528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34940883528) 与该 main CI [34950368840](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34950368840) 均成功（`changes` / `b0-contract-build` / `merge-gate`；其余 job 为路径计划 skip）。
 
-运行只读预检通过：现有 6677 仍加载原目录插件，默认模型为 `deepseek-official/deepseek-flash`，业务服务已配置；这不验证凭据有效性或实际模型请求。说明板 v15 与原板 v9 的正文指纹已留存，未新增版本。已准备临时切换与恢复方案：确认窗口后使用候选插件与原持久 runtime，新会话最多 3 次提示，只检查并取消新预览，结束恢复原插件并核对已存正文。当前窗口待确认，合并前 QA 保持开放。
+有界复验在临时切到候选插件的 6677 上进行，模型 `deepseek-official/deepseek-flash`。预览 `preview_3b87322e3dd841ac9b9db6463bad2e5c` 已取消；说明板 v15 与原板 v9 指纹未变。结束后 6677 恢复原目录插件（web PID 99115），18082 仍 71160。当前运行态不是 `698278e`。
 
-R-1 代码恢复链已具备隔离证据，真实模型行为仍待固定候选、有界调用与明确运行窗口复验。85 历史导航、S4、S5 用户 UAT 和 G1–G6／U1 继续独立挂账；不重跑 Figma/B3 全矩阵，不代签验收。
+85 历史导航、S4、S5 用户 UAT 和 G1–G6／U1 继续独立挂账；不重跑 Figma/B3 全矩阵，不代签验收。

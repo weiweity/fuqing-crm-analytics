@@ -1,6 +1,6 @@
 # 产品验收与发布准备（2026-09-10）
 
-> 当前增量：[R-1 生成配置错误恢复](R1-GENERATION-RECOVERY-2026-09-15.md)已定位并本地修复：TABLE 非法属性与 LINE/TABLE 布局重叠现在有明确回执，隔离原生工具／HTTP 回归通过，B0 完整检查与干净重建通过。修复提交 `dccc80e` 已推送至草稿 [PR #153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)，本地与推送门禁通过。既有守卫继续拒绝 bash；真实模型和临时运行切换尚未执行，合并前 QA 待运行窗口，不关闭 R-1 真实措辞复验、S4/S5 或本人 UAT。
+> 当前增量：[R-1 生成配置错误恢复](R1-GENERATION-RECOVERY-2026-09-15.md)已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)（`698278e`）：TABLE 非法属性与 LINE/TABLE 布局重叠现在有明确回执。有界真实模型 3 次＋Chrome 预览取消已记账；TABLE `show_values` NOT_OBSERVED。合入后 6677 已恢复原插件，不等于已加载 main。不关闭 S4/S5 或本人 UAT。
 
 > 最新修复：用户已授权实施，[S3 界面修复](S3-UI-REPAIR-2026-09-15.md)完成窄屏覆盖导航、取消拒绝与中文连接错误的本地修改，B0 完整检查通过。真实 Chrome 定点复验没有新增保存版本，仍为说明板 v15／原板 v9；85 历史跳转未定因、本轮未复现。下面接续段保留修复前记录；整体仍 PARTIAL，S4/S5、R-1 与用户本人 UAT 未关闭。
 
