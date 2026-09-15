@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Local DSH-base entry. Does not manage 8000/5173/4315-4319. */
+/** Local DSH-base entry. Does not manage 8000/5173/15173/4315-4319. */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { writeFile, mkdir, readFile } from 'node:fs/promises';

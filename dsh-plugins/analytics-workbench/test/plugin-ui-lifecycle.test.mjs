@@ -157,7 +157,7 @@ test('legacy board entry renders wide and rail copy and links to the board in a 
     assert.match(wide, /aria-label="打开比赛看板"/);
     assert.match(wide, /data-testid="legacy-board-open"/);
     // The address, the new-tab target, and the opener severance are the behavior.
-    assert.match(wide, /href="http:\/\/127\.0\.0\.1:5173\/"/);
+    assert.match(wide, /href="http:\/\/127\.0\.0\.1:15173\/"/);
     assert.match(wide, /target="_blank"/);
     assert.match(wide, /rel="noopener noreferrer"/);
   } finally {

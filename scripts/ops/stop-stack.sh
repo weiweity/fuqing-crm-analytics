@@ -12,7 +12,7 @@ FRONTEND_START_FILE="$STATE_DIR/frontend.started_at"
 API_PORT="$(sed -n '1p' "$API_PORT_FILE" 2>/dev/null || true)"
 FRONTEND_PORT="$(sed -n '1p' "$FRONTEND_PORT_FILE" 2>/dev/null || true)"
 API_PORT="${API_PORT:-${FQ_API_PORT:-8000}}"
-FRONTEND_PORT="${FRONTEND_PORT:-${FQ_FRONTEND_PORT:-5173}}"
+FRONTEND_PORT="${FRONTEND_PORT:-${FQ_FRONTEND_PORT:-15173}}"
 stop_status=0
 
 valid_port() {

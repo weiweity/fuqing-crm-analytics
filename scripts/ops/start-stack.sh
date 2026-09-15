@@ -4,7 +4,7 @@ set -euo pipefail
 
 CRM_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 API_PORT="${FQ_API_PORT:-8000}"
-FRONTEND_PORT="${FQ_FRONTEND_PORT:-5173}"
+FRONTEND_PORT="${FQ_FRONTEND_PORT:-15173}"
 STATE_DIR="${FQ_STACK_STATE_DIR:-${TMPDIR:-/tmp}/fuqing-crm-analytics-${UID}}"
 API_PID_FILE="$STATE_DIR/api.pid"
 API_PORT_FILE="$STATE_DIR/api.port"

@@ -102,7 +102,7 @@ def test_stack_scripts_keep_executable_mode() -> None:
 def test_start_script_has_owned_pid_and_configurable_port_guards() -> None:
     content = START_SCRIPT.read_text(encoding="utf-8")
     assert 'FQ_API_PORT:-8000' in content
-    assert 'FQ_FRONTEND_PORT:-5173' in content
+    assert 'FQ_FRONTEND_PORT:-15173' in content
     assert 'FQ_STACK_STATE_DIR' in content
     assert 'started_at' in content
     assert 'backend.main:app' in content

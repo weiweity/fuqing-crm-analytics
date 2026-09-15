@@ -210,11 +210,11 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 
 ### 侧栏比赛看板入口（2026-09-15）
 
-侧栏底部在同一 `sidebar.footer.action` 槽新增第二个入口「比赛看板」（id=`shine-mage.analytics-b0.legacy-board`、order=20；原入口 id=`shine-mage.analytics-b0.footer`、order=10，选择改按稳定 id 而非 slot 名）。它在新标签页打开旧 CRM 前端 `http://127.0.0.1:5173/`，即 `scripts/ops/start-stack.sh` 服务的前端。
+侧栏底部在同一 `sidebar.footer.action` 槽新增第二个入口「比赛看板」（id=`shine-mage.analytics-b0.legacy-board`、order=20；原入口 id=`shine-mage.analytics-b0.footer`、order=10，选择改按稳定 id 而非 slot 名）。它在新标签页打开旧 CRM 前端 `http://127.0.0.1:15173/`，即 `scripts/ops/start-stack.sh` 的默认 `FQ_FRONTEND_PORT`（dsh-dev 预留的比赛轨 Vite，不用通用 5173）。
 
 - 用真实锚点而不是 `window.open`：弹窗策略拦截不会让按钮静默失效，中键与状态栏预览也仍可用。`target="_blank"` + `rel="noopener noreferrer"` 与两档文案（宽栏「比赛看板」／收窄「看板」）由 `test/plugin-ui-lifecycle.test.mjs` 的编译后 DOM 断言覆盖，该测试在 `window.open` 被调用时直接失败。
 - 看板仍是独立应用、独立进程与独立登录：DSH 不内嵌、不代理，也不放松旧前端的 `frame-ancestors 'none'`。
-- 地址按 `start-stack.sh` 的默认 `FQ_FRONTEND_PORT=5173` 写死；改该变量后此入口不跟随。`--strictPort` 让端口冲突表现为启动失败，而不是在 5173 上静默服务另一个应用；前端未启动时用户看到浏览器自身的连接失败页，插件不接管。
+- 地址按 `start-stack.sh` 的默认 `FQ_FRONTEND_PORT=15173` 写死；改该变量后此入口不跟随。`--strictPort` 让端口冲突表现为启动失败。裸 `npm run dev` 仍可能听 5173，和本入口不是同一条。前端未启动时用户看到浏览器自身的连接失败页，插件不接管。
 
 ## v0.8 实际能力与边界（历史基线）
 

@@ -44,8 +44,8 @@ import { createCockpitComposition } from './cockpit-composition.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 
-/** Competition board address: the front end `scripts/ops/start-stack.sh` serves. */
-const LEGACY_BOARD_URL = 'http://127.0.0.1:5173/';
+/** Competition board address: `start-stack.sh` default `FQ_FRONTEND_PORT` (dsh-dev COMPETITION_VITE_PORT 15173). Not generic Vite 5173. */
+const LEGACY_BOARD_URL = 'http://127.0.0.1:15173/';
 
 function initialState() {
   try {
