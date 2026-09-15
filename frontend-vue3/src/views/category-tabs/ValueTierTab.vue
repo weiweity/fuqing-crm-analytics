@@ -13,6 +13,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
+import { maskCategoryName } from '@/utils/maskCategoryName'
 
 const WINDOW_LABELS: Record<string, string> = {
   default: '当前周期',
@@ -144,6 +145,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     width: 120,
     fixed: 'left',
     align: 'center',
+    render: (row) => maskCategoryName(row.category_name),
   },
   {
     title: '总人数',
@@ -262,7 +264,7 @@ const valueTierXlsxColumns = computed<XlsxColumn[]>(() => [
 ])
 function flattenValueTierRow(row: any): any {
   return {
-    category_name: row.category_name,
+    category_name: maskCategoryName(row.category_name),
     total_users: row.total_users,
     high_value_users: row.high_value_users,
     high_value_ratio: row.high_value_ratio,

@@ -20,6 +20,7 @@ const props = defineProps<{
 
 const filterStore = useFilterStore()
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { maskCategoryName } from '@/utils/maskCategoryName'
 
 // 目标品类选择 —— 默认同步 props.categoryOptions[0]
 const targetCategory = ref<string | null>(null)
@@ -37,7 +38,7 @@ const initCategory = computed(() => {
 
 const selectOptions = computed(() => {
   const fromProps = props.categoryOptions || []
-  return fromProps.map(c => ({ label: c, value: c }))
+  return fromProps.map(c => ({ label: maskCategoryName(c), value: c }))
 })
 
 // ─── 排序与过滤 ──────────────────────────────────────────────────
@@ -103,6 +104,7 @@ const compactColumns = computed<DataTableColumns<any>>(() => [
     width: 140,
     fixed: 'left',
     align: 'center',
+    render: (row: any) => maskCategoryName(row.category_name),
   },
   {
     title: () => hColTip('关联订单数', '同时包含目标品类和该品类的订单数量'),
@@ -155,6 +157,7 @@ const fullColumns = computed<DataTableColumns<any>>(() => [
     width: 140,
     fixed: 'left',
     align: 'center',
+    render: (row: any) => maskCategoryName(row.category_name),
   },
   {
     title: () => hColTip('关联订单数', '同时包含目标品类和该品类的订单数量'),
@@ -345,7 +348,7 @@ async function handleExport() {
   if (!items.length) return
 
   const rows = items.map((row: any) => ({
-    category_name: row.category_name,
+    category_name: maskCategoryName(row.category_name),
     co_order_count: row.current.co_order_count,
     support: row.current.support,
     confidence: row.current.confidence,

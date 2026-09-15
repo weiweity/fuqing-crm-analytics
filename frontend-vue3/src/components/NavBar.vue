@@ -17,7 +17,9 @@ let hideTimer: number | null = null
 let idleTimer: number | null = null
 let idleDisposed = false
 
-const IDLE_TIMEOUT_MS = 3 * 60 * 1000
+// 0 disables the frontend idle logout. Ghost sessions are reclaimed by
+// backend FQ_AUTH_IDLE_SECONDS (default 8h).
+const IDLE_TIMEOUT_MS = 0
 const IDLE_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart'] as const
 
 const activeKey = computed(() => {
@@ -77,6 +79,7 @@ function isPopoverTabActive(item: NavItem, tab: NavTab) {
 }
 
 function resetIdleTimer() {
+  if (IDLE_TIMEOUT_MS <= 0) return
   if (idleTimer !== null) window.clearTimeout(idleTimer)
   idleTimer = window.setTimeout(() => void handleIdleTimeout(), IDLE_TIMEOUT_MS)
 }
