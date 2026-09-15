@@ -73,7 +73,7 @@ test('built browser factory requires only platform modules and registers shared-
   assert.ok(names.includes('conversation.hero.brand.mark'));
   assert.ok(names.includes('sidebar.panellist'));
   assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
-  const footer = entries.find(row => row.options.name === 'sidebar.footer.action');
+  const footer = entries.find(row => row.options.id === 'shine-mage.analytics-b0.footer');
   const overlay = entries.find(row => row.options.name === 'shell.overlay');
   const dock = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
   const panel = entries.find(row => row.options.name === 'sidebar.panellist');

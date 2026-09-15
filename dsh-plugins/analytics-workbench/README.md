@@ -208,6 +208,14 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 
 构建不再将 `COMPETITION_HTTP_BASE/TOKEN` 编译进公共 JS。带合成哨兵配置的真实构建及 JS/SourceMap 检查通过。旧 C0 overlay 仍有显式直连配置接缝，认证迁移/部署兼容待核验；不要恢复内联 token，也不要声称旧 HTTP 资产流程已由新看板集成覆盖。
 
+### 侧栏比赛看板入口（2026-09-15）
+
+侧栏底部在同一 `sidebar.footer.action` 槽新增第二个入口「比赛看板」（id=`shine-mage.analytics-b0.legacy-board`、order=20；原入口 id=`shine-mage.analytics-b0.footer`、order=10，选择改按稳定 id 而非 slot 名）。它在新标签页打开旧 CRM 前端 `http://127.0.0.1:5173/`，即 `scripts/ops/start-stack.sh` 服务的前端。
+
+- 用真实锚点而不是 `window.open`：弹窗策略拦截不会让按钮静默失效，中键与状态栏预览也仍可用。`target="_blank"` + `rel="noopener noreferrer"` 与两档文案（宽栏「比赛看板」／收窄「看板」）由 `test/plugin-ui-lifecycle.test.mjs` 的编译后 DOM 断言覆盖，该测试在 `window.open` 被调用时直接失败。
+- 看板仍是独立应用、独立进程与独立登录：DSH 不内嵌、不代理，也不放松旧前端的 `frame-ancestors 'none'`。
+- 地址按 `start-stack.sh` 的默认 `FQ_FRONTEND_PORT=5173` 写死；改该变量后此入口不跟随。`--strictPort` 让端口冲突表现为启动失败，而不是在 5173 上静默服务另一个应用；前端未启动时用户看到浏览器自身的连接失败页，插件不接管。
+
 ## v0.8 实际能力与边界（历史基线）
 
 - 根 Host 入口 `lib/index.js` 同时提供 UI discover 与私有原生协议桥，不登记工具、不保存业务账本或循环调用模型。桥只接受本次运行能力，返回原请求关联的原生日志及 `whenIdle + flush` 退出证据。
@@ -223,7 +231,7 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 - 画布 closed kinds：`METRIC` `BAR` `LINE` `TABLE` `EVIDENCE` `html_sandbox` `LINK`。刷新按块上的 `source_result_id` 重绑数字，不是写死 `r1`。回退走 history 上一版。`html_sandbox` 用 srcdoc + CSP（无 script）；刷新不跟随跳转、不打内网。
 - 聊天下「生成飞书文档 / 生成多维表」只往板上加 LINK 占位（`example.invalid`），不接飞书 token。
 - 侧栏「数据员工」面板（`sidebar.panellist` id=`staff` + `main` key=`staff`）是旁路 fixture，不另开一套聊天；广场入口可 `sessions.create()` 回到对话。
-- 底栏「我的驾驶舱」有 `layout.selectPanel('cockpit')` 就切侧栏面板；没有 layout 才打开 overlay。
+- 底栏「我的驾驶舱」有 `layout.selectPanel('cockpit')` 就切侧栏面板；没有 layout 才打开 overlay。底栏另有「比赛看板」，只在新标签页打开独立前端，不切面板、不开 overlay。
 - 驾驶舱可经公开 `sessions.clear()` 脱离当前会话，关闭时仅恢复仍存在的原选择，不创建/删除/取消会话；未应用草稿退出需确认，Tab 双向保持在弹层、关闭后归还固定入口焦点。原始品牌静态路径与完整条件往返标本由固定网关服务；后者不是实际同条件 BI，不加载旧 Vue/Pinia。
 - 工具卡只读取 `block.meta` 的精确版本化结果；处理中/失败/未知格式分开，不从模型文本猜成功。默认不开放保存、导出或审批。`--native-query-assets` 下可将 SUCCEEDED 查询保存为 SNAPSHOT 并加入驾驶舱；仍无导出/审批。“停止查询”取消当前卡片所属会话，不取页面第一个 `data-session-id`。
 

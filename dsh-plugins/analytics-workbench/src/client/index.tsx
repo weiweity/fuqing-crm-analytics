@@ -44,6 +44,9 @@ import { createCockpitComposition } from './cockpit-composition.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 
+/** Competition board address: the front end `scripts/ops/start-stack.sh` serves. */
+const LEGACY_BOARD_URL = 'http://127.0.0.1:5173/';
+
 function initialState() {
   try {
     const restored = restoreTitle(window.localStorage.getItem(TITLE_STORAGE_KEY));
@@ -153,6 +156,7 @@ type FooterProps = PropsRuntime<'sidebar.footer.action'> & StoreProps & {
   openCockpit?(): boolean;
   library?: LibraryBoardClient;
 };
+type LegacyBoardActionProps = PropsRuntime<'sidebar.footer.action'>;
 type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   detachSelection(): void;
@@ -248,6 +252,29 @@ function Footer(props: FooterProps) {
     }}>
     {props.wide ? '我的驾驶舱' : '驾驶舱'}
   </button></>;
+}
+
+/**
+ * Sidebar entry that opens the competition board's own front end — a separate
+ * application on its own port, not a panel inside this shell.
+ *
+ * The loopback address is the front end `scripts/ops/start-stack.sh` serves; it
+ * starts that server with `--strictPort`, so a conflicting process makes the
+ * launcher fail rather than silently serving a different app on the port.
+ *
+ * Rendered as a real anchor rather than a `window.open` call: a click that the
+ * browser's popup policy blocks would leave `window.open` returning null and
+ * the button silently doing nothing, and an anchor also keeps middle-click and
+ * the status-bar preview working. `rel` mirrors `openHttpsLink`'s hand-off.
+ */
+function LegacyBoardAction(props: LegacyBoardActionProps) {
+  return <><style>{css}</style><a className="analytics-b0-trigger" href={LEGACY_BOARD_URL}
+    target="_blank" rel="noopener noreferrer"
+    title="在新的浏览器标签页打开比赛看板"
+    aria-label="打开比赛看板"
+    data-testid="legacy-board-open">
+    {props.wide ? '比赛看板' : '看板'}
+  </a></>;
 }
 
 function AssetOverlay(props: OverlayProps) {
@@ -431,6 +458,11 @@ export function apply(ctx: Context): void {
     name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store: chromeStore,
     inject: () => ({ openCockpit: openCockpitPanel, library }),
   }, Footer));
+  // The competition board stays its own application: this row is only a link
+  // that opens it in a tab of its own.
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.legacy-board', order: 20,
+  }, LegacyBoardAction));
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store: chromeStore,
     inject: () => {

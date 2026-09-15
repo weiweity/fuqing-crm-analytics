@@ -18,6 +18,8 @@
 
 S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)已合 #152（`c734957`）。**[R-1 生成配置错误恢复](docs/hackathon/R1-GENERATION-RECOVERY-2026-09-15.md)** 已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)（`698278e`）：布局重叠预检与 FUNNEL 保留已有有界真实模型／Chrome 证据。TABLE `show_values` 现场未复现；bash 本轮未出现。合入后 6677 已恢复原目录插件，不等于已加载 main。不升版本。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，各动作授权分别核验。
 
+另有一刀在 `codex/legacy-board-entry-20260915`（`47f4007`，未合）：侧栏底部新增「比赛看板」入口，在新标签页打开旧 CRM 前端 `http://127.0.0.1:5173/`（`scripts/ops/start-stack.sh` 服务的默认 `FQ_FRONTEND_PORT`，写死不跟随）。看板仍是独立应用、独立进程与独立登录；DSH 不内嵌、不代理，也不放松旧前端的 `frame-ancestors 'none'`。改 `FQ_FRONTEND_PORT` 后入口不跟随，前端未启动时是浏览器自身的连接失败页。编译后 DOM 已断言 `href/target/rel` 与两档文案，真实浏览器跳转未单独验收。Git 合入与 CI 以 PR 回执为准。
+
 产品方向：原生问数 → 复用结果、优先定制组件自由组板 → 预览 → 确认保存 → 指定组件 AI 修改／自由布局 → 重开／回退。六类是首批能力，不是六张固定模板或最终上限；旧交接的三操作、固定会话和主区互斥不是最终产品要求。
 
 | 包 | Git 交付 | 适用范围 |
