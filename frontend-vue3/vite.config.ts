@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-const buildContentSecurityPolicy = (connectSources: string) => [
+const buildContentSecurityPolicy = (connectSources: string, extra: string[] = []) => [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
@@ -13,9 +13,14 @@ const buildContentSecurityPolicy = (connectSources: string) => [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "form-action 'self'",
+  ...extra,
 ].join('; ')
 
-export const DEV_CONTENT_SECURITY_POLICY = buildContentSecurityPolicy("'self' ws: wss:")
+// Vite HMR reconnects with a blob: Worker. script-src does not allow blob eval,
+// so worker-src must be explicit in dev. Preview/prod stay without blob workers.
+export const DEV_CONTENT_SECURITY_POLICY = buildContentSecurityPolicy("'self' ws: wss:", [
+  "worker-src 'self' blob:",
+])
 export const PREVIEW_CONTENT_SECURITY_POLICY = buildContentSecurityPolicy("'self'")
 
 const securityHeaders = (contentSecurityPolicy: string) => ({

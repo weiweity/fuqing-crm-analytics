@@ -5,7 +5,6 @@
 逻辑同R区间分析，仅将 r_segment 替换为 rfm_segment（8象限+TTL）。
 """
 
-import os
 import logging
 import gc
 from datetime import datetime, date
@@ -43,19 +42,15 @@ def _new_duckdb_conn() -> duckdb.DuckDBPyConnection:
     from backend.services import dual_conn
 
     request_conn = dual_conn.get_request_connection()
-    if request_conn is not None:
-        conn = duckdb.connect(
-            str(DUCKDB_PATH),
-            config=dual_conn._db_config(),
-            read_only=True,
-        )
-        return dual_conn._apply_runtime_settings(conn, dual_conn.READ_MEMORY_LIMIT)
-
-    cfg = bdc.get_duckdb_config()
-    db_password = os.environ.get("DUCKDB_PASSWORD")
-    if db_password:
-        cfg["password"] = db_password
-    return duckdb.connect(str(DUCKDB_PATH), config=cfg)
+    read_only = request_conn is not None
+    # L4.66: memory_limit/threads must be SET after connect, not in connect(config=).
+    # Putting those keys in the fingerprint collides with the write singleton.
+    conn = duckdb.connect(
+        str(DUCKDB_PATH),
+        config=dual_conn._db_config(),
+        read_only=read_only,
+    )
+    return dual_conn._apply_runtime_settings(conn, dual_conn.READ_MEMORY_LIMIT)
 
 
 def _run_rfm_period_serial(
