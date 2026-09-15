@@ -3,6 +3,9 @@ export const COMPOSITION_PIN = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e';
 export const CHAT_MIN = 400;
 export const CANVAS_MIN = 560;
 export const SPLIT_GAP = 8;
+// Pinned native rail is 56px. Below this width, expanded navigation overlays
+// the single-column canvas instead of consuming its reading width.
+export const COMPACT_FRAME_MAX = CANVAS_MIN + 56;
 
 export function compositionGeometry(width, preferred = 440, showChat = true, narrowView = 'canvas') {
   if (!Number.isFinite(width) || width <= 0) return { mode: 'unavailable', canvas: 0, chat: 0 };
@@ -56,10 +59,40 @@ export function createCockpitComposition({ sessions, layout }) {
     revealChat() { update({ showChat: true, narrowView: 'chat' }); },
     toggleChat() { update({ showChat: !state.showChat, narrowView: 'chat' }); },
     showCanvas() { update({ narrowView: 'canvas' }); },
+    toggleSidebar() { if (!disposed) layout.toggleSidebar?.(); },
     setWidth(width) { if (Number.isFinite(width)) update({ width: Math.max(CHAT_MIN, Math.round(width)) }); },
     close() { update({ open: false, fallback: false }); },
     fallback() { if (!disposed) { update({ open: false, fallback: true }); layout.selectPanel('cockpit'); } },
     dispose() { if (disposed) return; disposed = true; off(); listeners.clear(); },
+  };
+}
+
+/** Scoped native navigation styling; no layout preference or upstream DOM replacement. */
+export function leaseCompactNavigation(frame, center) {
+  const sidebar = center.previousElementSibling;
+  if (!sidebar || sidebar.parentElement !== frame) throw new Error('native sidebar seam unavailable');
+  const compact = 'data-sm-cockpit-compact', marker = 'data-sm-cockpit-sidebar';
+  if (frame.hasAttribute(compact) || sidebar.hasAttribute(marker)) throw new Error('native navigation already leased');
+  const key = '--sm-cockpit-sidebar-width';
+  const prior = [frame.style.getPropertyValue(key), frame.style.getPropertyPriority(key)];
+  sidebar.setAttribute(marker, 'v1');
+  let disposed = false;
+  return {
+    update(width) {
+      if (disposed) return false;
+      const narrow = width > 0 && width <= COMPACT_FRAME_MAX;
+      if (frame.hasAttribute(compact) !== narrow) frame.toggleAttribute(compact, narrow);
+      // Read the native inline preference, not the CSS-overridden 56px track.
+      const preferred = Number.parseFloat(frame.style.gridTemplateColumns);
+      const value = `${Number.isFinite(preferred) && preferred > 56 ? preferred : 280}px`;
+      if (frame.style.getPropertyValue(key) !== value) frame.style.setProperty(key, value);
+      return narrow && !frame.hasAttribute('data-sidebar-collapsed');
+    },
+    dispose() {
+      if (disposed) return; disposed = true;
+      frame.removeAttribute(compact); sidebar.removeAttribute(marker);
+      if (prior[0]) frame.style.setProperty(key, ...prior); else frame.style.removeProperty(key);
+    },
   };
 }
 

@@ -50,6 +50,43 @@ test('lost confirmation reply retains draft, explicit retry reuses key, refresh 
   assert.deepEqual(calls.filter(call => call.operation === 'confirm').map(call => call.payload.key), ['board-confirm:preview_test', 'board-confirm:preview_test']);
 });
 
+test('connection exceptions preserve saved content and unknown confirmation without exposing raw browser errors', async t => {
+  const saved = snap(), pending = draft(snap({ version: 2 })); let disconnected = false;
+  const { instance, state, calls } = client(t, operation => {
+    if (disconnected) throw new TypeError('Failed to fetch');
+    if (operation === 'get') return ok(saved);
+    if (operation === 'preview') return ok(pending);
+  });
+  await instance.openBoard(saved.spec.board_id);
+  disconnected = true; await instance.refresh();
+  assert.match(state().message, /连接中断.*保留当前内容/);
+  assert.deepEqual(state().saved, saved);
+  disconnected = false; await instance.openPreview(pending.preview_id);
+  disconnected = true; await instance.confirm();
+  assert.match(state().message, /未收到保存回执.*保存结果待核对/);
+  assert.equal(state().confirmationUncertain, true); assert.deepEqual(state().preview, pending);
+  assert.deepEqual(state().saved, saved);
+  assert.equal(calls.filter(call => call.operation === 'confirm').length, 1);
+});
+
+test('cancel conflict explains an applied draft, preserves recovery state, and does not relabel unrelated conflicts', async t => {
+  const saved = snap(), pending = draft(snap({ version: 2 }));
+  const conflict = { ok: false, error: { code: 'VERSION_CONFLICT', message: '看板版本已变化，请重新读取后预览；原版本未被覆盖。' } };
+  const { instance, state, calls } = client(t, operation => {
+    if (operation === 'get') return ok(saved);
+    if (operation === 'preview') return ok(pending);
+    return conflict;
+  });
+  await instance.openBoard(saved.spec.board_id); await instance.openPreview(pending.preview_id);
+  await instance.confirm(); assert.equal(state().message, conflict.error.message);
+  await instance.cancel(); await instance.cancel();
+  assert.match(state().message, /草稿已保存.*不能通过取消撤销.*核对保存结果/);
+  assert.doesNotMatch(state().message, /原版本未被覆盖/);
+  assert.equal(state().confirmationUncertain, true); assert.deepEqual(state().preview, pending);
+  assert.deepEqual(state().saved, saved);
+  assert.deepEqual(calls.map(call => call.operation), ['get', 'preview', 'confirm', 'cancel', 'cancel']);
+});
+
 for (const existing of [false, true]) for (const failure of ['get', 'list']) {
   test(`confirmed ${existing ? 'existing' : 'new'} board is listed atomically when ${failure} refresh fails`, async t => {
     const old = snap(), other = snap({ boardId: 'other_board' });

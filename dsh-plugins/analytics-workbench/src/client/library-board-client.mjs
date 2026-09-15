@@ -24,8 +24,18 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     for (const listener of listeners) listener();
   };
   async function request(operation, payload) {
-    const reply = await call('/shine-mage-board', operation, payload, lifetime.signal);
+    let reply;
+    try { reply = await call('/shine-mage-board', operation, payload, lifetime.signal); }
+    catch {
+      lifetime.signal.throwIfAborted();
+      throw new Error(operation === 'confirm'
+        ? '未收到保存回执，保存结果待核对。请核对保存结果，或重试这次保存。'
+        : '连接中断，未取得本次操作回执；保留当前内容，请稍后重试。');
+    }
     lifetime.signal.throwIfAborted();
+    if (!reply?.ok && operation === 'cancel' && reply?.error?.code === 'VERSION_CONFLICT') {
+      throw new Error('取消未成功：这份草稿已保存，不能通过取消撤销。请核对保存结果；如需恢复旧内容，请读取最新看板后预览回退。');
+    }
     if (!reply?.ok) throw new Error(reply?.error?.message || '未取得看板服务回执；当前内容不变。');
     return reply.value;
   }

@@ -3,7 +3,7 @@ import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import type { LibraryBoardClient } from './library-board-client.mjs';
 import type { CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { LibraryCockpitPanel } from './library-workspace.tsx';
-import { CHAT_MIN, compositionGeometry, nativeCompositionTarget, leaseNativeComposition, type CockpitComposition } from './cockpit-composition.mjs';
+import { CHAT_MIN, compositionGeometry, nativeCompositionTarget, leaseNativeComposition, leaseCompactNavigation, type CockpitComposition } from './cockpit-composition.mjs';
 
 const css = `
 [data-sm-cockpit-native="v1"] { width:var(--sm-cockpit-chat-width); flex:none; align-self:flex-end; height:calc(100% - 44px); margin-top:44px; visibility:var(--sm-cockpit-chat-hidden); }
@@ -16,6 +16,15 @@ const css = `
 .sm-cockpit-composition-canvas { position:absolute; top:44px; bottom:0; left:0; overflow:auto; pointer-events:auto; background:var(--dsw-alias-bg-base); }
 .sm-cockpit-divider { position:absolute; top:44px; bottom:0; width:8px; cursor:col-resize; touch-action:none; pointer-events:auto; border-inline:1px solid var(--dsw-alias-border-l3); box-sizing:border-box; background:var(--dsw-alias-bg-base); }
 .sm-cockpit-composition-fault { position:absolute; top:16px; left:15%; right:15%; padding:16px; background:var(--dsw-alias-bg-base); border:1px solid var(--dsw-alias-border-l3); pointer-events:auto; }
+[data-sm-cockpit-compact] { grid-template-columns:56px minmax(0,1fr) 0px !important; transition:none !important; }
+[data-sm-cockpit-compact] > [data-sm-cockpit-sidebar] { z-index:21; }
+[data-sm-cockpit-compact] > [data-sm-cockpit-sidebar] + * { grid-column:2; grid-row:1; }
+[data-sm-cockpit-compact] > [data-rightbar-col] { grid-column:3; grid-row:1; }
+[data-sm-cockpit-compact]:not([data-sidebar-collapsed]) > [data-sm-cockpit-sidebar] { position:absolute; inset:0 auto 0 0; width:min(var(--sm-cockpit-sidebar-width), calc(100% - 56px)); }
+[data-sm-cockpit-compact] > [data-sm-cockpit-sidebar] > * { width:100% !important; }
+[data-sm-cockpit-compact] > [data-side="sidebar"] { display:none; }
+.sm-cockpit-composition .sm-cockpit-navigation-backdrop { position:absolute; inset:0; border:0; border-radius:0; background:transparent; pointer-events:auto; }
+.sm-cockpit-composition-region[inert] .sm-cockpit-composition-toolbar,.sm-cockpit-composition-region[inert] .sm-cockpit-composition-canvas { pointer-events:none; }
 `;
 type Box = { left: number; top: number; width: number; height: number };
 type ThemeSource = { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
@@ -44,6 +53,7 @@ export function CockpitCompositionOverlay({ composition, library, themeSource, u
   const focusWithin = useRef(false);
   const lease = useRef<ReturnType<typeof leaseNativeComposition> | null>(null);
   const [box, setBox] = useState<Box | null>(null);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const drag = useRef<{ target: HTMLElement; id: number; start: number; base: number; previous: number } | null>(null);
   const shown = board.preview?.snapshot ?? board.layoutDraft ?? board.saved;
   const geometry = compositionGeometry(box?.width ?? 0, state.width, state.showChat && state.sessionAvailable, state.narrowView);
@@ -74,19 +84,26 @@ export function CockpitCompositionOverlay({ composition, library, themeSource, u
     const frame = element.closest('[data-shell-overlay]')?.parentElement;
     if (!frame) return;
     let native: HTMLElement | null = null, center: HTMLElement | null = null, raf: number | null = null;
+    let navigation: ReturnType<typeof leaseCompactNavigation> | null = null;
     let disposed = false;
     const measure = () => {
       raf = null; if (disposed) return;
       const target = nativeCompositionTarget(element);
-      if (!target) { lease.current?.dispose(); lease.current = null; native = null; setBox(null); return; }
+      if (!target) { lease.current?.dispose(); lease.current = null; navigation?.dispose(); navigation = null; native = null; setBox(null); setNavigationOpen(false); return; }
       const nativeChanged = target.native !== native;
       if (nativeChanged) {
         lease.current?.dispose(); lease.current = null;
         try { lease.current = leaseNativeComposition(target.native); native = target.native; }
         catch { setBox(null); return; }
       }
-      if (center !== target.center) { if (center) observer?.unobserve(center); center = target.center; observer?.observe(center); }
-      const f = target.frame.getBoundingClientRect(), c = target.center.getBoundingClientRect();
+      if (center !== target.center || !navigation) {
+        if (center) observer?.unobserve(center);
+        navigation?.dispose(); center = target.center; observer?.observe(center);
+        navigation = leaseCompactNavigation(target.frame, center);
+      }
+      const f = target.frame.getBoundingClientRect();
+      setNavigationOpen(navigation.update(f.width));
+      const c = target.center.getBoundingClientRect();
       const next = { left: c.left - f.left, top: c.top - f.top, width: c.width, height: c.height };
       setBox(previous => !nativeChanged && previous && Object.keys(next).every(key => previous[key as keyof Box] === next[key as keyof Box]) ? previous : next);
     };
@@ -94,13 +111,14 @@ export function CockpitCompositionOverlay({ composition, library, themeSource, u
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
     observer?.observe(frame);
     const mutation = new MutationObserver(schedule);
-    mutation.observe(frame, { childList: true, subtree: true });
+    mutation.observe(frame, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-sidebar-collapsed', 'style'] });
     window.addEventListener('resize', schedule);
     measure();
     return () => {
       disposed = true; observer?.disconnect(); mutation.disconnect(); window.removeEventListener('resize', schedule);
       if (raf !== null) cancelAnimationFrame(raf);
       lease.current?.dispose(); lease.current = null;
+      navigation?.dispose();
       // Closing a focused overlay must not strand keyboard focus in body.
       if (element.contains(document.activeElement) || (focusWithin.current && document.activeElement === document.body)) {
         if (returnFocus?.isConnected && !returnFocus.closest('[inert]')) returnFocus.focus();
@@ -115,18 +133,21 @@ export function CockpitCompositionOverlay({ composition, library, themeSource, u
     const hidingFocusedChat = geometry.chat === 0 && native?.contains(active);
     const hidingFocusedCanvas = geometry.canvas === 0 && anchor.current?.querySelector('.sm-cockpit-composition-canvas')?.contains(active);
     if (hidingFocusedChat || hidingFocusedCanvas) anchor.current?.querySelector<HTMLElement>('[data-testid="composition-toggle-chat"]')?.focus();
-    lease.current?.update(geometry.chat, geometry.chat === 0);
-  }, [box, geometry.chat, geometry.canvas]);
+    lease.current?.update(geometry.chat, geometry.chat === 0 || navigationOpen);
+  }, [box, geometry.chat, geometry.canvas, navigationOpen]);
   if (!state.open) return null;
   return <div ref={anchor} className="sm-cockpit-composition" data-testid="cockpit-composition"
     onFocusCapture={() => { focusWithin.current = true; }}
     onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) focusWithin.current = false; }}>
     <style>{css}</style>
+    {navigationOpen ? <button type="button" className="sm-cockpit-navigation-backdrop" aria-label="收起导航，查看驾驶舱"
+      onClick={() => composition.toggleSidebar()} /> : null}
     {!box || box.width <= 0 ? <div className="sm-cockpit-composition-fault" role="status">
       <p>正在检查原生页面结构。若无法并排，可使用独立驾驶舱；不会替换原生聊天。</p>
       <button type="button" onClick={() => composition.fallback()}>打开独立驾驶舱</button>
       <button type="button" onClick={() => composition.close()}>返回对话</button>
-    </div> : <section className="sm-cockpit-composition-region" style={box} aria-label="驾驶舱与原生对话" data-composition-mode={geometry.mode}>
+    </div> : <section className="sm-cockpit-composition-region" style={box} aria-label="驾驶舱与原生对话" data-composition-mode={geometry.mode}
+      {...(navigationOpen ? { inert: '' } : {})} aria-hidden={navigationOpen || undefined}>
       <header className="sm-cockpit-composition-toolbar">
         <span>{state.sessionAvailable ? '驾驶舱 · 同一原生会话' : '关联会话不可用 · 已保存看板仍可查看'}</span>
         {geometry.mode === 'chat' ? <button type="button" onClick={() => composition.showCanvas()}>查看画布</button> : null}
