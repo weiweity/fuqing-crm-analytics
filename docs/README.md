@@ -132,4 +132,4 @@ fuqing-crm-analytics/docs/
 
 ---
 
-**协作契约**: lint + test 必绿；e2e 默认不挡合（`team-workflow-v1`）。本地即生产，改 data 路径先问人。
+**协作契约**: lint + test 必绿；e2e 默认不挡合（`team-workflow-v1`）。本仓库默认冷存、不是本地即生产；改 data 路径先问人。归档 DuckDB 不复制到演示。

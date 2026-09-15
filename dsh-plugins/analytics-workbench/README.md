@@ -6,7 +6,7 @@
 
 目标与验收以 [TODOS 的 M1 核心交付](../../docs/hackathon/TODOS.md#m1-核心交付) 为准，代码落点与CI见 [STATUS](../../STATUS.md)及 [#134](https://github.com/weiweity/fuqing-crm-analytics/pull/134)。9 月 15 日 S3 原型与正式壳续验见 [S3-ACCEPTANCE](../../docs/hackathon/S3-ACCEPTANCE-2026-09-15.md)。下方分项测试数／“待验”是各阶段历史证据语境，当前停点以 STATUS/TODOS 为准；不代表无代码平台已经完成。
 
-目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。S2-C1 已存板 catalog 已合 [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)；2026-09-14 同一 6677 上其余五类编辑、LINE 换数与当前模型板回退已记账。开放项（正式壳 B3 九态仍 PARTIAL、R-1、UAT、G1–G6）看 STATUS/TODOS，不要求重新选模型。
+目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。S2-C1 已存板 catalog 已合 [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)；2026-09-14 同一 6677 上其余五类编辑、LINE 换数与当前模型板回退已记账。开放项（正式壳 B3 九态仍 PARTIAL、R-1 的 TABLE `show_values` 现场未复现、UAT、G1–G6）看 STATUS/TODOS。R-1 预检已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)。不要求重新选模型。
 
 ### 六类首批合同
 
@@ -102,7 +102,7 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 
 ### 本轮验证证据
 
-完整 `pipeline.mjs --check` 已通过：合成 Python 480 项；Node 分阶段 28、228、61、182 项，干净重建后再跑 61 项（重复层不计成独立覆盖）。流水线原来漏收 `src/board-spec`；本轮已加入，并在日志确认实际运行组件合同、投影与六类 DOM 编辑测试。
+历史流水线记录（2026-09 当时）：完整 `pipeline.mjs --check` 曾报合成 Python 480 项；Node 分阶段 28、228、61、182 项，干净重建后再跑 61 项（重复层不计成独立覆盖）。当时补收 `src/board-spec`。**当前测试数以 STATUS/验证入口及当次 pipeline 日志为准，不把上列数字当现役基线。**
 
 本地证据：`.context/checks/ai-cockpit-goal/component-library-pipeline.log` 为早期组件阶段记录。保留 Python 20 条警告及退出时 SQLite 未关闭连接警告、React `act`/旧 props 警告；不声称零警告，不以这次结果关闭真实模型、浏览器或完整产品验收。A2 新的完整宿主证据与范围见下节；当前构建结果以 TODOS 最新条目为准。
 

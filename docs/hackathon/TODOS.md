@@ -15,7 +15,7 @@
 - [x] P5文档整理：按 document-release 更新当前入口、变更记录、未完成项，由独立文档PR交付；PR合并状态以实际Git回执为准。
 - [x] S2-C1/#136：同会话 `saved_boards` 已合入 `b7dbc7b`。PR CI 通过；该 main CI 首次 `b0-contract-build` 失败后重跑通过，失败记录保留。有界合成措辞复验已做；本人 UAT 与合入后运行验收仍 NOT_RUN。不是 M1／S2 完成。
 - [x] R-1/#153：生成配置预检已合入 `698278e`。有界真实模型 3 次＋Chrome 预览取消通过；TABLE `show_values` NOT_OBSERVED。不是 M1／S2 完成。
-- [x] 侧栏比赛看板入口/#155：已合入 `27052fab`。入口默认改为 `http://127.0.0.1:15173/`，与 `start-stack` 一致，避开 5173。Chrome 已见链接；未启旧 CRM 栈。不是 M1／S2 完成。
+- [x] 侧栏比赛看板入口/#155：已合入 `27052fab`。[#157](https://github.com/weiweity/fuqing-crm-analytics/pull/157) 将默认前端口改为 `15173`（`fce2de83`）。Chrome 已见链接。不是 M1／S2 完成。G1–G6／U1 仍未勾。
 - 本地整洁另以最终Git清单核验：逐文件对账、保留原稿和私有证据，再清理已完成工作树／分支并同步main；不在远端文档固定本机dirty数。`HANDOVER-CODEX.md` 不提交；“只留 main”不授权丢弃独有成果或强删拒绝项。
 
 S2-C1 代码已合。其余五类编辑、LINE 换数与当前模型板回退的**真实模型验收**已于 2026-09-14 在本机 6677 完成；9 月 15 日接续 S3 原型与正式壳验收，见 [首批记录](S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](S3-CROSS-MATRIX-2026-09-15.md)。R-1 代码已合 #153；UAT 不在同一轮顺手扩修。

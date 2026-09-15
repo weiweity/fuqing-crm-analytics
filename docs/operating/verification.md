@@ -1,6 +1,6 @@
 # 当前验证入口与工作流
 
-适用于成果工作树的本地补丁；是否已集成，以该工作树 Git 状态和远端证据为准。授权见 [AGENTS](../../AGENTS.md)，产品阶段见 [黑客松入口](../hackathon/README.md)，本轮结果见 [治理实施记录](../hackathon/WORKFLOW-GOVERNANCE-2026-09-06.md)。
+适用于成果工作树的本地补丁；是否已集成，以该工作树 Git 状态和远端证据为准。授权见 [AGENTS](../../AGENTS.md)。当前施工与缺口看根 [STATUS.md](../../STATUS.md) 和 [TODOS 的 M1 核心交付](../hackathon/TODOS.md#m1-核心交付)。黑客松入口与 [治理实施记录](../hackathon/WORKFLOW-GOVERNANCE-2026-09-06.md) 是历史证据链，不是本轮任务卡。
 
 ## 单一检查定义
 

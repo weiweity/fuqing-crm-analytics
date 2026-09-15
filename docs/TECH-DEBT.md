@@ -2,8 +2,8 @@
 
 > **唯一开放债短表**。历史：[`history/TECH-DEBT-HISTORY.md`](history/TECH-DEBT-HISTORY.md)
 
-**最后更新**: 2026-07-26 合并后安全复核
-**main 基线**: `9bedd40`（本地残留修复分支未 push）
+**最后更新**: 2026-09-15 文档核对（债项本身未关闭）
+**main 基线**: 以根 [STATUS.md](../STATUS.md) 的当前 HEAD 为准；下表 2026-07 基线 `9bedd40` 只是当时安全复核快照。
 
 ---
 
@@ -48,7 +48,7 @@
 ## 工作流契约
 
 - **可合并**: **lint + test 必绿**（e2e **不**挡 PR merge；`docs/operating/team-workflow-v1.md`）
-- **可选 UI smoke**: `.github/workflows/e2e-smoke.yml`（`workflow_dispatch` + 工作日 schedule；`requirements-e2e.txt` + login 壳层）
+- **可选 UI smoke**: `.github/workflows/e2e-smoke.yml`（仅 `workflow_dispatch`，无工作日 schedule；`requirements-e2e.txt` + login 壳层）
 - **整洁**: `docs/operating/project-hygiene.md`
 - **运维监控入口**: `scripts/ops/` + `scripts/launchd/`
 

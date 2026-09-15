@@ -1,6 +1,6 @@
 # 伸美 AI 增长董事会
 
-当前代码交付与运行边界见 [STATUS](./STATUS.md)，下一步见 [M1 核心交付](./docs/hackathon/TODOS.md#m1-核心交付)，9 月 15 日 S3 见 [S3-ACCEPTANCE](./docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](./docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。侧栏「比赛看板」入口已合 [#155](https://github.com/weiweity/fuqing-crm-analytics/pull/155)（`27052fab`）。组件库优先的 AI 驾驶舱代码已有分层实现，M1／产品仍 PARTIAL；Git合入不等于正式release、运行环境切换或本人UAT通过。VERSION 仍为 0.8.0.0。
+当前代码交付与运行边界见 [STATUS](./STATUS.md)，下一步见 [M1 核心交付](./docs/hackathon/TODOS.md#m1-核心交付)，9 月 15 日 S3 见 [S3-ACCEPTANCE](./docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](./docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。侧栏「比赛看板」入口已合 [#155](https://github.com/weiweity/fuqing-crm-analytics/pull/155)；默认前端口 [#157](https://github.com/weiweity/fuqing-crm-analytics/pull/157) 改为 `15173`（`fce2de83`）。组件库优先的 AI 驾驶舱代码已有分层实现，M1／产品仍 PARTIAL；Git合入不等于正式release、运行环境切换或本人UAT通过。VERSION 仍为 0.8.0.0。
 
 下方9月5–10日的决策、端口和候选追加保留为历史记录，不作为当前服务或Git HEAD。
 
@@ -41,9 +41,9 @@
 ./scripts/ops/start-stack.sh
 ```
 
-- 后端 API: http://localhost:8000
-- 前端界面: http://localhost:5173
-- API 文档（无需登录）: http://localhost:8000/docs
+- 后端 API: http://127.0.0.1:8000
+- 前端界面: http://127.0.0.1:15173（`start-stack` 默认；裸 `npm run dev` 仍可能是 5173）
+- API 文档（无需登录）: http://127.0.0.1:8000/docs
 
 演示结束后恢复冷存：
 
