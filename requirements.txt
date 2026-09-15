@@ -36,7 +36,7 @@ bcrypt>=4.0.0           # 密码哈希（routers/auth.py token 认证）
 xxhash>=3.0.0           # 文件指纹（scripts/etl/config.py lazy import, parquet cache）
 psutil>=5.9.0           # 内存监控（scripts/etl/benchmark_memory.py）
 packaging>=24.0         # 版本比较（backend/tests Version 解析）
-pyyaml>=6.0.0           # Pydantic v2 间接 import（lock PyYAML, B2 import check）
+pyyaml>=6.0.3           # Pydantic v2 间接 import（lock PyYAML, B2 import check）
 # 安全相关传递依赖下限（uvicorn/httpx/requests 树）
 click>=8.3.3
 idna>=3.15
