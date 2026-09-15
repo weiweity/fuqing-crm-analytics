@@ -90,13 +90,15 @@ client.interceptors.response.use(
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || ''
       const isLoginRequest = isCredentialAuthRequest(requestUrl)
-      const isRefreshRequest = requestUrl.split('?', 1)[0].replace(/\/+$/, '').endsWith('/v1/auth/refresh')
+      const normalized = requestUrl.split('?', 1)[0].replace(/\/+$/, '')
+      const isRefreshRequest = normalized.endsWith('/v1/auth/refresh')
+      const isSessionRelease = normalized.endsWith('/v1/session')
       const msg = isLoginRequest
         ? (error.response?.data?.detail || '账号或密码错误')
         : '登录已过期，请重新登录'
 
-      if (isLoginRequest || isRefreshRequest) {
-        // 登录失败或 refresh 失败，直接拒绝
+      if (isLoginRequest || isRefreshRequest || isSessionRelease) {
+        // 登录/refresh/释放会话失败，不要连锁 refresh→401 再 logout
         return Promise.reject(toApiError(error, msg))
       }
 

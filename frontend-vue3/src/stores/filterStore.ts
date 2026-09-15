@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { getPeriodDateRange, computeCompareRange, type PeriodType, type CompareMode } from '@/utils/date'
+import { client } from '@/api'
+import { getPeriodDateRange, periodNowFromCutoff, computeCompareRange, type PeriodType, type CompareMode } from '@/utils/date'
 
 export const useFilterStore = defineStore('filter', () => {
+  const dataCutoff = ref<string | null>(null)
   const dateRange = ref<[string, string]>(getPeriodDateRange('MTD')!)
   const channel = ref<string>('全店')
   const dimension = ref<string>('channel')
@@ -100,10 +102,30 @@ export const useFilterStore = defineStore('filter', () => {
     dimensionValue.value = ''
   })
 
+  function periodNow(): Date {
+    return dataCutoff.value ? periodNowFromCutoff(dataCutoff.value) : new Date()
+  }
+
+  async function hydrateFromWarehouseCutoff(): Promise<void> {
+    try {
+      const res = await client.get('/v1/metrics/cutoff') as { cutoff_date?: string | null }
+      const cutoff = res?.cutoff_date
+      if (!cutoff) return
+      dataCutoff.value = cutoff
+      if (periodType.value !== 'custom') {
+        const next = getPeriodDateRange(periodType.value, periodNow())
+        if (next) dateRange.value = next
+      }
+    } catch {
+      // keep calendar MTD if cutoff is unavailable
+    }
+  }
+
   return {
     dateRange, channel, dimension, dimensionValue,
     periodType, excludeLowPrice,
     compareMode, compareDateRange, compareParams, compareLabel,
     computedCompareDateRange, isCompareDateReadonly,
+    dataCutoff, periodNow, hydrateFromWarehouseCutoff,
   }
 })

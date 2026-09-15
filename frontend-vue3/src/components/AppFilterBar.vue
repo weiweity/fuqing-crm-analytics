@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { NDatePicker, NSelect, NSwitch } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { getPeriodDateRange, formatDate } from '@/utils/date'
@@ -33,10 +33,14 @@ const compareModeOptions = [
 
 // ── 默认日期：月维度（MTD） ──
 if (!filterStore.dateRange || filterStore.dateRange[0] === '') {
-  const range = getPeriodDateRange('MTD')
+  const range = getPeriodDateRange('MTD', filterStore.periodNow())
   if (range) filterStore.dateRange = range
   filterStore.periodType = 'MTD'
 }
+
+onMounted(() => {
+  void filterStore.hydrateFromWarehouseCutoff()
+})
 
 const dateRangeModel = computed({
   get(): [number, number] {
@@ -84,7 +88,7 @@ watch(() => filterStore.periodType, (type) => {
     return
   }
   if (type !== 'custom') {
-    const range = getPeriodDateRange(type)
+    const range = getPeriodDateRange(type, filterStore.periodNow())
     if (range) {
       isProgrammaticUpdate = true
       filterStore.dateRange = range

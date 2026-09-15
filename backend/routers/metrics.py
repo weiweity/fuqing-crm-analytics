@@ -15,6 +15,15 @@ from backend.services import check_future_date
 router = APIRouter(prefix="/api/v1/metrics", tags=["指标"])
 
 
+@router.get("/cutoff")
+def get_metrics_cutoff():
+    """Warehouse last pay_time as YYYY-MM-DD for dashboard default windows."""
+    from backend.services.health.rfm_analysis.prewarm import warehouse_cutoff_date
+
+    cutoff = warehouse_cutoff_date()
+    return {"cutoff_date": cutoff.isoformat() if cutoff else None}
+
+
 @router.get("/overview", response_model=OverviewMetrics)
 def get_metrics_overview(
     response: Response,

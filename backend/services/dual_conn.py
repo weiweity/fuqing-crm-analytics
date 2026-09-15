@@ -122,6 +122,30 @@ def get_request_connection() -> RequestConnection | None:
     return _request_conn_var.get()
 
 
+def has_open_read_connections() -> bool:
+    """True when the HTTP read pool has idle or borrowed connections on the file."""
+
+    with _read_lock:
+        if _read_pool:
+            return True
+    return _read_semaphore._value < ACTIVE_READ_LIMIT
+
+
+def open_matching_read_connection() -> duckdb.DuckDBPyConnection:
+    """Open an extra read-only conn with the HTTP pool fingerprint.
+
+    Does not take a pool semaphore (avoids deadlock when a request already
+    holds a slot). Use only as a fallback when request context is missing.
+    """
+
+    conn = duckdb.connect(
+        str(DUCKDB_PATH),
+        config=_db_config(),
+        read_only=True,
+    )
+    return _apply_runtime_settings(conn, READ_MEMORY_LIMIT)
+
+
 def _is_healthy(conn: duckdb.DuckDBPyConnection) -> bool:
     try:
         conn.execute("SELECT 1").fetchone()
