@@ -208,6 +208,8 @@ class QueryRouterMiddleware:
         "/api/v1/new-old-customer",
         "/api/v1/ad-hoc/two-year-overview",
         "/api/v1/ad-hoc/new-old-customer",
+        "/api/v1/category/overview/batch",
+        "/api/v1/rfm/extended",
     }
     READ_PREFIXES = (
         "/api/v1/audience/",
@@ -251,8 +253,9 @@ class QueryRouterMiddleware:
         """Classify a request as read, worker, or default.
 
         GET dashboard paths use the read pool. POST is admitted only via the
-        exact read-only allowlist (audience/summary, two-year-overview,
-        new-old-customer). Other POSTs keep the write-capable path.
+        exact read-only allowlist. Other POSTs keep the write-capable path.
+        category/overview/batch must be read: a write connect() while the
+        read pool holds the same DuckDB file raises ConnectionException.
         """
 
         method_u = method.upper()

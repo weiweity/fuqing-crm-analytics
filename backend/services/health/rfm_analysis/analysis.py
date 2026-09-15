@@ -42,9 +42,10 @@ def _new_duckdb_conn() -> duckdb.DuckDBPyConnection:
     from backend.services import dual_conn
 
     request_conn = dual_conn.get_request_connection()
-    read_only = request_conn is not None
+    read_only = request_conn is not None or dual_conn.has_open_read_connections()
     # L4.66: memory_limit/threads must be SET after connect, not in connect(config=).
-    # Putting those keys in the fingerprint collides with the write singleton.
+    # Putting those keys in the fingerprint collides with the HTTP read pool
+    # (read_only=True) and raises ConnectionException on the same file.
     conn = duckdb.connect(
         str(DUCKDB_PATH),
         config=dual_conn._db_config(),

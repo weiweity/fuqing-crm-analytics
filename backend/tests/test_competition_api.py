@@ -75,6 +75,8 @@ def test_classify_exact_readonly_posts_only():
     assert mw.classify("/api/v1/health", "GET") == "default"
     assert mw.classify("/api/v1/health/pool", "GET") == "default"
     assert mw.classify("/api/v1/customer-health/rfm-analysis", "GET") == "read"
+    assert mw.classify("/api/v1/category/overview/batch", "POST") == "read"
+    assert mw.classify("/api/v1/rfm/extended", "POST") == "read"
 
 
 def test_summary_forwards_period_not_folded_dates(monkeypatch):

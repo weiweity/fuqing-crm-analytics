@@ -248,6 +248,11 @@ async def lifespan(application: FastAPI):
         evict_idle_tokens_periodically(auth_evictor_stop)
     )
     logger.info("L4.85.6 auth token evictor background task 已启动")
+    try:
+        from backend.services.health.rfm_analysis.prewarm import maybe_start_prewarm_thread
+        maybe_start_prewarm_thread()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("RFM prewarm thread failed to start (不阻塞服务): %s", e)
     yield
     # 关闭时停止内存监控 + background task + 释放全局 DuckDB 连接
     from backend.db.memory_monitor import stop_memory_watchdog

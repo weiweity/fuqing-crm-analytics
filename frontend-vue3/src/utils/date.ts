@@ -139,8 +139,14 @@ export function computeCompareRange(current: [string, string], mode: CompareMode
   return null
 }
 
-export function getPeriodDateRange(type: PeriodType): [string, string] | null {
-  const today = new Date()
+export function periodNowFromCutoff(cutoffDate: string): Date {
+  const next = new Date(`${cutoffDate}T12:00:00`)
+  next.setDate(next.getDate() + 1)
+  return next
+}
+
+export function getPeriodDateRange(type: PeriodType, now: Date = new Date()): [string, string] | null {
+  const today = new Date(now)
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   const year = today.getFullYear()

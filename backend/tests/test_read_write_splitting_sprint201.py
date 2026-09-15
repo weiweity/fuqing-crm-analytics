@@ -88,6 +88,37 @@ class TestDualConnectionRouting:
             with pytest.raises(Exception):
                 conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
 
+    def test_get_connection_read_query_stays_readonly_when_pool_hot(
+        self, monkeypatch, worker_duckdb_path
+    ):
+        from backend.db.connection import get_connection
+        from backend.services import dual_conn
+
+        monkeypatch.setattr(dual_conn, "DUCKDB_PATH", worker_duckdb_path)
+        borrowed = dual_conn.get_read_connection()
+        dual_conn.return_read_connection(borrowed)
+        token = dual_conn.set_query_type("read")
+        try:
+            conn = get_connection()
+            assert conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 5
+            with pytest.raises(Exception):
+                conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
+        finally:
+            dual_conn.reset_query_type(token)
+
+    def test_get_connection_write_path_drains_idle_reads(
+        self, monkeypatch, worker_duckdb_path
+    ):
+        from backend.db.connection import get_connection
+        from backend.services import dual_conn
+
+        monkeypatch.setattr(dual_conn, "DUCKDB_PATH", worker_duckdb_path)
+        borrowed = dual_conn.get_read_connection()
+        dual_conn.return_read_connection(borrowed)
+        conn = get_connection()
+        conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
+        assert conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 6
+
     def test_write_connection_is_singleton_for_non_http_jobs(self, monkeypatch, worker_duckdb_path):
         from backend.services import dual_conn
 
@@ -104,6 +135,7 @@ class TestDualConnectionRouting:
         assert router.classify("/api/v1/ad-hoc/ai-sandbox-execute", "POST") == "worker"
         assert router.classify("/api/v1/auth/login", "POST") == "default"
         assert router.classify("/api/v1/health", "GET") == "default"
+        assert router.classify("/api/v1/category/overview/batch", "POST") == "read"
 
     def test_w5_cache_writes_degrade_in_readonly_request(self, monkeypatch, worker_duckdb_path):
         from backend.services import dual_conn

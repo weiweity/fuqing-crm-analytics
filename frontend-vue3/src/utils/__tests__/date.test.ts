@@ -3,7 +3,7 @@
 // 修复后: fallback 上一个完整周期 (上月完整月 / 上周完整周)
 // 跟 Sprint 173 用户截图复现 1:1: 当前日期 2026-07-01, MTD 应返 [2026-06-01, 2026-06-30]
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { getPeriodDateRange } from '../date'
+import { getPeriodDateRange, periodNowFromCutoff } from '../date'
 
 describe('Sprint 173 getPeriodDateRange 月初边界回归', () => {
   beforeEach(() => {
@@ -71,5 +71,10 @@ describe('Sprint 173 getPeriodDateRange 月初边界回归', () => {
   it('today=周三 (2026-06-17) WTD 应正常 [2026-06-15, 2026-06-16]', () => {
     setToday('2026-06-17')
     expect(getPeriodDateRange('WTD')).toEqual(['2026-06-15', '2026-06-16'])
+  })
+
+  it('warehouse cutoff 2026-07-26 makes MTD July, not calendar September', () => {
+    const now = periodNowFromCutoff('2026-07-26')
+    expect(getPeriodDateRange('MTD', now)).toEqual(['2026-07-01', '2026-07-26'])
   })
 })
