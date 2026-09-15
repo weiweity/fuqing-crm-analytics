@@ -30,8 +30,41 @@ def warehouse_cutoff_date() -> date | None:
         return _query()
 
 
+def dashboard_windows(cutoff: date) -> list[tuple[date, date]]:
+    """Same presets as the filter bar, with cutoff as the last data day."""
+    yesterday = cutoff
+    year = cutoff.year
+    month_start = cutoff.replace(day=1)
+    ytd_start = date(year, 1, 1)
+    weekday = cutoff.weekday()  # Mon=0
+    week_start = cutoff - timedelta(days=weekday)
+    windows = [
+        (yesterday, yesterday),
+        (week_start, yesterday),
+        (month_start, yesterday),
+        (ytd_start, yesterday),
+        (yesterday - timedelta(days=179), yesterday),
+        (yesterday - timedelta(days=364), yesterday),
+        (date(year, 1, 1), min(date(year, 3, 31), yesterday)),
+        (date(year, 4, 1), min(date(year, 6, 30), yesterday)),
+        (date(year, 7, 1), min(date(year, 9, 30), yesterday)),
+        (date(year, 10, 1), min(date(year, 12, 31), yesterday)),
+    ]
+    seen: set[tuple[date, date]] = set()
+    out: list[tuple[date, date]] = []
+    for start, end in windows:
+        if start > end:
+            continue
+        key = (start, end)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(key)
+    return out
+
+
 def prewarm_common_windows() -> None:
-    """Fill rfm_analysis_cache for 365d / 180d / MTD ending at warehouse cutoff."""
+    """Fill rfm_analysis_cache for every dashboard period ending at cutoff."""
 
     from backend.services.dual_conn import read_request_context
     from backend.services.health.rfm_analysis import get_rfm_analysis
@@ -41,13 +74,7 @@ def prewarm_common_windows() -> None:
         if cutoff is None:
             logger.warning("RFM prewarm skipped: orders.max(pay_time) is empty")
             return
-        month_start = cutoff.replace(day=1)
-        windows = [
-            (cutoff - timedelta(days=364), cutoff),
-            (cutoff - timedelta(days=179), cutoff),
-            (month_start, cutoff),
-        ]
-        for start, end in windows:
+        for start, end in dashboard_windows(cutoff):
             start_s, end_s = start.isoformat(), end.isoformat()
             try:
                 get_rfm_analysis(

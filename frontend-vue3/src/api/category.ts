@@ -10,6 +10,7 @@ export interface CategoryDistributionParams {
 
 export interface CategoryDistributionItem {
   name: string
+  display_name?: string
   user_count: number
   member_count: number
   gmv: number
@@ -30,6 +31,7 @@ export interface CategoryDistributionResponse {
 
 export interface CategoryOverviewItem {
   name: string
+  display_name?: string
   gsv: number
   gsv_yoy: number | null
   users: number

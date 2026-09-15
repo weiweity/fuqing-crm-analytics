@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional, List
 
 
 from backend.db.connection import get_connection
+from backend.services.category_display import mask_category_name
 from backend.semantic.segments import _segment_meta
 from backend.semantic.time import normalize_date as _normalize_date
 from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
@@ -243,6 +244,7 @@ def get_category_distribution(
         member_ratio = round(member_gsv / gmv, 4) if gmv > 0 else 0.0
         distribution.append({
             "name": category_name,
+            "display_name": mask_category_name(category_name),
             "user_count": user_count,
             "member_count": member_count,
             "gmv": round(gmv, 2),

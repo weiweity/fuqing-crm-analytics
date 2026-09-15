@@ -31,6 +31,7 @@ import ChurnWarningTab from './category-tabs/ChurnWarningTab.vue'
 import CategoryRepurchaseTab from './category-tabs/CategoryRepurchaseTab.vue'
 import ProductClassRepurchaseTab from './category-tabs/ProductClassRepurchaseTab.vue'
 import { useRouteHashTab } from '@/composables/useRouteHashTab'
+import { categoryDisplayName, selectableCategoryNames } from '@/utils/maskCategoryName'
 
 const filterStore = useFilterStore()
 const activeTab = ref('overview')
@@ -98,10 +99,10 @@ const {
   staleTime: 60_000,
 })
 
-// 品类列表（用于回购分析下拉框）
+// 品类列表（用于回购分析下拉框）：value 必须是原名，合计行不能进筛选
 const categoryOptions = computed(() => {
   if (!distributionData.value?.distribution) return []
-  return distributionData.value.distribution.map((d) => d.name)
+  return selectableCategoryNames(distributionData.value.distribution.map((d) => d.name))
 })
 
 
@@ -123,14 +124,14 @@ const topPenetration = computed(() => {
   const items = distributionData.value?.distribution
   if (!items?.length) return '—'
   const top = [...items].sort((a, b) => b.penetration_rate - a.penetration_rate)[0]
-  return `${top.name} ${(top.penetration_rate * 100).toFixed(1)}%`
+  return `${categoryDisplayName(top)} ${((top.penetration_rate || 0) * 100).toFixed(1)}%`
 })
 
 const topGsvCategory = computed(() => {
   const items = sortedDistribution.value
   if (!items?.length) return '—'
   const top = items[0]
-  return `${top.name} ¥${(top.gmv / 10000).toFixed(1)}万`
+  return `${categoryDisplayName(top)} ¥${(top.gmv / 10000).toFixed(1)}万`
 })
 
 // 按GSV降序排序的品类分布（饼图和表格统一使用）
@@ -192,7 +193,7 @@ const pieChartOption = computed(() => {
           label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#0f172a' },
         },
         labelLine: { show: true, length: 10, length2: 8, lineStyle: { color: '#cbd5e1' } },
-        data: items.map((item: CategoryDistributionItem) => ({ name: item.name, value: item.gmv })),
+        data: items.map((item: CategoryDistributionItem) => ({ name: categoryDisplayName(item), value: item.gmv })),
       },
     ],
   }
@@ -309,6 +310,7 @@ const compactColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -347,6 +349,7 @@ const compactMemberColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -401,6 +404,7 @@ const allColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -461,6 +465,7 @@ const memberColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -606,7 +611,7 @@ const exportFilenamePrefix = computed(() => `品类分析_${filterStore.dateRang
 // L4.79 + L4.80 flatten compactXlsxColumns 26 列到行: 从 CategoryOverviewItem 提取 (全店 + 老客 + 新客 + 会员占比 + 会员渗透率)
 function flattenOverviewRow(row: Record<string, any>, includeMember: boolean): Record<string, any> {
   const base: Record<string, any> = {
-    name: row.name,
+    name: categoryDisplayName(row),
     // 全店 group
     gsv: row.gsv,
     gsv_yoy: row.gsv_yoy,
@@ -654,7 +659,7 @@ const memberCompactXlsxData = computed(() =>
 )
 const distributionXlsxData = computed(() =>
   sortedDistribution.value.map((r: any) => ({
-    name: r.name,
+    name: categoryDisplayName(r),
     gmv: r.gmv,
     user_count: r.user_count,
     member_ratio: r.member_ratio,
@@ -750,7 +755,7 @@ const distributionXlsxData = computed(() =>
                     <p class="text-[11px] text-slate-500 mb-3">各品类GSV与用户规模（按GSV降序）</p>
                     <DataTablePro
                       :columns="[
-                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', align: 'center', sorter: 'default' },
+                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', align: 'center', sorter: 'default', render: (row: CategoryDistributionItem) => categoryDisplayName(row) },
                         { title: 'GSV', key: 'gmv', width: 130, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.gmv ?? 0) - (b.gmv ?? 0), render: (row: any) => `¥${(row.gmv / 10000).toFixed(1)}万` },
                         { title: '用户数', key: 'user_count', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.user_count ?? 0) - (b.user_count ?? 0) },
                         { title: '会员占比', key: 'member_ratio', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.member_ratio ?? 0) - (b.member_ratio ?? 0), render: (row: any) => `${((row.member_ratio || 0) * 100).toFixed(1)}%` },

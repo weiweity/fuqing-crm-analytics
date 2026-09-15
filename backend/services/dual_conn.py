@@ -74,6 +74,21 @@ def _db_config() -> dict[str, str]:
     return cfg
 
 
+def quote_duckdb_literal(value: str) -> str:
+    """Escape a filesystem path for a DuckDB string literal."""
+    return value.replace("'", "''")
+
+
+def _ensure_archive_fill_views(conn: duckdb.DuckDBPyConnection) -> None:
+    """Re-ATTACH the archive so persisted wrapper views can see src.*."""
+    archive = os.environ.get("FQ_ARCHIVE_DUCKDB", "").strip()
+    if not archive:
+        return
+    conn.execute(
+        f"ATTACH IF NOT EXISTS '{quote_duckdb_literal(archive)}' AS src (READ_ONLY)"
+    )
+
+
 def _apply_runtime_settings(
     conn: duckdb.DuckDBPyConnection,
     memory_limit: str,
@@ -87,6 +102,7 @@ def _apply_runtime_settings(
     """
     conn.execute("SET memory_limit = ?", [memory_limit])
     conn.execute("SET threads = ?", [DUCKDB_THREADS])
+    _ensure_archive_fill_views(conn)
     return conn
 
 
