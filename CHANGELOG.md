@@ -30,6 +30,7 @@
 - 2026-09-14 S2-C1（#136，`b7dbc7b`）：原生 catalog 与 `GET /api/v1/analytics/board-spec/context` 对当前受信会话返回已保存看板摘要（`board_id`/title/version）。读取状态为 complete／truncated／unavailable／unknown；不可用时省略 `saved_boards`。最多扫描 500 个 head、返回 20 条，没有独立续页。确认前的预览不进已保存列表；再生成是另一份未确认新板。有界合成复验中模型不再把已存 v2 称为待放弃旧草稿。不升版本。
 - 2026-09-14 S2 其余真实模型与 V-C 抽样（文档，不升版本）：同一 6677／DeepSeek-V41-Flash High 完成 LINE 图例、BAR 标签、TABLE 仅 period、TEXT 正文、EVIDENCE 摘要的预览／取消／确认／重开，以及 LINE 换数到 8/1–15、当前模型板回退到新 v8。Figma 正式帧只读可读；原型点击仍登录墙。390 单列与 Tab 焦点抽样后，补跑 390 保存链（LINE 图例 false→true，原板 v9）。不是完整 G5。本人 UAT、B3 九态与 R-1（TABLE/FUNNEL 422、bash）仍开放。本机账本 `.context/checks/va-a1-a2-20260914/RESULT.md` 不进 Git。
 - 2026-09-15 S3 原型与正式壳续验（文档，不升版本）：指定 Figma 点击矩阵通过；正式壳 B3 九类状态代表路径及桌面／390 有实测。说明板终态 v9。窄屏侧栏、拒绝取消文案、完整分支×视口矩阵仍开放。不勾 G1–G6，不代签 UAT。本机账本 `.context/checks/` 不进 Git。
+- 2026-09-15 S3 正式壳交叉补验（文档，不升版本）：B3 核心恢复分支补齐桌面／390 交叉，恢复按钮忙态 12 次实点无额外请求。说明板有意保存至 v14；85 桌面取消忙态意外返回对话为 INCONCLUSIVE。随后 88 写入前阻断未生效，实际新增同正文 v15，记 SETUP_FAILED，不算新通过。不勾 G1–G6。本机 `.context/checks/` 不进 Git。
 
 - 卫生：STATUS / TODOS / AGENTS 快照跟 `main` v0.8.0.0（#129 已合）。黑客松旧文里的 0.1.3 / 0.7.0.0 SHA 是当时快照，不改。
 
