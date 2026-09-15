@@ -84,10 +84,62 @@ test('registered diagnosis → generate → native confirmation → layout/rollb
     ...(definition.requires_result ? { source_result_id: resultId } : {}), props: initialProps[kind] ?? {},
     layout: { x: 0, y: index * 10, ...definition.default_size },
   }));
+  // R-1: reproduce the two historical payload defects, preserving FUNNEL.
+  const bridge = await mountNativeBoardBridge(); t.after(() => bridge.close());
+  const readOrCancel = async (operation, payload = {}) => {
+    const reply = await bridge.call('/shine-mage-board', operation, payload);
+    assert.equal(reply.ok, true, JSON.stringify(reply));
+    return reply.value;
+  };
+  const tableArgs = { title: 'R-1 属性', blocks: [structuredClone(blocks.find(block => block.kind === 'TABLE'))] };
+  tableArgs.blocks[0].props.show_values = true;
+  const invalid = await execute('competition_board_generate', tableArgs, 'r1_refused');
+  assert.equal(invalid.error.code, 'COMPONENT_PROPERTY');
+  assert.match(invalid.error.message, /TABLE.*show_values/);
+  assert.equal(invalid.error.details.phase, 'preflight');
+  // Exercise the registered SDK guard, with a harmless counter as the shell.
+  const { defineTool } = await load('packages/core/tools');
+  let shellExecutions = 0;
+  ctx.tools.register(defineTool({ name: 'bash', description: 'Isolated counter; never runs a command.', parameters: {},
+    output: { schema: { type: 'object', additionalProperties: true }, render: () => [{ type: 'text', text: 'isolated counter' }] },
+    execute: async () => { shellExecutions++; return {}; } }));
+  const blocked = await ctx.tools.execute({ name: 'bash', arguments: {}, agent: agents.get('r1_refused'),
+    callId: 'r1_blocked_shell', signal: new AbortController().signal });
+  assert.equal(blocked.isError, true); assert.match(JSON.stringify(blocked), /method boundary/);
+  assert.equal(shellExecutions, 0);
+  await execute('bash', {}, 'ordinary_native_turn'); assert.equal(shellExecutions, 1);
+  const geometry = { LINE: { x: 6, y: 4, w: 6, h: 7 }, FUNNEL: { x: 0, y: 10, w: 6, h: 6 }, TABLE: { x: 6, y: 10, w: 6, h: 6 } };
+  const overlapArgs = { title: 'R-1 布局', blocks: Object.entries(geometry).map(([kind, layout]) => ({
+    ...structuredClone(blocks.find(block => block.kind === kind)), layout,
+  })) };
+  const overlapResult = await execute('competition_board_generate', overlapArgs);
+  assert.equal(overlapResult.error.code, 'COMPONENT_OVERLAP');
+  assert.match(overlapResult.error.message, /blocks\[2\].*blocks\[0\]/);
+  const rawPreview = async args => fetch(`${process.env.COMPETITION_HTTP_BASE}/api/v1/analytics/board-spec/previews`, {
+    method: 'POST', headers: { authorization: `Bearer ${process.env.COMPETITION_HTTP_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ ...args, session_id: 'native_session' }),
+  });
+  for (const args of [tableArgs, overlapArgs]) {
+    const response = await rawPreview(args);
+    assert.equal(response.status, 422, 'backend must still reject the original invalid payload');
+    await response.json();
+  }
+  delete tableArgs.blocks[0].props.show_values;
+  overlapArgs.blocks[2].layout.y = 11;
+  for (const args of [tableArgs, overlapArgs]) {
+    const result = await execute('competition_board_generate', args);
+    assert.equal(result.status, 'PREVIEW_READY'); assert.equal(result.published, false);
+    const pending = await readOrCancel('preview', { preview_id: result.preview_id });
+    assert.equal(pending.status, 'PENDING');
+    assert.deepEqual(pending.snapshot.spec.blocks.map(block => block.kind), args.blocks.map(block => block.kind));
+    if (args === overlapArgs) assert.equal(pending.snapshot.facts_by_result_id[resultId].funnel.stages.length, 3);
+    await readOrCancel('cancel', { preview_id: result.preview_id });
+  }
+  assert.deepEqual((await readOrCancel('list')).items, [], 'invalid and cancelled drafts never become saved heads');
+  assert.equal((await execute('competition_board_catalog', {})).results.length, 1, 'configuration recovery reuses the same computed result');
   const draft = await execute('competition_board_generate', { title: '真实链路合成看板', blocks });
   assert.equal(draft.status, 'PREVIEW_READY'); assert.equal(draft.published, false);
   assert.deepEqual(outcomes.at(-1).meta, draft, 'real native dispatch must project canonical preview to tool-card metadata');
-  const bridge = await mountNativeBoardBridge(); t.after(() => bridge.close());
   const editRequests = [];
   const ui = createLibraryBoardClient(bridge.call, { editNative: async context => { editRequests.push(context); } }); t.after(() => ui.dispose());
   await ui.refresh(); assert.deepEqual(ui.getSnapshot().boards, []);

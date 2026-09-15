@@ -16,7 +16,7 @@
 
 ## 本轮施工计划（现行，不要只记在对话里）
 
-S2-C1 代码已合 #136。V-A/B/C 文档收口后，当前接续 **S3 原型与正式壳验收**，不开启新功能、不升版本。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)，不用另建 `todo.md`。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，审查、QA、CI 与各动作授权分别核验。
+S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)已合 #152（`c734957`）。用户继续授权后，当前单独处理 **[R-1 生成配置错误恢复](docs/hackathon/R1-GENERATION-RECOVERY-2026-09-15.md)**：TABLE 非法属性、LINE/TABLE 布局重叠及失败后的工具边界。已完成本地修复与隔离 HTTP／原生工具回归，B0 完整检查与干净重建通过；真实模型复验与本批 Git 交付未执行，不升版本。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，各动作授权分别核验。
 
 产品方向：原生问数 → 复用结果、优先定制组件自由组板 → 预览 → 确认保存 → 指定组件 AI 修改／自由布局 → 重开／回退。六类是首批能力，不是六张固定模板或最终上限；旧交接的三操作、固定会话和主区互斥不是最终产品要求。
 
