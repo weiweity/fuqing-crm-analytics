@@ -11,6 +11,7 @@
 | [`hackathon/PRODUCT-READINESS-2026-09-10.md`](./hackathon/PRODUCT-READINESS-2026-09-10.md) | 七阶段验收账本 |
 | [`hackathon/TODOS.md`](./hackathon/TODOS.md) | 验收缺口与延期项（不是执行授权） |
 | [`hackathon/S3-ACCEPTANCE-2026-09-15.md`](./hackathon/S3-ACCEPTANCE-2026-09-15.md) | 9-15 指定 Figma 矩阵与正式壳 B3 代表路径（PARTIAL，不升版本） |
+| [`hackathon/S3-CROSS-MATRIX-2026-09-15.md`](./hackathon/S3-CROSS-MATRIX-2026-09-15.md) | 9-15 正式壳核心分支双视口交叉；v14 账本，v15 为 SETUP_FAILED |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
 | [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
 | [`../DESIGN.md`](../DESIGN.md) | 伸美 VI、Liquid Glass 令牌与页面组件边界 |
@@ -29,6 +30,7 @@ fuqing-crm-analytics/docs/
 │   ├── README.md                     CEO 价值、主链与边界
 │   ├── TODOS.md / PRODUCT-READINESS-…  当前缺口与七阶段账本
 │   ├── S3-ACCEPTANCE-2026-09-15.md    9-15 原型／正式壳续验
+│   ├── S3-CROSS-MATRIX-2026-09-15.md  9-15 核心分支交叉补验
 │   ├── MISSION-API.md                 API、幂等与状态流
 │   └── ARCHITECTURE-AND-RELEASE-AUDIT.md  架构审计与提交清单
 │
