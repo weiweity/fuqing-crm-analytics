@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { client } from '@/api'
+import client from '@/api'
 import { getPeriodDateRange, periodNowFromCutoff, computeCompareRange, type PeriodType, type CompareMode } from '@/utils/date'
 
 export const useFilterStore = defineStore('filter', () => {
