@@ -51,6 +51,15 @@ class TestRFM3PeriodsSerialLockRegression:
             "(3 conn 并发雪崩根因). 必须用 _run_rfm_period_serial 单 conn 顺序跑 3 周期."
         )
 
+    def test_new_duckdb_conn_does_not_put_memory_limit_in_connect_config(self):
+        src = inspect.getsource(analysis._new_duckdb_conn)
+        assert "get_duckdb_config" not in src, (
+            "L4.66: _new_duckdb_conn 禁止 connect(config=get_duckdb_config())。"
+            "memory_limit/threads 进 fingerprint 会和 write singleton 冲突。"
+        )
+        assert "dual_conn._db_config()" in src
+        assert "_apply_runtime_settings" in src
+
     def test_run_rfm_period_serial_exists(self):
         """L4.69 治本: _run_rfm_period_serial helper 函数必须存在 (单 conn 顺序封装).
 

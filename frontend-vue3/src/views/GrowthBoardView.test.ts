@@ -260,6 +260,15 @@ describe('GrowthBoardView', () => {
     expect(wrapper.text()).toContain('诊断暂不可用')
   })
 
+  it('Mission 未启用时 404 不当成读取失败', async () => {
+    const err = Object.assign(new Error('Mission 公网演示未启用'), { status: 404 })
+    api.getTodayMission.mockRejectedValueOnce(err)
+    const wrapper = mount(GrowthBoardView)
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Mission 公网演示未启用')
+    expect(wrapper.text()).not.toContain('暂时无法读取今日 Mission')
+  })
+
   it('审批后串行生成 DRAFT_EXPORT', async () => {
     const wrapper = mount(GrowthBoardView)
     await flushPromises()

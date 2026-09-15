@@ -36,4 +36,16 @@ describe('frontend security hosting', () => {
       /PREVIEW_CONTENT_SECURITY_POLICY\s*=.*https?:/i,
     )
   })
+
+  it('lets Vite HMR use a blob worker in dev without relaxing script-src', () => {
+    const viteConfig = readFileSync(resolve(frontendRoot, 'vite.config.ts'), 'utf8')
+    expect(viteConfig).toContain("worker-src 'self' blob:")
+    expect(viteConfig).toMatch(
+      /DEV_CONTENT_SECURITY_POLICY = buildContentSecurityPolicy\("'self' ws: wss:", \[\s*"worker-src 'self' blob:",\s*\]\)/,
+    )
+    expect(viteConfig).not.toContain("'unsafe-eval'")
+    expect(viteConfig).not.toMatch(
+      /PREVIEW_CONTENT_SECURITY_POLICY[\s\S]{0,200}worker-src/,
+    )
+  })
 })

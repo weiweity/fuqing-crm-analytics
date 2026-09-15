@@ -65,6 +65,12 @@ async function loadMission() {
     mission.value = nextMission
     draftExport.value = nextMission.latest_export
   } catch (error: any) {
+    // 404 = Mission 公网演示未启用（fail-closed），不是代理连不上。
+    if (error?.status === 404) {
+      mission.value = null
+      draftExport.value = null
+      return
+    }
     errorMessage.value = error?.message || '暂时无法读取今日 Mission'
   } finally {
     loading.value = false
