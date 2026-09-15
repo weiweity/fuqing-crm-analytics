@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List, Tuple
 
 from backend.db.connection import get_connection
+from backend.services.category_display import mask_category_name
 from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
 
@@ -429,6 +430,7 @@ def get_category_overview(
 
         return {
             "name": name,
+            "display_name": mask_category_name(name),
             "gsv": round(c.get("gsv", 0), 2),
             "gsv_yoy": _clamp_yoy(yoy_absolute(c.get("gsv", 0), p.get("gsv", 0))),
             "users": c.get("users", 0),
