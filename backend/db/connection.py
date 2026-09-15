@@ -128,14 +128,16 @@ def get_connection() -> ThreadSafeConnection:
     if request_conn is not None:
         return ThreadSafeConnection(request_conn.conn, request_conn.lock, pooled=True)
 
-    # HTTP 读池已打开同一文件时，禁止再开 write 单例（DuckDB 1.5+ 指纹冲突 → 500）。
-    if dual_conn.has_open_read_connections():
+    # HTTP 读请求丢了 ContextVar 时，跟读池同指纹，绝不开 write。
+    if dual_conn.get_query_type() == "read" and dual_conn.has_open_read_connections():
         logger.warning(
-            "get_connection() fell through without request context while HTTP "
-            "read connections are open; borrowing a matching read-only conn"
+            "get_connection() lost request context on a read query; "
+            "opening a matching read-only conn"
         )
         conn = dual_conn.open_matching_read_connection()
         return ThreadSafeConnection(conn, pooled=True)
+
+    dual_conn.drain_idle_read_pool()
 
     global _conn
     if _conn is not None:

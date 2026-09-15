@@ -88,7 +88,7 @@ class TestDualConnectionRouting:
             with pytest.raises(Exception):
                 conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
 
-    def test_get_connection_does_not_open_write_while_read_pool_hot(
+    def test_get_connection_read_query_stays_readonly_when_pool_hot(
         self, monkeypatch, worker_duckdb_path
     ):
         from backend.db.connection import get_connection
@@ -97,11 +97,27 @@ class TestDualConnectionRouting:
         monkeypatch.setattr(dual_conn, "DUCKDB_PATH", worker_duckdb_path)
         borrowed = dual_conn.get_read_connection()
         dual_conn.return_read_connection(borrowed)
-        assert dual_conn.has_open_read_connections() is True
+        token = dual_conn.set_query_type("read")
+        try:
+            conn = get_connection()
+            assert conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 5
+            with pytest.raises(Exception):
+                conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
+        finally:
+            dual_conn.reset_query_type(token)
+
+    def test_get_connection_write_path_drains_idle_reads(
+        self, monkeypatch, worker_duckdb_path
+    ):
+        from backend.db.connection import get_connection
+        from backend.services import dual_conn
+
+        monkeypatch.setattr(dual_conn, "DUCKDB_PATH", worker_duckdb_path)
+        borrowed = dual_conn.get_read_connection()
+        dual_conn.return_read_connection(borrowed)
         conn = get_connection()
-        assert conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 5
-        with pytest.raises(Exception):
-            conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
+        conn.execute("INSERT INTO orders VALUES ('x', 'u', 1, FALSE, '已付款', FALSE)")
+        assert conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 6
 
     def test_write_connection_is_singleton_for_non_http_jobs(self, monkeypatch, worker_duckdb_path):
         from backend.services import dual_conn

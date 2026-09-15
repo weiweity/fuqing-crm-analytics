@@ -131,6 +131,18 @@ def has_open_read_connections() -> bool:
     return _read_semaphore._value < ACTIVE_READ_LIMIT
 
 
+def drain_idle_read_pool() -> None:
+    """Close pooled idle reads so a write connect() can use the same file."""
+
+    with _read_lock:
+        while _read_pool:
+            conn = _read_pool.pop()
+            try:
+                conn.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+
 def open_matching_read_connection() -> duckdb.DuckDBPyConnection:
     """Open an extra read-only conn with the HTTP pool fingerprint.
 
