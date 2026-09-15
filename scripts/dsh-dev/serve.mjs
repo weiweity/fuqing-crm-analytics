@@ -7,7 +7,7 @@ import { mkdir, mkdtemp, writeFile, readFile, access, rm } from 'node:fs/promise
 import { createServer } from 'node:http';
 import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { API_KEY_ENV, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
+import { API_KEY_ENV, FOREIGN_PORTS, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
 import { findReadyUrl, originOf, redactLaunchLog } from './launch-url.mjs';
 import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
 import { readToolchain, verifyUpstream } from './pin.mjs';
@@ -255,7 +255,7 @@ export async function writeCurrent(state, path = currentPath()) {
     startId: state.startId ?? null,
     ownedPorts: [PORTS.kernel, PORTS.bridge, PORTS.web, PORTS.gateway, PORTS.mock],
     boundPorts: [state.webPort],
-    foreignPortsUntouched: [8000, 5173, 4315, 4316, 4317, 4318, 4319],
+    foreignPortsUntouched: [...FOREIGN_PORTS], // 15173 is COMPETITION_VITE_PORT: not bound, classified separately
   });
 }
 

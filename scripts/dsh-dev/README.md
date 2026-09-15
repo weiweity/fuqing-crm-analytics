@@ -1,6 +1,6 @@
 # dsh-dev
 
-本地完整 DSH web 基座入口。不是 B0 合成笼，不管理 8000/5173/4315–4319。
+本地完整 DSH web 基座入口。不是 B0 合成笼，不管理 8000/5173/15173/4315–4319。
 
 固定上游：`deepseek-ai/deepseek-harness@183f08e9c6dde7e36cd2318eaee70b0da08fb35e`（0.1.5-rc.1）。Node 24。后续再升版本仍改 `dsh-plugins/analytics-workbench/toolchain.json` 与本入口 `PINNED_SHA`，不要直接改上游源码。
 
@@ -29,11 +29,12 @@ PATH 上的 Node 若不是 24，check/start 会失败。诊断会指出可用的
 | 端口 | 角色 | 本入口 |
 |---|---|---|
 | 127.0.0.1:4327 | 用户 DSH 演示 | 禁止停止、复用、HTTP 探测冒充本轨 |
-| 8000 / 5173 | 用户已有 Mission/Vite | 禁止停止或复用 |
+| 8000 / 5173 | 用户已有 Mission/通用 Vite | 禁止停止或复用 |
+| 15173 | 比赛看板 Vite（`start-stack` 默认） | 禁止停止或复用；本入口不绑定 |
 | 4315–4319 | B0 合成笼 | 禁止停止或复用 |
 | **6677** | 本产品本地 DSH（浏览器可开） | `--plugin on` 装伸美包；`--plugin off` 只禁用该包，官方壳还在 |
 | **14327** | 比赛轨独立 DSH | 允许作为 `--web-port`；默认不启动 |
-| 15173 | 比赛轨 Vite 预留 | 本入口不绑定 |
+
 
 `start` 在目标端口已被占用时失败（`assertFree`），不会去杀占用者。`stop` 只向本工作树 `current.json` 里的 supervisor control 发 Bearer，不根据 PID 杀进程。
 
