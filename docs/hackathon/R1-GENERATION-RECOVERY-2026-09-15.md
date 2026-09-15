@@ -1,6 +1,6 @@
 # R-1 生成配置错误恢复（2026-09-15）
 
-本地修复与隔离原生工具／HTTP 回归完成，B0 完整检查与干净重建通过。基线为已合 S3 的 `c734957`（#152），分支 `codex/fix-r1-board-generation`。本批尚未提交、推送或切换运行环境；真实模型行为复验仍 **NOT_RUN**，产品保持 **PARTIAL**。
+本地修复与隔离原生工具／HTTP 回归完成，B0 完整检查与干净重建通过。基线为已合 S3 的 `c734957`（#152），分支 `codex/fix-r1-board-generation`。修复提交 `dccc80e` 已提交、推送至草稿 [PR #153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)，推送门禁通过。真实模型行为复验仍 **NOT_RUN**；尚未切换运行环境或合并，产品保持 **PARTIAL**。
 
 ## 原因与原始证据
 
@@ -38,6 +38,8 @@
 
 ## 交付与剩余
 
-本地详细记录位于本工作树 `.context/checks/r1-board-generation-20260915/`，不进 Git。本批 Git 动作按本批实际授权执行，既有 S3 授权和已完成 PR 不重复使用。
+本地详细记录位于本工作树 `.context/checks/r1-board-generation-20260915/`，不进 Git。提交前 `/review` 已完成 OCR preview/rule：5 个代码/配置文件全部审查，另手审 6 个 Markdown，无未闭合高风险问题。PR 与当前 HEAD 的 CI 状态、最终合并回执以 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153) 为准；CI 不能替代真实模型 QA。
+
+运行只读预检通过：现有 6677 仍加载原目录插件，默认模型为 `deepseek-official/deepseek-flash`，业务服务已配置；这不验证凭据有效性或实际模型请求。说明板 v15 与原板 v9 的正文指纹已留存，未新增版本。已准备临时切换与恢复方案：确认窗口后使用候选插件与原持久 runtime，新会话最多 3 次提示，只检查并取消新预览，结束恢复原插件并核对已存正文。当前窗口待确认，合并前 QA 保持开放。
 
 R-1 代码恢复链已具备隔离证据，真实模型行为仍待固定候选、有界调用与明确运行窗口复验。85 历史导航、S4、S5 用户 UAT 和 G1–G6／U1 继续独立挂账；不重跑 Figma/B3 全矩阵，不代签验收。
