@@ -8,6 +8,61 @@ import { BOARD_CATALOG_TOOL_NAME as CATALOG, BOARD_GENERATE_TOOL_NAME as GENERAT
 import { COMPONENT_CATALOG } from '../board-spec/component-catalog.mjs';
 import { libraryPreview, librarySnapshot } from '../../test/helpers/library-board-fixtures.mjs';
 
+test('generation identifies TABLE properties before HTTP and preserves the caller draft', async t => {
+  const previous = ['COMPETITION_HTTP_BASE', 'COMPETITION_HTTP_TOKEN'].map(key => [key, process.env[key]]);
+  t.after(() => previous.forEach(([key, value]) => { if (value === undefined) delete process.env[key]; else process.env[key] = value; }));
+  process.env.COMPETITION_HTTP_BASE = 'http://127.0.0.1:4318';
+  process.env.COMPETITION_HTTP_TOKEN = 'isolated-r1-tool-test';
+  const args = { title: 'R-1 属性复现', blocks: [{ block_id: 'table', kind: 'TABLE', title: '明细',
+    library_version: COMPONENT_CATALOG.library_version, source_result_id: 'result_test',
+    layout: { x: 0, y: 10, w: 12, h: 7 }, props: { page_size: 10, sort_direction: 'asc', show_values: true } }] };
+  const before = structuredClone(args);
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => { calls++; return Response.json({ error: {
+    code: 'INVALID_REQUEST', message: '请求与当前合同不匹配。',
+  } }, { status: 422 }); });
+  const result = await executeBoardTool(GENERATE, args, { agent: { session: { id: 'native_session' } } });
+  assert.equal(result.status, 'REFUSED');
+  assert.equal(result.error.code, 'COMPONENT_PROPERTY');
+  assert.match(result.error.message, /blocks\[0\].*TABLE.*show_values/);
+  assert.equal(result.error.details.phase, 'preflight');
+  assert.equal(calls, 0, 'invalid props must not reach HTTP or be retried');
+  assert.deepEqual(args, before, 'do not silently drop unsupported props');
+});
+
+test('generation identifies LINE/TABLE overlap and retains FUNNEL when only the layout is corrected', async t => {
+  const previous = ['COMPETITION_HTTP_BASE', 'COMPETITION_HTTP_TOKEN'].map(key => [key, process.env[key]]);
+  t.after(() => previous.forEach(([key, value]) => { if (value === undefined) delete process.env[key]; else process.env[key] = value; }));
+  process.env.COMPETITION_HTTP_BASE = 'http://127.0.0.1:4318';
+  process.env.COMPETITION_HTTP_TOKEN = 'isolated-r1-tool-test';
+  const make = (kind, layout) => ({ block_id: kind.toLowerCase(), kind, title: kind,
+    library_version: COMPONENT_CATALOG.library_version, source_result_id: 'result_test', props: {}, layout });
+  const args = { title: 'R-1 布局复现', blocks: [
+    make('LINE', { x: 6, y: 4, w: 6, h: 7 }),
+    make('FUNNEL', { x: 0, y: 10, w: 6, h: 6 }),
+    make('TABLE', { x: 6, y: 10, w: 6, h: 6 }),
+  ] };
+  const original = structuredClone(args), calls = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    const body = JSON.parse(options.body); calls.push(body);
+    return Response.json(libraryPreview({ facts_by_result_id: { result_test: {} }, spec: {
+      ...librarySnapshot().spec, title: body.title, blocks: body.blocks,
+    } }));
+  });
+  const exec = { agent: { session: { id: 'native_session' } } };
+  const refused = await executeBoardTool(GENERATE, args, exec);
+  assert.equal(refused.error.code, 'COMPONENT_OVERLAP');
+  assert.match(refused.error.message, /blocks\[2\].*blocks\[0\]/);
+  assert.equal(calls.length, 0);
+  assert.deepEqual(args, original);
+  args.blocks[2].layout.y = 11;
+  const generated = await executeBoardTool(GENERATE, args, exec);
+  assert.equal(generated.status, 'PREVIEW_READY'); assert.equal(generated.published, false);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], { ...args, session_id: 'native_session' });
+  assert.deepEqual(calls[0].blocks[1], original.blocks[1], 'keep FUNNEL and its result binding');
+});
+
 test('native board tools use execution session, expose catalogue and preview only, never confirmation', async t => {
   const before = ['COMPETITION_HTTP_BASE', 'COMPETITION_HTTP_TOKEN'].map(key => [key, process.env[key]]);
   t.after(() => before.forEach(([key, value]) => { if (value === undefined) delete process.env[key]; else process.env[key] = value; }));
@@ -31,9 +86,10 @@ test('native board tools use execution session, expose catalogue and preview onl
   assert.equal((await executeBoardTool(GENERATE, null, exec)).error.code, 'INVALID_REQUEST');
   assert.equal(calls.length, 2);
   reply = libraryPreview(); reply.snapshot.spec.session_id = 'other';
-  assert.equal((await executeBoardTool(GENERATE, {}, exec)).error.code, 'INVALID_RESPONSE');
+  const validArgs = { title: '有效请求', blocks: preview.snapshot.spec.blocks };
+  assert.equal((await executeBoardTool(GENERATE, validArgs, exec)).error.code, 'INVALID_RESPONSE');
   reply = { status: 'PENDING', operation: 'GENERATE', preview_id: 'preview_1', snapshot: { spec: { session_id: 'native_session' } } };
-  assert.equal((await executeBoardTool(GENERATE, {}, exec)).error.code, 'INVALID_RESPONSE');
+  assert.equal((await executeBoardTool(GENERATE, validArgs, exec)).error.code, 'INVALID_RESPONSE');
   reply = { schema_version: 'board-generation-context/v1', session_id: 'other', catalog: COMPONENT_CATALOG, results: [] };
   assert.equal((await executeBoardTool(CATALOG, {}, exec)).error.code, 'INVALID_RESPONSE');
 });
