@@ -30,7 +30,7 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vitest/ui": "^4.1.8",
